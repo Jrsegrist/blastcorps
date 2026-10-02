@@ -21,6 +21,8 @@ segments:
     - [0x1A00, asm, init/1A00]
     - [0x1A30, asm, init/1A30]
     - [0x1F40, asm, init/1F40]
+    - [0x2170, c, init/2170]   # osPiRawStartDma
+    - [0x2250, c, init/2250]   # osPiGetStatus
     - [0x2260, asm, init/2260]
     - [0x2280, asm, init/2280]
     - [0x2330, asm, init/2330]

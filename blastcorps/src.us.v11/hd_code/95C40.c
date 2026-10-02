@@ -1,6 +1,11 @@
 #include "common.h"
 #include <ultra64.h>
 
+/* func_802DA400/func_802DA41C: `(s64) arg0` from f64/f32 - exactly what the
+ * trunc.l.d/trunc.l.s hardware instructions compute, but IDO instead emits
+ * calls to its own `__d_to_ll`/`__f_to_ll` runtime helpers (same family as
+ * __ll_to_d/__ll_to_f below), which aren't linked into this segment. Same
+ * missing-private-copy situation as func_802DA574/func_802DA58C. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/95C40/func_802DA400.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/95C40/func_802DA41C.s")

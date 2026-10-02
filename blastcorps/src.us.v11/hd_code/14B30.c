@@ -3,7 +3,15 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/14B30/func_802592F0.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/14B30/func_80259450.s")
+extern s32 D_802E8C70;
+extern s32 D_802E8C74;
+extern s32 D_802E8C78;
+
+void func_80259450(void) {
+    D_802E8C70 = 0;
+    D_802E8C74 = 0;
+    D_802E8C78 = 0;
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/14B30/func_8025946C.s")
 

@@ -1,5 +1,8 @@
 #include "common.h"
 
+/* func_802A1320: `mfc0 $v0, $12` (read COP0 Status register) wrapped in a
+ * dead $ra save/restore frame - same hand-written COP0-leaf-stub character
+ * as __osGetSR in init/2330.c. Permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A1320.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A133C.s")

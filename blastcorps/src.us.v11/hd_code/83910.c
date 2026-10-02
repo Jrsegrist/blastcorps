@@ -1,4 +1,5 @@
 #include "common.h"
+#include <ultra64.h>
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/83910/func_802C80D0.s")
 
@@ -10,6 +11,8 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/83910/func_802C8AB0.s")
 
+/* TODO: func_802C8AF0 - same dead-$ra-frame-around-`return 1;` quirk as
+ * func_802BBE10 in 772A0.c. See that file's comment. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/83910/func_802C8AF0.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/83910/func_802C8B0C.s")

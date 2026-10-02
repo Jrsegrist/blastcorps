@@ -9,9 +9,17 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/9E700/func_802E38A0.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/9E700/func_802E3F90.s")
+void func_802E3F90(void *arg0, void *arg1) {
+    *(s32 *) arg1 = *(s32 *) ((u8 *) arg0 + 8);
+    *(s16 *) ((u8 *) arg1 + 0xc) = *(s16 *) ((u8 *) arg0 + 0x1a);
+    *(s32 *) ((u8 *) arg1 + 4) = *(s32 *) ((u8 *) arg0 + 0xc);
+}
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/9E700/func_802E3FAC.s")
+void func_802E3FAC(void *arg0, void *arg1) {
+    *(s32 *) ((u8 *) arg0 + 8) = *(s32 *) arg1;
+    *(s16 *) ((u8 *) arg0 + 0x1a) = *(s16 *) ((u8 *) arg1 + 0xc);
+    *(s32 *) ((u8 *) arg0 + 0xc) = *(s32 *) ((u8 *) arg1 + 4);
+}
 
 s32 func_802E3FC8(void *arg0) {
     return *(s32 *) ((u8 *) arg0 + 0xc);

@@ -55,8 +55,203 @@ typedef struct Huft {
     } v;
 } Huft;
 
-extern s32 huft_build(s32 *b, s32 n, s32 s, void *d, void *e, s32 *t, s32 *m);
+extern s32 D_802229E0;
+extern s32 D_802229EC;
 
+#define BMAX 16
+#define N_MAX 288
+
+/* TODO: huft_build - builds a Huffman decode table from a list of code
+ * lengths. Confirmed an exact algorithmic match against the reference
+ * source's own huft_build() - the bit-length counting, offset/value-table
+ * generation, and main table-building loop (including the `h`/`w`/`z`
+ * table-level bookkeeping and the backing-up logic) all line up one-to-one.
+ * Adapted in one way: the reference mallocs each new sub-table (`hufts`/
+ * `D_802229EC` tracks total entries allocated across calls, matching
+ * inflate()'s own `if (D_802229EC > sp1C) sp1C = D_802229EC;` high-water
+ * tracking) - this build instead bump-allocates from a fixed arena
+ * (D_802229E0 + D_802229EC*sizeof(Huft)), so there's no malloc-failure path
+ * and no huft_free() needed. Also confirmed (like inflate_codes) that the
+ * reference's defensive bounds-check error returns inside the main loop are
+ * absent from this build.
+ *
+ * Extraordinarily close for a function this size (460 instructions): the
+ * ENTIRE function matches exactly except the final return statement's
+ * register choice. `return y != 0 && g != 1;` (the literal reference form)
+ * computes correctly but lands the result in $s6 with an extra `move v0,s6`
+ * at the end; restructuring as an explicit two-step boolean (below) gets
+ * every instruction's CONTENT right but still ends up computing into a
+ * scratch register ($t1/$t9/$t7 depending on the exact phrasing tried)
+ * instead of computing directly into $v0 the way the target does from the
+ * very first instruction of this tail. Tried five phrasings (direct &&,
+ * early-return, explicit intermediate in a nested block, `register`-
+ * qualified intermediate, ternary) - the nested-block plain-`s32`
+ * version below was the closest (diff score 680, zero structural
+ * insertions/deletions, just this one register-choice tail). Whatever
+ * determines target's choice of $v0 here isn't reachable through the
+ * return expression's own phrasing - worth a fresh angle on why IDO
+ * would prefer $v0 unprompted for this specific short-circuit-into-return
+ * pattern.
+ *
+ * s32 huft_build(s32 *b, u32 n, u32 s, u16 *d, u8 *e, Huft **t, s32 *m) {
+ *     u32 a;
+ *     u32 c[BMAX + 1];
+ *     u32 f;
+ *     s32 g;
+ *     s32 h;
+ *     register u32 i;
+ *     register u32 j;
+ *     register s32 k;
+ *     s32 l;
+ *     register u32 *p;
+ *     register Huft *q;
+ *     Huft r;
+ *     Huft *u[BMAX];
+ *     u32 v[N_MAX];
+ *     register s32 w;
+ *     u32 x[BMAX + 1];
+ *     u32 *xp;
+ *     s32 y;
+ *     u32 z;
+ *
+ *     bzero(c, sizeof(c));
+ *     p = (u32 *) b;
+ *     i = n;
+ *     do {
+ *         c[*p]++;
+ *         p++;
+ *     } while (--i);
+ *     if (c[0] == n) {
+ *         *t = NULL;
+ *         *m = 0;
+ *         return 0;
+ *     }
+ *
+ *     l = *m;
+ *     for (j = 1; j <= BMAX; j++) {
+ *         if (c[j]) {
+ *             break;
+ *         }
+ *     }
+ *     k = j;
+ *     if ((u32) l < j) {
+ *         l = j;
+ *     }
+ *     for (i = BMAX; i; i--) {
+ *         if (c[i]) {
+ *             break;
+ *         }
+ *     }
+ *     g = i;
+ *     if ((u32) l > i) {
+ *         l = i;
+ *     }
+ *     *m = l;
+ *
+ *     for (y = 1 << j; j < (u32) i; j++, y <<= 1) {
+ *         y -= c[j];
+ *     }
+ *     y -= c[i];
+ *     c[i] += y;
+ *
+ *     x[1] = j = 0;
+ *     p = c + 1;
+ *     xp = x + 2;
+ *     while (--i) {
+ *         *xp++ = (j += *p++);
+ *     }
+ *
+ *     p = (u32 *) b;
+ *     i = 0;
+ *     do {
+ *         if ((j = *p++) != 0) {
+ *             v[x[j]++] = i;
+ *         }
+ *     } while (++i < n);
+ *
+ *     x[0] = i = 0;
+ *     p = v;
+ *     h = -1;
+ *     w = -l;
+ *     u[0] = NULL;
+ *     q = NULL;
+ *     z = 0;
+ *
+ *     for (; k <= g; k++) {
+ *         a = c[k];
+ *         while (a--) {
+ *             while (k > w + l) {
+ *                 h++;
+ *                 w += l;
+ *
+ *                 z = (z = g - w) > (u32) l ? l : z;
+ *                 if ((f = 1 << (j = k - w)) > a + 1) {
+ *                     f -= a + 1;
+ *                     xp = c + k;
+ *                     while (++j < z) {
+ *                         if ((f <<= 1) <= *++xp) {
+ *                             break;
+ *                         }
+ *                         f -= *xp;
+ *                     }
+ *                 }
+ *                 z = 1 << j;
+ *
+ *                 q = (Huft *) (D_802229E0 + D_802229EC * 8);
+ *                 D_802229EC += z + 1;
+ *                 *t = q + 1;
+ *                 *(t = (Huft **) &(q->v.t)) = NULL;
+ *                 u[h] = ++q;
+ *
+ *                 if (h) {
+ *                     x[h] = i;
+ *                     r.b = (u8) l;
+ *                     r.e = (u8) (16 + j);
+ *                     r.v.t = q;
+ *                     j = i >> (w - l);
+ *                     u[h - 1][j] = r;
+ *                 }
+ *             }
+ *
+ *             r.b = (u8) (k - w);
+ *             if (p >= v + n) {
+ *                 r.e = 99;
+ *             } else if (*p < s) {
+ *                 r.e = (u8) (*p < 256 ? 16 : 15);
+ *                 r.v.n = (u16) (*p);
+ *                 p++;
+ *             } else {
+ *                 r.e = e[*p - s];
+ *                 r.v.n = d[*p++ - s];
+ *             }
+ *
+ *             f = 1 << (k - w);
+ *             for (j = i >> w; j < z; j += f) {
+ *                 q[j] = r;
+ *             }
+ *
+ *             for (j = 1 << (k - 1); i & j; j >>= 1) {
+ *                 i ^= j;
+ *             }
+ *             i ^= j;
+ *
+ *             while ((i & ((1 << w) - 1)) != x[h]) {
+ *                 h--;
+ *                 w -= l;
+ *             }
+ *         }
+ *     }
+ *
+ *     {
+ *         s32 ret;
+ *         ret = y != 0;
+ *         if (ret) {
+ *             ret = g != 1;
+ *         }
+ *         return ret;
+ *     }
+ * }
+ */
 #pragma GLOBAL_ASM("asm/nonmatchings/init/0050/huft_build.s")
 
 /* TODO: inflate_codes - decodes Huffman-coded literals/lengths (via `tl`)

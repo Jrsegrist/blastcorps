@@ -28,7 +28,12 @@ segments:
     - [0x2280, c, init/2280]   # __osSetFpcCsr
     - [0x2290, c, init/2290]   # __osSiRawReadIo
     - [0x22E0, c, init/22E0]   # __osSiRawWriteIo
-    - [0x2330, asm, init/2330]
+    - [0x2330, c, init/2330]   # __osExceptionPreamble
+    - [0x2340, asm, init/2340] # Exception/interrupt handler. Structurally differs from
+                               # libultra's exceptasm.s (different thread-struct field
+                               # offsets, jump-table dispatch instead of __osIntOffTable/
+                               # __osIntTable) - likely Rare's own custom handler rather
+                               # than stock SDK code. Not renamed pending further research.
     - [0x2C20, asm, init/2C20]
     - [0x2CA0, asm, init/2CA0]
     - [0x2D00, asm, init/2D00]

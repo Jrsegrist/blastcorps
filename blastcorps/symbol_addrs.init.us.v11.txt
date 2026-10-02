@@ -35,6 +35,10 @@ inflate_block = 0x8022011C;
 inflate = 0x80220268;
 reverse_bits = 0x8022069C;
 mask_bits = 0x80222810;
+cplens = 0x80222754;
+cplext = 0x80222794;
+cpdist = 0x802227B4;
+cpdext = 0x802227F0;
 // cplens/cplext/cpdist/cpdext (0x80222754/94/0x802227B4/F0) are RFC 1951
 // fixed Huffman tables, but live inside the opaque init/3A40 binary blob -
 // referenced by raw address in src.us.v11/init/0050.c instead of as symbols

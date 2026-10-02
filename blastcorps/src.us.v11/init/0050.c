@@ -24,15 +24,17 @@ extern s32 D_80222A20;
  * declarations verbatim.
  *
  * RFC 1951 fixed Huffman tables (copy lengths/dists + their extra-bit
- * counts). These live inside the opaque init/3A40 binary blob (not
- * individually addressable linker symbols), so reference by raw address -
- * byte-identical to a resolved symbol reference, just without requiring
- * the blob to be split into real data symbols.
+ * counts), inside the opaque init/3A40 binary blob. Confirmed via
+ * inflate_dynamic (init/0E30.c) that these need real symbol_addrs entries
+ * rather than raw-address macros: a raw numeric-literal-cast-to-pointer
+ * compiles address formation as `ori` (bit construction), while the real
+ * target uses `addiu` (the standard %lo(symbol) relocation form) - same
+ * tell as mask_bits below.
  */
-#define cplens ((u16 *) 0x80222754)
-#define cplext ((u8 *) 0x80222794)
-#define cpdist ((u16 *) 0x802227B4)
-#define cpdext ((u8 *) 0x802227F0)
+extern u16 cplens[];
+extern u8 cplext[];
+extern u16 cpdist[];
+extern u8 cpdext[];
 
 /*
  * mask_bits: the reference source's `static ush mask_bits[] = {0x0000,

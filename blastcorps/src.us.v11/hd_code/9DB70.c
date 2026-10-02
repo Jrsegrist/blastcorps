@@ -1,3 +1,6 @@
 #include "common.h"
+#include <ultra64.h>
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/9DB70/func_802E2330.s")
+u32 func_802E2330(void) {
+    return *(volatile u32 *) 0xA4040010;
+}

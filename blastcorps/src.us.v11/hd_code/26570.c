@@ -1,10 +1,15 @@
 #include "common.h"
+#include <ultra64.h>
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/26570/func_8026AD30.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/26570/func_8026AF6C.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/26570/func_8026B10C.s")
+extern u16 D_8036BB14;
+
+u16 func_8026B10C(void) {
+    return D_8036BB14;
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/26570/func_8026B118.s")
 
@@ -52,7 +57,9 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/26570/func_80270ECC.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/26570/func_80270F74.s")
+void *func_80270F74(void *arg0) {
+    return (u8 *) arg0 + 0x58;
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/26570/func_80270F7C.s")
 
@@ -80,4 +87,5 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/26570/func_802729F0.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/26570/func_80272C40.s")
+void func_80272C40(s32 arg0) {
+}

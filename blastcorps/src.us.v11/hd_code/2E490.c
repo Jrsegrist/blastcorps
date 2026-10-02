@@ -1,6 +1,11 @@
 #include "common.h"
+#include <ultra64.h>
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/2E490/func_80272C50.s")
+extern u8 D_8036C360;
+
+void func_80272C50(void) {
+    D_8036C360 = 0;
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/2E490/func_80272C5C.s")
 

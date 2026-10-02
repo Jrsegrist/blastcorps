@@ -1,4 +1,5 @@
 #include "common.h"
+#include <ultra64.h>
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/34430/func_80278BF0.s")
 
@@ -8,7 +9,11 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/34430/func_802794A4.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/34430/func_802794E4.s")
+extern u8 D_8036D178;
+
+void func_802794E4(void) {
+    D_8036D178 = 0;
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/34430/func_802794F0.s")
 

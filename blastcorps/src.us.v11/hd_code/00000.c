@@ -1,4 +1,5 @@
 #include "common.h"
+#include <ultra64.h>
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_802447C0.s")
 
@@ -34,7 +35,10 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_8024BDA4.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_8024C404.s")
+void *func_8024C404(void *arg0, s32 arg1, s32 *arg2) {
+    *arg2 = 0;
+    return arg0;
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_8024C414.s")
 

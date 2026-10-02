@@ -1,4 +1,5 @@
 #include "common.h"
+#include <ultra64.h>
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/92DA0/func_802D7560.s")
 
@@ -25,7 +26,9 @@ void func_802D794C(void) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/92DA0/func_802D7D60.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/92DA0/func_802D7ECC.s")
+s32 func_802D7ECC(void *arg0) {
+    return *(s32 *) ((u8 *) arg0 + 0xc);
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/92DA0/func_802D7ED4.s")
 

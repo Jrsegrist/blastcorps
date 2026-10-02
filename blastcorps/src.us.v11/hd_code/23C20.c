@@ -1,4 +1,5 @@
 #include "common.h"
+#include <ultra64.h>
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/23C20/func_802683E0.s")
 
@@ -34,7 +35,11 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/23C20/func_8026A8E0.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/23C20/func_8026A974.s")
+extern s32 D_8036B96C;
+
+void func_8026A974(void) {
+    D_8036B96C = 0x9BA0D;
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/23C20/func_8026A988.s")
 

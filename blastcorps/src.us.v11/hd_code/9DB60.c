@@ -1,3 +1,8 @@
 #include "common.h"
+#include <ultra64.h>
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/9DB60/func_802E2320.s")
+extern s32 D_80306E30;
+
+s32 func_802E2320(void) {
+    return D_80306E30;
+}

@@ -1,10 +1,15 @@
 #include "common.h"
+#include <ultra64.h>
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/1C460/func_80260C20.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/1C460/func_80260D7C.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/1C460/func_80260DF0.s")
+extern f32 D_802E8D88;
+
+f32 func_80260DF0(void) {
+    return D_802E8D88;
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/1C460/func_80260DFC.s")
 
@@ -32,7 +37,13 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/1C460/func_80261528.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/1C460/func_80261570.s")
+extern f32 D_8036770C;
+extern u8 D_8036772A;
+
+void func_80261570(f32 arg0) {
+    D_8036770C = arg0;
+    D_8036772A = 1;
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/1C460/func_80261588.s")
 
@@ -46,6 +57,10 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/1C460/func_80262008.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/1C460/func_80262050.s")
+extern u8 D_80367708;
+
+u8 func_80262050(void) {
+    return D_80367708;
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/1C460/func_8026205C.s")

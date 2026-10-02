@@ -1,3 +1,6 @@
 #include "common.h"
+#include <ultra64.h>
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/93B50/func_802D8310.s")
+s16 func_802D8310(void *arg0) {
+    return *(s16 *) ((u8 *) arg0 + 0x32);
+}

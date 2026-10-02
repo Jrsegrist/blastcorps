@@ -95,6 +95,27 @@ extern s32 D_802229EC;
  * would prefer $v0 unprompted for this specific short-circuit-into-return
  * pattern.
  *
+ * Follow-up this session (after cracking inflate_fixed/inflate_stored's
+ * stack-layout puzzles): isolated the literal `return y != 0 && g != 1;`
+ * form's tail PRECISELY - with everything else in the function already
+ * matching, that form's tail is a pure register rename ($s6 for every
+ * $v0) PLUS one extra `move v0,s6` instruction at the very end (confirmed
+ * via diff: identical instruction content and count otherwise, score
+ * 1035 driven entirely by this). The nested-block `ret` form (kept below)
+ * instead spills `ret` to a real stack slot (sp+0x3c) since it's a plain
+ * (non-register) local assigned from two different branches - worse
+ * structurally but apparently cheaper by the differ's scoring (680 vs
+ * 1035). Also found and then reverted an unrelated genuine fix candidate:
+ * swapping `p = c + 1; xp = x + 2;` to `xp = x + 2; p = c + 1;` fixes one
+ * real instruction-order mismatch earlier in the function (confirmed via
+ * the diff's blue `94m` content marker, not just a register rename) but
+ * shifts an equally-sized new mismatch four bytes later, netting worse
+ * (680 -> 770) - so that pair's relative order isn't determined by simple
+ * statement reordering either. Needs real insight into why IDO would
+ * allocate $v0 directly (not $s6, not a stack slot) for this specific
+ * short-circuit-into-return expression, and separately, what actually
+ * governs the p/xp pair's instruction order.
+ *
  * s32 huft_build(s32 *b, u32 n, u32 s, u16 *d, u8 *e, Huft **t, s32 *m) {
  *     u32 a;
  *     u32 c[BMAX + 1];

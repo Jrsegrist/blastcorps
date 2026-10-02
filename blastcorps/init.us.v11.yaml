@@ -39,7 +39,10 @@ segments:
     - [0x2C20, c, init/2C20]   # osInvalICache
     - [0x2CA0, asm, init/2CA0] # TLB setup helper, not yet identified
     - [0x2D00, c, init/2D00]   # osPiRawReadIo
-    - [0x2D60, asm, init/2D60]
+    - [0x2D60, c, init/2D60]   # IDO 64-bit runtime helpers (__ull_rshift, __ull_rem,
+                               # __ull_div, __ll_lshift, func_80221B30, __ll_div,
+                               # __ll_mul, func_80221BF8, __ll_rem, __ll_rshift) -
+                               # kept as one combined block, see init/2D60.c
     - [0x3060, asm, init/3060]
     - [0x30E0, c, init/30E0]   # __osSiDeviceBusy
     - [0x3110, asm, init/3110]

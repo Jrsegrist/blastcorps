@@ -46,6 +46,18 @@ void func_8026A974(void) {
     D_8036B96C = 0x9BA0D;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/23C20/func_8026A988.s")
+extern u8 D_8036B970;
+extern u8 D_8036B971;
+extern s32 D_8036B974;
+extern u8 D_8036B978;
+extern u8 D_8036B979;
+
+void func_8026A988(void) {
+    D_8036B970 = 0;
+    D_8036B971 = 0;
+    D_8036B974 = 0;
+    D_8036B978 = 0;
+    D_8036B979 = 0;
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/23C20/func_8026A9B4.s")

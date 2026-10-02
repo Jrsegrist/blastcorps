@@ -84,4 +84,8 @@ void func_802574F0(f32 arg0) {
     func_802D6320(arg0);
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_80257514.s")
+void func_802D68F0(f32 arg0);
+
+void func_80257514(f32 arg0) {
+    func_802D68F0(arg0);
+}

@@ -196,6 +196,19 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_802A0570.s")
 
+/* func_802A05A4/func_802A05D0/func_802A05F8/func_802A0620/func_802A0648
+ * (and likely more below): all call func_802A06B4 with no visible
+ * arguments, then immediately use BOTH $v0 and $v1 from the return.
+ * func_802A06B4 itself reads $v0 as an INPUT (compares it against a
+ * table it walks via $v1, with no instruction anywhere setting $v0
+ * first) and returns the matching entry's address in both $v0 and $v1 -
+ * meaning these wrappers don't actually get two distinct values back,
+ * they're each transparently forwarding a search key that some much
+ * earlier caller stuffed into $v0, unchanged, through every layer in
+ * between. Classic hand-tuned non-ABI register threading for a hot
+ * dispatch-table lookup, not expressible as a normal C function call at
+ * any layer - would need either inline asm or a hand-maintained
+ * register-correct wrapper, not a straight decomp. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_802A05A4.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_802A05D0.s")

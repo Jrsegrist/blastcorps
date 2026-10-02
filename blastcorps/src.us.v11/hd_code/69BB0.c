@@ -20,13 +20,13 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/69BB0/func_802AFA64.s")
 
-/* TODO: func_802AFB84 - sets $s3 = 0x8c directly (`addiu $s3, $zero, 0x8c`)
- * inside a dead $ra save/restore frame, never read or returned. Not
- * reproducible from plain C - a plain local goes dead and gets optimized
- * away under -O1 since nothing reads it, and C has no way to pin a value
- * to a specific callee-saved register by name. Possibly a vestigial/dead
- * leftover in the original source, or part of a larger pattern not yet
- * understood. Logic not yet matched. */
+/* func_802AFB84: sets $s3 = 0x8c directly (`addiu $s3, $zero, 0x8c`)
+ * inside the same dead 8-byte `sd $ra` frame as func_802BBE10/
+ * func_802C8AF0/func_802CE9A4/func_802AC284 - same confirmed hand-
+ * written family, and doubly so here since C has no way to pin a value
+ * to a specific callee-saved register by name regardless. Value is
+ * never read or returned; likely a vestigial/debug leftover in the
+ * original assembly. Permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/69BB0/func_802AFB84.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/69BB0/func_802AFBA0.s")

@@ -17,17 +17,14 @@
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/972A0/func_802DC130.s")
 
 /* TODO: func_802DC178 - pointer-chase/unlink: `*arg0 = **arg0;` (target: 4
- * instructions, no stack frame). Same unresolved IDO quirk as
- * func_802D9D18 in 95460.c - any phrasing that dereferences twice through
- * an incoming pointer parameter picks up a pointless `addiu sp,sp,-8`/
- * `+8` pair that saves/restores nothing. Logic confirmed correct, not
- * byte-exact yet.
- *
- * void func_802DC178(void **arg0) {
- *     void *v0 = *arg0;
- *     *arg0 = *(void **) v0;
- * }
- */
+ * instructions, no stack frame, correct instruction shape achieved with
+ * `void func_802DC178(void **arg0) { *arg0 = *(void **) *arg0; }` -
+ * identical structure to target (lw/lw/jr/sw, no frame), but target uses
+ * $v0 for the first loaded value and $t9 for the second, while every
+ * phrasing tried (plain, returning the loaded value, returning the
+ * assignment expression directly) allocates $t6/$t7 instead - pure
+ * register-rename gap, lowest severity, but still real bytes differing.
+ * Logic and structure fully confirmed correct. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/972A0/func_802DC178.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/972A0/func_802DC188.s")

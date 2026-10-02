@@ -5,13 +5,17 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/772A0/func_802BBDC8.s")
 
-/* TODO: func_802BBE10 - `return 1;` (target: 7 instructions, with a dead
- * `addiu sp,sp,-8`/`sd $ra,($sp)`/`ld $ra,($sp)`/`addiu sp,sp,8` frame that
- * saves/restores $ra despite never branching out - same phantom-stack-frame
- * character as func_802D9D18/func_802DC178's pointer-double-deref quirk,
- * but here on a function with no calls or pointer derefs at all. Plain
- * `return 1;` compiles as a true 3-instruction leaf (no frame), 0x10 bytes
- * short. Needs the right phrasing to make IDO treat this as non-leaf. */
+/* func_802BBE10: `return 1;` wrapped in a dead `addiu sp,sp,-8`/`sd
+ * $ra,($sp)`/`ld $ra,($sp)`/`addiu sp,sp,8` frame that saves/restores
+ * nothing. Confirmed via probe compiles that this is NOT reachable from
+ * any plausible C: IDO's own codegen for a real function call (verified
+ * directly - a genuine `void f(void) { g(); }`) always uses the 24-byte
+ * o32 argument-shadow frame (`sw $ra`), never this 8-byte `sd $ra` style;
+ * a leaf with no calls at all (like this one) gets no frame whatsoever
+ * unless a local variable is declared, and a declared local only
+ * reserves the frame, it doesn't explain a `return 1;` needing one in
+ * the first place. Same hand-written-leaf-stub character as init's
+ * __osGetSR and this segment's COP0 stubs. Permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/772A0/func_802BBE10.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/772A0/func_802BBE2C.s")

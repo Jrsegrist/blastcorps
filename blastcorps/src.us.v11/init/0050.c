@@ -34,12 +34,161 @@ extern s32 D_80222A20;
 #define cpdist ((u16 *) 0x802227B4)
 #define cpdext ((u8 *) 0x802227F0)
 
+/*
+ * mask_bits: the reference source's `static ush mask_bits[] = {0x0000,
+ * 0x0001,0x0003,0x0007,...}` precomputed (1<<n)-1 table, used throughout
+ * inflate_codes/huft_build to mask off exactly N bits from the bit buffer.
+ * Unlike cplens/cplext/cpdist/cpdext above, this one's addressed via a real
+ * symbol_addrs entry rather than a raw-address macro: the target computes
+ * a full base pointer (lui+addiu forming 0x80222810) before indexing, which
+ * only happens for a genuine symbol reference, not a numeric-literal cast.
+ */
+extern u16 mask_bits[];
+
+typedef struct Huft {
+    u8 e;
+    u8 b;
+    u8 pad[2];
+    union {
+        u16 n;
+        struct Huft *t;
+    } v;
+} Huft;
+
 extern s32 huft_build(s32 *b, s32 n, s32 s, void *d, void *e, s32 *t, s32 *m);
 
 #pragma GLOBAL_ASM("asm/nonmatchings/init/0050/huft_build.s")
 
-extern s32 inflate_codes(s32 tl, s32 td, s32 bl, s32 bd);
-
+/* TODO: inflate_codes - decodes Huffman-coded literals/lengths (via `tl`)
+ * and distances (via `td`) and copies the resulting literal bytes / back-
+ * references directly into the output buffer (D_802229F4). Confirmed an
+ * exact structural match against the reference source's own
+ * inflate_codes(), minus its WSIZE sliding-window wraparound logic
+ * (flush_output/circular `slide` buffer) - this build decompresses
+ * straight into a single fixed output buffer instead of a circular window,
+ * so every "if (w == WSIZE) { flush_output(w); w = 0; }" check and the
+ * distance's "& (WSIZE-1)" masking are simply absent here. Also confirmed
+ * the reference's defensive "if (e == 99) return 1;" (invalid-code) checks
+ * are entirely absent from this build - Rare's own compressor apparently
+ * guarantees well-formed tables, so that check was stripped.
+ *
+ * Extremely close: every instruction content/order matches exactly (down
+ * to an instruction-level reordering of the reference's DUMPBITS(e) - this
+ * build's b>>=e has to come before k-=e, not after) except ONE single
+ * redundant register-to-register `move` the target does right before the
+ * inner copy loop (copying the saved copy-count into a fresh register
+ * before the loop, rather than just decrementing it in place). Tried: a
+ * second named counter variable (both `register` and plain) - always
+ * fixed that one instruction but shifted register allocation throughout
+ * the EARLIER two-thirds of the function instead (net worse); reusing the
+ * already-`register` `e` variable as the counter (matching the reference
+ * literally reusing `e` for this) - also rippled backward and regressed.
+ * The version below (single `register u32 n2`) is the closest found - one
+ * missing 4-byte instruction, otherwise byte-identical modulo registers.
+ *
+ * s32 inflate_codes(Huft *tl, Huft *td, u32 bl, u32 bd) {
+ *     register u32 e;
+ *     u32 n;
+ *     u32 d;
+ *     u32 w;
+ *     Huft *t;
+ *     u32 ml;
+ *     u32 md;
+ *     register u32 b;
+ *     register u32 k;
+ *
+ *     b = D_802229E4;
+ *     k = D_802229E8;
+ *     w = D_80222A20;
+ *
+ *     ml = mask_bits[bl];
+ *     md = mask_bits[bd];
+ *
+ *     for (;;) {
+ *         while (k < bl) {
+ *             b |= (u32) D_802229F0[D_80222A1C++] << k;
+ *             k += 8;
+ *         }
+ *         t = tl + (b & ml);
+ *         e = t->e;
+ *         if (e > 16) {
+ *             do {
+ *                 k -= t->b;
+ *                 b >>= t->b;
+ *                 e -= 16;
+ *                 while (k < e) {
+ *                     b |= (u32) D_802229F0[D_80222A1C++] << k;
+ *                     k += 8;
+ *                 }
+ *                 t = t->v.t + (b & mask_bits[e]);
+ *                 e = t->e;
+ *             } while (e > 16);
+ *         }
+ *         k -= t->b;
+ *         b >>= t->b;
+ *         if (e == 16) {
+ *             D_802229F4[w++] = (u8) t->v.n;
+ *             continue;
+ *         }
+ *         if (e == 15) {
+ *             break;
+ *         }
+ *
+ *         while (k < e) {
+ *             b |= (u32) D_802229F0[D_80222A1C++] << k;
+ *             k += 8;
+ *         }
+ *         n = t->v.n + (b & mask_bits[e]);
+ *         k -= e;
+ *         b >>= e;
+ *
+ *         while (k < bd) {
+ *             b |= (u32) D_802229F0[D_80222A1C++] << k;
+ *             k += 8;
+ *         }
+ *         t = td + (b & md);
+ *         e = t->e;
+ *         if (e > 16) {
+ *             do {
+ *                 k -= t->b;
+ *                 b >>= t->b;
+ *                 e -= 16;
+ *                 while (k < e) {
+ *                     b |= (u32) D_802229F0[D_80222A1C++] << k;
+ *                     k += 8;
+ *                 }
+ *                 t = t->v.t + (b & mask_bits[e]);
+ *                 e = t->e;
+ *             } while (e > 16);
+ *         }
+ *         k -= t->b;
+ *         b >>= t->b;
+ *
+ *         while (k < e) {
+ *             b |= (u32) D_802229F0[D_80222A1C++] << k;
+ *             k += 8;
+ *         }
+ *         d = (w - t->v.n) - (b & mask_bits[e]);
+ *         b >>= e;
+ *         k -= e;
+ *
+ *         do {
+ *             register u32 n2;
+ *             n2 = n;
+ *             n -= n2;
+ *             do {
+ *                 n2 -= 1;
+ *                 D_802229F4[w++] = D_802229F4[d++];
+ *             } while (n2 != 0);
+ *         } while (n != 0);
+ *     }
+ *
+ *     D_80222A20 = w;
+ *     D_802229E4 = b;
+ *     D_802229E8 = k;
+ *     return 0;
+ * }
+ */
 #pragma GLOBAL_ASM("asm/nonmatchings/init/0050/inflate_codes.s")
 
 /* TODO: inflate_stored (identified via its call site in init/0E30.c's

@@ -405,18 +405,38 @@ extern s32 D_802229EC;
  * declaration-order tweaks turned up this round. */
 #pragma GLOBAL_ASM("asm/nonmatchings/init/0050/inflate_stored.s")
 
-/* TODO: inflate_fixed - confirmed identity (see file header comment) and
- * confirmed logic via m2c (fills l[288] with the RFC 1951 fixed length
- * table, calls huft_build twice, then inflate_codes). Behavior is fully
- * understood; what's missing is the exact stack layout IDO produces. Target
- * places the 288-entry array `l` at the very bottom of the frame (sp+0x2c,
- * right after the $ra save) and all five scalars (the loop index plus
- * tl/bl/td/bd) packed at the very top (sp+0x4ac-0x4bc), whereas every
- * declaration order/register-hint combination tried here instead grouped
- * the scalars immediately after $ra and pushed the array later. Promoting
- * the loop index to `register` does get it into a real register ($s0) but
- * target doesn't use a callee-saved register for it at all, so that's the
- * wrong lever to pull here. Needs a fresh angle on why IDO would place a
- * large address-taken array first and multiple scalars (some of which also
- * have their address taken for huft_build's out-params) last. */
-#pragma GLOBAL_ASM("asm/nonmatchings/init/0050/inflate_fixed.s")
+extern s32 huft_build(s32 *b, u32 n, u32 s, u16 *d, u8 *e, Huft **t, s32 *m);
+extern s32 inflate_codes(Huft *tl, Huft *td, u32 bl, u32 bd);
+
+s32 inflate_fixed(void) {
+    s32 i;
+    Huft *tl;
+    Huft *td;
+    s32 bl;
+    s32 bd;
+    s32 l[288];
+
+    for (i = 0; i < 144; i++) {
+        l[i] = 8;
+    }
+    for (; i < 256; i++) {
+        l[i] = 9;
+    }
+    for (; i < 280; i++) {
+        l[i] = 7;
+    }
+    for (; i < 288; i++) {
+        l[i] = 8;
+    }
+    bl = 7;
+    huft_build(l, 288, 257, cplens, cplext, &tl, &bl);
+
+    for (i = 0; i < 30; i++) {
+        l[i] = 5;
+    }
+    bd = 5;
+    huft_build(l, 30, 0, cpdist, cpdext, &td, &bd);
+
+    inflate_codes(tl, td, bl, bd);
+    return 0;
+}

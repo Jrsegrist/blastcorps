@@ -48,7 +48,7 @@ segments:
     - [0x30E0, c, init/30E0]   # __osSiDeviceBusy
     - [0x3110, asm, init/3110]
     - [0x3590, asm, init/3590]
-    - [0x3700, asm, init/3700]
+    - [0x3700, c, init/3700]
     - [0x3770, asm, init/3770]
     - [0x38D0, c, init/38D0]   # __osProbeTLB
     - [0x3990, c, init/3990]   # __osGetCause

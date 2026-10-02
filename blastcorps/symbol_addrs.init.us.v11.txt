@@ -1,4 +1,4 @@
-func_8022043C = 0x8022043C;
+gzip_get_method = 0x8022043C;
 __osGetCause = 0x80222690;
 osPiRawStartDma = 0x80220E70;
 osPiGetStatus = 0x80220F50;

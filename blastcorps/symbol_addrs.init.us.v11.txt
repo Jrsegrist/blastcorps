@@ -25,3 +25,4 @@ __ll_div = 0x80221B6C;
 __ll_mul = 0x80221BC8;
 __ll_rem = 0x80221C58;
 __ll_rshift = 0x80221CF4;
+__osProbeTLB = 0x802225D0;

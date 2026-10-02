@@ -84,6 +84,16 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029DB7C.s")
 
+/* TODO: func_8029DBF0 - wrapper around func_8029DC14, but that callee
+ * reads its real input out of $v0 (set via a delay-slot `or v0,a0,zero`
+ * right before the `jal`, not through the normal a0-a3 argument
+ * registers) and returns its result in $v1 instead of $v0 - a hand-tuned
+ * non-ABI register convention between these two specific functions, not
+ * expressible as a normal C function call. Logic (looking at
+ * func_8029DC14 directly): search a fixed-stride struct array starting
+ * at D_803B9890 up to D_803BD300's current pointer value for a byte field
+ * matching the caller's input, returning found/not-found. Needs either
+ * inline asm or leaving as GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029DBF0.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029DC14.s")

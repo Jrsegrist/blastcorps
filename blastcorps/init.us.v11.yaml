@@ -35,7 +35,7 @@ segments:
     - [0x3700, asm, init/3700]
     - [0x3770, asm, init/3770]
     - [0x38D0, asm, init/38D0]
-    - [0x3990, asm, init/3990]
+    - [0x3990, c, init/3990]   # __osGetCause
     - [0x39A0, asm, init/39A0]
     - [0x3A00, asm, init/3A00]
     - [0x3A40, bin, init/3A40] # .data?

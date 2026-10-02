@@ -17,6 +17,7 @@ segments:
     subsegments:
     - [0x0000, c, init/0000]   # entry - ROM entry point/CRT0: zero bss, set sp, jump to boot
     - [0x0050, asm, init/0050]
+    - [0x0E30, c, init/0E30]
     - [0x1660, c, init/1660]   # Proof of concept
     - [0x1A00, asm, init/1A00]
     - [0x1A30, asm, init/1A30] # boot + 3 unidentified helpers (bit-unpack/cart-read related)

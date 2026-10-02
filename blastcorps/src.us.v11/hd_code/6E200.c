@@ -28,6 +28,10 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6E200/func_802B3FF0.s")
 
+/* func_802B40A8/func_802B40D4: two-address trampolines into
+ * func_802AC7DC/func_802AC85C, same confirmed-unreachable-from-C 8-byte
+ * sd-$ra frame as func_802AC284 (hd_code/679E0.c). Permanently
+ * GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6E200/func_802B40A8.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6E200/func_802B40D4.s")
@@ -60,6 +64,9 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6E200/func_802B5814.s")
 
+/* func_802B589C: two-address trampoline into func_802AC7DC, same
+ * confirmed-unreachable-from-C 8-byte sd-$ra frame as func_802AC284
+ * (hd_code/679E0.c). Permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6E200/func_802B589C.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6E200/func_802B58C8.s")

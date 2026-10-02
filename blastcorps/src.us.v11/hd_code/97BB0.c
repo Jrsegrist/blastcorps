@@ -7,7 +7,12 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/97BB0/func_802DC400.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/97BB0/func_802DC444.s")
+void func_802D47C0(void *arg0, s32 arg1, s32 arg2);
+extern u8 D_803FF2D8[];
+
+void func_802DC444(void) {
+    func_802D47C0(D_803FF2D8, 0, 0);
+}
 
 extern void *D_80307770;
 

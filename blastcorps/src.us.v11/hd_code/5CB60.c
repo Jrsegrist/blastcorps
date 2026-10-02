@@ -1,4 +1,5 @@
 #include "common.h"
+#include <ultra64.h>
 
 /* func_802A1320: `mfc0 $v0, $12` (read COP0 Status register) wrapped in a
  * dead $ra save/restore frame - same hand-written COP0-leaf-stub character
@@ -83,4 +84,15 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A4464.s")
 
+/* TODO: func_802A44E4 - round up to a multiple of 8 if not already a
+ * multiple of 4: `if ((arg1 & 3) != 0) arg1 = (arg1 & ~7) + 8; return
+ * arg1;` (target: 11 instructions, a `nop` in the branch's delay slot -
+ * $a1 is the real parameter, with an unused leading parameter shadowing
+ * $a0). Every type tried for the unused first parameter (void*, s32,
+ * f32) makes IDO spill it into the delay slot anyway (`sw`/`swc1` at
+ * 0(sp), no actual stack frame reserved for it) - the inverse of the
+ * usual "unused argument still gets a dead stack home" pattern seen
+ * elsewhere (func_80272C40 in init/26570.c): there the target WANTS the
+ * dead spill and plain C gives it one; here the target doesn't want it
+ * and plain C can't be talked out of it. Logic confirmed correct. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A44E4.s")

@@ -1,6 +1,15 @@
 #include "common.h"
 #include <ultra64.h>
 
+/* TODO: func_802DDD40 - memcpy: `u8 *dst = arg0; u8 *src = arg1; while
+ * (arg2 != 0) { *dst++ = *src++; arg2--; } return arg0;` (target: 11
+ * instructions, no stack frame, dst/src as loop-carried registers).
+ * Same forced either/or as func_802DDD6C's strlen just below and
+ * func_802D9D18/func_802D6EE0 in hd_code/95460.c - confirmed this also
+ * applies to loop-carried induction variables, not just single-reuse
+ * caching: `register u8 *dst/src` lands cleanly in $a3/$t0 with no
+ * spill, but still picks up the dead addiu-sp,-8/+8 frame. Logic
+ * confirmed correct. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/99580/func_802DDD40.s")
 
 /* TODO: func_802DDD6C - strlen: `u8 *v1 = arg0; while (*v1) v1++; return

@@ -83,6 +83,13 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802A94A4.s")
 
+/* func_802A9514: clamps $s3 to a max of 0x240 (`if (s3 >= 0x241) s3 =
+ * 0x240;`), reading AND writing $s3 directly with no parameter or
+ * return value involved at all - same non-ABI register-threading
+ * character as the func_802A06B4 family in hd_code/56040.c, here used
+ * as a persistent "hot" value shared across functions via a dedicated
+ * callee-saved register instead of a global variable. Not expressible
+ * as a normal C function. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802A9514.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802A9540.s")

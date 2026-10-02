@@ -1,11 +1,16 @@
 #include "common.h"
 #include <ultra64.h>
 
-/* func_802DA400/func_802DA41C: `(s64) arg0` from f64/f32 - exactly what the
- * trunc.l.d/trunc.l.s hardware instructions compute, but IDO instead emits
- * calls to its own `__d_to_ll`/`__f_to_ll` runtime helpers (same family as
- * __ll_to_d/__ll_to_f below), which aren't linked into this segment. Same
- * missing-private-copy situation as func_802DA574/func_802DA58C. */
+/* func_802DA400/func_802DA41C: `trunc.l.d`/`trunc.l.s` + `dmfc1` directly
+ * truncate f64/f32 to a 64-bit int and move the full 64 bits out of the
+ * FPU in one shot - confirmed via a standalone probe compile that IDO's
+ * own `(s64) x` cast NEVER generates this: it always calls a runtime
+ * helper (`__d_to_ll`/`__f_to_ll`) instead, even for the exact same
+ * source shape. `dmfc1` moving a full 64-bit FPU register into a GPR is
+ * also not something O32-targeting IDO code generation does on its own.
+ * Same hand-written-leaf-stub character as init's __osGetSR/__osSetSR
+ * and this segment's raw COP0 stubs - these are permanently GLOBAL_ASM,
+ * not blocked on a missing runtime symbol. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/95C40/func_802DA400.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/95C40/func_802DA41C.s")
@@ -14,16 +19,15 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/95C40/func_802DA4D8.s")
 
-/* func_802DA574/func_802DA58C: reconstruct a 64-bit value from its two
- * 32-bit argument-register halves (a0/a1) and convert to double/float -
- * exactly what `(f64)(s64)x` / `(f32)(s64)x` should compile to, but IDO
- * emits calls to `__ll_to_d`/`__ll_to_f` (its own s64->float runtime
- * helpers, same family as __ll_mul/__ll_div/__ll_rshift already matched
- * in init/ido_ll_helpers.s) which aren't linked into this segment -
- * hd_code likely has its own private copies somewhere among its still-
- * anonymous functions, same pattern as the duplicated __os-family/COP0
- * stubs found elsewhere in this segment. Needs those symbols located and
- * declared (or symbol_addrs'd) before these two can link. */
+/* func_802DA574/func_802DA58C: the reverse direction - reconstruct a
+ * 64-bit value from two 32-bit argument-register halves (`dmtc1`) and
+ * convert to double/float (`cvt.d.l`/`cvt.s.l`) directly, no runtime
+ * call. Same hand-written-leaf-stub family as func_802DA400/func_802DA41C
+ * above - `dmtc1` of two separately-passed 32-bit GPR args is likewise
+ * not O32 IDO codegen. Permanently GLOBAL_ASM. (Checked the
+ * n64decomp/banjo-kazooie repo for __ll_to_d/__ll_to_f/__d_to_ll/__f_to_ll
+ * by name first - no hits there either, consistent with these being
+ * hand-written rather than IDO runtime library routines at all.) */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/95C40/func_802DA574.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/95C40/func_802DA58C.s")

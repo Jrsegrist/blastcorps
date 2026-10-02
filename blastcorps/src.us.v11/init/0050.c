@@ -388,22 +388,50 @@ extern s32 D_802229EC;
  */
 #pragma GLOBAL_ASM("asm/nonmatchings/init/0050/inflate_codes.s")
 
-/* TODO: inflate_stored (identified via its call site in init/0E30.c's
- * inflate_block - the real public-domain inflate.c's "stored block" handler,
- * which byte-aligns the bit buffer and copies a raw uncompressed block).
- * Confirmed behavior via m2c; got very close to matching with
- * `register u32 a0, a1` mirroring the target's use of $a0/$a1 as persistent
- * values across the whole function (not just call-preserved temps) - this
- * closed almost the entire diff (10269 -> ~900 lines) and correctly
- * reproduced the target's sltiu/srlv instruction choices. The remaining gap
- * is a stack frame size mismatch (target reserves 0x18 bytes, every attempt
- * here lands on 0x10) despite only 8 bytes of that actually being addressed
- * by named locals (sp10/sp14) in either version - likely IDO reserving a
- * standard 16-byte argument-build area that this specific register-heavy,
- * call-free leaf function triggers under some condition not yet identified.
- * Needs more specific IDO knowledge than trial-and-error register/
- * declaration-order tweaks turned up this round. */
-#pragma GLOBAL_ASM("asm/nonmatchings/init/0050/inflate_stored.s")
+s32 inflate_stored(void) {
+    u32 n;
+    u32 w;
+    register u32 k;
+    register u32 b;
+
+    k = D_802229E8;
+    b = D_802229E4;
+    w = D_80222A20;
+
+    n = k & 7;
+    b >>= n;
+    k -= n;
+
+    while (k < 16) {
+        b |= (u32) D_802229F0[D_80222A1C++] << k;
+        k += 8;
+    }
+    n = b & 0xffff;
+    b >>= 16;
+    k -= 16;
+
+    while (k < 16) {
+        b |= (u32) D_802229F0[D_80222A1C++] << k;
+        k += 8;
+    }
+    b >>= 16;
+    k -= 16;
+
+    while (n--) {
+        while (k < 8) {
+            b |= (u32) D_802229F0[D_80222A1C++] << k;
+            k += 8;
+        }
+        D_802229F4[w++] = (u8) b;
+        b >>= 8;
+        k -= 8;
+    }
+
+    D_80222A20 = w;
+    D_802229E4 = b;
+    D_802229E8 = k;
+    return 0;
+}
 
 extern s32 huft_build(s32 *b, u32 n, u32 s, u16 *d, u8 *e, Huft **t, s32 *m);
 extern s32 inflate_codes(Huft *tl, Huft *td, u32 bl, u32 bd);

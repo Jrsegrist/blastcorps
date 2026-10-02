@@ -13,6 +13,7 @@ extern s32 D_80222A20;
 
 void func_802206D0(void);
 s32  func_8022043C(void);
+extern s32 inflate(void);
 
 
 void func_80220360(s32 *arg0, s32 *arg1, s32 arg2) {
@@ -27,7 +28,7 @@ void func_80220360(s32 *arg0, s32 *arg1, s32 arg2) {
     }
     D_80222840 = func_8022043C();
     if (D_80222840 >= 0) {
-        func_80220268();
+        inflate();
         *arg0 += D_80222A1C;
         *arg1 += D_80222A20;
     }
@@ -35,23 +36,30 @@ void func_80220360(s32 *arg0, s32 *arg1, s32 arg2) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/init/1660/func_8022043C.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/init/1660/func_8022069C.s")
-// u32 func_8022069C(u32 arg0, s32 arg1) {
-//     s32 temp_a1;
-//     u32 temp_t8;
-//     u32 phi_a2;
-//
-//     phi_a2 = 0U;
-// loop_1:
-//     temp_t8 = (phi_a2 | (arg0 & 1)) << 1;
-//     phi_a2 = temp_t8;
-//     arg1 = arg1 - 1;
-//     arg0 = arg0 >> 1;
-//     if (arg1 > 0) {
-//         goto loop_1;
-//     }
-//     return temp_t8 >> 1;
-// }
+/* TODO: reverse_bits - reverses the low `arg1` bits of `arg0` (classic
+ * bit-reversal, used when emitting/reading canonical Huffman codes MSB-first
+ * from an LSB-first bitstream). Fully matched down to a single reordered
+ * instruction pair: this form produces byte-identical registers and operand
+ * order to the target for every instruction except the arg0-shift (srl) and
+ * the accumulator-shift (sll), which the target schedules in the opposite
+ * order (sll immediately after the `or`, srl afterward) despite arg0's
+ * update statement sitting textually between them below - every statement
+ * order/compound-operator/register-hint permutation tried still scheduled
+ * srl before sll here. Needs real IDO instruction-scheduler knowledge, not
+ * more C-level reordering, to close:
+ *
+ * u32 reverse_bits(u32 arg0, s32 arg1) {
+ *     register u32 phi_a2 = 0;
+ *
+ *     do {
+ *         phi_a2 |= arg0 & 1;
+ *         arg0 = arg0 >> 1;
+ *         phi_a2 <<= 1;
+ *     } while (--arg1 > 0);
+ *     return phi_a2 >> 1;
+ * }
+ */
+#pragma GLOBAL_ASM("asm/nonmatchings/init/1660/reverse_bits.s")
 
 void func_802206D0(void) {
     D_80222A20 = 0;

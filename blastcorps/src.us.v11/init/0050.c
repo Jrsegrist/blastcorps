@@ -18,8 +18,9 @@ extern s32 D_80222A20;
  * exactly, right down to the table addresses lining up with the expected
  * byte sizes (cplens: 31 entries * 2 bytes = 62, rounded to 64; cpdist: 30
  * entries * 2 bytes = 60, exact fit). huft_build's NEEDBITS/DUMPBITS-style
- * `register` bit-buffer convention (see func_8021F7F4 in this same file)
- * matches the reference source's own `register ulg b; register unsigned k;`
+ * `register` bit-buffer convention (see inflate_stored in this same file,
+ * and inflate_block in init/0E30.c, which matches exactly) matches the
+ * reference source's own `register ulg b; register unsigned k;`
  * declarations verbatim.
  *
  * RFC 1951 fixed Huffman tables (copy lengths/dists + their extra-bit
@@ -41,20 +42,22 @@ extern s32 inflate_codes(s32 tl, s32 td, s32 bl, s32 bd);
 
 #pragma GLOBAL_ASM("asm/nonmatchings/init/0050/inflate_codes.s")
 
-/* TODO: func_8021F7F4 - bit-accumulator refill/flush routine (same family as
- * the matched func_80220268). Confirmed behavior via m2c; got very close to
- * matching with `register u32 a0, a1` mirroring the target's use of $a0/$a1
- * as persistent values across the whole function (not just call-preserved
- * temps) - this closed almost the entire diff (10269 -> ~900 lines) and
- * correctly reproduced the target's sltiu/srlv instruction choices. The
- * remaining gap is a stack frame size mismatch (target reserves 0x18 bytes,
- * every attempt here lands on 0x10) despite only 8 bytes of that actually
- * being addressed by named locals (sp10/sp14) in either version - likely
- * IDO reserving a standard 16-byte argument-build area that this specific
- * register-heavy, call-free leaf function triggers under some condition
- * not yet identified. Needs more specific IDO knowledge than trial-and-error
- * register/declaration-order tweaks turned up this round. */
-#pragma GLOBAL_ASM("asm/nonmatchings/init/0050/func_8021F7F4.s")
+/* TODO: inflate_stored (identified via its call site in init/0E30.c's
+ * inflate_block - the real public-domain inflate.c's "stored block" handler,
+ * which byte-aligns the bit buffer and copies a raw uncompressed block).
+ * Confirmed behavior via m2c; got very close to matching with
+ * `register u32 a0, a1` mirroring the target's use of $a0/$a1 as persistent
+ * values across the whole function (not just call-preserved temps) - this
+ * closed almost the entire diff (10269 -> ~900 lines) and correctly
+ * reproduced the target's sltiu/srlv instruction choices. The remaining gap
+ * is a stack frame size mismatch (target reserves 0x18 bytes, every attempt
+ * here lands on 0x10) despite only 8 bytes of that actually being addressed
+ * by named locals (sp10/sp14) in either version - likely IDO reserving a
+ * standard 16-byte argument-build area that this specific register-heavy,
+ * call-free leaf function triggers under some condition not yet identified.
+ * Needs more specific IDO knowledge than trial-and-error register/
+ * declaration-order tweaks turned up this round. */
+#pragma GLOBAL_ASM("asm/nonmatchings/init/0050/inflate_stored.s")
 
 /* TODO: inflate_fixed - confirmed identity (see file header comment) and
  * confirmed logic via m2c (fills l[288] with the RFC 1951 fixed length

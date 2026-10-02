@@ -28,7 +28,12 @@ __ll_rshift = 0x80221CF4;
 __osProbeTLB = 0x802225D0;
 huft_build = 0x8021ED50;
 inflate_codes = 0x8021F3EC;
+inflate_stored = 0x8021F7F4;
 inflate_fixed = 0x8021F988;
+inflate_dynamic = 0x8021FB30;
+inflate_block = 0x8022011C;
+inflate = 0x80220268;
+reverse_bits = 0x8022069C;
 // cplens/cplext/cpdist/cpdext (0x80222754/94/0x802227B4/F0) are RFC 1951
 // fixed Huffman tables, but live inside the opaque init/3A40 binary blob -
 // referenced by raw address in src.us.v11/init/0050.c instead of as symbols

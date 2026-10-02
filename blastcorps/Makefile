@@ -125,6 +125,10 @@ extract:
 	$(PYTHON) $(TOOLS_DIR)/splat/split.py init.$(VERSION).yaml
 	$(PYTHON) $(TOOLS_DIR)/splat/split.py hd_code.$(VERSION).yaml
 
+# preprocessed context for mips_to_c (tools/m2c.sh); not version-specific
+ctx.i: ctx.c
+	cpp -D_LANGUAGE_C -D_FINALROM $(INCLUDE_CFLAGS) $< > $@
+
 compress: $(BUILD_DIR)/hd_code_text.$(VERSION).gz $(BUILD_DIR)/hd_code_data.$(VERSION).gz
 	@echo "Replacing extracted hd_code..."
 	cp $(BUILD_DIR)/hd_code_text.$(VERSION).gz ../assets/hd_code_text.$(VERSION).bin
@@ -135,6 +139,7 @@ clean:
 	rm -rf assets
 	rm -rf build
 	rm -f *auto.txt
+	rm -f ctx.i
 
 
 ### Recipes

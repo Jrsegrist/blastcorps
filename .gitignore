@@ -5,6 +5,8 @@
 *.ok
 *.z64
 *auto*.txt
+*.i
+*.m2c
 
 # directories
 __pycache__/

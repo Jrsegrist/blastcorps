@@ -31,7 +31,12 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/23C20/func_8026A828.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/23C20/func_8026A8BC.s")
+s32 func_802D9820(void);
+extern s32 D_8036B968;
+
+void func_8026A8BC(void) {
+    D_8036B968 = func_802D9820();
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/23C20/func_8026A8E0.s")
 

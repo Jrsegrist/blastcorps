@@ -27,9 +27,15 @@ void func_80260EC0(void) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/1C460/func_80260F60.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/1C460/func_8026101C.s")
+void func_80260F60(f32 arg0);
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/1C460/func_80261040.s")
+void func_8026101C(void) {
+    func_80260F60(0.0f);
+}
+
+void func_80261040(void) {
+    func_80260F60(1.0f);
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/1C460/func_80261068.s")
 

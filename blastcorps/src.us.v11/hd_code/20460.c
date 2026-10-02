@@ -1,4 +1,5 @@
 #include "common.h"
+#include <ultra64.h>
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/20460/func_80264C20.s")
 
@@ -24,7 +25,12 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/20460/func_802676A0.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/20460/func_80267A74.s")
+void func_802D4400(void *arg0);
+extern u8 D_80368070[];
+
+void func_80267A74(void) {
+    func_802D4400(D_80368070 + 0x18);
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/20460/func_80267A9C.s")
 

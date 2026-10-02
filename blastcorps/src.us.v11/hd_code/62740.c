@@ -1,4 +1,5 @@
 #include "common.h"
+#include <ultra64.h>
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802A6F00.s")
 
@@ -24,6 +25,12 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802A77D0.s")
 
+/* func_802A7834: two sequential no-arg calls (`func_802A7E70();
+ * func_802A785C();`) using the 8-byte addiu-sp/sd-ra/ld-ra frame instead
+ * of the 24-byte o32 shadow frame plain C produces for any real call -
+ * same confirmed-unreachable-from-C frame family as func_802AC284 in
+ * hd_code/679E0.c (see that file's comment for the probe evidence).
+ * Permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802A7834.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802A785C.s")

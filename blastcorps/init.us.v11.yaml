@@ -15,7 +15,7 @@ segments:
     vram:  0x8021ED00
     start: 0x00000000
     subsegments:
-    - [0x0000, asm, init/0000]
+    - [0x0000, c, init/0000]   # entry - ROM entry point/CRT0: zero bss, set sp, jump to boot
     - [0x0050, asm, init/0050]
     - [0x1660, c, init/1660]   # Proof of concept
     - [0x1A00, asm, init/1A00]

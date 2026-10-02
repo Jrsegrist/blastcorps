@@ -3,3 +3,4 @@ __osGetCause = 0x80222690;
 osPiRawStartDma = 0x80220E70;
 osPiGetStatus = 0x80220F50;
 osVirtualToPhysical = 0x80221D60;
+entry = 0x8021ED00;

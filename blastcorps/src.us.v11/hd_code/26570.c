@@ -39,7 +39,11 @@ u16 func_8026B10C(void) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/26570/func_8026FBB0.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/26570/func_8026FE6C.s")
+extern u8 *D_8036BED8;
+
+u8 func_8026FE6C(s32 arg0) {
+    return *(u8 *) ((u8 *) D_8036BED8 + (arg0 * 0x88) + 6);
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/26570/func_8026FE8C.s")
 

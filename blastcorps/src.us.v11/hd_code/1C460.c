@@ -17,7 +17,11 @@ f32 func_80260DF0(void) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/1C460/func_80260E80.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/1C460/func_80260EC0.s")
+void func_80260DFC(void);
+
+void func_80260EC0(void) {
+    func_80260DFC();
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/1C460/func_80260EE0.s")
 

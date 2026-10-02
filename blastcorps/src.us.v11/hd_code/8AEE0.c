@@ -54,4 +54,7 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8AEE0/func_802D2524.s")
 
+/* func_802D2550: `mtc0 $a0, $11` (write COP0 Compare register) wrapped in a
+ * dead $ra save/restore frame - same hand-written COP0-leaf-stub character
+ * as __osSetSR in init/2330.c. Permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8AEE0/func_802D2550.s")

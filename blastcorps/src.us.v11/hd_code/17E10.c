@@ -61,11 +61,19 @@ u8 func_80260634(void *arg0) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_80260934.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_802609D0.s")
+void func_80260934(s32 arg0);
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_802609F0.s")
+void func_802609D0(void) {
+    func_80260934(1);
+}
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_80260A10.s")
+void func_802609F0(void) {
+    func_80260934(0x11);
+}
+
+void func_80260A10(void) {
+    func_80260934(3);
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_80260A30.s")
 

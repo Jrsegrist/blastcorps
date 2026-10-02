@@ -15,7 +15,11 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/409D0/func_80285B68.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/409D0/func_80285CA0.s")
+void func_8026AD30(s32 arg0);
+
+void func_80285CA0(void) {
+    func_8026AD30(0x47);
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/409D0/func_80285CC0.s")
 

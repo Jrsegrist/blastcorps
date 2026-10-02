@@ -50,17 +50,38 @@ extern s32 inflate_codes(Huft *tl, Huft *td, u32 bl, u32 bd);
  * Extraordinarily close (diff score 45 across ~379 instructions, zero
  * structural insertions/deletions): every instruction matches in content,
  * and even cplens/cplext/cpdist/cpdext/mask_bits all resolve with the
- * correct `addiu`-based addressing (see their symbol_addrs entries). The
- * one remaining issue is a consistent 8-byte (2-word) offset on every
- * access to `ll`'s base address relative to its containing stack frame
- * register (e.g. `addiu a0,sp,0x40` here vs target's `addiu a0,sp,0x48`) -
- * total frame size is otherwise exactly right, so 2 words' worth of the
- * scalars declared before `ll` must be arranged differently by IDO than
- * this declaration order produces. Tried swapping tl/td, bl/bd, nb/nl/nd,
- * j/l, and promoting `i` to `register` - every one of these made the
- * score markedly worse (76-4872), confirming the original reference
- * declaration order (kept below) is already the local optimum; the fix
- * needs to come from somewhere else in the stack-layout puzzle.
+ * correct `addiu`-based addressing. The one remaining issue is a
+ * consistent 8-byte (2-word) offset on every access to `ll`'s base
+ * address (e.g. `addiu a0,sp,0x40` here vs target's `addiu a0,sp,0x48`).
+ *
+ * Follow-up investigation (same session that cracked inflate_fixed/
+ * inflate_stored's stack-layout puzzles via IDO's reverse-declaration-
+ * order rule): confirmed the frame total size matches exactly (both
+ * `addiu sp,sp,-0x568`), and all 12 scalars (i,j,l,m,n,tl,td,bl,bd,nb,nl,
+ * nd) land at IDENTICAL addresses in both builds (0x538-0x568) - so the
+ * mismatch isn't those scalars being misplaced. The missing 8 bytes are
+ * genuinely unused padding in BOTH versions, just on opposite sides of
+ * the array: here it sits between the array's end and the scalar block
+ * (0x530-0x538 unused); in target it sits between the saved-register
+ * area and the array's start (0x38-0x48 unused, i.e. a 16-byte gap there
+ * instead of this build's 8-byte one). Total slop is identical (16
+ * bytes) in both builds, just redistributed - ruling out a missing/extra
+ * variable and pointing at some IDO stack-layout-pass quirk specific to
+ * where a large array sits relative to the saved-register area.
+ *
+ * Tried moving nb/nl/nd (individually and as a group of 3) to be
+ * declared *after* `ll` instead of before, reasoning that reverse-
+ * declaration-order (confirmed elsewhere this session) might place them
+ * in the gap - every attempt regressed drastically (score 3837-11421),
+ * confirming nd/nl/nb's live ranges extend far enough into the function
+ * (nl/nd are reused in the final two huft_build calls) that relocating
+ * their declaration ripples through register allocation for most of the
+ * function, not just the local stack-slot puzzle. Also previously tried
+ * (prior session): swapping tl/td, bl/bd, j/l, and promoting `i` to
+ * `register` - all regressed (76-4872). The reference declaration order
+ * kept below is the local optimum found so far; the real fix needs
+ * either a different IDO-internals insight about array-vs-saved-register
+ * padding, or a variable this session didn't think to try relocating.
  *
  * #define LL_SIZE (286 + 30)
  *

@@ -44,6 +44,7 @@ extern void *D_802E8CEC;
 
 void func_802D74E0(s32, void *);
 void func_802D7560(s32, void *);
+void func_80260148(void *, void *, u16);
 
 void func_8026005C(void *arg0) {
     if (*((u8 *) arg0 + 0x3e) & 4) {
@@ -71,7 +72,40 @@ void func_8026005C(void *arg0) {
  * something a source rephrasing routes around. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_802600D8.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_80260148.s")
+s32 func_802D6EB0(void *);
+s32 func_802D6EE0(void *, void *);
+s32 func_802D7660(s32);
+
+void func_80260148(void *arg0, void *arg1, u16 arg2) {
+    void *list;
+    void *next;
+    void *entry2;
+    void *dup;
+    void *addr;
+    s32 savedState;
+
+    savedState = func_802D7660(1);
+    list = *(void **) ((u8 *) arg0 + 8);
+    while (list != NULL) {
+        next = *(void **) list;
+        addr = (u8 *) list + 0xc;
+        entry2 = list;
+        dup = next;
+
+        if (*(void **) ((u8 *) list + 0x10) == arg1) {
+            if ((*(u16 *) ((u8 *) list + 0xc) & arg2) != 0) {
+                if (next != NULL) {
+                    *(s32 *) ((u8 *) next + 8) += *(s32 *) ((u8 *) list + 8);
+                }
+                func_802D6EB0(list);
+                func_802D6EE0(list, arg0);
+            }
+        }
+        list = next;
+    }
+
+    func_802D7660(savedState);
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_80260210.s")
 

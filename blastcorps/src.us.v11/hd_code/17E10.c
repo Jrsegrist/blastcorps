@@ -124,6 +124,19 @@ void func_80260A10(void) {
     func_80260934(3);
 }
 
+/* TODO: func_80260A30 - lock via func_802D7660(1) (saving the previous
+ * state), walk the D_802E8CE0 linked list (next pointer at offset 0, a
+ * vestigial unused counter incremented once per node), and for each node
+ * whose unk8->unk4->unk2 byte (masked 0x3f) equals arg0, call
+ * func_802608C8(node); then restore the saved lock state. Logic, every
+ * field offset, and the linked-list walk are all confirmed correct (diff
+ * score down to 265, zero inserts/deletes). Remaining gap is the same
+ * "defer the next-pointer store into the loop branch's delay slot" pattern
+ * documented repeatedly in hd_code/48D00.c: a plain `entry =
+ * *(void**)entry` reload-then-store sequence leaves one spurious reload
+ * in, and the usual m2c-style split-temp fix makes it worse here too
+ * (gives the temp its own stack slot, score 377) because func_802608C8 is
+ * called inside the loop body. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_80260A30.s")
 
 extern u8 D_8030917C;

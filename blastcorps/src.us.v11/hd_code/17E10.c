@@ -312,7 +312,100 @@ u8 func_80260634(void *arg0) {
     return 0;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_80260650.s")
+extern s32 D_80358060;
+extern s32 D_802E8BDC;
+extern void *D_802E8CEC;
+extern u8 D_80309124;
+void *func_80260300(void *, void *);
+s32 func_802D6C8C(void *, void *, s32);
+
+void *func_80260650(void *arg0, s16 arg1, void *arg2) {
+    void *node;
+    void *result;
+    void *entry4dead;
+    void *entry;
+    s16 flag1;
+    s32 adjusted;
+    s32 scaled;
+    s32 totalSomething;
+    s32 pad3;
+    s32 pad4;
+    s32 eventParam;
+    s16 pad;
+    s16 eventCode;
+    s32 extra2;
+    s32 extra1;
+    s32 eventParam2;
+    s16 pad2;
+    s16 eventCode2;
+
+    result = NULL;
+    flag1 = 0;
+    totalSomething = 0;
+    if (arg1 == 0 || (D_80358060 == 0 && arg1 == 0xc)) {
+        goto retNull;
+    }
+    if (arg1 == 0x14 || arg1 == 0x15) {
+        if (D_802E8BDC == 0x26 || D_802E8BDC == 0x31) {
+            goto retNull;
+        }
+    }
+    goto mainLogic;
+
+retNull:
+    return NULL;
+
+mainLogic:
+    do {
+        entry = *(void **) ((u8 *) (*(void **) ((u8 *) arg0 + 0xc))
+            + (arg1 << 2) + 0xc);
+        node = func_80260300(arg0, entry);
+        if (node != NULL) {
+            *(void **) ((u8 *) D_802E8CEC + 0x40) = node;
+            eventCode = 1;
+            eventParam = (s32) node;
+            scaled = (s32) *(u8 *) ((u8 *) (*(void **) ((u8 *) entry + 4)) + 1)
+                * 33333;
+
+            if (*(u8 *) ((u8 *) node + 0x3e) & 0x10) {
+                *(u8 *) ((u8 *) node + 0x3e) &= ~0x10;
+                func_802D6C8C((u8 *) D_802E8CEC + 0x14, &eventCode,
+                    totalSomething + 1);
+                adjusted = scaled + 1;
+                flag1 = arg1;
+            } else {
+                func_802D6C8C((u8 *) D_802E8CEC + 0x14, &eventCode,
+                    scaled + 1);
+            }
+            result = node;
+        } else {
+            func_8029A7E4(&D_80309124, arg1);
+        }
+
+        totalSomething = totalSomething + scaled;
+        entry4dead = *(void **) ((u8 *) entry + 4);
+        arg1 = ((*(u8 *) ((u8 *) entry4dead + 2) & 0xc0) << 2)
+            + *(u8 *) entry4dead;
+    } while (arg1 != 0 && node != NULL);
+
+    if (result != NULL) {
+        *(u8 *) ((u8 *) result + 0x3e) |= 1;
+        *(s32 *) ((u8 *) result + 0x30) = (s32) arg2;
+        if (flag1 != 0) {
+            *(u8 *) ((u8 *) result + 0x3e) |= 0x10;
+            eventCode2 = 0x200;
+            eventParam2 = (s32) result;
+            extra1 = flag1;
+            extra2 = (s32) arg0;
+            func_802D6C8C((u8 *) D_802E8CEC + 0x14, &eventCode2, adjusted);
+        }
+    }
+
+    if (arg2 != NULL) {
+        *(void **) arg2 = result;
+    }
+    return result;
+}
 
 extern void *D_802E8CEC;
 extern u8 D_8030914C;

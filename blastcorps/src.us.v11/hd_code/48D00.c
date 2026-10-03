@@ -5,6 +5,40 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/48D00/func_8028DA5C.s")
 
+/* TODO: func_8028DD64 - for the D_8039B610 array entry at index arg0 (0x48
+ * stride): forward its first 3 words into func_802CDA10, set its unk19 byte
+ * to 5 and unk18 byte to 0, then set D_802E8BE4=10/D_802E8BE8=0x190 and, if
+ * its unk40 word is nonzero, notify func_802608C8 and - if func_8028DE94()
+ * (a no-arg linear search, see below) finds a match - forward it into
+ * func_80260650(D_80367738, 0x73, match+0x40); finally, if unk44 is nonzero,
+ * notify func_802608C8 of it too, then unconditionally call
+ * func_80260650(D_80367738, 0x10, 0). Logic, every field offset, and the
+ * overall control flow are all confirmed correct (diff score down to 300,
+ * zero inserts/deletes - every single instruction present and in the right
+ * place except a 4-instruction window). The one remaining gap: while
+ * clearing the unk18 byte, target interleaves the tail of that address
+ * calculation with the *start* of the next statement's (the unk40 lookup's)
+ * address calculation one instruction later than every phrasing tried
+ * produces - a pure instruction-scheduling-window artifact between two
+ * independent, back-to-back statements, not a logic or layout gap. Tried:
+ * several different statement orderings/interleavings of the two preceding
+ * global stores (D_802E8BE4/D_802E8BE8) relative to the array writes, all
+ * of which only made the score worse (710-1010) by disturbing other,
+ * already-matching regions - this phrasing is the local optimum found. */
+extern u8 D_8039B070;
+extern u8 D_8039B088;
+extern u8 D_8039B089;
+extern u8 D_8039B0B0;
+extern u8 D_8039B0B4;
+extern u8 D_802E8BE4;
+extern s32 D_802E8BE8;
+extern s32 D_80367738;
+
+void func_802CDA10(s32, s32, s32);
+void func_802608C8(s32);
+void func_80260650(s32, s32, s32);
+void *func_8028DE94(void);
+
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/48D00/func_8028DD64.s")
 
 extern u8 D_8039B070;

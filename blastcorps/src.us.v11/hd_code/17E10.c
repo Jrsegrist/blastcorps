@@ -150,7 +150,53 @@ void func_80260148(void *arg0, void *arg1, u16 arg2) {
     func_802D7660(savedState);
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_80260210.s")
+extern void *D_802E8CE0;
+extern void *D_802E8CE4;
+extern void *D_802E8CE8;
+s32 func_802D7660(s32);
+
+u16 func_80260210(u16 *arg0, u16 *arg1) {
+    s32 savedState;
+    u16 count1;
+    u16 count2;
+    u16 count3;
+    void *list1;
+    void *list2;
+    void *list3;
+
+    savedState = func_802D7660(1);
+
+    list1 = D_802E8CE0;
+    list2 = D_802E8CE8;
+    list3 = D_802E8CE4;
+
+    count1 = 0;
+    if (list1 != NULL) {
+        do {
+            count1 = count1 + 1;
+        } while ((list1 = *(void **) list1) != NULL);
+    }
+
+    count2 = 0;
+    if (list2 != NULL) {
+        do {
+            count2 = count2 + 1;
+        } while ((list2 = *(void **) list2) != NULL);
+    }
+
+    count3 = 0;
+    if (list3 != NULL) {
+        do {
+            count3 = count3 + 1;
+        } while ((list3 = *(void **) ((u8 *) list3 + 4)) != NULL);
+    }
+
+    *arg0 = count2;
+    *arg1 = count1;
+
+    func_802D7660(savedState);
+    return count3;
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_80260300.s")
 

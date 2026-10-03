@@ -3,6 +3,24 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/48D00/func_8028D4C0.s")
 
+/* TODO: func_8028DA5C - initialize an 8x 0x10-byte sub-entry struct at *a0
+ * (likely per-corner/wheel contact data) from a 0x18-stride lookup table at
+ * D_802FDB98 indexed by arg1, cycling through 3 of
+ * {D_802FDB98,9A,9C,9E,A0,A2} (always the field at +0 and +4 relative to
+ * the one skipped) plus a fixed {0, 0x3e0} constant pair per sub-entry.
+ * Logic, every field offset, and the full group-by-group table-field
+ * selection are all confirmed correct (diff score down to 20, zero inserts/
+ * deletes, frame-free leaf matches exactly) - the only residue is 2 sites
+ * (4 instructions total) where two back-to-back `li $tN, 0x3e0` loads of
+ * the literally same redundant constant land in the opposite two temp
+ * registers from target (t5<->t6, t7<->t8), confirmed via decomp-workbench
+ * as a genuine instruction-bit difference (not a relocation/cosmetic
+ * artifact) and flagged by its own field guide as "register-permutation,
+ * owning pass unknown" - resolving it needs an instrumented IDO uopt trace
+ * to tell UOPT-reservation from UGEN-demand, not a source-level lever; a
+ * `lever 15`-style discarded-expression probe before the pair had zero
+ * effect (fully eliminated, no FIFO rotation). Documented rather than
+ * guessing further. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/48D00/func_8028DA5C.s")
 
 /* TODO: func_8028DD64 - for the D_8039B610 array entry at index arg0 (0x48

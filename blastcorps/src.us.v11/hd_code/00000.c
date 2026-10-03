@@ -25,7 +25,14 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_8024B4B8.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_8024B5E8.s")
+void func_802AB670(s32 arg0);
+extern u8 D_803ED3F5;
+extern u8 D_80364456;
+
+void func_8024B5E8(void) {
+    D_803ED3F5 = 1;
+    func_802AB670(D_80364456);
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_8024B618.s")
 

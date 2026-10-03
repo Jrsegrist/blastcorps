@@ -192,6 +192,10 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_802A0508.s")
 
+/* func_802A0540: also part of the func_802A06B4 hidden-$v0-search-key
+ * family documented below - saves the incoming $v0 across the call
+ * (forwarding it one layer further) and returns that original value,
+ * not the callee's. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_802A0540.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_802A0570.s")

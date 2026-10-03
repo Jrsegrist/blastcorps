@@ -5,7 +5,15 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/20460/func_80264CB4.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/20460/func_8026510C.s")
+void func_80265428(void);
+void func_8026513C(void);
+void func_80265E48(void);
+
+void func_8026510C(void) {
+    func_80265428();
+    func_8026513C();
+    func_80265E48();
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/20460/func_8026513C.s")
 

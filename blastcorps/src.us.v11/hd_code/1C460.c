@@ -11,7 +11,13 @@ f32 func_80260DF0(void) {
     return D_802E8D88;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/1C460/func_80260DFC.s")
+void func_80260EE0(s32 arg0);
+extern s32 D_802E8BDC;
+extern u8 D_802E8DC8[];
+
+void func_80260DFC(void) {
+    func_80260EE0(D_802E8DC8[D_802E8BDC]);
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/1C460/func_80260E2C.s")
 

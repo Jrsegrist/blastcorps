@@ -24,7 +24,9 @@
  * phrasing tried (plain, returning the loaded value, returning the
  * assignment expression directly) allocates $t6/$t7 instead - pure
  * register-rename gap, lowest severity, but still real bytes differing.
- * Logic and structure fully confirmed correct. */
+ * Logic and structure fully confirmed correct. Ran decomp-permuter
+ * (tools/permuter) against it for 90s with no improvement on the base
+ * score of 20 - worth a longer background run later. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/972A0/func_802DC178.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/972A0/func_802DC188.s")

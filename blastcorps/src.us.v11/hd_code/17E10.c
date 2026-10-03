@@ -114,7 +114,25 @@ void func_80260A10(void) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_80260A30.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_80260AB8.s")
+extern u8 D_8030917C;
+
+void func_80260AB8(void *arg0, s16 arg1, s32 arg2) {
+    s32 unused;
+    s32 eventExtra;
+    s32 eventParam;
+    s16 pad;
+    s16 eventCode;
+
+    eventCode = arg1;
+    eventParam = (s32) arg0;
+    eventExtra = arg2;
+
+    if (arg0 != NULL) {
+        func_802D6C8C((u8 *) D_802E8CEC + 0x14, &eventCode, 0);
+    } else {
+        func_8029A7E4(&D_8030917C);
+    }
+}
 
 extern u16 *D_80366C28;
 

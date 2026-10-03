@@ -37,16 +37,11 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_802604FC.s")
 
-/* TODO: func_80260618 - stores a byte through a pointer with a redundant
- * sign-extension round-trip: `arg1 = (s16)(u8) arg1; *(s8*)(arg0+0x36) =
- * (s8) arg1;` (target: 7 instructions, `andi`/`sll`/`sra`/`sb` in the
- * guarded branch). Every phrasing tried (plain cast expression, explicit
- * local, register-qualified local, reassigning the parameter in place)
- * either optimizes the dead sign-extend away entirely (6 instructions, one
- * short) or keeps it but as `andi`/`move` instead of `andi`/`sll`/`sra`
- * (right size, wrong opcodes) - never the exact target sequence. Logic
- * confirmed correct either way. */
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_80260618.s")
+void func_80260618(void *arg0, u8 arg1) {
+    if (arg0 != NULL) {
+        *(s8 *)((u8 *) arg0 + 0x36) = (s8)(s16)(u8) arg1;
+    }
+}
 
 u8 func_80260634(void *arg0) {
     if (arg0 != NULL) {

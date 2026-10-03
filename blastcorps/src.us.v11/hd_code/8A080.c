@@ -1,12 +1,23 @@
 #include "common.h"
 #include <ultra64.h>
 
+/* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
+ * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
+ * documented in full in hd_code/77E20.c's top-of-file note and the project
+ * skill file, confirming (with no exceptions found) that this file is part
+ * of the same large hand-written-assembly module. Any pragma below without
+ * a more specific comment follows this convention; a few have their own
+ * more specific non-ABI explanation where one was already worked out. */
+/* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8A080/func_802CE840.s")
 
+/* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8A080/func_802CE880.s")
 
+/* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8A080/func_802CE90C.s")
 
+/* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8A080/func_802CE958.s")
 
 /* func_802CE9A4: `D_803FB8B0 = &D_803F9330;` wrapped in the same dead
@@ -16,6 +27,8 @@
  * IDO never generates this shape on its own). Permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8A080/func_802CE9A4.s")
 
+/* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8A080/func_802CE9C8.s")
 
+/* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8A080/func_802CEA68.s")

@@ -1,8 +1,17 @@
 #include "common.h"
 #include <ultra64.h>
 
+/* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
+ * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
+ * documented in full in hd_code/77E20.c's top-of-file note and the project
+ * skill file, confirming (with no exceptions found) that this file is part
+ * of the same large hand-written-assembly module. Any pragma below without
+ * a more specific comment follows this convention; a few have their own
+ * more specific non-ABI explanation where one was already worked out. */
+/* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/772A0/func_802BBA60.s")
 
+/* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/772A0/func_802BBDC8.s")
 
 /* func_802BBE10: `return 1;` wrapped in a dead `addiu sp,sp,-8`/`sd
@@ -18,14 +27,20 @@
  * __osGetSR and this segment's COP0 stubs. Permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/772A0/func_802BBE10.s")
 
+/* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/772A0/func_802BBE2C.s")
 
+/* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/772A0/func_802BBE74.s")
 
+/* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/772A0/func_802BBEB8.s")
 
+/* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/772A0/func_802BC2C8.s")
 
+/* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/772A0/func_802BC3D0.s")
 
+/* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/772A0/func_802BC578.s")

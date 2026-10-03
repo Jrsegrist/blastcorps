@@ -83,7 +83,49 @@ extern u8 D_8039B094;
  * carry over here, apparently because of the intervening function call. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/48D00/func_8028F6B4.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/48D00/func_8028F794.s")
+extern s32 D_8039B610;
+extern u8 D_8039B070;
+
+s32 func_802AAE1C(u8, s16, s16, void *, void *);
+s32 func_802CE6F8(s32, s32, s32);
+void func_802CE4F0(s32, s32, s32);
+s32 func_802CDB70(s16, s16);
+void func_8028DD64(u8);
+
+void func_8028F794(u8 arg0) {
+    s32 i;
+    s16 local;
+
+    for (i = 0; i < D_8039B610; i++) {
+        if (*(&D_8039B070 + i * 0x48 + 0x18) != 0 && *(&D_8039B070 + i * 0x48 + 0x24) != 0) {
+            func_802AAE1C(
+                arg0,
+                *(s16 *) (&D_8039B070 + i * 0x48 + 0x26),
+                *(s16 *) (&D_8039B070 + i * 0x48 + 0x28),
+                (void *) (&D_8039B070 + i * 0x48),
+                (void *) (&D_8039B070 + i * 0x48 + 8));
+
+            *(s32 *) (&D_8039B070 + i * 0x48 + 4) = func_802CE6F8(
+                *(s32 *) (&D_8039B070 + i * 0x48),
+                *(s32 *) (&D_8039B070 + i * 0x48 + 8),
+                *(s32 *) (&D_8039B070 + i * 0x48 + 4));
+
+            if (*(s16 *) (&D_8039B070 + i * 0x48 + 0x1A) != 0) {
+                local = 0;
+            } else {
+                local = *(s16 *) (&D_8039B070 + i * 0x48 + 0x1C);
+            }
+
+            func_802CE4F0(*(s32 *) (&D_8039B070 + i * 0x48),
+                          *(s32 *) (&D_8039B070 + i * 0x48 + 4),
+                          *(s32 *) (&D_8039B070 + i * 0x48 + 8));
+
+            if (func_802CDB70(*(s16 *) (0x802FDBAC + *(&D_8039B070 + i * 0x48 + 0xE) * 0x18), local) != 0) {
+                func_8028DD64((u8) i);
+            }
+        }
+    }
+}
 
 extern u8 D_8039B094;
 

@@ -198,6 +198,28 @@ u16 func_80260210(u16 *arg0, u16 *arg1) {
     return count3;
 }
 
+/* TODO: func_80260300 - pop a node off the D_802E8CE8 free list (calling
+ * func_802D6EB0 on it), link it onto the front of the D_802E8CE0 active
+ * list (or make it the sole element of both D_802E8CE0 and D_802E8CE4 if
+ * that list was empty), then initialize it from arg1 (stored at node+8)
+ * and arg1->unk4 (byte fields at +3/+4/+5): flags at +0x36/+0x3e/+0x38,
+ * a float at +0x2c=1.0 and +0x28=func_802D7610(arg1->unk4-derived
+ * index*100 [+unk5 if a +0x3e flag bit is clear] - 0x1770), a "negative"
+ * flag folded in from (arg1->unk0)->unk4==-1, and a handful of fixed
+ * resets (+0x30, +0x3d, +0x3c, +0x34). Returns the node (NULL if the
+ * free list was empty). Logic and every field/offset are confirmed
+ * correct (down to a single differing opcode once the frame, instruction
+ * count and register coloring are already exact). The one gap: in the
+ * empty-active-list branch, target writes D_802E8CE0 and D_802E8CE4
+ * (the same value, node) through a single shared `lui` - only possible
+ * if both addresses come from the same relocation, i.e. the real source
+ * reaches the second global via pointer arithmetic on the first rather
+ * than naming it, but every arithmetic spelling tried
+ * (`*((u8*)&D_802E8CE0+4)`, `*(&D_802E8CE0+1)`) made the front end
+ * materialize the computed address as its own value first and then add
+ * a second, redundant displacement, costing 2 instructions instead of
+ * saving 1. Plain separate globals cost exactly the 1 extra `lui`
+ * instead. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_80260300.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_802604FC.s")

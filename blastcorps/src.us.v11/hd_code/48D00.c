@@ -118,6 +118,18 @@ extern u8 D_8039B094;
  * here and wasn't tracked down further. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/48D00/func_8028F994.s")
 
+/* TODO: func_8028FAC0 - same per-entry radius check as func_8028F994
+ * (above: scale arg0/arg1/arg2 down, get a distance via func_8026A6F0,
+ * look up a per-category radius via the 0x802FDBAC table indexed by
+ * unk0E), plus two differences: entries with unk24 nonzero are skipped
+ * entirely, and a 4th arg (also scaled down) is added to the looked-up
+ * radius before the >= dist comparison. Logic, every field offset, and
+ * the overall control flow are all confirmed correct (diff score down to
+ * 387, zero inserts/deletes, frame size exact) - every difference is a
+ * same-value register rename, the same reload-order artifact documented
+ * on func_8028F994, plus one extra instance of it (dist's post-call spill
+ * swapped with arg3's reload, one slot apart) in the new tail. Tried
+ * commuting the final addition's operand order; no effect. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/48D00/func_8028FAC0.s")
 
 /* TODO: func_8028FC10 - set up D_80370BF8 via func_802DB4D0/func_802D4910,

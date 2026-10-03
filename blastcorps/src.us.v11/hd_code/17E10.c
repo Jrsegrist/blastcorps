@@ -21,6 +21,21 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_8025EDF0.s")
 
+/* TODO: func_8025F044 - repeat {if entry->unk28==0x20, post a {code=0x20,
+ * param=entry+0x14} event with entry->unk4c as the 3rd field, else call
+ * func_8025F0F0(entry, entry+0x28); then entry->unk50 =
+ * func_802D6DB0(entry+0x14, entry+0x28)} until unk50 becomes nonzero, then
+ * entry->unk54 += unk50 and return unk50 (a polling/retry loop with a
+ * fixed `entry`, never advancing - the retries are driven entirely by the
+ * three calls' side effects). Logic, every field offset, and the loop
+ * condition are all confirmed correct (diff score down to 460, frame size
+ * exact, zero inserts/deletes) - the one gap: inside the `unk28==0x20`
+ * branch, target reloads `entry` from its stack home a second time right
+ * before using it for the call's a0/a2 despite having just loaded it for
+ * the preceding comparison, while every phrasing tried keeps reusing the
+ * already-loaded register instead, cascading into register-rename diffs
+ * for the rest of the function. Tried moving the inner `eventCode` local
+ * to function scope; no effect (score 462, same shape). */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_8025F044.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_8025F0F0.s")

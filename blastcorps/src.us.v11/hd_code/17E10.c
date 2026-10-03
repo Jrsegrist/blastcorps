@@ -25,7 +25,19 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_8025F0F0.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_8026005C.s")
+extern void *D_802E8CEC;
+
+void func_802D74E0(s32, void *);
+void func_802D7560(s32, void *);
+
+void func_8026005C(void *arg0) {
+    if (*((u8 *) arg0 + 0x3e) & 4) {
+        func_802D74E0(*(s32 *) ((u8 *) D_802E8CEC + 0x38), (u8 *) arg0 + 0xc);
+        func_802D7560(*(s32 *) ((u8 *) D_802E8CEC + 0x38), (u8 *) arg0 + 0xc);
+    }
+    func_802604FC(arg0);
+    func_80260148((u8 *) D_802E8CEC + 0x14, arg0, 0xffff);
+}
 
 /* TODO: func_802600D8 - looks up arg0->unk8->unk4->unk5 (a signed byte),
  * passes it to func_802D7610 (a float-returning lookup/conversion), scales

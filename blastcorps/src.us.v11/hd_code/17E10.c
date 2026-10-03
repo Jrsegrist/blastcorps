@@ -7,6 +7,26 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_8025CE74.s")
 
+/* TODO: func_8025D0B0 - for arg0==0, load a (baseAddr=0x487050,
+ * size=0x2E20) pair; for arg0==1, (0x489E70, 0x5730) (0x489E70 is both
+ * mode 0's end and mode 1's start - these read like adjacent slots in a
+ * ROM resource table, each size = next_start - this_start); call
+ * func_8028B4C4(baseAddr, D_80358070, &size, 0xc), then set
+ * D_80366BB0[arg0] = D_80358070 & 0x1FFFFFFF and bump D_80358070 by size.
+ * Logic and every field/offset are confirmed correct (every phrasing tried
+ * lands on the right values) - two compiler-behavior gaps block a match
+ * rather than any logic error. First: this compiler constant-folds
+ * `end - baseAddr` into a single `li` the moment both operands are
+ * literal-initialized locals in the same block, while target has a real
+ * runtime `subu` of two lui/addiu-built registers - tried separating them
+ * into distinct named locals (still folds) and `volatile` (stops the fold
+ * but adds load/store pairs target doesn't have either). Second: target
+ * keeps arg0 live in the callee-saved $s0 across the whole function
+ * (saved/restored around the one call) instead of reloading its stack
+ * byte 3 times like every C phrasing produces; `register` on the
+ * parameter had no effect. Likely needs direct evidence of which pass
+ * made each choice (decomp-workbench's register-role-audit) rather than
+ * more source guessing. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_8025D0B0.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_8025D184.s")

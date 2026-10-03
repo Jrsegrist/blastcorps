@@ -281,4 +281,35 @@ u16 func_80260B24(u8 arg0) {
     return D_80366C28[arg0];
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_80260B40.s")
+extern void *D_802E8CE0;
+extern void *D_802E8CEC;
+s32 func_802D7660(s32);
+s32 func_802D6C8C(void *, void *, s32);
+
+void func_80260B40(u8 arg0, u16 arg1) {
+    s32 savedState;
+    void *entry;
+    s32 count;
+    s32 eventTail;
+    s32 eventHead;
+    s32 eventParam;
+    s16 pad;
+    s16 eventCode;
+
+    savedState = func_802D7660(1);
+    entry = D_802E8CE0;
+    D_80366C28[arg0] = arg1;
+
+    count = 0;
+    while (entry != NULL) {
+        if ((*(u8 *) ((u8 *) (*(void **) ((u8 *) (*(void **) ((u8 *) entry + 8)) + 4)) + 2) & 0x3f) == arg0) {
+            eventCode = 0x800;
+            eventParam = (s32) entry;
+            func_802D6C8C((u8 *) D_802E8CEC + 0x14, &eventCode, 0);
+        }
+        count = count + 1;
+        entry = *(void **) entry;
+    }
+
+    func_802D7660(savedState);
+}

@@ -29,6 +29,24 @@ extern s32 D_8039B610;
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/48D00/func_8028E9E4.s")
 
+void func_802AACD4(u8, s32, s32, void *, void *);
+extern u8 D_8039B094;
+
+/* TODO: func_8028F6B4 - for each D_8039B610-length array entry (0x48
+ * stride) matching both unk18!=0 and unk23==arg0: clear unk1E, set the
+ * corresponding D_8039B094 flag byte to 1, then forward several of the
+ * entry's fields into func_802AACD4. Logic, structure, and every offset
+ * confirmed correct (diff score as low as 130 with zero inserts/deletes
+ * besides one spurious reload). Remaining gap: after the func_802AACD4
+ * call clobbers the loop index's register, target reuses the freshly
+ * computed `i+1` value directly for the loop condition with no further
+ * reload, while every phrasing tried (plain post-increment, an explicit
+ * `next` temp matching m2c's own inferred split, both declaration orders,
+ * `register` on the index or the temp) either leaves one extra reload in
+ * or - worse - gives the temp its own separate stack slot, growing the
+ * frame and drifting every later address in the file. The explicit-temp
+ * trick that fixed this exact pattern in func_8028DE94 (above) does not
+ * carry over here, apparently because of the intervening function call. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/48D00/func_8028F6B4.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/48D00/func_8028F794.s")

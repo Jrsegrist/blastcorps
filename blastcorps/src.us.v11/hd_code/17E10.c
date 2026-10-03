@@ -27,6 +27,21 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_8026005C.s")
 
+/* TODO: func_802600D8 - looks up arg0->unk8->unk4->unk5 (a signed byte),
+ * passes it to func_802D7610 (a float-returning lookup/conversion), scales
+ * the result by arg0->unk2c, and posts a {code=0x10, param=arg0, extra=the
+ * scaled float's raw bits} event via func_802D6C8C. Logic, the pointer
+ * chase, and the event-struct field layout are all confirmed correct
+ * (diff score down to 675, zero logic errors). The one gap: this compiler
+ * always promotes a float local to a callee-saved register ($f20, with a
+ * matching sdc1/ldc1 prologue/epilogue save) the moment its address is
+ * taken to read its bits as an integer, even when - as here - the value is
+ * fully consumed well before any later call and a bare stack home would
+ * suffice; target has no such save at all. Tried: reordering the
+ * assignments every way, `register` (illegal combined with `&`), and a
+ * union in place of the pointer-cast reinterpret (same promotion either
+ * way) - this looks like a blanket cfe rule for address-taken floats, not
+ * something a source rephrasing routes around. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_802600D8.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_80260148.s")

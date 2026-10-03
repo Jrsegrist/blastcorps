@@ -70,4 +70,20 @@ extern u8 D_8039B094;
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/48D00/func_8028FC10.s")
 
+/* TODO: func_8028FCD4 - wait for arg0->unk8 to become nonzero
+ * (func_802DB850(arg0); while (arg0->unk8 == 0) {}), reset it via
+ * func_802D4910(arg0,0,0), fill a 4-entry/4-byte-stride local array via
+ * func_802DB8D4((s32) sp20), then for each entry with (unk2&1) and
+ * unk3==0 set the matching bit in *arg1; return sp20[0].unk3 (always the
+ * first entry's byte, not sp20[i]). Logic, the spin-wait shape, every
+ * field offset, and the overall structure are all confirmed correct
+ * (asm-differ score as low as 290, zero structural inserts in the bulk of
+ * the function). Remaining gap is the same loop-tail pattern documented
+ * on func_8028F6B4 above: target defers the incremented index's store
+ * into the branch's own delay slot (`slti at,t6,4; bnez at,loop; sw
+ * t6,0x1c(sp)`), while this phrasing stores-then-reloads before the
+ * compare instead. The m2c-style split-temp fix that works for this
+ * exact pattern when there's no function call in the loop body (see
+ * func_8028DE94 above) does not reproduce it here either - it trades the
+ * extra reload for an extra dedicated stack slot instead. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/48D00/func_8028FCD4.s")

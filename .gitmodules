@@ -13,3 +13,6 @@
 [submodule "tools/permuter"]
 	path = tools/permuter
 	url = https://github.com/simonlindholm/decomp-permuter.git
+[submodule "tools/decomp-workbench"]
+	path = tools/decomp-workbench
+	url = https://github.com/akratch/n64-decomp-workbench.git

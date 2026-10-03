@@ -52,7 +52,34 @@ u8 func_80260634(void *arg0) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_80260650.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_802608C8.s")
+extern void *D_802E8CEC;
+extern u8 D_8030914C;
+
+s32 func_802D6C8C(void *, void *, s32);
+
+/* eventTail/eventHead are dead stack space never read or written here - the
+ * real source likely shares one ~0x10-byte event-record local across sites
+ * like this one and only fills the leading eventCode/eventParam fields,
+ * leaving the rest as reserved/unused padding (same shape as a plain array
+ * would need, but writing it as one keeps the 0x24/0x20-offset slots from
+ * ever materializing their own address, which doesn't match target). */
+void func_802608C8(void *arg0) {
+    s32 eventTail;
+    s32 eventHead;
+    s32 eventParam;
+    s16 pad;
+    s16 eventCode;
+
+    eventCode = 0x400;
+    eventParam = (s32) arg0;
+
+    if (arg0 != NULL) {
+        *((u8 *) arg0 + 0x3e) &= ~0x10;
+        func_802D6C8C((u8 *) D_802E8CEC + 0x14, &eventCode, 0);
+    } else {
+        func_8029A7E4(&D_8030914C);
+    }
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_80260934.s")
 

@@ -113,6 +113,30 @@ void func_8025CE74(void) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_8025E67C.s")
 
+/* TODO: func_8025EDF0 - links arg0->unk8 into D_802E8CEC->0x48, resets
+ * D_802E8CEC->0x40 and sets ->0x4c=0x80e8; allocates arg0->unk0*0x40
+ * bytes via func_802D6B10 into D_802E8CEC->0x44 and D_802E8CE8, then
+ * arg0->unk4*28 bytes into func_802D6E3C(D_802E8CEC+0x14, ., arg0->unk4);
+ * for i=1..arg0->unk0-1, calls func_802D6EE0 on 0x40-byte slices of the
+ * first allocation; allocates arg0->unk10 u16s into D_80366C28 and fills
+ * them with 0x7fff; sets D_802E8CEC->0x38=D_803065C0, ->0=0, ->8=the
+ * function pointer func_8025F044, ->4=itself (a self-referential node),
+ * calls func_802D6F70(->0x38, D_802E8CEC), posts a {code=0x20} event via
+ * func_802D6C8C with D_802E8CEC->0x4c as the extra field, then sets
+ * D_802E8CEC->0x50 = func_802D6DB0(D_802E8CEC+0x14, D_802E8CEC+0x28).
+ * Logic and every field/offset are confirmed correct (down to 2
+ * differing opcodes with the frame, instruction count and nearly every
+ * register already exact). The one gap: in the first counted loop,
+ * target computes the incremented index straight into the register it
+ * reuses for the bound check (`addiu t2,t1,1; sw t2,...; ...; sltu
+ * at,t2,t4`), while a plain `i = i + 1;` statement here always reloads i
+ * fresh for the following while-test. Folding the increment into the
+ * while-condition itself - `while ((i = i + 1) < bound)`, the exact
+ * lever that fixed this same gap in func_80260210 and the retried
+ * func_80260A30 - backfires here instead: since `i` is also read inside
+ * the loop body's own call arguments, IDO promotes it to a callee-saved
+ * $s-register across the whole loop (save-slots go from 4 to 12 bytes),
+ * which is worse. Left as the plain two-statement form. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_8025EDF0.s")
 
 /* TODO: func_8025F044 - repeat {if entry->unk28==0x20, post a {code=0x20,

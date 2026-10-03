@@ -50,6 +50,10 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8AEE0/func_802D249C.s")
 
+/* func_802D24F8/func_802D2524: two-address trampolines into
+ * func_802AC7DC/func_802AC85C, same confirmed-unreachable-from-C 8-byte
+ * sd-$ra frame as func_802AC284 (hd_code/679E0.c). Permanently
+ * GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8AEE0/func_802D24F8.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8AEE0/func_802D2524.s")

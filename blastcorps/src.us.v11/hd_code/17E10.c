@@ -108,9 +108,33 @@ void func_802608C8(void *arg0) {
     }
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_80260934.s")
+extern void *D_802E8CE0;
+s32 func_802D7660(s32);
 
-void func_80260934(s32 arg0);
+void func_80260934(u8 arg0) {
+    s32 savedState;
+    s32 unused2;
+    s32 unused1;
+    s32 eventParam;
+    s16 pad;
+    s16 eventCode;
+    void *entry;
+
+    savedState = func_802D7660(1);
+    entry = D_802E8CE0;
+    if (entry != NULL) {
+        do {
+            eventCode = 0x400;
+            eventParam = (s32) entry;
+            if ((*((u8 *) entry + 0x3e) & arg0) == arg0) {
+                *((u8 *) entry + 0x3e) &= ~0x10;
+                func_802D6C8C((u8 *) D_802E8CEC + 0x14, &eventCode, 0);
+            }
+            entry = *(void **) entry;
+        } while (entry != NULL);
+    }
+    func_802D7660(savedState);
+}
 
 void func_802609D0(void) {
     func_80260934(1);

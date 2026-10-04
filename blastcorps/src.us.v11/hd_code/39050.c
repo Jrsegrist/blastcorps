@@ -1,6 +1,8 @@
 #include "common.h"
 #include <ultra64.h>
 
+#define ABS(x) ((x) >= 0.0f ? (x) : -(x))
+
 /* One entry of the digger/object table at D_80364460 (0x74 bytes each);
  * D_803649D0 points one past the last live entry. */
 typedef struct {
@@ -158,7 +160,52 @@ f32 func_8027DB5C(s32 *a, s32 *b, s32 arg2) {
     return arg2 * max;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/39050/func_8027DD88.s")
+/* Where segment p[0]..p[1] (x) / q[0]..q[1] (y) crosses the segment centred on (arg0, arg1)
+ * with half-extent (p[1] - p[2], q[1] - q[2]); returns the crossing's fraction along the
+ * first segment. Line-intersection maths as in Graphics Gems II (lines_intersect).
+ * The a1/b1/c1 line must stay a single source line: IDO schedules it differently otherwise. */
+f32 func_8027DD88(s32 arg0, s32 arg1, s32 *p, s32 *q) {
+    f32 a1, a2, b1, b2, c1, c2;
+    f32 r1, r2, r3, r4;
+    f32 denom, offset, num;
+    f32 pos;
+    f32 t;
+    f32 x1, y1, x2, y2, x3, y3, x4, y4;
+
+    x1 = p[0];
+    y1 = q[0];
+    x2 = p[1];
+    y2 = q[1];
+    x3 = p[1] - p[2] + arg0;
+    y3 = q[1] - q[2] + arg1;
+    x4 = arg0 - (p[1] - p[2]);
+    y4 = arg1 - (q[1] - q[2]);
+
+    a1 = y2 - y1; b1 = x1 - x2; c1 = x2 * y1 - x1 * y2;
+    r3 = a1 * x3 + b1 * y3 + c1;
+    r4 = a1 * x4 + b1 * y4 + c1;
+    a2 = y4 - y3;
+    b2 = x3 - x4;
+    c2 = x4 * y3 - x3 * y4;
+    r1 = a2 * x1 + b2 * y1 + c2;
+    r2 = a2 * x2 + b2 * y2 + c2;
+    denom = a1 * b2 - a2 * b1;
+    if (denom < 0.0f) {
+        offset = -denom / 2.0f;
+    } else {
+        offset = denom / 2.0f;
+    }
+    if (ABS(x2 - x1) > ABS(y2 - y1)) {
+        num = b1 * c2 - b2 * c1;
+        pos = ((num < 0.0f) ? num - offset : num + offset) / denom;
+        t = (pos - x1) / (x2 - x1);
+    } else {
+        num = a2 * c1 - a1 * c2;
+        pos = ((num < 0.0f) ? num - offset : num + offset) / denom;
+        t = (pos - y1) / (y2 - y1);
+    }
+    return t;
+}
 
 s32 func_802AC4C4(s32, s32, s32, s32, s32, s32, s32, s32);
 

@@ -1,0 +1,17 @@
+#!/bin/bash
+# Compile a C snippet with the hd_code game-file flags and compare functions
+# against their target asm in asm/nonmatchings/hd_code/DIR/.
+#
+# usage: tools/probe_cmp.sh FILE.c DIR OPT func [func...]
+#   OPT is -O1 or -O2. FULL=a:b prints a side-by-side of instructions a..b.
+# Relocated fields are masked, so symbol names and addends don't matter;
+# a MATCH here still needs a real build to confirm.
+set -e
+here=$(cd "$(dirname "$0")" && pwd)
+root=$here/../blastcorps
+src=$(realpath "$1"); d=$2; o=$3; shift 3
+cd "$root"
+../tools/ido5.3_recomp/cc -c -32 -G 0 -Xcpluscomm -signed -nostdinc -non_shared -Wab,-r4300_mul \
+    -D_LANGUAGE_C -D_FINALROM -woff 649,838 -I . -I include -I include/2.0I -I include/2.0I/PR \
+    $o -mips2 -o32 -o /tmp/probe_cmp.o "$src"
+python3 "$here/probe_cmp.py" /tmp/probe_cmp.o "$root/asm/nonmatchings/hd_code/$d" "$@"

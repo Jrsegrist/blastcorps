@@ -213,9 +213,131 @@ void func_8027AA04(f32 m[][3], s32 a, s32 b, s32 c) {
     }
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/34430/func_8027AC00.s")
+/* Finishes the 3x3 inversion for columns 1 and 2 (pivot rows q and r), then reorders the rows; 0 if singular */
+s32 func_8027AC00(f32 m[3][3], f32 out[3][3], s32 p) {
+    s32 q;
+    s32 r;
+    s32 a;
+    s32 b;
+    s32 i;
+    f32 s;
+    f32 aa;
+    f32 ab;
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/34430/func_8027B200.s")
+    if (p == 0) {
+        a = 1, b = 2;
+    } else if (p == 1) {
+        a = 0, b = 2;
+    } else {
+        a = 0, b = 1;
+    }
+    if ((aa = m[a][1]) < 0.0f) {
+        aa = -aa;
+    }
+    if ((ab = m[b][1]) < 0.0f) {
+        ab = -ab;
+    }
+    if (aa > ab) {
+        q = a;
+    } else {
+        q = b;
+    }
+    if (q == a) {
+        r = b;
+    } else {
+        r = a;
+    }
+    if (m[q][1] < 1e-8 && m[q][1] > -1e-8) {
+        return 0;
+    }
+    s = 1.0 / m[q][1];
+    m[q][1] = 1.0f;
+    m[q][2] *= s;
+    out[q][q] = s;
+    out[q][p] *= s;
+    for (i = 0; i < 3; i++) {
+        if (i != q) {
+            s = -m[i][1];
+            m[i][1] = 0.0f;
+            m[i][2] += s * m[q][2];
+            out[i][q] = out[q][q] * s;
+            out[i][p] += s * out[q][p];
+        }
+    }
+    if (m[r][2] < 1e-8 && m[r][2] > -1e-8) {
+        return 0;
+    }
+    s = 1.0 / m[r][2];
+    m[r][2] = 1.0f;
+    out[r][r] = s;
+    out[r][p] *= s;
+    out[r][q] *= s;
+    for (i = 0; i < 3; i++) {
+        if (i != r) {
+            s = -m[i][2];
+            m[i][2] = 0.0f;
+            out[i][p] += s * out[r][p];
+            out[i][q] += s * out[r][q];
+            out[i][r] += s * out[r][r];
+        }
+    }
+    func_8027AA04(out, p, q, r);
+    return 1;
+}
+
+/* Inverts a 3x3 matrix into out by elimination: pivots on the largest column-0 entry, then hands over to func_8027AC00; 0 if singular */
+s32 func_8027B200(f32 m[3][3], f32 out[3][3]) {
+    s32 i;
+    s32 p;
+    f32 s;
+    f32 ax;
+    f32 ay;
+    f32 az;
+
+    out[0][0] = out[1][1] = out[2][2] = 1.0f;
+    out[0][1] = out[0][2] = out[1][0] = out[1][2] = out[2][0] = out[2][1] = 0.0f;
+    if ((ax = m[0][0]) < 0.0f) {
+        ax = -ax;
+    }
+    if ((ay = m[1][0]) < 0.0f) {
+        ay = -ay;
+    }
+    if ((az = m[2][0]) < 0.0f) {
+        az = -az;
+    }
+    if (ax > ay) {
+        if (ax > az) {
+            p = 0;
+        } else {
+            p = 2;
+        }
+    } else if (ay > az) {
+        p = 1;
+    } else {
+        p = 2;
+    }
+    if (m[p][0] < 1e-8 && m[p][0] > -1e-8) {
+        return 0;
+    }
+    s = 1.0 / m[p][0];
+    m[p][0] = 1.0f;
+    m[p][1] *= s;
+    m[p][2] *= s;
+    out[p][p] = s;
+    for (i = 0; i < 3; i++) {
+        if (i != p) {
+            s = -m[i][0];
+            m[i][0] = 0.0f;
+            m[i][1] += s * m[p][1];
+            m[i][2] += s * m[p][2];
+            out[i][p] = out[p][p] * s;
+        }
+    }
+    if (!func_8027AC00(m, out, p)) {
+        return 0;
+    }
+    return 1;
+}
 
 /* Splits a 4x4 matrix into translation v, scale s and the rest (pivoting rows if m[3][3] is ~0) */
 s32 func_8027B5D0(f32 m[4][4], f32 *v, f32 *s, s32 *row) {

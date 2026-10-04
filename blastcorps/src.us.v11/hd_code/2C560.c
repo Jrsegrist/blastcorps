@@ -21,12 +21,10 @@ s32 D_8036BF28;
 s32 D_8036BF2C;
 u8 D_8036BF30[8];
 OSTime D_8036BF38;
-s32 D_8036BF40;
-s32 D_8036BF44;
-u64 D_8036BF48;
-s32 D_8036BF50;
+u64 D_8036BF40;   /* last audio frame time */
+u64 D_8036BF48;   /* audio task start time */
+u64 D_8036BF50;   /* audio task end time */
 /* unreferenced words; scalars, since IDO 8-aligns arrays of this size */
-s32 D_8036BF54;
 s32 D_8036BF58;
 s32 D_8036BF5C;
 s32 D_8036BF60;
@@ -165,6 +163,8 @@ void *func_80270F74(void *arg0) {
 void func_80271C24(BcSched *sc, BcScTask *t);
 s32 func_80271F48(OSMesgQueue *mq, OSMesg msg, s32 flag);
 void func_802D4550(u32 data);
+s32 func_80271A84(BcSched *sc, BcScTask *t);
+extern u8 D_802FA270;
 void func_80271CE4(BcSched *sc, s32 availRCP);
 void func_80271E88(BcSched *sc);
 
@@ -240,11 +240,52 @@ void func_80271358(BcSched *sc) {
     }
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/2C560/func_802715DC.s")
+/* __scHandleRSP */
+void func_802715DC(BcSched *sc) {
+    BcScTask *t;
+    OSTime now;
+
+    SCHED_ASSERT(sc->curRSPTask, 498);
+    t = sc->curRSPTask;
+    sc->curRSPTask = NULL;
+    if (t->state == RSP_STATE_SUSPENDED) {
+        D_8036BF00 = osGetTime() - D_8036BEF0;
+        if (D_8036BF00 > 550000) {
+            func_8029A7E4("Silly yield time of %llu ticks\n", D_8036BF00);
+        }
+        if (D_8036BF00 > D_8036BEF8) {
+            D_8036BEF8 = D_8036BF00;
+        }
+        if (!osSpTaskYielded(&t->list)) {
+            t->state = 2;
+            t->flags |= 4;
+            func_80271A84(sc, t);
+        }
+        SCHED_ASSERT(sc->audioListHead, 538);
+        if (sc->audioListHead == NULL) {
+            func_8029A7E4("Yield took %llu, max %llu\n", D_8036BF00, D_8036BEF8);
+        }
+        func_80271CE4(sc, 0);
+    } else {
+        if (t->flags & 0x40) {
+            now = osGetTime();
+            D_8036BF24 = (now - sc->gfxStartTime) / 7825;
+            D_802FA270 = 1;
+        } else if (t->list.t.type == M_AUDTASK) {
+            D_8036BF50 = osGetTime();
+            D_8036BF40 = D_8036BF48;
+        }
+        t->state = 2;
+        t->flags |= 4;
+        SCHED_ASSERT(sc->curRSPTask==0, 560);
+        if (func_80271A84(sc, t) && sc->gfxListHead != NULL && sc->gfxListHead->flags != 0x47) {
+            func_80271CE4(sc, 1);
+        }
+    }
+}
 
 extern u64 D_80364A90;
 extern s32 D_80358060;
-s32 func_80271A84(BcSched *sc, BcScTask *t);
 
 /* __scHandleRDP */
 void func_80271904(BcSched *sc) {
@@ -329,7 +370,6 @@ void func_80271C24(BcSched *sc, BcScTask *t) {
     t->state = 2;
 }
 
-extern u8 D_802FA270;
 void func_802DAE1C(OSTask *task); /* osSpTaskLoad */
 
 /* Start the next RSP task: audio when availRCP is 0, else graphics. */

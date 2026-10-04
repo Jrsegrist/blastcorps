@@ -52,8 +52,10 @@ typedef struct {
     u8 unk24;  /* 0x24: nonzero = single texture (tex), else three (D_802FC48C) */
     u8 pad25;
     s16 tex;   /* 0x26 */
-    u8 pad28[9];
-    u8 unk31;  /* 0x31 */
+    s32 rm0;   /* 0x28: render mode, two-texture case */
+    s32 rm1;   /* 0x2C */
+    u8 zbuf;   /* 0x30: use G_ZBUFFER, two-texture case */
+    u8 unk31;  /* 0x31: draw layer */
     u8 pad32[2];
 } Water;
 
@@ -72,6 +74,9 @@ extern u8 D_8036DCD4; /* level has water */
 extern u8 D_8036DCD5;
 extern u8 D_8036DCD6; /* index into D_802FC3F0 */
 extern u8 D_8036DCD7;
+
+void func_802802D4(Vtx *v, s32 i0, s32 i1, s32 i2);
+void func_8028072C(Vtx *v, s16 x0, s16 y0, s16 z0, s16 x1, s16 y1, s16 z1);
 
 /* Per-level random quad spawner (0x22 bytes); ranges are passed to func_8026A828 (random in range). */
 typedef struct {
@@ -489,7 +494,186 @@ s32 func_8027EED8(s16 x, s16 z, s16 *y) {
     return 1;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/39050/func_8027F1F8.s")
+/* Draw the water surface into gfx when this is its layer. The grid is emitted in strips of up to
+ * 8x2 vertices into a sub-display-list (D_8036DCC8[buf]); every 32 vertices the strip batch is
+ * closed and given a bounding box (8 verts in D_8036DCA8[buf]) for gSPCullDisplayList. With a
+ * single texture the face normals are recomputed for environment mapping, otherwise two textures
+ * are blended with LOD fraction D_8036DCD2. */
+void func_8027F1F8(Gfx **gfx, u8 buf, u8 layer) {
+    Gfx *gdl;
+    s32 a;
+    s32 b;
+    s32 pad; /* unused */
+    s32 total;
+    s32 cnt;
+    s32 col;
+    s32 k;
+    u8 done;
+    s32 m;
+    s32 rowlen;
+    u8 next;
+    s16 minX;
+    s16 maxX;
+    s16 minY;
+    s16 maxY;
+    s16 minZ;
+    s16 maxZ;
+    Gfx *dl;
+    Vtx *bbox;
+    s32 vcount;
+
+    gdl = *gfx;
+    done = 0;
+    dl = (Gfx *) D_8036DCC8[buf];
+    bbox = (Vtx *) D_8036DCA8[buf];
+    if (D_8036DCD4 == 0 || layer != D_8036DCD7) {
+        return;
+    }
+    gDPPipeSync(gdl++);
+    if (D_8036DCD5 != 0) {
+        gDPSetCycleType(gdl++, G_CYC_1CYCLE);
+        gDPSetRenderMode(gdl++, G_RM_ZB_XLU_SURF, G_RM_ZB_XLU_SURF2);
+        gSPClearGeometryMode(gdl++, 0xFFFFFFFF);
+        gSPSetGeometryMode(gdl++, G_ZBUFFER | G_SHADE | G_SHADING_SMOOTH | G_CULL_BACK | G_LIGHTING | G_TEXTURE_GEN);
+        gSPTexture(gdl++, 0x07C0, 0x07C0, 0, G_TX_RENDERTILE, G_ON);
+        gDPSetCombine(gdl++, 0xFFFFFF, 0xFFFCF67B);
+        gDPSetPrimColor(gdl++, 0, 0, 0x00, 0x00, 0x00, 0xAA);
+        gDPLoadTextureBlock(gdl++, OS_K0_TO_PHYSICAL(D_8036DCB8[0]), G_IM_FMT_RGBA, G_IM_SIZ_16b, 32, 32, 0,
+                            G_TX_CLAMP, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
+    } else {
+        gDPSetCycleType(gdl++, G_CYC_2CYCLE);
+        gDPSetRenderMode(gdl++, D_802FC3F0[D_8036DCD6].rm0, D_802FC3F0[D_8036DCD6].rm1);
+        gSPClearGeometryMode(gdl++, 0xFFFFFFFF);
+        if (D_802FC3F0[D_8036DCD6].zbuf != 0) {
+            gSPSetGeometryMode(gdl++, G_ZBUFFER | G_SHADE | G_SHADING_SMOOTH | G_CULL_BACK);
+        } else {
+            gSPSetGeometryMode(gdl++, G_SHADE | G_SHADING_SMOOTH | G_CULL_BACK);
+        }
+        gSPTexture(gdl++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
+        gDPSetCombine(gdl++, 0x277FFF, 0x1FFCFE3B);
+        gDPSetTextureLOD(gdl++, G_TL_TILE);
+        if (D_8036DCD0 == 2) {
+            next = 0;
+        } else {
+            next = D_8036DCD0 + 1;
+        }
+        gDPSetTextureImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, OS_K0_TO_PHYSICAL(D_8036DCB8[D_8036DCD0]));
+        gDPSetTile(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 0, 0x000, G_TX_LOADTILE, 0, 0, 0, 0, 0, 0, 0);
+        gDPLoadSync(gdl++);
+        gDPLoadBlock(gdl++, G_TX_LOADTILE, 0, 0, 1023, 256);
+        gDPSetTextureImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, OS_K0_TO_PHYSICAL(D_8036DCB8[next]));
+        gDPTileSync(gdl++);
+        gDPSetTile(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 0, 0x100, G_TX_LOADTILE, 0, 0, 0, 0, 0, 0, 0);
+        gDPLoadSync(gdl++);
+        gDPLoadBlock(gdl++, G_TX_LOADTILE, 0, 0, 1023, 256);
+        gDPSetTile(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 8, 0x000, G_TX_RENDERTILE, 0, G_TX_CLAMP, 5, G_TX_NOLOD,
+                   G_TX_CLAMP, 5, G_TX_NOLOD);
+        gDPSetTileSize(gdl++, G_TX_RENDERTILE, 2, 2, 0x7E, 0x7E);
+        gDPSetTile(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 8, 0x100, 1, 0, G_TX_CLAMP, 5, G_TX_NOLOD, G_TX_CLAMP, 5,
+                   G_TX_NOLOD);
+        gDPSetTileSize(gdl++, 1, 2, 2, 0x7E, 0x7E);
+        gDPSetPrimColor(gdl++, 0, D_8036DCD2, 0x00, 0x00, 0x00, 0xAA);
+    }
+    total = (D_802FC3F0[D_8036DCD6].nx + 1) * (D_802FC3F0[D_8036DCD6].nz + 1);
+    a = 0;
+    b = D_802FC3F0[D_8036DCD6].nx + 1;
+    col = 0;
+    vcount = 0;
+    while (!done) {
+        if (D_802FC3F0[D_8036DCD6].nx - col + 1 >= 9) {
+            cnt = 8;
+        } else {
+            cnt = D_802FC3F0[D_8036DCD6].nx - col + 1;
+        }
+        if (vcount == 0) {
+            gSPDisplayList(gdl++, osVirtualToPhysical(dl));
+            gSPVertex(dl++, osVirtualToPhysical(bbox), 8, 0);
+            gSPCullDisplayList(dl++, 0, 7);
+            minZ = minY = minX = 0x7FFF;
+            maxZ = maxY = maxX = -0x8000;
+        }
+        gSPVertex(dl++, osVirtualToPhysical(&D_8036DCA0[buf][a]), cnt, 0);
+        gSPVertex(dl++, osVirtualToPhysical(&D_8036DCA0[buf][b]), cnt, 8);
+        for (m = 0; m < cnt; m++) {
+            if (D_8036DCA0[buf][a + m].v.ob[0] < minX) {
+                minX = D_8036DCA0[buf][a + m].v.ob[0];
+            }
+            if (D_8036DCA0[buf][a + m].v.ob[1] < minY) {
+                minY = D_8036DCA0[buf][a + m].v.ob[1];
+            }
+            if (D_8036DCA0[buf][a + m].v.ob[2] < minZ) {
+                minZ = D_8036DCA0[buf][a + m].v.ob[2];
+            }
+            if (D_8036DCA0[buf][a + m].v.ob[0] > maxX) {
+                maxX = D_8036DCA0[buf][a + m].v.ob[0];
+            }
+            if (D_8036DCA0[buf][a + m].v.ob[1] > maxY) {
+                maxY = D_8036DCA0[buf][a + m].v.ob[1];
+            }
+            if (D_8036DCA0[buf][a + m].v.ob[2] > maxZ) {
+                maxZ = D_8036DCA0[buf][a + m].v.ob[2];
+            }
+        }
+        for (m = 0; m < cnt; m++) {
+            if (D_8036DCA0[buf][b + m].v.ob[0] < minX) {
+                minX = D_8036DCA0[buf][b + m].v.ob[0];
+            }
+            if (D_8036DCA0[buf][b + m].v.ob[1] < minY) {
+                minY = D_8036DCA0[buf][b + m].v.ob[1];
+            }
+            if (D_8036DCA0[buf][b + m].v.ob[2] < minZ) {
+                minZ = D_8036DCA0[buf][b + m].v.ob[2];
+            }
+            if (D_8036DCA0[buf][b + m].v.ob[0] > maxX) {
+                maxX = D_8036DCA0[buf][b + m].v.ob[0];
+            }
+            if (D_8036DCA0[buf][b + m].v.ob[1] > maxY) {
+                maxY = D_8036DCA0[buf][b + m].v.ob[1];
+            }
+            if (D_8036DCA0[buf][b + m].v.ob[2] > maxZ) {
+                maxZ = D_8036DCA0[buf][b + m].v.ob[2];
+            }
+        }
+        k = 0;
+        for (m = 0; m < cnt - 1; m++) {
+            gSP1Triangle(dl++, k + 1, k, k + 8, 0);
+            if (D_8036DCD5 != 0) {
+                func_802802D4(D_8036DCA0[buf], a + k, a + k + 1, b + k);
+            }
+            gSP1Triangle(dl++, k + 8, k + 9, k + 1, 0);
+            if (D_8036DCD5 != 0) {
+                func_802802D4(D_8036DCA0[buf], b + k, b + k + 1, a + k + 1);
+            }
+            k++;
+        }
+        rowlen = cnt - 1;
+        col += rowlen;
+        a += rowlen, b += rowlen;
+        if (D_802FC3F0[D_8036DCD6].nx == col) {
+            col = 0;
+            a++, b++;
+        }
+        vcount += cnt * 2;
+        if (vcount >= 32) {
+            gSPEndDisplayList(dl++);
+            func_8028072C(bbox, minX, minY, minZ, maxX, maxY, maxZ);
+            vcount = 0;
+            bbox += 8;
+        }
+        if (b == total) {
+            done = 1;
+        }
+    }
+    if (vcount != 0) {
+        gSPEndDisplayList(dl++);
+        func_8028072C(bbox, minX, minY, minZ, maxX, maxY, maxZ);
+        bbox += 8;
+    }
+    gDPPipeSync(gdl++);
+    gDPSetTextureLOD(gdl++, G_TL_LOD);
+    gDPPipeSync(gdl++);
+    *gfx = gdl;
+}
 
 /* Flat-shade triangle (i0, i1, i2) of v: store its face normal, scaled to length 120, in all three vertices. */
 void func_802802D4(Vtx *v, s32 i0, s32 i1, s32 i2) {

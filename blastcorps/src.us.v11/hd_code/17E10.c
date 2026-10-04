@@ -130,6 +130,39 @@ void func_8025CE74(void) {
  * save/restore shape instead). */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_8025E1E0.s")
 
+/* TODO: func_8025E2CC - an *arg0-output state machine gated on
+ * D_803643D7 and func_802753C0()==0: on D_80366BC0==0, checks whether
+ * D_802E8F94[D_802E8BDC*68] is 0x20 or 0x80 (calls func_802C1DD0 with
+ * that bool), then checks a flag byte at D_80364AF0[(D_80364AE8<<8)+
+ * D_802E8BDC+0x18] against the range (0,6) to pick between a "normal"
+ * branch and a dispatch on D_802E8BDC (cases 0x28, 0x32, default) that
+ * each set D_80366BC2 (an event code)/D_80366BC4 (a flag) and call a
+ * couple of func_80260xxx helpers, then posts the event via
+ * func_8026AF6C(D_80366BC2|0xa000) and, if the code was 5, calls
+ * func_80260650 with a func_8026205C(2) result. Falls through to a
+ * tail that re-arms D_80366BC0, and on D_80366BB8==0 either rematerializes
+ * it from D_803156C4 (if a specific D_8036BB1C/D_8036BB18 == D_80366BC2
+ * condition holds) or, on D_80366BB8!=0, decides via a
+ * func_802D4E10/D_80366BC4/timestamp-delta chain whether to call
+ * func_80275270(0, 0x08000000, 0x3f400000) and zero D_80366BB8/
+ * D_80366BC0. Logic, every field, offset, and branch condition are
+ * confirmed correct by direct transcription (down to a frame that
+ * matches target exactly at -40, 237 vs 236 target instructions - the
+ * closest build reached deficit 9). The blocker is register allocation,
+ * not logic: target keeps the "flag" value live in the callee-saved
+ * $s0 continuously across almost the entire function - reused directly
+ * as a call argument, as a branch-compare operand, and as the
+ * dispatch key - never spilling or reloading it even across the many
+ * intervening calls, while every C phrasing tried (plain reassignment,
+ * `register`, combining the two early boolean checks into `||`/`&&`
+ * expressions, a `switch` for the 0x28/0x32/default dispatch) either
+ * leaves it stack-homed with explicit reload instructions or, when
+ * `register` is added, promotes it along with something else into an
+ * extra $s1 save instead of just $s0 (frame grows from -40 to -56
+ * either way). The `switch` rewrite for the dispatch alone did get the
+ * closest on raw opcode distance, suggesting the real source may have
+ * used one there, but didn't fix the two earlier checks' spills and
+ * regressed the frame, so it wasn't kept. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_8025E2CC.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_8025E67C.s")

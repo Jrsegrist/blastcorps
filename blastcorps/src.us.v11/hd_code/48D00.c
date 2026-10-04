@@ -28,24 +28,30 @@ extern Entry48D00 D_8039B070_entries[];
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/48D00/func_8028D4C0.s")
 
-/* TODO: func_8028DA5C - initialize an 8x 0x10-byte sub-entry struct at *a0
- * (likely per-corner/wheel contact data) from a 0x18-stride lookup table at
- * D_802FDB98 indexed by arg1, cycling through 3 of
- * {D_802FDB98,9A,9C,9E,A0,A2} (always the field at +0 and +4 relative to
- * the one skipped) plus a fixed {0, 0x3e0} constant pair per sub-entry.
- * Logic, every field offset, and the full group-by-group table-field
- * selection are all confirmed correct (diff score down to 20, zero inserts/
- * deletes, frame-free leaf matches exactly) - the only residue is 2 sites
- * (4 instructions total) where two back-to-back `li $tN, 0x3e0` loads of
- * the literally same redundant constant land in the opposite two temp
- * registers from target (t5<->t6, t7<->t8), confirmed via decomp-workbench
- * as a genuine instruction-bit difference (not a relocation/cosmetic
- * artifact) and flagged by its own field guide as "register-permutation,
- * owning pass unknown" - resolving it needs an instrumented IDO uopt trace
- * to tell UOPT-reservation from UGEN-demand, not a source-level lever; a
- * `lever 15`-style discarded-expression probe before the pair had zero
- * effect (fully eliminated, no FIFO rotation). Documented rather than
- * guessing further. */
+/* TODO: func_8028DA5C - fill the 8 corner Vtx of box type arg1 from the
+ * 0x18-stride min/max table at D_802FDB98 (x0/x1, y0/y1, z0/z1 at 0..0xA;
+ * the same table's +0x14 is the radius used by func_8028F994), with
+ * texture coords 0 or 31.0 (0x3E0). Best draft (BoxDef48D00 /
+ * D_802FDB98_boxes alias, per corner `ob[0..2]` then `tc[1]`, `tc[0]`)
+ * is exact except corners 2 and 5, where both tcs are 0x3E0: target
+ * loads the tc[0] constant first (t5) but stores tc[1] first; every
+ * spelling tried gives one or the other, not both (both statement
+ * orders, chained assignment both ways, raw-offset / array / mixed
+ * spellings for just those corners, tc-before-ob orders).
+ *
+ * void func_8028DA5C(Vtx *v, u8 arg1) {
+ *     v[0].v.ob[0] = D_802FDB98_boxes[arg1].x1;
+ *     v[0].v.ob[1] = D_802FDB98_boxes[arg1].y0;
+ *     v[0].v.ob[2] = D_802FDB98_boxes[arg1].z0;
+ *     v[0].v.tc[1] = 0;
+ *     v[0].v.tc[0] = 0;
+ *     ... corners (x, y, z, tc0, tc1): 1 = (x1, y1, z0, 0, 0x3E0),
+ *     2 = (x1, y1, z1, 0x3E0, 0x3E0), 3 = (x1, y0, z1, 0x3E0, 0),
+ *     4 = (x0, y0, z0, 0x3E0, 0), 5 = (x0, y1, z0, 0x3E0, 0x3E0),
+ *     6 = (x0, y1, z1, 0, 0x3E0), 7 = (x0, y0, z1, 0, 0)
+ * }
+ * (BoxDef48D00: s16 x0, x1, y0, y1, z0, z1; pad to 0x14; s16 radius;
+ * size 0x18. D_802FDB98_boxes is already in undefined_syms.) */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/48D00/func_8028DA5C.s")
 
 /* Activate entry arg0. The mix of struct-field and per-field-symbol

@@ -91,6 +91,15 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count);
 s8 func_80272C5C(void *arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, f32 arg5);
 
 extern u16 yoshiDemandV;
+/* Debug switches set from the command line */
+extern s32 D_802FA250; /* -v */
+extern s32 D_802FA254; /* -d */
+extern s32 D_802FA258; /* -s */
+extern s32 D_802FA25C; /* -j */
+extern s32 D_802FA260; /* -m */
+extern s32 D_802FA264; /* -l */
+extern s32 D_802FA268; /* -c, -C */
+extern s32 D_802FA26C; /* -C */
 extern u16 D_8036EB90;
 extern u16 D_8036BBB0[];
 extern u16 D_8036BBB2[];
@@ -438,4 +447,62 @@ s32 func_80270A54(u8 *arg0, s32 arg1) {
     return 0;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/26570/func_80270AE0.s")
+/* Splits a command line into words and sets a debug switch for each
+ * leading "-x" argument */
+void func_80270AE0(u8 *cmdline) {
+    s32 argc;
+    u8 *args[33];
+    u8 **argv;
+    s32 pad;
+    u8 *p;
+
+    argc = 1;
+    argv = args;
+    if (cmdline != NULL && *cmdline != '\0') {
+        p = cmdline;
+        while (*p != '\0') {
+            while (*p != '\0' && *p == ' ') {
+                *p = '\0';
+                p++;
+            }
+            if (*p != '\0') {
+                args[argc] = p;
+                argc++;
+            }
+            while (*p != '\0' && *p != ' ') {
+                p++;
+            }
+        }
+        while (argc > 1 && argv[1][0] == '-') {
+            switch (argv[1][1]) {
+                case 'd':
+                    D_802FA254 = 1;
+                    break;
+                case 'v':
+                    D_802FA250 = 1;
+                    break;
+                case 's':
+                    D_802FA258 = 1;
+                    break;
+                case 'j':
+                    D_802FA25C = 1;
+                    break;
+                case 'm':
+                    D_802FA260 = 1;
+                    break;
+                case 'l':
+                    D_802FA264 = 1;
+                    break;
+                case 'c':
+                    D_802FA268 = 1;
+                    break;
+                case 'C':
+                    D_802FA26C = 1;
+                    D_802FA268 = 1;
+                    break;
+            }
+            argc--;
+            argv++;
+        }
+    }
+}

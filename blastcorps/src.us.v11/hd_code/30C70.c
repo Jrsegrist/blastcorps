@@ -6,6 +6,9 @@ extern s16 *D_8036C790;
 extern s16 *D_8036C794;
 extern s16 *D_8036C7A0[10]; /* point lists to keep on screen */
 extern u8 D_8036C7CC;
+extern Vtx D_8036C7D0[][4];   /* off-screen marker quads */
+extern Mtx D_8036C850[];      /* off-screen marker matrices */
+extern s16 D_8036443E;        /* camera yaw, 4095 = 360 degrees */
 extern u8 D_02000000[]; /* segment 2 base */
 extern u8 D_802FA940[]; /* 32x32 IA8 texture */
 extern u16 D_8035807C;   /* projection scale, 65535 = 1.0 */
@@ -271,4 +274,68 @@ void func_80276D1C(Mtx *m, f32 x, f32 y, f32 z, f32 w, f32 *ox, f32 *oy, f32 *oz
     *ow = mf[0][3] * x + mf[1][3] * y + mf[2][3] * z + mf[3][3];
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/30C70/func_80276E50.s")
+/* Draws a marker at the screen edge pointing towards an off-screen point (x, y, z in 1/32 units) */
+void func_80276E50(Gfx **gfxp, void *view, u8 idx, s32 x, s32 y, s32 z) {
+    s16 sx;
+    s16 sy;
+    Gfx *gdl = *gfxp;
+    f32 mf[4][4];
+    f32 rot[4][4];
+
+    func_8027690C(view, x >> 5, y >> 5, z >> 5, &sx, &sy, NULL, NULL, NULL, 1.0f);
+    if (sx < 30 || sx >= 291 || sy < 25 || sy >= 216) {
+        if (sx < 30) {
+            sx = 30;
+        }
+        if (sy < 25) {
+            sy = 25;
+        }
+        if (sx >= 291) {
+            sx = 290;
+        }
+        if (sy >= 216) {
+            sy = 215;
+        }
+        D_8036C7D0[idx][0].v.ob[0] = -15;
+        D_8036C7D0[idx][0].v.ob[1] = -15;
+        D_8036C7D0[idx][0].v.ob[2] = -10;
+        D_8036C7D0[idx][0].v.tc[0] = 0;
+        D_8036C7D0[idx][0].v.tc[1] = 0;
+        D_8036C7D0[idx][1].v.ob[0] = 15;
+        D_8036C7D0[idx][1].v.ob[1] = -15;
+        D_8036C7D0[idx][1].v.ob[2] = -10;
+        D_8036C7D0[idx][1].v.tc[0] = 0x3E0;
+        D_8036C7D0[idx][1].v.tc[1] = 0;
+        D_8036C7D0[idx][2].v.ob[0] = 15;
+        D_8036C7D0[idx][2].v.ob[1] = 15;
+        D_8036C7D0[idx][2].v.ob[2] = -10;
+        D_8036C7D0[idx][2].v.tc[0] = 0x3E0;
+        D_8036C7D0[idx][2].v.tc[1] = 0x3E0;
+        D_8036C7D0[idx][3].v.ob[0] = -15;
+        D_8036C7D0[idx][3].v.ob[1] = 15;
+        D_8036C7D0[idx][3].v.ob[2] = -10;
+        D_8036C7D0[idx][3].v.tc[0] = 0;
+        D_8036C7D0[idx][3].v.tc[1] = 0x3E0;
+        guTranslateF(mf, sx, sy, 0.0f);
+        guRotateF(rot, 135.0 - (D_8036443E / 4095.0) * 360.0, 0.0f, 0.0f, 1.0f);
+        guMtxCatF(rot, mf, mf);
+        guMtxF2L(mf, &D_8036C850[idx]);
+        gSPMatrix(gdl++, (u32) D_02000000 + 0xC0, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
+        gSPMatrix(gdl++, &D_8036C850[idx], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+        gDPPipeSync(gdl++);
+        gDPSetCycleType(gdl++, G_CYC_1CYCLE);
+        gDPSetRenderMode(gdl++, G_RM_XLU_SURF, G_RM_XLU_SURF2);
+        gSPClearGeometryMode(gdl++, 0xFFFFFFFF);
+        gSPSetGeometryMode(gdl++, G_SHADE | G_SHADING_SMOOTH);
+        gSPTexture(gdl++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
+        gDPSetCombine(gdl++, 0x119623, 0xFF2FFFFF);
+        gDPSetPrimColor(gdl++, 0, 0, 0xFF, 0xFF, 0x00, 0xFF);
+        gDPLoadTextureBlock(gdl++, (u32) D_802FA940 - 0x80000000, G_IM_FMT_IA, G_IM_SIZ_8b, 32, 32, 0, G_TX_CLAMP,
+                            G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
+        gSPVertex(gdl++, (u32) D_8036C7D0[idx] - 0x80000000, 4, 0);
+        gSP1Triangle(gdl++, 0, 1, 2, 0);
+        gSP1Triangle(gdl++, 0, 2, 3, 0);
+        gDPPipeSync(gdl++);
+    }
+    *gfxp = gdl;
+}

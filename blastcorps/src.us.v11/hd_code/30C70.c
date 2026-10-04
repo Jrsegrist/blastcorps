@@ -10,9 +10,14 @@ extern u8 D_02000000[]; /* segment 2 base */
 extern u8 D_802FA940[]; /* 32x32 IA8 texture */
 extern u16 D_8035807C;   /* projection scale, 65535 = 1.0 */
 
-void func_80276130(s32 arg0, u8 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5, s32 arg6,
-                   u8 r0, u8 g0, u8 b0, u8 a0, u8 r1, u8 g1, u8 b1, u8 a1,
-                   u8 r2, u8 g2, u8 b2, u8 a2, u8 r3, u8 g3, u8 b3, u8 a3);
+typedef struct {
+    u8 pad[0x1E00];
+    Vtx vtx[1]; /* sprite quads */
+} SpriteVtxBuf;
+
+s32 func_80276130(SpriteVtxBuf *arg0, u8 arg1, s32 arg2, s32 x, s32 y, s32 w, s32 h,
+                  u8 r0, u8 g0, u8 b0, u8 a0, u8 r1, u8 g1, u8 b1, u8 a1,
+                  u8 r2, u8 g2, u8 b2, u8 a2, u8 r3, u8 g3, u8 b3, u8 a3);
 void func_8027690C(void *arg0, f32 x, f32 y, f32 z, s16 *sx, s16 *sy, Mtx *arg6, Mtx *arg7, Mtx *arg8, f32 arg9);
 void func_80276D1C(Mtx *m, f32 x, f32 y, f32 z, f32 w, f32 *ox, f32 *oy, f32 *oz, f32 *ow);
 
@@ -47,11 +52,80 @@ Gfx *func_80275DA4(Gfx *gfx, u8 arg1) {
     return gdl;
 }
 
-void func_80276080(s32 arg0, u8 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5, s32 arg6, u8 r, u8 g, u8 b, u8 a) {
+void func_80276080(SpriteVtxBuf *arg0, u8 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5, s32 arg6, u8 r, u8 g, u8 b, u8 a) {
     func_80276130(arg0, arg1, arg2, arg3, arg4, arg5, arg6, r, g, b, a, r, g, b, a, r, g, b, a, r, g, b, a);
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/30C70/func_80276130.s")
+/* Writes a quad of 4 Vtx centred on (x, y), half size (w, h); arg1 picks the texture orientation */
+s32 func_80276130(SpriteVtxBuf *arg0, u8 arg1, s32 arg2, s32 x, s32 y, s32 w, s32 h,
+                  u8 r0, u8 g0, u8 b0, u8 a0, u8 r1, u8 g1, u8 b1, u8 a1,
+                  u8 r2, u8 g2, u8 b2, u8 a2, u8 r3, u8 g3, u8 b3, u8 a3) {
+    s32 pad;
+
+    switch (arg1) {
+        case 0:
+            arg0->vtx[arg2].v.tc[0] = 0, arg0->vtx[arg2].v.tc[1] = 0;
+            arg0->vtx[arg2 + 1].v.tc[0] = 0x3E0, arg0->vtx[arg2 + 1].v.tc[1] = 0;
+            arg0->vtx[arg2 + 2].v.tc[0] = 0x3E0, arg0->vtx[arg2 + 2].v.tc[1] = 0x3E0;
+            arg0->vtx[arg2 + 3].v.tc[0] = 0, arg0->vtx[arg2 + 3].v.tc[1] = 0x3E0;
+            break;
+        case 1:
+            arg0->vtx[arg2].v.tc[0] = 0, arg0->vtx[arg2].v.tc[1] = 0x3E0;
+            arg0->vtx[arg2 + 1].v.tc[0] = 0x3E0, arg0->vtx[arg2 + 1].v.tc[1] = 0x3E0;
+            arg0->vtx[arg2 + 2].v.tc[0] = 0x3E0, arg0->vtx[arg2 + 2].v.tc[1] = 0;
+            arg0->vtx[arg2 + 3].v.tc[0] = 0, arg0->vtx[arg2 + 3].v.tc[1] = 0;
+            break;
+        case 2:
+            arg0->vtx[arg2].v.tc[0] = 0, arg0->vtx[arg2].v.tc[1] = 0;
+            arg0->vtx[arg2 + 1].v.tc[0] = 0, arg0->vtx[arg2 + 1].v.tc[1] = 0x3E0;
+            arg0->vtx[arg2 + 2].v.tc[0] = 0x3E0, arg0->vtx[arg2 + 2].v.tc[1] = 0x3E0;
+            arg0->vtx[arg2 + 3].v.tc[0] = 0x3E0, arg0->vtx[arg2 + 3].v.tc[1] = 0;
+            break;
+        case 3:
+            arg0->vtx[arg2].v.tc[0] = 0, arg0->vtx[arg2].v.tc[1] = 0x3E0;
+            arg0->vtx[arg2 + 1].v.tc[0] = 0, arg0->vtx[arg2 + 1].v.tc[1] = 0;
+            arg0->vtx[arg2 + 2].v.tc[0] = 0x3E0, arg0->vtx[arg2 + 2].v.tc[1] = 0;
+            arg0->vtx[arg2 + 3].v.tc[0] = 0x3E0, arg0->vtx[arg2 + 3].v.tc[1] = 0x3E0;
+            break;
+    }
+    arg0->vtx[arg2].v.ob[0] = x - w;
+    arg0->vtx[arg2].v.ob[1] = y - h;
+    arg0->vtx[arg2].v.ob[2] = -10;
+    arg0->vtx[arg2].v.flag = 0;
+    arg0->vtx[arg2].v.cn[0] = r0;
+    arg0->vtx[arg2].v.cn[1] = g0;
+    arg0->vtx[arg2].v.cn[2] = b0;
+    arg0->vtx[arg2].v.cn[3] = a0;
+    arg2++;
+    arg0->vtx[arg2].v.ob[0] = x + w;
+    arg0->vtx[arg2].v.ob[1] = y - h;
+    arg0->vtx[arg2].v.ob[2] = -10;
+    arg0->vtx[arg2].v.flag = 0;
+    arg0->vtx[arg2].v.cn[0] = r1;
+    arg0->vtx[arg2].v.cn[1] = g1;
+    arg0->vtx[arg2].v.cn[2] = b1;
+    arg0->vtx[arg2].v.cn[3] = a1;
+    arg2++;
+    arg0->vtx[arg2].v.ob[0] = x + w;
+    arg0->vtx[arg2].v.ob[1] = y + h;
+    arg0->vtx[arg2].v.ob[2] = -10;
+    arg0->vtx[arg2].v.flag = 0;
+    arg0->vtx[arg2].v.cn[0] = r2;
+    arg0->vtx[arg2].v.cn[1] = g2;
+    arg0->vtx[arg2].v.cn[2] = b2;
+    arg0->vtx[arg2].v.cn[3] = a2;
+    arg2++;
+    arg0->vtx[arg2].v.ob[0] = x - w;
+    arg0->vtx[arg2].v.ob[1] = y + h;
+    arg0->vtx[arg2].v.ob[2] = -10;
+    arg0->vtx[arg2].v.flag = 0;
+    arg0->vtx[arg2].v.cn[0] = r3;
+    arg0->vtx[arg2].v.cn[1] = g3;
+    arg0->vtx[arg2].v.cn[2] = b3;
+    arg0->vtx[arg2].v.cn[3] = a3;
+    arg2++;
+    return arg2;
+}
 
 void func_8027656C(void *arg0) {
     s32 i;

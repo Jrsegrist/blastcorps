@@ -100,8 +100,12 @@ HD_CODE_LDFLAGS = -T $(HD_CODE_LD_SCRIPT) -Map $(HD_CODE_TARGET).map -T undefine
 
 ### Optimisation Overrides
 
-# libultra/libc files built at -O2 (like the original SDK)
-$(BUILD_DIR)/src.$(VERSION)/hd_code/99580.c.o: OPT_FLAGS := -O2
+# Files compiled at -O2 in the original build. Evidence: IDO only emits
+# branch-likely instructions (beql/bnel/...) when optimizing at -O2, and
+# none of the -O1 matches contain any. This covers libultra/libaudio
+# (0x909C0 onward) and a few large game files.
+O2_FILES_HD_CODE := 56040 5CB60 5FD50 60F60 62740 69BB0 75490 77E20 89250 909C0 90E40 91050 92130 923B0 92A30 92AD0 92B60 92BF0 92C80 92D20 92DA0 93AA0 93BA0 93DF0 95460 99580 996B0 9AFF0 9B440 9BC90 9C930 9CC30 9D920 9DB80 9E700 9FE20 A0AA0
+$(foreach f,$(O2_FILES_HD_CODE),$(BUILD_DIR)/src.$(VERSION)/hd_code/$(f).c.o): OPT_FLAGS := -O2
 
 
 ### Targets

@@ -76,6 +76,8 @@ typedef struct {
     /* 0x268 */ void *gfxListHead;
     /* 0x26C */ void **audioListTail;
     /* 0x270 */ void **gfxListTail;
+    /* 0x274 */ void *curRSPTask;
+    /* 0x278 */ void *curRDPTask;
 } BcSched;
 
 extern s32 D_8036BF10;
@@ -145,9 +147,30 @@ void *func_80270F74(void *arg0) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/26570/func_80270F7C.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/26570/func_802712B4.s")
+void func_80271C24(BcSched *sc, void *t);
+void func_80271CE4(BcSched *sc, s32 availRCP);
+void func_80271E88(BcSched *sc);
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/26570/func_802712FC.s")
+/* Queue a task, then run the scheduler if the RSP is idle. */
+void func_802712B4(BcSched *sc, void *t) {
+    func_80271C24(sc, t);
+    if (sc->curRSPTask == NULL) {
+        func_80271CE4(sc, 1);
+    }
+}
+
+u64 D_8036BF00; /* defined here: same-file definitions get shared-%hi stores */
+
+/* Retrace-side scheduling: yield the running RSP task, or reset and
+ * schedule when idle. */
+void func_802712FC(BcSched *sc) {
+    if (sc->curRSPTask != NULL) {
+        func_80271E88(sc);
+    } else {
+        D_8036BF00 = 0;
+        func_80271CE4(sc, 0);
+    }
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/26570/func_80271358.s")
 

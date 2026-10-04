@@ -15,3 +15,4 @@ D_8020D7E4 = 0x8020D7E4; /* 41930: level names, 0x30 stride */
 D_8036F278 = 0x8036F278;
 D_802FDBE0 = 0x802FDBE0; /* s16 speed cap per mode, 4B5E0 */
 D_802FDB70 = 0x802FDB70; /* s16 speed cap per mode, 48D00 */
+D_8039CA50 = 0x8039CA50; /* 4EBE0: f32 spline weight */

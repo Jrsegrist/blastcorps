@@ -229,6 +229,8 @@ segments:
     - [0xA0BA0, bin, hd_code/A0BA0] # more data
     - [0xA4410, linker, data]
     - [0xA4410, bin, hd_code/hd_code_data] # .data
+    - [0xA4520, .data, hd_code/1A630]
+    - [0xA4530, bin, hd_code/hd_code_data_A4530]
     - [0xC1E00, .data, hd_code/ul_sl]
     - [0xC1E10, .data, hd_code/ul_sins]
     - [0xC2610, bin, hd_code/hd_code_data_C2610]

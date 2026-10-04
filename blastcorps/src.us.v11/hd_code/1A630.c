@@ -18,6 +18,8 @@ typedef struct {
     u8 velocityMax;
     u8 keyMin;
     u8 keyMax;
+    u8 keyBase;
+    s8 detune;
 } SndKeyMap;
 
 typedef struct {
@@ -69,8 +71,13 @@ typedef struct {
     u16 slotCount;
 } SndConfig;
 
-extern void *D_802E8CEC;
-extern void *D_802E8CE8;
+/* Sound player globals. 1A630.c owns this 16-byte .data block (0x802E8CE0,
+ * GoldenEye's D_800243E4): defining them here is what lets the paired
+ * head/tail stores in func_80260300 share one %hi, as in the target. */
+extern u8 D_80366BD0[];
+ALLink D_802E8CE0 = { NULL, NULL }; /* active list: next = head, prev = tail */
+void *D_802E8CE8 = NULL;            /* free list */
+void *D_802E8CEC = D_80366BD0;      /* the sound player */
 extern u16 *D_80366C28;
 s32 func_8025F044(void *node);
 void func_8025F0F0(void *sndp, SndEvent *event);
@@ -138,7 +145,6 @@ s32 func_8025F044(void *node) {
 }
 
 extern s16 D_802E8CF0;
-extern void *D_802E8CE4;
 extern u16 *D_80366C28;
 void func_8026005C(void *arg0);
 void func_802600D8(void *arg0);
@@ -227,7 +233,7 @@ void func_8025F0F0(void *sndp, SndEvent *event) {
                         soundState->unk38--;
                         alEvtqPostEvent(SNDP_EVTQ(sndp), event, 33333);
                     } else if (limitReached) {
-                        SndState *iterState = (SndState *) D_802E8CE4;
+                        SndState *iterState = (SndState *) D_802E8CE0.prev;
 
                         do {
                             if (!(iterState->flags & 0x52) && (iterState->flags & 4) &&
@@ -468,8 +474,6 @@ void func_80260148(void *arg0, void *arg1, u16 arg2) {
     osSetIntMask(savedState);
 }
 
-extern void *D_802E8CE0;
-extern void *D_802E8CE4;
 extern void *D_802E8CE8;
 
 u16 func_80260210(u16 *arg0, u16 *arg1) {
@@ -483,9 +487,9 @@ u16 func_80260210(u16 *arg0, u16 *arg1) {
 
     savedState = osSetIntMask(1);
 
-    list1 = D_802E8CE0;
+    list1 = D_802E8CE0.next;
     list2 = D_802E8CE8;
-    list3 = D_802E8CE4;
+    list3 = D_802E8CE0.prev;
 
     count1 = 0;
     if (list1 != NULL) {
@@ -515,42 +519,61 @@ u16 func_80260210(u16 *arg0, u16 *arg1) {
     return count3;
 }
 
-/* TODO: func_80260300 - pop a node off the D_802E8CE8 free list (calling
- * alUnlink on it), link it onto the front of the D_802E8CE0 active
- * list (or make it the sole element of both D_802E8CE0 and D_802E8CE4 if
- * that list was empty), then initialize it from arg1 (stored at node+8)
- * and arg1->unk4 (byte fields at +3/+4/+5): flags at +0x36/+0x3e/+0x38,
- * a float at +0x2c=1.0 and +0x28=alCents2Ratio(arg1->unk4-derived
- * index*100 [+unk5 if a +0x3e flag bit is clear] - 0x1770), a "negative"
- * flag folded in from (arg1->unk0)->unk4==-1, and a handful of fixed
- * resets (+0x30, +0x3d, +0x3c, +0x34). Returns the node (NULL if the
- * free list was empty). Logic and every field/offset are confirmed
- * correct (down to a single differing opcode once the frame, instruction
- * count and register coloring are already exact). The one gap: in the
- * empty-active-list branch, target writes D_802E8CE0 and D_802E8CE4
- * (the same value, node) through a single shared `lui` - only possible
- * if both addresses come from the same relocation, i.e. the real source
- * reaches the second global via pointer arithmetic on the first rather
- * than naming it, but every arithmetic spelling tried
- * (`*((u8*)&D_802E8CE0+4)`, `*(&D_802E8CE0+1)`) made the front end
- * materialize the computed address as its own value first and then add
- * a second, redundant displacement, costing 2 instructions instead of
- * saving 1. Plain separate globals cost exactly the 1 extra `lui`
- * instead. Also ruled out by probe compiles: a {head, tail} struct
- * (fields still get one `lui at` each), a 2-element array (addiu-built
- * bases), the chained `D_802E8CE4 = D_802E8CE0 = node` (re-reads the
- * first store), and absolute-address macros (`lui` into t-regs, not
- * shared). */
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/1A630/func_80260300.s")
+/* GoldenEye: sndSetupSound. */
+SndState *func_80260300(void *bank, SndSound *sound) {
+    SndState *state;
+    SndKeyMap *keymap = sound->keyMap;
+    s32 decayTimeFlag;
+    OSIntMask mask;
+
+    state = (SndState *) D_802E8CE8;
+
+    if (state != NULL) {
+        mask = osSetIntMask(OS_IM_NONE);
+        D_802E8CE8 = state->next;
+        alUnlink((ALLink *) state);
+        if (D_802E8CE0.next != NULL) {
+            state->next = (SndState *) D_802E8CE0.next;
+            state->prev = NULL;
+            D_802E8CE0.next->prev = (ALLink *) state;
+            D_802E8CE0.next = (ALLink *) state;
+        } else {
+            state->next = state->prev = NULL;
+            D_802E8CE0.next = (ALLink *) state;
+            D_802E8CE0.prev = (ALLink *) state;
+        }
+        decayTimeFlag = (sound->envelope->decayTime == -1);
+        state->sound = sound;
+        state->priority = decayTimeFlag + 0x40;
+        state->playingState = 5;
+        state->pitch_2c = 1.0f;
+        state->unk38 = 2;
+        state->flags = keymap->keyMax & 0xF0;
+        state->state = NULL;
+        if (state->flags & 0x20) {
+            state->pitch_28 = alCents2Ratio(keymap->keyBase * 100 - 6000);
+        } else {
+            state->pitch_28 = alCents2Ratio(keymap->keyBase * 100 + keymap->detune - 6000);
+        }
+        if (decayTimeFlag) {
+            state->flags |= 2;
+        }
+        state->fxMix = 0;
+        state->pan = 0x40;
+        state->vol = 0x7FFF;
+        osSetIntMask(mask);
+    }
+    return state;
+}
 
 extern s16 D_802E8CF0;
 
 void func_802604FC(void *arg0) {
-    if (D_802E8CE0 == arg0) {
-        D_802E8CE0 = *(void **) arg0;
+    if (D_802E8CE0.next == arg0) {
+        D_802E8CE0.next = *(void **) arg0;
     }
-    if (D_802E8CE4 == arg0) {
-        D_802E8CE4 = *(void **) ((u8 *) arg0 + 4);
+    if (D_802E8CE0.prev == arg0) {
+        D_802E8CE0.prev = *(void **) ((u8 *) arg0 + 4);
     }
     alUnlink(arg0);
 
@@ -593,7 +616,7 @@ u8 func_80260634(void *arg0) {
 extern s32 D_80358060;
 extern s32 D_802E8BDC;
 extern void *D_802E8CEC;
-void *func_80260300(void *, void *);
+SndState *func_80260300(void *, SndSound *);
 
 void *func_80260650(void *arg0, s16 arg1, void *arg2) {
     void *node;
@@ -710,7 +733,6 @@ void func_802608C8(void *arg0) {
     }
 }
 
-extern void *D_802E8CE0;
 
 void func_80260934(u8 arg0) {
     s32 savedState;
@@ -722,7 +744,7 @@ void func_80260934(u8 arg0) {
     void *entry;
 
     savedState = osSetIntMask(1);
-    entry = D_802E8CE0;
+    entry = D_802E8CE0.next;
     if (entry != NULL) {
         do {
             eventCode = 0x400;
@@ -755,7 +777,7 @@ void func_80260A30(u8 arg0) {
     s32 count;
 
     savedState = osSetIntMask(1);
-    entry = D_802E8CE0;
+    entry = D_802E8CE0.next;
     count = 0;
     if (entry != NULL) {
         do {
@@ -793,7 +815,6 @@ u16 func_80260B24(u8 arg0) {
     return D_80366C28[arg0];
 }
 
-extern void *D_802E8CE0;
 extern void *D_802E8CEC;
 
 void func_80260B40(u8 arg0, u16 arg1) {
@@ -807,7 +828,7 @@ void func_80260B40(u8 arg0, u16 arg1) {
     s16 eventCode;
 
     savedState = osSetIntMask(1);
-    entry = D_802E8CE0;
+    entry = D_802E8CE0.next;
     D_80366C28[arg0] = arg1;
 
     count = 0;

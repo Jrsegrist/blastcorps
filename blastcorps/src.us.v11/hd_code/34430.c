@@ -162,14 +162,104 @@ s32 func_802796D8(s32 n, s32 *a, s32 *b) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/34430/func_80279EE8.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/34430/func_8027A7DC.s")
+/* Draws a 120x15 RGBA16 strip from the buffer at offset as two triangles from vertex v */
+void func_8027A7DC(Gfx **gfxp, s32 offset, s32 v) {
+    Gfx *gdl = *gfxp;
+    s32 pad;
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/34430/func_8027AA04.s")
+    gDPLoadTextureBlock(gdl++, D_8036D170 + offset - 0x80000000, G_IM_FMT_RGBA, G_IM_SIZ_16b, 120, 15, 0, G_TX_CLAMP,
+                        G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
+    gSP1Triangle(gdl++, v, v + 1, v + 2, 0);
+    gSP1Triangle(gdl++, v, v + 2, v + 3, 0);
+    *gfxp = gdl;
+}
+
+/* Swaps rows of a 3x3 matrix so the axes come out in order */
+void func_8027AA04(f32 m[][3], s32 a, s32 b, s32 c) {
+    s32 i;
+    s32 t;
+    f32 tmp;
+
+    if (a != 0) {
+        if (b == 0) {
+            for (i = 0; i < 3; i++) {
+                tmp = m[b][i];
+                m[b][i] = m[a][i];
+                m[a][i] = tmp;
+            }
+            t = b;
+            b = a;
+            a = t;
+        } else {
+            for (i = 0; i < 3; i++) {
+                tmp = m[c][i];
+                m[c][i] = m[a][i];
+                m[a][i] = tmp;
+            }
+            t = c;
+            c = a;
+            a = t;
+        }
+    }
+    if (b != 1) {
+        for (i = 0; i < 3; i++) {
+            tmp = m[c][i];
+            m[c][i] = m[b][i];
+            m[b][i] = tmp;
+        }
+        t = c;
+        c = b;
+        b = t;
+    }
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/34430/func_8027AC00.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/34430/func_8027B200.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/34430/func_8027B5D0.s")
+/* Splits a 4x4 matrix into translation v, scale s and the rest (pivoting rows if m[3][3] is ~0) */
+s32 func_8027B5D0(f32 m[4][4], f32 *v, f32 *s, s32 *row) {
+    s32 i;
+    s32 j;
+    f32 tmp;
+    f32 max;
+
+    *row = -1;
+    if (((m[3][3] > 0.0f) ? m[3][3] : -m[3][3]) < 1e-8) {
+        max = 0.0f;
+        for (i = 0; i < 4; i++) {
+            if (m[i][3] > max) {
+                *row = i;
+                max = m[*row][3];
+            } else if (m[i][3] < -max) {
+                *row = i;
+                max = -m[*row][3];
+            }
+        }
+        if (*row < 0) {
+            return 0;
+        }
+        for (j = 0; j < 4; j++) {
+            tmp = m[3][j];
+            m[3][j] = m[*row][j];
+            m[*row][j] = tmp;
+        }
+    }
+    v[0] = -m[0][3];
+    v[1] = -m[1][3];
+    v[2] = -m[2][3];
+    *s = 1.0 / m[3][3];
+    m[0][3] = m[1][3] = m[2][3] = 0.0f;
+    m[3][3] = 1.0f;
+    m[3][0] *= *s;
+    m[3][1] *= *s;
+    m[3][2] *= *s;
+    for (i = 0; i < 3; i++) {
+        m[0][i] += v[0] * m[3][i];
+        m[1][i] += v[1] * m[3][i];
+        m[2][i] += v[2] * m[3][i];
+    }
+    return 1;
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/34430/func_8027B87C.s")

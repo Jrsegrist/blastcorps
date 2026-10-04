@@ -57,8 +57,7 @@ typedef struct {
     /* 0x04 */ s16 z;
     /* 0x06 */ u8 visited;
     /* 0x07 */ u8 cell;
-    /* 0x08 */ u8 unk8[0x40];
-    /* 0x48 */ u8 unk48[0x40];
+    /* 0x08 */ Vtx vtx[2][4]; /* double-buffered quad */
 } YoshiNode;
 
 /* Per-level info, 0x44 bytes */
@@ -91,6 +90,7 @@ void func_8029A7E4(const char *fmt, ...);
 u16 func_8026F8A8(u16 arg0, u16 arg1, u16 start, u16 mask);
 void func_8026FB50(struct YoshiArg *arg0);
 void func_8026AF6C(u16 yd);
+s32 func_80270A54();
 s32 func_80297EF8(s32 level);
 void *func_8025B558(u16 *text);
 u8 func_8026AD30(s16 arg0);
@@ -143,7 +143,10 @@ extern void *D_80358070;
 extern s32 D_803BE70C;
 extern s32 D_803BE710;
 extern s16 D_803BE714;
-extern u8 D_802F99C0[];
+extern Vtx D_802F99C0[]; /* quad template */
+extern f32 D_80364414;
+extern u8 D_802F9A00[]; /* 16x16 RGBA32 textures */
+extern u8 D_802F9E00[];
 extern s32 D_803643E0;
 extern s32 D_803643E4;
 extern s32 D_803643E8;
@@ -635,8 +638,8 @@ void func_8026FBB0(s16 *pos, s16 *end) {
         D_8036BED8[D_8036EB90].z = pos[2];
         D_8036BED8[D_8036EB90].visited = 0;
         D_8036BED8[D_8036EB90].cell = pos[0] / (D_803BE70C >> 5) + pos[2] / (D_803BE710 >> 5) * D_803BE714;
-        func_8026A5CC(D_8036BED8[D_8036EB90].unk8, D_802F99C0, 0x40);
-        func_8026A5CC(D_8036BED8[D_8036EB90].unk48, D_802F99C0, 0x40);
+        func_8026A5CC(D_8036BED8[D_8036EB90].vtx[0], D_802F99C0, sizeof(D_8036BED8->vtx[0]));
+        func_8026A5CC(D_8036BED8[D_8036EB90].vtx[1], D_802F99C0, sizeof(D_8036BED8->vtx[1]));
         D_8036EB90++, pos += 3;
     }
     D_80358070 = (YoshiNode *) D_80358070 + D_8036EB90;
@@ -687,15 +690,70 @@ void func_8026FEC4(void) {
     }
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/26570/func_802701A8.s")
+/* Draws the Yoshi path nodes, rotating their quads to face the camera */
+void func_802701A8(Gfx **gfx, s32 arg1) {
+    Gfx *gdl;
+    s32 i;
+    s32 j;
+    f32 mtx[4][4];
+    f32 ox[4];
+    f32 oy[4];
+    f32 oz[4];
 
-s32 func_80270A54(u8 *arg0, s32 arg1) {
+    gdl = *gfx;
+    gSPClearGeometryMode(gdl++, 0xFFFFFFFF);
+    gSPSetGeometryMode(gdl++, G_ZBUFFER | G_SHADE | G_SHADING_SMOOTH);
+    gDPPipeSync(gdl++);
+    gDPSetCycleType(gdl++, G_CYC_1CYCLE);
+    gDPSetRenderMode(gdl++, G_RM_ZB_XLU_SURF, G_RM_ZB_XLU_SURF2);
+    gDPSetCombineMode(gdl++, G_CC_MODULATERGBA, G_CC_MODULATERGBA);
+    gSPTexture(gdl++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
+    if (D_80364414 != D_8036BEDC) {
+        D_8036BEE0 ^= 1;
+        guRotateF(mtx, D_80364414 - 135.0, 0.0f, 1.0f, 0.0f);
+        for (i = 0; i < 4; i++) {
+            guMtxXFMF(mtx, D_802F99C0[i].v.ob[0], D_802F99C0[i].v.ob[1], D_802F99C0[i].v.ob[2], &ox[i], &oy[i],
+                      &oz[i]);
+        }
+        for (i = 0; i < D_8036EB90; i++) {
+            for (j = 0; j < 4; j++) {
+                D_8036BED8[i].vtx[D_8036BEE0][j].v.ob[0] = (s16) ox[j] + D_8036BED8[i].x;
+                D_8036BED8[i].vtx[D_8036BEE0][j].v.ob[1] = (s16) oy[j] + D_8036BED8[i].y;
+                D_8036BED8[i].vtx[D_8036BEE0][j].v.ob[2] = (s16) oz[j] + D_8036BED8[i].z;
+            }
+        }
+    }
+    gDPLoadTextureBlock(gdl++, osVirtualToPhysical(D_802F9A00), G_IM_FMT_RGBA, G_IM_SIZ_32b, 16, 16, 0,
+                        G_TX_CLAMP, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
+    for (i = 0; i < D_8036EB90; i++) {
+        if (!D_8036BED8[i].visited && func_80270A54(&D_8036BED8[i])) {
+            gSPVertex(gdl++, D_8036BED8[i].vtx[D_8036BEE0], 4, 0);
+            gSP1Triangle(gdl++, 0, 1, 2, 0);
+            gSP1Triangle(gdl++, 0, 2, 3, 0);
+        }
+    }
+    gDPPipeSync(gdl++);
+    gDPLoadTextureBlock(gdl++, osVirtualToPhysical(D_802F9E00), G_IM_FMT_RGBA, G_IM_SIZ_32b, 16, 16, 0,
+                        G_TX_CLAMP, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
+    for (i = 0; i < D_8036EB90; i++) {
+        if (D_8036BED8[i].visited && func_80270A54(&D_8036BED8[i])) {
+            gSPVertex(gdl++, D_8036BED8[i].vtx[D_8036BEE0], 4, 0);
+            gSP1Triangle(gdl++, 0, 1, 2, 0);
+            gSP1Triangle(gdl++, 0, 2, 3, 0);
+        }
+    }
+    gDPPipeSync(gdl++);
+    *gfx = gdl;
+    D_8036BEDC = D_80364414;
+}
+
+s32 func_80270A54(YoshiNode *node, s32 arg1) {
     s32 i;
     u8 v;
     s32 pad;
 
     i = 0;
-    v = arg0[7];
+    v = node->cell;
     for (; D_803C30A8[i] != 0xFFFF; ) {
         arg1 = D_803C30A8[i++] == v;
         if (arg1) {

@@ -6,3 +6,4 @@ D_8039B070_entries = 0x8039B070; /* Entry48D00 view of D_8039B070 */
 D_802FDB98_boxes = 0x802FDB98; /* BoxDef48D00 view of D_802FDB98 */
 D_80366BD0 = 0x80366BD0; /* sound player state, D_802E8CEC initializer */
 D_802F499A = 0x802F499A;
+D_80364414 = 0x80364414;

@@ -39,25 +39,33 @@ s32 func_8027E164(s32 arg0, s32 arg1, void *arg2, void *arg3) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/39050/func_802802D4.s")
 
-/* TODO: func_8028072C - a 7-field vertex/struct setter: 24 `*(s16*)(arg0+N) =
- * argX;` stores at scattered offsets (target: 97 instructions, no frame, all
- * field logic and offsets confirmed correct - this phrasing reaches the
- * exact target length). Remaining gap is pure instruction scheduling, not
- * logic: for the first three stores target interleaves two independent
- * sign-extend pairs (`sll a1;sra a1; sll a2; sll a3;sra a3; sra a2`), i.e.
- * arg3's full truncation gets scheduled between arg2's sll and sra, which
- * this phrasing's plain sequential statement order doesn't reproduce -
- * tried swapping the arg2/arg3 statement order (makes it interleave arg1/
- * arg3 instead, same shape, wrong pair, slightly worse score). A second,
- * apparently independent scheduling difference follows immediately after
- * for the stack-passed arg4/arg5/arg6 reloads (target loads arg5 from its
- * stack slot one store earlier than this phrasing does). Both cascade into
- * register-rename-only differences for the rest of the function (score 953,
- * but entirely 'r' and scheduling markers past this point, no further
- * logic/structural differences) - the original source's exact field-write
- * order likely differs from struct-offset order in a way not recoverable
- * from the offsets alone. */
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/39050/func_8028072C.s")
+/* Set the 8 corner positions of the box (x0..x1, y0..y1, z0..z1). */
+void func_8028072C(Vtx *v, s16 x0, s16 y0, s16 z0, s16 x1, s16 y1, s16 z1) {
+    v[0].v.ob[0] = x0;
+    v[0].v.ob[1] = y0;
+    v[0].v.ob[2] = z0;
+    v[1].v.ob[0] = x0;
+    v[1].v.ob[1] = y1;
+    v[1].v.ob[2] = z0;
+    v[2].v.ob[0] = x1;
+    v[2].v.ob[1] = y0;
+    v[2].v.ob[2] = z0;
+    v[3].v.ob[0] = x1;
+    v[3].v.ob[1] = y1;
+    v[3].v.ob[2] = z0;
+    v[4].v.ob[0] = x0;
+    v[4].v.ob[1] = y0;
+    v[4].v.ob[2] = z1;
+    v[5].v.ob[0] = x0;
+    v[5].v.ob[1] = y1;
+    v[5].v.ob[2] = z1;
+    v[6].v.ob[0] = x1;
+    v[6].v.ob[1] = y0;
+    v[6].v.ob[2] = z1;
+    v[7].v.ob[0] = x1;
+    v[7].v.ob[1] = y1;
+    v[7].v.ob[2] = z1;
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/39050/func_802807D8.s")
 

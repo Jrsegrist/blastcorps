@@ -490,12 +490,74 @@ void func_80282224(Gfx **gfx, u8 arg1) {
     *gfx = gdl;
 }
 
-extern u8 D_8036E4D3;
-extern s32 D_8036E4D4;
+extern u8 D_8036E4D3;  /* number of active rings (0..2) */
+extern u32 D_8036E4D4; /* frame the last ring started */
+extern Gfx D_802FFF38[];
+extern Gfx D_80300A68[];
+extern u32 D_803156C4;
+extern u8 D_803643D6;
+extern Mtx D_8036E4D8[][2];
+extern f32 D_8036E5D8[]; /* ring scales */
+extern s32 D_803EF6DC;
+extern s32 D_803EF6E0;
+extern s32 D_803EF6E4;
+extern u8 D_803EF6FF;
+
+void func_802AC1A0(s32);
 
 void func_80282728(void) {
     D_8036E4D3 = 0;
     D_8036E4D4 = 0;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/39050/func_8028273C.s")
+/* Expanding-ring effect: tint the screen, then draw up to two growing copies of display list
+ * D_80300A68 at (D_803EF6DC, D_803EF6E0, D_803EF6E4) / 32, a new one 10 frames after the last. */
+void func_8028273C(Gfx **gfx, u8 arg1) {
+    Gfx *gdl;
+    f32 mf[4][4];
+    f32 scale[4][4];
+    s32 i;
+
+    gdl = *gfx;
+    if (D_803643D6 != 0) {
+        if (D_803EF6FF != 0 && D_8036E4D3 == 0) {
+            D_8036E4D3 = 1;
+            D_8036E5D8[0] = 0.001f;
+            D_8036E4D4 = D_803156C4;
+        }
+        gDPPipeSync(gdl++);
+        gDPSetColorDither(gdl++, G_CD_DISABLE);
+        if (D_8036E4D3 != 0) {
+            gDPPipeSync(gdl++);
+            gDPSetRenderMode(gdl++, G_RM_XLU_SURF, G_RM_XLU_SURF2);
+            gDPSetCombineMode(gdl++, G_CC_PRIMITIVE, G_CC_PRIMITIVE);
+            gDPSetPrimColor(gdl++, 0, 0, 0x37, 0x00, 0x00, 0x9B);
+            gDPFillRectangle(gdl++, 0, 0, 319, 239);
+        }
+        for (i = 0; i < D_8036E4D3; i++) {
+            guTranslateF(mf, D_803EF6DC / 32.0f, D_803EF6E0 / 32.0f, D_803EF6E4 / 32.0f);
+            guScaleF(scale, D_8036E5D8[i], D_8036E5D8[i], D_8036E5D8[i]);
+            D_8036E5D8[i] += 0.06;
+            guMtxCatF(scale, mf, mf);
+            guMtxF2L(mf, &D_8036E4D8[arg1][i]);
+            gDPPipeSync(gdl++);
+            gDPSetPrimColor(gdl++, 0, 0, 0xFF, 0x00, 0x00, 0x64);
+            gSPMatrix(gdl++, osVirtualToPhysical(&D_8036E4D8[arg1][i]), G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+            gSPSegment(gdl++, 6, osVirtualToPhysical(D_802FFF38));
+            gSPDisplayList(gdl++, osVirtualToPhysical(D_80300A68));
+            gSPMatrix(gdl++, &D_02000000[7], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+        }
+        if (D_8036E4D4 + 10 < D_803156C4 && D_8036E4D3 != 0 && D_8036E4D3 < 2) {
+            D_8036E4D4 = D_803156C4;
+            D_8036E5D8[D_8036E4D3] = 0.001f;
+            D_8036E4D3++;
+        }
+        gDPPipeSync(gdl++);
+        gDPSetColorDither(gdl++, G_CD_MAGICSQ);
+        gDPPipeSync(gdl++);
+        if (D_8036E4D3 != 0) {
+            func_802AC1A0(D_8036E5D8[0] * 283.0f);
+        }
+    }
+    *gfx = gdl;
+}

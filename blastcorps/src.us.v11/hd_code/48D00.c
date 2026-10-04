@@ -225,7 +225,6 @@ extern u8 D_802FDBD0;
 extern u8 D_802FDBD4;
 void func_802DB4D0(OSMesgQueue *);
 void func_802DB594(OSContPad *);
-void func_802D4910(void *, s32, s32);
 u8 func_8028FCD4(void *arg0, u8 *arg1);
 
 /* Boot-time controller check: read the pads (osContStartReadData,
@@ -239,7 +238,7 @@ void func_8028FC10(void) {
 
     start = 0;
     func_802DB4D0(&D_80370BF8);
-    func_802D4910(&D_80370BF8, 0, 1);
+    osRecvMesg(&D_80370BF8, 0, 1);
     func_802DB594(pads);
     if (pads[0].button & 0x1000) {
         start = 1;
@@ -257,9 +256,6 @@ typedef struct {
     u8 unk3;
 } Status48D00;
 
-void func_802DB850(void *);
-void func_802D4910(void *, s32, s32);
-void func_802DB8D4(Status48D00 *);
 
 /* Wait for arg0->unk8, then build a bitmask in *arg1 of the 4 status
  * entries with bit 0 of unk2 set and unk3 clear. */
@@ -268,11 +264,11 @@ u8 func_8028FCD4(void *arg0, u8 *arg1) {
     s32 i;
 
     *arg1 = 0;
-    func_802DB850(arg0);
+    osContStartQuery(arg0);
     while (*(s32 *) ((u8 *) arg0 + 8) == 0) {
     }
-    func_802D4910(arg0, 0, 0);
-    func_802DB8D4(status);
+    osRecvMesg(arg0, 0, 0);
+    osContGetQuery(status);
     for (i = 0; i < 4; i++) {
         if ((status[i].unk2 & 1) && status[i].unk3 == 0) {
             *arg1 |= 1 << i;

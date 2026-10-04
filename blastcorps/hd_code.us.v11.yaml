@@ -5,6 +5,7 @@ options:
   create_detected_syms: yes
   find_file_boundaries: yes
   target_path: hd_code.us.v11.bin
+  symbol_addrs_path: symbol_addrs.hd_code.us.v11.txt
   undefined_funcs_auto_path: undefined_funcs_auto.hd_code.us.v11.txt
   undefined_syms_auto_path: undefined_syms_auto.hd_code.us.v11.txt
   src_path: src.us.v11

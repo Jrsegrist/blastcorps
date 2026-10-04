@@ -1,3 +1,3 @@
 #include "common.h"
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/92C80/func_802D7440.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/92C80/alSynSetFXMix.s")

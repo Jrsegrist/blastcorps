@@ -1,6 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
 
-u32 func_802E2330(void) {
+u32 __osSpGetStatus(void) {
     return *(volatile u32 *) 0xA4040010;
 }

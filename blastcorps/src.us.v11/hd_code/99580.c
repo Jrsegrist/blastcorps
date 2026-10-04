@@ -2,7 +2,7 @@
 #include <ultra64.h>
 
 /* libultra libc string.c (this file is built at -O2, see Makefile). */
-void *func_802DDD40(void *s1, const void *s2, u32 n) {
+void *memcpy(void *s1, const void *s2, u32 n) {
     u8 *su1 = (u8 *) s1;
     const u8 *su2 = (const u8 *) s2;
 
@@ -13,7 +13,7 @@ void *func_802DDD40(void *s1, const void *s2, u32 n) {
     return (void *) s1;
 }
 
-u32 func_802DDD6C(const u8 *s) {
+u32 strlen(const u8 *s) {
     const u8 *sc = s;
 
     while (*sc != '\0') {
@@ -22,4 +22,4 @@ u32 func_802DDD6C(const u8 *s) {
     return (u32) (sc - s);
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/99580/func_802DDD94.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/99580/strchr.s")

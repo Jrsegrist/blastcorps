@@ -1,3 +1,3 @@
 #include "common.h"
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/92D20/func_802D74E0.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/92D20/alSynStopVoice.s")

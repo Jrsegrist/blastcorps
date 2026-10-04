@@ -1,7 +1,7 @@
 #include "common.h"
 #include <ultra64.h>
 
-/* func_802D4B50 through func_802D4DE4 (10 functions, this whole block):
+/* __ull_rshift through __ll_rshift (10 functions, this whole block):
  * byte-for-byte the same IDO 64-bit integer arithmetic runtime helpers
  * already identified and matched in init/2D60/ido_ll_helpers.s
  * (__ull_rshift/__ull_div/__ull_rem/__ll_div/__ll_mul/__ll_rem/
@@ -13,25 +13,25 @@
  * statically-linked copy rather than sharing init's, same situation as
  * the duplicated COP0/__os-family stubs found elsewhere in this
  * segment. Permanently GLOBAL_ASM. */
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/90390/func_802D4B50.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/90390/__ull_rshift.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/90390/func_802D4B7C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/90390/__ull_rem.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/90390/func_802D4BB8.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/90390/__ull_div.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/90390/func_802D4BF4.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/90390/__ll_lshift.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/90390/func_802D4C20.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/90390/__ll_rem.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/90390/func_802D4C5C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/90390/__ll_div.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/90390/func_802D4CB8.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/90390/__ll_mul.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/90390/func_802D4CE8.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/90390/__ull_divremi.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/90390/func_802D4D48.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/90390/__ll_mod.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/90390/func_802D4DE4.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/90390/__ll_rshift.s")
 
 s32 func_802D4E10(void *arg0) {
     return *(s32 *) ((u8 *) arg0 + 0x2c);

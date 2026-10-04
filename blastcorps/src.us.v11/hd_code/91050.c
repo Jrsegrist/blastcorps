@@ -1,9 +1,9 @@
 #include "common.h"
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/91050/func_802D5810.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/91050/guMtxF2L.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/91050/func_802D5910.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/91050/guMtxIdentF.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/91050/func_802D5998.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/91050/guMtxIdent.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/91050/func_802D59C8.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/91050/guMtxL2F.s")

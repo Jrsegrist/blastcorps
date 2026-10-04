@@ -85,14 +85,12 @@ void *func_8024C404(void *arg0, s32 arg1, s32 *arg2) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_80257490.s")
 
-void func_802D6320(f32 arg0);
 
 void func_802574F0(f32 arg0) {
-    func_802D6320(arg0);
+    sinf(arg0);
 }
 
-void func_802D68F0(f32 arg0);
 
 void func_80257514(f32 arg0) {
-    func_802D68F0(arg0);
+    cosf(arg0);
 }

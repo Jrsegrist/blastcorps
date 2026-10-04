@@ -5,6 +5,6 @@
  * expressible in plain C. Permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/971F0/func_802DB9B0.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/971F0/func_802DB9C0.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/971F0/__osSiRawReadIo.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/971F0/func_802DBA10.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/971F0/__osSiRawWriteIo.s")

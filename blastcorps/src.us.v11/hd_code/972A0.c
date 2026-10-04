@@ -12,17 +12,19 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/972A0/func_802DBFB8.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/972A0/func_802DC0A0.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/972A0/__osEnqueueAndYield.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/972A0/func_802DC130.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/972A0/__osEnqueueThread.s")
 
-/* func_802DC178: libultra __osPopThread (`*queue = (*queue)->next`,
+/* __osPopThread: libultra __osPopThread (`*queue = (*queue)->next`,
  * returning the old head). Part of hand-written exceptasm.s, like its
- * neighbours func_802DC130 (__osEnqueueThread, also $t9-based) and the
- * $k0/`ld` context restore in func_802DC188 - not compiled C, so the
+ * neighbours __osEnqueueThread (__osEnqueueThread, also $t9-based) and the
+ * $k0/`ld` context restore in __osDispatchThread - not compiled C, so the
  * $v0/$t9 register choice can't come from IDO. Permanently GLOBAL_ASM. */
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/972A0/func_802DC178.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/972A0/__osPopThread.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/972A0/func_802DC188.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/972A0/__osDispatchThread.s")
+
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/972A0/__osCleanupThread.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/972A0/func_802DC2D0.s")

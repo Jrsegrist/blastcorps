@@ -71,14 +71,7 @@ typedef struct {
 
 extern void *D_802E8CEC;
 extern void *D_802E8CE8;
-extern void *D_803065C0;
 extern u16 *D_80366C28;
-void *func_802D6B10(s32, s32, void *, s32, s32);
-void func_802D6E3C(void *, void *, s32);
-s32 func_802D6EE0(void *, void *);
-void func_802D6F70(void *, void *);
-s32 func_802D6DB0(void *, void *);
-s32 func_802D6C8C(void *, void *, s32);
 s32 func_8025F044(void *node);
 void func_8025F0F0(void *sndp, SndEvent *event);
 
@@ -94,31 +87,31 @@ void func_8025EDF0(SndConfig *c) {
     SNDP_FIELD(s32, 0x48) = c->maxSounds;
     SNDP_FIELD(s32, 0x40) = 0;
     SNDP_FIELD(s32, 0x4C) = 33000;
-    ptr = func_802D6B10(0, 0, c->heap, 1, c->maxStates * sizeof(SndState));
+    ptr = alHeapDBAlloc(0, 0, c->heap, 1, c->maxStates * sizeof(SndState));
     SNDP_FIELD(void *, 0x44) = ptr;
-    ptr = func_802D6B10(0, 0, c->heap, 1, c->maxEvents * 28);
-    func_802D6E3C((u8 *) D_802E8CEC + 0x14, ptr, c->maxEvents);
+    ptr = alHeapDBAlloc(0, 0, c->heap, 1, c->maxEvents * 28);
+    alEvtqNew((u8 *) D_802E8CEC + 0x14, ptr, c->maxEvents);
     D_802E8CE8 = SNDP_FIELD(void *, 0x44);
 
     for (i = 1; i < c->maxStates; i++) {
         sState = SNDP_FIELD(SndState *, 0x44);
-        func_802D6EE0(&sState[i], &sState[i] - 1);
+        alLink(&sState[i], &sState[i] - 1);
     }
 
-    D_80366C28 = func_802D6B10(0, 0, c->heap, sizeof(s16), c->slotCount);
+    D_80366C28 = alHeapDBAlloc(0, 0, c->heap, sizeof(s16), c->slotCount);
     for (i = 0; i < c->slotCount; i++) {
         D_80366C28[i] = 0x7FFF;
     }
 
-    SNDP_FIELD(void *, 0x38) = D_803065C0;
+    SNDP_FIELD(void *, 0x38) = alGlobals;
     SNDP_FIELD(void *, 0x00) = NULL;
     SNDP_FIELD(void *, 0x08) = func_8025F044;
     SNDP_FIELD(void *, 0x04) = D_802E8CEC;
-    func_802D6F70(SNDP_FIELD(void *, 0x38), D_802E8CEC);
+    alSynAddPlayer(SNDP_FIELD(void *, 0x38), D_802E8CEC);
 
     evt.type = 0x20;
-    func_802D6C8C((u8 *) D_802E8CEC + 0x14, &evt, SNDP_FIELD(s32, 0x4C));
-    SNDP_FIELD(s32, 0x50) = func_802D6DB0((u8 *) D_802E8CEC + 0x14, (u8 *) D_802E8CEC + 0x28);
+    alEvtqPostEvent((u8 *) D_802E8CEC + 0x14, &evt, SNDP_FIELD(s32, 0x4C));
+    SNDP_FIELD(s32, 0x50) = alEvtqNextEvent((u8 *) D_802E8CEC + 0x14, (u8 *) D_802E8CEC + 0x28);
 }
 
 /* GoldenEye: sndPlayerVoiceHandler. */
@@ -131,13 +124,13 @@ s32 func_8025F044(void *node) {
         switch (*(s16 *) ((u8 *) sndp + 0x28)) {
             case 0x20:
                 evt.type = 0x20;
-                func_802D6C8C((u8 *) sndp + 0x14, &evt, *(s32 *) ((u8 *) sndp + 0x4C));
+                alEvtqPostEvent((u8 *) sndp + 0x14, &evt, *(s32 *) ((u8 *) sndp + 0x4C));
                 break;
             default:
                 func_8025F0F0(sndp, (SndEvent *) ((u8 *) sndp + 0x28));
                 break;
         }
-        *(s32 *) ((u8 *) sndp + 0x50) = func_802D6DB0((u8 *) sndp + 0x14, (u8 *) sndp + 0x28);
+        *(s32 *) ((u8 *) sndp + 0x50) = alEvtqNextEvent((u8 *) sndp + 0x14, (u8 *) sndp + 0x28);
     } while (*(s32 *) ((u8 *) sndp + 0x50) == 0);
 
     *(s32 *) ((u8 *) sndp + 0x54) += *(s32 *) ((u8 *) sndp + 0x50);
@@ -154,13 +147,6 @@ u16 func_80260210(u16 *arg0, u16 *arg1);
 void *func_80260650(void *arg0, s16 arg1, void *arg2);
 void func_80260AB8(void *arg0, s16 arg1, s32 arg2);
 void func_8029A7E4(char *, ...);
-s32 func_802D6C8C(void *, void *, s32);
-s32 func_802D70A8(void *, void *, SndVoiceConfig *);
-void func_802D71F0(void *, void *, s32, s32);
-void func_802D7290(void *, void *, void *);
-void func_802D7320(void *, void *, u8);
-void func_802D73B0(void *, void *, f32);
-void func_802D7440(void *, void *, s32);
 
 #define SNDP_DRVR(sndp) (*(void **) ((u8 *) (sndp) + 0x38))
 #define SNDP_EVTQ(sndp) ((void *) ((u8 *) (sndp) + 0x14))
@@ -232,14 +218,14 @@ void func_8025F0F0(void *sndp, SndEvent *event) {
                 limitReached = D_802E8CF0 >= SNDP_MAXSOUNDS(sndp);
 
                 if (!limitReached || (soundState->flags & 0x50)) {
-                    isVoiceAllocated = func_802D70A8(SNDP_DRVR(sndp), soundState->voice, &config);
+                    isVoiceAllocated = alSynAllocVoice(SNDP_DRVR(sndp), soundState->voice, &config);
                 }
 
                 if (!isVoiceAllocated) {
                     if ((soundState->flags & 0x52) || soundState->unk38 > 0) {
                         soundState->playingState = 4;
                         soundState->unk38--;
-                        func_802D6C8C(SNDP_EVTQ(sndp), event, 33333);
+                        alEvtqPostEvent(SNDP_EVTQ(sndp), event, 33333);
                     } else if (limitReached) {
                         SndState *iterState = (SndState *) D_802E8CE4;
 
@@ -252,15 +238,15 @@ void func_8025F0F0(void *sndp, SndEvent *event) {
                                 interruptEvent.type = 0x80;
                                 interruptEvent.state = iterState;
                                 iterState->playingState = 3;
-                                func_802D6C8C(SNDP_EVTQ(sndp), &interruptEvent, 1000);
-                                func_802D71F0(SNDP_DRVR(sndp), iterState->voice, 0, 1000);
+                                alEvtqPostEvent(SNDP_EVTQ(sndp), &interruptEvent, 1000);
+                                alSynSetVol(SNDP_DRVR(sndp), iterState->voice, 0, 1000);
                             }
                             iterState = iterState->prev;
                         } while (limitReached && iterState != NULL);
 
                         if (!limitReached) {
                             soundState->unk38 = 2;
-                            func_802D6C8C(SNDP_EVTQ(sndp), event, 1001);
+                            alEvtqPostEvent(SNDP_EVTQ(sndp), event, 1001);
                         } else {
                             func_8026005C(soundState);
                         }
@@ -271,7 +257,7 @@ void func_8025F0F0(void *sndp, SndEvent *event) {
                 }
 
                 soundState->flags |= 4;
-                func_802D7290(SNDP_DRVR(sndp), soundState->voice, sound->wavetable);
+                alSynStartVoice(SNDP_DRVR(sndp), soundState->voice, sound->wavetable);
                 soundState->playingState = 1;
                 D_802E8CF0++;
 
@@ -279,23 +265,23 @@ void func_8025F0F0(void *sndp, SndEvent *event) {
                 volume = MAX(0, SLOT_VOLUME(keyMap) *
                                     (sound->envelope->attackVolume * soundState->vol * sound->sampleVolume / 16129) /
                                     32767 - 1);
-                func_802D71F0(SNDP_DRVR(sndp), soundState->voice, 0, 0);
-                func_802D71F0(SNDP_DRVR(sndp), soundState->voice, volume, delta);
+                alSynSetVol(SNDP_DRVR(sndp), soundState->voice, 0, 0);
+                alSynSetVol(SNDP_DRVR(sndp), soundState->voice, volume, delta);
 
                 panTmp = soundState->pan + sound->samplePan - 0x40;
                 pan = MIN(MAX(panTmp, 0), 0x7F);
-                func_802D7320(SNDP_DRVR(sndp), soundState->voice, pan);
+                alSynSetPan(SNDP_DRVR(sndp), soundState->voice, pan);
 
-                func_802D73B0(SNDP_DRVR(sndp), soundState->voice, soundState->pitch_2c * soundState->pitch_28);
+                alSynSetPitch(SNDP_DRVR(sndp), soundState->voice, soundState->pitch_2c * soundState->pitch_28);
 
                 fxMix = (soundState->fxMix + (keyMap->keyMax & 0xF)) * 8;
                 fxMix = MIN(127, MAX(0, fxMix));
-                func_802D7440(SNDP_DRVR(sndp), soundState->voice, fxMix);
+                alSynSetFXMix(SNDP_DRVR(sndp), soundState->voice, fxMix);
 
                 spAC.type = 0x40;
                 spAC.state = soundState;
                 delta = sound->envelope->attackTime / soundState->pitch_2c / soundState->pitch_28;
-                func_802D6C8C(SNDP_EVTQ(sndp), &spAC, delta);
+                alEvtqPostEvent(SNDP_EVTQ(sndp), &spAC, delta);
                 break;
 
             case 2:
@@ -306,11 +292,11 @@ void func_8025F0F0(void *sndp, SndEvent *event) {
                         case 1:
                             func_80260148(SNDP_EVTQ(sndp), soundState, 0x40);
                             delta = sound->envelope->releaseTime / soundState->pitch_28 / soundState->pitch_2c;
-                            func_802D71F0(SNDP_DRVR(sndp), soundState->voice, 0, delta);
+                            alSynSetVol(SNDP_DRVR(sndp), soundState->voice, 0, delta);
                             if (delta != 0) {
                                 spAC.type = 0x80;
                                 spAC.state = soundState;
-                                func_802D6C8C(SNDP_EVTQ(sndp), &spAC, delta);
+                                alEvtqPostEvent(SNDP_EVTQ(sndp), &spAC, delta);
                                 soundState->playingState = 2;
                             } else {
                                 func_8026005C(soundState);
@@ -332,14 +318,14 @@ void func_8025F0F0(void *sndp, SndEvent *event) {
                 if (soundState->playingState == 1) {
                     panTmp = soundState->pan + sound->samplePan - 0x40;
                     pan = MIN(MAX(panTmp, 0), 0x7F);
-                    func_802D7320(SNDP_DRVR(sndp), soundState->voice, pan);
+                    alSynSetPan(SNDP_DRVR(sndp), soundState->voice, pan);
                 }
                 break;
 
             case 0x10:
                 soundState->pitch_2c = event->u.pitch;
                 if (soundState->playingState == 1) {
-                    func_802D73B0(SNDP_DRVR(sndp), soundState->voice, soundState->pitch_2c * soundState->pitch_28);
+                    alSynSetPitch(SNDP_DRVR(sndp), soundState->voice, soundState->pitch_2c * soundState->pitch_28);
                     if (soundState->flags & 0x20) {
                         func_802600D8(soundState);
                     }
@@ -351,7 +337,7 @@ void func_8025F0F0(void *sndp, SndEvent *event) {
                 if (soundState->playingState == 1) {
                     fxMix = (soundState->fxMix + (keyMap->keyMax & 0xF)) * 8;
                     fxMix = MIN(127, MAX(0, fxMix));
-                    func_802D7440(SNDP_DRVR(sndp), soundState->voice, fxMix);
+                    alSynSetFXMix(SNDP_DRVR(sndp), soundState->voice, fxMix);
                 }
                 break;
 
@@ -361,7 +347,7 @@ void func_8025F0F0(void *sndp, SndEvent *event) {
                     volume = MAX(0, SLOT_VOLUME(keyMap) *
                                         (sound->envelope->decayVolume * soundState->vol * sound->sampleVolume / 16129) /
                                         32767 - 1);
-                    func_802D71F0(SNDP_DRVR(sndp), soundState->voice, volume, 1000);
+                    alSynSetVol(SNDP_DRVR(sndp), soundState->voice, volume, 1000);
                 }
                 break;
 
@@ -371,7 +357,7 @@ void func_8025F0F0(void *sndp, SndEvent *event) {
                     volume = MAX(0, SLOT_VOLUME(keyMap) *
                                         (sound->envelope->decayVolume * soundState->vol * sound->sampleVolume / 16129) /
                                         32767 - 1);
-                    func_802D71F0(SNDP_DRVR(sndp), soundState->voice, volume, delta);
+                    alSynSetVol(SNDP_DRVR(sndp), soundState->voice, volume, delta);
                 }
                 break;
 
@@ -381,11 +367,11 @@ void func_8025F0F0(void *sndp, SndEvent *event) {
                                         (sound->envelope->decayVolume * soundState->vol * sound->sampleVolume / 16129) /
                                         32767 - 1);
                     delta = sound->envelope->decayTime / soundState->pitch_28 / soundState->pitch_2c;
-                    func_802D71F0(SNDP_DRVR(sndp), soundState->voice, volume, delta);
+                    alSynSetVol(SNDP_DRVR(sndp), soundState->voice, volume, delta);
 
                     spAC.type = 2;
                     spAC.state = soundState;
-                    func_802D6C8C(SNDP_EVTQ(sndp), &spAC, delta);
+                    alEvtqPostEvent(SNDP_EVTQ(sndp), &spAC, delta);
 
                     if (soundState->flags & 0x20) {
                         func_802600D8(soundState);
@@ -425,36 +411,31 @@ void func_8025F0F0(void *sndp, SndEvent *event) {
 
 extern void *D_802E8CEC;
 
-void func_802D74E0(s32, void *);
-void func_802D7560(s32, void *);
 void func_80260148(void *, void *, u16);
 
 void func_8026005C(void *arg0) {
     if (*((u8 *) arg0 + 0x3e) & 4) {
-        func_802D74E0(*(s32 *) ((u8 *) D_802E8CEC + 0x38), (u8 *) arg0 + 0xc);
-        func_802D7560(*(s32 *) ((u8 *) D_802E8CEC + 0x38), (u8 *) arg0 + 0xc);
+        alSynStopVoice(*(s32 *) ((u8 *) D_802E8CEC + 0x38), (u8 *) arg0 + 0xc);
+        alSynFreeVoice(*(s32 *) ((u8 *) D_802E8CEC + 0x38), (u8 *) arg0 + 0xc);
     }
     func_802604FC(arg0);
     func_80260148((u8 *) D_802E8CEC + 0x14, arg0, 0xffff);
 }
 
-f32 func_802D7610(s32);
+f32 alCents2Ratio(s32);
 
 void func_802600D8(void *arg0) {
     SndEvent evt;
     f32 pitch;
 
-    pitch = (f32) (func_802D7610(*(s8 *) ((u8 *) ((SndState *) arg0)->sound->keyMap + 5)) *
+    pitch = (f32) (alCents2Ratio(*(s8 *) ((u8 *) ((SndState *) arg0)->sound->keyMap + 5)) *
                    (f32) ((SndState *) arg0)->pitch_2c);
     evt.state = arg0;
     evt.type = 0x10;
     evt.u.data = *(s32 *) &pitch;
-    func_802D6C8C((u8 *) D_802E8CEC + 0x14, &evt, 33333);
+    alEvtqPostEvent((u8 *) D_802E8CEC + 0x14, &evt, 33333);
 }
 
-s32 func_802D6EB0(void *);
-s32 func_802D6EE0(void *, void *);
-s32 func_802D7660(s32);
 
 void func_80260148(void *arg0, void *arg1, u16 arg2) {
     void *list;
@@ -464,7 +445,7 @@ void func_80260148(void *arg0, void *arg1, u16 arg2) {
     void *addr;
     s32 savedState;
 
-    savedState = func_802D7660(1);
+    savedState = osSetIntMask(1);
     list = *(void **) ((u8 *) arg0 + 8);
     while (list != NULL) {
         next = *(void **) list;
@@ -477,20 +458,19 @@ void func_80260148(void *arg0, void *arg1, u16 arg2) {
                 if (next != NULL) {
                     *(s32 *) ((u8 *) next + 8) += *(s32 *) ((u8 *) list + 8);
                 }
-                func_802D6EB0(list);
-                func_802D6EE0(list, arg0);
+                alUnlink(list);
+                alLink(list, arg0);
             }
         }
         list = next;
     }
 
-    func_802D7660(savedState);
+    osSetIntMask(savedState);
 }
 
 extern void *D_802E8CE0;
 extern void *D_802E8CE4;
 extern void *D_802E8CE8;
-s32 func_802D7660(s32);
 
 u16 func_80260210(u16 *arg0, u16 *arg1) {
     s32 savedState;
@@ -501,7 +481,7 @@ u16 func_80260210(u16 *arg0, u16 *arg1) {
     void *list2;
     void *list3;
 
-    savedState = func_802D7660(1);
+    savedState = osSetIntMask(1);
 
     list1 = D_802E8CE0;
     list2 = D_802E8CE8;
@@ -531,16 +511,16 @@ u16 func_80260210(u16 *arg0, u16 *arg1) {
     *arg0 = count2;
     *arg1 = count1;
 
-    func_802D7660(savedState);
+    osSetIntMask(savedState);
     return count3;
 }
 
 /* TODO: func_80260300 - pop a node off the D_802E8CE8 free list (calling
- * func_802D6EB0 on it), link it onto the front of the D_802E8CE0 active
+ * alUnlink on it), link it onto the front of the D_802E8CE0 active
  * list (or make it the sole element of both D_802E8CE0 and D_802E8CE4 if
  * that list was empty), then initialize it from arg1 (stored at node+8)
  * and arg1->unk4 (byte fields at +3/+4/+5): flags at +0x36/+0x3e/+0x38,
- * a float at +0x2c=1.0 and +0x28=func_802D7610(arg1->unk4-derived
+ * a float at +0x2c=1.0 and +0x28=alCents2Ratio(arg1->unk4-derived
  * index*100 [+unk5 if a +0x3e flag bit is clear] - 0x1770), a "negative"
  * flag folded in from (arg1->unk0)->unk4==-1, and a handful of fixed
  * resets (+0x30, +0x3d, +0x3c, +0x34). Returns the node (NULL if the
@@ -572,7 +552,7 @@ void func_802604FC(void *arg0) {
     if (D_802E8CE4 == arg0) {
         D_802E8CE4 = *(void **) ((u8 *) arg0 + 4);
     }
-    func_802D6EB0(arg0);
+    alUnlink(arg0);
 
     if (D_802E8CE8 != NULL) {
         *(void **) arg0 = D_802E8CE8;
@@ -614,7 +594,6 @@ extern s32 D_80358060;
 extern s32 D_802E8BDC;
 extern void *D_802E8CEC;
 void *func_80260300(void *, void *);
-s32 func_802D6C8C(void *, void *, s32);
 
 void *func_80260650(void *arg0, s16 arg1, void *arg2) {
     void *node;
@@ -666,12 +645,12 @@ mainLogic:
 
             if (*(u8 *) ((u8 *) node + 0x3e) & 0x10) {
                 *(u8 *) ((u8 *) node + 0x3e) &= ~0x10;
-                func_802D6C8C((u8 *) D_802E8CEC + 0x14, &eventCode,
+                alEvtqPostEvent((u8 *) D_802E8CEC + 0x14, &eventCode,
                     totalSomething + 1);
                 adjusted = scaled + 1;
                 flag1 = arg1;
             } else {
-                func_802D6C8C((u8 *) D_802E8CEC + 0x14, &eventCode,
+                alEvtqPostEvent((u8 *) D_802E8CEC + 0x14, &eventCode,
                     scaled + 1);
             }
             result = node;
@@ -694,7 +673,7 @@ mainLogic:
             eventParam2 = (s32) result;
             extra1 = flag1;
             extra2 = (s32) arg0;
-            func_802D6C8C((u8 *) D_802E8CEC + 0x14, &eventCode2, adjusted);
+            alEvtqPostEvent((u8 *) D_802E8CEC + 0x14, &eventCode2, adjusted);
         }
     }
 
@@ -706,7 +685,6 @@ mainLogic:
 
 extern void *D_802E8CEC;
 
-s32 func_802D6C8C(void *, void *, s32);
 
 /* eventTail/eventHead are dead stack space never read or written here - the
  * real source likely shares one ~0x10-byte event-record local across sites
@@ -726,14 +704,13 @@ void func_802608C8(void *arg0) {
 
     if (arg0 != NULL) {
         *((u8 *) arg0 + 0x3e) &= ~0x10;
-        func_802D6C8C((u8 *) D_802E8CEC + 0x14, &eventCode, 0);
+        alEvtqPostEvent((u8 *) D_802E8CEC + 0x14, &eventCode, 0);
     } else {
         func_8029A7E4("WARNING: Attempt to stop NULL sound aborted\n");
     }
 }
 
 extern void *D_802E8CE0;
-s32 func_802D7660(s32);
 
 void func_80260934(u8 arg0) {
     s32 savedState;
@@ -744,7 +721,7 @@ void func_80260934(u8 arg0) {
     s16 eventCode;
     void *entry;
 
-    savedState = func_802D7660(1);
+    savedState = osSetIntMask(1);
     entry = D_802E8CE0;
     if (entry != NULL) {
         do {
@@ -752,12 +729,12 @@ void func_80260934(u8 arg0) {
             eventParam = (s32) entry;
             if ((*((u8 *) entry + 0x3e) & arg0) == arg0) {
                 *((u8 *) entry + 0x3e) &= ~0x10;
-                func_802D6C8C((u8 *) D_802E8CEC + 0x14, &eventCode, 0);
+                alEvtqPostEvent((u8 *) D_802E8CEC + 0x14, &eventCode, 0);
             }
             entry = *(void **) entry;
         } while (entry != NULL);
     }
-    func_802D7660(savedState);
+    osSetIntMask(savedState);
 }
 
 void func_802609D0(void) {
@@ -777,7 +754,7 @@ void func_80260A30(u8 arg0) {
     void *entry;
     s32 count;
 
-    savedState = func_802D7660(1);
+    savedState = osSetIntMask(1);
     entry = D_802E8CE0;
     count = 0;
     if (entry != NULL) {
@@ -788,7 +765,7 @@ void func_80260A30(u8 arg0) {
             count = count + 1;
         } while ((entry = *(void **) entry) != NULL);
     }
-    func_802D7660(savedState);
+    osSetIntMask(savedState);
 }
 
 
@@ -804,7 +781,7 @@ void func_80260AB8(void *arg0, s16 arg1, s32 arg2) {
     eventExtra = arg2;
 
     if (arg0 != NULL) {
-        func_802D6C8C((u8 *) D_802E8CEC + 0x14, &eventCode, 0);
+        alEvtqPostEvent((u8 *) D_802E8CEC + 0x14, &eventCode, 0);
     } else {
         func_8029A7E4("WARNING: Attempt to modify NULL sound aborted\n");
     }
@@ -818,8 +795,6 @@ u16 func_80260B24(u8 arg0) {
 
 extern void *D_802E8CE0;
 extern void *D_802E8CEC;
-s32 func_802D7660(s32);
-s32 func_802D6C8C(void *, void *, s32);
 
 void func_80260B40(u8 arg0, u16 arg1) {
     s32 savedState;
@@ -831,7 +806,7 @@ void func_80260B40(u8 arg0, u16 arg1) {
     s16 pad;
     s16 eventCode;
 
-    savedState = func_802D7660(1);
+    savedState = osSetIntMask(1);
     entry = D_802E8CE0;
     D_80366C28[arg0] = arg1;
 
@@ -840,11 +815,11 @@ void func_80260B40(u8 arg0, u16 arg1) {
         if ((*(u8 *) ((u8 *) (*(void **) ((u8 *) (*(void **) ((u8 *) entry + 8)) + 4)) + 2) & 0x3f) == arg0) {
             eventCode = 0x800;
             eventParam = (s32) entry;
-            func_802D6C8C((u8 *) D_802E8CEC + 0x14, &eventCode, 0);
+            alEvtqPostEvent((u8 *) D_802E8CEC + 0x14, &eventCode, 0);
         }
         count = count + 1;
         entry = *(void **) entry;
     }
 
-    func_802D7660(savedState);
+    osSetIntMask(savedState);
 }

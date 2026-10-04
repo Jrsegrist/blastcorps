@@ -1,25 +1,20 @@
 #include "common.h"
 #include <ultra64.h>
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/923B0/func_802D6B70.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/923B0/alEvtqFlushType.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/923B0/func_802D6C1C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/923B0/alEvtqFlush.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/923B0/func_802D6C8C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/923B0/alEvtqPostEvent.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/923B0/func_802D6DB0.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/923B0/alEvtqNextEvent.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/923B0/func_802D6E3C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/923B0/alEvtqNew.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/923B0/func_802D6EB0.s")
-
-typedef struct SndLink {
-    struct SndLink *next;
-    struct SndLink *prev;
-} SndLink;
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/923B0/alUnlink.s")
 
 /* libaudio alLink: insert ln after to. */
-void func_802D6EE0(SndLink *ln, SndLink *to) {
+void alLink(ALLink *ln, ALLink *to) {
     ln->next = to->next;
     ln->prev = to;
     if (to->next) {
@@ -28,12 +23,12 @@ void func_802D6EE0(SndLink *ln, SndLink *to) {
     to->next = ln;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/923B0/func_802D6F04.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/923B0/alClose.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/923B0/func_802D6F3C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/923B0/alInit.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/923B0/func_802D6F70.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/923B0/alSynAddPlayer.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/923B0/func_802D6FC0.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/923B0/_allocatePVoice.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/923B0/func_802D70A8.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/923B0/alSynAllocVoice.s")

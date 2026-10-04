@@ -2,4 +2,4 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8F860/func_802D4020.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8F860/func_802D4250.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8F860/osPiRawReadIo.s")

@@ -1,17 +1,17 @@
 #include "common.h"
 #include <ultra64.h>
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/92DA0/func_802D7560.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/92DA0/alSynFreeVoice.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/92DA0/func_802D7610.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/92DA0/alCents2Ratio.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/92DA0/func_802D7660.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/92DA0/osSetIntMask.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/92DA0/func_802D76C0.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/92DA0/alCSPStop.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/92DA0/func_802D76F0.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/92DA0/alCSeqGetLoc.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/92DA0/func_802D7790.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/92DA0/alCSeqSetLoc.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/92DA0/func_802D7830.s")
 
@@ -20,18 +20,18 @@
 void func_802D794C(void) {
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/92DA0/func_802D7954.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/92DA0/alCSeqNextEvent.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/92DA0/func_802D7C4C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/92DA0/alCSeqNew.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/92DA0/func_802D7D60.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/92DA0/alCSeqNewMarker.s")
 
 s32 func_802D7ECC(void *arg0) {
     return *(s32 *) ((u8 *) arg0 + 0xc);
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/92DA0/func_802D7ED4.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/92DA0/alCSeqSecToTicks.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/92DA0/func_802D7FD0.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/92DA0/alCSeqTicksToSec.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/92DA0/func_802D803C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/92DA0/__alCSeqNextDelta.s")

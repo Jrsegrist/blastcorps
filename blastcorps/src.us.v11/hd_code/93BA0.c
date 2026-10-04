@@ -11,6 +11,6 @@ void func_802D8368(void) {
 void func_802D845C(void) {
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/93BA0/func_802D8464.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/93BA0/alBnkfNew.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/93BA0/func_802D8568.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/93BA0/alSeqFileNew.s")

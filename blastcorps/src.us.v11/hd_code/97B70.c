@@ -1,4 +1,5 @@
 #include "common.h"
+#include <ultra64.h>
 
 /* __osDisableInt/__osRestoreInt: raw COP0 Status-register read-modify-write
  * (`mfc0`/`mtc0 $12`, clearing or setting a bit directly) - same hand-

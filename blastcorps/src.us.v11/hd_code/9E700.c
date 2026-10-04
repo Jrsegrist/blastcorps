@@ -45,16 +45,3 @@ void func_802E3FD0(void) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/9E700/func_802E44A8.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/9E700/alSeqNew.s")
-
-void alSynSetPriority(ALSynth *s, ALVoice *voice, s16 priority) {
-    voice->priority = priority;
-}
-
-void alFilterNew(void *arg0, s32 arg1, s32 arg2, s32 arg3) {
-    *(s32 *) arg0 = 0;
-    *(s32 *) ((u8 *) arg0 + 4) = arg1;
-    *(s32 *) ((u8 *) arg0 + 8) = arg2;
-    *(s16 *) ((u8 *) arg0 + 0xc) = 0;
-    *(s16 *) ((u8 *) arg0 + 0xe) = 0;
-    *(s32 *) ((u8 *) arg0 + 0x10) = arg3;
-}

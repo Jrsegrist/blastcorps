@@ -1,4 +1,5 @@
 #include "common.h"
+#include <ultra64.h>
 
 /* osGetCount: raw COP0 Count-register read (mfc0 $9) - genuine
  * hand-written SDK leaf stub (osGetCount()-style), not expressible in

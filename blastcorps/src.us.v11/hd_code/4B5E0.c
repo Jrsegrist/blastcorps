@@ -1,4 +1,5 @@
 #include "common.h"
+#include <ultra64.h>
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/4B5E0/func_8028FDA0.s")
 

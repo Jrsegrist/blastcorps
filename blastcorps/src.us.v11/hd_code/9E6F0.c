@@ -1,4 +1,5 @@
 #include "common.h"
+#include <ultra64.h>
 
 /* __osSetCompare: raw COP0 Compare-register write (mtc0 $11, i.e.
  * osSetCompare()/osSetTimer()-style) - genuine hand-written SDK leaf

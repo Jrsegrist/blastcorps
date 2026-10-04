@@ -16,3 +16,6 @@
 [submodule "tools/decomp-workbench"]
 	path = tools/decomp-workbench
 	url = https://github.com/akratch/n64-decomp-workbench.git
+[submodule "lib/ultralib"]
+	path = lib/ultralib
+	url = https://github.com/decompals/ultralib.git

@@ -1,4 +1,5 @@
 #include "common.h"
+#include <ultra64.h>
 
 /* func_802E51F0: raw COP0 Cause-register read (mfc0 $13, i.e.
  * __osGetCause()-style) - genuine hand-written SDK leaf stub, not

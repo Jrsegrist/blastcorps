@@ -95,17 +95,31 @@ HD_CODE_TARGET = $(BUILD_DIR)/hd_code.$(VERSION)
 HD_CODE_LD_SCRIPT = hd_code.$(VERSION).ld
 
 INIT_LDFLAGS    = -T $(INIT_LD_SCRIPT) -Map $(INIT_TARGET).map -T undefined_syms_auto.init.$(VERSION).txt -T undefined_funcs_auto.init.$(VERSION).txt -T undefined_syms.init.$(VERSION).txt --no-check-sections
-HD_CODE_LDFLAGS = -T $(HD_CODE_LD_SCRIPT) -Map $(HD_CODE_TARGET).map -T undefined_syms_auto.hd_code.$(VERSION).txt -T undefined_funcs_auto.hd_code.$(VERSION).txt -T undefined_syms.hd_code.$(VERSION).txt --no-check-sections
+HD_CODE_LDFLAGS = -T $(HD_CODE_LD_SCRIPT) -Map $(HD_CODE_TARGET).map -T undefined_syms_auto.hd_code.$(VERSION).txt -T undefined_funcs_auto.hd_code.$(VERSION).txt -T undefined_syms.hd_code.$(VERSION).txt --no-check-sections --no-warn-mismatch
 
 
 ### Optimisation Overrides
 
-# Files compiled at -O2 in the original build. Evidence: IDO only emits
-# branch-likely instructions (beql/bnel/...) when optimizing at -O2, and
-# none of the -O1 matches contain any. This covers libultra/libaudio
-# (0x909C0 onward) and a few large game files.
-O2_FILES_HD_CODE := 56040 5CB60 5FD50 60F60 62740 69BB0 75490 77E20 89250 909C0 90E40 91050 92130 923B0 92A30 92AD0 92B60 92BF0 92C80 92D20 92DA0 93AA0 93BA0 93DF0 95460 99580 996B0 9AFF0 9B440 9BC90 9C930 9CC30 9D920 9DB80 9E700 9FE20 A0AA0
+# Game files compiled at -O2 in the original build. Evidence: IDO only
+# emits branch-likely instructions (beql/bnel/...) when optimizing at -O2,
+# and none of the -O1 matches contain any.
+O2_FILES_HD_CODE := 56040 5CB60 5FD50 60F60 62740 69BB0 75490 77E20 89250 909C0 92130 93DF0 95460 996B0 9C930 9CC30 9DB80 9FE20 926F0 92E50 92F30 95070 9B470 9E700 A0AA0
 $(foreach f,$(O2_FILES_HD_CODE),$(BUILD_DIR)/src.$(VERSION)/hd_code/$(f).c.o): OPT_FLAGS := -O2
+
+# libultra/libaudio objects (src/hd_code/ul_*.c) are one-line wrappers that
+# #include the matching source from decompals/ultralib (lib/ultralib, a
+# clean-room libultra decompilation), built with ultralib's own flags for
+# SDK versions D-I: os/io at -O1, libc/gu/audio at -O3, ll at -mips3.
+UL_DIR := ../lib/ultralib
+UL_VERSION := I
+UL_CFLAGS := -G 0 -nostdinc -Xcpluscomm -non_shared -Wab,-r4300_mul -woff 516,649,838,712 \
+  -D_MIPS_SZLONG=32 -DBUILD_VERSION=VERSION_$(UL_VERSION) -DBUILD_VERSION_STRING=\"2.0$(UL_VERSION)\" \
+  -DNDEBUG -D_FINALROM -DF3DEX_GBI -I $(UL_DIR) -I $(UL_DIR)/include -I $(UL_DIR)/include/compiler/ido -I $(UL_DIR)/include/PR
+UL_O3_HD_CODE := ul_translate ul_ortho ul_mtxcatf ul_mtxutil ul_scale ul_lookat ul_heapalloc ul_event ul_synaddplayer ul_synallocvoice ul_synsetvol ul_synstartvoice ul_synsetpan ul_synsetpitch ul_synsetfxmix ul_synstopvoice ul_synfreevoice ul_cspstop ul_cspsetseq ul_cspplay ul_cspsetvol ul_cspgettempo ul_cspsettempo ul_heapinit ul_bnkf ul_cspsetbank ul_coss ul_mtxcatl ul_normalize ul_string ul_copy ul_synstartvoiceparam ul_synallocfx ul_mainbus ul_load ul_auxbus ul_save ul_synsetpriority ul_filter
+UL_MIPS3_HD_CODE := ul_ll
+$(BUILD_DIR)/src.$(VERSION)/hd_code/ul_%.c.o: CFLAGS := $(UL_CFLAGS)
+$(foreach f,$(UL_O3_HD_CODE),$(BUILD_DIR)/src.$(VERSION)/hd_code/$(f).c.o): OPT_FLAGS := -O3
+$(foreach f,$(UL_MIPS3_HD_CODE),$(BUILD_DIR)/src.$(VERSION)/hd_code/$(f).c.o): MIPSISET := -mips3 -32
 
 
 ### Targets

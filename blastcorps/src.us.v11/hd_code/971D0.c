@@ -1,4 +1,5 @@
 #include "common.h"
+#include <ultra64.h>
 
 /* func_802DB990/func_802DB9A0: raw COP0 Status-register writes/reads
  * (mtc0/mfc0 $12), same character as __osSetSR/__osGetSR in init - genuine

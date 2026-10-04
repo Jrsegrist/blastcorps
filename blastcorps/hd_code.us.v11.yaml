@@ -87,145 +87,174 @@ segments:
     - [0x8DDB0, c, hd_code/8DDB0]
     - [0x8E910, bin, hd_code/8E910] # more data?
     - [0x8F860, c, hd_code/8F860]
-    - [0x8FA90, c, hd_code/ul_pirawread]  # src/io/pirawread.c
-    - [0x8FAF0, c, hd_code/ul_createthread]  # src/os/createthread.c
-    - [0x8FC40, c, hd_code/ul_startthread]  # src/os/startthread.c
+    - [0x8FA90, c, hd_code/ul_pirawread]
+    - [0x8FAF0, c, hd_code/ul_createthread]
+    - [0x8FC40, c, hd_code/ul_startthread]
     - [0x8FD90, c, hd_code/8FD90]
     - [0x8FDA0, c, hd_code/8FDA0]
-    - [0x8FF20, c, hd_code/ul_setthreadpri]  # src/os/setthreadpri.c
-    - [0x90000, c, hd_code/ul_sendmesg]  # src/os/sendmesg.c
-    - [0x90150, c, hd_code/ul_recvmesg]  # src/os/recvmesg.c
-    - [0x90290, c, hd_code/ul_viblack]  # src/io/viblack.c
-    - [0x90300, c, hd_code/ul_gettime]  # src/os/gettime.c
-    - [0x90390, c, hd_code/ul_ll]  # src/libc/ll.c
+    - [0x8FF20, c, hd_code/ul_setthreadpri]
+    - [0x90000, c, hd_code/ul_sendmesg]
+    - [0x90150, c, hd_code/ul_recvmesg]
+    - [0x90290, c, hd_code/ul_viblack]
+    - [0x90300, c, hd_code/ul_gettime]
+    - [0x90390, c, hd_code/ul_ll]
     - [0x90650, c, hd_code/90650]
-    - [0x90660, c, hd_code/ul_virtualtophysical]  # src/os/virtualtophysical.c
+    - [0x90660, c, hd_code/ul_virtualtophysical]
     - [0x906E0, c, hd_code/906E0]
-    - [0x90760, c, hd_code/ul_translate]  # src/gu/translate.c
-    - [0x90800, c, hd_code/ul_ortho]  # src/gu/ortho.c
-    - [0x909C0, c, hd_code/909C0]
-    - [0x90C50, c, hd_code/90C50]
-    - [0x90E40, c, hd_code/ul_mtxcatf]  # src/gu/mtxcatf.c
-    - [0x91050, c, hd_code/ul_mtxutil]  # src/gu/mtxutil.c
-    - [0x912C0, c, hd_code/ul_scale]  # src/gu/scale.c
+    - [0x90760, c, hd_code/ul_translate]
+    - [0x90800, c, hd_code/ul_ortho]
+    - [0x909C0, c, hd_code/ul_perspective]  # src/gu/perspective.c
+    - [0x90C50, c, hd_code/ul_rotate]  # src/gu/rotate.c
+    - [0x90E40, c, hd_code/ul_mtxcatf]
+    - [0x91050, c, hd_code/ul_mtxutil]
+    - [0x912C0, c, hd_code/ul_scale]
     - [0x91360, c, hd_code/91360]
     - [0x91820, c, hd_code/91820]
-    - [0x91830, c, hd_code/ul_lookat]  # src/gu/lookat.c
+    - [0x91830, c, hd_code/ul_lookat]
     - [0x91B60, c, hd_code/91B60]
-    - [0x91D20, c, hd_code/ul_createmesgqueue]  # src/os/createmesgqueue.c
+    - [0x91D20, c, hd_code/ul_createmesgqueue]
     - [0x91D50, bin, hd_code/91D50] # 0x40 zero bytes between objects
-    - [0x91D90, c, hd_code/ul_visetspecial]  # src/io/visetspecial.c
+    - [0x91D90, c, hd_code/ul_visetspecial]
     - [0x91F50, c, hd_code/91F50]
     - [0x91F80, c, hd_code/91F80]
     - [0x92030, c, hd_code/92030]
     - [0x92130, c, hd_code/92130]
     - [0x922A0, c, hd_code/922A0]
-    - [0x92350, c, hd_code/ul_heapalloc]  # src/audio/heapalloc.c
-    - [0x923B0, c, hd_code/ul_event]  # src/audio/event.c
-    - [0x926F0, c, hd_code/926F0]
-    - [0x927B0, c, hd_code/ul_synaddplayer]  # src/audio/synaddplayer.c
-    - [0x92800, c, hd_code/ul_synallocvoice]  # src/audio/synallocvoice.c
-    - [0x92A30, c, hd_code/ul_synsetvol]  # src/audio/synsetvol.c
-    - [0x92AD0, c, hd_code/ul_synstartvoice]  # src/audio/synstartvoice.c
-    - [0x92B60, c, hd_code/ul_synsetpan]  # src/audio/synsetpan.c
-    - [0x92BF0, c, hd_code/ul_synsetpitch]  # src/audio/synsetpitch.c
-    - [0x92C80, c, hd_code/ul_synsetfxmix]  # src/audio/synsetfxmix.c
-    - [0x92D20, c, hd_code/ul_synstopvoice]  # src/audio/synstopvoice.c
-    - [0x92DA0, c, hd_code/ul_synfreevoice]  # src/audio/synfreevoice.c
-    - [0x92E50, c, hd_code/92E50]
-    - [0x92F00, c, hd_code/ul_cspstop]  # src/audio/cspstop.c
-    - [0x92F30, c, hd_code/92F30]
-    - [0x939F0, c, hd_code/ul_cspsetseq]  # src/audio/cspsetseq.c
-    - [0x93A30, c, hd_code/ul_cspplay]  # src/audio/cspplay.c
-    - [0x93A60, c, hd_code/ul_cspsetvol]  # src/audio/cspsetvol.c
-    - [0x93AA0, c, hd_code/ul_cspgettempo]  # src/audio/cspgettempo.c
-    - [0x93AE0, c, hd_code/ul_cspsettempo]  # src/audio/cspsettempo.c
+    - [0x92350, c, hd_code/ul_heapalloc]
+    - [0x923B0, c, hd_code/ul_event]
+    - [0x926F0, c, hd_code/ul_sl]  # src/audio/sl.c
+    - [0x927B0, c, hd_code/ul_synaddplayer]
+    - [0x92800, c, hd_code/ul_synallocvoice]
+    - [0x92A30, c, hd_code/ul_synsetvol]
+    - [0x92AD0, c, hd_code/ul_synstartvoice]
+    - [0x92B60, c, hd_code/ul_synsetpan]
+    - [0x92BF0, c, hd_code/ul_synsetpitch]
+    - [0x92C80, c, hd_code/ul_synsetfxmix]
+    - [0x92D20, c, hd_code/ul_synstopvoice]
+    - [0x92DA0, c, hd_code/ul_synfreevoice]
+    - [0x92E50, c, hd_code/ul_cents2ratio]  # src/audio/cents2ratio.c
+    - [0x92EA0, c, hd_code/92EA0]
+    - [0x92F00, c, hd_code/ul_cspstop]
+    - [0x92F30, c, hd_code/ul_cseq]  # src/audio/cseq.c
+    - [0x939F0, c, hd_code/ul_cspsetseq]
+    - [0x93A30, c, hd_code/ul_cspplay]
+    - [0x93A60, c, hd_code/ul_cspsetvol]
+    - [0x93AA0, c, hd_code/ul_cspgettempo]
+    - [0x93AE0, c, hd_code/ul_cspsettempo]
     - [0x93B50, c, hd_code/93B50]
-    - [0x93B60, c, hd_code/ul_heapinit]  # src/audio/heapinit.c
-    - [0x93BA0, c, hd_code/ul_bnkf]  # src/audio/bnkf.c
-    - [0x93DF0, c, hd_code/93DF0]
-    - [0x95020, c, hd_code/ul_cspsetbank]  # src/audio/cspsetbank.c
+    - [0x93B60, c, hd_code/ul_heapinit]
+    - [0x93BA0, c, hd_code/ul_bnkf]
+    - [0x93DF0, c, hd_code/ul_csplayer]  # src/audio/csplayer.c
+    - [0x95020, c, hd_code/ul_cspsetbank]
     - [0x95060, c, hd_code/95060]
-    - [0x95070, c, hd_code/95070]
-    - [0x950E0, c, hd_code/ul_coss]  # src/gu/coss.c
+    - [0x95070, c, hd_code/ul_sins]  # src/gu/sins.c
+    - [0x950E0, c, hd_code/ul_coss]
     - [0x95110, c, hd_code/95110]
-    - [0x95240, c, hd_code/ul_aisetfreq]  # src/io/aisetfreq.c
+    - [0x95240, c, hd_code/ul_aisetfreq]
     - [0x953A0, c, hd_code/953A0]
     - [0x95450, c, hd_code/95450]
     - [0x95460, c, hd_code/95460]
-    - [0x95C40, c, hd_code/95C40]
+    - [0x95C40, c, hd_code/ul_llcvt]  # src/libc/llcvt.c
     - [0x95E50, c, hd_code/95E50]
-    - [0x961B0, c, hd_code/ul_visetmode]  # src/io/visetmode.c
-    - [0x96220, c, hd_code/96220]
-    - [0x96290, c, hd_code/ul_visetevent]  # src/io/visetevent.c
+    - [0x961B0, c, hd_code/ul_visetmode]
+    - [0x96220, c, hd_code/ul_seteventmesg]  # src/os/seteventmesg.c
+    - [0x96290, c, hd_code/ul_visetevent]
     - [0x96300, c, hd_code/96300]
-    - [0x96310, c, hd_code/ul_vigetcurrframebuf]  # src/io/vigetcurrframebuf.c
-    - [0x96350, c, hd_code/ul_vigetnextframebuf]  # src/io/vigetnextframebuf.c
-    - [0x96390, c, hd_code/ul_viswapbuf]  # src/io/viswapbuf.c
-    - [0x963E0, c, hd_code/ul_settimer]  # src/os/settimer.c
-    - [0x964C0, c, hd_code/ul_sptaskyielded]  # src/io/sptaskyielded.c
+    - [0x96310, c, hd_code/ul_vigetcurrframebuf]
+    - [0x96350, c, hd_code/ul_vigetnextframebuf]
+    - [0x96390, c, hd_code/ul_viswapbuf]
+    - [0x963E0, c, hd_code/ul_settimer]
+    - [0x964C0, c, hd_code/ul_sptaskyielded]
     - [0x96540, c, hd_code/96540]
-    - [0x96800, c, hd_code/ul_sptaskyield]  # src/io/sptaskyield.c
-    - [0x96820, c, hd_code/ul_mtxcatl]  # src/gu/mtxcatl.c
+    - [0x96800, c, hd_code/ul_sptaskyield]
+    - [0x96820, c, hd_code/ul_mtxcatl]
     - [0x968E0, c, hd_code/968E0]
-    - [0x96CA0, c, hd_code/ul_contsetch]  # src/io/contsetch.c
+    - [0x96CA0, c, hd_code/ul_contsetch]
     - [0x96D10, c, hd_code/96D10]
     - [0x96F70, c, hd_code/96F70]
     - [0x96FF0, c, hd_code/96FF0]
-    - [0x97090, c, hd_code/ul_contquery]  # src/io/contquery.c
-    - [0x97140, c, hd_code/ul_normalize]  # src/gu/normalize.c
+    - [0x97090, c, hd_code/ul_contquery]
+    - [0x97140, c, hd_code/ul_normalize]
     - [0x971D0, c, hd_code/971D0]
     - [0x971F0, c, hd_code/971F0]
-    - [0x97200, c, hd_code/ul_sirawread]  # src/io/sirawread.c
-    - [0x97250, c, hd_code/ul_sirawwrite]  # src/io/sirawwrite.c
+    - [0x97200, c, hd_code/ul_sirawread]
+    - [0x97250, c, hd_code/ul_sirawwrite]
     - [0x972A0, c, hd_code/972A0]
     - [0x97B70, c, hd_code/97B70]
-    - [0x97BB0, c, hd_code/97BB0]
-    - [0x97CB0, c, hd_code/ul_getthreadpri]  # src/os/getthreadpri.c
-    - [0x97CD0, c, hd_code/ul_pirawdma]  # src/io/pirawdma.c
+    - [0x97BB0, c, hd_code/ul_thread]  # src/os/thread.c
+    - [0x97BF0, c, hd_code/ul_piacs]  # src/io/piacs.c
+    - [0x97CB0, c, hd_code/ul_getthreadpri]
+    - [0x97CD0, c, hd_code/ul_pirawdma]
     - [0x97DB0, c, hd_code/97DB0]
-    - [0x97F30, c, hd_code/97F30]
+    - [0x97F30, c, hd_code/ul_timerintr]  # src/os/timerintr.c
+    - [0x98330, c, hd_code/98330]
     - [0x983F0, c, hd_code/983F0]
-    - [0x99580, c, hd_code/ul_string]  # src/libc/string.c
-    - [0x99620, c, hd_code/ul_copy]  # src/audio/copy.c
+    - [0x99580, c, hd_code/ul_string]
+    - [0x99620, c, hd_code/ul_copy]
     - [0x996A0, c, hd_code/996A0]
-    - [0x996B0, c, hd_code/996B0]
-    - [0x9AFF0, c, hd_code/ul_synstartvoiceparam]  # src/audio/synstartvoiceparam.c
-    - [0x9B0E0, c, hd_code/ul_viswapcontext]  # src/io/viswapcontext.c
-    - [0x9B440, c, hd_code/ul_ai]  # src/io/ai.c
+    - [0x996B0, c, hd_code/ul_seqplayer]  # src/audio/seqplayer.c
+    - [0x9AFF0, c, hd_code/ul_synstartvoiceparam]
+    - [0x9B0E0, c, hd_code/ul_viswapcontext]
+    - [0x9B440, c, hd_code/ul_ai]
     - [0x9B470, c, hd_code/9B470]
-    - [0x9BBF0, c, hd_code/ul_synallocfx]  # src/audio/synallocfx.c
-    - [0x9BC90, c, hd_code/ul_mainbus]  # src/audio/mainbus.c
-    - [0x9BDE0, c, hd_code/ul_load]  # src/audio/load.c
-    - [0x9C930, c, hd_code/9C930]
+    - [0x9BBF0, c, hd_code/ul_synallocfx]
+    - [0x9BC90, c, hd_code/ul_mainbus]
+    - [0x9BDE0, c, hd_code/ul_load]
+    - [0x9C930, c, hd_code/ul_resample]  # src/audio/resample.c
     - [0x9CC30, c, hd_code/9CC30]
-    - [0x9D810, c, hd_code/ul_auxbus]  # src/audio/auxbus.c
-    - [0x9D920, c, hd_code/ul_save]  # src/audio/save.c
-    - [0x9D9E0, c, hd_code/ul_jammesg]  # src/os/jammesg.c
-    - [0x9DB30, c, hd_code/ul_pigetcmdq]  # src/io/pigetcmdq.c
+    - [0x9D810, c, hd_code/ul_auxbus]
+    - [0x9D920, c, hd_code/ul_save]
+    - [0x9D9E0, c, hd_code/ul_jammesg]
+    - [0x9DB30, c, hd_code/ul_pigetcmdq]
     - [0x9DB60, c, hd_code/9DB60]
     - [0x9DB70, c, hd_code/9DB70]
     - [0x9DB80, c, hd_code/9DB80]
-    - [0x9DEA0, c, hd_code/ul_spsetpc]  # src/io/spsetpc.c
-    - [0x9DEE0, c, hd_code/ul_sprawdma]  # src/io/sprawdma.c
-    - [0x9DF70, c, hd_code/ul_sp]  # src/io/sp.c
-    - [0x9DFA0, c, hd_code/ul_sirawdma]  # src/io/sirawdma.c
-    - [0x9E050, c, hd_code/9E050]
-    - [0x9E110, c, hd_code/ul_si]  # src/io/si.c
+    - [0x9DEA0, c, hd_code/ul_spsetpc]
+    - [0x9DEE0, c, hd_code/ul_sprawdma]
+    - [0x9DF70, c, hd_code/ul_sp]
+    - [0x9DFA0, c, hd_code/ul_sirawdma]
+    - [0x9E050, c, hd_code/ul_siacs]  # src/io/siacs.c
+    - [0x9E110, c, hd_code/ul_si]
     - [0x9E140, c, hd_code/9E140]
     - [0x9E5C0, c, hd_code/9E5C0]
     - [0x9E6F0, c, hd_code/9E6F0]
     - [0x9E700, c, hd_code/9E700]
-    - [0x9FDF0, c, hd_code/ul_synsetpriority]  # src/audio/synsetpriority.c
-    - [0x9FE00, c, hd_code/ul_filter]  # src/audio/filter.c
+    - [0x9F7D0, c, hd_code/ul_seq]  # src/audio/seq.c
+    - [0x9FDF0, c, hd_code/ul_synsetpriority]
+    - [0x9FE00, c, hd_code/ul_filter]
     - [0x9FE20, c, hd_code/9FE20]
     - [0xA0A30, c, hd_code/A0A30]
-    - [0xA0A40, c, hd_code/ul_atomic]  # src/os/atomic.c
+    - [0xA0A40, c, hd_code/ul_atomic]
     - [0xA0AA0, c, hd_code/A0AA0]
     - [0xA0BA0, bin, hd_code/A0BA0] # more data
     - [0xA4410, linker, data]
     - [0xA4410, bin, hd_code/hd_code_data] # .data
+    - [0xC1E00, .data, hd_code/ul_sl]
+    - [0xC1E10, .data, hd_code/ul_sins]
+    - [0xC2610, bin, hd_code/hd_code_data_C2610]
+    - [0xC2FA0, .data, hd_code/ul_thread]
+    - [0xC2FC0, .data, hd_code/ul_piacs]
+    - [0xC2FD0, .data, hd_code/ul_timerintr]
+    - [0xC2FE0, bin, hd_code/hd_code_data_C2FE0]
+    - [0xC3360, .data, hd_code/ul_siacs]
+    - [0xC3370, bin, hd_code/hd_code_data_C3370]
     - [0xC48B0, .rodata, hd_code/17E10]
     - [0xC48E0, .rodata, hd_code/1A630]
     - [0xC4A30, bin, hd_code/hd_code_data_C4A30]
+    - [0xC9230, .rodata, hd_code/ul_perspective]
+    - [0xC9240, .rodata, hd_code/ul_rotate]
+    - [0xC9250, bin, hd_code/hd_code_data_C9250]
+    - [0xC9300, .rodata, hd_code/ul_cents2ratio]
+    - [0xC9310, bin, hd_code/hd_code_data_C9310]
+    - [0xC9390, .rodata, hd_code/ul_cseq]
+    - [0xC93A0, .rodata, hd_code/ul_csplayer]
+    - [0xC95E0, bin, hd_code/hd_code_data_C95E0]
+    - [0xC95F0, .rodata, hd_code/ul_llcvt]
+    - [0xC9600, bin, hd_code/hd_code_data_C9600]
+    - [0xC9760, .rodata, hd_code/ul_seqplayer]
+    - [0xC99A0, bin, hd_code/hd_code_data_C99A0]
+    - [0xC99D0, .rodata, hd_code/ul_resample]
+    - [0xC9A10, bin, hd_code/hd_code_data_C9A10]
+    - [0xC9B90, .rodata, hd_code/ul_seq]
+    - [0xC9BA0, bin, hd_code/hd_code_data_C9BA0]
   - [0xCAEA0]

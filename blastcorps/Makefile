@@ -95,7 +95,7 @@ HD_CODE_TARGET = $(BUILD_DIR)/hd_code.$(VERSION)
 HD_CODE_LD_SCRIPT = hd_code.$(VERSION).ld
 
 INIT_LDFLAGS    = -T $(INIT_LD_SCRIPT) -Map $(INIT_TARGET).map -T undefined_syms_auto.init.$(VERSION).txt -T undefined_funcs_auto.init.$(VERSION).txt -T undefined_syms.init.$(VERSION).txt --no-check-sections
-HD_CODE_LDFLAGS = -T $(HD_CODE_LD_SCRIPT) -Map $(HD_CODE_TARGET).map -T undefined_syms_auto.hd_code.$(VERSION).txt -T undefined_funcs_auto.hd_code.$(VERSION).txt -T undefined_syms.hd_code.$(VERSION).txt --no-check-sections --no-warn-mismatch
+HD_CODE_LDFLAGS = -T hd_code_bss.$(VERSION).ld -T $(HD_CODE_LD_SCRIPT) -Map $(HD_CODE_TARGET).map -T undefined_syms_auto.hd_code.$(VERSION).txt -T undefined_funcs_auto.hd_code.$(VERSION).txt -T undefined_syms.hd_code.$(VERSION).txt --no-check-sections --no-warn-mismatch
 
 
 ### Optimisation Overrides
@@ -115,8 +115,8 @@ UL_VERSION := I
 UL_CFLAGS := -G 0 -nostdinc -Xcpluscomm -non_shared -Wab,-r4300_mul -woff 516,649,838,712 \
   -D_MIPS_SZLONG=32 -DBUILD_VERSION=VERSION_$(UL_VERSION) -DBUILD_VERSION_STRING=\"2.0$(UL_VERSION)\" \
   -DNDEBUG -D_FINALROM -DF3DEX_GBI -I $(UL_DIR) -I $(UL_DIR)/include -I $(UL_DIR)/include/compiler/ido -I $(UL_DIR)/include/PR
-UL_O3_HD_CODE := ul_translate ul_ortho ul_mtxcatf ul_mtxutil ul_scale ul_lookat ul_heapalloc ul_event ul_synaddplayer ul_synallocvoice ul_synsetvol ul_synstartvoice ul_synsetpan ul_synsetpitch ul_synsetfxmix ul_synstopvoice ul_synfreevoice ul_cspstop ul_cspsetseq ul_cspplay ul_cspsetvol ul_cspgettempo ul_cspsettempo ul_heapinit ul_bnkf ul_cspsetbank ul_coss ul_mtxcatl ul_normalize ul_string ul_copy ul_synstartvoiceparam ul_synallocfx ul_mainbus ul_load ul_auxbus ul_save ul_synsetpriority ul_filter
-UL_MIPS3_HD_CODE := ul_ll
+UL_O3_HD_CODE := ul_auxbus ul_bnkf ul_cents2ratio ul_copy ul_coss ul_cseq ul_cspgettempo ul_csplayer ul_cspplay ul_cspsetbank ul_cspsetseq ul_cspsettempo ul_cspsetvol ul_cspstop ul_event ul_filter ul_heapalloc ul_heapinit ul_load ul_lookat ul_mainbus ul_mtxcatf ul_mtxcatl ul_mtxutil ul_normalize ul_ortho ul_perspective ul_resample ul_rotate ul_save ul_scale ul_seq ul_seqplayer ul_sins ul_sl ul_string ul_synaddplayer ul_synallocfx ul_synallocvoice ul_synfreevoice ul_synsetfxmix ul_synsetpan ul_synsetpitch ul_synsetpriority ul_synsetvol ul_synstartvoice ul_synstartvoiceparam ul_synstopvoice ul_translate
+UL_MIPS3_HD_CODE := ul_ll ul_llcvt
 $(BUILD_DIR)/src.$(VERSION)/hd_code/ul_%.c.o: CFLAGS := $(UL_CFLAGS)
 $(foreach f,$(UL_O3_HD_CODE),$(BUILD_DIR)/src.$(VERSION)/hd_code/$(f).c.o): OPT_FLAGS := -O3
 $(foreach f,$(UL_MIPS3_HD_CODE),$(BUILD_DIR)/src.$(VERSION)/hd_code/$(f).c.o): MIPSISET := -mips3 -32

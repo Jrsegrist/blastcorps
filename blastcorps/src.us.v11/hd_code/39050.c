@@ -30,6 +30,49 @@ f32 func_8027E228();
 f32 func_8027DB5C(s32 *a, s32 *b, s32 arg2);
 void func_8027DA10(s32 arg0, s32 arg1, s32 arg2);
 
+/* Animated water surface, one entry per level that has one (0x34 bytes). The surface is an
+ * (nx + 1) x (nz + 1) vertex grid over x0..x1, z0..z1, displaced by two sine waves. */
+typedef struct {
+    u8 id;     /* level id */
+    u8 nx;     /* 0x01: grid cells along x */
+    u8 nz;     /* 0x02: grid cells along z */
+    u8 pad3;
+    s16 x0;    /* 0x04 */
+    s16 z0;    /* 0x06 */
+    s16 x1;    /* 0x08 */
+    s16 z1;    /* 0x0A */
+    s16 y;     /* 0x0C: rest height */
+    s16 ampX;  /* 0x0E */
+    s16 ampZ;  /* 0x10 */
+    s16 pad12;
+    f32 rateX; /* 0x14 */
+    f32 rateZ; /* 0x18 */
+    f32 lenX;  /* 0x1C */
+    f32 lenZ;  /* 0x20 */
+    u8 unk24;  /* 0x24: nonzero = single texture (tex), else three (D_802FC48C) */
+    u8 pad25;
+    s16 tex;   /* 0x26 */
+    u8 pad28[9];
+    u8 unk31;  /* 0x31 */
+    u8 pad32[2];
+} Water;
+
+extern u8 D_802E8BD0;
+extern Water D_802FC3F0[];
+extern s16 D_802FC48C[];
+extern s32 D_80358070; /* bump allocator for display memory */
+extern Vtx *D_8036DCA0[2]; /* double-buffered water grid */
+extern s32 D_8036DCA8[2];
+extern s32 D_8036DCB0; /* wave clock */
+extern s32 D_8036DCB8[3];
+extern s32 D_8036DCC8[2];
+extern u8 D_8036DCD0;
+extern s16 D_8036DCD2;
+extern u8 D_8036DCD4; /* level has water */
+extern u8 D_8036DCD5;
+extern u8 D_8036DCD6; /* index into D_802FC3F0 */
+extern u8 D_8036DCD7;
+
 /* Level spawn table for the proximity objects below (one entry). */
 typedef struct {
     u8 id; /* level id */
@@ -260,7 +303,90 @@ f32 func_8027E228(type)
     }
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/39050/func_8027E344.s")
+/* Set up the water surface for level id: allocate its vertex/display buffers, load its textures,
+ * and lay out the grid's x/z positions and texture coordinates. */
+void func_8027E344(s32 id) {
+    s32 stepX;
+    s32 stepZ;
+    s32 x;
+    s32 z;
+    s32 i;
+    s32 j;
+    s32 n;
+    s32 tv;
+    s32 tu;
+    s32 size;
+    u8 found;
+
+    n = 0;
+    tv = 0;
+    tu = 0;
+    found = 0;
+    D_8036DCD6 = 0;
+    do {
+        if (D_802FC3F0[D_8036DCD6].id == id) {
+            found = 1;
+        } else {
+            D_8036DCD6++;
+        }
+    } while (!found && D_8036DCD6 < 3);
+    if (!found) {
+        D_8036DCD4 = 0;
+        return;
+    }
+    D_8036DCD4 = 1;
+    D_8036DCA0[0] = (Vtx *) D_80358070;
+    D_80358070 += (D_802FC3F0[D_8036DCD6].nx + 1) * (D_802FC3F0[D_8036DCD6].nz + 1) * sizeof(Vtx);
+    D_8036DCA0[1] = (Vtx *) D_80358070;
+    D_80358070 += (D_802FC3F0[D_8036DCD6].nx + 1) * (D_802FC3F0[D_8036DCD6].nz + 1) * sizeof(Vtx);
+    D_8036DCA8[0] = D_80358070;
+    D_80358070 += 0x12C0;
+    D_8036DCA8[1] = D_80358070;
+    D_80358070 += 0x12C0;
+    size = D_802FC3F0[D_8036DCD6].nx * D_802FC3F0[D_8036DCD6].nz * 2 * 8;
+    size += (D_802FC3F0[D_8036DCD6].nx / 8 + 1) * D_802FC3F0[D_8036DCD6].nz * 8;
+    size += 0x1C20;
+    D_8036DCC8[0] = D_80358070;
+    D_80358070 += size;
+    D_8036DCC8[1] = D_80358070;
+    D_80358070 += size;
+    D_8036DCD7 = D_802FC3F0[D_8036DCD6].unk31;
+    if ((D_8036DCD5 = D_802FC3F0[D_8036DCD6].unk24) != 0) {
+        D_8036DCB8[0] = D_80358070;
+        func_802A0CC8(D_802FC3F0[D_8036DCD6].tex, 0);
+    } else {
+        for (i = 0; i < 3; i++) {
+            D_8036DCB8[i] = D_80358070;
+            func_802A0CC8(D_802FC48C[i], 0);
+        }
+    }
+    D_8036DCD0 = 0;
+    D_8036DCD2 = 0;
+    stepX = (D_802FC3F0[D_8036DCD6].x1 - D_802FC3F0[D_8036DCD6].x0) / D_802FC3F0[D_8036DCD6].nx;
+    stepZ = (D_802FC3F0[D_8036DCD6].z1 - D_802FC3F0[D_8036DCD6].z0) / D_802FC3F0[D_8036DCD6].nz;
+    x = D_802FC3F0[D_8036DCD6].x0;
+    z = D_802FC3F0[D_8036DCD6].z0;
+    for (i = 0; i <= D_802FC3F0[D_8036DCD6].nz; i++) {
+        tu = 0;
+        for (j = 0; j <= D_802FC3F0[D_8036DCD6].nx; j++) {
+            D_8036DCA0[0][n].v.ob[0] = x;
+            D_8036DCA0[0][n].v.ob[2] = z;
+            D_8036DCA0[1][n].v.ob[0] = x;
+            D_8036DCA0[1][n].v.ob[2] = z;
+            D_8036DCA0[0][n].v.tc[0] = tv << 5;
+            D_8036DCA0[0][n].v.tc[1] = tu << 5;
+            D_8036DCA0[1][n].v.tc[0] = tv << 5;
+            D_8036DCA0[1][n].v.tc[1] = tu << 5;
+            tu ^= 0x1F;
+            n++;
+            x += stepX;
+        }
+        tv ^= 0x1F;
+        x = D_802FC3F0[D_8036DCD6].x0;
+        z += stepZ;
+    }
+    D_8036DCB0 = 0;
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/39050/func_8027E9B8.s")
 
@@ -423,7 +549,6 @@ void func_80281E44(Gfx **gfx) {
 
 void func_802A0B00(s32, s32);
 
-extern s32 D_80358070;
 extern s32 D_8036E4CC; /* overlay texture */
 extern s16 D_8036E4D0; /* overlay alpha */
 extern u8 D_8036E4D2;  /* overlay on */

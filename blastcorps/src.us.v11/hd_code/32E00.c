@@ -29,6 +29,27 @@ extern u8 D_803643D6;
 extern u8 D_803643DB;
 extern s32 D_803EF6E4;
 extern u8 D_8036CB2F;
+extern u64 D_80364A90;
+extern u32 D_80364AA8;
+extern u8 D_8036CB35;
+extern u8 D_8036CB36;
+extern u8 D_8036CB37;
+extern u8 D_8036CB38;
+extern u8 D_8036CB39;
+extern u8 D_8036CB3A;
+extern u8 D_8036CB3B;
+extern u8 D_8036CB3C;
+extern void *D_8036CB40;
+extern u8 D_8036CB44;
+extern u8 D_8036CB50;
+extern u8 D_802FBDD0[];
+extern u8 D_802FBDEC[];
+extern u8 D_802FBE18[];
+extern u8 D_802FBE44[];
+extern u8 D_802FBE80[];
+extern Vtx D_802FBD50[8];
+extern void *D_80367738;
+void *func_80260650(void *arg0, s16 arg1, void *arg2);
 
 extern DigEntry D_8036C8D0[50];
 extern u8 D_8036CB32;
@@ -43,7 +64,7 @@ extern u8 D_8036CB31;
 extern u8 D_8036CB33;
 extern u8 D_8036CB34;
 
-void func_80277EDC(s32 arg0, s32 arg1, s32 arg2, s32 arg3);
+void func_80277EDC();
 s32 func_8026205C(s32 arg0);
 s32 func_80277D34(void);
 s32 func_80277E08(void);
@@ -254,7 +275,88 @@ s32 func_80277E08(void) {
     return 1;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/32E00/func_80277EDC.s")
+/* Starts a digger event. A K&R definition: callers pass plain ints, and the
+ * u8 parameters read their low bytes */
+void func_80277EDC(type, arg1, arg2, sound)
+    u8 type;
+    u8 arg1;
+    s32 arg2;
+    u8 sound;
+{
+    u8 pos;
+
+    if ((D_80364A90 & 0x200000000400220C) && !D_8036CB34) {
+        if (sound) {
+            func_80260650(D_80367738, sound, NULL);
+        }
+        D_8036CB34 = 1;
+        D_8036CB35 = arg2;
+        D_8036CB36 = 0;
+        D_8036CB37 = 0;
+        D_8036CB39 = 0;
+        D_8036CB3A = 0;
+        D_8036CB38 = arg1;
+        D_8036CB44 = type;
+        D_8036CB50 = 0;
+        switch (type) {
+            case 0:
+                pos = 0;
+                D_8036CB3C = 13;
+                D_8036CB40 = D_802FBDD0;
+                D_8036CB3B = 1;
+                break;
+            case 1:
+                pos = 1;
+                D_8036CB3C = 21;
+                D_8036CB40 = D_802FBDEC;
+                D_8036CB3B = 1;
+                break;
+            case 2:
+                pos = 0;
+                D_8036CB3C = 21;
+                D_8036CB40 = D_802FBE18;
+                D_8036CB3B = 2;
+                break;
+            case 3:
+                pos = 1;
+                D_8036CB3C = 30;
+                D_8036CB40 = D_802FBE44;
+                D_8036CB3B = 1;
+                break;
+            case 4:
+                pos = 0;
+                D_8036CB3C = 34;
+                D_8036CB40 = D_802FBE80;
+                D_8036CB3B = 1;
+                break;
+        }
+        if (D_80364AA8 != 1) {
+            pos = 1;
+        }
+        switch (pos) {
+            case 0:
+                D_802FBD50[0].v.ob[0] = 32, D_802FBD50[0].v.ob[1] = 68;
+                D_802FBD50[1].v.ob[0] = 78, D_802FBD50[1].v.ob[1] = 68;
+                D_802FBD50[2].v.ob[0] = 78, D_802FBD50[2].v.ob[1] = 23;
+                D_802FBD50[3].v.ob[0] = 32, D_802FBD50[3].v.ob[1] = 23;
+                D_802FBD50[4].v.ob[0] = 26, D_802FBD50[4].v.ob[1] = 73;
+                D_802FBD50[5].v.ob[0] = 84, D_802FBD50[5].v.ob[1] = 73;
+                D_802FBD50[6].v.ob[0] = 84, D_802FBD50[6].v.ob[1] = 13;
+                D_802FBD50[7].v.ob[0] = 26, D_802FBD50[7].v.ob[1] = 13;
+                break;
+            case 1:
+                D_802FBD50[0].v.ob[0] = 238, D_802FBD50[0].v.ob[1] = 222;
+                D_802FBD50[1].v.ob[0] = 284, D_802FBD50[1].v.ob[1] = 222;
+                D_802FBD50[2].v.ob[0] = 284, D_802FBD50[2].v.ob[1] = 177;
+                D_802FBD50[3].v.ob[0] = 238, D_802FBD50[3].v.ob[1] = 177;
+                D_802FBD50[4].v.ob[0] = 232, D_802FBD50[4].v.ob[1] = 227;
+                D_802FBD50[5].v.ob[0] = 290, D_802FBD50[5].v.ob[1] = 227;
+                D_802FBD50[6].v.ob[0] = 290, D_802FBD50[6].v.ob[1] = 167;
+                D_802FBD50[7].v.ob[0] = 232, D_802FBD50[7].v.ob[1] = 167;
+                break;
+        }
+    }
+}
 
 void func_80278318(void) {
     D_8036CB34 = 0;

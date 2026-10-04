@@ -154,27 +154,30 @@ void func_8025CE74(void) {
     D_80358070 = (u8 *) D_80366BA4 + 0x780;
 }
 
-/* TODO: func_8025D0B0 - for arg0==0, load a (baseAddr=0x487050,
- * size=0x2E20) pair; for arg0==1, (0x489E70, 0x5730) (0x489E70 is both
- * mode 0's end and mode 1's start - these read like adjacent slots in a
- * ROM resource table, each size = next_start - this_start); call
- * func_8028B4C4(baseAddr, D_80358070, &size, 0xc), then set
- * D_80366BB0[arg0] = D_80358070 & 0x1FFFFFFF and bump D_80358070 by size.
- * Logic and every field/offset are confirmed correct (every phrasing tried
- * lands on the right values) - two compiler-behavior gaps block a match
- * rather than any logic error. First: this compiler constant-folds
- * `end - baseAddr` into a single `li` the moment both operands are
- * literal-initialized locals in the same block, while target has a real
- * runtime `subu` of two lui/addiu-built registers - tried separating them
- * into distinct named locals (still folds) and `volatile` (stops the fold
- * but adds load/store pairs target doesn't have either). Second: target
- * keeps arg0 live in the callee-saved $s0 across the whole function
- * (saved/restored around the one call) instead of reloading its stack
- * byte 3 times like every C phrasing produces; `register` on the
- * parameter had no effect. Likely needs direct evidence of which pass
- * made each choice (decomp-workbench's register-role-audit) rather than
- * more source guessing. */
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_8025D0B0.s")
+extern u8 D_00487050[];
+extern u8 D_00489E70[];
+extern u8 D_0048F5A0[];
+extern u32 D_80366BB0[];
+void func_8028B4C4(void *, void *, s32 *, s32, s32, s32);
+
+void func_8025D0B0(u8 arg0) {
+    void *rom;
+    s32 size;
+
+    switch (arg0) {
+        case 1:
+            rom = D_00489E70;
+            size = D_0048F5A0 - D_00489E70;
+            break;
+        case 0:
+            rom = D_00487050;
+            size = D_00489E70 - D_00487050;
+            break;
+    }
+    func_8028B4C4(rom, D_80358070, &size, 0xC, 0, 1);
+    D_80366BB0[arg0] = (u32) D_80358070 & 0x1FFFFFFF;
+    D_80358070 = (u8 *) D_80358070 + size;
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_8025D184.s")
 

@@ -254,3 +254,4 @@ __osFaultedThread = 0x80307774; // type:data
 __osBaseTimer = 0x803FF2F0; // type:data
 currentYoshiWindow = 0x8036BB18; // type:data
 yoshiState = 0x8036BB1C; // type:data
+yoshiDemandV = 0x8036BB14; // type:data

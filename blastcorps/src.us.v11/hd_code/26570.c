@@ -35,6 +35,7 @@ typedef struct {
 
 #define YOSHI_OFF 1
 #define NO_YOSHI_WINDOW -1
+#define YOSHI_DEMAND_OFF 0x4000
 
 typedef struct YoshiArg {
     /* 0x00 */ u8 unk0[8];
@@ -42,14 +43,25 @@ typedef struct YoshiArg {
     /* 0x0C */ u8 unkC[2];
     /* 0x0E */ u16 unkE;
     /* 0x10 */ u16 unk10;
+    /* 0x12 */ u8 unk12[0xA];
 } YoshiArg;
 
 void func_8029A7E4(const char *fmt, ...);
 u16 func_8026F8A8(u16 arg0, u16 arg1, u16 start, u16 mask);
 void func_8026FB50(struct YoshiArg *arg0);
+void func_8026BA7C(struct YoshiArg *arg0);
+u8 func_8026FA38(char **name, s32 *arg1);
+s32 func_8026F92C(u64 in);
 Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count);
 s8 func_80272C5C(void *arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, f32 arg5);
 
+extern u16 yoshiDemandV;
+extern s16 D_8036BB1A;
+extern u32 D_80364AA8;
+extern u64 D_80364A98;
+extern u8 D_802F4868[];
+extern u8 D_802F4870[];
+extern struct YoshiArg D_802F8BDC[];
 extern u16 D_8036BB04;
 extern u16 D_8036BB06;
 extern PathNode *D_8036BB10;
@@ -68,17 +80,53 @@ extern s32 D_803F7684;
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/26570/func_8026AD30.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/26570/func_8026AF6C.s")
+void func_8026AF6C(u16 yd) {
+    u16 oldWindow = yoshiDemandV & 0xFF;
+    u16 newWindow = yd & 0xFF;
 
-extern u16 D_8036BB14;
+    if (yoshiDemandV) {
+        YOSHI_ASSERT(!yoshiDemandV, 1312);
+        func_8029A7E4("NEW: %x OLD:%x\n", yd, yoshiDemandV);
+    }
+    if (yd & 0x4000) {
+        YOSHI_ASSERT(yd==YOSHI_DEMAND_OFF, 1317);
+    }
+    if (newWindow == 0x1E || newWindow == 0x23 || newWindow == 5 || newWindow == 0xE) {
+        D_8036BB1A = -1;
+    }
+    if (oldWindow == 0x1E || oldWindow == 0x23 || oldWindow == 5 || oldWindow == 0xE) {
+        YOSHI_ASSERT(1==0, 1324);
+        func_8029A7E4("OH MY GOD!\n");
+        return;
+    }
+    if (yoshiDemandV) {
+        YOSHI_ASSERT(!yoshiDemandV, 1331);
+        func_8029A7E4("GOING FOR NEW: %x OLD:%x\n", yd, yoshiDemandV);
+    }
+    yoshiDemandV = yd;
+}
 
 u16 func_8026B10C(void) {
-    return D_8036BB14;
+    return yoshiDemandV;
 }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/26570/func_8026B118.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/26570/func_8026B8F8.s")
+void func_8026B8F8(void) {
+    if (D_80364AA8 & 0x20) {
+        D_8020C070[23].flags |= 0x400;
+        D_8020C070[26].flags |= 0x400;
+        D_802F5804[27].flags |= 0x400;
+        D_802F5804[28].flags |= 0x400;
+        D_8020C070[23].unk14 = D_8020C070[26].unk14 = D_802F5804[27].unk14 = D_802F5804[28].unk14 =
+            func_8026FA38(NULL, NULL);
+        if (D_80364A98 == 0x40) {
+            func_8026BA7C(&D_802F8BDC[D_802F4870[func_8026F92C(D_80364AA8)]]);
+        } else {
+            func_8026BA7C(&D_802F8BDC[D_802F4868[func_8026F92C(D_80364AA8)]]);
+        }
+    }
+}
 
 void func_8026BA7C(YoshiArg *arg0) {
     YoshiSnd *snd;

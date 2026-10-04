@@ -33,7 +33,6 @@ extern s32 D_802E8BDC; /* current level */
 extern PlayerRec D_80364AF0[];
 extern u8 D_80364B08[][0x100]; /* = D_80364AF0[p].rank */
 extern u8 D_80364B44[][0x100]; /* = D_80364AF0[p].flags */
-extern u8 D_80364B82[][0x100];
 extern u16 D_80364EF0[][16];
 extern u8 D_80364A87;
 extern u64 D_80364A90;
@@ -112,7 +111,7 @@ u16 func_8028604C(u32 frames);
 void func_80285190(void) {
     s32 i;
 
-    D_8036EA7B = D_80364B82[D_80364AE8][D_802E8BDC];
+    D_8036EA7B = D_80364AF0[D_80364AE8].flags[D_802E8BDC + 0x3E];
     D_8036EA74 = D_80364EF0[D_80364AE8][D_802E8C44[(D_802E8F94[D_802E8BDC].type == 1) ? 1 : D_8036EA7B]];
     D_8036EA7A = D_80364B08[D_80364AE8][D_802E8BDC] % 8;
     for (i = 0; i < 4; i++) {
@@ -362,7 +361,12 @@ s32 func_80286038(u16 arg0) {
     return arg0 * 6;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/409D0/func_8028604C.s")
+/* Frames to time units (1/10 s), capped at 59999 */
+u16 func_8028604C(u32 frames) {
+    s32 unused;
+
+    return (frames / 6 >= 60000) ? 59999 : frames / 6;
+}
 
 /* Has the current player completed `level`? */
 u8 func_80286090(s32 level) {

@@ -14,7 +14,9 @@ typedef struct {
 /* Pathfinding node, 0x1C bytes */
 typedef struct {
     /* 0x00 */ u16 flags;
-    /* 0x02 */ u8 unk2[0x12];
+    /* 0x02 */ u8 unk2[0xA];
+    /* 0x0C */ u8 *text;
+    /* 0x10 */ u16 *jtext;
     /* 0x14 */ u8 unk14;
     /* 0x15 */ u8 unk15[5];
     /* 0x1A */ s8 unk1A;
@@ -62,6 +64,9 @@ typedef struct {
 #define MIN255(x) ((x) >= 256 ? 255 : (x))
 #define MAX0(x) ((x) < 0 ? 0 : (x))
 
+#define VIDI_ASSERT(EX, line) \
+    if (!(EX)) func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "./vidiPrint.h", line)
+
 #define YOSHI_OFF 1
 #define NO_YOSHI_WINDOW -1
 #define YOSHI_DEMAND_OFF 0x4000
@@ -79,6 +84,7 @@ void func_8029A7E4(const char *fmt, ...);
 u16 func_8026F8A8(u16 arg0, u16 arg1, u16 start, u16 mask);
 void func_8026FB50(struct YoshiArg *arg0);
 void func_8026AF6C(u16 yd);
+void *func_8025B558(u16 *text);
 u8 func_8026AD30(s16 arg0);
 void func_8026A5CC(void *arg0, void *arg1, s32 arg2);
 s32 func_8026A6F0(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5);
@@ -91,6 +97,17 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count);
 s8 func_80272C5C(void *arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, f32 arg5);
 
 extern u16 yoshiDemandV;
+extern u16 D_8036BB48[];
+extern u16 D_8036BB4A[];
+/* Per-language special characters: [0] for English, [1] for Japanese */
+extern u16 D_802E8C8C[];
+extern u16 D_802E8C90[];
+extern u16 D_802E8C94[];
+extern u16 D_802E8C98[]; /* string terminator */
+extern u16 D_802E8C9C[];
+extern u32 D_803156C4;
+extern u32 D_8036BB00;
+extern u32 D_8036BAFC;
 /* Debug switches set from the command line */
 extern s32 D_802FA250; /* -v */
 extern s32 D_802FA254; /* -d */
@@ -135,7 +152,7 @@ extern struct YoshiArg D_802F8BDC[];
 extern u16 D_8036BB04;
 extern u16 D_8036BB06;
 extern PathNode *D_8036BB10;
-extern u16 D_8036BB1E;
+extern s16 D_8036BB1E;
 extern PathNode *D_8036BB24;
 extern s16 currentYoshiWindow;
 extern s16 yoshiState;
@@ -283,7 +300,106 @@ void func_8026EF70(YoshiArg *arg0) {
     }
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/26570/func_8026F004.s")
+/* Returns the text of message node idx, revealing it one character at a
+ * time while D_8036BB1E is 2 */
+void *func_8026F004(YoshiArg *arg0, u16 idx, u8 japanese) {
+    PathNode *node = &D_8036BB10[idx];
+    u8 lang = japanese ? 1 : 0;
+    u8 *text = node->text;
+    u16 *jtext = node->jtext;
+    u16 ch;
+    s32 i;
+    u16 next;
+
+    D_8036BB48[0] = D_802E8C98[lang];
+    switch (D_8036BB1E) {
+        case 0:
+            if (japanese) {
+                return jtext;
+            }
+            return text;
+        case 1:
+            if (yoshiState == 2) {
+                D_8036BB1E = 2;
+                D_8036BB00 = D_803156C4;
+            }
+            break;
+        case 2:
+            if (idx < D_8036BB04) {
+                if (japanese) {
+                    return jtext;
+                }
+                return text;
+            }
+            if (idx <= D_8036BB04) {
+                if (D_803156C4 - D_8036BB00 >= 5) {
+                    D_8036BB00 = D_803156C4;
+                    D_8036BB06++;
+                    if (japanese) {
+                        ch = jtext[D_8036BB06];
+                    } else {
+                        ch = text[D_8036BB06];
+                    }
+                    if (ch == D_802E8C90[lang]) {
+                        func_80260650(D_80367738, 0x91, NULL);
+                    } else if (ch != D_802E8C94[lang] && ch != D_802E8C98[lang] && ch != D_802E8C8C[lang]) {
+                        func_80260650(D_80367738, 0x22, NULL);
+                    }
+                }
+                if (japanese) {
+                    VIDI_ASSERT(jtext, 70);
+                } else {
+                    VIDI_ASSERT(text, 70);
+                }
+                i = 0;
+                if (japanese) {
+                    while (jtext[i] != D_802E8C98[lang]) {
+                        D_8036BB48[i] = jtext[i++];
+                    }
+                } else {
+                    while (text[i] != D_802E8C98[lang]) {
+                        D_8036BB48[i] = text[i];
+                        i++;
+                    }
+                }
+                D_8036BB48[i] = D_802E8C98[lang];
+                if (D_8036BB48[D_8036BB06] == D_802E8C98[lang]) {
+                    next = func_8026F8A8(arg0->unkE, arg0->unk10, D_8036BB04, 0x100);
+                    if (next == D_8036BB04) {
+                        D_8036BB1E = 0;
+                        if ((arg0->flags & 0x400000) && yoshiState == 2) {
+                            D_8036BAFC = D_803156C4;
+                        }
+                    } else {
+                        func_80260650(D_80367738, 0x23, NULL);
+                        D_8036BB04 = next;
+                    }
+                    D_8036BB06 = 0;
+                } else {
+                    D_8036BB48[D_8036BB06] = D_802E8C98[lang];
+                    if (!(node->flags & 0x4000) && D_803156C4 % 10 >= 6) {
+                        D_8036BB48[D_8036BB06] = D_802E8C9C[lang];
+                        D_8036BB4A[D_8036BB06] = D_802E8C98[lang];
+                    }
+                }
+                if (japanese) {
+                    return D_8036BB48;
+                }
+                return func_8025B558(D_8036BB48);
+            }
+            break;
+    }
+    if ((node->flags & 0x100) || (node->flags & 0x200)) {
+        if (japanese) {
+            return D_8036BB48;
+        }
+        return func_8025B558(D_8036BB48);
+    }
+    if (japanese) {
+        return jtext;
+    }
+    return text;
+}
 
 u8 func_8026F644(u16 *arg0, u16 *arg1, s16 arg2) {
     if (*arg1 & 0x1000) {

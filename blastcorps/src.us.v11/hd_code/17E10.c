@@ -603,7 +603,11 @@ u16 func_80260210(u16 *arg0, u16 *arg1) {
  * materialize the computed address as its own value first and then add
  * a second, redundant displacement, costing 2 instructions instead of
  * saving 1. Plain separate globals cost exactly the 1 extra `lui`
- * instead. */
+ * instead. Also ruled out by probe compiles: a {head, tail} struct
+ * (fields still get one `lui at` each), a 2-element array (addiu-built
+ * bases), the chained `D_802E8CE4 = D_802E8CE0 = node` (re-reads the
+ * first store), and absolute-address macros (`lui` into t-regs, not
+ * shared). */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_80260300.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_802604FC.s")

@@ -4,6 +4,23 @@
 /* Blast Corps' scheduler: a Rare-modified copy of the SDK's sched.c
  * (GoldenEye's src/sched.c is a later version). The OSSched here lacks the
  * SDK's two leading OSScMsg fields, and clients carry two extra words. */
+void func_8029A7E4(const char *fmt, ...);
+
+/* Rare's assert, with the original sched.c line numbers passed explicitly. */
+#define SCHED_ASSERT(EX, line) \
+    if (!(EX)) func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "sched.c", line)
+
+#define M_GFXTASK 1
+#define M_AUDTASK 2
+
+typedef struct BcScTask {
+    /* 0x00 */ struct BcScTask *next;
+    /* 0x04 */ u32 state;
+    /* 0x08 */ u32 flags;
+    /* 0x0C */ void *framebuffer;
+    /* 0x10 */ OSTask list;
+} BcScTask;
+
 typedef struct BcScClient {
     /* 0x00 */ struct BcScClient *next;
     /* 0x04 */ OSMesgQueue *msgQ;
@@ -18,12 +35,12 @@ typedef struct {
     /* 0x070 */ OSMesg cmdMsgBuf[16];
     /* 0x0B0 */ OSThread thread;
     /* 0x260 */ BcScClient *clientList;
-    /* 0x264 */ void *audioListHead;
-    /* 0x268 */ void *gfxListHead;
-    /* 0x26C */ void **audioListTail;
-    /* 0x270 */ void **gfxListTail;
-    /* 0x274 */ void *curRSPTask;
-    /* 0x278 */ void *curRDPTask;
+    /* 0x264 */ BcScTask *audioListHead;
+    /* 0x268 */ BcScTask *gfxListHead;
+    /* 0x26C */ BcScTask *audioListTail; /* starts as &audioListHead: tail->next is head */
+    /* 0x270 */ BcScTask *gfxListTail;
+    /* 0x274 */ BcScTask *curRSPTask;
+    /* 0x278 */ BcScTask *curRDPTask;
 } BcSched;
 
 extern s32 D_8036BF10;
@@ -34,8 +51,8 @@ void func_80270F7C(void *arg);
 
 /* osCreateScheduler */
 void func_80270D20(BcSched *sc, void *stack, OSPri priority, u8 mode, u8 numFields) {
-    sc->audioListTail = &sc->audioListHead;
-    sc->gfxListTail = &sc->gfxListHead;
+    sc->audioListTail = (BcScTask *) &sc->audioListHead;
+    sc->gfxListTail = (BcScTask *) &sc->gfxListHead;
     D_8036BF10 = 0;
     D_8036BF1C = 0;
     osCreateMesgQueue(&sc->interruptQ, sc->intBuf, 16);
@@ -93,12 +110,12 @@ void *func_80270F74(void *arg0) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/2C560/func_80270F7C.s")
 
-void func_80271C24(BcSched *sc, void *t);
+void func_80271C24(BcSched *sc, BcScTask *t);
 void func_80271CE4(BcSched *sc, s32 availRCP);
 void func_80271E88(BcSched *sc);
 
 /* Queue a task, then run the scheduler if the RSP is idle. */
-void func_802712B4(BcSched *sc, void *t) {
+void func_802712B4(BcSched *sc, BcScTask *t) {
     func_80271C24(sc, t);
     if (sc->curRSPTask == NULL) {
         func_80271CE4(sc, 1);
@@ -126,13 +143,40 @@ void func_802712FC(BcSched *sc) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/2C560/func_80271A84.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/2C560/func_80271C24.s")
+/* __scAppendList */
+void func_80271C24(BcSched *sc, BcScTask *t) {
+    long type = t->list.t.type;
+
+    SCHED_ASSERT((type == M_AUDTASK) || (type == M_GFXTASK), 668);
+    if (type == M_AUDTASK) {
+        sc->audioListTail->next = t;
+        sc->audioListTail = t;
+    } else {
+        sc->gfxListTail->next = t;
+        sc->gfxListTail = t;
+    }
+    t->next = NULL;
+    t->state = 2;
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/2C560/func_80271CE4.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/2C560/func_80271E88.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/2C560/func_80271F48.s")
+extern OSTime D_8036BF38;
+
+/* osSendMesg wrapper; the timing values are computed but never used
+ * (leftover debug code). */
+void func_80271F48(OSMesgQueue *mq, OSMesg msg, s32 flag) {
+    OSTime remaining;
+    OSTime now;
+    s32 unused;
+
+    remaining = D_8036BF38 + 391250 - osGetTime();
+    now = osGetTime();
+    unused = 0;
+    osSendMesg(mq, msg, flag);
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/2C560/func_80271FD0.s")
 

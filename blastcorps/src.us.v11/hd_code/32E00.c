@@ -26,6 +26,7 @@ extern u8 D_8036CB33;
 extern u8 D_8036CB34;
 
 void func_80277EDC(s32 arg0, s32 arg1, s32 arg2, s32 arg3);
+s32 func_8026205C(s32 arg0);
 void func_8029A7E4(const char *fmt, ...);
 
 void func_802775C0(void) {
@@ -39,7 +40,42 @@ void func_802775C0(void) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/32E00/func_80277620.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/32E00/func_802778FC.s")
+void func_802778FC(void) {
+    switch (D_80364456) {
+        case 5:
+            if (D_8036CB31 >= 16 && D_8036CB30 >= 16) {
+                func_80277EDC(3, 1, 1, 0x63);
+                D_8036CB28 = 0;
+                D_8036CB29 = 0;
+                func_8029A7E4("DOING REALLY WELL\n");
+            }
+            break;
+        case 4:
+            if (D_8036CB31 >= 41 && D_8036CB30 >= 41) {
+                func_80277EDC(4, 1, 1, func_8026205C(4));
+                D_8036CB28 = 0;
+                D_8036CB29 = 0;
+                func_8029A7E4("DOING REALLY WELL\n");
+            }
+            break;
+        case 3:
+            if (D_8036CB31 >= 11 && D_8036CB30 >= 11) {
+                func_80277EDC(0, 1, 3, 0xB2);
+                D_8036CB28 = 0;
+                D_8036CB29 = 0;
+                func_8029A7E4("DOING REALLY WELL\n");
+            }
+            break;
+        case 9:
+            if (D_8036CB31 >= 26 && D_8036CB30 >= 26) {
+                func_80277EDC(4, 1, 1, func_8026205C(4));
+                D_8036CB28 = 0;
+                D_8036CB29 = 0;
+                func_8029A7E4("DOING REALLY WELL\n");
+            }
+            break;
+    }
+}
 
 void func_80277AE0(void) {
     switch (D_80364456) {

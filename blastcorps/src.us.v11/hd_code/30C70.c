@@ -61,6 +61,14 @@ s32 func_802768A8(void) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/30C70/func_8027690C.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/30C70/func_80276D1C.s")
+void func_80276D1C(Mtx *m, f32 x, f32 y, f32 z, s32 arg4, f32 *ox, f32 *oy, f32 *oz, f32 *ow) {
+    f32 mf[4][4];
+
+    guMtxL2F(mf, m);
+    *ox = mf[0][0] * x + mf[1][0] * y + mf[2][0] * z + mf[3][0];
+    *oy = mf[0][1] * x + mf[1][1] * y + mf[2][1] * z + mf[3][1];
+    *oz = mf[0][2] * x + mf[1][2] * y + mf[2][2] * z + mf[3][2];
+    *ow = mf[0][3] * x + mf[1][3] * y + mf[2][3] * z + mf[3][3];
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/30C70/func_80276E50.s")

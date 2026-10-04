@@ -8,6 +8,9 @@
 
 #define MB_ASSERT(EX, line) \
     if (!(EX)) func_8029A7E4("\n --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "mb.c", line)
+/* The file's second assert string has a bell */
+#define MB_ASSERT_BELL(EX, line) \
+    if (!(EX)) func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "mb.c", line)
 
 /* One recorded sample: three 16.16 values and a position in 1/32 units */
 typedef struct {
@@ -29,6 +32,7 @@ extern u8 *D_80358070;         /* heap pointer */
 extern MbSample D_8036CB60[11]; /* ring of samples */
 extern s32 D_8036CC68;         /* ring head */
 extern s32 D_8036CC6C;         /* ring tail */
+extern Mtx D_8036CC70[][10];   /* view matrices per slot */
 extern u8 *D_8036D170;         /* 0x5460-byte buffer */
 extern u8 D_8036D178;
 extern s32 D_8036D180;
@@ -50,6 +54,8 @@ s32 func_8026A6F0(s32 a, s32 b, s32 c, s32 d, s32 e, s32 f);
 s32 func_802ACF3C(s32 arg0);
 s32 func_802796D8(s32 n, s32 *a, s32 *b);
 void func_80284E54(Gfx *dl, s32 n, s32 a, s32 b, s32 c, s32 d);
+void func_8027A7DC(Gfx **gfxp, s32 offset, s32 v);
+s32 func_8027B87C(f32 out[4][4], f32 in[4][4]);
 
 /* Copies a display list to the heap, dropping G_ENDDLs and remapping render modes */
 void func_80278BF0(Gfx *src, Gfx *end, Gfx **dstp) {
@@ -311,7 +317,117 @@ void func_80279778(s32 x, s32 y, s32 z, s32 a, s32 b, s32 c, void *dl, void *seg
     }
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/34430/func_80279EE8.s")
+/* Draws up to D_8036D180 trailing copies of the view, fading out, along the recorded path */
+void func_80279EE8(Gfx **gfxp, s32 arg1, u8 slot) {
+    Gfx *gdl = *gfxp;
+    u8 flag;
+    s32 off = 0;
+    s32 vi = 0;
+    f32 mf[4][4];
+    f32 inv[4][4];
+    s32 i;
+    u8 b;
+    u8 a;
+    s32 n = 1;
+    s32 i0;
+    s32 i1;
+    f32 t = 0.0f;
+    f32 tx;
+    f32 ty;
+    f32 tz;
+    f32 ea;
+    f32 eb;
+    f32 ec;
+    f32 dx;
+    f32 dz;
+
+    switch (D_8036D178) {
+        case 1:
+            D_8036D180++;
+            if (D_8036D180 == D_8036D17C) {
+                D_8036D178 = 3;
+            }
+            break;
+        case 2:
+            D_8036D180--;
+            if (D_8036D180 == 0) {
+                D_8036D178 = 0;
+            }
+            break;
+    }
+    if (D_8036D178) {
+        gDPPipeSync(gdl++);
+        gDPSetColorDither(gdl++, G_CD_NOISE);
+        gDPSetAlphaDither(gdl++, G_AD_NOTPATTERN);
+        gSPClearGeometryMode(gdl++, 0xFFFFFFFF);
+        gSPSetGeometryMode(gdl++, G_SHADE | G_SHADING_SMOOTH);
+        gDPSetCycleType(gdl++, G_CYC_1CYCLE);
+        gDPSetRenderMode(gdl++, G_RM_XLU_SURF, G_RM_XLU_SURF2);
+        gDPSetCombine(gdl++, 0x119623, 0xFF2FFFFF);
+        gDPSetTextureFilter(gdl++, G_TF_BILERP);
+        gSPTexture(gdl++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
+        a = 30 / (D_8036D17C - 1);
+        b = 40 - a * (D_8036D17C - D_8036D180);
+        for (i = 0; i < D_8036D180; i++) {
+            gDPSetPrimColor(gdl++, 0, 0, 0xFF, 0xFF, 0xFF, b);
+            flag = func_802796D8(n, &i0, &i1);
+            if (!flag) {
+                break;
+            }
+            tx = (D_8036CB60[i1].x - D_8036CB60[i0].x) * t + D_8036CB60[i0].x;
+            ty = (D_8036CB60[i1].y - D_8036CB60[i0].y) * t + D_8036CB60[i0].y;
+            tz = (D_8036CB60[i1].z - D_8036CB60[i0].z) * t + D_8036CB60[i0].z;
+            ea = (D_8036CB60[i1].a - D_8036CB60[i0].a) * t + D_8036CB60[i0].a;
+            eb = (D_8036CB60[i1].b - D_8036CB60[i0].b) * t + D_8036CB60[i0].b;
+            ec = (D_8036CB60[i1].c - D_8036CB60[i0].c) * t + D_8036CB60[i0].c;
+            t += D_8036D184;
+            if (t >= 1.0) {
+                n++;
+                t = 0.0f;
+            }
+            dx = ea - tx;
+            if (dx < 0.0) {
+                dx = 0.0 - dx;
+            }
+            dz = ec - tz;
+            if (dz < 0.0) {
+                dz = 0.0 - dz;
+            }
+            if (dx > 0.5 || dz > 0.5) {
+                guLookAtF(mf, ea, eb, ec, tx, ty, tz, 0.0f, 1.0f, 0.0f);
+            } else {
+                guLookAtF(mf, ea + 2.0, eb, ec + 2.0, tx, ty, tz, 0.0f, 1.0f, 0.0f);
+            }
+            flag = func_8027B87C(inv, mf);
+            MB_ASSERT_BELL(flag, 547);
+            guMtxF2L(inv, &D_8036CC70[slot][i]);
+            gSPMatrix(gdl++, PHYS(&D_8036CC70[slot][i]), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
+            gSPVertex(gdl++, PHYS(D_802FBEE0), 16, 0);
+            vi = 0;
+            off = 0;
+            func_8027A7DC(&gdl, off, vi);
+            off += 0xE10, vi += 4;
+            func_8027A7DC(&gdl, off, vi);
+            off += 0xE10, vi += 4;
+            func_8027A7DC(&gdl, off, vi);
+            off += 0xE10, vi += 4;
+            func_8027A7DC(&gdl, off, vi);
+            off += 0xE10, vi += 4;
+            gSPVertex(gdl++, PHYS(&D_802FBEE0[16]), 8, 0);
+            vi = 0;
+            func_8027A7DC(&gdl, off, vi);
+            off += 0xE10, vi += 4;
+            func_8027A7DC(&gdl, off, vi);
+            off += 0xE10, vi += 4;
+            gSPPopMatrix(gdl++, G_MTX_MODELVIEW);
+            b -= a;
+        }
+        gDPPipeSync(gdl++);
+        gDPSetColorDither(gdl++, G_CD_MAGICSQ);
+        gDPPipeSync(gdl++);
+        *gfxp = gdl;
+    }
+}
 
 /* Draws a 120x15 RGBA16 strip from the buffer at offset as two triangles from vertex v */
 void func_8027A7DC(Gfx **gfxp, s32 offset, s32 v) {

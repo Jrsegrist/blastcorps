@@ -87,7 +87,8 @@ typedef struct {
     u8 tu, tv;  /* 0x16 */
     s16 w0, w1; /* 0x18 */
     s16 d0, d1; /* 0x1C */
-    s16 pad20;
+    u8 alpha;   /* 0x20 */
+    u8 pad21;
 } QuadSpawn;
 
 typedef struct {
@@ -105,6 +106,9 @@ extern s32 D_8036E374;
 extern s32 D_8036E378;
 
 s16 func_8026A828(s16, s16);
+void func_802CE65C(s32, s32, s16, s16);
+extern s32 D_803F9320;
+extern s32 D_803F9324;
 
 /* Level spawn table for the proximity objects below (one entry). */
 typedef struct {
@@ -624,7 +628,66 @@ void func_802807D8(u8 id) {
     }
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/39050/func_80280F34.s")
+/* Move the random quads (func_802CE65C steps each one; the result comes back in D_803F9320/4),
+ * wrap them around the spawn area, rebuild their corners in vertex buffer buf and draw them. */
+void func_80280F34(Gfx **gfx, u8 buf) {
+    Gfx *gdl;
+    s32 i;
+    s16 dx;
+    s16 dz;
+
+    gdl = *gfx;
+    if (D_8036E374 != 0) {
+        gDPPipeSync(gdl++);
+        gDPSetCycleType(gdl++, G_CYC_1CYCLE);
+        gDPSetRenderMode(gdl++, 0x00504340, 0);
+        gSPClearGeometryMode(gdl++, 0xFFFFFFFF);
+        gSPSetGeometryMode(gdl++, G_SHADE | G_SHADING_SMOOTH);
+        gSPTexture(gdl++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
+        gDPSetCombineMode(gdl++, G_CC_MODULATERGBA_PRIM, G_CC_MODULATERGBA_PRIM);
+        gDPSetPrimColor(gdl++, 0, 0, 0xFF, 0xFF, 0xFF, D_802FC494[D_8036E370].alpha);
+        gDPLoadTextureBlock(gdl++, OS_K0_TO_PHYSICAL(D_8036E378), G_IM_FMT_IA, G_IM_SIZ_16b,
+                            D_802FC494[D_8036E370].tu, D_802FC494[D_8036E370].tv, 0, G_TX_CLAMP, G_TX_CLAMP,
+                            G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
+        for (i = 0; i < D_8036E374; i++) {
+            func_802CE65C(D_8036DCE0[i].x << 5, D_8036DCE0[i].z << 5, D_8036DCE0[i].unk0, D_8036DCE0[i].angle);
+            dx = (D_803F9320 >> 5) - D_8036DCE0[i].x;
+            dz = (D_803F9324 >> 5) - D_8036DCE0[i].z;
+            D_8036DCE0[i].x = D_803F9320 >> 5;
+            D_8036DCE0[i].z = D_803F9324 >> 5;
+            /* note: the wrap amounts index the spawn table by i, not D_8036E370 */
+            if (D_8036DCE0[i].x > D_802FC494[D_8036E370].x1) {
+                D_8036DCE0[i].x = D_802FC494[D_8036E370].x0;
+                dx -= D_802FC494[i].x1 - D_802FC494[i].x0;
+            }
+            if (D_8036DCE0[i].x < D_802FC494[D_8036E370].x0) {
+                D_8036DCE0[i].x = D_802FC494[D_8036E370].x1;
+                dx += D_802FC494[i].x1 - D_802FC494[i].x0;
+            }
+            if (D_8036DCE0[i].z > D_802FC494[D_8036E370].z1) {
+                D_8036DCE0[i].z = D_802FC494[D_8036E370].z0;
+                dz -= D_802FC494[i].z1 - D_802FC494[i].z0;
+            }
+            if (D_8036DCE0[i].z < D_802FC494[D_8036E370].z0) {
+                D_8036DCE0[i].z = D_802FC494[D_8036E370].z1;
+                dz += D_802FC494[i].z1 - D_802FC494[i].z0;
+            }
+            D_8036DD70[buf][i][0].v.ob[0] = D_8036DCE0[i].x - D_8036DCE0[i].w;
+            D_8036DD70[buf][i][0].v.ob[2] = D_8036DCE0[i].z - D_8036DCE0[i].d;
+            D_8036DD70[buf][i][1].v.ob[0] = D_8036DCE0[i].x + D_8036DCE0[i].w;
+            D_8036DD70[buf][i][1].v.ob[2] = D_8036DCE0[i].z - D_8036DCE0[i].d;
+            D_8036DD70[buf][i][2].v.ob[0] = D_8036DCE0[i].x + D_8036DCE0[i].w;
+            D_8036DD70[buf][i][2].v.ob[2] = D_8036DCE0[i].z + D_8036DCE0[i].d;
+            D_8036DD70[buf][i][3].v.ob[0] = D_8036DCE0[i].x - D_8036DCE0[i].w;
+            D_8036DD70[buf][i][3].v.ob[2] = D_8036DCE0[i].z + D_8036DCE0[i].d;
+            gSPVertex(gdl++, OS_K0_TO_PHYSICAL(D_8036DD70[buf][i]), 4, 0);
+            gSP1Triangle(gdl++, 0, 1, 2, 0);
+            gSP1Triangle(gdl++, 0, 2, 3, 0);
+        }
+        gDPPipeSync(gdl++);
+    }
+    *gfx = gdl;
+}
 
 void func_80281A70(s32 arg0) {
     s32 i;

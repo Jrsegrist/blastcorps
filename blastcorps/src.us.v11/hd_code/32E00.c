@@ -3,6 +3,18 @@
 
 /* The digger code (this file's .bss starts at 0x8036C8D0) */
 extern u8 D_80364456;      /* current vehicle */
+extern void *D_80358070;
+
+/* 50-entry ring buffer of digger samples, indexed D_8036CB28..D_8036CB29 */
+typedef struct {
+    /* 0x00 */ s16 unk0;
+    /* 0x02 */ s16 unk2;
+    /* 0x04 */ u8 unk4[8];
+} DigEntry;
+
+extern DigEntry D_8036C8D0[50];
+extern u8 D_8036CB32;
+extern void *D_8036CB48[2];
 extern u8 D_8036CB28;
 extern u8 D_8036CB29;
 extern s16 D_8036CB2A;
@@ -11,11 +23,19 @@ extern u8 D_8036CB2E;
 extern u8 D_8036CB30;
 extern u8 D_8036CB31;
 extern u8 D_8036CB33;
+extern u8 D_8036CB34;
 
 void func_80277EDC(s32 arg0, s32 arg1, s32 arg2, s32 arg3);
 void func_8029A7E4(const char *fmt, ...);
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/32E00/func_802775C0.s")
+void func_802775C0(void) {
+    D_8036CB34 = 0;
+    D_8036CB48[0] = D_80358070;
+    D_8036CB48[1] = D_80358070 = (u8 *) D_80358070 + 0xC80;
+    D_80358070 = (u8 *) D_80358070 + 0xC80;
+    D_8036CB28 = 0;
+    D_8036CB29 = 0;
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/32E00/func_80277620.s")
 
@@ -52,7 +72,30 @@ void func_80277B84(void) {
     }
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/32E00/func_80277C20.s")
+void func_80277C20(void) {
+    u8 i;
+
+    D_8036CB30 = 0;
+    i = D_8036CB28;
+    D_8036CB31 = 0;
+    D_8036CB32 = 0;
+    D_8036CB33 = 0;
+    while (i != D_8036CB29) {
+        if (!D_8036C8D0[i].unk2) {
+            D_8036CB30++;
+        } else {
+            D_8036CB32++;
+        }
+        if (!D_8036C8D0[i].unk0) {
+            D_8036CB31++;
+        } else {
+            D_8036CB33++;
+        }
+        if (++i == 50) {
+            i = 0;
+        }
+    }
+}
 
 s32 func_80277D34(void) {
     switch (D_8036CB2E) {
@@ -107,8 +150,6 @@ s32 func_80277E08(void) {
 }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/32E00/func_80277EDC.s")
-
-extern u8 D_8036CB34;
 
 void func_80278318(void) {
     D_8036CB34 = 0;

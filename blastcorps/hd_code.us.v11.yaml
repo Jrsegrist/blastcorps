@@ -32,7 +32,8 @@ segments:
     - [0x2D810, c, hd_code/2D810] # the file after sched.c (own .rodata and .bss)
     - [0x2E490, c, hd_code/2E490]
     - [0x30430, c, hd_code/30430] # fade.c (from its assert strings)
-    - [0x30C70, c, hd_code/30C70]
+    - [0x30C70, c, hd_code/30C70] # rodata is constants only
+    - [0x32E00, c, hd_code/32E00] # own .rodata (strings, jump table) and .bss (0x8036C8D0)
     - [0x34430, c, hd_code/34430]
     - [0x37530, c, hd_code/37530]
     - [0x39050, c, hd_code/39050]
@@ -249,7 +250,9 @@ segments:
     - [0xC7860, .rodata, hd_code/2C560]
     - [0xC7D10, .rodata, hd_code/2D810]
     - [0xC7D30, .rodata, hd_code/30430]
-    - [0xC7D80, bin, hd_code/hd_code_data_C7D80]
+    - [0xC7D80, .rodata, hd_code/30C70]
+    - [0xC7DB0, .rodata, hd_code/32E00]
+    - [0xC7E50, bin, hd_code/hd_code_data_C7E50]
     - [0xC9230, .rodata, hd_code/ul_perspective]
     - [0xC9240, .rodata, hd_code/ul_rotate]
     - [0xC9250, bin, hd_code/hd_code_data_C9250]

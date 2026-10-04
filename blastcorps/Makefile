@@ -99,7 +99,7 @@ HD_CODE_LDFLAGS = -T hd_code_bss.$(VERSION).ld -T $(HD_CODE_LD_SCRIPT) -Map $(HD
 
 
 # hd_code files that own a .rodata subsegment (see tools/late_rodata.py)
-LATE_RODATA_HD_CODE := 17E10 1A630 26570 2C560 2D810
+LATE_RODATA_HD_CODE := 17E10 1A630 26570 2C560 2D810 30C70 32E00
 
 ### Optimisation Overrides
 

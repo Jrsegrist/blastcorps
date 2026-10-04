@@ -21,7 +21,7 @@ segments:
     - [0x168B0, c, hd_code/168B0]
     - [0x17A70, c, hd_code/17A70]
     - [0x17E10, c, hd_code/17E10]
-    - [0x1A930, c, hd_code/1A930] # libultra-derived sound player (rodata strings)
+    - [0x1A630, c, hd_code/1A630] # Rare sound player (GoldenEye snd.c ancestor)
     - [0x1C460, c, hd_code/1C460]
     - [0x1D990, c, hd_code/1D990]
     - [0x20460, c, hd_code/20460]
@@ -189,6 +189,6 @@ segments:
     - [0xA4410, linker, data]
     - [0xA4410, bin, hd_code/hd_code_data] # .data
     - [0xC48B0, .rodata, hd_code/17E10]
-    - [0xC48E0, .rodata, hd_code/1A930]
+    - [0xC48E0, .rodata, hd_code/1A630]
     - [0xC4A30, bin, hd_code/hd_code_data_C4A30]
   - [0xCAEA0]

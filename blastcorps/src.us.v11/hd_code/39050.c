@@ -268,7 +268,47 @@ f32 func_8027E228(type)
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/39050/func_8027F1F8.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/39050/func_802802D4.s")
+/* Flat-shade triangle (i0, i1, i2) of v: store its face normal, scaled to length 120, in all three vertices. */
+void func_802802D4(Vtx *v, s32 i0, s32 i1, s32 i2) {
+    f32 e1[3];
+    f32 e2[3];
+    f32 pad[3];
+    f32 scale;
+    f32 nx;
+    f32 ny;
+    f32 nz;
+    f32 len;
+
+    e1[0] = v[i2].v.ob[0] - v[i0].v.ob[0];
+    e1[1] = v[i2].v.ob[1] - v[i0].v.ob[1];
+    e1[2] = v[i2].v.ob[2] - v[i0].v.ob[2];
+    e2[0] = v[i1].v.ob[0] - v[i0].v.ob[0];
+    e2[1] = v[i1].v.ob[1] - v[i0].v.ob[1];
+    e2[2] = v[i1].v.ob[2] - v[i0].v.ob[2];
+    nx = e1[1] * e2[2] - e1[2] * e2[1];
+    ny = e1[2] * e2[0] - e1[0] * e2[2];
+    nz = e1[0] * e2[1] - e1[1] * e2[0];
+    len = sqrtf(nx * nx + ny * ny + nz * nz);
+    if (len < 1.0) {
+        len = 1.0f;
+    }
+    scale = 120.0 / len;
+    nx *= scale;
+    ny *= scale;
+    nz *= scale;
+    v[i0].v.cn[0] = (s8) nx;
+    v[i0].v.cn[1] = (s8) ny;
+    v[i0].v.cn[2] = (s8) nz;
+    v[i0].v.cn[3] = 0;
+    v[i1].v.cn[0] = (s8) nx;
+    v[i1].v.cn[1] = (s8) ny;
+    v[i1].v.cn[2] = (s8) nz;
+    v[i1].v.cn[3] = 0;
+    v[i2].v.cn[0] = (s8) nx;
+    v[i2].v.cn[1] = (s8) ny;
+    v[i2].v.cn[2] = (s8) nz;
+    v[i2].v.cn[3] = 0;
+}
 
 /* Set the 8 corner positions of the box (x0..x1, y0..y1, z0..z1). */
 void func_8028072C(Vtx *v, s16 x0, s16 y0, s16 z0, s16 x1, s16 y1, s16 z1) {

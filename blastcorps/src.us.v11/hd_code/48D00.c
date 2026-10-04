@@ -6,7 +6,9 @@ typedef struct {
     /* 0x00 */ s32 unk0;
     /* 0x04 */ s32 unk4;
     /* 0x08 */ s32 unk8;
-    /* 0x0C */ u8 pad0C[0x14 - 0x0C];
+    /* 0x0C */ u8 pad0C[0x0E - 0x0C];
+    /* 0x0E */ u8 unk0E;
+    /* 0x0F */ u8 pad0F[0x14 - 0x0F];
     /* 0x14 */ s32 unk14;
     /* 0x18 */ u8 unk18;
     /* 0x19 */ u8 pad19[0x1E - 0x19];
@@ -168,38 +170,53 @@ void func_8028F93C(void) {
     }
 }
 
-/* TODO: func_8028F994 - scale arg0/arg1/arg2 (a 3D point, 1/32 fixed point)
- * down to integer units, then for each D_8039B610 array entry with unk18
- * nonzero: call func_8026A6F0(point, entry's unk0/unk4/unk8 point, also
- * scaled down) to get a distance, look up a per-category radius via a
- * stride-0x18 table at 0x802FDBAC indexed by the entry's unk0E byte (also
- * scaled down), and set D_803A7424=1 if that radius is >= the distance (an
- * "is this entry within its category's radius" check). The 0x802FDBAC table
- * has no existing symbol - nothing else in the project touches it yet, so
- * it's addressed as a raw literal the same way splat itself left it
- * unresolved in the target disassembly. Logic, every field offset, and the
- * overall control flow are all confirmed correct (diff score down to 236,
- * zero inserts/deletes, frame size exact) - every remaining difference is a
- * same-value register rename (IDO chose a different physical register for
- * the same operation), stemming from reloading arg0/arg1/arg2 from their
- * stack homes in a different order than target at the very top of the
- * function. Tried reversing the 3 scale-down statements' source order;
- * made no difference, so the reload order isn't driven by source order
- * here and wasn't tracked down further. */
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/48D00/func_8028F994.s")
+extern u8 D_803A7424;
+s32 func_8026A6F0(s32, s32, s32, s32, s32, s32);
 
-/* TODO: func_8028FAC0 - same per-entry radius check as func_8028F994
- * (above: scale arg0/arg1/arg2 down, get a distance via func_8026A6F0,
- * look up a per-category radius via the 0x802FDBAC table indexed by
- * unk0E), plus two differences: entries with unk24 nonzero are skipped
- * entirely, and a 4th arg (also scaled down) is added to the looked-up
- * radius before the >= dist comparison. Logic, every field offset, and
- * the overall control flow are all confirmed correct (diff score down to
- * 387, zero inserts/deletes, frame size exact) - every difference is a
- * same-value register rename, the same reload-order artifact documented
- * on func_8028F994, plus one extra instance of it (dist's post-call spill
- * swapped with arg3's reload, one slot apart) in the new tail. Tried
- * commuting the final addition's operand order; no effect. */
+/* Set D_803A7424 if the point (arg0, arg1, arg2) is within any active
+ * entry's category radius (all in 1/32 units). */
+void func_8028F994(s32 arg0, s32 arg1, s32 arg2) {
+    s32 i;
+    s32 dist;
+
+    /* One statement (likely a macro in the original): separate
+     * statements schedule the three reloads in the opposite order. */
+    arg0 >>= 5, arg1 >>= 5, arg2 >>= 5;
+    for (i = 0; i < D_8039B610; i++) {
+        if (D_8039B070_entries[i].unk18 != 0) {
+            dist = func_8026A6F0(arg0, arg1, arg2, D_8039B070_entries[i].unk0 >> 5,
+                                 D_8039B070_entries[i].unk4 >> 5, D_8039B070_entries[i].unk8 >> 5);
+            if (dist <= (*(s16 *) (0x802FDBAC + D_8039B070_entries[i].unk0E * 0x18) >> 5)) {
+                D_803A7424 = 1;
+            }
+        }
+    }
+}
+
+/* TODO: func_8028FAC0 - same as func_8028F994, skipping entries with
+ * unk24 set and widening each radius by arg3 (also 1/32 units). The
+ * draft below is exact except one adjacent pair: target reloads arg3
+ * (`lw t8,0x34(sp)`) one slot before the `sw v0` that spills dist; this
+ * draft emits them the other way round. Tried: both operand orders of
+ * the sum and the comparison, `!(dist > ...)`, a subtract-and-test
+ * form, and the call inline in the condition (grows the frame by 8).
+ *
+ * void func_8028FAC0(s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
+ *     s32 i;
+ *     s32 dist;
+ *
+ *     arg0 >>= 5, arg1 >>= 5, arg2 >>= 5, arg3 >>= 5;
+ *     for (i = 0; i < D_8039B610; i++) {
+ *         if (D_8039B070_entries[i].unk18 != 0 && D_8039B070_entries[i].unk24 == 0) {
+ *             dist = func_8026A6F0(arg0, arg1, arg2, D_8039B070_entries[i].unk0 >> 5,
+ *                                  D_8039B070_entries[i].unk4 >> 5, D_8039B070_entries[i].unk8 >> 5);
+ *             if (dist <= (*(s16 *) (0x802FDBAC + D_8039B070_entries[i].unk0E * 0x18) >> 5) + arg3) {
+ *                 D_803A7424 = 1;
+ *             }
+ *         }
+ *     }
+ * }
+ */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/48D00/func_8028FAC0.s")
 
 /* TODO: func_8028FC10 - set up D_80370BF8 via func_802DB4D0/func_802D4910,

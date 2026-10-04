@@ -73,6 +73,39 @@ extern u8 D_8036DCD5;
 extern u8 D_8036DCD6; /* index into D_802FC3F0 */
 extern u8 D_8036DCD7;
 
+/* Per-level random quad spawner (0x22 bytes); ranges are passed to func_8026A828 (random in range). */
+typedef struct {
+    u8 id; /* level id */
+    u8 pad1;
+    s16 x0, z0; /* 0x02 */
+    s16 x1, z1; /* 0x06 */
+    s16 y0, y1; /* 0x0A */
+    u8 count;   /* 0x0E */
+    u8 padF;
+    s16 r0, r1; /* 0x10 */
+    s16 tex;    /* 0x14 */
+    u8 tu, tv;  /* 0x16 */
+    s16 w0, w1; /* 0x18 */
+    s16 d0, d1; /* 0x1C */
+    s16 pad20;
+} QuadSpawn;
+
+typedef struct {
+    s16 unk0;
+    s16 x, z;
+    s16 w, d; /* half extents */
+    s16 angle;
+} Quad;
+
+extern QuadSpawn D_802FC494[];
+extern Quad D_8036DCE0[];
+extern Vtx D_8036DD70[2][12][4];
+extern u8 D_8036E370;
+extern s32 D_8036E374;
+extern s32 D_8036E378;
+
+s16 func_8026A828(s16, s16);
+
 /* Level spawn table for the proximity objects below (one entry). */
 typedef struct {
     u8 id; /* level id */
@@ -524,7 +557,72 @@ void func_8028072C(Vtx *v, s16 x0, s16 y0, s16 z0, s16 x1, s16 y1, s16 z1) {
     v[7].v.ob[2] = z1;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/39050/func_802807D8.s")
+/* Scatter the level's random textured quads (D_802FC494[n].count of them, up to 12): random position,
+ * size and angle within the table's ranges, written into both vertex buffers. */
+void func_802807D8(u8 id) {
+    s32 i;
+    s32 j;
+    s16 x;
+    s16 y;
+    s16 z;
+    s16 w;
+    s16 d;
+    s32 unused; /* set to 0, never read */
+    u8 found;
+
+    D_8036E374 = 0;
+    unused = 0;
+    found = 0;
+    D_8036E370 = 0;
+    do {
+        if (D_802FC494[D_8036E370].id == id) {
+            found = 1;
+        } else {
+            D_8036E370++;
+        }
+    } while (!found && D_8036E370 < 4);
+    if (found) {
+        D_8036E374 = D_802FC494[D_8036E370].count;
+        D_8036E378 = D_80358070;
+        func_802A0CC8(D_802FC494[D_8036E370].tex, 0);
+        for (i = 0; i < D_8036E374; i++) {
+            x = func_8026A828(D_802FC494[D_8036E370].x0, D_802FC494[D_8036E370].x1);
+            y = func_8026A828(D_802FC494[D_8036E370].y0, D_802FC494[D_8036E370].y1);
+            z = func_8026A828(D_802FC494[D_8036E370].z0, D_802FC494[D_8036E370].z1);
+            w = func_8026A828(D_802FC494[D_8036E370].w0, D_802FC494[D_8036E370].w1);
+            d = func_8026A828(D_802FC494[D_8036E370].d0, D_802FC494[D_8036E370].d1);
+            w >>= 1, d >>= 1;
+            D_8036DCE0[i].w = w;
+            D_8036DCE0[i].d = d;
+            D_8036DCE0[i].x = x;
+            D_8036DCE0[i].z = z;
+            D_8036DCE0[i].unk0 = func_8026A828(D_802FC494[D_8036E370].r0, D_802FC494[D_8036E370].r1);
+            D_8036DCE0[i].angle = func_8026A828(0, 0xFFF);
+            for (j = 0; j < 2; j++) {
+                D_8036DD70[j][i][0].v.ob[0] = x - w;
+                D_8036DD70[j][i][0].v.ob[1] = y;
+                D_8036DD70[j][i][0].v.ob[2] = z - d;
+                D_8036DD70[j][i][0].v.tc[0] = 0;
+                D_8036DD70[j][i][0].v.tc[1] = 0;
+                D_8036DD70[j][i][1].v.ob[0] = x + w;
+                D_8036DD70[j][i][1].v.ob[1] = y;
+                D_8036DD70[j][i][1].v.ob[2] = z - d;
+                D_8036DD70[j][i][1].v.tc[0] = D_802FC494[D_8036E370].tu << 5;
+                D_8036DD70[j][i][1].v.tc[1] = 0;
+                D_8036DD70[j][i][2].v.ob[0] = x + w;
+                D_8036DD70[j][i][2].v.ob[1] = y;
+                D_8036DD70[j][i][2].v.ob[2] = z + d;
+                D_8036DD70[j][i][2].v.tc[0] = D_802FC494[D_8036E370].tu << 5;
+                D_8036DD70[j][i][2].v.tc[1] = D_802FC494[D_8036E370].tv << 5;
+                D_8036DD70[j][i][3].v.ob[0] = x - w;
+                D_8036DD70[j][i][3].v.ob[1] = y;
+                D_8036DD70[j][i][3].v.ob[2] = z + d;
+                D_8036DD70[j][i][3].v.tc[0] = 0;
+                D_8036DD70[j][i][3].v.tc[1] = D_802FC494[D_8036E370].tv << 5;
+            }
+        }
+    }
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/39050/func_80280F34.s")
 

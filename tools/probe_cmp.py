@@ -5,7 +5,7 @@
 # reloc, jal targets). FULL=a:b prints a side-by-side of instructions a..b.
 import subprocess, sys, re, os
 obj, asmdir, funcs = sys.argv[1], sys.argv[2], sys.argv[3:]
-dis = subprocess.run(['mips-linux-gnu-objdump', '-d', '-r', obj], capture_output=True, text=True).stdout
+dis = subprocess.run(['mips-linux-gnu-objdump', '-d', '-z', '-r', obj], capture_output=True, text=True).stdout
 probe, cur = {}, None
 for l in dis.splitlines():
     m = re.match(r'^[0-9a-f]+ <(\w+)>:', l)

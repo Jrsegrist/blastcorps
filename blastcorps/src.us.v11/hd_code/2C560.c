@@ -35,7 +35,7 @@ s32 D_8036BF70;
 s32 D_8036BF74;
 OSTimer D_8036BF78; /* audio-frame timer (mq/msg at 0x8036BF90/94) */
 u8 D_8036BF98[0x20];
-s32 D_8036BFB8;
+u32 D_8036BFB8;   /* frame counter (wraps statistics every 480 frames) */
 s32 D_8036BFBC;
 f32 D_8036BFC0;
 u8 D_8036BFC4;
@@ -158,11 +158,95 @@ void *func_80270F74(void *arg0) {
     return (u8 *) arg0 + 0x58;
 }
 
+u32 func_802A1320(void);
+void func_802D4550(u32 data); /* osDpSetStatus */
+u32 func_802DAAC0(void); /* DPC status */
+void func_80271358(BcSched *sc);
+void func_802712FC(BcSched *sc);
+void func_802715DC(BcSched *sc);
+void func_80271904(BcSched *sc);
+void func_802712B4(BcSched *sc, BcScTask *t);
+
+/* TODO: func_80270F7C (__scMain) - the draft below generates exactly the
+ * target code (case bodies in source order 0x29A, 0x29E, 0x29B, 0x29C,
+ * 0x29F, 0x29D, 0x2A0) and its 7-entry jump table, but the ROM has 8 more
+ * zero bytes after that table (0x8030C4C8) before func_80271FD0's doubles
+ * at 0x8030C4D0. Nothing references them, and a probe shows IDO does not
+ * pad a 4-mod-8 jump table followed by doubles, so they are some unknown
+ * late-rodata item of the original sched.c. Kept as asm until found.
+ *
+ * void func_80270F7C(void *arg) {
+ *     OSMesg msg;
+ *     BcSched *sc = (BcSched *) arg;
+ *     BcScClient *client;
+ *
+ *     while (TRUE) {
+ *         osRecvMesg(&sc->interruptQ, &msg, OS_MESG_BLOCK);
+ *         if (!(func_802A1320() & 0x1000)) {
+ *             for (client = sc->clientList; client != NULL; client = client->next) {
+ *                 osSendMesg(client->msgQ, (OSMesg) 0x29D, OS_MESG_NOBLOCK);
+ *             }
+ *             D_8036BF10 = 1;
+ *             osViBlack(TRUE);
+ *             func_8029A7E4("GO %x\n", func_802DAAC0());
+ *             func_802D4550(4);
+ *             func_8029A7E4("current=%x start=%x end=%x dpstat=%x spstat=%x\n", IO_READ(DPC_CURRENT_REG),
+ *                           IO_READ(DPC_START_REG), IO_READ(DPC_END_REG), IO_READ(DPC_STATUS_REG), IO_READ(SP_STATUS_REG));
+ *             func_8029A7E4("GO %x\n", func_802DAAC0());
+ *             while (TRUE) {
+ *             }
+ *         }
+ *         switch ((s32) msg) {
+ *             case 0x29A:
+ *                 if (++D_8036BFB8 % 480 == 0) {
+ *                     D_8036BEF8 = D_8036BF00;
+ *                     D_8036BF08 = D_8036BF0C;
+ *                 }
+ *                 func_80271358(sc);
+ *                 break;
+ *             case 0x29E:
+ *                 func_802712FC(sc);
+ *                 break;
+ *             case 0x29B:
+ *                 func_802715DC(sc);
+ *                 break;
+ *             case 0x29C:
+ *                 func_80271904(sc);
+ *                 break;
+ *             case 0x29F:
+ *                 osSendMesg(D_8036BF78.mq, D_8036BF78.msg, OS_MESG_BLOCK);
+ *                 break;
+ *             case 0x29D:
+ *                 for (client = sc->clientList; client != NULL; client = client->next) {
+ *                     osSendMesg(client->msgQ, (OSMesg) 0x29D, OS_MESG_NOBLOCK);
+ *                 }
+ *                 D_8036BF10 = 1;
+ *                 osViBlack(TRUE);
+ *                 func_8029A7E4("%x\n", func_802DAAC0());
+ *                 func_802D4550(4);
+ *                 func_8029A7E4("current=%x start=%x end=%x dpstat=%x spstat=%x\n", IO_READ(DPC_CURRENT_REG),
+ *                               IO_READ(DPC_START_REG), IO_READ(DPC_END_REG), IO_READ(DPC_STATUS_REG), IO_READ(SP_STATUS_REG));
+ *                 func_8029A7E4("%x\n", func_802DAAC0());
+ *                 while (TRUE) {
+ *                 }
+ *             case 0x2A0:
+ *                 func_8029A7E4(" *** CPU FAULT *** - UNFREEZING RDP?\n");
+ *                 while (osViGetCurrentFramebuffer() != osViGetNextFramebuffer()) {
+ *                 }
+ *                 func_802D4550(4);
+ *                 while (TRUE) {
+ *                 }
+ *             default:
+ *                 func_802712B4(sc, (BcScTask *) msg);
+ *                 break;
+ *         }
+ *     }
+ * }
+ */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/2C560/func_80270F7C.s")
 
 void func_80271C24(BcSched *sc, BcScTask *t);
 s32 func_80271F48(OSMesgQueue *mq, OSMesg msg, s32 flag);
-void func_802D4550(u32 data);
 s32 func_80271A84(BcSched *sc, BcScTask *t);
 extern u8 D_802FA270;
 void func_80271CE4(BcSched *sc, s32 availRCP);

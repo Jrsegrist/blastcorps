@@ -28,31 +28,58 @@ extern Entry48D00 D_8039B070_entries[];
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/48D00/func_8028D4C0.s")
 
-/* TODO: func_8028DA5C - fill the 8 corner Vtx of box type arg1 from the
- * 0x18-stride min/max table at D_802FDB98 (x0/x1, y0/y1, z0/z1 at 0..0xA;
- * the same table's +0x14 is the radius used by func_8028F994), with
- * texture coords 0 or 31.0 (0x3E0). Best draft (BoxDef48D00 /
- * D_802FDB98_boxes alias, per corner `ob[0..2]` then `tc[1]`, `tc[0]`)
- * is exact except corners 2 and 5, where both tcs are 0x3E0: target
- * loads the tc[0] constant first (t5) but stores tc[1] first; every
- * spelling tried gives one or the other, not both (both statement
- * orders, chained assignment both ways, raw-offset / array / mixed
- * spellings for just those corners, tc-before-ob orders).
- *
- * void func_8028DA5C(Vtx *v, u8 arg1) {
- *     v[0].v.ob[0] = D_802FDB98_boxes[arg1].x1;
- *     v[0].v.ob[1] = D_802FDB98_boxes[arg1].y0;
- *     v[0].v.ob[2] = D_802FDB98_boxes[arg1].z0;
- *     v[0].v.tc[1] = 0;
- *     v[0].v.tc[0] = 0;
- *     ... corners (x, y, z, tc0, tc1): 1 = (x1, y1, z0, 0, 0x3E0),
- *     2 = (x1, y1, z1, 0x3E0, 0x3E0), 3 = (x1, y0, z1, 0x3E0, 0),
- *     4 = (x0, y0, z0, 0x3E0, 0), 5 = (x0, y1, z0, 0x3E0, 0x3E0),
- *     6 = (x0, y1, z1, 0, 0x3E0), 7 = (x0, y0, z1, 0, 0)
- * }
- * (BoxDef48D00: s16 x0, x1, y0, y1, z0, z1; pad to 0x14; s16 radius;
- * size 0x18. D_802FDB98_boxes is already in undefined_syms.) */
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/48D00/func_8028DA5C.s")
+/* D_802FDB98: 0x18-byte box definitions (min/max extents and a radius). */
+typedef struct {
+    /* 0x00 */ s16 x0, x1, y0, y1, z0, z1;
+    /* 0x0C */ u8 pad0C[0x14 - 0x0C];
+    /* 0x14 */ s16 radius;
+    /* 0x16 */ u8 pad16[2];
+} BoxDef48D00;
+extern BoxDef48D00 D_802FDB98_boxes[];
+
+/* Fill the 8 corner Vtx of box type arg1, with texture coords 0 or 31.0
+ * (0x3E0). Corners 2 and 5 need the comma form (probably a macro):
+ * separate statements store the two tcs in the wrong order. */
+void func_8028DA5C(Vtx *v, u8 arg1) {
+    v[0].v.ob[0] = D_802FDB98_boxes[arg1].x1;
+    v[0].v.ob[1] = D_802FDB98_boxes[arg1].y0;
+    v[0].v.ob[2] = D_802FDB98_boxes[arg1].z0;
+    v[0].v.tc[1] = 0;
+    v[0].v.tc[0] = 0;
+    v[1].v.ob[0] = D_802FDB98_boxes[arg1].x1;
+    v[1].v.ob[1] = D_802FDB98_boxes[arg1].y1;
+    v[1].v.ob[2] = D_802FDB98_boxes[arg1].z0;
+    v[1].v.tc[1] = 0x3E0;
+    v[1].v.tc[0] = 0;
+    v[2].v.ob[0] = D_802FDB98_boxes[arg1].x1;
+    v[2].v.ob[1] = D_802FDB98_boxes[arg1].y1;
+    v[2].v.ob[2] = D_802FDB98_boxes[arg1].z1;
+    v[2].v.tc[0] = 0x3E0, v[2].v.tc[1] = 0x3E0;
+    v[3].v.ob[0] = D_802FDB98_boxes[arg1].x1;
+    v[3].v.ob[1] = D_802FDB98_boxes[arg1].y0;
+    v[3].v.ob[2] = D_802FDB98_boxes[arg1].z1;
+    v[3].v.tc[0] = 0x3E0;
+    v[3].v.tc[1] = 0;
+    v[4].v.ob[0] = D_802FDB98_boxes[arg1].x0;
+    v[4].v.ob[1] = D_802FDB98_boxes[arg1].y0;
+    v[4].v.ob[2] = D_802FDB98_boxes[arg1].z0;
+    v[4].v.tc[0] = 0x3E0;
+    v[4].v.tc[1] = 0;
+    v[5].v.ob[0] = D_802FDB98_boxes[arg1].x0;
+    v[5].v.ob[1] = D_802FDB98_boxes[arg1].y1;
+    v[5].v.ob[2] = D_802FDB98_boxes[arg1].z0;
+    v[5].v.tc[0] = 0x3E0, v[5].v.tc[1] = 0x3E0;
+    v[6].v.ob[0] = D_802FDB98_boxes[arg1].x0;
+    v[6].v.ob[1] = D_802FDB98_boxes[arg1].y1;
+    v[6].v.ob[2] = D_802FDB98_boxes[arg1].z1;
+    v[6].v.tc[1] = 0x3E0;
+    v[6].v.tc[0] = 0;
+    v[7].v.ob[0] = D_802FDB98_boxes[arg1].x0;
+    v[7].v.ob[1] = D_802FDB98_boxes[arg1].y0;
+    v[7].v.ob[2] = D_802FDB98_boxes[arg1].z1;
+    v[7].v.tc[1] = 0;
+    v[7].v.tc[0] = 0;
+}
 
 /* Activate entry arg0. The mix of struct-field and per-field-symbol
  * accesses below is deliberate: it is the spelling whose schedule matches. */

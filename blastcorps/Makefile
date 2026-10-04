@@ -94,7 +94,7 @@ INIT_LD_SCRIPT = init.$(VERSION).ld
 HD_CODE_TARGET = $(BUILD_DIR)/hd_code.$(VERSION)
 HD_CODE_LD_SCRIPT = hd_code.$(VERSION).ld
 
-INIT_LDFLAGS    = -T $(INIT_LD_SCRIPT) -Map $(INIT_TARGET).map -T undefined_syms_auto.init.$(VERSION).txt -T undefined_funcs_auto.init.$(VERSION).txt -T undefined_syms.init.$(VERSION).txt --no-check-sections
+INIT_LDFLAGS    = -T $(INIT_LD_SCRIPT) -Map $(INIT_TARGET).map -T undefined_syms_auto.init.$(VERSION).txt -T undefined_funcs_auto.init.$(VERSION).txt -T undefined_syms.init.$(VERSION).txt --no-check-sections --no-warn-mismatch
 HD_CODE_LDFLAGS = -T hd_code_bss.$(VERSION).ld -T $(HD_CODE_LD_SCRIPT) -Map $(HD_CODE_TARGET).map -T undefined_syms_auto.hd_code.$(VERSION).txt -T undefined_funcs_auto.hd_code.$(VERSION).txt -T undefined_syms.hd_code.$(VERSION).txt --no-check-sections --no-warn-mismatch
 
 
@@ -120,6 +120,8 @@ UL_MIPS3_HD_CODE := ul_ll ul_llcvt
 $(BUILD_DIR)/src.$(VERSION)/hd_code/ul_%.c.o: CFLAGS := $(UL_CFLAGS)
 $(foreach f,$(UL_O3_HD_CODE),$(BUILD_DIR)/src.$(VERSION)/hd_code/$(f).c.o): OPT_FLAGS := -O3
 $(foreach f,$(UL_MIPS3_HD_CODE),$(BUILD_DIR)/src.$(VERSION)/hd_code/$(f).c.o): MIPSISET := -mips3 -32
+$(BUILD_DIR)/src.$(VERSION)/init/ul_%.c.o: CFLAGS := $(UL_CFLAGS)
+$(BUILD_DIR)/src.$(VERSION)/init/ul_ll.c.o: MIPSISET := -mips3 -32
 
 
 ### Targets

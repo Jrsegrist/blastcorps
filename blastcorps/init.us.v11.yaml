@@ -39,12 +39,10 @@ segments:
     - [0x2BA0, c, init/2BA0]   # osWritebackDCache
     - [0x2C20, c, init/2C20]   # osInvalICache
     - [0x2CA0, asm, init/2CA0] # TLB setup helper, not yet identified
-    - [0x2D00, c, init/2D00]   # osPiRawReadIo
-    - [0x2D60, c, init/2D60]   # IDO 64-bit runtime helpers (__ull_rshift, __ull_rem,
-                               # __ull_div, __ll_lshift, func_80221B30, __ll_div,
-                               # __ll_mul, func_80221BF8, __ll_rem, __ll_rshift) -
-                               # kept as one combined block, see init/2D60.c
-    - [0x3060, asm, init/3060]
+    - [0x2D00, c, init/ul_pirawread]  # src/io/pirawread.c
+    - [0x2D60, c, init/ul_ll]  # src/libc/ll.c (-mips3)
+    - [0x3020, bin, init/3020] # 0x40 zero bytes between objects
+    - [0x3060, c, init/ul_virtualtophysical]  # src/os/virtualtophysical.c
     - [0x30E0, c, init/30E0]   # __osSiDeviceBusy
     - [0x3110, asm, init/3110]
     - [0x3590, asm, init/3590]
@@ -52,7 +50,7 @@ segments:
     - [0x3770, asm, init/3770]
     - [0x38D0, c, init/38D0]   # __osProbeTLB
     - [0x3990, c, init/3990]   # __osGetCause
-    - [0x39A0, asm, init/39A0]
+    - [0x39A0, c, init/ul_atomic]  # src/os/atomic.c
     - [0x3A00, c, init/3A00]   # __osDisableInt
     - [0x3A20, c, init/3A20]   # __osRestoreInt
     - [0x3A40, bin, init/3A40] # .data?

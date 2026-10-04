@@ -195,40 +195,101 @@ void func_8025E1E0(Gfx **arg0) {
     *arg0 = gfx;
 }
 
-/* TODO: func_8025E2CC - an *arg0-output state machine gated on
- * D_803643D7 and func_802753C0()==0: on D_80366BC0==0, checks whether
- * D_802E8F94[D_802E8BDC*68] is 0x20 or 0x80 (calls func_802C1DD0 with
- * that bool), then checks a flag byte at D_80364AF0[(D_80364AE8<<8)+
- * D_802E8BDC+0x18] against the range (0,6) to pick between a "normal"
- * branch and a dispatch on D_802E8BDC (cases 0x28, 0x32, default) that
- * each set D_80366BC2 (an event code)/D_80366BC4 (a flag) and call a
- * couple of func_80260xxx helpers, then posts the event via
- * func_8026AF6C(D_80366BC2|0xa000) and, if the code was 5, calls
- * func_80260650 with a func_8026205C(2) result. Falls through to a
- * tail that re-arms D_80366BC0, and on D_80366BB8==0 either rematerializes
- * it from D_803156C4 (if a specific D_8036BB1C/D_8036BB18 == D_80366BC2
- * condition holds) or, on D_80366BB8!=0, decides via a
- * func_802D4E10/D_80366BC4/timestamp-delta chain whether to call
- * func_80275270(0, 0x08000000, 0x3f400000) and zero D_80366BB8/
- * D_80366BC0. Logic, every field, offset, and branch condition are
- * confirmed correct by direct transcription (down to a frame that
- * matches target exactly at -40, 237 vs 236 target instructions - the
- * closest build reached deficit 9). The blocker is register allocation,
- * not logic: target keeps the "flag" value live in the callee-saved
- * $s0 continuously across almost the entire function - reused directly
- * as a call argument, as a branch-compare operand, and as the
- * dispatch key - never spilling or reloading it even across the many
- * intervening calls, while every C phrasing tried (plain reassignment,
- * `register`, combining the two early boolean checks into `||`/`&&`
- * expressions, a `switch` for the 0x28/0x32/default dispatch) either
- * leaves it stack-homed with explicit reload instructions or, when
- * `register` is added, promotes it along with something else into an
- * extra $s1 save instead of just $s0 (frame grows from -40 to -56
- * either way). The `switch` rewrite for the dispatch alone did get the
- * closest on raw opcode distance, suggesting the real source may have
- * used one there, but didn't fix the two earlier checks' spills and
- * regressed the frame, so it wasn't kept. */
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_8025E2CC.s")
+extern u8 D_803643D7;
+extern u8 D_80366BC0;
+extern u16 D_80366BC2;
+extern u8 D_80366BC4;
+extern s32 D_80364AA8;
+extern s32 D_802E8BDC;
+extern u8 D_802E8F94[];
+extern u8 D_80364AE8;
+extern u8 D_80364AF0[][256];
+extern u32 D_80366BB8;
+extern s16 D_8036BB18;
+extern s16 D_8036BB1A;
+extern s16 D_8036BB1C;
+extern void *D_80367734;
+extern void *D_80367738;
+extern u32 D_80367740;
+extern u32 D_802E8CD0[];
+s32 func_802753C0(void);
+void func_802C1DD0(s32);
+void func_802609F0(void);
+void func_80260A10(void);
+void func_80260E2C(void);
+void func_80260DFC(void);
+void func_80260EE0(s32);
+void func_8026AF6C(s32);
+s32 func_8026205C(s32);
+void *func_80260650(void *, s16, void *);
+void func_80278318(void);
+void func_80277EDC(s32, s32, s32, s32);
+s32 func_802D4E10(void *);
+void func_80275270(u64, f32);
+
+void func_8025E2CC(Gfx **arg0, s32 arg1, s32 arg2) {
+    Gfx *gfx;
+
+    gfx = *arg0;
+    if (D_803643D7 != 0 && func_802753C0() == 0) {
+        if (D_80366BC0 == 0) {
+            func_802C1DD0(D_802E8F94[D_802E8BDC * 68] == 0x20 || D_802E8F94[D_802E8BDC * 68] == 0x80);
+            D_80366BB8 = 0;
+            if ((D_80364AF0[D_80364AE8][D_802E8BDC + 0x18] > 0 &&
+                 D_80364AF0[D_80364AE8][D_802E8BDC + 0x18] < 6) ? 1 : 0) {
+                func_802609F0();
+                func_80260A10();
+                D_80366BC2 = 5;
+                D_80366BC4 = 0;
+                if (D_80364AA8 != 1) {
+                    func_80260E2C();
+                    D_80366BC4 = 1;
+                }
+            } else {
+                switch (D_802E8BDC) {
+                    case 0x28:
+                        func_80260A10();
+                        func_80260DFC();
+                        D_80366BC2 = 0x1E;
+                        D_80366BC4 = 0;
+                        break;
+                    case 0x32:
+                        func_80260A10();
+                        func_80260EE0(0x25);
+                        D_80366BC2 = 0x23;
+                        D_80366BC4 = 0;
+                        break;
+                    default:
+                        func_80260A10();
+                        D_80366BC2 = 5;
+                        func_80260E2C();
+                        D_80366BC4 = 1;
+                        break;
+                }
+            }
+            func_8026AF6C(D_80366BC2 | 0x8000 | 0x2000);
+            D_8036BB1A = -1;
+            if (D_80366BC2 == 5) {
+                func_80260650(D_80367738, func_8026205C(2), NULL);
+            }
+        }
+        D_80366BC0 = D_803643D7;
+        if (D_80366BB8 == 0) {
+            if (D_8036BB1C == 8 && D_8036BB18 == D_80366BC2) {
+                D_80366BB8 = D_803156C4;
+                func_80278318();
+                func_80277EDC(2, 1, 2, func_8026205C(3));
+            }
+        } else if (func_802D4E10(D_80367734) == 0 ||
+                   (D_80366BC4 != 0 && D_803156C4 - D_80367740 >= 0x1E1) ||
+                   (D_80366BC4 == 0 && D_803156C4 - D_80366BB8 > D_802E8CD0[(D_80364AA8 & 0x81) ? 1 : 0])) {
+            func_80275270(0x08000000, 0.75f);
+            D_80366BB8 = 0;
+            D_80366BC0 = 0;
+        }
+    }
+    *arg0 = gfx;
+}
 
 extern u8 D_803643D6;
 extern u8 D_803643D8;

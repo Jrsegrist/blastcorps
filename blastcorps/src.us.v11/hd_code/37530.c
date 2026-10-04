@@ -37,6 +37,17 @@ typedef struct {
 
 extern Trail D_8036D3D0[80]; /* ring, oldest at D_8036DC90, newest at D_8036DC91 */
 extern s32 D_80358060;        /* frame counter */
+extern u8 D_02000000[];       /* segment 2 base */
+
+/* The trail's vertex and display-list buffer (seen through segment 2) */
+typedef struct {
+    u8 pad[0x2000];
+    Vtx vtx[451];
+    Gfx dl[1];
+} TrailBuf;
+
+void func_8027D5AC(void);
+void func_8027D350(s16 x0, s16 y0, s16 z0, s16 x1, s16 y1, s16 z1, Vtx *v, s32 i);
 
 /* Is (x, y, z) inside one of the current level's zones? (zones span ymin..ymax; the x/z test is func_802AC4C4) */
 /* K&R: the caller passes unconverted ints */
@@ -163,7 +174,217 @@ void func_8027BE7C(u8 period, s32 y, s16 x1, s16 z1, s16 x2, s16 z2, s32 x, s32 
     D_8036DC94 = D_80358060;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/37530/func_8027C4C8.s")
+/* Draws the trail: each run of open segments becomes triangle strips in a sub display list, with a cull box for long runs */
+void func_8027C4C8(Gfx **gfxp, TrailBuf *buf) {
+    Gfx *gdl = *gfxp;
+    u8 cur = D_8036DC90;
+    u8 start;
+    u8 end;
+    u8 j;
+    u8 done = 0;
+    Gfx *dl = buf->dl;
+    s32 dlIdx = 0;
+    s32 vbase = 0;
+    s32 k;
+    s16 minX;
+    s16 minY;
+    s16 minZ;
+    s16 maxX;
+    s16 maxY;
+    s16 maxZ;
+    u8 t;
+    u8 nv;
+    s32 n;
+    s32 m;
+    u8 style;
+
+    func_8027D5AC();
+    gDPPipeSync(gdl++);
+    gDPSetCycleType(gdl++, G_CYC_1CYCLE);
+    gDPSetRenderMode(gdl++, 0x5041C8, 0);
+    gSPClearGeometryMode(gdl++, 0xFFFFFFFF);
+    gSPSetGeometryMode(gdl++, G_SHADE | G_SHADING_SMOOTH);
+    gSPTexture(gdl++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_OFF);
+    gDPSetCombine(gdl++, 0xFFFFFF, 0xFFFDF8FC);
+    gDPSetPrimColor(gdl++, 0, 0, 0, 0, 0, 0);
+    while (!done) {
+        start = cur;
+        style = D_8036D3D0[cur].d;
+        while (cur != D_8036DC91 && !D_8036D3D0[cur].c) {
+            cur++;
+            if (cur == 80) {
+                cur = 0;
+            }
+        }
+        end = cur;
+        if (cur == D_8036DC91) {
+            done = 1;
+        }
+        if (start != end) {
+            gSPDisplayList(gdl++, dlIdx * sizeof(Gfx) + 0x3C30 + (u32) D_02000000);
+            minZ = minY = minX = 0x7FFF;
+            maxZ = maxY = maxX = -0x8000;
+            k = vbase;
+            j = start;
+            while (j != end) {
+                buf->vtx[k].v.ob[0] = D_8036D3D0[j].v[0];
+                buf->vtx[k].v.ob[1] = D_8036D3D0[j].v[1];
+                buf->vtx[k].v.ob[2] = D_8036D3D0[j].v[2];
+                buf->vtx[k].v.cn[3] = D_8036D3D0[j].a;
+                k++;
+                buf->vtx[k].v.ob[0] = D_8036D3D0[j].v[3];
+                buf->vtx[k].v.ob[1] = D_8036D3D0[j].v[4];
+                buf->vtx[k].v.ob[2] = D_8036D3D0[j].v[5];
+                buf->vtx[k].v.cn[3] = D_8036D3D0[j].a;
+                k++;
+                if (D_8036D3D0[j].v[0] < minX) {
+                    minX = D_8036D3D0[j].v[0];
+                }
+                if (D_8036D3D0[j].v[1] < minY) {
+                    minY = D_8036D3D0[j].v[1];
+                }
+                if (D_8036D3D0[j].v[2] < minZ) {
+                    minZ = D_8036D3D0[j].v[2];
+                }
+                if (D_8036D3D0[j].v[0] > maxX) {
+                    maxX = D_8036D3D0[j].v[0];
+                }
+                if (D_8036D3D0[j].v[1] > maxY) {
+                    maxY = D_8036D3D0[j].v[1];
+                }
+                if (D_8036D3D0[j].v[2] > maxZ) {
+                    maxZ = D_8036D3D0[j].v[2];
+                }
+                if (D_8036D3D0[j].v[3] < minX) {
+                    minX = D_8036D3D0[j].v[3];
+                }
+                if (D_8036D3D0[j].v[4] < minY) {
+                    minY = D_8036D3D0[j].v[4];
+                }
+                if (D_8036D3D0[j].v[5] < minZ) {
+                    minZ = D_8036D3D0[j].v[5];
+                }
+                if (D_8036D3D0[j].v[3] > maxX) {
+                    maxX = D_8036D3D0[j].v[3];
+                }
+                if (D_8036D3D0[j].v[4] > maxY) {
+                    maxY = D_8036D3D0[j].v[4];
+                }
+                if (D_8036D3D0[j].v[5] > maxZ) {
+                    maxZ = D_8036D3D0[j].v[5];
+                }
+                j++;
+                if (j == 80) {
+                    j = 0;
+                }
+            }
+            if (!style) {
+                j = start;
+                while (j != end) {
+                    buf->vtx[k].v.ob[0] = D_8036D3D0[j].v[6];
+                    buf->vtx[k].v.ob[1] = D_8036D3D0[j].v[7];
+                    buf->vtx[k].v.ob[2] = D_8036D3D0[j].v[8];
+                    buf->vtx[k].v.cn[3] = D_8036D3D0[j].b;
+                    k++;
+                    buf->vtx[k].v.ob[0] = D_8036D3D0[j].v[9];
+                    buf->vtx[k].v.ob[1] = D_8036D3D0[j].v[10];
+                    buf->vtx[k].v.ob[2] = D_8036D3D0[j].v[11];
+                    buf->vtx[k].v.cn[3] = D_8036D3D0[j].b;
+                    k++;
+                    /* (sic) both corners test v[6..8] for the minimum and v[9..11] for the maximum */
+                    if (D_8036D3D0[j].v[6] < minX) {
+                        minX = D_8036D3D0[j].v[6];
+                    }
+                    if (D_8036D3D0[j].v[7] < minY) {
+                        minY = D_8036D3D0[j].v[7];
+                    }
+                    if (D_8036D3D0[j].v[8] < minZ) {
+                        minZ = D_8036D3D0[j].v[8];
+                    }
+                    if (D_8036D3D0[j].v[9] > maxX) {
+                        maxX = D_8036D3D0[j].v[9];
+                    }
+                    if (D_8036D3D0[j].v[10] > maxY) {
+                        maxY = D_8036D3D0[j].v[10];
+                    }
+                    if (D_8036D3D0[j].v[11] > maxZ) {
+                        maxZ = D_8036D3D0[j].v[11];
+                    }
+                    if (D_8036D3D0[j].v[6] < minX) {
+                        minX = D_8036D3D0[j].v[6];
+                    }
+                    if (D_8036D3D0[j].v[7] < minY) {
+                        minY = D_8036D3D0[j].v[7];
+                    }
+                    if (D_8036D3D0[j].v[8] < minZ) {
+                        minZ = D_8036D3D0[j].v[8];
+                    }
+                    if (D_8036D3D0[j].v[9] > maxX) {
+                        maxX = D_8036D3D0[j].v[9];
+                    }
+                    if (D_8036D3D0[j].v[10] > maxY) {
+                        maxY = D_8036D3D0[j].v[10];
+                    }
+                    if (D_8036D3D0[j].v[11] > maxZ) {
+                        maxZ = D_8036D3D0[j].v[11];
+                    }
+                    j++;
+                    if (j == 80) {
+                        j = 0;
+                    }
+                }
+            }
+            n = k - vbase;
+            if (style) {
+                m = 0;
+            } else {
+                m = n >> 1;
+            }
+            if (n >= 41) {
+                func_8027D350(minX, minY, minZ, maxX, maxY, maxZ, buf->vtx, k);
+                gSPVertex(dl++, k * sizeof(Vtx) + 0x2000 + (u32) D_02000000, 8, 0);
+                gSPCullDisplayList(dl++, 0, 7);
+                dlIdx += 2;
+                k += 8;
+            }
+            if (n >= 3) {
+                do {
+                    if (n >= 17) {
+                        nv = 16;
+                    } else {
+                        nv = n;
+                    }
+                    gSPVertex(dl++, vbase * sizeof(Vtx) + 0x2000 + (u32) D_02000000, nv, 0);
+                    t = 0;
+                    vbase += nv - 2;
+                    dlIdx++;
+                    for (; t < nv - 2;) {
+                        if (m != 2) {
+                            gSP1Triangle(dl++, t, t + 1, t + 2, 0);
+                            gSP1Triangle(dl++, t + 1, t + 2, t + 3, 0);
+                            dlIdx += 2;
+                            m -= 2;
+                            t += 2;
+                        } else {
+                            m = 0;
+                            t += 4;
+                        }
+                    }
+                    n = n - nv + 2;
+                } while (n >= 3);
+            }
+            vbase = k;
+            gSPEndDisplayList(dl++);
+            dlIdx++;
+        }
+        cur++;
+        if (cur == 80) {
+            cur = 0;
+        }
+    }
+    gDPPipeSync(gdl++);
+    *gfxp = gdl;
+}
 
 /* Writes the 8 corners of the box (x0..x1, y0..y1, z0..z1) into v[i..i+7] */
 void func_8027D350(s16 x0, s16 y0, s16 z0, s16 x1, s16 y1, s16 z1, Vtx *v, s32 i) {

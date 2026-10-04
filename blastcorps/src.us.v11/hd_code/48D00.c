@@ -197,31 +197,22 @@ void func_8028F994(s32 arg0, s32 arg1, s32 arg2) {
     }
 }
 
-/* TODO: func_8028FAC0 - same as func_8028F994, skipping entries with
- * unk24 set and widening each radius by arg3 (also 1/32 units). The
- * draft below is exact except one adjacent pair: target reloads arg3
- * (`lw t8,0x34(sp)`) one slot before the `sw v0` that spills dist; this
- * draft emits them the other way round. Tried: both operand orders of
- * the sum and the comparison, `!(dist > ...)`, a subtract-and-test
- * form, and the call inline in the condition (grows the frame by 8).
- *
- * void func_8028FAC0(s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
- *     s32 i;
- *     s32 dist;
- *
- *     arg0 >>= 5, arg1 >>= 5, arg2 >>= 5, arg3 >>= 5;
- *     for (i = 0; i < D_8039B610; i++) {
- *         if (D_8039B070_entries[i].unk18 != 0 && D_8039B070_entries[i].unk24 == 0) {
- *             dist = func_8026A6F0(arg0, arg1, arg2, D_8039B070_entries[i].unk0 >> 5,
- *                                  D_8039B070_entries[i].unk4 >> 5, D_8039B070_entries[i].unk8 >> 5);
- *             if (dist <= (*(s16 *) (0x802FDBAC + D_8039B070_entries[i].unk0E * 0x18) >> 5) + arg3) {
- *                 D_803A7424 = 1;
- *             }
- *         }
- *     }
- * }
- */
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/48D00/func_8028FAC0.s")
+extern u8 D_802FDB98[];
+void func_8028FAC0(s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
+    s32 i;
+    s32 dist;
+
+    arg0 >>= 5, arg1 >>= 5, arg2 >>= 5, arg3 >>= 5;
+    for (i = 0; i < D_8039B610; i++) {
+        if (D_8039B070_entries[i].unk18 != 0 && D_8039B070_entries[i].unk24 == 0) {
+            dist = func_8026A6F0(arg0, arg1, arg2, D_8039B070_entries[i].unk0 >> 5,
+                                 D_8039B070_entries[i].unk4 >> 5, D_8039B070_entries[i].unk8 >> 5);
+            if (dist <= (*(s16 *) ((u8 *) D_802FDB98 + 0x14 + D_8039B070_entries[i].unk0E * 0x18) >> 5) + arg3) {
+                D_803A7424 = 1;
+            }
+        }
+    }
+}
 
 /* TODO: func_8028FC10 - set up D_80370BF8 via func_802DB4D0/func_802D4910,
  * read a u16 status word via func_802DB594 and set a local flag if bit

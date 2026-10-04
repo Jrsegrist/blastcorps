@@ -387,7 +387,94 @@ void func_8028DF14(u8 arg0) {
     D_8039B620 = arg0;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/48D00/func_8028E9E4.s")
+extern u8 D_02000000[]; /* segment 2 base */
+
+/* Per-frame dynamic buffer: one matrix per box at 0x600. */
+typedef struct {
+    /* 0x000 */ u8 pad[0x600];
+    /* 0x600 */ Mtx mtx[1];
+} Dyn48D00;
+
+/* Load two 32x32 RGBA16 textures (a into tmem 0, b into 0x100) and set up
+ * render tiles 0 and 1 for them (trilinear blend between the two). */
+#define BOX_TEX_PAIR(g, a, b)                                                                              \
+    gDPSetTextureImage(g++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, (a) - 0x80000000);                              \
+    gDPSetTile(g++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 0, 0, G_TX_LOADTILE, 0, 0, 0, 0, 0, 0, 0);                  \
+    gDPLoadSync(g++);                                                                                      \
+    gDPLoadBlock(g++, G_TX_LOADTILE, 0, 0, 0x3FF, 0x100);                                                  \
+    gDPSetTextureImage(g++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, (b) - 0x80000000);                              \
+    gDPTileSync(g++);                                                                                      \
+    gDPSetTile(g++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 0, 0x100, G_TX_LOADTILE, 0, 0, 0, 0, 0, 0, 0);              \
+    gDPLoadSync(g++);                                                                                      \
+    gDPLoadBlock(g++, G_TX_LOADTILE, 0, 0, 0x3FF, 0x100);                                                  \
+    gDPSetTile(g++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 8, 0, 0, 0, 0, 5, 0, 0, 5, 0);                              \
+    gDPSetTileSize(g++, 0, 2, 2, 0x7E, 0x7E);                                                              \
+    gDPSetTile(g++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 8, 0x100, 1, 0, 0, 5, 0, 0, 5, 0);                          \
+    gDPSetTileSize(g++, 1, 2, 2, 0x7E, 0x7E);
+
+/* Draw the boxes: rotate (unk2A, 0..4095 = one turn) and place each one,
+ * then draw its faces in three passes, retexturing the shared 8 vertices
+ * with gSPModifyVertex between them; unk20 drives the blend (prim LOD). */
+void func_8028E9E4(Gfx **gdl, Dyn48D00 *dyn) {
+    Gfx *gfx;
+    s32 i;
+    f32 rot[4][4];
+    f32 trans[4][4];
+
+    gfx = *gdl;
+    if (D_8039B610 > 0) {
+        gDPPipeSync(gfx++);
+        gDPSetCycleType(gfx++, G_CYC_2CYCLE);
+        gDPSetRenderMode(gfx++, G_RM_PASS, G_RM_AA_ZB_OPA_SURF2);
+        gDPSetCombineLERP(gfx++, TEXEL1, TEXEL0, PRIM_LOD_FRAC, TEXEL0, TEXEL1, TEXEL0, PRIM_LOD_FRAC, TEXEL0, 0, 0,
+                          0, COMBINED, 0, 0, 0, SHADE);
+        gSPClearGeometryMode(gfx++, 0xFFFFFFFF);
+        gSPSetGeometryMode(gfx++, G_ZBUFFER | G_SHADE | G_SHADING_SMOOTH | G_CULL_BACK);
+        gSPTexture(gfx++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
+        gDPSetTextureLOD(gfx++, G_TL_TILE);
+    }
+    for (i = 0; i < D_8039B610; i++) {
+        if (D_8039B070_entries[i].unk18 != 0) {
+            guRotateF(rot, (f32) D_8039B070_entries[i].unk2A / 4095.0 * 360.0, 0.0f, 1.0f, 0.0f);
+            guTranslateF(trans, D_8039B070_entries[i].unk0 / 32.0f, D_8039B070_entries[i].unk4 / 32.0f,
+                         D_8039B070_entries[i].unk8 / 32.0f);
+            guMtxCatF(rot, trans, rot);
+            guMtxF2L(rot, &dyn->mtx[i]);
+            gSPMatrix(gfx++, i * sizeof(Mtx) + 0x600 + (u32) D_02000000, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
+            gSPVertex(gfx++, osVirtualToPhysical(D_8039B070_entries[i].unk3C), 8, 0);
+            gDPPipeSync(gfx++);
+            BOX_TEX_PAIR(gfx, D_8039B070_entries[i].unk2C[0], D_8039B070_entries[i].unk2C[1])
+            gDPSetPrimColor(gfx++, 0, D_8039B070_entries[i].unk20, 0, 0, 0, 0);
+            gSP1Triangle(gfx++, 6, 3, 2, 0);
+            gSP1Triangle(gfx++, 6, 7, 3, 0);
+            gSP1Triangle(gfx++, 4, 1, 0, 0);
+            gSP1Triangle(gfx++, 1, 4, 5, 0);
+            gSPModifyVertex(gfx++, 0, G_MWO_POINT_ST, 0x03E00000);
+            gSPModifyVertex(gfx++, 1, G_MWO_POINT_ST, 0x03E003E0);
+            gSPModifyVertex(gfx++, 2, G_MWO_POINT_ST, 0x000003E0);
+            gSPModifyVertex(gfx++, 3, G_MWO_POINT_ST, 0);
+            gSP1Triangle(gfx++, 0, 1, 2, 0);
+            gSP1Triangle(gfx++, 0, 2, 3, 0);
+            gSPModifyVertex(gfx++, 7, G_MWO_POINT_ST, 0x03E00000);
+            gSPModifyVertex(gfx++, 6, G_MWO_POINT_ST, 0x03E003E0);
+            gSPModifyVertex(gfx++, 5, G_MWO_POINT_ST, 0x000003E0);
+            gSPModifyVertex(gfx++, 4, G_MWO_POINT_ST, 0);
+            gSP1Triangle(gfx++, 7, 5, 4, 0);
+            gSP1Triangle(gfx++, 7, 6, 5, 0);
+            BOX_TEX_PAIR(gfx, D_8039B070_entries[i].unk2C[2], D_8039B070_entries[i].unk2C[3])
+            gSPModifyVertex(gfx++, 2, G_MWO_POINT_ST, 0);
+            gSPModifyVertex(gfx++, 1, G_MWO_POINT_ST, 0x03E00000);
+            gSPModifyVertex(gfx++, 5, G_MWO_POINT_ST, 0x03E003E0);
+            gSPModifyVertex(gfx++, 6, G_MWO_POINT_ST, 0x000003E0);
+            gSP1Triangle(gfx++, 5, 2, 1, 0);
+            gSP1Triangle(gfx++, 2, 5, 6, 0);
+            gSPPopMatrix(gfx++, G_MTX_MODELVIEW);
+        }
+    }
+    gDPSetTextureLOD(gfx++, G_TL_LOD);
+    gDPPipeSync(gfx++);
+    *gdl = gfx;
+}
 
 void func_802AACD4(u8, s32, s32, void *, void *);
 extern u8 D_8039B094;

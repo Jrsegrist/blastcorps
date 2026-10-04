@@ -31,9 +31,16 @@ extern u8 D_8036D178;
 extern s32 D_8036D180;
 extern u8 D_80367C00;
 extern MbRemap D_802FC060[3];
+extern f32 D_8036D174;         /* view angle, degrees */
+extern s32 D_8036D17C;
+extern f32 D_8036D184;
+extern Vtx D_802FBEE0[];       /* 6 x 4 grid of view points */
 
 void func_8029A7E4(const char *fmt, ...);
 void func_80257490(void *arg0, s32 arg1);
+s32 func_8026A6F0(s32 a, s32 b, s32 c, s32 d, s32 e, s32 f);
+s32 func_802ACF3C(s32 arg0);
+s32 func_802796D8(s32 n, s32 *a, s32 *b);
 
 /* Copies a display list to the heap, dropping G_ENDDLs and remapping render modes */
 void func_80278BF0(Gfx *src, Gfx *end, Gfx **dstp) {
@@ -92,7 +99,78 @@ void func_80278E3C(void) {
     D_80367C00 = 0;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/34430/func_80278EB0.s")
+/* Sets up the view: count n (at most 10), scale (at most 1), and a view angle from the latest sample (25 degrees if none); fills a 6x4 grid of points 100 units out */
+void func_80278EB0(s32 n, f32 scale, s32 arg2) {
+    f32 mf1[4][4];
+    f32 mf2[4][4];
+    f32 p[3];
+    f32 q[3];
+    f32 ang;
+    s32 i;
+    s32 k = 0;
+    f32 step;
+    f32 yaw;
+    u8 ok;
+    s32 i0;
+    s32 i1;
+    s32 r;
+    s32 pad;
+    s32 v;
+
+    if (n >= 11) {
+        n = 10;
+    }
+    if (scale > 1.0f) {
+        scale = 1.0f;
+    }
+    D_8036D17C = n;
+    D_8036D184 = scale;
+    D_8036D180 = 0;
+    D_8036D178 = 1;
+    ok = func_802796D8(1, &i0, &i1);
+    if (ok) {
+        r = func_8026A6F0(D_8036CB60[i0].a, D_8036CB60[i0].b, D_8036CB60[i0].c, D_8036CB60[i0].x,
+                          D_8036CB60[i0].y, D_8036CB60[i0].z);
+        if (r < 1.0) {
+            r = 1;
+        }
+        v = func_802ACF3C((arg2 <<= 16) / r);
+        D_8036D174 = (f32) v / 65536.0 * 360.0;
+    } else {
+        D_8036D174 = 25.0f;
+    }
+    ang = D_8036D174 / 2.0;
+    step = D_8036D174 / 6.0;
+    yaw = ang * 1.3333334f;
+    for (i = 0; i < 6; i++) {
+        guRotateF(mf1, ang, 1.0f, 0.0f, 0.0f);
+        guMtxXFMF(mf1, 0.0f, 0.0f, -100.0f, &p[0], &p[1], &p[2]);
+        guRotateF(mf2, yaw, 0.0f, 1.0f, 0.0f);
+        guMtxXFMF(mf2, p[0], p[1], p[2], &q[0], &q[1], &q[2]);
+        D_802FBEE0[k].v.ob[0] = q[0];
+        D_802FBEE0[k].v.ob[1] = q[1];
+        D_802FBEE0[k].v.ob[2] = q[2];
+        guRotateF(mf2, -yaw, 0.0f, 1.0f, 0.0f);
+        guMtxXFMF(mf2, p[0], p[1], p[2], &q[0], &q[1], &q[2]);
+        D_802FBEE0[k + 3].v.ob[0] = q[0];
+        D_802FBEE0[k + 3].v.ob[1] = q[1];
+        D_802FBEE0[k + 3].v.ob[2] = q[2];
+        guRotateF(mf1, ang - step, 1.0f, 0.0f, 0.0f);
+        guMtxXFMF(mf1, 0.0f, 0.0f, -100.0f, &p[0], &p[1], &p[2]);
+        guRotateF(mf2, yaw, 0.0f, 1.0f, 0.0f);
+        guMtxXFMF(mf2, p[0], p[1], p[2], &q[0], &q[1], &q[2]);
+        D_802FBEE0[k + 1].v.ob[0] = q[0];
+        D_802FBEE0[k + 1].v.ob[1] = q[1];
+        D_802FBEE0[k + 1].v.ob[2] = q[2];
+        guRotateF(mf2, -yaw, 0.0f, 1.0f, 0.0f);
+        guMtxXFMF(mf2, p[0], p[1], p[2], &q[0], &q[1], &q[2]);
+        D_802FBEE0[k + 2].v.ob[0] = q[0];
+        D_802FBEE0[k + 2].v.ob[1] = q[1];
+        D_802FBEE0[k + 2].v.ob[2] = q[2];
+        k += 4;
+        ang -= step;
+    }
+}
 
 void func_802794A4(void) {
     if (!D_80367C00) {

@@ -6,36 +6,102 @@ typedef struct {
     /* 0x00 */ s32 unk0;
     /* 0x04 */ s32 unk4;
     /* 0x08 */ s32 unk8;
-    /* 0x0C */ u8 pad0C[0x0E - 0x0C];
-    /* 0x0E */ u8 unk0E;
-    /* 0x0F */ u8 pad0F[0x14 - 0x0F];
+    /* 0x0C */ s16 unk0C;
+    /* 0x0E */ u8 unk0E; /* box type (D_802FDB98) */
+    /* 0x0F */ u8 pad0F;
+    /* 0x10 */ s16 unk10;
+    /* 0x12 */ s16 unk12;
     /* 0x14 */ s32 unk14;
     /* 0x18 */ u8 unk18;
     /* 0x19 */ u8 unk19;
-    /* 0x1A */ u8 pad1A[0x1E - 0x1A];
+    /* 0x1A */ s16 unk1A;
+    /* 0x1C */ s16 unk1C;
     /* 0x1E */ s16 unk1E;
-    /* 0x20 */ u8 pad20[0x23 - 0x20];
+    /* 0x20 */ s16 unk20;
+    /* 0x22 */ u8 unk22;
     /* 0x23 */ u8 unk23;
     /* 0x24 */ u8 unk24;
     /* 0x25 */ u8 pad25;
     /* 0x26 */ s16 unk26;
     /* 0x28 */ s16 unk28;
-    /* 0x2A */ u8 pad2A[0x40 - 0x2A];
+    /* 0x2A */ s16 unk2A;
+    /* 0x2C */ u32 unk2C[4]; /* face textures */
+    /* 0x3C */ Vtx *unk3C;   /* 8 corner vertices */
     /* 0x40 */ s32 unk40;
     /* 0x44 */ s32 unk44;
 } Entry48D00;
 extern Entry48D00 D_8039B070_entries[];
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/48D00/func_8028D4C0.s")
-
-/* D_802FDB98: 0x18-byte box definitions (min/max extents and a radius). */
+/* D_802FDB98: 0x18-byte box definitions (min/max extents, face textures
+ * and a radius). */
 typedef struct {
     /* 0x00 */ s16 x0, x1, y0, y1, z0, z1;
-    /* 0x0C */ u8 pad0C[0x14 - 0x0C];
+    /* 0x0C */ s16 tex[4];
     /* 0x14 */ s16 radius;
     /* 0x16 */ u8 pad16[2];
 } BoxDef48D00;
 extern BoxDef48D00 D_802FDB98_boxes[];
+
+extern s32 D_8039B610;
+extern s32 D_8039B614;
+extern s32 D_8039B618;
+extern s32 D_8039B61C;
+extern u8 D_8039B620;
+extern u8 D_803F932C;
+extern Vtx *D_80358070; /* vertex allocator */
+
+s32 func_802CE6F8(s32, s32, s32);
+u32 func_802A0CC8(s16, s32);
+void func_8028DA5C(Vtx *v, u8 arg1);
+
+/* Load the boxes from level data: 12-byte records (s16 x, y, z; u8 type,
+ * u8 timer; s16 unk1A, unk1C). Positions are scaled by 32 and snapped to
+ * the ground; each box gets its face textures and 8 vertices. */
+void func_8028D4C0(u8 *arg0, u8 *arg1) {
+    D_8039B610 = 0;
+    D_8039B614 = 0;
+    D_8039B618 = 0;
+    D_8039B61C = 0;
+    D_8039B620 = 0;
+    while (arg0 != arg1) {
+        D_8039B070_entries[D_8039B610].unk0 = *(s16 *) (arg0 + 0) << 5;
+        D_8039B070_entries[D_8039B610].unk4 = *(s16 *) (arg0 + 2) << 5;
+        D_8039B070_entries[D_8039B610].unk8 = *(s16 *) (arg0 + 4) << 5;
+        D_8039B070_entries[D_8039B610].unk4 = func_802CE6F8(D_8039B070_entries[D_8039B610].unk0,
+                                                            D_8039B070_entries[D_8039B610].unk8,
+                                                            D_8039B070_entries[D_8039B610].unk4);
+        D_8039B070_entries[D_8039B610].unk23 = D_803F932C;
+        D_8039B070_entries[D_8039B610].unk0E = arg0[6];
+        D_8039B070_entries[D_8039B610].unk10 = arg0[7] * 60;
+        D_8039B070_entries[D_8039B610].unk12 = D_8039B070_entries[D_8039B610].unk10;
+        D_8039B070_entries[D_8039B610].unk2C[0] =
+            func_802A0CC8(D_802FDB98_boxes[D_8039B070_entries[D_8039B610].unk0E].tex[0], 0);
+        D_8039B070_entries[D_8039B610].unk2C[1] =
+            func_802A0CC8(D_802FDB98_boxes[D_8039B070_entries[D_8039B610].unk0E].tex[1], 0);
+        D_8039B070_entries[D_8039B610].unk2C[2] =
+            func_802A0CC8(D_802FDB98_boxes[D_8039B070_entries[D_8039B610].unk0E].tex[2], 0);
+        D_8039B070_entries[D_8039B610].unk2C[3] =
+            func_802A0CC8(D_802FDB98_boxes[D_8039B070_entries[D_8039B610].unk0E].tex[3], 0);
+        D_8039B070_entries[D_8039B610].unk0C = 0;
+        D_8039B070_entries[D_8039B610].unk14 = 0;
+        D_8039B070_entries[D_8039B610].unk1E = 0;
+        D_8039B070_entries[D_8039B610].unk19 = 0;
+        D_8039B070_entries[D_8039B610].unk1A = *(s16 *) (arg0 + 8);
+        D_8039B070_entries[D_8039B610].unk1C = *(s16 *) (arg0 + 10);
+        D_8039B070_entries[D_8039B610].unk20 = 0;
+        D_8039B070_entries[D_8039B610].unk22 = 0;
+        D_8039B070_entries[D_8039B610].unk24 = 0;
+        D_8039B070_entries[D_8039B610].unk26 = 0;
+        D_8039B070_entries[D_8039B610].unk28 = 0;
+        D_8039B070_entries[D_8039B610].unk2A = 0;
+        D_8039B070_entries[D_8039B610].unk18 = 1;
+        D_8039B070_entries[D_8039B610].unk3C = D_80358070;
+        D_80358070 += 8;
+        func_8028DA5C(D_8039B070_entries[D_8039B610].unk3C, D_8039B070_entries[D_8039B610].unk0E);
+        /* One statement (a for-loop increment, probably). */
+        D_8039B610++, arg0 += 12;
+    }
+}
 
 /* Fill the 8 corner Vtx of box type arg1, with texture coords 0 or 31.0
  * (0x3E0). Corners 2 and 5 need the comma form (probably a macro):

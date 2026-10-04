@@ -28,6 +28,39 @@ f32 func_8027E228();
 f32 func_8027DB5C(s32 *a, s32 *b, s32 arg2);
 void func_8027DA10(s32 arg0, s32 arg1, s32 arg2);
 
+/* Level spawn table for the proximity objects below (one entry). */
+typedef struct {
+    u8 id; /* level id */
+    u8 pad1;
+    s16 x, y, z;
+} MineSpawn;
+
+/* A placed proximity object (0x50 bytes). */
+typedef struct {
+    s16 x, y, z;
+    s16 pad6;
+    Vtx v[4];  /* 0x08 */
+    u8 active; /* 0x48 */
+} Mine;
+
+extern MineSpawn D_802FC520[];
+extern Vtx D_802FC528[];
+extern Mine D_8036E380[];
+extern s32 D_8036E4C0; /* number of placed objects */
+extern s32 D_8036E4C4;
+extern s16 D_8036E4C8;
+extern s8 D_8036E4CA;
+extern s32 D_803643E0;
+extern s32 D_803643E4;
+extern s32 D_803643E8;
+extern void *D_80367738;
+extern s32 D_8036DCD8;
+
+void func_8026A5CC(void *arg0, void *arg1, s32 arg2);
+s32 func_802A0CC8(s32, s32);
+s32 func_8026A6F0(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5);
+void *func_80260650(void *arg0, s16 arg1, void *arg2);
+
 void func_8027D810(s32 arg0) {
     switch (arg0) {
     case 0:
@@ -222,9 +255,57 @@ void func_8028072C(Vtx *v, s16 x0, s16 y0, s16 z0, s16 x1, s16 y1, s16 z1) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/39050/func_80280F34.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/39050/func_80281A70.s")
+void func_80281A70(s32 arg0) {
+    s32 i;
+    s32 j;
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/39050/func_80281CE4.s")
+    D_8036E4C0 = 0;
+    for (i = 0; i < 1; i++) {
+        if (D_802FC520[i].id == arg0) {
+            D_8036E380[D_8036E4C0].x = D_802FC520[i].x;
+            D_8036E380[D_8036E4C0].y = D_802FC520[i].y;
+            D_8036E380[D_8036E4C0].z = D_802FC520[i].z;
+            func_8026A5CC(D_8036E380[D_8036E4C0].v, D_802FC528, sizeof(D_8036E380->v));
+            for (j = 0; j < 4; j++) {
+                D_8036E380[D_8036E4C0].v[j].v.ob[0] += D_8036E380[D_8036E4C0].x;
+                D_8036E380[D_8036E4C0].v[j].v.ob[1] += D_8036E380[D_8036E4C0].y;
+                D_8036E380[D_8036E4C0].v[j].v.ob[2] += D_8036E380[D_8036E4C0].z;
+            }
+            D_8036E380[D_8036E4C0].active = 1;
+            D_8036E4C0++;
+        }
+    }
+    if (D_8036E4C0 != 0) {
+        D_8036E4C4 = func_802A0CC8(0x546, 0);
+    }
+    D_8036E4C8 = 0;
+    D_8036E4CA = 0;
+}
+
+void func_80281CE4(void) {
+    s32 i;
+    s32 dist;
+
+    D_8036E4CA = 0;
+    if (D_8036E4C8 != 0) {
+        D_8036E4C8--;
+    }
+    for (i = 0; i < D_8036E4C0; i++) {
+        if (D_8036E380[i].active != 0) {
+            dist = func_8026A6F0(D_803643E0 >> 5, D_803643E4 >> 5, D_803643E8 >> 5,
+                                 D_8036E380[i].x, D_8036E380[i].y, D_8036E380[i].z);
+            if (dist < 40) {
+                D_8036E4C8 = 400;
+                D_8036E4CA = 1;
+                D_8036E380[i].active = 0;
+                func_80260650(D_80367738, 0xB0, NULL);
+                if (D_8036DCD8 == 0) {
+                    func_80260650(D_80367738, 0xCF, &D_8036DCD8);
+                }
+            }
+        }
+    }
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/39050/func_80281E44.s")
 

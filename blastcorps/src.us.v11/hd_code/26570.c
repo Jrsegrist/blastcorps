@@ -14,10 +14,29 @@ typedef struct {
 /* Pathfinding node, 0x1C bytes */
 typedef struct {
     /* 0x00 */ u16 flags;
-    /* 0x02 */ u8 unk2[0x1A];
+    /* 0x02 */ u8 unk2[0x12];
+    /* 0x14 */ u8 unk14;
+    /* 0x15 */ u8 unk15[5];
+    /* 0x1A */ s8 unk1A;
+    /* 0x1B */ u8 unk1B;
 } PathNode;
 
+/* 0x30 bytes */
 typedef struct {
+    /* 0x00 */ u8 unk0[4];
+    /* 0x04 */ u8 unk4;
+    /* 0x05 */ u8 unk5;
+    /* 0x06 */ u8 unk6[0x26];
+    /* 0x2C */ u8 unk2C;
+    /* 0x2D */ u8 unk2D;
+    /* 0x2E */ s8 unk2E;
+    /* 0x2F */ u8 unk2F;
+} YoshiSnd;
+
+#define YOSHI_OFF 1
+#define NO_YOSHI_WINDOW -1
+
+typedef struct YoshiArg {
     /* 0x00 */ u8 unk0[8];
     /* 0x08 */ u32 flags;
     /* 0x0C */ u8 unkC[2];
@@ -27,12 +46,19 @@ typedef struct {
 
 void func_8029A7E4(const char *fmt, ...);
 u16 func_8026F8A8(u16 arg0, u16 arg1, u16 start, u16 mask);
+void func_8026FB50(struct YoshiArg *arg0);
+Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count);
+s8 func_80272C5C(void *arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, f32 arg5);
 
 extern u16 D_8036BB04;
 extern u16 D_8036BB06;
 extern PathNode *D_8036BB10;
 extern u16 D_8036BB1E;
 extern PathNode *D_8036BB24;
+extern s16 currentYoshiWindow;
+extern s16 yoshiState;
+extern u8 D_8036BA98[];
+extern YoshiSnd D_802F49F4[];
 extern u16 D_8036EA7C;
 extern PathNode D_8020C070[];
 extern PathNode D_802F5804[];
@@ -54,9 +80,40 @@ u16 func_8026B10C(void) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/26570/func_8026B8F8.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/26570/func_8026BA7C.s")
+void func_8026BA7C(YoshiArg *arg0) {
+    YoshiSnd *snd;
+    s32 i;
+    u8 v;
+    PathNode *node;
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/26570/func_8026BBD0.s")
+    v = 4;
+    func_8026FB50(arg0);
+    if (arg0->flags & 0x20000) {
+        v = 0;
+    }
+    for (i = arg0->unkE; i < arg0->unkE + arg0->unk10; i++) {
+        node = &D_8036BB10[i];
+        if (node->flags & 0x400) {
+            snd = &D_802F49F4[node->unk14];
+            if (snd->unk2E == -1) {
+                node->unk1A = func_80272C5C(snd->unk6, 0, snd->unk4, snd->unk2C, snd->unk2D | v, 1.0f);
+                D_8036BA98[node->unk14] = 0;
+            } else {
+                node->unk1A = snd->unk2E;
+            }
+        }
+    }
+}
+
+void func_8026BBD0(Gfx *gfx, s32 arg1, s32 *count) {
+    Gfx *gdl = gfx;
+
+    YOSHI_ASSERT(!(yoshiState==YOSHI_OFF && currentYoshiWindow!=NO_YOSHI_WINDOW), 1567);
+    gdl = func_8026BCE0(gdl, arg1, count);
+    YOSHI_ASSERT(!(yoshiState==YOSHI_OFF && currentYoshiWindow!=NO_YOSHI_WINDOW), 1571);
+    gDPPipeSync(gdl++);
+    *count += gdl - gfx;
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/26570/func_8026BCE0.s")
 

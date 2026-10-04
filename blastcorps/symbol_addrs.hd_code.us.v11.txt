@@ -252,3 +252,5 @@ __osTimerCounter = 0x803FF320; // type:data
 __osSiAccessQueue = 0x803FF338; // type:data
 __osFaultedThread = 0x80307774; // type:data
 __osBaseTimer = 0x803FF2F0; // type:data
+currentYoshiWindow = 0x8036BB18; // type:data
+yoshiState = 0x8036BB1C; // type:data

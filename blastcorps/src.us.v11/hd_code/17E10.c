@@ -309,12 +309,12 @@ extern u16 D_80366A12;
 extern s16 D_80366A14;
 extern s16 D_80366A16;
 extern s16 D_8039CAA0;
-extern s16 D_8036BB1C;
+extern s16 yoshiState;
 
 /* TODO: func_8025D2B4 - draws the scrolling title backdrop. Input bits
  * in the u64 D_80364A90 fade D_80366A14 up/down, a little state machine
  * on D_80366A12 (0 -> 1 on D_80358060 == 0x3C, 1 fades D_80366A16 out,
- * 2 scrolls D_80366A00 to 0x10, 4 tracks D_8036BB1C) steps the intro,
+ * 2 scrolls D_80366A00 to 0x10, 4 tracks yoshiState) steps the intro,
  * then: a 5x5 grid of 32x32 tiles from D_80366BB0[1] (states 0/1/4) and,
  * falling through the switch for every state but 4, a strip of tiles from
  * D_80366BB0[0] drawn twice with scissored texture rectangles at a
@@ -369,7 +369,7 @@ Gfx *func_8025D2B4(Gfx *arg0, s32 arg1, s32 *arg2) {
             }
             break;
         case 4:
-            if (D_8036BB1C == 2) {
+            if (yoshiState == 2) {
                 if (D_80366A16 + 4 > 0x80) {
                     D_80366A16 = 0x80;
                 } else {
@@ -392,7 +392,7 @@ Gfx *func_8025D2B4(Gfx *arg0, s32 arg1, s32 *arg2) {
     gDPSetRenderMode(gfx++, 0x00504240, 0);
     gDPSetCombine(gfx++, 0xFF97FF, 0xFF2CFE7F);
 
-    if (D_80364A90 == 2 && D_8036BB1C != 1) {
+    if (D_80364A90 == 2 && yoshiState != 1) {
         top = D_80366A00 - (0xFF - D_8039CAA0) / 4;
         if (top + 0x3F == D_80366A00) {
             top = -100;
@@ -480,9 +480,9 @@ extern u8 D_802E8F94[];
 extern u8 D_80364AE8;
 extern u8 D_80364AF0[][256];
 extern u32 D_80366BB8;
-extern s16 D_8036BB18;
+extern s16 currentYoshiWindow;
 extern s16 D_8036BB1A;
-extern s16 D_8036BB1C;
+extern s16 yoshiState;
 extern void *D_80367734;
 extern void *D_80367738;
 extern u32 D_80367740;
@@ -550,7 +550,7 @@ void func_8025E2CC(Gfx **arg0, s32 arg1, s32 arg2) {
         }
         D_80366BC0 = D_803643D7;
         if (D_80366BB8 == 0) {
-            if (D_8036BB1C == 8 && D_8036BB18 == D_80366BC2) {
+            if (yoshiState == 8 && currentYoshiWindow == D_80366BC2) {
                 D_80366BB8 = D_803156C4;
                 func_80278318();
                 func_80277EDC(2, 1, 2, func_8026205C(3));
@@ -571,9 +571,9 @@ extern u8 D_803643D8;
 extern s32 D_802E8BDC;
 extern u8 D_802E8F94[];
 extern void *D_80367738;
-extern s16 D_8036BB18;
+extern s16 currentYoshiWindow;
 extern s16 D_8036BB1A;
-extern s16 D_8036BB1C;
+extern s16 yoshiState;
 extern u8 D_802E8BD8;
 extern u32 D_80366BB8;
 extern u8 D_80366BC5;
@@ -616,7 +616,7 @@ void func_8025E67C(Gfx **arg0, s32 arg1, u8 arg2) {
                 default:
                     func_80260650(D_80367738, 0x31, NULL);
                     D_802E8BD8 = 1;
-                    if (D_8036BB18 != -1 || func_8026B10C() != 0) {
+                    if (currentYoshiWindow != -1 || func_8026B10C() != 0) {
                         func_8026AF6C(0x4000);
                     }
                     D_8036BB1A = -1;
@@ -636,7 +636,7 @@ void func_8025E67C(Gfx **arg0, s32 arg1, u8 arg2) {
                     }
                     break;
                 case 0x32:
-                    if (D_8036BB1C == 1 && func_802753C0() == 0) {
+                    if (yoshiState == 1 && func_802753C0() == 0) {
                         if ((D_80364AF0[D_80364AE8][D_802E8BDC + 0x18] > 0 &&
                              D_80364AF0[D_80364AE8][D_802E8BDC + 0x18] < 6) ? 1 : 0) {
                             func_80275390(0x08000000);

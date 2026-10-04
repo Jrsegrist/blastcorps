@@ -33,6 +33,24 @@ typedef struct {
     /* 0x2F */ u8 unk2F;
 } YoshiSnd;
 
+/* Per-player state, 0x100 bytes */
+typedef struct {
+    /* 0x00 */ u8 unk0[0x88];
+    /* 0x88 */ u8 unk88[9];
+    /* 0x91 */ u8 unk91;
+    /* 0x92 */ u8 unk92[0x6E];
+} Player;
+
+/* 0x22 bytes */
+typedef struct {
+    /* 0x00 */ u8 id;
+    /* 0x02 */ s16 ids[16];
+} YoshiTrigger;
+
+#define ABS(x) ((x) > 0 ? (x) : -(x))
+#define MIN255(x) ((x) >= 256 ? 255 : (x))
+#define MAX0(x) ((x) < 0 ? 0 : (x))
+
 #define YOSHI_OFF 1
 #define NO_YOSHI_WINDOW -1
 #define YOSHI_DEMAND_OFF 0x4000
@@ -49,6 +67,7 @@ typedef struct YoshiArg {
 void func_8029A7E4(const char *fmt, ...);
 u16 func_8026F8A8(u16 arg0, u16 arg1, u16 start, u16 mask);
 void func_8026FB50(struct YoshiArg *arg0);
+void func_8026AF6C(u16 yd);
 void func_8026BA7C(struct YoshiArg *arg0);
 u8 func_8026FA38(char **name, s32 *arg1);
 s32 func_8026F92C(u64 in);
@@ -56,6 +75,13 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count);
 s8 func_80272C5C(void *arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, f32 arg5);
 
 extern u16 yoshiDemandV;
+extern u64 D_80364A90;
+extern u8 D_80364AE8;
+extern Player D_80364AF0[];
+extern YoshiTrigger D_802F48D0[];
+extern s32 D_802E8BDC;
+extern u8 D_802F499A[];
+extern u8 D_8036BAA2[];
 extern s16 D_8036BB1A;
 extern u32 D_80364AA8;
 extern u64 D_80364A98;
@@ -78,7 +104,41 @@ extern PathInfo D_802F9934[];
 extern u16 D_803C30A8[];
 extern s32 D_803F7684;
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/26570/func_8026AD30.s")
+u8 func_8026AD30(s16 arg0) {
+    YoshiTrigger *trig;
+    u8 found = 0;
+    s32 i;
+    s32 j;
+    s32 c1;
+    s32 c2;
+
+    if (!(D_80364A90 & 0x2104)) {
+        return 0;
+    }
+    if (D_80364AF0[D_80364AE8].unk91 >= 11) {
+        return 0;
+    }
+    for (i = 0; i < 8 && !found; i++) {
+        trig = &D_802F48D0[i];
+        if (trig->id == D_802E8BDC) {
+            for (j = 0; j < 16 && !found && trig->ids[j] != -1; j++) {
+                if (trig->ids[j] == arg0) {
+                    c1 = D_80364AF0[D_80364AE8].unk88[arg0] < D_802F499A[arg0];
+                    c2 = D_802E8BDC == 0;
+                    if (!D_8036BAA2[arg0] && (c2 || c1)) {
+                        if (c1 && !c2) {
+                            D_80364AF0[D_80364AE8].unk88[arg0]++;
+                        }
+                        D_8036BAA2[arg0] = 1;
+                        func_8026AF6C(arg0 | 0x8000 | 0x2000);
+                        found = 1;
+                    }
+                }
+            }
+        }
+    }
+    return found;
+}
 
 void func_8026AF6C(u16 yd) {
     u16 oldWindow = yoshiDemandV & 0xFF;
@@ -181,7 +241,12 @@ void func_8026EF70(YoshiArg *arg0) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/26570/func_8026F004.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/26570/func_8026F644.s")
+u8 func_8026F644(u16 *arg0, u16 *arg1, s16 arg2) {
+    if (*arg1 & 0x1000) {
+        return MAX0(MIN255(512 - (ABS(arg2) * 512) / (arg0[1] / 3)));
+    }
+    return 255;
+}
 
 u16 func_8026F82C(u16 lo, u16 hi, u16 mask) {
     s32 i;

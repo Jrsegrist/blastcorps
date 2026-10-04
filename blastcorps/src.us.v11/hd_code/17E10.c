@@ -230,7 +230,133 @@ void func_8025E1E0(Gfx **arg0) {
  * regressed the frame, so it wasn't kept. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_8025E2CC.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_8025E67C.s")
+extern u8 D_803643D6;
+extern u8 D_803643D8;
+extern s32 D_802E8BDC;
+extern u8 D_802E8F94[];
+extern void *D_80367738;
+extern s16 D_8036BB18;
+extern s16 D_8036BB1A;
+extern s16 D_8036BB1C;
+extern u8 D_802E8BD8;
+extern u32 D_80366BB8;
+extern u8 D_80366BC5;
+extern u8 D_80364AE8;
+extern u8 D_80364AF0[][256];
+extern u64 D_80364A98;
+extern f64 D_80309098;
+void func_802609D0(void);
+void func_802C1DD0(s32);
+void *func_80260650(void *, s16, void *);
+void func_80261570(f32);
+void func_8026AF6C(s32);
+s32 func_8026B10C(void);
+s32 func_802753C0(void);
+void func_80275390(u64);
+
+void func_8025E67C(Gfx **arg0, s32 arg1, u8 arg2) {
+    Gfx *gfx;
+    u32 time;
+    u32 i;
+    u32 j;
+    s32 pad;
+    u32 alpha;
+
+    gfx = *arg0;
+    time = D_803156C4;
+    if (D_803643D6 != 0) {
+        if (D_803643D8 == 0) {
+            func_802609D0();
+            func_802C1DD0(D_802E8F94[D_802E8BDC * 68] == 0x20 || D_802E8F94[D_802E8BDC * 68] == 0x80);
+            switch (D_802E8BDC) {
+                case 0x31:
+                    func_80260650(D_80367738, 0x31, NULL);
+                    func_80261570(0.0f);
+                    break;
+                case 0x32:
+                    D_8036BB1A = -1;
+                    func_8026AF6C(0xA00E);
+                    func_80261570(0.0f);
+                    break;
+                default:
+                    func_80260650(D_80367738, 0x31, NULL);
+                    D_802E8BD8 = 1;
+                    if (D_8036BB18 != -1 || func_8026B10C() != 0) {
+                        func_8026AF6C(0x4000);
+                    }
+                    D_8036BB1A = -1;
+                    func_80261570(0.0f);
+                    break;
+            }
+            D_80366BB8 = time;
+            D_80366BC5 = 0;
+        }
+        i = time - D_80366BB8;
+        if (i >= 0xB4) {
+            switch (D_802E8BDC) {
+                case 0x31:
+                    if (D_80366BC5 == 0) {
+                        func_80260650(D_80367738, 0x32, NULL);
+                        D_80366BC5 = 1;
+                    }
+                    break;
+                case 0x32:
+                    if (D_8036BB1C == 1 && func_802753C0() == 0) {
+                        if ((D_80364AF0[D_80364AE8][D_802E8BDC + 0x18] > 0 &&
+                             D_80364AF0[D_80364AE8][D_802E8BDC + 0x18] < 6) ? 1 : 0) {
+                            func_80275390(0x08000000);
+                        } else {
+                            func_80275390(0x40);
+                        }
+                    }
+                    break;
+                default:
+                    if (D_80366BC5 == 0) {
+                        func_80260650(D_80367738, 0x32, NULL);
+                        D_80366BC5 = 1;
+                    }
+                    gSPMatrix(gfx++, &D_02000000[3], G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
+                    gSPMatrix(gfx++, &D_02000000[7], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+                    gDPPipeSync(gfx++);
+                    gDPSetRenderMode(gfx++, 0x00504340, 0);
+                    gDPSetCombineMode(gfx++, G_CC_SHADE, G_CC_SHADE);
+                    gSPSetGeometryMode(gfx++, G_SHADE | G_SHADING_SMOOTH);
+                    gSPTexture(gfx++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_OFF);
+                    gSPVertex(gfx++, (u32) D_802FA8B0[arg2] - 0x80000000, 4, 0);
+                    gSP1Triangle(gfx++, 0, 1, 2, 0);
+                    gSP1Triangle(gfx++, 0, 2, 3, 0);
+                    gDPPipeSync(gfx++);
+                    if (func_802753C0() == 0) {
+                        if (time - D_80366BB8 - 0xB4 < 0x5A) {
+                            alpha = (time - D_80366BB8 - 0xB4) * D_80309098;
+                            for (i = 0; i < 4; i++) {
+                                for (j = 0; j < 4; j++) {
+                                    D_802FA8B0[arg2][i].v.cn[j] = alpha;
+                                }
+                            }
+                        } else if (time - D_80366BB8 - 0x10E >= 0x2E) {
+                            if (D_80364A90 == 0x100000000000LL) {
+                                D_80364A98 = 0x200000000000LL;
+                            } else if ((D_80364AF0[D_80364AE8][D_802E8BDC + 0x18] > 0 &&
+                                        D_80364AF0[D_80364AE8][D_802E8BDC + 0x18] < 6) ? 1 : 0) {
+                                func_80275390(0x08000000);
+                            } else {
+                                func_80275390(0x40);
+                            }
+                        } else {
+                            for (i = 0; i < 4; i++) {
+                                for (j = 0; j < 4; j++) {
+                                    D_802FA8B0[arg2][i].v.cn[j] = 0xFF;
+                                }
+                            }
+                        }
+                    }
+                    break;
+            }
+        }
+    }
+    *arg0 = gfx;
+}
 
 /* TODO: func_8025EDF0 - links arg0->unk8 into D_802E8CEC->0x48, resets
  * D_802E8CEC->0x40 and sets ->0x4c=0x80e8; allocates arg0->unk0*0x40

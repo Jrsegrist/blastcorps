@@ -181,6 +181,186 @@ void func_8025D0B0(u8 arg0) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_8025D184.s")
 
+/* Pre-2.0I libultra forms of the texture-rectangle macros: the RDP-half
+ * commands are G_RDPHALF_2/G_RDPHALF_CONT (0xB3/0xB2), and the scissored
+ * variant has no (s16) casts or xl/yl < 0 guard. */
+#define OLD_RDPHALF_2 0xB3
+#define OLD_RDPHALF_CONT 0xB2
+
+#define gSPTextureRectangleOld(pkt, xl, yl, xh, yh, tile, s, t, dsdx, dtdy)                \
+    {                                                                                        \
+        Gfx *_g = (Gfx *) (pkt);                                                             \
+                                                                                             \
+        _g->words.w0 = (_SHIFTL(G_TEXRECT, 24, 8) | _SHIFTL(xh, 12, 12) | _SHIFTL(yh, 0, 12)); \
+        _g->words.w1 = (_SHIFTL(tile, 24, 3) | _SHIFTL(xl, 12, 12) | _SHIFTL(yl, 0, 12));    \
+        gImmp1(pkt, OLD_RDPHALF_2, (_SHIFTL(s, 16, 16) | _SHIFTL(t, 0, 16)));                \
+        gImmp1(pkt, OLD_RDPHALF_CONT, (_SHIFTL(dsdx, 16, 16) | _SHIFTL(dtdy, 0, 16)));       \
+    }
+
+#define gSPScisTextureRectangleOld(pkt, xl, yl, xh, yh, tile, s, t, dsdx, dtdy)             \
+    {                                                                                        \
+        Gfx *_g = (Gfx *) (pkt);                                                             \
+                                                                                             \
+        _g->words.w0 = (_SHIFTL(G_TEXRECT, 24, 8) | _SHIFTL(MAX(xh, 0), 12, 12) |            \
+                        _SHIFTL(MAX(yh, 0), 0, 12));                                         \
+        _g->words.w1 = (_SHIFTL(tile, 24, 3) | _SHIFTL(MAX(xl, 0), 12, 12) |                 \
+                        _SHIFTL(MAX(yl, 0), 0, 12));                                         \
+        gImmp1(pkt, OLD_RDPHALF_2,                                                           \
+               (_SHIFTL(((s) - MIN(((xl) * (dsdx)) >> 7, 0)), 16, 16) |                      \
+                _SHIFTL(((t) - MIN(((yl) * (dtdy)) >> 7, 0)), 0, 16)));                      \
+        gImmp1(pkt, OLD_RDPHALF_CONT, (_SHIFTL(dsdx, 16, 16) | _SHIFTL(dtdy, 0, 16)));       \
+    }
+
+extern s16 D_80366A00;
+extern s16 D_80366A02;
+extern u16 D_80366A12;
+extern s16 D_80366A14;
+extern s16 D_80366A16;
+extern s16 D_8039CAA0;
+extern s16 D_8036BB1C;
+
+/* TODO: func_8025D2B4 - draws the scrolling title backdrop. Input bits
+ * in the u64 D_80364A90 fade D_80366A14 up/down, a little state machine
+ * on D_80366A12 (0 -> 1 on D_80358060 == 0x3C, 1 fades D_80366A16 out,
+ * 2 scrolls D_80366A00 to 0x10, 4 tracks D_8036BB1C) steps the intro,
+ * then: a 5x5 grid of 32x32 tiles from D_80366BB0[1] (states 0/1/4) and,
+ * falling through the switch for every state but 4, a strip of tiles from
+ * D_80366BB0[0] drawn twice with scissored texture rectangles at a
+ * vertical offset derived from D_8039CAA0. A leaf, so IDO keeps arg0/arg2
+ * in a0/a2 and uses t0/a3 for the MAX/MIN ternary temps.
+ *
+ * The draft below is exact on all 971 instructions and the -200 frame,
+ * except for two as1 scheduling choices: in the two `slti`-tested
+ * add-and-clamp updates (`(D_80366A14 += 10) > 0xFF` and
+ * `(D_80366A00 -= 10) <= 0x10`) target places the `sh` between the
+ * `sll`/`sra` sign-extension pair, while every spelling tried puts it
+ * after the `sra`. Tried: += vs. explicit add, separate statements (IDO
+ * forwards the stored value either way, same schedule), >= vs. >,
+ * reversed operands, (s16) casts. The bgez/bgtz-tested updates schedule
+ * correctly. Also note the texture rectangles need pre-2.0I gbi macro
+ * forms (defined above), which the project's 2.0I gbi.h lacks. */
+/*
+Gfx *func_8025D2B4(Gfx *arg0, s32 arg1, s32 *arg2) {
+    Gfx *gfx;
+    s32 i;
+    s32 j;
+    s32 step;
+    s16 top;
+
+    gfx = arg0;
+    if (D_80364A90 & 0x08040E2110418002LL) {
+        if ((D_80366A14 += 10) > 0xFF) {
+            D_80366A14 = 0xFF;
+        }
+    } else if (D_80364A90 & 0x0188004203160000LL) {
+        if ((D_80366A14 -= 10) <= 0) {
+            D_80366A14 = 0;
+        }
+    }
+
+    switch (D_80366A12) {
+        case 0:
+            if (D_80358060 == 0x3C) {
+                D_80366A12 = 1;
+            }
+            break;
+        case 1:
+            if ((D_80366A16 -= 8) < 0) {
+                D_80366A16 = 0;
+                D_80366A12 = 2;
+            }
+            break;
+        case 2:
+            if ((D_80366A00 -= 10) <= 0x10) {
+                D_80366A00 = 0x10;
+                D_80366A12 = 3;
+            }
+            break;
+        case 4:
+            if (D_8036BB1C == 2) {
+                if (D_80366A16 + 4 > 0x80) {
+                    D_80366A16 = 0x80;
+                } else {
+                    D_80366A16 += 4;
+                }
+            } else if (D_80364A90 == 0x200000) {
+                if (D_80366A16 - 6 < 0) {
+                    D_80366A16 = 0;
+                } else {
+                    D_80366A16 -= 6;
+                }
+            }
+            break;
+    }
+
+    gDPPipeSync(gfx++);
+    gSPTexture(gfx++, 0, 0, 0, G_TX_RENDERTILE, G_OFF);
+    gDPSetTexturePersp(gfx++, G_TP_NONE);
+    gDPSetCycleType(gfx++, G_CYC_1CYCLE);
+    gDPSetRenderMode(gfx++, 0x00504240, 0);
+    gDPSetCombine(gfx++, 0xFF97FF, 0xFF2CFE7F);
+
+    if (D_80364A90 == 2 && D_8036BB1C != 1) {
+        top = D_80366A00 - (0xFF - D_8039CAA0) / 4;
+        if (top + 0x3F == D_80366A00) {
+            top = -100;
+        }
+    } else {
+        top = D_80366A00;
+    }
+
+    switch (D_80366A12) {
+        case 0:
+        case 1:
+        case 4:
+            gDPSetPrimColor(gfx++, 0, 0, 0, 0, 0, D_80366A16);
+            step = 0x52;
+            for (i = 0; i < 0x96; i += 0x1F) {
+                for (j = 0; j < 0x96; j += 0x1F) {
+                    gDPLoadTextureTile(gfx++, D_80366BB0[1], G_IM_FMT_RGBA, G_IM_SIZ_16b, 156, 0, i, j,
+                                       i + 31, j + 31, 0, G_TX_CLAMP, G_TX_CLAMP, 0, 0, G_TX_NOLOD,
+                                       G_TX_NOLOD);
+                    gSPTextureRectangleOld(gfx++, (i + step) << 2, (j + D_80366A02) << 2,
+                                           (i + step + 0x1F) << 2, (j + D_80366A02 + 0x1F) << 2, 0,
+                                           i << 5, j << 5, 1 << 10, 1 << 10);
+                }
+            }
+            if (D_80366A12 == 4) {
+                break;
+            }
+        default:
+            gDPPipeSync(gfx++);
+            gDPSetCombine(gfx++, 0xFF97FF, 0xFF2DFEFF);
+            gDPSetPrimColor(gfx++, 0, 0, 0, 0, 0, D_80366A14 / 2);
+            step = 0x14;
+            for (i = 0; i < 0x110; i += 0x1F) {
+                gDPLoadTextureTile(gfx++, D_80366BB0[0], G_IM_FMT_RGBA, G_IM_SIZ_16b, 280, 0, i, 0,
+                                   i + 31, 63, 0, G_TX_CLAMP, G_TX_CLAMP, 0, 0, G_TX_NOLOD, G_TX_NOLOD);
+                gDPPipeSync(gfx++);
+                gDPSetRenderMode(gfx++, 0x00504240, 0);
+                gDPSetCombine(gfx++, 0xFF97FF, 0xFF2DFEFF);
+                gDPSetPrimColor(gfx++, 0, 0, 0, 0, 0, D_80366A14 / 2);
+                gSPScisTextureRectangleOld(gfx++, (i + step) << 2, (top + 6) << 2,
+                                           (i + step + 0x1F) << 2, (top + 0x45) << 2, 0, i << 5, 0,
+                                           1 << 10, 1 << 10);
+                gDPPipeSync(gfx++);
+                if (D_80366A14 == 0xFF && (D_80364A90 & 0xC9FD0FE79BFF80B0LL)) {
+                    gDPSetRenderMode(gfx++, 0x0F0A7008, 0);
+                }
+                gDPSetCombine(gfx++, 0xFF97FF, 0xFF2CFE7F);
+                gDPSetPrimColor(gfx++, 0, 0, 0, 0, 0, D_80366A14);
+                gSPScisTextureRectangleOld(gfx++, (i + step) << 2, top << 2, (i + step + 0x1F) << 2,
+                                           (top + 0x3F) << 2, 0, i << 5, 0, 1 << 10, 1 << 10);
+            }
+            break;
+    }
+
+    gDPPipeSync(gfx++);
+    gDPSetTexturePersp(gfx++, G_TP_PERSP);
+    *arg2 = *arg2 + (gfx - arg0);
+    return gfx;
+}
+*/
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_8025D2B4.s")
 
 extern Mtx D_02000000[];

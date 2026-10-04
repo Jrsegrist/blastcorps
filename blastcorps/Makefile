@@ -98,6 +98,9 @@ INIT_LDFLAGS    = -T $(INIT_LD_SCRIPT) -Map $(INIT_TARGET).map -T undefined_syms
 HD_CODE_LDFLAGS = -T hd_code_bss.$(VERSION).ld -T $(HD_CODE_LD_SCRIPT) -Map $(HD_CODE_TARGET).map -T undefined_syms_auto.hd_code.$(VERSION).txt -T undefined_funcs_auto.hd_code.$(VERSION).txt -T undefined_syms.hd_code.$(VERSION).txt --no-check-sections --no-warn-mismatch
 
 
+# hd_code files that own a .rodata subsegment (see tools/late_rodata.py)
+LATE_RODATA_HD_CODE := 17E10 1A630 26570 2C560
+
 ### Optimisation Overrides
 
 # Game files compiled at -O2 in the original build. Evidence: IDO only
@@ -147,6 +150,8 @@ verify_hd_code: hd_code
 extract:
 	$(PYTHON) $(TOOLS_DIR)/splat/split.py init.$(VERSION).yaml
 	$(PYTHON) $(TOOLS_DIR)/splat/split.py hd_code.$(VERSION).yaml
+	# files with their own .rodata: move float/double/jtbl rodata to .late_rodata
+	$(PYTHON) $(TOOLS_DIR)/late_rodata.py $(addprefix asm/nonmatchings/hd_code/,$(LATE_RODATA_HD_CODE))
 
 # preprocessed context for mips_to_c (tools/m2c.sh); not version-specific
 ctx.i: ctx.c

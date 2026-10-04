@@ -100,6 +100,9 @@ HD_CODE_LDFLAGS = -T $(HD_CODE_LD_SCRIPT) -Map $(HD_CODE_TARGET).map -T undefine
 
 ### Optimisation Overrides
 
+# libultra/libc files built at -O2 (like the original SDK)
+$(BUILD_DIR)/src.$(VERSION)/hd_code/99580.c.o: OPT_FLAGS := -O2
+
 
 ### Targets
 

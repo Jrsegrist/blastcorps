@@ -47,6 +47,17 @@ typedef struct {
     /* 0x02 */ s16 ids[16];
 } YoshiTrigger;
 
+/* Yoshi path node, 0x88 bytes */
+typedef struct {
+    /* 0x00 */ s16 x;
+    /* 0x02 */ s16 y;
+    /* 0x04 */ s16 z;
+    /* 0x06 */ u8 visited;
+    /* 0x07 */ u8 cell;
+    /* 0x08 */ u8 unk8[0x40];
+    /* 0x48 */ u8 unk48[0x40];
+} YoshiNode;
+
 #define ABS(x) ((x) > 0 ? (x) : -(x))
 #define MIN255(x) ((x) >= 256 ? 255 : (x))
 #define MAX0(x) ((x) < 0 ? 0 : (x))
@@ -68,6 +79,11 @@ void func_8029A7E4(const char *fmt, ...);
 u16 func_8026F8A8(u16 arg0, u16 arg1, u16 start, u16 mask);
 void func_8026FB50(struct YoshiArg *arg0);
 void func_8026AF6C(u16 yd);
+u8 func_8026AD30(s16 arg0);
+void func_8026A5CC(void *arg0, void *arg1, s32 arg2);
+s32 func_8026A6F0(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5);
+void func_802AC544(s32 arg0, s32 arg1, s32 arg2);
+void *func_80260650(void *arg0, s16 arg1, void *arg2);
 void func_8026BA7C(struct YoshiArg *arg0);
 u8 func_8026FA38(char **name, s32 *arg1);
 s32 func_8026F92C(u64 in);
@@ -75,6 +91,25 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count);
 s8 func_80272C5C(void *arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, f32 arg5);
 
 extern u16 yoshiDemandV;
+extern u16 D_8036EB90;
+extern u16 D_8036BBB0[];
+extern u16 D_8036BBB2[];
+extern s32 D_8036BED4;
+extern YoshiNode *D_8036BED8;
+extern f32 D_8036BEDC;
+extern u8 D_8036BEE0;
+extern void *D_80358070;
+extern s32 D_803BE70C;
+extern s32 D_803BE710;
+extern s16 D_803BE714;
+extern u8 D_802F99C0[];
+extern s32 D_803643E0;
+extern s32 D_803643E4;
+extern s32 D_803643E8;
+extern u8 D_80364456;
+extern s32 D_802FA200[];
+extern u8 D_802E8BD0;
+extern void *D_80367738;
 extern u64 D_80364A90;
 extern u8 D_80364AE8;
 extern Player D_80364AF0[];
@@ -316,20 +351,74 @@ void func_8026FB50(YoshiArg *arg0) {
     }
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/26570/func_8026FBB0.s")
+void func_8026FBB0(s16 *pos, s16 *end) {
+    s32 pad;
 
-extern u8 *D_8036BED8;
+    D_8036EB90 = 0;
+    D_8036EA7C = 0;
+    if (D_80364A90 != 0x40) {
+        D_8036BED4 = *D_8036BBB0 = 0;
+    }
+    D_8036BED8 = D_80358070;
+    D_8036BEE0 = 0;
+    D_8036BEDC = 999999.0f;
+    while (pos != end) {
+        D_8036BED8[D_8036EB90].x = pos[0];
+        D_8036BED8[D_8036EB90].y = pos[1];
+        D_8036BED8[D_8036EB90].z = pos[2];
+        D_8036BED8[D_8036EB90].visited = 0;
+        D_8036BED8[D_8036EB90].cell = pos[0] / (D_803BE70C >> 5) + pos[2] / (D_803BE710 >> 5) * D_803BE714;
+        func_8026A5CC(D_8036BED8[D_8036EB90].unk8, D_802F99C0, 0x40);
+        func_8026A5CC(D_8036BED8[D_8036EB90].unk48, D_802F99C0, 0x40);
+        D_8036EB90++, pos += 3;
+    }
+    D_80358070 = (YoshiNode *) D_80358070 + D_8036EB90;
+}
 
 u8 func_8026FE6C(s32 arg0) {
-    return *(u8 *) ((u8 *) D_8036BED8 + (arg0 * 0x88) + 6);
+    return D_8036BED8[arg0].visited;
 }
 
 void func_8026FE8C(s32 arg0) {
-    *(u8 *) ((u8 *) D_8036BED8 + (arg0 * 0x88) + 6) = 1;
+    D_8036BED8[arg0].visited = 1;
     D_8036EA7C++;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/26570/func_8026FEC4.s")
+void func_8026FEC4(void) {
+    s32 i;
+    s32 pad;
+    s32 dist;
+    u8 cell;
+    u8 flag;
+
+    flag = 0;
+    cell = D_803643E8 / D_803BE710 * D_803BE714 + D_803643E0 / D_803BE70C;
+    for (i = 0; i < D_8036EB90; i++) {
+        if (D_8036BED8[i].cell == cell && !D_8036BED8[i].visited) {
+            dist = func_8026A6F0(D_803643E0 >> 5, D_803643E4 >> 5, D_803643E8 >> 5,
+                                 D_8036BED8[i].x, D_8036BED8[i].y, D_8036BED8[i].z);
+            if (dist < D_802FA200[D_80364456]) {
+                if (++D_8036EA7C >= 4 && !D_802E8BD0) {
+                    func_8026AD30(0x46);
+                }
+                if (D_80364A90 != 0x40) {
+                    D_8036BBB0[D_8036BED4] = D_8036BBB2[D_8036BED4] = i;
+                    D_8036BED4++;
+                }
+                func_802AC544(D_8036BED8[i].x, D_8036BED8[i].y + 5, D_8036BED8[i].z);
+                D_8036BED8[i].visited = 1;
+                if (!flag) {
+                    flag = 1;
+                    if (D_80364AA8 == 0x40) {
+                        func_80260650(D_80367738, 0x3B, NULL);
+                    } else {
+                        func_80260650(D_80367738, 0x27, NULL);
+                    }
+                }
+            }
+        }
+    }
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/26570/func_802701A8.s")
 

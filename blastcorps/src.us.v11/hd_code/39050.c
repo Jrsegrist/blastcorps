@@ -424,9 +424,14 @@ void func_80281E44(Gfx **gfx) {
 void func_802A0B00(s32, s32);
 
 extern s32 D_80358070;
-extern s32 D_8036E4CC;
-extern s16 D_8036E4D0;
-extern s8 D_8036E4D2;
+extern s32 D_8036E4CC; /* overlay texture */
+extern s16 D_8036E4D0; /* overlay alpha */
+extern u8 D_8036E4D2;  /* overlay on */
+extern Mtx D_02000000[];
+extern Vtx D_802FC568[];
+extern s16 D_80367BD6;
+
+s32 func_8029DBF0(u8);
 
 void func_802821D0(void) {
     D_8036E4CC = D_80358070;
@@ -436,7 +441,54 @@ void func_802821D0(void) {
     D_8036E4D2 = 0;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/39050/func_80282224.s")
+/* Fade a textured quad (D_802FC568) in when arg1 is 7, 11, 17 or 18 and func_8029DBF0(arg1) is 0;
+ * otherwise fade it out by 10 per frame. */
+void func_80282224(Gfx **gfx, u8 arg1) {
+    Gfx *gdl;
+    u8 flag;
+    u8 flag2;
+
+    gdl = *gfx;
+    flag = arg1 == 7 || arg1 == 11 || arg1 == 17 || arg1 == 18;
+    if (D_8036E4D2 != 0 && !flag) {
+        if ((D_8036E4D0 -= 10) < 0) {
+            D_8036E4D0 = 0;
+        }
+    } else {
+        if (flag) {
+            flag2 = !func_8029DBF0(arg1);
+        }
+        if (flag && flag2) {
+            D_8036E4D0 = 0xFF;
+            D_8036E4D2 = 1;
+        } else {
+            D_8036E4D0 = 0;
+        }
+    }
+    if (D_8036E4D0 == 0) {
+        D_8036E4D2 = 0;
+    }
+    if (D_8036E4D2 != 0) {
+        gSPMatrix(gdl++, &D_02000000[3], G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
+        gSPMatrix(gdl++, &D_02000000[7], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+        gDPPipeSync(gdl++);
+        gDPSetCycleType(gdl++, G_CYC_1CYCLE);
+        gDPSetRenderMode(gdl++, G_RM_XLU_SURF, G_RM_XLU_SURF2);
+        gSPClearGeometryMode(gdl++, 0xFFFFFFFF);
+        gSPSetGeometryMode(gdl++, G_SHADE | G_SHADING_SMOOTH);
+        gSPTexture(gdl++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
+        gDPSetCombineMode(gdl++, G_CC_MODULATERGBA_PRIM, G_CC_MODULATERGBA_PRIM);
+        gDPSetPrimColor(gdl++, 0, 0, 0xFF, 0xFF, 0xFF, (D_8036E4D0 < D_80367BD6) ? D_8036E4D0 : D_80367BD6);
+        gDPLoadTextureBlock(gdl++, OS_K0_TO_PHYSICAL(D_8036E4CC), G_IM_FMT_RGBA, G_IM_SIZ_16b, 32, 32, 0,
+                            G_TX_MIRROR | G_TX_CLAMP, G_TX_MIRROR | G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK,
+                            G_TX_NOLOD, G_TX_NOLOD);
+        gSPVertex(gdl++, OS_K0_TO_PHYSICAL(D_802FC568), 4, 0);
+        gSP1Triangle(gdl++, 0, 1, 2, 0);
+        gSP1Triangle(gdl++, 0, 2, 3, 0);
+        gDPPipeSync(gdl++);
+    }
+    *gfx = gdl;
+}
 
 extern u8 D_8036E4D3;
 extern s32 D_8036E4D4;

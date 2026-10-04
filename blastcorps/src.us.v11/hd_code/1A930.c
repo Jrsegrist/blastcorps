@@ -355,22 +355,19 @@ void func_8026005C(void *arg0) {
     func_80260148((u8 *) D_802E8CEC + 0x14, arg0, 0xffff);
 }
 
-/* TODO: func_802600D8 - looks up arg0->unk8->unk4->unk5 (a signed byte),
- * passes it to func_802D7610 (a float-returning lookup/conversion), scales
- * the result by arg0->unk2c, and posts a {code=0x10, param=arg0, extra=the
- * scaled float's raw bits} event via func_802D6C8C. Logic, the pointer
- * chase, and the event-struct field layout are all confirmed correct
- * (diff score down to 675, zero logic errors). The one gap: this compiler
- * always promotes a float local to a callee-saved register ($f20, with a
- * matching sdc1/ldc1 prologue/epilogue save) the moment its address is
- * taken to read its bits as an integer, even when - as here - the value is
- * fully consumed well before any later call and a bare stack home would
- * suffice; target has no such save at all. Tried: reordering the
- * assignments every way, `register` (illegal combined with `&`), and a
- * union in place of the pointer-cast reinterpret (same promotion either
- * way) - this looks like a blanket cfe rule for address-taken floats, not
- * something a source rephrasing routes around. */
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/1A930/func_802600D8.s")
+f32 func_802D7610(s32);
+
+void func_802600D8(void *arg0) {
+    SndEvent evt;
+    f32 pitch;
+
+    pitch = (f32) (func_802D7610(*(s8 *) ((u8 *) ((SndState *) arg0)->sound->keyMap + 5)) *
+                   (f32) ((SndState *) arg0)->pitch_2c);
+    evt.state = arg0;
+    evt.type = 0x10;
+    evt.u.data = *(s32 *) &pitch;
+    func_802D6C8C((u8 *) D_802E8CEC + 0x14, &evt, 33333);
+}
 
 s32 func_802D6EB0(void *);
 s32 func_802D6EE0(void *, void *);

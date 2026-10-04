@@ -37,7 +37,8 @@ typedef struct {
 
 /* Per-player state, 0x100 bytes */
 typedef struct {
-    /* 0x00 */ u8 unk0[0x88];
+    /* 0x00 */ u8 unk0[0x18];
+    /* 0x18 */ u8 unk18[0x70]; /* per level */
     /* 0x88 */ u8 unk88[9];
     /* 0x91 */ u8 unk91;
     /* 0x92 */ u8 unk92[0x6E];
@@ -60,6 +61,12 @@ typedef struct {
     /* 0x48 */ u8 unk48[0x40];
 } YoshiNode;
 
+/* Per-level info, 0x44 bytes */
+typedef struct {
+    /* 0x00 */ u8 unk0;
+    /* 0x01 */ u8 unk1[0x43];
+} LevelInfo;
+
 #define ABS(x) ((x) > 0 ? (x) : -(x))
 #define MIN255(x) ((x) >= 256 ? 255 : (x))
 #define MAX0(x) ((x) < 0 ? 0 : (x))
@@ -74,7 +81,7 @@ typedef struct {
 typedef struct YoshiArg {
     /* 0x00 */ u8 unk0[8];
     /* 0x08 */ u32 flags;
-    /* 0x0C */ u8 unkC[2];
+    /* 0x0C */ u16 unkC;
     /* 0x0E */ u16 unkE;
     /* 0x10 */ u16 unk10;
     /* 0x12 */ u8 unk12[0xA];
@@ -84,6 +91,7 @@ void func_8029A7E4(const char *fmt, ...);
 u16 func_8026F8A8(u16 arg0, u16 arg1, u16 start, u16 mask);
 void func_8026FB50(struct YoshiArg *arg0);
 void func_8026AF6C(u16 yd);
+s32 func_80297EF8(s32 level);
 void *func_8025B558(u16 *text);
 u8 func_8026AD30(s16 arg0);
 void func_8026A5CC(void *arg0, void *arg1, s32 arg2);
@@ -97,6 +105,13 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count);
 s8 func_80272C5C(void *arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, f32 arg5);
 
 extern u16 yoshiDemandV;
+extern s16 D_8036BB0C;
+extern u8 D_8036BB0E;
+extern s16 D_8036BB16;
+extern u8 D_8036BAE8[];
+extern LevelInfo D_802E8F94[];
+extern u8 D_802F4878[];
+extern u8 D_802E8BF8;
 extern u16 D_8036BB48[];
 extern u16 D_8036BB4A[];
 /* Per-language special characters: [0] for English, [1] for Japanese */
@@ -231,7 +246,134 @@ u16 func_8026B10C(void) {
     return yoshiDemandV;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/26570/func_8026B118.s")
+/* Resets the Yoshi state and sets up the level's path nodes */
+void func_8026B118(u8 arg0) {
+    YoshiArg *arg;
+    YoshiTrigger *trig;
+    u8 found;
+    s32 i;
+    s32 j;
+
+    yoshiState = YOSHI_OFF;
+    D_8036BB16 = 0;
+    yoshiDemandV = 0;
+    D_8036BB1A = -1;
+    currentYoshiWindow = NO_YOSHI_WINDOW;
+    D_8036BB0C = 0;
+    arg = NULL;
+    D_8036BB0E = 1;
+    if (!arg0) {
+        for (i = 0; i < 108; i++) {
+            arg = &D_802F8BDC[i];
+            if (arg->flags & 0x100) {
+                arg->flags |= 0x80;
+            }
+        }
+    }
+    D_802F8BDC[6].unkC = 3;
+    for (i = 0; i < 18; i++) {
+        D_8036BAE8[i] = 0;
+    }
+    for (i = 0; i < 75; i++) {
+        D_802F49F4[i].unk2E = -1;
+    }
+    switch (D_80364A98) {
+        case 0x80:
+        case 0x8000000:
+            D_8020C070[25].unk14 = 0;
+            /* fallthrough */
+        case 0x40000000:
+            arg = &D_802F8BDC[D_802F4868[func_8026F92C(D_802E8F94[D_802E8BDC].unk0)]];
+            if (D_802E8BF8) {
+                D_8020C070[29].flags &= ~1;
+                D_8020C070[29].unk14 = 11;
+            }
+            if (D_802E8F94[D_802E8BDC].unk0 == 1) {
+                if (func_80297EF8(D_802E8BDC)) {
+                    D_8020C070[18].unk14 = 24;
+                } else {
+                    D_8020C070[18].unk14 = 0;
+                }
+            } else if (D_802E8F94[D_802E8BDC].unk0 == 0x20) {
+                D_8020C070[23].flags &= ~0x400;
+                D_8020C070[26].flags &= ~0x400;
+                D_8020C070[27].unk14 = 0;
+                D_8020C070[28].unk14 = 0;
+            } else {
+                D_8020C070[23].unk14 = D_802F4878[func_8026F92C(D_802E8F94[D_802E8BDC].unk0)];
+                D_8020C070[26].unk14 = D_802F4878[func_8026F92C(D_802E8F94[D_802E8BDC].unk0)];
+                D_8020C070[27].unk14 = 0;
+                D_8020C070[28].unk14 = 0;
+            }
+            break;
+        case 0x40000000000:
+            arg = &D_802F8BDC[22];
+            break;
+        case 0x4000000000000:
+            arg = &D_802F8BDC[56];
+            break;
+        case 0x40:
+            arg = &D_802F8BDC[D_802F4870[func_8026F92C(D_802E8F94[D_802E8BDC].unk0)]];
+            if (D_802E8F94[D_802E8BDC].unk0 == 0x20) {
+                D_802F5804[27].flags &= ~0x400;
+                D_802F5804[28].flags &= ~0x400;
+                D_802F5804[29].unk14 = 0;
+                D_802F5804[30].unk14 = 0;
+            } else {
+                D_802F5804[27].unk14 = D_802F4878[func_8026F92C(D_802E8F94[D_802E8BDC].unk0)];
+                D_802F5804[28].unk14 = D_802F4878[func_8026F92C(D_802E8F94[D_802E8BDC].unk0)];
+                D_802F5804[29].unk14 = 0;
+                D_802F5804[30].unk14 = 0;
+            }
+            break;
+        case 0x2000:
+            if (((D_80364AF0[D_80364AE8].unk18[D_802E8BDC] > 0 && D_80364AF0[D_80364AE8].unk18[D_802E8BDC] < 6) ? 1 : 0) &&
+                D_802E8F94[D_802E8BDC].unk0 == 1) {
+                arg = &D_802F8BDC[6];
+            } else {
+                arg = NULL;
+            }
+            break;
+        case 0x100000000000:
+            switch (D_802E8BDC) {
+                case 55:
+                    arg = &D_802F8BDC[65];
+                    break;
+                case 28:
+                    arg = &D_802F8BDC[66];
+                    break;
+                case 53:
+                    arg = &D_802F8BDC[67];
+                    break;
+                case 7:
+                    arg = &D_802F8BDC[68];
+                    break;
+                case 19:
+                    arg = &D_802F8BDC[69];
+                    break;
+                default:
+                    arg = NULL;
+                    break;
+            }
+            break;
+        default:
+            arg = NULL;
+            break;
+    }
+    if (arg) {
+        func_8026BA7C(arg);
+    }
+    if (D_80364A98 & 0x2004) {
+        for (i = 0, found = 0; i < 8 && !found; i++) {
+            trig = &D_802F48D0[i];
+            if (trig->id == D_802E8BDC) {
+                for (j = 0; j < 16 && trig->ids[j] != -1; j++) {
+                    func_8026BA7C(&D_802F8BDC[trig->ids[j]]);
+                }
+            }
+        }
+    }
+}
 
 void func_8026B8F8(void) {
     if (D_80364AA8 & 0x20) {

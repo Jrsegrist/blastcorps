@@ -307,7 +307,32 @@ void func_80281CE4(void) {
     }
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/39050/func_80281E44.s")
+void func_80281E44(Gfx **gfx) {
+    Gfx *gdl;
+    s32 i;
+
+    gdl = *gfx;
+    if (D_8036E4C0 != 0) {
+        gSPClearGeometryMode(gdl++, 0xFFFFFFFF);
+        gSPSetGeometryMode(gdl++, G_ZBUFFER | G_SHADE | G_SHADING_SMOOTH);
+        gDPPipeSync(gdl++);
+        gDPSetCycleType(gdl++, G_CYC_1CYCLE);
+        gDPSetRenderMode(gdl++, G_RM_ZB_XLU_SURF, G_RM_ZB_XLU_SURF2);
+        gDPSetCombineMode(gdl++, G_CC_MODULATERGBA, G_CC_MODULATERGBA);
+        gSPTexture(gdl++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
+        gDPLoadTextureBlock(gdl++, D_8036E4C4, G_IM_FMT_RGBA, G_IM_SIZ_16b, 32, 32, 0,
+                            G_TX_CLAMP, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
+        for (i = 0; i < D_8036E4C0; i++) {
+            if (D_8036E380[i].active != 0) {
+                gSPVertex(gdl++, D_8036E380[i].v, 4, 0);
+                gSP1Triangle(gdl++, 0, 1, 2, 0);
+                gSP1Triangle(gdl++, 0, 2, 3, 0);
+            }
+        }
+        gDPPipeSync(gdl++);
+    }
+    *gfx = gdl;
+}
 
 void func_802A0B00(s32, s32);
 

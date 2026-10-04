@@ -25,9 +25,17 @@ s32 D_8036BF40;
 s32 D_8036BF44;
 u64 D_8036BF48;
 s32 D_8036BF50;
-u8 D_8036BF54[0x3C];
-s32 D_8036BF90;
-s32 D_8036BF94;
+/* unreferenced words; scalars, since IDO 8-aligns arrays of this size */
+s32 D_8036BF54;
+s32 D_8036BF58;
+s32 D_8036BF5C;
+s32 D_8036BF60;
+s32 D_8036BF64;
+s32 D_8036BF68;
+s32 D_8036BF6C;
+s32 D_8036BF70;
+s32 D_8036BF74;
+OSTimer D_8036BF78; /* audio-frame timer (mq/msg at 0x8036BF90/94) */
 u8 D_8036BF98[0x20];
 s32 D_8036BFB8;
 s32 D_8036BFBC;
@@ -82,7 +90,8 @@ typedef struct {
     /* 0x270 */ BcScTask *gfxListTail;
     /* 0x274 */ BcScTask *curRSPTask;
     /* 0x278 */ BcScTask *curRDPTask;
-    /* 0x27C */ u8 pad27C[0x284 - 0x27C];
+    /* 0x27C */ s32 unk27C;
+    /* 0x280 */ s32 retraceCount;
     /* 0x284 */ s32 frameCount;
     /* 0x288 */ OSTime rdpStartTime;
     /* 0x290 */ OSTime gfxStartTime;
@@ -154,6 +163,8 @@ void *func_80270F74(void *arg0) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/2C560/func_80270F7C.s")
 
 void func_80271C24(BcSched *sc, BcScTask *t);
+s32 func_80271F48(OSMesgQueue *mq, OSMesg msg, s32 flag);
+void func_802D4550(u32 data);
 void func_80271CE4(BcSched *sc, s32 availRCP);
 void func_80271E88(BcSched *sc);
 
@@ -177,7 +188,57 @@ void func_802712FC(BcSched *sc) {
     }
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/2C560/func_80271358.s")
+extern u8 D_802E8BD0;
+u32 func_802DAAC0(void); /* DPC status */
+
+/* __scHandleRetrace */
+void func_80271358(BcSched *sc) {
+    BcScTask *rspTask;
+    BcScClient *client;
+    s32 i;
+    s32 count;
+
+    sc->frameCount++;
+    if (!D_802E8BD0) {
+        sc->retraceCount++;
+    }
+    D_8036BF38 = osGetTime();
+    if (D_8036BF1C) {
+        osViSwapBuffer(((BcScTask *) D_8036BF1C)->framebuffer);
+        D_8036BF18 = D_8036BF14;
+        D_8036BF14 = sc->frameCount + 1;
+        func_802D4550(8);
+        if (((BcScTask *) D_8036BF1C)->msgQ != NULL) {
+            func_80271F48(((BcScTask *) D_8036BF1C)->msgQ, ((BcScTask *) D_8036BF1C)->msg, OS_MESG_NOBLOCK);
+        }
+        D_8036BF1C = 0;
+    } else if (osViGetCurrentFramebuffer() == osViGetNextFramebuffer()) {
+        if (func_802DAAC0() & 2) {
+            sc->rdpStartTime = osGetTime();
+            func_802D4550(4);
+        }
+    }
+
+    count = sc->cmdQ.validCount;
+    for (i = 0; i < count; i++) {
+        SCHED_ASSERT(osRecvMesg(&sc->cmdQ, (OSMesg *)&rspTask, OS_MESG_NOBLOCK) != -1, 445);
+        if (sc->frameCount % ((u32 *) rspTask->unk50)[2] == 0) {
+            func_80271C24(sc, rspTask);
+        } else {
+            osSendMesg(&sc->cmdQ, (OSMesg) rspTask, OS_MESG_NOBLOCK);
+        }
+    }
+
+    if (sc->audioListHead != NULL && !(sc->frameCount & 1)) {
+        osSetTimer(&D_8036BF78, 280000, 0, ((OSMesgQueue **) sc->audioListHead->unk50)[1], (OSMesg) 5);
+    }
+
+    for (client = sc->clientList; client != NULL; client = client->next) {
+        if (client->unkC == 3) {
+            osSendMesg(client->msgQ, (OSMesg) 0x29A, OS_MESG_NOBLOCK);
+        }
+    }
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/2C560/func_802715DC.s")
 

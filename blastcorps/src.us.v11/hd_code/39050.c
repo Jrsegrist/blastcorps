@@ -388,9 +388,69 @@ void func_8027E344(s32 id) {
     D_8036DCB0 = 0;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/39050/func_8027E9B8.s")
+/* Per-frame water update: advance the wave clock, then rebuild the heights of vertex buffer buf. */
+void func_8027E9B8(u8 buf) {
+    s32 i;
+    s32 j;
+    s32 stepX;
+    s32 stepZ;
+    register f32 s;
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/39050/func_8027EED8.s")
+    if (D_8036DCD4 != 0 && D_802E8BD0 == 0) {
+        D_8036DCB0++;
+        D_8036DCD2 += 15;
+        if (D_8036DCD2 >= 255) {
+            D_8036DCD2 = 0;
+            if (++D_8036DCD0 >= 3) {
+                D_8036DCD0 = 0;
+            }
+        }
+    }
+    if (D_8036DCD4 != 0) {
+        stepX = (D_802FC3F0[D_8036DCD6].x1 - D_802FC3F0[D_8036DCD6].x0) / D_802FC3F0[D_8036DCD6].nx;
+        for (i = 0; i <= D_802FC3F0[D_8036DCD6].nx; i++) {
+            for (j = 0; j <= D_802FC3F0[D_8036DCD6].nz; j++) {
+                s = sinf(((i + 1) * stepX) / D_802FC3F0[D_8036DCD6].lenX + D_8036DCB0 / D_802FC3F0[D_8036DCD6].rateX);
+                D_8036DCA0[buf][i + j * (D_802FC3F0[D_8036DCD6].nz + 1)].v.ob[1] =
+                    D_802FC3F0[D_8036DCD6].ampX * s + D_802FC3F0[D_8036DCD6].y;
+            }
+        }
+        stepZ = (D_802FC3F0[D_8036DCD6].z1 - D_802FC3F0[D_8036DCD6].z0) / D_802FC3F0[D_8036DCD6].nz;
+        for (i = 0; i <= D_802FC3F0[D_8036DCD6].nz; i++) {
+            for (j = 0; j <= D_802FC3F0[D_8036DCD6].nx; j++) {
+                s = sinf(((i + 1) * stepZ) / D_802FC3F0[D_8036DCD6].lenZ + D_8036DCB0 / D_802FC3F0[D_8036DCD6].rateZ);
+                D_8036DCA0[buf][(D_802FC3F0[D_8036DCD6].nz + 1) * i + j].v.ob[1] =
+                    D_802FC3F0[D_8036DCD6].ampZ * s + D_8036DCA0[buf][(D_802FC3F0[D_8036DCD6].nz + 1) * i + j].v.ob[1];
+            }
+        }
+    }
+}
+
+/* Water height at (x, z) into *y; returns 1 if (x, z) is over the water grid. */
+s32 func_8027EED8(s16 x, s16 z, s16 *y) {
+    s32 pad;
+    f32 step;
+    f32 t;
+    register f32 s;
+
+    if (D_8036DCD4 == 0) {
+        return 0;
+    }
+    if (x < D_802FC3F0[D_8036DCD6].x0 || x > D_802FC3F0[D_8036DCD6].x1 || z < D_802FC3F0[D_8036DCD6].z0 ||
+        z > D_802FC3F0[D_8036DCD6].z1) {
+        *y = D_802FC3F0[D_8036DCD6].y;
+        return 0;
+    }
+    step = (f32) (D_802FC3F0[D_8036DCD6].x1 - D_802FC3F0[D_8036DCD6].x0) / D_802FC3F0[D_8036DCD6].nx;
+    t = (x - D_802FC3F0[D_8036DCD6].x0) / step;
+    s = sinf(((t + 1.0f) * step) / D_802FC3F0[D_8036DCD6].lenX + D_8036DCB0 / D_802FC3F0[D_8036DCD6].rateX);
+    *y = D_802FC3F0[D_8036DCD6].ampX * s + D_802FC3F0[D_8036DCD6].y;
+    step = (f32) (D_802FC3F0[D_8036DCD6].z1 - D_802FC3F0[D_8036DCD6].z0) / D_802FC3F0[D_8036DCD6].nz;
+    t = (z - D_802FC3F0[D_8036DCD6].z0) / step;
+    s = sinf(((t + 1.0f) * step) / D_802FC3F0[D_8036DCD6].lenZ + D_8036DCB0 / D_802FC3F0[D_8036DCD6].rateZ);
+    *y = D_802FC3F0[D_8036DCD6].ampZ * s + *y;
+    return 1;
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/39050/func_8027F1F8.s")
 

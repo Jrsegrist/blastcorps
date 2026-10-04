@@ -7,10 +7,16 @@ typedef struct {
     /* 0x04 */ s32 unk4;
     /* 0x08 */ s32 unk8;
     /* 0x0C */ s16 unk0C;
-    /* 0x0E */ u8 pad0E[2];
+    /* 0x0E */ s16 unk0E;
     /* 0x10 */ u8 unk10; /* model index into D_802FDC08 */
     /* 0x11 */ u8 unk11;
-    /* 0x12 */ u8 pad12[0x28 - 0x12];
+    /* 0x12 */ u8 unk12;
+    /* 0x13 */ u8 pad13;
+    /* 0x14 */ s32 unk14;
+    /* 0x18 */ s32 unk18;
+    /* 0x1C */ u8 pad1C[4];
+    /* 0x20 */ u8 unk20;
+    /* 0x21 */ u8 pad21[0x28 - 0x21];
     /* 0x28 */ u8 unk28;
     /* 0x29 */ u8 unk29;
     /* 0x2A */ s16 unk2A;
@@ -20,9 +26,37 @@ typedef struct {
     /* 0x34 */ u8 pad34[4];
 } Entry4B5E0;
 
-/* D_8039C800: D_8039C940 0x28-byte entries. */
+/* D_8039C718: D_8039C7F8 0x1C-byte entries. */
 typedef struct {
-    /* 0x00 */ u8 pad0[0x26];
+    /* 0x00 */ s32 unk0;
+    /* 0x04 */ s32 unk4;
+    /* 0x08 */ s32 unk8;
+    /* 0x0C */ s32 unk0C;
+    /* 0x10 */ u8 unk10; /* model index into D_802FDC08 */
+    /* 0x11 */ u8 unk11;
+    /* 0x14 */ s32 unk14;
+    /* 0x18 */ s32 unk18;
+} Entry4B5E0c;
+
+/* D_8039C800: D_8039C940 0x28-byte entries: a position and a box of
+ * 1/32-unit points around it, plus the D_8039C718 index it came from. */
+typedef struct {
+    /* 0x00 */ s32 unk0;
+    /* 0x04 */ s32 unk4;
+    /* 0x08 */ s32 unk8;
+    /* 0x0C */ s16 unk0C;
+    /* 0x0E */ s16 unk0E;
+    /* 0x10 */ s16 unk10;
+    /* 0x12 */ s16 unk12;
+    /* 0x14 */ s16 unk14;
+    /* 0x16 */ s16 unk16;
+    /* 0x18 */ s16 unk18;
+    /* 0x1A */ s16 unk1A;
+    /* 0x1C */ s16 unk1C;
+    /* 0x1E */ s16 unk1E;
+    /* 0x20 */ s16 unk20;
+    /* 0x22 */ s16 unk22;
+    /* 0x24 */ u8 pad24[2];
     /* 0x26 */ u8 unk26;
     /* 0x27 */ u8 unk27;
 } Entry4B5E0b;
@@ -31,11 +65,13 @@ typedef struct {
  * a radius. */
 typedef struct {
     /* 0x000 */ Gfx dl[0x50];
-    /* 0x280 */ u8 pad280[2];
+    /* 0x280 */ s16 unk280; /* texture id for func_802A0CC8 */
     /* 0x282 */ u8 width;
     /* 0x283 */ u8 height;
     /* 0x284 */ s16 radius;
-    /* 0x286 */ u8 pad286[0x290 - 0x286];
+    /* 0x286 */ u8 pad286[2];
+    /* 0x288 */ s32 unk288;
+    /* 0x28C */ u8 pad28C[4];
 } Model4B5E0;
 
 /* Per-frame dynamic buffer: one matrix per entry at 0xB00. */
@@ -47,8 +83,19 @@ typedef struct {
 extern Entry4B5E0 D_8039C550[];
 extern u8 D_8039C579;
 extern s32 D_8039C710;
+extern Entry4B5E0c D_8039C718[];
+extern s32 D_8039C7F8;
 extern Entry4B5E0b D_8039C800[];
 extern u8 D_8039C940;
+extern s32 D_8039C944;
+extern s32 D_8039C948;
+extern s32 D_8039C94C;
+extern u8 D_8039C950;
+extern s32 D_8039C954;
+extern s32 D_8039C958;
+extern s32 D_8039C95C;
+extern u8 D_803ED40C;
+extern s32 D_803FB8B0;
 extern Model4B5E0 D_802FDC08[];
 extern u8 D_803A7424;
 extern u8 D_02000000[]; /* segment 2 base */
@@ -57,8 +104,87 @@ void func_802AACD4(u8, s32, s32, void *, void *);
 s32 func_802AAE1C(u8, s16, s16, void *, void *);
 s32 func_802CE6F8(s32, s32, s32);
 s32 func_8026A6F0(s32, s32, s32, s32, s32, s32);
+void func_802CE9A4(void);
+void func_802CE9C8(u8 *, u8, u8);
+u32 func_802A0CC8(s16, s32);
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/4B5E0/func_8028FDA0.s")
+/* Load this file's objects from level data: reset the counters, then
+ * read D_8039C710 0x38-byte entries (s16 x, y, z, model; positions are
+ * stored scaled by 32, height snapped by func_802CE6F8, texture looked
+ * up by func_802A0CC8), then D_8039C7F8 0x1C-byte records (s16 x, y, z,
+ * u8 model, u8 n, s16 flag, then n 22-byte items for func_802CE9C8).
+ * Flagged records also get a D_8039C800 box (+-40 units). */
+void func_8028FDA0(u8 *arg0, u8 *arg1) {
+    s32 i;
+
+    D_8039C710 = 0;
+    D_8039C7F8 = 0;
+    D_8039C940 = 0;
+    D_8039C944 = 0;
+    D_8039C948 = 0;
+    D_8039C94C = 0;
+    D_8039C954 = 0;
+    D_8039C958 = 0;
+    D_8039C95C = 0;
+    D_8039C950 = 0;
+    D_803ED40C = 0;
+    func_802CE9A4();
+    if (arg0 != arg1) {
+        D_8039C710 = *(s16 *) arg0;
+        arg0 += 2;
+        for (i = 0; i < D_8039C710; i++) {
+            D_8039C550[i].unk0 = *(s16 *) (arg0 + 0) << 5;
+            D_8039C550[i].unk4 = *(s16 *) (arg0 + 2) << 5;
+            D_8039C550[i].unk8 = *(s16 *) (arg0 + 4) << 5;
+            D_8039C550[i].unk10 = *(s16 *) (arg0 + 6);
+            arg0 += 8;
+            D_8039C550[i].unk4 = func_802CE6F8(D_8039C550[i].unk0, D_8039C550[i].unk8, D_8039C550[i].unk4);
+            D_8039C550[i].unk0E = 0;
+            D_8039C550[i].unk0C = 0;
+            D_8039C550[i].unk11 = 0;
+            D_8039C550[i].unk12 = 0;
+            D_8039C550[i].unk20 = 0;
+            D_8039C550[i].unk14 = 0;
+            D_8039C550[i].unk18 = 0;
+            D_8039C550[i].unk29 = 0;
+            D_8039C550[i].unk30 = func_802A0CC8(D_802FDC08[D_8039C550[i].unk10].unk280, 0);
+        }
+        D_8039C7F8 = *(s16 *) arg0;
+        arg0 += 2;
+        for (i = 0; i < D_8039C7F8; i++) {
+            D_8039C718[i].unk0 = *(s16 *) (arg0 + 0) << 5;
+            D_8039C718[i].unk4 = *(s16 *) (arg0 + 2) << 5;
+            D_8039C718[i].unk8 = *(s16 *) (arg0 + 4) << 5;
+            D_8039C718[i].unk10 = arg0[6];
+            D_8039C718[i].unk0C = D_8039C718[i].unk4 - D_802FDC08[D_8039C718[i].unk10].unk288;
+            D_8039C718[i].unk11 = 0;
+            D_8039C718[i].unk14 = D_803FB8B0;
+            func_802CE9C8(arg0 + 10, arg0[7], D_8039C718[i].unk10);
+            D_8039C718[i].unk18 = D_803FB8B0;
+            if (*(s16 *) (arg0 + 8) != 0) {
+                D_8039C800[D_8039C940].unk0 = D_8039C718[i].unk0;
+                D_8039C800[D_8039C940].unk4 = D_8039C718[i].unk4;
+                D_8039C800[D_8039C940].unk8 = D_8039C718[i].unk8;
+                D_8039C800[D_8039C940].unk0E = D_8039C718[i].unk4 >> 5;
+                D_8039C800[D_8039C940].unk14 = D_8039C718[i].unk4 >> 5;
+                D_8039C800[D_8039C940].unk1A = D_8039C718[i].unk4 >> 5;
+                D_8039C800[D_8039C940].unk20 = D_8039C718[i].unk4 >> 5;
+                D_8039C800[D_8039C940].unk0C = (D_8039C718[i].unk0 >> 5) - 40;
+                D_8039C800[D_8039C940].unk10 = (D_8039C718[i].unk8 >> 5) - 40;
+                D_8039C800[D_8039C940].unk12 = (D_8039C718[i].unk0 >> 5) + 40;
+                D_8039C800[D_8039C940].unk16 = (D_8039C718[i].unk8 >> 5) - 40;
+                D_8039C800[D_8039C940].unk18 = (D_8039C718[i].unk0 >> 5) - 40;
+                D_8039C800[D_8039C940].unk1C = (D_8039C718[i].unk8 >> 5) + 40;
+                D_8039C800[D_8039C940].unk1E = (D_8039C718[i].unk0 >> 5) + 40;
+                D_8039C800[D_8039C940].unk22 = (D_8039C718[i].unk8 >> 5) + 40;
+                D_8039C800[D_8039C940].unk26 = 0;
+                D_8039C800[D_8039C940].unk27 = i;
+                D_8039C940++;
+            }
+            arg0 = arg0[7] * 22 + arg0 + 10;
+        }
+    }
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/4B5E0/func_802906C0.s")
 

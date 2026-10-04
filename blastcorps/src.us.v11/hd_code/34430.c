@@ -384,4 +384,70 @@ s32 func_8027B5D0(f32 m[4][4], f32 *v, f32 *s, s32 *row) {
     return 1;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/34430/func_8027B87C.s")
+/* Inverts a 4x4 matrix (general or affine); 0 if singular */
+s32 func_8027B87C(f32 out[4][4], f32 in[4][4]) {
+    f32 m[4][4];
+    s32 i;
+    s32 j;
+    s32 affine;
+    f32 a[3][3];
+    f32 inv[3][3];
+    f32 s;
+    f32 tmp;
+    f32 v[4];
+    f32 t[4];
+    s32 row;
+    s32 pad;
+
+    for (i = 0; i < 4; i++) {
+        for (j = 0; j < 4; j++) {
+            m[i][j] = in[i][j];
+            out[i][j] = 0.0f;
+        }
+    }
+    out[0][0] = 1.0f;
+    out[1][1] = 1.0f;
+    out[2][2] = 1.0f;
+    out[3][3] = 1.0f;
+    affine = m[0][3] == 0.0 && m[1][3] == 0.0 && m[2][3] == 0.0 && m[3][3] == 1.0;
+    if (!affine) {
+        if (!func_8027B5D0(m, v, &s, &row)) {
+            return 0;
+        }
+    }
+    t[0] = m[3][0];
+    t[1] = m[3][1];
+    t[2] = m[3][2];
+    for (i = 0; i < 3; i++) {
+        for (j = 0; j < 3; j++) {
+            a[i][j] = m[i][j];
+        }
+    }
+    if (!func_8027B200(a, inv)) {
+        return 0;
+    }
+    for (i = 0; i < 3; i++) {
+        for (j = 0; j < 3; j++) {
+            out[i][j] = inv[i][j];
+        }
+    }
+    for (i = 0; i < 3; i++) {
+        for (j = 0; j < 3; j++) {
+            out[3][i] -= t[j] * inv[j][i];
+        }
+    }
+    if (!affine) {
+        for (i = 0; i < 4; i++) {
+            out[i][3] += v[0] * out[i][0] + v[1] * out[i][1] + v[2] * out[i][2];
+            out[i][3] *= s;
+        }
+        if (row >= 0) {
+            for (i = 0; i < 4; i++) {
+                tmp = out[i][3];
+                out[i][3] = out[i][row];
+                out[i][row] = tmp;
+            }
+        }
+    }
+    return 1;
+}

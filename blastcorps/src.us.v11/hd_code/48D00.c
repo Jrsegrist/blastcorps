@@ -1,6 +1,20 @@
 #include "common.h"
 #include <ultra64.h>
 
+/* D_8039B070: array of D_8039B610 0x48-byte entries. */
+typedef struct {
+    /* 0x00 */ s32 unk0;
+    /* 0x04 */ s32 unk4;
+    /* 0x08 */ s32 unk8;
+    /* 0x0C */ u8 pad0C[0x14 - 0x0C];
+    /* 0x14 */ s32 unk14;
+    /* 0x18 */ u8 unk18;
+    /* 0x19 */ u8 pad19[0x24 - 0x19];
+    /* 0x24 */ u8 unk24;
+    /* 0x25 */ u8 pad25[0x48 - 0x25];
+} Entry48D00;
+extern Entry48D00 D_8039B070_entries[];
+
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/48D00/func_8028D4C0.s")
 
 /* TODO: func_8028DA5C - initialize an 8x 0x10-byte sub-entry struct at *a0
@@ -55,27 +69,24 @@ extern s32 D_80367738;
 void func_802CDA10(s32, s32, s32);
 void func_802608C8(s32);
 void func_80260650(s32, s32, s32);
-void *func_8028DE94(void);
+Entry48D00 *func_8028DE94(void);
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/48D00/func_8028DD64.s")
 
 extern u8 D_8039B070;
 extern s32 D_8039B610;
 
-/* TODO: func_8028DE94 - linear search of a D_8039B610-length, 0x48-stride
- * array at D_8039B070 for the first entry with both unk18 and unk14
- * nonzero, returning its address or NULL:
- * `do { if (entry->unk18 && entry->unk14) return entry;
- *  temp = i+1; i = temp; } while (temp < D_8039B610); return NULL;`
- * (target: 32 instructions, frame/offsets/structure all exact). Logic and
- * layout fully confirmed correct - current gap is pure register-rename
- * (diff score 45, every remaining line marked 'r', zero inserts/deletes):
- * target uses $t3/$t5 for the loop-bound reload and increment-compare
- * temp where every phrasing tried (plain locals, `register` on the temp
- * alone, `register` on both the index and the temp) lands on $a0/$t3
- * instead. A 90s decomp-permuter run (tools/permuter) against this exact
- * state found nothing better. */
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/48D00/func_8028DE94.s")
+/* First entry with both unk18 and unk14 set, or NULL. */
+Entry48D00 *func_8028DE94(void) {
+    s32 i;
+
+    for (i = 0; i < D_8039B610; i++) {
+        if (D_8039B070_entries[i].unk18 != 0 && D_8039B070_entries[i].unk14 != 0) {
+            return &D_8039B070_entries[i];
+        }
+    }
+    return NULL;
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/48D00/func_8028DF14.s")
 
@@ -147,16 +158,13 @@ void func_8028F794(u8 arg0) {
 
 extern u8 D_8039B094;
 
-/* TODO: func_8028F93C - zero one byte field (offset 0x24, stride 0x48)
- * across D_8039B610 array entries: `*(&D_8039B094 + i * 0x48) = 0;` (target:
- * 20 instructions, no frame). Logic/structure confirmed correct - the
- * remaining gap is the increment instruction (`addiu t0,t9,1`) landing one
- * slot earlier in the target's schedule than any phrasing tried produces
- * (plain post-increment matches structurally but the scheduler orders it
- * after the store instead of before; hoisting it into an explicit temp
- * computed first adds a second stack slot instead of just reordering).
- * Pure instruction-scheduling gap. */
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/48D00/func_8028F93C.s")
+void func_8028F93C(void) {
+    s32 i;
+
+    for (i = 0; i < D_8039B610; i++) {
+        *(&D_8039B094 + i * 0x48) = 0;
+    }
+}
 
 /* TODO: func_8028F994 - scale arg0/arg1/arg2 (a 3D point, 1/32 fixed point)
  * down to integer units, then for each D_8039B610 array entry with unk18

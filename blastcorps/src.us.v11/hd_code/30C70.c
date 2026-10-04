@@ -8,11 +8,13 @@ extern s16 *D_8036C7A0[10]; /* point lists to keep on screen */
 extern u8 D_8036C7CC;
 extern u8 D_02000000[]; /* segment 2 base */
 extern u8 D_802FA940[]; /* 32x32 IA8 texture */
+extern u16 D_8035807C;   /* projection scale, 65535 = 1.0 */
 
 void func_80276130(s32 arg0, u8 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5, s32 arg6,
                    u8 r0, u8 g0, u8 b0, u8 a0, u8 r1, u8 g1, u8 b1, u8 a1,
                    u8 r2, u8 g2, u8 b2, u8 a2, u8 r3, u8 g3, u8 b3, u8 a3);
-void func_8027690C(void *arg0, f32 x, f32 y, f32 z, s16 *sx, s16 *sy, s32 arg6, s32 arg7, s32 arg8, f32 arg9);
+void func_8027690C(void *arg0, f32 x, f32 y, f32 z, s16 *sx, s16 *sy, Mtx *arg6, Mtx *arg7, Mtx *arg8, f32 arg9);
+void func_80276D1C(Mtx *m, f32 x, f32 y, f32 z, f32 w, f32 *ox, f32 *oy, f32 *oz, f32 *ow);
 
 void func_80275430(void) {
     s32 i;
@@ -145,9 +147,47 @@ s32 func_802768A8(void) {
     return 0;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/30C70/func_8027690C.s")
+/* Projects a point to screen coordinates, clamped to +-0x4000 (0x4000 when behind the camera) */
+void func_8027690C(void *arg0, f32 x, f32 y, f32 z, s16 *sx, s16 *sy, Mtx *arg6, Mtx *arg7, Mtx *arg8, f32 arg9) {
+    f32 w = 1.0f;
 
-void func_80276D1C(Mtx *m, f32 x, f32 y, f32 z, s32 arg4, f32 *ox, f32 *oy, f32 *oz, f32 *ow) {
+    if (arg8 != NULL) {
+        func_80276D1C(arg8, x, y, z, w, &x, &y, &z, &w);
+    }
+    if (arg7 != NULL) {
+        func_80276D1C(arg7, x, y, z, w, &x, &y, &z, &w);
+    }
+    if (arg6 != NULL) {
+        func_80276D1C(arg6, x, y, z, w, &x, &y, &z, &w);
+    }
+    func_80276D1C((Mtx *) ((u8 *) arg0 + 0x140), x, y, z, w, &x, &y, &z, &w);
+    if (z >= 0.0) {
+        *sx = 0x4000;
+        *sy = 0x4000;
+        return;
+    }
+    func_80276D1C((Mtx *) ((u8 *) arg0 + 0x80), x, y, z, w, &x, &y, &z, &w);
+    x = x * (D_8035807C / 65535.0);
+    y = y * (D_8035807C / 65535.0);
+    w = w * (D_8035807C / 65535.0);
+    x = x / w;
+    y = y / w;
+    x = ((320.0f * arg9) / 2.0f) * x;
+    y = ((240.0f * arg9) / 2.0f) * y;
+    x = ((320.0f * arg9) / 2.0f) + x;
+    y = ((240.0f * arg9) / 2.0f) + y;
+    y = (240.0f * arg9) - y;
+    if (((x > 0.0f) ? x : -x) >= 16384.0f) {
+        x = ((x >= 0.0f) ? 1 : -1) << 14;
+    }
+    if (((y > 0.0f) ? y : -y) >= 16384.0f) {
+        y = ((y >= 0.0f) ? 1 : -1) << 14;
+    }
+    *sx = x;
+    *sy = y;
+}
+
+void func_80276D1C(Mtx *m, f32 x, f32 y, f32 z, f32 w, f32 *ox, f32 *oy, f32 *oz, f32 *ow) {
     f32 mf[4][4];
 
     guMtxL2F(mf, m);

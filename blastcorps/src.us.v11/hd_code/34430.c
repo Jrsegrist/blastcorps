@@ -3,6 +3,9 @@
 
 /* mb.c (this file's .bss starts at 0x8036CB60) */
 
+/* KSEG0 address to physical, as the game spells it */
+#define PHYS(x) ((u32) (x) & 0x1FFFFFFF)
+
 #define MB_ASSERT(EX, line) \
     if (!(EX)) func_8029A7E4("\n --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "mb.c", line)
 
@@ -35,12 +38,18 @@ extern f32 D_8036D174;         /* view angle, degrees */
 extern s32 D_8036D17C;
 extern f32 D_8036D184;
 extern Vtx D_802FBEE0[];       /* 6 x 4 grid of view points */
+extern Gfx D_8036D188[40];     /* display list for the view */
+extern Mtx D_8036D2C8;         /* its projection */
+extern Mtx D_8036D388;         /* its look-at */
+extern Vp D_802FBED0;
+extern void *D_80358058;       /* depth buffer */
 
 void func_8029A7E4(const char *fmt, ...);
 void func_80257490(void *arg0, s32 arg1);
 s32 func_8026A6F0(s32 a, s32 b, s32 c, s32 d, s32 e, s32 f);
 s32 func_802ACF3C(s32 arg0);
 s32 func_802796D8(s32 n, s32 *a, s32 *b);
+void func_80284E54(Gfx *dl, s32 n, s32 a, s32 b, s32 c, s32 d);
 
 /* Copies a display list to the heap, dropping G_ENDDLs and remapping render modes */
 void func_80278BF0(Gfx *src, Gfx *end, Gfx **dstp) {
@@ -236,7 +245,71 @@ s32 func_802796D8(s32 n, s32 *a, s32 *b) {
     return 1;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/34430/func_80279778.s")
+/* Renders the 120x90 view into the buffer: clears it, sets the projection from the view angle and looks from (a, b, c) (16.16) at (x, y, z) (1/32), then calls dl */
+void func_80279778(s32 x, s32 y, s32 z, s32 a, s32 b, s32 c, void *dl, void *seg6, void *seg7, s32 alpha) {
+    Gfx *gdl;
+    u16 perspNorm;
+    s32 pad;
+    f32 tx;
+    f32 ty;
+    f32 tz;
+    f32 ex;
+    f32 ey;
+    f32 ez;
+    s32 pad2[8];
+    f32 dx;
+    f32 dz;
+
+    if (D_8036D178) {
+        gdl = D_8036D188;
+        gSPViewport(gdl++, PHYS(&D_802FBED0));
+        gSPClearGeometryMode(gdl++, 0xFFFFFFFF);
+        gSPSegment(gdl++, 0, 0);
+        gSPSegment(gdl++, 6, PHYS(seg6));
+        gSPSegment(gdl++, 7, PHYS(seg7));
+        gDPPipeSync(gdl++);
+        gDPSetScissor(gdl++, G_SC_NON_INTERLACE, 0, 0, 120, 90);
+        gDPSetColorDither(gdl++, G_CD_DISABLE);
+        gDPSetCycleType(gdl++, G_CYC_FILL);
+        gSPClearGeometryMode(gdl++, G_ZBUFFER);
+        gDPSetDepthImage(gdl++, D_80358058);
+        gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 120, D_80358058);
+        gDPSetFillColor(gdl++, 0xFFFCFFFC);
+        gDPFillRectangle(gdl++, 0, 0, 119, 89);
+        gDPPipeSync(gdl++);
+        gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 120, PHYS(D_8036D170));
+        gDPSetFillColor(gdl++, 0);
+        gDPFillRectangle(gdl++, 0, 0, 119, 89);
+        gDPPipeSync(gdl++);
+        guPerspective(&D_8036D2C8, &perspNorm, D_8036D174, 1.3333334f, 100.0f, 5000.0f, 1.0f);
+        gSPMatrix(gdl++, PHYS(&D_8036D2C8), G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
+        gImmp1(gdl++, G_RDPHALF_1, perspNorm); /* old F3D gSPPerspNormalize */
+        tx = x / 32.0f;
+        ty = y / 32.0f;
+        tz = z / 32.0f;
+        ex = (f32) a / 65536.0;
+        ey = (f32) b / 65536.0;
+        ez = (f32) c / 65536.0;
+        dx = ex - tx;
+        if (dx < 0.0) {
+            dx = 0.0 - dx;
+        }
+        dz = ez - tz;
+        if (dz < 0.0) {
+            dz = 0.0 - dz;
+        }
+        if (dx > 0.5 || dz > 0.5) {
+            guLookAt(&D_8036D388, ex, ey, ez, tx, ty, tz, 0.0f, 1.0f, 0.0f);
+        } else {
+            guLookAt(&D_8036D388, ex + 2.0, ey, ez + 2.0, tx, ty, tz, 0.0f, 1.0f, 0.0f);
+        }
+        gSPMatrix(gdl++, PHYS(&D_8036D388), G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+        gDPSetEnvColor(gdl++, 0, 0, 0, alpha);
+        gSPDisplayList(gdl++, PHYS(dl));
+        gSPEndDisplayList(gdl++);
+        func_80284E54(D_8036D188, gdl - D_8036D188, 2, 0, 0x54D, 0);
+    }
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/34430/func_80279EE8.s")
 

@@ -4,6 +4,7 @@
 extern u8 D_8036C360;
 extern u32 D_803156C4;
 extern u8 D_803B9888;
+extern u8 D_8035805C; /* current frame buffer index */
 extern void *D_80358070;
 
 /* Sprite slots (this file's .bss, 0x8036BFE0) */
@@ -11,7 +12,7 @@ extern void *D_8036BFE0[64][2];    /* frame images */
 extern u8 D_8036C1E0[64];          /* frame count */
 extern u8 D_8036C220[64];          /* flags */
 extern f32 D_8036C260[64];         /* scale */
-extern void *D_8036C368[2][64][2];
+extern Vtx *D_8036C368[2][64][2]; /* per-buffer quads, two orientations */
 
 void func_802A0700(void);
 void func_80257490(void **heap, s32 align);
@@ -67,7 +68,67 @@ u8 func_80272C5C(u16 *ids, u16 *palIds, u8 count, u8 frames, u8 flags, f32 scale
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/2E490/func_80272ED8.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/2E490/func_802742D8.s")
+Gfx *func_802742D8(Gfx *gdl, u8 slot, s16 x, s16 y, s32 flip, s32 size, s32 half, f32 scale, u8 frame) {
+    Vtx *vtx = D_8036C368[D_8035805C][slot][frame];
+    s32 x0 = x - half;
+    s32 y0 = y + half;
+    s32 t;
+
+    if (D_8036C220[slot] & 1) {
+        t = 0;
+    } else {
+        t = size << 5;
+    }
+    if (flip) {
+        vtx += 4;
+        vtx[0].v.ob[0] = x0;
+        vtx[0].v.ob[1] = y0 + 64.0f * scale - 1.0f;
+        vtx[0].v.ob[2] = -10;
+        vtx[0].v.tc[0] = 0;
+        vtx[0].v.tc[1] = t << 5;
+        vtx[1].v.ob[0] = x0 + (size << 5) * scale - 1.0f;
+        vtx[1].v.ob[1] = y0 + 64.0f * scale - 1.0f;
+        vtx[1].v.ob[2] = -10;
+        vtx[1].v.tc[0] = ((size << 5) - 1) << 5;
+        vtx[1].v.tc[1] = t << 5;
+        vtx[2].v.ob[0] = x0 + (size << 5) * scale - 1.0f;
+        vtx[2].v.ob[1] = y0 + 32.0f * scale - 1.0f;
+        vtx[2].v.ob[2] = -10;
+        vtx[2].v.tc[0] = ((size << 5) - 1) << 5;
+        vtx[2].v.tc[1] = (t + 31) << 5;
+        vtx[3].v.ob[0] = x0;
+        vtx[3].v.ob[1] = y0 + 32.0f * scale - 1.0f;
+        vtx[3].v.ob[2] = -10;
+        vtx[3].v.tc[0] = 0;
+        vtx[3].v.tc[1] = (t + 31) << 5;
+    } else {
+        vtx[0].v.ob[0] = x0;
+        vtx[0].v.ob[1] = y0;
+        vtx[0].v.ob[2] = -10;
+        vtx[0].v.tc[0] = 0;
+        vtx[0].v.tc[1] = (t + 31) << 5;
+        vtx[1].v.ob[0] = x0 + (size << 5) * scale - 1.0f;
+        vtx[1].v.ob[1] = y0;
+        vtx[1].v.ob[2] = -10;
+        vtx[1].v.tc[0] = ((size << 5) - 1) << 5;
+        vtx[1].v.tc[1] = (t + 31) << 5;
+        vtx[2].v.ob[0] = x0 + (size << 5) * scale - 1.0f;
+        vtx[2].v.ob[1] = y0 + 32.0f * scale - 1.0f;
+        vtx[2].v.ob[2] = -10;
+        vtx[2].v.tc[0] = ((size << 5) - 1) << 5;
+        vtx[2].v.tc[1] = t << 5;
+        vtx[3].v.ob[0] = x0;
+        vtx[3].v.ob[1] = y0 + 32.0f * scale - 1.0f;
+        vtx[3].v.ob[2] = -10;
+        vtx[3].v.tc[0] = 0;
+        vtx[3].v.tc[1] = t << 5;
+    }
+    gSPVertex(gdl++, vtx, 4, 0);
+    osWritebackDCache(vtx, sizeof(Vtx) * 4);
+    gSP1Triangle(gdl++, 0, 3, 2, 0);
+    gSP1Triangle(gdl++, 0, 2, 1, 0);
+    return gdl;
+}
 
 Gfx *func_80274868(Gfx *gfx) {
     Gfx *gdl = gfx;

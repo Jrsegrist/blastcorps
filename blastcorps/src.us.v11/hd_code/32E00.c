@@ -9,8 +9,26 @@ extern void *D_80358070;
 typedef struct {
     /* 0x00 */ s16 unk0;
     /* 0x02 */ s16 unk2;
-    /* 0x04 */ u8 unk4[8];
+    /* 0x04 */ u8 unk4;   /* digger state when sampled */
+    /* 0x08 */ s32 time;
 } DigEntry;
+
+/* Timed digger events, 8 bytes */
+typedef struct {
+    /* 0x00 */ s16 time;
+    /* 0x02 */ u8 a;
+    /* 0x03 */ u8 b;
+    /* 0x04 */ u8 c;
+    /* 0x05 */ u8 d;
+    /* 0x06 */ u8 done;
+} DigTrigger;
+
+extern DigTrigger *D_803BE6FC; /* first */
+extern DigTrigger *D_803BE700; /* end */
+extern u8 D_803643D6;
+extern u8 D_803643DB;
+extern s32 D_803EF6E4;
+extern u8 D_8036CB2F;
 
 extern DigEntry D_8036C8D0[50];
 extern u8 D_8036CB32;
@@ -27,6 +45,12 @@ extern u8 D_8036CB34;
 
 void func_80277EDC(s32 arg0, s32 arg1, s32 arg2, s32 arg3);
 s32 func_8026205C(s32 arg0);
+s32 func_80277D34(void);
+s32 func_80277E08(void);
+void func_80277C20(void);
+void func_802778FC(void);
+void func_80277AE0(void);
+void func_80277B84(void);
 void func_8029A7E4(const char *fmt, ...);
 
 void func_802775C0(void) {
@@ -38,7 +62,52 @@ void func_802775C0(void) {
     D_8036CB29 = 0;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/32E00/func_80277620.s")
+void func_80277620(s32 now) {
+    u8 done = 0;
+    DigTrigger *p = D_803BE6FC;
+    s16 limit;
+
+    while (!done && D_8036CB28 != D_8036CB29) {
+        if (now - D_8036C8D0[D_8036CB28].time > 1000) {
+            if (++D_8036CB28 == 50) {
+                D_8036CB28 = 0;
+            }
+        } else {
+            done = 1;
+        }
+    }
+    if (D_8036CB2F) {
+        if (D_8036CB29 + 1 != D_8036CB28 && !(D_8036CB29 == 49 && D_8036CB28 == 0)) {
+            D_8036C8D0[D_8036CB29].unk0 = func_80277D34();
+            D_8036C8D0[D_8036CB29].unk2 = func_80277E08();
+            D_8036C8D0[D_8036CB29].unk4 = D_8036CB2E;
+            D_8036C8D0[D_8036CB29].time = now;
+            if (++D_8036CB29 == 50) {
+                D_8036CB29 = 0;
+            }
+        }
+    }
+    if (D_8036CB2F) {
+        func_80277C20();
+        func_802778FC();
+        func_80277AE0();
+        func_80277B84();
+    }
+    if (now == 50 && !D_803643D6) {
+        func_80277EDC(2, 1, 2, func_8026205C(1));
+    }
+    if (D_803643DB) {
+        limit = D_803EF6E4 >> 5;
+        while (p < D_803BE700) {
+            if (!p->done && limit > p->time) {
+                func_80277EDC(p->a, p->b, p->c, p->d);
+                p->done = 1;
+            }
+            p++;
+        }
+    }
+    D_8036CB2F = 0;
+}
 
 void func_802778FC(void) {
     switch (D_80364456) {

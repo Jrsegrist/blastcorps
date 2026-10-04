@@ -57,6 +57,9 @@ typedef struct BcScTask {
     /* 0x08 */ u32 flags;
     /* 0x0C */ void *framebuffer;
     /* 0x10 */ OSTask list;
+    /* 0x50 */ u32 unk50;
+    /* 0x54 */ OSMesgQueue *msgQ;
+    /* 0x58 */ OSMesg msg;
 } BcScTask;
 
 typedef struct BcScClient {
@@ -79,7 +82,9 @@ typedef struct {
     /* 0x270 */ BcScTask *gfxListTail;
     /* 0x274 */ BcScTask *curRSPTask;
     /* 0x278 */ BcScTask *curRDPTask;
-    /* 0x27C */ u8 pad27C[0x290 - 0x27C];
+    /* 0x27C */ u8 pad27C[0x284 - 0x27C];
+    /* 0x284 */ s32 frameCount;
+    /* 0x288 */ OSTime rdpStartTime;
     /* 0x290 */ OSTime gfxStartTime;
 } BcSched;
 
@@ -176,9 +181,76 @@ void func_802712FC(BcSched *sc) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/2C560/func_802715DC.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/2C560/func_80271904.s")
+extern u64 D_80364A90;
+extern s32 D_80358060;
+s32 func_80271A84(BcSched *sc, BcScTask *t);
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/2C560/func_80271A84.s")
+/* __scHandleRDP */
+void func_80271904(BcSched *sc) {
+    BcScTask *t;
+    OSTime now;
+
+    SCHED_ASSERT(sc->curRDPTask, 586);
+    t = sc->curRDPTask;
+    sc->curRDPTask = NULL;
+    t->flags |= 8;
+    if (sc->frameCount != D_8036BF14 || (D_80364A90 & 0xC9FD0FE79BFF80B0ULL)) {
+        D_8036BF1C = 0;
+        osViSwapBuffer(t->framebuffer);
+        D_8036BF18 = D_8036BF14;
+        D_8036BF14 = sc->frameCount + 1;
+        func_802D4550(8);
+    } else {
+        D_8036BF1C = (s32) t;
+    }
+    now = osGetTime();
+    D_8036BF20 = (now - sc->rdpStartTime) / 7825;
+    if (D_80358060 == 3) {
+        osViBlack(FALSE);
+    }
+    func_80271A84(sc, t);
+}
+
+s32 func_80271F48(OSMesgQueue *mq, OSMesg msg, s32 flag);
+
+/* __scTaskComplete */
+s32 func_80271A84(BcSched *sc, BcScTask *t) {
+    s32 rv;
+    s32 needs;
+    s32 done;
+    s32 type;
+
+    needs = t->flags & 3;
+    done = (t->flags >> 2) & 3;
+    type = t->list.t.type;
+    if (!(t->flags & 0x40)) {
+        needs &= 1;
+        done &= 1;
+    }
+    if (needs == done) {
+        if (type == M_GFXTASK) {
+            SCHED_ASSERT(sc->gfxListHead, 636);
+            sc->gfxListHead = sc->gfxListHead->next;
+            if (sc->gfxListHead == NULL) {
+                sc->gfxListTail = (BcScTask *) &sc->gfxListHead;
+            }
+        }
+        if (t->msgQ != NULL) {
+            if (!D_8036BF1C || type != M_GFXTASK) {
+                if (t->flags & 0x40) {
+                    rv = func_80271F48(t->msgQ, t->msg, OS_MESG_NOBLOCK);
+                } else {
+                    rv = osSendMesg(t->msgQ, t->msg, OS_MESG_NOBLOCK);
+                }
+                SCHED_ASSERT(rv!=-1, 649);
+            }
+        }
+        D_8036BFBC = 1;
+    } else {
+        D_8036BFBC = 0;
+    }
+    return D_8036BFBC;
+}
 
 /* __scAppendList */
 void func_80271C24(BcSched *sc, BcScTask *t) {
@@ -248,7 +320,7 @@ void func_80271E88(BcSched *sc) {
 
 /* osSendMesg wrapper; the timing values are computed but never used
  * (leftover debug code). */
-void func_80271F48(OSMesgQueue *mq, OSMesg msg, s32 flag) {
+s32 func_80271F48(OSMesgQueue *mq, OSMesg msg, s32 flag) {
     OSTime remaining;
     OSTime now;
     s32 unused;
@@ -256,7 +328,7 @@ void func_80271F48(OSMesgQueue *mq, OSMesg msg, s32 flag) {
     remaining = D_8036BF38 + 391250 - osGetTime();
     now = osGetTime();
     unused = 0;
-    osSendMesg(mq, msg, flag);
+    return osSendMesg(mq, msg, flag);
 }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/2C560/func_80271FD0.s")

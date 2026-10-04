@@ -8,10 +8,11 @@
 # a MATCH here still needs a real build to confirm.
 set -e
 here=$(cd "$(dirname "$0")" && pwd)
-root=$here/../blastcorps
+root=$(cd "$here/../blastcorps" && pwd)
 src=$(realpath "$1"); d=$2; o=$3; shift 3
+obj=$(mktemp /tmp/probe_cmp.XXXXXX.o); trap "rm -f $obj" EXIT
 cd "$root"
 ../tools/ido5.3_recomp/cc -c -32 -G 0 -Xcpluscomm -signed -nostdinc -non_shared -Wab,-r4300_mul \
     -D_LANGUAGE_C -D_FINALROM -woff 649,838 -I . -I include -I include/2.0I -I include/2.0I/PR \
-    $o -mips2 -o32 -o /tmp/probe_cmp.o "$src"
-python3 "$here/probe_cmp.py" /tmp/probe_cmp.o "$root/asm/nonmatchings/hd_code/$d" "$@"
+    $o -mips2 -o32 -o "$obj" "$src"
+python3 "$here/probe_cmp.py" "$obj" "$root/asm/nonmatchings/hd_code/$d" "$@"

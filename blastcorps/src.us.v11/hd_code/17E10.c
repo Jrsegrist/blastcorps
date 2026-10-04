@@ -105,30 +105,20 @@ void func_8025CE74(void) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_8025D2B4.s")
 
-/* TODO: func_8025E1E0 - writes 3 fixed 8-byte records (a flags word,
- * then a base+size word) into *arg0, *arg0+8 and *arg0+0x10 - record i's
- * flags are 0x0103/0x0101/0x0102 | 0x40, and its second word is
- * 0x02000000 + {0x80,0x140,0x1c0} (consecutive, suggesting real adjacent
- * ucode-task slot sizes) - then advances a cursor past the third record
- * and runs it through func_8024FC2C(&cursor, 0/1/2) before writing the
- * final cursor back to *arg0. Logic, every field value, and the frame
- * (4 pointer locals, matches target byte-for-byte) are all confirmed
- * correct (down to a 11-word edit distance, zero register-class diffs -
- * the register allocator's work is fully reproduced). The one gap: each
- * second word's `0x02000000 + offset` value is built by target as a pure
- * register temporary (lui, then a no-op addiu +0, then the real addiu
- * +offset - never spilled), while any source phrasing that avoids
- * compile-time constant folding (needed, since a bare literal sum folds
- * immediately) requires a real local, and assigning a local always homes
- * it to the stack here, inserting one extra `sw` per occurrence (+3
- * instructions total) and swapping the add for an `ori` (equivalent since
- * the low 16 bits never overlap, but not what target emits). Tried:
- * plain literal (folds to one `ori`), splitting into a separate pointer
- * local written then added to (closest: 11-word distance, but the
- * mandatory stack home remains), `register` on that local (reallocates
- * the whole function into callee-saved $s0-$s3 with a totally different
- * save/restore shape instead). */
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_8025E1E0.s")
+extern Mtx D_02000000[];
+void func_8024FC2C(Gfx **, s32);
+
+void func_8025E1E0(Gfx **arg0) {
+    Gfx *gfx = *arg0;
+
+    gSPMatrix(gfx++, &D_02000000[2], G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
+    gSPMatrix(gfx++, &D_02000000[5], G_MTX_PROJECTION | G_MTX_MUL | G_MTX_NOPUSH);
+    gSPMatrix(gfx++, &D_02000000[7], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+    func_8024FC2C(&gfx, 0);
+    func_8024FC2C(&gfx, 1);
+    func_8024FC2C(&gfx, 2);
+    *arg0 = gfx;
+}
 
 /* TODO: func_8025E2CC - an *arg0-output state machine gated on
  * D_803643D7 and func_802753C0()==0: on D_80366BC0==0, checks whether

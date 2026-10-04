@@ -61,48 +61,88 @@ typedef struct {
     u8 unityPitch;
 } SndVoiceConfig;
 
-/* TODO: func_8025EDF0 - links arg0->unk8 into D_802E8CEC->0x48, resets
- * D_802E8CEC->0x40 and sets ->0x4c=0x80e8; allocates arg0->unk0*0x40
- * bytes via func_802D6B10 into D_802E8CEC->0x44 and D_802E8CE8, then
- * arg0->unk4*28 bytes into func_802D6E3C(D_802E8CEC+0x14, ., arg0->unk4);
- * for i=1..arg0->unk0-1, calls func_802D6EE0 on 0x40-byte slices of the
- * first allocation; allocates arg0->unk10 u16s into D_80366C28 and fills
- * them with 0x7fff; sets D_802E8CEC->0x38=D_803065C0, ->0=0, ->8=the
- * function pointer func_8025F044, ->4=itself (a self-referential node),
- * calls func_802D6F70(->0x38, D_802E8CEC), posts a {code=0x20} event via
- * func_802D6C8C with D_802E8CEC->0x4c as the extra field, then sets
- * D_802E8CEC->0x50 = func_802D6DB0(D_802E8CEC+0x14, D_802E8CEC+0x28).
- * Logic and every field/offset are confirmed correct (down to 2
- * differing opcodes with the frame, instruction count and nearly every
- * register already exact). The one gap: in the first counted loop,
- * target computes the incremented index straight into the register it
- * reuses for the bound check (`addiu t2,t1,1; sw t2,...; ...; sltu
- * at,t2,t4`), while a plain `i = i + 1;` statement here always reloads i
- * fresh for the following while-test. Folding the increment into the
- * while-condition itself - `while ((i = i + 1) < bound)`, the exact
- * lever that fixed this same gap in func_80260210 and the retried
- * func_80260A30 - backfires here instead: since `i` is also read inside
- * the loop body's own call arguments, IDO promotes it to a callee-saved
- * $s-register across the whole loop (save-slots go from 4 to 12 bytes),
- * which is worse. Left as the plain two-statement form. */
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/1A630/func_8025EDF0.s")
+typedef struct {
+    u32 maxStates;
+    u32 maxEvents;
+    s32 maxSounds;
+    void *heap;
+    u16 slotCount;
+} SndConfig;
 
-/* TODO: func_8025F044 - repeat {if entry->unk28==0x20, post a {code=0x20,
- * param=entry+0x14} event with entry->unk4c as the 3rd field, else call
- * func_8025F0F0(entry, entry+0x28); then entry->unk50 =
- * func_802D6DB0(entry+0x14, entry+0x28)} until unk50 becomes nonzero, then
- * entry->unk54 += unk50 and return unk50 (a polling/retry loop with a
- * fixed `entry`, never advancing - the retries are driven entirely by the
- * three calls' side effects). Logic, every field offset, and the loop
- * condition are all confirmed correct (diff score down to 460, frame size
- * exact, zero inserts/deletes) - the one gap: inside the `unk28==0x20`
- * branch, target reloads `entry` from its stack home a second time right
- * before using it for the call's a0/a2 despite having just loaded it for
- * the preceding comparison, while every phrasing tried keeps reusing the
- * already-loaded register instead, cascading into register-rename diffs
- * for the rest of the function. Tried moving the inner `eventCode` local
- * to function scope; no effect (score 462, same shape). */
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/1A630/func_8025F044.s")
+extern void *D_802E8CEC;
+extern void *D_802E8CE8;
+extern void *D_803065C0;
+extern u16 *D_80366C28;
+void *func_802D6B10(s32, s32, void *, s32, s32);
+void func_802D6E3C(void *, void *, s32);
+s32 func_802D6EE0(void *, void *);
+void func_802D6F70(void *, void *);
+s32 func_802D6DB0(void *, void *);
+s32 func_802D6C8C(void *, void *, s32);
+s32 func_8025F044(void *node);
+void func_8025F0F0(void *sndp, SndEvent *event);
+
+#define SNDP_FIELD(type, off) (*(type *) ((u8 *) D_802E8CEC + (off)))
+
+/* GoldenEye: sndNewPlayerInit. */
+void func_8025EDF0(SndConfig *c) {
+    u32 i;
+    u8 *ptr;
+    SndEvent evt;
+    SndState *sState;
+
+    SNDP_FIELD(s32, 0x48) = c->maxSounds;
+    SNDP_FIELD(s32, 0x40) = 0;
+    SNDP_FIELD(s32, 0x4C) = 33000;
+    ptr = func_802D6B10(0, 0, c->heap, 1, c->maxStates * sizeof(SndState));
+    SNDP_FIELD(void *, 0x44) = ptr;
+    ptr = func_802D6B10(0, 0, c->heap, 1, c->maxEvents * 28);
+    func_802D6E3C((u8 *) D_802E8CEC + 0x14, ptr, c->maxEvents);
+    D_802E8CE8 = SNDP_FIELD(void *, 0x44);
+
+    for (i = 1; i < c->maxStates; i++) {
+        sState = SNDP_FIELD(SndState *, 0x44);
+        func_802D6EE0(&sState[i], &sState[i] - 1);
+    }
+
+    D_80366C28 = func_802D6B10(0, 0, c->heap, sizeof(s16), c->slotCount);
+    for (i = 0; i < c->slotCount; i++) {
+        D_80366C28[i] = 0x7FFF;
+    }
+
+    SNDP_FIELD(void *, 0x38) = D_803065C0;
+    SNDP_FIELD(void *, 0x00) = NULL;
+    SNDP_FIELD(void *, 0x08) = func_8025F044;
+    SNDP_FIELD(void *, 0x04) = D_802E8CEC;
+    func_802D6F70(SNDP_FIELD(void *, 0x38), D_802E8CEC);
+
+    evt.type = 0x20;
+    func_802D6C8C((u8 *) D_802E8CEC + 0x14, &evt, SNDP_FIELD(s32, 0x4C));
+    SNDP_FIELD(s32, 0x50) = func_802D6DB0((u8 *) D_802E8CEC + 0x14, (u8 *) D_802E8CEC + 0x28);
+}
+
+/* GoldenEye: sndPlayerVoiceHandler. */
+s32 func_8025F044(void *node) {
+    void *sndp;
+    SndEvent evt;
+
+    sndp = node;
+    do {
+        switch (*(s16 *) ((u8 *) sndp + 0x28)) {
+            case 0x20:
+                evt.type = 0x20;
+                func_802D6C8C((u8 *) sndp + 0x14, &evt, *(s32 *) ((u8 *) sndp + 0x4C));
+                break;
+            default:
+                func_8025F0F0(sndp, (SndEvent *) ((u8 *) sndp + 0x28));
+                break;
+        }
+        *(s32 *) ((u8 *) sndp + 0x50) = func_802D6DB0((u8 *) sndp + 0x14, (u8 *) sndp + 0x28);
+    } while (*(s32 *) ((u8 *) sndp + 0x50) == 0);
+
+    *(s32 *) ((u8 *) sndp + 0x54) += *(s32 *) ((u8 *) sndp + 0x50);
+    return *(s32 *) ((u8 *) sndp + 0x50);
+}
 
 extern s16 D_802E8CF0;
 extern void *D_802E8CE4;

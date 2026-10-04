@@ -1,6 +1,43 @@
 #include "common.h"
 #include <ultra64.h>
 
+/* sched.c's .bss (0x8036BEF0-0x8036BFD4), defined here in declaration
+ * order so IDO lays it out like the original (placed by
+ * hd_code_bss.us.v11.ld). Defining them matters for codegen: stores to a
+ * variable defined in the same file share one %hi. Unreferenced holes are
+ * placeholders. */
+u64 D_8036BEF0;   /* time of the last RSP yield */
+u64 D_8036BEF8;
+u64 D_8036BF00;
+s32 D_8036BF08;
+s32 D_8036BF0C;
+s32 D_8036BF10;
+s32 D_8036BF14;
+s32 D_8036BF18;
+s32 D_8036BF1C;
+s32 D_8036BF20;
+s32 D_8036BF24;
+s32 D_8036BF28;
+s32 D_8036BF2C;
+u8 D_8036BF30[8];
+OSTime D_8036BF38;
+s32 D_8036BF40;
+s32 D_8036BF44;
+u64 D_8036BF48;
+s32 D_8036BF50;
+u8 D_8036BF54[0x3C];
+s32 D_8036BF90;
+s32 D_8036BF94;
+u8 D_8036BF98[0x20];
+s32 D_8036BFB8;
+s32 D_8036BFBC;
+f32 D_8036BFC0;
+u8 D_8036BFC4;
+u8 D_8036BFC5;
+f32 D_8036BFC8;
+f32 D_8036BFCC;
+f32 D_8036BFD0;
+
 /* Blast Corps' scheduler: a Rare-modified copy of the SDK's sched.c
  * (GoldenEye's src/sched.c is a later version). The OSSched here lacks the
  * SDK's two leading OSScMsg fields, and clients carry two extra words. */
@@ -12,6 +49,7 @@ void func_8029A7E4(const char *fmt, ...);
 
 #define M_GFXTASK 1
 #define M_AUDTASK 2
+#define RSP_STATE_SUSPENDED 3
 
 typedef struct BcScTask {
     /* 0x00 */ struct BcScTask *next;
@@ -41,10 +79,10 @@ typedef struct {
     /* 0x270 */ BcScTask *gfxListTail;
     /* 0x274 */ BcScTask *curRSPTask;
     /* 0x278 */ BcScTask *curRDPTask;
+    /* 0x27C */ u8 pad27C[0x290 - 0x27C];
+    /* 0x290 */ OSTime gfxStartTime;
 } BcSched;
 
-extern s32 D_8036BF10;
-extern s32 D_8036BF1C;
 extern OSViMode D_80306E70[];
 void func_802DA610(s32);
 void func_80270F7C(void *arg);
@@ -122,7 +160,6 @@ void func_802712B4(BcSched *sc, BcScTask *t) {
     }
 }
 
-u64 D_8036BF00; /* defined here: same-file definitions get shared-%hi stores */
 
 /* Retrace-side scheduling: yield the running RSP task, or reset and
  * schedule when idle. */
@@ -159,11 +196,55 @@ void func_80271C24(BcSched *sc, BcScTask *t) {
     t->state = 2;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/2C560/func_80271CE4.s")
+extern u8 D_802FA270;
+void func_802DAE1C(OSTask *task); /* osSpTaskLoad */
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/2C560/func_80271E88.s")
+/* Start the next RSP task: audio when availRCP is 0, else graphics. */
+void func_80271CE4(BcSched *sc, s32 availRCP) {
+    BcScTask *t;
+    OSTime now;
 
-extern OSTime D_8036BF38;
+    SCHED_ASSERT(!sc->curRSPTask, 696);
+    if (availRCP == 0) {
+        t = sc->audioListHead;
+        SCHED_ASSERT(t, 701);
+        if (t == NULL) {
+            return;
+        }
+        sc->audioListHead = sc->audioListHead->next;
+        if (sc->audioListHead == NULL) {
+            sc->audioListTail = (BcScTask *) &sc->audioListHead;
+        }
+        D_8036BF48 = osGetTime();
+    } else {
+        t = sc->gfxListHead;
+        if (D_802FA270) {
+            sc->gfxStartTime = osGetTime();
+            now = osGetTime();
+            D_8036BF2C = (now - D_8036BF38) / 7825;
+            D_802FA270 = 0;
+        }
+    }
+    t->state = 1;
+    func_802DAE1C(&t->list);
+    osSpTaskStartGo(&t->list);
+    sc->curRSPTask = t;
+    if (t->flags & 0x40) {
+        sc->curRDPTask = t;
+    }
+}
+
+/* __scYield */
+void func_80271E88(BcSched *sc) {
+    SCHED_ASSERT(sc->curRSPTask->list.t.type != M_AUDTASK, 735);
+    if (sc->curRSPTask->list.t.type == M_GFXTASK) {
+        SCHED_ASSERT(sc->curRSPTask->state != RSP_STATE_SUSPENDED, 739);
+        sc->curRSPTask->state = RSP_STATE_SUSPENDED;
+        D_8036BEF0 = osGetTime();
+        osSpTaskYield();
+    }
+}
+
 
 /* osSendMesg wrapper; the timing values are computed but never used
  * (leftover debug code). */

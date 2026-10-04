@@ -8,5 +8,5 @@ SECTIONS
     .bss_ul_piacs 0x803FF2D0 (NOLOAD) : { build/src.us.v11/hd_code/ul_piacs.c.o(.bss); }
     .bss_ul_timerintr 0x803FF2F0 (NOLOAD) : { build/src.us.v11/hd_code/ul_timerintr.c.o(.bss); }
     .bss_ul_siacs 0x803FF330 (NOLOAD) : { build/src.us.v11/hd_code/ul_siacs.c.o(.bss); }
-    .bss_2C560 0x8036BF00 (NOLOAD) : { build/src.us.v11/hd_code/2C560.c.o(.bss); }
+    .bss_2C560 0x8036BEF0 (NOLOAD) : { build/src.us.v11/hd_code/2C560.c.o(.bss); }
 }

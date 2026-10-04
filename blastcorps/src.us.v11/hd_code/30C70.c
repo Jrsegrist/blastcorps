@@ -4,11 +4,22 @@
 /* This file's .bss starts at 0x8036C790 */
 extern s16 *D_8036C790;
 extern s16 *D_8036C794;
+extern s32 D_8036C798;
+extern s32 D_8036C7C8;     /* time left; under 500 the target turns red */
 extern s16 *D_8036C7A0[10]; /* point lists to keep on screen */
 extern u8 D_8036C7CC;
 extern Vtx D_8036C7D0[][4];   /* off-screen marker quads */
 extern Mtx D_8036C850[];      /* off-screen marker matrices */
 extern s16 D_8036443E;        /* camera yaw, 4095 = 360 degrees */
+extern u8 D_8036EB98;
+extern u32 D_80364AA8;
+extern u8 D_802E8BD0;
+extern u8 D_803643DB;
+extern u8 D_803F7808;
+extern u8 D_803F7809;
+extern s32 D_802FAD40; /* target bounce offset */
+extern s32 D_802FAD44; /* target bounce count */
+extern u8 D_802FAD48;  /* target bounce direction */
 extern u8 D_02000000[]; /* segment 2 base */
 extern u8 D_802FA940[]; /* 32x32 IA8 texture */
 extern u16 D_8035807C;   /* projection scale, 65535 = 1.0 */
@@ -23,6 +34,15 @@ s32 func_80276130(SpriteVtxBuf *arg0, u8 arg1, s32 arg2, s32 x, s32 y, s32 w, s3
                   u8 r2, u8 g2, u8 b2, u8 a2, u8 r3, u8 g3, u8 b3, u8 a3);
 void func_8027690C(void *arg0, f32 x, f32 y, f32 z, s16 *sx, s16 *sy, Mtx *arg6, Mtx *arg7, Mtx *arg8, f32 arg9);
 void func_80276D1C(Mtx *m, f32 x, f32 y, f32 z, f32 w, f32 *ox, f32 *oy, f32 *oz, f32 *ow);
+s32 func_802BCE40(void);
+void func_802BD10C(s32 arg0);
+u8 func_8026AD30(s16 arg0);
+void func_8026AF6C(u16 yd);
+void func_80277EDC();
+s32 func_802768A8(void);
+void func_8027656C(void *arg0);
+Gfx *func_80275DA4(Gfx *gfx, u8 arg1);
+s32 func_80276080(SpriteVtxBuf *arg0, u8 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5, s32 arg6, u8 r, u8 g, u8 b, u8 a);
 
 void func_80275430(void) {
     s32 i;
@@ -34,7 +54,165 @@ void func_80275430(void) {
     D_8036C7CC = 0;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/30C70/func_80275478.s")
+/* Picks the on-screen target marker, colours it by time left, bounces it and draws its four arrows */
+void func_80275478(SpriteVtxBuf *arg0, Gfx **gfxp, u8 arg2) {
+    s16 i;
+    s16 k;
+    s16 vtxIdx = 16;
+    Gfx *gdl = *gfxp;
+    s16 sx;
+    s16 sy;
+    s16 px;
+    s16 py;
+    s16 minX;
+    s16 maxX;
+    s16 minY;
+    s16 maxY;
+    u8 r;
+    u8 g;
+    s16 t;
+    s16 *pts;
+    s32 ret;
+
+    minX = 0x7FFF, maxX = -0x8000, minY = 0x7FFF, maxY = -0x8000;
+    ret = func_802BCE40();
+    pts = D_8036C790;
+    D_8036C7CC = 0;
+    if (!D_8036EB98 && !ret && D_80364AA8 == 1 && !D_802E8BD0) {
+        if (!func_8026AD30(0x4B)) {
+            func_8026AF6C(0x803D);
+            func_80277EDC(3, 1, 2, 0x82);
+        }
+        D_8036EB98 = 1;
+    }
+    if (D_8036C790 != NULL && (!func_802768A8() || arg2) && D_8036C794 == NULL) {
+        for (i = 0; i < 4; i++) {
+            func_8027690C(arg0, D_8036C790[0], D_8036C790[1], D_8036C790[2], &sx, &sy, NULL, NULL, NULL, 1.0f);
+            D_8036C790 += 3;
+            if (sx < minX) {
+                minX = sx;
+            }
+            if (sx > maxX) {
+                maxX = sx;
+            }
+            if (sy < minY) {
+                minY = sy;
+            }
+            if (sy > maxY) {
+                maxY = sy;
+            }
+        }
+        D_8036C7CC = 0;
+        for (k = 0; k < 4; k++) {
+            switch (k) {
+                case 0:
+                    px = (maxX - minX) / 2 + minX;
+                    py = minY;
+                    break;
+                case 1:
+                    px = (maxX - minX) / 2 + minX;
+                    py = maxY;
+                    break;
+                case 2:
+                    px = minX;
+                    py = (maxY - minY) / 2 + minY;
+                    break;
+                case 3:
+                    px = maxX;
+                    py = (maxY - minY) / 2 + minY;
+                    break;
+            }
+            if (px < 310 && px >= 11 && py < 230 && py >= 11) {
+                D_8036C794 = pts;
+                D_8036C798 = ret;
+                D_803F7809 = D_803F7808;
+                D_802FAD44 = 0;
+            }
+        }
+    }
+    if (D_8036C794 != NULL) {
+        func_802BD10C(D_8036C798);
+        if (D_8036C7C8 >= 1501 || !D_803643DB) {
+            g = 0xFF;
+            r = 0;
+        } else if (D_8036C7C8 < 500) {
+            r = 0xFF;
+            g = 0;
+        } else {
+            t = (D_8036C7C8 - 500) / 1000.0f * 511.0f;
+            if (t < 256) {
+                g = t, r = 0xFF;
+            } else {
+                g = 0xFF, r = 0x1FE - t;
+            }
+        }
+        pts = D_8036C794;
+        for (i = 0; i < 4; i++) {
+            func_8027690C(arg0, pts[0], pts[1], pts[2], &sx, &sy, NULL, NULL, NULL, 1.0f);
+            pts += 3;
+            if (sx < minX) {
+                minX = sx;
+            }
+            if (sx > maxX) {
+                maxX = sx;
+            }
+            if (sy < minY) {
+                minY = sy;
+            }
+            if (sy > maxY) {
+                maxY = sy;
+            }
+        }
+        for (k = 0; k < 4; k++) {
+            switch (k) {
+                case 0:
+                    px = (maxX - minX) / 2 + minX, py = minY - D_802FAD40;
+                    break;
+                case 1:
+                    px = (maxX - minX) / 2 + minX, py = maxY + D_802FAD40;
+                    break;
+                case 2:
+                    px = minX - D_802FAD40;
+                    py = (maxY - minY) / 2 + minY;
+                    break;
+                case 3:
+                    px = maxX + D_802FAD40;
+                    py = (maxY - minY) / 2 + minY;
+                    break;
+            }
+            if (px < 310 && px >= 11 && py < 230 && py >= 11) {
+                D_8036C7CC++;
+            }
+            vtxIdx = func_80276080(arg0, k, vtxIdx, px, py, 8, 8, r, g, 0, 0xFF);
+        }
+        if (!D_802FAD48) {
+            D_802FAD40++;
+            if (D_802FAD40 == 10) {
+                D_802FAD48 = 1;
+                D_802FAD44++;
+            }
+        } else {
+            D_802FAD40--;
+            if (D_802FAD40 == 0) {
+                D_802FAD48 = 0;
+                D_802FAD44++;
+            }
+        }
+        if (D_802FAD44 == 5) {
+            D_8036C794 = NULL;
+        }
+        gdl = func_80275DA4(gdl, 0);
+        gSPVertex(gdl++, (u32) D_02000000 + 0x1F00, 16, 0);
+        vtxIdx = 0;
+        for (k = 0; k < 4; k++) {
+            gSP1Triangle(gdl++, vtxIdx, vtxIdx + 1, vtxIdx + 2, 0);
+            gSP1Triangle(gdl++, vtxIdx, vtxIdx + 2, vtxIdx + 3, 0);
+            vtxIdx += 4;
+        }
+    }
+    func_8027656C(arg0);
+    *gfxp = gdl;
+}
 
 Gfx *func_80275DA4(Gfx *gfx, u8 arg1) {
     Gfx *gdl = gfx;
@@ -55,8 +233,8 @@ Gfx *func_80275DA4(Gfx *gfx, u8 arg1) {
     return gdl;
 }
 
-void func_80276080(SpriteVtxBuf *arg0, u8 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5, s32 arg6, u8 r, u8 g, u8 b, u8 a) {
-    func_80276130(arg0, arg1, arg2, arg3, arg4, arg5, arg6, r, g, b, a, r, g, b, a, r, g, b, a, r, g, b, a);
+s32 func_80276080(SpriteVtxBuf *arg0, u8 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5, s32 arg6, u8 r, u8 g, u8 b, u8 a) {
+    return func_80276130(arg0, arg1, arg2, arg3, arg4, arg5, arg6, r, g, b, a, r, g, b, a, r, g, b, a, r, g, b, a);
 }
 
 /* Writes a quad of 4 Vtx centred on (x, y), half size (w, h); arg1 picks the texture orientation */

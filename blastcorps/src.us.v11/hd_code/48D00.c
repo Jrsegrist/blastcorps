@@ -9,9 +9,15 @@ typedef struct {
     /* 0x0C */ u8 pad0C[0x14 - 0x0C];
     /* 0x14 */ s32 unk14;
     /* 0x18 */ u8 unk18;
-    /* 0x19 */ u8 pad19[0x24 - 0x19];
+    /* 0x19 */ u8 pad19[0x1E - 0x19];
+    /* 0x1E */ s16 unk1E;
+    /* 0x20 */ u8 pad20[0x23 - 0x20];
+    /* 0x23 */ u8 unk23;
     /* 0x24 */ u8 unk24;
-    /* 0x25 */ u8 pad25[0x48 - 0x25];
+    /* 0x25 */ u8 pad25;
+    /* 0x26 */ s16 unk26;
+    /* 0x28 */ s16 unk28;
+    /* 0x2A */ u8 pad2A[0x48 - 0x2A];
 } Entry48D00;
 extern Entry48D00 D_8039B070_entries[];
 
@@ -95,22 +101,18 @@ Entry48D00 *func_8028DE94(void) {
 void func_802AACD4(u8, s32, s32, void *, void *);
 extern u8 D_8039B094;
 
-/* TODO: func_8028F6B4 - for each D_8039B610-length array entry (0x48
- * stride) matching both unk18!=0 and unk23==arg0: clear unk1E, set the
- * corresponding D_8039B094 flag byte to 1, then forward several of the
- * entry's fields into func_802AACD4. Logic, structure, and every offset
- * confirmed correct (diff score as low as 130 with zero inserts/deletes
- * besides one spurious reload). Remaining gap: after the func_802AACD4
- * call clobbers the loop index's register, target reuses the freshly
- * computed `i+1` value directly for the loop condition with no further
- * reload, while every phrasing tried (plain post-increment, an explicit
- * `next` temp matching m2c's own inferred split, both declaration orders,
- * `register` on the index or the temp) either leaves one extra reload in
- * or - worse - gives the temp its own separate stack slot, growing the
- * frame and drifting every later address in the file. The explicit-temp
- * trick that fixed this exact pattern in func_8028DE94 (above) does not
- * carry over here, apparently because of the intervening function call. */
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/48D00/func_8028F6B4.s")
+void func_8028F6B4(u8 arg0) {
+    s32 i;
+
+    for (i = 0; i < D_8039B610; i++) {
+        if (D_8039B070_entries[i].unk18 != 0 && D_8039B070_entries[i].unk23 == arg0) {
+            D_8039B070_entries[i].unk1E = 0;
+            *(&D_8039B094 + i * 0x48) = 1;
+            func_802AACD4(arg0, D_8039B070_entries[i].unk0, D_8039B070_entries[i].unk8,
+                          &D_8039B070_entries[i].unk26, &D_8039B070_entries[i].unk28);
+        }
+    }
+}
 
 extern s32 D_8039B610;
 extern u8 D_8039B070;
@@ -218,20 +220,33 @@ void func_8028F93C(void) {
  * it should be). */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/48D00/func_8028FC10.s")
 
-/* TODO: func_8028FCD4 - wait for arg0->unk8 to become nonzero
- * (func_802DB850(arg0); while (arg0->unk8 == 0) {}), reset it via
- * func_802D4910(arg0,0,0), fill a 4-entry/4-byte-stride local array via
- * func_802DB8D4((s32) sp20), then for each entry with (unk2&1) and
- * unk3==0 set the matching bit in *arg1; return sp20[0].unk3 (always the
- * first entry's byte, not sp20[i]). Logic, the spin-wait shape, every
- * field offset, and the overall structure are all confirmed correct
- * (asm-differ score as low as 290, zero structural inserts in the bulk of
- * the function). Remaining gap is the same loop-tail pattern documented
- * on func_8028F6B4 above: target defers the incremented index's store
- * into the branch's own delay slot (`slti at,t6,4; bnez at,loop; sw
- * t6,0x1c(sp)`), while this phrasing stores-then-reloads before the
- * compare instead. The m2c-style split-temp fix that works for this
- * exact pattern when there's no function call in the loop body (see
- * func_8028DE94 above) does not reproduce it here either - it trades the
- * extra reload for an extra dedicated stack slot instead. */
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/48D00/func_8028FCD4.s")
+typedef struct {
+    u8 unk0;
+    u8 unk1;
+    u8 unk2;
+    u8 unk3;
+} Status48D00;
+
+void func_802DB850(void *);
+void func_802D4910(void *, s32, s32);
+void func_802DB8D4(Status48D00 *);
+
+/* Wait for arg0->unk8, then build a bitmask in *arg1 of the 4 status
+ * entries with bit 0 of unk2 set and unk3 clear. */
+u8 func_8028FCD4(void *arg0, u8 *arg1) {
+    Status48D00 status[4];
+    s32 i;
+
+    *arg1 = 0;
+    func_802DB850(arg0);
+    while (*(s32 *) ((u8 *) arg0 + 8) == 0) {
+    }
+    func_802D4910(arg0, 0, 0);
+    func_802DB8D4(status);
+    for (i = 0; i < 4; i++) {
+        if ((status[i].unk2 & 1) && status[i].unk3 == 0) {
+            *arg1 |= 1 << i;
+        }
+    }
+    return status[0].unk3;
+}

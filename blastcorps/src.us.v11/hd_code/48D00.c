@@ -11,7 +11,8 @@ typedef struct {
     /* 0x0F */ u8 pad0F[0x14 - 0x0F];
     /* 0x14 */ s32 unk14;
     /* 0x18 */ u8 unk18;
-    /* 0x19 */ u8 pad19[0x1E - 0x19];
+    /* 0x19 */ u8 unk19;
+    /* 0x1A */ u8 pad1A[0x1E - 0x1A];
     /* 0x1E */ s16 unk1E;
     /* 0x20 */ u8 pad20[0x23 - 0x20];
     /* 0x23 */ u8 unk23;
@@ -19,7 +20,9 @@ typedef struct {
     /* 0x25 */ u8 pad25;
     /* 0x26 */ s16 unk26;
     /* 0x28 */ s16 unk28;
-    /* 0x2A */ u8 pad2A[0x48 - 0x2A];
+    /* 0x2A */ u8 pad2A[0x40 - 0x2A];
+    /* 0x40 */ s32 unk40;
+    /* 0x44 */ s32 unk44;
 } Entry48D00;
 extern Entry48D00 D_8039B070_entries[];
 
@@ -45,26 +48,8 @@ extern Entry48D00 D_8039B070_entries[];
  * guessing further. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/48D00/func_8028DA5C.s")
 
-/* TODO: func_8028DD64 - for the D_8039B610 array entry at index arg0 (0x48
- * stride): forward its first 3 words into func_802CDA10, set its unk19 byte
- * to 5 and unk18 byte to 0, then set D_802E8BE4=10/D_802E8BE8=0x190 and, if
- * its unk40 word is nonzero, notify func_802608C8 and - if func_8028DE94()
- * (a no-arg linear search, see below) finds a match - forward it into
- * func_80260650(D_80367738, 0x73, match+0x40); finally, if unk44 is nonzero,
- * notify func_802608C8 of it too, then unconditionally call
- * func_80260650(D_80367738, 0x10, 0). Logic, every field offset, and the
- * overall control flow are all confirmed correct (diff score down to 300,
- * zero inserts/deletes - every single instruction present and in the right
- * place except a 4-instruction window). The one remaining gap: while
- * clearing the unk18 byte, target interleaves the tail of that address
- * calculation with the *start* of the next statement's (the unk40 lookup's)
- * address calculation one instruction later than every phrasing tried
- * produces - a pure instruction-scheduling-window artifact between two
- * independent, back-to-back statements, not a logic or layout gap. Tried:
- * several different statement orderings/interleavings of the two preceding
- * global stores (D_802E8BE4/D_802E8BE8) relative to the array writes, all
- * of which only made the score worse (710-1010) by disturbing other,
- * already-matching regions - this phrasing is the local optimum found. */
+/* Activate entry arg0. The mix of struct-field and per-field-symbol
+ * accesses below is deliberate: it is the spelling whose schedule matches. */
 extern u8 D_8039B070;
 extern u8 D_8039B088;
 extern u8 D_8039B089;
@@ -79,7 +64,26 @@ void func_802608C8(s32);
 void func_80260650(s32, s32, s32);
 Entry48D00 *func_8028DE94(void);
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/48D00/func_8028DD64.s")
+void func_8028DD64(u8 arg0) {
+    Entry48D00 *match;
+
+    func_802CDA10(D_8039B070_entries[arg0].unk0, D_8039B070_entries[arg0].unk4, D_8039B070_entries[arg0].unk8);
+    *(&D_8039B089 + arg0 * 0x48) = 5;
+    D_8039B070_entries[arg0].unk18 = 0;
+    D_802E8BE4 = 10;
+    D_802E8BE8 = 0x190;
+    if (D_8039B070_entries[arg0].unk40 != 0) {
+        func_802608C8(D_8039B070_entries[arg0].unk40);
+        match = func_8028DE94();
+        if (match != NULL) {
+            func_80260650(D_80367738, 0x73, (s32) &match->unk40);
+        }
+    }
+    if (*(s32 *) (&D_8039B0B4 + arg0 * 0x48) != 0) {
+        func_802608C8(*(s32 *) (&D_8039B0B4 + arg0 * 0x48));
+    }
+    func_80260650(D_80367738, 0x10, 0);
+}
 
 extern u8 D_8039B070;
 extern s32 D_8039B610;

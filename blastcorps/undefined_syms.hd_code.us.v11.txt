@@ -12,3 +12,4 @@ D_802FDB40 = 0x802FDB40;
 D_802FDA60 = 0x802FDA60; /* 41930: u8 per gameState */
 D_802FDA70 = 0x802FDA70; /* 41930: u8 per gameState */
 D_8020D7E4 = 0x8020D7E4; /* 41930: level names, 0x30 stride */
+D_8039CA50 = 0x8039CA50; /* 4EBE0: f32 spline weight */

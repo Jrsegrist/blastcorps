@@ -16,17 +16,11 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/972A0/func_802DC130.s")
 
-/* TODO: func_802DC178 - pointer-chase/unlink: `*arg0 = **arg0;` (target: 4
- * instructions, no stack frame, correct instruction shape achieved with
- * `void func_802DC178(void **arg0) { *arg0 = *(void **) *arg0; }` -
- * identical structure to target (lw/lw/jr/sw, no frame), but target uses
- * $v0 for the first loaded value and $t9 for the second, while every
- * phrasing tried (plain, returning the loaded value, returning the
- * assignment expression directly) allocates $t6/$t7 instead - pure
- * register-rename gap, lowest severity, but still real bytes differing.
- * Logic and structure fully confirmed correct. Ran decomp-permuter
- * (tools/permuter) against it for 90s with no improvement on the base
- * score of 20 - worth a longer background run later. */
+/* func_802DC178: libultra __osPopThread (`*queue = (*queue)->next`,
+ * returning the old head). Part of hand-written exceptasm.s, like its
+ * neighbours func_802DC130 (__osEnqueueThread, also $t9-based) and the
+ * $k0/`ld` context restore in func_802DC188 - not compiled C, so the
+ * $v0/$t9 register choice can't come from IDO. Permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/972A0/func_802DC178.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/972A0/func_802DC188.s")

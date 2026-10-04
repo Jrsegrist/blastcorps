@@ -214,23 +214,35 @@ void func_8028FAC0(s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
     }
 }
 
-/* TODO: func_8028FC10 - set up D_80370BF8 via func_802DB4D0/func_802D4910,
- * read a u16 status word via func_802DB594 and set a local flag if bit
- * 0x1000 is set, call func_8028FCD4 and conditionally latch the flag into
- * D_802FDBD0, then derive D_802FDBD4 as "flag was set AND D_802FDBD0 was
- * zero" (target: 0x40-byte frame, no loops). Logic and call sequence
- * confirmed correct; declaring the final boolean `register` (to match
- * target's use of the callee-saved $s0 across the whole function, visible
- * directly in the target disassembly) dropped the score from 1706 to 740
- * and fixed the $s0 save/restore and register-class markers throughout.
- * Remaining gap: target's frame is 0x40 bytes but every phrasing tried
- * only needs 0x28-0x30 for the same three locals - something about the
- * original source uses roughly 24 more bytes of stack than this
- * reconstruction does (not a padding/alignment artifact; the three local
- * variables' own offsets shift to fill whatever space is allocated, so
- * this isn't simply "declare one more unused local" without knowing what
- * it should be). */
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/48D00/func_8028FC10.s")
+extern OSMesgQueue D_80370BF8;
+extern u8 D_802FDBD0;
+extern u8 D_802FDBD4;
+void func_802DB4D0(OSMesgQueue *);
+void func_802DB594(OSContPad *);
+void func_802D4910(void *, s32, s32);
+u8 func_8028FCD4(void *arg0, u8 *arg1);
+
+/* Boot-time controller check: read the pads (osContStartReadData,
+ * osRecvMesg, osContGetReadData), note whether START is held, latch it
+ * into D_802FDBD0 if controller 1 is present, and set D_802FDBD4 when
+ * START is held but was not latched. */
+void func_8028FC10(void) {
+    u8 mask;
+    u8 start;
+    OSContPad pads[4];
+
+    start = 0;
+    func_802DB4D0(&D_80370BF8);
+    func_802D4910(&D_80370BF8, 0, 1);
+    func_802DB594(pads);
+    if (pads[0].button & 0x1000) {
+        start = 1;
+    }
+    if (func_8028FCD4(&D_80370BF8, &mask) == 0 && (mask & 1)) {
+        D_802FDBD0 = start;
+    }
+    D_802FDBD4 = start && !D_802FDBD0;
+}
 
 typedef struct {
     u8 unk0;

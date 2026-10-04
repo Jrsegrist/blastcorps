@@ -124,10 +124,6 @@ verify_hd_code: hd_code
 extract:
 	$(PYTHON) $(TOOLS_DIR)/splat/split.py init.$(VERSION).yaml
 	$(PYTHON) $(TOOLS_DIR)/splat/split.py hd_code.$(VERSION).yaml
-# IDO emits jump tables as late rodata (after a file's strings); this splat
-# version puts them in .rodata, so move the ones in files that also have
-# strings until their functions are matched in C.
-	sed -i 's/^glabel jtbl_803091AC$$/.late_rodata\nglabel jtbl_803091AC/' asm/nonmatchings/hd_code/1A930/func_8025F0F0.s
 
 # preprocessed context for mips_to_c (tools/m2c.sh); not version-specific
 ctx.i: ctx.c

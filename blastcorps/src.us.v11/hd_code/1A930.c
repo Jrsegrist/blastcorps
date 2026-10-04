@@ -3,7 +3,342 @@
 
 void func_802604FC(void *arg0);
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/1A930/func_8025F0F0.s")
+/* Rare's sound player, an early relative of GoldenEye's snd.c (itself
+ * derived from libultra's sndplayer.c). Layouts follow GoldenEye's. */
+typedef struct {
+    s32 attackTime;
+    s32 decayTime;
+    s32 releaseTime;
+    u8 attackVolume;
+    u8 decayVolume;
+} SndEnvelope;
+
+typedef struct {
+    u8 velocityMin;
+    u8 velocityMax;
+    u8 keyMin;
+    u8 keyMax;
+} SndKeyMap;
+
+typedef struct {
+    SndEnvelope *envelope;
+    SndKeyMap *keyMap;
+    void *wavetable;
+    u8 samplePan;
+    u8 sampleVolume;
+} SndSound;
+
+typedef struct SndState {
+    struct SndState *next;
+    struct SndState *prev;
+    SndSound *sound;
+    u8 voice[0x1C];
+    f32 pitch_28;
+    f32 pitch_2c;
+    struct SndState *state;
+    s16 vol;
+    u8 priority;
+    s32 unk38;
+    u8 pan;
+    u8 fxMix;
+    u8 flags;
+    u8 playingState;
+} SndState;
+
+typedef struct {
+    u16 type;
+    SndState *state;
+    union {
+        s32 data;
+        f32 pitch;
+    } u;
+    void *ptr;
+} SndEvent;
+
+typedef struct {
+    s16 priority;
+    s16 fxBus;
+    u8 unityPitch;
+} SndVoiceConfig;
+
+extern s16 D_802E8CF0;
+extern void *D_802E8CE4;
+extern u16 *D_80366C28;
+void func_8026005C(void *arg0);
+void func_802600D8(void *arg0);
+void func_80260148(void *, void *, u16);
+u16 func_80260210(u16 *arg0, u16 *arg1);
+void *func_80260650(void *arg0, s16 arg1, void *arg2);
+void func_80260AB8(void *arg0, s16 arg1, s32 arg2);
+void func_8029A7E4(char *, ...);
+s32 func_802D6C8C(void *, void *, s32);
+s32 func_802D70A8(void *, void *, SndVoiceConfig *);
+void func_802D71F0(void *, void *, s32, s32);
+void func_802D7290(void *, void *, void *);
+void func_802D7320(void *, void *, u8);
+void func_802D73B0(void *, void *, f32);
+void func_802D7440(void *, void *, s32);
+
+#define SNDP_DRVR(sndp) (*(void **) ((u8 *) (sndp) + 0x38))
+#define SNDP_EVTQ(sndp) ((void *) ((u8 *) (sndp) + 0x14))
+#define SNDP_MAXSOUNDS(sndp) (*(s32 *) ((u8 *) (sndp) + 0x48))
+#define SLOT_VOLUME(keyMap) (((s16 *) D_80366C28)[(keyMap)->keyMin & 0x3F])
+
+void func_8025F0F0(void *sndp, SndEvent *event) {
+    SndVoiceConfig config;
+    SndSound *sound;
+    SndKeyMap *keyMap;
+    void *voice;
+    u8 pan;
+    SndEvent spAC;
+    SndEvent nextStateEvent;
+    s32 delta;
+    s32 fxMix;
+    s32 volume;
+    s32 panTmp;
+    s32 limitReached;
+    s32 isEventForSingleSound;
+    s32 lastInSequence;
+    s32 pad58;
+    s32 isVoiceAllocated;
+    SndState *soundState;
+    SndState *nextState;
+
+    voice = NULL;
+    lastInSequence = TRUE;
+    isVoiceAllocated = FALSE;
+    nextState = NULL;
+
+    do {
+        if (nextState != NULL) {
+            nextStateEvent.state = soundState;
+            nextStateEvent.type = event->type;
+            nextStateEvent.u.data = event->u.data;
+            event = &nextStateEvent;
+        }
+
+        soundState = event->state;
+        sound = soundState->sound;
+
+        if (sound == NULL) {
+            u16 numFree;
+            u16 numAlloc;
+
+            func_80260210(&numFree, &numAlloc);
+            func_8029A7E4("Bad soundState: voices =%d, states free =%d, states busy =%d, type %d data %x\n",
+                          D_802E8CF0, numFree, numAlloc, event->type, event->u.data);
+            return;
+        }
+
+        keyMap = sound->keyMap;
+        nextState = soundState->next;
+
+        switch (event->type) {
+            case 1:
+                if (soundState->playingState != 5 && soundState->playingState != 4) {
+                    return;
+                }
+                if (soundState->playingState == 1) {
+                    func_8029A7E4("playing a playing sound\n");
+                }
+
+                config.fxBus = 0;
+                config.priority = soundState->priority;
+                config.unityPitch = 0;
+
+                limitReached = D_802E8CF0 >= SNDP_MAXSOUNDS(sndp);
+
+                if (!limitReached || (soundState->flags & 0x50)) {
+                    isVoiceAllocated = func_802D70A8(SNDP_DRVR(sndp), soundState->voice, &config);
+                }
+
+                if (!isVoiceAllocated) {
+                    if ((soundState->flags & 0x52) || soundState->unk38 > 0) {
+                        soundState->playingState = 4;
+                        soundState->unk38--;
+                        func_802D6C8C(SNDP_EVTQ(sndp), event, 33333);
+                    } else if (limitReached) {
+                        SndState *iterState = (SndState *) D_802E8CE4;
+
+                        do {
+                            if (!(iterState->flags & 0x52) && (iterState->flags & 4) &&
+                                iterState->playingState != 3) {
+                                SndEvent interruptEvent;
+
+                                limitReached = FALSE;
+                                interruptEvent.type = 0x80;
+                                interruptEvent.state = iterState;
+                                iterState->playingState = 3;
+                                func_802D6C8C(SNDP_EVTQ(sndp), &interruptEvent, 1000);
+                                func_802D71F0(SNDP_DRVR(sndp), iterState->voice, 0, 1000);
+                            }
+                            iterState = iterState->prev;
+                        } while (limitReached && iterState != NULL);
+
+                        if (!limitReached) {
+                            soundState->unk38 = 2;
+                            func_802D6C8C(SNDP_EVTQ(sndp), event, 1001);
+                        } else {
+                            func_8026005C(soundState);
+                        }
+                    } else {
+                        func_8026005C(soundState);
+                    }
+                    return;
+                }
+
+                soundState->flags |= 4;
+                func_802D7290(SNDP_DRVR(sndp), soundState->voice, sound->wavetable);
+                soundState->playingState = 1;
+                D_802E8CF0++;
+
+                delta = sound->envelope->attackTime / soundState->pitch_2c / soundState->pitch_28;
+                volume = MAX(0, SLOT_VOLUME(keyMap) *
+                                    (sound->envelope->attackVolume * soundState->vol * sound->sampleVolume / 16129) /
+                                    32767 - 1);
+                func_802D71F0(SNDP_DRVR(sndp), soundState->voice, 0, 0);
+                func_802D71F0(SNDP_DRVR(sndp), soundState->voice, volume, delta);
+
+                panTmp = soundState->pan + sound->samplePan - 0x40;
+                pan = MIN(MAX(panTmp, 0), 0x7F);
+                func_802D7320(SNDP_DRVR(sndp), soundState->voice, pan);
+
+                func_802D73B0(SNDP_DRVR(sndp), soundState->voice, soundState->pitch_2c * soundState->pitch_28);
+
+                fxMix = (soundState->fxMix + (keyMap->keyMax & 0xF)) * 8;
+                fxMix = MIN(127, MAX(0, fxMix));
+                func_802D7440(SNDP_DRVR(sndp), soundState->voice, fxMix);
+
+                spAC.type = 0x40;
+                spAC.state = soundState;
+                delta = sound->envelope->attackTime / soundState->pitch_2c / soundState->pitch_28;
+                func_802D6C8C(SNDP_EVTQ(sndp), &spAC, delta);
+                break;
+
+            case 2:
+            case 0x400:
+            case 0x1000:
+                if (event->type != 0x1000 || (soundState->flags & 2)) {
+                    switch (soundState->playingState) {
+                        case 1:
+                            func_80260148(SNDP_EVTQ(sndp), soundState, 0x40);
+                            delta = sound->envelope->releaseTime / soundState->pitch_28 / soundState->pitch_2c;
+                            func_802D71F0(SNDP_DRVR(sndp), soundState->voice, 0, delta);
+                            if (delta != 0) {
+                                spAC.type = 0x80;
+                                spAC.state = soundState;
+                                func_802D6C8C(SNDP_EVTQ(sndp), &spAC, delta);
+                                soundState->playingState = 2;
+                            } else {
+                                func_8026005C(soundState);
+                            }
+                            break;
+                        case 4:
+                        case 5:
+                            func_8026005C(soundState);
+                            break;
+                    }
+                    if (event->type == 2) {
+                        event->type = 0x1000;
+                    }
+                }
+                break;
+
+            case 4:
+                soundState->pan = event->u.data;
+                if (soundState->playingState == 1) {
+                    panTmp = soundState->pan + sound->samplePan - 0x40;
+                    pan = MIN(MAX(panTmp, 0), 0x7F);
+                    func_802D7320(SNDP_DRVR(sndp), soundState->voice, pan);
+                }
+                break;
+
+            case 0x10:
+                soundState->pitch_2c = event->u.pitch;
+                if (soundState->playingState == 1) {
+                    func_802D73B0(SNDP_DRVR(sndp), soundState->voice, soundState->pitch_2c * soundState->pitch_28);
+                    if (soundState->flags & 0x20) {
+                        func_802600D8(soundState);
+                    }
+                }
+                break;
+
+            case 0x100:
+                soundState->fxMix = event->u.data;
+                if (soundState->playingState == 1) {
+                    fxMix = (soundState->fxMix + (keyMap->keyMax & 0xF)) * 8;
+                    fxMix = MIN(127, MAX(0, fxMix));
+                    func_802D7440(SNDP_DRVR(sndp), soundState->voice, fxMix);
+                }
+                break;
+
+            case 8:
+                soundState->vol = event->u.data;
+                if (soundState->playingState == 1) {
+                    volume = MAX(0, SLOT_VOLUME(keyMap) *
+                                        (sound->envelope->decayVolume * soundState->vol * sound->sampleVolume / 16129) /
+                                        32767 - 1);
+                    func_802D71F0(SNDP_DRVR(sndp), soundState->voice, volume, 1000);
+                }
+                break;
+
+            case 0x800:
+                if (soundState->playingState == 1) {
+                    delta = sound->envelope->releaseTime / soundState->pitch_28 / soundState->pitch_2c;
+                    volume = MAX(0, SLOT_VOLUME(keyMap) *
+                                        (sound->envelope->decayVolume * soundState->vol * sound->sampleVolume / 16129) /
+                                        32767 - 1);
+                    func_802D71F0(SNDP_DRVR(sndp), soundState->voice, volume, delta);
+                }
+                break;
+
+            case 0x40:
+                if (!(soundState->flags & 2)) {
+                    volume = MAX(0, SLOT_VOLUME(keyMap) *
+                                        (sound->envelope->decayVolume * soundState->vol * sound->sampleVolume / 16129) /
+                                        32767 - 1);
+                    delta = sound->envelope->decayTime / soundState->pitch_28 / soundState->pitch_2c;
+                    func_802D71F0(SNDP_DRVR(sndp), soundState->voice, volume, delta);
+
+                    spAC.type = 2;
+                    spAC.state = soundState;
+                    func_802D6C8C(SNDP_EVTQ(sndp), &spAC, delta);
+
+                    if (soundState->flags & 0x20) {
+                        func_802600D8(soundState);
+                    }
+                }
+                break;
+
+            case 0x80:
+                func_8026005C(soundState);
+                break;
+
+            case 0x200:
+                if (soundState->flags & 0x10) {
+                    void *newState;
+
+                    newState = func_80260650(event->ptr, event->u.data, soundState->state);
+                    func_80260AB8(newState, 8, soundState->vol);
+                    func_80260AB8(newState, 4, soundState->pan);
+                    func_80260AB8(newState, 0x100, soundState->fxMix);
+                    func_80260AB8(newState, 0x10, *(s32 *) &soundState->pitch_2c);
+                }
+                break;
+
+            default:
+                func_8029A7E4("Nonsense sndp event\n");
+                break;
+        }
+
+        isEventForSingleSound = event->type & (1 | 0x10 | 0x40 | 0x80 | 0x200);
+        soundState = nextState;
+
+        if (soundState != NULL && !isEventForSingleSound) {
+            lastInSequence = soundState->flags & 1;
+        }
+    } while (!lastInSequence && soundState != NULL && !isEventForSingleSound);
+}
 
 extern void *D_802E8CEC;
 

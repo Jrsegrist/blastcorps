@@ -1,6 +1,8 @@
 #include "common.h"
 #include <ultra64.h>
 
+void func_802604FC(void *arg0);
+
 /* TODO: func_8025C5D0 - a switch on D_802E8BEC (0..8, default no-op)
  * dispatching into per-case chains of "if (D_80358060 == CONST)
  * func_8026AF6C(errCode);" assertion-style checks (case 0 is the
@@ -179,7 +181,36 @@ void func_8025D0B0(u8 arg0) {
     D_80358070 = (u8 *) D_80358070 + size;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_8025D184.s")
+extern u64 D_80364A98;
+extern s16 D_80366A00;
+extern s16 D_80366A02;
+extern u16 D_80366A12;
+extern s16 D_80366A14;
+extern s16 D_80366A16;
+
+void func_8025D184(void) {
+    if (D_80364A98 & 2) {
+        func_8025D0B0(1);
+        func_8025D0B0(0);
+        D_80366A16 = 0xFF;
+        D_80366A12 = 0;
+        D_80366A00 = 0xA5;
+        D_80366A02 = 0xD;
+    } else if (D_80364A98 & 0x40000) {
+        D_80366A16 = 0;
+        D_80366A12 = 4;
+        D_80366A02 = 0x2A;
+    } else if (D_80364A98 & 0x10000) {
+        D_80366A16 = 0;
+        D_80366A12 = 3;
+    } else {
+        func_8025D0B0(1);
+        func_8025D0B0(0);
+        D_80366A12 = 3;
+        D_80366A14 = 0;
+        D_80366A00 = 0x10;
+    }
+}
 
 /* Pre-2.0I libultra forms of the texture-rectangle macros: the RDP-half
  * commands are G_RDPHALF_2/G_RDPHALF_CONT (0xB3/0xB2), and the scissored
@@ -790,7 +821,39 @@ u16 func_80260210(u16 *arg0, u16 *arg1) {
  * shared). */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_80260300.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_802604FC.s")
+extern s16 D_802E8CF0;
+
+void func_802604FC(void *arg0) {
+    if (D_802E8CE0 == arg0) {
+        D_802E8CE0 = *(void **) arg0;
+    }
+    if (D_802E8CE4 == arg0) {
+        D_802E8CE4 = *(void **) ((u8 *) arg0 + 4);
+    }
+    func_802D6EB0(arg0);
+
+    if (D_802E8CE8 != NULL) {
+        *(void **) arg0 = D_802E8CE8;
+        *(s32 *) ((u8 *) arg0 + 4) = 0;
+        *(s32 *) ((u8 *) D_802E8CE8 + 4) = (s32) arg0;
+        D_802E8CE8 = arg0;
+    } else {
+        *(s32 *) ((u8 *) arg0 + 4) = 0;
+        *(void **) arg0 = *(void **) ((u8 *) arg0 + 4);
+        D_802E8CE8 = arg0;
+    }
+
+    if (*(u8 *) ((u8 *) arg0 + 0x3e) & 4) {
+        D_802E8CF0--;
+    }
+    *(u8 *) ((u8 *) arg0 + 0x3f) = 0;
+    if (*(void **) ((u8 *) arg0 + 0x30) != NULL) {
+        if (**(void ***) ((u8 *) arg0 + 0x30) == arg0) {
+            **(void ***) ((u8 *) arg0 + 0x30) = NULL;
+        }
+        *(void **) ((u8 *) arg0 + 0x30) = NULL;
+    }
+}
 
 void func_80260618(void *arg0, u8 arg1) {
     if (arg0 != NULL) {

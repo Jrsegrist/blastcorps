@@ -6,6 +6,8 @@ extern s32 D_8036C790;
 extern s32 D_8036C794;
 extern s32 D_8036C7A0[10];
 extern u8 D_8036C7CC;
+extern u8 D_02000000[]; /* segment 2 base */
+extern u8 D_802FA940[]; /* 32x32 IA8 texture */
 
 void func_80276130(s32 arg0, u8 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5, s32 arg6,
                    u8 r0, u8 g0, u8 b0, u8 a0, u8 r1, u8 g1, u8 b1, u8 a1,
@@ -23,7 +25,24 @@ void func_80275430(void) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/30C70/func_80275478.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/30C70/func_80275DA4.s")
+Gfx *func_80275DA4(Gfx *gfx, u8 arg1) {
+    Gfx *gdl = gfx;
+
+    if (!arg1) {
+        gSPMatrix(gdl++, (u32) D_02000000 + 0xC0, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
+        gSPMatrix(gdl++, (u32) D_02000000 + 0x1C0, G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+    }
+    gSPClearGeometryMode(gdl++, 0xFFFFFFFF);
+    gSPSetGeometryMode(gdl++, G_SHADE | G_SHADING_SMOOTH);
+    gDPPipeSync(gdl++);
+    gDPSetCycleType(gdl++, G_CYC_1CYCLE);
+    gDPSetRenderMode(gdl++, G_RM_XLU_SURF, G_RM_XLU_SURF2);
+    gDPSetCombineMode(gdl++, G_CC_MODULATERGBA, G_CC_MODULATERGBA);
+    gSPTexture(gdl++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
+    gDPLoadTextureBlock(gdl++, (u32) D_802FA940 - 0x80000000, G_IM_FMT_IA, G_IM_SIZ_8b, 32, 32, 0, G_TX_CLAMP,
+                        G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
+    return gdl;
+}
 
 void func_80276080(s32 arg0, u8 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5, s32 arg6, u8 r, u8 g, u8 b, u8 a) {
     func_80276130(arg0, arg1, arg2, arg3, arg4, arg5, arg6, r, g, b, a, r, g, b, a, r, g, b, a, r, g, b, a);

@@ -29,6 +29,7 @@ segments:
     - [0x23C20, c, hd_code/23C20]
     - [0x26570, c, hd_code/26570] # yoshi.c (from its assert strings)
     - [0x2C560, c, hd_code/2C560] # scheduler (Rare-modified SDK sched.c)
+    - [0x2D810, c, hd_code/2D810] # the file after sched.c (own .rodata and .bss)
     - [0x2E490, c, hd_code/2E490]
     - [0x30430, c, hd_code/30430]
     - [0x30C70, c, hd_code/30C70]
@@ -246,6 +247,7 @@ segments:
     - [0xC4A30, bin, hd_code/hd_code_data_C4A30]
     - [0xC7390, .rodata, hd_code/26570]
     - [0xC7860, .rodata, hd_code/2C560]
+    - [0xC7D10, .rodata, hd_code/2D810]
     - [0xC7D30, bin, hd_code/hd_code_data_C7D30]
     - [0xC9230, .rodata, hd_code/ul_perspective]
     - [0xC9240, .rodata, hd_code/ul_rotate]

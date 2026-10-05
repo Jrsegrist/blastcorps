@@ -842,20 +842,119 @@ void func_8029C6E4(Unk8029C6E4Out *o) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029C9D4.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Divides v by the per-vehicle byte gp+0xA0 (unsigned) unless key == 0xFF
+ * (compared as the full register) or the byte is 1; returns v (unchanged
+ * otherwise). The asm's key == 0xFF branch lands in func_8029CF04's epilogue
+ * (.L8029CF40), which is the same "restore v0, return" as its own. A zero
+ * divisor traps (break 7) in the asm and in this C alike.
+ * Register convention: asm takes v in t1 and key in t4, returns in t1
+ * (conventions.txt); it saves v0. Its asm caller func_8029C9D4 keeps a0-a3,
+ * t0, t3, t4, t5, t8, f12, f14 live. */
+u32 func_8029CB04(u32 v, s32 key) {
+    u32 d;
+
+    if (key != 0xFF) {
+        d = GP_U8(0xA0);
+        if (d != 1) {
+            v /= d;
+        }
+    }
+    return v;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029CB04.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u8 D_803A7426;
+extern u8 D_803A742C;
+void func_802BCCD4(s32 value);
+s32 func_802AD7D4(s32 sine); /* C-callable wrapper of the arcsine func_802AD7FC (69000.c) */
+void func_8029B7CC(s32 a, s32 b);
+#pragma intrinsic(sqrtf) /* sqrt.s, as the asm (applies to the rest of the file) */
+
+/* Heading from point 1 (x1, z1) to point 2 (x2, z2) of a pair of linked
+ * entries: appends n to buffer A (func_802BCCD4); sets D_803A7426 when
+ * kind == 0xFF and the byte next[-2] is non-zero, or when kind is neither 0
+ * nor 0xFF and next[-2] == 0xFF (next[-2] is byte 0x12 of the entry before
+ * `next`). The angle (0..0xFFF, 0x400 per quadrant) is
+ * (asin(65536 * leg / dist) >> 4) + quadrant * 0x400 with dist = sqrtf of
+ * the float squares, the quadrant picked by signed compares of the raw
+ * coordinates, and 0 when both differences are zero. Then widens the ring
+ * span with func_8029B7CC(angle + 0x400, angle - 0x400) and sets D_803A742C.
+ * The same quadrant split as the camera code in 00000.c.
+ * Register convention: asm takes n, kind, next, x1, z1, x2, z2 in fp, t8, s0,
+ * v0, a0, a2, t0 (conventions.txt); it saves v0-a2, t0, t7, s0, fp and
+ * leaves a3 changed (by func_8029B7CC). Its asm caller func_8029CD54 keeps
+ * v0, v1, a0, a1, t4-t8, s0, s1, fp live (a mixed build would need a thunk). */
+void func_8029CB54(s32 n, s32 kind, u8 *next, s32 x1, s32 z1, s32 x2, s32 z2) {
+    s32 dx;
+    s32 dz;
+    f32 dist;
+    u32 angle = 0;
+
+    func_802BCCD4(n);
+    if (kind == 0xFF) {
+        if (next[-2] != 0) {
+            D_803A7426 = 1;
+        }
+    } else if (kind != 0 && next[-2] == 0xFF) {
+        D_803A7426 = 1;
+    }
+    dx = x2 - x1;
+    dz = z2 - z1;
+    if (dx != 0 || dz != 0) {
+        f32 fx = dx;
+        f32 fz = dz;
+
+        dist = sqrtf(fx * fx + fz * fz);
+        if (x2 >= x1) {
+            if (z2 >= z1) {
+                angle = (u32) func_802AD7D4(port_cvt_w_s(65536.0f * ((f32) (x2 - x1) / dist))) >> 4;
+            } else {
+                angle = ((u32) func_802AD7D4(port_cvt_w_s(65536.0f * ((f32) (z1 - z2) / dist))) >> 4) + 0x400;
+            }
+        } else if (z2 < z1) {
+            angle = ((u32) func_802AD7D4(port_cvt_w_s(65536.0f * ((f32) (x1 - x2) / dist))) >> 4) + 0x800;
+        } else {
+            angle = ((u32) func_802AD7D4(port_cvt_w_s(65536.0f * ((f32) (z2 - z1) / dist))) >> 4) + 0xC00;
+        }
+    }
+    func_8029B7CC(angle + 0x400, angle - 0x400);
+    D_803A742C = 1;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029CB54.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029CD54.s")
 
-/* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM.
- * Port note: not rewritten. It computes t1 = t1 / gp[0xA0] (divu) unless
- * s1 == 0xFF or the byte is 1, but func_8029CB04 branches straight into its
- * epilogue (.L8029CF40), so a C version would leave that label undefined in
- * the NON_MATCHING link. Port it together with func_8029CB04. */
+/* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Same as func_8029CB04 with the key in s1: v / gp+0xA0 (unsigned) unless
+ * key == 0xFF or the byte is 1. func_8029CB04's asm branches into this
+ * function's epilogue (.L8029CF40), so the two are rewritten together (in
+ * the NON_MATCHING build neither keeps the label).
+ * Register convention: asm takes v in t1 and key in s1, returns in t1
+ * (conventions.txt); it saves v0. Its asm caller func_8029CD54 keeps a0-a3,
+ * t0, t3-t8, f12, f14 live. */
+u32 func_8029CF04(u32 v, s32 key) {
+    u32 d;
+
+    if (key != 0xFF) {
+        d = GP_U8(0xA0);
+        if (d != 1) {
+            v /= d;
+        }
+    }
+    return v;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029CF04.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

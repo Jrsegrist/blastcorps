@@ -404,3 +404,48 @@ func_802A0118: -n 300 --arg t1=ptr:0x20 --arg t5=ptr:0x28 --arg f30=float:-1:2
 func_802A0118: -n 300 --seed 1 --follow func_8029F6B0 --arg t1=ptr:0x20 --arg t5=ptr:0x28 --arg f30=float:0:1
 func_802A0118: -n 200 --seed 2 --follow func_8029F6B0 --arg t1=ptr:0x20 --arg t5=ptr:0x28 \
     --mem @t5:0x28=halves:0,1,0xFFFF,0x7FFF,0x8000,0x1000,0xF000 --arg f30=choice:0,0x3F800000,0x3F000000,0x3EC00000
+# func_8029CB04 / func_8029CF04: t1 / gp[0xA0] unless key == 0xFF or the byte is 1 (gp = D_803EEA90).
+# A zero byte traps (break 7) in both; seed 1 includes it (both-faulted trials).
+func_8029CB04: -n 300 --arg gp=sym:D_803EEA90 --arg t1=choice:0,1,2,7,0x64,0xFFFF,0x7FFFFFFF,0x80000000,0xFFFFFFFF,0x12345678*3 \
+    --arg t4=choice:0,1,6,7,0xFF*3,0x1FF,0xFFFFFFFF,0x80000000 --mem D_803EEA90+0xA0:1=choice:1*3,2,3,7,0x80,0xC8,0xFF
+func_8029CB04: -n 300 --seed 1 --arg gp=sym:D_803EEA90 --arg t1=int --arg t4=choice:0xFF,0xFE,0x100,-1 \
+    --mem D_803EEA90+0xA0:1=choice:0,1,2,3,0x10,0xFF
+func_8029CF04: -n 300 --arg gp=sym:D_803EEA90 --arg t1=choice:0,1,2,7,0x64,0xFFFF,0x7FFFFFFF,0x80000000,0xFFFFFFFF,0x12345678*3 \
+    --arg s1=choice:0,1,6,7,0xFF*3,0x1FF,0xFFFFFFFF,0x80000000 --mem D_803EEA90+0xA0:1=choice:1*3,2,3,7,0x80,0xC8,0xFF
+func_8029CF04: -n 300 --seed 1 --arg gp=sym:D_803EEA90 --arg t1=int --arg s1=choice:0xFF,0xFE,0x100,-1 \
+    --mem D_803EEA90+0xA0:1=choice:0,1,2,3,0x10,0xFF
+# func_8029CB54: heading -> func_8029B7CC. The arcsine is reached through func_802AD7D4 from C and func_802AD7FC
+# from asm, so those two are always followed; func_802BCCD4 / func_8029B7CC stubbed, then everything followed.
+func_8029CB54: -n 300 --ret void --follow func_802AD7D4,func_802AD7FC --sig func_8029B7CC=a0,a1 \
+    --heap 0x40 --arg s0=rel:heap0+0x14 --mem @heap0+0x12:1=choice:0,1,7,0xFE,0xFF \
+    --arg fp=int --arg t8=choice:0,1,6,7,0xFF*2,0x1FF \
+    --arg v0=int:-100000:100000 --arg a0=int:-100000:100000 --arg a2=int:-100000:100000 --arg t0=int:-100000:100000 \
+    --mem D_803A7426:1=rand --mem D_803A742C:1=rand
+func_8029CB54: -n 400 --seed 1 --ret void --follow func_802AD7D4,func_802AD7FC --sig func_8029B7CC=a0,a1 \
+    --heap 0x40 --arg s0=rel:heap0+0x14 --mem @heap0+0x12:1=choice:0,0xFF \
+    --arg fp=int --arg t8=choice:0,0xFF \
+    --arg v0=int:-3:3 --arg a0=int:-3:3 --arg a2=int:-3:3 --arg t0=int:-3:3 \
+    --mem D_803A7426:1=rand --mem D_803A742C:1=rand
+func_8029CB54: -n 200 --seed 2 --ret void --follow func_802AD7D4,func_802AD7FC --sig func_8029B7CC=a0,a1 \
+    --heap 0x40 --arg s0=rel:heap0+0x14 --mem @heap0+0x12:1=rand \
+    --arg fp=int --arg t8=int \
+    --arg v0=choice:0,1,-1,0x7FFFFF,-0x800000,0x1000000 --arg a0=choice:0,1,-1,0x7FFFFF,-0x800000,0x1000000 \
+    --arg a2=choice:0,1,-1,0x7FFFFF,-0x800000,0x1000000 --arg t0=choice:0,1,-1,0x7FFFFF,-0x800000,0x1000000 \
+    --mem D_803A7426:1=rand --mem D_803A742C:1=rand
+func_8029CB54: -n 300 --seed 3 --ret void --follow-all \
+    --heap 0x40 --arg s0=rel:heap0+0x14 --mem @heap0+0x12:1=choice:0,1,0xFF \
+    --arg fp=int:0:255 --arg t8=choice:0,1,6,0xFF \
+    --arg v0=int:-100000:100000 --arg a0=int:-100000:100000 --arg a2=int:-100000:100000 --arg t0=int:-100000:100000 \
+    --mem D_803A7426:1=rand --mem D_803A742C:1=choice:0,1 --mem D_803A742D:1=int:0:9 --mem D_803A742E:1=choice:0,1 \
+    --mem D_803A742F:1=rand --mem D_80358064=choice:0,1 \
+    --mem D_803A7410:2=choice:0,0x10,0x7FF,0x800,0xFFE --mem D_803A7412:2=choice:0xFFF,0x800,0x10,0 \
+    --mem D_803F77D8:16=bytes:0,1,2,3,0x10,0xFF --mem D_803F77D4=rel:D_803F77D8+int:0:12
+func_8029CB54: -n 200 --seed 4 --ret void --follow-all \
+    --heap 0x40 --arg s0=rel:heap0+0x14 --mem @heap0+0x12:1=choice:0,1,0xFF \
+    --arg fp=int:0:255 --arg t8=choice:0,1,6,0xFF \
+    --arg v0=int:-4:4 --arg a0=int:-4:4 --arg a2=int:-4:4 --arg t0=int:-4:4 \
+    --mem D_803A7426:1=rand --mem D_803A742C:1=choice:0,1 --mem D_803A742D:1=int:0:9 --mem D_803A742E:1=choice:0,1 \
+    --mem D_803A742F:1=rand --mem D_80358064=choice:0,1 \
+    --mem D_803A7410:2=int:0:0xFFF --mem D_803A7412:2=int:0:0xFFF \
+    --mem D_803F77D8:16=bytes:0,1,2,3,0x10,0xFF --mem D_803F77D4=rel:D_803F77D8+int:0:12
+# end-block

@@ -113,7 +113,7 @@ segments:
     - [0x90E40, c, hd_code/ul_mtxcatf]
     - [0x91050, c, hd_code/ul_mtxutil]
     - [0x912C0, c, hd_code/ul_scale]
-    - [0x91360, c, hd_code/91360]
+    - [0x91360, c, hd_code/ul_lookatref]  # src/gu/lookatref.c, old FTOFRAC8
     - [0x91820, c, hd_code/91820]
     - [0x91830, c, hd_code/ul_lookat]
     - [0x91B60, c, hd_code/ul_sinf]  # src/gu/sinf.c
@@ -285,7 +285,7 @@ segments:
     - [0xC90B0, bin, hd_code/hd_code_data_C90B0]
     - [0xC9230, .rodata, hd_code/ul_perspective]
     - [0xC9240, .rodata, hd_code/ul_rotate]
-    - [0xC9250, bin, hd_code/hd_code_data_C9250]
+    - [0xC9250, .rodata, hd_code/ul_lookatref]
     - [0xC9260, .rodata, hd_code/ul_sinf]
     - [0xC92B0, .rodata, hd_code/ul_cosf]
     - [0xC9300, .rodata, hd_code/ul_cents2ratio]

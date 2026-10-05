@@ -122,7 +122,7 @@ segments:
     - [0x91D90, c, hd_code/ul_visetspecial]
     - [0x91F50, c, hd_code/91F50]
     - [0x91F80, c, hd_code/91F80]
-    - [0x92030, c, hd_code/92030]
+    - [0x92030, c, hd_code/ul_destroythread]  # src/os/destroythread.c, old SDK
     - [0x92130, c, hd_code/ul_cosf]  # src/gu/cosf.c
     - [0x922A0, c, hd_code/922A0]
     - [0x92350, c, hd_code/ul_heapalloc]
@@ -156,7 +156,7 @@ segments:
     - [0x950E0, c, hd_code/ul_coss]
     - [0x95110, c, hd_code/95110]
     - [0x95240, c, hd_code/ul_aisetfreq]
-    - [0x953A0, c, hd_code/953A0]
+    - [0x953A0, c, hd_code/ul_aisetnextbuf]  # src/io/aisetnextbuf.c, old SDK
     - [0x95450, c, hd_code/ul_aigetlen]
     - [0x95460, c, hd_code/95460]
     - [0x95C40, c, hd_code/ul_llcvt]  # src/libc/llcvt.c
@@ -241,6 +241,8 @@ segments:
     - [0xC1E00, .data, hd_code/ul_sl]
     - [0xC1E10, .data, hd_code/ul_sins]
     - [0xC2610, bin, hd_code/hd_code_data_C2610]
+    - [0xC2680, .data, hd_code/ul_aisetnextbuf]
+    - [0xC2690, bin, hd_code/hd_code_data_C2690]
     - [0xC2F70, .data, hd_code/ul_controller]
     - [0xC2F80, bin, hd_code/hd_code_data_C2F80]
     - [0xC2FA0, .data, hd_code/ul_thread]

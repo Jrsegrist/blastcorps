@@ -56,7 +56,27 @@ s32 func_802B1150(void) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6C5E0/func_802B2768.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* 0 when the speed (s16 at +0x76 of D_803EDF10, the asm's $gp) is 0, else 50
+ * when the byte at +0xA1 is 1 or 2, else 120. The asm returns it in s3 (see
+ * tools_port/conventions.txt). Its asm caller func_802B152C keeps a0-a3 live
+ * across the call (a mixed N64 build would need a thunk). Same shape as
+ * func_802D2444 (8AEE0). */
+s32 func_802B28B8(void) {
+    u8 t;
+
+    if (*(s16 *) (D_803EDF10 + 0x76) == 0) {
+        return 0;
+    }
+    t = D_803EDF10[0xA1];
+    if (t == 2 || t == 1) {
+        return 50;
+    }
+    return 120;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6C5E0/func_802B28B8.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

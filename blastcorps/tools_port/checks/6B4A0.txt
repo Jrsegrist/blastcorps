@@ -16,3 +16,13 @@ func_802B0D70: -n 300 --seed 0 --ret void --sig func_802AC85C=a0,a1,a2 \
     --arg a0=choice:0,1,-1,0x80000000,0x7FFFFFFF,0x80B00000,0x80B00003,0x803FFFFF
 func_802B0D70: -n 100 --seed 1 --ret void --follow func_802AC85C --arg a0=choice:0x80B00000,0x80B00001,0x80B00002,0x80B00003,0x80B00005 --mem 0x80B00000:0x100=rand \
     --mem D_803EDB40:0xA6=rand --mem D_803EDBE8:12=rand
+
+# func_802B0C74: s3 (-> v0) = round_nearest(speed(+0x76) / (bytes +0x96/7/8 any == 1 ? 6.0 : D_8030D8A8)); $gp = D_803EDB40
+func_802B0C74: -n 300 --seed 0 --arg gp=sym:D_803EDB40 --mem D_803EDB40+0x96:3=bytes:0,1,2,0xFF*3 \
+    --mem D_803EDB40+0x76:2=int:0:0xFFFF
+# other divisors (ties at .5 with 2.0/4.0/0.5), the 6.0 path with ties at speed = 3 mod 6, negative speeds
+func_802B0C74: -n 300 --seed 1 --arg gp=sym:D_803EDB40 --mem D_803EDB40+0x96:3=bytes:0*3,1,2*3 \
+    --mem D_8030D8A8=words:0x40000000,0x40800000,0x3F000000,0x40C00000 \
+    --mem D_803EDB40+0x76:2=halves:0,1,2,3,5,6,9,15,0x7FFF,0x8000,0xFFFD,0xFFF7,0xFFFF,0xFFFE
+func_802B0C74: -n 300 --seed 2 --arg gp=sym:D_803EDB40 --mem D_803EDB40+0x96:3=bytes:0,1,2 \
+    --mem D_8030D8A8:4=floats:0.25:40 --mem D_803EDB40+0x76:2=int:0:0xFFFF

@@ -18,7 +18,37 @@
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/69BB0/func_802AE888.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern s32 D_803643E0; /* player x (1/32 units) */
+extern s32 D_803643E8; /* player z */
+
+/* Zone test for mode *mode (asm: a3 in and out, result in a1; see
+ * tools_port/conventions.txt). Mode 1: 1 when z/32 is in [0xCCD, 0xDB5).
+ * Mode 2: 1 when x/32 is in [0x834, 0x961) and z/32 in [0x4B0, 0x5DD).
+ * Otherwise 0. The asm leaves the last value it compared (z/32, or x/32 when
+ * the x test fails) in a3, so *mode gets that; other modes leave it alone.
+ * Register note: asm caller func_802AE888 keeps a0, a2, t0-t3, f12 and f14
+ * live across the call (a mixed N64 build would need a thunk). */
+s32 func_802AEB9C(s32 *mode) {
+    s32 v;
+
+    if (*mode == 1) {
+        *mode = v = D_803643E8 >> 5;
+        return v >= 0xCCD && v < 0xDB5;
+    }
+    if (*mode == 2) {
+        *mode = v = D_803643E0 >> 5;
+        if (v < 0x834 || v >= 0x961) {
+            return 0;
+        }
+        *mode = v = D_803643E8 >> 5;
+        return v >= 0x4B0 && v < 0x5DD;
+    }
+    return 0;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/69BB0/func_802AEB9C.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/69BB0/func_802AEC3C.s")
@@ -45,7 +75,16 @@
  * to a specific callee-saved register by name regardless. Value is
  * never read or returned; likely a vestigial/debug leftover in the
  * original assembly. Permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Returns 0x8C (asm: in s3, which asm caller func_802AEEC8 reads; see
+ * tools_port/conventions.txt). That caller keeps a0-a3, f12 and f14 live
+ * across the call (a mixed N64 build would need a thunk). */
+s32 func_802AFB84(void) {
+    return 0x8C;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/69BB0/func_802AFB84.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

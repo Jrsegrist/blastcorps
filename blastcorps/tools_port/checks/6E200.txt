@@ -37,3 +37,48 @@ func_802B58C8: -n 300 --seed 0 --ret void --sig func_802AC85C=a0,a1,a2 \
     --arg a0=choice:0,1,-1,0x80000000,0x7FFFFFFF,0x80B00000,0x80B00003,0x803FFFFF
 func_802B58C8: -n 100 --seed 1 --ret void --follow func_802AC85C --arg a0=choice:0x80B00000,0x80B00001,0x80B00002,0x80B00003,0x80B00005 --mem 0x80B00000:0x100=rand \
     --mem D_803EE6C0:0xA6=rand --mem D_803EE768:12=rand
+
+# Trail functions call func_8027BE7C (C, 37530) whose prototype narrows args to s16/u8; the asm passes full
+# words, so these runs compare its arguments at their declared widths (--conv) and include stack args.
+# func_802B3C68: tyre trail, $gp = D_803EE2E0; D_803EE3AC counts down by 8 when +0x99 is clear and D_803EE3B3 set
+func_802B3C68: -n 400 --seed 0 --ret void --arg gp=sym:D_803EE2E0 \
+    --conv 'func_8027BE7C: in a0=a0:1,a1=a1,a2=a2:2,a3=a3:2,stack0=stack0:2,stack1=stack1:2,stack2=stack2,stack3=stack3,stack4=stack4:2,stack5=stack5:1,stack6=stack6:1,stack7=stack7:1,stack8=stack8:1' \
+    --mem D_803EE2E0+0x99:1=bytes:0*2,1,0x80 --mem D_803EE3B3:1=bytes:0,1,0xFF*2 \
+    --mem D_803EE3AC:2=halves:0,7,8,9,0x10,0x3A,0x7FFF,0x8000,0xFFF8,0xFFFF,0x1234 \
+    --mem D_803EE2E0+0x98:1=bytes:0*3,1,2 --mem D_803EE2E0+0x50:1=bytes:0,1,2*2,3,4,0x80,0xFF --mem D_803EE2E0+0x9B:1=bytes:0*4,1,0x80 \
+    --mem D_803EE2E0+0x1C=int --mem D_803EE2E0+0x4E:2=int:0:0xFFFF --mem D_803EE38C=int --mem D_803EE394=int
+# every condition passes: the call's arguments (yaw 0x7FFF/0x8000/0xFFFF, extreme positions, a/b from the countdown)
+func_802B3C68: -n 200 --seed 1 --ret void --arg gp=sym:D_803EE2E0 \
+    --conv 'func_8027BE7C: in a0=a0:1,a1=a1,a2=a2:2,a3=a3:2,stack0=stack0:2,stack1=stack1:2,stack2=stack2,stack3=stack3,stack4=stack4:2,stack5=stack5:1,stack6=stack6:1,stack7=stack7:1,stack8=stack8:1' \
+    --mem D_803EE2E0+0x99:1=bytes:0,1 --mem D_803EE3B3:1=1 --mem D_803EE3AC:2=halves:0,7,8,9,0x107,0x108,0x7FFF,0x8000,0xFFF8 \
+    --mem D_803EE2E0+0x98:1=0 --mem D_803EE2E0+0x50:1=bytes:0,2 --mem D_803EE2E0+0x9B:1=0 \
+    --mem D_803EE2E0+0x1C=choice:0,-1,0x7FFFFFFF,0x80000000 --mem D_803EE2E0+0x4E:2=halves:0,0x7FFF,0x8000,0xFFFF \
+    --mem D_803EE38C=choice:0,-1,0x80000000,0x123456 --mem D_803EE394=choice:0,-1,0x7FFFFFFF,0x123456
+# func_802B3F78: s3 (-> v0) = round_nearest(speed(+0x76) / (bytes +0x96/7/8 any == 1 ? 11.0 : 2.5)); $gp = D_803EE2E0
+func_802B3F78: -n 300 --seed 0 --arg gp=sym:D_803EE2E0 --mem D_803EE2E0+0x96:3=bytes:0,1,2,0xFF*3 \
+    --mem D_803EE2E0+0x76:2=int:0:0xFFFF
+# (no exact .5 ties are possible with 11 or 2.5) small, negative and extreme speeds
+func_802B3F78: -n 300 --seed 1 --arg gp=sym:D_803EE2E0 --mem D_803EE2E0+0x96:3=bytes:0*3,1,2*3 \
+    --mem D_803EE2E0+0x76:2=halves:0,1,2,3,4,5,6,11,16,17,0x7FFF,0x8000,0xFFFD,0xFFF5,0xFFFF,0xFFFE
+# func_802B3FF0: D_803EBBF4 = D_803EBBF0 * 4; D_803ED3F6/7 = 60, 3; D_803EE3A8 = (speed <= 0 ? D_80370C1C : D_80370C23) ? 2000 : 15000
+func_802B3FF0: -n 300 --seed 0 --ret void --arg gp=sym:D_803EE2E0 --mem D_803EBBF0:4=floats:-100000:100000 \
+    --mem D_803EBBF4:4=rand --mem D_803ED3F6:1=rand --mem D_803ED3F7:1=rand --mem D_803EE3A8:2=rand \
+    --mem D_80370C1C:1=bytes:0,1,0x80 --mem D_80370C23:1=bytes:0,1,0xFF \
+    --mem D_803EE2E0+0x76:2=halves:0,1,2,0x7FFF,0x8000,0xFFFF,0x100,0xFF00
+func_802B3FF0: -n 200 --seed 1 --ret void --arg gp=sym:D_803EE2E0 \
+    --mem D_803EBBF0:4=words:0,0x80000000,0x3F800000,0x7F800000,0xFF800000,0x7FC00000,0x00000001,0x7F7FFFFF,0xC2C80000 \
+    --mem D_803EE3A8:2=rand --mem D_80370C1C:1=bytes:0,1 --mem D_80370C23:1=bytes:0,1 --mem D_803EE2E0+0x76:2=halves:0,1,0xFFFF
+# func_802B54EC: tyre trail, $gp = D_803EE6C0
+func_802B54EC: -n 400 --seed 0 --ret void --arg gp=sym:D_803EE6C0 \
+    --conv 'func_8027BE7C: in a0=a0:1,a1=a1,a2=a2:2,a3=a3:2,stack0=stack0:2,stack1=stack1:2,stack2=stack2,stack3=stack3,stack4=stack4:2,stack5=stack5:1,stack6=stack6:1,stack7=stack7:1,stack8=stack8:1' \
+    --mem D_803EE6C0+0x99:1=bytes:0,1,0x80 \
+    --mem D_803EE6C0+0x98:1=bytes:0*3,1,2 --mem D_803EE6C0+0x50:1=bytes:0,1,2*2,3,4,0x80,0xFF --mem D_803EE6C0+0x9B:1=bytes:0*4,1,0x80 \
+    --mem D_803EE6C0+0x1C=int --mem D_803EE6C0+0x4E:2=int:0:0xFFFF --mem D_803EE768=int --mem D_803EE770=int
+func_802B54EC: -n 100 --seed 1 --ret void --arg gp=sym:D_803EE6C0 \
+    --conv 'func_8027BE7C: in a0=a0:1,a1=a1,a2=a2:2,a3=a3:2,stack0=stack0:2,stack1=stack1:2,stack2=stack2,stack3=stack3,stack4=stack4:2,stack5=stack5:1,stack6=stack6:1,stack7=stack7:1,stack8=stack8:1' \
+    --mem D_803EE6C0+0x99:1=1 --mem D_803EE6C0+0x98:1=0 --mem D_803EE6C0+0x50:1=bytes:0,2 --mem D_803EE6C0+0x9B:1=0 \
+    --mem D_803EE6C0+0x1C=choice:0,-1,0x7FFFFFFF,0x80000000 --mem D_803EE6C0+0x4E:2=halves:0,0x7FFF,0x8000,0xFFFF \
+    --mem D_803EE768=choice:0,-1,0x80000000,0x123456 --mem D_803EE770=choice:0,-1,0x7FFFFFFF,0x123456
+# func_802B57C4: s3 (-> v0) = any of bytes +0x96/7/8 of D_803EE6C0 == 1 ? 22 : 75
+func_802B57C4: -n 300 --seed 0 --arg gp=sym:D_803EE6C0 --mem D_803EE6C0+0x96:3=bytes:0,1,2,0xFF*3
+func_802B57C4: -n 100 --seed 1 --arg gp=sym:D_803EE6C0 --mem D_803EE6C0+0x96:3=onehot:1/1:1:bytes:0,2,0xFF

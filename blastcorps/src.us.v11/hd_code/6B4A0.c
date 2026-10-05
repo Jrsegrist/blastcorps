@@ -39,7 +39,48 @@
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6B4A0/func_802B0B3C.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* cvt.w.s under the FCSR's default rounding (nearest, ties to even); a C cast
+ * truncates instead. */
+#define CVT_W_S(out, x)                                                 \
+    do {                                                                \
+        f32 _x = (x);                                                   \
+        s32 _r = (s32) _x;                                              \
+        f32 _f = _x - (f32) _r;                                         \
+                                                                        \
+        if (_f > 0.5f || (_f == 0.5f && (_r & 1))) {                    \
+            _r++;                                                       \
+        } else if (_f < -0.5f || (_f == -0.5f && (_r & 1))) {           \
+            _r--;                                                       \
+        }                                                               \
+        (out) = _r;                                                     \
+    } while (0)
+
+extern u8 D_803EDB40[]; /* this vehicle's state block (the asm's $gp) */
+extern f32 D_8030D8A8;
+
+/* Speed (s16 at +0x76) scaled for the engine sound: rounded speed / 6.0 when
+ * any of the bytes at +0x96/+0x97/+0x98 is 1, else speed / D_8030D8A8.
+ * The asm returns it in s3 (see tools_port/conventions.txt). Its asm caller
+ * func_802B03F4 keeps a0-a3 live across the call (a mixed N64 build would
+ * need a thunk). Same shape as func_802B3F78 (6E200), func_802B7168 (71140),
+ * func_802B83B0 (72B80), func_802CB564 (853D0), func_802CC844 (86F60),
+ * func_802CD938 (88160), func_802D0710 (8AEE0); only the divisors differ. */
+s32 func_802B0C74(void) {
+    f32 div;
+    s32 r;
+
+    if (D_803EDB40[0x96] == 1 || D_803EDB40[0x97] == 1 || D_803EDB40[0x98] == 1) {
+        div = 6.0f;
+    } else {
+        div = D_8030D8A8;
+    }
+    CVT_W_S(r, *(s16 *) (D_803EDB40 + 0x76) / div);
+    return r;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6B4A0/func_802B0C74.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

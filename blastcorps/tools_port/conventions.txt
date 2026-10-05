@@ -45,3 +45,29 @@ func_802AB8D8: in s2=a0 ; out t0=ret ; preserve t1,t2,t3,t4,s3 ; clobbers s2
 # --- 679E0 ---
 # interpolated lookup in the u16 table D_802ACFD0[0x401]; saves a0, a1, v1
 func_802ACF64: in v1=a0 ; out fp=ret ; preserve a0,a1,v1
+
+# --- 69BB0 ---
+# zone test: mode in a3 (1 or 2), result 0/1 in a1; a3 left holding the last coordinate compared
+func_802AEB9C: in a3=*a0 ; out a1=ret,a3=*a0 ; preserve a0,a2,t0,t1,t2,t3,f12,f14
+# returns 0x8C in s3
+func_802AFB84: out s3=ret ; preserve a0,a1,a2,a3,f12,f14
+
+# --- 6B4A0 ---
+# rounded speed/divisor of this vehicle ($gp = D_803EDB40, read as globals in C) in s3
+func_802B0C74: out s3=ret ; preserve a0,a1,a2,a3
+
+# --- 6C5E0 ---
+# 0 / 50 / 120 from this vehicle's speed and +0xA1 ($gp = D_803EDF10) in s3
+func_802B28B8: out s3=ret ; preserve a0,a1,a2,a3
+
+# --- 6E200 ---
+# tyre trail ($gp = D_803EE2E0); saves every integer register
+func_802B3C68: preserve a1,a2,a3
+# rounded speed/divisor ($gp = D_803EE2E0) in s3
+func_802B3F78: out s3=ret ; preserve a0,a1,a2,a3
+# setup leaf, touches only at/v0/v1/f0/f2
+func_802B3FF0: preserve a0,a1,a2,a3,t3,t4,f12,f14
+# tyre trail ($gp = D_803EE6C0); saves every integer register
+func_802B54EC: preserve a0,a1,a2,a3,t6,t7
+# 22 / 75 from this vehicle's flags ($gp = D_803EE6C0) in s3
+func_802B57C4: out s3=ret ; preserve a0,a1,a2,a3

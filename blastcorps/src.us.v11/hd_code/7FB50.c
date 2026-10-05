@@ -502,7 +502,38 @@ s32 func_802C5970(ZoneScanRegs *r) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+#ifndef INTERP_REGS_DEFINED
+#define INTERP_REGS_DEFINED
+/* func_802AAD0C's register results (62740.c). */
+typedef struct {
+    s32 t3;  /* interpolated u */
+    s32 t4;  /* interpolated w */
+    f32 f12;
+    s32 f14; /* raw bits */
+    f32 f20;
+    f32 f22;
+    f32 f24; /* also an input (kept on some paths) */
+    f32 f26;
+} InterpRegs;
+#endif
+void func_802AAD0C(s32 id, s32 x, s32 z, InterpRegs *r);
+
+/* Value pair at this vehicle's x/z (D_803F7BF8[0], [2]) on the triangle
+ * `id` (func_802AAD0C), stored as s16s at +0x6A/+0x6C of the vehicle block.
+ * Register convention: id in a3; func_802AAD0C's FP results (f12-f26, f24
+ * also in) pass through to the caller, here through r (conventions.txt). The
+ * asm saves and restores t0, t1, t3, t4 (asm caller func_802AB50C keeps t0
+ * and t1 live: a mixed N64 build would need a thunk) and points $gp at
+ * D_803F7B50 without restoring it. */
+void func_802C59B4(s32 id, InterpRegs *r) {
+    func_802AAD0C(id, ((s32 *) D_803F7BF8)[0], ((s32 *) D_803F7BF8)[2], r);
+    VEH_S16(0x6A) = r->t3;
+    VEH_S16(0x6C) = r->t4;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C59B4.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C5A14.s")
@@ -541,7 +572,383 @@ void func_802C617C(void) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+#ifndef TRI_SCAN_TYPES_DEFINED
+#define TRI_SCAN_TYPES_DEFINED
+/* func_802AC0BC's FP and integer register results (62740.c), in and out. */
+typedef struct {
+    f32 pz;    /* f12 */
+    f32 cross; /* f14 */
+    f32 cz;    /* f20 */
+    f32 side;  /* f22 */
+    f32 sideZ; /* f24 */
+    f32 dz;    /* f26 */
+} TriSideOut;
+typedef struct {
+    s32 a1; /* found flag */
+    s32 a3;
+    s32 t6;
+    s32 t7;
+    s32 fp;
+    s32 s1;
+    s32 s2;
+    s32 s3;
+    s32 s4;
+} TriScanRegs;
+s32 func_802AC0BC(s32 x, s32 z, s32 y, TriSideOut *f, TriScanRegs *r);
+#endif
+#ifndef IO_802A6274_DEFINED
+#define IO_802A6274_DEFINED
+/* func_802A6274's in/out registers (60F60.c). */
+typedef struct {
+    s32 a3;
+    s32 t6;
+    s32 s1;
+} Io802A6274;
+#endif
+extern s32 D_803F7C20; /* frames since the countdown D_803F7C40 was at 2/3 */
+extern s32 D_803F7C24; /* frames since it was at 4 */
+extern s16 D_803F7C32; /* channel 6's last field 0x18 */
+extern u8 D_803F7C39;
+extern u8 D_803F7C3D; /* countdown */
+extern u8 D_803F7C40; /* countdown */
+extern u8 D_803F7C41; /* countdown (reloaded with 9 outside modes 1-3) */
+extern u8 D_803F7C42; /* previous frame's D_80370C1D */
+extern u8 D_803F7C43; /* previous frame's +0x96 */
+extern u8 D_803F7C44;
+extern u8 D_803F7C45;
+extern u8 D_803F7C46;
+extern u8 D_803F7C47;
+extern u8 D_803F7C4A;
+extern u8 D_80370C1A; /* inputs */
+extern u8 D_80370C1B;
+extern u8 D_80370C1C;
+extern u8 D_80370C1D;
+extern u8 D_802E8BE4;
+extern s32 D_802E8BE8;
+extern f32 D_8030D950;
+extern u8 D_802C28E4[]; /* definition handed to func_802A6274 */
+void func_8029F9D4(s32 a, s32 b, void *base);
+void func_8029FC74(s32 a, s32 b, void *base);
+s32 func_802A6274(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32 z, s32 w24, s32 w28,
+                  s32 w18, s32 w1C, s32 w2C, s32 b35);
+s32 func_802C6FD8(void);
+s32 func_802C70E8(TriSideOut *f, TriScanRegs *r);
+void func_802C7354(void);
+void func_802C7544(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4);
+void func_802C6DAC(void);
+void func_802C6ECC(void);
+void func_802C770C(void);
+void func_802C7864(s32 *up);
+
+/* Three s32 copies of one value at +off, +off+4, +off+8 of the vehicle block. */
+#define VEH_TRIPLE(off, v) (VEH_S32(off) = VEH_S32((off) + 4) = VEH_S32((off) + 8) = (v))
+
+/* Per-frame update of this vehicle's mode machine (+0xA1: 0 idle/driving,
+ * 1 airborne?, 2/3, 4, 5; +0xA2 keeps the mode the frame started in), its
+ * countdowns and animation channels (D_803F7850), then the ground check
+ * func_802C70E8, func_802C7354, the steering channels (func_802C7864, modes
+ * 1-3), the ramp/records func_802C7544, the idle check func_802C6DAC and
+ * the looping sounds func_802C6ECC. Mode values above 5 hit a `syscall` in
+ * the asm (not reached in the game; the C does nothing there).
+ * Register convention (conventions.txt): s0 comes in and goes on to
+ * func_802C7544; the FP registers f12-f26 and a3, t6, s1-s4 come in for
+ * func_802C70E8 (here through f and r), and its f20-f26 are what the caller
+ * func_802C5AFC reads back. t6, t7, s1-s4 after func_802C70E8 (or the
+ * zeros/func_802A6274 results on the mode-4 exit path, s4 = |speed| / 16 in
+ * mode 0, s2 from func_802C7864) are what func_802C7544 gets. Where an asm
+ * callee leaves an undocumented register behind (func_802C7864 leaves s3 =
+ * 270 on its steering paths, func_80260650 is C and may change t6/t7) the
+ * C passes the documented value instead. $gp (= D_803F7B50) is read as the
+ * global. Integer counters use trapping `addi` in the asm. */
+void func_802C61F0(s32 s0, TriSideOut *f, TriScanRegs *r) {
+    s32 mode = VEH_U8(0xA1);
+    s32 v;
+    s32 t6;
+    s32 t7;
+    s32 s1;
+    s32 s2;
+    s32 s3;
+    s32 s4;
+    s16 old;
+    s32 ch[8];
+    Io802A6274 io;
+
+    VEH_U8(0xA2) = mode;
+    if (mode == 1 || mode == 2 || mode == 3) {
+        if (D_803F7C41 != 0) {
+            D_803F7C41--;
+        }
+    } else {
+        D_803F7C41 = 9;
+    }
+    v = D_803F7C40;
+    if (v != 0) {
+        v--;
+        D_803F7C40 = v;
+    }
+    if (v == 2 || v == 3) {
+        D_803F7C20 = 0;
+    } else {
+        D_803F7C20++;
+    }
+    if (v == 4) {
+        D_803F7C24 = 0;
+    } else {
+        D_803F7C24++;
+    }
+
+    D_803F7C3E = 0;
+    if (!(D_803F7C14 < D_803F7BFC) && VEH_U8(0xA1) != 4 && VEH_U8(0xA1) != 2) {
+        if (D_803F7C3D != 0) {
+            D_803F7C3D--;
+        } else if (D_80370C1C != 0 || D_80370C1A != 0 || D_80370C1B != 0) {
+            if (VEH_U8(0x96) != 1) {
+                VEH_TRIPLE(0x34, D_803F7BFC);
+                VEH_TRIPLE(0x40, 1);
+                VEH_TRIPLE(0x28, 30);
+                VEH_U8(0x96) = 1;
+                VEH_U8(0x97) = 1;
+                VEH_U8(0x98) = 1;
+            } else {
+                v = func_802C6FD8();
+                VEH_TRIPLE(0x40, 1);
+                VEH_TRIPLE(0x28, v);
+                VEH_TRIPLE(0x34, D_803F7BFC);
+            }
+            D_803F7C3E = 1;
+        }
+    }
+
+    if (VEH_U8(0xA1) == 5 && (VEH_S16(0x76) != 0 || VEH_U8(0x96) != 0)) {
+        VEH_U8(0xA1) = 0;
+        func_802A02E4(7, D_803F7850);
+        func_802A02E4(8, D_803F7850);
+        func_802A0360(0.0f, D_803F7850, 6, 2);
+        func_802A0360(0.0f, D_803F7850, 9, 0);
+        func_802A039C(D_803F7850, 9, 3);
+        func_802A03D4(D_803F7850, 9, 0);
+        func_802A0480(0.0f, D_803F7850, 9, 0);
+        func_802A040C(D_803F7850, 9, 1);
+        func_802A0290(D_803F7850, 9, 1);
+    }
+
+    if (VEH_U8(0x9E) != 0) {
+        VEH_U8(0xA1) = 3;
+        D_803F7C39 = 1;
+    } else if (D_803F7C43 != 1) {
+        if (VEH_U8(0x96) == 1) {
+            func_802A02E4(6, D_803F7850);
+            func_802A02E4(9, D_803F7850);
+            D_803F7C28 = (VEH_U8(0xA2) == 5) ? D_8030D950 : 0.5f;
+            D_803F7C2C = 0.5f;
+            VEH_U8(0xA1) = 1;
+        }
+    } else if (VEH_U8(0x96) == 0 && D_803F7C39 == 0) {
+        /* landed: reset the position triples */
+        v = D_803F7BFC;
+        VEH_S32(0x04) = v;
+        VEH_S32(0x08) = v;
+        VEH_S32(0x0C) = v;
+        VEH_S32(0x10) = v;
+        VEH_S32(0x14) = v;
+        VEH_S32(0x18) = v;
+        VEH_S32(0x1C) = v;
+        VEH_S32(0x20) = v;
+        VEH_S32(0x24) = v;
+        func_802A0360(0.0f, D_803F7850, 6, 2);
+        func_802A02E4(5, D_803F7850);
+        func_802A02E4(4, D_803F7850);
+        func_802A02E4(3, D_803F7850);
+        if (VEH_U8(0xA2) != 4) {
+            func_8029FC74(3, 4, D_803F7850);
+            func_8029F9D4(0x1E, 6, D_803F7850);
+            func_802A039C(D_803F7850, 0x1F, 0x32);
+            func_802A03D4(D_803F7850, 0x1F, 0);
+            func_802A040C(D_803F7850, 0x1F, 0);
+            func_802A0290(D_803F7850, 0x1F, 1);
+        }
+        s4 = VEH_S16(0x76);
+        if (s4 >= 0x97) {
+            s4 = 0x96;
+            VEH_S16(0x76) = s4;
+        } else if (s4 < -0x64) {
+            s4 = -0x64;
+            VEH_S16(0x76) = s4;
+        }
+        r->s4 = s4; /* the asm's s4, on into func_802C70E8 */
+        VEH_U8(0xA1) = 0;
+    }
+
+    func_802C70E8(f, r);
+    func_802C7354();
+    t6 = r->t6;
+    t7 = r->t7;
+    s1 = r->s1;
+    s2 = r->s2;
+    s3 = r->s3;
+    s4 = r->s4;
+
+    if (VEH_U8(0xA2) == 4 && VEH_U8(0xA1) == 0) {
+        func_80260650(D_80367738, 0x7D, NULL);
+        D_802E8BE4 = 0x14;
+        D_802E8BE8 = 0x320;
+        io.a3 = 0;
+        io.t6 = 0;
+        io.s1 = 0;
+        func_802A6274(&io, D_802C28E4, 0x222E0, 0, ((s32 *) D_803F7BF8)[0] << 11, D_803F7BFC << 11,
+                      ((s32 *) D_803F7BF8)[2] << 11, 0, 0, 0, 0, 0, 0);
+        t6 = io.t6;
+        s1 = io.s1;
+        t7 = 0;
+        s0 = 0;
+        s2 = 0;
+        s3 = 0;
+        s4 = 0;
+    }
+
+    switch (VEH_U8(0xA1)) {
+        case 5:
+            func_802A04BC(7, D_803F7850, ch);
+            if (ch[0] == 1) {
+                break;
+            }
+            func_802A04BC(8, D_803F7850, ch);
+            if (ch[0] == 1) {
+                break;
+            }
+            func_802A0360(0.0f, D_803F7850, 8, 0);
+            func_802A039C(D_803F7850, 8, 1);
+            func_802A03D4(D_803F7850, 8, 0);
+            func_802A0480(0.5f, D_803F7850, 8, 1);
+            func_802A040C(D_803F7850, 8, 1);
+            func_802A0290(D_803F7850, 8, -1);
+            break;
+
+        case 4:
+            if (D_803F7C4A != 0) {
+                func_802A04BC(5, D_803F7850, ch);
+                if (ch[0] != 1) {
+                    VEH_TRIPLE(0x34, D_803F7BFC);
+                    VEH_TRIPLE(0x40, 1);
+                    VEH_TRIPLE(0x28, -0x4B0);
+                    D_803F7C4A = 0;
+                }
+            }
+            D_803F7C3D = 10;
+            break;
+
+        case 0:
+            func_802A04BC(0x1F, D_803F7850, ch);
+            if (ch[0] == 1) {
+                break;
+            }
+            func_802A04BC(9, D_803F7850, ch);
+            if (ch[0] == 1) {
+                break;
+            }
+            s4 = VEH_S16(0x76);
+            func_802A03D4(D_803F7850, 6, (s4 < 0) ? 1 : 0);
+            if (s4 < 0) {
+                s4 = -s4;
+            }
+            s4 = (u32) s4 / 16;
+            func_802A039C(D_803F7850, 6, s4);
+            func_802A0480(0.5f, D_803F7850, 6, 1);
+            func_802A040C(D_803F7850, 6, 0);
+            func_802A0290(D_803F7850, 6, -1);
+            func_802A04BC(6, D_803F7850, ch);
+            /* ch[6] is the asm's t1 (the whole word; the store keeps 16 bits) */
+            old = D_803F7C32;
+            D_803F7C32 = ch[6];
+            if (ch[6] != old) {
+                if (ch[6] == 0) {
+                    func_80260650(D_80367738, 0x5A, NULL);
+                } else if (ch[6] == 3) {
+                    func_80260650(D_80367738, 0x5B, NULL);
+                }
+            }
+            break;
+
+        case 2:
+            D_803F7C3D = 10;
+            if (D_80370C1C != 0 || D_80370C1A != 0 || D_80370C1B != 0) {
+                v = func_802C6FD8();
+                VEH_TRIPLE(0x40, 1);
+                VEH_TRIPLE(0x28, v);
+                VEH_TRIPLE(0x34, D_803F7BFC);
+                D_803F7C3E = 1;
+                VEH_U8(0xA1) = 1;
+            }
+            /* fall through */
+        case 1:
+        case 3:
+            func_802A02E4(0x1F, D_803F7850);
+            func_802A02E4(6, D_803F7850);
+            func_802A0290(D_803F7850, 4, -1);
+            func_802A0290(D_803F7850, 3, -1);
+            func_802C7864(&s2);
+            if (D_803F7C39 != 0) {
+                if (VEH_U8(0x9C) == 0) {
+                    v = VEH_S16(0x76);
+                    if (v >= 0x15) {
+                        v = 0x14;
+                    }
+                    if (v < -0x14) {
+                        v = -0x14;
+                    }
+                    VEH_S16(0x76) = v;
+                }
+                VEH_TRIPLE(0x34, D_803F7BFC);
+                VEH_TRIPLE(0x40, 1);
+                VEH_TRIPLE(0x28, 0x14A);
+                VEH_U8(0x96) = 1;
+                VEH_U8(0x97) = 1;
+                VEH_U8(0x98) = 1;
+                break;
+            }
+            if (D_803F7C40 != 0 || D_803F7C41 != 0 || VEH_U8(0x9F) == 100) {
+                break;
+            }
+            func_802C770C();
+            if (D_803F7C44 != 3 && (D_803F7C42 != 0 || D_80370C1D == 0)) {
+                break;
+            }
+            /* both press/release trackers done, or a new D_80370C1D press: mode 4 */
+            D_803F7C45 = 0;
+            D_803F7C44 = 0;
+            D_803F7C47 = 0;
+            D_803F7C46 = 0;
+            D_803F7C40 = 20;
+            D_803F7C4A = 1;
+            VEH_U8(0xA1) = 4;
+            VEH_TRIPLE(0x28, 0);
+            VEH_TRIPLE(0x34, D_803F7BFC);
+            VEH_TRIPLE(0x40, 1);
+            func_802A02E4(4, D_803F7850);
+            func_802A02E4(3, D_803F7850);
+            func_802A039C(D_803F7850, 5, 10);
+            func_802A03D4(D_803F7850, 5, 0);
+            func_802A040C(D_803F7850, 5, 1);
+            func_802A0360(0.0f, D_803F7850, 5, 0);
+            func_802A0290(D_803F7850, 5, 1);
+            func_80260650(D_80367738, 0x5C, NULL);
+            break;
+
+        default:
+            /* the asm executes `syscall` here (no mode above 5 exists) */
+            break;
+    }
+
+    func_802C7544(t6, t7, s0, s1, s2, s3, s4);
+    func_802C6DAC();
+    func_802C6ECC();
+    D_803F7C43 = VEH_U8(0x96);
+    D_803F7C42 = D_80370C1D;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C61F0.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -833,12 +1240,15 @@ void func_802C7410(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
+#ifndef IO_802A6274_DEFINED
+#define IO_802A6274_DEFINED
 /* func_802A6274's in/out registers (60F60.c). */
 typedef struct {
     s32 a3;
     s32 t6;
     s32 s1;
 } Io802A6274;
+#endif
 
 extern u8 D_803F7C43; /* previous frame's +0x96 */
 extern s8 D_803F7C3B; /* 0..50 ramp */

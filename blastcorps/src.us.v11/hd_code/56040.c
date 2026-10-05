@@ -1508,7 +1508,39 @@ void func_8029DF78(u8 *dl, u8 *dlEnd, s32 key) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029E21C.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+void func_802A1074(s32 id, u8 *dest, u8 *param); /* 5BF40 */
+
+/* Takes the first of the 12 0x1010-byte blocks at D_803A7440 with byte 6
+ * clear (when all 12 are in use, the asm runs on to the block just past the
+ * table; kept), tags it (word 0 = key, u16 +4 = id, byte 6 = 1, byte 7 = 0),
+ * queues the load of table entry `id` into its data at +0x10 with decode
+ * param `param` (func_802A1074) and returns the physical address of that
+ * data (block + 0x10 - 0x80000000): the counterpart of func_8029E4E4.
+ * Register convention: asm takes key, id, param in t3, t6, fp and returns in
+ * s1 (conventions.txt); it changes a0-a2. Its asm caller func_8029E21C keeps
+ * t0, t3 live. */
+u32 func_8029E47C(s32 key, s32 id, u8 *param) {
+    u8 *b = D_803A7440[0];
+    s32 n = 12;
+
+    while (n != 0) {
+        n--;
+        if (b[6] == 0) {
+            break;
+        }
+        b += 0x1010;
+    }
+    *(s32 *) b = key;
+    *(s16 *) (b + 4) = id;
+    b[6] = 1;
+    b[7] = 0;
+    func_802A1074(id, b + 0x10, param);
+    return (u32) (b + 0x10) - 0x80000000;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029E47C.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

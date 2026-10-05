@@ -449,3 +449,15 @@ func_8029CB54: -n 200 --seed 4 --ret void --follow-all \
     --mem D_803A7410:2=int:0:0xFFF --mem D_803A7412:2=int:0:0xFFF \
     --mem D_803F77D8:16=bytes:0,1,2,3,0x10,0xFF --mem D_803F77D4=rel:D_803F77D8+int:0:12
 # end-block
+# [e1] func_8029E47C (key t3, id t6, param fp): first free D_803A7440 block (byte 6 == 0) tagged, entry id loaded
+# into it (func_802A1074) -> physical address in s1. Random / only the last free / all 12 in use (writes the block
+# past the table, as the asm does); then func_802A1074 followed.
+func_8029E47C: -n 300 --arg t3=int --arg t6=int --arg fp=int --mem D_803A7440*0x1010:13=rand \
+    --mem D_803A7440+4*0x1010:13=rand --mem D_803A7440+6*0x1010:12/1=choice:0,1,1,2,0xFF
+func_8029E47C: -n 100 --seed 1 --arg t3=int --arg t6=int --arg fp=int --mem D_803A7440*0x1010:13=rand \
+    --mem D_803A7440+4*0x1010:13=rand --mem D_803A7440+6*0x1010:12/1=1 --mem D_803A7440+0xB0B6:1=choice:0,1
+func_8029E47C: -n 300 --seed 2 --follow func_802A1074 --arg t3=int --arg t6=int:0:30 --arg fp=int \
+    --heap 0x200=words:0,0x10,0x100,0x1000,0x7FF0,0xFFFF00 --mem D_803B8D44=rel:heap0 --mem D_80358080=int:0:10 \
+    --mem D_803A7440*0x1010:13=rand --mem D_803A7440+6*0x1010:12/1=choice:0,1,1 \
+    --sig osInvalDCache=a0,a1 --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2
+# end-block

@@ -1,6 +1,14 @@
 VERSION  := us.v10
 
+# NON_MATCHING=1 builds functionally-equivalent C rewrites (#ifdef NON_MATCHING)
+# into build_nm/ with no checksum; see tools_port/README.md.
+NON_MATCHING ?= 0
+
+ifeq ($(NON_MATCHING),1)
+BUILD_DIR = build_nm
+else
 BUILD_DIR = build
+endif
 
 TOOLS_DIR := ../tools
 ASM_PROCESSOR_DIR := $(TOOLS_DIR)/asm-processor
@@ -93,9 +101,28 @@ INIT_LD_SCRIPT = init.$(VERSION).ld
 
 HD_CODE_TARGET = $(BUILD_DIR)/hd_code.$(VERSION)
 HD_CODE_LD_SCRIPT = hd_code.$(VERSION).ld
+HD_CODE_BSS_LD_SCRIPT = hd_code_bss.$(VERSION).ld
 
-INIT_LDFLAGS    = -T $(INIT_LD_SCRIPT) -Map $(INIT_TARGET).map -T undefined_syms_auto.init.$(VERSION).txt -T undefined_funcs_auto.init.$(VERSION).txt -T undefined_syms.init.$(VERSION).txt --no-check-sections --no-warn-mismatch
-HD_CODE_LDFLAGS = -T hd_code_bss.$(VERSION).ld -T $(HD_CODE_LD_SCRIPT) -Map $(HD_CODE_TARGET).map -T undefined_syms_auto.hd_code.$(VERSION).txt -T undefined_funcs_auto.hd_code.$(VERSION).txt -T undefined_syms.hd_code.$(VERSION).txt --no-check-sections --no-warn-mismatch
+ifeq ($(NON_MATCHING),1)
+# Rewritten functions change size, so the NON_MATCHING link relocates the
+# hd_code text to NM_TEXT_VRAM (clear of the data segment, which must stay at
+# its original address), pins the data blobs, and catches any newly needed
+# .rodata/.data/.bss at NM_EXTRA_VRAM. tools_port/eqcheck.py maps by symbol.
+NM_TEXT_VRAM  ?= 0x80800000
+NM_EXTRA_VRAM ?= 0x80A00000
+CFLAGS += -DNON_MATCHING
+INIT_LD_SCRIPT = $(BUILD_DIR)/init.$(VERSION).ld
+HD_CODE_LD_SCRIPT = $(BUILD_DIR)/hd_code.$(VERSION).ld
+HD_CODE_BSS_LD_SCRIPT = $(BUILD_DIR)/hd_code_bss.$(VERSION).ld
+# symbol files rewritten as PROVIDE(), so a relocated function's real
+# definition wins over its original absolute address
+UNDEF_DIR = $(BUILD_DIR)/
+endif
+
+INIT_UNDEF_FILES    = $(foreach f,undefined_syms_auto undefined_funcs_auto undefined_syms,$(UNDEF_DIR)$(f).init.$(VERSION).txt)
+HD_CODE_UNDEF_FILES = $(foreach f,undefined_syms_auto undefined_funcs_auto undefined_syms,$(UNDEF_DIR)$(f).hd_code.$(VERSION).txt)
+INIT_LDFLAGS    = -T $(INIT_LD_SCRIPT) -Map $(INIT_TARGET).map $(addprefix -T ,$(INIT_UNDEF_FILES)) --no-check-sections --no-warn-mismatch
+HD_CODE_LDFLAGS = -T $(HD_CODE_BSS_LD_SCRIPT) -T $(HD_CODE_LD_SCRIPT) -Map $(HD_CODE_TARGET).map $(addprefix -T ,$(HD_CODE_UNDEF_FILES)) --no-check-sections --no-warn-mismatch
 
 
 # hd_code files that own a .rodata subsegment (see tools/late_rodata.py)
@@ -131,7 +158,12 @@ $(BUILD_DIR)/src.$(VERSION)/init/ul_ll.c.o: MIPSISET := -mips3 -32
 
 default: all
 
+ifeq ($(NON_MATCHING),1)
+all: init hd_code
+	@echo "NON_MATCHING build done (no checksum): $(INIT_TARGET).elf $(HD_CODE_TARGET).elf"
+else
 all: verify_init verify_hd_code
+endif
 
 dirs:
 	$(foreach dir,$(INIT_SRC_DIR) $(INIT_ASM_DIRS) $(INIT_BIN_DIRS) $(HD_CODE_SRC_DIR) $(HD_CODE_ASM_DIRS) $(HD_CODE_BIN_DIRS),$(shell mkdir -p $(BUILD_DIR)/$(dir)))
@@ -177,6 +209,21 @@ $(BUILD_DIR)/init.$(VERSION).elf: $(INIT_O_FILES)
 
 $(BUILD_DIR)/hd_code.$(VERSION).elf: $(HD_CODE_O_FILES)
 	@$(LD) $(HD_CODE_LDFLAGS) -o $@
+
+ifeq ($(NON_MATCHING),1)
+NM_LDSCRIPT = $(PYTHON) tools_port/nm_ldscript.py --build-dir $(BUILD_DIR)
+$(BUILD_DIR)/init.$(VERSION).elf: $(INIT_LD_SCRIPT) $(INIT_UNDEF_FILES)
+$(BUILD_DIR)/hd_code.$(VERSION).elf: $(HD_CODE_LD_SCRIPT) $(HD_CODE_BSS_LD_SCRIPT) $(HD_CODE_UNDEF_FILES)
+$(BUILD_DIR)/%.txt: %.txt tools_port/nm_ldscript.py | dirs
+	$(NM_LDSCRIPT) $< $@ --provide
+$(INIT_LD_SCRIPT): init.$(VERSION).ld tools_port/nm_ldscript.py | dirs
+	$(NM_LDSCRIPT) $< $@
+$(HD_CODE_BSS_LD_SCRIPT): hd_code_bss.$(VERSION).ld tools_port/nm_ldscript.py | dirs
+	$(NM_LDSCRIPT) $< $@
+$(HD_CODE_LD_SCRIPT): hd_code.$(VERSION).ld tools_port/nm_ldscript.py | dirs
+	$(NM_LDSCRIPT) $< $@ --relocate .hd_code=$(NM_TEXT_VRAM) --pin-data .hd_code_data \
+		--extra-vram $(NM_EXTRA_VRAM) --extra-glob '$(BUILD_DIR)/src.$(VERSION)/hd_code/*.o'
+endif
 
 ifndef PERMUTER
 $(GLOBAL_ASM_INIT_O_FILES): $(BUILD_DIR)/%.c.o: %.c

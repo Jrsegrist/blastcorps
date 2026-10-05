@@ -21,7 +21,21 @@
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/83910/func_802C8790.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Functional rewrite (tools_port/eqcheck.py verified): a0 passes straight
+ * through to func_802C4310 with a1 = 0x72. */
+extern s16 D_8036444C;
+extern s16 D_80364450;
+void func_802C4310(s32 arg0, s32 arg1);
+
+void func_802C8AB0(s32 arg0) {
+    D_8036444C = 3000;
+    D_80364450 = 0;
+    func_802C4310(arg0, 0x72);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/83910/func_802C8AB0.s")
+#endif
 
 /* func_802C8AF0: same dead-$ra-frame-around-`return 1;` as func_802BBE10
  * in 772A0.c - confirmed hand-written, not compiler-reachable. See that

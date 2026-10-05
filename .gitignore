@@ -13,6 +13,7 @@ __pycache__/
 asm/
 assets/
 build/
+build_nm/
 expected/
 junk/
 blastcorps/nonmatchings/

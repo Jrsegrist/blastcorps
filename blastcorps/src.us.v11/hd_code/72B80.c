@@ -12,7 +12,27 @@
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/72B80/func_802B7340.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u8 D_803EEE70[]; /* this vehicle's state block */
+extern s16 D_8036444C;
+extern s16 D_80364450;
+void func_802C4310(s32 arg0, s32 arg1);
+
+/* Enter vehicle type 8: clears the byte at +0x99, D_8036444C/50 = 3000,
+ * 1000, then func_802C4310(arg0, 0xCE) (arg0 passes straight through; hd.c
+ * calls this with no arguments and func_802C4310 ignores it). The asm also
+ * points $gp at D_803EEE70 and leaves it there (conventions.txt: clobbers
+ * gp); C code doesn't use $gp. Same shape as func_802BBDC8 (772A0),
+ * func_802CCC8C (88160), func_802CFA0C (8AEE0). */
+void func_802B76AC(s32 arg0) {
+    D_803EEE70[0x99] = 0;
+    D_8036444C = 3000;
+    D_80364450 = 1000;
+    func_802C4310(arg0, 0xCE);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/72B80/func_802B76AC.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -53,13 +73,72 @@ s32 func_802B76F8(void) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/72B80/func_802B7F98.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u32 D_803EEF18[]; /* [0], [2]: trail x, z */
+void func_8027BE7C(u8 period, s32 y, s16 x1, s16 z1, s16 x2, s16 z2, s32 x, s32 z, s16 yaw, u8 halfw, u8 a,
+                   u8 b, u8 d);
+
+/* Tyre trail (shape of func_802B3C68 in 6E200; $gp = D_803EEE70): if the
+ * byte at +0x99 is set, +0x98 isn't 1, +0x50 < 3 and +0x9B is clear,
+ * func_8027BE7C(3, y, 250, -400, -400, -400, D_803EEF18[0], D_803EEF18[2],
+ * yaw, 3, 50, 50, 0).
+ * Register note: the asm saves and restores every integer register; asm
+ * caller func_802B7F98 keeps a0-a3, t6, t7 live (and reads f12/f14 after
+ * the call, which the asm doesn't touch but func_8027BE7C may); a mixed N64
+ * build would need a thunk. */
+void func_802B80D8(void) {
+    if (D_803EEE70[0x99] != 0 && D_803EEE70[0x98] != 1 && D_803EEE70[0x50] < 3 && D_803EEE70[0x9B] == 0) {
+        func_8027BE7C(3, *(s32 *) (D_803EEE70 + 0x1C), 250, -400, -400, -400, D_803EEF18[0], D_803EEF18[2],
+                      *(u16 *) (D_803EEE70 + 0x4E), 3, 50, 50, 0);
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/72B80/func_802B80D8.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/72B80/func_802B8278.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* cvt.w.s under the FCSR's default rounding (nearest, ties to even); a C cast
+ * truncates instead. */
+#define CVT_W_S(out, x)                                                 \
+    do {                                                                \
+        f32 _x = (x);                                                   \
+        s32 _r = (s32) _x;                                              \
+        f32 _f = _x - (f32) _r;                                         \
+                                                                        \
+        if (_f > 0.5f || (_f == 0.5f && (_r & 1))) {                    \
+            _r++;                                                       \
+        } else if (_f < -0.5f || (_f == -0.5f && (_r & 1))) {           \
+            _r--;                                                       \
+        }                                                               \
+        (out) = _r;                                                     \
+    } while (0)
+
+extern f32 D_8030D904;
+
+/* Speed (s16 at +0x76 of D_803EEE70, the asm's $gp) / 11.0 when any of the
+ * bytes at +0x96/+0x97/+0x98 is 1, else / D_8030D904, rounded to nearest.
+ * The asm returns it in s3 (see tools_port/conventions.txt). Its asm caller
+ * func_802B7A88 keeps a0-a3 live (a mixed N64 build would need a thunk).
+ * Same shape as func_802B0C74 (6B4A0). */
+s32 func_802B83B0(void) {
+    f32 div;
+    s32 r;
+
+    if (D_803EEE70[0x96] == 1 || D_803EEE70[0x97] == 1 || D_803EEE70[0x98] == 1) {
+        div = 11.0f;
+    } else {
+        div = D_8030D904;
+    }
+    CVT_W_S(r, *(s16 *) (D_803EEE70 + 0x76) / div);
+    return r;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/72B80/func_802B83B0.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -87,7 +166,83 @@ void func_802B8424(void) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/72B80/func_802B8480.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+double sqrt(double);
+#pragma intrinsic(sqrt)
+
+/* func_802ABCDC (62740; points in t3-t5 and t6,t7,s0, result in s1) can't be
+ * called from C: this is its logic (same macro as in 77E20.c/8DDB0.c). The
+ * distance between two points, rounded to nearest (ties to even) as cvt.l.d
+ * does; the squares are summed as s64 and converted as hi * 2^32 + lo (one
+ * rounding, like cvt.d.l; a plain cast would call __ll_to_d). */
+#define DIST3_802ABCDC(out, ax, ay, az, bx, by, bz)                     \
+    do {                                                                \
+        s64 _dx = (s32) ((bx) - (ax));                                  \
+        s64 _dy = (s32) ((by) - (ay));                                  \
+        s64 _dz = (s32) ((bz) - (az));                                  \
+        s64 _sq = _dx * _dx + _dy * _dy + _dz * _dz;                    \
+        f64 _d = sqrt((f64) (s32) (_sq >> 32) * 4294967296.0 + (f64) (u32) _sq); \
+        s32 _r = (s32) _d;                                              \
+        f64 _f = _d - _r;                                               \
+                                                                        \
+        if (_f > 0.5 || (_f == 0.5 && (_r & 1))) {                      \
+            _r++;                                                       \
+        }                                                               \
+        (out) = _r;                                                     \
+    } while (0)
+
+extern s32 D_803643E0; /* player x, y, z */
+extern s32 D_803643E4;
+extern s32 D_803643E8;
+extern void *D_80367738;  /* sound player */
+extern void *D_803EF2E8;  /* this sound's handle, NULL = none */
+extern s32 D_803EF2EC;    /* sound source x, y, z */
+extern s32 D_803EF2F0;
+extern s32 D_803EF2F4;
+void *func_80260650(void *arg0, s16 arg1, void *arg2);
+void func_802608C8(void *arg0);
+void func_80260AB8(void *arg0, s16 arg1, s32 arg2);
+
+/* Positional sound 0x13 at D_803EF2EC/F0/F4 (called from hd.c). d is the
+ * rounded distance from the player D_803643E0/E4/E8. Beyond 16000 the sound
+ * is stopped (func_802608C8) and its handle cleared. Otherwise it is
+ * started if it isn't playing, its volume (parameter 8) set to 0x7FFF -
+ * max(d - 500, 0) and its pan (parameter 4) to 64 + (player x - source
+ * x) / 32, clamped to 0..127. The asm's `sub`/`add` trap on overflow; C
+ * doesn't. Register note: the asm saves and restores every register. Same
+ * shape as func_802BA148 (75490). */
+void func_802B8794(void) {
+    s32 dx = D_803643E0 - D_803EF2EC;
+    s32 dist;
+    s32 pan;
+
+    DIST3_802ABCDC(dist, D_803643E0, D_803643E4, D_803643E8, D_803EF2EC, D_803EF2F0, D_803EF2F4);
+    if (dist > 16000) {
+        if (D_803EF2E8 != NULL) {
+            func_802608C8(D_803EF2E8);
+            D_803EF2E8 = NULL;
+        }
+        return;
+    }
+    if (D_803EF2E8 == NULL) {
+        func_80260650(D_80367738, 0x13, &D_803EF2E8);
+    }
+    dist -= 500;
+    if (dist < 0) {
+        dist = 0;
+    }
+    func_80260AB8(D_803EF2E8, 8, 0x7FFF - dist);
+    pan = 0x40 + (dx >> 5);
+    if (pan < 0) {
+        pan = 0;
+    } else if (pan >= 0x80) {
+        pan = 0x7F;
+    }
+    func_80260AB8(D_803EF2E8, 4, pan);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/72B80/func_802B8794.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/72B80/func_802B899C.s")

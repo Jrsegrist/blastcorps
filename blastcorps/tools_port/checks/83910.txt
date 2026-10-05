@@ -10,3 +10,15 @@ func_802C8AF0: -n 50
 func_802C9B30: -n 200 --ret void --mem D_803EBBF0:4=floats --mem D_803EBBF4=int --mem D_803ED3F6:2=rand
 func_802C9B30: -n 60 --seed 1 --ret void --mem D_803EBBF0=choice:0,0x80000000,0x3F800000,0xBF800000,0x7F7FFFFF,0xFF7FFFFF,0x7F800000,0xFF800000,0x7FC00000,0x00000001 \
     --mem D_803EBBF4=choice:0,-1 --mem D_803ED3F6:2=bytes:0,0xFF
+
+# func_802C95D8: bounce, speed (s16 at +0x76 of the block in $gp -> a0) = -(sign-kept max(|v|, 80)) >> 1;
+# one run per vehicle block that calls it
+func_802C95D8: -n 300 --seed 0 --ret void --arg gp=sym:D_803F8550 --mem D_803F8550+0x76:2=int:0:0xFFFF
+func_802C95D8: -n 300 --seed 1 --ret void --arg gp=sym:D_803F85F8 \
+    --mem D_803F85F8+0x76:2=halves:0,1,0x4F,0x50,0x51,0x7FFF,0x8000,0xFFB0,0xFFB1,0xFFAF,0xFFFF,0xFFFE,0x100,0xFF00
+func_802C95D8: -n 100 --seed 2 --ret void --arg gp=sym:D_803F86A0 --mem D_803F86A0+0x76:2=int:0:0xFFFF
+# func_802C9AF8: s3 (-> v0) = round_nearest(speed(+0x76 of the block in $gp -> a0) / D_8030D980)
+func_802C9AF8: -n 300 --seed 0 --arg gp=sym:D_803F8550 --mem D_803F8550+0x76:2=int:0:0xFFFF
+func_802C9AF8: -n 300 --seed 1 --arg gp=sym:D_803F86A0 --mem D_8030D980=words:0x40000000,0x40800000,0x3F000000,0x40C00000 \
+    --mem D_803F86A0+0x76:2=halves:0,1,2,3,5,6,9,15,0x7FFF,0x8000,0xFFFD,0xFFF7,0xFFFF,0xFFFE
+func_802C9AF8: -n 200 --seed 2 --arg gp=sym:D_803F85F8 --mem D_8030D980:4=floats:0.25:40 --mem D_803F85F8+0x76:2=int:0:0xFFFF

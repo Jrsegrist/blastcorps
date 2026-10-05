@@ -67,7 +67,28 @@ s32 func_802C8AF0(void) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/83910/func_802C92C0.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Bounce: the speed (s16 at +0x76 of the vehicle block, which the asm takes
+ * in $gp: three vehicles share this, see tools_port/conventions.txt) is
+ * raised to a magnitude of at least 80 keeping its sign (0 counts as
+ * positive), then negated and halved (arithmetic shift). Asm callers
+ * func_802C8C90, func_802C8FA8 and func_802C92C0 keep a0-a3, f12 and f14
+ * live across the call (a mixed N64 build would need a thunk). */
+void func_802C95D8(u8 *state) {
+    s32 v = *(s16 *) (state + 0x76);
+
+    if (v >= 0) {
+        if (v < 0x50) {
+            v = 0x50;
+        }
+    } else if (v >= -0x4F) {
+        v = -0x50;
+    }
+    *(s16 *) (state + 0x76) = -v >> 1;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/83910/func_802C95D8.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/83910/func_802C9624.s")
@@ -79,7 +100,38 @@ s32 func_802C8AF0(void) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/83910/func_802C995C.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* cvt.w.s under the FCSR's default rounding (nearest, ties to even); a C cast
+ * truncates instead. */
+#define CVT_W_S(out, x)                                                 \
+    do {                                                                \
+        f32 _x = (x);                                                   \
+        s32 _r = (s32) _x;                                              \
+        f32 _f = _x - (f32) _r;                                         \
+                                                                        \
+        if (_f > 0.5f || (_f == 0.5f && (_r & 1))) {                    \
+            _r++;                                                       \
+        } else if (_f < -0.5f || (_f == -0.5f && (_r & 1))) {           \
+            _r--;                                                       \
+        }                                                               \
+        (out) = _r;                                                     \
+    } while (0)
+
+extern f32 D_8030D980;
+
+/* Speed (s16 at +0x76 of the vehicle block) / D_8030D980, rounded to
+ * nearest. The asm takes the block in $gp and returns the value in s3 (see
+ * tools_port/conventions.txt); nothing calls it directly, so which of this
+ * file's three blocks it gets is unknown, hence the parameter. */
+s32 func_802C9AF8(u8 *state) {
+    s32 r;
+
+    CVT_W_S(r, *(s16 *) (state + 0x76) / D_8030D980);
+    return r;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/83910/func_802C9AF8.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

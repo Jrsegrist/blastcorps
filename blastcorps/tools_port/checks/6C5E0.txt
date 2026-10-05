@@ -22,3 +22,8 @@ func_802B2988: -n 300 --seed 0 --ret void --sig func_802AC85C=a0,a1,a2 \
     --arg a0=choice:0,1,-1,0x80000000,0x7FFFFFFF,0x80B00000,0x80B00003,0x803FFFFF
 func_802B2988: -n 100 --seed 1 --ret void --follow func_802AC85C --arg a0=choice:0x80B00000,0x80B00001,0x80B00002,0x80B00003,0x80B00005 --mem 0x80B00000:0x100=rand \
     --mem D_803EDF10:0xA6=rand --mem D_803EDFB8:12=rand
+
+# func_802B28B8: s3 (-> v0) = speed(+0x76) == 0 ? 0 : (+0xA1 is 1 or 2 ? 50 : 120); $gp = D_803EDF10
+func_802B28B8: -n 300 --seed 0 --arg gp=sym:D_803EDF10 --mem D_803EDF10+0x76:2=halves:0*4,1,0x8000,0xFFFF,0x1234,0x100 \
+    --mem D_803EDF10+0xA1:1=bytes:0,1,2,3,0x81,0xFF
+func_802B28B8: -n 100 --seed 1 --arg gp=sym:D_803EDF10 --mem D_803EDF10+0x76:2=int:1:0xFFFF --mem D_803EDF10+0xA1:1=int:0:0xFF

@@ -113,6 +113,26 @@ typedef struct {
     /* 0x92 */ u8 pad92[0x100 - 0x92];
 } Player;
 
+/* hd_code D_803156F8: per-frame-buffer dynamic data (0x21498 bytes each) */
+typedef struct {
+    /* 0x0000 */ u8 pad0[0x80];
+    /* 0x0080 */ Mtx persp;
+    /* 0x00C0 */ u8 padC0[0x80];
+    /* 0x0140 */ Mtx unk140;
+    /* 0x0180 */ u8 pad180[0x1280 - 0x180];
+    /* 0x1280 */ Mtx translate;
+    /* 0x12C0 */ u8 pad12C0[0x15C0 - 0x12C0];
+    /* 0x15C0 */ Vtx stars[0x80 * 4];
+    /* 0x35C0 */ u8 pad35C0[0x21498 - 0x35C0];
+} Dynamic;
+
+extern Gfx D_01000010[];
+extern Gfx D_01000038[];
+extern Dynamic D_803156F8[];
+extern u16 *D_80358050[];
+extern u16 *D_80358058;
+extern void *D_8035806C;
+extern u16 D_8035807C;
 f32 sqrtf(f32);
 f32 func_802574F0(f32); /* sinf */
 f32 func_80257514(f32); /* cosf */
@@ -135,6 +155,8 @@ extern u8 D_8021A905;
 extern f32 D_8021A918;
 extern s16 D_8021A924;
 extern u8 D_802159F0[];
+extern Mtx D_80217B70[];
+extern s8 D_8021A907;
 extern Gfx *D_8021A8F4;
 extern Gfx *D_8021A8FC;
 extern Gfx *D_8021A900;
@@ -148,6 +170,7 @@ extern f32 D_8021AB54;
 void func_801FCF38(Vtx *v, f32 x, f32 y, f32 z, u8 w, u8 h, f32 scale, u8 flip);
 void func_801FD484(f32 *arg0, f32 *arg1, f32 *arg2, f32 *arg3, f32 *arg4, f32 arg5);
 s32 func_801FE760(); /* K&R */
+Gfx *func_801FA180(Gfx *gdl, Dynamic *dyn, f32 arg2, s8 *arg3);
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/11530/func_801F8530.s")
 
@@ -182,7 +205,30 @@ void func_801F885C(s32 arg0) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/11530/func_801F9258.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/11530/func_801F9820.s")
+/* Level-select globe: frame setup, camera matrices, then the globe itself. */
+Gfx *func_801F9820(Gfx *arg0, Dynamic *dyn, s32 *count) {
+    Gfx *gdl = arg0;
+
+    gSPSegment(gdl++, 0, 0);
+    gSPSegment(gdl++, 2, osVirtualToPhysical(dyn));
+    gSPSegment(gdl++, 1, osVirtualToPhysical(D_8035806C));
+    gSPDisplayList(gdl++, D_01000010);
+    gSPDisplayList(gdl++, D_01000038);
+    gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, D_80358050[D_8035805C]);
+    gDPSetDepthImage(gdl++, D_80358058);
+    gDPPipeSync(gdl++);
+    gDPSetRenderMode(gdl++, 0x00507048, 0);
+    gImmp1(gdl++, G_RDPHALF_1, D_8035807C);
+    gSPMatrix(gdl++, &dyn->persp, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
+    gSPMatrix(gdl++, &dyn->unk140, G_MTX_PROJECTION | G_MTX_MUL | G_MTX_NOPUSH);
+    gSPMatrix(gdl++, &D_80217B70[D_8035805C + 12], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+    gSPMatrix(gdl++, &D_80217B70[D_8035805C + 14], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
+    gSPMatrix(gdl++, &dyn->translate, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
+    gdl = func_801FA180(gdl, dyn, D_8020E3D8, &D_8021A907);
+    gSPEndDisplayList(gdl++);
+    *count = gdl - arg0;
+    return gdl;
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/11530/func_801F9B84.s")
 
@@ -207,7 +253,88 @@ void func_801FCE74(Vtx *v, u8 level, f32 dlat, f32 dlon, u8 w, u8 h, f32 scale, 
     func_801FCF38(v, x, y, z, w, h, scale, flip);
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/11530/func_801FCF38.s")
+/* A w x h textured quad lying flat on the globe at (x, y, z), rotated 45 degrees about the normal. */
+void func_801FCF38(Vtx *v, f32 x, f32 y, f32 z, u8 w, u8 h, f32 scale, u8 flip) {
+    f32 m[4][4];
+    f32 ux;
+    f32 uy;
+    f32 uz;
+    f32 vx;
+    f32 vy;
+    f32 vz;
+    f32 len1;
+    f32 len2;
+    f32 x0;
+    f32 x1;
+    f32 x2;
+    f32 x3;
+    f32 y0;
+    f32 y1;
+    f32 y2;
+    f32 y3;
+    f32 z0;
+    f32 z1;
+    f32 z2;
+    f32 z3;
+
+    ux = -z;
+    uy = 0.0f;
+    uz = x;
+    vx = x * y;
+    vy = -(x * x + z * z);
+    vz = y * z;
+    len1 = sqrtf(ux * ux + uy * uy + uz * uz) / 50.0 * 2.0 / scale;
+    if (len1 < 0.1) {
+        len1 = 0.1f;
+    }
+    ux /= len1;
+    uy /= len1;
+    uz /= len1;
+    len2 = sqrtf(vx * vx + vy * vy + vz * vz) / 50.0 * 2.0 / scale;
+    if (len2 < 0.1) {
+        len2 = 0.1f;
+    }
+    vx /= len2;
+    vy /= len2;
+    vz /= len2;
+    guRotateF(m, 45.0f, x, y, z);
+    x0 = x + ux;
+    y0 = y + uy;
+    z0 = z + uz;
+    x1 = x + vx;
+    y1 = y + vy;
+    z1 = z + vz;
+    x2 = x - ux;
+    y2 = y - uy;
+    z2 = z - uz;
+    x3 = x - vx;
+    y3 = y - vy;
+    z3 = z - vz;
+    guMtxXFMF(m, x0, y0, z0, &x0, &y0, &z0);
+    guMtxXFMF(m, x1, y1, z1, &x1, &y1, &z1);
+    guMtxXFMF(m, x2, y2, z2, &x2, &y2, &z2);
+    guMtxXFMF(m, x3, y3, z3, &x3, &y3, &z3);
+    v[0].v.tc[0] = 0;
+    v[0].v.tc[1] = (flip ? 0 : h - 1) << 6;
+    v[1].v.tc[0] = (w - 1) << 6;
+    v[1].v.tc[1] = (flip ? 0 : h - 1) << 6;
+    v[2].v.tc[0] = (w - 1) << 6;
+    v[2].v.tc[1] = (flip ? h - 1 : 0) << 6;
+    v[3].v.tc[0] = 0;
+    v[3].v.tc[1] = (flip ? h - 1 : 0) << 6;
+    v[0].v.ob[0] = x0;
+    v[0].v.ob[1] = y0;
+    v[0].v.ob[2] = z0;
+    v[1].v.ob[0] = x1;
+    v[1].v.ob[1] = y1;
+    v[1].v.ob[2] = z1;
+    v[2].v.ob[0] = x2;
+    v[2].v.ob[1] = y2;
+    v[2].v.ob[2] = z2;
+    v[3].v.ob[0] = x3;
+    v[3].v.ob[1] = y3;
+    v[3].v.ob[2] = z3;
+}
 
 /* Latitude/longitude (degrees, normalised in place) to a point on a sphere of radius r. */
 void func_801FD484(f32 *lat, f32 *lon, f32 *x, f32 *y, f32 *z, f32 r) {

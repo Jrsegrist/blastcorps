@@ -457,7 +457,130 @@ s32 func_802BB230(ZoneScanRegs *r) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/func_802BB274.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u8 D_80370C15; /* input flags */
+extern u8 D_80370C16;
+extern u8 D_80370C1A;
+extern u8 D_80370C1B;
+extern u8 D_80370C1C;
+extern u8 D_80370C1D;
+extern f32 D_8030D930; /* channel 5 limits */
+extern f32 D_8030D934;
+void *func_80260650(void *arg0, s16 arg1, void *arg2);
+void func_802A04BC(s32 idx, void *base, s32 *out);
+s32 func_802BB868(void);
+
+/* Animation channels and sounds of vehicle type 6 ($gp = D_803EFA20, read as
+ * the global; channels in D_803EF720, an Unk8029DEA0Entry table).
+ * - Byte +0xA2 set: channels 5, 4 off (unk14 = 0), channel 2 unk11 = 0 and
+ *   restarted (func_802A0290), +0xA1 = 1.
+ * - Otherwise channel 5 follows input D_80370C1C while its unk4 <= D_8030D930
+ *   (direction 0) or D_80370C1D while !(unk4 < D_8030D934) (direction 1),
+ *   starting sound 0x6F (handle D_803EFAD8) if needed, else it is switched
+ *   off and that sound stopped; channel 4 likewise follows D_80370C15 /
+ *   D_80370C16 with sound 0x6E (D_803EFADC). Then, when func_802BB868 reports
+ *   ground under the level-0x11 part, channel 2 is restarted with
+ *   direction 0 and +0xA1 = 1 unless it is already running in direction 1
+ *   at unk4 * 100 == 100 (cvt.w.s, nearest); with no ground, if +0xA1 is 0
+ *   and input D_80370C1A or D_80370C1B is set, sound 0x6D (D_803EFAE0) is
+ *   started if needed, channel 2 restarted and +0xA1 = 1, and nothing else
+ *   happens.
+ * - Finally (all other paths): when channel 2 isn't active (unk10 != 1),
+ *   +0xA1 = 0 and sound D_803EFAE0 is stopped if playing (handle kept).
+ * Register note: the asm leaves func_802BB868's registers behind (s0-s7, fp,
+ * f20-f28, t7 per the survey; conventions.txt: clobbers); the asm caller
+ * func_802BB274 passes some of them on to func_802A92C8 unchanged, which the
+ * C can't reproduce (they are func_802BB868's scratch). */
+void func_802BB4C0(void) {
+    s32 e[8];
+    s32 r;
+
+    if (D_803EFA20[0xA2] != 0) {
+        func_802A039C(D_803EF720, 5, 0);
+        func_802A039C(D_803EF720, 4, 0);
+        func_802A03D4(D_803EF720, 2, 0);
+        func_802A0290(D_803EF720, 2, 1);
+        D_803EFA20[0xA1] = 1;
+        goto check2;
+    }
+
+    if (D_80370C1C != 0 && (func_802A04BC(5, D_803EF720, e), ((f32 *) e)[7] <= D_8030D930)) {
+        func_802A03D4(D_803EF720, 5, 0);
+        func_802A039C(D_803EF720, 5, 1);
+        goto start5;
+    }
+    if (D_80370C1D != 0 && (func_802A04BC(5, D_803EF720, e), !(((f32 *) e)[7] < D_8030D934))) {
+        func_802A03D4(D_803EF720, 5, 1);
+        func_802A039C(D_803EF720, 5, 1);
+        goto start5;
+    }
+    func_802A039C(D_803EF720, 5, 0);
+    if (D_803EFAD8 != NULL) {
+        func_802608C8(D_803EFAD8);
+    }
+    goto chan4;
+start5:
+    if (D_803EFAD8 == NULL) {
+        func_80260650(D_80367738, 0x6F, &D_803EFAD8);
+    }
+
+chan4:
+    if (D_80370C15 != 0) {
+        func_802A03D4(D_803EF720, 4, 0);
+        func_802A039C(D_803EF720, 4, 1);
+    } else if (D_80370C16 != 0) {
+        func_802A03D4(D_803EF720, 4, 1);
+        func_802A039C(D_803EF720, 4, 1);
+    } else {
+        func_802A039C(D_803EF720, 4, 0);
+        if (D_803EFADC != NULL) {
+            func_802608C8(D_803EFADC);
+        }
+        goto ground;
+    }
+    if (D_803EFADC == NULL) {
+        func_80260650(D_80367738, 0x6E, &D_803EFADC);
+    }
+
+ground:
+    if (func_802BB868() != 0) {
+        func_802A04BC(2, D_803EF720, e);
+        if (e[6] == 1) {
+            CVT_W_S(r, ((f32 *) e)[7] * 100.0f);
+            if (r == 100) {
+                goto check2;
+            }
+        }
+        func_802A03D4(D_803EF720, 2, 0);
+        func_802A0290(D_803EF720, 2, 1);
+        D_803EFA20[0xA1] = 1;
+    } else {
+        if (D_803EFA20[0xA1] != 0) {
+            goto check2;
+        }
+        if (D_80370C1A == 0 && D_80370C1B == 0) {
+            goto check2;
+        }
+        if (D_803EFAE0 == NULL) {
+            func_80260650(D_80367738, 0x6D, &D_803EFAE0);
+        }
+        func_802A0290(D_803EF720, 2, 1);
+        D_803EFA20[0xA1] = 1;
+        return;
+    }
+
+check2:
+    func_802A04BC(2, D_803EF720, e);
+    if (e[0] != 1) {
+        D_803EFA20[0xA1] = 0;
+        if (D_803EFAE0 != NULL) {
+            func_802608C8(D_803EFAE0);
+        }
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/func_802BB4C0.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

@@ -52,7 +52,23 @@ s32 func_802B76F8(void) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u64 *D_803EEF28;
+extern u64 *D_803EEF2C;
+void func_802A7764(u64 *a, u64 *b, s32 size);
+void func_802C444C(void);
+
+/* Vehicle-type 8 exit: zero the speed (s16 at +0x76), copy 0x100 bytes
+ * between the two buffers D_803EEF28/D_803EEF2C point at (func_802A7764),
+ * then func_802C444C. Same shape as func_802CFAB4 (8AEE0). */
+void func_802B7754(void) {
+    *(s16 *) (D_803EEE70 + 0x76) = 0;
+    func_802A7764(D_803EEF28, D_803EEF2C, 0x100);
+    func_802C444C();
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/72B80/func_802B7754.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/72B80/func_802B77A0.s")
@@ -97,7 +113,65 @@ s32 func_802B78B0(ZoneScanRegs *r) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/72B80/func_802B7A88.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+#ifndef IO802A6274_DEFINED
+#define IO802A6274_DEFINED
+/* func_802A6274's in/out registers (60F60.c). */
+typedef struct {
+    s32 a3;
+    s32 t6;
+    s32 s1;
+} Io802A6274;
+s32 func_802A6274(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32 z, s32 w24, s32 w28,
+                  s32 w18, s32 w1C, s32 w2C, s32 b35);
+#endif
+extern u8 D_803EEF32;   /* effect cooldown */
+extern u8 D_802C2954[]; /* definition handed to func_802A6274 */
+void func_802B80D8(void);
+s32 func_802A5ED0(void);
+void func_802C4584(s32 level);
+
+/* Per-frame effects for vehicle type 8 ($gp = D_803EEE70, read as the
+ * global): the tyre trail (func_802B80D8); then, if the cooldown
+ * D_803EEF32 is nonzero it just counts down, else when byte +0x99 is set the
+ * cooldown becomes 1 and, with fewer than 15 active func_802A6274 records,
+ * four are set up (def D_802C2954, type 1 at (8, 1..4, 1), data 0x29810
+ * for the first two and 0x1D4C0 for the last two). Finally
+ * func_802C4584(|speed| >> 5) with speed the s16 at +0x76.
+ * Register convention (conventions.txt): t6, t7, s0-s4 pass through to
+ * func_802A6274 (t6 and s1 in its in/out block, chained between the calls);
+ * the asm changes s1 and s5-s7. Same shape as func_802D02F8 (8AEE0). */
+void func_802B7F98(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
+    Io802A6274 io;
+    s32 v;
+
+    func_802B80D8();
+    if (D_803EEF32 != 0) {
+        D_803EEF32--;
+    } else if (D_803EEE70[0x99] != 0) {
+        D_803EEF32 = 1;
+        if (func_802A5ED0() < 15) {
+            io.t6 = t6;
+            io.s1 = s1;
+            io.a3 = 1;
+            func_802A6274(&io, D_802C2954, 0x29810, 1, 8, 1, 1, t7, s0, s2, s3, s4, 1);
+            io.a3 = 1;
+            func_802A6274(&io, D_802C2954, 0x29810, 1, 8, 2, 1, t7, s0, s2, s3, s4, 1);
+            io.a3 = 1;
+            func_802A6274(&io, D_802C2954, 0x1D4C0, 1, 8, 3, 1, t7, s0, s2, s3, s4, 1);
+            io.a3 = 1;
+            func_802A6274(&io, D_802C2954, 0x1D4C0, 1, 8, 4, 1, t7, s0, s2, s3, s4, 1);
+        }
+    }
+    v = *(s16 *) (D_803EEE70 + 0x76);
+    if (v < 0) {
+        v = -v;
+    }
+    func_802C4584((u32) v >> 5);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/72B80/func_802B7F98.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -298,7 +372,51 @@ void func_802B8AE4(void) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+#ifndef TRISIDEOUT_DEFINED
+#define TRISIDEOUT_DEFINED
+/* func_802A9B1C's FP side results (62740.c), in and out. */
+typedef struct {
+    f32 pz;    /* f12 */
+    f32 cross; /* f14 */
+    f32 cz;    /* f20 */
+    f32 side;  /* f22 */
+    f32 sideZ; /* f24 */
+    f32 dz;    /* f26 */
+} TriSideOut;
+#endif
+extern s16 D_803BE732; /* level extent x, z (>> 5) */
+extern s16 D_803BE736;
+extern s16 D_803EF326;
+s32 func_802A9B1C(s32 index, s32 x, s32 z, s32 y, s32 skip, u8 *veh, s32 fpIn, TriSideOut *f);
+void func_802582C4(u8 id, s32 x, s32 y, s32 z, s32 arg4, s32 arg5, s32 arg6, s32 arg7);
+
+/* Shadow/marker 0xFE at the sound source D_803EF2EC/F0/F4 ($gp = D_803EF240,
+ * read as the global): when x and z are positive and inside the level
+ * (D_803BE732 / D_803BE736 << 5), the ground height under it comes from
+ * func_802A9B1C(slot 0, x, z, D_803EF31C, skip 0xFE) and is stored to
+ * D_803EF31C; otherwise the height is the incoming t3 (whatever the asm
+ * callers left there). Then func_802582C4(0xFE, x, height, z, D_803EF2F0, 0,
+ * 0, (s16) +0x4C) and D_803EF326 = +0x4C.
+ * Register convention (conventions.txt): t3 and fp (func_802A9B1C's fp input)
+ * come in from the asm callers, f12-f26 pass through func_802A9B1C (here
+ * through f). The asm's v1 (read by func_802475D8 via func_802B899C) is just
+ * func_802582C4's leftover; f12/f14 too after that C call. */
+void func_802B8C18(s32 t3, s32 fp, TriSideOut *f) {
+    s32 x = D_803EF2EC;
+    s32 z = D_803EF2F4;
+    s32 y = t3;
+
+    if (x > 0 && z > 0 && x < (D_803BE732 << 5) && z < (D_803BE736 << 5)) {
+        y = func_802A9B1C(0, x, z, D_803EF31C, 0xFE, D_803EF240, fp, f);
+        D_803EF31C = y;
+    }
+    func_802582C4(0xFE, D_803EF2EC, y, D_803EF2F4, D_803EF2F0, 0, 0, *(s16 *) (D_803EF240 + 0x4C));
+    D_803EF326 = *(s16 *) (D_803EF240 + 0x4C);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/72B80/func_802B8C18.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/72B80/func_802B8D04.s")

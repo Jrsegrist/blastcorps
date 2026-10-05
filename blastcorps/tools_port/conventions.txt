@@ -162,6 +162,28 @@ func_8029F9D4: in v0=a0,v1=a1,a0=a2 ; preserve a0,a2,a3,t0,t1,t2,t3,t4,t7,t8 ; c
 func_8029FC74: in v0=a0,v1=a1,a0=a2 ; preserve a0,a2,a3,t0,t1,t2,t3,t4,t7,t8 ; clobbers f20,f30
 # sphere (t3, t4, t5) radius t6 vs the world for vehicle kind t8 -> a1 (s3, f20-f28 left as the triangle tests leave them)
 func_8029AB88: in t3=a0,t4=a1,t5=a2,t6=a3,t8=stack0 ; out a1=ret ; preserve v1,t0,t1,t3,t6,t7,t8,t9 ; clobbers s3,f20,f22,f24,f26,f28
+# phase D (wt-g1): part/sphere contacts of vehicle tag t8 (t4 = the other object's tag; a2,a3,t0,t1 = a sphere);
+# s0, s1, fp, t7 are left as the scans leave them (dead in every asm caller)
+func_8029C914: in t8=a0,a2=a1,a3=a2,t0=a3,t1=stack0 ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t3,t5,t8,f12,f14 ; clobbers s0,s1,fp
+func_8029C748: in t8=a0 ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t8,f12,f14 ; clobbers s0,s1,fp
+func_8029C828: in t8=a0 ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t8,f12,f14 ; clobbers s0,s1,fp
+func_8029CD54: in t8=a0,t4=a1 ; preserve v0,v1,a0,a1,a2,a3,t0,t4,t6,t7,t8,s0,s1,f12,f14 ; clobbers fp
+func_8029C9D4: in t8=a0 ; preserve v0,v1,a0,a2,a3,t0,t1,t2,t3,t4,t5,t8,f12,f14 ; clobbers fp
+func_8029C52C: in t8=a0 ; preserve v0,v1,a0,a2,a3,t0,t1,t2,t3,t4,t5,t8,f12,f14 ; clobbers s0,s1,fp
+# world-hit reporting: switch triangle s0 (kind t8, part id fp) -> a1; sphere t3-t6 of kind t8, part id fp; vehicle kind t8
+func_8029BB28: in s0=a0,t8=a1,fp=a2 ; out a1=ret ; preserve v0,v1,a0,a2,a3,t0,t3,t4,t5,t6,t8
+func_8029B02C: in t3=a0,t4=a1,t5=a2,t6=a3,t8=stack0,fp=stack1 ; preserve v1,t0,t1,t3,t6,t7,t8,t9 ; clobbers s3,f20,f22,f24,f26,f28
+func_8029AA10: in t8=a0 ; preserve v1,t0,t1,t3,t6,t7,t9 ; clobbers s3,fp,f20,f22,f24,f26,f28
+# collision triangles of object t2 from model t6 (Mtx base s4); then group conditions (val a1, tbl a2, x t0, z t1)
+func_8029D24C: in t2=a0,t6=a1,s4=a2 ; preserve v1,a0,a1,a2,t0,t1,t2,t3,t6 ; clobbers s0,s1,s2,s3,s5,s6,s7,fp
+func_8029D040: in a1=a0,a2=a1,t0=a2,t1=a3,t2=stack0,t6=stack1,s4=stack2 ; preserve t0,t2 ; clobbers s0-s7,fp,f20,f22,f24,f26,f28
+# animation drivers: texture channels (decode param fp); model channels v0/v1 buffers, t0 channels; one channel t0 at
+# base v0; spline (rec s1) / linear (keyframe s3) part transforms into s2 at f30
+func_8029E0AC: in fp=a0
+func_8029E558: in v0=a0,v1=a1,t0=a2 ; clobbers s0-s5,fp,f20,f30
+func_8029E5AC: in t0=a0,v0=a1 ; preserve t0,t1 ; clobbers s0-s7,fp,f20,f30
+func_8029E730: in s1=a0,s2=a1,f30=a2 ; preserve v0,a0,a3,t2,t4,t5,t6,t7,s0,s1
+func_8029EF80: in s2=a0,s3=a1,f30=a2 ; preserve t2,t4,t5,t6,t7
 
 # --- 5BF40 ---
 # one-time DMA of the 0x8000-byte table at ROM 0x4CE0; saves every register

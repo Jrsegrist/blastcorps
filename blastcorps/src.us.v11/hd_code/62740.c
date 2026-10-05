@@ -68,7 +68,32 @@ s32 func_802A6F6C(void) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802A768C.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u8 D_8035805C; /* current frame buffer index */
+
+/* Copy `size` bytes in 8-byte units from a to b, or from b to a when
+ * D_8035805C (the frame buffer index) is nonzero. Both pointers must be
+ * 8-aligned and size a multiple of 8 (the asm loops on `size != 0`).
+ * Register note: the asm saves/restores a0-a3, and its asm callers
+ * (func_802B0254, func_802C5120, func_802D07E0, ...) keep a0-a3, f12 and f14
+ * live across the call; a mixed N64 build would need a thunk, the native
+ * port does not. */
+void func_802A7764(u64 *a, u64 *b, s32 size) {
+    u64 *src = a;
+    u64 *dst = b;
+
+    if (D_8035805C != 0) {
+        src = b;
+        dst = a;
+    }
+    while (size != 0) {
+        *dst++ = *src++;
+        size -= 8;
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802A7764.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802A77D0.s")
@@ -133,7 +158,22 @@ s32 func_802A6F6C(void) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802A8CCC.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u8 D_803ED3F5;
+extern f32 D_803EBBF4;
+
+/* If D_803ED3F5 is set, triple D_803EBBF4.
+ * Register note: the asm touches only v0/at/f0/f2; its caller func_802A8768
+ * keeps a1-a3, t0, t1, t7-t9, f12 and f14 live across the call (a mixed N64
+ * build would need a thunk, the native port does not). */
+void func_802A8FB4(void) {
+    if (D_803ED3F5 != 0) {
+        D_803EBBF4 = D_803EBBF4 * 3.0f;
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802A8FB4.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802A8FF4.s")

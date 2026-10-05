@@ -122,7 +122,12 @@ s32 func_802AAE1C(u8, s16, s16, void *, void *);
 s32 func_802CE6F8(s32, s32, s32);
 s32 func_8026A6F0(s32, s32, s32, s32, s32, s32);
 void func_802CE9A4(void);
+#ifdef NON_MATCHING
+void func_802CE9C8(u8 *items, s32 n, s32 h52, s32 id, s32 b57, s32 b4F, s32 s1);
+extern u8 D_803F9330[];
+#else
 void func_802CE9C8(u8 *, u8, u8);
+#endif
 u32 func_802A0CC8(s16, s32);
 void func_80260650(s32, s32, void *);
 void func_802608C8(s32);
@@ -146,8 +151,20 @@ void func_802CEA68(s32, s32);
  * stored scaled by 32, height snapped by func_802CE6F8, texture looked
  * up by func_802A0CC8), then D_8039C7F8 0x1C-byte records (s16 x, y, z,
  * u8 model, u8 n, s16 flag, then n 22-byte items for func_802CE9C8).
- * Flagged records also get a D_8039C800 box (+-40 units). */
+ * Flagged records also get a D_8039C800 box (+-40 units).
+ * NON_MATCHING: the hand-written func_802CE9C8 reads registers this function
+ * never sets for it; the NM build passes what they hold here: v0 = the last
+ * call's result (func_802CE9A4 leaves &D_803F9330, func_802A0CC8 its result;
+ * func_802CE9C8 leaves v0 alone), t6 = &D_8039C718[i], t9 = the old
+ * D_803FB8B0, and s1 = the caller's s1 (this function never touches the
+ * s-registers), which the NM build takes as an extra parameter from
+ * func_802A1674 (5CB60.c). */
+#ifdef NON_MATCHING
+void func_8028FDA0(u8 *arg0, u8 *arg1, s32 s1) {
+    s32 v0 = (s32) D_803F9330;
+#else
 void func_8028FDA0(u8 *arg0, u8 *arg1) {
+#endif
     s32 i;
 
     D_8039C710 = 0;
@@ -181,6 +198,9 @@ void func_8028FDA0(u8 *arg0, u8 *arg1) {
             D_8039C550[i].unk18 = 0;
             D_8039C550[i].unk29 = 0;
             D_8039C550[i].unk30 = func_802A0CC8(D_802FDC08[D_8039C550[i].unk10].unk280, 0);
+#ifdef NON_MATCHING
+            v0 = (s32) D_8039C550[i].unk30;
+#endif
         }
         D_8039C7F8 = *(s16 *) arg0;
         arg0 += 2;
@@ -192,7 +212,12 @@ void func_8028FDA0(u8 *arg0, u8 *arg1) {
             D_8039C718[i].unk0C = D_8039C718[i].unk4 - D_802FDC08[D_8039C718[i].unk10].unk288;
             D_8039C718[i].unk11 = 0;
             D_8039C718[i].unk14 = D_803FB8B0;
+#ifdef NON_MATCHING
+            func_802CE9C8(arg0 + 10, arg0[7], D_8039C718[i].unk10, v0, (s32) &D_8039C718[i],
+                          (s32) D_8039C718[i].unk14, s1);
+#else
             func_802CE9C8(arg0 + 10, arg0[7], D_8039C718[i].unk10);
+#endif
             D_8039C718[i].unk18 = D_803FB8B0;
             if (*(s16 *) (arg0 + 8) != 0) {
                 D_8039C800[D_8039C940].unk0 = D_8039C718[i].unk0;

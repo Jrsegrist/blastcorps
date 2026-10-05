@@ -186,16 +186,16 @@ u8 *func_802A3DF8(u8 *obj, s32 id, s32 b4F, s32 *s1io);
 void func_802A3E9C(u8 *obj, s32 id, s32 b4F, s32 *s1io);
 u8 *func_802A3F80(u8 *obj, s32 *s1io);
 void func_802A4464(u8 *obj);
-void func_802A1A9C(u8 *obj);
+void func_802A1A9C(u8 *obj, s32 *s1io);
 void func_802A1934(void);
 void func_8029DC80(void);
 void func_802A4510(void);
 void func_802A2C54(u8 *obj);
 void func_802A5F30(void);
 void func_802BC840(void);
-u8 *func_802A1D54(u8 *obj, u8 *param);
+u8 *func_802A1D54(u8 *obj, u8 *param, s32 *s1io);
 void func_802C049C(void);
-void func_8028FDA0(u8 *arg0, u8 *arg1);
+void func_8028FDA0(u8 *arg0, u8 *arg1, s32 s1); /* s1: NON_MATCHING only (4B5E0.c) */
 s32 func_802A350C(u8 *obj, s32 fp);
 void func_802A303C(u8 *obj, s32 fp);
 void func_802A30DC(void);
@@ -268,8 +268,11 @@ static s32 port_initlevel_v0(s32 *t9) {
  *    group records): the caller's, never changed before those calls (every
  *    callee in between preserves them); see port_initlevel_v0.
  *  - s2-s4 into func_802A3198 (in/out; its outputs are dead here): 0.
- * After it the asm leaves func_802A3F80's s1 for func_8028FDA0's callee
- * func_802CE9C8 (not expressible: func_8028FDA0 is IDO C). */
+ *  - s1 also reaches func_8028FDA0's callee func_802CE9C8 (byte 0x58 of each
+ *    record's first triangle; func_802BF264 tests it) after func_802A1A9C
+ *    and func_802A1D54 change it: the NM build passes it to func_8028FDA0 as
+ *    an extra argument.
+ */
 void func_802A1674(u8 *obj, s32 arg1) {
     Out802A32CC o;
     s32 s1;
@@ -290,16 +293,16 @@ void func_802A1674(u8 *obj, s32 arg1) {
     func_802A3E9C(obj, id, b4F, &s1);
     fp = func_802A3F80(obj, &s1);
     func_802A4464(obj);
-    func_802A1A9C(obj);
+    func_802A1A9C(obj, &s1);
     func_802A1934();
     func_8029DC80();
     func_802A4510();
     func_802A2C54(obj);
     func_802A5F30();
     func_802BC840();
-    func_802A1D54(obj, fp);
+    func_802A1D54(obj, fp, &s1);
     func_802C049C();
-    func_8028FDA0(OBJ_PTR(obj, 0x3C), OBJ_PTR(obj, 0x40));
+    func_8028FDA0(OBJ_PTR(obj, 0x3C), OBJ_PTR(obj, 0x40), s1);
     if (D_80364A98 != 0x80) {
         fp = (u8 *) func_802A350C(obj, (s32) fp);
     }
@@ -442,9 +445,12 @@ extern u8 *D_803F782C;
  * is a 0x2C-byte header (s16 tag at 0, -1 ending the list; s32 item count at
  * 0x28) followed by that many 0x44-byte items. D_803F7828 = record start, D_803F782C = D_80358070 =
  * end. The asm loops with `!=`, so n must be a multiple of 0x20.
- * asm: obj in t0; it leaves scratch values in s0-s3 (no caller reads them).
+ * asm: obj in t0; it leaves scratch values in s0, s2, s3 (no caller reads
+ * them) and counts the item loops down in s1, so s1 comes back 0 when n != 0
+ * (unchanged otherwise). func_802A1674 hands that s1 on to func_8028FDA0's
+ * func_802CE9C8, hence `s1io`.
  * Asm callers rely on preserved: func_802A1674 keeps t0, f12, f14. */
-void func_802A1A9C(u8 *obj) {
+void func_802A1A9C(u8 *obj, s32 *s1io) {
     u8 *hdr = OBJ_PTR(obj, 0x74);
     s32 n = *(s32 *) hdr;
     u8 *m = D_80358070;
@@ -503,6 +509,7 @@ void func_802A1A9C(u8 *obj) {
                 m += 0x28;
             }
         } while (tag != -1);
+        *s1io = 0;
     }
     D_803F782C = m;
     D_80358070 = m;
@@ -596,7 +603,7 @@ u8 *func_802A2A98(s32 index);
 void func_802A2164(s32 kind, u8 *obj);
 void func_802A26A8(u8 *obj, s32 dx, s32 dy, s32 dz);
 void func_802A20F4(u8 *obj, s32 flag);
-void func_802A21AC(s32 type, u8 *obj, s32 x, s32 y, s32 z, s32 flag, s32 tag, u8 *param);
+void func_802A21AC(s32 type, u8 *obj, s32 x, s32 y, s32 z, s32 flag, s32 tag, u8 *param, s32 *s1io);
 
 /* Level objects setup: D_8036EB93 = 0, func_802A1EC8 (per-level list), clear
  * a few flag bytes of the tables at D_803EFED0 (1 x 0xA30: bytes 0xA2A/B),
@@ -611,11 +618,15 @@ void func_802A21AC(s32 type, u8 *obj, s32 x, s32 y, s32 z, s32 flag, s32 tag, u8
  * and D_8036EB93 += count, then func_802A21AC(type, data, x, y, z, flag, the
  * u16 at 0xC, param). The asm loops with `!=`. Returns the list end (the
  * asm's t1 and t2).
- * Register convention: obj t0, param fp; result t1. The asm leaves s0-s7
+ * Register convention: obj t0, param fp; result t1. The asm leaves s0, s2-s7
  * (and the libultra calls' f12/f14, func_802A21AC's f20-f28) changed; the
  * survey lists those as read by func_802A1674 (dead there, not modelled).
+ * s1 is modelled (`s1io`, unchanged without placements): per placement it is
+ * the new D_8036EB93 sum (the register: old byte + count, not truncated),
+ * then whatever func_802A21AC leaves; func_802A1674 hands it on to
+ * func_8028FDA0's func_802CE9C8.
  * Asm caller func_802A1674 keeps t0 live. */
-u8 *func_802A1D54(u8 *obj, u8 *param) {
+u8 *func_802A1D54(u8 *obj, u8 *param, s32 *s1io) {
     Unk802A08E4Regs r;
     u8 *p;
     u8 *end;
@@ -656,8 +667,9 @@ u8 *func_802A1D54(u8 *obj, u8 *param) {
         func_802A26A8(data, x, y, z);
         func_802A20F4(data, p[8]);
         data[6] = p[9];
-        D_8036EB93 += p[9];
-        func_802A21AC(type, data, x, y, z, p[8], *(u16 *) (p + 0xC), param);
+        *s1io = D_8036EB93 + p[9];
+        D_8036EB93 = *s1io;
+        func_802A21AC(type, data, x, y, z, p[8], *(u16 *) (p + 0xC), param, s1io);
         p += 0xE;
     }
     return p;
@@ -763,7 +775,7 @@ extern s16 D_803F7680;
 extern u8 *D_803F7654; /* next free 0xFC-byte object record */
 extern s32 D_803BE70C;
 extern s32 D_803BE710;
-void func_802A2608(u8 *obj, u8 *param);
+void func_802A2608(u8 *obj, u8 *param, s32 *s1io);
 void func_802A2458(u8 *rec, u8 *obj);
 void func_802A24BC(u8 *rec, u8 *param);
 void func_802A23E0(u8 *rec);
@@ -788,10 +800,13 @@ u8 *func_802A41B0(u8 *rec, u8 *v, s32 id, s32 h52, s32 b57, s32 b56, s32 *s1io, 
  * before / after, D_80358070 = the end. The asm's addi trap; the divides trap
  * on a zero cell size.
  * Register convention: type t3, obj t4, x t5, y t6, z t7, flag s0, tag t9,
- * param fp (conventions.txt). The asm restores t0-t2, sets s0 = 1, leaves s1,
+ * param fp (conventions.txt). The asm restores t0-t2, sets s0 = 1, leaves
  * gp (the last entry's byte 0x18), func_802A41B0's s2-s7 and func_802A24BC's
- * f20-f28 changed (listed as read by func_802A1D54; dead there). */
-void func_802A21AC(s32 type, u8 *obj, s32 x, s32 y, s32 z, s32 flag, s32 tag, u8 *param) {
+ * f20-f28 changed (listed as read by func_802A1D54; dead there). s1 is
+ * modelled (`s1io`): func_802A2608's, then per entry its byte 0x16 into
+ * func_802A41B0's chain; the last value reaches func_802CE9C8 through
+ * func_802A1D54 / func_802A1674 / func_8028FDA0. */
+void func_802A21AC(s32 type, u8 *obj, s32 x, s32 y, s32 z, s32 flag, s32 tag, u8 *param, s32 *s1io) {
     u8 *rec;
     u8 *list;
     s32 n;
@@ -799,9 +814,8 @@ void func_802A21AC(s32 type, u8 *obj, s32 x, s32 y, s32 z, s32 flag, s32 tag, u8
     u8 *e;
     u8 *eEnd;
     u8 *out;
-    s32 s1;
 
-    func_802A2608(obj, param);
+    func_802A2608(obj, param, s1io);
     if (type == 0x38) {
         D_803F767C = x;
         D_803F767E = y;
@@ -850,8 +864,8 @@ void func_802A21AC(s32 type, u8 *obj, s32 x, s32 y, s32 z, s32 flag, s32 tag, u8
     REC_W(rec, 4) = (s32) out;
     while (e != eEnd) {
         out[0x51] = (e[0x17] != 0) ? 0 : 1;
-        s1 = e[0x16];
-        out = func_802A41B0(out, e, (s32) &D_803F7654, e[0x15], e[0x17], e[0x14], &s1, tag, e[0x18]);
+        *s1io = e[0x16];
+        out = func_802A41B0(out, e, (s32) &D_803F7654, e[0x15], e[0x17], e[0x14], s1io, tag, e[0x18]);
         e += 0x19;
     }
     REC_W(rec, 8) = (s32) out;
@@ -934,9 +948,11 @@ u32 func_802A0CFC(s32 id, u8 *param);
  * the next record follows the last word. Same preconditions (exact end,
  * count >= 1).
  * Register convention: obj in t4, param in fp (conventions.txt); the asm saves
- * t3, t5-t7, s0, t9, leaves s1 = 0x80000000 (dead in its caller) and t1/t2
- * changed; its addi trap. Asm caller func_802A21AC keeps t3-t7, t9 live. */
-void func_802A2608(u8 *obj, u8 *param) {
+ * t3, t5-t7, s0, t9, leaves t1/t2 changed and s1 = 0x80000000 when there is
+ * a record (`s1io`; it can reach func_802CE9C8 through func_802A21AC and
+ * func_802A1D54); its addi trap. Asm caller func_802A21AC keeps t3-t7, t9
+ * live. */
+void func_802A2608(u8 *obj, u8 *param, s32 *s1io) {
     u8 *rec = OBJ_PTR(obj, 0x28);
     u8 *end = OBJ_PTR(obj, 0x2C);
     u32 *w;
@@ -944,6 +960,7 @@ void func_802A2608(u8 *obj, u8 *param) {
 
     while (rec != end) {
         *(u32 *) rec = func_802A0CFC(*(u32 *) rec, param);
+        *s1io = 0x80000000;
         n = rec[4];
         w = (u32 *) (rec + 0x10);
         n--;

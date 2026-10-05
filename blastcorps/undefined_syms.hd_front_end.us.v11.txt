@@ -1,2 +1,6 @@
 /* hand-maintained absolute symbols for the hd_front_end link (see undefined_syms.hd_code.us.v11.txt) */
-D_80208194 = 0x80208194; /* 00000 func_801E74E8: u8 sound table, unpaired lui 0x8021 / -0x7E6C */
+/* 00000 (digger_loop.c) per-vehicle u8 tables, reached through unpaired lui 0x8021 */
+D_8020804C = 0x8020804C;
+D_802080F8 = 0x802080F8;
+D_8020810C = 0x8020810C;
+D_80208194 = 0x80208194;

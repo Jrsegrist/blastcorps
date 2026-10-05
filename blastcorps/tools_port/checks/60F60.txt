@@ -207,3 +207,56 @@ func_802A67C4: -n 200 --seed 2 --follow func_802A1074 --heap 0x5050 --heap 0x40 
     --arg a0=rel:heap2 --arg t3=int --arg t9=rel:heap3 --mem @heap3:16=halves:0,1,5,30 --arg fp=int \
     --sig osInvalDCache=a0,a1 --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2
 # end-block
+
+# func_802A68D4 (matrix t0 = heap0, record t4 = heap1): billboard matrix. Display-list cursors at heap2/heap3;
+# func_802A6EB8 and the distance run for real (the stubbed distance can't match dy, which the asm's neg relies on);
+# type-1 records take their position from D_803643F8 (func_802ABC88's record stubbed to it)
+func_802A68D4: -n 300 --seed 0 --heap 0x40 --heap 0x40 --heap 0x40 --heap 0x40 --arg t0=rel:heap0 --arg t4=rel:heap1 \
+    --mem D_803EB780=rel:heap2 --mem D_803EB784=rel:heap3 --mem @heap1+0x3B:1=bytes:0,1 --mem @heap1+0x34:1=bytes:0,1,2 \
+    --mem @heap1+0x36:1=bytes:0,1,5,0xFF --mem @heap1+0x2C=choice:0x7FFFFFFF,-0x80000000,0 \
+    --mem D_803643F8=int --mem D_803643FC=int --mem D_80364400=int --mem D_80364452:2=rand \
+    --stub-ret func_802AD7FC=int:0:0x4000 --stub-ret func_802ABC88.a0=sym:D_803643F8 --follow func_802A6EB8,func_802ABCDC
+# distance 0 (taken as 1): type-1 record at the player position, coordinates 0 / 1 / 0x800
+func_802A68D4: -n 200 --seed 1 --heap 0x40 --heap 0x40 --heap 0x40 --heap 0x40 --arg t0=rel:heap0 --arg t4=rel:heap1 \
+    --mem D_803EB780=rel:heap2 --mem D_803EB784=rel:heap3 --mem @heap1+0x3B:1=bytes:0,1 --mem @heap1+0x34:1=1 \
+    --mem D_803643F8=choice:0,1,0x800 --mem D_803643FC=choice:0,1,0x800 --mem D_80364400=choice:0,1,0x800 --mem D_80364452:2=rand \
+    --stub-ret func_802AD7FC=int:0:0x4000 --stub-ret func_802ABC88.a0=sym:D_803643F8 --follow func_802A6EB8,func_802ABCDC
+# the floor test at equality (y and floor from -1, 0, 1), step byte 0xFF wrapping
+func_802A68D4: -n 200 --seed 2 --heap 0x40 --heap 0x40 --heap 0x40 --heap 0x40 --arg t0=rel:heap0 --arg t4=rel:heap1 \
+    --mem D_803EB780=rel:heap2 --mem D_803EB784=rel:heap3 --mem @heap1+0x3B:1=bytes:0,1 --mem @heap1+0x34:1=bytes:0,2 \
+    --mem @heap1+0x36:1=bytes:0,1,0xFF --mem @heap1+0x0C=choice:-1,0,1 --mem @heap1+0x2C=choice:-1,0,1 --mem @heap1+0x18=choice:-1,0,1,0x7FFF \
+    --mem D_803643F8=int --mem D_803643FC=int --mem D_80364400=int --mem D_80364452:2=rand \
+    --stub-ret func_802AD7FC=int:0:0x4000 --follow func_802A6EB8,func_802ABCDC
+# everything followed: arcsine, scale / rotation / translation matrices, products and the Mtx conversion
+func_802A68D4: -n 200 --seed 3 --heap 0x40 --heap 0x40 --heap 0x40 --heap 0x40 --arg t0=rel:heap0 --arg t4=rel:heap1 \
+    --mem D_803EB780=rel:heap2 --mem D_803EB784=rel:heap3 --mem @heap1+0x3B:1=bytes:0,1 --mem @heap1+0x34:1=bytes:0,2 \
+    --mem @heap1+0x36:1=bytes:0,1,2 --mem @heap1+4=int:0:0x20000 --mem @heap1+8:0x24=words:0,1,0x800,-0x800,0x10000,-0x10000,0x400000 \
+    --mem D_803643F8=int:0:0x4000000 --mem D_803643FC=int:0:0x4000000 --mem D_80364400=int:0:0x4000000 --mem D_80364452:2=int:0:0xFFF \
+    --follow func_802A6EB8,func_802ABCDC,func_802AD7FC,func_802ACC68,func_802ACBDC,func_802ACCCC,func_802ACAC4,func_802ACA60,func_802AC8CC,func_802AE104,func_802AE160,func_802AE1BC,func_802AE290
+
+# func_802A64A4(): draws the 16 D_803C4B70 billboard records; two definitions (heap0, heap1) of 0..3 x 0..3 quads
+func_802A64A4: -n 300 --seed 0 --heap 0x40 --heap 0x40 --mem D_8035805C:1=bytes:0,1 \
+    --mem D_803C4B70:0x3C0=bytes:0,1,2,3,7,15 --mem D_803C4B70*0x3C:16=rel:heap0+0x50*int:0:1 \
+    --mem D_803C4B70+0x33*0x3C:16/1=bytes:0,1,1 --mem D_803C4B70+0x32*0x3C:16/1=bytes:0,1,2 \
+    --mem @heap0+2:1=bytes:0,1,2,3 --mem @heap0+3:1=bytes:0,1,2,3 --mem @heap0+0xA:2=choice:1,8,0x40,0xFFFF --mem @heap0+0xC:2=choice:1,8,0x40 \
+    --mem @heap0+0xE:2=choice:1,2,3,0 \
+    --mem @heap1+2:1=bytes:0,1,2,3 --mem @heap1+3:1=bytes:0,1,2,3 --mem @heap1+0xA:2=choice:1,8,0x40 --mem @heap1+0xC:2=choice:1,8,0x40,0xFFFF \
+    --mem @heap1+0xE:2=choice:1,2,3 --mem D_803EB770:16=bytes:0,1 --sig func_802A6D34= --sig func_802A6748= --follow func_802A6EB8
+# every record active and mostly on its last frame (slots freed)
+func_802A64A4: -n 200 --seed 1 --heap 0x40 --heap 0x40 --mem D_8035805C:1=bytes:0,1 \
+    --mem D_803C4B70:0x3C0=bytes:0,1,2,3,7,15 --mem D_803C4B70*0x3C:16=rel:heap0+0x50*int:0:1 \
+    --mem D_803C4B70+0x33*0x3C:16/1=1 --mem D_803C4B70+0x32*0x3C:16/1=bytes:0,1 \
+    --mem @heap0+2:1=bytes:0,1,2,3 --mem @heap0+3:1=bytes:0,1,2,3 --mem @heap0+0xA:2=choice:1,8,0x40,0xFFFF --mem @heap0+0xC:2=choice:1,8,0x40 \
+    --mem @heap0+0xE:2=1 \
+    --mem @heap1+2:1=bytes:0,1,2,3 --mem @heap1+3:1=bytes:0,1,2,3 --mem @heap1+0xA:2=choice:1,8,0x40 --mem @heap1+0xC:2=choice:1,8,0x40,0xFFFF \
+    --mem @heap1+0xE:2=choice:1,2 --mem D_803EB770:16=bytes:0,1 --sig func_802A6D34= --sig func_802A6748= --follow func_802A6EB8
+# quads, texture lookup (no heap blocks: fallback buffers) and the ageing run for real
+func_802A64A4: -n 200 --seed 2 --heap 0x40 --heap 0x40 --mem D_8035805C:1=bytes:0,1 \
+    --mem D_803C4B70:0x3C0=bytes:0,1,2,3,7,15 --mem D_803C4B70*0x3C:16=rel:heap0+0x50*int:0:1 \
+    --mem D_803C4B70+0x33*0x3C:16/1=bytes:0,1,1 --mem D_803C4B70+0x32*0x3C:16/1=bytes:0,1,2 \
+    --mem @heap0+2:1=bytes:0,1,2,3 --mem @heap0+3:1=bytes:0,1,2,3 --mem @heap0+0xA:2=choice:1,8,0x40,0xFFFF --mem @heap0+0xC:2=choice:1,8,0x40 \
+    --mem @heap0+0xE:2=choice:1,2,3,0 \
+    --mem @heap1+2:1=bytes:0,1,2,3 --mem @heap1+3:1=bytes:0,1,2,3 --mem @heap1+0xA:2=choice:1,8,0x40 --mem @heap1+0xC:2=choice:1,8,0x40,0xFFFF \
+    --mem @heap1+0xE:2=choice:1,2,3 --mem D_803EB770:16=bytes:0,1 --sig func_802A6D34= --sig func_802A6748= \
+    --mem D_803EB788=rel:heap0 --mem D_803EB78C=rel:heap0 --mem D_803EB790:2=0 \
+    --follow func_802A6EB8,func_802A6C10,func_802A6748,func_802A67C4 --sig func_80257540=a0 --sig func_802A1074=a0,a1,a2

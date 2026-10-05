@@ -281,6 +281,9 @@ func_802A6274: in a3=*a0,t6=*a0+4,s1=*a0+8,t0=a1,t1=a2,t2=a3,t3=stack0,t4=stack1
 # textured quad into obj (t4)'s cursor: func_802575F4(*cur, t1, s1, t8, v1, s5, gp); s0 scratch
 func_802A6DE8: in t4=a0,t1=a1,s1=a2,t8=a3,v1=stack0,s5=stack1,gp=stack2 ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t3,t4,t5,t6,t7,t8,t9,f12,f14 ; clobbers s0
 
+# phase D (wt-g2): billboard matrix m (t0) for D_803C4B70 record t4; saves every integer register
+func_802A68D4: in t0=a0,t4=a1 ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,t8,t9
+
 # --- 62740 ---
 # gp = the current vehicle's record (D_803EDB40, D_803EDF10, ...: differs per caller, so it is an
 # argument here, not a global base); the C takes it as `u8 *veh`

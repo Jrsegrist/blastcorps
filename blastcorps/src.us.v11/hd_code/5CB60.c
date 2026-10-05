@@ -481,7 +481,28 @@ void func_802A2458(u8 *rec, u8 *obj) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern s32 D_80365330;
+s32 func_802CE6F8(s32 x, s32 z, s32 y);
+
+/* For a record whose type (word 0x30) is 0xBA, 0xBB or 0xBC: D_80365330 =
+ * func_802A0CFC(0xF81, param) and word 0x44 = the ground height
+ * func_802CE6F8(word 0x10, word 0x18, word 0x14).
+ * Register convention: rec in v1, param in fp (conventions.txt); the asm
+ * saves and restores every integer register (f20-f28 are left as
+ * func_802CE6F8 leaves them). Asm callers rely on preserved: func_802A21AC
+ * keeps t4, t9 (and is listed as reading f12, f14, f20-f26 after it). */
+void func_802A24BC(u8 *rec, u8 *param) {
+    s32 type = *(s32 *) (rec + 0x30);
+
+    if (type == 0xBA || type == 0xBB || type == 0xBC) {
+        D_80365330 = func_802A0CFC(0xF81, param);
+        *(s32 *) (rec + 0x44) = func_802CE6F8(*(s32 *) (rec + 0x10), *(s32 *) (rec + 0x18), *(s32 *) (rec + 0x14));
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A24BC.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -619,7 +640,49 @@ void func_802A26A8(u8 *obj, s32 dx, s32 dy, s32 dz) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u8 *D_803BE6F0; /* table of u32 offsets into the compressed block at ROM 0x6EC4C0 */
+void func_802C4108(u8 **src, u8 **dst, s32 work);
+u32 func_802A44E4(u32 x);
+
+/* The load shared by func_802A2A98 / func_802A32CC / func_802A396C: DMAs
+ * `size` bytes from ROM `rom` into the buffer 0x8021ED00 (cache invalidated
+ * first, waiting for completion), decompresses two streams from it to the
+ * heap D_80358070 (func_802C4108 twice, window 0x8004B400), rounds the heap
+ * end up (func_802A44E4, also left in *end: the asm's a1), and returns the
+ * old heap pointer (the start of the data) after moving D_80358070 past it. */
+static u8 *port_load_packed(u32 rom, u32 size, u8 **end) {
+    u8 *src = (u8 *) 0x8021ED00;
+    u8 *dst = D_80358070;
+    u8 *old;
+
+    osInvalDCache(src, size);
+    osPiStartDma(&D_80370C58, OS_MESG_PRI_NORMAL, OS_READ, rom, src, size, &D_803150A0);
+    osRecvMesg(&D_803150A0, NULL, OS_MESG_BLOCK);
+    func_802C4108(&src, &dst, 0x8004B400);
+    func_802C4108(&src, &dst, 0x8004B400);
+    dst = (u8 *) func_802A44E4((u32) dst);
+    old = D_80358070;
+    D_80358070 = dst;
+    *end = dst;
+    return old;
+}
+
+/* Loads packed object `index`: port_load_packed of ROM 0x6EC4C0 + tbl[index]
+ * .. + tbl[index + 1] (tbl = D_803BE6F0).
+ * Register convention: index in t3, result in s0 (conventions.txt); the asm
+ * saves t0-t6 and s1, leaves s2 (size) and s7 (buffer) changed and f12 /
+ * f14 as the libultra calls leave them. Asm callers rely on preserved:
+ * func_802A1D54 keeps t1, t2, t3. */
+u8 *func_802A2A98(s32 index) {
+    u32 *t = (u32 *) (D_803BE6F0 + index * 4);
+    u8 *end;
+
+    return port_load_packed(0x6EC4C0 + t[0], t[1] - t[0], &end);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A2A98.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -844,7 +907,69 @@ u8 *func_802A3008(u8 *obj) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A3198.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Register results of func_802A32CC its asm caller reads. */
+typedef struct {
+    /* 0x0 */ u8 *s2; /* the loaded data (old heap pointer) */
+    /* 0x4 */ u8 *s3; /* func_802A08E4's s3 */
+    /* 0x8 */ u8 *s4; /* func_802A08E4's s4 (in: the ROM start) */
+} Out802A32CC;
+
+/* Loads the packed block of `type` (ROM ranges below; any other type hits
+ * the asm's `syscall` debug trap and then runs as type 3, kept) with
+ * port_load_packed and resolves the G_SETTIMG ids of its display list
+ * [data + *(data + 0x1C), data + *(data + 0x20)) with func_802A08E4 (in/out
+ * s4 = the ROM start). out: the data, func_802A08E4's s3 / s4.
+ * Register convention: type in t3; s2, s3, s4 through `out`
+ * (conventions.txt). The asm saves t0-t7, s0, s1 and leaves s5-s7 changed
+ * (and f12 / f14 as the callees leave them). */
+void func_802A32CC(s32 type, Out802A32CC *out) {
+    u32 rom;
+    u32 romEnd;
+    u8 *end;
+    u8 *data;
+    Unk802A08E4Regs r;
+
+    switch (type) {
+        default: /* syscall */
+        case 3:
+            rom = 0x490AC0, romEnd = 0x491E00;
+            break;
+        case 4:
+            rom = 0x496AD0, romEnd = 0x497AF0;
+            break;
+        case 5:
+            rom = 0x497AF0, romEnd = 0x4989E0;
+            break;
+        case 8:
+            rom = 0x49BCE0, romEnd = 0x49C480;
+            break;
+        case 9:
+            rom = 0x49C480, romEnd = 0x49E8E0;
+            break;
+        case 0xA:
+            rom = 0x49E8E0, romEnd = 0x49F7A0;
+            break;
+        case 0xD:
+            rom = 0x49FF70, romEnd = 0x4A0720;
+            break;
+        case 0xE:
+            rom = 0x4A0720, romEnd = 0x4A1000;
+            break;
+        case 0xF:
+            rom = 0x4A1000, romEnd = 0x4A1690;
+            break;
+    }
+    data = port_load_packed(rom, romEnd - rom, &end);
+    r.s4 = (u8 *) rom;
+    func_802A08E4((u32 *) OBJ_PTR(data, 0x1C), (u32 *) OBJ_PTR(data, 0x20), &r);
+    out->s2 = data;
+    out->s3 = r.s3;
+    out->s4 = r.s4;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A32CC.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A350C.s")
@@ -892,7 +1017,112 @@ void func_802A3824(u8 *obj) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+void func_8029DF78(u8 *dl, u8 *dlEnd, s32 key); /* 56040 */
+
+/* Register results of func_802A396C its asm callers read. */
+typedef struct {
+    /* 0x0 */ u8 *s2; /* the loaded data (old heap pointer) */
+    /* 0x4 */ u8 *s4; /* func_802A08E4's s4 (in: the ROM start) */
+    /* 0x8 */ u8 *a1; /* the new heap end */
+} Out802A396C;
+
+/* As func_802A32CC for the object types below (any other type hits the
+ * asm's `syscall` debug trap and then runs as type 0, kept), with
+ * func_8029DF78(dl, dlEnd, type) on the display list before func_802A08E4.
+ * out: the data, func_802A08E4's s4 and the new heap end.
+ * Register convention: type in t3; s2, s4, a1 through `out`
+ * (conventions.txt). The asm saves t0-t7, s0, s1, s3 and leaves s5-s7
+ * changed (and f12 / f14 as the callees leave them). Asm callers rely on
+ * preserved: func_802A303C keeps t1, t2, t4-t7; func_802A30DC /
+ * func_802CEAA0 keep t1, t2; func_802A3134 keeps t1; func_802A350C keeps
+ * t1-t3, t7. */
+void func_802A396C(s32 type, Out802A396C *out) {
+    u32 rom;
+    u32 romEnd;
+    u8 *end;
+    u8 *data;
+    Unk802A08E4Regs r;
+
+    switch (type) {
+        default: /* syscall */
+        case 0:
+            rom = 0x491E00, romEnd = 0x4929D0;
+            break;
+        case 1:
+            rom = 0x4929D0, romEnd = 0x494390;
+            break;
+        case 2:
+            rom = 0x494390, romEnd = 0x496AD0;
+            break;
+        case 0x10:
+            rom = 0x4A1690, romEnd = 0x4A4120;
+            break;
+        case 3:
+            rom = 0x490AC0, romEnd = 0x491E00;
+            break;
+        case 4:
+            rom = 0x496AD0, romEnd = 0x497AF0;
+            break;
+        case 5:
+            rom = 0x497AF0, romEnd = 0x4989E0;
+            break;
+        case 6:
+            rom = 0x49AD20, romEnd = 0x49B630;
+            break;
+        case 7:
+            rom = 0x49B630, romEnd = 0x49BCE0;
+            break;
+        case 8:
+            rom = 0x49BCE0, romEnd = 0x49C480;
+            break;
+        case 9:
+            rom = 0x49C480, romEnd = 0x49E8E0;
+            break;
+        case 0xA:
+            rom = 0x49E8E0, romEnd = 0x49F7A0;
+            break;
+        case 0xB:
+        case 0x11:
+        case 0x12:
+            rom = 0x49F7A0, romEnd = 0x49FF70;
+            break;
+        case 0xD:
+            rom = 0x49FF70, romEnd = 0x4A0720;
+            break;
+        case 0xE:
+            rom = 0x4A0720, romEnd = 0x4A1000;
+            break;
+        case 0xF:
+            rom = 0x4A1000, romEnd = 0x4A1690;
+            break;
+        case 0xFE:
+            rom = 0x4989E0, romEnd = 0x499690;
+            break;
+        case 0xFF:
+            rom = 0x499690, romEnd = 0x49AD20;
+            break;
+        case 0xFD:
+            rom = 0x4A4120, romEnd = 0x4A5660;
+            break;
+        case 0x96:
+            rom = 0x4903C0, romEnd = 0x490AC0;
+            break;
+        case 0x98:
+            rom = 0x48FE90, romEnd = 0x4903C0;
+            break;
+    }
+    data = port_load_packed(rom, romEnd - rom, &end);
+    func_8029DF78(OBJ_PTR(data, 0x1C), OBJ_PTR(data, 0x20), type);
+    r.s4 = (u8 *) rom;
+    func_802A08E4((u32 *) OBJ_PTR(data, 0x1C), (u32 *) OBJ_PTR(data, 0x20), &r);
+    out->s2 = data;
+    out->s4 = r.s4;
+    out->a1 = end;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A396C.s")
+#endif
 
 /* func_802A3D54 .. func_802A3F80: build the level's collision triangle
  * records (func_802A41B0, 0x60 bytes each) at the heap D_80358070 from the

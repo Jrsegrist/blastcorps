@@ -234,3 +234,56 @@ func_802A3008: -n 300 --seed 1 --follow func_802A08E4 --heap 0x100=words:0,0x10,
     --mem D_80358070=choice:0x80400000,0x80123450 --mem D_803C4B58:0x10=rand --sig osInvalDCache=a0,a1 \
     --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 --sig osRecvMesg=a0,a1,a2 --sig func_802A57DC=a0
 # end-block
+# ---- phase D wave 3 (wt-f1) ----
+# func_802A24BC (rec v1, param fp): types 0xBA..0xBC (and neighbours) -> D_80365330 / word 0x44. Stubbed; then
+# func_802CE6F8 followed (its scans stubbed); then func_802A0CFC followed on a cache hit for id 0xF81.
+func_802A24BC: -n 300 --arg v1=ptr:0x60 --mem @v1+0x30=choice:0xB9,0xBA,0xBB,0xBC,0xBD,0,0x1BA --mem @v1+0x44=rand \
+    --arg fp=int --mem D_80365330=rand --stub-ret func_802A0CFC=int --stub-ret func_802CE6F8=int
+func_802A24BC: -n 200 --seed 1 --arg v1=ptr:0x60 --mem @v1+0x30=choice:0xBA,0xBB,0xBC,0xBD --mem @v1+0x44=rand \
+    --mem @v1+0x10=int --mem @v1+0x18=int --mem @v1+0x14=int:-300:300 --arg fp=int --mem D_80365330=rand \
+    --stub-ret func_802A0CFC=int --follow func_802CE6F8 --mem D_803F932C:1=rand \
+    --stub-ret func_802A9DC0=choice:100,140,0x5F5E0FF --stub-ret func_802A9F24=choice:100,140,0x5F5E0FF \
+    --stub-ret func_802AA094=choice:0,1 --stub-ret func_802AA094.t3=choice:100,120 \
+    --sig func_802A9DC0=a0,a1,a2 --sig func_802A9F24=a0,a1,a2,a3 --sig func_802AA094=a0,a1,a2
+func_802A24BC: -n 100 --seed 2 --arg v1=ptr:0x60 --mem @v1+0x30=choice:0xBA,0xBC,0xBD --mem @v1+0x44=rand --arg fp=int \
+    --mem D_80365330=rand --follow func_802A0CFC --stub-ret func_802CE6F8=int --heap 0x200=words:0,0x10,0x100 \
+    --mem D_803B8D44=rel:heap0 --mem D_803B8570:0x30=onehot:8:0xF81:words:1,2,3 --mem D_803B8D40=rel:D_803B8570+0x30 \
+    --mem D_80358070=0x80400000 --sig osInvalDCache=a0,a1 --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 \
+    --sig osRecvMesg=a0,a1,a2 --sig func_802A57DC=a0
+# func_802A2A98 (index t3 -> s0): offset table D_803BE6F0 (heap0), DMA of tbl[i + 1] - tbl[i] bytes, two
+# func_802C4108 streams (stubbed: the advanced dst; then followed with its decompressor stubbed), heap rounding.
+func_802A2A98: -n 300 --arg t3=int:0:6 --heap 0x40=words:0,0x10,0x100,0x1000,0x7FF0 --mem D_803BE6F0=rel:heap0 \
+    --mem D_80358070=choice:0x80400000,0x80123453,0x80123454 --stub-ret func_802C4108.a1=choice:0x80400000,0x80400003,0x80400004,0x80400007 \
+    --stub-ret func_802C4108.a0=int --stub-ret func_802A44E4=int --sig osInvalDCache=a0,a1 \
+    --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 --sig osRecvMesg=a0,a1,a2
+func_802A2A98: -n 300 --seed 1 --arg t3=int:0:6 --heap 0x40=words:0,0x10,0x100,0x1000,0x7FF0 --mem D_803BE6F0=rel:heap0 \
+    --mem D_80358070=choice:0x80400000,0x80123451,0x80123452,0x80123453,0x80123454,0x80123457 \
+    --follow func_802C4108,func_802A44E4 --sig func_8025C230=a0,a1,a2 --mem D_803F7830:8=rand \
+    --sig osInvalDCache=a0,a1 --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 --sig osRecvMesg=a0,a1,a2
+# end-block
+# func_802A32CC / func_802A396C (type t3 -> s2, s3 / s4, a1): every valid type (ROM range table), the load stubbed
+# (func_802C4108's advanced dst in a1, func_802A44E4 followed for the rounding), the data block's DL offsets at
+# +0x1C / +0x20; func_802A08E4 / func_8029DF78 stubbed, then followed on a DL of non-G_SETTIMG commands (and one
+# G_SETTIMG id that is in the texture cache).
+func_802A32CC: -n 300 --arg t3=choice:3,4,5,8,9,0xA,0xD,0xE,0xF --heap 0x100 --mem D_80358070=rel:heap0 \
+    --mem @heap0+0x1C=0x40 --mem @heap0+0x20=choice:0x40,0x48,0x60 \
+    --stub-ret func_802C4108.a1=choice:0x80400000,0x80400003,0x80400004,0x80400007 --stub-ret func_802C4108.a0=int \
+    --follow func_802A44E4 --sig osInvalDCache=a0,a1 --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 \
+    --sig osRecvMesg=a0,a1,a2
+func_802A32CC: -n 200 --seed 1 --arg t3=choice:3,4,5,8,9,0xA,0xD,0xE,0xF --heap 0x100 --mem D_80358070=rel:heap0 \
+    --mem @heap0+0x1C=0x40 --mem @heap0+0x20=rel:0x40+8*int:0:8 --mem @heap0+0x40:0x40=words:0x06000000,0xE7000000,0x12345678 \
+    --stub-ret func_802C4108.a1=choice:0x80400000,0x80400003 --stub-ret func_802C4108.a0=int \
+    --follow func_802A44E4,func_802A08E4 --mem D_803B8D44=int --mem D_803B8D40=sym:D_803B8570 \
+    --sig osInvalDCache=a0,a1 --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 --sig osRecvMesg=a0,a1,a2
+func_802A396C: -n 400 --arg t3=choice:0,1,2,3,4,5,6,7,8,9,0xA,0xB,0xD,0xE,0xF,0x10,0x11,0x12,0x96,0x98,0xFD,0xFE,0xFF \
+    --heap 0x100 --mem D_80358070=rel:heap0 --mem @heap0+0x1C=0x40 --mem @heap0+0x20=choice:0x40,0x48,0x60 \
+    --stub-ret func_802C4108.a1=choice:0x80400000,0x80400003,0x80400004,0x80400007 --stub-ret func_802C4108.a0=int \
+    --follow func_802A44E4 --sig osInvalDCache=a0,a1 --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 \
+    --sig osRecvMesg=a0,a1,a2
+func_802A396C: -n 200 --seed 1 --arg t3=choice:0,1,3,0xB,0x11,0x96,0x98,0xFD,0xFE,0xFF --heap 0x100 --mem D_80358070=rel:heap0 \
+    --mem @heap0+0x1C=0x40 --mem @heap0+0x20=rel:0x40+8*int:0:8 --mem @heap0+0x40:0x40=words:0x06000000,0xE7000000,0x12345678 \
+    --stub-ret func_802C4108.a1=choice:0x80400000,0x80400003 --stub-ret func_802C4108.a0=int \
+    --follow func_802A44E4,func_802A08E4,func_8029DF78 --mem D_803B8D44=int --mem D_803B8D40=sym:D_803B8570 \
+    --mem D_803B35F0=sym:D_803B3500 \
+    --sig osInvalDCache=a0,a1 --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 --sig osRecvMesg=a0,a1,a2
+# end-block

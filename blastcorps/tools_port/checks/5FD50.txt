@@ -75,16 +75,26 @@ func_802A51FC: -n 400 --arg a0=ptr:0x100 --arg a1=ptr:0x200 --arg t5=0x40 --arg 
 # func_802A484C (cursors t3/s5 in-out; task data a1/a2/a3; block x/z/w/h/stride s0-s4, grid s6, scales s7/t8):
 # callees stubbed, func_802A4B0C's visibility result from --stub-ret; w/h around 1 (single cell), odd/even
 # halves, 0 and 0x7FFFFFFF (inputs stay where the asm's add/sub don't trap)
+# Input range (wt-f1 investigation): the only caller, func_802A470C, loads x/z/w/h/stride with `lh`
+# (s16), and w, h >= 1 (func_802A49A8 counts them down with != 0). In that range none of the asm's
+# trapping ops can overflow: z*stride + x < 2^31, x + (w >> 1) < 2^17, w - (w >> 1) >= 0. The overflow
+# trap (exception 21) the C doesn't take needs 32-bit x/z/stride (z*stride + x or x + (w >> 1) past
+# 2^31) or a negative w/h (w - (w >> 1) with srl'd w), neither reachable in game; so x/z/stride stay s16.
 func_802A484C: -n 300 --seed 0 --stub-ret func_802A4B0C=1 --arg t3=ptr:0x60 --arg s5=ptr:0x20 \
-    --arg a1=int --arg a2=int --arg a3=int --arg s0=int:0:0x10000 --arg s1=int:0:0x10000 \
+    --arg a1=int --arg a2=int --arg a3=int --arg s0=int:0:0x7FFF --arg s1=int:0:0x7FFF \
     --arg s2=choice:1*3,2,3,4,5,0x10,0x11,0,0x7FFFFFFF --arg s3=choice:1*3,2,3,4,7,0,0x7FFFFFFF \
-    --arg s4=int --arg s6=int --arg s7=int --arg t8=int
+    --arg s4=int:-0x8000:0x7FFF --arg s6=int --arg s7=int --arg t8=int
 func_802A484C: -n 100 --seed 1 --stub-ret func_802A4B0C=0 --arg t3=ptr:0x60 --arg s5=ptr:0x20 \
-    --arg a1=int --arg a2=int --arg a3=int --arg s0=int --arg s1=int --arg s2=choice:1,2,3 --arg s3=choice:1,2,3 \
-    --arg s4=int --arg s6=int --arg s7=int --arg t8=int
+    --arg a1=int --arg a2=int --arg a3=int --arg s0=int:-0x8000:0x7FFF --arg s1=int:-0x8000:0x7FFF --arg s2=choice:1,2,3 --arg s3=choice:1,2,3 \
+    --arg s4=int:-0x8000:0x7FFF --arg s6=int --arg s7=int --arg t8=int
 func_802A484C: -n 100 --seed 2 --stub-ret func_802A4B0C=rand --arg t3=ptr:0x60 --arg s5=ptr:0x20 \
-    --arg a1=int --arg a2=int --arg a3=int --arg s0=int --arg s1=int --arg s2=choice:1,2 --arg s3=choice:1,2 \
-    --arg s4=int --arg s6=int --arg s7=int --arg t8=int
+    --arg a1=int --arg a2=int --arg a3=int --arg s0=int:-0x8000:0x7FFF --arg s1=int:-0x8000:0x7FFF --arg s2=choice:1,2 --arg s3=choice:1,2 \
+    --arg s4=int:-0x8000:0x7FFF --arg s6=int --arg s7=int --arg t8=int
+# the whole s16 range for x/z/stride, positive s16 w/h up to 0x7FFF (no trap anywhere in this range)
+func_802A484C: -n 400 --seed 4 --stub-ret func_802A4B0C=1 --arg t3=ptr:0x60 --arg s5=ptr:0x20 \
+    --arg a1=int --arg a2=int --arg a3=int --arg s6=int --arg s7=int --arg t8=int \
+    --arg s0=int:-0x8000:0x7FFF --arg s1=int:-0x8000:0x7FFF --arg s4=int:-0x8000:0x7FFF \
+    --arg s2=choice:1,2,3,0x55,0x1234,0x7FFE,0x7FFF --arg s3=choice:1,2,3,0x55,0x1234,0x7FFE,0x7FFF
 # height range and box corners run for real (grid of s16 pairs, 8 Vtx at a2); the RSP task stays stubbed
 func_802A484C: -n 300 --seed 3 --follow func_802A49A8,func_802A4A50 --stub-ret func_802A4B0C=1 \
     --arg t3=ptr:0x60 --arg s5=ptr:0x20 --arg a1=int --arg a2=ptr:0x80 --arg a3=int \
@@ -187,4 +197,22 @@ func_802A4E4C: -n 300 --seed 2 --follow func_802A50DC,func_802A51FC,func_802A533
     --mem @t8+0xC*0x1C:3=choice:1,2,3,4 --mem @t8+0x10*0x1C:3=2 \
     --mem @t8+0x14*0x1C:3=choice:0,1,2,3,5 --mem @t8+0x18*0x1C:3=choice:1,3,5,7,9 \
     --mem D_803C30A8:6=halves:1,2,3,5,7,0x8000 --mem D_803C30A8+6:2=halves:0xFFFF --mem D_803C2EB0:0x10=rand
+# end-block
+# ---- phase D wave 3 (wt-f1) ----
+# func_802A4CDC(dl0..dl3, gfx): four func_802A4E4C passes over the level D_80358074's record / group ranges
+# (offsets at +0xA0.. / +0xB0..), then func_802A4DE8 over [+*0x7C, +*0x80) into gfx and func_802A5020(lvl).
+# Stubbed with random offsets (incl. negative), then followed: the packed DLs one command each, empty animation
+# list, and (last run) func_802A4E4C for real over empty ranges with a 0..4-command fixed list.
+func_802A4CDC: -n 300 --heap 0x200 --mem D_80358074=rel:heap0 --mem @heap0+0x7C:8=words:0,0x40,0x100,-0x40,0x1F8 \
+    --mem @heap0+0xA0:0x24=words:0,0x40,0x100,-0x40,0x1F8 --arg a0=int --arg a1=int --arg a2=int --arg a3=int --arg stack0=int \
+    --sig func_802A4DE8=a0,a1,a2,a3 --sig func_802A5020=a0
+func_802A4CDC: -n 300 --seed 1 --heap 0x200 --mem D_80358074=rel:heap0 --mem @heap0+0xA0:0x24=words:0x100,0x108,0x110 \
+    --mem @heap0+0x7C=0x100 --mem @heap0+0x80=rel:0x100+8*int:0:8 --mem @heap0+0x100:0x40=words:0xB8000000 \
+    --mem @heap0+0x2C=0x40 --mem @heap0+0x30=0x40 --arg a0=int --arg a1=int --arg a2=int --arg a3=int --arg stack0=ptr:0x60 \
+    --follow func_802A4DE8,func_802A5020
+func_802A4CDC: -n 200 --seed 2 --heap 0x200 --mem D_80358074=rel:heap0 --mem @heap0+0xA0:0x24=words:0x1C0 \
+    --mem @heap0+0x88=0x180 --mem @heap0+0x8C=rel:0x180+8*int:0:4 \
+    --mem @heap0+0x7C=0x100 --mem @heap0+0x80=rel:0x100+8*int:0:8 --mem @heap0+0x100:0x40=words:0xB8000000 \
+    --mem @heap0+0x2C=0x40 --mem @heap0+0x30=0x40 --arg a0=ptr:0x60 --arg a1=ptr:0x60 --arg a2=ptr:0x60 --arg a3=ptr:0x60 \
+    --arg stack0=ptr:0x60 --mem D_803C30A8:2=halves:0xFFFF --mem D_803C2EB0:0x10=rand --follow-all
 # end-block

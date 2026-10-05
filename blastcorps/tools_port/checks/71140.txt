@@ -119,3 +119,15 @@ func_802B6C28: -n 300 --seed 2 --ret void --arg gp=sym:D_803EEA90 \
     --mem D_803EEB54:4=floats:-0.5:1.5 --mem D_803EEB50:4=floats:-0.5:1.5 \
     --mem D_80370C15:1=bytes:0*2,1 --mem D_80370C16:1=bytes:0*2,1 --mem D_80370C1C:1=bytes:0,1 --mem D_80370C23:1=bytes:0,1 \
     --mem D_803EEB5F:1=int:0:0xFF --mem D_803EEA90+0x76:2=halves:0,5,10,15,20,25,0xFFF6,0xFFEC,0x7FFF,0x8000,0x1234
+
+# ---- wt-v5 ----
+# func_802B7030: model matrices/points of vehicle 5. Stubbed func_802AA764 doesn't leave s2 = the matrix as the asm one
+# does, so the stubbed run skips func_8029C454's s2 slot; the --follow run compares it.
+func_802B7030: -n 200 --arg gp=sym:D_803EEA90 --heap 0x200=hex:00000100000001400000018000000000000000000000004000000000 \
+    --heap 0x400 --mem D_803EEB44=rel:heap0 --mem @heap0+0x44=0x80 --mem D_803EEB48=rel:heap1 --mem D_803EEB4C=rel:heap1+0x200 \
+    --mem D_8035805C:1=choice:0,1 --mem D_803EEB38:12=rand --mem D_803EEA90+0x4C:2=rand --mem D_803ED390:6=rand \
+    --sig func_8029C454=a0,a1,a2,a3,stack0,stack1,stack2,*stack3+0x8,*stack3+0xC,*stack3+0x14
+func_802B7030: -n 100 --seed 1 --follow func_802AA764 --arg gp=sym:D_803EEA90 \
+    --heap 0x200=hex:00000100000001400000018000000000000000000000004000000000 \
+    --heap 0x400 --mem D_803EEB44=rel:heap0 --mem @heap0+0x44=0x80 --mem D_803EEB48=rel:heap1 --mem D_803EEB4C=rel:heap1+0x200 \
+    --mem D_8035805C:1=choice:0,1 --mem D_803EEB38:12=rand --mem D_803EEA90+0x4C:2=rand --mem D_803ED390:6=rand

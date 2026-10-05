@@ -581,6 +581,8 @@ func_802B71DC: in s2=a0 ; out f2=fret ; preserve a1,a2,a3,f0,f12,f14 ; clobbers 
 func_802B5CD8: clobbers gp
 # per-frame animation/sound update ($gp = D_803EEA90, read as globals in C)
 func_802B6C28: clobbers s2,s3,s5,s6
+# (wt-v5) model matrices/points ($gp = D_803EEA90); func_802AA890 chain registers through a0 (MtxChainRegs)
+func_802B7030: in a3=*a0+8,s1=*a0+12,s0=*a0+20 ; out v1=*a0,a0=*a0+4,a3=*a0+8,s1=*a0+12,s2=*a0+16 ; preserve t6,t7 ; clobbers s4,s5,s6,s7
 # --- 72B80 ---
 # zone lookup wrapper: func_802ABD54(id, x, y, z) with its scan registers t6, t7, s0-s4 passed through
 func_802B78B0: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; out v1=ret,t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; preserve f12,f14 ; clobbers s5,s6
@@ -619,6 +621,11 @@ func_802BB868: out v0=ret ; clobbers s0-s7,fp,f20,f22,f24,f26,f28
 func_802BB4C0: clobbers s0-s7,fp,f20,f22,f24,f26,f28
 # exit check: points $gp at D_803EFA20 and leaves it
 func_802BB170: clobbers gp
+# (wt-v5) model matrices/points of D_803EF630 / D_803EFA20; chain registers through a0 (MtxChainRegs)
+func_802BABEC: in a3=*a0+8,s1=*a0+12,s0=*a0+20 ; out t2=ret,v1=*a0,a0=*a0+4,a3=*a0+8,s1=*a0+12,s2=*a0+16 ; preserve t6,t7 ; clobbers s4,s5,s6,s7
+func_802BB8B8: in a3=*a0+8,s1=*a0+12,s0=*a0+20 ; out t0=ret,t2=*a1 ; clobbers s0-s7,fp,f20,f22,f24,f26,f28
+# (wt-v5) collision/effect step of D_803EF630; h2 (func_802BABEC's leftover t2) in t2
+func_802BA9A0: in t2=a0 ; clobbers s0,s1,s3,s4,s5,fp,f20,f22,f24,f26,f28
 # --- 772A0 ---
 # zone lookup wrapper: func_802ABD54(id, x, y, z) with its scan registers t6, t7, s0-s4 passed through
 func_802BBE74: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; out v1=ret,t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; preserve a0,f12,f14 ; clobbers s5,s6

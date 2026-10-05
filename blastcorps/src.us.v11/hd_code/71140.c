@@ -368,7 +368,63 @@ void func_802B6C28(void) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+#ifndef MTX_CHAIN_REGS_DEFINED
+#define MTX_CHAIN_REGS_DEFINED
+/* Registers func_802AA890 reads and writes besides its arguments (62740.c). */
+typedef struct {
+    s32 v1; /* out: y' >> 11 */
+    s32 a0; /* out: z' >> 11 */
+    s32 a3; /* in/out: the last matrix used */
+    s32 s1; /* in/out: y' */
+    s32 s2; /* in/out: z' */
+    s32 s0; /* in: only read when count == 0 */
+} MtxChainRegs;
+#endif
+extern u8 D_8035805C;   /* selects which of the two matrix buffers is current */
+extern s16 D_803ED392;  /* model rotation y (62740.c) */
+extern u8 *D_803EEB44;  /* this vehicle's model header */
+void func_802AA764(s32 x, s32 y, s32 z, s32 scale, s32 *m);
+void func_8029C454(s32 x, s32 y, s32 z, s32 tag, u8 *p, u8 *end, u8 *base, MtxChainRegs *regs);
+void func_802ABBEC(s32 id, s16 *p, s16 *end, u8 *base, MtxChainRegs *regs);
+
+/* Rebuilds vehicle 5's model matrices and collision points. The model
+ * header D_803EEB44 holds offsets (from the header) to: the part records at
+ * +4 .. +8, the point list at +0 .. +4 and, at +0x18, a word whose +4 is the
+ * root matrix's offset into the current matrix buffer (D_803EEB48 when
+ * D_8035805C is set, else D_803EEB4C). With rotation y = the heading (u16
+ * +0x4C of D_803EEA90, the asm's $gp) in D_803ED392, the root matrix is built
+ * at position D_803EEB38[0..2] with scale 0x4268 (func_802AA764); then the
+ * parts are placed (func_8029C454, tag 5) and the points transformed
+ * (func_802ABBEC, id 5) through the current buffer.
+ * Register convention: func_802AA890's chain registers pass through regs
+ * (a3, s1, s0 in; v1, a0, a3, s1, s2 out; conventions.txt). As in the asm,
+ * s2 = the root matrix (func_802AA764 leaves it there) and, for
+ * func_802ABBEC, v1/a0 = position y/z (func_8029C454 preserves them). The
+ * asm also leaves s4 = the buffer, s5/s6 = position y/z, s7 = 0x4268 and
+ * func_802AA764's f12/f14 scratch (conventions.txt: clobbers); its asm
+ * callers don't read them (the survey lists their later saves/passes).
+ * Asm callers keep t6, t7 live. */
+void func_802B7030(MtxChainRegs *regs) {
+    u8 *hdr = D_803EEB44;
+    u8 *buf = D_8035805C != 0 ? (u8 *) D_803EEB48 : (u8 *) D_803EEB4C;
+    s32 *m = (s32 *) (*(s32 *) (hdr + *(s32 *) (hdr + 0x18) + 4) + buf);
+
+    D_803ED392 = *(u16 *) (D_803EEA90 + 0x4C);
+    func_802AA764(D_803EEB38[0], D_803EEB38[1], D_803EEB38[2], 0x4268, m);
+    regs->s2 = (s32) m;
+    buf = D_8035805C != 0 ? (u8 *) D_803EEB48 : (u8 *) D_803EEB4C;
+    hdr = D_803EEB44;
+    func_8029C454(D_803EEB38[0], D_803EEB38[1], D_803EEB38[2], 5, hdr + *(s32 *) (hdr + 4),
+                  hdr + *(s32 *) (hdr + 8), buf, regs);
+    regs->v1 = D_803EEB38[1];
+    regs->a0 = D_803EEB38[2];
+    hdr = D_803EEB44;
+    func_802ABBEC(5, (s16 *) (hdr + *(s32 *) hdr), (s16 *) (hdr + *(s32 *) (hdr + 4)), buf, regs);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/71140/func_802B7030.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

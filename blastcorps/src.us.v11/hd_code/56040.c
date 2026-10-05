@@ -1797,14 +1797,104 @@ f32 func_8029E878(f32 p0, f32 p1, f32 p2, f32 p3, f32 t) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029E878.s")
 #endif
 
+#ifdef NON_MATCHING
+s32 func_802AE104(s32 angle);
+s32 func_802AE160(s32 angle);
+
+/* 16.16 rotation matrices at m from sine s and cosine c (about x, y, z). */
+#define ROT_MTX_X(m, s, c)                                     \
+    ((m)[0] = 0x10000, (m)[1] = 0, (m)[2] = 0, (m)[3] = 0,     \
+     (m)[4] = 0, (m)[5] = (c), (m)[6] = (s), (m)[7] = 0,       \
+     (m)[8] = 0, (m)[9] = -(s), (m)[10] = (c), (m)[11] = 0,    \
+     (m)[12] = 0, (m)[13] = 0, (m)[14] = 0, (m)[15] = 0x10000)
+#define ROT_MTX_Y(m, s, c)                                     \
+    ((m)[0] = (c), (m)[1] = 0, (m)[2] = -(s), (m)[3] = 0,      \
+     (m)[4] = 0, (m)[5] = 0x10000, (m)[6] = 0, (m)[7] = 0,     \
+     (m)[8] = (s), (m)[9] = 0, (m)[10] = (c), (m)[11] = 0,     \
+     (m)[12] = 0, (m)[13] = 0, (m)[14] = 0, (m)[15] = 0x10000)
+#define ROT_MTX_Z(m, s, c)                                     \
+    ((m)[0] = (c), (m)[1] = (s), (m)[2] = 0, (m)[3] = 0,       \
+     (m)[4] = -(s), (m)[5] = (c), (m)[6] = 0, (m)[7] = 0,      \
+     (m)[8] = 0, (m)[9] = 0, (m)[10] = 0x10000, (m)[11] = 0,   \
+     (m)[12] = 0, (m)[13] = 0, (m)[14] = 0, (m)[15] = 0x10000)
+
+/* Spline-interpolated rotation angle: func_8029E878 of the s16 at `off` in
+ * the four keyframes at t, rounded as cvt.w.s does. */
+#define KEY_ANGLE(k0, k1, k2, k3, off, t)                                        \
+    port_cvt_w_s(func_8029E878((f32) *(s16 *) ((u8 *) (k0) + (off)),             \
+                               (f32) *(s16 *) ((u8 *) (k1) + (off)),             \
+                               (f32) *(s16 *) ((u8 *) (k2) + (off)),             \
+                               (f32) *(s16 *) ((u8 *) (k3) + (off)), (t)))
+#endif
+
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* func_8029E938 / func_8029EA48 / func_8029EB58: spline-interpolated rotation
+ * about x / y / z from four 0x14-byte keyframes (angle s16 at 6 / 8 / 0xA,
+ * 0x1000 = 360 degrees in 1/16 units). If the angle rounds to 0 returns 0
+ * (nothing written); else D_803B3730 = the 16.16 rotation matrix with sine /
+ * cosine func_802AE160 / func_802AE104 of angle >> 4 (srl), returns 1.
+ * Register convention: keys in t5, t6, t7, s0, t in f30, result in a3
+ * (conventions.txt), as func_8029EC68. The asm saves every other register it
+ * uses except the callee's f0-f8 scratch (the angle's cvt.w.s bits stay in
+ * f8). Its `neg` traps on 0x80000000 (a 16.16 sine never is). */
+s32 func_8029E938(u8 *k0, u8 *k1, u8 *k2, u8 *k3, f32 t) {
+    s32 *m = D_803B3730;
+    s32 a = KEY_ANGLE(k0, k1, k2, k3, 6, t);
+    s32 s;
+    s32 c;
+
+    if (a == 0) {
+        return 0;
+    }
+    s = func_802AE160((u32) a >> 4);
+    c = func_802AE104((u32) a >> 4);
+    ROT_MTX_X(m, s, c);
+    return 1;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029E938.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+s32 func_8029EA48(u8 *k0, u8 *k1, u8 *k2, u8 *k3, f32 t) {
+    s32 *m = D_803B3730;
+    s32 a = KEY_ANGLE(k0, k1, k2, k3, 8, t);
+    s32 s;
+    s32 c;
+
+    if (a == 0) {
+        return 0;
+    }
+    s = func_802AE160((u32) a >> 4);
+    c = func_802AE104((u32) a >> 4);
+    ROT_MTX_Y(m, s, c);
+    return 1;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029EA48.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+s32 func_8029EB58(u8 *k0, u8 *k1, u8 *k2, u8 *k3, f32 t) {
+    s32 *m = D_803B3730;
+    s32 a = KEY_ANGLE(k0, k1, k2, k3, 0xA, t);
+    s32 s;
+    s32 c;
+
+    if (a == 0) {
+        return 0;
+    }
+    s = func_802AE160((u32) a >> 4);
+    c = func_802AE104((u32) a >> 4);
+    ROT_MTX_Z(m, s, c);
+    return 1;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029EB58.s")
+#endif
 
 /* func_8029EC68 / func_8029EDEC: spline-interpolated translation / scale
  * matrices from four 0x14-byte keyframes (s16 fields; scale at 0/2/4,
@@ -2116,14 +2206,81 @@ s32 func_8029F3D0(s32 x0, s32 y0, s32 z0, s32 x1, s32 y1, s32 z1, f32 t) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029F3D0.s")
 #endif
 
+#ifdef NON_MATCHING
+s32 func_8029F6B0(s32 a, s32 b, f32 t);
+#endif
+
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Rotation about x by the angle func_8029F6B0(a, b, t) (angle lerp): if
+ * that is 0 returns 0; else, with s / c = func_802AE160 / func_802AE104 of
+ * angle >> 4 (16.16 sine / cosine), fills D_803B3730 with the 16.16 matrix
+ * {1,0,0,0, 0,c,s,0, 0,-s,c,0, 0,0,0,1} and returns 0x10000.
+ * Register convention: a, b in a0, a1, t in f30, result in a0
+ * (conventions.txt). The asm saves t2, t4, t5 and s2, leaves fp changed
+ * (the cosine) and v1 = angle >> 4 on the rotating path; its only caller
+ * (func_8029EF80) reads neither. */
+s32 func_8029F4B8(s32 a, s32 b, f32 t) {
+    s32 *m = D_803B3730;
+    s32 r = func_8029F6B0(a, b, t);
+    s32 s;
+    s32 c;
+
+    if (r == 0) {
+        return 0;
+    }
+    s = func_802AE160((u32) r >> 4);
+    c = func_802AE104((u32) r >> 4);
+    ROT_MTX_X(m, s, c);
+    return 0x10000;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029F4B8.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* As func_8029F4B8, rotation about y: {c,0,-s,0, 0,1,0,0, s,0,c,0, 0,0,0,1}.
+ * Same register convention. */
+s32 func_8029F560(s32 a, s32 b, f32 t) {
+    s32 *m = D_803B3730;
+    s32 r = func_8029F6B0(a, b, t);
+    s32 s;
+    s32 c;
+
+    if (r == 0) {
+        return 0;
+    }
+    s = func_802AE160((u32) r >> 4);
+    c = func_802AE104((u32) r >> 4);
+    ROT_MTX_Y(m, s, c);
+    return 0x10000;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029F560.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* As func_8029F4B8, rotation about z: {c,s,0,0, -s,c,0,0, 0,0,1,0, 0,0,0,1}.
+ * Same register convention. */
+s32 func_8029F608(s32 a, s32 b, f32 t) {
+    s32 *m = D_803B3730;
+    s32 r = func_8029F6B0(a, b, t);
+    s32 s;
+    s32 c;
+
+    if (r == 0) {
+        return 0;
+    }
+    s = func_802AE160((u32) r >> 4);
+    c = func_802AE104((u32) r >> 4);
+    ROT_MTX_Z(m, s, c);
+    return 0x10000;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029F608.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

@@ -72,6 +72,10 @@ func_8029DA90: in a1=a0,t0=a1,t1=a2,t5=a3,s4=stack0,s1=*stack1,s3=*stack1+4,f12=
 # spline translation / scale matrix at D_803B3730 from keyframes t5, t6, t7, s0 at f30; 0 if identity -> a3 (f8/f12 scratch)
 func_8029EC68: in t5=a0,t6=a1,t7=a2,s0=a3,f30=stack0 ; out a3=ret ; preserve v0,v1,a0,a1,a2,t0,t1,t2,t3,t4,t5,t6,t7,s0,s2,s3,f14
 func_8029EDEC: in t5=a0,t6=a1,t7=a2,s0=a3,f30=stack0 ; out a3=ret ; preserve v0,v1,a0,a1,a2,t0,t1,t2,t3,t4,t5,t6,t7,s0,s2,s3,f14
+# spline rotation about x / y / z (key angle at 6 / 8 / 0xA) into D_803B3730; 0 if the angle rounds to 0 -> a3 (f0-f8 scratch)
+func_8029E938: in t5=a0,t6=a1,t7=a2,s0=a3,f30=stack0 ; out a3=ret ; preserve v1,a0,t0,t1,t2,t3,t5,t6,t7,s0
+func_8029EA48: in t5=a0,t6=a1,t7=a2,s0=a3,f30=stack0 ; out a3=ret ; preserve v1,a0,t0,t1,t2,t3,t5,t6,t7,s0
+func_8029EB58: in t5=a0,t6=a1,t7=a2,s0=a3,f30=stack0 ; out a3=ret ; preserve v1,a0,t0,t1,t2,t3,t5,t6,t7,s0
 # spline pose of channel t4 from keyframes t5 into 9 halfwords at t1 -> t1 + 0x14 (f20 = 1.0, f30 = t; f12/f14 scratch)
 func_8029FFA0: in t1=a0,t4=a1,t5=a2 ; out t1=ret ; preserve v0,a0,a3,t0,t2,t3,t4,t5,t6,t7,t8,s0,s1,s6,s7,fp ; clobbers f20,f30
 # linear pose between keyframes t5 and t5+0x14 at f30 into 9 halfwords at t1 -> t1 + 0x14 (f12/f14 scratch)
@@ -109,6 +113,10 @@ func_8029F110: in t0=a0,fp=a1,f12=*a2,f14=*a2+4 ; out f12=*a2,f14=*a2+4,f20=*a2+
 func_8029F1BC: in f6=f12,f30=f14,t0=a2,t2=a3,t6=stack0 ; out f8=fret,t2=*stack1,t7=*stack1+4,f30=*stack1+8 ; preserve a0,a1,a2,a3,t0,t3,t6,f12,f14 ; clobbers s0,s1,s2
 # lerp (a0,a1,a2) -> (a3,t0,t1) by f30 into a translation matrix at D_803B3730; 0 if the result is 0 -> a0 (saves s2)
 func_8029F3D0: in a0=a0,a1=a1,a2=a2,a3=a3,t0=stack0,t1=stack1,f30=stack2 ; out a0=ret ; preserve t7,f8,f12,f14
+# rotation matrix about x / y / z at D_803B3730 by the angle lerp func_8029F6B0(a0, a1, f30); 0 if angle 0 -> a0 (fp = cosine left)
+func_8029F4B8: in a0=a0,a1=a1,f30=a2 ; out a0=ret ; clobbers fp
+func_8029F560: in a0=a0,a1=a1,f30=a2 ; out a0=ret ; clobbers fp
+func_8029F608: in a0=a0,a1=a1,f30=a2 ; out a0=ret ; clobbers fp
 # shortest-way angle lerp a0 -> a1 by f30 -> t4
 func_8029F6B0: in a0=a0,a1=a1,f30=a2 ; out t4=ret ; preserve a0,a1,a2,a3,t1,t5,t7
 # lerp as func_8029F3D0 into a scale matrix at D_803B3730; 0 if unit scale (0x100) -> a0 (saves s2)

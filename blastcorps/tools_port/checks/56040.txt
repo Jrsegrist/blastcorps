@@ -624,3 +624,56 @@ func_8029AB88: -n 200 --seed 3 --follow func_8029B514,func_8029CFA4,func_8029C16
     --mem D_803A73FC:12=rand --arg t3=int:-8000:8000 --arg t4=int:-8000:8000 --arg t5=int:-8000:8000 \
     --arg t6=int:0:0x4000 --arg t8=choice:0,1,5,6,9,0xC8
 # end-block
+# ---- phase D wave 3 (wt-f1) ----
+# func_8029E938 / func_8029EA48 / func_8029EB58 (keys t5, t6, t7, s0; t in f30): spline rotation about x / y / z
+# (key angle at 6 / 8 / 0xA) -> D_803B3730, a3 = 0 when the angle rounds to 0. Stubbed spline value (random, then
+# rounding ties / zero / big angles as raw float bits), then followed with a random basis, then the basis that
+# returns key 0 exactly (zero keys reach the a3 = 0 path).
+func_8029E938: -n 300 --stub-ret func_8029E878=float:-70000:70000 --arg t5=ptr:0x14 --arg t6=ptr:0x14 --arg t7=ptr:0x14 \
+    --arg s0=ptr:0x14 --arg f30=float:0:1 --mem D_803B3730:0x40=rand
+func_8029E938: -n 200 --seed 1 --stub-ret func_8029E878=choice:0*2,0x3F000000,0xBF000000,0x3FC00000,0x40200000,0xC0200000,0x41880000,0x41780000,0x46800000,0xC6800000,0x45FFF000 \
+    --arg t5=ptr:0x14 --arg t6=ptr:0x14 --arg t7=ptr:0x14 --arg s0=ptr:0x14 --arg f30=float:0:1 --mem D_803B3730:0x40=rand
+func_8029E938: -n 300 --seed 2 --follow-all --arg t5=ptr:0x14 --arg t6=ptr:0x14 --arg t7=ptr:0x14 --arg s0=ptr:0x14 \
+    --arg f30=float:0:1 --mem D_803B3778:0x40=floats:-2:2 --mem D_803B37B8:8=floats:0:1 --mem D_803B3730:0x40=rand
+func_8029E938: -n 200 --seed 3 --follow-all --arg t5=ptr:0x14 --arg t6=ptr:0x14 --arg t7=ptr:0x14 --arg s0=ptr:0x14 \
+    --mem @t5+6:2=halves:0*3,1,0xF,0x10,0x11,0xFFFF,0x7FFF,0x8000,0x4000 --arg f30=float:0:1 --mem D_803B3778:0x40=zero \
+    --mem D_803B3778+0xC=0x3F800000 --mem D_803B3730:0x40=rand
+func_8029EA48: -n 300 --stub-ret func_8029E878=float:-70000:70000 --arg t5=ptr:0x14 --arg t6=ptr:0x14 --arg t7=ptr:0x14 \
+    --arg s0=ptr:0x14 --arg f30=float:0:1 --mem D_803B3730:0x40=rand
+func_8029EA48: -n 200 --seed 1 --stub-ret func_8029E878=choice:0*2,0x3F000000,0xBF000000,0x3FC00000,0x40200000,0xC0200000,0x41880000,0x41780000,0x46800000,0xC6800000,0x45FFF000 \
+    --arg t5=ptr:0x14 --arg t6=ptr:0x14 --arg t7=ptr:0x14 --arg s0=ptr:0x14 --arg f30=float:0:1 --mem D_803B3730:0x40=rand
+func_8029EA48: -n 300 --seed 2 --follow-all --arg t5=ptr:0x14 --arg t6=ptr:0x14 --arg t7=ptr:0x14 --arg s0=ptr:0x14 \
+    --arg f30=float:0:1 --mem D_803B3778:0x40=floats:-2:2 --mem D_803B37B8:8=floats:0:1 --mem D_803B3730:0x40=rand
+func_8029EA48: -n 200 --seed 3 --follow-all --arg t5=ptr:0x14 --arg t6=ptr:0x14 --arg t7=ptr:0x14 --arg s0=ptr:0x14 \
+    --mem @t5+8:2=halves:0*3,1,0xF,0x10,0x11,0xFFFF,0x7FFF,0x8000,0x4000 --arg f30=float:0:1 --mem D_803B3778:0x40=zero \
+    --mem D_803B3778+0xC=0x3F800000 --mem D_803B3730:0x40=rand
+func_8029EB58: -n 300 --stub-ret func_8029E878=float:-70000:70000 --arg t5=ptr:0x14 --arg t6=ptr:0x14 --arg t7=ptr:0x14 \
+    --arg s0=ptr:0x14 --arg f30=float:0:1 --mem D_803B3730:0x40=rand
+func_8029EB58: -n 200 --seed 1 --stub-ret func_8029E878=choice:0*2,0x3F000000,0xBF000000,0x3FC00000,0x40200000,0xC0200000,0x41880000,0x41780000,0x46800000,0xC6800000,0x45FFF000 \
+    --arg t5=ptr:0x14 --arg t6=ptr:0x14 --arg t7=ptr:0x14 --arg s0=ptr:0x14 --arg f30=float:0:1 --mem D_803B3730:0x40=rand
+func_8029EB58: -n 300 --seed 2 --follow-all --arg t5=ptr:0x14 --arg t6=ptr:0x14 --arg t7=ptr:0x14 --arg s0=ptr:0x14 \
+    --arg f30=float:0:1 --mem D_803B3778:0x40=floats:-2:2 --mem D_803B37B8:8=floats:0:1 --mem D_803B3730:0x40=rand
+func_8029EB58: -n 200 --seed 3 --follow-all --arg t5=ptr:0x14 --arg t6=ptr:0x14 --arg t7=ptr:0x14 --arg s0=ptr:0x14 \
+    --mem @t5+0xA:2=halves:0*3,1,0xF,0x10,0x11,0xFFFF,0x7FFF,0x8000,0x4000 --arg f30=float:0:1 --mem D_803B3778:0x40=zero \
+    --mem D_803B3778+0xC=0x3F800000 --mem D_803B3730:0x40=rand
+# func_8029F4B8 / func_8029F560 / func_8029F608 (a0 -> a1 by f30): rotation about x / y / z by the angle lerp
+# func_8029F6B0 -> D_803B3730, a0 = 0 (angle 0) or 0x10000. Stubbed angle (0, < 0x10, sign bit, big), then followed.
+func_8029F4B8: -n 300 --stub-ret func_8029F6B0=choice:0*3,1,0xF,0x10,0x11,0x8000,0xFFF0,0xFFFF,-1,-0x10,0x7FFFFFFF,0x80000000 \
+    --arg a0=int --arg a1=int --arg f30=float:0:1 --mem D_803B3730:0x40=rand
+func_8029F4B8: -n 300 --seed 1 --follow-all --arg a0=int:0:0xFFFF --arg a1=int:0:0xFFFF \
+    --arg f30=choice:0,0x3F800000,0x3F000000,0x3E800000,0x3F7FFFFF --mem D_803B3730:0x40=rand
+func_8029F4B8: -n 300 --seed 2 --follow-all --arg a0=choice:0,1,8,0x10,0xFFF0,0xFFFF,0x8000 --arg a1=choice:0,1,8,0x10,0xFFF0,0xFFFF,0x8000 \
+    --arg f30=float:0:1 --mem D_803B3730:0x40=rand
+func_8029F560: -n 300 --stub-ret func_8029F6B0=choice:0*3,1,0xF,0x10,0x11,0x8000,0xFFF0,0xFFFF,-1,-0x10,0x7FFFFFFF,0x80000000 \
+    --arg a0=int --arg a1=int --arg f30=float:0:1 --mem D_803B3730:0x40=rand
+func_8029F560: -n 300 --seed 1 --follow-all --arg a0=int:0:0xFFFF --arg a1=int:0:0xFFFF \
+    --arg f30=choice:0,0x3F800000,0x3F000000,0x3E800000,0x3F7FFFFF --mem D_803B3730:0x40=rand
+func_8029F560: -n 300 --seed 2 --follow-all --arg a0=choice:0,1,8,0x10,0xFFF0,0xFFFF,0x8000 --arg a1=choice:0,1,8,0x10,0xFFF0,0xFFFF,0x8000 \
+    --arg f30=float:0:1 --mem D_803B3730:0x40=rand
+func_8029F608: -n 300 --stub-ret func_8029F6B0=choice:0*3,1,0xF,0x10,0x11,0x8000,0xFFF0,0xFFFF,-1,-0x10,0x7FFFFFFF,0x80000000 \
+    --arg a0=int --arg a1=int --arg f30=float:0:1 --mem D_803B3730:0x40=rand
+func_8029F608: -n 300 --seed 1 --follow-all --arg a0=int:0:0xFFFF --arg a1=int:0:0xFFFF \
+    --arg f30=choice:0,0x3F800000,0x3F000000,0x3E800000,0x3F7FFFFF --mem D_803B3730:0x40=rand
+func_8029F608: -n 300 --seed 2 --follow-all --arg a0=choice:0,1,8,0x10,0xFFF0,0xFFFF,0x8000 --arg a1=choice:0,1,8,0x10,0xFFF0,0xFFFF,0x8000 \
+    --arg f30=float:0:1 --mem D_803B3730:0x40=rand
+# end-block

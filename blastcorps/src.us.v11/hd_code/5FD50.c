@@ -191,7 +191,9 @@ s32 func_802A4B0C(void *dataPtr, void *wb, s32 dataSize);
  * The asm takes io's cursors in t3 / s5 (both in-out), dataPtr/v/dataSize
  * in a1/a2/a3, x/z/w/h/stride in s0-s4, grid in s6, xs/zs in s7/t8
  * (conventions.txt); it saves a0, t0-t2 and s0-s3. Its `add`/`sub` trap on
- * overflow, C doesn't. */
+ * overflow, C doesn't; that can't happen in game: the caller passes s16
+ * x/z/w/h/stride with w, h >= 1, where z * stride + x, x + (w >> 1) and
+ * w - (w >> 1) all stay in range (only 32-bit or negative w/h inputs trap). */
 void func_802A484C(Io802A484C *io, void *dataPtr, Vtx *v, s32 dataSize, s32 x, s32 z, u32 w, u32 h,
                    s32 stride, u8 *grid, u32 xs, u32 zs) {
     s32 max;
@@ -357,7 +359,39 @@ s32 func_802A4B0C(void *dataPtr, void *wb, s32 dataSize) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u8 *D_80358074; /* current level header */
+u32 *func_802A4E4C(u8 *lvl, u32 *dl, u8 *rec, u8 *recEnd, u8 *grp, u8 *grpEnd);
+void func_802A4DE8(s32 arg0, u32 *gfx, u32 *dl, u32 *end);
+void func_802A5020(u8 *base);
+
+/* Builds the level's four visible-geometry display lists into dl0..dl3:
+ * list k uses the record ranges [lvl + *(lvl + 0xA0 + 4k), lvl + *(lvl +
+ * 0xA4 + 4k)) and groups [lvl + *(lvl + 0xB0 + 4k), lvl + *(lvl + 0xB4 +
+ * 4k)) (func_802A4E4C; its returned end pointers are dropped). Then writes
+ * a gSPDisplayList for each list packed in [lvl + *(lvl + 0x7C), lvl +
+ * *(lvl + 0x80)) into gfx (func_802A4DE8), and steps the level's animation
+ * records (func_802A5020). lvl is D_80358074. ABI: dl0..dl3 in a0-a3, gfx
+ * on the stack (00000.c declares the four as s32). The asm's offset adds
+ * trap on overflow (pointer + small offset, never in game). */
+void func_802A4CDC(u32 *dl0, u32 *dl1, u32 *dl2, u32 *dl3, u32 *gfx) {
+    u8 *lvl = D_80358074;
+
+    func_802A4E4C(lvl, dl0, lvl + *(s32 *) (lvl + 0xA0), lvl + *(s32 *) (lvl + 0xA4),
+                  lvl + *(s32 *) (lvl + 0xB0), lvl + *(s32 *) (lvl + 0xB4));
+    func_802A4E4C(lvl, dl1, lvl + *(s32 *) (lvl + 0xA4), lvl + *(s32 *) (lvl + 0xA8),
+                  lvl + *(s32 *) (lvl + 0xB4), lvl + *(s32 *) (lvl + 0xB8));
+    func_802A4E4C(lvl, dl2, lvl + *(s32 *) (lvl + 0xA8), lvl + *(s32 *) (lvl + 0xAC),
+                  lvl + *(s32 *) (lvl + 0xB8), lvl + *(s32 *) (lvl + 0xBC));
+    func_802A4E4C(lvl, dl3, lvl + *(s32 *) (lvl + 0xAC), lvl + *(s32 *) (lvl + 0xB0),
+                  lvl + *(s32 *) (lvl + 0xBC), lvl + *(s32 *) (lvl + 0xC0));
+    func_802A4DE8((s32) lvl, gfx, (u32 *) (lvl + *(s32 *) (lvl + 0x7C)),
+                  (u32 *) (lvl + *(s32 *) (lvl + 0x80)));
+    func_802A5020(lvl);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5FD50/func_802A4CDC.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

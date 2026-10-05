@@ -14,7 +14,9 @@ typedef struct {
 
 /* One per save slot (D_80364AF0, 0x100 bytes), as in hd_code 26570.c */
 typedef struct {
-    /* 0x00 */ u8 pad0[0x18];
+    /* 0x00 */ char name[0x10];
+    /* 0x10 */ s32 unk10;
+    /* 0x14 */ u8 pad14[4];
     /* 0x18 */ u8 rank[0x3C]; /* per level: 1-5 when done */
     /* 0x54 */ u8 pad54[0x91 - 0x54];
     /* 0x91 */ u8 unk91;
@@ -37,7 +39,22 @@ typedef struct {
     /* 0x1A */ u8 pad1A[2];
 } MenuEntry;
 
-/* Per-player matrices for the player select screen (D_803156F8, 0x21498 bytes) */
+/* Menu pages (D_802F8BDC, 0x1C bytes), as in hd_code 00000.c */
+typedef struct {
+    u8 pad0[4];
+    s16 unk4;
+    u8 pad6[2];
+    s32 unk8; /* flags */
+    u8 padC[2];
+    u16 unkE;
+    u16 unk10;
+    u8 pad12[6];
+    s16 unk18;
+    u8 pad1A[2];
+} MenuPage;
+
+/* Per-frame dynamic buffer (D_803156F8, two of 0x21498 bytes); only the
+ * player select matrices are named here */
 typedef struct {
     /* 0x000 */ u8 pad0[0x80];
     /* 0x080 */ Mtx persp;
@@ -45,6 +62,7 @@ typedef struct {
     /* 0x180 */ Mtx lookAt;
     /* 0x1C0 */ u8 pad1C0[0x400];
     /* 0x5C0 */ Mtx trans;
+    /* 0x600 */ u8 pad600[0x21498 - 0x600];
 } PlayerSelDyn;
 
 extern Player D_80364AF0[];
@@ -57,7 +75,23 @@ extern u32 D_80364AA8;
 extern u8 D_80364A87;
 extern u8 D_803643D5;
 extern MenuEntry D_8020C070[];
+extern MenuPage D_802F8BDC[];
 extern OSMesgQueue D_80219EF8;
+extern OSMesgQueue D_80219F50;
+extern PlayerSelDyn D_803156F8[];
+extern u8 D_80365060[]; /* per slot: 0 no save, 1 saved game, 2 new game */
+extern char D_80215520[][25];
+extern u8 D_8039C538;
+extern u8 D_802154B0;
+extern u16 D_803046F8[];
+extern u16 D_80304710[];
+extern u16 D_80304730[];
+extern s16 D_802154D4;
+extern f32 D_802154E0;
+extern s32 D_802154EC;
+extern s32 D_80215508[];
+extern u8 D_802155A0[];
+extern u16 *D_802158A0;
 
 extern Vtx D_80208380[];
 extern Gfx D_80208400[];
@@ -119,8 +153,12 @@ void func_80259DC8(void *gfxp, u8 *str, u16 *wstr, s32 align, s32 fit, s32 x, s3
                    s32 r0, s32 g0, s32 b0, s32 a0, s32 r1, s32 g1, s32 b1, s32 a1);
 void func_801FE018(s32);
 void func_801F8354(u8);
+s32 func_8025B3F0(char *, char *);
+void func_801E8DCC(u8 arg0);
 void func_801E8EB8(u8, s32);
 u16 func_801E9528(void);
+void func_801EA108(u8 slot, u8 send, u8 newGame);
+void func_801EA268(Player *p);
 Gfx *func_801EC49C(Gfx *, s32, s32, s32);
 
 /* Highest rank shown: 4 once unk91 reaches 12, else 3 */
@@ -232,7 +270,23 @@ Lights2 D_80208470 = gdSPDefLights2(0x28, 0x02, 0x21, 0x5A, 0x02, 0xDC, 69, -69,
 s32 D_80208498 = 0x20000000;
 s32 D_8020849C = 0;
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/01C40/func_801E8C40.s")
+/* Set up the player select screen for a player: sprites and both frames' matrices */
+void func_801E8C40(u8 arg0) {
+    PlayerSelDyn *dyn;
+    s32 i;
+
+    D_80364AE8 = arg0;
+    D_80215915 = func_80272C5C(D_802082F8, NULL, 1, 1, 1, 1.0f);
+    D_80215916 = func_80272C5C(D_802082EC, NULL, 5, 1, 0, 1.0f);
+    for (i = 0; i < 2; i++) {
+        dyn = &D_803156F8[i];
+        guPerspective(&dyn->persp, &D_8021591C, 45.0f, 4.0f / 3.0f, 10.0f, 10000.0f, 1.0f);
+        guLookAt(&dyn->lookAt, 0.0f, 277.0f, 480.0f, 0.0f, 189.0f, 200.0f, 0.0f, 0.0f, 1.0f);
+        guTranslate(&dyn->trans, 0.0f, 88.0f, 0.0f);
+    }
+    D_8021593C = 0;
+    func_801E8DCC(D_80364AE8);
+}
 
 void func_801E8DCC(u8 arg0) {
     s32 i;
@@ -273,7 +327,31 @@ void func_801E93DC(u8 arg0) {
     }
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/01C40/func_801E9528.s")
+/* Advance the name ticker by one character and return the next glyph */
+u16 func_801E9528(void) {
+    s32 i;
+
+    D_802154DC = (D_802154DC + 1) % D_802154D2;
+    if (D_802154DC == D_802154EC) {
+        D_802154E8 = 0;
+    }
+    for (i = 1; i <= MAX_RANK(); i++) {
+        if (D_80215508[i] == D_802154DC) {
+            D_802154F0[i] = 0;
+        }
+    }
+    if (D_802154D4 != 0) {
+        D_802154D4--;
+        if (D_802154D4 == 0) {
+            D_802154E0 = 3.0f;
+        }
+    }
+    D_802154E4 = (D_802154E0 - D_802154E4) * 0.2 + D_802154E4;
+    if (D_802158A0 != NULL) {
+        return D_802158A0[D_802154DC];
+    }
+    return D_802155A0[D_802154DC];
+}
 
 s32 func_801E96F8(void) {
     return D_802154D2 == D_802154DC + 8;
@@ -362,17 +440,127 @@ Gfx *func_801E9718(Gfx *arg0, PlayerSelDyn *dyn, s32 arg2) {
     return gdl;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/01C40/func_801EA108.s")
+/* Reset a save slot to a fresh "NEW GAME" player and tell the save thread */
+void func_801EA108(u8 slot, u8 send, u8 newGame) {
+    Player *p;
+    u32 i;
 
-void func_801EA268(s32 *arg0) {
-    arg0[4] = 0x1063E;
+    p = &D_80364AF0[slot];
+    for (i = 0; i < 0x100; i++) {
+        ((u8 *) p)[i] = 0;
+    }
+    func_801EA268(p);
+    sprintf(p->name, "%s", "NEW GAME");
+    D_80365060[slot] = 2;
+    osSendMesg(&D_80219EF8, (OSMesg) ((slot << 16) | 7), OS_MESG_BLOCK);
+    if (send) {
+        osSendMesg(&D_80219EF8, (OSMesg) ((newGame ? 0x14 : 0x15) | (slot << 16) | 0x1000000), OS_MESG_BLOCK);
+        osRecvMesg(&D_80219F50, NULL, OS_MESG_BLOCK);
+    } else {
+        osSendMesg(&D_80219EF8, (OSMesg) ((newGame ? 0x14 : 0x15) | (slot << 16)), OS_MESG_BLOCK);
+    }
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/01C40/func_801EA278.s")
+void func_801EA268(Player *p) {
+    p->unk10 = 0x1063E;
+}
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/01C40/func_801EA4B8.s")
+/* Load the four save slots through the save thread and build their menu labels */
+void func_801EA278(void) {
+    s32 i;
+    s32 msg;
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/01C40/func_801EA6E8.s")
+    for (i = 0; i < 4; i++) {
+        osSendMesg(&D_80219EF8, (OSMesg) ((i << 16) | 6 | 0x1000000), OS_MESG_BLOCK);
+        osRecvMesg(&D_80219F50, (OSMesg *) &msg, OS_MESG_BLOCK);
+        if (msg == 0) {
+            if (func_8025B3F0(D_80364AF0[i].name, "NEW GAME")) {
+                D_80365060[i] = 1;
+            } else {
+                D_80365060[i] = 2;
+            }
+        } else if (msg != 0x6E382) {
+            if (i < D_8039C538) {
+                osSendMesg(&D_80219EF8, (OSMesg) ((i << 16) | 3 | 0x1000000), OS_MESG_BLOCK);
+                osRecvMesg(&D_80219F50, (OSMesg *) &msg, OS_MESG_BLOCK);
+            }
+            if (msg != 0 || i >= D_8039C538) {
+                D_80365060[i] = 0;
+                sprintf(D_80215520[i], "%d : %s", i + 1, "PAK FULL");
+            } else {
+                func_801EA108(i, 1, 0);
+            }
+        } else {
+            func_801EA108(i, 1, 0);
+        }
+        if (D_80365060[i] == 1 || D_80365060[i] == 2) {
+            sprintf(D_80215520[i], "%d : %s", i + 1, D_80364AF0[i].name);
+        }
+    }
+}
+
+/* Build the "load game" slot menu (entries 2-5, then ERASE GAME / IGNORE PAK) */
+void func_801EA4B8(void) {
+    s32 i;
+
+    func_801EA278();
+    D_802154B0 = 0;
+    for (i = 0; i < 4; i++) {
+        D_8020C070[i + 2].unkC = D_80215520[i];
+        D_8020C070[i + 2].unk0 |= 0x81;
+        D_8020C070[i + 2].unk0 &= ~0x20;
+        D_8020C070[i + 2].unk18 = 7;
+        D_8020C070[i + 2].unk19 = 4;
+        D_8020C070[i + 2].unk2 = 0x50;
+        /* an empty then-block: needed for i to be reloaded in the else */
+        if (D_80365060[i] != 0) {
+        } else {
+            D_8020C070[i + 2].unk0 &= ~0x81;
+            D_8020C070[i + 2].unk18 = 8;
+            D_802154B0++;
+        }
+    }
+    if (D_802154B0 != 4) {
+        D_8020C070[6].unkC = "ERASE GAME";
+        D_8020C070[6].unk10 = D_803046F8;
+    } else {
+        D_8020C070[6].unkC = "IGNORE PAK";
+        D_8020C070[6].unk10 = D_80304710;
+    }
+    D_8020C070[6].unk19 = 2;
+    D_802F8BDC[10].unk8 &= ~0x400;
+}
+
+/* Build the "erase game" slot menu */
+void func_801EA6E8(void) {
+    s32 i;
+
+    func_801EA278();
+    for (i = 0; i < 4; i++) {
+        D_8020C070[i + 2].unk2 = 0x40;
+        switch (D_80365060[i]) {
+            case 1:
+                sprintf(D_80215520[i], "ERASE %d : %s", i + 1, D_80364AF0[i].name);
+                D_8020C070[i + 2].unk0 |= 0x81;
+                D_8020C070[i + 2].unk0 &= ~0x20;
+                D_8020C070[i + 2].unk18 = 7;
+                D_8020C070[i + 2].unk19 = 4;
+                break;
+            case 0:
+            case 2:
+                D_8020C070[i + 2].unk18 = 8;
+                D_8020C070[i + 2].unk0 |= 0x20;
+                D_8020C070[i + 2].unk0 &= ~0x81;
+                D_8020C070[i + 2].unk18 = 8;
+                break;
+        }
+    }
+    D_8020C070[6].unkC = "GO BACK";
+    D_8020C070[6].unk10 = D_80304730;
+    D_8020C070[6].unk19 = 2;
+    D_802F8BDC[10].unk8 |= 0x400;
+    D_802F8BDC[10].unk18 = 6;
+}
 
 /* Open the name entry screen (menu entries 7 and 8) on buf */
 void func_801EA93C(char *title, u16 *glyphs, u8 arg2, u8 width, char *buf) {

@@ -19,6 +19,20 @@ s32 osPfsInitPak(OSMesgQueue *, OSPfs *, int);
     if (!(EX)) func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "pfsHandler.c", line)
 #define PFS_FILE_SIZE 0xE00
 
+/*
+ * The old-SDK EEPROM calls, by address: symbol_addrs.hd_front_end had the
+ * Read/Write names swapped (being fixed in main), so these resolve to the
+ * right functions before and after the rename. Drop the macros once merged.
+ */
+s32 func_80204C10(OSMesgQueue *, u8, u8 *);
+s32 func_802050F0(OSMesgQueue *, u8, u8 *);
+s32 func_802042D0(OSMesgQueue *, u8, u8 *, int);
+s32 func_80204410(OSMesgQueue *, u8, u8 *, int);
+#define osEepromWrite func_80204C10
+#define osEepromRead func_802050F0
+#define osEepromLongWrite func_802042D0
+#define osEepromLongRead func_80204410
+
 typedef struct {
     u32 file_size;
     u32 game_code;
@@ -212,9 +226,9 @@ s32 func_801F6264(u8 player, u8 rw) {
                 }
             }
         } else if (rw == 1) {
-            osEepromLongRead(&D_80370BF8, 0, p, 0x100);
-        } else {
             osEepromLongWrite(&D_80370BF8, 0, p, 0x100);
+        } else {
+            osEepromLongRead(&D_80370BF8, 0, p, 0x100);
         }
     } else {
         tries = 0;
@@ -295,9 +309,9 @@ s32 func_801F67E4(u8 pn, u8 level, u8 rw) {
             D_80364F70[idx] = D_80364EF0[pn][D_802E8C44[D_80364AF0[pn].timeSlot[level]]];
             D_80364F70[idx + 1] = D_80364F70[idx] ^ 0x55AA;
             func_8029A7E4("%d %d EEWRITE %x %x\n", level, D_80364F70[idx], (u32) (idx * 2 + 0x100) >> 3, p);
-            osEepromRead(&D_80370BF8, (u32) (idx * 2 + 0x100) >> 3, (u8 *) p);
-        } else {
             osEepromWrite(&D_80370BF8, (u32) (idx * 2 + 0x100) >> 3, (u8 *) p);
+        } else {
+            osEepromRead(&D_80370BF8, (u32) (idx * 2 + 0x100) >> 3, (u8 *) p);
             for (i = 0; i < 2; i++, level++) {
                 if (((D_80364AF0[pn].rank[level] > 0 && D_80364AF0[pn].rank[level] < 6) ? 1 : 0)
                     && level != 0x31 && level != 0x2F && level != 0x26) {
@@ -320,7 +334,7 @@ s32 func_801F6AF4(u8 player, u64 sem) {
     ret = 0;
     p = (u8 *) &D_80364AF0[player];
     if (D_802E8BF8 != 0 || D_80364A90 == 0x40000000000000) {
-        osEepromRead(&D_80370BF8, 0x3F, (u8 *) &sem);
+        osEepromWrite(&D_80370BF8, 0x3F, (u8 *) &sem);
     } else {
         func_8029A7E4("PUTTING SEMAPHORE %llu\n", sem);
         ret = osPfsReadWriteFile(&D_8039B630, D_8039B698[player], PFS_WRITE, 0xDE0, 0x20, (u8 *) &sem);
@@ -336,7 +350,7 @@ s32 func_801F6BD0(u8 player, u64 *sem) {
     ret = 0;
     p = (u8 *) &D_80364AF0[player];
     if (D_802E8BF8 != 0) {
-        osEepromWrite(&D_80370BF8, 0x3F, (u8 *) sem);
+        osEepromRead(&D_80370BF8, 0x3F, (u8 *) sem);
     } else {
         ret = osPfsReadWriteFile(&D_8039B630, D_8039B698[player], PFS_READ, 0xDE0, 0x20, buf);
         *sem = *(u64 *) buf;

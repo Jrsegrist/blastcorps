@@ -43,11 +43,11 @@ segments:
     - [0x1B8F0, c, hd_front_end/ul_pfschecker]  # src/io/pfschecker.c
     - [0x1C350, c, hd_front_end/ul_pfsinitpak] # src/io/pfsinitpak.c (old SDK; + __osPfsGetStatus)
     - [0x1C510, c, hd_front_end/ul_pfsallocatefile] # src/io/pfsallocatefile.c
-    - [0x1CCC0, c, hd_front_end/1CCC0] # libultra pfsdeletefile.c (old SDK)
+    - [0x1CCC0, c, hd_front_end/ul_pfsdeletefile] # src/io/pfsdeletefile.c (old SDK)
     - [0x1D2D0, c, hd_front_end/ul_conteeplongwrite] # src/io/conteeplongwrite.c (old SDK)
     - [0x1D410, c, hd_front_end/ul_conteeplongread] # src/io/conteeplongread.c (old SDK)
     - [0x1D550, c, hd_front_end/ul_pfssearchfile]  # src/io/pfssearchfile.c
-    - [0x1D710, c, hd_front_end/1D710] # libultra pfsreadwritefile.c (old SDK)
+    - [0x1D710, c, hd_front_end/ul_pfsreadwritefile] # src/io/pfsreadwritefile.c (old SDK)
     - [0x1DC10, c, hd_front_end/ul_conteepwrite] # src/io/conteepwrite.c (old SDK; osEepromWrite, __osEepStatus)
     - [0x1E0F0, c, hd_front_end/ul_conteepread] # src/io/conteepread.c (old SDK; defines __osEepPifRam)
     - [0x1E3F0, c, hd_front_end/ul_pfsfilestate]  # src/io/pfsfilestate.c

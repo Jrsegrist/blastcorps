@@ -3,6 +3,7 @@
  * splat linker script so it takes precedence over its /DISCARD/. */
 SECTIONS
 {
+    .bss_ul_initialize 0x803FCD80 (NOLOAD) : { build/src.us.v11/hd_code/ul_initialize.c.o(.bss); }
     .bss_ul_pimgr 0x803FCD90 (NOLOAD) : { build/src.us.v11/hd_code/ul_pimgr.c.o(.bss); }
     .bss_ul_rotate 0x803FDF60 (NOLOAD) : { build/src.us.v11/hd_code/ul_rotate.c.o(.bss); }
     .bss_ul_seteventmesg 0x803FF180 (NOLOAD) : { build/src.us.v11/hd_code/ul_seteventmesg.c.o(.bss); }

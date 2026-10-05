@@ -91,7 +91,7 @@ segments:
     - [0x8AEE0, c, hd_code/8AEE0]
     - [0x8DDB0, c, hd_code/8DDB0]
     - [0x8E910, bin, hd_code/8E910] # more data?
-    - [0x8F860, c, hd_code/8F860]
+    - [0x8F860, c, hd_code/ul_initialize]  # src/os/initialize.c, old SDK
     - [0x8FA90, c, hd_code/ul_pirawread]
     - [0x8FAF0, c, hd_code/ul_createthread]
     - [0x8FC40, c, hd_code/ul_startthread]
@@ -239,6 +239,7 @@ segments:
     - [0xA4530, bin, hd_code/hd_code_data_A4530]
     - [0xB9350, .data, hd_code/45BB0]
     - [0xB9370, bin, hd_code/hd_code_data_B9370]
+    - [0xC1DD0, .data, hd_code/ul_initialize]
     - [0xC1DE0, .data, hd_code/ul_pimgr]
     - [0xC1E00, .data, hd_code/ul_sl]
     - [0xC1E10, .data, hd_code/ul_sins]

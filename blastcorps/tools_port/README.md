@@ -62,11 +62,47 @@ data symbols are absolute `D_xxxxxxxx = 0x...` definitions, so data can't move.
 Any rewrite that grows would run into it. Moving the text clear of the data
 means data and `.bss` keep their original addresses, and only code addresses
 change. The harness maps those by symbol name. The NM ELF is a verification
-artifact, not a bootable ROM: function pointers stored in the raw data blobs
-still hold the original addresses.
+artifact; for a bootable ROM see 2a.
 
 make doesn't track flag changes. Because `build_nm/` is a separate tree,
 switching modes never clobbers the matching objects.
+
+### 2a. Test ROM (`make ... nmrom`)
+
+```bash
+make VERSION=us.v11 -j8                                   # build/ is an input
+make VERSION=us.v11 NON_MATCHING=1 -j8 nmrom BASEROM=~/blastcorps/baserom.us.v11.z64
+# -> build_nm/blastcorps.nm.us.v11.z64 (12 MB) + build_nm/blastcorps.nm.us.v11.txt (report)
+```
+
+A bootable ROM that runs the NON_MATCHING hd_code (`tools_port/nm_rom.py`; the
+docstring has the details). **Needs the Expansion Pak (8 MB RDRAM).** The same
+`build_nm` objects are relinked as `build_nm/hd_code.rom.us.v11.elf` with the
+text at `NM_ROM_TEXT_VRAM` (0x80400000, Expansion Pak RAM; Blast Corps itself
+only uses 4 MB) and `.nm_extra` right behind it; the harness link (0x80800000)
+is untouched. The ROM is the base ROM plus two appended images and a patched
+init:
+
+* init still inflates the original hd_code text + data to 0x802447C0, so the
+  data tables inside the text bins are where the NM code reads them.
+* init's boot tail (a register save/restore around a no-op debug stub,
+  init+0x1AE0..0x1BF8) is replaced in place by a loader: write back +
+  invalidate the D-cache, PI-DMA image A (NM text) to 0x80400000 and image B
+  (original text with trampolines + NM `.hd_code_data`) over 0x802447C0,
+  invalidate the I-cache, `a0 = gp`, jump to the NM `func_802447C0`.
+* Trampolines (`j NM; nop`) on the original function entries send original-
+  address callers (the front end, which is loaded once to 0x801E7000 and calls
+  hd_code at fixed addresses; pointer tables in the bins) into the NM code.
+  Not trampolined: rewritten functions with a `conventions.txt` line (their C
+  takes other registers), rewritten functions called from original code that
+  can still run, functions whose second word is a branch target. The report
+  lists them, the front-end calls that stay on original code, every NM
+  jal/j outside the NM text, lui/lo constants and data words that still point
+  into the original text, and the loader's disassembly.
+* The ROM is padded to 12 MB: `func_802447C0` reads a debug command line from
+  ROM 0xFFB000, past the end of the original ROM, so the ROM must stay below
+  that. Header CRCs are recomputed (CIC-6102). Emulators won't find the ROM in
+  their database: set the save type to EEPROM 4 Kbit and enable 8 MB RAM.
 
 ## 3. Running the harness
 

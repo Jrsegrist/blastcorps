@@ -1,0 +1,38 @@
+# 60F60: heap blocks and records (func_802A5720, func_802A5E60, func_802A5F30,
+# func_802A5FA8, func_802A6748, func_802A6D34)
+
+# func_802A5720: two cursors reset to &D_803C4250 (no inputs)
+func_802A5720: -n 50 --ret void --mem D_803C4B50=int --mem D_803C4B54=int
+
+# func_802A5E60: 16 records of 0x3C; word 0 points at a def (heap) whose u16 at +0xE is a count,
+# byte 0x33 is the active flag (low byte of the pool words: 0x00/0x20/0x40/0xF0)
+func_802A5E60: -n 300 --ret void --mem D_803C4B70:0x3C0=words:0x80B00000,0x80B00020,0x80B00040,0x80B000F0 --mem 0x80B00000:0x100=rand
+# count extremes: 0 (last = 0xFF), 1, 0x100 (wraps to 0xFF), 0xFFFF, 0x8000
+func_802A5E60: -n 200 --seed 1 --ret void --mem D_803C4B70:0x3C0=words:0x80B00000,0x80B00020,0x80B00040,0x80B000F0 --mem 0x80B00000:0x100=halves:0,1,0x100,0x101,0xFFFF,0x8000
+# only one record active (first/last/middle), the rest inactive
+func_802A5E60: -n 200 --seed 2 --ret void --mem D_803C4B70:0x3C0=onehot:0x3C@0x33/1:1,0xFF:words:0x80B00000,0x80B00100 --mem 0x80B00000:0x200=rand
+
+# func_802A5F30: clears range/count, 16 active flags and D_803EB770[16] (no inputs)
+func_802A5F30: -n 50 --ret void --mem D_803C4B70:0x3C0=rand --mem D_803EB770:16=rand --mem D_803EB788=int --mem D_803EB78C=int --mem D_803EB790:2=int:0:0xFFFF
+
+# func_802A5FA8: carve 0x1010-byte blocks from the heap pointer up to D_8020ED00 (flag 0x20) or
+# D_8021DD00; start a multiple of 4 below, at, or above the end (negative span -> 0 blocks).
+# Only a0 of the printf calls is compared: the asm's first call passes the caller's a1 through.
+# The count passed in a1 to the second call is checked via D_803EB790.
+func_802A5FA8: -n 300 --ret void --sig func_8029A7E4=a0 --mem D_80364AA8=choice:0,0x20,0x21,-1,0xDF,0x20000 --mem D_80358070=rel:D_8020ED00+-0x1010*int:0:20+choice:0,-4,4,-0x100C,0x1010,0x1000
+# exact multiples (span = k * 0x1010), and starts relative to the higher end D_8021DD00
+func_802A5FA8: -n 200 --seed 1 --ret void --sig func_8029A7E4=a0 --mem D_80364AA8=choice:0,0x20 --mem D_80358070=rel:D_8021DD00+-0x1010*int:0:30
+# start above the end: count 0
+func_802A5FA8: -n 100 --seed 2 --ret void --sig func_8029A7E4=a0 --mem D_80364AA8=choice:0,0x20 --mem D_80358070=rel:D_8021DD00+choice:0,4,0x1010,0x10000
+
+# func_802A6748: age the in-use blocks of [D_803EB788, D_803EB78C); 4 blocks of 0x1010 at heap,
+# end = 0..4 blocks; inUse / age (0x3C -> freed at 0x3D) per block; count with 0x7FFF / 0xFFFF
+func_802A6748: -n 300 --ret void --mem D_803EB788=rel:heap --mem D_803EB78C=rel:heap+0x1010*int:0:4 --mem D_803EB790:2=halves:0,5,0x7FFF,0xFFFF,0x8000 --mem 0x80B01000=choice:0,1,-1 --mem 0x80B01004:2=halves:0,1,0x3B,0x3C,0x3D,0x7FFF,0xFFFF --mem 0x80B02010=choice:0,1,-1 --mem 0x80B02014:2=halves:0,1,0x3B,0x3C,0x3D,0x7FFF,0xFFFF --mem 0x80B03020=choice:0,1,-1 --mem 0x80B03024:2=halves:0,1,0x3B,0x3C,0x3D,0x7FFF,0xFFFF --mem 0x80B04030=choice:0,1,-1 --mem 0x80B04034:2=halves:0,1,0x3B,0x3C,0x3D,0x7FFF,0xFFFF
+# all four in use and at the threshold (all freed), then all just below it (none freed)
+func_802A6748: -n 50 --seed 1 --ret void --mem D_803EB788=rel:heap --mem D_803EB78C=rel:heap+0x4040 --mem D_803EB790:2=int:0:0xFFFF --mem 0x80B01000=1 --mem 0x80B01004:2=halves:0x3C --mem 0x80B02010=1 --mem 0x80B02014:2=halves:0x3C --mem 0x80B03020=1 --mem 0x80B03024:2=halves:0x3C --mem 0x80B04030=1 --mem 0x80B04034:2=halves:0x3C
+func_802A6748: -n 50 --seed 2 --ret void --mem D_803EB788=rel:heap --mem D_803EB78C=rel:heap+0x4040 --mem D_803EB790:2=int:0:0xFFFF --mem 0x80B01000=1 --mem 0x80B01004:2=halves:0x3B --mem 0x80B02010=1 --mem 0x80B02014:2=halves:0x3B --mem 0x80B03020=1 --mem 0x80B03024:2=halves:0x3B --mem 0x80B04030=1 --mem 0x80B04034:2=halves:0x3B
+# empty range
+func_802A6748: -n 20 --seed 3 --ret void --mem D_803EB788=rel:heap --mem D_803EB78C=rel:heap --mem D_803EB790:2=int:0:0xFFFF
+
+# func_802A6D34: two display-list cursors through func_80257540 (stubbed)
+func_802A6D34: -n 200 --ret void --sig func_80257540=a0 --mem D_803EB780=int --mem D_803EB784=int

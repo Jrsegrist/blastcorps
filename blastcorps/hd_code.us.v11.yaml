@@ -173,7 +173,7 @@ segments:
     - [0x96540, c, hd_code/ul_sptask]  # src/io/sptask.c, old osSpTaskLoad
     - [0x96800, c, hd_code/ul_sptaskyield]
     - [0x96820, c, hd_code/ul_mtxcatl]
-    - [0x968E0, c, hd_code/968E0]
+    - [0x968E0, c, hd_code/ul_controller]  # src/io/controller.c, old SDK
     - [0x96CA0, c, hd_code/ul_contsetch]
     - [0x96D10, c, hd_code/96D10]
     - [0x96F70, c, hd_code/96F70]
@@ -241,6 +241,8 @@ segments:
     - [0xC1E00, .data, hd_code/ul_sl]
     - [0xC1E10, .data, hd_code/ul_sins]
     - [0xC2610, bin, hd_code/hd_code_data_C2610]
+    - [0xC2F70, .data, hd_code/ul_controller]
+    - [0xC2F80, bin, hd_code/hd_code_data_C2F80]
     - [0xC2FA0, .data, hd_code/ul_thread]
     - [0xC2FC0, .data, hd_code/ul_piacs]
     - [0xC2FD0, .data, hd_code/ul_timerintr]

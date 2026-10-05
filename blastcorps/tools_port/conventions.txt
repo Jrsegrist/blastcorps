@@ -330,6 +330,21 @@ func_802C7DFC: out s3=ret ; preserve a0,a1,a2,a3
 func_802C7ECC: preserve a0,a1,a2,a3,t3,t4,t6,f12,f14
 func_802C7F28: preserve a0,a1,a2,a3,t3,t4,f12,f14
 
+# --- 7F8B0 ---
+# LZSS bit reader: mask a3, reader state a0 (src) / t3 (byte) / t4 (bit) in/out, bits -> v0 (s4 = 0x80, s5 = 1 constants)
+func_802C42CC: in a3=a0,a0=*a1,t3=*a1+4,t4=*a1+8 ; out v0=ret,a0=*a1,t3=*a1+4,t4=*a1+8 ; preserve a1,a2,t0,t1,t5,t6 ; clobbers s7
+# LZSS decompressor: src a0 / dst a1 in and out (C: through pointers), window a2, offset bits a3
+func_802C41C0: in a0=*a0,a1=*a1,a2=a2,a3=a3 ; out a0=*a0,a1=*a1 ; clobbers s0,s4-s7
+# func_8025C230 on D_803F7830/34 = a0/a1; results back in a0/a1 (saves everything else)
+func_802C4108: in a0=*a0,a1=*a1,a2=a2 ; out a0=*a0,a1=*a1 ; preserve a2,f12,f14
+# sound level |s5| (saves every integer register)
+func_802C4584: in s5=a0 ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,f12,f14
+# start / stop the looping sounds (ABI arguments; save every integer register)
+func_802C4310: preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7
+func_802C444C: preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,f12,f14
+# second looping sound, id in a1 (saves every register)
+func_802C4724: in a1=a0 ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,f12,f14
+
 # --- 8A2E0 ---
 # box corners x t4, y t5, z t6 into D_803FBAB0[D_803FC1F0 * 8]
 func_802CEE14: in t4=a0,t5=a1,t6=a2 ; preserve v0,v1,a0,a1,a2,a3,t1,t2,t3,t7,f12,f14

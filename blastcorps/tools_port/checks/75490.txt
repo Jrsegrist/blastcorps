@@ -1,0 +1,27 @@
+# func_802BA074: look up the current level (D_802E8BDC) in the {s16 level, u16 x, u16 z} table D_80305D74
+# (terminated by a negative level) and set D_803EF6E8/EC = x<<5, z<<5; clears them and D_803EF710/711 first
+func_802BA074: -n 300 --ret void --mem D_802E8BDC=choice:0,1,2,3,0x7FFF,-1,0xFFFF,0x10002,0xFFFF8000 \
+    --mem D_80305D74:0x60=halves:0,1,2,3,0x7FFF,0x7FFE,0x8000,0xFFFF --mem D_80305D74+0x60=0xFFFFFFFF \
+    --mem D_803EF6E8=int --mem D_803EF6EC=int --mem D_803EF710:2=rand
+# no negative keys before the terminator: matches deep in the table, or no match at all
+func_802BA074: -n 200 --seed 1 --ret void --mem D_802E8BDC=choice:0,1,2,3,4,5,0x7FFF,0x10002 \
+    --mem D_80305D74:0x60=halves:0,1,2,3,0x7FFF,0x7FFE --mem D_80305D74+0x60=0xFFFFFFFF \
+    --mem D_803EF6E8=int --mem D_803EF6EC=int --mem D_803EF710:2=rand
+# the level appears in exactly one record (first/last/middle); x/z with the top bit set
+func_802BA074: -n 150 --seed 2 --ret void --mem D_802E8BDC=9 \
+    --mem D_80305D74:0x60=onehot:6/2:9:halves:0,1,0x7FFF,0x7FFE \
+    --mem D_80305D74+0x60=0xFFFFFFFF --mem D_803EF6E8=int --mem D_803EF6EC=int --mem D_803EF710:2=rand
+# x/z of every record = 0x8000/0xFFFF (unsigned lhu then <<5), keys 0..3
+func_802BA074: -n 100 --seed 3 --ret void --mem D_802E8BDC=choice:0,1,2,3,4 \
+    --mem D_80305D74:0x18=halves:0x8000,0xFFFF,0x8001 \
+    --mem D_80305D74:2=halves:0 --mem D_80305D74+6:2=halves:1 --mem D_80305D74+12:2=halves:2 --mem D_80305D74+18:2=halves:3 \
+    --mem D_80305D74+0x18=0xFFFFFFFF --mem D_803EF6E8=int --mem D_803EF6EC=int --mem D_803EF710:2=rand
+# empty table (first level 0xFFFF or 0x8000), level -1
+func_802BA074: -n 40 --seed 4 --ret void --mem D_802E8BDC=choice:-1,0,0xFFFF,0x8000,-32768 \
+    --mem D_80305D74:2=halves:0x8000,0xFFFF --mem D_80305D74+2:4=rand \
+    --mem D_803EF6E8=int --mem D_803EF6EC=int --mem D_803EF710:2=rand
+
+# func_802BAD24: D_803EBBF4 = D_803EBBF0 * 2.0f; D_803ED3F6 = 60; D_803ED3F7 = 10
+func_802BAD24: -n 200 --ret void --mem D_803EBBF0:4=floats --mem D_803EBBF4=int --mem D_803ED3F6:2=rand
+func_802BAD24: -n 60 --seed 1 --ret void --mem D_803EBBF0=choice:0,0x80000000,0x3F800000,0xBF800000,0x7F7FFFFF,0xFF7FFFFF,0x7F800000,0xFF800000,0x7FC00000,0x00000001 \
+    --mem D_803EBBF4=choice:0,-1 --mem D_803ED3F6:2=bytes:0,0xFF

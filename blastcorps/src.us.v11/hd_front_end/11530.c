@@ -162,6 +162,8 @@ extern s8 D_8021A907;
 extern s8 D_8021A908;
 extern f32 D_8021A91C;
 extern f32 D_8021A920;
+extern f32 D_8021A934;
+extern f32 D_8021A938;
 extern s16 D_8021A926;
 extern s32 D_8021A928[];
 extern s8 D_8021A930;
@@ -181,6 +183,7 @@ Gfx *func_801F2E20(void);
 void func_801F885C(s32 arg0);
 f32 func_801FD6B8(f32 a, f32 b, f32 range);
 void func_801FDE50(void);
+void func_801FDCA4(Vtx *v, s32 idx, s32 z);
 extern Gfx *D_8021A8F4;
 extern Gfx *D_8021A8FC;
 extern Gfx *D_8021A900;
@@ -443,7 +446,74 @@ f32 func_801FD6B8(f32 a, f32 b, f32 range) {
     return 2.0f * range + d;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/11530/func_801FD748.s")
+#define ABS(x) ((x) > 0 ? (x) : -(x))
+
+/* Scroll the star field with the globe's spin; respawn stars that wrap or pass the camera. */
+void func_801FD748(void) {
+    s32 i;
+    s32 k;
+    s32 n;
+    s32 nx;
+    s32 ny;
+    s32 nz;
+    s32 ox;
+    s32 oy;
+    s32 bigx;
+    s32 bigy;
+    s32 minx;
+    s32 miny;
+    s32 respawn;
+    s32 pad[2];
+    Vtx *cur;
+    Vtx *prev;
+
+    cur = D_803156F8[D_8035805C].stars;
+    prev = D_803156F8[D_8035805C ^ 1].stars;
+    for (i = 0; i < 0x80; i++) {
+        minx = miny = 0x40000000;
+        for (k = 0, bigx = bigy = 0; k < 4; k++) {
+            n = i * 4 + k;
+            nx = cur[n].v.ob[0] = prev[n].v.ob[0] - (D_80217B6C == 3 ? D_8021A934 * 40.0f : 0.0f);
+            ny = cur[n].v.ob[1] = prev[n].v.ob[1] + (D_80217B6C == 3 ? D_8021A938 * 40.0f : 0.0f);
+            nz = cur[n].v.ob[2] = prev[n].v.ob[2] - D_802159F0[i] * D_8021A918 / 925.0;
+            if (ABS(nx) > 4000) {
+                bigx = nx;
+            }
+            if (ABS(ny) > 4000) {
+                bigy = ny;
+            }
+            if (ABS(nx) < minx) {
+                minx = ABS(nx);
+            }
+            if (ABS(ny) < miny) {
+                miny = ABS(ny);
+            }
+        }
+        respawn = 0;
+        if (bigx != 0 || bigy != 0) {
+            for (k = 0; k < 4; k++) {
+                n = i * 4 + k;
+                ox = cur[n].v.ob[0];
+                oy = cur[n].v.ob[1];
+                if (bigx != 0) {
+                    nx = cur[n].v.ob[0] = func_801FD6B8(0.0f, cur[n].v.ob[0], 3890.0f);
+                }
+                if (bigy != 0) {
+                    ny = cur[n].v.ob[1] = func_801FD6B8(0.0f, cur[n].v.ob[1], 3890.0f);
+                }
+                if (bigx != 0 && ox * nx > 0) {
+                    respawn = 1;
+                }
+                if (bigy != 0 && oy * ny > 0) {
+                    respawn = 1;
+                }
+            }
+        }
+        if (respawn || nz < 0 || (minx < 231250.0 / D_8021A918 && miny < 231250.0 / D_8021A918)) {
+            func_801FDCA4(cur, i, 25000);
+        }
+    }
+}
 
 /* A randomly placed 0x6D-unit square (4 vertices) at depth z. */
 void func_801FDCA4(Vtx *v, s32 idx, s32 z) {

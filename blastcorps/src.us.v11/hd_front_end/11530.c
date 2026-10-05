@@ -138,6 +138,10 @@ extern u16 *D_80358058;
 extern void *D_8035806C;
 extern u16 D_8035807C;
 extern f32 D_802E8C84[];
+extern s32 D_802FA264; /* debug mode */
+extern u16 D_80370C28; /* controller buttons held */
+void func_8029A7E4(const char *fmt, ...);
+Gfx *func_80274BF0(Dynamic *, Gfx *);
 f32 sqrtf(f32);
 void func_80259450(void);
 void func_80259DC8(void *gfxp, char *str, u16 *wstr, s32 align, s32 fit, s32 x, s32 y, s32 w, s32 h, s32 forward,
@@ -171,7 +175,7 @@ extern f32 D_8021A918;
 extern s16 D_8021A924;
 extern u8 D_802159F0[];
 extern Mtx D_80217B70[];
-extern s8 D_8021A904;
+extern u8 D_8021A904;
 extern s8 D_8021A906;
 extern s8 D_8021A907;
 extern u8 D_8021A908;
@@ -202,6 +206,8 @@ f32 func_801FD6B8(f32 a, f32 b, f32 range);
 void func_801FDE50(void);
 void func_801FDCA4(Vtx *v, s32 idx, s32 z);
 Gfx *func_801FE5D0(Gfx *arg0, Dynamic *dyn);
+Gfx *func_801FC5B8(Dynamic *dyn, Gfx *gdl, u8 from, u8 to);
+void func_801FDE98(void);
 Gfx *func_801F3450(Gfx *, Dynamic *);
 extern Gfx *D_8021A8F4;
 extern Gfx *D_8021A8FC;
@@ -387,7 +393,64 @@ Gfx *func_801F9820(Gfx *arg0, Dynamic *dyn, s32 *count) {
     return gdl;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/11530/func_801F9B84.s")
+/* Level-select globe in close-up (route view), with a debug camera tweak on the controller. */
+Gfx *func_801F9B84(Gfx *arg0, Dynamic *dyn, s32 *count) {
+    Gfx *gdl = arg0;
+
+    gSPSegment(gdl++, 0, 0);
+    gSPSegment(gdl++, 2, osVirtualToPhysical(dyn));
+    gSPSegment(gdl++, 1, osVirtualToPhysical(D_8035806C));
+    gSPDisplayList(gdl++, D_01000010);
+    gSPDisplayList(gdl++, D_01000038);
+    gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, D_80358050[D_8035805C]);
+    gDPSetDepthImage(gdl++, D_80358058);
+    gDPSetRenderMode(gdl++, 0x00504240, 0);
+    gSPTexture(gdl++, 0x8000, 0x8000, 0, G_TX_RENDERTILE, G_ON);
+    gDPSetPrimColor(gdl++, 0, 0, 0, 0, 0, D_8021AB21);
+    gDPSetCombine(gdl++, 0xFF97FF, 0xFF2CFE7F);
+    gImmp1(gdl++, G_RDPHALF_1, D_8035807C);
+    gSPMatrix(gdl++, &dyn->persp, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
+    gSPMatrix(gdl++, &dyn->unk140, G_MTX_PROJECTION | G_MTX_MUL | G_MTX_NOPUSH);
+    gSPMatrix(gdl++, &D_80217B70[D_8035805C + 12], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+    gSPMatrix(gdl++, &D_80217B70[D_8035805C + 14], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
+    gSPMatrix(gdl++, &dyn->translate, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
+    gdl = func_801FC5B8(dyn, gdl, D_8021A904, D_8021A905);
+    func_801FDE98();
+    gdl = func_80274BF0(&dyn[D_8035805C], gdl);
+    gDPFullSync(gdl++);
+    gSPEndDisplayList(gdl++);
+    if (D_802FA264) {
+        if (D_80370C28 & 0x800) {
+            D_8021AB40 += 0.01;
+        }
+        if (D_80370C28 & 0x400) {
+            D_8021AB40 -= 0.01;
+        }
+        if (D_80370C28 & 0xC00) {
+            func_8029A7E4("angd %f\n", D_8021AB40);
+        }
+        if (D_80370C28 & 0x100) {
+            D_8021AB44 += 0.001;
+        }
+        if (D_80370C28 & 0x200) {
+            D_8021AB44 -= 0.001;
+        }
+        if (D_80370C28 & 0x300) {
+            func_8029A7E4("dmm %f\n", D_8021AB44);
+        }
+        if (D_80370C28 & 0x10) {
+            D_8021AB48 += 100.0f;
+        }
+        if (D_80370C28 & 0x20) {
+            D_8021AB48 -= 100.0f;
+        }
+        if (D_80370C28 & 0x30) {
+            func_8029A7E4("mmm %f\n", D_8021AB48);
+        }
+    }
+    *count = gdl - arg0;
+    return gdl;
+}
 
 /* Draw the routes between open levels; pick the route marker nearest the globe's facing longitude. */
 Gfx *func_801FA180(Gfx *arg0, Dynamic *dyn, f32 lon0, s8 *selected) {

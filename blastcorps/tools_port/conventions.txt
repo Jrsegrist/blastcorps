@@ -70,6 +70,22 @@ func_8029BF64: in a0=a0,a1=a1,a2=a2,a3=a3,v0=stack0,v1=stack1,t0=stack2,t1=stack
 func_8029BD0C: in t3=a0,t4=a1,t5=a2,t6=a3,s0=stack0 ; out t7=ret ; preserve t3,t4,t5,t6,t8,t9,f12,f14 ; clobbers s2,s3,s4
 # vertex 0 within t6 of (t3, t4, t5) -> t7
 func_8029BEE4: in t3=a0,t4=a1,t5=a2,t6=a3,s0=stack0 ; out t7=ret ; preserve t3,t4,t5,t6,t8,t9,f12,f14
+# cubic spline value at f30 from control values f0, f2, f4, f6 and the basis D_803B3778 -> f8 (restores v0/v1)
+func_8029E878: in f0=f12,f2=f14,f4=a2,f6=a3,f30=stack0 ; out f8=fret ; preserve v0,v1,a0,a1,a2,a3,t3,t4,t5,t6,t7,f14
+# t^2 / t^3 (t in f30) to D_803B37B8/BC, control indices around frame t2 of t6 to D_803B7FC0; t^3 -> f8
+func_8029F060: in f30=f12,t2=a1,t6=a2 ; out f8=fret ; preserve v0,v1,a0,a1,a2,a3,t2,t3,t4,t5,t6,t7,f12,f14
+# cardinal-spline basis for tension *(f32 *)(t0+8) when fp == 1; f12/f14 written only then, f20 = 1.0
+func_8029F110: in t0=a0,fp=a1,f12=*a2,f14=*a2+4 ; out f12=*a2,f14=*a2+4,f20=*a2+8 ; preserve v0,a0,a1,a2,a3,t2,t3,t4,t5,t6,t7
+# advance animation channel t0 (frame t2 of t6, frac f30) by f6 * speed -> t2, t7 (dir), f30, f8 (speed); s0-s2 scratch
+func_8029F1BC: in f6=f12,f30=f14,t0=a2,t2=a3,t6=stack0 ; out f8=fret,t2=*stack1,t7=*stack1+4,f30=*stack1+8 ; preserve a0,a1,a2,a3,t0,t3,t6,f12,f14 ; clobbers s0,s1,s2
+# lerp (a0,a1,a2) -> (a3,t0,t1) by f30 into a translation matrix at D_803B3730; 0 if the result is 0 -> a0 (saves s2)
+func_8029F3D0: in a0=a0,a1=a1,a2=a2,a3=a3,t0=stack0,t1=stack1,f30=stack2 ; out a0=ret ; preserve t7,f8,f12,f14
+# shortest-way angle lerp a0 -> a1 by f30 -> t4
+func_8029F6B0: in a0=a0,a1=a1,f30=a2 ; out t4=ret ; preserve a0,a1,a2,a3,t1,t5,t7
+# lerp as func_8029F3D0 into a scale matrix at D_803B3730; 0 if unit scale (0x100) -> a0 (saves s2)
+func_8029F760: in a0=a0,a1=a1,a2=a2,a3=a3,t0=stack0,t1=stack1,f30=stack2 ; out a0=ret ; preserve a2,t7
+# model setup from header t1: 32 channel entries at t0, copy/identity-fill buffers a0 and v1; t7 = s0 = s1 = 0 after
+func_8029F85C: in a0=a0,v1=a1,t0=a2,t1=a3 ; out t7=ret ; preserve a1,a2,a3,f12,f14 ; clobbers s0,s1
 # gp (= D_803EEA90) byte/timer update; ABI-clean apart from gp, which the C reads as the global
 func_8029A914: preserve a1,a3,t0,t1,t3,t6,f12,f14
 # t1 / gp[0xA0] (divu) unless s1 == 0xFF or the byte is 1 (saves v0); still asm (func_8029CB04 jumps into its epilogue)

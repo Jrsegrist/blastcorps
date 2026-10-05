@@ -171,6 +171,50 @@ func_8029BEE4: -n 300 --follow-all --arg s0=ptr:0x60 --mem @s0+0x28*4:3=int:-0x1
 func_8029BEE4: -n 300 --seed 1 --follow-all --arg s0=ptr:0x60 --mem @s0+0x28*4:3=int:-3:3 --arg t3=int:-3:3 \
     --arg t4=int:-3:3 --arg t5=int:-3:3 --arg t6=int:0:5
 
+# ---- animation / spline helpers ----
+# func_8029E878 (p0..p3 in f0, f2, f4, f6, t in f30): cubic through the basis D_803B3778 -> f8
+func_8029E878: -n 300 --mem D_803B3778:0x48=floats:-4:4 --arg f0=float:-1000:1000 --arg f2=float:-1000:1000 \
+    --arg f4=float:-1000:1000 --arg f6=float:-1000:1000 --arg f30=float:0:1
+# func_8029F060 (t in f30, idx in t2, n in t6): t^2, t^3 and the four wrapped control indices
+func_8029F060: -n 300 --arg f30=float:0:1 --arg t2=int:0:20 --arg t6=int:1:21 --mem D_803B7FC0:4=rand --mem D_803B37B8:8=rand
+func_8029F060: -n 200 --seed 1 --arg f30=float:-2:2 --arg t2=choice:0,1,2,3,4,5,-1 --arg t6=choice:1,2,3,4,5 \
+    --mem D_803B7FC0:4=rand --mem D_803B37B8:8=rand
+# func_8029F110 (t0 = p, fp = mode): basis for tension *(f32 *)(p + 8) when mode == 1; f12/f14 only then, f20 = 1.0
+func_8029F110: -n 300 --arg t0=ptr:0x20 --mem @t0+8:4=floats:-2:2 --arg fp=choice:0,1,1,1,2,-1 --arg f12=float --arg f14=float \
+    --mem D_803B3778:0x40=rand
+# func_8029F1BC (t0 = channel, t2 = frame, t6 = n, f6 = delta, f30 = frac): forward/backward step, wrap, turn, stop
+func_8029F1BC: -n 400 --arg t0=ptr:0x18 --mem @t0+0x11:1=bytes:0,1,2 --mem @t0+0x12:1=bytes:0,1 --mem @t0+0x14:1=bytes:0,1,2,8,0xFF \
+    --mem @t0+0xC:2=halves:0,1,2,5,0x7FFF,0xFFFF --mem @t0+0xE:2=halves:0,1,2,3,6,0xFFFF,0x8000 \
+    --arg f6=float:0:2 --arg f30=float:0:1 --arg t2=int:0:24 --arg t6=int:2:21
+# exact steps (delta * speed integral, frac 0 / 0.5 / 1): frames landing exactly on 0 and n - 1, single-segment tracks
+func_8029F1BC: -n 400 --seed 1 --arg t0=ptr:0x18 --mem @t0+0x11:1=bytes:0,1 --mem @t0+0x12:1=bytes:0,1 --mem @t0+0x14:1=bytes:0,1,2 \
+    --mem @t0+0xC:2=halves:0,1,2 --mem @t0+0xE:2=halves:1,2,3,0xFFFF --arg f6=choice:0,0x3F800000,0x40000000,0x3F000000 \
+    --arg f30=choice:0,0x3F000000,0x3F800000 --arg t2=int:0:5 --arg t6=int:2:6
+# func_8029F3D0 (from a0-a2 to a3, t0, t1 by f30): translation matrix at D_803B3730, 0 when the result is the origin
+func_8029F3D0: -n 300 --arg a0=int:-0x8000:0x7FFF --arg a1=int:-0x8000:0x7FFF --arg a2=int:-0x8000:0x7FFF \
+    --arg a3=int:-0x8000:0x7FFF --arg t0=int:-0x8000:0x7FFF --arg t1=int:-0x8000:0x7FFF --arg f30=float:0:1 --mem D_803B3730:0x40=rand
+# t = 0 / 0.5 / 1 (rounding ties), results at the origin
+func_8029F3D0: -n 300 --seed 1 --arg a0=int:-2:2 --arg a1=int:-2:2 --arg a2=int:-2:2 --arg a3=int:-3:3 --arg t0=int:-3:3 \
+    --arg t1=int:-3:3 --arg f30=choice:0,0x3F000000,0x3F800000,0x3E800000 --mem D_803B3730:0x40=rand
+# func_8029F760: as func_8029F3D0, scale matrix, 0 when all three are 0x100
+func_8029F760: -n 300 --arg a0=int:-0x8000:0x7FFF --arg a1=int:-0x8000:0x7FFF --arg a2=int:-0x8000:0x7FFF \
+    --arg a3=int:-0x8000:0x7FFF --arg t0=int:-0x8000:0x7FFF --arg t1=int:-0x8000:0x7FFF --arg f30=float:0:1 --mem D_803B3730:0x40=rand
+func_8029F760: -n 300 --seed 1 --arg a0=choice:0x100,0xFF,0x101,0xFD --arg a1=choice:0x100,0xFE,0xFD --arg a2=choice:0x100,0x102,0x103 \
+    --arg a3=choice:0x100,0x101,0xFF --arg t0=choice:0x100,0x102 --arg t1=choice:0x100,0x101 \
+    --arg f30=choice:0,0x3F000000,0x3F800000 --mem D_803B3730:0x40=rand
+# func_8029F6B0 (a0 -> a1 by f30): shortest-way angle lerp in 1/16 units -> t4
+func_8029F6B0: -n 300 --arg a0=int:0:0xFFFF --arg a1=int:0:0xFFFF --arg f30=float:0:1
+# differences of exactly +-2048 (0x8000 / 16) and just past, t = 0 / 0.5 / 1
+func_8029F6B0: -n 300 --seed 1 --arg a0=choice:0,0x10,0x8000,0xFFF0,0x10000 --arg a1=choice:0,0x8000,0x8010,0x7FF0,0x10010,0xFFFF \
+    --arg f30=choice:0,0x3F000000,0x3F800000
+# func_8029F85C (a0 = bufA, v1 = bufB, t0 = channels, t1 = header): channel init, data copy + identity fill
+func_8029F85C: -n 100 --heap 0x200 --heap 0x300 --heap 0x200 --heap 0x200 --arg t1=rel:heap0 --arg t0=rel:heap1 \
+    --arg a0=rel:heap2 --arg v1=rel:heap3 --mem @heap0+0x10=0x40 --mem @heap0+0x18=0x100 --mem @heap0+0x100=0xA0 --mem @heap0+0x104=0x20
+func_8029F85C: -n 50 --seed 1 --heap 0x200 --heap 0x300 --heap 0x200 --heap 0x200 --arg t1=rel:heap0 --arg t0=rel:heap1 \
+    --arg a0=rel:heap2 --arg v1=rel:heap3 --mem @heap0+0x10=0x40 --mem @heap0+0x18=0x100 --mem @heap0+0x100=0x40 --mem @heap0+0x104=0
+func_8029F85C: -n 50 --seed 2 --heap 0x200 --heap 0x300 --heap 0x200 --heap 0x200 --arg t1=rel:heap0 --arg t0=rel:heap1 \
+    --arg a0=rel:heap2 --arg v1=rel:heap3 --mem @heap0+0x10=0x80 --mem @heap0+0x18=0x100 --mem @heap0+0x100=0x40 --mem @heap0+0x104=0x40
+
 # func_8029C284 (t3 = x, t5 = z): D_803A7418[0] = x*4/D_803BE724 + (z*4/D_803BE728) * D_803BE72C, [1] = -1
 func_8029C284: -n 300 --arg t3=int:-0x100000:0x100000 --arg t5=int:-0x100000:0x100000 \
     --mem D_803BE724=choice:1,2,3,7,0x100,0x1000,-1,-5 --mem D_803BE728=choice:1,2,3,7,0x100,0x1000,-1,-5 \

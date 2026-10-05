@@ -69,7 +69,10 @@ segments:
     - [0x60F60, c, hd_code/60F60]
     - [0x62740, c, hd_code/62740]
     - [0x679E0, c, hd_code/679E0]
-    - [0x68810, bin, hd_code/68810]
+    - [0x68810, bin, hd_code/68810] # u16 table D_802ACFD0 (read by func_802ACF64); its last 5 words are in 69000.c
+    - [0x69000, c, hd_code/69000] # hand asm: asin lookup (func_802AD7D4/func_802AD7FC); unit starts 0x14 early for 16-alignment
+    - [0x690C0, bin, hd_code/690C0] # asin tables D_802AD880 (1025 x u16) + D_802AE084 (64 x u16); its last 5 words are in 69930.c
+    - [0x69930, c, hd_code/69930] # hand asm: fixed-point sin/cos (func_802AE104/func_802AE160 + float cores); starts 0x14 early
     - [0x69BB0, c, hd_code/69BB0]
     - [0x6B4A0, c, hd_code/6B4A0]
     - [0x6C5E0, c, hd_code/6C5E0]
@@ -79,7 +82,9 @@ segments:
     - [0x75490, c, hd_code/75490]
     - [0x772A0, c, hd_code/772A0]
     - [0x77E20, c, hd_code/77E20]
-    - [0x7D9D0, bin, hd_code/7D9D0_data] # ?? handwritten or a mix of .text+.data?
+    - [0x7D9D0, bin, hd_code/7D9D0_data] # data inside .text (tables used by the hand asm, D_802C2190..D_802C3FFC)
+    - [0x7F8B0, c, hd_code/7F8B0] # hand asm: decompressor + sound-effect wrappers (func_802C4070..func_802C4724)
+    - [0x800E0, bin, hd_code/800E0_data] # more data inside .text (pointer table at 0x802C48A0, D_802C4A20)
     - [0x80280, c, hd_code/7FB50]
     - [0x83910, c, hd_code/83910]
     - [0x853D0, c, hd_code/853D0]

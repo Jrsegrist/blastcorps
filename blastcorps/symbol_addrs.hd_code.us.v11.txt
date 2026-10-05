@@ -314,3 +314,19 @@ D_8030C6B0 = 0x8030C6B0; // type:f64
 D_8030C6B8 = 0x8030C6B8; // type:f64
 D_8030C6C0 = 0x8030C6C0; // type:f64
 D_8030C6C8 = 0x8030C6C8; // type:f64
+
+// hand-written asm split out of the 68810 / 7D9D0 .text blobs (69000.c, 69930.c, 7F8B0.c)
+func_802AD7D4 = 0x802AD7D4; // type:func
+func_802AD7FC = 0x802AD7FC; // type:func
+func_802AE104 = 0x802AE104; // type:func
+func_802AE160 = 0x802AE160; // type:func
+func_802AE1BC = 0x802AE1BC; // type:func
+func_802AE290 = 0x802AE290; // type:func
+func_802C4070 = 0x802C4070; // type:func
+func_802C4108 = 0x802C4108; // type:func
+func_802C41C0 = 0x802C41C0; // type:func
+func_802C42CC = 0x802C42CC; // type:func
+func_802C4310 = 0x802C4310; // type:func
+func_802C444C = 0x802C444C; // type:func
+func_802C4584 = 0x802C4584; // type:func
+func_802C4724 = 0x802C4724; // type:func

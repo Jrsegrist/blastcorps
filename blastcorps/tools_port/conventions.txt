@@ -36,6 +36,9 @@ func_8029DC14: in v0=a0 ; out v1=ret
 func_802A57DC: preserve a0,v1
 
 # --- 62740 ---
+# rounded 3-D distance between (t3,t4,t5) and (t6,t7,s0); 64-bit squares, cvt.d.l/sqrt.d/cvt.l.d
+func_802ABCDC: in t3=a0,t4=a1,t5=a2,t6=a3,t7=stack0,s0=stack1 ; out s1=ret ; preserve t6,t7,s0 ; clobbers s1
+
 # recursive id lookup in the D_803ED3B8 list; saves t1-t4 and s3, leaves s2 changed when found
 func_802AB8D8: in s2=a0 ; out t0=ret ; preserve t1,t2,t3,t4,s3 ; clobbers s2
 

@@ -7,3 +7,14 @@ func_802A6F6C: -n 200 --seed 2 --mem D_803A7410:2=int:0:0xFFFF --mem D_803A7412:
 
 # 4-byte {id, flag, pad} entries terminated by a -1 word (the terminator at +0x40 bounds the scan)
 func_802AB3C0: -n 300 --arg a0=choice:0,1,2,3,0xFF,-1,0x100,0x101 --mem D_803ED3B8:64=words:0x00010000,0x01000000,0x01010000,0x02FF0000,0xFF010000,0x00000000,0xFFFFFFFF,0x03000000,0x00FFFFFF --mem D_803ED3B8+0x40=0xFFFFFFFF
+
+# func_802A7764(a, b, size): 8-byte-unit copy a->b, or b->a when D_8035805C != 0.
+# size must be a multiple of 8 (the asm loops on size != 0).
+func_802A7764: -n 300 --ret void --arg a0=ptr:0x100 --arg a1=ptr:0x100 --arg a2=choice:0,8,0x10,0x18,0x80,0xF8,0x100 --mem D_8035805C:1=choice:0,1,0xFF
+# overlapping blocks (forward copy smears) in both directions
+func_802A7764: -n 200 --seed 1 --ret void --arg a0=ptr:0x200 --arg a1=rel:a0+choice:8,0x10,0x40 --arg a2=choice:8,0x40,0x100 --mem D_8035805C:1=choice:0,1
+
+# func_802A8FB4: D_803EBBF4 *= 3.0f if D_803ED3F5
+func_802A8FB4: -n 300 --ret void --mem D_803ED3F5:1=choice:0,1,0xFF --mem D_803EBBF4:4=floats
+func_802A8FB4: -n 100 --seed 1 --ret void --mem D_803ED3F5:1=choice:0,1 \
+    --mem D_803EBBF4=choice:0,0x80000000,0x7F800000,0xFF800000,0x7FC00000,0x7F7FFFFF,0xFF7FFFFF,0x00000001,0x00800000,0x3F800000,0x2AAAAAAB

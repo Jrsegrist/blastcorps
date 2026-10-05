@@ -9,12 +9,125 @@
  * a more specific comment follows this convention; a few have their own
  * more specific non-ABI explanation where one was already worked out. */
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u32 D_80358070;  /* bump allocator for the save copies */
+extern u8 *D_803FCD54;  /* model header */
+extern u8 *D_803FCD58;  /* the two 0x800-byte save copies */
+extern u8 *D_803FCD5C;
+extern u8 D_803FCCA0[]; /* this vehicle's state block */
+extern u8 D_803FC9A0[]; /* channel table */
+extern void *D_80367738; /* sound player */
+extern void *D_803FCD64; /* sound state */
+extern u8 D_803FCD72;
+extern u8 D_803FCD73;
+extern u8 D_803FCD74;
+extern u8 D_803FCD75; /* sound mode: 0 or 1 */
+extern u8 D_803FCD76;
+extern u8 D_803FCD77;
+extern u8 D_803FCD78;
+extern u8 D_803FCD79;
+extern u8 D_803FCD7A;
+void func_802A1388(s32 a0Val, s32 a1Val, s32 v0Val, s32 v1Val, u8 *hdr); /* 5CB60 */
+s32 func_8029F85C(u32 *bufA, u32 *bufB, void *ch, u8 *hdr);             /* 56040 */
+void func_802A0290(void *base, s32 idx, s32 val);                       /* 56040 */
+void func_802A0320(s32 idx, void *base);                                /* 56040 */
+void func_802A0360(f32 f, void *base, s32 idx, s32 val);                /* 56040 */
+void func_802A039C(void *base, s32 idx, s32 val);                       /* 56040 */
+void func_802A03D4(void *base, s32 idx, s32 val);                       /* 56040 */
+void func_802A040C(void *base, s32 idx, s32 val);                       /* 56040 */
+void func_802A0480(f32 f, void *base, s32 idx, s32 val);                /* 56040 */
+void func_8029E558(u8 *base, u8 *other, void *ch);                      /* 56040 */
+void func_80258230(u8 id, s32 arg1, s16 arg2, s16 arg3);                /* 13A70 */
+void *func_80260650(void *arg0, s16 arg1, void *arg2);                  /* 17E10 */
+void func_80260AB8(void *arg0, s16 arg1, s32 arg2);                     /* 1A630 */
+void func_80268F54(void);                                               /* 23C20 */
+void func_802AA838(u8 *src, u8 *dst, s32 off);                          /* 62740 */
+void func_802D291C(void);
+
+/* Set up vehicle 0xFD (the level-object dispatcher func_802A30DC): model
+ * header hdr -> D_803FCD54; two 0x800-byte save copies from the D_80358070
+ * bump pointer (D_803FCD58/5C; trapping adds); func_802A1388(0xFD, 0,
+ * copies, hdr); heading/target/speed of D_803FCCA0 and the event flags
+ * D_803FCD72..7A (but 75) cleared; model channels D_803FC9A0 (func_8029F85C,
+ * channel 0 = (100, 0, 0, 0.0, 1), run into both copies); channel 2's sound
+ * part: mode D_803FCD75 1 -> func_802A0360(0.0, 2, 0), 0 -> start sound 0x6A
+ * into D_803FCD64 at volume 0 (func_80260650, func_80260AB8(.., 8, 0)) and
+ * func_802A0360(f0, 2, 1); then channels 2 = (0, 0, 1, -1) and 1 = (0, 0,
+ * 0360 0.0, 1, -1); func_80258230(0xFD, 120, 45, 45), func_80268F54, one
+ * update with +0x9A set (func_802D291C), and the model matrix copy (word +4
+ * of the entry at hdr + hdr[6], D_803FCD5C -> D_803FCD58, func_802AA838).
+ * Register notes: hdr comes in s2 (conventions.txt); the asm saves t0-t5
+ * (asm caller func_802A30DC keeps t2), points $gp at D_803FCCA0 and leaves
+ * it, and leaves the channel routines' s0-s5, fp, f20 and func_802D291C's
+ * f12/f14 (survey: read by func_802A30DC; not modelled). In mode 0 the asm
+ * hands func_802A0360 whatever f0 func_80260AB8 left (the mtc1 zero before
+ * the sound calls; those IDO sound routines do no FP work): 0.0 here. Any
+ * other mode hits the asm's `syscall` debug trap and then runs mode 1, as
+ * here. */
+void func_802D2570(u8 *hdr) {
+    u32 p;
+    u8 *h;
+    void *snd;
+
+    D_803FCD54 = hdr;
+    p = D_80358070;
+    D_803FCD58 = (u8 *) p;
+    D_803FCD5C = (u8 *) (p + 0x800);
+    D_80358070 = p + 0x1000;
+    func_802A1388(0xFD, 0, (s32) D_803FCD58, (s32) D_803FCD5C, hdr);
+    *(s16 *) (D_803FCCA0 + 0x4C) = 0;
+    *(s16 *) (D_803FCCA0 + 0x4E) = 0;
+    *(s16 *) (D_803FCCA0 + 0x76) = 0;
+    D_803FCD72 = 0;
+    D_803FCD73 = 0;
+    D_803FCD74 = 0;
+    D_803FCD76 = 0;
+    D_803FCD77 = 0;
+    D_803FCD7A = 0;
+    D_803FCD78 = 0;
+    D_803FCD79 = 0;
+    func_8029F85C((u32 *) D_803FCD5C, (u32 *) D_803FCD58, D_803FC9A0, D_803FCD54);
+    func_802A039C(D_803FC9A0, 0, 100);
+    func_802A03D4(D_803FC9A0, 0, 0);
+    func_802A040C(D_803FC9A0, 0, 0);
+    func_802A0480(0.0f, D_803FC9A0, 0, 0);
+    func_802A0290(D_803FC9A0, 0, 1);
+    func_8029E558(D_803FCD58, D_803FCD5C, D_803FC9A0);
+    func_802A0320(0, D_803FC9A0);
+    func_802A0290(D_803FC9A0, 0, 1);
+    func_8029E558(D_803FCD5C, D_803FCD58, D_803FC9A0);
+    if (D_803FCD75 == 0) {
+        snd = func_80260650(D_80367738, 0x6A, &D_803FCD64);
+        func_80260AB8(snd, 8, 0);
+        func_802A0360(0.0f, D_803FC9A0, 2, 1);
+    } else {
+        func_802A0360(0.0f, D_803FC9A0, 2, 0);
+    }
+    func_802A039C(D_803FC9A0, 2, 0);
+    func_802A03D4(D_803FC9A0, 2, 0);
+    func_802A040C(D_803FC9A0, 2, 1);
+    func_802A0290(D_803FC9A0, 2, -1);
+    func_802A039C(D_803FC9A0, 1, 0);
+    func_802A03D4(D_803FC9A0, 1, 0);
+    func_802A0360(0.0f, D_803FC9A0, 1, 0);
+    func_802A040C(D_803FC9A0, 1, 1);
+    func_802A0290(D_803FC9A0, 1, -1);
+    func_80258230(0xFD, 120, 45, 45);
+    func_80268F54();
+    D_803FCCA0[0x9A] = 1;
+    func_802D291C();
+    D_803FCCA0[0x9A] = 0;
+    h = D_803FCD54;
+    h += *(s32 *) (h + 0x18);
+    func_802AA838(D_803FCD5C, D_803FCD58, *(s32 *) (h + 4));
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8DDB0/func_802D2570.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-typedef struct Unk8029DEA0Entry Unk8029DEA0Entry;
-void func_8029E558(u8 *base, u8 *other, Unk8029DEA0Entry *ch); /* 56040 */
+void func_8029E558(u8 *base, u8 *other, void *ch); /* 56040 */
 void func_802D2A40(void);
 void func_802D2A74(void);
 void func_802D2C20(void);
@@ -40,9 +153,9 @@ void func_802D291C(void) {
         func_802D2C20();
     }
     if (D_8035805C != 0) {
-        func_8029E558(D_803FCD58, D_803FCD5C, (Unk8029DEA0Entry *) D_803FC9A0);
+        func_8029E558(D_803FCD58, D_803FCD5C, D_803FC9A0);
     } else {
-        func_8029E558(D_803FCD5C, D_803FCD58, (Unk8029DEA0Entry *) D_803FC9A0);
+        func_8029E558(D_803FCD5C, D_803FCD58, D_803FC9A0);
     }
     func_802D2FA4();
 }

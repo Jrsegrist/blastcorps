@@ -60,3 +60,18 @@ func_802D291C: -n 200 --seed 1 --heap 0x200 --heap 0x100 --mem D_803FCD54=rel:he
     --mem D_803EBC10:0x20=rand --mem D_803EBC10=1 --mem D_803EBC10+0xC:1=0xFD \
     --sig func_802D2A40= --sig func_802D2A74= --sig func_802D2C20= \
     --follow func_802D2FA4,func_802AA764,func_802ABBEC,func_802AA890
+# func_802D2570: vehicle 0xFD setup (header in s2); sound mode D_803FCD75 0/1 only (other values hit the asm's syscall);
+# the sound calls keep f0 (0.0 from the asm's mtc1; func_802A0360 gets it in mode 0)
+func_802D2570: -n 300 --heap 0x100 --arg s2=rel:heap0 --mem @heap0+0x18=0x40 --mem @heap0+0x44=int \
+    --mem D_80358070=int:0x80100000:0x80200000 --mem D_803FCCA0:0xA0=rand --mem D_803FCD54:0x28=rand --mem D_803FCD75:1=choice:0,1 \
+    --stub-preserve func_80260650=f0 --stub-preserve func_80260AB8=f0 \
+    --sig func_802A0290=a0,a1,a2 --sig func_802A039C=a0,a1,a2 --sig func_802A03D4=a0,a1,a2 --sig func_802A040C=a0,a1,a2 \
+    --sig func_802A0320=a0,a1 --sig func_8029E558=a0,a1,a2 --sig func_802D291C= --sig func_80268F54= --sig func_802AA838=a0,a1,a2 \
+    --sig func_80258230=a0:1,a1,a2:2,a3:2 --sig func_80260650=a0,a1:2,a2 --sig func_80260AB8=a0,a1:2,a2
+# followed: channel setters, matrix copy and the whole per-frame update func_802D291C (its callees stubbed)
+func_802D2570: -n 200 --seed 1 --heap 0x100 --heap 0x1000 --arg s2=rel:heap0 --mem @heap0+0x18=0x40 --mem @heap0+0x44=choice:0,0x40,0x80 \
+    --mem D_80358070=rel:heap1 --mem D_803FCCA0:0xA0=rand --mem D_803FCD48:0x34=rand --mem D_803FCD75:1=choice:0,1 --mem D_8035805C:1=choice:0,1 \
+    --mem D_803FC9A0:0x300=rand --stub-preserve func_80260650=f0 --stub-preserve func_80260AB8=f0 \
+    --follow func_802A0290,func_802A0320,func_802A0360,func_802A039C,func_802A03D4,func_802A040C,func_802A0480,func_802AA838,func_802D291C \
+    --sig func_8029E558=a0,a1,a2 --sig func_80268F54= --sig func_80258230=a0:1,a1,a2:2,a3:2 --sig func_80260650=a0,a1:2,a2 \
+    --sig func_80260AB8=a0,a1:2,a2 --sig func_802D2A40= --sig func_802D2A74= --sig func_802D2C20= --sig func_802D2FA4=

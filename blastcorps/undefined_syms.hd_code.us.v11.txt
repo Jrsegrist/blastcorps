@@ -38,3 +38,4 @@ func_802DAE1C = osSpTaskLoad; /* old name, still used by 2C560.c */
 func_802DB0A0 = osContInit; /* old name, still used by 45BB0.c */
 func_802DB4D0 = osContStartReadData; /* old name, still used by 45BB0.c and 48D00.c */
 func_802DB594 = osContGetReadData; /* old name, still used by 45BB0.c and 48D00.c */
+func_802DA2F0 = osPiStartDma; /* old name, still used by 46C20.c */

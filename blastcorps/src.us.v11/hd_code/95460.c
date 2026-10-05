@@ -26,5 +26,3 @@ void func_802D9D60(void) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/95460/func_802D9D68.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/95460/alSynNew.s")
-
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/95460/func_802DA2F0.s")

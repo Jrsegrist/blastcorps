@@ -159,6 +159,7 @@ segments:
     - [0x953A0, c, hd_code/ul_aisetnextbuf]  # src/io/aisetnextbuf.c, old SDK
     - [0x95450, c, hd_code/ul_aigetlen]
     - [0x95460, c, hd_code/95460]
+    - [0x95B30, c, hd_code/ul_pidma]  # src/io/pidma.c, old SDK (no piHandle)
     - [0x95C40, c, hd_code/ul_llcvt]  # src/libc/llcvt.c
     - [0x95E50, c, hd_code/95E50]
     - [0x961B0, c, hd_code/ul_visetmode]

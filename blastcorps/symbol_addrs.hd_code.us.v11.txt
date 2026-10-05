@@ -103,6 +103,7 @@ _collectPVoices = 0x802D9CB8; // type:func
 __freeParam = 0x802D9D18; // type:func
 __allocParam = 0x802D9D30; // type:func
 alSynNew = 0x802D9FF0; // type:func
+osPiStartDma = 0x802DA2F0; // type:func
 __d_to_ll = 0x802DA400; // type:func
 __f_to_ll = 0x802DA41C; // type:func
 __d_to_ull = 0x802DA438; // type:func

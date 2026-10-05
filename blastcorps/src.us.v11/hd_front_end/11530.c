@@ -17,6 +17,8 @@ typedef struct {
     /* 0x2C */ f32 unk2C;
 } GlobeLevel; /* size 0x30 */
 
+#define MIN2(a, b) ((a) < (b) ? (a) : (b))
+#define MAX2(a, b) ((a) < (b) ? (b) : (a))
 #define JTEXT(addr) ((u16 *) (addr))
 
 GlobeLevel D_8020D810[60] = {
@@ -127,7 +129,9 @@ typedef struct {
     /* 0x1280 */ Mtx translate;
     /* 0x12C0 */ u8 pad12C0[0x15C0 - 0x12C0];
     /* 0x15C0 */ Vtx stars[0x80 * 4];
-    /* 0x35C0 */ u8 pad35C0[0x21498 - 0x35C0];
+    /* 0x35C0 */ u8 pad35C0[0x48B0 - 0x35C0];
+    /* 0x48B0 */ Gfx gfx[(0x21498 - 0x48B0) / 8];
+    /* 0x21498 */ u8 pad21498[0x21498 - 0x48B0 - ((0x21498 - 0x48B0) / 8) * 8];
 } Dynamic;
 
 extern Gfx D_01000010[];
@@ -172,7 +176,7 @@ extern u8 D_8021A8F0;
 extern Gfx *D_8021A8F8;
 extern u8 D_8021A905;
 extern f32 D_8021A918;
-extern s16 D_8021A924;
+extern u16 D_8021A924;
 extern u8 D_802159F0[];
 extern Mtx D_80217B70[];
 extern u8 D_8021A904;
@@ -187,12 +191,12 @@ extern f32 D_8021A934;
 extern f32 D_8021A938;
 extern u16 D_8021A926;
 extern s32 D_8021A928[];
-extern s8 D_8021A930;
+extern u8 D_8021A930;
 extern u8 D_8021AB20;
 extern f32 D_8021AB28;
 extern s16 D_8021AB2C;
-extern s8 D_8021AB2E;
-extern s32 D_8021AB38;
+extern u8 D_8021AB2E;
+extern void *D_8021AB38;
 extern f32 D_8021AB40;
 extern f32 D_8021AB44;
 extern f32 D_8021AB48;
@@ -233,6 +237,44 @@ extern f32 D_8021A8E4; /* arc angle */
 extern f32 D_8021A8E8; /* flight progress 0..1 */
 extern f32 D_8021A8EC; /* altitude scale */
 extern u32 D_803156C4;
+extern s32 D_80358060;
+extern s32 D_80358078;
+extern s32 D_80358080;
+extern s32 D_80358084;
+extern OSMesgQueue D_80315180;
+extern u8 D_80364A87;
+extern u64 D_80364A98; /* next game mode */
+extern s32 D_802E8BDC; /* current level */
+extern s8 D_80370C2C; /* stick x */
+extern s8 D_80370C2D; /* stick y */
+extern u16 D_80370C2A; /* controller buttons, previous frame */
+extern s16 yoshiState;
+extern f32 D_8021A90C;
+extern f32 D_8021A910;
+extern f32 D_8021A914;
+extern s32 D_8021AB24;
+extern s32 D_8021AB58;
+extern s32 D_8021AB5C;
+extern f32 D_8021AB60;
+extern f32 D_8021AB64;
+extern Gfx *D_8021AB68;
+extern Gfx *D_8021AB6C;
+void func_802A5720(void);
+void func_802A57AC(void);
+void func_8028A3E4(void);
+void func_8028A470(void);
+void func_80284E54(Gfx *, s32, s32, s32, s32, s32);
+s32 func_802753C0(void);
+void func_80275390(u64);
+void func_80260A10(void);
+void func_802608C8(void *);
+f32 func_8028BBF4(s32, s32, s32, s32);
+u64 func_80299FE8(s32);
+void func_801ECB18(void);
+Gfx *func_801F9258(Gfx *, Dynamic *, s32 *);
+Gfx *func_801F9820(Gfx *, Dynamic *, s32 *);
+Gfx *func_801F9B84(Gfx *, Dynamic *, s32 *);
+void func_801FD748(void);
 s32 func_802AD7D4(s32);
 
 void func_801FCF38(Vtx *v, f32 x, f32 y, f32 z, u8 w, u8 h, f32 scale, u8 flip);
@@ -320,7 +362,130 @@ void func_801F885C(s32 arg0) {
     D_8021AB34 = &D_802E8F94[D_8021A905];
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/11530/func_801F8980.s")
+/* Level-select: one frame (input, globe spin, fades, draw). */
+void func_801F8980(void) {
+    s16 ox;
+    s16 oy;
+    s32 i;
+    u32 dist;
+    Dynamic *dyn;
+
+    D_80358080 = 0;
+    D_80358084 = 0;
+    func_802A5720();
+    func_8028A3E4();
+    if (D_80358060) {
+        func_80284E54(D_803156F8[D_8035805C].gfx, D_80358078, 2, 0, 1234, 0);
+        func_80284E54(D_8021AB68, D_8021AB58, 0, 0, 1234, 0);
+        func_80284E54(D_8021AB6C, D_8021AB5C, 1, 1, 1234, 0);
+    } else {
+        func_80284E54(D_803156F8[D_8035805C].gfx, D_80358078, 1, 1, 1234, 0);
+    }
+    D_8035805C ^= 1;
+    dyn = &D_803156F8[D_8035805C];
+    func_8028A470();
+    if (D_8021AB2E || (!func_802753C0() && D_8021A924 == 1 && (D_80370C28 & 0x9000) && !(D_80370C2A & 0x9000))) {
+        if (D_8021A926 == 0) {
+            func_80260A10();
+            func_80260650(D_80367738, 0x1E, 0);
+            D_8021A924 = 2;
+            func_8029A7E4("selected level %d\n", D_8021A905);
+            D_802E8BDC = D_8021A905;
+            func_801ECB18();
+            D_8021AB2E = 0;
+        } else {
+            D_8021AB2E = 1;
+        }
+    }
+    if ((D_80370C28 & 0x4000) && !(D_80370C2A & 0x4000) && !func_802753C0() && D_8021A924 == 1) {
+        D_80364A87 = 0;
+        func_80260650(D_80367738, 0xDE, 0);
+        func_80275390(0x4000000000000000);
+        D_802E8BDC = D_8021A905;
+    }
+    dist = D_80370C2C * D_80370C2C + D_80370C2D * D_80370C2D;
+    if (dist < 1500) {
+        D_8021A930 = 1;
+    }
+    if (dist != 0) {
+        D_8020E3D8 = func_8028BBF4(0, 0, D_80370C2C, -D_80370C2D);
+    }
+    if (dist > 1500 && D_8021A930 && D_8021A907 >= 0 && D_8021AB2C == 0xFF && D_8021A924 == 1 && yoshiState == 1) {
+        D_8021A930 = 0;
+        D_8021A904 = D_8021A905;
+        func_801F885C(D_8021A907);
+        D_8021A926 = 1;
+        D_8021AB28 = 1.0f;
+        if (D_8021AB38) {
+            func_802608C8(D_8021AB38);
+        }
+    }
+    switch (D_8021A924) {
+        case 0:
+            if (D_8021AB21 + 10 >= 0x100) {
+                D_8021AB21 = 0xFF;
+            } else {
+                D_8021AB21 += 10;
+            }
+            D_8021A918 -= 200.0f;
+            if (D_8021A918 <= 925.0) {
+                D_8021A924 = 1;
+                D_8021A918 = 925.0f;
+                D_8021AB24 = D_803156C4;
+            }
+            break;
+        case 2:
+            D_8021A918 -= 50.0f;
+            if (D_8021AB21 - 25 < 0) {
+                D_8021AB21 = 0;
+            } else {
+                D_8021AB21 -= 25;
+            }
+            if (D_8021AB2C - 64 < 0) {
+                D_8021AB2C = 0;
+            } else {
+                D_8021AB2C -= 64;
+            }
+            if (D_8021A918 <= 300.0) {
+                D_80364A98 = func_80299FE8(D_802E8BDC);
+            }
+            break;
+        default:
+            D_8021AB21 = 0xFF;
+            if (D_8021A926 == 0) {
+                if (D_8021AB2C + 32 >= 0x100) {
+                    D_8021AB2C = 0xFF;
+                } else {
+                    D_8021AB2C += 32;
+                }
+            }
+            break;
+    }
+    if (D_80217B6C != 3) {
+        D_8021AB21 = 0;
+    }
+    ox = D_8021A90C;
+    oy = D_8021A910;
+    func_801FD484(&D_8021A920, &D_8021A91C, &D_8021A90C, &D_8021A910, &D_8021A914, 925.0f);
+    D_8021A934 = D_8021A90C - ox;
+    D_8021A938 = D_8021A910 - oy;
+    D_8021AB60 = D_8020D810[D_8021A905].unk14;
+    D_8021AB64 = D_8020D810[D_8021A905].unk10;
+    D_8021A934 = func_801FD6B8(D_8021AB60, D_8021A91C, 180.0f) * MAX2(dist >> 2, 500) / 10000.0f;
+    D_8021A938 = func_801FD6B8(D_8021AB64, D_8021A920, 180.0f) * MAX2(dist >> 2, 500) / 10000.0f;
+    D_8021A91C -= D_8021A934;
+    D_8021A920 -= D_8021A938;
+    D_8021AB68 = func_801F9258(dyn->gfx, dyn, &D_80358078);
+    D_8021AB6C = func_801F9820(D_8021AB68, dyn, &D_8021AB58);
+    func_801F9B84(D_8021AB6C, dyn, &D_8021AB5C);
+    func_801FD748();
+    for (i = 0; i < D_80358080; i++) {
+        osRecvMesg(&D_80315180, NULL, OS_MESG_BLOCK);
+    }
+    for (i = 0; i < D_80358080 - D_80358084; i++) {
+        func_802A57AC();
+    }
+}
 
 /* Level-select info screen: level name and the level's collectable icons. */
 Gfx *func_801F9258(Gfx *arg0, Dynamic *dyn, s32 *count) {
@@ -544,9 +709,6 @@ Gfx *func_801FA180(Gfx *arg0, Dynamic *dyn, f32 lon0, s8 *selected) {
 }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/11530/func_801FA74C.s")
-
-#define MIN2(a, b) ((a) < (b) ? (a) : (b))
-#define MAX2(a, b) ((a) < (b) ? (b) : (a))
 
 /* The plane icon flying along the great circle between two levels. */
 Gfx *func_801FC5B8(Dynamic *dyn, Gfx *arg1, u8 from, u8 to) {

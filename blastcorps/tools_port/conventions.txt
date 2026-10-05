@@ -477,6 +477,10 @@ func_802C4724: in a1=a0 ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,f12
 func_802CEE14: in t4=a0,t5=a1,t6=a2 ; preserve v0,v1,a0,a1,a2,a3,t1,t2,t3,t7,f12,f14
 # 24 debris records at the s32 x, y, z that t1 points to; saves every register
 func_802CF3E0: in t1=a0 ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,f12,f14
+# level setup of the boxes (level object in t0, saved); leaves channel-routine junk in s0-s7, fp, f20, f30
+func_802CEAA0: in t0=a0 ; preserve t0 ; clobbers s0-s7,fp,f20,f30
+# box drawing (o32 from 00000.c); func_8029E558 leaves f20/f30 changed
+func_802CEEFC: clobbers f20,f30
 
 # --- 679E0 ---
 # s32 16.16 matrix (s2) to Mtx layout in place; saves everything

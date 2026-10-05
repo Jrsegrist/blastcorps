@@ -158,7 +158,7 @@ segments:
     - [0x95240, c, hd_code/ul_aisetfreq]
     - [0x953A0, c, hd_code/ul_aisetnextbuf]  # src/io/aisetnextbuf.c, old SDK
     - [0x95450, c, hd_code/ul_aigetlen]
-    - [0x95460, c, hd_code/95460]
+    - [0x95460, c, hd_code/ul_synthesizer]  # src/audio/synthesizer.c, old alAudioFrame
     - [0x95B30, c, hd_code/ul_pidma]  # src/io/pidma.c, old SDK (no piHandle)
     - [0x95C40, c, hd_code/ul_llcvt]  # src/libc/llcvt.c
     - [0x95E50, c, hd_code/ul_vimgr]  # src/io/vimgr.c, old SDK (no EPI, short OSIoMesg)
@@ -306,7 +306,7 @@ segments:
     - [0xC9310, bin, hd_code/hd_code_data_C9310]
     - [0xC9390, .rodata, hd_code/ul_cseq]
     - [0xC93A0, .rodata, hd_code/ul_csplayer]
-    - [0xC95E0, bin, hd_code/hd_code_data_C95E0]
+    - [0xC95E0, .rodata, hd_code/ul_synthesizer]
     - [0xC95F0, .rodata, hd_code/ul_llcvt]
     - [0xC9600, bin, hd_code/hd_code_data_C9600]
     - [0xC9760, .rodata, hd_code/ul_seqplayer]

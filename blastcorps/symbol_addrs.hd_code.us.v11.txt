@@ -110,6 +110,7 @@ _freePVoice = 0x802D9C80; // type:func
 _collectPVoices = 0x802D9CB8; // type:func
 __freeParam = 0x802D9D18; // type:func
 __allocParam = 0x802D9D30; // type:func
+alAudioFrame = 0x802D9D68; // type:func
 alSynNew = 0x802D9FF0; // type:func
 osPiStartDma = 0x802DA2F0; // type:func
 osCreateViManager = 0x802DA610; // type:func

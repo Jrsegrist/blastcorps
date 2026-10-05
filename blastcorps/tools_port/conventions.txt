@@ -252,6 +252,12 @@ func_802C617C: preserve a0,a1,a2,a3,t6
 # vehicle step value in s6; s7 and a1 are scratch
 func_802C6FD8: out s6=ret ; preserve a2,a3,t6,t7,f12,f14 ; clobbers s7
 func_802C7354: preserve a1,a2,a3,f12,f14
+# enter vehicle: points $gp at D_803F7B50 and leaves it
+func_802C5714: clobbers gp
+func_802C6DAC: preserve a1,a2,a3
+# steering/tilt channels; up flag left in s2 on the steering paths (func_802C7C1C's input), and
+# func_802C7C1C's s3 = 270 left behind there (reaches func_802A6274 via func_802C7544); s5 scratch
+func_802C7864: in s2=*a0 ; out s2=*a0 ; preserve a1,a2,a3,t6,t7,f12,f14 ; clobbers s3,s5
 # (1 - |D_80370C2D| / 80) / 2 in f4 (f6 scratch)
 func_802C7BC0: out f4=fret ; preserve v0,f2
 # up flag in s2, result in f2; leaves s3 = 270

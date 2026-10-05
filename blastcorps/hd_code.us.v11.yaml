@@ -221,7 +221,7 @@ segments:
     - [0x9E050, c, hd_code/ul_siacs]  # src/io/siacs.c
     - [0x9E110, c, hd_code/ul_si]
     - [0x9E140, c, hd_code/9E140]
-    - [0x9E5C0, c, hd_code/9E5C0]
+    - [0x9E5C0, c, hd_code/ul_syncputchars]  # src/os/syncputchars.c, old rdbPacket
     - [0x9E6F0, c, hd_code/9E6F0]
     - [0x9E700, c, hd_code/9E700]
     - [0x9F7D0, c, hd_code/ul_seq]  # src/audio/seq.c
@@ -247,6 +247,8 @@ segments:
     - [0xC2FE0, bin, hd_code/hd_code_data_C2FE0]
     - [0xC3360, .data, hd_code/ul_siacs]
     - [0xC3370, bin, hd_code/hd_code_data_C3370]
+    - [0xC3380, .data, hd_code/ul_syncputchars]
+    - [0xC3390, bin, hd_code/hd_code_data_C3390]
     - [0xC4520, .rodata, hd_code/14B30] # drawtext.c
     - [0xC4720, .rodata, hd_code/168B0]
     - [0xC47D0, .rodata, hd_code/17210]

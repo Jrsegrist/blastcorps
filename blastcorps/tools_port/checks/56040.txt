@@ -1136,3 +1136,119 @@ func_8029E0AC: -n 300 --arg fp=int --mem D_803B35F8:0xC0=rand --mem D_803B35F8*0
 func_8029E0AC: -n 50 --seed 1 --arg fp=int --mem D_803B35F8:0xC0=rand --mem D_803B35F8*0x18:8=choice:0,1,5 \
     --mem D_803B35F8=choice:-1,1 --mem D_803B35F8+0xA8=-1 --mem D_803B35F8+0x10*0x18:8/1=1
 # end-block
+
+# (gpfix) the vehicle block is the caller's $gp (an argument: `in gp=..`), not the fixed D_803EEA90. Runs with other
+# vehicles' blocks (vehicle 1 D_803EDB40, vehicle 10 D_803F8AA0, vehicle 14 D_803F9250, vehicle 16 D_803FC8D0); the
+# D_803EEA90 fields get decoy values, so a rewrite reading or writing the fixed block fails.
+func_8029A914: -n 200 --seed 3 --ret void --arg gp=sym:D_803EDB40 --mem D_803EDB40+0xA0:1=bytes:0,1,2,0xC8,0xFF \
+    --mem D_803EDB40+0x76:2=halves:0,1,10,0x8000,0xFFFF --mem D_803EEA90+0xA0:1=bytes:1,5 \
+    --mem D_803EEA90+0x76:2=halves:0,0xFFFF,7 --mem D_803A742E:1=bytes:0,1 --mem D_803A742D:1=bytes:0,0xC8,0xC9 \
+    --mem D_80358064=choice:0,1 --mem D_803A7410:2=int:0:0xFFF --mem D_803A7412:2=int:0:0xFFF
+func_8029A914: -n 200 --seed 4 --ret void --arg gp=sym:D_803F8AA0 --mem D_803F8AA0+0xA0:1=bytes:0,1,2,0xC8,0xFF \
+    --mem D_803F8AA0+0x76:2=halves:0,1,10,0x8000,0xFFFF --mem D_803EEA90+0xA0:1=bytes:1,5 \
+    --mem D_803EEA90+0x76:2=halves:0,0xFFFF,7 --mem D_803A742E:1=bytes:0,1 --mem D_803A742D:1=bytes:0,0xC8,0xC9 \
+    --mem D_80358064=choice:0,1 --mem D_803A7410:2=int:0:0xFFF --mem D_803A7412:2=int:0:0xFFF
+func_8029A914: -n 200 --seed 5 --ret void --arg gp=sym:D_803F9250 --mem D_803F9250+0xA0:1=bytes:0,1,2,0xC8,0xFF \
+    --mem D_803F9250+0x76:2=halves:0,1,10,0x8000,0xFFFF --mem D_803EEA90+0xA0:1=bytes:1,5 \
+    --mem D_803EEA90+0x76:2=halves:0,0xFFFF,7 --mem D_803A742E:1=bytes:0,1 --mem D_803A742D:1=bytes:0,0xC8,0xC9 \
+    --mem D_80358064=choice:0,1 --mem D_803A7410:2=int:0:0xFFF --mem D_803A7412:2=int:0:0xFFF
+func_8029CB04: -n 200 --seed 2 --arg gp=sym:D_803EDB40 --arg t1=choice:0,1,7,0x64,0xFFFF,0x80000000,0xFFFFFFFF,0x12345678 \
+    --arg t4=choice:0,6,0xFF,0x1FF --mem D_803EDB40+0xA0:1=choice:1,2,3,7,0xC8 --mem D_803EEA90+0xA0:1=choice:1,5
+func_8029CB04: -n 200 --seed 3 --arg gp=sym:D_803F8AA0 --arg t1=choice:0,1,7,0x64,0xFFFF,0x80000000,0xFFFFFFFF,0x12345678 \
+    --arg t4=choice:0,6,0xFF,0x1FF --mem D_803F8AA0+0xA0:1=choice:1,2,3,7,0xC8 --mem D_803EEA90+0xA0:1=choice:1,5
+func_8029CB04: -n 200 --seed 4 --arg gp=sym:D_803FC8D0 --arg t1=choice:0,1,7,0x64,0xFFFF,0x80000000,0xFFFFFFFF,0x12345678 \
+    --arg t4=choice:0,6,0xFF,0x1FF --mem D_803FC8D0+0xA0:1=choice:1,2,3,7,0xC8 --mem D_803EEA90+0xA0:1=choice:1,5
+func_8029CF04: -n 200 --seed 2 --arg gp=sym:D_803EDB40 --arg t1=choice:0,1,7,0x64,0xFFFF,0x80000000,0xFFFFFFFF,0x12345678 \
+    --arg s1=choice:0,6,0xFF,0x1FF --mem D_803EDB40+0xA0:1=choice:1,2,3,7,0xC8 --mem D_803EEA90+0xA0:1=choice:1,5
+func_8029CF04: -n 200 --seed 3 --arg gp=sym:D_803F8AA0 --arg t1=choice:0,1,7,0x64,0xFFFF,0x80000000,0xFFFFFFFF,0x12345678 \
+    --arg s1=choice:0,6,0xFF,0x1FF --mem D_803F8AA0+0xA0:1=choice:1,2,3,7,0xC8 --mem D_803EEA90+0xA0:1=choice:1,5
+func_8029CF04: -n 200 --seed 4 --arg gp=sym:D_803FC8D0 --arg t1=choice:0,1,7,0x64,0xFFFF,0x80000000,0xFFFFFFFF,0x12345678 \
+    --arg s1=choice:0,6,0xFF,0x1FF --mem D_803FC8D0+0xA0:1=choice:1,2,3,7,0xC8 --mem D_803EEA90+0xA0:1=choice:1,5
+# func_8029C9D4 with other blocks: stubbed (func_8029CB04 / func_8029CD54 must get the same block), then followed into
+# func_8029CB04 (the block's byte 0xA0 scales the radii)
+func_8029C9D4: -n 200 --seed 3 --stub-ret func_802AB41C=choice:0,1 --stub-ret func_8029CB04=int --stub-ret func_8029CFA4=choice:0,1 \
+    --arg gp=sym:D_803F8AA0 --mem D_803A7300:0xA0=rand --mem D_803A7300+0x10*0x14:8/1=choice:0,1,2,6,7 \
+    --mem D_803A7300+0x11*0x14:8/1=choice:1,1,0,2 --mem D_803A7300+0x74:1=6 --mem D_803A7300+0x88:1=1 \
+    --mem D_803A7300+0x9D:1=0xFF --mem D_803649E8=choice:0,1 --arg t8=choice:1,6
+func_8029C9D4: -n 200 --seed 4 --follow func_8029CB04,func_8029CFA4,func_802AB41C --arg gp=sym:D_803EDB40 \
+    --mem D_803EDB40+0xA0:1=choice:1,2,4 --mem D_803EEA90+0xA0:1=choice:1,3 --mem D_803A7300:0xA0=words:0,10,-10,50,100,300 \
+    --mem D_803A7300+0xC*0x14:8=choice:0,10,50,300 \
+    --mem D_803A7300+0x10*0x14:8/1=choice:0,1,2,6,7 --mem D_803A7300+0x11*0x14:8/1=choice:1,1,0 \
+    --mem D_803A7300+0x74:1=6 --mem D_803A7300+0x88:1=1 --mem D_803A7300+0x9D:1=0xFF --mem D_803649E8=choice:0,1 \
+    --mem D_803ED3B8:0x40=words:0x00060000,0x02060000,0x07060000,0x06060000,0 --mem D_803ED3B8+0x40=0xFFFFFFFF \
+    --arg t8=choice:1,6
+func_8029C9D4: -n 200 --seed 5 --follow func_8029CB04,func_8029CFA4,func_802AB41C --arg gp=sym:D_803F9250 \
+    --mem D_803F9250+0xA0:1=choice:1,2,4 --mem D_803EEA90+0xA0:1=choice:1,3 --mem D_803A7300:0xA0=words:0,10,-10,50,100,300 \
+    --mem D_803A7300+0xC*0x14:8=choice:0,10,50,300 \
+    --mem D_803A7300+0x10*0x14:8/1=choice:0,1,2,6,7 --mem D_803A7300+0x11*0x14:8/1=choice:1,1,0 \
+    --mem D_803A7300+0x74:1=6 --mem D_803A7300+0x88:1=1 --mem D_803A7300+0x9D:1=0xFF --mem D_803649E8=choice:0,1 \
+    --mem D_803ED3B8:0x40=words:0x00060000,0x02060000,0x07060000,0x06060000,0 --mem D_803ED3B8+0x40=0xFFFFFFFF \
+    --arg t8=choice:1,6
+# func_8029CD54 with other blocks: stubbed (func_8029CF04 gets the block), then followed into func_8029CF04 / func_8029CB54
+func_8029CD54: -n 200 --seed 3 --stub-ret func_8029CF04=choice:0x3BD,5,0x30E --stub-ret func_8029CFA4=choice:0,1,1 \
+    --stub-ret func_802AB41C=choice:0,1 --arg gp=sym:D_803FC8D0 \
+    --mem D_803A6B30:0xA0=words:0,0x30E,0x3BD,10 --mem D_803A6B30+0x12*0x14:8/1=choice:6,7,0,2 \
+    --mem D_803A6B30+0x13*0x14:8/1=choice:0,1,0x80 --mem D_803A6B30+0x9F:1=0xFF \
+    --mem D_803A7430:1=choice:0,0xC8,0xC9,5 --arg t8=choice:6,0,2,7 --arg t4=choice:7,6,0,2
+func_8029CD54: -n 200 --seed 4 --follow func_8029CF04,func_8029CFA4,func_802AB41C,func_8029CB54,func_8029CF54,func_802AD7D4,func_802AD7FC \
+    --sig func_8029B7CC=a0,a1 --arg gp=sym:D_803F8AA0 --mem D_803F8AA0+0xA0:1=choice:1,2,4 --mem D_803EEA90+0xA0:1=choice:1,3 \
+    --mem D_803A6B30:0xA0=words:0,10,-10,50,100,300 --mem D_803A6B30+0xC*0x14:8=choice:0,10,50,300 \
+    --mem D_803A6B30+0x12*0x14:8/1=choice:6,7,0,2 \
+    --mem D_803A6B30+0x13*0x14:8/1=choice:0,1 --mem D_803A6B30+0x9F:1=0xFF --mem D_803A7430:1=int:0:0xFF \
+    --mem D_803EFECB:1=bytes:0,1 --mem D_803649ED:1=rand --mem D_803A7426:1=rand --mem D_803A742C:1=rand \
+    --mem D_803ED3B8:0x40=words:0x00070600,0x02070000,0x07060000,0x06070000,0 --mem D_803ED3B8+0x40=0xFFFFFFFF \
+    --arg t8=choice:6,0,2,7 --arg t4=choice:7,6,0,2
+func_8029CD54: -n 200 --seed 5 --follow func_8029CF04,func_8029CFA4,func_802AB41C,func_8029CB54,func_8029CF54,func_802AD7D4,func_802AD7FC \
+    --sig func_8029B7CC=a0,a1 --arg gp=sym:D_803EDB40 --mem D_803EDB40+0xA0:1=choice:1,2,4 --mem D_803EEA90+0xA0:1=choice:1,3 \
+    --mem D_803A6B30:0xA0=words:0,10,-10,50,100,300 --mem D_803A6B30+0xC*0x14:8=choice:0,10,50,300 \
+    --mem D_803A6B30+0x12*0x14:8/1=choice:6,7,0,2 \
+    --mem D_803A6B30+0x13*0x14:8/1=choice:0,1 --mem D_803A6B30+0x9F:1=0xFF --mem D_803A7430:1=int:0:0xFF \
+    --mem D_803EFECB:1=bytes:0,1 --mem D_803649ED:1=rand --mem D_803A7426:1=rand --mem D_803A742C:1=rand \
+    --mem D_803ED3B8:0x40=words:0x00070600,0x02070000,0x07060000,0x06070000,0 --mem D_803ED3B8+0x40=0xFFFFFFFF \
+    --arg t8=choice:6,0,2,7 --arg t4=choice:7,6,0,2
+# func_8029C52C: stubbed (func_8029C9D4 must get the block), then the whole chain followed (func_8029C9D4 ->
+# func_8029CB04 / func_8029CD54 -> func_8029CF04 / func_8029CB54) with three different blocks
+func_8029C52C: -n 200 --seed 2 --mem D_803A7410:2=choice:0,1,0xFFF,0x800 --mem D_803A7412:2=choice:0xFFF,0,0xFFE \
+    --mem D_803A7424:1=rand --mem D_803A7425:1=rand --arg t8=int --arg gp=sym:D_803F8AA0
+func_8029C52C: -n 200 --seed 3 --follow func_8029C9D4,func_8029C828,func_8029C748,func_8029CB04,func_8029CD54,func_8029CF04,func_8029CFA4,func_802AB41C,func_8029CB54,func_8029CF54,func_802AD7D4,func_802AD7FC \
+    --sig func_8029B7CC=a0,a1 --sig func_8029C914=a0,a1,a2,a3,stack0 --arg gp=sym:D_803F8AA0 \
+    --mem D_803F8AA0+0xA0:1=choice:1,2,4 --mem D_803EEA90+0xA0:1=choice:1,3 \
+    --mem D_803A7300:0xA0=words:0,10,-10,50,100,300 --mem D_803A7300+0xC*0x14:8=choice:0,10,50,300 \
+    --mem D_803A7300+0x10*0x14:8/1=choice:0,1,2,6,7 --mem D_803A7300+0x11*0x14:8/1=choice:1,1,0 \
+    --mem D_803A7300+0x74:1=6 --mem D_803A7300+0x88:1=1 --mem D_803A7300+0x9D:1=0xFF --mem D_803649E8=choice:0,1 \
+    --mem D_803A6B30:0xA0=words:0,10,-10,50,100,300 --mem D_803A6B30+0xC*0x14:8=choice:0,10,50,300 \
+    --mem D_803A6B30+0x12*0x14:8/1=choice:6,7,0,2,1 --mem D_803A6B30+0x13*0x14:8/1=choice:0,1 --mem D_803A6B30+0x9F:1=0xFF \
+    --mem D_803A7430:1=int:0:0xFF --mem D_803EFECB:1=bytes:0,1 --mem D_803649ED:1=rand --mem D_803A7426:1=rand \
+    --mem D_803A742C:1=rand --mem D_803ED3B8:0x40=words:0x00070600,0x02070000,0x07060000,0x06070000,0 \
+    --mem D_803ED3B8+0x40=0xFFFFFFFF --mem D_803FC1F0:1=int:0:5 --mem D_803FBBB0:0x64=words:0,10,-10,50,100 \
+    --mem D_803FB8B8:500=words:0,10,-10,50,100 --mem D_803FB8B8*0x14:25=choice:-1,-1,0 \
+    --mem D_803A7410:2=choice:0,1,0xFFF --mem D_803A7412:2=choice:0xFFF,0 --mem D_803A7424:1=rand \
+    --mem D_803A7425:1=rand --arg t8=choice:1,6
+func_8029C52C: -n 200 --seed 4 --follow func_8029C9D4,func_8029C828,func_8029C748,func_8029CB04,func_8029CD54,func_8029CF04,func_8029CFA4,func_802AB41C,func_8029CB54,func_8029CF54,func_802AD7D4,func_802AD7FC \
+    --sig func_8029B7CC=a0,a1 --sig func_8029C914=a0,a1,a2,a3,stack0 --arg gp=sym:D_803EDB40 \
+    --mem D_803EDB40+0xA0:1=choice:1,2,4 --mem D_803EEA90+0xA0:1=choice:1,3 \
+    --mem D_803A7300:0xA0=words:0,10,-10,50,100,300 --mem D_803A7300+0xC*0x14:8=choice:0,10,50,300 \
+    --mem D_803A7300+0x10*0x14:8/1=choice:0,1,2,6,7 --mem D_803A7300+0x11*0x14:8/1=choice:1,1,0 \
+    --mem D_803A7300+0x74:1=6 --mem D_803A7300+0x88:1=1 --mem D_803A7300+0x9D:1=0xFF --mem D_803649E8=choice:0,1 \
+    --mem D_803A6B30:0xA0=words:0,10,-10,50,100,300 --mem D_803A6B30+0xC*0x14:8=choice:0,10,50,300 \
+    --mem D_803A6B30+0x12*0x14:8/1=choice:6,7,0,2,1 --mem D_803A6B30+0x13*0x14:8/1=choice:0,1 --mem D_803A6B30+0x9F:1=0xFF \
+    --mem D_803A7430:1=int:0:0xFF --mem D_803EFECB:1=bytes:0,1 --mem D_803649ED:1=rand --mem D_803A7426:1=rand \
+    --mem D_803A742C:1=rand --mem D_803ED3B8:0x40=words:0x00070600,0x02070000,0x07060000,0x06070000,0 \
+    --mem D_803ED3B8+0x40=0xFFFFFFFF --mem D_803FC1F0:1=int:0:5 --mem D_803FBBB0:0x64=words:0,10,-10,50,100 \
+    --mem D_803FB8B8:500=words:0,10,-10,50,100 --mem D_803FB8B8*0x14:25=choice:-1,-1,0 \
+    --mem D_803A7410:2=choice:0,1,0xFFF --mem D_803A7412:2=choice:0xFFF,0 --mem D_803A7424:1=rand \
+    --mem D_803A7425:1=rand --arg t8=choice:1,6
+func_8029C52C: -n 200 --seed 5 --follow func_8029C9D4,func_8029C828,func_8029C748,func_8029CB04,func_8029CD54,func_8029CF04,func_8029CFA4,func_802AB41C,func_8029CB54,func_8029CF54,func_802AD7D4,func_802AD7FC \
+    --sig func_8029B7CC=a0,a1 --sig func_8029C914=a0,a1,a2,a3,stack0 --arg gp=sym:D_803F9250 \
+    --mem D_803F9250+0xA0:1=choice:1,2,4 --mem D_803EEA90+0xA0:1=choice:1,3 \
+    --mem D_803A7300:0xA0=words:0,10,-10,50,100,300 --mem D_803A7300+0xC*0x14:8=choice:0,10,50,300 \
+    --mem D_803A7300+0x10*0x14:8/1=choice:0,1,2,6,7 --mem D_803A7300+0x11*0x14:8/1=choice:1,1,0 \
+    --mem D_803A7300+0x74:1=6 --mem D_803A7300+0x88:1=1 --mem D_803A7300+0x9D:1=0xFF --mem D_803649E8=choice:0,1 \
+    --mem D_803A6B30:0xA0=words:0,10,-10,50,100,300 --mem D_803A6B30+0xC*0x14:8=choice:0,10,50,300 \
+    --mem D_803A6B30+0x12*0x14:8/1=choice:6,7,0,2,1 --mem D_803A6B30+0x13*0x14:8/1=choice:0,1 --mem D_803A6B30+0x9F:1=0xFF \
+    --mem D_803A7430:1=int:0:0xFF --mem D_803EFECB:1=bytes:0,1 --mem D_803649ED:1=rand --mem D_803A7426:1=rand \
+    --mem D_803A742C:1=rand --mem D_803ED3B8:0x40=words:0x00070600,0x02070000,0x07060000,0x06070000,0 \
+    --mem D_803ED3B8+0x40=0xFFFFFFFF --mem D_803FC1F0:1=int:0:5 --mem D_803FBBB0:0x64=words:0,10,-10,50,100 \
+    --mem D_803FB8B8:500=words:0,10,-10,50,100 --mem D_803FB8B8*0x14:25=choice:-1,-1,0 \
+    --mem D_803A7410:2=choice:0,1,0xFFF --mem D_803A7412:2=choice:0xFFF,0 --mem D_803A7424:1=rand \
+    --mem D_803A7425:1=rand --arg t8=choice:1,6

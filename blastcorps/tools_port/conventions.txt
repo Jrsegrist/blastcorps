@@ -127,12 +127,12 @@ func_8029F6B0: in a0=a0,a1=a1,f30=a2 ; out t4=ret ; preserve a0,a1,a2,a3,t1,t5,t
 func_8029F760: in a0=a0,a1=a1,a2=a2,a3=a3,t0=stack0,t1=stack1,f30=stack2 ; out a0=ret ; preserve a2,t7
 # model setup from header t1: 32 channel entries at t0, copy/identity-fill buffers a0 and v1; t7 = s0 = s1 = 0 after
 func_8029F85C: in a0=a0,v1=a1,t0=a2,t1=a3 ; out t7=ret ; preserve a1,a2,a3,f12,f14 ; clobbers s0,s1
-# gp (= D_803EEA90) byte/timer update; ABI-clean apart from gp, which the C reads as the global
-func_8029A914: preserve a1,a3,t0,t1,t3,t6,f12,f14
-# t1 / gp[0xA0] (divu) unless s1 == 0xFF or the byte is 1 (saves v0); gp = D_803EEA90, read directly
-func_8029CF04: in t1=a0,s1=a1 ; out t1=ret ; preserve v0,a0,a1,a2,a3,t0,t3,t4,t5,t6,t7,t8,f12,f14
+# vehicle record gp: byte +0xA0 / timer +0x76 update; gp differs per caller (each vehicle passes its own block), so an argument
+func_8029A914: in gp=a0 ; preserve a1,a3,t0,t1,t3,t6,f12,f14
+# t1 / gp[0xA0] (divu) unless s1 == 0xFF or the byte is 1 (saves v0); gp = the caller's vehicle record (argument)
+func_8029CF04: in t1=a0,s1=a1,gp=a2 ; out t1=ret ; preserve v0,a0,a1,a2,a3,t0,t3,t4,t5,t6,t7,t8,f12,f14
 # same with the key in t4 (its 0xFF branch jumps into func_8029CF04's epilogue)
-func_8029CB04: in t1=a0,t4=a1 ; out t1=ret ; preserve v0,a0,a1,a2,a3,t0,t3,t4,t5,t6,t7,t8,f12,f14
+func_8029CB04: in t1=a0,t4=a1,gp=a2 ; out t1=ret ; preserve v0,a0,a1,a2,a3,t0,t3,t4,t5,t6,t7,t8,f12,f14
 # heading (x1,z1) -> (x2,z2) via the arcsine, func_8029B7CC(angle +- 0x400); n -> func_802BCCD4 (saves v0-a2, t0, t7, s0, fp; a3 changed)
 func_8029CB54: in fp=a0,t8=a1,s0=a2,v0=a3,a0=stack0,a2=stack1,t0=stack2 ; preserve v0,v1,a0,a1,a2,t0,t1,t2,t3,t4,t5,t6,t7,t8,t9,f12,f14
 # grid cell of (t3, t5) -> D_803A7418[0], D_803A7418[1] = -1; s0/s1 scratch
@@ -167,9 +167,11 @@ func_8029AB88: in t3=a0,t4=a1,t5=a2,t6=a3,t8=stack0 ; out a1=ret ; preserve v1,t
 func_8029C914: in t8=a0,a2=a1,a3=a2,t0=a3,t1=stack0 ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t3,t5,t8,f12,f14 ; clobbers s0,s1,fp
 func_8029C748: in t8=a0 ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t8,f12,f14 ; clobbers s0,s1,fp
 func_8029C828: in t8=a0 ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t8,f12,f14 ; clobbers s0,s1,fp
-func_8029CD54: in t8=a0,t4=a1 ; preserve v0,v1,a0,a1,a2,a3,t0,t4,t6,t7,t8,s0,s1,f12,f14 ; clobbers fp
-func_8029C9D4: in t8=a0 ; preserve v0,v1,a0,a2,a3,t0,t1,t2,t3,t4,t5,t8,f12,f14 ; clobbers fp
-func_8029C52C: in t8=a0 ; preserve v0,v1,a0,a2,a3,t0,t1,t2,t3,t4,t5,t8,f12,f14 ; clobbers s0,s1,fp
+# (gpfix) gp = the calling vehicle's record (differs per caller: D_803EDB40, D_803EEA90, D_803F8AA0, ...), an argument;
+# the chain passes it down to func_8029CB04 / func_8029CF04, which read its byte +0xA0
+func_8029CD54: in t8=a0,t4=a1,gp=a2 ; preserve v0,v1,a0,a1,a2,a3,t0,t4,t6,t7,t8,s0,s1,f12,f14 ; clobbers fp
+func_8029C9D4: in t8=a0,gp=a1 ; preserve v0,v1,a0,a2,a3,t0,t1,t2,t3,t4,t5,t8,f12,f14 ; clobbers fp
+func_8029C52C: in t8=a0,gp=a1 ; preserve v0,v1,a0,a2,a3,t0,t1,t2,t3,t4,t5,t8,f12,f14 ; clobbers s0,s1,fp
 # world-hit reporting: switch triangle s0 (kind t8, part id fp) -> a1; sphere t3-t6 of kind t8, part id fp; vehicle kind t8
 func_8029BB28: in s0=a0,t8=a1,fp=a2 ; out a1=ret ; preserve v0,v1,a0,a2,a3,t0,t3,t4,t5,t6,t8
 func_8029B02C: in t3=a0,t4=a1,t5=a2,t6=a3,t8=stack0,fp=stack1 ; preserve v1,t0,t1,t3,t6,t7,t8,t9 ; clobbers s3,f20,f22,f24,f26,f28

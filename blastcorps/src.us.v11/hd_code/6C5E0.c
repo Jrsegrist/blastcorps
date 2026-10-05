@@ -117,10 +117,10 @@ void func_802A7070(u8 *veh, s16 *angle);
 s32 func_802A860C(f32 f, s32 angle, s16 *len, s32 *px, s32 *pz, Out802A860C *out);
 void func_8029A800(s32 z, s32 a1, s32 b2, s32 b3, s32 x, s32 y, s32 b0, s32 h1, s32 h2, s32 b4, s32 b8,
                    u8 *veh);
-void func_8029C52C(s32 tag);
+void func_8029C52C(s32 tag, u8 *veh);
 void func_8029AA10(s32 kind);
 void func_802BE77C(s32 id, u8 *vehicle);
-void func_8029A914(void);
+void func_8029A914(u8 *veh);
 s32 func_802A6F6C(void);
 void func_802A70D8(u8 *veh);
 s32 func_802A71DC(u8 *veh, s32 cur, s32 target, s32 *curOut, f32 scale);
@@ -498,12 +498,12 @@ void func_802B152C(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 f
     tag = func_802B2768((s32) (v + 0x34), (s32) (v + 0x96), (s32) &D_803EDFB8[2], &mo);
     func_8029A800(D_803EDFB8[2], (s32) D_80305CF0, 0, 0, D_803EDFB8[0], D_803EDFB8[1], tag, *(s16 *) (v + 0x76),
                   mo.t2, 0, 2, v);
-    func_8029C52C(2);
+    func_8029C52C(2, v);
     func_8029AA10(2);
     D_803F77D0 = D_803EDC10;
     func_802BE77C(2, v);
     if (D_803A7425 != 0) {
-        func_8029A914();
+        func_8029A914(v);
         D_803EDFD8 = 1;
         D_803EDFDA = 0;
         turn = func_802A6F6C();

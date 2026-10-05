@@ -868,9 +868,9 @@ extern s16 D_80364440;
 extern u8 D_80306400[];
 void func_8029A800(s32 z, s32 a1, s32 b2, s32 b3, s32 x, s32 y, s32 b0, s32 h1, s32 h2, s32 b4, s32 b8,
                    u8 *veh);
-void func_8029A914(void);
+void func_8029A914(u8 *veh);
 void func_8029AA10(s32 kind);
-void func_8029C52C(s32 tag);
+void func_8029C52C(s32 tag, u8 *veh);
 void func_8029E558(u8 *base, u8 *other, void *ch);
 s32 func_802A6F6C(void);
 void func_802A6FE4(u8 *veh, s32 limit);
@@ -925,7 +925,7 @@ s32 func_802C7DFC(void);
  * modelled. func_802C7CB0 gets s0 = &+0x96, s1 = &D_803F7C00 (left after
  * func_802A8768; func_8029E558's own leftovers in the game; only used for a
  * count-0 point record). func_8029A914 / func_8029C52C take the block in
- * $gp but their C rewrites (56040) read D_803EEA90: reported. The asm leaves
+ * $gp: passed explicitly (D_803F7B50). The asm leaves
  * v1, f12, f14 as its callees leave them (survey: read by func_8024B7AC /
  * func_802C5120; not real uses). Integer sums trap in the asm. */
 void func_802C5AFC(void) {
@@ -1033,7 +1033,7 @@ void func_802C5AFC(void) {
     mdl = D_803F7C04; /* t2 as func_802ABBEC (in func_802C7CB0) leaves it */
     func_8029A800(D_803F7BF8[2], (s32) D_80306400, 1, 0, D_803F7BF8[0], D_803F7BF8[1], 9, VEH_S16(0x76),
                   (s32) (mdl + *(s32 *) (mdl + 4)), cls, 9, D_803F7B50);
-    func_8029C52C(9);
+    func_8029C52C(9, D_803F7B50);
     func_8029AA10(9);
     if (D_803A742B != 0 && VEH_U8(0xA1) != 0 && VEH_U8(0xA1) != 5) {
         VEH_U8(0xA1) = 2;
@@ -1058,7 +1058,7 @@ void func_802C5AFC(void) {
         }
     }
     /* turn back toward the ring */
-    func_8029A914();
+    func_8029A914(D_803F7B50);
     D_803F7C36 = 1;
     mid = func_802A6F6C();
     v = *(u16 *) &VEH_S16(0x4E) - 0x800;

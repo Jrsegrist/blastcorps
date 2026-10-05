@@ -562,9 +562,9 @@ s32 func_802A5ED0(void);
 void func_802AC284(s32 *px, s32 *py, s32 *pz);
 void func_8029A800(s32 z, s32 a1, s32 b2, s32 b3, s32 x, s32 y, s32 b0, s32 h1, s32 h2, s32 b4, s32 b8,
                    u8 *veh);
-void func_8029C52C(s32 tag);
+void func_8029C52C(s32 tag, u8 *veh);
 void func_8029AA10(s32 kind);
-void func_8029A914(void);
+void func_8029A914(u8 *veh);
 s32 func_802A6F6C(void);
 void func_802BE77C(s32 id, u8 *vehicle);
 u64 *func_802A768C(u8 *veh, u8 *dst, s32 *w0, s32 *w1, s32 *w2, u64 *src, u64 *dst2, s32 size, u64 **dst2End);
@@ -713,7 +713,7 @@ void func_802B6294(void) {
     /* 4. */
     func_8029A800(D_803EEB38[2], (s32) D_80305D20, 1, 1, D_803EEB38[0], D_803EEB38[1], 8, VEH5(0x76, s16), 0x64, 0,
                   5, D_803EEA90);
-    func_8029C52C(5);
+    func_8029C52C(5, D_803EEA90);
     func_8029AA10(5);
     D_803EEB61 = 12;
     if (D_803A7425 == 0) {
@@ -747,7 +747,7 @@ void func_802B6294(void) {
         func_802B7030(&regs);
         goto globals;
     }
-    func_8029A914();
+    func_8029A914(D_803EEA90);
     D_803EEB60 = 1;
     d = VEH5(0x4E, u16) - 0x800;
     if (d < 0) {

@@ -42,12 +42,14 @@ extern Unk8029DEA0Entry D_803B35F8[];
 extern u8 D_803B9890[]; /* 0x60-byte records */
 extern u8 *D_803BD300;  /* end of the records in use */
 
-/* The hand asm keeps $gp pointing at D_803EEA90 (set in 71140's
- * func_802B5F04 and friends) and reads fields of it as gp+off; the rewrites
- * read them directly. */
-extern u8 D_803EEA90[];
-#define GP_U8(off) (*(u8 *) (D_803EEA90 + (off)))
-#define GP_S16(off) (*(s16 *) (D_803EEA90 + (off)))
+/* Several functions here (func_8029A914, the func_8029C52C -> func_8029C9D4
+ * -> func_8029CB04 / func_8029CD54 -> func_8029CF04 chain) read fields of the
+ * current vehicle's record through $gp, which each vehicle's per-frame
+ * update points at its own block (D_803EDB40, D_803EEA90, D_803F8AA0, ...).
+ * The rewrites take that block as an explicit `veh` parameter (`in gp=aN` in
+ * conventions.txt). */
+#define VEH_GP_U8(veh, off) (*(u8 *) ((veh) + (off)))
+#define VEH_GP_S16(veh, off) (*(s16 *) ((veh) + (off)))
 
 f32 sqrtf(f32);
 
@@ -227,10 +229,11 @@ extern u8 D_803A742E;
  * (set to 10 when zero and D_80358064 is set). While the timer is negative
  * the ring span D_803A7410/D_803A7412 is shifted by 0x800 each way (A down,
  * B up), wrapping by 0xFFF.
- * gp is D_803EEA90 in the asm (read here directly). The asm saves a1, t0,
- * t1, t3, t6; asm callers keep a3, t6, f12, f14 live (no thunk needed in the
- * native port). */
-void func_8029A914(void) {
+ * gp is the calling vehicle's record in the asm (each vehicle passes its
+ * own block), so it is the `veh` parameter here (`in gp=a0`). The asm saves
+ * a1, t0, t1, t3, t6; asm callers keep a3, t6, f12, f14 live (no thunk
+ * needed in the native port). */
+void func_8029A914(u8 *veh) {
     s32 v;
 
     if (D_803A742E != 0) {
@@ -238,17 +241,17 @@ void func_8029A914(void) {
         if (v >= 0xC9) {
             v = 0xC8;
         }
-        GP_U8(0xA0) = v;
+        VEH_GP_U8(veh, 0xA0) = v;
     } else {
-        v = GP_U8(0xA0);
+        v = VEH_GP_U8(veh, 0xA0);
         if (v != 1) {
-            GP_U8(0xA0) = v - 1;
+            VEH_GP_U8(veh, 0xA0) = v - 1;
         }
     }
-    if (GP_S16(0x76) == 0 && D_80358064 != 0) {
-        GP_S16(0x76) = 10;
+    if (VEH_GP_S16(veh, 0x76) == 0 && D_80358064 != 0) {
+        VEH_GP_S16(veh, 0x76) = 10;
     }
-    if (GP_S16(0x76) < 0) {
+    if (VEH_GP_S16(veh, 0x76) < 0) {
         v = D_803A7410 - 0x800;
         if (v < 0) {
             v += 0xFFF;
@@ -1272,7 +1275,7 @@ void func_8029C454(s32 x, s32 y, s32 z, s32 tag, u8 *p, u8 *end, u8 *base, MtxCh
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-void func_8029C9D4(s32 tag);
+void func_8029C9D4(s32 tag, u8 *veh);
 void func_8029C828(s32 tag);
 void func_8029C748(s32 tag);
 
@@ -1280,13 +1283,14 @@ void func_8029C748(s32 tag);
  * `tag` (func_8029C9D4, then func_8029C828, then func_8029C748); then, if the
  * ring span D_803A7410/D_803A7412 is no longer the empty 0/0xFFF pair, sets
  * D_803A7425 and D_803A7424.
- * Register convention: tag in t8 (conventions.txt); the asm saves v0-a0,
- * a2-a3, t0-t5 and leaves s0, s1, fp as its callees leave them (dead in
- * every asm caller, which goes on to call func_8029AA10). Asm callers keep
- * a0, a3, t0, t1, t6 live (and f12/f14, which nothing here changes); a
- * mixed build would need a thunk, the native port doesn't. */
-void func_8029C52C(s32 tag) {
-    func_8029C9D4(tag);
+ * Register convention: tag in t8, the caller's vehicle record (gp, only
+ * read by func_8029C9D4's callees) as `veh` (conventions.txt); the asm
+ * saves v0-a0, a2-a3, t0-t5 and leaves s0, s1, fp as its callees leave them
+ * (dead in every asm caller, which goes on to call func_8029AA10). Asm
+ * callers keep a0, a3, t0, t1, t6 live (and f12/f14, which nothing here
+ * changes); a mixed build would need a thunk, the native port doesn't. */
+void func_8029C52C(s32 tag, u8 *veh) {
+    func_8029C9D4(tag, veh);
     func_8029C828(tag);
     func_8029C748(tag);
     if (D_803A7410 != 0 || D_803A7412 != 0xFFF) {
@@ -1487,8 +1491,8 @@ void func_8029C914(s32 tag, s32 qx, s32 qy, s32 qz, s32 qr) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern s32 D_803649E8;
-u32 func_8029CB04(u32 v, s32 key);
-void func_8029CD54(s32 tag, s32 other);
+u32 func_8029CB04(u32 v, s32 key, u8 *veh);
+void func_8029CD54(s32 tag, s32 other, u8 *veh);
 
 /* Vehicle-vs-object contacts: finds the D_803A7300 entry with byte 0x10 ==
  * tag (unbounded scan); unless its byte 0x11 is 1, does nothing. Otherwise
@@ -1497,10 +1501,11 @@ void func_8029CD54(s32 tag, s32 other);
  * 6) is set, or when D_803649E8 is set and kind == 0. Else its radius
  * (word 0xC) is scaled by func_8029CB04 (key = kind) and if the spheres
  * overlap (func_8029CFA4) func_8029CD54(tag, kind) handles the contact.
- * Register convention: tag in t8 (conventions.txt); gp (D_803EEA90) is read
- * by the callees as the global. The asm saves v0-a0, a2-t5 and leaves fp
- * changed (by func_8029CD54); its caller func_8029C52C keeps t7 live. */
-void func_8029C9D4(s32 tag) {
+ * Register convention: tag in t8, the vehicle record gp as `veh`, passed on
+ * to func_8029CB04 / func_8029CD54 (conventions.txt). The asm saves v0-a0,
+ * a2-t5 and leaves fp changed (by func_8029CD54); its caller func_8029C52C
+ * keeps t7 live. */
+void func_8029C9D4(s32 tag, u8 *veh) {
     u8 *e = D_803A7300;
     u8 *p;
     s32 kind;
@@ -1523,10 +1528,10 @@ void func_8029C9D4(s32 tag) {
         if (D_803649E8 != 0 && kind == 0) {
             continue;
         }
-        r = func_8029CB04(*(s32 *) (p + 0xC), kind);
+        r = func_8029CB04(*(s32 *) (p + 0xC), kind, veh);
         if (func_8029CFA4(*(s32 *) (e + 8), *(s32 *) (e + 0xC), *(s32 *) (p + 0), *(s32 *) (p + 4),
                           *(s32 *) (e + 0), *(s32 *) (e + 4), *(s32 *) (p + 8), r)) {
-            func_8029CD54(tag, kind);
+            func_8029CD54(tag, kind, veh);
         }
     }
 }
@@ -1536,19 +1541,19 @@ void func_8029C9D4(s32 tag) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Divides v by the per-vehicle byte gp+0xA0 (unsigned) unless key == 0xFF
+/* Divides v by the per-vehicle byte veh+0xA0 (unsigned) unless key == 0xFF
  * (compared as the full register) or the byte is 1; returns v (unchanged
  * otherwise). The asm's key == 0xFF branch lands in func_8029CF04's epilogue
  * (.L8029CF40), which is the same "restore v0, return" as its own. A zero
  * divisor traps (break 7) in the asm and in this C alike.
- * Register convention: asm takes v in t1 and key in t4, returns in t1
- * (conventions.txt); it saves v0. Its asm caller func_8029C9D4 keeps a0-a3,
- * t0, t3, t4, t5, t8, f12, f14 live. */
-u32 func_8029CB04(u32 v, s32 key) {
+ * Register convention: asm takes v in t1, key in t4 and the vehicle record
+ * in gp, returns in t1 (conventions.txt); it saves v0. Its asm caller
+ * func_8029C9D4 keeps a0-a3, t0, t3, t4, t5, t8, f12, f14 live. */
+u32 func_8029CB04(u32 v, s32 key, u8 *veh) {
     u32 d;
 
     if (key != 0xFF) {
-        d = GP_U8(0xA0);
+        d = VEH_GP_U8(veh, 0xA0);
         if (d != 1) {
             v /= d;
         }
@@ -1625,7 +1630,7 @@ void func_8029CB54(s32 n, s32 kind, u8 *next, s32 x1, s32 z1, s32 x2, s32 z2) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 D_803A7430;
-u32 func_8029CF04(u32 v, s32 key);
+u32 func_8029CF04(u32 v, s32 key, u8 *veh);
 void func_8029CF54(s32 v);
 void func_8029CB54(s32 n, s32 kind, u8 *next, s32 x1, s32 z1, s32 x2, s32 z2);
 
@@ -1640,11 +1645,11 @@ void func_8029CB54(s32 n, s32 kind, u8 *next, s32 x1, s32 z1, s32 x2, s32 z2);
  * other == 7, D_803A7430 counts up while below 0xC9; then unless tag != 0
  * and func_802AB41C(other, tag) is set, func_8029CB54(n, tag, b + 0x14,
  * a.x, a.z, b.x, b.z) (heading / ring span) and func_8029CF54(other).
- * Register convention: tag in t8, other in t4 (conventions.txt); gp
- * (D_803EEA90) is read by func_8029CF04 as the global. The asm saves v0-t0,
- * t6, t7, s0, s1 and leaves t5 = -1, fp changed; its caller func_8029C9D4
- * keeps a0, a1 live (a mixed build would need a thunk). */
-void func_8029CD54(s32 tag, s32 other) {
+ * Register convention: tag in t8, other in t4, the vehicle record gp as
+ * `veh` (only passed on to func_8029CF04; conventions.txt). The asm saves
+ * v0-t0, t6, t7, s0, s1 and leaves t5 = -1, fp changed; its caller
+ * func_8029C9D4 keeps a0, a1 live (a mixed build would need a thunk). */
+void func_8029CD54(s32 tag, s32 other, u8 *veh) {
     u8 *a = D_803A6B30;
     u8 *b0 = D_803A6B30;
     u8 *b;
@@ -1678,7 +1683,7 @@ void func_8029CD54(s32 tag, s32 other) {
         az = *(s32 *) (a + 8);
         ar = *(s32 *) (a + 0xC);
         for (b = b0; (s8) b[0x13] != -1 && b[0x12] == other;) {
-            br = func_8029CF04(*(s32 *) (b + 0xC), other);
+            br = func_8029CF04(*(s32 *) (b + 0xC), other, veh);
             b += 0x14;
             if (tag == 6 && ar == 0x30E) {
                 continue;
@@ -1707,18 +1712,18 @@ void func_8029CD54(s32 tag, s32 other) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Same as func_8029CB04 with the key in s1: v / gp+0xA0 (unsigned) unless
+/* Same as func_8029CB04 with the key in s1: v / veh+0xA0 (unsigned) unless
  * key == 0xFF or the byte is 1. func_8029CB04's asm branches into this
  * function's epilogue (.L8029CF40), so the two are rewritten together (in
  * the NON_MATCHING build neither keeps the label).
- * Register convention: asm takes v in t1 and key in s1, returns in t1
- * (conventions.txt); it saves v0. Its asm caller func_8029CD54 keeps a0-a3,
- * t0, t3-t8, f12, f14 live. */
-u32 func_8029CF04(u32 v, s32 key) {
+ * Register convention: asm takes v in t1, key in s1 and the vehicle record
+ * in gp, returns in t1 (conventions.txt); it saves v0. Its asm caller
+ * func_8029CD54 keeps a0-a3, t0, t3-t8, f12, f14 live. */
+u32 func_8029CF04(u32 v, s32 key, u8 *veh) {
     u32 d;
 
     if (key != 0xFF) {
-        d = GP_U8(0xA0);
+        d = VEH_GP_U8(veh, 0xA0);
         if (d != 1) {
             v /= d;
         }

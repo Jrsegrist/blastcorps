@@ -344,7 +344,7 @@ func_802B7A88: -n 300 --seed 0 --arg t6=0 --arg t7=0 --arg s0=0 --arg s1=0 --arg
     --mem D_80367BFF:1=bytes:0,1 --mem D_803EEF34:1=bytes:0,1,5 --mem D_803EEF33:1=bytes:0,1,0x80 --mem D_803EEF30:2=rand \
     --mem D_8035805C:1=bytes:0,1 --mem D_803EEF28=int --mem D_803EEF2C=int --mem D_803A7425:1=bytes:0,1 \
     --mem D_803A7424:1=bytes:0,1 --mem D_803F77D0=int --mem D_803643E0:12=rand --mem D_8036443C:6=rand \
-    --sig func_8029A914= --sig func_802A6F6C= --sig func_802B8424= --sig func_802B8278= --sig func_802B83B0= \
+    --sig func_8029A914=a0 --sig func_802A6F6C= --sig func_802B8424= --sig func_802B8278= --sig func_802B83B0= \
     --sig func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12,*stack13+0x8,*stack13+0xC,*stack13+0x10,*stack13+0x14
 # crash branch: the object pass modelled as setting D_803A7424 from heap0 (0/1); speed bounce boundaries +-0x31..0x33
 func_802B7A88: -n 300 --seed 1 --heap 0x10=bytes:0,1 --model func_802BE77C=hit_D_803A7424.py --arg t6=0 --arg t7=0 \
@@ -353,7 +353,7 @@ func_802B7A88: -n 300 --seed 1 --heap 0x10=bytes:0,1 --model func_802BE77C=hit_D
     --mem D_803EEF18:12=rand --mem D_80367BFF:1=bytes:0 --mem D_803EEF34:1=bytes:0,1,5 --mem D_803EEF33:1=bytes:0,1 \
     --mem D_8035805C:1=bytes:0,1 --mem D_803EEF28=int --mem D_803EEF2C=int --mem D_803A7425:1=bytes:0 \
     --mem D_803A7424:1=bytes:0,1 --mem D_803F77D0=int --mem D_803643E0:12=rand --mem D_8036443C:6=rand \
-    --sig func_8029A914= --sig func_802A6F6C= --sig func_802B8424= --sig func_802B8278= --sig func_802B83B0= \
+    --sig func_8029A914=a0 --sig func_802A6F6C= --sig func_802B8424= --sig func_802B8278= --sig func_802B83B0= \
     --sig func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12,*stack13+0x8,*stack13+0xC,*stack13+0x10,*stack13+0x14
 # ring-steering branch with the steering helpers run for real (func_8029A914 stays stubbed: its C hard-codes gp)
 func_802B7A88: -n 200 --seed 2 \
@@ -364,5 +364,5 @@ func_802B7A88: -n 200 --seed 2 \
     --mem D_80367BFF:1=bytes:0 --mem D_803EEF34:1=bytes:0,1 --mem D_803EEF33:1=bytes:0,1 --mem D_803EEF30:2=int:0:0xFFF \
     --mem D_8035805C:1=bytes:0,1 --mem D_803EEF28=int --mem D_803EEF2C=int --mem D_803A7425:1=bytes:1 \
     --mem D_803A7410:2=int:0:0xFFF --mem D_803A7412:2=int:0:0xFFF --mem D_80358064=choice:0,1 --mem D_803F77D0=int \
-    --sig func_8029A914= --sig func_802B8278= \
+    --sig func_8029A914=a0 --sig func_802B8278= \
     --sig func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12,*stack13+0x8,*stack13+0xC,*stack13+0x10,*stack13+0x14

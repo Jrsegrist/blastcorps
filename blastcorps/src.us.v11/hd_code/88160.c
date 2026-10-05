@@ -15,7 +15,22 @@
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/88160/func_802CCC8C.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Functional rewrite (tools_port/eqcheck.py verified). Vehicle-type 14
+ * "can exit" check: 0 if any of the vehicle's bytes 0x96..0x98 equals 1,
+ * else 1 (shape shared with func_802CA140 in 853D0.c). 00000.c declares it
+ * void and ignores the result, but the asm returns 0/1 in v0. */
+extern u8 D_803F9250[];
+
+s32 func_802CCCD8(void) {
+    if (D_803F9250[0x96] == 1 || D_803F9250[0x97] == 1 || D_803F9250[0x98] == 1) {
+        return 0;
+    }
+    return 1;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/88160/func_802CCCD8.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/88160/func_802CCD34.s")
@@ -48,4 +63,21 @@
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/88160/func_802CD938.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Functional rewrite (tools_port/eqcheck.py verified). Same "set timers"
+ * shape as func_802BAD24 (75490.c). Asm callers rely on preserved registers:
+ * func_802CCF60 on t3, t4, f12, f14; func_802CD068 on a0-a3 (mixed N64 build
+ * would need a thunk). */
+extern f32 D_803EBBF0;
+extern f32 D_803EBBF4;
+extern u8 D_803ED3F6;
+extern u8 D_803ED3F7;
+
+void func_802CD9AC(void) {
+    D_803EBBF4 = D_803EBBF0 * 4.0f;
+    D_803ED3F6 = 60;
+    D_803ED3F7 = 3;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/88160/func_802CD9AC.s")
+#endif

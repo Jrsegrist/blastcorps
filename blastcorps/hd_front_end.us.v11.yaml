@@ -30,6 +30,7 @@ segments:
     - [0x07390, c, hd_front_end/07390]
     - [0x07800, c, hd_front_end/07800]
     - [0x09570, c, hd_front_end/09570]
+    - [0x0C450, c, hd_front_end/0C450] # node scene; own .rodata (16-aligned) proves the file boundary
     - [0x0DE70, c, hd_front_end/0DE70]
     - [0x0E7B0, c, hd_front_end/0E7B0]
     - [0x11530, c, hd_front_end/11530]
@@ -60,5 +61,6 @@ segments:
     - [0x21040, linker, data]
     - [0x21040, bin, hd_front_end/hd_front_end_data] # .data/.rodata (vram 0x80208040)
     - [0x27FC0, .rodata, hd_front_end/09570] # constants and a jump table only
+    - [0x28090, .rodata, hd_front_end/0C450] # doubles only
     - [0x280B0, bin, hd_front_end/hd_front_end_data_280B0]
   - [0x29E90]

@@ -154,7 +154,7 @@ HD_FRONT_END_LDFLAGS = -T $(HD_FRONT_END_LD_SCRIPT) -Map $(HD_FRONT_END_TARGET).
 # hd_code files that own a .rodata subsegment (see tools/late_rodata.py)
 LATE_RODATA_HD_CODE := 00000 1A630 1D990 26570 2C560 2D810 30C70 32E00 34430 37530 39050 405F0 409D0 41930
 # hd_front_end files that own a .rodata subsegment (same tool, front-end symbols/ROM)
-LATE_RODATA_HD_FRONT_END := 09570
+LATE_RODATA_HD_FRONT_END := 09570 0C450
 
 ### Optimisation Overrides
 

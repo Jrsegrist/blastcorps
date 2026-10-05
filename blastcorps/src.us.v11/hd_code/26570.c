@@ -11,24 +11,38 @@ typedef struct {
     /* 0x10 */ s32 unk10;
 } PathInfo;
 
-/* Pathfinding node, 0x1C bytes */
+/* One item (text line or sprite) of a Yoshi window, 0x1C bytes */
 typedef struct {
     /* 0x00 */ u16 flags;
-    /* 0x02 */ u8 unk2[0xA];
+    /* 0x02 */ s16 x;
+    /* 0x04 */ s16 y;
+    /* 0x06 */ u16 w;
+    /* 0x08 */ u16 h;
+    /* 0x0A */ u8 unkA[2];
     /* 0x0C */ u8 *text;
     /* 0x10 */ u16 *jtext;
-    /* 0x14 */ u8 unk14;
-    /* 0x15 */ u8 unk15[5];
-    /* 0x1A */ s8 unk1A;
+    /* 0x14 */ u8 unk14; /* sprite */
+    /* 0x15 */ u8 unk15;
+    /* 0x16 */ u16 sound; /* played when selected */
+    /* 0x18 */ u8 color;
+    /* 0x19 */ u8 selColor;
+    /* 0x1A */ u8 unk1A;
     /* 0x1B */ u8 unk1B;
 } PathNode;
 
-/* 0x30 bytes */
+/* Animated sprite, 0x30 bytes */
 typedef struct {
-    /* 0x00 */ u8 unk0[4];
+    /* 0x00 */ s16 x;
+    /* 0x02 */ s16 y;
     /* 0x04 */ u8 unk4;
     /* 0x05 */ u8 unk5;
-    /* 0x06 */ u8 unk6[0x26];
+    /* 0x06 */ u8 unk6[0x14];
+    /* 0x1A */ u8 numFrames;
+    /* 0x1B */ u8 frames[10];
+    /* 0x25 */ u8 mode;
+    /* 0x26 */ u8 speed;
+    /* 0x27 */ u8 unk27;
+    /* 0x28 */ f32 scale;
     /* 0x2C */ u8 unk2C;
     /* 0x2D */ u8 unk2D;
     /* 0x2E */ s8 unk2E;
@@ -77,14 +91,26 @@ typedef struct {
 #define NO_YOSHI_WINDOW -1
 #define YOSHI_DEMAND_OFF 0x4000
 
+/* A Yoshi window, 0x1C bytes */
 typedef struct YoshiArg {
-    /* 0x00 */ u8 unk0[8];
+    /* 0x00 */ u16 w;
+    /* 0x02 */ u16 h;
+    /* 0x04 */ s16 x;
+    /* 0x06 */ s16 y;
     /* 0x08 */ u32 flags;
-    /* 0x0C */ u16 unkC;
-    /* 0x0E */ u16 unkE;
-    /* 0x10 */ u16 unk10;
-    /* 0x12 */ u8 unk12[0xA];
+    /* 0x0C */ u16 unkC; /* seconds before closing */
+    /* 0x0E */ u16 unkE; /* first item */
+    /* 0x10 */ u16 unk10; /* item count */
+    /* 0x12 */ u16 openSound;
+    /* 0x14 */ u16 closeSound;
+    /* 0x16 */ u16 moveSound;
+    /* 0x18 */ u16 sel; /* selected item */
+    /* 0x1A */ u8 atEnd;
+    /* 0x1B */ u8 unk1B;
 } YoshiArg;
+
+/* Frame buffers passed in as arg1 */
+#define YMTX(off) ((Mtx *) (arg1 + (off)))
 
 void func_8029A7E4(const char *fmt, ...);
 u16 func_8026F8A8(u16 arg0, u16 arg1, u16 start, u16 mask);
@@ -97,17 +123,62 @@ u8 func_8026AD30(s16 arg0);
 void func_8026A5CC(void *arg0, void *arg1, s32 arg2);
 s32 func_8026A6F0(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5);
 void func_802AC544(s32 arg0, s32 arg1, s32 arg2);
-void *func_80260650(void *arg0, s16 arg1, void *arg2);
+void *func_80260650(void *arg0, u16 arg1, void *arg2);
 void func_8026BA7C(struct YoshiArg *arg0);
 u8 func_8026FA38(char **name, s32 *arg1);
 s32 func_8026F92C(u64 in);
 Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count);
 s8 func_80272C5C(void *arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, f32 arg5);
+void func_8026EF70(YoshiArg *arg0);
+void *func_8026F004(YoshiArg *arg0, u16 idx, u8 japanese);
+u8 func_8026F644(u16 *arg0, u16 *arg1, s16 arg2);
+u16 func_8026F82C(u16 lo, u16 hi, u16 mask);
+s16 func_8025B498(s32, s32, u8 *, u16 *);
+void func_80261570(f32);
+f32 func_802574F0(f32);
+void func_80259BD4(Gfx **gdlp, s32 arg1);
+void func_80259DC8(s32 gfxp, u8 *str, u16 *wstr, s32 align, s32 fit, s32 x, s32 y, s32 w, s32 h, s32 forward,
+                   s32 r0, s32 g0, s32 b0, s32 a0, s32 r1, s32 g1, s32 b1, s32 a1);
+Gfx *func_80272ED8(Gfx *, s32, s32, s32, u32, s32, f32);
+Gfx *func_80274868(Gfx *);
+Gfx *func_80274998(Gfx *);
+Gfx *func_80274AA4(Gfx *);
+Gfx *func_80274B08(Gfx *);
+Gfx *func_80275DA4(Gfx *, s32);
+s32 func_80276080(s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32);
+s32 func_80276130(s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32,
+                  s32, s32, s32, s32);
 
 extern u16 yoshiDemandV;
 extern s16 D_8036BB0C;
-extern u8 D_8036BB0E;
-extern s16 D_8036BB16;
+extern s8 D_8036BB0E;
+extern u16 D_8036BB16;
+extern u32 D_8036BB40;
+extern u8 D_802F47B0[][8]; /* colour pairs */
+extern u8 D_803643DB;
+extern u8 D_803643D6;
+extern s8 D_80370C11;
+extern s8 D_80370C12;
+extern s8 D_80370C13;
+extern s8 D_80370C14;
+extern u16 D_80370C28; /* buttons this frame */
+extern u16 D_80370C2A; /* buttons last frame */
+extern u8 D_802E8BD4;
+extern u8 D_802E8BD8;
+extern f32 D_8036BB08;
+extern f32 D_8036BB28;
+extern f32 D_8036BB2C;
+extern s32 D_8036BB30;
+extern f32 D_8036BB34;
+extern f32 D_8036BB38;
+extern s16 D_8036BB20;
+extern u16 D_8036BB3C;
+extern u16 D_8036BB3E;
+extern s32 D_8036BB44;
+extern s32 D_802F9930;
+extern u8 D_8035805C;
+extern u8 D_8036BA48[];
+extern Gfx D_802F98B0[];
 extern u8 D_8036BAE8[];
 extern LevelInfo D_802E8F94[];
 extern u8 D_802F4878[];
@@ -429,7 +500,551 @@ void func_8026BBD0(Gfx *gfx, s32 arg1, s32 *count) {
     *count += gdl - gfx;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/26570/func_8026BCE0.s")
+#define PRESSED(m) ((D_80370C28 & (m)) && !(D_80370C2A & (m)))
+#define FRAMES(t) ((t) * 60 / 60)
+
+/* Runs and draws the current Yoshi window: handles open/close demands, menu
+ * input, the open/close animation, the scroll arrows, sprites and text */
+Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
+    YoshiArg *arg;
+    PathNode *node;
+    u8 *text;
+    u16 *wtext;
+    Gfx *gdl;
+    u16 sound;
+    u16 i;
+    u16 halfW;
+    u16 halfH;
+    u16 dt;
+    u16 redraw;
+    u8 *c;
+    f32 one;
+    u16 window;
+    u16 force;
+    u32 keep;
+    u8 done;
+
+    gdl = gfx;
+    dt = (D_803156C4 - D_8036BB40) * 15;
+    one = 1.0f;
+    D_8036BB40 = D_803156C4;
+    D_8036BB0C += D_8036BB0E * dt;
+    redraw = 0;
+    if (D_8036BB0C >= 256) {
+        D_8036BB0C = 255;
+        D_8036BB0E = -D_8036BB0E;
+    }
+    if (D_8036BB0C < 0) {
+        D_8036BB0C = 0;
+        D_8036BB0E = -D_8036BB0E;
+    }
+    c = D_802F47B0[16];
+    c[1] = 255 - D_8036BB0C;
+    c[5] = D_8036BB0C;
+    c = D_802F47B0[17];
+    c[1] = 170 - D_8036BB0C * 2 / 3;
+    c[5] = D_8036BB0C * 2 / 3;
+    c = D_802F47B0[18];
+    c[0] = c[1] = 255 - D_8036BB0C;
+    c[4] = c[5] = D_8036BB0C;
+    c = D_802F47B0[19];
+    c[2] = c[1] = 255 - D_8036BB0C;
+    c[6] = c[5] = D_8036BB0C;
+    c = D_802F47B0[20];
+    c[2] = 255 - D_8036BB0C;
+    c[6] = D_8036BB0C;
+    if (D_80364A90 == 0x200 && D_803643DB && D_803643D6) {
+        D_8036BB1A = -1;
+        if (yoshiState == 4 || yoshiState == 2) {
+            func_8029A7E4("putting off!\n");
+            func_8026AF6C(YOSHI_DEMAND_OFF);
+        }
+    }
+    if (currentYoshiWindow == NO_YOSHI_WINDOW && (yoshiDemandV & YOSHI_DEMAND_OFF)) {
+        YOSHI_ASSERT(1==0, 1627);
+        yoshiDemandV = 0;
+        return gfx;
+    }
+    if (yoshiDemandV) {
+        window = yoshiDemandV & 0xFF;
+        force = yoshiDemandV & 0x2000;
+        keep = 0;
+        func_8029A7E4("yoshiDemand=%x\n", yoshiDemandV);
+        if (yoshiDemandV & 0x8000) {
+            D_8036BB1A = -1;
+            if (currentYoshiWindow != NO_YOSHI_WINDOW) {
+                keep = D_802F8BDC[currentYoshiWindow].flags & 0x8000000;
+            }
+            if (yoshiState == YOSHI_OFF || force || keep) {
+                currentYoshiWindow = window;
+                yoshiState = YOSHI_OFF;
+            } else {
+                D_8036BB1A = window;
+            }
+        }
+        if (yoshiState != 8) {
+            redraw = 1;
+        }
+        yoshiDemandV = 0;
+    }
+    if (currentYoshiWindow == NO_YOSHI_WINDOW) {
+        currentYoshiWindow = D_8036BB1A;
+        D_8036BB1A = -1;
+        if (currentYoshiWindow == NO_YOSHI_WINDOW) {
+            return gfx;
+        }
+        redraw = 1;
+    }
+    arg = &D_802F8BDC[currentYoshiWindow];
+    func_8026FB50(arg);
+    if ((arg->flags & 0x20) && yoshiState == 2) {
+        if ((PRESSED(0x8000) || ((arg->flags & 0x80000000) && PRESSED(0x1000))) && arg->atEnd) {
+            sound = D_8036BB10[arg->sel].sound;
+            if (sound) {
+                func_80260650(D_80367738, sound, NULL);
+            }
+            if (D_8036BB10[arg->sel].flags & 0x10) {
+                D_802E8BD4 = 1;
+            }
+            D_8036BB16 = arg->sel;
+            redraw = 1;
+        }
+        if (PRESSED(0x4000)) {
+            if ((arg->flags & 0x20000000) && arg->atEnd) {
+                func_80260650(D_80367738, 0xDE, NULL);
+                D_8036BB16 = 0xFFFF;
+                redraw = 1;
+                if (arg->flags & 0x40000000) {
+                    D_802E8BD4 = 1;
+                }
+            } else {
+                func_80260650(D_80367738, 0xD0, NULL);
+            }
+        }
+    }
+    if (redraw) {
+        D_8036BAFC = D_803156C4;
+        switch (yoshiState) {
+            case 8:
+                D_8036BAFC = D_803156C4 - D_8036BB08 * D_8036BB38 * D_8036BB34;
+            case 1:
+                yoshiState = 4;
+                D_8036BB34 = 1.0f;
+                if (arg->flags & 0x18) {
+                    D_8036BB08 = 40.0f;
+                } else {
+                    D_8036BB08 = 13.333333f;
+                }
+                func_8026EF70(arg);
+                sound = arg->openSound;
+                if (sound) {
+                    func_80260650(D_80367738, sound, NULL);
+                }
+                if (!(arg->flags & 0x400)) {
+                    for (i = arg->unkE; !(D_8036BB10[i].flags & 1) && i < arg->unkE + arg->unk10; i++) {
+                    }
+                    arg->sel = i;
+                }
+                for (i = arg->unkE; i < arg->unkE + arg->unk10; i++) {
+                    node = &D_8036BB10[i];
+                    if (node->flags & 0x20) {
+                        if (arg->flags & 0x80000) {
+                            node->x = func_8025B498(arg->w / 2, node->w, node->text, node->jtext);
+                        } else {
+                            node->x = func_8025B498(arg->w / 2, node->w, node->text, node->jtext);
+                        }
+                    }
+                }
+                if (arg->flags & 1) {
+                    D_802E8BD8 = 1;
+                }
+                if (arg->flags & 2) {
+                    func_80261570(0.0f);
+                }
+                if (arg->flags & 0x100000) {
+                    D_8036BB28 = arg->h;
+                } else {
+                    D_8036BB28 = arg->h / 2 - D_8036BB10[arg->sel].y;
+                    if (arg->flags & 0x40000) {
+                        D_8036BB28 -= D_8036BB10[arg->sel].h / 2;
+                    }
+                }
+                D_8036BB2C = D_8036BB28;
+                break;
+            case 4:
+                D_8036BAFC = (D_8036BB38 - one) * D_8036BB08 + D_803156C4;
+            case 2:
+                yoshiState = 8;
+                sound = arg->closeSound;
+                if (sound) {
+                    func_80260650(D_80367738, sound, NULL);
+                }
+                if (arg->flags & 0x200000) {
+                    D_802E8BD4 = 1;
+                }
+                if (arg->flags & 4) {
+                    func_80261570(1.0f);
+                }
+                break;
+        }
+    }
+    switch (yoshiState) {
+        case 2:
+            if (arg->flags & 0x100000) {
+                done = D_8036BB2C < (f32) (arg->h / 8 - D_8036BB10[arg->unkE + arg->unk10 - 1].y);
+            } else {
+                done = arg->unkC != 0 && (D_803156C4 - D_8036BAFC) / 60.0f > arg->unkC &&
+                       (!(arg->flags & 0x400000) || !(D_8036BB1E != 0));
+            }
+            if (done) {
+                sound = arg->closeSound;
+                if (sound) {
+                    func_80260650(D_80367738, sound, NULL);
+                }
+                if (arg->flags & 0x2000) {
+                    func_80261570(0.0f);
+                }
+                yoshiState = 8;
+                D_8036BAFC = D_803156C4;
+            }
+            break;
+        case 4:
+            D_8036BB38 = (D_803156C4 - D_8036BAFC) / D_8036BB08;
+            if (D_8036BB38 > one) {
+                D_8036BAFC = D_803156C4;
+                yoshiState = 2;
+                D_8036BB38 = one;
+                if (arg->flags & 0x40) {
+                    D_8036BB3C = 0x200;
+                    D_8036BB3E = 0x100;
+                } else {
+                    D_8036BB3C = 0x800;
+                    D_8036BB3E = 0x400;
+                }
+                if (arg->flags & 0x10000000) {
+                    arg->atEnd = 1;
+                } else {
+                    arg->atEnd = 0;
+                }
+                if (func_8026F8A8(arg->unkE, arg->unk10, arg->sel, 1) == arg->sel) {
+                    arg->atEnd = 1;
+                }
+            }
+            break;
+        case 8:
+            D_8036BB38 = one - (D_803156C4 - D_8036BAFC) / D_8036BB08;
+            if (D_8036BB38 < 0.001) {
+                D_8036BB38 = 0.0f;
+                yoshiState = 1;
+                if (arg->flags & 0x2000000) {
+                    D_802E8BD4 = 1;
+                }
+                if (arg->flags & 0x100) {
+                    arg->flags &= ~0x80;
+                }
+                currentYoshiWindow = NO_YOSHI_WINDOW;
+                return gfx;
+            }
+            break;
+    }
+    if (yoshiState != 1) {
+        D_8036BB20 = (func_802574F0(D_8036BB38 * D_8036BB34 / one * 1.57 + 4.71) + 1.0) * 255.0;
+    }
+    if (yoshiState != 1 && D_8036BB38 * D_8036BB34 > 0.1) {
+        halfW = arg->w / 2;
+        halfH = arg->h / 2;
+        guOrtho(YMTX(0x1240), -arg->x - halfW, -arg->x - halfW + 319, -arg->y - halfH + 239, -arg->y - halfH,
+                -256.0f, 256.0f, 256.0f);
+        gSPMatrix(gdl++, OS_K0_TO_PHYSICAL(YMTX(0x1240)), G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
+        if (arg->flags & 0x10) {
+            guRotate(YMTX(0x12C0), 180.0 - D_8036BB38 * D_8036BB34 / one * 180.0, 2.0f, 0.0f, 1.0f);
+            gSPMatrix(gdl++, OS_K0_TO_PHYSICAL(YMTX(0x12C0)), G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+        } else {
+            guTranslate(YMTX(0x12C0), 0.0f, 0.0f, 0.0f);
+            gSPMatrix(gdl++, OS_K0_TO_PHYSICAL(YMTX(0x12C0)), G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+        }
+        gSPMatrix(gdl++, OS_K0_TO_PHYSICAL(YMTX(0x1300)), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
+        gSPPopMatrix(gdl++, G_MTX_MODELVIEW);
+        if (arg->flags & 8) {
+            guScale(YMTX(0x1300), halfW * D_8036BB38 * D_8036BB34 / 1000.0f,
+                    halfH * D_8036BB38 * D_8036BB34 / 1000.0f, 1.0f);
+            gSPMatrix(gdl++, OS_K0_TO_PHYSICAL(YMTX(0x1300)), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
+        } else {
+            guScale(YMTX(0x1300), halfW / 1000.0f, halfH / 1000.0f, 1.0f);
+            gSPMatrix(gdl++, OS_K0_TO_PHYSICAL(YMTX(0x1300)), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
+        }
+        gDPPipeSync(gdl++);
+        gDPSetRenderMode(gdl++, 0x504340, 0);
+        gDPSetCombineMode(gdl++, G_CC_SHADE, G_CC_SHADE);
+        gSPClearGeometryMode(gdl++, 0xFFFFFFFF);
+        gSPSetGeometryMode(gdl++, G_SHADE | G_SHADING_SMOOTH);
+        gSPTexture(gdl++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_OFF);
+        if (!(arg->flags & 0x200)) {
+            gSPDisplayList(gdl++, D_802F98B0);
+        }
+        gSPPopMatrix(gdl++, G_MTX_MODELVIEW);
+        if (arg->flags & 8) {
+            guScale(YMTX(0x1280), D_8036BB38, D_8036BB38, 1.0f);
+            gSPMatrix(gdl++, OS_K0_TO_PHYSICAL(YMTX(0x1280)), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
+        }
+        if ((arg->flags & 0x20) && yoshiState == 2) {
+            s32 up;
+            s32 down;
+
+            up = 0;
+            down = 0;
+            if (D_8036BB3C == 0x800) {
+                if (D_80370C12 >= 31 && D_80370C14 < 31) {
+                    up = 1;
+                } else {
+                    up = 0;
+                }
+            } else if (D_80370C11 < -30 && D_80370C13 >= -30) {
+                up = 1;
+            } else {
+                up = 0;
+            }
+            if (D_8036BB3E == 0x400) {
+                if (D_80370C12 < -30 && D_80370C14 >= -30) {
+                    down = 1;
+                } else {
+                    down = 0;
+                }
+            } else if (D_80370C11 >= 31 && D_80370C13 < 31) {
+                down = 1;
+            } else {
+                down = 0;
+            }
+            if (PRESSED(D_8036BB3C) || up) {
+                u16 prev;
+
+                prev = func_8026F82C(arg->unkE, arg->sel, 1);
+                sound = arg->moveSound;
+                if (sound) {
+                    if (prev != arg->sel) {
+                        func_80260650(D_80367738, sound, NULL);
+                    } else {
+                        func_80260650(D_80367738, 0xD0, NULL);
+                    }
+                }
+                D_8036BB28 += D_8036BB10[arg->sel].y - D_8036BB10[prev].y;
+                arg->sel = prev;
+            } else if (((((arg->atEnd ? 0 : 0x8000) | D_8036BB3E) & D_80370C28) &&
+                        !(((arg->atEnd ? 0 : 0x8000) | D_8036BB3E) & D_80370C2A)) ||
+                       down) {
+                u16 next;
+
+                next = func_8026F8A8(arg->unkE, arg->unk10, arg->sel, 1);
+                if (func_8026F8A8(arg->unkE, arg->unk10, next, 1) == next) {
+                    arg->atEnd = 1;
+                }
+                sound = arg->moveSound;
+                if (sound) {
+                    if (next != arg->sel) {
+                        func_80260650(D_80367738, sound, NULL);
+                    } else {
+                        func_80260650(D_80367738, 0xD0, NULL);
+                    }
+                }
+                D_8036BB28 += D_8036BB10[arg->sel].y - D_8036BB10[next].y;
+                arg->sel = next;
+                D_8036BAFC = D_803156C4;
+            }
+        }
+        if (arg->flags & 0x4000) {
+            if (arg->flags & 0x100000) {
+                if (arg->unkC == 0 || !((D_803156C4 - D_8036BAFC) / 60.0f < arg->unkC)) {
+                    if (arg->flags & 0x800000) {
+                        D_8036BB2C -= 0.5;
+                    } else {
+                        D_8036BB2C -= 1.0;
+                    }
+                }
+            } else {
+                D_8036BB2C += (D_8036BB28 - D_8036BB2C) * 0.1;
+            }
+            if (arg->flags & 0x10000) {
+                s32 cc;
+                s16 off;
+
+                cc = 0;
+                if (arg->flags & 0x40000) {
+                    off = 0x12;
+                } else {
+                    off = 0x1C;
+                }
+                if (!(D_80364A90 & 0xC9FD0FE79BFF80B0) || D_8035805C) {
+                    D_8036BB44 += D_802F9930;
+                }
+                if (D_802F9930 < 0) {
+                    D_8036BB44 += D_802F9930 * 2;
+                }
+                if (D_8036BB44 < 0 || D_8036BB44 >= 8) {
+                    D_8036BB44 -= D_802F9930 * 2;
+                    D_802F9930 = -D_802F9930;
+                }
+                if (func_8026F8A8(arg->unkE, arg->unk10, arg->sel, 1) != arg->sel) {
+                    u8 *c2;
+
+                    c2 = D_802F47B0[18];
+                    cc = func_80276130(arg1, 0, cc, -halfW, halfH - D_8036BB44 - off, 16, D_8036BB44 / 2 + 10,
+                                       c2[0], c2[1], c2[2], D_8036BB20, c2[4], c2[5], c2[6], D_8036BB20,
+                                       c2[0], c2[1], c2[2], D_8036BB20, c2[4], c2[5], c2[6], D_8036BB20);
+                    cc = func_80276080(arg1, 0, cc, -3 - halfW, halfH - D_8036BB44 - off + 3, 16,
+                                       D_8036BB44 / 2 + 10, 0, 0, 0, D_8036BB20 / 2);
+                    gdl = func_80275DA4(gdl, 1);
+                    gSPVertex(gdl++, arg1 + 0x1E00, 8, 0);
+                    gSP1Triangle(gdl++, 4, 5, 6, 0);
+                    gSP1Triangle(gdl++, 4, 6, 7, 0);
+                    gSP1Triangle(gdl++, 0, 1, 2, 0);
+                    gSP1Triangle(gdl++, 0, 2, 3, 0);
+                }
+                if (func_8026F82C(arg->unkE, arg->sel, 1) != arg->sel) {
+                    u8 *c3;
+
+                    c3 = D_802F47B0[18];
+                    /* The ROM reloads c3[0] for the second colour here (unlike the call above, where
+                     * IDO reuses the first load). No plain spelling found that defeats ugen's load
+                     * cache; the volatile cast reproduces it with identical code. */
+                    cc = func_80276130(arg1, 1, cc, -halfW, D_8036BB44 - halfH + off, 16, D_8036BB44 / 2 + 10,
+                                       c3[0], c3[1], c3[2], D_8036BB20, c3[4], c3[5], c3[6], D_8036BB20,
+                                       ((volatile u8 *) c3)[0], c3[1], c3[2], D_8036BB20, c3[4], c3[5], c3[6], D_8036BB20);
+                    cc = func_80276080(arg1, 1, cc, -3 - halfW, D_8036BB44 - halfH + off - 3, 16,
+                                       D_8036BB44 / 2 + 10, 0, 0, 0, D_8036BB20 / 2);
+                    gdl = func_80275DA4(gdl, 1);
+                    gSPVertex(gdl++, &((Vtx *) (arg1 + 0x1D80))[cc], 8, 0);
+                    gSP1Triangle(gdl++, 4, 5, 6, 0);
+                    gSP1Triangle(gdl++, 4, 6, 7, 0);
+                    gSP1Triangle(gdl++, 0, 1, 2, 0);
+                    gSP1Triangle(gdl++, 0, 2, 3, 0);
+                }
+            }
+        } else {
+            D_8036BB2C = 0.0f;
+        }
+        D_8036BB30 = D_8036BB2C;
+        if (arg->flags & 0x1000) {
+            if (arg->flags & 0x20000) {
+                gdl = func_80274868(gdl);
+            } else {
+                gdl = func_80274998(gdl);
+            }
+            for (i = arg->unkE; i < arg->unkE + arg->unk10; i++) {
+                node = &D_8036BB10[i];
+                if (!(node->flags & 0x800) && (node->flags & 0x400) && (!(node->flags & 0x300) || i <= D_8036BB04)) {
+                    YoshiSnd *snd;
+                    s16 x;
+                    s16 y;
+                    u8 visible;
+                    u8 mode;
+                    u8 prev;
+                    u8 cur;
+                    u8 frame;
+
+                    snd = &D_802F49F4[node->unk14];
+                    if (arg->flags & 0x20000) {
+                        x = arg->x;
+                    } else {
+                        x = -halfW;
+                    }
+                    if (arg->flags & 0x20000) {
+                        y = arg->y;
+                    } else {
+                        y = -halfH;
+                    }
+                    visible = 1;
+                    mode = snd->mode;
+                    if ((node->flags & 1) && i != arg->sel) {
+                        visible = 0;
+                    }
+                    prev = D_8036BA48[node->unk14];
+                    cur = D_8036BA48[node->unk14] = FRAMES(D_803156C4) / snd->speed % snd->numFrames;
+                    if (cur != prev && (visible || D_8036BA98[node->unk14])) {
+                        D_8036BA98[node->unk14] = (D_8036BA98[node->unk14] + 1) % snd->numFrames;
+                    }
+                    frame = snd->frames[D_8036BA98[node->unk14]];
+                    if (frame) {
+                        if (visible) {
+                            if (i == arg->sel && (node->flags & 0x40)) {
+                                mode |= 8;
+                            }
+                            gdl = func_80272ED8(gdl, node->unk1A + frame - 1, snd->x + node->x + x,
+                                                ((node->flags & 0x1000) ? D_8036BB30 : 0) + (snd->y + node->y + y),
+                                                func_8026F644(arg, node, node->y + snd->y - halfH + D_8036BB30 + 8) *
+                                                    D_8036BB38 * D_8036BB34,
+                                                mode, snd->scale);
+                        } else {
+                            gdl = func_80272ED8(gdl, node->unk1A + frame - 1, snd->x + node->x + x,
+                                                ((node->flags & 0x1000) ? D_8036BB30 : 0) + (snd->y + node->y + y),
+                                                func_8026F644(arg, node, node->y + snd->y - halfH + D_8036BB30 + 8) *
+                                                    D_8036BB38 * D_8036BB34 * 0.7,
+                                                mode & ~1, snd->scale);
+                        }
+                    }
+                }
+            }
+            if (arg->flags & 0x20000) {
+                gdl = func_80274AA4(gdl);
+            } else {
+                gdl = func_80274B08(gdl);
+            }
+        }
+        if (currentYoshiWindow < 0x62 || currentYoshiWindow >= 0x6C || D_80364A90 == 2) {
+            for (i = arg->unkE; i < arg->unkE + arg->unk10; i++) {
+                node = &D_8036BB10[i];
+                wtext = NULL;
+                text = func_8026F004(arg, i, 0);
+                if ((node->flags & 0x80) && !(node->flags & 0x800)) {
+                    if (i == arg->sel) {
+                        func_80259DC8(arg1, text, wtext, node->flags & 8, 0, node->x - halfW - 3,
+                                      ((node->flags & 0x1000) ? D_8036BB30 : 0) + (node->y - halfH) + 3, node->w,
+                                      node->h, 1, 0, 0, 0,
+                                      D_8036BB20 * D_802F47B0[node->selColor][3] * func_8026F644(arg, node, node->y - halfH + D_8036BB30) / 65025 / 2,
+                                      0, 0, 0,
+                                      D_8036BB20 * D_802F47B0[node->selColor][3] * func_8026F644(arg, node, node->y - halfH + D_8036BB30 + node->h) / 65025 / 2);
+                    } else if (!(node->flags & 4) || FRAMES(D_803156C4 % 23) < 16) {
+                        func_80259DC8(arg1, text, wtext, node->flags & 8, 0, node->x - halfW - 3,
+                                      ((node->flags & 0x1000) ? D_8036BB30 : 0) + (node->y - halfH) + 3, node->w,
+                                      node->h, 1, 0, 0, 0,
+                                      D_8036BB20 * D_802F47B0[node->color][3] * func_8026F644(arg, node, node->y - halfH + D_8036BB30) / 65025 / 2,
+                                      0, 0, 0,
+                                      D_8036BB20 * D_802F47B0[node->color][3] * func_8026F644(arg, node, node->y - halfH + D_8036BB30 + node->h) / 65025 / 2);
+                    }
+                }
+            }
+        }
+        for (i = arg->unkE; i < arg->unkE + arg->unk10; i++) {
+            node = &D_8036BB10[i];
+            wtext = NULL;
+            text = func_8026F004(arg, i, 0);
+            if (!(node->flags & 0x800)) {
+                if (i == arg->sel) {
+                    if ((!(node->flags & 4) || FRAMES(D_803156C4 % 23) < 16) &&
+                        (!(node->flags & 0x40) || FRAMES(D_803156C4 % 15) < 11)) {
+                        func_80259DC8(arg1, text, wtext, node->flags & 8, 0, node->x - halfW,
+                                      ((node->flags & 0x1000) ? D_8036BB30 : 0) + (node->y - halfH), node->w,
+                                      node->h, 1, D_802F47B0[node->selColor][0], D_802F47B0[node->selColor][1],
+                                      D_802F47B0[node->selColor][2],
+                                      D_8036BB20 * D_802F47B0[node->selColor][3] * func_8026F644(arg, node, node->y - halfH + D_8036BB30) / 65025,
+                                      D_802F47B0[node->selColor][4], D_802F47B0[node->selColor][5],
+                                      D_802F47B0[node->selColor][6],
+                                      D_8036BB20 * D_802F47B0[node->selColor][7] * func_8026F644(arg, node, node->y - halfH + D_8036BB30 + node->h) / 65025);
+                    }
+                } else if (!(node->flags & 4) || FRAMES(D_803156C4 % 23) < 16) {
+                    func_80259DC8(arg1, text, wtext, node->flags & 8, 0, node->x - halfW,
+                                  ((node->flags & 0x1000) ? D_8036BB30 : 0) + (node->y - halfH), node->w, node->h,
+                                  1, D_802F47B0[node->color][0], D_802F47B0[node->color][1],
+                                  D_802F47B0[node->color][2],
+                                  D_8036BB20 * D_802F47B0[node->color][3] * func_8026F644(arg, node, node->y - halfH + D_8036BB30) / 65025,
+                                  D_802F47B0[node->color][4], D_802F47B0[node->color][5], D_802F47B0[node->color][6],
+                                  D_8036BB20 * D_802F47B0[node->color][7] * func_8026F644(arg, node, node->y - halfH + D_8036BB30 + node->h) / 65025);
+                }
+            }
+        }
+        func_80259BD4(&gdl, arg1);
+    }
+    return gdl;
+}
 
 void func_8026EF70(YoshiArg *arg0) {
     if (arg0->flags & 0x80) {

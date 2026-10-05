@@ -145,3 +145,67 @@ func_802C80A0: -n 300 --seed 0 --ret void --sig func_802AC85C=a0,a1,a2 \
     --arg a0=choice:0,1,-1,0x80000000,0x7FFFFFFF,0x80B00000,0x80B00003,0x803FFFFF
 func_802C80A0: -n 100 --seed 1 --ret void --follow func_802AC85C --arg a0=choice:0x80B00000,0x80B00001,0x80B00002,0x80B00003,0x80B00005 --mem 0x80B00000:0x100=rand \
     --mem D_803F7B50:0xA6=rand --mem D_803F7BF8:12=rand
+
+# Vehicle-block helpers. The asm uses gp = &D_803F7B50 as a base pointer (set by func_802C5A14 /
+# func_802C5AFC), so every run passes --arg gp=sym:D_803F7B50; the C reads D_803F7B50 directly.
+
+# func_802C617C: +0x76 (s16) moves 8 towards 0 unless D_80370C35 or D_80370C2D is set
+func_802C617C: -n 300 --ret void --arg gp=sym:D_803F7B50 --mem D_80370C35:1=choice:0*3,1,0xFF --mem D_80370C2D:1=choice:0*3,1,0xFF \
+    --mem D_803F7B50+0x76:2=halves:0,1,7,8,9,0x10,0x7FFF,0x8000,0xFFFF,0xFFF9,0xFFF8,0xFFF7,0x1234,0xEDCC
+func_802C617C: -n 100 --seed 1 --ret void --arg gp=sym:D_803F7B50 --mem D_80370C35:1=0 --mem D_80370C2D:1=0 --mem D_803F7B50+0x76:2=int:0:0xFFFF
+
+# func_802C6ECC: start/stop the two looping sounds by mode (+0xA1) and D_803F7C3E (sound calls stubbed)
+func_802C6ECC: -n 300 --ret void --arg gp=sym:D_803F7B50 --sig func_802608C8=a0 --sig func_80260650=a0,a1,a2 \
+    --mem D_803F7B50+0xA1:1=choice:0,1,2,3,4,5,6,0xFF --mem D_803F7C3E:1=choice:0,1,0xFF \
+    --mem D_803F7C18=choice:0,0x80B00000 --mem D_803F7C1C=choice:0,0x80B00010 --mem D_80367738=int
+
+# func_802C6FD8 (result in s6): (a*n + round(k*n*n)) - (a*(n-1) + round(k*(n-1)^2)) + bonus;
+# k from floats with .25/.5/.75 fractions (round-half-even), bonus from the D_803F7BFC range (hi != lo)
+func_802C6FD8: -n 300 --arg gp=sym:D_803F7B50 --mem D_803F7B50+0x28=int:-1000:1000 --mem D_803F7B50+0x40=int:-100:100 \
+    --mem D_803EBBF4=choice:0,0x3F800000,0x3F000000,0x3E800000,0x3FC00000,0x40490FDB,0xBF800000,0xBF000000,0x3DCCCCCD,0x447A0000 \
+    --mem D_803F7C10=choice:0,100,500 --mem D_803F7C14=choice:1,200,1000,0x7FFFFFFF --mem D_803F7BFC=int:-100:2000
+func_802C6FD8: -n 100 --seed 1 --arg gp=sym:D_803F7B50 --mem D_803F7B50+0x28=choice:0,1,-1,30 --mem D_803F7B50+0x40=choice:0,1,2,3,-1 \
+    --mem D_803EBBF4=choice:0x3F000000,0x3E800000,0xBF000000 \
+    --mem D_803F7C10=100 --mem D_803F7C14=200 --mem D_803F7BFC=choice:99,100,101,150,199,200,201
+
+# func_802C7354: when +0x9F == 100, maybe switch to mode 1 (func_80258500 stubbed at 0x100: limit 0xAC4)
+func_802C7354: -n 300 --ret void --arg gp=sym:D_803F7B50 --sig func_80258500=a0 --stub-ret func_80258500=0x100 \
+    --mem D_803F7B50:0xA8=rand --mem D_803F7B50+0x9F:1=choice:100*3,99,0,0xFF --mem D_803F7B50+0xA1:1=choice:0,1,2,5 \
+    --mem D_803F7BFC=choice:0,-1,0xAC2,0xAC3,0xAC4,0xAC5,0x7FFFFFFF,0x80000000 --mem D_803F7C28=rand --mem D_803F7C2C=rand --mem D_803F7C3E:1=rand
+func_802C7354: -n 100 --seed 1 --ret void --arg gp=sym:D_803F7B50 --sig func_80258500=a0 --stub-ret func_80258500=-0x9C4 \
+    --mem D_803F7B50:0xA8=rand --mem D_803F7B50+0x9F:1=100 --mem D_803F7B50+0xA1:1=choice:0,1 \
+    --mem D_803F7BFC=choice:-1,0,1 --mem D_803F7C28=rand --mem D_803F7C2C=rand --mem D_803F7C3E:1=rand
+
+# func_802C7410: D_8036444C / D_80364450 from D_803F7BFC within [D_803F7C10, D_803F7C14) (hi > lo always)
+func_802C7410: -n 300 --ret void --arg gp=sym:D_803F7B50 --mem D_8036444C:2=rand --mem D_80364450:2=rand \
+    --mem D_803F7C10=choice:0,100,-50 --mem D_803F7C14=choice:101,1000,0x7FFF \
+    --mem D_803F7BFC=choice:-51,-50,-1,0,1,99,100,101,500,999,1000,0x7FFE,0x7FFF,0x8000
+func_802C7410: -n 200 --seed 1 --ret void --arg gp=sym:D_803F7B50 --mem D_8036444C:2=rand --mem D_80364450:2=rand \
+    --mem D_803F7C10=int:-100000:100000 --mem D_803F7C14=int:100001:300000 --mem D_803F7BFC=int:-100000:300000
+
+# func_802C7BC0 (result in f4): (1 - |D_80370C2D| / 80) / 2
+func_802C7BC0: -n 300 --arg gp=sym:D_803F7B50 --mem D_80370C2D:1=int:0:255
+func_802C7BC0: -n 50 --seed 1 --arg gp=sym:D_803F7B50 --mem D_80370C2D:1=choice:0,1,0x7F,0x80,0x81,0xFF,80,0xB0
+
+# func_802C7C1C (up flag in s2, result in f2): 0.5 +- |+0x76| / 540, clamped by D_8030D968..74
+func_802C7C1C: -n 300 --arg gp=sym:D_803F7B50 --arg s2=choice:0,1,-1 --mem D_803F7B50+0x76:2=int:0:0xFFFF
+func_802C7C1C: -n 200 --seed 1 --arg gp=sym:D_803F7B50 --arg s2=choice:0,1 --mem D_803F7B50+0x76:2=halves:0,1,270,540,0x7FFF,0x8000,0xFFFF,0xFEF2 \
+    --mem D_8030D968:16=floats:-1:2
+func_802C7C1C: -n 50 --seed 2 --arg gp=sym:D_803F7B50 --arg s2=choice:0,1 --mem D_803F7B50+0x76:2=int:0:0xFFFF \
+    --mem D_8030D968:16=words:0x3F000000,0x3F800000,0x7FC00000,0
+
+# func_802C7DFC (result in s3): modes 0/5 round(+0x76 / 1.5); modes 1-4 D_803F7C3C climbs by 2 to 100
+# or resets to 20 by |D_80370C2C|. Other modes hit a `syscall` in the asm, so only 0-5 are used.
+func_802C7DFC: -n 300 --arg gp=sym:D_803F7B50 --mem D_803F7B50+0xA1:1=choice:0,1,2,3,4,5 --mem D_803F7B50+0x76:2=int:0:0xFFFF \
+    --mem D_80370C2C:1=int:0:255 --mem D_803F7C3C:1=int:0:255
+func_802C7DFC: -n 200 --seed 1 --arg gp=sym:D_803F7B50 --mem D_803F7B50+0xA1:1=choice:1,4 \
+    --mem D_80370C2C:1=choice:0x32,0x33,0xCE,0xCD,0x7F,0x80,0 --mem D_803F7C3C:1=choice:0,0x61,0x62,0x63,0x64,0xFE,0xFF
+func_802C7DFC: -n 100 --seed 2 --arg gp=sym:D_803F7B50 --mem D_803F7B50+0xA1:1=choice:0,5 \
+    --mem D_803F7B50+0x76:2=halves:0,1,2,3,0x7FFF,0x8000,0xFFFF,0xFFFE,0xFFFD,0x4000
+
+# func_802C7ECC: D_803EBBF4 = D_803EBBF0 * (mode 2 ? 4 : 1)
+func_802C7ECC: -n 200 --ret void --arg gp=sym:D_803F7B50 --mem D_803F7B50+0xA1:1=choice:0,1,2,3,0xFF --mem D_803EBBF0:4=floats --mem D_803EBBF4=rand
+
+# func_802C7F28: 15 tuning halfwords at +0x78 and D_803F7C48 by mode; D_803ED3F6/7 = 0xFF
+func_802C7F28: -n 100 --ret void --arg gp=sym:D_803F7B50 --mem D_803F7B50+0x78:0x20=rand --mem D_803F7B50+0xA1:1=choice:0,1,2,0xFF \
+    --mem D_803ED3F6:2=rand --mem D_803F7C48:1=rand

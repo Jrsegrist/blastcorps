@@ -7,3 +7,6 @@ func_802D2A74: -n 300 --seed 0 --ret void --sig func_80260AB8=a0,a1,a2 --follow 
 func_802D2A74: -n 200 --seed 1 --ret void --sig func_80260AB8=a0,a1,a2 --follow func_802ABCDC --mem D_803FCD64=0x80123450 --mem D_803643F8=choice:0,0x7FF,0x800,-1,-0x801 --mem D_803643FC=0 --mem D_80364400=0 --mem D_803FCD4C=0 --mem D_803FCD50=0 --mem D_803FCD48=choice:0,0x31FF,0x3200,0x3201,0x3203,0x3204,0x231FB,0x231FC,0x231FF,0x23200,0x23203,0x23204,-0x23204
 # NO-DIST: no sound (D_803FCD64 NULL): nothing happens
 func_802D2A74: -n 50 --seed 2 --ret void --sig func_80260AB8=a0,a1,a2 --follow func_802ABCDC --mem D_803FCD64=0 --mem D_803643F8=int --mem D_803FCD48=int
+
+# func_802D2A40: calls func_80269258() with gp saved around it
+func_802D2A40: -n 50 --ret void --sig func_80269258=

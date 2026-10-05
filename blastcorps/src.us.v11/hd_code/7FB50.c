@@ -56,6 +56,63 @@ typedef struct {
             *(w).out++ = (w).bits << (8 - (w).count);  \
         }                                              \
     }
+
+/* The player-vehicle block. The asm reaches it through gp (callers
+ * func_802C5A14 / func_802C5AFC set gp = &D_803F7B50); the C reads it
+ * directly. Only the fields below are known. */
+extern u8 D_803F7B50[];
+#define VEH_S32(off) (*(s32 *) (D_803F7B50 + (off)))
+#define VEH_S16(off) (*(s16 *) (D_803F7B50 + (off)))
+#define VEH_U8(off) (D_803F7B50[off])
+/* +0x28/0x2C/0x30, +0x34/0x38/0x3C, +0x40/0x44/0x48: three s32 triples
+ * +0x76: s16 (signed, decays towards 0)
+ * +0x78..0x95: 15 s16 tuning values
+ * +0x96..0x98: u8 flags; +0x9F: u8 (100 = ...); +0xA1: u8 mode (0..5); +0xA2: u8 previous mode */
+
+extern s8 D_80370C2C;
+extern s8 D_80370C2D;
+extern u8 D_80370C35;
+extern s32 D_803F7BFC;
+extern s32 D_803F7C10;
+extern s32 D_803F7C14;
+extern void *D_803F7C18;
+extern void *D_803F7C1C;
+extern f32 D_803F7C28;
+extern f32 D_803F7C2C;
+extern u8 D_803F7C3C;
+extern u8 D_803F7C3E;
+extern u8 D_803F7C48;
+extern f32 D_803EBBF0;
+extern f32 D_803EBBF4;
+extern u8 D_803ED3F6;
+extern u8 D_803ED3F7;
+extern s16 D_8036444C;
+extern s16 D_80364450;
+extern void *D_80367738;
+extern f32 D_8030D968;
+extern f32 D_8030D96C;
+extern f32 D_8030D970;
+extern f32 D_8030D974;
+
+s32 func_80258500(u8 id);
+void *func_80260650(void *arg0, s16 arg1, void *arg2);
+void func_802608C8(void *arg0);
+
+/* cvt.w.s under the default FCSR: round to nearest, ties to even (a C cast
+ * truncates). */
+#define CVT_W_S(out, x)                                       \
+    {                                                         \
+        f32 _x = (x);                                         \
+        s32 _r = (s32) _x;                                    \
+        f32 _d = _x - _r;                                     \
+                                                              \
+        if (_d > 0.5f || (_d == 0.5f && (_r & 1))) {          \
+            _r++;                                             \
+        } else if (_d < -0.5f || (_d == -0.5f && (_r & 1))) { \
+            _r--;                                             \
+        }                                                     \
+        (out) = _r;                                           \
+    }
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -218,7 +275,34 @@ u32 func_802C4E58(void *outp, u8 level) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C5AFC.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Unless D_80370C35 or D_80370C2D is set, moves the s16 at +0x76 of the
+ * vehicle block 8 towards 0 (stopping at 0). The asm saves s7, the only
+ * register it uses; asm caller func_802C5AFC keeps a0-a3 and t6 live (a
+ * mixed N64 build would need a thunk, the native port doesn't). */
+void func_802C617C(void) {
+    s32 v;
+
+    if (D_80370C35 != 0 || D_80370C2D != 0) {
+        return;
+    }
+    v = VEH_S16(0x76);
+    if (v >= 0) {
+        v -= 8;
+        if (v < 0) {
+            v = 0;
+        }
+    } else {
+        v += 8;
+        if (v > 0) {
+            v = 0;
+        }
+    }
+    VEH_S16(0x76) = v;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C617C.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C61F0.s")
@@ -227,10 +311,75 @@ u32 func_802C4E58(void *outp, u8 level) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C6DAC.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Starts/stops the two looping vehicle sounds (handles D_803F7C18 and
+ * D_803F7C1C) for the current mode (+0xA1) and D_803F7C3E. The survey lists
+ * a1-a3 as outputs read by func_802C61F0's callers: they are only what the
+ * sound calls leave behind, nothing this function sets. */
+void func_802C6ECC(void) {
+    s32 mode = VEH_U8(0xA1);
+
+    if (mode == 0 || mode == 4) {
+        if (D_803F7C1C != NULL) {
+            func_802608C8(D_803F7C1C);
+        }
+    }
+    if (D_803F7C3E == 0) {
+        if (D_803F7C18 != NULL) {
+            func_802608C8(D_803F7C18);
+        }
+        mode = VEH_U8(0xA1);
+        if (mode == 1 || mode == 2 || mode == 3) {
+            if (D_803F7C1C == NULL) {
+                func_80260650(D_80367738, 0xF, &D_803F7C1C);
+            }
+        }
+    } else {
+        if (D_803F7C18 == NULL) {
+            func_80260650(D_80367738, 2, &D_803F7C18);
+        }
+        if (D_803F7C1C != NULL) {
+            func_802608C8(D_803F7C1C);
+        }
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C6ECC.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* With a = +0x28, n = +0x40 of the vehicle block and k = D_803EBBF4:
+ * (a*n + round(k*n*n)) - (a*(n-1) + round(k*(n-1)^2)) + bonus, where bonus
+ * is 30 when D_803F7BFC < D_803F7C10, else
+ * 30 - (u32)((D_803F7BFC - D_803F7C10) * 30) / (u32)(D_803F7C14 - D_803F7C10).
+ * Products are 32-bit; round() is cvt.w.s (nearest, ties to even).
+ * The asm returns the value in s6 and also changes s7 and a1 (scratch);
+ * asm caller func_802C61F0 keeps a2, a3, t6, t7, f12 and f14 live (a mixed
+ * N64 build would need a thunk, the native port doesn't). */
+s32 func_802C6FD8(void) {
+    s32 a = VEH_S32(0x28);
+    s32 n = VEH_S32(0x40);
+    s32 r;
+    s32 sum;
+    s32 bonus;
+
+    CVT_W_S(r, D_803EBBF4 * (f32) (n * n));
+    sum = a * n + r;
+    n = VEH_S32(0x40) - 1;
+    a = VEH_S32(0x28);
+    CVT_W_S(r, D_803EBBF4 * (f32) (n * n));
+    sum -= a * n + r;
+    if (D_803F7BFC < D_803F7C10) {
+        bonus = 30;
+    } else {
+        bonus = 30 - (u32) ((D_803F7BFC - D_803F7C10) * 30) / (u32) (D_803F7C14 - D_803F7C10);
+    }
+    return sum + bonus;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C6FD8.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C70E8.s")
@@ -239,10 +388,78 @@ u32 func_802C4E58(void *outp, u8 level) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C71FC.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* When +0x9F of the vehicle block is 100: outside mode 1, resets
+ * D_803F7C28/D_803F7C2C to 0.5; then, if D_803F7BFC < func_80258500(9) +
+ * 2500, switches to mode 1 (triples +0x34.. = D_803F7BFC, +0x40.. = 1,
+ * +0x28.. = 30, flags +0x96..0x98 = 1, D_803F7C3E = 1).
+ * The survey lists v1, t6, t7 as outputs read by func_802C61F0: v1 is only
+ * scratch on the taken path and t6/t7 are untouched. Asm caller
+ * func_802C61F0 keeps a1-a3, f12 and f14 live (a mixed N64 build would need
+ * a thunk, the native port doesn't). */
+void func_802C7354(void) {
+    s32 limit;
+    s32 cur;
+
+    if (VEH_U8(0x9F) != 100) {
+        return;
+    }
+    if (VEH_U8(0xA1) != 1) {
+        D_803F7C28 = 0.5f;
+        D_803F7C2C = 0.5f;
+    }
+    limit = func_80258500(9) + 2500;
+    cur = D_803F7BFC;
+    if (cur < limit) {
+        VEH_S32(0x34) = cur;
+        VEH_S32(0x38) = cur;
+        VEH_S32(0x3C) = cur;
+        VEH_S32(0x40) = 1;
+        VEH_S32(0x44) = 1;
+        VEH_S32(0x48) = 1;
+        VEH_S32(0x28) = 30;
+        VEH_S32(0x2C) = 30;
+        VEH_S32(0x30) = 30;
+        VEH_U8(0x96) = 1;
+        VEH_U8(0x97) = 1;
+        VEH_U8(0x98) = 1;
+        VEH_U8(0xA1) = 1;
+        D_803F7C3E = 1;
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C7354.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Sets the pair D_8036444C / D_80364450 from where D_803F7BFC lies in
+ * [D_803F7C10, D_803F7C14): (0xD48, 0x258) below it, (1000, 3000) at or
+ * past the end, else interpolated (0xD48 - 2400*t, 0x258 + 2400*t with
+ * t = (cur - lo) / (hi - lo), signed division). The survey lists a0-a3 as
+ * outputs read by func_802C5AFC: they're scratch (a0 = D_803F7C14). */
+void func_802C7410(void) {
+    s32 cur = D_803F7BFC;
+    s32 lo = D_803F7C10;
+    s32 hi = D_803F7C14;
+
+    if (cur < lo) {
+        D_8036444C = 0xD48;
+        D_80364450 = 0x258;
+    } else if (cur >= hi) {
+        D_8036444C = 1000;
+        D_80364450 = 3000;
+    } else {
+        s32 num = cur - lo;
+        s32 den = hi - lo;
+
+        D_8036444C = num * -0x960 / den + 0xD48;
+        D_80364450 = num * 0x960 / den + 0x258;
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C7410.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C7544.s")
@@ -291,22 +508,137 @@ void func_802C770C(void) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C7864.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* (1 - |D_80370C2D| / 80) / 2. The asm returns it in f4 (and changes f6);
+ * asm caller func_802C7864 keeps f2 live (a mixed N64 build would need a
+ * thunk, the native port doesn't). */
+f32 func_802C7BC0(void) {
+    s32 v = D_80370C2D;
+
+    if (v < 0) {
+        v = -v;
+    }
+    return (1.0f - (f32) v / 80.0f) / 2.0f;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C7BC0.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* f = |+0x76 of the vehicle block| / 270 * 0.5, then 0.5 + f if `up`
+ * else 0.5 - f, capped at D_8030D968 (-> D_8030D96C) and floored at
+ * D_8030D970 (-> D_8030D974). The asm takes `up` in s2 and returns the value
+ * in f2; it also leaves s3 = 270 (scratch, not read by its caller
+ * func_802C7864). */
+f32 func_802C7C1C(s32 up) {
+    s32 v = VEH_S16(0x76);
+    f32 f;
+
+    if (v < 0) {
+        v = -v;
+    }
+    f = (f32) v / 270.0f * 0.5f;
+    if (up != 0) {
+        f = f + 0.5f;
+    } else {
+        f = 0.5f - f;
+    }
+    if (!(f <= D_8030D968)) {
+        f = D_8030D96C;
+    }
+    if (f < D_8030D970) {
+        f = D_8030D974;
+    }
+    return f;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C7C1C.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C7CB0.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Modes 0 and 5 (+0xA1): returns round(+0x76 / 1.5) (cvt.w.s, nearest).
+ * Modes 1-4: if |D_80370C2C| is large (>= 51 or < -50) D_803F7C3C climbs by
+ * 2 up to 100, else it is reset to 20; returns the new D_803F7C3C. Any other
+ * mode hits a `syscall` in the asm (a deliberate crash) and, if that
+ * returned, would continue as modes 1-4, which is what this does.
+ * The asm returns the value in s3; asm caller func_802C5AFC keeps a0-a3
+ * live (a mixed N64 build would need a thunk, the native port doesn't). */
+s32 func_802C7DFC(void) {
+    s32 mode = VEH_U8(0xA1);
+    s32 v;
+    s32 r;
+
+    if (mode == 0 || mode == 5) {
+        CVT_W_S(r, (f32) VEH_S16(0x76) / 1.5f);
+        return r;
+    }
+    v = D_80370C2C;
+    if (v >= 0x33 || v < -0x32) {
+        r = D_803F7C3C + 2;
+        if (r >= 0x65) {
+            r = 100;
+        }
+        D_803F7C3C = r;
+        return r;
+    }
+    D_803F7C3C = 20;
+    return 20;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C7DFC.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* D_803EBBF4 = D_803EBBF0, times 4 in mode 2. Asm callers keep registers
+ * live across the call (func_802C5A14 t3, t4, f12, f14; func_802C5AFC
+ * a0-a3, t6, f12, f14): a mixed N64 build would need a thunk. */
+void func_802C7ECC(void) {
+    f32 k;
+
+    if (VEH_U8(0xA1) == 2) {
+        k = 4.0f;
+    } else {
+        k = 1.0f;
+    }
+    D_803EBBF4 = D_803EBBF0 * k;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C7ECC.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Sets D_803ED3F6 / D_803ED3F7 to 0xFF and loads the 15 s16 tuning values at
+ * +0x78 of the vehicle block plus D_803F7C48 for the mode (+0xA1 nonzero or
+ * zero). Asm callers keep registers live across the call (func_802C5A14 t3,
+ * t4, f12, f14; func_802C5AFC a0-a3): a mixed N64 build would need a thunk. */
+void func_802C7F28(void) {
+    static const s16 sActive[15] = { -200, 0, 2, 0, 250, 2, 0, 250, 2, 0, 250, 2, 0, 250, 2 };
+    static const s16 sIdle[15] = { -100, 0, 4, 0, 150, 4, 0, 150, 4, 0, 150, 4, 0, 150, 4 };
+    const s16 *src;
+    s32 i;
+
+    D_803ED3F6 = 0xFF;
+    D_803ED3F7 = 0xFF;
+    if (VEH_U8(0xA1) != 0) {
+        src = sActive;
+    } else {
+        src = sIdle;
+    }
+    for (i = 0; i < 15; i++) {
+        VEH_S16(0x78 + i * 2) = src[i];
+    }
+    D_803F7C48 = (VEH_U8(0xA1) != 0) ? 4 : 12;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C7F28.s")
+#endif
 
 /* func_802C8074: two-address trampoline into func_802AC7DC, same
  * confirmed-unreachable-from-C 8-byte sd-$ra frame as func_802AC284

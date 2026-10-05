@@ -88,10 +88,58 @@ void func_802AC85C(u8 *src, u8 *dst, u32 *words) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Converts, in place, a 4x4 matrix of s32 16.16 values into the N64 Mtx
+ * layout: the 16 integer halves first, then the 16 fraction halves.
+ * The asm takes m in s2 (conventions.txt) and saves every register it uses.
+ * Asm callers keep many registers live across the call (func_8029E5AC a0-a3,
+ * t2, t4, t5, t7, f8, f12, f14; func_802AA764 a0-a3, t4, t6, t7, f12, f14;
+ * func_802C1F30 t0-t2, t4, t6; func_802CEEFC a0-a3, t3, t7, f12, f14; ...):
+ * a mixed N64 build would need a thunk, the native port doesn't. */
+void func_802AC8CC(u16 *m) {
+    u16 tmp[32];
+    s32 i;
+
+    for (i = 0; i < 32; i++) {
+        tmp[i] = m[i];
+    }
+    for (i = 0; i < 16; i++) {
+        m[i] = tmp[i * 2];
+        m[16 + i] = tmp[i * 2 + 1];
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/func_802AC8CC.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Writes a 16.16 translation matrix (identity plus x, y, z in the last row)
+ * to m. The asm takes x, y, z, m in t0-t3 and saves a0; asm callers keep
+ * many registers live (func_802AA764 t4, t6-t8, f12, f14; func_802BE574
+ * a0-a3, t6, f12, f14; func_802C1F30 t0-t4, t6; ...): a mixed N64 build
+ * would need a thunk, the native port doesn't. */
+void func_802ACA60(s32 x, s32 y, s32 z, s32 *m) {
+    m[0] = 0x10000;
+    m[1] = 0;
+    m[2] = 0;
+    m[3] = 0;
+    m[4] = 0;
+    m[5] = 0x10000;
+    m[6] = 0;
+    m[7] = 0;
+    m[8] = 0;
+    m[9] = 0;
+    m[10] = 0x10000;
+    m[11] = 0;
+    m[12] = x;
+    m[13] = y;
+    m[14] = z;
+    m[15] = 0x10000;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/func_802ACA60.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/func_802ACAC4.s")
@@ -103,10 +151,65 @@ void func_802AC85C(u8 *src, u8 *dst, u32 *words) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/func_802ACBDC.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Writes a 16.16 scale matrix diag(x, y, z, 1) to m. Same register
+ * interface as func_802ACA60 (t0-t3); asm callers func_802A68D4 / func_802AA764
+ * keep a0-a3, t4, f12, f14 live (a mixed N64 build would need a thunk). */
+void func_802ACC68(s32 x, s32 y, s32 z, s32 *m) {
+    m[0] = x;
+    m[1] = 0;
+    m[2] = 0;
+    m[3] = 0;
+    m[4] = 0;
+    m[5] = y;
+    m[6] = 0;
+    m[7] = 0;
+    m[8] = 0;
+    m[9] = 0;
+    m[10] = z;
+    m[11] = 0;
+    m[12] = 0;
+    m[13] = 0;
+    m[14] = 0;
+    m[15] = 0x10000;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/func_802ACC68.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern s32 D_803ED420[16]; /* scratch product */
+
+/* m = m * b for 4x4 matrices of s32 16.16 values: each element is the s64
+ * sum of four s32 x s32 products (dmult, wrapping), >> 16 arithmetic, low
+ * 32 bits kept. The product goes through D_803ED420 and is then copied to m.
+ * The asm takes b in a0 and m in s2 (conventions.txt); it leaves a1 = 4,
+ * a2 = 4, a3 = 0 (the survey shows asm callers reading a1-a3 afterwards; a
+ * C caller can't). Asm callers keep a0, t2, t4-t8, f8, f12, f14 live
+ * across the call (a mixed N64 build would need a thunk). */
+void func_802ACCCC(s32 *b, s32 *m) {
+    s32 i;
+    s32 j;
+    s32 k;
+
+    for (i = 0; i < 4; i++) {
+        for (j = 0; j < 4; j++) {
+            s64 sum = 0;
+
+            for (k = 0; k < 4; k++) {
+                sum += (s64) m[i * 4 + k] * b[k * 4 + j];
+            }
+            D_803ED420[i * 4 + j] = (s32) (sum >> 16);
+        }
+    }
+    for (i = 0; i < 16; i++) {
+        m[i] = D_803ED420[i];
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/func_802ACCCC.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/func_802ACDB8.s")

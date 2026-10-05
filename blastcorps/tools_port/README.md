@@ -346,9 +346,9 @@ block in `src.us.v11/hd_code/*.c` and reports any with no check line
 (`MISSING`, which makes the exit status nonzero). It also notes check lines for
 functions that have no rewrite.
 
-Current suite (Oct 2026): 61 rewritten functions, 148 runs, all PASS, about
-70 s wall at `-j4` and 58 s at `-j8` (was 637 s at `-j4` before the
-restore/diff speedup, see section 6).
+Current suite (Oct 2026): 112 rewritten functions, 282 runs, all PASS, about
+76 s wall at `-j8` (148 runs took 637 s at `-j4` before the restore/diff
+speedup, see section 6).
 
 ## 5. Writing checks for a new rewrite
 
@@ -411,6 +411,10 @@ restore/diff speedup, see section 6).
 | func_80275DA4, wrong geometry mode | broken | vs build_nm | FAIL trial 0: `heap+0xE` 02 vs 00 |
 | func_802CE840 (fills a 25-entry table) | hand asm, C rewrite | vs build_nm | PASS 50 |
 | func_802C8AB0 (sets 2 globals, calls func_802C4310(a0, 0x72)) | hand asm, C rewrite | vs build_nm | PASS 200 |
+| func_8029DC14 (id in v0, result in v1), func_802ACF64 (v1 -> fp), func_802AB8D8 (s2 -> t0, recursive) | non-ABI asm, C rewrite via conventions.txt | vs build_nm | PASS 300 each |
+| func_8029DBF0 / func_802ACF3C / func_802AB878 (wrappers of the above) | callee stubbed under the mapping / `--follow` | vs build_nm | PASS 200 / 300 |
+| func_8029DC14 without the byte-0x51 test; func_802AB878 passing id+1 | broken | vs build_nm | FAIL: `output v1=v0` 1 vs 0; `event #0 differs: func_802AB8D8(a0=0x9) vs (a0=0xA)` |
+| func_802BD10C (calls func_802ABCDC: cvt.d.l/sqrt.d/cvt.l.d) | FPU long ops emulated; also `--model` | vs build_nm | PASS 300; z read from the wrong word: FAIL |
 
 A trial (both builds) takes about 5-10 ms for a small function, and a run
 starts in about 0.4 s. Guest RAM is mapped from host buffers

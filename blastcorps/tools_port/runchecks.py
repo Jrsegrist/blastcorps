@@ -116,7 +116,7 @@ def changed_stems(ref):
     return stems
 
 
-def run_one(check, trials_override):
+def check_cmd(check, trials_override):
     fname, lineno, func, argv = check
     argv = list(argv)
     if trials_override is not None:
@@ -126,14 +126,50 @@ def run_one(check, trials_override):
             argv[k + 1] = str(min(int(argv[k + 1]), trials_override))
         else:
             argv += ["-n", str(trials_override)]
-    cmd = [sys.executable, os.path.join(HERE, "eqcheck.py"), func] + argv
+    return [sys.executable, os.path.join(HERE, "eqcheck.py"), func] + argv
+
+
+def run_one(check, trials_override):
+    """One check line in a fresh eqcheck process (--no-pool, and the fallback)."""
+    cmd = check_cmd(check, trials_override)
     t0 = time.time()
     p = subprocess.run(cmd, cwd=REPO, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                        universal_newlines=True)
-    dt = time.time() - t0
-    out = p.stdout
+    return classify(check, cmd, p.returncode, p.stdout, time.time() - t0)
+
+
+def est_cost(check, trials_override):
+    """Rough run time of a check line: its trial count."""
+    argv = check[3]
+    n = 200
+    if "-n" in argv:
+        try:
+            n = int(argv[argv.index("-n") + 1])
+        except (ValueError, IndexError):
+            pass
+    if trials_override is not None:
+        n = min(n, trials_override)
+    return n * (3 if "--follow-all" in argv or "--follow" in argv else 1)
+
+
+def pool_init():
+    os.chdir(REPO)
+    sys.path.insert(0, HERE)
+    import eqcheck      # noqa: F401  (loaded once per worker)
+
+
+def pool_run(check, trials_override):
+    """One check line inside a pool worker: eqcheck runs in-process and keeps
+    its parsed ELFs and emulator machines between the lines it is given."""
+    import eqcheck
+    cmd = check_cmd(check, trials_override)
+    rc, out, dt = eqcheck.run_captured(cmd[2:])
+    return classify(check, cmd, rc, out, dt)
+
+
+def classify(check, cmd, returncode, out, dt):
     m = re.search(r"^(PASS|FAIL): \S+ (\d+)/(\d+) trials equivalent(.*?) \(", out, re.M)
-    if p.returncode == 0 and m and m.group(1) == "PASS":
+    if returncode == 0 and m and m.group(1) == "PASS":
         status = "PASS"
     elif m and m.group(1) == "FAIL":
         status = "FAIL"
@@ -157,6 +193,9 @@ def main():
     ap.add_argument("-j", "--jobs", type=int, default=min(os.cpu_count() or 4, 8))
     ap.add_argument("-q", "--quick", type=int, metavar="N", help="cap every run at N trials")
     ap.add_argument("-v", "--verbose", action="store_true", help="print eqcheck output of every run")
+    ap.add_argument("--no-pool", action="store_true",
+                    help="run every check line in its own eqcheck process (the pre-Oct-2026 way) instead of "
+                         "a pool of workers that keep the ELFs and emulators loaded")
     ap.add_argument("--list", action="store_true", help="list the selected checks and exit")
     ap.add_argument("--coverage-only", action="store_true", help="only run the coverage check")
     ap.add_argument("--changed", action="store_true",
@@ -256,12 +295,35 @@ def main():
     sys.stdout.flush()
     t0 = time.time()
     results = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, o.jobs)) as ex:
-        futs = [ex.submit(run_one, c, o.quick) for c in checks]
-        for fu in concurrent.futures.as_completed(futs):
-            results.append(fu.result())
-    order = {id(c): i for i, c in enumerate(checks)}
-    results.sort(key=lambda r: order[id(r[0])])
+    redo = []
+    if o.no_pool:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, o.jobs)) as ex:
+            futs = [ex.submit(run_one, c, o.quick) for c in checks]
+            for fu in concurrent.futures.as_completed(futs):
+                results.append(fu.result())
+    else:
+        # A pool of worker processes, each running many check lines in-process
+        # (no interpreter start, ELF unpickling or 50 MB machine setup per line).
+        # Longest-looking lines first, so the tail of the run stays parallel.
+        import multiprocessing
+        ctx = multiprocessing.get_context("fork")
+        order_big = sorted(checks, key=lambda c: -est_cost(c, o.quick))
+        with concurrent.futures.ProcessPoolExecutor(max_workers=max(1, o.jobs), mp_context=ctx,
+                                                    initializer=pool_init) as ex:
+            futs = {ex.submit(pool_run, c, o.quick): c for c in order_big}
+            for fu in concurrent.futures.as_completed(futs):
+                try:
+                    results.append(fu.result())
+                except concurrent.futures.process.BrokenProcessPool:
+                    redo.append(futs[fu])
+        if redo:
+            # a worker died (a crash inside unicorn?): rerun those lines one process each
+            print("runchecks: a worker process died; rerunning %d check(s) in separate processes" % len(redo))
+            with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, o.jobs)) as ex:
+                for r in ex.map(lambda c: run_one(c, o.quick), redo):
+                    results.append(r)
+    order = {(c[0], c[1]): i for i, c in enumerate(checks)}
+    results.sort(key=lambda r: order[(r[0][0], r[0][1])])
 
     nfail = 0
     print()

@@ -145,6 +145,10 @@ extern u8 D_802E8BD0;
 extern char D_80367D10[];
 extern char D_80367D28[];
 extern ALCSPlayer *D_80367734;
+extern s16 D_80367D50; /* turbo-start banner y offset */
+extern u8 D_80367D52;  /* turbo-start banner image (1-5) */
+extern u8 D_80367D53;
+extern u8 D_80370C1C;
 extern char D_80367C18[];
 extern char D_80367C40[];
 extern s16 D_80367C68[];
@@ -157,7 +161,7 @@ extern Player D_80364AF0[];
 extern u8 D_80364AE8;
 extern u8 D_803643D6;
 extern u8 D_803643D7;
-extern s32 D_803156C0;
+extern u32 D_803156C0;
 extern s32 D_80364A58;
 extern u16 D_80367BF4;
 extern u16 D_80367D08;
@@ -197,6 +201,26 @@ Gfx *func_80274AA4(Gfx *);
 Gfx *func_80272ED8(Gfx *, s32, s32, s32, s32, s32, f32);
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#define MAX0(x) ((x) < 0 ? 0 : (x))
+
+/* Pre-2.0I scissored texture rectangle (as in 17E10.c and 51690.c) */
+#define OLD_RDPHALF_2 0xB3
+#define OLD_RDPHALF_CONT 0xB2
+
+#define gSPScisTextureRectangleOld(pkt, xl, yl, xh, yh, tile, s, t, dsdx, dtdy)             \
+    {                                                                                        \
+        Gfx *_g = (Gfx *) (pkt);                                                             \
+                                                                                             \
+        _g->words.w0 = (_SHIFTL(G_TEXRECT, 24, 8) | _SHIFTL(MAX(xh, 0), 12, 12) |            \
+                        _SHIFTL(MAX(yh, 0), 0, 12));                                         \
+        _g->words.w1 = (_SHIFTL(tile, 24, 3) | _SHIFTL(MAX(xl, 0), 12, 12) |                 \
+                        _SHIFTL(MAX(yl, 0), 0, 12));                                         \
+        gImmp1(pkt, OLD_RDPHALF_2,                                                           \
+               (_SHIFTL(((s) - MIN(((xl) * (dsdx)) >> 7, 0)), 16, 16) |                      \
+                _SHIFTL(((t) - MIN(((yl) * (dtdy)) >> 7, 0)), 0, 16)));                      \
+        gImmp1(pkt, OLD_RDPHALF_CONT, (_SHIFTL(dsdx, 16, 16) | _SHIFTL(dtdy, 0, 16)));       \
+    }
 
 void func_80262150(u8 arg0) {
     s32 i;
@@ -745,7 +769,84 @@ void func_8026420C(void) {
     }
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/1D990/func_80264264.s")
+/* Turbo-start banner: a small state machine in D_80367BC8 that scrolls the
+ * countdown images in, rewards a turbo start, then scrolls them out; draws
+ * the current image as eight 32-pixel-wide strips */
+Gfx *func_80264264(Gfx **arg0, Gfx *gdl) {
+    Gfx *g;
+    s32 i;
+    s32 x0;
+
+    g = gdl;
+    switch (D_80367BC8) {
+        case 1:
+            D_80367D52 = 3;
+            D_80367BC8 = 2;
+            break;
+        case 2:
+            D_80367D50 = (D_803156C4 - D_80367BC0) * 60 / 60 - 0x40;
+            D_80367D52 = 3 - MAX0(D_80367D50 * 2 / 10);
+            if (D_80367D50 >= 10) {
+                D_80367D52 = 1;
+                D_80367D50 = 10;
+                D_80367BC8 = 3;
+            }
+            break;
+        case 3:
+            if (!D_802E8BD0) {
+                D_80367BC8 = 4;
+            }
+            if (D_80370C1C) {
+                D_80367C01 = 1;
+            }
+            break;
+        case 4:
+            D_80367D53 = D_80367D52;
+            if (D_803156C0 - D_80364A58 > 6) {
+                D_80367D52 = 5;
+            } else {
+                D_80367D52 = 4;
+            }
+            if (D_803156C0 - D_80364A58 > 20) {
+                D_80367BC8 = 5;
+                D_80367BFF = D_80367BFE;
+                D_80367B50 = D_80358064;
+            }
+            if (D_80367D53 == 1 && !D_80370C1C) {
+                D_80367BFE = !D_80367C01;
+            }
+            if (D_80367D53 == 4 && D_80367D52 == 5 && !D_80370C1C) {
+                D_80367BFE = 0;
+            }
+            break;
+        case 5:
+            D_80367D50 = 10 - ((D_803156C0 - D_80364A58) * 2 * 60 - 2400) / 60;
+            if (D_80367D50 < -0x3F) {
+                /* comma (or both on one line) needed for the store to land in the jal delay slot */
+                D_80367BC8 = 0, func_8029A7E4("turbo %d\n", D_80367BFE);
+            }
+            break;
+    }
+    if (D_80364AA8 != 0x80) {
+        gDPPipeSync(g++);
+        gSPTexture(g++, 0, 0, 0, G_TX_RENDERTILE, G_OFF);
+        gDPSetTexturePersp(g++, G_TP_NONE);
+        gDPSetCycleType(g++, G_CYC_1CYCLE);
+        gDPSetRenderMode(g++, G_RM_CLD_SURF, G_RM_CLD_SURF2);
+        gDPSetCombine(g++, 0xFF97FF, 0xFF2CFE7F);
+        gDPSetPrimColor(g++, 0, 0, 0, 0, 0, 0xFF);
+        x0 = 0x20;
+        for (i = 0; i < 0x100; i += 0x20) {
+            gDPLoadTextureTile(g++, D_80367BE0[D_80367D52 - 1], G_IM_FMT_RGBA, G_IM_SIZ_16b, 256, 0, i, 0, i + 31, 63,
+                               0, G_TX_CLAMP, G_TX_CLAMP, 0, 0, G_TX_NOLOD, G_TX_NOLOD);
+            gSPScisTextureRectangleOld(g++, (i + x0) << 2, 0 << 2, (i + x0 + 0x20) << 2, (D_80367D50 + 0x3F) << 2, 0,
+                                       i << 5, -(D_80367D50 << 5), 1 << 10, 1 << 10);
+        }
+        gDPPipeSync(g++);
+        gDPSetTexturePersp(g++, G_TP_PERSP);
+    }
+    return g;
+}
 
 /* Format a time in tenths of a second as "MM:SS.t" */
 void func_80264A34(char *buf, u16 t, s32 arg2) {

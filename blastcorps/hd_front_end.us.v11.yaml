@@ -38,21 +38,21 @@ segments:
     - [0x1A240, c, hd_front_end/1A240]
     - [0x1AE80, c, hd_front_end/1AE80] # game code (one IDO function)
     - [0x1B100, c, hd_front_end/1B100] # hand-written asm: sd $ra frames, $gp, calls hd_code non-ABI functions
-    - [0x1B730, c, hd_front_end/1B730] # libultra pfsfreeblocks.c
+    - [0x1B730, c, hd_front_end/ul_pfsfreeblocks]  # src/io/pfsfreeblocks.c
     - [0x1B880, c, hd_front_end/1B880] # libultra eepromprobe.c (old SDK)
-    - [0x1B8F0, c, hd_front_end/1B8F0] # libultra pfschecker.c
+    - [0x1B8F0, c, hd_front_end/ul_pfschecker]  # src/io/pfschecker.c
     - [0x1C350, c, hd_front_end/1C350] # libultra pfsinitpak.c (old SDK: osPfsInitPak, __osPfsGetStatus)
     - [0x1C510, c, hd_front_end/1C510] # libultra pfsallocatefile.c (+ an old-SDK helper)
     - [0x1CCC0, c, hd_front_end/1CCC0] # libultra pfsdeletefile.c (old SDK)
     - [0x1D2D0, c, hd_front_end/1D2D0] # libultra eepromlongread.c (old SDK)
     - [0x1D410, c, hd_front_end/1D410] # libultra eepromlongwrite.c (old SDK)
-    - [0x1D550, c, hd_front_end/1D550] # libultra pfssearchfile.c
+    - [0x1D550, c, hd_front_end/ul_pfssearchfile]  # src/io/pfssearchfile.c
     - [0x1D710, c, hd_front_end/1D710] # libultra pfsreadwritefile.c (old SDK)
     - [0x1DC10, c, hd_front_end/1DC10] # libultra eepromread.c (old SDK)
     - [0x1E0F0, c, hd_front_end/1E0F0] # libultra eepromwrite.c (old SDK)
-    - [0x1E3F0, c, hd_front_end/1E3F0] # libultra pfsfilestate.c
-    - [0x1E6E0, c, hd_front_end/1E6E0] # libultra crc.c
-    - [0x1E860, c, hd_front_end/1E860] # libultra contpfs.c
+    - [0x1E3F0, c, hd_front_end/ul_pfsfilestate]  # src/io/pfsfilestate.c
+    - [0x1E6E0, c, hd_front_end/ul_crc]  # src/io/crc.c
+    - [0x1E860, c, hd_front_end/ul_contpfs]  # src/io/contpfs.c
     - [0x1F5C0, c, hd_front_end/1F5C0] # libultra contramread.c (old SDK)
     - [0x1F970, c, hd_front_end/1F970] # libultra contramwrite.c (old SDK)
     - [0x1FD20, c, hd_front_end/1FD20] # libultra pfsisplug.c

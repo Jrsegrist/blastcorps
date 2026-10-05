@@ -178,6 +178,8 @@ $(foreach f,$(UL_O3_HD_CODE),$(BUILD_DIR)/src.$(VERSION)/hd_code/$(f).c.o): OPT_
 $(foreach f,$(UL_MIPS3_HD_CODE),$(BUILD_DIR)/src.$(VERSION)/hd_code/$(f).c.o): MIPSISET := -mips3 -32
 $(BUILD_DIR)/src.$(VERSION)/init/ul_%.c.o: CFLAGS := $(UL_CFLAGS)
 $(BUILD_DIR)/src.$(VERSION)/init/ul_ll.c.o: MIPSISET := -mips3 -32
+# the front end's own libultra copy (Controller Pak io/ objects, -O1)
+$(BUILD_DIR)/src.$(VERSION)/hd_front_end/ul_%.c.o: CFLAGS := $(UL_CFLAGS)
 
 
 ### Targets

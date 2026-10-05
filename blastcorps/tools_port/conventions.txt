@@ -551,6 +551,8 @@ func_802D0C68: clobbers gp
 func_802D2444: out s3=ret ; preserve a0,a1,a2,a3
 # trail + effect cooldown ($gp = D_803FC500); t6, t7, s0-s4 pass through to func_802A6274 (s1 comes back changed)
 func_802D02F8: in t6=a0,t7=a1,s0=a2,s1=a3,s2=stack0,s3=stack1,s4=stack2 ; clobbers s1,s5,s6,s7
+# animation state machine ($gp = D_803FC8D0); func_8029F9D4 leaves f20/f30 changed (func_802D0F98 reads f20 after)
+func_802D1360: clobbers s5,f20,f30
 # --- 8DDB0 ---
 # per-frame events / one-shot sounds / effect countdowns of vehicle 0xFD; leaves junk in s0, s1, s5-s7
 func_802D2C20: clobbers s0,s1,s5,s6,s7

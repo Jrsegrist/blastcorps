@@ -126,3 +126,30 @@ func_802D02F8: -n 300 --seed 1 --arg gp=sym:D_803FC500 --arg t6=int --arg t7=int
     --mem D_803EBC10:0x100=onehot:0x10@0xC/1:15:bytes:1,2,3 --mem D_803C4B70:0x3C0=rand \
     --mem D_803C4B70+0x33*0x3C:16/1=bytes:0*2,1*3 --mem D_803EB770:16=bytes:0*3,1 --mem D_803EB792:1=rand \
     --sig func_802A11C4=a0,a1 --sig func_80260AB8=a0,a1,a2
+
+# func_802D1360 (wave 3; gp = D_803FC8D0): the vehicle-16 state machine. States 0-4 (+0xA1; 5+ hit a
+# syscall in the asm), gears 0-2 (+0xA2), speed at the gear (60, 110), special-move (150) and sign edges;
+# stubbed (func_802A04BC's active / unk11 / unk13 outputs driven), then following the channel
+# setters/getter on a real D_803FC5D0 table (func_8029F9D4 stubbed)
+func_802D1360: -n 600 --arg gp=sym:D_803FC8D0 --mem D_803FC8D0+0xA1:1=choice:0*4,1,2,3,4 \
+    --mem D_803FC8D0+0xA2:1=choice:0,1,2 --mem D_803FC8D0+0xA3:1=choice:0,1,2 --mem D_803FC8D0+0x9C:1=choice:0*2,1 \
+    --mem D_803FC8D0+0x9D:1=choice:0*2,1 --mem D_803FC99A:1=choice:0*2,1 \
+    --mem D_803FC8D0+0x76:2=choice:0*3,1,0xFFFF,0x17,0x18,0x3B,0x3C,0xFFC4,0x6D,0x6E,0xFF92,0x95,0x96,0x97,0x118,0x8000,0x7FFF \
+    --mem D_803FC996:2=choice:0,2,6,-1 --mem D_803F7804:1=rand --mem D_803F7844=choice:0,0x80B00000 \
+    --mem D_80370C1A:1=choice:0*3,1 --mem D_80370C1B:1=choice:0*3,1 --mem D_80370C1C:1=choice:0,1 \
+    --mem D_80370C1D:1=choice:0,1 --mem D_80370C35:1=choice:0,1 --stub-ret func_802A04BC.v1=choice:0,1*3,2 \
+    --stub-ret func_802A04BC.a0=choice:0,1,-1 --stub-ret func_802A04BC.t1=choice:2,6,0,-1 \
+    --stub-ret func_8026A8E0=choice:0,1,2 --sig func_80260650=a0,a1,a2 --sig func_80278EB0=a0,a1,a2 \
+    --sig func_802794A4= --sig func_802BCC10= --sig func_802C444C= --sig func_8026A8E0=a0,a1
+func_802D1360: -n 400 --seed 1 --arg gp=sym:D_803FC8D0 \
+    --follow func_802A04BC,func_802A0290,func_802A0360,func_802A039C,func_802A03D4,func_802A040C,func_802A02E4 \
+    --mem D_803FC5D0:0x300=rand --mem D_803FC5D0+0x10*0x18:32/1=choice:0,1*2 --mem D_803FC5D0+0x11*0x18:32/1=choice:0,1 \
+    --mem D_803FC5D0+0x13*0x18:32/1=choice:0,2,6 --mem D_803FC8D0+0xA1:1=choice:0*4,1,2,3,4 \
+    --mem D_803FC8D0+0xA2:1=choice:0,1,2 --mem D_803FC8D0+0xA3:1=choice:0,1 --mem D_803FC8D0+0x9C:1=choice:0*2,1 \
+    --mem D_803FC8D0+0x9D:1=choice:0*2,1 --mem D_803FC99A:1=choice:0*2,1 \
+    --mem D_803FC8D0+0x76:2=choice:0*3,1,0xFFFF,0x17,0x18,0x3B,0x3C,0xFFC4,0x6D,0x6E,0xFF92,0x95,0x96,0x97,0x118 \
+    --mem D_803FC996:2=choice:0,2,6 --mem D_803F7804:1=rand --mem D_803F7844=choice:0,0x80B00000 \
+    --mem D_80370C1A:1=choice:0*3,1 --mem D_80370C1B:1=choice:0*3,1 --mem D_80370C1C:1=choice:0,1 \
+    --mem D_80370C1D:1=choice:0,1 --mem D_80370C35:1=choice:0,1 --stub-ret func_8026A8E0=choice:0,1,2 \
+    --sig func_80260650=a0,a1,a2 --sig func_80278EB0=a0,a1,a2 --sig func_802794A4= --sig func_802BCC10= \
+    --sig func_802C444C= --sig func_8026A8E0=a0,a1

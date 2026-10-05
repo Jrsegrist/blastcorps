@@ -403,7 +403,342 @@ s32 func_802D0F54(ZoneScanRegs *r) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8AEE0/func_802D0F98.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern s16 D_803FC996;  /* last channel unk13 seen (sound trigger) */
+extern u8 D_803FC99A;
+extern u8 D_803F7804;
+extern void *D_803F7844; /* sound handle */
+extern u8 D_80370C1A;    /* input flags */
+extern u8 D_80370C1B;
+extern u8 D_80370C1C;
+extern u8 D_80370C1D;
+extern u8 D_80370C35;
+extern f32 D_8030D9E0;
+void func_802A0290(void *base, s32 idx, s32 val);
+void func_802A0360(f32 f, void *base, s32 idx, s32 val);
+void func_802A03D4(void *base, s32 idx, s32 val);
+void func_802A04BC(s32 idx, void *base, s32 *out);
+void func_8029F9D4(s32 a, s32 b, void *base);
+s32 func_8026A8E0(s32 lo, s32 hi);
+void func_80278EB0(s32 n, f32 scale, s32 arg2);
+void func_802794A4(void);
+void func_802BCC10(void);
+
+#define VEH16_U8(o) (D_803FC8D0[o])
+#define VEH16_SPEED (*(s16 *) (D_803FC8D0 + 0x76))
+/* func_802A04BC's results: [0] = unk10 (active), [1] = unk11, [6] = unk13. */
+#define CHAN_GET(idx, e) func_802A04BC((idx), D_803FC5D0, (e))
+
+/* Channel 0x1F: unk14 = val, unk11 = unk12 = 0, restart (func_802A0290). */
+static void port_802D1360_chan1F(s32 val) {
+    func_802A039C(D_803FC5D0, 0x1F, val);
+    func_802A03D4(D_803FC5D0, 0x1F, 0);
+    func_802A040C(D_803FC5D0, 0x1F, 0);
+    func_802A0290(D_803FC5D0, 0x1F, 1);
+}
+
+/* Moving, no special state: drive the gear channel chosen by +0xA2 (0, 1, 2
+ * -> channel 1, 5, 6). If it isn't active, pick a gear from |speed| (< 60,
+ * < 110, else), restart that channel (val 2 if the inactive channel's unk11
+ * was set, else 1), set +0xA2 and try again. An active channel gets
+ * direction (speed < 0) and rate |speed| / 24. */
+static void port_802D1360_gear(void) {
+    s32 e[8];
+    s32 idx;
+    s32 v;
+
+    switch (VEH16_U8(0xA2)) {
+        case 0:
+            idx = 1;
+            break;
+        case 1:
+            idx = 5;
+            break;
+        case 2:
+            idx = 6;
+            break;
+        default: /* the asm executes `syscall` here */
+            return;
+    }
+    for (;;) {
+        CHAN_GET(idx, e);
+        if (e[0] != 0) {
+            break;
+        }
+        v = VEH16_SPEED;
+        if (v < 0) {
+            v = -v;
+        }
+        if (v < 60) {
+            idx = 1;
+            VEH16_U8(0xA2) = 0;
+        } else if (v < 110) {
+            idx = 5;
+            VEH16_U8(0xA2) = 1;
+        } else {
+            idx = 6;
+            VEH16_U8(0xA2) = 2;
+        }
+        func_802A0290(D_803FC5D0, idx, (e[1] != 0) ? 2 : 1);
+        func_802A0360(0.0f, D_803FC5D0, idx, 0);
+    }
+    v = VEH16_SPEED;
+    func_802A03D4(D_803FC5D0, idx, v < 0);
+    if (v < 0) {
+        v = -v;
+    }
+    if (v != 0) {
+        v = (u32) v / 24;
+    }
+    func_802A039C(D_803FC5D0, idx, v);
+}
+
+/* State 0 (+0xA1 == 0): driving. */
+static void port_802D1360_state0(void) {
+    s32 e[8];
+    s32 r;
+    s16 prev;
+
+    /* the unk13 of the first active channel of 1, 5, 6 triggers a sound when
+     * it changes to 6 (0x4E) or 2 (0x4F) */
+    CHAN_GET(1, e);
+    if (e[0] == 1 || (CHAN_GET(5, e), e[0] == 1) || (CHAN_GET(6, e), e[0] == 1)) {
+        prev = D_803FC996;
+        D_803FC996 = e[6];
+        if (e[6] != prev) {
+            if (e[6] == 6) {
+                func_80260650(D_80367738, 0x4E, NULL);
+            } else if (e[6] == 2) {
+                func_80260650(D_80367738, 0x4F, NULL);
+            }
+        }
+    }
+
+    if (VEH16_SPEED == 0) {
+        /* standing: leave the moving pose once (+0xA3), then idle anims */
+        if (VEH16_U8(0xA3) != 0) {
+            func_802A0360(0.0f, D_803FC5D0, 7, 0);
+            if (CHAN_GET(0x1F, e), e[0] != 0) {
+                func_802A02E4(0x1F, D_803FC5D0);
+                func_8029F9D4(0x1F, 7, D_803FC5D0);
+            } else if (CHAN_GET(1, e), e[0] != 0) {
+                func_802A02E4(1, D_803FC5D0);
+                func_8029F9D4(1, 7, D_803FC5D0);
+            } else if (CHAN_GET(5, e), e[0] != 0) {
+                func_802A02E4(5, D_803FC5D0);
+                func_8029F9D4(5, 7, D_803FC5D0);
+            } else if (CHAN_GET(6, e), e[0] != 0) {
+                func_802A02E4(6, D_803FC5D0);
+                func_8029F9D4(6, 7, D_803FC5D0);
+            } else {
+                func_802A0360(0.0f, D_803FC5D0, 1, 0);
+                func_8029F9D4(1, 7, D_803FC5D0);
+            }
+            port_802D1360_chan1F(0x1E);
+        }
+        VEH16_U8(0xA3) = 0;
+        if (CHAN_GET(0x1F, e), e[0] == 1) {
+            return;
+        }
+        if (CHAN_GET(7, e), e[0] == 1) {
+            return;
+        }
+        if (CHAN_GET(8, e), e[0] == 1) {
+            return;
+        }
+        if (CHAN_GET(9, e), e[0] == 1) {
+            return;
+        }
+        if (func_8026A8E0(0, 0x1E) != 0) {
+            return;
+        }
+        r = func_8026A8E0(0, 2);
+        if (r == 0) {
+            r = 7;
+        } else if (r == 1) {
+            r = 8;
+        } else {
+            r = 9;
+        }
+        func_802A0360(0.0f, D_803FC5D0, r, 0);
+        func_802A0290(D_803FC5D0, r, 1);
+        return;
+    }
+
+    /* moving: enter the moving pose once (+0xA3) */
+    if (VEH16_U8(0xA3) != 1) {
+        func_802A0360(0.0f, D_803FC5D0, 1, 0);
+        if (CHAN_GET(7, e), e[0] != 0) {
+            func_8029F9D4(7, 1, D_803FC5D0);
+            func_802A02E4(7, D_803FC5D0);
+        } else if (CHAN_GET(8, e), e[0] != 0) {
+            func_8029F9D4(8, 1, D_803FC5D0);
+            func_802A02E4(8, D_803FC5D0);
+        } else if (CHAN_GET(9, e), e[0] != 0) {
+            func_8029F9D4(9, 1, D_803FC5D0);
+            func_802A02E4(9, D_803FC5D0);
+        } else {
+            func_802A0360(0.0f, D_803FC5D0, 7, 0);
+            func_8029F9D4(7, 1, D_803FC5D0);
+        }
+        port_802D1360_chan1F(0x28);
+    }
+    VEH16_U8(0xA3) = 1;
+    if (CHAN_GET(0x1F, e), e[0] == 1) {
+        return;
+    }
+    D_803F7804 = 0;
+    if (((D_80370C35 == 0 && (D_80370C1C != 0 || D_80370C1D != 0)) || D_80370C1A != 0 || D_80370C1B != 0) &&
+        VEH16_SPEED >= 0x96) {
+        /* start the special move (state 1) from the current gear channel */
+        VEH16_U8(0xA1) = 1;
+        func_802A0360(0.0f, D_803FC5D0, 2, 0);
+        switch (VEH16_U8(0xA2)) {
+            case 0:
+                r = 1;
+                break;
+            case 1:
+                r = 5;
+                break;
+            case 2:
+                r = 6;
+                break;
+            default: /* the asm executes `syscall` here */
+                return;
+        }
+        func_8029F9D4(r, 2, D_803FC5D0);
+        func_802A02E4(r, D_803FC5D0);
+        port_802D1360_chan1F(0x50);
+        func_80278EB0(6, D_8030D9E0, 0x64);
+        return;
+    }
+    port_802D1360_gear();
+}
+
+/* States 1 and 2: the special move. Hitting something (+0x9C) halves the
+ * speed and goes to state 3; +0x9D or D_803FC99A ends it (state 0);
+ * otherwise speed = 280 and, in state 1, channel 2 is started (state 2) once
+ * channel 0x1F has finished; in state 2 the move ends when channel 2 has. */
+static void port_802D1360_state12(s32 state) {
+    s32 e[8];
+
+    if (VEH16_U8(0x9C) != 0) {
+        VEH16_SPEED = VEH16_SPEED >> 1;
+        if (state == 1) {
+            func_802794A4();
+            VEH16_U8(0xA1) = 3;
+            func_802A0360(0.0f, D_803FC5D0, 3, 0);
+            func_8029F9D4(0x1F, 3, D_803FC5D0);
+        } else {
+            VEH16_U8(0xA1) = 3;
+            func_802A0360(0.0f, D_803FC5D0, 3, 0);
+            func_8029F9D4(2, 3, D_803FC5D0);
+            func_802A02E4(2, D_803FC5D0);
+        }
+        port_802D1360_chan1F(0x21);
+        D_803F7804 = 1;
+        return;
+    }
+    if (VEH16_U8(0x9D) == 0 && D_803FC99A == 0) {
+        VEH16_SPEED = 0x118;
+        if (state == 1) {
+            if (CHAN_GET(0x1F, e), e[0] == 1) {
+                return;
+            }
+            func_802A039C(D_803FC5D0, 2, 0xA);
+            func_802A03D4(D_803FC5D0, 2, 0);
+            func_802A040C(D_803FC5D0, 2, 0);
+            func_802A0290(D_803FC5D0, 2, 1);
+            VEH16_U8(0xA1) = 2;
+            return;
+        }
+        if (CHAN_GET(2, e), e[0] == 1) {
+            return;
+        }
+    }
+    if (state == 1) {
+        if (VEH16_SPEED >= 0) {
+            VEH16_SPEED = 0x3C;
+        }
+        func_802C444C();
+        func_802A0360(0.0f, D_803FC5D0, 1, 0);
+        func_8029F9D4(0x1F, 1, D_803FC5D0);
+    } else {
+        func_802C444C();
+        if (VEH16_SPEED >= 0) {
+            VEH16_SPEED = 0x3C;
+        }
+        func_802A0360(0.0f, D_803FC5D0, 1, 0);
+        func_802A02E4(2, D_803FC5D0);
+        func_8029F9D4(2, 1, D_803FC5D0);
+    }
+    port_802D1360_chan1F(0x32);
+    func_802794A4();
+    VEH16_U8(0xA1) = 0;
+}
+
+/* Animation / state machine of vehicle type 16 ($gp = D_803FC8D0, read as
+ * the global; channels in D_803FC5D0, an Unk8029DEA0Entry table), on the
+ * state byte +0xA1: 0 driving (gears, idle anims, starting the special move
+ * with the inputs at speed >= 150), 1 and 2 the special move, 3 the crash
+ * (sound 0x4B, func_802BCC10, then channel 3 -> state 4), 4 recovering (back
+ * to state 0 when channel 3 has finished). Sound 0x51 (handle D_803F7844) is
+ * started on the special move. Out-of-range states/gears hit a `syscall` in
+ * the asm; the C just returns (keep +0xA1 in 0..4 and +0xA2 in 0..2).
+ * Register note: func_8029F9D4 changes f20 and f30 and the asm leaves them
+ * that way; asm caller func_802D0F98 reads f20 afterwards (conventions.txt:
+ * clobbers s5, f20, f30), which C can't reproduce. */
+void func_802D1360(void) {
+    s32 e[8];
+
+    switch (VEH16_U8(0xA1)) {
+        case 0:
+            port_802D1360_state0();
+            break;
+        case 1:
+            if (D_803F7844 == NULL) {
+                func_80260650(D_80367738, 0x51, &D_803F7844);
+            }
+            port_802D1360_state12(1);
+            break;
+        case 2:
+            port_802D1360_state12(2);
+            break;
+        case 3:
+            if (D_803F7844 != NULL) {
+                func_802C444C();
+                func_80260650(D_80367738, 0x4B, NULL);
+            }
+            func_802BCC10();
+            if (CHAN_GET(0x1F, e), e[0] == 1) {
+                break;
+            }
+            D_803F7804 = 0;
+            func_802794A4();
+            func_802A039C(D_803FC5D0, 3, 5);
+            func_802A03D4(D_803FC5D0, 3, 0);
+            func_802A040C(D_803FC5D0, 3, 0);
+            func_802A0290(D_803FC5D0, 3, 1);
+            VEH16_U8(0xA1) = 4;
+            break;
+        case 4:
+            func_802BCC10();
+            if (CHAN_GET(3, e), e[0] == 1) {
+                break;
+            }
+            D_803F7804 = 1;
+            func_802A0360(0.0f, D_803FC5D0, 1, 0);
+            func_802A0360(0.0f, D_803FC5D0, 5, 0);
+            func_802A0360(0.0f, D_803FC5D0, 6, 0);
+            VEH16_U8(0xA1) = 0;
+            break;
+        default: /* the asm executes `syscall` here */
+            break;
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8AEE0/func_802D1360.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8AEE0/func_802D22F4.s")

@@ -201,6 +201,13 @@ func_802A2458: in v1=a0,t4=a1 ; preserve a0,a1,a2,a3,t3,t4,t5,t6,t7,t9,f12,f14
 func_802A26A8: in t4=a0,t5=a1,t6=a2,t7=a3 ; preserve v0,v1,a0,a2,a3,t1,t2,t3,t4,t5,t6,t7,f12,f14
 # DMA ROM 0x6EC4C0 into 0x800 heap bytes; leaves the buffer in s0 (not read by the caller)
 func_802A2BB0: preserve t0 ; clobbers s0
+# 0xBA-0xBC records: D_80365330 = func_802A0CFC(0xF81, fp), word 0x44 = func_802CE6F8 height (restores all integer regs)
+func_802A24BC: in v1=a0,fp=a1 ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,t8,t9 ; clobbers f20,f22,f24,f26,f28
+# DMA + decompress packed object t3 to the heap D_80358070; old heap -> s0 (saves t0-t6, s1)
+func_802A2A98: in t3=a0 ; out s0=ret ; preserve t0,t1,t2,t3,t4,t5,t6 ; clobbers s2,s7
+# packed block of type t3 from ROM, DL ids resolved (func_802A08E4 s4 = ROM start): data -> s2, s3/s4 (+ a1 = heap end)
+func_802A32CC: in t3=a0 ; out s2=*a1,s3=*a1+4,s4=*a1+8 ; preserve t0,t1,t2,t3,t4,t5,t6,t7 ; clobbers s5,s6,s7
+func_802A396C: in t3=a0 ; out s2=*a1,s4=*a1+4,a1=*a1+8 ; preserve t0,t1,t2,t3,t4,t5,t6,t7 ; clobbers s5,s6,s7
 func_802A2C54: in t0=a0 ; preserve t0,f12,f14
 func_802A2D68: in t0=a0 ; preserve t0,t6,t9,f12,f14
 func_802A3824: in t0=a0 ; preserve a1,a2,a3,t0,f12,f14
@@ -642,3 +649,5 @@ func_802BFD1C: in v0=a0,a3=a1 ; preserve v0,v1,a0,a1,a3
 # --- 89250 ---
 # ground height under (a0, a2) near a1 via three triangle scans; ABI apart from leaving f20-f28 changed
 func_802CE6F8: in a0=a0,a1=a1,a2=a2 ; out v0=ret ; clobbers f20,f22,f24,f26,f28
+# heading (v0, a0) -> (a2, t0) via the arcsine, then func_8029B7CC(angle +- 0x400); saves v0-t0, t7, s0, fp
+func_802CE204: in v0=a0,a0=a1,a2=a2,t0=a3 ; preserve v0,v1,a0,a1,a2,a3,t0,t7,s0

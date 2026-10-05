@@ -67,7 +67,62 @@ void func_802CDAE8(s32 amount, s32 radius) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/89250/func_802CE0E4.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+f32 sqrtf(f32);
+#pragma intrinsic(sqrtf)
+s32 func_802AD7FC(u32 sine);
+void func_8029B7CC(s32 a, s32 b);
+
+/* cvt.w.s under the game's FCSR: round to nearest, ties to even. */
+static s32 port_cvt_w_s(f32 x) {
+    s32 t = (s32) x;
+    f32 frac = x - (f32) t;
+
+    if (frac > 0.5f || (frac == 0.5f && (t & 1))) {
+        t++;
+    } else if (frac < -0.5f || (frac == -0.5f && (t & 1))) {
+        t--;
+    }
+    return t;
+}
+
+/* Heading from (x1, z1) to (x2, z2), as in func_8029CB54 (56040.c): 0 when
+ * both differences are 0, else (arcsine(round(65536 * leg / dist)) >> 4) +
+ * quadrant * 0x400 with dist = sqrtf of the float squares and the quadrant
+ * picked by signed compares (x2 >= x1: z2 >= z1 -> leg x2 - x1, else z1 - z2
+ * + 0x400; x2 < x1: z2 < z1 -> x1 - x2 + 0x800, else z2 - z1 + 0xC00).
+ * Then widens the ring span with func_8029B7CC(angle + 0x400, angle - 0x400).
+ * Register convention: x1, z1, x2, z2 in v0, a0, a2, t0 (conventions.txt);
+ * the asm saves every register it uses (v0-t0, t7, s0, fp). Asm callers
+ * rely on preserved: func_8029C914 keeps a2, a3, t0, t1, t5, t7, t8;
+ * func_802CE0E4 keeps a0, a1, t4, t5, t7. */
+void func_802CE204(s32 x1, s32 z1, s32 x2, s32 z2) {
+    s32 dx = x2 - x1;
+    s32 dz = z2 - z1;
+    u32 angle = 0;
+
+    if (dx != 0 || dz != 0) {
+        f32 fx = dx;
+        f32 fz = dz;
+        f32 dist = sqrtf(fx * fx + fz * fz);
+
+        if (!(x2 < x1)) {
+            if (!(z2 < z1)) {
+                angle = (u32) func_802AD7FC(port_cvt_w_s(65536.0f * ((f32) (x2 - x1) / dist))) >> 4;
+            } else {
+                angle = ((u32) func_802AD7FC(port_cvt_w_s(65536.0f * ((f32) (z1 - z2) / dist))) >> 4) + 0x400;
+            }
+        } else if (z2 < z1) {
+            angle = ((u32) func_802AD7FC(port_cvt_w_s(65536.0f * ((f32) (x1 - x2) / dist))) >> 4) + 0x800;
+        } else {
+            angle = ((u32) func_802AD7FC(port_cvt_w_s(65536.0f * ((f32) (z2 - z1) / dist))) >> 4) + 0xC00;
+        }
+    }
+    func_8029B7CC(angle + 0x400, angle - 0x400);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/89250/func_802CE204.s")
+#endif
 
 #ifdef NON_MATCHING
 /* Shared declarations for the NON_MATCHING (port) rewrites below. */

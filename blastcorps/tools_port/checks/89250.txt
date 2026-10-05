@@ -92,3 +92,19 @@ func_802CE6F8: -n 300 --seed 10 --follow func_802A9DC0,func_802A9F24,func_802AA0
     --mem D_803EBC00:12=rand --arg a0=int:0:3 --arg a1=int:0:3 --arg a2=choice:-0x68*3,-0x70,-0x60,-0x78,-0x58 \
     --mem D_803F932C:1=rand
 # end-block
+# ---- phase D wave 3 (wt-f1) ----
+# func_802CE204 (x1 v0, z1 a0, x2 a2, z2 t0): heading -> func_8029B7CC(angle + 0x400, angle - 0x400). Arcsine stubbed
+# (any value: the quadrant offsets and srl), then followed over a wide range, tiny differences (all quadrant
+# boundaries, the zero case), axis-aligned and diagonal (rounding ties); then func_8029B7CC followed too.
+func_802CE204: -n 300 --stub-ret func_802AD7FC=choice:0,1,0xF,0x10,0x3FFF,0x4000,0xFFFF,-1 --sig func_8029B7CC=a0,a1 \
+    --arg v0=int:-100000:100000 --arg a0=int:-100000:100000 --arg a2=int:-100000:100000 --arg t0=int:-100000:100000
+func_802CE204: -n 400 --seed 1 --follow func_802AD7FC --sig func_8029B7CC=a0,a1 \
+    --arg v0=int:-100000:100000 --arg a0=int:-100000:100000 --arg a2=int:-100000:100000 --arg t0=int:-100000:100000
+func_802CE204: -n 400 --seed 2 --follow func_802AD7FC --sig func_8029B7CC=a0,a1 \
+    --arg v0=int:-3:3 --arg a0=int:-3:3 --arg a2=int:-3:3 --arg t0=int:-3:3
+func_802CE204: -n 200 --seed 3 --follow func_802AD7FC --sig func_8029B7CC=a0,a1 \
+    --arg v0=choice:0,0x1000,-0x1000 --arg a0=choice:0,0x1000,-0x1000 --arg a2=choice:0,0x1000,-0x1000,0x7FFF \
+    --arg t0=choice:0,0x1000,-0x1000,0x7FFF
+func_802CE204: -n 300 --seed 4 --follow func_802AD7FC,func_8029B7CC --sig func_8029B930= \
+    --arg v0=int:-100000:100000 --arg a0=int:-100000:100000 --arg a2=int:-100000:100000 --arg t0=int:-100000:100000
+# end-block

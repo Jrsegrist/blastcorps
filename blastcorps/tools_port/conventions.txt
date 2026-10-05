@@ -510,6 +510,8 @@ func_802C9AF8: in gp=a0 ; out s3=ret
 func_802C9F54: clobbers gp
 # zone lookup wrapper: func_802ABD54(id, x, y, z) with its scan registers t6, t7, s0-s4 passed through
 func_802CA308: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; out v1=ret,t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; preserve f12,f14 ; clobbers s5,s6
+# per-frame effects ($gp = D_803F8AA0); t6, t7, s0-s4 only pass through to func_802A6274
+func_802CAAFC: in t6=a0,t7=a1,s0=a2,s1=a3,s2=stack0,s3=stack1,s4=stack2 ; clobbers s1-s7
 # centre trail ($gp = D_803F8AA0); saves every integer register
 func_802CB224: preserve a1,a2,a3
 # 0.5 +- |speed|/560 (side flag in s2) in f2; s3 left = 280

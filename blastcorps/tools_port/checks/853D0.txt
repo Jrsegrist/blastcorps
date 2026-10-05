@@ -72,3 +72,54 @@ func_802CA1AC: -n 100 --seed 0 --sig func_802A7764=a0,a1,a2 --sig func_802C444C=
     --mem D_803F8B58=int --mem D_803F8B5C=int
 func_802CA1AC: -n 30 --seed 1 --follow func_802A7764,func_802C444C --sig func_802608C8=a0 --heap 0x700 --heap 0x700 \
     --mem D_803F8B58=rel:heap0 --mem D_803F8B5C=rel:heap1 --mem D_803F7844:8=words:0,0x80123450 --mem D_803F8AA0+0x76:2=rand
+
+# func_802CAAFC (t6, t7, s0-s4 through to func_802A6274; gp = D_803F8AA0): record cooldown, speed channel,
+# engine sound, steering value D_803F8B60, horn, jump parabola. Random run over every branch
+func_802CAAFC: -n 400 --seed 0 --arg gp=sym:D_803F8AA0 --arg t6=int --arg t7=int --arg s0=int --arg s1=int --arg s2=int \
+    --arg s3=int --arg s4=int --sig func_802CB224= --sig func_80260650=a0,a1,a2 \
+    --sig func_80292288=a0:2,a1,a2,a3,stack0,stack1,stack2,stack3:1,stack4:2 \
+    --stub-ret func_802A5ED0=choice:0,3,4,5 --stub-ret func_802CB3C8=float:0:1 --stub-ret func_802ABC88.a0=ptr:0x20 \
+    --stub-ret func_802A7CB0=choice:0,0,1 \
+    --mem D_803F8B60:0x20=rand --mem D_803F8B76:1=bytes:0,0,1,5 \
+    --mem D_803F8AA0+0x76:2=halves:0,1,5,6,7,8,0x7FFF,0x8000,0xFFFF,0xFFF9,0xFFFA,0x100 \
+    --mem D_803F8AA0+0x96:4=bytes:0,0,0,1,2 --mem D_803F8B60:4=floats:0:1 --mem D_80370C15:2=bytes:0,0,1 \
+    --mem D_8030D994:12=floats:0:0.3 --mem D_803F8B7D:1=bytes:0,0,1 --mem D_80370C1A:2=bytes:0,1 \
+    --mem D_803F8B72:2=halves:0,1,5,0xFFFF --mem D_803F8B7E:1=bytes:0,1,0xFF --mem D_80370C2D:1=bytes:0x3B,0x3C,0x7F,0x80,0 \
+    --mem D_803F8B7C:1=bytes:0,1,1 --mem D_803F8B64=int:-200:200 --mem D_803F8B68=int:-30:30 --mem D_803F8B6C=int:-5000:5000 \
+    --mem D_803F8B70:2=halves:0,0x16,0x17,0xFFFF --mem D_8030D9A0:4=floats:1:5000
+# steering ties: D_803F8B60 exactly at 0.5 / at the limit after the step, NaN/inf limit from func_802CB3C8
+func_802CAAFC: -n 200 --seed 1 --arg gp=sym:D_803F8AA0 --sig func_802CB224= --sig func_80260650=a0,a1,a2 \
+    --sig func_80292288=a0:2,a1,a2,a3,stack0,stack1,stack2,stack3:1,stack4:2 --stub-ret func_802A5ED0=4 \
+    --stub-ret func_802CB3C8=choice:0x3F000000,0x3E800000,0x3F400000,0x7FC00000,0x7F800000 --stub-ret func_802A7CB0=1 \
+    --mem D_803F8B60:0x20=rand --mem D_803F8B76:1=1 --mem D_80370C15:2=bytes:0,1 \
+    --mem D_803F8B60=choice:0x3F000000,0x3E800000,0x3F400000,0x3F100000,0x3EE00000 \
+    --mem D_8030D994=choice:0x3E800000,0x3D800000 --mem D_8030D998=choice:0x3E800000,0x3D800000 \
+    --mem D_8030D99C=choice:0x3E800000,0x3D800000,0x3E000000 --mem D_803F8B7D:1=1 --mem D_803F8B7C:1=0
+# jump landing boundaries: n = 1, impact |a - 16| at 60/61, height exactly 0 / 1; bounce blocked by a flag
+func_802CAAFC: -n 300 --seed 2 --arg gp=sym:D_803F8AA0 --sig func_802CB224= --sig func_80260650=a0,a1,a2 \
+    --stub-ret func_802A5ED0=4 --stub-ret func_802A7CB0=1 --mem D_803F8B60:0x20=rand --mem D_803F8B76:1=1 \
+    --mem D_803F8B7D:1=1 --mem D_803F8B7C:1=1 --mem D_803F8B68=1 --mem D_803F8B64=choice:76,77,75,78,-44,-45,-43,-46 \
+    --mem D_803F8B6C=choice:-200,-62,-61,-60,-59,0,100 --mem D_803F8AA0+0x96:3=onehot:1/1:1,0:bytes:0,2 \
+    --mem D_8030D9A0:4=floats:1:500
+# jump start/boost: take-off, boost below / at the 0x17 cap
+func_802CAAFC: -n 200 --seed 3 --arg gp=sym:D_803F8AA0 --sig func_802CB224= --sig func_80260650=a0,a1,a2 \
+    --stub-ret func_802A5ED0=4 --stub-ret func_802A7CB0=choice:0,0,0,1 --mem D_803F8B60:0x20=rand --mem D_803F8B76:1=1 \
+    --mem D_803F8B7D:1=1 --mem D_80370C2D:1=bytes:0x3B,0x3C,0x3D,0x7F --mem D_803F8B7C:1=bytes:0,1,0xFF \
+    --mem D_803F8B70:2=halves:0,0x15,0x16,0x17,0x18 --mem D_803F8B64=int:-100:100 --mem D_803F8B68=int:-20:20 \
+    --mem D_803F8B6C=int:-3000:3000 --mem D_8030D9A0:4=floats:1:500
+# every asm callee run for real except func_802ABC88 / func_802A6274 / the C sound and effect calls
+func_802CAAFC: -n 300 --seed 4 --arg gp=sym:D_803F8AA0 --arg t6=int --arg t7=int --arg s0=int --arg s1=int --arg s2=int \
+    --arg s3=int --arg s4=int --sig func_80260650=a0,a1,a2 --sig func_802608C8=a0 --sig func_80260AB8=a0,a1,a2 \
+    --conv 'func_8027BE7C: in a0=a0:1,a1=a1,a2=a2:2,a3=a3:2,stack0=stack0:2,stack1=stack1:2,stack2=stack2,stack3=stack3,stack4=stack4:2,stack5=stack5:1,stack6=stack6:1,stack7=stack7:1,stack8=stack8:1' \
+    --sig func_80292288=a0:2,a1,a2,a3,stack0,stack1,stack2,stack3:1,stack4:2 --stub-ret func_802ABC88.a0=ptr:0x20 \
+    --follow func_802A03D4,func_802A039C,func_802A0360,func_802A0290,func_802A5ED0,func_802A7CB0,func_802CB3C8 \
+    --follow func_802CB224,func_802C4584 \
+    --mem D_803F87A0:0x90=rand --mem D_803C4B70:0x3C0=rand --mem D_803C4B70+0x33*0x3C:16/1=bytes:0,0,0,1 \
+    --mem D_803F8AA0:0xA6=rand --mem D_803F8AA0+0x50:1=bytes:0,1,2,3 --mem D_803F8B60:0x20=rand --mem D_803F8B76:1=bytes:0,0,1,5 \
+    --mem D_803F8AA0+0x76:2=halves:0,1,5,6,7,8,0x7FFF,0x8000,0xFFFF,0xFFF9,0xFFFA,0x100 \
+    --mem D_803F8AA0+0x96:4=bytes:0,0,0,1,2 --mem D_803F8B60:4=floats:0:1 --mem D_80370C15:2=bytes:0,0,1 \
+    --mem D_803F8B7D:1=bytes:0,0,1 --mem D_80370C1A:2=bytes:0,1 \
+    --mem D_803F8B72:2=halves:0,1,5,0xFFFF --mem D_803F8B7E:1=bytes:0,1,0xFF --mem D_80370C2D:1=bytes:0x3B,0x3C,0x7F,0x80,0 \
+    --mem D_803F8B7C:1=bytes:0,1,1 --mem D_803F8B64=int:-200:200 --mem D_803F8B68=int:-30:30 --mem D_803F8B6C=int:-5000:5000 \
+    --mem D_803F8B70:2=halves:0,0x16,0x17,0xFFFF --mem D_8030D9A0:4=floats:1:5000 \
+    --mem D_803F7840:2=rand --mem D_80364AB0:1=bytes:0,1

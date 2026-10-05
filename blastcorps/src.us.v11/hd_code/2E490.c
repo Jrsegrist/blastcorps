@@ -19,7 +19,8 @@ void func_80257490(void **heap, s32 align);
 void func_802A0EE0(u16 id, void *dest);
 void func_802A0B00(u16 id, void *pal);
 
-Gfx *func_80272ED8(Gfx *gdl, u8 arg1, s16 arg2, s16 arg3, s32 arg4, s32 arg5, f32 arg6);
+Gfx *func_80272ED8(Gfx *gdl, u8 slot, s16 x, s16 y, u8 alpha, u8 mode, f32 scale);
+Gfx *func_802742D8(Gfx *gdl, u8 slot, s16 x, s16 y, s32 flip, s32 size, s32 half, f32 scale, u8 frame);
 
 void func_80272C50(void) {
     D_8036C360 = 0;
@@ -66,7 +67,118 @@ u8 func_80272C5C(u16 *ids, u16 *palIds, u8 count, u8 frames, u8 flags, f32 scale
     return start;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/2E490/func_80272ED8.s")
+/* Pre-2.0I texture-rectangle form (G_RDPHALF_2/CONT = 0xB3/0xB2), as in 17E10.c */
+#ifndef MAX
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#endif
+#ifndef MIN
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#endif
+
+#define OLD_RDPHALF_2 0xB3
+#define OLD_RDPHALF_CONT 0xB2
+
+#define gSPScisTextureRectangleOld(pkt, xl, yl, xh, yh, tile, s, t, dsdx, dtdy)             \
+    {                                                                                        \
+        Gfx *_g = (Gfx *) (pkt);                                                             \
+                                                                                             \
+        _g->words.w0 = (_SHIFTL(G_TEXRECT, 24, 8) | _SHIFTL(MAX(xh, 0), 12, 12) |            \
+                        _SHIFTL(MAX(yh, 0), 0, 12));                                         \
+        _g->words.w1 = (_SHIFTL(tile, 24, 3) | _SHIFTL(MAX(xl, 0), 12, 12) |                 \
+                        _SHIFTL(MAX(yl, 0), 0, 12));                                         \
+        gImmp1(pkt, OLD_RDPHALF_2,                                                           \
+               (_SHIFTL(((s) - MIN(((xl) * (dsdx)) >> 7, 0)), 16, 16) |                      \
+                _SHIFTL(((t) - MIN(((yl) * (dtdy)) >> 7, 0)), 0, 16)));                      \
+        gImmp1(pkt, OLD_RDPHALF_CONT, (_SHIFTL(dsdx, 16, 16) | _SHIFTL(dtdy, 0, 16)));       \
+    }
+
+extern u64 D_80364A90;
+
+/* Draw sprite slot `slot` at (x, y): one 32-pixel-tall texture strip per frame column,
+ * either through func_802742D8 (flag 4: vertex quads) or as scaled texture rectangles.
+ * mode selects an optional tinted shadow pass and the main pass. */
+Gfx *func_80272ED8(Gfx *arg0, u8 slot, s16 x, s16 y, u8 alpha, u8 mode, f32 scale) {
+    s32 i;
+    Gfx *gdl;
+    u8 a;
+    s32 xl;
+    s32 yl;
+    s32 half;
+    s32 n;
+
+    gdl = arg0;
+    a = alpha;
+    scale *= D_8036C260[slot];
+    n = D_8036C1E0[slot];
+    if ((mode & 8) && D_803156C4 % 20 < 7) {
+        a >>= 1;
+    }
+    gDPPipeSync(gdl++);
+    if (D_8036C220[slot] & 4) {
+        if (scale > 1.0) {
+            gDPSetTextureFilter(gdl++, G_TF_BILERP);
+        } else {
+            gDPSetTextureFilter(gdl++, G_TF_POINT);
+        }
+    }
+    for (i = 0; i < n - ((D_8036C220[slot] & 8) ? 1 : 0); i++) {
+        if (D_8036C220[slot] & 2) {
+            gDPLoadTextureBlock(gdl++, D_8036BFE0[slot][i], G_IM_FMT_RGBA, G_IM_SIZ_32b, n << 5, 32, 0,
+                                G_TX_CLAMP, G_TX_MIRROR, G_TX_NOMASK, n + 4, G_TX_NOLOD, G_TX_NOLOD);
+        } else {
+            gDPLoadTextureBlock(gdl++, D_8036BFE0[slot][i], G_IM_FMT_RGBA, G_IM_SIZ_16b, n << 5, 32, 0,
+                                G_TX_CLAMP, G_TX_MIRROR, G_TX_NOMASK, n + 4, G_TX_NOLOD, G_TX_NOLOD);
+        }
+        if (mode) {
+            gDPPipeSync(gdl++);
+            if (mode & 4) {
+                gDPSetPrimColor(gdl++, 0, 0, alpha, alpha, alpha, 0xFF);
+            } else {
+                gDPSetPrimColor(gdl++, 0, 0, 0, 0, 0, alpha / 2);
+            }
+            half = n + 2.0f * scale;
+            gDPSetRenderMode(gdl++, 0x00504240, 0);
+            gDPSetCombine(gdl++, 0xFF97FF, 0xFF2DFEFF);
+            if (D_8036C220[slot] & 4) {
+                gdl = func_802742D8(gdl, slot, x, y, i, n, half, scale, 1);
+            } else {
+                xl = (x - half) * 4;
+                yl = (y + half) * 4 + (i << 5) * 4 * scale;
+                gSPScisTextureRectangleOld(gdl++, xl, yl, x * 4 + (((n << 5) - half - 1) << 2) * scale,
+                                           (y + half) * 4 + (((i << 5) + 32) << 2) * scale, 0, 0,
+                                           (D_8036C220[slot] & 1) ? (n << 5) << 5 : 0,
+                                           (s32) (1024.0f / scale), (s32) (1024.0f / scale));
+            }
+        }
+        if (!(mode & 6)) {
+            if (!(mode & 1)) {
+                half = n + 2.0f * scale;
+            } else {
+                half = 0;
+            }
+            gDPPipeSync(gdl++);
+            gDPSetPrimColor(gdl++, 0, 0, 0xFF, 0, 0, a);
+            if ((D_8036C220[slot] & 2) || a != 0xFF || !(D_80364A90 & 0xC9FD0FE79BFF80B0LL)) {
+                gDPSetRenderMode(gdl++, 0x00504240, 0);
+            } else {
+                gDPSetRenderMode(gdl++, 0x0F0A7008, 0);
+            }
+            gDPSetCombine(gdl++, 0x15162A, 0xFF2FFFFF);
+            if (D_8036C220[slot] & 4) {
+                gdl = func_802742D8(gdl, slot, x, y, i, n, half, scale, 0);
+            } else {
+                xl = (x - half) * 4;
+                yl = (y + half) * 4 + (i << 5) * 4 * scale;
+                gSPScisTextureRectangleOld(gdl++, xl, yl, x * 4 + (((n << 5) - half - 1) << 2) * scale,
+                                           (y + half) * 4 + (((i << 5) + 32) << 2) * scale, 0, 0,
+                                           (D_8036C220[slot] & 1) ? (n << 5) << 5 : 0,
+                                           (s32) (1024.0f / scale), (s32) (1024.0f / scale));
+            }
+        }
+    }
+    gDPPipeSync(gdl++);
+    return gdl;
+}
 
 Gfx *func_802742D8(Gfx *gdl, u8 slot, s16 x, s16 y, s32 flip, s32 size, s32 half, f32 scale, u8 frame) {
     Vtx *vtx = D_8036C368[D_8035805C][slot][frame];

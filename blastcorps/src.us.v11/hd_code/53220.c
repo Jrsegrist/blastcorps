@@ -229,177 +229,170 @@ extern u16 D_802FF700[]; /* mask_bits */
 extern s32 D_802FF724;   /* lbits */
 extern s32 D_802FF728;   /* dbits */
 
-s32 func_80297FE0(s32 *b, u32 n, u32 s, u16 *d, u8 *e, Huft **t, s32 *m);
+int func_80297FE0(s32 *b, u32 n, u32 s, u16 *d, u8 *e, Huft **t, s32 *m);
 s32 func_8029867C(Huft *tl, Huft *td, u32 bl, u32 bd);
 s32 func_80298DC0(void);
 s32 func_80298A84(void);
 s32 func_80298C18(void);
 
-/* TODO: huft_build (init's huft_build, same source). The C below matches the
- * target except for the final return. The target materialises
- * `y != 0 && g != 1` with $v0 as the boolean temp (lw v0,y; sltu t1,zero,v0;
- * move v0,t1; beqz v0 ...). Writing it as one `return y != 0 && g != 1;`
- * puts the temp in $s6 plus a trailing move v0,s6 (one extra instruction);
- * the early-return form kept below has the right size but branches on y
- * directly (5 instructions differ). A small probe function gets $v0
- * naturally, so something about this function's s-register temps changes
- * IDO's choice. Fixed on the way: the arena pointer is
- * `D_8039CAEC * 8 + D_8039CAE0` and `p = c + 1, xp = x + 2;` is one comma
- * expression (both still differ in init's best attempt).
- *
- * s32 func_80297FE0(s32 *b, u32 n, u32 s, u16 *d, u8 *e, Huft **t, s32 *m) {
- *     u32 a;
- *     u32 c[BMAX + 1];
- *     u32 f;
- *     s32 g;
- *     s32 h;
- *     register u32 i;
- *     register u32 j;
- *     register s32 k;
- *     s32 l;
- *     register u32 *p;
- *     register Huft *q;
- *     Huft r;
- *     Huft *u[BMAX];
- *     u32 v[N_MAX];
- *     register s32 w;
- *     u32 x[BMAX + 1];
- *     u32 *xp;
- *     s32 y;
- *     u32 z;
- *
- *     func_802DB7B0(c, sizeof(c));
- *     p = (u32 *) b;
- *     i = n;
- *     do {
- *         c[*p]++;
- *         p++;
- *     } while (--i);
- *     if (c[0] == n) {
- *         *t = NULL;
- *         *m = 0;
- *         return 0;
- *     }
- *
- *     l = *m;
- *     for (j = 1; j <= BMAX; j++) {
- *         if (c[j]) {
- *             break;
- *         }
- *     }
- *     k = j;
- *     if ((u32) l < j) {
- *         l = j;
- *     }
- *     for (i = BMAX; i; i--) {
- *         if (c[i]) {
- *             break;
- *         }
- *     }
- *     g = i;
- *     if ((u32) l > i) {
- *         l = i;
- *     }
- *     *m = l;
- *
- *     for (y = 1 << j; j < (u32) i; j++, y <<= 1) {
- *         y -= c[j];
- *     }
- *     y -= c[i];
- *     c[i] += y;
- *
- *     x[1] = j = 0;
- *     p = c + 1, xp = x + 2;
- *     while (--i) {
- *         *xp++ = (j += *p++);
- *     }
- *
- *     p = (u32 *) b;
- *     i = 0;
- *     do {
- *         if ((j = *p++) != 0) {
- *             v[x[j]++] = i;
- *         }
- *     } while (++i < n);
- *
- *     x[0] = i = 0;
- *     p = v;
- *     h = -1;
- *     w = -l;
- *     u[0] = NULL;
- *     q = NULL;
- *     z = 0;
- *
- *     for (; k <= g; k++) {
- *         a = c[k];
- *         while (a--) {
- *             while (k > w + l) {
- *                 h++;
- *                 w += l;
- *
- *                 z = (z = g - w) > (u32) l ? l : z;
- *                 if ((f = 1 << (j = k - w)) > a + 1) {
- *                     f -= a + 1;
- *                     xp = c + k;
- *                     while (++j < z) {
- *                         if ((f <<= 1) <= *++xp) {
- *                             break;
- *                         }
- *                         f -= *xp;
- *                     }
- *                 }
- *                 z = 1 << j;
- *
- *                 q = (Huft *) (D_8039CAEC * 8 + D_8039CAE0);
- *                 D_8039CAEC += z + 1;
- *                 *t = q + 1;
- *                 *(t = (Huft **) &(q->v.t)) = NULL;
- *                 u[h] = ++q;
- *
- *                 if (h) {
- *                     x[h] = i;
- *                     r.b = (u8) l;
- *                     r.e = (u8) (16 + j);
- *                     r.v.t = q;
- *                     j = i >> (w - l);
- *                     u[h - 1][j] = r;
- *                 }
- *             }
- *
- *             r.b = (u8) (k - w);
- *             if (p >= v + n) {
- *                 r.e = 99;
- *             } else if (*p < s) {
- *                 r.e = (u8) (*p < 256 ? 16 : 15);
- *                 r.v.n = (u16) (*p);
- *                 p++;
- *             } else {
- *                 r.e = e[*p - s];
- *                 r.v.n = d[*p++ - s];
- *             }
- *
- *             f = 1 << (k - w);
- *             for (j = i >> w; j < z; j += f) {
- *                 q[j] = r;
- *             }
- *
- *             for (j = 1 << (k - 1); i & j; j >>= 1) {
- *                 i ^= j;
- *             }
- *             i ^= j;
- *
- *             while ((i & ((1 << w) - 1)) != x[h]) {
- *                 h--;
- *                 w -= l;
- *             }
- *         }
- *     }
- *
- *     if (y == 0) return 0;
- *     return g != 1;
- * }
- */
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/53220/func_80297FE0.s")
+/* huft_build: build a Huffman decode table from code lengths b[0..n-1]
+ * (classic inflate.c, bump-allocated from the D_8039CAE0 arena). It returns
+ * `int`, not s32 (long): with s32, IDO puts the `&&` result in $s6 and
+ * adds a move to $v0. */
+#define BMAX 16
+#define N_MAX 288
+void func_802DB7B0(void *, s32); /* bzero */
+
+int func_80297FE0(s32 *b, u32 n, u32 s, u16 *d, u8 *e, Huft **t, s32 *m) {
+    u32 a;
+    u32 c[BMAX + 1];
+    u32 f;
+    s32 g;
+    s32 h;
+    register u32 i;
+    register u32 j;
+    register s32 k;
+    s32 l;
+    register u32 *p;
+    register Huft *q;
+    Huft r;
+    Huft *u[BMAX];
+    u32 v[N_MAX];
+    register s32 w;
+    u32 x[BMAX + 1];
+    u32 *xp;
+    s32 y;
+    u32 z;
+
+    func_802DB7B0(c, sizeof(c));
+    p = (u32 *) b;
+    i = n;
+    do {
+        c[*p]++;
+        p++;
+    } while (--i);
+    if (c[0] == n) {
+        *t = NULL;
+        *m = 0;
+        return 0;
+    }
+
+    l = *m;
+    for (j = 1; j <= BMAX; j++) {
+        if (c[j]) {
+            break;
+        }
+    }
+    k = j;
+    if ((u32) l < j) {
+        l = j;
+    }
+    for (i = BMAX; i; i--) {
+        if (c[i]) {
+            break;
+        }
+    }
+    g = i;
+    if ((u32) l > i) {
+        l = i;
+    }
+    *m = l;
+
+    for (y = 1 << j; j < (u32) i; j++, y <<= 1) {
+        y -= c[j];
+    }
+    y -= c[i];
+    c[i] += y;
+
+    x[1] = j = 0;
+    p = c + 1, xp = x + 2;
+    while (--i) {
+        *xp++ = (j += *p++);
+    }
+
+    p = (u32 *) b;
+    i = 0;
+    do {
+        if ((j = *p++) != 0) {
+            v[x[j]++] = i;
+        }
+    } while (++i < n);
+
+    x[0] = i = 0;
+    p = v;
+    h = -1;
+    w = -l;
+    u[0] = NULL;
+    q = NULL;
+    z = 0;
+
+    for (; k <= g; k++) {
+        a = c[k];
+        while (a--) {
+            while (k > w + l) {
+                h++;
+                w += l;
+
+                z = (z = g - w) > (u32) l ? l : z;
+                if ((f = 1 << (j = k - w)) > a + 1) {
+                    f -= a + 1;
+                    xp = c + k;
+                    while (++j < z) {
+                        if ((f <<= 1) <= *++xp) {
+                            break;
+                        }
+                        f -= *xp;
+                    }
+                }
+                z = 1 << j;
+
+                q = (Huft *) (D_8039CAEC * 8 + D_8039CAE0);
+                D_8039CAEC += z + 1;
+                *t = q + 1;
+                *(t = (Huft **) &(q->v.t)) = NULL;
+                u[h] = ++q;
+
+                if (h) {
+                    x[h] = i;
+                    r.b = (u8) l;
+                    r.e = (u8) (16 + j);
+                    r.v.t = q;
+                    j = i >> (w - l);
+                    u[h - 1][j] = r;
+                }
+            }
+
+            r.b = (u8) (k - w);
+            if (p >= v + n) {
+                r.e = 99;
+            } else if (*p < s) {
+                r.e = (u8) (*p < 256 ? 16 : 15);
+                r.v.n = (u16) (*p);
+                p++;
+            } else {
+                r.e = e[*p - s];
+                r.v.n = d[*p++ - s];
+            }
+
+            f = 1 << (k - w);
+            for (j = i >> w; j < z; j += f) {
+                q[j] = r;
+            }
+
+            for (j = 1 << (k - 1); i & j; j >>= 1) {
+                i ^= j;
+            }
+            i ^= j;
+
+            while ((i & ((1 << w) - 1)) != x[h]) {
+                h--;
+                w -= l;
+            }
+        }
+    }
+
+    return y != 0 && g != 1;
+}
 
 s32 func_8029867C(Huft *tl, Huft *td, u32 bl, u32 bd) {
     register u32 e;

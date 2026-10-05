@@ -1,0 +1,134 @@
+# 7FB50: status bitstream packers over the 0xFC-byte record table D_803F4030
+# (D_803F7654 = one past the last record in use; must be on the stride), and
+# func_802C770C (two press/release trackers).
+
+# func_802C4A40 (record_status): bit per part (== 100), then func_8026FE6C(i)
+# for i < D_8036EB90. Whole table filled from a byte pool (numParts at +0xE9
+# up to 100, which deliberately runs past the record into the next one).
+func_802C4A40: -n 300 --sig func_8026FE6C=a0 --arg a0=ptrz:0x800 \
+    --mem D_803F4030:0x3624=bytes:0,1,2,3,7,8,9,100*3,99,101 \
+    --mem D_803F7654=rel:D_803F4030+0xFC*int:0:10 --mem D_8036EB90:2=int:0:40
+# full table (55 records), count boundaries around a byte
+func_802C4A40: -n 100 --seed 1 --sig func_8026FE6C=a0 --arg a0=ptrz:0x1000 \
+    --mem D_803F4030:0x3624=bytes:0,1,2,8,100*2 \
+    --mem D_803F7654=rel:D_803F4030+0x3624 --mem D_8036EB90:2=choice:0,1,7,8,9,15,16,17,0x100
+# empty table, no calls / few calls
+func_802C4A40: -n 30 --seed 2 --sig func_8026FE6C=a0 --arg a0=ptrz:0x100 \
+    --mem D_803F7654=sym:D_803F4030 --mem D_8036EB90:2=choice:0,1,8
+# numParts 0xFF / 0 in exactly one record (others small)
+func_802C4A40: -n 100 --seed 3 --sig func_8026FE6C=a0 --arg a0=ptrz:0x800 \
+    --mem D_803F4030:0x3624=bytes:1,2,100 \
+    --mem D_803F4030:0x9D8=onehot:0xFC@0xE9/1:0,0xFF:bytes:1,2,100 \
+    --mem D_803F7654=rel:D_803F4030+0x9D8 --mem D_8036EB90:2=int:0:20
+
+# func_802C4E58 (create_status). a2 is unused by the function; its ptr block
+# (heap1) is the target of each record's +0 pointer, whose byte +4 is the kind
+# (1 = excluded). Records 0..9 get explicit fields; D_803F7654 picks 0..10 of them.
+func_802C4E58: -n 300 \
+    --arg a0=ptrz:0x800 \
+    --arg a1=choice:1,2,3,4,5,6 \
+    --arg a2=ptr:0x20 \
+    --mem @heap1:0x20=bytes:0,1*2,2,0xFF \
+    --mem D_803F4030:0x9D8=rand \
+    --mem D_803F4030+0x0=rel:heap1+choice:0,4,8,12,16 \
+    --mem D_803F4030+0x30=choice:0x38,0*3,1,0x39,0x38000000 \
+    --mem D_803F4030+0xE9:1=choice:0,1,2,3,7,8,9,16 \
+    --mem D_803F4030+0xEB:1=choice:0*3,1,0xFF \
+    --mem D_803F4030+0xFC=rel:heap1+choice:0,4,8,12,16 \
+    --mem D_803F4030+0x12C=choice:0x38,0*3,1,0x39,0x38000000 \
+    --mem D_803F4030+0x1E5:1=choice:0,1,2,3,7,8,9,16 \
+    --mem D_803F4030+0x1E7:1=choice:0*3,1,0xFF \
+    --mem D_803F4030+0x1F8=rel:heap1+choice:0,4,8,12,16 \
+    --mem D_803F4030+0x228=choice:0x38,0*3,1,0x39,0x38000000 \
+    --mem D_803F4030+0x2E1:1=choice:0,1,2,3,7,8,9,16 \
+    --mem D_803F4030+0x2E3:1=choice:0*3,1,0xFF \
+    --mem D_803F4030+0x2F4=rel:heap1+choice:0,4,8,12,16 \
+    --mem D_803F4030+0x324=choice:0x38,0*3,1,0x39,0x38000000 \
+    --mem D_803F4030+0x3DD:1=choice:0,1,2,3,7,8,9,16 \
+    --mem D_803F4030+0x3DF:1=choice:0*3,1,0xFF \
+    --mem D_803F4030+0x3F0=rel:heap1+choice:0,4,8,12,16 \
+    --mem D_803F4030+0x420=choice:0x38,0*3,1,0x39,0x38000000 \
+    --mem D_803F4030+0x4D9:1=choice:0,1,2,3,7,8,9,16 \
+    --mem D_803F4030+0x4DB:1=choice:0*3,1,0xFF \
+    --mem D_803F4030+0x4EC=rel:heap1+choice:0,4,8,12,16 \
+    --mem D_803F4030+0x51C=choice:0x38,0*3,1,0x39,0x38000000 \
+    --mem D_803F4030+0x5D5:1=choice:0,1,2,3,7,8,9,16 \
+    --mem D_803F4030+0x5D7:1=choice:0*3,1,0xFF \
+    --mem D_803F4030+0x5E8=rel:heap1+choice:0,4,8,12,16 \
+    --mem D_803F4030+0x618=choice:0x38,0*3,1,0x39,0x38000000 \
+    --mem D_803F4030+0x6D1:1=choice:0,1,2,3,7,8,9,16 \
+    --mem D_803F4030+0x6D3:1=choice:0*3,1,0xFF \
+    --mem D_803F4030+0x6E4=rel:heap1+choice:0,4,8,12,16 \
+    --mem D_803F4030+0x714=choice:0x38,0*3,1,0x39,0x38000000 \
+    --mem D_803F4030+0x7CD:1=choice:0,1,2,3,7,8,9,16 \
+    --mem D_803F4030+0x7CF:1=choice:0*3,1,0xFF \
+    --mem D_803F4030+0x7E0=rel:heap1+choice:0,4,8,12,16 \
+    --mem D_803F4030+0x810=choice:0x38,0*3,1,0x39,0x38000000 \
+    --mem D_803F4030+0x8C9:1=choice:0,1,2,3,7,8,9,16 \
+    --mem D_803F4030+0x8CB:1=choice:0*3,1,0xFF \
+    --mem D_803F4030+0x8DC=rel:heap1+choice:0,4,8,12,16 \
+    --mem D_803F4030+0x90C=choice:0x38,0*3,1,0x39,0x38000000 \
+    --mem D_803F4030+0x9C5:1=choice:0,1,2,3,7,8,9,16 \
+    --mem D_803F4030+0x9C7:1=choice:0*3,1,0xFF \
+    --mem D_803F7654=rel:D_803F4030+0xFC*int:0:10 \
+    --mem D_803063F0:8=bytes:0,1,10,25,50,99,100,200,255 \
+    --mem D_8036EB90:2=int:0:40
+# mostly done records (extra clamps at 0), full-range levels incl. 0 (index -1)
+func_802C4E58: -n 200 \
+    --seed 1 \
+    --arg a0=ptrz:0x800 \
+    --arg a1=int:0:255 \
+    --arg a2=ptr:0x20 \
+    --mem @heap1:0x20=bytes:0,1,2 \
+    --mem D_803F4030:0x9D8=rand \
+    --mem D_803F4030+0x0=rel:heap1+choice:0,4,8,12,16 \
+    --mem D_803F4030+0x30=choice:0x38,0*4 \
+    --mem D_803F4030+0xE9:1=choice:0,1,2,3,7,8,9,16 \
+    --mem D_803F4030+0xEB:1=choice:0,1*3 \
+    --mem D_803F4030+0xFC=rel:heap1+choice:0,4,8,12,16 \
+    --mem D_803F4030+0x12C=choice:0x38,0*4 \
+    --mem D_803F4030+0x1E5:1=choice:0,1,2,3,7,8,9,16 \
+    --mem D_803F4030+0x1E7:1=choice:0,1*3 \
+    --mem D_803F4030+0x1F8=rel:heap1+choice:0,4,8,12,16 \
+    --mem D_803F4030+0x228=choice:0x38,0*4 \
+    --mem D_803F4030+0x2E1:1=choice:0,1,2,3,7,8,9,16 \
+    --mem D_803F4030+0x2E3:1=choice:0,1*3 \
+    --mem D_803F4030+0x2F4=rel:heap1+choice:0,4,8,12,16 \
+    --mem D_803F4030+0x324=choice:0x38,0*4 \
+    --mem D_803F4030+0x3DD:1=choice:0,1,2,3,7,8,9,16 \
+    --mem D_803F4030+0x3DF:1=choice:0,1*3 \
+    --mem D_803F4030+0x3F0=rel:heap1+choice:0,4,8,12,16 \
+    --mem D_803F4030+0x420=choice:0x38,0*4 \
+    --mem D_803F4030+0x4D9:1=choice:0,1,2,3,7,8,9,16 \
+    --mem D_803F4030+0x4DB:1=choice:0,1*3 \
+    --mem D_803F4030+0x4EC=rel:heap1+choice:0,4,8,12,16 \
+    --mem D_803F4030+0x51C=choice:0x38,0*4 \
+    --mem D_803F4030+0x5D5:1=choice:0,1,2,3,7,8,9,16 \
+    --mem D_803F4030+0x5D7:1=choice:0,1*3 \
+    --mem D_803F4030+0x5E8=rel:heap1+choice:0,4,8,12,16 \
+    --mem D_803F4030+0x618=choice:0x38,0*4 \
+    --mem D_803F4030+0x6D1:1=choice:0,1,2,3,7,8,9,16 \
+    --mem D_803F4030+0x6D3:1=choice:0,1*3 \
+    --mem D_803F4030+0x6E4=rel:heap1+choice:0,4,8,12,16 \
+    --mem D_803F4030+0x714=choice:0x38,0*4 \
+    --mem D_803F4030+0x7CD:1=choice:0,1,2,3,7,8,9,16 \
+    --mem D_803F4030+0x7CF:1=choice:0,1*3 \
+    --mem D_803F4030+0x7E0=rel:heap1+choice:0,4,8,12,16 \
+    --mem D_803F4030+0x810=choice:0x38,0*4 \
+    --mem D_803F4030+0x8C9:1=choice:0,1,2,3,7,8,9,16 \
+    --mem D_803F4030+0x8CB:1=choice:0,1*3 \
+    --mem D_803F4030+0x8DC=rel:heap1+choice:0,4,8,12,16 \
+    --mem D_803F4030+0x90C=choice:0x38,0*4 \
+    --mem D_803F4030+0x9C5:1=choice:0,1,2,3,7,8,9,16 \
+    --mem D_803F4030+0x9C7:1=choice:0,1*3 \
+    --mem D_803F7654=rel:D_803F4030+0xFC*int:0:10 \
+    --mem 0x803063EF:0x101=bytes:0,1,50,100,255 \
+    --mem D_8036EB90:2=choice:0,1,7,8,9,16,17,100
+# no records in use; section 2 only
+func_802C4E58: -n 50 --seed 2 --arg a0=ptrz:0x400 --arg a1=choice:1,4,5,6 \
+    --mem D_803F7654=sym:D_803F4030 --mem D_803063F0:8=bytes:0,50,100,255 \
+    --mem D_8036EB90:2=choice:0,1,7,8,9,0x100
+
+# func_802C770C: phases/timers/inputs from small pools incl. timer 0 and phase 0xFF (wrap)
+func_802C770C: -n 300 --ret void --mem D_803F7C44:4=bytes:0,1,2,3,4,0xFE,0xFF --mem D_80370C1A:2=bytes:0,1,0x80
+func_802C770C: -n 100 --seed 1 --ret void --mem D_803F7C44:4=bytes:0,1 --mem D_80370C1A:2=bytes:0,0xFF

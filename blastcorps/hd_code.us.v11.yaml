@@ -170,7 +170,7 @@ segments:
     - [0x96390, c, hd_code/ul_viswapbuf]
     - [0x963E0, c, hd_code/ul_settimer]
     - [0x964C0, c, hd_code/ul_sptaskyielded]
-    - [0x96540, c, hd_code/96540]
+    - [0x96540, c, hd_code/ul_sptask]  # src/io/sptask.c, old osSpTaskLoad
     - [0x96800, c, hd_code/ul_sptaskyield]
     - [0x96820, c, hd_code/ul_mtxcatl]
     - [0x968E0, c, hd_code/968E0]

@@ -229,6 +229,27 @@ func_802AB41C: in t4=a0,t8=a1 ; out a2=ret ; preserve a0,a1,a3,t0,t1,t2,t3,t4,t5
 func_802ABC88: in v0=a0,v1=a1 ; out v1=ret,a0=*a2 ; preserve a1,a2,a3,t0,t3,t6,t7,f12,f14
 # rounded 3-D distance between (t3,t4,t5) and (t6,t7,s0); 64-bit squares, cvt.d.l/sqrt.d/cvt.l.d
 func_802ABCDC: in t3=a0,t4=a1,t5=a2,t6=a3,t7=stack0,s0=stack1 ; out s1=ret ; preserve t6,t7,s0 ; clobbers s1
+# phase D (wt-d2): vehicle steering/speed steps
+func_802A71DC: in gp=a0,a0=a1,a1=a2,f0=stack0 ; out a1=ret,a0=*a3 ; preserve v0,v1,a2,a3,t0,t1,t2,t6,f12,f14
+func_802A785C: in gp=a0,t6=a1,t7=a2,s0=a3,s1=stack0,s2=stack1 ; preserve a0,a1,a2,a3,t6 ; clobbers s1
+func_802A7B3C: in gp=a0,t6=a1,s1=a2,s2=a3 ; clobbers s1
+func_802A7FD8: in gp=a0,t1=a1,t5=a2,t6=a3,s4=stack0,s5=stack1,s6=stack2,s7=stack3 ; preserve a0,a1,a2,a3,t6
+func_802A843C: in gp=a0,t6=a1,t7=a2,s0=a3,s7=stack0,t8=stack1,f2=stack2 ; preserve a0,a1,a2,a3,t6,f12
+func_802A8B10: out a1=ret,a3=*a0 ; preserve v0,v1,a2,t2,t3,t7,t8,f12,f14
+func_802A9540: in v0=a0,a1=a1,a2=a2,a3=a3,t2=stack0,s3=stack1 ; out s3=ret ; preserve a1,a2,a3,t8,t9,f12,f14 ; clobbers s0
+# triangle scans (func_802AA5E0/AA460/AA2E4 per triangle): best height, FP side results (TriSideOut) in/out
+func_802A9DC0: in t0=a0,t1=a1,t2=a2,f12=*a3,f14=*a3+4,f20=*a3+8,f22=*a3+12,f24=*a3+16,f26=*a3+20,fp=*stack0 ; out t3=ret,fp=*stack0,f12=*a3,f14=*a3+4,f20=*a3+8,f22=*a3+12,f24=*a3+16,f26=*a3+20 ; preserve v0,v1,a0,a1,a3,t0,t1,t2,t4,t5,t7,t8,t9 ; clobbers f28
+func_802A9F24: in t0=a0,t1=a1,t2=a2,t8=a3,f12=*stack0,f14=*stack0+4,f20=*stack0+8,f22=*stack0+12,f24=*stack0+16,f26=*stack0+20 ; out t3=ret,t6=*stack1,a2=*stack2,f12=*stack0,f14=*stack0+4,f20=*stack0+8,f22=*stack0+12,f24=*stack0+16,f26=*stack0+20 ; preserve v0,v1,a0,a1,a3,t0,t1,t2,t4,t5,t7,t8,t9 ; clobbers f28
+func_802AA094: in t0=a0,t1=a1,t2=a2,f12=*a3,f14=*a3+4,f20=*a3+8,f22=*a3+12,f24=*a3+16,f26=*a3+20,t3=*stack0,fp=*stack1 ; out a1=ret,t3=*stack0,fp=*stack1,f12=*a3,f14=*a3+4,f20=*a3+8,f22=*a3+12,f24=*a3+16,f26=*a3+20 ; preserve v0,v1,a0,a3,t0,t1,t2,t4,t5,t6,t7,t8,t9 ; clobbers f28
+func_802ABFC8: in t0=a0,t1=a1,t2=a2,s0=a3,a1=*stack0,f24=*stack1+16,f26=*stack1+20 ; out v1=ret,a1=*stack0,f24=*stack1+16,f26=*stack1+20 ; preserve t0,t1,t2,t6,t7 ; clobbers s1,s2,s3,s4,s5,s6,s7,fp,f20,f22,f28
+func_802AC0BC: in t0=a0,t1=a1,t2=a2,f12=*a3,f14=*a3+4,f20=*a3+8,f22=*a3+12,f24=*a3+16,f26=*a3+20,a3=*stack0+4,t6=*stack0+8,s1=*stack0+20,s2=*stack0+24,s3=*stack0+28,s4=*stack0+32 ; out v1=ret,a1=*stack0,a3=*stack0+4,t6=*stack0+8,t7=*stack0+12,fp=*stack0+16,s1=*stack0+20,s2=*stack0+24,s3=*stack0+28,s4=*stack0+32,f12=*a3,f14=*a3+4,f20=*a3+8,f22=*a3+12,f24=*a3+16,f26=*a3+20 ; clobbers s5,s6,s7,f28
+# Mtx-chain users (func_802AA890; MtxChainRegs = v1,a0,a3,s1,s2,s0 at +0..+20)
+func_802AABE4: in t3=a0,t4=a1,s4=a2,v1=*a3,a3=*a3+8,s1=*a3+12,s2=*a3+16 ; out t7=ret,v1=*a3,a3=*a3+8,s1=*a3+12,s2=*a3+16,s3=*stack0 ; preserve f12,f14 ; clobbers s0
+func_802ABBEC: in t0=a0,t1=a1,t2=a2,s4=a3,v1=*stack0,a0=*stack0+4,a3=*stack0+8,s1=*stack0+12,s2=*stack0+16,s0=*stack0+20 ; out v1=*stack0,a0=*stack0+4,a3=*stack0+8,s1=*stack0+12,s2=*stack0+16 ; preserve a1,a2,t0,t2,t3,t4,t6,t7,f12,f14
+# interpolate (t3,t4) at point (t0,t1) over triangle (s1,s3)/(s4,s6)/(s7,t9) with values (t3,t4)/(t5,t6)/(t7,s0)
+func_802AAF64: in t0=a0,t1=a1,s1=a2,s3=a3,s4=stack0,s6=stack1,s7=stack2,t9=stack3,t5=stack4,t6=stack5,t7=stack6,s0=stack7,t3=*stack8,t4=*stack8+4,f12=*stack8+8,f14=*stack8+12,f20=*stack8+16,f22=*stack8+20,f24=*stack8+24,f26=*stack8+28 ; out t3=*stack8,t4=*stack8+4,f12=*stack8+8,f14=*stack8+12,f20=*stack8+16,f22=*stack8+20,f24=*stack8+24,f26=*stack8+28 ; clobbers s2
+# zone lookup around point (t3,t4,t5) for id a3; v1 = list end, last record's registers through a struct
+func_802ABD54: in a3=a0,t3=a1,t4=a2,t5=a3,t6=*stack0,t7=*stack0+4,s0=*stack0+8,s1=*stack0+12,s2=*stack0+16,s3=*stack0+20,s4=*stack0+24 ; out v1=ret,t6=*stack0,t7=*stack0+4,s0=*stack0+8,s1=*stack0+12,s2=*stack0+16,s3=*stack0+20,s4=*stack0+24 ; preserve a3 ; clobbers s5,s6
 
 # recursive id lookup in the D_803ED3B8 list; saves t1-t4 and s3, leaves s2 changed when found
 func_802AB8D8: in s2=a0 ; out t0=ret ; preserve t1,t2,t3,t4,s3 ; clobbers s2

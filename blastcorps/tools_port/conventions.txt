@@ -530,6 +530,16 @@ func_802AEE84: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+
 func_802AEB9C: in a3=*a0 ; out a1=ret,a3=*a0 ; preserve a0,a2,t0,t1,t2,t3,f12,f14
 # returns 0x8C in s3
 func_802AFB84: out s3=ret ; preserve a0,a1,a2,a3,f12,f14
+# vehicle 0 setup (object dispatcher): header s2, x t7, y s3, z s0, heading s1; the dispatcher's fp and f12-f26 reach
+# func_802A992C; saves t0-t5; gp left = D_803ED760
+func_802AE370: in s2=a0,t7=a1,s3=a2,s0=a3,s1=stack0,fp=stack1,f12=*stack2,f14=*stack2+4,f20=*stack2+8,f22=*stack2+12,f24=*stack2+16,f26=*stack2+20 ; preserve t0,t1,t2,t3,t4,t5 ; clobbers s0-s7,fp,gp,f20,f22,f24,f26,f28,f30
+# places vehicle 0's model and parts ($gp = D_803ED760); leaves the part-list end in t2 (and t0 = 0) for func_8029A800;
+# func_8029C454/func_802AA764 leave s1, s2, s4-s7 changed
+func_802AFA64: out t2=ret ; clobbers s1,s2,s4,s5,s6,s7
+# drive-in path check at distance a2 (result a3); func_802A9A60's leftover key t8, fp, f12-f26 come in from the caller
+func_802AEC3C: in a2=a0,t8=a1,fp=a2,f12=*a3,f14=*a3+4,f20=*a3+8,f22=*a3+12,f24=*a3+16,f26=*a3+20 ; out a3=ret ; preserve v0,v1,a0,a2,t0,t1,t2,t3,t4,t5,t6,t7,t8,t9 ; clobbers s0-s7,fp,f20,f22,f24,f26,f28
+# drive-in step ($gp = D_803ED760 read as the global); func_802A9A60's leftover key t8, fp, f12-f26 come in from the caller
+func_802AF340: in t8=a0,fp=a1,f12=*a2,f14=*a2+4,f20=*a2+8,f22=*a2+12,f24=*a2+16,f26=*a2+20 ; clobbers s0-s6,f20,f22,f24,f26,f28
 # per-frame animation update ($gp = D_803ED760, read as globals in C); f20/f30 via func_8029F9D4. Asm caller
 # func_802AEEC8 reads t6, t8, f12, f14 after it (passed through, except func_8026A8E0 leaves its seeds in t6/t8)
 func_802AF4BC: clobbers s5,f20,f30
@@ -629,6 +639,18 @@ func_802B6100: in a3=a0,f24=*a1+24 ; out f12=*a1+8,f14=*a1+12,f20=*a1+16,f22=*a1
 func_802B618C: in a3=a0,f24=*a1+16 ; out s3=ret,f24=*a1+16,f26=*a1+20 ; preserve a3,t0,t1,t2 ; clobbers s0,s1,s2,s4,s5,s6,s7,fp,gp,f20,f22,f28
 # --- 72B80 ---
 # zone lookup wrapper: func_802ABD54(id, x, y, z) with its scan registers t6, t7, s0-s4 passed through
+# value pairs on triangle a3 at vehicle 8's x/z and at the offset wheel point; func_802AAD0C's FP results pass through; gp left = D_803EEE70
+func_802B78F4: in a3=a0,f24=*a1+24 ; out f12=*a1+8,f14=*a1+12,f20=*a1+16,f22=*a1+20,f24=*a1+24,f26=*a1+28 ; preserve a3,t0,t1,t3,t4 ; clobbers gp,s4,f28
+# path-driven vehicle 8 (id a3); f24 in from the dispatcher, f24 out (func_802A8768's); gp left = D_803EEE70
+func_802B7980: in a3=a0,f24=*a1 ; out f24=*a1 ; preserve a3,t0,t1,t2 ; clobbers gp,s0-s7,fp,f20,f22,f26,f28
+# model/parts/points placement ($gp read as the global); func_802AA764/func_8029C454/func_802ABBEC leave s1, s2, s4-s7 changed
+func_802B8278: clobbers s1,s2,s4,s5,s6,s7
+func_802B9B4C: clobbers s1,s2,s4,s5,s6,s7
+# vehicle 8 setup (object dispatcher): header s2, x t7, y s3, z s0, heading s1; the dispatcher's fp and f12-f26 reach
+# func_802A992C; saves t0-t5; gp left = D_803EEE70
+func_802B7340: in s2=a0,t7=a1,s3=a2,s0=a3,s1=stack0,fp=stack1,f12=*stack2,f14=*stack2+4,f20=*stack2+8,f22=*stack2+12,f24=*stack2+16,f26=*stack2+20 ; preserve t0,t1,t2,t3,t4,t5 ; clobbers s0-s7,fp,gp,f20,f22,f24,f26,f28,f30
+# flying vehicle setup (object dispatcher): a1 value and model header s2; saves t0-t5; gp left = D_803EF240
+func_802B8480: in a1=a0,s2=a1 ; preserve t0,t1,t2,t3,t4,t5 ; clobbers s0-s7,fp,gp,f20,f30
 func_802B78B0: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; out v1=ret,t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; preserve f12,f14 ; clobbers s5,s6
 # enter vehicle: points $gp at D_803EEE70 and leaves it
 func_802B76AC: clobbers gp

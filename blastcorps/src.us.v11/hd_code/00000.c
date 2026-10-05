@@ -101,6 +101,34 @@ void func_802592F0(void);
     if (!(EX)) \
     func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "hd.c", line)
 
+extern void *D_80358050[];
+typedef struct {
+    u8 pad0[0x10];
+    u32 unk10;
+    u8 pad14[0xEC];
+} Player;
+extern Player D_80364AF0[];
+extern u8 D_80364AE8;
+extern u8 D_803649ED;
+extern u8 D_80364456;
+extern s32 D_803649E8;
+extern u8 D_803649EC;
+extern u8 D_803649EE;
+extern s32 D_803156F0;
+extern s32 D_80367738;
+s32 func_802AB878(u8);
+void func_802AB478(u8);
+void func_8028F6B4(u8);
+void func_80291ED8(u8);
+void func_802794E4(void);
+s32 func_8024AFA8(u8);
+void func_802AE860(void);
+void func_8026AD30(s32);
+s32 func_80260634(s32);
+void func_80260650(s32, s32, s32 *);
+
+/* (end of declarations) */
+
 /* Boot: reads 16 words from PI address 0xFFB000, then starts the idle thread */
 void func_802447C0(void) {
     u32 i;
@@ -154,7 +182,34 @@ void func_8024ADD8(void) {
     }
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_8024AE2C.s")
+/* Applies a pending vehicle switch (D_803649ED) */
+void func_8024AE2C(void) {
+    s32 pad;
+
+    if (D_803649ED != 0 && D_803649ED != 0xFF) {
+        if (func_802AB878(D_803649ED) == 0) {
+            func_802AB478(D_803649ED);
+            func_8028F6B4(D_803649ED);
+            func_80291ED8(D_803649ED);
+            func_8028B720();
+            func_802794E4();
+            if (func_8024AFA8(D_803649ED)) {
+                D_80364456 = D_803649ED;
+                func_802AE860();
+                if (!D_802E8BD0 && D_80358060 >= 11 &&
+                    (D_80364456 == 8 || D_80364456 == 15 || D_80364456 == 13 || D_80364456 == 14)) {
+                    func_8026AD30(0x4A);
+                }
+            }
+            D_80364AF0[D_80364AE8].unk10 |= 1 << D_80364456;
+            D_803649E8 = 1;
+            D_803649EC = 1;
+            D_803649EE = 1;
+        } else if (!func_80260634(D_803156F0)) {
+            func_80260650(D_80367738, 0x2B, &D_803156F0);
+        }
+    }
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_8024AFA8.s")
 
@@ -212,13 +267,47 @@ void *func_8024C404(void *arg0, s32 arg1, s32 *arg2) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_80254E54.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_80255034.s")
+/* Polar to cartesian: point at angle (degrees) on a circle of radius r*sqrt(2) */
+void func_80255034(s32 r, f32 angle, s32 *outX, s32 *outY) {
+    f32 len;
+    f32 r2;
+    s32 x;
+    s32 y;
+    f32 a;
+
+    r2 = r * r;
+    len = sqrtf(r2 + r2);
+    a = angle;
+    a = a / 360.0;
+    a = a * 6.28318;
+    x = sinf(a) * len;
+    y = sqrtf(len * len - x * x);
+    if (angle >= 90.0 && angle < 270.0) {
+        y = 0.0 - y;
+    }
+    if (y >= -100 && y <= 100) {
+        y = 0;
+    }
+    *outX = x;
+    *outY = y;
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_80255190.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_80255628.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_802558C8.s")
+/* Clears the current frame buffer with a fill rectangle */
+void func_802558C8(Gfx *arg0, s32 *len) {
+    Gfx *gdl = arg0;
+
+    gDPPipeSync(gdl++);
+    gDPSetCycleType(gdl++, G_CYC_FILL);
+    gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, D_80358050[D_8035805C]);
+    gDPSetFillColor(gdl++, 0x00010001);
+    gDPPipeSync(gdl++);
+    gDPFillRectangle(gdl++, 0, 0, 319, 239);
+    *len += gdl - arg0;
+}
 
 /* Closes the top-level display list and returns its length in *length */
 void func_802559F8(Gfx *arg0, s32 *length) {

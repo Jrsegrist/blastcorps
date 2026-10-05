@@ -57,6 +57,16 @@ func_802A040C: in a0=a0,v0=a1,v1=a2 ; preserve v0,v1,a0,a1,a2,a3,t6,t7,f12,f14
 func_802A0444: in a0=a0,v0=a1,v1=a2 ; preserve v0,v1,a0,a1,a2,a3
 func_802A0480: in f0=f12,a0=a1,v0=a2,v1=a3 ; preserve v0,v1,a0,a1,a2,a3,t6,t7,f12,f14
 func_802A04BC: in v0=a0,v1=a1 ; out v1=*a2,a0=*a2+4,a1=*a2+8,a2=*a2+0xC,a3=*a2+0x10,t0=*a2+0x14,t1=*a2+0x18,f0=*a2+0x1C ; preserve v0,t2,t4,t6,t7,t8,t9,f12,f14
+# same setters/getter on the D_803B35F8 entry with id v0 (via func_802A06B4); value v1, float f0; v0 restored
+func_802A0508: in v0=a0,v1=a1 ; preserve v0,v1,a0,a1,a2,a3,t6,t7,f12,f14
+func_802A0540: in v0=a0 ; preserve v0,v1,a0,a1,a2,a3,t6,t7,f12,f14
+func_802A0570: in v0=a0 ; preserve v0,v1,a0,a1,a2,a3,t6,t7,f12,f14
+func_802A05A4: in f0=f12,v0=a1,v1=a2 ; preserve v0,v1,a0,a1,a2,a3,t6,t7,f2,f12,f14
+func_802A05D0: in v0=a0,v1=a1 ; preserve v0,v1,a0,a1,a2,a3,t6,t7,f12,f14
+func_802A05F8: in v0=a0,v1=a1 ; preserve v0,v1,a0,a1,a2,a3,t6,t7,f12,f14
+func_802A0620: in v0=a0,v1=a1 ; preserve v0,v1,a0,a1,a2,a3,t6,t7,f12,f14
+func_802A0648: in v0=a0,v1=a1 ; preserve v0,v1,a0,a1,a2,a3,t6,t7,f12,f14
+func_802A0674: in v0=a0 ; out v1=*a1,a0=*a1+4,a1=*a1+8,a2=*a1+0xC,a3=*a1+0x10,t0=*a1+0x14,t1=*a1+0x18,f0=*a1+0x1C ; preserve v0,t2,t4,t6,t7,t8,t9,f12,f14
 # D_803B35F8 entry whose id == v0 (unbounded scan), returned in v0 (saves v1, a0)
 func_802A06B4: in v0=a0 ; out v0=ret ; preserve v1,a0
 # sphere-vs-triangle cluster (tri in s0, sphere (t3,t4,t5) radius t6); see the 56040.c comment above func_8029BD0C

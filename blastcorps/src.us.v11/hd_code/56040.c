@@ -1784,17 +1784,54 @@ void func_802A04BC(s32 idx, Unk8029DEA0Entry *base, s32 *out) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_802A04BC.s")
 #endif
 
+/* func_802A0508 .. func_802A0674: the same field setters/getter as above, but
+ * on the D_803B35F8 entry whose id is the key (looked up by func_802A06B4).
+ * Register convention (conventions.txt): the key arrives in v0 (put there by
+ * callers several levels up and forwarded unchanged), the value in v1 and a
+ * float in f0. Each restores v0 (and v1/a0 where it uses them); asm callers
+ * keep a0-a3, t6/t7, f12/f14 live across the call, which a mixed N64 build
+ * would need a thunk for (the native port doesn't). */
+#ifdef NON_MATCHING
+Unk8029DEA0Entry *func_802A06B4(s32 id);
+
+/* unk10 = 1, unkE = val, unkC = 0 (key in v0, val in v1). */
+void func_802A0508(s32 key, s32 val) {
+    Unk8029DEA0Entry *e = func_802A06B4(key);
+
+    e->unk10 = 1;
+    e->unkE = val;
+    e->unkC = 0;
+}
+#else
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_802A0508.s")
+#endif
 
 /* func_802A0540: also part of the func_802A06B4 hidden-$v0-search-key
  * family documented below - saves the incoming $v0 across the call
  * (forwarding it one layer further) and returns that original value,
  * not the callee's. */
+#ifdef NON_MATCHING
+/* unk10 = 0 (key in v0). */
+void func_802A0540(s32 key) {
+    func_802A06B4(key)->unk10 = 0;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_802A0540.s")
+#endif
 
+#ifdef NON_MATCHING
+/* unk13 = 0, unk4 = 0.0f (key in v0; the asm leaves f0 = 0.0f). */
+void func_802A0570(s32 key) {
+    Unk8029DEA0Entry *e = func_802A06B4(key);
+
+    e->unk13 = 0;
+    e->unk4 = 0.0f;
+}
+#else
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_802A0570.s")
+#endif
 
 /* func_802A05A4/func_802A05D0/func_802A05F8/func_802A0620/func_802A0648
  * (and likely more below): all call func_802A06B4 with no visible
@@ -1808,23 +1845,86 @@ void func_802A04BC(s32 idx, Unk8029DEA0Entry *base, s32 *out) {
  * between. Classic hand-tuned non-ABI register threading for a hot
  * dispatch-table lookup, not expressible as a normal C function call at
  * any layer - would need either inline asm or a hand-maintained
- * register-correct wrapper, not a straight decomp. */
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_802A05A4.s")
+ * register-correct wrapper, not a straight decomp.
+ * (Port note: func_802A06B4 actually restores v1, so v1 here is the caller's
+ * value argument, not a second result. The NON_MATCHING rewrites take the
+ * key and value as parameters; see conventions.txt.) */
+#ifdef NON_MATCHING
+/* unk13 = val, unk4 = f (f in f0, key in v0, val in v1). */
+void func_802A05A4(f32 f, s32 key, s32 val) {
+    Unk8029DEA0Entry *e = func_802A06B4(key);
 
+    e->unk13 = val;
+    e->unk4 = f;
+}
+#else
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_802A05A4.s")
+#endif
+
+#ifdef NON_MATCHING
+/* unk14 = val (key in v0, val in v1). */
+void func_802A05D0(s32 key, s32 val) {
+    func_802A06B4(key)->unk14 = val;
+}
+#else
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_802A05D0.s")
+#endif
 
+#ifdef NON_MATCHING
+/* unk11 = val (key in v0, val in v1). */
+void func_802A05F8(s32 key, s32 val) {
+    func_802A06B4(key)->unk11 = val;
+}
+#else
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_802A05F8.s")
+#endif
 
+#ifdef NON_MATCHING
+/* unk12 = val (key in v0, val in v1). */
+void func_802A0620(s32 key, s32 val) {
+    func_802A06B4(key)->unk12 = val;
+}
+#else
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_802A0620.s")
+#endif
 
+#ifdef NON_MATCHING
+/* unkC = 0, unkE = val (key in v0, val in v1). */
+void func_802A0648(s32 key, s32 val) {
+    Unk8029DEA0Entry *e = func_802A06B4(key);
+
+    e->unkC = 0;
+    e->unkE = val;
+}
+#else
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_802A0648.s")
+#endif
 
+#ifdef NON_MATCHING
+/* Reads the entry with id key (in v0) like func_802A04BC: the asm returns
+ * v1 = (s8) unk10, a0 = (s8) unk11, a1 = (s8) unk12, a2 = unk14,
+ * a3 = (u16) unkC, t0 = (u16) unkE, t1 = (s8) unk13, f0 = unk4 (v0 restored);
+ * here out[0..6] get those integers and out[7] the float's bits. */
+void func_802A0674(s32 key, s32 *out) {
+    Unk8029DEA0Entry *e = func_802A06B4(key);
+
+    out[0] = e->unk10;
+    out[1] = e->unk11;
+    out[2] = e->unk12;
+    out[3] = e->unk14;
+    out[4] = (u16) e->unkC;
+    out[5] = (u16) e->unkE;
+    out[6] = e->unk13;
+    ((f32 *) out)[7] = e->unk4;
+}
+#else
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_802A0674.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

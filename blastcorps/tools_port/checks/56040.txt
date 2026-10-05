@@ -294,3 +294,32 @@ func_8029E4E4: -n 300 --arg t3=choice:7,8 --arg t6=choice:5,6,0x10005 --mem D_80
     --mem D_803A7440+7*0x1010:12/1=bytes:1,0xFF --mem D_803A7440+4*0x1010:12/2=halves:5,6 --mem D_803A7440*0x1010:12=choice:7,8,-1
 func_8029E4E4: -n 100 --seed 1 --arg t3=7 --arg t6=5 --mem D_803A7440+6*0x1010:12/1=bytes:1 --mem D_803A7440+7*0x1010:12/1=bytes:0x55 \
     --mem D_803A7440+4*0x1010:12/2=halves:5 --mem D_803A7440*0x1010:12=choice:8 --mem D_803A7440+0xB0B0=7
+
+# func_802A0508 .. func_802A0674 (key in v0, value in v1, float in f0): the setters/getter on the D_803B35F8 entry
+# with that id. Stubbed lookup (returns a heap block), then followed with the key in exactly one of 16 entries.
+func_802A0508: -n 300 --stub-ret func_802A06B4=ptr:0x20 --arg v0=int --arg v1=choice:0,1,-1,0x7FFF,0x8000,0xFFFF,0x12345
+func_802A0508: -n 200 --seed 1 --follow func_802A06B4 --arg v0=0x1234 --arg v1=choice:0,1,-1,0x7FFF,0x8000,0xFFFF,0x12345 \
+    --mem D_803B35F8:0x180=onehot:0x18:0x1234:rand
+func_802A0540: -n 300 --stub-ret func_802A06B4=ptr:0x20 --arg v0=int
+func_802A0540: -n 200 --seed 1 --follow func_802A06B4 --arg v0=-1 --mem D_803B35F8:0x180=onehot:0x18:-1:rand
+func_802A0570: -n 300 --stub-ret func_802A06B4=ptr:0x20 --arg v0=int
+func_802A0570: -n 200 --seed 1 --follow func_802A06B4 --arg v0=0x1234 --mem D_803B35F8:0x180=onehot:0x18:0x1234:rand
+func_802A05A4: -n 300 --stub-ret func_802A06B4=ptr:0x20 --arg v0=int --arg v1=choice:0,1,-1,0x7F,0x80,0xFF,0x100 --arg f0=float
+func_802A05A4: -n 200 --seed 1 --follow func_802A06B4 --arg v0=0x1234 --arg v1=choice:0,1,-1,0x7F,0x80,0xFF,0x100 --arg f0=float \
+    --mem D_803B35F8:0x180=onehot:0x18:0x1234:rand
+func_802A05D0: -n 300 --stub-ret func_802A06B4=ptr:0x20 --arg v0=int --arg v1=choice:0,1,-1,0x7F,0x80,0xFF,0x100
+func_802A05D0: -n 200 --seed 1 --follow func_802A06B4 --arg v0=0 --arg v1=choice:0,1,-1,0x7F,0x80,0xFF,0x100 \
+    --mem D_803B35F8:0x180=onehot:0x18:0:words:1,-1,0x1234
+func_802A05F8: -n 300 --stub-ret func_802A06B4=ptr:0x20 --arg v0=int --arg v1=choice:0,1,-1,0x7F,0x80,0xFF,0x100
+func_802A05F8: -n 200 --seed 1 --follow func_802A06B4 --arg v0=0x1234 --arg v1=choice:0,1,-1,0x7F,0x80,0xFF,0x100 \
+    --mem D_803B35F8:0x180=onehot:0x18:0x1234:rand
+func_802A0620: -n 300 --stub-ret func_802A06B4=ptr:0x20 --arg v0=int --arg v1=choice:0,1,-1,0x7F,0x80,0xFF,0x100
+func_802A0620: -n 200 --seed 1 --follow func_802A06B4 --arg v0=0x1234 --arg v1=choice:0,1,-1,0x7F,0x80,0xFF,0x100 \
+    --mem D_803B35F8:0x180=onehot:0x18:0x1234:rand
+func_802A0648: -n 300 --stub-ret func_802A06B4=ptr:0x20 --arg v0=int --arg v1=choice:0,1,-1,0x7FFF,0x8000,0xFFFF,0x12345
+func_802A0648: -n 200 --seed 1 --follow func_802A06B4 --arg v0=0x1234 --arg v1=choice:0,1,-1,0x7FFF,0x8000,0xFFFF,0x12345 \
+    --mem D_803B35F8:0x180=onehot:0x18:0x1234:rand
+func_802A0674: -n 300 --stub-ret func_802A06B4=ptr:0x20 --arg v0=int
+func_802A0674: -n 200 --seed 1 --follow func_802A06B4 --arg v0=0x1234 --mem D_803B35F8:0x180=onehot:0x18:0x1234:rand
+# sign/zero-extension boundaries of every field
+func_802A0674: -n 100 --seed 2 --follow func_802A06B4 --arg v0=0x1234 --mem D_803B35F8:0x180=onehot:0x18:0x1234:bytes:0,0x7F,0x80,0xFF

@@ -3066,17 +3066,192 @@ s32 func_802AB41C(s32 key0, s32 key1) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802AB41C.s")
 #endif
 
+#ifdef NON_MATCHING
+/* Per-type hooks of the D_803ED3B8 tree walks below (vehicle files). */
+s32 func_802B30F4(s32 id, InterpRegs *r);
+s32 func_802B4818(s32 id, InterpRegs *r);
+void func_802B6100(s32 id, InterpRegs *r);
+void func_802B78F4(s32 id, InterpRegs *r);
+void func_802C59B4(s32 id, InterpRegs *r);
+void func_802CA34C(s32 id, InterpRegs *r);
+s32 func_802CBD5C(s32 id, InterpRegs *r);
+s32 func_802CCED4(s32 id, InterpRegs *r);
+s32 func_802CFC54(s32 id, InterpRegs *r);
+s32 func_802B3180(s32 id, InterpRegs *r);
+s32 func_802B48A4(s32 id, InterpRegs *r);
+s32 func_802B618C(s32 id, TriSideOut *f);
+void func_802B7980(s32 id, f32 *f24);
+void func_802C5A14(s32 id, s32 *s3, InterpRegs *r);
+void func_802CA3D8(s32 id, s32 *s3, InterpRegs *r);
+s32 func_802CBDE8(s32 id, TriSideOut *f);
+s32 func_802CCF60(s32 id, TriSideOut *f);
+s32 func_802CFCE0(s32 id, InterpRegs *r);
+void func_802AB50C(s32 id, InterpRegs *r);
+void func_802AB714(s32 id, s32 *s3, InterpRegs *r);
+#endif
+
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Entry from C (00000.c func_8024AE2C, which declares a u8 parameter; the asm
+ * moves all of a0 to s2): func_802AB50C(id). The asm saves every callee-saved
+ * register around the call, so the walk's register results are dropped; its
+ * FP state starts as whatever the C caller left in f20-f26 (f24 is an input
+ * of the per-type hooks, where it only feeds FP side results that nothing
+ * stores): 0 here. */
+void func_802AB478(s32 id) {
+    InterpRegs r;
+
+    r.f20 = 0.0f;
+    r.f22 = 0.0f;
+    r.f24 = 0.0f;
+    r.f26 = 0.0f;
+    func_802AB50C(id, &r);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802AB478.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Walk the D_803ED3B8 tree (4-byte entries {u8 type, u8 parent, ..}, scanned
+ * from the start to the -1 word) below node `id`: for every entry whose
+ * parent byte is `id`, run its type's hook with that parent id (3:
+ * func_802B30F4, 4: func_802B4818, 5: func_802B6100, 8: func_802B78F4, 9:
+ * func_802C59B4, 0xA: func_802CA34C, 0xD: func_802CBD5C, 0xE: func_802CCED4,
+ * 0xF: func_802CFC54; their results are ignored) and then recurse on the type
+ * byte as the new id. Type 0 and other types are skipped without recursing.
+ * The type is the byte read before the hook (the asm keeps it in t1, which
+ * the hooks preserve; they may rewrite D_803ED3B8). An entry whose type
+ * equals its parent recurses forever in the asm too.
+ * Register convention: id in s2; the hooks' FP state chains through r (f24
+ * in, f20-f26 out; conventions.txt). The asm saves a2, a3, t0, t1 and s2 and
+ * leaves the hooks' gp, s4 and f28 changed. */
+void func_802AB50C(s32 id, InterpRegs *r) {
+    u8 *e;
+    s32 type;
+
+    for (e = D_803ED3B8; *(s32 *) e != -1; e += 4) {
+        if (e[1] != id) {
+            continue;
+        }
+        type = e[0];
+        switch (type) {
+            case 3:
+                func_802B30F4(e[1], r);
+                break;
+            case 5:
+                func_802B6100(e[1], r);
+                break;
+            case 4:
+                func_802B4818(e[1], r);
+                break;
+            case 8:
+                func_802B78F4(e[1], r);
+                break;
+            case 0xD:
+                func_802CBD5C(e[1], r);
+                break;
+            case 0xE:
+                func_802CCED4(e[1], r);
+                break;
+            case 0xF:
+                func_802CFC54(e[1], r);
+                break;
+            case 9:
+                func_802C59B4(e[1], r);
+                break;
+            case 0xA:
+                func_802CA34C(e[1], r);
+                break;
+            default: /* 0 and unknown types */
+                continue;
+        }
+        func_802AB50C(type, r);
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802AB50C.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Entry from C (00000.c func_8024B5E8): func_802AB714(id). The asm saves
+ * every callee-saved register (gp and fp too) around the call. The walk's s3
+ * and FP state start as whatever the C caller left in s3 and f20-f26; the
+ * hooks only pass s3 through (func_802C5A14 / func_802CA3D8 hand it to
+ * func_802A8768's in/out slot result) and f24 only feeds FP side results,
+ * none of which is stored: 0 here. */
+void func_802AB670(s32 id) {
+    InterpRegs r;
+    s32 s3 = 0;
+
+    r.f20 = 0.0f;
+    r.f22 = 0.0f;
+    r.f24 = 0.0f;
+    r.f26 = 0.0f;
+    func_802AB714(id, &s3, &r);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802AB670.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* As func_802AB50C with the second set of hooks (3: func_802B3180, 4:
+ * func_802B48A4, 5: func_802B618C, 8: func_802B7980, 9: func_802C5A14, 0xA:
+ * func_802CA3D8, 0xD: func_802CBDE8, 0xE: func_802CCF60, 0xF: func_802CFCE0),
+ * and entries whose parent byte is 0 are skipped (so id 0 matches nothing).
+ * Register convention: id in a3; s3 in/out (*s3: the hooks' s3 result, or
+ * their in/out s3) and the FP state through r (f24 in; f20-f26 out). The
+ * asm saves a3, t0, t1, t2; the hooks leave s0-s2, s4-s7, fp, gp and f28
+ * changed, and func_802B7980 also s3 (not modelled: s3 only passes through
+ * to func_802A8768's result, which nothing stores). */
+void func_802AB714(s32 id, s32 *s3, InterpRegs *r) {
+    u8 *e;
+    s32 type;
+
+    for (e = D_803ED3B8; *(s32 *) e != -1; e += 4) {
+        if (e[1] != id || e[1] == 0) {
+            continue;
+        }
+        type = e[0];
+        switch (type) {
+            case 3:
+                *s3 = func_802B3180(id, r);
+                break;
+            case 5:
+                *s3 = func_802B618C(id, (TriSideOut *) &r->f12);
+                break;
+            case 4:
+                *s3 = func_802B48A4(id, r);
+                break;
+            case 8:
+                func_802B7980(id, &r->f24);
+                break;
+            case 0xD:
+                *s3 = func_802CBDE8(id, (TriSideOut *) &r->f12);
+                break;
+            case 0xE:
+                *s3 = func_802CCF60(id, (TriSideOut *) &r->f12);
+                break;
+            case 0xF:
+                *s3 = func_802CFCE0(id, r);
+                break;
+            case 9:
+                func_802C5A14(id, s3, r);
+                break;
+            case 0xA:
+                func_802CA3D8(id, s3, r);
+                break;
+            default: /* 0 and unknown types */
+                continue;
+        }
+        func_802AB714(type, s3, r);
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802AB714.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

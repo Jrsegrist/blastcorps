@@ -905,3 +905,53 @@ func_802A8768: -n 200 --seed 3 --follow func_802A90E4,func_802A8FF4,func_802A8FB
     --mem D_803F7C49:1=choice:0,1 --mem D_803ED3F6:1=bytes:0,5,50,0xFF --mem D_803ED40B:1=bytes:0,1 \
     --mem D_803ED3EA:3=rand --mem D_803ED3B8:0x1C=bytes:0,1,0xFF,5,2 --mem D_803ED3B8+0x1C=0xFFFFFFFF \
     --sig func_802582C4=a0:1,a1,a2,a3,stack0,stack1,stack2,stack3
+
+# (disp) D_803ED3B8 tree walks. Tables: 6 top entries {type, parent in 1/2/7},
+# 4 second-level entries (parents = top types, types 0xA/0x10/0x20/0: no
+# cycles), -1 at +40; bytes 2-3 random. Hooks stubbed (mapped through
+# conventions.txt, FP state chained), then whole walks with the walk itself
+# followed.
+func_802AB50C: -n 300 --arg a0=choice:1,2,7 \
+    --mem D_803ED3B8:48=rand --mem D_803ED3B8*4:6/1=choice:0,3,4,5,8,9,0xD,0xE,0xF,0xA,0x20 \
+    --mem D_803ED3B8+1*4:6/1=choice:1,2,7 --mem D_803ED3B8+24*4:4/1=choice:0x10,0x20,0,0xA \
+    --mem D_803ED3B8+25*4:4/1=choice:3,4,5,8,9,0xD,0xE,0xF --mem D_803ED3B8+40=-1
+# parent 0 matches (unlike func_802AB714); ids above 0xFF never match; empty table
+func_802AB50C: -n 200 --seed 1 --arg a0=choice:0,0x100,0x101,-1 \
+    --mem D_803ED3B8:48=rand --mem D_803ED3B8*4:10/1=choice:0,3,4,5,8,9,0xD,0xE,0xF,0xA,0xFF \
+    --mem D_803ED3B8+1*4:10/1=choice:0,1,0xFF --mem D_803ED3B8+40=-1
+func_802AB50C: -n 20 --seed 2 --arg a0=int --mem D_803ED3B8=-1
+# every type once, in order, all under parent 1 (each recursion finds nothing)
+func_802AB50C: -n 50 --seed 3 --arg a0=1 \
+    --mem D_803ED3B8:44=hex:03010000_04010000_05010000_08010000_09010000_0A010000_0D010000_0E010000_0F010000_00010000_10010000 \
+    --mem D_803ED3B8+44=-1
+# entry words that only look like the end marker (type 0xFF, parent 0xFF)
+func_802AB50C: -n 50 --seed 4 --arg a0=0xFF \
+    --mem D_803ED3B8:16=hex:FFFFFFFE_03FF0000_FFFF00FF_FFFFFFFF
+func_802AB478: -n 200 --sig func_802AB50C=a0 --arg a0=int
+func_802AB478: -n 200 --seed 1 --follow func_802AB50C --sig func_802B30F4=a0 --sig func_802B6100=a0 \
+    --sig func_802B4818=a0 --sig func_802B78F4=a0 --sig func_802CBD5C=a0 --sig func_802CCED4=a0 \
+    --sig func_802CFC54=a0 --sig func_802C59B4=a0 --sig func_802CA34C=a0 --arg a0=choice:1,2,7 \
+    --mem D_803ED3B8:48=rand --mem D_803ED3B8*4:6/1=choice:0,3,4,5,8,9,0xD,0xE,0xF,0xA,0x20 \
+    --mem D_803ED3B8+1*4:6/1=choice:1,2,7 --mem D_803ED3B8+24*4:4/1=choice:0x10,0x20,0,0xA \
+    --mem D_803ED3B8+25*4:4/1=choice:3,4,5,8,9,0xD,0xE,0xF --mem D_803ED3B8+40=-1
+func_802AB714: -n 300 --arg a0=choice:1,2,7 \
+    --mem D_803ED3B8:48=rand --mem D_803ED3B8*4:6/1=choice:0,3,4,5,8,9,0xD,0xE,0xF,0xA,0x20 \
+    --mem D_803ED3B8+1*4:6/1=choice:1,2,7 --mem D_803ED3B8+24*4:4/1=choice:0x10,0x20,0,0xA \
+    --mem D_803ED3B8+25*4:4/1=choice:3,4,5,8,9,0xD,0xE,0xF --mem D_803ED3B8+40=-1
+# parent 0 never matches (id 0 finds nothing); ids above 0xFF never match; empty table
+func_802AB714: -n 200 --seed 1 --arg a0=choice:0,1,0x100,0x101,-1 \
+    --mem D_803ED3B8:48=rand --mem D_803ED3B8*4:10/1=choice:0,3,4,5,8,9,0xD,0xE,0xF,0xA,0xFF \
+    --mem D_803ED3B8+1*4:10/1=choice:0,1,0xFF --mem D_803ED3B8+40=-1
+func_802AB714: -n 20 --seed 2 --arg a0=int --mem D_803ED3B8=-1
+func_802AB714: -n 50 --seed 3 --arg a0=1 \
+    --mem D_803ED3B8:44=hex:03010000_04010000_05010000_08010000_09010000_0A010000_0D010000_0E010000_0F010000_00010000_10010000 \
+    --mem D_803ED3B8+44=-1
+func_802AB714: -n 50 --seed 4 --arg a0=0xFF \
+    --mem D_803ED3B8:16=hex:FFFFFFFE_03FF0000_FFFF00FF_FFFFFFFF
+func_802AB670: -n 200 --sig func_802AB714=a0 --arg a0=int
+func_802AB670: -n 200 --seed 1 --follow func_802AB714 --sig func_802B3180=a0 --sig func_802B618C=a0 \
+    --sig func_802B48A4=a0 --sig func_802B7980=a0 --sig func_802CBDE8=a0 --sig func_802CCF60=a0 \
+    --sig func_802CFCE0=a0 --sig func_802C5A14=a0 --sig func_802CA3D8=a0 --arg a0=choice:1,2,7 \
+    --mem D_803ED3B8:48=rand --mem D_803ED3B8*4:6/1=choice:0,3,4,5,8,9,0xD,0xE,0xF,0xA,0x20 \
+    --mem D_803ED3B8+1*4:6/1=choice:1,2,7 --mem D_803ED3B8+24*4:4/1=choice:0x10,0x20,0,0xA \
+    --mem D_803ED3B8+25*4:4/1=choice:3,4,5,8,9,0xD,0xE,0xF --mem D_803ED3B8+40=-1

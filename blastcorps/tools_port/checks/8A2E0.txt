@@ -1,0 +1,11 @@
+# 8A2E0: walks of the 0x14-byte table D_803FBBB0 (D_803FC1F0 entries; +0x10 is a
+# u16 flag). Both pass the countdown value (count..1), not the index, to the callee.
+
+# func_802CF5B0: call func_80285AB0(n) for entries whose flag is nonzero
+func_802CF5B0: -n 300 --ret void --sig func_80285AB0=a0 --mem D_803FBBB0:0x200=halves:0,1,0xFFFF,0x8000,0x100 --mem D_803FC1F0:1=int:0:20
+func_802CF5B0: -n 100 --seed 1 --ret void --sig func_80285AB0=a0 --mem D_803FBBB0:0xA0=onehot:0x14@0x10/2:1,0x8000,0xFFFF:0 --mem D_803FC1F0:1=8
+func_802CF5B0: -n 30 --seed 2 --ret void --sig func_80285AB0=a0 --mem D_803FBBB0:0x13EC=halves:0,1 --mem D_803FC1F0:1=choice:0,1,0xFF
+
+# func_802CF628: flag[i] = func_80285B10(n) (stub returns 32-bit values; stored as a halfword)
+func_802CF628: -n 300 --ret void --sig func_80285B10=a0 --mem D_803FBBB0:0x200=rand --mem D_803FC1F0:1=int:0:20
+func_802CF628: -n 30 --seed 1 --ret void --sig func_80285B10=a0 --mem D_803FBBB0:0x13EC=rand --mem D_803FC1F0:1=choice:0,1,0xFF

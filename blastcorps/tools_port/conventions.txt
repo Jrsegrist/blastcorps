@@ -194,11 +194,9 @@ func_802AFB84: out s3=ret ; preserve a0,a1,a2,a3,f12,f14
 # --- 6B4A0 ---
 # rounded speed/divisor of this vehicle ($gp = D_803EDB40, read as globals in C) in s3
 func_802B0C74: out s3=ret ; preserve a0,a1,a2,a3
-
 # --- 6C5E0 ---
 # 0 / 50 / 120 from this vehicle's speed and +0xA1 ($gp = D_803EDF10) in s3
 func_802B28B8: out s3=ret ; preserve a0,a1,a2,a3
-
 # --- 6E200 ---
 # tyre trail ($gp = D_803EE2E0); saves every integer register
 func_802B3C68: preserve a1,a2,a3
@@ -210,7 +208,6 @@ func_802B3FF0: preserve a0,a1,a2,a3,t3,t4,f12,f14
 func_802B54EC: preserve a0,a1,a2,a3,t6,t7
 # 22 / 75 from this vehicle's flags ($gp = D_803EE6C0) in s3
 func_802B57C4: out s3=ret ; preserve a0,a1,a2,a3
-
 # --- 71140 ---
 # tyre trail ($gp = D_803EEA90); saves every integer register
 func_802B69F8: preserve a0,a1,a2,a3,t6,t7
@@ -218,7 +215,6 @@ func_802B69F8: preserve a0,a1,a2,a3,t6,t7
 func_802B7168: out s3=ret ; preserve a0,a1,a2,a3
 # 0.5 +- |speed|/480 (side flag in s2) in f2; s3 left = 240
 func_802B71DC: in s2=a0 ; out f2=fret ; preserve a1,a2,a3,f12,f14 ; clobbers s3
-
 # --- 72B80 ---
 # enter vehicle: points $gp at D_803EEE70 and leaves it
 func_802B76AC: clobbers gp
@@ -226,23 +222,19 @@ func_802B76AC: clobbers gp
 func_802B80D8: preserve a0,a1,a2,a3,t6,t7
 # rounded speed/divisor ($gp = D_803EEE70) in s3
 func_802B83B0: out s3=ret ; preserve a0,a1,a2,a3
-
 # --- 75490 ---
 # zone value scan of D_80305D62; its scan registers a0-a3 reach func_802A860C via func_802BA354
 func_802BA638: in a2=*a1 ; out a0=ret,a1=*a0,a2=*a1,a3=*a2
 # exit check: points $gp at D_803EFA20 and leaves it
 func_802BB170: clobbers gp
-
 # --- 772A0 ---
 # enter vehicle: points $gp at D_803EFDF0 and leaves it
 func_802BBDC8: clobbers gp
-
 # --- 83910 ---
 # bounce: speed (s16 at +0x76 of the block in $gp; three vehicles share it) -> -max(|v|,80)/2 with sign
 func_802C95D8: in gp=a0 ; preserve a0,a1,a2,a3,f12,f14
 # rounded speed / D_8030D980 of the block in $gp (no direct callers) in s3
 func_802C9AF8: in gp=a0 ; out s3=ret
-
 # --- 853D0 ---
 # centre trail ($gp = D_803F8AA0); saves every integer register
 func_802CB224: preserve a1,a2,a3
@@ -250,17 +242,14 @@ func_802CB224: preserve a1,a2,a3
 func_802CB3C8: in s2=a0 ; out f2=fret ; preserve a1,a2,a3 ; clobbers s3
 # rounded speed/divisor ($gp = D_803F8AA0) in s3
 func_802CB564: out s3=ret ; preserve a0,a1,a2,a3
-
 # --- 86ED0 ---
 # shared by eight vehicle modules: the state block comes in $gp; a0-a3 left as junk (a0 = 1)
 func_802CB690: in gp=a0
-
 # --- 86F60 ---
 # tyre trail ($gp = D_803F8E80); saves every integer register
 func_802CC56C: preserve a0,a1,a2,a3,t6,t7
 # rounded speed/divisor ($gp = D_803F8E80) in s3
 func_802CC844: out s3=ret ; preserve a0,a1,a2,a3
-
 # --- 88160 ---
 # enter vehicle: points $gp at D_803F9250 and leaves it
 func_802CCC8C: clobbers gp
@@ -268,7 +257,6 @@ func_802CCC8C: clobbers gp
 func_802CD660: preserve a0,a1,a2,a3,t6,t7
 # rounded speed/divisor ($gp = D_803F9250) in s3
 func_802CD938: out s3=ret ; preserve a0,a1,a2,a3
-
 # --- 8AEE0 ---
 # enter vehicle: points $gp at D_803FC500 and leaves it
 func_802CFA0C: clobbers gp
@@ -278,3 +266,55 @@ func_802D0438: preserve a0,a1,a2,a3,t6,t7
 func_802D0710: out s3=ret ; preserve a0,a1,a2,a3
 # 0 / 5 / 110 from this vehicle's speed and +0xA1 ($gp = D_803FC8D0) in s3
 func_802D2444: out s3=ret ; preserve a0,a1,a2,a3
+# --- 77E20 ---
+# 1 if every D_8039C800 entry has unk26 set; saves t0, t1, t3
+func_802BC7DC: out t4=ret ; preserve a0,a1,a2,a3,t0,t1,t2,t3,f12,f14
+# bump/insert a counter in D_803F7690 (kind t3, id t9, amount a2); saves every register
+func_802BC888: in t3=a0,t9=a1,a2=a2 ; preserve a0,a1,t3,t4,t6,t7,t9
+# buffer A scans: "some byte differs from v0" / "contains v0"; buffer B "contains fp" (fp is a value)
+func_802BCD20: in v0=a0 ; out v1=ret
+func_802BCD80: in v0=a0 ; out v1=ret ; preserve a0,a1,a2,a3,f12,f14
+func_802BCDE0: in fp=a0 ; out v1=ret ; preserve a0,a1,a2,t3,t8,t9,f12,f14
+# done-check of the D_803F4030 entry before t0 (callers pass entry + 0xFC); saves t0-t2, t4
+func_802BD064: in t0=a0 ; out v0=ret ; preserve t0,t1,t2,t4,t5,t6,t7
+# clear unk51 of model triangles with unk52 == a3 + 1 (model in v0); changes nothing else
+func_802BD85C: in v0=a0,a3=a1 ; preserve v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,f12,f14
+# level 0x32 and !func_80286090(level) -> t1; preserves everything else
+func_802BD8C8: out t1=ret ; preserve v0,v1,a0,a1,a2,a3,t0,t2,t3,t4,t5,t6,t7,t8,t9,f12,f14
+# move a model (v0) by (a2, a3, t0) and recompute its triangle planes; changes s0-s7, fp (callers save them), leaves junk in a1-a3
+func_802BD99C: in v0=a0,a2=a1,a3=a2,t0=a3 ; preserve f12,f14 ; clobbers s0-s7,fp
+# animated-texture display-list copy [t7, s0) -> dst (a2 / t0) with table [t1, t2); returns the new dst, t7 ends at s0
+func_802BE228: in t7=a0,s0=a1,a2=a2,t1=a3,t2=stack0 ; out a2=ret ; preserve a0,a1,t0,t1,t2,t3,t4,t5,t6,f12,f14
+func_802BE3C8: in t7=a0,s0=a1,t0=a2,t1=a3,t2=stack0 ; out t0=ret ; preserve a0,a1,a2,t1,t2,t3,t4,t5,t6,f12,f14
+# D_803059F0 lookup for entry t3 and bit t8 -> t9
+func_802BE944: in t3=a0,t8=a1 ; out t9=ret ; preserve a0,a1,t3,t4,t6,t8,f12,f14
+# pair list D_803F3910..D_803F3960: append (t9, t3) / find (t9, t3) -> t7
+func_802BEA30: in t9=a0,t3=a1 ; preserve a0,a1,t3,t8,t9,f12,f14
+func_802BEA70: in t9=a0,t3=a1 ; out t7=ret ; preserve a0,a1,t3,t8,t9,f12,f14
+# entry in t9 (D_803F4030 entries)
+func_802BEF9C: in t9=a0 ; preserve a0,a1,t8,t9,f12,f14
+func_802BF1F0: in t9=a0,t3=a1 ; preserve a1,t0,t1,t2,t3,t4,t5,t6,t7,t9,f12,f14
+func_802BF384: in t9=a0 ; preserve a0,a1,t3,t5,t9,f12,f14
+func_802BF534: in t9=a0 ; preserve a0,a1,t3,t5,t9,f12,f14
+# func_8026A828(a0, a1) -> s4; preserves everything else
+func_802BFB50: in a0=a0,a1=a1 ; out s4=ret ; preserve t0,t1,t4,t5,t6,t7,t9
+# entry t9, object v1; preserves everything
+func_802BFBF4: in t9=a0,v1=a1 ; preserve a0,t3,t5,t9
+# vehicle block in gp (varies by caller, so an argument)
+func_802BFEE4: in gp=a0 ; preserve a0,a1,t6,t8,f12,f14
+# bit t8, flag gp (a value) -> t2; t7 = 100 only when t2 = 1
+func_802C0284: in t8=a0,gp=a1,t7=*a2 ; out t2=ret,t7=*a2 ; preserve t8,t9
+# part id v0 of entry t9 blocked? -> t3 (0 = blocked); v0 is left doubled on one path
+func_802C038C: in v0=a0,t9=a1 ; out t3=ret ; preserve t2,t4,t7,t8,t9
+# copy the 0x38-byte record v1 into the first D_803F3968 entry with byte 0x34 set
+func_802C04F0: in v1=a0 ; preserve a0,a1,a2,a3,t3,t5,t6,t7,t9
+# gfx in and out in v0
+func_802C08C4: in v0=a0 ; out v0=ret ; preserve a0,a1,a2,a3,f12,f14
+# 64-bit command in t4 (in and out); the C takes/returns u64 (a0:a1 / v0:v1), only the low word is mapped
+func_802C0C64: in t4=a1 ; out t4=v1 ; preserve a0,a1,a2,a3,t1,t2,t3,t9
+# 4 box-corner vertices at v1 + 0x9E0 for entry t9
+func_802C1214: in v1=a0,t9=a1 ; preserve t3,t9
+# two gfx pointers in and out in a0/a1 (C: through pointers); changes s0-s5
+func_802C12E0: in a0=*a0,a1=*a1 ; out a0=*a0,a1=*a1 ; clobbers s0-s5
+# entry t9, 1-based index t3 -> a2
+func_802C1A28: in t9=a0,t3=a1 ; out a2=ret ; preserve t3,t9,f12,f14

@@ -15,6 +15,7 @@ SECTIONS
     .bss_ul_siacs 0x803FF330 (NOLOAD) : { build/src.us.v11/hd_code/ul_siacs.c.o(.bss); }
     .bss_ul_kdebugserver 0x803FF350 (NOLOAD) : { build/src.us.v11/hd_code/ul_kdebugserver.c.o(.bss); }
     .bss_00000 0x80310D80 (NOLOAD) : { build/src.us.v11/hd_code/00000.c.o(.bss); }
+    .bss_22EE0 0x80368050 (NOLOAD) : { build/src.us.v11/hd_code/22EE0.c.o(.bss); }
     .bss_2C560 0x8036BEF0 (NOLOAD) : { build/src.us.v11/hd_code/2C560.c.o(.bss); }
     .bss_2D810 0x8036BFC0 (NOLOAD) : { build/src.us.v11/hd_code/2D810.c.o(.bss); }
     .bss_30430 0x8036C770 (NOLOAD) : { build/src.us.v11/hd_code/30430.c.o(.bss); }

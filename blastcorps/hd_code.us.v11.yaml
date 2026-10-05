@@ -27,6 +27,7 @@ segments:
     - [0x1C460, c, hd_code/1C460]
     - [0x1D990, c, hd_code/1D990]
     - [0x20460, c, hd_code/20460]
+    - [0x22EE0, c, hd_code/22EE0] # audio.c (Rare-modified SDK audiomgr.c)
     - [0x23C20, c, hd_code/23C20]
     - [0x26570, c, hd_code/26570] # yoshi.c (from its assert strings)
     - [0x2C560, c, hd_code/2C560] # scheduler (Rare-modified SDK sched.c)
@@ -238,6 +239,8 @@ segments:
     - [0xA4410, bin, hd_code/hd_code_data] # .data
     - [0xA4520, .data, hd_code/1A630]
     - [0xA4530, bin, hd_code/hd_code_data_A4530]
+    - [0xAF330, .data, hd_code/22EE0]
+    - [0xAF450, bin, hd_code/hd_code_data_AF450]
     - [0xB9350, .data, hd_code/45BB0]
     - [0xB9370, bin, hd_code/hd_code_data_B9370]
     - [0xC1DD0, .data, hd_code/ul_initialize]
@@ -271,7 +274,8 @@ segments:
     - [0xC48E0, .rodata, hd_code/1A630]
     - [0xC4A30, .rodata, hd_code/1C460]
     - [0xC4AF0, .rodata, hd_code/1D990]
-    - [0xC4E80, bin, hd_code/hd_code_data_C4E80]
+    - [0xC4E80, .rodata, hd_code/20460]
+    - [0xC4F40, .rodata, hd_code/22EE0]
     - [0xC5070, .rodata, hd_code/23C20]
     - [0xC5210, bin, hd_code/hd_code_data_C5210]
     - [0xC7390, .rodata, hd_code/26570]

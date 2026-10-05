@@ -2,9 +2,8 @@
 #include <ultra64.h>
 
 /* Falling debris / bouncing objects: a pool of 20 that are spawned around a
- * point, home in on a target, wander inside a box and play sounds. Also the
- * audio manager (audio.c, from 0x802676A0), a Rare-modified copy of the SDK
- * demos' audiomgr.c. */
+ * point, home in on a target, wander inside a box and play sounds. The
+ * audio manager that follows is a separate file, 22EE0.c (audio.c). */
 
 typedef struct {
     /* 0x00 */ s16 x;
@@ -80,8 +79,7 @@ void func_80264C20(s32 arg0) {
     }
 }
 
-/* TODO: needs this file's .rodata split in the yaml (the 100000000.0f
- * constant at 0x80309640). Matches in probe:
+/* Spawn arg5 pieces around (arg0, arg2) inside a box of half size arg3 */
 void func_80264CB4(s16 arg0, s16 arg1, s16 arg2, s16 arg3, u8 arg4, s32 arg5) {
     s32 pad;
     s32 n;
@@ -134,8 +132,6 @@ void func_80264CB4(s16 arg0, s16 arg1, s16 arg2, s16 arg3, u8 arg4, s32 arg5) {
         i++, n++;
     }
 }
-*/
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/20460/func_80264CB4.s")
 
 void func_80265428(void);
 void func_8026513C(void);
@@ -455,11 +451,8 @@ void func_802661EC(void) {
     D_80368038 = 2000;
 }
 
-/* TODO: draws the debris (billboarded 20x32 RGBA16 sprites, animated, picked
- * by heading) plus one marker at D_803EF310. Needs this file's .rodata split
- * (5 jump tables and 4 doubles at 0x80309648-0x80309700). Matches in probe
- * (1267/1267), with these declarations:
-
+/* Draw the debris: billboarded 20x32 RGBA16 sprites, animated and picked by
+ * heading, plus one marker at D_803EF310 */
 typedef struct {
     Mtx mtx[100];
     Vtx vtx[1];
@@ -479,7 +472,7 @@ extern s32 D_803EF314;
 extern s32 D_803EF318;
 extern u8 D_02000000[];
 
-s32 func_80267614(Debris *);
+s32 func_80267614();
 void func_8026A5CC(void *, void *, s32);
 
 #define LOAD_TEX(ptr) \
@@ -664,8 +657,6 @@ void func_80266248(Gfx **gdlp, DynBuf *buf) {
     gDPPipeSync(gdl++);
     *gdlp = gdl;
 }
-*/
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/20460/func_80266248.s")
 
 typedef struct {
     u8 pad[0x12];
@@ -689,381 +680,3 @@ s32 func_80267614(Node12 *node, s32 arg1) {
     }
     return 0;
 }
-
-/* ---------------------------------------------------------------------------
- * audio.c (0x802676A0-0x802683F0): Rare's copy of the SDK demos' audiomgr.c.
- * Its strings ("No samples left\n" ... "Dma not done\n", 0x80309700-0x80309825)
- * show it's a separate source file from the code above, starting at the
- * 16-aligned 0x802676A0 (ROM 0x22EE0).
- *
- * Every function below except func_80267A74/func_80268254 matches in a probe
- * but can't be committed until the yaml gives these files their own sections
- * (I wasn't permitted to edit the shared yaml/Makefile):
- *  - .rodata: 0x80309640-0x80309700 for the code above (late rodata only:
- *    func_80264CB4's float, func_80266248's jump tables and doubles), and
- *    0x80309700-0x80309830 for audio.c's strings; the two files need a c split
- *    at ROM 0x22EE0 so the strings don't land before the late rodata.
- *  - .data 0x802F3AF0-0x802F3C10 (audFrameCt, nextDMA, curAcmdList, the
- *    custom-reverb template that func_802676A0 copies, firstTime).
- *  - .bss: func_80267A9C's u64 timers D_80368058/60/68 are defined in this
- *    file (paired stores share one lui).
- * The probe sources are in the comments.
- * ------------------------------------------------------------------------ */
-
-typedef struct BcScTask {
-    /* 0x00 */ struct BcScTask *next;
-    /* 0x04 */ u32 state;
-    /* 0x08 */ u32 flags;
-    /* 0x0C */ void *framebuffer;
-    /* 0x10 */ OSTask list;
-    /* 0x50 */ void *unk50;
-    /* 0x54 */ OSMesgQueue *msgQ;
-    /* 0x58 */ OSMesg msg;
-    /* 0x5C */ s32 pad5C;
-} BcScTask;
-
-typedef struct {
-    /* 0x00 */ s16 *data;
-    /* 0x04 */ s16 frameSamples;
-    /* 0x08 */ BcScTask task;
-} AudioInfo; /* 0x68 */
-
-typedef struct {
-    /* 0x000 */ Acmd *ACMDList[2];
-    /* 0x008 */ AudioInfo *audioInfo[3];
-    /* 0x018 */ OSThread thread;
-    /* 0x1C8 */ OSMesgQueue audioFrameMsgQ;
-    /* 0x1E0 */ OSMesg audioFrameMsgBuf[8];
-    /* 0x200 */ OSMesgQueue audioReplyMsgQ;
-    /* 0x218 */ OSMesg audioReplyMsgBuf[8];
-    /* 0x238 */ ALGlobals g;
-} AMAudioMgr;
-
-typedef struct {
-    /* 0x00 */ ALLink node;
-    /* 0x08 */ u32 startAddr;
-    /* 0x0C */ u32 lastFrame;
-    /* 0x10 */ u8 *ptr;
-} AMDMABuffer; /* 0x14 */
-
-typedef struct {
-    /* 0x00 */ u8 initialized;
-    /* 0x04 */ AMDMABuffer *firstUsed;
-    /* 0x08 */ AMDMABuffer *firstFree;
-} AMDMAState;
-
-/* The old SDK's OSIoMesg, without piHandle */
-typedef struct {
-    OSIoMesgHdr hdr;
-    void *dramAddr;
-    u32 devAddr;
-    u32 size;
-} OldIoMesg; /* 0x14 */
-
-extern AMAudioMgr D_80368070;  /* __am */
-extern AMDMAState D_8036A308;  /* dmaState */
-extern AMDMABuffer D_8036A318[72]; /* dmaBuffs */
-
-s32 func_80267FE0(s32 addr, s32 len, void *state);
-
-/* TODO: needs .data for the reverb template (see above). Matches in probe:
-void func_802676A0(ALSynConfig *c, OSPri pri) {
-    s32 i;
-    f32 fsize;
-
-    c->dmaproc = func_80268254;
-    if (D_80000300 != 1) {            // osTvType
-        osViClock = 0x02E6025C;
-    }
-    c->outputRate = osAiSetFrequency(22050);
-    fsize = (f32) c->outputRate * 2.0f / 60.0f;
-    D_8036A8BC = (s32) fsize;         // u32 frameSize
-    if (D_8036A8BC < fsize) {
-        D_8036A8BC++;
-    }
-    if (D_8036A8BC & 0xF) {
-        D_8036A8BC = (D_8036A8BC & ~0xF) + 0x10;
-    }
-    D_8036A8B8 = D_8036A8BC - 16;     // minFrameSize
-    D_8036A8C0 = D_8036A8BC + 0x35;   // maxFrameSize
-    if (c->fxType == 6) {
-        s32 pad = 0;
-        s32 params[66] = {
-            8, 6800,
-            0, 160, 9830, -9830, 0, 0, 0, 0,
-            160, 320, 9830, -9830, 11140, 0, 0, 9472,
-            800, 2560, 16384, -16384, 4587, 0, 0, 12288,
-            960, 1920, 8192, -8192, 0, 0, 0, 0,
-            3200, 5600, 16384, -16384, 4587, 0, 0, 13568,
-            3360, 4800, 8192, -8192, 0, 0, 0, 0,
-            4800, 5440, 8192, -8192, 0, 0, 0, 0,
-            0, 5920, 13000, -13000, 0, 380, 10, 17664,
-        };
-        c->params = params;
-        alInit(&D_80368070.g, c);
-    } else {
-        alInit(&D_80368070.g, c);
-    }
-    D_8036A318[0].node.prev = NULL;
-    D_8036A318[0].node.next = NULL;
-    for (i = 0; i < 71; i++) {
-        alLink(&D_8036A318[i + 1].node, &D_8036A318[i].node);
-        D_8036A318[i].ptr = alHeapAlloc(c->heap, 1, 0x200);
-    }
-    D_8036A318[i].ptr = alHeapAlloc(c->heap, 1, 0x200);
-    for (i = 0; i < 2; i++) {
-        D_80368070.ACMDList[i] = alHeapAlloc(c->heap, 1, 0x55F0);
-    }
-    for (i = 0; i < 3; i++) {
-        D_80368070.audioInfo[i] = alHeapAlloc(c->heap, 1, sizeof(AudioInfo));
-        D_80368070.audioInfo[i]->data = alHeapAlloc(c->heap, 1, D_8036A8C0 * 4);
-    }
-    osCreateMesgQueue(&D_80368070.audioReplyMsgQ, D_80368070.audioReplyMsgBuf, 8);
-    osCreateMesgQueue(&D_80368070.audioFrameMsgQ, D_80368070.audioFrameMsgBuf, 8);
-    osCreateMesgQueue(&D_8036AE68, D_8036AE80, 0x48);
-    osCreateThread(&D_80368070.thread, 4, func_80267A9C, NULL, &D_80368308[0x400], pri);
-}
-*/
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/20460/func_802676A0.s")
-
-/* amStartAudioMgr */
-void func_80267A74(void) {
-    osStartThread(&D_80368070.thread);
-}
-
-/* TODO: needs the strings and the u64 timers defined in .bss (see above).
- * Matches in probe:
-void func_80267A9C(void *arg) {       // __amMain
-    s32 done;
-    s32 msg;
-    AudioInfo *lastInfo;
-    s32 firstTime;
-
-    done = 0;
-    lastInfo = NULL;
-    firstTime = 1;
-    func_80270E50(&D_80315440, D_803682F8, &D_80368070.audioFrameMsgQ, 2, 2);
-    osSendMesg(&D_80368070.audioFrameMsgQ, (OSMesg) 5, OS_MESG_NOBLOCK);
-    while (!done) {
-        osRecvMesg(&D_80368070.audioFrameMsgQ, (OSMesg *) &msg, OS_MESG_BLOCK);
-        switch (msg) {
-            case 4:
-                break;
-            case 5:
-                if (D_803156A4) {
-                    osSendMesg(&D_80315440, (OSMesg) 0x29E, OS_MESG_BLOCK);
-                }
-                D_80368060 = osGetTime();
-                func_80267CDC(D_80368070.audioInfo[D_802F3AF0 % 3], lastInfo);
-                D_80368068 = osGetTime();
-                D_80368058 = D_80368060;
-                if (!firstTime) {
-                    osRecvMesg(&D_80368070.audioReplyMsgQ, (OSMesg *) &lastInfo, OS_MESG_BLOCK);
-                    func_80267F88(lastInfo);
-                }
-                firstTime = 0;
-                if (D_8036772A) {
-                    func_802613C8();
-                }
-                if (D_80367728) {
-                    func_80261068();
-                }
-                if (D_80367729) {
-                    func_80261284();
-                }
-                if (!D_80367730) {
-                    func_802611F0();
-                }
-                if (D_8036772C) {
-                    func_80261528();
-                }
-                break;
-            case 10:
-                done = 1;
-                break;
-            case 6:
-                func_8029A7E4("No samples left\n");
-                break;
-        }
-    }
-    alClose(&D_80368070.g);
-}
-*/
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/20460/func_80267A9C.s")
-
-/* TODO: needs the strings. Matches in probe, with
- *   #define AUDIO_ASSERT(EX, line) if (!(EX)) func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "audio.c", line)
- *   #define MAX_RSP_CMDS 0xABE
- *   #define osScGetCmdQ func_80270F74
- *   #define sc D_80315440
- *   #define cmdLen D_8036A8C4
-void func_80267CDC(AudioInfo *info, AudioInfo *lastInfo) {   // __amHandleFrameMsg
-    s16 *audioPtr;
-    Acmd *cmdp;
-    s32 samplesLeft;
-    BcScTask *t;
-
-    samplesLeft = 0;
-    func_802682A4();
-    audioPtr = (s16 *) osVirtualToPhysical(info->data);
-    if (lastInfo) {
-        func_802D9B60(lastInfo->data, lastInfo->frameSamples << 2);  // osAiSetNextBuffer
-    }
-    samplesLeft = func_802D9C10() >> 2;                              // osAiGetLength
-    info->frameSamples = (D_8036A8BC - samplesLeft + 0x35) & ~0xF;
-    if (info->frameSamples < D_8036A8B8) {
-        info->frameSamples = D_8036A8B8;
-    }
-    cmdp = func_802D9D68(D_80368070.ACMDList[D_802F3AF8], &D_8036A8C4, audioPtr, info->frameSamples); // alAudioFrame
-    AUDIO_ASSERT(cmdLen <= MAX_RSP_CMDS, 336);
-    t = &info->task;
-    t->next = NULL;
-    t->msgQ = &D_80368070.audioReplyMsgQ;
-    t->msg = (OSMesg) info;
-    t->flags = 1;
-    t->unk50 = D_803682F8;
-    t->list.t.data_ptr = (u64 *) D_80368070.ACMDList[D_802F3AF8];
-    t->list.t.data_size = (cmdp - D_80368070.ACMDList[D_802F3AF8]) * sizeof(Acmd);
-    t->list.t.type = M_AUDTASK;
-    t->list.t.ucode_boot = (u64 *) D_802E6820;
-    t->list.t.ucode_boot_size = D_802E68F0 - D_802E6820;
-    t->list.t.flags = 0;
-    t->list.t.ucode = (u64 *) D_802E68F0;
-    t->list.t.ucode_data = (u64 *) D_8030EB90;
-    t->list.t.ucode_data_size = 0x800;
-    t->list.t.yield_data_ptr = NULL;
-    t->list.t.yield_data_size = 0;
-    osWritebackDCache(t, sizeof(BcScTask));
-    osWritebackDCache(t->list.t.data_ptr, t->list.t.data_size);
-    AUDIO_ASSERT(osSendMesg(osScGetCmdQ(&sc), (OSMesg) t, OS_MESG_NOBLOCK)!=-1, 361);
-    D_802F3AF8 ^= 1;
-}
-*/
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/20460/func_80267CDC.s")
-
-/* TODO: needs the string. Matches in probe:
-void func_80267F88(AudioInfo *info) {   // __amHandleDoneMsg
-    u32 samplesLeft;
-
-    samplesLeft = func_802D9C10() >> 2;
-    if (samplesLeft == 0 && !D_802F3C04) {   // firstTime (.data, = 1)
-        func_8029A7E4("audio: ai out of samples\n");
-        D_802F3C04 = 0;
-    }
-}
-*/
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/20460/func_80267F88.s")
-
-/* TODO: needs the string. Matches in probe:
-s32 func_80267FE0(s32 addr, s32 len, void *state) {   // __amDma
-    void *foundBuffer;
-    s32 delta;
-    s32 addrEnd;
-    s32 buffEnd;
-    AMDMABuffer *dmaPtr;
-    AMDMABuffer *lastDmaPtr;
-    AMDMABuffer *prev;
-    s32 count;
-
-    dmaPtr = D_8036A308.firstUsed;
-    count = 0;
-    lastDmaPtr = NULL;
-    addrEnd = addr + len;
-    delta = addr & 1;
-    while (dmaPtr) {
-        prev = dmaPtr;
-        buffEnd = dmaPtr->startAddr + 0x200;
-        if (dmaPtr->startAddr > (u32) addr) {
-            break;
-        } else if (addrEnd <= buffEnd) {
-            dmaPtr->lastFrame = D_802F3AF0;
-            foundBuffer = dmaPtr->ptr + addr - dmaPtr->startAddr;
-            return osVirtualToPhysical(foundBuffer);
-        }
-        lastDmaPtr = dmaPtr;
-        dmaPtr = (AMDMABuffer *) dmaPtr->node.next;
-        count++;
-    }
-    if (count > D_8036AFA0) {
-        D_8036AFA0 = count;
-    }
-    dmaPtr = D_8036A308.firstFree;
-    if (!dmaPtr) {
-        func_8029A7E4("OH DEAR - No audio DMA buffers left\n");
-    }
-    if (!dmaPtr) {
-        return osVirtualToPhysical(D_8036A308.firstUsed);
-    }
-    D_8036A308.firstFree = (AMDMABuffer *) dmaPtr->node.next;
-    alUnlink((ALLink *) dmaPtr);
-    if (lastDmaPtr) {
-        alLink((ALLink *) dmaPtr, (ALLink *) lastDmaPtr);
-    } else if (D_8036A308.firstUsed) {
-        lastDmaPtr = D_8036A308.firstUsed;
-        D_8036A308.firstUsed = dmaPtr;
-        dmaPtr->node.next = (ALLink *) lastDmaPtr;
-        dmaPtr->node.prev = NULL;
-        lastDmaPtr->node.prev = (ALLink *) dmaPtr;
-    } else {
-        D_8036A308.firstUsed = dmaPtr;
-        dmaPtr->node.next = NULL;
-        dmaPtr->node.prev = NULL;
-    }
-    foundBuffer = dmaPtr->ptr;
-    addr -= delta;
-    dmaPtr->startAddr = addr;
-    dmaPtr->lastFrame = D_802F3AF0;
-    func_802DA2F0(&D_8036A8C8[D_802F3AF4++], OS_MESG_PRI_NORMAL, OS_READ, addr, foundBuffer, 0x200, &D_8036AE68); // osPiStartDma
-    return osVirtualToPhysical(foundBuffer) + delta;
-}
-*/
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/20460/func_80267FE0.s")
-
-/* __amDmaNew */
-ALDMAproc func_80268254(AMDMAState **state) {
-    s32 pad;
-
-    if (!D_8036A308.initialized) {
-        D_8036A308.firstUsed = NULL;
-        D_8036A308.firstFree = &D_8036A318[0];
-        D_8036A308.initialized = 1;
-    }
-    *state = &D_8036A308;
-    return (ALDMAproc) func_80267FE0;
-}
-
-/* TODO: needs the string. Matches in probe:
-void func_802682A4(void) {   // __clearAudioDMA
-    u32 i;
-    OSIoMesg *iomsg;
-    AMDMABuffer *dmaPtr;
-    AMDMABuffer *nextPtr;
-
-    for (i = 0; i < D_802F3AF4; i++) {
-        if (osRecvMesg(&D_8036AE68, (OSMesg *) &iomsg, OS_MESG_NOBLOCK) == -1) {
-            func_8029A7E4("Dma not done\n");
-        }
-    }
-    dmaPtr = D_8036A308.firstUsed;
-    while (dmaPtr) {
-        nextPtr = (AMDMABuffer *) dmaPtr->node.next;
-        if (dmaPtr->lastFrame + 1 < D_802F3AF0) {
-            if (D_8036A308.firstUsed == dmaPtr) {
-                D_8036A308.firstUsed = (AMDMABuffer *) dmaPtr->node.next;
-            }
-            alUnlink((ALLink *) dmaPtr);
-            if (D_8036A308.firstFree) {
-                alLink((ALLink *) dmaPtr, (ALLink *) D_8036A308.firstFree);
-            } else {
-                D_8036A308.firstFree = dmaPtr;
-                dmaPtr->node.next = NULL;
-                dmaPtr->node.prev = NULL;
-            }
-        }
-        dmaPtr = nextPtr;
-    }
-    D_802F3AF4 = 0;
-    D_802F3AF0++;
-}
-*/
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/20460/func_802682A4.s")

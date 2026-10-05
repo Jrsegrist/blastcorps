@@ -67,3 +67,49 @@ func_802B03B0: -n 300 --seed 1 --follow func_802ABD54,func_802ABCDC --mem D_803E
     --mem D_803BDFD8+0x16*0x24:4/1=choice:1,0x31 --mem D_803BDFD8+0x17*0x24:4/1=choice:1,0x32 \
     --mem D_80364A6E:1=choice:0,1,0x80,0xFF,0x40 --mem D_80364460+0x5C*0x74:3=choice:0x100,0x200 \
     --mem D_80364460+0x1B8=1 --mem D_80364460+0x60*0x74:4=int
+
+# ---- phase D (wave 3, wt-f6) ----
+# func_802AFFD4: enter vehicle 1: D_803EDB40[0x99] = 0; channel setters on D_803ED840 (1, 2, 5, 3, 2), the D_802C2390
+# entry's setters, D_8036444C/50 = 3400, 300, func_802C4310(&D_803ED840, 0x36). $gp change: `clobbers gp`.
+func_802AFFD4: -n 100 --seed 0 --ret void --sig func_802C4310=a0,a1 \
+    --mem D_803EDB40+0x99:1=bytes:1,0xFF --mem D_8036444C:2=rand --mem D_80364450:2=rand
+# setters run for real (D_802C2390 key in exactly one D_803B35F8 entry); func_802C4310 stubbed
+func_802AFFD4: -n 200 --seed 1 --ret void --sig func_802C4310=a0,a1 \
+    --follow func_802A0290,func_802A039C,func_802A03D4,func_802A040C,func_802A0508,func_802A05D0,func_802A05F8,func_802A0620,func_802A06B4 \
+    --mem D_803EDB40+0x99:1=rand --mem D_8036444C:2=rand --mem D_80364450:2=rand \
+    --mem D_803ED840:0x90=rand --mem D_803B35F8:0x180=onehot:0x18:0x802C2390:rand
+# func_802B0254: leave vehicle 1: speed (+0x76) = 0, func_802A7764(D_803EDBF8, D_803EDBFC, 0x800), func_802C444C()
+func_802B0254: -n 100 --seed 0 --ret void --sig func_802A7764=a0,a1,a2 --sig func_802C444C= \
+    --mem D_803EDB40+0x76:2=rand --mem D_803EDBF8=int --mem D_803EDBFC=int
+func_802B0254: -n 30 --seed 1 --ret void --follow func_802A7764 --sig func_802C444C= --heap 0x800 --heap 0x800 \
+    --mem D_803EDB40+0x76:2=rand --mem D_803EDBF8=rel:heap0 --mem D_803EDBFC=rel:heap1
+# func_802B07DC: vehicle 1 per-frame update ($gp = D_803EDB40). Channel 2 <- angle D_80364452 thirds; horn (cooldown
+# D_803EDC06, channel 5 state, buttons D_80370C1A/B, uses D_803EDC00, sound 0x37); level D_803EDC05 (+-5 / towards
+# 50) -> channel 3; speed direction and |speed| / 14 -> channel 1 and func_802C4584. Getter stubbed (field 0x10 from
+# --stub-ret), then the setters/getter followed.
+func_802B07DC: -n 400 --seed 0 --ret void --arg gp=sym:D_803EDB40 --stub-ret func_802A04BC=choice:0,1,2,-1 \
+    --sig func_80260650=a0,a1:2,a2 --mem D_80367738=int --mem D_80364452:2=int:0:0xFFFF \
+    --mem D_803EDC06:1=bytes:0*3,1,10,0xFF --mem D_803EDC00:2=halves:0,1,2,0x8000,0xFFFF \
+    --mem D_80370C1A:1=bytes:0*2,1,0xFF --mem D_80370C1B:1=bytes:0*2,1 \
+    --mem D_80370C15:1=bytes:0*2,1 --mem D_80370C16:1=bytes:0*2,1 \
+    --mem D_803EDC05:1=bytes:0,4,5,6,0x2D,0x2E,0x31,0x32,0x33,0x36,0x37,0x5F,0x60,0x64,0x65,0xFF \
+    --mem D_803EDB40+0x76:2=halves:0,1,13,14,15,27,28,0xFFFF,0xFFF2,0xFFF1,0x8000,0x7FFF,0x1234
+# angle boundaries: wrap at 0x800 (sum 0x1000), thirds at 0x555 / 0xAAA / 0xFFF; D_8030D8A4 varied
+func_802B07DC: -n 300 --seed 1 --ret void --arg gp=sym:D_803EDB40 --stub-ret func_802A04BC=choice:0,1 \
+    --sig func_80260650=a0,a1:2,a2 --mem D_80367738=int \
+    --mem D_80364452:2=halves:0,0x7FE,0x7FF,0x800,0x801,0xD54,0xD55,0xD56,0x2A9,0x2AA,0x2AB,0xFFFF,0xFFFE,0x8000,0x77FF \
+    --mem D_8030D8A4:4=choice:0x44AAA000,0x3F800000,0x42C80000 --mem D_803EDC06:1=bytes:0,1 \
+    --mem D_803EDC00:2=halves:0,1 --mem D_80370C1A:1=bytes:0,1 --mem D_80370C1B:1=bytes:0,1 \
+    --mem D_80370C15:1=bytes:0,1 --mem D_80370C16:1=bytes:0,1 --mem D_803EDC05:1=int:0:0xFF --mem D_803EDB40+0x76:2=int:0:0xFFFF
+# horn path forced: cooldown 0, uses left, a button held, channel 5 not running (stub 0/2) or running (1)
+func_802B07DC: -n 100 --seed 2 --ret void --arg gp=sym:D_803EDB40 --stub-ret func_802A04BC=choice:0,1,2 \
+    --sig func_80260650=a0,a1:2,a2 --mem D_80367738=int --mem D_80364452:2=int:0:0xFFFF --mem D_803EDC06:1=0 \
+    --mem D_803EDC00:2=halves:1,5,0xFFFF,0x8000 --mem D_80370C1A:1=bytes:0,1 --mem D_80370C1B:1=1 \
+    --mem D_80370C15:1=bytes:0,1 --mem D_80370C16:1=bytes:0,1 --mem D_803EDC05:1=int:0:0xFF --mem D_803EDB40+0x76:2=int:0:0xFFFF
+# setters and getter run for real on a random channel table (channel 5's field 0x10 at +0x88)
+func_802B07DC: -n 300 --seed 3 --ret void --arg gp=sym:D_803EDB40 \
+    --follow func_802A04BC,func_802A0290,func_802A0360,func_802A039C,func_802A03D4 \
+    --sig func_80260650=a0,a1:2,a2 --mem D_80367738=int --mem D_803ED840:0xC0=rand --mem D_803ED840+0x88:1=bytes:0,1*2,2,0xFF \
+    --mem D_80364452:2=int:0:0xFFFF --mem D_803EDC06:1=bytes:0*3,1,0xFF --mem D_803EDC00:2=halves:0,1,0xFFFF \
+    --mem D_80370C1A:1=bytes:0,1 --mem D_80370C1B:1=bytes:0,1 --mem D_80370C15:1=bytes:0*2,1 --mem D_80370C16:1=bytes:0*2,1 \
+    --mem D_803EDC05:1=int:0:0xFF --mem D_803EDB40+0x76:2=int:0:0xFFFF

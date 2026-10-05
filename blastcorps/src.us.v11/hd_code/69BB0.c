@@ -102,7 +102,138 @@ s32 func_802AEE84(ZoneScanRegs *r) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/69BB0/func_802AF340.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u8 D_803ED760[];  /* this vehicle's state block (the asm's $gp) */
+extern u8 D_802E8BDC;
+extern s16 D_803ED820;   /* last channel-1 mode */
+extern void *D_80367738;
+void *func_80260650(void *arg0, s16 arg1, void *arg2);
+s32 func_8026A8E0(s32 lo, s32 hi);
+void func_8029F9D4(s32 a, s32 b, void *base);
+void func_802A0290(void *base, s32 idx, s32 val);
+void func_802A0360(f32 f, void *base, s32 idx, s32 val);
+void func_802A039C(void *base, s32 idx, s32 val);
+void func_802A03D4(void *base, s32 idx, s32 val);
+void func_802A040C(void *base, s32 idx, s32 val);
+void func_802A04BC(s32 idx, void *base, s32 *out);
+
+/* Field 0x10 of channel idx of D_803ED460 (1 = running). */
+static s32 AnimChannelState(s32 idx) {
+    s32 ch[8];
+
+    func_802A04BC(idx, D_803ED460, ch);
+    return ch[0];
+}
+
+/* Per-frame animation update of vehicle 0 (asm caller func_802AEEC8; the asm
+ * reads the state block through $gp = D_803ED760, read directly here). Byte
+ * +0xA1 records whether the vehicle was moving last frame.
+ * Stopped (speed +0x76 == 0): on the first stopped frame channel 1 is stopped
+ * and channel 31 restarted with 70; then, when none of channels 31, 2, 3, 4 is
+ * running and func_8026A8E0(0, 20) is 0, one of channels 3 / 4 / 2 (by
+ * func_8026A8E0(0, 2) = 0 / 1 / else) is started.
+ * Moving: on the first moving frame channel 1 is set to mode 2 and the running
+ * one of channels 2, 3, 4 (else 3, after resetting it) is handed over via
+ * func_8029F9D4 and channel 31 restarted with 40. Then, unless channel 31 is
+ * running, channel 1 gets the direction (speed < 0) and |speed| / 11 and is
+ * restarted, and (outside levels 0x31 and 0x26) a change of channel 1's mode
+ * to 2 or 6 starts sound 0x14 / 0x15.
+ * Register note: the asm clobbers s5 (and f20/f30 through func_8029F9D4);
+ * conventions.txt. Asm caller func_802AEEC8 reads t6, t8, f12 and f14 after
+ * the call, which the asm passes through except where its C callees change
+ * them (func_8026A8E0 leaves its seeds in t6/t8): a mixed N64 build would need
+ * a thunk, the native port won't. */
+void func_802AF4BC(void) {
+    u8 *base = D_803ED460;
+    s32 speed = *(s16 *) (D_803ED760 + 0x76);
+    s32 r;
+    s32 ch[8];
+
+    if (speed == 0) {
+        if (D_803ED760[0xA1] != 0) {
+            func_802A02E4(1, base);
+            func_802A0360(0.0f, base, 3, 0);
+            func_8029F9D4(1, 3, base);
+            func_802A039C(base, 0x1F, 0x46);
+            func_802A03D4(base, 0x1F, 0);
+            func_802A040C(base, 0x1F, 0);
+            func_802A0290(base, 0x1F, 1);
+        }
+        D_803ED760[0xA1] = 0;
+        if (AnimChannelState(0x1F) == 1 || AnimChannelState(2) == 1 || AnimChannelState(3) == 1 ||
+            AnimChannelState(4) == 1) {
+            return;
+        }
+        if (func_8026A8E0(0, 0x14) != 0) {
+            return;
+        }
+        r = func_8026A8E0(0, 2);
+        if (r == 0) {
+            func_802A0360(0.0f, base, 3, 0);
+            func_802A0290(base, 3, 1);
+        } else if (r == 1) {
+            func_802A0360(0.0f, base, 4, 0);
+            func_802A0290(base, 4, 1);
+        } else {
+            func_802A0360(0.0f, base, 2, 0);
+            func_802A0290(base, 2, 1);
+        }
+        return;
+    }
+
+    if (D_803ED760[0xA1] != 1) {
+        func_802A0360(0.0f, base, 1, 2);
+        if (AnimChannelState(2) != 0) {
+            func_8029F9D4(2, 1, base);
+            func_802A02E4(2, base);
+        } else if (AnimChannelState(3) != 0) {
+            func_8029F9D4(3, 1, base);
+            func_802A02E4(3, base);
+        } else if (AnimChannelState(4) != 0) {
+            func_8029F9D4(4, 1, base);
+            func_802A02E4(4, base);
+        } else {
+            func_802A0360(0.0f, base, 3, 0);
+            func_8029F9D4(3, 1, base);
+        }
+        func_802A039C(base, 0x1F, 0x28);
+        func_802A03D4(base, 0x1F, 0);
+        func_802A040C(base, 0x1F, 0);
+        func_802A0290(base, 0x1F, 1);
+    }
+    if (AnimChannelState(0x1F) != 1) {
+        speed = *(s16 *) (D_803ED760 + 0x76);
+        if (speed < 0) {
+            func_802A03D4(base, 1, 1);
+        } else {
+            func_802A03D4(base, 1, 0);
+        }
+        if (D_802E8BDC != 0x31 && D_802E8BDC != 0x26) {
+            s32 old = D_803ED820;
+            s32 mode;
+
+            func_802A04BC(1, base, ch);
+            mode = ch[6];
+            D_803ED820 = mode;
+            if (mode != old) {
+                if (mode == 2) {
+                    func_80260650(D_80367738, 0x14, NULL);
+                } else if (mode == 6) {
+                    func_80260650(D_80367738, 0x15, NULL);
+                }
+            }
+        }
+        if (speed < 0) {
+            speed = -speed;
+        }
+        func_802A039C(base, 1, (u32) speed / 11);
+        func_802A0290(base, 1, -1);
+    }
+    D_803ED760[0xA1] = 1;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/69BB0/func_802AF4BC.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/69BB0/func_802AFA64.s")

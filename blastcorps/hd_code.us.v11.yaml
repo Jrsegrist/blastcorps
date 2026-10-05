@@ -207,7 +207,7 @@ segments:
     - [0x9BC90, c, hd_code/ul_mainbus]
     - [0x9BDE0, c, hd_code/ul_load]
     - [0x9C930, c, hd_code/ul_resample]  # src/audio/resample.c
-    - [0x9CC30, c, hd_code/9CC30]
+    - [0x9CC30, c, hd_code/ul_env]  # src/audio/env.c, old linear envelope + Rare asserts
     - [0x9D810, c, hd_code/ul_auxbus]
     - [0x9D920, c, hd_code/ul_save]
     - [0x9D9E0, c, hd_code/ul_jammesg]
@@ -256,7 +256,7 @@ segments:
     - [0xC2FE0, .data, hd_code/ul_xprintf]
     - [0xC3030, bin, hd_code/hd_code_data_C3030]
     - [0xC30D0, .data, hd_code/ul_drvrnew]
-    - [0xC3260, bin, hd_code/hd_code_data_C3260]
+    - [0xC3260, .data, hd_code/ul_env]
     - [0xC3360, .data, hd_code/ul_siacs]
     - [0xC3370, .data, hd_code/ul_kdebugserver]
     - [0xC3380, .data, hd_code/ul_syncputchars]
@@ -314,7 +314,7 @@ segments:
     - [0xC9760, .rodata, hd_code/ul_seqplayer]
     - [0xC99A0, .rodata, hd_code/ul_drvrnew]
     - [0xC99D0, .rodata, hd_code/ul_resample]
-    - [0xC9A10, bin, hd_code/hd_code_data_C9A10]
+    - [0xC9A10, .rodata, hd_code/ul_env]
     - [0xC9B30, .rodata, hd_code/ul_xldtob]
     - [0xC9B90, .rodata, hd_code/ul_seq]
     - [0xC9BA0, .rodata, hd_code/ul_reverb]

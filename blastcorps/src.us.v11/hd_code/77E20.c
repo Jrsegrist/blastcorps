@@ -853,7 +853,122 @@ void func_802BD99C(Unk802BD99CModel *model, s32 dx, s32 dy, s32 dz) {
 #endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern s32 D_803643F8; /* player x, z (<< 11) */
+extern s32 D_80364400;
+extern u64 D_803649D8; /* frame time */
+s32 func_802AD7FC(u32 sine); /* arcsine (69000.c) */
+
+/* An animation channel record (0xC bytes, then n words). */
+#define ANIM_N(r) ((r)[4])                     /* frame count */
+#define ANIM_FRAME(r) ((r)[5])                 /* current frame */
+#define ANIM_TYPE(r) ((r)[6])                  /* 0 timed, 1 global clock, else player heading */
+#define ANIM_FRAC(r) (*(u32 *) ((r) + 8))       /* 0..0xFE blend */
+#define ANIM_LO(r) (*(u16 *) ((r) + 0xC))       /* period / heading range start */
+#define ANIM_HI(r) (*(u16 *) ((r) + 0xE))       /* tick counter / heading range end */
+
+/* Quarter-turn heading (0..0x3FF) from the sine num / d: arcsine >> 4. */
+static s32 heading_802BDDB4(s32 num, f32 d) {
+    s32 sine;
+
+    CVT_W_S(sine, 65536.0f * ((f32) num / d));
+    return (u32) func_802AD7FC(sine) >> 4;
+}
+
+/* Steps the animation channel records rec..end (each 0xC + n * 4 bytes) of
+ * object `obj`. Objects with unk30 == 0x38 are skipped while D_803643DB or
+ * D_80364AC1 is set unless D_803F7806, func_802BC7DC() and func_802BC714()
+ * all say otherwise. Type 0: the u16 tick counter (+0xE) counts up to the
+ * period (+0xC), then restarts at 0 and the frame (+5) advances (wrapping at
+ * n); the blend word (+8) = tick * 255 / period. Type 1: when (low word of
+ * D_803649D8) >> 4 is a multiple of the period, frame = (that >> 8) % n.
+ * Other types: the heading from the object (pos[0], pos[2]) to the player
+ * (D_803643F8 / D_80364400 >> 11, logical), 0..0xFFF by quadrant, selects
+ * the frame within the u16 range lo (+0xC) .. hi (+0xE), wrapping through
+ * 0xFFF when hi < lo (the wrap uses 0xFFF - lo, one short of a full turn,
+ * as the asm): frame = v / 255, blend = v % 255 with v = offset * (n - 1) *
+ * 255 / span (u32), frame 0 below the range and n - 1 above it.
+ * Register convention: obj v0, rec t1, end t2 (conventions.txt); the asm
+ * saves everything it uses. Its asm caller func_802BD1F8 keeps a0-a2 and
+ * t0-t5 live (a mixed N64 build would need a thunk; the native port won't).
+ * Divisors (period, n, the spans) of 0 trap (break 7); the object can't sit
+ * exactly at the player (0 / 0). */
+void func_802BDDB4(Unk802C1DD0Entry *obj, u8 *rec, u8 *end) {
+    if (obj->unk30 == 0x38 && (D_803643DB != 0 || D_80364AC1 != 0)) {
+        if (D_803F7806 == 0 || func_802BC7DC() == 0 || func_802BC714() == 0) {
+            return;
+        }
+    }
+    for (; rec != end; rec += 0xC + ANIM_N(rec) * 4) {
+        if (ANIM_TYPE(rec) == 0) {
+            u32 period = ANIM_LO(rec);
+            u32 tick = ANIM_HI(rec) + 1;
+
+            if (tick == period) {
+                u32 frame = ANIM_FRAME(rec) + 1;
+
+                if (frame == ANIM_N(rec)) {
+                    frame = 0;
+                }
+                ANIM_FRAME(rec) = frame;
+                tick = 0;
+            }
+            ANIM_HI(rec) = tick;
+            ANIM_FRAC(rec) = tick * 0xFF / period;
+        } else if (ANIM_TYPE(rec) == 1) {
+            u32 t = (u32) D_803649D8 >> 4;
+
+            if (t % ANIM_LO(rec) == 0) {
+                ANIM_FRAME(rec) = (t >> 8) % ANIM_N(rec);
+            }
+        } else {
+            s32 px = (u32) D_803643F8 >> 11;
+            s32 pz = (u32) D_80364400 >> 11;
+            s32 ox = obj->pos[0];
+            s32 oz = obj->pos[2];
+            f32 dx = (f32) (s32) (px - ox);
+            f32 dz = (f32) (s32) (pz - oz);
+            f32 d = sqrtf(dx * dx + dz * dz);
+            s32 ang;
+            s32 lo = ANIM_LO(rec);
+            s32 hi = ANIM_HI(rec);
+            u32 v;
+
+            if (px < ox) {
+                if (pz < oz) {
+                    ang = heading_802BDDB4(ox - px, d) + 0x800;
+                } else {
+                    ang = heading_802BDDB4(pz - oz, d) + 0xC00;
+                }
+            } else if (pz < oz) {
+                ang = heading_802BDDB4(oz - pz, d) + 0x400;
+            } else {
+                ang = heading_802BDDB4(px - ox, d);
+            }
+            if (hi < lo) {
+                if (ang < lo && hi < ang) {
+                    ANIM_FRAME(rec) = 0;
+                    continue;
+                }
+                v = (ang < lo) ? (u32) (0xFFF - lo) + ang : (u32) (ang - lo);
+                v = v * (u32) (ANIM_N(rec) - 1) * 0xFF / ((u32) (0xFFF - lo) + hi);
+            } else if (ang < lo) {
+                ANIM_FRAME(rec) = 0;
+                continue;
+            } else if (hi < ang) {
+                ANIM_FRAME(rec) = ANIM_N(rec) - 1;
+                continue;
+            } else {
+                v = (u32) (ang - lo) * (u32) (ANIM_N(rec) - 1) * 0xFF / (u32) (hi - lo);
+            }
+            ANIM_FRAME(rec) = v / 0xFF;
+            ANIM_FRAC(rec) = v % 0xFF;
+        }
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BDDB4.s")
+#endif
 
 /* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -2449,7 +2564,177 @@ void func_802C12E0(u32 **gfxA, u32 **gfxB) {
 #endif
 
 /* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern s32 D_803A73F0; /* a point x, z (16.16-ish; the part position is << 5) */
+extern s32 D_803A73F8;
+s32 func_802C1A28(Unk802C1DD0Entry *e, s32 index);
+
+/* Quarter-turn heading (0..0x3FF) from the sine num / d: arcsine >> 4. */
+static s32 heading_802C1438(s32 num, f32 d) {
+    s32 sine;
+
+    CVT_W_S(sine, 65536.0f * ((f32) num / d));
+    return (u32) func_802AD7FC(sine) >> 4;
+}
+
+/* Spawns a falling-part effect for part `index` (1-based) of e: only when
+ * e's info byte 7 is set and func_802C1A28(e, index) is 0. The first
+ * D_803F1BE0 slot (2 of 0x478 bytes) whose bytes 0x470 and 0x472 are both
+ * clear gets: word 0x460 = info + 0x50; two display lists, A at the slot and
+ * B at slot + 0x230, each starting with {0x01040040, 0x02000000 + slot *
+ * 0x40}. Then for every conditional record of info (unk38 .. unk3C: u32
+ * condition count, then count x {u16 part, u8 mode, u8 limit}, then 4
+ * offsets; the record belongs to the part named by its first condition) of
+ * this part whose conditions all hold (the state of the
+ * named part, e->unkEC[part - 1], or 0x5A for this part itself, >= limit
+ * when mode != 0, <= limit when mode == 0), the 8-byte commands
+ * info + off0 .. off1 go to list A and off2 .. off3 to list B, at most 0x42
+ * per list (running out returns at once, the slot left inactive). Both
+ * lists end with {0xBD000000, 0}, {0xB8000000, 0}; the slot becomes active
+ * (0x470 = 1, u16 0x46C = 0, u16 0x46E = 1, 0x471 = 0) at x, y, z
+ * (s16 0x464..0x468: the part's point from info->unk2C, and e->pos[1] >> 5)
+ * with s16 0x46A = (heading from the part (<< 5) to D_803A73F0/F8) - 0x400,
+ * plus 0xFFF when negative (heading as func_802BDDB4's).
+ * Register convention: e in t9, index in t3 (conventions.txt); the asm
+ * saves and restores every register except f0/f2. Asm callers keep a0, t3,
+ * t5, t9, f12 and f14 live (a mixed N64 build would need a thunk; the native
+ * port won't). The part can't sit exactly at the point (0 / 0). */
+void func_802C1438(Unk802C1DD0Entry *e, s32 index) {
+    Unk802C1DD0Info *info = e->info;
+    u8 *base = (u8 *) info;
+    u8 *slot = D_803F1BE0;
+    u32 seg = 0x02000000;
+    s32 i;
+    u32 *a;
+    u32 *b;
+    u8 *rec;
+    u8 *recEnd;
+    s32 budgetA;
+    s32 budgetB;
+    s16 *pt;
+    s32 x;
+    s32 z;
+    s32 px;
+    s32 pz;
+    f32 d;
+    s32 ang;
+
+    if (((u8 *) info)[7] == 0) {
+        return;
+    }
+    if (func_802C1A28(e, index) != 0) {
+        return;
+    }
+    for (i = 2;; i--, seg += 0x40, slot += 0x478) {
+        if (i == 0) {
+            return;
+        }
+        if (slot[0x470] == 0 && slot[0x472] == 0) {
+            break;
+        }
+    }
+    *(u8 **) (slot + 0x460) = base + 0x50;
+    a = (u32 *) slot;
+    b = (u32 *) (slot + 0x230);
+    a[0] = 0x01040040;
+    a[1] = seg;
+    b[1] = seg;
+    b[0] = 0x01040040;
+    a += 2;
+    b += 2;
+    budgetA = 0x43;
+    budgetB = 0x43;
+    rec = base + info->unk38;
+    recEnd = base + info->unk3C;
+    while (rec != recEnd) {
+        u32 n = *(u32 *) rec;
+        s32 ok = *(u16 *) (rec + 4) == index;
+
+        rec += 4;
+        while (ok && n != 0) {
+            s32 part = *(u16 *) rec;
+            s32 mode = rec[2];
+            s32 limit = rec[3];
+            s32 state;
+
+            n--;
+            rec += 4;
+            state = (part == index) ? 0x5A : e->unkEC[part - 1];
+            ok = (mode != 0) ? (state >= limit) : (state <= limit);
+        }
+        if (!ok) {
+            rec += n * 4 + 0x10;
+            continue;
+        }
+        {
+            u32 *src = (u32 *) (base + ((s32 *) rec)[0]);
+            u32 *srcEnd = (u32 *) (base + ((s32 *) rec)[1]);
+
+            for (; src != srcEnd; src += 2, a += 2) {
+                if (--budgetA == 0) {
+                    return;
+                }
+                a[0] = src[0];
+                a[1] = src[1];
+            }
+            src = (u32 *) (base + ((s32 *) rec)[2]);
+            srcEnd = (u32 *) (base + ((s32 *) rec)[3]);
+            for (; src != srcEnd; src += 2, b += 2) {
+                if (--budgetB == 0) {
+                    return;
+                }
+                b[0] = src[0];
+                b[1] = src[1];
+            }
+        }
+        rec += 0x10;
+    }
+    a[0] = 0xBD000000;
+    a[1] = 0;
+    a[2] = 0xB8000000;
+    a[3] = 0;
+    b[0] = 0xBD000000;
+    b[1] = 0;
+    b[2] = 0xB8000000;
+    b[3] = 0;
+    slot[0x470] = 1;
+    *(u16 *) (slot + 0x46C) = 0;
+    *(u16 *) (slot + 0x46E) = 1;
+    slot[0x471] = 0;
+    *(s16 *) (slot + 0x466) = e->pos[1] >> 5;
+    pt = (s16 *) (base + info->unk2C + (index - 1) * 8);
+    *(s16 *) (slot + 0x464) = pt[0];
+    *(s16 *) (slot + 0x468) = pt[2];
+    x = pt[0] << 5;
+    z = pt[2] << 5;
+    px = D_803A73F0;
+    pz = D_803A73F8;
+    {
+        f32 dx = (f32) (s32) (px - x);
+        f32 dz = (f32) (s32) (pz - z);
+
+        d = sqrtf(dx * dx + dz * dz);
+    }
+    if (px < x) {
+        if (pz < z) {
+            ang = heading_802C1438(x - px, d) + 0x800;
+        } else {
+            ang = heading_802C1438(pz - z, d) + 0xC00;
+        }
+    } else if (pz < z) {
+        ang = heading_802C1438(z - pz, d) + 0x400;
+    } else {
+        ang = heading_802C1438(px - x, d);
+    }
+    ang -= 0x400;
+    if (ang < 0) {
+        ang += 0xFFF;
+    }
+    *(s16 *) (slot + 0x46A) = ang;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802C1438.s")
+#endif
 
 /* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

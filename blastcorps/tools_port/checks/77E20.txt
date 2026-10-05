@@ -520,3 +520,85 @@ func_802C0574: -n 200 --seed 3 --ret void --follow func_802A6274,func_802C18D4 -
     --mem D_8036DCD7:1=bytes:0,1,2 --mem D_803643D6:1=bytes:0*3,1 --mem D_80364A98:8=words:0*5,1 --mem D_803649D8:8=rand \
     --mem D_803C4B70:0x3C0=rand --mem D_803C4B70+0x33*0x3C:16/1=bytes:0,1*3 --mem D_803EB770:16=bytes:0*2,1 \
     --mem D_803EB792:1=rand --mem D_803F7654=sym:D_803F4030
+
+# func_802BDDB4 (obj v0, records t1..t2): animation channels. Records at heap1: n = 1, 5, 3, 2 (sizes 0x10, 0x20, 0x18,
+# 0x14), each of random type 0 / 1 / heading; periods / ranges from disjoint pools (zero divisors only from a
+# wrapped range lo = 0xFFF, hi = 0 or hi == lo: both builds trap on the divide, a handful of trials)
+func_802BDDB4: -n 400 --seed 0 --heap 0x40 --heap 0x5C --arg v0=rel:heap0 --arg t1=rel:heap1 --arg t2=rel:heap1+0x5C \
+    --mem @heap0+0x30=choice:0x38*2,0,0x39 --mem @heap0+0x10=int --mem @heap0+0x18=int \
+    --mem D_803643DB:1=bytes:0,1 --mem D_80364AC1:1=bytes:0,1 --mem D_803F7806:1=bytes:0,1 \
+    --stub-ret func_802BC7DC=choice:0,1 --stub-ret func_802BC714=choice:0,1 --stub-ret func_802AD7FC=int \
+    --mem D_803643F8=int --mem D_80364400=int --mem D_803649D8:8=rand \
+    --mem @heap1+4:1=1 --mem @heap1+0x14:1=5 --mem @heap1+0x34:1=3 --mem @heap1+0x4C:1=2 \
+    --mem @heap1+5:1=bytes:0,1,5 --mem @heap1+0x15:1=bytes:0,3,4,5 --mem @heap1+0x35:1=bytes:0,1,2 --mem @heap1+0x4D:1=bytes:0,1 \
+    --mem @heap1+6:1=bytes:0,1,2,0xFF --mem @heap1+0x16:1=bytes:0,1,2,0xFF --mem @heap1+0x36:1=bytes:0,1,2,0xFF \
+    --mem @heap1+0x4E:1=bytes:0,1,2,0xFF \
+    --mem @heap1+0xC:2=halves:1,2,5,0x100,0x400,0x800,0xC00,0xFFF,0xFFFF --mem @heap1+0xE:2=halves:0,1,4,0x200,0x600,0xA00,0xE00,0xFFE,0xFFFE,0xFFFF \
+    --mem @heap1+0x1C:2=halves:1,2,5,0x100,0x400,0x800,0xC00,0xFFF,0xFFFF --mem @heap1+0x1E:2=halves:0,1,4,0x200,0x600,0xA00,0xE00,0xFFE,0xFFFE,0xFFFF \
+    --mem @heap1+0x3C:2=halves:1,2,5,0x100,0x400,0x800,0xC00,0xFFF,0xFFFF --mem @heap1+0x3E:2=halves:0,1,4,0x200,0x600,0xA00,0xE00,0xFFE,0xFFFE,0xFFFF \
+    --mem @heap1+0x54:2=halves:1,2,5,0x100,0x400,0x800,0xC00,0xFFF,0xFFFF --mem @heap1+0x56:2=halves:0,1,4,0x200,0x600,0xA00,0xE00,0xFFE,0xFFFE,0xFFFF
+# type 0 rollover edges (one n = 3 record: tick + 1 == period, frame + 1 == n)
+func_802BDDB4: -n 200 --seed 1 --heap 0x40 --heap 0x18 --arg v0=rel:heap0 --arg t1=rel:heap1 --arg t2=rel:heap1+0x18 \
+    --mem @heap0+0x30=0 --mem @heap1+4:1=3 --mem @heap1+5:1=bytes:0,1,2 --mem @heap1+6:1=0 \
+    --mem @heap1+0xC:2=halves:1,2,3 --mem @heap1+0xE:2=halves:0,1,2
+# type 1 on a clock whose >> 4 is / isn't a multiple of the period
+func_802BDDB4: -n 200 --seed 2 --heap 0x40 --heap 0x18 --arg v0=rel:heap0 --arg t1=rel:heap1 --arg t2=rel:heap1+0x18 \
+    --mem @heap0+0x30=0 --mem @heap1+4:1=3 --mem @heap1+6:1=1 --mem @heap1+0xC:2=halves:1,2,3,4,0x10 \
+    --mem D_803649D8=int --mem D_803649DC=choice:0,0x10,0x20,0x30,0x40,0x1000,0x12340,0xFFFFFFF0,0x80000000
+# heading records with the real arcsine; object and player on / off the axes, ranges on the quarter turns
+func_802BDDB4: -n 400 --seed 3 --heap 0x40 --heap 0x5C --arg v0=rel:heap0 --arg t1=rel:heap1 --arg t2=rel:heap1+0x5C \
+    --mem @heap0+0x30=0 --mem @heap0+0x10=choice:0,100,50,-100,0x12345 --mem @heap0+0x18=choice:0,100,50,-100,0x2345 \
+    --mem D_803643F8=choice:0,0x32000,0x19000,0x7FFFF800 --mem D_80364400=choice:0,0x32000,0x19000,0x7FFFF800 \
+    --follow func_802AD7FC \
+    --mem @heap1+4:1=1 --mem @heap1+0x14:1=5 --mem @heap1+0x34:1=3 --mem @heap1+0x4C:1=2 \
+    --mem @heap1+6:1=2 --mem @heap1+0x16:1=2 --mem @heap1+0x36:1=3 --mem @heap1+0x4E:1=0xFF \
+    --mem @heap1+0xC:2=halves:0,0x3FF,0x400,0x800,0xC00,0xFFF --mem @heap1+0xE:2=halves:0x3FE,0x401,0x7FF,0x801,0xBFF,0xFFE \
+    --mem @heap1+0x1C:2=halves:0,0x3FF,0x400,0x800,0xC00,0xFFF --mem @heap1+0x1E:2=halves:0x3FE,0x401,0x7FF,0x801,0xBFF,0xFFE \
+    --mem @heap1+0x3C:2=halves:0,0x3FF,0x400,0x800,0xC00,0xFFF --mem @heap1+0x3E:2=halves:0x3FE,0x401,0x7FF,0x801,0xBFF,0xFFE \
+    --mem @heap1+0x54:2=halves:0,0x3FF,0x400,0x800,0xC00,0xFFF --mem @heap1+0x56:2=halves:0x3FE,0x401,0x7FF,0x801,0xBFF,0xFFE
+# all callees for real (the two state checks too)
+func_802BDDB4: -n 200 --seed 4 --heap 0x40 --heap 0x5C --arg v0=rel:heap0 --arg t1=rel:heap1 --arg t2=rel:heap1+0x5C \
+    --mem @heap0+0x30=0x38 --mem @heap0+0x10=int --mem @heap0+0x18=int \
+    --mem D_803643DB:1=bytes:0,1 --mem D_80364AC1:1=bytes:0,1 --mem D_803F7806:1=bytes:0,1,1 \
+    --mem D_8039C940:1=bytes:0,1,2 --mem D_8039C800:0x50=rand --mem D_8039C800+0x26*0x28:2/1=bytes:0,1,1 \
+    --follow func_802BC7DC,func_802BC714,func_802AD7FC \
+    --mem D_803643F8=int --mem D_80364400=int --mem D_803649D8:8=rand \
+    --mem @heap1+4:1=1 --mem @heap1+0x14:1=5 --mem @heap1+0x34:1=3 --mem @heap1+0x4C:1=2 \
+    --mem @heap1+6:1=bytes:0,1,2 --mem @heap1+0x16:1=bytes:0,1,2 --mem @heap1+0x36:1=bytes:0,1,2 --mem @heap1+0x4E:1=bytes:0,1,2 \
+    --mem @heap1+0xC:2=halves:1,2,5,0x100,0x400,0x800,0xC00,0xFFF,0xFFFF --mem @heap1+0xE:2=halves:0,1,4,0x200,0x600,0xA00,0xE00,0xFFE,0xFFFE,0xFFFF \
+    --mem @heap1+0x1C:2=halves:1,2,5,0x100,0x400,0x800,0xC00,0xFFF,0xFFFF --mem @heap1+0x1E:2=halves:0,1,4,0x200,0x600,0xA00,0xE00,0xFFE,0xFFFE,0xFFFF \
+    --mem @heap1+0x3C:2=halves:1,2,5,0x100,0x400,0x800,0xC00,0xFFF,0xFFFF --mem @heap1+0x3E:2=halves:0,1,4,0x200,0x600,0xA00,0xE00,0xFFE,0xFFFE,0xFFFF \
+    --mem @heap1+0x54:2=halves:1,2,5,0x100,0x400,0x800,0xC00,0xFFF,0xFFFF --mem @heap1+0x56:2=halves:0,1,4,0x200,0x600,0xA00,0xE00,0xFFE,0xFFFE,0xFFFF
+
+# func_802C1438 (e t9, part t3): falling-part effect into a free D_803F1BE0 slot. e = heap0, its info = heap1 with
+# points at +0x100, four conditional records at +0x200..+0x268 (parts 1-3, both modes, 0-8 commands per list)
+# and 8-byte commands at +0x300
+func_802C1438: -n 400 --seed 0 --heap 0x100 --heap 0x400 --arg t9=rel:heap0 --arg t3=choice:1,2,3,4 \
+    --mem @heap0=rel:heap1 --mem @heap0+0x14=int --mem @heap0+0xEC:4=bytes:0,0x10,0x11,0x20,0x40,0x50,0x5A,0x60,0x61,100 \
+    --mem @heap1+7:1=bytes:0,1,1,1 --mem @heap1+0x2C=0x100 --mem @heap1+0x38=0x200 --mem @heap1+0x3C=0x268 \
+    --mem @heap1+0x100:0x40=halves:0,1,0xFFFF,0x7FFF,0x8000,0x1234,0xF000,0x0800 \
+    --mem @heap1+0x200:0x68=hex:00000001_0001_01_10_00000300_00000310_00000310_00000318_00000002_0002_00_50_0001_01_20_00000320_00000330_00000330_00000330_00000002_0001_01_00_0003_00_40_00000300_00000308_00000300_00000320_00000001_0003_00_60_00000300_00000340_00000300_00000340 \
+    --mem D_803F1BE0:0x8F0=rand --mem D_803F1BE0+0x470:1=bytes:0,0,1 --mem D_803F1BE0+0x472:1=bytes:0,0,2 \
+    --mem D_803F1BE0+0x8E8:1=bytes:0,0,1 --mem D_803F1BE0+0x8EA:1=bytes:0,0,2 \
+    --mem D_803A73F0=int --mem D_803A73F8=int --stub-ret func_802C1A28=choice:0*3,1 --stub-ret func_802AD7FC=int
+# list budgets: list A gets 0x42 (fits) or 0x43 (aborts) commands, list B 0x43 or 0x42
+func_802C1438: -n 60 --seed 1 --heap 0x100 --heap 0x600 --arg t9=rel:heap0 --arg t3=1 \
+    --mem @heap0=rel:heap1 --mem @heap0+0x14=int --mem @heap1+7:1=1 --mem @heap1+0x2C=0x100 --mem @heap1+0x38=0x200 \
+    --mem @heap1+0x3C=0x218 --mem @heap1+0x200:0x18=hex:00000001_0001_01_00_00000300_00000510_00000300_00000518 \
+    --mem D_803F1BE0:0x8F0=rand --mem D_803F1BE0+0x470:1=0 --mem D_803F1BE0+0x472:1=0 \
+    --mem D_803A73F0=int --mem D_803A73F8=int --stub-ret func_802C1A28=0 --stub-ret func_802AD7FC=int
+func_802C1438: -n 60 --seed 2 --heap 0x100 --heap 0x600 --arg t9=rel:heap0 --arg t3=1 \
+    --mem @heap0=rel:heap1 --mem @heap0+0x14=int --mem @heap1+7:1=1 --mem @heap1+0x2C=0x100 --mem @heap1+0x38=0x200 \
+    --mem @heap1+0x3C=0x218 --mem @heap1+0x200:0x18=hex:00000001_0001_01_00_00000300_00000518_00000300_00000510 \
+    --mem D_803F1BE0:0x8F0=rand --mem D_803F1BE0+0x470:1=0 --mem D_803F1BE0+0x472:1=0 \
+    --mem D_803A73F0=int --mem D_803A73F8=int --stub-ret func_802C1A28=0 --stub-ret func_802AD7FC=int
+# heading on / off the axes and both quadrant edges, with func_802C1A28 and the arcsine run for real
+func_802C1438: -n 400 --seed 3 --heap 0x100 --heap 0x400 --arg t9=rel:heap0 --arg t3=choice:1,2,3 \
+    --mem @heap0=rel:heap1 --mem @heap0+0x14=int --mem @heap0+0xEC:4=bytes:0,0x10,0x20,0x40,0x5A,0x60,100 \
+    --mem @heap1:2=halves:0*2,1,2 --mem @heap1+7:1=1 --mem @heap1+0x2C=0x100 --mem @heap1+0x38=0x200 --mem @heap1+0x3C=0x268 \
+    --mem @heap1+0x100:0x40=halves:0,1,0xFFFF,100,0xFF9C \
+    --mem @heap1+0x200:0x68=hex:00000001_0001_01_10_00000300_00000310_00000310_00000318_00000002_0002_00_50_0001_01_20_00000320_00000330_00000330_00000330_00000002_0001_01_00_0003_00_40_00000300_00000308_00000300_00000320_00000001_0003_00_60_00000300_00000340_00000300_00000340 \
+    --mem D_803F1BE0:0x8F0=rand --mem D_803F1BE0+0x470:1=bytes:0,0,1 --mem D_803F1BE0+0x472:1=bytes:0,0,2 \
+    --mem D_803F1BE0+0x8E8:1=bytes:0,0,1 --mem D_803F1BE0+0x8EA:1=bytes:0,0,2 \
+    --mem D_803A73F0=choice:0,0x20,0xC80,-0xC80,0x7FFFFFFF --mem D_803A73F8=choice:0,0x20,0xC80,-0xC80,0x80000000 \
+    --follow func_802C1A28,func_802AD7FC

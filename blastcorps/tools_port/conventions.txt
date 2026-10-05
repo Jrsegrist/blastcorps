@@ -577,6 +577,10 @@ func_802D2C20: clobbers s0,s1,s5,s6,s7
 # --- 77E20 ---
 # 1 if every D_8039C800 entry has unk26 set; saves t0, t1, t3
 func_802BC7DC: out t4=ret ; preserve a0,a1,a2,a3,t0,t1,t2,t3,f12,f14
+# phase D (wt-f2): animation channel records t1..t2 of object v0 (saves everything it uses)
+func_802BDDB4: in v0=a0,t1=a1,t2=a2 ; preserve v0,v1,a0,a1,t1,t2,t3,t4,t5,t6,t7
+# falling-part effect for part t3 of object t9 into a free D_803F1BE0 slot (saves every register but f0/f2)
+func_802C1438: in t9=a0,t3=a1 ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,t8,t9,f12,f14
 # bump/insert a counter in D_803F7690 (kind t3, id t9, amount a2); saves every register
 func_802BC888: in t3=a0,t9=a1,a2=a2 ; preserve a0,a1,t3,t4,t6,t7,t9
 # buffer A scans: "some byte differs from v0" / "contains v0"; buffer B "contains fp" (fp is a value)

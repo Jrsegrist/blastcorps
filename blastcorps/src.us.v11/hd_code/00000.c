@@ -458,6 +458,68 @@ void func_80275270(u64, f32);
 void func_80285EF4(s32);
 void func_8028B240(void);
 
+extern u8 D_004A5660[]; /* lagp */
+extern u8 D_004ACC10[]; /* chimp */
+extern u8 D_004B8960[]; /* valley */
+extern u8 D_004BFD60[]; /* fact */
+extern u8 D_004C3AC0[]; /* dip */
+extern u8 D_004D5F90[]; /* beetle */
+extern u8 D_004E2F70[]; /* bonus1 */
+extern u8 D_004E4E80[]; /* bonus2 */
+extern u8 D_004E7C00[]; /* bonus3 */
+extern u8 D_004E8F70[]; /* level9 */
+extern u8 D_004F5C10[]; /* level10 */
+extern u8 D_00500520[]; /* level11 */
+extern u8 D_00507E80[]; /* level12 */
+extern u8 D_00511340[]; /* level13 */
+extern u8 D_00523080[]; /* level14 */
+extern u8 D_0052CD00[]; /* level15 */
+extern u8 D_00532700[]; /* level16 */
+extern u8 D_0053E9B0[]; /* level17 */
+extern u8 D_0054A820[]; /* level18 */
+extern u8 D_00552DE0[]; /* level19 */
+extern u8 D_00555000[]; /* level20 */
+extern u8 D_00560E90[]; /* level21 */
+extern u8 D_005652D0[]; /* level22 */
+extern u8 D_0056F3F0[]; /* level23 */
+extern u8 D_005721E0[]; /* level24 */
+extern u8 D_005736E0[]; /* level25 */
+extern u8 D_0057A2C0[]; /* level26 */
+extern u8 D_00580B60[]; /* level27 */
+extern u8 D_00588CE0[]; /* level28 */
+extern u8 D_0058BE80[]; /* level29 */
+extern u8 D_00597B80[]; /* level30 */
+extern u8 D_0059B7D0[]; /* level31 */
+extern u8 D_005A5840[]; /* level32 */
+extern u8 D_005B0B10[]; /* level33 */
+extern u8 D_005B5A30[]; /* level34 */
+extern u8 D_005B8BB0[]; /* level35 */
+extern u8 D_005C4C80[]; /* level36 */
+extern u8 D_005CA9C0[]; /* level37 */
+extern u8 D_005CCF50[]; /* level38 */
+extern u8 D_005D1060[]; /* level39 */
+extern u8 D_005DC830[]; /* level40 */
+extern u8 D_005E6EE0[]; /* level41 */
+extern u8 D_005EC800[]; /* level42 */
+extern u8 D_005F3A80[]; /* level43 */
+extern u8 D_006014B0[]; /* level44 */
+extern u8 D_0060A710[]; /* level45 */
+extern u8 D_00613AA0[]; /* level46 */
+extern u8 D_0061DD70[]; /* level47 */
+extern u8 D_00621AF0[]; /* level48 */
+extern u8 D_006269E0[]; /* level49 */
+extern u8 D_00630C30[]; /* level50 */
+extern u8 D_00635700[]; /* level51 */
+extern u8 D_0063CA10[]; /* level52 */
+extern u8 D_00641F30[]; /* level53 */
+extern u8 D_00644810[]; /* level54 */
+extern u8 D_00646080[]; /* level55 */
+extern u8 D_00647550[]; /* level56 */
+extern u8 D_00654FC0[]; /* level57 */
+extern u8 D_00660950[]; /* level58 */
+extern u8 D_00665F80[]; /* level59 */
+extern u8 D_0066C900[]; /* worldtextures */
+
 /* (end of declarations) */
 
 /* Boot: reads 16 words from PI address 0xFFB000, then starts the idle thread */
@@ -1795,7 +1857,254 @@ void func_80255DC8(void) {
     D_8039CAA2 = 0;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_8025615C.s")
+/* Loads level data file (lagp, chimp, valley, ..., level59) to dest; *size gets its size */
+void func_8025615C(s32 level, s32 dest, s32 *size) {
+    u8 *start;
+
+    switch (level) {
+        case 1:
+            start = D_004A5660;
+            *size = D_004ACC10 - D_004A5660;
+            break;
+        case 0:
+            start = D_004ACC10;
+            *size = D_004B8960 - D_004ACC10;
+            break;
+        case 2:
+            start = D_004B8960;
+            *size = D_004BFD60 - D_004B8960;
+            break;
+        case 3:
+            start = D_004BFD60;
+            *size = D_004C3AC0 - D_004BFD60;
+            break;
+        case 4:
+            start = D_004C3AC0;
+            *size = D_004D5F90 - D_004C3AC0;
+            break;
+        case 5:
+            start = D_004D5F90;
+            *size = D_004E2F70 - D_004D5F90;
+            break;
+        case 6:
+            start = D_004E2F70;
+            *size = D_004E4E80 - D_004E2F70;
+            break;
+        case 7:
+            start = D_004E4E80;
+            *size = D_004E7C00 - D_004E4E80;
+            break;
+        case 8:
+            start = D_004E7C00;
+            *size = D_004E8F70 - D_004E7C00;
+            break;
+        case 9:
+            start = D_004E8F70;
+            *size = D_004F5C10 - D_004E8F70;
+            break;
+        case 10:
+            start = D_004F5C10;
+            *size = D_00500520 - D_004F5C10;
+            break;
+        case 11:
+            start = D_00500520;
+            *size = D_00507E80 - D_00500520;
+            break;
+        case 12:
+            start = D_00507E80;
+            *size = D_00511340 - D_00507E80;
+            break;
+        case 13:
+            start = D_00511340;
+            *size = D_00523080 - D_00511340;
+            break;
+        case 14:
+            start = D_00523080;
+            *size = D_0052CD00 - D_00523080;
+            break;
+        case 15:
+            start = D_0052CD00;
+            *size = D_00532700 - D_0052CD00;
+            break;
+        case 16:
+            start = D_00532700;
+            *size = D_0053E9B0 - D_00532700;
+            break;
+        case 17:
+            start = D_0053E9B0;
+            *size = D_0054A820 - D_0053E9B0;
+            break;
+        case 18:
+            start = D_0054A820;
+            *size = D_00552DE0 - D_0054A820;
+            break;
+        case 19:
+            start = D_00552DE0;
+            *size = D_00555000 - D_00552DE0;
+            break;
+        case 20:
+            start = D_00555000;
+            *size = D_00560E90 - D_00555000;
+            break;
+        case 21:
+            start = D_00560E90;
+            *size = D_005652D0 - D_00560E90;
+            break;
+        case 22:
+            start = D_005652D0;
+            *size = D_0056F3F0 - D_005652D0;
+            break;
+        case 23:
+            start = D_0056F3F0;
+            *size = D_005721E0 - D_0056F3F0;
+            break;
+        case 24:
+            start = D_005721E0;
+            *size = D_005736E0 - D_005721E0;
+            break;
+        case 25:
+            start = D_005736E0;
+            *size = D_0057A2C0 - D_005736E0;
+            break;
+        case 26:
+            start = D_0057A2C0;
+            *size = D_00580B60 - D_0057A2C0;
+            break;
+        case 27:
+            start = D_00580B60;
+            *size = D_00588CE0 - D_00580B60;
+            break;
+        case 28:
+            start = D_00588CE0;
+            *size = D_0058BE80 - D_00588CE0;
+            break;
+        case 29:
+            start = D_0058BE80;
+            *size = D_00597B80 - D_0058BE80;
+            break;
+        case 30:
+            start = D_00597B80;
+            *size = D_0059B7D0 - D_00597B80;
+            break;
+        case 31:
+            start = D_0059B7D0;
+            *size = D_005A5840 - D_0059B7D0;
+            break;
+        case 32:
+            start = D_005A5840;
+            *size = D_005B0B10 - D_005A5840;
+            break;
+        case 33:
+            start = D_005B0B10;
+            *size = D_005B5A30 - D_005B0B10;
+            break;
+        case 34:
+            start = D_005B5A30;
+            *size = D_005B8BB0 - D_005B5A30;
+            break;
+        case 35:
+            start = D_005B8BB0;
+            *size = D_005C4C80 - D_005B8BB0;
+            break;
+        case 36:
+            start = D_005C4C80;
+            *size = D_005CA9C0 - D_005C4C80;
+            break;
+        case 37:
+            start = D_005CA9C0;
+            *size = D_005CCF50 - D_005CA9C0;
+            break;
+        case 38:
+            start = D_005CCF50;
+            *size = D_005D1060 - D_005CCF50;
+            break;
+        case 39:
+            start = D_005D1060;
+            *size = D_005DC830 - D_005D1060;
+            break;
+        case 40:
+            start = D_005DC830;
+            *size = D_005E6EE0 - D_005DC830;
+            break;
+        case 41:
+            start = D_005E6EE0;
+            *size = D_005EC800 - D_005E6EE0;
+            break;
+        case 42:
+            start = D_005EC800;
+            *size = D_005F3A80 - D_005EC800;
+            break;
+        case 43:
+            start = D_005F3A80;
+            *size = D_006014B0 - D_005F3A80;
+            break;
+        case 44:
+            start = D_006014B0;
+            *size = D_0060A710 - D_006014B0;
+            break;
+        case 45:
+            start = D_0060A710;
+            *size = D_00613AA0 - D_0060A710;
+            break;
+        case 46:
+            start = D_00613AA0;
+            *size = D_0061DD70 - D_00613AA0;
+            break;
+        case 47:
+            start = D_0061DD70;
+            *size = D_00621AF0 - D_0061DD70;
+            break;
+        case 48:
+            start = D_00621AF0;
+            *size = D_006269E0 - D_00621AF0;
+            break;
+        case 49:
+            start = D_006269E0;
+            *size = D_00630C30 - D_006269E0;
+            break;
+        case 50:
+            start = D_00630C30;
+            *size = D_00635700 - D_00630C30;
+            break;
+        case 51:
+            start = D_00635700;
+            *size = D_0063CA10 - D_00635700;
+            break;
+        case 52:
+            start = D_0063CA10;
+            *size = D_00641F30 - D_0063CA10;
+            break;
+        case 53:
+            start = D_00641F30;
+            *size = D_00644810 - D_00641F30;
+            break;
+        case 54:
+            start = D_00644810;
+            *size = D_00646080 - D_00644810;
+            break;
+        case 55:
+            start = D_00646080;
+            *size = D_00647550 - D_00646080;
+            break;
+        case 56:
+            start = D_00647550;
+            *size = D_00654FC0 - D_00647550;
+            break;
+        case 57:
+            start = D_00654FC0;
+            *size = D_00660950 - D_00654FC0;
+            break;
+        case 58:
+            start = D_00660950;
+            *size = D_00665F80 - D_00660950;
+            break;
+        case 59:
+            start = D_00665F80;
+            *size = D_0066C900 - D_00665F80;
+            break;
+    }
+    func_8028B4C4(start, (void *) dest, (u32 *) size, 12, 10, 1);
+}
 
 /* Level init */
 void func_80256A34(s32 arg0) {

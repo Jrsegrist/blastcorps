@@ -169,7 +169,7 @@ void func_80291ED8(u8);
 void func_802794E4(void);
 s32 func_8024AFA8(s32);
 void func_802AE860(void);
-void func_8026AD30(s32);
+s32 func_8026AD30(s32);
 s32 func_80260634(s32);
 void func_80260650(s32, s32, s32 *);
 
@@ -421,6 +421,21 @@ void func_802BB1A0(void);
 void func_802CFAB4(void);
 void func_802D0BF8(void);
 
+extern u8 D_803153F0;
+extern s32 D_803156E8;
+extern s32 D_803EF6DC;
+extern s32 D_803EF6E4;
+extern s16 currentYoshiWindow;
+extern s16 yoshiState;
+void func_802608C8(s32);
+void func_80260DFC(void);
+void func_80261040(void);
+s32 func_8026A610(s32, s32, s32, s32);
+void func_8026AF6C(s32);
+s32 func_8026B10C(void);
+void func_80277EDC(s32, s32, s32, s32);
+s32 func_802C1AA0(void);
+
 /* (end of declarations) */
 
 /* Boot: reads 16 words from PI address 0xFFB000, then starts the idle thread */
@@ -522,7 +537,133 @@ void func_8024A348(void) {
     }
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_8024A92C.s")
+/* Picks the music intensity from the distance to the carrier (CMO) */
+void func_8024A92C(u32 dist) {
+    u32 far;
+    u32 near;
+
+    switch (D_802E8BDC) {
+        case 29:
+            far = 22000;
+            near = 14000;
+            break;
+        case 12:
+            far = 26000;
+            near = 20000;
+            break;
+        case 58:
+            far = 36000;
+            near = 30000;
+            break;
+        case 18:
+            far = 36000;
+            near = 28000;
+            break;
+        case 16:
+            far = 33000;
+            near = 23000;
+            break;
+        case 15:
+            far = 24000;
+            near = 18000;
+            break;
+        case 13:
+            far = 55000;
+            near = 35000;
+            break;
+        case 14:
+            if (D_803EF6E4 > 177600) {
+                far = 25000;
+                near = 20000;
+            } else if (D_803EF6E4 > 80000) {
+                far = 22000;
+                near = 17500;
+            } else {
+                far = 14000;
+                near = 8000;
+            }
+            break;
+        case 9:
+            if (D_803EF6E4 > 100320) {
+                far = 36000;
+                near = 18000;
+            } else {
+                far = 12000;
+                near = 6000;
+            }
+            break;
+        default:
+            far = 12000;
+            near = 6000;
+            break;
+    }
+    D_803153F0 = D_80364A6F;
+    if (dist < far) {
+        if (dist < near) {
+            D_80364A6F = 2;
+        } else {
+            D_80364A6F = 1;
+        }
+    } else {
+        D_80364A6F = 0;
+    }
+    if (D_80364A6F != D_803153F0) {
+        if (D_803153F0 == 0 && func_8026A610(D_803EF6DC, D_803EF6E4, D_803643E0, D_803643E8) > 20000) {
+            func_80277EDC(1, 1, 7, 0x6C);
+            func_8029A7E4("TOO FAR AWAY FROM CMO\n");
+        }
+        switch (D_80364A6F) {
+            case 1:
+                switch (D_803153F0) {
+                    case 0:
+                        func_80260DFC();
+                    case 2:
+                        func_802608C8(D_803156E8);
+                        break;
+                }
+                break;
+            case 2:
+                switch (D_803153F0) {
+                    case 0:
+                        func_80260DFC();
+                    case 1:
+                        func_80260650(D_80367738, 0x26, &D_803156E8);
+                        break;
+                }
+                break;
+            case 0:
+                func_802608C8(D_803156E8);
+                if (D_802E8F94[D_802E8BDC].unk0 != 0x80 || !func_802C1AA0()) {
+                    func_8029A7E4("popTuneImmediate();\n");
+                    func_80261040();
+                } else {
+                    func_8029A7E4("WILL THIS FIX IT!!?\n");
+                }
+                if (D_803153F0 == 2) {
+                    func_80260650(D_80367738, 0x68, NULL);
+                }
+                break;
+        }
+    }
+    switch (D_80364A6F) {
+        case 1:
+            if (!func_8026AD30(0x49) && currentYoshiWindow != 3) {
+                func_8026AF6C(0x8003);
+            }
+            break;
+        case 2:
+            if (currentYoshiWindow != 2) {
+                func_8026AF6C(0x8002);
+            }
+            break;
+        case 0:
+            if ((yoshiState == 2 || yoshiState == 4) && !func_8026B10C() &&
+                (currentYoshiWindow == 3 || currentYoshiWindow == 2 || currentYoshiWindow == 0x49)) {
+                func_8026AF6C(0x4000);
+            }
+            break;
+    }
+}
 
 /* Eases D_803649F4 towards D_803649F0 by a tenth of the gap plus 10 */
 void func_8024ADD8(void) {

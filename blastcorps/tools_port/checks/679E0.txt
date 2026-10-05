@@ -141,3 +141,33 @@ func_802ACE38: -n 200 --seed 3 --arg a0=choice:0,1,-1,0xFFFF,0x10000,-0x10000,0x
     --follow func_802AE104,func_802AE160,func_802AE1BC,func_802AE290
 func_802ACEB8: -n 200 --seed 3 --arg a0=choice:0,1,-1,0xFFF,0x1000,-0x1000,0x4000,-0x4000 \
     --arg a3=choice:0,0x400,0x800,0xC00,0x200,0xFFF,0x1000,-1 --follow func_802AE104,func_802AE160,func_802AE1BC,func_802AE290
+
+# func_802AC284 (px v0, py v1, pz a0): trampoline to func_802AC3B8; stubbed, then followed with the wrap boundaries
+func_802AC284: -n 200 --seed 0 --arg v0=int --arg v1=int --arg a0=int
+func_802AC284: -n 200 --seed 1 --heap 0x10 --arg v0=rel:heap0 --arg v1=rel:heap0+4 --arg a0=rel:heap0+8 \
+    --mem @heap0:12=words:0,0x2580,0x2581,0x3E80,0x3E81,0x13880,0x13881,0x15180,0x15181,-1 --mem D_802E8BDC=choice:0x17,0x17,0x16 \
+    --mem D_80364412:1=bytes:0,0,1 --follow func_802AC3B8
+
+# func_802AC2A4 (a0, a1, v0, v1, t0, vehicle t8, record gp): game mode 0x40 only; reset, collision pass, then the
+# 0..4 hit objects (heap0..heap3) in the D_803F3910 list are moved to x = z = 0xBB80
+func_802AC2A4: -n 300 --seed 0 --heap 0x50 --heap 0x50 --heap 0x50 --heap 0x50 \
+    --arg a0=int --arg a1=int --arg v0=int --arg v1=int --arg t0=int --arg t8=choice:0,5,0xFF --arg gp=int \
+    --mem D_80364AA8=choice:0x40*3,0,0x41 --mem D_803F3910=rel:heap0 --mem D_803F3910+8=rel:heap1 \
+    --mem D_803F3910+0x10=rel:heap2 --mem D_803F3910+0x18=rel:heap3 --mem D_803F3960=rel:D_803F3910+8*int:0:4 \
+    --mem D_8036E4C8:2=choice:0,1,0x8000 --mem D_803BE738:1=rand --mem D_80367738=int --sig func_80260650=a0,a1,a2
+# always a non-empty list and sound; positions around 0xBB80 and the wrap points
+func_802AC2A4: -n 200 --seed 1 --heap 0x50 --heap 0x50 --heap 0x50 --heap 0x50 \
+    --arg a0=int --arg a1=int --arg v0=int --arg v1=int --arg t0=int --arg t8=choice:0,5,0xFF --arg gp=int \
+    --mem D_80364AA8=0x40 --mem D_803F3910=rel:heap0 --mem D_803F3910+8=rel:heap1 \
+    --mem D_803F3910+0x10=rel:heap2 --mem D_803F3910+0x18=rel:heap3 --mem D_803F3960=rel:D_803F3910+8*int:1:4 \
+    --mem @heap0+0x10*0x60:4=choice:0,0xBB80,0xBB81,-1,0x7FFFFFFF,0x80000000 --mem @heap0+0x18*0x60:4=choice:0,0xBB80,0xBB7F,-1,0x80000000 \
+    --mem D_8036E4C8:2=choice:1,0xFFFF --mem D_803BE738:1=rand --mem D_80367738=int --sig func_80260650=a0,a1,a2
+# the reset and the collision pass run for real (vehicle 5's sphere in one slot, no objects)
+func_802AC2A4: -n 200 --seed 2 --heap 0x50 --heap 0x50 --heap 0x50 --heap 0x50 --heap 0x100 \
+    --arg a0=int --arg a1=int --arg v0=int --arg v1=int --arg t0=int --arg t8=5 --arg gp=rel:heap4 \
+    --mem D_80364AA8=0x40 --mem D_803F3910=rel:heap0 --mem D_803F3910+8=rel:heap1 \
+    --mem D_803F3910+0x10=rel:heap2 --mem D_803F3910+0x18=rel:heap3 --mem D_803F3960=rel:D_803F3910+8*int:0:4 \
+    --mem D_8036E4C8:2=choice:0,1 --mem D_803BE738:1=rand --mem D_80367738=int --sig func_80260650=a0,a1,a2 \
+    --mem D_803A7300:0xF0=onehot:0x14@0x10/1:5:rand --mem D_803A7300+0x11*0x14:12/1=0 --mem D_80358060=choice:0,1 \
+    --mem D_803F7802:1=rand --mem D_803F7803:1=rand --mem D_803F7807:1=rand --mem D_803F780F:1=rand \
+    --sig func_802BCC10= --sig func_802BCBD8= --sig func_802BCC48= --follow func_8029A800,func_802BE77C,func_802BE9F8

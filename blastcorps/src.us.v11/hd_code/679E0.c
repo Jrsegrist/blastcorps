@@ -70,10 +70,80 @@ void func_802AC1A0(s32 radius) {
  * hd_code/1C460.c is an outwardly identical trampoline that matched
  * fine with the normal 24-byte form - that one really is compiler
  * output; this one isn't. Permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+void func_802AC3B8(s32 *px, s32 *py, s32 *pz);
+
+/* Trampoline to func_802AC3B8 (level 0x17 position wrap) with the same
+ * registers: px, py, pz in v0, v1, a0 (conventions.txt). The t6/t7 the
+ * survey lists as read by asm caller func_802B6294 are dead there. */
+void func_802AC284(s32 *px, s32 *py, s32 *pz) {
+    func_802AC3B8(px, py, pz);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/func_802AC284.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern s32 D_80364AA8;  /* game mode */
+extern s32 D_80367738;
+extern u16 D_8036E4C8;
+extern u8 D_803BE738;
+extern u8 *D_803F3960;  /* end of the (object, part) hit list */
+extern u8 D_803F3910[];
+void func_80260650(s32 a0, s32 a1, s32 a2);
+void func_8029A800(s32 z, s32 a1, s32 b2, s32 b3, s32 x, s32 y, s32 b0, s32 h1, s32 h2, s32 b4, s32 b8,
+                   u8 *veh); /* 56040 */
+void func_802BE77C(s32 id, u8 *vehicle); /* 77E20 */
+void func_802BD99C(void *model, s32 dx, s32 dy, s32 dz); /* 77E20 */
+
+/* Only in game mode 0x40: vehicle-state reset (func_8029A800 with b2 = 1,
+ * b3 = 0, h1 = 0, h2 = 0x40, b4 = 0), the collision pass of vehicle id
+ * (func_802BE77C), then if anything was hit: with D_8036E4C8 zero sets
+ * D_803BE738; else plays func_80260650(D_80367738, 0x3D, 0) and moves every
+ * hit object (the list D_803F3910 .. D_803F3960, read once, walked by 8 with
+ * `!=`) to x = z = 0xBB80 (func_802BD99C by the difference; words 0x38 = 1,
+ * 0x40 = -1).
+ * Register convention: z, a1 in a0, a1, x, y, b0 in v0, v1, t0, vehicle id in
+ * t8 and the vehicle record in gp, as func_8029A800 takes them. The asm leaves
+ * s0-s7, fp (func_802BD99C) and f20-f28 (func_802BE77C) changed; the v1, f12
+ * and f14 the survey lists as read by asm caller func_802B6294 are dead there
+ * (saved and restored around a call). */
+void func_802AC2A4(s32 z, s32 a1, s32 x, s32 y, s32 b0, s32 id, u8 *vehicle) {
+    u8 *p;
+    u8 *end;
+
+    if (D_80364AA8 != 0x40) {
+        return;
+    }
+    func_8029A800(z, a1, 1, 0, x, y, b0, 0, 0x40, 0, id, vehicle);
+    func_802BE77C(id, vehicle);
+    if (D_803F3910 == D_803F3960) {
+        return;
+    }
+    if (D_8036E4C8 == 0) {
+        D_803BE738 = 1;
+        return;
+    }
+    func_80260650(D_80367738, 0x3D, 0);
+    end = D_803F3960;
+    for (p = D_803F3910; p != end; p += 8) {
+        u8 *obj = *(u8 **) p;
+        s32 ox;
+        s32 oz;
+
+        *(s32 *) (obj + 0x38) = 1;
+        ox = *(s32 *) (obj + 0x10);
+        *(s32 *) (obj + 0x40) = -1;
+        *(s32 *) (obj + 0x10) = 0xBB80;
+        oz = *(s32 *) (obj + 0x18);
+        *(s32 *) (obj + 0x18) = 0xBB80;
+        func_802BD99C(obj, 0xBB80 - ox, 0, 0xBB80 - oz);
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/func_802AC2A4.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

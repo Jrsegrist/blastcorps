@@ -36,7 +36,34 @@
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029B7CC.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u16 D_803A7410; /* ring index A (12-bit, 0..0xFFF) */
+extern u16 D_803A7412; /* ring index B */
+
+/* Distance from index A forward to index B in the 0x1000-entry ring, with
+ * the asm's quirks kept: the wrapped case uses 0xFFF (not 0x1000), and a
+ * non-wrapped distance above 0x800 has 0x800 subtracted. Called from C
+ * (48D00, 4B5E0) and from asm func_8029B7CC.
+ * Register note: the asm saves/restores v1 and a0 and touches nothing but
+ * v0/at; func_8029B7CC keeps a0, a1 and t0 live across the call. This C
+ * version is plain o32, so a mixed N64 build would need a thunk preserving
+ * those for the asm caller; the native port does not. */
+s32 func_8029B930(void) {
+    s32 a = D_803A7410;
+    s32 b = D_803A7412;
+
+    if (b < a) {
+        return b + (0xFFF - a);
+    }
+    b -= a;
+    if (b > 0x800) {
+        b -= 0x800;
+    }
+    return b;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029B930.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029B994.s")

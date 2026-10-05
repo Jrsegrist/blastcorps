@@ -12,7 +12,36 @@
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802A6F00.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u16 D_803A7410; /* ring index A (12-bit, see func_8029B930) */
+extern u16 D_803A7412; /* ring index B */
+
+/* Midpoint between ring indices A and B, going forward from A (wrapping
+ * through 0xFFF when B < A). Returns s32 because the asm leaves the full
+ * value in v0 (C callers declare s16; values are < 0x1000 for 12-bit input).
+ * Register note: the asm saves/restores v1 and a0 and touches nothing but
+ * v0/at. Its asm callers rely on that: func_802A71DC keeps a1 live, and the
+ * vehicle update functions (func_802AEEC8, func_802B327C, func_802B6294,
+ * func_802CFDE8, ...) keep a3, t6, f12 and f14 live across the call. This C
+ * version is plain o32, so a mixed N64 build would need a thunk preserving
+ * those; the native port does not. */
+s32 func_802A6F6C(void) {
+    s32 a = D_803A7410;
+    s32 b = D_803A7412;
+    s32 mid;
+
+    if (b < a) {
+        mid = (((0xFFF - a) + b) >> 1) + a;
+        if (mid >= 0x1000) {
+            mid -= 0xFFF;
+        }
+        return mid;
+    }
+    return (u32) (a + b) >> 1;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802A6F6C.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802A6FE4.s")
@@ -218,7 +247,26 @@
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802AB33C.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* 4-byte entries {u8 id, u8 flag, u8 pad[2]}, terminated by a 0xFFFFFFFF word. */
+extern u8 D_803ED3B8[];
+
+/* Looks up `id` in the D_803ED3B8 list. Returns 1 if the first entry with
+ * that id has a nonzero flag byte, 0 if the flag is 0 or the id is absent.
+ * (The asm also saves/restores t0/t1; its only caller is C, 23C20.) */
+s32 func_802AB3C0(s32 id) {
+    u8 *entry;
+
+    for (entry = D_803ED3B8; *(s32 *) entry != -1; entry += 4) {
+        if (entry[0] == id) {
+            return entry[1] != 0;
+        }
+    }
+    return 0;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802AB3C0.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802AB41C.s")

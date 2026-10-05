@@ -247,7 +247,25 @@ extern void *D_80358074;
  * project skill file). Every phrasing tried (plain locals, register-qualified
  * locals) either adds extra spills on top or drops the frame to nothing -
  * never this exact shape. Logic confirmed correct via direct diff read. */
+#ifdef NON_MATCHING
+/* Returns record `index` (1-based) of a chain of variable-length records.
+ * The chain starts at level + *(s32 *)(level + 0x74), where level is
+ * D_80358074. Each record is {u16 offsetOfNextRecord, s16 data[]}, with
+ * offsets relative to the chain start, and the first record sits at chain + 4.
+ * The result points at the record's data, just past its link. index 0 makes
+ * the asm loop ~2^32 times, so callers must pass index >= 1. */
+s16 *func_802C1EE0(s32 index) {
+    u8 *chain = (u8 *) D_80358074 + *(s32 *) ((u8 *) D_80358074 + 0x74);
+    u16 *record = (u16 *) (chain + 4);
+
+    for (index--; index != 0; index--) {
+        record = (u16 *) (chain + *record);
+    }
+    return (s16 *) (record + 1);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802C1EE0.s")
+#endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802C1F30.s")

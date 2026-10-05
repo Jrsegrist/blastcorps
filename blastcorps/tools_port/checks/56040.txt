@@ -53,3 +53,74 @@ func_8029DBF0: -n 100 --seed 1 --arg a0=int --stub-ret func_8029DC14=0
 func_8029DBF0: -n 300 --seed 2 --follow func_8029DC14 --arg a0=choice:0,1,2,0xFF,0x100,-1 \
     --mem D_803BD300=rel:D_803B9890+0x60*int:0:12 --mem D_803B9890+0x4F*0x60:12/1=choice:0,1,2,0xFF \
     --mem D_803B9890+0x51*0x60:12/1=choice:0,0,1,0x80
+
+# ---- wt-c1 (phase C) ----
+# func_8029B5B8 (rec in s0): rec[0x4F] == 7 -> D_803A742B = 1, D_803A7430++ while <= 0xC8
+func_8029B5B8: -n 300 --arg s0=ptr:0x100 --mem @s0+0x4F:1=bytes:7*3,6,8,0,0xFF \
+    --mem D_803A7430:1=bytes:0,1,0xC7,0xC8,0xC9,0xCA,0xFF --mem D_803A742B:1=bytes:0,0x55
+func_8029B5B8: -n 100 --seed 1 --arg s0=ptr:0x100 --mem @s0+0x4F:1=7 --mem D_803A7430:1=bytes:0xC8,0xC9 --mem D_803A742B:1=bytes:0,1
+
+# func_8029D1D4 (t6 = sub, t7 = id): first record with [0x4F] == id && [0x50] == sub (the last of 64 always matches),
+# clear its [0x51]; record -> s0, last byte -> s1
+func_8029D1D4: -n 300 --arg t7=7 --arg t6=5 --mem D_803B9890:0x1800=rand --mem D_803B9890+0x4F*0x60:64/1=bytes:7,1,0 \
+    --mem D_803B9890+0x50*0x60:64/1=bytes:5,6,0 --mem D_803B9890+0x17EF:1=7 --mem D_803B9890+0x17F0:1=5
+func_8029D1D4: -n 100 --seed 1 --arg t7=0 --arg t6=0xFF --mem D_803B9890:0x1800=rand --mem D_803B9890+0x4F*0x60:64/1=bytes:0,1 \
+    --mem D_803B9890+0x50*0x60:64/1=bytes:0xFF,0xFE,0 --mem D_803B9890+0x17EF:1=0 --mem D_803B9890+0x17F0:1=0xFF
+# match only in the first record
+func_8029D1D4: -n 30 --seed 2 --arg t7=3 --arg t6=4 --mem D_803B9890:0xC0=rand --mem D_803B9890+0x4F:1=3 --mem D_803B9890+0x50:1=4
+
+# func_8029D210 (t4 = sub): byte 0x51 of the first record with [0x50] == sub (exactly one of 32 matches) -> t5
+func_8029D210: -n 300 --arg t4=5 --mem D_803B9890:0xC00=rand --mem D_803B9890:0xC00=onehot:0x60@0x50/1:5:rand
+func_8029D210: -n 100 --seed 1 --arg t4=0x80 --mem D_803B9890:0xC00=rand --mem D_803B9890:0xC00=onehot:0x60@0x50/1:0x80:words:0
+func_8029D210: -n 100 --seed 2 --arg t4=0 --mem D_803B9890:0xC00=rand --mem D_803B9890:0xC00=onehot:0x60@0x50/1:0:words:-1
+
+# func_8029D534 (t2 = kind, s0 = rec): rec[0x55] = (kind != 7)
+func_8029D534: -n 300 --arg t2=choice:7*3,6,8,0,-1,0x107,0x7FFFFFFF --arg s0=ptr:0x100
+
+# func_8029DCD4 (t5 = dst, s2 = src): queue a copy in the first free slot of D_803B7FC8; raise D_803B8568
+func_8029DCD4: -n 300 --arg t5=int --arg s2=choice:0x80B00000,0x12345678,-1 --mem D_803B7FC8:0x5A0=rand \
+    --mem D_803B7FC8*0xC:120=choice:0,0x80B00000*6 --mem D_803B8568=rel:D_803B7FC8+0xC*int:-2:121 \
+    --mem D_8035805C:1=bytes:0,1,0xFE
+# exactly one free slot (first, last or middle); pool full
+func_8029DCD4: -n 200 --seed 1 --arg t5=int --arg s2=int --mem D_803B7FC8:0x5A0=onehot:0xC:0:words:1,0x80B00000 \
+    --mem D_803B8568=rel:D_803B7FC8+0xC*choice:0,60,119,-1 --mem D_8035805C:1=bytes:0,1
+func_8029DCD4: -n 50 --seed 2 --arg t5=int --arg s2=int --mem D_803B7FC8:0x5A0=words:1,-1 --mem D_803B8568=int
+
+# func_8029DD54 (s2 = dst): cancel queued copies with that dst; the scan also covers the pseudo-slot at &D_803B8568
+func_8029DD54: -n 300 --arg s2=choice:0x80B00100,0x80B00140 --mem D_803B7FC8:0x5A0=rand \
+    --mem D_803B7FC8+4*0xC:120=choice:0x80B00100,0x80B00140,0,-1 --mem D_803B8568=int --mem D_803B8568+4=choice:0x80B00100,0x80B00140,7
+func_8029DD54: -n 100 --seed 1 --arg s2=0 --mem D_803B7FC8:0x5A0=onehot:0xC@4:0:words:-1 --mem D_803B8568=int --mem D_803B8568+4=choice:0,1
+
+# func_8029DDC8 (ABI): run the queued copies whose parity == D_8035805C (func_8029DE50 stubbed, then followed)
+func_8029DDC8: -n 300 --ret void --sig func_8029DE50=a0,a1 --mem D_803B7FC8:0x5A0=rand \
+    --mem D_803B7FC8*0xC:120=choice:0*2,0x80B00000,0x80B00040 --mem D_803B7FC8+4*0xC:120=choice:0x80B00100,0x80B00140 \
+    --mem D_803B7FC8+8*0xC:120=choice:0,1,2,0x100 --mem D_803B8568=rel:D_803B7FC8+0xC*int:-1:119 --mem D_8035805C:1=bytes:0,1
+func_8029DDC8: -n 200 --seed 1 --ret void --follow func_8029DE50 --heap 0x200 --mem D_803B7FC8:0x5A0=rand \
+    --mem D_803B7FC8*0xC:120=choice:0*2,0x80B00000,0x80B00040 --mem D_803B7FC8+4*0xC:120=choice:0x80B00100,0x80B00140 \
+    --mem D_803B7FC8+8*0xC:120=choice:0,1 --mem D_803B8568=rel:D_803B7FC8+0xC*choice:0,1,60,118,119 --mem D_8035805C:1=bytes:0,1
+# nothing in use / pointer below the pool start
+func_8029DDC8: -n 50 --seed 2 --ret void --sig func_8029DE50=a0,a1 --mem D_803B7FC8:0x5A0=zero --mem D_803B8568=rel:D_803B7FC8+0xC*choice:-1,0,119
+# func_8029DE50 (t5 = dst, s2 = src): copy 64 bytes (also overlapping forward by 8)
+func_8029DE50: -n 200 --heap 0x200 --arg s2=rel:heap0+8*int:0:8 --arg t5=rel:heap0+0x100
+func_8029DE50: -n 50 --seed 1 --heap 0x200 --arg s2=rel:heap0 --arg t5=rel:heap0+8*choice:1,2,8
+
+# func_8029FF2C (t1 = dst): copy the 10 halfwords before dst to dst, return dst + 0x14 in t1
+func_8029FF2C: -n 200 --heap 0x200 --arg t1=rel:heap0+0x14*int:1:20
+
+# func_802A0290 .. func_802A0480 (base in a0/v1, idx in v0, value in v1, float in f0): Unk8029DEA0Entry setters
+func_802A0290: -n 300 --heap 0x400 --arg a0=rel:heap0+0x200 --arg v0=int:-20:20 --arg v1=choice:0,1,-1,0x7FFF,0x8000,0xFFFF,0x12345
+func_802A02E4: -n 300 --heap 0x400 --arg v1=rel:heap0+0x200 --arg v0=int:-20:20
+func_802A0320: -n 300 --heap 0x400 --arg v1=rel:heap0+0x200 --arg v0=int:-20:20
+func_802A0360: -n 300 --heap 0x400 --arg a0=rel:heap0+0x200 --arg v0=int:-20:20 --arg v1=choice:0,1,-1,0x7F,0x80,0xFF,0x100 --arg f0=float
+func_802A039C: -n 300 --heap 0x400 --arg a0=rel:heap0+0x200 --arg v0=int:-20:20 --arg v1=choice:0,1,-1,0x7F,0x80,0xFF,0x100
+func_802A03D4: -n 300 --heap 0x400 --arg a0=rel:heap0+0x200 --arg v0=int:-20:20 --arg v1=choice:0,1,-1,0x7F,0x80,0xFF,0x100
+func_802A040C: -n 300 --heap 0x400 --arg a0=rel:heap0+0x200 --arg v0=int:-20:20 --arg v1=choice:0,1,-1,0x7F,0x80,0xFF,0x100
+func_802A0444: -n 300 --heap 0x400 --arg a0=rel:heap0+0x200 --arg v0=int:-20:20 --arg v1=choice:0,1,-1,0x7FFF,0x8000,0xFFFF,0x12345
+func_802A0480: -n 300 --heap 0x400 --arg a0=rel:heap0+0x200 --arg v0=int:-20:20 --arg v1=choice:0,1,-1,0x7F,0x80,0xFF,0x100 --arg f0=float
+# getter: random entry bytes, then sign/zero-extension boundaries
+func_802A04BC: -n 300 --heap 0x400 --arg v1=rel:heap0+0x200 --arg v0=int:-20:20
+func_802A04BC: -n 100 --seed 1 --heap 0x400=bytes:0,0x7F,0x80,0xFF --arg v1=rel:heap0+0x200 --arg v0=int:-20:20
+
+# func_802A06B4 (v0 = id): the D_803B35F8 entry with that id (exactly one of 16 matches; -1 entries don't stop it) -> v0
+func_802A06B4: -n 300 --arg v0=0x1234 --mem D_803B35F8:0x180=onehot:0x18:0x1234:words:1,-1,0,0x1235
+func_802A06B4: -n 100 --seed 1 --arg v0=-1 --mem D_803B35F8:0x180=onehot:0x18:-1:words:0,1,0x7FFFFFFF

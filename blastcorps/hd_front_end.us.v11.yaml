@@ -60,7 +60,7 @@ segments:
     - [0x21040, linker, data]
     - [0x21040, bin, hd_front_end/hd_front_end_data] # .data/.rodata (vram 0x80208040)
     - [0x26810, .data, hd_front_end/11530] # 0x8020D810: level table, lights
-    - [0x273E0, bin, hd_front_end/data_273E0]
+    - [0x273E0, bin, hd_front_end/hd_front_end_data_273E0]
     - [0x28F80, .rodata, hd_front_end/11530] # 0x8020FF80: level names, then 11530's strings/doubles
-    - [0x29550, bin, hd_front_end/data_29550]
+    - [0x29550, bin, hd_front_end/hd_front_end_data_29550]
   - [0x29E90]

@@ -31,7 +31,8 @@ segments:
     - [0x07800, c, hd_front_end/07800]
     - [0x09570, c, hd_front_end/09570]
     - [0x0DE70, c, hd_front_end/0DE70]
-    - [0x0E7B0, c, hd_front_end/0E7B0]
+    - [0x0E7B0, c, hd_front_end/0E7B0] # pfsHandler.c (Controller Pak / EEPROM save thread)
+    - [0x10850, c, hd_front_end/10850] # bestTimes.c
     - [0x11530, c, hd_front_end/11530]
     - [0x17990, c, hd_front_end/17990]
     - [0x196F0, c, hd_front_end/196F0]
@@ -59,4 +60,8 @@ segments:
     - [0x20090, bin, hd_front_end/20090] # RSP microcode (IMEM text; hd_code func_80284DB0 DMAs D_80207090)
     - [0x21040, linker, data]
     - [0x21040, bin, hd_front_end/hd_front_end_data] # .data/.rodata (vram 0x80208040)
+    - [0x280B0, .rodata, hd_front_end/0E7B0]
+    - [0x28480, bin, hd_front_end/data_28480]
+    - [0x29620, .rodata, hd_front_end/196F0]
+    - [0x29670, bin, hd_front_end/data_29670]
   - [0x29E90]

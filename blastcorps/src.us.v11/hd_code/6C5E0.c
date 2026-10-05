@@ -35,7 +35,31 @@ s32 func_802B1150(void) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u64 *D_803EDFC8;
+extern u64 *D_803EDFCC;
+extern void *D_803EDFD0; /* engine sound handle */
+extern u8 D_803EDC10[];  /* this vehicle's animation channel table */
+void func_802A7764(u64 *a, u64 *b, s32 size);
+void func_802A02E4(s32 idx, void *base);
+void func_802C444C(void);
+void func_802608C8(void *arg0);
+
+/* Vehicle-type 2 shutdown (called from hd.c's func_8024B188): zeroes the
+ * speed (s16 at +0x76), func_802A7764(D_803EDFC8, D_803EDFCC, 0x1400), stops
+ * channel 31 of D_803EDC10, func_802C444C(), then stops the engine sound
+ * D_803EDFD0 (func_802608C8). The asm leaves v1 = &D_803EDC10 only if
+ * func_802608C8 (C) happens to keep it; the C caller doesn't use it. */
+void func_802B11B8(void) {
+    *(s16 *) (D_803EDF10 + 0x76) = 0;
+    func_802A7764(D_803EDFC8, D_803EDFCC, 0x1400);
+    func_802A02E4(0x1F, D_803EDC10);
+    func_802C444C();
+    func_802608C8(D_803EDFD0);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6C5E0/func_802B11B8.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

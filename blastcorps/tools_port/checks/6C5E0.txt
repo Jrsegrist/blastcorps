@@ -47,3 +47,11 @@ func_802B1228: -n 200 --ret void --mem D_803EDF10+0x99:1=rand --mem D_8036444C:2
 func_802B1228: -n 200 --seed 1 --ret void --follow func_802A039C,func_802A040C,func_802A0480,func_802A05D0,func_802A05F8,func_802A0620,func_802A06B4 \
     --mem D_803EDF10+0x99:1=rand --mem D_8036444C:2=rand --mem D_80364450:2=rand --mem D_80367738=int \
     --mem D_803EDC10:0x100=rand --mem D_803B35F8:0x180=onehot:0x18:0x802C2308:rand --sig func_80260650=a0,a1,a2
+
+# func_802B11B8 (vehicle-type 2 shutdown): speed = 0, func_802A7764(D_803EDFC8, D_803EDFCC, 0x1400), stop channel 31, func_802C444C, stop engine sound
+func_802B11B8: -n 200 --seed 1 --mem D_803EDFC8=int --mem D_803EDFCC=int --mem D_803EDFD0=words:0,0x80380000 --mem D_803EDF10+0x76:2=rand \
+    --sig func_802A7764=a0,a1,a2 --sig func_802C444C= --sig func_802608C8=a0
+# callees followed (copy direction both ways, NULL and non-NULL sound handle); alEvtqPostEvent's a1 is a stack address (frames differ)
+func_802B11B8: -n 100 --seed 2 --heap 0x1400 --heap 0x1400 --heap 0x100 --mem D_803EDC10:0x300=rand --mem D_803EDFC8=rel:heap0 \
+    --mem D_803EDFCC=rel:heap1 --mem D_803EDFD0=choice:0,0x80B02820 --mem D_803EDF10+0x76:2=0xFFFF --mem D_8035805C:1=choice:0,1 \
+    --follow func_802A7764,func_802A02E4,func_802608C8 --sig func_802C444C= --sig func_8029A7E4=a0 --sig alEvtqPostEvent=a0,a2

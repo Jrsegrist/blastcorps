@@ -103,6 +103,52 @@ func_802A6C10: in v1=a0,t1=a1,t7=a2,s2=a3,s3=stack0,s5=stack1 ; preserve a0,a1,a
 func_802A6EB8: in t4=a0 ; out t2=ret ; preserve a0,a1,a2,a3,t0,t1,t3,t4,t5,t8,f12,f14
 
 # --- 62740 ---
+# gp = the current vehicle's record (D_803EDB40, D_803EDF10, ...: differs per caller, so it is an
+# argument here, not a global base); the C takes it as `u8 *veh`
+func_802A6F00: in gp=a0 ; preserve v0,v1,a0,f12,f14
+func_802A6FE4: in gp=a0,a1=a1 ; preserve v1,a0,a2,a3,t6,f12,f14
+func_802A7070: in gp=a0,t7=a1 ; preserve v0,v1,a0,a1,a2,a3,t6,f12
+func_802A70D8: in gp=a0 ; preserve v0,v1,a0,a1,a3,t6,f12,f14
+# heading step: v1 = stepped heading (left alone when heading == target), a0 = target
+func_802A746C: in gp=a0,a1=a1,v1=a2 ; out v1=ret,a0=*a3 ; preserve a3,t6,f12,f14
+func_802A754C: in gp=a0 ; preserve a1,a3,t0,t1,t6,t7,f12,f14
+# vehicle save/restore through D_803EB7A0; 768C also copies t0 bytes a2 -> a3 and returns them advanced
+func_802A75DC: in gp=a0,v0=a1,v1=a2,a0=a3,a1=stack0 ; preserve v0,a0,a1,a2,a3,t0,t2,t3,t6,t7,f12,f14
+func_802A768C: in gp=a0,v0=a1,v1=a2,a0=a3,a1=stack0,a2=stack1,a3=stack2,t0=stack3 ; out a2=ret,a3=*stack4 ; preserve v0,a0,a1,t0,t1,t2,t3,f12,f14
+func_802A77D0: in gp=a0 ; preserve a0,a1,a2,a3,t6
+func_802A7A1C: in t2=a0,s1=a1 ; out t4=ret ; preserve v0,v1,a0,t2,t3,t6
+func_802A7AAC: in t2=a0,s1=a1 ; out t4=ret ; preserve v0,v1,a0,t2,t3,t6
+func_802A7C28: in gp=a0,t2=a1,s1=a2 ; out t4=ret ; preserve t1,t2,t3,t6 ; clobbers s1
+func_802A7CB0: in gp=a0,v1=a1 ; out v0=ret ; preserve v1,a1,a2,a3,f12,f14
+func_802A7D68: in t7=a0,s0=a1 ; out t3=ret ; preserve t1,t6
+func_802A7E70: in s3=a0,s4=a1 ; preserve a0,a1,a2,a3,t6,t7 ; clobbers s3
+# t5 = matching D_80305C58 value, left alone when none
+func_802A8314: in t5=a0 ; out t5=ret ; preserve v0,v1,a0,a1,a2,a3,t1,t6
+func_802A83B8: in t6=a0,s0=a1,s7=a2,t8=a3 ; out f12=fret ; preserve a0,a1,a2,a3,t6
+func_802A8590: in s7=a0 ; out t1=ret ; preserve t6,t7,f2
+func_802A8FF4: in gp=a0 ; preserve a1,a2,a3,t0,t1,t7,t8,t9,f12,f14
+func_802A9038: in gp=a0 ; preserve v0,t0,t1,t7,t8,t9,f12,f14
+func_802A90E4: in v1=a0 ; preserve v0,a1,a2,a3,t0,t1,t7,t8,t9,f12,f14
+func_802A9164: in gp=a0,s0=a1,t8=a2 ; preserve a0,a2,a3,t7,t8,f12,f14
+func_802A9514: in s3=a0 ; out s3=ret ; preserve a1,a2,a3,t0,t1,t2,t8,t9,f12,f14
+func_802A9CAC: in v0=a0,t8=a1 ; preserve v1,a0,a1,a2,a3,t3,f12,f14
+# plane height over (t0,t1) of triangle (s1,s2,s3) (s4,s5,s6) (s7,t8,t9) -> v0; also leaves a3, t6
+func_802AA2E4: in t0=a0,t1=a1,s1=a2,s2=a3,s3=stack0,s4=stack1,s5=stack2,s6=stack3,s7=stack4,t8=stack5,t9=stack6 ; out v0=ret,a3=*stack7,t6=*stack8 ; preserve v1,a0,a1,a2,t0,t1,t2,t3,t7,f12,f14
+# point (t0,t1) inside triangle (s1,s3) (s4,s6) (s7,t9) -> v0; FP side results through one struct (f24 in/out)
+func_802AA460: in t0=a0,t1=a1,s1=a2,s3=a3,s4=stack0,s6=stack1,s7=stack2,t9=stack3,f24=*stack4+16 ; out v0=ret,f12=*stack4,f14=*stack4+4,f20=*stack4+8,f22=*stack4+12,f24=*stack4+16,f26=*stack4+20 ; preserve v1,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,t8,t9 ; clobbers f28
+# Mtx chain (a1 matrices at s4 + a2[i]) then transform (v0,v1,a0); count 0 returns s0/s1/s2 >> 11
+func_802AA890: in a1=a0,a2=a1,s4=a2,v0=a3,v1=stack0,a0=stack1,a3=*stack2+8,s1=*stack2+12,s2=*stack2+16,s0=*stack2+20 ; out v0=ret,v1=*stack2,a0=*stack2+4,a3=*stack2+8,s1=*stack2+12,s2=*stack2+16 ; preserve a1,a2,t0,t1,t2,t3,t4,t5,t6,t7,f12,f14
+# point-in-bounding-box of a triangle: point (t0,t1), corners (s1,s3) (s4,s6) (s7,t9)
+func_802AA5E0: in t0=a0,t1=a1,s1=a2,s3=a3,s4=stack0,s6=stack1,s7=stack2,t9=stack3 ; out v0=ret ; preserve a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,t8,t9,f12,f14
+func_802AA838: in t0=a0,t1=a1,t2=a2 ; preserve a1,a2,a3,t0,t1,t3,t4,f12,f14
+# line-intersection steps for func_802AAF64: results in f10 (fret) and f20 (*stack3)
+func_802AB1B0: in t0=a0,s7=a1,v1=a2,a1=a3,t9=stack0,t1=stack1,a0=stack2 ; out f10=fret,f20=*stack3 ; preserve v0,v1,a0,a1,t0,t1,t3,t4,t5,t6,t7
+func_802AB234: in s7=a0,t0=a1,v0=a2,a0=a3,t1=stack0,t9=stack1,a1=stack2 ; out f10=fret,f20=*stack3 ; preserve v0,v1,a0,a1,t0,t1,t3,t4,t5,t6,t7
+func_802AB2B8: in t1=a0,t9=a1,a1=a2,v1=a3,s7=stack0,t0=stack1,v0=stack2 ; out f10=fret,f20=*stack3 ; preserve v0,v1,a0,a1,t0,t1,t3,t4,t5,t6,t7
+func_802AB33C: in t9=a0,t1=a1,a0=a2,v0=a3,t0=stack0,s7=stack1,v1=stack2 ; out f10=fret,f20=*stack3 ; preserve v0,v1,a0,a1,t0,t1,t3,t4,t5,t6,t7
+func_802AB41C: in t4=a0,t8=a1 ; out a2=ret ; preserve a0,a1,a3,t0,t1,t2,t3,t4,t5,t6,t7,t8,f12,f14
+# D_803EBC10 record lookup: a0 = (first record with id v0) + (v1-1)*0x10, v1 = (v1-1)*0x10
+func_802ABC88: in v0=a0,v1=a1 ; out v1=ret,a0=*a2 ; preserve a1,a2,a3,t0,t3,t6,t7,f12,f14
 # rounded 3-D distance between (t3,t4,t5) and (t6,t7,s0); 64-bit squares, cvt.d.l/sqrt.d/cvt.l.d
 func_802ABCDC: in t3=a0,t4=a1,t5=a2,t6=a3,t7=stack0,s0=stack1 ; out s1=ret ; preserve t6,t7,s0 ; clobbers s1
 

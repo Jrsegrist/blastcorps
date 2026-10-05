@@ -149,7 +149,9 @@ typedef struct {
     u8 pad0[0x10];
     u32 unk10;
     s32 unk14;
-    u8 unk18[0xE8]; /* per level */
+    u8 unk18[0xD8]; /* per level */
+    u32 unkF0; /* vehicle flags */
+    u8 padF4[0xC];
 } Player; /* 0x100 bytes */
 extern Player D_80364AF0[];
 extern u8 D_80364AE8;
@@ -165,7 +167,7 @@ void func_802AB478(u8);
 void func_8028F6B4(u8);
 void func_80291ED8(u8);
 void func_802794E4(void);
-s32 func_8024AFA8(u8);
+s32 func_8024AFA8(s32);
 void func_802AE860(void);
 void func_8026AD30(s32);
 s32 func_80260634(s32);
@@ -375,6 +377,23 @@ void func_802CD068(void);
 void func_802CFDE8(void);
 void func_802D0F98(void);
 
+void func_802AFFD4(void);
+void func_802B1228(void);
+void func_802B2D7C(void);
+void func_802B448C(void);
+void func_802B5CD8(void);
+void func_802BB054(void);
+void func_802BBDC8(void);
+void func_802B76AC(void);
+void func_802C5714(void);
+void func_802C9F54(void);
+void func_802C8AB0(void);
+void func_802CBA94(void);
+void func_802CCC8C(void);
+void func_802CFA0C(void);
+void func_802D0C68(void);
+void func_8025BBE8(s32, s32, s32);
+
 /* (end of declarations) */
 
 /* Boot: reads 16 words from PI address 0xFFB000, then starts the idle thread */
@@ -519,7 +538,70 @@ void func_8024AE2C(void) {
     }
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_8024AFA8.s")
+/* Vehicle enter handler; returns whether the id is a vehicle */
+s32 func_8024AFA8(s32 id) {
+    u8 ok = 1;
+
+    switch (id) {
+        case 1:
+            func_802AFFD4();
+            break;
+        case 2:
+            func_802B1228();
+            break;
+        case 3:
+            func_802B2D7C();
+            break;
+        case 4:
+            func_802B448C();
+            break;
+        case 5:
+            func_802B5CD8();
+            break;
+        case 6:
+            func_802BB054();
+            break;
+        case 7:
+            func_802BBDC8();
+            break;
+        case 8:
+            func_802B76AC();
+            break;
+        case 9:
+            func_802C5714();
+            break;
+        case 10:
+            func_802C9F54();
+            break;
+        case 11:
+        case 17:
+        case 18:
+            func_802C8AB0();
+            break;
+        case 13:
+            func_802CBA94();
+            break;
+        case 14:
+            func_802CCC8C();
+            break;
+        case 15:
+            func_802CFA0C();
+            break;
+        case 16:
+            func_802D0C68();
+            break;
+        default:
+            ok = 0;
+            break;
+    }
+    if (ok && (D_80364A90 & 0x104)) {
+        func_8025BBE8((D_80364AF0[D_80364AE8].unkF0 & (1 << id)) ? 0x80 : 0x40, 0, 0);
+    }
+    if (ok) {
+        func_8029A7E4("changing to digger %d\n", id);
+    }
+    return ok;
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_8024B188.s")
 
@@ -958,7 +1040,78 @@ void func_802502EC(void) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_802507C8.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_80254E54.s")
+/* Speed limit for the current vehicle, scaled down past 10000 units of travel */
+f32 func_80254E54(f32 x0, f32 y0, f32 z0, f32 x1, f32 y1, f32 z1) {
+    f32 speed;
+    f32 dx;
+    f32 dy;
+    f32 dz;
+    f32 dist;
+
+    switch (D_80364456) {
+        case 0:
+            speed = 3.5f;
+            break;
+        case 1:
+            speed = 1.4f;
+            break;
+        case 2:
+            speed = 1.6f;
+            break;
+        case 3:
+            speed = 4.8f;
+            break;
+        case 4:
+            speed = 5.0f;
+            break;
+        case 5:
+            speed = 5.0f;
+            break;
+        case 6:
+            speed = 1.6f;
+            break;
+        case 7:
+            speed = 1.6f;
+            break;
+        case 8:
+            speed = 4.8f;
+            break;
+        case 9:
+            speed = 1.6f;
+            break;
+        case 10:
+            speed = 5.0f;
+            break;
+        case 11:
+        case 17:
+        case 18:
+            speed = 1.6f;
+            break;
+        case 13:
+            speed = 4.8f;
+            break;
+        case 14:
+            speed = 4.8f;
+            break;
+        case 15:
+            speed = 4.8f;
+            break;
+        case 16:
+            speed = 1.6f;
+            break;
+    }
+    dx = x0 - x1;
+    dx = dx * dx;
+    dy = y0 - y1;
+    dy = dy * dy;
+    dz = z0 - z1;
+    dz = dz * dz;
+    dist = sqrtf(dx + dy + dz);
+    if (dist * speed > 10000.0f) {
+        speed = speed - (dist * speed - 10000.0f) / dist;
+    }
+    return speed;
+}
 
 /* Polar to cartesian: point at angle (degrees) on a circle of radius r*sqrt(2) */
 void func_80255034(s32 r, f32 angle, s32 *outX, s32 *outY) {

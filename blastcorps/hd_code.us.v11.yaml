@@ -262,6 +262,7 @@ segments:
     - [0xC3380, .data, hd_code/ul_syncputchars]
     - [0xC3390, .data, hd_code/ul_xlitob]
     - [0xC33C0, bin, hd_code/hd_code_data_C33C0]
+    - [0xC33D0, .rodata, hd_code/00000] # hd.c
     - [0xC4520, .rodata, hd_code/14B30] # drawtext.c
     - [0xC4720, .rodata, hd_code/168B0]
     - [0xC47D0, .rodata, hd_code/17210]

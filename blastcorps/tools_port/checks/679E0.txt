@@ -10,3 +10,12 @@ func_802AC7DC: -n 50 --seed 1 --arg a1=ptr:0x200 --arg a2=ptr:0x10 --arg a0=rel:
 func_802AC85C: -n 200 --ret void --arg a1=ptr:0x200 --arg a2=ptr:0x10 --arg a0=rel:heap0+0x100+int:0:7
 func_802AC85C: -n 50 --seed 1 --ret void --arg a1=ptr:0x200 --arg a2=ptr:0x10 --arg a0=rel:heap0+0x100+choice:0,1,2,3 \
     --mem @a0:0xB2=bytes:0,0xFF,0x80,0x7F,1
+
+# func_802ACF64 (non-ABI: x in v1, result in fp): interpolate D_802ACFD0[x>>8 clamped to 0x3FF] by x&0xFF
+func_802ACF64: -n 300 --arg a0=int
+func_802ACF64: -n 300 --seed 1 --arg a0=choice:0,0xFF,0x100,0x3FEFF,0x3FF00,0x3FFFF,0x40000,0x400FF,0x7FFFFFFF,0x80000000,-1
+func_802ACF64: -n 300 --seed 2 --arg v1=int:0:0x40000
+# func_802ACF3C: func_802ACF64(x); callee stubbed (mapped), then followed
+func_802ACF3C: -n 200 --arg a0=int
+func_802ACF3C: -n 300 --seed 1 --follow func_802ACF64 --arg a0=int
+func_802ACF3C: -n 100 --seed 2 --follow func_802ACF64 --arg a0=choice:0,0x3FF00,0x3FFFF,0x40000,-1

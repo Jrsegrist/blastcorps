@@ -192,19 +192,83 @@ compared between the builds.
 
 * `--follow NAME[,NAME]` runs that callee for real, using each build's own version of it. `--follow-all` runs every callee.
 * **Static helpers are followed automatically.** A callee that exists only in the new build (no symbol of that name in the reference build, typically a `static` helper a rewrite introduced) is part of the rewrite, so it always runs for real instead of showing up as an extra call. The run prints `note: following NAME, which exists only in build_nm`.
-* `--sig NAME=a0,a1` sets which registers count as NAME's arguments. Use it when a callee takes fewer than 4 arguments and the two versions leave different garbage in the unused ones. `--sig '*=a0'` changes the default. Non-ABI callees can list t-registers (`--sig func_802ABD54=a0,a1,a2,a3,t3,t4,t5`).
-* `--stub-ret NAME=VALUE|rand|ptr:SIZE` sets what a stubbed callee returns. `ptr` hands out deterministic heap blocks, which is useful for allocators.
+* `--sig NAME=a0,a1` sets which registers count as NAME's arguments. Use it when a callee takes fewer than 4 arguments and the two versions leave different garbage in the unused ones. **`--sig NAME=` (empty list) compares no arguments at all**, just that the call happened, for a callee that takes none (otherwise leftover a0-a3 garbage is compared). `--sig '*=a0'` changes the default. Stack arguments can be listed as `stack0` (= `sp+0x10`), `stack1`, ... For a callee in `conventions.txt` (section 3a) the arguments are already mapped, and `--sig` then selects C slots (`--sig func_802ABCDC=a0,a1,a2`).
+* `--stub-ret NAME=VALUE|rand|ptr:SIZE` sets what a stubbed callee returns (its first convention output, if it has one; `--stub-ret NAME.REG=..` sets the output in asm register REG). `ptr` hands out deterministic heap blocks, which is useful for allocators.
+* `--stub-preserve NAME=v1,a0` keeps a stub from writing those registers. The default stub writes v0, v1 and f0; asm callers that rely on the callee preserving one of them (func_802A57AC keeps &D_803C4B54 in v1 across func_802A57DC) fault in the reference otherwise. `NAME=*` applies to every stub. Put permanent cases in `conventions.txt` as `preserve`.
+* `--model NAME=FILE.py[:FUNC]` runs a Python function in place of NAME in both builds (like `--follow`, so no call is recorded). It is called as `FUNC(args, mem)`: `args` are NAME's inputs in C argument order (its convention's `in` list, else a0-a3), `mem` reads and writes guest memory (`mem.u32(a)`, `mem.s16(a)`, `mem.w32(a, v)`, `mem.read(a, n)`, `mem.sym("D_8036...")`). It returns the outputs in `out` order (an int for one), delivered on the caller's side like a stub's. FILE is also looked up in `tools_port/models/` (example: `func_802ABCDC.py`). Use it for a callee that can't run in the emulator, or to cross-check a model.
 
 Calls are recognized by control reaching a function's entry address, so
 `jal`, `jalr`, and tail `j`/`b` all count. A target outside any loaded code
 (another overlay, or a NULL function pointer) becomes `sub_XXXXXXXX` and is
 stubbed.
 
+### 3a. Non-ABI functions: `conventions.txt`
+
+About 540 hand-asm functions take inputs in t-, s-, v-registers (and gp/fp)
+and return results in v1, s-, t-registers or fp. Their C rewrites use plain
+o32: ordinary parameters and a return value, with extra outputs through
+pointer arguments. `tools_port/conventions.txt` records the mapping, one line
+per function, and eqcheck applies it automatically:
+
+```
+func_8029DC14: in v0=a0 ; out v1=ret
+func_802ACF64: in v1=a0 ; out fp=ret ; preserve a0,a1,v1
+func_802AB8D8: in s2=a0 ; out t0=ret ; preserve t1,t2,t3,t4,s3 ; clobbers s2
+func_802ABCDC: in t3=a0,t4=a1,t5=a2,t6=a3,t7=stack0,s0=stack1 ; out s1=ret ; preserve t6,t7,s0 ; clobbers s1
+func_802A57DC: preserve a0,v1
+```
+
+| clause | meaning |
+|---|---|
+| `in REG=SLOT,..` | the asm takes an input in REG; the C version takes it in SLOT: `a0`-`a3`, `stackN` (the word at sp+0x10+4N), `f12`, `f14`, or `*SLOT[+OFF][:W]` (read through a pointer argument; W = 1, 2, 4 bytes). List **every** input, ABI ones too (`a0=a0`), in C argument order. REG may be `stackN` for a stack argument the asm reads in place. |
+| `out REG=DEST,..` | the asm returns a value in REG; the C version delivers it as `ret` (v0), `fret` (f0), another register, or `*SLOT[+OFF][:W]` (written through a pointer argument). Several outputs through one struct pointer: `out s1=*a2,t0=*a2+4`. An output written on some paths only is passed in and out: `in t0=*a2 ; out t0=*a2`. |
+| `preserve REGS` | registers the asm leaves unchanged and its asm callers rely on. A default stub (no `in`/`out`) won't write them. |
+| `clobbers REGS` | callee-saved registers (s0-s7, fp, f20-f31) the asm changes without documenting them as outputs. Not compared when this function is the one under test (outputs aren't either; they're compared through the mapping). Ranges work: `s0-s7`. |
+
+`#` starts a comment. A line with `in` or `out` is a **full** convention.
+`python3 tools_port/draftconv.py func_X [func_Y ..]` drafts a line from the
+asm survey (`funcs.json`: inputs, outputs used, conditional outputs, clobbered
+s-registers, what asm callers rely on) with notes; check it against the asm
+and edit before adding it. `--conv 'NAME: ...'` adds or replaces a line for
+one run, `--conv-file`/`--no-conv` pick or disable the file. `runchecks`
+refuses to start if the file doesn't parse.
+
+**The function under test.** Every input gets the same value in its asm
+register (reference) and its C slot (rewrite); where a register isn't the
+other side's input it gets the value on both sides, so callee-saved
+comparisons stay fair. `--arg` may name either (`--arg a0=..` or
+`--arg s2=..`; if an asm input register is also a C slot of a different
+input, `--arg REG` means the asm register). Pointer slots point at scratch
+blocks outside the compared memory (0x80D80000..), pre-filled with poison and
+holding the `*SLOT` inputs. After the run each output is compared as asm
+register vs C result (`output t0=v0: build=.. build_nm=..`). `--ret`
+defaults to `void` for a full convention, since the outputs are compared
+instead. The reference/rewrite side is decided per build: a function is "asm"
+in a build when its `GLOBAL_ASM` pragma is used there (always in `build/`; in
+`build_nm/` unless it sits in the `#else` of `#ifdef NON_MATCHING`), else "C".
+So `--new build` compares asm with asm, register by register.
+
+**Callers.** When a stubbed callee has a full convention, the stub looks at
+which code made the call (the function containing the calling block): from
+asm it reads the arguments from the asm registers and writes its canned
+outputs into the asm output registers *and nothing else*; from C it reads
+a0-a3/stack/f12/f14 (through the pointer for `*SLOT` inputs) and writes v0
+(`ret`), f0, or through the pointer argument. Arguments are recorded under
+their C slot names, so the asm caller and its C rewrite compare.
+`--follow NAME` needs nothing special: each build runs its own version (asm
+with register inputs, C with o32).
+
+```
+# C rewrite of func_802AB878 (asm: or s2,a0,0 ; jal func_802AB8D8 ; or v0,t0,0)
+eqcheck.py func_802AB878 --arg a0=int                         # callee stubbed: s2 vs a0, t0 vs v0
+eqcheck.py func_802AB878 --follow func_802AB8D8 --arg a0=..   # both builds run their own callee
+```
+
 ### What is compared
 
 1. **Outcome.** Did both runs return? A run that hits the same unmapped address or CPU exception in both builds counts as equivalent and is reported in the summary. A timeout in either build is a failure.
-2. **Return registers.** Set with `--ret int` (default `v0`), `ptr`, `void`, `u64` (`v0`,`v1`), `float` (`f0`), `double` (`f0`,`f1`), or `regs:v0,t0,...` for non-ABI outputs.
-3. **Callee-saved registers** (`s0`-`s7`, `fp`, `sp`, `gp`, `f20`-`f31`). This catches hand asm that returns values in s-registers. Use `--ignore-reg R` or `--no-saved-check` to relax it.
+2. **Return registers.** Set with `--ret int` (default `v0`), `ptr`, `void`, `u64` (`v0`,`v1`), `float` (`f0`), `double` (`f0`,`f1`), or `regs:v0,t0,...` for non-ABI outputs. A function with a full convention has its outputs compared through the mapping (section 3a).
+3. **Callee-saved registers** (`s0`-`s7`, `fp`, `sp`, `gp`, `f20`-`f31`). This catches hand asm that returns values in s-registers. Use `--ignore-reg R` or `--no-saved-check` to relax it. Registers that the function's convention lists as outputs or `clobbers` are skipped.
 4. **Memory.** Every byte that differs from the start-of-run state in either run: game RAM (data, bss, globals), heap, caller frame, NM-only sections, and the MMIO register blocks. Bytes below the entry `sp` are the callee's private frame and are ignored, as are the 16 arg-home bytes at `0(sp)` unless you pass `--check-home`. Addresses that exist only in the new build are translated by symbol.
 5. **Call sequence**, plus the MMIO access sequence with `--mmio-log`.
 
@@ -282,9 +346,9 @@ block in `src.us.v11/hd_code/*.c` and reports any with no check line
 (`MISSING`, which makes the exit status nonzero). It also notes check lines for
 functions that have no rewrite.
 
-Current suite (Oct 2026): 61 rewritten functions, 148 runs, all PASS, about
-70 s wall at `-j4` and 58 s at `-j8` (was 637 s at `-j4` before the
-restore/diff speedup, see section 6).
+Current suite (Oct 2026): 112 rewritten functions, 282 runs, all PASS, about
+76 s wall at `-j8` (148 runs took 637 s at `-j4` before the restore/diff
+speedup, see section 6).
 
 ## 5. Writing checks for a new rewrite
 
@@ -316,14 +380,21 @@ restore/diff speedup, see section 6).
    use the real width (`--ret int` when the asm returns the full 32-bit value).
 7. **`--sig NAME=a0,a1`** for callees that take fewer than 4 arguments, so
    garbage in unused argument registers isn't compared.
-8. **Static helpers are fine.** A rewrite may split work into `static`
+   Use `--sig NAME=` for a callee that takes no arguments.
+8. **Non-ABI interfaces.** If the function (or a callee) takes or returns
+   values outside o32, add its line to `conventions.txt` (start from
+   `python3 tools_port/draftconv.py NAME`), write the C with ordinary
+   parameters/return/pointer outputs, and check it directly (inputs aliased,
+   outputs mapped) and from a rewritten caller, both stubbed and with
+   `--follow`. Keep the "asm callers rely on preserved" comment in the C.
+9. **Static helpers are fine.** A rewrite may split work into `static`
    functions: callees that exist only in `build_nm` are run, not stubbed, so
    they don't show up as extra calls. (Helpers must not share a name with any
    function in the matching build, or they'll be stubbed and compared as calls.)
-9. **Mutation spot-check.** Break the C once on purpose (loop bound, a
+10. **Mutation spot-check.** Break the C once on purpose (loop bound, a
    dropped check, `<` for `<=`, a dropped store of 0), rebuild NON_MATCHING,
    confirm at least one check line FAILs, then revert and rebuild.
-10. Add the lines to `tools_port/checks/<FILE>.txt` and run
+11. Add the lines to `tools_port/checks/<FILE>.txt` and run
    `bash tools_port/runchecks.sh -b <FILE>` (or `-b --changed`), then the whole
    suite before you commit.
 
@@ -340,6 +411,10 @@ restore/diff speedup, see section 6).
 | func_80275DA4, wrong geometry mode | broken | vs build_nm | FAIL trial 0: `heap+0xE` 02 vs 00 |
 | func_802CE840 (fills a 25-entry table) | hand asm, C rewrite | vs build_nm | PASS 50 |
 | func_802C8AB0 (sets 2 globals, calls func_802C4310(a0, 0x72)) | hand asm, C rewrite | vs build_nm | PASS 200 |
+| func_8029DC14 (id in v0, result in v1), func_802ACF64 (v1 -> fp), func_802AB8D8 (s2 -> t0, recursive) | non-ABI asm, C rewrite via conventions.txt | vs build_nm | PASS 300 each |
+| func_8029DBF0 / func_802ACF3C / func_802AB878 (wrappers of the above) | callee stubbed under the mapping / `--follow` | vs build_nm | PASS 200 / 300 |
+| func_8029DC14 without the byte-0x51 test; func_802AB878 passing id+1 | broken | vs build_nm | FAIL: `output v1=v0` 1 vs 0; `event #0 differs: func_802AB8D8(a0=0x9) vs (a0=0xA)` |
+| func_802BD10C (calls func_802ABCDC: cvt.d.l/sqrt.d/cvt.l.d) | FPU long ops emulated; also `--model` | vs build_nm | PASS 300; z read from the wrong word: FAIL |
 
 A trial (both builds) takes about 5-10 ms for a small function, and a run
 starts in about 0.4 s. Guest RAM is mapped from host buffers
@@ -357,9 +432,9 @@ under `-j4`; the 148-run suite went from 637 s to 69 s at `-j4`.)
 * **Equivalence is only as good as the inputs.** Randomize every global the function reads (`--explore` lists them), and use value pools that reach the edge cases: NULL, 0, negative values, counts at their bounds.
 * **No hardware.** MMIO (`0xA4xxxxxx`: SP, DP, MI, VI, AI, PI, RI, SI) is plain memory. A write then a read returns the written value, nothing has side effects, DMA never happens, and status registers read whatever you preset with `--mmio`, otherwise 0. A loop polling a busy bit therefore exits at once or spins until `--timeout`. RSP and RDP code (microcode, `osSpTask*`) and cartridge or PIF space (unmapped, so access faults) can't be tested this way. Final MMIO state is compared; the order of accesses is compared only with `--mmio-log`.
 * **Interrupts, threads, and the OS** don't exist. Stub calls into libultra (the default), or follow only pure ones such as `guMtxL2F`.
-* **FPU.** Runs as R4000 with Status.FR=0, as IDO's o32 code expects: doubles live in even/odd pairs. The FCSR starts at 0 (round to nearest, no traps). The harness compares raw bits, so a different NaN payload or a different but legitimate rounding order (for example `a*b+c` evaluated in another order) shows up as a difference. Inspect those by hand. Results under flush-to-zero or unimplemented-operation exceptions follow QEMU, not the VR4300.
+* **FPU.** Runs as R4000 with Status.FR=0, as the game does: libultra's osCreateThread gives every thread SR = IMASK|IE|EXL, the exception handler only ORs in CU1 on first FPU use, and IDO's o32 code keeps doubles in even/odd pairs. The VR4300 still executes the long-integer ops (`cvt.d.l`, `cvt.s.l`, `cvt.l.d`/`.s`, `round/trunc/ceil/floor.l`) in that mode, on an even/odd pair (used by func_802ABCDC and libultra's `__ll_to_d` family). QEMU raises a reserved-instruction exception for them unless FR=1, so eqcheck replaces each such word in the loaded code with a nop and emulates it in a per-address code hook (delay slots included). Conversions use the FCSR rounding mode for `cvt.l`; `cvt.d.l`/`cvt.s.l` round to nearest. A NaN, infinity or out-of-range source (where the VR4300 raises an unimplemented-operation exception) ends the run as "can't compare". The FCSR starts at 0 (round to nearest, no traps). The harness compares raw bits, so a different NaN payload or a different but legitimate rounding order (for example `a*b+c` evaluated in another order) shows up as a difference. Inspect those by hand. Results under flush-to-zero or unimplemented-operation exceptions follow QEMU, not the VR4300.
 * **64-bit registers.** The CPU runs in 64-bit mode, because the hand asm uses `sd`/`ld`/`dsll`. Inputs are sign-extended 32-bit values. Comparisons use the low 32 bits, so functions passing true 64-bit values in a single register aren't fully checked.
-* **Non-ABI functions.** Asm that takes inputs in t-registers or returns values in s- or t-registers can be described with `--arg t3=...`, `--ret regs:...` and `--sig`. C can't reproduce such a convention, though. When a rewrite changes it, rewrite the callers too and test at a boundary that is ABI-clean again (the caller, with `--follow` on the callee).
+* **Non-ABI functions** are mapped through `conventions.txt` (section 3a). What it can't express: gp or fp used as a global base pointer rather than an argument (draftconv flags `gp_offsets`; the C reads the globals directly, so don't map them); outputs whose *register* depends on the path (not just whether it is written); values passed in hi/lo or the FPU condition flag; full 64-bit values in one register (only the low 32 bits are compared); and asm callers that rely on registers a C callee doesn't preserve (`asm_callers_rely_on_preserved`: a mixed N64 build would need a thunk; the harness's C side doesn't model it). Pointer-slot outputs/inputs (`*aN`) are new and so far exercised only by asm-vs-asm runs and the parser; the three demo rewrites use register/`ret` mappings.
 * **Call detection is entry-address based.** Asm that falls through into the next function, or jumps into the middle of another function, isn't seen as a call. The fall-through target becomes a recorded call only in the rewrite, which looks like a spurious difference. Fix it with `--follow` on that target.
 * **Data blobs keep original code addresses.** Jump tables and function-pointer tables inside the raw `.bin` blobs, and functions that live *inside* a blob (such as func_802C4310 in `7D9D0_data`), point at the original text. The NM machine is pre-filled with the original text at its old address, so those paths still execute (the original code). Function entries reached that way are translated by name, and other blocks print a `note:`.
 * **Infinite loops.** These are caught by `--max-insns` and `--timeout`. They are reported as a failure if only one build loops, and as "can't compare" if both do.

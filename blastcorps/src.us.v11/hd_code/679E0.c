@@ -118,7 +118,42 @@ void func_802AC85C(u8 *src, u8 *dst, u32 *words) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/func_802ACEB8.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+s32 func_802ACF64(u32 x);
+
+/* Wrapper: returns func_802ACF64(x) (34430.c uses it to turn a 16.16 ratio
+ * into an angle). */
+s32 func_802ACF3C(s32 x) {
+    return func_802ACF64(x);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/func_802ACF3C.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u16 D_802ACFD0[0x401]; /* table right after this function in the text */
+
+/* Linear interpolation in D_802ACFD0: entry x >> 8 (clamped to 0x3FF) plus
+ * (next - entry) * (x & 0xFF) / 256. The product is shifted logically, so a
+ * decreasing step yields a large positive term, as in the asm.
+ * Register convention: the asm takes x in v1 and returns the result in fp,
+ * keeping a0, a1 and v1 (tools_port/conventions.txt); this C is plain o32.
+ * Asm callers func_802A8768 (a1, a3, t7-t9, f12, f14) and func_802A8B10
+ * (a1, a3, t2, t9) rely on registers surviving the call (a mixed N64 build
+ * would need a thunk; the native port doesn't). */
+s32 func_802ACF64(u32 x) {
+    u32 i = x >> 8;
+    s32 lo;
+    s32 step;
+
+    if (i > 0x3FF) {
+        i = 0x3FF;
+    }
+    lo = D_802ACFD0[i];
+    step = D_802ACFD0[i + 1] - lo;
+    return lo + ((u32) (step * (s32) (x & 0xFF)) >> 8);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/func_802ACF64.s")
+#endif

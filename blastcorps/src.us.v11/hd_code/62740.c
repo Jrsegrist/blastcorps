@@ -324,10 +324,49 @@ s32 func_802AB3C0(s32 id) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802AB714.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+s32 func_802AB8D8(s32 id);
+
+/* Wrapper: returns func_802AB8D8(id). 00000.c declares it taking a u8; the
+ * asm passes all of a0 through, so this takes s32. */
+s32 func_802AB878(s32 id) {
+    return func_802AB8D8(id);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802AB878.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* (D_803ED3B8 is declared above, with func_802AB3C0.) */
+
+/* Returns 1 if `id` is in bytes 1-3 of a D_803ED3B8 entry, scanning up to the
+ * -1 terminator; an entry whose bytes 1-3 all equal `id` instead recurses on
+ * its byte 0 (when nonzero), and counts only if that finds a match.
+ * Register convention: the asm takes id in s2 and returns the result in t0,
+ * keeping t1-t4 and s3 but leaving s2 changed on a recursive hit
+ * (tools_port/conventions.txt); this C is plain o32. The asm recursion
+ * relies on t1 surviving its own call, which C handles itself. */
+s32 func_802AB8D8(s32 id) {
+    u8 *entry;
+
+    for (entry = D_803ED3B8; *(s32 *) entry != -1; entry += 4) {
+        if (entry[1] == id) {
+            if (entry[2] != id || entry[3] != id) {
+                return 1;
+            }
+            if (entry[0] != 0 && func_802AB8D8(entry[0]) == 1) {
+                return 1;
+            }
+        } else if (entry[2] == id || entry[3] == id) {
+            return 1;
+        }
+    }
+    return 0;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802AB8D8.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802AB9A4.s")

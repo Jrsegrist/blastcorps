@@ -49,3 +49,7 @@ func_802A57AC: -n 300 --ret void --follow-all --mem D_803C4B54=ptr:0x1000 --mem 
 func_802A57AC: -n 100 --seed 1 --ret void --follow-all --mem D_803C4B54=ptr:0x1000 --mem @heap0=rel:heap0+0x800 \
     --mem @heap0+4=choice:0,2,6,8,0x3E --mem @heap0+8=choice:7,-1,0x100 --mem @heap0+0xC=int \
     --mem @heap0+0x800:0x40=rand --mem D_803C3250:0x40=rand
+
+# func_802A57AC with func_802A57DC stubbed: conventions.txt says it preserves a0 and v1, so the stub
+# leaves them and the asm reference no longer faults (cursor a valid pointer: addi traps on overflow)
+func_802A57AC: -n 100 --seed 2 --ret void --sig func_802A57DC=a0 --mem D_803C4B54=rel:heap+0x10*int:0:100

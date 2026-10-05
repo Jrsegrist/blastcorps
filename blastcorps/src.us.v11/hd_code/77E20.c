@@ -475,21 +475,15 @@ s32 func_802BCE40(void) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BD064.s")
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
-/* PARKED port-phase rewrite (functionally verified, 300/300, with a Python model of
- * func_802ABCDC hooked into eqcheck). Not enabled yet because every path calls
- * func_802ABCDC, which the stock harness can't run (cvt.d.l raises RI under
- * Status.FR=0), so no check line can run; see the BLOCKED lines in
- * tools_port/checks/77E20.txt. To enable: move this inside an
- * `#ifdef NON_MATCHING` / `#else` around the pragma below.
- *
-extern u8 D_803F7809;  // kind of the target (as D_803F7808: 2 and 3 have pos at +0)
-extern u16 D_803EF6FC; // divisor, 0 = none
+#ifdef NON_MATCHING
+extern u8 D_803F7809;  /* kind of the target (as D_803F7808: 2 and 3 have pos at +0) */
+extern u16 D_803EF6FC; /* divisor, 0 = none */
 extern s32 D_8036C7C8;
 
-// D_8036C7C8 = the x/z distance from the player (D_803EF6DC, D_803EF6E4) to
-// the target, divided (unsigned) by D_803EF6FC when that is nonzero. The
-// target's x/z words are at +0x0/+0x8 for kinds 2 and 3, else +0x10/+0x18 (a
-// D_803F4030 entry). The C callers pass the target pointer as an s32.
+/* D_8036C7C8 = the x/z distance from the player (D_803EF6DC, D_803EF6E4) to
+ * the target, divided (unsigned) by D_803EF6FC when that is nonzero. The
+ * target's x/z words are at +0x0/+0x8 for kinds 2 and 3, else +0x10/+0x18 (a
+ * D_803F4030 entry). The C callers pass the target pointer as an s32. */
 void func_802BD10C(s32 arg0) {
     s32 *target = (s32 *) arg0;
     s32 x;
@@ -509,8 +503,9 @@ void func_802BD10C(s32 arg0) {
     }
     D_8036C7C8 = dist;
 }
- */
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BD10C.s")
+#endif
 
 /* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BD1F8.s")

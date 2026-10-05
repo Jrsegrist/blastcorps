@@ -170,6 +170,16 @@ def main():
         checks += parse_checks(path)
     all_checks = checks
 
+    # the register-convention registry must parse (eqcheck reads it on every run)
+    try:
+        sys.path.insert(0, HERE)
+        import eqcheck
+    except ImportError:
+        eqcheck = None
+    if eqcheck is not None:
+        convs = eqcheck.load_convs(eqcheck.CONV_FILE)
+        print("conventions: %d function(s) in tools_port/conventions.txt" % len(convs))
+
     whole = not o.filters and not o.changed     # the coverage check needs the whole suite
 
     # coverage: every NON_MATCHING rewrite has a check line

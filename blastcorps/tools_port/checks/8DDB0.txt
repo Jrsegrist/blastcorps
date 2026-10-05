@@ -1,0 +1,11 @@
+# 8DDB0 port checks
+# BLOCKED (harness: func_802ABCDC's cvt.d.l/cvt.l.d raise RI under Status.FR=0, so the reference
+# can't run it; these lines PASS with a Python model of func_802ABCDC hooked into eqcheck)
+# 8DDB0: func_802D2A74: volume 0x7FFF - max(d - 0x3200, 0) / 4 (>= 0) for sound D_803FCD64, d = distance from
+# D_803643F8/FC/400 >> 11 to D_803FCD48/4C/50. func_802ABCDC inlined (followed in the ref).
+# Source coordinates stay well inside +-2^30 (the asm's dead `sub` traps on overflow).
+# func_802D2A74: -n 300 --seed 0 --ret void --sig func_80260AB8=a0,a1,a2 --follow func_802ABCDC --mem D_803FCD64=choice:0,0x80123450*3 --mem D_803643F8=choice:0,0x800,-0x800,0x1000000,-0x1000000,0x7FFFFFFF,0x80000000,0x123456 --mem D_803643FC=choice:0,0x800,-0x800,0x1000000,-0x1000000,0x7FFFFFFF,0x80000000,0x123456 --mem D_80364400=choice:0,0x800,-0x800,0x1000000,-0x1000000,0x7FFFFFFF,0x80000000,0x123456 --mem D_803FCD48=choice:0,1,-1,0x3200,-0x3200,0x10000,0x30000,-0x30000 --mem D_803FCD4C=choice:0,1,-1,0x3200,-0x3200,0x10000,0x30000,-0x30000 --mem D_803FCD50=choice:0,1,-1,0x3200,-0x3200,0x10000,0x30000,-0x30000
+# boundaries on one axis: d around 0x3200 (clamp at 0) and 0x3200 + 4*0x7FFF (volume clamp at 0)
+# func_802D2A74: -n 200 --seed 1 --ret void --sig func_80260AB8=a0,a1,a2 --follow func_802ABCDC --mem D_803FCD64=0x80123450 --mem D_803643F8=choice:0,0x7FF,0x800,-1,-0x801 --mem D_803643FC=0 --mem D_80364400=0 --mem D_803FCD4C=0 --mem D_803FCD50=0 --mem D_803FCD48=choice:0,0x31FF,0x3200,0x3201,0x3203,0x3204,0x231FB,0x231FC,0x231FF,0x23200,0x23203,0x23204,-0x23204
+# NO-DIST: no sound (D_803FCD64 NULL): nothing happens
+func_802D2A74: -n 50 --seed 2 --ret void --sig func_80260AB8=a0,a1,a2 --follow func_802ABCDC --mem D_803FCD64=0 --mem D_803643F8=int --mem D_803FCD48=int

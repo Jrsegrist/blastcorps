@@ -83,3 +83,47 @@ func_802B8794: -n 200 --seed 2 --ret void --follow func_802ABCDC \
     --mem D_803EF2E8=choice:0,0x80123450 --mem D_80367738=int \
     --mem D_803643E0=int:-0x10000000:0x10000000 --mem D_803643E4=int:-0x10000000:0x10000000 --mem D_803643E8=int:-0x10000000:0x10000000 \
     --mem D_803EF2EC=choice:0,0x123456 --mem D_803EF2F0=choice:0,-0x123456 --mem D_803EF2F4=choice:0,7
+
+# ---- phase D (wave 1, wt-d4) ----
+# func_802B8794 (positional sound 0x13) now calls func_802ABCDC (the --follow runs above still apply):
+# stubbed, with the distance from --stub-ret around the 500 / 16000 knees
+func_802B8794: -n 200 --seed 7 --ret void --stub-ret func_802ABCDC=rand \
+    --sig func_80260650=a0,a1,a2 --sig func_802608C8=a0 --sig func_80260AB8=a0,a1,a2 \
+    --mem D_803EF2E8=choice:0,0x80123450 --mem D_80367738=int \
+    --mem D_803643E0=int:-20000:20000 --mem D_803643E4=int --mem D_803643E8=int \
+    --mem D_803EF2EC=int:-20000:20000 --mem D_803EF2F0=int --mem D_803EF2F4=int
+func_802B8794: -n 60 --seed 3 --ret void --stub-ret func_802ABCDC=16000 \
+    --sig func_80260650=a0,a1,a2 --sig func_802608C8=a0 --sig func_80260AB8=a0,a1,a2 \
+    --mem D_803EF2E8=choice:0,0x80123450 --mem D_803643E0=int:-20000:20000 --mem D_803EF2EC=int:-20000:20000
+func_802B8794: -n 60 --seed 4 --ret void --stub-ret func_802ABCDC=16001 \
+    --sig func_80260650=a0,a1,a2 --sig func_802608C8=a0 --sig func_80260AB8=a0,a1,a2 \
+    --mem D_803EF2E8=choice:0,0x80123450 --mem D_803643E0=int:-20000:20000 --mem D_803EF2EC=int:-20000:20000
+func_802B8794: -n 60 --seed 5 --ret void --stub-ret func_802ABCDC=499 \
+    --sig func_80260650=a0,a1,a2 --sig func_802608C8=a0 --sig func_80260AB8=a0,a1,a2 \
+    --mem D_803EF2E8=choice:0,0x80123450 --mem D_803643E0=int:-20000:20000 --mem D_803EF2EC=int:-20000:20000
+func_802B8794: -n 60 --seed 6 --ret void --stub-ret func_802ABCDC=501 \
+    --sig func_80260650=a0,a1,a2 --sig func_802608C8=a0 --sig func_80260AB8=a0,a1,a2 \
+    --mem D_803EF2E8=choice:0,0x80123450 --mem D_803643E0=int:-20000:20000 --mem D_803EF2EC=int:-20000:20000
+
+# func_802B988C: distance (y = 0) D_803EF2EC/F4 -> D_803EF308/0C, s1 out (followed and stubbed)
+func_802B988C: -n 300 --seed 0 --follow func_802ABCDC \
+    --mem D_803EF2EC=int:-100000:100000 --mem D_803EF2F4=int:-100000:100000 \
+    --mem D_803EF308=int:-100000:100000 --mem D_803EF30C=int:-100000:100000
+func_802B988C: -n 100 --seed 1 --follow func_802ABCDC \
+    --mem D_803EF2EC=choice:0,3,-3,0x7FFF --mem D_803EF2F4=choice:0,4,-4 --mem D_803EF308=choice:0,3 --mem D_803EF30C=choice:0,-4,0x8000
+func_802B988C: -n 100 --seed 2 --stub-ret func_802ABCDC=rand \
+    --mem D_803EF2EC=int --mem D_803EF2F4=int --mem D_803EF308=int --mem D_803EF30C=int
+
+# func_802B98E0 ($gp = D_803EF240): v = 160 - speed(+0x76) vs D_803EF2E6, sound handle D_803EF2E8,
+# channel 3 from D_803EF324 (+-1 -> 0, sign split); f20 out
+func_802B98E0: -n 400 --seed 0 --arg gp=sym:D_803EF240 --sig func_80260AB8=a0,a1,a2 \
+    --mem D_803EF240+0x76:2=halves:0,1,0xA0,0x9F,0xA1,0xFFFF,0x7FFF,0x8000,0x140 --mem D_803EF2E6:2=halves:0,0xA0,0x9F,0xA1,1 \
+    --mem D_803EF2E8=choice:0,0x80123450 \
+    --mem D_803EF324:2=halves:0,1,2,0xFFFF,0xFFFE,0x1F,0x20,0x21,0x40,0x7FFF,0x8000,0xFFC0
+func_802B98E0: -n 300 --seed 1 --arg gp=sym:D_803EF240 --sig func_80260AB8=a0,a1,a2 \
+    --mem D_803EF240+0x76:2=int:0:0xFFFF --mem D_803EF2E6:2=int:0:0xFFFF --mem D_803EF2E8=0x80123450 \
+    --mem D_803EF324:2=int:0:0xFFFF --mem D_8030D910:4=floats:-10:10 --mem D_8030D914:4=floats:-10:10
+# unchanged value (no sound call): D_803EF2E6 == 160 - speed
+func_802B98E0: -n 50 --seed 2 --arg gp=sym:D_803EF240 --sig func_80260AB8=a0,a1,a2 \
+    --mem D_803EF240+0x76:2=halves:0x64 --mem D_803EF2E6:2=halves:0x3C,0x3B,0x3D --mem D_803EF2E8=0x80123450 \
+    --mem D_803EF324:2=int:0:0xFFFF

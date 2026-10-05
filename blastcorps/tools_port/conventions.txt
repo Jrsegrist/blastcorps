@@ -300,7 +300,18 @@ func_802B76AC: clobbers gp
 func_802B80D8: preserve a0,a1,a2,a3,t6,t7
 # rounded speed/divisor ($gp = D_803EEE70) in s3
 func_802B83B0: out s3=ret ; preserve a0,a1,a2,a3
+# distance (y = 0) D_803EF2EC/F4 -> D_803EF308/0C in s1; s0 left = D_803EF30C
+func_802B988C: out s1=ret ; preserve a0,a1,a2,a3,f12,f14 ; clobbers s0
+# sound/animation update ($gp = D_803EF240); (160 - speed) / 320 left in f20
+func_802B98E0: out f20=fret ; preserve a2,a3,t7,f12,f14
 # --- 75490 ---
+# distance (y = 0) D_803EF6DC/E4 -> D_803EF6F4/F8 in s1; s0 left = D_803EF6F8
+func_802BA5A4: out s1=ret ; preserve a2,a3,f12,f14 ; clobbers s0
+# engine sound/animation update ($gp = D_803EF630); angle sector in s4, s5 scratch
+func_802BA6AC: out s4=ret ; preserve a2,a3,t7,f12,f14 ; clobbers s5
+func_802BA91C: preserve a2,a3,f12,f14 ; clobbers s0,s1
+# enter vehicle: points $gp at D_803EFA20 and leaves it
+func_802BB054: clobbers gp
 # zone value scan of D_80305D62; its scan registers a0-a3 reach func_802A860C via func_802BA354
 func_802BA638: in a2=*a1 ; out a0=ret,a1=*a0,a2=*a1,a3=*a2
 # exit check: points $gp at D_803EFA20 and leaves it

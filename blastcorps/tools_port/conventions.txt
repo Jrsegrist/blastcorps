@@ -683,6 +683,10 @@ func_802CD578: in t6=a0,t7=a1,s0=a2,s1=a3,s2=stack0,s3=stack1,s4=stack2 ; clobbe
 func_802CD800: clobbers s1,s2,s4,s5,s6,s7
 # triangle value pairs, as func_802CBD5C for D_803F9250
 func_802CCED4: in a3=a0,f24=*a1+24 ; out v1=ret,f12=*a1+8,f14=*a1+12,f20=*a1+16,f22=*a1+20,f24=*a1+24,f26=*a1+28 ; preserve a3,t0,t1,t3,t4 ; clobbers gp,s4,f28
+# steer along triangle a3 + ground contact, as func_802CBDE8
+func_802CCF60: in a3=a0,f24=*a1+16 ; out s3=ret,f20=*a1+8,f22=*a1+12,f24=*a1+16,f26=*a1+20 ; preserve a3,t0,t1,t2 ; clobbers gp,s0,s1,s2,s4,s5,s6,s7,fp,f28
+# vehicle setup (dispatcher case 0xE), as func_802CB720
+func_802CC920: in s2=a0,t7=a1,s3=a2,s0=a3,s1=stack0,fp=stack1,f12=*stack2,f14=*stack2+4,f20=*stack2+8,f22=*stack2+12,f24=*stack2+16,f26=*stack2+20 ; out f22=*stack2+12,f24=*stack2+16,f26=*stack2+20 ; preserve t0,t1,t2,t3,t4,t5 ; clobbers gp,s0-s7,fp,f20,f28,f30
 # --- 8AEE0 ---
 # zone lookup wrapper: func_802ABD54(id, x, y, z) with its scan registers t6, t7, s0-s4 passed through
 func_802D0F54: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; out v1=ret,t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; preserve f12,f14 ; clobbers s5,s6

@@ -169,6 +169,11 @@ extern u8 D_80370C27;
 u8 func_80255628(void);
 void func_802A45D4(s32);
 
+extern u16 D_8035807C;
+extern s32 D_80358074;
+extern Gfx D_01000010[]; /* segment 1 */
+void func_802A467C(s32, Gfx *, Vtx *, s32);
+
 /* (end of declarations) */
 
 /* Boot: reads 16 words from PI address 0xFFB000, then starts the idle thread */
@@ -286,7 +291,48 @@ void func_8024B5E8(void) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_8024B7AC.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_8024B8F4.s")
+/* Builds and runs a small task drawing an 8-vertex box (12 triangles) */
+void func_8024B8F4(Mtx *proj, Mtx *view) {
+    Gfx dl[50];
+    Gfx *gdl = dl;
+    Vtx v[8];
+    s32 i;
+
+    for (i = 0; i < 8; i++) {
+        v[i].v.flag = 0;
+        v[i].v.tc[0] = 0;
+        v[i].v.tc[1] = 0;
+        v[i].v.cn[0] = 0;
+        v[i].v.cn[1] = 0;
+        v[i].v.cn[2] = 0;
+        v[i].v.cn[3] = 0;
+    }
+    gSPSegment(gdl++, 0, 0);
+    gSPSegment(gdl++, 1, osVirtualToPhysical(D_8035806C));
+    gSPDisplayList(gdl++, D_01000010);
+    gSPMatrix(gdl++, PHYS(proj), G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
+    gImmp1(gdl++, G_RDPHALF_1, D_8035807C);
+    gSPMatrix(gdl++, PHYS(view), G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+    gSPVertex(gdl++, PHYS(v), 8, 0);
+    gSP1Triangle(gdl++, 0, 1, 4, 0);
+    gSP1Triangle(gdl++, 1, 4, 5, 0);
+    gSP1Triangle(gdl++, 0, 3, 4, 0);
+    gSP1Triangle(gdl++, 3, 4, 7, 0);
+    gSP1Triangle(gdl++, 2, 3, 7, 0);
+    gSP1Triangle(gdl++, 2, 6, 7, 0);
+    gSP1Triangle(gdl++, 1, 2, 5, 0);
+    gSP1Triangle(gdl++, 2, 5, 6, 0);
+    gSP1Triangle(gdl++, 4, 5, 6, 0);
+    gSP1Triangle(gdl++, 4, 6, 7, 0);
+    gSP1Triangle(gdl++, 0, 1, 2, 0);
+    gSP1Triangle(gdl++, 0, 2, 3, 0);
+    gDPTileSync(gdl++);
+    gSPEndDisplayList(gdl++);
+    osWritebackDCache(dl, (s32) (gdl - dl) * sizeof(Gfx));
+    osWritebackDCache(proj, 0x40);
+    osWritebackDCache(view, 0x40);
+    func_802A467C(D_80358074, dl, v, (s32) (gdl - dl) * sizeof(Gfx));
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_8024BDA4.s")
 

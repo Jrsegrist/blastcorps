@@ -63,351 +63,281 @@ extern s32 D_802229EC;
 #define BMAX 16
 #define N_MAX 288
 
-/* TODO: huft_build - builds a Huffman decode table from a list of code
- * lengths. Confirmed an exact algorithmic match against the reference
- * source's own huft_build() - the bit-length counting, offset/value-table
- * generation, and main table-building loop (including the `h`/`w`/`z`
- * table-level bookkeeping and the backing-up logic) all line up one-to-one.
- * Adapted in one way: the reference mallocs each new sub-table (`hufts`/
- * `D_802229EC` tracks total entries allocated across calls, matching
- * inflate()'s own `if (D_802229EC > sp1C) sp1C = D_802229EC;` high-water
- * tracking) - this build instead bump-allocates from a fixed arena
- * (D_802229E0 + D_802229EC*sizeof(Huft)), so there's no malloc-failure path
- * and no huft_free() needed. Also confirmed (like inflate_codes) that the
- * reference's defensive bounds-check error returns inside the main loop are
- * absent from this build.
+/* huft_build - builds a Huffman decode table from a list of code lengths.
+ * An exact match for the reference source's huft_build(), except that each
+ * new sub-table is bump-allocated from a fixed arena (D_802229E0 +
+ * D_802229EC*sizeof(Huft)) instead of malloc'd, and the reference's
+ * defensive error returns inside the main loop are absent.
  *
- * Extraordinarily close for a function this size (460 instructions): the
- * ENTIRE function matches exactly except the final return statement's
- * register choice. `return y != 0 && g != 1;` (the literal reference form)
- * computes correctly but lands the result in $s6 with an extra `move v0,s6`
- * at the end; restructuring as an explicit two-step boolean (below) gets
- * every instruction's CONTENT right but still ends up computing into a
- * scratch register ($t1/$t9/$t7 depending on the exact phrasing tried)
- * instead of computing directly into $v0 the way the target does from the
- * very first instruction of this tail. Tried five phrasings (direct &&,
- * early-return, explicit intermediate in a nested block, `register`-
- * qualified intermediate, ternary) - the nested-block plain-`s32`
- * version below was the closest (diff score 680, zero structural
- * insertions/deletions, just this one register-choice tail). Whatever
- * determines target's choice of $v0 here isn't reachable through the
- * return expression's own phrasing - worth a fresh angle on why IDO
- * would prefer $v0 unprompted for this specific short-circuit-into-return
- * pattern.
- *
- * Follow-up this session (after cracking inflate_fixed/inflate_stored's
- * stack-layout puzzles): isolated the literal `return y != 0 && g != 1;`
- * form's tail PRECISELY - with everything else in the function already
- * matching, that form's tail is a pure register rename ($s6 for every
- * $v0) PLUS one extra `move v0,s6` instruction at the very end (confirmed
- * via diff: identical instruction content and count otherwise, score
- * 1035 driven entirely by this). The nested-block `ret` form (kept below)
- * instead spills `ret` to a real stack slot (sp+0x3c) since it's a plain
- * (non-register) local assigned from two different branches - worse
- * structurally but apparently cheaper by the differ's scoring (680 vs
- * 1035). Also found and then reverted an unrelated genuine fix candidate:
- * swapping `p = c + 1; xp = x + 2;` to `xp = x + 2; p = c + 1;` fixes one
- * real instruction-order mismatch earlier in the function (confirmed via
- * the diff's blue `94m` content marker, not just a register rename) but
- * shifts an equally-sized new mismatch four bytes later, netting worse
- * (680 -> 770) - so that pair's relative order isn't determined by simple
- * statement reordering either. Needs real insight into why IDO would
- * allocate $v0 directly (not $s6, not a stack slot) for this specific
- * short-circuit-into-return expression, and separately, what actually
- * governs the p/xp pair's instruction order.
- *
- * s32 huft_build(s32 *b, u32 n, u32 s, u16 *d, u8 *e, Huft **t, s32 *m) {
- *     u32 a;
- *     u32 c[BMAX + 1];
- *     u32 f;
- *     s32 g;
- *     s32 h;
- *     register u32 i;
- *     register u32 j;
- *     register s32 k;
- *     s32 l;
- *     register u32 *p;
- *     register Huft *q;
- *     Huft r;
- *     Huft *u[BMAX];
- *     u32 v[N_MAX];
- *     register s32 w;
- *     u32 x[BMAX + 1];
- *     u32 *xp;
- *     s32 y;
- *     u32 z;
- *
- *     bzero(c, sizeof(c));
- *     p = (u32 *) b;
- *     i = n;
- *     do {
- *         c[*p]++;
- *         p++;
- *     } while (--i);
- *     if (c[0] == n) {
- *         *t = NULL;
- *         *m = 0;
- *         return 0;
- *     }
- *
- *     l = *m;
- *     for (j = 1; j <= BMAX; j++) {
- *         if (c[j]) {
- *             break;
- *         }
- *     }
- *     k = j;
- *     if ((u32) l < j) {
- *         l = j;
- *     }
- *     for (i = BMAX; i; i--) {
- *         if (c[i]) {
- *             break;
- *         }
- *     }
- *     g = i;
- *     if ((u32) l > i) {
- *         l = i;
- *     }
- *     *m = l;
- *
- *     for (y = 1 << j; j < (u32) i; j++, y <<= 1) {
- *         y -= c[j];
- *     }
- *     y -= c[i];
- *     c[i] += y;
- *
- *     x[1] = j = 0;
- *     p = c + 1;
- *     xp = x + 2;
- *     while (--i) {
- *         *xp++ = (j += *p++);
- *     }
- *
- *     p = (u32 *) b;
- *     i = 0;
- *     do {
- *         if ((j = *p++) != 0) {
- *             v[x[j]++] = i;
- *         }
- *     } while (++i < n);
- *
- *     x[0] = i = 0;
- *     p = v;
- *     h = -1;
- *     w = -l;
- *     u[0] = NULL;
- *     q = NULL;
- *     z = 0;
- *
- *     for (; k <= g; k++) {
- *         a = c[k];
- *         while (a--) {
- *             while (k > w + l) {
- *                 h++;
- *                 w += l;
- *
- *                 z = (z = g - w) > (u32) l ? l : z;
- *                 if ((f = 1 << (j = k - w)) > a + 1) {
- *                     f -= a + 1;
- *                     xp = c + k;
- *                     while (++j < z) {
- *                         if ((f <<= 1) <= *++xp) {
- *                             break;
- *                         }
- *                         f -= *xp;
- *                     }
- *                 }
- *                 z = 1 << j;
- *
- *                 q = (Huft *) (D_802229E0 + D_802229EC * 8);
- *                 D_802229EC += z + 1;
- *                 *t = q + 1;
- *                 *(t = (Huft **) &(q->v.t)) = NULL;
- *                 u[h] = ++q;
- *
- *                 if (h) {
- *                     x[h] = i;
- *                     r.b = (u8) l;
- *                     r.e = (u8) (16 + j);
- *                     r.v.t = q;
- *                     j = i >> (w - l);
- *                     u[h - 1][j] = r;
- *                 }
- *             }
- *
- *             r.b = (u8) (k - w);
- *             if (p >= v + n) {
- *                 r.e = 99;
- *             } else if (*p < s) {
- *                 r.e = (u8) (*p < 256 ? 16 : 15);
- *                 r.v.n = (u16) (*p);
- *                 p++;
- *             } else {
- *                 r.e = e[*p - s];
- *                 r.v.n = d[*p++ - s];
- *             }
- *
- *             f = 1 << (k - w);
- *             for (j = i >> w; j < z; j += f) {
- *                 q[j] = r;
- *             }
- *
- *             for (j = 1 << (k - 1); i & j; j >>= 1) {
- *                 i ^= j;
- *             }
- *             i ^= j;
- *
- *             while ((i & ((1 << w) - 1)) != x[h]) {
- *                 h--;
- *                 w -= l;
- *             }
- *         }
- *     }
- *
- *     {
- *         s32 ret;
- *         ret = y != 0;
- *         if (ret) {
- *             ret = g != 1;
- *         }
- *         return ret;
- *     }
- * }
+ * Matched by porting hd_code's copy (func_80297FE0 in hd_code/53220.c).
+ * What fixed the old near-miss: it returns `int`, not s32. s32 is `long`
+ * in this ultra64.h, and with it IDO computes the `&&` into $s6 and adds a
+ * `move v0,s6`. The arena address is written `D_802229EC * 8 + D_802229E0`
+ * (that operand order), and `p = c + 1, xp = x + 2;` is a comma expression;
+ * as separate statements the pair's instruction order was wrong.
  */
-#pragma GLOBAL_ASM("asm/nonmatchings/init/0050/huft_build.s")
+int huft_build(s32 *b, u32 n, u32 s, u16 *d, u8 *e, Huft **t, s32 *m) {
+    u32 a;
+    u32 c[BMAX + 1];
+    u32 f;
+    s32 g;
+    s32 h;
+    register u32 i;
+    register u32 j;
+    register s32 k;
+    s32 l;
+    register u32 *p;
+    register Huft *q;
+    Huft r;
+    Huft *u[BMAX];
+    u32 v[N_MAX];
+    register s32 w;
+    u32 x[BMAX + 1];
+    u32 *xp;
+    s32 y;
+    u32 z;
 
-/* TODO: inflate_codes - decodes Huffman-coded literals/lengths (via `tl`)
- * and distances (via `td`) and copies the resulting literal bytes / back-
- * references directly into the output buffer (D_802229F4). Confirmed an
- * exact structural match against the reference source's own
- * inflate_codes(), minus its WSIZE sliding-window wraparound logic
- * (flush_output/circular `slide` buffer) - this build decompresses
- * straight into a single fixed output buffer instead of a circular window,
- * so every "if (w == WSIZE) { flush_output(w); w = 0; }" check and the
- * distance's "& (WSIZE-1)" masking are simply absent here. Also confirmed
- * the reference's defensive "if (e == 99) return 1;" (invalid-code) checks
- * are entirely absent from this build - Rare's own compressor apparently
- * guarantees well-formed tables, so that check was stripped.
+    bzero(c, sizeof(c));
+    p = (u32 *) b;
+    i = n;
+    do {
+        c[*p]++;
+        p++;
+    } while (--i);
+    if (c[0] == n) {
+        *t = NULL;
+        *m = 0;
+        return 0;
+    }
+
+    l = *m;
+    for (j = 1; j <= BMAX; j++) {
+        if (c[j]) {
+            break;
+        }
+    }
+    k = j;
+    if ((u32) l < j) {
+        l = j;
+    }
+    for (i = BMAX; i; i--) {
+        if (c[i]) {
+            break;
+        }
+    }
+    g = i;
+    if ((u32) l > i) {
+        l = i;
+    }
+    *m = l;
+
+    for (y = 1 << j; j < (u32) i; j++, y <<= 1) {
+        y -= c[j];
+    }
+    y -= c[i];
+    c[i] += y;
+
+    x[1] = j = 0;
+    p = c + 1, xp = x + 2;
+    while (--i) {
+        *xp++ = (j += *p++);
+    }
+
+    p = (u32 *) b;
+    i = 0;
+    do {
+        if ((j = *p++) != 0) {
+            v[x[j]++] = i;
+        }
+    } while (++i < n);
+
+    x[0] = i = 0;
+    p = v;
+    h = -1;
+    w = -l;
+    u[0] = NULL;
+    q = NULL;
+    z = 0;
+
+    for (; k <= g; k++) {
+        a = c[k];
+        while (a--) {
+            while (k > w + l) {
+                h++;
+                w += l;
+
+                z = (z = g - w) > (u32) l ? l : z;
+                if ((f = 1 << (j = k - w)) > a + 1) {
+                    f -= a + 1;
+                    xp = c + k;
+                    while (++j < z) {
+                        if ((f <<= 1) <= *++xp) {
+                            break;
+                        }
+                        f -= *xp;
+                    }
+                }
+                z = 1 << j;
+
+                q = (Huft *) (D_802229EC * 8 + D_802229E0);
+                D_802229EC += z + 1;
+                *t = q + 1;
+                *(t = (Huft **) &(q->v.t)) = NULL;
+                u[h] = ++q;
+
+                if (h) {
+                    x[h] = i;
+                    r.b = (u8) l;
+                    r.e = (u8) (16 + j);
+                    r.v.t = q;
+                    j = i >> (w - l);
+                    u[h - 1][j] = r;
+                }
+            }
+
+            r.b = (u8) (k - w);
+            if (p >= v + n) {
+                r.e = 99;
+            } else if (*p < s) {
+                r.e = (u8) (*p < 256 ? 16 : 15);
+                r.v.n = (u16) (*p);
+                p++;
+            } else {
+                r.e = e[*p - s];
+                r.v.n = d[*p++ - s];
+            }
+
+            f = 1 << (k - w);
+            for (j = i >> w; j < z; j += f) {
+                q[j] = r;
+            }
+
+            for (j = 1 << (k - 1); i & j; j >>= 1) {
+                i ^= j;
+            }
+            i ^= j;
+
+            while ((i & ((1 << w) - 1)) != x[h]) {
+                h--;
+                w -= l;
+            }
+        }
+    }
+
+    return y != 0 && g != 1;
+}
+
+/* inflate_codes - decodes Huffman-coded literals/lengths (via `tl`) and
+ * distances (via `td`) and copies literal bytes / back-references straight
+ * into the output buffer (D_802229F4). The reference's inflate_codes()
+ * minus its WSIZE sliding window (no flush_output, no `& (WSIZE-1)`) and
+ * minus the defensive `if (e == 99) return 1;` checks.
  *
- * Extremely close: every instruction content/order matches exactly (down
- * to an instruction-level reordering of the reference's DUMPBITS(e) - this
- * build's b>>=e has to come before k-=e, not after) except ONE single
- * redundant register-to-register `move` the target does right before the
- * inner copy loop (copying the saved copy-count into a fresh register
- * before the loop, rather than just decrementing it in place). Tried: a
- * second named counter variable (both `register` and plain) - always
- * fixed that one instruction but shifted register allocation throughout
- * the EARLIER two-thirds of the function instead (net worse); reusing the
- * already-`register` `e` variable as the counter (matching the reference
- * literally reusing `e` for this) - also rippled backward and regressed.
- * The version below (single `register u32 n2`) is the closest found - one
- * missing 4-byte instruction, otherwise byte-identical modulo registers.
- *
- * s32 inflate_codes(Huft *tl, Huft *td, u32 bl, u32 bd) {
- *     register u32 e;
- *     u32 n;
- *     u32 d;
- *     u32 w;
- *     Huft *t;
- *     u32 ml;
- *     u32 md;
- *     register u32 b;
- *     register u32 k;
- *
- *     b = D_802229E4;
- *     k = D_802229E8;
- *     w = D_80222A20;
- *
- *     ml = mask_bits[bl];
- *     md = mask_bits[bd];
- *
- *     for (;;) {
- *         while (k < bl) {
- *             b |= (u32) D_802229F0[D_80222A1C++] << k;
- *             k += 8;
- *         }
- *         t = tl + (b & ml);
- *         e = t->e;
- *         if (e > 16) {
- *             do {
- *                 k -= t->b;
- *                 b >>= t->b;
- *                 e -= 16;
- *                 while (k < e) {
- *                     b |= (u32) D_802229F0[D_80222A1C++] << k;
- *                     k += 8;
- *                 }
- *                 t = t->v.t + (b & mask_bits[e]);
- *                 e = t->e;
- *             } while (e > 16);
- *         }
- *         k -= t->b;
- *         b >>= t->b;
- *         if (e == 16) {
- *             D_802229F4[w++] = (u8) t->v.n;
- *             continue;
- *         }
- *         if (e == 15) {
- *             break;
- *         }
- *
- *         while (k < e) {
- *             b |= (u32) D_802229F0[D_80222A1C++] << k;
- *             k += 8;
- *         }
- *         n = t->v.n + (b & mask_bits[e]);
- *         k -= e;
- *         b >>= e;
- *
- *         while (k < bd) {
- *             b |= (u32) D_802229F0[D_80222A1C++] << k;
- *             k += 8;
- *         }
- *         t = td + (b & md);
- *         e = t->e;
- *         if (e > 16) {
- *             do {
- *                 k -= t->b;
- *                 b >>= t->b;
- *                 e -= 16;
- *                 while (k < e) {
- *                     b |= (u32) D_802229F0[D_80222A1C++] << k;
- *                     k += 8;
- *                 }
- *                 t = t->v.t + (b & mask_bits[e]);
- *                 e = t->e;
- *             } while (e > 16);
- *         }
- *         k -= t->b;
- *         b >>= t->b;
- *
- *         while (k < e) {
- *             b |= (u32) D_802229F0[D_80222A1C++] << k;
- *             k += 8;
- *         }
- *         d = (w - t->v.n) - (b & mask_bits[e]);
- *         b >>= e;
- *         k -= e;
- *
- *         do {
- *             register u32 n2;
- *             n2 = n;
- *             n -= n2;
- *             do {
- *                 n2 -= 1;
- *                 D_802229F4[w++] = D_802229F4[d++];
- *             } while (n2 != 0);
- *         } while (n != 0);
- *     }
- *
- *     D_80222A20 = w;
- *     D_802229E4 = b;
- *     D_802229E8 = k;
- *     return 0;
- * }
+ * Matched by porting hd_code's copy (func_8029867C in hd_code/53220.c).
+ * What fixed the old one-missing-`move` near-miss: `register u32 k;`
+ * declared before `register u32 b;`, the copy loop written as the
+ * reference's `n -= (e = n); do { ... } while (--e);` (reusing `e`, no extra
+ * counter), and each DUMPBITS(t->b) as `b >>= t->b; k -= t->b;`.
  */
-#pragma GLOBAL_ASM("asm/nonmatchings/init/0050/inflate_codes.s")
+s32 inflate_codes(Huft *tl, Huft *td, u32 bl, u32 bd) {
+    register u32 e;
+    u32 n;
+    u32 d;
+    u32 w;
+    Huft *t;
+    u32 ml;
+    u32 md;
+    register u32 k;
+    register u32 b;
+
+    b = D_802229E4;
+    k = D_802229E8;
+    w = D_80222A20;
+
+    ml = mask_bits[bl];
+    md = mask_bits[bd];
+
+    for (;;) {
+        while (k < bl) {
+            b |= (u32) D_802229F0[D_80222A1C++] << k;
+            k += 8;
+        }
+        t = tl + (b & ml);
+        e = t->e;
+        if (e > 16) {
+            do {
+                b >>= t->b;
+                k -= t->b;
+                e -= 16;
+                while (k < e) {
+                    b |= (u32) D_802229F0[D_80222A1C++] << k;
+                    k += 8;
+                }
+                t = t->v.t + (b & mask_bits[e]);
+                e = t->e;
+            } while (e > 16);
+        }
+        b >>= t->b;
+        k -= t->b;
+        if (e == 16) {
+            D_802229F4[w++] = (u8) t->v.n;
+            continue;
+        }
+        if (e == 15) {
+            break;
+        }
+
+        while (k < e) {
+            b |= (u32) D_802229F0[D_80222A1C++] << k;
+            k += 8;
+        }
+        n = t->v.n + (b & mask_bits[e]);
+        k -= e;
+        b >>= e;
+
+        while (k < bd) {
+            b |= (u32) D_802229F0[D_80222A1C++] << k;
+            k += 8;
+        }
+        t = td + (b & md);
+        e = t->e;
+        if (e > 16) {
+            do {
+                b >>= t->b;
+                k -= t->b;
+                e -= 16;
+                while (k < e) {
+                    b |= (u32) D_802229F0[D_80222A1C++] << k;
+                    k += 8;
+                }
+                t = t->v.t + (b & mask_bits[e]);
+                e = t->e;
+            } while (e > 16);
+        }
+        b >>= t->b;
+        k -= t->b;
+
+        while (k < e) {
+            b |= (u32) D_802229F0[D_80222A1C++] << k;
+            k += 8;
+        }
+        d = (w - t->v.n) - (b & mask_bits[e]);
+        b >>= e;
+        k -= e;
+
+        do {
+            n -= (e = n);
+            do {
+                D_802229F4[w++] = D_802229F4[d++];
+            } while (--e);
+        } while (n);
+    }
+
+    D_80222A20 = w;
+    D_802229E4 = b;
+    D_802229E8 = k;
+    return 0;
+}
 
 s32 inflate_stored(void) {
     u32 n;
@@ -454,7 +384,7 @@ s32 inflate_stored(void) {
     return 0;
 }
 
-extern s32 huft_build(s32 *b, u32 n, u32 s, u16 *d, u8 *e, Huft **t, s32 *m);
+extern int huft_build(s32 *b, u32 n, u32 s, u16 *d, u8 *e, Huft **t, s32 *m);
 extern s32 inflate_codes(Huft *tl, Huft *td, u32 bl, u32 bd);
 
 s32 inflate_fixed(void) {

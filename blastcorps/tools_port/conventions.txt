@@ -474,6 +474,8 @@ func_802B83B0: out s3=ret ; preserve a0,a1,a2,a3
 func_802B988C: out s1=ret ; preserve a0,a1,a2,a3,f12,f14 ; clobbers s0
 # sound/animation update ($gp = D_803EF240); (160 - speed) / 320 left in f20
 func_802B98E0: out f20=fret ; preserve a2,a3,t7,f12,f14
+# trail + effect cooldown ($gp = D_803EEE70); t6, t7, s0-s4 pass through to func_802A6274 (s1 comes back changed)
+func_802B7F98: in t6=a0,t7=a1,s0=a2,s1=a3,s2=stack0,s3=stack1,s4=stack2 ; clobbers s1,s5,s6,s7
 # --- 75490 ---
 # zone lookup wrapper: func_802ABD54(id, x, y, z) with its scan registers t6, t7, s0-s4 passed through
 func_802BB230: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; out v1=ret,t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; preserve f12,f14 ; clobbers s5,s6
@@ -543,6 +545,8 @@ func_802D0710: out s3=ret ; preserve a0,a1,a2,a3
 func_802D0C68: clobbers gp
 # 0 / 5 / 110 from this vehicle's speed and +0xA1 ($gp = D_803FC8D0) in s3
 func_802D2444: out s3=ret ; preserve a0,a1,a2,a3
+# trail + effect cooldown ($gp = D_803FC500); t6, t7, s0-s4 pass through to func_802A6274 (s1 comes back changed)
+func_802D02F8: in t6=a0,t7=a1,s0=a2,s1=a3,s2=stack0,s3=stack1,s4=stack2 ; clobbers s1,s5,s6,s7
 # --- 8DDB0 ---
 # per-frame events / one-shot sounds / effect countdowns of vehicle 0xFD; leaves junk in s0, s1, s5-s7
 func_802D2C20: clobbers s0,s1,s5,s6,s7

@@ -76,7 +76,52 @@ void func_802AC1A0(s32 radius) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/func_802AC2A4.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern s32 D_802E8BDC; /* current level */
+extern u8 D_80364412;  /* "position was wrapped" flag */
+void func_802AC6FC(s32 x, s32 y, s32 z, s32 kind, s32 data);
+
+/* Level 0x17 only: wraps the position x (*px) and z (*pz) into the level's
+ * box (x >= 0x15181 -> 0x2BC0, then x < 0x2581 -> 0x14B40; z >= 0x13881 ->
+ * 0x44C0, then z < 0x3E81 -> 0x13240), setting D_80364412 on each wrap.
+ * When D_80364412 is set (now or before), spawns effect kind 0x13 with
+ * data 1000000 at (*px, *py, *pz) (func_802AC6FC). The second test of each
+ * axis uses the value after the first wrap, but a wrapped value isn't
+ * written again.
+ * Register convention: px in v0, py in v1, pz in a0 (conventions.txt). The
+ * asm saves gp and hands back the caller's t2 in v0; its only caller is the
+ * asm trampoline func_802AC284, whose callers don't read v0. */
+void func_802AC3B8(s32 *px, s32 *py, s32 *pz) {
+    s32 v;
+
+    if (D_802E8BDC != 0x17) {
+        return;
+    }
+    v = *px;
+    if (v >= 0x15181) {
+        *px = v = 0x2BC0;
+        D_80364412 = 1;
+    }
+    if (v < 0x2581) {
+        *px = 0x14B40;
+        D_80364412 = 1;
+    }
+    v = *pz;
+    if (v >= 0x13881) {
+        *pz = v = 0x44C0;
+        D_80364412 = 1;
+    }
+    if (v < 0x3E81) {
+        *pz = 0x13240;
+        D_80364412 = 1;
+    }
+    if (D_80364412 != 0) {
+        func_802AC6FC(*px, *py, *pz, 0x13, 1000000);
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/func_802AC3B8.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -262,13 +307,99 @@ void func_802ACA60(s32 x, s32 y, s32 z, s32 *m) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+s32 func_802AE104(s32 angle); /* 16.16 cosine (69930.c) */
+s32 func_802AE160(s32 angle); /* 16.16 sine */
+
+/* func_802ACAC4 / func_802ACB50 / func_802ACBDC write a 16.16 rotation matrix
+ * (about y, z and x) for `angle` (0x1000 = 360 degrees) to m. Each calls
+ * func_802AE160 (sine) first, then func_802AE104 (cosine).
+ * Register convention: angle in t0, m in t3 (conventions.txt); the asm saves
+ * v1, a0, t5 and fp. Asm callers keep t6/t7 (func_802A68D4) or t8
+ * (func_802AA764, func_802BE574) live across the call; the survey lists
+ * f12/f14 (func_802AE104's leftovers) as read by func_802A68D4 and
+ * func_802AA764, which a C version can't hand back (a mixed N64 build would
+ * need a thunk; the native port won't). */
+void func_802ACAC4(s32 angle, s32 *m) {
+    s32 s = func_802AE160(angle);
+    s32 c = func_802AE104(angle);
+
+    m[8] = s;
+    m[0] = c;
+    m[1] = 0;
+    m[3] = 0;
+    m[4] = 0;
+    m[5] = 0x10000;
+    m[6] = 0;
+    m[7] = 0;
+    m[9] = 0;
+    m[10] = c;
+    m[11] = 0;
+    m[12] = 0;
+    m[13] = 0;
+    m[14] = 0;
+    m[15] = 0x10000;
+    m[2] = -s;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/func_802ACAC4.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Rotation about z (see func_802ACAC4). */
+void func_802ACB50(s32 angle, s32 *m) {
+    s32 s = func_802AE160(angle);
+    s32 c = func_802AE104(angle);
+
+    m[1] = s;
+    m[0] = c;
+    m[2] = 0;
+    m[3] = 0;
+    m[4] = -s;
+    m[5] = c;
+    m[6] = 0;
+    m[7] = 0;
+    m[8] = 0;
+    m[9] = 0;
+    m[10] = 0x10000;
+    m[11] = 0;
+    m[12] = 0;
+    m[13] = 0;
+    m[14] = 0;
+    m[15] = 0x10000;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/func_802ACB50.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Rotation about x (see func_802ACAC4). */
+void func_802ACBDC(s32 angle, s32 *m) {
+    s32 s = func_802AE160(angle);
+    s32 c = func_802AE104(angle);
+
+    m[6] = s;
+    m[0] = 0x10000;
+    m[1] = 0;
+    m[2] = 0;
+    m[3] = 0;
+    m[4] = 0;
+    m[5] = c;
+    m[7] = 0;
+    m[8] = 0;
+    m[9] = -s;
+    m[10] = c;
+    m[11] = 0;
+    m[12] = 0;
+    m[13] = 0;
+    m[14] = 0;
+    m[15] = 0x10000;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/func_802ACBDC.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -332,13 +463,74 @@ void func_802ACCCC(s32 *b, s32 *m) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* (s64) a * b >> 16 (dmult, dsra), kept to 32 bits as the following 32-bit
+ * add/sub use it. */
+#define MUL16(a, b) ((s32) (((s64) (a) * (s64) (b)) >> 16))
+
+/* 2-D rotation by `angle` (cosine c first, then sine s; 16.16):
+ * out[0] = x*c - z*s, out[1] = z*c + x*s (each product >> 16 on its own).
+ * Register convention: x in a1, z in a2, angle in a3; results in t0 and t1
+ * (here out[0], out[1]); the asm saves v0/v1, leaves a3 = its a0 and
+ * a0 = x*s >> 16 and changes fp (conventions.txt). Nothing calls it. The
+ * trapping `sub`/`add` limit inputs to game range. */
+void func_802ACDB8(s32 x, s32 z, s32 angle, s32 *out) {
+    s32 c = func_802AE104(angle);
+    s32 s = func_802AE160(angle);
+
+    out[0] = MUL16(x, c) - MUL16(z, s);
+    out[1] = MUL16(z, c) + MUL16(x, s);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/func_802ACDB8.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* 2-D rotation the other way: returns z*s + x*c (the asm's a3) and stores
+ * z*c - x*s (its t1) in *t1out (cosine c first, then sine s; each product
+ * 16.16 >> 16).
+ * Register convention: x in a0, z in a2, angle in a3; results in a3 and t1
+ * (conventions.txt). The asm saves v0/v1, leaves t0 = its a1 and a1 = x*s
+ * >> 16, and changes fp. Asm caller func_802B8D04 keeps a0, a2, t3, t4 and
+ * t7 live; func_802A94A4 is listed as reading f12/f14 afterwards
+ * (func_802AE160's leftovers), which a C version can't hand back (a mixed
+ * N64 build would need a thunk; the native port won't). */
+s32 func_802ACE38(s32 x, s32 z, s32 angle, s32 *t1out) {
+    s32 c = func_802AE104(angle);
+    s32 s = func_802AE160(angle);
+
+    *t1out = MUL16(z, c) - MUL16(x, s);
+    return MUL16(z, s) + MUL16(x, c);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/func_802ACE38.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Meant as func_802ACDB8's rotation with x in a0 and z = x, but the asm's
+ * schedule multiplies the not yet shifted product: with p = x*c (64-bit),
+ * out[0] (t0) = ((p >> 16) * c >> 16) + (x*s >> 16) and out[1] (a3) =
+ * (p >> 16) - (p * s >> 16), all 64-bit with the add/sub on the low words
+ * (cosine c first, then sine s).
+ * Register convention: x in a0, angle in a3; results in t0 and a3 (here
+ * out[0], out[1]); the asm also leaves t1 = its a2 and a1 = x*s >> 16, saves
+ * v0/v1 and changes fp (conventions.txt). Nothing calls it. p * s can leave
+ * the 32-bit range, which makes the trapping `sub` unpredictable on the
+ * hardware; keep |x| < 0x8000. */
+void func_802ACEB8(s32 x, s32 angle, s32 *out) {
+    s32 c = func_802AE104(angle);
+    s32 s = func_802AE160(angle);
+    s64 p = (s64) x * c;
+    s32 hi = (s32) (p >> 16);
+
+    out[1] = hi - (s32) ((s64) ((u64) p * (u64) (s64) s) >> 16);
+    out[0] = MUL16(hi, c) + MUL16(x, s);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/func_802ACEB8.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

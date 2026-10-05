@@ -81,3 +81,63 @@ func_802AC6FC: -n 100 --seed 1 --ret void --arg a0=choice:0,-1,0xFFFFF,0x100000 
 func_802AC6FC: -n 200 --seed 2 --ret void --follow func_802A6274 --arg a0=int --arg a1=int --arg a2=int --arg a3=int:0:27 --arg sp+0x10=int \
     --mem D_803C4B70:0x3C0=rand --mem D_803C4B70+0x33*0x3C:16/1=bytes:0,1*3 --mem D_803EB770:16=bytes:0*2,1 \
     --mem D_803EB792:1=rand --sig func_802A11C4=a0,a1
+
+# func_802AC3B8 (px v0, py v1, pz a0): level 0x17 position wrap into the box, flag D_80364412, spawn kind 0x13
+func_802AC3B8: -n 400 --seed 0 --heap 0x10 --arg v0=rel:heap0 --arg v1=rel:heap0+4 --arg a0=rel:heap0+8 \
+    --mem D_802E8BDC=choice:0x17*4,0x16,0x18,0 --mem D_80364412:1=bytes:0*3,1,0x80 \
+    --mem @heap0=choice:0x15180,0x15181,0x15182,0x2580,0x2581,0x2582,0,-1,0x7FFFFFFF,0x80000000,0x10000 \
+    --mem @heap0+8=choice:0x13880,0x13881,0x13882,0x3E80,0x3E81,0x3E82,0,-1,0x7FFFFFFF,0x80000000,0x10000 \
+    --mem @heap0+4=int --sig func_802AC6FC=a0,a1,a2,a3,stack0
+# in-range positions (only the flag decides the spawn)
+func_802AC3B8: -n 200 --seed 1 --heap 0x10 --arg v0=rel:heap0 --arg v1=rel:heap0+4 --arg a0=rel:heap0+8 \
+    --mem D_802E8BDC=0x17 --mem D_80364412:1=bytes:0,1 --mem @heap0=int:0x2581:0x15180 --mem @heap0+8=int:0x3E81:0x13880 \
+    --mem @heap0+4=int --sig func_802AC6FC=a0,a1,a2,a3,stack0
+# spawn run for real (func_802AC6FC -> func_802A6274 stubbed)
+func_802AC3B8: -n 100 --seed 2 --heap 0x10 --arg v0=rel:heap0 --arg v1=rel:heap0+4 --arg a0=rel:heap0+8 \
+    --mem D_802E8BDC=0x17 --mem D_80364412:1=bytes:0,1 --mem @heap0=int:0:0x20000 --mem @heap0+8=int:0:0x20000 \
+    --mem @heap0+4=int --follow func_802AC6FC
+
+# func_802ACAC4 / func_802ACB50 / func_802ACBDC (angle t0, m t3): rotation matrices about y / z / x
+func_802ACAC4: -n 200 --seed 0 --arg t0=int --arg t3=ptr:0x40 --mem @t3:0x40=rand
+func_802ACAC4: -n 300 --seed 1 --arg t0=choice:0,0x400,0x800,0xC00,0xFFF,0x1000,-1,0x7FFFFFFF,0x80000000,0x123 --arg t3=ptr:0x40 \
+    --mem @t3:0x40=rand --follow func_802AE104,func_802AE160,func_802AE1BC,func_802AE290
+func_802ACB50: -n 200 --seed 0 --arg t0=int --arg t3=ptr:0x40 --mem @t3:0x40=rand
+func_802ACB50: -n 300 --seed 1 --arg t0=choice:0,0x400,0x800,0xC00,0xFFF,0x1000,-1,0x7FFFFFFF,0x80000000,0x123 --arg t3=ptr:0x40 \
+    --mem @t3:0x40=rand --follow func_802AE104,func_802AE160,func_802AE1BC,func_802AE290
+func_802ACBDC: -n 200 --seed 0 --arg t0=int --arg t3=ptr:0x40 --mem @t3:0x40=rand
+func_802ACBDC: -n 300 --seed 1 --arg t0=choice:0,0x400,0x800,0xC00,0xFFF,0x1000,-1,0x7FFFFFFF,0x80000000,0x123 --arg t3=ptr:0x40 \
+    --mem @t3:0x40=rand --follow func_802AE104,func_802AE160,func_802AE1BC,func_802AE290
+
+# func_802ACDB8 (x a1, z a2, angle a3 -> t0, t1): 2-D rotation; cos/sin stubbed with 16.16 values 0..0x10000 (a stub's
+# 32-bit result reaches the asm's 64-bit dmult zero-extended, so negative ones only come from the followed runs), then followed
+func_802ACDB8: -n 300 --seed 0 --arg a1=int:-0x20000000:0x20000000 --arg a2=int:-0x20000000:0x20000000 --arg a3=int \
+    --stub-ret func_802AE104=int:0:0x10000 --stub-ret func_802AE160=int:0:0x10000
+func_802ACDB8: -n 100 --seed 1 --arg a1=choice:0,1,-1,0xFFFF,0x10000,-0x10000,0x1FFFFFFF,-0x20000000 \
+    --arg a2=choice:0,1,-1,0xFFFF,0x10000,-0x10000,0x1FFFFFFF,-0x20000000 --arg a3=int \
+    --stub-ret func_802AE104=choice:0,0x10000,1,0xFFFF,0xB505 --stub-ret func_802AE160=choice:0,0x10000,1,0xFFFF,0xB505
+func_802ACDB8: -n 200 --seed 2 --arg a1=int:-0x20000000:0x20000000 --arg a2=int:-0x20000000:0x20000000 --arg a3=int \
+    --follow func_802AE104,func_802AE160,func_802AE1BC,func_802AE290
+# func_802ACE38 (x a0, z a2, angle a3 -> a3, t1)
+func_802ACE38: -n 300 --seed 0 --arg a0=int:-0x20000000:0x20000000 --arg a2=int:-0x20000000:0x20000000 --arg a3=int \
+    --stub-ret func_802AE104=int:0:0x10000 --stub-ret func_802AE160=int:0:0x10000
+func_802ACE38: -n 100 --seed 1 --arg a0=choice:0,1,-1,0xFFFF,0x10000,-0x10000,0x1FFFFFFF,-0x20000000 \
+    --arg a2=choice:0,1,-1,0xFFFF,0x10000,-0x10000,0x1FFFFFFF,-0x20000000 --arg a3=int \
+    --stub-ret func_802AE104=choice:0,0x10000,1,0xFFFF,0xB505 --stub-ret func_802AE160=choice:0,0x10000,1,0xFFFF,0xB505
+func_802ACE38: -n 200 --seed 2 --arg a0=int:-0x20000000:0x20000000 --arg a2=int:-0x20000000:0x20000000 --arg a3=int \
+    --follow func_802AE104,func_802AE160,func_802AE1BC,func_802AE290
+# func_802ACEB8 (x a0, angle a3 -> t0, a3); |x| <= 0x4000 keeps p * s >> 16 in 32 bits
+func_802ACEB8: -n 300 --seed 0 --arg a0=int:-0x4000:0x4000 --arg a3=int \
+    --stub-ret func_802AE104=int:0:0x10000 --stub-ret func_802AE160=int:0:0x10000
+func_802ACEB8: -n 100 --seed 1 --arg a0=choice:0,1,-1,0xFFF,0x1000,-0x1000,0x4000,-0x4000 --arg a3=int \
+    --stub-ret func_802AE104=choice:0,0x10000,1,0xFFFF,0xB505 --stub-ret func_802AE160=choice:0,0x10000,1,0xFFFF,0xB505
+func_802ACEB8: -n 200 --seed 2 --arg a0=int:-0x4000:0x4000 --arg a3=int \
+    --follow func_802AE104,func_802AE160,func_802AE1BC,func_802AE290
+# boundary angles and coordinates with the real cos/sin
+func_802ACDB8: -n 200 --seed 3 --arg a1=choice:0,1,-1,0xFFFF,0x10000,-0x10000,0x1FFFFFFF,-0x20000000 \
+    --arg a2=choice:0,1,-1,0xFFFF,0x10000,-0x10000,0x1FFFFFFF,-0x20000000 --arg a3=choice:0,0x400,0x800,0xC00,0x200,0xFFF,0x1000,-1 \
+    --follow func_802AE104,func_802AE160,func_802AE1BC,func_802AE290
+func_802ACE38: -n 200 --seed 3 --arg a0=choice:0,1,-1,0xFFFF,0x10000,-0x10000,0x1FFFFFFF,-0x20000000 \
+    --arg a2=choice:0,1,-1,0xFFFF,0x10000,-0x10000,0x1FFFFFFF,-0x20000000 --arg a3=choice:0,0x400,0x800,0xC00,0x200,0xFFF,0x1000,-1 \
+    --follow func_802AE104,func_802AE160,func_802AE1BC,func_802AE290
+func_802ACEB8: -n 200 --seed 3 --arg a0=choice:0,1,-1,0xFFF,0x1000,-0x1000,0x4000,-0x4000 \
+    --arg a3=choice:0,0x400,0x800,0xC00,0x200,0xFFF,0x1000,-1 --follow func_802AE104,func_802AE160,func_802AE1BC,func_802AE290

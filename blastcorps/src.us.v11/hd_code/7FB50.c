@@ -366,7 +366,169 @@ u32 func_802C4E58(void *outp, u8 level) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+#ifndef TRI_SCAN_TYPES_DEFINED
+#define TRI_SCAN_TYPES_DEFINED
+/* func_802AC0BC's FP and integer register results (62740.c), in and out. */
+typedef struct {
+    f32 pz;    /* f12 */
+    f32 cross; /* f14 */
+    f32 cz;    /* f20 */
+    f32 side;  /* f22 */
+    f32 sideZ; /* f24 */
+    f32 dz;    /* f26 */
+} TriSideOut;
+typedef struct {
+    s32 a1; /* found flag */
+    s32 a3;
+    s32 t6;
+    s32 t7;
+    s32 fp;
+    s32 s1;
+    s32 s2;
+    s32 s3;
+    s32 s4;
+} TriScanRegs;
+s32 func_802AC0BC(s32 x, s32 z, s32 y, TriSideOut *f, TriScanRegs *r);
+#endif
+extern u32 D_803F7BF8[]; /* x, y, z */
+extern u8 *D_803F7C04;   /* its model */
+extern u64 *D_803F7C08;  /* save copy pair */
+extern u64 *D_803F7C0C;
+extern s32 D_803F7C20;
+extern s32 D_803F7C24;
+extern s16 D_803F7C34;
+extern u8 D_803F7C36;
+extern u8 D_803F7C37;
+extern u8 D_803F7C38;
+extern u8 D_803F7C39;
+extern u8 D_803F7C3A;
+extern s8 D_803F7C3B;
+extern u8 D_803F7C3D;
+extern u8 D_803F7C40;
+extern u8 D_803F7C41;
+extern u8 D_803F7C42;
+extern u8 D_803F7C43;
+extern u8 D_803F7C45;
+extern u8 D_803F7C47;
+extern u8 D_803F7C4A;
+extern u8 D_803F7C4B;
+extern s32 D_803F7844;
+extern u8 *D_80358070; /* allocation pointer for the save copies */
+void func_80258230(u8 id, s32 arg1, s16 arg2, s16 arg3);
+void func_8029C354(s32 tag, u8 *p, u8 *end, u32 scale);
+void func_8029E558(u8 *base, u8 *other, void *ch);
+s32 func_8029F85C(u32 *bufA, u32 *bufB, void *ch, u8 *hdr);
+void func_802A0320(s32 idx, void *base);
+void func_802A1388(s32 a0Val, s32 a1Val, s32 v0Val, s32 v1Val, u8 *hdr);
+void func_802A754C(u8 *veh);
+void func_802A7764(u64 *a, u64 *b, s32 size);
+s32 *func_802A992C(s16 *tbl, s32 y, s32 x, s32 z, s32 *dst, s32 *mid, s16 *angle, s32 key, s32 fpIn, u8 *veh,
+                   TriSideOut *f);
+void func_802AA838(u8 *src, u8 *dst, s32 off);
+void func_802C5AFC(void);
+
+/* Load vehicle 9 (the 5CB60 dispatcher func_802A350C, record type 9): model
+ * `model` (D_803F7C04), save copies D_803F7C08 / D_803F7C0C taken 0x1000
+ * bytes each from D_80358070 (func_802A1388(9, 0, copies, model)), record
+ * reset (func_802A754C), wheel table +0x52..0x68, position (x, y, z),
+ * heading `heading` at +0x4C/+0x4E/+0x74, ground heights (func_802A992C,
+ * key 9, fp), the model's animation channels (func_8029F85C, channel 0 set
+ * to 100 / 0 / 0 / 0.0 / restart, run on both copies with func_8029E558 and
+ * func_802A0320 between), its flags, counters and mode (+0xA1/+0xA2 = 0),
+ * D_803F7C28/2C = 0.5, D_803F7C20/24 = 999999, parts (func_8029C354, scale
+ * 0x4268), func_80258230(9, 100, 45, 45), channel 6 (0.0 with 2, restart
+ * with -1), one update with +0x9A set (func_802C5AFC), the save copy pair
+ * (func_802A7764(D_803F7C0C, D_803F7C08, 0x1000)), copy the model matrix
+ * from the second copy to the first (func_802AA838) and D_803F7844 = 0.
+ * Register convention (conventions.txt): x t7, y s3, z s0, heading s1,
+ * model s2, fp (handed to func_802A992C, which stores it into D_803ED3F2:
+ * the dispatcher's leftover $fp in the game). The FP block func_802A992C
+ * passes through starts at 0 here (not read first). The asm saves t0-t5
+ * (asm caller func_802A350C keeps t1, t2 live: a mixed N64 build would need
+ * a thunk) and leaves s2-s4, fp and f12-f26 as its callees leave them
+ * (survey: read by func_802A350C's next records; not modelled) and $gp =
+ * the block. Adds are trapping in the asm. */
+void func_802C5120(s32 x, s32 y, s32 z, s32 heading, u8 *model, s32 fp) {
+    TriSideOut f;
+    u8 *m;
+
+    D_803F7C04 = model;
+    D_803F7C08 = (u64 *) D_80358070;
+    D_803F7C0C = (u64 *) (D_80358070 + 0x1000);
+    D_80358070 += 0x2000;
+    func_802A1388(9, 0, (s32) D_803F7C08, (s32) D_803F7C0C, model);
+    func_802A754C(D_803F7B50);
+    VEH_S16(0x52) = 0;
+    VEH_S16(0x54) = 0;
+    VEH_S16(0x56) = 0;
+    VEH_S16(0x58) = 0;
+    VEH_S16(0x5A) = 0;
+    VEH_S16(0x5C) = 0;
+    VEH_S16(0x5E) = 0x190;
+    VEH_S16(0x60) = 0x190;
+    VEH_S16(0x62) = -0x190;
+    VEH_S16(0x64) = 0x190;
+    VEH_S16(0x66) = 0x190;
+    VEH_S16(0x68) = -0x190;
+    D_803F7BF8[0] = x;
+    D_803F7BF8[1] = y;
+    D_803F7BF8[2] = z;
+    VEH_S16(0x4C) = heading;
+    VEH_S16(0x4E) = heading;
+    VEH_S16(0x74) = heading;
+    f.pz = f.cross = f.cz = f.side = f.sideZ = f.dz = 0.0f;
+    func_802A992C(&VEH_S16(0x52), D_803F7BF8[1], x, z, &VEH_S32(4), (s32 *) &D_803F7BF8[1], &VEH_S16(0x4C), 9, fp,
+                  D_803F7B50, &f);
+    func_8029F85C((u32 *) D_803F7C0C, (u32 *) D_803F7C08, D_803F7850, D_803F7C04);
+    func_802A039C(D_803F7850, 0, 100);
+    func_802A03D4(D_803F7850, 0, 0);
+    func_802A040C(D_803F7850, 0, 0);
+    func_802A0480(0.0f, D_803F7850, 0, 0);
+    func_802A0290(D_803F7850, 0, 1);
+    func_8029E558((u8 *) D_803F7C08, (u8 *) D_803F7C0C, D_803F7850);
+    func_802A0320(0, D_803F7850);
+    func_802A0290(D_803F7850, 0, 1);
+    func_8029E558((u8 *) D_803F7C0C, (u8 *) D_803F7C08, D_803F7850);
+    D_803F7C36 = 0;
+    D_803F7C37 = 0;
+    D_803F7C39 = 0;
+    D_803F7C3D = 0;
+    D_803F7C38 = 0;
+    D_803F7C45 = 0;
+    D_803F7C47 = 0;
+    D_803F7C4A = 0;
+    D_803F7C3A = 0;
+    D_803F7C3B = 0;
+    D_803F7C28 = 0.5f;
+    D_803F7C2C = 0.5f;
+    VEH_U8(0xA1) = 0;
+    VEH_U8(0xA2) = 0;
+    D_803F7C3C = 0x14;
+    D_803F7C43 = 0;
+    D_803F7C4B = 0x1E;
+    D_803F7C20 = 999999;
+    D_803F7C24 = 999999;
+    D_803F7C40 = 0;
+    D_803F7C41 = 0;
+    D_803F7C34 = 0;
+    D_803F7C42 = 0;
+    m = D_803F7C04;
+    func_8029C354(9, m + *(s32 *) (m + 4), m + *(s32 *) (m + 8), 0x4268);
+    func_80258230(9, 0x64, 0x2D, 0x2D);
+    func_802A0360(0.0f, D_803F7850, 6, 2);
+    func_802A0290(D_803F7850, 6, -1);
+    VEH_U8(0x9A) = 1;
+    func_802C5AFC();
+    VEH_U8(0x9A) = 0;
+    func_802A7764(D_803F7C0C, D_803F7C08, 0x1000);
+    m = D_803F7C04;
+    func_802AA838((u8 *) D_803F7C0C, (u8 *) D_803F7C08, *(s32 *) (m + *(s32 *) (m + 0x18) + 4));
+    D_803F7844 = 0;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C5120.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -469,7 +631,89 @@ void func_802C5714(void) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+#ifndef TRI_SCAN_TYPES_DEFINED
+#define TRI_SCAN_TYPES_DEFINED
+/* func_802AC0BC's FP and integer register results (62740.c), in and out. */
+typedef struct {
+    f32 pz;    /* f12 */
+    f32 cross; /* f14 */
+    f32 cz;    /* f20 */
+    f32 side;  /* f22 */
+    f32 sideZ; /* f24 */
+    f32 dz;    /* f26 */
+} TriSideOut;
+typedef struct {
+    s32 a1; /* found flag */
+    s32 a3;
+    s32 t6;
+    s32 t7;
+    s32 fp;
+    s32 s1;
+    s32 s2;
+    s32 s3;
+    s32 s4;
+} TriScanRegs;
+s32 func_802AC0BC(s32 x, s32 z, s32 y, TriSideOut *f, TriScanRegs *r);
+#endif
+#ifndef MTX_CHAIN_REGS_DEFINED
+#define MTX_CHAIN_REGS_DEFINED
+/* func_802AA890's extra registers (62740.c), as func_8029C454 and
+ * func_802ABBEC pass them through. */
+typedef struct {
+    s32 v1; /* out */
+    s32 a0; /* out */
+    s32 a3; /* in/out */
+    s32 s1; /* in/out */
+    s32 s2; /* in/out */
+    s32 s0; /* in */
+} MtxChainRegs;
+#endif
+#ifndef OUT_802A9A60_DEFINED
+#define OUT_802A9A60_DEFINED
+/* func_802A9A60's pointer results (the asm's s1 and s3; 62740.c). */
+typedef struct {
+    s32 *s1; /* dst + 9 */
+    s32 *s3; /* dst */
+} Out802A9A60;
+#endif
+extern u32 D_803F7BF8[]; /* x, y, z */
+s32 func_802A9A60(s16 *tbl, s32 y, s32 x, s32 z, s32 *dst, s32 *mid, s16 *angle, s32 key, s32 fp, u8 *veh,
+                  TriSideOut *f, Out802A9A60 *out);
+void func_802A133C(s32 a0Val, s32 id, s32 v0Val, s32 v1Val, u8 *obj);
+void func_802C7CB0(MtxChainRegs *regs);
+
+/* Move this vehicle while it isn't the player's (func_8024B618, case 9):
+ * ground heights for its three slots (func_802A9A60 with table +0x52, angle
+ * +0x4C, heights to +4.., the middle y to D_803F7BFC, key 9), place the
+ * model (func_802C7CB0), then func_802A133C(z, 9, x, y, block).
+ * Register convention (conventions.txt): `fp` is the asm's $fp, which goes
+ * on to func_802A9A60 (which stores it into D_803ED3F2[0..2], so the
+ * block's +0x50 becomes (u8) fp). The only caller, C func_8024B618, passes
+ * nothing: in the game this is whatever $fp its callers left (FIDELITY:
+ * see tools_port port_followups), so the native port must pass it
+ * explicitly. f12-f26 only pass through func_802A9A60 (not read first; the
+ * asm restores f20-f30), so the C starts them at 0. func_802C7CB0 gets s0 =
+ * z and s1 = func_802A9A60's s1. The asm saves every s-register, gp, fp and
+ * f20-f30; it leaves v1 = y (func_802A133C preserves it), which the survey
+ * lists as read by func_8024B618 (C: not a real use). */
+void func_802C5860(s32 fp) {
+    TriSideOut f;
+    Out802A9A60 out;
+    MtxChainRegs regs;
+    s32 z = D_803F7BF8[2];
+
+    f.pz = f.cross = f.cz = f.side = f.sideZ = f.dz = 0.0f;
+    func_802A9A60((s16 *) (D_803F7B50 + 0x52), D_803F7BF8[1], D_803F7BF8[0], z, (s32 *) (D_803F7B50 + 4),
+                  (s32 *) &D_803F7BF8[1], (s16 *) (D_803F7B50 + 0x4C), 9, fp, D_803F7B50, &f, &out);
+    regs.s0 = z;
+    regs.s1 = (s32) out.s1;
+    func_802C7CB0(&regs);
+    func_802A133C(D_803F7BF8[2], 9, D_803F7BF8[0], D_803F7BF8[1], D_803F7B50);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C5860.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -536,10 +780,327 @@ void func_802C59B4(s32 id, InterpRegs *r) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+#ifndef REGS_802A8768_DEFINED
+#define REGS_802A8768_DEFINED
+/* func_802A8768's register results besides the FP state (62740.c). */
+typedef struct {
+    s32 s3;  /* in/out */
+    s16 *s4; /* out */
+    s32 fp;  /* out */
+} Regs802A8768;
+#endif
+extern u8 D_803ED40B;
+void func_802AAE54(s32 id, s32 x, s32 z, InterpRegs *r);
+void func_802A8768(u8 *veh, s32 id, s32 *px, s32 *py, s32 *pz, s32 x, s32 z, s32 divB, s32 divA, s16 *angle,
+                   u8 *flags, s16 *tbl, s32 *a, s32 *b, s32 *c, s32 *ys, Regs802A8768 *r, TriSideOut *f);
+void func_802C7ECC(void);
+void func_802C7F28(void);
+
+/* Set this vehicle down at the point on triangle `id` given by the value
+ * pair at +0x6A/+0x6C (func_802AAE54): D_803EBBF4 (func_802C7ECC) and the
+ * tuning values (func_802C7F28) for its mode, D_803ED40B = 0, ground
+ * contact (func_802A8768: id 9, position D_803F7BF8..+8, divisors 0x78 /
+ * 0x78, angle +0x4C, flags +0x96, table +0x52, records +0x28/+0x40/+0x34,
+ * heights +4), place the model (func_802C7CB0) and func_802A133C(z, 9, x,
+ * y, block).
+ * Register convention (conventions.txt): id in a3; s3 in/out (func_802A8768's
+ * slot result, through *s3); the FP state chains through func_802AAE54 and
+ * func_802A8768 (r: f24 in; f20-f26 out, f12/f14 are left as func_802AA764's
+ * cos/sin temporaries, not modelled). func_802C7CB0 gets s0 = &+0x96 and
+ * s1 = &D_803F7C00, the flags/pz pointers func_802A8768 leaves. The asm
+ * saves and restores a3, t0, t1, t2 (asm caller func_802AB714 keeps a3, t0,
+ * t1 live: a mixed N64 build would need a thunk) and points $gp at
+ * D_803F7B50 without restoring it. */
+void func_802C5A14(s32 id, s32 *s3, InterpRegs *r) {
+    Regs802A8768 r8768;
+    MtxChainRegs regs;
+
+    func_802AAE54(id, VEH_S16(0x6A), VEH_S16(0x6C), r);
+    func_802C7ECC();
+    func_802C7F28();
+    D_803ED40B = 0;
+    r8768.s3 = *s3;
+    func_802A8768(D_803F7B50, 9, (s32 *) &D_803F7BF8[0], (s32 *) &D_803F7BF8[1], (s32 *) &D_803F7BF8[2], r->t3,
+                  r->t4, 0x78, 0x78, &VEH_S16(0x4C), &VEH_U8(0x96), &VEH_S16(0x52), &VEH_S32(0x28),
+                  &VEH_S32(0x40), &VEH_S32(0x34), &VEH_S32(4), &r8768, (TriSideOut *) &r->f12);
+    *s3 = r8768.s3;
+    regs.s0 = (s32) &VEH_U8(0x96);
+    regs.s1 = (s32) &D_803F7BF8[2];
+    func_802C7CB0(&regs);
+    func_802A133C(D_803F7BF8[2], 9, D_803F7BF8[0], D_803F7BF8[1], D_803F7B50);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C5A14.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+#ifndef OUT_802A860C_DEFINED
+#define OUT_802A860C_DEFINED
+/* func_802A860C's results besides t0 (62740.c). */
+typedef struct {
+    s32 t1; /* new z */
+    s32 s3; /* *px as read */
+    s32 fp; /* the cosine */
+} Out802A860C;
+#endif
+extern u8 D_8035805C;  /* which of the save copy pair is current */
+extern u8 *D_803F7C04; /* this vehicle's model */
+extern u8 D_803F7C36;  /* "turning back to the ring" flag */
+extern u8 D_803F7C37;  /* bounced off the ring end (the bounce code is unreachable here) */
+extern u8 D_803F7C38;  /* throttle hold-off countdown */
+extern s16 D_803F7C30; /* ring target heading */
+extern u8 D_803F7C39;
+extern u8 D_803F7C3F;
+extern s32 D_803F7C20;
+extern s32 D_803F7C24;
+extern u8 D_803A742B;
+extern u8 D_803A7424;
+extern u8 D_803A7425;
+extern void *D_803F77D0;
+extern s32 D_803643E0;
+extern s32 D_803643E4;
+extern s32 D_803643E8;
+extern s16 D_8036443C;
+extern s16 D_8036443E;
+extern s16 D_80364440;
+extern u8 D_80306400[];
+void func_8029A800(s32 z, s32 a1, s32 b2, s32 b3, s32 x, s32 y, s32 b0, s32 h1, s32 h2, s32 b4, s32 b8,
+                   u8 *veh);
+void func_8029A914(void);
+void func_8029AA10(s32 kind);
+void func_8029C52C(s32 tag);
+void func_8029E558(u8 *base, u8 *other, void *ch);
+s32 func_802A6F6C(void);
+void func_802A6FE4(u8 *veh, s32 limit);
+void func_802A7070(u8 *veh, s16 *angle);
+void func_802A70D8(u8 *veh);
+s32 func_802A71DC(u8 *veh, s32 cur, s32 target, s32 *curOut, f32 scale);
+s32 func_802A746C(u8 *veh, s32 delta, s32 v1, s32 *targetOut);
+void func_802A77D0(u8 *veh);
+void func_802A785C(u8 *veh, s16 *speed, s32 mode, u8 *flags, s16 *bands, s32 delta);
+void func_802A7E70(s32 rate, u16 *angle);
+f32 func_802A83B8(s16 *div, u8 *f, s32 *p, f32 *out);
+void func_802A843C(u8 *veh, s16 *speed, s32 kind, s8 *f, s32 *p, s32 clamp, f32 div);
+s32 func_802A860C(f32 f, s32 angle, s16 *len, s32 *px, s32 *pz, Out802A860C *out);
+void func_802BE77C(s32 id, u8 *vehicle);
+void func_802C61F0(s32 s0, TriSideOut *f, TriScanRegs *r);
+void func_802C617C(void);
+void func_802C71FC(s32 x, s32 z, TriSideOut *f);
+void func_802C7410(void);
+s32 func_802C7DFC(void);
+
+/* Per-frame update of vehicle 9 when it is the player's (func_8024B7AC and
+ * its init func_802C5120): zone lookup (func_802C5970), D_803EBBF4
+ * (func_802C7ECC), unless +0x9A is set the mode machine (func_802C61F0) and
+ * the D_8036444C pair (func_802C7410), the tuning values (func_802C7F28),
+ * steering (func_802A7E70 at rate func_802C7DFC()), throttle (func_802A785C
+ * with delta D_803F7C48, unless D_803F7C37; held off while D_803F7C38 counts
+ * down), braking (func_802A77D0 in mode 0, else func_802C617C), heading
+ * target = heading, slope (func_802A83B8 unless +0x96 is 1) and drag
+ * (func_802A843C in mode 0; other modes move the speed 1 toward 0) unless
+ * D_803F7C37, ring turn-back (func_802A7070 when D_803F7C36), the forward
+ * step (func_802A860C), the ceiling check func_802C71FC and ground contact
+ * (func_802A8768), the model (func_8029E558 on the current copy pair,
+ * func_802C7CB0). Outside mode 5: collision (func_8029A800 with the mode
+ * class 1 (modes 1-3) / 2 (mode 4, or modes 0/6+ while D_803F7C24 < 3) / 0,
+ * func_8029C52C, func_8029AA10; a hit, D_803A742B, in modes 1-4 -> mode 2,
+ * D_803F7C39 = 1), then either the collision pass func_802BE77C (no ring
+ * hit) whose ring-end hit (D_803A7424, or +0x9C) sends modes 1-3 (and modes
+ * 0/5+ while D_803F7C20 < 3 or with +0x96 == 1) to mode 2 and otherwise
+ * falls into the turn back, or (ring hit) the turn back toward the ring
+ * midpoint (func_8029A914, D_803F7C36 = 1, func_802A70D8, func_802A71DC,
+ * func_802A746C, func_802A6FE4(0)). Mode 4 and the quiet paths clear
+ * D_803F7C36/37. Finally the position, speed and angles go to D_803643E0.. /
+ * D_8036443C.., func_802A133C(z, 9, x, y, block), and D_803F7C3F = mode in
+ * 1..4. (The asm also holds a bounce-off-the-ring-end block like
+ * func_802CA4E0's, but nothing branches to it.)
+ * Register notes (FIDELITY, see tools_port/port_followups.md): func_802C5970's
+ * scan registers start as the caller's t6, t7, s0-s4 (passed on to
+ * func_802C61F0 -> func_802C7544 -> func_802A6274 where func_802ABD54 leaves
+ * them) and the FP block f12-f26 as the caller's (only passed through):
+ * the C starts them at 0. func_8029A800 gets b0 = t0 = 9 and h2 = t2 = the
+ * model's point list end, which func_802C7CB0 (func_802ABBEC) leaves:
+ * modelled. func_802C7CB0 gets s0 = &+0x96, s1 = &D_803F7C00 (left after
+ * func_802A8768; func_8029E558's own leftovers in the game; only used for a
+ * count-0 point record). func_8029A914 / func_8029C52C take the block in
+ * $gp but their C rewrites (56040) read D_803EEA90: reported. The asm leaves
+ * v1, f12, f14 as its callees leave them (survey: read by func_8024B7AC /
+ * func_802C5120; not real uses). Integer sums trap in the asm. */
+void func_802C5AFC(void) {
+    ZoneScanRegs zr;
+    TriScanRegs tr;
+    TriSideOut f;
+    Out802A860C o860c;
+    Regs802A8768 r8768;
+    MtxChainRegs regs;
+    f32 slope;
+    s32 x;
+    s32 z;
+    s32 v;
+    s32 mid;
+    s32 cur;
+    s32 turn;
+    s32 tgt;
+    s32 cls;
+    s32 mode;
+    u8 *mdl;
+
+    zr.t6 = zr.t7 = zr.s0 = zr.s1 = zr.s2 = zr.s3 = zr.s4 = 0;
+    func_802C5970(&zr);
+    func_802C7ECC();
+    if ((s8) VEH_U8(0x9A) == 0) {
+        f.pz = f.cross = f.cz = f.side = f.sideZ = f.dz = 0.0f;
+        tr.a1 = 0;
+        tr.a3 = 9;
+        tr.t6 = zr.t6;
+        tr.t7 = 0;
+        tr.fp = 0;
+        tr.s1 = zr.s1;
+        tr.s2 = zr.s2;
+        tr.s3 = zr.s3;
+        tr.s4 = zr.s4;
+        func_802C61F0(zr.s0, &f, &tr);
+        func_802C7410();
+    }
+    func_802C7F28();
+    func_802A7E70(func_802C7DFC(), (u16 *) &VEH_S16(0x4C));
+    if (D_803F7C37 == 0) {
+        if (D_803F7C38 == 0) {
+            func_802A785C(D_803F7B50, &VEH_S16(0x76), 4, &VEH_U8(0x96), &VEH_S16(0x78), D_803F7C48);
+        } else {
+            D_803F7C38--;
+        }
+    }
+    if (VEH_U8(0xA1) == 0) {
+        func_802A77D0(D_803F7B50);
+    } else {
+        func_802C617C();
+    }
+    VEH_S16(0x4E) = VEH_S16(0x4C);
+    if (VEH_U8(0x96) == 1) {
+        slope = 0.0f;
+    } else {
+        slope = func_802A83B8(&VEH_S16(0x76), &VEH_U8(0x96), &VEH_S32(4), (f32 *) &VEH_S32(0));
+    }
+    if ((s8) D_803F7C37 == 0) {
+        if (VEH_U8(0xA1) == 0) {
+            func_802A843C(D_803F7B50, &VEH_S16(0x76), 9, (s8 *) &VEH_U8(0x96), &VEH_S32(4), 1, 120.0f);
+        } else {
+            v = VEH_S16(0x76);
+            if (v > 0) {
+                v--;
+            } else if (v < 0) {
+                v++;
+            }
+            VEH_S16(0x76) = v;
+        }
+    }
+    if ((s8) D_803F7C36 != 0) {
+        func_802A7070(D_803F7B50, &D_803F7C30);
+    }
+    x = func_802A860C(slope, *(u16 *) &VEH_S16(0x4E), &VEH_S16(0x76), (s32 *) &D_803F7BF8[0],
+                      (s32 *) &D_803F7BF8[2], &o860c);
+    z = o860c.t1;
+    f.pz = f.cross = f.cz = f.side = f.sideZ = f.dz = 0.0f;
+    func_802C71FC(x, z, &f);
+    D_803ED40B = 0;
+    r8768.s3 = o860c.s3;
+    func_802A8768(D_803F7B50, 9, (s32 *) &D_803F7BF8[0], (s32 *) &D_803F7BF8[1], (s32 *) &D_803F7BF8[2], x, z,
+                  0x78, 0x78, &VEH_S16(0x4C), &VEH_U8(0x96), &VEH_S16(0x52), &VEH_S32(0x28), &VEH_S32(0x40),
+                  &VEH_S32(0x34), &VEH_S32(4), &r8768, &f);
+    if (D_8035805C != 0) {
+        func_8029E558((u8 *) D_803F7C08, (u8 *) D_803F7C0C, D_803F7850);
+    } else {
+        func_8029E558((u8 *) D_803F7C0C, (u8 *) D_803F7C08, D_803F7850);
+    }
+    regs.s0 = (s32) &VEH_U8(0x96);
+    regs.s1 = (s32) &D_803F7BF8[2];
+    func_802C7CB0(&regs);
+    D_803F7C39 = 0;
+    mode = VEH_U8(0xA1);
+    if (mode == 5) {
+        goto quiet;
+    }
+    if (mode == 1 || mode == 2 || mode == 3) {
+        cls = 1;
+    } else if (mode == 4 || D_803F7C24 < 3) {
+        cls = 2;
+    } else {
+        cls = 0;
+    }
+    mdl = D_803F7C04; /* t2 as func_802ABBEC (in func_802C7CB0) leaves it */
+    func_8029A800(D_803F7BF8[2], (s32) D_80306400, 1, 0, D_803F7BF8[0], D_803F7BF8[1], 9, VEH_S16(0x76),
+                  (s32) (mdl + *(s32 *) (mdl + 4)), cls, 9, D_803F7B50);
+    func_8029C52C(9);
+    func_8029AA10(9);
+    if (D_803A742B != 0 && VEH_U8(0xA1) != 0 && VEH_U8(0xA1) != 5) {
+        VEH_U8(0xA1) = 2;
+        D_803F7C39 = 1;
+    }
+    if (D_803A7425 == 0) {
+        D_803A7424 = 0;
+        D_803F77D0 = D_803F7850;
+        func_802BE77C(9, D_803F7B50);
+        if (D_803A7424 == 0 && VEH_U8(0x9C) == 0) {
+            goto quiet;
+        }
+        mode = VEH_U8(0xA1);
+        if (mode == 1 || mode == 2 || mode == 3) {
+            goto toMode2;
+        }
+        if (mode == 4) {
+            goto quiet;
+        }
+        if (D_803F7C20 < 3 || VEH_U8(0x96) == 1) {
+            goto toMode2;
+        }
+    }
+    /* turn back toward the ring */
+    func_8029A914();
+    D_803F7C36 = 1;
+    mid = func_802A6F6C();
+    v = *(u16 *) &VEH_S16(0x4E) - 0x800;
+    if (v < 0) {
+        v += 0xFFF;
+    }
+    v -= mid;
+    if (v < 0) {
+        v = -v;
+    }
+    if (!(v < 0x801)) {
+        v = 0xFFF - v;
+    }
+    func_802A70D8(D_803F7B50);
+    turn = func_802A71DC(D_803F7B50, *(u16 *) &VEH_S16(0x4E), *(u16 *) &VEH_S16(0x4C), &cur, 0.25f);
+    D_803F7C30 = cur;
+    VEH_S16(0x4E) = cur;
+    VEH_S16(0x74) = cur;
+    func_802A746C(D_803F7B50, turn, v, &tgt);
+    func_802A6FE4(D_803F7B50, 0);
+    goto done;
+toMode2:
+    VEH_U8(0xA1) = 2;
+    D_803F7C39 = 1;
+    goto done;
+quiet:
+    D_803F7C36 = 0;
+    D_803F7C37 = 0;
+done:
+    D_803643E0 = D_803F7BF8[0];
+    D_803643E4 = D_803F7BF8[1];
+    D_803643E8 = D_803F7BF8[2];
+    D_8036443C = VEH_S16(0x76);
+    D_8036443E = *(u16 *) &VEH_S16(0x4E);
+    D_80364440 = *(u16 *) &VEH_S16(0x4C);
+    func_802A133C(D_803F7BF8[2], 9, D_803F7BF8[0], D_803F7BF8[1], D_803F7B50);
+    mode = VEH_U8(0xA1);
+    D_803F7C3F = (mode != 0 && mode != 5) ? 1 : 0;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C5AFC.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -1531,7 +2092,75 @@ f32 func_802C7C1C(s32 up) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+#ifndef MTX_CHAIN_REGS_DEFINED
+#define MTX_CHAIN_REGS_DEFINED
+/* func_802AA890's extra registers (62740.c), as func_8029C454 and
+ * func_802ABBEC pass them through. */
+typedef struct {
+    s32 v1; /* out */
+    s32 a0; /* out */
+    s32 a3; /* in/out */
+    s32 s1; /* in/out */
+    s32 s2; /* in/out */
+    s32 s0; /* in */
+} MtxChainRegs;
+#endif
+extern u8 *D_803F7C04; /* this vehicle's model: +0 / +4 / +8 offsets of the point lists, +0x18 the matrix */
+extern u8 D_8035805C;  /* which of the save copy pair is current */
+extern s16 D_803ED390[]; /* rotation angles x, y, z for func_802AA764 */
+void func_8029C454(s32 x, s32 y, s32 z, s32 tag, u8 *p, u8 *end, u8 *base, MtxChainRegs *regs);
+void func_802AA764(s32 x, s32 y, s32 z, s32 scale, s32 *m);
+void func_802ABBEC(s32 id, s16 *p, s16 *end, u8 *base, MtxChainRegs *regs);
+
+/* Place this vehicle's model (vehicle 9): builds its matrix (scale 0x4268,
+ * angles (0, +0x4C of the block, 0)) at the model's +0x18 entry inside the
+ * current copy (D_8035805C ? D_803F7C08 : D_803F7C0C) with func_802AA764,
+ * then, except in mode 5 (+0xA1), places the parts (func_8029C454(x, y, z,
+ * 9, model + [4], model + [8], copy)), and always the points
+ * (func_802ABBEC(9, model + [0], model + [4], copy)).
+ * Register convention (conventions.txt): s0 and s1 come in for the
+ * func_802AA890 chain, whose registers (v1, a0, a3, s1, s2) go out; regs
+ * carries them. func_802AA764 leaves a3 = 0 (func_802ACCCC's loop counter)
+ * and s2 = the matrix, which the asm then hands on: modelled explicitly.
+ * v1/a0 going into func_802ABBEC are y and z (func_8029C454 restores them).
+ * The asm reads the block through $gp (= D_803F7B50, set by every caller)
+ * and leaves t0 = 9 and t2 = the point list end. Its cos/sin f12/f14
+ * temporaries (survey: read by func_802C5AFC) are not modelled (see
+ * func_802AA764). Asm caller func_802C5AFC keeps t6, t7 live (a mixed N64
+ * build would need a thunk; the native port won't). */
+void func_802C7CB0(MtxChainRegs *regs) {
+    u8 *mdl = D_803F7C04;
+    u8 *base;
+    s32 *m;
+    s32 x;
+    s32 y;
+    s32 z;
+
+    m = (s32 *) (*(u32 *) (mdl + *(s32 *) (mdl + 0x18) + 4) +
+                 (u32) (D_8035805C != 0 ? (u8 *) D_803F7C08 : (u8 *) D_803F7C0C));
+    D_803ED390[0] = 0;
+    D_803ED390[2] = 0;
+    D_803ED390[1] = *(u16 *) (D_803F7B50 + 0x4C);
+    func_802AA764(D_803F7BF8[0], D_803F7BF8[1], D_803F7BF8[2], 0x4268, m);
+    base = D_8035805C != 0 ? (u8 *) D_803F7C08 : (u8 *) D_803F7C0C;
+    x = D_803F7BF8[0];
+    y = D_803F7BF8[1];
+    z = D_803F7BF8[2];
+    regs->a3 = 0;
+    regs->s2 = (s32) m;
+    if (VEH_U8(0xA1) != 5) {
+        mdl = D_803F7C04;
+        func_8029C454(x, y, z, 9, mdl + *(s32 *) (mdl + 4), mdl + *(s32 *) (mdl + 8), base, regs);
+    }
+    regs->v1 = y;
+    regs->a0 = z;
+    mdl = D_803F7C04;
+    func_802ABBEC(9, (s16 *) (mdl + *(s32 *) (mdl + 0)), (s16 *) (mdl + *(s32 *) (mdl + 4)), base, regs);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C7CB0.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

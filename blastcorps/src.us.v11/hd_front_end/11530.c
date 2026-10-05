@@ -100,12 +100,16 @@ f32 D_8020E3D8 = 0.0f;
 typedef struct {
     /* 0x00 */ u8 type;
     /* 0x01 */ u8 unk1; /* needed (save) progress */
-    /* 0x02 */ u8 pad2[0x42];
+    /* 0x02 */ u8 pad2[0x2A];
+    /* 0x2C */ u32 unk2C; /* collectables present (bit per D_8020E350 entry) */
+    /* 0x30 */ u8 pad30[0x14];
 } LevelInfo;
 
 /* hd_code: save/player records (D_80364AF0, 0x100 bytes), as in hd_code 1D990.c */
 typedef struct {
-    /* 0x00 */ u8 pad0[0x18];
+    /* 0x00 */ u8 pad0[0x10];
+    /* 0x10 */ u32 unk10; /* collectables found */
+    /* 0x14 */ u8 pad14[4];
     /* 0x18 */ u8 rank[0x3C]; /* per level: 0 = locked, 1-5 = medal, ... */
     /* 0x54 */ u8 unk54[0x3C]; /* per level: bit n opens unk18[n] */
     /* 0x90 */ u8 pad90;
@@ -133,7 +137,18 @@ extern u16 *D_80358050[];
 extern u16 *D_80358058;
 extern void *D_8035806C;
 extern u16 D_8035807C;
+extern f32 D_802E8C84[];
 f32 sqrtf(f32);
+void func_80259450(void);
+void func_80259DC8(void *gfxp, char *str, u16 *wstr, s32 align, s32 fit, s32 x, s32 y, s32 w, s32 h, s32 forward,
+                   s32 r0, s32 g0, s32 b0, s32 a0, s32 r1, s32 g1, s32 b1, s32 a1);
+Gfx *func_8024C404(Gfx *, Dynamic *, s32 *);
+void func_80259C24(Gfx **, Dynamic *);
+Gfx *func_80272ED8(Gfx *, s32, s32, s32, u32, s32, f32);
+Gfx *func_80274868(Gfx *);
+Gfx *func_80274AA4(Gfx *);
+s16 func_8025B498(s32, s32, char *, u16 *);
+s32 func_8025B300(char *);
 f32 func_802574F0(f32); /* sinf */
 f32 func_80257514(f32); /* cosf */
 extern u8 D_8035805C;
@@ -159,7 +174,7 @@ extern Mtx D_80217B70[];
 extern s8 D_8021A904;
 extern s8 D_8021A906;
 extern s8 D_8021A907;
-extern s8 D_8021A908;
+extern u8 D_8021A908;
 extern f32 D_8021A91C;
 extern f32 D_8021A920;
 extern f32 D_8021A934;
@@ -184,6 +199,8 @@ void func_801F885C(s32 arg0);
 f32 func_801FD6B8(f32 a, f32 b, f32 range);
 void func_801FDE50(void);
 void func_801FDCA4(Vtx *v, s32 idx, s32 z);
+Gfx *func_801FE5D0(Gfx *arg0, Dynamic *dyn);
+Gfx *func_801F3450(Gfx *, Dynamic *);
 extern Gfx *D_8021A8F4;
 extern Gfx *D_8021A8FC;
 extern Gfx *D_8021A900;
@@ -279,7 +296,67 @@ void func_801F885C(s32 arg0) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/11530/func_801F8980.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/11530/func_801F9258.s")
+/* Level-select info screen: level name and the level's collectable icons. */
+Gfx *func_801F9258(Gfx *arg0, Dynamic *dyn, s32 *count) {
+    Gfx *gdl = arg0;
+    s32 padC0;
+    s32 i;
+    s32 alt;
+    s32 y;
+    s32 padA0[5];
+    s32 size;
+
+    gSPSegment(gdl++, 0, 0);
+    gSPSegment(gdl++, 2, osVirtualToPhysical(dyn));
+    gSPSegment(gdl++, 1, osVirtualToPhysical(D_8035806C));
+    gSPDisplayList(gdl++, D_01000038);
+    gSPDisplayList(gdl++, D_01000010);
+    gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, D_80358050[D_8035805C]);
+    gDPSetCycleType(gdl++, G_CYC_FILL);
+    gDPSetFillColor(gdl++, 0x10001);
+    gDPFillRectangle(gdl++, 0, 0, 319, 239);
+    gDPPipeSync(gdl++);
+    gDPPipelineMode(gdl++, G_PM_1PRIMITIVE);
+    gDPSetColorDither(gdl++, 0x80);
+    gdl = func_801FE5D0(gdl, dyn);
+    gdl = func_801F3450(gdl, dyn);
+    func_80259450();
+    {
+        u32 h;
+        s32 n;
+        LevelInfo *info;
+        s32 x;
+        s32 w;
+
+        size = 0x18;
+        h = D_8021AB2C / 9;
+        func_80259DC8(dyn, D_8020D810[D_8021A908].name, D_8020D810[D_8021A908].jname, 0, 0xA0, 0, (0x1C - h) / 2 + 0x12,
+                      size, h, 1, 0xFF, 0xFF, 0xFF, D_8021AB2C, 0, 0, 0xFF, D_8021AB2C);
+        gdl = func_8024C404(gdl, dyn, &n);
+        func_80259C24(&gdl, dyn);
+        info = &D_802E8F94[D_8021A908];
+        gdl = func_80274868(gdl);
+        y = 0xDA;
+        for (i = 0, alt = 0; i < 0x13 && y > 0x28; i++) {
+            if ((info->unk2C & (1 << i)) && (info->type == 1 || (D_8021AB30->unk10 & (1 << i))) &&
+                D_8020E350[i * 2] != 0) {
+                if (alt) {
+                    gdl = func_80272ED8(gdl, D_8021A8F0 + i, 0x16 - (0xFF - D_8021AB2C) / 6, y, D_8021AB2C, 0, 0.8125f);
+                } else {
+                    gdl = func_80272ED8(gdl, D_8021A8F0 + i, (0xFF - D_8021AB2C) / 6 + 0xF6, y -= 0x2C, D_8021AB2C, 0,
+                                        0.8125f);
+                }
+                alt ^= 1;
+            }
+        }
+        x = func_8025B498(0xA0, size, D_8020D810[D_8021A908].name, D_8020D810[D_8021A908].jname);
+        w = (s32) (size * D_802E8C84[0]) * func_8025B300(D_8020D810[D_8021A908].name);
+    }
+    gdl = func_80274AA4(gdl);
+    gSPEndDisplayList(gdl++);
+    *count = gdl - arg0;
+    return gdl;
+}
 
 /* Level-select globe: frame setup, camera matrices, then the globe itself. */
 Gfx *func_801F9820(Gfx *arg0, Dynamic *dyn, s32 *count) {
@@ -615,7 +692,7 @@ Gfx *func_801FE238(Gfx *arg0, s32 arg1) {
     return gdl;
 }
 
-Gfx *func_801FE5D0(Gfx *arg0, s32 arg1) {
+Gfx *func_801FE5D0(Gfx *arg0, Dynamic *dyn) {
     Gfx *gdl = arg0;
 
     gDPPipeSync(gdl++);

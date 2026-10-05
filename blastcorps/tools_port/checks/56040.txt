@@ -53,3 +53,244 @@ func_8029DBF0: -n 100 --seed 1 --arg a0=int --stub-ret func_8029DC14=0
 func_8029DBF0: -n 300 --seed 2 --follow func_8029DC14 --arg a0=choice:0,1,2,0xFF,0x100,-1 \
     --mem D_803BD300=rel:D_803B9890+0x60*int:0:12 --mem D_803B9890+0x4F*0x60:12/1=choice:0,1,2,0xFF \
     --mem D_803B9890+0x51*0x60:12/1=choice:0,0,1,0x80
+
+# ---- wt-c1 (phase C) ----
+# func_8029B5B8 (rec in s0): rec[0x4F] == 7 -> D_803A742B = 1, D_803A7430++ while <= 0xC8
+func_8029B5B8: -n 300 --arg s0=ptr:0x100 --mem @s0+0x4F:1=bytes:7*3,6,8,0,0xFF \
+    --mem D_803A7430:1=bytes:0,1,0xC7,0xC8,0xC9,0xCA,0xFF --mem D_803A742B:1=bytes:0,0x55
+func_8029B5B8: -n 100 --seed 1 --arg s0=ptr:0x100 --mem @s0+0x4F:1=7 --mem D_803A7430:1=bytes:0xC8,0xC9 --mem D_803A742B:1=bytes:0,1
+
+# func_8029D1D4 (t6 = sub, t7 = id): first record with [0x4F] == id && [0x50] == sub (the last of 64 always matches),
+# clear its [0x51]; record -> s0, last byte -> s1
+func_8029D1D4: -n 300 --arg t7=7 --arg t6=5 --mem D_803B9890:0x1800=rand --mem D_803B9890+0x4F*0x60:64/1=bytes:7,1,0 \
+    --mem D_803B9890+0x50*0x60:64/1=bytes:5,6,0 --mem D_803B9890+0x17EF:1=7 --mem D_803B9890+0x17F0:1=5
+func_8029D1D4: -n 100 --seed 1 --arg t7=0 --arg t6=0xFF --mem D_803B9890:0x1800=rand --mem D_803B9890+0x4F*0x60:64/1=bytes:0,1 \
+    --mem D_803B9890+0x50*0x60:64/1=bytes:0xFF,0xFE,0 --mem D_803B9890+0x17EF:1=0 --mem D_803B9890+0x17F0:1=0xFF
+# match only in the first record
+func_8029D1D4: -n 30 --seed 2 --arg t7=3 --arg t6=4 --mem D_803B9890:0xC0=rand --mem D_803B9890+0x4F:1=3 --mem D_803B9890+0x50:1=4
+
+# func_8029D210 (t4 = sub): byte 0x51 of the first record with [0x50] == sub (exactly one of 32 matches) -> t5
+func_8029D210: -n 300 --arg t4=5 --mem D_803B9890:0xC00=rand --mem D_803B9890:0xC00=onehot:0x60@0x50/1:5:rand
+func_8029D210: -n 100 --seed 1 --arg t4=0x80 --mem D_803B9890:0xC00=rand --mem D_803B9890:0xC00=onehot:0x60@0x50/1:0x80:words:0
+func_8029D210: -n 100 --seed 2 --arg t4=0 --mem D_803B9890:0xC00=rand --mem D_803B9890:0xC00=onehot:0x60@0x50/1:0:words:-1
+
+# func_8029D534 (t2 = kind, s0 = rec): rec[0x55] = (kind != 7)
+func_8029D534: -n 300 --arg t2=choice:7*3,6,8,0,-1,0x107,0x7FFFFFFF --arg s0=ptr:0x100
+
+# func_8029DCD4 (t5 = dst, s2 = src): queue a copy in the first free slot of D_803B7FC8; raise D_803B8568
+func_8029DCD4: -n 300 --arg t5=int --arg s2=choice:0x80B00000,0x12345678,-1 --mem D_803B7FC8:0x5A0=rand \
+    --mem D_803B7FC8*0xC:120=choice:0,0x80B00000*6 --mem D_803B8568=rel:D_803B7FC8+0xC*int:-2:121 \
+    --mem D_8035805C:1=bytes:0,1,0xFE
+# exactly one free slot (first, last or middle); pool full
+func_8029DCD4: -n 200 --seed 1 --arg t5=int --arg s2=int --mem D_803B7FC8:0x5A0=onehot:0xC:0:words:1,0x80B00000 \
+    --mem D_803B8568=rel:D_803B7FC8+0xC*choice:0,60,119,-1 --mem D_8035805C:1=bytes:0,1
+func_8029DCD4: -n 50 --seed 2 --arg t5=int --arg s2=int --mem D_803B7FC8:0x5A0=words:1,-1 --mem D_803B8568=int
+
+# func_8029DD54 (s2 = dst): cancel queued copies with that dst; the scan also covers the pseudo-slot at &D_803B8568
+func_8029DD54: -n 300 --arg s2=choice:0x80B00100,0x80B00140 --mem D_803B7FC8:0x5A0=rand \
+    --mem D_803B7FC8+4*0xC:120=choice:0x80B00100,0x80B00140,0,-1 --mem D_803B8568=int --mem D_803B8568+4=choice:0x80B00100,0x80B00140,7
+func_8029DD54: -n 100 --seed 1 --arg s2=0 --mem D_803B7FC8:0x5A0=onehot:0xC@4:0:words:-1 --mem D_803B8568=int --mem D_803B8568+4=choice:0,1
+
+# func_8029DDC8 (ABI): run the queued copies whose parity == D_8035805C (func_8029DE50 stubbed, then followed)
+func_8029DDC8: -n 300 --ret void --sig func_8029DE50=a0,a1 --mem D_803B7FC8:0x5A0=rand \
+    --mem D_803B7FC8*0xC:120=choice:0*2,0x80B00000,0x80B00040 --mem D_803B7FC8+4*0xC:120=choice:0x80B00100,0x80B00140 \
+    --mem D_803B7FC8+8*0xC:120=choice:0,1,2,0x100 --mem D_803B8568=rel:D_803B7FC8+0xC*int:-1:119 --mem D_8035805C:1=bytes:0,1
+func_8029DDC8: -n 200 --seed 1 --ret void --follow func_8029DE50 --heap 0x200 --mem D_803B7FC8:0x5A0=rand \
+    --mem D_803B7FC8*0xC:120=choice:0*2,0x80B00000,0x80B00040 --mem D_803B7FC8+4*0xC:120=choice:0x80B00100,0x80B00140 \
+    --mem D_803B7FC8+8*0xC:120=choice:0,1 --mem D_803B8568=rel:D_803B7FC8+0xC*choice:0,1,60,118,119 --mem D_8035805C:1=bytes:0,1
+# nothing in use / pointer below the pool start
+func_8029DDC8: -n 50 --seed 2 --ret void --sig func_8029DE50=a0,a1 --mem D_803B7FC8:0x5A0=zero --mem D_803B8568=rel:D_803B7FC8+0xC*choice:-1,0,119
+# func_8029DE50 (t5 = dst, s2 = src): copy 64 bytes (also overlapping forward by 8)
+func_8029DE50: -n 200 --heap 0x200 --arg s2=rel:heap0+8*int:0:8 --arg t5=rel:heap0+0x100
+func_8029DE50: -n 50 --seed 1 --heap 0x200 --arg s2=rel:heap0 --arg t5=rel:heap0+8*choice:1,2,8
+
+# func_8029FF2C (t1 = dst): copy the 10 halfwords before dst to dst, return dst + 0x14 in t1
+func_8029FF2C: -n 200 --heap 0x200 --arg t1=rel:heap0+0x14*int:1:20
+
+# func_802A0290 .. func_802A0480 (base in a0/v1, idx in v0, value in v1, float in f0): Unk8029DEA0Entry setters
+func_802A0290: -n 300 --heap 0x400 --arg a0=rel:heap0+0x200 --arg v0=int:-20:20 --arg v1=choice:0,1,-1,0x7FFF,0x8000,0xFFFF,0x12345
+func_802A02E4: -n 300 --heap 0x400 --arg v1=rel:heap0+0x200 --arg v0=int:-20:20
+func_802A0320: -n 300 --heap 0x400 --arg v1=rel:heap0+0x200 --arg v0=int:-20:20
+func_802A0360: -n 300 --heap 0x400 --arg a0=rel:heap0+0x200 --arg v0=int:-20:20 --arg v1=choice:0,1,-1,0x7F,0x80,0xFF,0x100 --arg f0=float
+func_802A039C: -n 300 --heap 0x400 --arg a0=rel:heap0+0x200 --arg v0=int:-20:20 --arg v1=choice:0,1,-1,0x7F,0x80,0xFF,0x100
+func_802A03D4: -n 300 --heap 0x400 --arg a0=rel:heap0+0x200 --arg v0=int:-20:20 --arg v1=choice:0,1,-1,0x7F,0x80,0xFF,0x100
+func_802A040C: -n 300 --heap 0x400 --arg a0=rel:heap0+0x200 --arg v0=int:-20:20 --arg v1=choice:0,1,-1,0x7F,0x80,0xFF,0x100
+func_802A0444: -n 300 --heap 0x400 --arg a0=rel:heap0+0x200 --arg v0=int:-20:20 --arg v1=choice:0,1,-1,0x7FFF,0x8000,0xFFFF,0x12345
+func_802A0480: -n 300 --heap 0x400 --arg a0=rel:heap0+0x200 --arg v0=int:-20:20 --arg v1=choice:0,1,-1,0x7F,0x80,0xFF,0x100 --arg f0=float
+# getter: random entry bytes, then sign/zero-extension boundaries
+func_802A04BC: -n 300 --heap 0x400 --arg v1=rel:heap0+0x200 --arg v0=int:-20:20
+func_802A04BC: -n 100 --seed 1 --heap 0x400=bytes:0,0x7F,0x80,0xFF --arg v1=rel:heap0+0x200 --arg v0=int:-20:20
+
+# func_802A06B4 (v0 = id): the D_803B35F8 entry with that id (exactly one of 16 matches; -1 entries don't stop it) -> v0
+func_802A06B4: -n 300 --arg v0=0x1234 --mem D_803B35F8:0x180=onehot:0x18:0x1234:words:1,-1,0,0x1235
+func_802A06B4: -n 100 --seed 1 --arg v0=-1 --mem D_803B35F8:0x180=onehot:0x18:-1:words:0,1,0x7FFFFFFF
+
+# func_8029A914 (gp = D_803EEA90 in the asm): gp+0xA0 byte / gp+0x76 timer update, ring span shift while the timer < 0
+func_8029A914: -n 300 --ret void --arg gp=sym:D_803EEA90 --mem D_803EEA90+0xA0:1=bytes:0,1,2,0xC8,0xFF \
+    --mem D_803EEA90+0x76:2=halves:0,1,10,0x7FFF,0x8000,0xFFFF,0xFFF0 --mem D_803A742E:1=bytes:0,1,0x80 \
+    --mem D_803A742D:1=bytes:0,1,0xC8,0xC9,0xFF --mem D_80358064=choice:0,1,-1 \
+    --mem D_803A7410:2=int:0:0xFFF --mem D_803A7412:2=int:0:0xFFF
+# timer negative: wrap boundaries of the shift, and the full u16 range
+func_8029A914: -n 200 --seed 1 --ret void --arg gp=sym:D_803EEA90 --mem D_803EEA90+0xA0:1=bytes:0,1,2 \
+    --mem D_803EEA90+0x76:2=halves:0x8000,0xFFFF --mem D_803A742E:1=bytes:0,1 --mem D_803A742D:1=bytes:0,0xC9 \
+    --mem D_803A7410:2=choice:0,1,0x7FE,0x7FF,0x800,0x801,0xFFF,0x1000,0xFFFF \
+    --mem D_803A7412:2=choice:0,0x7FE,0x7FF,0x800,0x801,0xFFE,0xFFF,0x1000,0xFFFF
+
+# ---- sphere-vs-triangle cluster: tri in s0, sphere (t3, t4, t5) radius t6 ----
+# func_8029C160: plane test + projection (s64 plane at +0..+0x18, f32 at +0x20/+0x24); hit point -> v1, a0, a1
+func_8029C160: -n 300 --follow-all --arg s0=ptr:0x60 --mem @s0*8:4=choice:0,0,-1 --mem @s0+4*8:4=int:-0x10000:0x10000 \
+    --mem @s0+0x20:8=floats:-2000:2000 --arg t3=int:-0x100000:0x100000 --arg t4=int:-0x100000:0x100000 \
+    --arg t5=int:-0x100000:0x100000 --arg t6=int:0:0x40000 --mem D_803A73FC:12=rand
+# unit normal (0, 1, 0), divisors +-2 / 4 / 1: rounding ties (y odd) and |dist| == r
+func_8029C160: -n 300 --seed 1 --follow-all --arg s0=ptr:0x60 --mem @s0:0x20=zero --mem @s0+0xC=1 \
+    --mem @s0+0x1C=choice:0,1,-1,3 --mem @s0+0x18=choice:0,0,-1 --mem @s0+0x20=choice:0x40000000,0xC0000000,0x40800000,0x3F800000 \
+    --mem @s0+0x24=choice:0x3F800000,0x40000000,0xBF800000 --arg t3=int:-20:20 --arg t4=int:-20:20 --arg t5=int:-20:20 \
+    --arg t6=int:0:10 --mem D_803A73FC:12=rand
+# func_8029C0DC: drop the axis given by tri byte 0x4E
+func_8029C0DC: -n 300 --arg s0=ptr:0x60 --mem @s0+0x4E:1=bytes:0,1,2,0x80,0xFF --arg v1=int --arg a0=int --arg a1=int
+# func_8029BF64: 2-D point-in-triangle (A = v0,v1; B = a0,a1; C = a2,a3; P = t0,t1) -> t7
+func_8029BF64: -n 300 --arg v0=int:-1000:1000 --arg v1=int:-1000:1000 --arg a0=int:-1000:1000 --arg a1=int:-1000:1000 \
+    --arg a2=int:-1000:1000 --arg a3=int:-1000:1000 --arg t0=int:-1000:1000 --arg t1=int:-1000:1000
+# small grid: points on edges and vertices, degenerate triangles
+func_8029BF64: -n 400 --seed 1 --arg v0=int:0:3 --arg v1=int:0:3 --arg a0=int:0:3 --arg a1=int:0:3 --arg a2=int:0:3 \
+    --arg a3=int:0:3 --arg t0=int:0:3 --arg t1=int:0:3
+# func_8029BD0C: does an edge pass within r? (coordinates small enough that the asm's trapping dsub can't overflow)
+func_8029BD0C: -n 300 --follow-all --arg s0=ptr:0x60 --mem @s0+0x28*4:9=int:-8000:8000 --arg t3=int:-8000:8000 \
+    --arg t4=int:-8000:8000 --arg t5=int:-8000:8000 --arg t6=int:0:6000
+# small grid: tangent edges, degenerate edges (A == B), r = 0
+func_8029BD0C: -n 400 --seed 1 --follow-all --arg s0=ptr:0x60 --mem @s0+0x28*4:9=choice:0,3,4,5,-3 --arg t3=choice:0,3,4 \
+    --arg t4=choice:0,3,4 --arg t5=choice:0,-4 --arg t6=choice:0,1,3,4,5
+# V0 = 0, V1 = (0,100,0), V2 = (3,0,0): with C = (5,0,0), r = 2 the sphere touches only V2, the end (t == 1
+# exactly) of both edges through it; C = (-2,0,0) touches V0 (t == 0); r = 1 / C further away just misses
+func_8029BD0C: -n 100 --seed 2 --follow-all --arg s0=ptr:0x60 --mem @s0+0x28:0x24=zero --mem @s0+0x38=100 \
+    --mem @s0+0x40=3 --arg t3=choice:5,-2,6,-3 --arg t4=0 --arg t5=0 --arg t6=choice:2,1
+# func_8029BEE4: vertex 0 within r (sqrt rounded to nearest)
+func_8029BEE4: -n 300 --follow-all --arg s0=ptr:0x60 --mem @s0+0x28*4:3=int:-0x10000000:0x10000000 \
+    --arg t3=int:-0x10000000:0x10000000 --arg t4=int:-0x10000000:0x10000000 --arg t5=int:-0x10000000:0x10000000 \
+    --arg t6=int:0:0x20000000
+func_8029BEE4: -n 300 --seed 1 --follow-all --arg s0=ptr:0x60 --mem @s0+0x28*4:3=int:-3:3 --arg t3=int:-3:3 \
+    --arg t4=int:-3:3 --arg t5=int:-3:3 --arg t6=int:0:5
+
+# ---- animation / spline helpers ----
+# func_8029E878 (p0..p3 in f0, f2, f4, f6, t in f30): cubic through the basis D_803B3778 -> f8
+func_8029E878: -n 300 --mem D_803B3778:0x48=floats:-4:4 --arg f0=float:-1000:1000 --arg f2=float:-1000:1000 \
+    --arg f4=float:-1000:1000 --arg f6=float:-1000:1000 --arg f30=float:0:1
+# func_8029F060 (t in f30, idx in t2, n in t6): t^2, t^3 and the four wrapped control indices
+func_8029F060: -n 300 --arg f30=float:0:1 --arg t2=int:0:20 --arg t6=int:1:21 --mem D_803B7FC0:4=rand --mem D_803B37B8:8=rand
+func_8029F060: -n 200 --seed 1 --arg f30=float:-2:2 --arg t2=choice:0,1,2,3,4,5,-1 --arg t6=choice:1,2,3,4,5 \
+    --mem D_803B7FC0:4=rand --mem D_803B37B8:8=rand
+# func_8029F110 (t0 = p, fp = mode): basis for tension *(f32 *)(p + 8) when mode == 1; f12/f14 only then, f20 = 1.0
+func_8029F110: -n 300 --arg t0=ptr:0x20 --mem @t0+8:4=floats:-2:2 --arg fp=choice:0,1,1,1,2,-1 --arg f12=float --arg f14=float \
+    --mem D_803B3778:0x40=rand
+# func_8029F1BC (t0 = channel, t2 = frame, t6 = n, f6 = delta, f30 = frac): forward/backward step, wrap, turn, stop
+func_8029F1BC: -n 400 --arg t0=ptr:0x18 --mem @t0+0x11:1=bytes:0,1,2 --mem @t0+0x12:1=bytes:0,1 --mem @t0+0x14:1=bytes:0,1,2,8,0xFF \
+    --mem @t0+0xC:2=halves:0,1,2,5,0x7FFF,0xFFFF --mem @t0+0xE:2=halves:0,1,2,3,6,0xFFFF,0x8000 \
+    --arg f6=float:0:2 --arg f30=float:0:1 --arg t2=int:0:24 --arg t6=int:2:21
+# exact steps (delta * speed integral, frac 0 / 0.5 / 1): frames landing exactly on 0 and n - 1, single-segment tracks
+func_8029F1BC: -n 400 --seed 1 --arg t0=ptr:0x18 --mem @t0+0x11:1=bytes:0,1 --mem @t0+0x12:1=bytes:0,1 --mem @t0+0x14:1=bytes:0,1,2 \
+    --mem @t0+0xC:2=halves:0,1,2 --mem @t0+0xE:2=halves:1,2,3,0xFFFF --arg f6=choice:0,0x3F800000,0x40000000,0x3F000000 \
+    --arg f30=choice:0,0x3F000000,0x3F800000 --arg t2=int:0:5 --arg t6=int:2:6
+# func_8029F3D0 (from a0-a2 to a3, t0, t1 by f30): translation matrix at D_803B3730, 0 when the result is the origin
+func_8029F3D0: -n 300 --arg a0=int:-0x8000:0x7FFF --arg a1=int:-0x8000:0x7FFF --arg a2=int:-0x8000:0x7FFF \
+    --arg a3=int:-0x8000:0x7FFF --arg t0=int:-0x8000:0x7FFF --arg t1=int:-0x8000:0x7FFF --arg f30=float:0:1 --mem D_803B3730:0x40=rand
+# t = 0 / 0.5 / 1 (rounding ties), results at the origin
+func_8029F3D0: -n 300 --seed 1 --arg a0=int:-2:2 --arg a1=int:-2:2 --arg a2=int:-2:2 --arg a3=int:-3:3 --arg t0=int:-3:3 \
+    --arg t1=int:-3:3 --arg f30=choice:0,0x3F000000,0x3F800000,0x3E800000 --mem D_803B3730:0x40=rand
+# func_8029F760: as func_8029F3D0, scale matrix, 0 when all three are 0x100
+func_8029F760: -n 300 --arg a0=int:-0x8000:0x7FFF --arg a1=int:-0x8000:0x7FFF --arg a2=int:-0x8000:0x7FFF \
+    --arg a3=int:-0x8000:0x7FFF --arg t0=int:-0x8000:0x7FFF --arg t1=int:-0x8000:0x7FFF --arg f30=float:0:1 --mem D_803B3730:0x40=rand
+func_8029F760: -n 300 --seed 1 --arg a0=choice:0x100,0xFF,0x101,0xFD --arg a1=choice:0x100,0xFE,0xFD --arg a2=choice:0x100,0x102,0x103 \
+    --arg a3=choice:0x100,0x101,0xFF --arg t0=choice:0x100,0x102 --arg t1=choice:0x100,0x101 \
+    --arg f30=choice:0,0x3F000000,0x3F800000 --mem D_803B3730:0x40=rand
+# func_8029F6B0 (a0 -> a1 by f30): shortest-way angle lerp in 1/16 units -> t4
+func_8029F6B0: -n 300 --arg a0=int:0:0xFFFF --arg a1=int:0:0xFFFF --arg f30=float:0:1
+# differences of exactly +-2048 (0x8000 / 16) and just past, t = 0 / 0.5 / 1
+func_8029F6B0: -n 300 --seed 1 --arg a0=choice:0,0x10,0x8000,0xFFF0,0x10000 --arg a1=choice:0,0x8000,0x8010,0x7FF0,0x10010,0xFFFF \
+    --arg f30=choice:0,0x3F000000,0x3F800000
+# func_8029F85C (a0 = bufA, v1 = bufB, t0 = channels, t1 = header): channel init, data copy + identity fill
+func_8029F85C: -n 100 --heap 0x200 --heap 0x300 --heap 0x200 --heap 0x200 --arg t1=rel:heap0 --arg t0=rel:heap1 \
+    --arg a0=rel:heap2 --arg v1=rel:heap3 --mem @heap0+0x10=0x40 --mem @heap0+0x18=0x100 --mem @heap0+0x100=0xA0 --mem @heap0+0x104=0x20
+func_8029F85C: -n 50 --seed 1 --heap 0x200 --heap 0x300 --heap 0x200 --heap 0x200 --arg t1=rel:heap0 --arg t0=rel:heap1 \
+    --arg a0=rel:heap2 --arg v1=rel:heap3 --mem @heap0+0x10=0x40 --mem @heap0+0x18=0x100 --mem @heap0+0x100=0x40 --mem @heap0+0x104=0
+func_8029F85C: -n 50 --seed 2 --heap 0x200 --heap 0x300 --heap 0x200 --heap 0x200 --arg t1=rel:heap0 --arg t0=rel:heap1 \
+    --arg a0=rel:heap2 --arg v1=rel:heap3 --mem @heap0+0x10=0x80 --mem @heap0+0x18=0x100 --mem @heap0+0x100=0x40 --mem @heap0+0x104=0x40
+
+# func_8029C284 (t3 = x, t5 = z): D_803A7418[0] = x*4/D_803BE724 + (z*4/D_803BE728) * D_803BE72C, [1] = -1
+func_8029C284: -n 300 --arg t3=int:-0x100000:0x100000 --arg t5=int:-0x100000:0x100000 \
+    --mem D_803BE724=choice:1,2,3,7,0x100,0x1000,-1,-5 --mem D_803BE728=choice:1,2,3,7,0x100,0x1000,-1,-5 \
+    --mem D_803BE72C:2=halves:0,1,2,0x7FFF,0x8000,0xFFFF --mem D_803A7418:4=rand
+func_8029C284: -n 100 --seed 1 --arg t3=choice:0,1,3,4,-1,-4 --arg t5=choice:0,1,3,4,-1,-4 \
+    --mem D_803BE724=choice:4,-4 --mem D_803BE728=choice:4,-4 --mem D_803BE72C:2=halves:0x40,0xFFFF --mem D_803A7418:4=rand
+
+# func_8029C354 (t0 = tag, t1 = p, t2 = end, t3 = scale): register parts in the first free D_803A7300 entry and in
+# consecutive D_803A6B30 entries from the first free one; records 0xC bytes apart (u16 at +0xA all 0) up to end
+func_8029C354: -n 300 --heap 0x200 --arg t1=rel:heap0 --mem @heap0+0xE*0xC:16/2=0 --arg t2=rel:heap0+4+0xC*int:0:16 \
+    --arg t0=int --arg t3=choice:0,1,0x100,0x10000,0xFFFFFFFF,0x12345678 --mem D_803A7300:0x140=onehot:0x14@0x11/1:0xFF:rand \
+    --mem D_803A6B30:0x500=rand --mem D_803A6B30:0x140=onehot:0x14@0x13/1:0xFF:rand
+# variable record sizes: 0x10, 0xC, 0x14 (u16 at +0xA = 1, 0, 2), end after the third
+func_8029C354: -n 100 --seed 1 --heap 0x200 --arg t1=rel:heap0 --mem @heap0+0xE:2=1 --mem @heap0+0x1E:2=0 --mem @heap0+0x2A:2=2 \
+    --arg t2=rel:heap0+0x34 --arg t0=int --arg t3=int --mem D_803A7300:0x140=onehot:0x14@0x11/1:0xFF:rand \
+    --mem D_803A6B30:0x500=rand --mem D_803A6B30:0x140=onehot:0x14@0x13/1:0xFF:rand
+
+# func_8029C6E4: find the D_803A6B30 entry with kind (0x12) 6 and word 0xC == 0x3BD before the 0xFF terminator (0x13)
+func_8029C6E4: -n 300 --mem D_803A6B30:0x140=rand --mem D_803A6B30+0x13*0x14:16/1=bytes:0,0,1,0xFF \
+    --mem D_803A6B30+0x12*0x14:16/1=bytes:6,6,5 --mem D_803A6B30+0xC*0x14:16=choice:0x3BD,0x3BC,0 --mem D_803A6B30+0x13F:1=0xFF
+# exactly one matching entry (first/last/middle) of 16, all kind 6; and no match at all
+func_8029C6E4: -n 200 --seed 1 --mem D_803A6B30:0x154=rand --mem D_803A6B30+0x13*0x14:16/1=bytes:0 \
+    --mem D_803A6B30+0x12*0x14:16/1=bytes:6 --mem D_803A6B30:0x140=onehot:0x14@0xC:0x3BD:words:0x3BC \
+    --mem D_803A6B30+0x153:1=0xFF
+func_8029C6E4: -n 50 --seed 2 --mem D_803A6B30:0x154=rand --mem D_803A6B30+0x13*0x14:16/1=bytes:0 \
+    --mem D_803A6B30+0x12*0x14:16/1=bytes:6,5 --mem D_803A6B30+0xC*0x14:16=choice:0x3BC,0 --mem D_803A6B30+0x153:1=0xFF
+
+# func_8029CFA4 (P = v0,v1,a0; Q = a2,a3,t0; radii a1 + t1): 1 if |Q - P| < r1 + r2 -> t2 (64-bit squares, sqrtf)
+func_8029CFA4: -n 300 --follow-all --arg a0=int:-100000:100000 --arg v0=int:-100000:100000 --arg v1=int:-100000:100000 \
+    --arg a2=int:-100000:100000 --arg a3=int:-100000:100000 --arg t0=int:-100000:100000 \
+    --arg a1=int:0:150000 --arg t1=int:0:150000
+# exact touching distances (3-4-5), zero radius, coincident points; then huge coordinates (64-bit wrap)
+func_8029CFA4: -n 300 --seed 1 --follow-all --arg a0=choice:0,3,4,-3 --arg v0=choice:0,3,4,-3 --arg v1=choice:0,3,4,-4 \
+    --arg a2=choice:0,3,4,-3 --arg a3=choice:0,3,4,-4 --arg t0=choice:0,3,4 --arg a1=choice:0,1,2,4,5,6 --arg t1=choice:0,1,3,-1
+# (the asm's sub/add/dadd trap on overflow, so coordinates stay below +-0x30000000)
+func_8029CFA4: -n 200 --seed 2 --follow-all --arg a0=int:-0x30000000:0x30000000 --arg v0=int:-0x30000000:0x30000000 \
+    --arg v1=int:-0x30000000:0x30000000 --arg a2=int:-0x30000000:0x30000000 --arg a3=int:-0x30000000:0x30000000 \
+    --arg t0=int:-0x30000000:0x30000000 --arg a1=int:0:0x3FFFFFFF --arg t1=int:0:0x3FFFFFFF
+
+# func_8029D120 (t2 = id): mark records of id / of groups with id containing their sub id (byte 0x51 = 1)
+func_8029D120: -n 300 --arg t2=choice:3,5,0 --mem D_803B9890:0x480=rand --mem D_803BD300=rel:D_803B9890+0x60*int:0:12 \
+    --mem D_803B9890+0x4F*0x60:12/1=bytes:0,0,3,5,7 --mem D_803B9890+0x50*0x60:12/1=bytes:1,2,3,9 \
+    --mem D_803BC1D0:0x528=bytes:0,1,2,3,5,9 --mem D_803BC1D0+0xC7*0xDC:6/1=bytes:0,1,2,5 \
+    --mem D_803BD304=rel:D_803BC1D0+0xDC*int:0:6
+# one group whose last member matches; empty record list
+func_8029D120: -n 100 --seed 1 --arg t2=3 --mem D_803B9890:0x480=rand --mem D_803BD300=rel:D_803B9890+0x480 \
+    --mem D_803B9890+0x4F*0x60:12/1=bytes:0 --mem D_803B9890+0x50*0x60:12/1=bytes:7,8 \
+    --mem D_803BC1D0:0xDC=rand --mem D_803BC1D0+0xC4:1=3 --mem D_803BC1D0+0xC7:4=0x03010207 --mem D_803BD304=rel:D_803BC1D0+0xDC
+func_8029D120: -n 20 --seed 2 --arg t2=3 --mem D_803B9890:0x60=rand --mem D_803BD300=sym:D_803B9890
+
+# func_8029D90C (s0 = tri): plane normal and d of the vertices at +0x28 (>> 3), 64-bit results in a1, a2, a3, t0
+# (coordinates kept in game range: the asm's trapping dadd/dsub fault on 64-bit overflow, the C wraps)
+func_8029D90C: -n 300 --follow-all --arg s0=ptr:0x80 --mem @s0+0x28*4:9=int:-0x100000:0x100000
+func_8029D90C: -n 100 --seed 1 --follow-all --arg s0=ptr:0x80 --mem @s0+0x28*4:9=choice:0,7,8,-1,-8,-9,0x7FFFF
+# large but non-overflowing: V0/V2 full range, V1 tiny (products near 2^60)
+func_8029D90C: -n 100 --seed 2 --follow-all --arg s0=ptr:0x80 --mem @s0+0x28*4:9=int:-0x7FFFFFFF:0x7FFFFFFF \
+    --mem @s0+0x34*4:3=int:-0x10:0x10
+
+# func_8029DB7C (t5 = n, s4 = pairs, a2 = table): 0 if some (index, value) pair has (s8) table[index].unk13 == value
+func_8029DB7C: -n 300 --arg t5=int:0:8 --arg s4=ptr:0x20 --arg a2=ptr:0x1800 --mem @s4:0x20=bytes:0,1,2,3,0x80,0xFF \
+    --mem @a2+0x13*0x18:4/1=bytes:0,1,2,3,0x80,0xFF --mem @a2+0x17FB:1=bytes:0xFF,0x80
+func_8029DB7C: -n 100 --seed 1 --arg t5=8 --arg s4=ptr:0x20 --arg a2=ptr:0x1800 --mem @s4:0x10=onehot:2@1/1:2:bytes:7 \
+    --mem @a2+0x13*0x18:8/1=bytes:2
+
+# func_8029DF78 (s0 = dl, s1 = dlEnd, s2 = key): record G_SETTIMG commands using key's texture id at D_803B35F0
+func_8029DF78: -n 300 --heap 0x80 --heap 0x100 --heap 0x800 --mem D_803B35F0=rel:heap2 \
+    --mem D_802C23B4=rel:heap0 --mem D_802C23B4+4=rel:heap0+0x20 --mem D_802C23B4+8=rel:heap0+0x40 --mem D_802C23B4+0xC=-1 \
+    --mem @heap0:0x60=bytes:0,1,2 --mem @heap1:0x100=words:0xFD000000,0xFD100000,0xFC000000,0,1,2 \
+    --arg s0=rel:heap1 --arg s1=rel:heap1+8*int:0:32 --arg s2=choice:0,1,2,0x100
+# key absent / list empty
+func_8029DF78: -n 50 --seed 1 --heap 0x80 --heap 0x100 --heap 0x800 --mem D_803B35F0=rel:heap2 --mem D_802C23B4=-1 \
+    --arg s0=rel:heap1 --arg s1=rel:heap1+0x80 --arg s2=int
+
+# func_8029E4E4 (t3 = key, t6 = sub): first D_803A7440 block with byte 6 set and (word 0, u16 4) == (key, sub); clear
+# byte 7 (sic) and return its data's physical address in s1, else 0
+func_8029E4E4: -n 300 --arg t3=choice:7,8 --arg t6=choice:5,6,0x10005 --mem D_803A7440+6*0x1010:12/1=bytes:0,1,0x80 \
+    --mem D_803A7440+7*0x1010:12/1=bytes:1,0xFF --mem D_803A7440+4*0x1010:12/2=halves:5,6 --mem D_803A7440*0x1010:12=choice:7,8,-1
+func_8029E4E4: -n 100 --seed 1 --arg t3=7 --arg t6=5 --mem D_803A7440+6*0x1010:12/1=bytes:1 --mem D_803A7440+7*0x1010:12/1=bytes:0x55 \
+    --mem D_803A7440+4*0x1010:12/2=halves:5 --mem D_803A7440*0x1010:12=choice:8 --mem D_803A7440+0xB0B0=7

@@ -76,6 +76,7 @@ extern u8 D_803EEA90[];  /* vehicle 5's state block (the asm's $gp) */
 extern u32 D_803EEB38[]; /* its position x, y, z */
 extern u64 *D_803EEB48;  /* its two matrix buffers */
 extern u64 *D_803EEB4C;
+extern u8 *D_803EEB44;   /* its model header */
 extern u8 D_803ED40B;
 extern u8 D_8035805C;    /* selects which of the two matrix buffers is current */
 void func_802B7030(MtxChainRegs *regs);
@@ -93,7 +94,165 @@ void func_802A8768(u8 *veh, s32 id, s32 *px, s32 *py, s32 *pz, s32 x, s32 z, s32
  * a more specific comment follows this convention; a few have their own
  * more specific non-ABI explanation where one was already worked out. */
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern s32 D_80358070;   /* matrix buffer allocator */
+extern u8 D_803EE790[];  /* vehicle 5's animation channels */
+extern f32 D_80364414;   /* camera yaw (degrees) */
+extern s8 D_803EEB60;
+extern u8 D_803EEB5E;
+extern u8 D_803EEB5F;
+extern f32 D_803EEB50;
+extern f32 D_803EEB54;
+extern s16 D_803EEB5C;
+void func_802A1388(s32 a0Val, s32 a1Val, s32 v0Val, s32 v1Val, u8 *hdr);
+void func_802A754C(u8 *veh);
+s32 *func_802A992C(s16 *tbl, s32 y, s32 x, s32 z, s32 *dst, s32 *mid, s16 *angle, s32 key, s32 fpIn, u8 *veh,
+                   TriSideOut *f);
+s32 func_8029F85C(u32 *bufA, u32 *bufB, void *ch, u8 *hdr);
+void func_802A039C(void *base, s32 idx, s32 val);
+void func_802A03D4(void *base, s32 idx, s32 val);
+void func_802A040C(void *base, s32 idx, s32 val);
+void func_802A0480(f32 f, void *base, s32 idx, s32 val);
+void func_802A0290(void *base, s32 idx, s32 val);
+void func_802A0320(s32 idx, void *base);
+void func_8029E558(u8 *base, u8 *other, void *ch);
+void func_802A6F00(u8 *veh);
+void func_8029C354(s32 tag, u8 *p, u8 *end, u32 scale);
+void func_80258230(u8 id, s32 arg1, s16 arg2, s16 arg3);
+void func_802B6294(void);
+void func_802AA838(u8 *src, u8 *dst, s32 off);
+
+/* cvt.w.s under the FCSR's default rounding (nearest, ties to even). */
+#define CVT_W_S_5900(out, x)                                            \
+    do {                                                                \
+        f32 _x = (x);                                                   \
+        s32 _r = (s32) _x;                                              \
+        f32 _f = _x - (f32) _r;                                         \
+                                                                        \
+        if (_f > 0.5f || (_f == 0.5f && (_r & 1))) {                    \
+            _r++;                                                       \
+        } else if (_f < -0.5f || (_f == -0.5f && (_r & 1))) {           \
+            _r--;                                                       \
+        }                                                               \
+        (out) = _r;                                                     \
+    } while (0)
+
+/* Level setup of vehicle 5 (asm caller func_802A350C, the level's object
+ * list), the shape of func_802BAD80 (75490): model header -> D_803EEB44,
+ * two 0x800-byte matrix buffers from D_80358070 (D_803EEB48 / D_803EEB4C;
+ * the allocator advances by 0x1000), func_802A1388(5, 1, buffers, model),
+ * func_802A754C on D_803EEA90, wheel-slot offsets (+-0x168, +-0x17C) at
+ * +0x52..+0x68, position D_803EEB38 = (x, y, z), heading +0x4C/+0x4E/+0x74,
+ * the ground slots (func_802A992C, key 5, y written back to D_803EEB3C), the
+ * model channels (func_8029F85C on D_803EE790, channel 0 set up, both
+ * buffers animated), the speed band table +0x78..+0x94 (-0x78, 0, 2, 0,
+ * 0x50, 6, 0x50, 0x64, 4, 0x64, 0x8C, 2, 0x8C, 0xDC, 2), func_802A6F00;
+ * D_803EEB60 = D_803EEB5E = 0, level D_803EEB5F = 50, D_803EEB50 =
+ * D_803EEB54 = 0.5; parts (func_8029C354, tag 5, scale 0x4268);
+ * func_80258230(5, 0x64, 0x2D, 0x2D); one update with +0x9A set
+ * (func_802B6294); the root matrix copied from buffer B to A
+ * (func_802AA838); finally D_803EEB5C = heading + round(camera yaw *
+ * 4096 / 360), less 0xFFF when >= 0x1000. The asm's add/addi trap on
+ * overflow.
+ * Register convention (conventions.txt): model s2, x t7, y s3, z s0,
+ * heading s1, and fp, which the asm hands to func_802A992C (reaching
+ * D_803ED3F2 when a slot's grid scan finds no triangle: the dispatcher's
+ * leftover fp, FIDELITY AUDIT); func_802A992C's FP inputs (passed through)
+ * are 0 here. The asm restores t0-t5 (func_802A350C keeps t1/t2 live),
+ * points $gp at D_803EEA90 and leaves s0-s7, fp and f20-f28 as its callees
+ * leave them (clobbers). */
+void func_802B5900(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp) {
+    TriSideOut f;
+    s32 buf;
+    u8 *hdr;
+    s32 yaw;
+    s32 a;
+
+    D_803EEB44 = model;
+    buf = D_80358070;
+    D_803EEB48 = (u64 *) buf;
+    D_803EEB4C = (u64 *) (buf + 0x800);
+    D_80358070 = buf + 0x1000;
+    func_802A1388(5, 1, (s32) D_803EEB48, (s32) D_803EEB4C, model);
+    func_802A754C(D_803EEA90);
+    /* wheel slot offsets */
+    *(s16 *) (D_803EEA90 + 0x52) = 0x168;
+    *(s16 *) (D_803EEA90 + 0x54) = 0x168;
+    *(s16 *) (D_803EEA90 + 0x56) = -0x168;
+    *(s16 *) (D_803EEA90 + 0x58) = 0x168;
+    *(s16 *) (D_803EEA90 + 0x5A) = 0x168;
+    *(s16 *) (D_803EEA90 + 0x5C) = -0x168;
+    *(s16 *) (D_803EEA90 + 0x5E) = 0x17C;
+    *(s16 *) (D_803EEA90 + 0x60) = 0x17C;
+    *(s16 *) (D_803EEA90 + 0x62) = -0x17C;
+    *(s16 *) (D_803EEA90 + 0x64) = 0x17C;
+    *(s16 *) (D_803EEA90 + 0x66) = 0x17C;
+    *(s16 *) (D_803EEA90 + 0x68) = -0x17C;
+    D_803EEB38[0] = x;
+    D_803EEB38[1] = y;
+    D_803EEB38[2] = z;
+    *(s16 *) (D_803EEA90 + 0x4C) = heading;
+    *(s16 *) (D_803EEA90 + 0x4E) = heading;
+    *(s16 *) (D_803EEA90 + 0x74) = heading;
+    f.pz = 0.0f;
+    f.cross = 0.0f;
+    f.cz = 0.0f;
+    f.side = 0.0f;
+    f.sideZ = 0.0f;
+    f.dz = 0.0f;
+    func_802A992C((s16 *) (D_803EEA90 + 0x52), D_803EEB38[1], x, z, (s32 *) (D_803EEA90 + 4),
+                  (s32 *) &D_803EEB38[1], (s16 *) (D_803EEA90 + 0x4C), 5, fp, D_803EEA90, &f);
+    hdr = D_803EEB44;
+    func_8029F85C((u32 *) D_803EEB4C, (u32 *) D_803EEB48, D_803EE790, hdr);
+    func_802A039C(D_803EE790, 0, 0x64);
+    func_802A03D4(D_803EE790, 0, 0);
+    func_802A040C(D_803EE790, 0, 0);
+    func_802A0480(0.0f, D_803EE790, 0, 0);
+    func_802A0290(D_803EE790, 0, 1);
+    func_8029E558((u8 *) D_803EEB48, (u8 *) D_803EEB4C, D_803EE790);
+    func_802A0320(0, D_803EE790);
+    func_802A0290(D_803EE790, 0, 1);
+    func_8029E558((u8 *) D_803EEB4C, (u8 *) D_803EEB48, D_803EE790);
+    /* speed bands */
+    *(s16 *) (D_803EEA90 + 0x78) = -0x78;
+    *(s16 *) (D_803EEA90 + 0x7A) = 0;
+    *(s16 *) (D_803EEA90 + 0x7C) = 2;
+    *(s16 *) (D_803EEA90 + 0x7E) = 0;
+    *(s16 *) (D_803EEA90 + 0x80) = 0x50;
+    *(s16 *) (D_803EEA90 + 0x82) = 6;
+    *(s16 *) (D_803EEA90 + 0x84) = 0x50;
+    *(s16 *) (D_803EEA90 + 0x86) = 0x64;
+    *(s16 *) (D_803EEA90 + 0x88) = 4;
+    *(s16 *) (D_803EEA90 + 0x8A) = 0x64;
+    *(s16 *) (D_803EEA90 + 0x8C) = 0x8C;
+    *(s16 *) (D_803EEA90 + 0x8E) = 2;
+    *(s16 *) (D_803EEA90 + 0x90) = 0x8C;
+    *(s16 *) (D_803EEA90 + 0x92) = 0xDC;
+    *(s16 *) (D_803EEA90 + 0x94) = 2;
+    func_802A6F00(D_803EEA90);
+    D_803EEB60 = 0;
+    D_803EEB5E = 0;
+    D_803EEB5F = 0x32;
+    D_803EEB50 = 0.5f;
+    D_803EEB54 = 0.5f;
+    hdr = D_803EEB44;
+    func_8029C354(5, hdr + *(s32 *) (hdr + 4), hdr + *(s32 *) (hdr + 8), 0x4268);
+    func_80258230(5, 0x64, 0x2D, 0x2D);
+    D_803EEA90[0x9A] = 1;
+    func_802B6294();
+    D_803EEA90[0x9A] = 0;
+    hdr = D_803EEB44;
+    func_802AA838((u8 *) D_803EEB4C, (u8 *) D_803EEB48, *(s32 *) (hdr + *(s32 *) (hdr + 0x18) + 4));
+    CVT_W_S_5900(yaw, D_80364414 * 4096.0f / 360.0f);
+    a = *(u16 *) (D_803EEA90 + 0x4C) + yaw;
+    if (a >= 0x1000) {
+        a -= 0xFFF;
+    }
+    D_803EEB5C = a;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/71140/func_802B5900.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

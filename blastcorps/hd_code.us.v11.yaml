@@ -229,7 +229,7 @@ segments:
     - [0x9F7D0, c, hd_code/ul_seq]  # src/audio/seq.c
     - [0x9FDF0, c, hd_code/ul_synsetpriority]
     - [0x9FE00, c, hd_code/ul_filter]
-    - [0x9FE20, c, hd_code/9FE20]
+    - [0x9FE20, c, hd_code/ul_reverb]  # src/audio/reverb.c, old alFxParamHdl
     - [0xA0A30, c, hd_code/A0A30]
     - [0xA0A40, c, hd_code/ul_atomic]
     - [0xA0AA0, c, hd_code/ul_ldiv]  # src/libc/ldiv.c, lldiv first
@@ -313,5 +313,6 @@ segments:
     - [0xC9A10, bin, hd_code/hd_code_data_C9A10]
     - [0xC9B30, .rodata, hd_code/ul_xldtob]
     - [0xC9B90, .rodata, hd_code/ul_seq]
-    - [0xC9BA0, bin, hd_code/hd_code_data_C9BA0]
+    - [0xC9BA0, .rodata, hd_code/ul_reverb]
+    - [0xC9BD0, bin, hd_code/hd_code_data_C9BD0]
   - [0xCAEA0]

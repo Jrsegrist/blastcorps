@@ -257,6 +257,7 @@ _filterBuffer = 0x802E4688; // type:func
 _saveBuffer = 0x802E4740; // type:func
 _loadBuffer = 0x802E48C8; // type:func
 _loadOutputBuffer = 0x802E4A54; // type:func
+alFxParamHdl = 0x802E4C78; // type:func
 alFxParam = 0x802E4E90; // type:func
 alFxPull = 0x802E4EA8; // type:func
 __osGetCause = 0x802E51F0; // type:func

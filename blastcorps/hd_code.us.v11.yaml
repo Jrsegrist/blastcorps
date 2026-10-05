@@ -19,7 +19,8 @@ segments:
     - [0x12D80, c, hd_code/12D80]
     - [0x13A70, c, hd_code/13A70]
     - [0x14B30, c, hd_code/14B30]
-    - [0x168B0, c, hd_code/168B0]
+    - [0x168B0, c, hd_code/168B0] # font.c (from its assert strings)
+    - [0x17210, c, hd_code/17210] # recording.c (from its assert strings)
     - [0x17A70, c, hd_code/17A70]
     - [0x17E10, c, hd_code/17E10]
     - [0x1A630, c, hd_code/1A630] # Rare sound player (GoldenEye snd.c ancestor)
@@ -246,9 +247,13 @@ segments:
     - [0xC2FE0, bin, hd_code/hd_code_data_C2FE0]
     - [0xC3360, .data, hd_code/ul_siacs]
     - [0xC3370, bin, hd_code/hd_code_data_C3370]
+    - [0xC4720, .rodata, hd_code/168B0]
+    - [0xC47D0, .rodata, hd_code/17210]
+    - [0xC4870, bin, hd_code/hd_code_data_C4870]
     - [0xC48B0, .rodata, hd_code/17E10]
     - [0xC48E0, .rodata, hd_code/1A630]
-    - [0xC4A30, bin, hd_code/hd_code_data_C4A30]
+    - [0xC4A30, .rodata, hd_code/1C460]
+    - [0xC4AF0, bin, hd_code/hd_code_data_C4AF0]
     - [0xC7390, .rodata, hd_code/26570]
     - [0xC7860, .rodata, hd_code/2C560]
     - [0xC7D10, .rodata, hd_code/2D810]

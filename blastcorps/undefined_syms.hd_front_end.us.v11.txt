@@ -1,1 +1,6 @@
 /* hand-maintained absolute symbols for the hd_front_end link (see undefined_syms.hd_code.us.v11.txt) */
+/* 0DE70: ROM addresses of the front-end scene blobs */
+D_006E8980 = 0x006E8980;
+D_006EA850 = 0x006EA850;
+D_006EAB90 = 0x006EAB90;
+D_006EC4C0 = 0x006EC4C0;

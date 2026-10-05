@@ -436,6 +436,28 @@ s32 func_8026B10C(void);
 void func_80277EDC(s32, s32, s32, s32);
 s32 func_802C1AA0(void);
 
+extern u8 D_803643DB;
+extern u8 D_80364412;
+typedef struct {
+    u8 pad0[0xC4];
+    u16 unkC4;
+    u8 padC6[0x16];
+    u8 unkDC;
+} Unk802F5804;
+extern Unk802F5804 D_802F5804[];
+typedef struct {
+    u8 pad0[0xB0];
+    s32 unkB0;
+    u8 padB4[0xD0];
+    s16 unk184;
+} Unk802F8BDC;
+extern Unk802F8BDC D_802F8BDC[];
+void func_80260D7C(f32);
+f32 func_80260DF0(void);
+void func_80275270(u64, f32);
+void func_80285EF4(s32);
+void func_8028B240(void);
+
 /* (end of declarations) */
 
 /* Boot: reads 16 words from PI address 0xFFB000, then starts the idle thread */
@@ -1079,7 +1101,132 @@ void func_8024B8F4(Mtx *proj, Mtx *view) {
     func_802A467C(D_80358074, dl, v, (s32) (gdl - dl) * sizeof(Gfx));
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_8024BDA4.s")
+/* Handles a Yoshi (menu) selection *sel for the current game mode */
+void func_8024BDA4(u16 *sel) {
+    switch (D_80364A90) {
+        case 4:
+        case 0x100:
+            switch (*sel) {
+                case 1:
+                    if (D_80364456 == 6 || D_80364456 == 11 || D_80364456 == 17 || D_80364456 == 18) {
+                        D_802F5804[0].unkC4 &= ~1;
+                        D_802F5804[0].unkDC = 8;
+                    } else {
+                        D_802F5804[0].unkC4 |= 1;
+                        D_802F5804[0].unkDC = 7;
+                    }
+                    func_8026AF6C(0x8001);
+                    D_80364A98 = 4;
+                    break;
+                case 2:
+                    func_80285EF4(D_80364A58);
+                    break;
+                case 7:
+                    func_8028B240();
+                    break;
+                case 3:
+                    if (D_802E8F94[D_802E8BDC].unk0 & 0x81) {
+                        func_80275270(0x2000, 0.5f);
+                    } else {
+                        func_80275270(0x20000000, 0.5f);
+                    }
+                    break;
+                case 8:
+                    D_80364A98 = 0x2000000000000000;
+                    func_8026AF6C(0x805E);
+                    D_80364412 = 1;
+                    break;
+                case 4:
+                    func_80275270(0x4000, 0.5f);
+                    break;
+                case 9:
+                    if (func_80260DF0() == 1.0) {
+                        D_802F8BDC[0].unk184 = 40;
+                    } else {
+                        D_802F8BDC[0].unk184 = 39;
+                    }
+                    func_8026AF6C(0x800D);
+                    break;
+                case 0x1A7:
+                case 0x1A8:
+                    if (((*sel - 0x1A7) << D_80364456) ^ ((1 << D_80364456) & 0x10205)) {
+                        func_8029A7E4("selected controller mode yes\n");
+                        D_80364AF0[D_80364AE8].unkF0 |= 1 << D_80364456;
+                        func_8025BBE8(0x80, 0, 0);
+                    } else {
+                        func_8029A7E4("selected controller mode no\n");
+                        D_80364AF0[D_80364AE8].unkF0 &= ~(1 << D_80364456);
+                        func_8025BBE8(0x40, 0, 0);
+                    }
+                    break;
+                case 17:
+                    D_802F8BDC[0].unkB0 |= 0x80;
+                    break;
+                case 0xFFFF:
+                    switch (currentYoshiWindow) {
+                        case 1:
+                        case 6:
+                            func_8029A7E4("TESTING PAUSE2 %d %d %d\n", D_802E8BD0, D_802E8BD8, D_802E8BD4);
+                            func_8026AF6C(0x8000);
+                            if (D_803643DB || D_80364AC1) {
+                                D_80364A98 = 0x100;
+                                func_802A45D4(10);
+                            }
+                            break;
+                        case 13:
+                        case 0x58:
+                            func_8029A7E4("TESTING PAUSE3 %d %d %d\n", D_802E8BD0, D_802E8BD8, D_802E8BD4);
+                            func_8026AF6C(0x8001);
+                            break;
+                    }
+                    break;
+                case 40:
+                    func_80260D7C(1.0f);
+                    break;
+                case 39:
+                    func_80260D7C(0.7f);
+                    break;
+            }
+            break;
+        case 0x1000000000:
+            D_80364A98 = 4;
+            break;
+        case 0x40:
+        case 0x400:
+            if ((D_80364AF0[D_80364AE8].unk18[D_802E8BDC] > 0 && D_80364AF0[D_80364AE8].unk18[D_802E8BDC] < 6) ? 1 : 0) {
+                if (*sel == 0x18 || *sel == 0x22 || *sel == 0xFFFF) {
+                    D_80364A98 = 0x08000000;
+                } else {
+                    D_80364A98 = 0x2000;
+                }
+            } else {
+                if (*sel == 0x18 || *sel == 0x22 || *sel == 0xFFFF) {
+                    D_80364A98 = 0x4000;
+                } else {
+                    D_80364A98 = 0x2000;
+                }
+            }
+            break;
+        case 0x2000000000000000:
+            if (*sel == 0xFFFF) {
+                func_8029A7E4("TESTING PAUSE %d %d %d\n", D_802E8BD0, D_802E8BD8, D_802E8BD4);
+                func_8026AF6C(0x8001);
+            }
+            D_80364A98 = 4;
+            break;
+        default:
+            func_8029A7E4("Yoshi selection in illegal game mode\n");
+            break;
+    }
+    *sel = 0;
+}
+
+/* HUD text drawn by func_8024C414 (still asm, which loads these by address) */
+const char D_8030821C[] = "PRESS START";
+const char D_80308228[] = "USE Z/R TO TURN PAGES";
+const char D_80308240[] = "USE Z/R TO MOVE MAP";
+const char D_80308254[] = "SHUTTLE VIEW";
+const char D_80308264[] = "MISSILE VIEW";
 
 void *func_8024C404(void *arg0, s32 arg1, s32 *arg2) {
     *arg2 = 0;

@@ -1,5 +1,8 @@
 /* hand-maintained absolute symbols for the hd_front_end link (see undefined_syms.hd_code.us.v11.txt) */
 D_80315440 = 0x80315440; /* hd_code scheduler (0E7B0 func_801F57B0) */
+D_8035806C = 0x8035806C; /* 07390 func_801EE398 */
+D_01000010 = 0x01000010; /* segment 1 display lists (07390 func_801EE398) */
+D_01000038 = 0x01000038;
 /* EEPROM libultra by address (0E7B0 calls them through these until the Read/Write name swap fix lands) */
 func_80204C10 = 0x80204C10; /* osEepromWrite */
 func_802050F0 = 0x802050F0; /* osEepromRead */

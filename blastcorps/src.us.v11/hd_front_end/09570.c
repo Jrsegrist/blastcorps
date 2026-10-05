@@ -24,12 +24,23 @@ typedef struct {
     u8 pad1[7];
 } Entry8;
 
+typedef struct {
+    u8 unk0; /* flags */
+    u8 pad1[0x43];
+} LevelFlags; /* 0x44 */
+
+typedef struct {
+    Gfx *dl[9];
+} DlTable;
+
 extern u8 D_02000000[]; /* segment 2 base */
 extern Gfx D_8020BC88[];
+extern DlTable D_8020BD08; /* per-category display lists */
 extern LevelInfo D_8020D810[];
 extern u16 D_80217288; /* perspNorm */
 extern u16 *D_8021728C; /* star textures, 16x16 RGBA16 each */
 extern Entry8 D_802E8F38[];
+extern LevelFlags D_802E8F94[];
 extern u8 D_803156F8[];
 extern u8 *D_80358070; /* heap pointer */
 extern Player D_80364AF0[];
@@ -38,6 +49,7 @@ extern u8 D_80364AE8;
 void func_801FCE74(Vtx *, s32, f32, f32, s32, s32, f32, s32);
 void func_801FDCA4(Vtx *, s32, s32);
 s32 func_801FE760(s32);
+s32 func_801F1DA8(s32);
 s32 func_80264BA4();
 s32 func_8026A828(s32, s32);
 
@@ -136,7 +148,138 @@ Gfx *func_801F2000(void) {
     return dl;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/09570/func_801F2428.s")
+/* display list of the level select icons, one category (colour/combiner) at a time,
+ * flushing vertices 16 at a time */
+Gfx *func_801F2428(void) {
+    LevelInfo *info;
+    Vtx *vtx;
+    Gfx *gfx;
+    Gfx *dl;
+    s32 lvl;
+    s32 j;
+    s32 n;
+    s32 flushed;
+    s32 pending;
+    u8 found;
+    s8 cat;
+    u8 avail;
+    f32 scale;
+    DlTable dls; /* initialised from D_8020BD08 */
+    Gfx *cur;
+    Gfx *prev;
+    u8 r;
+    u8 g;
+    u8 b;
+    u8 a;
+
+    n = 0;
+    flushed = 0;
+    vtx = (Vtx *) D_80358070;
+    dls = D_8020BD08;
+    prev = NULL;
+    D_80358070 += 0x1E00;
+    gfx = (Gfx *) D_80358070;
+    dl = gfx;
+    gDPPipeSync(gfx++);
+    gDPSetTextureLOD(gfx++, G_TL_LOD);
+    gDPSetCycleType(gfx++, G_CYC_2CYCLE);
+    gDPSetRenderMode(gfx++, G_RM_PASS, G_RM_XLU_SURF2);
+    gSPTexture(gfx++, 0x8000, 0x8000, 5, G_TX_RENDERTILE, G_ON);
+    for (cat = 8; cat >= 0; cat--) {
+        cur = dls.dl[cat];
+        if (cur != prev) {
+            gSPDisplayList(gfx++, cur);
+        }
+        prev = cur;
+        gDPPipeSync(gfx++);
+        switch (cat) {
+            case 0:
+            case 8:
+                gDPSetCombine(gfx++, 0x26A1FF, 0x1F14933F);
+                r = 0, g = 0, b = 0, a = 0xFF;
+                break;
+            case 1:
+            case 2:
+            case 3:
+            case 4:
+                gDPSetCombine(gfx++, 0x26A00A, 0x1F0C93FF);
+                r = 0, g = 0, b = 0, a = 0xFF;
+                break;
+            case 5:
+                gDPSetCombine(gfx++, 0x26A1FF, 0x1F0C933F);
+                r = 0x50, g = 0x50, b = 0x50, a = 0xFF;
+                break;
+            case 6:
+                gDPSetCombine(gfx++, 0x26A1FF, 0x1F0C933F);
+                r = 0xFF, g = 0, b = 0, a = 0xFF;
+                break;
+            case 7:
+                gDPSetCombine(gfx++, 0x26A1FF, 0x1F0C933F);
+                r = 0, g = 0xFF, b = 0, a = 0xFF;
+                break;
+        }
+        for (lvl = 0; lvl < 60; lvl++) {
+            avail = (cat == 6 || cat == 7) && (LEVEL_DONE(lvl)) && D_80364AF0[D_80364AE8].unk18[lvl] != 4;
+            if (D_80364AF0[D_80364AE8].unk18[lvl] == cat || avail) {
+                info = &D_8020D810[lvl];
+                if (func_801F1DA8(lvl)) {
+                    if (avail) {
+                        for (j = 0, found = 0; j < 4 && info->unk18[j] != -1 && !found; j++) {
+                            if (!(D_80364AF0[D_80364AE8].unk54[lvl] & (1 << j))) {
+                                found = 1;
+                            }
+                        }
+                        if ((found && cat == 6) || (!found && cat == 7)) {
+                            continue;
+                        }
+                    }
+                    if (D_802E8F94[lvl].unk0 & 0x81) {
+                        scale = 1.75f;
+                    } else {
+                        scale = 1.0f;
+                    }
+                    if (avail) {
+                        scale += 0.3;
+                    }
+                    func_801FCE74(&vtx[n], lvl, 0.0f, 0.0f, 32, 32, scale, 0);
+                    for (j = 0; j < 4; j++) {
+                        vtx[n + j].v.cn[0] = r;
+                        vtx[n + j].v.cn[1] = g;
+                        vtx[n + j].v.cn[2] = b;
+                        vtx[n + j].v.cn[3] = a;
+                    }
+                    n += 4;
+                    pending = n - flushed;
+                    if (!(pending & 0xF)) {
+                        Vtx *v = &vtx[n - 16];
+
+                        gSPVertex(gfx++, v, 16, 0);
+                        for (j = 0; j < 16; j += 4) {
+                            gSP1Triangle(gfx++, j, j + 1, j + 2, 0);
+                            gSP1Triangle(gfx++, j + 2, j + 3, j, 0);
+                        }
+                    }
+                }
+            }
+        }
+        pending = n - flushed;
+        if (pending % 16) {
+            Vtx *v = &vtx[n - pending % 16];
+
+            gSPVertex(gfx++, v, pending % 16, 0);
+            for (j = 0; j < pending % 16; j += 4) {
+                gSP1Triangle(gfx++, j, j + 1, j + 2, 0);
+                gSP1Triangle(gfx++, j + 2, j + 3, j, 0);
+            }
+            flushed = n;
+        }
+    }
+    gDPPipeSync(gfx++);
+    gSPEndDisplayList(gfx++);
+    D_80358070 = (u8 *) gfx;
+    osWritebackDCache(vtx, 0x1E00);
+    return dl;
+}
 
 /* starfield: projection/view matrices, then 0x200 random textured star quads
  * (vertices at segment 2 offset 0x15C0, copied to the other buffer) */

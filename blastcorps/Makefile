@@ -106,7 +106,7 @@ LATE_RODATA_HD_CODE := 17E10 1A630 1D990 26570 2C560 2D810 30C70 32E00 34430 375
 # Game files compiled at -O2 in the original build. Evidence: IDO only
 # emits branch-likely instructions (beql/bnel/...) when optimizing at -O2,
 # and none of the -O1 matches contain any.
-O2_FILES_HD_CODE := 56040 5CB60 5FD50 60F60 62740 69BB0 75490 77E20 89250 909C0 93DF0 95460 996B0 9C930 9CC30 9DB80 9FE20 926F0 92E50 92F30 95070 9B470 9E700
+O2_FILES_HD_CODE := 56040 5CB60 5FD50 60F60 62740 69BB0 75490 77E20 89250 909C0 93DF0 95460 996B0 9C930 9CC30 9DB80 9FE20 926F0 92E50 92F30 95070 9B470
 $(foreach f,$(O2_FILES_HD_CODE),$(BUILD_DIR)/src.$(VERSION)/hd_code/$(f).c.o): OPT_FLAGS := -O2
 
 # libultra/libaudio objects (src/hd_code/ul_*.c) are one-line wrappers that

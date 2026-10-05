@@ -124,7 +124,7 @@ segments:
     - [0x91F80, c, hd_code/91F80]
     - [0x92030, c, hd_code/ul_destroythread]  # src/os/destroythread.c, old SDK
     - [0x92130, c, hd_code/ul_cosf]  # src/gu/cosf.c
-    - [0x922A0, c, hd_code/922A0]
+    - [0x922A0, c, hd_code/ul_sprintf]  # src/libc/sprintf.c (libc at -O1 in this SDK)
     - [0x92350, c, hd_code/ul_heapalloc]
     - [0x923B0, c, hd_code/ul_event]
     - [0x926F0, c, hd_code/ul_sl]  # src/audio/sl.c
@@ -224,7 +224,8 @@ segments:
     - [0x9E140, c, hd_code/9E140]
     - [0x9E5C0, c, hd_code/ul_syncputchars]  # src/os/syncputchars.c, old rdbPacket
     - [0x9E6F0, c, hd_code/9E6F0]
-    - [0x9E700, c, hd_code/9E700]
+    - [0x9E700, c, hd_code/ul_xlitob]  # src/libc/xlitob.c (-O1)
+    - [0x9EA00, c, hd_code/ul_xldtob]  # src/libc/xldtob.c (-O1)
     - [0x9F7D0, c, hd_code/ul_seq]  # src/audio/seq.c
     - [0x9FDF0, c, hd_code/ul_synsetpriority]
     - [0x9FE00, c, hd_code/ul_filter]
@@ -256,7 +257,8 @@ segments:
     - [0xC3360, .data, hd_code/ul_siacs]
     - [0xC3370, bin, hd_code/hd_code_data_C3370]
     - [0xC3380, .data, hd_code/ul_syncputchars]
-    - [0xC3390, bin, hd_code/hd_code_data_C3390]
+    - [0xC3390, .data, hd_code/ul_xlitob]
+    - [0xC33C0, bin, hd_code/hd_code_data_C33C0]
     - [0xC4520, .rodata, hd_code/14B30] # drawtext.c
     - [0xC4720, .rodata, hd_code/168B0]
     - [0xC47D0, .rodata, hd_code/17210]
@@ -309,6 +311,7 @@ segments:
     - [0xC99A0, bin, hd_code/hd_code_data_C99A0]
     - [0xC99D0, .rodata, hd_code/ul_resample]
     - [0xC9A10, bin, hd_code/hd_code_data_C9A10]
+    - [0xC9B30, .rodata, hd_code/ul_xldtob]
     - [0xC9B90, .rodata, hd_code/ul_seq]
     - [0xC9BA0, bin, hd_code/hd_code_data_C9BA0]
   - [0xCAEA0]

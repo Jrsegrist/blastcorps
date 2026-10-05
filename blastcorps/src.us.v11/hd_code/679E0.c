@@ -8,8 +8,56 @@
  * of the same large hand-written-assembly module. Any pragma below without
  * a more specific comment follows this convention; a few have their own
  * more specific non-ABI explanation where one was already worked out. */
+#ifdef NON_MATCHING
+/* The three registers func_802A6274 (60F60.c) takes and may hand back changed. */
+typedef struct {
+    /* 0x0 */ s32 a3;
+    /* 0x4 */ s32 t6;
+    /* 0x8 */ s32 s1;
+} Io802A6274;
+
+s32 func_802A6274(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32 z, s32 w24, s32 w28,
+                  s32 w18, s32 w1C, s32 w2C, s32 b35);
+s32 func_802ABCDC(s32 ax, s32 ay, s32 az, s32 bx, s32 by, s32 bz);
+void func_802C18D4(s32 x, s32 y, s32 z, s32 radius, s32 amount);
+
+extern u8 D_803F4030[];  /* 0xFC-byte object records */
+extern u8 *D_803F7654;   /* end of the records in use */
+extern s32 D_803EF6DC;   /* player x, y, z */
+extern s32 D_803EF6E0;
+extern s32 D_803EF6E4;
+extern u8 D_802C2A5C[];  /* definition in the 7D9D0 text blob */
+extern u8 *D_802C3FFC[]; /* definition pointers, in the 7D9D0 text blob */
+#endif
+
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* For every D_803F4030 record (up to D_803F7654, read once; walked with `!=`,
+ * so it must be D_803F4030 + n records) whose byte 0xEA is 0 and whose
+ * position (words +0x10/+0x14/+0x18) is closer than radius << 5 to the
+ * player (func_802ABCDC, signed compare), apply func_802C18D4 blast damage
+ * at the position << 11 with radius 10 and amount 100000. The player
+ * position is reloaded for every record. Saves every s-register, gp and fp. */
+void func_802AC1A0(s32 radius) {
+    u8 *end = D_803F7654;
+    u8 *e;
+    s32 limit = radius << 5;
+
+    for (e = D_803F4030; e != end; e += 0xFC) {
+        if (e[0xEA] == 0) {
+            s32 x = *(s32 *) (e + 0x10);
+            s32 y = *(s32 *) (e + 0x14);
+            s32 z = *(s32 *) (e + 0x18);
+
+            if (func_802ABCDC(x, y, z, D_803EF6DC, D_803EF6E0, D_803EF6E4) < limit) {
+                func_802C18D4(x << 11, y << 11, z << 11, 10, 100000);
+            }
+        }
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/func_802AC1A0.s")
+#endif
 
 /* func_802AC284: trivial no-arg trampoline (`func_802AC3B8();`) using an
  * 8-byte `addiu sp,sp,-8`/`sd $ra,($sp)`/.../`addiu sp,sp,8` frame.
@@ -62,13 +110,57 @@ s32 func_802AC4C4(s32 px, s32 pz, s32 x0, s32 z0, s32 x1, s32 z1, s32 x2, s32 z2
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Spawns the D_802C2A5C effect (func_802A6274, type 0, data 0x28488) at the
+ * whole-unit position (x, y, z) << 16; every other field 0. Saves every
+ * s-register and fp; the asm leaves the caller's v0 (C callers: void). */
+void func_802AC544(s32 x, s32 y, s32 z) {
+    Io802A6274 io;
+
+    io.a3 = 0;
+    io.t6 = 0;
+    io.s1 = 0;
+    func_802A6274(&io, D_802C2A5C, 0x28488, 0, x << 16, y << 16, z << 16, 0, 0, 0, 0, 0, 0);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/func_802AC544.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Spawns effect definition D_802C3FFC[kind] (func_802A6274, type 0) with
+ * data `data` at (x, y, z) << 11, tag byte 0; every other field 0. kind is
+ * used as a full word (4DA80.c declares it u8). */
+void func_802AC61C(s32 x, s32 y, s32 z, s32 kind, s32 data) {
+    Io802A6274 io;
+
+    io.a3 = 0;
+    io.t6 = 0;
+    io.s1 = 0;
+    func_802A6274(&io, D_802C3FFC[kind], data, 0, x << 11, y << 11, z << 11, 0, 0, 0, 0, 0, 0);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/func_802AC61C.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* As func_802AC61C, but with tag byte 1 (func_802A6274's a3 input). The asm
+ * leaves t6 = func_802A6274's t6 output and t7 = 0; the survey lists its asm
+ * callers (func_802AC3B8, func_802A8CCC) as reading t6/t7/f12/f14, but they
+ * don't read them after the call (only through their own callers'
+ * conventions), so they are not modelled. */
+void func_802AC6FC(s32 x, s32 y, s32 z, s32 kind, s32 data) {
+    Io802A6274 io;
+
+    io.a3 = 1;
+    io.t6 = 0;
+    io.s1 = 0;
+    func_802A6274(&io, D_802C3FFC[kind], data, 0, x << 11, y << 11, z << 11, 0, 0, 0, 0, 0, 0);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/func_802AC6FC.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

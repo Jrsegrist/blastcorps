@@ -21,3 +21,22 @@ func_802CEE14: -n 100 --seed 1 --arg t4=choice:0,0x7FF5,0x7FF6,-0x7FF6,-0x7FF7,0
 # func_802CF3E0(pos t1): 24 debris records at (x, y, z) << 11 (y rising), then a sound
 func_802CF3E0: -n 200 --arg t1=ptr:0x10 --mem @t1:12=words:0,1,-1,0x100,-0x100,0x7FFF,-0x8000 --mem D_803F3FF8:0x38=rand --mem D_80367738=int --sig func_802A5E60= --sig func_802C049C= --sig func_80260650=a0,a1,a2
 func_802CF3E0: -n 100 --seed 1 --follow func_802C04F0,func_802C049C,func_802A5E60 --arg t1=ptr:0x10 --mem @t1:12=words:0,1,-1,0x100,-0x100,0x7FFF,-0x8000 --mem D_803F3FF8:0x38=rand --mem D_803F3968:0x6C8=rand --mem D_80367738=int --sig func_80260650=a0,a1,a2
+
+# func_802CF1A4(): pickups D_803FBBB0[0..D_803FC1F0) (0x14 bytes, flag +0x10) within 0x4C (>> 5 units, sqrt.s + cvt.w.s)
+# of the player: flag, two func_802A0360 sound fields, func_80285B68(countdown), func_80285CA0, func_802CF3E0 burst.
+# Positions in game range (the squared sum must not overflow).
+func_802CF1A4: -n 300 --ret void --mem D_803FC1F0:1=int:0:4 --mem D_803FBBB0:0x50=rand \
+    --mem D_803FBBB0*0x14:4=int:-0x40000:0x40000 --mem D_803FBBB0+4*0x14:4=int:-0x40000:0x40000 --mem D_803FBBB0+8*0x14:4=int:-0x40000:0x40000 \
+    --mem D_803FBBB0+0x10*0x14:4/2=halves:0*3,1,0x100 --mem D_803643E0=int:-0x40000:0x40000 --mem D_803643E4=int:-0x40000:0x40000 \
+    --mem D_803643E8=int:-0x40000:0x40000 --sig func_80285B68=a0 --sig func_80285CA0=
+# player exactly on / near the 0x4C boundary: entries at the player plus dx (>> 5) of 0x4B, 0x4C (rounds) and diagonal ties
+func_802CF1A4: -n 300 --seed 1 --ret void --mem D_803FC1F0:1=int:1:4 --mem D_803FBBB0:0x50=rand \
+    --mem D_803FBBB0*0x14:4=choice:0x960,0x97F,0x980,0x99F,0x9A0,0x6A0,0x6C0,0x6E0,0,-0x980,-0x9A0 --mem D_803FBBB0+4*0x14:4=choice:0,0x6A0,0x6C0,-0x6C0,0x20 \
+    --mem D_803FBBB0+8*0x14:4=choice:0,0x1F,-0x20 --mem D_803FBBB0+0x10*0x14:4/2=halves:0*5,1 \
+    --mem D_803643E0=choice:0,0x1F --mem D_803643E4=choice:0,0x1F --mem D_803643E8=choice:0,-1 --sig func_80285B68=a0 --sig func_80285CA0=
+# with the burst and the sound fields for real (func_802CF3E0 -> D_803F3968 debris)
+func_802CF1A4: -n 100 --seed 2 --ret void --follow func_802CF3E0,func_802C049C,func_802C04F0,func_802A0360 --mem D_803FC1F0:1=int:0:4 \
+    --mem D_803FBBB0:0x50=rand --mem D_803FBBB0*0x14:4=int:-0x2000:0x2000 --mem D_803FBBB0+4*0x14:4=int:-0x2000:0x2000 \
+    --mem D_803FBBB0+8*0x14:4=int:-0x2000:0x2000 --mem D_803FBBB0+0x10*0x14:4/2=halves:0*3,1 --mem D_803643E0=int:-0x1000:0x1000 \
+    --mem D_803643E4=int:-0x1000:0x1000 --mem D_803643E8=int:-0x1000:0x1000 --mem D_803FBBE0:0x30=rand --mem D_803F3968:0x690=rand \
+    --mem D_803F3FF8:0x38=rand --sig func_80285B68=a0 --sig func_80285CA0= --sig func_802A5E60= --sig func_80260650=a0,a1,a2

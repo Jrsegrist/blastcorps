@@ -10,3 +10,27 @@ func_802D2A74: -n 50 --seed 2 --ret void --sig func_80260AB8=a0,a1,a2 --follow f
 
 # func_802D2A40: calls func_80269258() with gp saved around it
 func_802D2A40: -n 50 --ret void --sig func_80269258=
+
+# func_802D2C20(): vehicle 0xFD per-frame events (D_803FCD70 2/3/0xB/0xC/0xD), one-shot sounds when D_803FCD60
+# reaches word +4 of D_803EBC10 record (0xFD, 1..3), D_803FCD7A override, effect countdowns D_803FCD79/76.
+# func_802A6274's ignored fields (the asm passes leftover t6/t7/s0-s4) are left out of the comparison.
+func_802D2C20: -n 300 --ret void --mem D_803FCD70:1=bytes:0,1,2,3,0xB,0xC,0xD,0xE,0xFF --mem D_8036B964:1=bytes:0*3,1 \
+    --mem D_803FCD72:1=bytes:0,1 --mem D_803FCD73:1=bytes:0,1 --mem D_803FCD74:1=bytes:0,1 --mem D_803FCD78:1=bytes:0,1 \
+    --mem D_803FCD79:1=bytes:0*2,1,4,0xFF --mem D_803FCD77:1=bytes:0,1 --mem D_803FCD76:1=bytes:0*2,1,4,0xFF \
+    --mem D_803FCD7A:1=bytes:0,1 --mem D_802E8BE4:1=rand --mem D_802E8BE8=int --mem D_803FCD60=choice:0,99,100,101,-1,0x7FFFFFFF \
+    --stub-ret func_802ABC88.a0=ptr:0x20 --sig func_802A6274=*a0,a1,a2,a3,stack0,stack1,stack2,stack8 --sig func_80260650=a0,a1,a2
+# record lookups for real: thresholds at / around D_803FCD60
+func_802D2C20: -n 300 --seed 1 --ret void --follow func_802ABC88 --mem D_803FCD70:1=bytes:0,2,3,0xB,0xC,0xD \
+    --mem D_8036B964:1=bytes:0*3,1 --mem D_803FCD72:1=bytes:0*2,1 --mem D_803FCD73:1=bytes:0*2,1 --mem D_803FCD74:1=bytes:0*2,1 \
+    --mem D_803FCD78:1=bytes:0,1 --mem D_803FCD79:1=bytes:0,1 --mem D_803FCD77:1=bytes:0,1 --mem D_803FCD76:1=bytes:0,1 \
+    --mem D_803FCD7A:1=bytes:0,1 --mem D_802E8BE4:1=rand --mem D_802E8BE8=int --mem D_803FCD60=choice:99,100,101 \
+    --mem D_803EBC10:0x80=rand --mem D_803EBC10+0xC:1=0xFD --mem D_803EBC10+4*0x10:3=choice:99,100,101,-1,0x7FFFFFFF \
+    --sig func_802A6274=*a0,a1,a2,a3,stack0,stack1,stack2,stack8 --sig func_80260650=a0,a1,a2
+# whole call tree but the sound player (spawns into D_803C4B70 at records (0xFD, 4..6))
+func_802D2C20: -n 200 --seed 2 --ret void --follow func_802ABC88,func_802A6274,func_802A0290,func_802A039C,func_802A03D4 \
+    --mem D_803FCD70:1=bytes:0,2,0xB,0xD --mem D_8036B964:1=bytes:0,1 --mem D_803FCD72:1=bytes:0,1 --mem D_803FCD73:1=bytes:0,1 \
+    --mem D_803FCD74:1=bytes:0,1 --mem D_803FCD78:1=bytes:0,1 --mem D_803FCD79:1=bytes:0*3,1 --mem D_803FCD77:1=bytes:0,1 \
+    --mem D_803FCD76:1=bytes:0*3,1 --mem D_803FCD7A:1=bytes:0,1 --mem D_803FCD60=choice:99,100,101 \
+    --mem D_803EBC10:0x80=rand --mem D_803EBC10+0xC:1=0xFD --mem D_803EBC10+4*0x10:3=choice:99,100,101 \
+    --mem D_803C4B70:0x3C0=rand --mem D_803C4B70+0x33*0x3C:16/1=bytes:0,1*3 --mem D_803EB770:16=bytes:0*2,1 \
+    --mem D_803EB792:1=rand --mem D_803FC9A0:0x40=rand --sig func_80260650=a0,a1,a2 --sig func_802A11C4=a0,a1

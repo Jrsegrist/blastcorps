@@ -1,0 +1,8 @@
+# 69000: arcsine lookup (func_802AD7FC, v1 -> fp) and its o32 wrapper func_802AD7D4
+func_802AD7FC: -n 300 --arg a0=int:0:0xFFFF
+# segment edges, the fine-table switch at 0xFFC0, out-of-range and "negative" inputs
+func_802AD7FC: -n 200 --seed 1 --arg a0=choice:0,1,0x3F,0x40,0x41,0xFFBF,0xFFC0,0xFFC1,0xFFFF,0x10000,0x7FFFFFFF,0x80000000,-1,0xFF80,0xFF7F
+func_802AD7FC: -n 200 --seed 2 --arg a0=int
+func_802AD7D4: -n 300 --arg a0=int:0:0xFFFF --sig func_802AD7FC=a0
+func_802AD7D4: -n 200 --seed 1 --follow func_802AD7FC --arg a0=choice:0,1,0x3F,0x40,0xFFBF,0xFFC0,0xFFFF,0x10000,-1,0x80000000
+func_802AD7D4: -n 200 --seed 2 --follow func_802AD7FC --arg a0=int:0:0xFFFF

@@ -1385,7 +1385,50 @@ void func_802BF668(Unk802C1DD0Entry *e) {
 #endif
 
 /* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u16 D_803F77FE;
+void func_802BF978(Unk802C1DD0Entry *e, s32 index, s32 level, Unk802C1DD0Info *info, s32 *obj);
+
+/* Breaks off part `part` (1-based) of e at damage level `level`. If e->info's
+ * unk5 (debris scale) is nonzero, func_802BF978 makes generic debris; the asm
+ * passes it info and, as its obj (v1), the unk5 byte itself. Otherwise, for
+ * each of info's 0x38-byte records unk30..unk34 (walked with `!=`) that isn't
+ * done yet (byte 0x34 == 0) and belongs to the part (byte 0x32): with byte
+ * 0x33 == 0xFF it is spawned (func_802C04F0) unless D_803F77FE < 20, and
+ * stays not done; otherwise, if byte 0x33 (the level needed) <= level
+ * (signed), func_802BFBF4 + func_802C04F0 and it is marked done.
+ * The asm takes e in t9, part in t3, level in t5 and preserves every
+ * register; asm callers keep a1, t3, t5, t9, f12, f14 (func_802BEBB0) and
+ * t3, t5, t9 (func_802CDD74) live (a mixed N64 build would need a thunk). */
+void func_802BF898(Unk802C1DD0Entry *e, s32 part, s32 level) {
+    Unk802C1DD0Info *info = e->info;
+    u8 *r;
+    u8 *end;
+
+    if (info->unk5 != 0) {
+        func_802BF978(e, part, level, info, (s32 *) (u32) info->unk5);
+        return;
+    }
+    r = (u8 *) info + info->unk30;
+    end = (u8 *) info + info->unk34;
+    for (; r != end; r += 0x38) {
+        if (r[0x34] != 0 || r[0x32] != part) {
+            continue;
+        }
+        if (r[0x33] == 0xFF) {
+            if (D_803F77FE >= 20) {
+                func_802C04F0((u32 *) r);
+            }
+        } else if (!(level < r[0x33])) {
+            func_802BFBF4(e, (s32 *) r);
+            func_802C04F0((u32 *) r);
+            r[0x34] = 1;
+        }
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BF898.s")
+#endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -1528,7 +1571,36 @@ void func_802BFBF4(Unk802C1DD0Entry *e, s32 *obj) {
 #endif
 
 /* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+void func_802BFDAC(Unk802C1DD0Entry *e, s32 index);
+
+/* Spawns the debris of part index + 1 of e: with e->info's unk5 nonzero, one
+ * generic record (func_802BFDAC); else every one of info's 0x38-byte records
+ * unk34..unk38 (walked with `!=`) whose byte 0x32 is the part goes to
+ * func_802C04F0. The asm takes e in v0 and index in a3 (addi: index + 1 must
+ * not overflow) and saves v0, v1, a0, a1, a3; asm caller func_802BD1F8 keeps
+ * a0-a3 and t0-t6 live (a mixed N64 build would need a thunk). */
+void func_802BFD1C(Unk802C1DD0Entry *e, s32 index) {
+    Unk802C1DD0Info *info = e->info;
+    s32 part = index + 1;
+    u8 *r;
+    u8 *end;
+
+    if (info->unk5 != 0) {
+        func_802BFDAC(e, part);
+        return;
+    }
+    r = (u8 *) info + info->unk34;
+    end = (u8 *) info + info->unk38;
+    for (; r != end; r += 0x38) {
+        if (r[0x32] == part) {
+            func_802C04F0((u32 *) r);
+        }
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BFD1C.s")
+#endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -1865,7 +1937,81 @@ void func_802C04F0(u32 *src) {
 #endif
 
 /* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* The three registers func_802A6274 (60F60.c) takes and may hand back changed. */
+typedef struct {
+    /* 0x0 */ s32 a3;
+    /* 0x4 */ s32 t6;
+    /* 0x8 */ s32 s1;
+} Io802A6274;
+
+s32 func_802A6274(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32 z, s32 w24, s32 w28,
+                  s32 w18, s32 w1C, s32 w2C, s32 b35);
+void func_802619D0(u32 id);
+void func_802C18D4(s32 x, s32 y, s32 z, s32 radius, s32 amount);
+
+extern u8 *D_80306270[];  /* per kind: {u8 n; u8 defIndex[n]} */
+extern u8 *D_802C3FFC[];  /* effect definitions, in the 7D9D0 text blob */
+extern u8 D_803F7810;
+extern u8 D_8036DCD4;
+extern u8 D_8036DCD7;
+extern u8 D_803643D6;
+extern u64 D_80364A98;
+
+/* Runs the 30 pending debris records of D_803F3968 (0x38 bytes each): a
+ * record with byte 0x34 set is free; one whose u16 delay at 0x2C is nonzero
+ * just counts it down. Otherwise the effect definition is picked from kind
+ * r[0x31]'s list in D_80306270 by (low word of D_803649D8 >> 4) % n (n == 0
+ * would trap) and spawned with func_802A6274 (type 0, the record's words as
+ * position/data/fields, tag 1 for kind 0x15 or when D_803F7810 is set or
+ * D_8036DCD4 is set with D_8036DCD7 == 1, else 0). If that succeeded and
+ * neither the u64 D_80364A98 nor D_803643D6 is set, func_802619D0(kind)
+ * (the asm saves every register around that call). The record is then
+ * freed, and a nonzero u16 radius at 0x2E applies func_802C18D4 blast
+ * damage at its position with amount r[0x30] << 4. Saves s0-s7. */
+void func_802C0574(void) {
+    u8 *r = D_803F3968[0];
+    s32 n;
+
+    for (n = 30; n != 0; n--, r += 0x38) {
+        Io802A6274 io;
+        u8 *list;
+        u8 *def;
+        s32 tag;
+
+        if (r[0x34] != 0) {
+            continue;
+        }
+        if (*(u16 *) (r + 0x2C) != 0) {
+            *(u16 *) (r + 0x2C) -= 1;
+            continue;
+        }
+        list = D_80306270[r[0x31]];
+        def = D_802C3FFC[list[1 + ((u32) D_803649D8 >> 4) % list[0]]];
+        if (r[0x31] == 0x15 || D_803F7810 != 0 || (D_8036DCD4 != 0 && D_8036DCD7 == 1)) {
+            tag = 1;
+        } else {
+            tag = 0;
+        }
+        io.a3 = tag;
+        io.t6 = *(s32 *) (r + 0x10);
+        io.s1 = *(s32 *) (r + 0x1C);
+        if (func_802A6274(&io, def, *(s32 *) (r + 0x0C), 0, *(s32 *) (r + 0x00), *(s32 *) (r + 0x04),
+                          *(s32 *) (r + 0x08), *(s32 *) (r + 0x14), *(s32 *) (r + 0x18), *(s32 *) (r + 0x20),
+                          *(s32 *) (r + 0x24), *(s32 *) (r + 0x28), r[0x35]) != 0
+            && D_80364A98 == 0 && D_803643D6 == 0) {
+            func_802619D0(r[0x31]);
+        }
+        r[0x34] = 1;
+        if (*(u16 *) (r + 0x2E) != 0) {
+            func_802C18D4(*(s32 *) (r + 0x00), *(s32 *) (r + 0x04), *(s32 *) (r + 0x08), *(u16 *) (r + 0x2E),
+                          r[0x30] << 4);
+        }
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802C0574.s")
+#endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

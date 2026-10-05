@@ -1,0 +1,23 @@
+# 69930: float cos/sin cores (f12 -> f0) and the fixed-point wrappers (v1 -> fp)
+func_802AE1BC: -n 300 --arg f12=float:-30:30 --ret float
+func_802AE1BC: -n 200 --seed 1 --arg f12=float:-1000:1000 --ret float
+# 0, -0, 2pi, pi, pi/2 and their float neighbours (both signs), 1000, NaN
+func_802AE1BC: -n 200 --seed 2 --ret float --arg f12=choice:0,0x80000000,0x40C90FDB,0x40C90FDA,0x40C90FDC,0x40490FDB,0x40490FDA,0x40490FDC,0x3FC90FDB,0x3FC90FDA,0x3FC90FDC,0xC0C90FDB,0xC0C90FDC,0xC0490FDB,0xC0490FDC,0xBFC90FDB,0xBFC90FDA,0x447A0000,0x7FC00000,0x00000001
+func_802AE290: -n 300 --arg f12=float:-30:30 --ret float
+func_802AE290: -n 200 --seed 1 --arg f12=float:-1000:1000 --ret float
+func_802AE290: -n 200 --seed 2 --ret float --arg f12=choice:0,0x80000000,0x40C90FDB,0x40C90FDA,0x40C90FDC,0x40490FDB,0x40490FDA,0x40490FDC,0x3FC90FDB,0x3FC90FDA,0x3FC90FDC,0xC0C90FDB,0xC0C90FDC,0xC0490FDB,0xC0490FDC,0xBFC90FDB,0xBFC90FDA,0x447A0000,0x7FC00000,0x00000001
+# wrappers with the core stubbed: f0 driven to in-range values incl. round-to-even ties (x 65536 = 0.5, 1.5, 2.5, -1.5)
+func_802AE104: -n 100 --seed 2 --arg a0=int --stub-ret func_802AE1BC=0x37000000
+func_802AE104: -n 100 --seed 3 --arg a0=int --stub-ret func_802AE1BC=0x37C00000
+func_802AE104: -n 100 --seed 4 --arg a0=int --stub-ret func_802AE1BC=0x38200000
+func_802AE104: -n 100 --seed 5 --arg a0=int --stub-ret func_802AE1BC=0xB7C00000
+func_802AE104: -n 100 --seed 6 --arg a0=int --stub-ret func_802AE1BC=0xBF800000
+# wrappers with the real core: all angles, 0x1000 wrap, high bits ignored
+func_802AE104: -n 300 --seed 1 --arg a0=int:0:0xFFFF --follow func_802AE1BC
+func_802AE104: -n 200 --seed 7 --follow func_802AE1BC --arg a0=choice:0,1,0x3FF,0x400,0x401,0x7FF,0x800,0x801,0xBFF,0xC00,0xFFF,0x1000,-1,0x80000000,0x12345C00
+func_802AE160: -n 100 --seed 2 --arg a0=int --stub-ret func_802AE290=0x37000000
+func_802AE160: -n 100 --seed 3 --arg a0=int --stub-ret func_802AE290=0x37C00000
+func_802AE160: -n 100 --seed 4 --arg a0=int --stub-ret func_802AE290=0x38200000
+func_802AE160: -n 100 --seed 5 --arg a0=int --stub-ret func_802AE290=0xB7C00000
+func_802AE160: -n 300 --seed 1 --arg a0=int:0:0xFFFF --follow func_802AE290
+func_802AE160: -n 200 --seed 7 --follow func_802AE290 --arg a0=choice:0,1,0x3FF,0x400,0x401,0x7FF,0x800,0x801,0xBFF,0xC00,0xFFF,0x1000,-1,0x80000000,0x12345C00

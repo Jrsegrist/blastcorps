@@ -95,7 +95,145 @@ void func_802D2A74(void) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* The three registers func_802A6274 (60F60.c) takes and may hand back changed. */
+typedef struct {
+    /* 0x0 */ s32 a3;
+    /* 0x4 */ s32 t6;
+    /* 0x8 */ s32 s1;
+} Io802A6274;
+
+s32 func_802A6274(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32 z, s32 w24, s32 w28,
+                  s32 w18, s32 w1C, s32 w2C, s32 b35);
+s32 func_802ABC88(s32 id, s32 n, u8 **recOut);           /* 62740 */
+void func_802A0290(void *base, s32 idx, s32 val);         /* 56040 */
+void func_802A039C(void *base, s32 idx, s32 val);         /* 56040 */
+void func_802A03D4(void *base, s32 idx, s32 val);         /* 56040 */
+void *func_80260650(void *arg0, s16 arg1, void *arg2);
+
+extern void *D_80367738; /* sound player */
+extern u8 D_803FC9A0[];
+extern u8 D_803FCD70;    /* event this frame */
+extern s32 D_803FCD60;
+extern u8 D_8036B964;
+extern u8 D_803FCD72;
+extern u8 D_803FCD73;
+extern u8 D_803FCD74;
+extern u8 D_803FCD76;
+extern u8 D_803FCD77;
+extern u8 D_803FCD78;
+extern u8 D_803FCD79;
+extern u8 D_803FCD7A;
+extern u8 D_802E8BE4;
+extern s32 D_802E8BE8;
+extern u8 D_802C28E4[]; /* effect definitions in the 7D9D0 text blob */
+extern u8 D_802C3804[];
+
+/* Spawns effect def at D_803EBC10 record (0xFD, n) (func_802A6274 type 1 with
+ * z = 1, tag 0, b35 0). For that type func_802A6274 ignores its other fields;
+ * the asm passes whatever its caller left in t6, t7, s0-s4 there, the C 0. */
+#define SPAWN_AT_FD(def, data, n)                                         \
+    {                                                                     \
+        Io802A6274 _io;                                                   \
+                                                                          \
+        _io.a3 = 0;                                                       \
+        _io.t6 = 0;                                                       \
+        _io.s1 = 0;                                                       \
+        func_802A6274(&_io, (def), (data), 1, 0xFD, (n), 1, 0, 0, 0, 0, 0, 0); \
+    }
+
+/* Per-frame event handling for this vehicle (id 0xFD in D_803EBC10): event
+ * D_803FCD70 2 sets D_803FC9A0 entry 1's fields (func_802A039C/03D4/0290)
+ * and plays sound 0x66; 3 plays 0x78; 0xB sets D_803FCD77/7A/78 and plays
+ * 0x83; 0xC plays 0x7F into D_803FCD64 and clears D_803FCD7A; 0xD clears
+ * D_803FCD78. Unless D_8036B964, each of the three one-shot flags
+ * D_803FCD72..74 still clear plays sound 6, 6, 8 (and gets set) once
+ * D_803FCD60 (read once) reaches word +4 of D_803EBC10 record (0xFD, 1..3).
+ * D_803FCD7A forces D_802E8BE4 = 20 and D_802E8BE8 = 400. D_803FCD78 and
+ * D_803FCD77 each run a 5-frame countdown (D_803FCD79 / D_803FCD76) that
+ * spawns effects at the vehicle's points 4 (D_802C28E4) or 4, 5, 6
+ * (D_802C3804). Only caller func_802D291C (asm); the survey's t6/t7/s0/s1
+ * "outputs" are what func_8029E558 sets after it, not read from here. */
+void func_802D2C20(void) {
+    u8 *rec;
+    s32 level;
+
+    switch (D_803FCD70) {
+        case 2:
+            func_802A039C(D_803FC9A0, 1, 1);
+            func_802A03D4(D_803FC9A0, 1, 0);
+            func_802A0290(D_803FC9A0, 1, 1);
+            func_80260650(D_80367738, 0x66, NULL);
+            break;
+        case 3:
+            func_80260650(D_80367738, 0x78, NULL);
+            break;
+        case 0xB:
+            D_803FCD77 = 1;
+            D_803FCD7A = 1;
+            D_803FCD78 = 1;
+            func_80260650(D_80367738, 0x83, NULL);
+            break;
+        case 0xC:
+            func_80260650(D_80367738, 0x7F, &D_803FCD64);
+            D_803FCD7A = 0;
+            break;
+        case 0xD:
+            D_803FCD78 = 0;
+            break;
+    }
+
+    if (D_8036B964 == 0) {
+        level = D_803FCD60;
+        if (D_803FCD72 == 0) {
+            func_802ABC88(0xFD, 1, &rec);
+            if (!(level < ((s32 *) rec)[1])) {
+                func_80260650(D_80367738, 6, NULL);
+                D_803FCD72 = 1;
+            }
+        }
+        if (D_803FCD73 == 0) {
+            func_802ABC88(0xFD, 2, &rec);
+            if (!(level < ((s32 *) rec)[1])) {
+                func_80260650(D_80367738, 6, NULL);
+                D_803FCD73 = 1;
+            }
+        }
+        if (D_803FCD74 == 0) {
+            func_802ABC88(0xFD, 3, &rec);
+            if (!(level < ((s32 *) rec)[1])) {
+                func_80260650(D_80367738, 8, NULL);
+                D_803FCD74 = 1;
+            }
+        }
+    }
+
+    if (D_803FCD7A != 0) {
+        D_802E8BE4 = 20;
+        D_802E8BE8 = 400;
+    }
+    if (D_803FCD78 != 0) {
+        if (D_803FCD79 != 0) {
+            D_803FCD79 -= 1;
+        } else {
+            D_803FCD79 = 4;
+            SPAWN_AT_FD(D_802C28E4, 0x107AC0, 4);
+        }
+    }
+    if (D_803FCD77 != 0) {
+        if (D_803FCD76 != 0) {
+            D_803FCD76 -= 1;
+        } else {
+            D_803FCD76 = 4;
+            SPAWN_AT_FD(D_802C3804, 0x53020, 4);
+            SPAWN_AT_FD(D_802C3804, 0x53020, 5);
+            SPAWN_AT_FD(D_802C3804, 0x5CC60, 6);
+        }
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8DDB0/func_802D2C20.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8DDB0/func_802D2FA4.s")

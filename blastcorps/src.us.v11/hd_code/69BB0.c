@@ -122,7 +122,7 @@ s32 func_802A860C(f32 f, s32 angle, s16 *len, s32 *px, s32 *pz, Out802A860C *out
 void func_802A8768(u8 *veh, s32 id, s32 *px, s32 *py, s32 *pz, s32 x, s32 z, s32 divB, s32 divA, s16 *angle,
                    u8 *flags, s16 *tbl, s32 *a, s32 *b, s32 *c, s32 *ys, Regs802A8768 *r, TriSideOut *f);
 void func_8029E558(u8 *base, u8 *other, void *ch);
-void func_8029C52C(s32 tag);
+void func_8029C52C(s32 tag, u8 *veh);
 void func_8029A914(u8 *veh);
 s32 func_802A6F6C(void);
 void func_802A70D8(u8 *veh);
@@ -662,7 +662,7 @@ animate:
         } else {
             func_8029A800(pos[2], (s32) D_80305CB0, 0, 0, pos[0], pos[1], 0, *(s16 *) (D_803ED760 + 0x76),
                           (s32) end, 0, 0, D_803ED760);
-            func_8029C52C(0);
+            func_8029C52C(0, D_803ED760);
             func_8029AA10(0);
             D_803F77D0 = D_803ED460;
             func_802BE77C(0, D_803ED760);

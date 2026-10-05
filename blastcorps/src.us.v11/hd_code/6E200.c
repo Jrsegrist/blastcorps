@@ -168,9 +168,9 @@ void func_802A7070(u8 *veh, s16 *angle);
 s32 func_802A860C(f32 f, s32 angle, s16 *len, s32 *px, s32 *pz, Out802A860C *out);
 void func_8029A800(s32 z, s32 a1, s32 b2, s32 b3, s32 x, s32 y, s32 b0, s32 h1, s32 h2, s32 b4, s32 b8,
                    u8 *veh);
-void func_8029C52C(s32 tag);
+void func_8029C52C(s32 tag, u8 *veh);
 void func_8029AA10(s32 kind);
-void func_8029A914(void);
+void func_8029A914(u8 *veh);
 s32 func_802A6F6C(void);
 void func_802A70D8(u8 *veh);
 s32 func_802A71DC(u8 *veh, s32 cur, s32 target, s32 *curOut, f32 scale);
@@ -437,7 +437,7 @@ static void port_veh_move(u8 *veh, PortVehPos *p, s32 id, u8 *ch, s32 rate, s32 
     mc.s1 = 0;
     parts(&mc);
     func_8029A800(p->z, (s32) a1, b2, 1, p->x, p->y, b0, VEH_S16(veh, 0x76), h2, 0, id, veh);
-    func_8029C52C(id);
+    func_8029C52C(id, veh);
     func_8029AA10(id);
 }
 
@@ -805,7 +805,7 @@ void func_802B327C(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
             D_803EE3B0 = 0;
         }
     } else {
-        func_8029A914();
+        func_8029A914(veh);
         D_803EE3B0 = 1;
         port_veh_turn(veh, D_8030D8C0, &D_803EE3AA);
         D_803F77D0 = D_803EDFE0;
@@ -1427,7 +1427,7 @@ void func_802B49AC(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
             D_803EE789 = 0;
         }
     } else {
-        func_8029A914();
+        func_8029A914(veh);
         D_803EE789 = 1;
         port_veh_turn(veh, D_8030D8D0, &D_803EE786);
         func_802BCC10();

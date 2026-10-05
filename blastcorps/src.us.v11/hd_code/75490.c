@@ -680,7 +680,7 @@ extern u8 D_803EF700;   /* effect frame count */
 extern u8 D_803EF701;   /* effect started */
 void func_8029A800(s32 z, s32 a1, s32 b2, s32 b3, s32 x, s32 y, s32 b0, s32 h1, s32 h2, s32 b4, s32 b8,
                    u8 *veh);
-void func_8029C52C(s32 tag);
+void func_8029C52C(s32 tag, u8 *veh);
 void func_8029AA10(s32 kind);
 void func_802BE77C(s32 id, u8 *vehicle);
 void func_80278318(void);
@@ -692,7 +692,7 @@ void func_802C049C(void);
 
 /* Collision/effect step of the type-0xFF object (D_803EF630, the asm's $gp).
  * Unless D_803643D6 is set: func_8029A800((x, y, z) = D_803EF6DC/E0/E4, table
- * D_80305D60, 0, 0, b0, speed (s16 +0x76), h2, 0, 0xFF), func_8029C52C(0xFF);
+ * D_80305D60, 0, 0, b0, speed (s16 +0x76), h2, 0, 0xFF), func_8029C52C(0xFF, D_803EF630);
  * then, unless D_803A7426 is set, D_803A7424 = 0, func_8029AA10(0xFF) when
  * D_803EF710 is set and func_802BE77C(0xFF, veh) (with D_803F77D0 =
  * &D_803EF330) when D_803EF711 is set; if D_803A7424 is then still 0 and the
@@ -721,7 +721,7 @@ void func_802BA9A0(s32 h2) {
     if (D_803643D6 == 0) {
         func_8029A800(D_803EF6E4, (s32) D_80305D60, 0, 0, D_803EF6DC, D_803EF6E0, (s32) &D_803643D6,
                       *(s16 *) (D_803EF630 + 0x76), h2, 0, 0xFF, D_803EF630);
-        func_8029C52C(0xFF);
+        func_8029C52C(0xFF, D_803EF630);
         if (D_803A7426 == 0) {
             D_803A7424 = 0;
             if (D_803EF710 != 0) {
@@ -1146,7 +1146,7 @@ void func_802BB274(void) {
     D_803EFA20[0xA2] = 0;
     func_8029A800(D_803EFAC8[2], (s32) D_80305DF0, 0, 0, D_803EFAC8[0], D_803EFAC8[1], x, 0, h2, 0, 6,
                   D_803EFA20);
-    func_8029C52C(6);
+    func_8029C52C(6, D_803EFA20);
     func_8029C5EC(0, 0, 0, 0);
     D_803F77D0 = D_803EF720;
     func_802BE77C(6, D_803EFA20);

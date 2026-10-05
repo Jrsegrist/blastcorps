@@ -164,7 +164,7 @@ f32 func_802A83B8(s16 *div, u8 *f, s32 *p, f32 *out);
 void func_802A843C(u8 *veh, s16 *speed, s32 kind, s8 *f, s32 *p, s32 clamp, f32 div);
 void func_802A7070(u8 *veh, s16 *angle);
 s32 func_802A860C(f32 f, s32 angle, s16 *len, s32 *px, s32 *pz, Out802A860C *out);
-void func_8029C52C(s32 tag);
+void func_8029C52C(s32 tag, u8 *veh);
 void func_8029AA10(s32 kind);
 void func_802BE77C(s32 id, u8 *vehicle);
 void func_8029A800(s32 z, s32 a1, s32 b2, s32 b3, s32 x, s32 y, s32 b0, s32 h1, s32 h2, s32 b4, s32 b8,
@@ -648,7 +648,7 @@ void func_802B7A88(void) {
     func_802B8278();
     func_8029A800(D_803EEF18[2], (s32) D_80305D30, 1, 1, D_803EEF18[0], D_803EEF18[1], 7, VEH8_S16(0x76), 0x96, 0,
                   8, D_803EEE70);
-    func_8029C52C(8);
+    func_8029C52C(8, D_803EEE70);
     func_8029AA10(8);
     if (D_803A7425 == 0) {
         D_803A7424 = 0;

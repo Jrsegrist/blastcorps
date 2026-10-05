@@ -128,11 +128,11 @@ func_802B02A0: -n 200 --seed 1 --arg fp=int --heap 0x400 --heap 0x800 --heap 0x8
     --sig 'func_8029C454=a0,a1,a2,a3,stack0,stack1,stack2,*stack3+0xC,*stack3+0x14'
 func_802B03F4: -n 300 --mem D_803EDBE8:24=rand --mem D_803EDB40:0xA6=rand --mem D_803EDB40+0x9A:1=choice:0,1,0x80 --mem D_803EDC04:1=choice:0,1,0xFF \
     --mem D_8035805C:1=choice:0,1 --mem D_803A7425:1=choice:0,1 --mem D_803EDC02:2=rand --mem D_803F77D0=rand --mem D_803643E0:12=rand --mem D_8036443C:6=rand \
-    --mem D_803ED40B:1=rand --sig func_802B0B3C= --sig func_802B07DC= --sig func_802B0CE8= --sig func_8029A914= --sig func_802A6F6C= \
+    --mem D_803ED40B:1=rand --sig func_802B0B3C= --sig func_802B07DC= --sig func_802B0CE8= --sig func_8029A914=a0 --sig func_802A6F6C= \
     --sig 'func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12'
 func_802B03F4: -n 200 --seed 2 --mem D_803EDBE8:24=rand --mem D_803EDB40:0xA6=rand --mem D_803EDB40+0x4E:2=halves:0,0x7FF,0x800,0x801,0xFFF,0x1000,0xFFFF \
     --mem D_803A7425:1=1 --mem D_803EDC04:1=choice:0,1 --mem D_8035805C:1=choice:0,1 --stub-ret func_802A6F6C=choice:0,0x7FF,0x800,0xFFF,0x1000 \
-    --mem D_803EDC02:2=rand --mem D_803F77D0=rand --sig func_802B0B3C= --sig func_802B07DC= --sig func_802B0CE8= --sig func_8029A914= --sig func_802A6F6C= \
+    --mem D_803EDC02:2=rand --mem D_803F77D0=rand --sig func_802B0B3C= --sig func_802B07DC= --sig func_802B0CE8= --sig func_8029A914=a0 --sig func_802A6F6C= \
     --sig 'func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12'
 func_802B03F4: -n 200 --seed 3 --heap 0x400 --heap 0x800 --heap 0x800 --mem D_803EDBE8:12=rand --mem D_803EDB40:0xA6=rand --mem D_803EDB40+0x9A:1=choice:0,1 \
     --mem D_803EDBF4=rel:heap0 --mem D_803EDBF8=rel:heap1 --mem D_803EDBFC=rel:heap2 --mem @heap0=0x100 --mem @heap0+4=0x140 --mem @heap0+8=0x180 \
@@ -140,7 +140,7 @@ func_802B03F4: -n 200 --seed 3 --heap 0x400 --heap 0x800 --heap 0x800 --mem D_80
     --mem D_803EBBF0=rand --mem D_803ED3F6:2=rand --mem D_803F77D0=rand --mem D_803643E0:12=rand --mem D_8036443C:6=rand \
     --follow func_802B0B3C,func_802B0CE8,func_802B0C74,func_802B03B0 --sig 'func_8029C454=a0,a1,a2,a3,stack0,stack1,stack2' \
     --sig 'func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12' \
-    --sig func_8029A914= --sig func_802A6F6C= --sig func_802B07DC= --sig func_802ABD54=a0,a1,a2,a3 --sig 'func_802ABBEC=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10'
+    --sig func_8029A914=a0 --sig func_802A6F6C= --sig func_802B07DC= --sig func_802ABD54=a0,a1,a2,a3 --sig 'func_802ABBEC=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10'
 func_802AFC60: -n 200 --heap 0x400 --heap 0x1000 --arg s2=rel:heap0 --mem @heap0+4=choice:0x100,0x140 --mem @heap0+8=0x180 --mem @heap0+0x18=0x200 \
     --mem @heap0+0x204=choice:0,0x40,0x7C0 --mem D_80358070=rel:heap1 --mem D_803EDB40:0xA6=rand --mem D_803EDBE8:0x20=rand --mem D_80364A6D:1=rand \
     --sig func_802B03F4= --sig 'func_802A992C=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5'
@@ -150,4 +150,4 @@ func_802AFC60: -n 200 --seed 1 --heap 0x400 --heap 0x1000 --arg s2=rel:heap0 --m
     --mem D_803643E0:12=rand --mem D_8036443C:6=rand --follow func_802B03F4,func_802B0B3C,func_802B0CE8,func_802B0C74,func_802B03B0 \
     --sig 'func_802A992C=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5' --sig 'func_8029C454=a0,a1,a2,a3,stack0,stack1,stack2' \
     --sig 'func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12' \
-    --sig func_8029A914= --sig func_802A6F6C= --sig func_802ABD54=a0,a1,a2,a3 --sig 'func_802ABBEC=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10'
+    --sig func_8029A914=a0 --sig func_802A6F6C= --sig func_802ABD54=a0,a1,a2,a3 --sig 'func_802ABBEC=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10'

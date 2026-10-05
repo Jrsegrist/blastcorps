@@ -239,16 +239,16 @@ func_802B48A4: -n 200 --seed 1 --heap 0x400 --heap 0x800 --heap 0x800 --mem D_80
 func_802B327C: -n 300 --mem D_803EE38C:24=rand --mem D_803EE2E0:0xA6=rand --mem D_803EE2E0+0x9A:1=choice:0,1,0x80 --mem D_803EE3B2:1=choice:0,0,1,5 \
     --mem D_80367BFF:1=choice:0,1 --mem D_803EE3B0:1=choice:0,1,0xFF --mem D_8035805C:1=choice:0,1 --mem D_803A7425:1=choice:0,1 --mem D_803EE3A8:2=int:0:0xFFFF \
     --mem D_803EE3AA:2=rand --mem D_803A7424:1=rand --mem D_803F77D0=rand --mem D_803643E0:12=rand --mem D_8036443C:6=rand --mem D_803ED40B:1=rand \
-    --sig func_802B3E40= --sig func_802B3FF0= --sig func_8029A914= --sig func_802A6F6C= \
+    --sig func_802B3E40= --sig func_802B3FF0= --sig func_8029A914=a0 --sig func_802A6F6C= \
     --sig 'func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12'
 func_802B327C: -n 200 --seed 1 --model func_802BE77C=set_D_803A7424.py --mem D_803EE38C:24=rand --mem D_803EE2E0:0xA6=rand \
     --mem D_803EE2E0+0x76:2=halves:0,1,0x4F,0x50,0x51,0x7FFF,0x8000,0xFFFF,0xFFB1,0xFFB0,0xFFAF,0xFF00 --mem D_803EE3B2:1=choice:0,1,5 --mem D_80367BFF:1=choice:0,1 \
     --mem D_803EE3B0:1=choice:0,1 --mem D_8035805C:1=choice:0,1 --mem D_803A7425:1=0 --mem D_803A7424:1=rand --mem D_803F77D0=rand --mem D_803643E0:12=rand \
-    --mem D_8036443C:6=rand --mem D_803ED40B:1=rand --sig func_802B3E40= --sig func_802B3FF0= --sig func_8029A914= --sig func_802A6F6C= \
+    --mem D_8036443C:6=rand --mem D_803ED40B:1=rand --sig func_802B3E40= --sig func_802B3FF0= --sig func_8029A914=a0 --sig func_802A6F6C= \
     --sig 'func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12'
 func_802B327C: -n 200 --seed 2 --mem D_803EE38C:24=rand --mem D_803EE2E0:0xA6=rand --mem D_803EE2E0+0x4E:2=halves:0,0x7FF,0x800,0x801,0xFFF,0x1000,0xFFFF \
     --mem D_803A7425:1=1 --mem D_803EE3B0:1=choice:0,1 --mem D_8035805C:1=choice:0,1 --stub-ret func_802A6F6C=choice:0,0x7FF,0x800,0xFFF,0x1000 \
-    --mem D_803EE3AA:2=rand --mem D_803F77D0=rand --sig func_802B3E40= --sig func_802B3FF0= --sig func_8029A914= --sig func_802A6F6C= \
+    --mem D_803EE3AA:2=rand --mem D_803F77D0=rand --sig func_802B3E40= --sig func_802B3FF0= --sig func_8029A914=a0 --sig func_802A6F6C= \
     --sig 'func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12'
 func_802B327C: -n 200 --seed 3 --heap 0x400 --heap 0x800 --heap 0x800 --mem D_803EE38C:12=rand --mem D_803EE2E0:0xA6=rand --mem D_803EE2E0+0x9A:1=choice:0,1 \
     --mem D_803EE398=rel:heap0 --mem D_803EE39C=rel:heap1 --mem D_803EE3A0=rel:heap2 --mem @heap0=0x100 --mem @heap0+4=0x140 --mem @heap0+8=0x180 \
@@ -256,21 +256,21 @@ func_802B327C: -n 200 --seed 3 --heap 0x400 --heap 0x800 --heap 0x800 --mem D_80
     --mem D_803EE3B0:1=choice:0,1 --mem D_803EBBF0=rand --mem D_803ED3F6:2=rand --mem D_803EE3A8:2=rand --mem D_80370C1C:1=choice:0,1 --mem D_80370C23:1=choice:0,1 \
     --mem D_803F77D0=rand --mem D_803643E0:12=rand --mem D_8036443C:6=rand --follow func_802B3E40,func_802B3FF0,func_802B3F78,func_802B30B0 \
     --sig 'func_8029C454=a0,a1,a2,a3,stack0,stack1,stack2' --sig 'func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12' \
-    --sig func_8029A914= --sig func_802A6F6C= --sig func_802ABD54=a0,a1,a2,a3 --sig 'func_802ABBEC=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10'
+    --sig func_8029A914=a0 --sig func_802A6F6C= --sig func_802ABD54=a0,a1,a2,a3 --sig 'func_802ABBEC=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10'
 func_802B49AC: -n 300 --mem D_803EE768:24=rand --mem D_803EE6C0:0xA6=rand --mem D_803EE6C0+0x9A:1=choice:0,1,0x80 --mem D_803EE78A:1=choice:0,0,1,5 \
     --mem D_80367BFF:1=choice:0,1 --mem D_803EE789:1=choice:0,1,0xFF --mem D_8035805C:1=choice:0,1 --mem D_803A7425:1=choice:0,1 --mem D_803EE784:2=int:0:0xFFFF \
     --mem D_803EE786:2=rand --mem D_803A7424:1=rand --mem D_803F77D0=rand --mem D_803643E0:12=rand --mem D_8036443C:6=rand --mem D_803ED40B:1=rand --mem D_803F7840:2=rand \
-    --sig func_802B568C= --sig func_802B5814= --sig func_8029A914= --sig func_802A6F6C= --sig func_802BCC10= \
+    --sig func_802B568C= --sig func_802B5814= --sig func_8029A914=a0 --sig func_802A6F6C= --sig func_802BCC10= \
     --sig 'func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12'
 func_802B49AC: -n 300 --seed 1 --model func_802BE77C=set_D_803A7424.py --mem D_803EE768:24=rand --mem D_803EE6C0:0xA6=rand \
     --mem D_803EE6C0+0x76:2=halves:0,1,0x3D,0x3E,0x3F,0x7D,0x7E,0x7F,0x7FFF,0x8000,0xFFFF,0xFFD4,0xFFD3,0xFFD5,0xFFA6,0xFFA5,0xFFA7,0xFF00 \
     --mem D_803EE78A:1=choice:0,1,5 --mem D_80367BFF:1=choice:0,1 --mem D_803EE789:1=choice:0,1 --mem D_8035805C:1=choice:0,1 --mem D_803A7425:1=0 \
     --mem D_803A7424:1=rand --mem D_803F77D0=rand --mem D_803643E0:12=rand --mem D_8036443C:6=rand --mem D_803ED40B:1=rand \
-    --sig func_802B568C= --sig func_802B5814= --sig func_8029A914= --sig func_802A6F6C= --sig func_802BCC10= \
+    --sig func_802B568C= --sig func_802B5814= --sig func_8029A914=a0 --sig func_802A6F6C= --sig func_802BCC10= \
     --sig 'func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12'
 func_802B49AC: -n 200 --seed 2 --mem D_803EE768:24=rand --mem D_803EE6C0:0xA6=rand --mem D_803EE6C0+0x4E:2=halves:0,0x7FF,0x800,0x801,0xFFF,0x1000,0xFFFF \
     --mem D_803A7425:1=1 --mem D_803EE789:1=choice:0,1 --mem D_8035805C:1=choice:0,1 --stub-ret func_802A6F6C=choice:0,0x7FF,0x800,0xFFF,0x1000 \
-    --mem D_803EE786:2=rand --mem D_803F77D0=rand --sig func_802B568C= --sig func_802B5814= --sig func_8029A914= --sig func_802A6F6C= --sig func_802BCC10= \
+    --mem D_803EE786:2=rand --mem D_803F77D0=rand --sig func_802B568C= --sig func_802B5814= --sig func_8029A914=a0 --sig func_802A6F6C= --sig func_802BCC10= \
     --sig 'func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12'
 func_802B49AC: -n 200 --seed 3 --heap 0x400 --heap 0x800 --heap 0x800 --mem D_803EE768:12=rand --mem D_803EE6C0:0xA6=rand --mem D_803EE6C0+0x9A:1=choice:0,1 \
     --mem D_803EE774=rel:heap0 --mem D_803EE778=rel:heap1 --mem D_803EE77C=rel:heap2 --mem @heap0=0x100 --mem @heap0+4=0x140 --mem @heap0+8=0x180 \
@@ -278,7 +278,7 @@ func_802B49AC: -n 200 --seed 3 --heap 0x400 --heap 0x800 --heap 0x800 --mem D_80
     --mem D_803EE789:1=choice:0,1 --mem D_803EBBF0=rand --mem D_803ED3F6:2=rand --mem D_803EE784:2=rand --mem D_80370C23:1=choice:0,1 --mem D_803F77D0=rand \
     --mem D_803643E0:12=rand --mem D_8036443C:6=rand --mem D_803F7840:2=rand --follow func_802B568C,func_802B5814,func_802B57C4,func_802B47D4 \
     --sig 'func_8029C454=a0,a1,a2,a3,stack0,stack1,stack2' --sig 'func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12' \
-    --sig func_8029A914= --sig func_802A6F6C= --sig func_802BCC10= --sig func_802ABD54=a0,a1,a2,a3 --sig 'func_802ABBEC=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10'
+    --sig func_8029A914=a0 --sig func_802A6F6C= --sig func_802BCC10= --sig func_802ABD54=a0,a1,a2,a3 --sig 'func_802ABBEC=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10'
 # setups (the update's zone registers and func_802A992C's FP inputs are register leaks: not compared)
 func_802B29C0: -n 200 --heap 0x400 --heap 0x1000 --arg s2=rel:heap0 --mem @heap0+4=choice:0x100,0x140 --mem @heap0+8=0x180 --mem @heap0+0x18=0x200 \
     --mem @heap0+0x204=choice:0,0x40,0x7C0 --mem D_80358070=rel:heap1 --mem D_803EE2E0:0xA6=rand --mem D_803EE388:0x2C=rand --mem D_803F7840:2=rand \
@@ -289,7 +289,7 @@ func_802B29C0: -n 200 --seed 1 --heap 0x400 --heap 0x1000 --arg s2=rel:heap0 --m
     --mem D_80370C23:1=choice:0,1 --mem D_803A7425:1=choice:0,1 --mem D_803F77D0=rand --mem D_803643E0:12=rand --mem D_8036443C:6=rand \
     --follow func_802B327C,func_802B3E40,func_802B3FF0,func_802B3F78,func_802B30B0 --sig 'func_802A992C=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5' \
     --sig 'func_8029C454=a0,a1,a2,a3,stack0,stack1,stack2' --sig 'func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12' \
-    --sig func_8029A914= --sig func_802A6F6C= --sig func_802ABD54=a0,a1,a2,a3 --sig 'func_802ABBEC=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10'
+    --sig func_8029A914=a0 --sig func_802A6F6C= --sig func_802ABD54=a0,a1,a2,a3 --sig 'func_802ABBEC=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10'
 func_802B4100: -n 200 --heap 0x400 --heap 0x1000 --arg s2=rel:heap0 --mem @heap0+4=choice:0x100,0x140 --mem @heap0+8=0x180 --mem @heap0+0x18=0x200 \
     --mem @heap0+0x204=choice:0,0x40,0x7C0 --mem D_80358070=rel:heap1 --mem D_803EE6C0:0xA6=rand --mem D_803EE768:0x24=rand --mem D_803F7840:2=rand \
     --sig func_802B49AC= --sig 'func_802A992C=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5'
@@ -299,4 +299,4 @@ func_802B4100: -n 200 --seed 1 --heap 0x400 --heap 0x1000 --arg s2=rel:heap0 --m
     --mem D_803F77D0=rand --mem D_803643E0:12=rand --mem D_8036443C:6=rand --follow func_802B49AC,func_802B568C,func_802B5814,func_802B57C4,func_802B47D4 \
     --sig 'func_802A992C=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5' --sig 'func_8029C454=a0,a1,a2,a3,stack0,stack1,stack2' \
     --sig 'func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12' \
-    --sig func_8029A914= --sig func_802A6F6C= --sig func_802BCC10= --sig func_802ABD54=a0,a1,a2,a3 --sig 'func_802ABBEC=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10'
+    --sig func_8029A914=a0 --sig func_802A6F6C= --sig func_802BCC10= --sig func_802ABD54=a0,a1,a2,a3 --sig 'func_802ABBEC=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10'

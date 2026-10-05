@@ -110,9 +110,9 @@ func_802CBEF0: -n 300 --heap 0x10 --mem @heap0:1=choice:0,1 --model func_802BE77
     --mem D_803643E0:12=rand --mem D_8036443C:6=rand --mem D_803F8F40:2=rand --mem D_803F77D0=rand --mem D_803ED40B:1=rand --mem D_803A7424:1=rand \
     --stub-ret func_802CC844=int --stub-ret func_802A83B8=float --stub-ret func_802A860C=int --stub-ret func_802A6F6C=int:0:0xFFF \
     --stub-ret func_802A71DC=int:-100:100 --stub-ret func_802A71DC.a0=int:0:0xFFF \
-    --sig func_802CBD18= --sig func_802CC8B8= --sig func_802CC844= --sig func_802CC70C= --sig func_8029A914= --sig func_802A6F6C= \
+    --sig func_802CBD18= --sig func_802CC8B8= --sig func_802CC844= --sig func_802CC70C= --sig func_8029A914=a0 --sig func_802A6F6C= \
     --sig func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12 \
-    --sig func_802C4724=a0 --sig func_802A7E70=a0,a1 --sig func_8029C52C=a0 --sig func_8029AA10=a0 --sig func_8029E558=a0,a1,a2 \
+    --sig func_802C4724=a0 --sig func_802A7E70=a0,a1 --sig func_8029C52C=a0,a1 --sig func_8029AA10=a0 --sig func_8029E558=a0,a1,a2 \
     --sig func_802A746C=a0,a1,a2 --sig func_802A6FE4=a0,a1 --sig func_802A70D8=a0 --sig func_802A7070=a0,a1 --sig func_802CB690=a0
 # followed: the vehicle physics leaves, the zone scan (no zones) and the effects; record words kept in range (trapping sub)
 func_802CBEF0: -n 300 --seed 1 --heap 0x10 --mem @heap0:1=choice:0,1 --model func_802BE77C=hit_flag_803A7424.py \
@@ -124,9 +124,9 @@ func_802CBEF0: -n 300 --seed 1 --heap 0x10 --mem @heap0:1=choice:0,1 --model fun
     --mem D_80367BFF:1=choice:0,1 --mem D_803F8F44:1=choice:0,1,5 --mem D_803F8F43:1=choice:0,1,0x80 --mem D_803A7425:1=choice:0,1 \
     --mem D_803A7410:2=int:0:0xFFF --mem D_803A7412:2=int:0:0xFFF --mem D_803F8F42:4=rand \
     --mem D_803643E0:12=rand --mem D_8036443C:6=rand --mem D_803F8F40:2=int:0:0xFFF --mem D_803F77D0=rand --mem D_803ED40B:1=rand --mem D_803A7424:1=rand \
-    --sig func_802CBD18= --sig func_802CC70C= --sig func_8029A914= \
+    --sig func_802CBD18= --sig func_802CC70C= --sig func_8029A914=a0 \
     --sig func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12 \
-    --sig func_802C4724=a0 --sig func_8029C52C=a0 --sig func_8029AA10=a0 --sig func_8029E558=a0,a1,a2 --sig func_802CB690=a0 \
+    --sig func_802C4724=a0 --sig func_8029C52C=a0,a1 --sig func_8029AA10=a0 --sig func_8029E558=a0,a1,a2 --sig func_802CB690=a0 \
     --sig func_802CC56C= --sig func_802A5ED0= --sig func_802C4584=a0 --sig func_802A05A4=f12,a1,a2
 # func_802CBC08: re-seat (func_802A9A60, fp = 0: the C passes 0 for the caller's leaked fp; FP-state pointer not compared)
 func_802CBC08: -n 300 --arg fp=0 --mem D_803F8E80:0xA0=rand --mem D_803F8F28:12=rand \
@@ -174,7 +174,7 @@ func_802CB720: -n 200 --seed 1 --heap 0x100 --heap 0x200 --arg s2=rel:heap0 --me
     --stub-ret func_802CC844=int --stub-ret func_802A83B8=float --stub-ret func_802A860C=int --stub-ret func_802A6F6C=int:0:0xFFF \
     --stub-ret func_802A71DC=int:-100:100 --stub-ret func_802A71DC.a0=int:0:0xFFF \
     --sig func_8029E558=a0,a1,a2 --sig func_80258230=a0:1,a1,a2:2,a3:2 \
-    --sig func_802CBD18= --sig func_802CC8B8= --sig func_802CC844= --sig func_802CC70C= --sig func_8029A914= --sig func_802A6F6C= \
+    --sig func_802CBD18= --sig func_802CC8B8= --sig func_802CC844= --sig func_802CC70C= --sig func_8029A914=a0 --sig func_802A6F6C= \
     --sig func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12 \
-    --sig func_802C4724=a0 --sig func_802A7E70=a0,a1 --sig func_8029C52C=a0 --sig func_8029AA10=a0 \
+    --sig func_802C4724=a0 --sig func_802A7E70=a0,a1 --sig func_8029C52C=a0,a1 --sig func_8029AA10=a0 \
     --sig func_802A746C=a0,a1,a2 --sig func_802A6FE4=a0,a1 --sig func_802A70D8=a0 --sig func_802A7070=a0,a1 --sig func_802CB690=a0

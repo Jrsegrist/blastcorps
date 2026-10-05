@@ -130,7 +130,7 @@ void func_802A8768(u8 *veh, s32 id, s32 *px, s32 *py, s32 *pz, s32 x, s32 z, s32
                    u8 *flags, s16 *tbl, s32 *a, s32 *b, s32 *c, s32 *ys, Regs802A8768 *r, TriSideOut *f);
 void func_8029A800(s32 z, s32 a1, s32 b2, s32 b3, s32 x, s32 y, s32 b0, s32 h1, s32 h2, s32 b4, s32 b8,
                    u8 *veh);
-void func_8029C52C(s32 tag);
+void func_8029C52C(s32 tag, u8 *veh);
 void func_8029AA10(s32 kind);
 void func_802BE77C(s32 id, u8 *vehicle);
 u64 *func_802A768C(u8 *veh, u8 *dst, s32 *w0, s32 *w1, s32 *w2, u64 *src, u64 *dst2, s32 size,
@@ -271,7 +271,7 @@ static void veh83910_frame(const VehDesc83910 *d) {
     /* b0 / h2 are the model update's leftover t0 (x) and t2 (the type) */
     func_8029A800(pos[2], (s32) D_80306410, 0, 0, pos[0], pos[1], pos[0], VEH_S16(veh, 0x76), d->type, 0,
                   d->type, veh);
-    func_8029C52C(d->type);
+    func_8029C52C(d->type, veh);
     func_8029AA10(d->type);
     D_803F77D0 = d->chan;
     func_802BE77C(d->type, veh);

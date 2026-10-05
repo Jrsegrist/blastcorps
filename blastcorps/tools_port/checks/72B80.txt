@@ -344,7 +344,7 @@ func_802B7A88: -n 300 --seed 0 --arg t6=0 --arg t7=0 --arg s0=0 --arg s1=0 --arg
     --mem D_80367BFF:1=bytes:0,1 --mem D_803EEF34:1=bytes:0,1,5 --mem D_803EEF33:1=bytes:0,1,0x80 --mem D_803EEF30:2=rand \
     --mem D_8035805C:1=bytes:0,1 --mem D_803EEF28=int --mem D_803EEF2C=int --mem D_803A7425:1=bytes:0,1 \
     --mem D_803A7424:1=bytes:0,1 --mem D_803F77D0=int --mem D_803643E0:12=rand --mem D_8036443C:6=rand \
-    --sig func_8029A914= --sig func_802A6F6C= --sig func_802B8424= --sig func_802B8278= --sig func_802B83B0= \
+    --sig func_8029A914=a0 --sig func_802A6F6C= --sig func_802B8424= --sig func_802B8278= --sig func_802B83B0= \
     --sig func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12,*stack13+0x8,*stack13+0xC,*stack13+0x10,*stack13+0x14
 # crash branch: the object pass modelled as setting D_803A7424 from heap0 (0/1); speed bounce boundaries +-0x31..0x33
 func_802B7A88: -n 300 --seed 1 --heap 0x10=bytes:0,1 --model func_802BE77C=hit_D_803A7424.py --arg t6=0 --arg t7=0 \
@@ -353,9 +353,9 @@ func_802B7A88: -n 300 --seed 1 --heap 0x10=bytes:0,1 --model func_802BE77C=hit_D
     --mem D_803EEF18:12=rand --mem D_80367BFF:1=bytes:0 --mem D_803EEF34:1=bytes:0,1,5 --mem D_803EEF33:1=bytes:0,1 \
     --mem D_8035805C:1=bytes:0,1 --mem D_803EEF28=int --mem D_803EEF2C=int --mem D_803A7425:1=bytes:0 \
     --mem D_803A7424:1=bytes:0,1 --mem D_803F77D0=int --mem D_803643E0:12=rand --mem D_8036443C:6=rand \
-    --sig func_8029A914= --sig func_802A6F6C= --sig func_802B8424= --sig func_802B8278= --sig func_802B83B0= \
+    --sig func_8029A914=a0 --sig func_802A6F6C= --sig func_802B8424= --sig func_802B8278= --sig func_802B83B0= \
     --sig func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12,*stack13+0x8,*stack13+0xC,*stack13+0x10,*stack13+0x14
-# ring-steering branch with the steering helpers run for real (func_8029A914 stays stubbed: its C hard-codes gp)
+# ring-steering branch with the steering helpers run for real (func_8029A914 stubbed; followed in the gpfix run below)
 func_802B7A88: -n 200 --seed 2 \
     --follow func_802B8424,func_802B83B0,func_802A6F6C,func_802A70D8,func_802A71DC,func_802A746C,func_802A6FE4,func_802A7070 \
     --arg t6=0 --arg t7=0 --arg s0=0 --arg s1=0 --arg s2=0 --arg s3=0 --arg s4=0 --arg f20=0 --arg f22=0 --arg f24=0 \
@@ -364,5 +364,8 @@ func_802B7A88: -n 200 --seed 2 \
     --mem D_80367BFF:1=bytes:0 --mem D_803EEF34:1=bytes:0,1 --mem D_803EEF33:1=bytes:0,1 --mem D_803EEF30:2=int:0:0xFFF \
     --mem D_8035805C:1=bytes:0,1 --mem D_803EEF28=int --mem D_803EEF2C=int --mem D_803A7425:1=bytes:1 \
     --mem D_803A7410:2=int:0:0xFFF --mem D_803A7412:2=int:0:0xFFF --mem D_80358064=choice:0,1 --mem D_803F77D0=int \
-    --sig func_8029A914= --sig func_802B8278= \
+    --sig func_8029A914=a0 --sig func_802B8278= \
     --sig func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12,*stack13+0x8,*stack13+0xC,*stack13+0x10,*stack13+0x14
+# (gpfix) vehicle 8's block (D_803EEE70) through func_8029A914 and the whole func_8029C52C collision chain
+# (D_803EEA90+0xA0 is a decoy)
+func_802B7A88: -n 200 --seed 5 --follow func_802B8424,func_802B83B0,func_802A6F6C,func_802A70D8,func_802A71DC,func_802A746C,func_802A6FE4,func_802A7070,func_8029A914,func_8029C52C,func_8029C9D4,func_8029C828,func_8029C748,func_8029CB04,func_8029CD54,func_8029CF04,func_8029CFA4,func_802AB41C --arg t6=0 --arg t7=0 --arg s0=0 --arg s1=0 --arg s2=0 --arg s3=0 --arg s4=0 --arg f20=0 --arg f22=0 --arg f24=0 --arg f26=0 --mem D_803EEE70:0xA6=rand --mem D_803EEE70+0x96:3=bytes:0,1 --mem D_803EEE70+0x4C:2=int:0:0xFFF --mem D_803EEE70+0x4E:2=int:0:0xFFF --mem D_803EEE70+0x76:2=int:-200:200 --mem D_803EEF18:12=rand --mem D_80367BFF:1=bytes:0 --mem D_803EEF34:1=bytes:0,1 --mem D_803EEF33:1=bytes:0,1 --mem D_803EEF30:2=int:0:0xFFF --mem D_8035805C:1=bytes:0,1 --mem D_803EEF28=int --mem D_803EEF2C=int --mem D_803A7425:1=bytes:1 --mem D_803A7410:2=int:0:0xFFF --mem D_803A7412:2=int:0:0xFFF --mem D_80358064=choice:0,1 --mem D_803F77D0=int --sig func_802B8278= --sig func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12,*stack13+0x8,*stack13+0xC,*stack13+0x10,*stack13+0x14 --mem D_803A7300:0xA0=words:0,10,-10,50,100,300 --mem D_803A7300+0xC*0x14:8=choice:0,10,50,300 --mem D_803A7300+0x10*0x14:8/1=choice:0,1,2,6,7 --mem D_803A7300+0x11*0x14:8/1=choice:1,1,0 --mem D_803A7300+0x10:1=8 --mem D_803A7300+0x11:1=choice:1,1,0 --mem D_803A7300+0x9D:1=0xFF --mem D_803649E8=choice:0,1 --mem D_803A6B30:0xA0=words:0,10,-10,50,100,300 --mem D_803A6B30+0xC*0x14:8=choice:0,10,50,300 --mem D_803A6B30+0x12*0x14:8/1=choice:8,7,0,2 --mem D_803A6B30+0x13*0x14:8/1=choice:0,1 --mem D_803A6B30+0x9F:1=0xFF --mem D_803FC1F0:1=0 --mem D_803FB8B8*0x14:25=-1 --mem D_803ED3B8:0x40=words:0x000A0700,0x0A070000,0x07060000,0 --mem D_803ED3B8+0x40=0xFFFFFFFF --mem D_803EEA90+0xA0:1=choice:1,3 --mem D_803EEE70+0xA0:1=choice:1,2,4

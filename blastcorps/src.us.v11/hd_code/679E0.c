@@ -31,7 +31,35 @@
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/func_802AC3B8.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* func_802AA460's floating-point side results (62740.c's TriSideOut). */
+typedef struct {
+    f32 pz;
+    f32 cross;
+    f32 cz;
+    f32 side;
+    f32 sideZ; /* also an input (f24) */
+    f32 dz;
+} TriSideOut679E0;
+
+s32 func_802AA460(s32 x, s32 z, s32 x0, s32 z0, s32 x1, s32 z1, s32 x2, s32 z2, TriSideOut679E0 *out);
+
+/* 1 if the point (px, pz) is inside the triangle (x0, z0), (x1, z1),
+ * (x2, z2) by func_802AA460's edge-side test, else 0: the o32 entry point
+ * for C callers. The asm moves the arguments into func_802AA460's registers
+ * (t0, t1, s1, s3, s4, s6, s7, t9), saves s0-s7 and fp, and returns its v0.
+ * It doesn't save f20-f28, which func_802AA460 changes (and passes the
+ * caller's f24 through as an input that only feeds those FP results); its C
+ * callers only use v0, so the FP side results are dropped here. */
+s32 func_802AC4C4(s32 px, s32 pz, s32 x0, s32 z0, s32 x1, s32 z1, s32 x2, s32 z2) {
+    TriSideOut679E0 out;
+
+    out.sideZ = 0.0f;
+    return func_802AA460(px, pz, x0, z0, x1, z1, x2, z2, &out);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/func_802AC4C4.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/func_802AC544.s")

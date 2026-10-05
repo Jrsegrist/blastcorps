@@ -40,3 +40,46 @@ func_802B8AE4: -n 200 --seed 1 --ret void --sig func_80275390=a0,a1 \
 func_802B8AE4: -n 100 --seed 2 --ret void --sig func_80275390=a0,a1 \
     --mem D_80364A90:4=words:1,0x80000000 --mem D_80364A90+4=0x1000 --mem D_803EF32C:1=bytes:5,0 \
     --mem D_803EF314=choice:0,1 --mem D_803EF31C=choice:0,1
+
+# func_802B76AC: enter vehicle 8: D_803EEE70[0x99] = 0; D_8036444C/50 = 3000, 1000; func_802C4310(a0, 0xCE)
+# (the asm's $gp change is declared `clobbers gp` in conventions.txt)
+func_802B76AC: -n 200 --seed 0 --ret void --sig func_802C4310=a0,a1 --arg a0=int \
+    --mem D_803EEE70+0x99:1=bytes:1,0xFF --mem D_8036444C:2=rand --mem D_80364450:2=rand
+# func_802B80D8: tyre trail ($gp = D_803EEE70); func_8027BE7C's args at their declared widths
+func_802B80D8: -n 400 --seed 0 --ret void --arg gp=sym:D_803EEE70 \
+    --conv 'func_8027BE7C: in a0=a0:1,a1=a1,a2=a2:2,a3=a3:2,stack0=stack0:2,stack1=stack1:2,stack2=stack2,stack3=stack3,stack4=stack4:2,stack5=stack5:1,stack6=stack6:1,stack7=stack7:1,stack8=stack8:1' \
+    --mem D_803EEE70+0x99:1=bytes:0,1,0x80 \
+    --mem D_803EEE70+0x98:1=bytes:0*3,1,2 --mem D_803EEE70+0x50:1=bytes:0,1,2*2,3,4,0x80,0xFF --mem D_803EEE70+0x9B:1=bytes:0*4,1,0x80 \
+    --mem D_803EEE70+0x1C=int --mem D_803EEE70+0x4E:2=int:0:0xFFFF --mem D_803EEF18=int --mem D_803EEF20=int
+func_802B80D8: -n 100 --seed 1 --ret void --arg gp=sym:D_803EEE70 \
+    --conv 'func_8027BE7C: in a0=a0:1,a1=a1,a2=a2:2,a3=a3:2,stack0=stack0:2,stack1=stack1:2,stack2=stack2,stack3=stack3,stack4=stack4:2,stack5=stack5:1,stack6=stack6:1,stack7=stack7:1,stack8=stack8:1' \
+    --mem D_803EEE70+0x99:1=1 --mem D_803EEE70+0x98:1=0 --mem D_803EEE70+0x50:1=bytes:0,2 --mem D_803EEE70+0x9B:1=0 \
+    --mem D_803EEE70+0x1C=choice:0,-1,0x7FFFFFFF,0x80000000 --mem D_803EEE70+0x4E:2=halves:0,0x7FFF,0x8000,0xFFFF \
+    --mem D_803EEF18=choice:0,-1,0x80000000,0x123456 --mem D_803EEF20=choice:0,-1,0x7FFFFFFF,0x123456
+# func_802B83B0: s3 (-> v0) = round_nearest(speed(+0x76) / (bytes +0x96/7/8 any == 1 ? 11.0 : D_8030D904)); $gp = D_803EEE70
+func_802B83B0: -n 300 --seed 0 --arg gp=sym:D_803EEE70 --mem D_803EEE70+0x96:3=bytes:0,1,2,0xFF*3 \
+    --mem D_803EEE70+0x76:2=int:0:0xFFFF
+func_802B83B0: -n 300 --seed 1 --arg gp=sym:D_803EEE70 --mem D_803EEE70+0x96:3=bytes:0*3,1,2*3 \
+    --mem D_8030D904=words:0x40000000,0x40800000,0x3F000000,0x40C00000 \
+    --mem D_803EEE70+0x76:2=halves:0,1,2,3,5,6,9,15,0x7FFF,0x8000,0xFFFD,0xFFF7,0xFFFF,0xFFFE
+func_802B83B0: -n 300 --seed 2 --arg gp=sym:D_803EEE70 --mem D_803EEE70+0x96:3=bytes:0,1,2 \
+    --mem D_8030D904:4=floats:0.25:40 --mem D_803EEE70+0x76:2=int:0:0xFFFF
+# func_802B8794 (phase B): positional sound 0x13 at D_803EF2EC/F0/F4; func_802ABCDC (asm) followed in the ref, inlined in C.
+# random positions (|coord| < 2^20: some within 16000, some beyond), handle NULL or not
+func_802B8794: -n 300 --seed 0 --ret void --follow func_802ABCDC \
+    --sig func_80260650=a0,a1,a2 --sig func_802608C8=a0 --sig func_80260AB8=a0,a1,a2 \
+    --mem D_803EF2E8=choice:0,0x80123450 --mem D_80367738=int \
+    --mem D_803643E0=int:-20000:20000 --mem D_803643E4=int:-20000:20000 --mem D_803643E8=int:-20000:20000 \
+    --mem D_803EF2EC=int:-20000:20000 --mem D_803EF2F0=int:-20000:20000 --mem D_803EF2F4=int:-20000:20000
+# distance on one axis: the 16000 cut (+-1), the 500 knee, pan clamps at dx = -2048/-2049 and 2047/2048
+func_802B8794: -n 300 --seed 1 --ret void --follow func_802ABCDC \
+    --sig func_80260650=a0,a1,a2 --sig func_802608C8=a0 --sig func_80260AB8=a0,a1,a2 \
+    --mem D_803EF2E8=choice:0,0x80123450 --mem D_80367738=int \
+    --mem D_803643E0=choice:0,1,499,500,501,15999,16000,16001,-16000,-16001,-2048,-2049,-2017,2015,2016,2047,2048,-1,31,32,-32,-33 \
+    --mem D_803643E4=0 --mem D_803643E8=0 --mem D_803EF2EC=0 --mem D_803EF2F0=0 --mem D_803EF2F4=0
+# large coordinates (squares past 2^32), distance computed on all three axes
+func_802B8794: -n 200 --seed 2 --ret void --follow func_802ABCDC \
+    --sig func_80260650=a0,a1,a2 --sig func_802608C8=a0 --sig func_80260AB8=a0,a1,a2 \
+    --mem D_803EF2E8=choice:0,0x80123450 --mem D_80367738=int \
+    --mem D_803643E0=int:-0x10000000:0x10000000 --mem D_803643E4=int:-0x10000000:0x10000000 --mem D_803643E8=int:-0x10000000:0x10000000 \
+    --mem D_803EF2EC=choice:0,0x123456 --mem D_803EF2F0=choice:0,-0x123456 --mem D_803EF2F4=choice:0,7

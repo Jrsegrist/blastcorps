@@ -12,7 +12,24 @@
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/772A0/func_802BBA60.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern s16 D_8036444C;
+extern s16 D_80364450;
+void func_802C4310(s32 arg0, s32 arg1);
+
+/* Enter vehicle type 7: D_8036444C/50 = 3000, 0, then func_802C4310(arg0,
+ * 0x20) (arg0 passes straight through; hd.c calls this with no arguments
+ * and func_802C4310 ignores it). The asm also points $gp at D_803EFDF0 and
+ * leaves it there (conventions.txt: clobbers gp); C code doesn't use $gp.
+ * Same shape as func_802C8AB0 (83910) and func_802B76AC (72B80). */
+void func_802BBDC8(s32 arg0) {
+    D_8036444C = 3000;
+    D_80364450 = 0;
+    func_802C4310(arg0, 0x20);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/772A0/func_802BBDC8.s")
+#endif
 
 /* func_802BBE10: `return 1;` wrapped in a dead `addiu sp,sp,-8`/`sd
  * $ra,($sp)`/`ld $ra,($sp)`/`addiu sp,sp,8` frame that saves/restores

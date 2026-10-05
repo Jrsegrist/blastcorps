@@ -5,3 +5,8 @@ func_802BBE10: -n 50
 func_802BC578: -n 200 --ret void --mem D_803EBBF0:4=floats --mem D_803EBBF4=int --mem D_803ED3F6:2=rand
 func_802BC578: -n 60 --seed 1 --ret void --mem D_803EBBF0=choice:0,0x80000000,0x3F800000,0xBF800000,0x7F7FFFFF,0xFF7FFFFF,0x7F800000,0xFF800000,0x7FC00000,0x00000001 \
     --mem D_803EBBF4=choice:0,-1 --mem D_803ED3F6:2=bytes:0,0xFF
+
+# func_802BBDC8: enter vehicle 7: D_8036444C/50 = 3000, 0; func_802C4310(a0, 0x20)
+# (the asm's $gp change is declared `clobbers gp` in conventions.txt)
+func_802BBDC8: -n 200 --seed 0 --ret void --sig func_802C4310=a0,a1 --arg a0=int \
+    --mem D_8036444C:2=rand --mem D_80364450:2=halves:1,0xFFFF

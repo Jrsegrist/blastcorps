@@ -50,7 +50,63 @@ s32 func_802B5F04(void) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/71140/func_802B6294.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* cvt.w.s under the FCSR's default rounding (nearest, ties to even); a C cast
+ * truncates instead. */
+#define CVT_W_S(out, x)                                                 \
+    do {                                                                \
+        f32 _x = (x);                                                   \
+        s32 _r = (s32) _x;                                              \
+        f32 _f = _x - (f32) _r;                                         \
+                                                                        \
+        if (_f > 0.5f || (_f == 0.5f && (_r & 1))) {                    \
+            _r++;                                                       \
+        } else if (_f < -0.5f || (_f == -0.5f && (_r & 1))) {           \
+            _r--;                                                       \
+        }                                                               \
+        (out) = _r;                                                     \
+    } while (0)
+
+extern u32 D_803EEB38[]; /* [0], [2]: trail x, z */
+extern f32 D_803EEB54;   /* left/right balance, 0.5 = centred */
+void func_8027BE7C(u8 period, s32 y, s16 x1, s16 z1, s16 x2, s16 z2, s32 x, s32 z, s16 yaw, u8 halfw, u8 a,
+                   u8 b, u8 d);
+
+/* Tyre trail (shape of func_802B3C68 in 6E200; $gp = D_803EEA90). The two
+ * sides' a/b values are 40 -+ d, where d = round(|D_803EEB54 - 0.5| * 2 *
+ * 20): a = 40 - d, b = 40 + d when D_803EEB54 <= 0.5, else (NaN included)
+ * a = 40 + d, b = 40 - d. Then func_8027BE7C(3, y, 400, -400, -400,
+ * -400, D_803EEB38[0], D_803EEB38[2], yaw, 5, a, b, 0). The value is only
+ * computed when the trail is drawn.
+ * Register note: the asm saves and restores every integer register; asm
+ * caller func_802B6294 keeps a0-a3, t6, t7 live (and reads f12/f14 after
+ * the call, which the asm doesn't touch but func_8027BE7C may); a mixed N64
+ * build would need a thunk. */
+void func_802B69F8(void) {
+    f32 bal;
+    s32 d;
+    s32 a;
+    s32 b;
+
+    if (D_803EEA90[0x99] == 0 || D_803EEA90[0x98] == 1 || D_803EEA90[0x50] >= 3 || D_803EEA90[0x9B] != 0) {
+        return;
+    }
+    bal = D_803EEB54;
+    if (bal <= 0.5f) {
+        CVT_W_S(d, (0.5f - bal) * 2.0f * 20.0f);
+        b = d + 40;
+        a = 40 - d;
+    } else {
+        CVT_W_S(d, (bal - 0.5f) * 2.0f * 20.0f);
+        b = 40 - d;
+        a = d + 40;
+    }
+    func_8027BE7C(3, *(s32 *) (D_803EEA90 + 0x1C), 400, -400, -400, -400, D_803EEB38[0], D_803EEB38[2],
+                  *(u16 *) (D_803EEA90 + 0x4E), 5, a, b, 0);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/71140/func_802B69F8.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/71140/func_802B6C28.s")
@@ -59,10 +115,54 @@ s32 func_802B5F04(void) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/71140/func_802B7030.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern f32 D_8030D8FC;
+
+/* Speed (s16 at +0x76 of D_803EEA90, the asm's $gp) / 6.0 when any of the
+ * bytes at +0x96/+0x97/+0x98 is 1, else / D_8030D8FC, rounded to nearest.
+ * The asm returns it in s3 (see tools_port/conventions.txt). Its asm caller
+ * func_802B6294 keeps a0-a3 live (a mixed N64 build would need a thunk).
+ * Same shape as func_802B0C74 (6B4A0). */
+s32 func_802B7168(void) {
+    f32 div;
+    s32 r;
+
+    if (D_803EEA90[0x96] == 1 || D_803EEA90[0x97] == 1 || D_803EEA90[0x98] == 1) {
+        div = 6.0f;
+    } else {
+        div = D_8030D8FC;
+    }
+    CVT_W_S(r, *(s16 *) (D_803EEA90 + 0x76) / div);
+    return r;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/71140/func_802B7168.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* 0.5 +- |speed| / 240 * 0.5 (plus when side != 0, minus otherwise), speed
+ * being the s16 at +0x76 of D_803EEA90 (the asm's $gp). The asm takes side
+ * in s2, returns the value in f2 and leaves s3 = 240 (see
+ * tools_port/conventions.txt). Its asm caller func_802B6C28 keeps a1-a3, f12
+ * and f14 live (a mixed N64 build would need a thunk). Same shape as
+ * func_802CB3C8 (853D0, divisor 280). */
+f32 func_802B71DC(s32 side) {
+    s32 speed = *(s16 *) (D_803EEA90 + 0x76);
+    f32 v;
+
+    if (speed < 0) {
+        speed = -speed;
+    }
+    v = (f32) speed / 240.0f * 0.5f;
+    if (side != 0) {
+        return v + 0.5f;
+    }
+    return 0.5f - v;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/71140/func_802B71DC.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

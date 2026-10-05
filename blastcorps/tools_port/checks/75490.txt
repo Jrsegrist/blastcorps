@@ -25,3 +25,36 @@ func_802BA074: -n 40 --seed 4 --ret void --mem D_802E8BDC=choice:-1,0,0xFFFF,0x8
 func_802BAD24: -n 200 --ret void --mem D_803EBBF0:4=floats --mem D_803EBBF4=int --mem D_803ED3F6:2=rand
 func_802BAD24: -n 60 --seed 1 --ret void --mem D_803EBBF0=choice:0,0x80000000,0x3F800000,0xBF800000,0x7F7FFFFF,0xFF7FFFFF,0x7F800000,0xFF800000,0x7FC00000,0x00000001 \
     --mem D_803EBBF4=choice:0,-1 --mem D_803ED3F6:2=bytes:0,0xFF
+
+# func_802BA148 (phase B): positional sound 0x75 at D_803EF6DC/E0/E4 (volume knee 4000, x2);
+# func_802ABCDC (asm) followed in the ref, inlined in C
+func_802BA148: -n 300 --seed 0 --ret void --follow func_802ABCDC \
+    --sig func_80260650=a0,a1,a2 --sig func_802608C8=a0 --sig func_80260AB8=a0,a1,a2 \
+    --mem D_803EF6D8=choice:0,0x80123450 --mem D_80367738=int \
+    --mem D_803643E0=int:-20000:20000 --mem D_803643E4=int:-20000:20000 --mem D_803643E8=int:-20000:20000 \
+    --mem D_803EF6DC=int:-20000:20000 --mem D_803EF6E0=int:-20000:20000 --mem D_803EF6E4=int:-20000:20000
+func_802BA148: -n 300 --seed 1 --ret void --follow func_802ABCDC \
+    --sig func_80260650=a0,a1,a2 --sig func_802608C8=a0 --sig func_80260AB8=a0,a1,a2 \
+    --mem D_803EF6D8=choice:0,0x80123450 --mem D_80367738=int \
+    --mem D_803643E0=choice:0,1,3999,4000,4001,15999,16000,16001,-16000,-16001,-2048,-2049,-2017,2015,2016,2047,2048,-1,31,32,-32,-33 \
+    --mem D_803643E4=0 --mem D_803643E8=0 --mem D_803EF6DC=0 --mem D_803EF6E0=0 --mem D_803EF6E4=0
+func_802BA148: -n 200 --seed 2 --ret void --follow func_802ABCDC \
+    --sig func_80260650=a0,a1,a2 --sig func_802608C8=a0 --sig func_80260AB8=a0,a1,a2 \
+    --mem D_803EF6D8=choice:0,0x80123450 --mem D_80367738=int \
+    --mem D_803643E0=int:-0x10000000:0x10000000 --mem D_803643E4=int:-0x10000000:0x10000000 --mem D_803643E8=int:-0x10000000:0x10000000 \
+    --mem D_803EF6DC=choice:0,0x123456 --mem D_803EF6E0=choice:0,-0x123456 --mem D_803EF6E4=choice:0,7
+# func_802BA638: scan the 4-byte {s16 z, u8 level, u8 value} table D_80305D62 (negative z ends it) for the current
+# level with z <= D_803EF6E4 >> 5; last match's value -> a0 (ret) and, if nonzero, D_803EF6FC. Also outputs the
+# terminator z (a1), last level byte read (a2, passed in/out) and the level (a3). Table: 4 random records + terminator.
+func_802BA638: -n 400 --seed 0 --arg a2=int --mem D_802E8BDC=choice:0,1,2 --mem D_803EF6E4=int:-0x1000:0x200000 \
+    --mem D_80305D62*4:4/2=halves:0,1,0x100,0x1000,0x7FFF,0x4000,0xFFFF --mem D_80305D62+2*4:4/1=bytes:0,1,2 \
+    --mem D_80305D62+3*4:4/1=bytes:0,1,5,0xFF --mem D_80305D62+0x10:2=halves:0x8000,0xFFFF --mem D_803EF6FC:2=rand
+# z == player z / 32 exactly (and +-1), level always current, values nonzero
+func_802BA638: -n 200 --seed 1 --arg a2=int --mem D_802E8BDC=1 --mem D_803EF6E4=choice:0x1FFF,0x2000,0x201F,0x2020,0,-1 \
+    --mem D_80305D62*4:4/2=halves:0xFF,0x100,0x101,0 --mem D_80305D62+2*4:4/1=bytes:1 \
+    --mem D_80305D62+3*4:4/1=bytes:1,7,0x80 --mem D_80305D62+0x10:2=halves:0xFFFF --mem D_803EF6FC:2=rand
+# empty table (a2 passes through), level from the full word
+func_802BA638: -n 50 --seed 2 --arg a2=int --mem D_802E8BDC=choice:0,1,0x101,-1 --mem D_803EF6E4=int \
+    --mem D_80305D62:2=halves:0x8000,0xFFFF --mem D_803EF6FC:2=rand
+# func_802BB170: v0 = D_803EFA20[0xA1] == 0 (the asm's $gp change is declared `clobbers gp`)
+func_802BB170: -n 100 --seed 0 --mem D_803EFA20+0xA1:1=bytes:0,1,2,0x80,0xFF

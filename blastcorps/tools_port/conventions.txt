@@ -71,3 +71,29 @@ func_802B3FF0: preserve a0,a1,a2,a3,t3,t4,f12,f14
 func_802B54EC: preserve a0,a1,a2,a3,t6,t7
 # 22 / 75 from this vehicle's flags ($gp = D_803EE6C0) in s3
 func_802B57C4: out s3=ret ; preserve a0,a1,a2,a3
+
+# --- 71140 ---
+# tyre trail ($gp = D_803EEA90); saves every integer register
+func_802B69F8: preserve a0,a1,a2,a3,t6,t7
+# rounded speed/divisor ($gp = D_803EEA90) in s3
+func_802B7168: out s3=ret ; preserve a0,a1,a2,a3
+# 0.5 +- |speed|/480 (side flag in s2) in f2; s3 left = 240
+func_802B71DC: in s2=a0 ; out f2=fret ; preserve a1,a2,a3,f12,f14 ; clobbers s3
+
+# --- 72B80 ---
+# enter vehicle: points $gp at D_803EEE70 and leaves it
+func_802B76AC: clobbers gp
+# tyre trail ($gp = D_803EEE70); saves every integer register
+func_802B80D8: preserve a0,a1,a2,a3,t6,t7
+# rounded speed/divisor ($gp = D_803EEE70) in s3
+func_802B83B0: out s3=ret ; preserve a0,a1,a2,a3
+
+# --- 75490 ---
+# zone value scan of D_80305D62; its scan registers a0-a3 reach func_802A860C via func_802BA354
+func_802BA638: in a2=*a1 ; out a0=ret,a1=*a0,a2=*a1,a3=*a2
+# exit check: points $gp at D_803EFA20 and leaves it
+func_802BB170: clobbers gp
+
+# --- 772A0 ---
+# enter vehicle: points $gp at D_803EFDF0 and leaves it
+func_802BBDC8: clobbers gp

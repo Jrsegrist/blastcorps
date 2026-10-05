@@ -955,3 +955,79 @@ func_802AB670: -n 200 --seed 1 --follow func_802AB714 --sig func_802B3180=a0 --s
     --mem D_803ED3B8:48=rand --mem D_803ED3B8*4:6/1=choice:0,3,4,5,8,9,0xD,0xE,0xF,0xA,0x20 \
     --mem D_803ED3B8+1*4:6/1=choice:1,2,7 --mem D_803ED3B8+24*4:4/1=choice:0x10,0x20,0,0xA \
     --mem D_803ED3B8+25*4:4/1=choice:3,4,5,8,9,0xD,0xE,0xF --mem D_803ED3B8+40=-1
+# (disp) whole-chain: every hook type once under id 1 on two big triangles
+# (both coordinate sets), each vehicle at a random spot with a 12-bit heading;
+# func_802AB478 with everything followed; func_802AB670 with the walk, the hooks,
+# the steering/interpolation and ground-contact code followed (empty ground
+# lists, an in-bounds box); model placement, sound/effects and the record
+# store stubbed (func_802B7030/func_802B8278/func_802CC70C/func_802CD800/
+# func_802D05D8 args not compared: no or partial conventions).
+func_802AB478: -n 200 --seed 5 --follow-all --arg a0=1 --mem \
+    D_803ED3B8:40=hex:03010000_04010000_05010000_08010000_09010000_0A010000_0D010000_0E010000_0F010000_FFFFFFFF \
+    --mem \
+    D_803EBDB0:0x70=hex:FFFC0000_00000000_FFFC0000_00080000_00000000_FFFC0000_FFFC0000_00000000_00080000_9000_0000_9000_7000_0000_9000_9000_0000_7000_0001_FFFC0000_00000000_FFFC0000_00080000_00000000_FFFC0000_FFFC0000_00000000_00080000_7000_0000_9000_7000_0000_7000_9000_0000_7000_0001 \
+    --mem D_803EBBEC=rel:D_803EBDB0+0x70 --heap 0x100 --mem D_803F7828=rel:heap0 --mem D_803F782C=rel:heap0 \
+    --mem D_803BE718=0x1000000 --mem D_803BE71C=0x1000000 --mem D_803BE720:2=1 --mem D_803BDB10=rel:heap0+0x10 \
+    --mem D_803BDB10+4=rel:heap0+0x14 --mem D_803EE38C=int:0:0x4000 --mem D_803EE38C+8=int:0:0x4000 --mem \
+    D_803EE768=int:0:0x4000 --mem D_803EE768+8=int:0:0x4000 --mem D_803EEB38=int:0:0x4000 --mem \
+    D_803EEB38+8=int:0:0x4000 --mem D_803EEF18=int:0:0x4000 --mem D_803EEF18+8=int:0:0x4000 --mem \
+    D_803F7BF8=int:0:0x4000 --mem D_803F7BF8+8=int:0:0x4000 --mem D_803F8B48=int:0:0x4000 --mem \
+    D_803F8B48+8=int:0:0x4000 --mem D_803F8F28=int:0:0x4000 --mem D_803F8F28+8=int:0:0x4000 --mem \
+    D_803F92F8=int:0:0x4000 --mem D_803F92F8+8=int:0:0x4000 --mem D_803FC5A8=int:0:0x4000 --mem \
+    D_803FC5A8+8=int:0:0x4000 --mem D_803EE2E0+0x4C:2=int:0:0xFFF --mem \
+    D_803EE2E0+0x6A:4=halves:0x10,0x200,0x1000,0x123 --mem D_803EE2E0+0x6E:2=int:0:0xFFF --mem \
+    D_803EE2E0+0x70:4=halves:0x10,0x200,0x1000,0x123 --mem D_803EE6C0+0x4C:2=int:0:0xFFF --mem \
+    D_803EE6C0+0x6A:4=halves:0x10,0x200,0x1000,0x123 --mem D_803EE6C0+0x6E:2=int:0:0xFFF --mem \
+    D_803EE6C0+0x70:4=halves:0x10,0x200,0x1000,0x123 --mem D_803EEA90+0x4C:2=int:0:0xFFF --mem \
+    D_803EEA90+0x6A:4=halves:0x10,0x200,0x1000,0x123 --mem D_803EEA90+0x6E:2=int:0:0xFFF --mem \
+    D_803EEA90+0x70:4=halves:0x10,0x200,0x1000,0x123 --mem D_803EEE70+0x4C:2=int:0:0xFFF --mem \
+    D_803EEE70+0x6A:4=halves:0x10,0x200,0x1000,0x123 --mem D_803EEE70+0x6E:2=int:0:0xFFF --mem \
+    D_803EEE70+0x70:4=halves:0x10,0x200,0x1000,0x123 --mem D_803F7B50+0x4C:2=int:0:0xFFF --mem \
+    D_803F7B50+0x6A:4=halves:0x10,0x200,0x1000,0x123 --mem D_803F7B50+0x6E:2=int:0:0xFFF --mem \
+    D_803F7B50+0x70:4=halves:0x10,0x200,0x1000,0x123 --mem D_803F8AA0+0x4C:2=int:0:0xFFF --mem \
+    D_803F8AA0+0x6A:4=halves:0x10,0x200,0x1000,0x123 --mem D_803F8AA0+0x6E:2=int:0:0xFFF --mem \
+    D_803F8AA0+0x70:4=halves:0x10,0x200,0x1000,0x123 --mem D_803F8E80+0x4C:2=int:0:0xFFF --mem \
+    D_803F8E80+0x6A:4=halves:0x10,0x200,0x1000,0x123 --mem D_803F8E80+0x6E:2=int:0:0xFFF --mem \
+    D_803F8E80+0x70:4=halves:0x10,0x200,0x1000,0x123 --mem D_803F9250+0x4C:2=int:0:0xFFF --mem \
+    D_803F9250+0x6A:4=halves:0x10,0x200,0x1000,0x123 --mem D_803F9250+0x6E:2=int:0:0xFFF --mem \
+    D_803F9250+0x70:4=halves:0x10,0x200,0x1000,0x123 --mem D_803FC500+0x4C:2=int:0:0xFFF --mem \
+    D_803FC500+0x6A:4=halves:0x10,0x200,0x1000,0x123 --mem D_803FC500+0x6E:2=int:0:0xFFF --mem \
+    D_803FC500+0x70:4=halves:0x10,0x200,0x1000,0x123 --mem D_803BE730:2=0x8000 --mem D_803BE732:2=0x7FFF --mem \
+    D_803BE734:2=0x8000 --mem D_803BE736:2=0x7FFF --mem D_802E8BDC=1
+func_802AB670: -n 200 --seed 5 --follow \
+    func_802AB714,func_802B3180,func_802B48A4,func_802B618C,func_802B7980,func_802C5A14,func_802CA3D8,func_802CBDE8,func_802CCF60,func_802CFCE0,func_802AB9A4,func_802AAE54,func_802AAD0C,func_802AAF64,func_802AB1B0,func_802AB234,func_802AB2B8,func_802AB33C,func_802ABB1C,func_802A94A4,func_802AD7FC,func_802AA5E0,func_802AA460,func_802A8768,func_802ACE38,func_802A90E4,func_802A8FF4,func_802A8FB4,func_802A93B0,func_802A95A4,func_802ACF64,func_802A8B10,func_802A9164,func_802A9F24,func_802AA094,func_802A9DC0,func_802A92C8,func_802A9710,func_802A9540,func_802A9514,func_802AA2E4,func_802A9038,func_802AE104,func_802AE160,func_802A8CCC,func_802AE1BC,func_802AE290,func_802A9B1C,func_802A9CAC \
+    --sig func_802B3FF0= --sig func_802B5814= --sig func_802B7240= --sig func_802B8424= --sig func_802C7ECC= \
+    --sig func_802C7F28= --sig func_802CB5D8= --sig func_802CC8B8= --sig func_802CD9AC= --sig func_802D0784= \
+    --sig func_802B7030= --sig func_802B8278= --sig func_802CC70C= --sig func_802CD800= --sig func_802D05D8= \
+    --arg a0=1 --mem \
+    D_803ED3B8:40=hex:03010000_04010000_05010000_08010000_09010000_0A010000_0D010000_0E010000_0F010000_FFFFFFFF \
+    --mem \
+    D_803EBDB0:0x70=hex:FFFC0000_00000000_FFFC0000_00080000_00000000_FFFC0000_FFFC0000_00000000_00080000_9000_0000_9000_7000_0000_9000_9000_0000_7000_0001_FFFC0000_00000000_FFFC0000_00080000_00000000_FFFC0000_FFFC0000_00000000_00080000_7000_0000_9000_7000_0000_7000_9000_0000_7000_0001 \
+    --mem D_803EBBEC=rel:D_803EBDB0+0x70 --heap 0x100 --mem D_803F7828=rel:heap0 --mem D_803F782C=rel:heap0 \
+    --mem D_803BE718=0x1000000 --mem D_803BE71C=0x1000000 --mem D_803BE720:2=1 --mem D_803BDB10=rel:heap0+0x10 \
+    --mem D_803BDB10+4=rel:heap0+0x14 --mem D_803EE38C=int:0:0x4000 --mem D_803EE38C+8=int:0:0x4000 --mem \
+    D_803EE768=int:0:0x4000 --mem D_803EE768+8=int:0:0x4000 --mem D_803EEB38=int:0:0x4000 --mem \
+    D_803EEB38+8=int:0:0x4000 --mem D_803EEF18=int:0:0x4000 --mem D_803EEF18+8=int:0:0x4000 --mem \
+    D_803F7BF8=int:0:0x4000 --mem D_803F7BF8+8=int:0:0x4000 --mem D_803F8B48=int:0:0x4000 --mem \
+    D_803F8B48+8=int:0:0x4000 --mem D_803F8F28=int:0:0x4000 --mem D_803F8F28+8=int:0:0x4000 --mem \
+    D_803F92F8=int:0:0x4000 --mem D_803F92F8+8=int:0:0x4000 --mem D_803FC5A8=int:0:0x4000 --mem \
+    D_803FC5A8+8=int:0:0x4000 --mem D_803EE2E0+0x4C:2=int:0:0xFFF --mem \
+    D_803EE2E0+0x6A:4=halves:0x10,0x200,0x1000,0x123 --mem D_803EE2E0+0x6E:2=int:0:0xFFF --mem \
+    D_803EE2E0+0x70:4=halves:0x10,0x200,0x1000,0x123 --mem D_803EE6C0+0x4C:2=int:0:0xFFF --mem \
+    D_803EE6C0+0x6A:4=halves:0x10,0x200,0x1000,0x123 --mem D_803EE6C0+0x6E:2=int:0:0xFFF --mem \
+    D_803EE6C0+0x70:4=halves:0x10,0x200,0x1000,0x123 --mem D_803EEA90+0x4C:2=int:0:0xFFF --mem \
+    D_803EEA90+0x6A:4=halves:0x10,0x200,0x1000,0x123 --mem D_803EEA90+0x6E:2=int:0:0xFFF --mem \
+    D_803EEA90+0x70:4=halves:0x10,0x200,0x1000,0x123 --mem D_803EEE70+0x4C:2=int:0:0xFFF --mem \
+    D_803EEE70+0x6A:4=halves:0x10,0x200,0x1000,0x123 --mem D_803EEE70+0x6E:2=int:0:0xFFF --mem \
+    D_803EEE70+0x70:4=halves:0x10,0x200,0x1000,0x123 --mem D_803F7B50+0x4C:2=int:0:0xFFF --mem \
+    D_803F7B50+0x6A:4=halves:0x10,0x200,0x1000,0x123 --mem D_803F7B50+0x6E:2=int:0:0xFFF --mem \
+    D_803F7B50+0x70:4=halves:0x10,0x200,0x1000,0x123 --mem D_803F8AA0+0x4C:2=int:0:0xFFF --mem \
+    D_803F8AA0+0x6A:4=halves:0x10,0x200,0x1000,0x123 --mem D_803F8AA0+0x6E:2=int:0:0xFFF --mem \
+    D_803F8AA0+0x70:4=halves:0x10,0x200,0x1000,0x123 --mem D_803F8E80+0x4C:2=int:0:0xFFF --mem \
+    D_803F8E80+0x6A:4=halves:0x10,0x200,0x1000,0x123 --mem D_803F8E80+0x6E:2=int:0:0xFFF --mem \
+    D_803F8E80+0x70:4=halves:0x10,0x200,0x1000,0x123 --mem D_803F9250+0x4C:2=int:0:0xFFF --mem \
+    D_803F9250+0x6A:4=halves:0x10,0x200,0x1000,0x123 --mem D_803F9250+0x6E:2=int:0:0xFFF --mem \
+    D_803F9250+0x70:4=halves:0x10,0x200,0x1000,0x123 --mem D_803FC500+0x4C:2=int:0:0xFFF --mem \
+    D_803FC500+0x6A:4=halves:0x10,0x200,0x1000,0x123 --mem D_803FC500+0x6E:2=int:0:0xFFF --mem \
+    D_803FC500+0x70:4=halves:0x10,0x200,0x1000,0x123 --mem D_803BE730:2=0x8000 --mem D_803BE732:2=0x7FFF --mem \
+    D_803BE734:2=0x8000 --mem D_803BE736:2=0x7FFF --mem D_802E8BDC=1

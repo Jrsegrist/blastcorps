@@ -155,8 +155,8 @@ HD_FRONT_END_LDFLAGS = -T $(HD_FRONT_END_BSS_LD_SCRIPT) -T $(HD_FRONT_END_LD_SCR
 
 # hd_code files that own a .rodata subsegment (see tools/late_rodata.py)
 LATE_RODATA_HD_CODE := 00000 1A630 1D990 26570 2C560 2D810 30C70 32E00 34430 37530 39050 405F0 409D0 41930
-# front-end files that own a .rodata subsegment (jtbls only; no typed constants)
-LATE_RODATA_HD_FRONT_END := 0E7B0 196F0
+# front-end files that own a .rodata subsegment (see tools/late_rodata.py)
+LATE_RODATA_HD_FRONT_END := 0E7B0 196F0 11530
 
 ### Optimisation Overrides
 

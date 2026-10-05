@@ -47,3 +47,5 @@ D_8021591C = 0x8021591C; /* 01C40: perspNorm (splat left the lui/addiu raw) */
 D_8020BC88 = 0x8020BC88; /* 09570: display list referenced only by a raw lui/addiu pair */
 D_80217288 = 0x80217288; /* 09570: perspNorm, raw lui/addiu pair */
 D_02000000 = 0x02000000; /* segment 2 base (as in undefined_syms.hd_code) */
+/* 11530: segment-1 display lists (as in hd_code) and hd_code globals splat left unpaired */
+D_8021A8EC = 0x8021A8EC;

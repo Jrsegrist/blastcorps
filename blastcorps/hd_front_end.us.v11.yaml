@@ -59,4 +59,6 @@ segments:
     - [0x20090, bin, hd_front_end/20090] # RSP microcode (IMEM text; hd_code func_80284DB0 DMAs D_80207090)
     - [0x21040, linker, data]
     - [0x21040, bin, hd_front_end/hd_front_end_data] # .data/.rodata (vram 0x80208040)
+    - [0x27FC0, .rodata, hd_front_end/09570] # constants and a jump table only
+    - [0x280B0, bin, hd_front_end/hd_front_end_data_280B0]
   - [0x29E90]

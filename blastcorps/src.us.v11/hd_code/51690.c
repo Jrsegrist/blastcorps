@@ -52,7 +52,7 @@ extern s8 D_80370C33;  /* controller 1 stick y */
 Gfx *func_8029700C(Gfx *gfx, s16 x, s16 y);
 
 /*
- * Draws the on-screen controller at (x, y) with translucency lpha: the
+ * Draws the on-screen controller at (x, y) with translucency alpha: the
  * pad image (with a drop shadow), Z and L/R trigger highlights, coloured
  * A/B/Start and D-pad left/right button highlights, and the stick position.
  */

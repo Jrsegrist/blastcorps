@@ -117,8 +117,12 @@ func_8029F760: in a0=a0,a1=a1,a2=a2,a3=a3,t0=stack0,t1=stack1,f30=stack2 ; out a
 func_8029F85C: in a0=a0,v1=a1,t0=a2,t1=a3 ; out t7=ret ; preserve a1,a2,a3,f12,f14 ; clobbers s0,s1
 # gp (= D_803EEA90) byte/timer update; ABI-clean apart from gp, which the C reads as the global
 func_8029A914: preserve a1,a3,t0,t1,t3,t6,f12,f14
-# t1 / gp[0xA0] (divu) unless s1 == 0xFF or the byte is 1 (saves v0); still asm (func_8029CB04 jumps into its epilogue)
+# t1 / gp[0xA0] (divu) unless s1 == 0xFF or the byte is 1 (saves v0); gp = D_803EEA90, read directly
 func_8029CF04: in t1=a0,s1=a1 ; out t1=ret ; preserve v0,a0,a1,a2,a3,t0,t3,t4,t5,t6,t7,t8,f12,f14
+# same with the key in t4 (its 0xFF branch jumps into func_8029CF04's epilogue)
+func_8029CB04: in t1=a0,t4=a1 ; out t1=ret ; preserve v0,a0,a1,a2,a3,t0,t3,t4,t5,t6,t7,t8,f12,f14
+# heading (x1,z1) -> (x2,z2) via the arcsine, func_8029B7CC(angle +- 0x400); n -> func_802BCCD4 (saves v0-a2, t0, t7, s0, fp; a3 changed)
+func_8029CB54: in fp=a0,t8=a1,s0=a2,v0=a3,a0=stack0,a2=stack1,t0=stack2 ; preserve v0,v1,a0,a1,a2,t0,t1,t2,t3,t4,t5,t6,t7,t8,t9,f12,f14
 # grid cell of (t3, t5) -> D_803A7418[0], D_803A7418[1] = -1; s0/s1 scratch
 func_8029C284: in t3=a0,t5=a1 ; preserve a0,a1,a2,a3,t3,t4,t5,t6,t8,f12,f14 ; clobbers s0,s1
 # register parts (tag t0, record walk t1..t2, scale t3) in D_803A7300 / D_803A6B30
@@ -137,6 +141,13 @@ func_8029DB7C: in t5=a0,s4=a1,a2=a2 ; out t4=ret ; preserve v0,v1,a1,a2,a3,t0,t1
 func_8029DF78: in s0=a0,s1=a1,s2=a2 ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,f12,f14
 # find the D_803A7440 block with (word 0, u16 4) == (t3, t6) and byte 6 set; clear byte 7; phys addr of data -> s1
 func_8029E4E4: in t3=a0,t6=a1 ; out s1=ret ; preserve t0,t3,t6,f12,f14
+# take the first free D_803A7440 block for (t3, t6), load entry t6 into it (param fp) -> phys data address in s1
+func_8029E47C: in t3=a0,t6=a1,fp=a2 ; out s1=ret ; preserve v0,v1,a3,t0,t1,t2,t3,t4,t5,t6,t7,t8,t9
+# two-pose animation tracks from channels v0, v1 of table a0 (poses via func_8029FFA0 / func_802A0118 [/ func_8029FF2C])
+func_8029F9D4: in v0=a0,v1=a1,a0=a2 ; preserve a0,a2,a3,t0,t1,t2,t3,t4,t7,t8 ; clobbers f20,f30
+func_8029FC74: in v0=a0,v1=a1,a0=a2 ; preserve a0,a2,a3,t0,t1,t2,t3,t4,t7,t8 ; clobbers f20,f30
+# sphere (t3, t4, t5) radius t6 vs the world for vehicle kind t8 -> a1 (s3, f20-f28 left as the triangle tests leave them)
+func_8029AB88: in t3=a0,t4=a1,t5=a2,t6=a3,t8=stack0 ; out a1=ret ; preserve v1,t0,t1,t3,t6,t7,t8,t9 ; clobbers s3,f20,f22,f24,f26,f28
 
 # --- 5BF40 ---
 # one-time DMA of the 0x8000-byte table at ROM 0x4CE0; saves every register
@@ -151,6 +162,8 @@ func_802A0B34: in t6=a0,fp=a1 ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,
 func_802A0CFC: in t6=a0,fp=a1 ; out s0=ret ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,t8,t9,gp,fp
 # queued load of entry t6 into s1 (OSIoMesg slot D_80358080++), decode request (s1, size, type, fp) via func_802A5764
 func_802A1074: in t6=a0,s1=a1,fp=a2 ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,t8,t9,s1,s2,s3,s4,gp,fp
+# C-callable wrapper of func_802A08E4 (a0, a1 -> s0, s1); leaves func_802A08E4's s2-s4 outputs and s5/s6 scratch
+func_802A08B4: in a0=a0,a1=a1 ; clobbers s2,s3,s4,s5,s6
 
 # --- 5CB60 ---
 # store v0/v1/a0/gp[0x9B] into the D_80364460 record with id a1; gp is the caller's object
@@ -184,6 +197,11 @@ func_802A41B0: in t4=a0,t5=a1,v0=a2,t2=a3,t6=stack0,t7=stack1,s1=*stack2,t9=stac
 func_802A4464: in t0=a0 ; preserve t0,f12,f14
 # heap rounding: result in v0 and a1 (asm callers read a1)
 func_802A44E4: in a1=a0 ; out a1=ret ; preserve a2,a3,f12,f14
+# texture ids -> physical addresses (func_802A0CFC, param fp) in level object t0's / t4's records; 1C20 sets s1 = 0x80000000 per record
+func_802A1C20: in t0=a0,fp=a1,s1=*a2 ; out s1=*a2 ; preserve v0,v1,a0,a1,a2,a3,t0,t3,t7,t8,t9 ; clobbers s0
+func_802A2608: in t4=a0,fp=a1 ; preserve v0,v1,a0,a1,a2,a3,t0,t3,t4,t5,t6,t7,t8,t9 ; clobbers s1
+# G_SETTIMG ids in level object t0's display list via func_802A08E4; list end -> s1 (s4 passes through)
+func_802A3008: in t0=a0 ; out s1=ret ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,t8,t9 ; clobbers s0,s2,s3,s4,s5,s6
 
 # --- 5FD50 ---
 # min of the first / max of the second s16 over an h x w block of a grid of s16 pairs
@@ -202,11 +220,17 @@ func_802A5334: in a0=a0,a1=a1,v1=a2,t8=a3,t9=stack0 ; out a1=ret ; clobbers gp
 func_802A50DC: in a0=a0,t4=a1 ; out gp=ret ; preserve a0,a1,a2,a3,t0,t1,t3,t4,t8,t9
 # copy a display list to a1 (returned advanced), patching it if gp
 func_802A51FC: in a0=a0,a1=a1,t5=a2,t6=a3,gp=stack0 ; out a1=ret ; preserve a0,a2,a3,t4,t7,t8,t9 ; clobbers gp
+# grid visibility step (lvl a0, task data a1-a3): quad stack D_803C2B88, cell lists; s0-s7 left changed
+func_802A470C: in a0=a0,a1=a1,a2=a2,a3=a3 ; clobbers s0-s7
+# visible-part display list: lvl a0, dl a1 (-> a1), records [a2, a3), groups [t8, t9); saves t0-t2
+func_802A4E4C: in a0=a0,a1=a1,a2=a2,a3=a3,t8=stack0,t9=stack1 ; out a1=ret ; preserve a0,t0,t1,t2,t8,t9 ; clobbers s0,s1,s2,gp
 
 # --- 60F60 ---
 # func_802A57AC reuses a0 (the record) and v1 (&D_803C4B54) after the call;
 # func_802A08E4 / func_802A0CFC keep f12, f14
 func_802A57DC: preserve a0,v1,f12,f14
+# texture buffer for record t4 (heap block / new block / t3 + (*a0 << 12)); next id from t9 loaded (param fp) -> s1, t9
+func_802A67C4: in t4=a0,a0=a1,t3=a2,t9=*a3,fp=stack0 ; out s1=ret,t9=*a3 ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t7,t8
 
 # append four words at the D_803C4B50 cursor
 func_802A5764: in s1=a0,s2=a1,s3=a2,fp=a3 ; preserve v0,v1,f12,f14
@@ -600,3 +624,7 @@ func_802C18D4: in t3=a0,t4=a1,t5=a2,a1=a3,t6=stack0 ; preserve v0,v1,a0,a1,a2,a3
 func_802BF898: in t9=a0,t3=a1,t5=a2 ; preserve v0,v1,a0,a1,t3,t5,t9
 # debris records of part a3+1 of entry v0 (func_802BFDAC or matching records); saves v0-a1, a3
 func_802BFD1C: in v0=a0,a3=a1 ; preserve v0,v1,a0,a1,a3
+
+# --- 89250 ---
+# ground height under (a0, a2) near a1 via three triangle scans; ABI apart from leaving f20-f28 changed
+func_802CE6F8: in a0=a0,a1=a1,a2=a2 ; out v0=ret ; clobbers f20,f22,f24,f26,f28

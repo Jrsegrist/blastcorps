@@ -627,7 +627,66 @@ void func_802A6748(void) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u32 D_80305C10[]; /* 0-terminated list of definitions that get a heap block */
+void func_802A1074(s32 id, u8 *dest, u8 *param); /* 5BF40 */
+
+/* Texture buffer for record `rec` (its def word at +0 and byte +0x32): if a
+ * heap block (D_803EB788 .. D_803EB78C, walked with `!=`) is in use for that
+ * def and byte, resets its age and returns it (nothing loaded). Otherwise, if
+ * blocks remain (D_803EB790 != 0) and the def is in the list D_80305C10, takes
+ * one (D_803EB790--, first block with inUse == 0, unbounded), tags it with
+ * the def and byte, age 0; failing that the buffer is base + (*idx << 12).
+ * Either way the next u16 id from *list (advanced by 2) is loaded into the
+ * buffer with func_802A1074(id, buffer, param). Returns the buffer.
+ * Register convention: asm takes rec, idx, base, list, param in t4, a0, t3,
+ * t9, fp and returns the buffer in s1 and the advanced list in t9
+ * (conventions.txt); it restores v0-a3 and leaves t6 = the id loaded. Its asm
+ * caller func_802A64A4 keeps a0, a1, t0, t1, t3, t4, t5, t7, t8 live. */
+u8 *func_802A67C4(u8 *rec, u8 *idx, u8 *base, u16 **list, u8 *param) {
+    HeapBlock *b = D_803EB788;
+    HeapBlock *end = D_803EB78C;
+    s32 key = rec[0x32];
+    u32 def = *(u32 *) rec;
+    u32 *l;
+    u8 *buf;
+
+    for (; b != end; b++) {
+        if (b->inUse == 0 || def != (u32) b->inUse || key != b->pad1006[0]) {
+            continue;
+        }
+        b->age = 0;
+        return (u8 *) b;
+    }
+    if (D_803EB790 == 0) {
+        goto fallback;
+    }
+    for (l = D_80305C10;; l++) {
+        if (*l == def) {
+            break;
+        }
+        if (*l == 0) {
+            goto fallback;
+        }
+    }
+    D_803EB790--;
+    for (b = D_803EB788; b->inUse != 0; b++) {
+    }
+    b->inUse = def;
+    b->pad1006[0] = key;
+    b->age = 0;
+    buf = (u8 *) b;
+    goto load;
+fallback:
+    buf = base + (*idx << 12);
+load:
+    func_802A1074(**list, buf, param);
+    (*list)++;
+    return buf;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/60F60/func_802A67C4.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/60F60/func_802A68D4.s")

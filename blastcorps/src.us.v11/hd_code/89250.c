@@ -9,10 +9,47 @@
  * a more specific comment follows this convention; a few have their own
  * more specific non-ABI explanation where one was already worked out. */
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+typedef struct {
+    /* 0x0 */ s32 a3;
+    /* 0x4 */ s32 t6;
+    /* 0x8 */ s32 s1;
+} Io802A6274; /* as in 60F60.c */
+s32 func_802A6274(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32 z, s32 w24, s32 w28,
+                  s32 w18, s32 w1C, s32 w2C, s32 b35);
+extern u8 D_802C382C[]; /* a definition inside the 7D9D0 blob */
+
+/* Sets up a D_803C4B70 record (func_802A6274) for the definition D_802C382C
+ * with data 0x591C8, type 0, position (x, y, z) << 11 and every other input
+ * (tag, words, b35) 0. The asm saves s0-s7 and fp; 48D00.c calls it. */
+void func_802CDA10(s32 x, s32 y, s32 z) {
+    Io802A6274 io;
+
+    io.a3 = 0;
+    io.t6 = 0;
+    io.s1 = 0;
+    func_802A6274(&io, D_802C382C, 0x591C8, 0, x << 11, y << 11, z << 11, 0, 0, 0, 0, 0, 0);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/89250/func_802CDA10.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern s32 D_803A73F0;
+extern s32 D_803A73F4;
+extern s32 D_803A73F8;
+void func_802C18D4(s32 x, s32 y, s32 z, s32 radius, s32 amount);
+
+/* Blast damage (func_802C18D4) at the position D_803A73F0/F4/F8 << 11 with
+ * the given radius and amount. The asm uses the whole registers (48D00.c
+ * declares both s16) and saves s0-s7, fp. */
+void func_802CDAE8(s32 amount, s32 radius) {
+    func_802C18D4(D_803A73F0 << 11, D_803A73F4 << 11, D_803A73F8 << 11, radius, amount);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/89250/func_802CDAE8.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/89250/func_802CDB70.s")
@@ -134,4 +171,84 @@ void func_802CE4F0(s32 x, s32 y, s32 z) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/89250/func_802CE65C.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+typedef struct {
+    f32 pz;    /* f12 */
+    f32 cross; /* f14 */
+    f32 cz;    /* f20 */
+    f32 side;  /* f22 */
+    f32 sideZ; /* f24 (in/out) */
+    f32 dz;    /* f26 */
+} TriSideOut; /* as in 62740.c */
+s32 func_802A9DC0(s32 x, s32 z, s32 y, TriSideOut *f, s32 *fpOut);
+s32 func_802A9F24(s32 x, s32 z, s32 y, s32 skip, TriSideOut *f, s32 *idOut, s32 *a2Out);
+s32 func_802AA094(s32 x, s32 z, s32 y, TriSideOut *f, s32 *t3io, s32 *fpio);
+extern u8 D_803F932C;
+
+#define PORT_ABS(d) ((d) < 0 ? -(d) : (d))
+
+/* Ground height under (x, z) for an object at height y: with y' = y + 0x78,
+ * takes the nearest-to-y' heights of the D_803F7828 triangles (h1,
+ * func_802A9DC0), of the transformed triangles (h2, func_802A9F24, no id
+ * skipped) and of the level grid (h3, func_802AA094, which leaves h3 = h2
+ * when it finds nothing). With a grid hit, h3 wins unless h2 or h1 is
+ * strictly nearer to y'; then (or without a grid hit) h2 wins if strictly
+ * nearer than h1, else h1; with no hit at all (h1 and h2 both 0x5F5E0FF) the
+ * result is y. D_803F932C = func_802A9F24's id when h2 won, else 0. Returns
+ * the height, clamped at 0 from below.
+ * The asm's sub/addi trap on overflow (game coordinates don't reach it); it
+ * saves s0-s7 and fp, so the fp passed through to func_802A9DC0 /
+ * func_802AA094 (*fpOut, only written) and the FP results they leave in
+ * f12-f26 are dead here, but it does change f20-f28 (conventions.txt
+ * `clobbers`). Called from C (4DA80, 48D00, 4B5E0) and asm func_802A24BC. */
+s32 func_802CE6F8(s32 x, s32 z, s32 y) {
+    TriSideOut f;
+    s32 fp;
+    s32 id;
+    s32 a2;
+    s32 h1;
+    s32 h2;
+    s32 h3;
+    s32 d1;
+    s32 d2;
+    s32 d3;
+    s32 res;
+
+    y += 0x78;
+    h1 = func_802A9DC0(x, z, y, &f, &fp);
+    h2 = func_802A9F24(x, z, y, 0, &f, &id, &a2);
+    h3 = h2;
+    if (func_802AA094(x, z, y, &f, &h3, &fp) != 0) {
+        d2 = PORT_ABS(h2 - y);
+        d3 = PORT_ABS(h3 - y);
+        d1 = PORT_ABS(h1 - y);
+        if (d2 >= d3 && d1 >= d3) {
+            res = h3;
+            id = 0;
+            goto done;
+        }
+    } else {
+        if (h1 == 0x5F5E0FF && h2 == 0x5F5E0FF) {
+            res = y - 0x78;
+            id = 0;
+            goto done;
+        }
+        d2 = PORT_ABS(h2 - y);
+        d1 = PORT_ABS(h1 - y);
+    }
+    if (d2 < d1) {
+        res = h2;
+    } else {
+        res = h1;
+        id = 0;
+    }
+done:
+    D_803F932C = id;
+    if (res < 0) {
+        res = 0;
+    }
+    return res;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/89250/func_802CE6F8.s")
+#endif

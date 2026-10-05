@@ -168,3 +168,30 @@ func_802A6274: -n 200 --seed 5 --follow func_802ABC88 --arg t0=ptr:0x10 \
     --mem D_803EBC10:0x80=rand --mem D_803EBC10+0xC:1=1 --mem D_803EBC10+0x1C:1=2 --mem D_803EBC10+0x2C:1=3 \
     --arg a3=int --mem D_803EB792:1=rand --arg t1=int --arg t2=1 --arg t3=int:1:3 --arg t4=int:1:3 --arg t5=choice:1,-1 \
     --arg t6=int --arg t7=int --arg s0=int --arg s1=int --arg s2=int --arg s3=int --arg s4=int --arg s5=int
+# [e1] func_802A67C4 (rec t4, idx a0, base t3, list t9 in/out, param fp): heap block already holding (def, byte),
+# else a new block when D_803EB790 != 0 and def is listed in D_80305C10, else base + (*idx << 12); the next u16 id
+# from the list is loaded into it (func_802A1074). heap0 = 5 blocks (the 5th always free), heap1 = rec, heap2 = list.
+func_802A67C4: -n 300 --heap 0x5050 --heap 0x40 --heap 0x10 --heap 0x10 \
+    --mem @heap0+0x1000*0x1010:5=words:0,0x100,0x200,0x300 --mem @heap0+0x1004*0x1010:5/2=rand \
+    --mem @heap0+0x1006*0x1010:5/1=choice:0,1 --mem @heap0+0x5040=0 \
+    --mem D_803EB788=rel:heap0 --mem D_803EB78C=rel:heap0+0x1010*int:0:4 --mem D_803EB790:2=choice:0,1,2,0x7FFF,0xFFFF \
+    --mem D_80305C10:16=words:0x100,0x200,0x300,0x400,0 --mem D_80305C10+16=0 \
+    --arg t4=rel:heap1 --mem @heap1=choice:0,0x100,0x200,0x300,0x400 --mem @heap1+0x32:1=choice:0,1 \
+    --arg a0=rel:heap2 --arg t3=int --arg t9=rel:heap3 --arg fp=int
+# the new-block path: nothing in use matches (inUse 0 / other defs), def listed
+func_802A67C4: -n 200 --seed 1 --heap 0x5050 --heap 0x40 --heap 0x10 --heap 0x10 \
+    --mem @heap0+0x1000*0x1010:5=words:0,0x500 --mem @heap0+0x1004*0x1010:5/2=rand --mem @heap0+0x5040=0 \
+    --mem D_803EB788=rel:heap0 --mem D_803EB78C=rel:heap0+0x1010*int:0:4 --mem D_803EB790:2=choice:1,2,0x8000 \
+    --mem D_80305C10:16=onehot:4:0x100:words:0x200,0x300 --mem D_80305C10+16=0 \
+    --arg t4=rel:heap1 --mem @heap1=0x100 --mem @heap1+0x32:1=choice:0,1 \
+    --arg a0=rel:heap2 --arg t3=int --arg t9=rel:heap3 --arg fp=int
+# followed loader (func_802A1074) on the table set-up of its own checks
+func_802A67C4: -n 200 --seed 2 --follow func_802A1074 --heap 0x5050 --heap 0x40 --heap 0x10 --heap 0x10 --heap 0x200=words:0,0x10,0x100,0x1000,0x7FF0 \
+    --mem D_803B8D44=rel:heap4 --mem D_80358080=int:0:10 \
+    --mem @heap0+0x1000*0x1010:5=words:0,0x100,0x200 --mem @heap0+0x1006*0x1010:5/1=choice:0,1 --mem @heap0+0x5040=0 \
+    --mem D_803EB788=rel:heap0 --mem D_803EB78C=rel:heap0+0x1010*int:0:4 --mem D_803EB790:2=choice:0,1,2 \
+    --mem D_80305C10:16=words:0x100,0x200,0 --mem D_80305C10+16=0 \
+    --arg t4=rel:heap1 --mem @heap1=choice:0x100,0x200,0x300 --mem @heap1+0x32:1=choice:0,1 \
+    --arg a0=rel:heap2 --arg t3=int --arg t9=rel:heap3 --mem @heap3:16=halves:0,1,5,30 --arg fp=int \
+    --sig osInvalDCache=a0,a1 --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2
+# end-block

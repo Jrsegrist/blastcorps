@@ -84,3 +84,44 @@ func_802A1074: -n 300 --arg t6=int:0:30 --heap 0x200=words:0,0x10,0x100,0x1000,0
 func_802A1074: -n 200 --seed 1 --follow func_802A5764 --arg t6=int:0:30 --heap 0x200=words:0,0x10,0x100,0x1000,0x7FF0,0xFFFF00 \
     --heap 0x40 --mem D_803B8D44=rel:heap0 --mem D_803C4B50=rel:heap1 --mem D_80358080=int:0:10 --sig osInvalDCache=a0,a1 \
     --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2
+# [e1] 5BF40 C-callable wrappers: func_802A08B4 / func_802A0B00 / func_802A0CC8 / func_802A1040 (callee stubbed
+# under its convention, then followed with the callee's own check inputs)
+func_802A08B4: -n 200 --arg a0=int --arg a1=int --sig func_802A08E4=a0,a1
+func_802A08B4: -n 300 --seed 1 --follow func_802A08E4 --heap 0x100=words:0,0x10,0x100,0x1000,0x7FF0 --heap 0x100 \
+    --mem D_803B8D44=rel:heap0 --arg a0=rel:heap1 --arg a1=rel:heap1+8*int:0:16 \
+    --mem @heap1*8:16=choice:0xFD100000,0xFD000000,0x06000000,0xFC000000,0xFE000000 \
+    --mem @heap1+4*8:16=int:0:5 --mem D_803B8570:0x40=rand --mem D_803B8570*8:8=int:0:5 \
+    --mem D_803B8D40=rel:D_803B8570+8*int:0:6 --mem D_80358070=choice:0x80400000,0x80123450,0x80000000 \
+    --mem D_803C4B58:0x10=rand --sig osInvalDCache=a0,a1 --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 \
+    --sig osRecvMesg=a0,a1,a2 --sig func_802A57DC=a0
+func_802A08B4: -n 100 --seed 2 --follow func_802A08E4 --heap 0x100=words:0,0x10,0x100 --heap 0x100 --mem D_803B8D44=rel:heap0 \
+    --arg a0=rel:heap1 --arg a1=rel:heap1+8*choice:0,1,16 --mem @heap1*8:16=0xFD100000 --mem @heap1+4*8:16=choice:3 \
+    --mem D_803B8D40=sym:D_803B8570 --mem D_80358070=0x80400000 --mem D_803C4B58:0x10=rand --sig osInvalDCache=a0,a1 \
+    --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 --sig osRecvMesg=a0,a1,a2 --sig func_802A57DC=a0
+func_802A0B00: -n 200 --ret void --arg a0=choice:0,1,0xFFFF,0x10000,-1,0x12345678,0x8000 --arg a1=int
+func_802A0B00: -n 300 --seed 1 --ret void --follow func_802A0B34 --arg a0=int:0:30 --arg a1=int \
+    --heap 0x200=words:0,0x10,0x100,0x1000,0x7FF0,0xFFFF00 --mem D_803B8D44=rel:heap0 \
+    --mem D_80358070=int --mem D_803C4B58:0x10=rand --sig osInvalDCache=a0,a1 \
+    --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 --sig osRecvMesg=a0,a1,a2 --sig func_802A57DC=a0
+func_802A0B00: -n 200 --seed 2 --ret void --follow func_802A0B34,func_802A57DC --arg a0=int:0:2 --arg a1=int \
+    --heap 0x40=words:0,0x100007,0x10,0x80007,0x40,0x7 --heap 0x200 \
+    --mem D_803B8D44=rel:heap0 --mem D_80358070=rel:heap1 --sig osInvalDCache=a0,a1 \
+    --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 --sig osRecvMesg=a0,a1,a2
+func_802A0CC8: -n 200 --arg a0=choice:0,1,0xFFFF,0x10000,-1,0x12345678,0x8000 --arg a1=int
+func_802A0CC8: -n 300 --seed 1 --follow func_802A0CFC --arg a0=int:0:5 --arg a1=int \
+    --heap 0x200=words:0,0x10,0x100,0x1000,0x7FF0 --mem D_803B8D44=rel:heap0 \
+    --mem D_803B8570:0x40=rand --mem D_803B8570*8:8=int:0:5 --mem D_803B8D40=rel:D_803B8570+8*int:0:6 \
+    --mem D_80358070=choice:0x80400000,0x80123450,0x80000000 --mem D_803C4B58:0x10=rand --sig osInvalDCache=a0,a1 \
+    --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 --sig osRecvMesg=a0,a1,a2 --sig func_802A57DC=a0
+func_802A0CC8: -n 100 --seed 2 --follow func_802A0CFC --arg a0=9 --arg a1=int --heap 0x200=words:0,0x10,0x100 \
+    --mem D_803B8D44=rel:heap0 --mem D_803B8570:0x30=onehot:8:9:words:1,2,3 --mem D_803B8D40=rel:D_803B8570+0x30 \
+    --mem D_80358070=0x80400000 --sig osInvalDCache=a0,a1 --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 \
+    --sig osRecvMesg=a0,a1,a2 --sig func_802A57DC=a0
+func_802A1040: -n 200 --ret void --arg a0=choice:0,1,0xFFFF,0x10000,-1,0x12345678,0x8000 --arg a1=int --arg a2=int
+func_802A1040: -n 300 --seed 1 --ret void --follow func_802A1074 --arg a0=int:0:30 --arg a1=int --arg a2=int \
+    --heap 0x200=words:0,0x10,0x100,0x1000,0x7FF0,0xFFFF00 --mem D_803B8D44=rel:heap0 \
+    --mem D_80358080=choice:0,1,5,-1,0x7FFFFFFE --sig osInvalDCache=a0,a1 --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2
+func_802A1040: -n 200 --seed 2 --ret void --follow func_802A1074,func_802A5764 --arg a0=int:0:30 --arg a1=int --arg a2=int \
+    --heap 0x200=words:0,0x10,0x100,0x1000,0x7FF0,0xFFFF00 --heap 0x40 --mem D_803B8D44=rel:heap0 --mem D_803C4B50=rel:heap1 \
+    --mem D_80358080=int:0:10 --sig osInvalDCache=a0,a1 --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2
+# end-block

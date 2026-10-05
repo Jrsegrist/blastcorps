@@ -394,6 +394,33 @@ void func_802CFA0C(void);
 void func_802D0C68(void);
 void func_8025BBE8(s32, s32, s32);
 
+extern u8 D_803BE739;
+extern s32 D_80358030[2];
+extern s32 D_80358038[2];
+extern s32 D_80358040[2];
+extern s32 D_80358048[2];
+extern s32 D_803156EC;
+u8 func_8024B4B8(void);
+s32 func_8024B418(u8);
+u8 func_802AE888(s32);
+void func_8028F93C(void);
+void func_80292084(void);
+void func_802B4658(void);
+void func_802B2F54(void);
+void func_802B5F60(void);
+void func_802B11B8(void);
+void func_802B0254(void);
+void func_802BBE2C(void);
+void func_802B7754(void);
+void func_802C5688(void);
+void func_802CA1AC(void);
+void func_802C8B0C(u8);
+void func_802CBBBC(void);
+void func_802CCD34(void);
+void func_802BB1A0(void);
+void func_802CFAB4(void);
+void func_802D0BF8(void);
+
 /* (end of declarations) */
 
 /* Boot: reads 16 words from PI address 0xFFB000, then starts the idle thread */
@@ -603,7 +630,87 @@ s32 func_8024AFA8(s32 id) {
     return ok;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_8024B188.s")
+/* Leaves the current vehicle */
+void func_8024B188(void) {
+    u8 res = 0;
+    u8 ok = 0;
+
+    res = func_8024B4B8();
+    if (res == 1) {
+        ok = func_802AE888(((s32 *) &D_802E8BF8)[D_80364456]);
+    }
+    if (ok) {
+        D_803649E8 = 0;
+        func_802794E4();
+        func_8028F93C();
+        func_80292084();
+        func_8028B720();
+        switch (D_80364456) {
+            case 4:
+                func_802B4658();
+                break;
+            case 3:
+                func_802B2F54();
+                break;
+            case 5:
+                func_802B5F60();
+                break;
+            case 2:
+                func_802B11B8();
+                break;
+            case 1:
+                func_802B0254();
+                break;
+            case 7:
+                func_802BBE2C();
+                break;
+            case 8:
+                func_802B7754();
+                break;
+            case 9:
+                func_802C5688();
+                break;
+            case 10:
+                func_802CA1AC();
+                break;
+            case 11:
+            case 17:
+            case 18:
+                func_802C8B0C(D_80364456);
+                break;
+            case 13:
+                func_802CBBBC();
+                break;
+            case 14:
+                func_802CCD34();
+                break;
+            case 6:
+                func_802BB1A0();
+                if (func_8024B418(4)) {
+                    func_802B4658();
+                }
+                if (func_8024B418(13)) {
+                    func_802CBBBC();
+                }
+                break;
+            case 15:
+                func_802CFAB4();
+                break;
+            case 16:
+                func_802D0BF8();
+                break;
+        }
+        D_80364456 = 0;
+        if (D_80364A90 & 0x104) {
+            func_8025BBE8((D_80364AF0[D_80364AE8].unkF0 & 1) ? 0x80 : 0x40, 0, 0);
+        }
+    }
+    if (res == 0 || (res != 2 && !ok)) {
+        if (!func_80260634(D_803156EC)) {
+            func_80260650(D_80367738, 0x2B, &D_803156EC);
+        }
+    }
+}
 
 /* Is any entry of D_80364460 (up to D_803649D0) tagged with id? */
 s32 func_8024B418(u8 id) {
@@ -619,8 +726,9 @@ s32 func_8024B418(u8 id) {
     return 0;
 }
 
-/* Per-vehicle handler for the current vehicle (D_80364456) */
-void func_8024B4B8(void) {
+/* Per-vehicle exit check for the current vehicle (D_80364456). Declared u8
+ * but has no return statement: callers read the handler's leftover v0. */
+u8 func_8024B4B8(void) {
     switch (D_80364456) {
         case 4:
             func_802B45FC();
@@ -1558,7 +1666,73 @@ void func_80256A34(s32 arg0) {
     func_802A5FA8();
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_80257234.s")
+/* Allocates the per-level display list buffers (two of each) from the heap */
+void func_80257234(void) {
+    s32 a;
+    s32 b;
+    s32 c;
+    s32 d;
+
+    switch (D_802E8BDC) {
+        case 16:
+        case 29:
+            a = 50;
+            b = 50;
+            c = 50;
+            d = 200;
+            break;
+        case 17:
+            a = 50;
+            b = 50;
+            c = 50;
+            d = 50;
+            break;
+        case 11:
+            a = 3000;
+            b = 50;
+            c = 50;
+            d = 200;
+            break;
+        case 10:
+            a = 50;
+            b = 50;
+            c = 50;
+            d = 2000;
+            break;
+        default:
+            switch (D_803BE739) {
+                case 0:
+                    a = 6000;
+                    b = 5000;
+                    c = 100;
+                    d = 2000;
+                    break;
+                case 1:
+                    a = 1000;
+                    b = 1000;
+                    c = 100;
+                    d = 2000;
+                    break;
+            }
+            break;
+    }
+    D_80358030[0] = D_80358070;
+    D_80358070 += a * 8;
+    D_80358038[0] = D_80358070;
+    D_80358070 += b * 8;
+    D_80358040[0] = D_80358070;
+    D_80358070 += c * 8;
+    D_80358048[0] = D_80358070;
+    D_80358070 += d * 8;
+    D_80358030[1] = D_80358070;
+    D_80358070 += a * 8;
+    D_80358038[1] = D_80358070;
+    D_80358070 += b * 8;
+    D_80358040[1] = D_80358070;
+    D_80358070 += c * 8;
+    D_80358048[1] = D_80358070;
+    D_80358070 += d * 8;
+}
 
 /* Rounds *arg0 up to a multiple of arg1 */
 void func_80257490(s32 *arg0, s32 arg1) {

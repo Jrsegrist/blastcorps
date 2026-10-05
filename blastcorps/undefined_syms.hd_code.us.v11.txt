@@ -31,3 +31,5 @@ D_802FDB70 = 0x802FDB70; /* s16 speed cap per mode, 48D00 */
 D_8039CA50 = 0x8039CA50; /* 4EBE0: f32 spline weight */
 D_006A8DA0 = 0x006A8DA0;
 D_802FCEB0 = 0x802FCEB0;
+D_00787F40 = 0x00787F40; /* hd.c func_80255DC8: static code segment start */
+D_00788000 = 0x00788000; /* hd.c func_80255DC8: static code segment end */

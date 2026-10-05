@@ -38,12 +38,68 @@ typedef struct {
     u8 padA3A0[0x21498 - 0xA3A0];
 } DynamicBuf;
 extern DynamicBuf D_803156F8[];
-extern u8 D_8035805C;
+extern u8 D_8035805C; /* current frame buffer index */
 
-extern char D_80308274[]; /* "\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n" */
-extern char D_803082A0[]; /* "*length<TOPLEVEL_DL_SIZE" */
-extern char D_803082BC[]; /* "hd.c" */
-extern char D_803082D4[]; /* "stack end =%d\n" */
+extern u8 D_00787F40[]; /* static code segment bounds (ROM) */
+extern u8 D_00788000[];
+extern u64 D_80364A98; /* game mode flags */
+extern u8 D_80364A70;
+extern s32 D_80358068;
+extern s32 D_80358064;
+extern u32 D_80358060;
+extern s16 D_80367BD6;
+extern u8 D_803FF600[];
+extern u8 *D_8035806C;
+extern s32 D_80358078;
+extern s32 D_80358070; /* heap pointer */
+extern s32 D_802E8BDC; /* current level */
+extern s32 D_8036E694;
+typedef struct {
+    u8 unk0;
+    u8 pad1[0x43];
+} LevelInfo;
+extern LevelInfo D_802E8F94[];
+extern u8 D_803B9888;
+extern u8 D_80358088[];
+extern s32 D_803643C8;
+extern u8 D_803643D9;
+extern u8 D_803643DA;
+extern u8 D_803643D8;
+extern u8 D_803643D6;
+extern u8 D_803643D7;
+extern u8 D_802E8BD8;
+extern u8 D_802E8BD4;
+extern u8 D_802E8BD0;
+extern u8 D_8036EB99;
+extern s32 D_803669B4;
+extern u8 D_8039CAA2;
+
+u8 func_80261A44(u64);
+void func_802D6710(void);
+void func_8026A8BC(void);
+void func_8026A974(void);
+void func_8028AE88(void);
+void func_8028B720(void);
+void func_8028B4C4(void *, void *, u32 *, s32, s32, s32);
+void func_802558C8(Gfx *, s32 *);
+void func_802559F8(Gfx *, s32 *);
+void func_80257490(s32 *, s32);
+void func_802A0700(void);
+void func_80278E3C(void);
+void func_8028B3E0(void);
+void func_80297530(s32);
+void func_80272C50(void);
+void func_801F7850(void);
+void func_8026B118(s32);
+void func_8028A42C(void);
+void func_802592F0(void);
+
+#define TOPLEVEL_DL_SIZE 0xB5E
+
+/* Rare's assert; line numbers are the original hd.c's */
+#define HD_ASSERT(EX, line) \
+    if (!(EX)) \
+    func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "hd.c", line)
 
 /* Boot: reads 16 words from PI address 0xFFB000, then starts the idle thread */
 void func_802447C0(void) {
@@ -171,9 +227,7 @@ void func_802559F8(Gfx *arg0, s32 *length) {
     gDPFullSync(gdl++);
     gSPEndDisplayList(gdl++);
     *length = gdl - D_803156F8[D_8035805C].dl;
-    if (!(*length < 0xB5E)) {
-        func_8029A7E4(D_80308274, D_803082A0, D_803082BC, 3665);
-    }
+    HD_ASSERT(*length<TOPLEVEL_DL_SIZE, 3665);
 }
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_80255AD0.s")
@@ -187,12 +241,78 @@ void func_80255D34(void) {
     for (i = 0x1FF; i >= 0 && !bad; i--) {
         if (D_80310D80[i] != 0x1122334455667788LL) {
             bad = 1;
-            func_8029A7E4(D_803082D4, i);
+            func_8029A7E4("stack end =%d\n", i);
         }
     }
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_80255DC8.s")
+/* One-time game init: memory, display lists, heap, subsystems */
+void func_80255DC8(void) {
+    u32 end;
+    s32 pad;
+    u32 size;
+    s32 old;
+
+    size = D_00788000 - D_00787F40;
+    osViBlack(1);
+    D_80364A70 = func_80261A44(D_80364A98);
+    func_802D6710();
+    osInvalDCache((void *) 0x80000000, 0x400000);
+    D_803649F4 = 0;
+    D_80358068 = 0;
+    D_80358064 = 0;
+    D_80358060 = 0;
+    D_8035805C = 0;
+    D_80367BD6 = 0;
+    func_8026A8BC();
+    func_8026A974();
+    func_8028AE88();
+    func_8028B720();
+    D_8035806C = D_803FF600;
+    func_8028B4C4(D_00787F40, D_803FF600, &size, 10, 0, 2);
+    end = (u32) (D_00788000 - D_00787F40) + (u32) D_803FF600;
+    func_8029A7E4("Static end = 0x%x, space=0x%x (%d) bytes\n", end, 0x80400000 - end, 0x80400000 - end);
+    D_80358078 = 0;
+    func_802558C8(D_803156F8[D_8035805C].dl, &D_80358078);
+    func_802559F8(D_803156F8[D_8035805C].dl, &D_80358078);
+    D_80358070 = 0x8004B400;
+    func_80257490(&D_80358070, 0x10);
+    D_8036E694 = D_80358070;
+    D_80358070 += 0xA000;
+    if (D_802E8F94[D_802E8BDC].unk0 == 2 && !(D_80364A98 & 0x100000000002)) {
+        func_8029A7E4("Allocating ghost buffer memory\n");
+        D_80358070 += 0x20000;
+    }
+    D_803B9888 = 0;
+    func_802A0700();
+    D_803643C8 = ((u32) D_80358088 + 0x40) & ~0x3F;
+    func_80278E3C();
+    D_803643D9 = 0;
+    D_803643DA = 0;
+    D_803643D8 = 0;
+    D_803643D6 = 0;
+    D_803643D7 = 0;
+    D_802E8BD8 = 0;
+    D_802E8BD4 = 0;
+    D_802E8BD0 = 0;
+    D_8036EB99 = 0;
+    D_803669B4 = 0;
+    if (D_80364A98 & 0xC9FD8FE7FBFFC0B0) {
+        func_8028B3E0();
+    }
+    func_80297530(D_802E8BDC);
+    func_80272C50();
+    if (D_80364A98 == 0x40000000000) {
+        func_801F7850();
+    }
+    old = D_80358070;
+    func_8026B118(0);
+    func_8029A7E4("Yoshi windows allocated %d bytes, %x\n", D_80358070 - old, D_80358070);
+    D_803649D0 = D_80364460;
+    func_8028A42C();
+    func_802592F0();
+    D_8039CAA2 = 0;
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_8025615C.s")
 

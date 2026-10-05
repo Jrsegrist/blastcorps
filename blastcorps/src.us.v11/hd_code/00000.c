@@ -194,6 +194,24 @@ extern f32 D_80364ABC;
 extern u8 D_80364AC0;
 void func_802AC61C(s32, s32, s32, s32, s32);
 
+typedef struct {
+    s32 unk0;
+    s16 unk4;
+    s16 unk6;
+    u8 unk8;
+    u8 unk9;
+} Message; /* 0xC bytes */
+extern Message D_80364A00[5];
+extern s16 D_8036443E;
+extern u8 D_80364A3C;
+extern u8 D_80364A3D;
+extern s32 D_80364A40;
+extern s32 D_80364A44;
+extern u8 D_80364A48;
+extern s16 D_80364A4A;
+extern s16 D_80364A4C;
+extern u8 D_80364A4E;
+
 /* (end of declarations) */
 
 /* Boot: reads 16 words from PI address 0xFFB000, then starts the idle thread */
@@ -233,7 +251,67 @@ void func_80244870(void *arg0) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_802475D8.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_8024A348.s")
+/* On-screen message queue: posts D_80364A40 and fades the current one */
+void func_8024A348(void) {
+    s32 pad;
+
+    if (D_80364A40 != 0) {
+        if (D_80364A3D + 1 != D_80364A3C && (D_80364A3D != 4 || D_80364A3C != 0)) {
+            D_80364A00[D_80364A3D].unk0 = D_80364A40;
+            D_80364A00[D_80364A3D].unk9 = 30;
+            if (D_8036443E >= 0xE00 || D_8036443E < 0x200) {
+                if (D_80364AA8 == 8) {
+                    D_80364A00[D_80364A3D].unk4 = 30;
+                    D_80364A00[D_80364A3D].unk6 = 60;
+                    D_80364A00[D_80364A3D].unk8 = 1;
+                } else {
+                    D_80364A00[D_80364A3D].unk4 = 30;
+                    D_80364A00[D_80364A3D].unk6 = 30;
+                    D_80364A00[D_80364A3D].unk8 = 1;
+                }
+            }
+            if (D_8036443E >= 0x200 && D_8036443E < 0x600) {
+                D_80364A00[D_80364A3D].unk4 = 30;
+                D_80364A00[D_80364A3D].unk6 = 160;
+                D_80364A00[D_80364A3D].unk8 = 1;
+            }
+            if (D_8036443E >= 0x600 && D_8036443E < 0xA00) {
+                D_80364A00[D_80364A3D].unk4 = 250;
+                D_80364A00[D_80364A3D].unk6 = 160;
+                D_80364A00[D_80364A3D].unk8 = 0;
+            }
+            if (D_8036443E >= 0xA00 && D_8036443E < 0xE00) {
+                D_80364A00[D_80364A3D].unk4 = 250;
+                D_80364A00[D_80364A3D].unk6 = 37;
+                D_80364A00[D_80364A3D].unk8 = 0;
+            }
+            D_80364A3D++;
+            if (D_80364A3D == 5) {
+                D_80364A3D = 0;
+            }
+        }
+        D_80364A40 = 0;
+    }
+    if (D_80364A3C != D_80364A3D) {
+        D_80364A44 = D_80364A00[D_80364A3C].unk0;
+        D_80364A4A = D_80364A00[D_80364A3C].unk4;
+        D_80364A4C = D_80364A00[D_80364A3C].unk6;
+        D_80364A4E = D_80364A00[D_80364A3C].unk8;
+        if (D_80364A00[D_80364A3C].unk9 >= 16) {
+            D_80364A48 = 255.0f - (f32) (D_80364A00[D_80364A3C].unk9 - 15) / 15.0f * 255.0f;
+        } else {
+            D_80364A48 = (f32) D_80364A00[D_80364A3C].unk9 / 15.0f * 255.0f;
+        }
+        if (!(D_80364A00[D_80364A3C].unk9--)) {
+            D_80364A3C++;
+            if (D_80364A3C == 5) {
+                D_80364A3C = 0;
+            }
+        }
+    } else {
+        D_80364A44 = 0;
+    }
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_8024A92C.s")
 

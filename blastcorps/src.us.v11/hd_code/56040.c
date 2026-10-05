@@ -48,6 +48,24 @@ extern u8 *D_803BD300;  /* end of the records in use */
 extern u8 D_803EEA90[];
 #define GP_U8(off) (*(u8 *) (D_803EEA90 + (off)))
 #define GP_S16(off) (*(s16 *) (D_803EEA90 + (off)))
+
+f32 sqrtf(f32);
+
+/* The asm converts float -> s64 with cvt.l.s, which rounds by the FCSR mode
+ * (round to nearest, ties to even, as the game runs) rather than truncating
+ * like a C cast. This reproduces that: truncate, then fix up from the exact
+ * fractional part. */
+static s64 port_cvt_l_s(f32 x) {
+    s64 t = (s64) x;
+    f32 frac = x - (f32) t;
+
+    if (frac > 0.5f || (frac == 0.5f && (t & 1))) {
+        t++;
+    } else if (frac < -0.5f || (frac == -0.5f && (t & 1))) {
+        t--;
+    }
+    return t;
+}
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -245,31 +263,246 @@ s32 func_8029B930(void) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029BB28.s")
 
-/* func_8029BD0C: a real distance/parametric-closest-point calculation
- * (sum-of-squares via `dmult`, `sqrt.s`, divide, range-check) - no $ra
- * save needed (true leaf), but uses raw `dmtc1`/`dmfc1`/`cvt.s.l`/`cvt.l.s`
- * 64-bit FPU moves directly, the same confirmed-hand-written s64<->float
- * signature documented in the project skill file (IDO only ever emits a
- * runtime helper call for this cast, never these raw instructions).
- * Permanently GLOBAL_ASM. */
+/* func_8029C160, func_8029C0DC, func_8029BF64, func_8029BD0C, func_8029BEE4:
+ * the sphere-vs-triangle test the collision loops (func_8029AB88,
+ * func_8029B02C, 77E20, 89250) run in that order for each triangle `tri`
+ * (s0) against a sphere at (t3, t4, t5) with radius t6:
+ *   C160  sphere centre within r of the triangle's plane? (projects the
+ *         centre onto it: hit point in v1, a0, a1 and D_803A73FC..7404)
+ *   C0DC  drop one axis (tri byte 0x4E) from the vertices and hit point
+ *   BF64  2-D point-in-triangle test of the projected hit point (t7)
+ *   BD0C  else: does any edge pass within r of the centre? (t7)
+ *   BEE4  else: is vertex 0 within r? (t7)
+ * Triangle layout: s64 plane normal at +0 / +8 / +0x10, s64 d at +0x18,
+ * f32 at +0x20 and +0x24, s32 vertices at +0x28, +0x34, +0x40, s8 axis at
+ * +0x4E. Register conventions in conventions.txt; the outputs the survey
+ * lists beyond these (leftover v0-a3, t0-t2, f12-f28, s2-s4) are dead in
+ * every asm caller (overwritten before use or only saved/restored).
+ * The asm used raw dmult/cvt.s.l/cvt.l.s; the C uses s64 arithmetic and
+ * port_cvt_l_s for the round-to-nearest conversions. */
+#ifdef NON_MATCHING
+/* Segment-vs-sphere: for the triangle edges V0V1, V0V2, V1V2 (in that
+ * order), solves |A + t(B - A) - C|^2 = r^2 with 64-bit coefficients
+ * a = |B - A|^2, b = 2 (B - A).(A - C), c = |A - C|^2 - r^2; if the
+ * discriminant b^2 - 4ac (64-bit, wrapping) is >= 0 and either root
+ * (-b + sqrt) / 2a or (-b - sqrt) / 2a (single precision) lies in [0, 1]
+ * (a NaN root counts too, as in the asm), returns 1; else 0.
+ * Register convention: x, y, z, r in t3-t6 and tri in s0, result in t7;
+ * s2-s4 are scratch (the asm also leaves v0-a3, t0-t2 changed). The asm's
+ * trapping dadd/dsub fault on 64-bit overflow where this C wraps. */
+s32 func_8029BD0C(s32 x, s32 y, s32 z, s32 r, u8 *tri) {
+    s32 *v = (s32 *) (tri + 0x28);
+    s32 *a;
+    s32 *b;
+    s32 i;
+
+    for (i = 3; i != 0; i--) {
+        s64 ax;
+        s64 ay;
+        s64 az;
+        s64 dx;
+        s64 dy;
+        s64 dz;
+        s64 qa;
+        s64 qb;
+        s64 qc;
+        s64 disc;
+        f32 sq;
+        f32 nb;
+        f32 den;
+        f32 t;
+
+        if (i == 3) {
+            a = v + 0, b = v + 3;
+        } else if (i == 2) {
+            a = v + 0, b = v + 6;
+        } else {
+            a = v + 3, b = v + 6;
+        }
+        ax = a[0] - x;
+        ay = a[1] - y;
+        az = a[2] - z;
+        dx = b[0] - a[0];
+        dy = b[1] - a[1];
+        dz = b[2] - a[2];
+        qa = dx * dx + dy * dy + dz * dz;
+        qb = (dx * ax + dy * ay + dz * az) * 2;
+        qc = ax * ax + ay * ay + az * az - (s64) r * r;
+        disc = qb * qb - ((qa * qc) << 2);
+        if (disc < 0) {
+            continue;
+        }
+        sq = sqrtf((f32) disc);
+        nb = (f32) -qb;
+        den = (f32) (qa * 2);
+        t = (nb + sq) / den;
+        if (t < 0.0f) {
+        } else if (t > 1.0f) {
+        } else {
+            return 1;
+        }
+        t = (nb - sq) / den;
+        if (t < 0.0f) {
+            continue;
+        }
+        if (t > 1.0f) {
+            continue;
+        }
+        return 1;
+    }
+    return 0;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029BD0C.s")
+#endif
 
-/* func_8029BEE4: same raw dmtc1/dmfc1/cvt.s.l/cvt.l.s signature as
- * func_8029BD0C above - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Vertex-vs-sphere: 1 unless r < round(sqrtf(|V0 - C|^2)) (64-bit squares,
+ * round to nearest as cvt.l.s), i.e. 1 when vertex 0 is within r.
+ * Register convention: x, y, z, r in t3-t6 and tri in s0, result in t7. */
+s32 func_8029BEE4(s32 x, s32 y, s32 z, s32 r, u8 *tri) {
+    s32 *v = (s32 *) (tri + 0x28);
+    s64 dx = v[0] - x;
+    s64 dy = v[1] - y;
+    s64 dz = v[2] - z;
+    s64 d = port_cvt_l_s(sqrtf((f32) (dx * dx + dy * dy + dz * dz)));
+
+    if ((s64) r < d) {
+        return 0;
+    }
+    return 1;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029BEE4.s")
+#endif
 
-/* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* 2-D point-in-triangle: triangle A (au, av), B (bu, bv), C (cu, cv),
+ * point P (pu, pv). An interior reference point M = ((A + B) / 2 + C) / 2 is
+ * computed in single precision; for the edges AB, AC, BC (in that order) the
+ * 2-D cross products of P and of M against the edge are compared: returns 0
+ * as soon as P lies strictly on the other side from M (P exactly on an edge
+ * line skips that edge), else 1.
+ * Register convention: bu, bv, cu, cv in a0-a3, au, av, pu, pv in v0, v1,
+ * t0, t1, result in t7 (the asm saves t3-t6 and changes f12-f28). */
+s32 func_8029BF64(s32 bu, s32 bv, s32 cu, s32 cv, s32 au, s32 av, s32 pu, s32 pv) {
+    f32 mu = ((f32) cu + (f32) (au + bu) / 2.0f) / 2.0f;
+    f32 mv = ((f32) cv + (f32) (av + bv) / 2.0f) / 2.0f;
+    f32 fpu = pu;
+    f32 fpv = pv;
+    s32 i;
+
+    for (i = 3; i != 0; i--) {
+        f32 eu;
+        f32 ev;
+        f32 du;
+        f32 dv;
+        f32 cp;
+        f32 cm;
+
+        if (i == 3) {
+            eu = au, ev = av;
+            dv = bv - av, du = bu - au;
+        } else if (i == 2) {
+            eu = au, ev = av;
+            dv = cv - av, du = cu - au;
+        } else {
+            eu = bu, ev = bv;
+            dv = cv - bv, du = cu - bu;
+        }
+        cp = (fpu - eu) * dv - (fpv - ev) * du;
+        if (cp == 0.0f) {
+            continue;
+        }
+        cm = (mu - eu) * dv - (mv - ev) * du;
+        if (cp > 0.0f) {
+            if (cm > 0.0f) {
+                continue;
+            }
+            return 0;
+        }
+        if (cm < 0.0f) {
+            continue;
+        }
+        return 0;
+    }
+    return 1;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029BF64.s")
+#endif
 
-/* func_8029C0DC: reads $s0 as a hidden input never set within the
- * function itself (a switch on `$s0->unk4E`, returning other $s0 fields) -
- * same non-ABI hidden-register-input family as func_8029DBF0/func_802A06B4
- * documented elsewhere in this file, just a different register. Permanently
- * GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Projects the triangle and the hit point (px, py, pz) to 2-D by dropping
+ * one axis chosen by the s8 at tri+0x4E: 0 drops z, 1 drops y, anything else
+ * drops x. out[0..7] = A.u, A.v, B.u, B.v, C.u, C.v, P.u, P.v (the asm's
+ * v0, v1, a0, a1, a2, a3, t0, t1, which func_8029BF64 takes).
+ * Register convention: tri in s0, px, py, pz in v1, a0, a1 (left there by
+ * func_8029C160). */
+void func_8029C0DC(u8 *tri, s32 px, s32 py, s32 pz, s32 *out) {
+    s32 *v = (s32 *) (tri + 0x28);
+    s32 axis = (s8) tri[0x4E];
+
+    if (axis == 0) {
+        out[6] = px, out[7] = py;
+        out[0] = v[0], out[1] = v[1];
+        out[2] = v[3], out[3] = v[4];
+        out[4] = v[6], out[5] = v[7];
+    } else if (axis == 1) {
+        out[6] = px, out[7] = pz;
+        out[0] = v[0], out[1] = v[2];
+        out[2] = v[3], out[3] = v[5];
+        out[4] = v[6], out[5] = v[8];
+    } else {
+        out[6] = py, out[7] = pz;
+        out[0] = v[1], out[1] = v[2];
+        out[2] = v[4], out[3] = v[5];
+        out[4] = v[7], out[5] = v[8];
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029C0DC.s")
+#endif
 
-/* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern s32 D_803A73FC;
+extern s32 D_803A7400;
+extern s32 D_803A7404;
+
+/* Plane test: dist = round((n . C + d) / f32 at +0x20) with 64-bit n . C; if
+ * |dist| > r returns 0, else projects C onto the plane:
+ * t = (f32)(-d - n . C) / f32 at +0x24, hit = C + round(n * t) per axis,
+ * stored to D_803A73FC/7400/7404 and to hit[0..2], and returns 1.
+ * hit[] mirrors the asm's v1, a0, a1: on a miss they keep the low words of
+ * n.y and n.z and the incoming a1 (dead values; no caller reads them then).
+ * Register convention: x, y, z, r in t3-t6, tri in s0; result in v0, hit
+ * point in v1, a0, a1; s2/s3 are scratch (the asm saves s1). */
+s32 func_8029C160(s32 x, s32 y, s32 z, s32 r, u8 *tri, s32 *hit) {
+    s64 nx = *(s64 *) (tri + 0x00);
+    s64 ny = *(s64 *) (tri + 0x08);
+    s64 nz = *(s64 *) (tri + 0x10);
+    s64 d = *(s64 *) (tri + 0x18);
+    s64 dot = nx * x + ny * y + nz * z;
+    s64 dist = port_cvt_l_s((f32) (dot + d) / *(f32 *) (tri + 0x20));
+    f32 t;
+
+    if (dist < 0) {
+        dist = -dist;
+    }
+    if ((s64) r < dist) {
+        hit[0] = ny;
+        hit[1] = nz;
+        return 0;
+    }
+    t = (f32) (-d - dot) / *(f32 *) (tri + 0x24);
+    hit[0] = D_803A73FC = port_cvt_l_s(t * (f32) nx) + x;
+    hit[1] = D_803A7400 = port_cvt_l_s(t * (f32) ny) + y;
+    hit[2] = D_803A7404 = port_cvt_l_s(t * (f32) nz) + z;
+    return 1;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029C160.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -425,8 +658,6 @@ void func_8029C6E4(Unk8029C6E4Out *o) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-f32 sqrtf(f32);
-
 /* Sphere overlap: 1 if |Q - P| < r1 + r2, else 0, with P = (px, py, pz),
  * Q = (qx, qy, qz). The squared distance is summed in 64 bits and converted
  * to float before the square root, as in the asm (cvt.s.l, sqrt.s). The

@@ -59,6 +59,17 @@ func_802A0480: in f0=f12,a0=a1,v0=a2,v1=a3 ; preserve v0,v1,a0,a1,a2,a3,t6,t7,f1
 func_802A04BC: in v0=a0,v1=a1 ; out v1=*a2,a0=*a2+4,a1=*a2+8,a2=*a2+0xC,a3=*a2+0x10,t0=*a2+0x14,t1=*a2+0x18,f0=*a2+0x1C ; preserve v0,t2,t4,t6,t7,t8,t9,f12,f14
 # D_803B35F8 entry whose id == v0 (unbounded scan), returned in v0 (saves v1, a0)
 func_802A06B4: in v0=a0 ; out v0=ret ; preserve v1,a0
+# sphere-vs-triangle cluster (tri in s0, sphere (t3,t4,t5) radius t6); see the 56040.c comment above func_8029BD0C
+# plane distance test -> v0, hit point -> v1, a0, a1 (a1 untouched on a miss); s1 saved, s2/s3 scratch
+func_8029C160: in t3=a0,t4=a1,t5=a2,t6=a3,s0=stack0,a1=*stack1+8 ; out v0=ret,v1=*stack1,a0=*stack1+4,a1=*stack1+8 ; preserve t3,t4,t5,t6,a2,a3,t8,t9,f12,f14 ; clobbers s2,s3
+# project vertices + hit point (v1, a0, a1) to 2-D by tri byte 0x4E -> v0, v1, a0, a1, a2, a3, t0, t1
+func_8029C0DC: in s0=a0,v1=a1,a0=a2,a1=a3 ; out v0=*stack0,v1=*stack0+4,a0=*stack0+8,a1=*stack0+0xC,a2=*stack0+0x10,a3=*stack0+0x14,t0=*stack0+0x18,t1=*stack0+0x1C ; preserve t3,t4,t5,t6,t8,t9
+# 2-D point (t0, t1) in triangle (v0,v1) (a0,a1) (a2,a3) -> t7; saves t3-t6
+func_8029BF64: in a0=a0,a1=a1,a2=a2,a3=a3,v0=stack0,v1=stack1,t0=stack2,t1=stack3 ; out t7=ret ; preserve a0,a1,a2,a3,t3,t4,t5,t6,t8,t9 ; clobbers f20,f22,f24,f26,f28
+# any triangle edge within t6 of (t3, t4, t5) -> t7; s2-s4 scratch
+func_8029BD0C: in t3=a0,t4=a1,t5=a2,t6=a3,s0=stack0 ; out t7=ret ; preserve t3,t4,t5,t6,t8,t9,f12,f14 ; clobbers s2,s3,s4
+# vertex 0 within t6 of (t3, t4, t5) -> t7
+func_8029BEE4: in t3=a0,t4=a1,t5=a2,t6=a3,s0=stack0 ; out t7=ret ; preserve t3,t4,t5,t6,t8,t9,f12,f14
 # gp (= D_803EEA90) byte/timer update; ABI-clean apart from gp, which the C reads as the global
 func_8029A914: preserve a1,a3,t0,t1,t3,t6,f12,f14
 # t1 / gp[0xA0] (divu) unless s1 == 0xFF or the byte is 1 (saves v0); still asm (func_8029CB04 jumps into its epilogue)

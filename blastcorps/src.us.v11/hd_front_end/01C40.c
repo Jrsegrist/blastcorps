@@ -16,9 +16,11 @@ typedef struct {
 typedef struct {
     /* 0x00 */ char name[8];
     /* 0x08 */ u8 level; /* level the player was last on */
-    /* 0x09 */ u8 pad9[7];
+    /* 0x09 */ u8 pad9[3];
+    /* 0x0C */ u8 title; /* index into D_802081C0 */
+    /* 0x0D */ u8 padD[3];
     /* 0x10 */ s32 unk10;
-    /* 0x14 */ u8 pad14[4];
+    /* 0x14 */ s32 unk14; /* money */
     /* 0x18 */ u8 rank[0x3C]; /* per level: 1-5 when done */
     /* 0x54 */ u8 pad54[0x91 - 0x54];
     /* 0x91 */ u8 unk91;
@@ -92,7 +94,10 @@ extern s16 D_802154D4;
 extern f32 D_802154E0;
 extern s32 D_802154EC;
 extern s32 D_80215508[];
-extern u8 D_802155A0[];
+extern u8 D_802155A0[]; /* ticker text */
+#define SCROLL_TEXT ((char *) D_802155A0)
+extern u8 D_80364AEA;
+extern u8 D_802E8BF8;
 extern u16 *D_802158A0;
 extern u8 D_8039C53C[]; /* per slot: 1 + level to save, 0 = nothing pending */
 extern u8 D_8039C540;
@@ -160,11 +165,14 @@ void func_80259DC8(void *gfxp, u8 *str, u16 *wstr, s32 align, s32 fit, s32 x, s3
 void func_801FE018(s32);
 void func_801F8354(u8);
 s32 func_8025B3F0(char *, char *);
+s32 func_8025B300(char *);
+s32 func_8025B370(u16 *);
 void func_80260650(void *, s32, s32);
 void func_80261570(f32);
 void func_8029A7E4(const char *, ...);
 void func_801E8DCC(u8 arg0);
-void func_801E8EB8(u8, s32);
+void func_801E8EB8(u8 slot, u8 arg1);
+void func_801E93DC(u8 arg0);
 u16 func_801E9528(void);
 void func_801EA108(u8 slot, u8 send, u8 newGame);
 void func_801EA268(Player *p);
@@ -231,54 +239,6 @@ char D_80208314[2][26] = { "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "BCDFGHJKLMNPQRSTVWXYZ"
 s32 D_80208348[2] = { 7, 12 };
 s32 D_80208350[2] = { 26, 21 };
 
-/* "" and "GUEST: " sit before the biographies in .rodata but after them in
- * .data: const arrays go to .rodata in source order */
-const char D_8020E764[] = "";
-const char D_8020E768[] = "GUEST: ";
-
-char *D_80208358[4] = {
-    ".................... LEADER OF THE ARMY BASE WALKOUT YEARS AGO. AMBER'S SHARP MIND AND BRIGHT, SELFLESS OUTLOOK "
-    "MAKE HER THE NEAREST THING BLAST CORPS HAS TO A LEADER ....................",
-    ".................... A GENIUS IN HEAVY VEHICLE DESIGN. WHILE SOMETIMES OVERLY POSSESSIVE OF HIS CREATIONS, CLARK "
-    "HAS TALENTS VITAL TO BLAST CORPS' SURVIVAL AND SUCCESS ....................",
-    ".................... HEAD MECHANIC OF THE BLAST CORPS TEAM. WITH YEARS OF EXPERIENCE AND A GRUFF PRIDE IN HIS "
-    "WORK, SPIKE ENSURES THAT THE DOZERS ARE BUILT TO PERFECTION ..................",
-    ".................... A FEARLESS ARMY DAREDEVIL UNTIL HIS DISABLING ACCIDENT. WESLEY'S REJECTION BY HIS SUPERIORS "
-    "TRIGGERED THE REBELLION THAT LED TO THE RISE OF BLAST CORPS ...............",
-};
-u16 *D_80208368[4] = { (u16 *) 0x803043B8, (u16 *) 0x80304474, (u16 *) 0x80304544, (u16 *) 0x80304614 };
-const char *D_80208378[2] = { D_8020E764, D_8020E768 };
-
-/* player select backdrop: two lit quads */
-Vtx D_80208380[8] = {
-    { { { -160, 174, 180 }, 0, { 0, 0 }, { 0x00, 0x81, 0x00, 0x28 } } },
-    { { { 160, 174, 180 }, 0, { 0, 0 }, { 0x00, 0x81, 0x00, 0x28 } } },
-    { { { 160, 204, 180 }, 0, { 0, 0 }, { 0x00, 0x7F, 0x1E, 0x28 } } },
-    { { { -160, 204, 180 }, 0, { 0, 0 }, { 0x00, 0x7F, 0x1E, 0x28 } } },
-    { { { -160, 198, 200 }, 0, { 0, 0 }, { 0x5A, 0x5A, 0x00, 0xB4 } } },
-    { { { -160, 180, 200 }, 0, { 0, 0 }, { 0x5A, 0xA6, 0x00, 0xB4 } } },
-    { { { 160, 180, 200 }, 0, { 0, 0 }, { 0x5A, 0xA6, 0x00, 0xB4 } } },
-    { { { 160, 198, 200 }, 0, { 0, 0 }, { 0x5A, 0x5A, 0x00, 0xB4 } } },
-};
-
-Gfx D_80208400[] = {
-    gsSPVertex(D_80208380, 8, 0),
-    gsDPPipeSync(),
-    gsSP1Triangle(0, 5, 1, 0),
-    gsSP1Triangle(5, 1, 6, 0),
-    gsSP1Triangle(4, 5, 6, 0),
-    gsSP1Triangle(4, 6, 7, 0),
-    gsSP1Triangle(4, 3, 7, 0),
-    gsSP1Triangle(3, 7, 2, 0),
-    gsSPEndDisplayList(),
-};
-
-Lights2 D_80208448 = gdSPDefLights2(0x28, 0x0A, 0x0A, 0xF0, 0xC8, 0x14, 69, -69, 69, 0xF0, 0x6E, 0x14, -69, 69, 69);
-Lights2 D_80208470 = gdSPDefLights2(0x28, 0x02, 0x21, 0x5A, 0x02, 0xDC, 69, -69, 69, 0x5A, 0x02, 0xDC, -69, 69, 69);
-
-s32 D_80208498 = 0x20000000;
-s32 D_8020849C = 0;
-
 /* Set up the player select screen for a player: sprites and both frames' matrices */
 void func_801E8C40(u8 arg0) {
     PlayerSelDyn *dyn;
@@ -313,7 +273,129 @@ void func_801E8DCC(u8 arg0) {
     D_802154E4 = 3.0f;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/01C40/func_801E8EB8.s")
+#define PLAYER_ASSERT(EX, line) \
+    if (!(EX)) func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "player.c", line)
+#define sslen D_802154D2
+#define TOTAL_SCROLL_LENGTH 256
+
+/* Build the player select ticker text for a slot (4 = guest/new): the
+ * biography in mode 0x1000000000000, else name, title, rank counts and money.
+ * The local arrays' templates are .data 0x80208358/0x80208368 and sPrefix is
+ * 0x80208378 (IDO puts function statics after the templates). */
+void func_801E8EB8(u8 slot, u8 arg1) {
+    s32 i;
+    Player *p = &D_80364AF0[slot];
+    u8 guest = 0;
+    static char *sPrefix[2] = { "", "GUEST: " };
+    char *bios[4] = {
+        ".................... LEADER OF THE ARMY BASE WALKOUT YEARS AGO. AMBER'S SHARP MIND AND BRIGHT, SELFLESS "
+        "OUTLOOK MAKE HER THE NEAREST THING BLAST CORPS HAS TO A LEADER ....................",
+        ".................... A GENIUS IN HEAVY VEHICLE DESIGN. WHILE SOMETIMES OVERLY POSSESSIVE OF HIS CREATIONS, "
+        "CLARK HAS TALENTS VITAL TO BLAST CORPS' SURVIVAL AND SUCCESS ....................",
+        ".................... HEAD MECHANIC OF THE BLAST CORPS TEAM. WITH YEARS OF EXPERIENCE AND A GRUFF PRIDE IN "
+        "HIS WORK, SPIKE ENSURES THAT THE DOZERS ARE BUILT TO PERFECTION ..................",
+        ".................... A FEARLESS ARMY DAREDEVIL UNTIL HIS DISABLING ACCIDENT. WESLEY'S REJECTION BY HIS "
+        "SUPERIORS TRIGGERED THE REBELLION THAT LED TO THE RISE OF BLAST CORPS ...............",
+    };
+    u16 *pics[4] = { (u16 *) 0x803043B8, (u16 *) 0x80304474, (u16 *) 0x80304544, (u16 *) 0x80304614 };
+
+    if (!(D_80364A90 & 0x10E18000) && slot != D_80364AEA) {
+        guest = 1;
+    }
+    D_802154EC = -1;
+    for (i = 1; i < 5; i++) {
+        D_80215508[i] = -1;
+    }
+    if (slot < 4) {
+        func_801E93DC(slot);
+    }
+    if (D_80364A98 == 0x1000000000000) {
+        D_802158A0 = NULL;
+        sprintf(SCROLL_TEXT, "%s", bios[slot]);
+    } else {
+        D_802158A0 = NULL;
+        if (slot < 4) {
+            if (D_80365060[slot] == 1) {
+                sprintf(SCROLL_TEXT, " ..... %s%s (%s) ... ", sPrefix[guest], p->name, D_802081C0[p->title].title);
+                for (i = (D_80364AF0[slot].unk91 >= 12) ? 4 : 3; i > 0; i--) {
+                    D_80215508[i] = func_8025B300(SCROLL_TEXT);
+                    if (i != 1) {
+                        sprintf(SCROLL_TEXT, "%s  %d .. ", SCROLL_TEXT, D_80215930[i]);
+                    }
+                }
+                sprintf(SCROLL_TEXT, "%s  %d ... ", SCROLL_TEXT, D_80215930[1]);
+                if (D_802E8BF8 == 0) {
+                    sprintf(SCROLL_TEXT, "%s$%d ... ", SCROLL_TEXT, p->unk14);
+                }
+                D_802154EC = func_8025B300(SCROLL_TEXT);
+                sprintf(SCROLL_TEXT, "%s  %d", SCROLL_TEXT, p->title);
+                if ((D_80364A98 & 0x0200040000000000) || (D_80364A90 & 0x0100000000000000)) {
+                    sprintf(SCROLL_TEXT, "%s ..... %s", SCROLL_TEXT, "USE Z/R TO CHANGE PLAYER, THEN A TO SELECT!");
+                }
+            } else {
+                sprintf(SCROLL_TEXT, " ... NEW GAME");
+            }
+        } else {
+            sprintf(SCROLL_TEXT, " ");
+        }
+    }
+    if (D_802158A0 != NULL) {
+        D_802154D2 = func_8025B370(D_802158A0);
+        D_8021592E = 1;
+        D_80215458 = 0x13;
+        if (slot == 4) {
+            D_802154D4 = 0x16;
+        } else {
+            D_802154D4 = 0xE;
+        }
+    } else {
+        D_802154D2 = func_8025B300(SCROLL_TEXT);
+        D_8021592E = 0;
+        D_80215458 = 0xC;
+        if (slot == 4) {
+            D_802154D4 = 0x24;
+        } else {
+            D_802154D4 = 0x16;
+        }
+    }
+    PLAYER_ASSERT(sslen<TOTAL_SCROLL_LENGTH, 400);
+    D_802154DC = -1;
+    if (arg1 || slot == 4) {
+        D_802154E0 = 12.0f;
+    } else {
+        D_802154E0 = 8.0f;
+    }
+}
+
+/* player select backdrop: two lit quads (.data after func_801E8EB8's) */
+Vtx D_80208380[8] = {
+    { { { -160, 174, 180 }, 0, { 0, 0 }, { 0x00, 0x81, 0x00, 0x28 } } },
+    { { { 160, 174, 180 }, 0, { 0, 0 }, { 0x00, 0x81, 0x00, 0x28 } } },
+    { { { 160, 204, 180 }, 0, { 0, 0 }, { 0x00, 0x7F, 0x1E, 0x28 } } },
+    { { { -160, 204, 180 }, 0, { 0, 0 }, { 0x00, 0x7F, 0x1E, 0x28 } } },
+    { { { -160, 198, 200 }, 0, { 0, 0 }, { 0x5A, 0x5A, 0x00, 0xB4 } } },
+    { { { -160, 180, 200 }, 0, { 0, 0 }, { 0x5A, 0xA6, 0x00, 0xB4 } } },
+    { { { 160, 180, 200 }, 0, { 0, 0 }, { 0x5A, 0xA6, 0x00, 0xB4 } } },
+    { { { 160, 198, 200 }, 0, { 0, 0 }, { 0x5A, 0x5A, 0x00, 0xB4 } } },
+};
+
+Gfx D_80208400[] = {
+    gsSPVertex(D_80208380, 8, 0),
+    gsDPPipeSync(),
+    gsSP1Triangle(0, 5, 1, 0),
+    gsSP1Triangle(5, 1, 6, 0),
+    gsSP1Triangle(4, 5, 6, 0),
+    gsSP1Triangle(4, 6, 7, 0),
+    gsSP1Triangle(4, 3, 7, 0),
+    gsSP1Triangle(3, 7, 2, 0),
+    gsSPEndDisplayList(),
+};
+
+Lights2 D_80208448 = gdSPDefLights2(0x28, 0x0A, 0x0A, 0xF0, 0xC8, 0x14, 69, -69, 69, 0xF0, 0x6E, 0x14, -69, 69, 69);
+Lights2 D_80208470 = gdSPDefLights2(0x28, 0x02, 0x21, 0x5A, 0x02, 0xDC, 69, -69, 69, 0x5A, 0x02, 0xDC, -69, 69, 69);
+
+s32 D_80208498 = 0x20000000;
+s32 D_8020849C = 0;
 
 /* Count the player's ranks per grade (D_80215930[1..4]) and the finished
  * levels of the 0x81 types, other than levels 0x26, 0x2F and 0x31 ([3]) */

@@ -393,7 +393,39 @@ s32 func_8029B930(void) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+typedef struct {
+    /* 0x0 */ s32 a3;
+    /* 0x4 */ s32 t6;
+    /* 0x8 */ s32 s1;
+} Io802A6274; /* as in 60F60.c */
+s32 func_802A6274(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32 z, s32 w24, s32 w28,
+                  s32 w18, s32 w1C, s32 w2C, s32 b35);
+extern u8 D_803A7428;
+extern s32 D_803A73FC;
+extern s32 D_803A7400;
+extern s32 D_803A7404;
+extern u8 D_80370C3C;
+extern u8 D_802C2984[]; /* a definition inside the 7D9D0 blob */
+
+/* Sets up a D_803C4B70 record (func_802A6274) for the definition D_802C2984
+ * with data D_803A7428 * 7000, type 0, position D_803A73FC/7400/7404 << 13,
+ * b35 = 1 and every other input 0; then D_80370C3C = 1.
+ * The asm saves and restores every register (f12/f14 are left as the callee
+ * leaves them); its asm caller func_8029B614 relies on nothing else. */
+void func_8029B994(void) {
+    Io802A6274 io;
+
+    io.a3 = 0;
+    io.t6 = 0;
+    io.s1 = 0;
+    func_802A6274(&io, D_802C2984, D_803A7428 * 0x1B58, 0, D_803A73FC << 13, D_803A7400 << 13, D_803A7404 << 13,
+                  0, 0, 0, 0, 0, 1);
+    D_80370C3C = 1;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029B994.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029BB28.s")
@@ -2088,10 +2120,161 @@ s32 func_8029F85C(u32 *bufA, u32 *bufB, Unk8029DEA0Entry *ch, u8 *hdr) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+s16 *func_8029FF2C(s16 *dst);
+s16 *func_8029FFA0(s16 *dst, Unk8029DEA0Entry *ch, u8 *keys);
+s16 *func_802A0118(s16 *dst, s16 *key, f32 t);
+extern u8 D_803B37C0[];
+extern u8 D_803B4FC0[];
+/* The 0x1800-byte scratch track both functions below build (the asm forms
+ * the address with a bare lui/addiu; no symbol). */
+#define PORT_TRACK_BUF ((u8 *) 0x803B67C0)
+
+/* Keyframe records of the track at hdr: hdr[0] = n, a count byte at
+ * hdr + n + 1 and the records from hdr + n + 2 rounded up to 4, each
+ * n * 0x14 + 8 bytes long. */
+static u8 *port_track_records(u8 *hdr, s32 *count, s32 *stride) {
+    s32 n = hdr[0];
+    u32 p = (u32) (hdr + n + 2);
+
+    if (p & 3) {
+        p += 4 - (p & 3);
+    }
+    *count = hdr[n + 1];
+    *stride = n * 0x14 + 8;
+    return (u8 *) p;
+}
+
+/* Pose of channel ch for keyframe record rec into dst: the spline
+ * (func_8029FFA0) when ch->unk15 == 1, the linear pose (func_802A0118) at
+ * key rec + 8 + (s8) ch->unk13 * 0x14 and t = ch->unk4 when it is 0. (The asm
+ * executes `syscall` for any other mode; no C equivalent.) */
+static s16 *port_channel_pose(s16 *dst, Unk8029DEA0Entry *ch, u8 *rec) {
+    if (ch->unk15 == 0) {
+        return func_802A0118(dst, (s16 *) (rec + ch->unk13 * 0x14 + 8), ch->unk4);
+    }
+    return func_8029FFA0(dst, ch, rec);
+}
+
+/* Makes channel e play the finished track: unk10-unk13, unk15 = 0, id = dst,
+ * unk4 = 0.0f, then copies the 0x1800-byte scratch track to dst (in that
+ * order: with the D_803B35F8 table e itself lies inside D_803B37C0's copy). */
+static void port_publish_track(Unk8029DEA0Entry *e, u8 *dst) {
+    u32 *s = (u32 *) PORT_TRACK_BUF;
+    u32 *d = (u32 *) dst;
+    s32 i;
+
+    e->unk10 = 0;
+    e->unk11 = 0;
+    e->unk12 = 0;
+    e->unk15 = 0;
+    e->unk13 = 0;
+    e->id = (s32) dst;
+    e->unk4 = 0.0f;
+    for (i = 0; i < 0x1800 / 4; i++) {
+        d[i] = s[i];
+    }
+}
+
+/* Blends two animation channels into a two-pose track: header bytes 2, 1, 1,
+ * count; then for each keyframe record of channel a's track whose key word
+ * also appears in channel b's track, the key, the record's second word, a's
+ * pose and b's pose (port_channel_pose) - count is the number of such
+ * records. The track goes to D_803B37C0 and channel 31 of base plays it.
+ * Register convention: a, b, base in v0, v1, a0 (conventions.txt); the asm
+ * restores a2, a3, t0-t4, t7, s0-s7, t8 and leaves f20/f30 (and f12/f14) as the
+ * pose callees do. Asm callers keep t6, t7, t8 live. */
+void func_8029F9D4(s32 a, s32 b, Unk8029DEA0Entry *base) {
+    Unk8029DEA0Entry *ea = base + a;
+    Unk8029DEA0Entry *eb = base + b;
+    u8 *out = PORT_TRACK_BUF;
+    s16 *dst;
+    u8 *ra;
+    u8 *rb;
+    u8 *r;
+    s32 na;
+    s32 nb;
+    s32 sa;
+    s32 sb;
+    s32 k;
+    s32 n = 0;
+
+    out[0] = 2;
+    out[1] = 1;
+    out[2] = 1;
+    dst = (s16 *) (out + 4);
+    ra = port_track_records((u8 *) ea->id, &na, &sa);
+    rb = port_track_records((u8 *) eb->id, &nb, &sb);
+    for (; na != 0; na--, ra += sa) {
+        u32 key = *(u32 *) ra;
+
+        for (r = rb, k = nb; k != 0; k--, r += sb) {
+            if (*(u32 *) r == key) {
+                break;
+            }
+        }
+        if (k == 0) {
+            continue;
+        }
+        ((u32 *) dst)[0] = key;
+        ((u32 *) dst)[1] = *(u32 *) (ra + 4);
+        dst += 4;
+        n++;
+        dst = port_channel_pose(dst, ea, ra);
+        dst = port_channel_pose(dst, eb, r);
+    }
+    out[3] = n;
+    port_publish_track(base + 31, D_803B37C0);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029F9D4.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Concatenates two channels' tracks into one with every pose doubled: header
+ * bytes 2, 1, 1, count; then for every keyframe record of channel a's track
+ * and then of channel b's: the key, the record's second word, the channel's
+ * pose (port_channel_pose) and a copy of it (func_8029FF2C); count = all
+ * records. The track goes to D_803B4FC0 and channel 30 of base plays it.
+ * Register convention, saved registers and callers' needs as func_8029F9D4. */
+void func_8029FC74(s32 a, s32 b, Unk8029DEA0Entry *base) {
+    Unk8029DEA0Entry *ea = base + a;
+    Unk8029DEA0Entry *eb = base + b;
+    u8 *hb = (u8 *) eb->id;
+    u8 *out = PORT_TRACK_BUF;
+    s16 *dst;
+    u8 *r;
+    s32 cnt;
+    s32 stride;
+    s32 n = 0;
+
+    out[0] = 2;
+    out[1] = 1;
+    out[2] = 1;
+    dst = (s16 *) (out + 4);
+    for (r = port_track_records((u8 *) ea->id, &cnt, &stride); cnt != 0; cnt--, r += stride) {
+        ((u32 *) dst)[0] = *(u32 *) r;
+        ((u32 *) dst)[1] = *(u32 *) (r + 4);
+        dst += 4;
+        n++;
+        dst = port_channel_pose(dst, ea, r);
+        dst = func_8029FF2C(dst);
+    }
+    for (r = port_track_records(hb, &cnt, &stride); cnt != 0; cnt--, r += stride) {
+        ((u32 *) dst)[0] = *(u32 *) r;
+        ((u32 *) dst)[1] = *(u32 *) (r + 4);
+        dst += 4;
+        n++;
+        dst = port_channel_pose(dst, eb, r);
+        dst = func_8029FF2C(dst);
+    }
+    out[3] = n;
+    port_publish_track(base + 30, D_803B4FC0);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029FC74.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

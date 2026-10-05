@@ -461,3 +461,55 @@ func_8029E47C: -n 300 --seed 2 --follow func_802A1074 --arg t3=int --arg t6=int:
     --mem D_803A7440*0x1010:13=rand --mem D_803A7440+6*0x1010:12/1=choice:0,1,1 \
     --sig osInvalDCache=a0,a1 --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2
 # end-block
+# [e1] func_8029B994: record for D_802C2984 (data D_803A7428 * 7000, position D_803A73FC.. << 13, b35 1), D_80370C3C = 1
+func_8029B994: -n 200 --ret void --mem D_803A7428:1=int:0:255 --mem D_803A73FC=int --mem D_803A7400=int --mem D_803A7404=int \
+    --mem D_80370C3C:1=rand
+func_8029B994: -n 200 --seed 1 --ret void --follow func_802A6274 --sig func_802ABC88=a0,a1 --sig func_802A11C4=a0,a1 \
+    --mem D_803A7428:1=int:0:255 --mem D_803A73FC=int:-0x8000:0x8000 --mem D_803A7400=int:-0x8000:0x8000 \
+    --mem D_803A7404=int:-0x8000:0x8000 --mem D_80370C3C:1=rand \
+    --mem D_803C4B70:0x3C0=rand --mem D_803C4B70+0x33*0x3C:16/1=choice:0,1,1 --mem D_803EB770:16=bytes:0,1,1 \
+    --mem D_803EB792:1=rand
+# end-block
+# [e1] func_8029F9D4 / func_8029FC74 (channels v0, v1 of the 0x18-byte table a0): two-pose tracks built in the
+# 0x803B67C0 scratch and published to D_803B37C0 (channel 31) / D_803B4FC0 (channel 30). Channels 0-3 point at
+# heap0 (n = 2 keys/record, 0x30-byte records) or heap0+0x200 (n = 1, 0x1C-byte records), 0-4 records each with
+# key words 1-4; modes (+0x15) 0/1 only (the asm executes `syscall` for others). Pose callees stubbed (returning
+# heap blocks), then followed.
+func_8029F9D4: -n 300 --stub-ret func_8029FFA0=ptr:0x40 --stub-ret func_802A0118=ptr:0x40 --heap 0x400 \
+    --mem @heap0:1=2 --mem @heap0+3:1=int:0:4 --mem @heap0+4*0x30:4=choice:1,2,3,4 \
+    --mem @heap0+0x200:1=1 --mem @heap0+0x202:1=int:0:4 --mem @heap0+0x204*0x1C:4=choice:1,2,3,4 \
+    --arg a0=ptr:0x300 --mem @a0*0x18:4=rel:heap0+0x200*int:0:1 --mem @a0+0x15*0x18:4/1=choice:0,1 \
+    --mem @a0+0x13*0x18:4/1=choice:0,1,0xFF --arg v0=int:0:3 --arg v1=int:0:3 \
+    --mem 0x803B67C0:0x100=rand --mem D_803B37C0:0x1800=rand
+func_8029FC74: -n 300 --stub-ret func_8029FFA0=ptr:0x40 --stub-ret func_802A0118=ptr:0x40 --stub-ret func_8029FF2C=ptr:0x40 \
+    --heap 0x400 --mem @heap0:1=2 --mem @heap0+3:1=int:0:4 --mem @heap0+4*0x30:4=choice:1,2,3,4 \
+    --mem @heap0+0x200:1=1 --mem @heap0+0x202:1=int:0:4 --mem @heap0+0x204*0x1C:4=choice:1,2,3,4 \
+    --arg a0=ptr:0x300 --mem @a0*0x18:4=rel:heap0+0x200*int:0:1 --mem @a0+0x15*0x18:4/1=choice:0,1 \
+    --mem @a0+0x13*0x18:4/1=choice:0,1,0xFF --arg v0=int:0:3 --arg v1=int:0:3 \
+    --mem 0x803B67C0:0x100=rand --mem D_803B4FC0:0x1800=rand
+# followed: linear poses (mode 0, key index 0) and spline poses (mode 1) for real
+func_8029F9D4: -n 200 --seed 1 --follow func_8029FFA0,func_802A0118,func_8029F6B0,func_8029F110,func_8029F060,func_8029E878 \
+    --heap 0x400 --mem @heap0:1=2 --mem @heap0+3:1=int:0:4 --mem @heap0+4*0x30:4=choice:1,2,3,4 \
+    --mem @heap0+0x200:1=2 --mem @heap0+0x202:1=int:0:4 --mem @heap0+0x204*0x30:4=choice:1,2,3,4 \
+    --arg a0=ptr:0x300 --mem @a0*0x18:4=rel:heap0+0x200*int:0:1 --mem @a0+4*0x18:4=fbits:0:1 --mem @a0+8*0x18:4=fbits:-1:2 \
+    --mem @a0+0x15*0x18:4/1=choice:0,1 --mem @a0+0x13*0x18:4/1=0 --arg v0=int:0:3 --arg v1=int:0:3 \
+    --mem D_803B3778:0x40=floats:-2:2 --mem 0x803B67C0:0x100=rand --mem D_803B37C0:0x200=rand
+func_8029FC74: -n 200 --seed 1 --follow func_8029FFA0,func_802A0118,func_8029FF2C,func_8029F6B0,func_8029F110,func_8029F060,func_8029E878 \
+    --heap 0x400 --mem @heap0:1=2 --mem @heap0+3:1=int:0:4 --mem @heap0+4*0x30:4=choice:1,2,3,4 \
+    --mem @heap0+0x200:1=2 --mem @heap0+0x202:1=int:0:4 --mem @heap0+0x204*0x30:4=choice:1,2,3,4 \
+    --arg a0=ptr:0x300 --mem @a0*0x18:4=rel:heap0+0x200*int:0:1 --mem @a0+4*0x18:4=fbits:0:1 --mem @a0+8*0x18:4=fbits:-1:2 \
+    --mem @a0+0x15*0x18:4/1=choice:0,1 --mem @a0+0x13*0x18:4/1=0 --arg v0=int:0:3 --arg v1=int:0:3 \
+    --mem D_803B3778:0x40=floats:-2:2 --mem 0x803B67C0:0x100=rand --mem D_803B4FC0:0x200=rand
+# the channel table at D_803B35F8 itself: channel 31's slot lies inside the D_803B37C0 copy (overwritten by it)
+func_8029F9D4: -n 100 --seed 2 --stub-ret func_8029FFA0=ptr:0x40 --stub-ret func_802A0118=ptr:0x40 --heap 0x400 \
+    --mem @heap0:1=2 --mem @heap0+3:1=int:0:4 --mem @heap0+4*0x30:4=choice:1,2 \
+    --mem @heap0+0x200:1=1 --mem @heap0+0x202:1=int:0:4 --mem @heap0+0x204*0x1C:4=choice:1,2 \
+    --arg a0=sym:D_803B35F8 --mem D_803B35F8*0x18:4=rel:heap0+0x200*int:0:1 --mem D_803B35F8+0x15*0x18:4/1=choice:0,1 \
+    --mem D_803B35F8+0x13*0x18:4/1=0 --arg v0=int:0:3 --arg v1=int:0:3 --mem 0x803B67C0:0x100=rand
+# mutation guard for the B-side match: every key in b's track equal to one in a's, a single record each
+func_8029F9D4: -n 100 --seed 3 --stub-ret func_8029FFA0=ptr:0x40 --stub-ret func_802A0118=ptr:0x40 --heap 0x400 \
+    --mem @heap0:1=2 --mem @heap0+3:1=choice:1,4 --mem @heap0+4*0x30:4=choice:1,2,3 \
+    --mem @heap0+0x200:1=1 --mem @heap0+0x202:1=choice:1,4 --mem @heap0+0x204:0x70=onehot:0x1C:2:words:3,4,5,6 \
+    --arg a0=ptr:0x300 --mem @a0*0x18:4=rel:heap0 --mem @a0+0x18=rel:heap0+0x200 --mem @a0+0x15*0x18:4/1=choice:0,1 \
+    --mem @a0+0x13*0x18:4/1=0 --arg v0=0 --arg v1=1 --mem 0x803B67C0:0x100=rand
+# end-block

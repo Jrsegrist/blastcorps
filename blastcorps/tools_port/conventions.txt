@@ -223,6 +223,14 @@ func_802A1C20: in t0=a0,fp=a1,s1=*a2 ; out s1=*a2 ; preserve v0,v1,a0,a1,a2,a3,t
 func_802A2608: in t4=a0,fp=a1 ; preserve v0,v1,a0,a1,a2,a3,t0,t3,t4,t5,t6,t7,t8,t9 ; clobbers s1
 # G_SETTIMG ids in level object t0's display list via func_802A08E4; list end -> s1 (s4 passes through)
 func_802A3008: in t0=a0 ; out s1=ret ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,t8,t9 ; clobbers s0,s2,s3,s4,s5,s6
+# phase D (wt-g3): packed object 0x98 vertices moved by D_8039CAB0/2/4 (saves t0; func_802A396C's s2/s4 left)
+func_802A19F4: preserve t0 ; clobbers s2,s4,s5,s6,s7
+# packed object D_8039CA7E (func_802A32CC: s2-s4 out when loaded), its matrices to the heap, func_80295AE0
+func_802A3198: in s2=*a0,s3=*a0+4,s4=*a0+8 ; out s2=*a0,s3=*a0+4,s4=*a0+8 ; preserve t0 ; clobbers s0,s5,s6,s7
+# placed object setup: type t3, data t4, x/y/z t5-t7, flag s0, tag t9, param fp; record from D_803F7654, triangles at the heap
+func_802A21AC: in t3=a0,t4=a1,t5=a2,t6=a3,t7=stack0,s0=stack1,t9=stack2,fp=stack3 ; preserve t0,t1,t2 ; clobbers s0-s7,gp,f20,f22,f24,f26,f28
+# level objects from level object t0's placement list (param fp); list end -> t1 (= t2)
+func_802A1D54: in t0=a0,fp=a1 ; out t1=ret ; preserve t0 ; clobbers s0-s7,gp,f20,f22,f24,f26,f28
 
 # --- 5FD50 ---
 # min of the first / max of the second s16 over an h x w block of a grid of s16 pairs

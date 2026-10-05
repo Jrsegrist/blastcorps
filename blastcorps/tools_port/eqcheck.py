@@ -84,6 +84,248 @@ def kseg0(p):
 
 
 # ---------------------------------------------------------------------------
+# Register conventions of non-ABI hand-asm functions (tools_port/conventions.txt).
+#
+#   NAME: in REG=SLOT,.. ; out REG=DEST,.. ; preserve REG,.. ; clobbers REG,..
+#
+# SLOT is where the C version takes the value: a0-a3, stackN (the word at
+# sp+0x10+4N; sp+0x10 is accepted too), f12, f14, or *SLOT[+OFF][:W] (read
+# through a pointer argument).  DEST is where the C version delivers an
+# output: ret (v0), fret (f0), any register, or *SLOT[+OFF][:W] (written
+# through a pointer argument; W = 1, 2 or 4 bytes, default 4).  A line with
+# `in` or `out` is a full convention: it lists every input and output.
+CONV_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "conventions.txt")
+REPO_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+OUTP_BASE = 0x80D80000          # pointer-argument scratch blocks of the function under test (not diffed)
+INT_SLOTS = ["a0", "a1", "a2", "a3"]
+FLOAT_SLOTS = ["f12", "f14"]
+
+
+def expand_regs(s, what):
+    """'v1,a0,s0-s7' -> ['v1', 'a0', 's0', .., 's7']"""
+    out = []
+    for x in s.split(","):
+        x = x.strip()
+        if not x:
+            continue
+        m = re.match(r"^([a-z]+)(\d+)-(?:[a-z]+)?(\d+)$", x)
+        regs = ["%s%d" % (m.group(1), i) for i in range(int(m.group(2)), int(m.group(3)) + 1)] if m else [x]
+        for r in regs:
+            if r not in REG or r in ("pc", "fcsr", "zero"):
+                raise ValueError("%s: unknown register %r" % (what, r))
+            out.append("fp" if r == "s8" else r)
+    return out
+
+
+def parse_slot(s, what):
+    s = s.strip()
+    if s in INT_SLOTS or s in FLOAT_SLOTS:
+        return s
+    if re.match(r"^stack\d+$", s):
+        return s
+    m = re.match(r"^sp\s*\+\s*(0x[0-9A-Fa-f]+|\d+)$", s)
+    if m:
+        off = int(m.group(1), 0)
+        if off >= 0x10 and off % 4 == 0:
+            return "stack%d" % ((off - 0x10) // 4)
+    raise ValueError("%s: bad C argument slot %r (want a0-a3, f12, f14, stackN or sp+0x10..)" % (what, s))
+
+
+def slot_off(slot):
+    return 0x10 + 4 * int(slot[5:])
+
+
+def slot_key(slot):
+    if slot in INT_SLOTS:
+        return (0, INT_SLOTS.index(slot))
+    if slot.startswith("stack"):
+        return (1, int(slot[5:]))
+    return (2, FLOAT_SLOTS.index(slot) if slot in FLOAT_SLOTS else 9)
+
+
+def parse_loc(s, what, regs_ok):
+    """A SLOT/DEST: ('reg', REG, 0, W) or ('mem', SLOT, OFF, W)."""
+    s = s.strip()
+    w = 4
+    m = re.match(r"^(.*?):([124])$", s)
+    if m:
+        s, w = m.group(1).strip(), int(m.group(2))
+    if s.startswith("*"):
+        m = re.match(r"^\*\s*(\w+)\s*(?:\+\s*(0x[0-9A-Fa-f]+|\d+))?$", s)
+        if not m:
+            raise ValueError("%s: bad pointer slot %r (want *a2, *a2+4, *stack0:2)" % (what, s))
+        slot = parse_slot(m.group(1), what)
+        if slot in FLOAT_SLOTS:
+            raise ValueError("%s: %r: a pointer can't be passed in %s" % (what, s, slot))
+        return ("mem", slot, int(m.group(2), 0) if m.group(2) else 0, w)
+    if regs_ok:
+        r = {"ret": "v0", "fret": "f0", "s8": "fp"}.get(s, s)
+        if r in REG and r not in ("pc", "fcsr", "zero"):
+            return ("reg", r, 0, w)
+        raise ValueError("%s: bad output %r (want ret, fret, a register or *SLOT[+OFF][:W])" % (what, s))
+    return ("reg", parse_slot(s, what), 0, w)
+
+
+def loc_str(loc):
+    kind, where, off, w = loc
+    s = ("*%s+0x%X" % (where, off) if off else "*" + where) if kind == "mem" else where
+    return s + (":%d" % w if w != 4 else "")
+
+
+class Conv:
+    """One function's register convention (a conventions.txt line)."""
+
+    def __init__(self, name, where):
+        self.name, self.where = name, where
+        self.ins = []           # (asm reg or stackN, loc) in C argument order
+        self.outs = []          # (asm reg, loc)
+        self.preserve = set()
+        self.clobbers = set()
+        self.full = False
+
+    def ptr_slots(self):
+        """C argument slots that carry a pointer to an input/output word."""
+        return sorted(set(l[1] for _, l in self.ins + self.outs if l[0] == "mem"), key=slot_key)
+
+    def text(self):
+        parts = []
+        if self.ins:
+            parts.append("in " + ",".join("%s=%s" % (r, loc_str(l)) for r, l in self.ins))
+        if self.outs:
+            parts.append("out " + ",".join("%s=%s" % (r, loc_str(l)) for r, l in self.outs))
+        if self.preserve:
+            parts.append("preserve " + ",".join(sorted(self.preserve)))
+        if self.clobbers:
+            parts.append("clobbers " + ",".join(sorted(self.clobbers)))
+        return " ; ".join(parts)
+
+
+def parse_conv_line(line, where):
+    m = re.match(r"^([A-Za-z_]\w*)\s*:\s*(.*)$", line.strip())
+    if not m:
+        raise ValueError("%s: expected 'NAME: in REG=SLOT,.. ; out REG=DEST,.. ; preserve ..'" % where)
+    c = Conv(m.group(1), where)
+    for clause in m.group(2).split(";"):
+        clause = clause.strip()
+        if not clause:
+            continue
+        kw, _, rest = clause.partition(" ")
+        if kw in ("in", "out"):
+            c.full = True
+            for item in rest.split(","):
+                item = item.strip()
+                if not item:
+                    continue
+                if "=" not in item:
+                    raise ValueError("%s: %s item %r needs REG=%s" % (where, kw, item, "SLOT" if kw == "in" else "DEST"))
+                r, loc = item.split("=", 1)
+                r = r.strip()
+                if kw == "in" and re.match(r"^(stack\d+|sp\s*\+.*)$", r):
+                    r = parse_slot(r, where)           # a stack argument the asm reads in place
+                else:
+                    r = expand_regs(r, where)[0]
+                if kw == "in":
+                    c.ins.append((r, parse_loc(loc, where, False)))
+                else:
+                    c.outs.append((r, parse_loc(loc, where, True)))
+        elif kw == "preserve":
+            c.preserve |= set(expand_regs(rest, where))
+        elif kw == "clobbers":
+            c.clobbers |= set(expand_regs(rest, where))
+        else:
+            raise ValueError("%s: unknown clause %r (want in, out, preserve, clobbers)" % (where, kw))
+    # sanity
+    seen = {}
+    for r, l in c.ins:
+        k = (l[1], l[2]) if l[0] == "mem" else l[1]
+        if k in seen:
+            raise ValueError("%s: C slot %s used by both %s and %s" % (where, loc_str(l), seen[k], r))
+        seen[k] = r
+    ptrs = set(c.ptr_slots())
+    for r, l in c.ins:
+        if l[0] == "reg" and l[1] in ptrs:
+            raise ValueError("%s: %s is both a value and a pointer slot" % (where, l[1]))
+    regs_in = [r for r, _ in c.ins]
+    if len(set(regs_in)) != len(regs_in):
+        raise ValueError("%s: an input register is listed twice" % where)
+    outs = [r for r, _ in c.outs]
+    if len(set(outs)) != len(outs):
+        raise ValueError("%s: an output register is listed twice" % where)
+    bad = c.preserve & set(outs)
+    if bad:
+        raise ValueError("%s: %s both preserved and an output" % (where, ",".join(sorted(bad))))
+    return c
+
+
+def load_convs(path, must_exist=False):
+    convs = {}
+    if not os.path.exists(path):
+        if must_exist:
+            raise SystemExit("eqcheck: conventions file %s not found" % path)
+        return convs
+    with open(path) as f:
+        lines = f.read().split("\n")
+    i = 0
+    while i < len(lines):
+        lineno, line = i + 1, lines[i]
+        i += 1
+        while line.rstrip().endswith("\\") and i < len(lines):
+            line = line.rstrip()[:-1] + " " + lines[i]
+            i += 1
+        s = line.split("#", 1)[0].strip()
+        if not s:
+            continue
+        where = "%s:%d" % (os.path.basename(path), lineno)
+        try:
+            c = parse_conv_line(s, where)
+        except ValueError as e:
+            raise SystemExit("eqcheck: %s" % e)
+        if c.name in convs:
+            raise SystemExit("eqcheck: %s: %s already defined at %s" % (where, c.name, convs[c.name].where))
+        convs[c.name] = c
+    return convs
+
+
+_SRCINFO = {}
+
+
+def source_info(version):
+    """(asm, rewritten): every function with a GLOBAL_ASM pragma in src.<version>,
+    and those whose pragma sits in the #else of an #ifdef NON_MATCHING (so
+    the NON_MATCHING build has C for them)."""
+    if version in _SRCINFO:
+        return _SRCINFO[version]
+    asm, rew = set(), set()
+    src = os.path.join(REPO_DIR, "src.%s" % version)
+    for dirpath, _, files in os.walk(src):
+        for fn in files:
+            if not fn.endswith(".c"):
+                continue
+            stack = []          # per open #if: [is_nm, in_else]
+            with open(os.path.join(dirpath, fn), errors="replace") as f:
+                for line in f:
+                    s = line.strip()
+                    if not s.startswith("#"):
+                        continue
+                    if re.match(r"#\s*if(n?def)?\b", s):
+                        stack.append([bool(re.match(r"#\s*ifdef\s+NON_MATCHING\b", s)
+                                           or re.match(r"#\s*if\s+defined\s*\(?\s*NON_MATCHING", s)), False])
+                    elif re.match(r"#\s*else\b", s) and stack:
+                        stack[-1][1] = True
+                    elif re.match(r"#\s*endif\b", s) and stack:
+                        stack.pop()
+                    else:
+                        m = re.search(r'GLOBAL_ASM\(\s*"([^"]+)"', s)
+                        if m:
+                            n = os.path.splitext(os.path.basename(m.group(1)))[0]
+                            asm.add(n)
+                            if any(nm and el for nm, el in stack):
+                                rew.add(n)
+    _SRCINFO[version] = (asm, rew)
+    return asm, rew
+
+
+# ---------------------------------------------------------------------------
 class Build:
     """Symbols and loadable sections of one build (hd_code ELF + init ELF)."""
 
@@ -304,6 +546,48 @@ class Machine:
         self.code_hook = None
         self.icache = {}
         self.auto_follow = set()  # callees run for real because the other build has no such function
+        # a NON_MATCHING build (text moved up) has C for the functions rewritten under #ifdef NON_MATCHING
+        self.is_nm = any(lo >= 0x80800000 for lo, hi in build.text)
+        self._fent = sorted(build.funcs)
+        self.prev_block = 0
+
+    # -- which side of a register convention a piece of code is on ------------
+    def func_at(self, a):
+        i = bisect.bisect_right(self._fent, a) - 1
+        return self.b.funcs[self._fent[i]] if i >= 0 else None
+
+    def func_side(self, name):
+        """'asm' if NAME is hand asm (a GLOBAL_ASM pragma) in this build, else 'c'."""
+        asm, rew = source_info(self.opts.version)
+        if name is None:
+            return "asm"
+        if name not in asm or (self.is_nm and name in rew):
+            return "c"
+        return "asm"
+
+    def caller_side(self):
+        """Side of the code that just made a call (the block before the callee's entry)."""
+        a = self.prev_block
+        if not self.b.in_text(a):
+            return "asm"        # original-build code (prefilled text, a blob)
+        return self.func_side(self.func_at(a))
+
+    def read_loc(self, loc):
+        """Value of a register, or of a stack argument (stackN / sp+0x10) at the current sp."""
+        uc = self.uc
+        if loc.startswith("stack") or loc.startswith("sp+"):
+            off = slot_off(loc) if loc.startswith("stack") else int(loc[3:], 0)
+            return struct.unpack(">I", self.read(u32(uc.reg_read(REG["sp"])) + off, 4))[0]
+        return u32(uc.reg_read(REG[loc]))
+
+    def read_ptr(self, ptr, w):
+        try:
+            return int.from_bytes(self.read(ptr, w), "big")
+        except UcError:
+            return None
+
+    def write_reg(self, r, v):
+        self.uc.reg_write(REG[r], v & 0xFFFFFFFF if r.startswith("f") else sext32(v))
 
     # -- per-run state ------------------------------------------------------
     def reset(self):
@@ -316,12 +600,14 @@ class Machine:
         self.call_counts = {}
         self.reads = None
         self.trace_writes = None
+        self.prev_block = 0
 
     def in_code(self, a):
         return self.b.in_text(a) or any(lo <= a < hi for lo, hi in self.prefill_text)
 
     def _on_block(self, uc, addr, size, ud):
         a = u32(addr)
+        self.prev_block = self.last_block
         self.last_block = a
         if self.opts.trace:
             print("    [%s] block %s (%d bytes)" % (self.b.label, self.b.name_at(a), size))
@@ -360,15 +646,61 @@ class Machine:
         self._stub(name)
 
     def _stub(self, name):
+        """Record a call to NAME and return from it at once.  For a callee with
+        a full register convention the arguments are read, and the canned
+        results written, on the caller's side of the convention: the asm
+        registers when the caller is hand asm, the C slots (a0-a3, stack,
+        f12/f14, pointer arguments) and v0/f0 when it is C.  Arguments are
+        labelled by C slot, so the two builds compare."""
         uc = self.uc
         k = self.call_counts.get(name, 0)
         self.call_counts[name] = k + 1
-        args = tuple((r, u32(uc.reg_read(REG[r]))) for r in self.opts.sig_for(name))
+        conv = self.opts.convs.get(name)
+        full = conv is not None and conv.full
+        side = self.caller_side() if full else None
+        if full:
+            sel = self.opts.sigs.get(name)          # --sig with a convention selects C slots
+            args = []
+            for r, loc in conv.ins:
+                label = loc_str(loc)
+                if sel is not None and label not in sel and loc[1] not in sel:
+                    continue
+                if side == "asm":
+                    v = self.read_loc(r)
+                elif loc[0] == "reg":
+                    v = self.read_loc(loc[1])
+                else:
+                    v = self.read_ptr(self.read_loc(loc[1]) + loc[2], loc[3])
+                    v = 0xDEADDEAD if v is None else v
+                if loc[3] != 4:
+                    v &= (1 << (8 * loc[3])) - 1
+                args.append((label, v))
+            args = tuple(args)
+        else:
+            args = tuple((r, self.read_loc(r)) for r in self.opts.sig_for(name))
         self.events.append(("call", name, args))
-        rv = self.opts.ret_for(name, k, self)
-        uc.reg_write(REG["v0"], sext32(rv[0]))
-        uc.reg_write(REG["v1"], sext32(rv[1]))
-        uc.reg_write(REG["f0"], rv[2])
+        keep = self.opts.preserve_for(name)
+        if not full or side == "c":
+            rv = self.opts.ret_for(name, k, self)
+            for r, v in (("v0", rv[0]), ("v1", rv[1]), ("f0", rv[2])):
+                if r not in keep:
+                    self.write_reg(r, v)
+        if full:
+            for idx, (r, loc) in enumerate(conv.outs):
+                v = self.opts.out_value(name, k, idx, r, self)
+                if loc[3] != 4:
+                    v &= (1 << (8 * loc[3])) - 1
+                if side == "asm":
+                    self.write_reg(r, v)
+                elif loc[0] == "reg":
+                    self.write_reg(loc[1], v)
+                else:
+                    p = u32(self.read_loc(loc[1]) + loc[2])
+                    try:
+                        uc.mem_write(phys(p), v.to_bytes(loc[3], "big"))
+                    except UcError:
+                        if ("badptr", name) not in self.notes:
+                            self.notes.append(("badptr", name))
         uc.reg_write(REG["pc"], uc.reg_read(REG["ra"]))
 
     # loads/stores decoded in a code hook (only for --explore / --mmio-log;
@@ -543,6 +875,7 @@ class Plan:
         self.heap = HEAP_BASE
         self.blocks = []          # addresses of ptr/ptrz blocks, in allocation order (heap0, heap1, ..)
         self.vals = {}            # values set by --arg (reg name -> int or per-build callable)
+        self.outp = {}            # convention pointer slot -> scratch block address
 
     def alloc(self, size):
         a = self.heap
@@ -907,9 +1240,81 @@ def make_plan(opts, trial):
             raise SystemExit("bad --arg target %r" % tgt)
         plan.vals[tgt] = v
         plan.desc.append("%s = %s" % (tgt, desc))
+    if opts.tconv is not None:
+        conv_plan(plan, opts.tconv, rng)
     for spec in opts.mem:
         gen_mem(spec, rng, plan)
     return plan
+
+
+def conv_plan(plan, conv, rng):
+    """The function under test has a register convention: give every input the
+    same value in its asm register AND its C slot, in both builds (so either
+    version reads the same thing), and point each pointer slot at a scratch
+    block outside the diffed memory (OUTP_BASE..) whose words the C version
+    reads inputs from / writes outputs to."""
+    frame = plan.mem[0][1]          # the poisoned caller frame at STACK_TOP
+    given = {}
+    for k, v in plan.vals.items():
+        m = re.match(r"^sp\+(0x[0-9A-Fa-f]+|\d+)$", k)
+        given["stack%d" % ((int(m.group(1), 0) - 0x10) // 4) if m else k] = v
+
+    def set_slot(slot, v):
+        if slot.startswith("stack"):
+            o = slot_off(slot)
+            if callable(v):
+                plan.mem.append((lambda b, o=o: STACK_TOP + o, None, v))
+            else:
+                plan.mem.append((lambda b, o=o: STACK_TOP + o, struct.pack(">I", v & 0xFFFFFFFF)))
+            plan.vals["sp+0x%x" % o] = v
+        else:
+            plan.regs[slot] = v
+            plan.vals[slot] = v
+
+    def get_slot(slot):
+        if slot.startswith("stack"):
+            o = slot_off(slot)
+            return struct.unpack(">I", frame[o:o + 4])[0]
+        return plan.regs[slot]
+
+    blocks = {}
+    for i, slot in enumerate(conv.ptr_slots()):
+        if slot in given:
+            raise SystemExit("--arg %s: %s is a pointer slot of %s's convention (the harness sets it)"
+                             % (slot, slot, conv.name))
+        a = OUTP_BASE + 0x100 * i
+        plan.mem.append((lambda b, a=a: a, bytes(rng.getrandbits(8) for _ in range(0x100))))
+        set_slot(slot, a)
+        blocks[slot] = a
+    plan.outp = blocks
+    for r, loc in conv.ins:
+        kind, slot, off, w = loc
+        cslot = slot if kind == "reg" else None
+        if r in given and cslot in given and r != cslot:
+            raise SystemExit("--arg gives both %s and %s, which %s's convention ties together" % (r, cslot, conv.name))
+        if r in given:
+            v = given[r]
+        elif cslot in given:
+            v = given[cslot]
+        elif kind == "reg":
+            v = get_slot(slot)
+        elif r.startswith("stack"):
+            v = get_slot(r)
+        else:
+            v = plan.regs[r]
+        if kind == "mem":
+            if callable(v):
+                raise SystemExit("%s: a pointer-slot input (%s) must be a number" % (conv.name, loc_str(loc)))
+            v &= (1 << (8 * w)) - 1
+            plan.mem.append((lambda b, a=blocks[slot] + off: a, v.to_bytes(w, "big")))
+        else:
+            set_slot(slot, v)
+        if r.startswith("stack"):
+            if r != slot:
+                set_slot(r, v)
+        else:
+            plan.regs[r] = v
+            plan.vals[r] = v
 
 
 class PlanView:
@@ -918,6 +1323,7 @@ class PlanView:
     def __init__(self, plan, build):
         self.regs = {r: (v(build) if callable(v) else v) for r, v in plan.regs.items()}
         self.fcsr = plan.fcsr
+        self.outp = plan.outp
         self.mem = []
         for e in plan.mem:
             if len(e) == 3:
@@ -928,8 +1334,25 @@ class PlanView:
 
 
 # ---------------------------------------------------------------------------
-def compare(opts, ref_m, new_m, amap, r_ref, r_new):
-    """Returns a list of difference strings (empty = equivalent)."""
+def conv_outputs(conv, side, m, res, plan):
+    """The function under test's outputs, read on its side of the convention:
+    the asm registers, or v0/f0/the pointer-slot scratch words for C."""
+    out = []
+    for r, loc in conv.outs:
+        kind, where, off, w = loc
+        if side == "asm":
+            v = res[r]
+        elif kind == "reg":
+            v = res[where]
+        else:
+            v = int.from_bytes(m.read(plan.outp[where] + off, w), "big")
+        out.append(v & ((1 << (8 * w)) - 1))
+    return out
+
+
+def compare(opts, ref_m, new_m, amap, r_ref, r_new, outs=None):
+    """Returns a list of difference strings (empty = equivalent).  OUTS is a
+    list of (label, ref value, new value) convention outputs."""
     diffs = []
     fr, fn = ref_m.fault, new_m.fault
 
@@ -970,10 +1393,15 @@ def compare(opts, ref_m, new_m, amap, r_ref, r_new):
         t, _ = amap.to_ref(vn)
         return t == vr
 
+    # convention outputs (asm register vs C return value / pointer argument)
+    for label, vr, vn in outs or []:
+        if not same_val(vr, vn):
+            diffs.append("output %s: %s=0x%08X %s=0x%08X" % (label, ref_m.b.label, vr, new_m.b.label, vn))
+
     # registers
     regs = list(opts.ret_regs) + ([] if opts.no_saved else [r for r in SAVED_REGS if r not in opts.ret_regs])
     for r in regs:
-        if r in opts.ignore_regs:
+        if r in opts.ignore_regs or r in opts.conv_skip_saved and r not in opts.ret_regs:
             continue
         vr, vn = r_ref[r], r_new[r]
         if not same_val(vr, vn):
@@ -1074,8 +1502,9 @@ def parse_args(argv):
     ap.add_argument("--heap", action="append", default=[],
                     help="SIZE[=FILL]: allocate a scratch-heap block (heap0, heap1, .. before any --arg ptr) "
                          "without putting its address in a register; FILL defaults to rand")
-    ap.add_argument("--ret", default="int",
-                    help="return kind: int, ptr, void, u64, float, double, or regs:v0,t0,...")
+    ap.add_argument("--ret", default=None,
+                    help="return kind: int, ptr, void, u64, float, double, or regs:v0,t0,... (default int; "
+                         "void when FUNC has a full convention, whose outputs are compared instead)")
     ap.add_argument("--ignore-reg", dest="ignore_regs", action="append", default=[])
     ap.add_argument("--no-saved-check", dest="no_saved", action="store_true",
                     help="don't compare callee-saved registers")
@@ -1086,7 +1515,16 @@ def parse_args(argv):
                     help="NAME=a0,a1,f12 : which arg registers to record for calls to NAME "
                          "(default a0-a3; NAME=* sets the default)")
     ap.add_argument("--stub-ret", action="append", default=[],
-                    help="NAME=VALUE|rand|ptr:SIZE : value stubbed NAME returns in v0 (default rand)")
+                    help="NAME=VALUE|rand|ptr:SIZE : value stubbed NAME returns in v0 / its first convention "
+                         "output (default rand); NAME.REG=.. sets the convention output in asm register REG")
+    ap.add_argument("--stub-preserve", action="append", default=[],
+                    help="NAME=v1,a0 : registers a stubbed NAME must leave alone (the default stub writes "
+                         "v0, v1 and f0); NAME=* for every stub")
+    ap.add_argument("--conv", dest="conv_lines", action="append", default=[],
+                    help="'NAME: in REG=SLOT,.. ; out REG=DEST,.. ; preserve REG,.. ; clobbers REG,..' "
+                         "convention line, added to (or replacing) the conventions file's")
+    ap.add_argument("--conv-file", default=CONV_FILE, help="conventions file (default tools_port/conventions.txt)")
+    ap.add_argument("--no-conv", action="store_true", help="ignore all register conventions")
     ap.add_argument("--mmio", action="append", default=[],
                     help="0xA4xxxxxx=VALUE: initial word at an MMIO register (MMIO is plain memory here)")
     ap.add_argument("--mmio-log", action="store_true",
@@ -1108,27 +1546,82 @@ def parse_args(argv):
     for k, v in vars(o).items():
         setattr(opts, k, v)
     opts.follow_set = set(x for f in o.follow for x in f.split(","))
-    if o.ret.startswith("regs:"):
-        opts.ret_regs = o.ret[5:].split(",")
+    # register conventions
+    opts.convs = {} if o.no_conv else load_convs(o.conv_file, must_exist=o.conv_file != CONV_FILE)
+    for i, line in enumerate(o.conv_lines):
+        try:
+            c = parse_conv_line(line, "--conv #%d" % (i + 1))
+        except ValueError as e:
+            raise SystemExit("eqcheck: %s" % e)
+        opts.convs[c.name] = c
+    tc = opts.convs.get(o.func)
+    opts.tconv = tc if tc is not None and tc.full else None
+    # registers the function under test may legitimately change although the
+    # o32 ABI saves them (its asm outputs and documented clobbers): the C
+    # version keeps them, so they are not compared as callee-saved
+    opts.conv_skip_saved = set()
+    if tc is not None:
+        opts.conv_skip_saved = set(r for r, _ in tc.outs) | tc.clobbers
+    ret = o.ret if o.ret is not None else ("void" if opts.tconv else "int")
+    if ret.startswith("regs:"):
+        opts.ret_regs = ret[5:].split(",")
     else:
-        opts.ret_regs = RET_KINDS[o.ret]
+        if ret not in RET_KINDS:
+            raise SystemExit("eqcheck: bad --ret %r" % ret)
+        opts.ret_regs = RET_KINDS[ret]
     sigs = {}
     default_sig = ["a0", "a1", "a2", "a3"]
     for s in o.sig:
         n, regs = s.split("=", 1)
-        lst = [r for r in regs.split(",") if r]
+        lst = [r.strip() for r in regs.split(",") if r.strip()]
+        for r in lst:
+            if r not in REG and not re.match(r"^(stack\d+|sp\+(0x[0-9A-Fa-f]+|\d+))$", r) \
+                    and not (n in opts.convs and r.startswith("*")):
+                raise SystemExit("eqcheck: --sig %s: unknown register/slot %r" % (s, r))
         if n == "*":
             default_sig = lst
         else:
             sigs[n] = lst
+    opts.sigs = sigs
     opts.sig_for = lambda name: sigs.get(name, default_sig)
+    preserve = {}
+    for s in o.stub_preserve:
+        if "=" not in s:
+            raise SystemExit("eqcheck: bad --stub-preserve %r: want NAME=REG,REG" % s)
+        n, regs = s.split("=", 1)
+        try:
+            preserve.setdefault(n, set()).update(expand_regs(regs, "--stub-preserve"))
+        except ValueError as e:
+            raise SystemExit("eqcheck: %s" % e)
+
+    def preserve_for(name):
+        c = opts.convs.get(name)
+        return (c.preserve if c is not None else set()) | preserve.get(name, set()) | preserve.get("*", set())
+    opts.preserve_for = preserve_for
     rets = {}
     for s in o.stub_ret:
         n, v = s.split("=", 1)
         rets[n] = v
 
+    def out_value(name, k, idx, reg, machine):
+        """Canned value for output IDX (asm register REG) of a stubbed NAME."""
+        spec = rets.get("%s.%s" % (name, reg))
+        if spec is None and idx == 0:
+            return ret_for(name, k, machine)[0]
+        spec = spec or "rand"
+        if spec == "rand":
+            h = hashlib.sha1(("%s/%s/%s/%d/%d" % (opts.seed, opts._trial, name, k, idx)).encode()).digest()
+            r0 = struct.unpack(">I", h[:4])[0]
+            return r0 if r0 & 1 else r0 & 0xFF
+        if spec.startswith("ptr"):
+            return ret_for_spec(spec, name, k, machine)[0]
+        return int(spec, 0) & 0xFFFFFFFF
+    opts.out_value = out_value
+
     def ret_for(name, k, machine):
-        spec = rets.get(name, "rand")
+        return ret_for_spec(rets.get(name, "rand"), name, k, machine)
+
+    def ret_for_spec(spec, name, k, machine):
         h = hashlib.sha1(("%s/%s/%s/%d" % (opts.seed, opts._trial, name, k)).encode()).digest()
         r0, r1, r2 = struct.unpack(">III", h[:12])
         if spec == "rand":
@@ -1189,6 +1682,13 @@ def explore(opts, ref, m, entry):
     print("explore %s @0x%08X (%s), trial 0 inputs: %s" % (opts.func, entry, ref.label, "; ".join(plan.desc) or "-"))
     print("outcome:", "returned" if m.fault is None else m.fault)
     print("return v0=0x%08X v1=0x%08X f0=0x%08X" % (r["v0"], r["v1"], r["f0"]))
+    if opts.func in opts.convs:
+        c = opts.convs[opts.func]
+        print("convention: %s" % c.text())
+        if opts.tconv is not None and m.fault is None:
+            side = m.func_side(opts.func)
+            vals = conv_outputs(c, side, m, r, PlanView(plan, ref))
+            print("outputs (%s side): %s" % (side, ", ".join("%s=0x%X" % (rr, v) for (rr, _), v in zip(c.outs, vals))))
 
     blocks = plan.blocks
 
@@ -1299,6 +1799,13 @@ def main(argv=None):
               % (opts.func, e_new, new.label))
     print("eqcheck %s: %s @0x%08X vs %s @0x%08X, %d trials, seed %s" %
           (opts.func, ref.label, e_ref, new.label, e_new, opts.trials, opts.seed))
+    tc = opts.tconv
+    side_ref = side_new = None
+    if opts.func in opts.convs:
+        c = opts.convs[opts.func]
+        side_ref, side_new = ref_m.func_side(opts.func), new_m.func_side(opts.func)
+        print("convention %s: %s  (%s: %s, %s: %s)" % (opts.func, c.text(), ref.label, side_ref,
+                                                      new.label, "C" if side_new == "c" else side_new))
     fails = 0
     both_faulted = 0
     notes = set()
@@ -1308,17 +1815,28 @@ def main(argv=None):
         plan = make_plan(opts, t)
         r_ref = ref_m.run(e_ref, PlanView(plan, ref))
         r_new = new_m.run(e_new, PlanView(plan, new))
-        for n in new_m.notes:
-            if n not in notes:
-                notes.add(n)
+        for lbl, m in ((ref.label, ref_m), (new.label, new_m)):
+            for n in m.notes:
+                if (lbl, n) in notes:
+                    continue
+                notes.add((lbl, n))
                 if n[0] == "helper":
-                    print("note: following %s, which exists only in %s (static helper?)" % (n[1], new.label))
-                else:
+                    print("note: following %s, which exists only in %s (static helper?)" % (n[1], lbl))
+                elif n[0] == "badptr":
+                    print("note: %s: stubbed %s's pointer argument is unmapped, output not written"
+                          % (lbl, n[1]))
+                elif m is new_m:
                     print("note: %s executed original-build code at %s (not a function entry; "
                           "jump table or pointer in a binary blob?)" % (new.label, ref.name_at(n[1])))
         if ref_m.fault and new_m.fault:
             both_faulted += 1
-        diffs = compare(opts, ref_m, new_m, amap, r_ref, r_new)
+        outs = None
+        if tc is not None and ref_m.fault is None and new_m.fault is None:
+            pv = PlanView(plan, ref)
+            outs = list(zip([("%s=%s" % (r, loc_str(l))) for r, l in tc.outs],
+                            conv_outputs(tc, side_ref, ref_m, r_ref, pv),
+                            conv_outputs(tc, side_new, new_m, r_new, pv)))
+        diffs = compare(opts, ref_m, new_m, amap, r_ref, r_new, outs)
         if diffs:
             fails += 1
             if fails <= opts.max_fail:

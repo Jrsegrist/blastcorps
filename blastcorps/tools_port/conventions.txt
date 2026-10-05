@@ -1,0 +1,44 @@
+# Register conventions of hand-written asm functions that don't follow o32.
+# eqcheck.py reads this file for the function under test and for every stubbed
+# callee (see tools_port/README.md, "Non-ABI functions").  One line per function:
+#
+#   NAME: in REG=SLOT,.. ; out REG=DEST,.. ; preserve REG,.. ; clobbers REG,..
+#
+#   in REG=SLOT     the asm takes an input in REG; the C version takes it in SLOT:
+#                   a0-a3, stackN (the word at sp+0x10+4N), f12, f14, or
+#                   *SLOT[+OFF][:W] (read through a pointer argument, W = 1/2/4 bytes)
+#                   List every input, ABI ones too (a0=a0), in C argument order.
+#                   REG may be stackN for a stack argument the asm reads in place.
+#   out REG=DEST    the asm returns a value in REG; the C version delivers it as
+#                   ret (v0), fret (f0), another register, or *SLOT[+OFF][:W]
+#                   (written through a pointer argument; for a struct of outputs use
+#                   one pointer slot with offsets: out s1=*a2,t0=*a2+4)
+#   preserve REGS   registers the asm leaves unchanged that its asm callers rely on;
+#                   a stub of this function won't write them (only matters for the
+#                   default stub, which writes v0/v1/f0; a line with in/out makes the
+#                   stub write exactly its outputs when the caller is asm)
+#   clobbers REGS   callee-saved registers (s0-s7, fp, f20-f31) the asm changes
+#                   without documenting them as outputs; not compared when this
+#                   function is the one under test.  Outputs are excluded anyway.
+#
+# Ranges work in register lists (s0-s7).  A line with `in` or `out` is a full
+# convention: the stub of a callee then records its arguments by C slot and
+# returns its outputs on the caller's side (asm registers for an asm caller,
+# v0/f0/pointer slots for a C caller).  `python3 tools_port/draftconv.py NAME`
+# drafts a line from the asm survey.
+
+# --- 56040 ---
+# search the 0x60-byte records D_803B9890..*D_803BD300 for unk4F == id with unk51 == 0
+func_8029DC14: in v0=a0 ; out v1=ret
+
+# --- 60F60 ---
+# func_802A57AC reuses a0 (the record) and v1 (&D_803C4B54) after the call
+func_802A57DC: preserve a0,v1
+
+# --- 62740 ---
+# recursive id lookup in the D_803ED3B8 list; saves t1-t4 and s3, leaves s2 changed when found
+func_802AB8D8: in s2=a0 ; out t0=ret ; preserve t1,t2,t3,t4,s3 ; clobbers s2
+
+# --- 679E0 ---
+# interpolated lookup in the u16 table D_802ACFD0[0x401]; saves a0, a1, v1
+func_802ACF64: in v1=a0 ; out fp=ret ; preserve a0,a1,v1

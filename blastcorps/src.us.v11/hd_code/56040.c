@@ -247,11 +247,45 @@ s32 func_8029B930(void) {
  * func_8029DC14 directly): search a fixed-stride struct array starting
  * at D_803B9890 up to D_803BD300's current pointer value for a byte field
  * matching the caller's input, returning found/not-found. Needs either
- * inline asm or leaving as GLOBAL_ASM. */
+ * inline asm or leaving as GLOBAL_ASM. (The NON_MATCHING port below uses
+ * plain o32 for both; eqcheck maps the v0/v1 convention.) */
+#ifdef NON_MATCHING
+s32 func_8029DC14(s32 id);
+
+/* Wrapper: returns func_8029DC14(id). 39050.c declares it taking a u8; the
+ * asm passes all of a0 through, so this takes s32. */
+s32 func_8029DBF0(s32 id) {
+    return func_8029DC14(id);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029DBF0.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u8 D_803B9890[]; /* 0x60-byte records */
+extern u8 *D_803BD300;  /* end of the records in use */
+
+/* Returns 0 if a record in D_803B9890..D_803BD300 (0x60 bytes each) has
+ * byte 0x4F == id and byte 0x51 == 0, else 1. The scan stops only at exactly
+ * D_803BD300.
+ * Register convention: the asm takes id in v0 and returns the result in v1
+ * (tools_port/conventions.txt); this C is plain o32. Its asm caller
+ * func_802BC3D0 relies on a3, t0, t2, t4, t6, t7, f12 and f14 surviving the
+ * call (a mixed N64 build would need a thunk; the native port doesn't). */
+s32 func_8029DC14(s32 id) {
+    u8 *rec;
+
+    for (rec = D_803B9890; rec != D_803BD300; rec += 0x60) {
+        if (rec[0x4F] == id && rec[0x51] == 0) {
+            return 0;
+        }
+    }
+    return 1;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029DC14.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

@@ -36,3 +36,20 @@ func_8029B7CC: -n 300 --seed 1 --ret void --sig func_8029B930= \
 func_8029B7CC: -n 300 --seed 2 --ret void --follow func_8029B930 --arg a0=int:0:0xFFF --arg a1=int:0:0xFFF \
     --mem D_803A7410:2=int:0:0xFFF --mem D_803A7412:2=int:0:0xFFF --mem D_80358064=choice:0,1 \
     --mem D_803A742C:1=bytes:0,1 --mem D_803A742D:1=bytes:0,1,2,7,8,0xFF --mem D_803A742E:1=bytes:0,1 --mem D_803A742F:1=bytes:0,0x55
+
+# func_8029DC14 (non-ABI: id in v0, result in v1; see tools_port/conventions.txt): 0 if a 0x60-byte
+# record in D_803B9890..D_803BD300 has byte 0x4F == id and byte 0x51 == 0, else 1. End = base + 0..12 records.
+func_8029DC14: -n 300 --arg a0=choice:0,1,2,0xFF,0x100,0x101,-1 --mem D_803BD300=rel:D_803B9890+0x60*int:0:12 \
+    --mem D_803B9890+0x4F*0x60:12/1=choice:0,1,2,0xFF --mem D_803B9890+0x51*0x60:12/1=choice:0,0,1,0x80
+# input given in the asm register (v0) instead of the C slot; empty table; only one record matching
+func_8029DC14: -n 100 --seed 1 --arg v0=choice:0,1,2 --mem D_803BD300=rel:D_803B9890+0x60*int:0:12 \
+    --mem D_803B9890+0x4F*0x60:12/1=choice:0,1,2 --mem D_803B9890+0x51*0x60:12/1=choice:0,1
+func_8029DC14: -n 50 --seed 2 --arg a0=choice:0,1 --mem D_803BD300=sym:D_803B9890 --mem D_803B9890:0x60=zero
+func_8029DC14: -n 200 --seed 3 --arg a0=7 --mem D_803BD300=rel:D_803B9890+0x600 \
+    --mem D_803B9890:0x600=onehot:0x60@0x4F/2:0x0700:halves:0x0101,0x0200,0x0701
+# func_8029DBF0: func_8029DC14(id). Callee stubbed (args/results mapped through its convention), then followed.
+func_8029DBF0: -n 200 --arg a0=int
+func_8029DBF0: -n 100 --seed 1 --arg a0=int --stub-ret func_8029DC14=0
+func_8029DBF0: -n 300 --seed 2 --follow func_8029DC14 --arg a0=choice:0,1,2,0xFF,0x100,-1 \
+    --mem D_803BD300=rel:D_803B9890+0x60*int:0:12 --mem D_803B9890+0x4F*0x60:12/1=choice:0,1,2,0xFF \
+    --mem D_803B9890+0x51*0x60:12/1=choice:0,0,1,0x80

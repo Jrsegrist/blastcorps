@@ -18,3 +18,18 @@ func_802A7764: -n 200 --seed 1 --ret void --arg a0=ptr:0x200 --arg a1=rel:a0+cho
 func_802A8FB4: -n 300 --ret void --mem D_803ED3F5:1=choice:0,1,0xFF --mem D_803EBBF4:4=floats
 func_802A8FB4: -n 100 --seed 1 --ret void --mem D_803ED3F5:1=choice:0,1 \
     --mem D_803EBBF4=choice:0,0x80000000,0x7F800000,0xFF800000,0x7FC00000,0x7F7FFFFF,0xFF7FFFFF,0x00000001,0x00800000,0x3F800000,0x2AAAAAAB
+
+# func_802AB8D8 (non-ABI: id in s2, result in t0; recursive): 1 if id is in bytes 1-3 of a D_803ED3B8
+# entry; an entry with bytes 1-3 all == id recurses on byte 0. Record pool keeps the recursion acyclic
+# (byte 0 < id for all-equal entries); one -1 terminator in a random slot plus one at +0x40.
+func_802AB8D8: -n 300 --arg a0=choice:0,1,2,3,4,5,0xFF,0x100,-1 \
+    --mem D_803ED3B8:0x40=onehot:4:-1:words:0x00010101,0x01020202,0x02030303,0x00030303,0x01040404,0x03040404,0x05010203,0x00000102,0x02010100,0x00020000,0x04000003,0x00000000,0x02000000 \
+    --mem D_803ED3B8+0x40=-1
+func_802AB8D8: -n 200 --seed 1 --arg s2=choice:1,2,3,4 \
+    --mem D_803ED3B8:0x40=words:0x00010101,0x01020202,0x02030303,0x03040404,0x00000000,0x05060708 --mem D_803ED3B8+0x40=-1
+func_802AB8D8: -n 20 --seed 2 --arg a0=int --mem D_803ED3B8=-1
+# func_802AB878: func_802AB8D8(id); callee stubbed (mapped), then followed
+func_802AB878: -n 200 --arg a0=int
+func_802AB878: -n 300 --seed 1 --follow func_802AB8D8 --arg a0=choice:0,1,2,3,4,5,0xFF,0x100,-1 \
+    --mem D_803ED3B8:0x40=onehot:4:-1:words:0x00010101,0x01020202,0x02030303,0x00030303,0x01040404,0x03040404,0x05010203,0x00000102,0x02010100,0x00020000,0x04000003,0x00000000,0x02000000 \
+    --mem D_803ED3B8+0x40=-1

@@ -457,6 +457,8 @@ func_802B2D7C: clobbers gp
 func_802B448C: clobbers gp
 # vehicle 3 update: t6, t7, s0-s4 passed through to func_802A6274 (gp = D_803EE2E0 read as the global)
 func_802B37B0: in t6=a0,t7=a1,s0=a2,s1=a3,s2=stack0,s3=stack1,s4=stack2 ; clobbers s1,s5,s6,s7
+# vehicle 4 update: same pass-through (gp = D_803EE6C0 read as the global)
+func_802B4EF8: in t6=a0,t7=a1,s0=a2,s1=a3,s2=stack0,s3=stack1,s4=stack2 ; clobbers s1,s5,s6,s7
 # --- 71140 ---
 # zone lookup wrapper: func_802ABD54(id, x, y, z) with its scan registers t6, t7, s0-s4 passed through
 func_802B60BC: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; out v1=ret,t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; preserve f12,f14 ; clobbers s5,s6

@@ -160,3 +160,29 @@ func_802B37B0: -n 300 --seed 3 --arg gp=sym:D_803EE2E0 --arg t6=int --arg t7=int
     --mem D_803EE3AF:1=choice:0,1,4,5,6,39,40,41,45,49,50,51,59,60,61,94,95,96,99,100 --mem D_803EE3A4=floats:0:1 \
     --mem D_803EE3B2:1=choice:0,1 --mem D_803EE3B1:1=int:0:100 --mem D_803EE388=words:0,0x80B00000 \
     --sig func_802B3C68= --sig func_802A5ED0= --sig func_80260650=a0,a1:2,a2 --sig func_802608C8=a0
+# func_802B4EF8 (vehicle 4 update; t6, t7, s0-s4 through to func_802A6274; gp = D_803EE6C0): every branch, callees stubbed;
+# speed 0 / +-1 / +-8 / 0x8000, stick x signs, +0x4C around 0x355 and 0x8AB, channel 1 field 0x10 == 1 or not
+func_802B4EF8: -n 400 --seed 0 --arg gp=sym:D_803EE6C0 --arg t6=int --arg t7=int --arg s0=int --arg s1=int --arg s2=int --arg s3=int --arg s4=int \
+    --mem D_803EE788:1=choice:0,0,1,5,0xFF --mem D_803EE6C0+0x99:1=choice:0,1,0x80 --stub-ret func_802A5ED0=choice:0,13,14,15 \
+    --stub-ret func_802A7CB0=choice:0,0,1 --mem D_803F7840:2=halves:0,0,1,0x8000 --mem D_80370C23:1=choice:0,1 --mem D_80370C1C:1=choice:0,1 \
+    --mem D_803EE780=floats:-0.2:1.2 --mem D_803EE6C0+0x76:2=halves:0,0,1,2,3,7,8,9,0xFFFF,0xFFFE,0xFFF8,0x8000,0x7FFF,0x1234,0xF234 \
+    --mem D_80370C2C:1=choice:0,1,0x7F,0x80,0xFF,0x40,0xC0 --mem D_803EE6C0+0x4C:2=halves:0,0x354,0x355,0x356,0x3A0,0x3A1,0x8AA,0x8AB,0xFFFF,0x500 \
+    --mem D_803EE789:1=choice:0,1 --stub-ret func_802A04BC.v1=choice:0,1,2,0xFFFFFFFF --sig func_802B54EC= --sig func_802A5ED0= --sig func_80260650=a0,a1:2,a2
+# level clamps at 0 / 0.5 / 1 (exact, one ulp off, NaN), step constants 0 and large
+func_802B4EF8: -n 300 --seed 2 --arg gp=sym:D_803EE6C0 --arg t6=int --arg t7=int --arg s0=int --arg s1=int --arg s2=int --arg s3=int --arg s4=int \
+    --mem D_803EE788:1=choice:0,1 --mem D_803F7840:2=halves:0,1 --stub-ret func_802A7CB0=choice:0,1 --mem D_80370C23:1=choice:0,1 --mem D_80370C1C:1=choice:0,1 \
+    --mem D_803EE780=words:0,0x80000000,0x3F000000,0x3F000001,0x3EFFFFFF,0x3F800000,0x3F7FFFFF,0x3F800001,0xBF800000,0x7FC00000,0x3E800000 \
+    --mem D_8030D8D4=words:0,0x3D000000,0x3F800000 --mem D_8030D8D8=words:0,0x3D000000,0x3F800000 --mem D_8030D8DC=words:0,0x3C000000,0x3F000000 \
+    --mem D_803EE6C0+0x76:2=int:0:0xFFFF --mem D_80370C2C:1=int:0:0xFF --mem D_803EE6C0+0x4C:2=int:0:0xFFFF --mem D_803EE789:1=choice:0,1 \
+    --sig func_802B54EC= --sig func_802A5ED0= --sig func_80260650=a0,a1:2,a2
+# callees followed (func_802A6274 records/map, func_802ABC88 record id 4, sound entries in D_803B35F8, channel table D_803EE3C0)
+func_802B4EF8: -n 300 --seed 1 --arg gp=sym:D_803EE6C0 --arg t6=int --arg t7=int --arg s0=int --arg s1=int --arg s2=int --arg s3=int --arg s4=int \
+    --mem D_803EE6C0:0xA6=rand --mem D_803EE788:1=choice:0,1 --mem D_803EE6C0+0x99:1=choice:0,1 --mem D_803F7840:2=halves:0,1 \
+    --mem D_80370C23:1=choice:0,1 --mem D_80370C1C:1=choice:0,1 --mem D_803EE780=floats:-0.2:1.2 \
+    --mem D_803EE6C0+0x76:2=halves:0,0,1,9,0xFFF8,0x8000,0x7FFF,0x1234,0xF234 --mem D_803EE6C0+0x50:1=choice:0,1,2,3 \
+    --mem D_803EE6C0+0x98:1=choice:0,1 --mem D_803EE6C0+0x9B:1=choice:0,0,1 --mem D_80370C2C:1=int:0:0xFF --mem D_803EE789:1=choice:0,1 \
+    --mem D_803EE3C0:0x300=rand --mem D_803EE3C0+0x28:1=choice:1,1,0,2 --mem D_803B35F8:0x180=rand --mem D_803B35F8+0x18=sym:D_802C21A4 \
+    --mem D_803B35F8+0x60=sym:D_802C2190 --mem D_803B35F8+0x150=sym:D_802C21B8 --mem D_803EBC10:0x100=onehot:0x10@0xC/1:4:bytes:1,2,3 \
+    --mem D_803C4B70:0x3C0=rand --mem D_803C4B70+0x33*0x3C:16/1=bytes:0,1,1 --mem D_803EB770:16=bytes:0,1 --mem D_803EB792:1=rand \
+    --follow func_802B54EC,func_802A5ED0,func_802A6274,func_802ABC88,func_802A7CB0,func_802A0360,func_802A05F8,func_802A05D0,func_802A05A4,func_802A06B4,func_802A04BC,func_802A039C,func_802A040C,func_802A0290 \
+    --sig func_80260650=a0,a1:2,a2 --sig func_802A11C4=a0,a1

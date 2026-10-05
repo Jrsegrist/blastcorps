@@ -605,7 +605,135 @@ s32 func_802B47D4(ZoneScanRegs *r) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6E200/func_802B49AC.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u8 D_803EE788;  /* func_802A6274 spawn cooldown */
+extern u8 D_803EE789;  /* channel 1 restart request */
+extern f32 D_803EE780; /* 0..1 level for channel 2 */
+extern s16 D_803F7840;
+extern s8 D_80370C2C;  /* stick x (signed) */
+extern f32 D_8030D8D4;
+extern f32 D_8030D8D8;
+extern f32 D_8030D8DC;
+void func_802A04BC(s32 idx, void *base, s32 *out);
+void func_802B54EC(void);
+
+/* Vehicle type 4 per-frame update ($gp = D_803EE6C0, read as the global),
+ * shape of func_802B37B0 (above):
+ * 1. func_802B54EC (tyre trail).
+ * 2. Cooldown D_803EE788 counts down; at 0 with byte +0x99 set it restarts
+ *    at 1 and, while fewer than 14 func_802A6274 records are active, sets up
+ *    one (def D_802C2954, data 0x30D40, type 1 at (4, 1, 1)).
+ * 3. With D_803F7840 == 0 and the speed (s16 +0x76) nonzero: sound 10
+ *    (func_80260650, the asm saving every register around it) and another
+ *    record (data 0x1D4C0 at (4, 2, 1)).
+ * 4. Level D_803EE780 (channel 2 of D_803EE3C0): unless func_802A7CB0(30),
+ *    falls by D_8030D8D4 to 0 with D_80370C23 held, or rises by D_8030D8D8
+ *    to 1 with D_80370C1C held; otherwise it moves by D_8030D8DC toward 0.5.
+ * 5. Sound entries D_802C2190/D_802C21A4: moving, unk11 = (speed < 0) on
+ *    both, unk14 = |speed| / 2 on both and func_802C4584(|speed| / 8);
+ *    standing, unk11 = (stick < 0) / (stick >= 0) and unk14 = |stick|
+ *    (D_80370C2C).
+ * 6. Entry D_802C21B8: unk13 = (u16 +0x4C in [0x355, 0x8AB) ? it - 0x355 :
+ *    0) / 76, unk4 = 0.
+ * 7. With D_803EE789 set and channel 1's field 0x10 != 1: channel 1 gets
+ *    (9, 1, 2) and sound 1 plays.
+ * Register convention: as func_802B37B0, t6, t7, s0-s4 pass through to
+ * func_802A6274 (conventions.txt); s5-s7 change. */
+void func_802B4EF8(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
+    Io802A6274 io;
+    s32 ch[8];
+    f32 f;
+    s32 near;
+    s32 speed;
+    s32 v;
+
+    io.t6 = t6;
+    io.s1 = s1;
+
+    func_802B54EC();
+
+    if (D_803EE788 != 0) {
+        D_803EE788--;
+    } else if (D_803EE6C0[0x99] != 0) {
+        D_803EE788 = 1;
+        if (func_802A5ED0() < 14) {
+            io.a3 = 1;
+            func_802A6274(&io, D_802C2954, 0x30D40, 1, 4, 1, 1, t7, s0, s2, s3, s4, 1);
+        }
+    }
+
+    if (D_803F7840 == 0 && *(s16 *) (D_803EE6C0 + 0x76) != 0) {
+        func_80260650(D_80367738, 10, NULL);
+        io.a3 = 1;
+        func_802A6274(&io, D_802C2954, 0x1D4C0, 1, 4, 2, 1, t7, s0, s2, s3, s4, 1);
+    }
+
+    f = D_803EE780;
+    near = func_802A7CB0(D_803EE6C0, 30);
+    if (near == 0 && D_80370C23 != 0) {
+        f -= D_8030D8D4;
+        if (f < 0.0f) {
+            f = 0.0f;
+        }
+    } else if (near == 0 && D_80370C1C != 0) {
+        f += D_8030D8D8;
+        if (!(f <= 1.0f)) {
+            f = 1.0f;
+        }
+    } else if (f < 0.5f) {
+        f += D_8030D8DC;
+        if (!(f <= 0.5f)) {
+            f = 0.5f;
+        }
+    } else {
+        f -= D_8030D8DC;
+        if (f < 0.5f) {
+            f = 0.5f;
+        }
+    }
+    D_803EE780 = f;
+    func_802A0360(f, D_803EE3C0, 2, 0);
+
+    speed = *(s16 *) (D_803EE6C0 + 0x76);
+    if (speed != 0) {
+        func_802A05F8((s32) D_802C2190, speed < 0);
+        func_802A05F8((s32) D_802C21A4, speed < 0);
+        v = (u32) (speed < 0 ? -speed : speed) >> 1;
+        func_802A05D0((s32) D_802C2190, v);
+        func_802A05D0((s32) D_802C21A4, v);
+        func_802C4584((u32) v >> 2);
+    } else {
+        v = D_80370C2C;
+        func_802A05F8((s32) D_802C2190, v < 0);
+        func_802A05F8((s32) D_802C21A4, v >= 0);
+        if (v < 0) {
+            v = -v;
+        }
+        func_802A05D0((s32) D_802C2190, v);
+        func_802A05D0((s32) D_802C21A4, v);
+    }
+
+    v = *(u16 *) (D_803EE6C0 + 0x4C);
+    if (v >= 0x355 && v < 0x8AB) {
+        v -= 0x355;
+    } else {
+        v = 0;
+    }
+    func_802A05A4(0.0f, (s32) D_802C21B8, (u32) v / 76);
+
+    if (D_803EE789 != 0) {
+        func_802A04BC(1, D_803EE3C0, ch);
+        if (ch[0] != 1) {
+            func_802A039C(D_803EE3C0, 1, 9);
+            func_802A040C(D_803EE3C0, 1, 1);
+            func_802A0290(D_803EE3C0, 1, 2);
+            func_80260650(D_80367738, 1, NULL);
+        }
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6E200/func_802B4EF8.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

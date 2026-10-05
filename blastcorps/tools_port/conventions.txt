@@ -180,6 +180,13 @@ func_802A6C10: in v1=a0,t1=a1,t7=a2,s2=a3,s3=stack0,s5=stack1 ; preserve a0,a1,a
 # t2 = obj(t4)[0x3B] ? &D_803EB784 : &D_803EB780
 func_802A6EB8: in t4=a0 ; out t2=ret ; preserve a0,a1,a2,a3,t0,t1,t3,t4,t5,t8,f12,f14
 
+# set up a D_803C4B70 record (def t0, data t1, type t2, fields t3-t7, s0-s5, tag a3) -> t0 = 1/0;
+# a3 (last map byte scanned), t6 ((s16) def[0]) and s1 (record buffer) are also outputs
+func_802A6274: in a3=*a0,t6=*a0+4,s1=*a0+8,t0=a1,t1=a2,t2=a3,t3=stack0,t4=stack1,t5=stack2,t7=stack3,s0=stack4,s2=stack5,s3=stack6,s4=stack7,s5=stack8 ; out t0=ret,a3=*a0,t6=*a0+4,s1=*a0+8 ; preserve v0,v1,a0,a1,a2,t7
+
+# textured quad into obj (t4)'s cursor: func_802575F4(*cur, t1, s1, t8, v1, s5, gp); s0 scratch
+func_802A6DE8: in t4=a0,t1=a1,s1=a2,t8=a3,v1=stack0,s5=stack1,gp=stack2 ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t3,t4,t5,t6,t7,t8,t9,f12,f14 ; clobbers s0
+
 # --- 62740 ---
 # gp = the current vehicle's record (D_803EDB40, D_803EDF10, ...: differs per caller, so it is an
 # argument here, not a global base); the C takes it as `u8 *veh`

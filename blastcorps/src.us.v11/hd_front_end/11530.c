@@ -156,7 +156,31 @@ extern f32 D_8021A918;
 extern s16 D_8021A924;
 extern u8 D_802159F0[];
 extern Mtx D_80217B70[];
+extern s8 D_8021A904;
+extern s8 D_8021A906;
 extern s8 D_8021A907;
+extern s8 D_8021A908;
+extern f32 D_8021A91C;
+extern f32 D_8021A920;
+extern s16 D_8021A926;
+extern s32 D_8021A928[];
+extern s8 D_8021A930;
+extern u8 D_8021AB20;
+extern f32 D_8021AB28;
+extern s16 D_8021AB2C;
+extern s8 D_8021AB2E;
+extern s32 D_8021AB38;
+extern f32 D_8021AB40;
+extern f32 D_8021AB44;
+extern f32 D_8021AB48;
+extern s32 D_80358070;
+Gfx *func_801F1568(void);
+Gfx *func_801F2000(void);
+Gfx *func_801F2428(void);
+Gfx *func_801F2E20(void);
+void func_801F885C(s32 arg0);
+f32 func_801FD6B8(f32 a, f32 b, f32 range);
+void func_801FDE50(void);
 extern Gfx *D_8021A8F4;
 extern Gfx *D_8021A8FC;
 extern Gfx *D_8021A900;
@@ -172,7 +196,56 @@ void func_801FD484(f32 *arg0, f32 *arg1, f32 *arg2, f32 *arg3, f32 *arg4, f32 ar
 s32 func_801FE760(); /* K&R */
 Gfx *func_801FA180(Gfx *gdl, Dynamic *dyn, f32 arg2, s8 *arg3);
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/11530/func_801F8530.s")
+/* Level-select globe: initialise for the given level. */
+void func_801F8530(s32 level) {
+    Dynamic *d;
+    u32 i;
+    GlobeLevel *e;
+    f32 lat;
+    f32 lon;
+
+    D_8021AB30 = &D_80364AF0[D_80364AE8];
+    D_8021AB34 = &D_802E8F94[level];
+    D_8021A91C = func_801FD6B8(90.0f, D_8020D810[level].unk14, 180.0f);
+    D_8021A920 = func_801FD6B8(90.0f, D_8020D810[level].unk10, 180.0f);
+    D_8021A8F4 = func_801F1568();
+    D_8021A8FC = func_801F2428();
+    D_8021A900 = func_801F2000();
+    for (i = 0; i < 2; i++) {
+        D_8021A928[i] = D_80358070;
+        D_80358070 += 0x17000;
+    }
+    D_8021A8F8 = func_801F2E20();
+    for (i = 0; i < 2; i++) {
+        d = &D_803156F8[i];
+        guPerspective(&d->persp, &D_8035807C, 45.0f, 4.0f / 3.0f, 100.0f, 20000.0f, 1.0f);
+        guTranslate(&d->translate, 0.0f, -50.0f, 0.0f);
+    }
+    D_80217B6C = 6;
+    func_801F885C(level);
+    D_8021A904 = level;
+    D_8021A908 = level;
+    D_8021A926 = 1;
+    D_8021A930 = 0;
+    D_8021A907 = -1;
+    D_8021AB21 = 0;
+    D_8021A906 = level;
+    D_8021AB28 = 0.0f;
+    D_8021AB38 = 0;
+    D_8021AB2C = 0;
+    D_8021AB40 = 0.915f;
+    D_8021AB44 = 0.009f;
+    D_8021AB48 = 26100.0f;
+    func_801FDE50();
+    D_8021AB20 = func_80272C5C(D_8020E39C, 0, 4, 1, 1, 1.0f);
+    for (i = 0; i < 60; i++) {
+        e = &D_8020D810[i];
+        lat = e->unk10;
+        lon = e->unk14;
+        func_801FD484(&lat, &lon, &e->unk24, &e->unk28, &e->unk2C, 250.0f);
+    }
+    D_8021AB2E = 0;
+}
 
 void func_801F885C(s32 arg0) {
     u8 tune;

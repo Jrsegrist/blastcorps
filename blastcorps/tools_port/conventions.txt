@@ -732,3 +732,11 @@ func_802BE77C: in t8=a0,gp=a1 ; preserve a2,a3,t0,t1,t2,t3,t4,t5,t7,t8 ; clobber
 func_802CE6F8: in a0=a0,a1=a1,a2=a2 ; out v0=ret ; clobbers f20,f22,f24,f26,f28
 # heading (v0, a0) -> (a2, t0) via the arcsine, then func_8029B7CC(angle +- 0x400); saves v0-t0, t7, s0, fp
 func_802CE204: in v0=a0,a0=a1,a2=a2,t0=a3 ; preserve v0,v1,a0,a1,a2,a3,t0,t7,s0
+# phase D (wt-g2): impact of D_803A73F0..F8 radius a0 (damage a1) on the objects; o32 apart from f20-f28 (triangle tests)
+func_802CDB70: clobbers f20,f22,f24,f26,f28
+# sphere (v0, v1, a0) radius a1 (>> 2) vs object t3's triangles; hit flag in and out in fp (saves v0-a2, t3, t4)
+func_802CDC7C: in v0=a0,v1=a1,a0=a2,a1=a3,t3=stack0,fp=stack1 ; out fp=ret ; preserve v0,v1,a0,a1,a2,t3,t4 ; clobbers s0,s1,s2,s3,s4,f20,f22,f24,f26,f28
+# impact damage fp to object t9's part of triangle s0; saves every register
+func_802CDD74: in t9=a0,s0=a1,fp=a2 ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,t8,t9
+# vehicle t4's hit spheres vs (v0, v1, a0) radius a1 -> s4 (0/1); t5 left = -1 (its caller's constant); saves v0-t0, t6, t7, s0, s1
+func_802CE0E4: in v0=a0,v1=a1,a0=a2,a1=a3,t4=stack0 ; out s4=ret ; preserve v0,v1,a0,a1,a2,a3,t0,t3,t4,t6,t7 ; clobbers s4

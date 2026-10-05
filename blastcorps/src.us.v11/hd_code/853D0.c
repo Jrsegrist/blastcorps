@@ -103,7 +103,87 @@ void func_802CA1AC(void) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+#ifndef TRI_SCAN_TYPES_DEFINED
+#define TRI_SCAN_TYPES_DEFINED
+/* func_802AC0BC's FP and integer register results (62740.c), in and out. */
+typedef struct {
+    f32 pz;    /* f12 */
+    f32 cross; /* f14 */
+    f32 cz;    /* f20 */
+    f32 side;  /* f22 */
+    f32 sideZ; /* f24 */
+    f32 dz;    /* f26 */
+} TriSideOut;
+typedef struct {
+    s32 a1; /* found flag */
+    s32 a3;
+    s32 t6;
+    s32 t7;
+    s32 fp;
+    s32 s1;
+    s32 s2;
+    s32 s3;
+    s32 s4;
+} TriScanRegs;
+s32 func_802AC0BC(s32 x, s32 z, s32 y, TriSideOut *f, TriScanRegs *r);
+#endif
+#ifndef MTX_CHAIN_REGS_DEFINED
+#define MTX_CHAIN_REGS_DEFINED
+/* func_802AA890's extra registers (62740.c), as func_8029C454 and
+ * func_802ABBEC pass them through. */
+typedef struct {
+    s32 v1; /* out */
+    s32 a0; /* out */
+    s32 a3; /* in/out */
+    s32 s1; /* in/out */
+    s32 s2; /* in/out */
+    s32 s0; /* in */
+} MtxChainRegs;
+#endif
+#ifndef OUT_802A9A60_DEFINED
+#define OUT_802A9A60_DEFINED
+/* func_802A9A60's pointer results (the asm's s1 and s3; 62740.c). */
+typedef struct {
+    s32 *s1; /* dst + 9 */
+    s32 *s3; /* dst */
+} Out802A9A60;
+#endif
+extern u32 D_803F8B48[]; /* x, y, z */
+s32 func_802A9A60(s16 *tbl, s32 y, s32 x, s32 z, s32 *dst, s32 *mid, s16 *angle, s32 key, s32 fp, u8 *veh,
+                  TriSideOut *f, Out802A9A60 *out);
+void func_802A133C(s32 a0Val, s32 id, s32 v0Val, s32 v1Val, u8 *obj);
+void func_802CB42C(MtxChainRegs *regs);
+
+/* Move this vehicle while it isn't the player's (vehicle 10's counterpart
+ * of func_802C5860; no caller references it: func_8024B618 has no case
+ * 10): ground heights for its three slots (func_802A9A60 with table +0x52,
+ * angle +0x4C, heights to +4.., the middle y to D_803F8B4C, key 10), place
+ * the model (func_802CB42C), then func_802A133C(z, 10, x, y, block).
+ * Register convention (conventions.txt): `fp` is the asm's $fp, which goes
+ * on to func_802A9A60 (stored into D_803ED3F2[0..2], so the block's +0x50
+ * becomes (u8) fp): a leaked register in the game (FIDELITY), an explicit
+ * parameter here. f12-f26 only pass through func_802A9A60 (not read first;
+ * the asm restores f20-f30), so the C starts them at 0. func_802CB42C gets
+ * s0 = z and s1 = func_802A9A60's s1. The asm saves every s-register, gp,
+ * fp and f20-f30. */
+void func_802CA1F8(s32 fp) {
+    TriSideOut f;
+    Out802A9A60 out;
+    MtxChainRegs regs;
+    s32 z = D_803F8B48[2];
+
+    f.pz = f.cross = f.cz = f.side = f.sideZ = f.dz = 0.0f;
+    func_802A9A60((s16 *) (D_803F8AA0 + 0x52), D_803F8B48[1], D_803F8B48[0], z, (s32 *) (D_803F8AA0 + 4),
+                  (s32 *) &D_803F8B48[1], (s16 *) (D_803F8AA0 + 0x4C), 10, fp, D_803F8AA0, &f, &out);
+    regs.s0 = z;
+    regs.s1 = (s32) out.s1;
+    func_802CB42C(&regs);
+    func_802A133C(D_803F8B48[2], 10, D_803F8B48[0], D_803F8B48[1], D_803F8AA0);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/func_802CA1F8.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -136,7 +216,51 @@ s32 func_802CA308(ZoneScanRegs *r) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+#ifndef INTERP_REGS_DEFINED
+#define INTERP_REGS_DEFINED
+/* func_802AAD0C's register results (62740.c). */
+typedef struct {
+    s32 t3;  /* interpolated u */
+    s32 t4;  /* interpolated w */
+    f32 f12;
+    s32 f14; /* raw bits */
+    f32 f20;
+    f32 f22;
+    f32 f24; /* also an input (kept on some paths) */
+    f32 f26;
+} InterpRegs;
+#endif
+void func_802AAD0C(s32 id, s32 x, s32 z, InterpRegs *r);
+s32 func_802A94A4(s32 index, s16 *tbl, s16 *angle, s32 *dz);
+
+/* Value pairs on triangle `id` (func_802AAD0C) at this vehicle's x/z
+ * (D_803F8B48[0], [2]) -> s16s +0x6A/+0x6C of D_803F8AA0, and at that point
+ * moved by ground slot 0 (func_802A94A4(0, +0x52 table, +0x4C angle)) ->
+ * +0x70/+0x72; +0x6E gets a copy of the angle at +0x4C.
+ * Register convention (conventions.txt): id in a3; func_802AAD0C's FP
+ * results pass through to the caller (r; f24 also an input, chained through
+ * both calls). The asm saves and restores t0, t1, t3, t4 (asm caller
+ * func_802AB50C keeps t0 and t1 live: a mixed N64 build would need a thunk),
+ * points $gp at D_803F8AA0 without restoring it, leaves s4 = &+0x4C and
+ * v1 = &+0x52 (dead in its caller). Same shape as func_802C59B4 (7FB50) plus
+ * the second point. The x + dx / z + dz sums are trapping in the asm. */
+void func_802CA34C(s32 id, InterpRegs *r) {
+    s32 dx;
+    s32 dz;
+
+    func_802AAD0C(id, ((s32 *) D_803F8B48)[0], ((s32 *) D_803F8B48)[2], r);
+    *(s16 *) (D_803F8AA0 + 0x6A) = r->t3;
+    *(s16 *) (D_803F8AA0 + 0x6C) = r->t4;
+    *(u16 *) (D_803F8AA0 + 0x6E) = *(u16 *) (D_803F8AA0 + 0x4C);
+    dx = func_802A94A4(0, (s16 *) (D_803F8AA0 + 0x52), (s16 *) (D_803F8AA0 + 0x4C), &dz);
+    func_802AAD0C(id, ((s32 *) D_803F8B48)[0] + dx, ((s32 *) D_803F8B48)[2] + dz, r);
+    *(s16 *) (D_803F8AA0 + 0x70) = r->t3;
+    *(s16 *) (D_803F8AA0 + 0x72) = r->t4;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/func_802CA34C.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/func_802CA3D8.s")
@@ -434,7 +558,72 @@ f32 func_802CB3C8(s32 side) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+#ifndef MTX_CHAIN_REGS_DEFINED
+#define MTX_CHAIN_REGS_DEFINED
+/* func_802AA890's extra registers (62740.c), as func_8029C454 and
+ * func_802ABBEC pass them through. */
+typedef struct {
+    s32 v1; /* out */
+    s32 a0; /* out */
+    s32 a3; /* in/out */
+    s32 s1; /* in/out */
+    s32 s2; /* in/out */
+    s32 s0; /* in */
+} MtxChainRegs;
+#endif
+extern u8 *D_803F8B54; /* this vehicle's model: +0 / +4 / +8 offsets of the point lists, +0x18 the matrix */
+extern u8 D_8035805C;  /* which of the save copy pair is current */
+extern s16 D_803ED390[]; /* rotation angles x, y, z for func_802AA764 */
+void func_8029C454(s32 x, s32 y, s32 z, s32 tag, u8 *p, u8 *end, u8 *base, MtxChainRegs *regs);
+void func_802AA764(s32 x, s32 y, s32 z, s32 scale, s32 *m);
+void func_802ABBEC(s32 id, s16 *p, s16 *end, u8 *base, MtxChainRegs *regs);
+
+/* Place this vehicle's model (vehicle 10): builds its matrix (scale 0x3E80,
+ * yaw = +0x4C of D_803F8AA0, the other two angles as they are) at the
+ * model's +0x18 entry inside the current copy (D_8035805C ? D_803F8B58 :
+ * D_803F8B5C) with func_802AA764, then places the parts
+ * (func_8029C454(x, y, z, 10, model + [4], model + [8], copy)) and the
+ * points (func_802ABBEC(10, model + [0], model + [4], copy)).
+ * Register convention (conventions.txt): s0 and s1 come in for the
+ * func_802AA890 chain, whose registers (v1, a0, a3, s1, s2) go out; regs
+ * carries them. func_802AA764 leaves a3 = 0 (func_802ACCCC's loop counter)
+ * and s2 = the matrix, which the asm then hands func_8029C454: modelled
+ * explicitly. func_8029C454 restores v1/a0, so func_802ABBEC gets y and z
+ * there. The asm reads the block through $gp (= D_803F8AA0, set by every
+ * caller) and leaves t0 = 10. Its cos/sin f12/f14 temporaries, which the
+ * survey lists as read by func_802CA4E0, are not modelled (see
+ * func_802AA764). Asm caller func_802CA4E0 keeps t6, t7 live (a mixed N64
+ * build would need a thunk; the native port won't). Adds are trapping in
+ * the asm (pointer sums, in range). */
+void func_802CB42C(MtxChainRegs *regs) {
+    u8 *mdl = D_803F8B54;
+    u8 *base;
+    s32 *m;
+    s32 x;
+    s32 y;
+    s32 z;
+
+    m = (s32 *) (*(u32 *) (mdl + *(s32 *) (mdl + 0x18) + 4) +
+                 (u32) (D_8035805C != 0 ? (u8 *) D_803F8B58 : (u8 *) D_803F8B5C));
+    D_803ED390[1] = *(u16 *) (D_803F8AA0 + 0x4C);
+    func_802AA764(D_803F8B48[0], D_803F8B48[1], D_803F8B48[2], 0x3E80, m);
+    base = D_8035805C != 0 ? (u8 *) D_803F8B58 : (u8 *) D_803F8B5C;
+    mdl = D_803F8B54;
+    x = D_803F8B48[0];
+    y = D_803F8B48[1];
+    z = D_803F8B48[2];
+    regs->a3 = 0;
+    regs->s2 = (s32) m;
+    func_8029C454(x, y, z, 10, mdl + *(s32 *) (mdl + 4), mdl + *(s32 *) (mdl + 8), base, regs);
+    regs->v1 = y;
+    regs->a0 = z;
+    mdl = D_803F8B54;
+    func_802ABBEC(10, (s16 *) (mdl + *(s32 *) (mdl + 0)), (s16 *) (mdl + *(s32 *) (mdl + 4)), base, regs);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/func_802CB42C.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

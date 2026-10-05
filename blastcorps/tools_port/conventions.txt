@@ -456,6 +456,10 @@ func_802C7C1C: in s2=a0 ; out f2=fret ; clobbers s3
 func_802C7DFC: out s3=ret ; preserve a0,a1,a2,a3
 func_802C7ECC: preserve a0,a1,a2,a3,t3,t4,t6,f12,f14
 func_802C7F28: preserve a0,a1,a2,a3,t3,t4,f12,f14
+# move while not the player's vehicle (C func_8024B618): $fp (leaked from the caller) goes on to func_802A9A60
+func_802C5860: in fp=a0
+# place the model (func_802AA764 / func_8029C454 / func_802ABBEC); s0/s1 in, the func_802AA890 chain registers out
+func_802C7CB0: in s1=*a0+12,s0=*a0+20 ; out v1=*a0,a0=*a0+4,a3=*a0+8,s1=*a0+12,s2=*a0+16 ; clobbers s4-s7
 
 # --- 7F8B0 ---
 # LZSS bit reader: mask a3, reader state a0 (src) / t3 (byte) / t4 (bit) in/out, bits -> v0 (s4 = 0x80, s5 = 1 constants)
@@ -644,6 +648,12 @@ func_802CB224: preserve a1,a2,a3
 func_802CB3C8: in s2=a0 ; out f2=fret ; preserve a1,a2,a3 ; clobbers s3
 # rounded speed/divisor ($gp = D_803F8AA0) in s3
 func_802CB564: out s3=ret ; preserve a0,a1,a2,a3
+# move while not the player's vehicle: $fp (leaked from the caller) goes on to func_802A9A60
+func_802CA1F8: in fp=a0
+# value pairs at the vehicle's x/z and at ground slot 0 via func_802AAD0C (id in a3); its FP results pass through; gp left = D_803F8AA0
+func_802CA34C: in a3=a0,f24=*a1+24 ; out f12=*a1+8,f14=*a1+12,f20=*a1+16,f22=*a1+20,f24=*a1+24,f26=*a1+28 ; preserve a3,t0,t1,t3,t4 ; clobbers gp,s4,f28
+# place the model (func_802AA764 / func_8029C454 / func_802ABBEC); s0/s1 in, the func_802AA890 chain registers out
+func_802CB42C: in s1=*a0+12,s0=*a0+20 ; out v1=*a0,a0=*a0+4,a3=*a0+8,s1=*a0+12,s2=*a0+16 ; clobbers s4-s7
 # --- 86ED0 ---
 # shared by eight vehicle modules: the state block comes in $gp; a0-a3 left as junk (a0 = 1)
 func_802CB690: in gp=a0

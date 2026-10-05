@@ -182,6 +182,76 @@ void func_801F0570(void) {
     }
 }
 
+/*
+ * TODO: func_801F1568 builds the globe display list: inflates worldtextures.raw
+ * (ROM D_0066C900..D_0068B550) to the heap, carves the texture pointers out of
+ * its tail, builds the vertices (func_801F0570) and emits, per face and grid cell,
+ * five mip levels of a 17x17..2x2 RGBA16 texture plus two triangles.
+ * Near-miss (528/528 insns, same length): everything matches up to the end of the
+ * lod loop, where the target loads texoff, ww, lod, tmem, step (registers
+ * t4 t6 t0 t3 t5) and this C loads lod first; that one allocation-order
+ * difference renames registers in the rest of the function. Statement order,
+ * comma forms, for/do-while forms and moving the increments into the loop
+ * header were tried (IDO gives identical code for most), plus a 25-minute
+ * permuter run, without a match.
+ *
+ * typedef struct { u16 tex[49][0x1A4]; } Globe;
+ * Gfx *func_801F1568(void) {
+ *     u8 *base; s32 size; s32 unused[2]; s32 i, j, idx, k, faceOff, flip, lod, texoff, tmem;
+ *     u32 step; s32 w; u32 line; u32 ww; Gfx *gfx; Gfx *dl;
+ *
+ *     base = D_80358070;
+ *     size = D_0068B550 - D_0066C900;
+ *     func_8028B4C4(D_0066C900, D_80358070, &size, 0xD, 0, 1);
+ *     D_80358070 += size;
+ *     D_8021728C = (u16 *) (D_80358070 - 0x6600);
+ *     for (i = 0; i < 3; i++) {
+ *         D_80215A70[i] = (u16 *) D_80358070 - (3 - i) * 0x800 - 0x1800;
+ *     }
+ *     D_80215A7C = D_80358070 - 0x3000;
+ *     D_80215A80 = D_80358070 - 0x2000;
+ *     D_80215A84 = D_80358070 - 0x1000;
+ *     gfx = (Gfx *) D_80358070;
+ *     dl = gfx;
+ *     func_801F0570();
+ *     gSPTexture(gfx++, 0x8000, 0x8000, 4, G_TX_RENDERTILE, G_ON);
+ *     for (k = 0; k < 6; k++) {
+ *         faceOff = k << 6;
+ *         gSPVertex(gfx++, &D_80215A88[faceOff], 8, 0);
+ *         flip = 8;
+ *         for (i = 0; i < 7; i++) {
+ *             gSPVertex(gfx++, &D_80215A88[faceOff + i * 8 + 8], 8, flip);
+ *             for (j = 0; j < 7; j++) {
+ *                 lod = 0;
+ *                 idx = i * 7 + j;
+ *                 tmem = 0;
+ *                 texoff = 0;
+ *                 do {
+ *                     w = (16 >> lod) + 1;
+ *                     line = (w + 3) >> 2;
+ *                     step = w * line;
+ *                     ww = w * w;
+ *                     gDPSetTextureImage(gfx++, G_IM_FMT_RGBA, G_IM_SIZ_16b, w, &((Globe *) base)[k].tex[idx][texoff]);
+ *                     gDPSetTile(gfx++, G_IM_FMT_RGBA, G_IM_SIZ_16b, line, tmem, G_TX_LOADTILE, 0, 0, 0, 0, 0, 0, 0);
+ *                     gDPLoadTile(gfx++, G_TX_LOADTILE, 0, 0, w << 2, w << 2);
+ *                     gDPSetTile(gfx++, G_IM_FMT_RGBA, G_IM_SIZ_16b, line, tmem, lod, 0, 0, 0, lod, 0, 0, lod);
+ *                     gDPSetTileSize(gfx++, lod, ((j * 16) << 2) >> lod, ((i * 16) << 2) >> lod,
+ *                                    ((j * 16 + 16) << 2) >> lod, ((i * 16 + 16) << 2) >> lod);
+ *                     tmem += step;
+ *                     texoff += ww + 3;
+ *                 } while (++lod < 5);
+ *                 (two gSP1Triangle per cell: faces 1, 2, 5 use (j, j+8, j+9)/(j, j+9, j+1) when
+ *                  flip == 8, else (j+8, j, j+1)/(j+8, j+1, j+9); the other faces use
+ *                  (j, j+9, j+8)/(j, j+1, j+9) and (j+8, j+1, j)/(j+8, j+9, j+1))
+ *             }
+ *             flip ^= 8;
+ *         }
+ *     }
+ *     gSPEndDisplayList(gfx++);
+ *     D_80358070 += (gfx - dl) * sizeof(Gfx);
+ *     return dl;
+ * }
+ */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/09570/func_801F1568.s")
 
 /* hd.c's LEVEL_DONE */

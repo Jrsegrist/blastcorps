@@ -8,6 +8,106 @@
  * of the same large hand-written-assembly module. Any pragma below without
  * a more specific comment follows this convention; a few have their own
  * more specific non-ABI explanation where one was already worked out. */
+
+#ifdef NON_MATCHING
+/* Register blocks of the 62740.c helpers these vehicle functions call (the
+ * asm passes them in registers; the C rewrites take pointers). */
+#ifndef TRISIDEOUT_DEFINED
+#define TRISIDEOUT_DEFINED
+/* func_802A9B1C's FP side results (62740.c), in and out. */
+typedef struct {
+    f32 pz;    /* f12 */
+    f32 cross; /* f14 */
+    f32 cz;    /* f20 */
+    f32 side;  /* f22 */
+    f32 sideZ; /* f24 */
+    f32 dz;    /* f26 */
+} TriSideOut;
+#endif
+#ifndef MTXCHAINREGS_DEFINED
+#define MTXCHAINREGS_DEFINED
+/* Registers func_802AA890 reads and writes besides its arguments (62740.c). */
+typedef struct {
+    s32 v1; /* out: y' >> 11 */
+    s32 a0; /* out: z' >> 11 */
+    s32 a3; /* in/out: the last matrix used */
+    s32 s1; /* in/out: y' */
+    s32 s2; /* in/out: z' */
+    s32 s0; /* in: only read when count == 0 */
+} MtxChainRegs;
+#endif
+#ifndef INTERP_REGS_DEFINED
+#define INTERP_REGS_DEFINED
+/* func_802AAD0C's register results (62740.c). */
+typedef struct {
+    s32 t3;  /* interpolated u */
+    s32 t4;  /* interpolated w */
+    f32 f12;
+    s32 f14; /* raw bits */
+    f32 f20;
+    f32 f22;
+    f32 f24; /* also an input (kept on some paths) */
+    f32 f26;
+} InterpRegs;
+#endif
+#ifndef OUT802A9A60_DEFINED
+#define OUT802A9A60_DEFINED
+/* func_802A9A60's pointer results (the asm's s1 and s3). */
+typedef struct {
+    s32 *s1;
+    s32 *s3;
+} Out802A9A60;
+#endif
+#ifndef REGS802A8768_DEFINED
+#define REGS802A8768_DEFINED
+/* func_802A8768's register in/outs (62740.c). */
+typedef struct {
+    s32 s3;  /* in/out: the slot functions' result */
+    s16 *s4; /* out: angle, or veh + 0x4C when func_802A92C8 ran */
+    s32 fp;  /* out: the second tilt (also stored to D_803ED390) */
+} Regs802A8768;
+#endif
+extern u8 D_803EEE70[];  /* vehicle 8's state block (the asm's $gp) */
+extern u32 D_803EEF18[]; /* vehicle 8's position x, y, z */
+extern u8 *D_803EEF24;   /* vehicle 8's model header */
+extern u64 *D_803EEF28;  /* vehicle 8's model buffers */
+extern u64 *D_803EEF2C;
+extern u8 D_8035805C;    /* which of the two buffers is current */
+extern s16 D_803ED390[]; /* model rotation x, y, z */
+extern u8 D_803ED40B;
+s32 func_802A9A60(s16 *tbl, s32 y, s32 x, s32 z, s32 *dst, s32 *mid, s16 *angle, s32 key, s32 fp, u8 *veh,
+                  TriSideOut *f, Out802A9A60 *out);
+void func_802A133C(s32 a0Val, s32 id, s32 v0Val, s32 v1Val, u8 *obj);
+void func_802AA764(s32 x, s32 y, s32 z, s32 scale, s32 *m);
+void func_8029C454(s32 x, s32 y, s32 z, s32 tag, u8 *p, u8 *end, u8 *base, MtxChainRegs *regs);
+void func_802ABBEC(s32 id, s16 *p, s16 *end, u8 *base, MtxChainRegs *regs);
+void func_802AAD0C(s32 id, s32 x, s32 z, InterpRegs *r);
+void func_802AAE54(s32 id, s32 x, s32 z, InterpRegs *r);
+s32 func_802A94A4(s32 index, s16 *tbl, s16 *angle, s32 *dz);
+s32 func_802AB9A4(s16 *tbl, s32 x1, u16 *angle, s32 id, s32 z1, s32 x2, s32 z2, s32 *s3Out, InterpRegs *r);
+void func_802A8768(u8 *veh, s32 id, s32 *px, s32 *py, s32 *pz, s32 x, s32 z, s32 divB, s32 divA, s16 *angle,
+                   u8 *flags, s16 *tbl, s32 *a, s32 *b, s32 *c, s32 *ys, Regs802A8768 *r, TriSideOut *f);
+void func_802B8278(void);
+void func_802B8424(void);
+void func_802B899C(void);
+void func_802B9B4C(void);
+
+#define VEH8_S16(off) (*(s16 *) (D_803EEE70 + (off)))
+#define VEH8_U16(off) (*(u16 *) (D_803EEE70 + (off)))
+
+/* InterpRegs (func_802AAD0C/func_802AAE54 results) -> TriSideOut (the FP
+ * registers func_802A8768 and the triangle scans pass through). */
+#define INTERP_TO_TRISIDE(f, r)              \
+    do {                                     \
+        (f).pz = (r).f12;                    \
+        (f).cross = *(f32 *) &(r).f14;       \
+        (f).cz = (r).f20;                    \
+        (f).side = (r).f22;                  \
+        (f).sideZ = (r).f24;                 \
+        (f).dz = (r).f26;                    \
+    } while (0)
+#endif
+
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/72B80/func_802B7340.s")
 
@@ -71,7 +171,28 @@ void func_802B7754(void) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Vehicle 8 while not driven (hd.c, func_8024B618): follow the ground under
+ * its wheels (func_802A9A60 at D_803EEF18 x/y/z, key 8; heights into +4,
+ * middle height into D_803EEF1C), place the model (func_802B8278) and report
+ * the position (func_802A133C(z, 8, x, y, D_803EEE70)).
+ * Fidelity note: the asm passes func_802A9A60 whatever its C caller left in
+ * fp (it ends up as D_803ED3F2[0..2] and the byte +0x50) and in f12-f26 (the
+ * triangle scans' FP pass-through); the C passes 0 and zeros. */
+void func_802B77A0(void) {
+    TriSideOut f;
+    Out802A9A60 o;
+
+    f.pz = f.cross = f.cz = f.side = f.sideZ = f.dz = 0.0f;
+    func_802A9A60((s16 *) (D_803EEE70 + 0x52), D_803EEF18[1], D_803EEF18[0], D_803EEF18[2],
+                  (s32 *) (D_803EEE70 + 4), (s32 *) &D_803EEF18[1], (s16 *) (D_803EEE70 + 0x4C), 8, 0,
+                  D_803EEE70, &f, &o);
+    func_802B8278();
+    func_802A133C(D_803EEF18[2], 8, D_803EEF18[0], D_803EEF18[1], D_803EEE70);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/72B80/func_802B77A0.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -104,10 +225,81 @@ s32 func_802B78B0(ZoneScanRegs *r) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Value pairs on triangle `id` (func_802AAD0C) at vehicle 8's x/z
+ * (D_803EEF18[0], [2]) -> s16s at +0x6A/+0x6C, and at that point offset by
+ * entry 0 of the wheel table +0x52 rotated by the heading +0x4C
+ * (func_802A94A4) -> +0x70/+0x72; +0x6E = the heading. The second
+ * func_802AAD0C's f24 input is the first one's f24 result.
+ * Register convention (conventions.txt): id a3, f24 in; func_802AAD0C's FP
+ * results pass through (here through r). The asm points $gp at D_803EEE70
+ * without restoring it, leaves s4 = +0x4C, and saves t0, t1, t3, t4 (asm
+ * caller func_802AB50C keeps t0 and t1 live: a mixed N64 build would need a
+ * thunk). Same shape as func_802C59B4 (7FB50) plus the second point. The
+ * asm's adds trap on overflow. */
+void func_802B78F4(s32 id, InterpRegs *r) {
+    s32 x = D_803EEF18[0];
+    s32 z = D_803EEF18[2];
+    s32 dx;
+    s32 dz;
+
+    func_802AAD0C(id, x, z, r);
+    VEH8_S16(0x6A) = r->t3;
+    VEH8_S16(0x6C) = r->t4;
+    VEH8_S16(0x6E) = VEH8_U16(0x4C);
+    dx = func_802A94A4(0, (s16 *) (D_803EEE70 + 0x52), (s16 *) (D_803EEE70 + 0x4C), &dz);
+    func_802AAD0C(id, x + dx, z + dz, r);
+    VEH8_S16(0x70) = r->t3;
+    VEH8_S16(0x72) = r->t4;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/72B80/func_802B78F4.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Vehicle 8 driven along a path triangle `id` (dispatched by func_802AB714):
+ * heading +0x4E = +0x4C = func_802AB9A4 (steer from the +0x6A/+0x6C point
+ * toward the +0x70/+0x72 point, heading +0x6E), then the value pair at
+ * (+0x6A, +0x6C) on the triangle (func_802AAE54) is the new x/z for
+ * func_802A8768 (ground contact; id 8, divisors 0x2BC/0x190, slot result s3
+ * from func_802AB9A4, FP state from func_802AAE54), after func_802B8424 and
+ * D_803ED40B = 1. Then the model is placed (func_802B8278) and the position
+ * reported (func_802A133C(z, 8, x, y)).
+ * Register convention (conventions.txt): id a3; f24 comes in from the
+ * dispatcher (whatever the previous vehicle function left) and the f24
+ * func_802A8768 leaves goes back out (here through *f24). The asm points $gp
+ * at D_803EEE70 and leaves s0-s7, fp, f20-f28 as its callees leave them; it
+ * saves a3, t0, t1, t2 (asm caller func_802AB714 keeps a3, t0, t1 live: a
+ * mixed N64 build would need a thunk). */
+void func_802B7980(s32 id, f32 *f24) {
+    InterpRegs r;
+    TriSideOut f;
+    Regs802A8768 rr;
+    s32 s3;
+    s32 h;
+
+    r.f24 = *f24;
+    h = func_802AB9A4((s16 *) (D_803EEE70 + 0x52), VEH8_S16(0x6A), (u16 *) (D_803EEE70 + 0x6E), id,
+                      VEH8_S16(0x6C), VEH8_S16(0x70), VEH8_S16(0x72), &s3, &r);
+    VEH8_S16(0x4E) = h;
+    VEH8_S16(0x4C) = h;
+    func_802AAE54(id, VEH8_S16(0x6A), VEH8_S16(0x6C), &r);
+    func_802B8424();
+    D_803ED40B = 1;
+    INTERP_TO_TRISIDE(f, r);
+    rr.s3 = s3;
+    func_802A8768(D_803EEE70, 8, (s32 *) &D_803EEF18[0], (s32 *) &D_803EEF18[1], (s32 *) &D_803EEF18[2], r.t3,
+                  r.t4, 0x2BC, 0x190, (s16 *) (D_803EEE70 + 0x4C), D_803EEE70 + 0x96, (s16 *) (D_803EEE70 + 0x52),
+                  (s32 *) (D_803EEE70 + 0x28), (s32 *) (D_803EEE70 + 0x40), (s32 *) (D_803EEE70 + 0x34),
+                  (s32 *) (D_803EEE70 + 4), &rr, &f);
+    *f24 = f.sideZ;
+    func_802B8278();
+    func_802A133C(D_803EEF18[2], 8, D_803EEF18[0], D_803EEF18[1], D_803EEE70);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/72B80/func_802B7980.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/72B80/func_802B7A88.s")
@@ -198,7 +390,43 @@ void func_802B80D8(void) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Places vehicle 8's model ($gp = D_803EEE70, read directly): rotation y =
+ * +0x4C (x/z rotation left as they are) and position D_803EEF18..20 at scale
+ * 0x32C8 into the matrix at header word [header word 0x18 + 4] of the current
+ * buffer (func_802AA764); then its parts (func_8029C454, tag 8, header words
+ * 4/8) and points (func_802ABBEC, id 8, header words 0/4), all relative to the
+ * header D_803EEF24.
+ * func_802AA890's register in/outs (regs; only used for an entry with no
+ * matrices): s2 = the matrix (func_802AA764 leaves it there), a3/s1/s0 are
+ * the asm callers' leftovers (0 here; fidelity note), and before
+ * func_802ABBEC v1/a0 = y/z (func_8029C454 restores them). The asm's add
+ * traps on overflow. Asm caller func_802B7A88 keeps t6, t7 live (a mixed N64
+ * build would need a thunk). */
+void func_802B8278(void) {
+    u8 *hdr = D_803EEF24;
+    u8 *m = *(u8 **) (hdr + *(s32 *) (hdr + 0x18) + 4);
+    MtxChainRegs regs;
+    u8 *base;
+
+    m += (s32) (D_8035805C != 0 ? D_803EEF28 : D_803EEF2C);
+    D_803ED390[1] = VEH8_U16(0x4C);
+    func_802AA764(D_803EEF18[0], D_803EEF18[1], D_803EEF18[2], 0x32C8, (s32 *) m);
+    base = (u8 *) (D_8035805C != 0 ? D_803EEF28 : D_803EEF2C);
+    regs.a3 = 0;
+    regs.s1 = 0;
+    regs.s2 = (s32) m;
+    regs.s0 = 0;
+    func_8029C454(D_803EEF18[0], D_803EEF18[1], D_803EEF18[2], 8, hdr + *(s32 *) (hdr + 4),
+                  hdr + *(s32 *) (hdr + 8), base, &regs);
+    hdr = D_803EEF24;
+    regs.v1 = D_803EEF18[1];
+    regs.a0 = D_803EEF18[2];
+    func_802ABBEC(8, (s16 *) (hdr + *(s32 *) hdr), (s16 *) (hdr + *(s32 *) (hdr + 4)), base, &regs);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/72B80/func_802B8278.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -820,4 +1048,40 @@ f32 func_802B98E0(void) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u8 *D_803EF2F8; /* the flying vehicle's model header */
+extern u8 *D_803EF2FC; /* its model buffers */
+extern u8 *D_803EF300;
+
+/* Places the flying vehicle's model ($gp = D_803EF240, read directly):
+ * rotation (0, +0x4C, 0) and position D_803EF2EC/F0/F4 at scale 0x5208 into
+ * the matrix at header word [header word 0x18 + 4] of the current buffer
+ * (func_802AA764), then its points (func_802ABBEC, id 0xFE, header words
+ * 0/4, relative to the header D_803EF2F8).
+ * func_802AA890's register in/outs (regs; only used for an entry with no
+ * matrices): s2 = the matrix (func_802AA764 leaves it there); v1, a0 (as
+ * func_802AA764 leaves them), a3, s1, s0 (the asm caller's leftovers) are 0
+ * here (fidelity note). The asm's add traps on overflow. */
+void func_802B9B4C(void) {
+    u8 *hdr = D_803EF2F8;
+    u8 *m = *(u8 **) (hdr + *(s32 *) (hdr + 0x18) + 4);
+    MtxChainRegs regs;
+
+    m += (s32) (D_8035805C != 0 ? D_803EF2FC : D_803EF300);
+    D_803ED390[0] = 0;
+    D_803ED390[2] = 0;
+    D_803ED390[1] = *(u16 *) (D_803EF240 + 0x4C);
+    func_802AA764(D_803EF2EC, D_803EF2F0, D_803EF2F4, 0x5208, (s32 *) m);
+    regs.v1 = 0;
+    regs.a0 = 0;
+    regs.a3 = 0;
+    regs.s1 = 0;
+    regs.s2 = (s32) m;
+    regs.s0 = 0;
+    hdr = D_803EF2F8;
+    func_802ABBEC(0xFE, (s16 *) (hdr + *(s32 *) hdr), (s16 *) (hdr + *(s32 *) (hdr + 4)),
+                  D_8035805C != 0 ? D_803EF2FC : D_803EF300, &regs);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/72B80/func_802B9B4C.s")
+#endif

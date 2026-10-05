@@ -352,3 +352,218 @@ func_802A1D54: -n 200 --seed 1 --heap 0x800 --follow func_802A21AC,func_802A2164
     --mem D_803BE704=choice:0,0x80B00300 --mem D_803BE710=choice:0x20,0x400 --mem D_803BE70C=choice:0x20,0x800 \
     --mem D_803BE714:2=halves:1,0x20 --mem D_80358070=rel:heap0+0x600 --stub-ret func_802A41B0=0x80B00700 \
     --mem D_8036EB93:1=rand --mem D_803F767C:6=rand --sig func_802A1EC8= --sig func_802A2BB0= --sig func_802A08E4=a0,a1
+
+# (disp) func_802A303C / func_802A30DC / func_802A3134: the type-0xFF, 0xFD and
+# 0xFE objects (func_802A396C stubbed through its convention).
+func_802A303C: -n 200 --arg t0=ptr:0x100 --mem @t0+0x54=choice:0x40,0x41,0x47 \
+    --mem @t0+0x40:16=bytes:0*3,1,0x7F,0x80,0xFF,0x12 --mem D_803643DB:1=rand
+func_802A303C: -n 100 --seed 1 --arg t0=ptr:0x100 --mem @t0+0x54=0x40 \
+    --mem @t0+0x40:9=hex:FF_7FFF_8000_FFFF_0001 --mem D_803643DB:1=rand
+func_802A30DC: -n 100 --stub-ret func_80268EE8=choice:0,1,0x100,-1 --sig func_80268EE8=a0 \
+    --mem D_802E8BDC=int --mem D_80364AC1:1=rand
+func_802A3134: -n 200 --arg t0=ptr:0x100 --mem @t0+0x54=choice:0x40,0x41 --mem @t0+0x40:4=bytes:0,1,0xFF \
+    --mem D_80364AA8=choice:0,0x80,0x81,1,-0x80 --mem D_803643DC:1=rand
+# func_802A350C: spawn loop over 0..4 records of every handled type (setups
+# stubbed; t6 and the FP state that leak into them are 0 here, as in the C;
+# fp passes through). Other types hit the asm's syscall (not testable here).
+func_802A350C: -n 400 --arg t6=0 --arg f12=0 --arg f14=0 --arg f20=0 --arg f22=0 --arg f24=0 --arg f26=0 \
+    --arg t0=ptr:0x200 --mem @t0+0x50=0x60 --mem @t0+0x54=choice:0x60,0x69,0x72,0x7B,0x84*3 \
+    --mem @t0+0x60:36=bytes:0,1,0x7F,0x80,0xFF,0x12,0x34 \
+    --mem @t0+0x60*9:4/1=choice:0,1,2,3,4,5,6,7,8,9,0xA,0xB,0xD,0xE,0xF,0x10,0x11,0x12 \
+    --mem D_80364A98=choice:0*3,0x1000 --mem D_80364A98+4=choice:2,0x20,0x80,0 \
+    --mem D_80364AA8=choice:0,1,0x80,2 \
+    --mem D_803643D4:1=choice:0,1,2,3,4,5,6,7,8,9,0xA,0xB,0xD,0xE,0xF,0x10,0x11,0x12 \
+    --mem D_8036698C:1=choice:0,1,4,0x10 --mem D_803ED3F5:1=rand --mem D_803ED40F:1=rand
+# type 1 replaced by D_803643D4 (or not, in modes 1 / 0x80), D_803ED40F types, coordinate extremes
+func_802A350C: -n 200 --seed 1 --arg t6=0 --arg f12=0 --arg f14=0 --arg f20=0 --arg f22=0 --arg f24=0 --arg f26=0 \
+    --arg t0=ptr:0x200 --mem @t0+0x50=0x60 --mem @t0+0x54=0x7B \
+    --mem @t0+0x60:27=hex:01_7FFF_8000_FFFF_0001_06_0000_0000_0000_8000_12_FFFF_7FFF_0000_7FFF \
+    --mem D_80364AA8=choice:0,1,0x80,0x81 \
+    --mem D_803643D4:1=choice:1,6,7,0xB,0x11,0x12,5 --mem D_80364A98=0 --mem D_80364A98+4=2 \
+    --mem D_803ED3F5:1=rand --mem D_803ED40F:1=rand
+# empty list
+func_802A350C: -n 20 --seed 2 --arg t6=0 --arg t0=ptr:0x100 --mem @t0+0x50=0x60 --mem @t0+0x54=0x60 \
+    --mem D_803ED3F5:1=rand --mem D_803ED40F:1=rand
+# func_802A1674: level setup, every callee stubbed (mapped). v0/t9 are set to
+# what initlevel's func_8026F92C(D_80364A98) leaves for each mode (the C
+# computes them), fp (func_802A1C20's param) to 0 (the C passes NULL);
+# func_8029DEA0 preserves v0/v1 in the asm (default stubs would write them).
+func_802A1674: -n 100 --stub-preserve func_8029DEA0=v0,v1 --sig func_802A0700= --sig func_8029DEA0= \
+    --sig func_802A1934= --sig func_8029DC80= --sig func_802A4510= --sig func_802A5F30= --sig func_802BC840= \
+    --sig func_802C049C= --sig func_802A19F4= --sig func_802A30DC= --sig func_802A3198= \
+    --sig func_8028FDA0=a0,a1 --sig func_8026FBB0=a0,a1 --sig func_8028D4C0=a0,a1 --sig func_8028C190=a0,a1 \
+    --sig func_802C4BF0=a0 --arg a0=ptr:0x100 --arg a1=choice:0,1,-1 --arg fp=0 \
+    --mem D_80364A98=0 --mem D_80364A98+4=2 --arg v0=1 --arg t9=1 --mem D_802E8BEC=choice:0,1 \
+    --mem D_803643DB:1=rand --mem D_803643DC:1=rand --mem D_80364AC1:1=rand --mem D_80370C50:1=rand \
+    --mem D_803BE6F4=rand --mem D_803BE6FC=rand --mem D_803BE700=rand
+func_802A1674: -n 100 --seed 1 --stub-preserve func_8029DEA0=v0,v1 --sig func_802A0700= --sig func_8029DEA0= \
+    --sig func_802A1934= --sig func_8029DC80= --sig func_802A4510= --sig func_802A5F30= --sig func_802BC840= \
+    --sig func_802C049C= --sig func_802A19F4= --sig func_802A30DC= --sig func_802A3198= \
+    --sig func_8028FDA0=a0,a1 --sig func_8026FBB0=a0,a1 --sig func_8028D4C0=a0,a1 --sig func_8028C190=a0,a1 \
+    --sig func_802C4BF0=a0 --arg a0=ptr:0x100 --arg a1=choice:0,1,-1 --arg fp=0 \
+    --mem D_80364A98=0 --mem D_80364A98+4=0x20 --arg v0=5 --arg t9=5 --mem D_802E8BEC=choice:0,1 \
+    --mem D_803643DB:1=rand --mem D_803643DC:1=rand --mem D_80364AC1:1=rand --mem D_80370C50:1=rand \
+    --mem D_803BE6F4=rand --mem D_803BE6FC=rand --mem D_803BE700=rand
+func_802A1674: -n 100 --seed 2 --stub-preserve func_8029DEA0=v0,v1 --sig func_802A0700= --sig func_8029DEA0= \
+    --sig func_802A1934= --sig func_8029DC80= --sig func_802A4510= --sig func_802A5F30= --sig func_802BC840= \
+    --sig func_802C049C= --sig func_802A19F4= --sig func_802A30DC= --sig func_802A3198= \
+    --sig func_8028FDA0=a0,a1 --sig func_8026FBB0=a0,a1 --sig func_8028D4C0=a0,a1 --sig func_8028C190=a0,a1 \
+    --sig func_802C4BF0=a0 --arg a0=ptr:0x100 --arg a1=choice:0,1,-1 --arg fp=0 \
+    --mem D_80364A98=0 --mem D_80364A98+4=0x80 --arg v0=7 --arg t9=7 --mem D_802E8BEC=choice:0,1 \
+    --mem D_803643DB:1=rand --mem D_803643DC:1=rand --mem D_80364AC1:1=rand --mem D_80370C50:1=rand \
+    --mem D_803BE6F4=rand --mem D_803BE6FC=rand --mem D_803BE700=rand
+# mode 0x100000000000 (= D_8030D880: no func_802C4BF0), bit 44
+func_802A1674: -n 100 --seed 3 --stub-preserve func_8029DEA0=v0,v1 --sig func_802A0700= --sig func_8029DEA0= \
+    --sig func_802A1934= --sig func_8029DC80= --sig func_802A4510= --sig func_802A5F30= --sig func_802BC840= \
+    --sig func_802C049C= --sig func_802A19F4= --sig func_802A30DC= --sig func_802A3198= \
+    --sig func_8028FDA0=a0,a1 --sig func_8026FBB0=a0,a1 --sig func_8028D4C0=a0,a1 --sig func_8028C190=a0,a1 \
+    --sig func_802C4BF0=a0 --arg a0=ptr:0x100 --arg a1=choice:0,1,-1 --arg fp=0 \
+    --mem D_80364A98=0x1000 --mem D_80364A98+4=0 --arg v0=44 --arg t9=44 --mem D_802E8BEC=choice:0,1 \
+    --mem D_803643DB:1=rand --mem D_803643DC:1=rand --mem D_80364AC1:1=rand --mem D_80370C50:1=rand \
+    --mem D_803BE6F4=rand --mem D_803BE6FC=rand --mem D_803BE700=rand
+# mode 0 (func_8026F92C returns -1, t9 = 0) and an odd mode (0, t9 = the mode)
+func_802A1674: -n 100 --seed 4 --stub-preserve func_8029DEA0=v0,v1 --sig func_802A0700= --sig func_8029DEA0= \
+    --sig func_802A1934= --sig func_8029DC80= --sig func_802A4510= --sig func_802A5F30= --sig func_802BC840= \
+    --sig func_802C049C= --sig func_802A19F4= --sig func_802A30DC= --sig func_802A3198= \
+    --sig func_8028FDA0=a0,a1 --sig func_8026FBB0=a0,a1 --sig func_8028D4C0=a0,a1 --sig func_8028C190=a0,a1 \
+    --sig func_802C4BF0=a0 --arg a0=ptr:0x100 --arg a1=choice:0,1,-1 --arg fp=0 \
+    --mem D_80364A98=0 --mem D_80364A98+4=0 --arg v0=-1 --arg t9=0 --mem D_802E8BEC=choice:0,1 \
+    --mem D_803643DB:1=rand --mem D_803643DC:1=rand --mem D_80364AC1:1=rand --mem D_80370C50:1=rand \
+    --mem D_803BE6F4=rand --mem D_803BE6FC=rand --mem D_803BE700=rand
+func_802A1674: -n 100 --seed 5 --stub-preserve func_8029DEA0=v0,v1 --sig func_802A0700= --sig func_8029DEA0= \
+    --sig func_802A1934= --sig func_8029DC80= --sig func_802A4510= --sig func_802A5F30= --sig func_802BC840= \
+    --sig func_802C049C= --sig func_802A19F4= --sig func_802A30DC= --sig func_802A3198= \
+    --sig func_8028FDA0=a0,a1 --sig func_8026FBB0=a0,a1 --sig func_8028D4C0=a0,a1 --sig func_8028C190=a0,a1 \
+    --sig func_802C4BF0=a0 --arg a0=ptr:0x100 --arg a1=choice:0,1,-1 --arg fp=0 \
+    --mem D_80364A98=0 --mem D_80364A98+4=0x2001 --arg v0=0 --arg t9=0x2001 --mem D_802E8BEC=choice:0,1 \
+    --mem D_803643DB:1=rand --mem D_803643DC:1=rand --mem D_80364AC1:1=rand --mem D_80370C50:1=rand \
+    --mem D_803BE6F4=rand --mem D_803BE6FC=rand --mem D_803BE700=rand
+func_802A1674: -n 100 --seed 6 --stub-preserve func_8029DEA0=v0,v1 --sig func_802A0700= --sig func_8029DEA0= \
+    --sig func_802A1934= --sig func_8029DC80= --sig func_802A4510= --sig func_802A5F30= --sig func_802BC840= \
+    --sig func_802C049C= --sig func_802A19F4= --sig func_802A30DC= --sig func_802A3198= \
+    --sig func_8028FDA0=a0,a1 --sig func_8026FBB0=a0,a1 --sig func_8028D4C0=a0,a1 --sig func_8028C190=a0,a1 \
+    --sig func_802C4BF0=a0 --arg a0=ptr:0x100 --arg a1=choice:0,1,-1 --arg fp=0 \
+    --mem D_80364A98=0 --mem D_80364A98+4=0x2000 --arg v0=13 --arg t9=13 --mem D_802E8BEC=choice:0,1 \
+    --mem D_803643DB:1=rand --mem D_803643DC:1=rand --mem D_80364AC1:1=rand --mem D_80370C50:1=rand \
+    --mem D_803BE6F4=rand --mem D_803BE6FC=rand --mem D_803BE700=rand
+# bit 31 / bit 32 of the 64-bit mode
+func_802A1674: -n 50 --seed 7 --stub-preserve func_8029DEA0=v0,v1 --sig func_802A0700= --sig func_8029DEA0= \
+    --sig func_802A1934= --sig func_8029DC80= --sig func_802A4510= --sig func_802A5F30= --sig func_802BC840= \
+    --sig func_802C049C= --sig func_802A19F4= --sig func_802A30DC= --sig func_802A3198= \
+    --sig func_8028FDA0=a0,a1 --sig func_8026FBB0=a0,a1 --sig func_8028D4C0=a0,a1 --sig func_8028C190=a0,a1 \
+    --sig func_802C4BF0=a0 --arg a0=ptr:0x100 --arg a1=choice:0,1 --arg fp=0 \
+    --mem D_80364A98=0 --mem D_80364A98+4=0x80000000 --arg v0=31 --arg t9=31
+func_802A1674: -n 50 --seed 8 --stub-preserve func_8029DEA0=v0,v1 --sig func_802A0700= --sig func_8029DEA0= \
+    --sig func_802A1934= --sig func_8029DC80= --sig func_802A4510= --sig func_802A5F30= --sig func_802BC840= \
+    --sig func_802C049C= --sig func_802A19F4= --sig func_802A30DC= --sig func_802A3198= \
+    --sig func_8028FDA0=a0,a1 --sig func_8026FBB0=a0,a1 --sig func_8028D4C0=a0,a1 --sig func_8028C190=a0,a1 \
+    --sig func_802C4BF0=a0 --arg a0=ptr:0x100 --arg a1=choice:0,1 --arg fp=0 \
+    --mem D_80364A98=1 --mem D_80364A98+4=0 --arg v0=32 --arg t9=32
+# (disp) followed: model loads through func_802A396C run for real (cartridge DMA
+# modelled by tools_port/models/rom_dma.py, the texture resolver func_802A08E4 a
+# no-op model, the decompressor's inner routines stubbed); func_802A1674 also
+# runs its own func_802A350C / func_802A303C / func_802A30DC / func_802A3134 and
+# func_802A3824. The setups' t6 input is not compared (the asm hands on the
+# triangle builders' t6 - see the C comment - the C passes 0).
+func_802A303C: -n 30 --seed 10 --follow \
+    func_802A396C,func_802C4108,func_802A44E4,func_8029DF78,osInvalDCache,func_8025C230 --sig \
+    func_8025C5A0=a0,a1,a2 --sig func_8025C30C=a0,a1,a2 --sig func_802994F8=a0,a1,a2 --heap 0x40000=zero --mem \
+    D_80358070=rel:heap0 --conv 'osPiStartDma: in \
+    a0=a0,a1=a1,a2=a2,a3=a3,stack0=stack0,stack1=stack1,stack2=stack2 ; out v0=ret' --model \
+    osPiStartDma=rom_dma.py:dma --model osRecvMesg=rom_dma.py:noop --model func_802A08E4=rom_dma.py:noop --arg \
+    t0=ptr:0x100 --mem @t0+0x54=0x40 --mem @t0+0x40:9=bytes:0,5,0x80,0xFF,0x12 --mem D_803643DB:1=rand
+func_802A3134: -n 30 --seed 10 --follow \
+    func_802A396C,func_802C4108,func_802A44E4,func_8029DF78,osInvalDCache,func_8025C230 --sig \
+    func_8025C5A0=a0,a1,a2 --sig func_8025C30C=a0,a1,a2 --sig func_802994F8=a0,a1,a2 --heap 0x40000=zero --mem \
+    D_80358070=rel:heap0 --conv 'osPiStartDma: in \
+    a0=a0,a1=a1,a2=a2,a3=a3,stack0=stack0,stack1=stack1,stack2=stack2 ; out v0=ret' --model \
+    osPiStartDma=rom_dma.py:dma --model osRecvMesg=rom_dma.py:noop --model func_802A08E4=rom_dma.py:noop --arg \
+    t0=ptr:0x100 --mem @t0+0x54=0x40 --mem @t0+0x40:1=choice:0,1 --mem D_80364AA8=choice:0,0x80 --mem \
+    D_803643DC:1=rand
+func_802A30DC: -n 30 --seed 10 --follow \
+    func_802A396C,func_802C4108,func_802A44E4,func_8029DF78,osInvalDCache,func_8025C230 --sig \
+    func_8025C5A0=a0,a1,a2 --sig func_8025C30C=a0,a1,a2 --sig func_802994F8=a0,a1,a2 --heap 0x40000=zero --mem \
+    D_80358070=rel:heap0 --conv 'osPiStartDma: in \
+    a0=a0,a1=a1,a2=a2,a3=a3,stack0=stack0,stack1=stack1,stack2=stack2 ; out v0=ret' --model \
+    osPiStartDma=rom_dma.py:dma --model osRecvMesg=rom_dma.py:noop --model func_802A08E4=rom_dma.py:noop \
+    --stub-ret func_80268EE8=choice:0,1 --sig func_80268EE8=a0 --mem D_80364AC1:1=rand
+func_802A350C: -n 30 --seed 10 --follow func_802A3824 --follow \
+    func_802A396C,func_802C4108,func_802A44E4,func_8029DF78,osInvalDCache,func_8025C230 --sig \
+    func_8025C5A0=a0,a1,a2 --sig func_8025C30C=a0,a1,a2 --sig func_802994F8=a0,a1,a2 --heap 0x40000=zero --mem \
+    D_80358070=rel:heap0 --conv 'osPiStartDma: in \
+    a0=a0,a1=a1,a2=a2,a3=a3,stack0=stack0,stack1=stack1,stack2=stack2 ; out v0=ret' --model \
+    osPiStartDma=rom_dma.py:dma --model osRecvMesg=rom_dma.py:noop --model func_802A08E4=rom_dma.py:noop --arg \
+    t0=ptr:0x200 --mem @t0+0x50=0x60 --mem @t0+0x54=0x84 --mem @t0+0x60:36=bytes:0,1,0x7F,0x80,0xFF,0x12,0x34 \
+    --mem @t0+0x60:1=0 --mem @t0+0x69*9:3/1=choice:0,1,2,3,4,5,6,7,8,9,0xA,0xB,0xD,0xE,0xF,0x10,0x11,0x12 --mem \
+    D_80364A98=0 --mem D_80364A98+4=choice:0x20,2 --mem D_80364AA8=choice:0,1,0x80 --mem \
+    D_803643D4:1=choice:3,5,9 --mem D_803ED3F5:1=rand --mem D_803ED40F:1=rand --mem D_803BE73A:1=rand --arg t6=0 \
+    --arg f12=0 --arg f14=0 --arg f20=0 --arg f22=0 --arg f24=0 --arg f26=0
+func_802A1674: -n 40 --seed 21 --follow func_802A350C,func_802A303C,func_802A30DC,func_802A3134,func_802A3824 \
+    --follow func_802A396C,func_802C4108,func_802A44E4,func_8029DF78,osInvalDCache,func_8025C230 --sig \
+    func_8025C5A0=a0,a1,a2 --sig func_8025C30C=a0,a1,a2 --sig func_802994F8=a0,a1,a2 --heap 0x40000=zero --mem \
+    D_80358070=rel:heap0 --conv 'osPiStartDma: in \
+    a0=a0,a1=a1,a2=a2,a3=a3,stack0=stack0,stack1=stack1,stack2=stack2 ; out v0=ret' --model \
+    osPiStartDma=rom_dma.py:dma --model osRecvMesg=rom_dma.py:noop --model func_802A08E4=rom_dma.py:noop \
+    --stub-preserve func_8029DEA0=v0,v1 --sig func_802A0700= --sig func_8029DEA0= --sig func_802A1934= --sig \
+    func_8029DC80= --sig func_802A4510= --sig func_802A5F30= --sig func_802BC840= --sig func_802C049C= --sig \
+    func_802A19F4= --sig func_802A3198= --sig func_8028FDA0=a0,a1 --sig func_8026FBB0=a0,a1 --sig \
+    func_8028D4C0=a0,a1 --sig func_8028C190=a0,a1 --sig func_802C4BF0=a0 --sig func_80268EE8=a0 --sig \
+    func_802B0DA0=a0,a1,a2,a3,stack0,stack1,*stack3,*stack3+0x4,*stack3+0x8,*stack3+0xC,*stack3+0x10,*stack3+0x14 \
+    --sig \
+    func_802CF6A0=a0,a1,a2,a3,stack0,stack1,*stack3,*stack3+0x4,*stack3+0x8,*stack3+0xC,*stack3+0x10,*stack3+0x14 \
+    --sig \
+    func_802D07E0=a0,a1,a2,a3,stack0,stack1,*stack3,*stack3+0x4,*stack3+0x8,*stack3+0xC,*stack3+0x10,*stack3+0x14 \
+    --arg a0=ptr:0x200 --mem @a0+0x50=0x60 --mem @a0+0x54=0x84 --mem \
+    @a0+0x60:36=bytes:0,1,0x7F,0x80,0xFF,0x12,0x34 --mem @a0+0x60:1=0 --mem \
+    @a0+0x69*9:3/1=choice:0,1,2,3,4,5,6,7,8,9,0xA,0xB,0xD,0xE,0xF,0x10,0x11,0x12 --mem @a0+0x84:1=choice:0,1 \
+    --arg a1=choice:0,1 --arg fp=0 --arg f12=0 --arg f14=0 --arg f20=0 --arg f22=0 --arg f24=0 --arg f26=0 --mem \
+    D_80364A98=0 --mem D_80364A98+4=2 --arg v0=1 --arg t9=1 --mem D_802E8BEC=choice:0,1 --mem \
+    D_80364AA8=choice:0,1,0x80 --mem D_803643D4:1=choice:3,5,9 --stub-ret func_80268EE8=choice:0,1 --mem \
+    D_803643DB:1=rand --mem D_803643DC:1=rand --mem D_80364AC1:1=rand --mem D_80370C50:1=rand --mem \
+    D_803BE6FC=rand --mem D_803BE700=rand
+func_802A1674: -n 40 --seed 22 --follow func_802A350C,func_802A303C,func_802A30DC,func_802A3134,func_802A3824 \
+    --follow func_802A396C,func_802C4108,func_802A44E4,func_8029DF78,osInvalDCache,func_8025C230 --sig \
+    func_8025C5A0=a0,a1,a2 --sig func_8025C30C=a0,a1,a2 --sig func_802994F8=a0,a1,a2 --heap 0x40000=zero --mem \
+    D_80358070=rel:heap0 --conv 'osPiStartDma: in \
+    a0=a0,a1=a1,a2=a2,a3=a3,stack0=stack0,stack1=stack1,stack2=stack2 ; out v0=ret' --model \
+    osPiStartDma=rom_dma.py:dma --model osRecvMesg=rom_dma.py:noop --model func_802A08E4=rom_dma.py:noop \
+    --stub-preserve func_8029DEA0=v0,v1 --sig func_802A0700= --sig func_8029DEA0= --sig func_802A1934= --sig \
+    func_8029DC80= --sig func_802A4510= --sig func_802A5F30= --sig func_802BC840= --sig func_802C049C= --sig \
+    func_802A19F4= --sig func_802A3198= --sig func_8028FDA0=a0,a1 --sig func_8026FBB0=a0,a1 --sig \
+    func_8028D4C0=a0,a1 --sig func_8028C190=a0,a1 --sig func_802C4BF0=a0 --sig func_80268EE8=a0 --sig \
+    func_802B0DA0=a0,a1,a2,a3,stack0,stack1,*stack3,*stack3+0x4,*stack3+0x8,*stack3+0xC,*stack3+0x10,*stack3+0x14 \
+    --sig \
+    func_802CF6A0=a0,a1,a2,a3,stack0,stack1,*stack3,*stack3+0x4,*stack3+0x8,*stack3+0xC,*stack3+0x10,*stack3+0x14 \
+    --sig \
+    func_802D07E0=a0,a1,a2,a3,stack0,stack1,*stack3,*stack3+0x4,*stack3+0x8,*stack3+0xC,*stack3+0x10,*stack3+0x14 \
+    --arg a0=ptr:0x200 --mem @a0+0x50=0x60 --mem @a0+0x54=0x84 --mem \
+    @a0+0x60:36=bytes:0,1,0x7F,0x80,0xFF,0x12,0x34 --mem @a0+0x60:1=0 --mem \
+    @a0+0x69*9:3/1=choice:0,1,2,3,4,5,6,7,8,9,0xA,0xB,0xD,0xE,0xF,0x10,0x11,0x12 --mem @a0+0x84:1=choice:0,1 \
+    --arg a1=choice:0,1 --arg fp=0 --arg f12=0 --arg f14=0 --arg f20=0 --arg f22=0 --arg f24=0 --arg f26=0 --mem \
+    D_80364A98=0 --mem D_80364A98+4=0x20 --arg v0=5 --arg t9=5 --mem D_802E8BEC=choice:0,1 --mem \
+    D_80364AA8=choice:0,1,0x80 --mem D_803643D4:1=choice:3,5,9 --stub-ret func_80268EE8=choice:0,1 --mem \
+    D_803643DB:1=rand --mem D_803643DC:1=rand --mem D_80364AC1:1=rand --mem D_80370C50:1=rand --mem \
+    D_803BE6FC=rand --mem D_803BE700=rand
+func_802A1674: -n 40 --seed 23 --follow func_802A350C,func_802A303C,func_802A30DC,func_802A3134,func_802A3824 \
+    --follow func_802A396C,func_802C4108,func_802A44E4,func_8029DF78,osInvalDCache,func_8025C230 --sig \
+    func_8025C5A0=a0,a1,a2 --sig func_8025C30C=a0,a1,a2 --sig func_802994F8=a0,a1,a2 --heap 0x40000=zero --mem \
+    D_80358070=rel:heap0 --conv 'osPiStartDma: in \
+    a0=a0,a1=a1,a2=a2,a3=a3,stack0=stack0,stack1=stack1,stack2=stack2 ; out v0=ret' --model \
+    osPiStartDma=rom_dma.py:dma --model osRecvMesg=rom_dma.py:noop --model func_802A08E4=rom_dma.py:noop \
+    --stub-preserve func_8029DEA0=v0,v1 --sig func_802A0700= --sig func_8029DEA0= --sig func_802A1934= --sig \
+    func_8029DC80= --sig func_802A4510= --sig func_802A5F30= --sig func_802BC840= --sig func_802C049C= --sig \
+    func_802A19F4= --sig func_802A3198= --sig func_8028FDA0=a0,a1 --sig func_8026FBB0=a0,a1 --sig \
+    func_8028D4C0=a0,a1 --sig func_8028C190=a0,a1 --sig func_802C4BF0=a0 --sig func_80268EE8=a0 --sig \
+    func_802B0DA0=a0,a1,a2,a3,stack0,stack1,*stack3,*stack3+0x4,*stack3+0x8,*stack3+0xC,*stack3+0x10,*stack3+0x14 \
+    --sig \
+    func_802CF6A0=a0,a1,a2,a3,stack0,stack1,*stack3,*stack3+0x4,*stack3+0x8,*stack3+0xC,*stack3+0x10,*stack3+0x14 \
+    --sig \
+    func_802D07E0=a0,a1,a2,a3,stack0,stack1,*stack3,*stack3+0x4,*stack3+0x8,*stack3+0xC,*stack3+0x10,*stack3+0x14 \
+    --arg a0=ptr:0x200 --mem @a0+0x50=0x60 --mem @a0+0x54=0x84 --mem \
+    @a0+0x60:36=bytes:0,1,0x7F,0x80,0xFF,0x12,0x34 --mem @a0+0x60:1=0 --mem \
+    @a0+0x69*9:3/1=choice:0,1,2,3,4,5,6,7,8,9,0xA,0xB,0xD,0xE,0xF,0x10,0x11,0x12 --mem @a0+0x84:1=choice:0,1 \
+    --arg a1=choice:0,1 --arg fp=0 --arg f12=0 --arg f14=0 --arg f20=0 --arg f22=0 --arg f24=0 --arg f26=0 --mem \
+    D_80364A98=0 --mem D_80364A98+4=0x80 --arg v0=7 --arg t9=7 --mem D_802E8BEC=choice:0,1 --mem \
+    D_80364AA8=choice:0,1,0x80 --mem D_803643D4:1=choice:3,5,9 --stub-ret func_80268EE8=choice:0,1 --mem \
+    D_803643DB:1=rand --mem D_803643DC:1=rand --mem D_80364AC1:1=rand --mem D_80370C50:1=rand --mem \
+    D_803BE6FC=rand --mem D_803BE700=rand

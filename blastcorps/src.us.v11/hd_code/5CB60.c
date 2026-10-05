@@ -161,7 +161,181 @@ void func_802A1558(Gfx *src, Gfx *end, Gfx **dstp) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u8 D_80364AC1;
+extern u8 D_803643DB;
+extern u8 D_803643DC;
+extern s32 D_802E8BEC;
+extern s32 D_803BE6F4; /* func_802A1674's second argument (a status stream pointer or 0) */
+extern u8 *D_803BE6FC;
+extern u8 *D_803BE700;
+extern u8 D_80370C50;
+/* u64 game-mode constants in .hd_code_data (the asm loads them by raw
+ * address with ld). */
+#define D_8030D880 (*(u64 *) 0x8030D880)
+#define D_8030D888 (*(u64 *) 0x8030D888)
+
+void func_802A2D68(u8 *obj);
+void func_802A0700(void);
+u8 *func_802A3008(u8 *obj);
+void func_802A1C20(u8 *obj, u8 *param, s32 *s1io);
+void func_802A1C88(u8 *obj);
+void func_8029DEA0(void);
+u8 *func_802A3D54(u8 *obj, s32 id, s32 b4F, s32 *s1io);
+u8 *func_802A3DF8(u8 *obj, s32 id, s32 b4F, s32 *s1io);
+void func_802A3E9C(u8 *obj, s32 id, s32 b4F, s32 *s1io);
+u8 *func_802A3F80(u8 *obj, s32 *s1io);
+void func_802A4464(u8 *obj);
+void func_802A1A9C(u8 *obj);
+void func_802A1934(void);
+void func_8029DC80(void);
+void func_802A4510(void);
+void func_802A2C54(u8 *obj);
+void func_802A5F30(void);
+void func_802BC840(void);
+u8 *func_802A1D54(u8 *obj, u8 *param);
+void func_802C049C(void);
+void func_8028FDA0(u8 *arg0, u8 *arg1);
+s32 func_802A350C(u8 *obj, s32 fp);
+void func_802A303C(u8 *obj, s32 fp);
+void func_802A30DC(void);
+void func_802A3134(u8 *obj);
+void func_802A3198(Out802A32CC *out);
+void func_802CEAA0(u8 *obj);
+void func_802A19F4(void);
+void func_8026FBB0(u8 *pos, u8 *end);
+void func_8028D4C0(u8 *arg0, u8 *arg1);
+void func_8028C190(u8 *arg0, u8 *arg1);
+void func_802C4BF0(void *in);
+
+/* What the asm's v0 and t9 hold on entry from the only caller, 00000.c's
+ * func_80256A34 (initlevel): its last call before func_802A1674 that sets them
+ * is func_8026F92C(D_80364A98) (the debug print after it is an empty stub),
+ * which returns the index of the lowest set bit of the game mode (-1 for 0)
+ * and leaves t9 = that index, or the mode's low word when bit 0 is set (the
+ * loop doesn't run; 0 for mode 0). The 64-bit mask is doubled by adding so
+ * this stays inline (no __ll_lshift call). */
+static s32 port_initlevel_v0(s32 *t9) {
+    u64 mode = D_80364A98;
+    u64 bit = 1;
+    s32 n = 0;
+
+    if (mode == 0) {
+        *t9 = 0;
+        return -1;
+    }
+    if (mode & 1) {
+        *t9 = (u32) mode;
+        return 0;
+    }
+    do {
+        bit += bit;
+        n++;
+    } while (!(mode & bit));
+    *t9 = n;
+    return n;
+}
+
+/* Level setup from the level object obj (heap data; offsets as OBJ_PTR):
+ * D_803BE6F4 = arg1, then the level header (func_802A2D68), the texture
+ * table (func_802A0700), display lists and textures (func_802A3008,
+ * func_802A1C20, func_802A1C88), the animation channels (func_8029DEA0), the
+ * collision triangles (func_802A3D54, func_802A3DF8, func_802A3E9C,
+ * func_802A3F80), grids and tables (func_802A4464 .. func_802BC840), the
+ * placed objects (func_802A1D54), func_802C049C, func_8028FDA0(obj words
+ * 0x3C/0x40). Unless the game mode D_80364A98 is 0x80 the level's vehicles
+ * and objects are spawned (func_802A350C). D_80364AC1 = D_803643DB =
+ * D_803643DC = 0; then mode 2: the type-0xFF object (func_802A303C) unless
+ * D_802E8BEC; other modes: unless the mode is 0x80 or arg1 is set, the
+ * type-0xFF object and the 0xFD vehicle (func_802A30DC), then always the
+ * 0xFE vehicle (func_802A3134). Then func_802A3198, func_802CEAA0,
+ * func_802A19F4, D_803BE6FC / D_803BE700 = OBJ_PTR(obj, 0x58 / 0x5C),
+ * func_8026FBB0 / func_8028D4C0 / func_8028C190 on the obj ranges
+ * 0x34-0x38, 0x38-0x3C, 0x20-0x24, D_80370C50 = 0, and when the mode is
+ * neither 2 nor D_8030D880 (0x100000000000) and arg1 is set,
+ * func_802C4BF0(arg1) (arg1 is the saved-status stream it applies).
+ * Registers the asm hands on (it saves every callee-saved register itself):
+ *  - s1: func_802A3008's result, threaded through func_802A1C20 and the
+ *    triangle builders (s1).
+ *  - fp: func_802A1C20's param is the caller's fp (func_80256A34 and the
+ *    IDO code above it never set $s8; its value comes from whatever hand asm
+ *    last left it): NULL here (it only reaches D_803C4B58.param, read by the
+ *    decoder for packed types 4/5). From func_802A3F80 on, fp is its result
+ *    (the D_803B9890 record end), handed to func_802A1D54 and on to the
+ *    spawns: func_802A350C returns the fp the next object would get, and
+ *    that goes to func_802A303C.
+ *  - v0 / t9 (triangle id and byte 0x4F of the D_803BDCA8 / D_803BDE40 /
+ *    group records): the caller's, never changed before those calls (every
+ *    callee in between preserves them); see port_initlevel_v0.
+ *  - s2-s4 into func_802A3198 (in/out; its outputs are dead here): 0.
+ * After it the asm leaves func_802A3F80's s1 for func_8028FDA0's callee
+ * func_802CE9C8 (not expressible: func_8028FDA0 is IDO C). */
+void func_802A1674(u8 *obj, s32 arg1) {
+    Out802A32CC o;
+    s32 s1;
+    s32 id;
+    s32 b4F;
+    u8 *fp;
+
+    D_803BE6F4 = arg1;
+    func_802A2D68(obj);
+    func_802A0700();
+    s1 = (s32) func_802A3008(obj);
+    func_802A1C20(obj, NULL, &s1);
+    func_802A1C88(obj);
+    func_8029DEA0();
+    id = port_initlevel_v0(&b4F);
+    func_802A3D54(obj, id, b4F, &s1);
+    func_802A3DF8(obj, id, b4F, &s1);
+    func_802A3E9C(obj, id, b4F, &s1);
+    fp = func_802A3F80(obj, &s1);
+    func_802A4464(obj);
+    func_802A1A9C(obj);
+    func_802A1934();
+    func_8029DC80();
+    func_802A4510();
+    func_802A2C54(obj);
+    func_802A5F30();
+    func_802BC840();
+    func_802A1D54(obj, fp);
+    func_802C049C();
+    func_8028FDA0(OBJ_PTR(obj, 0x3C), OBJ_PTR(obj, 0x40));
+    if (D_80364A98 != 0x80) {
+        fp = (u8 *) func_802A350C(obj, (s32) fp);
+    }
+    D_80364AC1 = 0;
+    D_803643DB = 0;
+    D_803643DC = 0;
+    if (D_80364A98 == 2) {
+        if (D_802E8BEC == 0) {
+            func_802A303C(obj, (s32) fp);
+        }
+    } else {
+        if (D_80364A98 != 0x80 && D_803BE6F4 == 0) {
+            func_802A303C(obj, (s32) fp);
+            func_802A30DC();
+        }
+        func_802A3134(obj);
+    }
+    o.s2 = NULL;
+    o.s3 = NULL;
+    o.s4 = NULL;
+    func_802A3198(&o);
+    func_802CEAA0(obj);
+    func_802A19F4();
+    D_803BE6FC = OBJ_PTR(obj, 0x58);
+    D_803BE700 = OBJ_PTR(obj, 0x5C);
+    func_8026FBB0(OBJ_PTR(obj, 0x34), OBJ_PTR(obj, 0x38));
+    func_8028D4C0(OBJ_PTR(obj, 0x38), OBJ_PTR(obj, 0x3C));
+    func_8028C190(OBJ_PTR(obj, 0x20), OBJ_PTR(obj, 0x24));
+    D_80370C50 = 0;
+    if (D_80364A98 != 2 && D_80364A98 != D_8030D880 && D_803BE6F4 != 0) {
+        func_802C4BF0((void *) D_803BE6F4);
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A1674.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -1136,13 +1310,78 @@ u8 *func_802A3008(u8 *obj) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+void func_802B9C50(u8 *model, s32 x, s32 z, s32 speed, s32 limit, s32 heading, s32 fp);
+
+/* The level's type-0xFF object: the 9-byte record at OBJ_PTR(obj, 0x54) (just
+ * past func_802A350C's list) {u8 speed, BE s16 x, z, heading, limit}; when
+ * its first byte is set, load model 0xFF (func_802A396C) and set it up with
+ * func_802B9C50(model, x << 5, z << 5, speed, limit << 5, heading, fp), then
+ * D_803643DB = 1.
+ * Register convention: obj in t0, fp (the previous object's leftover: here
+ * what func_802A350C returns) (conventions.txt); the asm saves t0 and leaves
+ * s1, s2, s4 and the setup's s0-s7, fp, gp and FP registers changed. Its add
+ * traps (a heap address: in range). */
+void func_802A303C(u8 *obj, s32 fp) {
+    u8 *p = OBJ_PTR(obj, 0x54);
+    Out802A396C o;
+    s32 speed = p[0];
+
+    if (speed != 0) {
+        func_802A396C(0xFF, &o);
+        func_802B9C50(o.s2, BE16S(p + 1) << 5, BE16S(p + 3) << 5, speed, BE16S(p + 7) << 5, BE16S(p + 5), fp);
+        D_803643DB = 1;
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A303C.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+s32 func_80268EE8(s32 id);
+void func_802D2570(u8 *hdr);
+
+/* If func_80268EE8(D_802E8BDC) (the current level has it): D_80364AC1 = 1,
+ * load model 0xFD (func_802A396C) and set up vehicle 0xFD with it
+ * (func_802D2570). The asm saves t0 (not read) and leaves func_802A396C's s2,
+ * s4 and the setup's registers changed (conventions.txt: clobbers). */
+void func_802A30DC(void) {
+    Out802A396C o;
+
+    if (func_80268EE8(D_802E8BDC) != 0) {
+        D_80364AC1 = 1;
+        func_802A396C(0xFD, &o);
+        func_802D2570(o.s2);
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A30DC.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+void func_802B8480(s32 a1Val, u8 *hdr);
+
+/* When the record at OBJ_PTR(obj, 0x54) (func_802A303C's) has a nonzero first
+ * byte and the game mode D_80364AA8 isn't 0x80: load model 0xFE
+ * (func_802A396C) and set up the flying vehicle with func_802B8480(heap end,
+ * model) - its a1 input is the heap end func_802A396C leaves in a1 - then
+ * D_803643DC = 1.
+ * Register convention: obj in t0 (conventions.txt); the asm saves t0 and
+ * leaves s2, s4 and the setup's registers changed. Its add traps. */
+void func_802A3134(u8 *obj) {
+    Out802A396C o;
+
+    if (*OBJ_PTR(obj, 0x54) != 0 && D_80364AA8 != 0x80) {
+        func_802A396C(0xFE, &o);
+        func_802B8480((s32) o.a1, o.s2);
+        D_803643DC = 1;
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A3134.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -1287,7 +1526,173 @@ void func_802A32CC(s32 type, Out802A32CC *out) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* The FP registers the spawns hand to func_802A992C (f12, f14, f20-f26; FP
+ * side results only), as their TriSideOut. */
+typedef struct {
+    f32 f12;
+    f32 f14;
+    f32 f20;
+    f32 f22;
+    f32 f24;
+    f32 f26;
+} SpawnFP;
+
+extern u8 D_803ED3F5;
+extern u8 D_803ED40F;
+extern u8 D_8036698C;
+extern u8 D_803643D4;
+void func_802A3824(u8 *obj);
+void func_802AE370(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, SpawnFP *f);
+void func_802AFC60(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp);
+void func_802B0DA0(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s32 t6, SpawnFP *f);
+void func_802B29C0(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp);
+void func_802B4100(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp);
+void func_802B5900(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp);
+void func_802BAD80(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp);
+void func_802BBA60(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp);
+void func_802B7340(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, SpawnFP *f);
+void func_802C5120(s32 x, s32 y, s32 z, s32 heading, u8 *model, s32 fp);
+void func_802C9B90(s32 x, s32 y, s32 z, s32 heading, u8 *model, s32 fp);
+void func_802C80D0(s32 type, s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp);
+void func_802CB720(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, SpawnFP *f);
+void func_802CC920(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, SpawnFP *f);
+void func_802CF6A0(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s32 t6, SpawnFP *f);
+void func_802D07E0(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s32 t6, SpawnFP *f);
+
+/* Spawn the level's vehicles and objects: func_802A3824(obj) (picks
+ * D_803BE73A), D_803ED3F5 = D_803ED40F = 0, then for each 9-byte record in
+ * [OBJ_PTR(obj, 0x50), OBJ_PTR(obj, 0x54)) {u8 type, BE s16 x, y, z,
+ * heading}: in game mode D_80364A98 == 2 (and == the u64 D_8030D888) only
+ * records of type D_8036698C are spawned; type 1 becomes the player's
+ * vehicle D_803643D4 unless D_80364AA8 is 1 or 0x80; types 6, 7, 0xB, 0x11,
+ * 0x12 set D_803ED40F. The model is loaded (func_802A396C(type)) and the
+ * type's setup runs with (x, y, z) << 5 and the heading (0 func_802AE370, 1
+ * func_802AFC60, 2 func_802B0DA0, 3 func_802B29C0, 4 func_802B4100, 5
+ * func_802B5900, 6 func_802BAD80, 7 func_802BBA60, 8 func_802B7340, 9
+ * func_802C5120, 0xA func_802C9B90, 0xB/0x11/0x12 func_802C80D0(type, ..),
+ * 0xD func_802CB720, 0xE func_802CC920, 0xF func_802CF6A0, 0x10
+ * func_802D07E0). Any other type hits the asm's `syscall` debug trap, after
+ * which it returns (the rest of the list is not spawned): return here.
+ * The asm's adds trap (heap addresses: in range).
+ * Leftover registers (the setups take them as by-value inputs):
+ *  - fp: the ground byte func_802A992C stores into D_803ED3F2[] (and so
+ *    veh+0x50) for a wheel slot whose scan finds no fp of its own. The first
+ *    object gets the dispatcher's fp: func_802A1674's, i.e. func_802A3F80's
+ *    result (the D_803B9890 collision record end; its low byte). In the asm
+ *    each later object gets whatever the previous setup left in fp (most
+ *    end with func_8029E558 -> func_8029E5AC, which leaves byte 0x15 of the
+ *    last active animation channel there; others a func_802AE104 / scan
+ *    result). The C setups don't return that, so here every object gets the
+ *    first object's fp, and that is also returned (the asm's fp on exit,
+ *    which func_802A1674 hands to func_802A303C). See the port notes.
+ *  - t6 (func_802B0DA0, func_802CF6A0, func_802D07E0: only passed through to
+ *    their per-frame zone scans) and the FP state f12-f26 (only FP side
+ *    results of func_802A992C; func_802CB720 / func_802CC920 write f22-f26
+ *    back, chained here): 0.
+ * Register convention: obj in t0, fp in/out (conventions.txt). The asm saves
+ * t0; the setups save t0-t5 and leave s0-s7, gp and the FP registers
+ * changed. Asm caller func_802A1674 keeps t0. */
+s32 func_802A350C(u8 *obj, s32 fp) {
+    SpawnFP f;
+    Out802A396C o;
+    u8 *p;
+    u8 *end;
+    s32 type;
+    s32 x;
+    s32 y;
+    s32 z;
+    s32 heading;
+
+    f.f12 = 0.0f;
+    f.f14 = 0.0f;
+    f.f20 = 0.0f;
+    f.f22 = 0.0f;
+    f.f24 = 0.0f;
+    f.f26 = 0.0f;
+    func_802A3824(obj);
+    D_803ED3F5 = 0;
+    D_803ED40F = 0;
+    p = OBJ_PTR(obj, 0x50);
+    end = OBJ_PTR(obj, 0x54);
+    while (p != end) {
+        type = p[0];
+        if (D_80364A98 == 2 && D_80364A98 == D_8030D888 && D_8036698C != type) {
+            p += 9;
+            continue;
+        }
+        if (type == 1 && D_80364AA8 != 1 && D_80364AA8 != 0x80) {
+            type = D_803643D4;
+        }
+        if (type == 6 || type == 7 || type == 0xB || type == 0x11 || type == 0x12) {
+            D_803ED40F = 1;
+        }
+        x = BE16S(p + 1) << 5;
+        y = BE16S(p + 3) << 5;
+        z = BE16S(p + 5) << 5;
+        heading = BE16S(p + 7);
+        p += 9;
+        func_802A396C(type, &o);
+        switch (type) {
+            case 0:
+                func_802AE370(o.s2, x, y, z, heading, fp, &f);
+                break;
+            case 1:
+                func_802AFC60(o.s2, x, y, z, heading, fp);
+                break;
+            case 2:
+                func_802B0DA0(o.s2, x, y, z, heading, fp, 0, &f);
+                break;
+            case 3:
+                func_802B29C0(o.s2, x, y, z, heading, fp);
+                break;
+            case 4:
+                func_802B4100(o.s2, x, y, z, heading, fp);
+                break;
+            case 5:
+                func_802B5900(o.s2, x, y, z, heading, fp);
+                break;
+            case 6:
+                func_802BAD80(o.s2, x, y, z, heading, fp);
+                break;
+            case 7:
+                func_802BBA60(x, y, z, heading, o.s2, fp);
+                break;
+            case 8:
+                func_802B7340(o.s2, x, y, z, heading, fp, &f);
+                break;
+            case 9:
+                func_802C5120(x, y, z, heading, o.s2, fp);
+                break;
+            case 0xA:
+                func_802C9B90(x, y, z, heading, o.s2, fp);
+                break;
+            case 0xB:
+            case 0x11:
+            case 0x12:
+                func_802C80D0(type, x, y, z, heading, o.s2, fp);
+                break;
+            case 0xD:
+                func_802CB720(o.s2, x, y, z, heading, fp, &f);
+                break;
+            case 0xE:
+                func_802CC920(o.s2, x, y, z, heading, fp, &f);
+                break;
+            case 0xF:
+                func_802CF6A0(o.s2, x, y, z, heading, fp, 0, &f);
+                break;
+            case 0x10:
+                func_802D07E0(o.s2, x, y, z, heading, fp, 0, &f);
+                break;
+            default: /* the asm's syscall, then its epilogue */
+                return fp;
+        }
+    }
+    return fp;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A350C.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

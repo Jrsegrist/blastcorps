@@ -19,12 +19,53 @@ s32 osPfsInitPak(OSMesgQueue *, OSPfs *, int);
     if (!(EX)) func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "pfsHandler.c", line)
 #define PFS_FILE_SIZE 0xE00
 
+typedef struct {
+    u32 file_size;
+    u32 game_code;
+    u16 company_code;
+    u8 ext_name[4];
+    u8 game_name[16];
+} OldPfsState; /* the old SDK's OSPfsState: no pad after company_code */
+
+typedef struct {
+    u8 pad0[0x18];
+    u8 rank[0x3C];     /* 0x18 */
+    u8 pad54[0x92 - 0x54];
+    u8 timeSlot[0x3C]; /* 0x92: best-time slot per level */
+    u8 padCE[0x100 - 0xCE];
+} Player;
+
+typedef struct {
+    u8 type; /* 1: no status save */
+    u8 pad[0x43];
+} LevelInfo; /* 0x44 */
+
+typedef struct {
+    u8 pad0[0xC];
+    char *text;  /* 0x0C */
+    void *unk10; /* 0x10 */
+    u8 pad14[8];
+} MenuItem; /* 0x1C */
+
 extern OSPfs D_8039B630;      /* hd_code .bss: the Controller Pak file system */
 extern u8 D_8020C000[];       /* game name */
 extern u8 D_8020C014[];       /* extension name */
 extern u8 D_8020C01C[];       /* character set (0x45 entries) */
-extern OSPfsState D_80218B20[];
-extern s32 D_80218D28;
+extern MenuItem D_8020C070[]; /* menu items; 37 + n list the pak's files */
+extern OldPfsState D_80218B20[]; /* the pak's files */
+extern s32 D_80218D28;        /* number of files listed */
+extern u8 D_802189C0[][17];   /* file game names */
+extern u8 D_80218AD0[][5];    /* file extensions */
+extern char D_80218740[][40]; /* file menu lines */
+extern s16 D_802F8BDC[];
+extern s32 D_80218EF0;        /* free bytes */
+extern char D_80219F90[];
+extern char D_80219FB0[];
+extern u8 D_80301080[];
+extern u16 D_80364F70[];      /* EEPROM best-time words (time, time ^ 0x55AA) */
+extern u8 D_80364AEA;
+extern u8 D_8039C4B8[];
+extern LevelInfo D_802E8F94[];
 extern OSMesgQueue D_80370BF8; /* hd_code: SI message queue */
 extern u8 D_8039C538;
 extern s32 D_8039B698[];      /* file_no per player */
@@ -42,15 +83,20 @@ extern u8 D_802E8BF8;
 extern u64 D_80364A90;        /* game mode */
 extern s32 D_8039C4B4;
 extern s32 D_802FA264;
-extern u8 D_80364AF0[][0x100]; /* player records */
+extern Player D_80364AF0[];   /* player records */
 extern u8 D_8039B6B0[];
 extern u8 D_8020BEE0[];
 extern u16 D_80364EF0[][16];  /* best times */
 extern u8 D_802E8C44[];
 
+int sprintf(char *, const char *, ...);
+void bcopy(const void *, void *, int);
+
 #define playerInfo (D_80364AF0[0])
+#define playerNumberAtStart D_80364AEA
 
 void func_801F58E8(void *);
+void func_801F7410(u8 *str);
 void func_801F74B0(u8 *str);
 s32 func_801F75A4(u8 *data, s32 size);
 s32 func_801F76E4(u8 *data, s32 size);
@@ -125,7 +171,14 @@ void func_801F61C8(s32 arg0) {
     osPfsDeleteFile(&D_8039B630, 0x3031, 0x4E424345, D_8020C000, D_8020C014);
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/0E7B0/func_801F6210.s")
+/* delete the file behind menu item `item` (file list starts at item 37) */
+s32 func_801F6210(u8 item) {
+    s32 ret;
+
+    ret = osPfsDeleteFile(&D_8039B630, D_80218B20[item - 37].company_code, D_80218B20[item - 37].game_code,
+                          D_80218B20[item - 37].game_name, D_80218B20[item - 37].ext_name);
+    return ret;
+}
 
 /* read (rw 1) or write (rw 0) player record `player` */
 s32 func_801F6264(u8 player, u8 rw) {
@@ -138,7 +191,7 @@ s32 func_801F6264(u8 player, u8 rw) {
     u64 sem;
 
     ret = 0;
-    p = D_80364AF0[player];
+    p = (u8 *) &D_80364AF0[player];
     for (i = 0; i < 0x100 && rw == 1; i++) {
         func_8029A7E4("0x%x, ", p[i]);
     }
@@ -226,14 +279,46 @@ s32 func_801F65C4(u8 player, u8 slot, u8 rw) {
     return ret;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/0E7B0/func_801F67E4.s")
+/* EEPROM best times of levels `level` and `level` + 1: write (rw 1) or read back and check (rw 0) */
+s32 func_801F67E4(u8 pn, u8 level, u8 rw) {
+    s32 ret;
+    s32 i;
+    u8 idx;
+    u16 *p;
+
+    ret = 0;
+    idx = level * 2;
+    p = &D_80364F70[idx & ~3];
+    if (D_802E8BF8 != 0) {
+        PFS_ASSERT(pn==playerNumberAtStart, 604);
+        if (rw == 1) {
+            D_80364F70[idx] = D_80364EF0[pn][D_802E8C44[D_80364AF0[pn].timeSlot[level]]];
+            D_80364F70[idx + 1] = D_80364F70[idx] ^ 0x55AA;
+            func_8029A7E4("%d %d EEWRITE %x %x\n", level, D_80364F70[idx], (u32) (idx * 2 + 0x100) >> 3, p);
+            osEepromRead(&D_80370BF8, (u32) (idx * 2 + 0x100) >> 3, (u8 *) p);
+        } else {
+            osEepromWrite(&D_80370BF8, (u32) (idx * 2 + 0x100) >> 3, (u8 *) p);
+            for (i = 0; i < 2; i++, level++) {
+                if (((D_80364AF0[pn].rank[level] > 0 && D_80364AF0[pn].rank[level] < 6) ? 1 : 0)
+                    && level != 0x31 && level != 0x2F && level != 0x26) {
+                    D_80364EF0[pn][D_802E8C44[D_80364AF0[pn].timeSlot[level]]] = D_80364F70[level * 2];
+                    func_8029A7E4("%d EETIMES: %d %d\n", level, D_80364F70[level * 2], D_80364F70[level * 2 + 1] ^ 0x55AA);
+                    if (D_80364F70[level * 2] != (D_80364F70[level * 2 + 1] ^ 0x55AA)) {
+                        ret = 0x6E382;
+                    }
+                }
+            }
+        }
+    }
+    return ret;
+}
 
 s32 func_801F6AF4(u8 player, u64 sem) {
     s32 ret;
     u8 *p;
 
     ret = 0;
-    p = D_80364AF0[player];
+    p = (u8 *) &D_80364AF0[player];
     if (D_802E8BF8 != 0 || D_80364A90 == 0x40000000000000) {
         osEepromRead(&D_80370BF8, 0x3F, (u8 *) &sem);
     } else {
@@ -249,7 +334,7 @@ s32 func_801F6BD0(u8 player, u64 *sem) {
     u8 buf[0x20];
 
     ret = 0;
-    p = D_80364AF0[player];
+    p = (u8 *) &D_80364AF0[player];
     if (D_802E8BF8 != 0) {
         osEepromWrite(&D_80370BF8, 0x3F, (u8 *) sem);
     } else {
@@ -260,13 +345,109 @@ s32 func_801F6BD0(u8 player, u64 *sem) {
     return ret;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/0E7B0/func_801F6CA4.s")
+/* read/write the 0x40-byte block D_8039C4B8 stored after the records of the first `nlevels` levels */
+s32 func_801F6CA4(u8 player, u8 nlevels, u8 rw) {
+    s32 ret;
+    s32 tmp;
+    s32 i;
+    s32 count;
+    s32 start;
 
-void func_801F6ED4(u8 arg0) {
-    osPfsFileState(&D_8039B630, arg0, &D_80218B20[D_80218D28]);
+    ret = 0;
+    count = 0;
+    for (i = 0; i < nlevels; i++) {
+        if (D_802E8F94[i].type == 1 && i != 0x31 && i != 0x2F && i != 0x26) {
+            count++;
+        }
+    }
+    start = count * 0x40 + 0x880;
+    if (rw == 1) {
+        func_801F75A4(D_8039C4B8, 0x40);
+    }
+    if (D_802E8BF8 != 0) {
+        for (i = start; i < start + 0x40; i++) {
+            if (rw == 1) {
+                D_8039B6B0[i] = D_8039C4B8[i - start];
+            } else {
+                D_8039C4B8[i - start] = D_8039B6B0[i];
+            }
+        }
+    } else {
+        ret = tmp = osPfsFindFile(&D_8039B630, 0x3031, 0x4E424345, D_8020C000, D_8020C014, &D_8039B698[player]);
+        if (tmp == 0) {
+            ret = osPfsReadWriteFile(&D_8039B630, D_8039B698[player], rw, start, 0x40, D_8039C4B8);
+        }
+    }
+    if (ret == 0 && rw == 0) {
+        ret = func_801F76E4(D_8039C4B8, 0x40);
+    }
+    return ret;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/0E7B0/func_801F6F18.s")
+void func_801F6ED4(u8 arg0) {
+    osPfsFileState(&D_8039B630, arg0, (OSPfsState *) &D_80218B20[D_80218D28]);
+}
+
+/* list the pak's files into menu items 37 + n; returns whether there are any */
+s32 func_801F6F18(void) {
+    s32 i;
+    s32 pad40;
+    s32 pad3C;
+    OSMesg msg;
+    s32 pages;
+    s32 flag;
+    s32 empty;
+
+    D_80218D28 = 0;
+    for (i = 0; i < 16; i++) {
+        do {
+            osSendMesg(&D_80219EF8, (OSMesg) ((i << 16) | 0x11 | 0x1000000), OS_MESG_BLOCK);
+            osRecvMesg(&D_80219F50, &msg, OS_MESG_BLOCK);
+            if (msg != 0) {
+                i++;
+            }
+        } while (msg != 0 && i < 16);
+        if (i < 16) {
+            bcopy(D_80218B20[D_80218D28].game_name, D_802189C0[D_80218D28], 17);
+            bcopy(D_80218B20[D_80218D28].ext_name, D_80218AD0[D_80218D28], 5);
+            D_802189C0[D_80218D28][16] = 0;
+            D_80218AD0[D_80218D28][4] = 0;
+            pages = D_80218B20[D_80218D28].file_size / 32 / 8;
+            flag = D_80218AD0[D_80218D28][0];
+            func_801F7410(D_802189C0[D_80218D28]);
+            func_801F7410(D_80218AD0[D_80218D28]);
+            sprintf(D_80218740[i], "%16s%c%-4s (%d)", D_802189C0[D_80218D28], flag ? '.' : ' ',
+                    D_80218AD0[D_80218D28], pages);
+            func_8029A7E4("%s\n", D_80218740[i]);
+            if (pages < 99) {
+                sprintf(D_80218740[i], "%s ", D_80218740[i]);
+            }
+            if (pages < 9) {
+                sprintf(D_80218740[i], "%s ", D_80218740[i]);
+            }
+            D_8020C070[37 + D_80218D28].text = D_80218740[i];
+            D_80218D28++;
+        }
+    }
+    if (D_80218D28 == 0) {
+        sprintf(D_80218740[0], "%s", "PAK EMPTY!");
+        D_8020C070[37].text = D_80218740[0];
+        empty = 1;
+    } else {
+        empty = 0;
+    }
+    D_802F8BDC[0x210 / 2] = (D_80218D28 + empty + 1) / 2 + 0x24;
+    D_802F8BDC[0x208 / 2] = D_80218D28 + empty + 4;
+    osSendMesg(&D_80219EF8, (OSMesg) 0x100000E, OS_MESG_BLOCK);
+    osRecvMesg(&D_80219F50, NULL, OS_MESG_BLOCK);
+    sprintf(D_80219F90, "%d PAGES FREE", D_80218EF0 / 32 / 8);
+    D_8020C070[35].text = D_80219F90;
+    sprintf(D_80219FB0, "%d NEEDED PER PLAYER", 14);
+    D_8020C070[36].text = D_80219FB0;
+    D_8020C070[10].text = "DELETE THIS FILE?";
+    D_8020C070[10].unk10 = D_80301080;
+    return D_80218D28 != 0;
+}
 
 s32 func_801F73FC(void) {
     return D_80218D28 != 0;

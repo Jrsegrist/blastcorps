@@ -46,7 +46,8 @@ typedef struct {
     u8 pad58[4];
     s32 unk5C; /* id */
     u32 unk60; /* alpha */
-    u8 pad64[0x10];
+    u8 pad64[0xC];
+    s32 unk70; /* active */
 } Unk74;
 extern Unk74 D_80364460[];
 extern Unk74 *D_803649D0;
@@ -332,6 +333,48 @@ void func_802979E0(s32);
 void func_802A56C4(void);
 void func_802A5FA8(void);
 
+extern u8 D_803ED3F5;
+void func_802B01DC(void);
+void func_802B1150(void);
+void func_802B2EF8(void);
+void func_802B45FC(void);
+void func_802B5F04(void);
+void func_802BB170(void);
+void func_802BBE10(void);
+void func_802B76F8(void);
+void func_802C5508(void);
+void func_802CA140(void);
+void func_802C8AF0(void);
+void func_802CBB60(void);
+void func_802CCCD8(void);
+void func_802CFA58(void);
+void func_802D0B90(void);
+void func_802B5FAC(void);
+void func_802B02A0(void);
+void func_802B46C4(void);
+void func_802B77A0(void);
+void func_802CBC08(void);
+void func_802CCD80(void);
+void func_802CFB00(void);
+void func_802C5860(void);
+void func_802B2FA0(void);
+void func_802AEEC8(void);
+void func_802B03F4(void);
+void func_802B152C(void);
+void func_802B327C(void);
+void func_802B49AC(void);
+void func_802B6294(void);
+void func_802BB274(void);
+void func_802BBEB8(void);
+void func_802B7A88(void);
+void func_802C5AFC(void);
+void func_802CA4E0(void);
+void func_802C8BB8(u8);
+void func_802CBEF0(void);
+void func_802CD068(void);
+void func_802CFDE8(void);
+void func_802D0F98(void);
+
 /* (end of declarations) */
 
 /* Boot: reads 16 words from PI address 0xFFB000, then starts the idle thread */
@@ -494,7 +537,58 @@ s32 func_8024B418(u8 id) {
     return 0;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_8024B4B8.s")
+/* Per-vehicle handler for the current vehicle (D_80364456) */
+void func_8024B4B8(void) {
+    switch (D_80364456) {
+        case 4:
+            func_802B45FC();
+            break;
+        case 3:
+            func_802B2EF8();
+            break;
+        case 5:
+            func_802B5F04();
+            break;
+        case 2:
+            func_802B1150();
+            break;
+        case 1:
+            func_802B01DC();
+            break;
+        case 6:
+            func_802BB170();
+            break;
+        case 7:
+            func_802BBE10();
+            break;
+        case 8:
+            func_802B76F8();
+            break;
+        case 9:
+            func_802C5508();
+            break;
+        case 10:
+            func_802CA140();
+            break;
+        case 11:
+        case 17:
+        case 18:
+            func_802C8AF0();
+            break;
+        case 13:
+            func_802CBB60();
+            break;
+        case 14:
+            func_802CCCD8();
+            break;
+        case 15:
+            func_802CFA58();
+            break;
+        case 16:
+            func_802D0B90();
+            break;
+    }
+}
 
 void func_802AB670(s32 arg0);
 extern u8 D_803ED3F5;
@@ -505,9 +599,111 @@ void func_8024B5E8(void) {
     func_802AB670(D_80364456);
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_8024B618.s")
+/* Moves every placed vehicle other than the current one */
+void func_8024B618(void) {
+    s32 i;
+    s32 id;
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_8024B7AC.s")
+    i = 0;
+    while (&D_80364460[i] != D_803649D0) {
+        if (D_80364460[i].unk70 != 0) {
+            id = D_80364460[i].unk5C;
+            if (id != D_80364456 && id != 0xFF && id != 0xFE && id != 0) {
+                switch (id) {
+                    case 5:
+                        func_802B5FAC();
+                        break;
+                    case 1:
+                        func_802B02A0();
+                        break;
+                    case 4:
+                        func_802B46C4();
+                        break;
+                    case 8:
+                        func_802B77A0();
+                        break;
+                    case 13:
+                        func_802CBC08();
+                        break;
+                    case 14:
+                        func_802CCD80();
+                        break;
+                    case 15:
+                        func_802CFB00();
+                        break;
+                    case 9:
+                        func_802C5860();
+                        break;
+                    case 3:
+                        func_802B2FA0();
+                        break;
+                    default:
+                        func_8029A7E4("MOVEABLE GEOMETRY MOVE ROUTINE NOT WRITTEN YET\n");
+                        break;
+                }
+            }
+        }
+        i++;
+    }
+}
+
+/* Vehicle exit handler for the current vehicle */
+void func_8024B7AC(void) {
+    D_803ED3F5 = 0;
+    switch (D_80364456) {
+        case 0:
+            D_803649ED = 0;
+            func_802AEEC8();
+            break;
+        case 1:
+            func_802B03F4();
+            break;
+        case 2:
+            func_802B152C();
+            break;
+        case 3:
+            func_802B327C();
+            break;
+        case 4:
+            func_802B49AC();
+            break;
+        case 5:
+            func_802B6294();
+            break;
+        case 6:
+            func_802BB274();
+            break;
+        case 7:
+            func_802BBEB8();
+            break;
+        case 8:
+            func_802B7A88();
+            break;
+        case 9:
+            func_802C5AFC();
+            break;
+        case 10:
+            func_802CA4E0();
+            break;
+        case 11:
+        case 17:
+        case 18:
+            func_802C8BB8(D_80364456);
+            break;
+        case 13:
+            func_802CBEF0();
+            break;
+        case 14:
+            func_802CD068();
+            break;
+        case 15:
+            func_802CFDE8();
+            break;
+        case 16:
+            func_802D0F98();
+            break;
+    }
+}
 
 /* Builds and runs a small task drawing an 8-vertex box (12 triangles) */
 void func_8024B8F4(Mtx *proj, Mtx *view) {

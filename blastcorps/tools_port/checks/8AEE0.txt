@@ -36,3 +36,31 @@ func_802D2524: -n 300 --seed 0 --ret void --sig func_802AC85C=a0,a1,a2 \
     --arg a0=choice:0,1,-1,0x80000000,0x7FFFFFFF,0x80B00000,0x80B00003,0x803FFFFF
 func_802D2524: -n 100 --seed 1 --ret void --follow func_802AC85C --arg a0=choice:0x80B00000,0x80B00001,0x80B00002,0x80B00003,0x80B00005 --mem 0x80B00000:0x100=rand \
     --mem D_803FC8D0:0xA6=rand --mem D_803FC978:12=rand
+
+# func_802CFA0C: enter vehicle 15: D_803FC500[0x99] = 0; D_8036444C/50 = 3000, 1000; func_802C4310(a0, 0xCE)
+# (the asm's $gp change is declared `clobbers gp` in conventions.txt)
+func_802CFA0C: -n 200 --seed 0 --ret void --sig func_802C4310=a0,a1 --arg a0=int \
+    --mem D_803FC500+0x99:1=bytes:1,0xFF --mem D_8036444C:2=rand --mem D_80364450:2=rand
+# func_802D0438: tyre trail ($gp = D_803FC500); func_8027BE7C's args at their declared widths (--conv)
+func_802D0438: -n 400 --seed 0 --ret void --arg gp=sym:D_803FC500 \
+    --conv 'func_8027BE7C: in a0=a0:1,a1=a1,a2=a2:2,a3=a3:2,stack0=stack0:2,stack1=stack1:2,stack2=stack2,stack3=stack3,stack4=stack4:2,stack5=stack5:1,stack6=stack6:1,stack7=stack7:1,stack8=stack8:1' \
+    --mem D_803FC500+0x99:1=bytes:0,1,0x80 \
+    --mem D_803FC500+0x98:1=bytes:0*3,1,2 --mem D_803FC500+0x50:1=bytes:0,1,2*2,3,4,0x80,0xFF --mem D_803FC500+0x9B:1=bytes:0*4,1,0x80 \
+    --mem D_803FC500+0x1C=int --mem D_803FC500+0x4E:2=int:0:0xFFFF --mem D_803FC5A8=int --mem D_803FC5B0=int
+func_802D0438: -n 100 --seed 1 --ret void --arg gp=sym:D_803FC500 \
+    --conv 'func_8027BE7C: in a0=a0:1,a1=a1,a2=a2:2,a3=a3:2,stack0=stack0:2,stack1=stack1:2,stack2=stack2,stack3=stack3,stack4=stack4:2,stack5=stack5:1,stack6=stack6:1,stack7=stack7:1,stack8=stack8:1' \
+    --mem D_803FC500+0x99:1=1 --mem D_803FC500+0x98:1=0 --mem D_803FC500+0x50:1=bytes:0,2 --mem D_803FC500+0x9B:1=0 \
+    --mem D_803FC500+0x1C=choice:0,-1,0x7FFFFFFF,0x80000000 --mem D_803FC500+0x4E:2=halves:0,0x7FFF,0x8000,0xFFFF \
+    --mem D_803FC5A8=choice:0,-1,0x80000000,0x123456 --mem D_803FC5B0=choice:0,-1,0x7FFFFFFF,0x123456
+# func_802D0710: s3 (-> v0) = round_nearest(speed(+0x76) / (bytes +0x96/7/8 any == 1 ? 11.0 : D_8030D9D4)); $gp = D_803FC500
+func_802D0710: -n 300 --seed 0 --arg gp=sym:D_803FC500 --mem D_803FC500+0x96:3=bytes:0,1,2,0xFF*3 \
+    --mem D_803FC500+0x76:2=int:0:0xFFFF
+func_802D0710: -n 300 --seed 1 --arg gp=sym:D_803FC500 --mem D_803FC500+0x96:3=bytes:0*3,1,2*3 \
+    --mem D_8030D9D4=words:0x40000000,0x40800000,0x3F000000,0x40C00000 \
+    --mem D_803FC500+0x76:2=halves:0,1,2,3,5,6,9,15,0x7FFF,0x8000,0xFFFD,0xFFF7,0xFFFF,0xFFFE
+func_802D0710: -n 300 --seed 2 --arg gp=sym:D_803FC500 --mem D_803FC500+0x96:3=bytes:0,1,2 \
+    --mem D_8030D9D4:4=floats:0.25:40 --mem D_803FC500+0x76:2=int:0:0xFFFF
+# func_802D2444: s3 (-> v0) = speed(+0x76) == 0 ? 0 : (+0xA1 in 1..4 ? 5 : 110); $gp = D_803FC8D0
+func_802D2444: -n 300 --seed 0 --arg gp=sym:D_803FC8D0 --mem D_803FC8D0+0x76:2=halves:0*4,1,0x8000,0xFFFF,0x1234,0x100 \
+    --mem D_803FC8D0+0xA1:1=bytes:0,1,2,3,4,5,0x81,0xFF
+func_802D2444: -n 100 --seed 1 --arg gp=sym:D_803FC8D0 --mem D_803FC8D0+0x76:2=int:1:0xFFFF --mem D_803FC8D0+0xA1:1=int:0:0xFF

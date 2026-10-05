@@ -1,0 +1,14 @@
+# 86ED0 (shared vehicle helper) port checks
+# func_802CB690: block in $gp (-> a0). Sound 0x55 unless the u64 next game mode D_80364A98 == 0x40;
+# speed(+0x76) = D_80364A72 * 1.5 (v + (v >> 1), 16-bit store); D_80367BFF = 0; func_80278EB0(6, 0.25f, 100);
+# D_80367C00 = 1. Mode hi word nonzero with lo 0x40 must still play (64-bit compare).
+func_802CB690: -n 300 --seed 0 --ret void --arg gp=sym:D_803F8AA0 --sig func_80260650=a0,a1,a2 --sig func_80278EB0=a0,a1,a2 \
+    --mem D_80364A98:4=words:0*3,1,0xFFFFFFFF --mem D_80364A98+4=choice:0x40*3,0,0x41,0x1000 \
+    --mem D_80364A72:2=int:0:0xFFFF --mem D_80367738=int --mem D_80367BFF:1=bytes:1,0xFF --mem D_80367C00:1=bytes:0,2 \
+    --mem D_803F8AA0+0x76:2=rand
+func_802CB690: -n 200 --seed 1 --ret void --arg gp=sym:D_803EE2E0 --sig func_80260650=a0,a1,a2 --sig func_80278EB0=a0,a1,a2 \
+    --mem D_80364A98:4=0 --mem D_80364A98+4=choice:0x40,0 \
+    --mem D_80364A72:2=halves:0,1,2,3,0x5555,0x5556,0x7FFF,0x8000,0xAAAA,0xAAAB,0xFFFF,0xFFFE \
+    --mem D_80367BFF:1=1 --mem D_80367C00:1=0 --mem D_803EE2E0+0x76:2=rand
+func_802CB690: -n 100 --seed 2 --ret void --arg gp=sym:D_803FC500 --sig func_80260650=a0,a1,a2 --sig func_80278EB0=a0,a1,a2 \
+    --mem D_80364A98:8=rand --mem D_80364A72:2=int:0:0xFFFF --mem D_803FC500+0x76:2=rand

@@ -9,3 +9,23 @@ func_802CBB60: -n 100 --seed 2 --mem D_803F8E80+0x96:3=bytes:0,0xFF,2
 func_802CC8B8: -n 200 --ret void --mem D_803EBBF0:4=floats --mem D_803EBBF4=int --mem D_803ED3F6:2=rand
 func_802CC8B8: -n 60 --seed 1 --ret void --mem D_803EBBF0=choice:0,0x80000000,0x3F800000,0xBF800000,0x7F7FFFFF,0xFF7FFFFF,0x7F800000,0xFF800000,0x7FC00000,0x00000001 \
     --mem D_803EBBF4=choice:0,-1 --mem D_803ED3F6:2=bytes:0,0xFF
+
+# func_802CC56C: tyre trail ($gp = D_803F8E80); func_8027BE7C's args at their declared widths (--conv)
+func_802CC56C: -n 400 --seed 0 --ret void --arg gp=sym:D_803F8E80 \
+    --conv 'func_8027BE7C: in a0=a0:1,a1=a1,a2=a2:2,a3=a3:2,stack0=stack0:2,stack1=stack1:2,stack2=stack2,stack3=stack3,stack4=stack4:2,stack5=stack5:1,stack6=stack6:1,stack7=stack7:1,stack8=stack8:1' \
+    --mem D_803F8E80+0x99:1=bytes:0,1,0x80 \
+    --mem D_803F8E80+0x98:1=bytes:0*3,1,2 --mem D_803F8E80+0x50:1=bytes:0,1,2*2,3,4,0x80,0xFF --mem D_803F8E80+0x9B:1=bytes:0*4,1,0x80 \
+    --mem D_803F8E80+0x1C=int --mem D_803F8E80+0x4E:2=int:0:0xFFFF --mem D_803F8F28=int --mem D_803F8F30=int
+func_802CC56C: -n 100 --seed 1 --ret void --arg gp=sym:D_803F8E80 \
+    --conv 'func_8027BE7C: in a0=a0:1,a1=a1,a2=a2:2,a3=a3:2,stack0=stack0:2,stack1=stack1:2,stack2=stack2,stack3=stack3,stack4=stack4:2,stack5=stack5:1,stack6=stack6:1,stack7=stack7:1,stack8=stack8:1' \
+    --mem D_803F8E80+0x99:1=1 --mem D_803F8E80+0x98:1=0 --mem D_803F8E80+0x50:1=bytes:0,2 --mem D_803F8E80+0x9B:1=0 \
+    --mem D_803F8E80+0x1C=choice:0,-1,0x7FFFFFFF,0x80000000 --mem D_803F8E80+0x4E:2=halves:0,0x7FFF,0x8000,0xFFFF \
+    --mem D_803F8F28=choice:0,-1,0x80000000,0x123456 --mem D_803F8F30=choice:0,-1,0x7FFFFFFF,0x123456
+# func_802CC844: s3 (-> v0) = round_nearest(speed(+0x76) / (bytes +0x96/7/8 any == 1 ? 11.0 : D_8030D9B4)); $gp = D_803F8E80
+func_802CC844: -n 300 --seed 0 --arg gp=sym:D_803F8E80 --mem D_803F8E80+0x96:3=bytes:0,1,2,0xFF*3 \
+    --mem D_803F8E80+0x76:2=int:0:0xFFFF
+func_802CC844: -n 300 --seed 1 --arg gp=sym:D_803F8E80 --mem D_803F8E80+0x96:3=bytes:0*3,1,2*3 \
+    --mem D_8030D9B4=words:0x40000000,0x40800000,0x3F000000,0x40C00000 \
+    --mem D_803F8E80+0x76:2=halves:0,1,2,3,5,6,9,15,0x7FFF,0x8000,0xFFFD,0xFFF7,0xFFFF,0xFFFE
+func_802CC844: -n 300 --seed 2 --arg gp=sym:D_803F8E80 --mem D_803F8E80+0x96:3=bytes:0,1,2 \
+    --mem D_8030D9B4:4=floats:0.25:40 --mem D_803F8E80+0x76:2=int:0:0xFFFF

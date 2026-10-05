@@ -43,3 +43,4 @@ func_80204410 = 0x80204410; /* osEepromLongRead */
 D_006AD3F0 = 0x006AD3F0; /* compressed front-end pictures in ROM (196F0 func_80200714) */
 D_006BF2F0 = 0x006BF2F0;
 D_006D3D30 = 0x006D3D30;
+D_8021591C = 0x8021591C; /* 01C40: perspNorm (splat left the lui/addiu raw) */

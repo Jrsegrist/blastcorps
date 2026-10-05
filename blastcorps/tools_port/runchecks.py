@@ -89,6 +89,33 @@ def nm_functions():
     return funcs
 
 
+def changed_stems(ref):
+    """FILE stems whose src.us.v11/hd_code/FILE.c or tools_port/checks/FILE.txt
+    differs between REF and the working tree (or is untracked)."""
+    paths = ["src.us.v11/hd_code", "tools_port/checks"]
+    # diff against the merge base, so commits that landed on REF after this
+    # branch forked don't count as "changed here"
+    p = subprocess.run(["git", "merge-base", ref, "HEAD"], cwd=REPO, stdout=subprocess.PIPE,
+                       stderr=subprocess.PIPE, universal_newlines=True)
+    if p.returncode != 0:
+        sys.exit("runchecks: git merge-base %s HEAD failed: %s" % (ref, p.stderr.strip()))
+    base = p.stdout.strip()
+    out = []
+    for cmd in (["git", "diff", "--name-only", "--relative", base, "--"] + paths,
+                ["git", "ls-files", "--others", "--exclude-standard", "--"] + paths):
+        p = subprocess.run(cmd, cwd=REPO, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                           universal_newlines=True)
+        if p.returncode != 0:
+            sys.exit("runchecks: %s failed: %s" % (" ".join(cmd), p.stderr.strip()))
+        out += p.stdout.split()
+    stems = set()
+    for f in out:
+        stem, ext = os.path.splitext(os.path.basename(f))
+        if ext in (".c", ".txt"):
+            stems.add(stem)
+    return stems
+
+
 def run_one(check, trials_override):
     fname, lineno, func, argv = check
     argv = list(argv)
@@ -126,26 +153,45 @@ def main():
     ap.add_argument("-b", "--build", action="store_true", help="make NON_MATCHING=1 first")
     ap.add_argument("-B", "--build-both", action="store_true",
                     help="make the matching build (must print both OK lines) and NON_MATCHING=1 first")
-    # measured under WSL: throughput stops improving at about 4 parallel runs
-    # (each eqcheck process is heavy on memory copies / sys time)
+    # measured under WSL (Oct 2026, 148 runs): 69 s at -j4, 58 s at -j8
     ap.add_argument("-j", "--jobs", type=int, default=min(os.cpu_count() or 4, 8))
     ap.add_argument("-q", "--quick", type=int, metavar="N", help="cap every run at N trials")
     ap.add_argument("-v", "--verbose", action="store_true", help="print eqcheck output of every run")
     ap.add_argument("--list", action="store_true", help="list the selected checks and exit")
     ap.add_argument("--coverage-only", action="store_true", help="only run the coverage check")
+    ap.add_argument("--changed", action="store_true",
+                    help="only files whose src.us.v11/hd_code/<FILE>.c or checks/<FILE>.txt differs from "
+                         "--since (committed, staged, unstaged or untracked)")
+    ap.add_argument("--since", default="main", metavar="REF", help="git ref for --changed (default main)")
     o = ap.parse_args()
 
     checks = []
     for path in sorted(glob.glob(os.path.join(CHECKS, "*.txt"))):
         checks += parse_checks(path)
+    all_checks = checks
+
+    whole = not o.filters and not o.changed     # the coverage check needs the whole suite
 
     # coverage: every NON_MATCHING rewrite has a check line
     nm = nm_functions()
-    covered = set(c[2] for c in checks)
+    covered = set(c[2] for c in all_checks)
     missing = sorted((stem, f) for f, stem in nm.items() if f not in covered)
-    stale = sorted(set((c[0], c[2]) for c in checks if c[2] not in nm))
+    stale = sorted(set((c[0], c[2]) for c in all_checks if c[2] not in nm))
     cov_ok = not missing
-    if not o.filters or o.coverage_only:
+
+    if o.changed:
+        stems = changed_stems(o.since)
+        checks = [c for c in checks if c[0] in stems]
+        print("changed vs %s: %s" % (o.since, " ".join(sorted(stems)) or "(nothing)"))
+        # rewrites in the changed files that have no check line at all
+        missing = [(s, f) for s, f in missing if s in stems]
+        cov_ok = not missing
+        for stem, f in missing:
+            print("  MISSING  %s (%s.c): no line in tools_port/checks/" % (f, stem))
+        if not checks:
+            print("runchecks: no checks for changed files")
+            return 0 if cov_ok else 1
+    if whole or o.coverage_only:
         print("coverage: %d NON_MATCHING function(s) in src.us.v11/hd_code, %d with checks"
               % (len(nm), len(nm) - len(missing)))
         for stem, f in missing:
@@ -188,6 +234,12 @@ def main():
                 if len(oks) < 2 and "Nothing to be done" not in p.stdout:
                     print("\n".join(p.stdout.splitlines()[-20:]))
                     sys.exit("runchecks: matching build did not print both OK lines")
+        # every data symbol must keep its original address in build_nm
+        p = subprocess.run([sys.executable, os.path.join(HERE, "nm_symaudit.py")], cwd=REPO,
+                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+        print(p.stdout.rstrip())
+        if p.returncode != 0:
+            sys.exit("runchecks: data symbols moved in the NON_MATCHING build (see above)")
 
     print("running %d check(s) on %d job(s)%s" % (len(checks), o.jobs,
                                                  ", capped at %d trials" % o.quick if o.quick else ""))

@@ -12,8 +12,10 @@ See tools_port/README.md for usage, options and limitations.
 """
 import argparse
 import bisect
+import ctypes
 import hashlib
 import os
+import pickle
 import random
 import re
 import struct
@@ -21,7 +23,7 @@ import sys
 import time
 
 try:
-    from unicorn import Uc, UcError, UC_ARCH_MIPS, UC_MODE_MIPS64, UC_MODE_BIG_ENDIAN
+    from unicorn import Uc, UcError, UC_ARCH_MIPS, UC_MODE_MIPS64, UC_MODE_BIG_ENDIAN, UC_PROT_ALL
     from unicorn import (UC_HOOK_BLOCK, UC_HOOK_CODE, UC_HOOK_INTR,
                          UC_HOOK_MEM_UNMAPPED, UC_HOOK_MEM_FETCH_UNMAPPED)
     from unicorn import mips_const as M
@@ -39,6 +41,12 @@ STACK_TOP = 0x80E00000           # initial $sp
 STACK_WINDOW = 0x10000           # bytes below $sp treated as the callee's private frame
 SENTINEL = 0x80F00000            # initial $ra; reaching it means "returned"
 K = 0xFFFFFFFF00000000           # sign-extension of a KSEG0 address in 64-bit mode
+PAGE = 0x1000                    # granularity of the per-trial restore/diff
+
+_libc = ctypes.CDLL(None)
+_memcmp = _libc.memcmp
+_memcmp.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t]
+_memcmp.restype = ctypes.c_int
 
 GPR_NAMES = ["zero", "at", "v0", "v1", "a0", "a1", "a2", "a3",
              "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",
@@ -83,6 +91,7 @@ class Build:
         self.label = label
         self.sections = []        # (vaddr, bytes or None(size), name, exec)
         self.sym = {}             # name -> addr (u32)
+        self.size = {}            # name -> st_size (object symbols that have one; absolute ones don't)
         self.addr_syms = []       # sorted (addr, name) of all named syms in loaded sections
         self.funcs = {}           # entry addr -> name (code symbols)
         self.abs_funcs = {}       # addr -> name for absolute func_ symbols (other overlays)
@@ -133,6 +142,10 @@ class Build:
                     bind = sy["st_info"]["bind"]
                     if bind == "STB_GLOBAL" or n not in self.sym:
                         self.sym[n] = v
+                        if sy["st_size"]:
+                            self.size[n] = sy["st_size"]
+                        else:
+                            self.size.pop(n, None)
                     if n.startswith("_binary"):
                         continue
                     self.addr_syms.append((v, n))
@@ -166,23 +179,33 @@ class Build:
             return "0x%08X" % a
         return n if off == 0 else "%s+0x%X" % (n, off)
 
-    def sym_off(self, a):
+    def sym_off(self, a, skip_labels=False):
         i = bisect.bisect_right(self._keys, a) - 1
         if i < 0:
             return None, 0
+        if skip_labels:
+            # nearest preceding D_/named symbol, not a local code label (L8xxxxxxx, .L..)
+            j = i
+            while j >= 0 and i - j < 256:
+                n = self.addr_syms[j][1]
+                if n.startswith("D_") or not SKIP_SYM.match(n):
+                    i = j
+                    break
+                j -= 1
         base, n = self.addr_syms[i]
         return n, a - base
 
     def resolve(self, expr):
         """'SYM', 'SYM+0x10', '0x8036444C' -> u32 address."""
         m = re.match(r"^([A-Za-z_][\w]*)?\s*([+-]\s*(?:0x[0-9A-Fa-f]+|\d+))?$", expr.strip())
-        if not m:
-            return int(expr, 0) & 0xFFFFFFFF
+        try:
+            if not m or m.group(1) is None:
+                return int(expr, 0) & 0xFFFFFFFF
+        except ValueError:
+            raise SystemExit("eqcheck: can't parse address %r (want SYM, SYM+0x10 or 0x80xxxxxx)" % expr)
         name, off = m.group(1), m.group(2)
-        if name is None:
-            return int(expr, 0) & 0xFFFFFFFF
         if name not in self.sym:
-            raise KeyError("%s: symbol %s not found" % (self.label, name))
+            raise SystemExit("eqcheck: unknown symbol %r in %r (not in %s)" % (name, expr, self.label))
         return (self.sym[name] + (int(off.replace(" ", ""), 0) if off else 0)) & 0xFFFFFFFF
 
 
@@ -223,8 +246,13 @@ class Machine:
         self.opts = opts
         uc = Uc(UC_ARCH_MIPS, UC_MODE_MIPS64 | UC_MODE_BIG_ENDIAN)
         uc.ctl_set_cpu_model(M.UC_CPU_MIPS64_R4000)
-        uc.mem_map(0, RAM_SIZE)
-        uc.mem_map(MMIO_BASE, MMIO_SIZE)
+        # RAM and MMIO are backed by our own host buffers (mem_map_ptr), so the
+        # per-trial diff can memcmp guest memory in place instead of copying
+        # megabytes out through mem_read.
+        self.ram = ctypes.create_string_buffer(RAM_SIZE)
+        self.mmio = ctypes.create_string_buffer(MMIO_SIZE)
+        uc.mem_map_ptr(0, RAM_SIZE, UC_PROT_ALL, self.ram)
+        uc.mem_map_ptr(MMIO_BASE, MMIO_SIZE, UC_PROT_ALL, self.mmio)
         self.uc = uc
         self.prefill_text = []
         if prefill is not None:
@@ -261,12 +289,21 @@ class Machine:
         for k in range(1, 9):
             regions.append((0x04000000 + k * 0x100000, 0x100))
         self.regions = regions
-        self.base = [bytes(uc.mem_read(s, n)) for s, n in regions]
+        self.ram_addr = ctypes.addressof(self.ram)
+        self.mmio_addr = ctypes.addressof(self.mmio)
+        # base: pristine contents; snap: base plus the current trial's inputs
+        # (the start-of-run state the diff compares against).  Both are host
+        # buffers so pages can be compared/restored with memcmp/memmove.
+        self.base = [ctypes.create_string_buffer(bytes(uc.mem_read(s, n)), n) for s, n in regions]
+        self.snap = [ctypes.create_string_buffer(bytes(b.raw), n) for b, (s, n) in zip(self.base, regions)]
+        self.dirty = set()        # (region index, page offset) to restore from base before the next run
+        self.dirty_other = []     # input writes outside the regions (restored before the next run)
         uc.hook_add(UC_HOOK_BLOCK, self._on_block)
         uc.hook_add(UC_HOOK_INTR, self._on_intr)
         uc.hook_add(UC_HOOK_MEM_UNMAPPED | UC_HOOK_MEM_FETCH_UNMAPPED, self._on_unmapped)
         self.code_hook = None
         self.icache = {}
+        self.auto_follow = set()  # callees run for real because the other build has no such function
 
     # -- per-run state ------------------------------------------------------
     def reset(self):
@@ -313,6 +350,12 @@ class Machine:
                 or name == self.opts.func:
             if target_addr is not None:
                 uc.reg_write(REG["pc"], sext32(target_addr))
+            return
+        if name in self.auto_follow:
+            # a function that exists only in this build (a static helper of a
+            # rewrite): part of the rewrite, so run it instead of stubbing it
+            if ("helper", name) not in self.notes:
+                self.notes.append(("helper", name))
             return
         self._stub(name)
 
@@ -388,20 +431,26 @@ class Machine:
         elif not want_code_hook and self.code_hook is not None:
             uc.hook_del(self.code_hook)
             self.code_hook = None
-        # restore the writable regions with this trial's inputs applied
-        snap = [bytearray(b) for b in self.base]
+        # Restore the writable regions, then apply this trial's inputs.  Only
+        # pages that the previous run wrote or that held its inputs differ
+        # from base, so only those are copied back (memory and snap alike).
+        self.restore()
         writes = [(phys(addr_fn(self.b)), data) for addr_fn, data in plan.mem]
         writes += [(phys(a), struct.pack(">I", v & 0xFFFFFFFF)) for a, v in self.opts.mmio_vals.items()]
         for p, data in writes:
-            for (s, n), buf in zip(self.regions, snap):
-                if s <= p and p + len(data) <= s + n:
-                    buf[p - s:p - s + len(data)] = data
+            ln = len(data)
+            for ri, (s, n) in enumerate(self.regions):
+                if s <= p and p + ln <= s + n:
+                    o = p - s
+                    ctypes.memmove(ctypes.addressof(self.snap[ri]) + o, data, ln)
+                    uc.mem_write(p, data)
+                    for pg in range(o // PAGE, (o + ln - 1) // PAGE + 1):
+                        self.dirty.add((ri, pg * PAGE))
                     break
             else:
-                uc.mem_write(p, data)       # outside the diffed regions (e.g. code)
-        for (s, n), buf in zip(self.regions, snap):
-            uc.mem_write(s, bytes(buf))
-        self.snap = snap
+                # outside the diffed regions (e.g. code): undone before the next run
+                self.dirty_other.append((p, bytes(uc.mem_read(p, ln))))
+                uc.mem_write(p, data)
         uc.reg_write(REG["fcsr"], plan.fcsr)
         for r, v in plan.regs.items():
             if r.startswith("f"):
@@ -430,20 +479,55 @@ class Machine:
             res[r] = u32(uc.reg_read(REG[r]))
         res["s8"] = res["fp"]
         # every byte that differs from the start-of-run state
-        CH = 0x1000
-        for (s, n), buf in zip(self.regions, snap):
-            now = bytes(uc.mem_read(s, n))
-            if now == buf:
-                continue
-            seg = 0xA0000000 if 0x04000000 <= s < 0x05000000 else 0x80000000
-            for i in range(0, n, CH):
-                o, c = buf[i:i + CH], now[i:i + CH]
-                if o != c:
-                    self.written.update(seg | (s + i + j) for j in range(len(o)) if o[j] != c[j])
+        self.diff()
         return res
 
+    def host(self, p):
+        """Host address of guest physical address p (RAM or MMIO)."""
+        if p < RAM_SIZE:
+            return self.ram_addr + p
+        return self.mmio_addr + (p - MMIO_BASE)
+
+    def restore(self):
+        uc = self.uc
+        for ri, off in self.dirty:
+            s, n = self.regions[ri]
+            ln = min(PAGE, n - off)
+            src = ctypes.addressof(self.base[ri]) + off
+            ctypes.memmove(ctypes.addressof(self.snap[ri]) + off, src, ln)
+            uc.mem_write(s + off, ctypes.string_at(src, ln))
+        self.dirty.clear()
+        for p, data in reversed(self.dirty_other):
+            uc.mem_write(p, data)
+        self.dirty_other = []
+
+    def diff(self):
+        """Add every byte that differs from snap to self.written: memcmp over
+        64 KB chunks, then pages, then a byte compare inside changed pages."""
+        CHUNK = 0x10000
+        for ri, (s, n) in enumerate(self.regions):
+            la, sa = self.host(s), ctypes.addressof(self.snap[ri])
+            seg = 0xA0000000 if 0x04000000 <= s < 0x05000000 else 0x80000000
+            for c0 in range(0, n, CHUNK):
+                c1 = min(c0 + CHUNK, n)
+                if _memcmp(la + c0, sa + c0, c1 - c0) == 0:
+                    continue
+                for lo in range(c0, c1, PAGE):
+                    hi = min(lo + PAGE, n)
+                    if _memcmp(la + lo, sa + lo, hi - lo) == 0:
+                        continue
+                    self.dirty.add((ri, lo))
+                    o, c = ctypes.string_at(sa + lo, hi - lo), ctypes.string_at(la + lo, hi - lo)
+                    for i in range(0, hi - lo, 64):
+                        if o[i:i + 64] != c[i:i + 64]:
+                            self.written.update(seg | (s + lo + j) for j in range(i, min(i + 64, hi - lo))
+                                                if o[j] != c[j])
+
     def read(self, a, n=1):
-        return bytes(self.uc.mem_read(phys(a), n))
+        p = phys(a)
+        if p + n <= RAM_SIZE or MMIO_BASE <= p and p + n <= MMIO_BASE + MMIO_SIZE:
+            return ctypes.string_at(self.host(p), n)
+        return bytes(self.uc.mem_read(p, n))
 
 
 # ---------------------------------------------------------------------------
@@ -472,6 +556,11 @@ class Plan:
         """Value of a base name used by rel:/@ specs: an --arg register, heap, heapN,
         or a symbol.  Returns an int or a callable(build) -> int."""
         name = name.strip().lstrip("@")
+        if name.startswith("sym:"):         # rel:sym:NAME+.. is the same as rel:NAME+..
+            n = name[4:].strip()
+            if not re.match(r"^[A-Za-z_]\w*$", n):
+                raise SystemExit("%s: bad symbol name %r" % (what, n))
+            return lambda b, n=n: b.resolve(n)
         if name in self.vals:
             return self.vals[name]
         if name == "heap":
@@ -601,7 +690,9 @@ def gen_value(spec, rng, plan, what):
         plan.mem.append((lambda b, a=a: a, data))
         return a, "heap 0x%08X (%s 0x%X)" % (a, kind, size)
     if kind == "sym":
-        name = parts[1]
+        name = parts[1].strip() if len(parts) > 1 else ""
+        if not re.match(r"^[A-Za-z_]\w*\s*([+-]\s*(0x[0-9A-Fa-f]+|\d+))?$", name):
+            raise SystemExit("bad value spec for %s: %r (want sym:NAME or sym:NAME+OFF)" % (what, spec))
         return (lambda b: b.resolve(name)), "&" + name
     raise SystemExit("bad value spec for %s: %r" % (what, spec))
 
@@ -689,9 +780,40 @@ def gen_fill(fill, size, rng, plan, tgt):
     return data, desc
 
 
+STRIDE_RE = re.compile(r"^(.*?)\s*\*\s*(0x[0-9A-Fa-f]+|\d+)\s*:\s*(0x[0-9A-Fa-f]+|\d+)(?:/(0x[0-9A-Fa-f]+|\d+))?$")
+
+
 def gen_mem(spec, rng, plan):
-    """--mem TARGET[:SIZE]=FILL"""
+    """--mem TARGET[:SIZE]=FILL, or TARGET*STRIDE:COUNT[/W]=FILL (the same W-byte
+    field in COUNT records STRIDE bytes apart, each drawn separately)"""
+    if "=" not in spec:
+        raise SystemExit("bad --mem %r: want TARGET[:SIZE]=FILL" % spec)
     tgt, fill = spec.split("=", 1)
+    m = STRIDE_RE.match(tgt)
+    if m:
+        tgt = m.group(1)
+        stride, count = int(m.group(2), 0), int(m.group(3), 0)
+        width = int(m.group(4), 0) if m.group(4) else 4
+        if count < 1 or width < 1:
+            raise SystemExit("bad --mem %r: COUNT and W must be >= 1" % spec)
+        base = mem_target(tgt, plan)
+        descs = []
+        for i in range(count):
+            res = (lambda b, base=base, o=i * stride: (base(b) + o) & 0xFFFFFFFF)
+            data, desc = gen_fill(fill, width, rng, plan, tgt)
+            if callable(data):
+                if width != 4:
+                    raise SystemExit("--mem %s: a pointer fill needs W = 4" % spec)
+                plan.mem.append((res, None, data))
+            else:
+                plan.mem.append((res, data))
+            descs.append(desc)
+        if len(set(descs)) == 1:
+            shown = descs[0]
+        else:
+            shown = "; ".join(descs[:8]) + ("; ..." if count > 8 else "")
+        plan.desc.append("%s*%#x x%d = %s" % (tgt, stride, count, shown))
+        return
     size = None
     if ":" in tgt:
         tgt, sz = tgt.rsplit(":", 1)
@@ -703,6 +825,35 @@ def gen_mem(spec, rng, plan):
     else:
         plan.mem.append((resolver, data))
     plan.desc.append("%s = %s" % (tgt, desc))
+
+
+def size_mem_specs(opts, b):
+    """Unsized `--mem SYM=FILL` writes a word.  If the ELF gives SYM a size of
+    1 or 2 bytes, size the write from it; otherwise warn when the next symbol
+    starts less than 4 bytes after the target (a u8/u16 global whose absolute
+    symbol has no size)."""
+    out = []
+    for spec in opts.mem:
+        tgt, _, fill = spec.partition("=")
+        kind = fill.split(":")[0]
+        m = re.match(r"^([A-Za-z_]\w*)\s*(?:\+\s*(0x[0-9A-Fa-f]+|\d+))?$", tgt.strip())
+        if ":" in tgt or "*" in tgt or not m or m.group(1) not in b.sym \
+                or kind in ("halves", "bytes", "onehot"):
+            out.append(spec)
+            continue
+        name, off = m.group(1), int(m.group(2), 0) if m.group(2) else 0
+        sz = b.size.get(name)
+        if off == 0 and sz in (1, 2):
+            out.append("%s:%d=%s" % (tgt, sz, fill))
+            print("note: --mem %s: %s is %d byte(s) in the ELF, writing %d byte(s)" % (tgt, name, sz, sz))
+            continue
+        out.append(spec)
+        a = b.resolve(tgt)
+        i = bisect.bisect_right(b._keys, a)
+        if i < len(b._keys) and b._keys[i] - a < 4:
+            print("warning: --mem %s writes 4 bytes, but %s starts %d byte(s) after it; give the size "
+                  "(%s:1=... or %s:2=...)" % (tgt, b.addr_syms[i][1], b._keys[i] - a, tgt, tgt))
+    opts.mem = out
 
 
 class Options:
@@ -722,6 +873,20 @@ def make_plan(opts, trial):
     plan.regs["lo"] = rng.getrandbits(32)
     # caller's frame: 16 home bytes + stack args (sp+0x10..) poisoned identically
     plan.mem.append((lambda b: STACK_TOP, bytes(rng.getrandbits(8) for _ in range(0x100))))
+    # --heap blocks: allocated first (heap0, heap1, ..), not bound to any register
+    for spec in opts.heap:
+        sz, _, fill = spec.partition("=")
+        try:
+            size = int(sz, 0)
+        except ValueError:
+            raise SystemExit("bad --heap %r: want SIZE or SIZE=FILL" % spec)
+        a = plan.alloc(size)
+        k = len(plan.blocks) - 1
+        data, desc = gen_fill(fill or "rand", size, rng, plan, "heap%d" % k)
+        if callable(data) or len(data) != size:
+            raise SystemExit("bad --heap %r: FILL must produce SIZE plain bytes (rand, zero, words:.., ..)" % spec)
+        plan.mem.append((lambda b, a=a: a, data))
+        plan.desc.append("heap%d = 0x%08X (0x%X, %s)" % (k, a, size, desc))
     # --arg first (so a ptr block's random contents land before, and can be
     # overwritten by, --mem specs that target it), rel: args after the others
     args = [s for s in opts.args if not s.split("=", 1)[1].startswith("rel:")] + \
@@ -903,7 +1068,12 @@ def parse_args(argv):
     ap.add_argument("--mem", action="append", default=[],
                     help="TARGET[:size]=FILL, TARGET = SYM[+off], 0xADDR, @a0[+off], @heapN[+off] "
                          "(FILL: rand, zero, words:a,b*3,.., halves:.., bytes:.., floats[:lo:hi], "
-                         "onehot:STRIDE[@OFF][/W]:POOL:FILL, or any --arg SPEC); applied after --arg")
+                         "onehot:STRIDE[@OFF][/W]:POOL:FILL, or any --arg SPEC); applied after --arg. "
+                         "TARGET*STRIDE:COUNT[/W]=FILL fills the same W-byte field (default 4) of COUNT "
+                         "records. Unsized SYM= writes are sized from the ELF symbol size when it is 1 or 2")
+    ap.add_argument("--heap", action="append", default=[],
+                    help="SIZE[=FILL]: allocate a scratch-heap block (heap0, heap1, .. before any --arg ptr) "
+                         "without putting its address in a register; FILL defaults to rand")
     ap.add_argument("--ret", default="int",
                     help="return kind: int, ptr, void, u64, float, double, or regs:v0,t0,...")
     ap.add_argument("--ignore-reg", dest="ignore_regs", action="append", default=[])
@@ -985,7 +1155,32 @@ def load_build(d, version, label):
     for p in (hd, ini):
         if not os.path.exists(p):
             sys.exit("eqcheck: %s not found (build it first)" % p)
-    return Build(label, [ini, hd])
+    # Parsing the ELF symbol tables takes most of a short run's startup, so the
+    # parsed Build is cached next to the ELFs, keyed by their size/mtime and by
+    # this script's own mtime.
+    key = tuple((os.path.abspath(p), os.stat(p).st_size, os.stat(p).st_mtime_ns)
+                for p in (ini, hd, os.path.abspath(__file__)))
+    cache = os.path.join(d, ".eqcheck_cache.%s.pickle" % version)
+    try:
+        with open(cache, "rb") as f:
+            k, b = pickle.load(f)
+        if k == key:
+            b.label = label
+            return b
+    except Exception:
+        pass
+    b = Build(label, [ini, hd])
+    tmp = "%s.%d.tmp" % (cache, os.getpid())
+    try:
+        with open(tmp, "wb") as f:
+            pickle.dump((key, b), f, protocol=pickle.HIGHEST_PROTOCOL)
+        os.replace(tmp, cache)
+    except Exception:
+        try:
+            os.remove(tmp)
+        except OSError:
+            pass
+    return b
 
 
 def explore(opts, ref, m, entry):
@@ -1010,12 +1205,14 @@ def explore(opts, ref, m, entry):
             elif HEAP_BASE <= a < HEAP_END:
                 k = bisect.bisect_right(blocks, a) - 1
                 key = "heap%d (0x%08X)" % (k, blocks[k]) if k >= 0 else "heap"
-            elif ref.in_text(a):
-                continue
             else:
-                n, off = ref.sym_off(a)
+                # (loads from the text range are data tables embedded in it,
+                # e.g. D_802C23B4 in the 7D9D0 blob; instruction fetches are
+                # not recorded)
+                intext = ref.in_text(a)
+                n, off = ref.sym_off(a, skip_labels=intext)
                 if n is not None and off < 0x10000:
-                    key = n
+                    key = n + (" (in text)" if intext else "")
                 else:
                     if run_key is None or prev != a - 1:
                         run_key = "(unnamed) 0x%08X" % a
@@ -1060,6 +1257,7 @@ def main(argv=None):
         sys.exit("eqcheck: %s not in %s" % (opts.func, ref.label))
     ref_m = Machine(ref, opts=opts)
     if opts.explore:
+        size_mem_specs(opts, ref)
         explore(opts, ref, ref_m, ref.sym[opts.func])
         return 0
     new = load_build(opts.new, opts.version, opts.new.rstrip("/"))
@@ -1069,6 +1267,10 @@ def main(argv=None):
         sys.exit("eqcheck: %s not in %s" % (opts.func, new.label))
     amap = AddrMap(ref, new)
     new_m = Machine(new, prefill=None if amap.identity else ref, opts=opts)
+    # functions only the new build has (static helpers of a rewrite) are part
+    # of the rewrite: run them instead of recording them as extra calls
+    new_m.auto_follow = set(n for n in new.funcs.values() if n not in ref.sym)
+    size_mem_specs(opts, ref)
     # sanity: data that should not have moved must be byte-identical
     for v, d, name, ex in ref.sections:
         if ex or isinstance(d, int):
@@ -1109,8 +1311,11 @@ def main(argv=None):
         for n in new_m.notes:
             if n not in notes:
                 notes.add(n)
-                print("note: %s executed original-build code at %s (not a function entry; "
-                      "jump table or pointer in a binary blob?)" % (new.label, ref.name_at(n[1])))
+                if n[0] == "helper":
+                    print("note: following %s, which exists only in %s (static helper?)" % (n[1], new.label))
+                else:
+                    print("note: %s executed original-build code at %s (not a function entry; "
+                          "jump table or pointer in a binary blob?)" % (new.label, ref.name_at(n[1])))
         if ref_m.fault and new_m.fault:
             both_faulted += 1
         diffs = compare(opts, ref_m, new_m, amap, r_ref, r_new)

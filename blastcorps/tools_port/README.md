@@ -45,8 +45,17 @@ What `NON_MATCHING=1` changes (Makefile plus `tools_port/nm_ldscript.py`):
 | hd_code `.text` VRAM | 0x802447C0 | `NM_TEXT_VRAM` (default 0x80800000) |
 | `.hd_code_data` | 0x802E8BD0 | same address, and every `*_bin` blob is pinned to its original address |
 | sections nothing places (e.g. new `.rodata` in a hand-asm file) | discarded, so the link fails | `.nm_extra` at `NM_EXTRA_VRAM` (0x80A00000) |
-| `undefined_*.txt` | `name = addr;` (overrides objects) | `PROVIDE(name = addr);`, so a moved function's own definition wins |
+| `undefined_*.txt` | `name = addr;` (overrides objects) | functions (`func_*`, aliases `a = b;`, all of `undefined_funcs*`) become `PROVIDE(name = addr);`, so a moved function's own definition wins; data assignments stay hard |
 | `all` | sha1 verify | link only |
+
+Data assignments must stay hard because some data symbols are pinned in
+`undefined_syms` *and* defined in C (hd.c's u64 `D_80364A88/90/98` sit outside
+its modelled `.bss`). With a `PROVIDE()` the C definition would win in
+`build_nm` and the variable would move (D_80364A98 landed at 0x80312D88, on
+top of D_80312D80), while the hand asm still used 0x80364A98: two homes for one
+variable. `python3 tools_port/nm_symaudit.py` compares the symbol tables of
+`build/` and `build_nm/` and lists every non-text symbol whose address
+differs; `runchecks -b`/`-B` runs it after building and stops if anything moved.
 
 Why the text moves: code ends exactly where the data segment starts, and most
 data symbols are absolute `D_xxxxxxxx = 0x...` definitions, so data can't move.
@@ -85,6 +94,8 @@ writes:
 ```
 
 Heap bytes are labelled by block (`heap0 (0x80B00000)`, see `ptr` below).
+Loads from data tables that live inside the text range (for example
+`D_802C23B4` in the 7D9D0 blob) are listed with an `(in text)` suffix.
 Contiguous bytes with no nearby symbol are merged into one `(unnamed) 0x...`
 range, and a run of more than four back-to-back symbol groups (a scan running
 across many globals) prints as one `D_A .. D_B` line, so a runaway scan of an
@@ -97,7 +108,10 @@ get identical pseudo-random poison in both runs. `sp` is 0x80E00000 and `ra`
 is a sentinel. On top of that you can set:
 
 * `--arg REG=SPEC` takes any register (`a0`..`a3`, `f12`, `f14`, `t0`, `s1`, and so on), or `--arg sp+0x10=SPEC` for stack arguments.
-* `--mem TARGET[:SIZE]=FILL` sets memory contents. TARGET is `SYM`, `SYM+0x10`, a raw address, or relative to an argument or heap block: `@a0`, `@a0+0x40`, `@heap1+0x10` (see below). Symbols resolve separately in each build.
+* `--mem TARGET[:SIZE]=FILL` sets memory contents. TARGET is `SYM`, `SYM+0x10`, a raw address, or relative to an argument or heap block: `@a0`, `@a0+0x40`, `@heap1+0x10` (see below). Symbols resolve separately in each build. An unknown symbol is an error naming the symbol and the build.
+* **Sizing.** Without `:SIZE` a value fill writes a word (4 bytes). For `--mem SYM=...` (no offset) whose ELF symbol has a size of 1 or 2 (C-defined `u8`/`s16` globals) the write is sized from the symbol, with a `note:`. Absolute `D_` symbols from `undefined_syms*.txt` have no size; then, if the next symbol starts less than 4 bytes after the target, you get a `warning:` and should write `SYM:1=` or `SYM:2=` yourself. A word written over a byte global silently clobbers its neighbours.
+* `--mem TARGET*STRIDE:COUNT[/W]=FILL` fills the same W-byte field (default 4) in COUNT records STRIDE bytes apart, each record drawn separately: `--mem D_803FB8B8+8*0x14:25/2=choice:0,0x7FFF` sets the halfword at +8 of all 25 entries of a 0x14-byte table.
+* `--heap SIZE[=FILL]` allocates a scratch-heap block without putting its address in any register (FILL defaults to `rand`; `zero`, `words:..` etc. work). Use it for memory reached only through a global or a field: `--heap 0x300 --mem D_80358074=rel:heap0`. `--heap` blocks are numbered first (`heap0`, `heap1`, ...), before `--arg ptr` blocks.
 
 | SPEC / FILL | meaning |
 |---|---|
@@ -107,7 +121,7 @@ is a sentinel. On top of that you can set:
 | `float[:LO:HI]` | random single in an FPR (`f12=float`) |
 | `fbits[:LO:HI]` | float bits in an integer register or stack slot (o32 float args after an int arg) |
 | `ptr[:SIZE]` / `ptrz[:SIZE]` | pointer to a fresh scratch-heap block (random or zero bytes, default 0x200) |
-| `sym:NAME` | the address of NAME (in a register too, resolved per build) |
+| `sym:NAME` / `sym:NAME+0x10` | the address of NAME (in a register too, resolved per build) |
 | `rel:BASE+TERM+..` | an address relative to another value: see "Pointer-relative values" |
 | `rand`, `zero` | (`--mem`) SIZE random or zero bytes |
 | `words:a,b,c` / `halves:a,b` / `bytes:a,b` | (`--mem`) each word, halfword or byte chosen from a pool (weights `v*N` allowed), which is good for flags, indices, and NULL vs non-NULL pointers |
@@ -116,7 +130,8 @@ is a sentinel. On top of that you can set:
 
 #### Order of application
 
-Registers and the caller's frame are poisoned first. Then every `--arg` is
+Registers and the caller's frame are poisoned first. Then the `--heap` blocks
+are allocated and filled. Then every `--arg` is
 generated, left to right except that `rel:` args come after all the others; a
 `ptr` block's random contents are laid down at this point. Then every `--mem`,
 left to right. Later writes win, so a `--mem` into a `ptr` block (or into the
@@ -126,13 +141,13 @@ order was the reverse and `ptr` data silently overwrote `--mem` specs.)
 #### Pointer-relative values
 
 Scratch-heap blocks are numbered in allocation order: `heap0`, `heap1`, ...
-(`--arg ... ptr` specs first, then `ptr` fills in `--mem`). The first block is
-always 0x80B00000. `heap` alone is 0x80B00000.
+(`--heap` blocks first, then `--arg ... ptr` specs, then `ptr` fills in
+`--mem`). The first block is always 0x80B00000. `heap` alone is 0x80B00000.
 
 * `--mem @a0+0x40=0x50` writes into the memory an argument points at. `@NAME`
   is an `--arg` register (`a0`..), `heapN`, or `heap`.
 * `--arg a1=rel:a0+0x60*int:0:5` makes a value relative to another one.
-  BASE is an `--arg` register, `heap`/`heapN`, a symbol, or a number. Each
+  BASE is an `--arg` register, `heap`/`heapN`, a symbol (`NAME` or `sym:NAME`), or a number. Each
   `+TERM` is a constant (`+0x10`, `+-4`), any value spec (`+choice:0,0x60,0x5A0`),
   or `K*SPEC`, K times a random value (`+0x60*int:0:16`, `+0x14*choice:0,24`).
   The same works as a `--mem` fill, which stores a pointer: `--mem D_80358074=rel:heap0+0x20`.
@@ -176,6 +191,7 @@ number, so both builds get the same values. The ordered list of calls is
 compared between the builds.
 
 * `--follow NAME[,NAME]` runs that callee for real, using each build's own version of it. `--follow-all` runs every callee.
+* **Static helpers are followed automatically.** A callee that exists only in the new build (no symbol of that name in the reference build, typically a `static` helper a rewrite introduced) is part of the rewrite, so it always runs for real instead of showing up as an extra call. The run prints `note: following NAME, which exists only in build_nm`.
 * `--sig NAME=a0,a1` sets which registers count as NAME's arguments. Use it when a callee takes fewer than 4 arguments and the two versions leave different garbage in the unused ones. `--sig '*=a0'` changes the default. Non-ABI callees can list t-registers (`--sig func_802ABD54=a0,a1,a2,a3,t3,t4,t5`).
 * `--stub-ret NAME=VALUE|rand|ptr:SIZE` sets what a stubbed callee returns. `ptr` hands out deterministic heap blocks, which is useful for allocators.
 
@@ -244,10 +260,17 @@ bash tools_port/runchecks.sh 8A080 func_802A5510   # filter: check file, functio
 bash tools_port/runchecks.sh -q 20      # quick: cap every run at 20 trials
 bash tools_port/runchecks.sh --list 60D50          # show the selected command lines
 bash tools_port/runchecks.sh --coverage-only
+bash tools_port/runchecks.sh -b --changed          # only files whose .c or check file differs from main
+bash tools_port/runchecks.sh --changed --since HEAD~3
 ```
 
-Runs go in parallel (`-j`, default min(cores, 8); under WSL throughput stops
-improving at about 4). The output is a table with one row per run (file,
+`--changed` selects check files whose `src.us.v11/hd_code/<FILE>.c` or
+`tools_port/checks/<FILE>.txt` differs from the merge base of `--since`
+(default `main`) and HEAD, counting committed, staged, unstaged and untracked
+changes, and reports any rewrite in those files that has no check line. It doesn't notice
+changes to shared headers or to eqcheck itself; run the whole suite for those.
+
+Runs go in parallel (`-j`, default min(cores, 8)). The output is a table with one row per run (file,
 function, line, PASS/FAIL/ERROR, trials, time). A failing run shows the
 eqcheck failure lines and a ready-to-paste `bash tools_port/eq.sh ...` rerun
 command. A run in which every trial faulted counts as a FAIL. The exit status
@@ -259,8 +282,9 @@ block in `src.us.v11/hd_code/*.c` and reports any with no check line
 (`MISSING`, which makes the exit status nonzero). It also notes check lines for
 functions that have no rewrite.
 
-Current suite (Oct 2026): 13 rewritten functions, 33 runs, all PASS, about
-95 s wall with the default `-j8` (about 7000 trials).
+Current suite (Oct 2026): 61 rewritten functions, 148 runs, all PASS, about
+70 s wall at `-j4` and 58 s at `-j8` (was 637 s at `-j4` before the
+restore/diff speedup, see section 6).
 
 ## 5. Writing checks for a new rewrite
 
@@ -268,24 +292,40 @@ Current suite (Oct 2026): 13 rewritten functions, 33 runs, all PASS, about
    and every call. Re-run it with your inputs to confirm they're the ones read.
 2. **One random run, 200-400 trials**, randomizing every input the function
    reads, with pools that reach every branch (`choice:`, `words:`, weights).
-3. **Explicit boundary runs** (each with its own `--seed`): 0, -1, NULL;
+   **Pre-fill the outputs with `rand` too** (every global, field or buffer the
+   function writes): the diff only sees bytes that *change*, so a store of 0
+   into memory that is already 0 (the default bss) is invisible, and a rewrite
+   that drops it passes.
+3. **Size byte and halfword globals.** An unsized `--mem SYM=VAL` writes 4
+   bytes. eqcheck sizes it from the ELF when the symbol has a size, and warns
+   when the next symbol is closer than 4 bytes; otherwise write `SYM:1=`/`SYM:2=`
+   yourself, or the word spills into the neighbouring globals.
+4. **Explicit boundary runs** (each with its own `--seed`): 0, -1, NULL;
    sentinel values and their neighbours; table full and table empty; only the
    first or only the last slot special (`onehot:`); 0x7FFF / 0x8000 / 0xFFFF
    for halfwords, 0x7FFFFFFF / 0x80000000 for words; signed vs unsigned shifts
    (negative inputs). Random pools almost never hit "exactly one slot special
    at the boundary" (the pilot's off-by-one loop bound passed 600 random trials).
-4. **Terminate scanned tables.** A table walked until a sentinel must have one
+   For a field in every record of a table use the stride form
+   (`--mem TBL+8*0x14:25/2=choice:..`); for memory reached only through a
+   global pointer use `--heap SIZE` plus `--mem PTR=rel:heap0`.
+5. **Terminate scanned tables.** A table walked until a sentinel must have one
    in `--mem` (with the default zero bss the walk runs off through megabytes).
    Loops with `!=` bounds need inputs that respect the precondition.
-5. **`--ret void` for void functions** (otherwise leftover v0 is compared);
+6. **`--ret void` for void functions** (otherwise leftover v0 is compared);
    use the real width (`--ret int` when the asm returns the full 32-bit value).
-6. **`--sig NAME=a0,a1`** for callees that take fewer than 4 arguments, so
+7. **`--sig NAME=a0,a1`** for callees that take fewer than 4 arguments, so
    garbage in unused argument registers isn't compared.
-7. **Mutation spot-check.** Break the C once on purpose (loop bound, a
-   dropped check, `<` for `<=`), rebuild NON_MATCHING, confirm at least one
-   check line FAILs, then revert and rebuild.
-8. Add the lines to `tools_port/checks/<FILE>.txt` and run
-   `bash tools_port/runchecks.sh -b <FILE>`, then the whole suite before you commit.
+8. **Static helpers are fine.** A rewrite may split work into `static`
+   functions: callees that exist only in `build_nm` are run, not stubbed, so
+   they don't show up as extra calls. (Helpers must not share a name with any
+   function in the matching build, or they'll be stubbed and compared as calls.)
+9. **Mutation spot-check.** Break the C once on purpose (loop bound, a
+   dropped check, `<` for `<=`, a dropped store of 0), rebuild NON_MATCHING,
+   confirm at least one check line FAILs, then revert and rebuild.
+10. Add the lines to `tools_port/checks/<FILE>.txt` and run
+   `bash tools_port/runchecks.sh -b <FILE>` (or `-b --changed`), then the whole
+   suite before you commit.
 
 ## 6. Demo results (Oct 2026)
 
@@ -301,8 +341,16 @@ Current suite (Oct 2026): 13 rewritten functions, 33 runs, all PASS, about
 | func_802CE840 (fills a 25-entry table) | hand asm, C rewrite | vs build_nm | PASS 50 |
 | func_802C8AB0 (sets 2 globals, calls func_802C4310(a0, 0x72)) | hand asm, C rewrite | vs build_nm | PASS 200 |
 
-A trial takes about 25 ms, most of it restoring and diffing about 6 MB of
-memory, so 200 trials run in about 5 s.
+A trial (both builds) takes about 5-10 ms for a small function, and a run
+starts in about 0.4 s. Guest RAM is mapped from host buffers
+(`mem_map_ptr`), so after each run the harness memcmps the writable regions
+against the start-of-run snapshot in place (64 KB chunks, then 4 KB pages,
+then bytes only inside changed pages) and before the next run copies back only
+the pages that changed or held inputs. The parsed ELF symbol tables are cached
+in `<build dir>/.eqcheck_cache.<version>.pickle`, keyed by the ELFs' size and
+mtime. (Before Oct 2026 every trial copied and compared about 6 MB through
+`mem_read`/`mem_write`: about 33 ms per trial single-threaded and much more
+under `-j4`; the 148-run suite went from 637 s to 69 s at `-j4`.)
 
 ## 7. Known limitations
 

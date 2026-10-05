@@ -8,17 +8,12 @@ func_802B8424: -n 200 --seed 1 --ret void \
     --mem D_803EBBF0:4=words:0,0x80000000,0x3F800000,0x7F800000,0xFF800000,0x7FC00000,0x00000001,0x7F7FFFFF,0xC2C80000
 # func_802B8AE4: copies, then game-mode (u64 D_80364A90) dependent end-of-level checks
 #
-# BLOCKED (infra): the path that writes the next game mode (mode != 0x1000, D_803EF32C == 4) can't be
-# compared yet. hd.c (00000.c) defines u64 D_80364A88/90/98, and undefined_syms.hd_code pins them to
-# 0x80364A88.. with a plain assignment. The NON_MATCHING link turns that into PROVIDE(), so in build_nm
-# hd.c's own .bss definitions win and the three game-mode globals move to 0x80312D80.. (overlapping
-# D_80312D80), while the asm still uses the raw 0x80364A9x addresses. So the original writes 0x80364A98
-# and the rewrite writes 0x80312D88. Reads pass only because --mem resolves the symbol per build.
-# The lines below avoid state 4 except where noted; re-enable the commented runs once nm_ldscript keeps
-# data-symbol assignments from undefined_syms as hard assignments.
+# (The write path, mode != 0x1000 with D_803EF32C == 4, was blocked until Oct 2026: the NM link
+# PROVIDE()d hd.c's D_80364A88/90/98 and they moved. nm_ldscript now keeps data assignments hard;
+# tools_port/nm_symaudit.py checks that no data symbol moves.)
 #
 # random: mode hi word 0 or 1 (64-bit compare), lo word 0x1000 or neighbours; state byte 0,3,5,6
-# (no 4, see above); marker y/w compared signed
+# (state 4 in the seed-4 run below); marker y/w compared signed
 func_802B8AE4: -n 400 --seed 0 --ret void --sig func_80275390=a0,a1 \
     --mem D_80364A90:4=words:0*4,1,0xFFFFFFFF --mem D_80364A90+4=choice:0x1000*4,0xFFF,0x1001,0,0x2000 \
     --mem D_803EF32C:1=bytes:3,5*2,6,0 \
@@ -28,14 +23,14 @@ func_802B8AE4: -n 400 --seed 0 --ret void --sig func_80275390=a0,a1 \
 func_802B8AE4: -n 100 --seed 3 --ret void --sig func_80275390=a0,a1 \
     --mem D_80364A90:4=0 --mem D_80364A90+4=0x1000 --mem D_803EF32C:1=bytes:4 \
     --mem D_803EF314=choice:0,1,-1 --mem D_803EF31C=choice:0,1,-1
-# BLOCKED, re-enable after the NM link fix (write path, plus the full random run with state 4):
-# func_802B8AE4: -n 400 --seed 4 --ret void --sig func_80275390=a0,a1 \
-#     --mem D_80364A90:4=words:0*4,1,0xFFFFFFFF --mem D_80364A90+4=choice:0x1000*4,0xFFF,0x1001,0,0x2000 \
-#     --mem D_80364A98:8=rand --mem D_803EF32C:1=bytes:3,4*2,5*2,6,0 \
-#     --mem D_803EF310:16=words:0,1,-1,0x7FFFFFFF,0x80000000,100,-100
-# func_802B8AE4: -n 100 --seed 5 --ret void --sig func_80275390=a0,a1 \
-#     --mem D_80364A90:4=words:0,1,0x80000000 --mem D_80364A90+4=choice:0x1000,0 --mem D_803EF32C:1=bytes:4 \
-#     --mem D_80364A98:8=rand
+# write path (next game mode into D_80364A98), plus the full random run with state 4
+func_802B8AE4: -n 400 --seed 4 --ret void --sig func_80275390=a0,a1 \
+    --mem D_80364A90:4=words:0*4,1,0xFFFFFFFF --mem D_80364A90+4=choice:0x1000*4,0xFFF,0x1001,0,0x2000 \
+    --mem D_80364A98:8=rand --mem D_803EF32C:1=bytes:3,4*2,5*2,6,0 \
+    --mem D_803EF310:16=words:0,1,-1,0x7FFFFFFF,0x80000000,100,-100
+func_802B8AE4: -n 100 --seed 5 --ret void --sig func_80275390=a0,a1 \
+    --mem D_80364A90:4=words:0,1,0x80000000 --mem D_80364A90+4=choice:0x1000,0 --mem D_803EF32C:1=bytes:4 \
+    --mem D_80364A98:8=rand
 # mode exactly 0x1000, state not 5: decided by D_803EF31C vs D_803EF314 (equal, +-1, signed extremes)
 func_802B8AE4: -n 200 --seed 1 --ret void --sig func_80275390=a0,a1 \
     --mem D_80364A90:4=0 --mem D_80364A90+4=0x1000 --mem D_803EF32C:1=bytes:0,3,4,6,0xFF \

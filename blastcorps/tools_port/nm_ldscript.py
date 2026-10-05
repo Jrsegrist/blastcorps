@@ -21,13 +21,17 @@ What it does (see tools_port/README.md for the why):
     /DISCARD/ for .rodata/.data/.bss that a rewritten file now has but the
     matching layout never placed (e.g. float constants or a jump table in
     one of the hand-written-asm files);
-  * --provide turns `name = 0x...;` symbol files into `PROVIDE(name = ...);`.
-    In the matching link those absolute assignments override object
-    definitions (harmless, the addresses agree). In the relocated link they
-    would send every call of a function listed there to its *original*
-    address, silently bypassing the rewrite.
+  * --provide turns the *function* assignments of an undefined_*.txt symbol
+    file (func_* names, aliases `a = b;`, and everything in undefined_funcs*)
+    into `PROVIDE(name = ...);`.  In the matching link those absolute
+    assignments override object definitions (harmless, the addresses agree).
+    In the relocated link they would send every call of a function listed
+    there to its *original* address, silently bypassing the rewrite.  Data
+    assignments stay hard, so every data symbol keeps its original address
+    even when a C file also defines it (tools_port/nm_symaudit.py checks).
 """
 import argparse
+import os
 import re
 import sys
 
@@ -49,10 +53,23 @@ def main():
     text = re.sub(r"(?<![\w/])build/", args.build_dir + "/", text)
 
     if args.provide:
-        # `name = value;` -> `PROVIDE(name = value);` so an object's own
-        # definition (e.g. a function that moved) wins over the absolute one
-        text = re.sub(r"^(\s*)([A-Za-z_.$][\w.$]*)\s*=\s*([^;]+);",
-                      r"\1PROVIDE(\2 = \3);", text, flags=re.M)
+        # Functions: `name = value;` -> `PROVIDE(name = value);` so an object's
+        # own definition (a function that moved with the relocated text) wins
+        # over the absolute one.  Data: kept as a hard assignment, exactly as in
+        # the matching link.  Several data symbols are pinned here although a C
+        # file also defines them (e.g. hd.c's u64 D_80364A88/90/98 sit outside
+        # its modelled .bss); a PROVIDE would let the C definition win and move
+        # the variable, while the hand asm still uses the raw original address.
+        funcs_file = "undefined_funcs" in os.path.basename(args.inp)
+
+        def wrap(m):
+            name, val = m.group(2), m.group(3).strip()
+            is_func = funcs_file or name.startswith("func_") or \
+                re.match(r"^[A-Za-z_.$][\w.$]*$", val) is not None   # alias of another symbol
+            if not is_func:
+                return m.group(0)
+            return "%sPROVIDE(%s = %s);" % (m.group(1), name, val)
+        text = re.sub(r"^(\s*)([A-Za-z_.$][\w.$]*)\s*=\s*([^;]+);", wrap, text, flags=re.M)
         open(args.out, "w").write(text)
         return
 

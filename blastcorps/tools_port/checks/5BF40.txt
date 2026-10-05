@@ -1,0 +1,32 @@
+# 5BF40: texture/palette table DMA loads (libultra calls stubbed; their arguments, including
+# osPiStartDma's stack arguments, are compared)
+# The table holds ROM offsets (from 0x4CE0); the asm computes 0x4CE0 + start and next - start
+# with trapping add/sub (and counts with a trapping addi), so the pools keep those in range.
+
+# func_802A0700: one-time table load, flag clear / set
+func_802A0700: -n 200 --ret void --mem D_803B9888:1=choice:0,0,1,2,0xFF --mem D_80358070=int --mem D_803B8D44=int \
+    --mem D_803B8D40=int --sig osInvalDCache=a0,a1 --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 \
+    --sig osRecvMesg=a0,a1,a2
+
+# func_802A0F0C (t6 = id, s1 = dest): entry id of a random offset table
+func_802A0F0C: -n 300 --arg t6=int:0:30 --arg s1=int --heap 0x200=words:0,0x10,0x100,0x1000,0x7FF0,0xFFFF00 \
+    --mem D_803B8D44=rel:heap0 \
+    --sig osInvalDCache=a0,a1 --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 --sig osRecvMesg=a0,a1,a2
+# largest start without overflow, negative sizes
+func_802A0F0C: -n 50 --seed 1 --arg t6=choice:0,1 --arg s1=choice:0,0x80400000 --heap 0x20=words:0,0x100,0xFFFFFF00,0x7FFFB31F \
+    --mem D_803B8D44=rel:heap0 --sig osInvalDCache=a0,a1 --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 \
+    --sig osRecvMesg=a0,a1,a2
+
+# func_802A11C4 (t6 = id, s1 = dest): queued DMA, OSIoMesg slot from D_80358080
+func_802A11C4: -n 300 --arg t6=int:0:30 --arg s1=int --heap 0x200=words:0,0x10,0x100,0x1000,0x7FF0,0xFFFF00 \
+    --mem D_803B8D44=rel:heap0 --mem D_80358080=int:0:10 --mem D_80358084=int:0:1000 --sig osInvalDCache=a0,a1 \
+    --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2
+func_802A11C4: -n 50 --seed 1 --arg t6=0 --arg s1=int --heap 0x20=words:0,0x100,0xFFFFFF00 --mem D_803B8D44=rel:heap0 \
+    --mem D_80358080=choice:0,-1,0x7FFFFFFE,0x80000000 --mem D_80358084=choice:0,-1,0x7FFFFFFE --sig osInvalDCache=a0,a1 \
+    --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2
+
+# func_802A0EE0(id, dest): wrapper of func_802A0F0C (stubbed under its convention, then followed)
+func_802A0EE0: -n 200 --ret void --arg a0=int --arg a1=int
+func_802A0EE0: -n 200 --seed 1 --ret void --follow func_802A0F0C --arg a0=int:0:30 --arg a1=int \
+    --heap 0x200=words:0,0x10,0x100,0x1000,0x7FF0,0xFFFF00 --mem D_803B8D44=rel:heap0 --sig osInvalDCache=a0,a1 \
+    --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 --sig osRecvMesg=a0,a1,a2

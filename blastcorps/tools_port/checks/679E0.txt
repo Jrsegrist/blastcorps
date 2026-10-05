@@ -1,0 +1,12 @@
+# 679E0: (de)serialize a 0xA6-byte block plus three words (0xB2 bytes, unaligned).
+
+# func_802AC7DC(dst, src, words) returns 0xB2. dst at any alignment, after src's
+# 0xA6 bytes in the same block (no overlap); words word-aligned.
+func_802AC7DC: -n 200 --arg a1=ptr:0x200 --arg a2=ptr:0x10 --arg a0=rel:heap0+0x100+int:0:7
+func_802AC7DC: -n 50 --seed 1 --arg a1=ptr:0x200 --arg a2=ptr:0x10 --arg a0=rel:heap0+0x100+choice:0,1,2,3 \
+    --mem @a2:12=words:0,0xFFFFFFFF,0x80000000,0x7FFFFFFF,0x000000FF,0xFF000000
+
+# func_802AC85C(src, dst, words): src at any alignment, words word-aligned
+func_802AC85C: -n 200 --ret void --arg a1=ptr:0x200 --arg a2=ptr:0x10 --arg a0=rel:heap0+0x100+int:0:7
+func_802AC85C: -n 50 --seed 1 --ret void --arg a1=ptr:0x200 --arg a2=ptr:0x10 --arg a0=rel:heap0+0x100+choice:0,1,2,3 \
+    --mem @a0:0xB2=bytes:0,0xFF,0x80,0x7F,1

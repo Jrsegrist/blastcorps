@@ -43,10 +43,49 @@
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/func_802AC6FC.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Serialize a 0xA6-byte block plus three words into `dst` (0xB2 bytes, dst
+ * need not be aligned; `words` must be word-aligned and not overlap dst).
+ * Returns the number of bytes written (always 0xB2; the asm leaves it in v0,
+ * though its callers ignore it). Inverse of func_802AC85C. */
+s32 func_802AC7DC(u8 *dst, u8 *src, u32 *words) {
+    u8 *start = dst;
+    s32 i;
+
+    for (i = 0; i < 0xA6; i++) {
+        *dst++ = *src++;
+    }
+    for (i = 0; i < 3; i++) {
+        dst[0] = words[i] >> 24;
+        dst[1] = words[i] >> 16;
+        dst[2] = words[i] >> 8;
+        dst[3] = words[i];
+        dst += 4;
+    }
+    return dst - start;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/func_802AC7DC.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Deserialize what func_802AC7DC wrote: copy 0xA6 bytes from `src` to `dst`,
+ * then the three (unaligned) big-endian words after them into `words`. */
+void func_802AC85C(u8 *src, u8 *dst, u32 *words) {
+    s32 i;
+
+    for (i = 0; i < 0xA6; i++) {
+        *dst++ = *src++;
+    }
+    for (i = 0; i < 3; i++) {
+        words[i] = (src[0] << 24) | (src[1] << 16) | (src[2] << 8) | src[3];
+        src += 4;
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/func_802AC85C.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/func_802AC8CC.s")

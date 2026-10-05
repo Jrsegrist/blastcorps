@@ -194,7 +194,7 @@ segments:
     - [0x97DB0, c, hd_code/ul_devmgr]  # src/io/devmgr.c, old SDK (no EPI/64DD)
     - [0x97F30, c, hd_code/ul_timerintr]  # src/os/timerintr.c
     - [0x98330, c, hd_code/98330]
-    - [0x983F0, c, hd_code/983F0]
+    - [0x983F0, c, hd_code/ul_xprintf]  # src/libc/xprintf.c, old _Printf (-O1)
     - [0x99580, c, hd_code/ul_string]
     - [0x99620, c, hd_code/ul_copy]
     - [0x996A0, c, hd_code/996A0]
@@ -253,7 +253,8 @@ segments:
     - [0xC2FA0, .data, hd_code/ul_thread]
     - [0xC2FC0, .data, hd_code/ul_piacs]
     - [0xC2FD0, .data, hd_code/ul_timerintr]
-    - [0xC2FE0, bin, hd_code/hd_code_data_C2FE0]
+    - [0xC2FE0, .data, hd_code/ul_xprintf]
+    - [0xC3030, bin, hd_code/hd_code_data_C3030]
     - [0xC30D0, .data, hd_code/ul_drvrnew]
     - [0xC3260, bin, hd_code/hd_code_data_C3260]
     - [0xC3360, .data, hd_code/ul_siacs]
@@ -309,6 +310,7 @@ segments:
     - [0xC95E0, .rodata, hd_code/ul_synthesizer]
     - [0xC95F0, .rodata, hd_code/ul_llcvt]
     - [0xC9600, bin, hd_code/hd_code_data_C9600]
+    - [0xC9660, .rodata, hd_code/ul_xprintf]
     - [0xC9760, .rodata, hd_code/ul_seqplayer]
     - [0xC99A0, .rodata, hd_code/ul_drvrnew]
     - [0xC99D0, .rodata, hd_code/ul_resample]

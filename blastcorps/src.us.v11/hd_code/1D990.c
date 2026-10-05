@@ -7,7 +7,11 @@
 /* One entry per level in D_802E8F94 (0x44 bytes) */
 typedef struct {
     /* 0x00 */ u8 type;
-    /* 0x01 */ u8 pad1[0x17];
+    /* 0x01 */ u8 pad1;
+    /* 0x02 */ u16 area[4];     /* race track bounds: x0, z0, x1, z1 */
+    /* 0x0A */ u16 startBox[4]; /* race start/finish line box */
+    /* 0x12 */ u8 quad[4];      /* race: track quadrants in lap order */
+    /* 0x16 */ u8 pad16[2];
     /* 0x18 */ u32 target; /* laps, targets, damage or RDUs to get */
     /* 0x1C */ s16 unk1C;
     /* 0x1E */ s16 unk1E;
@@ -77,7 +81,7 @@ extern u8 D_8036DCD4;
 extern s32 D_803643E0;
 extern s32 D_803643E4;
 extern s32 D_803643E8;
-extern char D_80367B60[];
+extern char D_80367B60[][20]; /* HUD text lines (progress, lap times) */
 extern u32 D_80364AA8;
 extern u8 D_803F7806;
 extern s32 D_802E8BDC;
@@ -121,7 +125,18 @@ extern Anim30 D_802F49F4[];
 extern Anim30 *D_80367BCC;
 extern s32 D_80367BD0;
 extern u8 D_80367BD4;
-extern u8 D_80367BB0[];
+extern char D_80367BB0[];
+extern u8 D_80367BF8;  /* race: quadrants crossed this lap */
+extern u8 D_80367BF9;  /* race: previous quadrant */
+extern u8 D_80367BFA;  /* race: current quadrant */
+extern u8 D_80367BFB;  /* race: best lap */
+extern u16 D_80367BFC; /* race: best lap time */
+extern s32 D_80367BBC;
+extern u16 D_80370C28;
+extern u8 D_802E8BD0;
+extern char D_80367D10[];
+extern char D_80367D28[];
+extern ALCSPlayer *D_80367734;
 extern char D_80367C18[];
 extern char D_80367C40[];
 extern s16 D_80367C68[];
@@ -164,7 +179,8 @@ void func_8026303C(void);
 void func_80263140(void);
 void func_80263358(void);
 void func_802633E0(void);
-void func_80264A34(u8 *buf, u16 t, s32 arg2);
+void func_80264A34(char *buf, u16 t, s32 arg2);
+s32 func_8026394C(s16 x, s16 y, s16 x0, s16 y0, s16 x1, s16 y1);
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
@@ -470,7 +486,7 @@ void func_80262FD0(void) {
     if (D_8036EA7C >= D_80367C04->target) {
         D_803643DA = 1;
     }
-    func_802D6A60(D_80367B60, "%d/%d", D_8036EA7C, D_80367C04->target);
+    func_802D6A60(D_80367B60[0], "%d/%d", D_8036EA7C, D_80367C04->target);
 }
 
 /* Mission type 4 (destroy targets) */
@@ -489,7 +505,7 @@ void func_8026303C(void) {
     } else if (D_80367C04->unk24 > (D_803643E4 >> 5)) {
         D_803643D9 = 1;
     }
-    func_802D6A60(D_80367B60, "%d/%d", D_8036EA78, D_8036EB92);
+    func_802D6A60(D_80367B60[0], "%d/%d", D_8036EA78, D_8036EB92);
 }
 
 /* Mission types 0x20/0x80 (destroy targets, clear the path) */
@@ -519,13 +535,13 @@ void func_80263140(void) {
     }
     switch (D_80364AA8) {
         case 0x20:
-            func_802D6A60(D_80367B60, "%d/%d", D_8036EA78, D_8036EB92);
+            func_802D6A60(D_80367B60[0], "%d/%d", D_8036EA78, D_8036EB92);
             break;
         case 0x80:
             if (D_802E8BDC == 0x32) {
-                func_802D6A60(D_80367B60, "%d/%d", D_8036EA78, D_8036EB92);
+                func_802D6A60(D_80367B60[0], "%d/%d", D_8036EA78, D_8036EB92);
             } else {
-                func_802D6A60(D_80367B60, "%d/%d", func_802C1B1C(), D_8036EB92);
+                func_802D6A60(D_80367B60[0], "%d/%d", func_802C1B1C(), D_8036EB92);
             }
             break;
     }
@@ -543,10 +559,72 @@ void func_80263358(void) {
     if (left < 0) {
         left = 0;
     }
-    func_802D6A60(D_80367B60, "$%d LEFT", left);
+    func_802D6A60(D_80367B60[0], "$%d LEFT", left);
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/1D990/func_802633E0.s")
+/* Mission type 2 (race): start line, lap times, quadrant tracking */
+void func_802633E0(void) {
+    s32 i;
+    u8 left;
+
+    if (D_80367B54 == 0) {
+        if (func_8026394C(D_803643E0 >> 5, D_803643E8 >> 5, D_80367C04->startBox[0], D_80367C04->startBox[1],
+                          D_80367C04->startBox[2], D_80367C04->startBox[3])) {
+            D_80367B54 = 1;
+            D_80367BF8 = 0;
+            D_80367BF9 = D_80367C04->quad[0];
+            D_80367BBC = D_803156C0;
+            D_80367BFB = 1;
+            D_80367BFC = 0xFFFF;
+        }
+    } else {
+        D_80367BFA = ((D_803643E8 >> 5) - D_80367C04->area[1]) / ((D_80367C04->area[3] - D_80367C04->area[1]) >> 1);
+        D_80367BFA *= 2;
+        D_80367BFA += ((D_803643E0 >> 5) - D_80367C04->area[0]) / ((D_80367C04->area[2] - D_80367C04->area[0]) >> 1);
+        D_80367B58[D_80367B54 - 1] = func_8028604C(D_803156C0 - D_80364A58);
+        for (i = D_80367B54 - 2; i >= 0; i--) {
+            D_80367B58[D_80367B54 - 1] -= D_80367B58[i];
+        }
+        if (D_80370C28 & 0x2000) {
+            func_8029A7E4("box number=%d\n", D_80367BFA);
+        }
+        if (D_80367BF8 == 4) {
+            if (func_8026394C(D_803643E0 >> 5, D_803643E8 >> 5, D_80367C04->startBox[0], D_80367C04->startBox[1],
+                              D_80367C04->startBox[2], D_80367C04->startBox[3])) {
+                if (D_80367B58[D_80367B54 - 1] < D_80367BFC) {
+                    func_8029A7E4("new best lap %d %d\n", D_80367BFC, D_80367B58[D_80367B54 - 1]);
+                    D_80367BFB = D_80367B54;
+                    D_80367BFC = D_80367B58[D_80367B54 - 1];
+                }
+                if (D_80367C04->target - 1 < D_80367B54) {
+                    D_803643DA = 1;
+                } else {
+                    left = D_80367C04->target - D_80367B54;
+                    if (!D_802E8BD0) {
+                        func_8026AF6C(0x8008);
+                    }
+                    if (left == 1) {
+                        func_802D6A60(D_80367D10, "1 LAP LEFT!");
+                    } else {
+                        func_802D6A60(D_80367D10, "%d LAPS LEFT!", left);
+                    }
+                    D_802F5804[248] = D_80367D10;
+                    D_802F5804[249] = D_80367D28;
+                    alCSPSetTempo(D_80367734, alCSPGetTempo(D_80367734) * 0.95);
+                }
+                D_80367B54++;
+                D_80367BF8 = 0;
+            }
+        } else if (D_80367C04->quad[D_80367BF8] == D_80367BF9 && D_80367C04->quad[(D_80367BF8 + 1) % 4] == D_80367BFA) {
+            func_8029A7E4("box cross: %d to %d\n", D_80367BF9, D_80367BFA);
+            D_80367BF8++;
+        }
+        D_80367BF9 = D_80367BFA;
+    }
+    for (i = 0; i < D_80367B54 && i < D_80367C04->target; i++) {
+        func_80264A34(D_80367B60[i], D_80367B58[i], D_80367B54 == i + 1);
+    }
+}
 
 /* Is (x, y) inside the box [x0, x1) x [y0, y1)? */
 s32 func_8026394C(s16 x, s16 y, s16 x0, s16 y0, s16 x1, s16 y1) {
@@ -568,7 +646,7 @@ void func_8026420C(void) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/1D990/func_80264264.s")
 
 /* Format a time in tenths of a second as "MM:SS.t" */
-void func_80264A34(u8 *buf, u16 t, s32 arg2) {
+void func_80264A34(char *buf, u16 t, s32 arg2) {
     buf[0] = t / 6000 + '0';
     t %= 6000;
     buf[1] = t / 600 + '0';

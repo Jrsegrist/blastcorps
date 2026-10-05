@@ -537,6 +537,14 @@ func_802B0AAC: out a3=ret ; preserve f12,f14 ; clobbers s5
 func_802AFFD4: clobbers gp
 # per-frame animation/sound update ($gp = D_803EDB40, read as globals in C)
 func_802B07DC: clobbers s4,s5
+# (wt-v1) vehicle 1 driver: setup (model s2, x t7, y s3, z s0, heading s1, ground flag seed fp; saves t0-t5)
+func_802AFC60: in s2=a0,t7=a1,s3=a2,s0=a3,s1=stack0,fp=stack1 ; preserve t0,t1,t2,t3,t4,t5 ; clobbers s0-s7,fp,gp,f20,f22,f24,f26,f28,f30
+# put on the ground: fp seeds func_802A9A60 (from a C caller: a leaked $s8)
+func_802B02A0: in fp=a0
+# per-frame update: t6, t7, s0-s4 only pass through func_802B03B0 (saves every callee-saved register)
+func_802B03F4: in t6=a0,t7=a1,s0=a2,s1=a3,s2=stack0,s3=stack1,s4=stack2
+# model parts: s0/s1 in (zero-count parts only), s1 out, current matrix buffer in s4
+func_802B0B3C: in s1=*a0+12,s0=*a0+20 ; out s4=ret,s1=*a0+12 ; clobbers s2,s5,s6,s7
 # --- 6C5E0 ---
 # zone lookup wrapper: func_802ABD54(id, x, y, z) with its scan registers t6, t7, s0-s4 passed through
 func_802B14E8: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; out v1=ret,t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; preserve a0,f12,f14 ; clobbers s5,s6
@@ -568,6 +576,24 @@ func_802B448C: clobbers gp
 func_802B37B0: in t6=a0,t7=a1,s0=a2,s1=a3,s2=stack0,s3=stack1,s4=stack2 ; clobbers s1,s5,s6,s7
 # vehicle 4 update: same pass-through (gp = D_803EE6C0 read as the global)
 func_802B4EF8: in t6=a0,t7=a1,s0=a2,s1=a3,s2=stack0,s3=stack1,s4=stack2 ; clobbers s1,s5,s6,s7
+# (wt-v1) vehicle 3 / 4 drivers: setup (model s2, x t7, y s3, z s0, heading s1, ground flag seed fp; saves t0-t5)
+func_802B29C0: in s2=a0,t7=a1,s3=a2,s0=a3,s1=stack0,fp=stack1 ; preserve t0,t1,t2,t3,t4,t5 ; clobbers s0-s7,fp,gp,f20,f22,f24,f26,f28,f30
+func_802B4100: in s2=a0,t7=a1,s3=a2,s0=a3,s1=stack0,fp=stack1 ; preserve t0,t1,t2,t3,t4,t5 ; clobbers s0-s7,fp,gp,f20,f22,f24,f26,f28,f30
+# put on the ground: fp seeds func_802A9A60 (from a C caller: a leaked $s8)
+func_802B2FA0: in fp=a0
+func_802B46C4: in fp=a0
+# track points on triangle a3 (InterpRegs: f24 in, f24/f26 out); v1 = veh + 0x52
+func_802B30F4: in a3=a0,f24=*a1+24 ; out v1=ret,f24=*a1+24,f26=*a1+28 ; preserve t0,t1,t3,t4 ; clobbers s4,gp,f20,f22,f28
+func_802B4818: in a3=a0,f24=*a1+24 ; out v1=ret,f24=*a1+24,f26=*a1+28 ; preserve t0,t1,t3,t4 ; clobbers s4,gp,f20,f22,f28
+# drive along triangle a3: s3 = func_802A8768's s3; f24 in, f24/f26 out
+func_802B3180: in a3=a0,f24=*a1+24 ; out s3=ret,f24=*a1+24,f26=*a1+28 ; preserve a3,t0,t1,t2 ; clobbers s0,s1,s2,s4,s5,s6,s7,fp,gp,f20,f22,f28
+func_802B48A4: in a3=a0,f24=*a1+24 ; out s3=ret,f24=*a1+24,f26=*a1+28 ; preserve a3,t0,t1,t2 ; clobbers s0,s1,s2,s4,s5,s6,s7,fp,gp,f20,f22,f28
+# per-frame updates: t6, t7, s0-s4 only pass through the zone lookup to the effects function (saves every callee-saved register)
+func_802B327C: in t6=a0,t7=a1,s0=a2,s1=a3,s2=stack0,s3=stack1,s4=stack2
+func_802B49AC: in t6=a0,t7=a1,s0=a2,s1=a3,s2=stack0,s3=stack1,s4=stack2
+# model parts: s0/s1 in (zero-count parts only), s1 out, current matrix buffer in s4
+func_802B3E40: in s1=*a0+12,s0=*a0+20 ; out s4=ret,s1=*a0+12 ; clobbers s2,s5,s6,s7
+func_802B568C: in s1=*a0+12,s0=*a0+20 ; out s4=ret,s1=*a0+12 ; clobbers s2,s5,s6,s7
 # --- 71140 ---
 # zone lookup wrapper: func_802ABD54(id, x, y, z) with its scan registers t6, t7, s0-s4 passed through
 func_802B60BC: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; out v1=ret,t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; preserve f12,f14 ; clobbers s5,s6

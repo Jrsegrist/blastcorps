@@ -62,6 +62,8 @@ segments:
     - [0x211C0, bin, hd_front_end/hd_front_end_data] # .data/.rodata (vram 0x80208040)
     - [0x27440, .rodata, hd_front_end/00000]
     - [0x274D0, bin, hd_front_end/hd_front_end_data_274D0]
+    - [0x29550, .rodata, hd_front_end/17990]
+    - [0x29620, bin, hd_front_end/hd_front_end_data_29620]
     - [0x29670, .rodata, hd_front_end/1AE80]
     - [0x29690, bin, hd_front_end/hd_front_end_data_29690]
   - [0x29E90]

@@ -1,6 +1,0 @@
-#include "common.h"
-#include <ultra64.h>
-
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/95E50/func_802DA610.s")
-
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/95E50/func_802DA794.s")

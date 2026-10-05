@@ -161,7 +161,7 @@ segments:
     - [0x95460, c, hd_code/95460]
     - [0x95B30, c, hd_code/ul_pidma]  # src/io/pidma.c, old SDK (no piHandle)
     - [0x95C40, c, hd_code/ul_llcvt]  # src/libc/llcvt.c
-    - [0x95E50, c, hd_code/95E50]
+    - [0x95E50, c, hd_code/ul_vimgr]  # src/io/vimgr.c, old SDK (no EPI, short OSIoMesg)
     - [0x961B0, c, hd_code/ul_visetmode]
     - [0x96220, c, hd_code/ul_seteventmesg]  # src/os/seteventmesg.c
     - [0x96290, c, hd_code/ul_visetevent]
@@ -212,7 +212,7 @@ segments:
     - [0x9D920, c, hd_code/ul_save]
     - [0x9D9E0, c, hd_code/ul_jammesg]
     - [0x9DB30, c, hd_code/ul_pigetcmdq]
-    - [0x9DB60, c, hd_code/9DB60]
+    - [0x9DB60, c, hd_code/ul_vigetcurrcontext]
     - [0x9DB70, c, hd_code/9DB70]
     - [0x9DB80, c, hd_code/9DB80]
     - [0x9DEA0, c, hd_code/ul_spsetpc]
@@ -245,7 +245,8 @@ segments:
     - [0xC1E10, .data, hd_code/ul_sins]
     - [0xC2610, .data, hd_code/ul_vi]
     - [0xC2680, .data, hd_code/ul_aisetnextbuf]
-    - [0xC2690, bin, hd_code/hd_code_data_C2690]
+    - [0xC2690, .data, hd_code/ul_vimgr]
+    - [0xC26B0, bin, hd_code/hd_code_data_C26B0]
     - [0xC2F70, .data, hd_code/ul_controller]
     - [0xC2F80, bin, hd_code/hd_code_data_C2F80]
     - [0xC2FA0, .data, hd_code/ul_thread]

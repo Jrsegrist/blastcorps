@@ -42,3 +42,4 @@ func_802DA2F0 = osPiStartDma; /* old name, still used by 46C20.c */
 func_802DB730 = osInvalICache; /* old name, still used by 46C20.c */
 func_802D6710 = osWritebackDCacheAll; /* old name, still used by 405F0.c */
 func_802DB7B0 = bzero; /* old name, still used by 46C20.c and 53220.c */
+func_802DA610 = osCreateViManager; /* old name, still used by 2C560.c */

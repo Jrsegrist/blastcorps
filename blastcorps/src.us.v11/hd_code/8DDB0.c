@@ -15,7 +15,19 @@
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8DDB0/func_802D291C.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+void func_80269258(void);
+
+/* Calls func_80269258, saving gp around it (the asm caller func_802D291C
+ * uses gp as its base pointer). The survey lists a0, a2, a3, t6, t7, f12 and
+ * f14 as read by that caller afterwards; they're whatever func_80269258
+ * leaves, nothing this function sets. */
+void func_802D2A40(void) {
+    func_80269258();
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8DDB0/func_802D2A40.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

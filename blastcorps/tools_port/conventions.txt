@@ -64,6 +64,24 @@ func_802ABCDC: in t3=a0,t4=a1,t5=a2,t6=a3,t7=stack0,s0=stack1 ; out s1=ret ; pre
 # recursive id lookup in the D_803ED3B8 list; saves t1-t4 and s3, leaves s2 changed when found
 func_802AB8D8: in s2=a0 ; out t0=ret ; preserve t1,t2,t3,t4,s3 ; clobbers s2
 
+# --- 7FB50 ---
+# gp = &D_803F7B50 (vehicle block) in all of these: a base pointer, not an argument
+func_802C617C: preserve a0,a1,a2,a3,t6
+# vehicle step value in s6; s7 and a1 are scratch
+func_802C6FD8: out s6=ret ; preserve a2,a3,t6,t7,f12,f14 ; clobbers s7
+func_802C7354: preserve a1,a2,a3,f12,f14
+# (1 - |D_80370C2D| / 80) / 2 in f4 (f6 scratch)
+func_802C7BC0: out f4=fret ; preserve v0,f2
+# up flag in s2, result in f2; leaves s3 = 270
+func_802C7C1C: in s2=a0 ; out f2=fret ; clobbers s3
+func_802C7DFC: out s3=ret ; preserve a0,a1,a2,a3
+func_802C7ECC: preserve a0,a1,a2,a3,t3,t4,t6,f12,f14
+func_802C7F28: preserve a0,a1,a2,a3,t3,t4,f12,f14
+
+# --- 8A2E0 ---
+# box corners x t4, y t5, z t6 into D_803FBAB0[D_803FC1F0 * 8]
+func_802CEE14: in t4=a0,t5=a1,t6=a2 ; preserve v0,v1,a0,a1,a2,a3,t1,t2,t3,t7,f12,f14
+
 # --- 679E0 ---
 # s32 16.16 matrix (s2) to Mtx layout in place; saves everything
 func_802AC8CC: in s2=a0 ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,f8,f12,f14

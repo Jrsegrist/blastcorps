@@ -9,3 +9,11 @@ func_802CF5B0: -n 30 --seed 2 --ret void --sig func_80285AB0=a0 --mem D_803FBBB0
 # func_802CF628: flag[i] = func_80285B10(n) (stub returns 32-bit values; stored as a halfword)
 func_802CF628: -n 300 --ret void --sig func_80285B10=a0 --mem D_803FBBB0:0x200=rand --mem D_803FC1F0:1=int:0:20
 func_802CF628: -n 30 --seed 1 --ret void --sig func_80285B10=a0 --mem D_803FBBB0:0x13EC=rand --mem D_803FC1F0:1=choice:0,1,0xFF
+
+# func_802CEE14 (non-ABI: x t4, y t5, z t6): 8 box corners into D_803FBAB0[D_803FC1F0 * 8] (s16 ob only).
+# The asm's x + 10, y + 20, z + 20 are trapping `addi`s: inputs stay well inside s32.
+func_802CEE14: -n 300 --arg a0=int:-0x100000:0x100000 --arg a1=int:-0x100000:0x100000 --arg a2=int:-0x100000:0x100000 \
+    --mem D_803FC1F0:1=int:0:15 --mem D_803FBAB0:0x800=rand
+func_802CEE14: -n 100 --seed 1 --arg t4=choice:0,0x7FF5,0x7FF6,-0x7FF6,-0x7FF7,0xFFFF \
+    --arg t5=choice:0,0x7FEB,0x7FEC,-0x8000,0xFFFF --arg t6=choice:0,0x7FEB,0x7FEC,-0x7FF6,-0x7FF7 \
+    --mem D_803FC1F0:1=choice:0,1,15 --mem D_803FBAB0:0x800=rand

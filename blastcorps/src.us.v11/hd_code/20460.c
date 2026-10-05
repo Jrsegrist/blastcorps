@@ -349,14 +349,9 @@ void func_80265B7C(s32 arg0) {
     }
 }
 
-/* TODO: near miss (26 of 233 instructions differ, all scheduling/registers).
- * Picks the next piece to drop on the player: the nearest landed one, or the
+/* Picks the next piece to drop on the player: the nearest landed one, or the
  * farthest when the timer forced the current one down, and plays its sound.
- * Still different: the prologue computes 99999999 before the two -1s (stores
- * land 0x38, 0x40, 0x3C), and the 'i = minIdx' else-branch gets t6 where we
- * get t5, renaming the rest. Tried all 120 orders of the five init statements,
- * chained/comma/initializer forms, ternary and inverted if/else for the pick.
-
+ * The first three initialisers share a line (as1 schedules by source line). */
 void func_80265E48(void) {
     s32 i;
     s32 minIdx;
@@ -368,9 +363,7 @@ void func_80265E48(void) {
     u8 forced;
     s32 vol;
 
-    minIdx = -1;
-    minDist = 99999999;
-    maxIdx = -1;
+    minIdx = -1; minDist = 99999999; maxIdx = -1;
     maxDist = 0;
     forced = 0;
     if (D_803EF32D) {
@@ -405,12 +398,12 @@ void func_80265E48(void) {
             if (D_80367D60[i].unk15 == 1) {
                 d = func_8026A610(D_803EF2EC, D_803EF2F4, D_80367D60[i].x << 5, D_80367D60[i].z << 5);
                 if (d < minDist) {
-                    minDist = d;
                     minIdx = i;
+                    minDist = d;
                 }
                 if (d > maxDist) {
-                    maxDist = d;
                     maxIdx = i;
+                    maxDist = d;
                 }
             }
         }
@@ -438,8 +431,6 @@ void func_80265E48(void) {
         }
     }
 }
-*/
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/20460/func_80265E48.s")
 
 /* Point the camera target at the player */
 void func_802661EC(void) {

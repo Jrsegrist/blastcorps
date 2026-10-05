@@ -372,7 +372,51 @@ void func_802B8AE4(void) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+#ifndef TRISIDEOUT_DEFINED
+#define TRISIDEOUT_DEFINED
+/* func_802A9B1C's FP side results (62740.c), in and out. */
+typedef struct {
+    f32 pz;    /* f12 */
+    f32 cross; /* f14 */
+    f32 cz;    /* f20 */
+    f32 side;  /* f22 */
+    f32 sideZ; /* f24 */
+    f32 dz;    /* f26 */
+} TriSideOut;
+#endif
+extern s16 D_803BE732; /* level extent x, z (>> 5) */
+extern s16 D_803BE736;
+extern s16 D_803EF326;
+s32 func_802A9B1C(s32 index, s32 x, s32 z, s32 y, s32 skip, u8 *veh, s32 fpIn, TriSideOut *f);
+void func_802582C4(u8 id, s32 x, s32 y, s32 z, s32 arg4, s32 arg5, s32 arg6, s32 arg7);
+
+/* Shadow/marker 0xFE at the sound source D_803EF2EC/F0/F4 ($gp = D_803EF240,
+ * read as the global): when x and z are positive and inside the level
+ * (D_803BE732 / D_803BE736 << 5), the ground height under it comes from
+ * func_802A9B1C(slot 0, x, z, D_803EF31C, skip 0xFE) and is stored to
+ * D_803EF31C; otherwise the height is the incoming t3 (whatever the asm
+ * callers left there). Then func_802582C4(0xFE, x, height, z, D_803EF2F0, 0,
+ * 0, (s16) +0x4C) and D_803EF326 = +0x4C.
+ * Register convention (conventions.txt): t3 and fp (func_802A9B1C's fp input)
+ * come in from the asm callers, f12-f26 pass through func_802A9B1C (here
+ * through f). The asm's v1 (read by func_802475D8 via func_802B899C) is just
+ * func_802582C4's leftover; f12/f14 too after that C call. */
+void func_802B8C18(s32 t3, s32 fp, TriSideOut *f) {
+    s32 x = D_803EF2EC;
+    s32 z = D_803EF2F4;
+    s32 y = t3;
+
+    if (x > 0 && z > 0 && x < (D_803BE732 << 5) && z < (D_803BE736 << 5)) {
+        y = func_802A9B1C(0, x, z, D_803EF31C, 0xFE, D_803EF240, fp, f);
+        D_803EF31C = y;
+    }
+    func_802582C4(0xFE, D_803EF2EC, y, D_803EF2F4, D_803EF2F0, 0, 0, *(s16 *) (D_803EF240 + 0x4C));
+    D_803EF326 = *(s16 *) (D_803EF240 + 0x4C);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/72B80/func_802B8C18.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/72B80/func_802B8D04.s")

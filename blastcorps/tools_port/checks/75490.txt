@@ -174,3 +174,28 @@ func_802BB868: -n 300 --seed 2 --mem D_802E8BDC=0x11 \
     --mem D_803A6B30+0x13F:1=0xFF --mem D_803A6B30*0x14:16=int:-40:40 --mem D_803A6B30+4*0x14:16=int:-2000:500 \
     --mem D_803A6B30+8*0x14:16=int:-40:40 --heap 0x64=halves:0,1,2,0xFFFF,0xFFFE,0x20,0xFFE0 \
     --mem D_803BDAF4=rel:heap0 --mem D_803BDAF8=rel:heap0+0x14*int:0:5 --mem D_803EBBFC=int
+
+# func_802BB4C0 (wave 3; gp = D_803EFA20): every branch; channel float at, just below/above the limits and
+# around unk4 * 100 == 100 (0.998 / 1.005 round to 100, truncation would not); stubbed (func_802A04BC's
+# outputs driven), then following the channel setters/getter and func_802BB868 (its scans stubbed)
+func_802BB4C0: -n 400 --arg gp=sym:D_803EFA20 --mem D_803EFA20+0xA1:1=choice:0*2,1,2 \
+    --mem D_803EFA20+0xA2:1=choice:0*4,1,0x80 --mem D_80370C15:1=choice:0,1 --mem D_80370C16:1=choice:0,1 \
+    --mem D_80370C1A:1=choice:0*2,1 --mem D_80370C1B:1=choice:0*2,1 --mem D_80370C1C:1=choice:0,1 \
+    --mem D_80370C1D:1=choice:0,1 --mem D_8030D930=choice:0x3F800000,0x3F000000,0,0x3F7FFFFF \
+    --mem D_8030D934=choice:0x3F800000,0x3F000000,0,0x3F800001 --mem D_803EFAD8=choice:0,0x80B00000 \
+    --mem D_803EFADC=choice:0,0x80B00010 --mem D_803EFAE0=choice:0,0x80B00020 \
+    --stub-ret func_802A04BC.f0=choice:0x3F800000*3,0x3F7FFFFF,0x3F800001,0x3F80A3D7,0x3F7EB852,0x3F7F7CEE,0x3F8147AE,0,0x3F000000,0xBF800000 \
+    --stub-ret func_802A04BC.t1=choice:0,1*3,-1 --stub-ret func_802A04BC.v1=choice:0,1*2,2,-1 \
+    --stub-ret func_802BB868=choice:0,1,2 --sig func_802608C8=a0 --sig func_80260650=a0,a1,a2 --sig func_802BB868=
+func_802BB4C0: -n 300 --seed 1 --arg gp=sym:D_803EFA20 \
+    --follow func_802A039C,func_802A03D4,func_802A0290,func_802A04BC,func_802BB868 --mem D_802E8BDC=choice:0,0x11 \
+    --mem D_803EF720:0x90=rand \
+    --mem D_803EF720+4*0x18:6=choice:0x3F800000*3,0x3F7FFFFF,0x3F80A3D7,0x3F7F7CEE,0x3F8147AE,0,0x3F000000 \
+    --mem D_803EF720+0x10*0x18:6/1=choice:0,1*2,2 --mem D_803EF720+0x13*0x18:6/1=choice:0,1*2,0xFF \
+    --mem D_803EFA20+0xA1:1=choice:0*2,1,2 --mem D_803EFA20+0xA2:1=choice:0*4,1 --mem D_80370C15:1=choice:0,1 \
+    --mem D_80370C16:1=choice:0,1 --mem D_80370C1A:1=choice:0*2,1 --mem D_80370C1B:1=choice:0*2,1 \
+    --mem D_80370C1C:1=choice:0,1 --mem D_80370C1D:1=choice:0,1 \
+    --mem D_8030D930=choice:0x3F800000,0x3F000000,0,0x3F7FFFFF --mem D_8030D934=choice:0x3F800000,0x3F000000,0,0x3F800001 \
+    --mem D_803EFAD8=choice:0,0x80B00000 --mem D_803EFADC=choice:0,0x80B00010 --mem D_803EFAE0=choice:0,0x80B00020 \
+    --sig func_802608C8=a0 --sig func_80260650=a0,a1,a2 --stub-ret func_8029C6E4.s4=choice:0,1 \
+    --stub-ret func_802AC0BC.a1=choice:0,1 --sig func_8029C6E4= --sig func_802AC0BC=a0,a1,a2

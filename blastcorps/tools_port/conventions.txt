@@ -476,6 +476,8 @@ func_802B988C: out s1=ret ; preserve a0,a1,a2,a3,f12,f14 ; clobbers s0
 func_802B98E0: out f20=fret ; preserve a2,a3,t7,f12,f14
 # trail + effect cooldown ($gp = D_803EEE70); t6, t7, s0-s4 pass through to func_802A6274 (s1 comes back changed)
 func_802B7F98: in t6=a0,t7=a1,s0=a2,s1=a3,s2=stack0,s3=stack1,s4=stack2 ; clobbers s1,s5,s6,s7
+# marker 0xFE at the ground height (func_802A9B1C, else the incoming t3) ($gp = D_803EF240); fp and f12-f26 pass through func_802A9B1C
+func_802B8C18: in t3=a0,fp=a1,f12=*a2,f14=*a2+4,f20=*a2+8,f22=*a2+12,f24=*a2+16,f26=*a2+20 ; out f12=*a2,f14=*a2+4,f20=*a2+8,f22=*a2+12,f24=*a2+16,f26=*a2+20 ; clobbers f28
 # --- 75490 ---
 # zone lookup wrapper: func_802ABD54(id, x, y, z) with its scan registers t6, t7, s0-s4 passed through
 func_802BB230: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; out v1=ret,t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; preserve f12,f14 ; clobbers s5,s6
@@ -491,6 +493,8 @@ func_802BB054: clobbers gp
 func_802BA638: in a2=*a1 ; out a0=ret,a1=*a0,a2=*a1,a3=*a2
 # level 0x11 part-on-ground flag in v0; leaves func_8029C6E4 / func_802AC0BC registers behind (unread)
 func_802BB868: out v0=ret ; clobbers s0-s7,fp,f20,f22,f24,f26,f28
+# channels 5/4/2 and sounds 0x6F/0x6E/0x6D ($gp = D_803EFA20); leaves func_802BB868's registers behind (scratch)
+func_802BB4C0: clobbers s0-s7,fp,f20,f22,f24,f26,f28
 # exit check: points $gp at D_803EFA20 and leaves it
 func_802BB170: clobbers gp
 # --- 772A0 ---

@@ -13,7 +13,7 @@ typedef struct Node {
     f32 unkC;
     struct Node *unk10; /* next sibling */
     struct Node *unk14; /* first child */
-    f32 unk18;
+    u8 unk18[4]; /* rgb */
     f32 unk1C; /* spin angle */
     f32 unk20; /* world position from the matrix stack */
     f32 unk24;
@@ -33,6 +33,10 @@ extern Node D_8020BD30[];
 extern f32 D_8020BDE4; /* D_8020BD30[3].unk0 */
 extern f32 D_8020BDEC; /* D_8020BD30[3].unk8 */
 extern Node D_8020BE98; /* D_8020BD30[6] */
+extern u8 *D_80215A7C; /* glow textures */
+extern u8 *D_80215A80;
+extern u8 *D_80215A84;
+extern Vtx D_80217690[][2][4];
 extern MtxF D_80217A10[];
 extern s32 D_80217B50; /* matrix stack index into D_80217A10 */
 extern f32 D_80217B54; /* camera eye */
@@ -55,6 +59,7 @@ f32 sqrtf(f32);
 void func_801FD484(f32 *, f32 *, f32 *, f32 *, f32 *, f32);
 Gfx *func_801FE238(Gfx *, u8 *);
 void func_802595E0(u8 *base, s32 n, s32 size, s32 (*cmp)(void *, void *));
+void func_8027690C(void *arg0, f32 x, f32 y, f32 z, s16 *sx, s16 *sy, Mtx *arg6, Mtx *arg7, Mtx *arg8, f32 arg9);
 void func_801F374C(Node *);
 Gfx *func_801F3964(Gfx *, u8 *, Node *, f32);
 Gfx *func_801F4110(Gfx *, u8 *, Node *, f32);
@@ -143,9 +148,136 @@ void func_801F374C(Node *node) {
     }
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/0C450/func_801F3964.s")
+#define ABS(x) ((x) > 0 ? (x) : -(x))
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/0C450/func_801F4110.s")
+/* a node's glow sprite: a screen-space textured quad (64x64 IA8) at the
+ * node's projected position, sized by scale and depth */
+Gfx *func_801F3964(Gfx *gdl, u8 *dyn, Node *node, f32 scale) {
+    Gfx *gfx;
+    f32 size;
+    s16 sx;
+    s16 sy;
+    u8 *tex;
+    Vtx *vtx;
+    s32 isize;
+
+    gfx = gdl;
+    size = node->unk0 * 64.0 / D_8020BDE4;
+    vtx = D_80217690[node - D_8020BD30][D_8035805C];
+    gDPPipeSync(gfx++);
+    gDPSetPrimColor(gfx++, 0xFF, 0xFF, node->unk18[0], node->unk18[1], node->unk18[2], 0xFF);
+    gDPSetRenderMode(gfx++, G_RM_XLU_SURF, G_RM_XLU_SURF2);
+    gDPSetTextureFilter(gfx++, G_TF_BILERP);
+    gSPClearGeometryMode(gfx++, 0xFFFFFFFF);
+    gSPSetGeometryMode(gfx++, G_SHADE | G_SHADING_SMOOTH);
+    gSPTexture(gfx++, 0x2000, 0x2000, 0, G_TX_RENDERTILE, G_ON);
+    gDPSetCombine(gfx++, 0x11FE23, 0xFFFFF3F9);
+    switch (node - D_8020BD30) {
+        case 1:
+        case 4:
+            tex = D_80215A80;
+            break;
+        default:
+            tex = D_80215A7C;
+            break;
+    }
+    if (node->unk38 > 1.0) {
+        size = size * 10000.0 / node->unk38;
+    }
+    isize = size;
+    func_8027690C(dyn, 0.0f, 0.0f, 0.0f, &sx, &sy, &D_80217B70[node - D_8020BD30][D_8035805C],
+                  &D_80217B70[node - D_8020BD30][D_8035805C] + 2, (Mtx *) (dyn + 0x1280), 4.0f);
+    if (ABS(sx) + size / 2.0 < 4096.0 && ABS(sy) + size / 2.0 < 4096.0) {
+        gDPLoadTextureBlock(gfx++, tex, G_IM_FMT_IA, G_IM_SIZ_8b, 64, 64, 0, G_TX_CLAMP, G_TX_MIRROR, G_TX_NOMASK,
+                            6, G_TX_NOLOD, G_TX_NOLOD);
+        vtx[0].v.ob[0] = sx - isize / 2;
+        vtx[0].v.ob[1] = sy - isize / 2;
+        vtx[0].v.ob[2] = -10;
+        vtx[0].v.tc[0] = 0;
+        vtx[0].v.tc[1] = 0;
+        vtx[1].v.ob[0] = sx - isize / 2;
+        vtx[1].v.ob[1] = sy + isize / 2;
+        vtx[1].v.ob[2] = -10;
+        vtx[1].v.tc[0] = 0;
+        vtx[1].v.tc[1] = 0x3F00;
+        vtx[2].v.ob[0] = sx + isize / 2;
+        vtx[2].v.ob[1] = sy + isize / 2;
+        vtx[2].v.ob[2] = -10;
+        vtx[2].v.tc[0] = 0x3F00;
+        vtx[2].v.tc[1] = 0x3F00;
+        vtx[3].v.ob[0] = sx + isize / 2;
+        vtx[3].v.ob[1] = sy - isize / 2;
+        vtx[3].v.ob[2] = -10;
+        vtx[3].v.tc[0] = 0x3F00;
+        vtx[3].v.tc[1] = 0;
+        gSPVertex(gfx++, vtx, 4, 0);
+        gSP1Triangle(gfx++, 0, 1, 2, 0);
+        gSP1Triangle(gfx++, 0, 3, 2, 0);
+        gDPPipeSync(gfx++);
+    }
+    gDPPipeSync(gfx++);
+    osWritebackDCache(vtx, 4 * sizeof(Vtx));
+    return gfx;
+}
+
+/* the same sprite for node 6, with a 32x32 RGBA32 texture */
+Gfx *func_801F4110(Gfx *gdl, u8 *dyn, Node *node, f32 scale) {
+    Gfx *gfx;
+    f32 size;
+    s16 sx;
+    s16 sy;
+    Vtx *vtx;
+    s32 isize;
+
+    gfx = gdl;
+    size = node->unk0 * 64.0 / D_8020BDE4;
+    vtx = D_80217690[node - D_8020BD30][D_8035805C];
+    gDPPipeSync(gfx++);
+    gDPSetPrimColor(gfx++, 0xFF, 0xFF, node->unk18[0], node->unk18[1], node->unk18[2], 0xFF);
+    gDPSetRenderMode(gfx++, G_RM_XLU_SURF, G_RM_XLU_SURF2);
+    gDPSetTextureFilter(gfx++, G_TF_BILERP);
+    gSPClearGeometryMode(gfx++, 0xFFFFFFFF);
+    gSPSetGeometryMode(gfx++, G_SHADE | G_SHADING_SMOOTH);
+    gSPTexture(gfx++, 0x1000, 0x1000, 0, G_TX_RENDERTILE, G_ON);
+    gDPSetCombine(gfx++, 0xFFB3FF, 0xFF64FE7F);
+    if (node->unk38 > 1.0) {
+        size = size * 10000.0 / node->unk38;
+    }
+    isize = size;
+    func_8027690C(dyn, 0.0f, 0.0f, 0.0f, &sx, &sy, &D_80217B70[node - D_8020BD30][D_8035805C],
+                  &D_80217B70[node - D_8020BD30][D_8035805C] + 2, (Mtx *) (dyn + 0x1280), 4.0f);
+    if (ABS(sx) + size / 2.0 < 4096.0 && ABS(sy) + size / 2.0 < 4096.0) {
+        gDPLoadTextureBlock(gfx++, D_80215A84, G_IM_FMT_RGBA, G_IM_SIZ_32b, 32, 32, 0, G_TX_CLAMP, G_TX_CLAMP,
+                            G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
+        vtx[0].v.ob[0] = sx - isize / 2;
+        vtx[0].v.ob[1] = sy - isize / 2;
+        vtx[0].v.ob[2] = -10;
+        vtx[0].v.tc[0] = 0;
+        vtx[0].v.tc[1] = 0;
+        vtx[1].v.ob[0] = sx - isize / 2;
+        vtx[1].v.ob[1] = sy + isize / 2;
+        vtx[1].v.ob[2] = -10;
+        vtx[1].v.tc[0] = 0;
+        vtx[1].v.tc[1] = 0x3E00;
+        vtx[2].v.ob[0] = sx + isize / 2;
+        vtx[2].v.ob[1] = sy + isize / 2;
+        vtx[2].v.ob[2] = -10;
+        vtx[2].v.tc[0] = 0x3E00;
+        vtx[2].v.tc[1] = 0x3E00;
+        vtx[3].v.ob[0] = sx + isize / 2;
+        vtx[3].v.ob[1] = sy - isize / 2;
+        vtx[3].v.ob[2] = -10;
+        vtx[3].v.tc[0] = 0x3E00;
+        vtx[3].v.tc[1] = 0;
+        gSPVertex(gfx++, vtx, 4, 0);
+        gSP1Triangle(gfx++, 0, 1, 2, 0);
+        gSP1Triangle(gfx++, 0, 3, 2, 0);
+        gDPPipeSync(gfx++);
+    }
+    gDPPipeSync(gfx++);
+    osWritebackDCache(vtx, 4 * sizeof(Vtx));
+    return gfx;
+}
 
 /* per node: depth from the camera, draw table entry, matrices and model */
 void func_801F4878(Gfx *gdl, u8 *dyn) {

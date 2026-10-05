@@ -91,19 +91,19 @@ segments:
     - [0x8AEE0, c, hd_code/8AEE0]
     - [0x8DDB0, c, hd_code/8DDB0]
     - [0x8E910, bin, hd_code/8E910] # more data?
-    - [0x8F860, c, hd_code/8F860]
+    - [0x8F860, c, hd_code/ul_initialize]  # src/os/initialize.c, old SDK
     - [0x8FA90, c, hd_code/ul_pirawread]
     - [0x8FAF0, c, hd_code/ul_createthread]
     - [0x8FC40, c, hd_code/ul_startthread]
     - [0x8FD90, c, hd_code/8FD90]
-    - [0x8FDA0, c, hd_code/8FDA0]
+    - [0x8FDA0, c, hd_code/ul_pimgr]  # src/io/pimgr.c, old SDK (no EPI)
     - [0x8FF20, c, hd_code/ul_setthreadpri]
     - [0x90000, c, hd_code/ul_sendmesg]
     - [0x90150, c, hd_code/ul_recvmesg]
     - [0x90290, c, hd_code/ul_viblack]
     - [0x90300, c, hd_code/ul_gettime]
     - [0x90390, c, hd_code/ul_ll]
-    - [0x90650, c, hd_code/90650]
+    - [0x90650, c, hd_code/ul_cspgetstate]
     - [0x90660, c, hd_code/ul_virtualtophysical]
     - [0x906E0, c, hd_code/906E0]
     - [0x90760, c, hd_code/ul_translate]
@@ -113,18 +113,18 @@ segments:
     - [0x90E40, c, hd_code/ul_mtxcatf]
     - [0x91050, c, hd_code/ul_mtxutil]
     - [0x912C0, c, hd_code/ul_scale]
-    - [0x91360, c, hd_code/91360]
+    - [0x91360, c, hd_code/ul_lookatref]  # src/gu/lookatref.c, old FTOFRAC8
     - [0x91820, c, hd_code/91820]
     - [0x91830, c, hd_code/ul_lookat]
-    - [0x91B60, c, hd_code/91B60]
+    - [0x91B60, c, hd_code/ul_sinf]  # src/gu/sinf.c
     - [0x91D20, c, hd_code/ul_createmesgqueue]
     - [0x91D50, bin, hd_code/91D50] # 0x40 zero bytes between objects
     - [0x91D90, c, hd_code/ul_visetspecial]
     - [0x91F50, c, hd_code/91F50]
     - [0x91F80, c, hd_code/91F80]
-    - [0x92030, c, hd_code/92030]
-    - [0x92130, c, hd_code/92130]
-    - [0x922A0, c, hd_code/922A0]
+    - [0x92030, c, hd_code/ul_destroythread]  # src/os/destroythread.c, old SDK
+    - [0x92130, c, hd_code/ul_cosf]  # src/gu/cosf.c
+    - [0x922A0, c, hd_code/ul_sprintf]  # src/libc/sprintf.c (libc at -O1 in this SDK)
     - [0x92350, c, hd_code/ul_heapalloc]
     - [0x923B0, c, hd_code/ul_event]
     - [0x926F0, c, hd_code/ul_sl]  # src/audio/sl.c
@@ -154,13 +154,14 @@ segments:
     - [0x95060, c, hd_code/95060]
     - [0x95070, c, hd_code/ul_sins]  # src/gu/sins.c
     - [0x950E0, c, hd_code/ul_coss]
-    - [0x95110, c, hd_code/95110]
+    - [0x95110, c, hd_code/ul_vi]  # src/io/vi.c, old SDK
     - [0x95240, c, hd_code/ul_aisetfreq]
-    - [0x953A0, c, hd_code/953A0]
-    - [0x95450, c, hd_code/95450]
-    - [0x95460, c, hd_code/95460]
+    - [0x953A0, c, hd_code/ul_aisetnextbuf]  # src/io/aisetnextbuf.c, old SDK
+    - [0x95450, c, hd_code/ul_aigetlen]
+    - [0x95460, c, hd_code/ul_synthesizer]  # src/audio/synthesizer.c, old alAudioFrame
+    - [0x95B30, c, hd_code/ul_pidma]  # src/io/pidma.c, old SDK (no piHandle)
     - [0x95C40, c, hd_code/ul_llcvt]  # src/libc/llcvt.c
-    - [0x95E50, c, hd_code/95E50]
+    - [0x95E50, c, hd_code/ul_vimgr]  # src/io/vimgr.c, old SDK (no EPI, short OSIoMesg)
     - [0x961B0, c, hd_code/ul_visetmode]
     - [0x96220, c, hd_code/ul_seteventmesg]  # src/os/seteventmesg.c
     - [0x96290, c, hd_code/ul_visetevent]
@@ -170,12 +171,12 @@ segments:
     - [0x96390, c, hd_code/ul_viswapbuf]
     - [0x963E0, c, hd_code/ul_settimer]
     - [0x964C0, c, hd_code/ul_sptaskyielded]
-    - [0x96540, c, hd_code/96540]
+    - [0x96540, c, hd_code/ul_sptask]  # src/io/sptask.c, old osSpTaskLoad
     - [0x96800, c, hd_code/ul_sptaskyield]
     - [0x96820, c, hd_code/ul_mtxcatl]
-    - [0x968E0, c, hd_code/968E0]
+    - [0x968E0, c, hd_code/ul_controller]  # src/io/controller.c, old SDK
     - [0x96CA0, c, hd_code/ul_contsetch]
-    - [0x96D10, c, hd_code/96D10]
+    - [0x96D10, c, hd_code/ul_contreaddata]  # src/io/contreaddata.c, old SDK
     - [0x96F70, c, hd_code/96F70]
     - [0x96FF0, c, hd_code/96FF0]
     - [0x97090, c, hd_code/ul_contquery]
@@ -190,10 +191,10 @@ segments:
     - [0x97BF0, c, hd_code/ul_piacs]  # src/io/piacs.c
     - [0x97CB0, c, hd_code/ul_getthreadpri]
     - [0x97CD0, c, hd_code/ul_pirawdma]
-    - [0x97DB0, c, hd_code/97DB0]
+    - [0x97DB0, c, hd_code/ul_devmgr]  # src/io/devmgr.c, old SDK (no EPI/64DD)
     - [0x97F30, c, hd_code/ul_timerintr]  # src/os/timerintr.c
     - [0x98330, c, hd_code/98330]
-    - [0x983F0, c, hd_code/983F0]
+    - [0x983F0, c, hd_code/ul_xprintf]  # src/libc/xprintf.c, old _Printf (-O1)
     - [0x99580, c, hd_code/ul_string]
     - [0x99620, c, hd_code/ul_copy]
     - [0x996A0, c, hd_code/996A0]
@@ -201,17 +202,17 @@ segments:
     - [0x9AFF0, c, hd_code/ul_synstartvoiceparam]
     - [0x9B0E0, c, hd_code/ul_viswapcontext]
     - [0x9B440, c, hd_code/ul_ai]
-    - [0x9B470, c, hd_code/9B470]
+    - [0x9B470, c, hd_code/ul_drvrnew]  # src/audio/drvrnew.c, old alFxNew
     - [0x9BBF0, c, hd_code/ul_synallocfx]
     - [0x9BC90, c, hd_code/ul_mainbus]
     - [0x9BDE0, c, hd_code/ul_load]
     - [0x9C930, c, hd_code/ul_resample]  # src/audio/resample.c
-    - [0x9CC30, c, hd_code/9CC30]
+    - [0x9CC30, c, hd_code/ul_env]  # src/audio/env.c, old linear envelope + Rare asserts
     - [0x9D810, c, hd_code/ul_auxbus]
     - [0x9D920, c, hd_code/ul_save]
     - [0x9D9E0, c, hd_code/ul_jammesg]
     - [0x9DB30, c, hd_code/ul_pigetcmdq]
-    - [0x9DB60, c, hd_code/9DB60]
+    - [0x9DB60, c, hd_code/ul_vigetcurrcontext]
     - [0x9DB70, c, hd_code/9DB70]
     - [0x9DB80, c, hd_code/9DB80]
     - [0x9DEA0, c, hd_code/ul_spsetpc]
@@ -220,33 +221,47 @@ segments:
     - [0x9DFA0, c, hd_code/ul_sirawdma]
     - [0x9E050, c, hd_code/ul_siacs]  # src/io/siacs.c
     - [0x9E110, c, hd_code/ul_si]
-    - [0x9E140, c, hd_code/9E140]
-    - [0x9E5C0, c, hd_code/9E5C0]
+    - [0x9E140, c, hd_code/ul_kdebugserver]  # src/debug/kdebugserver.c, old SDK
+    - [0x9E5C0, c, hd_code/ul_syncputchars]  # src/os/syncputchars.c, old rdbPacket
     - [0x9E6F0, c, hd_code/9E6F0]
-    - [0x9E700, c, hd_code/9E700]
+    - [0x9E700, c, hd_code/ul_xlitob]  # src/libc/xlitob.c (-O1)
+    - [0x9EA00, c, hd_code/ul_xldtob]  # src/libc/xldtob.c (-O1)
     - [0x9F7D0, c, hd_code/ul_seq]  # src/audio/seq.c
     - [0x9FDF0, c, hd_code/ul_synsetpriority]
     - [0x9FE00, c, hd_code/ul_filter]
-    - [0x9FE20, c, hd_code/9FE20]
+    - [0x9FE20, c, hd_code/ul_reverb]  # src/audio/reverb.c, old alFxParamHdl
     - [0xA0A30, c, hd_code/A0A30]
     - [0xA0A40, c, hd_code/ul_atomic]
-    - [0xA0AA0, c, hd_code/A0AA0]
-    - [0xA0BA0, bin, hd_code/A0BA0] # more data
+    - [0xA0AA0, c, hd_code/ul_ldiv]  # src/libc/ldiv.c, lldiv first
+    - [0xA0C30, bin, hd_code/A0C30] # more data (RSP boot microcode first)
     - [0xA4410, linker, data]
     - [0xA4410, bin, hd_code/hd_code_data] # .data
     - [0xA4520, .data, hd_code/1A630]
     - [0xA4530, bin, hd_code/hd_code_data_A4530]
     - [0xB9350, .data, hd_code/45BB0]
     - [0xB9370, bin, hd_code/hd_code_data_B9370]
+    - [0xC1DD0, .data, hd_code/ul_initialize]
+    - [0xC1DE0, .data, hd_code/ul_pimgr]
     - [0xC1E00, .data, hd_code/ul_sl]
     - [0xC1E10, .data, hd_code/ul_sins]
-    - [0xC2610, bin, hd_code/hd_code_data_C2610]
+    - [0xC2610, .data, hd_code/ul_vi]
+    - [0xC2680, .data, hd_code/ul_aisetnextbuf]
+    - [0xC2690, .data, hd_code/ul_vimgr]
+    - [0xC26B0, bin, hd_code/hd_code_data_C26B0]
+    - [0xC2F70, .data, hd_code/ul_controller]
+    - [0xC2F80, bin, hd_code/hd_code_data_C2F80]
     - [0xC2FA0, .data, hd_code/ul_thread]
     - [0xC2FC0, .data, hd_code/ul_piacs]
     - [0xC2FD0, .data, hd_code/ul_timerintr]
-    - [0xC2FE0, bin, hd_code/hd_code_data_C2FE0]
+    - [0xC2FE0, .data, hd_code/ul_xprintf]
+    - [0xC3030, bin, hd_code/hd_code_data_C3030]
+    - [0xC30D0, .data, hd_code/ul_drvrnew]
+    - [0xC3260, .data, hd_code/ul_env]
     - [0xC3360, .data, hd_code/ul_siacs]
-    - [0xC3370, bin, hd_code/hd_code_data_C3370]
+    - [0xC3370, .data, hd_code/ul_kdebugserver]
+    - [0xC3380, .data, hd_code/ul_syncputchars]
+    - [0xC3390, .data, hd_code/ul_xlitob]
+    - [0xC33C0, bin, hd_code/hd_code_data_C33C0]
     - [0xC4520, .rodata, hd_code/14B30] # drawtext.c
     - [0xC4720, .rodata, hd_code/168B0]
     - [0xC47D0, .rodata, hd_code/17210]
@@ -285,18 +300,23 @@ segments:
     - [0xC90B0, bin, hd_code/hd_code_data_C90B0]
     - [0xC9230, .rodata, hd_code/ul_perspective]
     - [0xC9240, .rodata, hd_code/ul_rotate]
-    - [0xC9250, bin, hd_code/hd_code_data_C9250]
+    - [0xC9250, .rodata, hd_code/ul_lookatref]
+    - [0xC9260, .rodata, hd_code/ul_sinf]
+    - [0xC92B0, .rodata, hd_code/ul_cosf]
     - [0xC9300, .rodata, hd_code/ul_cents2ratio]
     - [0xC9310, bin, hd_code/hd_code_data_C9310]
     - [0xC9390, .rodata, hd_code/ul_cseq]
     - [0xC93A0, .rodata, hd_code/ul_csplayer]
-    - [0xC95E0, bin, hd_code/hd_code_data_C95E0]
+    - [0xC95E0, .rodata, hd_code/ul_synthesizer]
     - [0xC95F0, .rodata, hd_code/ul_llcvt]
     - [0xC9600, bin, hd_code/hd_code_data_C9600]
+    - [0xC9660, .rodata, hd_code/ul_xprintf]
     - [0xC9760, .rodata, hd_code/ul_seqplayer]
-    - [0xC99A0, bin, hd_code/hd_code_data_C99A0]
+    - [0xC99A0, .rodata, hd_code/ul_drvrnew]
     - [0xC99D0, .rodata, hd_code/ul_resample]
-    - [0xC9A10, bin, hd_code/hd_code_data_C9A10]
+    - [0xC9A10, .rodata, hd_code/ul_env]
+    - [0xC9B30, .rodata, hd_code/ul_xldtob]
     - [0xC9B90, .rodata, hd_code/ul_seq]
-    - [0xC9BA0, bin, hd_code/hd_code_data_C9BA0]
+    - [0xC9BA0, .rodata, hd_code/ul_reverb]
+    - [0xC9BD0, bin, hd_code/hd_code_data_C9BD0]
   - [0xCAEA0]

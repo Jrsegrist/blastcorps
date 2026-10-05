@@ -1492,11 +1492,90 @@ f32 func_8029E878(f32 p0, f32 p1, f32 p2, f32 p3, f32 t) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029EB58.s")
 
+/* func_8029EC68 / func_8029EDEC: spline-interpolated translation / scale
+ * matrices from four 0x14-byte keyframes (s16 fields; scale at 0/2/4,
+ * translation at 0xC/0xE/0x10). Each axis is func_8029E878 of the four keys'
+ * values at t, rounded to an integer as cvt.w.s does (nearest even).
+ * Register convention: keys in t5, t6, t7, s0, t in f30, result (0 = identity,
+ * nothing written) in a3 (conventions.txt). The asm saves the other registers
+ * it uses; it leaves the last axis in f8 (as cvt.w.s bits) and the callee's
+ * scratch in f12, which the C doesn't reproduce. Asm caller func_8029E730
+ * keeps t4, f14 (and a0-a2, t5-t7) live. */
+#ifdef NON_MATCHING
+#define KEY_S16(k, off) ((f32) *(s16 *) ((u8 *) (k) + (off)))
+#define KEY_SPLINE(k0, k1, k2, k3, off, t) \
+    port_cvt_w_s(func_8029E878(KEY_S16(k0, off), KEY_S16(k1, off), KEY_S16(k2, off), KEY_S16(k3, off), t))
+
+f32 func_8029E878(f32 p0, f32 p1, f32 p2, f32 p3, f32 t);
+
+/* Translation: 0 if all three axes round to 0, else D_803B3730 = identity
+ * (16.16) with the axes << 16 in the last row, and 1. */
+s32 func_8029EC68(u8 *k0, u8 *k1, u8 *k2, u8 *k3, f32 t) {
+    s32 *m = D_803B3730;
+    s32 x = KEY_SPLINE(k0, k1, k2, k3, 0xC, t);
+    s32 y = KEY_SPLINE(k0, k1, k2, k3, 0xE, t);
+    s32 z = KEY_SPLINE(k0, k1, k2, k3, 0x10, t);
+
+    if (x == 0 && y == 0 && z == 0) {
+        return 0;
+    }
+    m[0] = 0x10000;
+    m[1] = 0;
+    m[2] = 0;
+    m[3] = 0;
+    m[4] = 0;
+    m[5] = 0x10000;
+    m[6] = 0;
+    m[7] = 0;
+    m[8] = 0;
+    m[9] = 0;
+    m[10] = 0x10000;
+    m[11] = 0;
+    m[12] = x << 16;
+    m[13] = y << 16;
+    m[14] = z << 16;
+    m[15] = 0x10000;
+    return 1;
+}
+#else
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029EC68.s")
+#endif
 
+#ifdef NON_MATCHING
+/* Scale (0x100 = 1.0): 0 if all three axes are 0x100, else D_803B3730 =
+ * diag((s32) (axis << 16) >> 8 each, 0x10000), and 1. */
+s32 func_8029EDEC(u8 *k0, u8 *k1, u8 *k2, u8 *k3, f32 t) {
+    s32 *m = D_803B3730;
+    s32 x = KEY_SPLINE(k0, k1, k2, k3, 0, t);
+    s32 y = KEY_SPLINE(k0, k1, k2, k3, 2, t);
+    s32 z = KEY_SPLINE(k0, k1, k2, k3, 4, t);
+
+    if (x == 0x100 && y == 0x100 && z == 0x100) {
+        return 0;
+    }
+    m[0] = (x << 16) >> 8;
+    m[1] = 0;
+    m[2] = 0;
+    m[3] = 0;
+    m[4] = 0;
+    m[5] = (y << 16) >> 8;
+    m[6] = 0;
+    m[7] = 0;
+    m[8] = 0;
+    m[9] = 0;
+    m[10] = (z << 16) >> 8;
+    m[11] = 0;
+    m[12] = 0;
+    m[13] = 0;
+    m[14] = 0;
+    m[15] = 0x10000;
+    return 1;
+}
+#else
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029EDEC.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029EF80.s")
@@ -1899,10 +1978,76 @@ s16 *func_8029FF2C(s16 *dst) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Spline pose of animation channel ch: sets up the basis (func_8029F110, by
+ * ch->unk15) and the four control keyframes around frame (u8) ch->unk13 of
+ * the n-frame track (n = first byte of the header ch->id points at;
+ * func_8029F060 at t = ch->unk4), then writes 9 halfwords to dst: the spline
+ * (func_8029E878) of each s16 of the four 0x14-byte keyframes at
+ * keys + 8 + D_803B7FC0[i] * 0x14, rounded as cvt.w.s. Returns dst + 10
+ * halfwords (the asm's t1 = last store + 2).
+ * Register convention: dst t1, ch t4, keys t5, result t1 (conventions.txt).
+ * The asm saves the rest except f20 (= 1.0 from func_8029F110) and f30 (= t);
+ * f12/f14 are left as callee scratch (f14 from func_8029F110, f12 from
+ * func_8029E878), not reproduced. Asm callers keep a0, t0, t3, t8 live. */
+void func_8029F110(u8 *p, s32 mode, Unk8029F110Out *o);
+f32 func_8029F060(f32 t, s32 idx, s32 n);
+extern u8 D_803B7FC0[4];
+
+s16 *func_8029FFA0(s16 *dst, Unk8029DEA0Entry *ch, u8 *keys) {
+    Unk8029F110Out basis;
+    f32 t = ch->unk4;
+    s16 *k0;
+    s16 *k1;
+    s16 *k2;
+    s16 *k3;
+    s32 i;
+
+    func_8029F110((u8 *) ch, (u8) ch->unk15, &basis);
+    func_8029F060(t, (u8) ch->unk13, *(u8 *) ch->id);
+    keys += 8;
+    k0 = (s16 *) (keys + D_803B7FC0[0] * 0x14);
+    k1 = (s16 *) (keys + D_803B7FC0[1] * 0x14);
+    k2 = (s16 *) (keys + D_803B7FC0[2] * 0x14);
+    k3 = (s16 *) (keys + D_803B7FC0[3] * 0x14);
+    for (i = 9; i != 0; i--) {
+        *dst++ = port_cvt_w_s(func_8029E878(*k0++, *k1++, *k2++, *k3++, t));
+    }
+    return dst + 1;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029FFA0.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+s32 func_8029F6B0(s32 a, s32 b, f32 t);
+
+/* Linear pose between keyframes a (key) and b (key + 0x14), s16 fields:
+ * dst[0..2] and dst[6..8] = a + cvt.w.s((b - a) * t) for fields 0..2 and
+ * 6..8, dst[3..5] = the shortest-way angle lerp func_8029F6B0 of fields 3..5.
+ * Returns dst + 10 halfwords.
+ * Register convention: dst t1, key t5, t in f30, result t1 (conventions.txt);
+ * the asm restores a0-a3, t0, t2, t4 and leaves f12/f14 = 2048.0/-2048.0
+ * from func_8029F6B0 (not reproduced). Its subtractions/adds trap on
+ * overflow (s16 inputs can't). Asm callers keep a0, t0, t3, t8 live. */
+s16 *func_802A0118(s16 *dst, s16 *key, f32 t) {
+    s32 i;
+
+    for (i = 0; i < 3; i++) {
+        dst[i] = port_cvt_w_s((f32) (key[10 + i] - key[i]) * t) + key[i];
+    }
+    for (i = 3; i < 6; i++) {
+        dst[i] = func_8029F6B0(key[i], key[10 + i], t);
+    }
+    for (i = 6; i < 9; i++) {
+        dst[i] = port_cvt_w_s((f32) (key[10 + i] - key[i]) * t) + key[i];
+    }
+    return dst + 10;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_802A0118.s")
+#endif
 
 /* func_802A0290 .. func_802A04BC: field setters/getter for entry `idx` of an
  * Unk8029DEA0Entry table (entry address = base + idx * 0x18, a signed 32-bit

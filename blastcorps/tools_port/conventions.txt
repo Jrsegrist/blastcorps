@@ -69,6 +69,13 @@ func_8029C5EC: in s0=a0,s1=a1,s2=a2,s3=a3 ; out s4=ret ; preserve v0,v1,a0,a1,a2
 func_8029CF54: in s1=a0 ; preserve v0,v1,a0,a1,a3,t0,t1,t2,t3,t4,t5,t6,t7,t8,f12,f14
 # first of t5 triangles at s4 containing (t0,t1), then is a1 in the u16 range after the table -> t4 (0 = in range)
 func_8029DA90: in a1=a0,t0=a1,t1=a2,t5=a3,s4=stack0,s1=*stack1,s3=*stack1+4,f12=*stack1+8,f14=*stack1+0xC,f20=*stack1+0x10,f22=*stack1+0x14,f24=*stack1+0x18,f26=*stack1+0x1C ; out t4=ret,s1=*stack1,s3=*stack1+4,f12=*stack1+8,f14=*stack1+0xC,f20=*stack1+0x10,f22=*stack1+0x14,f24=*stack1+0x18,f26=*stack1+0x1C ; preserve v1,a0,a1,a2,a3,t0,t1,t2,t3,t6,t7 ; clobbers s6,s7,f28
+# spline translation / scale matrix at D_803B3730 from keyframes t5, t6, t7, s0 at f30; 0 if identity -> a3 (f8/f12 scratch)
+func_8029EC68: in t5=a0,t6=a1,t7=a2,s0=a3,f30=stack0 ; out a3=ret ; preserve v0,v1,a0,a1,a2,t0,t1,t2,t3,t4,t5,t6,t7,s0,s2,s3,f14
+func_8029EDEC: in t5=a0,t6=a1,t7=a2,s0=a3,f30=stack0 ; out a3=ret ; preserve v0,v1,a0,a1,a2,t0,t1,t2,t3,t4,t5,t6,t7,s0,s2,s3,f14
+# spline pose of channel t4 from keyframes t5 into 9 halfwords at t1 -> t1 + 0x14 (f20 = 1.0, f30 = t; f12/f14 scratch)
+func_8029FFA0: in t1=a0,t4=a1,t5=a2 ; out t1=ret ; preserve v0,a0,a3,t0,t2,t3,t4,t5,t6,t7,t8,s0,s1,s6,s7,fp ; clobbers f20,f30
+# linear pose between keyframes t5 and t5+0x14 at f30 into 9 halfwords at t1 -> t1 + 0x14 (f12/f14 scratch)
+func_802A0118: in t1=a0,t5=a1,f30=a2 ; out t1=ret ; preserve a0,a1,a2,a3,t0,t2,t3,t4,t5,t8
 # same setters/getter on the D_803B35F8 entry with id v0 (via func_802A06B4); value v1, float f0; v0 restored
 func_802A0508: in v0=a0,v1=a1 ; preserve v0,v1,a0,a1,a2,a3,t6,t7,f12,f14
 func_802A0540: in v0=a0 ; preserve v0,v1,a0,a1,a2,a3,t6,t7,f12,f14

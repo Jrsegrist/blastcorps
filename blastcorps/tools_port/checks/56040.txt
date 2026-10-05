@@ -372,3 +372,35 @@ func_8029DA90: -n 100 --seed 2 --arg t5=int:0:4 --arg s4=ptr:0x80 --stub-ret fun
 func_8029DA90: -n 300 --seed 3 --follow func_802AA5E0,func_802AA460 --arg t5=4 --arg s4=ptr:0x80 \
     --mem @s4:0x60=words:-40,-20,0,20,40 --arg t0=int:-30:30 --arg t1=int:-30:30 \
     --mem @s4+0x60:4=halves:0,5,10 --arg a1=choice:-1,0,1,4,5,6,9,10,11
+
+# func_8029EC68 / func_8029EDEC (keys t5, t6, t7, s0; t in f30): spline translation / scale matrix -> a3.
+# Stubbed spline value, then followed with a random basis; then the basis b[3] = 1 (value = key 0 exactly)
+# so the all-zero / all-0x100 identity case is reached
+func_8029EC68: -n 200 --stub-ret func_8029E878=0x42F60000 --arg t5=ptr:0x14 --arg t6=ptr:0x14 --arg t7=ptr:0x14 --arg s0=ptr:0x14 \
+    --arg f30=float:0:1 --mem D_803B3730:0x40=rand
+func_8029EC68: -n 300 --seed 1 --follow func_8029E878 --arg t5=ptr:0x14 --arg t6=ptr:0x14 --arg t7=ptr:0x14 --arg s0=ptr:0x14 \
+    --arg f30=float:0:1 --mem D_803B3778:0x40=floats:-2:2 --mem D_803B37B8:8=floats:0:1 --mem D_803B3730:0x40=rand
+func_8029EC68: -n 200 --seed 2 --follow func_8029E878 --arg t5=ptr:0x14 --arg t6=ptr:0x14 --arg t7=ptr:0x14 --arg s0=ptr:0x14 \
+    --mem @t5+0xC:6=halves:0,0,0,1,0xFFFF,0x7FFF,0x8000 --arg f30=float:0:1 --mem D_803B3778:0x40=zero \
+    --mem D_803B3778+0xC=0x3F800000 --mem D_803B3730:0x40=rand
+func_8029EDEC: -n 200 --stub-ret func_8029E878=0x42F60000 --arg t5=ptr:0x14 --arg t6=ptr:0x14 --arg t7=ptr:0x14 --arg s0=ptr:0x14 \
+    --arg f30=float:0:1 --mem D_803B3730:0x40=rand
+func_8029EDEC: -n 300 --seed 1 --follow func_8029E878 --arg t5=ptr:0x14 --arg t6=ptr:0x14 --arg t7=ptr:0x14 --arg s0=ptr:0x14 \
+    --arg f30=float:0:1 --mem D_803B3778:0x40=floats:-2:2 --mem D_803B37B8:8=floats:0:1 --mem D_803B3730:0x40=rand
+func_8029EDEC: -n 200 --seed 2 --follow func_8029E878 --arg t5=ptr:0x14 --arg t6=ptr:0x14 --arg t7=ptr:0x14 --arg s0=ptr:0x14 \
+    --mem @t5:6=halves:0x100,0x100,0x100,0xFF,0x101,0,0x8000,0xFFFF --arg f30=float:0:1 --mem D_803B3778:0x40=zero \
+    --mem D_803B3778+0xC=0x3F800000 --mem D_803B3730:0x40=rand
+
+# func_8029FFA0 (dst t1, channel t4, keys t5): spline pose into 9 halfwords -> t1 + 0x14. Channel: word 0 -> header
+# (byte 0 = n frames), +4 t, +8 tension, +0x13 frame, +0x15 basis mode. Stubbed, then everything followed
+func_8029FFA0: -n 200 --stub-ret func_8029E878=0x42F60000 --sig func_8029F110=a0,a1 --heap 0x10 --arg t1=ptr:0x20 --arg t4=ptr:0x18 --arg t5=ptr:0xC0 --mem @t4=rel:heap0 \
+    --mem @t4+0x13:1=bytes:0,1,0x80,0xFF --mem @t4+0x15:1=bytes:0,1,2 --mem D_803B7FC0:4=bytes:0,1,2,7
+func_8029FFA0: -n 300 --seed 1 --follow func_8029F110,func_8029F060,func_8029E878 --heap 0x10 --arg t1=ptr:0x20 \
+    --arg t4=ptr:0x18 --arg t5=ptr:0xC0 --mem @t4=rel:heap0 --mem @heap0:1=int:4:8 --mem @t4+4=fbits:0:1 \
+    --mem @t4+8=fbits:-1:2 --mem @t4+0x13:1=int:0:3 --mem @t4+0x15:1=bytes:0,1 --mem D_803B3778:0x40=floats:-2:2
+
+# func_802A0118 (dst t1, keys t5 / t5+0x14, t in f30): linear pose (angles via func_8029F6B0) -> t1 + 0x14
+func_802A0118: -n 300 --arg t1=ptr:0x20 --arg t5=ptr:0x28 --arg f30=float:-1:2
+func_802A0118: -n 300 --seed 1 --follow func_8029F6B0 --arg t1=ptr:0x20 --arg t5=ptr:0x28 --arg f30=float:0:1
+func_802A0118: -n 200 --seed 2 --follow func_8029F6B0 --arg t1=ptr:0x20 --arg t5=ptr:0x28 \
+    --mem @t5:0x28=halves:0,1,0xFFFF,0x7FFF,0x8000,0x1000,0xF000 --arg f30=choice:0,0x3F800000,0x3F000000,0x3EC00000

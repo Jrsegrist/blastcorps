@@ -52,7 +52,34 @@ s32 func_802C8AF0(void) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u64 *D_803F8778; /* save copy pairs (func_802A7764), one per vehicle */
+extern u64 *D_803F877C;
+extern u64 *D_803F8780;
+extern u64 *D_803F8784;
+extern u64 *D_803F8788;
+extern u64 *D_803F878C;
+void func_802A7764(u64 *a, u64 *b, s32 size);
+void func_802C444C(void);
+
+/* Leave vehicle type 0x11 / 0x12 / other (11) (called from hd.c with the
+ * type): func_802A7764(pair for that type, 0x800), then stops the looping
+ * sounds (func_802C444C). The asm points $gp at that vehicle's block
+ * (D_803F85F8 / D_803F86A0 / D_803F8550) around the calls and restores it.
+ * The asm compares the whole register; 00000.c declares the parameter u8. */
+void func_802C8B0C(s32 type) {
+    if (type == 0x11) {
+        func_802A7764(D_803F8780, D_803F8784, 0x800);
+    } else if (type == 0x12) {
+        func_802A7764(D_803F8788, D_803F878C, 0x800);
+    } else {
+        func_802A7764(D_803F8778, D_803F877C, 0x800);
+    }
+    func_802C444C();
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/83910/func_802C8B0C.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/83910/func_802C8BB8.s")

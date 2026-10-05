@@ -496,6 +496,8 @@ func_802BB170: clobbers gp
 func_802BBE74: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; out v1=ret,t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; preserve a0,f12,f14 ; clobbers s5,s6
 # enter vehicle: points $gp at D_803EFDF0 and leaves it
 func_802BBDC8: clobbers gp
+# countdown / effect spawn / sound level; t6, t7, s0-s4 pass through to func_802A6274 (s1 comes back changed)
+func_802BC2C8: in t6=a0,t7=a1,s0=a2,s1=a3,s2=stack0,s3=stack1,s4=stack2 ; clobbers s1,s5
 # --- 83910 ---
 # bounce: speed (s16 at +0x76 of the block in $gp; three vehicles share it) -> -max(|v|,80)/2 with sign
 func_802C95D8: in gp=a0 ; preserve a0,a1,a2,a3,f12,f14
@@ -520,6 +522,11 @@ func_802CBD18: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+
 func_802CC56C: preserve a0,a1,a2,a3,t6,t7
 # rounded speed/divisor ($gp = D_803F8E80) in s3
 func_802CC844: out s3=ret ; preserve a0,a1,a2,a3
+# enter vehicle: points $gp at D_803F8E80 and leaves it
+func_802CBA94: clobbers gp
+# animation phase / trail / effect spawn / sound level; t6, t7, s0-s3 pass through to func_802A6274
+# (its s4 input is computed here; s1 comes back changed)
+func_802CC400: in t6=a0,t7=a1,s0=a2,s1=a3,s2=stack0,s3=stack1 ; clobbers s1,s4,s5,s6,s7
 # --- 88160 ---
 # zone lookup wrapper: func_802ABD54(id, x, y, z) with its scan registers t6, t7, s0-s4 passed through
 func_802CCE90: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; out v1=ret,t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; preserve f12,f14 ; clobbers s5,s6
@@ -529,6 +536,8 @@ func_802CCC8C: clobbers gp
 func_802CD660: preserve a0,a1,a2,a3,t6,t7
 # rounded speed/divisor ($gp = D_803F9250) in s3
 func_802CD938: out s3=ret ; preserve a0,a1,a2,a3
+# trail / effect spawn / sound level; t6, t7, s0-s4 pass through to func_802A6274 (s1 comes back changed)
+func_802CD578: in t6=a0,t7=a1,s0=a2,s1=a3,s2=stack0,s3=stack1,s4=stack2 ; clobbers s1,s5,s6,s7
 # --- 8AEE0 ---
 # zone lookup wrapper: func_802ABD54(id, x, y, z) with its scan registers t6, t7, s0-s4 passed through
 func_802D0F54: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; out v1=ret,t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; preserve f12,f14 ; clobbers s5,s6

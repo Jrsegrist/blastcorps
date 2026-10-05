@@ -22,3 +22,11 @@ func_802C9AF8: -n 300 --seed 0 --arg gp=sym:D_803F8550 --mem D_803F8550+0x76:2=i
 func_802C9AF8: -n 300 --seed 1 --arg gp=sym:D_803F86A0 --mem D_8030D980=words:0x40000000,0x40800000,0x3F000000,0x40C00000 \
     --mem D_803F86A0+0x76:2=halves:0,1,2,3,5,6,9,15,0x7FFF,0x8000,0xFFFD,0xFFF7,0xFFFF,0xFFFE
 func_802C9AF8: -n 200 --seed 2 --arg gp=sym:D_803F85F8 --mem D_8030D980:4=floats:0.25:40 --mem D_803F85F8+0x76:2=int:0:0xFFFF
+
+# func_802C8B0C: leave vehicle type a0 (0x11 / 0x12 / other): func_802A7764(that pair, 0x800), func_802C444C()
+func_802C8B0C: -n 200 --seed 0 --ret void --sig func_802A7764=a0,a1,a2 --sig func_802C444C= \
+    --arg a0=choice:0x11,0x12,0xB,0,0x10,0x13,0x111,-1 --mem D_803F8778:24=rand
+func_802C8B0C: -n 60 --seed 1 --ret void --follow func_802A7764,func_802C444C --sig func_802608C8=a0 --heap 0x800 --heap 0x800 \
+    --arg a0=choice:0x11,0x12,0xB --mem D_803F8778=rel:heap0 --mem D_803F877C=rel:heap1 --mem D_803F8780=rel:heap1 \
+    --mem D_803F8784=rel:heap0 --mem D_803F8788=rel:heap0 --mem D_803F878C=rel:heap1 --mem D_8035805C:1=bytes:0,1 \
+    --mem D_803F7844:8=words:0,0x80123450

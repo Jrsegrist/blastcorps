@@ -22,3 +22,29 @@ func_802BBE74: -n 300 --seed 1 --follow func_802ABD54,func_802ABCDC --mem D_803E
     --mem D_803BDFD8+0x16*0x24:4/1=choice:7,0x31 --mem D_803BDFD8+0x17*0x24:4/1=choice:7,0x32 \
     --mem D_80364A6E:1=choice:0,1,0x80,0xFF,0x40 --mem D_80364460+0x5C*0x74:3=choice:0x100,0x200 \
     --mem D_80364460+0x1B8=7 --mem D_80364460+0x60*0x74:4=int
+
+# func_802BBE2C: leave vehicle 7: func_802A7764(D_803EFEA8, D_803EFEAC, 0x800), func_802C444C()
+func_802BBE2C: -n 50 --seed 0 --ret void --sig func_802A7764=a0,a1,a2 --sig func_802C444C= --mem D_803EFEA8:8=rand
+# copy and sound stop run for real (both directions of the copy, handles NULL / set)
+func_802BBE2C: -n 40 --seed 1 --ret void --follow func_802A7764,func_802C444C --sig func_802608C8=a0 --heap 0x800 --heap 0x800 \
+    --mem D_803EFEA8=rel:heap0 --mem D_803EFEAC=rel:heap1 --mem D_8035805C:1=bytes:0,1 --mem D_803F7844:8=words:0,0x80123450
+
+# func_802BC2C8 (t6, t7, s0-s4 through to func_802A6274; gp = D_803EFDF0): countdown / flag per speed sign /
+# spawn + sound, then func_802C4584(|speed >> 4|), func_802C4724(0x21)
+func_802BC2C8: -n 400 --seed 0 --arg gp=sym:D_803EFDF0 --arg t6=int --arg t7=int --arg s0=int --arg s1=int --arg s2=int \
+    --arg s3=int --arg s4=int --mem D_803EFEC9:1=bytes:0*3,1,2,0xFF --mem D_80370C1C:1=bytes:0,1,0x80 \
+    --mem D_80370C23:1=bytes:0,1,0x80 --mem D_803EFDF0+0x76:2=halves:0,1,0xF,0x10,0x11,0x7FFF,0x8000,0xFFFF,0xFFF0,0xFFEF,0xFFF1,0x1234 \
+    --mem D_80367738=int --sig func_80260650=a0,a1,a2
+# countdown 0, only one flag set: the sign selects which flag (speed 0 -> D_80370C1C)
+func_802BC2C8: -n 100 --seed 1 --arg gp=sym:D_803EFDF0 --arg t6=int --arg t7=int --arg s0=int --arg s1=int --arg s2=int \
+    --arg s3=int --arg s4=int --mem D_803EFEC9:1=0 --mem D_80370C1C:1=bytes:0,1 --mem D_80370C23:1=bytes:0,1 \
+    --mem D_803EFDF0+0x76:2=halves:0,1,0xFFFF,0x7FFF,0x8000 --mem D_80367738=int --sig func_80260650=a0,a1,a2
+# callees run for real (record setup through func_802ABC88 for id 7; sound level / loop wrappers)
+func_802BC2C8: -n 200 --seed 2 --arg gp=sym:D_803EFDF0 --arg t6=int --arg t7=int --arg s0=int --arg s1=int --arg s2=int \
+    --arg s3=int --arg s4=int --mem D_803EFEC9:1=bytes:0*3,1 --mem D_80370C1C:1=bytes:0,1 --mem D_80370C23:1=bytes:0,1 \
+    --mem D_803EFDF0+0x76:2=int:0:0xFFFF --mem D_80367738=int --sig func_80260650=a0,a1,a2 \
+    --follow func_802A6274,func_802ABC88,func_802C4584,func_802C4724 \
+    --mem D_803EBC10:0x100=onehot:0x10@0xC/1:7:bytes:1,2,3 --mem D_803C4B70:0x3C0=rand --mem D_803C4B70+0x33*0x3C:16/1=bytes:0,1 \
+    --mem D_803EB770:16=bytes:0,1 --mem D_803EB792:1=rand --sig func_802A11C4=a0,a1 --sig func_80260AB8=a0,a1,a2 \
+    --sig func_802608C8=a0 --mem D_803F7840:2=rand --mem D_80364AB0:1=bytes:0,1 --mem D_803F7844:8=words:0,0x80123450 \
+    --mem D_803F784C:2=rand --mem D_80370C1A:2=bytes:0,1

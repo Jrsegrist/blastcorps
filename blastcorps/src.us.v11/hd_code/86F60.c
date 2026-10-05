@@ -12,7 +12,42 @@
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/86F60/func_802CB720.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u8 D_803F8E80[]; /* this vehicle's state block */
+extern s16 D_8036444C;
+extern s16 D_80364450;
+extern u8 D_802C2324[]; /* channel keys (7D9D0 text blob) */
+extern u8 D_802C2348[];
+void func_802A0508(s32 key, s32 val);
+void func_802A05D0(s32 key, s32 val);
+void func_802A05F8(s32 key, s32 val);
+void func_802A0620(s32 key, s32 val);
+void func_802C4310(s32 arg0, s32 arg1);
+
+/* Enter vehicle type 13: clears the byte at +0x99, D_8036444C/50 = 3000,
+ * 1000, resets the two channels keyed D_802C2324 and D_802C2348 (unk14,
+ * unk11, unk12 = 0, then func_802A0508 with -1), then func_802C4310(arg0,
+ * 0xCE) (arg0 passes straight through; hd.c calls this with no arguments
+ * and func_802C4310 ignores it). The asm also points $gp at D_803F8E80 and
+ * leaves it there (conventions.txt: clobbers gp), and leaves v1 = -1; C code
+ * uses neither. */
+void func_802CBA94(s32 arg0) {
+    D_803F8E80[0x99] = 0;
+    D_8036444C = 3000;
+    D_80364450 = 1000;
+    func_802A05D0((s32) D_802C2324, 0);
+    func_802A05F8((s32) D_802C2324, 0);
+    func_802A0620((s32) D_802C2324, 0);
+    func_802A0508((s32) D_802C2324, -1);
+    func_802A05D0((s32) D_802C2348, 0);
+    func_802A05F8((s32) D_802C2348, 0);
+    func_802A0620((s32) D_802C2348, 0);
+    func_802A0508((s32) D_802C2348, -1);
+    func_802C4310(arg0, 0xCE);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/86F60/func_802CBA94.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -33,7 +68,25 @@ s32 func_802CBB60(void) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u8 D_803F8E80[];
+extern u64 *D_803F8F38; /* save copy pair (func_802A7764) */
+extern u64 *D_803F8F3C;
+void func_802A7764(u64 *a, u64 *b, s32 size);
+void func_802C444C(void);
+
+/* Leave vehicle type 13 (called from hd.c): clears the speed (s16 at +0x76),
+ * func_802A7764(D_803F8F38, D_803F8F3C, 0x100), then stops the looping
+ * sounds (func_802C444C). The asm points $gp at D_803F8E80 around the calls
+ * and restores it. */
+void func_802CBBBC(void) {
+    *(s16 *) (D_803F8E80 + 0x76) = 0;
+    func_802A7764(D_803F8F38, D_803F8F3C, 0x100);
+    func_802C444C();
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/86F60/func_802CBBBC.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/86F60/func_802CBC08.s")
@@ -78,7 +131,84 @@ s32 func_802CBD18(ZoneScanRegs *r) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/86F60/func_802CBEF0.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+#ifndef IO802A6274_DEFINED
+#define IO802A6274_DEFINED
+/* The three registers func_802A6274 (60F60.c) takes and may hand back changed. */
+typedef struct {
+    /* 0x0 */ s32 a3;
+    /* 0x4 */ s32 t6;
+    /* 0x8 */ s32 s1;
+} Io802A6274;
+s32 func_802A6274(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32 z, s32 w24, s32 w28,
+                  s32 w18, s32 w1C, s32 w2C, s32 b35);
+#endif
+extern u8 D_80370C1A;   /* flags (either one set animates) */
+extern u8 D_80370C1B;
+extern u8 D_803F8F45;   /* animation phase 0, 2..13 */
+extern u8 D_803F8F42;   /* countdown */
+extern u8 D_802C2954[]; /* definition handed to func_802A6274 (7D9D0 text blob) */
+extern u8 D_802C2324[]; /* channel keys (7D9D0 text blob) */
+extern u8 D_802C2348[];
+void func_802A05A4(f32 f, s32 key, s32 val);
+s32 func_802A5ED0(void);
+void func_802C4584(s32 level);
+void func_802CC56C(void);
+
+/* When D_80370C1A or D_80370C1B is set, the phase D_803F8F45 steps by one,
+ * wrapping 14 to 2, else it is reset to 0; both channels keyed D_802C2324 /
+ * D_802C2348 get unk13 = phase / 2 and unk4 = 0.0f (func_802A05A4). Then
+ * the tyre trail (func_802CC56C) and the countdown D_803F8F42: when nonzero
+ * it just counts down; at zero, if the byte at +0x99 is set, it restarts at
+ * 1 and, when fewer than 15 D_803C4B70 records are active (func_802A5ED0),
+ * two func_802A6274 records are set up (def D_802C2954, data 0x29810, tag 1,
+ * type 1 at (0xD, 1, 1) and (0xD, 2, 1)). Then always
+ * func_802C4584(|speed| >> 5) (speed = s16 at +0x76).
+ * Register convention: the asm passes t6, t7, s0-s3 through to
+ * func_802A6274 (t6 and s1 in its in/out block; its s4 input is the phase /
+ * 2 computed here); $gp (= D_803F8E80) is read as the global. It leaves
+ * func_802A6274's s1 and changes s4-s7 (conventions.txt: clobbers). */
+void func_802CC400(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3) {
+    Io802A6274 io;
+    s32 s4;
+    s32 v;
+
+    if (D_80370C1A != 0 || D_80370C1B != 0) {
+        s4 = D_803F8F45 + 1;
+        if (s4 == 14) {
+            s4 = 2;
+        }
+        D_803F8F45 = s4;
+        s4 = (u32) s4 >> 1;
+    } else {
+        s4 = 0;
+        D_803F8F45 = 0;
+    }
+    func_802A05A4(0.0f, (s32) D_802C2324, s4);
+    func_802A05A4(0.0f, (s32) D_802C2348, s4);
+    func_802CC56C();
+    if (D_803F8F42 != 0) {
+        D_803F8F42--;
+    } else if (D_803F8E80[0x99] != 0) {
+        D_803F8F42 = 1;
+        if (func_802A5ED0() < 15) {
+            io.a3 = 1;
+            io.t6 = t6;
+            io.s1 = s1;
+            func_802A6274(&io, D_802C2954, 0x29810, 1, 0xD, 1, 1, t7, s0, s2, s3, s4, 1);
+            io.a3 = 1;
+            func_802A6274(&io, D_802C2954, 0x29810, 1, 0xD, 2, 1, t7, s0, s2, s3, s4, 1);
+        }
+    }
+    v = *(s16 *) (D_803F8E80 + 0x76);
+    if (v < 0) {
+        v = -v;
+    }
+    func_802C4584((u32) v >> 5);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/86F60/func_802CC400.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

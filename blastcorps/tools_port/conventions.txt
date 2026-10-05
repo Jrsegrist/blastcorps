@@ -65,6 +65,12 @@ func_802A90E4: in v1=a0 ; preserve v0,a1,a2,a3,t0,t1,t7,t8,t9,f12,f14
 func_802A9164: in gp=a0,s0=a1,t8=a2 ; preserve a0,a2,a3,t7,t8,f12,f14
 func_802A9514: in s3=a0 ; out s3=ret ; preserve a1,a2,a3,t0,t1,t2,t8,t9,f12,f14
 func_802A9CAC: in v0=a0,t8=a1 ; preserve v1,a0,a1,a2,a3,t3,f12,f14
+# plane height over (t0,t1) of triangle (s1,s2,s3) (s4,s5,s6) (s7,t8,t9) -> v0; also leaves a3, t6
+func_802AA2E4: in t0=a0,t1=a1,s1=a2,s2=a3,s3=stack0,s4=stack1,s5=stack2,s6=stack3,s7=stack4,t8=stack5,t9=stack6 ; out v0=ret,a3=*stack7,t6=*stack8 ; preserve v1,a0,a1,a2,t0,t1,t2,t3,t7,f12,f14
+# point (t0,t1) inside triangle (s1,s3) (s4,s6) (s7,t9) -> v0; FP side results through one struct (f24 in/out)
+func_802AA460: in t0=a0,t1=a1,s1=a2,s3=a3,s4=stack0,s6=stack1,s7=stack2,t9=stack3,f24=*stack4+16 ; out v0=ret,f12=*stack4,f14=*stack4+4,f20=*stack4+8,f22=*stack4+12,f24=*stack4+16,f26=*stack4+20 ; preserve v1,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,t8,t9 ; clobbers f28
+# Mtx chain (a1 matrices at s4 + a2[i]) then transform (v0,v1,a0); count 0 returns s0/s1/s2 >> 11
+func_802AA890: in a1=a0,a2=a1,s4=a2,v0=a3,v1=stack0,a0=stack1,a3=*stack2+8,s1=*stack2+12,s2=*stack2+16,s0=*stack2+20 ; out v0=ret,v1=*stack2,a0=*stack2+4,a3=*stack2+8,s1=*stack2+12,s2=*stack2+16 ; preserve a1,a2,t0,t1,t2,t3,t4,t5,t6,t7,f12,f14
 # point-in-bounding-box of a triangle: point (t0,t1), corners (s1,s3) (s4,s6) (s7,t9)
 func_802AA5E0: in t0=a0,t1=a1,s1=a2,s3=a3,s4=stack0,s6=stack1,s7=stack2,t9=stack3 ; out v0=ret ; preserve a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,t8,t9,f12,f14
 func_802AA838: in t0=a0,t1=a1,t2=a2 ; preserve a1,a2,a3,t0,t1,t3,t4,f12,f14

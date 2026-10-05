@@ -972,10 +972,139 @@ void func_802A9CAC(s32 index, s32 kind) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802AA094.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+f64 fabs(f64);
+#pragma intrinsic(fabs)
+extern f64 D_80305C50; /* 2000.0 */
+
+/* Height of the plane through the triangle p0 = (x0, y0, z0), p1, p2 above
+ * the point (x, z), as round(|h / (ny * 2000)| * D_80305C50) - 1000, where
+ * n = (nx, ny, nz) is the triangle normal (64-bit integer cross product),
+ * d = -(n . p1) and h = nx * x - 1000 * ny + nz * z + d. Returns 0xFF676981
+ * when ny == 0 (vertical triangle).
+ * Register convention: x t0, z t1, p0 s1/s2/s3, p1 s4/s5/s6, p2 s7/t8/t9;
+ * result in v0. The asm also leaves nz * z1 (low 32 bits) in a3 and y0 - y2
+ * in t6, which some callers read: here *a3Out and *t6Out. The asm's 32-bit
+ * subtractions, 64-bit dsubs and final add trap on overflow; the C wraps.
+ * Rounding is to nearest even (cvt.l.d under the default FCSR).
+ * Asm callers keep a1, a2, t0-t3, t7, f12 and f14 live. */
+s32 func_802AA2E4(s32 x, s32 z, s32 x0, s32 y0, s32 z0, s32 x1, s32 y1, s32 z1, s32 x2, s32 y2, s32 z2,
+                  s32 *a3Out, s32 *t6Out) {
+    s64 dy01 = y0 - y1;
+    s64 dz02 = z0 - z2;
+    s64 dz01 = z0 - z1;
+    s64 dy02 = y0 - y2;
+    s64 dx02 = x0 - x2;
+    s64 dx01 = x0 - x1;
+    s64 nx = dy01 * dz02 - dz01 * dy02;
+    s64 ny = dz01 * dx02 - dx01 * dz02;
+    s64 nz = dx01 * dy02 - dy01 * dx02;
+    s64 nzz1 = nz * z1;
+    s64 d = -(nx * x1 + ny * y1 + nzz1);
+    s64 h = nx * x + ny * -1000 + nz * z + d;
+    s64 t;
+    f64 r;
+    f64 frac;
+
+    *t6Out = y0 - y2;
+    *a3Out = (s32) nzz1;
+    if (ny == 0) {
+        return 0xFF676981;
+    }
+    r = D_80305C50 * fabs((f64) h / (f64) (ny * 2000));
+    t = (s64) r; /* truncates; round to nearest even below */
+    frac = r - (f64) t;
+    if (frac > 0.5 || (frac == 0.5 && (t & 1))) {
+        t++;
+    } else if (frac < -0.5 || (frac == -0.5 && (t & 1))) {
+        t--;
+    }
+    return (s32) t - 1000;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802AA2E4.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Results of func_802AA460 that its asm callers read from FP registers. */
+typedef struct {
+    f32 pz;    /* f12: (f32) z */
+    f32 cross; /* f14: last edge cross product of the point */
+    f32 cz;    /* f20: centroid-ish z */
+    f32 side;  /* f22: last edge cross product of the centre (2.0 if none computed) */
+    f32 sideZ; /* f24: its z term (in/out: unchanged if never computed) */
+    f32 dz;    /* f26: last edge's z extent */
+} TriSideOut;
+
+/* 1 if the point (x, z) is on the same side of each edge of the triangle
+ * (x0, z0), (x1, z1), (x2, z2) as the point c = ((x0 + (x1 + x2) / 2) / 2,
+ * (z0 + (z1 + z2) / 2) / 2); edges whose line passes through (x, z) are
+ * skipped. 0 otherwise. Float math in single precision, as the asm.
+ * Register convention: x t0, z t1, x0 s1, z0 s3, x1 s4, z1 s6, x2 s7, z2 t9;
+ * result in v0, plus f12/f14/f20/f22/f24/f26 (see TriSideOut) through `out`
+ * (f24 is passed in too). The asm clobbers f28 (callee-saved) and f2-f18;
+ * its x1 + x2, z1 + z2 and edge differences use trapping add/sub. Asm callers
+ * keep a1-a3 and t0-t9 live. */
+s32 func_802AA460(s32 x, s32 z, s32 x0, s32 z0, s32 x1, s32 z1, s32 x2, s32 z2, TriSideOut *out) {
+    f32 px = x;
+    f32 pz = z;
+    f32 cx = ((f32) x0 + (f32) (x1 + x2) / 2.0f) / 2.0f;
+    f32 cz = ((f32) z0 + (f32) (z1 + z2) / 2.0f) / 2.0f;
+    f32 cross;
+    f32 side = 2.0f;
+    f32 sideZ = out->sideZ;
+    f32 ax;
+    f32 az;
+    f32 dx;
+    f32 dz;
+    s32 edge;
+    s32 result = 1;
+
+    for (edge = 3; edge != 0; edge--) {
+        if (edge == 3) {
+            ax = x0;
+            az = z0;
+            dz = z1 - z0;
+            dx = x1 - x0;
+        } else if (edge == 2) {
+            ax = x0;
+            az = z0;
+            dz = z2 - z0;
+            dx = x2 - x0;
+        } else {
+            ax = x1;
+            az = z1;
+            dz = z2 - z1;
+            dx = x2 - x1;
+        }
+        cross = (px - ax) * dz - (pz - az) * dx;
+        if (cross == 0.0f) {
+            continue;
+        }
+        sideZ = (cz - az) * dx;
+        side = (cx - ax) * dz - sideZ;
+        if (cross > 0.0f) {
+            if (side > 0.0f) {
+                continue;
+            }
+        } else if (side < 0.0f) {
+            continue;
+        }
+        result = 0;
+        break;
+    }
+    out->pz = pz;
+    out->cross = cross;
+    out->cz = cz;
+    out->side = side;
+    out->sideZ = sideZ;
+    out->dz = dz;
+    return result;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802AA460.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -1048,7 +1177,97 @@ void func_802AA838(u8 *src, u8 *dst, s32 off) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u16 D_803EBB58[]; /* accumulated Mtx (s15.16: int halves, then frac halves at +0x20) */
+extern u16 D_803EBB98[]; /* product temp, same layout */
+
+/* Element (row, col) of an N64 fixed-point Mtx as s15.16. */
+#define MTX_FIX(m, row, col) \
+    ((s32) (((m)[(row) * 4 + (col)] << 16) | (m)[16 + (row) * 4 + (col)]))
+
+/* Registers func_802AA890 reads and writes besides its arguments. */
+typedef struct {
+    s32 v1;  /* out: y' >> 11 */
+    s32 a0;  /* out: z' >> 11 */
+    s32 a3;  /* in/out: the last matrix used */
+    s32 s1;  /* in/out: y' */
+    s32 s2;  /* in/out: z' */
+    s32 s0;  /* in: only read when count == 0 */
+} MtxChainRegs;
+
+/* Concatenate `count` Mtx (each at base + offsets[i]) as M = M0 * M1 * ...
+ * (64-bit products, >> 16) into D_803EBB58, then transform (x, y, z) by M in
+ * 32-bit integer math: x' = M00 x + M10 y + M20 z + (M30 int part only - the
+ * asm drops its fraction), y' and z' likewise with full M31/M32. Returns
+ * x' >> 11; y' >> 11 and z' >> 11 go to regs->v1/a0, y'/z' themselves to
+ * regs->s1/s2, and the last matrix address to regs->a3 (with count == 1:
+ * the first matrix + 0x40, where its copy loop leaves it). With count == 0
+ * nothing is computed and the results are the caller's s0/s1/s2 >> 11.
+ * Register convention: count a1, offsets a2, base s4, x v0, y v1, z a0;
+ * outputs v0, v1, a0, a3, s1, s2 (asm clobbers s1/s2; saves the rest).
+ * Asm callers keep a1, a2, t0-t7, f12 and f14 live. */
+s32 func_802AA890(s32 count, s32 *offsets, u8 *base, s32 x, s32 y, s32 z, MtxChainRegs *regs) {
+    s32 *src;
+    s32 *dst;
+    u16 *b;
+    s64 sum;
+    s32 i;
+    s32 j;
+    s32 k;
+    s32 rx;
+    s32 ry;
+    s32 rz;
+
+    if (count == 0) {
+        regs->v1 = regs->s1 >> 11;
+        regs->a0 = regs->s2 >> 11;
+        return regs->s0 >> 11;
+    }
+    src = (s32 *) (base + *offsets);
+    dst = (s32 *) D_803EBB58;
+    for (i = 0; i < 16; i++) {
+        dst[i] = src[i];
+    }
+    b = (u16 *) (src + 16); /* the asm's a3 ends past the first matrix */
+    offsets++;
+    count--;
+    while (count != 0) {
+        b = (u16 *) (base + *offsets);
+        for (i = 0; i < 4; i++) {
+            for (j = 0; j < 4; j++) {
+                sum = 0;
+                for (k = 0; k < 4; k++) {
+                    sum += (s64) MTX_FIX(D_803EBB58, i, k) * (s64) MTX_FIX(b, k, j);
+                }
+                sum >>= 16;
+                D_803EBB98[16 + i * 4 + j] = sum;
+                D_803EBB98[i * 4 + j] = (u32) sum >> 16;
+            }
+        }
+        src = (s32 *) D_803EBB98;
+        dst = (s32 *) D_803EBB58;
+        for (i = 0; i < 16; i++) {
+            dst[i] = src[i];
+        }
+        offsets++;
+        count--;
+    }
+    rx = MTX_FIX(D_803EBB58, 0, 0) * x + MTX_FIX(D_803EBB58, 1, 0) * y + MTX_FIX(D_803EBB58, 2, 0) * z +
+         (D_803EBB58[12] << 16);
+    ry = MTX_FIX(D_803EBB58, 0, 1) * x + MTX_FIX(D_803EBB58, 1, 1) * y + MTX_FIX(D_803EBB58, 2, 1) * z +
+         MTX_FIX(D_803EBB58, 3, 1);
+    rz = MTX_FIX(D_803EBB58, 0, 2) * x + MTX_FIX(D_803EBB58, 1, 2) * y + MTX_FIX(D_803EBB58, 2, 2) * z +
+         MTX_FIX(D_803EBB58, 3, 2);
+    regs->a3 = (s32) b;
+    regs->s1 = ry;
+    regs->s2 = rz;
+    regs->v1 = ry >> 11;
+    regs->a0 = rz >> 11;
+    return rx >> 11;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802AA890.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802AABE4.s")

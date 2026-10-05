@@ -353,6 +353,96 @@ void func_80265B7C(s32 arg0) {
     }
 }
 
+/* TODO: near miss (26 of 233 instructions differ, all scheduling/registers).
+ * Picks the next piece to drop on the player: the nearest landed one, or the
+ * farthest when the timer forced the current one down, and plays its sound.
+ * Still different: the prologue computes 99999999 before the two -1s (stores
+ * land 0x38, 0x40, 0x3C), and the 'i = minIdx' else-branch gets t6 where we
+ * get t5, renaming the rest. Tried all 120 orders of the five init statements,
+ * chained/comma/initializer forms, ternary and inverted if/else for the pick.
+
+void func_80265E48(void) {
+    s32 i;
+    s32 minIdx;
+    s32 minDist;
+    s32 maxIdx;
+    s32 maxDist;
+    s32 d;
+    u8 found;
+    u8 forced;
+    s32 vol;
+
+    minIdx = -1;
+    minDist = 99999999;
+    maxIdx = -1;
+    maxDist = 0;
+    forced = 0;
+    if (D_803EF32D) {
+        i = 0;
+        found = 0;
+        while (!found) {
+            if (D_80367D60[i].unk15 == 2) {
+                D_80367D60[i].unk15 = 3;
+                D_80367D60[i].unk13 = 0;
+                found = 1;
+            } else {
+                i++;
+            }
+        }
+        D_803EF32D = 0;
+        D_80368038 = 99999999;
+    } else {
+        D_80368038--;
+        if (D_80368038 == 0) {
+            D_803EF32C = 6;
+            D_80367D60[D_8036803C].unk15 = 1;
+            forced = 1;
+        }
+    }
+    if (D_803EF32C == 0) {
+        for (i = 0; i < 20; i++) {
+            if (D_80367D60[i].unk15 == 3) {
+                D_80367D60[i].unk15 = 0;
+            }
+        }
+        for (i = 0; i < 20; i++) {
+            if (D_80367D60[i].unk15 == 1) {
+                d = func_8026A610(D_803EF2EC, D_803EF2F4, D_80367D60[i].x << 5, D_80367D60[i].z << 5);
+                if (d < minDist) {
+                    minDist = d;
+                    minIdx = i;
+                }
+                if (d > maxDist) {
+                    maxDist = d;
+                    maxIdx = i;
+                }
+            }
+        }
+        if (minIdx != -1) {
+            if (forced) {
+                i = maxIdx;
+            } else {
+                i = minIdx;
+            }
+            D_803EF308 = D_80367D60[i].x << 5;
+            D_803EF30C = D_80367D60[i].z << 5;
+            D_80368030 = D_80367D60[i].y << 5;
+            D_80367D60[i].unk15 = 2;
+            D_80368038 = 600;
+            D_803EF32C = 1;
+            D_8036803C = i;
+            if (35000 - func_8026A610(D_803643E0, D_803643E8, D_803EF308, D_803EF30C) * 2 >= 0x8000) {
+                vol = 0x7FFF;
+            } else {
+                vol = 35000 - func_8026A610(D_803643E0, D_803643E8, D_803EF308, D_803EF30C) * 2;
+            }
+            if (vol > 4000) {
+                func_80260AB8(func_80260650(D_80367738, 0x25, 0), 8, vol);
+            }
+        }
+    }
+}
+*/
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/20460/func_80265E48.s")
 
 /* Point the camera target at the player */
@@ -365,6 +455,216 @@ void func_802661EC(void) {
     D_80368038 = 2000;
 }
 
+/* TODO: draws the debris (billboarded 20x32 RGBA16 sprites, animated, picked
+ * by heading) plus one marker at D_803EF310. Needs this file's .rodata split
+ * (5 jump tables and 4 doubles at 0x80309648-0x80309700). Matches in probe
+ * (1267/1267), with these declarations:
+
+typedef struct {
+    Mtx mtx[100];
+    Vtx vtx[1];
+} DynBuf;
+
+extern Debris D_80367D60[20];
+extern f32 D_80364414;
+extern Vtx D_802E9FB0[4];
+extern u16 D_802E9FF0[];
+extern u16 D_802EA4F0[], D_802EA9F0[], D_802EAEF0[], D_802EB3F0[], D_802EB8F0[], D_802EBDF0[];
+extern u16 D_802EC2F0[], D_802EC7F0[], D_802ECCF0[], D_802ED1F0[], D_802ED6F0[], D_802EDBF0[], D_802EE0F0[], D_802EE5F0[];
+extern u16 D_802EEAF0[], D_802EEFF0[], D_802EF4F0[], D_802EF9F0[], D_802EFEF0[], D_802F03F0[], D_802F08F0[], D_802F0DF0[];
+extern u16 D_802F12F0[], D_802F17F0[], D_802F1CF0[], D_802F21F0[], D_802F26F0[], D_802F2BF0[], D_802F30F0[], D_802F35F0[];
+extern u8 D_803EF32E;
+extern s32 D_803EF310;
+extern s32 D_803EF314;
+extern s32 D_803EF318;
+extern u8 D_02000000[];
+
+s32 func_80267614(Debris *);
+void func_8026A5CC(void *, void *, s32);
+
+#define LOAD_TEX(ptr) \
+    gDPPipeSync(gdl++); \
+    gDPLoadTextureBlock(gdl++, ptr, G_IM_FMT_RGBA, G_IM_SIZ_16b, 20, 32, 0, G_TX_CLAMP, G_TX_CLAMP, \
+                        G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD)
+
+void func_80266248(Gfx **gdlp, DynBuf *buf) {
+    Gfx *gdl;
+    s32 n;
+    s32 i;
+    s32 k;
+    s32 j;
+    u8 found;
+    u8 frame;
+    u16 *tex;
+    u32 phys;
+    u8 flip;
+    f32 mf[4][4];
+    f32 fx[4];
+    f32 fy[4];
+    f32 fz[4];
+    s16 ang;
+
+    gdl = *gdlp;
+    n = 0;
+    guRotateF(mf, D_80364414 - 135.0, 0.0f, 1.0f, 0.0f);
+    for (k = 0; k < 4; k++) {
+        guMtxXFMF(mf, D_802E9FB0[k].v.ob[0], D_802E9FB0[k].v.ob[1], D_802E9FB0[k].v.ob[2], &fx[k], &fy[k], &fz[k]);
+    }
+    gSPClearGeometryMode(gdl++, 0xFFFFFFFF);
+    gSPSetGeometryMode(gdl++, G_ZBUFFER | G_SHADE | G_SHADING_SMOOTH);
+    gDPPipeSync(gdl++);
+    gDPSetCycleType(gdl++, G_CYC_1CYCLE);
+    gDPSetRenderMode(gdl++, G_RM_ZB_XLU_SURF, G_RM_ZB_XLU_SURF2);
+    gDPSetCombineMode(gdl++, G_CC_MODULATERGBA, G_CC_MODULATERGBA);
+    gSPTexture(gdl++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
+    for (i = 0; i < 20; i++) {
+        if (func_80267614(&D_80367D60[i]) &&
+            (D_80367D60[i].unk15 == 1 || D_80367D60[i].unk15 == 2 || (D_80367D60[i].unk15 == 4 && D_80367D60[i].unk1C == 0))) {
+            D_80367D60[i].unk14++;
+            if (D_80367D60[i].unk14 >= 6) {
+                D_80367D60[i].unk13++;
+                D_80367D60[i].unk14 = 0;
+            }
+            if (D_80367D60[i].unk13 >= 6) {
+                D_80367D60[i].unk13 = 0;
+            }
+            switch (D_80367D60[i].unk13) {
+                case 0: tex = D_802EA4F0; break;
+                case 1: tex = D_802EA9F0; break;
+                case 2: tex = D_802EAEF0; break;
+                case 3: tex = D_802EB3F0; break;
+                case 4: tex = D_802EB8F0; break;
+                case 5: tex = D_802EBDF0; break;
+            }
+            phys = osVirtualToPhysical(tex);
+            LOAD_TEX(phys);
+            func_8026A5CC(&buf->vtx[n], D_802E9FB0, sizeof(Vtx) * 4);
+            for (j = 0; j < 4; j++) {
+                buf->vtx[n + j].v.ob[0] = fx[j] + D_80367D60[i].x;
+                buf->vtx[n + j].v.ob[1] = fy[j] + D_80367D60[i].y;
+                buf->vtx[n + j].v.ob[2] = fz[j] + D_80367D60[i].z;
+            }
+            gSPVertex(gdl++, n * sizeof(Vtx) + 0x1900 + (u32) D_02000000, 4, 0);
+            n += 4;
+            gSP1Triangle(gdl++, 0, 1, 2, 0);
+            gSP1Triangle(gdl++, 0, 2, 3, 0);
+        }
+    }
+    for (i = 0; i < 20; i++) {
+        if (((D_80367D60[i].unk15 == 4 && D_80367D60[i].unk1C != 0) || D_80367D60[i].unk15 == 5) &&
+            func_80267614(&D_80367D60[i])) {
+            D_80367D60[i].unk14 += D_80367D60[i].unk1C;
+            if (D_80367D60[i].unk14 >= 11) {
+                D_80367D60[i].unk13++;
+                D_80367D60[i].unk14 = 0;
+            }
+            if (D_80367D60[i].unk13 >= 8) {
+                D_80367D60[i].unk13 = 0;
+            }
+            frame = D_80367D60[i].unk13;
+            flip = 0;
+            ang = D_80367D60[i].unk18 - (D_80364414 - 135.0) / 360.0 * 4095.0;
+            if (ang < 0) {
+                ang += 0xFFF;
+            }
+            if (ang >= 0xC00) {
+                switch (frame) {
+                    case 0: tex = D_802EEAF0; break;
+                    case 1: tex = D_802EEFF0; break;
+                    case 2: tex = D_802EF4F0; break;
+                    case 3: tex = D_802EF9F0; break;
+                    case 4: tex = D_802EFEF0; break;
+                    case 5: tex = D_802F03F0; break;
+                    case 6: tex = D_802F08F0; break;
+                    case 7: tex = D_802F0DF0; break;
+                }
+            }
+            if (ang >= 0x800 && ang < 0xC00) {
+                flip = 1;
+                switch (frame) {
+                    case 0: tex = D_802F12F0; break;
+                    case 1: tex = D_802F17F0; break;
+                    case 2: tex = D_802F1CF0; break;
+                    case 3: tex = D_802F21F0; break;
+                    case 4: tex = D_802F26F0; break;
+                    case 5: tex = D_802F2BF0; break;
+                    case 6: tex = D_802F30F0; break;
+                    case 7: tex = D_802F35F0; break;
+                }
+            }
+            if (ang >= 0x400 && ang < 0x800) {
+                switch (frame) {
+                    case 0: tex = D_802EC2F0; break;
+                    case 1: tex = D_802EC7F0; break;
+                    case 2: tex = D_802ECCF0; break;
+                    case 3: tex = D_802ED1F0; break;
+                    case 4: tex = D_802ED6F0; break;
+                    case 5: tex = D_802EDBF0; break;
+                    case 6: tex = D_802EE0F0; break;
+                    case 7: tex = D_802EE5F0; break;
+                }
+            }
+            if (ang < 0x400) {
+                switch (frame) {
+                    case 0: tex = D_802F12F0; break;
+                    case 1: tex = D_802F17F0; break;
+                    case 2: tex = D_802F1CF0; break;
+                    case 3: tex = D_802F21F0; break;
+                    case 4: tex = D_802F26F0; break;
+                    case 5: tex = D_802F2BF0; break;
+                    case 6: tex = D_802F30F0; break;
+                    case 7: tex = D_802F35F0; break;
+                }
+            }
+            phys = osVirtualToPhysical(tex);
+            LOAD_TEX(phys);
+            func_8026A5CC(&buf->vtx[n], D_802E9FB0, sizeof(Vtx) * 4);
+            if (flip) {
+                buf->vtx[n].v.tc[0] = 0x260;
+                buf->vtx[n + 1].v.tc[0] = 0;
+                buf->vtx[n + 2].v.tc[0] = 0;
+                buf->vtx[n + 3].v.tc[0] = 0x260;
+            }
+            for (j = 0; j < 4; j++) {
+                buf->vtx[n + j].v.ob[0] = fx[j] + D_80367D60[i].x;
+                buf->vtx[n + j].v.ob[1] = fy[j] + D_80367D60[i].y;
+                buf->vtx[n + j].v.ob[2] = fz[j] + D_80367D60[i].z;
+            }
+            gSPVertex(gdl++, n * sizeof(Vtx) + 0x1900 + (u32) D_02000000, 4, 0);
+            n += 4;
+            gSP1Triangle(gdl++, 0, 1, 2, 0);
+            gSP1Triangle(gdl++, 0, 2, 3, 0);
+        }
+    }
+    if (D_803EF32E == 0) {
+        i = 0;
+        found = 0;
+        while (i < 20 && !found) {
+            if (D_80367D60[i].unk15 == 3) {
+                found = 1;
+                LOAD_TEX(osVirtualToPhysical(D_802E9FF0));
+                func_8026A5CC(&buf->vtx[n], D_802E9FB0, sizeof(Vtx) * 4);
+                for (j = 0; j < 4; j++) {
+                    buf->vtx[n + j].v.ob[0] = fx[j];
+                    buf->vtx[n + j].v.ob[1] = fy[j];
+                    buf->vtx[n + j].v.ob[2] = fz[j];
+                }
+                guTranslate(&buf->mtx[8], D_803EF310 / 32.0f, D_803EF314 / 32.0f, D_803EF318 / 32.0f);
+                gSPMatrix(gdl++, 8 * sizeof(Mtx) + (u32) D_02000000, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
+                gSPVertex(gdl++, n * sizeof(Vtx) + 0x1900 + (u32) D_02000000, 4, 0);
+                n += 4;
+                gSP1Triangle(gdl++, 0, 1, 2, 0);
+                gSP1Triangle(gdl++, 0, 2, 3, 0);
+                gSPPopMatrix(gdl++, G_MTX_MODELVIEW);
+            } else {
+                i++;
+            }
+        }
+    }
+    gDPPipeSync(gdl++);
+    *gdlp = gdl;
+}
+*/
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/20460/func_80266248.s")
 
 typedef struct {

@@ -8,4 +8,29 @@ D_80304954 = 0x80304954; /* .data initializer: hd_code u16 text */
 D_80358058 = 0x80358058; /* hd_code: depth buffer address */
 D_8035806C = 0x8035806C; /* hd_code: segment 1 base */
 D_01000010 = 0x01000010; /* segment 1 display lists */
+/* 0DE70: ROM addresses of the front-end scene blobs */
+D_006E8980 = 0x006E8980;
+D_006EA850 = 0x006EA850;
+D_006EAB90 = 0x006EAB90;
+D_006EC4C0 = 0x006EC4C0;
+/* 1A240 */
+D_0068B550 = 0x0068B550;
+D_006A32B0 = 0x006A32B0;
+D_8020E3E0 = 0x8020E3E0;
+D_8036BB1C = 0x8036BB1C;
+/* 07800: two adjacent ROM blobs */
+D_0048F5A0 = 0x0048F5A0;
+D_0048F5A0_end = 0x0048F970;
+D_0048F970 = 0x0048F970;
+D_0048F970_end = 0x0048FA70;
+/* 06790: hd_code glyph lists */
+D_80303B78 = 0x80303B78;
+D_80303B88 = 0x80303B88;
+/* 07800 (stats.c): hd_code data */
+D_80303B3C = 0x80303B3C;
+D_80303B48 = 0x80303B48;
+D_80303B58 = 0x80303B58;
+D_80303B68 = 0x80303B68;
+D_8036B980 = 0x8036B980;
+D_8036EA70 = 0x8036EA70;
 D_01000038 = 0x01000038;

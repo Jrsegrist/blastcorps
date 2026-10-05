@@ -60,8 +60,14 @@ segments:
     - [0x21040, linker, data]
     - [0x21040, .data, hd_front_end/00000]
     - [0x211C0, bin, hd_front_end/hd_front_end_data] # .data/.rodata (vram 0x80208040)
+    - [0x214B0, .data, hd_front_end/06790]
+    - [0x214D0, .data, hd_front_end/07800] # stats.c
+    - [0x214F0, bin, hd_front_end/hd_front_end_data_214F0]
     - [0x27440, .rodata, hd_front_end/00000]
     - [0x274D0, bin, hd_front_end/hd_front_end_data_274D0]
+    - [0x27D40, .rodata, hd_front_end/06790]
+    - [0x27DB0, .rodata, hd_front_end/07800] # stats.c
+    - [0x27FC0, bin, hd_front_end/hd_front_end_data_27FC0]
     - [0x29550, .rodata, hd_front_end/17990]
     - [0x29620, bin, hd_front_end/hd_front_end_data_29620]
     - [0x29670, .rodata, hd_front_end/1AE80]

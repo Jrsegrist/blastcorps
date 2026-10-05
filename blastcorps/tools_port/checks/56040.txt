@@ -323,3 +323,52 @@ func_802A0674: -n 300 --stub-ret func_802A06B4=ptr:0x20 --arg v0=int
 func_802A0674: -n 200 --seed 1 --follow func_802A06B4 --arg v0=0x1234 --mem D_803B35F8:0x180=onehot:0x18:0x1234:rand
 # sign/zero-extension boundaries of every field
 func_802A0674: -n 100 --seed 2 --follow func_802A06B4 --arg v0=0x1234 --mem D_803B35F8:0x180=onehot:0x18:0x1234:bytes:0,0x7F,0x80,0xFF
+
+# func_8029A800 (a0-a3, v0, v1, t0-t3, t8, gp = vehicle record): vehicle-state reset, then buffer resets
+# (func_802BCC10 if D_80358060 == 0, again if a2 != 0 && t8 != 0xFF; func_802BCBD8 always)
+func_8029A800: -n 300 --sig func_802BCC10= --sig func_802BCBD8= --arg gp=ptr:0x100 --arg a2=choice:0,1,0xFF,0x100 \
+    --arg t8=choice:0,0xFF,0x1FF,7 --mem D_80358060=choice:0,1,-1 --mem D_803A73F0:0x40=rand --mem D_803F77FC:0x18=rand
+func_8029A800: -n 100 --seed 1 --sig func_802BCC10= --sig func_802BCBD8= --arg gp=sym:D_803EEA90 --arg a2=0x100 --arg t8=0xFF \
+    --mem D_80358060=0 --mem D_803A73F0:0x40=rand --mem D_803F77FC:0x18=rand --mem D_803EEA90+0xA0:1=bytes:0,1,0xFF
+
+# func_8029B514 (t3-t5 = point, t6 = radius, s0 = record): func_8029CFA4 against the record's sphere (words >> 2) -> v1
+func_8029B514: -n 300 --arg s0=ptr:0x20 --mem @s0:0x20=words:0,3,4,-4,-5,0x7FFFFFFF,0x80000000,0xFFFFFFFF
+func_8029B514: -n 300 --seed 1 --follow func_8029CFA4,sqrtf --arg s0=ptr:0x20 --mem @s0:0x20=words:0,4,-4,400,-400,4000,-4000,0x1000 \
+    --arg t3=int:-1000:1000 --arg t4=int:-1000:1000 --arg t5=int:-1000:1000 --arg t6=int:0:1500
+
+# func_8029CF54 (s1 = v): D_803649ED = v unless D_803EFECB && func_802AB41C(v, 7)
+func_8029CF54: -n 200 --mem D_803EFECB:1=bytes:0,1,0x80 --mem D_803649ED:1=rand --stub-ret func_802AB41C=rand
+func_8029CF54: -n 100 --seed 1 --mem D_803EFECB:1=bytes:0,1,0x80 --mem D_803649ED:1=rand --stub-ret func_802AB41C=0
+# followed: pair (v, 7) present or not in the -1-terminated D_803ED3B8 list
+func_8029CF54: -n 300 --seed 2 --follow func_802AB41C --arg s1=choice:0,1,2,0xFF,0x100 --mem D_803EFECB:1=bytes:0,1 \
+    --mem D_803649ED:1=rand --mem D_803ED3B8:0x40=words:0x00070000,0x01070000,0x02070000,0x00060000,0xFF070000,0 \
+    --mem D_803ED3B8+0x40=0xFFFFFFFF
+
+# func_8029C5EC (s0-s3 pass through): func_8029C6E4, then func_8028FAC0/func_802920DC(s0-s3) if found -> s4
+func_8029C5EC: -n 200 --stub-ret func_8029C6E4.s4=rand
+func_8029C5EC: -n 100 --seed 1 --stub-ret func_8029C6E4.s4=0
+func_8029C5EC: -n 300 --seed 2 --follow func_8029C6E4 --mem D_803A6B30:0x140=rand --mem D_803A6B30+0x13*0x14:16/1=bytes:0,0,1,0xFF \
+    --mem D_803A6B30+0x12*0x14:16/1=bytes:6,6,5 --mem D_803A6B30+0xC*0x14:16=choice:0x3BD,0x3BC,0 --mem D_803A6B30+0x13F:1=0xFF
+
+# func_8029C454 (v0,v1,a0 = point, t0 = tag, t1 = p, t2 = end, s4 = Mtx base): place parts; records 0x10 bytes apart
+# (one matrix each) from p + 4, end after 0-3 of them; tag in exactly one entry of each table
+func_8029C454: -n 300 --arg t0=5 --heap 0x100 --arg t1=rel:heap0 --mem @heap0+0xE*0x10:4/2=1 --arg t2=rel:heap0+4+0x10*int:0:3 \
+    --mem D_803A7300:0xC8=onehot:0x14@0x10/1:5:rand --mem D_803A6B30:0x100=rand --mem D_803A6B30:0xC8=onehot:0x14@0x12/1:5:rand
+func_8029C454: -n 300 --seed 1 --follow func_802AA890 --arg t0=0x80 --heap 0x100 --heap 0x80 --arg s4=rel:heap1 --arg t1=rel:heap0 \
+    --mem @heap0+0xE*0x10:4/2=1 --mem @heap0+0x10*0x10:4=choice:0,0x40 --arg t2=rel:heap0+4+0x10*int:0:3 \
+    --mem D_803A7300:0xC8=onehot:0x14@0x10/1:0x80:rand --mem D_803A6B30:0x100=rand --mem D_803A6B30:0xC8=onehot:0x14@0x12/1:0x80:rand
+# records with no matrices (0xC bytes apart): func_802AA890 returns the caller's s0/s1/s2 >> 11
+func_8029C454: -n 200 --seed 2 --follow func_802AA890 --arg t0=0 --heap 0x100 --arg t1=rel:heap0 --mem @heap0+0xE*0xC:4/2=0 \
+    --arg t2=rel:heap0+4+0xC*int:0:3 --mem D_803A7300:0xC8=onehot:0x14@0x10/1:0:rand --mem D_803A6B30:0x100=rand \
+    --mem D_803A6B30:0xC8=onehot:0x14@0x12/1:0:rand
+
+# func_8029DA90 (a1 = val, (t0, t1) = point, t5 = n, s4 = table): first triangle containing the point, then val vs the
+# u16 range after the table -> t4. Stubbed: found at the first triangle (range at s4 + 0x48), or never found
+func_8029DA90: -n 300 --arg t5=3 --arg s4=ptr:0x60 --stub-ret func_802AA5E0=rand --stub-ret func_802AA460=rand \
+    --mem @s4+0x48:4=halves:0,1,5,10,0x7FFF,0x8000,0xFFFF --arg a1=choice:-1,0,1,4,5,6,9,10,11,0x7FFF,0x8000,0xFFFF,0x10000
+func_8029DA90: -n 200 --seed 1 --arg t5=int:0:4 --arg s4=ptr:0x80 --stub-ret func_802AA5E0=rand --stub-ret func_802AA460=0
+func_8029DA90: -n 100 --seed 2 --arg t5=int:0:4 --arg s4=ptr:0x80 --stub-ret func_802AA5E0=0
+# followed: small triangles around the point, range after 4 of them
+func_8029DA90: -n 300 --seed 3 --follow func_802AA5E0,func_802AA460 --arg t5=4 --arg s4=ptr:0x80 \
+    --mem @s4:0x60=words:-40,-20,0,20,40 --arg t0=int:-30:30 --arg t1=int:-30:30 \
+    --mem @s4+0x60:4=halves:0,5,10 --arg a1=choice:-1,0,1,4,5,6,9,10,11

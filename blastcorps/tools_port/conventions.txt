@@ -57,6 +57,18 @@ func_802A040C: in a0=a0,v0=a1,v1=a2 ; preserve v0,v1,a0,a1,a2,a3,t6,t7,f12,f14
 func_802A0444: in a0=a0,v0=a1,v1=a2 ; preserve v0,v1,a0,a1,a2,a3
 func_802A0480: in f0=f12,a0=a1,v0=a2,v1=a3 ; preserve v0,v1,a0,a1,a2,a3,t6,t7,f12,f14
 func_802A04BC: in v0=a0,v1=a1 ; out v1=*a2,a0=*a2+4,a1=*a2+8,a2=*a2+0xC,a3=*a2+0x10,t0=*a2+0x14,t1=*a2+0x18,f0=*a2+0x1C ; preserve v0,t2,t4,t6,t7,t8,t9,f12,f14
+# vehicle-state reset: a0-a3 as is, then v0, v1, t0, t1, t2, t3, t8 and the vehicle record gp (varies by caller)
+func_8029A800: in a0=a0,a1=a1,a2=a2,a3=a3,v0=stack0,v1=stack1,t0=stack2,t1=stack3,t2=stack4,t3=stack5,t8=stack6,gp=stack7 ; preserve v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t6,t7,t8,f12,f14
+# sphere (t3,t4,t5) radius t6 vs record s0's sphere (words 0x10/14/18, 0xC, >> 2) via func_8029CFA4 -> v1
+func_8029B514: in t3=a0,t4=a1,t5=a2,t6=a3,s0=stack0 ; out v1=ret ; preserve v0,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t8,t9,f12,f14
+# place parts (tag t0, record walk t1..t2, Mtx base s4) at (v0,v1,a0); func_802AA890's a3/s1/s2 (in/out) and s0 pass through
+func_8029C454: in v0=a0,v1=a1,a0=a2,t0=a3,t1=stack0,t2=stack1,s4=stack2,a3=*stack3+8,s1=*stack3+0xC,s2=*stack3+0x10,s0=*stack3+0x14 ; out a3=*stack3+8,s1=*stack3+0xC,s2=*stack3+0x10 ; preserve v0,v1,a0,a1,a2,t0,t2,t3,t4,t6,t7,f12,f14
+# func_8029C6E4 lookup, then func_8028FAC0/func_802920DC(s0-s3) if found; found flag -> s4 (saves everything else)
+func_8029C5EC: in s0=a0,s1=a1,s2=a2,s3=a3 ; out s4=ret ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,s0,s1,s2,s3,t8,t9,gp,f14
+# D_803649ED = s1 unless D_803EFECB and func_802AB41C(s1, 7) (saves t4, t8; a2 changed)
+func_8029CF54: in s1=a0 ; preserve v0,v1,a0,a1,a3,t0,t1,t2,t3,t4,t5,t6,t7,t8,f12,f14
+# first of t5 triangles at s4 containing (t0,t1), then is a1 in the u16 range after the table -> t4 (0 = in range)
+func_8029DA90: in a1=a0,t0=a1,t1=a2,t5=a3,s4=stack0,s1=*stack1,s3=*stack1+4,f12=*stack1+8,f14=*stack1+0xC,f20=*stack1+0x10,f22=*stack1+0x14,f24=*stack1+0x18,f26=*stack1+0x1C ; out t4=ret,s1=*stack1,s3=*stack1+4,f12=*stack1+8,f14=*stack1+0xC,f20=*stack1+0x10,f22=*stack1+0x14,f24=*stack1+0x18,f26=*stack1+0x1C ; preserve v1,a0,a1,a2,a3,t0,t1,t2,t3,t6,t7 ; clobbers s6,s7,f28
 # same setters/getter on the D_803B35F8 entry with id v0 (via func_802A06B4); value v1, float f0; v0 restored
 func_802A0508: in v0=a0,v1=a1 ; preserve v0,v1,a0,a1,a2,a3,t6,t7,f12,f14
 func_802A0540: in v0=a0 ; preserve v0,v1,a0,a1,a2,a3,t6,t7,f12,f14

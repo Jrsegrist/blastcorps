@@ -88,14 +88,69 @@ u16 D_8020E350[38] = {
 
 u16 D_8020E39C[4] = { 0x0A98, 0x0A99, 0x0A9A, 0x0A9B };
 
-Lights1 D_8020E3A8 = gdSPDefLights1(0x10, 0x10, 0x10, 0xFF, 0xFF, 0xFF, 0, 0, 1);
-Lights1 D_8020E3C0 = gdSPDefLights1(0x10, 0x10, 0x10, 0xFF, 0xFF, 0xFF, 0, 0, 1);
+/* one per frame buffer (D_8035805C) */
+Lights1 D_8020E3A8[2] = {
+    gdSPDefLights1(0x10, 0x10, 0x10, 0xFF, 0xFF, 0xFF, 0, 0, 1),
+    gdSPDefLights1(0x10, 0x10, 0x10, 0xFF, 0xFF, 0xFF, 0, 0, 1),
+};
 
 f32 D_8020E3D8 = 0.0f;
 
+/* hd_code */
+f32 sqrtf(f32);
+extern u8 D_8035805C;
+extern void *D_80367738;
+extern u8 D_80364AE8;
+extern u8 D_80364AF0[];
+extern u8 D_802E8F94[];
+u8 func_80264BA4(u8 arg0);
+void func_80261FB0(u8 arg0);
+void *func_80260650(void *arg0, s16 arg1, void *arg2);
+u8 func_80272C5C(u16 *ids, s32 arg1, s32 count, s32 frames, s32 flags, f32 scale);
+
+/* front end */
+extern s32 D_80217B6C;
+extern u8 D_8021A8F0;
+extern Gfx *D_8021A8F8;
+extern u8 D_8021A905;
+extern f32 D_8021A918;
+extern s16 D_8021A924;
+extern void *D_8021AB34;
+extern f32 D_8021AB4C;
+extern f32 D_8021AB50;
+extern f32 D_8021AB54;
+
+void func_801FCF38(Vtx *v, f32 x, f32 y, f32 z, u8 w, u8 h, f32 scale, u8 flip);
+void func_801FD484(f32 *arg0, f32 *arg1, f32 *arg2, f32 *arg3, f32 *arg4, f32 arg5);
+
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/11530/func_801F8530.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/11530/func_801F885C.s")
+void func_801F885C(s32 arg0) {
+    u8 tune;
+
+    tune = func_80264BA4(arg0);
+    D_8021A905 = arg0;
+    if (tune != D_80217B6C) {
+        D_8021A924 = 0;
+        D_8021A918 = 6250.0f;
+        if (D_80217B6C != 6) {
+            if (D_80217B6C == 3) {
+                func_80261FB0(0x13);
+            } else if (tune == 3) {
+                func_80261FB0(0xC);
+            }
+        }
+    }
+    if (D_80217B6C != 6) {
+        if (tune == 3 && D_80217B6C == 3) {
+            func_80260650(D_80367738, 0x1D, 0);
+        } else {
+            func_80260650(D_80367738, 0x3F, 0);
+        }
+    }
+    D_80217B6C = tune;
+    D_8021AB34 = &D_802E8F94[D_8021A905 * 0x44];
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/11530/func_801F8980.s")
 
@@ -111,26 +166,83 @@ f32 D_8020E3D8 = 0.0f;
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/11530/func_801FC5B8.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/11530/func_801FCE74.s")
+void func_801FCE74(Vtx *v, u8 level, f32 dlat, f32 dlon, u8 w, u8 h, f32 scale, u8 flip) {
+    LevelInfo *info;
+    f32 lat;
+    f32 lon;
+    f32 x;
+    f32 y;
+    f32 z;
+
+    info = &D_8020D810[level];
+    lat = info->unk10 + dlat;
+    lon = info->unk14 + dlon;
+    func_801FD484(&lat, &lon, &x, &y, &z, 248.75f);
+    func_801FCF38(v, x, y, z, w, h, scale, flip);
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/11530/func_801FCF38.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/11530/func_801FD484.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/11530/func_801FD6B8.s")
+/* Wrap the difference b - a into [-range, range). */
+f32 func_801FD6B8(f32 a, f32 b, f32 range) {
+    f32 d;
+
+    d = b - a;
+    if (d >= -range && d < range) {
+        return d;
+    }
+    if (d >= range) {
+        return -2.0f * range + d;
+    }
+    return 2.0f * range + d;
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/11530/func_801FD748.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/11530/func_801FDCA4.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/11530/func_801FDE50.s")
+void func_801FDE50(void) {
+    D_8021A8F0 = func_80272C5C(D_8020E350, 0, 0x13, 2, 1, 1.0f);
+}
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/11530/func_801FDE98.s")
+void func_801FDE98(void) {
+    f32 len;
+    f32 x;
+    f32 y;
+    f32 z;
+
+    len = sqrtf(D_8021AB4C * D_8021AB4C + D_8021AB50 * D_8021AB50 + D_8021AB54 * D_8021AB54);
+    if (len < 1.0) {
+        len = 1.0f;
+    }
+    x = D_8021AB4C / len * 120.0f;
+    y = D_8021AB50 / len * 120.0f;
+    z = D_8021AB54 / len * 120.0f;
+    D_8020E3A8[D_8035805C].l[0].l.dir[0] = x;
+    D_8020E3A8[D_8035805C].l[0].l.dir[1] = y;
+    D_8020E3A8[D_8035805C].l[0].l.dir[2] = z;
+    osWritebackDCache(&D_8020E3A8[D_8035805C], sizeof(D_8020E3A8));
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/11530/func_801FE018.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/11530/func_801FE238.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/11530/func_801FE5D0.s")
+Gfx *func_801FE5D0(Gfx *arg0, s32 arg1) {
+    Gfx *gdl = arg0;
+
+    gDPPipeSync(gdl++);
+    gDPSetCycleType(gdl++, G_CYC_1CYCLE);
+    gSPClearGeometryMode(gdl++, 0xFFFFFFFF);
+    gSPSetGeometryMode(gdl++, G_SHADE | G_SHADING_SMOOTH);
+    gDPSetRenderMode(gdl++, 0x0F0A7008, 0);
+    gDPSetCombine(gdl++, 0xFFFFFF, 0xFFFCF279);
+    gDPSetTextureFilter(gdl++, G_TF_BILERP);
+    gSPDisplayList(gdl++, D_8021A8F8);
+    gDPPipeSync(gdl++);
+    return gdl;
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/11530/func_801FE760.s")

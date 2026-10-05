@@ -2,4 +2,3 @@
 /* 11530: mid-struct fields of its .data, still referenced by GLOBAL_ASM functions */
 D_8020D820 = 0x8020D820;
 D_8020D824 = 0x8020D824;
-D_8020E3BA = 0x8020E3BA;

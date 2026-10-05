@@ -1,0 +1,9 @@
+# 62740: func_802A6F6C (midpoint of ring indices D_803A7410/D_803A7412) and
+# func_802AB3C0 (id lookup in a -1-terminated table)
+
+func_802A6F6C: -n 300 --mem D_803A7410:2=int:0:0xFFF --mem D_803A7412:2=int:0:0xFFF
+func_802A6F6C: -n 300 --seed 1 --mem D_803A7410:2=choice:0,1,0x7FF,0x800,0x801,0xFFE,0xFFF --mem D_803A7412:2=choice:0,1,0x7FF,0x800,0x801,0xFFE,0xFFF
+func_802A6F6C: -n 200 --seed 2 --mem D_803A7410:2=int:0:0xFFFF --mem D_803A7412:2=int:0:0xFFFF
+
+# 4-byte {id, flag, pad} entries terminated by a -1 word (the terminator at +0x40 bounds the scan)
+func_802AB3C0: -n 300 --arg a0=choice:0,1,2,3,0xFF,-1,0x100,0x101 --mem D_803ED3B8:64=words:0x00010000,0x01000000,0x01010000,0x02FF0000,0xFF010000,0x00000000,0xFFFFFFFF,0x03000000,0x00FFFFFF --mem D_803ED3B8+0x40=0xFFFFFFFF

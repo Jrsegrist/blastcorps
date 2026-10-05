@@ -1,0 +1,14 @@
+# 60D50: func_802A5510 (highest HeightZone containing the player) and
+# func_802A56C4 (per-level s16 triple lookup)
+
+# func_802A5510(level): words at level+0x40 / +0x44 are the start/end offsets of a list
+# of 0xA-byte HeightZones (end must be start + n*10); here the list starts at +0x50
+func_802A5510: -n 400 --ret void --arg a0=0x80B00000 --mem 0x80B00040=0x50 --mem 0x80B00044=choice:0x50,0x5A,0x6E,0xA0,0xF0 --mem 0x80B00050:160=halves:0,1,2,3,0xFFFF,0x7FFF,0x8000,0xBB8 --mem D_803643E0=choice:0,32,64,96,-32,-1,96000,0x7FFFFFFF --mem D_803643E8=choice:0,32,64,96,-32,-1,96000,0x7FFFFFFF --mem D_80364450:2=int:0:0xFFFF --mem D_80364411:1=int:0:255 --mem D_8036444E:2=int:0:0xFFFF
+# dense hits: all boxes contain px,pz in 0..3
+func_802A5510: -n 200 --seed 1 --ret void --arg a0=0x80B00000 --mem 0x80B00040=0x50 --mem 0x80B00044=choice:0x50,0x5A,0x6E,0xA0 --mem 0x80B00050:160=halves:0,1,2,3 --mem D_803643E0=choice:0,32,64,96 --mem D_803643E8=choice:0,32,64,96 --mem D_80364450:2=int:0:0xFFFF
+# one box always containing the player; height = sentinel 3000 (0xBB8), its neighbours, extremes
+func_802A5510: -n 200 --seed 2 --ret void --arg a0=0x80B00000 --mem 0x80B00040=0x50 --mem 0x80B00044=0x5A --mem 0x80B00050:8=halves:0 --mem 0x80B00054:4=halves:0x7FFF --mem 0x80B00058:2=halves:0xBB8,0xBB7,0xBB9,0xFFFF,0x8000,0x7FFF --mem D_803643E0=choice:0,32 --mem D_803643E8=choice:0,32 --mem D_80364450:2=int:0:0xFFFF
+# same as the first run, written with a ptr block and @a0-relative --mem targets
+func_802A5510: -n 200 --seed 3 --ret void --arg a0=ptr:0x100 --mem @a0+0x40=0x50 --mem @a0+0x44=choice:0x50,0x5A*2,0x6E,0xA0,0xF0 --mem @a0+0x50:160=halves:0,1,2,3,0xFFFF,0x7FFF,0x8000,0xBB8 --mem D_803643E0=choice:0,32,64,96,-32,-1,96000,0x7FFFFFFF --mem D_803643E8=choice:0,32,64,96,-32,-1,96000,0x7FFFFFFF --mem D_80364450:2=int:0:0xFFFF --mem D_80364411:1=int:0:255 --mem D_8036444E:2=int:0:0xFFFF
+
+func_802A56C4: -n 300 --mem D_803BE73A:1=int:0:255 --mem D_80305B90:1536=halves:0,1,0x7FFF,0x8000,0xFFFF,0x1234

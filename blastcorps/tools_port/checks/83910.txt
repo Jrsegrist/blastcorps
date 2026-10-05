@@ -1,0 +1,4 @@
+# 83910: func_802C8AB0(a0) sets two globals and calls func_802C4310(a0, 0x72)
+
+func_802C8AB0: -n 200 --arg a0=int --ret void
+func_802C8AB0: -n 100 --seed 1 --arg a0=choice:0,1,-1,0x7FFF,0x8000,0xFFFF,0x7FFFFFFF --ret void

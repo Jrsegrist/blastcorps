@@ -2,4 +2,4 @@
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/1D710/__osPfsGetNextPage.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/1D710/func_8020480C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/1D710/osPfsReadWriteFile.s")

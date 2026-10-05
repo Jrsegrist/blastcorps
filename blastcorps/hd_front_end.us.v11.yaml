@@ -5,8 +5,8 @@ options:
   create_detected_syms: yes
   find_file_boundaries: yes
   target_path: hd_front_end.us.v11.bin
-  # symbol_addrs.hd_front_end.us.v11.txt + symbol_addrs.hd_code.us.v11.txt,
-  # concatenated by `make extract` so calls into hd_code use hd_code's names
+  # symbol_addrs.hd_front_end.us.v11.txt + hd_code's names (tools_port/segsyms.py),
+  # written by `make extract`, so calls into hd_code use hd_code's names
   symbol_addrs_path: symbol_addrs_auto.hd_front_end.us.v11.txt
   undefined_funcs_auto_path: undefined_funcs_auto.hd_front_end.us.v11.txt
   undefined_syms_auto_path: undefined_syms_auto.hd_front_end.us.v11.txt
@@ -16,7 +16,9 @@ segments:
   # 0x801E7000: osInvalDCache(0x801E7000, 0x37D00), then the gzip inflate of
   # ROM 0x7E3AD0 (text) / 0x7F63A1 (data) to that address. 307 of the 917 jal
   # words in the text land inside it at this base, all on function starts.
-  # File boundaries: splat find_file_boundaries (16-aligned, nop-padded ends).
+  # .bss runs from 0x80210E90 to 0x8021ED00 (= init's vram).
+  # File boundaries: splat find_file_boundaries (16-aligned, nop-padded ends),
+  # plus libultra object starts (16-aligned function starts).
   - name:  hd_front_end
     type:  code
     vram:  0x801E7000
@@ -34,20 +36,26 @@ segments:
     - [0x17990, c, hd_front_end/17990]
     - [0x196F0, c, hd_front_end/196F0]
     - [0x1A240, c, hd_front_end/1A240]
-    - [0x1AE80, c, hd_front_end/1AE80]
-    - [0x1B730, c, hd_front_end/1B730]
-    - [0x1B880, c, hd_front_end/1B880]
-    - [0x1B8F0, c, hd_front_end/1B8F0]
-    - [0x1CCC0, c, hd_front_end/1CCC0]
-    - [0x1D2D0, c, hd_front_end/1D2D0]
-    - [0x1D410, c, hd_front_end/1D410]
-    - [0x1D550, c, hd_front_end/1D550]
-    - [0x1D710, c, hd_front_end/1D710]
-    - [0x1DC10, c, hd_front_end/1DC10]
-    - [0x1E3F0, c, hd_front_end/1E3F0]
-    - [0x1F5C0, c, hd_front_end/1F5C0]
-    - [0x1F970, c, hd_front_end/1F970]
-    - [0x1FD20, c, hd_front_end/1FD20]
+    - [0x1AE80, c, hd_front_end/1AE80] # game code (one IDO function)
+    - [0x1B100, c, hd_front_end/1B100] # hand-written asm: sd $ra frames, $gp, calls hd_code non-ABI functions
+    - [0x1B730, c, hd_front_end/1B730] # libultra pfsfreeblocks.c
+    - [0x1B880, c, hd_front_end/1B880] # libultra eepromprobe.c (old SDK)
+    - [0x1B8F0, c, hd_front_end/1B8F0] # libultra pfschecker.c
+    - [0x1C350, c, hd_front_end/1C350] # libultra pfsinitpak.c (old SDK: osPfsInitPak, __osPfsGetStatus)
+    - [0x1C510, c, hd_front_end/1C510] # libultra pfsallocatefile.c (+ an old-SDK helper)
+    - [0x1CCC0, c, hd_front_end/1CCC0] # libultra pfsdeletefile.c (old SDK)
+    - [0x1D2D0, c, hd_front_end/1D2D0] # libultra eepromlongread.c (old SDK)
+    - [0x1D410, c, hd_front_end/1D410] # libultra eepromlongwrite.c (old SDK)
+    - [0x1D550, c, hd_front_end/1D550] # libultra pfssearchfile.c
+    - [0x1D710, c, hd_front_end/1D710] # libultra pfsreadwritefile.c (old SDK)
+    - [0x1DC10, c, hd_front_end/1DC10] # libultra eepromread.c (old SDK)
+    - [0x1E0F0, c, hd_front_end/1E0F0] # libultra eepromwrite.c (old SDK)
+    - [0x1E3F0, c, hd_front_end/1E3F0] # libultra pfsfilestate.c
+    - [0x1E6E0, c, hd_front_end/1E6E0] # libultra crc.c
+    - [0x1E860, c, hd_front_end/1E860] # libultra contpfs.c
+    - [0x1F5C0, c, hd_front_end/1F5C0] # libultra contramread.c (old SDK)
+    - [0x1F970, c, hd_front_end/1F970] # libultra contramwrite.c (old SDK)
+    - [0x1FD20, c, hd_front_end/1FD20] # libultra pfsisplug.c
     - [0x20090, bin, hd_front_end/20090] # RSP microcode (IMEM text; hd_code func_80284DB0 DMAs D_80207090)
     - [0x21040, linker, data]
     - [0x21040, bin, hd_front_end/hd_front_end_data] # .data/.rodata (vram 0x80208040)

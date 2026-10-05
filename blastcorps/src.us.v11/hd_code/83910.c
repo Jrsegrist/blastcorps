@@ -40,7 +40,16 @@ void func_802C8AB0(s32 arg0) {
 /* func_802C8AF0: same dead-$ra-frame-around-`return 1;` as func_802BBE10
  * in 772A0.c - confirmed hand-written, not compiler-reachable. See that
  * file's comment. Permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Functional rewrite (tools_port/eqcheck.py verified): always returns 1
+ * (vehicle-type 11/17/18 "can exit" check). 00000.c declares it void and
+ * ignores the result, but the asm returns 1 in v0. */
+s32 func_802C8AF0(void) {
+    return 1;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/83910/func_802C8AF0.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/83910/func_802C8B0C.s")
@@ -73,4 +82,21 @@ void func_802C8AB0(s32 arg0) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/83910/func_802C9AF8.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Functional rewrite (tools_port/eqcheck.py verified). Same "set timers"
+ * shape as func_802BAD24 (75490.c). Asm callers func_802C8C90, func_802C8FA8
+ * and func_802C92C0 rely on a0-a3, f12, f14 being preserved (mixed N64 build
+ * would need a thunk). */
+extern f32 D_803EBBF0;
+extern f32 D_803EBBF4;
+extern u8 D_803ED3F6;
+extern u8 D_803ED3F7;
+
+void func_802C9B30(void) {
+    D_803EBBF4 = D_803EBBF0 * 2.0f;
+    D_803ED3F6 = 60;
+    D_803ED3F7 = 4;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/83910/func_802C9B30.s")
+#endif

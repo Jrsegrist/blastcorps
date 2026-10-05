@@ -1,0 +1,11 @@
+# func_802CCCD8: return 0 if D_803F9250[0x96..0x98] has a 1, else 1
+func_802CCCD8: -n 300 --mem D_803F9250+0x96:3=bytes:0,1*2,2,0xFF
+# exactly one of 0x96..0x98 equals 1 (first/last/middle)
+func_802CCCD8: -n 100 --seed 1 --mem D_803F9250+0x96:3=onehot:1/1:1:bytes:0,2,0x81,0xFF
+# none equals 1 (values 0 / 0xFF / 0x101 low byte) -> depends on the extra flag only
+func_802CCCD8: -n 100 --seed 2 --mem D_803F9250+0x96:3=bytes:0,0xFF,2
+
+# func_802CD9AC: D_803EBBF4 = D_803EBBF0 * 4.0f; D_803ED3F6 = 60; D_803ED3F7 = 3
+func_802CD9AC: -n 200 --ret void --mem D_803EBBF0:4=floats --mem D_803EBBF4=int --mem D_803ED3F6:2=rand
+func_802CD9AC: -n 60 --seed 1 --ret void --mem D_803EBBF0=choice:0,0x80000000,0x3F800000,0xBF800000,0x7F7FFFFF,0xFF7FFFFF,0x7F800000,0xFF800000,0x7FC00000,0x00000001 \
+    --mem D_803EBBF4=choice:0,-1 --mem D_803ED3F6:2=bytes:0,0xFF

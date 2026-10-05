@@ -1,0 +1,25 @@
+# func_802CFA58: return 0 if D_803FC500[0x96..0x98] has a 1, else 1
+func_802CFA58: -n 300 --mem D_803FC500+0x96:3=bytes:0,1*2,2,0xFF
+# exactly one of 0x96..0x98 equals 1 (first/last/middle)
+func_802CFA58: -n 100 --seed 1 --mem D_803FC500+0x96:3=onehot:1/1:1:bytes:0,2,0x81,0xFF
+# none equals 1 (values 0 / 0xFF / 0x101 low byte) -> depends on the extra flag only
+func_802CFA58: -n 100 --seed 2 --mem D_803FC500+0x96:3=bytes:0,0xFF,2
+
+# func_802D0784: D_803EBBF4 = D_803EBBF0 * 4.0f; D_803ED3F6 = 60; D_803ED3F7 = 3
+func_802D0784: -n 200 --ret void --mem D_803EBBF0:4=floats --mem D_803EBBF4=int --mem D_803ED3F6:2=rand
+func_802D0784: -n 60 --seed 1 --ret void --mem D_803EBBF0=choice:0,0x80000000,0x3F800000,0xBF800000,0x7F7FFFFF,0xFF7FFFFF,0x7F800000,0xFF800000,0x7FC00000,0x00000001 \
+    --mem D_803EBBF4=choice:0,-1 --mem D_803ED3F6:2=bytes:0,0xFF
+
+# func_802D0B90: return 0 if D_803FC8D0[0x96..0x98] has a 1 or D_803FC8D0[0xA1] != 0, else 1
+func_802D0B90: -n 300 --mem D_803FC8D0+0x96:3=bytes:0,1*2,2,0xFF --mem D_803FC8D0+0xA1:1=bytes:0*3,1,0x80,0xFF
+# exactly one of 0x96..0x98 equals 1 (first/last/middle)
+func_802D0B90: -n 100 --seed 1 --mem D_803FC8D0+0x96:3=onehot:1/1:1:bytes:0,2,0x81,0xFF --mem D_803FC8D0+0xA1:1=0
+# none equals 1 (values 0 / 0xFF / 0x101 low byte) -> depends on the extra flag only
+func_802D0B90: -n 100 --seed 2 --mem D_803FC8D0+0x96:3=bytes:0,0xFF,2 --mem D_803FC8D0+0xA1:1=bytes:0*3,1,0x80,0xFF
+# none equals 1 and the extra flag nonzero -> 0
+func_802D0B90: -n 50 --seed 3 --mem D_803FC8D0+0x96:3=bytes:0,2 --mem D_803FC8D0+0xA1:1=bytes:1,0x80,0xFF
+
+# func_802D249C: D_803EBBF4 = D_803EBBF0 * 4.0f; D_803ED3F6 = 40; D_803ED3F7 = 3
+func_802D249C: -n 200 --ret void --mem D_803EBBF0:4=floats --mem D_803EBBF4=int --mem D_803ED3F6:2=rand
+func_802D249C: -n 60 --seed 1 --ret void --mem D_803EBBF0=choice:0,0x80000000,0x3F800000,0xBF800000,0x7F7FFFFF,0xFF7FFFFF,0x7F800000,0xFF800000,0x7FC00000,0x00000001 \
+    --mem D_803EBBF4=choice:0,-1 --mem D_803ED3F6:2=bytes:0,0xFF

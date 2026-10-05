@@ -959,3 +959,7 @@ func_802CDC7C: in v0=a0,v1=a1,a0=a2,a1=a3,t3=stack0,fp=stack1 ; out fp=ret ; pre
 func_802CDD74: in t9=a0,s0=a1,fp=a2 ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,t8,t9
 # vehicle t4's hit spheres vs (v0, v1, a0) radius a1 -> s4 (0/1); t5 left = -1 (its caller's constant); saves v0-t0, t6, t7, s0, s1
 func_802CE0E4: in v0=a0,v1=a1,a0=a2,a1=a3,t4=stack0 ; out s4=ret ; preserve v0,v1,a0,a1,a2,a3,t0,t3,t4,t6,t7 ; clobbers s4
+
+# --- hd_front_end 1B100 ---
+# o32 wrapper of func_8029E558 (saves s0-s7, gp, fp but no FPU register): f20/f30 as func_8029E558's asm leaves them
+func_802021FC: clobbers f20,f30

@@ -188,7 +188,31 @@ s32 func_8029B930(void) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029DC14.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern struct {
+    s32 unk0;
+    s32 unk4;
+    s32 unk8;
+} D_803B7FC8[120];
+extern void *D_803B8568; /* next-free pointer into D_803B7FC8 (sits right after it) */
+
+/* Resets the 120-entry pool D_803B7FC8: the next-free pointer goes back to
+ * the start and words 0 and 4 of every 12-byte entry are cleared.
+ * Register note: the asm saves/restores v0 and v1 (clobbers at); asm caller
+ * func_802A1674 keeps t0, f12 and f14 live across the call (a mixed N64
+ * build would need a thunk; the native port doesn't). */
+void func_8029DC80(void) {
+    s32 i;
+
+    D_803B8568 = D_803B7FC8;
+    for (i = 0; i < 120; i++) {
+        D_803B7FC8[i].unk0 = 0;
+        D_803B7FC8[i].unk4 = 0;
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029DC80.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029DCD4.s")
@@ -203,7 +227,70 @@ s32 func_8029B930(void) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029DE50.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+typedef struct {
+    /* 0x00 */ s32 id;
+    /* 0x04 */ f32 unk4;
+    /* 0x08 */ s32 unk8;
+    /* 0x0C */ s16 unkC;
+    /* 0x0E */ s16 unkE;
+    /* 0x10 */ u8 unk10;
+    /* 0x11 */ u8 unk11;
+    /* 0x12 */ u8 unk12;
+    /* 0x13 */ u8 unk13;
+    /* 0x14 */ u8 unk14;
+    /* 0x15 */ u8 pad15[3];
+} Unk8029DEA0Entry; /* size 0x18 */
+
+extern u8 D_803A7440[12][0x1010];
+extern void *D_803B35F0;
+extern u8 D_803B3500[];
+extern Unk8029DEA0Entry D_803B35F8[];
+/* List in the 7D9D0 data blob, ended by -1. In the ROM its 12 entries are
+ * addresses inside that blob (0x802C2190...), so `id` is really a pointer. */
+extern s32 D_802C23B4[];
+
+/* Clears byte 6 of each of the 12 0x1010-byte blocks at D_803A7440, points
+ * D_803B35F0 at D_803B3500, then builds D_803B35F8 from the -1-terminated id
+ * list D_802C23B4: one 0x18-byte entry per id with every other field (except
+ * unk8) zeroed. The terminating -1 is also stored, as the id of the entry
+ * after the last.
+ * Register note: the asm saves/restores v0, v1 and a0-a3 (clobbers at and
+ * f0); asm caller func_802A1674 keeps t0, t6, t9, f12 and f14 live. */
+void func_8029DEA0(void) {
+    s32 i;
+    s32 *src;
+    Unk8029DEA0Entry *dst;
+    s32 id;
+
+    for (i = 0; i < 12; i++) {
+        D_803A7440[i][6] = 0;
+    }
+    D_803B35F0 = D_803B3500;
+
+    src = D_802C23B4;
+    dst = D_803B35F8;
+    for (;;) {
+        id = *src;
+        dst->id = id;
+        if (id == -1) {
+            break;
+        }
+        src++;
+        dst->unk4 = 0.0f;
+        dst->unkC = 0;
+        dst->unkE = 0;
+        dst->unk10 = 0;
+        dst->unk11 = 0;
+        dst->unk12 = 0;
+        dst->unk13 = 0;
+        dst->unk14 = 0;
+        dst++;
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029DEA0.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029DF78.s")

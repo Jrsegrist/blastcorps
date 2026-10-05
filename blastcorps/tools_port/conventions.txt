@@ -45,3 +45,56 @@ func_802AB8D8: in s2=a0 ; out t0=ret ; preserve t1,t2,t3,t4,s3 ; clobbers s2
 # --- 679E0 ---
 # interpolated lookup in the u16 table D_802ACFD0[0x401]; saves a0, a1, v1
 func_802ACF64: in v1=a0 ; out fp=ret ; preserve a0,a1,v1
+
+# --- 77E20 ---
+# 1 if every D_8039C800 entry has unk26 set; saves t0, t1, t3
+func_802BC7DC: out t4=ret ; preserve a0,a1,a2,a3,t0,t1,t2,t3,f12,f14
+# bump/insert a counter in D_803F7690 (kind t3, id t9, amount a2); saves every register
+func_802BC888: in t3=a0,t9=a1,a2=a2 ; preserve a0,a1,t3,t4,t6,t7,t9
+# buffer A scans: "some byte differs from v0" / "contains v0"; buffer B "contains fp" (fp is a value)
+func_802BCD20: in v0=a0 ; out v1=ret
+func_802BCD80: in v0=a0 ; out v1=ret ; preserve a0,a1,a2,a3,f12,f14
+func_802BCDE0: in fp=a0 ; out v1=ret ; preserve a0,a1,a2,t3,t8,t9,f12,f14
+# done-check of the D_803F4030 entry before t0 (callers pass entry + 0xFC); saves t0-t2, t4
+func_802BD064: in t0=a0 ; out v0=ret ; preserve t0,t1,t2,t4,t5,t6,t7
+# clear unk51 of model triangles with unk52 == a3 + 1 (model in v0); changes nothing else
+func_802BD85C: in v0=a0,a3=a1 ; preserve v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,f12,f14
+# level 0x32 and !func_80286090(level) -> t1; preserves everything else
+func_802BD8C8: out t1=ret ; preserve v0,v1,a0,a1,a2,a3,t0,t2,t3,t4,t5,t6,t7,t8,t9,f12,f14
+# move a model (v0) by (a2, a3, t0) and recompute its triangle planes; changes s0-s7, fp (callers save them), leaves junk in a1-a3
+func_802BD99C: in v0=a0,a2=a1,a3=a2,t0=a3 ; preserve f12,f14 ; clobbers s0-s7,fp
+# animated-texture display-list copy [t7, s0) -> dst (a2 / t0) with table [t1, t2); returns the new dst, t7 ends at s0
+func_802BE228: in t7=a0,s0=a1,a2=a2,t1=a3,t2=stack0 ; out a2=ret ; preserve a0,a1,t0,t1,t2,t3,t4,t5,t6,f12,f14
+func_802BE3C8: in t7=a0,s0=a1,t0=a2,t1=a3,t2=stack0 ; out t0=ret ; preserve a0,a1,a2,t1,t2,t3,t4,t5,t6,f12,f14
+# D_803059F0 lookup for entry t3 and bit t8 -> t9
+func_802BE944: in t3=a0,t8=a1 ; out t9=ret ; preserve a0,a1,t3,t4,t6,t8,f12,f14
+# pair list D_803F3910..D_803F3960: append (t9, t3) / find (t9, t3) -> t7
+func_802BEA30: in t9=a0,t3=a1 ; preserve a0,a1,t3,t8,t9,f12,f14
+func_802BEA70: in t9=a0,t3=a1 ; out t7=ret ; preserve a0,a1,t3,t8,t9,f12,f14
+# entry in t9 (D_803F4030 entries)
+func_802BEF9C: in t9=a0 ; preserve a0,a1,t8,t9,f12,f14
+func_802BF1F0: in t9=a0,t3=a1 ; preserve a1,t0,t1,t2,t3,t4,t5,t6,t7,t9,f12,f14
+func_802BF384: in t9=a0 ; preserve a0,a1,t3,t5,t9,f12,f14
+func_802BF534: in t9=a0 ; preserve a0,a1,t3,t5,t9,f12,f14
+# func_8026A828(a0, a1) -> s4; preserves everything else
+func_802BFB50: in a0=a0,a1=a1 ; out s4=ret ; preserve t0,t1,t4,t5,t6,t7,t9
+# entry t9, object v1; preserves everything
+func_802BFBF4: in t9=a0,v1=a1 ; preserve a0,t3,t5,t9
+# vehicle block in gp (varies by caller, so an argument)
+func_802BFEE4: in gp=a0 ; preserve a0,a1,t6,t8,f12,f14
+# bit t8, flag gp (a value) -> t2; t7 = 100 only when t2 = 1
+func_802C0284: in t8=a0,gp=a1,t7=*a2 ; out t2=ret,t7=*a2 ; preserve t8,t9
+# part id v0 of entry t9 blocked? -> t3 (0 = blocked); v0 is left doubled on one path
+func_802C038C: in v0=a0,t9=a1 ; out t3=ret ; preserve t2,t4,t7,t8,t9
+# copy the 0x38-byte record v1 into the first D_803F3968 entry with byte 0x34 set
+func_802C04F0: in v1=a0 ; preserve a0,a1,a2,a3,t3,t5,t6,t7,t9
+# gfx in and out in v0
+func_802C08C4: in v0=a0 ; out v0=ret ; preserve a0,a1,a2,a3,f12,f14
+# 64-bit command in t4 (in and out); the C takes/returns u64 (a0:a1 / v0:v1), only the low word is mapped
+func_802C0C64: in t4=a1 ; out t4=v1 ; preserve a0,a1,a2,a3,t1,t2,t3,t9
+# 4 box-corner vertices at v1 + 0x9E0 for entry t9
+func_802C1214: in v1=a0,t9=a1 ; preserve t3,t9
+# two gfx pointers in and out in a0/a1 (C: through pointers); changes s0-s5
+func_802C12E0: in a0=*a0,a1=*a1 ; out a0=*a0,a1=*a1 ; clobbers s0-s5
+# entry t9, 1-based index t3 -> a2
+func_802C1A28: in t9=a0,t3=a1 ; out a2=ret ; preserve t3,t9,f12,f14

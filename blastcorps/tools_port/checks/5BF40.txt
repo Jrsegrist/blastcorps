@@ -30,3 +30,57 @@ func_802A0EE0: -n 200 --ret void --arg a0=int --arg a1=int
 func_802A0EE0: -n 200 --seed 1 --ret void --follow func_802A0F0C --arg a0=int:0:30 --arg a1=int \
     --heap 0x200=words:0,0x10,0x100,0x1000,0x7FF0,0xFFFF00 --mem D_803B8D44=rel:heap0 --sig osInvalDCache=a0,a1 \
     --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 --sig osRecvMesg=a0,a1,a2
+
+# func_802A08E4 (s0 = dl, s1 = end; s4 in/out): G_SETTIMG ids -> physical addresses through the cache pairs at
+# D_803B8570 (cursor D_803B8D40), loading missing ones at the heap. Commands from a small pool, ids 0..5, 0-6 pairs
+# cached already; heap0 = the offset table (word 1 = size << 16 | type)
+func_802A08E4: -n 300 --heap 0x100=words:0,0x10,0x100,0x1000,0x7FF0 --heap 0x100 --mem D_803B8D44=rel:heap0 \
+    --arg s0=rel:heap1 --arg s1=rel:heap1+8*int:0:16 --mem @heap1*8:16=choice:0xFD100000,0xFD000000,0x06000000,0xFC000000,0xFE000000 \
+    --mem @heap1+4*8:16=int:0:5 --mem D_803B8570:0x40=rand --mem D_803B8570*8:8=int:0:5 \
+    --mem D_803B8D40=rel:D_803B8570+8*int:0:6 --mem D_80358070=choice:0x80400000,0x80123450,0x80000000 \
+    --mem D_803C4B58:0x10=rand --sig osInvalDCache=a0,a1 --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 \
+    --sig osRecvMesg=a0,a1,a2 --sig func_802A57DC=a0
+# empty cache / every command a G_SETTIMG of one id (first misses, the rest hit the new pair)
+func_802A08E4: -n 100 --seed 1 --heap 0x100=words:0,0x10,0x100 --heap 0x100 --mem D_803B8D44=rel:heap0 \
+    --arg s0=rel:heap1 --arg s1=rel:heap1+8*int:1:16 --mem @heap1*8:16=0xFD100000 --mem @heap1+4*8:16=choice:3 \
+    --mem D_803B8D40=sym:D_803B8570 --mem D_80358070=0x80400000 --mem D_803C4B58:0x10=rand --sig osInvalDCache=a0,a1 \
+    --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 --sig osRecvMesg=a0,a1,a2 --sig func_802A57DC=a0
+# decoder followed (type 7 = copy only, returns 0; even sizes), real heap buffer
+func_802A08E4: -n 200 --seed 2 --heap 0x100=words:0,0x100007,0x10,0x80007,0x40,0x7 --heap 0x100 --heap 0x200 \
+    --mem D_803B8D44=rel:heap0 --arg s0=rel:heap1 --arg s1=rel:heap1+8*int:0:16 \
+    --mem @heap1*8:16=choice:0xFD100000,0x06000000 --mem @heap1+4*8:16=int:0:2 --mem D_803B8570:0x40=rand \
+    --mem D_803B8570*8:8=int:0:5 --mem D_803B8D40=rel:D_803B8570+8*int:0:4 --mem D_80358070=rel:heap2 \
+    --follow func_802A57DC --sig osInvalDCache=a0,a1 --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 \
+    --sig osRecvMesg=a0,a1,a2
+
+# func_802A0B34 (t6 = id, fp = param): load entry id at the heap, decode with param
+func_802A0B34: -n 300 --arg t6=int:0:30 --heap 0x200=words:0,0x10,0x100,0x1000,0x7FF0,0xFFFF00 --mem D_803B8D44=rel:heap0 \
+    --mem D_80358070=int --mem D_803C4B58:0x10=rand --sig osInvalDCache=a0,a1 \
+    --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 --sig osRecvMesg=a0,a1,a2 --sig func_802A57DC=a0
+func_802A0B34: -n 200 --seed 1 --arg t6=int:0:2 --heap 0x40=words:0,0x100007,0x10,0x80007,0x40,0x7 --heap 0x200 \
+    --mem D_803B8D44=rel:heap0 --mem D_80358070=rel:heap1 --follow func_802A57DC --sig osInvalDCache=a0,a1 \
+    --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 --sig osRecvMesg=a0,a1,a2
+
+# func_802A0CFC (t6 = id, fp = param): cached physical address, or append + load -> s0
+func_802A0CFC: -n 300 --arg t6=int:0:5 --heap 0x200=words:0,0x10,0x100,0x1000,0x7FF0 --mem D_803B8D44=rel:heap0 \
+    --mem D_803B8570:0x40=rand --mem D_803B8570*8:8=int:0:5 --mem D_803B8D40=rel:D_803B8570+8*int:0:6 \
+    --mem D_80358070=choice:0x80400000,0x80123450,0x80000000 --mem D_803C4B58:0x10=rand --sig osInvalDCache=a0,a1 \
+    --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 --sig osRecvMesg=a0,a1,a2 --sig func_802A57DC=a0
+# id only in the last pair / empty cache
+func_802A0CFC: -n 100 --seed 1 --arg t6=9 --heap 0x200=words:0,0x10,0x100 --mem D_803B8D44=rel:heap0 \
+    --mem D_803B8570:0x30=onehot:8:9:words:1,2,3 --mem D_803B8D40=rel:D_803B8570+0x30 --mem D_80358070=0x80400000 \
+    --sig osInvalDCache=a0,a1 --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 --sig osRecvMesg=a0,a1,a2 --sig func_802A57DC=a0
+func_802A0CFC: -n 50 --seed 2 --arg t6=int:0:3 --heap 0x200=words:0,0x10,0x100 --mem D_803B8D44=rel:heap0 \
+    --mem D_803B8D40=sym:D_803B8570 --mem D_80358070=0x80400000 --mem D_803B8570:0x10=rand --sig osInvalDCache=a0,a1 \
+    --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 --sig osRecvMesg=a0,a1,a2 --sig func_802A57DC=a0
+func_802A0CFC: -n 200 --seed 3 --arg t6=int:0:2 --heap 0x40=words:0,0x100007,0x10,0x80007,0x40,0x7 --heap 0x200 \
+    --mem D_803B8D44=rel:heap0 --mem D_80358070=rel:heap1 --mem D_803B8570:0x40=rand --mem D_803B8570*8:8=int:0:5 \
+    --mem D_803B8D40=rel:D_803B8570+8*int:0:4 --follow func_802A57DC --sig osInvalDCache=a0,a1 \
+    --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 --sig osRecvMesg=a0,a1,a2
+
+# func_802A1074 (t6 = id, s1 = dest, fp = param): queued DMA (OSIoMesg slot D_80358080++) + decode request
+func_802A1074: -n 300 --arg t6=int:0:30 --heap 0x200=words:0,0x10,0x100,0x1000,0x7FF0,0xFFFF00 --mem D_803B8D44=rel:heap0 \
+    --mem D_80358080=choice:0,1,5,-1,0x7FFFFFFE --sig osInvalDCache=a0,a1 --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2
+func_802A1074: -n 200 --seed 1 --follow func_802A5764 --arg t6=int:0:30 --heap 0x200=words:0,0x10,0x100,0x1000,0x7FF0,0xFFFF00 \
+    --heap 0x40 --mem D_803B8D44=rel:heap0 --mem D_803C4B50=rel:heap1 --mem D_80358080=int:0:10 --sig osInvalDCache=a0,a1 \
+    --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2

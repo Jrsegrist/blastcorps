@@ -69,7 +69,58 @@ void func_802A133C(s32 a0Val, s32 id, s32 v0Val, s32 v1Val, u8 *obj) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u8 *D_803649D0; /* end of the D_80364460 records in use */
+extern s32 D_80364AA8;
+void func_802A1558(Gfx *src, Gfx *end, Gfx **dstp);
+
+/* Appends a 0x74-byte record to D_80364460 (cursor D_803649D0) for the model
+ * whose header is `hdr` (offsets in it are relative to hdr): word 0x70 = 0,
+ * 4 = v0Val, 8 = v1Val, 0x5C = a0Val; word 0 and 0xC..0x2C = hdr + header
+ * words 0x14 and 0x24..0x44, 0x54 = hdr + word 0x48. Copies the 8-byte units
+ * [hdr + w[0x1C], hdr + w[0x20]) to the heap D_80358070 (advanced; the asm
+ * loops with `!=`), and sets words 0x30..0x50 to words 0xC..0x2C moved by the
+ * copy's displacement (heap - word 0xC). Unless D_80364AA8 == 1 and a1Val ==
+ * 0, it then runs func_802A1558(word 0xC, word 0x18, rec + 0x58).
+ * Register convention: a0Val/a1Val in a0/a1, v0Val/v1Val in v0/v1, hdr in s2
+ * (conventions.txt); the asm saves t0-t6. Asm callers keep a1, a3, t7, f12,
+ * f14 (some a2, t4-t6) live (a mixed build would need a thunk). */
+void func_802A1388(s32 a0Val, s32 a1Val, s32 v0Val, s32 v1Val, u8 *hdr) {
+    u8 *rec = D_803649D0;
+    u64 *src;
+    u64 *end;
+    u64 *dst;
+    s32 delta;
+    s32 i;
+
+    D_803649D0 = rec + 0x74;
+    *(s32 *) (rec + 0x70) = 0;
+    *(s32 *) (rec + 0x4) = v0Val;
+    *(s32 *) (rec + 0x8) = v1Val;
+    *(s32 *) (rec + 0x5C) = a0Val;
+    *(u8 **) (rec + 0x0) = OBJ_PTR(hdr, 0x14);
+    for (i = 0; i < 9; i++) {
+        *(u8 **) (rec + 0xC + i * 4) = OBJ_PTR(hdr, 0x24 + i * 4);
+    }
+    *(u8 **) (rec + 0x54) = OBJ_PTR(hdr, 0x48);
+    src = (u64 *) OBJ_PTR(hdr, 0x1C);
+    end = (u64 *) OBJ_PTR(hdr, 0x20);
+    dst = (u64 *) D_80358070;
+    delta = (u32) dst - *(u32 *) (rec + 0xC);
+    while (src != end) {
+        *dst++ = *src++;
+    }
+    D_80358070 = (u8 *) dst;
+    for (i = 0; i < 9; i++) {
+        *(s32 *) (rec + 0x30 + i * 4) = *(s32 *) (rec + 0xC + i * 4) + delta;
+    }
+    if (D_80364AA8 != 1 || a1Val != 0) {
+        func_802A1558(*(Gfx **) (rec + 0xC), *(Gfx **) (rec + 0x18), (Gfx **) (rec + 0x58));
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A1388.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -751,17 +802,215 @@ void func_802A3824(u8 *obj) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A396C.s")
 
+/* func_802A3D54 .. func_802A3F80: build the level's collision triangle
+ * records (func_802A41B0, 0x60 bytes each) at the heap D_80358070 from the
+ * level object's packed data. Several of func_802A41B0's byte arguments are
+ * whatever the asm happens to hold in that register (loop counters, low
+ * bytes of pointers); the rewrites pass the same values.
+ * Register convention (conventions.txt): obj in t0, triangle id in v0, kind
+ * byte in t9, and the in/out s1 that func_802A41B0 threads from one call to
+ * the next (through `s1io`). The asm saves t0 only, sets gp (0 or 1, passed
+ * as func_802A41B0's b55) and leaves func_802A41B0's s2-s7 scratch. Its asm
+ * caller func_802A1674 keeps t0, t9, f12, f14 live. */
+#ifdef NON_MATCHING
+u8 *func_802A41B0(u8 *rec, u8 *v, s32 id, s32 h52, s32 b57, s32 b56, s32 *s1io, s32 b4F, s32 b55);
+s32 func_802A4168(s32 id, u8 *end);
+extern u8 *D_803BDCA8[];
+extern u8 *D_803BDE40[];
+
+/* Grid of (s16) obj[0x10] * (s16) obj[0x12] cells (must be >= 1: the asm
+ * counts down with `!=`) at OBJ_PTR(obj, off): each cell is an unaligned BE
+ * word (end of its triangles, relative to the grid) followed by 0x16-byte
+ * packed triangles. table[cell] = the cell's first record (table[cells] =
+ * the end). Per triangle: func_802A41B0(rec, tri, id, h52 = cells left,
+ * b57 = the cell end pointer, b56 = tri[0x14], s1io, b4F, 0), then
+ * rec[0x59] = tri[0x15]. Returns the last cell's end pointer (the asm's t6). */
+static u8 *port_build_grid(u8 *obj, s32 off, u8 **table, s32 id, s32 b4F, s32 *s1io) {
+    u8 *base = OBJ_PTR(obj, off);
+    u8 *t = base;
+    u8 *cellEnd;
+    u8 *rec = D_80358070;
+    s32 cells = *(s16 *) (obj + 0x10) * *(s16 *) (obj + 0x12);
+
+    do {
+        *table++ = rec;
+        cellEnd = base + BE32(t);
+        t += 4;
+        while (t != cellEnd) {
+            rec = func_802A41B0(rec, t, id, cells, (s32) cellEnd, t[0x14], s1io, b4F, 0);
+            rec[-7] = t[0x15];
+            t += 0x16;
+        }
+        cells--;
+    } while (cells != 0);
+    *table = rec;
+    D_80358070 = rec;
+    return cellEnd;
+}
+
+/* Grid at obj word 0x6C, cell table D_803BDCA8. */
+u8 *func_802A3D54(u8 *obj, s32 id, s32 b4F, s32 *s1io) {
+    return port_build_grid(obj, 0x6C, D_803BDCA8, id, b4F, s1io);
+}
+#else
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A3D54.s")
+#endif
 
+#ifdef NON_MATCHING
+/* Grid at obj word 0x70, cell table D_803BDE40 (otherwise func_802A3D54). */
+u8 *func_802A3DF8(u8 *obj, s32 id, s32 b4F, s32 *s1io) {
+    return port_build_grid(obj, 0x70, D_803BDE40, id, b4F, s1io);
+}
+#else
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A3DF8.s")
+#endif
 
+#ifdef NON_MATCHING
+extern u8 *D_803BD308;
+extern u8 *D_803BD30C;
+extern u8 D_803BD310[]; /* 0xFC-byte groups */
+extern u8 *D_803BDAF0;  /* end of the groups */
+
+/* Named triangle groups in [OBJ_PTR(obj, 0x64), OBJ_PTR(obj, 0x68)): a tag
+ * byte, a name (length byte + bytes), a count byte, then that many 0x14-byte
+ * packed triangles. Each becomes a 0xFC-byte group in D_803BD310: [0] = name
+ * length, [1..] = name, [8 + 4i] = record of triangle i, [0xF8] = count,
+ * [0xF9] = tag. Records start at the heap D_80358070 (also kept in
+ * D_803BD308; the end goes to D_803BD30C and the heap pointer); the group
+ * end to D_803BDAF0. Per triangle: func_802A41B0(rec, tri, id, h52 = the
+ * end pointer, b57 = triangles left after this one, b56 = the next pointer
+ * slot, s1io, b4F, 1). The asm loops with `!=` / count-downs. */
+void func_802A3E9C(u8 *obj, s32 id, s32 b4F, s32 *s1io) {
+    u8 *p = OBJ_PTR(obj, 0x64);
+    u8 *end = OBJ_PTR(obj, 0x68);
+    u8 *grp = D_803BD310;
+    u8 *rec = D_80358070;
+    u8 **slot;
+    u8 *q;
+    s32 n;
+
+    D_803BD308 = rec;
+    while (p != end) {
+        grp[0xF9] = p[0];
+        n = p[1];
+        p += 2;
+        grp[0] = n;
+        for (q = grp + 1; n != 0; n--) {
+            *q++ = *p++;
+        }
+        n = *p++;
+        grp[0xF8] = n;
+        slot = (u8 **) (grp + 8);
+        while (n != 0) {
+            n--;
+            *slot++ = rec;
+            rec = func_802A41B0(rec, p, id, (s32) end, n, (s32) slot, s1io, b4F, 1);
+            p += 0x14;
+        }
+        grp += 0xFC;
+    }
+    D_803BDAF0 = grp;
+    D_803BD30C = rec;
+    D_80358070 = rec;
+}
+#else
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A3E9C.s")
+#endif
 
+#ifdef NON_MATCHING
+extern u8 D_803BC1D0[]; /* 0xDC-byte groups */
+extern u8 D_803B9890[]; /* 0x60-byte records */
+extern u8 *D_803BD300;  /* end of the D_803B9890 records */
+extern u8 *D_803BD304;  /* end of the groups */
+
+/* Object groups in [OBJ_PTR(obj, 0x68), OBJ_PTR(obj, 0x6C)), each becoming a
+ * 0xDC-byte group in D_803BC1D0: bytes [0xC4..0xC6] = a, kind, n from the
+ * data. Kind 0: n (>= 1) sets of six BE s16 (each << 5, as words; the third
+ * of the last set is also left in s1, i.e. *s1io) and then a BE word; other
+ * kinds: n (>= 1) BE s16 as halfwords. Then a count of 0x15-byte packed
+ * triangles: [0xC7] = count, [0xC8 + i] = triangle i's id (its byte 0x14);
+ * a record is built (func_802A41B0 at the D_803B9890 cursor, b4F 0, b55 1)
+ * only for ids no record before this group has (func_802A4168). Then a
+ * length byte and that many bytes at [0xD0], [0xD1..]. h52 is the end
+ * pointer, b57 the triangles left, b56 the last value read in the first part
+ * (the BE word / the last s16). The new record end goes to D_803BD300 and is
+ * returned (the asm's fp); the group end to D_803BD304. */
+u8 *func_802A3F80(u8 *obj, s32 *s1io) {
+    u8 *p = OBJ_PTR(obj, 0x68);
+    u8 *end = OBJ_PTR(obj, 0x6C);
+    u8 *grp = D_803BC1D0;
+    u8 *recEnd = D_803B9890;
+    u8 *rec;
+    u8 *q;
+    s32 *w;
+    s32 last;
+    s32 kind;
+    s32 n;
+    s32 id;
+
+    while (p != end) {
+        w = (s32 *) grp;
+        grp[0xC4] = p[0];
+        kind = p[1];
+        grp[0xC5] = kind;
+        n = p[2];
+        grp[0xC6] = n;
+        p += 3;
+        if (kind == 0) {
+            do {
+                w[0] = BE16S(p + 0) << 5;
+                w[1] = BE16S(p + 2) << 5;
+                w[2] = *s1io = BE16S(p + 4) << 5;
+                w[3] = BE16S(p + 6) << 5;
+                w[4] = BE16S(p + 8) << 5;
+                w[5] = BE16S(p + 10) << 5;
+                n--;
+                p += 12;
+                w += 6;
+            } while (n != 0);
+            last = BE32(p);
+            p += 4;
+            *w = last;
+        } else {
+            do {
+                last = BE16S(p);
+                *(s16 *) w = last;
+                n--;
+                p += 2;
+                w = (s32 *) ((u8 *) w + 2);
+            } while (n != 0);
+        }
+        n = *p++;
+        grp[0xC7] = n;
+        q = grp + 0xC8;
+        rec = recEnd;
+        for (; n != 0; n--) {
+            id = p[0x14];
+            *q++ = id;
+            if (func_802A4168(id, recEnd) == 0) {
+                rec = func_802A41B0(rec, p, id, (s32) end, n, last, s1io, 0, 1);
+            }
+            p += 0x15;
+        }
+        recEnd = rec;
+        n = *p++;
+        grp[0xD0] = n;
+        for (q = grp + 0xD1; n != 0; n--) {
+            *q++ = *p++;
+        }
+        grp += 0xDC;
+    }
+    D_803BD304 = grp;
+    D_803BD300 = recEnd;
+    return recEnd;
+}
+#else
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A3F80.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

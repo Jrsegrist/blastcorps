@@ -19,6 +19,49 @@ extern u8 *D_803B8D40;
 extern u8 D_803B8570[];
 /* Entry n of the D_803B8D44 table spans ROM [0x4CE0 + w[2n], 0x4CE0 + w[2n + 2]). */
 #define TABLE_ROM_BASE 0x4CE0
+
+/* Entry n of D_803B8D44 (8 bytes): ROM offset, then the unpacked size and the
+ * decoder type as u16s (the next entry's offset ends it). */
+typedef struct {
+    /* 0x0 */ u32 rom;
+    /* 0x4 */ u16 size;
+    /* 0x6 */ u16 type;
+} TexTableEntry;
+
+/* The 16-byte decode request handed to func_802A57DC (60F60.c's DecodeReq). */
+typedef struct {
+    /* 0x0 */ u8 *data;
+    /* 0x4 */ u32 size;
+    /* 0x8 */ s32 type;
+    /* 0xC */ u8 *param;
+} DecodeReq;
+extern DecodeReq D_803C4B58;
+s32 func_802A57DC(u8 *rec);
+void func_802A5764(s32 a, s32 b, s32 c, s32 d);
+
+/* D_803B8570..D_803B8D40: the loaded-texture cache, 8-byte {id, physical
+ * address} pairs; D_803B8D40 is the first free pair. */
+
+/* Loads table entry `id` at the heap pointer D_80358070 (into `buf`):
+ * invalidates 0x1000 bytes there, DMAs the packed entry in and waits, decodes
+ * it in place through D_803C4B58 (func_802A57DC; the caller sets .param where
+ * the asm does) and advances the heap by the decoded size. */
+#define LOAD_TABLE_ENTRY(id, buf)                                                                 \
+    {                                                                                             \
+        TexTableEntry *e_ = (TexTableEntry *) ((u8 *) D_803B8D44 + (id) * 8);                     \
+        s32 n_;                                                                                   \
+                                                                                                  \
+        (buf) = D_80358070;                                                                       \
+        osInvalDCache(buf, 0x1000);                                                               \
+        D_803C4B58.size = e_->size;                                                               \
+        D_803C4B58.type = e_->type;                                                               \
+        D_803C4B58.data = (buf);                                                                  \
+        osPiStartDma(&D_80370C58, OS_MESG_PRI_NORMAL, OS_READ, TABLE_ROM_BASE + e_->rom, buf,     \
+                     ((TexTableEntry *) ((u8 *) e_ + 8))->rom - e_->rom, &D_80315180);            \
+        osRecvMesg(&D_80315180, NULL, OS_MESG_BLOCK);                                             \
+        n_ = func_802A57DC((u8 *) &D_803C4B58);                                                   \
+        D_80358070 += n_;                                                                         \
+    }
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -50,19 +93,110 @@ void func_802A0700(void) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5BF40/func_802A08B4.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Register results of func_802A08E4 its asm callers read. */
+typedef struct {
+    /* 0x0 */ u8 **s2; /* &D_803B8D40 */
+    /* 0x4 */ u8 *s3;  /* the new D_803B8D40 */
+    /* 0x8 */ u8 *s4;  /* in/out: last cache pair looked at (only set when a G_SETTIMG was seen) */
+} Unk802A08E4Regs;
+
+/* Walks the display list [dl, end) (8-byte commands) and, for each
+ * G_SETTIMG (0xFD), replaces its address word (a table id) with the physical
+ * address of that texture: from the cache pairs if the id is there, else it
+ * appends a pair, loads the entry at the heap (LOAD_TABLE_ENTRY, .param left
+ * as it is) and caches its physical address (heap - 0x80000000). Stores the
+ * new cache end in D_803B8D40.
+ * Register convention: dl in s0, end in s1; outputs s2, s3, s4 through `r`
+ * (conventions.txt). The asm saves every other register except s0 (= end
+ * after), s5, s6 (scratch); its add/sub trap. Asm callers keep a1-a3, t1-t4
+ * live; they also rely on f12/f14 surviving the libultra calls. */
+void func_802A08E4(u32 *dl, u32 *end, Unk802A08E4Regs *r) {
+    u8 *cur = D_803B8D40;
+    u8 *p;
+    u8 *buf;
+    u32 id;
+
+    while (dl != end) {
+        dl += 2;
+        if (((dl[-2] & 0xFF000000) >> 24) != 0xFD) {
+            continue;
+        }
+        id = dl[-1];
+        for (p = D_803B8570; p != cur; p += 8) {
+            if (*(u32 *) p == id) {
+                break;
+            }
+        }
+        r->s4 = p;
+        if (p == cur) {
+            *(u32 *) cur = id;
+            LOAD_TABLE_ENTRY(id, buf);
+            ((u32 *) cur)[1] = (u32) buf - 0x80000000;
+            cur += 8;
+        }
+        dl[-1] = ((u32 *) p)[1];
+    }
+    D_803B8D40 = cur;
+    r->s2 = &D_803B8D40;
+    r->s3 = cur;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5BF40/func_802A08E4.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5BF40/func_802A0B00.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Loads table entry `id` at the heap (LOAD_TABLE_ENTRY with .param = param),
+ * uncached. Register convention: id in t6, param in fp (conventions.txt); the
+ * asm saves every register (it relies on the libultra calls keeping f12/f14,
+ * which C needn't). */
+void func_802A0B34(s32 id, u8 *param) {
+    u8 *buf;
+
+    D_803C4B58.param = param;
+    LOAD_TABLE_ENTRY(id, buf);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5BF40/func_802A0B34.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5BF40/func_802A0CC8.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Physical address of texture `id`: from the cache pairs D_803B8570.. if
+ * present, else appends a pair, loads the entry at the heap
+ * (LOAD_TABLE_ENTRY with .param = param) and caches heap - 0x80000000.
+ * Register convention: id in t6, param in fp, result in s0
+ * (conventions.txt); the asm saves every other register. Asm callers keep
+ * t1, t2, t4-t7 live and rely on f12/f14 surviving the libultra calls. */
+u32 func_802A0CFC(s32 id, u8 *param) {
+    u8 *cur = D_803B8D40;
+    u8 *p;
+    u8 *buf;
+    u32 phys;
+
+    for (p = D_803B8570; p != cur; p += 8) {
+        if (*(s32 *) p == id) {
+            return ((u32 *) p)[1];
+        }
+    }
+    *(s32 *) cur = id;
+    D_803B8D40 = cur + 8;
+    D_803C4B58.param = param;
+    LOAD_TABLE_ENTRY(id, buf);
+    phys = (u32) buf - 0x80000000;
+    ((u32 *) cur)[1] = phys;
+    return phys;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5BF40/func_802A0CFC.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -99,7 +233,30 @@ void func_802A0F0C(s32 id, void *dest) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5BF40/func_802A1040.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern s32 D_80358080;
+extern u8 D_803B8D48[];
+
+/* Queued load of table entry `id` into `dest`: invalidates 0x1000 bytes,
+ * starts the DMA with the next 0x14-byte OSIoMesg slot of D_803B8D48
+ * (D_80358080++) without waiting, and queues the decode request
+ * (dest, size, type, param) with func_802A5764.
+ * Register convention: id in t6, dest in s1, param in fp (conventions.txt);
+ * the asm saves every register it uses. Asm caller func_802A67C4 keeps t9. */
+void func_802A1074(s32 id, u8 *dest, u8 *param) {
+    TexTableEntry *e;
+    s32 slot;
+
+    osInvalDCache(dest, 0x1000);
+    slot = D_80358080++;
+    e = (TexTableEntry *) ((u8 *) D_803B8D44 + id * 8);
+    osPiStartDma((OSIoMesg *) (D_803B8D48 + slot * 0x14), OS_MESG_PRI_NORMAL, OS_READ, TABLE_ROM_BASE + e->rom,
+                 dest, e[1].rom - e->rom, &D_80315180);
+    func_802A5764((s32) dest, e->size, e->type, (s32) param);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5BF40/func_802A1074.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

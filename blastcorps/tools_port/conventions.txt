@@ -149,6 +149,12 @@ func_802A49A8: in s0=a0,s1=a1,s2=a2,s3=a3,s4=stack0,s6=stack1 ; out v1=ret,a0=*s
 func_802A4A50: in a2=a0,s0=a1,s1=a2,s2=a3,s3=stack0,s7=stack1,t8=stack2,v1=stack3,a0=stack4 ; preserve a1,a2,a3,t3,f12,f14
 # submit the gfx task; t6 = 1 unless the RDP output starts with 0xE8000000
 func_802A4B0C: in a1=a0,a2=a1,a3=a2 ; out t6=ret ; preserve t3
+# grid block visibility test: cursors t3 (quads) and s5 (cells) in-out; block x/z/w/h/stride s0-s4,
+# grid s6, scales s7/t8, task data a1/a2/a3
+func_802A484C: in t3=*a0,s5=*a0+4,a1=a1,a2=a2,a3=a3,s0=stack0,s1=stack1,s2=stack2,s3=stack3,s4=stack4,s6=stack5,s7=stack6,t8=stack7 ; out t3=*a0,s5=*a0+4 ; preserve a0,a1,a2,a3,t0,t1,t2,t8
+# copy (and patch) the display lists of the records [t8, t9) that pass the D_803C30A8 / D_803C2EB0..v1
+# filters from base a0 to a1 (returned advanced); gp left changed
+func_802A5334: in a0=a0,a1=a1,v1=a2,t8=a3,t9=stack0 ; out a1=ret ; clobbers gp
 # look up animation record t4 in the object's list; gp = 1 if a texture patch is set up
 func_802A50DC: in a0=a0,t4=a1 ; out gp=ret ; preserve a0,a1,a2,a3,t0,t1,t3,t4,t8,t9
 # copy a display list to a1 (returned advanced), patching it if gp
@@ -179,6 +185,13 @@ func_802A6C10: in v1=a0,t1=a1,t7=a2,s2=a3,s3=stack0,s5=stack1 ; preserve a0,a1,a
 
 # t2 = obj(t4)[0x3B] ? &D_803EB784 : &D_803EB780
 func_802A6EB8: in t4=a0 ; out t2=ret ; preserve a0,a1,a2,a3,t0,t1,t3,t4,t5,t8,f12,f14
+
+# set up a D_803C4B70 record (def t0, data t1, type t2, fields t3-t7, s0-s5, tag a3) -> t0 = 1/0;
+# a3 (last map byte scanned), t6 ((s16) def[0]) and s1 (record buffer) are also outputs
+func_802A6274: in a3=*a0,t6=*a0+4,s1=*a0+8,t0=a1,t1=a2,t2=a3,t3=stack0,t4=stack1,t5=stack2,t7=stack3,s0=stack4,s2=stack5,s3=stack6,s4=stack7,s5=stack8 ; out t0=ret,a3=*a0,t6=*a0+4,s1=*a0+8 ; preserve v0,v1,a0,a1,a2,t7
+
+# textured quad into obj (t4)'s cursor: func_802575F4(*cur, t1, s1, t8, v1, s5, gp); s0 scratch
+func_802A6DE8: in t4=a0,t1=a1,s1=a2,t8=a3,v1=stack0,s5=stack1,gp=stack2 ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t3,t4,t5,t6,t7,t8,t9,f12,f14 ; clobbers s0
 
 # --- 62740 ---
 # gp = the current vehicle's record (D_803EDB40, D_803EDF10, ...: differs per caller, so it is an
@@ -239,6 +252,12 @@ func_802C617C: preserve a0,a1,a2,a3,t6
 # vehicle step value in s6; s7 and a1 are scratch
 func_802C6FD8: out s6=ret ; preserve a2,a3,t6,t7,f12,f14 ; clobbers s7
 func_802C7354: preserve a1,a2,a3,f12,f14
+# enter vehicle: points $gp at D_803F7B50 and leaves it
+func_802C5714: clobbers gp
+func_802C6DAC: preserve a1,a2,a3
+# steering/tilt channels; up flag left in s2 on the steering paths (func_802C7C1C's input), and
+# func_802C7C1C's s3 = 270 left behind there (reaches func_802A6274 via func_802C7544); s5 scratch
+func_802C7864: in s2=*a0 ; out s2=*a0 ; preserve a1,a2,a3,t6,t7,f12,f14 ; clobbers s3,s5
 # (1 - |D_80370C2D| / 80) / 2 in f4 (f6 scratch)
 func_802C7BC0: out f4=fret ; preserve v0,f2
 # up flag in s2, result in f2; leaves s3 = 270
@@ -272,6 +291,8 @@ func_802AFB84: out s3=ret ; preserve a0,a1,a2,a3,f12,f14
 # --- 6B4A0 ---
 # rounded speed/divisor of this vehicle ($gp = D_803EDB40, read as globals in C) in s3
 func_802B0C74: out s3=ret ; preserve a0,a1,a2,a3
+# channel 5 of D_803ED840 restart check; leaves the channel's (u16) field 0xC in a3, s5 scratch
+func_802B0AAC: out a3=ret ; preserve f12,f14 ; clobbers s5
 # --- 6C5E0 ---
 # 0 / 50 / 120 from this vehicle's speed and +0xA1 ($gp = D_803EDF10) in s3
 func_802B28B8: out s3=ret ; preserve a0,a1,a2,a3
@@ -300,7 +321,18 @@ func_802B76AC: clobbers gp
 func_802B80D8: preserve a0,a1,a2,a3,t6,t7
 # rounded speed/divisor ($gp = D_803EEE70) in s3
 func_802B83B0: out s3=ret ; preserve a0,a1,a2,a3
+# distance (y = 0) D_803EF2EC/F4 -> D_803EF308/0C in s1; s0 left = D_803EF30C
+func_802B988C: out s1=ret ; preserve a0,a1,a2,a3,f12,f14 ; clobbers s0
+# sound/animation update ($gp = D_803EF240); (160 - speed) / 320 left in f20
+func_802B98E0: out f20=fret ; preserve a2,a3,t7,f12,f14
 # --- 75490 ---
+# distance (y = 0) D_803EF6DC/E4 -> D_803EF6F4/F8 in s1; s0 left = D_803EF6F8
+func_802BA5A4: out s1=ret ; preserve a2,a3,f12,f14 ; clobbers s0
+# engine sound/animation update ($gp = D_803EF630); angle sector in s4, s5 scratch
+func_802BA6AC: out s4=ret ; preserve a2,a3,t7,f12,f14 ; clobbers s5
+func_802BA91C: preserve a2,a3,f12,f14 ; clobbers s0,s1
+# enter vehicle: points $gp at D_803EFA20 and leaves it
+func_802BB054: clobbers gp
 # zone value scan of D_80305D62; its scan registers a0-a3 reach func_802A860C via func_802BA354
 func_802BA638: in a2=*a1 ; out a0=ret,a1=*a0,a2=*a1,a3=*a2
 # exit check: points $gp at D_803EFA20 and leaves it

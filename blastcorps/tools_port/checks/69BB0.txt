@@ -28,3 +28,8 @@ func_802AEB9C: -n 400 --seed 1 --arg a3=choice:1,2 \
     --mem D_803643E8=choice:0x1999F,0x199A0,0x1B69F,0x1B6A0,0x95FF,0x9600,0xBB9F,0xBBA0,0xA000,0x1A000,-1,-0x9600,0x80000000,0x7FFFFFFF
 # func_802AFB84: returns 0x8C (s3 -> v0)
 func_802AFB84: -n 50 --seed 0
+
+# ---- phase D (wave 1, wt-d4) ----
+# func_802AE860: func_802A02E4(31, D_803ED460) (stop channel 31); stubbed and run for real
+func_802AE860: -n 50 --seed 0 --ret void
+func_802AE860: -n 50 --seed 1 --ret void --follow func_802A02E4 --mem D_803ED460+0x2E8:0x18=rand

@@ -209,3 +209,88 @@ func_802C7ECC: -n 200 --ret void --arg gp=sym:D_803F7B50 --mem D_803F7B50+0xA1:1
 # func_802C7F28: 15 tuning halfwords at +0x78 and D_803F7C48 by mode; D_803ED3F6/7 = 0xFF
 func_802C7F28: -n 100 --ret void --arg gp=sym:D_803F7B50 --mem D_803F7B50+0x78:0x20=rand --mem D_803F7B50+0xA1:1=choice:0,1,2,0xFF \
     --mem D_803ED3F6:2=rand --mem D_803F7C48:1=rand
+
+# ---- phase D (wave 1, wt-d4) ----
+# func_802C4BF0 (apply_status, a0 = bitstream): records 0..4 in use; every record's +0 object is heap0
+# (byte +6 summed, byte +0xD the exempt part, +0x24/+0x28 its 0x14-byte part table for func_802BF1F0),
+# +4/+8 a 0x60-byte entry list in heap1 (u16 +0x52 part, byte +0x57 part). numParts 0..5.
+func_802C4BF0: -n 300 --seed 0 --ret void --sig func_8026FE8C=a0 --heap 0x100 --heap 0x180 \
+    --mem @heap0:0x100=bytes:0,1,2,3,4,0x64 --mem @heap0+0x24=0x40 --mem @heap0+0x28=choice:0x40,0x54,0x7C \
+    --mem D_803F4030:0x4EC=rand --mem D_803F4030*0xFC:5=rel:heap0 \
+    --mem D_803F4030+4*0xFC:5=rel:heap1 --mem D_803F4030+8*0xFC:5=rel:heap1+0x60*int:0:4 \
+    --mem D_803F4030+0xE9*0xFC:5/1=choice:0,1,2,3,5 \
+    --mem @heap1+0x52*0x60:4/2=choice:0,1,2,3,5 --mem @heap1+0x57*0x60:4/1=choice:0,1,2,3 \
+    --mem D_803F7654=rel:D_803F4030+0xFC*int:0:5 --mem D_8036EB90:2=int:0:20 --mem D_80368040=int \
+    --arg a0=ptr:0x40
+# the same with func_802BF1F0 run for real
+func_802C4BF0: -n 300 --seed 1 --ret void --follow func_802BF1F0 --sig func_8026FE8C=a0 --heap 0x100 --heap 0x180 \
+    --mem @heap0:0x100=bytes:0,1,2,3,4,0x64 --mem @heap0+0x24=0x40 --mem @heap0+0x28=choice:0x40,0x54,0x7C \
+    --mem D_803F4030:0x4EC=rand --mem D_803F4030*0xFC:5=rel:heap0 \
+    --mem D_803F4030+4*0xFC:5=rel:heap1 --mem D_803F4030+8*0xFC:5=rel:heap1+0x60*int:0:4 \
+    --mem D_803F4030+0xE9*0xFC:5/1=choice:0,1,2,3,5 \
+    --mem @heap1+0x52*0x60:4/2=choice:0,1,2,3,5 --mem @heap1+0x57*0x60:4/1=choice:0,1,2,3 \
+    --mem D_803F7654=rel:D_803F4030+0xFC*int:0:5 --mem D_8036EB90:2=int:0:20 --mem D_80368040=int \
+    --arg a0=ptr:0x40
+# all bits set / all clear; no records (section 2 only); 0 / 1 / 8 / 9 section-2 bits
+func_802C4BF0: -n 100 --seed 2 --ret void --sig func_8026FE8C=a0 --heap 0x100 --heap 0x180 \
+    --mem @heap0:0x100=bytes:0,1,2,3 --mem @heap0+0x24=0x40 --mem @heap0+0x28=0x54 \
+    --mem D_803F4030:0x4EC=rand --mem D_803F4030*0xFC:5=rel:heap0 \
+    --mem D_803F4030+4*0xFC:5=rel:heap1 --mem D_803F4030+8*0xFC:5=rel:heap1+0x60*int:0:4 \
+    --mem D_803F4030+0xE9*0xFC:5/1=choice:1,4,8,9 \
+    --mem @heap1+0x52*0x60:4/2=choice:0,1,2 --mem @heap1+0x57*0x60:4/1=choice:1,2 \
+    --mem D_803F7654=rel:D_803F4030+0xFC*int:0:5 --mem D_8036EB90:2=choice:0,1,8,9,16 --mem D_80368040=int \
+    --arg a0=ptr:0x40 --mem @a0:0x40=bytes:0,0xFF
+func_802C4BF0: -n 50 --seed 3 --ret void --sig func_8026FE8C=a0 --mem D_803F7654=sym:D_803F4030 \
+    --mem D_8036EB90:2=choice:0,1,7,8,9,0x20 --mem D_80368040=int --arg a0=ptr:0x40
+
+# func_802C5508: exit check (v0): bytes +0x96/7/8, mode +0xA1 (5 resets channels), channels 31 / 9 (getter)
+func_802C5508: -n 300 --seed 0 --ret int --follow func_802A04BC --mem D_803F7B50+0x96:3=bytes:0,1,2,0xFF*3 \
+    --mem D_803F7B50+0xA1:1=bytes:0*3,1,4,5*2,6,0xFF \
+    --mem D_803F7850:0x300=rand --mem D_803F7850+0x2F8:1=bytes:0,1*2,2,0xFF --mem D_803F7850+0xE8:1=bytes:0*2,1,0xFF
+func_802C5508: -n 100 --seed 1 --ret int --stub-ret func_802A04BC=1 --mem D_803F7B50+0x96:3=bytes:0,2 \
+    --mem D_803F7B50+0xA1:1=bytes:0,5
+func_802C5508: -n 100 --seed 2 --ret int --stub-ret func_802A04BC=0 --mem D_803F7B50+0x96:3=bytes:0,2,1 \
+    --mem D_803F7B50+0xA1:1=bytes:0,1
+func_802C5508: -n 50 --seed 3 --ret int --stub-ret func_802A04BC=rand --mem D_803F7B50+0x96:3=bytes:0,2 \
+    --mem D_803F7B50+0xA1:1=bytes:0
+# mode 5 with the setters run for real
+func_802C5508: -n 50 --seed 4 --ret int --follow-all --mem D_803F7B50+0x96:3=bytes:0 --mem D_803F7B50+0xA1:1=bytes:5 \
+    --mem D_803F7850:0x300=rand
+
+# func_802C5688: clear +0x76, func_802A7764(D_803F7C08, D_803F7C0C, 0x1000), stop channel 31 and the sounds
+func_802C5688: -n 200 --seed 0 --ret void --sig func_802608C8=a0 --sig func_802A7764=a0,a1,a2 \
+    --mem D_803F7B50+0x76:2=rand --mem D_803F7C08=int --mem D_803F7C0C=int --mem D_803F7C18:8=words:0*2,0x80123450,-1
+func_802C5688: -n 30 --seed 1 --ret void --follow func_802A7764,func_802A02E4 --sig func_802608C8=a0 --heap 0x1000 --heap 0x1000 \
+    --mem D_803F7C08=rel:heap0 --mem D_803F7C0C=rel:heap1 --mem D_803F7C18:8=words:0,0x80123450 --mem D_803F7850+0x2E8:0x18=rand
+
+# func_802C5714: clear +0x99, set up channels 3, 4, 1 (no other inputs); stubbed and run for real
+func_802C5714: -n 50 --seed 0 --ret void --mem D_803F7B50+0x99:1=bytes:1,0xFF
+func_802C5714: -n 30 --seed 1 --ret void --follow-all --mem D_803F7B50+0x99:1=bytes:1,0xFF --mem D_803F7850:0x78=rand
+
+# func_802C6DAC ($gp = D_803F7B50): idle countdown D_803F7C4B (reload 30 / count down) and, in mode 0 while
+# stopped with the countdown at 0, mode 5 with channels 6/7
+func_802C6DAC: -n 300 --seed 0 --ret void --arg gp=sym:D_803F7B50 --mem D_803F7B50+0x76:2=halves:0*3,1,0xFFFF,0x8000 \
+    --mem D_803F7B50+0xA1:1=bytes:0*3,1,5,0xFF --mem D_803F7C4B:1=bytes:0*2,1*2,2,30,0xFF
+func_802C6DAC: -n 50 --seed 1 --ret void --arg gp=sym:D_803F7B50 --follow-all --mem D_803F7B50+0x76:2=halves:0 \
+    --mem D_803F7B50+0xA1:1=bytes:0 --mem D_803F7C4B:1=bytes:0,1 --mem D_803F7850:0xC0=rand
+
+# func_802C7864 (steering/tilt; s2 in-out): D_803F7C2C / D_803F7C28 around 0.5 and the limits, the steer
+# gates D_80370C35, D_803F7C34 (+-4000 edges), D_80370C2C (31 / -31 edges), D_80370C2D sign; callees followed
+# (func_802C7C1C reads +0x76 of the block)
+func_802C7864: -n 400 --seed 0 --arg gp=sym:D_803F7B50 --follow func_802C7C1C,func_802C7BC0 \
+    --mem D_803F7C2C:4=floats:0:1 --mem D_803F7C28:4=floats:0:1 --mem D_80370C35:1=bytes:0*3,1 \
+    --mem D_803F7C34:2=halves:0,0xF9F,0xFA0,0xFA1,0xF061,0xF060,0xF062,0x7FFF,0x8000 \
+    --mem D_80370C2C:1=bytes:0,0x1E,0x1F,0x20,0xE2,0xE1,0xE0,0x7F,0x80 --mem D_80370C2D:1=bytes:0,1,0x50,0xFF,0xB0,0x7F,0x80 \
+    --mem D_803F7B50+0x76:2=int:0:0xFFFF
+func_802C7864: -n 300 --seed 1 --arg gp=sym:D_803F7B50 --follow func_802C7C1C,func_802C7BC0 \
+    --mem D_803F7C2C=choice:0x3F000000,0x3EFFFFFF,0x3F000001,0,0x3F800000,0x3E800000,0x3F400000 \
+    --mem D_803F7C28=choice:0x3F000000,0x3EFFFFFF,0x3F000001,0,0x3F800000,0x3E800000,0x3F400000 \
+    --mem D_80370C35:1=bytes:0,1 --mem D_803F7C34:2=int:0:0xFFFF --mem D_80370C2C:1=int:0:255 --mem D_80370C2D:1=int:0:255 \
+    --mem D_803F7B50+0x76:2=int:0:0xFFFF --mem D_8030D954:20=floats:0:0.3
+# callees stubbed: limits from --stub-ret (the f-register outputs)
+func_802C7864: -n 200 --seed 2 --stub-ret func_802C7C1C=0x3F400000 --stub-ret func_802C7BC0=0x3E800000 \
+    --mem D_803F7C2C:4=floats:0:1 --mem D_803F7C28:4=floats:0:1 --mem D_80370C35:1=bytes:0,1 \
+    --mem D_803F7C34:2=int:0:0xFFFF --mem D_80370C2C:1=int:0:255 --mem D_80370C2D:1=int:0:255
+func_802C7864: -n 200 --seed 3 --stub-ret func_802C7C1C=rand --stub-ret func_802C7BC0=rand \
+    --mem D_803F7C2C:4=floats:0:1 --mem D_803F7C28:4=floats:0:1 --mem D_80370C35:1=bytes:1 \
+    --mem D_80370C2C:1=bytes:0x40,0xC0 --mem D_80370C2D:1=bytes:1,0xFF

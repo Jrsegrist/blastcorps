@@ -26,3 +26,32 @@ func_802B0C74: -n 300 --seed 1 --arg gp=sym:D_803EDB40 --mem D_803EDB40+0x96:3=b
     --mem D_803EDB40+0x76:2=halves:0,1,2,3,5,6,9,15,0x7FFF,0x8000,0xFFFD,0xFFF7,0xFFFF,0xFFFE
 func_802B0C74: -n 300 --seed 2 --arg gp=sym:D_803EDB40 --mem D_803EDB40+0x96:3=bytes:0,1,2 \
     --mem D_8030D8A8:4=floats:0.25:40 --mem D_803EDB40+0x76:2=int:0:0xFFFF
+
+# ---- phase D (wave 1, wt-d4) ----
+# func_802B01DC: exit check; 0 if a byte +0x96/7/8 of D_803EDB40 is 1, else 5 if channel 5 of D_803ED840
+# has field 0x10 == 1 (the asm returns its leftover v0 = 5), else 1. Channel 5's record is at +0x78.
+func_802B01DC: -n 300 --seed 0 --ret int --follow func_802A04BC --mem D_803EDB40+0x96:3=bytes:0,1,2,0xFF*3 \
+    --mem D_803ED840+0x78:0x18=rand --mem D_803ED840+0x88:1=bytes:0,1*2,2,0xFF,0x81
+func_802B01DC: -n 100 --seed 1 --ret int --follow func_802A04BC --mem D_803EDB40+0x96:3=onehot:1/1:1:bytes:0,2,0xFF \
+    --mem D_803ED840+0x78:0x18=rand
+# stubbed: the channel's field 0x10 comes from --stub-ret (first output)
+func_802B01DC: -n 50 --seed 2 --ret int --stub-ret func_802A04BC=1 --mem D_803EDB40+0x96:3=bytes:0,2,0xFF*3,1
+func_802B01DC: -n 50 --seed 3 --ret int --stub-ret func_802A04BC=0 --mem D_803EDB40+0x96:3=bytes:0,2,0xFF*3,1
+func_802B01DC: -n 50 --seed 4 --ret int --stub-ret func_802A04BC=rand --mem D_803EDB40+0x96:3=bytes:0,2,0xFF
+
+# func_802B0AAC: channel 5 of D_803ED840 active and func_802BCD80(4) or (5) nonzero -> field 0x11 = 1,
+# restart (func_802A0290), D_802E8BE4 = 10, D_802E8BE8 = 600; a3 out = the channel's (u16) field 0xC
+func_802B0AAC: -n 300 --seed 0 --follow func_802A04BC --stub-ret func_802BCD80=rand \
+    --mem D_803ED840+0x78:0x18=rand --mem D_803ED840+0x88:1=bytes:0*2,1,0xFF,0x80 \
+    --mem D_802E8BE4:1=rand --mem D_802E8BE8=int
+func_802B0AAC: -n 100 --seed 1 --follow func_802A04BC --stub-ret func_802BCD80=0 \
+    --mem D_803ED840+0x78:0x18=rand --mem D_803ED840+0x88:1=bytes:0,1 --mem D_802E8BE4:1=rand --mem D_802E8BE8=int
+func_802B0AAC: -n 100 --seed 2 --follow func_802A04BC --stub-ret func_802BCD80=1 \
+    --mem D_803ED840+0x78:0x18=rand --mem D_803ED840+0x88:1=bytes:0,1 --mem D_802E8BE4:1=rand --mem D_802E8BE8=int
+# whole chain run for real: func_802BCD80 (77E20) looks for its value in the bytes D_803F77D8..*D_803F77D4
+func_802B0AAC: -n 200 --seed 3 --follow-all --mem D_803F77D8:12=bytes:0,3,4,5,6,0xFF \
+    --mem D_803F77D4=rel:D_803F77D8+int:0:12 \
+    --mem D_803ED840+0x78:0x18=rand --mem D_803ED840+0x88:1=bytes:0,1 --mem D_802E8BE4:1=rand --mem D_802E8BE8=int
+# stubbed getter (first output = field 0x10)
+func_802B0AAC: -n 100 --seed 4 --stub-ret func_802A04BC=1 --stub-ret func_802BCD80=rand --mem D_802E8BE4:1=rand --mem D_802E8BE8=int
+func_802B0AAC: -n 50 --seed 5 --stub-ret func_802A04BC=0 --stub-ret func_802BCD80=rand --mem D_802E8BE4:1=rand --mem D_802E8BE8=int

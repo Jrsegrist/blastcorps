@@ -90,7 +90,67 @@ void func_802A467C(s32 arg0, Gfx *arg1, Vtx *arg2, s32 arg3) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5FD50/func_802A470C.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* The two list cursors func_802A484C advances (the asm's t3 and s5). */
+typedef struct {
+    /* 0x0 */ s16 *quads; /* {x, z, w, h} halfword quads still to test */
+    /* 0x4 */ s16 *cells; /* visible single cells (z * stride + x) */
+} Io802A484C;
+
+s32 func_802A49A8(s32 x, s32 z, s32 w, s32 h, s32 stride, u8 *grid, s32 *maxOut);
+void func_802A4A50(Vtx *v, u32 x, u32 z, u32 w, u32 d, u32 xs, u32 zs, s32 y0, s32 y1);
+s32 func_802A4B0C(void *dataPtr, void *wb, s32 dataSize);
+
+#define EMIT_QUAD(q, qx, qz, qw, qh)   \
+    do {                               \
+        if ((qw) != 0 && (qh) != 0) {  \
+            (q)[0] = (qx);             \
+            (q)[1] = (qz);             \
+            (q)[2] = (qw);             \
+            (q)[3] = (qh);             \
+            (q) += 4;                  \
+        }                              \
+    } while (0)
+
+/* Visibility test of the w x h block of level-grid cells at (x, z): builds
+ * its bounding box (height range from func_802A49A8 over the s16-pair grid,
+ * corners from func_802A4A50 into v at scales xs, zs) and runs the RSP test
+ * task (func_802A4B0C with dataPtr / v / dataSize). If it reports visible: a
+ * single cell is appended to io->cells as z * stride + x; a bigger block is
+ * split into quadrants (w >> 1, w - (w >> 1)) x (h >> 1, h - (h >> 1)),
+ * each non-empty one appended to io->quads as {x, z, w, h}.
+ * The asm takes io's cursors in t3 / s5 (both in-out), dataPtr/v/dataSize
+ * in a1/a2/a3, x/z/w/h/stride in s0-s4, grid in s6, xs/zs in s7/t8
+ * (conventions.txt); it saves a0, t0-t2 and s0-s3. Its `add`/`sub` trap on
+ * overflow, C doesn't. */
+void func_802A484C(Io802A484C *io, void *dataPtr, Vtx *v, s32 dataSize, s32 x, s32 z, u32 w, u32 h,
+                   s32 stride, u8 *grid, u32 xs, u32 zs) {
+    s32 max;
+    s32 min = func_802A49A8(x, z, w, h, stride, grid, &max);
+    s16 *q;
+    u32 w1;
+    u32 h1;
+
+    func_802A4A50(v, x, z, w, h, xs, zs, min, max);
+    if (func_802A4B0C(dataPtr, v, dataSize) == 0) {
+        return;
+    }
+    if (w == 1 && h == 1) {
+        *io->cells++ = z * stride + x;
+        return;
+    }
+    q = io->quads;
+    w1 = w >> 1;
+    h1 = h >> 1;
+    EMIT_QUAD(q, x, z, w1, h1);
+    EMIT_QUAD(q, x + w1, z, w - w1, h1);
+    EMIT_QUAD(q, x, z + h1, w1, h - h1);
+    EMIT_QUAD(q, x + w1, z + h1, w - w1, h - h1);
+    io->quads = q;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5FD50/func_802A484C.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -411,4 +471,101 @@ u32 *func_802A51FC(u8 *base, u32 *dst, s32 start, s32 end, s32 patch) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern s16 D_803C2EB0[]; /* sorted ids to leave out, up to the caller's end pointer */
+
+/* Walks the variable-size records [rec, end) (+0 / +4 / +8: display-list
+ * start, alternate start and end offsets from base; +0xC: id; +0x10: count
+ * n; +0x14: n sorted words) and, for each record whose word list shares a
+ * value with the sorted, -1-terminated s16 list D_803C30A8 and whose id
+ * isn't in the sorted list [D_803C2EB0, exclEnd): copies its display list
+ * (from the alternate start when the id equals the previous copied record's)
+ * to dst, 8 bytes at a time. Unless it used the alternate start, the copy is
+ * patched like func_802A51FC when func_802A50DC(base, id) is nonzero:
+ * G_SETTIMG addresses from D_803C3240 / D_803C3244 and D_803C324B ORed into
+ * the G_SETPRIMCOLOR. Returns dst advanced past the copies.
+ * The asm takes base/dst/exclEnd/rec/end in a0/a1/v1/t8/t9 and returns dst
+ * in a1 (conventions.txt); it leaves func_802A50DC's result (or a D_803C32xx
+ * value) in gp. Loops use `!=`, so the record walk must reach `end`
+ * exactly. */
+u32 *func_802A5334(u8 *base, u32 *dst, s16 *exclEnd, u8 *rec, u8 *end) {
+    s32 prev = -2;
+
+    while (rec != end) {
+        s32 n = *(s32 *) (rec + 0x10);
+        s32 *words = (s32 *) (rec + 0x14);
+        s16 *l = D_803C30A8;
+        s32 id;
+        s16 *e;
+        u32 *s;
+        u32 *se;
+        u32 *q;
+        u32 w0;
+        s32 patch;
+
+        for (;;) {
+            s32 val = *l;
+            s32 *p;
+            s32 k;
+
+            if (val == -1) {
+                goto next;
+            }
+            l++;
+            for (p = words, k = n; k != 0; p++, k--) {
+                if (*p == val) {
+                    goto found;
+                }
+                if (val < *p) {
+                    break;
+                }
+            }
+        }
+    found:
+        id = *(s32 *) (rec + 0xC);
+        for (e = D_803C2EB0; e != exclEnd; e++) {
+            if (id < *e) {
+                break;
+            }
+            if (*e == id) {
+                goto next;
+            }
+        }
+        if (id == prev) {
+            s = (u32 *) (base + *(s32 *) (rec + 4));
+            q = NULL;
+        } else {
+            s = (u32 *) (base + *(s32 *) (rec + 0));
+            q = dst;
+        }
+        prev = id;
+        patch = func_802A50DC(base, id);
+        se = (u32 *) (base + *(s32 *) (rec + 8));
+        while (s != se) {
+            dst[0] = s[0];
+            dst[1] = s[1];
+            s += 2;
+            dst += 2;
+        }
+        if (patch != 0 && q != NULL) {
+            SKIP_TO_CMD(q, 0xFD, w0);
+            if (D_803C3240 != 0) {
+                q[-1] = D_803C3240;
+            }
+            if (D_803C324A != 0) {
+                SKIP_TO_CMD(q, 0xFD, w0);
+                if (D_803C3244 != 0) {
+                    q[-1] = D_803C3244;
+                }
+                SKIP_TO_CMD(q, 0xFA, w0);
+                q[-2] = w0 | D_803C324B;
+            }
+        }
+    next:
+        rec += n * 4 + 0x14;
+    }
+    return dst;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5FD50/func_802A5334.s")
+#endif

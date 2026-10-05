@@ -57,29 +57,9 @@ void func_802BA074(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-double sqrt(double);
-#pragma intrinsic(sqrt)
-
-/* func_802ABCDC (62740; points in t3-t5 and t6,t7,s0, result in s1) can't be
- * called from C: this is its logic (same macro as in 77E20.c/8DDB0.c). The
- * distance between two points, rounded to nearest (ties to even) as cvt.l.d
- * does; the squares are summed as s64 and converted as hi * 2^32 + lo (one
- * rounding, like cvt.d.l; a plain cast would call __ll_to_d). */
-#define DIST3_802ABCDC(out, ax, ay, az, bx, by, bz)                     \
-    do {                                                                \
-        s64 _dx = (s32) ((bx) - (ax));                                  \
-        s64 _dy = (s32) ((by) - (ay));                                  \
-        s64 _dz = (s32) ((bz) - (az));                                  \
-        s64 _sq = _dx * _dx + _dy * _dy + _dz * _dz;                    \
-        f64 _d = sqrt((f64) (s32) (_sq >> 32) * 4294967296.0 + (f64) (u32) _sq); \
-        s32 _r = (s32) _d;                                              \
-        f64 _f = _d - _r;                                               \
-                                                                        \
-        if (_f > 0.5 || (_f == 0.5 && (_r & 1))) {                      \
-            _r++;                                                       \
-        }                                                               \
-        (out) = _r;                                                     \
-    } while (0)
+/* Rounded 3-D distance from (ax, ay, az) to (bx, by, bz) (62740.c; asm
+ * convention in tools_port/conventions.txt: t3-t5, t6, t7, s0 -> s1). */
+s32 func_802ABCDC(s32 ax, s32 ay, s32 az, s32 bx, s32 by, s32 bz);
 
 extern s32 D_803643E0; /* player x, y, z */
 extern s32 D_803643E4;
@@ -106,7 +86,7 @@ void func_802BA148(void) {
     s32 dist;
     s32 pan;
 
-    DIST3_802ABCDC(dist, D_803643E0, D_803643E4, D_803643E8, D_803EF6DC, D_803EF6E0, D_803EF6E4);
+    dist = func_802ABCDC(D_803643E0, D_803643E4, D_803643E8, D_803EF6DC, D_803EF6E0, D_803EF6E4);
     if (dist > 16000) {
         if (D_803EF6D8 != NULL) {
             func_802608C8(D_803EF6D8);
@@ -138,7 +118,30 @@ void func_802BA148(void) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/func_802BA354.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern s32 D_803EF6F4; /* second point x, z (y = 0) */
+extern s32 D_803EF6F8;
+
+/* Distance (func_802ABCDC, y = 0) from (D_803EF6DC, D_803EF6E4) to
+ * (D_803EF6F4, D_803EF6F8); sets D_803EF710 when it is >= D_803EF6E8 and
+ * D_803EF711 when it is >= D_803EF6EC (signed). Returns the distance (the
+ * asm leaves it in s1; conventions.txt). The asm also leaves t7 = 0 and
+ * s0 = D_803EF6F8; asm caller func_802BA354 keeps a2, a3, f12, f14 live
+ * (a mixed N64 build would need a thunk; the native port won't). */
+s32 func_802BA5A4(void) {
+    s32 dist = func_802ABCDC(D_803EF6DC, 0, D_803EF6E4, D_803EF6F4, 0, D_803EF6F8);
+
+    if (dist >= D_803EF6E8) {
+        D_803EF710 = 1;
+    }
+    if (dist >= D_803EF6EC) {
+        D_803EF711 = 1;
+    }
+    return dist;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/func_802BA5A4.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -183,10 +186,104 @@ s32 func_802BA638(s32 *termZ, s32 *lastLevel, s32 *level) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* cvt.w.s under the FCSR's default rounding (nearest, ties to even); a C cast
+ * truncates instead. */
+#define CVT_W_S(out, x)                                                 \
+    do {                                                                \
+        f32 _x = (x);                                                   \
+        s32 _r = (s32) _x;                                              \
+        f32 _f = _x - (f32) _r;                                         \
+                                                                        \
+        if (_f > 0.5f || (_f == 0.5f && (_r & 1))) {                    \
+            _r++;                                                       \
+        } else if (_f < -0.5f || (_f == -0.5f && (_r & 1))) {           \
+            _r--;                                                       \
+        }                                                               \
+        (out) = _r;                                                     \
+    } while (0)
+
+extern u8 D_803EF630[];  /* this vehicle's state block (the asm's $gp) */
+extern s16 D_803EF6D6;   /* last speed sent to the engine sound */
+extern f32 D_8030D920;
+extern f32 D_8030D924;
+extern f32 D_8030D928;
+extern u16 D_80364452;   /* camera / player angle (0..0xFFF) */
+extern u8 D_802E8BD0;
+extern u8 D_803EF330[];  /* animation channel table (Unk8029DEA0Entry, 56040.c) */
+void func_802A0360(f32 f, void *base, s32 idx, s32 val);
+void func_802A039C(void *base, s32 idx, s32 val);
+
+/* Engine sound and animation channels for vehicle D_803EF630 (speed = s16 at
+ * +0x76). When the speed changed since the last call (D_803EF6D6) and the
+ * sound D_803EF6D8 is playing, its parameter 0x10 is set to the float
+ * 1.5 + speed * D_8030D920 (passed as raw bits). Then a = (D_80364452 +
+ * 0x800) wrapped by -0xFFF at 0x1000; channel 2 gets value a / 0x555
+ * (0, 1, else 2) and fraction (a % 0x555) / D_8030D924 (func_802A0360);
+ * channel 1 gets round(speed * D_8030D928) (0 while D_802E8BD0 is set,
+ * func_802A039C). Returns a / 0x555 (the asm's s4; conventions.txt). The asm
+ * also clobbers s5; asm caller func_802BA354 keeps a2, a3, t7, f12, f14 live
+ * (a mixed N64 build would need a thunk; the native port won't). The asm's
+ * `addi` traps on overflow, which can't happen for a u16. */
+s32 func_802BA6AC(void) {
+    s32 speed = *(s16 *) (D_803EF630 + 0x76);
+    s16 last = D_803EF6D6;
+    u32 a;
+    u32 q;
+    s32 v;
+    f32 frac;
+
+    D_803EF6D6 = speed;
+    if (last != speed && D_803EF6D8 != NULL) {
+        f32 p = 1.5f + (f32) speed * D_8030D920;
+
+        func_80260AB8(D_803EF6D8, 0x10, *(s32 *) &p);
+    }
+    a = D_80364452 + 0x800;
+    if ((s32) a >= 0x1000) {
+        a -= 0xFFF;
+    }
+    q = a / 0x555;
+    frac = (f32) (s32) (a % 0x555) / D_8030D924;
+    if (q == 0) {
+        func_802A0360(frac, D_803EF330, 2, 0);
+    } else if (q == 1) {
+        func_802A0360(frac, D_803EF330, 2, 1);
+    } else {
+        func_802A0360(frac, D_803EF330, 2, 2);
+    }
+    v = D_802E8BD0 != 0 ? 0 : *(s16 *) (D_803EF630 + 0x76);
+    CVT_W_S(v, (f32) v * D_8030D928);
+    func_802A039C(D_803EF330, 1, v);
+    return q;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/func_802BA6AC.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern s32 D_803EF6F0;
+extern u8 D_803643DA;
+extern u8 D_802E8BD8;
+
+/* Distance (func_802ABCDC, y = 0) from (D_803EF6DC, D_803EF6E4) to
+ * (D_803EF6F4, D_803EF6F8); when it is >= D_803EF6F0 (signed) sets
+ * D_803643DA and D_802E8BD8 to 1. The asm leaves the distance in s1 and
+ * D_803EF6F8 in s0 (conventions.txt: clobbers s0, s1); asm caller
+ * func_802BA354 keeps a2, a3, f12, f14 live (a mixed N64 build would need a
+ * thunk; the native port won't). */
+void func_802BA91C(void) {
+    s32 dist = func_802ABCDC(D_803EF6DC, 0, D_803EF6E4, D_803EF6F4, 0, D_803EF6F8);
+
+    if (dist >= D_803EF6F0) {
+        D_803643DA = 1;
+        D_802E8BD8 = 1;
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/func_802BA91C.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/func_802BA9A0.s")
@@ -219,7 +316,38 @@ void func_802BAD24(void) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/func_802BAD80.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern s16 D_8036444C;
+extern s16 D_80364450;
+extern u8 D_803EF720[];  /* animation channel table (Unk8029DEA0Entry, 56040.c) */
+void func_802A0290(void *base, s32 idx, s32 val);
+void func_802A039C(void *base, s32 idx, s32 val);
+void func_802A03D4(void *base, s32 idx, s32 val);
+void func_802A040C(void *base, s32 idx, s32 val);
+
+/* Enter vehicle type 6 (called from hd.c): D_8036444C/50 = 6000, 9000, then
+ * sets fields 0x14/0x11/0x12 of channels 2, 4, 5 of D_803EF720 and starts
+ * channels 4 and 5 with value -1 (func_802A0290). The asm also points $gp at
+ * D_803EFA20 and leaves it there (conventions.txt: clobbers gp) and leaves
+ * v1 = -1; the C caller uses neither. */
+void func_802BB054(void) {
+    D_8036444C = 6000;
+    D_80364450 = 9000;
+    func_802A039C(D_803EF720, 2, 1);
+    func_802A03D4(D_803EF720, 2, 0);
+    func_802A040C(D_803EF720, 2, 1);
+    func_802A039C(D_803EF720, 4, 0);
+    func_802A03D4(D_803EF720, 4, 0);
+    func_802A040C(D_803EF720, 4, 0);
+    func_802A0290(D_803EF720, 4, -1);
+    func_802A039C(D_803EF720, 5, 0);
+    func_802A03D4(D_803EF720, 5, 0);
+    func_802A040C(D_803EF720, 5, 1);
+    func_802A0290(D_803EF720, 5, -1);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/func_802BB054.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -238,7 +366,33 @@ s32 func_802BB170(void) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u64 *D_803EFAE4;  /* save copy pair (func_802A7764) */
+extern u64 *D_803EFAE8;
+extern void *D_803EFAD8; /* sound handles, NULL = none */
+extern void *D_803EFADC;
+extern void *D_803EFAE0;
+void func_802A7764(u64 *a, u64 *b, s32 size);
+
+/* Leave vehicle type 6 (called from hd.c): func_802A7764(D_803EFAE4,
+ * D_803EFAE8, 0x800), then stops the sounds D_803EFADC, D_803EFAD8 and
+ * D_803EFAE0 that are playing (func_802608C8); the handles are left as they
+ * are. The asm saves and restores $gp. */
+void func_802BB1A0(void) {
+    func_802A7764(D_803EFAE4, D_803EFAE8, 0x800);
+    if (D_803EFADC != NULL) {
+        func_802608C8(D_803EFADC);
+    }
+    if (D_803EFAD8 != NULL) {
+        func_802608C8(D_803EFAD8);
+    }
+    if (D_803EFAE0 != NULL) {
+        func_802608C8(D_803EFAE0);
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/func_802BB1A0.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/func_802BB230.s")

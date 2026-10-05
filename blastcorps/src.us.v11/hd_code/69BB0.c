@@ -12,7 +12,19 @@
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/69BB0/func_802AE370.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u8 D_803ED460[]; /* animation channel table (Unk8029DEA0Entry, 56040.c) */
+void func_802A02E4(s32 idx, void *base);
+
+/* Stops channel 31 of D_803ED460 (func_802A02E4; called from hd.c's vehicle
+ * switch). The asm leaves v0 = 31 and v1 = &D_803ED460; the C caller uses
+ * neither. */
+void func_802AE860(void) {
+    func_802A02E4(0x1F, D_803ED460);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/69BB0/func_802AE860.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/69BB0/func_802AE888.s")

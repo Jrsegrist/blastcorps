@@ -475,7 +475,126 @@ void func_802A5FA8(void) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* The three registers func_802A6274 takes and may hand back changed. */
+typedef struct {
+    /* 0x0 */ s32 a3; /* in: tag byte for D_803EB792; out: last D_803EB770 byte scanned */
+    /* 0x4 */ s32 t6; /* in: word for rec+0x20; out: (s16) def[0] (when a record was set up) */
+    /* 0x8 */ s32 s1; /* in: word for rec+0x14; out: the record's 0x100-byte buffer (when def[0] != -1) */
+} Io802A6274;
+
+extern u8 D_803EB792;
+s32 func_802ABC88(s32 id, s32 n, u8 **recOut);
+void func_802A11C4(s32 id, void *dest);
+
+/* Sets up a D_803C4B70 record for definition `def` (s16 id at +0, width and
+ * height bytes at +2, +3). Stores io->a3 in D_803EB792, takes the first
+ * inactive record (byte 0x33 == 0; none of 16 -> return 0), and gives it
+ * def[2] * def[3] free slots of the 16-byte map D_803EB770 (their indices go
+ * to rec+0x37.., then each is marked 1; running out returns 0 with the
+ * indices written so far). Then: active = 1, +0 = def, +4 = data, +0x34 =
+ * type, +0x32 = 0, +0x35 = b35, +0x3B = D_803EB792. Type != 1: words
+ * +8/+0xC/+0x10 = x/y/z, +0x20/+0x24/+0x28 = io->t6/w24/w28, +0x14/+0x18/
+ * +0x1C = io->s1/w18/w1C, +0x2C = w2C, +0x36 = 0. Type 1 with z != 0: the
+ * position comes from record (x, y) of func_802ABC88 (three words << 11),
+ * type becomes 0, the other words 0 and +0x2C = 0xFC180000. Type 1 with
+ * z == 0: bytes +0x30/+0x31 = x/y. Finally io->t6 = (s16) def[0] and, when
+ * that isn't -1, io->s1 = the record's buffer (D_803EB770 - 0x1000 +
+ * index * 0x100) and func_802A11C4(id, buffer). Returns 1 (0 on failure).
+ * The asm takes its inputs in t0-t5, t6, t7, s0-s5 and a3 and returns in
+ * t0 (conventions.txt); a3, t6 and s1 are also outputs (several asm callers
+ * read them), and so are f12/f14, left as func_802A11C4's libultra calls
+ * leave them, which C can't express. It restores v0, v1, a0-a2, s6, s7. Asm
+ * callers keep a0-a2 and t7 live (a mixed N64 build would need a thunk; the
+ * native port won't). */
+s32 func_802A6274(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32 z, s32 w24, s32 w28,
+                  s32 w18, s32 w1C, s32 w2C, s32 b35) {
+    u8 *rec = (u8 *) D_803C4B70;
+    u8 *slot;
+    s32 i;
+    s32 k;
+    s32 n;
+
+    D_803EB792 = io->a3;
+    for (i = 0;; i++) {
+        if (i == 16) {
+            return 0;
+        }
+        if (rec[0x33] == 0) {
+            break;
+        }
+        rec += 0x3C;
+    }
+
+    n = def[2] * def[3];
+    slot = rec + 0x37;
+    for (k = 0; n != 0; k++) {
+        if (k == 16) {
+            return 0;
+        }
+        io->a3 = D_803EB770[k];
+        if (io->a3 == 0) {
+            *slot++ = k;
+            n--;
+        }
+    }
+    n = def[2] * def[3];
+    slot = rec + 0x37;
+    while (n != 0) {
+        n--;
+        D_803EB770[*slot++] = 1;
+    }
+
+    rec[0x33] = 1;
+    *(u8 **) (rec + 0x00) = def;
+    *(s32 *) (rec + 0x04) = data;
+    rec[0x34] = type;
+    rec[0x32] = 0;
+    rec[0x35] = b35;
+    rec[0x3B] = D_803EB792;
+    if (type != 1) {
+        *(s32 *) (rec + 0x08) = x;
+        *(s32 *) (rec + 0x0C) = y;
+        *(s32 *) (rec + 0x10) = z;
+        *(s32 *) (rec + 0x20) = io->t6;
+        *(s32 *) (rec + 0x24) = w24;
+        *(s32 *) (rec + 0x28) = w28;
+        *(s32 *) (rec + 0x14) = io->s1;
+        *(s32 *) (rec + 0x18) = w18;
+        *(s32 *) (rec + 0x1C) = w1C;
+        *(s32 *) (rec + 0x2C) = w2C;
+        rec[0x36] = 0;
+    } else if (z != 0) {
+        u8 *src;
+
+        func_802ABC88(x, y, &src);
+        rec[0x34] = 0;
+        *(s32 *) (rec + 0x08) = ((s32 *) src)[0] << 11;
+        *(s32 *) (rec + 0x0C) = ((s32 *) src)[1] << 11;
+        *(s32 *) (rec + 0x10) = ((s32 *) src)[2] << 11;
+        *(s32 *) (rec + 0x20) = 0;
+        *(s32 *) (rec + 0x24) = 0;
+        *(s32 *) (rec + 0x28) = 0;
+        *(s32 *) (rec + 0x14) = 0;
+        *(s32 *) (rec + 0x18) = 0;
+        *(s32 *) (rec + 0x1C) = 0;
+        *(s32 *) (rec + 0x2C) = 0xFC180000;
+        rec[0x36] = 0;
+    } else {
+        rec[0x30] = x;
+        rec[0x31] = y;
+    }
+
+    io->t6 = *(s16 *) def;
+    if (io->t6 != -1) {
+        io->s1 = (s32) (D_803EB770 - 0x1000 + i * 0x100);
+        func_802A11C4(io->t6, (void *) io->s1);
+    }
+    return 1;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/60F60/func_802A6274.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/60F60/func_802A64A4.s")
@@ -583,7 +702,26 @@ void func_802A6D34(void) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+Gfx **func_802A6EB8(u8 *obj);
+Gfx *func_802575F4(Gfx *gfx, Vtx *vtx, void *timg, s16 fmtsiz, s32 width, s32 height, s32 zbuf);
+
+/* Draws a textured quad into obj's display-list cursor (func_802A6EB8 picks
+ * D_803EB780 or D_803EB784): *cursor = func_802575F4(*cursor, vtx, timg,
+ * fmtsiz, width, height, zbuf). The asm takes obj, vtx, timg, fmtsiz, width,
+ * height, zbuf in t4, t1, s1, t8, v1, s5, gp (conventions.txt), saves every
+ * register it uses except s0 (obj copy) and t2, and passes fmtsiz to
+ * func_802575F4 as the full register (the C prototype's s16 narrows it).
+ * Asm caller func_802A64A4 keeps a0-a3, t0, t1, t3-t5, t7-t9, f12, f14 live
+ * (a mixed N64 build would need a thunk; the native port won't). */
+void func_802A6DE8(u8 *obj, Vtx *vtx, void *timg, s32 fmtsiz, s32 width, s32 height, s32 zbuf) {
+    Gfx *gfx = func_802575F4(*func_802A6EB8(obj), vtx, timg, fmtsiz, width, height, zbuf);
+
+    *func_802A6EB8(obj) = gfx;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/60F60/func_802A6DE8.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

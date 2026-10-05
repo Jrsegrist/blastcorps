@@ -98,6 +98,19 @@ s32 func_80258500(u8 id);
 void *func_80260650(void *arg0, s16 arg1, void *arg2);
 void func_802608C8(void *arg0);
 
+/* This vehicle's animation channel table and the channel-field setters /
+ * getter of 56040.c (Unk8029DEA0Entry; asm conventions in
+ * tools_port/conventions.txt). func_802A04BC's out[0] is (s8) field 0x10. */
+extern u8 D_803F7850[];
+void func_802A0290(void *base, s32 idx, s32 val);
+void func_802A02E4(s32 idx, void *base);
+void func_802A0360(f32 f, void *base, s32 idx, s32 val);
+void func_802A039C(void *base, s32 idx, s32 val);
+void func_802A03D4(void *base, s32 idx, s32 val);
+void func_802A040C(void *base, s32 idx, s32 val);
+void func_802A0480(f32 f, void *base, s32 idx, s32 val);
+void func_802A04BC(s32 idx, void *base, s32 *out);
+
 /* cvt.w.s under the default FCSR: round to nearest, ties to even (a C cast
  * truncates). */
 #define CVT_W_S(out, x)                                       \
@@ -155,7 +168,112 @@ s32 func_802C4A40(u8 *out) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern s32 D_80368040;
+void func_802BF1F0(void *e, s32 id);
+void func_8026FE8C(s32 arg0);
+
+/* apply_status: reads a bitstream in func_802C4A40's format (MSB-first; the
+ * bit reader runs on across the records and restarts on a fresh byte for
+ * section 2). Section 1, per record in use and per part i (1-based): a set
+ * bit destroys the part (parts[i-1] = 100, func_802BF1F0(record, i)), a
+ * clear bit restores it (0) and clears the record's "all intact" flag
+ * (+0xEA) unless i equals byte +0xD of the record's +0 object; +0xEA is
+ * written for every record. D_80368040 = the sum of byte +6 of the +0 object
+ * of every record that had a part destroyed. Then, per destroyed part i of
+ * each record, every 0x60-byte entry of [+4, +8) whose u16 at +0x52 is i
+ * gets byte +0x51 = 0, and one whose byte +0x57 is i gets byte +0x51 = 1
+ * when the part named by its +0x52 (1-based; 0 reads the byte before the
+ * parts) isn't destroyed. Section 2: D_8036EB90 bits, func_8026FE8C(i) for
+ * each set bit i. The asm saves every register it uses; its loops use `!=`
+ * (the entry walk must reach +8 exactly). */
+void func_802C4BF0(void *in) {
+    u8 *p = in;
+    Rec7FB50 *r;
+    Rec7FB50 *end;
+    u32 mask = 1;
+    u32 byte = 0;
+    s32 sum = 0;
+    s32 n;
+    s32 i;
+
+    end = D_803F7654;
+    for (r = D_803F4030; r != end; r++) {
+        u8 *part = r->parts;
+        s32 allIntact = 1;
+        s32 anyDestroyed = 0;
+
+        n = r->numParts;
+        i = 0;
+        while (n != 0) {
+            u8 v;
+
+            n--;
+            i++;
+            if (mask == 1) {
+                byte = *p++;
+                mask = 0x100;
+            }
+            mask >>= 1;
+            if (!(byte & mask)) {
+                if (r->unk0[0xD] != i) {
+                    allIntact = 0;
+                }
+                v = 0;
+            } else {
+                v = 100;
+                func_802BF1F0(r, i);
+                anyDestroyed = 1;
+            }
+            *part++ = v;
+        }
+        r->padEA = allIntact;
+        if (anyDestroyed) {
+            sum += r->unk0[6];
+        }
+    }
+    D_80368040 = sum;
+
+    end = D_803F7654;
+    for (r = D_803F4030; r != end; r++) {
+        n = r->numParts;
+        for (i = 0; n != 0; i++) {
+            n--;
+            if (r->parts[i] == 100) {
+                u8 *e = *(u8 **) ((u8 *) r + 4);
+                u8 *eEnd = *(u8 **) ((u8 *) r + 8);
+
+                for (; e != eEnd; e += 0x60) {
+                    s32 id = *(u16 *) (e + 0x52);
+
+                    if (id == i + 1) {
+                        e[0x51] = 0;
+                    }
+                    if (e[0x57] == i + 1 && r->parts[id - 1] != 100) {
+                        e[0x51] = 1;
+                    }
+                }
+            }
+        }
+    }
+
+    n = D_8036EB90;
+    mask = 1;
+    for (i = 0; n != 0; i++) {
+        n--;
+        if (mask == 1) {
+            byte = *p++;
+            mask = 0x100;
+        }
+        mask >>= 1;
+        if (byte & mask) {
+            func_8026FE8C(i);
+        }
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C4BF0.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -251,13 +369,104 @@ u32 func_802C4E58(void *outp, u8 level) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C5120.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Exit check for this vehicle (called from func_8024B4B8 in hd.c, which
+ * declares it void and returns the leftover v0). 0 when a byte +0x96/7/8 of
+ * the block is 1. Mode (+0xA1) 5: resets the mode to 0, stops channels 7
+ * and 8, sets channel 6 (0.0, 2) and re-arms channel 9 (0.0 / 3 / 0 / 0.0 /
+ * 1, restart with 1), returns 2. Other nonzero modes return 2. Mode 0:
+ * 2 when channel 31's field 0x10 is 1, else 1 when channel 9's field 0x10 is
+ * 0, else 2. Returns s32 (the asm's v0); the asm saves and restores $gp and
+ * leaves v1 changed, which the C caller doesn't use. */
+s32 func_802C5508(void) {
+    s32 ch[8];
+
+    if (VEH_U8(0x96) == 1 || VEH_U8(0x97) == 1 || VEH_U8(0x98) == 1) {
+        return 0;
+    }
+    if (VEH_U8(0xA1) == 5) {
+        VEH_U8(0xA1) = 0;
+        func_802A02E4(7, D_803F7850);
+        func_802A02E4(8, D_803F7850);
+        func_802A0360(0.0f, D_803F7850, 6, 2);
+        func_802A0360(0.0f, D_803F7850, 9, 0);
+        func_802A039C(D_803F7850, 9, 3);
+        func_802A03D4(D_803F7850, 9, 0);
+        func_802A0480(0.0f, D_803F7850, 9, 0);
+        func_802A040C(D_803F7850, 9, 1);
+        func_802A0290(D_803F7850, 9, 1);
+        return 2;
+    }
+    if (VEH_U8(0xA1) != 0) {
+        return 2;
+    }
+    func_802A04BC(0x1F, D_803F7850, ch);
+    if (ch[0] == 1) {
+        return 2;
+    }
+    func_802A04BC(9, D_803F7850, ch);
+    if (ch[0] == 0) {
+        return 1;
+    }
+    return 2;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C5508.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u64 *D_803F7C08; /* save copy pair (func_802A7764) */
+extern u64 *D_803F7C0C;
+void func_802A7764(u64 *a, u64 *b, s32 size);
+
+/* Teardown for this vehicle (called from func_8024B188 in hd.c): clears the
+ * s16 at +0x76, func_802A7764(D_803F7C08, D_803F7C0C, 0x1000), stops
+ * channel 31 and the sounds D_803F7C18 / D_803F7C1C that are playing (the
+ * handles are left as they are). The asm saves and restores $gp and leaves
+ * v1 = &D_803F7850 or func_802608C8's leftover; the C caller uses neither. */
+void func_802C5688(void) {
+    VEH_S16(0x76) = 0;
+    func_802A7764(D_803F7C08, D_803F7C0C, 0x1000);
+    func_802A02E4(0x1F, D_803F7850);
+    if (D_803F7C18 != NULL) {
+        func_802608C8(D_803F7C18);
+    }
+    if (D_803F7C1C != NULL) {
+        func_802608C8(D_803F7C1C);
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C5688.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Enter this vehicle (called from hd.c and 17210.c): clears the byte at
+ * +0x99 and starts channels 3 and 4 (fields 0 / 0 / 1, 1.0 with 1, restart
+ * with -1) and channel 1 (0 / 0 / 0, restart with -1). The asm points $gp at
+ * D_803F7B50 and leaves it there (conventions.txt: clobbers gp) and leaves
+ * v1 = -1; C callers use neither. */
+void func_802C5714(void) {
+    VEH_U8(0x99) = 0;
+    func_802A039C(D_803F7850, 3, 0);
+    func_802A03D4(D_803F7850, 3, 0);
+    func_802A040C(D_803F7850, 3, 1);
+    func_802A0480(1.0f, D_803F7850, 3, 1);
+    func_802A0290(D_803F7850, 3, -1);
+    func_802A039C(D_803F7850, 4, 0);
+    func_802A03D4(D_803F7850, 4, 0);
+    func_802A0480(1.0f, D_803F7850, 4, 1);
+    func_802A040C(D_803F7850, 4, 1);
+    func_802A0290(D_803F7850, 4, -1);
+    func_802A039C(D_803F7850, 1, 0);
+    func_802A03D4(D_803F7850, 1, 0);
+    func_802A040C(D_803F7850, 1, 0);
+    func_802A0290(D_803F7850, 1, -1);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C5714.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C5860.s")
@@ -308,7 +517,37 @@ void func_802C617C(void) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C61F0.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u8 D_803F7C4B; /* idle countdown */
+
+/* Idle check: while the vehicle moves (+0x76 != 0) or is in a mode
+ * (+0xA1 != 0) the countdown D_803F7C4B is reloaded with 30, else it counts
+ * down to 0. In mode 0, stopped, with the countdown at 0: mode 5, channel 6
+ * stopped and channel 7 armed (0.0 / 0, 3, 0, 0.0 / 0, 1, restart with 1).
+ * The asm reads the block through $gp (= D_803F7B50, set by its caller);
+ * asm caller func_802C61F0 keeps a1-a3 live (a mixed N64 build would need a
+ * thunk; the native port won't). */
+void func_802C6DAC(void) {
+    if (VEH_S16(0x76) != 0 || VEH_U8(0xA1) != 0) {
+        D_803F7C4B = 30;
+    } else if (D_803F7C4B != 0) {
+        D_803F7C4B--;
+    }
+    if (VEH_U8(0xA1) != 0 || VEH_S16(0x76) != 0 || D_803F7C4B != 0) {
+        return;
+    }
+    VEH_U8(0xA1) = 5;
+    func_802A02E4(6, D_803F7850);
+    func_802A0360(0.0f, D_803F7850, 7, 0);
+    func_802A039C(D_803F7850, 7, 3);
+    func_802A03D4(D_803F7850, 7, 0);
+    func_802A0480(0.0f, D_803F7850, 7, 0);
+    func_802A040C(D_803F7850, 7, 1);
+    func_802A0290(D_803F7850, 7, 1);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C6DAC.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -505,7 +744,127 @@ void func_802C770C(void) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern s16 D_803F7C34;
+extern f32 D_8030D954;
+extern f32 D_8030D958;
+extern f32 D_8030D95C;
+extern f32 D_8030D960;
+extern f32 D_8030D964;
+f32 func_802C7BC0(void);
+f32 func_802C7C1C(s32 up);
+
+/* Moves f towards 0.5 by step without passing it (NaN goes the "above"
+ * way, as the asm's compares do). */
+#define CENTER_STEP(f, step)          \
+    {                                 \
+        if ((f) < 0.5f) {             \
+            (f) += (step);            \
+            if (!((f) <= 0.5f)) {     \
+                (f) = 0.5f;           \
+            }                         \
+        } else {                      \
+            (f) -= (step);            \
+            if ((f) < 0.5f) {         \
+                (f) = 0.5f;           \
+            }                         \
+        }                             \
+    }
+
+/* Steering / tilt animation (0.5 = centred). D_803F7C2C: while steering
+ * (D_80370C35 set or |D_803F7C34| large: >= 4000 or < -3999) with
+ * D_80370C2C >= 31 it rises by D_8030D958 up to func_802C7C1C(1), with
+ * D_80370C2C < -30 it falls by D_8030D954 down to func_802C7C1C(0) (the up
+ * flag is left in *up, the asm's s2); otherwise it steps back to 0.5 by
+ * D_8030D95C. Channel 4 of D_803F7850 then gets 1 - it as (2x, 1) below
+ * 0.5 or (2(x - 0.5), 2) above. D_803F7C28 likewise with step
+ * D_8030D960 * (1 - 2|x - 0.5|): D_80370C2D > 0 raises it up to
+ * 1 - func_802C7BC0() (if not already above), < 0 lowers it down to
+ * func_802C7BC0() (if not already below), else (or when outside) it centres
+ * by D_8030D964; channel 3 gets it in the same two-range form.
+ * The asm also computes round(100 * (1 - D_803F7C2C)) into t2 and drops it,
+ * clobbers s5, and keeps func_802C7C1C's s3 = 270 (conventions.txt:
+ * clobbers s3, s5). Asm caller func_802C61F0 keeps a1-a3, t6, t7, f12, f14
+ * live (a mixed N64 build would need a thunk; the native port won't). */
+void func_802C7864(s32 *up) {
+    f32 f = D_803F7C2C;
+    f32 lim;
+    f32 step;
+    f32 w;
+    s32 s;
+
+    if (D_80370C35 != 0 || D_803F7C34 >= 0xFA0 || D_803F7C34 < -0xF9F) {
+        s = D_80370C2C;
+        if (s >= 0x1F) {
+            *up = 1;
+            f += D_8030D958;
+            lim = func_802C7C1C(1);
+            if (!(f <= lim)) {
+                f = lim;
+            }
+            goto store1;
+        }
+        if (s < -0x1E) {
+            *up = 0;
+            f -= D_8030D954;
+            lim = func_802C7C1C(0);
+            if (f < lim) {
+                f = lim;
+            }
+            goto store1;
+        }
+    }
+    step = D_8030D95C;
+    CENTER_STEP(f, step);
+store1:
+    D_803F7C2C = f;
+    f = 1.0f - f;
+    if (f <= 0.5f) {
+        func_802A0360(f * 2.0f, D_803F7850, 4, 1);
+    } else {
+        func_802A0360((f - 0.5f) * 2.0f, D_803F7850, 4, 2);
+    }
+
+    f = D_803F7C28;
+    if (f <= 0.5f) {
+        w = 0.5f - (0.5f - f);
+    } else {
+        w = 0.5f - (f - 0.5f);
+    }
+    step = D_8030D960 * (w * 2.0f);
+    s = D_80370C2D;
+    if (s > 0) {
+        lim = 1.0f - func_802C7BC0();
+        if (f <= lim) {
+            f += step;
+            if (!(f <= lim)) {
+                f = lim;
+            }
+            goto store2;
+        }
+    } else if (s < 0) {
+        lim = func_802C7BC0();
+        if (!(f < lim)) {
+            f -= step;
+            if (f < lim) {
+                f = lim;
+            }
+            goto store2;
+        }
+    }
+    step = D_8030D964;
+    CENTER_STEP(f, step);
+store2:
+    D_803F7C28 = f;
+    if (f <= 0.5f) {
+        func_802A0360(f * 2.0f, D_803F7850, 3, 1);
+    } else {
+        func_802A0360((f - 0.5f) * 2.0f, D_803F7850, 3, 2);
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C7864.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

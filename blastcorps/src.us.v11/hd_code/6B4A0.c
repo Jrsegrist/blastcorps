@@ -15,7 +15,36 @@
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6B4A0/func_802AFFD4.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u8 D_803EDB40[]; /* this vehicle's state block */
+extern u8 D_803ED840[]; /* animation channel table (Unk8029DEA0Entry, 56040.c) */
+/* Reads channel idx of base into out[0..7] (56040.c; asm convention in
+ * tools_port/conventions.txt): out[0] = (s8) field 0x10, out[3] = field
+ * 0x14, out[4] = (u16) field 0xC, ... */
+void func_802A04BC(s32 idx, void *base, s32 *out);
+
+/* Exit check for this vehicle type (called from func_8024B4B8 in hd.c, which
+ * declares it void and returns the leftover v0): 0 when any of the bytes at
+ * +0x96, +0x97, +0x98 of D_803EDB40 is 1; else 5 when channel 5 of
+ * D_803ED840 has field 0x10 == 1 (the asm returns the channel index it left
+ * in v0, which func_802A04BC preserves; kept as is); else 1. Returns s32
+ * (the asm's v0). The asm saves and restores $gp; the v1 it leaves
+ * (channel 5's field 0x10) isn't used by the C caller. */
+s32 func_802B01DC(void) {
+    s32 ch[8];
+
+    if (D_803EDB40[0x96] == 1 || D_803EDB40[0x97] == 1 || D_803EDB40[0x98] == 1) {
+        return 0;
+    }
+    func_802A04BC(5, D_803ED840, ch);
+    if (ch[0] == 1) {
+        return 5;
+    }
+    return 1;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6B4A0/func_802B01DC.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6B4A0/func_802B0254.s")
@@ -33,7 +62,36 @@
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6B4A0/func_802B07DC.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u8 D_802E8BE4;
+extern s32 D_802E8BE8;
+s32 func_802BCD80(s32 value);
+void func_802A0290(void *base, s32 idx, s32 val);
+void func_802A03D4(void *base, s32 idx, s32 val);
+
+/* When channel 5 of D_803ED840 is active (field 0x10 != 0) and
+ * func_802BCD80(4) or func_802BCD80(5) is nonzero: sets its field 0x11 to 1,
+ * restarts it with value 1 (func_802A0290) and sets D_802E8BE4 = 10,
+ * D_802E8BE8 = 600. Returns channel 5's (u16) field 0xC as read at the start
+ * (the asm leaves it in a3, which asm caller func_802B03F4 reads;
+ * conventions.txt). The asm also clobbers s5 (10 / 600 scratch); its caller
+ * keeps f12, f14 live (a mixed N64 build would need a thunk; the native port
+ * won't). */
+s32 func_802B0AAC(void) {
+    s32 ch[8];
+
+    func_802A04BC(5, D_803ED840, ch);
+    if (ch[0] != 0 && (func_802BCD80(4) != 0 || func_802BCD80(5) != 0)) {
+        func_802A03D4(D_803ED840, 5, 1);
+        func_802A0290(D_803ED840, 5, 1);
+        D_802E8BE4 = 10;
+        D_802E8BE8 = 600;
+    }
+    return ch[4];
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6B4A0/func_802B0AAC.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6B4A0/func_802B0B3C.s")

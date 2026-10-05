@@ -1,0 +1,6 @@
+# 69BB0 (vehicle module) port checks
+# func_802AFBA0: D_803EBBF4 = D_803EBBF0 * 4.0f; D_803ED3F6/7 = 40, 3
+func_802AFBA0: -n 300 --seed 0 --ret void --mem D_803EBBF0:4=floats:-100000:100000
+# special float bit patterns: +-0, 1, inf, NaN, denormal, FLT_MAX (overflow to inf), -100
+func_802AFBA0: -n 200 --seed 1 --ret void \
+    --mem D_803EBBF0:4=words:0,0x80000000,0x3F800000,0x7F800000,0xFF800000,0x7FC00000,0x00000001,0x7F7FFFFF,0xC2C80000

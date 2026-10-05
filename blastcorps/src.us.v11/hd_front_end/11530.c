@@ -723,13 +723,15 @@ Gfx *func_801FA180(Gfx *arg0, Dynamic *dyn, f32 lon0, s8 *selected) {
  * MAX with D_8021AB28 is "(AB28 > e) ? AB28 : e", the colour factors are (f32) u8, *lon gets an
  * int ternary, the acos sign goes first (as in func_801FC5B8).
  */
-#if 0
+#ifdef NON_MATCHING
+/* (The NON_MATCHING build uses this draft; checks in tools_port/checks/fe_11530.txt.) */
 /* D_80217B70 seen as a struct (the same address) */
-extern struct {
+typedef struct {
     Mtx pad[12];
     Mtx view[2];
     Mtx rot[2];
-} D_80217B70x;
+} GlobeMtx;
+#define D_80217B70x (*(GlobeMtx *) D_80217B70)
 
 #define FABS(x) ((x) > 0 ? (x) : -(x))
 
@@ -892,8 +894,9 @@ Gfx *func_801FA74C(Dynamic *dyn, Gfx *arg1, u8 from, u8 to, s8 *out, f32 *lon, u
     D_8021A909++;
     return gdl;
 }
-#endif
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/11530/func_801FA74C.s")
+#endif
 
 /* The plane icon flying along the great circle between two levels. */
 Gfx *func_801FC5B8(Dynamic *dyn, Gfx *arg1, u8 from, u8 to) {

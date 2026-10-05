@@ -14,3 +14,125 @@ func_802A1934: -n 10 --seed 2 --ret void --mem 0x80306480:0x30=rand --mem 0x8030
 
 # func_802A1EC8: every listed level, their neighbours and out-of-range values
 func_802A1EC8: -n 400 --ret void --mem D_802E8BDC=choice:0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,0x19,0x1A,0x1B,0x1C,0x1D,0x1E,0x20,0x21,0x22,0x38,0x39,0x3A,0x3B,-1,0x100,0x8000000A --mem D_803BE704=int --mem D_803BE708=int
+
+# ---- phase C (non-ABI register interfaces, see tools_port/conventions.txt) ----
+
+# func_802A133C: record with word 0x5C == id in exactly one of 8 slots (first/last/middle)
+func_802A133C: -n 300 --arg a1=5 --arg a0=int --arg v0=int --arg v1=int --arg gp=ptr:0x100 \
+    --mem D_80364460:0x3A0=onehot:0x74@0x5C:5:rand
+func_802A133C: -n 100 --seed 1 --arg a1=-1 --arg a0=int --arg v0=int --arg v1=int --arg gp=ptr:0x100 \
+    --mem D_80364460:0x3A0=onehot:0x74@0x5C:-1:words:0,1,0x7FFFFFFF
+func_802A133C: -n 20 --seed 2 --arg a1=0 --arg gp=ptr:0x100 --mem D_80364460:0x74=rand --mem D_80364460+0x5C=0
+
+# func_802A1558: wrapper (callee stubbed, then followed)
+func_802A1558: -n 100 --arg t2=int --arg t3=int --arg t4=int --sig func_80278BF0=a0,a1,a2
+func_802A1558: -n 50 --seed 1 --follow func_80278BF0 --arg t2=ptr:0x80 --arg t3=rel:t2+8*int:0:16 --arg t4=ptr:0x10 \
+    --heap 0x100 --mem @t4=rel:heap0 --mem @t2:0x80=words:0x06000000,0xB8000000,0xE7000000,0
+func_802A1558: -n 20 --seed 2 --follow func_80278BF0 --arg t2=ptr:0x80 --arg t3=rel:t2 --arg t4=ptr:0x10 --heap 0x100 --mem @t4=rel:heap0
+
+# func_802A1A9C: n in {0,0x20,0x40,0x80}; block 1 tag (0 / 5 / -1) with 0..2 items, then a
+# block 2 with tag -1 and 0..1 items wherever block 1 ends
+func_802A1A9C: -n 300 --heap 0x400 --mem D_80358070=rel:heap0 --arg t0=ptr:0x400 --mem D_803F7820:16=rand \
+    --mem @t0+0x74=0x80 --mem @t0+0x80=choice:0,0x20,0x40,0x80 --mem @t0+0x84:2=choice:0,5,0xFFFF \
+    --mem @t0+0xAC=choice:0,1,2 --mem @t0+0xB0:2=0xFFFF --mem @t0+0xF4:2=0xFFFF --mem @t0+0x138:2=0xFFFF \
+    --mem @t0+0xD8=choice:0,1 --mem @t0+0x11C=choice:0,1 --mem @t0+0x160=choice:0,1
+# item halves at the s16 extremes (sign of << 5)
+func_802A1A9C: -n 100 --seed 1 --heap 0x400 --mem D_80358070=rel:heap0 --arg t0=ptr:0x400 --mem D_803F7820:16=rand \
+    --mem @t0+0x84:0x100=halves:0x7FFF,0x8000,0xFFFF,1,0x0400 --mem @t0+0x74=0x80 --mem @t0+0x80=0x20 \
+    --mem @t0+0x84:2=5 --mem @t0+0xAC=2 --mem @t0+0x138:2=0xFFFF --mem @t0+0x160=1
+
+# func_802A1C88: gSPDisplayList (opcode 6) relocation over 0..16 commands
+func_802A1C88: -n 300 --arg t0=ptr:0x200 --mem D_803BE6E0:16=rand --mem @t0+0x78=choice:0,0x100,-4,0x7FFFFFFF \
+    --mem @t0+0x90=0x100 --mem @t0+0x84=rel:0x100+8*int:0:16 \
+    --mem @t0+0x100:0x80=words:0x06000000,0x06FFFFFF,0x07000000,0x05000000,0x01000000,0x80123456,0
+func_802A1C88: -n 50 --seed 1 --arg t0=ptr:0x200 --mem D_803BE6E0:16=rand --mem @t0+0x90=0x100 --mem @t0+0x84=0x100
+
+# func_802A20F4: flag 0 / nonzero, game mode u64 == 0x800 (both halves), 0..4 entries
+func_802A20F4: -n 300 --arg t4=ptr:0x200 --arg s0=choice:0,1,0xFF,0x100 --mem @t4+0x1C=choice:0x50,0x60,0x90,0x90,0x90 \
+    --mem D_80364A98:4=choice:0,0,0,1,0x80000000 --mem D_80364A98+4:4=choice:0x800,0x800,0x80,0x801,0
+func_802A20F4: -n 50 --seed 1 --arg t4=ptr:0x200 --arg s0=1 --mem @t4+0x1C=0x90 --mem D_80364A98:4=0 --mem D_80364A98+4:4=0x800
+
+# func_802A2164: level 0x31 and kind 0x24, and their neighbours
+func_802A2164: -n 300 --arg t3=choice:0x24,0x23,0x25,0,0x124 --arg s0=ptr:0x10 --mem D_802E8BDC=choice:0x31,0x30,0x32,0,0x131
+
+# func_802A23E0: 0..4 entries, every byte remapped through D_8030631F
+func_802A23E0: -n 300 --heap 0x400 --arg v1=ptr:0x10 --mem @v1=rel:heap0 --mem @heap0+0x30=0x40 \
+    --mem @heap0+0x38=rel:0x40+0x38*int:0:4 --mem D_8030631F:0x100=rand
+
+# func_802A2458: midpoints of s16 extremes
+func_802A2458: -n 300 --arg v1=ptr:0x40 --arg t4=ptr:0x100 --mem @t4+0x1C=0x20 \
+    --mem @t4+0x20:0x20=halves:0,1,0xFFFF,0x7FFF,0x8000,0x1234,0xFFFE,3
+
+# func_802A26A8: every list 0..2 entries; flag 0xE on/off
+func_802A26A8: -n 300 --arg t4=ptr:0x400 --arg t5=int --arg t6=int --arg t7=int \
+    --mem @t4+0x40=0x100 --mem @t4+0x44=choice:0x100,0x102,0x110 --mem @t4+0x20=0x120 \
+    --mem @t4+0x24=0x130 --mem @t4+0x28=choice:0x130,0x144,0x158 --mem @t4+0x1C=0x70 --mem @t4+0xE:2=choice:0,1,0x100 \
+    --mem @t4+0x48=0x180 --mem @t4+0x4C=choice:0x180,0x199,0x1B2 \
+    --mem @t4+0x30=0x1C0 --mem @t4+0x34=choice:0x1C0,0x1F8 --mem @t4+0x38=0x230 --mem @t4+0x2C=choice:0x1C0,0x1B8,0x1B0
+func_802A26A8: -n 100 --seed 1 --arg t4=ptr:0x400 --arg t5=choice:0x7FFF,-0x8000,0x10000,-1 --arg t6=choice:0x7FFF,-0x8000,0x10000,-1 \
+    --arg t7=choice:0x7FFF,-0x8000,0x10000,-1 --mem @t4+0x50:0x200=halves:0x7FFF,0x8000,0xFFFF,0x00FF,0xFF00 \
+    --mem @t4+0x40=0x100 --mem @t4+0x44=0x110 --mem @t4+0x20=0x120 \
+    --mem @t4+0x24=0x130 --mem @t4+0x28=0x158 --mem @t4+0x1C=0x70 --mem @t4+0xE:2=0 \
+    --mem @t4+0x48=0x180 --mem @t4+0x4C=0x1B2 \
+    --mem @t4+0x30=0x1C0 --mem @t4+0x34=0x1F8 --mem @t4+0x38=0x230 --mem @t4+0x2C=0x1B0
+
+# func_802A2BB0: DMA calls stubbed (args incl. stack args compared)
+func_802A2BB0: -n 100 --mem D_80358070=int --mem D_803BE6F0=int --sig osInvalDCache=a0,a1 \
+    --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 --sig osRecvMesg=a0,a1,a2
+
+# func_802A2C54: records with name lengths 0, 3, 15; stream ends after 0..3 records
+func_802A2C54: -n 300 --arg t0=ptr:0x300 --mem D_803BDFD8:0x6C=rand --mem D_803BDFD4=int --mem D_80364A6E:1=int \
+    --mem @t0+0x60=0x100 --mem @t0+0x64=choice:0x101,0x10D,0x11C,0x137 \
+    --mem @t0+0x10A:1=0 --mem @t0+0x116:1=3 --mem @t0+0x125:1=15
+func_802A2C54: -n 50 --seed 1 --arg t0=ptr:0x300 --mem D_803BDFD8:0x6C=rand --mem @t0+0x100:0x40=bytes:0xFF,0x80,0x7F,0 \
+    --mem @t0+0x60=0x100 --mem @t0+0x64=0x137 --mem @t0+0x10A:1=0 --mem @t0+0x116:1=3 --mem @t0+0x125:1=15
+
+# func_802A2D68: every written global pre-filled; header u16 extremes
+func_802A2D68: -n 200 --arg t0=ptr:0x200 --mem @t0+0x4C=0x100 \
+    --mem D_803BE70C:0x2E=rand --mem D_803EBBEC:8=rand --mem D_80364458=int --mem D_803BDAF4:8=rand --mem D_803BE6F8=int \
+    --mem D_803A6B30:0x7D0=rand --mem D_803A7300:0xF0=rand --mem D_803A740C=int --mem D_803A7426:1=int \
+    --mem D_803ED3B8:0x30=rand --mem D_803ED400:2=int --mem D_803ED40C:1=int --mem D_803EBC10:0x1A0=rand \
+    --mem D_803EFECB:1=int --mem D_803EF6FF:1=int --mem D_803F77F8=int --mem D_803F7804:0x10=rand
+func_802A2D68: -n 100 --seed 1 --arg t0=ptr:0x200 --mem @t0:0x18=halves:0,1,0x7FFF,0x8000,0xFFFF --mem @t0+0x4C=0x100 \
+    --mem @t0+0x18=choice:0,-1,0x7FFFFFFF,0x80000000,0x1000001 --mem @t0+0x1C=choice:0,0xFF,0x100,-1 \
+    --mem D_803BE70C:0x2E=rand --mem D_803EBBEC:8=rand
+
+# func_802A3824: 16 nine-byte records, kinds 0..2, positions from a small pool so matches
+# happen; the last record has kind 0 so the unbounded first search always ends
+func_802A3824: -n 300 --arg t0=ptr:0x200 --mem @t0+0x50=0x80 --mem @t0+0x54=choice:0x80,0x89,0x9B,0xC8,0x107 \
+    --mem @t0+0x80*9:16/1=choice:0,1,2 --mem @t0+0x81*9:16/2=choice:0,1 --mem @t0+0x83*9:16/2=choice:0,1 \
+    --mem @t0+0x85*9:16/2=choice:0xFFFF,1 --mem @t0+0x107:1=0 \
+    --mem D_80364AA8=choice:0,1,0x80,2,0x81 --mem D_803643D4:1=int --mem D_803BE73A:1=int
+# the kind-0 record first and every other record at its position
+func_802A3824: -n 100 --seed 1 --arg t0=ptr:0x200 --mem @t0+0x50=0x80 --mem @t0+0x54=0x107 \
+    --mem @t0+0x80:0x90=bytes:0 --mem @t0+0x89*9:15/1=choice:0,3,0xFF \
+    --mem D_80364AA8=choice:0,1,0x80 --mem D_803643D4:1=int --mem D_803BE73A:1=int
+
+# func_802A4168: the id in exactly one of 8 records (first/last/middle) before the end.
+# The "not found" path (the asm compares t0 with fp) can't run here yet: eqcheck writes fp
+# zero-extended (`r.startswith("f")` treats fp as an FPU register, eqcheck.py run() and
+# write_reg()), so a kseg0 end pointer never equals the sign-extended t0 and the asm runs
+# off. Verified with a locally patched eqcheck copy instead (see the agent report).
+func_802A4168: -n 300 --arg v0=3 --arg fp=rel:D_803B9890+0x300 --mem D_803B9890:0x300=onehot:0x60@0x50/1:3:rand
+func_802A4168: -n 100 --seed 1 --arg v0=7 --arg fp=rel:D_803B9890+0x300 \
+    --mem D_803B9890:0x300=onehot:0x60@0x50/1:7:bytes:0,1,2
+# Enable once eqcheck sign-extends fp (both PASS with a patched copy): not found / empty range
+#func_802A4168: -n 300 --seed 2 --arg v0=choice:0,1,2,3,0x101,-1 --arg fp=rel:D_803B9890+0x60*int:0:8 --mem D_803B9890:0x300=rand --mem D_803B9890+0x50*0x60:8/1=choice:0,1,2,3
+#func_802A4168: -n 50 --seed 3 --arg v0=1 --arg fp=sym:D_803B9890 --mem D_803B9890:0x300=bytes:1
+
+# func_802A41B0: random/extreme vertex halves, ties of |n| components (sqrtf followed)
+func_802A41B0: -n 300 --follow sqrtf --arg t4=ptr:0x60 --arg t5=ptr:0x20 --arg v0=int --arg t2=int --arg t6=int \
+    --arg t7=int --arg s1=int --arg t9=int --arg gp=int --mem @t5:0x20=rand
+func_802A41B0: -n 200 --seed 1 --follow sqrtf --arg t4=ptr:0x60 --arg t5=ptr:0x20 --arg s1=int \
+    --mem @t5:0x20=halves:0x7FFF,0x8000,0xFFFF,0,1,0x100
+func_802A41B0: -n 200 --seed 2 --follow sqrtf --arg t4=ptr:0x60 --arg t5=ptr:0x20 --arg s1=int --mem @t5:0x20=halves:0,1,2
+
+# func_802A4464: n = 0..9 blocks chained by aligned offsets; plus a hand-made unaligned chain
+func_802A4464: -n 300 --arg t0=ptr:0x200 --mem D_803BDB10:0x40=rand --mem @t0+8:2=choice:0,1,2,3 \
+    --mem @t0+0xA:2=choice:0,1,2,3 --mem @t0+0x30=0x40 --mem @t0+0x40:0x100=words:0,4,8,0xC,0x10,0x24,0x3C
+func_802A4464: -n 10 --seed 1 --arg t0=ptr:0x100 --mem D_803BDB10:0x40=rand --mem @t0+8:2=1 --mem @t0+0xA:2=3 \
+    --mem @t0+0x30=0x40 --mem @t0+0x40:0x10=bytes:0 --mem @t0+0x43:1=5 --mem @t0+0x48:1=0xA --mem @t0+0x4D:1=3
+
+# func_802A44E4: rounding edge cases
+func_802A44E4: -n 300 --arg a1=int
+func_802A44E4: -n 100 --seed 1 --arg a1=choice:0,1,2,3,4,5,7,8,9,0xC,-1,-4,-8,0x7FFFFFFC,0x7FFFFFFF,0x80000000

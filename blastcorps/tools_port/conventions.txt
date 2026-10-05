@@ -723,6 +723,8 @@ func_802C18D4: in t3=a0,t4=a1,t5=a2,a1=a3,t6=stack0 ; preserve v0,v1,a0,a1,a2,a3
 func_802BF898: in t9=a0,t3=a1,t5=a2 ; preserve v0,v1,a0,a1,t3,t5,t9
 # debris records of part a3+1 of entry v0 (func_802BFDAC or matching records); saves v0-a1, a3
 func_802BFD1C: in v0=a0,a3=a1 ; preserve v0,v1,a0,a1,a3
+# phase D (wt-g2): moving-part matrix of object v0, part offset a3 (2 * index), lift s6 -> pool address - 0x80000000 in s5
+func_802BE574: in v0=a0,a3=a1,s6=a2 ; out s5=ret ; preserve a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,t8 ; clobbers s5
 # phase D (wt-g2): vehicle id t8 vs object t9's triangle s0 through the D_803A6B30 spheres: damage, collapse (saves t3-t7, s0-s4, gp, fp)
 func_802BEBB0: in t8=a0,t9=a1,s0=a2 ; preserve t3,t4,t5,t6,t7,t8,t9 ; clobbers f20,f22,f24,f26,f28
 # sphere (v0, v1, a0) radius a1 (>> 2) vs object t3's triangles for vehicle t8 (saves v0-a2, t3, t4); s0-s4, f20-f28 left changed

@@ -716,3 +716,99 @@ func_802BE77C: -n 300 --seed 2 --arg t8=1 --heap 0x100 --heap 0x300 --arg gp=rel
     --stub-ret func_802BD8C8=choice:0,1 --stub-ret func_802BE944=choice:0*3,1 \
     --stub-ret func_8029C160=choice:0,1 --stub-ret func_8029BF64=choice:0,1 --stub-ret func_8029BD0C=choice:0,1 --stub-ret func_8029BEE4=choice:0,1 \
     --follow func_8029CFA4,func_802BEADC
+
+# func_802BE574 (object v0, part offset a3, lift s6 -> s5): moving-part matrix in the pool at D_803F3964 (heap2).
+# Object heap0, info heap1 (pivots at +0x80); stubbed, then with the matrix helpers run for real
+func_802BE574: -n 300 --seed 0 --heap 0x100 --heap 0x100 --heap 0x200 --arg v0=rel:heap0 --arg a3=choice:0,2,4,0x1E --arg s6=int \
+    --mem @heap0=rel:heap1 --mem @heap1+0x2C=0x80 --mem D_803F3964=rel:heap2 --mem @heap2:0x80=rand
+func_802BE574: -n 200 --seed 1 --heap 0x100 --heap 0x100 --heap 0x200 --arg v0=rel:heap0 --arg a3=choice:0,2,4,0x1E --arg s6=int \
+    --mem @heap0=rel:heap1 --mem @heap1+0x2C=0x80 --mem D_803F3964=rel:heap2 --mem @heap2:0x80=rand \
+    --mem @heap0+0x68:0x80=halves:0,1,0x7FFF,0x8000,0xFFFF,0x400 \
+    --follow func_802ACA60,func_802ACBDC,func_802ACCCC,func_802ACAC4,func_802ACB50,func_802AC8CC,func_802AE104,func_802AE160,func_802AE1BC,func_802AE290
+
+# func_802BD1F8(gA, gB, gC, gD, mtxA, mtxB, gE, gF): object display lists. Lists heap0-heap3, one shared info heap4
+# with a 1-condition and a 2-condition part record at +0x200 (floor table at +0x234), 0..3 objects, ids 0-2 visible
+func_802BD1F8: -n 300 --seed 0 --heap 0x200 --heap 0x200 --heap 0x400 --heap 0x400 --heap 0x360 \
+    --arg a0=rel:heap0 --arg a1=rel:heap1 --arg a2=rel:heap2 --arg a3=rel:heap3 --arg stack0=int \
+    --arg stack1=choice:0x80300000,0x803F0000,0 --arg stack2=int --arg stack3=int \
+    --mem D_803C30A8:8=halves:0,1,2 --mem D_803C30A8+6:2=0xFFFF \
+    --mem D_803F4030:0x2F4=rand --mem D_803F4030*0xFC:3=rel:heap4 --mem D_803F7654=rel:D_803F4030+0xFC*int:0:3 \
+    --mem D_803F4030+0xE8*0xFC:3/1=bytes:0,1,2,3,5 --mem D_803F4030+0x30*0xFC:3=choice:5*3,0x38 \
+    --mem D_803F4030+0x48*0xFC:3/2=choice:0,1 --mem D_803F4030+0x4A*0xFC:3/2=choice:0,1 \
+    --mem D_803F4030+0x68*0xFC:3/2=choice:0,1,2,5,0x100 --mem D_803F4030+0x6A*0xFC:3/2=choice:0,1,2,5,0x100 \
+    --mem D_803F4030+0xEC*0xFC:3/1=bytes:0,10,50,100 --mem D_803F4030+0xED*0xFC:3/1=bytes:0,10,50,100 \
+    --mem @heap4+0xE:2=choice:0,1 --mem @heap4+0x10=0x2F0 --mem @heap4+0x18=choice:0x2F0,0x2F8,0x300 \
+    --mem @heap4+0x28=0x340 --mem @heap4+0x2C=choice:0x340*3,0x350 --mem @heap4+0x38=0x200 --mem @heap4+0x3C=0x234 \
+    --mem @heap4+0x200:0x34=hex:00000001_00010000_00000300_00000310_00000300_00000308_00000002_00020000_00010000_00000310_00000318_00000318_00000320 \
+    --mem @heap4+0x206:1=bytes:0,1 --mem @heap4+0x207:1=bytes:0,10,50,100 --mem @heap4+0x21E:1=bytes:0,1 --mem @heap4+0x21F:1=bytes:0,10,50,100 \
+    --mem @heap4+0x222:1=bytes:0,1 --mem @heap4+0x223:1=bytes:0,10,50,100 --mem @heap4+0x234:4=halves:0,1,2,0x10 \
+    --mem D_803F765C=int --mem D_803F7658=int --mem D_803F3964=int --mem D_8035805C:1=bytes:0,1 \
+    --mem D_803F7664=int --mem D_803F7668=int --mem D_803F766C=int --mem D_802E8BE4:1=rand --mem D_802E8BE8=int \
+    --sig func_802933A0=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7 \
+    --stub-ret func_802BD8C8=choice:0,1 --stub-ret func_802BE228=0x80B00500 --stub-ret func_802BE3C8=0x80B00900 \
+    --stub-ret func_802C12E0.a0=0x80B00100 --stub-ret func_802C12E0.a1=0x80B00300 --stub-ret func_802BE574=int
+# every object visible and posed, both parts moving, conditions at their limits (0 / 100)
+func_802BD1F8: -n 300 --seed 1 --heap 0x200 --heap 0x200 --heap 0x400 --heap 0x400 --heap 0x360 \
+    --arg a0=rel:heap0 --arg a1=rel:heap1 --arg a2=rel:heap2 --arg a3=rel:heap3 --arg stack0=int \
+    --arg stack1=choice:0x80300000,0x803F0000,0 --arg stack2=int --arg stack3=int \
+    --mem D_803C30A8:6=halves:0,1,2,3 --mem D_803C30A8+6:2=0xFFFF \
+    --mem D_803F4030:0x2F4=rand --mem D_803F4030*0xFC:3=rel:heap4 --mem D_803F7654=rel:D_803F4030+0xFC*3 \
+    --mem D_803F4030+0xE8*0xFC:3/1=bytes:0,1,2 --mem D_803F4030+0x30*0xFC:3=5 \
+    --mem D_803F4030+0x48*0xFC:3/2=1 --mem D_803F4030+0x4A*0xFC:3/2=1 \
+    --mem D_803F4030+0x68*0xFC:3/2=choice:0,1,2,5,0x100 --mem D_803F4030+0x6A*0xFC:3/2=choice:0,1,2,5,0x100 \
+    --mem D_803F4030+0xEC*0xFC:3/1=bytes:0,10,50,100 --mem D_803F4030+0xED*0xFC:3/1=bytes:0,10,50,100 \
+    --mem @heap4+0xE:2=1 --mem @heap4+0x10=0x2F0 --mem @heap4+0x18=choice:0x2F0,0x2F8,0x300 \
+    --mem @heap4+0x28=0x340 --mem @heap4+0x2C=choice:0x340*3,0x350 --mem @heap4+0x38=0x200 --mem @heap4+0x3C=0x234 \
+    --mem @heap4+0x200:0x34=hex:00000001_00010000_00000300_00000310_00000300_00000308_00000002_00020000_00010000_00000310_00000318_00000318_00000320 \
+    --mem @heap4+0x206:1=bytes:0,1 --mem @heap4+0x207:1=bytes:0,100 --mem @heap4+0x21E:1=bytes:0,1 --mem @heap4+0x21F:1=bytes:0,100 \
+    --mem @heap4+0x222:1=bytes:0,1 --mem @heap4+0x223:1=bytes:0,100 --mem @heap4+0x234:4=halves:0,1,2,0x10 \
+    --mem D_803F765C=int --mem D_803F7658=int --mem D_803F3964=int --mem D_8035805C:1=bytes:0,1 \
+    --mem D_803F7664=int --mem D_803F7668=int --mem D_803F766C=int --mem D_802E8BE4:1=rand --mem D_802E8BE8=int \
+    --sig func_802933A0=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7 \
+    --stub-ret func_802BD8C8=choice:0,1 --stub-ret func_802BE228=0x80B00500 --stub-ret func_802BE3C8=0x80B00900 \
+    --stub-ret func_802C12E0.a0=0x80B00100 --stub-ret func_802C12E0.a1=0x80B00300 --stub-ret func_802BE574=int
+# the part matrices (func_802BE574 and its helpers) run for real
+func_802BD1F8: -n 200 --seed 2 --heap 0x200 --heap 0x200 --heap 0x400 --heap 0x400 --heap 0x360 \
+    --arg a0=rel:heap0 --arg a1=rel:heap1 --arg a2=rel:heap2 --arg a3=rel:heap3 --arg stack0=int \
+    --arg stack1=choice:0x80300000,0x803F0000,0 --arg stack2=int --arg stack3=int \
+    --mem D_803C30A8:6=halves:0,1,2,3 --mem D_803C30A8+6:2=0xFFFF \
+    --mem D_803F4030:0x2F4=rand --mem D_803F4030*0xFC:3=rel:heap4 --mem D_803F7654=rel:D_803F4030+0xFC*int:0:3 \
+    --mem D_803F4030+0xE8*0xFC:3/1=bytes:0,1,2 --mem D_803F4030+0x30*0xFC:3=5 \
+    --mem D_803F4030+0x48*0xFC:3/2=1 --mem D_803F4030+0x4A*0xFC:3/2=1 \
+    --mem D_803F4030+0x68*0xFC:3/2=choice:0,1,2,5,0x100 --mem D_803F4030+0x6A*0xFC:3/2=choice:0,1,2,5,0x100 \
+    --mem D_803F4030+0xEC*0xFC:3/1=bytes:0,10,50,100 --mem D_803F4030+0xED*0xFC:3/1=bytes:0,10,50,100 \
+    --mem @heap4+0xE:2=choice:0,1 --mem @heap4+0x10=0x2F0 --mem @heap4+0x18=choice:0x2F0,0x2F8,0x300 \
+    --mem @heap4+0x28=0x340 --mem @heap4+0x2C=choice:0x340*3,0x350 --mem @heap4+0x38=0x200 --mem @heap4+0x3C=0x234 \
+    --mem @heap4+0x200:0x34=hex:00000001_00010000_00000300_00000310_00000300_00000308_00000002_00020000_00010000_00000310_00000318_00000318_00000320 \
+    --mem @heap4+0x206:1=bytes:0,1 --mem @heap4+0x207:1=bytes:0,10,50,100 --mem @heap4+0x21E:1=bytes:0,1 --mem @heap4+0x21F:1=bytes:0,10,50,100 \
+    --mem @heap4+0x222:1=bytes:0,1 --mem @heap4+0x223:1=bytes:0,10,50,100 --mem @heap4+0x234:4=halves:0,1,2,0x10 \
+    --mem D_803F765C=int --mem D_803F7658=int --mem D_803F3964=int --mem D_8035805C:1=bytes:0,1 \
+    --mem D_803F7664=int --mem D_803F7668=int --mem D_803F766C=int --mem D_802E8BE4:1=rand --mem D_802E8BE8=int \
+    --sig func_802933A0=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7 \
+    --stub-ret func_802BD8C8=choice:0,1 --stub-ret func_802BE228=0x80B00500 --stub-ret func_802BE3C8=0x80B00900 \
+    --stub-ret func_802C12E0.a0=0x80B00100 --stub-ret func_802C12E0.a1=0x80B00300 \
+    --follow func_802BE574,func_802ACA60,func_802ACBDC,func_802ACCCC,func_802ACAC4,func_802ACB50,func_802AC8CC,func_802AE104,func_802AE160,func_802AE1BC,func_802AE290
+
+# func_802BCA2C(): the 40 delayed-damage entries of D_803F7690 (all on object heap0, triangles heap1); game mode
+# D_80364A90 0x200 / 0x400 / a value matching only in the low word
+func_802BCA2C: -n 300 --seed 0 --heap 0x100 --heap 0x300 --mem D_803F7690*8:40=rel:heap0 \
+    --mem D_803F7690+4*8:40/2=choice:0,1,50,99,100,500,501,0xFFFF \
+    --mem D_803F7690+6*8:40/1=bytes:0,1,2,3 --mem D_803F7690+7*8:40/1=bytes:0,0,1,1,2,0xFF \
+    --mem @heap0+4=rel:heap1 --mem @heap0+8=rel:heap1+0x60*int:0:8 --mem @heap0+0xEB:5=bytes:0,1,50,99,100 \
+    --mem @heap1+0x52*0x60:8/2=choice:0,1,2,3 --mem @heap1+0x51*0x60:8/1=bytes:1,2 \
+    --mem D_803643D6:1=bytes:0,0,1 --mem D_803643D7:1=bytes:0,0,1 --mem D_80364A90:8=hex:0000000000000200 \
+    --mem D_802E8BE4:1=rand --mem D_802E8BE8=int
+func_802BCA2C: -n 200 --seed 1 --heap 0x100 --heap 0x300 --mem D_803F7690*8:40=rel:heap0 \
+    --mem D_803F7690+4*8:40/2=choice:0,1,50,99,100,500,501,0xFFFF \
+    --mem D_803F7690+6*8:40/1=bytes:0,1,2,3 --mem D_803F7690+7*8:40/1=bytes:0,0,1,1,2,0xFF \
+    --mem @heap0+4=rel:heap1 --mem @heap0+8=rel:heap1+0x60*int:0:8 --mem @heap0+0xEB:5=bytes:0,1,50,99,100 \
+    --mem @heap1+0x52*0x60:8/2=choice:0,1,2,3 --mem @heap1+0x51*0x60:8/1=bytes:1,2 \
+    --mem D_803643D6:1=bytes:0,0,1 --mem D_803643D7:1=bytes:0,0,1 --mem D_80364A90:8=hex:0000000000000400 \
+    --mem D_802E8BE4:1=rand --mem D_802E8BE8=int
+func_802BCA2C: -n 200 --seed 2 --heap 0x100 --heap 0x300 --mem D_803F7690*8:40=rel:heap0 \
+    --mem D_803F7690+4*8:40/2=choice:0,1,50,99,100,500,501,0xFFFF \
+    --mem D_803F7690+6*8:40/1=bytes:0,1,2,3 --mem D_803F7690+7*8:40/1=bytes:0,0,1,1,2,0xFF \
+    --mem @heap0+4=rel:heap1 --mem @heap0+8=rel:heap1+0x60*int:0:8 --mem @heap0+0xEB:5=bytes:0,1,50,99,100 \
+    --mem @heap1+0x52*0x60:8/2=choice:0,1,2,3 --mem @heap1+0x51*0x60:8/1=bytes:1,2 \
+    --mem D_803643D6:1=bytes:0,0,1 --mem D_803643D7:1=bytes:0,0,1 --mem D_80364A90:8=hex:0000000100000200 \
+    --mem D_802E8BE4:1=rand --mem D_802E8BE8=int

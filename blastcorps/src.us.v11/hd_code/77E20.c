@@ -382,7 +382,92 @@ void func_802BC888(s32 kind, s32 id, s32 amount) {
 #endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u8 D_803643D6;
+extern u8 D_803643D7;
+extern u8 D_802E8BE4; /* screen shake time */
+extern s32 D_802E8BE8; /* screen shake size */
+void func_802BF384(Unk802C1DD0Entry *e);
+void func_802BF534(Unk802C1DD0Entry *e);
+void func_802BF668(Unk802C1DD0Entry *e);
+void func_802BF898(Unk802C1DD0Entry *e, s32 part, s32 level);
+void func_802C09B8(s32 id, Unk802C1DD0Entry *e);
+void func_802C0E8C(s32 id, Unk802C1DD0Entry *e);
+void func_802C1438(Unk802C1DD0Entry *e, s32 index);
+
+/* Delayed damage: for each of the 40 D_803F7690 entries {object, u16 amount,
+ * u8 part, u8 timer} with a running timer, counts it down; on reaching 0 the
+ * entry is spent (timer 0), the screen shakes (10, min(amount, 500)) and the
+ * part's percentage += amount, capped at 100. A part reaching 100 collapses:
+ * func_802C1438, func_802C09B8 unless D_803643D6 or D_803643D7 is set,
+ * func_802C0E8C, func_802BF384 unless the game mode D_80364A90 is 0x200 or
+ * 0x400, and the part's triangles off. Then func_802BF668, func_802BF534 and
+ * func_802BF898(e, part, percentage).
+ * ABI (00000.c calls it as void(void)); the asm saves s0-s7, gp, fp; the s1
+ * the survey lists as an input is only saved. */
+void func_802BCA2C(void) {
+    u8 *p = D_803F7690[0];
+    s32 n;
+
+    for (n = 0x28; n != 0; n--, p += 8) {
+        Unk802C1DD0Entry *e;
+        s32 timer = p[7];
+        s32 amount;
+        s32 part;
+        s32 level;
+        u8 *pct;
+
+        if (timer == 0) {
+            continue;
+        }
+        timer--;
+        if (timer != 0) {
+            p[7] = timer;
+            continue;
+        }
+        amount = *(u16 *) (p + 4);
+        p[7] = 0;
+        e = *(Unk802C1DD0Entry **) p;
+        part = p[6];
+        D_802E8BE4 = 10;
+        if (amount < 0x1F5) {
+            D_802E8BE8 = amount;
+        } else {
+            D_802E8BE8 = 500;
+        }
+        pct = (u8 *) e + 0xEC + part - 1;
+        level = *pct + amount;
+        if (level >= 100) {
+            level = 100;
+        }
+        *pct = level;
+        if (level == 100) {
+            Unk803B9890 *t;
+            Unk803B9890 *end;
+
+            func_802C1438(e, part);
+            if (D_803643D6 == 0 && D_803643D7 == 0) {
+                func_802C09B8(part, e);
+            }
+            func_802C0E8C(part, e);
+            if (D_80364A90 != 0x200 && D_80364A90 != 0x400) {
+                func_802BF384(e);
+            }
+            end = e->unk8;
+            for (t = e->unk4; t != end; t++) {
+                if (t->unk52 == part) {
+                    t->unk51 = 0;
+                }
+            }
+        }
+        func_802BF668(e);
+        func_802BF534(e);
+        func_802BF898(e, part, level);
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BCA2C.s")
+#endif
 
 /* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -689,7 +774,270 @@ void func_802BD10C(s32 arg0) {
 #endif
 
 /* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern Mtx *D_803F7658; /* 2 matrices (func_802C1F30's falling parts) */
+extern s32 D_803F765C;  /* Mtx pool cursor for func_802933A0 */
+extern s32 D_803F7664; /* position objects with a pose are moved to */
+extern s32 D_803F7668;
+extern s32 D_803F766C;
+extern s32 D_803F24D0[]; /* matrix pools of the two frames */
+extern s32 D_803F2ED0[];
+extern s32 *D_803F3964;
+extern s16 D_803C30A8[]; /* visible object ids, ended by -1 */
+extern u8 D_8035805C;    /* frame index */
+extern u8 D_802E8BE4;    /* screen shake time */
+extern s32 D_802E8BE8;   /* screen shake size */
+void func_802933A0(s32 x, s32 y, s32 z, s32 type, Mtx *mtx, void *state, Gfx *gfx1, Gfx *gfx2, s32 idx,
+                   s32 arg9, s32 arg10, s32 arg11); /* 4EBE0 */
+void func_802BD85C(Unk802BD99CModel *model, s32 id);
+s32 func_802BD8C8(void);
+void func_802BD99C(Unk802BD99CModel *model, s32 dx, s32 dy, s32 dz);
+void func_802BDDB4(Unk802C1DD0Entry *obj, u8 *rec, u8 *end);
+u32 *func_802BE228(u32 *src, u32 *srcEnd, u32 *dst, u8 *tbl, u8 *tblEnd);
+u32 *func_802BE3C8(u32 *src, u32 *srcEnd, u32 *dst, u8 *tbl, u8 *tblEnd);
+s32 func_802BE574(Unk802C1DD0Entry *e, s32 off, s32 dy);
+void func_802BFD1C(Unk802C1DD0Entry *e, s32 index);
+u32 *func_802C08C4(u32 *gfx);
+u32 *func_802C0CBC(u32 *gfx);
+void func_802C12E0(u32 **gfxA, u32 **gfxB);
+
+/* Copies the 8-byte display-list commands [src, end) to dst; returns the new dst. */
+#define COPY_DL_802BD1F8(dst, src, end)      \
+    {                                        \
+        u64 *_s = (u64 *) (src);             \
+        u64 *_e = (u64 *) (end);             \
+        u64 *_d = (u64 *) (dst);             \
+                                             \
+        while (_s != _e) {                   \
+            *_d++ = *_s++;                   \
+        }                                    \
+        (dst) = (u32 *) _d;                  \
+    }
+
+/* Draws the D_803F4030 objects (up to D_803F7654, read once, walked with
+ * `!=`) into four display lists: gA / gB (the two halves of the scene list),
+ * gC / gD (per-object lists the scene calls). D_803F7658/765C = mtxA/mtxB,
+ * func_802C08C4(gE) and func_802C0CBC(gF) (their new ends are dropped), the
+ * matrix pool is this frame's (D_803F24D0 or D_803F2ED0 by D_8035805C).
+ * Per object whose unkE8 is in the D_803C30A8 list (-1 ends it) and that
+ * isn't a 0x38 object while func_802BD8C8 is set:
+ * - with a pose (info u16 +0xE != 0): func_802933A0 builds its matrix
+ *   (words +0x1C..+0x24, the pose count, the next D_803F765C Mtx (advanced by
+ *   0x40), state at +0x38, gA, gB, word +0x34, the position) and both scene
+ *   lists step 8; the object moves to D_803F7664/68/6C (func_802BD99C by the
+ *   difference);
+ * - animated textures (func_802BDDB4 with info's table unk28..unk2C), then
+ *   gA/gB get a segment-6 command for info + 0x50 and a G_DL to gC/gD
+ *   (physical), and the commands info+unk10..unk18 are copied to gC and gD;
+ * - the part records info+unk38..unk3C: {word n, n x {u16 part, u8 mode, u8
+ *   limit}, 4 words}, the u16 at +4 being the record's (1-based) part p too.
+ *   A record whose conditions all hold (part's percentage < limit fails for
+ *   mode != 0, > limit for mode 0) is drawn: with a moving part
+ *   (e->unk48[p - 1]), its counter unk68[p - 1] advances, dy = c * c * -30000;
+ *   if dy <= -(table u16 at unk3C + 2(p - 1) << 16) the part drops
+ *   (unk48 = 0, func_802BFD1C, shake 10/300, percentage 100,
+ *   func_802BD85C); its matrix (func_802BE574) is pushed in gC; the
+ *   record's gC and gD command ranges (words 0-1 / 2-3, offsets from info)
+ *   are copied (through func_802BE228 / func_802BE3C8 when the texture table
+ *   is non-empty), with G_POPMTX in gC and the matrix push / G_POPMTX in gD
+ *   for a moving part. If the first record holds, it is the only one drawn;
+ *   otherwise every holding record is.
+ * Every object (listed or not) then ends gC and gD (G_ENDDL) and, with a
+ * pose, pops the matrix in gA and gB. Finally func_802C12E0(&gA, &gB) and
+ * G_ENDDL in both (not advanced).
+ * ABI (00000.c passes eight pointers); the asm saves s0-s7, gp, fp and uses
+ * gp as scratch. Its trapping add/sub stay in game range. */
+void func_802BD1F8(u32 *gA, u32 *gB, u32 *gC, u32 *gD, s32 mtxA, s32 mtxB, u32 *gE, u32 *gF) {
+    Unk802C1DD0Entry *end;
+    Unk802C1DD0Entry *o;
+
+    D_803F7658 = (Mtx *) mtxA;
+    D_803F765C = mtxB;
+    func_802C08C4(gE);
+    func_802C0CBC(gF);
+    if (D_8035805C != 0) {
+        D_803F3964 = D_803F24D0;
+    } else {
+        D_803F3964 = D_803F2ED0;
+    }
+    end = D_803F7654;
+    for (o = D_803F4030; o != end; o++) {
+        u8 *ob = (u8 *) o;
+        u8 *info;
+        u8 *tbl;
+        u8 *tblEnd;
+        u8 *rec;
+        u8 *recEnd;
+        s16 *s;
+        s32 count;
+        s32 first;
+
+        for (s = D_803C30A8;; s++) {
+            if (*s == -1) {
+                goto tail;
+            }
+            if (*s == o->unkE8) {
+                break;
+            }
+        }
+        if (o->unk30 == 0x38 && func_802BD8C8() != 0) {
+            goto tail;
+        }
+        info = (u8 *) o->info;
+        count = *(u16 *) (info + 0xE);
+        if (count != 0) {
+            s32 mtx = D_803F765C;
+            s32 ox;
+            s32 oy;
+            s32 oz;
+
+            D_803F765C = mtx + 0x40;
+            func_802933A0(*(s32 *) (ob + 0x1C), *(s32 *) (ob + 0x20), *(s32 *) (ob + 0x24), count, (Mtx *) mtx,
+                          ob + 0x38, (Gfx *) gA, (Gfx *) gB, *(s32 *) (ob + 0x34), o->pos[0], o->pos[1],
+                          o->pos[2]);
+            gA += 2;
+            gB += 2;
+            ox = o->pos[0];
+            oy = o->pos[1];
+            oz = o->pos[2];
+            o->pos[0] = D_803F7664;
+            o->pos[1] = D_803F7668;
+            o->pos[2] = D_803F766C;
+            func_802BD99C((Unk802BD99CModel *) o, o->pos[0] - ox, o->pos[1] - oy, o->pos[2] - oz);
+        }
+        info = (u8 *) o->info;
+        tbl = info + *(s32 *) (info + 0x28);
+        tblEnd = info + *(s32 *) (info + 0x2C);
+        rec = info + *(s32 *) (info + 0x38);
+        recEnd = info + *(s32 *) (info + 0x3C);
+        func_802BDDB4(o, tbl, tblEnd);
+        gA[0] = gB[0] = 0xBC002406;
+        gA[1] = gB[1] = (u32) (info + 0x50) - 0x80000000;
+        gA[2] = gB[2] = 0x06000000;
+        gA[3] = (u32) gC - 0x80000000;
+        gB[3] = (u32) gD - 0x80000000;
+        gA += 4;
+        gB += 4;
+        {
+            u64 *p = (u64 *) (info + *(s32 *) (info + 0x10));
+            u64 *pe = (u64 *) (info + *(s32 *) (info + 0x18));
+
+            while (p != pe) {
+                u64 w = *p++;
+
+                *(u64 *) gC = w;
+                gC += 2;
+                *(u64 *) gD = w;
+                gD += 2;
+            }
+        }
+        first = 1;
+        while (rec != recEnd) {
+            s32 n = *(s32 *) rec;
+            s32 off = (*(u16 *) (rec + 4) - 1) * 2;
+            s32 moving;
+            s32 mtxAddr;
+            u32 *src;
+            u32 *srcEnd;
+
+            rec += 4;
+            while (n != 0) {
+                s32 part = *(u16 *) rec;
+                s32 mode = rec[2];
+                s32 limit = rec[3];
+                s32 pct = ob[0xEC + part - 1];
+
+                n--;
+                rec += 4;
+                if (mode != 0 ? (pct < limit) : (limit < pct)) {
+                    rec += n * 4 + 0x10;
+                    goto next;
+                }
+            }
+            moving = *(u16 *) (ob + 0x48 + off);
+            if (moving != 0) {
+                u16 *ctr = (u16 *) (ob + 0x68 + off);
+                u32 c = *ctr + 1;
+                s32 dy;
+                s32 floor;
+
+                *ctr = c;
+                dy = c * c * (u32) -30000;
+                floor = -(*(u16 *) (info + *(s32 *) (info + 0x3C) + off) << 16);
+                if (floor >= dy) {
+                    u32 idx = (u32) off >> 1;
+
+                    *(u16 *) (ob + 0x48 + off) = 0;
+                    func_802BFD1C(o, idx);
+                    D_802E8BE4 = 10;
+                    D_802E8BE8 = 300;
+                    ob[idx + 0xEC] = 100;
+                    func_802BD85C((Unk802BD99CModel *) o, idx);
+                }
+                mtxAddr = func_802BE574(o, off, dy);
+                gC[0] = 0x01040040;
+                gC[1] = mtxAddr;
+                gC += 2;
+            }
+            src = (u32 *) (info + ((s32 *) rec)[0]);
+            srcEnd = (u32 *) (info + ((s32 *) rec)[1]);
+            if (tbl != tblEnd) {
+                gC = func_802BE228(src, srcEnd, gC, tbl, tblEnd);
+            } else {
+                COPY_DL_802BD1F8(gC, src, srcEnd);
+            }
+            if (moving != 0) {
+                gC[0] = 0xBD000000;
+                gC[1] = 0;
+                gC += 2;
+                gD[0] = 0x01040040;
+                gD[1] = mtxAddr;
+                gD += 2;
+            }
+            src = (u32 *) (info + ((s32 *) rec)[2]);
+            srcEnd = (u32 *) (info + ((s32 *) rec)[3]);
+            if (tbl != tblEnd) {
+                gD = func_802BE3C8(src, srcEnd, gD, tbl, tblEnd);
+            } else {
+                COPY_DL_802BD1F8(gD, src, srcEnd);
+            }
+            if (moving != 0) {
+                gD[0] = 0xBD000000;
+                gD[1] = 0;
+                gD += 2;
+            }
+            rec += 0x10;
+            if (first) {
+                break;
+            }
+        next:
+            first = 0;
+        }
+    tail:
+        gC[0] = 0xB8000000;
+        gC[1] = 0;
+        gD[0] = 0xB8000000;
+        gD[1] = 0;
+        gC += 2;
+        gD += 2;
+        if (*(u16 *) ((u8 *) o->info + 0xE) != 0) {
+            gA[0] = 0xBD000000;
+            gA[1] = 0;
+            gB[0] = 0xBD000000;
+            gB[1] = 0;
+            gA += 2;
+            gB += 2;
+        }
+    }
+    func_802C12E0(&gA, &gB);
+    gA[0] = 0xB8000000;
+    gA[1] = 0;
+    gB[0] = 0xB8000000;
+    gB[1] = 0;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BD1F8.s")
+#endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -1084,7 +1432,75 @@ u32 *func_802BE3C8(u32 *src, u32 *srcEnd, u32 *dst, u8 *tbl, u8 *tblEnd) {
 #endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern s32 *D_803F3964; /* matrix pool cursor (0x40-byte 16.16 matrices) */
+extern s32 D_803F38D0[]; /* scratch 16.16 matrix */
+void func_802AC8CC(u16 *m);                       /* 679E0 */
+void func_802ACA60(s32 x, s32 y, s32 z, s32 *m);
+void func_802ACAC4(s32 angle, s32 *m);
+void func_802ACB50(s32 angle, s32 *m);
+void func_802ACBDC(s32 angle, s32 *m);
+void func_802ACCCC(s32 *b, s32 *m);
+
+/* Builds the matrix of one moving part of object e in the next pool slot
+ * (D_803F3964, advanced by 0x40) and returns its address - 0x80000000. off
+ * is twice the part index: the halfwords at e + 0x68 + off (scale, u16) and
+ * +0x88 (s16) / +0xA8 / +0xC8 (u16) give the angles scale * value (32-bit
+ * product, + 0xFFF when negative) about x, y and z; the pivot is the u16
+ * x, y, z (<< 16) at info + info->unk2C + off * 4. m = translate(-pivot),
+ * then m *= rotation x, y, z, translate(pivot), translate(0, dy, 0) (each
+ * built in D_803F38D0, func_802ACCCC), converted to the Mtx layout
+ * (func_802AC8CC).
+ * Register convention: e in v0, off in a3, dy in s6, result in s5. The asm
+ * saves a0-t5, t7, t8, s0-s2, s4, s7 (t6 is untouched); asm caller
+ * func_802BD1F8 keeps a0-a2 and t0-t6 live across the call. */
+s32 func_802BE574(Unk802C1DD0Entry *e, s32 off, s32 dy) {
+    s32 *m = D_803F3964;
+    u8 *b = (u8 *) e + off;
+    u32 scale;
+    s32 ax;
+    s32 ay;
+    s32 az;
+    u16 *pivot;
+    s32 px;
+    s32 py;
+    s32 pz;
+
+    D_803F3964 = m + 0x10;
+    scale = *(u16 *) (b + 0x68);
+    ax = scale * *(s16 *) (b + 0x88);
+    if (ax < 0) {
+        ax += 0xFFF;
+    }
+    ay = scale * *(u16 *) (b + 0xA8);
+    if (ay < 0) {
+        ay += 0xFFF;
+    }
+    az = scale * *(u16 *) (b + 0xC8);
+    if (az < 0) {
+        az += 0xFFF;
+    }
+    pivot = (u16 *) ((u8 *) e->info + e->info->unk2C + off * 4);
+    px = pivot[0] << 16;
+    py = pivot[1] << 16;
+    pz = pivot[2] << 16;
+    func_802ACA60(-px, -py, -pz, m);
+    func_802ACBDC(ax, D_803F38D0);
+    func_802ACCCC(D_803F38D0, m);
+    func_802ACAC4(ay, D_803F38D0);
+    func_802ACCCC(D_803F38D0, m);
+    func_802ACB50(az, D_803F38D0);
+    func_802ACCCC(D_803F38D0, m);
+    func_802ACA60(px, py, pz, D_803F38D0);
+    func_802ACCCC(D_803F38D0, m);
+    func_802ACA60(0, dy, 0, D_803F38D0);
+    func_802ACCCC(D_803F38D0, m);
+    func_802AC8CC((u16 *) m);
+    return (u32) m - 0x80000000;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BE574.s")
+#endif
 
 #ifdef NON_MATCHING
 /* Callees of func_802BE77C / func_802BEADC / func_802BEBB0 (C rewrites; see

@@ -12,7 +12,43 @@
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8DDB0/func_802D2570.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+typedef struct Unk8029DEA0Entry Unk8029DEA0Entry;
+void func_8029E558(u8 *base, u8 *other, Unk8029DEA0Entry *ch); /* 56040 */
+void func_802D2A40(void);
+void func_802D2A74(void);
+void func_802D2C20(void);
+void func_802D2FA4(void);
+extern u8 D_8035805C;
+extern u8 *D_803FCD58; /* the two save copies */
+extern u8 *D_803FCD5C;
+extern u8 D_803FC9A0[]; /* channel table */
+extern u8 D_803FCCA0[]; /* this vehicle's state block */
+
+/* Per-frame update of this vehicle (D_803FCCA0, the asm's $gp): func_802D2A40;
+ * unless byte +0x9A is set, the sound distance (func_802D2A74) and the events
+ * (func_802D2C20); then the channels D_803FC9A0 (func_8029E558 with the
+ * current save copy first: D_803FCD58 when D_8035805C is set, else
+ * D_803FCD5C) and the model placement (func_802D2FA4). The asm saves every
+ * callee-saved register. It leaves func_802D2FA4's f12/f14 (func_802AA764's
+ * trig temporaries), which the survey lists as read by asm caller
+ * func_802D2570 (not modelled; its C rewrite doesn't read them). */
+void func_802D291C(void) {
+    func_802D2A40();
+    if (D_803FCCA0[0x9A] == 0) {
+        func_802D2A74();
+        func_802D2C20();
+    }
+    if (D_8035805C != 0) {
+        func_8029E558(D_803FCD58, D_803FCD5C, (Unk8029DEA0Entry *) D_803FC9A0);
+    } else {
+        func_8029E558(D_803FCD5C, D_803FCD58, (Unk8029DEA0Entry *) D_803FC9A0);
+    }
+    func_802D2FA4();
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8DDB0/func_802D291C.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -236,4 +272,69 @@ void func_802D2C20(void) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+#ifndef MTX_CHAIN_REGS_DEFINED
+#define MTX_CHAIN_REGS_DEFINED
+/* Registers func_802AA890 reads and writes besides its arguments (62740.c). */
+typedef struct {
+    s32 v1; /* out: y' >> 11 */
+    s32 a0; /* out: z' >> 11 */
+    s32 a3; /* in/out: the last matrix used */
+    s32 s1; /* in/out: y' */
+    s32 s2; /* in/out: z' */
+    s32 s0; /* in: only read when count == 0 */
+} MtxChainRegs;
+#endif
+extern u8 D_8035805C;     /* which of the two save copies is current */
+extern u8 *D_803FCD54;    /* model header: word offsets to the part lists */
+extern u8 *D_803FCD58;    /* the two save copies */
+extern u8 *D_803FCD5C;
+extern u16 D_803FCD68;
+extern u16 D_803FCD6A;    /* angles x, y, z */
+extern u16 D_803FCD6C;
+extern u16 D_803FCD6E;
+extern u8 D_803FCCA0[];   /* this vehicle's state block (the asm caller's $gp) */
+extern s16 D_803ED390[3]; /* rotation angles x, y, z for func_802AA764 */
+void func_802AA764(s32 x, s32 y, s32 z, s32 scale, s32 *m);                 /* 62740 */
+void func_802ABBEC(s32 id, s16 *p, s16 *end, u8 *base, MtxChainRegs *regs); /* 62740 */
+
+/* Place this vehicle's model: m = the word at +4 of the header entry at
+ * hdr + hdr[6] (hdr = D_803FCD54), plus the current save copy (D_803FCD58
+ * when D_8035805C is set, else D_803FCD5C); rotation D_803ED390/92/94 =
+ * D_803FCD6A/6C/6E (6C also to the heading at +0x4C of D_803FCCA0 and to
+ * D_803FCD68); func_802AA764(position D_803FCD48..50, scale 0x11558, m).
+ * Then the points (func_802ABBEC, id 0xFD, hdr + hdr[0] .. hdr + hdr[1])
+ * relative to the current save copy. The header offsets are added with
+ * trapping adds.
+ * Register notes: the asm's $gp (= D_803FCCA0, set by its only caller
+ * func_802D291C) is read as the global. It hands func_802ABBEC whatever v1,
+ * a0, a3, s0, s1 held (they only matter for a point entry with no matrices;
+ * 0 here) and s2 = m, and leaves func_802AA764's f12/f14, which the survey
+ * lists as read by func_802D291C's callers (not modelled). Clobbers s1, s2,
+ * s4-s7 (conventions.txt). */
+void func_802D2FA4(void) {
+    MtxChainRegs regs;
+    u8 *hdr = D_803FCD54;
+    u8 *base;
+    s32 *m;
+
+    m = (s32 *) (*(s32 *) (hdr + *(s32 *) (hdr + 0x18) + 4) + (s32) (D_8035805C ? D_803FCD58 : D_803FCD5C));
+    D_803ED390[0] = D_803FCD6A;
+    *(u16 *) (D_803FCCA0 + 0x4C) = D_803FCD6C;
+    D_803FCD68 = D_803FCD6C;
+    D_803ED390[1] = D_803FCD6C;
+    D_803ED390[2] = D_803FCD6E;
+    func_802AA764(D_803FCD48, D_803FCD4C, D_803FCD50, 0x11558, m);
+    base = D_8035805C ? D_803FCD58 : D_803FCD5C;
+    hdr = D_803FCD54;
+    regs.v1 = 0;
+    regs.a0 = 0;
+    regs.a3 = 0;
+    regs.s1 = 0;
+    regs.s2 = (s32) m;
+    regs.s0 = 0;
+    func_802ABBEC(0xFD, (s16 *) (hdr + *(s32 *) hdr), (s16 *) (hdr + *(s32 *) (hdr + 4)), base, &regs);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8DDB0/func_802D2FA4.s")
+#endif

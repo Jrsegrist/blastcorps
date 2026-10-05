@@ -122,7 +122,53 @@ s32 func_802CBD18(ZoneScanRegs *r) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+#ifndef INTERP_REGS_DEFINED
+#define INTERP_REGS_DEFINED
+/* func_802AAD0C's register results (62740.c). */
+typedef struct {
+    s32 t3;  /* interpolated u */
+    s32 t4;  /* interpolated w */
+    f32 f12;
+    s32 f14; /* raw bits */
+    f32 f20;
+    f32 f22;
+    f32 f24; /* also an input (kept on some paths) */
+    f32 f26;
+} InterpRegs;
+#endif
+void func_802AAD0C(s32 id, s32 x, s32 z, InterpRegs *r); /* 62740 */
+s32 func_802A94A4(s32 index, s16 *tbl, s16 *angle, s32 *dz); /* 62740 */
+
+/* Value pairs on the D_803EBDB0 triangle `id` (func_802AAD0C) at this
+ * vehicle's x/z (D_803F8F28[0], [2]) -> s16s at +0x6A/+0x6C, and at that
+ * point plus the offset tbl[0] (+0x52) rotated by the heading (func_802A94A4,
+ * angle at +0x4C) -> +0x70/+0x72; the heading is copied to +0x6E. Returns
+ * &D_803F8E80[0x52] (the asm's v1). The offset is added with trapping adds.
+ * Register convention: id in a3; func_802AAD0C's FP results (f12-f26, f24
+ * also in) pass through to the caller, here through r (conventions.txt). The
+ * asm saves and restores t0, t1, t3, t4 (asm caller func_802AB50C keeps t0
+ * and t1 live: a mixed N64 build would need a thunk), points $gp at
+ * D_803F8E80 and leaves s4 = $gp + 0x4C. */
+s32 func_802CBD5C(s32 id, InterpRegs *r) {
+    s32 x = D_803F8F28[0];
+    s32 z = D_803F8F28[2];
+    s32 dx;
+    s32 dz;
+
+    func_802AAD0C(id, x, z, r);
+    *(s16 *) (D_803F8E80 + 0x6A) = r->t3;
+    *(s16 *) (D_803F8E80 + 0x6C) = r->t4;
+    *(u16 *) (D_803F8E80 + 0x6E) = *(u16 *) (D_803F8E80 + 0x4C);
+    dx = func_802A94A4(0, (s16 *) (D_803F8E80 + 0x52), (s16 *) (D_803F8E80 + 0x4C), &dz);
+    func_802AAD0C(id, x + dx, z + dz, r);
+    *(s16 *) (D_803F8E80 + 0x70) = r->t3;
+    *(s16 *) (D_803F8E80 + 0x72) = r->t4;
+    return (s32) (D_803F8E80 + 0x52);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/86F60/func_802CBD5C.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/86F60/func_802CBDE8.s")
@@ -235,7 +281,70 @@ void func_802CC56C(void) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+#ifndef MTX_CHAIN_REGS_DEFINED
+#define MTX_CHAIN_REGS_DEFINED
+/* Registers func_802AA890 reads and writes besides its arguments (62740.c). */
+typedef struct {
+    s32 v1; /* out: y' >> 11 */
+    s32 a0; /* out: z' >> 11 */
+    s32 a3; /* in/out: the last matrix used */
+    s32 s1; /* in/out: y' */
+    s32 s2; /* in/out: z' */
+    s32 s0; /* in: only read when count == 0 */
+} MtxChainRegs;
+#endif
+extern u8 D_8035805C;     /* which of the two save copies is current */
+extern u8 *D_803F8F34;    /* model header: word offsets to the part lists */
+extern s16 D_803ED390[3]; /* rotation angles x, y, z for func_802AA764 */
+void func_802AA764(s32 x, s32 y, s32 z, s32 scale, s32 *m);                                     /* 62740 */
+void func_8029C454(s32 x, s32 y, s32 z, s32 tag, u8 *p, u8 *end, u8 *base, MtxChainRegs *regs); /* 56040 */
+void func_802ABBEC(s32 id, s16 *p, s16 *end, u8 *base, MtxChainRegs *regs);                     /* 62740 */
+
+/* Place vehicle 13's model: m = the word at +4 of the header entry at
+ * hdr + hdr[6], plus the current save copy (D_803F8F38 when D_8035805C is
+ * set, else D_803F8F3C); y rotation D_803ED392 = the heading (u16 at +0x4C);
+ * func_802AA764(position D_803F8F28..30, scale 0x4268, m). Then the
+ * vehicle's parts (func_8029C454, tag 0xD, list hdr + hdr[1] .. hdr +
+ * hdr[2]) and points (func_802ABBEC, id 0xD, hdr + hdr[0] .. hdr + hdr[1])
+ * relative to the current save copy. The header offsets are added with
+ * trapping adds.
+ * Register notes: the asm's $gp (= D_803F8E80) is read as the global. It
+ * hands func_8029C454 whatever a3, s0, s1 held (they only matter for a point
+ * entry with no matrices; 0 here) and s2 = m (as func_802AA764 leaves it),
+ * and func_802ABBEC v1 = y, a0 = z (func_8029C454 restores them). It leaves
+ * func_802ABBEC's s1, the save copy in s4 and func_802AA764's f12/f14,
+ * which the survey lists as read by func_802CBEF0 (its C rewrite doesn't).
+ * Clobbers s1, s2, s4-s7 (conventions.txt); asm caller func_802CBEF0 keeps
+ * t6, t7 live (a mixed N64 build would need a thunk). */
+void func_802CC70C(void) {
+    MtxChainRegs regs;
+    u8 *hdr = D_803F8F34;
+    u8 *base;
+    s32 *m;
+
+    m = (s32 *) (*(s32 *) (hdr + *(s32 *) (hdr + 0x18) + 4) +
+                 (s32) (D_8035805C ? (u8 *) D_803F8F38 : (u8 *) D_803F8F3C));
+    D_803ED390[1] = *(u16 *) (D_803F8E80 + 0x4C);
+    func_802AA764(D_803F8F28[0], D_803F8F28[1], D_803F8F28[2], 0x4268, m);
+    base = D_8035805C ? (u8 *) D_803F8F38 : (u8 *) D_803F8F3C;
+    hdr = D_803F8F34;
+    regs.v1 = 0;
+    regs.a0 = 0;
+    regs.a3 = 0;
+    regs.s1 = 0;
+    regs.s2 = (s32) m;
+    regs.s0 = 0;
+    func_8029C454(D_803F8F28[0], D_803F8F28[1], D_803F8F28[2], 0xD, hdr + *(s32 *) (hdr + 4),
+                  hdr + *(s32 *) (hdr + 8), base, &regs);
+    hdr = D_803F8F34;
+    regs.v1 = D_803F8F28[1];
+    regs.a0 = D_803F8F28[2];
+    func_802ABBEC(0xD, (s16 *) (hdr + *(s32 *) hdr), (s16 *) (hdr + *(s32 *) (hdr + 4)), base, &regs);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/86F60/func_802CC70C.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

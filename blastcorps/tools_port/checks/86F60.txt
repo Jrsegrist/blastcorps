@@ -80,3 +80,24 @@ func_802CC400: -n 200 --seed 2 --arg gp=sym:D_803F8E80 --arg t6=int --arg t7=int
     --mem D_803EB770:16=bytes:0,1 --mem D_803EB792:1=rand --sig func_802A11C4=a0,a1 --sig func_80260AB8=a0,a1,a2 \
     --mem D_803F7840:2=rand --mem D_80364AB0:1=bytes:0,1 \
     --conv 'func_8027BE7C: in a0=a0:1,a1=a1,a2=a2:2,a3=a3:2,stack0=stack0:2,stack1=stack1:2,stack2=stack2,stack3=stack3,stack4=stack4:2,stack5=stack5:1,stack6=stack6:1,stack7=stack7:1,stack8=stack8:1'
+# func_802CC70C: model placement (func_802AA764, func_8029C454 / func_802ABBEC id 0xD); regs pointers not compared
+func_802CC70C: -n 300 --arg gp=sym:D_803F8E80 --heap 0x200 --heap 0x100 --mem D_803F8F34=rel:heap0 \
+    --mem @heap0=int:0:0x100 --mem @heap0+4=int:0:0x100 --mem @heap0+8=int:0:0x100 --mem @heap0+0x18=choice:0x80,0x40,0x100 \
+    --mem D_803F8F38=int --mem D_803F8F3C=int --mem D_8035805C:1=choice:0,1,0xFF \
+    --mem D_803F8E80:0xA0=rand --mem D_803F8F28:12=rand --mem D_803ED390:6=rand \
+    --sig func_8029C454=a0,a1,a2,a3,stack0,stack1,stack2 --sig func_802ABBEC=a0,a1,a2,a3
+# followed: one part and one point entry with one matrix each, the D_803A7300 / D_803A6B30 / D_803EBC10 slots for 0xD first
+func_802CC70C: -n 200 --seed 1 --arg gp=sym:D_803F8E80 --heap 0x200 --heap 0x100 --mem D_803F8F34=rel:heap0 \
+    --mem @heap0=0x40 --mem @heap0+4=0x4C --mem @heap0+8=0x60 --mem @heap0+0x18=0x80 --mem @heap0+0x84=int \
+    --mem @heap0+0x40:6=rand --mem @heap0+0x46:2=1 --mem @heap0+0x48=choice:0,0x40 \
+    --mem @heap0+0x50:0xA=rand --mem @heap0+0x5A:2=1 --mem @heap0+0x5C=choice:0,0x40 \
+    --mem D_803F8F38=rel:heap1 --mem D_803F8F3C=rel:heap1+0x80 --mem D_8035805C:1=choice:0,1 \
+    --mem D_803F8E80:0xA0=rand --mem D_803F8F28:12=int:-0x10000:0x10000 --mem D_803ED390:6=rand \
+    --mem D_803A7300:0x28=rand --mem D_803A7300+0x10:1=0xD --mem D_803A6B30:0x28=rand --mem D_803A6B30+0x12:1=0xD \
+    --mem D_803EBC10:0x20=rand --mem D_803EBC10=1 --mem D_803EBC10+0xC:1=0xD \
+    --follow func_802AA764,func_8029C454,func_802ABBEC,func_802AA890
+# func_802CBD5C: value pairs at the position and at the rotated offset (tbl[0] at +0x52); offsets kept in range (trapping add)
+func_802CBD5C: -n 300 --arg a3=int:0:40 --arg f24=float --mem D_803F8E80:0xA0=rand --mem D_803F8F28:12=int:-0x1000000:0x1000000 \
+    --stub-ret func_802A94A4=int:-0x1000:0x1000 --stub-ret func_802A94A4.t6=int:-0x1000:0x1000
+func_802CBD5C: -n 200 --seed 1 --arg a3=int:0:40 --arg f24=float --mem D_803F8E80:0xA0=rand --mem D_803F8F28:12=int:-0x1000000:0x1000000 \
+    --follow func_802A94A4,func_802ACE38

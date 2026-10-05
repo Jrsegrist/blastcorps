@@ -34,3 +34,29 @@ func_802D2C20: -n 200 --seed 2 --ret void --follow func_802ABC88,func_802A6274,f
     --mem D_803EBC10:0x80=rand --mem D_803EBC10+0xC:1=0xFD --mem D_803EBC10+4*0x10:3=choice:99,100,101 \
     --mem D_803C4B70:0x3C0=rand --mem D_803C4B70+0x33*0x3C:16/1=bytes:0,1*3 --mem D_803EB770:16=bytes:0*2,1 \
     --mem D_803EB792:1=rand --mem D_803FC9A0:0x40=rand --sig func_80260650=a0,a1,a2 --sig func_802A11C4=a0,a1
+# func_802D2FA4: model placement (angles, func_802AA764, func_802ABBEC id 0xFD); regs pointer not compared
+func_802D2FA4: -n 300 --arg gp=sym:D_803FCCA0 --heap 0x200 --heap 0x100 --mem D_803FCD54=rel:heap0 \
+    --mem @heap0=int:0:0x100 --mem @heap0+4=int:0:0x100 --mem @heap0+0x18=choice:0x80,0x40,0x100 \
+    --mem D_803FCD58=int --mem D_803FCD5C=int --mem D_8035805C:1=choice:0,1,0xFF \
+    --mem D_803FCCA0:0xA0=rand --mem D_803FCD48:12=rand --mem D_803FCD68:8=rand --mem D_803ED390:6=rand \
+    --sig func_802ABBEC=a0,a1,a2,a3
+# followed: one point entry with one matrix, the D_803EBC10 record for 0xFD first
+func_802D2FA4: -n 200 --seed 1 --arg gp=sym:D_803FCCA0 --heap 0x200 --heap 0x100 --mem D_803FCD54=rel:heap0 \
+    --mem @heap0=0x40 --mem @heap0+4=0x4C --mem @heap0+0x18=0x80 --mem @heap0+0x84=int \
+    --mem @heap0+0x40:6=rand --mem @heap0+0x46:2=1 --mem @heap0+0x48=choice:0,0x40 \
+    --mem D_803FCD58=rel:heap1 --mem D_803FCD5C=rel:heap1+0x80 --mem D_8035805C:1=choice:0,1 \
+    --mem D_803FCCA0:0xA0=rand --mem D_803FCD48:12=int:-0x10000:0x10000 --mem D_803FCD68:8=rand --mem D_803ED390:6=rand \
+    --mem D_803EBC10:0x20=rand --mem D_803EBC10=1 --mem D_803EBC10+0xC:1=0xFD \
+    --follow func_802AA764,func_802ABBEC,func_802AA890
+# func_802D291C: per-frame driver
+func_802D291C: -n 300 --mem D_803FCCA0:0xA0=rand --mem D_803FCCA0+0x9A:1=choice:0,1 --mem D_8035805C:1=choice:0,1,0x80 \
+    --mem D_803FCD58=int --mem D_803FCD5C=int --sig func_802D2A40= --sig func_802D2A74= --sig func_802D2C20= --sig func_802D2FA4=
+func_802D291C: -n 200 --seed 1 --heap 0x200 --heap 0x100 --mem D_803FCD54=rel:heap0 \
+    --mem @heap0=0x40 --mem @heap0+4=0x4C --mem @heap0+0x18=0x80 --mem @heap0+0x84=int \
+    --mem @heap0+0x40:6=rand --mem @heap0+0x46:2=1 --mem @heap0+0x48=choice:0,0x40 \
+    --mem D_803FCD58=rel:heap1 --mem D_803FCD5C=rel:heap1+0x80 --mem D_8035805C:1=choice:0,1 \
+    --mem D_803FCCA0:0xA0=rand --mem D_803FCCA0+0x9A:1=choice:0,1 --mem D_803FCD48:12=int:-0x10000:0x10000 \
+    --mem D_803FCD68:8=rand --mem D_803ED390:6=rand \
+    --mem D_803EBC10:0x20=rand --mem D_803EBC10=1 --mem D_803EBC10+0xC:1=0xFD \
+    --sig func_802D2A40= --sig func_802D2A74= --sig func_802D2C20= \
+    --follow func_802D2FA4,func_802AA764,func_802ABBEC,func_802AA890

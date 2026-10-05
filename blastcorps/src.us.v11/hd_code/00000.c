@@ -29,10 +29,22 @@ extern s32 D_802FA254;
 extern u32 D_803649F0;
 extern u32 D_803649F4;
 
+/* a drawable object, 0x74 bytes */
 typedef struct {
-    u8 pad0[0x5C];
-    s32 unk5C;
-    u8 pad60[0x14];
+    void *unk0; /* segment 6 */
+    void *unk4; /* segment 7 */
+    void *unk8; /* segment 7 (alternate) */
+    void *unkC; /* display lists by LOD */
+    void *unk10;
+    void *unk14;
+    u8 pad18[0x18];
+    void *unk30; /* alternate display lists by LOD */
+    void *unk34;
+    void *unk38;
+    u8 pad3C[0x20];
+    s32 unk5C; /* id */
+    u32 unk60; /* alpha */
+    u8 pad64[0x10];
 } Unk74;
 extern Unk74 D_80364460[];
 extern Unk74 *D_803649D0;
@@ -211,6 +223,12 @@ extern u8 D_80364A48;
 extern s16 D_80364A4A;
 extern s16 D_80364A4C;
 extern u8 D_80364A4E;
+
+extern u8 D_803156F5;
+extern u8 D_80364A84;
+extern u8 D_80364AC1;
+extern u8 D_803EF6FF;
+extern Mtx D_02000000[];
 
 /* (end of declarations) */
 
@@ -445,7 +463,67 @@ void *func_8024C404(void *arg0, s32 arg1, s32 *arg2) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_8024F520.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_8024FC2C.s")
+/* Emits the display lists of every object in D_80364460 */
+void func_8024FC2C(Gfx **gfx, u8 lod) {
+    Gfx *gdl = *gfx;
+    s32 i;
+    u8 unused;
+    u8 alt;
+    u8 all;
+
+    all = !D_803649E8 && (D_803649EC || (D_80364A90 & 0x1801));
+    i = 0;
+    while (&D_80364460[i] != D_803649D0) {
+        if ((D_80364460[i].unk5C != 0 || all) && (D_80364460[i].unk5C != 0xFF || !D_803EF6FF) &&
+            (D_80364460[i].unk5C == 0xFD || !D_80364A84 || !D_80364AC1)) {
+            gSPSegment(gdl++, 6, osVirtualToPhysical(D_80364460[i].unk0));
+            if ((D_80364A90 & 0x1801) && (D_80364460[i].unk5C == 0xFE || D_80364460[i].unk5C == 0)) {
+                alt = D_8035805C;
+            } else {
+                alt = D_803156F5;
+            }
+            if (alt) {
+                gSPSegment(gdl++, 7, osVirtualToPhysical(D_80364460[i].unk4));
+            } else {
+                gSPSegment(gdl++, 7, osVirtualToPhysical(D_80364460[i].unk8));
+            }
+            gDPPipeSync(gdl++);
+            gDPSetEnvColor(gdl++, 0, 0, 0, D_80364460[i].unk60);
+            gSPClearGeometryMode(gdl++, -1);
+            if (D_803643D6 && !(D_80364AA8 & 0x81) && D_80364460[i].unk5C == D_80364456) {
+                gSPMatrix(gdl++, &D_02000000[0x54], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+            }
+            if (alt) {
+                switch (lod) {
+                    case 0:
+                        gSPDisplayList(gdl++, osVirtualToPhysical(D_80364460[i].unkC));
+                        break;
+                    case 1:
+                        gSPDisplayList(gdl++, osVirtualToPhysical(D_80364460[i].unk10));
+                        break;
+                    case 2:
+                        gSPDisplayList(gdl++, osVirtualToPhysical(D_80364460[i].unk14));
+                        break;
+                }
+            } else {
+                switch (lod) {
+                    case 0:
+                        gSPDisplayList(gdl++, osVirtualToPhysical(D_80364460[i].unk30));
+                        break;
+                    case 1:
+                        gSPDisplayList(gdl++, osVirtualToPhysical(D_80364460[i].unk34));
+                        break;
+                    case 2:
+                        gSPDisplayList(gdl++, osVirtualToPhysical(D_80364460[i].unk38));
+                        break;
+                }
+            }
+            gSPMatrix(gdl++, &D_02000000[7], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+        }
+        i++;
+    }
+    *gfx = gdl;
+}
 
 /* Spins and shrinks the selected vehicle's matrices (vehicle eject effect?) */
 void func_802502EC(void) {

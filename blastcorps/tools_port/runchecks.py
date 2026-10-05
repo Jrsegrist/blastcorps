@@ -2,7 +2,8 @@
 """runchecks: the eqcheck regression suite for NON_MATCHING rewrites.
 
 Check specs live in tools_port/checks/<FILE>.txt, one file per source file
-(src.us.v11/hd_code/<FILE>.c).  Each non-blank, non-comment line is
+(src.us.v11/hd_code/<FILE>.c; checks/fe_<FILE>.txt for the front end's
+src.us.v11/hd_front_end/<FILE>.c).  Each non-blank, non-comment line is
 
     func_XXXXXXXX: <eqcheck.py arguments>
 
@@ -17,8 +18,8 @@ Run from the repo dir with the venv active (or via tools_port/runchecks.sh):
 
 FILTER is a check-file name (8A080), a function name, or a substring of
 either.  With no filter every check runs, and the coverage check also runs:
-every function rewritten under #ifdef NON_MATCHING in src.us.v11/hd_code must
-have at least one check line.  Exit status is nonzero if any check fails or
+every function rewritten under #ifdef NON_MATCHING in src.us.v11/hd_code or
+src.us.v11/hd_front_end must have at least one check line.  Exit status is nonzero if any check fails or
 errors, or (unfiltered) if coverage is incomplete.
 """
 import argparse
@@ -34,7 +35,18 @@ import time
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
 CHECKS = os.path.join(HERE, "checks")
+# segment source dir -> check-file prefix: checks/<FILE>.txt for
+# src.us.v11/hd_code/<FILE>.c, checks/fe_<FILE>.txt for src.us.v11/hd_front_end/<FILE>.c
+SEGMENTS = (("hd_code", ""), ("hd_front_end", "fe_"))
 SRC = os.path.join(REPO, "src.us.v11", "hd_code")
+
+
+def segment_of(stem):
+    """Check-file stem -> segment name."""
+    for seg, prefix in reversed(SEGMENTS):
+        if prefix and stem.startswith(prefix):
+            return seg
+    return "hd_code"
 
 
 def parse_checks(path):
@@ -66,11 +78,14 @@ def parse_checks(path):
 
 
 def nm_functions():
-    """func name -> source file stem, for every function whose asm sits in the
-    #else branch of an #ifdef NON_MATCHING block."""
+    """func name -> check-file stem (fe_FILE for the front end), for every
+    function whose asm sits in the #else branch of an #ifdef NON_MATCHING block."""
     funcs = {}
-    for path in sorted(glob.glob(os.path.join(SRC, "*.c"))):
-        stem = os.path.splitext(os.path.basename(path))[0]
+    paths = []
+    for seg, prefix in SEGMENTS:
+        paths += [(prefix, p) for p in sorted(glob.glob(os.path.join(REPO, "src.us.v11", seg, "*.c")))]
+    for prefix, path in paths:
+        stem = prefix + os.path.splitext(os.path.basename(path))[0]
         stack = []          # per open #if: [is_nm, in_else]
         with open(path, errors="replace") as f:
             for line in f:
@@ -90,9 +105,10 @@ def nm_functions():
 
 
 def changed_stems(ref):
-    """FILE stems whose src.us.v11/hd_code/FILE.c or tools_port/checks/FILE.txt
+    """Check-file stems whose source (src.us.v11/hd_code/FILE.c, or
+    src.us.v11/hd_front_end/FILE.c for fe_FILE) or tools_port/checks/STEM.txt
     differs between REF and the working tree (or is untracked)."""
-    paths = ["src.us.v11/hd_code", "tools_port/checks"]
+    paths = ["src.us.v11/%s" % seg for seg, _ in SEGMENTS] + ["tools_port/checks"]
     # diff against the merge base, so commits that landed on REF after this
     # branch forked don't count as "changed here"
     p = subprocess.run(["git", "merge-base", ref, "HEAD"], cwd=REPO, stdout=subprocess.PIPE,
@@ -111,8 +127,11 @@ def changed_stems(ref):
     stems = set()
     for f in out:
         stem, ext = os.path.splitext(os.path.basename(f))
-        if ext in (".c", ".txt"):
+        if ext == ".txt":
             stems.add(stem)
+        elif ext == ".c":
+            seg = os.path.basename(os.path.dirname(f))
+            stems.add(dict(SEGMENTS).get(seg, "") + stem)
     return stems
 
 
@@ -241,8 +260,11 @@ def main():
             print("runchecks: no checks for changed files")
             return 0 if cov_ok else 1
     if whole or o.coverage_only:
-        print("coverage: %d NON_MATCHING function(s) in src.us.v11/hd_code, %d with checks"
-              % (len(nm), len(nm) - len(missing)))
+        for seg, _ in SEGMENTS:
+            n_seg = sum(1 for stem in nm.values() if segment_of(stem) == seg)
+            m_seg = sum(1 for stem, _ in missing if segment_of(stem) == seg)
+            print("coverage: %d NON_MATCHING function(s) in src.us.v11/%s, %d with checks"
+                  % (n_seg, seg, n_seg - m_seg))
         for stem, f in missing:
             print("  MISSING  %s (%s.c): no line in tools_port/checks/" % (f, stem))
         for stem, f in stale:
@@ -280,9 +302,9 @@ def main():
                 oks = [l for l in p.stdout.splitlines() if l.endswith(": OK")]
                 for l in oks:
                     print("  " + l)
-                if len(oks) < 2 and "Nothing to be done" not in p.stdout:
+                if len(oks) < 3 and "Nothing to be done" not in p.stdout:
                     print("\n".join(p.stdout.splitlines()[-20:]))
-                    sys.exit("runchecks: matching build did not print both OK lines")
+                    sys.exit("runchecks: matching build did not print all three OK lines")
         # every data symbol must keep its original address in build_nm
         p = subprocess.run([sys.executable, os.path.join(HERE, "nm_symaudit.py")], cwd=REPO,
                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)

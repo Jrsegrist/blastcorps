@@ -132,11 +132,14 @@ ifeq ($(NON_MATCHING),1)
 # .rodata/.data/.bss at NM_EXTRA_VRAM. tools_port/eqcheck.py maps by symbol.
 NM_TEXT_VRAM  ?= 0x80800000
 NM_EXTRA_VRAM ?= 0x80A00000
+# the front end the same way: text moved, .hd_front_end_data pinned, its own
+# catch-all (.nm_extra_fe); its calls into hd_code resolve to the NM hd_code
+NM_FE_TEXT_VRAM  ?= 0x80900000
+NM_FE_EXTRA_VRAM ?= 0x80A80000
 CFLAGS += -DNON_MATCHING
 INIT_LD_SCRIPT = $(BUILD_DIR)/init.$(VERSION).ld
 HD_CODE_LD_SCRIPT = $(BUILD_DIR)/hd_code.$(VERSION).ld
 HD_CODE_BSS_LD_SCRIPT = $(BUILD_DIR)/hd_code_bss.$(VERSION).ld
-# the front end stays at its original address (it has no rewrites yet)
 HD_FRONT_END_LD_SCRIPT = $(BUILD_DIR)/hd_front_end.$(VERSION).ld
 HD_FRONT_END_BSS_LD_SCRIPT = $(BUILD_DIR)/hd_front_end_bss.$(VERSION).ld
 # symbol files rewritten as PROVIDE(), so a relocated function's real
@@ -265,10 +268,16 @@ $(BUILD_DIR)/hd_code.$(VERSION).elf: $(HD_CODE_LD_SCRIPT) $(HD_CODE_BSS_LD_SCRIP
 $(BUILD_DIR)/hd_front_end.$(VERSION).elf: $(HD_FRONT_END_LD_SCRIPT) $(HD_FRONT_END_BSS_LD_SCRIPT) $(HD_FRONT_END_UNDEF_FILES)
 $(BUILD_DIR)/%.txt: %.txt tools_port/nm_ldscript.py | dirs
 	$(NM_LDSCRIPT) $< $@ --provide
+# the front end's symbol files: hd_code functions at their NM addresses
+$(BUILD_DIR)/%.hd_front_end.$(VERSION).txt: %.hd_front_end.$(VERSION).txt tools_port/nm_ldscript.py \
+		$(BUILD_DIR)/hd_code.$(VERSION).elf | dirs
+	$(NM_LDSCRIPT) $< $@ --provide --resolve-elf $(BUILD_DIR)/hd_code.$(VERSION).elf
 $(INIT_LD_SCRIPT): init.$(VERSION).ld tools_port/nm_ldscript.py | dirs
 	$(NM_LDSCRIPT) $< $@
 $(HD_FRONT_END_LD_SCRIPT): hd_front_end.$(VERSION).ld tools_port/nm_ldscript.py | dirs
-	$(NM_LDSCRIPT) $< $@
+	$(NM_LDSCRIPT) $< $@ --relocate .hd_front_end=$(NM_FE_TEXT_VRAM) --pin-data .hd_front_end_data \
+		--extra-vram $(NM_FE_EXTRA_VRAM) --extra-name .nm_extra_fe \
+		--extra-glob '$(BUILD_DIR)/src.$(VERSION)/hd_front_end/*.o'
 $(HD_FRONT_END_BSS_LD_SCRIPT): hd_front_end_bss.$(VERSION).ld tools_port/nm_ldscript.py | dirs
 	$(NM_LDSCRIPT) $< $@
 $(HD_CODE_BSS_LD_SCRIPT): hd_code_bss.$(VERSION).ld tools_port/nm_ldscript.py | dirs

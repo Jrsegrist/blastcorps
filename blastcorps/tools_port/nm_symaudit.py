@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """nm_symaudit: check that no data symbol moved between build/ and build_nm/.
 
-The NON_MATCHING link relocates only the hd_code text.  Every data, .bss and
+The NON_MATCHING link relocates only the hd_code and front-end text.  Every data, .bss and
 absolute symbol must keep its original address, otherwise the hand asm (which
 uses raw addresses) and a C rewrite (which uses the symbol) would see two
 different homes for one variable.  This compares the symbol tables of both
@@ -44,9 +44,14 @@ def load(path):
 def audit(ref_dir, new_dir, version="us.v11"):
     """-> list of (elf, name, ref_addr, ref_sec, new_addr, new_sec)"""
     moved = []
-    for elf in ("hd_code", "init"):
-        r, rtext, rdup = load(os.path.join(ref_dir, "%s.%s.elf" % (elf, version)))
-        n, _, ndup = load(os.path.join(new_dir, "%s.%s.elf" % (elf, version)))
+    elfs = ("hd_code", "init", "hd_front_end")
+    loaded = {elf: (load(os.path.join(ref_dir, "%s.%s.elf" % (elf, version))),
+                    load(os.path.join(new_dir, "%s.%s.elf" % (elf, version)))) for elf in elfs}
+    # code moves on purpose, including one segment's absolute symbols for the
+    # other's functions (the front end calls hd_code's NM addresses)
+    rtext = [t for (_, rt, _), _ in loaded.values() for t in rt]
+    for elf in elfs:
+        (r, _, rdup), (n, _, ndup) = loaded[elf]
         for name, (v, sec) in sorted(r.items()):
             if name in rdup or name in ndup or name not in n:
                 continue

@@ -48,3 +48,88 @@ func_802BC2C8: -n 200 --seed 2 --arg gp=sym:D_803EFDF0 --arg t6=int --arg t7=int
     --mem D_803EB770:16=bytes:0,1 --mem D_803EB792:1=rand --sig func_802A11C4=a0,a1 --sig func_80260AB8=a0,a1,a2 \
     --sig func_802608C8=a0 --mem D_803F7840:2=rand --mem D_80364AB0:1=bytes:0,1 --mem D_803F7844:8=words:0,0x80123450 \
     --mem D_803F784C:2=rand --mem D_80370C1A:2=bytes:0,1
+
+# --- vehicle type 7: spawn / per-frame / model update ---
+# Model update ($gp = D_803EFDF0): as 83910's func_802C9624 (scale 0x3A98, tag 7) plus D_803EFECB = func_8029DC14(7).
+# func_802AA890's pass-through registers start at 0 in C (fidelity note): those pointer slots aren't compared.
+func_802BC3D0: -n 300 --arg gp=sym:D_803EFDF0 --heap 0x400=words:0x20,0x40,0x60,0x100,0x1F0,-0x10 \
+    --mem D_803EFEA4=rel:heap0+0x20 --mem D_803EFEA8=rel:heap0+0x200 --mem D_803EFEAC=rel:heap0+0x300 \
+    --mem D_8035805C:1=choice:0,1,0x80 --mem D_803EFE98:12=rand --mem D_803EFDF0+0x4C:2=rand --mem D_803ED390:6=rand \
+    --mem D_803EFECB:1=rand --stub-ret func_8029DC14=choice:0,1,0x100,-1 \
+    --sig func_8029C454=a0,a1,a2,a3,stack0,stack1,stack2 \
+    --sig func_802ABBEC=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10
+func_802BC3D0: -n 100 --seed 1 --follow func_802AA764,func_802AABE4,func_8029DC14 --arg gp=sym:D_803EFDF0 \
+    --heap 0x400=words:0x20,0x40,0x60,0x100,0x1F0 --mem D_803EFEA4=rel:heap0+0x20 --mem D_803EFEA8=rel:heap0+0x200 \
+    --mem D_803EFEAC=rel:heap0+0x300 --mem D_8035805C:1=choice:0,1 --mem D_803EFE98:12=int:-100000:100000 \
+    --mem D_803EFDF0+0x4C:2=int:0:0xFFF --mem D_803ED390:6=rand --mem D_803EBB58:0x80=rand --mem D_803EFECB:1=rand \
+    --mem D_803BD300=rel:D_803B9890+0x60*int:0:4 --mem D_803B9890:0x180=rand --mem D_803B9890+0x4F*0x60:4/1=choice:7,7,3 \
+    --mem D_803B9890+0x51*0x60:4/1=choice:0,1 \
+    --sig func_8029C454=a0,a1,a2,a3,stack0,stack1,stack2 \
+    --sig func_802ABBEC=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10
+
+# Per-frame update. The model update runs for real (its leftover t0 / t2 feed func_8029A800 in the asm). The
+# zone scan registers start at 0 in C (fidelity note): func_802BBE74's inputs aren't compared (its stubbed
+# outputs then reach func_802BC2C8 identically). func_802A8768's FP inputs likewise (*stack13 not compared).
+# x-on-line interpolation (D_803EFEC8) with z1 != z0; bumper contacts via func_802BCD80's stubbed results.
+func_802BBEB8: -n 400 --follow func_802BC3D0 --heap 0x400=words:0x20,0x40,0x60,0x100 --mem D_803EFEA4=rel:heap0+0x20 \
+    --mem D_803EFEA8=rel:heap0+0x200 --mem D_803EFEAC=rel:heap0+0x300 --mem D_8035805C:1=choice:0,1 \
+    --mem D_803EFDF0:0xA8=rand --mem D_803EFDF0+0x9A:1=choice:0,0,1,0x80 --mem D_803EFE98=int:-100000:100000 \
+    --mem D_803EFE9C=int --mem D_803EFEA0=int:-2000:2000 --mem D_803EFEB0=int:-100000:100000 --mem D_803EFEB4=int:-1000:-1 \
+    --mem D_803EFEB8=int:-100000:100000 --mem D_803EFEBC=int:1:1000 --mem D_803EFEC0=choice:0,5,6,7,-1,999999 \
+    --mem D_803EFEC4=choice:0,5,6,7,-1,999999 --mem D_803EFEC8:1=choice:0,1,0x80 --mem D_803EFECB:1=rand \
+    --mem D_803A7425:1=choice:0,1 --stub-ret func_802BCD80=choice:0,1 --mem D_803643E0:12=rand --mem D_8036443C:6=rand \
+    --mem D_803ED40B:1=rand --mem D_803F77D0=rand --mem D_803ED390:6=rand --sig func_802BBE74= --sig func_802BC578= \
+    --sig func_8029C454=a0,a1,a2,a3,stack0,stack1,stack2 \
+    --sig func_802ABBEC=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10 \
+    --sig func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12
+# rounding ties of the interpolation (ratio 0.5 / 0.25 with odd spans), counters at the 6 threshold, all contact pairs
+func_802BBEB8: -n 200 --seed 1 --follow func_802BC3D0 --heap 0x400=words:0x20,0x40,0x60,0x100 \
+    --mem D_803EFEA4=rel:heap0+0x20 --mem D_803EFEA8=rel:heap0+0x200 --mem D_803EFEAC=rel:heap0+0x300 \
+    --mem D_8035805C:1=choice:0,1 --mem D_803EFDF0:0xA8=rand --mem D_803EFDF0+0x9A:1=0 --mem D_803EFE98=int \
+    --mem D_803EFE9C=int --mem D_803EFEA0=choice:1,3,-1,0,2 --mem D_803EFEB0=int:-50:50 --mem D_803EFEB4=0 \
+    --mem D_803EFEB8=int:-50:50 --mem D_803EFEBC=choice:2,4,-2 --mem D_803EFEC0=choice:5,6 --mem D_803EFEC4=choice:5,6 \
+    --mem D_803EFEC8:1=1 --mem D_803A7425:1=1 --stub-ret func_802BCD80=choice:0,1 --mem D_803643E0:12=rand \
+    --mem D_8036443C:6=rand --mem D_803ED40B:1=rand --mem D_803F77D0=rand --mem D_803ED390:6=rand --sig func_802BBE74= \
+    --sig func_802BC578= --sig func_8029C454=a0,a1,a2,a3,stack0,stack1,stack2 \
+    --sig func_802ABBEC=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10 \
+    --sig func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12
+# driving callees, timers and the contact lookup run for real (vehicle fields in game range)
+func_802BBEB8: -n 200 --seed 2 \
+    --follow func_802BC3D0,func_802A785C,func_802A7FD8,func_802A83B8,func_802A843C,func_802A860C,func_802BC578,func_802BCD80 \
+    --heap 0x400=words:0x20,0x40,0x60,0x100 --mem D_803EFEA4=rel:heap0+0x20 --mem D_803EFEA8=rel:heap0+0x200 \
+    --mem D_803EFEAC=rel:heap0+0x300 --mem D_8035805C:1=choice:0,1 --mem D_803EFDF0:0xA8=rand \
+    --mem D_803EFDF0+4*4:18=int:-20000:20000 --mem D_803EFDF0+0x76:2=int:-300:300 --mem D_803EFDF0+0x96:3=bytes:0,1,2 \
+    --mem D_803EFDF0+0x50:1=int:1:5 --mem D_803EFDF0+0x9A:1=choice:0,0,1 --mem D_803EFE98=int:-100000:100000 \
+    --mem D_803EFE9C=int:-100000:100000 --mem D_803EFEA0=int:-2000:2000 --mem D_803EFEB0=int:-100000:100000 \
+    --mem D_803EFEB4=int:-1000:-1 --mem D_803EFEB8=int:-100000:100000 --mem D_803EFEBC=int:1:1000 \
+    --mem D_803EFEC0=choice:0,5,6,7 --mem D_803EFEC4=choice:0,5,6,7 --mem D_803EFEC8:1=choice:0,1 \
+    --mem D_803A7425:1=choice:0,1 --mem D_803F77D8:0x40=words:2,3,9 --mem D_803F77D4=rel:D_803F77D8+4*int:0:16 \
+    --mem D_803643E0:12=rand --mem D_8036443C:6=rand --mem D_803ED40B:1=rand --mem D_803F77D0=rand --mem D_803ED390:6=rand \
+    --sig func_80260AB8=a0,a1,a2 --sig func_80260650=a0,a1,a2 --sig func_802BBE74= \
+    --sig func_8029C454=a0,a1,a2,a3,stack0,stack1,stack2 \
+    --sig func_802ABBEC=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10 \
+    --sig func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12
+
+# Spawn (x t7, y s3, z s0, heading s1, data s2, ground byte fp; saves t0-t5). func_802A992C's FP inputs start at 0
+# in C (fidelity note): its *stack6 slots aren't compared.
+func_802BBA60: -n 200 --heap 0x400=words:0x20,0x40,0x60,0x100 --heap 0x2000 --mem D_80358070=rel:heap1+0x10*int:0:16 \
+    --arg t7=int --arg s3=int --arg s0=int --arg s1=int --arg s2=rel:heap0 --arg fp=int --mem D_803EFDF0:0xA8=rand \
+    --mem D_803EFE98:24=rand --mem D_803EFEC0:12=rand --sig func_802BBEB8= \
+    --sig func_802A992C=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5
+func_802BBA60: -n 100 --seed 1 \
+    --follow func_802A754C,func_802A039C,func_802A03D4,func_802A040C,func_802A0480,func_802A0290,func_802A0320,func_802AA838 \
+    --heap 0x400=words:0x20,0x40,0x60,0x100 --heap 0x2000 --mem D_80358070=rel:heap1 --arg t7=int --arg s3=int --arg s0=int \
+    --arg s1=choice:0,0x7FF,0xFFF,0x1000,-1 --arg s2=rel:heap0 --arg fp=int --mem D_803EFDF0:0xA8=rand \
+    --mem D_803EFE98:24=rand --mem D_803EFEC0:12=rand --mem D_803EFAF0:0x60=rand --sig func_802BBEB8= \
+    --sig func_802A992C=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5
+# the spawn's first frame runs for real (byte +0x9A set: no dust, no collisions)
+func_802BBA60: -n 100 --seed 2 --follow func_802BBEB8,func_802BC3D0 --heap 0x400=words:0x20,0x40,0x60,0x100 --heap 0x2000 \
+    --mem D_80358070=rel:heap1 --arg t7=int --arg s3=int --arg s0=int:-2000:2000 --arg s1=int --arg s2=rel:heap0+0x20 --arg fp=int \
+    --mem D_803EFDF0:0xA8=rand --mem D_803EFE98:24=rand --mem D_803EFEC0:12=rand --mem D_803EFEC8:1=choice:0,1 \
+    --mem D_803EFEB4=int:-1000:-1 --mem D_803EFEBC=int:1:1000 --mem D_803EFEB0=int:-100000:100000 \
+    --mem D_803EFEB8=int:-100000:100000 --mem D_8035805C:1=choice:0,1 --mem D_803643E0:12=rand --mem D_8036443C:6=rand \
+    --mem D_803ED40B:1=rand --mem D_803ED390:6=rand --sig func_802BBE74= --sig func_802BC578= \
+    --sig func_802A992C=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5 \
+    --sig func_8029C454=a0,a1,a2,a3,stack0,stack1,stack2 \
+    --sig func_802ABBEC=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10 \
+    --sig func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12

@@ -844,3 +844,64 @@ func_802AA6D0: -n 200 --ret void --arg a0=int --arg a1=int --arg a2=int --arg a3
 func_802AA6D0: -n 100 --seed 1 --ret void --follow-all --arg a0=int:-0x8000:0x8000 --arg a1=int:-0x8000:0x8000 \
     --arg a2=int:-0x8000:0x8000 --arg a3=int --arg stack0=int --arg stack1=int --arg stack2=int:0:0x20000 \
     --arg stack3=ptr:0x40 --mem D_803ED390:6=rand --mem D_803EBB58:0x40=rand
+
+# func_802A8768 (veh gp, id t8, px t7, py s2, pz s1, x t0, z t1, divB t9, divA fp, angle s4, flags s0, tbl v1,
+# a/b/c a1-a3, ys s7, s3 in/out; f): reset, slots (flags 0/1 -> 93B0/95A4, D_803ED410 stops after slot 0),
+# history shift, tilts into D_803ED394 / D_803ED390 (= fp out), func_802582C4, func_802A9164, func_802A92C8
+func_802A8768: -n 300 --arg gp=ptr:0x100 --arg t8=choice:0,1,7,0xFF,0x1FF --heap 0x20 --arg t7=rel:heap0 \
+    --arg s2=rel:heap0+4 --arg s1=rel:heap0+8 --arg t0=int:-0x100000:0x100000 --arg t1=int:-0x100000:0x100000 \
+    --arg t9=choice:1,0x40,0x100,0x1000,-0x100,0x7FFF --arg fp=choice:1,0x40,0x100,0x1000,-0x100,0x7FFF \
+    --arg s4=ptr:4 --arg s0=ptr:4 --mem @s0:3=bytes:0,1 --arg v1=ptr:0x10 --arg a1=ptr:0x10 --arg a2=ptr:0x10 \
+    --arg a3=ptr:0x10 --arg s7=ptr:0x24 --arg s3=int \
+    --stub-ret func_802A8CCC.t0=int:-0x100000:0x100000 --stub-ret func_802A8CCC.t1=int:-0x100000:0x100000 \
+    --stub-ret func_802A93B0=int --stub-ret func_802A95A4.s3=int --stub-ret func_802ACF64=int \
+    --stub-ret func_802A8B10=int --stub-ret func_802A8B10.a3=int \
+    --mem D_803ED410:1=choice:0,0,1 --mem D_803ED3EE:3=rand --mem D_803ED398:12=words:0,1,-1,100,-100,3000,0x4000,-0x4000 \
+    --mem D_803ED3A8:12=rand --mem D_803ED3F5:1=choice:0,1 --mem D_803ED40F:1=choice:0,1 \
+    --mem D_803ED402:6=rand --mem D_803ED40E:1=rand --mem D_803ED390:6=rand \
+    --sig func_802582C4=a0:1,a1,a2,a3,stack0,stack1,stack2,stack3 --sig func_802A8FB4=
+# the tilt division edges: h difference 0 / +-1 / +-0x7FFF, divisors 1 / -1 / 0x7FFF, all slots grounded
+func_802A8768: -n 300 --seed 1 --arg gp=ptr:0x100 --arg t8=choice:1,0xFF --heap 0x20 --arg t7=rel:heap0 \
+    --arg s2=rel:heap0+4 --arg s1=rel:heap0+8 --arg t0=int --arg t1=int \
+    --arg t9=choice:1,-1,0x7FFF,3 --arg fp=choice:1,-1,0x7FFF,3 \
+    --arg s4=ptr:4 --arg s0=ptr:4 --mem @s0:3=bytes:0 --arg v1=ptr:0x10 --arg a1=ptr:0x10 --arg a2=ptr:0x10 \
+    --arg a3=ptr:0x10 --arg s7=ptr:0x24 --arg s3=int --stub-ret func_802A93B0=int --stub-ret func_802ACF64=int \
+    --mem D_803ED410:1=0 --mem D_803ED3EE:3=rand --mem D_803ED398:12=words:0,1,-1,0x7FFF,-0x7FFF \
+    --mem D_803ED3A8:12=rand --mem D_803ED3F5:1=0 --mem D_803ED40F:1=1 \
+    --mem D_803ED402:6=rand --mem D_803ED40E:1=rand --mem D_803ED390:6=rand \
+    --sig func_802582C4=a0:1,a1,a2,a3,stack0,stack1,stack2,stack3 --sig func_802A8FB4=
+# the helpers that only touch globals followed (func_802A8CCC / slots / scans stubbed)
+func_802A8768: -n 200 --seed 2 --follow func_802A90E4,func_802A8FF4,func_802A8FB4,func_802A9038,func_802A9164,func_802A8B10,func_802ACF64 \
+    --arg gp=ptr:0x100 --arg t8=choice:0,1,7,9,0xFF --heap 0x20 --arg t7=rel:heap0 \
+    --arg s2=rel:heap0+4 --arg s1=rel:heap0+8 --arg t0=int:-0x100000:0x100000 --arg t1=int:-0x100000:0x100000 \
+    --arg t9=choice:1,0x40,0x100,0x1000,-0x100,0x7FFF --arg fp=choice:1,0x40,0x100,0x1000,-0x100,0x7FFF \
+    --arg s4=ptr:4 --arg s0=ptr:4 --mem @s0:3=bytes:0,1 --arg v1=ptr:0x10 --mem @v1:0xC=halves:0,0,1 \
+    --arg a1=ptr:0x10 --arg a2=ptr:0x10 --arg a3=ptr:0x10 --arg s7=ptr:0x24 --arg s3=int \
+    --stub-ret func_802A8CCC.t0=int:-0x100000:0x100000 --stub-ret func_802A8CCC.t1=int:-0x100000:0x100000 \
+    --stub-ret func_802A93B0=int --stub-ret func_802A95A4.s3=int \
+    --mem D_803ED410:1=choice:0,0,1 --mem D_803ED3EE:3=rand --mem D_803ED398:12=words:0,1,-1,100,-100,3000,0x4000,-0x4000 \
+    --mem D_803ED3A8:12=words:0,1,-1,100,-100,3000,0x4000,-0x4000 --mem D_803ED3F5:1=choice:0,1 --mem D_803ED40F:1=choice:0,1 \
+    --mem D_803ED402:6=rand --mem D_803ED40E:1=rand --mem D_803ED390:6=rand --mem D_803ED3F2:3=bytes:0,1,100,0x66 \
+    --mem D_803ED3F7:1=rand --mem D_803ED40D:1=rand --mem D_803BE738:1=rand --mem D_80358064=choice:0,1 \
+    --mem D_802E8BDC=choice:0,12 --mem D_803EBBF4:4=floats --mem D_803ED3EF:2=rand --mem D_803ED3EB:2=rand \
+    --sig func_802582C4=a0:1,a1,a2,a3,stack0,stack1,stack2,stack3
+# the whole slot tree followed too (func_802A8CCC, the triangle scans and sine/cosine stubbed)
+func_802A8768: -n 200 --seed 3 --follow func_802A90E4,func_802A8FF4,func_802A8FB4,func_802A9038,func_802A9164,func_802A8B10,func_802ACF64,func_802A93B0,func_802A95A4,func_802A94A4,func_802ACE38,func_802A9514,func_802A9540,func_802A9710,func_802A9B1C,func_802A92C8 \
+    --arg gp=ptr:0x100 --mem @gp+4:0x24=words:0,100,-100,3000 --arg t8=choice:0,1,7,9,0xFF --heap 0x20 --arg t7=rel:heap0 \
+    --arg s2=rel:heap0+4 --arg s1=rel:heap0+8 --arg t0=int:-0x100000:0x100000 --arg t1=int:-0x100000:0x100000 \
+    --arg t9=choice:1,0x40,0x100,0x1000,-0x100,0x7FFF --arg fp=choice:1,0x40,0x100,0x1000,-0x100,0x7FFF \
+    --arg s4=ptr:4 --arg s0=ptr:4 --mem @s0:3=bytes:0,1 --arg v1=ptr:0x10 --mem @v1:0xC=halves:0,0,1,0x100,0xFF00 \
+    --arg a1=ptr:0x10 --mem @a1:0xC=words:0,1,-1,5,-20,100 --arg a2=ptr:0x10 --mem @a2:0xC=words:0,1,2,3,10,-4 \
+    --arg a3=ptr:0x10 --mem @a3:0xC=words:0,100,-100,3000,-3000 --arg s7=ptr:0x24 --mem @s7:0x24=words:0,100,-100,3000 \
+    --arg s3=int --stub-ret func_802A8CCC.t0=int:-0x100000:0x100000 --stub-ret func_802A8CCC.t1=int:-0x100000:0x100000 \
+    --stub-ret func_802AE104=int:-0x10000:0x10000 --stub-ret func_802AE160=int:-0x10000:0x10000 \
+    --stub-ret func_802A9DC0=choice:0x5F5E0FF,100,-50,3000 --stub-ret func_802A9F24=choice:0x5F5E0FF,100,200,-50 \
+    --stub-ret func_802AA094=choice:0,1 --sig func_80260650=a0,a1,a2 \
+    --mem D_803ED410:1=choice:0,0,1 --mem D_803ED3EE:3=rand --mem D_803ED398:12=words:0,1,-1,100,-100,3000,0x4000,-0x4000 \
+    --mem D_803ED3A8:12=words:0,1,-1,100,-100,3000,0x4000,-0x4000 --mem D_803ED3F5:1=choice:0,1 --mem D_803ED40F:1=choice:0,1 \
+    --mem D_803ED402:6=rand --mem D_803ED40E:1=rand --mem D_803ED390:6=rand --mem D_803ED3F2:3=bytes:0,1,100,0x66 \
+    --mem D_803ED3F7:1=bytes:1,2,7 --mem D_803ED40D:1=rand --mem D_803BE738:1=rand --mem D_80358064=choice:0,1 \
+    --mem D_802E8BDC=choice:0,12 --mem D_803EBBF4:4=floats:-50:50 --mem D_803ED3EF:2=rand --mem D_803ED3EB:2=rand \
+    --mem D_803F7C49:1=choice:0,1 --mem D_803ED3F6:1=bytes:0,5,50,0xFF --mem D_803ED40B:1=bytes:0,1 \
+    --mem D_803ED3EA:3=rand --mem D_803ED3B8:0x1C=bytes:0,1,0xFF,5,2 --mem D_803ED3B8+0x1C=0xFFFFFFFF \
+    --sig func_802582C4=a0:1,a1,a2,a3,stack0,stack1,stack2,stack3

@@ -98,6 +98,12 @@ s32 func_802A9514(s32 x);
 s32 func_802A9710(s32 index, s32 *a, s32 *b, s32 *c, s32 extra, s32 pos, s32 s3);
 s32 func_802A9F24(s32 x, s32 z, s32 y, s32 skip, TriSideOut *f, s32 *idOut, s32 *a2Out);
 s32 func_802AA094(s32 x, s32 z, s32 y, TriSideOut *f, s32 *t3io, s32 *fpio);
+/* func_802A8CCC's t0 / t1: position in, reset position out (unchanged if none). */
+typedef struct {
+    s32 t0; /* x */
+    s32 t1; /* z */
+} Pos802A8CCC;
+
 extern u8 D_803ED3B8[]; /* 4-byte records {u8 key, u8 kinds[3]}, word -1 ends */
 extern s16 D_803ED390; /* three s16 angles x, y, z (0x803ED390/92/94; 94 has no symbol) */
 #define D_803ED394_ ((&D_803ED390)[2])
@@ -1299,7 +1305,142 @@ s32 func_802A860C(f32 f, s32 angle, s16 *len, s32 *px, s32 *pz, Out802A860C *out
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern s16 D_803ED402;
+extern s16 D_803ED404;
+extern s16 D_803ED406;
+extern u8 D_803ED40E;
+extern u8 D_803ED40F;
+extern u8 D_803ED3F5;
+s32 func_802ACF64(u32 x);
+void func_802A8CCC(u8 *veh, s32 id, s32 *px, s32 *py, s32 *pz, Pos802A8CCC *pos);
+void func_802A90E4(u16 *p);
+void func_802A8FF4(u8 *veh);
+void func_802A8FB4(void);
+void func_802A9038(u8 *veh);
+void func_802A9164(u8 *veh, u8 *f, s32 kind);
+s32 func_802A8B10(s32 *a3Out);
+void func_802582C4(u8 id, s32 x, s32 y, s32 z, s32 arg4, s32 arg5, s32 arg6, s32 arg7); /* 13A70 */
+s32 func_802A92C8(s32 x, s32 z, s16 *tbl, s16 *angle, s32 *ys, s32 key, u8 *veh, s32 fpIn, TriSideOut *f);
+s32 func_802A93B0(s32 index, s32 *a, s32 *b, s32 *c, s16 *tbl, s32 x, s32 z, s16 *angle, s32 *ys, s32 key,
+                  u8 *veh, s32 fpIn, TriSideOut *f);
+void func_802A95A4(s32 index, s32 *a, s32 *b, s32 *c, s16 *tbl, s32 x, s32 z, s16 *angle, s32 *ys, s32 key,
+                   u8 *veh, s32 fpIn, s32 *s3, TriSideOut *f);
+
+/* func_802A8768's register results besides the FP state. */
+typedef struct {
+    s32 s3;  /* in/out: the slot functions' result */
+    s16 *s4; /* out: angle, or veh + 0x4C when func_802A92C8 ran */
+    s32 fp;  /* out: the second tilt (also stored to D_803ED390) */
+} Regs802A8768;
+
+/* (s32) (|d| << 16) / div (signed 32-bit divide: traps on div 0 and on
+ * 0x80000000 / -1), through func_802ACF64, >> 4 (logical); negated as asked. */
+#define TILT_8768(d, div, negIfPos)                                                    \
+    ((d) >= 0 ? ((negIfPos) ? -((u32) func_802ACF64((s32) ((u32) (d) << 16) / (div)) >> 4) \
+                            : (u32) func_802ACF64((s32) ((u32) (d) << 16) / (div)) >> 4)   \
+              : ((negIfPos) ? (u32) func_802ACF64((s32) ((u32) -(d) << 16) / (div)) >> 4   \
+                            : -((u32) func_802ACF64((s32) ((u32) -(d) << 16) / (div)) >> 4)))
+
+/* Per-frame ground contact of vehicle `id` (record veh): out-of-bounds reset
+ * (func_802A8CCC, may move (x, z) and write *px/*py/*pz); D_803ED402 = divB,
+ * D_803ED404 = divA, D_803ED406 = *angle, D_803ED40E = flags[0]; veh+0x9B =
+ * 0; func_802A90E4(tbl), func_802A8FF4, func_802A8FB4. Then the three wheel
+ * slots: for i = 0..2, if D_803ED410 is set and i > 0, func_802A9038(veh) and
+ * stop; else (s8) flags[i] == 1 -> func_802A95A4 (airborne), 0 ->
+ * func_802A93B0 (grounded; other values hit the asm's `syscall` debug trap
+ * first). After: flags[0..2] = D_803ED3EE[0..2]; with h0..h2 =
+ * D_803ED398[0..2] the height records ys (three of {now, prev, prev2})
+ * shift in h0/h1/h2; *px = x, *pz = z, *py = (h1 + h2) >> 1 (logical);
+ * D_803ED394 = tilt (h1 - h0, divA, negated when >= 0) and D_803ED390 = fp =
+ * tilt (h2 - h0, divB, negated when < 0) (TILT_8768). Then
+ * func_802582C4(id, *px, (D_803ED3A8[1] + [2]) >> 1, *pz, (h1 + h2) >> 1,
+ * func_802A8B10's two results, D_803ED406), func_802A9164(veh, flags, id)
+ * and, when D_803ED3F5 is 0, id != 0xFF and D_803ED40F is set,
+ * func_802A92C8(*px, *pz, veh + 0x5E, veh + 0x4C, veh + 4, id, veh, fp, f).
+ * The asm's add/sub/neg trap on overflow.
+ * Register convention: veh gp, id t8, px t7, py s2, pz s1, x t0, z t1, divB t9,
+ * divA fp, angle s4, flags s0, tbl v1, a/b/c a1-a3, ys s7; s3 in/out, s4 and
+ * fp out (r), f12-f26 in/out (f). The asm restores t4 and clobbers s5-s7 (s7
+ * = veh + 4 on the func_802A92C8 path); t6 is left as the callees leave it
+ * (listed as read by the vehicle callers; not modelled). Asm callers keep t7
+ * live. */
+void func_802A8768(u8 *veh, s32 id, s32 *px, s32 *py, s32 *pz, s32 x, s32 z, s32 divB, s32 divA, s16 *angle,
+                   u8 *flags, s16 *tbl, s32 *a, s32 *b, s32 *c, s32 *ys, Regs802A8768 *r, TriSideOut *f) {
+    Pos802A8CCC pos;
+    s32 s3 = r->s3;
+    s32 i;
+    s32 h0;
+    s32 h1;
+    s32 h2;
+    s32 t;
+    s32 fp;
+    s32 r1;
+    s32 r2;
+
+    pos.t0 = x;
+    pos.t1 = z;
+    func_802A8CCC(veh, id, px, py, pz, &pos);
+    x = pos.t0;
+    z = pos.t1;
+    D_803ED402 = divB;
+    D_803ED404 = divA;
+    D_803ED406 = *angle;
+    D_803ED40E = flags[0];
+    VEH_U8(veh, 0x9B) = 0;
+    func_802A90E4((u16 *) tbl);
+    func_802A8FF4(veh);
+    func_802A8FB4();
+    for (i = 0; i < 3; i++) {
+        if (D_803ED410 != 0 && i != 0) {
+            func_802A9038(veh);
+            break;
+        }
+        if (((s8 *) flags)[i] == 1) {
+            func_802A95A4(i, a, b, c, tbl, x, z, angle, ys, id, veh, divA, &s3, f);
+        } else { /* 0 (other values: the asm's syscall, then this) */
+            s3 = func_802A93B0(i, a, b, c, tbl, x, z, angle, ys, id, veh, divA, f);
+        }
+    }
+    flags[0] = (&D_803ED3EE)[0];
+    flags[1] = (&D_803ED3EE)[1];
+    flags[2] = (&D_803ED3EE)[2];
+    h0 = (&D_803ED398)[0];
+    h1 = (&D_803ED398)[1];
+    h2 = (&D_803ED398)[2];
+    t = ys[1];
+    ys[2] = t;
+    ys[1] = ys[0];
+    ys[0] = h0;
+    ys[5] = ys[4];
+    ys[4] = ys[3];
+    ys[3] = h1;
+    ys[8] = ys[7];
+    ys[7] = ys[6];
+    ys[6] = h2;
+    *px = x;
+    *pz = z;
+    *py = (u32) (h1 + h2) >> 1;
+    t = h1 - h0;
+    D_803ED394_ = TILT_8768(t, divA, 1);
+    t = h2 - h0;
+    fp = TILT_8768(t, divB, 0);
+    D_803ED390 = fp;
+    r1 = func_802A8B10(&r2);
+    func_802582C4(id, *px, (u32) ((&D_803ED3A8)[1] + (&D_803ED3A8)[2]) >> 1, *pz,
+                  (u32) ((&D_803ED398)[1] + (&D_803ED398)[2]) >> 1, r1, r2, D_803ED406);
+    func_802A9164(veh, flags, id);
+    r->s4 = angle;
+    if (D_803ED3F5 == 0 && id != 0xFF && D_803ED40F != 0) {
+        r->s4 = &VEH_S16(veh, 0x4C);
+        func_802A92C8(*px, *pz, &VEH_S16(veh, 0x5E), &VEH_S16(veh, 0x4C), &VEH_S32(veh, 4), id, veh, fp, f);
+    }
+    r->s3 = s3;
+    r->fp = fp;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802A8768.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -1352,11 +1493,7 @@ void func_802A754C(u8 *veh);
 void func_802AC6FC(s32 x, s32 y, s32 z, s32 kind, s32 data);
 void func_80277EDC();
 
-/* The asm's t0 / t1: position in, reset position out (unchanged if none). */
-typedef struct {
-    s32 t0; /* x */
-    s32 t1; /* z */
-} Pos802A8CCC;
+/* (Pos802A8CCC is declared at the top of the file.) */
 
 /* Out-of-bounds reset for vehicle `id` (record veh): with gx = x >> 5 and
  * gz = z >> 5, vehicle 7 counts as out on level 0 when gx < 1000, on level

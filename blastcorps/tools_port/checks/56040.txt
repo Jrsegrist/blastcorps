@@ -124,3 +124,94 @@ func_802A04BC: -n 100 --seed 1 --heap 0x400=bytes:0,0x7F,0x80,0xFF --arg v1=rel:
 # func_802A06B4 (v0 = id): the D_803B35F8 entry with that id (exactly one of 16 matches; -1 entries don't stop it) -> v0
 func_802A06B4: -n 300 --arg v0=0x1234 --mem D_803B35F8:0x180=onehot:0x18:0x1234:words:1,-1,0,0x1235
 func_802A06B4: -n 100 --seed 1 --arg v0=-1 --mem D_803B35F8:0x180=onehot:0x18:-1:words:0,1,0x7FFFFFFF
+
+# func_8029A914 (gp = D_803EEA90 in the asm): gp+0xA0 byte / gp+0x76 timer update, ring span shift while the timer < 0
+func_8029A914: -n 300 --ret void --arg gp=sym:D_803EEA90 --mem D_803EEA90+0xA0:1=bytes:0,1,2,0xC8,0xFF \
+    --mem D_803EEA90+0x76:2=halves:0,1,10,0x7FFF,0x8000,0xFFFF,0xFFF0 --mem D_803A742E:1=bytes:0,1,0x80 \
+    --mem D_803A742D:1=bytes:0,1,0xC8,0xC9,0xFF --mem D_80358064=choice:0,1,-1 \
+    --mem D_803A7410:2=int:0:0xFFF --mem D_803A7412:2=int:0:0xFFF
+# timer negative: wrap boundaries of the shift, and the full u16 range
+func_8029A914: -n 200 --seed 1 --ret void --arg gp=sym:D_803EEA90 --mem D_803EEA90+0xA0:1=bytes:0,1,2 \
+    --mem D_803EEA90+0x76:2=halves:0x8000,0xFFFF --mem D_803A742E:1=bytes:0,1 --mem D_803A742D:1=bytes:0,0xC9 \
+    --mem D_803A7410:2=choice:0,1,0x7FE,0x7FF,0x800,0x801,0xFFF,0x1000,0xFFFF \
+    --mem D_803A7412:2=choice:0,0x7FE,0x7FF,0x800,0x801,0xFFE,0xFFF,0x1000,0xFFFF
+
+# func_8029C284 (t3 = x, t5 = z): D_803A7418[0] = x*4/D_803BE724 + (z*4/D_803BE728) * D_803BE72C, [1] = -1
+func_8029C284: -n 300 --arg t3=int:-0x100000:0x100000 --arg t5=int:-0x100000:0x100000 \
+    --mem D_803BE724=choice:1,2,3,7,0x100,0x1000,-1,-5 --mem D_803BE728=choice:1,2,3,7,0x100,0x1000,-1,-5 \
+    --mem D_803BE72C:2=halves:0,1,2,0x7FFF,0x8000,0xFFFF --mem D_803A7418:4=rand
+func_8029C284: -n 100 --seed 1 --arg t3=choice:0,1,3,4,-1,-4 --arg t5=choice:0,1,3,4,-1,-4 \
+    --mem D_803BE724=choice:4,-4 --mem D_803BE728=choice:4,-4 --mem D_803BE72C:2=halves:0x40,0xFFFF --mem D_803A7418:4=rand
+
+# func_8029C354 (t0 = tag, t1 = p, t2 = end, t3 = scale): register parts in the first free D_803A7300 entry and in
+# consecutive D_803A6B30 entries from the first free one; records 0xC bytes apart (u16 at +0xA all 0) up to end
+func_8029C354: -n 300 --heap 0x200 --arg t1=rel:heap0 --mem @heap0+0xE*0xC:16/2=0 --arg t2=rel:heap0+4+0xC*int:0:16 \
+    --arg t0=int --arg t3=choice:0,1,0x100,0x10000,0xFFFFFFFF,0x12345678 --mem D_803A7300:0x140=onehot:0x14@0x11/1:0xFF:rand \
+    --mem D_803A6B30:0x500=rand --mem D_803A6B30:0x140=onehot:0x14@0x13/1:0xFF:rand
+# variable record sizes: 0x10, 0xC, 0x14 (u16 at +0xA = 1, 0, 2), end after the third
+func_8029C354: -n 100 --seed 1 --heap 0x200 --arg t1=rel:heap0 --mem @heap0+0xE:2=1 --mem @heap0+0x1E:2=0 --mem @heap0+0x2A:2=2 \
+    --arg t2=rel:heap0+0x34 --arg t0=int --arg t3=int --mem D_803A7300:0x140=onehot:0x14@0x11/1:0xFF:rand \
+    --mem D_803A6B30:0x500=rand --mem D_803A6B30:0x140=onehot:0x14@0x13/1:0xFF:rand
+
+# func_8029C6E4: find the D_803A6B30 entry with kind (0x12) 6 and word 0xC == 0x3BD before the 0xFF terminator (0x13)
+func_8029C6E4: -n 300 --mem D_803A6B30:0x140=rand --mem D_803A6B30+0x13*0x14:16/1=bytes:0,0,1,0xFF \
+    --mem D_803A6B30+0x12*0x14:16/1=bytes:6,6,5 --mem D_803A6B30+0xC*0x14:16=choice:0x3BD,0x3BC,0 --mem D_803A6B30+0x13F:1=0xFF
+# exactly one matching entry (first/last/middle) of 16, all kind 6; and no match at all
+func_8029C6E4: -n 200 --seed 1 --mem D_803A6B30:0x154=rand --mem D_803A6B30+0x13*0x14:16/1=bytes:0 \
+    --mem D_803A6B30+0x12*0x14:16/1=bytes:6 --mem D_803A6B30:0x140=onehot:0x14@0xC:0x3BD:words:0x3BC \
+    --mem D_803A6B30+0x153:1=0xFF
+func_8029C6E4: -n 50 --seed 2 --mem D_803A6B30:0x154=rand --mem D_803A6B30+0x13*0x14:16/1=bytes:0 \
+    --mem D_803A6B30+0x12*0x14:16/1=bytes:6,5 --mem D_803A6B30+0xC*0x14:16=choice:0x3BC,0 --mem D_803A6B30+0x153:1=0xFF
+
+# func_8029CFA4 (P = v0,v1,a0; Q = a2,a3,t0; radii a1 + t1): 1 if |Q - P| < r1 + r2 -> t2 (64-bit squares, sqrtf)
+func_8029CFA4: -n 300 --follow-all --arg a0=int:-100000:100000 --arg v0=int:-100000:100000 --arg v1=int:-100000:100000 \
+    --arg a2=int:-100000:100000 --arg a3=int:-100000:100000 --arg t0=int:-100000:100000 \
+    --arg a1=int:0:150000 --arg t1=int:0:150000
+# exact touching distances (3-4-5), zero radius, coincident points; then huge coordinates (64-bit wrap)
+func_8029CFA4: -n 300 --seed 1 --follow-all --arg a0=choice:0,3,4,-3 --arg v0=choice:0,3,4,-3 --arg v1=choice:0,3,4,-4 \
+    --arg a2=choice:0,3,4,-3 --arg a3=choice:0,3,4,-4 --arg t0=choice:0,3,4 --arg a1=choice:0,1,2,4,5,6 --arg t1=choice:0,1,3,-1
+# (the asm's sub/add/dadd trap on overflow, so coordinates stay below +-0x30000000)
+func_8029CFA4: -n 200 --seed 2 --follow-all --arg a0=int:-0x30000000:0x30000000 --arg v0=int:-0x30000000:0x30000000 \
+    --arg v1=int:-0x30000000:0x30000000 --arg a2=int:-0x30000000:0x30000000 --arg a3=int:-0x30000000:0x30000000 \
+    --arg t0=int:-0x30000000:0x30000000 --arg a1=int:0:0x3FFFFFFF --arg t1=int:0:0x3FFFFFFF
+
+# func_8029D120 (t2 = id): mark records of id / of groups with id containing their sub id (byte 0x51 = 1)
+func_8029D120: -n 300 --arg t2=choice:3,5,0 --mem D_803B9890:0x480=rand --mem D_803BD300=rel:D_803B9890+0x60*int:0:12 \
+    --mem D_803B9890+0x4F*0x60:12/1=bytes:0,0,3,5,7 --mem D_803B9890+0x50*0x60:12/1=bytes:1,2,3,9 \
+    --mem D_803BC1D0:0x528=bytes:0,1,2,3,5,9 --mem D_803BC1D0+0xC7*0xDC:6/1=bytes:0,1,2,5 \
+    --mem D_803BD304=rel:D_803BC1D0+0xDC*int:0:6
+# one group whose last member matches; empty record list
+func_8029D120: -n 100 --seed 1 --arg t2=3 --mem D_803B9890:0x480=rand --mem D_803BD300=rel:D_803B9890+0x480 \
+    --mem D_803B9890+0x4F*0x60:12/1=bytes:0 --mem D_803B9890+0x50*0x60:12/1=bytes:7,8 \
+    --mem D_803BC1D0:0xDC=rand --mem D_803BC1D0+0xC4:1=3 --mem D_803BC1D0+0xC7:4=0x03010207 --mem D_803BD304=rel:D_803BC1D0+0xDC
+func_8029D120: -n 20 --seed 2 --arg t2=3 --mem D_803B9890:0x60=rand --mem D_803BD300=sym:D_803B9890
+
+# func_8029D90C (s0 = tri): plane normal and d of the vertices at +0x28 (>> 3), 64-bit results in a1, a2, a3, t0
+# (coordinates kept in game range: the asm's trapping dadd/dsub fault on 64-bit overflow, the C wraps)
+func_8029D90C: -n 300 --follow-all --arg s0=ptr:0x80 --mem @s0+0x28*4:9=int:-0x100000:0x100000
+func_8029D90C: -n 100 --seed 1 --follow-all --arg s0=ptr:0x80 --mem @s0+0x28*4:9=choice:0,7,8,-1,-8,-9,0x7FFFF
+# large but non-overflowing: V0/V2 full range, V1 tiny (products near 2^60)
+func_8029D90C: -n 100 --seed 2 --follow-all --arg s0=ptr:0x80 --mem @s0+0x28*4:9=int:-0x7FFFFFFF:0x7FFFFFFF \
+    --mem @s0+0x34*4:3=int:-0x10:0x10
+
+# func_8029DB7C (t5 = n, s4 = pairs, a2 = table): 0 if some (index, value) pair has (s8) table[index].unk13 == value
+func_8029DB7C: -n 300 --arg t5=int:0:8 --arg s4=ptr:0x20 --arg a2=ptr:0x1800 --mem @s4:0x20=bytes:0,1,2,3,0x80,0xFF \
+    --mem @a2+0x13*0x18:4/1=bytes:0,1,2,3,0x80,0xFF --mem @a2+0x17FB:1=bytes:0xFF,0x80
+func_8029DB7C: -n 100 --seed 1 --arg t5=8 --arg s4=ptr:0x20 --arg a2=ptr:0x1800 --mem @s4:0x10=onehot:2@1/1:2:bytes:7 \
+    --mem @a2+0x13*0x18:8/1=bytes:2
+
+# func_8029DF78 (s0 = dl, s1 = dlEnd, s2 = key): record G_SETTIMG commands using key's texture id at D_803B35F0
+func_8029DF78: -n 300 --heap 0x80 --heap 0x100 --heap 0x800 --mem D_803B35F0=rel:heap2 \
+    --mem D_802C23B4=rel:heap0 --mem D_802C23B4+4=rel:heap0+0x20 --mem D_802C23B4+8=rel:heap0+0x40 --mem D_802C23B4+0xC=-1 \
+    --mem @heap0:0x60=bytes:0,1,2 --mem @heap1:0x100=words:0xFD000000,0xFD100000,0xFC000000,0,1,2 \
+    --arg s0=rel:heap1 --arg s1=rel:heap1+8*int:0:32 --arg s2=choice:0,1,2,0x100
+# key absent / list empty
+func_8029DF78: -n 50 --seed 1 --heap 0x80 --heap 0x100 --heap 0x800 --mem D_803B35F0=rel:heap2 --mem D_802C23B4=-1 \
+    --arg s0=rel:heap1 --arg s1=rel:heap1+0x80 --arg s2=int
+
+# func_8029E4E4 (t3 = key, t6 = sub): first D_803A7440 block with byte 6 set and (word 0, u16 4) == (key, sub); clear
+# byte 7 (sic) and return its data's physical address in s1, else 0
+func_8029E4E4: -n 300 --arg t3=choice:7,8 --arg t6=choice:5,6,0x10005 --mem D_803A7440+6*0x1010:12/1=bytes:0,1,0x80 \
+    --mem D_803A7440+7*0x1010:12/1=bytes:1,0xFF --mem D_803A7440+4*0x1010:12/2=halves:5,6 --mem D_803A7440*0x1010:12=choice:7,8,-1
+func_8029E4E4: -n 100 --seed 1 --arg t3=7 --arg t6=5 --mem D_803A7440+6*0x1010:12/1=bytes:1 --mem D_803A7440+7*0x1010:12/1=bytes:0x55 \
+    --mem D_803A7440+4*0x1010:12/2=halves:5 --mem D_803A7440*0x1010:12=choice:8 --mem D_803A7440+0xB0B0=7

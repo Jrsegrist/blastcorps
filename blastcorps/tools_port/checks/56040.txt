@@ -681,8 +681,7 @@ func_8029F608: -n 300 --seed 2 --follow-all --arg a0=choice:0,1,8,0x10,0xFFF0,0x
 # D_803A73F0/F4/F8 >> 2 (s64 normal / d kept small: the asm's dadd traps), func_8029B7CC / D_803BE738, then the
 # D_803A7429 / func_8029B994 tail. Stubbed; then s near 0 (tiny normals / d / position); negative ids vs the
 # terminator; then followed (func_802BCCD4 buffer, func_8029B7CC span list).
-# (ids stay >= 0: eqcheck's write_reg zero-extends a negative fp input, since "fp".startswith("f") is taken as an FPR,
-# so a negative id would never match the sign-extended lb in the asm; ids are non-negative in game anyway)
+# (ids stay >= 0 as in game; before the Oct 2026 is_fpr fix a negative fp input was zero-extended by eqcheck)
 func_8029B614: -n 400 --arg s0=ptr:0x60 --arg fp=int:0:5 --heap 0x10=bytes:0,1,2,3,4,5,0xFF,0x80 --mem D_803A7408=rel:heap0 \
     --mem @heap0+0xF:1=0xFF --mem @s0:8=int64:-0x10000:0x10000 --mem @s0+8:8=int64:-0x10000:0x10000 \
     --mem @s0+0x10:8=int64:-0x10000:0x10000 --mem @s0+0x18:8=int64:-0x10000000000:0x10000000000 \

@@ -109,16 +109,14 @@ func_802A3824: -n 100 --seed 1 --arg t0=ptr:0x200 --mem @t0+0x50=0x80 --mem @t0+
     --mem D_80364AA8=choice:0,1,0x80 --mem D_803643D4:1=int --mem D_803BE73A:1=int
 
 # func_802A4168: the id in exactly one of 8 records (first/last/middle) before the end.
-# The "not found" path (the asm compares t0 with fp) can't run here yet: eqcheck writes fp
-# zero-extended (`r.startswith("f")` treats fp as an FPU register, eqcheck.py run() and
-# write_reg()), so a kseg0 end pointer never equals the sign-extended t0 and the asm runs
-# off. Verified with a locally patched eqcheck copy instead (see the agent report).
+# The "not found" / empty-range runs below needed eqcheck to sign-extend fp (it used to treat
+# "fp" as an FPU register and zero-extend it); fixed Oct 2026 (is_fpr).
 func_802A4168: -n 300 --arg v0=3 --arg fp=rel:D_803B9890+0x300 --mem D_803B9890:0x300=onehot:0x60@0x50/1:3:rand
 func_802A4168: -n 100 --seed 1 --arg v0=7 --arg fp=rel:D_803B9890+0x300 \
     --mem D_803B9890:0x300=onehot:0x60@0x50/1:7:bytes:0,1,2
-# Enable once eqcheck sign-extends fp (both PASS with a patched copy): not found / empty range
-#func_802A4168: -n 300 --seed 2 --arg v0=choice:0,1,2,3,0x101,-1 --arg fp=rel:D_803B9890+0x60*int:0:8 --mem D_803B9890:0x300=rand --mem D_803B9890+0x50*0x60:8/1=choice:0,1,2,3
-#func_802A4168: -n 50 --seed 3 --arg v0=1 --arg fp=sym:D_803B9890 --mem D_803B9890:0x300=bytes:1
+# not found / empty range
+func_802A4168: -n 300 --seed 2 --arg v0=choice:0,1,2,3,0x101,-1 --arg fp=rel:D_803B9890+0x60*int:0:8 --mem D_803B9890:0x300=rand --mem D_803B9890+0x50*0x60:8/1=choice:0,1,2,3
+func_802A4168: -n 50 --seed 3 --arg v0=1 --arg fp=sym:D_803B9890 --mem D_803B9890:0x300=bytes:1
 
 # func_802A41B0: random/extreme vertex halves, ties of |n| components (sqrtf followed)
 func_802A41B0: -n 300 --follow sqrtf --arg t4=ptr:0x60 --arg t5=ptr:0x20 --arg v0=int --arg t2=int --arg t6=int \

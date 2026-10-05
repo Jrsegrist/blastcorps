@@ -90,6 +90,11 @@ def sext32(v):
     return v | 0xFFFFFFFF00000000 if v & 0x80000000 else v
 
 
+def is_fpr(r):
+    """True for FPU registers f0..f31; "fp" is the integer register $30 (s8)."""
+    return r.startswith("f") and r != "fp"
+
+
 def u32(v):
     return v & 0xFFFFFFFF
 
@@ -258,7 +263,7 @@ def parse_loc(s, what, regs_ok):
         loc = ("reg", parse_slot(s, what), 0, w)
     if w == 8:
         r = loc[1]
-        if r.startswith("f"):
+        if is_fpr(r):
             raise ValueError("%s: %r: 64-bit FPU values aren't supported" % (what, s))
         if r in ("a1", "a3", "v1"):
             raise ValueError("%s: %r: an o32 64-bit value goes in an even pair (a0:a1, a2:a3, v0:v1)" % (what, s))
@@ -905,7 +910,8 @@ class Machine:
             return None
 
     def write_reg(self, r, v):
-        self.uc.reg_write(REG[r], v & 0xFFFFFFFF if r.startswith("f") else sext32(v))
+        # "fp" is the integer register $30 (s8), not an FPU register: sign-extend it like the GPRs.
+        self.uc.reg_write(REG[r], v & 0xFFFFFFFF if is_fpr(r) else sext32(v))
 
     # -- per-run state ------------------------------------------------------
     def reset(self):
@@ -1349,7 +1355,7 @@ class Machine:
         ids, vals = [REG["fcsr"]], [plan.fcsr]
         for r, v in plan.regs.items():
             ids.append(REG[r])
-            if r[0] == "f":
+            if is_fpr(r):
                 vals.append(v & 0xFFFFFFFF)
             elif isinstance(v, Wide):
                 vals.append(v & M64)
@@ -2169,7 +2175,7 @@ def compare(opts, ref_m, new_m, amap, r_ref, r_new, outs=None):
         if not same_val(vr, vn):
             what = "return" if r in opts.ret_regs else "callee-saved"
             extra = ""
-            if r.startswith("f"):
+            if is_fpr(r):
                 extra = " (%r vs %r)" % (struct.unpack(">f", struct.pack(">I", vr))[0],
                                          struct.unpack(">f", struct.pack(">I", vn))[0])
             diffs.append("%s register $%s: %s=0x%08X %s=0x%08X%s" % (what, r, ref_m.b.label, vr,

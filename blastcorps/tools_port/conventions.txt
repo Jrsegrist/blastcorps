@@ -157,6 +157,13 @@ func_802A1074: in t6=a0,s1=a1,fp=a2 ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,
 func_802A133C: in a0=a0,a1=a1,v0=a2,v1=a3,gp=stack0 ; preserve v0,v1,a0,a1,a2,a3,t0,t6,f12,f14
 # register-saving wrapper of func_80278BF0(t2, t3, t4)
 func_802A1558: in t2=a0,t3=a1,t4=a2
+# append a D_80364460 record for model header s2 (a0, a1 flag, v0, v1), copy its display list to the heap (saves t0-t6)
+func_802A1388: in a0=a0,a1=a1,v0=a2,v1=a3,s2=stack0 ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,s2,f12,f14
+# collision records from level object t0 (id v0, kind t9, s1 threaded through func_802A41B0); gp set to 0/1, s2-s7 scratch
+func_802A3D54: in t0=a0,v0=a1,t9=a2,s1=*a3 ; out t6=ret,s1=*a3 ; preserve v0,t0,t9,f12,f14 ; clobbers s2-s7,gp
+func_802A3DF8: in t0=a0,v0=a1,t9=a2,s1=*a3 ; out t6=ret,s1=*a3 ; preserve v0,t0,t9,f12,f14 ; clobbers s2-s7,gp
+func_802A3E9C: in t0=a0,v0=a1,t9=a2,s1=*a3 ; out s1=*a3 ; preserve v0,t0,t9,f12,f14 ; clobbers s2-s7,gp
+func_802A3F80: in t0=a0,s1=*a1 ; out fp=ret,s1=*a1 ; preserve t0,f12,f14 ; clobbers s0,s2-s7,gp
 # level object in t0 (s0-s3 left as scratch, not read by the caller)
 func_802A1A9C: in t0=a0 ; preserve t0,f12,f14 ; clobbers s0-s3
 func_802A1C88: in t0=a0 ; preserve t0,t6,t9,f12,f14

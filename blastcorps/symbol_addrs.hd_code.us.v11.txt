@@ -330,3 +330,8 @@ func_802C4310 = 0x802C4310; // type:func
 func_802C444C = 0x802C444C; // type:func
 func_802C4584 = 0x802C4584; // type:func
 func_802C4724 = 0x802C4724; // type:func
+
+// 56040: func_8029CB04 ends at its jr ra (0x50 bytes); its forward branch into
+// func_8029CF04's epilogue made splat glue func_8029CB54 onto it.
+func_8029CB04 = 0x8029CB04; // type:func size:0x50
+func_8029CB54 = 0x8029CB54; // type:func

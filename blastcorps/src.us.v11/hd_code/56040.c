@@ -845,6 +845,9 @@ void func_8029C6E4(Unk8029C6E4Out *o) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029CB04.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029CB54.s")
+
+/* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029CD54.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM.

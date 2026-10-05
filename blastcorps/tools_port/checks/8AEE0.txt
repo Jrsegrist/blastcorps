@@ -88,3 +88,11 @@ func_802D0F54: -n 300 --seed 1 --follow func_802ABD54,func_802ABCDC --mem D_803F
     --mem D_803BDFD8+0x16*0x24:4/1=choice:0x10,0x31 --mem D_803BDFD8+0x17*0x24:4/1=choice:0x10,0x32 \
     --mem D_80364A6E:1=choice:0,1,0x80,0xFF,0x40 --mem D_80364460+0x5C*0x74:3=choice:0x100,0x200 \
     --mem D_80364460+0x1B8=0x10 --mem D_80364460+0x60*0x74:4=int
+
+# func_802D0C68 (vehicle-type 16 setup): setters stubbed (asm conventions mapped), then followed with the
+# D_802C22D0 key in exactly one D_803B35F8 entry
+func_802D0C68: -n 200 --ret void --mem D_803FC8D0+0x99:1=rand --mem D_8036444C:2=rand --mem D_80364450:2=rand \
+    --mem D_80367738=int --sig func_80260650=a0,a1,a2
+func_802D0C68: -n 200 --seed 1 --ret void --follow func_802A039C,func_802A040C,func_802A0480,func_802A0508,func_802A05D0,func_802A05F8,func_802A0620,func_802A06B4 \
+    --mem D_803FC8D0+0x99:1=rand --mem D_8036444C:2=rand --mem D_80364450:2=rand --mem D_80367738=int \
+    --mem D_803FC5D0:0x100=rand --mem D_803B35F8:0x180=onehot:0x18:0x802C22D0:rand --sig func_80260650=a0,a1,a2

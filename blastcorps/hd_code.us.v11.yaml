@@ -96,7 +96,7 @@ segments:
     - [0x8FAF0, c, hd_code/ul_createthread]
     - [0x8FC40, c, hd_code/ul_startthread]
     - [0x8FD90, c, hd_code/8FD90]
-    - [0x8FDA0, c, hd_code/8FDA0]
+    - [0x8FDA0, c, hd_code/ul_pimgr]  # src/io/pimgr.c, old SDK (no EPI)
     - [0x8FF20, c, hd_code/ul_setthreadpri]
     - [0x90000, c, hd_code/ul_sendmesg]
     - [0x90150, c, hd_code/ul_recvmesg]
@@ -191,7 +191,7 @@ segments:
     - [0x97BF0, c, hd_code/ul_piacs]  # src/io/piacs.c
     - [0x97CB0, c, hd_code/ul_getthreadpri]
     - [0x97CD0, c, hd_code/ul_pirawdma]
-    - [0x97DB0, c, hd_code/97DB0]
+    - [0x97DB0, c, hd_code/ul_devmgr]  # src/io/devmgr.c, old SDK (no EPI/64DD)
     - [0x97F30, c, hd_code/ul_timerintr]  # src/os/timerintr.c
     - [0x98330, c, hd_code/98330]
     - [0x983F0, c, hd_code/983F0]
@@ -239,6 +239,7 @@ segments:
     - [0xA4530, bin, hd_code/hd_code_data_A4530]
     - [0xB9350, .data, hd_code/45BB0]
     - [0xB9370, bin, hd_code/hd_code_data_B9370]
+    - [0xC1DE0, .data, hd_code/ul_pimgr]
     - [0xC1E00, .data, hd_code/ul_sl]
     - [0xC1E10, .data, hd_code/ul_sins]
     - [0xC2610, bin, hd_code/hd_code_data_C2610]

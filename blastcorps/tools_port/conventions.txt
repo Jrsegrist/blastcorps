@@ -403,6 +403,16 @@ func_802ACC68: in t0=a0,t1=a1,t2=a2,t3=a3 ; preserve a0,a1,a2,a3,t4,f12,f14
 func_802AC4C4: clobbers f20,f22,f24,f26,f28
 # m(s2) = m * b(a0), 16.16 with s64 sums, via D_803ED420; leaves a1=4, a2=4, a3=0
 func_802ACCCC: in a0=a0,s2=a1 ; preserve a0,t2,t4,t5,t6,t7,t8,f8,f12,f14
+# phase D (wt-f2): level 0x17 position wrap (x/y/z pointers in v0/v1/a0); v0 left = caller's t2
+func_802AC3B8: in v0=a0,v1=a1,a0=a2
+# rotation matrices about y / z / x: angle t0, m t3; save v1, a0, t5, fp
+func_802ACAC4: in t0=a0,t3=a1 ; preserve v1,a0,t0,t3,t5,t6,t7,t8
+func_802ACB50: in t0=a0,t3=a1 ; preserve v1,a0,t0,t3,t5,t6,t7,t8
+func_802ACBDC: in t0=a0,t3=a1 ; preserve v1,a0,t0,t3,t5,t6,t7,t8
+# 2-D rotations by angle a3 (cos/sin via fp); save v0/v1
+func_802ACDB8: in a1=a0,a2=a1,a3=a2 ; out t0=*a3,t1=*a3+4 ; preserve v0,v1 ; clobbers fp
+func_802ACE38: in a0=a0,a2=a1,a3=a2 ; out a3=ret,t1=*a3 ; preserve v0,v1,a0,a2 ; clobbers fp
+func_802ACEB8: in a0=a0,a3=a1 ; out t0=*a2,a3=*a2+4 ; preserve v0,v1,a0 ; clobbers fp
 
 # interpolated lookup in the u16 table D_802ACFD0[0x401]; saves a0, a1, v1
 func_802ACF64: in v1=a0 ; out fp=ret ; preserve a0,a1,v1

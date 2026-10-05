@@ -103,7 +103,7 @@ segments:
     - [0x90290, c, hd_code/ul_viblack]
     - [0x90300, c, hd_code/ul_gettime]
     - [0x90390, c, hd_code/ul_ll]
-    - [0x90650, c, hd_code/90650]
+    - [0x90650, c, hd_code/ul_cspgetstate]
     - [0x90660, c, hd_code/ul_virtualtophysical]
     - [0x906E0, c, hd_code/906E0]
     - [0x90760, c, hd_code/ul_translate]
@@ -116,14 +116,14 @@ segments:
     - [0x91360, c, hd_code/91360]
     - [0x91820, c, hd_code/91820]
     - [0x91830, c, hd_code/ul_lookat]
-    - [0x91B60, c, hd_code/91B60]
+    - [0x91B60, c, hd_code/ul_sinf]  # src/gu/sinf.c
     - [0x91D20, c, hd_code/ul_createmesgqueue]
     - [0x91D50, bin, hd_code/91D50] # 0x40 zero bytes between objects
     - [0x91D90, c, hd_code/ul_visetspecial]
     - [0x91F50, c, hd_code/91F50]
     - [0x91F80, c, hd_code/91F80]
     - [0x92030, c, hd_code/92030]
-    - [0x92130, c, hd_code/92130]
+    - [0x92130, c, hd_code/ul_cosf]  # src/gu/cosf.c
     - [0x922A0, c, hd_code/922A0]
     - [0x92350, c, hd_code/ul_heapalloc]
     - [0x923B0, c, hd_code/ul_event]
@@ -157,7 +157,7 @@ segments:
     - [0x95110, c, hd_code/95110]
     - [0x95240, c, hd_code/ul_aisetfreq]
     - [0x953A0, c, hd_code/953A0]
-    - [0x95450, c, hd_code/95450]
+    - [0x95450, c, hd_code/ul_aigetlen]
     - [0x95460, c, hd_code/95460]
     - [0x95C40, c, hd_code/ul_llcvt]  # src/libc/llcvt.c
     - [0x95E50, c, hd_code/95E50]
@@ -286,6 +286,8 @@ segments:
     - [0xC9230, .rodata, hd_code/ul_perspective]
     - [0xC9240, .rodata, hd_code/ul_rotate]
     - [0xC9250, bin, hd_code/hd_code_data_C9250]
+    - [0xC9260, .rodata, hd_code/ul_sinf]
+    - [0xC92B0, .rodata, hd_code/ul_cosf]
     - [0xC9300, .rodata, hd_code/ul_cents2ratio]
     - [0xC9310, bin, hd_code/hd_code_data_C9310]
     - [0xC9390, .rodata, hd_code/ul_cseq]

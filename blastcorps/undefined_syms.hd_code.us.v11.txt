@@ -33,3 +33,4 @@ D_006A8DA0 = 0x006A8DA0;
 D_802FCEB0 = 0x802FCEB0;
 D_006A32B0 = 0x006A32B0; /* 1D990: ROM asset loaded at level start */
 D_802E9FA0 = 0x802E9FA0; /* 1D990: " S" plural suffix */
+func_802D4E10 = alCSPGetState; /* old name, still used by 17E10.c and 1C460.c */

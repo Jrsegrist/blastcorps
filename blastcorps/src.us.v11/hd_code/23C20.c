@@ -9,6 +9,12 @@ s32 func_802753C0(void);
 s32 func_802AC4C4(s32, s32, s32, s32, s32, s32, s32, s32);
 s32 func_802AB3C0(s32);
 s32 func_8026AD30(s32);
+void func_80275270(u64, f32);
+void func_802C1DD0(s32);
+void func_8026AF6C(u16);
+void func_80260DFC(void);
+void func_8026A2E8(f32 ref, f32 *angle);
+f32 func_8026A184(f32 x, f32 y, f32 z, f32 w, f32 a, f32 b, f32 c);
 f32 func_80268D84(f32 x, f32 y, f32 z, f32 w, f32 a, f32 b, f32 c);
 s32 func_8026A610(s32 x1, s32 y1, s32 x2, s32 y2);
 s32 func_8026A6F0(s32 x1, s32 y1, s32 z1, s32 x2, s32 y2, s32 z2);
@@ -58,8 +64,45 @@ typedef struct {
     u8 pad6[2];
     f32 unk8;
     s16 unkC;
-    u8 padE[6];
+    s16 unkE;
+    u8 unk10;
+    u8 unk11;
+    u8 unk12;
+    u8 unk13;
 } Struct802F41E8;
+
+/* second set of spline control points (with angles and events) */
+typedef struct {
+    s32 id;
+    u8 unk4;
+    u8 idx;
+    s16 x;
+    s16 y;
+    s16 z;
+    s16 rot[3];
+    u8 speed;
+    u8 unk13;
+    u8 event;
+    u8 pad15[3];
+} Struct802F4224;
+
+/* Pathfinding node, 0x1C bytes (see 45BB0.c) */
+typedef struct {
+    /* 0x00 */ u8 unk0[2];
+    /* 0x02 */ u8 unk2[4];
+    /* 0x06 */ s16 unk6;
+    /* 0x08 */ u8 unk8[4];
+    /* 0x0C */ char *text;
+    /* 0x10 */ u16 *jtext;
+    /* 0x14 */ u8 unk14[8];
+} PathNode;
+
+/* 0x1C bytes (45BB0.c's YoshiArg) */
+typedef struct {
+    /* 0x00 */ u8 unk0[0x12];
+    /* 0x12 */ s16 unk12;
+    /* 0x14 */ u8 unk14[8];
+} TextArg;
 
 /* vehicles, 0x74 bytes each */
 typedef struct {
@@ -83,16 +126,29 @@ extern Struct802F3C10 D_802F3C10[];
 extern Struct802F3C24 D_802F3C24[];
 extern Struct802F3C48 D_802F3C48[];
 extern Struct802F41E8 D_802F41E8[];
+extern Struct802F4224 D_802F4224[];
+extern PathNode D_802F5804[];
+extern TextArg D_802F8BDC[];
+extern u16 D_80303AF4[];
+extern u16 D_80303B00[];
+extern u16 D_80303B10[];
+extern u16 D_80303B24[];
+extern u8 D_802E8BD8;
 extern s32 D_803643E0;
 extern s32 D_803643E4;
 extern s32 D_803643E8;
 extern u8 D_803643D6;
 extern u8 D_803643D7;
+extern u8 D_803643D9;
+extern u8 D_803643DA;
 extern u8 D_80364456;
+extern u8 D_80364A84;
+extern u64 D_80364A90;
 extern Struct80364460 D_80364460[];
 extern Struct80364460 *D_803649D0;
 extern u8 D_803649ED;
 extern u64 D_80364A98;
+extern s32 D_80364AA8;
 extern u8 D_80364AE8;
 extern Struct80364AF0 D_80364AF0[];
 extern u8 D_8036B8B0;
@@ -109,6 +165,7 @@ extern u8 D_8036B954;
 extern u8 D_8036B955;
 extern u8 D_8036B958[4];
 extern u8 D_8036B95C;
+extern u8 D_8036B960[4];
 extern u8 D_8036B964;
 extern u8 D_8036B965;
 extern u8 D_8036B966;
@@ -120,11 +177,20 @@ extern s32 D_8036B974;
 extern u8 D_8036B978;
 extern u8 D_8036B979;
 extern u8 D_8036C7CC;
+extern u8 D_8036EA78;
+extern u8 D_8036EB92;
 extern u8 D_8036EB98;
 extern u8 D_803A7430;
 extern u8 D_803ED826;
 extern u8 D_803EFECB;
+extern s32 D_803FCD48;
+extern s32 D_803FCD4C;
+extern s32 D_803FCD50;
 extern s32 D_803FCD60;
+extern s16 D_803FCD6A;
+extern s16 D_803FCD6C;
+extern s16 D_803FCD6E;
+extern u8 D_803FCD70;
 extern u8 D_803FCD75;
 
 /* Checks the trigger zones for the current level; sets D_803649ED on a hit. */
@@ -329,7 +395,214 @@ void func_80268F54(void) {
     D_8036B965 = 0;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/23C20/func_80269258.s")
+/* Camera/aircraft path follower on the D_802F4224 spline set: position, angles, and the landing messages. */
+void func_80269258(void) {
+    s32 j;
+    s32 i;
+    u8 pts[4];
+    f32 t;
+    f32 t2;
+    f32 t3;
+    f32 a0;
+    f32 a1;
+    f32 a2;
+    f32 a3;
+    f32 r0;
+    f32 r1;
+    f32 r2;
+    u8 found;
+    u8 lim;
+
+    D_8036B960[0] = D_8036B954 - 1;
+    D_8036B960[1] = D_8036B954;
+    D_8036B960[2] = D_8036B954 + 1;
+    D_8036B960[3] = D_8036B954 + 2;
+    for (j = 0; j < 4; j++) {
+        i = 0;
+        found = 0;
+        while (i < 49 && !found) {
+            if (D_802F4224[i].id == D_802E8BDC && D_802F4224[i].unk4 == D_8036B966
+                && D_802F4224[i].idx == D_8036B960[j] && D_802F4224[i].unk13 == D_8036B95C) {
+                found = 1;
+            } else {
+                i++;
+            }
+        }
+        if (!found) {
+            i = 0;
+            while (i < 49 && !found) {
+                if (D_802F4224[i].id == D_802E8BDC && D_802F4224[i].unk4 == D_8036B966
+                    && D_802F4224[i].idx == D_8036B960[j] && D_802F4224[i].unk13 == D_8036B958[j]) {
+                    found = 1;
+                } else {
+                    i++;
+                }
+            }
+        }
+        ASSERT(found, 387);
+        pts[j] = i;
+    }
+    t = (f32) D_8036B950 / 1000.0;
+    t2 = t * t;
+    t3 = t2 * t;
+
+    a0 = D_802F4224[pts[0]].rot[0];
+    a1 = D_802F4224[pts[1]].rot[0];
+    a2 = D_802F4224[pts[2]].rot[0];
+    a3 = D_802F4224[pts[3]].rot[0];
+    func_8026A2E8(a0, &a1);
+    func_8026A2E8(a1, &a2);
+    func_8026A2E8(a2, &a3);
+    r0 = func_8026A184(a0, a1, a2, a3, t, t2, t3);
+    D_803FCD6A = r0 / 360.0 * 4095.0;
+
+    a0 = D_802F4224[pts[0]].rot[1];
+    a1 = D_802F4224[pts[1]].rot[1];
+    a2 = D_802F4224[pts[2]].rot[1];
+    a3 = D_802F4224[pts[3]].rot[1];
+    func_8026A2E8(a0, &a1);
+    func_8026A2E8(a1, &a2);
+    func_8026A2E8(a2, &a3);
+    r1 = func_8026A184(a0, a1, a2, a3, t, t2, t3);
+    D_803FCD6C = r1 / 360.0 * 4095.0;
+
+    a0 = D_802F4224[pts[0]].rot[2];
+    a1 = D_802F4224[pts[1]].rot[2];
+    a2 = D_802F4224[pts[2]].rot[2];
+    a3 = D_802F4224[pts[3]].rot[2];
+    func_8026A2E8(a0, &a1);
+    func_8026A2E8(a1, &a2);
+    func_8026A2E8(a2, &a3);
+    r2 = func_8026A184(a0, a1, a2, a3, t, t2, t3);
+    D_803FCD6E = r2 / 360.0 * 4095.0;
+
+    D_803FCD48 = func_8026A184(D_802F4224[pts[0]].x << 5, D_802F4224[pts[1]].x << 5, D_802F4224[pts[2]].x << 5,
+                               D_802F4224[pts[3]].x << 5, t, t2, t3);
+    D_803FCD4C = func_8026A184(D_802F4224[pts[0]].y << 5, D_802F4224[pts[1]].y << 5, D_802F4224[pts[2]].y << 5,
+                               D_802F4224[pts[3]].y << 5, t, t2, t3);
+    D_803FCD50 = func_8026A184(D_802F4224[pts[0]].z << 5, D_802F4224[pts[1]].z << 5, D_802F4224[pts[2]].z << 5,
+                               D_802F4224[pts[3]].z << 5, t, t2, t3);
+    if (D_802F41E8[D_8036B955].unkE != -1 && D_803FCD4C < D_802F41E8[D_8036B955].unkE << 5) {
+        D_803FCD4C = D_802F41E8[D_8036B955].unkE << 5;
+    }
+    D_803FCD70 = 0;
+    if (!D_803643D7 && !D_803643D6 && !func_802753C0()) {
+        D_8036B950 += D_802F41E8[D_8036B955].unk10 *
+                      ((D_802F4224[pts[2]].speed - D_802F4224[pts[1]].speed) * t + D_802F4224[pts[1]].speed);
+    }
+    if (D_8036B950 >= 1000) {
+        D_8036B950 = 0;
+        D_8036B954++;
+        switch (D_8036B95C) {
+            case 0:
+                lim = D_802F41E8[D_8036B955].unk11;
+                break;
+            case 1:
+                lim = D_802F41E8[D_8036B955].unk12;
+                break;
+            case 2:
+                lim = D_802F41E8[D_8036B955].unk13;
+                break;
+        }
+        if (D_8036B954 >= lim) {
+            switch (D_8036B95C) {
+                case 0:
+                    if (D_803FCD75 == 1) {
+                        func_80275270(0x200000000000, 0.5f);
+                    } else {
+                        D_803643DA = 1;
+                        D_802E8BD8 = 1;
+                    }
+                    break;
+                case 1:
+                    D_803643D9 = 1;
+                    D_802E8BD8 = 1;
+                    break;
+            }
+        }
+        switch (D_802F4224[pts[2]].event) {
+            case 0:
+                break;
+            case 1:
+                if (D_80364AA8 == 0x80) {
+                    D_8036B95C = 1;
+                } else {
+                    func_802C1DD0(0);
+                    if (D_8036EA78 < D_8036EB92) {
+                        D_8036B964 = 1;
+                        D_8036B95C = 1;
+                    }
+                    D_8036B965 = 1;
+                    D_80364A84 = 1;
+                }
+                break;
+            case 2:
+            case 3:
+            case 11:
+            case 12:
+            case 13:
+                D_803FCD70 = D_802F4224[pts[2]].event;
+                break;
+            case 5:
+                D_802F5804[42].text = "LANDING ABORTED!";
+                D_802F5804[42].jtext = D_80303AF4;
+                D_802F8BDC[23].unk12 = 0xDA;
+                if (D_80364A90 & 0x104) {
+                    func_8026AF6C(0x8017);
+                }
+                break;
+            case 6:
+                D_802F5804[42].text = "DITCHING IN SEA!";
+                D_802F5804[42].jtext = D_80303B00;
+                D_802F8BDC[23].unk12 = 0x77;
+                if (D_80364A90 & 0x104) {
+                    func_8026AF6C(0x8017);
+                }
+                break;
+            case 4:
+                D_802F5804[42].text = "ON FINAL APPROACH!";
+                D_802F5804[42].jtext = D_80303B10;
+                D_802F8BDC[23].unk12 = 0xD7;
+                if (D_80364A90 & 0x104) {
+                    func_8026AF6C(0x8017);
+                }
+                break;
+            case 7:
+                D_802F5804[42].text = "SUCCESSFUL LANDING!";
+                D_802F5804[42].jtext = D_80303B24;
+                D_802F8BDC[23].unk12 = 0x82;
+                if (D_80364A90 & 0x104) {
+                    func_8026AF6C(0x8017);
+                }
+                break;
+            case 8:
+                D_802F5804[42].text = "3000 FT!";
+                D_802F5804[42].jtext = NULL;
+                D_802F8BDC[23].unk12 = 0xD5;
+                if (D_80364A90 & 0x104) {
+                    func_8026AF6C(0x8017);
+                }
+                break;
+            case 9:
+                D_802F5804[42].text = "2000 FT!";
+                D_802F5804[42].jtext = NULL;
+                D_802F8BDC[23].unk12 = 0xD3;
+                if (D_80364A90 & 0x104) {
+                    func_8026AF6C(0x8017);
+                }
+                break;
+            case 10:
+                D_802F5804[42].text = "1000 FT!";
+                D_802F5804[42].jtext = NULL;
+                D_802F8BDC[23].unk12 = 0xD1;
+                if (D_80364A90 & 0x104) {
+                    func_8026AF6C(0x8017);
+                    func_80260DFC();
+                }
+                break;
+        }
+    }
+}
 
 /* Same as func_80268D84 with basis D_8036B910. */
 f32 func_8026A184(f32 x, f32 y, f32 z, f32 w, f32 a, f32 b, f32 c) {

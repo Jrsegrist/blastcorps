@@ -275,6 +275,8 @@ segments:
     - [0xC8570, .rodata, hd_code/4EBE0]
     - [0xC85A0, .rodata, hd_code/50670]
     - [0xC8620, bin, hd_code/hd_code_data_C8620]
+    - [0xC8DC0, .rodata, hd_code/54E30]
+    - [0xC90B0, bin, hd_code/hd_code_data_C90B0]
     - [0xC9230, .rodata, hd_code/ul_perspective]
     - [0xC9240, .rodata, hd_code/ul_rotate]
     - [0xC9250, bin, hd_code/hd_code_data_C9250]

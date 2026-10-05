@@ -311,6 +311,13 @@ func_802ABD54: in a3=a0,t3=a1,t4=a2,t5=a3,t6=*stack0,t7=*stack0+4,s0=*stack0+8,s
 func_802AB8D8: in s2=a0 ; out t0=ret ; preserve t1,t2,t3,t4,s3 ; clobbers s2
 
 # --- 7FB50 ---
+# zone lookup wrapper: func_802ABD54(id, x, y, z) with its scan registers t6, t7, s0-s4 passed through
+func_802C5970: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; out v1=ret,t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; preserve f12,f14 ; clobbers s5,s6
+# ground checks via func_802AC0BC: its FP results (and, for 70E8, its scan registers) pass through
+func_802C70E8: in f12=*a0,f14=*a0+4,f20=*a0+8,f22=*a0+12,f24=*a0+16,f26=*a0+20,a3=*a1+4,t6=*a1+8,s1=*a1+20,s2=*a1+24,s3=*a1+28,s4=*a1+32 ; out v1=ret,f12=*a0,f14=*a0+4,f20=*a0+8,f22=*a0+12,f24=*a0+16,f26=*a0+20,a3=*a1+4,t6=*a1+8,t7=*a1+12,fp=*a1+16,s1=*a1+20,s2=*a1+24,s3=*a1+28,s4=*a1+32 ; clobbers s5,s6,s7,f28
+func_802C71FC: in t0=a0,t1=a1,f12=*a2,f14=*a2+4,f20=*a2+8,f22=*a2+12,f24=*a2+16,f26=*a2+20 ; out f12=*a2,f14=*a2+4,f20=*a2+8,f22=*a2+12,f24=*a2+16,f26=*a2+20 ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,t8,t9 ; clobbers f28
+# ramp / countdown; t6, t7, s0-s4 pass through to func_802A6274 (s1 comes back changed)
+func_802C7544: in t6=a0,t7=a1,s0=a2,s1=a3,s2=stack0,s3=stack1,s4=stack2 ; clobbers s1,s5,s6,s7
 # gp = &D_803F7B50 (vehicle block) in all of these: a base pointer, not an argument
 func_802C617C: preserve a0,a1,a2,a3,t6
 # vehicle step value in s6; s7 and a1 are scratch
@@ -329,6 +336,21 @@ func_802C7C1C: in s2=a0 ; out f2=fret ; clobbers s3
 func_802C7DFC: out s3=ret ; preserve a0,a1,a2,a3
 func_802C7ECC: preserve a0,a1,a2,a3,t3,t4,t6,f12,f14
 func_802C7F28: preserve a0,a1,a2,a3,t3,t4,f12,f14
+
+# --- 7F8B0 ---
+# LZSS bit reader: mask a3, reader state a0 (src) / t3 (byte) / t4 (bit) in/out, bits -> v0 (s4 = 0x80, s5 = 1 constants)
+func_802C42CC: in a3=a0,a0=*a1,t3=*a1+4,t4=*a1+8 ; out v0=ret,a0=*a1,t3=*a1+4,t4=*a1+8 ; preserve a1,a2,t0,t1,t5,t6 ; clobbers s7
+# LZSS decompressor: src a0 / dst a1 in and out (C: through pointers), window a2, offset bits a3
+func_802C41C0: in a0=*a0,a1=*a1,a2=a2,a3=a3 ; out a0=*a0,a1=*a1 ; clobbers s0,s4-s7
+# func_8025C230 on D_803F7830/34 = a0/a1; results back in a0/a1 (saves everything else)
+func_802C4108: in a0=*a0,a1=*a1,a2=a2 ; out a0=*a0,a1=*a1 ; preserve a2,f12,f14
+# sound level |s5| (saves every integer register)
+func_802C4584: in s5=a0 ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,f12,f14
+# start / stop the looping sounds (ABI arguments; save every integer register)
+func_802C4310: preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7
+func_802C444C: preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,f12,f14
+# second looping sound, id in a1 (saves every register)
+func_802C4724: in a1=a0 ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,f12,f14
 
 # --- 8A2E0 ---
 # box corners x t4, y t5, z t6 into D_803FBAB0[D_803FC1F0 * 8]
@@ -351,20 +373,31 @@ func_802ACCCC: in a0=a0,s2=a1 ; preserve a0,t2,t4,t5,t6,t7,t8,f8,f12,f14
 func_802ACF64: in v1=a0 ; out fp=ret ; preserve a0,a1,v1
 
 # --- 69BB0 ---
+# zone lookup wrapper: func_802ABD54(id, x, y, z) with its scan registers t6, t7, s0-s4 passed through
+func_802AEE84: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; out v1=ret,t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; preserve t8,f12,f14 ; clobbers s5,s6
 # zone test: mode in a3 (1 or 2), result 0/1 in a1; a3 left holding the last coordinate compared
 func_802AEB9C: in a3=*a0 ; out a1=ret,a3=*a0 ; preserve a0,a2,t0,t1,t2,t3,f12,f14
 # returns 0x8C in s3
 func_802AFB84: out s3=ret ; preserve a0,a1,a2,a3,f12,f14
 
 # --- 6B4A0 ---
+# zone lookup wrapper: func_802ABD54(id, x, y, z) with its scan registers t6, t7, s0-s4 passed through
+func_802B03B0: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; out v1=ret,t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; preserve f12,f14 ; clobbers s5,s6
 # rounded speed/divisor of this vehicle ($gp = D_803EDB40, read as globals in C) in s3
 func_802B0C74: out s3=ret ; preserve a0,a1,a2,a3
 # channel 5 of D_803ED840 restart check; leaves the channel's (u16) field 0xC in a3, s5 scratch
 func_802B0AAC: out a3=ret ; preserve f12,f14 ; clobbers s5
 # --- 6C5E0 ---
+# zone lookup wrapper: func_802ABD54(id, x, y, z) with its scan registers t6, t7, s0-s4 passed through
+func_802B14E8: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; out v1=ret,t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; preserve a0,f12,f14 ; clobbers s5,s6
+# vehicle setup: points $gp at D_803EDF10 and leaves it
+func_802B1228: clobbers gp
 # 0 / 50 / 120 from this vehicle's speed and +0xA1 ($gp = D_803EDF10) in s3
 func_802B28B8: out s3=ret ; preserve a0,a1,a2,a3
 # --- 6E200 ---
+# zone lookup wrapper: func_802ABD54(id, x, y, z) with its scan registers t6, t7, s0-s4 passed through
+func_802B47D4: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; out v1=ret,t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; preserve f12,f14 ; clobbers s5,s6
+func_802B30B0: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; out v1=ret,t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; preserve f12,f14 ; clobbers s5,s6
 # tyre trail ($gp = D_803EE2E0); saves every integer register
 func_802B3C68: preserve a1,a2,a3
 # rounded speed/divisor ($gp = D_803EE2E0) in s3
@@ -376,6 +409,8 @@ func_802B54EC: preserve a0,a1,a2,a3,t6,t7
 # 22 / 75 from this vehicle's flags ($gp = D_803EE6C0) in s3
 func_802B57C4: out s3=ret ; preserve a0,a1,a2,a3
 # --- 71140 ---
+# zone lookup wrapper: func_802ABD54(id, x, y, z) with its scan registers t6, t7, s0-s4 passed through
+func_802B60BC: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; out v1=ret,t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; preserve f12,f14 ; clobbers s5,s6
 # tyre trail ($gp = D_803EEA90); saves every integer register
 func_802B69F8: preserve a0,a1,a2,a3,t6,t7
 # rounded speed/divisor ($gp = D_803EEA90) in s3
@@ -383,6 +418,8 @@ func_802B7168: out s3=ret ; preserve a0,a1,a2,a3
 # 0.5 +- |speed|/480 (side flag in s2) in f2; s3 left = 240
 func_802B71DC: in s2=a0 ; out f2=fret ; preserve a1,a2,a3,f12,f14 ; clobbers s3
 # --- 72B80 ---
+# zone lookup wrapper: func_802ABD54(id, x, y, z) with its scan registers t6, t7, s0-s4 passed through
+func_802B78B0: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; out v1=ret,t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; preserve f12,f14 ; clobbers s5,s6
 # enter vehicle: points $gp at D_803EEE70 and leaves it
 func_802B76AC: clobbers gp
 # tyre trail ($gp = D_803EEE70); saves every integer register
@@ -394,6 +431,9 @@ func_802B988C: out s1=ret ; preserve a0,a1,a2,a3,f12,f14 ; clobbers s0
 # sound/animation update ($gp = D_803EF240); (160 - speed) / 320 left in f20
 func_802B98E0: out f20=fret ; preserve a2,a3,t7,f12,f14
 # --- 75490 ---
+# zone lookup wrapper: func_802ABD54(id, x, y, z) with its scan registers t6, t7, s0-s4 passed through
+func_802BB230: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; out v1=ret,t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; preserve f12,f14 ; clobbers s5,s6
+func_802BA104: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; out v1=ret,t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; preserve f12,f14 ; clobbers s5,s6
 # distance (y = 0) D_803EF6DC/E4 -> D_803EF6F4/F8 in s1; s0 left = D_803EF6F8
 func_802BA5A4: out s1=ret ; preserve a2,a3,f12,f14 ; clobbers s0
 # engine sound/animation update ($gp = D_803EF630); angle sector in s4, s5 scratch
@@ -403,9 +443,13 @@ func_802BA91C: preserve a2,a3,f12,f14 ; clobbers s0,s1
 func_802BB054: clobbers gp
 # zone value scan of D_80305D62; its scan registers a0-a3 reach func_802A860C via func_802BA354
 func_802BA638: in a2=*a1 ; out a0=ret,a1=*a0,a2=*a1,a3=*a2
+# level 0x11 part-on-ground flag in v0; leaves func_8029C6E4 / func_802AC0BC registers behind (unread)
+func_802BB868: out v0=ret ; clobbers s0-s7,fp,f20,f22,f24,f26,f28
 # exit check: points $gp at D_803EFA20 and leaves it
 func_802BB170: clobbers gp
 # --- 772A0 ---
+# zone lookup wrapper: func_802ABD54(id, x, y, z) with its scan registers t6, t7, s0-s4 passed through
+func_802BBE74: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; out v1=ret,t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; preserve a0,f12,f14 ; clobbers s5,s6
 # enter vehicle: points $gp at D_803EFDF0 and leaves it
 func_802BBDC8: clobbers gp
 # --- 83910 ---
@@ -414,6 +458,8 @@ func_802C95D8: in gp=a0 ; preserve a0,a1,a2,a3,f12,f14
 # rounded speed / D_8030D980 of the block in $gp (no direct callers) in s3
 func_802C9AF8: in gp=a0 ; out s3=ret
 # --- 853D0 ---
+# zone lookup wrapper: func_802ABD54(id, x, y, z) with its scan registers t6, t7, s0-s4 passed through
+func_802CA308: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; out v1=ret,t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; preserve f12,f14 ; clobbers s5,s6
 # centre trail ($gp = D_803F8AA0); saves every integer register
 func_802CB224: preserve a1,a2,a3
 # 0.5 +- |speed|/560 (side flag in s2) in f2; s3 left = 280
@@ -424,11 +470,15 @@ func_802CB564: out s3=ret ; preserve a0,a1,a2,a3
 # shared by eight vehicle modules: the state block comes in $gp; a0-a3 left as junk (a0 = 1)
 func_802CB690: in gp=a0
 # --- 86F60 ---
+# zone lookup wrapper: func_802ABD54(id, x, y, z) with its scan registers t6, t7, s0-s4 passed through
+func_802CBD18: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; out v1=ret,t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; preserve f12,f14 ; clobbers s5,s6
 # tyre trail ($gp = D_803F8E80); saves every integer register
 func_802CC56C: preserve a0,a1,a2,a3,t6,t7
 # rounded speed/divisor ($gp = D_803F8E80) in s3
 func_802CC844: out s3=ret ; preserve a0,a1,a2,a3
 # --- 88160 ---
+# zone lookup wrapper: func_802ABD54(id, x, y, z) with its scan registers t6, t7, s0-s4 passed through
+func_802CCE90: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; out v1=ret,t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; preserve f12,f14 ; clobbers s5,s6
 # enter vehicle: points $gp at D_803F9250 and leaves it
 func_802CCC8C: clobbers gp
 # tyre trail ($gp = D_803F9250); saves every integer register
@@ -436,12 +486,17 @@ func_802CD660: preserve a0,a1,a2,a3,t6,t7
 # rounded speed/divisor ($gp = D_803F9250) in s3
 func_802CD938: out s3=ret ; preserve a0,a1,a2,a3
 # --- 8AEE0 ---
+# zone lookup wrapper: func_802ABD54(id, x, y, z) with its scan registers t6, t7, s0-s4 passed through
+func_802D0F54: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; out v1=ret,t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; preserve f12,f14 ; clobbers s5,s6
+func_802CFC10: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; out v1=ret,t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; preserve f12,f14 ; clobbers s5,s6
 # enter vehicle: points $gp at D_803FC500 and leaves it
 func_802CFA0C: clobbers gp
 # tyre trail ($gp = D_803FC500); saves every integer register
 func_802D0438: preserve a0,a1,a2,a3,t6,t7
 # rounded speed/divisor ($gp = D_803FC500) in s3
 func_802D0710: out s3=ret ; preserve a0,a1,a2,a3
+# vehicle setup: points $gp at D_803FC8D0 and leaves it
+func_802D0C68: clobbers gp
 # 0 / 5 / 110 from this vehicle's speed and +0xA1 ($gp = D_803FC8D0) in s3
 func_802D2444: out s3=ret ; preserve a0,a1,a2,a3
 # --- 77E20 ---

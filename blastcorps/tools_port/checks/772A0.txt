@@ -10,3 +10,15 @@ func_802BC578: -n 60 --seed 1 --ret void --mem D_803EBBF0=choice:0,0x80000000,0x
 # (the asm's $gp change is declared `clobbers gp` in conventions.txt)
 func_802BBDC8: -n 200 --seed 0 --ret void --sig func_802C4310=a0,a1 --arg a0=int \
     --mem D_8036444C:2=rand --mem D_80364450:2=halves:1,0xFFFF
+
+# zone lookup wrapper (id 7 at D_803EFE98): func_802ABD54 stubbed (scan registers mapped through r)
+func_802BBE74: -n 200 --mem D_803EFE98:12=rand
+func_802BBE74: -n 300 --seed 1 --follow func_802ABD54,func_802ABCDC --mem D_803EFE98=int:-100:100 --mem D_803EFE98+4=int:-100:100 \
+    --mem D_803EFE98+8=int:-100:100 --mem D_803BDFD4=rel:D_803BDFD8+0x24*int:0:4 --mem D_803BDFD8:0x90=rand \
+    --mem D_803BDFD8*0x24:4=int:-100:100 --mem D_803BDFD8+4*0x24:4=int:-100:100 --mem D_803BDFD8+8*0x24:4=int:-100:100 \
+    --mem D_803BDFD8+0xC*0x24:4=choice:1,10,50,100,200,1000 --mem D_803BDFD8+0x10*0x24:4/1=choice:0,1,1,2 \
+    --mem D_803BDFD8+0x12*0x24:4/1=choice:0,1,1,1 --mem D_803BDFD8+0x13*0x24:4/1=choice:0,1,2,3 \
+    --mem D_803BDFD8+0x14*0x24:4/1=choice:0,0,5,0xFF --mem D_803BDFD8+0x15*0x24:4/1=choice:7,7,0x30 \
+    --mem D_803BDFD8+0x16*0x24:4/1=choice:7,0x31 --mem D_803BDFD8+0x17*0x24:4/1=choice:7,0x32 \
+    --mem D_80364A6E:1=choice:0,1,0x80,0xFF,0x40 --mem D_80364460+0x5C*0x74:3=choice:0x100,0x200 \
+    --mem D_80364460+0x1B8=7 --mem D_80364460+0x60*0x74:4=int

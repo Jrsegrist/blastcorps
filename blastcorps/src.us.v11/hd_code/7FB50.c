@@ -472,7 +472,34 @@ void func_802C5714(void) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C5860.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+#ifndef ZONE_SCAN_REGS_DEFINED
+#define ZONE_SCAN_REGS_DEFINED
+/* func_802ABD54's scan registers (62740.c), in and out. */
+typedef struct {
+    s32 t6; /* zone x */
+    s32 t7; /* zone y */
+    s32 s0; /* zone z */
+    s32 s1; /* distance / level term */
+    s32 s2; /* zone radius */
+    s32 s3; /* scan counter / zone byte */
+    s32 s4; /* scan pointer / zone byte */
+} ZoneScanRegs;
+s32 func_802ABD54(s32 id, s32 x, s32 y, s32 z, ZoneScanRegs *r);
+#endif
+extern u32 D_803F7BF8[]; /* x, y, z */
+/* Zone level lookup (func_802ABD54) for vehicle id 9 at its position
+ * D_803F7BF8..+8; returns func_802ABD54's v1 (the zone list end).
+ * Register convention: the asm passes func_802ABD54's scan registers t6, t7,
+ * s0-s4 through (in and out; here through r), leaves a3 = id and clobbers
+ * s5, s6 (conventions.txt). Asm caller func_802C5AFC keeps f12 and f14 live
+ * (a mixed N64 build would need a thunk; the native port won't). */
+s32 func_802C5970(ZoneScanRegs *r) {
+    return func_802ABD54(9, D_803F7BF8[0], D_803F7BF8[1], D_803F7BF8[2], r);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C5970.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C59B4.s")
@@ -621,10 +648,114 @@ s32 func_802C6FD8(void) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+#ifndef TRI_SCAN_TYPES_DEFINED
+#define TRI_SCAN_TYPES_DEFINED
+/* func_802AC0BC's FP and integer register results (62740.c), in and out. */
+typedef struct {
+    f32 pz;    /* f12 */
+    f32 cross; /* f14 */
+    f32 cz;    /* f20 */
+    f32 side;  /* f22 */
+    f32 sideZ; /* f24 */
+    f32 dz;    /* f26 */
+} TriSideOut;
+typedef struct {
+    s32 a1; /* found flag */
+    s32 a3;
+    s32 t6;
+    s32 t7;
+    s32 fp;
+    s32 s1;
+    s32 s2;
+    s32 s3;
+    s32 s4;
+} TriScanRegs;
+s32 func_802AC0BC(s32 x, s32 z, s32 y, TriSideOut *f, TriScanRegs *r);
+#endif
+extern u32 D_803F7BF8[]; /* x, y, z */
+extern s32 D_803EBBFC;   /* height of func_802AC0BC's best triangle */
+
+/* Ground check below the vehicle (D_803F7BF8 x/z, D_803F7BFC y) with
+ * func_802AC0BC: when a triangle was found whose height h >= y, and h - y is
+ * below 200, the vehicle snaps to mode 1 (+0xA1 = 1, triples +0x34.. = y,
+ * +0x40.. = 1, +0x28.. = 30, flags +0x96..0x98 = 1, D_803F7C3E = 1); below
+ * 3000 the same with +0x28.. = 0 and D_803F7C3E left alone. Returns the asm's
+ * v1: 1 when it switched, else func_802AC0BC's result.
+ * Register convention: func_802AC0BC's FP results (f12-f26) and scan
+ * registers (a3, t6, t7, fp, s1-s4) pass through to the caller, here through
+ * f and r (conventions.txt); $gp (= D_803F7B50) is read as the global. */
+s32 func_802C70E8(TriSideOut *f, TriScanRegs *r) {
+    s32 best = func_802AC0BC(D_803F7BF8[0], D_803F7BF8[2], D_803F7BFC, f, r);
+    s32 d;
+    s32 w;
+
+    if (r->a1 == 0 || D_803EBBFC < D_803F7BFC) {
+        return best;
+    }
+    d = D_803EBBFC - D_803F7BFC;
+    if (d < 200) {
+        w = 30;
+    } else if (d < 3000) {
+        w = 0;
+    } else {
+        return best;
+    }
+    VEH_U8(0xA1) = 1;
+    VEH_S32(0x34) = D_803F7BFC;
+    VEH_S32(0x38) = D_803F7BFC;
+    VEH_S32(0x3C) = D_803F7BFC;
+    VEH_S32(0x40) = 1;
+    VEH_S32(0x44) = 1;
+    VEH_S32(0x48) = 1;
+    VEH_S32(0x28) = w;
+    VEH_S32(0x2C) = w;
+    VEH_S32(0x30) = w;
+    VEH_U8(0x96) = 1;
+    VEH_U8(0x97) = 1;
+    VEH_U8(0x98) = 1;
+    if (d < 200) {
+        D_803F7C3E = 1;
+    }
+    return 1;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C70E8.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u8 D_803F7C49;
+
+/* D_803F7C49 = 1 when func_802AC0BC at (x, z, D_803F7BFC) finds ground at
+ * least 200 above D_803F7BFC, else 0.
+ * Register convention: x t0, z t1; func_802AC0BC's FP results (f12-f26) are
+ * left for the caller, here through f (in/out; conventions.txt). The asm
+ * saves and restores every integer register; asm caller func_802C5AFC keeps
+ * t0, t1 and t7 live (a mixed N64 build would need a thunk; the native port
+ * won't). func_802AC0BC's scan-register inputs are whatever the caller left
+ * in a3/t6/s1-s4; they only pass through, so the C hands it zeros. */
+void func_802C71FC(s32 x, s32 z, TriSideOut *f) {
+    TriScanRegs r;
+
+    r.a1 = 0;
+    r.a3 = 0;
+    r.t6 = 0;
+    r.t7 = 0;
+    r.fp = 0;
+    r.s1 = 0;
+    r.s2 = 0;
+    r.s3 = 0;
+    r.s4 = 0;
+    D_803F7C49 = 0;
+    func_802AC0BC(x, z, D_803F7BFC, f, &r);
+    if (r.a1 != 0 && D_803EBBFC >= D_803F7BFC && D_803EBBFC - D_803F7BFC >= 200) {
+        D_803F7C49 = 1;
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C71FC.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -701,7 +832,81 @@ void func_802C7410(void) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* func_802A6274's in/out registers (60F60.c). */
+typedef struct {
+    s32 a3;
+    s32 t6;
+    s32 s1;
+} Io802A6274;
+
+extern u8 D_803F7C43; /* previous frame's +0x96 */
+extern s8 D_803F7C3B; /* 0..50 ramp */
+extern u8 D_803F7C3A; /* countdown */
+extern u8 D_802C3804[]; /* definition handed to func_802A6274 */
+s32 func_802584BC(u8 id);
+s32 func_802ABC88(s32 id, s32 n, u8 **recOut);
+s32 func_80288284(u8 type, s32 x, s32 y, s32 z, s32 floor);
+s32 func_802A6274(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32 z, s32 w24, s32 w28,
+                  s32 w18, s32 w1C, s32 w2C, s32 b35);
+
+/* When +0x96 just became 1 (D_803F7C43 == 0) with D_803F7C3E set:
+ * func_80288284(4, record (9, 1) of func_802ABC88, func_802584BC(9)). Then
+ * the ramp D_803F7C3B steps up (to 50) in mode 5 or with D_803F7C3E set,
+ * else down (to 0), and channel 1 of D_803F7850 gets ramp / 4 (divu, as the
+ * asm). The countdown D_803F7C3A, when nonzero, just counts down; at zero it
+ * restarts at 4 in mode 5 (1 with D_803F7C3E set, else nothing more happens)
+ * and two func_802A6274 records are set up (def D_802C3804, data 0x15F90,
+ * type 1 at (9, 1, 1) and (9, 2, 1)).
+ * Register convention: the asm passes t6, t7, s0-s4 through to
+ * func_802A6274 (t6 and s1 in its in/out block; s3 is func_802C7C1C's 270);
+ * $gp (= D_803F7B50) is read as the global. It leaves func_802A6274's a3,
+ * t6 and s1 and changes s5-s7 (conventions.txt: clobbers). */
+void func_802C7544(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
+    Io802A6274 io;
+    u8 *rec;
+    s32 floor;
+    s32 v;
+
+    if (D_803F7C43 == 0 && VEH_U8(0x96) == 1 && D_803F7C3E != 0) {
+        floor = func_802584BC(9);
+        func_802ABC88(9, 1, &rec);
+        func_80288284(4, ((s32 *) rec)[0], ((s32 *) rec)[1], ((s32 *) rec)[2], floor);
+    }
+    if (VEH_U8(0xA1) == 5 || D_803F7C3E != 0) {
+        v = D_803F7C3B + 1;
+        if (v >= 0x33) {
+            v = 0x32;
+        }
+    } else {
+        v = D_803F7C3B - 1;
+        if (v < 0) {
+            v = 0;
+        }
+    }
+    D_803F7C3B = v;
+    func_802A039C(D_803F7850, 1, (u32) (s32) D_803F7C3B / 4);
+    if (D_803F7C3A != 0) {
+        D_803F7C3A--;
+        return;
+    }
+    if (VEH_U8(0xA1) == 5) {
+        D_803F7C3A = 4;
+    } else if (D_803F7C3E != 0) {
+        D_803F7C3A = 1;
+    } else {
+        return;
+    }
+    io.a3 = 1;
+    io.t6 = t6;
+    io.s1 = s1;
+    func_802A6274(&io, D_802C3804, 0x15F90, 1, 9, 1, 1, t7, s0, s2, s3, s4, 1);
+    io.a3 = 1;
+    func_802A6274(&io, D_802C3804, 0x15F90, 1, 9, 2, 1, t7, s0, s2, s3, s4, 1);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C7544.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

@@ -27,3 +27,23 @@ func_802B2988: -n 100 --seed 1 --ret void --follow func_802AC85C --arg a0=choice
 func_802B28B8: -n 300 --seed 0 --arg gp=sym:D_803EDF10 --mem D_803EDF10+0x76:2=halves:0*4,1,0x8000,0xFFFF,0x1234,0x100 \
     --mem D_803EDF10+0xA1:1=bytes:0,1,2,3,0x81,0xFF
 func_802B28B8: -n 100 --seed 1 --arg gp=sym:D_803EDF10 --mem D_803EDF10+0x76:2=int:1:0xFFFF --mem D_803EDF10+0xA1:1=int:0:0xFF
+
+# zone lookup wrapper (id 2 at D_803EDFB8): func_802ABD54 stubbed (scan registers mapped through r)
+func_802B14E8: -n 200 --mem D_803EDFB8:12=rand
+func_802B14E8: -n 300 --seed 1 --follow func_802ABD54,func_802ABCDC --mem D_803EDFB8=int:-100:100 --mem D_803EDFB8+4=int:-100:100 \
+    --mem D_803EDFB8+8=int:-100:100 --mem D_803BDFD4=rel:D_803BDFD8+0x24*int:0:4 --mem D_803BDFD8:0x90=rand \
+    --mem D_803BDFD8*0x24:4=int:-100:100 --mem D_803BDFD8+4*0x24:4=int:-100:100 --mem D_803BDFD8+8*0x24:4=int:-100:100 \
+    --mem D_803BDFD8+0xC*0x24:4=choice:1,10,50,100,200,1000 --mem D_803BDFD8+0x10*0x24:4/1=choice:0,1,1,2 \
+    --mem D_803BDFD8+0x12*0x24:4/1=choice:0,1,1,1 --mem D_803BDFD8+0x13*0x24:4/1=choice:0,1,2,3 \
+    --mem D_803BDFD8+0x14*0x24:4/1=choice:0,0,5,0xFF --mem D_803BDFD8+0x15*0x24:4/1=choice:2,2,0x30 \
+    --mem D_803BDFD8+0x16*0x24:4/1=choice:2,0x31 --mem D_803BDFD8+0x17*0x24:4/1=choice:2,0x32 \
+    --mem D_80364A6E:1=choice:0,1,0x80,0xFF,0x40 --mem D_80364460+0x5C*0x74:3=choice:0x100,0x200 \
+    --mem D_80364460+0x1B8=2 --mem D_80364460+0x60*0x74:4=int
+
+# func_802B1228 (vehicle-type 2 setup): setters stubbed (asm conventions mapped), then followed with the
+# D_802C2308 key in exactly one D_803B35F8 entry
+func_802B1228: -n 200 --ret void --mem D_803EDF10+0x99:1=rand --mem D_8036444C:2=rand --mem D_80364450:2=rand \
+    --mem D_80367738=int --sig func_80260650=a0,a1,a2
+func_802B1228: -n 200 --seed 1 --ret void --follow func_802A039C,func_802A040C,func_802A0480,func_802A05D0,func_802A05F8,func_802A0620,func_802A06B4 \
+    --mem D_803EDF10+0x99:1=rand --mem D_8036444C:2=rand --mem D_80364450:2=rand --mem D_80367738=int \
+    --mem D_803EDC10:0x100=rand --mem D_803B35F8:0x180=onehot:0x18:0x802C2308:rand --sig func_80260650=a0,a1,a2

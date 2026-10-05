@@ -25,7 +25,8 @@ typedef struct {
     /* 0x18 */ u8 rank[0x3C]; /* per level: 1-5 when done */
     /* 0x54 */ u8 pad54[0x91 - 0x54];
     /* 0x91 */ u8 unk91;
-    /* 0x92 */ u8 pad92[0x100 - 0x92];
+    /* 0x92 */ u8 unk92[0x3C]; /* per level: index into D_802E8C44 */
+    /* 0xCE */ u8 padCE[0x100 - 0xCE];
 } Player;
 
 /* Menu entries (D_8020C070, 0x1C bytes), as in hd_code 00000.c */
@@ -963,4 +964,41 @@ void func_801ED480(u8 *src, u8 *dst) {
     }
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/01C40/func_801ED4B8.s")
+/* Like func_801ECF5C for all finished levels after a cheat-mode ("cmo") run:
+ * re-rank them, a rank of 4 is worth one point */
+void func_801ED4B8(void) {
+    Player *p = &D_80364AF0[D_80364AE8];
+    u8 buf[0x20];
+    LevelInfo *info;
+    u8 gained;
+    u16 oldStars = p->stars;
+    s32 i;
+    u8 rank;
+    u8 level;
+
+    func_801ED480((u8 *) D_80364EF0[D_80364AE8], buf);
+    PLAYER_ASSERT(saveIt[playerNumber], 1472);
+    for (level = 0; level < 0x3C; level++) {
+        if (((D_80364AF0[D_80364AE8].rank[level] > 0 && D_80364AF0[D_80364AE8].rank[level] < 6) ? 1 : 0) &&
+            level != 0x31 && level != 0x2F && level != 0x26) {
+            info = &D_802E8F94[level];
+            if (D_8039C53C[D_80364AE8] != level + 1) {
+                osSendMesg(&D_80219EF8, (OSMesg) ((level << 8) | 8 | (D_80364AE8 << 16) | 0x1000000), OS_MESG_BLOCK);
+                osRecvMesg(&D_80219F50, NULL, OS_MESG_BLOCK);
+            } else {
+                func_801ED480(buf, (u8 *) D_80364EF0[D_80364AE8]);
+            }
+            rank = func_801EF2BC(D_80364EF0[D_80364AE8][D_802E8C44[D_80364AF0[D_80364AE8].unk92[level]]], level,
+                                 D_80364AF0[D_80364AE8].unk91 + 1);
+            p->rank[level] = rank;
+            if (rank == 4) {
+                p->stars++;
+            }
+        }
+    }
+    func_801ED480(buf, (u8 *) D_80364EF0[D_80364AE8]);
+    D_802E8BDC = 0;
+    gained = p->stars / 12 - oldStars / 12;
+    p->title += gained;
+    func_8029A7E4("cmo destroy %d stars\n", gained);
+}

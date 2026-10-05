@@ -211,12 +211,14 @@ verify_hd_code: hd_code
 verify_hd_front_end: hd_front_end
 	@echo "$$(cat hd_front_end.$(VERSION).sha1)  $(HD_FRONT_END_TARGET).bin" | sha1sum --check
 
+FE_SEGSYMS_FLAGS = --exclude 0x801E7000:0x8021ED00 --drop-names symbol_addrs.hd_front_end.$(VERSION).txt
 extract:
 	$(PYTHON) $(TOOLS_DIR)/splat/split.py init.$(VERSION).yaml
 	$(PYTHON) $(TOOLS_DIR)/splat/split.py hd_code.$(VERSION).yaml
 	# front end: its own names plus hd_code's (for the calls into hd_code)
-	cat symbol_addrs.hd_front_end.$(VERSION).txt symbol_addrs.hd_code.$(VERSION).txt > symbol_addrs_auto.hd_front_end.$(VERSION).txt
-	$(PYTHON) tools_port/segsyms.py symbol_addrs.hd_code.$(VERSION).txt --exclude 0x801E7000:0x8021ED00 > undefined_syms_hd_code_auto.hd_front_end.$(VERSION).txt
+	cp symbol_addrs.hd_front_end.$(VERSION).txt symbol_addrs_auto.hd_front_end.$(VERSION).txt
+	$(PYTHON) tools_port/segsyms.py symbol_addrs.hd_code.$(VERSION).txt $(FE_SEGSYMS_FLAGS) --splat >> symbol_addrs_auto.hd_front_end.$(VERSION).txt
+	$(PYTHON) tools_port/segsyms.py symbol_addrs.hd_code.$(VERSION).txt $(FE_SEGSYMS_FLAGS) > undefined_syms_hd_code_auto.hd_front_end.$(VERSION).txt
 	$(PYTHON) $(TOOLS_DIR)/splat/split.py hd_front_end.$(VERSION).yaml
 	# files with their own .rodata: move float/double/jtbl rodata to .late_rodata
 	$(PYTHON) $(TOOLS_DIR)/late_rodata.py $(addprefix asm/nonmatchings/hd_code/,$(LATE_RODATA_HD_CODE))

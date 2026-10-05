@@ -1,2 +1,31 @@
 // hd_front_end symbol names (splat format). `make extract` appends
-// symbol_addrs.hd_code.us.v11.txt to this to make the front end's splat input.
+// symbol_addrs.hd_code.us.v11.txt to this (see tools_port/segsyms.py). libultra names were
+// found by compiling decompals/ultralib (io/pfs*.c, contpfs.c, crc.c, contram*.c) and matching the ROM.
+osPfsFreeBlocks = 0x80202730; // type:func
+osPfsChecker = 0x802028F0; // type:func
+corrupted_init = 0x80202FB4; // type:func
+corrupted = 0x80203168; // type:func
+osPfsAllocateFile = 0x80203510; // type:func
+__osPfsDeclearPage = 0x80203994; // type:func
+__osPfsReleasePages = 0x80203FA0; // type:func
+osPfsDeleteFile = 0x80203CC0; // type:func
+__osBlockSum = 0x802041D8; // type:func
+osPfsFindFile = 0x80204550; // type:func
+__osPfsGetNextPage = 0x80204710; // type:func
+osPfsFileState = 0x802053F0; // type:func
+__osContAddressCrc = 0x802056E0; // type:func
+__osContDataCrc = 0x80205790; // type:func
+__osSumcalc = 0x80205860; // type:func
+__osIdCheckSum = 0x802058BC; // type:func
+__osRepairPackId = 0x80205924; // type:func
+__osCheckPackId = 0x80205D3C; // type:func
+__osGetId = 0x80205ED4; // type:func
+__osCheckId = 0x80206130; // type:func
+__osPfsRWInode = 0x8020622C; // type:func
+__osPfsSelectBank = 0x8020654C; // type:func
+__osContRamRead = 0x802065C0; // type:func
+__osContRamWrite = 0x80206970; // type:func
+osPfsIsPlug = 0x80206D20; // type:func
+__osPfsRequestData = 0x80206EC0; // type:func
+__osPfsGetInitData = 0x80206FBC; // type:func
+__osPfsPifRam = 0x8021ABF0; // type:data

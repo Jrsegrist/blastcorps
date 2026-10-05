@@ -31,7 +31,8 @@ segments:
     - [0x07800, c, hd_front_end/07800]
     - [0x09570, c, hd_front_end/09570]
     - [0x0DE70, c, hd_front_end/0DE70]
-    - [0x0E7B0, c, hd_front_end/0E7B0]
+    - [0x0E7B0, c, hd_front_end/0E7B0] # pfsHandler.c (Controller Pak / EEPROM save thread)
+    - [0x10850, c, hd_front_end/10850] # bestTimes.c
     - [0x11530, c, hd_front_end/11530]
     - [0x17990, c, hd_front_end/17990]
     - [0x196F0, c, hd_front_end/196F0]
@@ -68,8 +69,12 @@ segments:
     - [0x27D40, .rodata, hd_front_end/06790]
     - [0x27DB0, .rodata, hd_front_end/07800] # stats.c
     - [0x27FC0, bin, hd_front_end/hd_front_end_data_27FC0]
+    - [0x280B0, .rodata, hd_front_end/0E7B0]
+    - [0x28480, bin, hd_front_end/hd_front_end_data_28480] # menu text (strings of the menu table at 0x8020C070)
+    - [0x28F20, .rodata, hd_front_end/10850]
+    - [0x28F80, bin, hd_front_end/hd_front_end_data_28F80]
     - [0x29550, .rodata, hd_front_end/17990]
-    - [0x29620, bin, hd_front_end/hd_front_end_data_29620]
+    - [0x29620, .rodata, hd_front_end/196F0]
     - [0x29670, .rodata, hd_front_end/1AE80]
     - [0x29690, bin, hd_front_end/hd_front_end_data_29690]
   - [0x29E90]

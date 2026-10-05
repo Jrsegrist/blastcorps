@@ -348,7 +348,7 @@ func_802A1D54: -n 200 --seed 1 --heap 0x800 --follow func_802A21AC,func_802A2164
     --arg fp=int --mem @heap0+0x5C=0x100 --mem @heap0+0x60=choice:0x100,0x10E,0x11C,0x146 \
     --mem @heap0+0x100:0x46=bytes:0,1,2,0x24,0x38,0x10,0xFF --stub-ret func_802A2A98=0x80B00400 \
     --mem @heap0+0x400:2=halves:0,1,3 --mem @heap0+0x41C=choice:0x50,0x70 --mem @heap0+0x448=0x100 \
-    --mem @heap0+0x44C=choice:0x100,0x119 --mem D_80364A98:8=choice:0x800,0 --mem D_802E8BDC=choice:0x31,1 \
+    --mem @heap0+0x44C=choice:0x100,0x119 --mem D_80364A98=0 --mem D_80364A98+4=choice:0x800,0 --mem D_802E8BDC=choice:0x31,1 \
     --mem D_803BE704=choice:0,0x80B00300 --mem D_803BE710=choice:0x20,0x400 --mem D_803BE70C=choice:0x20,0x800 \
     --mem D_803BE714:2=halves:1,0x20 --mem D_80358070=rel:heap0+0x600 --stub-ret func_802A41B0=0x80B00700 \
     --mem D_8036EB93:1=rand --mem D_803F767C:6=rand --sig func_802A1EC8= --sig func_802A2BB0= --sig func_802A08E4=a0,a1

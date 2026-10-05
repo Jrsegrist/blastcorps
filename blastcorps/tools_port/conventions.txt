@@ -563,6 +563,8 @@ func_802B80D8: preserve a0,a1,a2,a3,t6,t7
 func_802B83B0: out s3=ret ; preserve a0,a1,a2,a3
 # distance (y = 0) D_803EF2EC/F4 -> D_803EF308/0C in s1; s0 left = D_803EF30C
 func_802B988C: out s1=ret ; preserve a0,a1,a2,a3,f12,f14 ; clobbers s0
+# (wt-g3) flying-vehicle state machine on D_803EF32C; sets gp = D_803EF240, leaves its callees' registers
+func_802B8D04: clobbers s0-s4,s6,fp,gp
 # sound/animation update ($gp = D_803EF240); (160 - speed) / 320 left in f20
 func_802B98E0: out f20=fret ; preserve a2,a3,t7,f12,f14
 # trail + effect cooldown ($gp = D_803EEE70); t6, t7, s0-s4 pass through to func_802A6274 (s1 comes back changed)

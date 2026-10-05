@@ -529,3 +529,7 @@ func_802C0CBC: in v0=a0 ; out v0=ret ; preserve v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,f1
 func_802C0E8C: in t3=a0,t9=a1 ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,t8,t9,f12,f14
 # blast at (t3, t4, t5) radius a1, amount t6 -> func_802BC888 per part; saves what it uses
 func_802C18D4: in t3=a0,t4=a1,t5=a2,a1=a3,t6=stack0 ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,t9,f12,f14
+
+# --- 89250 ---
+# ground height under (a0, a2) near a1 via three triangle scans; ABI apart from leaving f20-f28 changed
+func_802CE6F8: in a0=a0,a1=a1,a2=a2 ; out v0=ret ; clobbers f20,f22,f24,f26,f28

@@ -223,6 +223,30 @@ $(HD_CODE_BSS_LD_SCRIPT): hd_code_bss.$(VERSION).ld tools_port/nm_ldscript.py | 
 $(HD_CODE_LD_SCRIPT): hd_code.$(VERSION).ld tools_port/nm_ldscript.py | dirs
 	$(NM_LDSCRIPT) $< $@ --relocate .hd_code=$(NM_TEXT_VRAM) --pin-data .hd_code_data \
 		--extra-vram $(NM_EXTRA_VRAM) --extra-glob '$(BUILD_DIR)/src.$(VERSION)/hd_code/*.o'
+
+# Bootable test ROM running the NON_MATCHING hd_code (tools_port/nm_rom.py,
+# README "Test ROM"): the same objects relinked with the text in the Expansion
+# Pak RAM (NM_ROM_TEXT_VRAM) and .nm_extra right behind it, appended to the
+# base ROM with a patched init boot tail that DMAs it in. Needs the matching
+# build (build/) and BASEROM.  make VERSION=us.v11 NON_MATCHING=1 nmrom
+NM_ROM_TEXT_VRAM ?= 0x80400000
+BASEROM ?= ../baserom.$(VERSION).z64
+NM_ROM_ELF = $(BUILD_DIR)/hd_code.rom.$(VERSION).elf
+NM_ROM_LD_SCRIPT = $(BUILD_DIR)/hd_code.rom.$(VERSION).ld
+NM_ROM = $(BUILD_DIR)/blastcorps.nm.$(VERSION).z64
+$(NM_ROM_LD_SCRIPT): hd_code.$(VERSION).ld tools_port/nm_ldscript.py | dirs
+	$(NM_LDSCRIPT) $< $@ --relocate .hd_code=$(NM_ROM_TEXT_VRAM) --pin-data .hd_code_data \
+		--extra-vram '((ADDR(.hd_code) + SIZEOF(.hd_code) + 0xF) & ~0xF)' \
+		--extra-glob '$(BUILD_DIR)/src.$(VERSION)/hd_code/*.o'
+$(NM_ROM_ELF): $(HD_CODE_O_FILES) $(NM_ROM_LD_SCRIPT) $(HD_CODE_BSS_LD_SCRIPT) $(HD_CODE_UNDEF_FILES)
+	@$(LD) -T $(HD_CODE_BSS_LD_SCRIPT) -T $(NM_ROM_LD_SCRIPT) -Map $(@:.elf=.map) \
+		$(addprefix -T ,$(HD_CODE_UNDEF_FILES)) --no-check-sections --no-warn-mismatch -o $@
+nmrom: hd_code $(NM_ROM_ELF)
+	$(PYTHON) tools_port/nm_rom.py --baserom $(BASEROM) --elf $(NM_ROM_ELF) \
+		--orig-elf build/hd_code.$(VERSION).elf --init-elf build/init.$(VERSION).elf \
+		--front-end hd_front_end.$(VERSION).bin --conventions tools_port/conventions.txt \
+		--src-dir $(HD_CODE_SRC_DIR) --sha1 ../blastcorps.$(VERSION).sha1 -o $(NM_ROM)
+.PHONY: nmrom
 endif
 
 ifndef PERMUTER

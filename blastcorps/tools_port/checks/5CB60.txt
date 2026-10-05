@@ -1,0 +1,16 @@
+# 5CB60: COP0 Status read (func_802A1320), box corners (func_802A1934), per-level data
+# pointers (func_802A1EC8)
+
+# func_802A1320: returns COP0 Status; the rewrite calls __osGetSR (followed)
+func_802A1320: -n 20 --follow __osGetSR
+
+# func_802A1934: table at 0x80306480 (stride 0x30) ended by byte 0x15 == -1, exactly one
+# terminator placed by onehot (first/last/middle of 8 slots; random bytes may end it earlier)
+func_802A1934: -n 300 --ret void --mem 0x80306480:0x180=onehot:0x30@0x15/1:0xFF:rand
+# coordinate extremes for the >> 5 (sra) and radius 0 / 0xFF
+func_802A1934: -n 200 --seed 1 --ret void --mem 0x80306480:0x180=onehot:0x30@0x15/1:0xFF:words:0x7FFFFFFF,0x80000000,0,0x1F,0x20,0x12345678,-32,0x00FF0000,0x00000000
+# terminator in slot 0 (nothing written)
+func_802A1934: -n 10 --seed 2 --ret void --mem 0x80306480:0x30=rand --mem 0x80306495:1=bytes:0xFF
+
+# func_802A1EC8: every listed level, their neighbours and out-of-range values
+func_802A1EC8: -n 400 --ret void --mem D_802E8BDC=choice:0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,0x19,0x1A,0x1B,0x1C,0x1D,0x1E,0x20,0x21,0x22,0x38,0x39,0x3A,0x3B,-1,0x100,0x8000000A --mem D_803BE704=int --mem D_803BE708=int

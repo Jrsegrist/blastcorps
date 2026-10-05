@@ -124,15 +124,39 @@ void func_802CE9A4(void) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM.
- * Port note: not rewritten. It sets up `count` collision triangles at
- * *D_803FB8B0 (func_802A41B0, byte 0x51 = 1, h52 = a2, b56 = item byte 0x14,
- * b55 = 0) from 0x16-byte items at a0, but also passes func_802A41B0 the
- * registers v0 (id, byte 0x50), t6 (byte 0x57), t9 (byte 0x4F) and s1 (byte
- * 0x58, chained) that its only caller, the IDO-compiled func_8028FDA0
- * (4B5E0.c), never sets for it: there they hold a stale call result,
- * &D_8039C718[i], the old D_803FB8B0 and the caller's caller's s1. A C version
- * can't reproduce those without changing that caller's interface. */
+ * It sets up `count` collision triangles at *D_803FB8B0 (func_802A41B0,
+ * byte 0x51 = 1, h52 = a2, b56 = item byte 0x14, b55 = 0) from 0x16-byte
+ * items at a0, but also passes func_802A41B0 the registers v0 (id, byte
+ * 0x50), t6 (byte 0x57), t9 (byte 0x4F) and s1 (byte 0x58, chained) that its
+ * only caller, the IDO-compiled func_8028FDA0 (4B5E0.c), never sets for it:
+ * there they hold a stale call result, &D_8039C718[i], the old D_803FB8B0
+ * and the caller's caller's s1. */
+#ifdef NON_MATCHING
+u8 *func_802A41B0(u8 *rec, u8 *v, s32 id, s32 h52, s32 b57, s32 b56, s32 *s1io, s32 b4F, s32 b55);
+
+/* The NM build used to keep this asm, which `jal`s the C func_802A41B0 with
+ * its asm register convention: the C read garbage arguments and faulted on
+ * the first level load (the attract-mode demo). The leaked registers are now
+ * explicit parameters; func_8028FDA0 passes what they hold in the original
+ * (see there). Per 0x16-byte item: rec[0x51] = 1, then func_802A41B0(rec,
+ * item, id, h52, b57, item[0x14], s1 chain, b4F, b55 = 0). The asm saves and
+ * restores s1 (each call's chain starts from the caller's s1) and leaves
+ * gp = 0. Like the asm, n counts down with `!=`.
+ * asm: items a0, n a1, h52 a2, id v0, b57 t6, b4F t9, s1. */
+void func_802CE9C8(u8 *items, s32 n, s32 h52, s32 id, s32 b57, s32 b4F, s32 s1) {
+    u8 *rec = D_803FB8B0;
+
+    while (n != 0) {
+        n--;
+        rec[0x51] = 1;
+        rec = func_802A41B0(rec, items, id, h52, b57, items[0x14], &s1, b4F, 0);
+        items += 0x16;
+    }
+    D_803FB8B0 = rec;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8A080/func_802CE9C8.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

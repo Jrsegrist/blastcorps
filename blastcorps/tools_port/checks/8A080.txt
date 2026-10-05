@@ -30,6 +30,18 @@ func_802CE958: -n 200 --ret int --seed 4 --mem D_803FB8B8:500=onehot:0x14:0x100:
 
 func_802CE9A4: -n 200 --ret void --mem D_803FB8B0=int
 
+# collision triangles at *D_803FB8B0 from n 0x16-byte items, with the caller's leaked
+# v0 / t6 / t9 / s1 (C: a3 / stack0..2); stubbed func_802A41B0 (mapped), then followed
+func_802CE9C8: -n 300 --ret void --heap 0x400 --mem D_803FB8B0=rel:heap0 --arg a0=ptr:0xB0 \
+    --arg a1=choice:0,1,2,3,8 --arg a2=int:0:0xFF --arg v0=int --arg t6=int --arg t9=int --arg s1=int \
+    --stub-ret func_802A41B0=0x80B00060
+func_802CE9C8: -n 300 --seed 1 --ret void --follow func_802A41B0,sqrtf --heap 0x400 --mem D_803FB8B0=rel:heap0 \
+    --arg a0=ptr:0xB0 --arg a1=choice:0,1,2,3,8 --arg a2=int:0:0xFF --arg v0=int --arg t6=int --arg t9=int --arg s1=int
+# small coordinates (finite plane lengths), s1 0 / chain
+func_802CE9C8: -n 200 --seed 2 --ret void --follow func_802A41B0,sqrtf --heap 0x400 --mem D_803FB8B0=rel:heap0 \
+    --arg a0=ptr:0xB0 --mem @a0:0xB0=halves:0,1,0xFFFF,0x100,0x8000,0x7FFF --arg a1=choice:1,2,8 --arg a2=int:0:0xFF \
+    --arg v0=int --arg t6=int --arg t9=int --arg s1=choice:0,1,0x80000000
+
 # clear [start, end) in 0x60-byte steps (end must be start + k*0x60)
 func_802CEA68: -n 300 --ret void --mem 0x80B00000:0x600=rand --arg a0=0x80B00000 --arg a1=choice:0x80B00000,0x80B00060,0x80B000C0,0x80B00120,0x80B005A0
 # same with a ptr block and a pointer-relative end (0..16 records)

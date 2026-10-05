@@ -28,188 +28,147 @@ extern u8 D_80222740[];  /* border[] - RFC1951 bit-length code transmission orde
 extern s32 D_80222834;   /* lbits - default lit/length table lookup bits */
 extern s32 D_80222838;   /* dbits - default distance table lookup bits */
 
-extern s32 huft_build(s32 *b, u32 n, u32 s, u16 *d, u8 *e, Huft **t, s32 *m);
+extern int huft_build(s32 *b, u32 n, u32 s, u16 *d, u8 *e, Huft **t, s32 *m);
 extern s32 inflate_codes(Huft *tl, Huft *td, u32 bl, u32 bd);
 
-/* TODO: inflate_dynamic - decompresses a type-2 (dynamic Huffman codes)
- * block. Confirmed an exact structural match against the reference's own
- * inflate_dynamic() - reads the bit-length-code-length table (ordered via
- * `border`/D_80222740), builds a throwaway 7-bit table for it, uses that
- * to decode the real literal/length + distance code lengths (with the
- * 16/17/18 repeat-previous / repeat-zero escape codes), then builds the
- * real literal/length and distance tables and hands off to inflate_codes.
- * Like huft_build/inflate_codes, every defensive error-return in the
- * reference (bad nl/nd bounds, huft_build failures, repeat-count
- * overflow) is absent here - confirmed by m2c showing unconditional calls
- * with no return-value checks anywhere in this function. `ll`'s size
- * (286+30, not the PKZIP_BUG_WORKAROUND 288+32) was confirmed empirically:
- * it's the only size that makes the total stack frame match target's
- * exactly (confirmed via the following inflate_block/inflate landing at
- * their exact target addresses).
+/* inflate_dynamic - decompresses a type-2 (dynamic Huffman codes) block:
+ * reads the bit-length code lengths (in `border`/D_80222740 order), builds a
+ * 7-bit table for them, decodes the literal/length and distance code lengths
+ * (with the 16/17/18 repeat escapes), then builds the real tables and hands
+ * off to inflate_codes. The reference's inflate_dynamic() minus every
+ * defensive error return; `ll` is 286+30 (not the PKZIP_BUG_WORKAROUND
+ * 288+32), the only size that gives the right frame.
  *
- * Extraordinarily close (diff score 45 across ~379 instructions, zero
- * structural insertions/deletions): every instruction matches in content,
- * and even cplens/cplext/cpdist/cpdext/mask_bits all resolve with the
- * correct `addiu`-based addressing. The one remaining issue is a
- * consistent 8-byte (2-word) offset on every access to `ll`'s base
- * address (e.g. `addiu a0,sp,0x40` here vs target's `addiu a0,sp,0x48`).
- *
- * Follow-up investigation (same session that cracked inflate_fixed/
- * inflate_stored's stack-layout puzzles via IDO's reverse-declaration-
- * order rule): confirmed the frame total size matches exactly (both
- * `addiu sp,sp,-0x568`), and all 12 scalars (i,j,l,m,n,tl,td,bl,bd,nb,nl,
- * nd) land at IDENTICAL addresses in both builds (0x538-0x568) - so the
- * mismatch isn't those scalars being misplaced. The missing 8 bytes are
- * genuinely unused padding in BOTH versions, just on opposite sides of
- * the array: here it sits between the array's end and the scalar block
- * (0x530-0x538 unused); in target it sits between the saved-register
- * area and the array's start (0x38-0x48 unused, i.e. a 16-byte gap there
- * instead of this build's 8-byte one). Total slop is identical (16
- * bytes) in both builds, just redistributed - ruling out a missing/extra
- * variable and pointing at some IDO stack-layout-pass quirk specific to
- * where a large array sits relative to the saved-register area.
- *
- * Tried moving nb/nl/nd (individually and as a group of 3) to be
- * declared *after* `ll` instead of before, reasoning that reverse-
- * declaration-order (confirmed elsewhere this session) might place them
- * in the gap - every attempt regressed drastically (score 3837-11421),
- * confirming nd/nl/nb's live ranges extend far enough into the function
- * (nl/nd are reused in the final two huft_build calls) that relocating
- * their declaration ripples through register allocation for most of the
- * function, not just the local stack-slot puzzle. Also previously tried
- * (prior session): swapping tl/td, bl/bd, j/l, and promoting `i` to
- * `register` - all regressed (76-4872). The reference declaration order
- * kept below is the local optimum found so far; the real fix needs
- * either a different IDO-internals insight about array-vs-saved-register
- * padding, or a variable this session didn't think to try relocating.
- *
- * #define LL_SIZE (286 + 30)
- *
- * s32 inflate_dynamic(void) {
- *     s32 i;
- *     u32 j;
- *     u32 l;
- *     u32 m;
- *     u32 n;
- *     Huft *tl;
- *     Huft *td;
- *     s32 bl;
- *     s32 bd;
- *     u32 nb;
- *     u32 nl;
- *     u32 nd;
- *     s32 ll[LL_SIZE];
- *     register u32 k;
- *     register u32 b;
- *
- *     k = D_802229E8;
- *     b = D_802229E4;
- *
- *     while (k < 5) {
- *         b |= (u32) D_802229F0[D_80222A1C++] << k;
- *         k += 8;
- *     }
- *     nl = 257 + (b & 0x1F);
- *     b >>= 5;
- *     k -= 5;
- *
- *     while (k < 5) {
- *         b |= (u32) D_802229F0[D_80222A1C++] << k;
- *         k += 8;
- *     }
- *     nd = 1 + (b & 0x1F);
- *     b >>= 5;
- *     k -= 5;
- *
- *     while (k < 4) {
- *         b |= (u32) D_802229F0[D_80222A1C++] << k;
- *         k += 8;
- *     }
- *     nb = 4 + (b & 0xF);
- *     b >>= 4;
- *     k -= 4;
- *
- *     for (j = 0; j < nb; j++) {
- *         while (k < 3) {
- *             b |= (u32) D_802229F0[D_80222A1C++] << k;
- *             k += 8;
- *         }
- *         ll[D_80222740[j]] = b & 7;
- *         b >>= 3;
- *         k -= 3;
- *     }
- *     for (; j < 19; j++) {
- *         ll[D_80222740[j]] = 0;
- *     }
- *
- *     bl = 7;
- *     huft_build(ll, 19, 19, NULL, NULL, &tl, &bl);
- *
- *     n = nl + nd;
- *     m = mask_bits[bl];
- *     i = l = 0;
- *     while ((u32) i < n) {
- *         while (k < (u32) bl) {
- *             b |= (u32) D_802229F0[D_80222A1C++] << k;
- *             k += 8;
- *         }
- *         td = tl + (b & m);
- *         j = td->b;
- *         b >>= j;
- *         k -= j;
- *         j = td->v.n;
- *         if (j < 16) {
- *             ll[i++] = l = j;
- *         } else if (j == 16) {
- *             while (k < 2) {
- *                 b |= (u32) D_802229F0[D_80222A1C++] << k;
- *                 k += 8;
- *             }
- *             j = 3 + (b & 3);
- *             b >>= 2;
- *             k -= 2;
- *             while (j--) {
- *                 ll[i++] = l;
- *             }
- *         } else if (j == 17) {
- *             while (k < 3) {
- *                 b |= (u32) D_802229F0[D_80222A1C++] << k;
- *                 k += 8;
- *             }
- *             j = 3 + (b & 7);
- *             b >>= 3;
- *             k -= 3;
- *             while (j--) {
- *                 ll[i++] = 0;
- *             }
- *             l = 0;
- *         } else {
- *             while (k < 7) {
- *                 b |= (u32) D_802229F0[D_80222A1C++] << k;
- *                 k += 8;
- *             }
- *             j = 11 + (b & 0x7F);
- *             b >>= 7;
- *             k -= 7;
- *             while (j--) {
- *                 ll[i++] = 0;
- *             }
- *             l = 0;
- *         }
- *     }
- *
- *     D_802229E4 = b;
- *     D_802229E8 = k;
- *
- *     bl = D_80222834;
- *     huft_build(ll, nl, 257, cplens, cplext, &tl, &bl);
- *     bd = D_80222838;
- *     huft_build(ll + nl, nd, 0, cpdist, cpdext, &td, &bd);
- *     inflate_codes(tl, td, bl, bd);
- *     return 0;
- * }
+ * Matched by porting hd_code's copy (func_80298DC0 in hd_code/53220.c).
+ * What fixed the old "ll 8 bytes off" near-miss: `register u32 k, b` are
+ * declared before `ll`, not after it. That moves ll from sp+0x40 to the
+ * target's sp+0x48.
  */
-#pragma GLOBAL_ASM("asm/nonmatchings/init/0E30/inflate_dynamic.s")
+#define LL_SIZE (286 + 30)
+
+s32 inflate_dynamic(void) {
+    s32 i;
+    u32 j;
+    u32 l;
+    u32 m;
+    u32 n;
+    Huft *tl;
+    Huft *td;
+    s32 bl;
+    s32 bd;
+    u32 nb;
+    u32 nl;
+    u32 nd;
+    register u32 k;
+    register u32 b;
+    s32 ll[LL_SIZE];
+
+    k = D_802229E8;
+    b = D_802229E4;
+
+    while (k < 5) {
+        b |= (u32) D_802229F0[D_80222A1C++] << k;
+        k += 8;
+    }
+    nl = 257 + (b & 0x1F);
+    b >>= 5;
+    k -= 5;
+
+    while (k < 5) {
+        b |= (u32) D_802229F0[D_80222A1C++] << k;
+        k += 8;
+    }
+    nd = 1 + (b & 0x1F);
+    b >>= 5;
+    k -= 5;
+
+    while (k < 4) {
+        b |= (u32) D_802229F0[D_80222A1C++] << k;
+        k += 8;
+    }
+    nb = 4 + (b & 0xF);
+    b >>= 4;
+    k -= 4;
+
+    for (j = 0; j < nb; j++) {
+        while (k < 3) {
+            b |= (u32) D_802229F0[D_80222A1C++] << k;
+            k += 8;
+        }
+        ll[D_80222740[j]] = b & 7;
+        b >>= 3;
+        k -= 3;
+    }
+    for (; j < 19; j++) {
+        ll[D_80222740[j]] = 0;
+    }
+
+    bl = 7;
+    huft_build(ll, 19, 19, NULL, NULL, &tl, &bl);
+
+    n = nl + nd;
+    m = mask_bits[bl];
+    i = l = 0;
+    while ((u32) i < n) {
+        while (k < (u32) bl) {
+            b |= (u32) D_802229F0[D_80222A1C++] << k;
+            k += 8;
+        }
+        td = tl + (b & m);
+        j = td->b;
+        b >>= j;
+        k -= j;
+        j = td->v.n;
+        if (j < 16) {
+            ll[i++] = l = j;
+        } else if (j == 16) {
+            while (k < 2) {
+                b |= (u32) D_802229F0[D_80222A1C++] << k;
+                k += 8;
+            }
+            j = 3 + (b & 3);
+            b >>= 2;
+            k -= 2;
+            while (j--) {
+                ll[i++] = l;
+            }
+        } else if (j == 17) {
+            while (k < 3) {
+                b |= (u32) D_802229F0[D_80222A1C++] << k;
+                k += 8;
+            }
+            j = 3 + (b & 7);
+            b >>= 3;
+            k -= 3;
+            while (j--) {
+                ll[i++] = 0;
+            }
+            l = 0;
+        } else {
+            while (k < 7) {
+                b |= (u32) D_802229F0[D_80222A1C++] << k;
+                k += 8;
+            }
+            j = 11 + (b & 0x7F);
+            b >>= 7;
+            k -= 7;
+            while (j--) {
+                ll[i++] = 0;
+            }
+            l = 0;
+        }
+    }
+
+    D_802229E4 = b;
+    D_802229E8 = k;
+
+    bl = D_80222834;
+    huft_build(ll, nl, 257, cplens, cplext, &tl, &bl);
+    bd = D_80222838;
+    huft_build(ll + nl, nd, 0, cpdist, cpdext, &td, &bd);
+    inflate_codes(tl, td, bl, bd);
+    return 0;
+}
 
 extern s32 inflate_stored(void);
 extern s32 inflate_fixed(void);

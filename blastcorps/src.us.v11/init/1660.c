@@ -108,39 +108,20 @@ s32 gzip_get_method(void) {
     return D_80222840;
 }
 
-/* TODO: reverse_bits - reverses the low `arg1` bits of `arg0` (classic
- * bit-reversal, used when emitting/reading canonical Huffman codes MSB-first
- * from an LSB-first bitstream).
- *
- * Down to a single wrong register name (diff score 10, 11 real
- * instructions): deferring phi_a2's shift through an explicit temp `t`
- * (mirroring how arg0's own shift-then-commit already falls out
- * naturally as `srl t7,a0,1; move a0,t7`) reproduced target's exact
- * instruction content and order, including the deferred final commit
- * after the loop-exit branch (`move a2,t8` only runs once, after the
- * last iteration, not on every pass) - this was previously thought to
- * need "real IDO instruction-scheduler knowledge"; it didn't, it needed
- * the right C-level shape. The one holdout: target's scratch register
- * for the deferred shift is $t8; this build gets $a3 instead. Tried
- * reordering the temp-assignment relative to arg0's shift (70), swapping
- * `t`/`phi_a2`'s declaration order (40), and dropping `t`'s `register`
- * qualifier entirely (415) - all regressed from the version below,
- * which is the local optimum found this round.
- *
- * u32 reverse_bits(u32 arg0, s32 arg1) {
- *     register u32 phi_a2 = 0;
- *     register u32 t;
- *
- *     do {
- *         phi_a2 |= arg0 & 1;
- *         t = phi_a2 << 1;
- *         arg0 >>= 1;
- *         phi_a2 = t;
- *     } while (--arg1 > 0);
- *     return phi_a2 >> 1;
- * }
- */
-#pragma GLOBAL_ASM("asm/nonmatchings/init/1660/reverse_bits.s")
+/* Reverses the low `arg1` bits of `arg0` (canonical Huffman codes are
+ * MSB-first, the bitstream LSB-first). arg2 is a dead parameter reused as the
+ * accumulator; hd_code's copy (17A70) is byte-identical. */
+u32 reverse_bits(u32 arg0, s32 arg1, u32 arg2) {
+    s32 pad;
+
+    arg2 = 0;
+    do {
+        arg2 |= arg0 & 1;
+        arg0 >>= 1, arg2 <<= 1;
+        arg1--;
+    } while (arg1 > 0);
+    return arg2 >> 1;
+}
 
 void func_802206D0(void) {
     D_80222A20 = 0;

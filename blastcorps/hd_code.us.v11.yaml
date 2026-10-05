@@ -221,7 +221,7 @@ segments:
     - [0x9DFA0, c, hd_code/ul_sirawdma]
     - [0x9E050, c, hd_code/ul_siacs]  # src/io/siacs.c
     - [0x9E110, c, hd_code/ul_si]
-    - [0x9E140, c, hd_code/9E140]
+    - [0x9E140, c, hd_code/ul_kdebugserver]  # src/debug/kdebugserver.c, old SDK
     - [0x9E5C0, c, hd_code/ul_syncputchars]  # src/os/syncputchars.c, old rdbPacket
     - [0x9E6F0, c, hd_code/9E6F0]
     - [0x9E700, c, hd_code/ul_xlitob]  # src/libc/xlitob.c (-O1)
@@ -257,7 +257,7 @@ segments:
     - [0xC30D0, .data, hd_code/ul_drvrnew]
     - [0xC3260, bin, hd_code/hd_code_data_C3260]
     - [0xC3360, .data, hd_code/ul_siacs]
-    - [0xC3370, bin, hd_code/hd_code_data_C3370]
+    - [0xC3370, .data, hd_code/ul_kdebugserver]
     - [0xC3380, .data, hd_code/ul_syncputchars]
     - [0xC3390, .data, hd_code/ul_xlitob]
     - [0xC33C0, bin, hd_code/hd_code_data_C33C0]

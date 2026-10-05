@@ -238,6 +238,7 @@ __osSiCreateAccessQueue = 0x802E2810; // type:func
 __osSiGetAccess = 0x802E2860; // type:func
 __osSiRelAccess = 0x802E28A4; // type:func
 __osSiDeviceBusy = 0x802E28D0; // type:func
+kdebugserver = 0x802E2B98; // type:func
 __osSyncPutChars = 0x802E2D80; // type:func
 __osSetCompare = 0x802E2EB0; // type:func
 _Litob = 0x802E2EC0; // type:func

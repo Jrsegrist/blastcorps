@@ -1,0 +1,2 @@
+// hd_front_end symbol names (splat format). `make extract` appends
+// symbol_addrs.hd_code.us.v11.txt to this to make the front end's splat input.

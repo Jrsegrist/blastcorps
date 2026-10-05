@@ -185,7 +185,7 @@ extern f32 D_8021A91C;
 extern f32 D_8021A920;
 extern f32 D_8021A934;
 extern f32 D_8021A938;
-extern s16 D_8021A926;
+extern u16 D_8021A926;
 extern s32 D_8021A928[];
 extern s8 D_8021A930;
 extern u8 D_8021AB20;
@@ -218,6 +218,22 @@ extern LevelInfo *D_8021AB34;
 extern f32 D_8021AB4C;
 extern f32 D_8021AB50;
 extern f32 D_8021AB54;
+extern u8 *D_80215A70[]; /* plane icon animation frames, 32x32 RGBA32 */
+extern Vtx D_8021A840[2][4];
+extern s32 D_8021A8C0; /* flight time */
+extern f32 D_8021A8C4; /* flight start/end points */
+extern f32 D_8021A8C8;
+extern f32 D_8021A8CC;
+extern f32 D_8021A8D0;
+extern f32 D_8021A8D4;
+extern f32 D_8021A8D8;
+extern f32 D_8021A8DC; /* distance */
+extern f32 D_8021A8E0; /* cos of the arc */
+extern f32 D_8021A8E4; /* arc angle */
+extern f32 D_8021A8E8; /* flight progress 0..1 */
+extern f32 D_8021A8EC; /* altitude scale */
+extern u32 D_803156C4;
+s32 func_802AD7D4(s32);
 
 void func_801FCF38(Vtx *v, f32 x, f32 y, f32 z, u8 w, u8 h, f32 scale, u8 flip);
 void func_801FD484(f32 *arg0, f32 *arg1, f32 *arg2, f32 *arg3, f32 *arg4, f32 arg5);
@@ -529,7 +545,79 @@ Gfx *func_801FA180(Gfx *arg0, Dynamic *dyn, f32 lon0, s8 *selected) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/11530/func_801FA74C.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/11530/func_801FC5B8.s")
+#define MIN2(a, b) ((a) < (b) ? (a) : (b))
+#define MAX2(a, b) ((a) < (b) ? (b) : (a))
+
+/* The plane icon flying along the great circle between two levels. */
+Gfx *func_801FC5B8(Dynamic *dyn, Gfx *arg1, u8 from, u8 to) {
+    f32 a;
+    f32 b;
+    Gfx *gdl;
+    Vtx *v;
+    GlobeLevel *e1;
+    GlobeLevel *e2;
+
+    gdl = arg1;
+    v = D_8021A840[D_8035805C];
+    switch (D_8021A926) {
+        case 0:
+            break;
+        case 1:
+            e1 = &D_8020D810[from];
+            e2 = &D_8020D810[to];
+            D_8021A8C4 = e1->unk24;
+            D_8021A8CC = e1->unk28;
+            D_8021A8D4 = e1->unk2C;
+            D_8021A8C8 = e2->unk24;
+            D_8021A8D0 = e2->unk28;
+            D_8021A8D8 = e2->unk2C;
+            D_8021A8DC = sqrtf((D_8021A8C8 - D_8021A8C4) * (D_8021A8C8 - D_8021A8C4) +
+                               (D_8021A8D0 - D_8021A8CC) * (D_8021A8D0 - D_8021A8CC) +
+                               (D_8021A8D8 - D_8021A8D4) * (D_8021A8D8 - D_8021A8D4));
+            D_8021A8C0 = MAX2(MIN2(D_8021A8DC / 32.0, 15.0), 3.0);
+            if (from != to) {
+                D_8021A926 = 2;
+            } else {
+                D_8021A926 = 0;
+            }
+            D_8021A8E8 = 0.0f;
+            D_8021A8E0 = (D_8021A8C4 * D_8021A8C8 + D_8021A8CC * D_8021A8D0 + D_8021A8D4 * D_8021A8D8) / 250.0 / 250.0;
+            D_8021A8E4 = 90.0 - ((D_8021A8E0 >= 0.0f) ? 1 : -1) * func_802AD7D4(((D_8021A8E0 > 0.0f) ? D_8021A8E0 : -D_8021A8E0) * 65535.0) / 16.0 / 11.377777;
+            if (D_8021A8E4 >= 180.0) {
+                D_8021A8E4 -= 180.0;
+            }
+            if (D_8021A8E4 < -180.0) {
+                D_8021A8E4 += 180.0;
+            }
+            D_8021A8E4 *= 0.017453292519943295;
+            break;
+        case 2:
+            D_8021A8E8 += 0.4 / D_8021A8C0;
+            if (D_8021A8E8 > 1.0) {
+                D_8021A926 = 0;
+                D_8021A8E8 = 1.0f;
+            }
+            D_8021AB2C = ((0.5 - D_8021A8E8 > 0.0) ? 0.5 - D_8021A8E8 : -(0.5 - D_8021A8E8)) * 510.0;
+            if (D_8021A8E8 >= 0.5) {
+                D_8021A908 = D_8021A905;
+            }
+            break;
+    }
+    a = func_802574F0((1.0 - D_8021A8E8) * D_8021A8E4) / func_802574F0(D_8021A8E4);
+    b = func_802574F0(D_8021A8E8 * D_8021A8E4) / func_802574F0(D_8021A8E4);
+    D_8021A8EC = func_802574F0(D_8021A8E8 * 3.141592653) * D_8021A8C0 / 64.0 + 1.0;
+    D_8021AB4C = (a * D_8021A8C4 + b * D_8021A8C8) * D_8021A8EC;
+    D_8021AB50 = (a * D_8021A8CC + b * D_8021A8D0) * D_8021A8EC;
+    D_8021AB54 = (a * D_8021A8D4 + b * D_8021A8D8) * D_8021A8EC;
+    func_801FCF38(v, D_8021AB4C, D_8021AB50, D_8021AB54, 0x20, 0x20, 1.75f, 1);
+    osWritebackDCache(v, sizeof(Vtx) * 4);
+    gDPLoadTextureBlock(gdl++, D_80215A70[D_803156C4 / 3 % 3], G_IM_FMT_RGBA, G_IM_SIZ_32b, 32, 32, 0,
+                        G_TX_CLAMP, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
+    gSPVertex(gdl++, v, 4, 0);
+    gSP1Triangle(gdl++, 0, 1, 2, 0);
+    gSP1Triangle(gdl++, 2, 3, 0, 0);
+    return gdl;
+}
 
 void func_801FCE74(Vtx *v, u8 level, f32 dlat, f32 dlon, u8 w, u8 h, f32 scale, u8 flip) {
     GlobeLevel *info;

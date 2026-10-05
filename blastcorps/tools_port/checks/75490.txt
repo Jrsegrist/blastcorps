@@ -136,3 +136,27 @@ func_802BB1A0: -n 20 --seed 2 --ret void --sig func_802608C8=a0 --sig func_802A7
 # copy run for real
 func_802BB1A0: -n 30 --seed 3 --ret void --follow func_802A7764 --sig func_802608C8=a0 --heap 0x800 --heap 0x800 \
     --mem D_803EFAE4=rel:heap0 --mem D_803EFAE8=rel:heap1 --mem D_803EFAD8:12=words:0,0x80123450
+
+# zone lookup wrapper (id 0xFF at D_803EF6DC): func_802ABD54 stubbed (scan registers mapped through r)
+func_802BA104: -n 200 --mem D_803EF6DC:12=rand
+func_802BA104: -n 300 --seed 1 --follow func_802ABD54,func_802ABCDC --mem D_803EF6DC=int:-100:100 --mem D_803EF6DC+4=int:-100:100 \
+    --mem D_803EF6DC+8=int:-100:100 --mem D_803BDFD4=rel:D_803BDFD8+0x24*int:0:4 --mem D_803BDFD8:0x90=rand \
+    --mem D_803BDFD8*0x24:4=int:-100:100 --mem D_803BDFD8+4*0x24:4=int:-100:100 --mem D_803BDFD8+8*0x24:4=int:-100:100 \
+    --mem D_803BDFD8+0xC*0x24:4=choice:1,10,50,100,200,1000 --mem D_803BDFD8+0x10*0x24:4/1=choice:0,1,1,2 \
+    --mem D_803BDFD8+0x12*0x24:4/1=choice:0,1,1,1 --mem D_803BDFD8+0x13*0x24:4/1=choice:0,1,2,3 \
+    --mem D_803BDFD8+0x14*0x24:4/1=choice:0,0,5,0xFF --mem D_803BDFD8+0x15*0x24:4/1=choice:0xFF,0xFF,0x30 \
+    --mem D_803BDFD8+0x16*0x24:4/1=choice:0xFF,0x31 --mem D_803BDFD8+0x17*0x24:4/1=choice:0xFF,0x32 \
+    --mem D_80364A6E:1=choice:0,1,0x80,0xFF,0x40 --mem D_80364460+0x5C*0x74:3=choice:0x100,0x200 \
+    --mem D_80364460+0x1B8=0xFF --mem D_80364460+0x60*0x74:4=int
+
+# zone lookup wrapper (id 6 at D_803EFAC8): func_802ABD54 stubbed (scan registers mapped through r)
+func_802BB230: -n 200 --mem D_803EFAC8:12=rand
+func_802BB230: -n 300 --seed 1 --follow func_802ABD54,func_802ABCDC --mem D_803EFAC8=int:-100:100 --mem D_803EFAC8+4=int:-100:100 \
+    --mem D_803EFAC8+8=int:-100:100 --mem D_803BDFD4=rel:D_803BDFD8+0x24*int:0:4 --mem D_803BDFD8:0x90=rand \
+    --mem D_803BDFD8*0x24:4=int:-100:100 --mem D_803BDFD8+4*0x24:4=int:-100:100 --mem D_803BDFD8+8*0x24:4=int:-100:100 \
+    --mem D_803BDFD8+0xC*0x24:4=choice:1,10,50,100,200,1000 --mem D_803BDFD8+0x10*0x24:4/1=choice:0,1,1,2 \
+    --mem D_803BDFD8+0x12*0x24:4/1=choice:0,1,1,1 --mem D_803BDFD8+0x13*0x24:4/1=choice:0,1,2,3 \
+    --mem D_803BDFD8+0x14*0x24:4/1=choice:0,0,5,0xFF --mem D_803BDFD8+0x15*0x24:4/1=choice:6,6,0x30 \
+    --mem D_803BDFD8+0x16*0x24:4/1=choice:6,0x31 --mem D_803BDFD8+0x17*0x24:4/1=choice:6,0x32 \
+    --mem D_80364A6E:1=choice:0,1,0x80,0xFF,0x40 --mem D_80364460+0x5C*0x74:3=choice:0x100,0x200 \
+    --mem D_80364460+0x1B8=6 --mem D_80364460+0x60*0x74:4=int

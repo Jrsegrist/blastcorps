@@ -127,3 +127,15 @@ func_802B98E0: -n 300 --seed 1 --arg gp=sym:D_803EF240 --sig func_80260AB8=a0,a1
 func_802B98E0: -n 50 --seed 2 --arg gp=sym:D_803EF240 --sig func_80260AB8=a0,a1,a2 \
     --mem D_803EF240+0x76:2=halves:0x64 --mem D_803EF2E6:2=halves:0x3C,0x3B,0x3D --mem D_803EF2E8=0x80123450 \
     --mem D_803EF324:2=int:0:0xFFFF
+
+# zone lookup wrapper (id 8 at D_803EEF18): func_802ABD54 stubbed (scan registers mapped through r)
+func_802B78B0: -n 200 --mem D_803EEF18:12=rand
+func_802B78B0: -n 300 --seed 1 --follow func_802ABD54,func_802ABCDC --mem D_803EEF18=int:-100:100 --mem D_803EEF18+4=int:-100:100 \
+    --mem D_803EEF18+8=int:-100:100 --mem D_803BDFD4=rel:D_803BDFD8+0x24*int:0:4 --mem D_803BDFD8:0x90=rand \
+    --mem D_803BDFD8*0x24:4=int:-100:100 --mem D_803BDFD8+4*0x24:4=int:-100:100 --mem D_803BDFD8+8*0x24:4=int:-100:100 \
+    --mem D_803BDFD8+0xC*0x24:4=choice:1,10,50,100,200,1000 --mem D_803BDFD8+0x10*0x24:4/1=choice:0,1,1,2 \
+    --mem D_803BDFD8+0x12*0x24:4/1=choice:0,1,1,1 --mem D_803BDFD8+0x13*0x24:4/1=choice:0,1,2,3 \
+    --mem D_803BDFD8+0x14*0x24:4/1=choice:0,0,5,0xFF --mem D_803BDFD8+0x15*0x24:4/1=choice:8,8,0x30 \
+    --mem D_803BDFD8+0x16*0x24:4/1=choice:8,0x31 --mem D_803BDFD8+0x17*0x24:4/1=choice:8,0x32 \
+    --mem D_80364A6E:1=choice:0,1,0x80,0xFF,0x40 --mem D_80364460+0x5C*0x74:3=choice:0x100,0x200 \
+    --mem D_80364460+0x1B8=8 --mem D_80364460+0x60*0x74:4=int

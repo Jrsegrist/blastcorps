@@ -58,7 +58,34 @@ s32 func_802B76F8(void) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/72B80/func_802B77A0.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+#ifndef ZONE_SCAN_REGS_DEFINED
+#define ZONE_SCAN_REGS_DEFINED
+/* func_802ABD54's scan registers (62740.c), in and out. */
+typedef struct {
+    s32 t6; /* zone x */
+    s32 t7; /* zone y */
+    s32 s0; /* zone z */
+    s32 s1; /* distance / level term */
+    s32 s2; /* zone radius */
+    s32 s3; /* scan counter / zone byte */
+    s32 s4; /* scan pointer / zone byte */
+} ZoneScanRegs;
+s32 func_802ABD54(s32 id, s32 x, s32 y, s32 z, ZoneScanRegs *r);
+#endif
+extern u32 D_803EEF18[]; /* x, y, z */
+/* Zone level lookup (func_802ABD54) for vehicle id 8 at its position
+ * D_803EEF18..+8; returns func_802ABD54's v1 (the zone list end).
+ * Register convention: the asm passes func_802ABD54's scan registers t6, t7,
+ * s0-s4 through (in and out; here through r), leaves a3 = id and clobbers
+ * s5, s6 (conventions.txt). Asm caller func_802B7A88 keeps f12 and f14 live
+ * (a mixed N64 build would need a thunk; the native port won't). */
+s32 func_802B78B0(ZoneScanRegs *r) {
+    return func_802ABD54(8, D_803EEF18[0], D_803EEF18[1], D_803EEF18[2], r);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/72B80/func_802B78B0.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/72B80/func_802B78F4.s")

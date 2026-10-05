@@ -15,7 +15,24 @@
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6E200/func_802B2D7C.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u8 D_803EE2E0[]; /* this vehicle's state block */
+
+/* Exit check for vehicle type 3 (called from func_8024B4B8 in hd.c, which
+ * declares it void but returns the leftover v0). Returns 1 when none of the
+ * bytes at +0x96, +0x97, +0x98 equals 1, else 0. Returns s32: the asm
+ * leaves the full 0/1 in v0. Same shape as func_802B45FC (below),
+ * func_802B5F04 (71140), func_802B76F8 (72B80); func_802B1150 (6C5E0) adds a
+ * +0xA1 test. */
+s32 func_802B2EF8(void) {
+    if (D_803EE2E0[0x96] == 1 || D_803EE2E0[0x97] == 1 || D_803EE2E0[0x98] == 1) {
+        return 0;
+    }
+    return 1;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6E200/func_802B2EF8.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6E200/func_802B2F54.s")
@@ -66,7 +83,21 @@
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6E200/func_802B448C.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u8 D_803EE6C0[]; /* this vehicle's state block */
+
+/* Exit check for vehicle type 4, same shape as func_802B2EF8 (above): returns
+ * 1 when none of the bytes at +0x96, +0x97, +0x98 equals 1, else 0 (s32; the
+ * C caller in hd.c declares it void and returns the leftover v0). */
+s32 func_802B45FC(void) {
+    if (D_803EE6C0[0x96] == 1 || D_803EE6C0[0x97] == 1 || D_803EE6C0[0x98] == 1) {
+        return 0;
+    }
+    return 1;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6E200/func_802B45FC.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6E200/func_802B4658.s")
@@ -99,7 +130,30 @@
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6E200/func_802B57C4.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern f32 D_803EBBF0;
+extern f32 D_803EBBF4;
+extern u8 D_803ED3F6;
+extern u8 D_803ED3F7;
+extern u8 D_80370C23; /* B or Z held */
+extern s16 D_803EE784;
+
+/* Vehicle-module setup leaf (shape of func_802AFBA0 in 69BB0, other
+ * constants): D_803EBBF4 = D_803EBBF0 * 2, D_803ED3F6/7 = 110, 4, then
+ * D_803EE784 = 2000 if B/Z is held, else 9000.
+ * Register note: the asm touches only at/v0/v1/f0/f2. Its asm callers keep
+ * registers live across the call (func_802B48A4: t3, t4, f12, f14;
+ * func_802B49AC: a0-a3); a mixed N64 build would need a thunk preserving
+ * those, the native port does not. */
+void func_802B5814(void) {
+    D_803EBBF4 = D_803EBBF0 * 2.0f;
+    D_803ED3F6 = 110;
+    D_803ED3F7 = 4;
+    D_803EE784 = (D_80370C23 == 0) ? 9000 : 2000;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6E200/func_802B5814.s")
+#endif
 
 /* func_802B589C: two-address trampoline into func_802AC7DC, same
  * confirmed-unreachable-from-C 8-byte sd-$ra frame as func_802AC284

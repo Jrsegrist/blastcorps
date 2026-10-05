@@ -1,0 +1,13 @@
+# 6E200 (vehicle module) port checks
+# func_802B2EF8: exit check, 1 iff bytes +0x96/+0x97/+0x98 of D_803EE2E0 are all != 1
+func_802B2EF8: -n 300 --seed 0 --ret int --mem D_803EE2E0+0x96:3=bytes:0,1*2,2,0xFF
+func_802B2EF8: -n 100 --seed 1 --ret int --mem D_803EE2E0+0x96:3=onehot:1/1:1:bytes:0,2,0xFF
+# func_802B45FC: same as func_802B2EF8 on D_803EE6C0
+func_802B45FC: -n 300 --seed 0 --ret int --mem D_803EE6C0+0x96:3=bytes:0,1*2,2,0xFF
+func_802B45FC: -n 100 --seed 1 --ret int --mem D_803EE6C0+0x96:3=onehot:1/1:1:bytes:0,2,0xFF
+# func_802B5814: D_803EBBF4 = D_803EBBF0 * 2.0f; D_803ED3F6/7 = 110, 4; D_803EE784 = B/Z ? 2000 : 9000
+func_802B5814: -n 300 --seed 0 --ret void --mem D_803EBBF0:4=floats:-100000:100000 \
+    --mem D_80370C23:1=bytes:0,1,2,0x80,0xFF --mem D_803EE784:2=rand
+func_802B5814: -n 200 --seed 1 --ret void \
+    --mem D_803EBBF0:4=words:0,0x80000000,0x3F800000,0x7F800000,0xFF800000,0x7FC00000,0x00000001,0x7F7FFFFF,0xC2C80000 \
+    --mem D_80370C23:1=bytes:0,1

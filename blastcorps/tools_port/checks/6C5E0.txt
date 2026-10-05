@@ -1,0 +1,11 @@
+# 6C5E0 (vehicle module) port checks
+# func_802B1150: exit check, 1 iff bytes +0x96/+0x97/+0x98 of D_803EDF10 are all != 1 and +0xA1 == 0
+func_802B1150: -n 300 --seed 0 --ret int --mem D_803EDF10+0x96:3=bytes:0,1*3,2,0xFF --mem D_803EDF10+0xA1:1=bytes:0*3,1,0x80,0xFF
+# all three flags clear: only +0xA1 decides
+func_802B1150: -n 100 --seed 1 --ret int --mem D_803EDF10+0x96:3=bytes:0,2,0xFF --mem D_803EDF10+0xA1:1=bytes:0,1,0xFF
+# exactly one of the three flags == 1 (first/last/middle), +0xA1 == 0
+func_802B1150: -n 100 --seed 2 --ret int --mem D_803EDF10+0x96:3=onehot:1/1:1:bytes:0,2 --mem D_803EDF10+0xA1:1=bytes:0
+# func_802B2900: D_803EBBF4 = D_803EBBF0 * 4.0f; D_803ED3F6/7 = 40, 3 (same shape as 69BB0 func_802AFBA0)
+func_802B2900: -n 300 --seed 0 --ret void --mem D_803EBBF0:4=floats:-100000:100000
+func_802B2900: -n 200 --seed 1 --ret void \
+    --mem D_803EBBF0:4=words:0,0x80000000,0x3F800000,0x7F800000,0xFF800000,0x7FC00000,0x00000001,0x7F7FFFFF,0xC2C80000

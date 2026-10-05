@@ -133,6 +133,215 @@ void func_801F57B0(void) {
     osStartThread(&D_80218D30);
 }
 
+/*
+ * TODO: func_801F58E8, the save thread's main loop (447 insns). The C below
+ * matches every instruction except one: the target ends `case 1:` (the last
+ * case body, at 0x801F5EB4) with a `b` to the very next instruction
+ * (0x801F5EE8, the switch end) carrying `sb done` in its delay slot. IDO drops
+ * that branch for every spelling tried: explicit break/goto/else, trailing
+ * `default:`/`case 4:` (4 is the jtbl's default), do/while(0), while+break,
+ * dead code after the break, an unused label. The callers' func_801F6160,
+ * func_801F61C8 and func_801F6ED4 return values are used here (original
+ * declared them s32 with no return statement), and func_801F58E8 takes no
+ * argument (cast it for osCreateThread).
+ *
+ * void func_801F58E8(void) {
+ *     OSMesg msg;
+ *     s32 ret;
+ *     s32 lastRet;
+ *     u8 pad33;
+ *     u8 player;
+ *     u8 arg1;
+ *     u8 reply;
+ *     u8 cmd;
+ *     u8 next;
+ *     u8 done;
+ *     s32 yoshi;
+ *     u32 tries;
+ *
+ *     while (1) {
+ *         D_8039C4B0 = 0;
+ *         tries = 0;
+ *         osSetEventMesg(OS_EVENT_SI, &D_80370BF8, 0);
+ *         osRecvMesg(&D_80219EF8, &msg, OS_MESG_BLOCK);
+ *         osSetEventMesg(OS_EVENT_SI, &D_80370BF8, 0);
+ *         while (D_8036BF10 != 0) {
+ *         }
+ *         cmd = (u32) msg & 0xFF;
+ *         arg1 = ((u32) msg >> 8) & 0xFF;
+ *         player = ((u32) msg >> 16) & 0xFF;
+ *         reply = ((u32) msg >> 24) & 0xFF;
+ *         D_8020C014[0] = player + 0x11;
+ *         D_8039C4B0 = 1;
+ *         func_8028A42C();
+ *         func_801EE390();
+ *         D_80218D24 = 0;
+ *         do {
+ *             done = 0;
+ *             next = 0;
+ *             yoshi = 0x5B;
+ *             lastRet = 0;
+ *             switch (cmd) {
+ *                 case 1:
+ *                 case 2:
+ *                     ret = func_801F60C8();
+ *                     break;
+ *                 case 3:
+ *                     ret = func_801F6160(player);
+ *                     break;
+ *                 case 4:
+ *                     ret = func_801F61C8(player);
+ *                     break;
+ *                 case 5:
+ *                     ret = func_801F6210(player);
+ *                     break;
+ *                 case 6:
+ *                     ret = func_801F6264(player, 0);
+ *                     break;
+ *                 case 7:
+ *                     ret = func_801F6264(player, 1);
+ *                     break;
+ *                 case 8:
+ *                     ret = func_801F65C4(player, arg1, 0);
+ *                     break;
+ *                 case 9:
+ *                     ret = func_801F65C4(player, arg1, 1);
+ *                     break;
+ *                 case 10:
+ *                     ret = func_801F67E4(player, arg1, 0);
+ *                     break;
+ *                 case 11:
+ *                     ret = func_801F67E4(player, arg1, 1);
+ *                     break;
+ *                 case 12:
+ *                     ret = func_801F6CA4(player, arg1, 0);
+ *                     break;
+ *                 case 13:
+ *                     ret = func_801F6CA4(player, arg1, 1);
+ *                     break;
+ *                 case 14:
+ *                     ret = osPfsFreeBlocks(&D_8039B630, &D_80218EF0);
+ *                     break;
+ *                 case 15:
+ *                     ret = func_801F5FE4();
+ *                     break;
+ *                 case 16:
+ *                     done = 1;
+ *                     ret = osEepromProbe(&D_80370BF8);
+ *                     break;
+ *                 case 17:
+ *                     ret = func_801F6ED4(player);
+ *                     break;
+ *                 case 18:
+ *                     ret = osPfsChecker(&D_8039B630);
+ *                     break;
+ *                 case 19:
+ *                     ret = 10;
+ *                     break;
+ *                 case 20:
+ *                     ret = func_801F6AF4(player, 0x2704197125121981);
+ *                     break;
+ *                 case 21:
+ *                     ret = func_801F6AF4(player, 0x87569AB6CD076AEC);
+ *                     break;
+ *                 case 22:
+ *                     ret = 0;
+ *                     break;
+ *                 default:
+ *                     func_8029A7E4("Nonsense pak message\n");
+ *                     break;
+ *             }
+ *             func_8029A7E4("pak command %d returned %d\n", cmd, ret);
+ *             switch (ret) {
+ *                 case 0x6E382:
+ *                     if ((D_80364A90 & 0x10E18000) || (D_80364A98 & 0x20000000000000)) {
+ *                         done = 1;
+ *                         break;
+ *                     }
+ *                     // fallthrough
+ *                 case 6:
+ *                 case 10:
+ *                 case 11:
+ *                     if (tries >= 4) {
+ *                         if (cmd != 0x13) {
+ *                             if (ret == 0x6E382) {
+ *                                 D_80219F88 = 0x5D;
+ *                             } else {
+ *                                 D_80219F88 = 0x5C;
+ *                             }
+ *                             func_801F6AF4(player, 0x2704197125121981);
+ *                             next = 0x13;
+ *                         }
+ *                         yoshi = D_80219F88;
+ *                     } else {
+ *                         yoshi = 0;
+ *                         tries++;
+ *                     }
+ *                     break;
+ *                 case 0:
+ *                 case 5:
+ *                 case 9:
+ *                     done = 1;
+ *                     break;
+ *                 case 8:
+ *                     if (!(D_80364A90 & 0x10E18000) || func_801F5FE4() != 0) {
+ *                         break;
+ *                     }
+ *                     // fallthrough
+ *                 case 7:
+ *                     D_8039C538 = (player < D_8039C538) ? player : D_8039C538;
+ *                     done = 1;
+ *                     break;
+ *                 case 3:
+ *                     if (tries >= 4) {
+ *                         if (cmd != 0x13) {
+ *                             func_801F6AF4(player, 0x2704197125121981);
+ *                             next = 0x13;
+ *                         }
+ *                         yoshi = 0x5C;
+ *                     } else {
+ *                         func_8029A7E4("trying to fix pak ...\n");
+ *                         if (cmd != 0x12) {
+ *                             osSendMesg(&D_80219EF8, (OSMesg) (cmd | (arg1 << 8) | (player << 16) | (reply << 24)), OS_MESG_NOBLOCK);
+ *                         }
+ *                         next = 0x12;
+ *                         reply = 0;
+ *                         tries++;
+ *                     }
+ *                     break;
+ *                 case 2:
+ *                     if (lastRet == 8 && !(D_80364A90 & 0x10E18000)) {
+ *                         PFS_ASSERT(1==0, 342);
+ *                         done = 1;
+ *                     }
+ *                     break;
+ *                 case 1:
+ *                     if (D_80364A98 & 0x20000000000000) {
+ *                         done = 1;
+ *                     }
+ *                     break;
+ *             }
+ *             lastRet = ret;
+ *             if (D_8036BF10 == 0 && yoshi != 0 && !done && !next && D_80219F50.mtqueue == &D_80310BD0) {
+ *                 func_801EE398(yoshi);
+ *                 D_80218D24 = 1;
+ *             }
+ *             if (next) {
+ *                 cmd = next;
+ *                 next = 0;
+ *             }
+ *             osRecvMesg(&D_80219F30, NULL, OS_MESG_BLOCK);
+ *         } while (!done);
+ *         if (D_80218D24) {
+ *             yoshiState = 1;
+ *             currentYoshiWindow = -1;
+ *         }
+ *         if (reply) {
+ *             osSendMesg(&D_80219F50, (OSMesg) ret, OS_MESG_BLOCK);
+ *         }
+ *     }
+ * }
+ */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/0E7B0/func_801F58E8.s")
 
 s32 func_801F5FE4(void) {

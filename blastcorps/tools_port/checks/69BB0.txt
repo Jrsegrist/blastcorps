@@ -45,3 +45,26 @@ func_802AEE84: -n 300 --seed 1 --follow func_802ABD54,func_802ABCDC --mem D_803E
     --mem D_803BDFD8+0x16*0x24:4/1=choice:0,0x31 --mem D_803BDFD8+0x17*0x24:4/1=choice:0,0x32 \
     --mem D_80364A6E:1=choice:0,1,0x80,0xFF,0x40 --mem D_80364460+0x5C*0x74:3=choice:0x100,0x200 \
     --mem D_80364460+0x1B8=0 --mem D_80364460+0x60*0x74:4=int
+
+# ---- phase D (wave 3, wt-f6) ----
+# func_802AF4BC: vehicle 0 per-frame animation update ($gp = D_803ED760; +0x76 speed, +0xA1 moving last frame).
+# Channel states (field 0x10) and channel 1's mode (t1 output) from --stub-ret; func_8026A8E0 results 0/1/2/other.
+func_802AF4BC: -n 400 --seed 0 --ret void --arg gp=sym:D_803ED760 \
+    --stub-ret func_802A04BC=choice:0*3,1,2 --stub-ret func_802A04BC.t1=choice:0,2,6,1 --stub-ret func_8026A8E0=choice:0*3,1,2,5 \
+    --sig func_8026A8E0=a0,a1 --sig func_80260650=a0,a1:2,a2 --mem D_80367738=int \
+    --mem D_803ED760+0x76:2=halves:0*4,1,10,11,12,21,22,0xFFFF,0xFFF5,0xFFF4,0x8000,0x7FFF \
+    --mem D_803ED760+0xA1:1=bytes:0,1,2,0xFF --mem D_802E8BDC:1=bytes:0,5,0x31,0x26,0xFF \
+    --mem D_803ED820:2=halves:0,2,6,0xFFFF,1
+# stopped with every channel idle: the random start (both func_8026A8E0 results); moving with channel 31 idle
+func_802AF4BC: -n 200 --seed 1 --ret void --arg gp=sym:D_803ED760 \
+    --stub-ret func_802A04BC=choice:0,2 --stub-ret func_802A04BC.t1=choice:2,6 --stub-ret func_8026A8E0=choice:0,1,2,3 \
+    --sig func_8026A8E0=a0,a1 --sig func_80260650=a0,a1:2,a2 --mem D_80367738=int \
+    --mem D_803ED760+0x76:2=halves:0*3,1,0xFFFF,0x2C --mem D_803ED760+0xA1:1=bytes:0,1 --mem D_802E8BDC:1=bytes:0,0x31 \
+    --mem D_803ED820:2=halves:0,2,6
+# setters, getter and func_8026A8E0 run for real (random channel table, RNG seed); func_8029F9D4 stays stubbed
+func_802AF4BC: -n 300 --seed 2 --ret void --arg gp=sym:D_803ED760 \
+    --follow func_802A04BC,func_802A02E4,func_802A0290,func_802A0360,func_802A039C,func_802A03D4,func_802A040C,func_8026A8E0 \
+    --sig func_80260650=a0,a1:2,a2 --mem D_80367738=int --mem D_803ED460:0x300=rand \
+    --mem D_803ED460+0x10*0x18:32/1=bytes:0*3,1,2 --mem D_803ED460+0x2F8:1=bytes:0*2,1 --mem D_803ED460+0x2B:1=bytes:0,2,6 \
+    --mem D_8036B96C=int --mem D_803ED760+0x76:2=halves:0*3,1,11,0xFFFF,0xFFF5,0x8000,0x7FFF \
+    --mem D_803ED760+0xA1:1=bytes:0,1,2 --mem D_802E8BDC:1=bytes:0,0x31,0x26 --mem D_803ED820:2=halves:0,2,6

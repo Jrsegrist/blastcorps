@@ -87,3 +87,35 @@ func_802B5F60: -n 100 --seed 0 --ret void --sig func_802A7764=a0,a1,a2 --sig fun
     --mem D_803EEA90+0x76:2=rand --mem D_803EEB48=int --mem D_803EEB4C=int
 func_802B5F60: -n 30 --seed 1 --ret void --follow func_802A7764 --sig func_802C444C= --heap 0x800 --heap 0x800 \
     --mem D_803EEA90+0x76:2=rand --mem D_803EEB48=rel:heap0 --mem D_803EEB4C=rel:heap1
+# func_802B6C28: vehicle 5 per-frame update ($gp = D_803EEA90). Heading + camera yaw (cvt.w.s) - D_803EEB5C folded to
+# 0..0x7FF, / 0x55 -> two func_802A05A4 entries; balance D_803EEB54 (buttons C15/C16 vs func_802B71DC limits, else towards
+# 0.5) -> channel 5; D_803EEB50 (func_802A7CB0 gear check, C23 / C1C, else towards 0.5) -> channel 4; speed -> channel 1
+# and func_802C4584; level D_803EEB5F (+-5 / 10 towards 50) -> channel 2. func_802A7CB0 leaves f0 alone (the asm keeps
+# D_803EEB50 in f0 across it; its conventions line lacks f0, hence --stub-preserve).
+func_802B6C28: -n 400 --seed 0 --ret void --arg gp=sym:D_803EEA90 --stub-preserve func_802A7CB0=f0 \
+    --stub-ret func_802A7CB0=choice:0*2,1 --stub-ret func_802B71DC=float:0:1 \
+    --mem D_80364414:4=floats:0:360 --mem D_803EEA90+0x4C:2=int:0:0xFFFF --mem D_803EEB5C:2=int:-0x1000:0x1000 \
+    --mem D_803EEB54:4=floats:-0.5:1.5 --mem D_803EEB50:4=floats:-0.5:1.5 \
+    --mem D_80370C15:1=bytes:0*2,1 --mem D_80370C16:1=bytes:0*2,1 --mem D_80370C1C:1=bytes:0,1 --mem D_80370C23:1=bytes:0,1 \
+    --mem D_803EEB5F:1=bytes:0,4,5,9,0x27,0x28,0x29,0x31,0x32,0x33,0x3B,0x3C,0x3D,0x5F,0x60,0x64,0x65,0xFF \
+    --mem D_803EEA90+0x76:2=halves:0,1,13,14,15,0xFFFF,0xFFF2,0xFFF1,0x8000,0x7FFF,0x1234
+# fold boundaries (sum 0x1000, difference 0 / -1 / 0x800) and exact 0.5 / limit ties; step constants varied
+func_802B6C28: -n 400 --seed 1 --ret void --arg gp=sym:D_803EEA90 --stub-preserve func_802A7CB0=f0 \
+    --stub-ret func_802A7CB0=choice:0,1 --stub-ret func_802B71DC=float:0.25:0.75 \
+    --mem D_80364414:4=words:0,0x43B40000,0x43340000,0x3F800000,0x42B40000,0x3EB40000,0x3F340000 \
+    --mem D_803EEA90+0x4C:2=halves:0,0xFFF,0x1000,0x7FF,0x800,0x801,0xFFFF,0x55,0x54 \
+    --mem D_803EEB5C:2=halves:0,1,0x800,0x7FF,0xFFFF,0x1000,0xF000 \
+    --mem D_803EEB54:4=words:0x3F000000,0x3EFFFFFF,0x3F000001,0,0x3F800000,0x3E800000,0x3F400000,0x7FC00000 \
+    --mem D_803EEB50:4=words:0x3F000000,0x3EFFFFFF,0x3F000001,0,0x3F800000,0x3C23D70A,0x3F7AE148,0x7FC00000 \
+    --mem D_8030D8E4:4=floats:0:0.3 --mem D_8030D8E8:4=floats:0:0.3 --mem D_8030D8EC:4=choice:0x3C23D70A,0x3D800000 \
+    --mem D_8030D8F0:4=floats:0:0.3 --mem D_8030D8F4:4=floats:0:0.3 --mem D_8030D8F8:4=choice:0x3C23D70A,0x3D800000 \
+    --mem D_80370C15:1=bytes:0,1 --mem D_80370C16:1=bytes:0,1 --mem D_80370C1C:1=bytes:0,1 --mem D_80370C23:1=bytes:0,1 \
+    --mem D_803EEB5F:1=int:0:0xFF --mem D_803EEA90+0x76:2=int:0:0xFFFF
+# func_802B71DC, func_802A7CB0 and the channel setters run for real (random gear table at +0x78)
+func_802B6C28: -n 300 --seed 2 --ret void --arg gp=sym:D_803EEA90 \
+    --follow func_802B71DC,func_802A7CB0,func_802A0360,func_802A039C,func_802A03D4 \
+    --mem D_803EE790:0x90=rand --mem D_803EEA90+0x50:1=int:0:6 --mem D_803EEA90+0x78:0x2A=halves:0,10,20,30,0xFFF6,0x8000 \
+    --mem D_80364414:4=floats:0:360 --mem D_803EEA90+0x4C:2=int:0:0xFFFF --mem D_803EEB5C:2=int:-0x1000:0x1000 \
+    --mem D_803EEB54:4=floats:-0.5:1.5 --mem D_803EEB50:4=floats:-0.5:1.5 \
+    --mem D_80370C15:1=bytes:0*2,1 --mem D_80370C16:1=bytes:0*2,1 --mem D_80370C1C:1=bytes:0,1 --mem D_80370C23:1=bytes:0,1 \
+    --mem D_803EEB5F:1=int:0:0xFF --mem D_803EEA90+0x76:2=halves:0,5,10,15,20,25,0xFFF6,0xFFEC,0x7FFF,0x8000,0x1234

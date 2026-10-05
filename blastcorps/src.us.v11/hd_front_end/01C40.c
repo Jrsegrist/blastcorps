@@ -14,7 +14,9 @@ typedef struct {
 
 /* One per save slot (D_80364AF0, 0x100 bytes), as in hd_code 26570.c */
 typedef struct {
-    /* 0x00 */ char name[0x10];
+    /* 0x00 */ char name[8];
+    /* 0x08 */ u8 level; /* level the player was last on */
+    /* 0x09 */ u8 pad9[7];
     /* 0x10 */ s32 unk10;
     /* 0x14 */ u8 pad14[4];
     /* 0x18 */ u8 rank[0x3C]; /* per level: 1-5 when done */
@@ -92,6 +94,10 @@ extern s32 D_802154EC;
 extern s32 D_80215508[];
 extern u8 D_802155A0[];
 extern u16 *D_802158A0;
+extern u8 D_8039C53C[]; /* per slot: 1 + level to save, 0 = nothing pending */
+extern u8 D_8039C540;
+extern s16 yoshiState;
+extern void *D_80367738;
 
 extern Vtx D_80208380[];
 extern Gfx D_80208400[];
@@ -154,12 +160,15 @@ void func_80259DC8(void *gfxp, u8 *str, u16 *wstr, s32 align, s32 fit, s32 x, s3
 void func_801FE018(s32);
 void func_801F8354(u8);
 s32 func_8025B3F0(char *, char *);
+void func_80260650(void *, s32, s32);
+void func_80261570(f32);
+void func_8029A7E4(const char *, ...);
 void func_801E8DCC(u8 arg0);
 void func_801E8EB8(u8, s32);
 u16 func_801E9528(void);
 void func_801EA108(u8 slot, u8 send, u8 newGame);
 void func_801EA268(Player *p);
-Gfx *func_801EC49C(Gfx *, s32, s32, s32);
+Gfx *func_801EC49C(Gfx *arg0, s32 x, s32 y, u8 slot);
 
 /* Highest rank shown: 4 once unk91 reaches 12, else 3 */
 #define MAX_RANK() ((D_80364AF0[D_80364AE8].unk91 >= 12) ? 4 : 3)
@@ -633,7 +642,61 @@ void func_801EC464(void) {
     }
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/01C40/func_801EC49C.s")
+/* Draw a save slot's rank badge, stepping its state: 0/4 count down, 1 fade
+ * in, 2 shown, 3 fade out (D_80215900/08/10[slot]) */
+Gfx *func_801EC49C(Gfx *arg0, s32 x, s32 y, u8 slot) {
+    Gfx *gdl = arg0;
+    s32 pad;
+    s32 mode;
+
+    if (yoshiState == 8) {
+        D_80215900[slot] = 3;
+    }
+    switch (D_80215900[slot]) {
+        case 0:
+            D_80215908[slot]--;
+            if (D_80215908[slot] == 0) {
+                D_80215900[slot] = 1;
+                if (D_80215902[slot] == 5) {
+                    func_80260650(D_80367738, 0xEA, 0);
+                } else {
+                    func_80260650(D_80367738, 0xE6, 0);
+                }
+            }
+            break;
+        case 4:
+            D_80215908[slot]--;
+            if (D_80215908[slot] == 0) {
+                D_80215900[slot] = 1;
+            }
+            break;
+        case 1:
+            D_80215910[slot] += 0x10;
+            if (D_80215910[slot] >= 0x100) {
+                D_80215910[slot] = 0xFF;
+                D_80215900[slot] = 2;
+            }
+            break;
+        case 3:
+            D_80215910[slot] -= 0x20;
+            if (D_80215910[slot] < 0) {
+                D_80215910[slot] = 0;
+            }
+            break;
+        case 2:
+            break;
+    }
+    if (D_80215900[slot] == 0) {
+        return gdl;
+    }
+    if (D_80215902[slot] == 5) {
+        mode = 2;
+    } else {
+        mode = 1;
+    }
+    gdl = func_80272ED8(gdl, D_80215902[slot] % 5 + D_80215914, x, y, D_80215910[slot], mode, 1.0f);
+    return gdl;
+}
 
 /* Draw the save-slot panel: the two slot boxes, or the rank badge and the
  * level's target time for it */
@@ -698,7 +761,35 @@ void func_801ECB18(void) {
     }
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/01C40/func_801ECC8C.s")
+/* Send the pending saves (D_8039C53C) to the save thread */
+void func_801ECC8C(void) {
+    s32 i;
+    s32 shown;
+
+    shown = 0;
+    for (i = 0; i < 4; i++) {
+        if (D_8039C53C[i] != 0) {
+            if (shown == 0) {
+                func_80261570(0.0f);
+                shown = 1;
+            }
+            osSendMesg(&D_80219EF8, (OSMesg) ((i << 16) | 0x14), OS_MESG_BLOCK);
+            func_8029A7E4("saving player %d on level %d\n", i, D_8039C53C[i] - 1);
+            D_80364AF0[i].level = D_802E8BDC;
+            osSendMesg(&D_80219EF8, (OSMesg) (((D_8039C53C[i] - 1) << 8) | 7 | (i << 16)), OS_MESG_BLOCK);
+            osSendMesg(&D_80219EF8, (OSMesg) (((D_8039C53C[i] - 1) << 8) | 9 | (i << 16)), OS_MESG_BLOCK);
+            osSendMesg(&D_80219EF8, (OSMesg) (((D_8039C53C[i] - 1) << 8) | 0xB | (i << 16)), OS_MESG_BLOCK);
+            if (D_8039C540 != 0 && D_80364AE8 == i) {
+                osSendMesg(&D_80219EF8, (OSMesg) (((D_8039C540 - 1) << 8) | 0xD | (D_80364AE8 << 16)),
+                           OS_MESG_BLOCK);
+                D_8039C540 = 0;
+            }
+            osSendMesg(&D_80219EF8, (OSMesg) ((i << 16) | 0x15 | 0x1000000), OS_MESG_BLOCK);
+            osRecvMesg(&D_80219F50, NULL, OS_MESG_BLOCK);
+            D_8039C53C[i] = 0;
+        }
+    }
+}
 
 /* Retype the 0x81-type levels: 0x80 once unk91 >= 11 in mode 0x4000, else 1 */
 void func_801ECE9C(void) {

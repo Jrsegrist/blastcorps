@@ -9,3 +9,16 @@ func_802B1150: -n 100 --seed 2 --ret int --mem D_803EDF10+0x96:3=onehot:1/1:1:by
 func_802B2900: -n 300 --seed 0 --ret void --mem D_803EBBF0:4=floats:-100000:100000
 func_802B2900: -n 200 --seed 1 --ret void \
     --mem D_803EBBF0:4=words:0,0x80000000,0x3F800000,0x7F800000,0xFF800000,0x7FC00000,0x00000001,0x7F7FFFFF,0xC2C80000
+
+# func_802B295C: return func_802AC7DC(a0, D_803EDF10, D_803EDFB8) (serialize vehicle state; v0 passed through)
+func_802B295C: -n 300 --seed 0 --ret int --sig func_802AC7DC=a0,a1,a2 --stub-ret func_802AC7DC=rand \
+    --arg a0=choice:0,1,-1,0x80000000,0x7FFFFFFF,0x80B00000,0x80B00003,0x803FFFFF
+func_802B295C: -n 50 --seed 1 --ret int --sig func_802AC7DC=a0,a1,a2 --stub-ret func_802AC7DC=0xB2 --arg a0=choice:0,0x80B00000
+# end to end with the callee run for real (asm vs its C rewrite): unaligned dst, random state
+func_802B295C: -n 100 --seed 2 --ret int --follow func_802AC7DC --arg a0=choice:0x80B00000,0x80B00001,0x80B00002,0x80B00003,0x80B00005 --mem 0x80B00000:0x100=rand \
+    --mem D_803EDF10:0xA6=rand --mem D_803EDFB8:12=rand
+# func_802B2988: func_802AC85C(a0, D_803EDF10, D_803EDFB8) (restore vehicle state)
+func_802B2988: -n 300 --seed 0 --ret void --sig func_802AC85C=a0,a1,a2 \
+    --arg a0=choice:0,1,-1,0x80000000,0x7FFFFFFF,0x80B00000,0x80B00003,0x803FFFFF
+func_802B2988: -n 100 --seed 1 --ret void --follow func_802AC85C --arg a0=choice:0x80B00000,0x80B00001,0x80B00002,0x80B00003,0x80B00005 --mem 0x80B00000:0x100=rand \
+    --mem D_803EDF10:0xA6=rand --mem D_803EDFB8:12=rand

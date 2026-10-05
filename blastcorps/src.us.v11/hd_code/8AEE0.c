@@ -151,10 +151,32 @@ void func_802D249C(void) {
  * func_802AC7DC/func_802AC85C, same confirmed-unreachable-from-C 8-byte
  * sd-$ra frame as func_802AC284 (hd_code/679E0.c). Permanently
  * GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u8 D_803FC8D0[];  /* this vehicle's state block: 0xA6 bytes are (de)serialized */
+extern u32 D_803FC978[]; /* plus these three words */
+s32 func_802AC7DC(u8 *dst, u8 *src, u32 *words);
+void func_802AC85C(u8 *src, u8 *dst, u32 *words);
+
+/* Serialize this vehicle's state (D_803FC8D0[0..0xA5] plus the three words
+ * D_803FC978[0..2]) into `dst` via func_802AC7DC. Returns the callee's result
+ * (0xB2, the byte count): the asm leaves the callee's v0 untouched. */
+s32 func_802D24F8(u8 *dst) {
+    return func_802AC7DC(dst, D_803FC8D0, D_803FC978);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8AEE0/func_802D24F8.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Inverse of func_802D24F8: restore this vehicle's state from `src` via
+ * func_802AC85C. Called from 17210.c as `void func_802D2524(void *)`. */
+void func_802D2524(void *src) {
+    func_802AC85C(src, D_803FC8D0, D_803FC978);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8AEE0/func_802D2524.s")
+#endif
 
 /* func_802D2550: `mtc0 $a0, $11` (write COP0 Compare register) wrapped in a
  * dead $ra save/restore frame - same hand-written COP0-leaf-stub character

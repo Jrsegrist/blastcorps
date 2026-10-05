@@ -41,14 +41,19 @@ typedef struct {
 
 /* Animated sprite definition (D_802F49F4, 0x30 bytes), as in 26570.c */
 typedef struct {
-    u8 pad0[4];
-    u8 unk4;
-    u8 pad5;
-    u16 unk6[17];
-    f32 unk28;
-    u8 unk2C;
-    u8 unk2D;
-    u8 pad2E[2];
+    /* 0x00 */ u8 pad0[4];
+    /* 0x04 */ u8 count;
+    /* 0x05 */ u8 pad5;
+    /* 0x06 */ u16 ids[10];
+    /* 0x1A */ u8 nframes;
+    /* 0x1B */ u8 frames[11];
+    /* 0x26 */ u8 speed; /* frames per animation step */
+    /* 0x27 */ u8 pad27;
+    /* 0x28 */ f32 scale;
+    /* 0x2C */ u8 unk2C;
+    /* 0x2D */ u8 unk2D;
+    /* 0x2E */ s8 unk2E;
+    /* 0x2F */ u8 unk2F;
 } Anim30;
 
 typedef struct {
@@ -103,7 +108,7 @@ extern u8 D_80364424;
 extern s32 D_80364428;
 extern u16 D_8036442C;
 extern s32 D_80364430;
-extern s32 D_803156C4;
+extern u32 D_803156C4;
 extern s32 D_80367BC0;
 extern u32 D_80367BC4;
 extern s16 D_80367BD8;
@@ -118,13 +123,16 @@ extern u8 D_006A32B0[];
 extern u8 D_006A8DA0[];
 extern void *D_80358070;
 extern void *D_80367BE0[];
-extern s16 D_80367BC8;
+extern u16 D_80367BC8;
 extern u8 D_80367C00;
 extern u8 D_80367C01;
 extern Anim30 D_802F49F4[];
 extern Anim30 *D_80367BCC;
-extern s32 D_80367BD0;
+extern Anim30 *D_80367BD0;
 extern u8 D_80367BD4;
+extern u8 D_80367BD5;
+extern s16 D_80367BD6; /* HUD alpha cap */
+extern s16 currentYoshiWindow;
 extern char D_80367BB0[];
 extern u8 D_80367BF8;  /* race: quadrants crossed this lap */
 extern u8 D_80367BF9;  /* race: previous quadrant */
@@ -181,6 +189,12 @@ void func_80263358(void);
 void func_802633E0(void);
 void func_80264A34(char *buf, u16 t, s32 arg2);
 s32 func_8026394C(s16 x, s16 y, s16 x0, s16 y0, s16 x1, s16 y1);
+void func_80259CCC(Gfx **, char *, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32);
+void func_8025E2CC(Gfx **arg0, Gfx **arg1, s32 arg2);
+Gfx *func_80264264(Gfx **, Gfx *);
+Gfx *func_80274868(Gfx *);
+Gfx *func_80274AA4(Gfx *);
+Gfx *func_80272ED8(Gfx *, s32, s32, s32, s32, s32, f32);
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
@@ -322,13 +336,13 @@ void func_80262320(u8 arg0) {
     }
     D_80367BCC = &D_802F49F4[anim];
     if (D_802E8F94[arg0].type == 0x20) {
-        D_80367BD0 = 0;
-        D_80367BD4 = func_80272C5C(D_80367BCC->unk6, 0, D_80367BCC->unk4, D_80367BCC->unk2C, D_80367BCC->unk2D,
-                                   D_80367BCC->unk28 * 0.5);
+        D_80367BD0 = NULL;
+        D_80367BD4 = func_80272C5C(D_80367BCC->ids, 0, D_80367BCC->count, D_80367BCC->unk2C, D_80367BCC->unk2D,
+                                   D_80367BCC->scale * 0.5);
     } else {
-        D_80367BD0 = 0;
+        D_80367BD0 = NULL;
         if (anim) {
-            D_80367BD4 = func_80272C5C(D_80367BCC->unk6, 0, D_80367BCC->unk4, D_80367BCC->unk2C, D_80367BCC->unk2D,
+            D_80367BD4 = func_80272C5C(D_80367BCC->ids, 0, D_80367BCC->count, D_80367BCC->unk2C, D_80367BCC->unk2D,
                                        1.0f);
         } else {
             D_80367BCC = NULL;
@@ -634,7 +648,95 @@ s32 func_8026394C(s16 x, s16 y, s16 x0, s16 y0, s16 x1, s16 y1) {
     return 0;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/1D990/func_802639B4.s")
+/* Draw the objective HUD: progress text or lap times, the time limit
+ * (flashing red under ten seconds), and the objective icon(s) */
+Gfx *func_802639B4(Gfx *gdl, Gfx **arg1, u32 *arg2) {
+    Gfx *g;
+    s32 pad60;
+    u8 grn;
+    u8 red;
+    u8 flash;
+    s16 alpha;
+    s32 pad54;
+    s32 i;
+
+    g = gdl;
+    if ((D_80364A90 & 0x04000200) && currentYoshiWindow != 0x1E) {
+        alpha = 0xFF;
+    } else {
+        alpha = D_80367BD6;
+    }
+    switch (D_80364AA8) {
+        case 2:
+            for (i = 0; i < D_80367B54 - ((D_80364A90 & 0x440) ? 1 : 0) && i < D_80367C04->target; i++) {
+                if (i + 1 == D_80367BFB && i + 1 != D_80367B54) {
+                    /* best lap */
+                    func_80259CCC(arg1, D_80367B60[i], 0, 1, 0, 0x18, i * 18 + 0x12, 0x14, 0x14, 1, 0xFF, 0, 0,
+                                  D_80367BD6);
+                } else if (i + 1 == D_80367B54) {
+                    /* current lap */
+                    func_80259CCC(arg1, D_80367B60[i], 0, 1, 0, 0x18, i * 18 + 0x12, 0x14, 0x14, 1, 0xFF, 0xFF, 0xFF,
+                                  D_80367BD6);
+                } else {
+                    func_80259CCC(arg1, D_80367B60[i], 0, 1, 0, 0x18, i * 18 + 0x12, 0x14, 0x14, 1, 0xA0, 0xA0, 0xA0,
+                                  D_80367BD6);
+                }
+            }
+            break;
+        case 4:
+        case 0x20:
+        case 0x80:
+            func_80259CCC(arg1, D_80367B60[0], 0, 1, 0, 0x38, 0x14, 0x14, 0x14, 1, 0xFF, 0xFF, 0xFF, alpha);
+            break;
+        case 8:
+            func_80259CCC(arg1, D_80367B60[0], 0, 1, 0, 0x1C, 0x12, 0x14, 0x14, 1, 0xFF, 0xFF, 0xFF, alpha);
+            break;
+        case 0x10:
+        case 0x40:
+            func_80259CCC(arg1, D_80367B60[0], 0, 1, 0, 0x38, 0x12, 0x14, 0x14, 1, 0xFF, 0xFF, 0xFF, alpha);
+            break;
+    }
+    red = 0xFF;
+    grn = 0;
+    if (D_80364A90 & 0x04000104) {
+        flash = D_80367BF4 < 10;
+        if (!flash) {
+            grn = 0xFF;
+        }
+    } else {
+        flash = 0;
+        grn = 0xFF;
+        red = 0;
+    }
+    if (D_80367BF4 == 0) {
+        flash = 0;
+    }
+    if (!flash || D_803156C4 % 20 < 16) {
+        if (D_80364AA8 == 2) {
+            func_80259CCC(arg1, D_80367BB0, 0, 1, 0, 0x18, i * 18 + 0x14, 0x10, 0x10, 1, red, grn, 0, D_80367BD6);
+        } else {
+            func_80259CCC(arg1, D_80367BB0, 0, 1, 0, 0x1C, D_80367BD8 + 0x2A, 0x10, 0x10, 1, red, grn, 0, alpha);
+        }
+    }
+    if (D_803643D7 && D_80364A90 == 0x04000000) {
+        func_8025E2CC(&g, arg1, D_8035805C);
+    }
+    if (D_80367BC8) {
+        g = func_80264264(arg1, g);
+    }
+    g = func_80274868(g);
+    if (D_80367BCC) {
+        g = func_80272ED8(g, D_80367BCC->frames[(D_803156C4 / D_80367BCC->speed) % D_80367BCC->nframes] + D_80367BD4 - 1,
+                          0x18, D_80367BD8 + 0xC, alpha, 1, 1.0f);
+    }
+    if (D_80367BD0) {
+        g = func_80272ED8(g, D_80367BD0->frames[(D_803156C4 / D_80367BD0->speed) % D_80367BD0->nframes] + D_80367BD5 - 1,
+                          0x18, D_80367BD8 + 0xC, alpha, 1, 1.0f);
+    }
+    g = func_80274AA4(g);
+    arg2 += g - gdl; /* dead store to the parameter, kept for the match */
+    return g;
+}
 
 void func_8026420C(void) {
     if (D_80367BFE && D_80358064 == D_80367B50) {

@@ -183,7 +183,7 @@ extern u8 D_8021A904;
 extern s8 D_8021A906;
 extern s8 D_8021A907;
 extern u8 D_8021A908;
-extern s8 D_8021A909;
+extern u8 D_8021A909;
 u64 D_8021A940[60];
 extern f32 D_8021A91C;
 extern f32 D_8021A920;
@@ -281,8 +281,9 @@ void func_801FCF38(Vtx *v, f32 x, f32 y, f32 z, u8 w, u8 h, f32 scale, u8 flip);
 void func_801FD484(f32 *arg0, f32 *arg1, f32 *arg2, f32 *arg3, f32 *arg4, f32 arg5);
 s32 func_801FE760(); /* K&R */
 Gfx *func_801FA180(Gfx *gdl, Dynamic *dyn, f32 arg2, s8 *arg3);
-Gfx *func_801FA74C(Dynamic *dyn, Gfx *gdl, s32 from, s32 to, s8 *out, f32 *lon, s32 arg6, s32 arg7, s32 arg8,
-                   s32 arg9, s32 arg10, s32 arg11, s32 arg12);
+Gfx *func_801FA74C(Dynamic *dyn, Gfx *arg1, u8 from, u8 to, s8 *out, f32 *lon, u8 curved, u8 r0, u8 g0, u8 b0,
+                   u8 r1, u8 g1, u8 b1);
+void func_8027690C(void *arg0, f32 x, f32 y, f32 z, s16 *sx, s16 *sy, Mtx *arg6, Mtx *arg7, Mtx *arg8, f32 arg9);
 
 /* Level-select globe: initialise for the given level. */
 void func_801F8530(s32 level) {
@@ -708,6 +709,190 @@ Gfx *func_801FA180(Gfx *arg0, Dynamic *dyn, f32 lon0, s8 *selected) {
     return gdl;
 }
 
+/*
+ * TODO: func_801FA74C (1947 insns) draws one route between two levels: an arc of line segments
+ * over the globe (gSPVertex + gSPLineW3D), coloured from (r0,g0,b0) to (r1,g1,b1), brightened
+ * towards the camera, with the route-open fade timed by D_8021AB28 and a sound on completion.
+ * The draft below is structurally complete (same frame 0x130, same locals, same rodata order)
+ * but compiles to 1953 instructions with register-allocation differences throughout: IDO picks
+ * other FP registers from the very first FP op (scale = 1.0f gets $f10, target $f4), and in the
+ * func_8027690C call (i != 0 branch) x/y stay cached in FP registers, which then defeats the CSE
+ * of D_8035805C, &D_80217B70 and dyn between the two Mtx arguments (+3 insns per call site).
+ * Tried: statement/declaration-initializer orders, matrix spellings (array/struct/pointer
+ * arithmetic), comma/one-line xyz, a pos[3] array, operand orders. Fixed along the way: the
+ * MAX with D_8021AB28 is "(AB28 > e) ? AB28 : e", the colour factors are (f32) u8, *lon gets an
+ * int ternary, the acos sign goes first (as in func_801FC5B8).
+ */
+#if 0
+/* D_80217B70 seen as a struct (the same address) */
+extern struct {
+    Mtx pad[12];
+    Mtx view[2];
+    Mtx rot[2];
+} D_80217B70x;
+
+#define FABS(x) ((x) > 0 ? (x) : -(x))
+
+/* One route between two levels: an arc of line segments over the globe, coloured r0..r1 along it. */
+Gfx *func_801FA74C(Dynamic *dyn, Gfx *arg1, u8 from, u8 to, s8 *out, f32 *lon, u8 curved, u8 r0, u8 g0, u8 b0,
+                   u8 r1, u8 g1, u8 b1) {
+    Vtx *v;
+    Vtx *vbase;
+    Gfx *gdl;
+    s32 i;
+    s32 n;
+    s32 steps;
+    u8 unk117;
+    u8 found;
+    f32 progress;
+    GlobeLevel *e1;
+    GlobeLevel *e2;
+    f32 x;
+    f32 y;
+    f32 z;
+    f32 dist;
+    s16 sx1;
+    s16 sy1;
+    s16 sx0;
+    s16 sy0;
+    f32 x0;
+    f32 x1;
+    f32 y0;
+    f32 y1;
+    f32 z0;
+    f32 z1;
+    f32 a;
+    f32 b;
+    f32 cosang;
+    f32 angle;
+    f32 t;
+    f32 scale;
+    f32 bright;
+    u8 loaded;
+    u8 lit;
+    u32 extra;
+
+    unk117 = 1;
+    lit = 0;
+    gdl = arg1;
+    scale = 1.0f;
+    if (to == D_8021A905 || D_80364AF0[D_80364AE8].rank[from] == 0) {
+        u8 tmp;
+
+        tmp = to;
+        to = from;
+        from = tmp;
+    }
+    if (D_8021A940[from] & ((u64) 1 << to)) {
+        found = 1;
+    } else {
+        found = 0;
+    }
+    D_8021A940[from] |= (u64) 1 << to;
+    D_8021A940[to] |= (u64) 1 << from;
+    *out = -1;
+    if (found || func_801FE760(to)) {
+        return arg1;
+    }
+    if (func_80264BA4(from) == 3 || func_80264BA4(to) == 3) {
+        lit = 1;
+    }
+    if (from == D_8021A905) {
+        *out = to;
+    }
+    if (func_80264BA4(from) == 3 && func_80264BA4(to) == 3) {
+        if (D_80364A87 &&
+            (D_80364AF0[D_80364AE8].rank[to] == 0 ||
+             ((D_80364A87 & 1) && from == D_8021A905 &&
+              !((D_80364AF0[D_80364AE8].rank[to] > 0 && D_80364AF0[D_80364AE8].rank[to] < 6) ? 1 : 0)))) {
+            if (D_8021A924) {
+                progress = MIN2(1.0, (D_8021AB28 > (f32) (D_803156C4 - D_8021AB24) * 60.0 / 60.0 / 90.0) ? D_8021AB28 : (f32) (D_803156C4 - D_8021AB24) * 60.0 / 60.0 / 90.0);
+                if (progress == 1.0 && D_8021AB38) {
+                    func_802608C8(D_8021AB38);
+                } else if (!D_8021AB38 && progress != 1.0 && D_80217B6C == 3) {
+                    func_80260650(D_80367738, 0x7C, &D_8021AB38);
+                }
+            } else {
+                progress = 0.0f;
+            }
+        } else {
+            progress = 1.0f;
+        }
+    } else {
+        progress = 1.0f;
+    }
+    e1 = &D_8020D810[from];
+    e2 = &D_8020D810[to];
+    x0 = e1->unk24;
+    y0 = e1->unk28;
+    z0 = e1->unk2C;
+    x1 = e2->unk24;
+    y1 = e2->unk28;
+    z1 = e2->unk2C;
+    dist = sqrtf((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0) + (z1 - z0) * (z1 - z0));
+    steps = MAX2(MIN2(dist / 32.0, 15.0), 3.0);
+    n = steps + 1;
+    v = vbase = (Vtx *) D_8021A928[D_8035805C] + D_8021A909 * 16;
+    cosang = (x0 * x1 + y0 * y1 + z0 * z1) / 250.0 / 250.0;
+    angle = 90.0 - ((cosang >= 0.0f) ? 1 : -1) * func_802AD7D4(((cosang > 0.0f) ? cosang : -cosang) * 65535.0) /
+                       16.0 / 11.377777;
+    if (angle >= 180.0) {
+        angle -= 180.0;
+    }
+    if (angle < -180.0) {
+        angle += 180.0;
+    }
+    angle *= 0.017453292519943295;
+    loaded = 0;
+    for (i = 0; i < n; i++, v++) {
+        t = MIN2(progress, 1.0 / (n - 1) * (f32) i);
+        a = func_802574F0((1.0 - t) * angle) / func_802574F0(angle);
+        b = func_802574F0(t * angle) / func_802574F0(angle);
+        if (curved) {
+            scale = func_802574F0(t * 3.141592653) * steps / 64.0 + 1.0;
+        }
+        x = (a * x0 + b * x1) * scale;
+        y = (a * y0 + b * y1) * scale;
+        z = (a * z0 + b * z1) * scale;
+        if (*out != -1 && i < 2) {
+            if (D_80217B6C == 3) {
+                if (i != 0) {
+                    func_8027690C(dyn, x, y, z, &sx1, &sy1, &D_80217B70x.view[D_8035805C],
+                                  &D_80217B70x.rot[D_8035805C], &dyn->translate, 1.0f);
+                    *lon = func_8028BBF4(sx0, sy0, sx1, sy1);
+                } else {
+                    func_8027690C(dyn, x, y, z, &sx0, &sy0, &D_80217B70x.view[D_8035805C],
+                                  &D_80217B70x.rot[D_8035805C], &dyn->translate, 1.0f);
+                }
+            } else if (i != 0) {
+                *lon = (from < to) ? 0 : 180;
+            }
+        }
+        v->v.ob[0] = x;
+        v->v.ob[1] = y;
+        v->v.ob[2] = z;
+        bright = MAX2((x * D_8021A90C + y * D_8021A910 + z * D_8021A914) / scale / 250000.0, 0.0);
+        if (curved) {
+            extra = 1.0 / MAX2(FABS(bright - D_8021AB40), 0.001) * D_8021AB44 * D_8021AB44 * D_8021AB48;
+        } else {
+            extra = 0;
+        }
+        v->v.cn[0] = MIN2(255.0, (FABS(t - 0.5) * (f32) r0 + (0.5 - FABS(t - 0.5)) * (f32) r1) * 2.0 + extra);
+        v->v.cn[1] = MIN2(255.0, (FABS(t - 0.5) * (f32) g0 + (0.5 - FABS(t - 0.5)) * (f32) g1) * 2.0 * bright + extra);
+        v->v.cn[2] = MIN2(255.0, (FABS(t - 0.5) * (f32) b0 + (0.5 - FABS(t - 0.5)) * (f32) b1) * 2.0 * (1.0 - bright) + extra);
+        v->v.cn[3] = D_8021AB21 * bright / (2 - curved);
+        if (i != 0 && !found && lit && bright > 0.0f) {
+            if (!loaded) {
+                gSPVertex(gdl++, vbase, n, 0);
+                loaded = 1;
+            }
+            gSPLineW3D(gdl++, i - 1, i, 2.0 - MIN2(2.0, D_8021A918 / 1000.0f / (1.0 + bright / 2.0f)), 0);
+        }
+    }
+    D_8021A909++;
+    return gdl;
+}
+#endif
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/11530/func_801FA74C.s")
 
 /* The plane icon flying along the great circle between two levels. */

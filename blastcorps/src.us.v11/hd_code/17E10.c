@@ -311,27 +311,16 @@ extern s16 D_80366A16;
 extern s16 D_8039CAA0;
 extern s16 yoshiState;
 
-/* TODO: func_8025D2B4 - draws the scrolling title backdrop. Input bits
- * in the u64 D_80364A90 fade D_80366A14 up/down, a little state machine
- * on D_80366A12 (0 -> 1 on D_80358060 == 0x3C, 1 fades D_80366A16 out,
- * 2 scrolls D_80366A00 to 0x10, 4 tracks yoshiState) steps the intro,
- * then: a 5x5 grid of 32x32 tiles from D_80366BB0[1] (states 0/1/4) and,
- * falling through the switch for every state but 4, a strip of tiles from
- * D_80366BB0[0] drawn twice with scissored texture rectangles at a
- * vertical offset derived from D_8039CAA0. A leaf, so IDO keeps arg0/arg2
- * in a0/a2 and uses t0/a3 for the MAX/MIN ternary temps.
- *
- * The draft below is exact on all 971 instructions and the -200 frame,
- * except for two as1 scheduling choices: in the two `slti`-tested
- * add-and-clamp updates (`(D_80366A14 += 10) > 0xFF` and
- * `(D_80366A00 -= 10) <= 0x10`) target places the `sh` between the
- * `sll`/`sra` sign-extension pair, while every spelling tried puts it
- * after the `sra`. Tried: += vs. explicit add, separate statements (IDO
- * forwards the stored value either way, same schedule), >= vs. >,
- * reversed operands, (s16) casts. The bgez/bgtz-tested updates schedule
- * correctly. Also note the texture rectangles need pre-2.0I gbi macro
- * forms (defined above), which the project's 2.0I gbi.h lacks. */
-/*
+/* Draws the scrolling title backdrop. Input bits in the u64 D_80364A90 fade
+ * D_80366A14 up/down, a little state machine on D_80366A12 (0 -> 1 on
+ * D_80358060 == 0x3C, 1 fades D_80366A16 out, 2 scrolls D_80366A00 to 0x10,
+ * 4 tracks yoshiState) steps the intro, then: a 5x5 grid of 32x32 tiles from
+ * D_80366BB0[1] (states 0/1/4) and, falling through the switch for every state
+ * but 4, a strip of tiles from D_80366BB0[0] drawn twice with scissored texture
+ * rectangles at a vertical offset derived from D_8039CAA0.
+ * The two slti-tested add-and-clamp updates only schedule like the ROM (sh
+ * between the sll/sra pair) with the update and the test on separate source
+ * lines; the line break changes as1's schedule. */
 Gfx *func_8025D2B4(Gfx *arg0, s32 arg1, s32 *arg2) {
     Gfx *gfx;
     s32 i;
@@ -341,7 +330,8 @@ Gfx *func_8025D2B4(Gfx *arg0, s32 arg1, s32 *arg2) {
 
     gfx = arg0;
     if (D_80364A90 & 0x08040E2110418002LL) {
-        if ((D_80366A14 += 10) > 0xFF) {
+        D_80366A14 += 10;
+        if (D_80366A14 > 0xFF) {
             D_80366A14 = 0xFF;
         }
     } else if (D_80364A90 & 0x0188004203160000LL) {
@@ -363,7 +353,8 @@ Gfx *func_8025D2B4(Gfx *arg0, s32 arg1, s32 *arg2) {
             }
             break;
         case 2:
-            if ((D_80366A00 -= 10) <= 0x10) {
+            D_80366A00 -= 10;
+            if (D_80366A00 <= 0x10) {
                 D_80366A00 = 0x10;
                 D_80366A12 = 3;
             }
@@ -452,8 +443,6 @@ Gfx *func_8025D2B4(Gfx *arg0, s32 arg1, s32 *arg2) {
     *arg2 = *arg2 + (gfx - arg0);
     return gfx;
 }
-*/
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/17E10/func_8025D2B4.s")
 
 extern Mtx D_02000000[];
 void func_8024FC2C(Gfx **, s32);

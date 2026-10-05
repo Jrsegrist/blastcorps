@@ -35,7 +35,31 @@ s32 func_802B1150(void) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u64 *D_803EDFC8;
+extern u64 *D_803EDFCC;
+extern void *D_803EDFD0; /* engine sound handle */
+extern u8 D_803EDC10[];  /* this vehicle's animation channel table */
+void func_802A7764(u64 *a, u64 *b, s32 size);
+void func_802A02E4(s32 idx, void *base);
+void func_802C444C(void);
+void func_802608C8(void *arg0);
+
+/* Vehicle-type 2 shutdown (called from hd.c's func_8024B188): zeroes the
+ * speed (s16 at +0x76), func_802A7764(D_803EDFC8, D_803EDFCC, 0x1400), stops
+ * channel 31 of D_803EDC10, func_802C444C(), then stops the engine sound
+ * D_803EDFD0 (func_802608C8). The asm leaves v1 = &D_803EDC10 only if
+ * func_802608C8 (C) happens to keep it; the C caller doesn't use it. */
+void func_802B11B8(void) {
+    *(s16 *) (D_803EDF10 + 0x76) = 0;
+    func_802A7764(D_803EDFC8, D_803EDFCC, 0x1400);
+    func_802A02E4(0x1F, D_803EDC10);
+    func_802C444C();
+    func_802608C8(D_803EDFD0);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6C5E0/func_802B11B8.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -123,7 +147,348 @@ s32 func_802B14E8(ZoneScanRegs *r) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6C5E0/func_802B152C.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+#ifndef IO802A6274_DEFINED
+#define IO802A6274_DEFINED
+/* func_802A6274's in/out registers (60F60.c). */
+typedef struct {
+    s32 a3;
+    s32 t6;
+    s32 s1;
+} Io802A6274;
+s32 func_802A6274(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32 z, s32 w24, s32 w28,
+                  s32 w18, s32 w1C, s32 w2C, s32 b35);
+#endif
+extern s16 D_803EDFD6;    /* last pose byte seen on channel 1/5 */
+extern u8 D_803EDFDA;
+extern u8 D_803F7804;
+extern void *D_803F7844;  /* sound handle */
+extern f32 D_8030D8B0;
+extern u64 D_803649D8;    /* frame counter */
+extern u8 D_80370C1A;
+extern u8 D_80370C1B;
+extern u8 D_80370C1C;
+extern u8 D_80370C1D;
+extern u8 D_80370C35;
+extern u8 D_802C2984[];   /* func_802A6274 definition */
+void func_802A0290(void *base, s32 idx, s32 val);
+void func_802A03D4(void *base, s32 idx, s32 val);
+void func_802A0360(f32 f, void *base, s32 idx, s32 val);
+void func_802A04BC(s32 idx, void *base, s32 *out);
+void func_8029F9D4(s32 a, s32 b, void *base);
+s32 func_8026A8E0(s32 lo, s32 hi);
+void func_80278EB0(s32 n, f32 scale, s32 arg2);
+void func_802794A4(void);
+void func_802BCC10(void);
+
+#define VEH2_SPEED (*(s16 *) (D_803EDF10 + 0x76))
+
+/* Channel idx's field 0x10 ((s8), func_802A04BC's v1); out gets the rest. */
+static s32 veh2_ch_get(s32 idx, s32 *out) {
+    func_802A04BC(idx, D_803EDC10, out);
+    return out[0];
+}
+
+/* Channel 31 (the blend track) starts: 039C = v, 03D4 = 0, 040C = 0, 0290 = 1. */
+static void veh2_ch31_start(s32 v) {
+    func_802A039C(D_803EDC10, 0x1F, v);
+    func_802A03D4(D_803EDC10, 0x1F, 0);
+    func_802A040C(D_803EDC10, 0x1F, 0);
+    func_802A0290(D_803EDC10, 0x1F, 1);
+}
+
+/* Channel ch: 03D4 = (speed < 0), 039C = |speed| / 24. */
+static void veh2_ch_speed(s32 ch) {
+    s32 speed = VEH2_SPEED;
+
+    func_802A03D4(D_803EDC10, ch, speed < 0);
+    if (speed < 0) {
+        speed = -speed;
+    }
+    func_802A039C(D_803EDC10, ch, (u32) speed / 24);
+}
+
+/* State 0 (+0xA1 == 0): driving. */
+static void veh2_state0(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
+    Io802A6274 io;
+    s32 o[8];
+    s32 r;
+    s32 speed;
+
+    /* the pose byte of channel 1 (or else 5) when it's on: 6 -> sound 0x4E, 2 -> 0x4F on a change */
+    if (veh2_ch_get(1, o) == 1 || veh2_ch_get(5, o) == 1) {
+        r = D_803EDFD6;
+        D_803EDFD6 = o[6];
+        if (o[6] != r) {
+            if (o[6] == 6) {
+                func_80260650(D_80367738, 0x4E, NULL);
+            } else if (o[6] == 2) {
+                func_80260650(D_80367738, 0x4F, NULL);
+            }
+        }
+    }
+
+    if (VEH2_SPEED == 0) {
+        /* standing: blend back to an idle pose once (+0xA3), then idle anims at random */
+        if (D_803EDF10[0xA3] != 0) {
+            func_802A0360(0.0f, D_803EDC10, 7, 0);
+            if (veh2_ch_get(0x1F, o) != 0) {
+                func_802A02E4(0x1F, D_803EDC10);
+                func_8029F9D4(0x1F, 7, D_803EDC10);
+            } else if (veh2_ch_get(1, o) != 0) {
+                func_802A02E4(1, D_803EDC10);
+                func_8029F9D4(1, 7, D_803EDC10);
+            } else if (veh2_ch_get(5, o) != 0) {
+                func_802A02E4(5, D_803EDC10);
+                func_8029F9D4(5, 7, D_803EDC10);
+            } else {
+                func_802A0360(0.0f, D_803EDC10, 1, 0);
+                func_8029F9D4(1, 7, D_803EDC10);
+            }
+            veh2_ch31_start(0x1E);
+        }
+        D_803EDF10[0xA3] = 0;
+        if (veh2_ch_get(0x1F, o) == 1 || veh2_ch_get(7, o) == 1 || veh2_ch_get(8, o) == 1 ||
+            veh2_ch_get(9, o) == 1) {
+            return;
+        }
+        if (func_8026A8E0(0, 30) != 0) {
+            return;
+        }
+        r = func_8026A8E0(0, 2);
+        r = (r == 0) ? 7 : (r == 1) ? 8 : 9;
+        func_802A0360(0.0f, D_803EDC10, r, 0);
+        func_802A0290(D_803EDC10, r, 1);
+        return;
+    }
+
+    /* moving: blend from the idle pose once (+0xA3 == 1 afterwards) */
+    if (D_803EDF10[0xA3] != 1) {
+        func_802A0360(0.0f, D_803EDC10, 1, 0);
+        if (veh2_ch_get(7, o) != 0) {
+            func_8029F9D4(7, 1, D_803EDC10);
+            func_802A02E4(7, D_803EDC10);
+        } else if (veh2_ch_get(8, o) != 0) {
+            func_8029F9D4(8, 1, D_803EDC10);
+            func_802A02E4(8, D_803EDC10);
+        } else if (veh2_ch_get(9, o) != 0) {
+            func_8029F9D4(9, 1, D_803EDC10);
+            func_802A02E4(9, D_803EDC10);
+        } else {
+            func_802A0360(0.0f, D_803EDC10, 7, 0);
+            func_8029F9D4(7, 1, D_803EDC10);
+        }
+        veh2_ch31_start(0x28);
+    }
+    D_803EDF10[0xA3] = 1;
+    if (veh2_ch_get(0x1F, o) == 1) {
+        return;
+    }
+    D_803F7804 = 0;
+    if ((D_80370C35 == 0 && (D_80370C1C != 0 || D_80370C1D != 0)) || D_80370C1A != 0 || D_80370C1B != 0) {
+        if (VEH2_SPEED >= 0x96) {
+            /* fast with a button held: switch to state 1 */
+            D_803EDF10[0xA1] = 1;
+            func_802A0360(0.0f, D_803EDC10, 2, 0);
+            if (D_803EDF10[0xA2] == 0) {
+                func_8029F9D4(1, 2, D_803EDC10);
+                func_802A02E4(1, D_803EDC10);
+            } else if (D_803EDF10[0xA2] == 1) {
+                func_8029F9D4(5, 2, D_803EDC10);
+                func_802A02E4(5, D_803EDC10);
+            } else {
+                return; /* asm: syscall (+0xA2 is only ever 0 or 1) */
+            }
+            veh2_ch31_start(0x23);
+            func_80278EB0(6, D_8030D8B0, 100);
+            return;
+        }
+    }
+
+    if ((((u32) D_803649D8 >> 8) & 0x2F) == 0) {
+        io.a3 = 1;
+        io.t6 = t6;
+        io.s1 = s1;
+        func_802A6274(&io, D_802C2984, 0xEA60, 1, 2, 2, 0, t7, s0, s2, s3, s4, 1);
+    }
+
+    /* drive anim on channel 1 (+0xA2 == 0) or 5 (+0xA2 == 1), switching at |speed| 120 */
+    if (D_803EDF10[0xA2] == 0) {
+        goto ch1;
+    }
+    if (D_803EDF10[0xA2] != 1) {
+        return; /* asm: syscall */
+    }
+ch5:
+    if (veh2_ch_get(5, o) != 0) {
+        veh2_ch_speed(5);
+        return;
+    }
+    goto pick;
+ch1:
+    if (veh2_ch_get(1, o) != 0) {
+        veh2_ch_speed(1);
+        return;
+    }
+pick:
+    speed = VEH2_SPEED;
+    if (speed < 0) {
+        speed = -speed;
+    }
+    if (speed >= 0x78) {
+        func_802A0290(D_803EDC10, 5, o[1] != 0 ? 2 : 1);
+        func_802A0360(0.0f, D_803EDC10, 5, 0);
+        D_803EDF10[0xA2] = 1;
+        goto ch5;
+    }
+    func_802A0290(D_803EDC10, 1, o[1] != 0 ? 2 : 1);
+    func_802A0360(0.0f, D_803EDC10, 1, 0);
+    D_803EDF10[0xA2] = 0;
+    goto ch1;
+}
+
+/* Back to state 0 from state 1/2 (the shared tail of both). */
+static void veh2_to_state0_tail(void) {
+    veh2_ch31_start(0x32);
+    func_802794A4();
+    D_803EDF10[0xA1] = 0;
+}
+
+/* Vehicle type 2 animation/state update ($gp = D_803EDF10, read as the
+ * global), a state machine on the byte at +0xA1:
+ * 0: driving (veh2_state0): pose-change sounds, idle/drive blends on the
+ *    channels of D_803EDC10, a func_802A6274 record every 0x2F-masked frame,
+ *    and the switch to state 1 when fast with a button held.
+ * 1: starts sound 0x51 (handle D_803F7844) once; +0x9C set: speed halves and
+ *    state 3; else +0x9D or D_803EDFDA set: back to 0; else speed 446 and,
+ *    once channel 31 is done, channel 2 plays and state 2.
+ * 2: as 1 without the sound and with channel 2 blended away.
+ * 3: stops the sound, func_802A6274 (data 0x222E0 at (2, 1, 1)),
+ *    func_802BCC10, then once channel 31 is done channel 3 plays, state 4.
+ * 4: same record, then once channel 3 is done back to state 0.
+ * Other +0xA1 / +0xA2 values hit a `syscall` in the asm (never happens in
+ * the game); this returns instead.
+ * Register convention: t6, t7, s0-s4 pass through to func_802A6274 (t6 and
+ * s1 in its in/out block); s1, s5 change, and f20/f30 are left as
+ * func_8029F9D4 leaves them (conventions.txt: clobbers). The asm caller
+ * func_802B152C reads f20 afterwards and the asm expects func_80260650 (C)
+ * to keep t6/t7 for the following func_802A6274; a mixed N64 build would
+ * need a thunk, the native port doesn't. */
+void func_802B18F4(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
+    Io802A6274 io;
+    s32 o[8];
+
+    switch (D_803EDF10[0xA1]) {
+        case 0:
+            veh2_state0(t6, t7, s0, s1, s2, s3, s4);
+            return;
+
+        case 1:
+            if (D_803F7844 == NULL) {
+                func_80260650(D_80367738, 0x51, &D_803F7844);
+            }
+            if (D_803EDF10[0x9C] != 0) {
+                VEH2_SPEED = VEH2_SPEED >> 1;
+                func_802794A4();
+                D_803EDF10[0xA1] = 3;
+                func_802A0360(0.0f, D_803EDC10, 3, 3);
+                func_8029F9D4(0x1F, 3, D_803EDC10);
+                veh2_ch31_start(0x21);
+                D_803F7804 = 1;
+                return;
+            }
+            if (D_803EDF10[0x9D] != 0 || D_803EDFDA != 0) {
+                if (VEH2_SPEED >= 0) {
+                    VEH2_SPEED = 0x3C;
+                }
+                func_802C444C();
+                func_802A0360(0.0f, D_803EDC10, 1, 0);
+                func_8029F9D4(0x1F, 1, D_803EDC10);
+                veh2_to_state0_tail();
+                return;
+            }
+            VEH2_SPEED = 0x1BE;
+            if (veh2_ch_get(0x1F, o) == 1) {
+                return;
+            }
+            func_802A039C(D_803EDC10, 2, 10);
+            func_802A03D4(D_803EDC10, 2, 0);
+            func_802A040C(D_803EDC10, 2, 0);
+            func_802A0290(D_803EDC10, 2, 1);
+            D_803EDF10[0xA1] = 2;
+            return;
+
+        case 2:
+            if (D_803EDF10[0x9C] != 0) {
+                VEH2_SPEED = VEH2_SPEED >> 1;
+                D_803EDF10[0xA1] = 3;
+                func_802A0360(0.0f, D_803EDC10, 3, 3);
+                func_8029F9D4(2, 3, D_803EDC10);
+                func_802A02E4(2, D_803EDC10);
+                veh2_ch31_start(0x21);
+                D_803F7804 = 1;
+                return;
+            }
+            if (D_803EDF10[0x9D] == 0 && D_803EDFDA == 0) {
+                VEH2_SPEED = 0x1BE;
+                if (veh2_ch_get(2, o) == 1) {
+                    return;
+                }
+            }
+            func_802C444C();
+            if (VEH2_SPEED >= 0) {
+                VEH2_SPEED = 0x3C;
+            }
+            func_802A0360(0.0f, D_803EDC10, 1, 0);
+            func_802A02E4(2, D_803EDC10);
+            func_8029F9D4(2, 1, D_803EDC10);
+            veh2_to_state0_tail();
+            return;
+
+        case 3:
+            if (D_803F7844 != NULL) {
+                func_802C444C();
+                func_80260650(D_80367738, 0x4B, NULL);
+            }
+            io.a3 = 1;
+            io.t6 = t6;
+            io.s1 = s1;
+            func_802A6274(&io, D_802C2984, 0x222E0, 1, 2, 1, 1, t7, s0, s2, s3, s4, 1);
+            func_802BCC10();
+            if (veh2_ch_get(0x1F, o) == 1) {
+                return;
+            }
+            D_803F7804 = 0;
+            func_802794A4();
+            func_802A039C(D_803EDC10, 3, 8);
+            func_802A03D4(D_803EDC10, 3, 0);
+            func_802A040C(D_803EDC10, 3, 0);
+            func_802A0290(D_803EDC10, 3, 1);
+            D_803EDF10[0xA1] = 4;
+            return;
+
+        case 4:
+            io.a3 = 1;
+            io.t6 = t6;
+            io.s1 = s1;
+            func_802A6274(&io, D_802C2984, 0x222E0, 1, 2, 1, 1, t7, s0, s2, s3, s4, 1);
+            func_802BCC10();
+            if (veh2_ch_get(3, o) == 1) {
+                return;
+            }
+            D_803F7804 = 1;
+            func_802A0360(0.0f, D_803EDC10, 1, 0);
+            func_802A0360(0.0f, D_803EDC10, 5, 0);
+            D_803EDF10[0xA1] = 0;
+            return;
+
+        default:
+            return; /* asm: syscall */
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6C5E0/func_802B18F4.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6C5E0/func_802B2768.s")

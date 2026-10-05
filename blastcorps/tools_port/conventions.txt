@@ -442,6 +442,9 @@ func_802B14E8: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+
 func_802B1228: clobbers gp
 # 0 / 50 / 120 from this vehicle's speed and +0xA1 ($gp = D_803EDF10) in s3
 func_802B28B8: out s3=ret ; preserve a0,a1,a2,a3
+# vehicle 2 state machine: t6, t7, s0-s4 passed through to func_802A6274 (gp = D_803EDF10 read as the global);
+# f20/f30 left as func_8029F9D4 leaves them
+func_802B18F4: in t6=a0,t7=a1,s0=a2,s1=a3,s2=stack0,s3=stack1,s4=stack2 ; clobbers s1,s5,f20,f30
 # --- 6E200 ---
 # zone lookup wrapper: func_802ABD54(id, x, y, z) with its scan registers t6, t7, s0-s4 passed through
 func_802B47D4: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; out v1=ret,t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; preserve f12,f14 ; clobbers s5,s6
@@ -456,6 +459,13 @@ func_802B3FF0: preserve a0,a1,a2,a3,t3,t4,f12,f14
 func_802B54EC: preserve a0,a1,a2,a3,t6,t7
 # 22 / 75 from this vehicle's flags ($gp = D_803EE6C0) in s3
 func_802B57C4: out s3=ret ; preserve a0,a1,a2,a3
+# vehicle setups: point $gp at D_803EE2E0 / D_803EE6C0 and leave it
+func_802B2D7C: clobbers gp
+func_802B448C: clobbers gp
+# vehicle 3 update: t6, t7, s0-s4 passed through to func_802A6274 (gp = D_803EE2E0 read as the global)
+func_802B37B0: in t6=a0,t7=a1,s0=a2,s1=a3,s2=stack0,s3=stack1,s4=stack2 ; clobbers s1,s5,s6,s7
+# vehicle 4 update: same pass-through (gp = D_803EE6C0 read as the global)
+func_802B4EF8: in t6=a0,t7=a1,s0=a2,s1=a3,s2=stack0,s3=stack1,s4=stack2 ; clobbers s1,s5,s6,s7
 # --- 71140 ---
 # zone lookup wrapper: func_802ABD54(id, x, y, z) with its scan registers t6, t7, s0-s4 passed through
 func_802B60BC: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; out v1=ret,t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; preserve f12,f14 ; clobbers s5,s6

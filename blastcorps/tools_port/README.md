@@ -107,7 +107,7 @@ All registers (GPRs, FPRs, hi/lo) and the caller's 0x100-byte frame at `sp`
 get identical pseudo-random poison in both runs. `sp` is 0x80E00000 and `ra`
 is a sentinel. On top of that you can set:
 
-* `--arg REG=SPEC` takes any register (`a0`..`a3`, `f12`, `f14`, `t0`, `s1`, and so on), or `--arg sp+0x10=SPEC` for stack arguments.
+* `--arg REG=SPEC` takes any register (`a0`..`a3`, `f12`, `f14`, `t0`, `s1`, and so on), or a stack argument: `--arg stack0=SPEC` (the C slot names, `stackN` = the word at `sp+0x10+4N`) or the same as `--arg sp+0x10=SPEC`. Every stack argument given this way (and every `stackN` the function's own convention uses) is one of the function's **own incoming slots**: under o32 the callee owns them, so writes to them are not compared (a C rewrite that assigns to a stack-passed parameter stores it there). `-v` prints a note naming the slots whose writes were ignored.
 * `--mem TARGET[:SIZE]=FILL` sets memory contents. TARGET is `SYM`, `SYM+0x10`, a raw address, or relative to an argument or heap block: `@a0`, `@a0+0x40`, `@heap1+0x10` (see below). Symbols resolve separately in each build. An unknown symbol is an error naming the symbol and the build.
 * **Sizing.** Without `:SIZE` a value fill writes a word (4 bytes). For `--mem SYM=...` (no offset) whose ELF symbol has a size of 1 or 2 (C-defined `u8`/`s16` globals) the write is sized from the symbol, with a `note:`. Absolute `D_` symbols from `undefined_syms*.txt` have no size; then, if the next symbol starts less than 4 bytes after the target, you get a `warning:` and should write `SYM:1=` or `SYM:2=` yourself. A word written over a byte global silently clobbers its neighbours.
 * `--mem TARGET*STRIDE:COUNT[/W]=FILL` fills the same W-byte field (default 4) in COUNT records STRIDE bytes apart, each record drawn separately: `--mem D_803FB8B8+8*0x14:25/2=choice:0,0x7FFF` sets the halfword at +8 of all 25 entries of a 0x14-byte table.
@@ -121,9 +121,12 @@ is a sentinel. On top of that you can set:
 | `float[:LO:HI]` | random single in an FPR (`f12=float`) |
 | `fbits[:LO:HI]` | float bits in an integer register or stack slot (o32 float args after an int arg) |
 | `ptr[:SIZE]` / `ptrz[:SIZE]` | pointer to a fresh scratch-heap block (random or zero bytes, default 0x200) |
-| `sym:NAME` / `sym:NAME+0x10` | the address of NAME (in a register too, resolved per build) |
-| `rel:BASE+TERM+..` | an address relative to another value: see "Pointer-relative values" |
+| `int64[:LO:HI]` | a full 64-bit value (for a whole 64-bit register, a 64-bit convention input, or 8 bytes of `--mem`) |
+| `sym:NAME` / `sym:NAME+0x10` | the **address** of NAME (in a register too, resolved per build) |
+| `val:NAME[+0x10][:W]` | the **value** stored at NAME+0x10 in the build's loaded image (W = 1, 2 or 4 bytes, zero-extended; `.bss` reads 0; earlier `--mem` writes are not seen) |
+| `rel:BASE+TERM+..` | an **address** relative to another value: see "Pointer-relative values" |
 | `rand`, `zero` | (`--mem`) SIZE random or zero bytes |
+| `hex:0011223344` | (`--mem`) exactly these bytes (spaces/underscores allowed); SIZE defaults to their length, a larger SIZE repeats them |
 | `words:a,b,c` / `halves:a,b` / `bytes:a,b` | (`--mem`) each word, halfword or byte chosen from a pool (weights `v*N` allowed), which is good for flags, indices, and NULL vs non-NULL pointers |
 | `floats[:LO:HI]` | (`--mem`) SIZE/4 random floats |
 | `onehot:STRIDE[@OFF][/W]:POOL:FILL` | (`--mem`, needs SIZE) fill with FILL, then put one value from POOL into exactly one slot: see "One special slot" |
@@ -151,6 +154,13 @@ Scratch-heap blocks are numbered in allocation order: `heap0`, `heap1`, ...
   `+TERM` is a constant (`+0x10`, `+-4`), any value spec (`+choice:0,0x60,0x5A0`),
   or `K*SPEC`, K times a random value (`+0x60*int:0:16`, `+0x14*choice:0,24`).
   The same works as a `--mem` fill, which stores a pointer: `--mem D_80358074=rel:heap0+0x20`.
+
+> **`rel:SYM+k` is SYM's ADDRESS plus k, never the value stored at SYM.**
+> `--mem D_X=rel:D_Y+1` stores `&D_Y + 1` (a pointer), not `D_Y + 1`. A
+> boundary run written that way ("one more than the limit in D_Y") tests
+> nothing. For "the value at SYM" use `val:SYM` (the loaded-image value, as a
+> constant) or set both globals from the same fixed numbers. eqcheck prints a
+> `note:` for every `--mem ...=rel:SYM..` with a symbol base to remind you.
 
 ```
 # a1 = a0 + 0..16 records of 0x60 bytes, inside a 0x600-byte block
@@ -192,8 +202,8 @@ compared between the builds.
 
 * `--follow NAME[,NAME]` runs that callee for real, using each build's own version of it. `--follow-all` runs every callee.
 * **Static helpers are followed automatically.** A callee that exists only in the new build (no symbol of that name in the reference build, typically a `static` helper a rewrite introduced) is part of the rewrite, so it always runs for real instead of showing up as an extra call. The run prints `note: following NAME, which exists only in build_nm`.
-* `--sig NAME=a0,a1` sets which registers count as NAME's arguments. Use it when a callee takes fewer than 4 arguments and the two versions leave different garbage in the unused ones. **`--sig NAME=` (empty list) compares no arguments at all**, just that the call happened, for a callee that takes none (otherwise leftover a0-a3 garbage is compared). `--sig '*=a0'` changes the default. Stack arguments can be listed as `stack0` (= `sp+0x10`), `stack1`, ... For a callee in `conventions.txt` (section 3a) the arguments are already mapped, and `--sig` then selects C slots (`--sig func_802ABCDC=a0,a1,a2`).
-* `--stub-ret NAME=VALUE|rand|ptr:SIZE` sets what a stubbed callee returns (its first convention output, if it has one; `--stub-ret NAME.REG=..` sets the output in asm register REG). `ptr` hands out deterministic heap blocks, which is useful for allocators.
+* `--sig NAME=a0,a1` sets which registers count as NAME's arguments. Use it when a callee takes fewer than 4 arguments and the two versions leave different garbage in the unused ones. **`--sig NAME=` (empty list) compares no arguments at all**, just that the call happened, for a callee that takes none (otherwise leftover a0-a3 garbage is compared). `--sig '*=a0'` changes the default. Stack arguments can be listed as `stack0` (= `sp+0x10`), `stack1`, ... For a callee in `conventions.txt` (section 3a) the arguments are already mapped, and `--sig` then selects C slots (`--sig func_802ABCDC=a0,a1,a2`). **Widths:** an entry `REG:W` (W = 1, 2, 4, 8) compares only the low W bytes: `--sig func_8027BE7C=a0:1,a1,a2:2,stack4:2` compares a `u8`/`s16` argument at its declared width, so leftover upper bits (asm passes the whole register, C a truncated value) don't count. This works with and without a convention (no more per-line `--conv` just for widths).
+* `--stub-ret NAME=SPEC` sets what a stubbed callee returns (its first convention output, if it has one; `--stub-ret NAME.REG=SPEC` sets the output in asm register REG). SPEC is `rand` (default), a constant, `ptr:SIZE` (deterministic heap blocks, useful for allocators), `seq:1,0,5` (the k-th call in a trial returns the k-th value, cycling: one run drives several branches), or any value spec from the `--arg` table (`choice:0,1*3`, `int:LO:HI`, `int64`, `float`, `fbits`, `sym:NAME`, `val:NAME`), drawn per trial and call, identically in both builds. A constant wider than 32 bits returns `v0:v1` (o32 `u64`); for a convention output declared 64-bit (`ret64`, below) the whole value is delivered.
 * `--stub-preserve NAME=v1,a0` keeps a stub from writing those registers. The default stub writes v0, v1 and f0; asm callers that rely on the callee preserving one of them (func_802A57AC keeps &D_803C4B54 in v1 across func_802A57DC) fault in the reference otherwise. `NAME=*` applies to every stub. Put permanent cases in `conventions.txt` as `preserve`.
 * `--model NAME=FILE.py[:FUNC]` runs a Python function in place of NAME in both builds (like `--follow`, so no call is recorded). It is called as `FUNC(args, mem)`: `args` are NAME's inputs in C argument order (its convention's `in` list, else a0-a3), `mem` reads and writes guest memory (`mem.u32(a)`, `mem.s16(a)`, `mem.w32(a, v)`, `mem.read(a, n)`, `mem.sym("D_8036...")`). It returns the outputs in `out` order (an int for one), delivered on the caller's side like a stub's. FILE is also looked up in `tools_port/models/` (example: `func_802ABCDC.py`). Use it for a callee that can't run in the emulator, or to cross-check a model.
 
@@ -224,6 +234,21 @@ func_802A57DC: preserve a0,v1
 | `out REG=DEST,..` | the asm returns a value in REG; the C version delivers it as `ret` (v0), `fret` (f0), another register, or `*SLOT[+OFF][:W]` (written through a pointer argument). Several outputs through one struct pointer: `out s1=*a2,t0=*a2+4`. An output written on some paths only is passed in and out: `in t0=*a2 ; out t0=*a2`. |
 | `preserve REGS` | registers the asm leaves unchanged and its asm callers rely on. A default stub (no `in`/`out`) won't write them. |
 | `clobbers REGS` | callee-saved registers (s0-s7, fp, f20-f31) the asm changes without documenting them as outputs. Not compared when this function is the one under test (outputs aren't either; they're compared through the mapping). Ranges work: `s0-s7`. |
+
+**64-bit values.** `:8` marks a 64-bit value. On the asm side it is the whole
+64-bit register; on the C side an o32 pair: `a0:8` = a0 (high word) : a1
+(low), `a2:8` = a2:a3, `stackN:8` (N even) = two stack words, `ret64` (or
+`ret:8`, `v0:8`) = v0:v1, `*a2:8` = 8 bytes through a pointer. So
+`func_802C0C64: in ... ; out t4=ret64` gives a C caller of the stub v0:v1 and
+compares all 64 bits, and `in t4=a0:8` passes a whole 64-bit t4 to the asm
+and the a0/a1 pair to the C. Generated inputs are 64-bit random (or
+`--arg t4=int64:..`; a 32-bit `--arg` value is sign-extended). `a1:8`,
+`a3:8`, odd `stackN:8` and FPU registers are rejected.
+
+**A gotcha with `--conv`:** a line with `in` but no `out` is a full convention
+with *no outputs*, so a stub called from asm leaves v0 alone while one called
+from C still gets the canned v0: the two builds then see different return
+values. If the callee returns something, say so: `--conv 'NAME: in ... ; out v0=ret'`.
 
 `#` starts a comment. A line with `in` or `out` is a **full** convention.
 `python3 tools_port/draftconv.py func_X [func_Y ..]` drafts a line from the
@@ -266,10 +291,10 @@ eqcheck.py func_802AB878 --follow func_802AB8D8 --arg a0=..   # both builds run 
 
 ### What is compared
 
-1. **Outcome.** Did both runs return? A run that hits the same unmapped address or CPU exception in both builds counts as equivalent and is reported in the summary. A timeout in either build is a failure.
-2. **Return registers.** Set with `--ret int` (default `v0`), `ptr`, `void`, `u64` (`v0`,`v1`), `float` (`f0`), `double` (`f0`,`f1`), or `regs:v0,t0,...` for non-ABI outputs. A function with a full convention has its outputs compared through the mapping (section 3a).
+1. **Outcome.** Did both runs return? A run that hits the same unmapped address or CPU exception in both builds counts as equivalent and is reported in the summary; the calls both made before the fault must still agree, but only up to the shorter of the two call lists (a load in a `jal` delay slot faults before the call is recorded in the asm and after it in a C version that loads after the call, so a call "in flight" at the fault doesn't count). Registers and memory aren't compared after a fault. A timeout in either build is a failure. An access to an address with no KSEG0/KSEG1/kuseg mapping (KSEG2, a non-sign-extended 64-bit address) counts as an unmapped access.
+2. **Return registers.** Set with `--ret int` (default `v0`; but `void` when the function has a full convention, or when its NON_MATCHING C rewrite is defined `void NAME(`, with a `note:` saying so; `--ret int` overrides), `ptr`, `void`, `u64` (`v0`,`v1`), `float` (`f0`), `double` (`f0`,`f1`), or `regs:v0,t0,...` for non-ABI outputs. A function with a full convention has its outputs compared through the mapping (section 3a).
 3. **Callee-saved registers** (`s0`-`s7`, `fp`, `sp`, `gp`, `f20`-`f31`). This catches hand asm that returns values in s-registers. Use `--ignore-reg R` or `--no-saved-check` to relax it. Registers that the function's convention lists as outputs or `clobbers` are skipped.
-4. **Memory.** Every byte that differs from the start-of-run state in either run: game RAM (data, bss, globals), heap, caller frame, NM-only sections, and the MMIO register blocks. Bytes below the entry `sp` are the callee's private frame and are ignored, as are the 16 arg-home bytes at `0(sp)` unless you pass `--check-home`. Addresses that exist only in the new build are translated by symbol.
+4. **Memory.** Every byte that differs from the start-of-run state in either run: game RAM (data, bss, globals), heap, caller frame, NM-only sections, and the MMIO register blocks. Bytes below the entry `sp` are the callee's private frame and are ignored, as are the 16 arg-home bytes at `0(sp)` unless you pass `--check-home`, and the function's own incoming stack-argument slots (see `--arg stackN`). Addresses that exist only in the new build are translated by symbol.
 5. **Call sequence**, plus the MMIO access sequence with `--mmio-log`.
 
 Values that are code addresses (function pointers in arguments or stored to
@@ -334,7 +359,15 @@ bash tools_port/runchecks.sh --changed --since HEAD~3
 changes, and reports any rewrite in those files that has no check line. It doesn't notice
 changes to shared headers or to eqcheck itself; run the whole suite for those.
 
-Runs go in parallel (`-j`, default min(cores, 8)). The output is a table with one row per run (file,
+Runs go in parallel (`-j`, default min(cores, 8)) on a pool of worker
+processes. Each worker imports eqcheck once and runs many check lines
+in-process (`eqcheck.run_captured`), keeping the parsed ELFs and the two
+emulator machines between lines: a reused machine is reset to its load-time
+state (every page written since, inside or outside the diffed regions, is put
+back, and the CPU context restored), and `tests/test_eqcheck.py --real` checks
+that pooled results equal fresh-process results. Lines are scheduled longest
+first. `--no-pool` runs each line in its own `eqcheck.py` process as before;
+if a worker dies, the lines it had are rerun that way automatically. The output is a table with one row per run (file,
 function, line, PASS/FAIL/ERROR, trials, time). A failing run shows the
 eqcheck failure lines and a ready-to-paste `bash tools_port/eq.sh ...` rerun
 command. A run in which every trial faulted counts as a FAIL. The exit status
@@ -346,9 +379,17 @@ block in `src.us.v11/hd_code/*.c` and reports any with no check line
 (`MISSING`, which makes the exit status nonzero). It also notes check lines for
 functions that have no rewrite.
 
-Current suite (Oct 2026): 112 rewritten functions, 282 runs, all PASS, about
-76 s wall at `-j8` (148 runs took 637 s at `-j4` before the restore/diff
-speedup, see section 6).
+Current suite (Oct 2026): 386 rewritten functions, 935 runs, all PASS, about
+2 minutes wall at `-j4` (6.3 minutes before the worker pool, TLB write
+tracking and the emu_start timeout change, see section 6; 148 runs took
+637 s at `-j4` before the earlier restore/diff speedup).
+
+**Harness tests.** `python3 tools_port/tests/test_eqcheck.py` runs the
+harness's own regression tests on tiny hand-assembled functions (delay-slot
+fault state reset, TLB fills in delay slots, faults around a `jal`, own
+stack-argument slots, 64-bit conventions, `--stub-ret seq:`, `hex:`, `--sig`
+widths); `--real` adds the pool-vs-fresh-process comparison on real check
+lines. Run it after changing eqcheck.
 
 ## 5. Writing checks for a new rewrite
 
@@ -376,11 +417,15 @@ speedup, see section 6).
 5. **Terminate scanned tables.** A table walked until a sentinel must have one
    in `--mem` (with the default zero bss the walk runs off through megabytes).
    Loops with `!=` bounds need inputs that respect the precondition.
-6. **`--ret void` for void functions** (otherwise leftover v0 is compared);
+6. **`--ret void` for void functions** (eqcheck now assumes it when the C
+   rewrite is defined `void NAME(`; otherwise leftover v0 is compared);
    use the real width (`--ret int` when the asm returns the full 32-bit value).
 7. **`--sig NAME=a0,a1`** for callees that take fewer than 4 arguments, so
    garbage in unused argument registers isn't compared.
-   Use `--sig NAME=` for a callee that takes no arguments.
+   Use `--sig NAME=` for a callee that takes no arguments, and `REG:W` for
+   narrow ones (`--sig NAME=a0:1,a1:2`).
+   A callee whose result picks the branch: `--stub-ret NAME=seq:0,1` or
+   `choice:0,1,5` so one run covers every path.
 8. **Non-ABI interfaces.** If the function (or a callee) takes or returns
    values outside o32, add its line to `conventions.txt` (start from
    `python3 tools_port/draftconv.py NAME`), write the C with ordinary
@@ -416,12 +461,27 @@ speedup, see section 6).
 | func_8029DC14 without the byte-0x51 test; func_802AB878 passing id+1 | broken | vs build_nm | FAIL: `output v1=v0` 1 vs 0; `event #0 differs: func_802AB8D8(a0=0x9) vs (a0=0xA)` |
 | func_802BD10C (calls func_802ABCDC: cvt.d.l/sqrt.d/cvt.l.d) | FPU long ops emulated; also `--model` | vs build_nm | PASS 300; z read from the wrong word: FAIL |
 
-A trial (both builds) takes about 5-10 ms for a small function, and a run
-starts in about 0.4 s. Guest RAM is mapped from host buffers
-(`mem_map_ptr`), so after each run the harness memcmps the writable regions
-against the start-of-run snapshot in place (64 KB chunks, then 4 KB pages,
-then bytes only inside changed pages) and before the next run copies back only
-the pages that changed or held inputs. The parsed ELF symbol tables are cached
+A trial (both builds) takes about 2 ms for a small function (5-10 ms before
+Oct 2026), and a fresh process starts in about 0.4-0.6 s (paid once per
+runchecks worker, not per line). Guest RAM is mapped from host buffers
+(`mem_map_ptr`). **Write tracking via the soft TLB:** the machine runs with
+`UC_TLB_VIRTUAL` and its own fill hook (KSEG0/KSEG1 to physical, kuseg 1:1 as
+the R4000 does with Status.ERL set); the TLB is flushed before every run and a
+page is entered writable only on a store miss, so the set of written pages is
+exact, and after the run only those pages are memcmp'd against the
+start-of-run snapshot (then bytes inside changed pages). Before that, every
+run memcmp'd all ~7 MB of writable regions, about half of each trial's time.
+Before the next run only the pages that changed or held inputs are copied
+back. `EQCHECK_VERIFY_DIFF=1` cross-checks every run against a full memcmp
+(the whole suite passes it); `EQCHECK_FULL_DIFF=1` turns the TLB tracking off.
+Registers are written and read with one batch call each (straight through
+the C API). `--timeout` is checked in the block hook (every 4096 blocks)
+rather than passed to `emu_start`, whose timeout starts a timer thread per
+call (about 0.3 ms, more than a small trial's emulation); `--max-insns`
+still bounds every run. Big `--mem` fills (`rand`, `words:`/`halves:`/`bytes:`
+of more than 64 values) are drawn in one RNG call; small ones, the caller
+frame and `ptr` blocks are drawn as before, so existing check lines keep
+their inputs. The parsed ELF symbol tables are cached
 in `<build dir>/.eqcheck_cache.<version>.pickle`, keyed by the ELFs' size and
 mtime. (Before Oct 2026 every trial copied and compared about 6 MB through
 `mem_read`/`mem_write`: about 33 ms per trial single-threaded and much more
@@ -433,10 +493,10 @@ under `-j4`; the 148-run suite went from 637 s to 69 s at `-j4`.)
 * **No hardware.** MMIO (`0xA4xxxxxx`: SP, DP, MI, VI, AI, PI, RI, SI) is plain memory. A write then a read returns the written value, nothing has side effects, DMA never happens, and status registers read whatever you preset with `--mmio`, otherwise 0. A loop polling a busy bit therefore exits at once or spins until `--timeout`. RSP and RDP code (microcode, `osSpTask*`) and cartridge or PIF space (unmapped, so access faults) can't be tested this way. Final MMIO state is compared; the order of accesses is compared only with `--mmio-log`.
 * **Interrupts, threads, and the OS** don't exist. Stub calls into libultra (the default), or follow only pure ones such as `guMtxL2F`.
 * **FPU.** Runs as R4000 with Status.FR=0, as the game does: libultra's osCreateThread gives every thread SR = IMASK|IE|EXL, the exception handler only ORs in CU1 on first FPU use, and IDO's o32 code keeps doubles in even/odd pairs. The VR4300 still executes the long-integer ops (`cvt.d.l`, `cvt.s.l`, `cvt.l.d`/`.s`, `round/trunc/ceil/floor.l`) in that mode, on an even/odd pair (used by func_802ABCDC and libultra's `__ll_to_d` family). QEMU raises a reserved-instruction exception for them unless FR=1, so eqcheck replaces each such word in the loaded code with a nop and emulates it in a per-address code hook (delay slots included). Conversions use the FCSR rounding mode for `cvt.l`; `cvt.d.l`/`cvt.s.l` round to nearest. A NaN, infinity or out-of-range source (where the VR4300 raises an unimplemented-operation exception) ends the run as "can't compare". The FCSR starts at 0 (round to nearest, no traps). The harness compares raw bits, so a different NaN payload or a different but legitimate rounding order (for example `a*b+c` evaluated in another order) shows up as a difference. Inspect those by hand. Results under flush-to-zero or unimplemented-operation exceptions follow QEMU, not the VR4300.
-* **64-bit registers.** The CPU runs in 64-bit mode, because the hand asm uses `sd`/`ld`/`dsll`. Inputs are sign-extended 32-bit values. Comparisons use the low 32 bits, so functions passing true 64-bit values in a single register aren't fully checked.
-* **Non-ABI functions** are mapped through `conventions.txt` (section 3a). What it can't express: gp or fp used as a global base pointer rather than an argument (draftconv flags `gp_offsets`; the C reads the globals directly, so don't map them); outputs whose *register* depends on the path (not just whether it is written); values passed in hi/lo or the FPU condition flag; full 64-bit values in one register (only the low 32 bits are compared); and asm callers that rely on registers a C callee doesn't preserve (`asm_callers_rely_on_preserved`: a mixed N64 build would need a thunk; the harness's C side doesn't model it). Pointer-slot outputs/inputs (`*aN`) are new and so far exercised only by asm-vs-asm runs and the parser; the three demo rewrites use register/`ret` mappings.
+* **64-bit registers.** The CPU runs in 64-bit mode, because the hand asm uses `sd`/`ld`/`dsll`. Inputs are sign-extended 32-bit values unless given as `int64` or declared `:8` in a convention. Register comparisons use the low 32 bits, except convention inputs/outputs declared `:8` (`ret64`, `a0:8`, ...), which compare all 64 bits; functions passing true 64-bit values in a single register without such a declaration aren't fully checked.
+* **Non-ABI functions** are mapped through `conventions.txt` (section 3a). What it can't express: gp or fp used as a global base pointer rather than an argument (draftconv flags `gp_offsets`; the C reads the globals directly, so don't map them); outputs whose *register* depends on the path (not just whether it is written); values passed in hi/lo or the FPU condition flag; 64-bit FPU (double) values; and asm callers that rely on registers a C callee doesn't preserve (`asm_callers_rely_on_preserved`: a mixed N64 build would need a thunk; the harness's C side doesn't model it). Pointer-slot outputs/inputs (`*aN`) are new and so far exercised only by asm-vs-asm runs and the parser; the three demo rewrites use register/`ret` mappings.
 * **Call detection is entry-address based.** Asm that falls through into the next function, or jumps into the middle of another function, isn't seen as a call. The fall-through target becomes a recorded call only in the rewrite, which looks like a spurious difference. Fix it with `--follow` on that target.
 * **Data blobs keep original code addresses.** Jump tables and function-pointer tables inside the raw `.bin` blobs, and functions that live *inside* a blob (such as func_802C4310 in `7D9D0_data`), point at the original text. The NM machine is pre-filled with the original text at its old address, so those paths still execute (the original code). Function entries reached that way are translated by name, and other blocks print a `note:`.
 * **Infinite loops.** These are caught by `--max-insns` and `--timeout`. They are reported as a failure if only one build loops, and as "can't compare" if both do.
-* **unicorn bug (worked around).** In unicorn 2.1, a memory hook that fires for a load or store in a branch delay slot corrupts MIPS execution (RI exception at the next jump). That is why writes are found by diffing memory rather than with hooks, and why `--explore` and `--mmio-log` decode loads and stores in a per-instruction code hook. Don't add `UC_HOOK_MEM_READ`/`UC_HOOK_MEM_WRITE` hooks.
+* **unicorn delay-slot bugs (worked around).** (1) In unicorn 2.1, any hook that fires for a load or store in a branch delay slot (`UC_HOOK_MEM_READ`/`WRITE`, and `UC_HOOK_TLB_FILL`) corrupts MIPS execution: before calling the hook unicorn rolls the CPU back to the instruction (`cpu_restore_state`), which ORs the branch bits into `env->hflags`; the code after the delay slot never clears them, so the next block runs as if it were in a delay slot (an RI exception or a wild jump). eqcheck's TLB-fill hook repairs this (`Machine._delay_slot_fix`: when the instruction before the faulting pc is a branch, it clears the bits in a saved context and restores it; `calibrate_hflags()` finds hflags' offset in the context once per process by faulting in a beq/bne delay slot; if that fails, write tracking falls back to a full memcmp). `--explore` and `--mmio-log` still decode loads and stores in a per-instruction code hook; don't add `UC_HOOK_MEM_READ`/`UC_HOOK_MEM_WRITE` hooks. (2) A run that *ends* with a fault in a delay slot leaves the same branch state (hflags, btarget) behind, so the next `emu_start` used to execute one instruction at the new entry and then jump to the old branch target (seen as a 4-byte block followed by the previous trial's faulting code). Every run now starts from a clean CPU context saved when the machine was created.
 * Only `hd_code` and `init` are loaded. Calls into other overlays are stubbed as `sub_XXXXXXXX`, and reading their data faults or returns 0.

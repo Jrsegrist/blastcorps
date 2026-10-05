@@ -12,7 +12,10 @@ See tools_port/README.md for usage, options and limitations.
 """
 import argparse
 import bisect
+import contextlib
+import copy
 import ctypes
+import io
 import hashlib
 import math
 import os
@@ -28,8 +31,14 @@ try:
     from unicorn import (UC_HOOK_BLOCK, UC_HOOK_CODE, UC_HOOK_INTR,
                          UC_HOOK_MEM_UNMAPPED, UC_HOOK_MEM_FETCH_UNMAPPED)
     from unicorn import mips_const as M
+    from unicorn.unicorn_const import (UC_TLB_VIRTUAL, UC_HOOK_TLB_FILL, UC_CTL_TLB_FLUSH, UC_MEM_WRITE, UC_MEM_FETCH,
+                                       UC_PROT_READ, UC_PROT_WRITE, UC_PROT_EXEC)
 except ImportError:
     sys.exit("eqcheck: needs unicorn (pip install unicorn pyelftools in ~/blastcorps/.env)")
+try:        # the binding's ctypes library handle, for batched register access without the wrapper
+    from unicorn.unicorn_py3.unicorn import uclib as _UCLIB
+except Exception:
+    _UCLIB = None
 from elftools.elf.elffile import ELFFile
 from elftools.elf.sections import SymbolTableSection
 
@@ -59,6 +68,15 @@ for i in range(32):
     REG["f%d" % i] = getattr(M, "UC_MIPS_REG_F%d" % i)
 REG["hi"], REG["lo"], REG["pc"], REG["fcsr"] = M.UC_MIPS_REG_HI, M.UC_MIPS_REG_LO, M.UC_MIPS_REG_PC, M.UC_MIPS_REG_FCSR
 
+RES_REGS = GPR_NAMES + ["hi", "lo"] + ["f%d" % i for i in range(32)] + ["pc"]   # read after a run (pc last)
+RES_REGS_IDS = [REG[r] for r in RES_REGS]
+VERIFY_DIFF = bool(os.environ.get("EQCHECK_VERIFY_DIFF"))
+# In a long-lived process (runchecks' worker pool, see run_captured) parsed
+# builds and emulator machines are kept and reused across eqcheck runs.
+REUSE = False
+_BUILDS = {}                # build cache key -> Build
+_MACHINES = {}              # (role, build key, prefill key) -> Machine
+
 SAVED_REGS = ["s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7", "fp", "sp", "gp"] + \
              ["f%d" % i for i in range(20, 32)]
 RET_KINDS = {"int": ["v0"], "void": [], "u64": ["v0", "v1"], "float": ["f0"],
@@ -78,6 +96,64 @@ def u32(v):
 
 def phys(v):
     return v & 0x1FFFFFFF
+
+
+# ---------------------------------------------------------------------------
+# unicorn's MIPS branch-state bits (QEMU's MIPS_HFLAG_B*, BDS*, BX, ...) and
+# where env->hflags sits in a saved context (see Machine._delay_slot_fix)
+MIPS_HFLAG_BMASK = 0x87F800
+HFLAGS = []                 # [offset] once calibrated, [None] if calibration failed
+
+
+def is_branch(w):
+    """Does instruction word W have a delay slot (j/jal/jr/jalr, b*, b*l, bc1*)?"""
+    op = w >> 26
+    if op in (2, 3, 4, 5, 6, 7, 0x14, 0x15, 0x16, 0x17):
+        return True
+    if op == 0:
+        return w & 63 in (8, 9)
+    if op == 1:
+        return (w >> 16) & 31 in (0, 1, 2, 3, 0x10, 0x11, 0x12, 0x13)
+    return op == 0x11 and (w >> 21) & 31 == 8
+
+
+def calibrate_hflags():
+    """Find env->hflags in unicorn's MIPS context blob: fault in the delay slot
+    of a taken beq and of a taken bne (which leaves MIPS_HFLAG_B resp. BC set)
+    and look for the one word whose change is exactly such branch bits.
+    -> offset, or None (then Machines fall back to diffing all memory)."""
+    if HFLAGS:
+        return HFLAGS[0]
+    found = []
+    try:
+        for br, bit in ((0x10000003, 0x800), (0x15400003, 0x1000)):    # beq zero,zero,+3 / bne t2,zero,+3
+            uc = Uc(UC_ARCH_MIPS, UC_MODE_MIPS64 | UC_MODE_BIG_ENDIAN)
+            uc.ctl_set_cpu_model(M.UC_CPU_MIPS64_R4000)
+            uc.mem_map(0, 0x10000)
+            uc.mem_write(0x1000, struct.pack(">6I", br, 0x8D280000, 0, 0, 0x03E00008, 0))   # lw t0,0(t1) in the slot
+            uc.reg_write(REG["t1"], sext32(0x85000000))                   # unmapped
+            uc.reg_write(REG["t2"], 1)
+            blobs = []
+            for step in (0, 1):
+                if step:
+                    try:
+                        uc.emu_start(sext32(0x80001000), sext32(0x8000F000), count=10)
+                    except UcError:
+                        pass
+                c = uc.context_save()
+                blobs.append(ctypes.string_at(ctypes.cast(c.context, ctypes.c_void_p).value, c.size))
+            b0, b1 = blobs
+            offs = set()
+            for o in range(0, min(len(b0), len(b1)) - 3, 4):
+                x = int.from_bytes(b0[o:o + 4], sys.byteorder) ^ int.from_bytes(b1[o:o + 4], sys.byteorder)
+                if x and not x & ~MIPS_HFLAG_BMASK and x & bit:
+                    offs.add(o)
+            found.append(offs)
+        common = found[0] & found[1]
+        HFLAGS.append(common.pop() if len(common) == 1 else None)
+    except Exception:
+        HFLAGS.append(None)
+    return HFLAGS[0]
 
 
 def kseg0(p):
@@ -144,11 +220,24 @@ def slot_key(slot):
     return (2, FLOAT_SLOTS.index(slot) if slot in FLOAT_SLOTS else 9)
 
 
+M64 = (1 << 64) - 1
+# o32 register pairs of a 64-bit value (big-endian: the first register holds the high word)
+PAIR = {"a0": "a1", "a2": "a3", "v0": "v1"}
+
+
+class Wide(int):
+    """A full 64-bit register value (written to a register as is, not sign-extended from 32 bits)."""
+
+
 def parse_loc(s, what, regs_ok):
-    """A SLOT/DEST: ('reg', REG, 0, W) or ('mem', SLOT, OFF, W)."""
+    """A SLOT/DEST: ('reg', REG, 0, W) or ('mem', SLOT, OFF, W).  W = 8 is a 64-bit
+    value: an o32 pair (a0:a1, a2:a3, v0:v1 = ret64, stackN:stackN+1 with N even),
+    8 bytes through a pointer, or a whole 64-bit register (any other register)."""
     s = s.strip()
     w = 4
-    m = re.match(r"^(.*?):([124])$", s)
+    if s == "ret64":
+        s, w = "ret", 8
+    m = re.match(r"^(.*?):([1248])$", s)
     if m:
         s, w = m.group(1).strip(), int(m.group(2))
     if s.startswith("*"):
@@ -162,9 +251,56 @@ def parse_loc(s, what, regs_ok):
     if regs_ok:
         r = {"ret": "v0", "fret": "f0", "s8": "fp"}.get(s, s)
         if r in REG and r not in ("pc", "fcsr", "zero"):
-            return ("reg", r, 0, w)
-        raise ValueError("%s: bad output %r (want ret, fret, a register or *SLOT[+OFF][:W])" % (what, s))
-    return ("reg", parse_slot(s, what), 0, w)
+            loc = ("reg", r, 0, w)
+        else:
+            raise ValueError("%s: bad output %r (want ret, ret64, fret, a register or *SLOT[+OFF][:W])" % (what, s))
+    else:
+        loc = ("reg", parse_slot(s, what), 0, w)
+    if w == 8:
+        r = loc[1]
+        if r.startswith("f"):
+            raise ValueError("%s: %r: 64-bit FPU values aren't supported" % (what, s))
+        if r in ("a1", "a3", "v1"):
+            raise ValueError("%s: %r: an o32 64-bit value goes in an even pair (a0:a1, a2:a3, v0:v1)" % (what, s))
+        if r.startswith("stack") and int(r[5:]) % 2:
+            raise ValueError("%s: %r: an o32 64-bit stack argument is 8-aligned (stack0, stack2, ..)" % (what, s))
+        if not regs_ok and r not in PAIR and not r.startswith("stack"):
+            raise ValueError("%s: %r: a 64-bit C argument goes in a0:8, a2:8 or stackN:8" % (what, s))
+    return loc
+
+
+def is_pair(loc):
+    """True for a 64-bit value split over two 32-bit o32 slots (a0:a1, v0:v1, stackN/N+1)."""
+    return loc[0] == "reg" and loc[3] == 8 and (loc[1] in PAIR or loc[1].startswith("stack"))
+
+
+def pair_of(slot):
+    return PAIR[slot] if slot in PAIR else "stack%d" % (int(slot[5:]) + 1)
+
+
+def loc_slots(loc):
+    """The C argument slots a value location occupies (both halves of a pair)."""
+    return [loc[1], pair_of(loc[1])] if is_pair(loc) else [loc[1]]
+
+
+def split_width(e):
+    """'a0:1' -> ('a0', 1); 'a0' -> ('a0', 0)"""
+    m = re.match(r"^(.*?):([1248])$", e)
+    return (m.group(1), int(m.group(2))) if m else (e, 0)
+
+
+def sig_match(sel, label, slot):
+    """--sig entries SEL for a callee with a convention: None when the argument
+    (C slot label LABEL, slot SLOT) isn't selected, else the width to compare
+    it at (0 = as declared).  'a0:1' compares a0's low byte."""
+    for e in sel:
+        if e == label or e == slot:
+            return 0
+    for e in sel:
+        x, w = split_width(e)
+        if w and (x == label or x == slot):
+            return w
+    return None
 
 
 def loc_str(loc):
@@ -238,14 +374,15 @@ def parse_conv_line(line, where):
     # sanity
     seen = {}
     for r, l in c.ins:
-        k = (l[1], l[2]) if l[0] == "mem" else l[1]
-        if k in seen:
-            raise ValueError("%s: C slot %s used by both %s and %s" % (where, loc_str(l), seen[k], r))
-        seen[k] = r
+        for k in ([(l[1], l[2])] if l[0] == "mem" else loc_slots(l)):
+            if k in seen:
+                raise ValueError("%s: C slot %s used by both %s and %s" % (where, loc_str(l), seen[k], r))
+            seen[k] = r
     ptrs = set(c.ptr_slots())
     for r, l in c.ins:
-        if l[0] == "reg" and l[1] in ptrs:
-            raise ValueError("%s: %s is both a value and a pointer slot" % (where, l[1]))
+        for s in (loc_slots(l) if l[0] == "reg" else []):
+            if s in ptrs:
+                raise ValueError("%s: %s is both a value and a pointer slot" % (where, s))
     regs_in = [r for r, _ in c.ins]
     if len(set(regs_in)) != len(regs_in):
         raise ValueError("%s: an input register is listed twice" % where)
@@ -326,6 +463,42 @@ def source_info(version):
     return asm, rew
 
 
+_VOIDS = {}
+
+
+def void_rewrites(version):
+    """Functions whose NON_MATCHING C rewrite is defined `void NAME(` (the
+    #ifdef NON_MATCHING branch of src.<version>): --ret defaults to void for them."""
+    if version in _VOIDS:
+        return _VOIDS[version]
+    out = set()
+    src = os.path.join(REPO_DIR, "src.%s" % version)
+    for dirpath, _, files in os.walk(src):
+        for fn in files:
+            if not fn.endswith(".c"):
+                continue
+            stack = []          # per open #if: [is_nm, in_else]
+            with open(os.path.join(dirpath, fn), errors="replace") as f:
+                for line in f:
+                    s = line.strip()
+                    if s.startswith("#"):
+                        if re.match(r"#\s*if(n?def)?\b", s):
+                            stack.append([bool(re.match(r"#\s*ifdef\s+NON_MATCHING\b", s)
+                                               or re.match(r"#\s*if\s+defined\s*\(?\s*NON_MATCHING", s)), False])
+                        elif re.match(r"#\s*else\b", s) and stack:
+                            stack[-1][1] = True
+                        elif re.match(r"#\s*endif\b", s) and stack:
+                            stack.pop()
+                        continue
+                    if not any(nm and not el for nm, el in stack):
+                        continue
+                    m = re.match(r"^(?:static\s+)?void\s+(\w+)\s*\(.*$", line)
+                    if m and not s.endswith(";"):
+                        out.add(m.group(1))
+    _VOIDS[version] = out
+    return out
+
+
 # ---------------------------------------------------------------------------
 class Build:
     """Symbols and loadable sections of one build (hd_code ELF + init ELF)."""
@@ -400,6 +573,16 @@ class Build:
 
     def in_text(self, a):
         return any(lo <= a < hi for lo, hi in self.text)
+
+    def read_init(self, a, n):
+        """N bytes at address A in the loaded image (sections; .bss and unloaded memory read 0)."""
+        out = bytearray(n)
+        for v, d, _, _ in self.sections:
+            size = d if isinstance(d, int) else len(d)
+            lo, hi = max(v, a), min(v + size, a + n)
+            if lo < hi and not isinstance(d, int):
+                out[lo - a:hi - a] = d[lo - v:hi - v]
+        return bytes(out)
 
     def name_at(self, a):
         """'sym+0xoff' for an address (nearest preceding symbol)."""
@@ -494,6 +677,7 @@ class ModelMem:
 
     def write(self, a, data):
         self.m.uc.mem_write(phys(u32(a)), bytes(data))
+        self.m.note_write(phys(u32(a)), len(data))
 
     def u8(self, a):
         return self.read(a, 1)[0]
@@ -602,6 +786,19 @@ class Machine:
         for k in range(1, 9):
             regions.append((0x04000000 + k * 0x100000, 0x100))
         self.regions = regions
+        order = sorted(range(len(regions)), key=lambda i: regions[i][0])
+        self._rstarts = [regions[i][0] for i in order]
+        self._rorder = order
+        # register batches through the C API directly (the binding's
+        # reg_read_batch/reg_write_batch cost ~0.25 ms each in Python)
+        n = len(RES_REGS_IDS)
+        self._rd_ids = (ctypes.c_int * n)(*RES_REGS_IDS)
+        self._rd_vals = (ctypes.c_uint64 * n)()
+        self._rd_ptrs = (ctypes.c_void_p * n)(*[ctypes.addressof(self._rd_vals) + 8 * i for i in range(n)])
+        self._wr_ids = (ctypes.c_int * 128)()
+        self._wr_vals = (ctypes.c_uint64 * 128)()
+        self._wr_ptrs = (ctypes.c_void_p * 128)(*[ctypes.addressof(self._wr_vals) + 8 * i for i in range(128)])
+        self.nblocks, self.deadline = 0, float("inf")
         self.ram_addr = ctypes.addressof(self.ram)
         self.mmio_addr = ctypes.addressof(self.mmio)
         # base: pristine contents; snap: base plus the current trial's inputs
@@ -611,6 +808,27 @@ class Machine:
         self.snap = [ctypes.create_string_buffer(bytes(b.raw), n) for b, (s, n) in zip(self.base, regions)]
         self.dirty = set()        # (region index, page offset) to restore from base before the next run
         self.dirty_other = []     # input writes outside the regions (restored before the next run)
+        # Which pages a run wrote comes from the soft TLB: the address
+        # translation is done by our own fill hook (UC_TLB_VIRTUAL, mapping
+        # KSEG0/KSEG1 and, as the R4000 does with Status.ERL set, kuseg 1:1),
+        # the TLB is flushed before every run, and a page is entered writable
+        # only on a store miss.  So every page stored to has gone through a
+        # write fill, and the diff only has to look at those pages instead of
+        # memcmp'ing every region (about 7 MB) after each run.
+        self.wpages = set()       # physical page addresses written by the guest this run
+        self.outside_pages = set()  # written pages outside the regions, since the machine was (re)used
+        self.tlb_bad = None
+        self.page_index = {}      # physical page -> [(region index, region page offset)]
+        for ri, (s, n) in enumerate(regions):
+            for lo in range(0, n, PAGE):
+                hi = min(lo + PAGE, n)
+                for pg in range((s + lo) & ~(PAGE - 1), s + hi, PAGE):
+                    self.page_index.setdefault(pg, []).append((ri, lo))
+        self.tlb_track = calibrate_hflags() is not None and not os.environ.get("EQCHECK_FULL_DIFF")
+        if self.tlb_track:
+            uc.ctl_set_tlb_mode(UC_TLB_VIRTUAL)
+            uc.hook_add(UC_HOOK_TLB_FILL, self._on_tlb_fill)
+            self.fix_ctx = uc.context_save()
         uc.hook_add(UC_HOOK_BLOCK, self._on_block)
         uc.hook_add(UC_HOOK_INTR, self._on_intr)
         uc.hook_add(UC_HOOK_MEM_UNMAPPED | UC_HOOK_MEM_FETCH_UNMAPPED, self._on_unmapped)
@@ -621,6 +839,12 @@ class Machine:
         self.is_nm = any(lo >= 0x80800000 for lo, hi in build.text)
         self._fent = sorted(build.funcs)
         self.prev_block = 0
+        # The pristine CPU state, restored before every run.  A run that ends
+        # with a fault in a branch delay slot leaves QEMU's branch state behind
+        # (hflags delay-slot bits and btarget): without this the next
+        # emu_start executes one instruction at the new entry as if it were
+        # that delay slot and then jumps to the old branch target.
+        self.clean_ctx = uc.context_save()
 
     # -- which side of a register convention a piece of code is on ------------
     def func_at(self, a):
@@ -651,6 +875,29 @@ class Machine:
             return struct.unpack(">I", self.read(u32(uc.reg_read(REG["sp"])) + off, 4))[0]
         return u32(uc.reg_read(REG[loc]))
 
+    def read_val(self, loc, w, whole=False):
+        """A W-byte value at a register or stack slot: W = 8 reads an o32 pair
+        (a0:a1, v0:v1, stackN/N+1; high word first) or a whole 64-bit register
+        (any other register, or every register with WHOLE: the asm side)."""
+        if w != 8:
+            return self.read_loc(loc)
+        if loc.startswith("stack") or loc in PAIR and not whole:
+            return self.read_loc(loc) << 32 | self.read_loc(pair_of(loc))
+        if loc.startswith("sp+"):
+            off = int(loc[3:], 0)
+            return self.read_loc(loc) << 32 | self.read_loc("sp+0x%x" % (off + 4))
+        return self.uc.reg_read(REG[loc]) & M64
+
+    def write_val(self, loc, v, w, whole=False):
+        """Counterpart of read_val for registers (a pair, or a whole 64-bit register when W = 8)."""
+        if w != 8:
+            self.write_reg(loc, v)
+        elif loc in PAIR and not whole:
+            self.write_reg(loc, v >> 32)
+            self.write_reg(PAIR[loc], v)
+        else:
+            self.uc.reg_write(REG[loc], v & M64)
+
     def read_ptr(self, ptr, w):
         try:
             return int.from_bytes(self.read(ptr, w), "big")
@@ -677,9 +924,16 @@ class Machine:
         return self.b.in_text(a) or any(lo <= a < hi for lo, hi in self.prefill_text)
 
     def _on_block(self, uc, addr, size, ud):
-        a = u32(addr)
+        a = addr & 0xFFFFFFFF
         self.prev_block = self.last_block
         self.last_block = a
+        self.nblocks += 1
+        if not self.nblocks & 0xFFF and time.time() > self.deadline:
+            # --timeout, checked here: emu_start's own timeout starts a timer
+            # thread per call, about 0.3 ms, more than a small trial takes
+            self.fault = ("timeout", "no return after %.1fs" % self.opts.timeout, a)
+            uc.emu_stop()
+            return
         if self.opts.trace:
             print("    [%s] block %s (%d bytes)" % (self.b.label, self.b.name_at(a), size))
         if a == SENTINEL:
@@ -737,10 +991,18 @@ class Machine:
         side = self.caller_side() if full else None
         if full:
             sel = self.opts.sigs.get(name)          # --sig with a convention selects C slots
-            args = tuple((label, v) for label, slot, v in self._conv_args(conv, side)
-                         if sel is None or label in sel or slot in sel)
+            args = []
+            for label, slot, v in self._conv_args(conv, side):
+                if sel is not None:
+                    w = sig_match(sel, label, slot)
+                    if w is None:
+                        continue
+                    if w:
+                        v &= (1 << (8 * w)) - 1
+                args.append((label, v))
+            args = tuple(args)
         else:
-            args = tuple((r, self.read_loc(r)) for r in self.opts.sig_for(name))
+            args = tuple((r, self.read_val(r, w) & ((1 << (8 * w)) - 1)) for r, w in self.opts.sig_for(name))
         self.events.append(("call", name, args))
         keep = self.opts.preserve_for(name)
         if not full or side == "c":
@@ -749,7 +1011,7 @@ class Machine:
                 if r not in keep:
                     self.write_reg(r, v)
         if full:
-            self._deliver(name, conv, side, [self.opts.out_value(name, k, idx, r, self)
+            self._deliver(name, conv, side, [self.opts.out_value(name, k, idx, r, self, loc[3])
                                              for idx, (r, loc) in enumerate(conv.outs)])
         uc.reg_write(REG["pc"], uc.reg_read(REG["ra"]))
 
@@ -758,9 +1020,9 @@ class Machine:
         out = []
         for r, loc in conv.ins:
             if side == "asm":
-                v = self.read_loc(r)
+                v = self.read_val(r, loc[3], whole=True)
             elif loc[0] == "reg":
-                v = self.read_loc(loc[1])
+                v = self.read_val(loc[1], loc[3])
             else:
                 v = self.read_ptr(self.read_loc(loc[1]) + loc[2], loc[3])
                 v = 0xDEADDEAD if v is None else v
@@ -772,16 +1034,16 @@ class Machine:
     def _deliver(self, name, conv, side, vals):
         """Write a callee's outputs on the caller's side of its convention."""
         for (r, loc), v in zip(conv.outs, vals):
-            if loc[3] != 4:
-                v &= (1 << (8 * loc[3])) - 1
+            v &= (1 << (8 * loc[3])) - 1
             if side == "asm":
-                self.write_reg(r, v)
+                self.write_val(r, v, loc[3], whole=True)
             elif loc[0] == "reg":
-                self.write_reg(loc[1], v)
+                self.write_val(loc[1], v, loc[3])
             else:
                 p = u32(self.read_loc(loc[1]) + loc[2])
                 try:
                     self.uc.mem_write(phys(p), v.to_bytes(loc[3], "big"))
+                    self.note_write(phys(p), loc[3])
                 except UcError:
                     if ("badptr", name) not in self.notes:
                         self.notes.append(("badptr", name))
@@ -809,7 +1071,7 @@ class Machine:
             return
         res = [] if res is None else [res] if isinstance(res, int) else list(res)
         if full:
-            self._deliver(name, conv, side, [v & 0xFFFFFFFF for v in res])
+            self._deliver(name, conv, side, [v & M64 for v in res])
         elif res:
             self.write_reg("v0", res[0])
         uc.reg_write(REG["pc"], uc.reg_read(REG["ra"]))
@@ -940,6 +1202,111 @@ class Machine:
         uc.reg_write(REG["f%d" % (fd + 1)], r >> 32)
         return True
 
+    def _on_tlb_fill(self, uc, vaddr, access, entry, ud):
+        if 0xFFFFFFFF80000000 <= vaddr < 0xFFFFFFFFC0000000:      # KSEG0 / KSEG1
+            p = vaddr & 0x1FFFFFFF
+        elif vaddr < 0x80000000:                                 # kuseg, unmapped while Status.ERL is set
+            p = vaddr
+        else:                                                    # KSEG2 / xkphys / ..: no mapping
+            self.tlb_bad = (access, vaddr)
+            return False
+        entry.paddr = p
+        if access == UC_MEM_WRITE:
+            self.wpages.add(p & ~(PAGE - 1))
+            entry.perms = UC_PROT_READ | UC_PROT_WRITE | UC_PROT_EXEC
+        else:
+            entry.perms = UC_PROT_READ | UC_PROT_EXEC
+        if access != UC_MEM_FETCH:
+            self._delay_slot_fix()
+        return True
+
+    def _delay_slot_fix(self):
+        """Undo unicorn's damage when a TLB fill happens in a branch delay slot.
+
+        Before calling a TLB-fill hook unicorn rolls the CPU state back to the
+        faulting instruction (cpu_restore_state), which for an instruction in
+        a delay slot also ORs the branch bits (MIPS_HFLAG_B/BC/BL..) into
+        env->hflags.  The translated code after the delay slot assumes hflags
+        were never written, so the bits stay set; the next block is then
+        looked up and translated as if it sat in a delay slot (an RI exception
+        or a wild jump right after the branch).  The same thing breaks
+        UC_HOOK_MEM_READ/WRITE (see the README).  Python can't reach hflags,
+        so this edits it in a saved context: its offset is found once by
+        calibrate_hflags()."""
+        uc = self.uc
+        p = phys(uc.reg_read(REG["pc"]) - 4)
+        if p + 4 > RAM_SIZE or not is_branch(int.from_bytes(ctypes.string_at(self.ram_addr + p, 4), "big")):
+            return
+        uc.context_update(self.fix_ctx)
+        v = ctypes.c_uint32.from_address(ctypes.cast(self.fix_ctx.context, ctypes.c_void_p).value + HFLAGS[0])
+        if v.value & MIPS_HFLAG_BMASK:
+            v.value &= ~MIPS_HFLAG_BMASK
+            uc.context_restore(self.fix_ctx)
+
+    def note_write(self, p, n):
+        """Guest memory changed from Python (a stub's pointer output, a model): include it in the diff."""
+        for pg in range(p & ~(PAGE - 1), p + n, PAGE):
+            self.wpages.add(pg)
+
+    def regs_write(self, ids, vals):
+        n = len(ids)
+        if _UCLIB is None or n > 128:
+            self.uc.reg_write_batch(list(zip(ids, vals)))
+            return
+        self._wr_ids[:n] = ids
+        self._wr_vals[:n] = vals
+        st = _UCLIB.uc_reg_write_batch(self.uc._uch, self._wr_ids, self._wr_ptrs, n)
+        if st != 0:
+            raise UcError(st)
+
+    def regs_read(self):
+        """Values of RES_REGS (64-bit) after a run."""
+        if _UCLIB is None:
+            return self.uc.reg_read_batch(RES_REGS_IDS)
+        ctypes.memset(self._rd_vals, 0, ctypes.sizeof(self._rd_vals))
+        st = _UCLIB.uc_reg_read_batch(self.uc._uch, self._rd_ids, self._rd_ptrs, len(RES_REGS_IDS))
+        if st != 0:
+            raise UcError(st)
+        return self._rd_vals[:]
+
+    def flush_tlb(self):
+        self.uc._Uc__ctl_w(UC_CTL_TLB_FLUSH)
+
+    def _pristine_page(self, pg):
+        """The load-time contents of physical page PG (as __init__ left it)."""
+        data = bytearray(PAGE)
+        if pg >= RAM_SIZE:
+            return bytes(data)          # MMIO starts out zero
+        secs = []
+        if self.prefill is not None:
+            secs += [(v, d) for v, d, _, ex in self.prefill.sections if ex and not isinstance(d, int)]
+        secs += [(v, d) for v, d, _, _ in self.b.sections]
+        secs.append((SENTINEL, 16))
+        for v, d in secs:
+            p = phys(v)
+            n = d if isinstance(d, int) else len(d)
+            lo, hi = max(p, pg), min(p + n, pg + PAGE)
+            if lo < hi:
+                data[lo - pg:hi - pg] = bytes(hi - lo) if isinstance(d, int) else d[lo - p:hi - p]
+        for a in self.long_ops:
+            if pg <= phys(a) < pg + PAGE:
+                data[phys(a) - pg:phys(a) - pg + 4] = b"\0\0\0\0"
+        return bytes(data)
+
+    def recycle(self, build, prefill, opts):
+        """Make a machine left over from an earlier eqcheck run in this process
+        (runchecks' worker pool) equivalent to a freshly built one."""
+        self.b, self.prefill, self.opts = build, prefill, opts
+        self.auto_follow = set()
+        self.restore()
+        for pg in sorted(self.outside_pages):
+            try:
+                self.uc.mem_write(pg, self._pristine_page(pg))
+            except UcError:
+                pass                    # unmapped: the write faulted
+        self.outside_pages.clear()
+        self.uc.context_restore(self.clean_ctx)
+
     def _on_unmapped(self, uc, access, addr, size, value, ud):
         self.fault = ("unmapped", access, u32(addr), u32(uc.reg_read(REG["pc"])))
         return False
@@ -961,51 +1328,68 @@ class Machine:
         # pages that the previous run wrote or that held its inputs differ
         # from base, so only those are copied back (memory and snap alike).
         self.restore()
+        uc.context_restore(self.clean_ctx)
         writes = [(phys(addr_fn(self.b)), data) for addr_fn, data in plan.mem]
         writes += [(phys(a), struct.pack(">I", v & 0xFFFFFFFF)) for a, v in self.opts.mmio_vals.items()]
         for p, data in writes:
             ln = len(data)
-            for ri, (s, n) in enumerate(self.regions):
-                if s <= p and p + ln <= s + n:
-                    o = p - s
-                    ctypes.memmove(ctypes.addressof(self.snap[ri]) + o, data, ln)
-                    uc.mem_write(p, data)
-                    for pg in range(o // PAGE, (o + ln - 1) // PAGE + 1):
-                        self.dirty.add((ri, pg * PAGE))
-                    break
+            i = bisect.bisect_right(self._rstarts, p) - 1
+            ri = self._rorder[i] if i >= 0 else None
+            s, n = self.regions[ri] if ri is not None else (0, 0)
+            if ri is not None and p + ln <= s + n:
+                o = p - s
+                ctypes.memmove(ctypes.addressof(self.snap[ri]) + o, data, ln)
+                uc.mem_write(p, data)
+                for pg in range(o // PAGE, (o + ln - 1) // PAGE + 1):
+                    self.dirty.add((ri, pg * PAGE))
             else:
                 # outside the diffed regions (e.g. code): undone before the next run
                 self.dirty_other.append((p, bytes(uc.mem_read(p, ln))))
                 uc.mem_write(p, data)
-        uc.reg_write(REG["fcsr"], plan.fcsr)
+        ids, vals = [REG["fcsr"]], [plan.fcsr]
         for r, v in plan.regs.items():
-            if r.startswith("f"):
-                uc.reg_write(REG[r], v & 0xFFFFFFFF)
+            ids.append(REG[r])
+            if r[0] == "f":
+                vals.append(v & 0xFFFFFFFF)
+            elif isinstance(v, Wide):
+                vals.append(v & M64)
             else:
-                uc.reg_write(REG[r], sext32(v))
-        uc.reg_write(REG["sp"], sext32(STACK_TOP))
-        uc.reg_write(REG["ra"], sext32(SENTINEL))
-        uc.reg_write(REG["zero"], 0)
+                vals.append(sext32(v) & M64)
+        ids += [REG["sp"], REG["ra"], REG["zero"]]
+        vals += [sext32(STACK_TOP) & M64, sext32(SENTINEL) & M64, 0]
+        self.regs_write(ids, vals)
+        if self.tlb_track:
+            self.flush_tlb()
+        self.wpages.clear()
+        self.tlb_bad = None
         t0 = time.time()
+        self.nblocks = 0
+        self.deadline = t0 + self.opts.timeout
         err = None
         try:
             uc.emu_start(sext32(entry), sext32(SENTINEL),
-                         timeout=int(self.opts.timeout * 1e6), count=self.opts.max_insns)
+                         count=self.opts.max_insns)
         except UcError as e:
             err = str(e)
-        pc = u32(uc.reg_read(REG["pc"]))
+        vals = self.regs_read()
+        pc = u32(vals[-1])
         if self.fault is None and pc != SENTINEL:
-            if err:
+            if err and self.tlb_bad is not None:
+                # an address with no KSEG0/KSEG1/kuseg mapping (see _on_tlb_fill)
+                self.fault = ("unmapped", self.tlb_bad[0], self.tlb_bad[1], pc)
+            elif err:
                 self.fault = ("error", err, pc)
             else:
                 self.fault = ("timeout", "no return after %d insns / %.1fs" %
                               (self.opts.max_insns, time.time() - t0), pc)
-        res = {}
-        for r in GPR_NAMES + ["hi", "lo"] + ["f%d" % i for i in range(32)]:
-            res[r] = u32(uc.reg_read(REG[r]))
+        full = {r: v & M64 for r, v in zip(RES_REGS, vals)}
+        res = {r: v & 0xFFFFFFFF for r, v in full.items()}
         res["s8"] = res["fp"]
+        res["_64"] = full           # whole 64-bit register values (64-bit convention outputs)
         # every byte that differs from the start-of-run state
         self.diff()
+        if VERIFY_DIFF:
+            self.verify_diff()
         return res
 
     def host(self, p):
@@ -1027,27 +1411,64 @@ class Machine:
             uc.mem_write(p, data)
         self.dirty_other = []
 
+    def _diff_page(self, ri, lo, out):
+        """Compare region RI's page at offset LO with snap; add changed bytes to OUT."""
+        s, n = self.regions[ri]
+        hi = min(lo + PAGE, n)
+        la, sa = self.host(s), ctypes.addressof(self.snap[ri])
+        if _memcmp(la + lo, sa + lo, hi - lo) == 0:
+            return False
+        seg = 0xA0000000 if 0x04000000 <= s < 0x05000000 else 0x80000000
+        o, c = ctypes.string_at(sa + lo, hi - lo), ctypes.string_at(la + lo, hi - lo)
+        for i in range(0, hi - lo, 64):
+            if o[i:i + 64] != c[i:i + 64]:
+                out.update(seg | (s + lo + j) for j in range(i, min(i + 64, hi - lo)) if o[j] != c[j])
+        return True
+
     def diff(self):
-        """Add every byte that differs from snap to self.written: memcmp over
-        64 KB chunks, then pages, then a byte compare inside changed pages."""
-        CHUNK = 0x10000
-        for ri, (s, n) in enumerate(self.regions):
-            la, sa = self.host(s), ctypes.addressof(self.snap[ri])
-            seg = 0xA0000000 if 0x04000000 <= s < 0x05000000 else 0x80000000
-            for c0 in range(0, n, CHUNK):
-                c1 = min(c0 + CHUNK, n)
-                if _memcmp(la + c0, sa + c0, c1 - c0) == 0:
-                    continue
-                for lo in range(c0, c1, PAGE):
-                    hi = min(lo + PAGE, n)
-                    if _memcmp(la + lo, sa + lo, hi - lo) == 0:
+        """Add every byte that differs from snap to self.written.  Only the
+        pages the run wrote (write fills of the soft TLB, plus writes made from
+        Python) can differ, so only those are compared."""
+        seen = set()
+        self.changed_pages = set()
+        if not self.tlb_track:
+            # no write tracking (calibration failed or EQCHECK_FULL_DIFF): memcmp
+            # every region in 64 KB chunks, then the pages of changed chunks
+            CHUNK = 0x10000
+            for ri, (s, n) in enumerate(self.regions):
+                la, sa = self.host(s), ctypes.addressof(self.snap[ri])
+                for c0 in range(0, n, CHUNK):
+                    c1 = min(c0 + CHUNK, n)
+                    if _memcmp(la + c0, sa + c0, c1 - c0) == 0:
                         continue
-                    self.dirty.add((ri, lo))
-                    o, c = ctypes.string_at(sa + lo, hi - lo), ctypes.string_at(la + lo, hi - lo)
-                    for i in range(0, hi - lo, 64):
-                        if o[i:i + 64] != c[i:i + 64]:
-                            self.written.update(seg | (s + lo + j) for j in range(i, min(i + 64, hi - lo))
-                                                if o[j] != c[j])
+                    for lo in range(c0, c1, PAGE):
+                        if self._diff_page(ri, lo, self.written):
+                            self.dirty.add((ri, lo))
+                            self.changed_pages.add((ri, lo))
+            return
+        for pg in self.wpages:
+            if pg not in self.page_index:
+                self.outside_pages.add(pg)      # not diffed; put back by recycle()
+                continue
+            for key in self.page_index[pg]:
+                if key in seen:
+                    continue
+                seen.add(key)
+                if self._diff_page(key[0], key[1], self.written):
+                    self.dirty.add(key)
+                    self.changed_pages.add(key)
+
+    def verify_diff(self):
+        """EQCHECK_VERIFY_DIFF=1: check the TLB-based diff against a full memcmp of every region."""
+        full = set()
+        for ri, (s, n) in enumerate(self.regions):
+            for lo in range(0, n, PAGE):
+                if self._diff_page(ri, lo, full) and (ri, lo) not in self.changed_pages:
+                    raise SystemExit("eqcheck: internal error: page %d/0x%X changed but no TLB write fill"
+                                     % (ri, lo))
+        if full != self.written:
+            raise SystemExit("eqcheck: internal error: TLB diff %d bytes vs full diff %d bytes"
+                             % (len(self.written), len(full)))
 
     def read(self, a, n=1):
         p = phys(a)
@@ -1091,6 +1512,8 @@ class Plan:
             return lambda b, n=n: b.resolve(n)
         if name in self.vals:
             return self.vals[name]
+        if stack_target(name) in self.vals:
+            return self.vals[stack_target(name)]
         if name == "heap":
             return HEAP_BASE
         m = re.match(r"^heap(\d+)$", name)
@@ -1130,6 +1553,18 @@ def rand_float(rng, lo=None, hi=None):
     if r < 0.9:
         return rng.uniform(-1000.0, 1000.0)
     return rng.uniform(-1e7, 1e7)
+
+
+BIG_FILL = 64
+
+
+def rand_bytes(rng, n):
+    """N random bytes.  Up to BIG_FILL bytes one getrandbits(8) per byte, as
+    always (so existing check lines keep their inputs); bigger fills (49 KB
+    tables took ~5 ms per trial that way) in one call."""
+    if n > BIG_FILL:
+        return rng.randbytes(n)
+    return bytes(rng.getrandbits(8) for _ in range(n))
 
 
 def fbits(x):
@@ -1199,6 +1634,14 @@ def gen_value(spec, rng, plan, what):
         pass
     if kind == "rel":
         return gen_rel(spec[4:], rng, plan, what)
+    if kind == "int64":
+        # a full 64-bit value (for a whole 64-bit register or a 64-bit convention input)
+        if len(parts) == 3:
+            v = rng.randint(int(parts[1], 0), int(parts[2], 0))
+        else:
+            r = rng.random()
+            v = rand_int(rng) if r < 0.4 else rng.randint(-(1 << 40), 1 << 40) if r < 0.6 else rng.getrandbits(64)
+        return Wide(v & M64), "0x%X" % (v & M64)
     if kind == "int":
         if len(parts) == 3:
             v = rng.randint(int(parts[1], 0), int(parts[2], 0))
@@ -1214,6 +1657,10 @@ def gen_value(spec, rng, plan, what):
     if kind in ("ptr", "ptrz"):
         size = int(parts[1], 0) if len(parts) > 1 else 0x200
         a = plan.alloc(size)
+        # (byte by byte even when big: switching ptr blocks to randbytes changed
+        # the inputs of existing check lines, and the new ones hit an asm
+        # overflow trap in func_802A484C and a heap diff in func_802A57AC that
+        # the checks don't yet account for; --mem rand fills use rand_bytes)
         data = bytes(size) if kind == "ptrz" else bytes(rng.getrandbits(8) for _ in range(size))
         plan.mem.append((lambda b, a=a: a, data))
         return a, "heap 0x%08X (%s 0x%X)" % (a, kind, size)
@@ -1222,6 +1669,17 @@ def gen_value(spec, rng, plan, what):
         if not re.match(r"^[A-Za-z_]\w*\s*([+-]\s*(0x[0-9A-Fa-f]+|\d+))?$", name):
             raise SystemExit("bad value spec for %s: %r (want sym:NAME or sym:NAME+OFF)" % (what, spec))
         return (lambda b: b.resolve(name)), "&" + name
+    if kind == "val":
+        # val:SYM[+OFF][:W] -- the VALUE stored at SYM+OFF in the build's loaded
+        # image (W = 1, 2 or 4 bytes, zero-extended; .bss reads 0).  Unlike
+        # rel:/sym:, which give the ADDRESS.  Earlier --mem writes are not seen.
+        name = parts[1].strip() if len(parts) > 1 else ""
+        w = int(parts[2]) if len(parts) > 2 and parts[2] in ("1", "2", "4") else 4
+        if not re.match(r"^[A-Za-z_]\w*\s*([+-]\s*(0x[0-9A-Fa-f]+|\d+))?$", name) or len(parts) > 3 \
+                or len(parts) == 3 and parts[2] not in ("1", "2", "4"):
+            raise SystemExit("bad value spec for %s: %r (want val:NAME[+OFF][:W])" % (what, spec))
+        return (lambda b: int.from_bytes(b.read_init(b.resolve(name), w), "big")), "*%s%s" % (
+            name, ":%d" % w if w != 4 else "")
     raise SystemExit("bad value spec for %s: %r" % (what, spec))
 
 
@@ -1246,25 +1704,36 @@ def gen_fill(fill, size, rng, plan, tgt):
     kind = fparts[0]
     if kind == "rand":
         size = size or 4
-        return bytes(rng.getrandbits(8) for _ in range(size)), "random %d bytes" % size
+        return rand_bytes(rng, size), "random %d bytes" % size
     if kind == "zero":
         size = size or 4
         return bytes(size), "zero"
-    if kind == "words":
-        pool = parse_pool(fparts[1])
-        n = (size or 4) // 4
-        ws = [rng.choice(pool) & 0xFFFFFFFF for _ in range(n)]
-        return b"".join(struct.pack(">I", w) for w in ws), "words " + ",".join("%X" % w for w in ws)
-    if kind == "halves":
-        pool = parse_pool(fparts[1])
-        n = (size or 2) // 2
-        hs = [rng.choice(pool) & 0xFFFF for _ in range(n)]
-        return b"".join(struct.pack(">H", h) for h in hs), "halves " + ",".join("%X" % h for h in hs)
-    if kind == "bytes":
-        pool = parse_pool(fparts[1])
-        n = size or 1
-        bs = [rng.choice(pool) & 0xFF for _ in range(n)]
-        return bytes(bs), "bytes " + ",".join("%X" % x for x in bs)
+    if kind == "hex":
+        # an exact byte string; with a larger SIZE the pattern repeats
+        txt = re.sub(r"[\s_.]", "", fill[4:])
+        if txt.lower().startswith("0x"):
+            txt = txt[2:]
+        try:
+            pat = bytes.fromhex(txt)
+        except ValueError:
+            raise SystemExit("%s: bad hex fill %r (want hex:00112233.., an even number of hex digits)" % (tgt, fill))
+        if not pat:
+            raise SystemExit("%s: empty hex fill" % tgt)
+        size = size or len(pat)
+        if size < len(pat):
+            raise SystemExit("%s: hex fill is %d bytes but SIZE is %d" % (tgt, len(pat), size))
+        return (pat * (size // len(pat) + 1))[:size], "hex " + pat.hex() + (" x%d" % (size // len(pat))
+                                                                       if size > len(pat) else "")
+    if kind in ("words", "halves", "bytes"):
+        w = {"words": 4, "halves": 2, "bytes": 1}[kind]
+        pool = [v & ((1 << (8 * w)) - 1) for v in parse_pool(fparts[1])]
+        n = (size or w) // w
+        # (big fills draw with choices(), one call instead of n; small ones keep
+        # the per-value choice() so existing check lines see the same inputs)
+        vs = rng.choices(pool, k=n) if n > BIG_FILL else [rng.choice(pool) for _ in range(n)]
+        data = b"".join(v.to_bytes(w, "big") for v in vs) if w > 1 else bytes(vs)
+        shown = ",".join("%X" % v for v in vs[:64]) + (",.. (%d values)" % n if n > 64 else "")
+        return data, kind + " " + shown
     if kind == "floats":
         n = (size or 4) // 4
         lo, hi = (float(fparts[1]), float(fparts[2])) if len(fparts) == 3 else (None, None)
@@ -1302,6 +1771,11 @@ def gen_fill(fill, size, rng, plan, tgt):
     v, desc = gen_value(fill, rng, plan, tgt)
     if callable(v):
         return v, desc
+    if isinstance(v, Wide):         # int64: 8 bytes unless sized
+        data = struct.pack(">Q", v)
+        if size and size != 8:
+            data = data[8 - size:] if size < 8 else data + bytes(size - 8)
+        return data, desc
     data = struct.pack(">I", v)
     if size and size != 4:
         data = data[4 - size:] if size < 4 else data + bytes(size - 4)
@@ -1364,9 +1838,15 @@ def size_mem_specs(opts, b):
     for spec in opts.mem:
         tgt, _, fill = spec.partition("=")
         kind = fill.split(":")[0]
+        if kind == "rel":
+            base = fill[4:].split("+")[0].strip()
+            base = base[4:] if base.startswith("sym:") else base
+            if re.match(r"^[A-Za-z_]\w*$", base) and base not in REG and not re.match(r"^heap\d*$", base):
+                print("note: --mem %s: rel:%s.. stores the ADDRESS of %s (a pointer to it); for the value "
+                      "stored there use val:%s" % (spec, base, base, base))
         m = re.match(r"^([A-Za-z_]\w*)\s*(?:\+\s*(0x[0-9A-Fa-f]+|\d+))?$", tgt.strip())
         if ":" in tgt or "*" in tgt or not m or m.group(1) not in b.sym \
-                or kind in ("halves", "bytes", "onehot"):
+                or kind in ("halves", "bytes", "onehot", "hex", "int64"):
             out.append(spec)
             continue
         name, off = m.group(1), int(m.group(2), 0) if m.group(2) else 0
@@ -1386,6 +1866,12 @@ def size_mem_specs(opts, b):
 
 class Options:
     pass
+
+
+def stack_target(tgt):
+    """--arg target: 'stackN' (a C stack-argument slot) -> 'sp+0x..' (0x10 + 4N); others unchanged."""
+    m = re.match(r"^stack(\d+)$", tgt.strip())
+    return "sp+0x%x" % slot_off(tgt.strip()) if m else tgt.strip()
 
 
 def make_plan(opts, trial):
@@ -1421,12 +1907,16 @@ def make_plan(opts, trial):
            [s for s in opts.args if s.split("=", 1)[1].startswith("rel:")]
     for spec in args:
         tgt, val = spec.split("=", 1)
-        v, desc = gen_value(val, rng, plan, tgt)
+        shown = tgt
+        tgt = stack_target(tgt)
+        v, desc = gen_value(val, rng, plan, shown)
         m = re.match(r"^sp\+(0x[0-9A-Fa-f]+|\d+)$", tgt)
         if m:
             off = int(m.group(1), 0)
             if callable(v):
                 plan.mem.append((lambda b, o=off: STACK_TOP + o, None, v))
+            elif isinstance(v, Wide):
+                plan.mem.append((lambda b, o=off: STACK_TOP + o, struct.pack(">Q", v)))
             else:
                 plan.mem.append((lambda b, o=off: STACK_TOP + o, struct.pack(">I", v)))
         elif tgt in REG:
@@ -1434,7 +1924,7 @@ def make_plan(opts, trial):
         else:
             raise SystemExit("bad --arg target %r" % tgt)
         plan.vals[tgt] = v
-        plan.desc.append("%s = %s" % (tgt, desc))
+        plan.desc.append("%s = %s" % (shown, desc))
     if opts.tconv is not None:
         conv_plan(plan, opts.tconv, rng)
     for spec in opts.mem:
@@ -1458,9 +1948,19 @@ def conv_plan(plan, conv, rng):
         m = re.match(r"^sp\+(0x[0-9A-Fa-f]+|\d+)$", k)
         given["stack%d" % ((int(m.group(1), 0) - 0x10) // 4) if m else k] = v
     asm_regs = set(r for r, _ in conv.ins + conv.outs if not r.startswith("stack"))
-    c_slots = set(l[1] for _, l in conv.ins + conv.outs if not l[1].startswith("stack"))
+    c_slots = set(s for _, l in conv.ins + conv.outs for s in (loc_slots(l) if l[0] == "reg" else [l[1]])
+                  if not s.startswith("stack"))
 
-    def set_slot(slot, v):
+    def set_slot(slot, v, w=4):
+        if w == 8 and slot.startswith("stack"):
+            o = slot_off(slot)
+            plan.mem.append((lambda b, o=o: STACK_TOP + o, struct.pack(">Q", v & M64)))
+            plan.vals["sp+0x%x" % o] = Wide(v & M64)
+            return
+        if w == 8 and slot in PAIR:         # o32 pair: high word first
+            set_slot(slot, (v >> 32) & 0xFFFFFFFF)
+            set_slot(PAIR[slot], v & 0xFFFFFFFF)
+            return
         if slot.startswith("stack"):
             o = slot_off(slot)
             if callable(v):
@@ -1474,17 +1974,27 @@ def conv_plan(plan, conv, rng):
             plan.regs[slot] = v
             plan.vals[slot] = v
 
-    def set_asm(r, v):
+    def set_asm(r, v, w=4):
+        if w == 8:
+            v = Wide(v & M64)               # the asm side holds it in one 64-bit register
         plan.side_regs["asm"][r] = v
         plan.vals.setdefault(r, v)
         if r not in c_slots:
             plan.regs[r] = v
 
-    def get_slot(slot):
+    def get_slot(slot, w=4):
+        if w == 8 and (slot in PAIR or slot.startswith("stack")):
+            return get_slot(slot) << 32 | get_slot(pair_of(slot))
         if slot.startswith("stack"):
             o = slot_off(slot)
             return struct.unpack(">I", frame[o:o + 4])[0]
         return plan.regs[slot]
+
+    def wide(v, what):
+        """A given --arg value for a 64-bit input: int64 values as is, others sign-extended."""
+        if callable(v):
+            raise SystemExit("%s: a 64-bit input (%s) must be a number" % (conv.name, what))
+        return v if isinstance(v, Wide) else sext32(v) & M64
 
     blocks = {}
     for i, slot in enumerate(conv.ptr_slots()):
@@ -1506,23 +2016,27 @@ def conv_plan(plan, conv, rng):
         elif cslot in given:
             v = given[cslot]
         elif r.startswith("stack"):
-            v = get_slot(r)
+            v = get_slot(r, w)
         elif kind == "reg":
-            v = get_slot(slot)
+            v = get_slot(slot, w)
+        elif w == 8:
+            v = rng.getrandbits(64)
         else:
             v = plan.regs[r]
+        if w == 8 and (r in given or cslot in given):
+            v = wide(v, loc_str(loc))
         if kind == "mem":
             if callable(v):
                 raise SystemExit("%s: a pointer-slot input (%s) must be a number" % (conv.name, loc_str(loc)))
             v &= (1 << (8 * w)) - 1
             plan.mem.append((lambda b, a=blocks[slot] + off: a, v.to_bytes(w, "big")))
         else:
-            set_slot(slot, v)
+            set_slot(slot, v, w)
         if r.startswith("stack"):
             if r != slot:
-                set_slot(r, v)
+                set_slot(r, v, w)
         else:
-            set_asm(r, v)
+            set_asm(r, v, w)
 
 
 class PlanView:
@@ -1552,13 +2066,41 @@ def conv_outputs(conv, side, m, res, plan):
     for r, loc in conv.outs:
         kind, where, off, w = loc
         if side == "asm":
-            v = res[r]
+            v = res["_64"][r] if w == 8 else res[r]
+        elif kind == "reg" and w == 8:
+            v = res[where] << 32 | res[PAIR[where]] if where in PAIR else res["_64"][where]
         elif kind == "reg":
             v = res[where]
         else:
             v = int.from_bytes(m.read(plan.outp[where] + off, w), "big")
         out.append(v & ((1 << (8 * w)) - 1))
     return out
+
+
+def ev_str(e):
+    if e is None:
+        return "(nothing)"
+    if e[0] == "call":
+        return "%s(%s)" % (e[1], ", ".join("%s=0x%X" % (r, v) for r, v in e[2]))
+    if e[0] == "mmio_w":
+        return "MMIO write [0x%08X].%d = 0x%X" % (e[1], e[2], e[3])
+    return "MMIO read [0x%08X].%d" % (e[1], e[2])
+
+
+def cmp_events(diffs, ref_m, new_m, er, en, same_val):
+    """Append the first difference between two call/MMIO event lists to DIFFS."""
+    for i in range(max(len(er), len(en))):
+        a = er[i] if i < len(er) else None
+        b = en[i] if i < len(en) else None
+        ok = a is not None and b is not None and a[0] == b[0]
+        if ok and a[0] == "call":
+            ok = a[1] == b[1] and all(ra == rb and same_val(va, vb) for (ra, va), (rb, vb) in zip(a[2], b[2]))
+        elif ok:
+            ok = a == b
+        if not ok:
+            diffs.append("event #%d differs: %s: %s | %s: %s" % (i, ref_m.b.label, ev_str(a),
+                                                                new_m.b.label, ev_str(b)))
+            return
 
 
 def compare(opts, ref_m, new_m, amap, r_ref, r_new, outs=None):
@@ -1593,16 +2135,25 @@ def compare(opts, ref_m, new_m, amap, r_ref, r_new, outs=None):
         diffs.append("both runs failed to return (%s / %s); can't compare" %
                      (fault_str(fr, ref_m.b), fault_str(fn, new_m.b)))
         return diffs
-    if fr is not None:
-        # both hit the same unmapped address / exception: counted as equivalent
-        # (state at the fault point is not comparable between asm and C)
-        return diffs
 
     def same_val(vr, vn):
         if vr == vn:
             return True
         t, _ = amap.to_ref(vn)
         return t == vr
+
+    if fr is not None:
+        # Both hit the same unmapped address / exception: counted as equivalent
+        # (registers and memory at the fault point are not comparable between
+        # asm and C).  The calls both made before it must still agree, but only
+        # up to the shorter list: a load in a jal delay slot faults before the
+        # call is recorded in one version and after it in the other (the C
+        # loads after the call), so a trailing call in flight doesn't count.
+        n = min(len(ref_m.events), len(new_m.events))
+        cmp_events(diffs, ref_m, new_m, ref_m.events[:n], new_m.events[:n], same_val)
+        if diffs:
+            diffs[-1] += " (both then faulted: %s)" % fault_str(fr, ref_m.b)
+        return diffs
 
     # convention outputs (asm register vs C return value / pointer argument)
     for label, vr, vn in outs or []:
@@ -1625,34 +2176,21 @@ def compare(opts, ref_m, new_m, amap, r_ref, r_new, outs=None):
                                                                   new_m.b.label, vn, extra))
 
     # call / mmio sequence
-    er, en = ref_m.events, new_m.events
-    for i in range(max(len(er), len(en))):
-        a = er[i] if i < len(er) else None
-        b = en[i] if i < len(en) else None
-        ok = a is not None and b is not None and a[0] == b[0]
-        if ok and a[0] == "call":
-            ok = a[1] == b[1] and all(ra == rb and same_val(va, vb) for (ra, va), (rb, vb) in zip(a[2], b[2]))
-        elif ok:
-            ok = a == b
+    cmp_events(diffs, ref_m, new_m, ref_m.events, new_m.events, same_val)
 
-        def ev_str(e, m):
-            if e is None:
-                return "(nothing)"
-            if e[0] == "call":
-                return "%s(%s)" % (e[1], ", ".join("%s=0x%X" % (r, v) for r, v in e[2]))
-            if e[0] == "mmio_w":
-                return "MMIO write [0x%08X].%d = 0x%X" % (e[1], e[2], e[3])
-            return "MMIO read [0x%08X].%d" % (e[1], e[2])
-        if not ok:
-            diffs.append("event #%d differs: %s: %s | %s: %s" % (i, ref_m.b.label, ev_str(a, ref_m),
-                                                                new_m.b.label, ev_str(b, new_m)))
-            break
-
-    # memory: every byte either side wrote, outside the callee's private stack frame
+    # memory: every byte either side wrote, outside the callee's private stack
+    # frame and its own incoming stack-argument slots (o32: the callee owns
+    # them; a C rewrite that assigns to a stack-passed parameter stores it there)
     lo_ex, hi_ex = STACK_TOP - STACK_WINDOW, STACK_TOP + (0 if opts.check_home else 0x10)
+    own = opts.own_stack
 
     def private(a):
-        return lo_ex <= a < hi_ex
+        if lo_ex <= a < hi_ex:
+            return True
+        if a in own:
+            opts.own_stack_hits.add(a & ~3)
+            return True
+        return False
 
     new_map = {}
     only_new = []
@@ -1777,28 +2315,60 @@ def parse_args(argv):
     opts.conv_skip_saved = set()
     if tc is not None:
         opts.conv_skip_saved = set(r for r, _ in tc.outs) | tc.clobbers
+    # the function's own incoming stack-argument slots (sp+0x10.. at entry): the
+    # ones its convention's C side or asm side uses, and every --arg sp+OFF / stackN
+    own = set()
+    for spec in o.args:
+        m = re.match(r"^sp\+(0x[0-9A-Fa-f]+|\d+)$", stack_target(spec.split("=", 1)[0]))
+        if m and int(m.group(1), 0) >= 0x10:
+            off = int(m.group(1), 0)
+            own.update(range(off, off + (8 if spec.split("=", 1)[1].startswith("int64") else 4)))
+    if opts.tconv is not None:
+        for r, l in opts.tconv.ins:
+            slots = loc_slots(l) if l[0] == "reg" else [l[1]]
+            if r.startswith("stack"):
+                slots = slots + ([r, pair_of(r)] if l[3] == 8 else [r])
+            for s in slots:
+                if s.startswith("stack"):
+                    own.update(range(slot_off(s), slot_off(s) + 4))
+    opts.own_stack = frozenset(STACK_TOP + x for x in own)
+    opts.own_stack_hits = set()
     ret = o.ret if o.ret is not None else ("void" if opts.tconv else "int")
+    if o.ret is None and not opts.tconv and o.func in void_rewrites(o.version):
+        ret = "void"
+        print("note: %s's C rewrite returns void, so v0 isn't compared (--ret int to compare it anyway)" % o.func)
     if ret.startswith("regs:"):
         opts.ret_regs = ret[5:].split(",")
     else:
         if ret not in RET_KINDS:
             raise SystemExit("eqcheck: bad --ret %r" % ret)
         opts.ret_regs = RET_KINDS[ret]
+    # --sig NAME=a0,a1:1,stack4:2 -- entries may carry a width (compare the low W bytes)
     sigs = {}
     default_sig = ["a0", "a1", "a2", "a3"]
     for s in o.sig:
+        if "=" not in s:
+            raise SystemExit("eqcheck: bad --sig %r: want NAME=REG[:W],.." % s)
         n, regs = s.split("=", 1)
         lst = [r.strip() for r in regs.split(",") if r.strip()]
-        for r in lst:
+        for e in lst:
+            r = e if n in opts.convs and e.startswith("*") else split_width(e)[0]
             if r not in REG and not re.match(r"^(stack\d+|sp\+(0x[0-9A-Fa-f]+|\d+))$", r) \
                     and not (n in opts.convs and r.startswith("*")):
-                raise SystemExit("eqcheck: --sig %s: unknown register/slot %r" % (s, r))
+                raise SystemExit("eqcheck: --sig %s: unknown register/slot %r" % (s, e))
         if n == "*":
             default_sig = lst
         else:
             sigs[n] = lst
     opts.sigs = sigs
-    opts.sig_for = lambda name: sigs.get(name, default_sig)
+    _sig_cache = {}
+
+    def sig_for(name):
+        """[(register or stack slot, width)] recorded for a call to NAME (no convention)."""
+        if name not in _sig_cache:
+            _sig_cache[name] = [(r, w or 4) for r, w in map(split_width, sigs.get(name, default_sig))]
+        return _sig_cache[name]
+    opts.sig_for = sig_for
     preserve = {}
     for s in o.stub_preserve:
         if "=" not in s:
@@ -1815,22 +2385,60 @@ def parse_args(argv):
     opts.preserve_for = preserve_for
     rets = {}
     for s in o.stub_ret:
+        if "=" not in s:
+            raise SystemExit("eqcheck: bad --stub-ret %r: want NAME=VALUE|rand|ptr:SIZE|seq:a,b,..|choice:a,b,.." % s)
         n, v = s.split("=", 1)
+        kind = v.split(":")[0]
+        try:
+            if kind == "seq":
+                parse_pool(v.split(":", 1)[1])
+            elif kind == "ptr":
+                int(v.split(":")[1], 0) if ":" in v else 0
+            elif kind in ("rel", "ptrz"):
+                raise ValueError
+            elif kind != "rand":
+                gen_value(v, random.Random(0), Plan(), "--stub-ret %s" % n)
+        except (ValueError, IndexError, SystemExit):
+            raise SystemExit("eqcheck: bad --stub-ret %r: want NAME[.REG]=VALUE|rand|ptr:SIZE|seq:a,b,..| "
+                             "a value spec (choice:.., int[:LO:HI], int64, float, fbits, sym:NAME, val:NAME)" % s)
         rets[n] = v
 
-    def out_value(name, k, idx, reg, machine):
-        """Canned value for output IDX (asm register REG) of a stubbed NAME."""
+    def pick(spec, k, seed, machine):
+        """seq:a,b,c -> the K-th call's value (cycling); any other value spec
+        (choice:, int:, float, sym:, val:, ..) drawn with an RNG seeded by SEED
+        (seed, trial, callee, call number), resolved in MACHINE's build."""
+        try:
+            return int(spec, 0)             # a constant (64-bit ones too)
+        except ValueError:
+            pass
+        if spec.startswith("seq:"):
+            pool = parse_pool(spec.split(":", 1)[1])
+            return pool[k % len(pool)]
+        v, _ = gen_value(spec, random.Random(seed), Plan(), "--stub-ret")
+        return v(machine.b) if callable(v) else v
+
+    def out_value(name, k, idx, reg, machine, width=4):
+        """Canned value for output IDX (asm register REG, WIDTH bytes) of a stubbed NAME."""
         spec = rets.get("%s.%s" % (name, reg))
         if spec is None and idx == 0:
-            return ret_for(name, k, machine)[0]
+            if width == 8:
+                spec = rets.get(name, "rand")
+                if spec == "rand":
+                    rv = ret_for(name, k, machine)
+                    return rv[1] << 32 | rv[0]
+            else:
+                return ret_for(name, k, machine)[0]
         spec = spec or "rand"
+        h = hashlib.sha1(("%s/%s/%s/%d/%d" % (opts.seed, opts._trial, name, k, idx)).encode()).digest()
         if spec == "rand":
-            h = hashlib.sha1(("%s/%s/%s/%d/%d" % (opts.seed, opts._trial, name, k, idx)).encode()).digest()
             r0 = struct.unpack(">I", h[:4])[0]
+            if width == 8:
+                return struct.unpack(">I", h[4:8])[0] << 32 | r0
             return r0 if r0 & 1 else r0 & 0xFF
         if spec.startswith("ptr"):
             return ret_for_spec(spec, name, k, machine)[0]
-        return int(spec, 0) & 0xFFFFFFFF
+        v = pick(spec, k, "%s/%s/%s/%d/%d" % (opts.seed, opts._trial, name, k, idx), machine)
+        return v & (M64 if width == 8 else 0xFFFFFFFF)
     opts.out_value = out_value
 
     def ret_for(name, k, machine):
@@ -1846,7 +2454,9 @@ def parse_args(argv):
             size = int(spec.split(":")[1], 0) if ":" in spec else 0x100
             a = HEAP_END - 0x40000 + (sum(machine.call_counts.values()) * ((size + 31) & ~15)) % 0x40000
             return a, 0, 0
-        v = int(spec, 0)
+        v = pick(spec, k, "%s/%s/%s/%d" % (opts.seed, opts._trial, name, k), machine)
+        if v >> 32 and v >> 32 != 0xFFFFFFFF and v >= 0:
+            return (v >> 32) & 0xFFFFFFFF, v & 0xFFFFFFFF, 0     # a 64-bit constant: v0:v1 (o32 u64)
         return v & 0xFFFFFFFF, 0, 0
     opts.ret_for = ret_for
     opts.mmio_vals = {}
@@ -1868,16 +2478,31 @@ def load_build(d, version, label):
     # this script's own mtime.
     key = tuple((os.path.abspath(p), os.stat(p).st_size, os.stat(p).st_mtime_ns)
                 for p in (ini, hd, os.path.abspath(__file__)))
+    if REUSE:
+        # a long-lived process (runchecks' workers) keeps the parsed builds;
+        # each run gets its own shallow copy (the label differs per run)
+        c = _BUILDS.get(key)
+        if c is None:
+            c = _BUILDS[key] = load_build_uncached(d, version, label, key, ini, hd)
+        b = copy.copy(c)
+        b.label = label
+        return b
+    return load_build_uncached(d, version, label, key, ini, hd)
+
+
+def load_build_uncached(d, version, label, key, ini, hd):
     cache = os.path.join(d, ".eqcheck_cache.%s.pickle" % version)
     try:
         with open(cache, "rb") as f:
             k, b = pickle.load(f)
         if k == key:
             b.label = label
+            b.cache_key = key
             return b
     except Exception:
         pass
     b = Build(label, [ini, hd])
+    b.cache_key = key
     tmp = "%s.%d.tmp" % (cache, os.getpid())
     try:
         with open(tmp, "wb") as f:
@@ -1965,12 +2590,54 @@ def explore(opts, ref, m, entry):
         print("  note:", n)
 
 
+def get_machine(role, build, prefill, opts):
+    """A Machine for BUILD: new, or (REUSE) recycled from an earlier run in this process."""
+    if not REUSE:
+        return Machine(build, prefill=prefill, opts=opts)
+    key = (role, build.cache_key, prefill.cache_key if prefill is not None else None)
+    m = _MACHINES.get(key)
+    if m is None:
+        while len(_MACHINES) >= 4:              # (about 50 MB each) drop the oldest
+            _MACHINES.pop(next(iter(_MACHINES)))
+        m = Machine(build, prefill=prefill, opts=opts)
+        if m.tlb_track:     # without write tracking, stray writes outside the regions couldn't be undone
+            _MACHINES[key] = m
+    else:
+        m.recycle(build, prefill, opts)
+    return m
+
+
+def run_captured(argv):
+    """Run one eqcheck command line in this process with its output captured:
+    -> (exit status, output text, seconds).  Used by runchecks' worker pool;
+    builds and machines are reused between calls (REUSE)."""
+    global REUSE
+    REUSE = True
+    buf = io.StringIO()
+    t0 = time.time()
+    with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+        try:
+            rc = main(list(argv))
+        except SystemExit as e:
+            if e.code is None or isinstance(e.code, int):
+                rc = e.code or 0
+            else:
+                print(e.code)
+                rc = 1
+        except Exception:
+            import traceback
+            traceback.print_exc(file=buf)
+            rc = 2
+            _MACHINES.clear()           # don't reuse machines in an unknown state
+    return rc, buf.getvalue(), time.time() - t0
+
+
 def main(argv=None):
     opts = parse_args(argv if argv is not None else sys.argv[1:])
     ref = load_build(opts.ref, opts.version, opts.ref.rstrip("/"))
     if opts.func not in ref.sym:
         sys.exit("eqcheck: %s not in %s" % (opts.func, ref.label))
-    ref_m = Machine(ref, opts=opts)
+    ref_m = get_machine("ref", ref, None, opts)
     if opts.explore:
         size_mem_specs(opts, ref)
         explore(opts, ref, ref_m, ref.sym[opts.func])
@@ -1981,7 +2648,7 @@ def main(argv=None):
     if opts.func not in new.sym:
         sys.exit("eqcheck: %s not in %s" % (opts.func, new.label))
     amap = AddrMap(ref, new)
-    new_m = Machine(new, prefill=None if amap.identity else ref, opts=opts)
+    new_m = get_machine("new", new, None if amap.identity else ref, opts)
     # functions only the new build has (static helpers of a rewrite) are part
     # of the rewrite: run them instead of recording them as extra calls
     new_m.auto_follow = set(n for n in new.funcs.values() if n not in ref.sym)
@@ -2065,6 +2732,10 @@ def main(argv=None):
             if fails >= opts.max_fail:
                 break
     ran = t + 1
+    if opts.verbose and opts.own_stack_hits:
+        print("note: ignored writes to %s's own incoming stack-argument slot(s) %s (the callee owns them "
+              "under o32; a C rewrite assigning to a stack-passed parameter stores there)"
+              % (opts.func, ", ".join("sp+0x%X" % (a - STACK_TOP) for a in sorted(opts.own_stack_hits))))
     status = "PASS" if fails == 0 else "FAIL"
     print("%s: %s %d/%d trials equivalent%s (%.1fs)" %
           (status, opts.func, ran - fails, ran,

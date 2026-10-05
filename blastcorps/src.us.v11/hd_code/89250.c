@@ -529,7 +529,27 @@ void func_802CE4F0(s32 x, s32 y, s32 z) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u8 D_803A742A;
+void func_8029B02C(s32 x, s32 y, s32 z, s32 r, s32 kind, s32 id); /* 56040 */
+
+/* Reports every triangle the sphere (x, y, z) radius r touches for vehicle
+ * `kind` (func_8029B02C with everything >> 2 and part id 0), after storing
+ * the low byte of `tag` to D_803A742A (the part func_8029B02C skips for kind
+ * 0xC8). If that set D_803A742F, the ring span D_803A7410/12 is reset to
+ * 0/0. The C callers declare r s16; the asm shifts the whole register. The
+ * asm saves s0-s7 and fp. */
+void func_802CE5BC(s32 x, s32 y, s32 z, s32 r, s32 kind, s32 tag) {
+    D_803A742A = tag;
+    func_8029B02C(x >> 2, y >> 2, z >> 2, r >> 2, kind, 0);
+    if (D_803A742F != 0) {
+        D_803A7410 = 0;
+        D_803A7412 = 0;
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/89250/func_802CE5BC.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

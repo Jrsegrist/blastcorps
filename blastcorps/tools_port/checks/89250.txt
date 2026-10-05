@@ -206,3 +206,30 @@ func_802CE65C: -n 300 --seed 0 --arg a0=int --arg a1=int --arg a2=int --arg a3=i
 func_802CE65C: -n 300 --seed 1 --arg a0=int:-100000:100000 --arg a1=int:-100000:100000 \
     --arg a2=choice:0,1,-1,100,0x7FFF,0x8000,0x12345 --arg a3=choice:0,1,0x3FF,0x400,0x7FF,0x800,0xBFF,0xC00,0xFFF,0x1000,-1 \
     --follow func_802A860C,func_802AE104,func_802AE160,func_802AE1BC,func_802AE290
+# func_802CE5BC: tag byte -> D_803A742A, func_8029B02C(x>>2, y>>2, z>>2, r>>2, kind, 0), ring span reset if D_803A742F
+func_802CE5BC: -n 300 --arg a0=int --arg a1=int --arg a2=int --arg a3=int --arg stack0=choice:0,1,9,0xC8 --arg stack1=int \
+    --mem D_803A742A:1=rand --mem D_803A742F:1=choice:0,1,0xFF --mem D_803A7410:2=rand --mem D_803A7412:2=rand
+func_802CE5BC: -n 200 --seed 1 --arg a0=int:-0x80000000:0x7FFFFFFF --arg a1=choice:-1,-4,-5,0,3,4,0x7FFFFFFF,0x80000000 \
+    --arg a2=int:-0x80000000:0x7FFFFFFF --arg a3=choice:-1,-4,-5,0,3,4,0x7FFF,0x8000,0xFFFF8000 --arg stack0=int:-0x80000000:0x7FFFFFFF \
+    --arg stack1=choice:0,1,0xFF,0x100,0x1FF,-1 --mem D_803A742A:1=rand --mem D_803A742F:1=choice:0,1 --mem D_803A7410:2=rand --mem D_803A7412:2=rand
+# followed func_8029B02C (tables as in 56040's func_8029B02C seed 1 run; kind 0xC8 weighted so the tag test matters)
+func_802CE5BC: -n 200 --seed 2 --follow func_8029B02C --stub-ret func_8029C160=1 --stub-ret func_8029BF64=0 --stub-ret func_8029BD0C=0 \
+    --stub-ret func_8029BEE4=0 --stub-ret func_8029B514=1 --stub-ret func_802BD8C8=0 \
+    --sig func_8029C160=a0,a1,a2,a3,stack0 --sig func_802BD8C8= \
+    --heap 0x480 --mem @heap0+0x51*0x60:12/1=choice:0,1,1 --mem @heap0+0x4F*0x60:12/1=choice:0,1,5,9,0xC8 \
+    --mem @heap0+0x52*0x60:12/2=choice:0,1,7 \
+    --mem D_803059F0*0xC:4=choice:0xFFFF,0,1 --mem D_803059F0+4*0xC:4=choice:5,6,0x38 \
+    --mem D_803059F0+8*0xC:4=choice:1,2,0x200,0x101,0xFFFFFFFF,0x80000000 --mem D_803059F0+0x38=0 \
+    --mem D_802E8BDC=choice:0,1 --mem D_803F4030:0x2F4=rand --mem D_803F4030+0x30*0xFC:3=choice:5,6,0x38 \
+    --mem D_803F4030+4*0xFC:3=rel:heap0+0x60*int:0:2 --mem D_803F4030+8*0xFC:3=rel:heap0+0x180 \
+    --mem D_803F7654=rel:D_803F4030+0xFC*int:0:3 \
+    --mem D_803F9330:0x120=rand --mem D_803F9330+0x51*0x60:3/1=choice:0,1,1 --mem D_803F9330+0x52*0x60:3/2=choice:0,1,7 \
+    --mem D_803FB8B0=rel:D_803F9330+0x60*int:0:3 \
+    --mem D_803BD308=rel:heap0+0x180 --mem D_803BD30C=rel:heap0+0x180+0x60*int:0:3 \
+    --mem D_803B9890:0x120=rand --mem D_803B9890+0x51*0x60:3/1=choice:0,1,1 --mem D_803B9890+0x4F*0x60:3/1=choice:0,1,5,9,0xC8 \
+    --mem D_803BD300=rel:D_803B9890+0x60*int:0:3 \
+    --mem D_803A7418:2=halves:0,1 --mem D_803A7418+2:2=halves:1,0xFFFF --mem D_803A7418+4:2=halves:0xFFFF \
+    --mem D_803BDE40=rel:heap0+0x2A0 --mem D_803BDE40+4=rel:heap0+0x300 --mem D_803BDE40+8=rel:heap0+0x360 \
+    --mem D_803BDCA8=rel:heap0+0x360 --mem D_803BDCA8+4=rel:heap0+0x3C0 --mem D_803BDCA8+8=rel:heap0+0x480 \
+    --mem D_803A742F:1=choice:0,1 --mem D_803A7410:2=rand --mem D_803A7412:2=rand --mem D_803A742A:1=rand \
+    --arg a0=int --arg a1=int --arg a2=int --arg a3=int --arg stack0=choice:0,1,5,6,9,0xC8,0xC8,0xC8 --arg stack1=choice:0,1,7,0x107

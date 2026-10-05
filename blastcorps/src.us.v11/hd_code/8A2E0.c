@@ -8,8 +8,132 @@
  * of the same large hand-written-assembly module. Any pragma below without
  * a more specific comment follows this convention; a few have their own
  * more specific non-ABI explanation where one was already worked out. */
+#ifdef NON_MATCHING
+/* D_803FBBB0: table of 0x14-byte entries, D_803FC1F0 of them in use: s32
+ * x, y, z at +0, a word at +0xC (0x280), a flag halfword at +0x10 (a
+ * bit/flag state, see 409D0's func_80285AB0/func_80285B10) and the record's
+ * halfword +6 at +0x12. */
+typedef struct {
+    /* 0x00 */ s32 pos[3];
+    /* 0x0C */ s32 unkC;
+    /* 0x10 */ u16 unk10;
+    /* 0x12 */ u16 unk12;
+} UnkEntry8A2E0; /* size 0x14 */
+
+typedef struct Unk8029DEA0Entry Unk8029DEA0Entry; /* channel table entry (56040.c) */
+
+extern UnkEntry8A2E0 D_803FBBB0[];
+extern u8 D_803FBBE0[]; /* channel tables of the boxes' two models */
+extern u8 D_803FBEE0[];
+extern u8 *D_803FBBD8;  /* the boxes' model data */
+extern u8 *D_803FC1E0;  /* four 0x300-byte save copies */
+extern u8 *D_803FC1E4;
+extern u8 *D_803FC1E8;
+extern u8 *D_803FC1EC;
+extern u8 D_803FC1F0;   /* number of boxes */
+void func_8029E558(u8 *base, u8 *other, Unk8029DEA0Entry *ch); /* 56040 */
+#endif
+
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+typedef struct {
+    /* 0x0 */ u8 *s2; /* the loaded data */
+    /* 0x4 */ u8 *s4;
+    /* 0x8 */ u8 *a1; /* the new heap end */
+} Out802A396C; /* as in 5CB60.c */
+extern u32 D_80358070; /* bump allocator */
+void func_802A396C(s32 type, Out802A396C *out);                                  /* 5CB60 */
+void func_802CEE14(s32 x, s32 y, s32 z);
+s32 func_8029F85C(u32 *bufA, u32 *bufB, Unk8029DEA0Entry *ch, u8 *hdr);           /* 56040 */
+void func_802A0290(Unk8029DEA0Entry *base, s32 idx, s32 val);                    /* 56040 */
+void func_802A0320(s32 idx, Unk8029DEA0Entry *base);                             /* 56040 */
+void func_802A039C(Unk8029DEA0Entry *base, s32 idx, s32 val);                    /* 56040 */
+void func_802A03D4(Unk8029DEA0Entry *base, s32 idx, s32 val);                    /* 56040 */
+void func_802A040C(Unk8029DEA0Entry *base, s32 idx, s32 val);                    /* 56040 */
+void func_802A0480(f32 f, Unk8029DEA0Entry *base, s32 idx, s32 val);             /* 56040 */
+
+/* Load channels for one model: func_8029F85C(b, a, ch, D_803FBBD8), channel 0
+ * = (100, 0, 0, 0.0, 1), run it into both copies (func_8029E558, then
+ * func_802A0320 and func_802A0290(1) between them). */
+#define BOX_MODEL_CHANNELS(ch, a, b)                                          \
+    {                                                                         \
+        func_8029F85C((u32 *) (b), (u32 *) (a), (Unk8029DEA0Entry *) (ch), D_803FBBD8); \
+        func_802A039C((Unk8029DEA0Entry *) (ch), 0, 100);                     \
+        func_802A03D4((Unk8029DEA0Entry *) (ch), 0, 0);                       \
+        func_802A040C((Unk8029DEA0Entry *) (ch), 0, 0);                       \
+        func_802A0480(0.0f, (Unk8029DEA0Entry *) (ch), 0, 0);                 \
+        func_802A0290((Unk8029DEA0Entry *) (ch), 0, 1);                       \
+        func_8029E558((a), (b), (Unk8029DEA0Entry *) (ch));                   \
+        func_802A0320(0, (Unk8029DEA0Entry *) (ch));                          \
+        func_802A0290((Unk8029DEA0Entry *) (ch), 0, 1);                       \
+        func_8029E558((b), (a), (Unk8029DEA0Entry *) (ch));                   \
+    }
+
+/* Level setup of the boxes (pickups, level object in obj; its list at
+ * obj + obj[0x28] .. obj + obj[0x2C], 8-byte records {s16 x, y, z; u16 w}):
+ * D_803FC1F0 = 0; if the list isn't empty, load model 0x96 (func_802A396C)
+ * into D_803FBBD8, then for each record: entry pos = (x, y, z) << 5, the
+ * box vertices (func_802CEE14(x, y, z), unshifted), unkC = 0x280, flag 0,
+ * unk12 = w, D_803FC1F0++. If any box exists: four 0x300-byte copies from
+ * the D_80358070 bump pointer (D_803FC1E0..EC; trapping adds), model
+ * channels D_803FBBE0 (copies 1E0/1E4) with channels 1 and 2 set to (2, 0,
+ * 0, -1), and D_803FBEE0 (copies 1E8/1EC).
+ * Register convention: obj in t0 (conventions.txt); the asm saves t0 (asm
+ * caller func_802A1674 keeps it) and leaves t1/t2 (list end, the model
+ * pointer), func_802A396C's s2/s4 and the channel routines' s0-s5, fp,
+ * f20, f30 changed; the survey lists t1, t2, s3, f12, f14 as read by
+ * func_802A1674 (dead there, not modelled). Its loop uses `!=` (the list
+ * must end on a record boundary). */
+void func_802CEAA0(u8 *obj) {
+    Out802A396C o;
+    UnkEntry8A2E0 *e;
+    s16 *p;
+    s16 *end;
+    u32 h;
+
+    D_803FC1F0 = 0;
+    p = (s16 *) (obj + *(s32 *) (obj + 0x28));
+    end = (s16 *) (obj + *(s32 *) (obj + 0x2C));
+    if (p != end) {
+        func_802A396C(0x96, &o);
+        D_803FBBD8 = o.s2;
+        e = D_803FBBB0;
+        while (p != end) {
+            e->pos[0] = p[0] << 5;
+            e->pos[1] = p[1] << 5;
+            e->pos[2] = p[2] << 5;
+            func_802CEE14(p[0], p[1], p[2]);
+            e->unkC = 0x280;
+            e->unk10 = 0;
+            e->unk12 = p[3];
+            D_803FC1F0++;
+            e++;
+            p += 4;
+        }
+    }
+    if (D_803FC1F0 == 0) {
+        return;
+    }
+    h = D_80358070;
+    D_803FC1E0 = (u8 *) h;
+    D_803FC1E4 = (u8 *) (h + 0x300);
+    D_803FC1E8 = (u8 *) (h + 0x600);
+    D_803FC1EC = (u8 *) (h + 0x900);
+    D_80358070 = h + 0xC00;
+    BOX_MODEL_CHANNELS(D_803FBBE0, D_803FC1E0, D_803FC1E4);
+    func_802A039C((Unk8029DEA0Entry *) D_803FBBE0, 1, 2);
+    func_802A03D4((Unk8029DEA0Entry *) D_803FBBE0, 1, 0);
+    func_802A040C((Unk8029DEA0Entry *) D_803FBBE0, 1, 0);
+    func_802A0290((Unk8029DEA0Entry *) D_803FBBE0, 1, -1);
+    func_802A039C((Unk8029DEA0Entry *) D_803FBBE0, 2, 2);
+    func_802A03D4((Unk8029DEA0Entry *) D_803FBBE0, 2, 0);
+    func_802A040C((Unk8029DEA0Entry *) D_803FBBE0, 2, 0);
+    func_802A0290((Unk8029DEA0Entry *) D_803FBBE0, 2, -1);
+    BOX_MODEL_CHANNELS(D_803FBEE0, D_803FC1E8, D_803FC1EC);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8A2E0/func_802CEAA0.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -43,22 +167,85 @@ void func_802CEE14(s32 x, s32 y, s32 z) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+void func_802ACA60(s32 x, s32 y, s32 z, s32 *m); /* 679E0 */
+void func_802AC8CC(u16 *m);                      /* 679E0 */
+
+#define K0_PHYS(p) ((u32) (p) - 0x80000000)
+
+/* Draw the boxes (00000.c: gdl = func_802CEEFC(gdl, D_8035805C, dl2, mtx)):
+ * if there are any, gdl gets segment 6 = the model data's part at
+ * D_803FBBD8 + [5] (G_MOVEWORD 0xBC001806); then per box i: segment 7 = the
+ * box's save copy (taken: D_803FC1E4 / D_803FC1E0, else D_803FC1EC /
+ * D_803FC1E8, the second of each pair when `cur` is clear) and a G_DL to
+ * dl2; dl2 gets G_VTX of the box's 8 vertices (D_803FBAB0 + 0x80 i), a
+ * G_CULLDL 0..8, its translation matrix (func_802ACA60(pos << 11) into
+ * mtx, converted by func_802AC8CC, G_MTX 0x01040040), G_DLs to the model's
+ * parts [9] and [11], G_POPMTX and G_ENDDL; mtx advances 0x40 per box. Then
+ * the box channels run into the two copies (func_8029E558 on D_803FBBE0,
+ * current copy first). Returns the advanced gdl; dl2 and mtx aren't handed
+ * back (the caller doesn't need them). cur is tested as a whole register\n * (00000.c declares it u8). The asm's pointer adds trap; it saves
+ * s0-s7, gp, fp but not the f20/f30 that func_8029E558 changes
+ * (conventions.txt: clobbers). */
+Gfx *func_802CEEFC(Gfx *gdl, s32 cur, Gfx *dl2, Mtx *mtx) {
+    u8 *data = D_803FBBD8;
+    UnkEntry8A2E0 *e;
+    u8 *seg;
+    s32 n;
+    s32 i;
+
+    if (D_803FC1F0 == 0) {
+        return gdl;
+    }
+    gdl->words.w0 = 0xBC001806;
+    gdl->words.w1 = K0_PHYS(data + *(s32 *) (data + 0x14));
+    gdl++;
+    e = D_803FBBB0;
+    for (n = D_803FC1F0, i = 0; n != 0; n--, e++, i++) {
+        if (e->unk10 != 0) {
+            seg = cur ? D_803FC1E4 : D_803FC1E0;
+        } else {
+            seg = cur ? D_803FC1EC : D_803FC1E8;
+        }
+        gdl[0].words.w0 = 0xBC001C06;
+        gdl[0].words.w1 = K0_PHYS(seg);
+        gdl[1].words.w0 = 0x06000000;
+        gdl[1].words.w1 = K0_PHYS(dl2);
+        dl2[0].words.w0 = 0x04700080;
+        dl2[0].words.w1 = (u32) ((u8 *) D_803FBAB0 + 0x80 * i);
+        dl2[1].words.w0 = 0xBE000000;
+        dl2[1].words.w1 = 0x140;
+        gdl += 2;
+        dl2 += 2;
+        func_802ACA60(e->pos[0] << 11, e->pos[1] << 11, e->pos[2] << 11, (s32 *) mtx);
+        func_802AC8CC((u16 *) mtx);
+        dl2->words.w0 = 0x01040040;
+        dl2->words.w1 = K0_PHYS(mtx);
+        dl2++;
+        data = D_803FBBD8;
+        dl2[0].words.w0 = 0x06000000;
+        dl2[0].words.w1 = K0_PHYS(data + *(s32 *) (data + 0x24));
+        dl2[1].words.w0 = 0x06000000;
+        dl2[1].words.w1 = K0_PHYS(data + *(s32 *) (data + 0x2C));
+        dl2[2].words.w0 = 0xBD000000;
+        dl2[2].words.w1 = 0;
+        dl2[3].words.w0 = 0xB8000000;
+        dl2[3].words.w1 = 0;
+        dl2 += 4;
+        mtx++;
+    }
+    if (cur != 0) {
+        func_8029E558(D_803FC1E4, D_803FC1E0, (Unk8029DEA0Entry *) D_803FBBE0);
+    } else {
+        func_8029E558(D_803FC1E0, D_803FC1E4, (Unk8029DEA0Entry *) D_803FBBE0);
+    }
+    return gdl;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8A2E0/func_802CEEFC.s")
+#endif
 
 #ifdef NON_MATCHING
-/* D_803FBBB0: table of 0x14-byte entries, D_803FC1F0 of them in use: s32
- * x, y, z at +0 and a flag halfword at +0x10 (a bit/flag state, see 409D0's
- * func_80285AB0/func_80285B10). */
-typedef struct {
-    /* 0x00 */ s32 pos[3];
-    /* 0x0C */ u8 padC[4];
-    /* 0x10 */ u16 unk10;
-    /* 0x12 */ u8 pad12[2];
-} UnkEntry8A2E0; /* size 0x14 */
-
-extern UnkEntry8A2E0 D_803FBBB0[];
-extern u8 D_803FBBE0[];
-
 void func_80285AB0(u8 bit);
 s32 func_80285B10(u8 bit);
 void func_80285B68(s32 arg0);

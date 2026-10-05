@@ -58,8 +58,9 @@ segments:
     - [0x1FD20, c, hd_front_end/1FD20] # libultra pfsisplug.c
     - [0x20090, bin, hd_front_end/20090] # RSP microcode (IMEM text; hd_code func_80284DB0 DMAs D_80207090)
     - [0x21040, linker, data]
-    - [0x21040, bin, hd_front_end/hd_front_end_data] # .data/.rodata (vram 0x80208040)
-    - [0x27450, .rodata, hd_front_end/00000]
+    - [0x21040, .data, hd_front_end/00000]
+    - [0x211C0, bin, hd_front_end/hd_front_end_data] # .data/.rodata (vram 0x80208040)
+    - [0x27440, .rodata, hd_front_end/00000]
     - [0x274D0, bin, hd_front_end/hd_front_end_data_274D0]
     - [0x29670, .rodata, hd_front_end/1AE80]
     - [0x29690, bin, hd_front_end/hd_front_end_data_29690]

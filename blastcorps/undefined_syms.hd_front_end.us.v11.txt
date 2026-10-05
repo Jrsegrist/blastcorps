@@ -1,6 +1,7 @@
 /* hand-maintained absolute symbols for the hd_front_end link (see undefined_syms.hd_code.us.v11.txt) */
-/* 00000 (digger_loop.c) per-vehicle u8 tables, reached through unpaired lui 0x8021 */
-D_8020804C = 0x8020804C;
-D_802080F8 = 0x802080F8;
-D_8020810C = 0x8020810C;
-D_80208194 = 0x80208194;
+/* 00000 (digger_loop.c) */
+D_80304954 = 0x80304954; /* .data initializer: hd_code u16 text */
+D_80358058 = 0x80358058; /* hd_code: depth buffer address */
+D_8035806C = 0x8035806C; /* hd_code: segment 1 base */
+D_01000010 = 0x01000010; /* segment 1 display lists */
+D_01000038 = 0x01000038;

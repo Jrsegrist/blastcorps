@@ -153,8 +153,6 @@ HD_FRONT_END_LDFLAGS = -T $(HD_FRONT_END_LD_SCRIPT) -Map $(HD_FRONT_END_TARGET).
 
 # hd_code files that own a .rodata subsegment (see tools/late_rodata.py)
 LATE_RODATA_HD_CODE := 00000 1A630 1D990 26570 2C560 2D810 30C70 32E00 34430 37530 39050 405F0 409D0 41930
-# front-end files that own a .rodata subsegment
-LATE_RODATA_HD_FRONT_END := 00000
 
 ### Optimisation Overrides
 
@@ -226,7 +224,6 @@ extract:
 	$(PYTHON) $(TOOLS_DIR)/splat/split.py hd_front_end.$(VERSION).yaml
 	# files with their own .rodata: move float/double/jtbl rodata to .late_rodata
 	$(PYTHON) $(TOOLS_DIR)/late_rodata.py $(addprefix asm/nonmatchings/hd_code/,$(LATE_RODATA_HD_CODE))
-	$(PYTHON) $(TOOLS_DIR)/late_rodata.py $(addprefix asm/nonmatchings/hd_front_end/,$(LATE_RODATA_HD_FRONT_END))
 
 # preprocessed context for mips_to_c (tools/m2c.sh); not version-specific
 ctx.i: ctx.c

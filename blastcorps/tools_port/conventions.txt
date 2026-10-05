@@ -431,6 +431,8 @@ func_802B03B0: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+
 func_802B0C74: out s3=ret ; preserve a0,a1,a2,a3
 # channel 5 of D_803ED840 restart check; leaves the channel's (u16) field 0xC in a3, s5 scratch
 func_802B0AAC: out a3=ret ; preserve f12,f14 ; clobbers s5
+# enter vehicle 1: points $gp at D_803EDB40 and leaves it
+func_802AFFD4: clobbers gp
 # --- 6C5E0 ---
 # zone lookup wrapper: func_802ABD54(id, x, y, z) with its scan registers t6, t7, s0-s4 passed through
 func_802B14E8: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; out v1=ret,t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; preserve a0,f12,f14 ; clobbers s5,s6
@@ -461,6 +463,8 @@ func_802B69F8: preserve a0,a1,a2,a3,t6,t7
 func_802B7168: out s3=ret ; preserve a0,a1,a2,a3
 # 0.5 +- |speed|/480 (side flag in s2) in f2; s3 left = 240
 func_802B71DC: in s2=a0 ; out f2=fret ; preserve a1,a2,a3,f12,f14 ; clobbers s3
+# enter vehicle 5: points $gp at D_803EEA90 and leaves it
+func_802B5CD8: clobbers gp
 # --- 72B80 ---
 # zone lookup wrapper: func_802ABD54(id, x, y, z) with its scan registers t6, t7, s0-s4 passed through
 func_802B78B0: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; out v1=ret,t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; preserve f12,f14 ; clobbers s5,s6

@@ -67,3 +67,19 @@ func_802B03B0: -n 300 --seed 1 --follow func_802ABD54,func_802ABCDC --mem D_803E
     --mem D_803BDFD8+0x16*0x24:4/1=choice:1,0x31 --mem D_803BDFD8+0x17*0x24:4/1=choice:1,0x32 \
     --mem D_80364A6E:1=choice:0,1,0x80,0xFF,0x40 --mem D_80364460+0x5C*0x74:3=choice:0x100,0x200 \
     --mem D_80364460+0x1B8=1 --mem D_80364460+0x60*0x74:4=int
+
+# ---- phase D (wave 3, wt-f6) ----
+# func_802AFFD4: enter vehicle 1: D_803EDB40[0x99] = 0; channel setters on D_803ED840 (1, 2, 5, 3, 2), the D_802C2390
+# entry's setters, D_8036444C/50 = 3400, 300, func_802C4310(&D_803ED840, 0x36). $gp change: `clobbers gp`.
+func_802AFFD4: -n 100 --seed 0 --ret void --sig func_802C4310=a0,a1 \
+    --mem D_803EDB40+0x99:1=bytes:1,0xFF --mem D_8036444C:2=rand --mem D_80364450:2=rand
+# setters run for real (D_802C2390 key in exactly one D_803B35F8 entry); func_802C4310 stubbed
+func_802AFFD4: -n 200 --seed 1 --ret void --sig func_802C4310=a0,a1 \
+    --follow func_802A0290,func_802A039C,func_802A03D4,func_802A040C,func_802A0508,func_802A05D0,func_802A05F8,func_802A0620,func_802A06B4 \
+    --mem D_803EDB40+0x99:1=rand --mem D_8036444C:2=rand --mem D_80364450:2=rand \
+    --mem D_803ED840:0x90=rand --mem D_803B35F8:0x180=onehot:0x18:0x802C2390:rand
+# func_802B0254: leave vehicle 1: speed (+0x76) = 0, func_802A7764(D_803EDBF8, D_803EDBFC, 0x800), func_802C444C()
+func_802B0254: -n 100 --seed 0 --ret void --sig func_802A7764=a0,a1,a2 --sig func_802C444C= \
+    --mem D_803EDB40+0x76:2=rand --mem D_803EDBF8=int --mem D_803EDBFC=int
+func_802B0254: -n 30 --seed 1 --ret void --follow func_802A7764 --sig func_802C444C= --heap 0x800 --heap 0x800 \
+    --mem D_803EDB40+0x76:2=rand --mem D_803EDBF8=rel:heap0 --mem D_803EDBFC=rel:heap1

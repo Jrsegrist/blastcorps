@@ -12,7 +12,62 @@
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6B4A0/func_802AFC60.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u8 D_803EDB40[]; /* this vehicle's state block */
+extern u8 D_803ED840[]; /* animation channel table (Unk8029DEA0Entry, 56040.c) */
+extern u8 D_802C2390[]; /* key of this vehicle's func_802A06B4 entry */
+extern s16 D_8036444C;
+extern s16 D_80364450;
+void func_802A0290(void *base, s32 idx, s32 val);
+void func_802A039C(void *base, s32 idx, s32 val);
+void func_802A03D4(void *base, s32 idx, s32 val);
+void func_802A040C(void *base, s32 idx, s32 val);
+void func_802A0508(s32 key, s32 val);
+void func_802A05D0(s32 key, s32 val);
+void func_802A05F8(s32 key, s32 val);
+void func_802A0620(s32 key, s32 val);
+void func_802C4310(s32 arg0, s32 arg1);
+
+/* Enter vehicle type 1 (called from 00000.c / 17210.c): clears byte 0x99 of
+ * the state block, sets fields 0x14 / 0x11 / 0x12 of animation channels 1, 2,
+ * 5, 3, 2 of D_803ED840 and restarts all but 5 with -1 (func_802A0290), sets
+ * the D_802C2390 entry's fields (100, 0, 1) and restarts it, D_8036444C/50 =
+ * 3400, 300, then func_802C4310(a0, 0x36) with a0 = D_803ED840 left over from
+ * the setters (func_802C4310 ignores it). The asm points $gp at D_803EDB40 and
+ * leaves it there (conventions.txt: clobbers gp) and returns with v1 = -1
+ * (the last setter's v1); C callers ignore both. */
+void func_802AFFD4(void) {
+    D_803EDB40[0x99] = 0;
+    func_802A039C(D_803ED840, 1, 0);
+    func_802A03D4(D_803ED840, 1, 0);
+    func_802A040C(D_803ED840, 1, 0);
+    func_802A0290(D_803ED840, 1, -1);
+    func_802A039C(D_803ED840, 2, 0);
+    func_802A03D4(D_803ED840, 2, 0);
+    func_802A040C(D_803ED840, 2, 0);
+    func_802A0290(D_803ED840, 2, -1);
+    func_802A039C(D_803ED840, 5, 7);
+    func_802A03D4(D_803ED840, 5, 0);
+    func_802A040C(D_803ED840, 5, 1);
+    func_802A039C(D_803ED840, 3, 0);
+    func_802A03D4(D_803ED840, 3, 0);
+    func_802A040C(D_803ED840, 3, 1);
+    func_802A0290(D_803ED840, 3, -1);
+    func_802A039C(D_803ED840, 2, 0);
+    func_802A03D4(D_803ED840, 2, 0);
+    func_802A040C(D_803ED840, 2, 1);
+    func_802A0290(D_803ED840, 2, -1);
+    func_802A05D0((s32) D_802C2390, 100);
+    func_802A05F8((s32) D_802C2390, 0);
+    func_802A0620((s32) D_802C2390, 1);
+    func_802A0508((s32) D_802C2390, -1);
+    D_8036444C = 0xD48;
+    D_80364450 = 0x12C;
+    func_802C4310((s32) D_803ED840, 0x36);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6B4A0/func_802AFFD4.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -47,7 +102,23 @@ s32 func_802B01DC(void) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u64 *D_803EDBF8; /* save copy pair (func_802A7764) */
+extern u64 *D_803EDBFC;
+void func_802A7764(u64 *a, u64 *b, s32 size);
+void func_802C444C(void);
+
+/* Leave vehicle type 1 (called from hd.c): zeroes the speed (s16 at +0x76 of
+ * the state block), func_802A7764(D_803EDBF8, D_803EDBFC, 0x800), then
+ * func_802C444C(). The asm saves and restores $gp. */
+void func_802B0254(void) {
+    *(s16 *) (D_803EDB40 + 0x76) = 0;
+    func_802A7764(D_803EDBF8, D_803EDBFC, 0x800);
+    func_802C444C();
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6B4A0/func_802B0254.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6B4A0/func_802B02A0.s")

@@ -66,3 +66,24 @@ func_802B60BC: -n 300 --seed 1 --follow func_802ABD54,func_802ABCDC --mem D_803E
     --mem D_803BDFD8+0x16*0x24:4/1=choice:5,0x31 --mem D_803BDFD8+0x17*0x24:4/1=choice:5,0x32 \
     --mem D_80364A6E:1=choice:0,1,0x80,0xFF,0x40 --mem D_80364460+0x5C*0x74:3=choice:0x100,0x200 \
     --mem D_80364460+0x1B8=5 --mem D_80364460+0x60*0x74:4=int
+
+# ---- phase D (wave 3, wt-f6) ----
+# func_802B5CD8: enter vehicle 5: D_803EEA90[0x99] = 0; channel setters on D_803EE790 (1, 2 + 0.5f, 4, 5), the
+# D_802C2208 / D_802C226C entries' setters, D_8036444C/50 = 3400, 300, func_802C4310(&D_803EE790, 5). `clobbers gp`.
+func_802B5CD8: -n 100 --seed 0 --ret void --sig func_802C4310=a0,a1 \
+    --mem D_803EEA90+0x99:1=bytes:1,0xFF --mem D_8036444C:2=rand --mem D_80364450:2=rand
+# setters run for real: D_802C2208 in one of entries 0..14 of D_803B35F8, D_802C226C in entry 15 (or entry 0
+# with D_802C2208 later); func_802C4310 stubbed
+func_802B5CD8: -n 200 --seed 1 --ret void --sig func_802C4310=a0,a1 \
+    --follow func_802A0290,func_802A0360,func_802A039C,func_802A03D4,func_802A040C,func_802A0508,func_802A05D0,func_802A05F8,func_802A0620,func_802A06B4 \
+    --mem D_803EEA90+0x99:1=rand --mem D_8036444C:2=rand --mem D_80364450:2=rand --mem D_803EE790:0x90=rand \
+    --mem D_803B35F8:0x168=onehot:0x18:0x802C2208:rand --mem D_803B35F8+0x168=0x802C226C
+func_802B5CD8: -n 100 --seed 2 --ret void --sig func_802C4310=a0,a1 \
+    --follow func_802A0290,func_802A0360,func_802A039C,func_802A03D4,func_802A040C,func_802A0508,func_802A05D0,func_802A05F8,func_802A0620,func_802A06B4 \
+    --mem D_803EEA90+0x99:1=rand --mem D_8036444C:2=rand --mem D_80364450:2=rand --mem D_803EE790:0x90=rand \
+    --mem D_803B35F8:0x180=rand --mem D_803B35F8=0x802C226C --mem D_803B35F8+0x48=0x802C2208
+# func_802B5F60: leave vehicle 5: speed (+0x76) = 0, func_802A7764(D_803EEB48, D_803EEB4C, 0x800), func_802C444C()
+func_802B5F60: -n 100 --seed 0 --ret void --sig func_802A7764=a0,a1,a2 --sig func_802C444C= \
+    --mem D_803EEA90+0x76:2=rand --mem D_803EEB48=int --mem D_803EEB4C=int
+func_802B5F60: -n 30 --seed 1 --ret void --follow func_802A7764 --sig func_802C444C= --heap 0x800 --heap 0x800 \
+    --mem D_803EEA90+0x76:2=rand --mem D_803EEB48=rel:heap0 --mem D_803EEB4C=rel:heap1

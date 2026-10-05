@@ -62,7 +62,36 @@ void func_802A5510(u8 *level) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern s32 D_803EF2EC; /* x */
+extern s32 D_803EF2F4; /* z */
+extern s32 D_803EF304; /* result height (world units) */
+
+/* Like func_802A5510, for the point (D_803EF2EC, D_803EF2F4) and the
+ * HeightZone list at level+0x44 / +0x48: D_803EF304 = (highest containing
+ * zone's height, or -1) << 5. The end offset must be start + n * 10.
+ * Asm callers rely on preserved: func_802B8D04 keeps a2, a3, t7, f12, f14. */
+void func_802A5604(u8 *level) {
+    HeightZone *zone = (HeightZone *) (level + *(s32 *) (level + 0x44));
+    HeightZone *end = (HeightZone *) (level + *(s32 *) (level + 0x48));
+    /* logical shifts (srl) in the asm, then signed compares */
+    s32 px = (u32) D_803EF2EC >> 5;
+    s32 pz = (u32) D_803EF2F4 >> 5;
+    s32 best = -1;
+
+    for (; zone != end; zone++) {
+        if (px < zone->minX || pz < zone->minZ || zone->maxX < px || zone->maxZ < pz) {
+            continue;
+        }
+        if (zone->height >= best) {
+            best = zone->height;
+        }
+    }
+    D_803EF304 = best << 5;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/60D50/func_802A5604.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

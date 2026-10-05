@@ -1,0 +1,28 @@
+# 5FD50: index lists (func_802A4510, func_802A45D4), display-list links (func_802A4DE8),
+# animation records (func_802A5020)
+
+# func_802A4510 / func_802A45D4: n = D_803BE714 * D_803BE716 entries (lists hold 100 / 104 halves)
+func_802A4510: -n 300 --ret void --mem D_803BE714:2=int:0:10 --mem D_803BE716:2=int:0:10 --mem D_803C30A8:0xC8=rand --mem D_803C3178:0xD0=rand --mem D_803C3248:2=int:0:0xFFFF --mem D_803C3170=int --mem D_803C2B88=int
+# n = 0, 1, 100 (the -1 lands on D_803C3170's high half) and up to 121 (overlapping lists)
+func_802A4510: -n 200 --seed 1 --ret void --mem D_803BE714:2=choice:0,1,10,11 --mem D_803BE716:2=choice:0,1,10,11 --mem D_803C30A8:0xC8=rand --mem D_803C3178:0xD0=rand --mem D_803C3248:2=int:0:0xFFFF
+func_802A45D4: -n 300 --ret void --arg a0=int --mem D_803BE714:2=int:0:10 --mem D_803BE716:2=int:0:10 --mem D_803C30A8:0xC8=rand --mem D_803C3178:0xD0=rand --mem D_803C3248:2=int:0:0xFFFF --mem D_803C3170=int --mem D_803C2B88=int
+func_802A45D4: -n 200 --seed 1 --ret void --arg a0=choice:0,1,-1,0x7FFF,0x8000,0xFFFF,0x10000 --mem D_803BE714:2=choice:0,1,10,11 --mem D_803BE716:2=choice:0,1,10,11 --mem D_803C30A8:0xC8=rand --mem D_803C3178:0xD0=rand
+
+# func_802A4DE8(-, gfx, dl, end): DLs packed in [dl, end), each ended by 0xB8000000; end is
+# 0..20 commands past dl with the command before it an end marker (so end is a list boundary)
+func_802A4DE8: -n 300 --ret void --arg a0=int --arg a1=ptr --arg a2=ptr:0x100 --arg a3=rel:a2+8*int:0:20 --mem @a2:0x100=words:0xB8000000*3,0x06000000,0x01000000,0xB8000001,0 --mem @a3-8=0xB8000000
+# every command an end marker (one list per command)
+func_802A4DE8: -n 100 --seed 1 --ret void --arg a1=ptr --arg a2=ptr:0x100 --arg a3=rel:a2+8*int:0:20 --mem @a2:0x100=words:0xB8000000
+# one long list (single end marker at the end)
+func_802A4DE8: -n 100 --seed 2 --ret void --arg a1=ptr --arg a2=ptr:0x100 --arg a3=rel:a2+8*int:1:20 --mem @a2:0x100=words:0x06000000,0xE7000000,0 --mem @a3-8=0xB8000000
+
+# func_802A5020(base): records at base+0x40 with nFrames 1,0,2,1 (sizes 12,8,16,12);
+# end offset at a record boundary (0..4 records). timer/period/frame around the wraps.
+func_802A5020: -n 400 --ret void --arg a0=ptr:0x100 --mem @a0+0x2c=0x40 --mem @a0+0x30=choice:0x40,0x4C,0x54,0x64,0x70*3 \
+    --mem @a0+0x44:1=bytes:1 --mem @a0+0x45:1=bytes:0,1,2,0xFF --mem @a0+0x46:1=bytes:0,1,0x80 --mem @a0+0x48:2=halves:1,2,3,5,0xFF,0xFFFF --mem @a0+0x4A:2=halves:0,1,2,4,0xFE,0xFFFE,0xFFFF \
+    --mem @a0+0x50:1=bytes:0 --mem @a0+0x51:1=bytes:0,1,0xFF --mem @a0+0x52:1=bytes:0,1 --mem @a0+0x54:2=halves:1,2,3,0xFFFF --mem @a0+0x56:2=halves:0,1,2,0xFFFE,0xFFFF \
+    --mem @a0+0x58:1=bytes:2 --mem @a0+0x59:1=bytes:0,1,2,0xFF --mem @a0+0x5A:1=bytes:0,1 --mem @a0+0x5C:2=halves:1,2,3,0x100,0xFFFF --mem @a0+0x5E:2=halves:0,1,2,0xFF,0xFFFE,0xFFFF \
+    --mem @a0+0x68:1=bytes:1 --mem @a0+0x69:1=bytes:0,1,0xFF --mem @a0+0x6A:1=bytes:0,1 --mem @a0+0x6C:2=halves:1,2,7,0xFFFF --mem @a0+0x6E:2=halves:0,1,6,0xFFFE,0xFFFF
+# period 0 with fade off (the timer never wraps; no division)
+func_802A5020: -n 100 --seed 1 --ret void --arg a0=ptr:0x100 --mem @a0+0x2c=0x40 --mem @a0+0x30=0x4C \
+    --mem @a0+0x44:1=bytes:1 --mem @a0+0x45:1=bytes:0,1,0xFF --mem @a0+0x46:1=bytes:0 --mem @a0+0x48:2=halves:0 --mem @a0+0x4A:2=halves:0,1,0xFFFE,0xFFFF

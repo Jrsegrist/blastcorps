@@ -18,17 +18,40 @@ typedef struct {
     /* 0x36 */ u16 time; /* time limit, in tenths of a second */
     /* 0x38 */ u8 unk38;
     /* 0x39 */ u8 pad39[3];
-    /* 0x3C */ s16 unk3C;
-    /* 0x3E */ u8 pad3E[2];
+    /* 0x3C */ s32 unk3C;
     /* 0x40 */ u16 unk40;
-    /* 0x42 */ s16 unk42;
+    /* 0x42 */ u16 unk42;
 } LevelInfo;
+
+typedef struct {
+    u8 id;
+    u8 pad;
+    s16 pos[3];
+} Entry08;
 
 typedef struct {
     u8 id;
     u8 pad;
     s16 pos[4];
 } Entry0A;
+
+/* Animated sprite definition (D_802F49F4, 0x30 bytes), as in 26570.c */
+typedef struct {
+    u8 pad0[4];
+    u8 unk4;
+    u8 pad5;
+    u16 unk6[17];
+    f32 unk28;
+    u8 unk2C;
+    u8 unk2D;
+    u8 pad2E[2];
+} Anim30;
+
+typedef struct {
+    u8 pad0[0x18];
+    u8 rank[0x3C];
+    u8 pad54[0x100 - 0x54];
+} Player;
 
 extern LevelInfo *D_80367C04;
 extern LevelInfo D_802E8F94[];
@@ -65,12 +88,85 @@ extern s32 D_80367B50;
 extern u8 D_80367B54;
 extern u16 D_80367B58[];
 extern u16 D_80367BF6;
+extern Entry08 D_802E8F74[];
+extern u8 D_80364410;
+extern s32 D_80364404;
+extern s32 D_80364408;
+extern s32 D_8036440C;
+extern s32 D_803F7C10;
+extern s32 D_803F7C14;
+extern u8 D_80364424;
+extern s32 D_80364428;
+extern u16 D_8036442C;
+extern s32 D_80364430;
+extern s32 D_803156C4;
+extern s32 D_80367BC0;
+extern u32 D_80367BC4;
+extern s16 D_80367BD8;
+extern char *D_80367C08;
+extern s32 D_80367C0C;
+extern char D_802E9F90[]; /* "BUILDINGS" */
+extern s32 D_802E9F9C;
+extern u8 D_802E9FA0[];   /* " S" */
+extern u64 D_80364A90;
+extern u64 D_80364A98;
+extern u8 D_006A32B0[];
+extern u8 D_006A8DA0[];
+extern void *D_80358070;
+extern void *D_80367BE0[];
+extern s16 D_80367BC8;
+extern u8 D_80367C00;
+extern u8 D_80367C01;
+extern Anim30 D_802F49F4[];
+extern Anim30 *D_80367BCC;
+extern s32 D_80367BD0;
+extern u8 D_80367BD4;
+extern u8 D_80367BB0[];
+extern char D_80367C18[];
+extern char D_80367C40[];
+extern s16 D_80367C68[];
+extern s16 D_80367CB8[];
+extern void *D_802F5804[];
+extern void *D_80367738;
+extern u8 D_8035805C;
+extern u8 D_803156F4;
+extern Player D_80364AF0[];
+extern u8 D_80364AE8;
+extern u8 D_803643D6;
+extern u8 D_803643D7;
+extern s32 D_803156C0;
+extern s32 D_80364A58;
+extern u16 D_80367BF4;
+extern u16 D_80367D08;
+extern u8 D_803BE738;
+extern s16 D_8036BB1A;
+extern s16 yoshiState;
 
 void func_802D6A60(char *, const char *, ...);
 void func_8029A7E4(const char *, ...);
 void func_802C1DD0(s32);
 void func_8027EED8(s32, s32, s16 *);
 u8 func_802C1B1C(void);
+u8 func_8026FA38(char **name, s32 *arg1);
+u8 func_80272C5C(u16 *ids, s32 arg1, u8 count, u8 frames, u8 flags, f32 scale);
+void func_8028B4C4(void *, void *, s32 *, s32, s32, s32);
+void func_8026AF6C(s32);
+void func_80260650(void *, s32, s32);
+s32 func_8026205C(s32);
+s32 func_8028604C(s32);
+s32 func_802753C0(void);
+void func_80275270(u64, f32);
+void func_80260A10(void);
+void func_802609F0(void);
+void func_80262840(void);
+void func_80262FD0(void);
+void func_8026303C(void);
+void func_80263140(void);
+void func_80263358(void);
+void func_802633E0(void);
+void func_80264A34(u8 *buf, u16 t, s32 arg2);
+
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 void func_80262150(u8 arg0) {
     s32 i;
@@ -120,11 +216,254 @@ void func_80262238(u8 arg0) {
     }
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/1D990/func_80262320.s")
+/* Level start: set up the objective, its HUD icon and (for most mission
+ * types) load the HUD graphics from ROM */
+void func_80262320(u8 arg0) {
+    s32 i;
+    u8 anim;
+    u8 unused;
+    u8 found;
+    s32 size;
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/1D990/func_80262840.s")
+    i = 0;
+    anim = 0;
+    unused = 0;
+    found = 0;
+    do {
+        if (D_802E8F74[i].id == arg0) {
+            found = 1;
+        } else {
+            i++;
+        }
+    } while (!found && i < 4);
+    if (found) {
+        D_80364410 = 1;
+        D_80364404 = D_802E8F74[i].pos[0] << 16;
+        D_80364408 = D_802E8F74[i].pos[1] << 16;
+        D_8036440C = D_802E8F74[i].pos[2] << 16;
+    } else {
+        D_80364410 = 0;
+    }
+    D_80367C04 = &D_802E8F94[arg0];
+    D_803F7C10 = D_80367C04->unk1C << 5;
+    D_803F7C14 = D_80367C04->unk1E << 5;
+    D_80364424 = D_80367C04->unk38;
+    D_80364428 = D_80367C04->unk3C << 5;
+    D_8036442C = D_80367C04->unk40;
+    D_80364430 = D_80367C04->unk42 << 5;
+    D_80367BC0 = D_803156C4;
+    D_80367BC4 = -1;
+    D_80367BD8 = 0;
+    switch (D_80364AA8) {
+        case 4:
+        case 0x80:
+            anim = 6;
+            break;
+        case 0x20:
+            anim = func_8026FA38(&D_80367C08, &D_80367C0C);
+            D_80367BD8 = 2;
+            break;
+        case 0x10:
+        case 0x40:
+            anim = 9;
+            D_80367BD8 = -2;
+            break;
+        case 1:
+        case 2:
+        case 8:
+            break;
+    }
+    if (anim == 6) {
+        D_80367BD8 = 6;
+        D_80367C08 = D_802E9F90;
+        unused = 0;
+        D_80367C0C = D_802E9F9C;
+    }
+    if (D_80364AA8 != 1) {
+        size = D_006A8DA0 - D_006A32B0;
+        if (D_80364AA8 != 0x80 && D_80364A98 == 0x2000) {
+            func_8028B4C4(D_006A32B0, D_80358070, &size, 10, 0, 1);
+            for (i = 0; i < 5; i++) {
+                D_80367BE0[i] = (i << 15) + (u8 *) D_80358070;
+            }
+            D_80358070 = (u8 *) D_80358070 + size;
+        }
+        if (D_80364A98 == 0x40) {
+            D_80367BC8 = 0;
+        } else {
+            D_80367BC8 = 1;
+        }
+    } else {
+        D_80367BC8 = 0;
+    }
+    D_80367C01 = 0;
+    D_80367C00 = 0;
+    if (D_80364A98 == 0x40) {
+        D_80367BFF = 0;
+    } else {
+        D_80367BFF = 0;
+        D_80367BFE = 0;
+    }
+    D_80367BCC = &D_802F49F4[anim];
+    if (D_802E8F94[arg0].type == 0x20) {
+        D_80367BD0 = 0;
+        D_80367BD4 = func_80272C5C(D_80367BCC->unk6, 0, D_80367BCC->unk4, D_80367BCC->unk2C, D_80367BCC->unk2D,
+                                   D_80367BCC->unk28 * 0.5);
+    } else {
+        D_80367BD0 = 0;
+        if (anim) {
+            D_80367BD4 = func_80272C5C(D_80367BCC->unk6, 0, D_80367BCC->unk4, D_80367BCC->unk2C, D_80367BCC->unk2D,
+                                       1.0f);
+        } else {
+            D_80367BCC = NULL;
+        }
+    }
+    if (D_80364A98 & 0x440) {
+        func_80264A34(D_80367BB0, D_80367C04->time - D_80367BF6, 0);
+    } else {
+        D_80367B54 = 0;
+    }
+}
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/1D990/func_80262BF4.s")
+/* Mission intro: one step per second. Second 0 prints the objective and the
+ * time limit, 1-4 play the countdown sounds */
+void func_80262840(void) {
+    s32 secs;
+    u16 mins;
+    u16 rem;
+
+    secs = (u32) (D_803156C4 - D_80367BC0) / 60;
+    if (secs != D_80367BC4) {
+        switch (secs) {
+            case 0:
+                D_80367C68[0] = 0xFFF;
+                D_80367CB8[0] = 0xFFF;
+                switch (D_80364AA8) {
+                    case 2:
+                        func_802D6A60(D_80367C18, "FINISH %d LAPS IN", D_80367C04->target);
+                        break;
+                    case 4:
+                    case 0x20:
+                        if (D_802E8BDC == 0x34) {
+                            func_802D6A60(D_80367C18, "DESTROY TARGETS IN");
+                        } else {
+                            func_802D6A60(D_80367C18, "DESTROY %s IN", D_80367C08);
+                        }
+                        break;
+                    case 0x80:
+                        if (D_802E8BDC == 0x32) {
+                            func_802D6A60(D_80367C18, "CLEAR SHUTTLE PATH");
+                        } else {
+                            func_802D6A60(D_80367C18, "CLEAR CARRIER PATH");
+                        }
+                        break;
+                    case 8:
+                        func_802D6A60(D_80367C18, "CAUSE $%d DAMAGE", D_80367C04->target);
+                        break;
+                    case 0x10:
+                    case 0x40:
+                        func_802D6A60(D_80367C18, "FIND %d RDUS IN", D_80367C04->target);
+                        break;
+                }
+                mins = D_80367C04->time / 600;
+                rem = (D_80367C04->time / 10) % 60;
+                func_802D6A60(D_80367C40, "%d MINUTE%c %d SECONDS", mins, D_802E9FA0[mins != 1], rem);
+                D_802F5804[255] = D_80367C18;
+                D_802F5804[262] = D_80367C40;
+                D_802F5804[256] = D_80367C68;
+                D_802F5804[263] = D_80367CB8;
+                func_8026AF6C(0x8009);
+                func_80260650(D_80367738, func_8026205C(0), 0);
+                break;
+            case 1:
+                func_80260650(D_80367738, 0x96, 0);
+                break;
+            case 2:
+                func_80260650(D_80367738, 0x96, 0);
+                break;
+            case 3:
+                func_80260650(D_80367738, 0x96, 0);
+                break;
+            case 4:
+                func_80260650(D_80367738, 0x99, 0);
+                break;
+        }
+    }
+    D_80367BC4 = secs;
+    if (secs == 4 && D_8035805C == D_803156F4) {
+        D_80364A98 = 4;
+    }
+}
+
+/* Per-frame objective update: the time limit, the countdown beeps, and the
+ * progress check for the current mission type */
+void func_80262BF4(void) {
+    if (!D_803643D7 && !D_803643D6) {
+        D_80367BF6 = D_80367C04->time - MIN(D_80367C04->time, func_8028604C(D_803156C0 - D_80364A58));
+    }
+    func_80264A34(D_80367BB0, D_80367BF6, 1);
+    switch (D_80364A90) {
+        case 0x2000:
+            func_80262840();
+            break;
+        case 0x04000000:
+            if (D_803643D6 && func_802753C0() == 0 && yoshiState == 1) {
+                if ((D_80364AF0[D_80364AE8].rank[D_802E8BDC] > 0 && D_80364AF0[D_80364AE8].rank[D_802E8BDC] < 6) ? 1
+                                                                                                                 : 0) {
+                    func_80275270(0x08000000, 0.25f);
+                } else {
+                    func_80275270(0x40, 0.25f);
+                }
+            }
+            break;
+        default:
+            if (D_80367BF6 == 0) {
+                D_803643D9 = 1;
+            } else {
+                D_80367BF4 = D_80367BF6 / 10;
+                if (D_80367BF4 < 10 && D_80367BF4 != D_80367D08) {
+                    func_80260650(D_80367738, 0xA3 - D_80367BF4, 0);
+                }
+                D_80367D08 = D_80367BF4;
+            }
+            if (D_803BE738 && D_80364AA8 == 0x40) {
+                func_80260650(D_80367738, 0x3C, 0);
+            }
+            if (D_803BE738) {
+                D_803643D9 = 1;
+            }
+            if (D_803643D6) {
+                func_80260A10();
+                func_802609F0();
+                func_8026AF6C(0xA00E);
+                D_8036BB1A = -1;
+                D_80364A98 = 0x04000000;
+            } else if (D_803643D7) {
+                D_80364A98 = 0x04000000;
+            } else {
+                switch (D_80364AA8) {
+                    case 2:
+                        func_802633E0();
+                        break;
+                    case 4:
+                        func_8026303C();
+                        break;
+                    case 0x20:
+                    case 0x80:
+                        func_80263140();
+                        break;
+                    case 8:
+                        func_80263358();
+                        break;
+                    case 0x10:
+                    case 0x40:
+                        func_80262FD0();
+                        break;
+                }
+            }
+            break;
+    }
+}
 
 /* Mission type 0x10/0x40 (find the RDUs): progress text */
 void func_80262FD0(void) {

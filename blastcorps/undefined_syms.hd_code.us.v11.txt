@@ -19,3 +19,5 @@ D_8039CA50 = 0x8039CA50; /* 4EBE0: f32 spline weight */
 D_006A8DA0 = 0x006A8DA0;
 D_006A9F10 = 0x006A9F10;
 D_802FCEB0 = 0x802FCEB0;
+D_006A32B0 = 0x006A32B0; /* 1D990: ROM asset loaded at level start */
+D_802E9FA0 = 0x802E9FA0; /* 1D990: " S" plural suffix */

@@ -91,3 +91,47 @@ func_802B18F4: -n 300 --seed 3 --arg gp=sym:D_803EDF10 --arg t6=int --arg t7=int
     --mem D_803EB770:16=bytes:0,1 --mem D_803EB792:1=rand --mem D_803EBC10:0x100=onehot:0x10@0xC/1:2:bytes:1,3,4 \
     --follow func_802A04BC,func_802A0360,func_802A039C,func_802A03D4,func_802A040C,func_802A0290,func_802A02E4,func_802A6274,func_802ABC88,func_8026A8E0 \
     --sig func_80260650=a0,a1:2,a2 --sig func_80278EB0=a0,a1,a2 --sig func_802794A4= --sig func_802BCC10= --sig func_802C444C= --sig func_802A11C4=a0,a1
+
+# func_802B2768: vehicle 2 model matrices (scale 0x6590, tag 2); gp = D_803EDF10
+func_802B2768: -n 300 --arg gp=sym:D_803EDF10 --heap 0x200 --heap 0x400 --mem D_803EDFC4=rel:heap0 --mem @heap0+0x18=choice:0x40,0x80 \
+    --mem @heap0+0x44=int:0:0x100 --mem @heap0+0x84=int:0:0x100 --mem @heap0+0=int:0:0x100 --mem @heap0+4=int:0:0x100 --mem @heap0+8=int:0:0x100 \
+    --mem D_803EDFC8=rel:heap1 --mem D_803EDFCC=rel:heap1+0x200 --mem D_8035805C:1=choice:0,1 --mem D_803EDF10+0x4C:2=int:0:0xFFF \
+    --mem D_803EDFB8:12=rand --mem D_803ED390:6=rand --sig 'func_8029C454=a0,a1,a2,a3,stack0,stack1,stack2,*stack3+8,*stack3+0xC,*stack3+0x14'
+func_802B2768: -n 100 --seed 1 --arg gp=sym:D_803EDF10 --heap 0x200 --heap 0x400 --mem D_803EDFC4=rel:heap0 --mem @heap0+0x18=choice:0x40,0x80 \
+    --mem @heap0+0x44=int:0:0x100 --mem @heap0+0x84=int:0:0x100 --mem @heap0+0=int:0:0x100 --mem @heap0+4=int:0:0x100 --mem @heap0+8=int:0:0x100 \
+    --mem D_803EDFC8=rel:heap1 --mem D_803EDFCC=rel:heap1+0x200 --mem D_8035805C:1=choice:0,1 --mem D_803EDF10+0x4C:2=int:0:0xFFF \
+    --mem D_803EDFB8:12=rand --mem D_803ED390:6=rand --follow func_802AA764
+# whole tree: one count-0 point, empty part list; heading wrap at 0xC00
+func_802B2768: -n 200 --seed 2 --arg gp=sym:D_803EDF10 --heap 0x200 --heap 0x400 --mem D_803EDFC4=rel:heap0 --mem @heap0+0=0x100 --mem @heap0+4=0x108 \
+    --mem @heap0+8=0x10C --mem @heap0+0x18=0x40 --mem @heap0+0x44=choice:0,0x40,0x80 --mem @heap0+0x100:6=rand --mem @heap0+0x106:2=0 \
+    --mem D_803EDFC8=rel:heap1 --mem D_803EDFCC=rel:heap1+0x200 --mem D_8035805C:1=choice:0,1 --mem D_803EDFB8:12=words:0,1,-1,0x1000,-0x1000,0x7FFF,0x12345 \
+    --mem D_803ED390:6=rand --mem D_803EBC10=-1 --mem D_803A7300+0x10:1=2 --mem D_803EDF10+0x4C:2=choice:0,1,0xBFE,0xBFF,0xC00,0xC01,0xFFE,0xFFF --follow-all
+
+# func_802B13D8: re-ground vehicle 2 (func_802A9A60, matrices, record); fp, a3, f12-f26 pass through
+func_802B13D8: -n 300 --mem D_803EDFB8:12=rand --arg f12=fbits --arg f14=fbits --arg f20=fbits --arg f22=fbits --arg f24=fbits --arg f26=fbits
+func_802B13D8: -n 200 --seed 1 --mem D_803EDFB8:12=rand --heap 0x200 --heap 0x400 --mem D_803EDFC4=rel:heap0 --mem @heap0+0x18=choice:0x40,0x80 \
+    --mem @heap0+0x44=int:0:0x100 --mem @heap0+0x84=int:0:0x100 --mem @heap0+0=int:0:0x100 --mem @heap0+4=int:0:0x100 --mem @heap0+8=int:0:0x100 \
+    --mem D_803EDFC8=rel:heap1 --mem D_803EDFCC=rel:heap1+0x200 --mem D_8035805C:1=choice:0,1 --mem D_803EDF10+0x4C:2=int:0:0xFFF --follow func_802B2768 \
+    --sig 'func_8029C454=a0,a1,a2,a3,stack0,stack1,stack2,*stack3+8,*stack3+0xC,*stack3+0x14'
+
+# func_802B152C: vehicle 2 per-frame update; ring-distance boundary 0x190 (heading 0x800 makes the distance the midpoint)
+func_802B152C: -n 300 --mem D_803EDF10:0xA6=rand --mem D_803EDF10+0x9A:1=bytes:0,1 --mem D_803EDF10+0xA1:1=bytes:0,1,4 --mem D_803EDF10+0x4E:2=int:0:0xFFF \
+    --mem D_803EDFB8:12=rand --mem D_803EDFC8=rand --mem D_803EDFCC=rand --mem D_803EDFD4:8=rand --mem D_803EDFD8:1=bytes:0,1,0x80 --mem D_8035805C:1=choice:0,1 \
+    --mem D_803ED40B:1=rand --mem D_803F77D0=rand --mem D_803643E0:12=rand --mem D_8036443C:6=rand --sig func_802B2900= --sig func_8029A914= \
+    --sig func_802A6F6C= --sig func_802B28B8= --mem D_803A7425:1=choice:0,1*2 --stub-ret func_802A6F6C=int:0:0xFFF
+func_802B152C: -n 200 --seed 1 --mem D_803EDF10:0xA6=rand --mem D_803EDF10+0x9A:1=bytes:0,1 --mem D_803EDF10+0xA1:1=bytes:0,1,4 --mem D_803EDFB8:12=rand \
+    --mem D_803EDFC8=rand --mem D_803EDFCC=rand --mem D_803EDFD4:8=rand --mem D_803EDFD8:1=bytes:0,1,0x80 --mem D_8035805C:1=choice:0,1 \
+    --mem D_803ED40B:1=rand --mem D_803F77D0=rand --mem D_803643E0:12=rand --mem D_8036443C:6=rand --sig func_802B2900= --sig func_8029A914= \
+    --sig func_802A6F6C= --sig func_802B28B8= --mem D_803A7425:1=1 --mem D_803EDF10+0x4E:2=halves:0x800 \
+    --stub-ret func_802A6F6C=choice:0,0x18E,0x18F,0x190,0x191,0x7FF,0x800,0x801,0xFFF
+
+# func_802B0DA0: spawn vehicle 2 (model in s2); then with the per-frame chain followed
+func_802B0DA0: -n 300 --heap 0x200 --arg s2=rel:heap0 --mem @heap0+4=int:0:0x100 --mem @heap0+8=int:0:0x100 --mem @heap0+0x18=choice:0x40,0x80 \
+    --mem @heap0+0x44=int:0:0x100 --mem @heap0+0x84=int:0:0x100 --mem D_80358070=rand --mem D_803EDF10:0xA6=rand --mem D_803EDFB8:0x24=rand \
+    --mem D_803F7844=rand --sig func_80258230=a0:1,a1,a2:2,a3:2 --sig func_802A7764=a0,a1,a2
+func_802B0DA0: -n 200 --seed 1 --heap 0x200 --heap 0x2800 --arg s2=rel:heap0 --mem @heap0+0=int:0:0x100 --mem @heap0+4=int:0:0x100 --mem @heap0+8=int:0:0x100 \
+    --mem @heap0+0x18=choice:0x40,0x80 --mem @heap0+0x44=int:0:0x100 --mem @heap0+0x84=int:0:0x100 --mem D_80358070=rel:heap1 --mem D_803EDF10:0xA6=rand \
+    --mem D_803EDFB8:0x24=rand --mem D_803F7844=rand --mem D_8035805C:1=choice:0,1 --mem D_803A7425:1=choice:0,1 --stub-ret func_802A6F6C=int:0:0xFFF \
+    --sig func_8029A914= --sig func_802A6F6C= --sig func_802B2900= --sig func_802B28B8= --sig func_80258230=a0:1,a1,a2:2,a3:2 \
+    --sig func_802A7764=a0,a1,a2 --sig 'func_8029C454=a0,a1,a2,a3,stack0,stack1,stack2,*stack3+8,*stack3+0xC,*stack3+0x14' \
+    --follow func_802B152C,func_802B2768,func_802B14E8

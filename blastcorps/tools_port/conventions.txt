@@ -547,6 +547,11 @@ func_802B28B8: out s3=ret ; preserve a0,a1,a2,a3
 # vehicle 2 state machine: t6, t7, s0-s4 passed through to func_802A6274 (gp = D_803EDF10 read as the global);
 # f20/f30 left as func_8029F9D4 leaves them
 func_802B18F4: in t6=a0,t7=a1,s0=a2,s1=a3,s2=stack0,s3=stack1,s4=stack2 ; clobbers s1,s5,f20,f30
+# vehicle 2 = vehicle 16's code (8AEE0 func_802D22F4 / func_802D0E44 / func_802D0F98 / func_802D07E0) with id 2
+func_802B2768: in a3=a0,s0=a1,s1=a2 ; out t0=ret,t2=*a3,s1=*a3+4,s4=*a3+8 ; preserve t6,t7 ; clobbers s2,s5,s6,s7
+func_802B13D8: in fp=a0,a3=a1,f12=a2,f14=a3,f20=stack0,f22=stack1,f24=stack2,f26=stack3
+func_802B152C: in t6=a0,t7=a1,s0=a2,s1=a3,s2=stack0,s3=stack1,s4=stack2,f14=stack3,f20=stack4,f22=stack5,f24=stack6,f26=stack7
+func_802B0DA0: in s2=a0,t7=a1,s3=a2,s0=a3,s1=stack0,fp=stack1,t6=stack2,f12=*stack3,f14=*stack3+4,f20=*stack3+8,f22=*stack3+12,f24=*stack3+16,f26=*stack3+20 ; preserve t0,t1,t2,t3,t4,t5 ; clobbers s0-s7,fp,gp,f20,f22,f24,f26,f28,f30
 # --- 6E200 ---
 # zone lookup wrapper: func_802ABD54(id, x, y, z) with its scan registers t6, t7, s0-s4 passed through
 func_802B47D4: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; out v1=ret,t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; preserve f12,f14 ; clobbers s5,s6
@@ -706,6 +711,21 @@ func_802D2444: out s3=ret ; preserve a0,a1,a2,a3
 func_802D02F8: in t6=a0,t7=a1,s0=a2,s1=a3,s2=stack0,s3=stack1,s4=stack2 ; clobbers s1,s5,s6,s7
 # animation state machine ($gp = D_803FC8D0); func_8029F9D4 leaves f20/f30 changed (func_802D0F98 reads f20 after)
 func_802D1360: clobbers s5,f20,f30
+# model matrices: a3/s0/s1 pass into func_802AA890's chain registers; results t0 (tag), t2 (point-list end), s1, s4 (buffer)
+func_802D05D8: in a3=a0,s0=a1,s1=a2 ; out t0=ret,t2=*a3,s1=*a3+4,s4=*a3+8 ; preserve t6,t7 ; clobbers s2,s5,s6,s7
+func_802D22F4: in a3=a0,s0=a1,s1=a2 ; out t0=ret,t2=*a3,s1=*a3+4,s4=*a3+8 ; preserve t6,t7 ; clobbers s2,s5,s6,s7
+# re-ground: fp/a3 and the FP pass-through state go to func_802A9A60 / the matrices (C caller passes garbage)
+func_802CFB00: in fp=a0,a3=a1,f12=a2,f14=a3,f20=stack0,f22=stack1,f24=stack2,f26=stack3
+func_802D0E44: in fp=a0,a3=a1,f12=a2,f14=a3,f20=stack0,f22=stack1,f24=stack2,f26=stack3
+# moving-platform pair / heading (gp = D_803FC500 left behind); f24 chains through InterpRegs
+func_802CFC54: in a3=a0,f24=*a1+24 ; out v1=ret,f24=*a1+24,f26=*a1+28 ; preserve t0,t1 ; clobbers gp,s4,f20,f22,f28
+func_802CFCE0: in a3=a0,f24=*a1+24 ; out s3=ret,f24=*a1+24,f26=*a1+28 ; preserve a3,t0,t1,t2 ; clobbers gp,s0,s1,s2,s4,s5,s6,s7,fp,f20,f22,f28
+# per-frame update: zone registers t6, t7, s0-s4 and the FP pass-through state f14-f26 (C caller passes garbage)
+func_802CFDE8: in t6=a0,t7=a1,s0=a2,s1=a3,s2=stack0,s3=stack1,s4=stack2,f14=stack3,f20=stack4,f22=stack5,f24=stack6,f26=stack7
+func_802D0F98: in t6=a0,t7=a1,s0=a2,s1=a3,s2=stack0,s3=stack1,s4=stack2,f14=stack3,f20=stack4,f22=stack5,f24=stack6,f26=stack7
+# spawn (from func_802A350C): model s2, x t7, y s3, z s0, heading s1, fp; t6 and the FP state pass through
+func_802CF6A0: in s2=a0,t7=a1,s3=a2,s0=a3,s1=stack0,fp=stack1,t6=stack2,f12=*stack3,f14=*stack3+4,f20=*stack3+8,f22=*stack3+12,f24=*stack3+16,f26=*stack3+20 ; preserve t0,t1,t2,t3,t4,t5 ; clobbers s0-s7,fp,gp,f20,f22,f24,f26,f28,f30
+func_802D07E0: in s2=a0,t7=a1,s3=a2,s0=a3,s1=stack0,fp=stack1,t6=stack2,f12=*stack3,f14=*stack3+4,f20=*stack3+8,f22=*stack3+12,f24=*stack3+16,f26=*stack3+20 ; preserve t0,t1,t2,t3,t4,t5 ; clobbers s0-s7,fp,gp,f20,f22,f24,f26,f28,f30
 # --- 8DDB0 ---
 # per-frame events / one-shot sounds / effect countdowns of vehicle 0xFD; leaves junk in s0, s1, s5-s7
 func_802D2C20: clobbers s0,s1,s5,s6,s7

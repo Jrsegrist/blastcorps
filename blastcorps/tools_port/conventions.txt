@@ -341,6 +341,15 @@ func_802ABBEC: in t0=a0,t1=a1,t2=a2,s4=a3,v1=*stack0,a0=*stack0+4,a3=*stack0+8,s
 func_802AAF64: in t0=a0,t1=a1,s1=a2,s3=a3,s4=stack0,s6=stack1,s7=stack2,t9=stack3,t5=stack4,t6=stack5,t7=stack6,s0=stack7,t3=*stack8,t4=*stack8+4,f12=*stack8+8,f14=*stack8+12,f20=*stack8+16,f22=*stack8+20,f24=*stack8+24,f26=*stack8+28 ; out t3=*stack8,t4=*stack8+4,f12=*stack8+8,f14=*stack8+12,f20=*stack8+16,f22=*stack8+20,f24=*stack8+24,f26=*stack8+28 ; clobbers s2
 # zone lookup around point (t3,t4,t5) for id a3; v1 = list end, last record's registers through a struct
 func_802ABD54: in a3=a0,t3=a1,t4=a2,t5=a3,t6=*stack0,t7=*stack0+4,s0=*stack0+8,s1=*stack0+12,s2=*stack0+16,s3=*stack0+20,s4=*stack0+24 ; out v1=ret,t6=*stack0,t7=*stack0+4,s0=*stack0+8,s1=*stack0+12,s2=*stack0+16,s3=*stack0+20,s4=*stack0+24 ; preserve a3 ; clobbers s5,s6
+# phase D (wt-f2): o32 wrappers of func_802AAD0C / func_802AAE54 for C callers; leave their FP results in f20-f28
+func_802AACD4: clobbers f20,f22,f24,f26,f28
+func_802AAE1C: clobbers f20,f22,f24,f26,f28
+# point (*t7, *s1) offset by length *t6 (s16, scaled by f12) along heading t4 -> t0, t1; s3 = *t7, fp = cosine
+func_802A860C: in f12=f12,t4=a1,t6=a2,t7=a3,s1=stack0 ; out t0=ret,t1=*stack1,s3=*stack1+4,fp=*stack1+8 ; preserve t6,t7
+# out-of-bounds respawn of vehicle t8 (record gp) at (t0, t1) >> 5: position to *t7/*s2/*s1 and back in t0/t1
+func_802A8CCC: in gp=a0,t8=a1,t7=a2,s2=a3,s1=stack0,t0=*stack1,t1=*stack1+4 ; out t0=*stack1,t1=*stack1+4 ; preserve v0,v1,a0,a1,a2,a3,t2,t3,t4,t5,t6,t7,t8,t9
+# angle at (t3,t4) between the line to (t7,s0) and the offset (t5,t6) from it (arcsine >> 3) in s6
+func_802ABB1C: in t3=a0,t4=a1,t5=a2,t6=a3,t7=stack0,s0=stack1 ; out s6=ret ; preserve v1,a2,t3,t4,t5,t6,t7 ; clobbers s1,s2,s3,s4,fp
 
 # recursive id lookup in the D_803ED3B8 list; saves t1-t4 and s3, leaves s2 changed when found
 func_802AB8D8: in s2=a0 ; out t0=ret ; preserve t1,t2,t3,t4,s3 ; clobbers s2

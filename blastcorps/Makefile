@@ -57,6 +57,21 @@ HD_CODE_O_FILES := $(foreach file,$(HD_CODE_S_FILES),$(BUILD_DIR)/$(file).o) \
                    $(foreach file,$(HD_CODE_C_FILES),$(BUILD_DIR)/$(file).o) \
                    $(foreach file,$(HD_CODE_BIN_FILES),$(BUILD_DIR)/$(file).o)
 
+# hd_front_end: the front end overlay (title, menus, level select, saves),
+# inflated once to 0x801E7000 by hd_code func_8028B3E0
+HD_FRONT_END_ASM_DIRS  = asm/hd_front_end
+HD_FRONT_END_BIN_DIRS  = assets/hd_front_end
+HD_FRONT_END_SRC_DIR   = $(SRC_DIR)/hd_front_end
+HD_FRONT_END_SRC_DIRS  = $(HD_FRONT_END_SRC_DIR)
+
+HD_FRONT_END_S_FILES   = $(foreach dir,$(HD_FRONT_END_ASM_DIRS),$(wildcard $(dir)/*.s))
+HD_FRONT_END_C_FILES   = $(foreach dir,$(HD_FRONT_END_SRC_DIRS),$(wildcard $(dir)/*.c))
+HD_FRONT_END_BIN_FILES = $(foreach dir,$(HD_FRONT_END_BIN_DIRS),$(wildcard $(dir)/*.bin))
+
+HD_FRONT_END_O_FILES := $(foreach file,$(HD_FRONT_END_S_FILES),$(BUILD_DIR)/$(file).o) \
+                        $(foreach file,$(HD_FRONT_END_C_FILES),$(BUILD_DIR)/$(file).o) \
+                        $(foreach file,$(HD_FRONT_END_BIN_FILES),$(BUILD_DIR)/$(file).o)
+
 
 # Files requiring pre/post-processing
 GREP    = grep -rl
@@ -65,6 +80,9 @@ GLOBAL_ASM_INIT_O_FILES := $(foreach file,$(GLOBAL_ASM_INIT_C_FILES),$(BUILD_DIR
 
 GLOBAL_ASM_HD_CODE_C_FILES := $(shell $(GREP) GLOBAL_ASM $(HD_CODE_SRC_DIR) </dev/null 2>/dev/null)
 GLOBAL_ASM_HD_CODE_O_FILES := $(foreach file,$(GLOBAL_ASM_HD_CODE_C_FILES),$(BUILD_DIR)/$(file).o)
+
+GLOBAL_ASM_HD_FRONT_END_C_FILES := $(shell $(GREP) GLOBAL_ASM $(HD_FRONT_END_SRC_DIR) </dev/null 2>/dev/null)
+GLOBAL_ASM_HD_FRONT_END_O_FILES := $(foreach file,$(GLOBAL_ASM_HD_FRONT_END_C_FILES),$(BUILD_DIR)/$(file).o)
 
 
 # Tooling
@@ -103,6 +121,9 @@ HD_CODE_TARGET = $(BUILD_DIR)/hd_code.$(VERSION)
 HD_CODE_LD_SCRIPT = hd_code.$(VERSION).ld
 HD_CODE_BSS_LD_SCRIPT = hd_code_bss.$(VERSION).ld
 
+HD_FRONT_END_TARGET = $(BUILD_DIR)/hd_front_end.$(VERSION)
+HD_FRONT_END_LD_SCRIPT = hd_front_end.$(VERSION).ld
+
 ifeq ($(NON_MATCHING),1)
 # Rewritten functions change size, so the NON_MATCHING link relocates the
 # hd_code text to NM_TEXT_VRAM (clear of the data segment, which must stay at
@@ -114,6 +135,8 @@ CFLAGS += -DNON_MATCHING
 INIT_LD_SCRIPT = $(BUILD_DIR)/init.$(VERSION).ld
 HD_CODE_LD_SCRIPT = $(BUILD_DIR)/hd_code.$(VERSION).ld
 HD_CODE_BSS_LD_SCRIPT = $(BUILD_DIR)/hd_code_bss.$(VERSION).ld
+# the front end stays at its original address (it has no rewrites yet)
+HD_FRONT_END_LD_SCRIPT = $(BUILD_DIR)/hd_front_end.$(VERSION).ld
 # symbol files rewritten as PROVIDE(), so a relocated function's real
 # definition wins over its original absolute address
 UNDEF_DIR = $(BUILD_DIR)/
@@ -123,6 +146,9 @@ INIT_UNDEF_FILES    = $(foreach f,undefined_syms_auto undefined_funcs_auto undef
 HD_CODE_UNDEF_FILES = $(foreach f,undefined_syms_auto undefined_funcs_auto undefined_syms,$(UNDEF_DIR)$(f).hd_code.$(VERSION).txt)
 INIT_LDFLAGS    = -T $(INIT_LD_SCRIPT) -Map $(INIT_TARGET).map $(addprefix -T ,$(INIT_UNDEF_FILES)) --no-check-sections --no-warn-mismatch
 HD_CODE_LDFLAGS = -T $(HD_CODE_BSS_LD_SCRIPT) -T $(HD_CODE_LD_SCRIPT) -Map $(HD_CODE_TARGET).map $(addprefix -T ,$(HD_CODE_UNDEF_FILES)) --no-check-sections --no-warn-mismatch
+# undefined_syms_hd_code_auto: hd_code's named symbols (from symbol_addrs.hd_code), made by `extract`
+HD_FRONT_END_UNDEF_FILES = $(foreach f,undefined_syms_auto undefined_funcs_auto undefined_syms_hd_code_auto undefined_syms,$(UNDEF_DIR)$(f).hd_front_end.$(VERSION).txt)
+HD_FRONT_END_LDFLAGS = -T $(HD_FRONT_END_LD_SCRIPT) -Map $(HD_FRONT_END_TARGET).map $(addprefix -T ,$(HD_FRONT_END_UNDEF_FILES)) --no-check-sections --no-warn-mismatch
 
 
 # hd_code files that own a .rodata subsegment (see tools/late_rodata.py)
@@ -152,6 +178,8 @@ $(foreach f,$(UL_O3_HD_CODE),$(BUILD_DIR)/src.$(VERSION)/hd_code/$(f).c.o): OPT_
 $(foreach f,$(UL_MIPS3_HD_CODE),$(BUILD_DIR)/src.$(VERSION)/hd_code/$(f).c.o): MIPSISET := -mips3 -32
 $(BUILD_DIR)/src.$(VERSION)/init/ul_%.c.o: CFLAGS := $(UL_CFLAGS)
 $(BUILD_DIR)/src.$(VERSION)/init/ul_ll.c.o: MIPSISET := -mips3 -32
+# the front end's own libultra copy (Controller Pak io/ objects, -O1)
+$(BUILD_DIR)/src.$(VERSION)/hd_front_end/ul_%.c.o: CFLAGS := $(UL_CFLAGS)
 
 
 ### Targets
@@ -159,19 +187,21 @@ $(BUILD_DIR)/src.$(VERSION)/init/ul_ll.c.o: MIPSISET := -mips3 -32
 default: all
 
 ifeq ($(NON_MATCHING),1)
-all: init hd_code
-	@echo "NON_MATCHING build done (no checksum): $(INIT_TARGET).elf $(HD_CODE_TARGET).elf"
+all: init hd_code hd_front_end
+	@echo "NON_MATCHING build done (no checksum): $(INIT_TARGET).elf $(HD_CODE_TARGET).elf $(HD_FRONT_END_TARGET).elf"
 else
-all: verify_init verify_hd_code
+all: verify_init verify_hd_code verify_hd_front_end
 endif
 
 dirs:
-	$(foreach dir,$(INIT_SRC_DIR) $(INIT_ASM_DIRS) $(INIT_BIN_DIRS) $(HD_CODE_SRC_DIR) $(HD_CODE_ASM_DIRS) $(HD_CODE_BIN_DIRS),$(shell mkdir -p $(BUILD_DIR)/$(dir)))
+	$(foreach dir,$(INIT_SRC_DIR) $(INIT_ASM_DIRS) $(INIT_BIN_DIRS) $(HD_CODE_SRC_DIR) $(HD_CODE_ASM_DIRS) $(HD_CODE_BIN_DIRS) $(HD_FRONT_END_SRC_DIR) $(HD_FRONT_END_ASM_DIRS) $(HD_FRONT_END_BIN_DIRS),$(shell mkdir -p $(BUILD_DIR)/$(dir)))
 
 
 init: dirs $(INIT_TARGET).bin
 
 hd_code: dirs $(HD_CODE_TARGET).bin
+
+hd_front_end: dirs $(HD_FRONT_END_TARGET).bin
 
 verify_init: init
 	@echo "$$(cat init.$(VERSION).sha1)  $(INIT_TARGET).bin" | sha1sum --check
@@ -179,9 +209,19 @@ verify_init: init
 verify_hd_code: hd_code
 	@echo "$$(cat hd_code.$(VERSION).sha1)  $(HD_CODE_TARGET).bin" | sha1sum --check
 
+# text + data, i.e. the two inflated ROM assets hd_front_end_text/_data concatenated
+verify_hd_front_end: hd_front_end
+	@echo "$$(cat hd_front_end.$(VERSION).sha1)  $(HD_FRONT_END_TARGET).bin" | sha1sum --check
+
+FE_SEGSYMS_FLAGS = --exclude 0x801E7000:0x8021ED00 --drop-names symbol_addrs.hd_front_end.$(VERSION).txt
 extract:
 	$(PYTHON) $(TOOLS_DIR)/splat/split.py init.$(VERSION).yaml
 	$(PYTHON) $(TOOLS_DIR)/splat/split.py hd_code.$(VERSION).yaml
+	# front end: its own names plus hd_code's (for the calls into hd_code)
+	cp symbol_addrs.hd_front_end.$(VERSION).txt symbol_addrs_auto.hd_front_end.$(VERSION).txt
+	$(PYTHON) tools_port/segsyms.py symbol_addrs.hd_code.$(VERSION).txt $(FE_SEGSYMS_FLAGS) --splat >> symbol_addrs_auto.hd_front_end.$(VERSION).txt
+	$(PYTHON) tools_port/segsyms.py symbol_addrs.hd_code.$(VERSION).txt $(FE_SEGSYMS_FLAGS) > undefined_syms_hd_code_auto.hd_front_end.$(VERSION).txt
+	$(PYTHON) $(TOOLS_DIR)/splat/split.py hd_front_end.$(VERSION).yaml
 	# files with their own .rodata: move float/double/jtbl rodata to .late_rodata
 	$(PYTHON) $(TOOLS_DIR)/late_rodata.py $(addprefix asm/nonmatchings/hd_code/,$(LATE_RODATA_HD_CODE))
 
@@ -210,13 +250,19 @@ $(BUILD_DIR)/init.$(VERSION).elf: $(INIT_O_FILES)
 $(BUILD_DIR)/hd_code.$(VERSION).elf: $(HD_CODE_O_FILES)
 	@$(LD) $(HD_CODE_LDFLAGS) -o $@
 
+$(BUILD_DIR)/hd_front_end.$(VERSION).elf: $(HD_FRONT_END_O_FILES)
+	@$(LD) $(HD_FRONT_END_LDFLAGS) -o $@
+
 ifeq ($(NON_MATCHING),1)
 NM_LDSCRIPT = $(PYTHON) tools_port/nm_ldscript.py --build-dir $(BUILD_DIR)
 $(BUILD_DIR)/init.$(VERSION).elf: $(INIT_LD_SCRIPT) $(INIT_UNDEF_FILES)
 $(BUILD_DIR)/hd_code.$(VERSION).elf: $(HD_CODE_LD_SCRIPT) $(HD_CODE_BSS_LD_SCRIPT) $(HD_CODE_UNDEF_FILES)
+$(BUILD_DIR)/hd_front_end.$(VERSION).elf: $(HD_FRONT_END_LD_SCRIPT) $(HD_FRONT_END_UNDEF_FILES)
 $(BUILD_DIR)/%.txt: %.txt tools_port/nm_ldscript.py | dirs
 	$(NM_LDSCRIPT) $< $@ --provide
 $(INIT_LD_SCRIPT): init.$(VERSION).ld tools_port/nm_ldscript.py | dirs
+	$(NM_LDSCRIPT) $< $@
+$(HD_FRONT_END_LD_SCRIPT): hd_front_end.$(VERSION).ld tools_port/nm_ldscript.py | dirs
 	$(NM_LDSCRIPT) $< $@
 $(HD_CODE_BSS_LD_SCRIPT): hd_code_bss.$(VERSION).ld tools_port/nm_ldscript.py | dirs
 	$(NM_LDSCRIPT) $< $@
@@ -261,6 +307,12 @@ $(GLOBAL_ASM_HD_CODE_O_FILES): $(BUILD_DIR)/%.c.o: %.c
 	$(CC) -c -32 $(CFLAGS) $(OPT_FLAGS) $(MIPSISET) -o $@ $(BUILD_DIR)/$<
 	$(PYTHON) $(ASM_PROCESSOR_DIR)/asm_processor.py $(OPT_FLAGS) $< --post-process $@ \
 		--assembler "$(AS) $(ASFLAGS)" --asm-prelude $(ASM_PROCESSOR_DIR)/prelude.s
+
+$(GLOBAL_ASM_HD_FRONT_END_O_FILES): $(BUILD_DIR)/%.c.o: %.c
+	$(PYTHON) $(ASM_PROCESSOR_DIR)/asm_processor.py $(OPT_FLAGS) $< > $(BUILD_DIR)/$<
+	$(CC) -c -32 $(CFLAGS) $(OPT_FLAGS) $(MIPSISET) -o $@ $(BUILD_DIR)/$<
+	$(PYTHON) $(ASM_PROCESSOR_DIR)/asm_processor.py $(OPT_FLAGS) $< --post-process $@ \
+		--assembler "$(AS) $(ASFLAGS)" --asm-prelude $(ASM_PROCESSOR_DIR)/prelude.s
 endif
 
 # non asm-processor recipe
@@ -297,10 +349,10 @@ $(BUILD_DIR)/hd_code_text.$(VERSION).bin: $(BUILD_DIR)/hd_code.$(VERSION).elf
 $(BUILD_DIR)/hd_code_data.$(VERSION).bin: $(BUILD_DIR)/hd_code.$(VERSION).elf
 	$(OBJCOPY) -O binary --only-section .hd_code_data $< $@
 
-$(BUILD_DIR)/hd_front_end_text.$(VERSION).bin: $(BUILD_DIR)/hd_code.$(VERSION).elf
+$(BUILD_DIR)/hd_front_end_text.$(VERSION).bin: $(BUILD_DIR)/hd_front_end.$(VERSION).elf
 	$(OBJCOPY) -O binary --only-section .hd_front_end $< $@
 
-$(BUILD_DIR)/hd_front_end_data.$(VERSION).bin: $(BUILD_DIR)/hd_code.$(VERSION).elf
+$(BUILD_DIR)/hd_front_end_data.$(VERSION).bin: $(BUILD_DIR)/hd_front_end.$(VERSION).elf
 	$(OBJCOPY) -O binary --only-section .hd_front_end_data $< $@
 
 

@@ -144,6 +144,13 @@ func_802A0700: preserve v0,v1,t0,t6,t9
 # DMA texture/palette entry t6 of that table into the 0x100-byte buffer s1 (blocking / queued)
 func_802A0F0C: in t6=a0,s1=a1
 func_802A11C4: in t6=a0,s1=a1 ; preserve a3,t6
+# G_SETTIMG ids in display list s0..s1 -> cached/loaded physical addresses; &D_803B8D40, new cursor, last pair -> s2, s3, s4
+func_802A08E4: in s0=a0,s1=a1,s4=*a2+8 ; out s2=*a2,s3=*a2+4,s4=*a2+8 ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,t8,t9,s1,s7,gp,fp ; clobbers s0,s5,s6
+# load table entry t6 at the heap with decode param fp (uncached / cached -> phys address in s0)
+func_802A0B34: in t6=a0,fp=a1 ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,t8,t9,gp,fp
+func_802A0CFC: in t6=a0,fp=a1 ; out s0=ret ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,t8,t9,gp,fp
+# queued load of entry t6 into s1 (OSIoMesg slot D_80358080++), decode request (s1, size, type, fp) via func_802A5764
+func_802A1074: in t6=a0,s1=a1,fp=a2 ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,t8,t9,s1,s2,s3,s4,gp,fp
 
 # --- 5CB60 ---
 # store v0/v1/a0/gp[0x9B] into the D_80364460 record with id a1; gp is the caller's object

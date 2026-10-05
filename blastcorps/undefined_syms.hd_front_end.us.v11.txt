@@ -1,1 +1,5 @@
 /* hand-maintained absolute symbols for the hd_front_end link (see undefined_syms.hd_code.us.v11.txt) */
+/* hd_code controller.c .bss (ul_controller.c), used by the EEPROM long read/write */
+__osEepromTimer = 0x803FF288;
+__osEepromTimerQ = 0x803FF2A8;
+__osEepromTimerMsg = 0x803FF2C0;

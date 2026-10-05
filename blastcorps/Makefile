@@ -123,6 +123,7 @@ HD_CODE_BSS_LD_SCRIPT = hd_code_bss.$(VERSION).ld
 
 HD_FRONT_END_TARGET = $(BUILD_DIR)/hd_front_end.$(VERSION)
 HD_FRONT_END_LD_SCRIPT = hd_front_end.$(VERSION).ld
+HD_FRONT_END_BSS_LD_SCRIPT = hd_front_end_bss.$(VERSION).ld
 
 ifeq ($(NON_MATCHING),1)
 # Rewritten functions change size, so the NON_MATCHING link relocates the
@@ -137,6 +138,7 @@ HD_CODE_LD_SCRIPT = $(BUILD_DIR)/hd_code.$(VERSION).ld
 HD_CODE_BSS_LD_SCRIPT = $(BUILD_DIR)/hd_code_bss.$(VERSION).ld
 # the front end stays at its original address (it has no rewrites yet)
 HD_FRONT_END_LD_SCRIPT = $(BUILD_DIR)/hd_front_end.$(VERSION).ld
+HD_FRONT_END_BSS_LD_SCRIPT = $(BUILD_DIR)/hd_front_end_bss.$(VERSION).ld
 # symbol files rewritten as PROVIDE(), so a relocated function's real
 # definition wins over its original absolute address
 UNDEF_DIR = $(BUILD_DIR)/
@@ -148,7 +150,7 @@ INIT_LDFLAGS    = -T $(INIT_LD_SCRIPT) -Map $(INIT_TARGET).map $(addprefix -T ,$
 HD_CODE_LDFLAGS = -T $(HD_CODE_BSS_LD_SCRIPT) -T $(HD_CODE_LD_SCRIPT) -Map $(HD_CODE_TARGET).map $(addprefix -T ,$(HD_CODE_UNDEF_FILES)) --no-check-sections --no-warn-mismatch
 # undefined_syms_hd_code_auto: hd_code's named symbols (from symbol_addrs.hd_code), made by `extract`
 HD_FRONT_END_UNDEF_FILES = $(foreach f,undefined_syms_auto undefined_funcs_auto undefined_syms_hd_code_auto undefined_syms,$(UNDEF_DIR)$(f).hd_front_end.$(VERSION).txt)
-HD_FRONT_END_LDFLAGS = -T $(HD_FRONT_END_LD_SCRIPT) -Map $(HD_FRONT_END_TARGET).map $(addprefix -T ,$(HD_FRONT_END_UNDEF_FILES)) --no-check-sections --no-warn-mismatch
+HD_FRONT_END_LDFLAGS = -T $(HD_FRONT_END_BSS_LD_SCRIPT) -T $(HD_FRONT_END_LD_SCRIPT) -Map $(HD_FRONT_END_TARGET).map $(addprefix -T ,$(HD_FRONT_END_UNDEF_FILES)) --no-check-sections --no-warn-mismatch
 
 
 # hd_code files that own a .rodata subsegment (see tools/late_rodata.py)
@@ -257,12 +259,14 @@ ifeq ($(NON_MATCHING),1)
 NM_LDSCRIPT = $(PYTHON) tools_port/nm_ldscript.py --build-dir $(BUILD_DIR)
 $(BUILD_DIR)/init.$(VERSION).elf: $(INIT_LD_SCRIPT) $(INIT_UNDEF_FILES)
 $(BUILD_DIR)/hd_code.$(VERSION).elf: $(HD_CODE_LD_SCRIPT) $(HD_CODE_BSS_LD_SCRIPT) $(HD_CODE_UNDEF_FILES)
-$(BUILD_DIR)/hd_front_end.$(VERSION).elf: $(HD_FRONT_END_LD_SCRIPT) $(HD_FRONT_END_UNDEF_FILES)
+$(BUILD_DIR)/hd_front_end.$(VERSION).elf: $(HD_FRONT_END_LD_SCRIPT) $(HD_FRONT_END_BSS_LD_SCRIPT) $(HD_FRONT_END_UNDEF_FILES)
 $(BUILD_DIR)/%.txt: %.txt tools_port/nm_ldscript.py | dirs
 	$(NM_LDSCRIPT) $< $@ --provide
 $(INIT_LD_SCRIPT): init.$(VERSION).ld tools_port/nm_ldscript.py | dirs
 	$(NM_LDSCRIPT) $< $@
 $(HD_FRONT_END_LD_SCRIPT): hd_front_end.$(VERSION).ld tools_port/nm_ldscript.py | dirs
+	$(NM_LDSCRIPT) $< $@
+$(HD_FRONT_END_BSS_LD_SCRIPT): hd_front_end_bss.$(VERSION).ld tools_port/nm_ldscript.py | dirs
 	$(NM_LDSCRIPT) $< $@
 $(HD_CODE_BSS_LD_SCRIPT): hd_code_bss.$(VERSION).ld tools_port/nm_ldscript.py | dirs
 	$(NM_LDSCRIPT) $< $@

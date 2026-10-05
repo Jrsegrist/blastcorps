@@ -61,3 +61,14 @@ func_802CA308: -n 300 --seed 1 --follow func_802ABD54,func_802ABCDC --mem D_803F
     --mem D_803BDFD8+0x16*0x24:4/1=choice:0xA,0x31 --mem D_803BDFD8+0x17*0x24:4/1=choice:0xA,0x32 \
     --mem D_80364A6E:1=choice:0,1,0x80,0xFF,0x40 --mem D_80364460+0x5C*0x74:3=choice:0x100,0x200 \
     --mem D_80364460+0x1B8=0xA --mem D_80364460+0x60*0x74:4=int
+
+# func_802C9F54: enter vehicle 10: +0x99 = 0, D_8036444C/50 = (0xD48, 1000), sound 0x94, channels 1-5 (stubbed, then run)
+func_802C9F54: -n 50 --seed 0 --sig func_802C4310=a1 --mem D_803F8AA0+0x99:1=bytes:1,0xFF \
+    --mem D_8036444C:2=rand --mem D_80364450:2=rand
+func_802C9F54: -n 30 --seed 1 --sig func_802C4310=a1 --follow func_802A039C,func_802A03D4,func_802A040C,func_802A0290,func_802A0480 \
+    --mem D_803F87A0:0x90=rand --mem D_803F8AA0+0x99:1=bytes:1,0xFF --mem D_8036444C:2=rand --mem D_80364450:2=rand
+# func_802CA1AC: teardown: +0x76 = 0, func_802A7764(D_803F8B58, D_803F8B5C, 0x700), func_802C444C (stubbed, then run)
+func_802CA1AC: -n 100 --seed 0 --sig func_802A7764=a0,a1,a2 --sig func_802C444C= --mem D_803F8AA0+0x76:2=rand \
+    --mem D_803F8B58=int --mem D_803F8B5C=int
+func_802CA1AC: -n 30 --seed 1 --follow func_802A7764,func_802C444C --sig func_802608C8=a0 --heap 0x700 --heap 0x700 \
+    --mem D_803F8B58=rel:heap0 --mem D_803F8B5C=rel:heap1 --mem D_803F7844:8=words:0,0x80123450 --mem D_803F8AA0+0x76:2=rand

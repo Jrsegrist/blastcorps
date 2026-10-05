@@ -351,6 +351,10 @@ func_802C5970: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+
 # ground checks via func_802AC0BC: its FP results (and, for 70E8, its scan registers) pass through
 func_802C70E8: in f12=*a0,f14=*a0+4,f20=*a0+8,f22=*a0+12,f24=*a0+16,f26=*a0+20,a3=*a1+4,t6=*a1+8,s1=*a1+20,s2=*a1+24,s3=*a1+28,s4=*a1+32 ; out v1=ret,f12=*a0,f14=*a0+4,f20=*a0+8,f22=*a0+12,f24=*a0+16,f26=*a0+20,a3=*a1+4,t6=*a1+8,t7=*a1+12,fp=*a1+16,s1=*a1+20,s2=*a1+24,s3=*a1+28,s4=*a1+32 ; clobbers s5,s6,s7,f28
 func_802C71FC: in t0=a0,t1=a1,f12=*a2,f14=*a2+4,f20=*a2+8,f22=*a2+12,f24=*a2+16,f26=*a2+20 ; out f12=*a2,f14=*a2+4,f20=*a2+8,f22=*a2+12,f24=*a2+16,f26=*a2+20 ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,t8,t9 ; clobbers f28
+# value pair at the vehicle's x/z via func_802AAD0C (id in a3); its FP results pass through; gp left = D_803F7B50
+func_802C59B4: in a3=a0,f24=*a1+24 ; out f12=*a1+8,f14=*a1+12,f20=*a1+16,f22=*a1+20,f24=*a1+24,f26=*a1+28 ; preserve a3,t0,t1,t3,t4 ; clobbers gp,f28
+# per-frame vehicle update: s0 on to func_802C7544; FP f12-f26 and a3/t6/s1-s4 in for func_802C70E8, f20-f26 back out
+func_802C61F0: in s0=a0,f12=*a1,f14=*a1+4,f20=*a1+8,f22=*a1+12,f24=*a1+16,f26=*a1+20,a3=*a2+4,t6=*a2+8,s1=*a2+20,s2=*a2+24,s3=*a2+28,s4=*a2+32 ; out f20=*a1+8,f22=*a1+12,f24=*a1+16,f26=*a1+20 ; clobbers s0-s7,fp,f28,f30
 # ramp / countdown; t6, t7, s0-s4 pass through to func_802A6274 (s1 comes back changed)
 func_802C7544: in t6=a0,t7=a1,s0=a2,s1=a3,s2=stack0,s3=stack1,s4=stack2 ; clobbers s1,s5,s6,s7
 # gp = &D_803F7B50 (vehicle block) in all of these: a base pointer, not an argument
@@ -502,6 +506,8 @@ func_802C95D8: in gp=a0 ; preserve a0,a1,a2,a3,f12,f14
 # rounded speed / D_8030D980 of the block in $gp (no direct callers) in s3
 func_802C9AF8: in gp=a0 ; out s3=ret
 # --- 853D0 ---
+# enter vehicle: points $gp at D_803F8AA0 and leaves it
+func_802C9F54: clobbers gp
 # zone lookup wrapper: func_802ABD54(id, x, y, z) with its scan registers t6, t7, s0-s4 passed through
 func_802CA308: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; out v1=ret,t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; preserve f12,f14 ; clobbers s5,s6
 # centre trail ($gp = D_803F8AA0); saves every integer register

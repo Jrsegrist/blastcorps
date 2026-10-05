@@ -12,7 +12,55 @@
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/func_802C9B90.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u8 D_803F8AA0[]; /* this vehicle's state block (the asm's $gp) */
+extern u8 D_803F87A0[]; /* its animation channel table (Unk8029DEA0Entry, 56040.c) */
+extern s16 D_8036444C;
+extern s16 D_80364450;
+void func_802C4310(s32 arg0, s32 arg1);
+void func_802A0290(void *base, s32 idx, s32 val);
+void func_802A039C(void *base, s32 idx, s32 val);
+void func_802A03D4(void *base, s32 idx, s32 val);
+void func_802A040C(void *base, s32 idx, s32 val);
+void func_802A0480(f32 f, void *base, s32 idx, s32 val);
+
+/* Enter this vehicle (vehicle type 10; called from hd.c and 17210.c): clears
+ * the byte at +0x99, sets the pair D_8036444C / D_80364450 to (0xD48, 1000),
+ * starts sound 0x94 (func_802C4310; the asm passes its caller's a0 through
+ * as the ignored first argument) and sets up channels 1-3 (0 / 0 / 0|1,
+ * restart with -1) and 4-5 (8|8 / 0 / 0, 1.0 with 1).
+ * The asm points $gp at D_803F8AA0 and leaves it there (conventions.txt:
+ * clobbers gp) and leaves v1 = 1 (func_802A0480 preserves it); the C callers
+ * declare it void and use neither. Same shape as func_802C5714 (7FB50). */
+void func_802C9F54(void) {
+    D_803F8AA0[0x99] = 0;
+    D_8036444C = 0xD48;
+    D_80364450 = 1000;
+    func_802C4310(0, 0x94);
+    func_802A039C(D_803F87A0, 1, 0);
+    func_802A03D4(D_803F87A0, 1, 0);
+    func_802A040C(D_803F87A0, 1, 0);
+    func_802A0290(D_803F87A0, 1, -1);
+    func_802A039C(D_803F87A0, 2, 0);
+    func_802A03D4(D_803F87A0, 2, 0);
+    func_802A040C(D_803F87A0, 2, 1);
+    func_802A0290(D_803F87A0, 2, -1);
+    func_802A039C(D_803F87A0, 3, 0);
+    func_802A03D4(D_803F87A0, 3, 0);
+    func_802A040C(D_803F87A0, 3, 1);
+    func_802A0290(D_803F87A0, 3, -1);
+    func_802A039C(D_803F87A0, 4, 8);
+    func_802A03D4(D_803F87A0, 4, 0);
+    func_802A040C(D_803F87A0, 4, 0);
+    func_802A0480(1.0f, D_803F87A0, 4, 1);
+    func_802A039C(D_803F87A0, 5, 8);
+    func_802A03D4(D_803F87A0, 5, 0);
+    func_802A040C(D_803F87A0, 5, 0);
+    func_802A0480(1.0f, D_803F87A0, 5, 1);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/func_802C9F54.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -35,7 +83,24 @@ s32 func_802CA140(void) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u64 *D_803F8B58; /* save copy pair (func_802A7764) */
+extern u64 *D_803F8B5C;
+void func_802A7764(u64 *a, u64 *b, s32 size);
+void func_802C444C(void);
+
+/* Teardown for this vehicle (called from func_8024B188 in hd.c): clears the
+ * s16 at +0x76, func_802A7764(D_803F8B58, D_803F8B5C, 0x700) and stops its
+ * sounds (func_802C444C). The asm saves and restores $gp. Same shape as
+ * func_802C5688 (7FB50). */
+void func_802CA1AC(void) {
+    *(s16 *) (D_803F8AA0 + 0x76) = 0;
+    func_802A7764(D_803F8B58, D_803F8B5C, 0x700);
+    func_802C444C();
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/func_802CA1AC.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/func_802CA1F8.s")

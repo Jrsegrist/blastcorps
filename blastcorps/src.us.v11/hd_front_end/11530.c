@@ -175,6 +175,8 @@ extern s8 D_8021A904;
 extern s8 D_8021A906;
 extern s8 D_8021A907;
 extern u8 D_8021A908;
+extern s8 D_8021A909;
+u64 D_8021A940[60];
 extern f32 D_8021A91C;
 extern f32 D_8021A920;
 extern f32 D_8021A934;
@@ -215,6 +217,8 @@ void func_801FCF38(Vtx *v, f32 x, f32 y, f32 z, u8 w, u8 h, f32 scale, u8 flip);
 void func_801FD484(f32 *arg0, f32 *arg1, f32 *arg2, f32 *arg3, f32 *arg4, f32 arg5);
 s32 func_801FE760(); /* K&R */
 Gfx *func_801FA180(Gfx *gdl, Dynamic *dyn, f32 arg2, s8 *arg3);
+Gfx *func_801FA74C(Dynamic *dyn, Gfx *gdl, s32 from, s32 to, s8 *out, f32 *lon, s32 arg6, s32 arg7, s32 arg8,
+                   s32 arg9, s32 arg10, s32 arg11, s32 arg12);
 
 /* Level-select globe: initialise for the given level. */
 void func_801F8530(s32 level) {
@@ -385,7 +389,80 @@ Gfx *func_801F9820(Gfx *arg0, Dynamic *dyn, s32 *count) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/11530/func_801F9B84.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/11530/func_801FA180.s")
+/* Draw the routes between open levels; pick the route marker nearest the globe's facing longitude. */
+Gfx *func_801FA180(Gfx *arg0, Dynamic *dyn, f32 lon0, s8 *selected) {
+    GlobeLevel *e;
+    Gfx *gdl = arg0;
+    f32 lon;
+    f32 best;
+    s32 i;
+    s32 j;
+    s8 out;
+    s8 sel;
+
+    best = 180.0f;
+    D_8021A909 = 0;
+    gDPPipeSync(gdl++);
+    for (i = 0; i < 60; i++) {
+        D_8021A940[i] = 0;
+    }
+    for (i = 0; i < 60; i++) {
+        e = &D_8020D810[i];
+        if ((D_80364AF0[D_80364AE8].rank[i] > 0 && D_80364AF0[D_80364AE8].rank[i] < 6) ? 1 : 0) {
+            for (j = 0; j < 8 && e->unk1C[j] != -1; j++) {
+                gdl = func_801FA74C(dyn, gdl, i, e->unk1C[j], &out, &lon, 0, 0, 0, 0, 0, 0, 0);
+            }
+        }
+    }
+    for (i = 0; i < 60; i++) {
+        D_8021A940[i] = 0;
+    }
+    for (i = 0; i < 60; i++) {
+        e = &D_8020D810[i];
+        if ((D_80364AF0[D_80364AE8].rank[i] > 0 && D_80364AF0[D_80364AE8].rank[i] < 6) ? 1 : 0) {
+            for (j = 0; j < 4 && e->unk18[j] != -1; j++) {
+                if (D_80364AF0[D_80364AE8].unk54[i] & (1 << j)) {
+                    gdl = func_801FA74C(dyn, gdl, i, e->unk18[j], &out, &lon, 1, 0, 0xFF, 0, 0xFF, 0xFF, 0);
+                    if (out != -1) {
+                        f32 d;
+
+                        d = func_801FD6B8(lon0, lon, 180.0f);
+                        d = (d > 0.0f) ? d : -d;
+                        if (d < best) {
+                            best = d;
+                            sel = out;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    for (i = 0; i < 60; i++) {
+        e = &D_8020D810[i];
+        if ((D_80364AF0[D_80364AE8].rank[i] > 0 && D_80364AF0[D_80364AE8].rank[i] < 6) ? 1 : 0) {
+            for (j = 0; j < 8 && e->unk1C[j] != -1; j++) {
+                gdl = func_801FA74C(dyn, gdl, i, e->unk1C[j], &out, &lon, 1, 0xFF, 0, 0, 0xFF, 0x80, 0x80);
+                if (out != -1) {
+                    f32 d;
+
+                    d = func_801FD6B8(lon0, lon, 180.0f);
+                    d = (d > 0.0f) ? d : -d;
+                    if (d < best) {
+                        best = d;
+                        sel = out;
+                    }
+                }
+            }
+        }
+    }
+    osWritebackDCache((void *) D_8021A928[D_8035805C], 0x17000);
+    if (best < 45.0f) {
+        *selected = sel;
+    } else {
+        *selected = -1;
+    }
+    return gdl;
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/11530/func_801FA74C.s")
 

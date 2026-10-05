@@ -90,9 +90,6 @@ void func_802A0700(void) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5BF40/func_802A08B4.s")
-
-/* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 /* Register results of func_802A08E4 its asm callers read. */
 typedef struct {
@@ -100,7 +97,23 @@ typedef struct {
     /* 0x4 */ u8 *s3;  /* the new D_803B8D40 */
     /* 0x8 */ u8 *s4;  /* in/out: last cache pair looked at (only set when a G_SETTIMG was seen) */
 } Unk802A08E4Regs;
+void func_802A08E4(u32 *dl, u32 *end, Unk802A08E4Regs *r);
 
+/* C-callable entry: func_802A08E4(dl, end) (dl/end moved to s0/s1, which it
+ * saves). The asm passes its caller's s4 through as func_802A08E4's in/out
+ * s4 and doesn't restore s2-s6 (func_802A08E4's outputs/scratch); nothing
+ * calls it directly (no jal to it in the ROM), so `r` is just a local here. */
+void func_802A08B4(u32 *dl, u32 *end) {
+    Unk802A08E4Regs r;
+
+    func_802A08E4(dl, end, &r);
+}
+#else
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5BF40/func_802A08B4.s")
+#endif
+
+/* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
 /* Walks the display list [dl, end) (8-byte commands) and, for each
  * G_SETTIMG (0xFD), replaces its address word (a table id) with the physical
  * address of that texture: from the cache pairs if the id is there, else it
@@ -146,7 +159,18 @@ void func_802A08E4(u32 *dl, u32 *end, Unk802A08E4Regs *r) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+void func_802A0B34(s32 id, u8 *param);
+
+/* C-callable entry: func_802A0B34(id, param) (moved to t6/fp). The asm
+ * returns its caller's s0 in v0 (a leftover); C callers declare it void.
+ * The whole id register is used (2E490.c/2D810.c declare u16). */
+void func_802A0B00(s32 id, u8 *param) {
+    func_802A0B34(id, param);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5BF40/func_802A0B00.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -165,7 +189,18 @@ void func_802A0B34(s32 id, u8 *param) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+u32 func_802A0CFC(s32 id, u8 *param);
+
+/* C-callable entry: returns func_802A0CFC(id, param), the texture's physical
+ * address (the asm moves id/param to t6/fp and returns s0 in v0). The whole
+ * id register is used (callers declare s16 or s32). */
+u32 func_802A0CC8(s32 id, u8 *param) {
+    return func_802A0CFC(id, param);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5BF40/func_802A0CC8.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -230,7 +265,17 @@ void func_802A0F0C(s32 id, void *dest) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+void func_802A1074(s32 id, u8 *dest, u8 *param);
+
+/* C-callable entry: func_802A1074(id, dest, param) (moved to t6/s1/fp). The
+ * whole id register is used (168B0.c declares u16, 32E00.c/43A60.c s16). */
+void func_802A1040(s32 id, u8 *dest, u8 *param) {
+    func_802A1074(id, dest, param);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5BF40/func_802A1040.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

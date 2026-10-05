@@ -276,7 +276,42 @@ void func_802A1A9C(u8 *obj) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+u32 func_802A0CFC(s32 id, u8 *param);
+
+/* Resolves the texture ids of the level object's records
+ * [OBJ_PTR(obj, 0x2C), OBJ_PTR(obj, 0x30)): each record has a count byte
+ * at +4 and count - 1 words from +0xC, each replaced by
+ * func_802A0CFC(word, param) (its physical address); the next record follows
+ * the last word. The walk stops only at exactly the end, and a count byte of
+ * 0 loops (about 2^32 times) in the asm too, so both are preconditions.
+ * The asm also sets s1 = 0x80000000 for every record (a leftover that its
+ * caller func_802A1674 hands on to func_802A3D54's in/out s1; modelled
+ * through `s1io`) and leaves t6 = the last id.
+ * Register convention: obj in t0, param in fp (conventions.txt); its add/addi
+ * trap. Asm caller func_802A1674 keeps t0, t9 live. */
+void func_802A1C20(u8 *obj, u8 *param, s32 *s1io) {
+    u8 *rec = OBJ_PTR(obj, 0x2C);
+    u8 *end = OBJ_PTR(obj, 0x30);
+    u32 *w;
+    s32 n;
+
+    while (rec != end) {
+        n = rec[4];
+        w = (u32 *) (rec + 0xC);
+        *s1io = 0x80000000;
+        n--;
+        while (n != 0) {
+            n--;
+            *w = func_802A0CFC(*w, param);
+            w++;
+        }
+        rec = (u8 *) w;
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A1C20.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -449,7 +484,39 @@ void func_802A2458(u8 *rec, u8 *obj) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A24BC.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+u32 func_802A0CFC(s32 id, u8 *param);
+
+/* Like func_802A1C20 for the records [OBJ_PTR(obj, 0x28), OBJ_PTR(obj, 0x2C)):
+ * each record's word 0 is replaced by func_802A0CFC(word, param), then (the
+ * count byte at +4 read after that call) count - 1 words from +0x10 likewise;
+ * the next record follows the last word. Same preconditions (exact end,
+ * count >= 1).
+ * Register convention: obj in t4, param in fp (conventions.txt); the asm saves
+ * t3, t5-t7, s0, t9, leaves s1 = 0x80000000 (dead in its caller) and t1/t2
+ * changed; its addi trap. Asm caller func_802A21AC keeps t3-t7, t9 live. */
+void func_802A2608(u8 *obj, u8 *param) {
+    u8 *rec = OBJ_PTR(obj, 0x28);
+    u8 *end = OBJ_PTR(obj, 0x2C);
+    u32 *w;
+    s32 n;
+
+    while (rec != end) {
+        *(u32 *) rec = func_802A0CFC(*(u32 *) rec, param);
+        n = rec[4];
+        w = (u32 *) (rec + 0x10);
+        n--;
+        while (n != 0) {
+            n--;
+            *w = func_802A0CFC(*w, param);
+            w++;
+        }
+        rec = (u8 *) w;
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A2608.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -737,7 +804,32 @@ void func_802A2D68(u8 *obj) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+typedef struct {
+    /* 0x0 */ u8 **s2;
+    /* 0x4 */ u8 *s3;
+    /* 0x8 */ u8 *s4; /* in/out */
+} Unk802A08E4Regs; /* as in 5BF40.c */
+void func_802A08E4(u32 *dl, u32 *end, Unk802A08E4Regs *r);
+
+/* Resolves the G_SETTIMG texture ids in the level object's display list
+ * [OBJ_PTR(obj, 0x78), OBJ_PTR(obj, 0x84)) with func_802A08E4. Returns the
+ * list end, which the asm leaves in s1 and its caller func_802A1674 hands on
+ * to func_802A3D54's in/out s1 when func_802A1C20 doesn't overwrite it.
+ * Register convention: obj in t0, result in s1 (conventions.txt); the asm
+ * saves t0 and passes its caller's s4 through as func_802A08E4's in/out s4
+ * (`r` is a local here); s0, s2-s6 are left changed (dead in the caller).
+ * Asm caller func_802A1674 keeps t0, t6, t9 live. */
+u8 *func_802A3008(u8 *obj) {
+    Unk802A08E4Regs r;
+    u8 *end = OBJ_PTR(obj, 0x84);
+
+    func_802A08E4((u32 *) OBJ_PTR(obj, 0x78), (u32 *) end, &r);
+    return end;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A3008.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A303C.s")

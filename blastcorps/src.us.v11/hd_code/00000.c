@@ -41,7 +41,9 @@ typedef struct {
     void *unk30; /* alternate display lists by LOD */
     void *unk34;
     void *unk38;
-    u8 pad3C[0x20];
+    u8 pad3C[0x18];
+    s32 unk54;
+    u8 pad58[4];
     s32 unk5C; /* id */
     u32 unk60; /* alpha */
     u8 pad64[0x10];
@@ -88,11 +90,12 @@ extern u8 D_803B9888;
 extern u8 D_80358088[];
 typedef struct {
     u8 unk0[0x1000]; /* shadow texture, 64x64 IA8 */
-    u8 pad1000[4];
+    f32 unk1000;
     s32 unk1004; /* position, 1/32 units */
     s32 unk1008;
     s32 unk100C;
-    u8 pad1010[8];
+    s32 unk1010;
+    u8 pad1014[4];
     s16 unk1018; /* shadow half-width */
     s16 unk101A; /* shadow half-depth */
     u8 pad101C[6];
@@ -144,8 +147,9 @@ extern u32 D_80358050[]; /* frame buffer physical addresses */
 typedef struct {
     u8 pad0[0x10];
     u32 unk10;
-    u8 pad14[0xEC];
-} Player;
+    s32 unk14;
+    u8 unk18[0xE8]; /* per level */
+} Player; /* 0x100 bytes */
 extern Player D_80364AF0[];
 extern u8 D_80364AE8;
 extern u8 D_803649ED;
@@ -240,6 +244,93 @@ extern u8 D_803EF6FF;
 extern Mtx D_02000000[];
 
 extern s16 D_803EF326;
+
+extern Vehicle *D_803643CC;
+extern u8 D_80218D30[];
+extern u8 D_80218EE0[];
+extern OSMesgQueue D_80219F50;
+#define pakToGameMessageQ D_80219F50
+extern u8 D_802E8BE4;
+extern s32 D_802E8BE8;
+extern u8 D_802E8BF4[];
+extern u8 D_802E8BF8;
+extern u8 D_802FDB14;
+extern s32 D_803643F8;
+extern s32 D_803643FC;
+extern s32 D_80364400;
+extern u8 D_80364410;
+extern s32 D_80364420;
+extern u8 D_80364434;
+extern s16 D_8036443C;
+extern f32 D_80364444;
+extern f32 D_80364448;
+extern s16 D_80364452;
+extern s16 D_80364454;
+extern f32 D_803649F8;
+extern s32 D_80364A58;
+extern s32 D_80364A5C;
+extern u8 D_80364A68;
+extern u8 D_80364A69;
+extern u8 D_80364A6A;
+extern u8 D_80364A6B;
+extern u8 D_80364A6C;
+extern u8 D_80364A6D;
+extern u8 D_80364A6F;
+extern u8 D_80364A86;
+extern u8 D_80367BFF;
+extern s32 D_8036EA70;
+extern u8 D_80370C50;
+extern u8 D_8039C4B0;
+#define pakBusy D_8039C4B0
+extern u8 D_8039CA60;
+extern u8 D_8039CA61;
+extern u8 D_8039CA62;
+extern u8 D_8039CAB7;
+extern u8 D_803A7430;
+extern s32 D_803ED808;
+extern s32 D_803ED80C;
+extern s32 D_803ED810;
+void func_80270ECC(void *, void *);
+void func_802D67F0(void *);
+void func_80294E30(void);
+void func_80294E88(void);
+void func_80294EB8(void);
+void func_8025615C(s32, s32, s32 *);
+void func_80285190(void);
+void func_80275430(void);
+void func_802621DC(s32);
+void func_80262238(s32);
+void func_80262150(s32);
+void func_802CE840(void);
+s32 func_8026F92C(u64);
+void func_802A1674(s32, s32);
+void func_80257234(void);
+void func_802CF628(void);
+void func_802C1DD0(s32);
+void func_80262320(s32);
+u8 func_80272C5C(void *, s32, s32, s32, s32, f32);
+void func_802775C0(void);
+void func_80286A00(void);
+void func_802873AC(void);
+void func_80287AE4(void);
+void func_802821D0(void);
+void func_80282728(void);
+void func_80281A70(s32);
+void func_80264C20(s32);
+void func_80288220(void);
+void func_8027BE4C(void);
+void func_80292240(void);
+void func_8027E344(s32);
+void func_802807D8(s32);
+void func_80268664(s32);
+void func_8026A988(void);
+void func_80258544(Vehicle *, s32, s32, s32, f32, s32, void *, void *);
+void func_80285110(s32);
+void func_802729F0(s32, s32);
+void func_8025BD98(void);
+void func_802979E0(s32);
+void func_802A56C4(void);
+void func_802A5FA8(void);
 
 /* (end of declarations) */
 
@@ -961,7 +1052,162 @@ void func_80255DC8(void) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_8025615C.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_80256A34.s")
+/* Level init */
+void func_80256A34(s32 arg0) {
+    s32 i;
+    s32 size;
+    Vehicle *v;
+    u8 found;
+    s32 old;
+
+    D_80364A68 = 0;
+    D_80364A69 = 0;
+    D_80364A6A = 0;
+    D_80364A6B = 0;
+    D_80364A6C = 0;
+    D_80364A6D = 0;
+    D_803649E8 = 0;
+    D_803649EC = 0;
+    D_803643CC = D_803643C8;
+    D_80364AA8 = D_802E8F94[D_802E8BDC].unk0;
+    D_802E8BE4 = 0;
+    D_802E8BE8 = 0;
+    D_803643E0 = 0;
+    D_803643E4 = 0;
+    D_803643E8 = 0;
+    D_8036443C = 0;
+    D_80364414 = 135.0f;
+    D_80364418 = 135.0f;
+    D_8036441C = 0;
+    D_8036441D = 0;
+    D_80364420 = 3000;
+    D_80364434 = 1;
+    D_803A7430 = 0;
+    D_803649EE = 0;
+    D_80364A84 = 0;
+    D_80364456 = 0;
+    if (D_80370C50) {
+        HD_ASSERT(!pakBusy, 4162);
+        HD_ASSERT(MQ_IS_EMPTY(&pakToGameMessageQ), 4163);
+        func_80270ECC(D_80315440, D_80218EE0);
+        func_802D67F0(D_80218D30);
+    }
+    D_8039CA62 = 0;
+    D_8039CA61 = 0;
+    if (D_80364AA8 == 2 && D_80364A98 == 0x2000) {
+        if (!D_8039CA60) {
+            func_80294E30();
+        }
+        func_80294E88();
+        func_80294EB8();
+    }
+    func_8025615C(D_802E8BDC, D_80358070, &size);
+    D_80358074 = D_80358070;
+    D_80358070 += size;
+    func_80257490(&D_80358070, 0x10);
+    func_80285190();
+    func_80275430();
+    func_802621DC(D_802E8BDC);
+    func_80262238(D_802E8BDC);
+    func_80262150(D_802E8BDC);
+    D_80367BFF = 0;
+    func_802CE840();
+    func_8029A7E4("enter initlevel game_mode=%d loop_done=%d\n", func_8026F92C(D_80364A90), func_8026F92C(D_80364A98));
+    old = D_80358070;
+    func_802A1674(D_80358074, arg0);
+    func_8029A7E4("exit initlevel allocated %d bytes, %x\n", D_80358070 - old, D_80358070);
+    func_80257234();
+    if (D_80364A98 != 2) {
+        if ((D_80364AF0[D_80364AE8].unk18[D_802E8BDC] > 0 && D_80364AF0[D_80364AE8].unk18[D_802E8BDC] < 6) ? 1 : 0) {
+            func_802CF628();
+        }
+    }
+    func_802C1DD0(D_80364AA8 == 0x20 || D_80364AA8 == 0x80);
+    func_80262320(D_802E8BDC);
+    if (D_80364410) {
+        D_80364A86 = func_80272C5C(D_802E8BF4, 0, 1, 1, 1, 1.0f);
+    }
+    func_802775C0();
+    if (D_80364A69) {
+        func_80286A00();
+    }
+    if (D_80364A6B) {
+        func_802873AC();
+    }
+    if (D_80364A6D) {
+        func_80287AE4();
+    }
+    func_802821D0();
+    func_80282728();
+    func_80281A70(D_802E8BDC);
+    if (D_802E8F94[D_802E8BDC].unk0 == 1) {
+        func_80264C20(arg0);
+    }
+    func_80288220();
+    func_8027BE4C();
+    func_80292240();
+    func_8027E344(D_802E8BDC);
+    func_802807D8(D_802E8BDC);
+    func_80268664(D_802E8BDC);
+    func_8026A988();
+    v = D_803643C8;
+    while (v != D_803643CC) {
+        i = 0;
+        found = 0;
+        while (!found) {
+            if (D_80364460[i].unk5C == v->unk1022) {
+                found = 1;
+            } else {
+                i++;
+            }
+        }
+        func_80258544(v, v->unk1004, v->unk1010, v->unk100C, v->unk1000, D_80364460[i].unk54, D_80364460[i].unk0,
+                      D_80364460[i].unk4);
+        func_80285110(0x61F);
+        v++;
+    }
+    func_802729F0(D_80364A98, D_802E8BDC);
+    D_80364452 = 0x2000;
+    D_80364454 = 0x2000;
+    D_80364456 = 0;
+    D_803649ED = 0;
+    D_803643F8 = 0;
+    D_803643FC = 0;
+    D_80364400 = 0;
+    D_80364444 = 0.0f;
+    D_80364448 = 0.0f;
+    D_803649F8 = 1.0f;
+    D_80364A3C = 0;
+    D_80364A3D = 0;
+    D_80364A40 = 0;
+    D_80364A44 = 0;
+    D_80364A6F = 0;
+    D_80364AB4 = 0.0f;
+    D_80364AB8 = 1.0f;
+    D_80364ABC = 1.0f;
+    D_80364AC0 = 0;
+    D_803643E0 = D_803ED808;
+    D_803643E4 = D_803ED80C;
+    D_803643E8 = D_803ED810;
+    D_802FDB14 = 0;
+    if (D_802E8BF8) {
+        D_803649F0 = D_8036EA70;
+    } else {
+        D_803649F0 = D_80364AF0[D_80364AE8].unk14;
+    }
+    D_80364A5C = 0;
+    D_80364A58 = 0;
+    if (D_803669B4) {
+        func_8025BD98();
+    }
+    func_8029A7E4("Level %d: mem_pool=0x%x, code seg=0x%x, space=%d bytes\n", D_802E8BDC, D_80358070, 0x802447C0,
+                  0x8021ED00 - D_80358070);
+    if (D_8039CAB7) {
+        func_802979E0(D_802E8BDC);
+    }
+    func_802A56C4();
+    func_802A5FA8();
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_80257234.s")
 

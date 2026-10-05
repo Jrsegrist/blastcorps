@@ -4,3 +4,19 @@
 func_8029B930: -n 300 --mem D_803A7410:2=int:0:0xFFF --mem D_803A7412:2=int:0:0xFFF
 func_8029B930: -n 300 --seed 1 --mem D_803A7410:2=choice:0,1,0x7FF,0x800,0x801,0xFFE,0xFFF --mem D_803A7412:2=choice:0,1,0x7FF,0x800,0x801,0xFFE,0xFFF
 func_8029B930: -n 200 --seed 2 --mem D_803A7410:2=int:0:0xFFFF --mem D_803A7412:2=int:0:0xFFFF
+
+# func_8029DC80: reset the 120 x 12-byte pool D_803B7FC8 (clear words 0 and 4) and its
+# next-free pointer D_803B8568 (random pre-fill so the zero stores show)
+func_8029DC80: -n 200 --ret void --mem D_803B7FC8:0x5A0=rand --mem D_803B8568=int
+func_8029DC80: -n 50 --seed 1 --ret void --mem D_803B7FC8:0x5A0=words:-1 --mem D_803B8568=0
+
+# func_8029DEA0: clear byte 6 of 12 0x1010-byte blocks at D_803A7440, set D_803B35F0, and
+# build D_803B35F8 (0x18-byte entries) from the -1-terminated list D_802C23B4
+# the real list from the ROM (12 entries)
+func_8029DEA0: -n 30 --ret void --mem D_803A7440:0xC0C0=rand --mem D_803B35F0=int --mem D_803B35F8:0x200=rand
+# random 16-slot lists with exactly one -1 (first, last or middle slot)
+func_8029DEA0: -n 300 --seed 1 --ret void --mem D_803A7440:0xC0C0=rand --mem D_803B35F0=int \
+    --mem D_803B35F8:0x200=rand --mem D_802C23B4:0x40=onehot:4:-1:words:0,1,-2,0x7FFFFFFF,0x80000000,0x802C2190
+# list empty (-1 first) with a 0xFF-filled destination
+func_8029DEA0: -n 30 --seed 2 --ret void --mem D_803A7440:0xC0C0=words:-1 --mem D_803B35F0=int \
+    --mem D_803B35F8:0x200=words:-1 --mem D_802C23B4=-1

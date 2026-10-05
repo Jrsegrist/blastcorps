@@ -246,7 +246,155 @@ void func_8029A914(void) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029AA10.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+s32 func_8029B514(s32 x, s32 y, s32 z, s32 r, u8 *rec);
+s32 func_8029C160(s32 x, s32 y, s32 z, s32 r, u8 *tri, s32 *hit);
+void func_8029C0DC(u8 *tri, s32 px, s32 py, s32 pz, s32 *out);
+s32 func_8029BF64(s32 bu, s32 bv, s32 cu, s32 cv, s32 au, s32 av, s32 pu, s32 pv);
+s32 func_8029BD0C(s32 x, s32 y, s32 z, s32 r, u8 *tri);
+s32 func_8029BEE4(s32 x, s32 y, s32 z, s32 r, u8 *tri);
+void func_8029C284(s32 x, s32 z);
+s32 func_802BD8C8(void); /* 77E20 */
+extern u32 D_803059F0[];  /* {level (0xFFFF = any), object kind, vehicle mask} triples, ended by mask 0 */
+extern s32 D_802E8BDC;    /* current level */
+extern u8 D_803F4030[];   /* 0xFC-byte objects: +4 / +8 triangle range, +0x30 kind */
+extern u8 *D_803F7654;    /* end of the objects */
+extern u8 D_803F9330[];   /* 0x60-byte triangles */
+extern u8 *D_803FB8B0;    /* their end */
+extern u8 *D_803BD308;    /* triangle range */
+extern u8 *D_803BD30C;
+extern u8 D_803A742A;
+extern u8 *D_803BDE40[];  /* per-cell triangle lists (cell c spans [c] .. [c + 1]) */
+extern u8 *D_803BDCA8[];
+extern s16 D_803A7418[];  /* cells from func_8029C284, ended by -1 */
+
+/* The sphere-vs-triangle test (see the comment above func_8029BD0C): plane
+ * distance (func_8029C160), then the projected point-in-triangle test, the
+ * edge test and the vertex test; 1 on the first that hits. */
+static s32 port_sphere_hits_tri(s32 x, s32 y, s32 z, s32 r, u8 *tri) {
+    s32 hit[3];
+    s32 uv[8];
+
+    if (func_8029C160(x, y, z, r, tri, hit) == 0) {
+        return 0;
+    }
+    func_8029C0DC(tri, hit[0], hit[1], hit[2], uv);
+    if (func_8029BF64(uv[2], uv[3], uv[4], uv[5], uv[0], uv[1], uv[6], uv[7]) != 0) {
+        return 1;
+    }
+    if (func_8029BD0C(x, y, z, r, tri) != 0) {
+        return 1;
+    }
+    return func_8029BEE4(x, y, z, r, tri) != 0;
+}
+
+/* Does the sphere (x, y, z) radius r hit the world for vehicle `kind`? In
+ * order (each list walked with `!=`, 0x60-byte triangles):
+ * 1. for each D_803059F0 entry whose mask has bit (kind & 31) and whose level
+ *    is 0xFFFF or D_802E8BDC (object kind 0x38 only while func_802BD8C8()
+ *    is 0): every D_803F4030 object of that kind that func_8029B514 says the
+ *    sphere touches, its triangles with byte 0x51 set;
+ * 2. D_803F9330 .. D_803FB8B0 with byte 0x51 set, except (kind 0xC8) those
+ *    whose u16 at +0x52 equals D_803A742A;
+ * 3. every triangle of D_803BD308 .. D_803BD30C;
+ * 4. D_803B9890 .. D_803BD300 with byte 0x51 set, except those whose byte
+ *    0x4F is nonzero and equal to kind;
+ * 5. the grid cells of (x, z) (func_8029C284): unless kind == 9, the
+ *    D_803BDE40 lists, then the D_803BDCA8 lists.
+ * Returns 1 at the first triangle hit (port_sphere_hits_tri), else 0.
+ * Register convention: x, y, z, r, kind in t3, t4, t5, t6, t8, result in a1
+ * (conventions.txt); the asm saves v1, t0, t1, t3, t6-t9, s0-s2, s4, s7 and
+ * leaves s3 / f20-f28 as the callees do (a0, a3 and the FP results too: dead
+ * in its caller func_8029AA10, which keeps t0, t1, t8). The add/addi on the
+ * cell offsets trap on overflow. */
+s32 func_8029AB88(s32 x, s32 y, s32 z, s32 r, s32 kind) {
+    u32 *e;
+    u8 *obj;
+    u8 *objEnd;
+    u8 *tri;
+    u8 *end;
+    s16 *cell;
+
+    for (e = D_803059F0; e[2] != 0; e += 3) {
+        if ((e[2] & (1 << (kind & 31))) == 0) {
+            continue;
+        }
+        if (e[0] != 0xFFFF && e[0] != (u32) D_802E8BDC) {
+            continue;
+        }
+        if (e[1] == 0x38 && func_802BD8C8() != 0) {
+            continue;
+        }
+        objEnd = D_803F7654;
+        for (obj = D_803F4030; obj != objEnd; obj += 0xFC) {
+            if (*(u32 *) (obj + 0x30) != e[1]) {
+                continue;
+            }
+            if (func_8029B514(x, y, z, r, obj) == 0) {
+                continue;
+            }
+            end = *(u8 **) (obj + 8);
+            for (tri = *(u8 **) (obj + 4); tri != end; tri += 0x60) {
+                if (tri[0x51] != 0 && port_sphere_hits_tri(x, y, z, r, tri)) {
+                    return 1;
+                }
+            }
+        }
+    }
+    end = D_803FB8B0;
+    for (tri = D_803F9330; tri != end; tri += 0x60) {
+        if (tri[0x51] == 0) {
+            continue;
+        }
+        if (kind == 0xC8 && *(u16 *) (tri + 0x52) == D_803A742A) {
+            continue;
+        }
+        if (port_sphere_hits_tri(x, y, z, r, tri)) {
+            return 1;
+        }
+    }
+    end = D_803BD30C;
+    for (tri = D_803BD308; tri != end; tri += 0x60) {
+        if (port_sphere_hits_tri(x, y, z, r, tri)) {
+            return 1;
+        }
+    }
+    end = D_803BD300;
+    for (tri = D_803B9890; tri != end; tri += 0x60) {
+        if (tri[0x51] == 0) {
+            continue;
+        }
+        if (tri[0x4F] != 0 && tri[0x4F] == kind) {
+            continue;
+        }
+        if (port_sphere_hits_tri(x, y, z, r, tri)) {
+            return 1;
+        }
+    }
+    func_8029C284(x, z);
+    if (kind != 9) {
+        for (cell = D_803A7418; *cell != -1; cell++) {
+            end = D_803BDE40[*cell + 1];
+            for (tri = D_803BDE40[*cell]; tri != end; tri += 0x60) {
+                if (port_sphere_hits_tri(x, y, z, r, tri)) {
+                    return 1;
+                }
+            }
+        }
+    }
+    for (cell = D_803A7418; *cell != -1; cell++) {
+        end = D_803BDCA8[*cell + 1];
+        for (tri = D_803BDCA8[*cell]; tri != end; tri += 0x60) {
+            if (port_sphere_hits_tri(x, y, z, r, tri)) {
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029AB88.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029B02C.s")

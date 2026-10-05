@@ -258,7 +258,7 @@ segments:
     - [0xC7E50, .rodata, hd_code/34430]
     - [0xC7F10, .rodata, hd_code/37530]
     - [0xC7F20, .rodata, hd_code/39050]
-    - [0xC8030, bin, hd_code/hd_code_data_C8030]
+    - [0xC8030, .rodata, hd_code/3E4C0]
     - [0xC80D0, .rodata, hd_code/405F0]
     - [0xC80F0, .rodata, hd_code/409D0]
     - [0xC8210, .rodata, hd_code/41930]

@@ -2,8 +2,15 @@
 #include <ultra64.h>
 
 /* hd.c (from its assert strings): boot, the main game thread and the
- * frame loop. Its strings still live in the hd_code data bin, so they
- * are referenced through externs for now. */
+ * frame loop. Owns .rodata at 0x80307B90.
+ *
+ * Variables defined here (the tell is a shared `lui` on paired stores).
+ * Only part of hd.c's .bss is modelled so far: the section is placed at
+ * 0x80310D80 by hd_code_bss.us.v11.ld, and the later variables get their
+ * real addresses from undefined_syms (absolute symbols win). */
+u64 D_80310D80[0x400]; /* main thread stack, filled with a guard pattern */
+u64 D_80364A90;
+u64 D_80364A98; /* game mode flags */
 
 void func_8029A7E4(char *, ...); /* debug printf */
 void func_802D4020(void);
@@ -16,7 +23,6 @@ void func_80244930(void *);
 extern OSThread D_80310820;
 extern u64 D_803109D0[]; /* idle thread stack */
 extern OSThread D_80310BD0;
-extern u64 D_80310D80[]; /* main thread stack, filled with a guard pattern */
 extern u8 D_80314D80[];
 extern u8 D_80314D98[];
 extern s32 D_802FA254;
@@ -42,7 +48,6 @@ extern u8 D_8035805C; /* current frame buffer index */
 
 extern u8 D_00787F40[]; /* static code segment bounds (ROM) */
 extern u8 D_00788000[];
-extern u64 D_80364A98; /* game mode flags */
 extern u8 D_80364A70;
 extern s32 D_80358068;
 extern s32 D_80358064;
@@ -101,7 +106,8 @@ void func_802592F0(void);
     if (!(EX)) \
     func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "hd.c", line)
 
-extern void *D_80358050[];
+extern s32 D_80000300; /* osTvType */
+extern u32 D_80358050[]; /* frame buffer physical addresses */
 typedef struct {
     u8 pad0[0x10];
     u32 unk10;
@@ -126,6 +132,35 @@ void func_802AE860(void);
 void func_8026AD30(s32);
 s32 func_80260634(s32);
 void func_80260650(s32, s32, s32 *);
+
+extern OSMesgQueue D_803150A0;
+extern OSMesg D_803150B8[];
+extern OSMesgQueue D_80315180;
+extern OSMesg D_80315198[];
+extern u64 D_80312D80[];
+extern u8 D_80315440[];
+extern OSMesgQueue D_803153D8;
+extern OSMesg D_803153F8[];
+extern u8 D_803156D8[];
+extern u16 D_80000400[][320 * 240];
+extern u8 D_8021ED00[];
+extern u32 D_80358058;
+extern u8 D_802FDBD0;
+extern u8 D_802FDBD4;
+void func_80270D20(void *, void *, s32, s32, s32);
+void func_80270E50(void *, void *, OSMesgQueue *, s32, s32);
+u8 func_8028A370(void);
+void func_80261588(void);
+void func_80284DB0(void);
+void func_8028FC10(void);
+extern s32 D_803643E0;
+extern s32 D_803643E8;
+extern f32 D_80364418;
+extern f32 D_80364414;
+extern u8 D_8036441C;
+extern u8 D_8036441D;
+s32 func_802AC4C4(s32, s32, s32, s32, s32, s32, s32, s32);
+#define PHYS(x) ((u32)(x) & 0x1FFFFFFF)
 
 /* (end of declarations) */
 
@@ -294,7 +329,52 @@ void func_80255034(s32 r, f32 angle, s32 *outX, s32 *outY) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_80255190.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_80255628.s")
+u8 func_80255628(void) {
+    u8 ok = 0;
+
+    if (D_80364A90 == 0x100000000000 || D_80364A90 == 2) {
+        ok = 1;
+    } else {
+        switch (D_802E8BDC) {
+            case 4:
+                if (func_802AC4C4(D_803643E0 >> 5, D_803643E8 >> 5, 0xE56, 0x8EC, 0xBB8, 0x6A4, 0x1068, 0x1F4) ||
+                    func_802AC4C4(D_803643E0 >> 5, D_803643E8 >> 5, 0xE56, 0x8EC, 0x1068, 0x1F4, 0x1324, 0x4B0)) {
+                    ok = 1;
+                }
+                break;
+            case 16:
+                if (D_803643E0 > 0x46500 && D_803643E8 > 0x3E800) {
+                    ok = 1;
+                }
+                break;
+            case 13:
+                if (D_803643E0 > 0x42680 && D_803643E8 > 0x46500) {
+                    ok = 1;
+                }
+                break;
+            case 0x3B:
+                ok = 1;
+                break;
+        }
+    }
+    if (ok) {
+        if (D_80364418 < 134.0 || D_80364418 > 136.0) {
+            D_8036441D = 0;
+            D_8036441C = 0;
+            D_80364418 = 135.0f;
+            if (D_80364418 < D_80364414) {
+                if (D_80364414 - D_80364418 > 180.0) {
+                    D_8036441C = 1;
+                } else {
+                    D_8036441D = 1;
+                }
+            } else {
+                D_8036441C = 1;
+            }
+        }
+    }
+    return ok;
+}
 
 /* Clears the current frame buffer with a fill rectangle */
 void func_802558C8(Gfx *arg0, s32 *len) {
@@ -319,7 +399,43 @@ void func_802559F8(Gfx *arg0, s32 *length) {
     HD_ASSERT(*length<TOPLEVEL_DL_SIZE, 3665);
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_80255AD0.s")
+void func_80255AD0(void) {
+    s32 i;
+    f32 one;
+    s32 pad[4];
+    u8 status;
+
+    one = 1.0f;
+    D_80364A90 = 32;
+    osCreateMesgQueue(&D_803150A0, D_803150B8, 50);
+    osCreateMesgQueue(&D_80315180, D_80315198, 0x90);
+    func_80270D20(D_80315440, D_80312D80 + 0x400, 13, (D_80000300 != 1) ? 0x10 : 2, 1);
+    osCreateMesgQueue(&D_803153D8, D_803153F8, 16);
+    func_80270E50(D_80315440, D_803156D8, &D_803153D8, 1, 1);
+    status = func_8028A370();
+    func_80261588();
+    func_8029A7E4("audio inited\n");
+    osViSetSpecialFeatures(OS_VI_GAMMA_OFF);
+    osViSetSpecialFeatures(OS_VI_DITHER_FILTER_ON);
+    D_80358050[0] = PHYS(D_80000400[0]);
+    D_80358050[1] = PHYS(D_80000400[1]);
+    D_80358058 = PHYS(D_8021ED00);
+    func_80284DB0();
+    func_802D6710();
+    func_8028FC10();
+    if (!(status & 1)) {
+        D_80364A98 = 0x0800000000000000;
+    } else if (D_802FDBD0) {
+        D_80364A98 = 0x0000080000000000;
+    } else if (D_802FDBD4) {
+        D_80364A98 = 0x0040000000000000;
+    } else {
+        D_80364A98 = 0x10;
+    }
+    for (i = 0x1FF; i >= 0; i--) {
+        D_80310D80[i] = 0x1122334455667788LL;
+    }
+}
 
 /* Checks the main thread's stack guard pattern from the top down */
 void func_80255D34(void) {

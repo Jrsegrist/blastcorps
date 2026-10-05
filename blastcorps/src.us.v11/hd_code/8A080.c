@@ -123,7 +123,15 @@ void func_802CE9A4(void) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8A080/func_802CE9A4.s")
 #endif
 
-/* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+/* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM.
+ * Port note: not rewritten. It sets up `count` collision triangles at
+ * *D_803FB8B0 (func_802A41B0, byte 0x51 = 1, h52 = a2, b56 = item byte 0x14,
+ * b55 = 0) from 0x16-byte items at a0, but also passes func_802A41B0 the
+ * registers v0 (id, byte 0x50), t6 (byte 0x57), t9 (byte 0x4F) and s1 (byte
+ * 0x58, chained) that its only caller, the IDO-compiled func_8028FDA0
+ * (4B5E0.c), never sets for it: there they hold a stale call result,
+ * &D_8039C718[i], the old D_803FB8B0 and the caller's caller's s1. A C version
+ * can't reproduce those without changing that caller's interface. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8A080/func_802CE9C8.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */

@@ -36,3 +36,9 @@ func_802ACCCC: -n 100 --seed 1 --arg a0=ptr:0x40 --arg a1=ptr:0x40 --mem D_803ED
     --mem @a0:0x40=words:0,1,-1,0x10000,-0x10000,0x7FFFFFFF,0x80000000,0x8000 --mem @a1:0x40=words:0,1,-1,0x10000,-0x10000,0x7FFFFFFF,0x80000000,0xFFFF
 # b == m (squaring in place)
 func_802ACCCC: -n 50 --seed 2 --arg a0=ptr:0x40 --arg a1=rel:a0 --mem D_803ED420:0x40=rand
+
+# func_802AC4C4(px, pz, x0, z0, x1, z1, x2, z2): o32 wrapper of func_802AA460 (point in triangle) -> v0.
+# Its FP side results (and the f24 the asm passes through) are dropped: only the 8 real arguments are compared.
+func_802AC4C4: -n 300 --sig func_802AA460=a0,a1,a2,a3,stack0,stack1,stack2,stack3 --arg a0=int --arg a1=int --arg a2=int --arg a3=int --arg sp+0x10=int --arg sp+0x14=int --arg sp+0x18=int --arg sp+0x1C=int
+# followed: small coordinates (the asm's sums and differences trap on overflow), inside and outside
+func_802AC4C4: -n 400 --seed 1 --follow func_802AA460 --arg a0=choice:0,10,-10,100,-100,1000,-1000,5000 --arg a1=choice:0,10,-10,100,-100,1000,-1000,5000 --arg a2=choice:0,10,-10,100,-100,1000,-1000,5000 --arg a3=choice:0,10,-10,100,-100,1000,-1000,5000 --arg sp+0x10=choice:0,10,-10,100,-100,1000,-1000,5000 --arg sp+0x14=choice:0,10,-10,100,-100,1000,-1000,5000 --arg sp+0x18=choice:0,10,-10,100,-100,1000,-1000,5000 --arg sp+0x1C=choice:0,10,-10,100,-100,1000,-1000,5000

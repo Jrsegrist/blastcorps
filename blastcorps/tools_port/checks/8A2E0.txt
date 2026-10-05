@@ -17,3 +17,7 @@ func_802CEE14: -n 300 --arg a0=int:-0x100000:0x100000 --arg a1=int:-0x100000:0x1
 func_802CEE14: -n 100 --seed 1 --arg t4=choice:0,0x7FF5,0x7FF6,-0x7FF6,-0x7FF7,0xFFFF \
     --arg t5=choice:0,0x7FEB,0x7FEC,-0x8000,0xFFFF --arg t6=choice:0,0x7FEB,0x7FEC,-0x7FF6,-0x7FF7 \
     --mem D_803FC1F0:1=choice:0,1,15 --mem D_803FBAB0:0x800=rand
+
+# func_802CF3E0(pos t1): 24 debris records at (x, y, z) << 11 (y rising), then a sound
+func_802CF3E0: -n 200 --arg t1=ptr:0x10 --mem @t1:12=words:0,1,-1,0x100,-0x100,0x7FFF,-0x8000 --mem D_803F3FF8:0x38=rand --mem D_80367738=int --sig func_802A5E60= --sig func_802C049C= --sig func_80260650=a0,a1,a2
+func_802CF3E0: -n 100 --seed 1 --follow func_802C04F0,func_802C049C,func_802A5E60 --arg t1=ptr:0x10 --mem @t1:12=words:0,1,-1,0x100,-0x100,0x7FFF,-0x8000 --mem D_803F3FF8:0x38=rand --mem D_803F3968:0x6C8=rand --mem D_80367738=int --sig func_80260650=a0,a1,a2

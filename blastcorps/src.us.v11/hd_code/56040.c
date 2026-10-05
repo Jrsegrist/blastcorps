@@ -439,7 +439,84 @@ void func_8029B5B8(u8 *rec) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u8 D_803BE738;
+void func_802BCCD4(s32 value);
+void func_8029B7CC(s32 a, s32 b);
+void func_8029B994(void);
+
+/* Collision hit on triangle `tri` (id `id`): appends id to buffer A
+ * (func_802BCCD4). Unless id is already in the byte list at D_803A7408
+ * (signed bytes, scanned up to the first negative one, which is compared
+ * too): sets D_803A7424, takes the plane function s = normal . (D_803A73F0/
+ * F4/F8 >> 2) + d (s64 fields at 0/8/0x10, d at 0x18; 64-bit, wrapping
+ * where the asm's dadd traps) and, as func_802BF264: if s is on d's side
+ * (s > 0 with d > 0, s < 0 with d <= 0) calls func_8029B7CC(h - 0x400,
+ * h + 0x400) when byte 0x55 is 1 or byte 0x56 is set, else func_8029B7CC(
+ * h + 0x400, h - 0x400) when byte 0x55 is 1 or byte 0x56 is clear (h = u16
+ * at 0x4C); after a call a nonzero byte 0x59 goes to D_803BE738. Then, if
+ * D_803A7429 is clear, |D_803F77FC| >= |D_803A7422| and D_803A7427 is set:
+ * D_803A7429 = D_803A7427 and func_8029B994().
+ * Register convention: tri in s0, id in fp (conventions.txt); the asm saves
+ * v0-a3 and t0. Asm callers rely on preserved: func_8029B02C / func_8029BB28
+ * keep a0, a1, a3, t3-t6, t8, t9 (and f12/f14, left as the callees leave
+ * them). */
+void func_8029B614(u8 *tri, s32 id) {
+    s8 *p;
+    s32 c;
+    s64 s;
+    s64 d;
+    s32 h;
+
+    func_802BCCD4(id);
+    for (p = (s8 *) D_803A7408;; p++) {
+        c = *p;
+        if (c == id) {
+            goto tail;
+        }
+        if (c < 0) {
+            break;
+        }
+    }
+    D_803A7424 = 1;
+    d = *(s64 *) (tri + 0x18);
+    s = *(s64 *) (tri + 0) * (D_803A73F0 >> 2) + *(s64 *) (tri + 8) * (D_803A73F4 >> 2) +
+        *(s64 *) (tri + 0x10) * (D_803A73F8 >> 2) + d;
+    h = *(u16 *) (tri + 0x4C);
+    if ((d > 0) ? (s > 0) : (s < 0)) {
+        if (tri[0x55] != 1 && tri[0x56] == 0) {
+            goto tail;
+        }
+        func_8029B7CC(h - 0x400, h + 0x400);
+    } else {
+        if (tri[0x55] != 1 && tri[0x56] != 0) {
+            goto tail;
+        }
+        func_8029B7CC(h + 0x400, h - 0x400);
+    }
+    if (tri[0x59] != 0) {
+        D_803BE738 = tri[0x59];
+    }
+tail:
+    if (D_803A7429 == 0) {
+        s32 a = D_803F77FC;
+        s32 b = D_803A7422;
+
+        if (a < 0) {
+            a = -a;
+        }
+        if (b < 0) {
+            b = -b;
+        }
+        if (!(a < b) && D_803A7427 != 0) {
+            D_803A7429 = D_803A7427;
+            func_8029B994();
+        }
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029B614.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -1288,7 +1365,99 @@ void func_8029D534(s32 kind, u8 *rec) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+f64 sqrt(f64);
+#pragma intrinsic(sqrt)
+s32 func_802AD7FC(u32 sine);
+void func_8029D90C(u8 *tri, s64 *out);
+
+/* cvt.l.d under the game's FCSR: f64 -> s64, round to nearest, ties to even. */
+static s64 port_cvt_l_d(f64 x) {
+    s64 t = (s64) x;
+    f64 frac = x - (f64) t;
+
+    if (frac > 0.5 || (frac == 0.5 && (t & 1))) {
+        t++;
+    } else if (frac < -0.5 || (frac == -0.5 && (t & 1))) {
+        t--;
+    }
+    return t;
+}
+
+/* Heading and facing side of the triangle whose vertices are the u32 triples
+ * at tri+0x28, +0x34, +0x40 (each >> 3, logical). With n = (V2 - V0) x
+ * (V1 - V0) in 64 bits (32-bit differences; nx = dy2*dz1 - dz2*dy1, ...):
+ * angle = arcsine(func_802AD7FC) of (|nx| << 16) / round(sqrt(nx^2 + nz^2))
+ * (64-bit signed division; the asm traps (break 7) when nx = nz = 0), >> 4,
+ * folded by the signs of nx / nz into 0..0xFFF (nx < 0: 0xFFF - a if nz >= 0,
+ * else a + 0x800; nx >= 0 and nz < 0: 0x800 - a). Then the point V0 + 100 *
+ * n / |n| (double, each component rounded as cvt.l.d, added in 32 bits) is
+ * put into the plane function of func_8029D90C (normal and d, 64-bit): byte
+ * 0x56 = 0 if it is on d's side (s > 0 with d > 0, s <= 0 with d < 0), else
+ * 1 and the angle turns by 0x800 (wrapping by + 0xFFF when negative). The
+ * angle goes to the halfword at 0x4C.
+ * Register convention: tri in s0 (conventions.txt); the asm saves and
+ * restores every register. Its add/dsub trap on overflow where this C wraps
+ * (not reached with game coordinates). */
+void func_8029D56C(u8 *tri) {
+    u32 *w = (u32 *) (tri + 0x28);
+    s32 x0 = w[0] >> 3;
+    s32 y0 = w[1] >> 3;
+    s32 z0 = w[2] >> 3;
+    s32 x1 = w[3] >> 3;
+    s32 y1 = w[4] >> 3;
+    s32 z1 = w[5] >> 3;
+    s32 x2 = w[6] >> 3;
+    s32 y2 = w[7] >> 3;
+    s32 z2 = w[8] >> 3;
+    s64 dy2 = (s32) (y2 - y0);
+    s64 dz1 = (s32) (z1 - z0);
+    s64 dz2 = (s32) (z2 - z0);
+    s64 dy1 = (s32) (y1 - y0);
+    s64 dx1 = (s32) (x1 - x0);
+    s64 dx2 = (s32) (x2 - x0);
+    s64 nx = dy2 * dz1 - dz2 * dy1;
+    s64 ny = dz2 * dx1 - dx2 * dz1;
+    s64 nz = dx2 * dy1 - dy2 * dx1;
+    s64 ax = (nx < 0) ? -nx : nx;
+    s64 az = (nz < 0) ? -nz : nz;
+    s64 len = port_cvt_l_d(sqrt((f64) (az * az + ax * ax)));
+    s32 angle = (u32) func_802AD7FC((u32) ((ax << 16) / len)) >> 4;
+    f64 n3;
+    s32 px;
+    s32 py;
+    s32 pz;
+    s64 pl[4];
+    s64 s;
+
+    if (nx < 0) {
+        if (nz >= 0) {
+            angle = 0xFFF - angle;
+        } else {
+            angle += 0x800;
+        }
+    } else if (nz < 0) {
+        angle = 0x800 - angle;
+    }
+    n3 = sqrt((f64) (nx * nx + ny * ny + nz * nz));
+    px = x0 + (s32) port_cvt_l_d((f64) nx / n3 * 100.0);
+    py = y0 + (s32) port_cvt_l_d((f64) ny / n3 * 100.0);
+    pz = z0 + (s32) port_cvt_l_d((f64) nz / n3 * 100.0);
+    func_8029D90C(tri, pl);
+    tri[0x56] = 0;
+    s = px * pl[0] + py * pl[1] + pz * pl[2] + pl[3];
+    if (!((s > 0) ? (pl[3] > 0) : (pl[3] < 0))) {
+        tri[0x56] = 1;
+        angle -= 0x800;
+        if (angle < 0) {
+            angle += 0xFFF;
+        }
+    }
+    *(s16 *) (tri + 0x4C) = angle;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029D56C.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -1685,7 +1854,116 @@ void func_8029DF78(u8 *dl, u8 *dlEnd, s32 key) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029E0AC.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Register outputs of func_8029F1BC. */
+typedef struct {
+    s32 frame; /* t2 (in/out) */
+    s32 dir;   /* t7 */
+    f32 frac;  /* f30 */
+} Unk8029F1BCOut;
+f32 func_8029F1BC(f32 delta, f32 frac, Unk8029DEA0Entry *ch, s32 frame, s32 n, Unk8029F1BCOut *o);
+s32 func_8029E4E4(s32 key, s32 sub);
+u32 func_8029E47C(s32 key, s32 id, u8 *param);
+extern u8 D_80364460[]; /* 0x74-byte records: s32 id at +0x5C, data bases at +0xC / +0x30 */
+
+/* Texture block for (key, sub): the loaded one (func_8029E4E4) or a new load
+ * (func_8029E47C with param). */
+#define TEX_BLOCK(key, sub, param) \
+    ((r_ = func_8029E4E4((key), (sub))) != 0 ? r_ : (s32) func_8029E47C((key), (sub), (param)))
+/* (sub is evaluated twice: pass a plain variable) */
+
+/* Advances the texture animation of channel ch (ch->id = the animation data
+ * `a`: u8 id at 0, frame count n at 1, textures per frame k at 2, blend flag
+ * at 3, n u16 keys from 4, then n frames of k u16 texture ids). First every
+ * in-use block (byte 6) of D_803A7440 tagged with a gets its use count (byte
+ * 7) incremented. The playback step is ((key[f + 1] - key[f]) * frac +
+ * key[f]) / 300 (f = ch->unk13, frac = ch->unk4), fed to func_8029F1BC,
+ * which gives the new frame f' and frac'. For each texture i of frame f'
+ * (and of frame f' + 1 when blending) the block is found or loaded
+ * (TEX_BLOCK), and every 0xC-byte patch {a, off, i} in [D_803B3500,
+ * D_803B35F0) stores it at base + off (base = the level's D_80364460
+ * record with id a[0]: +0xC if D_8035805C else +0x30; unbounded scan);
+ * when blending, the second block goes to base + the next patch's off and
+ * the first command after it with opcode 0xFA gets its low byte(s) =
+ * round(frac' * 255) (the patch after is skipped). Finally blocks tagged
+ * with a still in use with a count >= 2 are released (byte 6 = 0).
+ * Register convention: ch in t0, param in fp (conventions.txt); the asm
+ * restores t0 and leaves s0-s6 and f30 changed (also f12 / f14 as
+ * func_8029E47C's callee leaves them; its caller func_8029E0AC is said to
+ * read those, not modelled). */
+void func_8029E21C(Unk8029DEA0Entry *ch, u8 *param) {
+    u8 *a = (u8 *) ch->id;
+    s32 key = ch->id;
+    s32 frame = ch->unk13;
+    f32 frac = ch->unk4;
+    u16 *keys = (u16 *) (a + 4) + frame;
+    Unk8029F1BCOut o;
+    s32 n;
+    s32 k;
+    s32 blend;
+    u16 *ids;
+    u16 *ids2;
+    s32 i;
+    s32 r_;
+    u8 *e;
+    u8 *rec;
+    s32 base;
+
+    for (i = 0; i < 12; i++) {
+        if (*(s32 *) D_803A7440[i] == key && D_803A7440[i][6] != 0) {
+            D_803A7440[i][7]++;
+        }
+    }
+    n = a[1];
+    o.frame = frame;
+    func_8029F1BC(((f32) (keys[1] - keys[0]) * frac + (f32) keys[0]) / 300.0f, frac, ch, frame, n, &o);
+    k = a[2];
+    blend = a[3];
+    ids = (u16 *) (a + n * 2 + 4 + (u32) (k * 2) * o.frame);
+    ids2 = ids + k;
+    for (i = 0; k != 0; k--, i++) {
+        s32 sub = *ids++;
+        s32 first = TEX_BLOCK(key, sub, param);
+        s32 second = first;
+
+        if (blend != 0) {
+            sub = *ids2++;
+            second = TEX_BLOCK(key, sub, param);
+        }
+        for (rec = D_80364460; *(s32 *) (rec + 0x5C) != a[0]; rec += 0x74) {
+        }
+        base = (D_8035805C != 0) ? *(s32 *) (rec + 0xC) : *(s32 *) (rec + 0x30);
+        for (e = D_803B3500; e != (u8 *) D_803B35F0; e += 0xC) {
+            u32 *p;
+            u32 w;
+
+            if (*(s32 *) (e + 0) != key || *(s32 *) (e + 8) != i) {
+                continue;
+            }
+            *(s32 *) (base + *(s32 *) (e + 4)) = first;
+            if (blend == 0) {
+                continue;
+            }
+            p = (u32 *) (base + *(s32 *) (e + 0x10));
+            e += 0xC;
+            *p++ = second;
+            do {
+                w = *p;
+                p += 2;
+            } while ((w & 0xFF000000) >> 24 != 0xFA);
+            p[-2] = port_cvt_w_s(o.frac * 255.0f) | 0xFA000000;
+        }
+    }
+    for (i = 0; i < 12; i++) {
+        if (D_803A7440[i][6] != 0 && D_803A7440[i][7] >= 2 && *(s32 *) D_803A7440[i] == key) {
+            D_803A7440[i][6] = 0;
+        }
+    }
+}
+#undef TEX_BLOCK
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029E21C.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -2067,12 +2345,7 @@ void func_8029F110(u8 *p, s32 mode, Unk8029F110Out *o) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Register outputs of func_8029F1BC. */
-typedef struct {
-    s32 frame; /* t2 (in/out) */
-    s32 dir;   /* t7 */
-    f32 frac;  /* f30 */
-} Unk8029F1BCOut;
+/* (Unk8029F1BCOut, its register outputs, is declared above func_8029E21C.) */
 
 /* Advances animation channel ch through an n-frame track by delta * ch->unk14
  * (speed). Forward (ch->unk11 != 1): frac += step; whole frames move

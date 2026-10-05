@@ -1,3 +1,2 @@
 /* hand-maintained absolute symbols for the hd_front_end link (see undefined_syms.hd_code.us.v11.txt) */
-D_80208400 = 0x80208400; /* 01C40: player select display list (splat left the lui/addiu raw) */
 D_8021591C = 0x8021591C; /* 01C40: perspNorm (splat left the lui/addiu raw) */

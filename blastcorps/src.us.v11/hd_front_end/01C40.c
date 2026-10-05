@@ -126,6 +126,112 @@ Gfx *func_801EC49C(Gfx *, s32, s32, s32);
 /* Highest rank shown: 4 once unk91 reaches 12, else 3 */
 #define MAX_RANK() ((D_80364AF0[D_80364AE8].unk91 >= 12) ? 4 : 3)
 
+/* .data (0x802081C0). The u16 pointers are hd_code data (glyph strings and
+ * portraits) that have no symbols yet. */
+typedef struct {
+    char *title;
+    u16 *glyphs;
+} RankTitle;
+
+RankTitle D_802081C0[31] = {
+    { "ROOKIE WRECKER", (u16 *) 0x803041DC },
+    { "TRAINED CRUSHER", (u16 *) 0x803041EC },
+    { "EXPERIENCED RAVAGER", (u16 *) 0x803041FC },
+    { "DECORATED DAMAGER", (u16 *) 0x8030420C },
+    { "PROFESSIONAL RAZER", (u16 *) 0x8030421C },
+    { "EXPERT DESTROYER", (u16 *) 0x8030422C },
+    { "GIFTED RUINER", (u16 *) 0x8030423C },
+    { "ACCOMPLISHED CONQUEROR", (u16 *) 0x8030424C },
+    { "MASTER DESPOILER", (u16 *) 0x8030425C },
+    { "DEMOLITION FANATIC", (u16 *) 0x8030426C },
+    { "GRAND ERADICATOR", (u16 *) 0x8030427C },
+    { "HEAVY DUTY WASTER", (u16 *) 0x80304288 },
+    { "TOTAL PULVERISER", (u16 *) 0x8030429C },
+    { "CHAMPION RANSACKER", (u16 *) 0x803042AC },
+    { "MECHANICAL MAESTRO", (u16 *) 0x803042B8 },
+    { "CHIEF OBLITERATOR", (u16 *) 0x803042CC },
+    { "COMMANDING DESOLATOR", (u16 *) 0x803042E0 },
+    { "SUPREME DEVASTATOR", (u16 *) 0x803042F0 },
+    { "ULTIMATE ANNIHILATOR", (u16 *) 0x80304304 },
+    { "LEVELING LEGEND", (u16 *) 0x8030430C },
+    { "DESTRUCTIVE PSYCHOPATH", (u16 *) 0x80304318 },
+    { "MINDLESS DESECRATOR", (u16 *) 0x80304328 },
+    { "HYSTERICAL CLAUSTROPHOBE", (u16 *) 0x80304334 },
+    { "UNCONTROLLABLE MADMAN", (u16 *) 0x80304344 },
+    { "WORLD CLASS MEGALOMANIAC", (u16 *) 0x80304358 },
+    { "CAPTAIN OF CARNAGE", (u16 *) 0x80304364 },
+    { "SINGLE MINDED CHAOSMONGER", (u16 *) 0x80304370 },
+    { "GRAND HIGH SLAUGHTERMASTER", (u16 *) 0x8030437C },
+    { "LUNATIC LORD OF HAVOC", (u16 *) 0x80304388 },
+    { "ARMAGEDDON ADEPT", (u16 *) 0x80304394 },
+    { "YOU CAN STOP NOW.", (u16 *) 0x8030439C },
+};
+
+u8 D_802082B8[0x20] = {
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 2, 2, 2, 1, 1, 0,
+};
+
+/* sprite ids for func_80272C5C */
+u16 D_802082D8[6] = { 0x777, 0x777, 0x776, 0x773, 0, 0 };
+u16 D_802082E4[2] = { 0x774, 0x775 };
+u16 D_802082E8[2] = { 0x576, 0x575 };
+u16 D_802082EC[6] = { 0x91B, 0x91B, 0x91C, 0x91D, 0x572, 0 };
+u16 D_802082F8[2] = { 0x91F, 0 };
+
+/* name entry character sets and their lengths */
+char D_802082FC[2][12] = { "1234/.\x7F", "0123456789/\x7F" };
+char D_80208314[2][26] = { "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "BCDFGHJKLMNPQRSTVWXYZ" };
+s32 D_80208348[2] = { 7, 12 };
+s32 D_80208350[2] = { 26, 21 };
+
+/* "" and "GUEST: " sit before the biographies in .rodata but after them in
+ * .data: const arrays go to .rodata in source order */
+const char D_8020E764[] = "";
+const char D_8020E768[] = "GUEST: ";
+
+char *D_80208358[4] = {
+    ".................... LEADER OF THE ARMY BASE WALKOUT YEARS AGO. AMBER'S SHARP MIND AND BRIGHT, SELFLESS OUTLOOK "
+    "MAKE HER THE NEAREST THING BLAST CORPS HAS TO A LEADER ....................",
+    ".................... A GENIUS IN HEAVY VEHICLE DESIGN. WHILE SOMETIMES OVERLY POSSESSIVE OF HIS CREATIONS, CLARK "
+    "HAS TALENTS VITAL TO BLAST CORPS' SURVIVAL AND SUCCESS ....................",
+    ".................... HEAD MECHANIC OF THE BLAST CORPS TEAM. WITH YEARS OF EXPERIENCE AND A GRUFF PRIDE IN HIS "
+    "WORK, SPIKE ENSURES THAT THE DOZERS ARE BUILT TO PERFECTION ..................",
+    ".................... A FEARLESS ARMY DAREDEVIL UNTIL HIS DISABLING ACCIDENT. WESLEY'S REJECTION BY HIS SUPERIORS "
+    "TRIGGERED THE REBELLION THAT LED TO THE RISE OF BLAST CORPS ...............",
+};
+u16 *D_80208368[4] = { (u16 *) 0x803043B8, (u16 *) 0x80304474, (u16 *) 0x80304544, (u16 *) 0x80304614 };
+const char *D_80208378[2] = { D_8020E764, D_8020E768 };
+
+/* player select backdrop: two lit quads */
+Vtx D_80208380[8] = {
+    { { { -160, 174, 180 }, 0, { 0, 0 }, { 0x00, 0x81, 0x00, 0x28 } } },
+    { { { 160, 174, 180 }, 0, { 0, 0 }, { 0x00, 0x81, 0x00, 0x28 } } },
+    { { { 160, 204, 180 }, 0, { 0, 0 }, { 0x00, 0x7F, 0x1E, 0x28 } } },
+    { { { -160, 204, 180 }, 0, { 0, 0 }, { 0x00, 0x7F, 0x1E, 0x28 } } },
+    { { { -160, 198, 200 }, 0, { 0, 0 }, { 0x5A, 0x5A, 0x00, 0xB4 } } },
+    { { { -160, 180, 200 }, 0, { 0, 0 }, { 0x5A, 0xA6, 0x00, 0xB4 } } },
+    { { { 160, 180, 200 }, 0, { 0, 0 }, { 0x5A, 0xA6, 0x00, 0xB4 } } },
+    { { { 160, 198, 200 }, 0, { 0, 0 }, { 0x5A, 0x5A, 0x00, 0xB4 } } },
+};
+
+Gfx D_80208400[] = {
+    gsSPVertex(D_80208380, 8, 0),
+    gsDPPipeSync(),
+    gsSP1Triangle(0, 5, 1, 0),
+    gsSP1Triangle(5, 1, 6, 0),
+    gsSP1Triangle(4, 5, 6, 0),
+    gsSP1Triangle(4, 6, 7, 0),
+    gsSP1Triangle(4, 3, 7, 0),
+    gsSP1Triangle(3, 7, 2, 0),
+    gsSPEndDisplayList(),
+};
+
+Lights2 D_80208448 = gdSPDefLights2(0x28, 0x0A, 0x0A, 0xF0, 0xC8, 0x14, 69, -69, 69, 0xF0, 0x6E, 0x14, -69, 69, 69);
+Lights2 D_80208470 = gdSPDefLights2(0x28, 0x02, 0x21, 0x5A, 0x02, 0xDC, 69, -69, 69, 0x5A, 0x02, 0xDC, -69, 69, 69);
+
+s32 D_80208498 = 0x20000000;
+s32 D_8020849C = 0;
+
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/01C40/func_801E8C40.s")
 
 void func_801E8DCC(u8 arg0) {

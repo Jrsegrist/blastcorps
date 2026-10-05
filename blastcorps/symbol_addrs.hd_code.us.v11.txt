@@ -257,9 +257,6 @@ yoshiState = 0x8036BB1C; // type:data
 yoshiDemandV = 0x8036BB14; // type:data
 postFadeLoop_done = 0x8036C778; // type:data
 
-// 1C460 late rodata (bare %lo offset)
-D_803092A0 = 0x803092A0; // type:f64
-
 // mb.c late rodata (referenced with bare %lo offsets, so splat misses them)
 D_8030C688 = 0x8030C688; // type:f64
 D_8030C690 = 0x8030C690; // type:f32

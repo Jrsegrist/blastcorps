@@ -87,15 +87,84 @@ void func_802A467C(s32 arg0, Gfx *arg1, Vtx *arg2, s32 arg3) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5FD50/func_802A470C.s")
-
-/* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 /* The two list cursors func_802A484C advances (the asm's t3 and s5). */
 typedef struct {
     /* 0x0 */ s16 *quads; /* {x, z, w, h} halfword quads still to test */
     /* 0x4 */ s16 *cells; /* visible single cells (z * stride + x) */
 } Io802A484C;
+void func_802A484C(Io802A484C *io, void *dataPtr, Vtx *v, s32 dataSize, s32 x, s32 z, u32 w, u32 h,
+                   s32 stride, u8 *grid, u32 xs, u32 zs);
+
+/* One step of the visibility walk over the level grid (header `lvl`: s16
+ * columns/stride at +0, rows at +2, scales at +4/+6, grid offset at +0x48).
+ * When the quad stack D_803C2B88 is empty (at D_803C2B90): pushes the whole
+ * grid {0, 0, columns, rows}, insertion-sorts the cells found visible so far
+ * ([D_803C3178, D_803C3170)) into D_803C30A8 (ascending s16, an equal value
+ * goes after the existing ones), ends it with -1 and empties the cell list.
+ * Then pops a quad and tests it with func_802A484C (task data a1-a3), which
+ * may push sub-quads or add a cell; the cursors are stored back.
+ * Register convention: ABI inputs (lvl is an s32 as func_802A467C passes it);
+ * the asm leaves s0-s7 changed (conventions.txt); its add/addi trap. */
+void func_802A470C(s32 arg0, Gfx *dataPtr, Vtx *v, s32 dataSize) {
+    u8 *lvl = (u8 *) arg0;
+    s16 *q = (s16 *) D_803C2B88;
+    Io802A484C io;
+
+    if (q == (s16 *) D_803C2B90) {
+        s16 *src;
+        s16 *end;
+        s16 *top;
+        s16 *p;
+
+        q[0] = 0;
+        q[1] = 0;
+        q[2] = *(s16 *) (lvl + 0);
+        q[3] = *(s16 *) (lvl + 2);
+        q += 4;
+        end = D_803C3170;
+        top = D_803C30A8;
+        for (src = D_803C3178; src != end; src++, top++) {
+            s16 val = *src;
+            s16 cur;
+
+            for (p = D_803C30A8; p != top; p++) {
+                if (val < *p) {
+                    break;
+                }
+            }
+            if (p == top) {
+                *top = val;
+                continue;
+            }
+            cur = *p;
+            *p = val;
+            do {
+                s16 next = p[1];
+
+                p[1] = cur;
+                p++;
+                cur = next;
+            } while (p != top);
+        }
+        *top = -1;
+        D_803C3170 = D_803C3178;
+    }
+    q -= 4;
+    io.quads = q;
+    io.cells = D_803C3170;
+    func_802A484C(&io, dataPtr, v, dataSize, q[0], q[1], q[2], q[3], *(s16 *) (lvl + 0),
+                  lvl + *(s32 *) (lvl + 0x48), *(s16 *) (lvl + 4), *(s16 *) (lvl + 6));
+    D_803C3170 = io.cells;
+    D_803C2B88 = (u8 *) io.quads;
+}
+#else
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5FD50/func_802A470C.s")
+#endif
+
+/* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* (Io802A484C is declared above func_802A470C.) */
 
 s32 func_802A49A8(s32 x, s32 z, s32 w, s32 h, s32 stride, u8 *grid, s32 *maxOut);
 void func_802A4A50(Vtx *v, u32 x, u32 z, u32 w, u32 d, u32 xs, u32 zs, s32 y0, s32 y1);
@@ -319,7 +388,117 @@ void func_802A4DE8(s32 arg0, u32 *gfx, u32 *dl, u32 *end) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern s16 D_803C2EB0[];
+s32 func_802A50DC(u8 *base, s32 id);
+u32 *func_802A51FC(u8 *base, u32 *dst, s32 start, s32 end, s32 patch);
+u32 *func_802A5334(u8 *base, u32 *dst, s16 *exclEnd, u8 *rec, u8 *end);
+
+/* Is `v` in the sorted, -1-terminated visible-cell list D_803C30A8? (Scans
+ * to the first entry >= v, as the asm.) */
+static s32 port_cell_listed(s32 v) {
+    s16 *p = D_803C30A8;
+    s32 t;
+
+    for (;;) {
+        t = *p++;
+        if (t == -1) {
+            return 0;
+        }
+        if (t >= v) {
+            return t == v;
+        }
+    }
+}
+
+/* Does the n-word cell list `cells` share a value with D_803C30A8? For each
+ * listed value (to the -1) the cells are scanned from the start up to the
+ * first one greater than it, as the asm does. */
+static s32 port_cells_listed(s32 *cells, s32 n) {
+    s16 *p = D_803C30A8;
+    s32 *c;
+    s32 v;
+    s32 k;
+
+    while ((v = *p++) != -1) {
+        for (c = cells, k = n; k != 0; c++, k--) {
+            if (*c == v) {
+                return 1;
+            }
+            if (v < *c) {
+                break;
+            }
+        }
+    }
+    return 0;
+}
+
+/* Builds one display list for the visible part of the level: copies the
+ * fixed list [lvl + *(lvl + 0x88), lvl + *(lvl + 0x8C)) to dl (8 bytes at a
+ * time), then walks the 0x14-byte records [rec, recEnd) (+0 / +4 / +8: DL
+ * start, alternate start, end offsets; +0xC: id; +0x10: cell). A record whose
+ * cell is listed in D_803C30A8 starts a group: its id is appended to the s16
+ * list D_803C2EB0, its DL copied with func_802A51FC patched by
+ * func_802A50DC(lvl, id); the following records with the same id whose cell
+ * is listed are copied from their alternate start, unpatched. After each
+ * group the variable-size records [grp, grpEnd) (+0xC id, +0x10 count n, n
+ * cells from +0x14; sorted by id) with that id and a listed cell are copied
+ * likewise (alternate start, unpatched). Finally func_802A5334 adds the
+ * remaining groups' records (leaving out the ids collected), the list is
+ * ended with 0xB8000000 / 0 (G_ENDDL) and the pointer past it is returned.
+ * Register convention: lvl, dl, rec, recEnd in a0-a3, grp/grpEnd in t8/t9,
+ * result in a1 (conventions.txt); the asm saves t0-t2 and leaves s0-s2 and gp
+ * changed; its add/addi trap and its loops use `!=`. Asm caller
+ * func_802A4CDC keeps a0, t0-t2 live. */
+u32 *func_802A4E4C(u8 *lvl, u32 *dl, u8 *rec, u8 *recEnd, u8 *grp, u8 *grpEnd) {
+    u32 *src = (u32 *) (lvl + *(s32 *) (lvl + 0x88));
+    u32 *srcEnd = (u32 *) (lvl + *(s32 *) (lvl + 0x8C));
+    s16 *excl = D_803C2EB0;
+    u8 *g;
+    s32 id;
+    s32 patch;
+
+    while (src != srcEnd) {
+        dl[0] = src[0];
+        dl[1] = src[1];
+        src += 2;
+        dl += 2;
+    }
+    while (rec != recEnd) {
+        if (!port_cell_listed(*(s32 *) (rec + 0x10))) {
+            rec += 0x14;
+            continue;
+        }
+        id = *(s32 *) (rec + 0xC);
+        *excl++ = id;
+        patch = func_802A50DC(lvl, id);
+        dl = func_802A51FC(lvl, dl, *(s32 *) (rec + 0), *(s32 *) (rec + 8), patch);
+        for (;;) {
+            rec += 0x14;
+            if (rec == recEnd || *(s32 *) (rec + 0xC) != id) {
+                break;
+            }
+            if (port_cell_listed(*(s32 *) (rec + 0x10))) {
+                dl = func_802A51FC(lvl, dl, *(s32 *) (rec + 4), *(s32 *) (rec + 8), 0);
+            }
+        }
+        for (g = grp; g != grpEnd; g += 0x14 + (*(s32 *) (g + 0x10) << 2)) {
+            if (id < *(s32 *) (g + 0xC)) {
+                break;
+            }
+            if (id == *(s32 *) (g + 0xC) && port_cells_listed((s32 *) (g + 0x14), *(s32 *) (g + 0x10))) {
+                dl = func_802A51FC(lvl, dl, *(s32 *) (g + 4), *(s32 *) (g + 8), 0);
+            }
+        }
+    }
+    dl = func_802A5334(lvl, dl, excl, grp, grpEnd);
+    dl[0] = 0xB8000000;
+    dl[1] = 0;
+    return dl + 2;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5FD50/func_802A4E4C.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

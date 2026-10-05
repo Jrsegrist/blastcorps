@@ -137,3 +137,54 @@ func_802A5334: -n 300 --seed 3 --follow func_802A50DC \
     --mem D_803C30A8:4=halves:3,5 --mem D_803C30A8+4:2=halves:0xFFFF \
     --mem D_803C2EB0:4=halves:2,4 --arg v1=rel:D_803C2EB0+2*int:0:2 \
     --mem D_803C3240=int --mem D_803C3244=int --mem D_803C324A:1=rand --mem D_803C324B:1=rand
+# [e1] func_802A470C(lvl, dataPtr, v, dataSize): pop a quad from D_803C2B88 (when empty: push the whole grid and
+# insertion-sort the visible cells [D_803C3178, D_803C3170) into D_803C30A8, -1 ended) and test it with
+# func_802A484C. Stubbed: stack depth 0-4, 0-16 cells (duplicates, negatives); then always empty; then followed.
+func_802A470C: -n 300 --ret void --arg a0=ptr:0x60 --mem @a0:8=halves:1,2,3,8,10,0xFFFF --mem @a0+0x48=int:0:0x10000 \
+    --arg a1=int --arg a2=int --arg a3=int --mem D_803C2B90:0x40=halves:0,1,2,3,0xFFFF \
+    --mem D_803C2B88=rel:D_803C2B90+8*int:0:4 --mem D_803C3178:0x20=halves:0,1,2,3,5,9,0xFFFF,0x8000,0x7FFF \
+    --mem D_803C3170=rel:D_803C3178+2*int:0:16 --mem D_803C30A8:0xC8=rand
+func_802A470C: -n 300 --seed 1 --ret void --arg a0=ptr:0x60 --mem @a0:8=halves:1,2,3,8 --mem @a0+0x48=int:0:0x10000 \
+    --arg a1=int --arg a2=int --arg a3=int --mem D_803C2B90:0x40=rand --mem D_803C2B88=sym:D_803C2B90 \
+    --mem D_803C3178:0x20=halves:0,1,1,2,7,0xFFFF,0x8000,0x7FFF --mem D_803C3170=rel:D_803C3178+2*int:0:16 \
+    --mem D_803C30A8:0xC8=rand
+func_802A470C: -n 50 --seed 2 --ret void --arg a0=ptr:0x60 --mem @a0+0x48=0x100 --arg a1=int --arg a2=int --arg a3=int \
+    --mem D_803C2B90:0x40=rand --mem D_803C2B88=sym:D_803C2B90 --mem D_803C3170=sym:D_803C3178 --mem D_803C30A8:0xC8=rand
+# followed: 4 x 4 grid of s16 pairs at lvl + 0x100, func_802A4B0C (the RSP test) stubbed visible / random
+func_802A470C: -n 300 --seed 3 --ret void --follow func_802A484C,func_802A49A8,func_802A4A50 --stub-ret func_802A4B0C=rand \
+    --arg a0=ptr:0x200 --mem @a0:4=halves:4 --mem @a0+4:4=halves:1,0x20,0xFFFF --mem @a0+0x48=0x100 \
+    --mem @a0+0x100:0x40=halves:0,1,0x7FFF,0x8000,0xFFFF,0x1234 --arg a1=int --arg a2=ptr:0x80 --arg a3=int \
+    --mem D_803C2B90*8:4/2=choice:0,1,2 --mem D_803C2B90+2*8:4/2=choice:0,1,2 --mem D_803C2B90+4*8:4/2=choice:1,2 --mem D_803C2B90+6*8:4/2=choice:1,2 --mem D_803C2B88=rel:D_803C2B90+8*int:0:3 \
+    --mem D_803C3178:0x20=halves:0,1,2,3,5,9 --mem D_803C3170=rel:D_803C3178+2*int:0:12 --mem D_803C30A8:0xC8=rand
+func_802A470C: -n 100 --seed 4 --ret void --follow func_802A484C,func_802A49A8,func_802A4A50 --stub-ret func_802A4B0C=1 \
+    --arg a0=ptr:0x200 --mem @a0:4=halves:4 --mem @a0+4:4=halves:1,0x20 --mem @a0+0x48=0x100 \
+    --mem @a0+0x100:0x40=halves:0,1,0x7FFF,0x8000,0xFFFF,0x1234 --arg a1=int --arg a2=ptr:0x80 --arg a3=int \
+    --mem D_803C2B90:0x40=rand --mem D_803C2B88=sym:D_803C2B90 --mem D_803C3178:0x20=rand \
+    --mem D_803C3170=rel:D_803C3178+2*int:0:12 --mem D_803C30A8:0xC8=rand
+# func_802A4E4C(lvl, dl, rec, recEnd, grp t8, grpEnd t9): fixed DL copy, then groups of visible records (cells
+# in the sorted list D_803C30A8) and of the variable-size records (n = 2 cells, 0x1C bytes), then func_802A5334.
+func_802A4E4C: -n 300 --stub-ret func_802A5334=ptr:0x40 --arg a0=ptr:0x100 --mem @a0+0x88=0x40 \
+    --mem @a0+0x8C=rel:0x40+8*int:0:4 --arg a1=ptr:0x100 --arg a2=ptr:0x80 --arg a3=rel:a2+0x14*int:0:5 \
+    --mem @a2+0xC*0x14:5=choice:1,2,2,3 --mem @a2+0x10*0x14:5=choice:0,1,2,3,5,7 \
+    --arg t8=ptr:0x60 --arg t9=rel:t8+0x1C*int:0:3 --mem @t8+0xC*0x1C:3=choice:1,2,3,4 --mem @t8+0x10*0x1C:3=2 \
+    --mem @t8+0x14*0x1C:3=choice:0,1,2,3,5 --mem @t8+0x18*0x1C:3=choice:1,3,5,7,9 \
+    --mem D_803C30A8:6=halves:1,2,3,5,7,0x8000 --mem D_803C30A8+6:2=halves:0xFFFF --mem D_803C2EB0:0x10=rand
+# empty visible list (first entry -1); every cell listed
+func_802A4E4C: -n 100 --seed 1 --stub-ret func_802A5334=ptr:0x40 --arg a0=ptr:0x100 --mem @a0+0x88=0x40 \
+    --mem @a0+0x8C=0x48 --arg a1=ptr:0x100 --arg a2=ptr:0x80 --arg a3=rel:a2+0x14*int:0:5 \
+    --mem @a2+0xC*0x14:5=choice:1,2 --mem @a2+0x10*0x14:5=choice:0,1 \
+    --arg t8=ptr:0x60 --arg t9=rel:t8+0x1C*int:0:3 --mem @t8+0xC*0x1C:3=choice:1,2 --mem @t8+0x10*0x1C:3=2 \
+    --mem @t8+0x14*0x1C:3=choice:0,1 --mem @t8+0x18*0x1C:3=choice:0,1 \
+    --mem D_803C30A8:6=halves:0xFFFF,0,1 --mem D_803C30A8+6:2=halves:0xFFFF --mem D_803C2EB0:0x10=rand
+# followed: display lists at lvl+0x40 (start) / +0x48 (alternate) / +0x70 (end), no animation record
+# (func_802A50DC returns 0), records as above
+func_802A4E4C: -n 300 --seed 2 --follow func_802A50DC,func_802A51FC,func_802A5334 --arg a0=ptr:0x100 \
+    --mem @a0+0x40:0x40=words:0xFD000000,0xFA000000,0x06000000,0x12345678 --mem @a0+0x2C=0x80 --mem @a0+0x30=0x80 \
+    --mem @a0+0x88=0xC0 --mem @a0+0x8C=rel:0xC0+8*int:0:4 --arg a1=ptr:0x400 --arg a2=ptr:0x80 \
+    --arg a3=rel:a2+0x14*int:0:5 --mem @a2*0x14:5=0x40 --mem @a2+4*0x14:5=0x48 --mem @a2+8*0x14:5=0x70 \
+    --mem @a2+0xC*0x14:5=choice:1,2,2,3 --mem @a2+0x10*0x14:5=choice:0,1,2,3,5,7 \
+    --arg t8=ptr:0x60 --arg t9=rel:t8+0x1C*int:0:3 --mem @t8*0x1C:3=0x40 --mem @t8+4*0x1C:3=0x48 --mem @t8+8*0x1C:3=0x70 \
+    --mem @t8+0xC*0x1C:3=choice:1,2,3,4 --mem @t8+0x10*0x1C:3=2 \
+    --mem @t8+0x14*0x1C:3=choice:0,1,2,3,5 --mem @t8+0x18*0x1C:3=choice:1,3,5,7,9 \
+    --mem D_803C30A8:6=halves:1,2,3,5,7,0x8000 --mem D_803C30A8+6:2=halves:0xFFFF --mem D_803C2EB0:0x10=rand
+# end-block

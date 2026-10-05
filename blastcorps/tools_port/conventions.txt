@@ -215,6 +215,10 @@ func_802A5334: in a0=a0,a1=a1,v1=a2,t8=a3,t9=stack0 ; out a1=ret ; clobbers gp
 func_802A50DC: in a0=a0,t4=a1 ; out gp=ret ; preserve a0,a1,a2,a3,t0,t1,t3,t4,t8,t9
 # copy a display list to a1 (returned advanced), patching it if gp
 func_802A51FC: in a0=a0,a1=a1,t5=a2,t6=a3,gp=stack0 ; out a1=ret ; preserve a0,a2,a3,t4,t7,t8,t9 ; clobbers gp
+# grid visibility step (lvl a0, task data a1-a3): quad stack D_803C2B88, cell lists; s0-s7 left changed
+func_802A470C: in a0=a0,a1=a1,a2=a2,a3=a3 ; clobbers s0-s7
+# visible-part display list: lvl a0, dl a1 (-> a1), records [a2, a3), groups [t8, t9); saves t0-t2
+func_802A4E4C: in a0=a0,a1=a1,a2=a2,a3=a3,t8=stack0,t9=stack1 ; out a1=ret ; preserve a0,t0,t1,t2,t8,t9 ; clobbers s0,s1,s2,gp
 
 # --- 60F60 ---
 # func_802A57AC reuses a0 (the record) and v1 (&D_803C4B54) after the call;

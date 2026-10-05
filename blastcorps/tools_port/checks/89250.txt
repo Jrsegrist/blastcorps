@@ -1,0 +1,19 @@
+# 89250: ring span helpers (func_802CE3B8, func_802CE4F0)
+
+# func_802CE3B8(idx): a candidate index 0x78 beyond the span end nearer to idx, or
+# func_802A6F6C() (stubbed rand) when the candidate falls outside the span
+func_802CE3B8: -n 400 --sig func_802A6F6C= --arg a0=int:0:0xFFF --mem D_803A7410:2=int:0:0xFFF --mem D_803A7412:2=int:0:0xFFF
+# boundaries: the 0x800 fold, the 0x78 step across 0 / 0x1000, equal ends, the empty 0/0xFFF span
+func_802CE3B8: -n 400 --seed 1 --sig func_802A6F6C= \
+    --arg a0=choice:0,1,0x77,0x78,0x79,0x7FF,0x800,0x801,0xF87,0xF88,0xF89,0xFFE,0xFFF \
+    --mem D_803A7410:2=halves:0,1,0x77,0x78,0x79,0x7FF,0x800,0x801,0xF87,0xF88,0xF89,0xFFE,0xFFF \
+    --mem D_803A7412:2=halves:0,1,0x77,0x78,0x79,0x7FF,0x800,0x801,0xF87,0xF88,0xF89,0xFFE,0xFFF
+# full u16 globals and sign-extended s16 idx (outside the 12-bit domain)
+func_802CE3B8: -n 300 --seed 2 --sig func_802A6F6C= --arg a0=choice:-0x8000,-0x1000,-1,0x1000,0x7FFF,0x7FF \
+    --mem D_803A7410:2=int:0:0xFFFF --mem D_803A7412:2=int:0:0xFFFF
+# the real fallback (each build's own func_802A6F6C)
+func_802CE3B8: -n 200 --seed 3 --follow func_802A6F6C --arg a0=int:0:0xFFF --mem D_803A7410:2=int:0:0xFFF --mem D_803A7412:2=int:0:0xFFF
+
+# func_802CE4F0(x, y, z): reset span to 0/0xFFF, store position, clear flags, set D_803A7408,
+# call func_802BCBD8 (random pre-fill so the zero stores show)
+func_802CE4F0: -n 100 --ret void --sig func_802BCBD8= --arg a0=int --arg a1=int --arg a2=int --mem D_803A73F0:0x40=rand

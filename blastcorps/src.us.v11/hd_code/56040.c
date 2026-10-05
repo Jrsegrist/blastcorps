@@ -33,7 +33,73 @@
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029B614.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u16 D_803A7410; /* ring index A (12-bit, 0..0xFFF) */
+extern u16 D_803A7412; /* ring index B */
+extern s32 D_80358064;
+extern u8 D_803A742C;
+extern u8 D_803A742D;
+extern u8 D_803A742E;
+extern u8 D_803A742F;
+s32 func_8029B930(void);
+
+/* Widens the ring span [D_803A7410, D_803A7412] to take in indices a and b
+ * (each first wrapped into 0..0xFFE by one +-0xFFF step, as in the asm).
+ * If the span is still the "empty" 0/0xFFF pair it is simply set to a/b.
+ * Otherwise B moves back to b when b is at or before B, and A moves on to a
+ * when a is after A, comparing 12-bit ring differences (<<20, signed).
+ * If the span got longer (func_8029B930 before vs after) and D_80358064 is
+ * set, D_803A742F is set, and if D_803A742C is set and D_803A742E clear,
+ * D_803A742D steps 1 -> 8, otherwise +1, and D_803A742E is set.
+ * Asm callers rely on preserved: func_8029B614 keeps f12, f14;
+ * func_8029CB04 keeps t1; func_802CE204 keeps t1, t3-t6, t8, f12, f14
+ * (the asm saves t0). The native port doesn't need a thunk. */
+void func_8029B7CC(s32 a, s32 b) {
+    s32 before;
+    u32 ca;
+    u32 cb;
+
+    if (a < 0) {
+        a += 0xFFF;
+    }
+    if (a >= 0x1000) {
+        a -= 0xFFF;
+    }
+    if (b < 0) {
+        b += 0xFFF;
+    }
+    if (b >= 0x1000) {
+        b -= 0xFFF;
+    }
+    before = func_8029B930();
+    ca = D_803A7410;
+    cb = D_803A7412;
+    if (ca == 0 && cb == 0xFFF) {
+        D_803A7410 = a;
+        D_803A7412 = b;
+        return;
+    }
+    ca <<= 20;
+    cb <<= 20;
+    if ((s32) (((u32) b << 20) - cb) <= 0) {
+        cb = (u32) b << 20;
+    }
+    if ((s32) (((u32) a << 20) - ca) > 0) {
+        ca = (u32) a << 20;
+    }
+    D_803A7410 = ca >> 20;
+    D_803A7412 = cb >> 20;
+    if (before < func_8029B930() && D_80358064 != 0) {
+        D_803A742F = 1;
+        if (D_803A742C != 0 && D_803A742E == 0) {
+            D_803A742D = (D_803A742D == 1) ? 8 : D_803A742D + 1;
+            D_803A742E = 1;
+        }
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029B7CC.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

@@ -57,7 +57,22 @@ void func_802A5720(void) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/60F60/func_802A5764.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+s32 func_802A57DC(u8 *rec);
+
+/* Processes the next 16-byte record at the cursor D_803C4B54 with
+ * func_802A57DC and advances the cursor by 0x10. The asm reuses the cursor
+ * value it passed (func_802A57DC preserves a0) rather than rereading it, and
+ * leaves func_802A57DC's v0 in v0 (the C caller declares it void). */
+void func_802A57AC(void) {
+    u8 *rec = D_803C4B54;
+
+    func_802A57DC(rec);
+    D_803C4B54 = rec + 0x10;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/60F60/func_802A57AC.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/60F60/func_802A57DC.s")

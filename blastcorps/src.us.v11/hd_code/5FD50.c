@@ -66,7 +66,25 @@ void func_802A45D4(s32 arg0) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+void func_802A470C(s32, Gfx *, Vtx *, s32);
+
+/* Skips D_803C3248 frames: while the counter is nonzero it just counts
+ * down; at zero it calls func_802A470C with the same four arguments.
+ * Register note: func_802A470C clobbers s0-s7 (the asm here saves s0-s7,
+ * gp and fp around it), and the asm passes f12/f14 through untouched. A
+ * mixed N64 build would need a thunk saving the s-registers around the
+ * asm callee; the native port (callee in C) doesn't. */
+void func_802A467C(s32 arg0, Gfx *arg1, Vtx *arg2, s32 arg3) {
+    if (D_803C3248 == 0) {
+        func_802A470C(arg0, arg1, arg2, arg3);
+    } else {
+        D_803C3248--;
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5FD50/func_802A467C.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5FD50/func_802A470C.s")

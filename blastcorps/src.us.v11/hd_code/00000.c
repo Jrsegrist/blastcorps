@@ -57,10 +57,11 @@ typedef struct {
     u8 pad0[0x240];
     Mtx unk240;
     Mtx unk280;
-    u8 pad2C0[0x1500 - 0x2C0];
+    Mtx unk2C0[0x49]; /* one per vehicle */
     Mtx unk1500;
     Mtx unk1540;
-    u8 pad1580[0x18C0 - 0x1580];
+    u8 pad1580[0x15C0 - 0x1580];
+    Vtx unk15C0[0x30]; /* vehicle shadow quads */
     Vtx unk18C0[4]; /* shadow quad */
     u8 pad1900[0x48B0 - 0x1900];
     Gfx dl[0xB5E]; /* TOPLEVEL_DL_SIZE */
@@ -99,9 +100,12 @@ typedef struct {
     u8 pad1014[4];
     s16 unk1018; /* shadow half-width */
     s16 unk101A; /* shadow half-depth */
-    u8 pad101C[6];
+    s16 unk101C; /* rotation x */
+    s16 unk101E; /* rotation y */
+    s16 unk1020; /* rotation z */
     u8 unk1022; /* id */
-    u8 pad1023[0x1D];
+    u8 unk1023; /* draw layer */
+    u8 pad1024[0x1C];
 } Vehicle; /* 0x1040 bytes */
 extern Vehicle *D_803643C8;
 extern u8 D_803643D9;
@@ -519,6 +523,11 @@ extern u8 D_00654FC0[]; /* level57 */
 extern u8 D_00660950[]; /* level58 */
 extern u8 D_00665F80[]; /* level59 */
 extern u8 D_0066C900[]; /* worldtextures */
+
+extern s16 D_80364440;
+extern s32 D_8036506C;
+extern u8 D_803ED40D;
+extern u8 D_802FA940[];
 
 /* (end of declarations) */
 
@@ -1297,7 +1306,134 @@ void *func_8024C404(void *arg0, s32 arg1, s32 *arg2) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_8024C414.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_8024E4F4.s")
+/* Draws the shadow quads of every vehicle on the given layer */
+void func_8024E4F4(Gfx **gfx, DynamicBuf *dyn, u8 layer) {
+    Gfx *gdl = *gfx;
+    s32 i;
+    s16 unused;
+    s16 x;
+    s16 y;
+    s16 z;
+    s16 w;
+    s16 d;
+    u8 all;
+    f32 mf[4][4];
+    f32 tmp[4][4];
+    s16 th;
+    s16 tw;
+    u8 spin;
+
+    if (layer == 0) {
+        D_8036506C = 0;
+    }
+    gDPPipeSync(gdl++);
+    gDPSetTexturePersp(gdl++, G_TP_PERSP);
+    gDPSetCycleType(gdl++, G_CYC_1CYCLE);
+    gSPClearGeometryMode(gdl++, -1);
+    gSPSetGeometryMode(gdl++, G_SHADE | G_SHADING_SMOOTH | G_CULL_BACK | G_LOD);
+    gSPTexture(gdl++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
+    gDPSetCombineMode(gdl++, G_CC_MODULATERGBA, G_CC_MODULATERGBA);
+    gDPSetTextureFilter(gdl++, G_TF_BILERP);
+    gDPSetRenderMode(gdl++, 0x504340, 0);
+    all = !D_803649E8 && (D_803649EC || (D_80364A90 & 0x1801));
+    i = 0;
+    while (&D_803643C8[i] != D_803643CC) {
+        if ((D_803643C8[i].unk1022 != 0 || all) && D_803643C8[i].unk1022 != 0xFE &&
+            (D_803643C8[i].unk1022 != 0xFF || !D_803EF6FF) &&
+            (D_803643C8[i].unk1022 == 0xFD || !D_80364A84 || !D_80364AC1) && D_803643C8[i].unk1023 == layer) {
+            x = D_803643C8[i].unk1004 >> 5;
+            y = D_803643C8[i].unk1008 >> 5;
+            z = D_803643C8[i].unk100C >> 5;
+            w = D_803643C8[i].unk1018;
+            d = D_803643C8[i].unk101A;
+            spin = D_803643C8[i].unk1022 == D_80364456 && D_803ED40D == 0x65;
+            if (spin) {
+                guRotateF(tmp, (f32) D_80364440 * 360.0 / 4096.0, 0.0f, 1.0f, 0.0f);
+            }
+            guRotateF(mf, (f32) -D_803643C8[i].unk101E * 360.0 / 4096.0, 0.0f, 1.0f, 0.0f);
+            if (spin) {
+                guMtxCatF(tmp, mf, mf);
+            }
+            guRotateF(tmp, (f32) D_803643C8[i].unk101C * 360.0 / 4096.0, 1.0f, 0.0f, 0.0f);
+            guMtxCatF(mf, tmp, tmp);
+            guRotateF(mf, (f32) D_803643C8[i].unk1020 * 360.0 / 4096.0, 0.0f, 0.0f, 1.0f);
+            guMtxCatF(tmp, mf, mf);
+            guRotateF(tmp, (f32) D_803643C8[i].unk101E * 360.0 / 4096.0, 0.0f, 1.0f, 0.0f);
+            guMtxCatF(mf, tmp, mf);
+            guTranslateF(tmp, x, y, z);
+            guMtxCatF(mf, tmp, mf);
+            guMtxF2L(mf, &dyn->unk2C0[i]);
+            if (spin) {
+                gDPLoadTextureBlock(gdl++, OS_K0_TO_PHYSICAL(D_802FA940), G_IM_FMT_IA, G_IM_SIZ_8b, 32, 32, 0,
+                                    G_TX_CLAMP, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
+                th = 32, tw = 32;
+            } else {
+                gDPLoadTextureBlock(gdl++, PHYS((u32) D_803643C8 + i * sizeof(Vehicle)), G_IM_FMT_IA, G_IM_SIZ_8b,
+                                    64, 64, 0, G_TX_CLAMP, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD,
+                                    G_TX_NOLOD);
+                th = 64, tw = 64;
+            }
+            dyn->unk15C0[D_8036506C].v.ob[0] = -w;
+            dyn->unk15C0[D_8036506C].v.ob[1] = 0;
+            dyn->unk15C0[D_8036506C].v.ob[2] = d;
+            dyn->unk15C0[D_8036506C].v.flag = 0;
+            dyn->unk15C0[D_8036506C].v.tc[0] = (th - 1) << 5;
+            dyn->unk15C0[D_8036506C].v.tc[1] = (tw - 1) << 5;
+            dyn->unk15C0[D_8036506C].v.cn[0] = 10;
+            dyn->unk15C0[D_8036506C].v.cn[1] = 10;
+            dyn->unk15C0[D_8036506C].v.cn[2] = 10;
+            dyn->unk15C0[D_8036506C].v.cn[3] = 0x8C;
+            D_8036506C++;
+            dyn->unk15C0[D_8036506C].v.ob[0] = w;
+            dyn->unk15C0[D_8036506C].v.ob[1] = 0;
+            dyn->unk15C0[D_8036506C].v.ob[2] = d;
+            dyn->unk15C0[D_8036506C].v.flag = 0;
+            dyn->unk15C0[D_8036506C].v.tc[0] = 0;
+            dyn->unk15C0[D_8036506C].v.tc[1] = (tw - 1) << 5;
+            dyn->unk15C0[D_8036506C].v.cn[0] = 10;
+            dyn->unk15C0[D_8036506C].v.cn[1] = 10;
+            dyn->unk15C0[D_8036506C].v.cn[2] = 10;
+            dyn->unk15C0[D_8036506C].v.cn[3] = 0x8C;
+            D_8036506C++;
+            dyn->unk15C0[D_8036506C].v.ob[0] = w;
+            dyn->unk15C0[D_8036506C].v.ob[1] = 0;
+            dyn->unk15C0[D_8036506C].v.ob[2] = -d;
+            dyn->unk15C0[D_8036506C].v.flag = 0;
+            dyn->unk15C0[D_8036506C].v.tc[0] = 0;
+            dyn->unk15C0[D_8036506C].v.tc[1] = 0;
+            dyn->unk15C0[D_8036506C].v.cn[0] = 10;
+            dyn->unk15C0[D_8036506C].v.cn[1] = 10;
+            dyn->unk15C0[D_8036506C].v.cn[2] = 10;
+            dyn->unk15C0[D_8036506C].v.cn[3] = 0x8C;
+            D_8036506C++;
+            dyn->unk15C0[D_8036506C].v.ob[0] = -w;
+            dyn->unk15C0[D_8036506C].v.ob[1] = 0;
+            dyn->unk15C0[D_8036506C].v.ob[2] = -d;
+            dyn->unk15C0[D_8036506C].v.flag = 0;
+            dyn->unk15C0[D_8036506C].v.tc[0] = (th - 1) << 5;
+            dyn->unk15C0[D_8036506C].v.tc[1] = 0;
+            dyn->unk15C0[D_8036506C].v.cn[0] = 10;
+            dyn->unk15C0[D_8036506C].v.cn[1] = 10;
+            dyn->unk15C0[D_8036506C].v.cn[2] = 10;
+            dyn->unk15C0[D_8036506C].v.cn[3] = 0x8C;
+            D_8036506C++;
+            if (D_803643D6 && !(D_80364AA8 & 0x81) && D_803643C8[i].unk1022 == D_80364456) {
+                gSPMatrix(gdl++, &D_02000000[0x55], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
+            }
+            gSPMatrix(gdl++, &D_02000000[i + 11], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
+            gSPVertex(gdl++, (Vtx *) D_02000000 + D_8036506C + 0x158, 4, 0);
+            gSP1Triangle(gdl++, 0, 1, 2, 0);
+            gSP1Triangle(gdl++, 0, 2, 3, 0);
+            gSPPopMatrix(gdl++, G_MTX_MODELVIEW);
+            if (D_803643D6 && !(D_80364AA8 & 0x81) && D_803643C8[i].unk1022 == D_80364456) {
+                gSPPopMatrix(gdl++, G_MTX_MODELVIEW);
+            }
+            gDPPipeSync(gdl++);
+        }
+        i++;
+    }
+    *gfx = gdl;
+}
 
 /* Draws the shadow quad under vehicle 0xFE */
 void func_8024F520(Gfx **gfx, DynamicBuf *dyn) {

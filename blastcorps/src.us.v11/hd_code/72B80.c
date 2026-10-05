@@ -91,6 +91,102 @@ void func_802B8278(void);
 void func_802B8424(void);
 void func_802B899C(void);
 void func_802B9B4C(void);
+void func_802B8D04(void);
+f32 func_802B98E0(void);
+void func_802B8C18(s32 t3, s32 fp, TriSideOut *f);
+s32 func_802ABC88(s32 id, s32 n, u8 **recOut);
+extern u8 D_803EEF40[]; /* the flying vehicle's animation channel table (Unk8029DEA0Entry, 56040.c) */
+extern u8 D_803EF240[]; /* the flying vehicle's state block */
+extern u8 *D_803EF2F8;  /* its model header */
+extern u8 *D_803EF2FC;  /* its model buffers */
+extern u8 *D_803EF300;
+extern s32 D_803EF310;  /* marker position x, y, z, w */
+extern s32 D_803EF314;
+extern s32 D_803EF318;
+extern s32 D_803EF31C;
+extern s16 D_803EF2E6;
+extern s16 D_803EF324;
+extern s16 D_803EF328;
+extern s16 D_803EF32A;
+extern u8 D_803EF32C;
+extern u8 D_803EF32D;
+extern u8 *D_80358070;  /* heap cursor */
+extern u8 D_803EEB70[]; /* vehicle 8's 0x300-byte animation channel table (also saved/restored) */
+extern s16 D_803EEF30;  /* vehicle 8's last ring-steered heading */
+extern s8 D_803EEF33;   /* ring steering active */
+extern u8 D_803EEF34;   /* throttle lockout frames */
+extern u8 D_80367BFF;
+extern u8 D_80305D30[];
+extern u8 D_803A7424;
+extern u8 D_803A7425;
+extern void *D_803F77D0;
+extern f32 D_8030D900;
+extern s32 D_803643E0; /* player x, y, z */
+extern s32 D_803643E4;
+extern s32 D_803643E8;
+extern s16 D_8036443C;
+extern s16 D_8036443E;
+extern s16 D_80364440;
+#ifndef ZONE_SCAN_REGS_DEFINED
+#define ZONE_SCAN_REGS_DEFINED
+/* func_802ABD54's scan registers (62740.c), in and out. */
+typedef struct {
+    s32 t6; /* zone x */
+    s32 t7; /* zone y */
+    s32 s0; /* zone z */
+    s32 s1; /* distance / level term */
+    s32 s2; /* zone radius */
+    s32 s3; /* scan counter / zone byte */
+    s32 s4; /* scan pointer / zone byte */
+} ZoneScanRegs;
+s32 func_802ABD54(s32 id, s32 x, s32 y, s32 z, ZoneScanRegs *r);
+#endif
+#ifndef OUT802A860C_DEFINED
+#define OUT802A860C_DEFINED
+/* func_802A860C's results besides its return value (62740.c). */
+typedef struct {
+    s32 t1; /* new z */
+    s32 s3; /* *px as read */
+    s32 fp; /* the cosine */
+} Out802A860C;
+#endif
+s32 func_802B78B0(ZoneScanRegs *r);
+void func_802B7F98(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4);
+s32 func_802B83B0(void);
+void func_802A75DC(u8 *veh, u8 *src, s32 *w0, s32 *w1, s32 *w2);
+u64 *func_802A768C(u8 *veh, u8 *dst, s32 *w0, s32 *w1, s32 *w2, u64 *src, u64 *dst2, s32 size, u64 **dst2End);
+void func_802C4724(s32 sfx);
+void func_802CB690(u8 *state);
+void func_802A7E70(s32 rate, u16 *angle);
+void func_802A785C(u8 *veh, s16 *speed, s32 mode, u8 *flags, s16 *bands, s32 delta);
+void func_802A7FD8(u8 *veh, u16 *heading, s32 rate, s16 *speedp, u16 *target, u16 *out, s8 *flag, s32 sound);
+f32 func_802A83B8(s16 *div, u8 *f, s32 *p, f32 *out);
+void func_802A843C(u8 *veh, s16 *speed, s32 kind, s8 *f, s32 *p, s32 clamp, f32 div);
+void func_802A7070(u8 *veh, s16 *angle);
+s32 func_802A860C(f32 f, s32 angle, s16 *len, s32 *px, s32 *pz, Out802A860C *out);
+void func_8029C52C(s32 tag);
+void func_8029AA10(s32 kind);
+void func_802BE77C(s32 id, u8 *vehicle);
+void func_8029A800(s32 z, s32 a1, s32 b2, s32 b3, s32 x, s32 y, s32 b0, s32 h1, s32 h2, s32 b4, s32 b8,
+                   u8 *veh);
+void func_8029A914(u8 *veh);
+s32 func_802A6F6C(void);
+void func_802A70D8(u8 *veh);
+s32 func_802A71DC(u8 *veh, s32 cur, s32 target, s32 *curOut, f32 scale);
+s32 func_802A746C(u8 *veh, s32 delta, s32 v1, s32 *targetOut);
+void func_802A6FE4(u8 *veh, s32 limit);
+void func_80258230(u8 id, s32 arg1, s16 arg2, s16 arg3);
+void func_8029E558(u8 *base, u8 *other, void *ch);
+s32 func_8029F85C(u32 *bufA, u32 *bufB, void *ch, u8 *hdr);
+void func_802A1388(s32 a0Val, s32 a1Val, s32 v0Val, s32 v1Val, u8 *hdr);
+void func_802A0290(void *base, s32 idx, s32 val);
+void func_802A0320(s32 idx, void *base);
+void func_802A039C(void *base, s32 idx, s32 val);
+void func_802A03D4(void *base, s32 idx, s32 val);
+void func_802A040C(void *base, s32 idx, s32 val);
+void func_802A0480(f32 f, void *base, s32 idx, s32 val);
+void func_80258230(u8 id, s32 arg1, s16 arg2, s16 arg3);
+void func_802AA838(u8 *src, u8 *dst, s32 off);
 
 #define VEH8_S16(off) (*(s16 *) (D_803EEE70 + (off)))
 #define VEH8_U16(off) (*(u16 *) (D_803EEE70 + (off)))
@@ -109,7 +205,108 @@ void func_802B9B4C(void);
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u8 D_803EEF32; /* effect cooldown */
+void func_802A754C(u8 *veh);
+s32 *func_802A992C(s16 *tbl, s32 y, s32 x, s32 z, s32 *dst, s32 *mid, s16 *angle, s32 key, s32 fpIn, u8 *veh,
+                   TriSideOut *f);
+void func_8029C354(s32 tag, u8 *p, u8 *end, u32 scale);
+void func_802B7A88(void);
+
+/* Sets up vehicle 8 (object 8) from the model header `hdr` at (x, y, z) with
+ * heading `heading` (called by the object dispatcher func_802A350C):
+ * D_803EEF24 = hdr, two 0x100-byte buffers from the heap D_80358070
+ * (D_803EEF28, D_803EEF2C; the cursor moves 0x200), the object record
+ * (func_802A1388(8, 0, buf1, buf2, hdr)), the state block D_803EEE70 reset
+ * (func_802A754C) with its wheel table +0x52..+0x68 = (+-200, 350) /
+ * (+-320, 500) pairs, position D_803EEF18..20, headings +0x4C/+0x4E/+0x74;
+ * the initial ground under the wheels (func_802A992C, key 8); the animated
+ * model (func_8029F85C(buf2, buf1, D_803EEB70, hdr)) with channel 0 started
+ * and animated into each buffer in turn; the throttle bands +0x78..+0x94;
+ * D_803EEF32/33/34 = 0; the parts (func_8029C354, tag 8, scale 0x32C8);
+ * marker record 8 (func_80258230(8, 0x3C, 25, 25)); one frame of
+ * func_802B7A88 with byte +0x9A set (no effects); and the model matrix copied
+ * from the second buffer to the first (func_802AA838).
+ * Register convention (conventions.txt): hdr s2, x t7, y s3, z s0, heading
+ * s1; func_802A992C's fp and f12-f26 inputs are the dispatcher's leftovers
+ * (here fp, f). The asm saves t0-t5 (asm caller func_802A350C keeps t1, t2
+ * live), points $gp at D_803EEE70 and leaves s0-s7, fp and the FP registers
+ * as its callees leave them. Its addi traps on overflow. Fidelity note: the
+ * func_802B7A88 call inherits leftover registers in the asm (its zone scan
+ * inputs t6, t7, s0-s4); the C version uses its own defaults. */
+void func_802B7340(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut *f) {
+    u8 *buf;
+    s16 *h;
+
+    D_803EEF24 = hdr;
+    buf = D_80358070;
+    D_803EEF28 = (u64 *) buf;
+    D_803EEF2C = (u64 *) (buf + 0x100);
+    D_80358070 = buf + 0x200;
+    func_802A1388(8, 0, (s32) D_803EEF28, (s32) D_803EEF2C, hdr);
+    func_802A754C(D_803EEE70);
+    h = (s16 *) (D_803EEE70 + 0x52);
+    h[0] = 0xC8;
+    h[1] = 0x15E;
+    h[2] = -0xC8;
+    h[3] = 0x15E;
+    h[4] = 0xC8;
+    h[5] = -0x15E;
+    h[6] = 0x140;
+    h[7] = 0x1F4;
+    h[8] = -0x140;
+    h[9] = 0x1F4;
+    h[10] = 0x140;
+    h[11] = -0x1F4;
+    D_803EEF18[0] = x;
+    D_803EEF18[1] = y;
+    D_803EEF18[2] = z;
+    VEH8_S16(0x4C) = heading;
+    VEH8_S16(0x4E) = heading;
+    VEH8_S16(0x74) = heading;
+    func_802A992C((s16 *) (D_803EEE70 + 0x52), D_803EEF18[1], x, z, (s32 *) (D_803EEE70 + 4),
+                  (s32 *) &D_803EEF18[1], (s16 *) (D_803EEE70 + 0x4C), 8, fp, D_803EEE70, f);
+    func_8029F85C((u32 *) D_803EEF2C, (u32 *) D_803EEF28, D_803EEB70, D_803EEF24);
+    func_802A039C(D_803EEB70, 0, 0x64);
+    func_802A03D4(D_803EEB70, 0, 0);
+    func_802A040C(D_803EEB70, 0, 0);
+    func_802A0480(0.0f, D_803EEB70, 0, 0);
+    func_802A0290(D_803EEB70, 0, 1);
+    func_8029E558((u8 *) D_803EEF28, (u8 *) D_803EEF2C, D_803EEB70);
+    func_802A0320(0, D_803EEB70);
+    func_802A0290(D_803EEB70, 0, 1);
+    func_8029E558((u8 *) D_803EEF2C, (u8 *) D_803EEF28, D_803EEB70);
+    h = (s16 *) (D_803EEE70 + 0x78);
+    h[0] = -0xB4;
+    h[1] = 0;
+    h[2] = 2;
+    h[3] = 0;
+    h[4] = 0x50;
+    h[5] = 4;
+    h[6] = 0x50;
+    h[7] = 0xA0;
+    h[8] = 5;
+    h[9] = 0xA0;
+    h[10] = 0xFA;
+    h[11] = 3;
+    h[12] = 0xFA;
+    h[13] = 0x15E;
+    h[14] = 2;
+    D_803EEF32 = 0;
+    D_803EEF33 = 0;
+    D_803EEF34 = 0;
+    hdr = D_803EEF24;
+    func_8029C354(8, hdr + *(s32 *) (hdr + 4), hdr + *(s32 *) (hdr + 8), 0x32C8);
+    func_80258230(8, 0x3C, 0x19, 0x19);
+    D_803EEE70[0x9A] = 1;
+    func_802B7A88();
+    D_803EEE70[0x9A] = 0;
+    hdr = D_803EEF24;
+    func_802AA838((u8 *) D_803EEF2C, (u8 *) D_803EEF28, *(s32 *) (hdr + *(s32 *) (hdr + 0x18) + 4));
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/72B80/func_802B7340.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -302,7 +499,180 @@ void func_802B7980(s32 id, f32 *f24) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Ring-steering branch of func_802B7A88 (D_803A7425 set): func_8029A914,
+ * D_803EEF33 = 1, then steer along the ring: func_802A70D8, func_802A71DC
+ * (heading +0x4E toward +0x4C, scale D_8030D900; the new index goes to
+ * D_803EEF30, +0x4E and +0x74), func_802A746C with that turn, func_802A6FE4
+ * (limit 0) and the object collision pass (func_802BE77C).
+ * The asm also computes |(+0x4E - 0x800, wrapped) - ring midpoint| (folded
+ * to <= 0x800) and then always branches past its use (a `slti 0xC8` test
+ * that is never reached); the value only survives in v1 as func_802A746C's
+ * pass-through input, which is reproduced. */
+static void port_b7a88_ring(void) {
+    s32 mid;
+    s32 d;
+    s32 cur;
+    s32 turn;
+    s32 target;
+
+    func_8029A914(D_803EEE70);
+    D_803EEF33 = 1;
+    mid = func_802A6F6C();
+    d = VEH8_U16(0x4E) - 0x800;
+    if (d < 0) {
+        d += 0xFFF;
+    }
+    d -= mid;
+    if (d < 0) {
+        d = -d;
+    }
+    if (d >= 0x801) {
+        d = 0xFFF - d;
+    }
+    func_802A70D8(D_803EEE70);
+    turn = func_802A71DC(D_803EEE70, VEH8_U16(0x4E), VEH8_U16(0x4C), &cur, D_8030D900);
+    D_803EEF30 = cur;
+    VEH8_S16(0x4E) = cur;
+    VEH8_S16(0x74) = cur;
+    func_802A746C(D_803EEE70, turn, d, &target);
+    func_802A6FE4(D_803EEE70, 0);
+    D_803F77D0 = D_803EEB70;
+    func_802BE77C(8, D_803EEE70);
+}
+
+/* Crash branch of func_802B7A88 (the object pass reported a hit): restore
+ * the state saved at the start of the frame (func_802A768C, 0x100 bytes of
+ * the other model buffer back), lock the throttle for 5 frames, bounce the
+ * speed to -max(|v|, 50) / 2 with the sign flipped (arithmetic >> 1), and
+ * re-place the model (func_802B8278). */
+static void port_b7a88_crash(void) {
+    u64 *end;
+    s32 v;
+
+    D_803EEF33 = 0;
+    if (D_8035805C != 0) {
+        func_802A768C(D_803EEE70, D_803EEB70, (s32 *) &D_803EEF18[0], (s32 *) &D_803EEF18[1],
+                      (s32 *) &D_803EEF18[2], D_803EEF2C, D_803EEF28, 0x100, &end);
+    } else {
+        func_802A768C(D_803EEE70, D_803EEB70, (s32 *) &D_803EEF18[0], (s32 *) &D_803EEF18[1],
+                      (s32 *) &D_803EEF18[2], D_803EEF28, D_803EEF2C, 0x100, &end);
+    }
+    D_803EEF34 = 5;
+    v = VEH8_S16(0x76);
+    if (v >= 0) {
+        if (v < 0x32) {
+            v = 0x32;
+        }
+    } else if (!(v < -0x31)) {
+        v = -0x32;
+    }
+    VEH8_S16(0x76) = -v >> 1;
+    func_802B8278();
+}
+
+/* Per-frame update of vehicle 8 while driven (hd.c's func_8024B7AC, and
+ * func_802B7340). Zone lookup (func_802B78B0), save the state for a crash
+ * rollback (func_802A75DC), engine sound 0xA4 (func_802C4724); unless byte
+ * +0x9A is set, trail and effects (func_802B7F98, fed the zone scan
+ * registers); func_802CB690 while D_80367BFF is set; func_802B8424; steering
+ * (func_802A7E70 at the rate func_802B83B0 returns) and, unless the throttle
+ * lockout D_803EEF34 is counting down, throttle (func_802A785C: mode 3,
+ * delta 0x10); heading (func_802A7FD8: rate 6000, with sound), slope
+ * (func_802A83B8 into the f32 at +0, then func_802A843C: kind 8, clamp, div
+ * 700.0), func_802A7070 while D_803EEF33 is set; move (func_802A860C along
+ * +0x4E) and ground contact (func_802A8768, id 8, divisors 0x2BC/0x190, after
+ * D_803ED40B = 1); animate (func_8029E558 into the current buffer of
+ * D_803EEF28/2C) and place the model (func_802B8278); collision state reset
+ * (func_8029A800: b2 = b3 = 1, b0 = 7, h1 = speed, h2 = 0x96, b8 = 8),
+ * part contacts (func_8029C52C(8)) and world collision (func_8029AA10(8)).
+ * Without a ring hit (D_803A7425 clear): D_803A7424 = 0 and the object pass
+ * (func_802BE77C) - a hit there takes the crash branch, else D_803EEF33 = 0;
+ * with one: the ring-steering branch. Finally the player position/speed/
+ * headings D_803643E0..E8 / D_8036443C..40 are copied from the vehicle and
+ * the position reported (func_802A133C(z, 8, x, y)).
+ * Fidelity notes: the asm feeds func_802B78B0 its C caller's t6, t7, s0-s4
+ * (scan registers, 0 here) and func_802A8768 the FP registers left by
+ * func_802A860C's sine routines and earlier code (zeros here). The asm's
+ * add/neg trap on overflow. */
+void func_802B7A88(void) {
+    ZoneScanRegs zr;
+    Out802A860C o;
+    Regs802A8768 rr;
+    TriSideOut f;
+    s32 x;
+    f32 slope;
+
+    zr.t6 = zr.t7 = zr.s0 = zr.s1 = zr.s2 = zr.s3 = zr.s4 = 0;
+    func_802B78B0(&zr);
+    func_802A75DC(D_803EEE70, D_803EEB70, (s32 *) &D_803EEF18[0], (s32 *) &D_803EEF18[1],
+                  (s32 *) &D_803EEF18[2]);
+    func_802C4724(0xA4);
+    if ((s8) D_803EEE70[0x9A] == 0) {
+        func_802B7F98(zr.t6, zr.t7, zr.s0, zr.s1, zr.s2, zr.s3, zr.s4);
+    }
+    if (D_80367BFF != 0) {
+        func_802CB690(D_803EEE70);
+    }
+    func_802B8424();
+    func_802A7E70(func_802B83B0(), (u16 *) (D_803EEE70 + 0x4C));
+    if (D_803EEF34 == 0) {
+        func_802A785C(D_803EEE70, (s16 *) (D_803EEE70 + 0x76), 3, D_803EEE70 + 0x96, (s16 *) (D_803EEE70 + 0x78),
+                      0x10);
+    } else {
+        D_803EEF34--;
+    }
+    func_802A7FD8(D_803EEE70, (u16 *) (D_803EEE70 + 0x74), 0x1770, (s16 *) (D_803EEE70 + 0x76),
+                  (u16 *) (D_803EEE70 + 0x4C), (u16 *) (D_803EEE70 + 0x4E), (s8 *) (D_803EEE70 + 0x99), 1);
+    slope = func_802A83B8((s16 *) (D_803EEE70 + 0x76), D_803EEE70 + 0x96, (s32 *) (D_803EEE70 + 4),
+                          (f32 *) D_803EEE70);
+    func_802A843C(D_803EEE70, (s16 *) (D_803EEE70 + 0x76), 8, (s8 *) (D_803EEE70 + 0x96), (s32 *) (D_803EEE70 + 4),
+                  1, 700.0f);
+    if (D_803EEF33 != 0) {
+        func_802A7070(D_803EEE70, &D_803EEF30);
+    }
+    x = func_802A860C(slope, VEH8_U16(0x4E), (s16 *) (D_803EEE70 + 0x76), (s32 *) &D_803EEF18[0],
+                      (s32 *) &D_803EEF18[2], &o);
+    D_803ED40B = 1;
+    rr.s3 = o.s3;
+    f.pz = f.cross = f.cz = f.side = f.sideZ = f.dz = 0.0f;
+    func_802A8768(D_803EEE70, 8, (s32 *) &D_803EEF18[0], (s32 *) &D_803EEF18[1], (s32 *) &D_803EEF18[2], x, o.t1,
+                  0x2BC, 0x190, (s16 *) (D_803EEE70 + 0x4C), D_803EEE70 + 0x96, (s16 *) (D_803EEE70 + 0x52),
+                  (s32 *) (D_803EEE70 + 0x28), (s32 *) (D_803EEE70 + 0x40), (s32 *) (D_803EEE70 + 0x34),
+                  (s32 *) (D_803EEE70 + 4), &rr, &f);
+    if (D_8035805C != 0) {
+        func_8029E558((u8 *) D_803EEF28, (u8 *) D_803EEF2C, D_803EEB70);
+    } else {
+        func_8029E558((u8 *) D_803EEF2C, (u8 *) D_803EEF28, D_803EEB70);
+    }
+    func_802B8278();
+    func_8029A800(D_803EEF18[2], (s32) D_80305D30, 1, 1, D_803EEF18[0], D_803EEF18[1], 7, VEH8_S16(0x76), 0x96, 0,
+                  8, D_803EEE70);
+    func_8029C52C(8);
+    func_8029AA10(8);
+    if (D_803A7425 == 0) {
+        D_803A7424 = 0;
+        D_803F77D0 = D_803EEB70;
+        func_802BE77C(8, D_803EEE70);
+        if (D_803A7424 != 0) {
+            port_b7a88_crash();
+        } else {
+            D_803EEF33 = 0;
+        }
+    } else {
+        port_b7a88_ring();
+    }
+    D_803643E0 = D_803EEF18[0];
+    D_803643E4 = D_803EEF18[1];
+    D_803643E8 = D_803EEF18[2];
+    D_8036443C = VEH8_S16(0x76);
+    D_8036443E = VEH8_U16(0x4E);
+    D_80364440 = VEH8_U16(0x4C);
+    func_802A133C(D_803EEF18[2], 8, D_803EEF18[0], D_803EEF18[1], D_803EEE70);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/72B80/func_802B7A88.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -492,7 +862,72 @@ void func_802B8424(void) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Sets up the flying vehicle (object 0xFE) from the model header `hdr`
+ * (called by the object dispatcher func_802A3134): D_803EF2F8 = hdr, two
+ * 0x800-byte buffers from the heap D_80358070 (D_803EF2FC, D_803EF300; the
+ * cursor moves 0x1000), the object record (func_802A1388(0xFE, a1Val, buf1,
+ * buf2, hdr)), state block D_803EF240: heading +0x4C/+0x4E = 0, speed +0x76 =
+ * 20, D_803EF32A / D_803EF2E6 / D_803EF328 = 0; the animated model
+ * (func_8029F85C(buf2, buf1, D_803EEF40, hdr)) and its channels (0: 100, 0,
+ * 0, 0.0f/0, started; animated into each buffer in turn with channel 0
+ * reset in between; 1: 9 looping; 2, 3 looping; 4: 1, 1, 1 started), state
+ * D_803EF32C / D_803EF324 / D_803EF32D / D_803EF31C = 0, marker record 0xFE
+ * (func_80258230(0xFE, 0x78, 0x2D, 0x2D)), one frame of func_802B899C, and
+ * the model matrix copied from the second buffer to the first
+ * (func_802AA838 at header word [header word 0x18 + 4]).
+ * Register convention (conventions.txt): a1Val a1, hdr s2. The asm saves
+ * t0-t5 (asm caller func_802A3134 keeps t1 live), points $gp at D_803EF240
+ * and leaves s0-s7, fp, f20, f30 as its callees leave them. Its addi traps on
+ * overflow. Fidelity note: the asm caller's fp, f24 and f26 reach
+ * func_802B899C's callees as leftovers (not modelled, see func_802B899C). */
+void func_802B8480(s32 a1Val, u8 *hdr) {
+    u8 *buf;
+
+    D_803EF2F8 = hdr;
+    buf = D_80358070;
+    D_803EF2FC = buf;
+    D_803EF300 = buf + 0x800;
+    D_80358070 = buf + 0x1000;
+    func_802A1388(0xFE, a1Val, (s32) D_803EF2FC, (s32) D_803EF300, hdr);
+    *(s16 *) (D_803EF240 + 0x4C) = 0;
+    *(s16 *) (D_803EF240 + 0x4E) = 0;
+    D_803EF32A = 0;
+    *(s16 *) (D_803EF240 + 0x76) = 0x14;
+    D_803EF2E6 = 0;
+    D_803EF328 = 0;
+    func_8029F85C((u32 *) D_803EF300, (u32 *) D_803EF2FC, D_803EEF40, D_803EF2F8);
+    func_802A039C(D_803EEF40, 0, 0x64);
+    func_802A03D4(D_803EEF40, 0, 0);
+    func_802A040C(D_803EEF40, 0, 0);
+    func_802A0480(0.0f, D_803EEF40, 0, 0);
+    func_802A0290(D_803EEF40, 0, 1);
+    func_8029E558(D_803EF2FC, D_803EF300, D_803EEF40);
+    func_802A0320(0, D_803EEF40);
+    func_802A0290(D_803EEF40, 0, 1);
+    func_8029E558(D_803EF300, D_803EF2FC, D_803EEF40);
+    func_802A039C(D_803EEF40, 1, 9);
+    func_802A03D4(D_803EEF40, 1, 0);
+    func_802A040C(D_803EEF40, 1, 0);
+    func_802A0290(D_803EEF40, 1, -1);
+    func_802A0290(D_803EEF40, 2, -1);
+    func_802A0290(D_803EEF40, 3, -1);
+    func_802A039C(D_803EEF40, 4, 1);
+    func_802A03D4(D_803EEF40, 4, 1);
+    func_802A040C(D_803EEF40, 4, 1);
+    func_802A0290(D_803EEF40, 4, 1);
+    D_803EF32C = 0;
+    D_803EF324 = 0;
+    D_803EF32D = 0;
+    D_803EF31C = 0;
+    func_80258230(0xFE, 0x78, 0x2D, 0x2D);
+    func_802B899C();
+    hdr = D_803EF2F8;
+    func_802AA838(D_803EF300, D_803EF2FC, *(s32 *) (hdr + *(s32 *) (hdr + 0x18) + 4));
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/72B80/func_802B8480.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -554,7 +989,42 @@ void func_802B8794(void) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Per-frame update of the flying vehicle (hd.c's func_802475D8, and
+ * func_802B8480): state machine (func_802B8D04), sound/animation channels
+ * (func_802B98E0), animate the model into the current buffer
+ * (func_8029E558; D_8035805C picks D_803EF2FC or D_803EF300), place it
+ * (func_802B9B4C), copy point record 1 of object 0xFE (func_802ABC88) to the
+ * marker position D_803EF310/14/18, and drop the marker on the ground
+ * (func_802B8C18).
+ * func_802B8C18's t3 (the height when the marker is outside the level) is the
+ * header pointer D_803EF2F8: func_802B9B4C leaves it in t3 and nothing after
+ * changes it - reproduced here. Fidelity note: its fp and f12-f26 inputs are
+ * leftovers (fp from func_8029E558's callees, the FP registers from the C
+ * caller and the callees above); the C passes 0 and zeros. The asm saves every
+ * callee-saved register. */
+void func_802B899C(void) {
+    TriSideOut f;
+    u8 *rec;
+
+    func_802B8D04();
+    func_802B98E0();
+    if (D_8035805C != 0) {
+        func_8029E558(D_803EF2FC, D_803EF300, D_803EEF40);
+    } else {
+        func_8029E558(D_803EF300, D_803EF2FC, D_803EEF40);
+    }
+    func_802B9B4C();
+    func_802ABC88(0xFE, 1, &rec);
+    D_803EF310 = ((s32 *) rec)[0];
+    D_803EF314 = ((s32 *) rec)[1];
+    D_803EF318 = ((s32 *) rec)[2];
+    f.pz = f.cross = f.cz = f.side = f.sideZ = f.dz = 0.0f;
+    func_802B8C18((s32) D_803EF2F8, 0, &f);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/72B80/func_802B899C.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

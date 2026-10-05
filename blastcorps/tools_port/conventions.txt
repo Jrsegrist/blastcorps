@@ -456,6 +456,8 @@ func_802C7C1C: in s2=a0 ; out f2=fret ; clobbers s3
 func_802C7DFC: out s3=ret ; preserve a0,a1,a2,a3
 func_802C7ECC: preserve a0,a1,a2,a3,t3,t4,t6,f12,f14
 func_802C7F28: preserve a0,a1,a2,a3,t3,t4,f12,f14
+# load vehicle 9 (dispatcher func_802A350C): x t7, y s3, z s0, heading s1, model s2, $fp on to func_802A992C; s-/FP leftovers not modelled
+func_802C5120: in t7=a0,s3=a1,s0=a2,s1=a3,s2=stack0,fp=stack1 ; preserve t0,t1,t2,t3,t4,t5 ; clobbers s0-s7,fp,gp,f20,f22,f24,f26,f28,f30
 # move while not the player's vehicle (C func_8024B618): $fp (leaked from the caller) goes on to func_802A9A60
 func_802C5860: in fp=a0
 # set down on triangle id (a3): func_802AAE54 / func_802A8768 / func_802C7CB0; s3 in/out and the FP state, gp left = D_803F7B50
@@ -650,6 +652,8 @@ func_802CB224: preserve a1,a2,a3
 func_802CB3C8: in s2=a0 ; out f2=fret ; preserve a1,a2,a3 ; clobbers s3
 # rounded speed/divisor ($gp = D_803F8AA0) in s3
 func_802CB564: out s3=ret ; preserve a0,a1,a2,a3
+# load vehicle 10 (dispatcher func_802A350C): x t7, y s3, z s0, heading s1, model s2, $fp on to func_802A992C; s-/FP leftovers not modelled
+func_802C9B90: in t7=a0,s3=a1,s0=a2,s1=a3,s2=stack0,fp=stack1 ; preserve t0,t1,t2,t3,t4,t5 ; clobbers s0-s7,fp,gp,f20,f22,f24,f26,f28,f30
 # move while not the player's vehicle: $fp (leaked from the caller) goes on to func_802A9A60
 func_802CA1F8: in fp=a0
 # value pairs at the vehicle's x/z and at ground slot 0 via func_802AAD0C (id in a3); its FP results pass through; gp left = D_803F8AA0

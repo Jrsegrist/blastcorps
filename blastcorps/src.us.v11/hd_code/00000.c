@@ -39,7 +39,10 @@ extern Unk74 *D_803649D0;
 
 /* one per frame buffer, 0x21498 bytes */
 typedef struct {
-    u8 pad0[0x48B0];
+    u8 pad0[0x1500];
+    Mtx unk1500;
+    Mtx unk1540;
+    u8 pad1580[0x48B0 - 0x1580];
     Gfx dl[0xB5E]; /* TOPLEVEL_DL_SIZE */
     u8 padA3A0[0x21498 - 0xA3A0];
 } DynamicBuf;
@@ -66,7 +69,16 @@ typedef struct {
 extern LevelInfo D_802E8F94[];
 extern u8 D_803B9888;
 extern u8 D_80358088[];
-extern s32 D_803643C8;
+typedef struct {
+    u8 pad0[0x1004];
+    s32 unk1004;
+    s32 unk1008;
+    s32 unk100C;
+    u8 pad1010[0x12];
+    u8 unk1022;
+    u8 pad1023[0x1D];
+} Vehicle; /* 0x1040 bytes */
+extern Vehicle *D_803643C8;
 extern u8 D_803643D9;
 extern u8 D_803643DA;
 extern u8 D_803643D8;
@@ -173,6 +185,14 @@ extern u16 D_8035807C;
 extern s32 D_80358074;
 extern Gfx D_01000010[]; /* segment 1 */
 void func_802A467C(s32, Gfx *, Vtx *, s32);
+
+extern s32 D_803643E4;
+extern s32 D_80364AA8;
+extern f32 D_80364AB4;
+extern f32 D_80364AB8;
+extern f32 D_80364ABC;
+extern u8 D_80364AC0;
+void func_802AC61C(s32, s32, s32, s32, s32);
 
 /* (end of declarations) */
 
@@ -349,7 +369,53 @@ void *func_8024C404(void *arg0, s32 arg1, s32 *arg2) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_8024FC2C.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_802502EC.s")
+/* Spins and shrinks the selected vehicle's matrices (vehicle eject effect?) */
+void func_802502EC(void) {
+    f32 mf[4][4];
+    f32 tmp[4][4];
+    s32 i;
+    s16 x;
+    s16 y;
+    s16 z;
+
+    if (D_803643D6 != 0 && !(D_80364AA8 & 0x81)) {
+        guTranslateF(mf, -(f32) D_803643E0 / 32.0, -(f32) D_803643E4 / 32.0, -(f32) D_803643E8 / 32.0);
+        guScaleF(tmp, D_80364ABC, D_80364ABC, D_80364ABC);
+        guMtxCatF(mf, tmp, mf);
+        guRotateF(tmp, D_80364AB4, 0.0f, 1.0f, 0.0f);
+        guMtxCatF(mf, tmp, mf);
+        guTranslateF(tmp, (f32) D_803643E0 / 32.0, (f32) D_803643E4 / 32.0, (f32) D_803643E8 / 32.0);
+        guMtxCatF(mf, tmp, mf);
+        guMtxF2L(mf, &D_803156F8[D_8035805C].unk1500);
+        i = 0;
+        while (D_803643C8[i].unk1022 != D_80364456) {
+            i++;
+        }
+        x = D_803643C8[i].unk1004 >> 5;
+        y = D_803643C8[i].unk1008 >> 5;
+        z = D_803643C8[i].unk100C >> 5;
+        guTranslateF(mf, -x, -y, -z);
+        guScaleF(tmp, D_80364ABC, D_80364ABC, D_80364ABC);
+        guMtxCatF(mf, tmp, mf);
+        guRotateF(tmp, D_80364AB4, 0.0f, 1.0f, 0.0f);
+        guMtxCatF(mf, tmp, mf);
+        guTranslateF(tmp, x, y, z);
+        guMtxCatF(mf, tmp, mf);
+        guMtxF2L(mf, &D_803156F8[D_8035805C].unk1540);
+        if (D_80364AC0 == 0) {
+            D_80364ABC = D_80364ABC - 0.04;
+            if (D_80364ABC < 0.0) {
+                D_80364ABC = 0.0f;
+            }
+        }
+        if (D_80364ABC == 0.0 && D_80364AC0 == 0) {
+            func_802AC61C(D_803643E0, D_803643E4, D_803643E8, 0x13, 400000);
+            D_80364AC0 = 1;
+        }
+        D_80364AB4 += D_80364AB8;
+        D_80364AB8 = D_80364AB8 + 3.0;
+    }
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_802507C8.s")
 
@@ -612,7 +678,7 @@ void func_80255DC8(void) {
     }
     D_803B9888 = 0;
     func_802A0700();
-    D_803643C8 = ((u32) D_80358088 + 0x40) & ~0x3F;
+    D_803643C8 = (Vehicle *) (((u32) D_80358088 + 0x40) & ~0x3F);
     func_80278E3C();
     D_803643D9 = 0;
     D_803643DA = 0;

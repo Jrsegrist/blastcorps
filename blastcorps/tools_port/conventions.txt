@@ -32,8 +32,30 @@
 func_8029DC14: in v0=a0 ; out v1=ret
 
 # --- 60F60 ---
-# func_802A57AC reuses a0 (the record) and v1 (&D_803C4B54) after the call
-func_802A57DC: preserve a0,v1
+# func_802A57AC reuses a0 (the record) and v1 (&D_803C4B54) after the call;
+# func_802A08E4 / func_802A0CFC keep f12, f14
+func_802A57DC: preserve a0,v1,f12,f14
+
+# append four words at the D_803C4B50 cursor
+func_802A5764: in s1=a0,s2=a1,s3=a2,fp=a3 ; preserve v0,v1,f12,f14
+
+# func_802A57DC's decoders: src a0, size a1, dst a3 (advanced dst returned in a3), table t4
+func_802A5958: in a0=a0,a1=a1,a3=a2 ; out a3=ret
+func_802A5A2C: in a0=a0,a1=a1,a3=a2 ; out a3=ret
+func_802A5AE0: in a0=a0,a1=a1,a3=a2 ; out a3=ret
+func_802A5B90: in a0=a0,a1=a1,a3=a2 ; out a3=ret
+func_802A5C5C: in a0=a0,a1=a1,a3=a2,t4=a3 ; out a3=ret
+func_802A5D34: in a0=a0,a1=a1,a3=a2,t4=a3 ; out a3=ret
+func_802A5E10: in a0=a0,a1=a1,a3=a2 ; out a3=ret
+
+# number of active D_803C4B70 records
+func_802A5ED0: out t0=ret ; preserve a0,a1,a2,a3,t6,t7,f12,f14
+
+# fill a 4-vertex quad: w v1, Vtx* t1, colour bytes t7, x s2, y s3, h s5
+func_802A6C10: in v1=a0,t1=a1,t7=a2,s2=a3,s3=stack0,s5=stack1 ; preserve a0,a1,a2,a3,t0,t1,t3,t4,t5,t7,t8,t9,f12,f14
+
+# t2 = obj(t4)[0x3B] ? &D_803EB784 : &D_803EB780
+func_802A6EB8: in t4=a0 ; out t2=ret ; preserve a0,a1,a2,a3,t0,t1,t3,t4,t5,t8,f12,f14
 
 # --- 62740 ---
 # rounded 3-D distance between (t3,t4,t5) and (t6,t7,s0); 64-bit squares, cvt.d.l/sqrt.d/cvt.l.d
@@ -43,5 +65,13 @@ func_802ABCDC: in t3=a0,t4=a1,t5=a2,t6=a3,t7=stack0,s0=stack1 ; out s1=ret ; pre
 func_802AB8D8: in s2=a0 ; out t0=ret ; preserve t1,t2,t3,t4,s3 ; clobbers s2
 
 # --- 679E0 ---
+# s32 16.16 matrix (s2) to Mtx layout in place; saves everything
+func_802AC8CC: in s2=a0 ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,f8,f12,f14
+# translation / scale matrix: x t0, y t1, z t2, m t3
+func_802ACA60: in t0=a0,t1=a1,t2=a2,t3=a3 ; preserve a0,a1,a2,a3,t0,t1,t2,t3,t4,t6,t7,t8,f12,f14
+func_802ACC68: in t0=a0,t1=a1,t2=a2,t3=a3 ; preserve a0,a1,a2,a3,t4,f12,f14
+# m(s2) = m * b(a0), 16.16 with s64 sums, via D_803ED420; leaves a1=4, a2=4, a3=0
+func_802ACCCC: in a0=a0,s2=a1 ; preserve a0,t2,t4,t5,t6,t7,t8,f8,f12,f14
+
 # interpolated lookup in the u16 table D_802ACFD0[0x401]; saves a0, a1, v1
 func_802ACF64: in v1=a0 ; out fp=ret ; preserve a0,a1,v1

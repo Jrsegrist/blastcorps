@@ -19,3 +19,20 @@ func_802ACF64: -n 300 --seed 2 --arg v1=int:0:0x40000
 func_802ACF3C: -n 200 --arg a0=int
 func_802ACF3C: -n 300 --seed 1 --follow func_802ACF64 --arg a0=int
 func_802ACF3C: -n 100 --seed 2 --follow func_802ACF64 --arg a0=choice:0,0x3FF00,0x3FFFF,0x40000,-1
+
+# func_802AC8CC (non-ABI: m in s2): s32 16.16 matrix to Mtx layout (int halves, then fraction halves), in place
+func_802AC8CC: -n 200 --arg a0=ptr:0x40
+func_802AC8CC: -n 50 --seed 1 --arg s2=ptr:0x40 --mem @s2:0x40=halves:0,0xFFFF,0x8000,0x7FFF,1
+
+# func_802ACA60 / func_802ACC68 (non-ABI: x t0, y t1, z t2, m t3): translation / scale matrix
+func_802ACA60: -n 200 --arg a0=int --arg a1=int --arg a2=int --arg a3=ptr:0x40
+func_802ACA60: -n 50 --seed 1 --arg t0=choice:0,-1,0x10000,0x80000000 --arg t1=0 --arg t2=0x7FFFFFFF --arg t3=ptr:0x40
+func_802ACC68: -n 200 --arg a0=int --arg a1=int --arg a2=int --arg a3=ptr:0x40
+func_802ACC68: -n 50 --seed 1 --arg t0=choice:0,-1,0x10000,0x80000000 --arg t1=0 --arg t2=0x7FFFFFFF --arg t3=ptr:0x40
+
+# func_802ACCCC (non-ABI: b in a0, m in s2): m = m * b, 16.16, s64 sums >> 16 through D_803ED420
+func_802ACCCC: -n 300 --arg a0=ptr:0x40 --arg a1=ptr:0x40 --mem D_803ED420:0x40=rand
+func_802ACCCC: -n 100 --seed 1 --arg a0=ptr:0x40 --arg a1=ptr:0x40 --mem D_803ED420:0x40=rand \
+    --mem @a0:0x40=words:0,1,-1,0x10000,-0x10000,0x7FFFFFFF,0x80000000,0x8000 --mem @a1:0x40=words:0,1,-1,0x10000,-0x10000,0x7FFFFFFF,0x80000000,0xFFFF
+# b == m (squaring in place)
+func_802ACCCC: -n 50 --seed 2 --arg a0=ptr:0x40 --arg a1=rel:a0 --mem D_803ED420:0x40=rand

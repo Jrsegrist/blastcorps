@@ -53,3 +53,69 @@ func_802A57AC: -n 100 --seed 1 --ret void --follow-all --mem D_803C4B54=ptr:0x10
 # func_802A57AC with func_802A57DC stubbed: conventions.txt says it preserves a0 and v1, so the stub
 # leaves them and the asm reference no longer faults (cursor a valid pointer: addi traps on overflow)
 func_802A57AC: -n 100 --seed 2 --ret void --sig func_802A57DC=a0 --mem D_803C4B54=rel:heap+0x10*int:0:100
+
+# func_802A5764 (non-ABI: s1, s2, s3, fp): append four words at the cursor D_803C4B50, cursor += 0x10
+func_802A5764: -n 200 --ret void --mem D_803C4B50=rel:heap+0x10*int:0:8 --heap 0x100 --arg a0=int --arg a1=int --arg a2=int --arg a3=int
+func_802A5764: -n 50 --seed 1 --ret void --heap 0x40 --mem D_803C4B50=rel:heap0 --arg s1=choice:0,-1,0x80000000 --arg s2=0 --arg s3=-1 --arg fp=0x7FFFFFFF
+
+# Decoders of func_802A57DC (non-ABI: src a0, size a1, dst a3 -> advanced dst in a3, table t4).
+# dst = heap0+0x1000 (back-references reach up to 0x7FC bytes back), src = heap1. Token pools:
+# literals, and back-references whose offset field is even (odd byte offsets fault on lhu/lw):
+# 0x8041 (2 back, 1 unit), 0x8443 (0x22, 3), 0x8C5F (0x62, 31), 0xFFC1 (0x3FE, 1), 0x8000 (0 units).
+func_802A5958: -n 300 --heap 0x2000 --heap 0x40 --arg a0=rel:heap1 --arg a3=rel:heap0+0x1000 --arg a1=choice:0,2,4,0x10,0x20,0x3E,0x40 \
+    --mem @heap1:0x40=halves:0x1234,0x0042,0x7FFF,0x0000,0x00FF,0x7F00,0x5A5A,0x0F0F,0x8041,0x8443,0x8C5F,0xFFC1,0x8000
+func_802A5958: -n 100 --seed 1 --heap 0x2000 --heap 0x40 --arg a0=rel:heap1 --arg a3=rel:heap0+0x1000 --arg a1=choice:0,2,0x40 \
+    --mem @heap1:0x40=halves:0x8000,0x8C5F,0xFFDF,0x8041
+func_802A5A2C: -n 300 --heap 0x2000 --heap 0x40 --arg a0=rel:heap1 --arg a3=rel:heap0+0x1000 --arg a1=choice:0,2,4,0x10,0x20,0x3E,0x40 \
+    --mem @heap1:0x40=halves:0x1234,0x0042,0x7FFF,0x0000,0x00FF,0x7F00,0x5A5A,0x0F0F,0x8041,0x8443,0x8C5F,0xFFC1,0x8000
+func_802A5A2C: -n 100 --seed 1 --heap 0x2000 --heap 0x40 --arg a0=rel:heap1 --arg a3=rel:heap0+0x1000 --arg a1=choice:0,2,0x40 \
+    --mem @heap1:0x40=halves:0x7FFF,0x0080,0x8080,0x00FF
+func_802A5AE0: -n 300 --heap 0x2000 --heap 0x40 --arg a0=rel:heap1 --arg a3=rel:heap0+0x1000 --arg a1=choice:0,2,4,0x10,0x20,0x3E,0x40 \
+    --mem @heap1:0x40=halves:0x1234,0x0042,0x7FFF,0x0000,0x00FF,0x7F00,0x5A5A,0x0F0F,0x8041,0x8443,0x8C5F,0xFFC1,0x8000
+func_802A5AE0: -n 100 --seed 1 --heap 0x2000 --heap 0x40 --arg a0=rel:heap1 --arg a3=rel:heap0+0x1000 --arg a1=choice:0,2,0x40 \
+    --mem @heap1:0x40=halves:0x7FFF,0x003F,0x0040,0x7FC0,0xFFC1
+func_802A5B90: -n 300 --heap 0x2000 --heap 0x40 --arg a0=rel:heap1 --arg a3=rel:heap0+0x1000 --arg a1=choice:0,2,4,0x10,0x20,0x3E,0x40 \
+    --mem @heap1:0x40=halves:0x1234,0x0042,0x7FFF,0x0000,0x00FF,0x7F00,0x5A5A,0x0F0F,0x8041,0x8443,0x8C5F,0xFFC1,0x8000
+func_802A5B90: -n 100 --seed 1 --heap 0x2000 --heap 0x40 --arg a0=rel:heap1 --arg a3=rel:heap0+0x1000 --arg a1=choice:0,2,0x40 \
+    --mem @heap1:0x40=halves:0x7FFF,0x7800,0x0780,0x0078,0x0007,0xFFC1,0x8000
+func_802A5C5C: -n 300 --heap 0x2000 --heap 0x40 --heap 0x100 --arg a0=rel:heap1 --arg a3=rel:heap0+0x1000 --arg t4=rel:heap2 \
+    --arg a1=choice:0,2,4,0x10,0x20,0x3E,0x40 \
+    --mem @heap1:0x40=halves:0x1234,0x0042,0x7FFF,0x0000,0x00FF,0x7F00,0x5A5A,0x0F0F,0x8041,0x8443,0x8C5F,0xFFC1,0x8000 \
+    --mem @heap2:0x100=halves:0,1,0x7FFF,0x8000,0xFFFF,0x1234
+func_802A5C5C: -n 100 --seed 1 --heap 0x2000 --heap 0x40 --heap 0x100 --arg a0=rel:heap1 --arg a3=rel:heap0+0x1000 --arg t4=rel:heap2 \
+    --arg a1=choice:0,2,0x40 --mem @heap1:0x40=halves:0x7FFF,0x0000,0x0101,0x7EFE,0xFFC1 --mem @heap2:0x100=halves:0xFFFF,0x8000
+func_802A5D34: -n 300 --heap 0x2000 --heap 0x40 --heap 0x1000 --arg a0=rel:heap1 --arg a3=rel:heap0+0x1000 --arg t4=rel:heap2 \
+    --arg a1=choice:0,2,4,0x10,0x20,0x3E,0x40 \
+    --mem @heap1:0x40=halves:0x1234,0x0042,0x7FFF,0x0000,0x00FF,0x7F00,0x5A5A,0x0F0F,0x8041,0x8443,0x8C5F,0xFFC1,0x8000 \
+    --mem @heap2:0x1000=halves:0,1,0x7FFF,0x8000,0xFFFF,0x7C00,0x03E0,0x001F,0x1234
+func_802A5D34: -n 100 --seed 1 --heap 0x2000 --heap 0x40 --heap 0x1000 --arg a0=rel:heap1 --arg a3=rel:heap0+0x1000 --arg t4=rel:heap2 \
+    --arg a1=choice:0,2,0x40 --mem @heap1:0x40=halves:0x7FFF,0x0000,0x000F,0x7FF0,0xFFC1 --mem @heap2:0x1000=halves:0xFFFF,0x8000
+# type 0: len >> 3 doublewords; len not a multiple of 8 drops the tail
+func_802A5E10: -n 300 --heap 0x200 --heap 0x200 --arg a0=rel:heap1 --arg a3=rel:heap0 --arg a1=choice:0,1,7,8,9,0x10,0x3F,0x100,0x1F8,0x1FF
+
+# func_802A57DC(req): copy the packed data to D_803C3250, run the type's decoder back into data.
+# Request at heap0, data at heap0+0x800, u16 table (types 4/5) at heap1. Decoders stubbed (mapped;
+# result = stub a3 - data) and followed.
+func_802A57DC: -n 300 --heap 0x1000 --heap 0x1000 --arg a0=rel:heap0 --mem @heap0=rel:heap0+0x800 \
+    --mem @heap0+4=choice:0,2,6,8,0xA,0x10,0x16,0x20,0x3E --mem @heap0+8=choice:0,1,2,3,4,5,6,7,-1,0x100 --mem @heap0+0xC=rel:heap1 \
+    --mem @heap0+0x800:0x40=halves:0x1234,0x0042,0x7FFF,0x8041,0x8443,0x8C5F,0x0000 --mem D_803C3250:0x40=rand
+func_802A57DC: -n 300 --seed 1 --follow-all --heap 0x1000 --heap 0x1000 --arg a0=rel:heap0 --mem @heap0=rel:heap0+0x800 \
+    --mem @heap0+4=choice:0,2,6,8,0xA,0x10,0x16,0x20,0x3E --mem @heap0+8=choice:0,1,2,3,4,5,6,7,-1,0x100 --mem @heap0+0xC=rel:heap1 \
+    --mem @heap0+0x800:0x40=halves:0x1234,0x0042,0x7FFF,0x8041,0x8443,0x8C5F,0x0000 --mem D_803C3250:0x40=rand
+func_802A57DC: -n 100 --seed 2 --follow-all --heap 0x1000 --heap 0x1000 --arg a0=rel:heap0 --mem @heap0=rel:heap0+0x800 \
+    --mem @heap0+4=choice:0,0x3E,0x40 --mem @heap0+8=choice:0,4,5 --mem @heap0+0xC=rel:heap1 \
+    --mem @heap0+0x800:0x40=halves:0x7FFF,0x8000,0xFFC1 --mem D_803C3250:0x40=rand
+
+# func_802A5ED0: count of active (byte 0x33 != 0) records of D_803C4B70 (non-ABI: result in t0)
+func_802A5ED0: -n 200 --mem D_803C4B70:0x3C0=rand
+func_802A5ED0: -n 100 --seed 1 --mem D_803C4B70:0x3C0=onehot:0x3C@0x33/1:1,0xFF,0x80:zero
+func_802A5ED0: -n 50 --seed 2 --mem D_803C4B70:0x3C0=onehot:0x3C@0x33/1:0:bytes:1,0xFF
+
+# func_802A6C10 (non-ABI: w v1, Vtx* t1, col t7, x s2, y s3, h s5): quad of 4 Vtx, coordinates truncated to s16.
+# y + h is a trapping `add` in the asm: keep it from overflowing.
+func_802A6C10: -n 300 --arg a0=int --arg a1=ptr:0x40 --arg a2=ptr:0x10 --arg a3=int --arg s3=int:-0x1000000:0x1000000 --arg s5=int:-0x1000000:0x1000000
+func_802A6C10: -n 100 --seed 1 --arg a0=choice:0,-1,0x7FFF,0x8000,0x10000 --arg a1=ptr:0x40 --arg a2=ptr:0x10 \
+    --arg a3=choice:0,-1,0x7FFF,0x8000 --arg s3=choice:0,-1,0x7FFF,0x8000 --arg s5=choice:0,-1,0x7FFF,0x8000,0x800
+
+# func_802A6EB8 (non-ABI: obj t4 -> t2): &D_803EB784 if obj[0x3B] else &D_803EB780
+func_802A6EB8: -n 100 --arg a0=ptr:0x40 --mem @a0+0x3B:1=choice:0,1,0x80,0xFF

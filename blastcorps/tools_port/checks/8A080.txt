@@ -1,0 +1,36 @@
+# 8A080: radar marker table D_803FB8B8 (25 x 0x14-byte RadarMarker, word 0 = id, -1 = free)
+# Format: func_XXXXXXXX: <eqcheck.py args>   (see tools_port/README.md, "Regression suite")
+
+func_802CE840: -n 200 --ret void --mem D_803FB8B8:500=rand
+
+# insert/update (id, x, y, z, size); mixed table with frequent free slots
+func_802CE880: -n 300 --ret void --mem D_803FB8B8:500=words:-1,0,1,2,3,0x100,0x10000 --arg a0=choice:-1,0,1,2,3,0x100,0x10000,0x7FFFFFFF --arg a1=int --arg a2=int --arg a3=int --arg sp+0x10=int
+# table full (no free slot), id often absent
+func_802CE880: -n 300 --ret void --seed 1 --mem D_803FB8B8:500=words:0,1,2,0x100 --arg a0=choice:-1,0,1,2,3,0x100,0x10000,0x7FFFFFFF --arg a1=int --arg a2=int --arg a3=int --arg sp+0x10=int
+# all free
+func_802CE880: -n 50 --ret void --seed 2 --mem D_803FB8B8:500=words:-1 --arg a0=choice:-1,0,1,2,3,0x100,0x10000,0x7FFFFFFF --arg a1=int --arg a2=int --arg a3=int --arg sp+0x10=int
+# only the last slot free
+func_802CE880: -n 100 --ret void --seed 3 --mem D_803FB8B8:500=words:0,1,2 --mem D_803FB8B8+0x1E0=0xFFFFFFFF --arg a0=choice:-1,0,1,2,3,0x100,0x10000,0x7FFFFFFF --arg a1=int --arg a2=int --arg a3=int --arg sp+0x10=int
+# exactly one free slot (first, last or random), or exactly one matching id
+func_802CE880: -n 200 --ret void --seed 4 --mem D_803FB8B8:500=onehot:0x14:-1:words:0,1,2 --arg a0=choice:0,3,0x100 --arg a1=int --arg a2=int --arg a3=int --arg sp+0x10=int
+func_802CE880: -n 200 --ret void --seed 5 --mem D_803FB8B8:500=onehot:0x14:0x100:words:-1,0,1 --arg a0=choice:0x100*3,0x101 --arg a1=int --arg a2=int --arg a3=int --arg sp+0x10=int
+
+# remove id
+func_802CE90C: -n 300 --ret void --mem D_803FB8B8:500=words:-1,0,1,2,3,0x100,0x10000 --arg a0=choice:-1,0,1,2,3,0x100,0x10000,0x7FFFFFFF
+# match only in the last slot
+func_802CE90C: -n 100 --ret void --seed 3 --mem D_803FB8B8:500=words:0,1 --mem D_803FB8B8+0x1E0=0x100 --arg a0=choice:0x100,0x101
+# match in exactly one slot (first, last or random)
+func_802CE90C: -n 200 --ret void --seed 4 --mem D_803FB8B8:500=onehot:0x14:0x100:words:0,1,-1 --arg a0=choice:0x100*3,0x101
+
+# find id -> index
+func_802CE958: -n 300 --ret int --mem D_803FB8B8:500=words:-1,0,1,2,3,0x100,0x10000 --arg a0=choice:-1,0,1,2,3,0x100,0x10000,0x7FFFFFFF
+func_802CE958: -n 200 --ret int --seed 1 --mem D_803FB8B8:500=words:0,1 --arg a0=choice:-1,0,1,2,3,0x100,0x10000,0x7FFFFFFF
+func_802CE958: -n 100 --ret int --seed 3 --mem D_803FB8B8:500=words:0,1 --mem D_803FB8B8+0x1E0=0x100 --arg a0=choice:0x100,0x101
+func_802CE958: -n 200 --ret int --seed 4 --mem D_803FB8B8:500=onehot:0x14:0x100:words:0,1,-1 --arg a0=choice:0x100*3,0x101
+
+func_802CE9A4: -n 200 --ret void --mem D_803FB8B0=int
+
+# clear [start, end) in 0x60-byte steps (end must be start + k*0x60)
+func_802CEA68: -n 300 --ret void --mem 0x80B00000:0x600=rand --arg a0=0x80B00000 --arg a1=choice:0x80B00000,0x80B00060,0x80B000C0,0x80B00120,0x80B005A0
+# same with a ptr block and a pointer-relative end (0..16 records)
+func_802CEA68: -n 200 --ret void --seed 1 --arg a0=ptr:0x600 --arg a1=rel:a0+0x60*int:0:16

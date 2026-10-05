@@ -457,13 +457,38 @@ class Plan:
         self.fcsr = 0
         self.desc = []
         self.heap = HEAP_BASE
+        self.blocks = []          # addresses of ptr/ptrz blocks, in allocation order (heap0, heap1, ..)
+        self.vals = {}            # values set by --arg (reg name -> int or per-build callable)
 
     def alloc(self, size):
         a = self.heap
         self.heap = (self.heap + size + 0x10 + 15) & ~15   # 16-byte red zone between blocks
         if self.heap > HEAP_END:
             raise RuntimeError("scratch heap exhausted")
+        self.blocks.append(a)
         return a
+
+    def base_value(self, name, what):
+        """Value of a base name used by rel:/@ specs: an --arg register, heap, heapN,
+        or a symbol.  Returns an int or a callable(build) -> int."""
+        name = name.strip().lstrip("@")
+        if name in self.vals:
+            return self.vals[name]
+        if name == "heap":
+            return HEAP_BASE
+        m = re.match(r"^heap(\d+)$", name)
+        if m:
+            k = int(m.group(1))
+            if k >= len(self.blocks):
+                raise SystemExit("%s: heap%d not allocated (only %d ptr block(s) so far; --arg ptr specs "
+                                 "allocate first, left to right, then --mem ptr fills)" % (what, k, len(self.blocks)))
+            return self.blocks[k]
+        if name in REG:
+            raise SystemExit("%s: %s has no --arg value to be relative to" % (what, name))
+        try:
+            return int(name, 0) & 0xFFFFFFFF
+        except ValueError:
+            return lambda b, n=name: b.resolve(n)
 
 
 def rand_int(rng):
@@ -494,6 +519,59 @@ def fbits(x):
     return struct.unpack(">I", struct.pack(">f", x))[0]
 
 
+def parse_pool(s):
+    """'0x50*3,0x5A,-1' -> [0x50, 0x50, 0x50, 0x5A, -1] (VALUE*WEIGHT repeats a value)."""
+    out = []
+    for x in s.split(","):
+        x = x.strip()
+        if not x:
+            continue
+        if "*" in x:
+            v, w = x.split("*", 1)
+            out += [int(v, 0)] * int(w, 0)
+        else:
+            out.append(int(x, 0))
+    if not out:
+        raise SystemExit("empty value pool %r" % s)
+    return out
+
+
+def add_vals(a, b):
+    """a + b where either may be a per-build callable."""
+    if callable(a) or callable(b):
+        fa = a if callable(a) else (lambda bb, v=a: v)
+        fb = b if callable(b) else (lambda bb, v=b: v)
+        return lambda bb: (fa(bb) + fb(bb)) & 0xFFFFFFFF
+    return (a + b) & 0xFFFFFFFF
+
+
+def gen_rel(spec, rng, plan, what):
+    """rel:BASE+TERM+TERM..  BASE = an --arg register (a0..), heap, heapN or a symbol;
+    TERM = CONST, K*SPEC (K times a random value spec) or SPEC."""
+    terms = spec.split("+")
+    v = plan.base_value(terms[0], what)
+    descs = [terms[0]]
+    for t in terms[1:]:
+        t = t.strip()
+        k = 1
+        if "*" in t:
+            head, rest = t.split("*", 1)
+            try:
+                k = int(head, 0)
+                t = rest
+            except ValueError:
+                pass
+        x, d = gen_value(t, rng, plan, what)
+        if callable(x):
+            raise SystemExit("%s: rel term %r must be a number" % (what, t))
+        x = x - 0x100000000 if x & 0x80000000 else x
+        v = add_vals(v, k * x)
+        descs.append(("%#x*%s" % (k, d)) if k != 1 else d)
+    if callable(v):
+        return v, "rel " + "+".join(descs)
+    return v, "0x%08X (%s)" % (v, "+".join(descs))
+
+
 def gen_value(spec, rng, plan, what):
     """Value spec -> 32-bit int (may allocate heap / add memory to the plan)."""
     parts = spec.split(":")
@@ -502,6 +580,8 @@ def gen_value(spec, rng, plan, what):
         return int(spec, 0) & 0xFFFFFFFF, spec
     except ValueError:
         pass
+    if kind == "rel":
+        return gen_rel(spec[4:], rng, plan, what)
     if kind == "int":
         if len(parts) == 3:
             v = rng.randint(int(parts[1], 0), int(parts[2], 0))
@@ -509,7 +589,7 @@ def gen_value(spec, rng, plan, what):
             v = rand_int(rng)
         return v & 0xFFFFFFFF, "%d" % v
     if kind == "choice":
-        v = int(rng.choice(parts[1].split(",")), 0)
+        v = rng.choice(parse_pool(parts[1]))
         return v & 0xFFFFFFFF, "%d" % v
     if kind in ("float", "fbits"):
         x = rand_float(rng, float(parts[1]), float(parts[2])) if len(parts) == 3 else rand_float(rng)
@@ -526,6 +606,89 @@ def gen_value(spec, rng, plan, what):
     raise SystemExit("bad value spec for %s: %r" % (what, spec))
 
 
+def mem_target(tgt, plan):
+    """--mem target -> resolver(build) -> address.  'SYM', 'SYM+0x10', '0x8036444C',
+    or relative to an --arg value / heap block: '@a0', '@a0+0x40', '@heap1+0x10'."""
+    t = tgt.strip()
+    if t.startswith("@"):
+        m = re.match(r"^@(\w+)\s*(?:([+-])\s*(0x[0-9A-Fa-f]+|\d+))?$", t)
+        if not m:
+            raise SystemExit("bad --mem target %r" % tgt)
+        base = plan.base_value(m.group(1), tgt)
+        off = int(m.group(3), 0) * (-1 if m.group(2) == "-" else 1) if m.group(3) else 0
+        v = add_vals(base, off)
+        return v if callable(v) else (lambda b, a=v: a)
+    return lambda b, t=t: b.resolve(t)
+
+
+def gen_fill(fill, size, rng, plan, tgt):
+    """FILL for SIZE bytes (size None = default) -> (bytes, desc) or (callable, desc)."""
+    fparts = fill.split(":")
+    kind = fparts[0]
+    if kind == "rand":
+        size = size or 4
+        return bytes(rng.getrandbits(8) for _ in range(size)), "random %d bytes" % size
+    if kind == "zero":
+        size = size or 4
+        return bytes(size), "zero"
+    if kind == "words":
+        pool = parse_pool(fparts[1])
+        n = (size or 4) // 4
+        ws = [rng.choice(pool) & 0xFFFFFFFF for _ in range(n)]
+        return b"".join(struct.pack(">I", w) for w in ws), "words " + ",".join("%X" % w for w in ws)
+    if kind == "halves":
+        pool = parse_pool(fparts[1])
+        n = (size or 2) // 2
+        hs = [rng.choice(pool) & 0xFFFF for _ in range(n)]
+        return b"".join(struct.pack(">H", h) for h in hs), "halves " + ",".join("%X" % h for h in hs)
+    if kind == "bytes":
+        pool = parse_pool(fparts[1])
+        n = size or 1
+        bs = [rng.choice(pool) & 0xFF for _ in range(n)]
+        return bytes(bs), "bytes " + ",".join("%X" % x for x in bs)
+    if kind == "floats":
+        n = (size or 4) // 4
+        lo, hi = (float(fparts[1]), float(fparts[2])) if len(fparts) == 3 else (None, None)
+        return b"".join(struct.pack(">I", fbits(rand_float(rng, lo, hi))) for _ in range(n)), "floats"
+    if kind == "onehot":
+        # onehot:STRIDE[@OFF][/W]:POOL:FILL -- FILL the whole area, then put one value from
+        # POOL into one slot (first, last or a random one) at byte OFF, W bytes wide
+        if len(fparts) < 4 or not size:
+            raise SystemExit("%s: onehot needs TARGET:SIZE=onehot:STRIDE[@OFF][/W]:POOL:FILL" % tgt)
+        m = re.match(r"^(0x[0-9A-Fa-f]+|\d+)(?:@(0x[0-9A-Fa-f]+|\d+))?(?:/([124]))?$", fparts[1])
+        if not m:
+            raise SystemExit("%s: bad onehot stride %r" % (tgt, fparts[1]))
+        stride = int(m.group(1), 0)
+        foff = int(m.group(2), 0) if m.group(2) else 0
+        width = int(m.group(3)) if m.group(3) else 4
+        pool = parse_pool(fparts[2])
+        bfill = ":".join(fparts[3:])
+        try:      # a constant FILL repeats as a word
+            base, bdesc = struct.pack(">I", int(bfill, 0) & 0xFFFFFFFF) * (size // 4 + 1), bfill
+            base = base[:size]
+        except ValueError:
+            base, bdesc = gen_fill(bfill, size, rng, plan, tgt)
+        if callable(base) or len(base) != size:
+            raise SystemExit("%s: onehot FILL must produce SIZE plain bytes" % tgt)
+        if foff + width > stride:
+            raise SystemExit("%s: onehot field @%d/%d doesn't fit the stride" % (tgt, foff, width))
+        nslots = size // stride
+        r = rng.random()
+        slot = 0 if r < 0.3 else nslots - 1 if r < 0.6 else rng.randrange(nslots)
+        v = rng.choice(pool) & ((1 << (8 * width)) - 1)
+        o = slot * stride + foff
+        data = bytearray(base)
+        data[o:o + width] = v.to_bytes(width, "big")
+        return bytes(data), "onehot slot %d/%d = 0x%X over %s" % (slot, nslots, v, bdesc)
+    v, desc = gen_value(fill, rng, plan, tgt)
+    if callable(v):
+        return v, desc
+    data = struct.pack(">I", v)
+    if size and size != 4:
+        data = data[4 - size:] if size < 4 else data + bytes(size - 4)
+    return data, desc
+
+
 def gen_mem(spec, rng, plan):
     """--mem TARGET[:SIZE]=FILL"""
     tgt, fill = spec.split("=", 1)
@@ -533,43 +696,12 @@ def gen_mem(spec, rng, plan):
     if ":" in tgt:
         tgt, sz = tgt.rsplit(":", 1)
         size = int(sz, 0)
-    resolver = lambda b, t=tgt: b.resolve(t)
-    fparts = fill.split(":")
-    kind = fparts[0]
-    if kind == "rand":
-        size = size or 4
-        data = bytes(rng.getrandbits(8) for _ in range(size))
-        desc = "random %d bytes" % size
-    elif kind == "zero":
-        size = size or 4
-        data = bytes(size)
-        desc = "zero"
-    elif kind == "words":
-        pool = [int(x, 0) for x in fparts[1].split(",")]
-        n = (size or 4) // 4
-        ws = [rng.choice(pool) & 0xFFFFFFFF for _ in range(n)]
-        data = b"".join(struct.pack(">I", w) for w in ws)
-        desc = "words " + ",".join("%X" % w for w in ws)
-    elif kind == "halves":
-        pool = [int(x, 0) for x in fparts[1].split(",")]
-        n = (size or 2) // 2
-        data = b"".join(struct.pack(">H", rng.choice(pool) & 0xFFFF) for _ in range(n))
-        desc = "halves"
-    elif kind == "floats":
-        n = (size or 4) // 4
-        lo, hi = (float(fparts[1]), float(fparts[2])) if len(fparts) == 3 else (None, None)
-        data = b"".join(struct.pack(">I", fbits(rand_float(rng, lo, hi))) for _ in range(n))
-        desc = "floats"
+    resolver = mem_target(tgt, plan)
+    data, desc = gen_fill(fill, size, rng, plan, tgt)
+    if callable(data):
+        plan.mem.append((resolver, None, data))   # pointer to a symbol, resolved per build
     else:
-        v, desc = gen_value(fill, rng, plan, tgt)
-        if callable(v):
-            plan.mem.append((resolver, None, v))   # pointer to a symbol, resolved per build
-            plan.desc.append("%s = %s" % (tgt, desc))
-            return
-        data = struct.pack(">I", v)
-        if size and size != 4:
-            data = data[4 - size:] if size < 4 else data + bytes(size - 4)
-    plan.mem.append((resolver, data))
+        plan.mem.append((resolver, data))
     plan.desc.append("%s = %s" % (tgt, desc))
 
 
@@ -590,9 +722,11 @@ def make_plan(opts, trial):
     plan.regs["lo"] = rng.getrandbits(32)
     # caller's frame: 16 home bytes + stack args (sp+0x10..) poisoned identically
     plan.mem.append((lambda b: STACK_TOP, bytes(rng.getrandbits(8) for _ in range(0x100))))
-    for spec in opts.mem:
-        gen_mem(spec, rng, plan)
-    for spec in opts.args:
+    # --arg first (so a ptr block's random contents land before, and can be
+    # overwritten by, --mem specs that target it), rel: args after the others
+    args = [s for s in opts.args if not s.split("=", 1)[1].startswith("rel:")] + \
+           [s for s in opts.args if s.split("=", 1)[1].startswith("rel:")]
+    for spec in args:
         tgt, val = spec.split("=", 1)
         v, desc = gen_value(val, rng, plan, tgt)
         m = re.match(r"^sp\+(0x[0-9A-Fa-f]+|\d+)$", tgt)
@@ -603,12 +737,13 @@ def make_plan(opts, trial):
             else:
                 plan.mem.append((lambda b, o=off: STACK_TOP + o, struct.pack(">I", v)))
         elif tgt in REG:
-            if callable(v):
-                raise SystemExit("sym: values are only supported for memory targets")
-            plan.regs[tgt] = v
+            plan.regs[tgt] = v       # a callable (sym:/rel: on a symbol) is resolved per build
         else:
             raise SystemExit("bad --arg target %r" % tgt)
+        plan.vals[tgt] = v
         plan.desc.append("%s = %s" % (tgt, desc))
+    for spec in opts.mem:
+        gen_mem(spec, rng, plan)
     return plan
 
 
@@ -616,7 +751,7 @@ class PlanView:
     """A plan with per-build pointer values filled in."""
 
     def __init__(self, plan, build):
-        self.regs = plan.regs
+        self.regs = {r: (v(build) if callable(v) else v) for r, v in plan.regs.items()}
         self.fcsr = plan.fcsr
         self.mem = []
         for e in plan.mem:
@@ -762,11 +897,13 @@ def parse_args(argv):
     ap.add_argument("--new", default="build_nm", help="build dir with the rewrite (default build_nm)")
     ap.add_argument("--version", default="us.v11")
     ap.add_argument("--arg", dest="args", action="append", default=[],
-                    help="REG=SPEC or sp+0xOFF=SPEC (SPEC: const, int[:lo:hi], choice:a,b, "
-                         "float[:lo:hi], fbits[:lo:hi], ptr[:size], ptrz[:size])")
+                    help="REG=SPEC or sp+0xOFF=SPEC (SPEC: const, int[:lo:hi], choice:a,b*3, "
+                         "float[:lo:hi], fbits[:lo:hi], ptr[:size], ptrz[:size], sym:NAME, "
+                         "rel:BASE+K*SPEC with BASE an --arg reg, heap, heapN or a symbol)")
     ap.add_argument("--mem", action="append", default=[],
-                    help="SYM[+off][:size]=FILL (FILL: rand, zero, words:a,b,.., halves:a,b, "
-                         "floats[:lo:hi], ptr[:size], ptrz[:size], sym:NAME, const, int[:lo:hi])")
+                    help="TARGET[:size]=FILL, TARGET = SYM[+off], 0xADDR, @a0[+off], @heapN[+off] "
+                         "(FILL: rand, zero, words:a,b*3,.., halves:.., bytes:.., floats[:lo:hi], "
+                         "onehot:STRIDE[@OFF][/W]:POOL:FILL, or any --arg SPEC); applied after --arg")
     ap.add_argument("--ret", default="int",
                     help="return kind: int, ptr, void, u64, float, double, or regs:v0,t0,...")
     ap.add_argument("--ignore-reg", dest="ignore_regs", action="append", default=[])
@@ -858,26 +995,54 @@ def explore(opts, ref, m, entry):
     print("outcome:", "returned" if m.fault is None else m.fault)
     print("return v0=0x%08X v1=0x%08X f0=0x%08X" % (r["v0"], r["v1"], r["f0"]))
 
+    blocks = plan.blocks
+
     def regions(addrs):
         out = {}
+        run_key, prev = None, None     # contiguous unnamed bytes are merged into one range
         for a in sorted(addrs):
             if STACK_TOP - STACK_WINDOW <= a < STACK_TOP:
                 key = "own stack frame"
             elif STACK_TOP <= a < STACK_TOP + 0x100:
                 key = "caller frame (sp+0x%X..)" % (a - STACK_TOP & ~0xF)
+            elif HEAP_END - 0x40000 <= a < HEAP_END:
+                key = "heap (--stub-ret ptr blocks)"
             elif HEAP_BASE <= a < HEAP_END:
-                key = "heap"
+                k = bisect.bisect_right(blocks, a) - 1
+                key = "heap%d (0x%08X)" % (k, blocks[k]) if k >= 0 else "heap"
             elif ref.in_text(a):
                 continue
             else:
                 n, off = ref.sym_off(a)
-                key = n if n is not None and off < 0x10000 else "0x%08X" % a
+                if n is not None and off < 0x10000:
+                    key = n
+                else:
+                    if run_key is None or prev != a - 1:
+                        run_key = "(unnamed) 0x%08X" % a
+                    key = run_key
+                    prev = a
             out.setdefault(key, []).append(a)
         return out
     for title, s in (("reads", m.reads), ("writes", m.trace_writes)):
         print("%s:" % title)
-        for k, v in sorted(regions(s).items(), key=lambda kv: kv[1][0]):
+        groups = sorted(regions(s).items(), key=lambda kv: kv[1][0])
+        # a run of more than 4 back-to-back groups (a scan running across many
+        # symbols) is printed as one line
+        i = 0
+        while i < len(groups):
+            j = i
+            while j + 1 < len(groups) and groups[j][1][-1] + 1 == groups[j + 1][1][0] \
+                    and all(groups[x][1][-1] - groups[x][1][0] + 1 == len(groups[x][1]) for x in (j, j + 1)):
+                j += 1
+            if j - i >= 4:
+                lo, hi = groups[i][1][0], groups[j][1][-1] + 1
+                print("  %-24s 0x%08X..0x%08X (%d bytes, %d symbols, contiguous)" %
+                      ("%s .. %s" % (groups[i][0], groups[j][0]), lo, hi, hi - lo, j - i + 1))
+                i = j + 1
+                continue
+            k, v = groups[i]
             print("  %-24s 0x%08X..0x%08X (%d bytes)" % (k, v[0], v[-1] + 1, len(v)))
+            i += 1
     print("events:")
     for e in m.events:
         if e[0] == "call":

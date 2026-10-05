@@ -64,7 +64,8 @@ switching modes never clobbers the matching objects.
 Setup is done once and is already installed: `pip install unicorn pyelftools` into `~/blastcorps/.env`.
 
 ```bash
-python3 tools_port/eqcheck.py FUNC [options]
+python3 tools_port/eqcheck.py FUNC [options]     # from the repo dir, venv active
+bash tools_port/eq.sh FUNC [options]             # same, from anywhere: activates ../.env and cds to the repo
 ```
 
 By default it compares `build/` (the original asm) against `build_nm/` (your
@@ -83,6 +84,12 @@ writes:
   D_8036C7A0               0x8036C7A8..0x8036C7AC (4 bytes)
 ```
 
+Heap bytes are labelled by block (`heap0 (0x80B00000)`, see `ptr` below).
+Contiguous bytes with no nearby symbol are merged into one `(unnamed) 0x...`
+range, and a run of more than four back-to-back symbol groups (a scan running
+across many globals) prints as one `D_A .. D_B` line, so a runaway scan of an
+unterminated table is a single line, not thousands.
+
 ### Inputs
 
 All registers (GPRs, FPRs, hi/lo) and the caller's 0x100-byte frame at `sp`
@@ -90,20 +97,69 @@ get identical pseudo-random poison in both runs. `sp` is 0x80E00000 and `ra`
 is a sentinel. On top of that you can set:
 
 * `--arg REG=SPEC` takes any register (`a0`..`a3`, `f12`, `f14`, `t0`, `s1`, and so on), or `--arg sp+0x10=SPEC` for stack arguments.
-* `--mem TARGET[:SIZE]=FILL` sets a global's contents. TARGET is `SYM`, `SYM+0x10`, or a raw address. Symbols resolve separately in each build.
+* `--mem TARGET[:SIZE]=FILL` sets memory contents. TARGET is `SYM`, `SYM+0x10`, a raw address, or relative to an argument or heap block: `@a0`, `@a0+0x40`, `@heap1+0x10` (see below). Symbols resolve separately in each build.
 
 | SPEC / FILL | meaning |
 |---|---|
 | `0x1234` | constant |
 | `int` / `int:LO:HI` | random int (biased toward small values) or uniform in a range |
-| `choice:0,1,5` | one of these values |
+| `choice:0,1,5` | one of these values; `choice:0x50*3,0x5A` weights a value (picked 3x as often) |
 | `float[:LO:HI]` | random single in an FPR (`f12=float`) |
 | `fbits[:LO:HI]` | float bits in an integer register or stack slot (o32 float args after an int arg) |
 | `ptr[:SIZE]` / `ptrz[:SIZE]` | pointer to a fresh scratch-heap block (random or zero bytes, default 0x200) |
-| `sym:NAME` | (`--mem` only) store the address of NAME |
+| `sym:NAME` | the address of NAME (in a register too, resolved per build) |
+| `rel:BASE+TERM+..` | an address relative to another value: see "Pointer-relative values" |
 | `rand`, `zero` | (`--mem`) SIZE random or zero bytes |
-| `words:a,b,c` / `halves:a,b` | (`--mem`) each word or halfword chosen from a pool, which is good for flags, indices, and NULL vs non-NULL pointers |
+| `words:a,b,c` / `halves:a,b` / `bytes:a,b` | (`--mem`) each word, halfword or byte chosen from a pool (weights `v*N` allowed), which is good for flags, indices, and NULL vs non-NULL pointers |
 | `floats[:LO:HI]` | (`--mem`) SIZE/4 random floats |
+| `onehot:STRIDE[@OFF][/W]:POOL:FILL` | (`--mem`, needs SIZE) fill with FILL, then put one value from POOL into exactly one slot: see "One special slot" |
+
+#### Order of application
+
+Registers and the caller's frame are poisoned first. Then every `--arg` is
+generated, left to right except that `rel:` args come after all the others; a
+`ptr` block's random contents are laid down at this point. Then every `--mem`,
+left to right. Later writes win, so a `--mem` into a `ptr` block (or into the
+stack-argument area) overrides the block's random bytes. (Before Oct 2026 the
+order was the reverse and `ptr` data silently overwrote `--mem` specs.)
+
+#### Pointer-relative values
+
+Scratch-heap blocks are numbered in allocation order: `heap0`, `heap1`, ...
+(`--arg ... ptr` specs first, then `ptr` fills in `--mem`). The first block is
+always 0x80B00000. `heap` alone is 0x80B00000.
+
+* `--mem @a0+0x40=0x50` writes into the memory an argument points at. `@NAME`
+  is an `--arg` register (`a0`..), `heapN`, or `heap`.
+* `--arg a1=rel:a0+0x60*int:0:5` makes a value relative to another one.
+  BASE is an `--arg` register, `heap`/`heapN`, a symbol, or a number. Each
+  `+TERM` is a constant (`+0x10`, `+-4`), any value spec (`+choice:0,0x60,0x5A0`),
+  or `K*SPEC`, K times a random value (`+0x60*int:0:16`, `+0x14*choice:0,24`).
+  The same works as a `--mem` fill, which stores a pointer: `--mem D_80358074=rel:heap0+0x20`.
+
+```
+# a1 = a0 + 0..16 records of 0x60 bytes, inside a 0x600-byte block
+eqcheck.py func_802CEA68 --arg a0=ptr:0x600 --arg a1=rel:a0+0x60*int:0:16 --ret void
+# a global pointing at a heap block, and fields inside that block
+eqcheck.py func_802C1EE0 --arg a0=int:1:20 --mem D_80358074=ptr:0x300 \
+    --mem @heap0+0x74=choice:0x100*2,0x102,0 --mem @heap0+0x100:0x200=halves:4,6,8,0x10
+```
+
+#### One special slot
+
+`onehot:STRIDE[@OFF][/W]:POOL:FILL` fills SIZE bytes with FILL (any fill;
+a plain constant repeats as a word), then picks one slot of the
+SIZE/STRIDE-slot array and writes a value from POOL (comma list, weights
+allowed) at byte OFF of that slot (default 0), W bytes wide (1, 2 or 4,
+default 4). The slot is the first one 30% of the time, the last one 30%, and a
+uniformly random one otherwise, so one run covers first/last/middle. Examples
+for a 25 x 0x14 table whose word 0 is an id (-1 = free):
+
+```
+--mem D_803FB8B8:500=onehot:0x14:-1:words:0,1,2          # exactly one free slot
+--mem D_803FB8B8:500=onehot:0x14:0x100:words:-1,0,1      # the searched id in exactly one slot
+--mem D_803FB8B8:500=onehot:0x14@8/2:0x7FFF:rand         # one slot's halfword at +8 = 0x7FFF
+```
 
 Choose pools that reach every branch. In the demo, a broken
 `func_802768A8` (with its NULL check dropped) **passes** when
@@ -158,7 +214,80 @@ every basic block both builds execute.
 
 `tools_port/demo.sh` runs the demo set below and works as a smoke test.
 
-## 4. Demo results (Oct 2026)
+## 4. Regression suite
+
+Every rewrite's eqcheck runs are checked in, so any later change (a struct
+refactor, a shared header, an eqcheck change) can be re-verified in one go.
+
+**Spec format.** One file per source file, `tools_port/checks/<FILE>.txt`
+(for `src.us.v11/hd_code/<FILE>.c`). Each line is one eqcheck run:
+
+```
+# comment
+func_802CE880: -n 300 --ret void --mem D_803FB8B8:500=words:-1,0,1,2 --arg a0=choice:-1,0,0x100
+func_802CE880: -n 200 --ret void --seed 4 --mem D_803FB8B8:500=onehot:0x14:-1:words:0,1,2 \
+    --arg a0=choice:0,3,0x100
+```
+
+A function can have any number of lines (a random run plus boundary runs);
+give each line of the same function its own `--seed`. Arguments are split
+shell-style (quotes work) but nothing is expanded, so write values out instead
+of using `$VARS`. A trailing `\` continues a line.
+
+**Running.**
+
+```bash
+bash tools_port/runchecks.sh            # everything, plus the coverage check
+bash tools_port/runchecks.sh -b         # make NON_MATCHING=1 first
+bash tools_port/runchecks.sh -B         # matching build (checks both OK lines) + NON_MATCHING first
+bash tools_port/runchecks.sh 8A080 func_802A5510   # filter: check file, function, or substring
+bash tools_port/runchecks.sh -q 20      # quick: cap every run at 20 trials
+bash tools_port/runchecks.sh --list 60D50          # show the selected command lines
+bash tools_port/runchecks.sh --coverage-only
+```
+
+Runs go in parallel (`-j`, default min(cores, 8); under WSL throughput stops
+improving at about 4). The output is a table with one row per run (file,
+function, line, PASS/FAIL/ERROR, trials, time). A failing run shows the
+eqcheck failure lines and a ready-to-paste `bash tools_port/eq.sh ...` rerun
+command. A run in which every trial faulted counts as a FAIL. The exit status
+is nonzero on any failure.
+
+**Coverage.** Without a filter the runner also lists every function whose
+`#pragma GLOBAL_ASM` sits in the `#else` branch of an `#ifdef NON_MATCHING`
+block in `src.us.v11/hd_code/*.c` and reports any with no check line
+(`MISSING`, which makes the exit status nonzero). It also notes check lines for
+functions that have no rewrite.
+
+Current suite (Oct 2026): 13 rewritten functions, 33 runs, all PASS, about
+95 s wall with the default `-j8` (about 7000 trials).
+
+## 5. Writing checks for a new rewrite
+
+1. **`--explore` first.** Note every global, heap and stack-argument byte read
+   and every call. Re-run it with your inputs to confirm they're the ones read.
+2. **One random run, 200-400 trials**, randomizing every input the function
+   reads, with pools that reach every branch (`choice:`, `words:`, weights).
+3. **Explicit boundary runs** (each with its own `--seed`): 0, -1, NULL;
+   sentinel values and their neighbours; table full and table empty; only the
+   first or only the last slot special (`onehot:`); 0x7FFF / 0x8000 / 0xFFFF
+   for halfwords, 0x7FFFFFFF / 0x80000000 for words; signed vs unsigned shifts
+   (negative inputs). Random pools almost never hit "exactly one slot special
+   at the boundary" (the pilot's off-by-one loop bound passed 600 random trials).
+4. **Terminate scanned tables.** A table walked until a sentinel must have one
+   in `--mem` (with the default zero bss the walk runs off through megabytes).
+   Loops with `!=` bounds need inputs that respect the precondition.
+5. **`--ret void` for void functions** (otherwise leftover v0 is compared);
+   use the real width (`--ret int` when the asm returns the full 32-bit value).
+6. **`--sig NAME=a0,a1`** for callees that take fewer than 4 arguments, so
+   garbage in unused argument registers isn't compared.
+7. **Mutation spot-check.** Break the C once on purpose (loop bound, a
+   dropped check, `<` for `<=`), rebuild NON_MATCHING, confirm at least one
+   check line FAILs, then revert and rebuild.
+8. Add the lines to `tools_port/checks/<FILE>.txt` and run
+   `bash tools_port/runchecks.sh -b <FILE>`, then the whole suite before you commit.
+
+## 6. Demo results (Oct 2026)
 
 | function | kind | comparison | result |
 |---|---|---|---|
@@ -175,7 +304,7 @@ every basic block both builds execute.
 A trial takes about 25 ms, most of it restoring and diffing about 6 MB of
 memory, so 200 trials run in about 5 s.
 
-## 5. Known limitations
+## 7. Known limitations
 
 * **Equivalence is only as good as the inputs.** Randomize every global the function reads (`--explore` lists them), and use value pools that reach the edge cases: NULL, 0, negative values, counts at their bounds.
 * **No hardware.** MMIO (`0xA4xxxxxx`: SP, DP, MI, VI, AI, PI, RI, SI) is plain memory. A write then a read returns the written value, nothing has side effects, DMA never happens, and status registers read whatever you preset with `--mmio`, otherwise 0. A loop polling a busy bit therefore exits at once or spins until `--timeout`. RSP and RDP code (microcode, `osSpTask*`) and cartridge or PIF space (unmapped, so access faults) can't be tested this way. Final MMIO state is compared; the order of accesses is compared only with `--mmio-log`.

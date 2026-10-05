@@ -1,0 +1,6 @@
+# 77E20: func_802C1EE0(index) returns record `index` of a chain of {u16 next, s16 data[]}
+# records starting at level + *(level+0x74), level = D_80358074 (index must be >= 1)
+
+func_802C1EE0: -n 300 --ret ptr --arg a0=int:1:20 --mem D_80358074=0x80B00000 --mem 0x80B00074=choice:0x100,0x100,0x102,0 --mem 0x80B00100:0x200=halves:4,6,8,0x10,0x20,0x40,0x80,0x100,0x1FE,5
+# same with a --mem ptr block (heap0) and @heap0-relative targets, weighted pool
+func_802C1EE0: -n 200 --seed 1 --ret ptr --arg a0=int:1:20 --mem D_80358074=ptr:0x300 --mem @heap0+0x74=choice:0x100*2,0x102,0 --mem @heap0+0x100:0x200=halves:4*2,6,8,0x10,0x20,0x40,0x80,0x100,0x1FE,5

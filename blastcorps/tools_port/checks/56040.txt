@@ -1,0 +1,6 @@
+# 56040: func_8029B930 (forward distance between ring indices D_803A7410/D_803A7412)
+# 12-bit inputs, boundary values around 0x800/0xFFF, then full u16 range
+
+func_8029B930: -n 300 --mem D_803A7410:2=int:0:0xFFF --mem D_803A7412:2=int:0:0xFFF
+func_8029B930: -n 300 --seed 1 --mem D_803A7410:2=choice:0,1,0x7FF,0x800,0x801,0xFFE,0xFFF --mem D_803A7412:2=choice:0,1,0x7FF,0x800,0x801,0xFFE,0xFFF
+func_8029B930: -n 200 --seed 2 --mem D_803A7410:2=int:0:0xFFFF --mem D_803A7412:2=int:0:0xFFFF

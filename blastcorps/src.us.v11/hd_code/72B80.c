@@ -419,7 +419,341 @@ void func_802B8C18(s32 t3, s32 fp, TriSideOut *f) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+#ifndef OUT802A860C_DEFINED
+#define OUT802A860C_DEFINED
+/* func_802A860C's results besides its return value (62740.c). */
+typedef struct {
+    s32 t1; /* new z */
+    s32 s3; /* *px as read */
+    s32 fp; /* the cosine */
+} Out802A860C;
+#endif
+extern u8 D_803EF32D;
+extern u8 D_803EF32E;
+extern s32 D_803EF304; /* target height */
+extern s32 D_803EF308; /* target x, z */
+extern s32 D_803EF30C;
+extern s32 D_803EF320; /* best distance so far */
+extern s16 D_803EF324; /* turn rate */
+extern s32 D_80368048;
+extern s32 D_802E8BDC; /* current level */
+extern u8 *D_80358074;
+extern char D_80305D40[];
+extern u8 D_803EEF40[]; /* animation channel table (Unk8029DEA0Entry, 56040.c) */
+void func_802A04BC(s32 idx, void *base, s32 *out);
+void func_802A03D4(void *base, s32 idx, s32 val);
+void func_802A0290(void *base, s32 idx, s32 val);
+s32 func_802B988C(void);
+void func_8029A7E4(const char *fmt, ...);
+void func_8026AF6C(s32 arg0);
+s32 func_8026A610(s32 x1, s32 y1, s32 x2, s32 y2);
+void func_802A5604(u8 *level);
+s32 func_802ABB1C(s32 ax, s32 az, s32 dx, s32 dz, s32 bx, s32 bz);
+s32 func_802ACE38(s32 x, s32 z, s32 angle, s32 *t1out);
+s32 func_802A860C(f32 f, s32 angle, s16 *len, s32 *px, s32 *pz, Out802A860C *out);
+
+#define VEH8D04_S16(off) (*(s16 *) (D_803EF240 + (off)))
+#define VEH8D04_U16(off) (*(u16 *) (D_803EF240 + (off)))
+#define ABS_8D04(v) ((v) < 0 ? -(v) : (v))
+
+/* Move cur toward target by at most 0x14 (signed compares). */
+static s32 port_approach_14(s32 cur, s32 target) {
+    if (cur != target) {
+        if (!(target < cur)) {
+            cur += 0x14;
+            if (target < cur) {
+                cur = target;
+            }
+        } else {
+            cur -= 0x14;
+            if (cur < target) {
+                cur = target;
+            }
+        }
+    }
+    return cur;
+}
+
+/* One axis of the state-3 approach: pos moves toward target by
+ * (|target - pos| << 10) / dist * speed >> 10 (unsigned 32-bit arithmetic,
+ * then the sign of target - pos). */
+static s32 port_step_axis(s32 pos, s32 target, s32 dist, s32 speed) {
+    s32 d = target - pos;
+    u32 m = (u32) ABS_8D04(d) << 10;
+
+    m = (m / (u32) dist) * (u32) speed >> 10;
+    if (d < 0) {
+        m = -m;
+    }
+    return pos + m;
+}
+
+/* State 1 (approaching the target D_803EF308/30C): bx/bz are the asm's
+ * leftover registers from func_802B988C (D_803EF2EC/F4, or D_80368048 as bx
+ * after the debug warp). Returns 1 to go on to the heading update. */
+static s32 port_state1(void) {
+    s32 ax = D_803EF308;
+    s32 az = D_803EF30C;
+    s32 bx = D_803EF2EC;
+    s32 bz = D_803EF2F4;
+    s32 dist = func_802B988C();
+    s32 limit;
+    s32 a;
+    s32 rx;
+    s32 rz;
+    s32 d1;
+    s32 d2;
+    s32 t0;
+    s32 t3;
+    s32 t2;
+
+    if (D_80364A90 == 0x800) {
+        if (D_802E8BDC == 0x1A || D_802E8BDC == 4) {
+            limit = 48000;
+        } else if (D_802E8BDC == 0x1D || D_802E8BDC == 0x3A || D_802E8BDC == 0xD) {
+            limit = 70000;
+        } else {
+            limit = 30000;
+        }
+        if (!(limit < dist)) {
+            D_80364A98 = 1;
+            func_8029A7E4(D_80305D40);
+            D_803EF308 = (&D_80368048)[-1];
+            bx = D_80368048;
+            D_803EF30C = bx;
+            func_8026AF6C(0x4000);
+        }
+    }
+    if (dist < 0x7D0) {
+        D_803EF32C = 2;
+        return 1;
+    }
+    t0 = VEH8D04_S16(0x76) + 2;
+    if (t0 >= 0xA1) {
+        t0 = 0xA0;
+    }
+    VEH8D04_S16(0x76) = t0;
+    a = func_802ABB1C(ax, az, 0, dist, bx, bz);
+    if (a >= 0x401) {
+        a = func_802ABB1C(ax, az, dist, 0, bx, bz) + 0x400;
+        if (a >= 0x801) {
+            a = func_802ABB1C(ax, az, 0, -dist, bx, bz) + 0x800;
+        }
+    }
+    rx = func_802ACE38(0, dist, a, &rz);
+    d1 = ABS_8D04(rx + bx - ax) + ABS_8D04(rz + bz - az);
+    rx = func_802ACE38(0, dist, 0xFFF - a, &rz);
+    d2 = ABS_8D04(rx + bx - ax) + ABS_8D04(rz + bz - az);
+    if (!(d1 < d2)) {
+        a = 0xFFF - a;
+    }
+    t0 = VEH8D04_U16(0x4E) - a;
+    t3 = t0;
+    if (t3 >= 0) {
+        if (t3 >= 0x800) {
+            t3 = 0xFFF - t3;
+        }
+    } else if (t3 < -0x7FF) {
+        t3 += 0xFFF;
+    } else {
+        t3 = -t3;
+    }
+    t3 = (u32) t3 >> 6;
+    if ((t0 > 0) ? (t0 < 0x800) : (t0 < -0x800)) {
+        t2 = D_803EF324 - 1;
+        if (t2 < -t3) {
+            t2 = -t3;
+        }
+    } else {
+        t2 = D_803EF324 + 1;
+        if (t3 < t2) {
+            t2 = t3;
+        }
+    }
+    D_803EF324 = t2;
+    return 1;
+}
+
+/* State 3 (homing in): returns 1 when the target is reached (go to state
+ * 4), 0 when still closing in. */
+static s32 port_state3(void) {
+    s32 t = D_803EF324;
+    s32 dist;
+    s32 speed;
+
+    if (t >= 0) {
+        t--;
+        if (t < 0) {
+            t = 0;
+        }
+    } else {
+        t++;
+        if (t > 0) {
+            t = 0;
+        }
+    }
+    D_803EF324 = t;
+    dist = func_802B988C();
+    if (dist == 0) {
+        return 1;
+    }
+    speed = VEH8D04_S16(0x76);
+    D_803EF2EC = port_step_axis(D_803EF2EC, D_803EF308, dist, speed);
+    D_803EF2F4 = port_step_axis(D_803EF2F4, D_803EF30C, dist, speed);
+    dist = func_802B988C();
+    if (dist < D_803EF320) {
+        D_803EF320 = dist;
+        return 0;
+    }
+    return 1;
+}
+
+/* State 4 (landing at D_80368030 + 0xFA0). */
+static void port_state4(void) {
+    s32 target = D_80368030 + 0xFA0;
+    s32 out[8];
+    s32 v;
+    void *h;
+
+    if (target != D_803EF2F0) {
+        D_803EF2F0 = port_approach_14(D_803EF2F0, target);
+        return;
+    }
+    func_802A04BC(4, D_803EEF40, out);
+    if (out[0] == 1) {
+        return;
+    }
+    D_803EF32D = 1;
+    if (D_80364A90 != 0x1000) {
+        v = func_8026A610(D_803643E0, D_803643E0, D_803EF2EC, D_803EF2F4);
+        v = 0x88B8 - (v << 1);
+        if (v >= 0xFA1) {
+            if (v >= 0x8000) {
+                v = 0x7FFF;
+            }
+            h = func_80260650(D_80367738, 0x28, NULL);
+            func_80260AB8(h, 8, v);
+        }
+    }
+    D_803EF32C = 5;
+    func_802A0290(D_803EEF40, 4, 1);
+}
+
+/* Per-frame update of the flying vehicle D_803EF240 (the asm points $gp at
+ * it), a state machine on D_803EF32C (any other value hits the asm's
+ * `syscall` debug trap and then runs as 6):
+ *   6: if animation channel 4 of D_803EEF40 (func_802A04BC) has a nonzero
+ *      float, restart it (func_802A03D4, func_802A0290); state 0, then as 0.
+ *   0: D_803EF324 one step toward 4; heading update.
+ *   1: approach D_803EF308/30C (port_state1); heading update.
+ *   2: slow down by 4 to 0x14 (heading update while above), then state 3
+ *      with D_803EF320 = distance, then as 3.
+ *   3: D_803EF324 one step toward 0, move straight at the target
+ *      (port_state3); when reached: position = target, state 4 and channel 4
+ *      restarted (func_802A0290).
+ *   4: descend (D_803EF2F0 toward D_80368030 + 0xFA0, 0x14 a frame); there,
+ *      once channel 4 is done: D_803EF32D = 1, a landing sound outside game
+ *      mode 0x1000, state 5, channel 4 restarted.
+ *   5: wait for channel 4 (D_803EF32E = 1 when done), climb back to
+ *      D_803EF304, then state 0 once both.
+ * Heading update: heading +0x4E (and +0x4C) += D_803EF324 (wrapped by 0xFFF)
+ * and the position D_803EF2EC/F4 advanced by the speed +0x76 along it
+ * (func_802A860C). Finally, outside states 4/5: func_802A5604(D_80358074)
+ * and D_803EF2F0 0x14 a frame toward D_803EF304. The asm's add/sub/neg trap
+ * on overflow; the state-3 divides trap on a zero distance (not reached).
+ * Register convention: no inputs. The asm leaves gp = D_803EF240 and its
+ * callees' t6, t7, s0-s4, fp, f12/f14 (listed as read by func_802B899C;
+ * not modelled) and clobbers s0-s4, s6, fp (conventions.txt). Unlike the
+ * asm, which relies on func_802B988C leaving D_803EF2EC/F4 and the old
+ * D_803EF308/30C in t3/t5/t6/s0, the C reads those values itself. */
+void func_802B8D04(void) {
+    s32 out[8];
+    s32 t;
+    Out802A860C o;
+
+    switch (D_803EF32C) {
+        default: /* syscall */
+        case 6:
+            func_802A04BC(4, D_803EEF40, out);
+            if (!(*(f32 *) &out[7] == 0.0f)) {
+                func_802A03D4(D_803EEF40, 4, 1);
+                func_802A0290(D_803EEF40, 4, 1);
+            }
+            D_803EF32C = 0;
+            /* fallthrough */
+        case 0:
+            t = D_803EF324;
+            if (t >= 4) {
+                t--;
+                if (t < 4) {
+                    t = 4;
+                }
+            } else {
+                t++;
+                if (t >= 5) {
+                    t = 4;
+                }
+            }
+            D_803EF324 = t;
+            goto heading;
+        case 1:
+            port_state1();
+            goto heading;
+        case 2:
+            t = VEH8D04_S16(0x76);
+            if (t >= 0x15) {
+                VEH8D04_S16(0x76) = t - 4;
+                goto heading;
+            }
+            VEH8D04_S16(0x76) = 0x14;
+            D_803EF32C = 3;
+            D_803EF320 = func_802B988C();
+            /* fallthrough */
+        case 3:
+            if (port_state3()) {
+                D_803EF2EC = D_803EF308;
+                D_803EF2F4 = D_803EF30C;
+                D_803EF32C = 4;
+                func_802A0290(D_803EEF40, 4, 1);
+            }
+            goto tail;
+        case 4:
+            port_state4();
+            goto tail;
+        case 5:
+            func_802A04BC(4, D_803EEF40, out);
+            if (out[0] != 1) {
+                D_803EF32E = 1;
+            }
+            if (D_803EF304 != D_803EF2F0) {
+                D_803EF2F0 = port_approach_14(D_803EF2F0, D_803EF304);
+            } else if (D_803EF32E != 0) {
+                D_803EF32C = 0;
+                D_803EF32E = 0;
+            }
+            goto tail;
+    }
+heading:
+    t = VEH8D04_U16(0x4E) + D_803EF324;
+    if (t >= 0x1000) {
+        t -= 0xFFF;
+    } else if (t < 0) {
+        t += 0xFFF;
+    }
+    VEH8D04_S16(0x4E) = t;
+    VEH8D04_S16(0x4C) = t;
+    D_803EF2EC = func_802A860C(0.0f, t, &VEH8D04_S16(0x76), &D_803EF2EC, &D_803EF2F4, &o);
+    D_803EF2F4 = o.t1;
+tail:
+    if (D_803EF32C != 4 && D_803EF32C != 5) {
+        func_802A5604(D_80358074);
+        D_803EF2F0 = port_approach_14(D_803EF2F0, D_803EF304);
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/72B80/func_802B8D04.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

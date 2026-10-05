@@ -245,6 +245,14 @@ func_802A1C20: in t0=a0,fp=a1,s1=*a2 ; out s1=*a2 ; preserve v0,v1,a0,a1,a2,a3,t
 func_802A2608: in t4=a0,fp=a1 ; preserve v0,v1,a0,a1,a2,a3,t0,t3,t4,t5,t6,t7,t8,t9 ; clobbers s1
 # G_SETTIMG ids in level object t0's display list via func_802A08E4; list end -> s1 (s4 passes through)
 func_802A3008: in t0=a0 ; out s1=ret ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,t8,t9 ; clobbers s0,s2,s3,s4,s5,s6
+# phase D (wt-g3): packed object 0x98 vertices moved by D_8039CAB0/2/4 (saves t0; func_802A396C's s2/s4 left)
+func_802A19F4: preserve t0 ; clobbers s2,s4,s5,s6,s7
+# packed object D_8039CA7E (func_802A32CC: s2-s4 out when loaded), its matrices to the heap, func_80295AE0
+func_802A3198: in s2=*a0,s3=*a0+4,s4=*a0+8 ; out s2=*a0,s3=*a0+4,s4=*a0+8 ; preserve t0 ; clobbers s0,s5,s6,s7
+# placed object setup: type t3, data t4, x/y/z t5-t7, flag s0, tag t9, param fp; record from D_803F7654, triangles at the heap
+func_802A21AC: in t3=a0,t4=a1,t5=a2,t6=a3,t7=stack0,s0=stack1,t9=stack2,fp=stack3 ; preserve t0,t1,t2 ; clobbers s0-s7,gp,f20,f22,f24,f26,f28
+# level objects from level object t0's placement list (param fp); list end -> t1 (= t2)
+func_802A1D54: in t0=a0,fp=a1 ; out t1=ret ; preserve t0 ; clobbers s0-s7,gp,f20,f22,f24,f26,f28
 
 # --- 5FD50 ---
 # min of the first / max of the second s16 over an h x w block of a grid of s16 pairs
@@ -328,6 +336,8 @@ func_802A8314: in t5=a0 ; out t5=ret ; preserve v0,v1,a0,a1,a2,a3,t1,t6
 func_802A83B8: in t6=a0,s0=a1,s7=a2,t8=a3 ; out f12=fret ; preserve a0,a1,a2,a3,t6
 func_802A8590: in s7=a0 ; out t1=ret ; preserve t6,t7,f2
 func_802A8FF4: in gp=a0 ; preserve a1,a2,a3,t0,t1,t7,t8,t9,f12,f14
+# (wt-g3) touches only v0/at/f0/f2; func_802A8768 keeps v1 (its tbl) live across it
+func_802A8FB4: preserve v1,a1,a2,a3,t0,t1,t7,t8,t9,f12,f14
 func_802A9038: in gp=a0 ; preserve v0,t0,t1,t7,t8,t9,f12,f14
 func_802A90E4: in v1=a0 ; preserve v0,a1,a2,a3,t0,t1,t7,t8,t9,f12,f14
 func_802A9164: in gp=a0,s0=a1,t8=a2 ; preserve a0,a2,a3,t7,t8,f12,f14
@@ -393,6 +403,22 @@ func_802A860C: in f12=f12,t4=a1,t6=a2,t7=a3,s1=stack0 ; out t0=ret,t1=*stack1,s3
 func_802A8CCC: in gp=a0,t8=a1,t7=a2,s2=a3,s1=stack0,t0=*stack1,t1=*stack1+4 ; out t0=*stack1,t1=*stack1+4 ; preserve v0,v1,a0,a1,a2,a3,t2,t3,t4,t5,t6,t7,t8,t9
 # angle at (t3,t4) between the line to (t7,s0) and the offset (t5,t6) from it (arcsine >> 3) in s6
 func_802ABB1C: in t3=a0,t4=a1,t5=a2,t6=a3,t7=stack0,s0=stack1 ; out s6=ret ; preserve v1,a2,t3,t4,t5,t6,t7 ; clobbers s1,s2,s3,s4,fp
+# phase D (wt-g3): ground-height slots. tbl entry v0 (s16 x, z) rotated by *s4 -> t5, t6
+func_802A94A4: in v0=a0,v1=a1,s4=a2 ; out t5=ret,t6=*a3 ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t7,t8,t9
+# three slots through func_802A9B1C at (t0,t1) + rotated tbl t3 offsets, y from s7 records; kinds to the D_803ED3B8 record of t8
+func_802A92C8: in t0=a0,t1=a1,t3=a2,s4=a3,s7=stack0,t8=stack1,gp=stack2,fp=stack3,f12=*stack4,f14=*stack4+4,f20=*stack4+8,f22=*stack4+12,f24=*stack4+16,f26=*stack4+20 ; out t6=ret,f12=*stack4,f14=*stack4+4,f20=*stack4+8,f22=*stack4+12,f24=*stack4+16,f26=*stack4+20 ; preserve t0,t1,t7,t8,t9 ; clobbers s5,s6,f28
+# slot v0 on the ground / airborne (arrays a1-a3); s3 result (in/out for func_802A95A4)
+func_802A93B0: in v0=a0,a1=a1,a2=a2,a3=a3,v1=stack0,t0=stack1,t1=stack2,s4=stack3,s7=stack4,t8=stack5,gp=stack6,fp=stack7,f12=*stack8,f14=*stack8+4,f20=*stack8+8,f22=*stack8+12,f24=*stack8+16,f26=*stack8+20 ; out s3=ret,f12=*stack8,f14=*stack8+4,f20=*stack8+8,f22=*stack8+12,f24=*stack8+16,f26=*stack8+20 ; preserve v0,v1,a1,a2,a3,t0,t1,t3,t6,t7,t8,t9 ; clobbers f28
+func_802A95A4: in v0=a0,a1=a1,a2=a2,a3=a3,v1=stack0,t0=stack1,t1=stack2,s4=stack3,s7=stack4,t8=stack5,gp=stack6,fp=stack7,s3=*stack8,f12=*stack9,f14=*stack9+4,f20=*stack9+8,f22=*stack9+12,f24=*stack9+16,f26=*stack9+20 ; out s3=*stack8,f12=*stack9,f14=*stack9+4,f20=*stack9+8,f22=*stack9+12,f24=*stack9+16,f26=*stack9+20 ; preserve v0,v1,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,t8,t9 ; clobbers s6,f28
+# reset the three slots (dst s1 records, mid s2) from the scans at (t7,s0) + rotated tbl v1 offsets, height t2
+func_802A992C: in v1=a0,t2=a1,t7=a2,s0=a3,s1=stack0,s2=stack1,s4=stack2,t8=stack3,fp=stack4,gp=stack5,f12=*stack6,f14=*stack6+4,f20=*stack6+8,f22=*stack6+12,f24=*stack6+16,f26=*stack6+20 ; out s3=ret,f12=*stack6,f14=*stack6+4,f20=*stack6+8,f22=*stack6+12,f24=*stack6+16,f26=*stack6+20 ; clobbers s5,s6,f28
+func_802A9A60: in v1=a0,t2=a1,t7=a2,s0=a3,s1=stack0,s2=stack1,s4=stack2,t8=stack3,fp=stack4,gp=stack5,f12=*stack6,f14=*stack6+4,f20=*stack6+8,f22=*stack6+12,f24=*stack6+16,f26=*stack6+20 ; out t6=ret,s1=*stack7,s3=*stack7+4,f12=*stack6,f14=*stack6+4,f20=*stack6+8,f22=*stack6+12,f24=*stack6+16,f26=*stack6+20 ; preserve t7 ; clobbers s5,s6,f28
+# steer toward triangle a3's interpolated point: heading t0, distance s3; f24 in/out, f26 out (InterpRegs at stack4)
+func_802AB9A4: in v1=a0,t0=a1,a2=a2,a3=a3,t1=stack0,s1=stack1,s2=stack2,f24=*stack4+24 ; out t0=ret,s3=*stack3,f24=*stack4+24,f26=*stack4+28 ; preserve a2,a3 ; clobbers s0,s1,s2,s4,s5,s6,fp,f20,f22,f28
+# per-frame ground contact of vehicle t8 (record gp): reset, three slots, height history s7, tilts (divisors fp / t9), func_802A92C8
+func_802A8768: in gp=a0,t8=a1,t7=a2,s2=a3,s1=stack0,t0=stack1,t1=stack2,t9=stack3,fp=stack4,s4=stack5,s0=stack6,v1=stack7,a1=stack8,a2=stack9,a3=stack10,s7=stack11,s3=*stack12,f12=*stack13,f14=*stack13+4,f20=*stack13+8,f22=*stack13+12,f24=*stack13+16,f26=*stack13+20 ; out s3=*stack12,s4=*stack12+4,fp=*stack12+8,f12=*stack13,f14=*stack13+4,f20=*stack13+8,f22=*stack13+12,f24=*stack13+16,f26=*stack13+20 ; preserve t4,t7 ; clobbers s5,s6,s7,f28
+# model matrix at t8: scale s7, rotations D_803ED390/94/92, translation (s4,s5,s6) << 11; leaves s2 = t8
+func_802AA764: in s4=a0,s5=a1,s6=a2,s7=a3,t8=stack0 ; clobbers s2
 
 # recursive id lookup in the D_803ED3B8 list; saves t1-t4 and s3, leaves s2 changed when found
 func_802AB8D8: in s2=a0 ; out t0=ret ; preserve t1,t2,t3,t4,s3 ; clobbers s2
@@ -559,6 +585,8 @@ func_802B80D8: preserve a0,a1,a2,a3,t6,t7
 func_802B83B0: out s3=ret ; preserve a0,a1,a2,a3
 # distance (y = 0) D_803EF2EC/F4 -> D_803EF308/0C in s1; s0 left = D_803EF30C
 func_802B988C: out s1=ret ; preserve a0,a1,a2,a3,f12,f14 ; clobbers s0
+# (wt-g3) flying-vehicle state machine on D_803EF32C; sets gp = D_803EF240, leaves its callees' registers
+func_802B8D04: clobbers s0-s4,s6,fp,gp
 # sound/animation update ($gp = D_803EF240); (160 - speed) / 320 left in f20
 func_802B98E0: out f20=fret ; preserve a2,a3,t7,f12,f14
 # trail + effect cooldown ($gp = D_803EEE70); t6, t7, s0-s4 pass through to func_802A6274 (s1 comes back changed)

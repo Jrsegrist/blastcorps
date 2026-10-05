@@ -88,6 +88,49 @@ typedef struct {
     f32 dz;    /* f26: last edge's z extent */
 } TriSideOut;
 
+/* Prototypes shared by the ground-height functions (func_802A92C8 ..
+ * func_802A9A60, func_802A8768); their definitions are further down. */
+s32 func_802ACE38(s32 x, s32 z, s32 angle, s32 *t1out); /* 679E0: 2-D rotation */
+s32 func_802A94A4(s32 index, s16 *tbl, s16 *angle, s32 *dz);
+s32 func_802A9B1C(s32 index, s32 x, s32 z, s32 y, s32 skip, u8 *veh, s32 fpIn, TriSideOut *f);
+s32 func_802A9540(s32 index, s32 *a, s32 *b, s32 *c, s32 extra, s32 value);
+s32 func_802A9514(s32 x);
+s32 func_802A9710(s32 index, s32 *a, s32 *b, s32 *c, s32 extra, s32 pos, s32 s3);
+s32 func_802A9F24(s32 x, s32 z, s32 y, s32 skip, TriSideOut *f, s32 *idOut, s32 *a2Out);
+s32 func_802AA094(s32 x, s32 z, s32 y, TriSideOut *f, s32 *t3io, s32 *fpio);
+/* func_802A8CCC's t0 / t1: position in, reset position out (unchanged if none). */
+typedef struct {
+    s32 t0; /* x */
+    s32 t1; /* z */
+} Pos802A8CCC;
+
+extern u8 D_803ED3B8[]; /* 4-byte records {u8 key, u8 kinds[3]}, word -1 ends */
+extern s16 D_803ED390; /* three s16 angles x, y, z (0x803ED390/92/94; 94 has no symbol) */
+#define D_803ED394_ ((&D_803ED390)[2])
+
+/* Find the D_803ED3B8 record keyed `key` (or claim the end marker for it:
+ * byte 0 = key, the -1 word otherwise left) and copy the three slot kinds
+ * D_803ED3EA[0..2] into its bytes 1..3. The key compare is against the full
+ * register (a key above 0xFF never matches); 0xFF bytes that aren't the end
+ * marker are skipped. Shared by func_802A92C8 and func_802A992C. */
+#define PORT_STORE_KINDS(key)                                                       \
+    {                                                                               \
+        u8 *p_ = D_803ED3B8;                                                        \
+        for (;;) {                                                                  \
+            if (p_[0] == (key)) {                                                   \
+                break;                                                              \
+            }                                                                       \
+            if (p_[0] == 0xFF && *(s32 *) p_ == -1) {                               \
+                p_[0] = (key);                                                      \
+                break;                                                              \
+            }                                                                       \
+            p_ += 4;                                                                \
+        }                                                                           \
+        p_[1] = (&D_803ED3EA)[0];                                                   \
+        p_[2] = (&D_803ED3EA)[1];                                                   \
+        p_[3] = (&D_803ED3EA)[2];                                                   \
+    }
+
 /* cvt.w.s under the game's FCSR: float -> s32, round to nearest even (a C
  * cast truncates). NaN and out-of-range inputs (degenerate geometry) give
  * 0x7FFFFFFF, the invalid-operation result the emulator produces (the VR4300
@@ -1262,7 +1305,142 @@ s32 func_802A860C(f32 f, s32 angle, s16 *len, s32 *px, s32 *pz, Out802A860C *out
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern s16 D_803ED402;
+extern s16 D_803ED404;
+extern s16 D_803ED406;
+extern u8 D_803ED40E;
+extern u8 D_803ED40F;
+extern u8 D_803ED3F5;
+s32 func_802ACF64(u32 x);
+void func_802A8CCC(u8 *veh, s32 id, s32 *px, s32 *py, s32 *pz, Pos802A8CCC *pos);
+void func_802A90E4(u16 *p);
+void func_802A8FF4(u8 *veh);
+void func_802A8FB4(void);
+void func_802A9038(u8 *veh);
+void func_802A9164(u8 *veh, u8 *f, s32 kind);
+s32 func_802A8B10(s32 *a3Out);
+void func_802582C4(u8 id, s32 x, s32 y, s32 z, s32 arg4, s32 arg5, s32 arg6, s32 arg7); /* 13A70 */
+s32 func_802A92C8(s32 x, s32 z, s16 *tbl, s16 *angle, s32 *ys, s32 key, u8 *veh, s32 fpIn, TriSideOut *f);
+s32 func_802A93B0(s32 index, s32 *a, s32 *b, s32 *c, s16 *tbl, s32 x, s32 z, s16 *angle, s32 *ys, s32 key,
+                  u8 *veh, s32 fpIn, TriSideOut *f);
+void func_802A95A4(s32 index, s32 *a, s32 *b, s32 *c, s16 *tbl, s32 x, s32 z, s16 *angle, s32 *ys, s32 key,
+                   u8 *veh, s32 fpIn, s32 *s3, TriSideOut *f);
+
+/* func_802A8768's register results besides the FP state. */
+typedef struct {
+    s32 s3;  /* in/out: the slot functions' result */
+    s16 *s4; /* out: angle, or veh + 0x4C when func_802A92C8 ran */
+    s32 fp;  /* out: the second tilt (also stored to D_803ED390) */
+} Regs802A8768;
+
+/* (s32) (|d| << 16) / div (signed 32-bit divide: traps on div 0 and on
+ * 0x80000000 / -1), through func_802ACF64, >> 4 (logical); negated as asked. */
+#define TILT_8768(d, div, negIfPos)                                                    \
+    ((d) >= 0 ? ((negIfPos) ? -((u32) func_802ACF64((s32) ((u32) (d) << 16) / (div)) >> 4) \
+                            : (u32) func_802ACF64((s32) ((u32) (d) << 16) / (div)) >> 4)   \
+              : ((negIfPos) ? (u32) func_802ACF64((s32) ((u32) -(d) << 16) / (div)) >> 4   \
+                            : -((u32) func_802ACF64((s32) ((u32) -(d) << 16) / (div)) >> 4)))
+
+/* Per-frame ground contact of vehicle `id` (record veh): out-of-bounds reset
+ * (func_802A8CCC, may move (x, z) and write *px/*py/*pz); D_803ED402 = divB,
+ * D_803ED404 = divA, D_803ED406 = *angle, D_803ED40E = flags[0]; veh+0x9B =
+ * 0; func_802A90E4(tbl), func_802A8FF4, func_802A8FB4. Then the three wheel
+ * slots: for i = 0..2, if D_803ED410 is set and i > 0, func_802A9038(veh) and
+ * stop; else (s8) flags[i] == 1 -> func_802A95A4 (airborne), 0 ->
+ * func_802A93B0 (grounded; other values hit the asm's `syscall` debug trap
+ * first). After: flags[0..2] = D_803ED3EE[0..2]; with h0..h2 =
+ * D_803ED398[0..2] the height records ys (three of {now, prev, prev2})
+ * shift in h0/h1/h2; *px = x, *pz = z, *py = (h1 + h2) >> 1 (logical);
+ * D_803ED394 = tilt (h1 - h0, divA, negated when >= 0) and D_803ED390 = fp =
+ * tilt (h2 - h0, divB, negated when < 0) (TILT_8768). Then
+ * func_802582C4(id, *px, (D_803ED3A8[1] + [2]) >> 1, *pz, (h1 + h2) >> 1,
+ * func_802A8B10's two results, D_803ED406), func_802A9164(veh, flags, id)
+ * and, when D_803ED3F5 is 0, id != 0xFF and D_803ED40F is set,
+ * func_802A92C8(*px, *pz, veh + 0x5E, veh + 0x4C, veh + 4, id, veh, fp, f).
+ * The asm's add/sub/neg trap on overflow.
+ * Register convention: veh gp, id t8, px t7, py s2, pz s1, x t0, z t1, divB t9,
+ * divA fp, angle s4, flags s0, tbl v1, a/b/c a1-a3, ys s7; s3 in/out, s4 and
+ * fp out (r), f12-f26 in/out (f). The asm restores t4 and clobbers s5-s7 (s7
+ * = veh + 4 on the func_802A92C8 path); t6 is left as the callees leave it
+ * (listed as read by the vehicle callers; not modelled). Asm callers keep t7
+ * live. */
+void func_802A8768(u8 *veh, s32 id, s32 *px, s32 *py, s32 *pz, s32 x, s32 z, s32 divB, s32 divA, s16 *angle,
+                   u8 *flags, s16 *tbl, s32 *a, s32 *b, s32 *c, s32 *ys, Regs802A8768 *r, TriSideOut *f) {
+    Pos802A8CCC pos;
+    s32 s3 = r->s3;
+    s32 i;
+    s32 h0;
+    s32 h1;
+    s32 h2;
+    s32 t;
+    s32 fp;
+    s32 r1;
+    s32 r2;
+
+    pos.t0 = x;
+    pos.t1 = z;
+    func_802A8CCC(veh, id, px, py, pz, &pos);
+    x = pos.t0;
+    z = pos.t1;
+    D_803ED402 = divB;
+    D_803ED404 = divA;
+    D_803ED406 = *angle;
+    D_803ED40E = flags[0];
+    VEH_U8(veh, 0x9B) = 0;
+    func_802A90E4((u16 *) tbl);
+    func_802A8FF4(veh);
+    func_802A8FB4();
+    for (i = 0; i < 3; i++) {
+        if (D_803ED410 != 0 && i != 0) {
+            func_802A9038(veh);
+            break;
+        }
+        if (((s8 *) flags)[i] == 1) {
+            func_802A95A4(i, a, b, c, tbl, x, z, angle, ys, id, veh, divA, &s3, f);
+        } else { /* 0 (other values: the asm's syscall, then this) */
+            s3 = func_802A93B0(i, a, b, c, tbl, x, z, angle, ys, id, veh, divA, f);
+        }
+    }
+    flags[0] = (&D_803ED3EE)[0];
+    flags[1] = (&D_803ED3EE)[1];
+    flags[2] = (&D_803ED3EE)[2];
+    h0 = (&D_803ED398)[0];
+    h1 = (&D_803ED398)[1];
+    h2 = (&D_803ED398)[2];
+    t = ys[1];
+    ys[2] = t;
+    ys[1] = ys[0];
+    ys[0] = h0;
+    ys[5] = ys[4];
+    ys[4] = ys[3];
+    ys[3] = h1;
+    ys[8] = ys[7];
+    ys[7] = ys[6];
+    ys[6] = h2;
+    *px = x;
+    *pz = z;
+    *py = (u32) (h1 + h2) >> 1;
+    t = h1 - h0;
+    D_803ED394_ = TILT_8768(t, divA, 1);
+    t = h2 - h0;
+    fp = TILT_8768(t, divB, 0);
+    D_803ED390 = fp;
+    r1 = func_802A8B10(&r2);
+    func_802582C4(id, *px, (u32) ((&D_803ED3A8)[1] + (&D_803ED3A8)[2]) >> 1, *pz,
+                  (u32) ((&D_803ED398)[1] + (&D_803ED398)[2]) >> 1, r1, r2, D_803ED406);
+    func_802A9164(veh, flags, id);
+    r->s4 = angle;
+    if (D_803ED3F5 == 0 && id != 0xFF && D_803ED40F != 0) {
+        r->s4 = &VEH_S16(veh, 0x4C);
+        func_802A92C8(*px, *pz, &VEH_S16(veh, 0x5E), &VEH_S16(veh, 0x4C), &VEH_S32(veh, 4), id, veh, fp, f);
+    }
+    r->s3 = s3;
+    r->fp = fp;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802A8768.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -1315,11 +1493,7 @@ void func_802A754C(u8 *veh);
 void func_802AC6FC(s32 x, s32 y, s32 z, s32 kind, s32 data);
 void func_80277EDC();
 
-/* The asm's t0 / t1: position in, reset position out (unchanged if none). */
-typedef struct {
-    s32 t0; /* x */
-    s32 t1; /* z */
-} Pos802A8CCC;
+/* (Pos802A8CCC is declared at the top of the file.) */
 
 /* Out-of-bounds reset for vehicle `id` (record veh): with gx = x >> 5 and
  * gz = z >> 5, vehicle 7 counts as out on level 0 when gx < 1000, on level
@@ -1519,13 +1693,92 @@ void func_802A9164(u8 *veh, u8 *f, s32 kind) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Ground heights for the three wheel slots: for i = 0..2, (dx, dz) =
+ * func_802A94A4(i, tbl, angle) and func_802A9B1C(i, x + dx, z + dz,
+ * ys[3 * i], key, veh, fpIn, f) (12-byte records, y first; the FP state f
+ * chains through). Then the slot kinds go to key's D_803ED3B8 record
+ * (PORT_STORE_KINDS). Returns D_803ED3EA[1] (the asm's t6 at the end). The
+ * asm's adds trap on overflow.
+ * Register convention: x t0, z t1, tbl t3, angle s4, ys s7, key t8, veh gp,
+ * fp; f12-f26 in/out (f); result t6. The asm restores t0, t1, t7, s0, s2, s7,
+ * t9, clobbers s5/s6 and leaves v0 = 3, t2 = -1. Asm caller func_802BB274
+ * keeps t7 live. */
+s32 func_802A92C8(s32 x, s32 z, s16 *tbl, s16 *angle, s32 *ys, s32 key, u8 *veh, s32 fpIn, TriSideOut *f) {
+    s32 i;
+    s32 dx;
+    s32 dz;
+
+    for (i = 0; i < 3; i++) {
+        dx = func_802A94A4(i, tbl, angle, &dz);
+        func_802A9B1C(i, x + dx, z + dz, ys[i * 3], key, veh, fpIn, f);
+    }
+    PORT_STORE_KINDS(key);
+    return (&D_803ED3EA)[1];
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802A92C8.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Ground slot `index` while on the ground: (dx, dz) = func_802A94A4(index,
+ * tbl, angle); y = ys[3 * index], prev = ys[3 * index + 1]; v =
+ * func_802A9514(y - prev) (clamped step); expected = v +
+ * round(D_803EBBF4) + y; h = func_802A9B1C(index, x + dx, z + dz, y, key,
+ * veh, fpIn, f). If h <= expected - 0x1E (the ground fell away):
+ * v = func_802A9540(index, a, b, c, y, v) and the height is `expected`;
+ * else D_803ED3EE[index] = 0 and the height is h. D_803ED398[index] = the
+ * height. Returns v. The asm's add/sub trap on overflow.
+ * Register convention: index v0, a/b/c a1-a3, tbl v1, x t0, z t1, angle s4,
+ * ys s7, key t8, veh gp, fp; result s3, f12-f26 in/out (f). The asm restores
+ * t0, t1, t3, t6, t7, s0-s2, s4; asm caller func_802A8768 keeps v0, a1-a3,
+ * t0, t1, t7-t9 live. */
+s32 func_802A93B0(s32 index, s32 *a, s32 *b, s32 *c, s16 *tbl, s32 x, s32 z, s16 *angle, s32 *ys, s32 key,
+                  u8 *veh, s32 fpIn, TriSideOut *f) {
+    s32 dx;
+    s32 dz;
+    s32 y;
+    s32 v;
+    s32 expected;
+    s32 h;
+
+    dx = func_802A94A4(index, tbl, angle, &dz);
+    y = ys[index * 3];
+    v = func_802A9514(y - ys[index * 3 + 1]);
+    expected = v + port_cvt_w_s(D_803EBBF4) + y;
+    h = func_802A9B1C(index, x + dx, z + dz, y, key, veh, fpIn, f);
+    if (!(expected - 0x1E < h)) {
+        v = func_802A9540(index, a, b, c, y, v);
+        h = expected;
+    } else {
+        (&D_803ED3EE)[index] = 0;
+    }
+    (&D_803ED398)[index] = h;
+    return v;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802A93B0.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Rotate table entry `index` of tbl ({s16 x, s16 z} pairs) by the angle *angle
+ * (s16) with func_802ACE38: returns its a3 result (the x offset) and stores its
+ * t1 result (the z offset) in *dz. (The asm's add of index * 4 traps.)
+ * Register convention: index v0, tbl v1, angle s4; results t5 (return value)
+ * and t6 (*dz). The asm saves a0-a3, t0, t1 and fp around the call; asm
+ * callers keep v0, v1, a0-a3, t0-t4, t7 and t8 live. It also leaves the sine
+ * routine's f12/f14 temporaries, which the survey lists as read by
+ * func_802A92C8/93B0/95A4/992C/9A60: they only flow into the triangle scans'
+ * FP pass-through state (TriSideOut), not modelled here (a mixed N64 build
+ * would need a thunk; the native port won't). */
+s32 func_802A94A4(s32 index, s16 *tbl, s16 *angle, s32 *dz) {
+    return func_802ACE38(tbl[index * 2], tbl[index * 2 + 1], *angle, dz);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802A94A4.s")
+#endif
 
 /* func_802A9514: clamps $s3 to a max of 0x240 (`if (s3 >= 0x241) s3 =
  * 0x240;`), reading AND writing $s3 directly with no parameter or
@@ -1568,7 +1821,51 @@ s32 func_802A9540(s32 index, s32 *a, s32 *b, s32 *c, s32 extra, s32 value) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u8 D_803F7C49;
+
+/* Ground slot `index` while airborne: with n = b[index] (then b[index] =
+ * n + 1), drop = a[index] * n + round(D_803EBBF4 * (f32) (n * n)) (32-bit
+ * products) and expected = c[index] + drop. (dx, dz) = func_802A94A4(index,
+ * tbl, angle), h = func_802A9B1C(index, x + dx, z + dz, ys[3 * index], key,
+ * veh, fpIn, f). Landing test: with key 9 and D_803F7C49 set, it lands when
+ * h - expected >= 0x6A5 or h < expected; otherwise when h < expected. Landed:
+ * D_803ED398[index] = max(expected, 0), D_803ED3EE[index] = 1, s3 unchanged.
+ * Not landed: D_803ED398[index] = h and *s3 = func_802A9710(index, a, b, c, h,
+ * drop, *s3). The asm's add/sub trap on overflow.
+ * Register convention: index v0, a/b/c a1-a3, tbl v1, x t0, z t1, angle s4,
+ * ys s7, key t8, veh gp, fp; s3 in/out (*s3), f12-f26 in/out (f); the asm
+ * restores t0-t7, s0-s2 and leaves s6 = drop or what func_802A9710 leaves
+ * (clobbers s6). Asm caller func_802A8768 keeps v0, a1-a3, t0, t1, t7-t9
+ * live. */
+void func_802A95A4(s32 index, s32 *a, s32 *b, s32 *c, s16 *tbl, s32 x, s32 z, s16 *angle, s32 *ys, s32 key,
+                   u8 *veh, s32 fpIn, s32 *s3, TriSideOut *f) {
+    s32 n = b[index];
+    s32 drop;
+    s32 expected;
+    s32 dx;
+    s32 dz;
+    s32 h;
+
+    b[index] = n + 1;
+    drop = a[index] * n + port_cvt_w_s(D_803EBBF4 * (f32) (n * n));
+    expected = c[index] + drop;
+    dx = func_802A94A4(index, tbl, angle, &dz);
+    h = func_802A9B1C(index, x + dx, z + dz, ys[index * 3], key, veh, fpIn, f);
+    if ((key == 9 && D_803F7C49 != 0 && h - expected >= 0x6A5) || h < expected) {
+        if (expected < 0) {
+            expected = 0;
+        }
+        (&D_803ED398)[index] = expected;
+        (&D_803ED3EE)[index] = 1;
+    } else {
+        (&D_803ED398)[index] = h;
+        *s3 = func_802A9710(index, a, b, c, h, drop, *s3);
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802A95A4.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -1607,10 +1904,98 @@ s32 func_802A9710(s32 index, s32 *a, s32 *b, s32 *c, s32 extra, s32 pos, s32 s3)
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Reset the three ground slots from the triangle scans: for i = 0..2, (dx, dz)
+ * = func_802A94A4(i, tbl, angle); h = func_802A9F24(x + dx, z + dz, y, key, f,
+ * &kind, ..); when kind is 0, func_802AA094(x + dx, z + dz, y, f, &h, &fp)
+ * may replace h (and fp). D_803ED3EA[i] = kind, dst[3i..3i+2] = h,
+ * D_803ED3F2[i] = fp (low byte; fp carries over between slots). Then *mid =
+ * (dst[3] + dst[6]) >> 1 (logical), veh+0x50 = (D_803ED3F2[0] + [1] + [2]) / 3
+ * and the kinds go to key's D_803ED3B8 record (PORT_STORE_KINDS). Returns dst
+ * (the asm's s3). The asm's adds trap on overflow.
+ * Register convention: tbl v1, y t2, x t7, z s0, dst s1, mid s2, angle s4, key
+ * t8, fp, veh gp; f12-f26 in/out (f); result s3. The asm restores s1 and fp
+ * and clobbers s5/s6 (and a1/a2 through the scans). */
+s32 *func_802A992C(s16 *tbl, s32 y, s32 x, s32 z, s32 *dst, s32 *mid, s16 *angle, s32 key, s32 fpIn, u8 *veh,
+                   TriSideOut *f) {
+    s32 fp = fpIn;
+    s32 *p = dst;
+    s32 i;
+    s32 dx;
+    s32 dz;
+    s32 h;
+    s32 kind;
+    s32 a2;
+
+    for (i = 0; i < 3; i++) {
+        dx = func_802A94A4(i, tbl, angle, &dz);
+        h = func_802A9F24(x + dx, z + dz, y, key, f, &kind, &a2);
+        if (kind == 0) {
+            func_802AA094(x + dx, z + dz, y, f, &h, &fp);
+            kind = 0;
+        }
+        (&D_803ED3EA)[i] = kind;
+        p[0] = h;
+        p[1] = h;
+        p[2] = h;
+        p += 3;
+        (&D_803ED3F2)[i] = fp;
+    }
+    *mid = (u32) (dst[3] + dst[6]) >> 1;
+    VEH_U8(veh, 0x50) = (u32) ((&D_803ED3F2)[0] + (&D_803ED3F2)[1] + (&D_803ED3F2)[2]) / 3;
+    PORT_STORE_KINDS(key);
+    return dst;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802A992C.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* func_802A9A60's pointer results (the asm's s1 and s3). */
+typedef struct {
+    s32 *s1; /* dst + 9 (past the three records) */
+    s32 *s3; /* dst */
+} Out802A9A60;
+
+/* As func_802A992C but through func_802A9B1C: for i = 0..2, veh+0x9B = 0,
+ * h = func_802A9B1C(i, x + dx, z + dz, y, key, veh, fp, f), dst[3i..3i+2] =
+ * h, D_803ED3F2[i] = fp (overwriting func_802A9B1C's flag). Then *mid =
+ * (dst[3] + dst[6]) >> 1 (logical), veh+0x50 = (D_803ED3F2[0] + [1] + [2]) /
+ * 3, D_803ED390 = D_803ED394 = 0. Returns the last dz (the asm's t6); out
+ * gets dst + 9 and dst (s1, s3). The asm's adds trap on overflow.
+ * Register convention: tbl v1, y t2, x t7, z s0, dst s1, mid s2, angle s4, key
+ * t8, fp, veh gp; f12-f26 in/out (f); results t6, s1, s3 (out); clobbers
+ * s5/s6. Asm callers keep t7 live. */
+s32 func_802A9A60(s16 *tbl, s32 y, s32 x, s32 z, s32 *dst, s32 *mid, s16 *angle, s32 key, s32 fp, u8 *veh,
+                  TriSideOut *f, Out802A9A60 *out) {
+    s32 *p = dst;
+    s32 i;
+    s32 dx;
+    s32 dz;
+    s32 h;
+
+    for (i = 0; i < 3; i++) {
+        dx = func_802A94A4(i, tbl, angle, &dz);
+        VEH_U8(veh, 0x9B) = 0;
+        h = func_802A9B1C(i, x + dx, z + dz, y, key, veh, fp, f);
+        p[0] = h;
+        p[1] = h;
+        p[2] = h;
+        p += 3;
+        (&D_803ED3F2)[i] = fp;
+    }
+    *mid = (u32) (dst[3] + dst[6]) >> 1;
+    VEH_U8(veh, 0x50) = (u32) ((&D_803ED3F2)[0] + (&D_803ED3F2)[1] + (&D_803ED3F2)[2]) / 3;
+    D_803ED390 = 0;
+    D_803ED394_ = 0;
+    out->s1 = p;
+    out->s3 = dst;
+    return dz;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802A9A60.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -2099,11 +2484,64 @@ s32 func_802AA5E0(s32 x, s32 z, s32 x0, s32 z0, s32 x1, s32 z1, s32 x2, s32 z2) 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802AA5E0.s")
 #endif
 
-/* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802AA6D0.s")
+#ifdef NON_MATCHING
+extern s16 D_803ED392; /* rotation angle y (x and z: D_803ED390, D_803ED394_) */
+extern u16 D_803EBB58[]; /* accumulated Mtx (see func_802ACCCC) */
+void func_802AA764(s32 x, s32 y, s32 z, s32 scale, s32 *m);
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* o32 entry: D_803ED390 = rx, D_803ED392 = ry, D_803ED394 = rz (halfwords),
+ * then func_802AA764(x, y, z, scale, m). The asm saves s0-s7, gp and fp. */
+void func_802AA6D0(s32 x, s32 y, s32 z, s16 rx, s16 ry, s16 rz, s32 scale, Mtx *m) {
+    D_803ED392 = ry;
+    D_803ED390 = rx;
+    D_803ED394_ = rz;
+    func_802AA764(x, y, z, scale, (s32 *) m);
+}
+#else
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802AA6D0.s")
+#endif
+
+/* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+void func_802ACC68(s32 x, s32 y, s32 z, s32 *m);
+void func_802ACBDC(s32 angle, s32 *m);
+void func_802ACB50(s32 angle, s32 *m);
+void func_802ACAC4(s32 angle, s32 *m);
+void func_802ACCCC(s32 *b, s32 *m);
+void func_802ACA60(s32 x, s32 y, s32 z, s32 *m);
+void func_802AC8CC(u16 *m);
+
+/* Build the model matrix m (16.16 words, converted in place to the Mtx
+ * layout at the end by func_802AC8CC): m = scale matrix (scale on all three
+ * axes, func_802ACC68), then for each of rotation by D_803ED390
+ * (func_802ACBDC), D_803ED394 (func_802ACB50), D_803ED392 (func_802ACAC4)
+ * (angles read as u16) and the translation (x, y, z) << 11 (func_802ACA60)
+ * build that matrix in D_803EBB58 and combine it into m with
+ * func_802ACCCC(D_803EBB58, m).
+ * Register convention: x s4, y s5, z s6, scale s7, m t8. The asm leaves a0 =
+ * &D_803EBB58 and s2 = m (clobbers s2), and the cosine/sine routines' f12/f14
+ * temporaries, which the survey lists as read by asm callers (not modelled,
+ * see func_802AE104). */
+void func_802AA764(s32 x, s32 y, s32 z, s32 scale, s32 *m) {
+    s32 *tmp = (s32 *) D_803EBB58;
+
+    func_802ACC68(scale, scale, scale, m);
+    func_802ACBDC((u16) D_803ED390, tmp);
+    func_802ACCCC(tmp, m);
+    func_802ACB50((u16) D_803ED394_, tmp);
+    func_802ACCCC(tmp, m);
+    func_802ACAC4((u16) D_803ED392, tmp);
+    func_802ACCCC(tmp, m);
+    func_802ACA60(x << 11, y << 11, z << 11, tmp);
+    func_802ACCCC(tmp, m);
+    func_802AC8CC((u16 *) m);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802AA764.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -2686,7 +3124,93 @@ s32 func_802AB8D8(s32 id) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern s16 D_803ED3E8; /* scratch heading for func_802A94A4 */
+s32 func_802ABB1C(s32 ax, s32 az, s32 dx, s32 dz, s32 bx, s32 bz);
+
+#define WRAP_12(v) ((v) >= 0x1000 ? (v) - 0xFFF : (v))
+#define ABS_B9A4(v) ((v) < 0 ? -(v) : (v))
+
+/* Steer toward a point on triangle `id`: B = func_802AAE54(id, x1, z1) and
+ * A = func_802AAE54(id, x2, z2) (interpolated value pairs; r's f24 chains
+ * through both). d = func_802ABB1C(A, offset of tbl[0] rotated by *angle, B);
+ * when d > 0x400 it is retried with the heading turned by 0x400 (d += 0x400)
+ * and, if then > 0x800, by 0x800 (d += 0x800), the turned heading going
+ * through D_803ED3E8 (wrapped as h >= 0x1000 ? h - 0xFFF : h). Then the two
+ * headings *angle + d (wrapped the same way) and *angle - d (+ 0xFFF when
+ * negative) are tried: each rotated offset is added to B and its distance
+ * |B + off - A| (|dx| + |dz|) taken; returns the + heading when its distance
+ * is strictly smaller, else the - heading, and the - heading's distance in
+ * *s3Out. D_803ED3E8 is left = the - heading. The asm's add/sub/neg trap.
+ * Register convention: tbl v1, x1 t0, angle a2, id a3, z1 t1, x2 s1, z2 s2;
+ * results t0 (return value) and s3 (*s3Out); r: f24 in, f24/f26 out (r's
+ * other fields are scratch). The asm clobbers s0-s2, s4-s6, fp, f20, f22;
+ * asm callers keep a3 live. */
+s32 func_802AB9A4(s16 *tbl, s32 x1, u16 *angle, s32 id, s32 z1, s32 x2, s32 z2, s32 *s3Out, InterpRegs *r) {
+    s32 ax;
+    s32 az;
+    s32 bx;
+    s32 bz;
+    s32 dx;
+    s32 dz;
+    s32 d;
+    s32 h;
+    s32 a0;
+    s32 plus;
+    s32 minus;
+    s32 d1;
+    s32 d2;
+    s32 e1;
+    s32 e2;
+
+    func_802AAE54(id, x1, z1, r);
+    bx = r->t3;
+    bz = r->t4;
+    func_802AAE54(id, x2, z2, r);
+    ax = r->t3;
+    az = r->t4;
+    dx = func_802A94A4(0, tbl, (s16 *) angle, &dz);
+    d = func_802ABB1C(ax, az, dx, dz, bx, bz);
+    if (d >= 0x401) {
+        h = *angle + 0x400;
+        D_803ED3E8 = WRAP_12(h);
+        dx = func_802A94A4(0, tbl, &D_803ED3E8, &dz);
+        d = func_802ABB1C(ax, az, dx, dz, bx, bz) + 0x400;
+        if (d >= 0x801) {
+            h = *angle + 0x800;
+            D_803ED3E8 = WRAP_12(h);
+            dx = func_802A94A4(0, tbl, &D_803ED3E8, &dz);
+            d = func_802ABB1C(ax, az, dx, dz, bx, bz) + 0x800;
+        }
+    }
+    a0 = *angle;
+    plus = a0 + d;
+    plus = WRAP_12(plus);
+    D_803ED3E8 = plus;
+    dx = func_802A94A4(0, tbl, &D_803ED3E8, &dz);
+    minus = a0 - d;
+    d1 = dx + bx;
+    d2 = dz + bz;
+    if (minus < 0) {
+        minus += 0xFFF;
+    }
+    D_803ED3E8 = minus;
+    dx = func_802A94A4(0, tbl, &D_803ED3E8, &dz);
+    e1 = dx + bx - ax;
+    e2 = dz + bz - az;
+    d1 -= ax;
+    d2 -= az;
+    d1 = ABS_B9A4(d1) + ABS_B9A4(d2);
+    e1 = ABS_B9A4(e1) + ABS_B9A4(e2);
+    *s3Out = e1;
+    if (!(d1 < e1)) {
+        plus = minus;
+    }
+    return plus;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802AB9A4.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

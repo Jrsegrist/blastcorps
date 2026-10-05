@@ -18,6 +18,30 @@ extern OSMesgQueue D_803150A0;
 #define BE16U(p) (((p)[0] << 8) | (p)[1])
 #define BE16S(p) ((s16) BE16U(p))
 #define BE32(p) (((u32) (p)[0] << 24) | ((p)[1] << 16) | ((p)[2] << 8) | (p)[3])
+
+/* Register results of func_802A32CC its asm caller reads. */
+typedef struct {
+    /* 0x0 */ u8 *s2; /* the loaded data (old heap pointer) */
+    /* 0x4 */ u8 *s3; /* func_802A08E4's s3 */
+    /* 0x8 */ u8 *s4; /* func_802A08E4's s4 (in: the ROM start) */
+} Out802A32CC;
+
+/* Register results of func_802A396C its asm callers read. */
+typedef struct {
+    /* 0x0 */ u8 *s2; /* the loaded data (old heap pointer) */
+    /* 0x4 */ u8 *s4; /* func_802A08E4's s4 (in: the ROM start) */
+    /* 0x8 */ u8 *a1; /* the new heap end */
+} Out802A396C;
+
+void func_802A32CC(s32 type, Out802A32CC *out);
+void func_802A396C(s32 type, Out802A396C *out);
+
+typedef struct {
+    /* 0x0 */ u8 **s2;
+    /* 0x4 */ u8 *s3;
+    /* 0x8 */ u8 *s4; /* in/out */
+} Unk802A08E4Regs; /* as in 5BF40.c */
+void func_802A08E4(u32 *dl, u32 *end, Unk802A08E4Regs *r);
 #endif
 
 /* func_802A1320: `mfc0 $v0, $12` (read COP0 Status register) wrapped in a
@@ -190,7 +214,45 @@ void func_802A1934(void) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u8 D_8039CAB7;
+extern s16 D_8039CAB0;
+extern s16 D_8039CAB2;
+extern s16 D_8039CAB4;
+extern u8 *D_8039CAC0;
+extern u8 *D_8039CABC;
+
+/* If D_8039CAB7 is set: load packed object 0x98 (func_802A396C), D_8039CAC0 =
+ * OBJ_PTR(data, 0x14) and move each 16-byte vertex record from there up to
+ * OBJ_PTR(data, 0x18) by (D_8039CAB0, D_8039CAB2, D_8039CAB4) (s16 x, y, z at
+ * +0/+2/+4; the asm loops with `!=` and its adds trap); D_8039CABC =
+ * OBJ_PTR(data, 0x24).
+ * The asm saves t0 (asm caller func_802A1674 keeps it) and leaves
+ * func_802A396C's s2/s4 (and s5-s7) changed and f12/f14 as the libultra
+ * calls leave them (the survey lists those as read by func_802A1674; not
+ * modelled). */
+void func_802A19F4(void) {
+    Out802A396C o;
+    u8 *p;
+    u8 *end;
+
+    if (D_8039CAB7 != 0) {
+        func_802A396C(0x98, &o);
+        p = OBJ_PTR(o.s2, 0x14);
+        D_8039CAC0 = p;
+        end = OBJ_PTR(o.s2, 0x18);
+        while (p != end) {
+            *(s16 *) (p + 0) += D_8039CAB0;
+            *(s16 *) (p + 2) += D_8039CAB2;
+            *(s16 *) (p + 4) += D_8039CAB4;
+            p += 0x10;
+        }
+        D_8039CABC = OBJ_PTR(o.s2, 0x24);
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A19F4.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -347,7 +409,88 @@ void func_802A1C88(u8 *obj) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u8 D_8036EB93;
+extern u8 D_803EFED0[];
+extern u8 D_803F0900[];
+extern u8 D_803F1BE0[];
+extern u8 D_803F4030[];
+extern u8 *D_803F7654;
+void func_802A1EC8(void);
+void func_802A2BB0(void);
+u8 *func_802A2A98(s32 index);
+void func_802A2164(s32 kind, u8 *obj);
+void func_802A26A8(u8 *obj, s32 dx, s32 dy, s32 dz);
+void func_802A20F4(u8 *obj, s32 flag);
+void func_802A21AC(s32 type, u8 *obj, s32 x, s32 y, s32 z, s32 flag, s32 tag, u8 *param);
+
+/* Level objects setup: D_8036EB93 = 0, func_802A1EC8 (per-level list), clear
+ * a few flag bytes of the tables at D_803EFED0 (1 x 0xA30: bytes 0xA2A/B),
+ * D_803F0900 (4 x 0x4B8: half 0x4B0, byte 0x4B2) and D_803F1BE0 (2 x 0x478:
+ * bytes 0x470/0x472), D_803F7654 = D_803F4030 (record pool), func_802A2BB0
+ * (offset table). Then for each 14-byte placement in [OBJ_PTR(obj, 0x5C),
+ * OBJ_PTR(obj, 0x60)) {BE u16 x, y, z, type; u8 flag, count; u16 at 0xA,
+ * 0xC}: data = func_802A2A98(type) (load), func_802A2164(type, data),
+ * func_802A08E4 over data's display list [OBJ_PTR(data, 0x10),
+ * OBJ_PTR(data, 0x14)), data's u16 at 0xE = the u16 at 0xA,
+ * func_802A26A8(data, x, y, z), func_802A20F4(data, flag), data[6] = count
+ * and D_8036EB93 += count, then func_802A21AC(type, data, x, y, z, flag, the
+ * u16 at 0xC, param). The asm loops with `!=`. Returns the list end (the
+ * asm's t1 and t2).
+ * Register convention: obj t0, param fp; result t1. The asm leaves s0-s7
+ * (and the libultra calls' f12/f14, func_802A21AC's f20-f28) changed; the
+ * survey lists those as read by func_802A1674 (dead there, not modelled).
+ * Asm caller func_802A1674 keeps t0 live. */
+u8 *func_802A1D54(u8 *obj, u8 *param) {
+    Unk802A08E4Regs r;
+    u8 *p;
+    u8 *end;
+    u8 *data;
+    s32 type;
+    s32 x;
+    s32 y;
+    s32 z;
+    s32 n;
+
+    D_8036EB93 = 0;
+    func_802A1EC8();
+    for (p = D_803EFED0, n = 1; n != 0; n--, p += 0xA30) {
+        p[0xA2A] = 0;
+        p[0xA2B] = 0;
+    }
+    for (p = D_803F0900, n = 4; n != 0; n--, p += 0x4B8) {
+        *(s16 *) (p + 0x4B0) = 0;
+        p[0x4B2] = 0;
+    }
+    for (p = D_803F1BE0, n = 2; n != 0; n--, p += 0x478) {
+        p[0x470] = 0;
+        p[0x472] = 0;
+    }
+    D_803F7654 = D_803F4030;
+    func_802A2BB0();
+    p = OBJ_PTR(obj, 0x5C);
+    end = OBJ_PTR(obj, 0x60);
+    while (p != end) {
+        type = BE16U(p + 6);
+        data = func_802A2A98(type);
+        func_802A2164(type, data);
+        func_802A08E4((u32 *) OBJ_PTR(data, 0x10), (u32 *) OBJ_PTR(data, 0x14), &r);
+        *(u16 *) (data + 0xE) = *(u16 *) (p + 0xA);
+        x = BE16U(p + 0);
+        y = BE16U(p + 2);
+        z = BE16U(p + 4);
+        func_802A26A8(data, x, y, z);
+        func_802A20F4(data, p[8]);
+        data[6] = p[9];
+        D_8036EB93 += p[9];
+        func_802A21AC(type, data, x, y, z, p[8], *(u16 *) (p + 0xC), param);
+        p += 0xE;
+    }
+    return p;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A1D54.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -439,7 +582,110 @@ void func_802A2164(s32 kind, u8 *obj) {
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern s16 D_803F767C;
+extern s16 D_803F767E;
+extern s16 D_803F7680;
+extern u8 *D_803F7654; /* next free 0xFC-byte object record */
+extern s32 D_803BE70C;
+extern s32 D_803BE710;
+void func_802A2608(u8 *obj, u8 *param);
+void func_802A2458(u8 *rec, u8 *obj);
+void func_802A24BC(u8 *rec, u8 *param);
+void func_802A23E0(u8 *rec);
+u8 *func_802A41B0(u8 *rec, u8 *v, s32 id, s32 h52, s32 b57, s32 b56, s32 *s1io, s32 b4F, s32 b55);
+
+#define REC_W(rec, off) (*(s32 *) ((rec) + (off)))
+
+/* Set up a placed level object of `type` from its loaded data obj at (x, y, z)
+ * (map units, << 5 into the record): func_802A2608(obj, param) resolves its
+ * ids; type 0x38 also stores x/y/z in D_803F767C/7E/80. Takes the next
+ * 0xFC-byte record from D_803F7654: func_802A2458 (centre), word 0 = obj, 0x30
+ * = type, 0x34 = tag, 0xC = obj's u16 at 2 << 5, 0x10/0x1C = x, 0x14/0x20 =
+ * y, 0x18/0x24 = z (<< 5), 0x38..0x40 = 0, bytes 0xEA = 0, 0xEB = flag, 0xE9 =
+ * n (obj's u16 at 0) and n zero bytes at 0xEC, n zero halves at 0x48 and at
+ * 0x68. With the per-level list D_803BE704 set and flag != 0 the record is
+ * appended to it (stride 0x18). Byte 0xE8 = grid cell (z / (D_803BE710 >>
+ * 5)) * D_803BE714 + x / (D_803BE70C >> 5) (unsigned). Then func_802A24BC(rec,
+ * param), func_802A23E0(rec), and the 0x19-byte triangle entries
+ * [OBJ_PTR(obj, 0x48), OBJ_PTR(obj, 0x4C)) are built at the heap D_80358070
+ * with func_802A41B0 (byte 0x51 of the current output = entry byte 0x17 == 0;
+ * the asm passes &D_803F7654, left in v0, as the id); word 4 / 8 = the heap
+ * before / after, D_80358070 = the end. The asm's addi trap; the divides trap
+ * on a zero cell size.
+ * Register convention: type t3, obj t4, x t5, y t6, z t7, flag s0, tag t9,
+ * param fp (conventions.txt). The asm restores t0-t2, sets s0 = 1, leaves s1,
+ * gp (the last entry's byte 0x18), func_802A41B0's s2-s7 and func_802A24BC's
+ * f20-f28 changed (listed as read by func_802A1D54; dead there). */
+void func_802A21AC(s32 type, u8 *obj, s32 x, s32 y, s32 z, s32 flag, s32 tag, u8 *param) {
+    u8 *rec;
+    u8 *list;
+    s32 n;
+    s32 i;
+    u8 *e;
+    u8 *eEnd;
+    u8 *out;
+    s32 s1;
+
+    func_802A2608(obj, param);
+    if (type == 0x38) {
+        D_803F767C = x;
+        D_803F767E = y;
+        D_803F7680 = z;
+    }
+    rec = D_803F7654;
+    D_803F7654 = rec + 0xFC;
+    func_802A2458(rec, obj);
+    REC_W(rec, 0x34) = tag;
+    REC_W(rec, 0x38) = 0;
+    REC_W(rec, 0x3C) = 0;
+    REC_W(rec, 0x40) = 0;
+    REC_W(rec, 0x30) = type;
+    rec[0xEB] = flag;
+    rec[0xEA] = 0;
+    *(u8 **) rec = obj;
+    REC_W(rec, 0xC) = *(u16 *) (obj + 2) << 5;
+    REC_W(rec, 0x10) = x << 5;
+    REC_W(rec, 0x1C) = x << 5;
+    REC_W(rec, 0x14) = y << 5;
+    REC_W(rec, 0x20) = y << 5;
+    REC_W(rec, 0x18) = z << 5;
+    REC_W(rec, 0x24) = z << 5;
+    n = *(u16 *) obj;
+    rec[0xE9] = n;
+    for (i = 0; i < n; i++) {
+        rec[0xEC + i] = 0;
+    }
+    for (i = 0; i < n; i++) {
+        *(s16 *) (rec + 0x48 + i * 2) = 0;
+    }
+    for (i = 0; i < n; i++) {
+        *(s16 *) (rec + 0x68 + i * 2) = 0;
+    }
+    list = D_803BE704;
+    if (list != NULL && flag != 0) {
+        *(u8 **) list = rec;
+        D_803BE704 = list + 0x18;
+    }
+    rec[0xE8] = ((u32) z / ((u32) D_803BE710 >> 5)) * D_803BE714 + (u32) x / ((u32) D_803BE70C >> 5);
+    func_802A24BC(rec, param);
+    func_802A23E0(rec);
+    e = OBJ_PTR(obj, 0x48);
+    eEnd = OBJ_PTR(obj, 0x4C);
+    out = D_80358070;
+    REC_W(rec, 4) = (s32) out;
+    while (e != eEnd) {
+        out[0x51] = (e[0x17] != 0) ? 0 : 1;
+        s1 = e[0x16];
+        out = func_802A41B0(out, e, (s32) &D_803F7654, e[0x15], e[0x17], e[0x14], &s1, tag, e[0x18]);
+        e += 0x19;
+    }
+    REC_W(rec, 8) = (s32) out;
+    D_80358070 = out;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A21AC.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -868,12 +1114,7 @@ void func_802A2D68(u8 *obj) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-typedef struct {
-    /* 0x0 */ u8 **s2;
-    /* 0x4 */ u8 *s3;
-    /* 0x8 */ u8 *s4; /* in/out */
-} Unk802A08E4Regs; /* as in 5BF40.c */
-void func_802A08E4(u32 *dl, u32 *end, Unk802A08E4Regs *r);
+/* (Unk802A08E4Regs and func_802A08E4 are declared at the top of the file.) */
 
 /* Resolves the G_SETTIMG texture ids in the level object's display list
  * [OBJ_PTR(obj, 0x78), OBJ_PTR(obj, 0x84)) with func_802A08E4. Returns the
@@ -904,16 +1145,90 @@ u8 *func_802A3008(u8 *obj) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A3134.s")
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u8 D_8039CA61;
+extern u8 D_8039CA7E;
+extern u8 *D_803BDAFC;
+extern u8 *D_803BDB00;
+extern u8 *D_803BDB04;
+extern u8 *D_803BDB08;
+void func_80295AE0(Gfx *gdl, Gfx *end); /* 50670 */
+
+/* If D_8039CA61 is set: load packed object D_8039CA7E (func_802A32CC; its s2,
+ * s3, s4 results go to *out); D_803BDAFC = data, D_803BDB04 =
+ * OBJ_PTR(data, 0x14), D_803BDB08 = OBJ_PTR(data, 0x24), D_803BDB00 = the heap
+ * D_80358070. The block at OBJ_PTR(data, 0x18) is {s32 size, s32 bytes,
+ * words[]}: its `bytes` bytes of words are copied to the heap, and the rest of
+ * `size` is filled with 0x40-byte identity matrices (the asm loops with `!=`:
+ * size - bytes must be a multiple of 0x40); D_80358070 = the end. Then
+ * func_80295AE0(OBJ_PTR(data, 0x24), OBJ_PTR(data, 0x28)). The asm's adds
+ * trap (heap addresses: in range).
+ * Register convention: s2, s3, s4 out through `out` when loaded (in/out:
+ * unchanged otherwise); the asm sets s0 = 1 then (clobbers s0) and saves t0
+ * (asm caller func_802A1674 keeps it). f12/f14 as the callees leave them are
+ * listed as read by func_802A1674 (not modelled). */
+void func_802A3198(Out802A32CC *out) {
+    u8 *data;
+    s32 *src;
+    s32 *srcEnd;
+    s32 *dst;
+    s32 size;
+
+    if (D_8039CA61 == 0) {
+        return;
+    }
+    func_802A32CC(D_8039CA7E, out);
+    data = out->s2;
+    D_803BDAFC = data;
+    D_803BDB04 = OBJ_PTR(data, 0x14);
+    D_803BDB08 = OBJ_PTR(data, 0x24);
+    dst = (s32 *) D_80358070;
+    D_803BDB00 = (u8 *) dst;
+    src = (s32 *) OBJ_PTR(data, 0x18);
+    size = src[0];
+    srcEnd = (s32 *) ((u8 *) (src + 2) + src[1]);
+    src += 2;
+    while (src != srcEnd) {
+        *dst++ = *src++;
+        size -= 4;
+    }
+    while (size != 0) {
+        u8 *m = (u8 *) dst;
+
+        *(s16 *) (m + 0x00) = 1;
+        *(s16 *) (m + 0x02) = 0;
+        *(s32 *) (m + 0x04) = 0;
+        *(s16 *) (m + 0x08) = 0;
+        *(s16 *) (m + 0x0A) = 1;
+        *(s32 *) (m + 0x0C) = 0;
+        *(s32 *) (m + 0x10) = 0;
+        *(s16 *) (m + 0x14) = 1;
+        *(s16 *) (m + 0x16) = 0;
+        *(s32 *) (m + 0x18) = 0;
+        *(s16 *) (m + 0x1C) = 0;
+        *(s16 *) (m + 0x1E) = 1;
+        *(s32 *) (m + 0x20) = 0;
+        *(s32 *) (m + 0x24) = 0;
+        *(s32 *) (m + 0x28) = 0;
+        *(s32 *) (m + 0x2C) = 0;
+        *(s32 *) (m + 0x30) = 0;
+        *(s32 *) (m + 0x34) = 0;
+        *(s32 *) (m + 0x38) = 0;
+        *(s32 *) (m + 0x3C) = 0;
+        dst += 0x10;
+        size -= 0x40;
+    }
+    D_80358070 = (u8 *) dst;
+    func_80295AE0((Gfx *) OBJ_PTR(data, 0x24), (Gfx *) OBJ_PTR(data, 0x28));
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A3198.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Register results of func_802A32CC its asm caller reads. */
-typedef struct {
-    /* 0x0 */ u8 *s2; /* the loaded data (old heap pointer) */
-    /* 0x4 */ u8 *s3; /* func_802A08E4's s3 */
-    /* 0x8 */ u8 *s4; /* func_802A08E4's s4 (in: the ROM start) */
-} Out802A32CC;
+/* (Out802A32CC, the register results its asm caller reads, is declared at
+ * the top of the file.) */
 
 /* Loads the packed block of `type` (ROM ranges below; any other type hits
  * the asm's `syscall` debug trap and then runs as type 3, kept) with
@@ -1020,12 +1335,7 @@ void func_802A3824(u8 *obj) {
 #ifdef NON_MATCHING
 void func_8029DF78(u8 *dl, u8 *dlEnd, s32 key); /* 56040 */
 
-/* Register results of func_802A396C its asm callers read. */
-typedef struct {
-    /* 0x0 */ u8 *s2; /* the loaded data (old heap pointer) */
-    /* 0x4 */ u8 *s4; /* func_802A08E4's s4 (in: the ROM start) */
-    /* 0x8 */ u8 *a1; /* the new heap end */
-} Out802A396C;
+/* (Out802A396C is declared at the top of the file.) */
 
 /* As func_802A32CC for the object types below (any other type hits the
  * asm's `syscall` debug trap and then runs as type 0, kept), with

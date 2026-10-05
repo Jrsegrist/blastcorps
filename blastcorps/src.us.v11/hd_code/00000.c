@@ -51,10 +51,15 @@ extern Unk74 *D_803649D0;
 
 /* one per frame buffer, 0x21498 bytes */
 typedef struct {
-    u8 pad0[0x1500];
+    u8 pad0[0x240];
+    Mtx unk240;
+    Mtx unk280;
+    u8 pad2C0[0x1500 - 0x2C0];
     Mtx unk1500;
     Mtx unk1540;
-    u8 pad1580[0x48B0 - 0x1580];
+    u8 pad1580[0x18C0 - 0x1580];
+    Vtx unk18C0[4]; /* shadow quad */
+    u8 pad1900[0x48B0 - 0x1900];
     Gfx dl[0xB5E]; /* TOPLEVEL_DL_SIZE */
     u8 padA3A0[0x21498 - 0xA3A0];
 } DynamicBuf;
@@ -82,12 +87,16 @@ extern LevelInfo D_802E8F94[];
 extern u8 D_803B9888;
 extern u8 D_80358088[];
 typedef struct {
-    u8 pad0[0x1004];
-    s32 unk1004;
+    u8 unk0[0x1000]; /* shadow texture, 64x64 IA8 */
+    u8 pad1000[4];
+    s32 unk1004; /* position, 1/32 units */
     s32 unk1008;
     s32 unk100C;
-    u8 pad1010[0x12];
-    u8 unk1022;
+    u8 pad1010[8];
+    s16 unk1018; /* shadow half-width */
+    s16 unk101A; /* shadow half-depth */
+    u8 pad101C[6];
+    u8 unk1022; /* id */
     u8 pad1023[0x1D];
 } Vehicle; /* 0x1040 bytes */
 extern Vehicle *D_803643C8;
@@ -229,6 +238,8 @@ extern u8 D_80364A84;
 extern u8 D_80364AC1;
 extern u8 D_803EF6FF;
 extern Mtx D_02000000[];
+
+extern s16 D_803EF326;
 
 /* (end of declarations) */
 
@@ -461,7 +472,92 @@ void *func_8024C404(void *arg0, s32 arg1, s32 *arg2) {
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_8024E4F4.s")
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/00000/func_8024F520.s")
+/* Draws the shadow quad under vehicle 0xFE */
+void func_8024F520(Gfx **gfx, DynamicBuf *dyn) {
+    Gfx *gdl = *gfx;
+    s32 i;
+    u8 found;
+    s16 x;
+    s16 y;
+    s16 z;
+    s16 w;
+    s16 d;
+
+    gDPPipeSync(gdl++);
+    gDPSetTexturePersp(gdl++, G_TP_PERSP);
+    gDPSetCycleType(gdl++, G_CYC_1CYCLE);
+    gSPClearGeometryMode(gdl++, -1);
+    gSPSetGeometryMode(gdl++, G_SHADE | G_SHADING_SMOOTH | G_CULL_BACK | G_LOD);
+    gSPTexture(gdl++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
+    gDPSetCombineMode(gdl++, G_CC_MODULATERGBA, G_CC_MODULATERGBA);
+    gDPSetTextureFilter(gdl++, G_TF_BILERP);
+    gDPSetRenderMode(gdl++, 0x504340, 0);
+    found = 0;
+    i = 0;
+    while (!found) {
+        if (D_803643C8[i].unk1022 == 0xFE) {
+            found = 1;
+        } else {
+            i++;
+        }
+    }
+    gDPLoadTextureBlock(gdl++, PHYS((u32) D_803643C8 + i * sizeof(Vehicle)), G_IM_FMT_IA, G_IM_SIZ_8b, 64, 64, 0, G_TX_CLAMP, G_TX_CLAMP,
+                        G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
+    x = D_803643C8[i].unk1004 >> 5;
+    y = D_803643C8[i].unk1008 >> 5;
+    z = D_803643C8[i].unk100C >> 5;
+    w = D_803643C8[i].unk1018;
+    d = D_803643C8[i].unk101A;
+    dyn->unk18C0[0].v.ob[0] = -w;
+    dyn->unk18C0[0].v.ob[1] = 0;
+    dyn->unk18C0[0].v.ob[2] = d;
+    dyn->unk18C0[0].v.flag = 0;
+    dyn->unk18C0[0].v.tc[0] = 0x7E0;
+    dyn->unk18C0[0].v.tc[1] = 0x7E0;
+    dyn->unk18C0[0].v.cn[0] = 10;
+    dyn->unk18C0[0].v.cn[1] = 10;
+    dyn->unk18C0[0].v.cn[2] = 10;
+    dyn->unk18C0[0].v.cn[3] = 0x8C;
+    dyn->unk18C0[1].v.ob[0] = w;
+    dyn->unk18C0[1].v.ob[1] = 0;
+    dyn->unk18C0[1].v.ob[2] = d;
+    dyn->unk18C0[1].v.flag = 0;
+    dyn->unk18C0[1].v.tc[0] = 0;
+    dyn->unk18C0[1].v.tc[1] = 0x7E0;
+    dyn->unk18C0[1].v.cn[0] = 10;
+    dyn->unk18C0[1].v.cn[1] = 10;
+    dyn->unk18C0[1].v.cn[2] = 10;
+    dyn->unk18C0[1].v.cn[3] = 0x8C;
+    dyn->unk18C0[2].v.ob[0] = w;
+    dyn->unk18C0[2].v.ob[1] = 0;
+    dyn->unk18C0[2].v.ob[2] = -d;
+    dyn->unk18C0[2].v.flag = 0;
+    dyn->unk18C0[2].v.tc[0] = 0;
+    dyn->unk18C0[2].v.tc[1] = 0;
+    dyn->unk18C0[2].v.cn[0] = 10;
+    dyn->unk18C0[2].v.cn[1] = 10;
+    dyn->unk18C0[2].v.cn[2] = 10;
+    dyn->unk18C0[2].v.cn[3] = 0x8C;
+    dyn->unk18C0[3].v.ob[0] = -w;
+    dyn->unk18C0[3].v.ob[1] = 0;
+    dyn->unk18C0[3].v.ob[2] = -d;
+    dyn->unk18C0[3].v.flag = 0;
+    dyn->unk18C0[3].v.tc[0] = 0x7E0;
+    dyn->unk18C0[3].v.tc[1] = 0;
+    dyn->unk18C0[3].v.cn[0] = 10;
+    dyn->unk18C0[3].v.cn[1] = 10;
+    dyn->unk18C0[3].v.cn[2] = 10;
+    dyn->unk18C0[3].v.cn[3] = 0x8C;
+    guTranslate(&dyn->unk240, x, y, z);
+    guRotate(&dyn->unk280, (f32) D_803EF326 * 360.0 / 4096.0, 0.0f, 1.0f, 0.0f);
+    gSPMatrix(gdl++, &D_02000000[9], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
+    gSPMatrix(gdl++, &D_02000000[10], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
+    gSPVertex(gdl++, &D_02000000[0x63], 4, 0);
+    gSP1Triangle(gdl++, 0, 1, 2, 0);
+    gSP1Triangle(gdl++, 0, 2, 3, 0);
+    gSPPopMatrix(gdl++, G_MTX_MODELVIEW);
+    *gfx = gdl;
+}
 
 /* Emits the display lists of every object in D_80364460 */
 void func_8024FC2C(Gfx **gfx, u8 lod) {

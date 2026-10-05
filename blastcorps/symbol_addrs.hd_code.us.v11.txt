@@ -1,5 +1,6 @@
 // hd_code symbol names. libultra/libaudio names identified by compiling
 // decompals/ultralib and matching the ROM (see the blastcorps-decomp skill).
+osTvType = 0x80000300; // type:data
 osRomBase = 0x80000308; // type:data
 osResetType = 0x8000030C; // type:data
 osAppNMIBuffer = 0x8000031C; // type:data
@@ -99,6 +100,7 @@ alCSPSetBank = 0x802D97E0; // type:func
 osGetCount = 0x802D9820; // type:func
 sins = 0x802D9830; // type:func
 coss = 0x802D98A0; // type:func
+__osViInit = 0x802D98D0; // type:func
 osAiSetFrequency = 0x802D9A00; // type:func
 osAiSetNextBuffer = 0x802D9B60; // type:func
 osAiGetLength = 0x802D9C10; // type:func
@@ -260,6 +262,7 @@ __osPiDevMgr = 0x803065A0; // type:data
 alGlobals = 0x803065C0; // type:data
 __osViCurr = 0x80306E30; // type:data
 __osViNext = 0x80306E34; // type:data
+__osViTvType = 0x80306E38; // type:data
 osViClock = 0x80306E3C; // type:data
 __osThreadTail = 0x80307760; // type:data
 __osRunQueue = 0x80307768; // type:data
@@ -282,6 +285,8 @@ __osViIntrCount = 0x803FF31C; // type:data
 __osTimerCounter = 0x803FF320; // type:data
 __osSiAccessQueue = 0x803FF338; // type:data
 __osFaultedThread = 0x80307774; // type:data
+osViModeNtscLan1 = 0x803077F0; // type:data
+osViModeMpalLan1 = 0x80307840; // type:data
 __osBaseTimer = 0x803FF2F0; // type:data
 currentYoshiWindow = 0x8036BB18; // type:data
 yoshiState = 0x8036BB1C; // type:data

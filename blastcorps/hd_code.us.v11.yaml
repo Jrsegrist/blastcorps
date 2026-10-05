@@ -154,7 +154,7 @@ segments:
     - [0x95060, c, hd_code/95060]
     - [0x95070, c, hd_code/ul_sins]  # src/gu/sins.c
     - [0x950E0, c, hd_code/ul_coss]
-    - [0x95110, c, hd_code/95110]
+    - [0x95110, c, hd_code/ul_vi]  # src/io/vi.c, old SDK
     - [0x95240, c, hd_code/ul_aisetfreq]
     - [0x953A0, c, hd_code/ul_aisetnextbuf]  # src/io/aisetnextbuf.c, old SDK
     - [0x95450, c, hd_code/ul_aigetlen]
@@ -243,7 +243,7 @@ segments:
     - [0xC1DE0, .data, hd_code/ul_pimgr]
     - [0xC1E00, .data, hd_code/ul_sl]
     - [0xC1E10, .data, hd_code/ul_sins]
-    - [0xC2610, bin, hd_code/hd_code_data_C2610]
+    - [0xC2610, .data, hd_code/ul_vi]
     - [0xC2680, .data, hd_code/ul_aisetnextbuf]
     - [0xC2690, bin, hd_code/hd_code_data_C2690]
     - [0xC2F70, .data, hd_code/ul_controller]

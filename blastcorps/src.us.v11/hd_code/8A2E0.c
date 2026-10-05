@@ -45,8 +45,92 @@ void func_802CEE14(s32 x, s32 y, s32 z) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8A2E0/func_802CEEFC.s")
 
+#ifdef NON_MATCHING
+/* D_803FBBB0: table of 0x14-byte entries, D_803FC1F0 of them in use: s32
+ * x, y, z at +0 and a flag halfword at +0x10 (a bit/flag state, see 409D0's
+ * func_80285AB0/func_80285B10). */
+typedef struct {
+    /* 0x00 */ s32 pos[3];
+    /* 0x0C */ u8 padC[4];
+    /* 0x10 */ u16 unk10;
+    /* 0x12 */ u8 pad12[2];
+} UnkEntry8A2E0; /* size 0x14 */
+
+extern UnkEntry8A2E0 D_803FBBB0[];
+extern u8 D_803FBBE0[];
+
+void func_80285AB0(u8 bit);
+s32 func_80285B10(u8 bit);
+void func_80285B68(s32 arg0);
+void func_80285CA0(void);
+void func_802A0360(f32 f, void *base, s32 idx, s32 val); /* 56040 */
+void func_802CF3E0(s32 *pos);
+extern s32 D_803643E0; /* player x, y, z */
+extern s32 D_803643E4;
+extern s32 D_803643E8;
+
+float sqrtf(float);
+#pragma intrinsic(sqrtf)
+
+/* cvt.w.s: float -> s32 rounding to nearest, ties to even (the game's FCSR
+ * mode), not truncation like a C cast. */
+static s32 port_cvt_w_s(f32 x) {
+    s32 t = (s32) x;
+    f32 frac = x - (f32) t;
+
+    if (frac > 0.5f || (frac == 0.5f && (t & 1))) {
+        t++;
+    } else if (frac < -0.5f || (frac == -0.5f && (t & 1))) {
+        t--;
+    }
+    return t;
+}
+#endif
+
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* Pickups: for each of the D_803FC1F0 entries of D_803FBBB0 not yet taken
+ * (flag +0x10 == 0) whose position is within 0x4C of the player (both >> 5,
+ * squared distance summed in 32 bits, sqrt.s and cvt.w.s rounding; the sum
+ * must not overflow, or the asm's cvt.w.s of a NaN would trap), mark it
+ * taken, set D_803FBBE0's sound fields 2 and 1 to 0.0 (func_802A0360), call
+ * func_80285B68 with the countdown value (D_803FC1F0 for entry 0, down to 1:
+ * the same quirk as func_802CF5B0), then func_80285CA0 and the
+ * func_802CF3E0 burst at the entry. The player position is read once. The
+ * asm saves every register (k1, gp, sp, fp included) around the two C calls
+ * only because it keeps its loop state in t0-t4 across them; its only
+ * caller is C (func_802475D8), so no asm caller relies on anything. */
+void func_802CF1A4(void) {
+    s32 px = D_803643E0 >> 5;
+    s32 py = D_803643E4 >> 5;
+    s32 pz = D_803643E8 >> 5;
+    UnkEntry8A2E0 *e = D_803FBBB0;
+    s32 n;
+
+    for (n = D_803FC1F0; n != 0; n--, e++) {
+        s32 dx;
+        s32 dy;
+        s32 dz;
+
+        if (e->unk10 != 0) {
+            continue;
+        }
+        dx = (e->pos[0] >> 5) - px;
+        dy = (e->pos[1] >> 5) - py;
+        dz = (e->pos[2] >> 5) - pz;
+        if (port_cvt_w_s(sqrtf((f32) (s32) ((u32) (dx * dx) + (u32) (dy * dy) + (u32) (dz * dz)))) < 0x4C) {
+            e->unk10 = 1;
+            func_802A0360(0.0f, D_803FBBE0, 2, 0);
+            func_802A0360(0.0f, D_803FBBE0, 1, 0);
+            func_80285B68(n);
+            func_80285CA0();
+            func_802CF3E0(e->pos);
+        }
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8A2E0/func_802CF1A4.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -121,23 +205,6 @@ void func_802CF3E0(s32 *pos) {
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8A2E0/func_802CF3E0.s")
-#endif
-
-#ifdef NON_MATCHING
-/* D_803FBBB0: table of 0x14-byte entries, D_803FC1F0 of them in use. Only the
- * halfword at +0x10 (a bit/flag state, see 409D0's func_80285AB0/func_80285B10)
- * is touched here. */
-typedef struct {
-    /* 0x00 */ u8 unk0[0x10];
-    /* 0x10 */ u16 unk10;
-    /* 0x12 */ u8 pad12[2];
-} UnkEntry8A2E0; /* size 0x14 */
-
-extern UnkEntry8A2E0 D_803FBBB0[];
-extern u8 D_803FC1F0;
-
-void func_80285AB0(u8 bit);
-s32 func_80285B10(u8 bit);
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */

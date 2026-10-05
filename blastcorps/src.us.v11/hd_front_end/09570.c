@@ -42,6 +42,11 @@ extern u16 *D_8021728C; /* star textures, 16x16 RGBA16 each */
 extern Entry8 D_802E8F38[];
 extern LevelFlags D_802E8F94[];
 extern u8 D_803156F8[];
+extern Vtx D_80215A88[]; /* globe vertices, 6 faces x 64 */
+extern s32 D_80217290[64]; /* face grid x */
+extern s32 D_80217390[64]; /* face grid y */
+extern s32 D_80217490[64]; /* face grid s */
+extern s32 D_80217590[64]; /* face grid t */
 extern u8 *D_80358070; /* heap pointer */
 extern Player D_80364AF0[];
 extern u8 D_80364AE8;
@@ -53,7 +58,129 @@ s32 func_801F1DA8(s32);
 s32 func_80264BA4();
 s32 func_8026A828(s32, s32);
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/09570/func_801F0570.s")
+#pragma intrinsic (sqrtf)
+
+/* globe vertices: an 8x8 grid on each of the six cube faces, pushed out to
+ * radius 250 (positions, texture coords, normals) */
+void func_801F0570(void) {
+    s32 i;
+    s32 j;
+    s32 k;
+    s32 face;
+    f32 half;
+    f32 step;
+    f32 len;
+    f32 px;
+    f32 py;
+    f32 pz;
+    s32 unused[2];
+
+    half = 250.0f;
+    step = half * 2.0 / 7.0;
+    for (j = 0; j < 8; j++) {
+        for (i = 0; i < 8; i++) {
+            D_80217290[i + j * 8] = i * step - half;
+            D_80217390[i + j * 8] = j * step - half;
+            D_80217490[i + j * 8] = (i * 32) << 5;
+            D_80217590[i + j * 8] = (j * 32) << 5;
+        }
+    }
+    for (k = 0; k < 64; k++) {
+        px = D_80217290[k];
+        py = D_80217390[k];
+        pz = 250.0f;
+        len = sqrtf(px * px + py * py + pz * pz);
+        D_80215A88[k].v.ob[0] = px / len * 250.0;
+        D_80215A88[k].v.ob[1] = py / len * 250.0;
+        D_80215A88[k].v.ob[2] = pz / len * 250.0;
+        D_80215A88[k].v.tc[0] = D_80217490[k];
+        D_80215A88[k].v.tc[1] = D_80217590[k];
+        D_80215A88[k].n.n[0] = px / len * 127.0f;
+        D_80215A88[k].n.n[1] = py / len * 127.0f;
+        D_80215A88[k].n.n[2] = pz / len * 127.0f;
+        D_80215A88[k].n.a = 0xFF;
+    }
+    face = 0x40;
+    for (k = 0; k < 64; k++) {
+        px = D_80217290[k];
+        py = D_80217390[k];
+        pz = 250.0f;
+        len = sqrtf(px * px + py * py + pz * pz);
+        D_80215A88[face + k].v.ob[0] = px / len * 250.0;
+        D_80215A88[face + k].v.ob[1] = py / len * 250.0;
+        D_80215A88[face + k].v.ob[2] = -pz / len * 250.0;
+        D_80215A88[face + k].v.tc[0] = D_80217490[k];
+        D_80215A88[face + k].v.tc[1] = D_80217590[k];
+        D_80215A88[face + k].n.n[0] = px / len * 127.0f;
+        D_80215A88[face + k].n.n[1] = py / len * 127.0f;
+        D_80215A88[face + k].n.n[2] = -pz / len * 127.0f;
+        D_80215A88[face + k].n.a = 0xFF;
+    }
+    face = 0x80;
+    for (k = 0; k < 64; k++) {
+        px = D_80217290[k];
+        py = D_80217390[k];
+        pz = 250.0f;
+        len = sqrtf(px * px + py * py + pz * pz);
+        D_80215A88[face + k].v.ob[0] = px / len * 250.0;
+        D_80215A88[face + k].v.ob[1] = pz / len * 250.0;
+        D_80215A88[face + k].v.ob[2] = py / len * 250.0;
+        D_80215A88[face + k].v.tc[0] = D_80217490[k];
+        D_80215A88[face + k].v.tc[1] = D_80217590[k];
+        D_80215A88[face + k].n.n[0] = px / len * 127.0f;
+        D_80215A88[face + k].n.n[1] = pz / len * 127.0f;
+        D_80215A88[face + k].n.n[2] = py / len * 127.0f;
+        D_80215A88[face + k].n.a = 0xFF;
+    }
+    face = 0xC0;
+    for (k = 0; k < 64; k++) {
+        px = D_80217290[k];
+        py = D_80217390[k];
+        pz = 250.0f;
+        len = sqrtf(px * px + py * py + pz * pz);
+        D_80215A88[face + k].v.ob[0] = px / len * 250.0;
+        D_80215A88[face + k].v.ob[1] = -pz / len * 250.0;
+        D_80215A88[face + k].v.ob[2] = py / len * 250.0;
+        D_80215A88[face + k].v.tc[0] = D_80217490[k];
+        D_80215A88[face + k].v.tc[1] = D_80217590[k];
+        D_80215A88[face + k].n.n[0] = px / len * 127.0f;
+        D_80215A88[face + k].n.n[1] = -pz / len * 127.0f;
+        D_80215A88[face + k].n.n[2] = py / len * 127.0f;
+        D_80215A88[face + k].n.a = 0xFF;
+    }
+    face = 0x100;
+    for (k = 0; k < 64; k++) {
+        px = D_80217290[k];
+        py = D_80217390[k];
+        pz = 250.0f;
+        len = sqrtf(px * px + py * py + pz * pz);
+        D_80215A88[face + k].v.ob[0] = pz / len * 250.0;
+        D_80215A88[face + k].v.ob[1] = px / len * 250.0;
+        D_80215A88[face + k].v.ob[2] = py / len * 250.0;
+        D_80215A88[face + k].v.tc[0] = D_80217490[k];
+        D_80215A88[face + k].v.tc[1] = D_80217590[k];
+        D_80215A88[face + k].n.n[0] = pz / len * 127.0f;
+        D_80215A88[face + k].n.n[1] = px / len * 127.0f;
+        D_80215A88[face + k].n.n[2] = py / len * 127.0f;
+        D_80215A88[face + k].n.a = 0xFF;
+    }
+    face = 0x140;
+    for (k = 0; k < 64; k++) {
+        px = D_80217290[k];
+        py = D_80217390[k];
+        pz = 250.0f;
+        len = sqrtf(px * px + py * py + pz * pz);
+        D_80215A88[face + k].v.ob[0] = -pz / len * 250.0;
+        D_80215A88[face + k].v.ob[1] = px / len * 250.0;
+        D_80215A88[face + k].v.ob[2] = py / len * 250.0;
+        D_80215A88[face + k].v.tc[0] = D_80217490[k];
+        D_80215A88[face + k].v.tc[1] = D_80217590[k];
+        D_80215A88[face + k].n.n[0] = -pz / len * 127.0f;
+        D_80215A88[face + k].n.n[1] = px / len * 127.0f;
+        D_80215A88[face + k].n.n[2] = py / len * 127.0f;
+        D_80215A88[face + k].n.a = 0xFF;
+    }
+}
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/09570/func_801F1568.s")
 

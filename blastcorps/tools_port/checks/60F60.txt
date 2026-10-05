@@ -36,3 +36,16 @@ func_802A6748: -n 20 --seed 3 --ret void --mem D_803EB788=rel:heap --mem D_803EB
 
 # func_802A6D34: two display-list cursors through func_80257540 (stubbed)
 func_802A6D34: -n 200 --ret void --sig func_80257540=a0 --mem D_803EB780=int --mem D_803EB784=int
+
+# func_802A57AC: func_802A57DC(cursor D_803C4B54), then cursor += 0x10. The asm relies on
+# func_802A57DC preserving a0 AND v1 (a stub clobbers v1 and the reference faults), so the
+# callee chain is run for real (--follow-all). Record at heap0: src = heap0+0x800, even size
+# 0..0x3E (ld/sd copy of size&~7, then halves), type 0..6 (decoders) or none, t4 word.
+# Decoder input halves: literals, and back-references with even offsets (odd ones fault on lhu).
+func_802A57AC: -n 300 --ret void --follow-all --mem D_803C4B54=ptr:0x1000 --mem @heap0=rel:heap0+0x800 \
+    --mem @heap0+4=choice:0,2,6,8,0xA,0x10,0x16,0x20,0x3E --mem @heap0+8=choice:0,1,2,3,4,5,6,7,-1,0x100 --mem @heap0+0xC=int \
+    --mem @heap0+0x800:0x40=halves:0x1234,0x0042,0x7FFF,0x8041,0x8443,0x8C5F,0x0000 --mem D_803C3250:0x40=rand
+# no decoder (types outside 0..6): only the copy into D_803C3250 and the cursor step
+func_802A57AC: -n 100 --seed 1 --ret void --follow-all --mem D_803C4B54=ptr:0x1000 --mem @heap0=rel:heap0+0x800 \
+    --mem @heap0+4=choice:0,2,6,8,0x3E --mem @heap0+8=choice:7,-1,0x100 --mem @heap0+0xC=int \
+    --mem @heap0+0x800:0x40=rand --mem D_803C3250:0x40=rand

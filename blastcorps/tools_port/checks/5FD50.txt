@@ -26,3 +26,9 @@ func_802A5020: -n 400 --ret void --arg a0=ptr:0x100 --mem @a0+0x2c=0x40 --mem @a
 # period 0 with fade off (the timer never wraps; no division)
 func_802A5020: -n 100 --seed 1 --ret void --arg a0=ptr:0x100 --mem @a0+0x2c=0x40 --mem @a0+0x30=0x4C \
     --mem @a0+0x44:1=bytes:1 --mem @a0+0x45:1=bytes:0,1,0xFF --mem @a0+0x46:1=bytes:0 --mem @a0+0x48:2=halves:0 --mem @a0+0x4A:2=halves:0,1,0xFFFE,0xFFFF
+
+# func_802A467C(a0..a3): counts D_803C3248 down, or at 0 calls func_802A470C with the same args
+func_802A467C: -n 200 --ret void --sig func_802A470C=a0,a1,a2,a3 --arg a0=int --arg a1=int --arg a2=int --arg a3=int \
+    --mem D_803C3248:2=halves:0*3,1,2,0x7FFF,0x8000,0xFFFF
+func_802A467C: -n 50 --seed 1 --ret void --sig func_802A470C=a0,a1,a2,a3 --arg a0=int --arg a1=int --arg a2=int --arg a3=int \
+    --mem D_803C3248:2=halves:0

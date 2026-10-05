@@ -20,3 +20,19 @@ func_8029DEA0: -n 300 --seed 1 --ret void --mem D_803A7440:0xC0C0=rand --mem D_8
 # list empty (-1 first) with a 0xFF-filled destination
 func_8029DEA0: -n 30 --seed 2 --ret void --mem D_803A7440:0xC0C0=words:-1 --mem D_803B35F0=int \
     --mem D_803B35F8:0x200=words:-1 --mem D_802C23B4=-1
+
+# func_8029B7CC(a, b): widen the ring span D_803A7410/D_803A7412 to take in a and b; if the
+# span grew (func_8029B930 before < after, stubbed rand) and D_80358064, set flags 742C-742F
+func_8029B7CC: -n 400 --ret void --sig func_8029B930= --arg a0=int:0:0x1FFE --arg a1=int:0:0x1FFE \
+    --mem D_803A7410:2=int:0:0xFFF --mem D_803A7412:2=int:0:0xFFF --mem D_80358064=choice:0,1,-1 \
+    --mem D_803A742C:1=bytes:0,1,0xFF --mem D_803A742D:1=bytes:0,1,2,7,8,0xFF --mem D_803A742E:1=bytes:0,1 --mem D_803A742F:1=bytes:0,0x55
+# the "empty" span 0/0xFFF (and its neighbours) and negative / wrap-boundary a, b
+func_8029B7CC: -n 300 --seed 1 --ret void --sig func_8029B930= \
+    --arg a0=choice:-0x1000,-0xFFF,-1,0,1,0x7FF,0x800,0xFFE,0xFFF,0x1000,0x1FFE,0x1FFF,0x7FFFFFFF,0x80000000 \
+    --arg a1=choice:-0x1000,-0xFFF,-1,0,1,0x7FF,0x800,0xFFE,0xFFF,0x1000,0x1FFE,0x1FFF,0x7FFFFFFF,0x80000000 \
+    --mem D_803A7410:2=halves:0*4,1,0x800 --mem D_803A7412:2=halves:0xFFF*4,0xFFE,0 --mem D_80358064=choice:0,1 \
+    --mem D_803A742C:1=bytes:0,1 --mem D_803A742D:1=bytes:0,1,2,0xFF --mem D_803A742E:1=bytes:0,1 --mem D_803A742F:1=bytes:0,0x55
+# flag path forced reachable: the real distance function (each build's own) instead of the stub
+func_8029B7CC: -n 300 --seed 2 --ret void --follow func_8029B930 --arg a0=int:0:0xFFF --arg a1=int:0:0xFFF \
+    --mem D_803A7410:2=int:0:0xFFF --mem D_803A7412:2=int:0:0xFFF --mem D_80358064=choice:0,1 \
+    --mem D_803A742C:1=bytes:0,1 --mem D_803A742D:1=bytes:0,1,2,7,8,0xFF --mem D_803A742E:1=bytes:0,1 --mem D_803A742F:1=bytes:0,0x55

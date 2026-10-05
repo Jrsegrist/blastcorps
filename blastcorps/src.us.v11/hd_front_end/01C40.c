@@ -16,7 +16,8 @@ typedef struct {
 typedef struct {
     /* 0x00 */ char name[8];
     /* 0x08 */ u8 level; /* level the player was last on */
-    /* 0x09 */ u8 pad9[3];
+    /* 0x09 */ u8 pad9;
+    /* 0x0A */ u16 stars; /* rank points: 3 per gold, 2 per silver, 1 per bronze */
     /* 0x0C */ u8 title; /* index into D_802081C0 */
     /* 0x0D */ u8 padD[3];
     /* 0x10 */ s32 unk10;
@@ -37,7 +38,8 @@ typedef struct {
     /* 0x0A */ u8 padA[2];
     /* 0x0C */ char *unkC; /* title */
     /* 0x10 */ void *unk10; /* glyph list */
-    /* 0x14 */ u8 pad14[4];
+    /* 0x14 */ u8 unk14;
+    /* 0x15 */ u8 pad15[3];
     /* 0x18 */ u8 unk18;
     /* 0x19 */ u8 unk19;
     /* 0x1A */ u8 pad1A[2];
@@ -98,6 +100,9 @@ extern u8 D_802155A0[]; /* ticker text */
 #define SCROLL_TEXT ((char *) D_802155A0)
 extern u8 D_80364AEA;
 extern u8 D_802E8BF8;
+extern u16 D_80364EF0[][16]; /* per player: saved level times */
+extern u8 D_802E8C44[];
+extern char D_80215480[][16];
 extern u16 *D_802158A0;
 extern u8 D_8039C53C[]; /* per slot: 1 + level to save, 0 = nothing pending */
 extern u8 D_8039C540;
@@ -173,6 +178,8 @@ void func_8029A7E4(const char *, ...);
 void func_801E8DCC(u8 arg0);
 void func_801E8EB8(u8 slot, u8 arg1);
 void func_801E93DC(u8 arg0);
+void func_801ED480(u8 *src, u8 *dst);
+u8 func_801EF2BC(u16 time, u8 level, u8 arg2);
 u16 func_801E9528(void);
 void func_801EA108(u8 slot, u8 send, u8 newGame);
 void func_801EA268(Player *p);
@@ -395,7 +402,6 @@ Lights2 D_80208448 = gdSPDefLights2(0x28, 0x0A, 0x0A, 0xF0, 0xC8, 0x14, 69, -69,
 Lights2 D_80208470 = gdSPDefLights2(0x28, 0x02, 0x21, 0x5A, 0x02, 0xDC, 69, -69, 69, 0x5A, 0x02, 0xDC, -69, 69, 69);
 
 s32 D_80208498 = 0x20000000;
-s32 D_8020849C = 0;
 
 /* Count the player's ranks per grade (D_80215930[1..4]) and the finished
  * levels of the 0x81 types, other than levels 0x26, 0x2F and 0x31 ([3]) */
@@ -888,7 +894,66 @@ void func_801ECE9C(void) {
     }
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/01C40/func_801ECF5C.s")
+#define saveIt D_8039C53C
+#define playerNumber D_80364AE8
+
+/* After a level: re-rank the player's finished race levels from their saved
+ * times, add up the rank points and award new titles (menu entries 185-194) */
+void func_801ECF5C(void) {
+    Player *p = &D_80364AF0[D_80364AE8];
+    u8 buf[0x20];
+    LevelInfo *info;
+    u8 stars[5] = { 0, 0, 0, 0, 0 };
+    u8 gained;
+    u16 oldStars = p->stars;
+    s32 i;
+    s32 x;
+    u16 time;
+    u8 rank;
+    u8 level;
+
+    func_801ED480((u8 *) D_80364EF0[D_80364AE8], buf);
+    PLAYER_ASSERT(saveIt[playerNumber], 1384);
+    for (level = 0; level < 0x3C; level++) {
+        if (((D_80364AF0[D_80364AE8].rank[level] > 0 && D_80364AF0[D_80364AE8].rank[level] < 6) ? 1 : 0) &&
+            D_802E8F94[level].type == 1 && level != 0x31 && level != 0x2F && level != 0x26) {
+            info = &D_802E8F94[level];
+            if (D_8039C53C[D_80364AE8] != level + 1) {
+                osSendMesg(&D_80219EF8, (OSMesg) ((level << 8) | 8 | (D_80364AE8 << 16) | 0x1000000), OS_MESG_BLOCK);
+                osRecvMesg(&D_80219F50, NULL, OS_MESG_BLOCK);
+            } else {
+                func_801ED480(buf, (u8 *) D_80364EF0[D_80364AE8]);
+            }
+            time = D_80364EF0[D_80364AE8][D_802E8C44[0]];
+            func_8029A7E4("level %d time is %d\n", level, time);
+            rank = func_801EF2BC(time, level, D_80364AF0[D_80364AE8].unk91);
+            p->rank[level] = rank;
+            stars[rank - 1]++;
+        }
+    }
+    func_801ED480(buf, (u8 *) D_80364EF0[D_80364AE8]);
+    D_802E8BDC = 0;
+    func_8029A7E4(" %d %d %d %d %d\n", stars[2] * 3, stars[1] * 2, stars[0], p->stars, oldStars);
+    p->stars += stars[2] * 3 + stars[1] * 2 + stars[0];
+    gained = p->stars / 12 - oldStars / 12;
+    p->title += gained;
+    func_8029A7E4("%d stars\n", gained);
+    i = 0;
+    x = (0x140 - gained * 32) / 2 + 0x28;
+    for (; i < gained; i++, x += 0x20) {
+        D_8020C070[i + 189].unk0 |= 0x100;
+        D_8020C070[i + 189].unk2 = x;
+        D_8020C070[i + 189].unk14 = 0x33;
+    }
+    for (; i < 6; i++) {
+        D_8020C070[i + 189].unk0 &= ~0x100;
+        D_8020C070[i + 189].unk14 = 0;
+    }
+    for (i = 0; i < 3; i++) {
+        sprintf(D_80215480[i], "*******%-2d**", stars[2 - i]);
+        D_8020C070[i + 185].unkC = D_80215480[i];
+    }
+}
 
 void func_801ED480(u8 *src, u8 *dst) {
     u32 i;

@@ -60,7 +60,7 @@ segments:
     - [0x21040, linker, data]
     - [0x21040, bin, hd_front_end/hd_front_end_data] # .data/.rodata (vram 0x80208040)
     - [0x211C0, .data, hd_front_end/01C40] # player.c .data (0x802081C0)
-    - [0x214A0, bin, hd_front_end/hd_front_end_data_214A0]
+    - [0x214B0, bin, hd_front_end/hd_front_end_data_214B0]
     - [0x274D0, .rodata, hd_front_end/01C40] # player.c .rodata (0x8020E4D0)
     - [0x27D40, bin, hd_front_end/hd_front_end_data_27D40]
   - [0x29E90]

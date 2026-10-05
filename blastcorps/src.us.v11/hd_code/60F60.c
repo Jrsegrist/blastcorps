@@ -597,7 +597,146 @@ s32 func_802A6274(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u8 D_8035805C; /* frame buffer index (0/1) */
+extern Gfx *D_803EB780;
+extern Gfx *D_803EB784;
+extern Gfx D_803C5770[]; /* display lists A / B, frame 0 */
+extern Gfx D_803C6F70[];
+extern Gfx D_803C6370[]; /* display lists A / B, frame 1 */
+extern Gfx D_803C7B70[];
+extern s32 D_803C4F70[]; /* 16.16 matrices (0x40 bytes each), frame 0 / 1 */
+extern s32 D_803C5370[];
+extern Vtx D_803C8770[]; /* quad vertices, frame 0 / 1 */
+extern Vtx D_803C9770[];
+extern u8 D_803CA770[];  /* fallback texture buffers, frame 0 / 1 */
+extern u8 D_803DA770[];
+extern u8 D_803EA770[];  /* 0x100-byte load parameter per record */
+void func_802A6748(void);
+u8 *func_802A67C4(u8 *rec, u8 *idx, u8 *base, u16 **list, u8 *param);
+void func_802A68D4(s32 *m, u8 *rec);
+void func_802A6C10(s32 w, Vtx *v, u8 *col, s32 x, s32 y, s32 h);
+void func_802A6D34(void);
+void func_802A6DE8(u8 *obj, Vtx *vtx, void *timg, s32 fmtsiz, s32 width, s32 height, s32 zbuf);
+Gfx **func_802A6EB8(u8 *obj);
+
+/* Draws the 16 D_803C4B70 billboard records into the display lists of this
+ * frame's buffer set (D_8035805C picks lists, matrices, vertices and texture
+ * buffers): resets both list cursors (D_803EB780/784, then func_802A6D34).
+ * For each active record: its matrix (func_802A68D4, matrices advance by
+ * 0x40 per drawn record), then def[3] rows of def[2] quads of size w x h
+ * (def u16 +0xA, +0xC) centred on the origin, x from (cols * w) >> 1 down by
+ * w, y from -((rows * h) >> 1) up by h: each quad's vertices (func_802A6C10,
+ * colour from def), its texture (func_802A67C4 with the record's slot bytes
+ * at +0x37, the frame's id list at def + 0x10 + 2 * cols * rows * frame and
+ * the record's 0x100-byte parameter) and the textured quad (func_802A6DE8,
+ * format def u16 +4, z-buffer byte +0x35); then a G_POPMTX in the record's
+ * list (func_802A6EB8), and the frame (+0x32) advances, or at def u16 +0xE
+ * the record ends (inactive, its map slots in D_803EB770 freed). Finally
+ * both lists get a G_ENDDL (cursors not advanced) and the heap blocks age
+ * (func_802A6748). The asm saves s0-s7, gp, fp; the survey's inputs (a1, s1,
+ * s2) are only saved. The `sub` stepping x traps on overflow (game range). */
+void func_802A64A4(void) {
+    s32 *mtx;
+    Vtx *vtx;
+    u8 *texBase;
+    u8 *rec = (u8 *) D_803C4B70;
+    u8 *param = D_803EA770;
+    s32 n;
+
+    if (D_8035805C != 0) {
+        D_803EB780 = D_803C6370;
+        D_803EB784 = D_803C7B70;
+        mtx = D_803C5370;
+        vtx = D_803C9770;
+        texBase = D_803DA770;
+    } else {
+        D_803EB780 = D_803C5770;
+        D_803EB784 = D_803C6F70;
+        mtx = D_803C4F70;
+        vtx = D_803C8770;
+        texBase = D_803CA770;
+    }
+    func_802A6D34();
+    for (n = 16; n != 0; n--, rec += 0x3C, param += 0x100) {
+        u8 *def;
+        u8 *idx;
+        u16 *list;
+        u32 cols;
+        u32 rows;
+        s32 w;
+        s32 h;
+        s32 fmtsiz;
+        s32 zbuf;
+        s32 x0;
+        s32 y;
+        s32 frame;
+        Gfx **cur;
+        Gfx *g;
+
+        if (rec[0x33] == 0) {
+            continue;
+        }
+        func_802A68D4(mtx, rec);
+        def = *(u8 **) rec;
+        zbuf = rec[0x35];
+        idx = rec + 0x37;
+        cols = def[2];
+        rows = def[3];
+        h = *(u16 *) (def + 0xC);
+        fmtsiz = *(u16 *) (def + 4);
+        w = *(u16 *) (def + 0xA);
+        list = (u16 *) (def + ((cols * rows * rec[0x32]) << 1) + 0x10);
+        x0 = (s32) (cols * w) >> 1;
+        y = -((s32) (rows * h) >> 1);
+        while (rows != 0) {
+            s32 x = x0;
+            u32 c;
+
+            rows--;
+            for (c = cols; c != 0;) {
+                u8 *buf;
+
+                c--;
+                func_802A6C10(w, vtx, def, x, y, h);
+                buf = func_802A67C4(rec, idx, texBase, &list, param);
+                idx++;
+                func_802A6DE8(rec, vtx, buf, fmtsiz, w, h, zbuf);
+                vtx += 4;
+                x -= w;
+            }
+            y += h;
+        }
+        mtx += 0x10;
+        cur = func_802A6EB8(rec);
+        g = *cur;
+        g->words.w0 = 0xBD000000;
+        g->words.w1 = 0;
+        *cur = g + 1;
+        def = *(u8 **) rec;
+        frame = rec[0x32] + 1;
+        if (frame != *(u16 *) (def + 0xE)) {
+            rec[0x32] = frame;
+        } else {
+            u8 *p = rec + 0x37;
+            u32 k = def[2] * def[3];
+
+            rec[0x33] = 0;
+            while (k != 0) {
+                k--;
+                D_803EB770[*p++] = 0;
+            }
+        }
+    }
+    D_803EB780->words.w0 = 0xB8000000;
+    D_803EB780->words.w1 = 0;
+    D_803EB784->words.w0 = 0xB8000000;
+    D_803EB784->words.w1 = 0;
+    func_802A6748();
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/60F60/func_802A64A4.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -689,7 +828,109 @@ load:
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern s32 D_803643F8; /* player x, y, z (<< 11) */
+extern s32 D_803643FC;
+extern s32 D_80364400;
+extern u16 D_80364452; /* camera heading */
+extern s32 D_803C4F30[]; /* scratch 16.16 matrix */
+s32 func_802ABCDC(s32 ax, s32 ay, s32 az, s32 bx, s32 by, s32 bz); /* 62740 */
+s32 func_802AD7FC(u32 sine);                                      /* 69000: arcsine */
+void func_802AC8CC(u16 *m);                                       /* 679E0 */
+void func_802ACA60(s32 x, s32 y, s32 z, s32 *m);
+void func_802ACAC4(s32 angle, s32 *m);
+void func_802ACBDC(s32 angle, s32 *m);
+void func_802ACC68(s32 x, s32 y, s32 z, s32 *m);
+void func_802ACCCC(s32 *b, s32 *m);
+
+/* Billboard matrix of record rec into the 16.16 matrix m: emits a matrix
+ * load of m (gSPMatrix word 0x01040040, physical address) into the record's
+ * display list (func_802A6EB8), sets m to the uniform scale rec+4
+ * (func_802ACC68), then the position: type 1 (+0x34) records use the words of
+ * func_802ABC88(+0x30, +0x31)'s record; others move by velocity (+0x14..+0x1C)
+ * times the step byte +0x36 plus +0x20..+0x28 (stored back into +8..+0x10),
+ * and once y (+0xC) drops to the floor +0x2C the y speed +0x24 becomes
+ * |+0x24 + +0x18 * step| * 3/4 (v - (v >> 2)) and the step restarts (it is
+ * stored back + 1); the position is >> 11. The pitch is the arcsine of
+ * (player y - y) / distance (func_802ABCDC on the player position >> 11,
+ * logical shifts; 64-bit division of dy << 27 by distance << 11, distance 0
+ * taken as 1), >> 4 and mirrored (0xFFF - angle) unless the quotient is
+ * negative: m *= rotation about x by that (func_802ACBDC, func_802ACCCC),
+ * m *= rotation about y by D_80364452, m *= translation (position << 11),
+ * then m is converted to the Mtx layout (func_802AC8CC).
+ * Register convention: m in t0, rec in t4; the asm saves every integer
+ * register (asm caller func_802A64A4 keeps a1, t0, t1, t3, t4, t5 live). The
+ * f12/f14 the survey lists as read by func_802A64A4 are dead there. The asm's
+ * ddiv traps on a zero divisor (distance << 11 wrapping to 0; game range). */
+void func_802A68D4(s32 *m, u8 *rec) {
+    Gfx **cur = func_802A6EB8(rec);
+    Gfx *g = *cur;
+    s32 scale;
+    s32 x;
+    s32 y;
+    s32 z;
+    s32 dist;
+    s32 py;
+    s64 q;
+    s32 angle;
+
+    g->words.w1 = (u32) m & 0x1FFFFFFF;
+    g->words.w0 = 0x01040040;
+    *cur = g + 1;
+    scale = *(s32 *) (rec + 4);
+    func_802ACC68(scale, scale, scale, m);
+    if (rec[0x34] == 1) {
+        u8 *src;
+
+        func_802ABC88(rec[0x30], rec[0x31], &src);
+        x = ((s32 *) src)[0];
+        y = ((s32 *) src)[1];
+        z = ((s32 *) src)[2];
+    } else {
+        s32 step = rec[0x36];
+        s32 y0 = *(s32 *) (rec + 0xC);
+
+        if (*(s32 *) (rec + 0x2C) >= y0) {
+            s32 v = *(s32 *) (rec + 0x24) + *(s32 *) (rec + 0x18) * step;
+
+            if (v < 0) {
+                v = -v;
+            }
+            *(s32 *) (rec + 0x24) = v - (v >> 2);
+            step = 0;
+        }
+        rec[0x36] = step + 1;
+        x = *(s32 *) (rec + 0x08) + *(s32 *) (rec + 0x14) * step + *(s32 *) (rec + 0x20);
+        *(s32 *) (rec + 0x08) = x;
+        x >>= 11;
+        y = y0 + *(s32 *) (rec + 0x18) * step + *(s32 *) (rec + 0x24);
+        *(s32 *) (rec + 0x0C) = y;
+        y >>= 11;
+        z = *(s32 *) (rec + 0x10) + *(s32 *) (rec + 0x1C) * step + *(s32 *) (rec + 0x28);
+        *(s32 *) (rec + 0x10) = z;
+        z >>= 11;
+    }
+    py = (u32) D_803643FC >> 11;
+    dist = func_802ABCDC((u32) D_803643F8 >> 11, py, (u32) D_80364400 >> 11, x, y, z);
+    if (dist == 0) {
+        dist = 1;
+    }
+    q = ((s64) (py - y) << 27) / (s32) ((u32) dist << 11);
+    angle = func_802AD7FC((q >= 0) ? (s32) q : -(s32) q) >> 4;
+    if (q >= 0) {
+        angle = 0xFFF - angle;
+    }
+    func_802ACBDC(angle, D_803C4F30);
+    func_802ACCCC(D_803C4F30, m);
+    func_802ACAC4(D_80364452, D_803C4F30);
+    func_802ACCCC(D_803C4F30, m);
+    func_802ACA60(x << 11, y << 11, z << 11, D_803C4F30);
+    func_802ACCCC(D_803C4F30, m);
+    func_802AC8CC((u16 *) m);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/60F60/func_802A68D4.s")
+#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

@@ -108,3 +108,101 @@ func_802CE204: -n 200 --seed 3 --follow func_802AD7FC --sig func_8029B7CC=a0,a1 
 func_802CE204: -n 300 --seed 4 --follow func_802AD7FC,func_8029B7CC --sig func_8029B930= \
     --arg v0=int:-100000:100000 --arg a0=int:-100000:100000 --arg a2=int:-100000:100000 --arg t0=int:-100000:100000
 # end-block
+
+# func_802CE0E4 (point v0, v1, a0, radius a1, vehicle t4 -> s4): the run of vehicle t4's D_803A6B30 spheres.
+# 12 spheres then the -1 marker; radius 0x3BD (skipped for vehicle 6) and its neighbour in the pool.
+func_802CE0E4: -n 300 --seed 0 --arg t4=choice:0,1,5,6,0xFF \
+    --mem D_803A6B30:0x104=rand --mem D_803A6B30+0x12*0x14:12/1=bytes:0,1,5,6,0xFF --mem D_803A6B30+0x13*0x14:12/1=bytes:0,1,0x80 \
+    --mem D_803A6B30+0xC*0x14:12=choice:0x3BD,0x3BC,100 --mem D_803A6B30+0x103:1=0xFF \
+    --mem D_80364456:1=bytes:0,1,5,6 --mem D_803F932D:1=rand --mem D_803F932E:1=rand --stub-ret func_8029CFA4=choice:0,1
+# the -1 marker in one random slot (first / last / middle)
+func_802CE0E4: -n 200 --seed 1 --arg t4=choice:0,6,0xFF --mem D_803A6B30:0x104=onehot:0x14@0x13/1:0xFF:rand \
+    --mem D_803A6B30+0x12*0x14:12/1=bytes:0,6,0xFF --mem D_803A6B30+0x103:1=0xFF --mem D_803A6B30+0xC*0x14:12=choice:0x3BD,0x3BC,100 \
+    --mem D_80364456:1=bytes:0,6,0xFF --mem D_803F932D:1=rand --mem D_803F932E:1=rand --stub-ret func_8029CFA4=choice:0,1
+# range test and the plane-side update run for real
+func_802CE0E4: -n 300 --seed 2 --arg t4=choice:0,1,5,6,0xFF \
+    --mem D_803A6B30:0x104=rand --mem D_803A6B30+0x12*0x14:12/1=bytes:0,1,5,6,0xFF --mem D_803A6B30+0x13*0x14:12/1=bytes:0,1,0x80 \
+    --mem D_803A6B30+0xC*0x14:12=choice:0x3BD,0x3BC,100 --mem D_803A6B30+0x103:1=0xFF \
+    --mem D_80364456:1=bytes:0,1,5,6 --mem D_803F932D:1=rand --mem D_803F932E:1=rand \
+    --arg v0=int:-3000:3000 --arg v1=int:-3000:3000 --arg a0=int:-3000:3000 --arg a1=int:0:2000 \
+    --mem D_803A6B30*0x14:12=int:-3000:3000 --mem D_803A6B30+4*0x14:12=int:-3000:3000 --mem D_803A6B30+8*0x14:12=int:-3000:3000 \
+    --follow func_8029CFA4,func_802CE204,func_802AD7FC,func_8029B7CC,func_8029B930
+
+# func_802CDF94(r): the point D_803A73F0..F8 against the 11 vehicle spheres of D_803A7300 (then the -1 marker)
+func_802CDF94: -n 300 --seed 0 --arg a0=int \
+    --mem D_803A7300:0xF0=rand --mem D_803A7300+0x10*0x14:11/1=bytes:0,1,5,0xFF --mem D_803A7300+0x11*0x14:11/1=bytes:0,1,0x80 \
+    --mem D_803A7300+0xED:1=0xFF --mem D_803649E8=choice:0,1 --mem D_803F932D:1=rand --mem D_803F932E:1=rand \
+    --mem D_803A73F0=int --mem D_803A73F4=int --mem D_803A73F8=int \
+    --mem D_803A7410:2=choice:0,1,0xFFF --mem D_803A7412:2=choice:0xFFF,0xFFE,0 --mem D_803A7424:1=rand --mem D_803A7425:1=rand \
+    --mem D_803A742F:1=bytes:0,1 --stub-ret func_8029CFA4=choice:0,1 --stub-ret func_802CE0E4=choice:0,1
+# func_802CE0E4 and the range tests run for real (small coordinates; plane-side updates stubbed)
+func_802CDF94: -n 300 --seed 1 --arg a0=int:0:2000 \
+    --mem D_803A7300:0xF0=rand --mem D_803A7300+0x10*0x14:11/1=bytes:0,1,5,0xFF --mem D_803A7300+0x11*0x14:11/1=bytes:0,1,0x80 \
+    --mem D_803A7300+0xED:1=0xFF --mem D_803649E8=choice:0,1 --mem D_803F932D:1=rand --mem D_803F932E:1=rand \
+    --mem D_803A7300*0x14:11=int:-3000:3000 --mem D_803A7300+4*0x14:11=int:-3000:3000 --mem D_803A7300+8*0x14:11=int:-3000:3000 \
+    --mem D_803A7300+0xC*0x14:11=int:0:2000 \
+    --mem D_803A6B30:0x104=rand --mem D_803A6B30+0x12*0x14:12/1=bytes:0,1,5,0xFF --mem D_803A6B30+0x13*0x14:12/1=bytes:0,1,0x80 \
+    --mem D_803A6B30*0x14:12=int:-3000:3000 --mem D_803A6B30+4*0x14:12=int:-3000:3000 --mem D_803A6B30+8*0x14:12=int:-3000:3000 \
+    --mem D_803A6B30+0xC*0x14:12=int:0:2000 --mem D_803A6B30+0x103:1=0xFF --mem D_80364456:1=bytes:0,1,5 \
+    --mem D_803A73F0=int:-3000:3000 --mem D_803A73F4=int:-3000:3000 --mem D_803A73F8=int:-3000:3000 \
+    --mem D_803A7410:2=choice:0,1,0xFFF --mem D_803A7412:2=choice:0xFFF,0xFFE,0 --mem D_803A7424:1=rand --mem D_803A7425:1=rand \
+    --mem D_803A742F:1=bytes:0,1 --follow func_8029CFA4,func_802CE0E4
+
+# func_802CDD74 (object t9, triangle s0, amount fp): impact damage. Object heap0, info heap1, 8 triangles heap2.
+func_802CDD74: -n 300 --seed 0 --arg fp=choice:0,1,2,50,99,100,101,0x7FFF,0xFFFF \
+    --heap 0x100 --heap 0x40 --heap 0x300 --arg t9=rel:heap0 --arg s0=rel:heap2+0x60*int:0:7 \
+    --mem @heap0=rel:heap1 --mem @heap0+4=rel:heap2 --mem @heap0+8=rel:heap2+0x300 --mem @heap0+0x30=choice:5*3,0x38 \
+    --mem @heap0+0xEB:17=bytes:0,50,99,100 --mem @heap1+4:1=bytes:1,2,3,0x80,0xFF \
+    --mem @heap2+0x51*0x60:8/1=bytes:0,1 --mem @heap2+0x52*0x60:8/2=choice:0,1,2,3,4 --mem @heap2+0x57*0x60:8/1=bytes:1,2,3,4,9 \
+    --mem D_802E8BE4:1=rand --mem D_802E8BE8=int
+# divisor 1, percentages 0/99/100 around the cap: mostly collapses
+func_802CDD74: -n 200 --seed 1 --arg fp=choice:1,99,100 \
+    --heap 0x100 --heap 0x40 --heap 0x300 --arg t9=rel:heap0 --arg s0=rel:heap2+0x60*int:0:7 \
+    --mem @heap0=rel:heap1 --mem @heap0+4=rel:heap2 --mem @heap0+8=rel:heap2+0x300 --mem @heap0+0x30=5 \
+    --mem @heap0+0xEB:17=bytes:0,99,100 --mem @heap1+4:1=1 \
+    --mem @heap2+0x51*0x60:8/1=bytes:0,1 --mem @heap2+0x52*0x60:8/2=choice:1,2 --mem @heap2+0x57*0x60:8/1=bytes:0,1,2 \
+    --mem D_802E8BE4:1=rand --mem D_802E8BE8=int
+
+# func_802CDC7C (sphere v0, v1, a0, radius a1, object t3, hit flag fp in/out): 0..8 triangles at heap1
+func_802CDC7C: -n 300 --seed 0 --heap 0x40 --heap 0x300 --arg t3=rel:heap0 --arg fp=choice:0*3,1,5 \
+    --arg v0=int --arg v1=int --arg a0=int --arg a1=choice:-1,0,1,3,4,7,0x100,-0x100 \
+    --mem @heap0+4=rel:heap1 --mem @heap0+8=rel:heap1+0x60*int:0:8 --mem @heap1+0x51*0x60:8/1=bytes:0,1,1 \
+    --mem D_803F932A:2=choice:0,1,100,0xFFFF --sig func_8029C160=a0,a1,a2,a3,stack0 \
+    --stub-ret func_8029C160=choice:0,1 --stub-ret func_8029BF64=choice:0,1 --stub-ret func_8029BD0C=choice:0,1 --stub-ret func_8029BEE4=choice:0,1
+# projection / 2-D / edge / vertex tests and the damage (func_802CDD74, info heap2) run for real; small coordinates
+func_802CDC7C: -n 300 --seed 1 --heap 0x100 --heap 0x300 --heap 0x40 --arg t3=rel:heap0 --arg fp=choice:0*3,1 \
+    --arg v0=int:0:1600 --arg v1=int:0:1600 --arg a0=int:0:1600 --arg a1=int:0:1600 \
+    --mem @heap0=rel:heap2 --mem @heap2+4:1=bytes:1,2,3 --mem @heap0+0x30=choice:5,0x38 --mem @heap0+0xEC:16=bytes:0,50,99 \
+    --mem @heap0+4=rel:heap1 --mem @heap0+8=rel:heap1+0x60*int:0:8 --mem @heap1+0x51*0x60:8/1=bytes:0,1,1 \
+    --mem @heap1+0x52*0x60:8/2=choice:1,2,3 --mem @heap1+0x57*0x60:8/1=bytes:1,2,9 \
+    --mem @heap1+0x28*0x60:8/4=int:0:100 --mem @heap1+0x2C*0x60:8/4=int:0:100 --mem @heap1+0x30*0x60:8/4=int:0:100 \
+    --mem @heap1+0x34*0x60:8/4=int:0:100 --mem @heap1+0x38*0x60:8/4=int:0:100 --mem @heap1+0x3C*0x60:8/4=int:0:100 \
+    --mem @heap1+0x40*0x60:8/4=int:0:100 --mem @heap1+0x44*0x60:8/4=int:0:100 --mem @heap1+0x48*0x60:8/4=int:0:100 \
+    --mem @heap1+0x4E*0x60:8/1=bytes:0,1,2 --mem D_803F932A:2=choice:0,1,100 --mem D_802E8BE4:1=rand --mem D_802E8BE8=int \
+    --sig func_8029C160=a0,a1,a2,a3,stack0 --stub-ret func_8029C160=choice:0,1*3 \
+    --follow func_8029C0DC,func_8029BF64,func_8029BD0C,func_8029BEE4,sqrtf,func_802CDD74
+
+# func_802CDB70(r, amount): the point D_803A73F0..F8 against 0..4 D_803F4030 objects
+func_802CDB70: -n 300 --seed 0 --arg a0=int --arg a1=choice:0,1,100,0x12345 \
+    --mem D_803A73F0=int --mem D_803A73F4=int --mem D_803A73F8=int \
+    --mem D_803F4030:0x3F0=rand --mem D_803F4030+0x30*0xFC:4=choice:5,0x38 --mem D_803F7654=rel:D_803F4030+0xFC*int:0:4 \
+    --mem D_803F932A:2=rand --mem D_803A7410:2=rand --mem D_803A7412:2=rand --mem D_803A742F:1=bytes:0,1 \
+    --stub-ret func_8029CFA4=choice:0,1 --stub-ret func_802BD8C8=choice:0,1 --stub-ret func_802CDC7C=choice:0,1
+# the range test and func_802CDC7C run for real (sphere tests inside stubbed), objects' triangles at heap0
+func_802CDB70: -n 300 --seed 1 --heap 0x300 --arg a0=int:0:2000 --arg a1=choice:0,1,100 \
+    --mem D_803A73F0=int:0:3000 --mem D_803A73F4=int:0:3000 --mem D_803A73F8=int:0:3000 \
+    --mem D_803F4030:0x3F0=rand --mem D_803F4030+0x30*0xFC:4=choice:5,0x38 --mem D_803F7654=rel:D_803F4030+0xFC*int:0:4 \
+    --mem D_803F4030+0xC*0xFC:4=int:0:2000 --mem D_803F4030+0x10*0xFC:4=int:0:3000 --mem D_803F4030+0x14*0xFC:4=int:0:3000 \
+    --mem D_803F4030+0x18*0xFC:4=int:0:3000 \
+    --mem D_803F4030+4*0xFC:4=rel:heap0 --mem D_803F4030+8*0xFC:4=rel:heap0+0x60*int:0:8 --mem @heap0+0x51*0x60:8/1=bytes:0,1 \
+    --mem D_803F932A:2=rand --mem D_803A7410:2=rand --mem D_803A7412:2=rand --mem D_803A742F:1=bytes:0,1 \
+    --stub-ret func_802BD8C8=choice:0,1 --sig func_8029C160=a0,a1,a2,a3,stack0 \
+    --stub-ret func_8029C160=choice:0,1 --stub-ret func_8029BF64=choice:0,1 --stub-ret func_8029BD0C=choice:0,1 --stub-ret func_8029BEE4=choice:0,1 \
+    --follow func_8029CFA4,func_802CDC7C
+
+# func_802CE65C(x, z, len, angle): offset (x, z) along the heading; stubbed, then with the trig run for real
+func_802CE65C: -n 300 --seed 0 --arg a0=int --arg a1=int --arg a2=int --arg a3=int \
+    --mem D_803F9320=int --mem D_803F9324=int --mem D_803F9328:2=rand
+func_802CE65C: -n 300 --seed 1 --arg a0=int:-100000:100000 --arg a1=int:-100000:100000 \
+    --arg a2=choice:0,1,-1,100,0x7FFF,0x8000,0x12345 --arg a3=choice:0,1,0x3FF,0x400,0x7FF,0x800,0xBFF,0xC00,0xFFF,0x1000,-1 \
+    --follow func_802A860C,func_802AE104,func_802AE160,func_802AE1BC,func_802AE290

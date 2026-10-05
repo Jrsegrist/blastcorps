@@ -382,7 +382,92 @@ void func_802BC888(s32 kind, s32 id, s32 amount) {
 #endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u8 D_803643D6;
+extern u8 D_803643D7;
+extern u8 D_802E8BE4; /* screen shake time */
+extern s32 D_802E8BE8; /* screen shake size */
+void func_802BF384(Unk802C1DD0Entry *e);
+void func_802BF534(Unk802C1DD0Entry *e);
+void func_802BF668(Unk802C1DD0Entry *e);
+void func_802BF898(Unk802C1DD0Entry *e, s32 part, s32 level);
+void func_802C09B8(s32 id, Unk802C1DD0Entry *e);
+void func_802C0E8C(s32 id, Unk802C1DD0Entry *e);
+void func_802C1438(Unk802C1DD0Entry *e, s32 index);
+
+/* Delayed damage: for each of the 40 D_803F7690 entries {object, u16 amount,
+ * u8 part, u8 timer} with a running timer, counts it down; on reaching 0 the
+ * entry is spent (timer 0), the screen shakes (10, min(amount, 500)) and the
+ * part's percentage += amount, capped at 100. A part reaching 100 collapses:
+ * func_802C1438, func_802C09B8 unless D_803643D6 or D_803643D7 is set,
+ * func_802C0E8C, func_802BF384 unless the game mode D_80364A90 is 0x200 or
+ * 0x400, and the part's triangles off. Then func_802BF668, func_802BF534 and
+ * func_802BF898(e, part, percentage).
+ * ABI (00000.c calls it as void(void)); the asm saves s0-s7, gp, fp; the s1
+ * the survey lists as an input is only saved. */
+void func_802BCA2C(void) {
+    u8 *p = D_803F7690[0];
+    s32 n;
+
+    for (n = 0x28; n != 0; n--, p += 8) {
+        Unk802C1DD0Entry *e;
+        s32 timer = p[7];
+        s32 amount;
+        s32 part;
+        s32 level;
+        u8 *pct;
+
+        if (timer == 0) {
+            continue;
+        }
+        timer--;
+        if (timer != 0) {
+            p[7] = timer;
+            continue;
+        }
+        amount = *(u16 *) (p + 4);
+        p[7] = 0;
+        e = *(Unk802C1DD0Entry **) p;
+        part = p[6];
+        D_802E8BE4 = 10;
+        if (amount < 0x1F5) {
+            D_802E8BE8 = amount;
+        } else {
+            D_802E8BE8 = 500;
+        }
+        pct = (u8 *) e + 0xEC + part - 1;
+        level = *pct + amount;
+        if (level >= 100) {
+            level = 100;
+        }
+        *pct = level;
+        if (level == 100) {
+            Unk803B9890 *t;
+            Unk803B9890 *end;
+
+            func_802C1438(e, part);
+            if (D_803643D6 == 0 && D_803643D7 == 0) {
+                func_802C09B8(part, e);
+            }
+            func_802C0E8C(part, e);
+            if (D_80364A90 != 0x200 && D_80364A90 != 0x400) {
+                func_802BF384(e);
+            }
+            end = e->unk8;
+            for (t = e->unk4; t != end; t++) {
+                if (t->unk52 == part) {
+                    t->unk51 = 0;
+                }
+            }
+        }
+        func_802BF668(e);
+        func_802BF534(e);
+        func_802BF898(e, part, level);
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BCA2C.s")
+#endif
 
 /* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -689,7 +774,270 @@ void func_802BD10C(s32 arg0) {
 #endif
 
 /* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern Mtx *D_803F7658; /* 2 matrices (func_802C1F30's falling parts) */
+extern s32 D_803F765C;  /* Mtx pool cursor for func_802933A0 */
+extern s32 D_803F7664; /* position objects with a pose are moved to */
+extern s32 D_803F7668;
+extern s32 D_803F766C;
+extern s32 D_803F24D0[]; /* matrix pools of the two frames */
+extern s32 D_803F2ED0[];
+extern s32 *D_803F3964;
+extern s16 D_803C30A8[]; /* visible object ids, ended by -1 */
+extern u8 D_8035805C;    /* frame index */
+extern u8 D_802E8BE4;    /* screen shake time */
+extern s32 D_802E8BE8;   /* screen shake size */
+void func_802933A0(s32 x, s32 y, s32 z, s32 type, Mtx *mtx, void *state, Gfx *gfx1, Gfx *gfx2, s32 idx,
+                   s32 arg9, s32 arg10, s32 arg11); /* 4EBE0 */
+void func_802BD85C(Unk802BD99CModel *model, s32 id);
+s32 func_802BD8C8(void);
+void func_802BD99C(Unk802BD99CModel *model, s32 dx, s32 dy, s32 dz);
+void func_802BDDB4(Unk802C1DD0Entry *obj, u8 *rec, u8 *end);
+u32 *func_802BE228(u32 *src, u32 *srcEnd, u32 *dst, u8 *tbl, u8 *tblEnd);
+u32 *func_802BE3C8(u32 *src, u32 *srcEnd, u32 *dst, u8 *tbl, u8 *tblEnd);
+s32 func_802BE574(Unk802C1DD0Entry *e, s32 off, s32 dy);
+void func_802BFD1C(Unk802C1DD0Entry *e, s32 index);
+u32 *func_802C08C4(u32 *gfx);
+u32 *func_802C0CBC(u32 *gfx);
+void func_802C12E0(u32 **gfxA, u32 **gfxB);
+
+/* Copies the 8-byte display-list commands [src, end) to dst; returns the new dst. */
+#define COPY_DL_802BD1F8(dst, src, end)      \
+    {                                        \
+        u64 *_s = (u64 *) (src);             \
+        u64 *_e = (u64 *) (end);             \
+        u64 *_d = (u64 *) (dst);             \
+                                             \
+        while (_s != _e) {                   \
+            *_d++ = *_s++;                   \
+        }                                    \
+        (dst) = (u32 *) _d;                  \
+    }
+
+/* Draws the D_803F4030 objects (up to D_803F7654, read once, walked with
+ * `!=`) into four display lists: gA / gB (the two halves of the scene list),
+ * gC / gD (per-object lists the scene calls). D_803F7658/765C = mtxA/mtxB,
+ * func_802C08C4(gE) and func_802C0CBC(gF) (their new ends are dropped), the
+ * matrix pool is this frame's (D_803F24D0 or D_803F2ED0 by D_8035805C).
+ * Per object whose unkE8 is in the D_803C30A8 list (-1 ends it) and that
+ * isn't a 0x38 object while func_802BD8C8 is set:
+ * - with a pose (info u16 +0xE != 0): func_802933A0 builds its matrix
+ *   (words +0x1C..+0x24, the pose count, the next D_803F765C Mtx (advanced by
+ *   0x40), state at +0x38, gA, gB, word +0x34, the position) and both scene
+ *   lists step 8; the object moves to D_803F7664/68/6C (func_802BD99C by the
+ *   difference);
+ * - animated textures (func_802BDDB4 with info's table unk28..unk2C), then
+ *   gA/gB get a segment-6 command for info + 0x50 and a G_DL to gC/gD
+ *   (physical), and the commands info+unk10..unk18 are copied to gC and gD;
+ * - the part records info+unk38..unk3C: {word n, n x {u16 part, u8 mode, u8
+ *   limit}, 4 words}, the u16 at +4 being the record's (1-based) part p too.
+ *   A record whose conditions all hold (part's percentage < limit fails for
+ *   mode != 0, > limit for mode 0) is drawn: with a moving part
+ *   (e->unk48[p - 1]), its counter unk68[p - 1] advances, dy = c * c * -30000;
+ *   if dy <= -(table u16 at unk3C + 2(p - 1) << 16) the part drops
+ *   (unk48 = 0, func_802BFD1C, shake 10/300, percentage 100,
+ *   func_802BD85C); its matrix (func_802BE574) is pushed in gC; the
+ *   record's gC and gD command ranges (words 0-1 / 2-3, offsets from info)
+ *   are copied (through func_802BE228 / func_802BE3C8 when the texture table
+ *   is non-empty), with G_POPMTX in gC and the matrix push / G_POPMTX in gD
+ *   for a moving part. If the first record holds, it is the only one drawn;
+ *   otherwise every holding record is.
+ * Every object (listed or not) then ends gC and gD (G_ENDDL) and, with a
+ * pose, pops the matrix in gA and gB. Finally func_802C12E0(&gA, &gB) and
+ * G_ENDDL in both (not advanced).
+ * ABI (00000.c passes eight pointers); the asm saves s0-s7, gp, fp and uses
+ * gp as scratch. Its trapping add/sub stay in game range. */
+void func_802BD1F8(u32 *gA, u32 *gB, u32 *gC, u32 *gD, s32 mtxA, s32 mtxB, u32 *gE, u32 *gF) {
+    Unk802C1DD0Entry *end;
+    Unk802C1DD0Entry *o;
+
+    D_803F7658 = (Mtx *) mtxA;
+    D_803F765C = mtxB;
+    func_802C08C4(gE);
+    func_802C0CBC(gF);
+    if (D_8035805C != 0) {
+        D_803F3964 = D_803F24D0;
+    } else {
+        D_803F3964 = D_803F2ED0;
+    }
+    end = D_803F7654;
+    for (o = D_803F4030; o != end; o++) {
+        u8 *ob = (u8 *) o;
+        u8 *info;
+        u8 *tbl;
+        u8 *tblEnd;
+        u8 *rec;
+        u8 *recEnd;
+        s16 *s;
+        s32 count;
+        s32 first;
+
+        for (s = D_803C30A8;; s++) {
+            if (*s == -1) {
+                goto tail;
+            }
+            if (*s == o->unkE8) {
+                break;
+            }
+        }
+        if (o->unk30 == 0x38 && func_802BD8C8() != 0) {
+            goto tail;
+        }
+        info = (u8 *) o->info;
+        count = *(u16 *) (info + 0xE);
+        if (count != 0) {
+            s32 mtx = D_803F765C;
+            s32 ox;
+            s32 oy;
+            s32 oz;
+
+            D_803F765C = mtx + 0x40;
+            func_802933A0(*(s32 *) (ob + 0x1C), *(s32 *) (ob + 0x20), *(s32 *) (ob + 0x24), count, (Mtx *) mtx,
+                          ob + 0x38, (Gfx *) gA, (Gfx *) gB, *(s32 *) (ob + 0x34), o->pos[0], o->pos[1],
+                          o->pos[2]);
+            gA += 2;
+            gB += 2;
+            ox = o->pos[0];
+            oy = o->pos[1];
+            oz = o->pos[2];
+            o->pos[0] = D_803F7664;
+            o->pos[1] = D_803F7668;
+            o->pos[2] = D_803F766C;
+            func_802BD99C((Unk802BD99CModel *) o, o->pos[0] - ox, o->pos[1] - oy, o->pos[2] - oz);
+        }
+        info = (u8 *) o->info;
+        tbl = info + *(s32 *) (info + 0x28);
+        tblEnd = info + *(s32 *) (info + 0x2C);
+        rec = info + *(s32 *) (info + 0x38);
+        recEnd = info + *(s32 *) (info + 0x3C);
+        func_802BDDB4(o, tbl, tblEnd);
+        gA[0] = gB[0] = 0xBC002406;
+        gA[1] = gB[1] = (u32) (info + 0x50) - 0x80000000;
+        gA[2] = gB[2] = 0x06000000;
+        gA[3] = (u32) gC - 0x80000000;
+        gB[3] = (u32) gD - 0x80000000;
+        gA += 4;
+        gB += 4;
+        {
+            u64 *p = (u64 *) (info + *(s32 *) (info + 0x10));
+            u64 *pe = (u64 *) (info + *(s32 *) (info + 0x18));
+
+            while (p != pe) {
+                u64 w = *p++;
+
+                *(u64 *) gC = w;
+                gC += 2;
+                *(u64 *) gD = w;
+                gD += 2;
+            }
+        }
+        first = 1;
+        while (rec != recEnd) {
+            s32 n = *(s32 *) rec;
+            s32 off = (*(u16 *) (rec + 4) - 1) * 2;
+            s32 moving;
+            s32 mtxAddr;
+            u32 *src;
+            u32 *srcEnd;
+
+            rec += 4;
+            while (n != 0) {
+                s32 part = *(u16 *) rec;
+                s32 mode = rec[2];
+                s32 limit = rec[3];
+                s32 pct = ob[0xEC + part - 1];
+
+                n--;
+                rec += 4;
+                if (mode != 0 ? (pct < limit) : (limit < pct)) {
+                    rec += n * 4 + 0x10;
+                    goto next;
+                }
+            }
+            moving = *(u16 *) (ob + 0x48 + off);
+            if (moving != 0) {
+                u16 *ctr = (u16 *) (ob + 0x68 + off);
+                u32 c = *ctr + 1;
+                s32 dy;
+                s32 floor;
+
+                *ctr = c;
+                dy = c * c * (u32) -30000;
+                floor = -(*(u16 *) (info + *(s32 *) (info + 0x3C) + off) << 16);
+                if (floor >= dy) {
+                    u32 idx = (u32) off >> 1;
+
+                    *(u16 *) (ob + 0x48 + off) = 0;
+                    func_802BFD1C(o, idx);
+                    D_802E8BE4 = 10;
+                    D_802E8BE8 = 300;
+                    ob[idx + 0xEC] = 100;
+                    func_802BD85C((Unk802BD99CModel *) o, idx);
+                }
+                mtxAddr = func_802BE574(o, off, dy);
+                gC[0] = 0x01040040;
+                gC[1] = mtxAddr;
+                gC += 2;
+            }
+            src = (u32 *) (info + ((s32 *) rec)[0]);
+            srcEnd = (u32 *) (info + ((s32 *) rec)[1]);
+            if (tbl != tblEnd) {
+                gC = func_802BE228(src, srcEnd, gC, tbl, tblEnd);
+            } else {
+                COPY_DL_802BD1F8(gC, src, srcEnd);
+            }
+            if (moving != 0) {
+                gC[0] = 0xBD000000;
+                gC[1] = 0;
+                gC += 2;
+                gD[0] = 0x01040040;
+                gD[1] = mtxAddr;
+                gD += 2;
+            }
+            src = (u32 *) (info + ((s32 *) rec)[2]);
+            srcEnd = (u32 *) (info + ((s32 *) rec)[3]);
+            if (tbl != tblEnd) {
+                gD = func_802BE3C8(src, srcEnd, gD, tbl, tblEnd);
+            } else {
+                COPY_DL_802BD1F8(gD, src, srcEnd);
+            }
+            if (moving != 0) {
+                gD[0] = 0xBD000000;
+                gD[1] = 0;
+                gD += 2;
+            }
+            rec += 0x10;
+            if (first) {
+                break;
+            }
+        next:
+            first = 0;
+        }
+    tail:
+        gC[0] = 0xB8000000;
+        gC[1] = 0;
+        gD[0] = 0xB8000000;
+        gD[1] = 0;
+        gC += 2;
+        gD += 2;
+        if (*(u16 *) ((u8 *) o->info + 0xE) != 0) {
+            gA[0] = 0xBD000000;
+            gA[1] = 0;
+            gB[0] = 0xBD000000;
+            gB[1] = 0;
+            gA += 2;
+            gB += 2;
+        }
+    }
+    func_802C12E0(&gA, &gB);
+    gA[0] = 0xB8000000;
+    gA[1] = 0;
+    gB[0] = 0xB8000000;
+    gB[1] = 0;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BD1F8.s")
+#endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -1084,10 +1432,210 @@ u32 *func_802BE3C8(u32 *src, u32 *srcEnd, u32 *dst, u8 *tbl, u8 *tblEnd) {
 #endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern s32 *D_803F3964; /* matrix pool cursor (0x40-byte 16.16 matrices) */
+extern s32 D_803F38D0[]; /* scratch 16.16 matrix */
+void func_802AC8CC(u16 *m);                       /* 679E0 */
+void func_802ACA60(s32 x, s32 y, s32 z, s32 *m);
+void func_802ACAC4(s32 angle, s32 *m);
+void func_802ACB50(s32 angle, s32 *m);
+void func_802ACBDC(s32 angle, s32 *m);
+void func_802ACCCC(s32 *b, s32 *m);
+
+/* Builds the matrix of one moving part of object e in the next pool slot
+ * (D_803F3964, advanced by 0x40) and returns its address - 0x80000000. off
+ * is twice the part index: the halfwords at e + 0x68 + off (scale, u16) and
+ * +0x88 (s16) / +0xA8 / +0xC8 (u16) give the angles scale * value (32-bit
+ * product, + 0xFFF when negative) about x, y and z; the pivot is the u16
+ * x, y, z (<< 16) at info + info->unk2C + off * 4. m = translate(-pivot),
+ * then m *= rotation x, y, z, translate(pivot), translate(0, dy, 0) (each
+ * built in D_803F38D0, func_802ACCCC), converted to the Mtx layout
+ * (func_802AC8CC).
+ * Register convention: e in v0, off in a3, dy in s6, result in s5. The asm
+ * saves a0-t5, t7, t8, s0-s2, s4, s7 (t6 is untouched); asm caller
+ * func_802BD1F8 keeps a0-a2 and t0-t6 live across the call. */
+s32 func_802BE574(Unk802C1DD0Entry *e, s32 off, s32 dy) {
+    s32 *m = D_803F3964;
+    u8 *b = (u8 *) e + off;
+    u32 scale;
+    s32 ax;
+    s32 ay;
+    s32 az;
+    u16 *pivot;
+    s32 px;
+    s32 py;
+    s32 pz;
+
+    D_803F3964 = m + 0x10;
+    scale = *(u16 *) (b + 0x68);
+    ax = scale * *(s16 *) (b + 0x88);
+    if (ax < 0) {
+        ax += 0xFFF;
+    }
+    ay = scale * *(u16 *) (b + 0xA8);
+    if (ay < 0) {
+        ay += 0xFFF;
+    }
+    az = scale * *(u16 *) (b + 0xC8);
+    if (az < 0) {
+        az += 0xFFF;
+    }
+    pivot = (u16 *) ((u8 *) e->info + e->info->unk2C + off * 4);
+    px = pivot[0] << 16;
+    py = pivot[1] << 16;
+    pz = pivot[2] << 16;
+    func_802ACA60(-px, -py, -pz, m);
+    func_802ACBDC(ax, D_803F38D0);
+    func_802ACCCC(D_803F38D0, m);
+    func_802ACAC4(ay, D_803F38D0);
+    func_802ACCCC(D_803F38D0, m);
+    func_802ACB50(az, D_803F38D0);
+    func_802ACCCC(D_803F38D0, m);
+    func_802ACA60(px, py, pz, D_803F38D0);
+    func_802ACCCC(D_803F38D0, m);
+    func_802ACA60(0, dy, 0, D_803F38D0);
+    func_802ACCCC(D_803F38D0, m);
+    func_802AC8CC((u16 *) m);
+    return (u32) m - 0x80000000;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BE574.s")
+#endif
+
+#ifdef NON_MATCHING
+/* Callees of func_802BE77C / func_802BEADC / func_802BEBB0 (C rewrites; see
+ * conventions.txt for their asm registers). */
+s32 func_8029C160(s32 x, s32 y, s32 z, s32 r, u8 *tri, s32 *hit); /* 56040 */
+void func_8029C0DC(u8 *tri, s32 px, s32 py, s32 pz, s32 *out);     /* 56040 */
+s32 func_8029BF64(s32 bu, s32 bv, s32 cu, s32 cv, s32 au, s32 av, s32 pu, s32 pv); /* 56040 */
+s32 func_8029BD0C(s32 x, s32 y, s32 z, s32 r, u8 *tri);           /* 56040 */
+s32 func_8029BEE4(s32 x, s32 y, s32 z, s32 r, u8 *tri);           /* 56040 */
+s32 func_8029CFA4(s32 pz, s32 r1, s32 qx, s32 qy, s32 px, s32 py, s32 qz, s32 r2); /* 56040 */
+void func_802BCC48(void);
+void func_802BCCD4(s32 value);
+s32 func_802BCDE0(s32 value);
+s32 func_802BD8C8(void);
+s32 func_802BE944(Unk802C1DD0Entry *e, s32 bit);
+void func_802BE9F8(void);
+void func_802BEA30(s32 a, s32 b);
+s32 func_802BEA70(s32 a, s32 b);
+void func_802BEADC(s32 x, s32 y, s32 z, s32 r, Unk802C1DD0Entry *e, s32 id);
+void func_802BEBB0(s32 id, Unk802C1DD0Entry *e, Unk803B9890 *tri);
+void func_802BEF9C(Unk802C1DD0Entry *e);
+void func_802BEFF4(void);
+void func_802BF1F0(Unk802C1DD0Entry *e, s32 id);
+void func_802BF264(Unk803B9890 *t);
+void func_802BF384(Unk802C1DD0Entry *e);
+void func_802BF534(Unk802C1DD0Entry *e);
+void func_802BF668(Unk802C1DD0Entry *e);
+void func_802BF898(Unk802C1DD0Entry *e, s32 part, s32 level);
+void func_802BFEE4(u8 *vehicle);
+s32 func_802BFF6C(s32 id, s32 value, s32 bit, Unk802C1DD0Entry *e, s32 flag, s32 key);
+void func_802C09B8(s32 id, Unk802C1DD0Entry *e);
+void func_802C0E8C(s32 id, Unk802C1DD0Entry *e);
+void func_802C1438(Unk802C1DD0Entry *e, s32 index);
+extern u8 D_803BE738;
+extern s32 D_80358068;
+extern s32 D_803F77F8;
+extern u8 D_803F7802;
+extern u8 D_803F7803;
+
+/* The sphere-vs-triangle test the asm inlines as a call chain (see 56040.c,
+ * func_8029BD0C): plane distance (func_8029C160), the projected
+ * point-in-triangle test, the edge test, the vertex test; 1 on the first hit. */
+static s32 sphere_hits_tri_77E20(s32 x, s32 y, s32 z, s32 r, Unk803B9890 *tri) {
+    s32 hit[3];
+    s32 uv[8];
+
+    if (func_8029C160(x, y, z, r, (u8 *) tri, hit) == 0) {
+        return 0;
+    }
+    func_8029C0DC((u8 *) tri, hit[0], hit[1], hit[2], uv);
+    if (func_8029BF64(uv[2], uv[3], uv[4], uv[5], uv[0], uv[1], uv[6], uv[7]) != 0) {
+        return 1;
+    }
+    if (func_8029BD0C(x, y, z, r, (u8 *) tri) != 0) {
+        return 1;
+    }
+    return func_8029BEE4(x, y, z, r, (u8 *) tri) != 0;
+}
+#endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+extern u8 D_803A7300[]; /* 0x14-byte vehicle spheres: s32 x, y, z, r, u8 vehicle id at 0x10, s8 flag at 0x11 */
+extern s32 D_803F77F4;
+extern u8 D_803F7807;
+extern u8 D_803F780F;
+extern u16 D_803A7410; /* ring span */
+extern u16 D_803A7412;
+extern u8 D_803A7425;
+
+/* Collision pass of vehicle id (record `vehicle`): clears D_803F7802/7803/7807
+ * and the once-per-frame latch D_803F780F, copies D_803F77F8 to D_803F77F4,
+ * func_802BFEE4(vehicle), resets the hit list (func_802BE9F8), then finds the
+ * vehicle's D_803A7300 sphere (first entry whose byte 0x10 is id; the scan
+ * isn't bounded). If its flag byte 0x11 is set, every object (D_803F4030 up
+ * to D_803F7654, read once, walked with `!=`) within range of the sphere
+ * (func_8029CFA4), not a 0x38 object while func_802BD8C8 is set, and not
+ * excluded for this vehicle (func_802BE944), gets the triangle pass
+ * func_802BEADC. Then buffer A is copied to B (func_802BCC48) unless id is
+ * 0xFF, D_803A7425 is set unless the ring span is 0/0xFFF, and vehicle[0x9C],
+ * [0x9D], [0x9E] = D_803F7802, D_803F7803, D_803F7807.
+ * Register convention: id in t8, vehicle in gp (an argument here: callers pass
+ * different records). The asm saves a2-t5, t7, s0, s2 and t8 and leaves v0-a1
+ * changed, s1/s3/s4 and f20-f28 changed by func_802BEADC's helpers. Asm callers
+ * keep a3 (func_802B327C, func_802B49AC, func_802B6294, func_802B7A88,
+ * func_802CBEF0, func_802CD068, func_802CFDE8), t7 (func_802BA9A0) or a3, t0,
+ * t1 and t8 (func_802BB274) live across the call. The other leftovers the
+ * survey lists as read by callers (v1, a0, t6, s1, s3, s4, f12-f26) are dead
+ * there (overwritten, or saved and restored around the call). */
+void func_802BE77C(s32 id, u8 *vehicle) {
+    u8 *s;
+
+    D_803F7802 = 0;
+    D_803F7803 = 0;
+    D_803F7807 = 0;
+    D_803F77F4 = D_803F77F8;
+    D_803F780F = 0;
+    func_802BFEE4(vehicle);
+    func_802BE9F8();
+    for (s = D_803A7300; s[0x10] != id; s += 0x14) {
+    }
+    if ((s8) s[0x11] != 0) {
+        s32 x = ((s32 *) s)[0];
+        s32 y = ((s32 *) s)[1];
+        s32 z = ((s32 *) s)[2];
+        s32 r = ((s32 *) s)[3];
+        Unk802C1DD0Entry *end = D_803F7654;
+        Unk802C1DD0Entry *o;
+
+        for (o = D_803F4030; o != end; o++) {
+            if (func_8029CFA4(z, r, o->pos[0], o->pos[1], x, y, o->pos[2], o->unkC) == 0) {
+                continue;
+            }
+            if (o->unk30 == 0x38 && func_802BD8C8() != 0) {
+                continue;
+            }
+            if (func_802BE944(o, id) != 0) {
+                continue;
+            }
+            func_802BEADC(x, y, z, r, o, id);
+        }
+    }
+    if (id != 0xFF) {
+        func_802BCC48();
+    }
+    if (D_803A7410 != 0 || D_803A7412 != 0xFFF) {
+        D_803A7425 = 1;
+    }
+    vehicle[0x9C] = D_803F7802;
+    vehicle[0x9D] = D_803F7803;
+    vehicle[0x9E] = D_803F7807;
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BE77C.s")
+#endif
 
 /* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -1177,10 +1725,200 @@ s32 func_802BEA70(s32 a, s32 b) {
 #endif
 
 /* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+/* For every collision triangle of e (e->unk4 up to e->unk8, read once; walked
+ * with `!=`) whose unk51 is set, runs the sphere-vs-triangle test with the
+ * sphere (x, y, z, r) >> 2 (arithmetic shifts) and, on a hit, func_802BEBB0
+ * (id, e, triangle).
+ * Register convention: x, y, z, r in v0, v1, a0, a1, e in t3, id in t8. The
+ * asm saves v0-a2, t3 and t4 and leaves t5/t6 = z >> 2 / r >> 2, t9 = e, s0/s1
+ * = the triangle range (and s2-s4 and f20-f28 changed by the test helpers);
+ * asm caller func_802BE77C keeps a0, a1, t3, t4 and t8 live across the call.
+ * The leftover registers the survey lists as read by func_802BE77C's callers
+ * (t6, s1, s3, s4, f12-f26) are dead there: overwritten or only saved and
+ * restored. */
+void func_802BEADC(s32 x, s32 y, s32 z, s32 r, Unk802C1DD0Entry *e, s32 id) {
+    Unk803B9890 *t = e->unk4;
+    Unk803B9890 *end = e->unk8;
+
+    x >>= 2;
+    y >>= 2;
+    z >>= 2;
+    r >>= 2;
+    for (; t != end; t++) {
+        if (t->unk51 == 0) {
+            continue;
+        }
+        if (sphere_hits_tri_77E20(x, y, z, r, t)) {
+            func_802BEBB0(id, e, t);
+        }
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BEADC.s")
+#endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
+#ifdef NON_MATCHING
+typedef struct {
+    /* 0x00 */ s32 pos[3];
+    /* 0x0C */ s32 r;
+    /* 0x10 */ u16 value;
+    /* 0x12 */ u8 id;
+    /* 0x13 */ s8 flag; /* -1 ends the table, 0 = unused */
+} Unk803A6B30;           /* size 0x14 */
+
+extern Unk803A6B30 D_803A6B30[];
+extern u8 D_8036B971;
+extern Unk802C1DD0Entry *D_8036B974;
+extern u8 D_803F7800;
+extern u8 D_803F7805;
+extern u8 D_803F780C;
+extern u8 D_803F7812;
+extern u8 D_802E8BE4; /* screen shake time */
+extern s32 D_802E8BE8; /* screen shake size */
+extern u16 D_803F77FE;
+extern s8 *D_803A7408; /* -1-terminated list of hit counts that don't hurt */
+extern u8 D_803A7424;
+
+/* Damage from the vehicle's hit spheres to triangle tri of object e. Walks the
+ * D_803A6B30 spheres (until flag -1) that are in use and belong to vehicle id,
+ * counting them; the first whose sphere ((x, y, z, r) >> 2) hits tri wins
+ * (none: returns). Then: stamps D_803F77F8 and records e in D_8036B974 /
+ * D_8036B971 (id != 0xFF; e countable, unkEB clear, unk30 != 0x38, new),
+ * func_802BEF9C, and unless D_803BE738 is set: adds the count to buffer A
+ * (func_802BCCD4); if (e, part = tri->unk52) isn't in the hit list yet (and,
+ * for a vehicle with D_803F7800 clear, buffer B has the count or D_803F7812 is
+ * clear and func_802BEFF4 didn't set D_803F780C), it is added, the damage
+ * (0 for unk30 0x38, which also sets D_803F7805 for vehicle 0; else
+ * func_802BFF6C) goes into the screen shake (10, min(damage, 500)), the part's
+ * percentage (capped at 100) and D_803F77FE, func_802BF898 updates the part,
+ * and a part reaching 100 collapses (func_802BF1F0, func_802C1438,
+ * func_802C09B8, func_802C0E8C, func_802BF384, shake 15/400, the part's
+ * triangles off and the triangles whose unk57 is the part on unless their own
+ * part is done). Finally D_803F7803 = 1, and unless the count is in the
+ * D_803A7408 list: D_803A7424 = 1 and func_802BF264(tri) while the part isn't
+ * done, else D_803F7802 = 1; then func_802BF668 and func_802BF534.
+ * Register convention: id in t8, e in t9, tri in s0. The asm saves t3-t7,
+ * s0-s4, gp and fp and leaves a1 = 0 when no sphere hits (dead: its only
+ * caller func_802BEADC restores a1); f20-f28 are changed by the test helpers.
+ * Asm caller func_802BEADC keeps t3-t6, t8 and t9 live across the call. */
+void func_802BEBB0(s32 id, Unk802C1DD0Entry *e, Unk803B9890 *tri) {
+    Unk803A6B30 *p;
+    u8 *pcts = (u8 *) e + 0xEC;
+    s32 count = 0;
+    s32 part;
+    s32 value;
+    s32 level;
+    s8 *s;
+
+    for (p = D_803A6B30;; p++) {
+        if (p->flag == -1) {
+            return;
+        }
+        if (p->flag == 0 || p->id != id) {
+            continue;
+        }
+        count++;
+        if (sphere_hits_tri_77E20(p->pos[0] >> 2, p->pos[1] >> 2, p->pos[2] >> 2, p->r >> 2, tri)) {
+            break;
+        }
+    }
+
+    if (id != 0xFF) {
+        D_803F77F8 = D_80358068;
+    }
+    if (id != 0xFF && e->info->type != 1 && e->unkEB == 0 && e->unk30 != 0x38 && D_8036B974 != e) {
+        D_8036B971 = 1;
+        D_8036B974 = e;
+    }
+    func_802BEF9C(e);
+    if (D_803BE738 != 0) {
+        return;
+    }
+    part = tri->unk52;
+    func_802BCCD4(count);
+    if (func_802BEA70((s32) e, part) != 0) {
+        goto done;
+    }
+    if (D_803F7800 == 0 && id != 0xFF) {
+        if (D_803F7812 == 0) {
+            func_802BEFF4();
+            if (D_803F780C != 0) {
+                goto add;
+            }
+        }
+        if (func_802BCDE0(count) != 0) {
+            goto done;
+        }
+    }
+add:
+    func_802BEA30((s32) e, part);
+    if (e->unk30 == 0x38) {
+        if (id == 0) {
+            D_803F7805 = 1;
+        }
+        value = 0;
+    } else {
+        value = func_802BFF6C(part, p->value, id, e, e->info->type, count);
+    }
+    D_802E8BE4 = 10;
+    if (value < 0x1F5) {
+        D_802E8BE8 = value;
+    } else {
+        D_802E8BE8 = 500;
+    }
+    level = pcts[part - 1] + value;
+    if (level >= 100) {
+        level = 100;
+    }
+    pcts[part - 1] = level;
+    D_803F77FE = value;
+    func_802BF898(e, part, level);
+    if (level == 100) {
+        Unk803B9890 *t;
+        Unk803B9890 *end;
+
+        func_802BF1F0(e, part);
+        func_802C1438(e, part);
+        func_802C09B8(part, e);
+        func_802C0E8C(part, e);
+        func_802BF384(e);
+        D_802E8BE4 = 15;
+        D_802E8BE8 = 400;
+        end = e->unk8;
+        for (t = e->unk4; t != end; t++) {
+            if (t->unk52 == part) {
+                t->unk51 = 0;
+            }
+            if (t->unk57 == part && pcts[t->unk52 - 1] != 100) {
+                t->unk51 = 1;
+            }
+        }
+    }
+done:
+    D_803F7803 = 1;
+    for (s = D_803A7408;; s++) {
+        if (*s == count) {
+            goto tail;
+        }
+        if (*s < 0) {
+            break;
+        }
+    }
+    if (pcts[part - 1] != 100) {
+        D_803A7424 = 1;
+        func_802BF264(tri);
+    } else {
+        D_803F7802 = 1;
+    }
+tail:
+    func_802BF668(e);
+    func_802BF534(e);
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BEBB0.s")
+#endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING

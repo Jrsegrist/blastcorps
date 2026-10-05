@@ -230,8 +230,8 @@ segments:
     - [0x9FE20, c, hd_code/9FE20]
     - [0xA0A30, c, hd_code/A0A30]
     - [0xA0A40, c, hd_code/ul_atomic]
-    - [0xA0AA0, c, hd_code/A0AA0]
-    - [0xA0BA0, bin, hd_code/A0BA0] # more data
+    - [0xA0AA0, c, hd_code/ul_ldiv]  # src/libc/ldiv.c, lldiv first
+    - [0xA0C30, bin, hd_code/A0C30] # more data (RSP boot microcode first)
     - [0xA4410, linker, data]
     - [0xA4410, bin, hd_code/hd_code_data] # .data
     - [0xA4520, .data, hd_code/1A630]

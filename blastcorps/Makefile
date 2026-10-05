@@ -106,7 +106,7 @@ LATE_RODATA_HD_CODE := 17E10 1A630 1D990 26570 2C560 2D810 30C70 32E00 34430 375
 # Game files compiled at -O2 in the original build. Evidence: IDO only
 # emits branch-likely instructions (beql/bnel/...) when optimizing at -O2,
 # and none of the -O1 matches contain any.
-O2_FILES_HD_CODE := 56040 5CB60 5FD50 60F60 62740 69BB0 75490 77E20 89250 909C0 93DF0 95460 996B0 9C930 9CC30 9DB80 9FE20 926F0 92E50 92F30 95070 9B470 9E700 A0AA0
+O2_FILES_HD_CODE := 56040 5CB60 5FD50 60F60 62740 69BB0 75490 77E20 89250 909C0 93DF0 95460 996B0 9C930 9CC30 9DB80 9FE20 926F0 92E50 92F30 95070 9B470 9E700
 $(foreach f,$(O2_FILES_HD_CODE),$(BUILD_DIR)/src.$(VERSION)/hd_code/$(f).c.o): OPT_FLAGS := -O2
 
 # libultra/libaudio objects (src/hd_code/ul_*.c) are one-line wrappers that
@@ -118,7 +118,7 @@ UL_VERSION := I
 UL_CFLAGS := -G 0 -nostdinc -Xcpluscomm -non_shared -Wab,-r4300_mul -woff 516,649,838,712 \
   -D_MIPS_SZLONG=32 -DBUILD_VERSION=VERSION_$(UL_VERSION) -DBUILD_VERSION_STRING=\"2.0$(UL_VERSION)\" \
   -DNDEBUG -D_FINALROM -DF3DEX_GBI -I $(UL_DIR) -I $(UL_DIR)/include -I $(UL_DIR)/include/compiler/ido -I $(UL_DIR)/include/PR
-UL_O3_HD_CODE := ul_auxbus ul_bnkf ul_cents2ratio ul_copy ul_cosf ul_coss ul_cseq ul_cspgetstate ul_cspgettempo ul_csplayer ul_cspplay ul_cspsetbank ul_cspsetseq ul_cspsettempo ul_cspsetvol ul_cspstop ul_event ul_filter ul_heapalloc ul_heapinit ul_load ul_lookat ul_lookatref ul_mainbus ul_mtxcatf ul_mtxcatl ul_mtxutil ul_normalize ul_ortho ul_perspective ul_resample ul_rotate ul_save ul_scale ul_seq ul_seqplayer ul_sinf ul_sins ul_sl ul_string ul_synaddplayer ul_synallocfx ul_synallocvoice ul_synfreevoice ul_synsetfxmix ul_synsetpan ul_synsetpitch ul_synsetpriority ul_synsetvol ul_synstartvoice ul_synstartvoiceparam ul_synstopvoice ul_translate
+UL_O3_HD_CODE := ul_auxbus ul_bnkf ul_cents2ratio ul_copy ul_cosf ul_coss ul_cseq ul_cspgetstate ul_cspgettempo ul_csplayer ul_cspplay ul_cspsetbank ul_cspsetseq ul_cspsettempo ul_cspsetvol ul_cspstop ul_event ul_filter ul_heapalloc ul_heapinit ul_ldiv ul_load ul_lookat ul_lookatref ul_mainbus ul_mtxcatf ul_mtxcatl ul_mtxutil ul_normalize ul_ortho ul_perspective ul_resample ul_rotate ul_save ul_scale ul_seq ul_seqplayer ul_sinf ul_sins ul_sl ul_string ul_synaddplayer ul_synallocfx ul_synallocvoice ul_synfreevoice ul_synsetfxmix ul_synsetpan ul_synsetpitch ul_synsetpriority ul_synsetvol ul_synstartvoice ul_synstartvoiceparam ul_synstopvoice ul_translate
 UL_MIPS3_HD_CODE := ul_ll ul_llcvt
 $(BUILD_DIR)/src.$(VERSION)/hd_code/ul_%.c.o: CFLAGS := $(UL_CFLAGS)
 $(foreach f,$(UL_O3_HD_CODE),$(BUILD_DIR)/src.$(VERSION)/hd_code/$(f).c.o): OPT_FLAGS := -O3

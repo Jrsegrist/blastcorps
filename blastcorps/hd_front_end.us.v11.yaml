@@ -61,7 +61,9 @@ segments:
     - [0x21040, linker, data]
     - [0x21040, bin, hd_front_end/hd_front_end_data] # .data/.rodata (vram 0x80208040)
     - [0x280B0, .rodata, hd_front_end/0E7B0]
-    - [0x28480, bin, hd_front_end/data_28480]
+    - [0x28480, bin, hd_front_end/data_28480] # menu text (strings of the menu table at 0x8020C070)
+    - [0x28F20, .rodata, hd_front_end/10850]
+    - [0x28F80, bin, hd_front_end/data_28F80]
     - [0x29620, .rodata, hd_front_end/196F0]
     - [0x29670, bin, hd_front_end/data_29670]
   - [0x29E90]

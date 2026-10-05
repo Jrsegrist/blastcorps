@@ -41,8 +41,8 @@ segments:
     - [0x1B730, c, hd_front_end/ul_pfsfreeblocks]  # src/io/pfsfreeblocks.c
     - [0x1B880, c, hd_front_end/ul_conteepprobe] # src/io/conteepprobe.c (old SDK)
     - [0x1B8F0, c, hd_front_end/ul_pfschecker]  # src/io/pfschecker.c
-    - [0x1C350, c, hd_front_end/1C350] # libultra pfsinitpak.c (old SDK: osPfsInitPak, __osPfsGetStatus)
-    - [0x1C510, c, hd_front_end/1C510] # libultra pfsallocatefile.c (+ an old-SDK helper)
+    - [0x1C350, c, hd_front_end/ul_pfsinitpak] # src/io/pfsinitpak.c (old SDK; + __osPfsGetStatus)
+    - [0x1C510, c, hd_front_end/ul_pfsallocatefile] # src/io/pfsallocatefile.c
     - [0x1CCC0, c, hd_front_end/1CCC0] # libultra pfsdeletefile.c (old SDK)
     - [0x1D2D0, c, hd_front_end/ul_conteeplongwrite] # src/io/conteeplongwrite.c (old SDK)
     - [0x1D410, c, hd_front_end/ul_conteeplongread] # src/io/conteeplongread.c (old SDK)

@@ -7,6 +7,7 @@ corrupted_init = 0x80202FB4; // type:func
 corrupted = 0x80203168; // type:func
 osPfsAllocateFile = 0x80203510; // type:func
 __osPfsDeclearPage = 0x80203994; // type:func
+__osClearPage = 0x80203BF8; // type:func (static in pfsallocatefile.c)
 __osPfsReleasePages = 0x80203FA0; // type:func
 osPfsDeleteFile = 0x80203CC0; // type:func
 __osBlockSum = 0x802041D8; // type:func

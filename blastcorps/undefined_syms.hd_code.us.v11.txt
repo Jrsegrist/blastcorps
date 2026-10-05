@@ -36,3 +36,5 @@ D_802E9FA0 = 0x802E9FA0; /* 1D990: " S" plural suffix */
 func_802D4E10 = alCSPGetState; /* old name, still used by 17E10.c and 1C460.c */
 func_802DAE1C = osSpTaskLoad; /* old name, still used by 2C560.c */
 func_802DB0A0 = osContInit; /* old name, still used by 45BB0.c */
+func_802DB4D0 = osContStartReadData; /* old name, still used by 45BB0.c and 48D00.c */
+func_802DB594 = osContGetReadData; /* old name, still used by 45BB0.c and 48D00.c */

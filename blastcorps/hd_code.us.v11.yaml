@@ -175,7 +175,7 @@ segments:
     - [0x96820, c, hd_code/ul_mtxcatl]
     - [0x968E0, c, hd_code/ul_controller]  # src/io/controller.c, old SDK
     - [0x96CA0, c, hd_code/ul_contsetch]
-    - [0x96D10, c, hd_code/96D10]
+    - [0x96D10, c, hd_code/ul_contreaddata]  # src/io/contreaddata.c, old SDK
     - [0x96F70, c, hd_code/96F70]
     - [0x96FF0, c, hd_code/96FF0]
     - [0x97090, c, hd_code/ul_contquery]

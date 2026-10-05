@@ -272,6 +272,8 @@ func_802AFB84: out s3=ret ; preserve a0,a1,a2,a3,f12,f14
 # --- 6B4A0 ---
 # rounded speed/divisor of this vehicle ($gp = D_803EDB40, read as globals in C) in s3
 func_802B0C74: out s3=ret ; preserve a0,a1,a2,a3
+# channel 5 of D_803ED840 restart check; leaves the channel's (u16) field 0xC in a3, s5 scratch
+func_802B0AAC: out a3=ret ; preserve f12,f14 ; clobbers s5
 # --- 6C5E0 ---
 # 0 / 50 / 120 from this vehicle's speed and +0xA1 ($gp = D_803EDF10) in s3
 func_802B28B8: out s3=ret ; preserve a0,a1,a2,a3

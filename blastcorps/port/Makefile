@@ -39,7 +39,7 @@ GAME_OBJS := $(GAME_FILES:%=$(B)/game/%.o)
 GAME_RECS := $(GAME_FILES:%=$(B)/game/%.rec)
 MAIN      ?= spike_main
 # byte order on load (port/src/load/, see port_load.h)
-LOAD_SRCS := src/load/swap.c src/load/port_assets.c
+LOAD_SRCS := src/load/swap.c src/load/port_assets.c src/load/gfx_fix.c
 PORT_SRCS := src/rdram.c src/inflate.c src/$(MAIN).c $(LOAD_SRCS)
 PORT_OBJS := $(PORT_SRCS:src/%.c=$(B)/port/%.o) $(B)/swaptab.o
 PORT_HDRS := src/rdram.h src/load/port_load.h src/load/schemas.h src/platform/port_dma.h
@@ -371,6 +371,7 @@ $(G)/bc.exe: $(HL_GAME_OBJS) $(G_HOST_OBJS) $(H)/stubs.o $(H)/copytab.o $(H)/abs
 	$(CXX) -o $@ $(HL_GAME_OBJS) $(G_HOST_OBJS) $(H)/stubs.o $(H)/copytab.o $(H)/abs_syms.ld $(RT64_LIBS) \
 		$(RT64_W)/dll/SDL2.dll $(RT64_W)/dll/libdxcompiler.a $(LIVE_SYSLIBS) \
 		-static -static-libgcc -static-libstdc++ $(LDFLAGS) -Wl,-Map=$(G)/bc.map
+	$(CC:gcc=nm) -n $@ > $(G)/bc.syms
 	cp -u $(addprefix $(RT64_W)/dll/,$(RT64_DLLS)) $(G)/
 
 game: $(G)/bc.exe

@@ -14,6 +14,15 @@
  *
  *   bc.exe ROM [bc_headless options] [--api d3d12|vulkan] [--shot F1,F2,...]
  *          [--shot-dir DIR] [--shot-every N] [--no-pace] [--scale N]
+ *          [--dl-dump FRAME[:TASKS]] [--no-gfx-fix] [--gfx-fix-log]
+ *     --shot F,..       save the picture on screen once the game reached frame F
+ *                       (bc_FFFFFFF.png in --shot-dir; --shot-every N: every N frames)
+ *     --no-pace         run as fast as possible (default: 60 retraces a second)
+ *     --scale N         window size 320x240 times N (default 2)
+ *     --dl-dump F[:N]   print N tasks' display lists from frame F (default 12)
+ *     --no-gfx-fix      don't convert graphics data in display-list areas
+ *                       (port/src/load/gfx_fix.c; to see what it does)
+ *     --gfx-fix-log     log graphics data the game changed in those areas
  */
 #include <windows.h>
 #include <algorithm>
@@ -24,7 +33,6 @@
 #include <string>
 #include <vector>
 
-#define SDL_MAIN_HANDLED
 #include <SDL.h>
 #include <SDL_syswm.h>
 
@@ -47,6 +55,8 @@ struct LiveOpts {
     std::vector<unsigned> shots;     /* frame numbers (game frames) to save */
     unsigned shotEvery = 0;
     const char *shotDir = ".";
+    unsigned dlDumpFrame = ~0u, dlDumpTasks = 12;
+    bool gfxFix = true;
 };
 LiveOpts g_opt;
 
@@ -58,7 +68,7 @@ uint32_t MI_INTR_REG, DPC_START_REG, DPC_END_REG, DPC_CURRENT_REG, DPC_STATUS_RE
     DPC_PIPEBUSY_REG, DPC_TMEM_REG;
 uint32_t VI_STATUS_REG, VI_ORIGIN_REG, VI_WIDTH_REG, VI_INTR_REG, VI_V_CURRENT_LINE_REG, VI_TIMING_REG, VI_V_SYNC_REG,
     VI_H_SYNC_REG, VI_LEAP_REG, VI_H_START_REG, VI_V_START_REG, VI_V_BURST_REG, VI_X_SCALE_REG, VI_Y_SCALE_REG;
-unsigned g_spIntr, g_dpIntr, g_tasks, g_unknownUcode, g_fixedBytes;
+unsigned g_spIntr, g_dpIntr, g_tasks, g_unknownUcode, g_fixedBytes, g_otherUcodeTasks;
 
 /* RT64 raises the RSP/RDP interrupts as it finishes a task (during
  * processDisplayLists).  The game hears about task completion from the
@@ -201,8 +211,8 @@ void saveFrame(const HostViRegs &r, unsigned frame) {
     char path[512];
     snprintf(path, sizeof path, "%s/bc_%07u.png", g_opt.shotDir, frame);
     if (writePng(path, w, h, rgb))
-        host_log("live: saved %s (%ux%u, fb 0x%08X; %u tasks drawn, %u bytes converted)\n", path, w, h, r.origin,
-                 g_tasks, g_fixedBytes);
+        host_log("live: saved %s (%ux%u, fb 0x%08X; %u tasks drawn, %u not F3D (L3D), %u bytes converted)\n", path,
+                 w, h, r.origin, g_tasks, g_otherUcodeTasks, g_fixedBytes);
 }
 
 /* ---- input ------------------------------------------------------------------- */
@@ -308,13 +318,19 @@ void liveBoot() {
     stageUcode();
 }
 
-/* DIAG: walk an F3D display list, print what it references */
+/* --dl-dump: walk an F3D display list (segments, sub-lists) and print the
+ * commands that matter for the data layout, with the first vertex of each
+ * G_VTX in both layouts */
 unsigned g_diagTasks;
 void diagWalk(unsigned dl) {
     uint32_t seg[16] = {0};
     uint32_t stack[16];
     int sp = 0, n = 0;
-    auto res = [&](uint32_t a) { return (seg[(a >> 24) & 15] + (a & 0xFFFFFF)) & 0x7FFFFF; };
+    auto res = [&](uint32_t a) {
+        uint32_t full = (seg[(a >> 24) & 15] + (a & 0xFFFFFF)) & 0xFFFFFF;
+        if (full >= 0x800000) host_log("  BAD address %08X (segment %u = %08X) -> %06X\n", a, (a >> 24) & 15, seg[(a >> 24) & 15], full);
+        return full & 0x7FFFFF;
+    };
     uint32_t a = dl & 0x7FFFFF;
     while (n++ < 20000) {
         const uint32_t *w = reinterpret_cast<const uint32_t *>(rdramBase() + a);
@@ -346,6 +362,23 @@ void diagWalk(unsigned dl) {
             break;
         case 0xFD: host_log("  %06X SETTIMG %08X -> %06X fmt %u siz %u w %u\n", a - 8, w1, res(w1), (w0 >> 21) & 7, (w0 >> 19) & 3, (w0 & 0xFFF) + 1); break;
         case 0xFF: host_log("  %06X SETCIMG %08X\n", a - 8, w1); break;
+        case 0xFA: host_log("  %06X PRIM %08X\n", a - 8, w1); break;
+        case 0xF9: host_log("  %06X BLENDCOL %08X\n", a - 8, w1); break;
+        case 0xF8: host_log("  %06X FOGCOL %08X\n", a - 8, w1); break;
+        case 0xFB: host_log("  %06X ENVCOL %08X\n", a - 8, w1); break;
+        case 0xFC: host_log("  %06X COMBINE %08X %08X\n", a - 8, w0, w1); break;
+        case 0xB9: host_log("  %06X OTHERMODE_L %08X %08X\n", a - 8, w0, w1); break;
+        case 0xBA: host_log("  %06X OTHERMODE_H %08X %08X\n", a - 8, w0, w1); break;
+        case 0xB6: host_log("  %06X CLEARGEOM %08X\n", a - 8, w1); break;
+        case 0xB7: host_log("  %06X SETGEOM %08X\n", a - 8, w1); break;
+        case 0xF5: host_log("  %06X SETTILE %08X %08X\n", a - 8, w0, w1); break;
+        case 0xF3: host_log("  %06X LOADBLOCK %08X %08X\n", a - 8, w0, w1); break;
+        case 0xF4: host_log("  %06X LOADTILE %08X %08X\n", a - 8, w0, w1); break;
+        case 0xF0: host_log("  %06X LOADTLUT %08X %08X\n", a - 8, w0, w1); break;
+        case 0xBF: host_log("  %06X TRI %08X\n", a - 8, w1); break;
+        case 0xE4: host_log("  %06X TEXRECT %08X %08X\n", a - 8, w0, w1); break;
+        case 0xF6: host_log("  %06X FILLRECT %08X %08X\n", a - 8, w0, w1); break;
+        case 0xBB: host_log("  %06X TEXTURE %08X %08X\n", a - 8, w0, w1); break;
         case 0xB5: host_log("  %06X LINE3D %08X\n", a - 8, w1); break;
         default: break;
         }
@@ -354,7 +387,7 @@ void diagWalk(unsigned dl) {
 
 void liveGfxTask(unsigned ucode, unsigned ucodeData, unsigned dataPtr, unsigned dataSize) {
     (void) dataSize;
-    if (getenv("BC_DIAG") && g_diagTasks < 12 && plat_frames() >= (unsigned) atoi(getenv("BC_DIAG"))) {
+    if (g_diagTasks < g_opt.dlDumpTasks && plat_frames() >= g_opt.dlDumpFrame) {
         host_log("DIAG task %u ucode %08X dl %08X\n", g_diagTasks, ucode, dataPtr);
         diagWalk(dataPtr);
         g_diagTasks++;
@@ -365,7 +398,8 @@ void liveGfxTask(unsigned ucode, unsigned ucodeData, unsigned dataPtr, unsigned 
         return;
     }
     g_tasks++;
-    g_fixedBytes += port_gfx_fix_task(dataPtr);
+    if (g_app->interpreter->hleGBI->ucode != RT64::GBIUCode::F3D) g_otherUcodeTasks++;
+    if (g_opt.gfxFix) g_fixedBytes += port_gfx_fix_task(dataPtr);
     g_app->processDisplayLists(rdramBase(), dataPtr & 0x3FFFFFF, 0, true);
 }
 
@@ -428,9 +462,13 @@ void liveVi(const HostViRegs *r, unsigned viCount, unsigned long long when, unsi
 }
 
 int liveInput(unsigned short *button, signed char *x, signed char *y) {
+    static unsigned short lastButton;
     *button = g_button;
     *x = g_stickX;
     *y = g_stickY;
+    if (host_verbose && g_button != lastButton)
+        host_log("live: pad buttons %04X stick %d,%d (frame %u)\n", g_button, g_stickX, g_stickY, plat_frames());
+    lastButton = g_button;
     return 1;
 }
 
@@ -453,6 +491,13 @@ int extraArg(int argc, char **argv, int *i, HostOpts *o) {
     else if (!strcmp(a, "--scale")) g_opt.scale = std::max(1u, num(next()));
     else if (!strcmp(a, "--shot-dir")) g_opt.shotDir = next();
     else if (!strcmp(a, "--shot-every")) g_opt.shotEvery = num(next());
+    else if (!strcmp(a, "--no-gfx-fix")) g_opt.gfxFix = false;
+    else if (!strcmp(a, "--gfx-fix-log")) port_gfx_debug = 1;
+    else if (!strcmp(a, "--dl-dump")) {
+        const char *s = next(), *colon = strchr(s, ':');
+        g_opt.dlDumpFrame = num(s);
+        if (colon != nullptr) g_opt.dlDumpTasks = num(colon + 1);
+    }
     else if (!strcmp(a, "--shot")) {
         std::string s = next();
         size_t p = 0;

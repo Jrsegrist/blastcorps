@@ -11,6 +11,8 @@ make -C port -j8                         # port/build/spike.exe
 make -C port check                       # run it, compare with the original MIPS code
 make -C port linkall                     # every hd_code game file in one exe
 make -C port typemap ucode               # byte-order schema coverage / RSP microcode hashes
+make -C port headless                    # build/headless/bc_headless.exe: the game, no output
+make -C port game                        # build/game/bc.exe: the game in a window (RT64)
 ```
 
 Needs `i686-w64-mingw32-gcc` (WSL), the project venv (pyelftools, unicorn),
@@ -95,6 +97,21 @@ streams the code reads bytewise (5CB60.c's BE16U/BE16S/BE32) stay big-endian.
   front-end scenes and the static segment. Texture entries are swapped
   around 60F60.c's decoder (`port_texture_input/output`, NON_MATCHING hooks):
   s16 tokens in, big-endian texels out.
+- **Graphics data the renderer reads** (`src/load/gfx_fix.c`, stage 4): the
+  schemas swap an asset's display-list area as u32 words (the CPU walks and
+  patches commands as words), but such an area can also hold vertices,
+  viewports, lights and texels, which then end up in the emulator's layout
+  (two halfword pairs and a byte-reversed colour word per Vtx).  Likewise the
+  parts of the data images no declaration or traced read typed stay ROM
+  bytes, and some are display lists, vertices and matrices only the RSP reads
+  (e.g. the front-end list at 0x80208FA8 that level 0's lists call).  The
+  schemas and `port_load_image_*` register both kinds of area; before bc.exe
+  draws a task, `port_gfx_fix_task` follows its display lists with the real
+  segment table and converts what they use there to the native layout, each
+  word once per load and only while it still holds what was loaded (data the
+  game wrote since is left alone).  bc_headless doesn't call it.  Vertices
+  in the data images that other typing rules made words get the `vtx`
+  override (`data/image_overrides.txt`; the CPU never reads them).
 - **Exceptions fixed in NON_MATCHING C** (`PORT_HOST`): 00000.c
   `port_802E8BF8_word` (the u8 EEPROM flag is word 0's MSB of a word table),
   196F0.c (the front-end background pictures are tinted on big-endian pixels).
@@ -162,7 +179,7 @@ Platform model (`src/platform/`):
 | SI | os_si.c, input.c | controller 1 from `--input` (or idle), osContInit's 0.5 s wait; EEPROM 4 Kbit in a file (`--eeprom`, mupen64plus's 512-byte .eep format). |
 | Controller Pak | pif.c | `--mpk FILE` (mupen64plus .mpk: four 32 KB paks, controller 1's first; created formatted if missing): the front end's own SDK Pfs objects run natively over a PIF emulation (status, pak read/write); the system blocks (ID, inode, directory) are converted by layout at the pak boundary. |
 | saves | save.c | the save thread's routines (0E7B0.c, `PORT_SAVE_*` hooks) work on a big-endian copy of each record, so CRCs and files are the N64's: EEPROM files are byte-identical to mupen64plus's for the same play (checked: new game, level completion with best time), and load either way. |
-| RSP/RDP | os_hw.c | gfx tasks dropped and counted (SP done, plus DP done for frame tasks); func_802A4B0C's cull test answered "visible"; audio tasks dropped, SP done. |
+| RSP/RDP | os_hw.c | gfx tasks dropped and counted (SP done, plus DP done for frame tasks; bc.exe draws them with RT64, same completion times); func_802A4B0C's cull test answered "visible"; audio tasks dropped, SP done. |
 | AI | os_hw.c | a two-buffer DMA FIFO playing at the programmed rate in virtual time, so osAiGetLength (which sizes each audio frame) behaves; samples are discarded. The synthesizer runs (the game polls sequence/sound state). |
 | front end | plat_core.c | data+bss snapshot at boot, restored after every reload. |
 | debug output | headless_main.c | `--print`: the game's debug printf (func_8029A7E4, empty on the N64) to stderr with the frame number; `--cmdline "-c"` turns on the game's debug cheats (C-right + Z completes the level). |
@@ -173,6 +190,81 @@ port keeps Mtx words in host order), `PORT_SHAMT(n)` for variable shift
 amounts that can reach 32 (MIPS uses the low 5 bits), `PORT_SAVE_*` for save
 records. Tools: `tools/eepsave.py FILE [OUT --set OFF:W=VAL]` decodes or edits
 an .eep (fixing its CRC).
+
+## Windowed (stage 4): `make -C port game`
+
+`build/game/bc.exe ROM [bc_headless options] [--api d3d12|vulkan]
+[--shot F1,F2..] [--shot-dir DIR] [--shot-every N] [--no-pace] [--scale N]`
+plays the game in a window: bc_headless's game and platform objects plus
+`src/live/live_rt64.cpp` (SDL2 window and input, the RT64 renderer). The
+exe needs `dxcompiler.dll`, `dxil.dll` and `SDL2.dll` next to it (the build
+copies them). Options are listed at the top of live_rt64.cpp; `--frames N`
+and the other bc_headless options work as there.
+
+Keys: arrows = stick, X = A, C = B, Z or Space = Z, Enter = START, A/S =
+L/R, I J K L = C buttons, T F G H = D-pad, Esc quits; an SDL game controller
+(XInput pads etc.) maps the same way (left stick, A, B/X, triggers = Z,
+Start, shoulders, right stick = C buttons, D-pad). `--input FILE` replays a
+recording instead.
+
+**Building RT64.** The first `make -C port game` runs `rt64/build_rt64.sh`:
+it clones RT64 (github.com/rt64/rt64, MIT) at the pinned commit 43373749
+into `$TP/rt64_bc/src` (`TP` default `~/thirdparty`; outside the repo),
+applies `rt64/patches/0001-0004`, fetches DirectX-Headers and DXC v1.9.2609
+(the Linux dxc compiles the shaders, the Windows x86 DLLs run next to the
+exe: both must be the same version), and builds a static i686 library with
+mingw-w64 (`JOBS`, default 2). It reruns only when a patch changes. The
+patches: 0001/0002 the mingw/i686 build (stage-0 spike); 0003
+`RT64_NATIVE_HOST_LAYOUT`; 0004 the L3D handler. To change RT64, edit
+`$TP/rt64_bc/src` (each patch is a local commit there), rebuild with
+`ninja -C $TP/rt64_bc/build-i686 rt64`, and regenerate the patch with
+`git diff`.
+
+**RT64_NATIVE_HOST_LAYOUT** (`src/common/rt64_rdram_layout.h` in the
+patched tree): RT64 normally reads RDRAM in the emulator's layout (each
+32-bit word a host u32 of the big-endian word: the byte at A is at A^3).
+The port's RDRAM is the game's own memory: structures in host order with
+their fields where the C declares them, byte streams (textures, palettes,
+colour and depth images, ucode) as big-endian bytes. The switch reorders
+RT64's Vtx/Light structs, the viewport indices and the G_MW_LIGHTCOL word,
+makes the TMEM loads read bytes without the XOR, drops the word swaps when
+images go between RDRAM and the GPU (the shaders already produce and take
+big-endian pixels), and hashes the ucode from a word-swapped copy (the
+database holds emulator-layout hashes). Gfx commands and Mtx are host u32
+words in both layouts.
+
+**L3D.** The front end's ucode (D_80207090, slot 0) is Fast3D's line build;
+RT64 knew it by hash ("L3D Blast Corps") but had no handler. Patch 0004
+adds `GBIUCode::L3D`: F3D plus G_LINE3D (0xB5, `gSPLineW3D`), drawn by
+`RSP::drawLine` as a screen-space quad 1.5 + wd/2 pixels wide (the vertices
+are moved perpendicular to the line in clip space and mapped back through
+the inverse MVP). The globe's route lines use it.
+
+How the platform drives it (HostLive in `plat_host.h`; NULL in
+bc_headless):
+- boot: the ucode text and data RT64 hashes (D_802E53F0, D_8030E390,
+  D_80210690) are put back at their addresses as ROM bytes (hd_code's text
+  isn't loaded natively; nothing native reads them).
+- `osSpTaskStartGo`: a gfx task goes to RT64 (`loadUCodeGBI` +
+  `processDisplayLists`, after `port_gfx_fix_task`). func_802A4B0C's
+  visibility test (ucode D_802E77B0) stays with the platform and is
+  answered "visible" (an exact answer needs a CPU F3D clip/cull evaluator:
+  later). RT64 raises the SP/DP interrupts while it processes the task;
+  they are counted, and the game hears about completion from the same
+  virtual-time model as bc_headless (`--gfx-cycles`, `--frame-done`).
+- every retrace: the VI registers the VI manager would program for the
+  frame on screen (os_hw.c, from the game's OSViMode, osViBlack and
+  osViSetSpecialFeatures), `updateScreen`, SDL events, and pacing: virtual
+  retrace N is shown at start + N/60 s (`--no-pace` runs flat out; more than
+  a quarter second behind restarts the reference).
+- input: controller 1 from the keyboard/pad when no `--input` file is given.
+
+Same game logic: with the same input, bc.exe and bc_headless produce
+identical per-frame traces (2001 frames compared: retrace, time, mode,
+level, frames in mode, game retrace counter). Their RDRAM differs only in
+what the renderer writes (colour and depth images: framebuffers, Z, the
+shadow and other render-to-texture images), the staged ucode, the graphics
+data gfx_fix.c converted, and pointers to the exes' own code/data.
 
 ## Comparing with the emulator: `make -C port compare DEMO=n`
 

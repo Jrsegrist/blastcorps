@@ -58,10 +58,14 @@ void port_on_dma(uint32_t dst, uint32_t rom, uint32_t len);
  * converts whatever those areas hold besides commands to the native layout,
  * once per load.  Only the windowed build calls it. */
 void port_gfx_word_area(uint32_t addr, uint32_t len);
+/* the same for parts of the data images left as ROM bytes (swap.c) */
+void port_gfx_raw_area(uint32_t addr, uint32_t len);
 /* every load/DMA: areas overlapping the new data are forgotten */
 void port_gfx_forget(uint32_t addr, uint32_t len);
 /* walk the display list at physical address DL; returns the bytes converted */
 uint32_t port_gfx_fix_task(uint32_t dl);
+/* 1: log words left alone because the game changed them since the load */
+extern int port_gfx_debug;
 
 /* Statistics: per asset kind, how many loads and bytes were handled. */
 void port_load_report(void);

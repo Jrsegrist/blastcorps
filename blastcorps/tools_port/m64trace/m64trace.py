@@ -2,29 +2,44 @@
 """Minimal mupen64plus front end (ctypes over libmupen64plus.so.2) that logs
 register state at breakpoints without stopping (the debugger's update callback
 logs and resumes), so thousands of hits per run are cheap. Video glide64mk2
-(the frame loop needs the RDP), rsp-hle, input-sdl (controller 1 plugged, no
-device), no audio; cached interpreter (EMUMODE=0/1/2 overrides), 8 MB.
+(the frame loop needs the RDP), rsp-hle, no audio; cached interpreter
+(EMUMODE=0/1/2 overrides), 8 MB. Input: input-sdl with controller 1 plugged
+and no device (no input), or, when the spec defines INPUT, the scripted input
+plugin m64input.so (built from m64input.c next to this file on first use).
 
 usage: m64trace.py ROM SPEC.py OUT.txt     (M64VERBOSE=1 for the core's messages)
 SPEC.py defines:
-  BPS = {addr: "label" | ("label", [gprs], [fprs])}   exec breakpoints
+  BPS = {addr: "label" | ("label", [gprs], [fprs])}   exec breakpoints (may be empty)
   VIS = 60*120                      stop after this many VI interrupts (60 per second)
   GPRS = [...], FPRS = [12, ...]    default registers to log (FPRs as single bits + value)
   MEM  = [(addr, size), ...]        memory logged at every hit (size 1/2/4)
   REGMEM = {addr: [("a0", off, size)]}  memory at reg+off (only KSEG0 RAM is read)
-  ONHIT = f(pc, gprs, read)         extra text per hit
+  ONHIT = f(pc, gprs, read)         extra text per hit (None: don't log this hit)
   DUMPS = {addr: (start, length)}   RAM dump to OUT.dumpN at every hit
   MAXHITS = {addr: n}, DEFMAX       disable a breakpoint after n hits
   DEDUPE = True                     write a line only for new (breakpoint, values) tuples
+  INPUT = f(vi, read, ctl) -> (buttons, stick_x, stick_y)
+                                    called once per VI; the result is controller 1's
+                                    state (N64 button word, s8 stick) until the next
+                                    call. ctl.log(text) writes "#in vi=N text" to OUT;
+                                    ctl.save(path) / ctl.load(path) queue a save state
+                                    save / load (taken at the next VI); ctl.stop() ends
+                                    the run; ctl.write(addr, size, value) pokes RAM;
+                                    ctl.polls = the game's controller reads so far;
+                                    ctl.hits = {bp addr: hits}; ctl.vars = a dict the
+                                    script may keep state in.
+  LOADSTATE = "path"                load this save state at the first VI (the INPUT
+                                    script keeps running from there)
+  WATCH = [(addr, size), ...]       logged as "#w vi=N ..." whenever one changes
 Output: one line per (new) hit, then "#count LABEL N | values" lines.
 NM test ROM addresses come from build_nm/hd_code.rom.us.v11.elf (text at 0x804xxxxx).
 Summaries: summarise.py OUT.txt; RAM dump diffs: dumpcmp.py A B [n lo hi].
 """
-import ctypes as C, sys, os, struct, time, runpy
+import ctypes as C, sys, os, struct, time, runpy, subprocess
 
 ROM, SPECF, OUTF = sys.argv[1], sys.argv[2], sys.argv[3]
 spec = runpy.run_path(SPECF)
-BPS = {int(a): l for a, l in spec["BPS"].items()}
+BPS = {int(a): l for a, l in spec.get("BPS", {}).items()}
 VIS = spec.get("VIS", 60 * 120)
 GPRN = ["r0", "at", "v0", "v1", "a0", "a1", "a2", "a3", "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",
         "s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7", "t8", "t9", "k0", "k1", "gp", "sp", "fp", "ra"]
@@ -38,9 +53,13 @@ DEFMAX = spec.get("DEFMAX", 400)
 ONHIT = spec.get("ONHIT")
 DEDUPE = spec.get("DEDUPE", True)
 DUMPS = {int(a): v for a, v in spec.get("DUMPS", {}).items()}
+INPUT = spec.get("INPUT")
+LOADSTATE = spec.get("LOADSTATE")
+WATCH = spec.get("WATCH", [])
 
 core = C.CDLL("/usr/lib/x86_64-linux-gnu/libmupen64plus.so.2")
 PLUG = "/usr/lib/x86_64-linux-gnu/mupen64plus/"
+HERE = os.path.dirname(os.path.abspath(__file__))
 
 DEBUGCB = C.CFUNCTYPE(None, C.c_void_p, C.c_int, C.c_char_p)
 STATECB = C.CFUNCTYPE(None, C.c_void_p, C.c_int, C.c_int)
@@ -102,15 +121,31 @@ buf = C.create_string_buffer(data, len(data))
 core.CoreDoCommand.argtypes = [C.c_int, C.c_int, C.c_void_p]
 assert core.CoreDoCommand(1, len(data), buf) == 0  # ROM_OPEN
 
+
+def input_plugin():
+    """Path of the scripted input plugin, (re)built from m64input.c if needed."""
+    src = os.path.join(HERE, "m64input.c")
+    so = os.path.join(os.path.expanduser("~/.cache"), "m64input.so")
+    if not os.path.exists(so) or os.path.getmtime(so) < os.path.getmtime(src):
+        os.makedirs(os.path.dirname(so), exist_ok=True)
+        subprocess.check_call(["gcc", "-shared", "-fPIC", "-O2", "-o", so, src])
+    return so
+
+
+inlib = None
 plugs = []
-for typ, name in ((2, "mupen64plus-video-glide64mk2.so"), (4, "mupen64plus-input-sdl.so"), (1, "mupen64plus-rsp-hle.so")):
-    lib = C.CDLL(PLUG + name)
+for typ, name in ((2, PLUG + "mupen64plus-video-glide64mk2.so"),
+                  (4, input_plugin() if INPUT else PLUG + "mupen64plus-input-sdl.so"),
+                  (1, PLUG + "mupen64plus-rsp-hle.so")):
+    lib = C.CDLL(name)
     lib.PluginStartup.argtypes = [C.c_void_p, C.c_void_p, DEBUGCB]
     r = lib.PluginStartup(C.c_void_p(core._handle), None, dbgmsg_c)
     assert r == 0, (name, r)
     r = core.CoreAttachPlugin(typ, C.c_void_p(lib._handle))
     assert r == 0, (name, r)
     plugs.append(lib)
+    if typ == 4 and INPUT:
+        inlib = lib
 
 core.DebugGetCPUDataPtr.restype = C.c_void_p
 core.DebugGetCPUDataPtr.argtypes = [C.c_int]
@@ -120,6 +155,9 @@ core.DebugMemRead16.restype = C.c_uint16
 core.DebugMemRead16.argtypes = [C.c_uint32]
 core.DebugMemRead8.restype = C.c_uint8
 core.DebugMemRead8.argtypes = [C.c_uint32]
+core.DebugMemWrite32.argtypes = [C.c_uint32, C.c_uint32]
+core.DebugMemWrite16.argtypes = [C.c_uint32, C.c_uint16]
+core.DebugMemWrite8.argtypes = [C.c_uint32, C.c_uint8]
 core.DebugSetRunState.argtypes = [C.c_int]
 
 
@@ -141,6 +179,8 @@ def rdmem(a, sz):
         return core.DebugMemRead8(a)
     if sz == 2:
         return core.DebugMemRead16(a)
+    if sz == 8:
+        return (core.DebugMemRead32(a) << 32) | core.DebugMemRead32(a + 4)
     return core.DebugMemRead32(a)
 
 
@@ -179,9 +219,14 @@ def upd(pc):
         for rn, off, sz in REGMEM.get(pc, []) if isinstance(REGMEM, dict) else []:
             ad = (g[rn] + off) & 0xFFFFFFFF
             parts.append("[%s+%x]=%s" % (rn, off, ("%x" % rdmem(ad, sz)) if 0x80000000 <= ad < 0x80800000 else "-"))
+        skip = False
         if ONHIT:
             try:
-                parts.append(ONHIT(pc, g, rdmem))
+                extra = ONHIT(pc, g, rdmem)
+                if extra is None:
+                    skip = True
+                else:
+                    parts.append(extra)
             except Exception as e:
                 parts.append("onhit-err %r" % e)
         if pc in DUMPS:
@@ -193,7 +238,9 @@ def upd(pc):
         body = " | ".join(p for p in parts if p)
         key = (pc, body)
         seen = state.setdefault("seen", {})
-        if not DEDUPE or key not in seen:
+        if skip:
+            pass
+        elif not DEDUPE or key not in seen:
             seen[key] = 1
             out.write("%s vi=%d n=%d | %s\n" % (lab, state["vi"], n, body))
         else:
@@ -204,12 +251,68 @@ def upd(pc):
     core.DebugStep()
 
 
+class Ctl:
+    """Handle passed to the spec's INPUT function."""
+
+    def __init__(self):
+        self.vars = {}
+        self.hits = state["hits"]
+        self.polls = 0
+
+    def log(self, text):
+        out.write("#in vi=%d %s\n" % (state["vi"], text))
+        out.flush()
+
+    def save(self, path):
+        self.log("save state %s" % path)
+        core.CoreDoCommand(11, 1, C.c_char_p(path.encode()))  # STATE_SAVE, m64p format
+
+    def load(self, path):
+        self.log("load state %s" % path)
+        core.CoreDoCommand(10, 0, C.c_char_p(path.encode()))  # STATE_LOAD
+
+    def stop(self):
+        self.log("stop")
+        core.CoreDoCommand(6, 0, None)  # STOP
+
+    def write(self, addr, size, value):
+        {1: core.DebugMemWrite8, 2: core.DebugMemWrite16, 4: core.DebugMemWrite32}[size](addr, value)
+
+
+ctl = Ctl()
+if inlib is not None:
+    keys = C.c_uint32.in_dll(inlib, "m64input_keys")
+    polls = C.c_uint32.in_dll(inlib, "m64input_polls")
+
+
+def n64_to_plugin(buttons, x, y):
+    """N64 button word + stick -> mupen64plus BUTTONS word (see m64input.c)."""
+    b = buttons & 0xFFFF
+    return ((b >> 8) | ((b & 0xFF) << 8)) | ((x & 0xFF) << 16) | ((y & 0xFF) << 24)
+
+
 def vi():
     state["vi"] += 1
-    if state["vi"] % 600 == 0:
+    v = state["vi"]
+    if v == 1 and LOADSTATE:
+        ctl.load(LOADSTATE)
+    if WATCH:
+        cur = tuple(rdmem(a, s) for a, s in WATCH)
+        if cur != state.get("watch"):
+            state["watch"] = cur
+            out.write("#w vi=%d %s\n" % (v, " ".join("%x:%x" % (a, c) for (a, _), c in zip(WATCH, cur))))
+    if INPUT:
+        ctl.polls = polls.value
+        try:
+            b, x, y = INPUT(v, rdmem, ctl)
+        except Exception as e:
+            ctl.log("input-err %r" % e)
+            b, x, y = 0, 0, 0
+        keys.value = n64_to_plugin(b, x, y)
+    if v % 600 == 0:
         out.flush()
-        sys.stderr.write("vi %d hits %s\n" % (state["vi"], sum(state["hits"].values())))
-    if state["vi"] >= VIS:
+        sys.stderr.write("vi %d hits %s\n" % (v, sum(state["hits"].values())))
+    if v >= VIS:
         core.CoreDoCommand(6, 0, None)  # STOP
 
 

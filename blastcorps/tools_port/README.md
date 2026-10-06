@@ -580,10 +580,63 @@ under `-j4`; the 148-run suite went from 637 s to 69 s at `-j4`.)
 For values the harness can't know (registers a C caller leaves behind, what the
 game really passes), `m64trace/m64trace.py ROM SPEC.py OUT.txt` runs a ROM in
 mupen64plus (ctypes over `libmupen64plus.so.2`, glide64mk2 so the frame loop
-advances, no input: the attract demos 0-8 reach nine levels in about 8 minutes
-of game time) and logs registers, FPRs and memory at exec breakpoints without
+advances; with no input the attract demos 0-8 reach nine levels in about 8
+minutes of game time, and section 8.1 adds scripted input) and logs registers, FPRs and memory at exec breakpoints without
 stopping. The spec format is in the file's docstring; `spec_hd_calls.py` and
 `spec_spawn.py` are the runs behind the Oct 2026 leaked-register audit.
 `summarise.py OUT.txt` prints the distinct values per breakpoint and register,
 `dumpcmp.py` diffs RAM dumps (base ROM vs the NM test ROM). For the NM test ROM
 use addresses from `build_nm/hd_code.rom.us.v11.elf`.
+
+### 8.1 Scripted input and save states
+
+Without input the game only reaches the attract demos. A spec that defines
+`INPUT` gets a real controller: `m64trace.py` then attaches `m64input.so`
+instead of input-sdl. That is a small mupen64plus input plugin
+(`m64input.c`, written from the public plugin API, built with gcc into
+`~/.cache/m64input.so` on first use) whose controller-1 state is a global the
+front end sets through ctypes. The game reads it through its normal path
+(PIF -> `osContGetReadData` -> `func_8028A470`), so the front end, gameplay and
+the recording code all see it.
+
+```python
+A, B, Z, START = 0x8000, 0x4000, 0x2000, 0x1000   # N64 button word
+def INPUT(vi, read, ctl):          # once per VI; returns (buttons, stick_x, stick_y)
+    if read(0x80364A90, 8) == 4:   # game mode 4 = playing (read sizes 1/2/4/8)
+        ...
+    return START if vi % 90 < 6 else 0, 0, 0
+```
+
+`ctl` has `log(text)` (a `#in vi=N` line in the output), `save(path)` /
+`load(path)` (mupen64plus save states, taken at the next VI; they work with the
+debugger and breakpoints), `stop()`, `write(addr, size, value)`, `polls` (the
+game's controller reads so far) and `vars` (script state). `LOADSTATE = path`
+starts a run from a save state; `WATCH = [(addr, size)]` logs a `#w` line
+whenever one of them changes (game mode, level, vehicle ...), which is how
+scripts find out where they are (the screenshots are black). `ONHIT` may
+return None to drop a hit (e.g. log a shared function only inside one caller).
+
+Reaching gameplay: from boot, pulse START and A alternately (6 frames out of
+every 90) until `D_80364A90 == 4` (mode 4 = playing; front end/menus are other
+modes, 0x100 is the pause menu, 0x800 the level intro) with `D_802E8BD0 == 0`
+and a vehicle in `D_80364456`: that is a new game on level 0 (Simian Acres,
+vehicle 4), about 1500 VIs (~25 s of game time, under a minute of wall time).
+Save a state there and later runs start from it in a second. Controls in game:
+A accelerate, B brake/reverse, stick steers, Z gets out of the vehicle (when
+it is stopped), START pauses.
+
+Examples: `spec_drivein.py` boots, enters level 0, saves
+`~/drivein_lvl0.st` and gets out of the vehicle (Z), logging vehicle 0's
+drive-in calls; `spec_drivein_trials.py` starts from that state and runs 40
+trials (load the state, drive with some steering for a while, stop, Z), which
+puts the drive-in checks beside buildings. Input is a pure function of the VI
+count and RAM, so a run replays exactly (same ROM, same emulator settings).
+
+For stage 3 (headless game logic vs the emulator) the same plugin gives
+recorded input: log the per-VI `(buttons, x, y)` an INPUT script returns (or a
+human's input-sdl session, by reading `D_80370BD8`, the game's copy of the
+pad, at each frame) and play it back as a table; feed the headless build the
+same pad words per game frame. Note the game itself reads the pad once per
+game frame (`func_8028A470`), not per VI, so compare by game frame
+(`D_80358060` counts them per mode) rather than by VI when timing differs
+(the NM build runs slower and drops VIs differently).

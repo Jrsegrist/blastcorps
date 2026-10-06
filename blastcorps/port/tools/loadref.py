@@ -107,9 +107,9 @@ def level_starts():
     src = open("src.us.v11/hd_code/00000.c").read()
     body = src[src.index("void func_8025615C(s32 level"):]
     body = body[:body.index("\n}\n")]
-    res = []
-    for m in re.finditer(r"start = D_00([0-9A-F]{6});\s*\*size = D_00([0-9A-F]{6})", body):
-        res.append((int(m.group(1), 16), int(m.group(2), 16)))
+    res = {}
+    for m in re.finditer(r"case (\d+):\s*start = D_00([0-9A-F]{6});\s*\*size = D_00([0-9A-F]{6})", body):
+        res[int(m.group(1))] = (int(m.group(2), 16), int(m.group(3), 16))
     return res
 
 

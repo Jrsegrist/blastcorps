@@ -10,7 +10,10 @@ of the same bytes at one width are harmless, so the report is a review list,
 not a verdict.  Indexed accesses (`_D_x(,%eax,4)`) only give the base and
 are listed separately as context.
 
-usage: mixscan.py ADDRS S_FILE...     (ADDRS = port/build/addrs.txt)
+usage: mixscan.py ADDRS S_FILE...              (ADDRS = port/build/addrs.txt)
+       mixscan.py --widths OUT ADDRS S_FILE...  the reads of the data images at
+           fixed addresses ('hd|fe OFFSET WIDTH [idx]'), for port/tools/swaptab.py:
+           code paths the attract-demo trace never ran still type their data
 """
 import collections
 import re
@@ -52,7 +55,14 @@ def width(m, ops):
     return None
 
 
+IMAGES = {"hd": (0x802E8BD0, 0x8030F660), "fe": (0x80208040, 0x80210E90)}
+
+
 def main():
+    widths_out = None
+    if sys.argv[1] == "--widths":
+        widths_out = sys.argv[2]
+        del sys.argv[1:3]
     addrs = {}
     for line in open(sys.argv[1]):
         p = line.split()
@@ -92,10 +102,27 @@ def main():
                 # destination operand is the last one in AT&T syntax
                 kind = "W" if ops.rstrip().endswith(mm.group(0)) and not m.startswith(("cmp", "test")) else "R"
                 if idx:
-                    indexed[a].add(w)
+                    # an element access: only when the scale is the width
+                    # (`_D_x(,%eax,4)` with movl) is it an array of that width
+                    sc = re.search(r",\s*(\d)\)$", idx)
+                    if (sc and int(sc.group(1)) == w) or (not sc and w == 1):
+                        indexed[a].add(w)
                     continue
                 direct[a].add((w, kind))
                 where[(a, w)].add("%s:%s" % (fn.replace(".pinned.s", "").replace(".s", ""), func))
+    if widths_out:
+        with open(widths_out, "w") as f:
+            f.write("# region offset width [idx]: fixed-address accesses of the native game code to the data\n"
+                    "# images (port/tools/mixscan.py --widths over the i686 assembly)\n")
+            for region, (lo, hi) in IMAGES.items():
+                for a in sorted(set(direct) | set(indexed)):
+                    if not (lo <= a < hi):
+                        continue
+                    for w in sorted(set(w for w, _ in direct.get(a, ()))):
+                        f.write("%s %X %d\n" % (region, a - lo, w))
+                    for w in sorted(indexed.get(a, ())):
+                        f.write("%s %X %d idx\n" % (region, a - lo, w))
+        return
     # overlap analysis per byte
     cover = collections.defaultdict(set)
     for a, ws in direct.items():

@@ -25,7 +25,7 @@ GAME_SRC   := $(ROOT)/src.$(VERSION)/hd_code
 
 GAME_CFLAGS := -std=gnu89 -nostdinc -I$(ROOT) -I$(ROOT)/include -I$(ROOT)/include/2.0I \
 	-I$(ROOT)/include/2.0I/PR -include include/port_ultratypes.h \
-	-D_LANGUAGE_C -D_FINALROM -DNON_MATCHING -DPORT_NATIVE -D_MIPS_SZLONG=32 -D_MIPS_SIM=1 \
+	-D_LANGUAGE_C -D_FINALROM -DNON_MATCHING -DPORT_HOST -D_MIPS_SZLONG=32 -D_MIPS_SIM=1 \
 	-O2 -fno-strict-aliasing -fwrapv -msse2 -mfpmath=sse -fno-common \
 	-fno-builtin-sinf -fno-builtin-cosf -fno-builtin-sin -fno-builtin-cos \
 	-Wno-unknown-pragmas -Wno-builtin-declaration-mismatch
@@ -42,7 +42,7 @@ MAIN      ?= spike_main
 LOAD_SRCS := src/load/swap.c src/load/port_assets.c
 PORT_SRCS := src/rdram.c src/inflate.c src/$(MAIN).c $(LOAD_SRCS)
 PORT_OBJS := $(PORT_SRCS:src/%.c=$(B)/port/%.o) $(B)/swaptab.o
-PORT_HDRS := src/rdram.h src/load/port_load.h src/platform/port_dma.h
+PORT_HDRS := src/rdram.h src/load/port_load.h src/load/schemas.h src/platform/port_dma.h
 
 all: $(B)/spike.exe
 
@@ -112,7 +112,7 @@ typemap: $(B)/swaptab.c
 #   LC_TRACE=trace.txt (tools/m64widths.py output) adds T9: every traced read
 LC_FILES := 00000 46C20 17A70 53220 7F8B0 5BF40 60F60 5CB60 60D50
 loadcheck:
-	$(MAKE) B=build/lc MAIN=load/loadcheck_main GAME_FILES="$(LC_FILES)" build/lc/spike.exe
+	$(MAKE) B=build/lc MAIN=loadcheck_main GAME_FILES="$(LC_FILES)" build/lc/spike.exe
 	@if [ -n "$(LC_TRACE)" ]; then $(PYTHON) tools/widths.py facts build/lc/facts.txt $(LC_TRACE); fi
 	build/lc/spike.exe '$(ROM_ARG)' $$([ -f build/lc/facts.txt ] && echo 56789 build/lc/facts.txt) \
 		> build/lc/out_native.txt

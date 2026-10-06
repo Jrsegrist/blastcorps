@@ -21,7 +21,10 @@ disagrees with its declaration, or at two widths: the exception list).
      native code ('ADDR SIZE w4' forces 4-byte words, 'be' keeps the bytes
      big-endian; the reason is in each line's comment).
 
-usage: swaptab.py TYPEMAP WIDTHS OUT.c [REPORT]    (from the project root)
+  4. --static FILE ADDRS: fixed-address and element accesses of the native
+     game code (port/tools/mixscan.py --widths), for bytes 1-2 leave untyped.
+
+usage: swaptab.py TYPEMAP WIDTHS OUT.c [REPORT] [--static FILE ADDRS]   (project root)
 """
 import os
 import collections
@@ -87,11 +90,37 @@ def load_widths(path):
     return reads, touched
 
 
+def load_static(path):
+    direct = collections.defaultdict(lambda: collections.defaultdict(set))
+    indexed = collections.defaultdict(lambda: collections.defaultdict(set))
+    if path and os.path.exists(path):
+        for line in open(path):
+            p = line.split()
+            if not p or p[0].startswith("#"):
+                continue
+            (indexed if len(p) > 3 else direct)[p[0]][int(p[1], 16)].add(int(p[2]))
+    return direct, indexed
+
+
 def main():
-    tm_path, widths_path, out_path = sys.argv[1:4]
-    report = open(sys.argv[4], "w") if len(sys.argv) > 4 else None
+    args = sys.argv[1:]
+    static_path = addrs_path = None
+    if "--static" in args:
+        i = args.index("--static")
+        static_path, addrs_path = args[i + 1], args[i + 2]
+        del args[i:i + 3]
+    tm_path, widths_path, out_path = args[0:3]
+    report = open(args[3], "w") if len(args) > 3 else None
     syms = load_typemap(tm_path)
     reads, touched = load_widths(widths_path)
+    static_direct, static_indexed = load_static(static_path)
+    starts = sorted(set([a for a, *_ in syms] +
+                        ([int(l.split()[1], 16) for l in open(addrs_path) if len(l.split()) > 1] if addrs_path else [])))
+
+    def next_sym(a):
+        import bisect
+        i = bisect.bisect_right(starts, a)
+        return starts[i] if i < len(starts) else a + 0x10
     overrides = []
     ovp = os.path.join(os.path.dirname(widths_path), "image_overrides.txt")
     if os.path.exists(ovp):
@@ -130,38 +159,53 @@ def main():
                 for k in range(s, s + w):
                     cover[k - lo] = 2
                     owner[k] = (s, w)
+        def add_widths(src, code, what):
+            """leaves from observed accesses where nothing stronger types the bytes"""
+            for off, ws in sorted(src.items()):
+                s = lo + off
+                if not (lo <= s < hi) or not inbin[off]:
+                    continue
+                nums = sorted(w for w in ws if isinstance(w, int))
+                odd = [w for w in ws if not isinstance(w, int)]
+                if odd:
+                    conflicts.append("%s: %08X %s unaligned (%s)" % (region, s, what, ",".join(odd)))
+                if len(nums) > 1:
+                    conflicts.append("%s: %08X %s at widths %s" % (region, s, what, "/".join(map(str, nums))))
+                if not nums:
+                    continue
+                w = nums[-1]
+                if s in width:
+                    if width[s] != w:
+                        conflicts.append("%s: %08X width %d, %s at %d" % (region, s, width[s], what, w))
+                    continue
+                if any(cover[k - lo] >= 2 for k in range(s, min(s + w, hi))):
+                    if code == 3:
+                        conflicts.append("%s: %08X %s at width %d inside another leaf" % (region, s, what, w))
+                    continue
+                if s + w > hi or s % w:
+                    conflicts.append("%s: %08X %s at width %d, misaligned" % (region, s, what, w))
+                    continue
+                width[s] = w
+                for k in range(s, s + w):
+                    cover[k - lo] = code
+
         # the tracer's read widths, where no declaration types the bytes
-        for off, ws in sorted(reads[region].items()):
+        add_widths(reads[region], 3, "read")
+        # then the native code's fixed-address accesses (paths the trace didn't run)
+        add_widths(static_direct[region], 5, "accessed")
+        # and its element accesses (scale == width): the array runs to the next symbol
+        for off, ws in sorted(static_indexed[region].items()):
+            w = max(ws)
             s = lo + off
-            if not (lo <= s < hi) or not inbin[off]:
+            if w < 2 or s % w or not (lo <= s < hi):
                 continue
-            nums = sorted(w for w in ws if isinstance(w, int))
-            odd = [w for w in ws if not isinstance(w, int)]
-            if odd:
-                conflicts.append("%s: %08X read unaligned (%s)" % (region, s, ",".join(odd)))
-            if len(nums) > 1:
-                conflicts.append("%s: %08X read at widths %s" % (region, s, "/".join(map(str, nums))))
-            if not nums:
-                continue
-            w = nums[-1]
-            if s in width:
-                if width[s] != w:
-                    conflicts.append("%s: %08X declared width %d, read at %d" % (region, s, width[s], w))
-                continue
-            if any(cover[k - lo] == 2 for k in range(s, min(s + w, hi))):
-                conflicts.append("%s: %08X read at width %d inside a declared leaf" % (region, s, w))
-                continue
-            if any(cover[k - lo] == 3 for k in range(s, min(s + w, hi))):
-                prev = [p for p in range(s - 7, s) if p in width and p + width[p] > s]
-                conflicts.append("%s: %08X read at width %d overlaps traced leaf at %s" %
-                                 (region, s, w, ",".join("%08X" % p for p in prev)))
-                continue
-            if s + w > hi or s % w:
-                conflicts.append("%s: %08X read at width %d, misaligned" % (region, s, w))
-                continue
-            width[s] = w
-            for k in range(s, s + w):
-                cover[k - lo] = 3
+            nxt = next_sym(s)
+            for e in range(s, min(nxt, hi) - w + 1, w):
+                if not all(inbin[k - lo] and cover[k - lo] < 2 for k in range(e, e + w)):
+                    break
+                width[e] = w
+                for k in range(e, e + w):
+                    cover[k - lo] = 6
         # overrides
         for s0, n, act in overrides:
             if not (lo <= s0 < hi):
@@ -195,6 +239,10 @@ def main():
                 c["decl"] += 1
             elif cover[k] == 3:
                 c["trace"] += 1
+            elif cover[k] == 5:
+                c["static"] += 1
+            elif cover[k] == 6:
+                c["staticidx"] += 1
             elif k in touched[region]:
                 c["bytes"] += 1        # read, but only ever as bytes
             elif cover[k] == 1:
@@ -205,6 +253,27 @@ def main():
         if report:
             report.write("# %s conflicts\n" % region)
             report.write("".join(x + "\n" for x in conflicts))
+            # the untyped bin bytes by symbol (what's still unswapped), largest first
+            names = {}
+            for a, name, size, defined, lv in syms:
+                names[a] = (name, "decl")
+            for a in starts:
+                names.setdefault(a, ("D_%08X" % a, "undeclared"))
+            spans = []
+            cur = None
+            for k in range(hi - lo):
+                a = lo + k
+                if a in names or cur is None:
+                    if cur and cur[2]:
+                        spans.append(cur)
+                    cur = [a, names.get(a, ("?", "?")), 0]
+                if inbin[k] and cover[k] in (0, 1) and k not in touched[region]:
+                    cur[2] += 1
+            if cur and cur[2]:
+                spans.append(cur)
+            report.write("# %s untyped bin bytes by symbol (bytes, start, name, declared?)\n" % region)
+            for a, (name, d), n in sorted(spans, key=lambda x: -x[2]):
+                report.write("%6X %08X %s %s\n" % (n, a, name, d))
     with open(out_path, "w") as f:
         f.write("/* generated by port/tools/swaptab.py: byte-order runs for the RDRAM image */\n")
         f.write('#include "load/port_load.h"\n')
@@ -216,6 +285,8 @@ def main():
     for region, size, tot, c, nruns, ncon in summary:
         print("%s image 0x%X bytes, 0x%X from bins (the rest is C: native)" % (region, size, tot))
         for k, label in (("decl", "swapped by C declaration"), ("trace", "swapped by traced read width"),
+                         ("static", "swapped by native fixed-address access"),
+                         ("staticidx", "swapped by native array access"),
                          ("be", "kept big-endian (override)"),
                          ("bytes", "traced, read as bytes only (no swap)"),
                          ("declbyte", "declared byte/opaque, not seen read"),

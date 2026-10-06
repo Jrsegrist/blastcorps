@@ -1917,7 +1917,7 @@ s32 func_8024AFA8(s32 id) {
     return ok;
 }
 
-#if defined(NON_MATCHING) && defined(PORT_NATIVE)
+#if defined(NON_MATCHING) && defined(PORT_HOST)
 /* Windows port, byte order: func_8024B188 reads the word table that starts
  * at the u8 EEPROM flag D_802E8BF8 (set at boot), and on the N64 that flag is
  * word 0's most significant byte.  The image keeps word 0 big-endian
@@ -1940,7 +1940,7 @@ void func_8024B188(void) {
 
     res = func_8024B4B8();
     if (res == 1) {
-#if defined(NON_MATCHING) && defined(PORT_NATIVE)
+#if defined(NON_MATCHING) && defined(PORT_HOST)
         ok = func_802AE888(port_802E8BF8_word(D_80364456));
 #else
         ok = func_802AE888(((s32 *) &D_802E8BF8)[D_80364456]);

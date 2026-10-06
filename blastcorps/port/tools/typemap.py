@@ -28,7 +28,8 @@ ADDRS, OUT = sys.argv[1], sys.argv[2]
 SHIM = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "include", "port_ultratypes.h")
 FLAGS = ["-m32", "-malign-double", "-g", "-O0", "-c", "-std=gnu89", "-nostdinc", "-I", ".", "-I", "include",
          "-I", "include/2.0I", "-I", "include/2.0I/PR", "-include", SHIM, "-D_LANGUAGE_C", "-D_FINALROM",
-         "-DNON_MATCHING", "-D_MIPS_SZLONG=32", "-D_MIPS_SIM=1", "-w", "-fno-eliminate-unused-debug-symbols"]
+         "-DNON_MATCHING", "-DPORT_HOST", "-D_MIPS_SZLONG=32", "-D_MIPS_SIM=1", "-w",
+         "-fno-eliminate-unused-debug-symbols", "-fno-eliminate-unused-debug-types"]
 IMAGE = (0x802E8BD0, 0x8030F660)
 # hd .text tables (pinned), hd .data/.rodata, front-end .data/.rodata
 INIT_RANGES = [(0x802447C0, 0x802E8BD0), IMAGE, (0x80208040, 0x80210E90)]
@@ -124,6 +125,25 @@ def flatten(lv, size):
     return flat
 
 
+import re
+VIEW_ARR = re.compile(r"^\s*#\s*define\s+(D_[0-9A-F]{8})\s+\(\(\s*(?:struct\s+)?([A-Za-z_]\w*)\s*(\*?)\s*\*\s*\)\s*&?\s*\1\s*\)")
+VIEW_SCAL = re.compile(r"^\s*#\s*define\s+(D_[0-9A-F]{8})\s+\(\*\s*\(\s*(?:struct\s+)?([A-Za-z_]\w*)\s*(\*?)\s*\*\s*\)\s*&\s*\1\s*\)")
+
+
+def file_views(path):
+    """name -> (type name, element is a pointer, scalar view)"""
+    out = {}
+    for line in open(path, errors="replace"):
+        m = VIEW_ARR.match(line)
+        if m:
+            out[m.group(1)] = (m.group(2), m.group(3) == "*" or m.group(2) == "void", False)
+            continue
+        m = VIEW_SCAL.match(line)
+        if m:
+            out[m.group(1)] = (m.group(2), m.group(3) == "*", True)
+    return out
+
+
 decls = collections.defaultdict(dict)   # name -> {file: (size, leaves)}
 defined = set()                          # names some game file defines (native initialiser)
 tmp = tempfile.mkdtemp()
@@ -147,9 +167,40 @@ for src in files:
     if r.returncode:
         print("compile failed: %s\n%s" % (src, r.stderr[:500]))
         continue
+    views = {} if is_ul else file_views(src)
     with open(obj, "rb") as f:
         dw = ELFFile(f).get_dwarf_info()
         for cu in dw.iter_CUs():
+            if views:
+                # the file's `#define D_x ((T *) D_x)` views: T's layout over the
+                # symbol's extent (array view) or once (scalar view)
+                types = {}
+                for die in cu.iter_DIEs():
+                    if die.tag in ("DW_TAG_typedef", "DW_TAG_base_type", "DW_TAG_structure_type"):
+                        n = attr(die, "DW_AT_name")
+                        n = n.decode() if isinstance(n, bytes) else n
+                        if n and (n not in types or die.tag == "DW_TAG_typedef"):
+                            types[n] = die
+                for nm, (tname, is_ptr, scalar) in views.items():
+                    if nm not in addr or not any(r0 <= addr[nm] < r1 for r0, r1 in INIT_RANGES):
+                        continue
+                    a = addr[nm]
+                    ext = nmsize.get(nm) or (next_sym(a) - a)
+                    one = []
+                    if is_ptr:
+                        esz = 4
+                        one = [(0, 4, False)]
+                    elif tname in types:
+                        esz = leaves(types[tname], 0, one)
+                        one = flatten(one, esz or 0)
+                    else:
+                        continue
+                    if not esz:
+                        continue
+                    n = 1 if scalar else max(1, ext // esz)
+                    # byte leaves too: an explicit u8 field blocks a coarser view's word there
+                    lv = [(k * esz + o, w, fl) for k in range(n) for o, w, fl in one]
+                    decls[nm][fid + ("#ptrview" if is_ptr else "#view")] = (esz * n, lv)
             for die in cu.get_top_DIE().iter_children():
                 if die.tag != "DW_TAG_variable":
                     continue
@@ -166,17 +217,45 @@ for src in files:
                 sz = leaves(tref(die), 0, lv)
                 if sz is None:
                     sz = nmsize.get(nm) or (next_sym(a) - a)
-                decls[nm][fid] = (sz, [x for x in flatten(lv, sz) if x[1] > 1])
+                decls[nm][fid] = (sz, list(flatten(lv, sz)))
 
 # per symbol: pick the layout most files agree on; record disagreements
 conflicts = []
 chosen = {}
 for nm, per in decls.items():
-    lay = collections.Counter((sz, tuple(lv)) for sz, lv in per.values())
+    # a typed layout (one with multi-byte leaves) beats `extern u8 D_x[]`
+    # declarations, which only say "some bytes" (files then view them with
+    # their own #define casts)
+    typed = {f: v for f, v in per.items() if any(x[1] > 1 for x in v[1])}
+    pool = typed or per
+    lay = collections.Counter((sz, tuple(lv)) for sz, lv in pool.values())
     (sz, lv), _ = lay.most_common(1)[0]
-    chosen[nm] = (sz, list(lv))
+    if typed:
+        sz = max(sz, max(s for s, _ in per.values()))
     if len(lay) > 1:
-        conflicts.append((addr[nm], nm, {f: (s, len(l)) for f, (s, l) in per.items()}))
+        # several typed views of the same bytes (per-file struct views): the
+        # union of their leaves, the commonest struct view first and pointer-
+        # array views (`(void **) D_x`, a decompiler shortcut) last; a field
+        # any earlier view types, even as a byte, isn't retyped by a later one
+        isptr = {}
+        for f, (s, l) in pool.items():
+            isptr[(s, tuple(l))] = isptr.get((s, tuple(l)), True) and f.endswith("#ptrview")
+        taken = {}
+        merged = []
+        clash = 0
+        for (vsz, vlv), _ in sorted(lay.most_common(), key=lambda kv: (isptr[kv[0]], -kv[1])):
+            for o, w, fl in vlv:
+                span = range(o, o + w)
+                if all(k not in taken for k in span):
+                    for k in span:
+                        taken[k] = (o, w)
+                    merged.append((o, w, fl))
+                elif any(taken.get(k) != (o, w) for k in span):
+                    clash += 1
+        lv = sorted(merged)
+        if clash:
+            conflicts.append((addr[nm], nm, {f: (s, len([x for x in l if x[1] > 1])) for f, (s, l) in pool.items()}))
+    chosen[nm] = (sz, [x for x in lv if x[1] > 1])
 
 # OUT columns: addr name size D|- leaves   (D = some game file defines it: the
 # native initialiser overwrites the image there, so it needs no swap)
@@ -219,4 +298,9 @@ coverage("hd_code data", *IMAGE)
 coverage("front-end data", *INIT_RANGES[2])
 print("symbols whose layout differs between files: %d" % len(conflicts))
 for a, nm, per in sorted(conflicts)[:40]:
-    print("  %08X %s: %s" % (a, nm, ", ".join("%s size %s/%d leaves" % (f, s, n) for f, (s, n) in sorted(per.items()))))
+    distinct = collections.OrderedDict()
+    for f, (s, n) in sorted(per.items()):
+        distinct.setdefault((s, n), []).append(f)
+    print("  %08X %s: %s" % (a, nm, "; ".join("size %s/%d leaves: %s%s" % (s, n, ", ".join(fs[:3]),
+                                                                          " +%d" % (len(fs) - 3) if len(fs) > 3 else "")
+                                             for (s, n), fs in distinct.items())))

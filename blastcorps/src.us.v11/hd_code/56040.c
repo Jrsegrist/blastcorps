@@ -3445,11 +3445,12 @@ s32 func_8029F85C(u32 *bufA, u32 *bufB, Unk8029DEA0Entry *ch, u8 *hdr) {
     while (remain != 0) {
         u16 *h;
 
+        /* identity Mtx halves (PORT_HALF: the Mtx words are host-order u32) */
         for (h = (u16 *) bufB, i = 0; i < 32; i++) {
-            h[i] = (i == 0 || i == 5 || i == 10 || i == 15) ? 1 : 0;
+            h[PORT_HALF(i)] = (i == 0 || i == 5 || i == 10 || i == 15) ? 1 : 0;
         }
         for (h = (u16 *) bufA, i = 0; i < 32; i++) {
-            h[i] = (i == 0 || i == 5 || i == 10 || i == 15) ? 1 : 0;
+            h[PORT_HALF(i)] = (i == 0 || i == 5 || i == 10 || i == 15) ? 1 : 0;
         }
         bufB += 16;
         bufA += 16;

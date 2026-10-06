@@ -173,7 +173,9 @@ endif
 HL_ABI := -malign-double -mno-ms-bitfields
 # -fno-optimize-sibling-calls: a call's return address names its real caller
 # (the keys of --clock and --sync, see os_time.c / os_thread.c; crash reports)
-HL_CFLAGS := $(GAME_CFLAGS) -DPORT_HOST $(HL_ABI) -g -fno-optimize-sibling-calls
+# HL_EXTRA: extra game-file flags for debugging (e.g. -fno-inline for --calls
+# arguments; delete build/headless/game/*/*.s first, make doesn't see flags)
+HL_CFLAGS := $(GAME_CFLAGS) -DPORT_HOST $(HL_ABI) -g -fno-optimize-sibling-calls $(HL_EXTRA)
 HL_UL_CFLAGS := -std=gnu89 -nostdinc -I$(UL_DIR) -I$(UL_DIR)/include -I$(UL_DIR)/include/compiler/modern_gcc \
 	-I$(UL_DIR)/include/PR -I$(UL_DIR)/src/libc -D_MIPS_SZLONG=32 -DBUILD_VERSION=VERSION_I \
 	-DBUILD_VERSION_STRING=\"2.0I\" -DNDEBUG -D_FINALROM -DF3DEX_GBI -D_LANGUAGE_C \
@@ -382,10 +384,17 @@ DEMO ?= 0
 CMP_CACHE ?= $(HOME)/cmp_cache
 CMP_KIND ?= nm
 compare: $(H)/bc_headless.exe
-	$(PYTHON) tools/compare.py run --demo $(DEMO) --cache $(CMP_CACHE) --kind $(CMP_KIND)
+	$(PYTHON) tools/compare.py run --demo $(DEMO) --cache $(CMP_CACHE) --kind $(CMP_KIND) $(CMP_ARGS)
+
+# the strict (typed) comparison's layouts: every symbol's declared leaves,
+# and with LC_TRACE (tools/m64widths.py output) the traced reads of every asset
+strict-data: $(H)/typemap_all.txt
+	@if [ -n "$(LC_TRACE)" ]; then WIDTHS_NO_DECODERS=1 $(PYTHON) tools/widths.py facts $(H)/facts.txt $(LC_TRACE); fi
+$(H)/typemap_all.txt: $(H)/addrs.txt tools/typemap.py
+	cd $(ROOT) && TYPEMAP_ALL=1 $(PYTHON) port/tools/typemap.py port/$(H)/addrs.txt port/$@ > /dev/null
 
 clean:
 	rm -rf $(B)
 
-.PHONY: all check clean linkall loadcheck typemap ucode headless compare game
+.PHONY: all check clean linkall loadcheck typemap ucode headless compare game strict-data
 .SECONDARY:

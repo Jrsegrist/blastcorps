@@ -1894,7 +1894,14 @@ u8 *func_802A3F80(u8 *obj, s32 *s1io) {
         } else {
             do {
                 last = BE16S(p);
+#ifdef PORT_HOST
+                /* read back as (channel, state) byte pairs (56040.c
+                 * func_8029DB7C): keep the N64 byte order */
+                ((u8 *) w)[0] = p[0];
+                ((u8 *) w)[1] = p[1];
+#else
                 *(s16 *) w = last;
+#endif
                 n--;
                 p += 2;
                 w = (s32 *) ((u8 *) w + 2);

@@ -2831,7 +2831,17 @@ static s32 dl_cond_copy_802C09B8(u32 **gfxp, Unk802C1DD0Entry *e, s32 id, s32 *b
 
     while (rec != end) {
         n = *(s32 *) rec;
+#ifdef PORT_HOST
+        /* With n == 0 the u16 at +4 is the top half of the s32 offset a0
+         * (on the N64: 0 for any offset below 64K, so the record never
+         * counts); the port keeps that s32 in host order, so read its top
+         * half explicitly (found by port/tools/compare.py: the low half
+         * matched part ids, the copy ran out of budget and a collapsing
+         * part's rising piece never started) */
+        part = n != 0 ? *(u16 *) (rec + 4) : (u16) ((u32) *(s32 *) (rec + 4) >> 16);
+#else
         part = *(u16 *) (rec + 4);
+#endif
         rec += 4;
         if (part == id) {
             ok = 1;

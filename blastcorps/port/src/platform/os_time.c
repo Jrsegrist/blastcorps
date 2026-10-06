@@ -110,13 +110,251 @@ static void load_table(Table *t, const char *path, const char *what, u32 first, 
     if (!plat_cfg.quiet) host_log("clock: %u %s values from %s\n", (unsigned) lines, what, path);
 }
 
+static Table g_framesp;
+
 void plat_clock_init(const char *gettime_path, const char *frame_done_path) {
     if (gettime_path) load_table(&g_gettime, gettime_path, "--gettime", 0, 0);
     if (frame_done_path) load_table(&g_framedone, frame_done_path, "--frame-done", 1, 1);
+    if (plat_cfg.frame_sp_path) load_table(&g_framesp, plat_cfg.frame_sp_path, "--frame-sp", 1, 1);
 }
 
 u64 plat_frame_done_time(u32 frame) {
     return table_get(&g_framedone, frame);
+}
+
+/* --frame-sp: when frame N's task leaves the RSP (its RDP part runs on) */
+u64 plat_frame_sp_time(u32 frame) {
+    return table_get(&g_framesp, frame);
+}
+
+/* ---- symbols (--syms: `nm -n` of the exe) ---------------------------------
+ * Names native code addresses: the keyed clock below and the crash report. */
+typedef struct {
+    u32 addr;
+    const char *name;
+} Sym;
+static Sym *g_syms;
+static u32 g_nsyms;
+
+void plat_syms_load(const char *path) {
+    unsigned size;
+    char *text = host_read_file(path, &size), *p, *end;
+    u32 cap = 0;
+    if (text == NULL) host_fatal("can't read --syms file %s", path);
+    for (p = text, end = text + size; p < end;) {
+        char *eol = p, *name, *dot;
+        u32 a = 0;
+        int n = 0;
+        while (eol < end && *eol != '\n' && *eol != '\r') eol++;
+        *eol = 0;
+        while (n < 8 && ((*p >= '0' && *p <= '9') || (*p >= 'a' && *p <= 'f')))
+            a = a * 16 + (*p <= '9' ? *p - '0' : *p - 'a' + 10), p++, n++;
+        /* "XXXXXXXX T name": text symbols only */
+        if (n == 8 && p[0] == ' ' && (p[1] == 'T' || p[1] == 't') && p[2] == ' ') {
+            name = p + 3;
+            if (*name == '_') name++;          /* i686 C symbols have a leading _ */
+            dot = name;
+            while (*dot && *dot != '.') dot++; /* func.constprop.0, .isra.0, .part.0 */
+            *dot = 0;
+            if (g_nsyms == cap) {
+                cap = cap ? cap * 2 : 4096;
+                g_syms = host_realloc(g_syms, cap * sizeof(Sym));
+            }
+            g_syms[g_nsyms].addr = a;
+            g_syms[g_nsyms].name = name;
+            g_nsyms++;
+        }
+        p = eol + 1;
+        while (p < end && (*p == '\n' || *p == '\r')) p++;
+    }
+}
+
+/* native address of function NAME (0 if unknown) */
+u32 plat_sym_addr(const char *name) {
+    u32 i;
+    for (i = 0; i < g_nsyms; i++) {
+        const char *a = g_syms[i].name, *b = name;
+        while (*a && *a == *b) a++, b++;
+        if (*a == *b) return g_syms[i].addr;
+    }
+    return 0;
+}
+
+/* name of the function containing native address A (NULL if unknown) */
+const char *plat_sym_name(u32 a, u32 *off) {
+    u32 lo = 0, hi = g_nsyms;
+    if (g_nsyms == 0 || a < g_syms[0].addr) return NULL;
+    while (hi - lo > 1) {
+        u32 mid = (lo + hi) / 2;
+        if (g_syms[mid].addr <= a) lo = mid;
+        else hi = mid;
+    }
+    if (off) *off = a - g_syms[lo].addr;
+    return g_syms[lo].name;
+}
+
+/* ---- keyed clock values (--clock FILE) ------------------------------------
+ * The emulator side of the comparison (port/tools/compare.py) logs every
+ * osGetTime / osGetCount result with the function it returned to.  Lines
+ * "T NAME VI VALUE" / "C NAME VI VALUE" (VALUE hex) queue VALUE for the
+ * next call of osGetTime / osGetCount from function NAME in (native) retrace
+ * VI, so the values reach the same callers whatever order the threads
+ * interleave in.  Other calls get the emulator's clock at the current
+ * virtual time ("M R1 C1 PERIOD" line; the virtual clock follows the
+ * emulator's through --sync).  Needs --syms. */
+typedef struct {
+    const char *name;
+    u64 *v;
+    u32 *vi;    /* the (native) retrace the value was read in */
+    u32 n, cap, next, misses, used;
+} KeyQ;
+#define MAX_KEYS 256
+static KeyQ g_keys[4][MAX_KEYS]; /* osGetTime, osGetCount, osAiGetLength, cull test */
+static u32 g_nkeys[4];
+static u32 g_key_nocaller[4];
+/* "M R1 C1 PERIOD": the emulator's count at native time t is
+ * C1 + (t - R1 * PLAT_VI_PERIOD) * PERIOD / PLAT_VI_PERIOD */
+static int g_emu_map;
+static u64 g_emu_r1, g_emu_c1;
+static double g_emu_period;
+
+/* a duration of N emulator counts in native counts (N without --clock) */
+u64 plat_emu_counts(u64 n) {
+    if (!g_emu_map) return n;
+    return (u64) ((double) n * PLAT_VI_PERIOD / g_emu_period + 0.5);
+}
+
+static u64 emu_time(void) {
+    double d = (double) (s64) (plat_now - g_emu_r1 * PLAT_VI_PERIOD) * g_emu_period / PLAT_VI_PERIOD;
+    return (u64) ((s64) g_emu_c1 + (s64) d);
+}
+
+static int str_eq(const char *a, const char *b) {
+    while (*a && *a == *b) a++, b++;
+    return *a == *b;
+}
+
+static KeyQ *key_find(int kind, const char *name, int add) {
+    u32 i;
+    for (i = 0; i < g_nkeys[kind]; i++)
+        if (str_eq(g_keys[kind][i].name, name)) return &g_keys[kind][i];
+    if (!add || g_nkeys[kind] == MAX_KEYS) return NULL;
+    g_keys[kind][g_nkeys[kind]].name = name;
+    return &g_keys[kind][g_nkeys[kind]++];
+}
+
+void plat_clock_keyed_load(const char *path) {
+    unsigned size;
+    char *text = host_read_file(path, &size), *p, *end;
+    u32 lines = 0;
+    if (text == NULL) host_fatal("can't read --clock file %s", path);
+    if (g_nsyms == 0) host_fatal("--clock needs --syms");
+    for (p = text, end = text + size; p < end;) {
+        char *eol = p, *name;
+        const char *q;
+        int kind;
+        u64 v;
+        KeyQ *k;
+        while (eol < end && *eol != '\n') eol++;
+        *eol = 0;
+        if (p[0] == 'M' && p[1] == ' ') {
+            q = p + 2;
+            for (g_emu_r1 = 0; *q >= '0' && *q <= '9'; q++) g_emu_r1 = g_emu_r1 * 10 + (u64) (*q - '0');
+            for (q++, g_emu_c1 = 0; *q >= '0' && *q <= '9'; q++) g_emu_c1 = g_emu_c1 * 10 + (u64) (*q - '0');
+            {
+                double f = 0, scale = 1;
+                for (q++; *q >= '0' && *q <= '9'; q++) f = f * 10 + (*q - '0');
+                if (*q == '.')
+                    for (q++; *q >= '0' && *q <= '9'; q++) f = f * 10 + (*q - '0'), scale *= 10;
+                g_emu_period = f / scale;
+            }
+            g_emu_map = g_emu_period > 0;
+        } else if ((p[0] == 'T' || p[0] == 'C' || p[0] == 'A' || p[0] == 'U') && p[1] == ' ') {
+            u32 vi = 0;
+            kind = p[0] == 'T' ? 0 : p[0] == 'C' ? 1 : p[0] == 'A' ? 2 : 3;
+            name = p + 2;
+            q = name;
+            while (*q && *q != ' ') q++;
+            if (*q == ' ') {
+                *(char *) q = 0;
+                q++;
+                while (*q >= '0' && *q <= '9') vi = vi * 10 + (u32) (*q++ - '0');
+                if (*q == ' ') q++;
+                /* the value is hex, with or without 0x */
+                if (q[0] == '0' && (q[1] == 'x' || q[1] == 'X')) q += 2;
+                for (v = 0;; q++) {
+                    if (*q >= '0' && *q <= '9') v = v * 16 + (*q - '0');
+                    else if (*q >= 'a' && *q <= 'f') v = v * 16 + (*q - 'a' + 10);
+                    else if (*q >= 'A' && *q <= 'F') v = v * 16 + (*q - 'A' + 10);
+                    else break;
+                }
+                k = key_find(kind, name, 1);
+                if (k == NULL) host_fatal("--clock: too many callers");
+                if (k->n == k->cap) {
+                    k->cap = k->cap ? k->cap * 2 : 64;
+                    k->v = host_realloc(k->v, k->cap * sizeof(u64));
+                    k->vi = host_realloc(k->vi, k->cap * sizeof(u32));
+                }
+                k->vi[k->n] = vi;
+                k->v[k->n++] = v;
+                lines++;
+            }
+        }
+        p = eol + 1;
+    }
+    if (!plat_cfg.quiet) host_log("clock: %u keyed values from %s\n", (unsigned) lines, path);
+}
+
+/* The caller's next value read in this retrace; else the emulator's clock
+ * at this (synchronised) virtual time. */
+int plat_clock_key_take(int kind, void *ra, u64 *v) {
+    if (g_nkeys[kind] == 0 && !g_emu_map) return 0;
+    return plat_clock_key_take_name(kind, plat_sym_name((u32) ra, NULL), v);
+}
+
+int plat_clock_key_take_name(int kind, const char *name, u64 *v) {
+    KeyQ *k;
+    if (g_nkeys[kind] == 0 && !g_emu_map) return 0;
+    k = name ? key_find(kind, name, 0) : NULL;
+    if (k == NULL) g_key_nocaller[kind]++;
+    else {
+        /* The clock: a retrace or two either way (the native thread may reach
+         * the call off when an earlier switch point couldn't be matched).
+         * osAiGetLength sizes the audio frame: a value of the emulator's next
+         * frame beats the native AI model's, whose state differs.  Visibility
+         * tests are keyed by frame (sent so far), in order. */
+        u32 slack = kind == 2 ? 3 : kind == 3 ? 0 : 2;
+        u32 now = kind == 3 ? plat_stats.frames : plat_vi_count;
+        while (k->next < k->n && k->vi[k->next] + slack < now) k->next++;
+        if (k->next < k->n && k->vi[k->next] <= now + slack) {
+            *v = k->v[k->next++];
+            k->used++;
+            return 1;
+        }
+        k->misses++;
+        if (host_verbose)
+            host_log("clock: %s from %s in retrace %u: next value is from retrace %u\n",
+                     kind == 3 ? "cull test" : kind == 2 ? "osAiGetLength" : kind ? "osGetCount" : "osGetTime", name, (unsigned) plat_vi_count,
+                     k->next < k->n ? (unsigned) k->vi[k->next] : 0u);
+    }
+    if (!g_emu_map || kind >= 2) return 0;
+    *v = emu_time();
+    return 1;
+}
+
+void plat_clock_report(void) {
+    int kind;
+    u32 i;
+    for (kind = 0; kind < 4; kind++) {
+        if (g_nkeys[kind] == 0) continue;
+        host_log("clock: %s keyed: %u calls from unkeyed callers\n", kind == 3 ? "cull test" : kind == 2 ? "osAiGetLength" : kind ? "osGetCount" : "osGetTime",
+                 (unsigned) g_key_nocaller[kind]);
+        for (i = 0; i < g_nkeys[kind]; i++) {
+            KeyQ *k = &g_keys[kind][i];
+            host_log("  %-24s used %u of %u, %u calls with no value in their retrace\n", k->name, (unsigned) k->used,
+                     (unsigned) k->n, (unsigned) k->misses);
+        }
+    }
 }
 
 OSTime osGetTime(void) {
@@ -124,6 +362,8 @@ OSTime osGetTime(void) {
     u64 v;
     plat_stats.gettime_calls++;
     plat_now += plat_cfg.count_per_gettime;
+    plat_sync_point(__builtin_return_address(0), 'g', NULL);
+    if (plat_clock_key_take(0, __builtin_return_address(0), &v)) return v;
     if (plat_gettime_hook && plat_gettime_hook(call, plat_now, &v)) return v;
     v = table_get(&g_gettime, call);
     return v != ~0ull ? v : plat_now;
@@ -134,7 +374,10 @@ static u32 g_count_calls;
 
 u32 osGetCount(void) {
     u32 call = g_count_calls++, c;
+    u64 v;
     plat_now += plat_cfg.count_per_gettime;
+    plat_sync_point(__builtin_return_address(0), 'c', NULL);
+    if (plat_clock_key_take(1, __builtin_return_address(0), &v)) return (u32) v;
     if (plat_getcount_hook && plat_getcount_hook(call, plat_now, &c)) return c;
     return (u32) plat_now;
 }

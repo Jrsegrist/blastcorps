@@ -112,7 +112,13 @@ static void t5(void) {
 
 static void t6(void) {
     uint32_t id, i, tab;
-    for (i = 0; i < 0x200; i++) V16(PARAM + i * 2) = (uint16_t) (i * 0x2B7 + 0x55);
+    /* big-endian, as in the game: these tables are texture entries loaded as
+     * stored (type 0) data, which the port leaves in N64 byte order */
+    for (i = 0; i < 0x200; i++) {
+        uint16_t v = (uint16_t) (i * 0x2B7 + 0x55);
+        V8(PARAM + i * 2) = (uint8_t) (v >> 8);
+        V8(PARAM + i * 2 + 1) = (uint8_t) v;
+    }
     V32(HEAPPTR) = HEAP;
     V8(0x803B9888) = 0;
     func_802A0700();                 /* DMAs the 0x8000-byte table to the heap */

@@ -134,9 +134,18 @@ s16 func_8025B498(s16 x, u16 scale, u8 *str, s32 arg3) {
 u8 *func_8025B558(u16 *arg0) {
     s32 i;
 
+#ifdef NON_MATCHING
+    /* `D_80365458[i] = arg0[i++]` is unsequenced: IDO stores at the old i,
+     * gcc at the new one (found by port/tools/compare.py: the text came out
+     * empty natively) */
+    for (i = 0; arg0[i] != 0 && i < 0xFF; i++) {
+        D_80365458[i] = arg0[i];
+    }
+#else
     for (i = 0; arg0[i] != 0 && i < 0xFF;) {
         D_80365458[i] = arg0[i++];
     }
+#endif
     D_80365458[i] = 0;
     return D_80365458;
 }

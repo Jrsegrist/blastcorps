@@ -71,8 +71,29 @@ void plat_input_init(const char *path);
 void plat_input_read(u32 index, u16 *button, s8 *x, s8 *y);
 /* clock injection (os_time.c) */
 void plat_clock_init(const char *gettime_path, const char *frame_done_path);
+/* --syms / --clock (os_time.c) */
+void plat_syms_load(const char *path);
+const char *plat_sym_name(u32 addr, u32 *off);
+u32 plat_sym_addr(const char *name);
+void plat_clock_keyed_load(const char *path);
+/* kind 0 osGetTime, 1 osGetCount, 2 osAiGetLength: the injected value for
+ * the caller at RA in this retrace (or the emulator's clock for 0/1) */
+int plat_clock_key_take(int kind, void *ra, u64 *v);
+/* the same by caller name; kind 3: func_802A4B0C's visibility test word */
+int plat_clock_key_take_name(int kind, const char *name, u64 *v);
+/* N emulator counts as native counts (the emulator's VI period differs) */
+u64 plat_emu_counts(u64 n);
+void plat_clock_report(void);
+/* --sync: the emulator's thread timing (os_thread.c) */
+void plat_sync_load(const char *path);
+void plat_sync_report(void);
+void plat_spin_until(u64 t);
+/* a switch point of the running thread (kind: s/r/j/t messages, g/c clock) */
+void plat_sync_point(void *ra, char kind, void *arg);
+void plat_calls_init(const char *names);
 /* injected completion time of frame N's gfx task, or ~0 (use gfx_cycles) */
 u64 plat_frame_done_time(u32 frame);
+u64 plat_frame_sp_time(u32 frame);
 /* optional C hook for osGetTime (part 2's trace matching): returns 1 and
  * sets *t to override the value of call number `call` */
 extern int (*plat_gettime_hook)(u32 call, u64 now, u64 *t);

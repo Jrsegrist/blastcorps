@@ -238,15 +238,23 @@ void osSpTaskStartGo(OSTask *t) {
     }
     plat_stats.gfx_tasks++;
     if ((u32) t->t.ucode == UCODE_CULL) {
+        u64 v;
         plat_stats.cull_tasks++;
-        if (t->t.output_buff != NULL) *(u32 *) t->t.output_buff = 0;
+        /* following an emulator (--clock): its answer for this test */
+        if (!plat_clock_key_take_name(3, "func_802A4B0C", &v)) v = 0;
+        if (t->t.output_buff != NULL) *(u32 *) t->t.output_buff = (u32) v;
         complete(plat_cfg.small_gfx_cycles, 0);
         return;
     }
     if (*(u32 *) ((u8 *) t - 0x10 + 0x08) & 0x40) {
-        u64 when;
-        plat_on_frame();
-        when = plat_frame_done_time(plat_stats.frames);
+        static u32 started;
+        u64 when = plat_frame_done_time(++started), sp = plat_frame_sp_time(started);
+        if (when != ~0ull && sp != ~0ull && sp < when) {
+            /* the RSP part ends first: the RSP is free for other tasks */
+            plat_event_add(sp > plat_now ? sp : plat_now, PEV_SP_DONE, NULL);
+            plat_event_add(when > plat_now ? when : plat_now, PEV_DP_DONE, NULL);
+            return;
+        }
         complete(when == ~0ull ? plat_cfg.gfx_cycles : (when > plat_now ? (u32) (when - plat_now) : 0), 1);
     } else {
         complete(plat_cfg.small_gfx_cycles, 0);
@@ -340,6 +348,8 @@ s32 osAiSetNextBuffer(void *buf, u32 size) {
 u32 osAiGetLength(void) {
     u64 done;
     ai_update();
+    /* the emulator's value for this caller in this retrace (--clock, compare.py) */
+    if (plat_clock_key_take(2, __builtin_return_address(0), &done)) return (u32) done;
     if (g_ai_len[0] == 0 || g_ai_dacrate == 0) return 0;
     done = (plat_now - g_ai_start) * (u32) osViClock / PLAT_COUNT_HZ / g_ai_dacrate * 4;
     return done >= g_ai_len[0] ? 0 : g_ai_len[0] - (u32) done;

@@ -11,6 +11,14 @@
  *     --no-controller    controller 1 unplugged
  *     --gettime FILE     injected osGetTime values (see os_time.c)
  *     --frame-done FILE  injected frame completion retraces (see os_time.c)
+ *     --clock FILE       osGetTime/osGetCount values keyed by caller (os_time.c)
+ *     --syms FILE        `nm -n` of this exe (build/headless/bc_headless.syms):
+ *                        caller names for --clock, symbols in crash reports
+ *     --sync FILE        the emulator's time at each thread switch point
+ *                        (os_thread.c; port/tools/compare.py writes it)
+ *     --load-log         log every DMA/decompressed load and its asset kind
+ *     --frame-sp FILE    per frame, when its task leaves the RSP ("@N VI.F",
+ *                        like --frame-done; default: with the RDP)
  *     --eeprom FILE      EEPROM image (read at boot, written on save)
  *     --no-eeprom        no EEPROM chip
  *     --gfx-cycles N     RCP time of a frame's gfx task, in 46.875 MHz counts
@@ -30,11 +38,12 @@
 #include <string.h>
 #include "rdram.h"
 #include "plat_host.h"
+#include "load/port_load.h"
 
 static void usage(void) {
     fprintf(stderr, "usage: bc_headless.exe ROM [--frames N] [--vis N] [--dump F1,F2..] [--dump-every N]\n"
                     "       [--dump-dir DIR] [--trace FILE] [--input FILE] [--no-controller] [--gettime FILE]\n"
-                    "       [--frame-done FILE]\n"
+                    "       [--frame-done FILE] [--clock FILE] [--syms FILE] [--sync FILE] [--load-log]\n"
                     "       [--eeprom FILE] [--no-eeprom] [--gfx-cycles N] [--small-gfx-cycles N]\n"
                     "       [--aud-cycles N] [--gettime-cost N] [--boot-count N] [--cmdline STR]\n"
                     "       [--mpk FILE] [--print] [-v] [-q]\n");
@@ -95,6 +104,12 @@ int main(int argc, char **argv) {
         else if (!strcmp(a, "--no-controller")) o.cont_present = 0;
         else if (!strcmp(a, "--gettime")) o.gettime_path = ARG();
         else if (!strcmp(a, "--frame-done")) o.frame_done_path = ARG();
+        else if (!strcmp(a, "--clock")) o.clock_path = ARG();
+        else if (!strcmp(a, "--syms")) o.syms_path = ARG();
+        else if (!strcmp(a, "--sync")) o.sync_path = ARG();
+        else if (!strcmp(a, "--frame-sp")) o.frame_sp_path = ARG();
+        else if (!strcmp(a, "--calls")) o.calls = ARG();
+        else if (!strcmp(a, "--load-log")) port_load_verbose = 1;
         else if (!strcmp(a, "--eeprom")) o.eeprom_path = ARG();
         else if (!strcmp(a, "--no-eeprom")) o.eeprom_present = 0;
         else if (!strcmp(a, "--gfx-cycles")) o.gfx_cycles = num(ARG());
@@ -106,6 +121,7 @@ int main(int argc, char **argv) {
         else if (!strcmp(a, "--print")) o.game_print = g_game_print = 1;
         else if (!strcmp(a, "--mpk")) o.mpk_path = ARG();
         else if (!strcmp(a, "-v")) host_verbose = 1;
+        else if (!strcmp(a, "-vv")) host_verbose = 2;
         else if (!strcmp(a, "-q")) o.quiet = 1;
         else if (a[0] == '-') usage();
         else if (o.rom_path == NULL) o.rom_path = a;

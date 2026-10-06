@@ -132,8 +132,7 @@ ucode:
 #
 #   make -C port headless
 #   build/headless/bc_headless.exe ROM --frames N [--dump F,..] [--trace FILE] ...
-INTERIM ?= 0
-H := build/headless$(if $(filter 1,$(INTERIM)),-interim,)
+H := build/headless
 FE_SRC := $(ROOT)/src.$(VERSION)/hd_front_end
 UL_DIR := $(ROOT)/../lib/ultralib
 # hd_code files that are only SDK hand-written asm (GLOBAL_ASM: empty natively)
@@ -145,7 +144,7 @@ HL_FE := $(sort $(basename $(notdir $(filter-out $(FE_SRC)/ul_%,$(wildcard $(FE_
 # ultralib objects compiled natively (gu, libm, libc's printf, libaudio).  The
 # os/io/si/vi/pi/sp objects are replaced by the platform layer.
 HL_UL := ul_lookat ul_lookatref ul_mtxcatf ul_mtxcatl ul_mtxutil ul_normalize ul_ortho \
-	ul_perspective ul_rotate ul_scale ul_translate ul_sinf ul_cosf ul_sins ul_coss \
+	ul_perspective ul_rotate ul_scale ul_translate ul_sins ul_coss \
 	ul_sprintf ul_xlitob ul_ldiv \
 	ul_auxbus ul_bnkf ul_cents2ratio ul_copy ul_cseq ul_cspgetstate ul_cspgettempo ul_csplayer \
 	ul_cspplay ul_cspsetbank ul_cspsetseq ul_cspsettempo ul_cspsetvol ul_cspstop ul_drvrnew \
@@ -153,24 +152,16 @@ HL_UL := ul_lookat ul_lookatref ul_mtxcatf ul_mtxcatl ul_mtxutil ul_normalize ul
 	ul_save ul_seq ul_seqplayer ul_sl ul_synaddplayer ul_synallocfx ul_synallocvoice \
 	ul_synfreevoice ul_synsetfxmix ul_synsetpan ul_synsetpitch ul_synsetpriority ul_synsetvol \
 	ul_synstartvoice ul_synstartvoiceparam ul_synstopvoice ul_synthesizer
-# ... plus two with a big-endian view of a double, fixed up by sed (below)
-HL_UL_LE := ul_xprintf ul_xldtob
+# ... plus four with a big-endian view of a double, fixed up by sed (below)
+HL_UL_LE := ul_xprintf ul_xldtob ul_sinf ul_cosf
 # platform files that see the game's <ultra64.h>
 HL_PLAT := os_thread os_time os_hw os_si input plat_core save pif
 # host-side platform files (<windows.h>, the C runtime)
 HL_HOST := plat_host headless_main
-# the load layer (agent "load": byte order, port_on_dma) lives in src/load/;
-# until it exists, port_on_dma is the identity stub
+# the load layer (byte order, port_on_dma) lives in src/load/; without it,
+# port_on_dma is the identity stub
 HL_LOAD := $(basename $(notdir $(wildcard src/load/*.c)))
-# INTERIM=1: minimal stand-ins for the load layer (src/platform/interim_swap.c:
-# typemap image swap, sequence headers, banks) to exercise the platform past
-# audio init before src/load/ lands.  Not for use together with src/load/.
-INTERIM ?= 0
-HL_INTERIM_LD :=
-ifeq ($(INTERIM),1)
-HL_HOST += interim_swap interim_typemap
-HL_INTERIM_LD := -Wl,--wrap=alBnkfNew -Wl,--wrap=func_8028B4C4
-else ifeq ($(HL_LOAD),)
+ifeq ($(HL_LOAD),)
 HL_HOST += port_dma_stub
 endif
 
@@ -180,13 +171,15 @@ endif
 #  -mno-ms-bitfields  GCC bitfield packing; MinGW's default MS layout makes
 #                     the GBI's Gfx union 16 bytes instead of 8
 HL_ABI := -malign-double -mno-ms-bitfields
-HL_CFLAGS := $(GAME_CFLAGS) -DPORT_HOST $(HL_ABI) -g
+# -fno-optimize-sibling-calls: a call's return address names its real caller
+# (the keys of --clock and --sync, see os_time.c / os_thread.c; crash reports)
+HL_CFLAGS := $(GAME_CFLAGS) -DPORT_HOST $(HL_ABI) -g -fno-optimize-sibling-calls
 HL_UL_CFLAGS := -std=gnu89 -nostdinc -I$(UL_DIR) -I$(UL_DIR)/include -I$(UL_DIR)/include/compiler/modern_gcc \
 	-I$(UL_DIR)/include/PR -I$(UL_DIR)/src/libc -D_MIPS_SZLONG=32 -DBUILD_VERSION=VERSION_I \
 	-DBUILD_VERSION_STRING=\"2.0I\" -DNDEBUG -D_FINALROM -DF3DEX_GBI -D_LANGUAGE_C \
 	-O2 -fno-strict-aliasing -fwrapv -msse2 -mfpmath=sse $(HL_ABI) -mlong-double-64 -fno-common \
 	-fno-builtin -g -w
-HL_PLAT_CFLAGS := $(HL_CFLAGS) -Isrc/platform -Wall -Wno-unknown-pragmas -DPLAT_INTERIM=$(INTERIM)
+HL_PLAT_CFLAGS := $(HL_CFLAGS) -Isrc/platform -Wall -Wno-unknown-pragmas
 HL_HOST_CFLAGS := -O2 -msse2 -mfpmath=sse -Wall -Isrc -Isrc/platform -g
 
 # the front end's own SDK objects used natively: 0E7B0 calls __osContDataCrc,
@@ -208,10 +201,18 @@ $(H)/addrs.txt: $(NM_ELFS) tools/gensyms.py
 
 $(H)/game/hd/%.s: $(GAME_SRC)/%.c include/port_ultratypes.h Makefile
 	@mkdir -p $(@D)
-	$(CC) $(HL_CFLAGS) -S -o $@ $<
+	$(CC) $(HL_CFLAGS) $(HL_GAME_INSTR) -S -o $@ $<
+# game functions call __cyg_profile_func_enter (os_thread.c): with --sync,
+# the entries of the functions that read the game's retrace counter are
+# switch points too (port/tools/cmp_spec.py lists them)
+HL_GAME_INSTR := -finstrument-functions
+# the callers of osGetTime/osGetCount keep their own functions (no inlining),
+# so --clock can give each caller the emulator's values (os_time.c)
+HL_CLOCK_CALLERS := 00000 1C460 20460 22EE0 23C20 2C560
+$(HL_CLOCK_CALLERS:%=$(H)/game/hd/%.s): HL_CFLAGS += -fno-inline
 $(H)/game/fe/%.s: $(FE_SRC)/%.c include/port_ultratypes.h Makefile
 	@mkdir -p $(@D)
-	$(CC) $(HL_CFLAGS) -S -o $@ $<
+	$(CC) $(HL_CFLAGS) $(HL_GAME_INSTR) -S -o $@ $<
 $(H)/game/ul/%.s: $(GAME_SRC)/%.c Makefile
 	@mkdir -p $(@D)
 	$(CC) $(HL_UL_CFLAGS) -S -o $@ $<
@@ -254,6 +255,19 @@ $(H)/le/xprintf.c: $(GAME_SRC)/ul_xprintf.c Makefile
 	@mkdir -p $(@D)
 	sed -e 's/(((unsigned short \*)&(x))\[0\] & 0x8000)/(((unsigned short *)\&(x))[3] \& 0x8000)/' $< > $@
 	grep -q 'short \*)&(x))\[3\]' $@
+# sinf/cosf: their constants are `du` unions ({hi word, lo word} of a double,
+# guint.h) initialised in big-endian order: swap each pair (found by
+# port/tools/compare.py: guRotate matrices came out NaN)
+$(H)/le/%f.c: $(UL_DIR)/src/gu/%f.c Makefile
+	@mkdir -p $(@D)
+	sed -E 's/\{(0x[0-9a-fA-F]{8}),[[:space:]]*(0x[0-9a-fA-F]{8})\}/{\2, \1}/' $< > $@
+	grep -q '{0x00000000, 0x3ff00000}' $@
+$(H)/game/ul/ul_sinf.s: $(H)/le/sinf.c
+	@mkdir -p $(@D)
+	$(CC) $(HL_UL_CFLAGS) -I$(UL_DIR)/src/gu -S -o $@ $<
+$(H)/game/ul/ul_cosf.s: $(H)/le/cosf.c
+	@mkdir -p $(@D)
+	$(CC) $(HL_UL_CFLAGS) -I$(UL_DIR)/src/gu -S -o $@ $<
 $(H)/game/ul/ul_xldtob.s: $(H)/le/xldtob.c
 	@mkdir -p $(@D)
 	$(CC) $(HL_UL_CFLAGS) -S -o $@ $<
@@ -275,11 +289,6 @@ $(H)/host/%.o: src/%.c src/rdram.h Makefile
 	$(CC) $(HL_HOST_CFLAGS) -c -o $@ $<
 $(H)/typemap.txt: $(H)/addrs.txt tools/typemap.py
 	cd $(ROOT) && $(PYTHON) port/tools/typemap.py port/$(H)/addrs.txt port/$@ > /dev/null
-$(H)/interim_typemap.c: $(H)/typemap.txt tools/typemap_c.py
-	$(PYTHON) tools/typemap_c.py $< $@
-$(H)/host/interim_typemap.o: $(H)/interim_typemap.c
-	@mkdir -p $(@D)
-	$(CC) -O2 -c -o $@ $<
 $(H)/host/load/%.o: src/load/%.c src/rdram.h src/platform/port_dma.h $(wildcard src/load/*.h) Makefile
 	@mkdir -p $(@D)
 	$(CC) $(HL_HOST_CFLAGS) -Isrc/load -c -o $@ $<
@@ -306,13 +315,22 @@ $(H)/copytab.o: $(H)/copytab.c src/rdram.h
 
 $(H)/bc_headless.exe: $(HL_GAME_OBJS) $(HL_HOST_OBJS) $(H)/stubs.o $(H)/copytab.o $(H)/abs_syms.ld
 	$(CC) -o $@ $(HL_GAME_OBJS) $(HL_HOST_OBJS) $(H)/stubs.o $(H)/copytab.o $(H)/abs_syms.ld $(LDFLAGS) \
-		$(HL_INTERIM_LD) -Wl,-Map=$(H)/bc_headless.map
+		-Wl,-Map=$(H)/bc_headless.map
+	$(CC:gcc=nm) -n $@ > $(H)/bc_headless.syms
 	@cat $(H)/link_report.txt | head -3
 
 headless: $(H)/bc_headless.exe
 
+# frame-by-frame comparison with the emulator over attract demo DEMO
+# (tools/compare.py; the emulator run is cached in CMP_CACHE)
+DEMO ?= 0
+CMP_CACHE ?= $(HOME)/cmp_cache
+CMP_KIND ?= nm
+compare: $(H)/bc_headless.exe
+	$(PYTHON) tools/compare.py run --demo $(DEMO) --cache $(CMP_CACHE) --kind $(CMP_KIND)
+
 clean:
 	rm -rf $(B)
 
-.PHONY: all check clean linkall loadcheck typemap ucode headless
+.PHONY: all check clean linkall loadcheck typemap ucode headless compare
 .SECONDARY:

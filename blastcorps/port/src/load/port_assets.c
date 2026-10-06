@@ -243,6 +243,9 @@ void port_texture_input(uint8_t *data, uint32_t size, int32_t type) {
 /* Decoded texels: the decoders store u16 (types 1, 4) or u32 (2, 5) values
  * natively; the renderer reads texture memory as big-endian bytes. */
 void port_texture_output(uint8_t *dst, uint32_t len, int32_t type) {
+    if (port_load_verbose)
+        fprintf(stderr, "load: decode rom 000000 -> %08X len %X: texture type %d\n", (unsigned) (uintptr_t) dst,
+                (unsigned) len, (int) type);
     switch (type) {
         case 1:
         case 4:

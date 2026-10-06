@@ -127,6 +127,15 @@ u8 *func_802A5B90(s16 *src, s32 len, u8 *dst);
 u8 *func_802A5C5C(s16 *src, s32 len, u8 *dst, u8 *table);
 u8 *func_802A5D34(s16 *src, s32 len, u8 *dst, u8 *table);
 u8 *func_802A5E10(u64 *src, u32 len, u8 *dst);
+/* The u16 tables of types 4 and 5 are texture-table entries of their own,
+ * loaded as stored (type 0) data, so they stay big-endian in the port:
+ * read them so (found by port/tools/compare.py: type-5 colours came out
+ * with their channels swapped). */
+#ifdef PORT_HOST
+#define TBL_U16(t, off) ((u16) ((((u8 *) (t))[(off)] << 8) | ((u8 *) (t))[(off) + 1]))
+#else
+#define TBL_U16(t, off) (*(u16 *) ((u8 *) (t) + (off)))
+#endif
 
 /* Decodes a request in place: copies `size` packed bytes to D_803C3250
  * (8-byte units, then halfwords; the asm loops on `!= 0`, so size must be
@@ -336,8 +345,8 @@ u8 *func_802A5C5C(s16 *src, s32 len, u8 *dst, u8 *table) {
         if (tok >= 0) {
             s32 hi = (u32) tok >> 8;
 
-            ((u16 *) dst)[0] = (*(u16 *) (table + (hi & 0xFE)) << 1) | (hi & 1);
-            ((u16 *) dst)[1] = (*(u16 *) (table + (tok & 0xFE)) << 1) | (tok & 1);
+            ((u16 *) dst)[0] = (TBL_U16(table, hi & 0xFE) << 1) | (hi & 1);
+            ((u16 *) dst)[1] = (TBL_U16(table, tok & 0xFE) << 1) | (tok & 1);
             dst += 4;
             len -= 2;
         } else {
@@ -360,7 +369,7 @@ u8 *func_802A5D34(s16 *src, s32 len, u8 *dst, u8 *table) {
         s32 tok = *src++;
 
         if (tok >= 0) {
-            s32 c = *(u16 *) (table + (((u32) tok >> 4) << 1));
+            s32 c = TBL_U16(table, ((u32) tok >> 4) << 1);
 
             *(u32 *) dst = ((c & 0x7C00) << 17) | ((c & 0x3E0) << 14) | ((c & 0x1F) << 11) |
                            ((tok & 0xF) << 4);

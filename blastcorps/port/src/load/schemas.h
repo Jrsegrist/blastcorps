@@ -345,9 +345,18 @@ static void swap_model(uint32_t base, uint32_t len) {
 
 /* The attract-mode recordings (ROM 0x6A9F10, 17210.c): per demo a header
  * (u16 at 0, 2, 8; bytes 0xA, 0xB), 0x400 five-byte RecEntry (bytes), s16
- * length at 0x140C, then that many bytes of the vehicle's saved state, copied
- * bytewise into the live vehicle block (func_802AC85C): left big-endian,
- * see port/README.md (unswapped). */
+ * length at 0x140C, then the vehicle's saved state (0xB2 bytes,
+ * func_802AC7DC): the first 0xA6 bytes of its state block, which
+ * func_802AC85C copies bytewise into the live block, then three words it
+ * reassembles from big-endian bytes itself.  The block's fields, the same
+ * for every vehicle (traced on vehicles 0, 4, 5, 9, 10 in the attract demos):
+ * s32 x 19, s16 at 0x4C/0x4E, byte 0x50/0x51, s16 x 12 from 0x52, bytes
+ * 0x6A..0x73, s16 x 17 from 0x74, bytes 0x96..0xA5. */
+#define VEH_STATE_LEAVES                                                                          \
+    "4@0 4@4 4@8 4@C 4@10 4@14 4@18 4@1C 4@20 4@24 4@28 4@2C 4@30 4@34 4@38 4@3C 4@40 4@44 4@48 " \
+    "2@4C 2@4E 2@52 2@54 2@56 2@58 2@5A 2@5C 2@5E 2@60 2@62 2@64 2@66 2@68 2@74 2@76 2@78 2@7A "    \
+    "2@7C 2@7E 2@80 2@82 2@84 2@86 2@88 2@8A 2@8C 2@8E 2@90 2@92 2@94"
+
 static void swap_demos(uint32_t base, uint32_t len) {
     uint32_t p = 0;
     while (p + 0x140E <= len) {
@@ -356,6 +365,7 @@ static void swap_demos(uint32_t base, uint32_t len) {
         port_bswap_n(P(base + p + 8), 1, 2);
         port_bswap_n(P(base + p + 0x140C), 1, 2);
         n = rd16(base + p + 0x140C);
+        if (n >= 0xA6 && p + 0x140E + n <= len) swap_leaves(base + p + 0x140E, VEH_STATE_LEAVES);
         p += 0x140E + n;
     }
 }

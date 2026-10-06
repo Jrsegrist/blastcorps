@@ -71,8 +71,18 @@ DUMP_MODE = int(os.environ.get("M64DUMPMODE", "0"), 16)   # with M64DUMPEVERY=n:
 DUMP_EVERY = int(os.environ.get("M64DUMPEVERY", "0"))      # every n controller reads in that mode
 
 
+# M64WRITE=vi:addr:size:value,...  poke RAM at a VI, e.g. 100:802FA268:4:1 sets
+# the debug-cheat switch the "-c" command line sets (bc_headless --cmdline -c)
+WRITES = [tuple(int(x, 16) if i else int(x) for i, x in enumerate(w.split(":")))
+          for w in os.environ.get("M64WRITE", "").split(",") if w]
+
+
 def INPUT(vi, rd, ctl):
     v = ctl.vars
+    for wvi, a, sz, val in WRITES:
+        if vi == wvi:
+            ctl.write(a, sz, val)
+            ctl.log("write %08x = %x" % (a, val))
     mode = rd(0x80364A90, 8)
     if mode != v.get("mode"):
         v["mode"] = mode

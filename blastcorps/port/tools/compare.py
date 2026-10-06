@@ -146,7 +146,7 @@ def data_syms():
 # ---------------------------------------------------------------- emulator log
 
 def parse_emu(emudir):
-    ev = {"F": [], "R": [], "T": [], "C": [], "A": [], "U": [], "B": None, "V": [], "M": []}
+    ev = {"F": [], "R": [], "T": [], "C": [], "A": [], "U": [], "Q": [], "B": None, "V": [], "M": []}
     wrap = [0, 0]  # added, previous: the 32-bit count register, unwrapped in log (= time) order
 
     def unwrap(c):
@@ -187,7 +187,7 @@ def parse_seg(ev, seg, vi, seq, unwrap):
             ev.setdefault("P", []).append(kv)
         elif kind == "K":
             ev.setdefault("K", []).append((kv["f"], int(kv["ra"], 16), int(kv["frame"]), kv.get("a", "")))
-        elif kind in ("T", "C", "A", "U"):
+        elif kind in ("T", "C", "A", "U", "Q"):
             # (visibility tests are keyed by frame, not by retrace)
             key = int(kv["frame"]) if kind == "U" and "frame" in kv else vi
             ev[kind].append((int(kv["ra"], 16), int(kv["th"]), int(kv["v"], 16), key))
@@ -230,7 +230,7 @@ def cmd_inject(args):
     with open(os.path.join(emudir, "clock.txt"), "w") as f:
         # the emulator's clock: count = C1 + (native time - R1 * 781250) * PERIOD / 781250
         f.write("M %d %d %.6f\n" % (ev["r1"], ev["c1"], period))
-        for kind in "TCAU":
+        for kind in "TCAUQ":
             for ra, th, v, vi in ev[kind]:
                 it = fs.find(ra)
                 f.write("%s %s %d %x\n" % (kind, it[1] if it else "?", vi if kind == "U" else vi + off, v))
@@ -486,6 +486,7 @@ class Cmp:
     def __init__(self, emudir, natdir):
         self.emudir, self.natdir = emudir, natdir
         self.layout = None   # strict mode (Layout), set by diff --strict
+        self.stale = {}      # rule_ignored: words judged stale, while both sides keep them
         self.dsyms = data_syms()
         self.mask, self.reasons = load_ignore(self.dsyms)
         elfs = open(os.path.join(emudir, "elfs.txt")).read().split()
@@ -564,13 +565,22 @@ class Cmp:
         # at 0x1006; bytes 0x1007-0x100F are never written, so they keep
         # whatever the memory held before, in that data's own byte order
         o = a - BASE
+        # 34430.c func_80279778: the RDP renders a 120x90 RGBA16 view into
+        # the buffer D_8036D170 points at (its depth image: D_80358058's);
+        # nothing renders natively, and the CPU doesn't read the pixels
+        for ptr in (0x8036D170, 0x80358058):
+            p = int.from_bytes(e[ptr - BASE:ptr - BASE + 4], "big") | 0x80000000
+            if p <= a < p + 120 * 90 * 2:
+                return True
         lo = int.from_bytes(e[0x803EB788 - BASE:0x803EB78C - BASE], "big")
         hi = int.from_bytes(e[0x803EB78C - BASE:0x803EB790 - BASE], "big")
+        if nat is not None and self.stale.get(o) == (nat[o:o + 4], e[o:o + 4]):
+            return True   # (a trailer of an earlier level's blocks, unchanged since)
         if lo <= a < hi and nat is not None:
             r = (a - lo) % 0x1010
-            if r in (0x1008, 0x100C):
-                return True
-            if r == 0x1004 and nat[o:o + 2] == e[o:o + 2][::-1] and nat[o + 2] == e[o + 2]:
+            if r in (0x1008, 0x100C) or (
+                    r == 0x1004 and nat[o:o + 2] == e[o:o + 2][::-1] and nat[o + 2] == e[o + 2]):
+                self.stale[o] = (nat[o:o + 4], e[o:o + 4])
                 return True
         return False
 
@@ -715,9 +725,12 @@ class Layout:
             if len(p) < 3:
                 continue
             lo, n = int(p[0], 16) - BASE, int(p[1], 16)
-            w = 1 if p[2] == "be" else int(p[2][1:])
             self._clear(lo, lo + n)
-            self._add(range(lo, lo + n, w), w)
+            if p[2] == "be" or re.match(r"^w[248]$", p[2]):
+                w = 1 if p[2] == "be" else int(p[2][1:])
+                self._add(range(lo, lo + n, w), w)
+            # (other actions, e.g. `vtx`: RSP-only data in the renderer's
+            # layout, no CPU reader: lenient)
         # C objects' .data/.rodata: the exe links its own copies (pinned ones
         # are copied over the image in their declared host layout, the rest is
         # never read at the N64 address), so the original code's traced widths
@@ -1001,14 +1014,20 @@ def cmd_calls(args):
 
 
 def demo_ranges(ev):
-    """{demo: (first frame, last frame)} of the attract demos (mode 2 with a demo number)"""
+    """{demo: (first frame, last frame)} of the attract demos' first showing (from the
+    frame the demo number is set to the next demo's; the attract cycle repeats)"""
     out = {}
+    cur = None
     for f in ev["F"]:
         d = int(f["demo"], 16)
-        if d == 0xFFFFFFFF or int(f["mode"], 16) != 2:
+        if d == 0xFFFFFFFF or int(f["mode"], 16) not in (2, 1 << 48):
             continue
-        lo, hi = out.get(d, (f["n"], f["n"]))
-        out[d] = (min(lo, f["n"]), max(hi, f["n"]))
+        if d != cur:
+            if d in out:
+                break
+            cur = d
+            out[d] = (f["n"], f["n"])
+        out[d] = (out[d][0], f["n"])
     return out
 
 

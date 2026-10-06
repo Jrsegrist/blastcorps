@@ -2712,7 +2712,7 @@ Gfx *func_8024C414(DynamicBuf *dyn, s32 *len) {
         func_80275478((struct SpriteVtxBuf *) dyn, &gdl, (D_80364A90 & 0x100) || currentYoshiWindow == 0x4D || currentYoshiWindow == 0x49);
     }
     if (D_80364A98 == 0 && !func_802753C0()) {
-        if (!(D_80364A90 & 0x200000100400230C) && D_803156C4 % 50 * 60 / 60 >= 21 && yoshiState == 1 &&
+        if (!(D_80364A90 & 0x200000100400230C) && PORT_GVI("func_8024C414", D_803156C4) % 50 * 60 / 60 >= 21 && yoshiState == 1 &&
             (!(D_80364A90 & 2) || (D_802E8BEC && (D_80366A12 == 3 || D_802E8BEC == 1))) &&
             (D_80364A90 != 0x100000000000 || D_803A6B04) &&
             (!(D_80364A90 & 0x1801) || D_80364AF0[D_80364AE8].unk91) && D_802E8BDC != 0x2F) {

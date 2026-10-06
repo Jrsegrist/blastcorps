@@ -256,6 +256,7 @@ void port_texture_output(uint8_t *dst, uint32_t len, int32_t type) {
             port_bswap_n(dst, len / 4, 4);
             break;
     }
+    port_unit_mark(dst, len, 1);   /* (big-endian bytes now) */
 }
 
 /* --------------------------------------------------------------- sequences */
@@ -325,6 +326,7 @@ static void handle(uint32_t dst, uint32_t rom, uint32_t len, int at_load) {
     int done;
     port_gfx_forget(dst, len);   /* graphics areas the new data replaces */
     if (dst >= 0x8021ED00u && dst < 0x80244000u && !at_load) return;   /* compressed staging */
+    port_unit_mark((void *) (uintptr_t) dst, len, 1);   /* ROM bytes; the schema's swaps re-mark */
     done = apply(kind, dst, rom, len, at_load);
     if (done) {
         stats[kind].loads++;

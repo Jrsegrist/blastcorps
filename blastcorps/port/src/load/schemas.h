@@ -349,7 +349,8 @@ static void swap_model(uint32_t base, uint32_t len) {
  * func_802AC7DC): the first 0xA6 bytes of its state block, which
  * func_802AC85C copies bytewise into the live block, then three words it
  * reassembles from big-endian bytes itself.  The block's fields, the same
- * for every vehicle (traced on vehicles 0, 4, 5, 9, 10 in the attract demos):
+ * for every vehicle (traced on the blocks of vehicles 0-5, 9 and 10 over
+ * the attract demos; tools/m64widths.py EXTRA=...):
  * s32 x 19, s16 at 0x4C/0x4E, byte 0x50/0x51, s16 x 12 from 0x52, bytes
  * 0x6A..0x73, s16 x 17 from 0x74, bytes 0x96..0xA5. */
 #define VEH_STATE_LEAVES                                                                          \

@@ -23,6 +23,9 @@ COPIERS = {"func_8026A5CC",   # 23C20: copy in 8-byte units
            "func_802A5E10",   # 60F60: type-0 (stored) texture copy
            "func_80285A78",   # 409D0: 16-byte record copy
            "func_802C04F0",   # 77E20: 0x38-byte debris record copy (words)
+           "func_802AC85C",   # 679E0: vehicle state restore (byte copy)
+           "func_802AC7DC",   # 679E0: vehicle state save (byte copy)
+           "func_802A75DC",   # vehicle block byte loop
            "memcpy", "bcopy", "bzero", "alCopy"}
 
 

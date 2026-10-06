@@ -1065,7 +1065,14 @@ void *func_8026F004(YoshiArg *arg0, u16 idx, u8 japanese) {
                 i = 0;
                 if (japanese) {
                     while (jtext[i] != D_802E8C98[lang]) {
+#ifdef NON_MATCHING
+                        /* unsequenced in the original: IDO stores at the old i
+                         * (see 168B0.c func_8025B558) */
+                        D_8036BB48[i] = jtext[i];
+                        i++;
+#else
                         D_8036BB48[i] = jtext[i++];
+#endif
                     }
                 } else {
                     while (text[i] != D_802E8C98[lang]) {

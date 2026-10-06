@@ -124,7 +124,8 @@ libaudio objects compiled natively) on the platform layer in
 `--trace FILE`, `--input FILE`, `--gettime FILE`, `--frame-done FILE`,
 `--eeprom FILE`, `--gfx-cycles N`, `--boot-count N`, `-v`...). A frame is one
 frame-ending gfx task (the scheduler task with flag 0x40); dumps are the 8 MB
-of RDRAM in host byte order, taken when that task starts.
+of RDRAM in host byte order, taken when the main thread sends that task to
+the scheduler.
 
 The build differs from the spike's in a few ways:
 - `-malign-double -mno-ms-bitfields`: u64/f64 members 8-aligned and GCC
@@ -161,3 +162,54 @@ Platform model (`src/platform/`):
 | RSP/RDP | os_hw.c | gfx tasks dropped and counted (SP done, plus DP done for frame tasks); func_802A4B0C's cull test answered "visible"; audio tasks dropped, SP done. |
 | AI | os_hw.c | a two-buffer DMA FIFO playing at the programmed rate in virtual time, so osAiGetLength (which sizes each audio frame) behaves; samples are discarded. The synthesizer runs (the game polls sequence/sound state). |
 | front end | plat_core.c | data+bss snapshot at boot, restored after every reload. |
+
+## Comparing with the emulator: `make -C port compare DEMO=n`
+
+`tools/compare.py` runs the attract mode in mupen64plus (tools_port/m64trace,
+spec `tools/cmp_spec.py`), feeds bc_headless the emulator's clock, and
+compares RDRAM frame by frame. It uses the NON_MATCHING test ROM
+(`build_nm/blastcorps.nm.us.v11.z64`, `make ... nmrom`), which runs the same C
+as the exe, so a difference is a port problem (byte order, platform, host
+compiler), not a rewrite bug; `CMP_KIND=base` uses the original ROM. The
+emulator run (log + RDRAM dumps every 10 frames, ~1 GB per demo) is cached in
+`CMP_CACHE` (default `~/cmp_cache/attract-nm-demoN`) and redone when
+cmp_spec.py or the ROM changes. Output: the timeline (submission retrace,
+game mode, level, frames in mode, game retrace counter per frame), then per
+compared frame "match" or the differing runs with symbols and the asset an
+address was loaded from.
+
+A frame is the main thread handing the scheduler its frame task (osSendMesg
+to D_80315440 with flag 0x40): the same program point on both machines; the
+exe dumps there (`--dump`, `--dump-every`). Subcommands (`compare.py -h`):
+`emu`, `inject`, `native`, `diff`, `frames`, `hex` (one region side by side),
+`calls` (with `emu --calls F,G` and the exe's `--calls F,G`: the calls of
+chosen functions per frame, to find where execution forks), `demos`, `run`.
+
+What the emulator log gives the exe:
+- `--clock`: every osGetTime / osGetCount / osAiGetLength result, keyed by the
+  calling function and the retrace it was read in, and the visibility test's
+  answer (func_802A4B0C's RDP output word) keyed by frame; other osGetTime
+  calls get the emulator's clock (mupen64plus counts 811092 per VI; the
+  mapping is in the file). Timers run in emulator counts.
+- `--sync`: the CPU time model. Game code takes no time natively; every
+  message call (osSendMesg/RecvMesg/JamMesg/StartThread), main-thread clock
+  read, and entry of a function that reads the game's retrace counter (found
+  by cmp_spec.py; the game files are built `-finstrument-functions`) is a
+  switch point: the native thread spins (interrupts and higher-priority
+  threads run) until the emulator's time for it, and until the game's
+  retrace counter D_803156C4 reads what it read there. Not for the scheduler
+  and audio threads (interrupt driven; their call order follows the RSP).
+- `--frame-done` / `--frame-sp`: when each frame task's RDP and RSP parts
+  finished; `--boot-count`: the power-on time when hd_code starts.
+
+Word comparison: each 32-bit word matches if some layout agrees (u32, two
+u16, u16 + two bytes, four bytes, an u64 pair, a u32 at 2 mod 4), if both are
+pointers to the same function / the exe's own constant data, or an empty
+thread queue (__osThreadTail vs NULL). This is lenient: a field swapped as
+two u16 where the code reads a u32 still "matches" (a strict, typed mode is
+future work). `tools/compare_ignore.txt` lists what legitimately differs, with
+reasons: framebuffers, Z-buffer, RSP buffers, per-frame display lists, code,
+thread stacks and OSThreads, libultra internals the platform keeps
+elsewhere, scheduler timing/history, and the audio subsystem (the native
+synthesizer is ultralib's newer libaudio, and the RSP task order isn't
+modelled, so audio frames and the audio heap layout differ).

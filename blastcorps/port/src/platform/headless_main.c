@@ -108,6 +108,7 @@ int main(int argc, char **argv) {
         else if (!strcmp(a, "--syms")) o.syms_path = ARG();
         else if (!strcmp(a, "--sync")) o.sync_path = ARG();
         else if (!strcmp(a, "--frame-sp")) o.frame_sp_path = ARG();
+        else if (!strcmp(a, "--calls")) o.calls = ARG();
         else if (!strcmp(a, "--load-log")) port_load_verbose = 1;
         else if (!strcmp(a, "--eeprom")) o.eeprom_path = ARG();
         else if (!strcmp(a, "--no-eeprom")) o.eeprom_present = 0;
@@ -120,6 +121,7 @@ int main(int argc, char **argv) {
         else if (!strcmp(a, "--print")) o.game_print = g_game_print = 1;
         else if (!strcmp(a, "--mpk")) o.mpk_path = ARG();
         else if (!strcmp(a, "-v")) host_verbose = 1;
+        else if (!strcmp(a, "-vv")) host_verbose = 2;
         else if (!strcmp(a, "-q")) o.quiet = 1;
         else if (a[0] == '-') usage();
         else if (o.rom_path == NULL) o.rom_path = a;

@@ -133,6 +133,10 @@ void plat_start(const HostOpts *o) {
     plat_clock_init(o->gettime_path, o->frame_done_path);
     if (o->syms_path) plat_syms_load(o->syms_path);
     if (o->clock_path) plat_clock_keyed_load(o->clock_path);
+    if (o->calls) {
+        if (!o->syms_path) host_fatal("--calls needs --syms");
+        plat_calls_init(o->calls);
+    }
     if (o->sync_path) {
         if (!o->syms_path) host_fatal("--sync needs --syms");
         plat_sync_load(o->sync_path);

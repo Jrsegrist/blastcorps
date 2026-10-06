@@ -17,6 +17,10 @@ usage (run from port/; `make -C port compare DEMO=n` drives it):
   compare.py diff   EMUDIR NATDIR [--from F] [--to F] [--detail N] [--all]
   compare.py frames EMUDIR NATDIR             per-frame timeline (vi, mode, level) side by side
   compare.py demos  EMUDIR                    frame ranges of the attract demos in the log
+  compare.py hex    EMUDIR NATDIR FRAME ADDR [LEN]   a region side by side
+  compare.py calls  EMUDIR NATDIR             calls of chosen functions per frame (emu --calls F,G
+                                              and the exe's --calls F,G): where execution forks
+  compare.py run    --demo N [--cache DIR] [--kind nm|base]   the lot (make -C port compare)
 
 Dump SPEC: "every:N", "a-b", "f1,f2" joined with '+'.
 
@@ -181,11 +185,16 @@ def parse_seg(ev, seg, vi, seq, unwrap):
             ev["R"].append(kv)
         elif kind == "P":
             ev.setdefault("P", []).append(kv)
+        elif kind == "K":
+            ev.setdefault("K", []).append((kv["f"], int(kv["ra"], 16), int(kv["frame"])))
         elif kind in ("T", "C", "A", "U"):
-            ev[kind].append((int(kv["ra"], 16), int(kv["th"]), int(kv["v"], 16), vi))
+            # (visibility tests are keyed by frame, not by retrace)
+            key = int(kv["frame"]) if kind == "U" and "frame" in kv else vi
+            ev[kind].append((int(kv["ra"], 16), int(kv["th"]), int(kv["v"], 16), key))
             ev.setdefault("seq" + kind, []).append(seq)
         elif kind == "M":
-            ev["M"].append((int(kv["ra"], 16), int(kv["th"]), unwrap(int(kv["c"])), kv["f"], int(kv.get("q", "0"), 16)))
+            ev["M"].append((int(kv["ra"], 16), int(kv["th"]), unwrap(int(kv["c"])), kv["f"], int(kv.get("q", "0"), 16),
+                            int(kv.get("gvi", "-1"), 16)))
             ev.setdefault("seqM", []).append(seq)
         elif kind == "B":
             kv["count"] = str(unwrap(int(kv["count"])))
@@ -224,7 +233,7 @@ def cmd_inject(args):
         for kind in "TCAU":
             for ra, th, v, vi in ev[kind]:
                 it = fs.find(ra)
-                f.write("%s %s %d %x\n" % (kind, it[1] if it else "?", vi + off, v))
+                f.write("%s %s %d %x\n" % (kind, it[1] if it else "?", vi if kind == "U" else vi + off, v))
     with open(os.path.join(emudir, "framedone.txt"), "w") as f:
         for n, r in enumerate(ev["R"], 1):
             fr = min(int(r["d"]) / period, 0.999999)
@@ -241,25 +250,30 @@ def cmd_inject(args):
     nsync = 0
     with open(os.path.join(emudir, "sync.txt"), "w") as f:
         kinds = {"osSendMesg": "s", "osRecvMesg": "r", "osJamMesg": "j", "osStartThread": "t", "enter": "e"}
-        pts = [(s, c, th, ra, kinds[fn], q) for s, (ra, th, c, fn, q) in zip(ev.get("seqM", []), ev["M"])]
+        pts = [(s, c, th, ra, kinds[fn], q, gv) for s, (ra, th, c, fn, q, gv) in zip(ev.get("seqM", []), ev["M"])]
         # osGetTime / osGetCount calls are switch points too (the game reads
         # the clock between message calls): their value is the count itself
         # (main thread only: the scheduler's and the audio thread's clock reads
         # follow RSP timing the platform doesn't model, see compare_ignore.txt)
         for s, (ra, th, v, vi) in zip(ev.get("seqT", []), ev["T"]):
             if th == 3:
-                pts.append((s, v, th, ra, "g", 0))
+                pts.append((s, v, th, ra, "g", 0, -1))
         for s, (ra, th, v, vi) in zip(ev.get("seqC", []), ev["C"]):
             if th != 3:
                 continue
             est = ev["c1"] + (vi - 1) * period
             k = round((est - v) / float(1 << 32))
-            pts.append((s, v + k * (1 << 32), th, ra, "c", 0))
+            pts.append((s, v + k * (1 << 32), th, ra, "c", 0, -1))
         pts.sort(key=lambda p: p[0])  # log order = execution order
-        for s, c, th, ra, kind, q in pts:
+        # Not the scheduler (5) and the audio thread (4): they wake on
+        # interrupts and take little CPU, and their call sequences follow the
+        # RSP's task order, which the platform doesn't model; a switch point
+        # matched one call off makes a high-priority thread hold the CPU.
+        pts = [p for p in pts if p[2] not in (4, 5)]
+        for s, c, th, ra, kind, q, gv in pts:
             it = fs.find(ra)
             if it and re.match(r"^func_[0-9A-F]{8}$", it[1]):
-                f.write("S %d %s %s %X %d\n" % (th, it[1], kind, q, ev["to_native"](c)))
+                f.write("S %d %s %s %X %d %d\n" % (th, it[1], kind, q, ev["to_native"](c), gv))
                 nsync += 1
     with open(os.path.join(emudir, "boot.txt"), "w") as f:
         f.write("%d %d %.3f\n" % (boot, off, period))
@@ -300,7 +314,8 @@ def cmd_emu(args):
         for f in os.listdir(savedir):
             os.remove(os.path.join(savedir, f))
     env = dict(os.environ, M64SAVEDIR=savedir, CMP_DIR=emudir, CMP_ELFS=",".join(elfs), CMP_VIS=str(opt(args, "--vis", 36000)),
-               CMP_DUMP=opt(args, "--dump", "every:10"), CMP_STOP=str(opt(args, "--stop", 0)))
+               CMP_DUMP=opt(args, "--dump", "every:10"), CMP_STOP=str(opt(args, "--stop", 0)),
+               CMP_CALLS=opt(args, "--calls", ""))
     py = sys.executable
     tracer = os.path.join(ROOT, "tools_port/m64trace/m64trace.py")
     with open(os.path.join(emudir, "emu.log"), "w") as log:
@@ -711,6 +726,48 @@ def cmd_hex(args):
         print("%08X %s %s | %s | %s  %s" % (BASE + o, mark, eb.hex(), nb.hex(), nw, ds.name(BASE + o)))
 
 
+def cmd_calls(args):
+    """calls EMUDIR NATDIR: the calls logged on both sides (compare.py emu --calls F,G and the
+    exe's --calls F,G), frame by frame: the first frame where the sequences differ"""
+    emudir, natdir = args[0], args[1]
+    ev = parse_emu(emudir)
+    elfs = open(os.path.join(emudir, "elfs.txt")).read().split()
+    fs = elf_syms(elfs, ("STT_FUNC",))
+    emu = {}
+    for f, ra, fr in ev.get("K", []):
+        it = fs.find(ra)
+        emu.setdefault(fr, []).append((f, it[1] if it else "?"))
+    nat = {}
+    for line in open(os.path.join(natdir, "run.log"), errors="replace"):
+        m = re.match(r"call: (\S+) from (\S+) frame (\d+)", line)
+        if m:
+            nat.setdefault(int(m.group(3)), []).append((m.group(1), m.group(2)))
+    last = max(list(emu) + list(nat) + [0])
+    for fr in range(0, last + 1):
+        a, b = emu.get(fr, []), nat.get(fr, [])
+        # (callers are shown, not compared: gcc inlines differently)
+        if [x[0] for x in a] != [y[0] for y in b]:
+            print("frame %d: emulator %d calls, exe %d" % (fr + 1, len(a), len(b)))
+            for i in range(max(len(a), len(b))):
+                x = a[i] if i < len(a) else ("-", "")
+                y = b[i] if i < len(b) else ("-", "")
+                print("  %s %-14s from %-14s | %-14s from %s" % ("  " if x == y else "!=", x[0], x[1], y[0], y[1]))
+            return
+    print("calls: the same in %d frames" % (last + 1))
+
+
+def demo_ranges(ev):
+    """{demo: (first frame, last frame)} of the attract demos (mode 2 with a demo number)"""
+    out = {}
+    for f in ev["F"]:
+        d = int(f["demo"], 16)
+        if d == 0xFFFFFFFF or int(f["mode"], 16) != 2:
+            continue
+        lo, hi = out.get(d, (f["n"], f["n"]))
+        out[d] = (min(lo, f["n"]), max(hi, f["n"]))
+    return out
+
+
 def cmd_demos(args):
     ev = parse_emu(args[0])
     cur = None
@@ -719,6 +776,38 @@ def cmd_demos(args):
         if key != cur:
             cur = key
             print("frame %6d vi %6s: mode %s level %s demo %s" % (f["n"], f["vi"], f["mode"], f["lvl"], f["demo"]))
+    for d, (lo, hi) in sorted(demo_ranges(ev).items()):
+        print("demo %d: frames %d-%d" % (d, lo, hi))
+
+
+def cmd_run(args):
+    """run --demo N [--cache DIR] [--kind nm|base] [--vis V] [--every K]: the lot, with the
+    emulator side cached (re-run when cmp_spec.py or the ROM is newer)"""
+    demo = opt(args, "--demo", 0, int)
+    cache = os.path.expanduser(opt(args, "--cache", "~/cmp_cache"))
+    kind = opt(args, "--kind", "nm")
+    # the attract demos take about 3300 VIs each (demo 0 from VI ~630)
+    vis = opt(args, "--vis", min(32000, 3700 * (demo + 1) + 600), int)
+    every = opt(args, "--every", 10, int)
+    rom = default_rom(kind)
+    emudir = os.path.join(cache, "attract-%s-demo%d" % (kind, demo))
+    natdir = os.path.join(cache, "attract-%s-demo%d-native" % (kind, demo))
+    log = os.path.join(emudir, "emu.txt")
+    stale = (not os.path.exists(log) or os.path.getmtime(log) < os.path.getmtime(os.path.join(HERE, "cmp_spec.py"))
+             or os.path.getmtime(log) < os.path.getmtime(rom))
+    if stale:
+        print("compare: emulator run (%s ROM, %d VIs, dumps every %d frames) into %s ..." % (kind, vis, every, emudir))
+        cmd_emu([emudir, "--kind", kind, "--vis", str(vis), "--dump", "every:%d" % every])
+    else:
+        cmd_inject([emudir])
+    ranges = demo_ranges(parse_emu(emudir))
+    if demo not in ranges:
+        die("demo %d not in the emulator run (demos %s); raise --vis" % (demo, sorted(ranges)))
+    lo, hi = ranges[demo]
+    r = cmd_native([emudir, natdir, "--frames", str(hi + 1), "--dump", "every:%d" % every])
+    cmd_frames([emudir, natdir, "5"])
+    cmd_diff([emudir, natdir, "--from", str(lo), "--to", str(hi), "--all", "--detail", "20"])
+    print("demo %d: frames %d-%d%s" % (demo, lo, hi, "" if r == 0 else " (the exe stopped early: exit %d)" % r))
 
 
 def main():
@@ -727,7 +816,7 @@ def main():
         sys.exit(1)
     cmd, args = sys.argv[1], sys.argv[2:]
     {"emu": cmd_emu, "inject": cmd_inject, "native": cmd_native, "diff": cmd_diff, "frames": cmd_frames,
-     "demos": cmd_demos, "hex": cmd_hex}[cmd](args)
+     "demos": cmd_demos, "hex": cmd_hex, "run": cmd_run, "calls": cmd_calls}[cmd](args)
 
 
 if __name__ == "__main__":

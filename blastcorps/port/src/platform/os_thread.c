@@ -482,6 +482,7 @@ typedef struct {
     u64 t;
     const char *name;
     u32 q;      /* the queue (or thread) argument */
+    s32 gvi;    /* the game's retrace counter D_803156C4 there (-1: not logged) */
     char kind;  /* s/r/j/t: osSendMesg, osRecvMesg, osJamMesg, osStartThread */
 } SyncEv;
 static struct {
@@ -490,6 +491,9 @@ static struct {
     u32 used, late, mism;
 } g_sync[SYNC_IDS];
 static int g_sync_on;
+static s32 sync_gvi_pending;
+
+#define GAME_VI_COUNTER (*(volatile u32 *) 0x803156C4) /* the scheduler's frameCount */
 
 void plat_sync_load(const char *path) {
     unsigned size;
@@ -522,6 +526,16 @@ void plat_sync_load(const char *path) {
                     }
                     if (*q == ' ') q++;
                     while (*q >= '0' && *q <= '9') t = t * 10 + (u64) (*q++ - '0');
+                    {
+                        s32 gv = -1, neg = 0;
+                        if (*q == ' ') {
+                            q++;
+                            if (*q == '-') neg = 1, q++;
+                            for (gv = 0; *q >= '0' && *q <= '9'; q++) gv = gv * 10 + (*q - '0');
+                            if (neg) gv = -1;
+                        }
+                        sync_gvi_pending = gv;
+                    }
                     if (g_sync[id].n == g_sync[id].cap) {
                         g_sync[id].cap = g_sync[id].cap ? g_sync[id].cap * 2 : 1024;
                         g_sync[id].ev = host_realloc(g_sync[id].ev, g_sync[id].cap * sizeof(SyncEv));
@@ -530,6 +544,7 @@ void plat_sync_load(const char *path) {
                     g_sync[id].ev[g_sync[id].n].name = name;
                     g_sync[id].ev[g_sync[id].n].kind = kind;
                     g_sync[id].ev[g_sync[id].n].q = qa;
+                    g_sync[id].ev[g_sync[id].n].gvi = sync_gvi_pending;
                     g_sync[id].n++;
                     lines++;
                     if (kind == 'e') entry_add(name);
@@ -593,6 +608,9 @@ static void sync_point(void *ra, char kind, void *arg) {
     }
     g_sync[id].next = j + 1;
     g_sync[id].used++;
+    if (host_verbose >= 2)
+        host_log("sync: thread %u %s %c %08X at %.3f -> %.3f\n", (unsigned) id, name, kind, (unsigned) (u32) arg,
+                 (double) plat_now / PLAT_VI_PERIOD, (double) g_sync[id].ev[j].t / PLAT_VI_PERIOD);
     if (plat_now > g_sync[id].ev[j].t) {
         g_sync[id].late++;
         if (host_verbose && plat_now - g_sync[id].ev[j].t > PLAT_VI_PERIOD / 8)
@@ -601,6 +619,13 @@ static void sync_point(void *ra, char kind, void *arg) {
                      (double) (plat_now - g_sync[id].ev[j].t) / PLAT_VI_PERIOD);
     } else
         plat_spin_until(g_sync[id].ev[j].t);
+    /* the game's retrace counter must read what it read in the emulator here
+     * (a retrace close to the switch point can fall either side of it) */
+    /* (not for the scheduler, which counts them; at most two retraces) */
+    if (g_sync[id].ev[j].gvi >= 0 && id != 5) {
+        u32 stop = plat_vi_count + 2;
+        while ((s32) (GAME_VI_COUNTER - (u32) g_sync[id].ev[j].gvi) < 0 && plat_vi_count < stop && plat_advance()) {}
+    }
 }
 
 /* Function-entry switch points ('e'): the game files are built with
@@ -621,9 +646,42 @@ static void entry_add(const char *name) {
 void __cyg_profile_func_enter(void *fn, void *site) __attribute__((no_instrument_function));
 void __cyg_profile_func_exit(void *fn, void *site) __attribute__((no_instrument_function));
 
+/* --calls NAME,NAME: log every call of these game functions (with the caller
+ * and the frame; port/tools/compare.py calls lines them up with the
+ * emulator's) */
+#define CALL_HASH 64
+static u32 g_call[CALL_HASH];
+static int g_call_on;
+
+void plat_calls_init(const char *names) {
+    char buf[64];
+    while (names && *names) {
+        u32 n = 0, a, h;
+        while (*names && *names != ',' && n < sizeof buf - 1) buf[n++] = *names++;
+        buf[n] = 0;
+        if (*names == ',') names++;
+        a = plat_sym_addr(buf);
+        if (a == 0) {
+            host_log("--calls: no function %s\n", buf);
+            continue;
+        }
+        for (h = (a >> 4) % CALL_HASH; g_call[h] != 0 && g_call[h] != a; h = (h + 1) % CALL_HASH) {}
+        g_call[h] = a;
+        g_call_on = 1;
+    }
+}
+
 void __cyg_profile_func_enter(void *fn, void *site) {
     u32 a = (u32) fn, h;
-    (void) site;
+    if (g_call_on) {
+        for (h = (a >> 4) % CALL_HASH; g_call[h] != 0; h = (h + 1) % CALL_HASH)
+            if (g_call[h] == a) {
+                const char *c = plat_sym_name((u32) site, NULL);
+                host_log("call: %s from %s frame %u\n", plat_sym_name(a, NULL), c ? c : "?",
+                         (unsigned) plat_stats.frames);
+                break;
+            }
+    }
     if (!g_entry_on) return;
     for (h = (a >> 4) % ENTRY_HASH; g_entry[h] != 0; h = (h + 1) % ENTRY_HASH)
         if (g_entry[h] == a) {

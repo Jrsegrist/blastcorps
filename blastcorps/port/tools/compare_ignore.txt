@@ -23,6 +23,7 @@
 # ultralib's newer libaudio (synthesizer/drvrnew/reverb/env are still the old
 # SDK's hand asm in the ROM), whose allocations differ by 0x10-0x40 bytes,
 # so everything allocated after the sequence table is shifted.
+80370C80 8037C720 audio heap: the music and effects banks (libaudio rounds an ADPCM wavetable's length to whole frames when a voice first plays it: audio timing)
 8037C720 8039AF00 audio heap after the sequence table: synthesizer (newer SDK natively), sequence + sound players
 
 80368070 80368308 audio manager (22EE0.c D_80368070): Acmd list / AudioInfo pointers into the audio heap, its queues and OSThread
@@ -45,6 +46,9 @@ D_803156F8 42930 per-frame graphics data, two of 0x21498 (display lists, matrice
 # --- the scheduler (2C560.c): message history and performance timers
 80315458 80315498 scheduler interrupt queue's message ring (history; the platform posts SP/DP done together)
 8031544C 80315450 scheduler interrupt queue: ring position (message history)
+803156A4 803156A8 scheduler audioListHead (audio tasks live in the shifted audio heap)
+803156AC 803156B0 scheduler audioListTail
+803156B4 803156B8 scheduler curRSPTask (often an audio task)
 803154A4 803154A8 scheduler command queue: ring position (audio task history)
 803154B0 803154F0 scheduler command queue's message ring (audio tasks in the shifted audio heap)
 80364AC8 80364AD8 the main loop's CPU meters (osGetTime deltas / 7825, 00000.c func_80244930)

@@ -321,8 +321,16 @@ $(H)/bc_headless.exe: $(HL_GAME_OBJS) $(HL_HOST_OBJS) $(H)/stubs.o $(H)/copytab.
 
 headless: $(H)/bc_headless.exe
 
+# frame-by-frame comparison with the emulator over attract demo DEMO
+# (tools/compare.py; the emulator run is cached in CMP_CACHE)
+DEMO ?= 0
+CMP_CACHE ?= $(HOME)/cmp_cache
+CMP_KIND ?= nm
+compare: $(H)/bc_headless.exe
+	$(PYTHON) tools/compare.py run --demo $(DEMO) --cache $(CMP_CACHE) --kind $(CMP_KIND)
+
 clean:
 	rm -rf $(B)
 
-.PHONY: all check clean linkall loadcheck typemap ucode headless
+.PHONY: all check clean linkall loadcheck typemap ucode headless compare
 .SECONDARY:

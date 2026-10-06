@@ -24,8 +24,10 @@
 #   A ra=RA th=ID v=VALUE          osAiGetLength (the audio thread sizes its frames by it)
 #   U ra=RA th=ID v=WORD           func_802A4B0C's RSP visibility test: the output word it
 #                                  tests (0xE8000000 = not visible)
-#   M ra=RA th=ID c=COUNT f=FUNC q=A0   a message call (queue A0) / osStartThread (thread
-#                                  A0) from RA (running thread ID) at COUNT
+#   M ra=RA th=ID c=COUNT f=FUNC q=A0 gvi=G   a message call (queue A0) / osStartThread
+#                                  (thread A0) from RA (running thread ID) at COUNT, the game's
+#                                  retrace counter D_803156C4 being G; f=enter: the entry of a
+#                                  function that reads that counter
 #   V (as "#in" lines)             the count register at some VIs (period, wrap-around)
 # Dumps: RDRAM 0x80000000-0x80400000 as N64 big-endian bytes.
 import ctypes as C, os, struct
@@ -135,12 +137,17 @@ for name, (a, size) in func_sizes.items():
                             0x3C0B, 0x3C0C, 0x3C0D, 0x3C0E, 0x3C0F, 0x3C18, 0x3C19) and (w & 0xFFFF) == 0x8031
                 for w in words):
         ENTRY[a] = name
+# CMP_CALLS=func_a,func_b: log every call of these (for `compare.py calls`)
+CALLS = {}
+for n in filter(None, os.environ.get("CMP_CALLS", "").split(",")):
+    CALLS[syms[n]] = n
 if len(ENTRY) > 80:
     raise SystemExit("cmp_spec: too many entry breakpoints (%d)" % len(ENTRY))
 
 BPS = {A_BOOT: "B", A_TASK: "F", A_RDP: "R", A_RSP: "P", A_TIME: "T", A_COUNT: "C", A_AILEN: "A", A_CULL: "U"}
 BPS.update({a: "M" for a in SYNC})
 BPS.update({a: "E" for a in ENTRY})
+BPS.update({a: "K" for a in CALLS})
 GPRS, FPRS, MEM = [], [], []
 DEDUPE = False
 DEFMAX = 1 << 40
@@ -212,13 +219,19 @@ def ONHIT(pc, g, rd):
             return None
         return "C ra=%x th=%d v=%x" % (g["ra"], thread_id(rd), g["v0"])
     if pc == A_CULL:
-        return "U ra=%x th=%d v=%x" % (syms["func_802A4B0C"], thread_id(rd), rd(A_CULLBUF, 4))
+        return "U ra=%x th=%d v=%x frame=%d" % (syms["func_802A4B0C"], thread_id(rd), rd(A_CULLBUF, 4), st["frame"])
     if pc == A_AILEN:
         return "A ra=%x th=%d v=%x" % (g["ra"], thread_id(rd), g["v0"])
+    if pc in CALLS:
+        k = "K f=%s ra=%x frame=%d" % (CALLS[pc], g["ra"], st["frame"])
+        if pc not in ENTRY:
+            return k
+        return k + " || M ra=%x th=%d c=%d f=enter q=0 gvi=%x" % (pc, thread_id(rd), count(), rd(0x803156C4, 4))
     if pc in ENTRY:
-        return "M ra=%x th=%d c=%d f=enter q=0" % (pc, thread_id(rd), count())
+        return "M ra=%x th=%d c=%d f=enter q=0 gvi=%x" % (pc, thread_id(rd), count(), rd(0x803156C4, 4))
     if pc in SYNC:
-        m ="M ra=%x th=%d c=%d f=%s q=%x" % (g["ra"], thread_id(rd), count(), SYNC[pc], g["a0"])
+        m = "M ra=%x th=%d c=%d f=%s q=%x gvi=%x" % (g["ra"], thread_id(rd), count(), SYNC[pc], g["a0"],
+                                                    rd(0x803156C4, 4))
         # a frame: the main thread sends the scheduler (D_80315440) a task with
         # the frame flag 0x40 (405F0.c func_80284E54) -- the exe dumps here too
         a1 = g["a1"]

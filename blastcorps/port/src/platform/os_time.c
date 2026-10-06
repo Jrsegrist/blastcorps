@@ -318,12 +318,15 @@ int plat_clock_key_take_name(int kind, const char *name, u64 *v) {
     k = name ? key_find(kind, name, 0) : NULL;
     if (k == NULL) g_key_nocaller[kind]++;
     else {
-        /* a visibility test is answered after its task ran: allow a retrace either way */
-        /* (and the clock: the native thread may reach the call a retrace or
-         * two off when an earlier switch point couldn't be matched) */
-        u32 slack = kind == 2 ? 0 : kind == 3 ? 1 : 2;
-        while (k->next < k->n && k->vi[k->next] + slack < plat_vi_count) k->next++;
-        if (k->next < k->n && k->vi[k->next] <= plat_vi_count + slack) {
+        /* The clock: a retrace or two either way (the native thread may reach
+         * the call off when an earlier switch point couldn't be matched).
+         * osAiGetLength sizes the audio frame: a value of the emulator's next
+         * frame beats the native AI model's, whose state differs.  Visibility
+         * tests are keyed by frame (sent so far), in order. */
+        u32 slack = kind == 2 ? 3 : kind == 3 ? 0 : 2;
+        u32 now = kind == 3 ? plat_stats.frames : plat_vi_count;
+        while (k->next < k->n && k->vi[k->next] + slack < now) k->next++;
+        if (k->next < k->n && k->vi[k->next] <= now + slack) {
             *v = k->v[k->next++];
             k->used++;
             return 1;

@@ -90,6 +90,7 @@ void plat_sync_report(void);
 void plat_spin_until(u64 t);
 /* a switch point of the running thread (kind: s/r/j/t messages, g/c clock) */
 void plat_sync_point(void *ra, char kind, void *arg);
+void plat_calls_init(const char *names);
 /* injected completion time of frame N's gfx task, or ~0 (use gfx_cycles) */
 u64 plat_frame_done_time(u32 frame);
 u64 plat_frame_sp_time(u32 frame);

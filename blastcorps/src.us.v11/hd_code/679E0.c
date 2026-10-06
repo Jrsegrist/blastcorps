@@ -295,7 +295,8 @@ void func_802AC85C(u8 *src, u8 *dst, u32 *words) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 /* Converts, in place, a 4x4 matrix of s32 16.16 values into the N64 Mtx
- * layout: the 16 integer halves first, then the 16 fraction halves.
+ * layout: the 16 integer halves first, then the 16 fraction halves
+ * (halfword views through PORT_HALF: the port's Mtx words are host order).
  * The asm takes m in s2 (conventions.txt) and saves every register it uses.
  * Asm callers keep many registers live across the call (func_8029E5AC a0-a3,
  * t2, t4, t5, t7, f8, f12, f14; func_802AA764 a0-a3, t4, t6, t7, f12, f14;
@@ -309,8 +310,8 @@ void func_802AC8CC(u16 *m) {
         tmp[i] = m[i];
     }
     for (i = 0; i < 16; i++) {
-        m[i] = tmp[i * 2];
-        m[16 + i] = tmp[i * 2 + 1];
+        m[PORT_HALF(i)] = tmp[PORT_HALF(i * 2)];
+        m[PORT_HALF(16 + i)] = tmp[PORT_HALF(i * 2 + 1)];
     }
 }
 #else

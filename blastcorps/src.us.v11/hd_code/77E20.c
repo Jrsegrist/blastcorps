@@ -2192,6 +2192,31 @@ extern Unk80306344 D_803063D4[];
 extern u8 D_803063E0[]; /* {u8 threshold; u8 count} pairs */
 extern u16 D_803F77FE;
 
+#ifdef PORT_HOST
+/* The roll is 0..100 inclusive, and every kind table ends at threshold 100:
+ * a roll of 100 walks on (D_80306344 -> D_80306350 -> D_803063D4) into
+ * D_803063E0's {u8, u8} pairs, which the N64 reads as an Unk80306344
+ * (threshold 0x3201, kind 0x5502 -> byte 2, lo 0x64030000, hi 0). The port
+ * keeps those bytes as bytes, so it reads the fields there big-endian. */
+static s32 port_kind_field(Unk80306344 *t, s32 off, s32 size) {
+    u8 *p = (u8 *) t + off;
+
+    if (p >= D_803063E0 && p + size <= D_803063E0 + 0x10) {
+        return size == 2 ? (p[0] << 8) | p[1] : (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3];
+    }
+    return size == 2 ? *(u16 *) p : *(s32 *) p;
+}
+#define KT_THRESHOLD(t) ((u16) port_kind_field((t), 0, 2))
+#define KT_KIND(t) ((u16) port_kind_field((t), 2, 2))
+#define KT_LO(t) port_kind_field((t), 4, 4)
+#define KT_HI(t) port_kind_field((t), 8, 4)
+#else
+#define KT_THRESHOLD(t) ((t)->threshold)
+#define KT_KIND(t) ((t)->kind)
+#define KT_LO(t) ((t)->lo)
+#define KT_HI(t) ((t)->hi)
+#endif
+
 /* Spawns debris for part `index` (1-based) of e: the part's s16 point in
  * e->info's unk2C table (8-byte records) << 16 is the position. A 0..100 roll
  * (func_802BFB50) picks a count from D_803063E0 (first pair whose threshold
@@ -2234,13 +2259,13 @@ void func_802BF978(Unk802C1DD0Entry *e, s32 index, s32 level, Unk802C1DD0Info *i
             }
         }
         roll = func_802BFB50(0, 100);
-        while (!(roll < t->threshold)) {
+        while (!(roll < KT_THRESHOLD(t))) {
             t++;
         }
         d->pos[0] = x;
         d->pos[1] = y;
         d->pos[2] = z;
-        roll = func_802BFB50(t->lo, t->hi);
+        roll = func_802BFB50(KT_LO(t), KT_HI(t));
         v = info->unk5 * roll;
         if (D_803EF6FF != 0) {
             v <<= 1;
@@ -2258,7 +2283,7 @@ void func_802BF978(Unk802C1DD0Entry *e, s32 index, s32 level, Unk802C1DD0Info *i
         d->unk30 = 0;
         d->unk34 = 0;
         d->unk35 = 0;
-        d->unk31 = t->kind;
+        d->unk31 = KT_KIND(t);
         func_802C04F0((u32 *) d);
         last = (s32 *) d;
     }
@@ -2363,13 +2388,13 @@ void func_802BFDAC(Unk802C1DD0Entry *e, s32 index) {
     s32 roll;
 
     roll = func_802BFB50(0, 100);
-    while (!(roll < t->threshold)) {
+    while (!(roll < KT_THRESHOLD(t))) {
         t++;
     }
     d->pos[0] = x << 16;
     d->pos[1] = y << 11;
     d->pos[2] = z << 16;
-    roll = func_802BFB50(t->lo, t->hi);
+    roll = func_802BFB50(KT_LO(t), KT_HI(t));
     d->unk10[0] = 0;
     d->unk10[1] = 0;
     d->unk10[2] = 0;
@@ -2383,7 +2408,7 @@ void func_802BFDAC(Unk802C1DD0Entry *e, s32 index) {
     d->unk28 = 0xFC180000;
     d->unk34 = 0;
     d->unk35 = 0;
-    d->unk31 = t->kind;
+    d->unk31 = KT_KIND(t);
     func_802C04F0((u32 *) d);
 }
 #else

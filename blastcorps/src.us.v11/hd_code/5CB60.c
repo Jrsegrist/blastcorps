@@ -462,6 +462,7 @@ void func_802A1A9C(u8 *obj, s32 *s1io) {
                  * bytes (port_n64_byte, see PORT_STALE_51 below) */
                 void port_unit_mark(void *p, u32 n, s32 width);
                 u8 port_n64_byte(const void *p);
+                void port_garbage(const void *p, u32 len);
                 u8 old[3];
                 s32 k;
 
@@ -486,6 +487,7 @@ void func_802A1A9C(u8 *obj, s32 *s1io) {
                 }
                 port_unit_mark(m, 9, 4);
                 port_unit_mark(m + 0x24, 4, 1);
+                port_garbage(m + 0x25, 3);
 #endif
                 src += 0x44;
                 m += 0x28;
@@ -1774,6 +1776,7 @@ s32 func_802A4168(s32 id, u8 *end);
  * misread -- only in these never-initialised bytes. */
 void port_unit_mark(void *p, u32 n, s32 width);
 u8 port_n64_byte(const void *p);
+void port_garbage(const void *p, u32 len);
 
 /* the layout of a record func_802A41B0 built (Unk803B9890, 77E20.c) */
 static void port_tri_mark(u8 *rec) {
@@ -2045,6 +2048,7 @@ u8 *func_802A41B0(u8 *rec, u8 *v, s32 id, s32 h52, s32 b57, s32 b56, s32 *s1io, 
         for (k = 0; k < 6; k++) {
             rec[0x5A + k] = old[k];
         }
+        port_garbage(rec + 0x5A, 6);
     }
     port_tri_mark(rec);
 #endif

@@ -487,6 +487,8 @@ class Cmp:
         self.emudir, self.natdir = emudir, natdir
         self.layout = None   # strict mode (Layout), set by diff --strict
         self.stale = {}      # rule_ignored: words judged stale, while both sides keep them
+        self.garb = bytearray(SIZE)   # port_garbage bytes (until a load covers them)
+        self.garb_n = 0
         self.dsyms = data_syms()
         self.mask, self.reasons = load_ignore(self.dsyms)
         elfs = open(os.path.join(emudir, "elfs.txt")).read().split()
@@ -523,6 +525,10 @@ class Cmp:
                 if m:
                     self.loads.append((int(m.group(3), 16), int(m.group(4), 16), int(m.group(2), 16),
                                        m.group(5).strip(), m.group(1)))
+                # bytes the game never writes nor reads (port_garbage)
+                m = re.match(r"load: garbage ([0-9A-F]+) len ([0-9A-F]+)", line)
+                if m:
+                    self.loads.append((int(m.group(1), 16), int(m.group(2), 16), 0, "garbage", "garbage"))
                 m = re.match(r"dump: .*frame_(\d+)\.bin", line)
                 if m:
                     self.loads_at[int(m.group(1))] = len(self.loads)
@@ -565,6 +571,19 @@ class Cmp:
         # at 0x1006; bytes 0x1007-0x100F are never written, so they keep
         # whatever the memory held before, in that data's own byte order
         o = a - BASE
+        if nat is not None:
+            # sound handles (sndPlaySfx's out parameter, e.g. D_803F7C18 or in
+            # heap objects): which slot of the sound player's state array
+            # (0x40-byte entries from 0x80399FF0) a sound gets, and when it
+            # ends (the handle goes NULL), follow the audio thread's timing,
+            # which isn't modelled (compare_ignore.txt)
+            ev = int.from_bytes(e[o:o + 4], "big")
+            nv = int.from_bytes(nat[o:o + 4], "little")
+
+            def snd(v):
+                return 0x80399FF0 <= v < 0x8039AFF0 and (v - 0x80399FF0) % 0x40 == 0
+            if (snd(ev) or ev == 0) and (snd(nv) or nv == 0) and (ev or nv):
+                return True
         # 34430.c func_80279778: the RDP renders a 120x90 RGBA16 view into
         # the buffer D_8036D170 points at (its depth image: D_80358058's);
         # nothing renders natively, and the CPU doesn't read the pixels
@@ -593,6 +612,18 @@ class Cmp:
         n32 = sw.tobytes()
         diffs = []
         mask = self.mask
+        # the garbage bytes logged before this dump: they stay stale until a
+        # load lands on them (game code writing over them later goes
+        # unnoticed: a known blind spot of this rule)
+        upto = self.loads_at.get(n, len(self.loads))
+        if upto < self.garb_n:
+            self.garb, self.garb_n = bytearray(SIZE), 0
+        for dst, ln, rom, kind, how in self.loads[self.garb_n:upto]:
+            lo, hi = max(dst - BASE, 0), min(dst + ln - BASE, SIZE)
+            if hi > lo:
+                self.garb[lo:hi] = (b"\x01" if how == "garbage" else b"\x00") * (hi - lo)
+        self.garb_n = upto
+        garb = self.garb
         P = 4096
         for p in range(0, SIZE, P):
             if n32[p:p + P] == e[p:p + P]:
@@ -614,6 +645,16 @@ class Cmp:
                     continue
                 if self.rule_ignored(BASE + o, e, nat):
                     continue
+                if any(garb[o:o + 4]):
+                    # compare with the garbage bytes blanked on both sides
+                    g = garb[o - 4:o + 8] if o >= 4 else bytes(4) + garb[o:o + 8]
+                    nm = bytearray(nat[o - 4:o + 8] if o >= 4 else bytes(4) + nat[o:o + 8])
+                    em = bytearray(e[o - 4:o + 8] if o >= 4 else bytes(4) + e[o:o + 8])
+                    for k in range(12):
+                        if g[k]:
+                            nm[k] = em[k] = 0
+                    if word_ok(nm[4:8], em[4:8]) or covered(nm, em, 4):
+                        continue
                 diffs.append(o)
         self.strict_only, self.typed = [], 0
         if self.layout is not None:

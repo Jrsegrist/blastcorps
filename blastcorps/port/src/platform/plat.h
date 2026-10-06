@@ -99,6 +99,9 @@ void plat_fe_snapshot(void);
 /* SI devices */
 void plat_si_init(void);
 void plat_si_flush(void);
+/* Controller Pak (pif.c) */
+void plat_pak_init(void);
+int plat_pak_present(void);
 
 /* game symbols the platform reads (absolute, at their N64 addresses) */
 extern u32 osViClock;

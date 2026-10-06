@@ -13,15 +13,48 @@
  *   PORT_FE_LOADED()  the front-end overlay has just been inflated over
  *                     0x801E7000: the port restores the overlay's initial
  *                     (host byte order) .data/.bss.
+ *   PORT_SAVE_BEGIN(p, kind, size) / PORT_SAVE_END(p, kind, size)
+ *                     around a save routine's CRC and EEPROM/pak transfer:
+ *                     p is pointed at a copy of the record in N64 byte order,
+ *                     then back at the record, which gets the copy's contents
+ *                     in host order (port/src/platform/save.c), so save files
+ *                     are byte-identical to the N64's.
+ *   PORT_SAVE_BE64(x) a u64 (the save semaphore) to or from N64 byte order.
+ *   PORT_SAVE_SEMBLOCK(p)  the 0x20 bytes the pak semaphore write sends from
+ *                     &sem (a u64 parameter): the semaphore, then the 24 bytes
+ *                     of stack that follow it on the N64 (as observed), not
+ *                     the host's stack.
+ *   PORT_SAVE_SWAP(p, kind, size)  in-place conversion (an involution), for
+ *                     the status block, whose only multi-byte value is its
+ *                     "no status" marker.
  */
+#define PORT_SAVE_PLAYER 0  /* player record, 0x100 bytes */
+#define PORT_SAVE_TIMES 1   /* best times, 0x20 bytes */
+#define PORT_SAVE_EETIMES 2 /* EEPROM best-time words, 8 bytes */
+#define PORT_SAVE_STATUS 3  /* level status block, 0x40 bytes (in place) */
 #if defined(NON_MATCHING) && defined(PORT_HOST)
 void port_spin(void);
 void port_fe_loaded(void);
+void port_game_print(const char *fmt, __builtin_va_list ap); /* the game's debug printf */
+void *port_save_begin(void *p, int kind, int size);
+void *port_save_end(void *p, int kind, int size);
+unsigned long long port_save_be64(unsigned long long v);
+void *port_save_semblock(const void *sem);
 #define PORT_SPIN() port_spin()
 #define PORT_FE_LOADED() port_fe_loaded()
+#define PORT_SAVE_BEGIN(p, kind, size) ((p) = port_save_begin((p), (kind), (size)))
+#define PORT_SAVE_END(p, kind, size) ((p) = port_save_end((p), (kind), (size)))
+#define PORT_SAVE_BE64(x) ((x) = port_save_be64(x))
+#define PORT_SAVE_SWAP(p, kind, size) ((void) port_save_begin((p), (kind), (size)))
+#define PORT_SAVE_SEMBLOCK(p) ((u8 *) port_save_semblock(p))
 #else
+#define PORT_SAVE_SWAP(p, kind, size)
+#define PORT_SAVE_SEMBLOCK(p) (p)
 #define PORT_SPIN()
 #define PORT_FE_LOADED()
+#define PORT_SAVE_BEGIN(p, kind, size)
+#define PORT_SAVE_END(p, kind, size)
+#define PORT_SAVE_BE64(x)
 #endif
 
 #endif

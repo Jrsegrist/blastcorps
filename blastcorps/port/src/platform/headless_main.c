@@ -26,7 +26,11 @@
  *     --boot-count N     virtual time (counts since power-on) when hd_code
  *                        starts (0); retraces stay on multiples of 781250
  *     --cmdline STR      the debug command line at PI 0xFFB000 (default none)
+ *     --mpk FILE         Controller Pak 1 image (mupen64plus .mpk format: four
+ *                        32 KB paks, controller 1's first; created if missing)
+ *     --print            print the game's debug messages (func_8029A7E4)
  *     -v / -q            verbose / quiet */
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -39,12 +43,26 @@ static void usage(void) {
                     "       [--dump-dir DIR] [--trace FILE] [--input FILE] [--no-controller] [--gettime FILE]\n"
                     "       [--frame-done FILE] [--clock FILE] [--syms FILE] [--sync FILE] [--load-log]\n"
                     "       [--eeprom FILE] [--no-eeprom] [--gfx-cycles N] [--small-gfx-cycles N]\n"
-                    "       [--aud-cycles N] [--gettime-cost N] [--boot-count N] [--cmdline STR] [-v] [-q]\n");
+                    "       [--aud-cycles N] [--gettime-cost N] [--boot-count N] [--cmdline STR]\n"
+                    "       [--mpk FILE] [--print] [-v] [-q]\n");
     exit(1);
 }
 
 static unsigned num(const char *s) {
     return (unsigned) strtoul(s, NULL, 0);
+}
+
+static int g_game_print;
+unsigned plat_frames(void); /* save.c */
+
+/* the game's debug printf (hd_code 56010.c func_8029A7E4), with --print:
+ * to stderr like the platform's own log, prefixed with the frame number */
+void port_game_print(const char *fmt, va_list ap) {
+    if (g_game_print) {
+        fprintf(stderr, "game f=%u: ", plat_frames());
+        vfprintf(stderr, fmt, ap);
+        if (fmt[0] != 0 && fmt[strlen(fmt) - 1] != '\n') fputc('\n', stderr);
+    }
 }
 
 /* gensyms' stubs.c: a function nothing defines was called */
@@ -96,6 +114,8 @@ int main(int argc, char **argv) {
         else if (!strcmp(a, "--gettime-cost")) o.count_per_gettime = num(ARG());
         else if (!strcmp(a, "--boot-count")) o.boot_count = num(ARG());
         else if (!strcmp(a, "--cmdline")) o.cmdline = ARG();
+        else if (!strcmp(a, "--print")) o.game_print = g_game_print = 1;
+        else if (!strcmp(a, "--mpk")) o.mpk_path = ARG();
         else if (!strcmp(a, "-v")) host_verbose = 1;
         else if (!strcmp(a, "-q")) o.quiet = 1;
         else if (a[0] == '-') usage();

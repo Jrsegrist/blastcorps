@@ -28,6 +28,16 @@ COPIERS = {"func_8026A5CC",   # 23C20: copy in 8-byte units
            "func_802A75DC",   # vehicle block byte loop
            "memcpy", "bcopy", "bzero", "alCopy"}
 
+# Level-time code: in a level the front end's memory (0x801E7000-0x8021ED00)
+# is heap (decoded textures, models, collision records), so what these read
+# there says nothing about the front end's data image.  (Before this filter,
+# the texture decoder's u16 accesses swapped e.g. the pak file name strings
+# D_8020C000 and character set D_8020C01C as halfwords.)
+LEVEL_HEAP_USERS = {"func_802A5AE0", "func_802A5B90",   # 60F60: texture decode
+                    "func_8029F85C", "func_8029E5AC", "func_8029EF80",   # 56040: models
+                    "func_802A1388", "func_802A08E4", "func_802A396C",   # 5CB60: level/object load
+                    "func_802AC8CC", "func_802ACCCC"}  # 679E0: vehicle blocks
+
 
 def parse(paths, keep_copiers=False):
     acc = collections.defaultdict(collections.Counter)    # (region, off) -> Counter((width, kind))
@@ -41,6 +51,8 @@ def parse(paths, keep_copiers=False):
                 func = f[6] if len(f) > 6 else "?"
                 if (func in COPIERS or func.startswith("~")) and not keep_copiers:
                     continue
+                if f[1] == "fe" and func in LEVEL_HEAP_USERS:
+                    continue
                 off = int(f[2], 16)
                 if f[3] == "8" and off % 8 == 4:
                     continue      # the debugger reports a doubleword access twice (each half)
@@ -50,68 +62,15 @@ def parse(paths, keep_copiers=False):
     return acc, loads
 
 
-def parse_by_func(paths):
-    """like parse, keyed (region, off, func)"""
-    acc = collections.defaultdict(collections.Counter)
-    for p in paths:
-        for line in open(p):
-            f = line.split()
-            if not f or f[0] != "A":
-                continue
-            func = f[6] if len(f) > 6 else "?"
-            if func in COPIERS or func.startswith("~"):
-                continue
-            off = int(f[2], 16)
-            if f[3] == "8" and off % 8 == 4:
-                continue
-            acc[(f[1], off, func)][(f[3], f[4])] += int(f[5])
-    return acc, None
-
-
-def is_fe_func(name):
-    """a front-end function (text 0x801E7000-0x80207090)"""
-    try:
-        a = int(name[5:], 16) if name.startswith("func_") else 0
-    except ValueError:
-        return False
-    return 0x801E7000 <= a < 0x80207090
-
-
-def heap_users(paths):
-    """Functions that touch loaded assets.  Once a level loads, the heap
-    overwrites the front end (0x801E7000-0x8021ED00), and the tracer, which
-    keys the front-end data image by address, then charges their heap
-    accesses to front-end offsets (e.g. 60F60's texture code reading u16s
-    over the front end's "BLAST CORPS" pak name).  cmd_image drops the
-    front-end reads wider than a byte of hd_code functions that also read
-    assets (found by port/tools/compare.py: the pak name D_8020C000 was
-    half-swapped)."""
-    users = set()
-    for p in paths:
-        for line in open(p):
-            f = line.split()
-            if len(f) > 6 and f[0] == "A" and f[1].startswith("r"):
-                users.add(f[6])
-    return users
-
-
 def cmd_image(out, paths):
-    acc, _ = parse_by_func(paths)
-    users = heap_users(paths)
-    rows = set()
-    dropped = 0
-    for (region, off, func), c in acc.items():
+    acc, _ = parse(paths)
+    rows = []
+    for (region, off), c in acc.items():
         if region not in ("hd", "fe"):
             continue
         for (w, kind), n in c.items():
-            if kind != "R":
-                continue
-            if region == "fe" and func in users and w != "1" and not is_fe_func(func):
-                dropped += 1
-                continue
-            rows.add((region, off, w))
-    rows = list(rows)
-    print("front end: %d reads by heap users dropped" % dropped)
+            if kind == "R":
+                rows.append((region, off, w))
     rows.sort(key=lambda r: (r[0], r[1], r[2]))
     with open(out, "w") as f:
         f.write("# region offset width: reads of the hd_code / front-end data images by the original code\n")

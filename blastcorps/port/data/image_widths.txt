@@ -14,10 +14,6 @@ fe 328 4
 fe 32C 4
 fe 330 4
 fe 334 4
-fe 930 1
-fe 931 1
-fe 932 1
-fe 933 1
 fe 3FC0 1
 fe 3FC1 1
 fe 3FC2 1

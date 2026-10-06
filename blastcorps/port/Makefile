@@ -155,7 +155,7 @@ HL_UL := ul_lookat ul_lookatref ul_mtxcatf ul_mtxcatl ul_mtxutil ul_normalize ul
 # ... plus four with a big-endian view of a double, fixed up by sed (below)
 HL_UL_LE := ul_xprintf ul_xldtob ul_sinf ul_cosf
 # platform files that see the game's <ultra64.h>
-HL_PLAT := os_thread os_time os_hw os_si input plat_core
+HL_PLAT := os_thread os_time os_hw os_si input plat_core save pif
 # host-side platform files (<windows.h>, the C runtime)
 HL_HOST := plat_host headless_main
 # the load layer (byte order, port_on_dma) lives in src/load/; without it,
@@ -182,8 +182,11 @@ HL_UL_CFLAGS := -std=gnu89 -nostdinc -I$(UL_DIR) -I$(UL_DIR)/include -I$(UL_DIR)
 HL_PLAT_CFLAGS := $(HL_CFLAGS) -Isrc/platform -Wall -Wno-unknown-pragmas
 HL_HOST_CFLAGS := -O2 -msse2 -mfpmath=sse -Wall -Isrc -Isrc/platform -g
 
-# the front end's own SDK objects used natively (0E7B0 calls __osContDataCrc)
-HL_ULFE := ul_crc
+# the front end's own SDK objects used natively: 0E7B0 calls __osContDataCrc,
+# and its Controller Pak file system runs over the PIF emulation (pif.c)
+HL_ULFE := ul_crc ul_contpfs ul_contramread ul_contramwrite ul_pfsallocatefile ul_pfschecker \
+	ul_pfsdeletefile ul_pfsfilestate ul_pfsfreeblocks ul_pfsinitpak ul_pfsisplug ul_pfsreadwritefile \
+	ul_pfssearchfile
 
 HL_GAME_OBJS := $(HL_HD:%=$(H)/game/hd/%.o) $(HL_FE:%=$(H)/game/fe/%.o) \
 	$(HL_UL:%=$(H)/game/ul/%.o) $(HL_UL_LE:%=$(H)/game/ul/%.o) $(HL_ULFE:%=$(H)/game/ulfe/%.o) \
@@ -209,9 +212,31 @@ $(H)/game/fe/%.s: $(FE_SRC)/%.c include/port_ultratypes.h Makefile
 $(H)/game/ul/%.s: $(GAME_SRC)/%.c Makefile
 	@mkdir -p $(@D)
 	$(CC) $(HL_UL_CFLAGS) -S -o $@ $<
-$(H)/game/ulfe/%.s: $(FE_SRC)/%.c Makefile
+$(H)/game/ulfe/%.s: $(FE_SRC)/%.c $(H)/le/PRinternal/controller.h Makefile
 	@mkdir -p $(@D)
-	$(CC) $(HL_UL_CFLAGS) -S -o $@ $<
+	$(CC) -I$(H)/le $(HL_UL_CFLAGS) -S -o $@ $<
+# little-endian host: pif.c delivers the pak's system blocks with host-order
+# u16s, so the byte pairs the SDK also reads as one u16 swap places:
+# __OSInodeUnit's (bank, page) view of ipage, and __OSPackId's (banks,
+# version), which __osIdCheckSum sums as a u16 word
+$(H)/le/PRinternal/controller.h: $(UL_DIR)/include/PRinternal/controller.h Makefile
+	@mkdir -p $(@D)
+	sed -e '/\/\* 0x0 \*\/ u8 bank;/{N;s/\(.*\)u8 bank;\(.*\)\n\(.*\)u8 page;/\1u8 page;\2\n\3u8 bank;/}' \
+	    -e '/u8 banks;/{N;s/\(.*\)u8 banks;\(.*\)\n\(.*\)u8 version;/\1u8 version;\2\n\3u8 banks;/}' $< > $@
+	grep -A1 'u8 page;' $@ | grep -q 'u8 bank;'
+	grep -A1 'u8 version;' $@ | grep -q 'u8 banks;'
+# osPfsAllocateFile (this SDK) never sets the new directory entry's status and
+# reserved bytes: they are stack leftovers. On the N64 (mupen64plus, original
+# ROM) status is 2 (later SDKs' DIR_STATUS_OCCUPIED), reserved 0 for the
+# first file Blast Corps creates and 3 for the next ones; the native build
+# stores 2 and 0 (nothing reads them)
+$(H)/le/pfsallocatefile.c: $(UL_DIR)/src/io/pfsallocatefile.c Makefile
+	@mkdir -p $(@D)
+	sed -e 's/^\( *\)dir\.data_sum = 0;/\1dir.data_sum = 0;\n\1dir.status = 2; dir.reserved = 0; \/* port: the N64 stack leftovers *\//' $< > $@
+	grep -q 'dir.reserved = 0' $@
+$(H)/game/ulfe/ul_pfsallocatefile.s: $(H)/le/pfsallocatefile.c $(H)/le/PRinternal/controller.h
+	@mkdir -p $(@D)
+	$(CC) -I$(H)/le -I$(UL_DIR) $(HL_UL_CFLAGS) -S -o $@ $<
 $(H)/game/plat/%.s: src/platform/%.c src/platform/plat.h src/platform/plat_host.h src/platform/port_dma.h Makefile
 	@mkdir -p $(@D)
 	$(CC) $(HL_PLAT_CFLAGS) -S -o $@ $<

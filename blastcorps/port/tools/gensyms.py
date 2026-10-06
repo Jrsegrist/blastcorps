@@ -33,7 +33,8 @@ PIN_LIMIT = 0x80800000
 RUNTIME = {"__divdi3", "__udivdi3", "__moddi3", "__umoddi3", "__muldi3", "__ashldi3", "__ashrdi3",
            "__lshrdi3", "__fixdfdi", "__fixsfdi", "__fixunsdfdi", "__fixunssfdi", "__floatdidf",
            "__floatdisf", "__floatundidf", "__floatundisf", "memset", "memcpy", "memmove",
-           "sqrt", "sqrtf", "fabs", "fabsf", "___chkstk_ms", "__alloca"}
+           "sqrt", "sqrtf", "fabs", "fabsf", "___chkstk_ms", "__alloca", "__divmoddi4",
+           "__udivmoddi4", "strcpy", "strlen", "memcmp", "strchr"}
 
 
 def undefined_funcs():

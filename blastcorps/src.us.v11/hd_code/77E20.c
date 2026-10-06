@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/regs.h"
 
 extern void *D_80358074;
 
@@ -2791,12 +2792,6 @@ void func_802C04F0(u32 *src) {
 
 /* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* The three registers func_802A6274 (60F60.c) takes and may hand back changed. */
-typedef struct {
-    /* 0x0 */ s32 a3;
-    /* 0x4 */ s32 t6;
-    /* 0x8 */ s32 s1;
-} Io802A6274;
 
 s32 func_802A6274(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32 z, s32 w24, s32 w28,
                   s32 w18, s32 w1C, s32 w2C, s32 b35);

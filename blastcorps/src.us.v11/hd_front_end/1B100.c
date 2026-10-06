@@ -13,15 +13,10 @@
 
 #ifdef NON_MATCHING
 #include <ultra64.h>
+#include "game/regs.h"
 
 typedef struct Unk8029DEA0Entry Unk8029DEA0Entry;
 
-/* func_802A396C's register results (as in hd_code 5CB60.c) */
-typedef struct {
-    /* 0x0 */ u8 *s2; /* the loaded data (old heap pointer) */
-    /* 0x4 */ u8 *s4;
-    /* 0x8 */ u8 *a1; /* the new heap end */
-} Out802A396C;
 
 extern u8 *D_80358070; /* hd_code heap pointer */
 /* engine-sound channel tables in hd_code's 7D9D0 text blob */

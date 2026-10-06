@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/regs.h"
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -77,16 +78,6 @@ extern u8 D_80364456;
 extern u8 *D_803EBBEC;  /* end of the used D_803EBDB0 records */
 extern u8 D_803EBDB0[]; /* 0x38-byte triangle records, u16 id at +0x36 */
 
-/* Results of func_802AA460 that its asm callers read from FP registers (the
- * triangle scans below hand them on to their own callers). */
-typedef struct {
-    f32 pz;    /* f12: (f32) z */
-    f32 cross; /* f14: last edge cross product of the point */
-    f32 cz;    /* f20: centroid-ish z */
-    f32 side;  /* f22: last edge cross product of the centre (2.0 if none computed) */
-    f32 sideZ; /* f24: its z term (in/out: unchanged if never computed) */
-    f32 dz;    /* f26: last edge's z extent */
-} TriSideOut;
 
 /* Prototypes shared by the ground-height functions (func_802A92C8 ..
  * func_802A9A60, func_802A8768); their definitions are further down. */
@@ -1237,12 +1228,6 @@ s32 func_802A8590(s32 *p) {
 s32 func_802AE104(s32 angle); /* 16.16 cosine (69930.c) */
 s32 func_802AE160(s32 angle); /* 16.16 sine */
 
-/* func_802A860C's results besides t0 (the asm's t1, s3, fp). */
-typedef struct {
-    s32 t1; /* new z */
-    s32 s3; /* *px as read */
-    s32 fp; /* the cosine (func_802AE104's result) */
-} Out802A860C;
 
 /* Offset a point by a scaled length along a heading: n = *len (s16) scaled
  * by |f| (n * (1 - |f| / 2) when |f| < 1 (or NaN), else n / (2|f|), rounded
@@ -1327,12 +1312,6 @@ s32 func_802A93B0(s32 index, s32 *a, s32 *b, s32 *c, s16 *tbl, s32 x, s32 z, s16
 void func_802A95A4(s32 index, s32 *a, s32 *b, s32 *c, s16 *tbl, s32 x, s32 z, s16 *angle, s32 *ys, s32 key,
                    u8 *veh, s32 fpIn, s32 *s3, TriSideOut *f);
 
-/* func_802A8768's register results besides the FP state. */
-typedef struct {
-    s32 s3;  /* in/out: the slot functions' result */
-    s16 *s4; /* out: angle, or veh + 0x4C when func_802A92C8 ran */
-    s32 fp;  /* out: the second tilt (also stored to D_803ED390) */
-} Regs802A8768;
 
 /* (s32) (|d| << 16) / div (signed 32-bit divide: traps on div 0 and on
  * 0x80000000 / -1), through func_802ACF64, >> 4 (logical); negated as asked. */
@@ -1952,11 +1931,6 @@ s32 *func_802A992C(s16 *tbl, s32 y, s32 x, s32 z, s32 *dst, s32 *mid, s16 *angle
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* func_802A9A60's pointer results (the asm's s1 and s3). */
-typedef struct {
-    s32 *s1; /* dst + 9 (past the three records) */
-    s32 *s3; /* dst */
-} Out802A9A60;
 
 /* As func_802A992C but through func_802A9B1C: for i = 0..2, veh+0x9B = 0,
  * h = func_802A9B1C(i, x + dx, z + dz, y, key, veh, fp, f), dst[3i..3i+2] =
@@ -2570,15 +2544,6 @@ extern u16 D_803EBB98[]; /* product temp, same layout */
 #define MTX_FIX(m, row, col) \
     ((s32) (((m)[(row) * 4 + (col)] << 16) | (m)[16 + (row) * 4 + (col)]))
 
-/* Registers func_802AA890 reads and writes besides its arguments. */
-typedef struct {
-    s32 v1;  /* out: y' >> 11 */
-    s32 a0;  /* out: z' >> 11 */
-    s32 a3;  /* in/out: the last matrix used */
-    s32 s1;  /* in/out: y' */
-    s32 s2;  /* in/out: z' */
-    s32 s0;  /* in: only read when count == 0 */
-} MtxChainRegs;
 
 /* Concatenate `count` Mtx (each at base + offsets[i]) as M = M0 * M1 * ...
  * (64-bit products, >> 16) into D_803EBB58, then transform (x, y, z) by M in
@@ -2710,17 +2675,6 @@ s32 func_802AABE4(s32 id, u16 *desc, u8 *base, MtxChainRegs *regs, s16 **vertsOu
 #endif
 
 #ifdef NON_MATCHING
-/* Registers func_802AAF64 reads and writes besides its arguments. */
-typedef struct {
-    s32 t3;  /* in: value u0 at corner 0; out: interpolated u */
-    s32 t4;  /* in: value w0 at corner 0; out: interpolated w */
-    f32 f12; /* out: 1 - k */
-    s32 f14; /* out: raw bits; the asm leaves cvt.w.s's integer (= t4) there */
-    f32 f20; /* out: t (position along the far edge) */
-    f32 f22; /* out: x + dx0 * k */
-    f32 f24; /* out: z + dz0 * k */
-    f32 f26; /* out: (f32) z */
-} InterpRegs;
 
 void func_802AAD0C(s32 id, s32 x, s32 z, InterpRegs *r);
 void func_802AAE54(s32 id, s32 x, s32 z, InterpRegs *r);
@@ -3516,16 +3470,6 @@ extern u8 D_803BDFD8[]; /* 0x24-byte zones: s32 x, y, z, radius; u8 flags at +0x
 extern u8 D_80364A6E;   /* default level */
 extern u8 D_80364460[]; /* 0x74-byte records: s32 id at +0x5C, level at +0x60 */
 
-/* Registers func_802ABD54 leaves for its asm callers (the last zone looked at). */
-typedef struct {
-    s32 t6; /* zone x */
-    s32 t7; /* zone y */
-    s32 s0; /* zone z */
-    s32 s1; /* distance, or the scaled term when a level was computed */
-    s32 s2; /* zone radius */
-    s32 s3; /* scan counter, then zone byte +0x14 (or +0x10 when that is 0) */
-    s32 s4; /* scan pointer, then zone byte +0x10 (when +0x14 != 0) */
-} ZoneScanRegs;
 
 /* Find the first zone (D_803BDFD8 .. *D_803BDFD4, 0x24 bytes) within whose
  * radius the point (x, y, z) lies (distance by func_802ABCDC), whose byte
@@ -3716,18 +3660,6 @@ extern u8 *D_803BDAF4; /* 0x14-byte triangles (as func_802AA094's) */
 extern u8 *D_803BDAF8; /* their end */
 extern s32 D_803EBBFC;
 
-/* Registers func_802AC0BC leaves for its asm callers. */
-typedef struct {
-    s32 a1; /* found flag */
-    s32 a3; /* func_802AA2E4's a3 (in/out) */
-    s32 t6; /* func_802AA2E4's t6 (in/out) */
-    s32 t7; /* = fp: the list end */
-    s32 fp;
-    s32 s1; /* x0, y0, z0, x1 of the last triangle loaded (in/out) */
-    s32 s2;
-    s32 s3;
-    s32 s4;
-} TriScanRegs;
 
 /* func_802A9DC0's nearest-height scan over D_803BDAF4 .. D_803BDAF8: each
  * nearer-or-equal hit sets the found flag and D_803EBBFC = h. Returns the

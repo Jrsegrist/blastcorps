@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/regs.h"
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -25,36 +26,6 @@
 /* obj + the word at obj + off (the model header's self-relative offsets) */
 #define OBJ_PTR(obj, off) ((u8 *) (obj) + *(s32 *) ((u8 *) (obj) + (off)))
 
-/* Registers func_802AA890 reads and writes besides its arguments (62740.c). */
-typedef struct {
-    s32 v1;
-    s32 a0;
-    s32 a3;
-    s32 s1;
-    s32 s2;
-    s32 s0;
-} MtxChainRegs;
-/* FP results of the triangle scans (62740.c): f12, f14, f20, f22, f24, f26. */
-typedef struct {
-    f32 pz;
-    f32 cross;
-    f32 cz;
-    f32 side;
-    f32 sideZ;
-    f32 dz;
-} TriSideOut;
-/* func_802A860C's results besides its return value (62740.c). */
-typedef struct {
-    s32 t1;
-    s32 s3;
-    s32 fp;
-} Out802A860C;
-/* func_802A8768's register results besides the FP state (62740.c). */
-typedef struct {
-    s32 s3;
-    s16 *s4;
-    s32 fp;
-} Regs802A8768;
 
 typedef struct {
     u8 *veh;             /* the vehicle block (asm $gp) */

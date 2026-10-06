@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/regs.h"
 
 #ifdef NON_MATCHING
 /* Shared declarations for the NON_MATCHING (port) rewrites below. Most of
@@ -26,21 +27,10 @@ typedef struct {
     /* 0x8 */ u8 *s4; /* func_802A08E4's s4 (in: the ROM start) */
 } Out802A32CC;
 
-/* Register results of func_802A396C its asm callers read. */
-typedef struct {
-    /* 0x0 */ u8 *s2; /* the loaded data (old heap pointer) */
-    /* 0x4 */ u8 *s4; /* func_802A08E4's s4 (in: the ROM start) */
-    /* 0x8 */ u8 *a1; /* the new heap end */
-} Out802A396C;
 
 void func_802A32CC(s32 type, Out802A32CC *out);
 void func_802A396C(s32 type, Out802A396C *out);
 
-typedef struct {
-    /* 0x0 */ u8 **s2;
-    /* 0x4 */ u8 *s3;
-    /* 0x8 */ u8 *s4; /* in/out */
-} Unk802A08E4Regs; /* as in 5BF40.c */
 void func_802A08E4(u32 *dl, u32 *end, Unk802A08E4Regs *r);
 #endif
 

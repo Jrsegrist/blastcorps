@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/regs.h"
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -20,69 +21,9 @@
 #define VEH_U16(v, off) (*(u16 *) ((u8 *) (v) + (off)))
 #define VEH_S16(v, off) (*(s16 *) ((u8 *) (v) + (off)))
 
-/* The six words D_803EDBE8..D_803EDBFC: position, model header, and the two
- * 0x800-byte matrix buffers taken from the heap D_80358070 (swapped every
- * frame by D_8035805C). */
-typedef struct {
-    s32 x;
-    s32 y;
-    s32 z;
-    u8 *model;
-    u64 *bufA;
-    u64 *bufB;
-} PortVehPos;
 
-#ifndef ZONE_SCAN_REGS_DEFINED
-#define ZONE_SCAN_REGS_DEFINED
-/* func_802ABD54's scan registers (62740.c), in and out. */
-typedef struct {
-    s32 t6; /* zone x */
-    s32 t7; /* zone y */
-    s32 s0; /* zone z */
-    s32 s1; /* distance / level term */
-    s32 s2; /* zone radius */
-    s32 s3; /* scan counter / zone byte */
-    s32 s4; /* scan pointer / zone byte */
-} ZoneScanRegs;
 s32 func_802ABD54(s32 id, s32 x, s32 y, s32 z, ZoneScanRegs *r);
-#endif
 
-/* As in 62740.c: func_802AA890's extra registers. */
-typedef struct {
-    s32 v1;
-    s32 a0;
-    s32 a3;
-    s32 s1;
-    s32 s2;
-    s32 s0;
-} MtxChainRegs;
-
-/* As in 62740.c: the FP state the ground scans pass along (f12 .. f26). */
-typedef struct {
-    f32 pz;
-    f32 cross;
-    f32 cz;
-    f32 side;
-    f32 sideZ;
-    f32 dz;
-} TriSideOut;
-
-typedef struct {
-    s32 *s1;
-    s32 *s3;
-} Out802A9A60;
-
-typedef struct {
-    s32 t1;
-    s32 s3;
-    s32 fp;
-} Out802A860C;
-
-typedef struct {
-    s32 s3;
-    s16 *s4;
-    s32 fp;
-} Regs802A8768;
 
 extern u8 D_803EDB40[];  /* vehicle 1 record */
 extern u32 D_803EDBE8[]; /* vehicle 1 PortVehPos */
@@ -531,20 +472,7 @@ void func_802B02A0(s32 fp) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef ZONE_SCAN_REGS_DEFINED
-#define ZONE_SCAN_REGS_DEFINED
-/* func_802ABD54's scan registers (62740.c), in and out. */
-typedef struct {
-    s32 t6; /* zone x */
-    s32 t7; /* zone y */
-    s32 s0; /* zone z */
-    s32 s1; /* distance / level term */
-    s32 s2; /* zone radius */
-    s32 s3; /* scan counter / zone byte */
-    s32 s4; /* scan pointer / zone byte */
-} ZoneScanRegs;
 s32 func_802ABD54(s32 id, s32 x, s32 y, s32 z, ZoneScanRegs *r);
-#endif
 extern u32 D_803EDBE8[]; /* x, y, z */
 /* Zone level lookup (func_802ABD54) for vehicle id 1 at its position
  * D_803EDBE8..+8; returns func_802ABD54's v1 (the zone list end).

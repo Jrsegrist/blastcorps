@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/regs.h"
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -245,12 +246,6 @@ void func_802D2A74(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* The three registers func_802A6274 (60F60.c) takes and may hand back changed. */
-typedef struct {
-    /* 0x0 */ s32 a3;
-    /* 0x4 */ s32 t6;
-    /* 0x8 */ s32 s1;
-} Io802A6274;
 
 s32 func_802A6274(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32 z, s32 w24, s32 w28,
                   s32 w18, s32 w1C, s32 w2C, s32 b35);
@@ -386,18 +381,6 @@ void func_802D2C20(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef MTX_CHAIN_REGS_DEFINED
-#define MTX_CHAIN_REGS_DEFINED
-/* Registers func_802AA890 reads and writes besides its arguments (62740.c). */
-typedef struct {
-    s32 v1; /* out: y' >> 11 */
-    s32 a0; /* out: z' >> 11 */
-    s32 a3; /* in/out: the last matrix used */
-    s32 s1; /* in/out: y' */
-    s32 s2; /* in/out: z' */
-    s32 s0; /* in: only read when count == 0 */
-} MtxChainRegs;
-#endif
 extern u8 D_8035805C;     /* which of the two save copies is current */
 extern u8 *D_803FCD54;    /* model header: word offsets to the part lists */
 extern u8 *D_803FCD58;    /* the two save copies */

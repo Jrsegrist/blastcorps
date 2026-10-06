@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/regs.h"
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -476,12 +477,6 @@ void func_802A5FA8(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* The three registers func_802A6274 takes and may hand back changed. */
-typedef struct {
-    /* 0x0 */ s32 a3; /* in: tag byte for D_803EB792; out: last D_803EB770 byte scanned */
-    /* 0x4 */ s32 t6; /* in: word for rec+0x20; out: (s16) def[0] (when a record was set up) */
-    /* 0x8 */ s32 s1; /* in: word for rec+0x14; out: the record's 0x100-byte buffer (when def[0] != -1) */
-} Io802A6274;
 
 extern u8 D_803EB792;
 s32 func_802ABC88(s32 id, s32 n, u8 **recOut);

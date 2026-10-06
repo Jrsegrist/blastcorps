@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/regs.h"
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -36,11 +37,6 @@ void func_8029E558(u8 *base, u8 *other, Unk8029DEA0Entry *ch); /* 56040 */
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-typedef struct {
-    /* 0x0 */ u8 *s2; /* the loaded data */
-    /* 0x4 */ u8 *s4;
-    /* 0x8 */ u8 *a1; /* the new heap end */
-} Out802A396C; /* as in 5CB60.c */
 extern u32 D_80358070; /* bump allocator */
 void func_802A396C(s32 type, Out802A396C *out);                                  /* 5CB60 */
 void func_802CEE14(s32 x, s32 y, s32 z);

@@ -1,44 +1,12 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/regs.h"
 
 #ifdef NON_MATCHING
 /* Register-block types shared by this file's rewrites (each mirrors the
  * callee's definition in 62740.c / 60F60.c; later per-function copies are
  * guarded out). */
-#define TRI_SCAN_TYPES_DEFINED
-/* func_802AC0BC's / the ground functions' FP register state (62740.c). */
-typedef struct {
-    f32 pz;    /* f12 */
-    f32 cross; /* f14 */
-    f32 cz;    /* f20 */
-    f32 side;  /* f22 */
-    f32 sideZ; /* f24 */
-    f32 dz;    /* f26 */
-} TriSideOut;
-typedef struct {
-    s32 a1; /* found flag */
-    s32 a3;
-    s32 t6;
-    s32 t7;
-    s32 fp;
-    s32 s1;
-    s32 s2;
-    s32 s3;
-    s32 s4;
-} TriScanRegs;
 s32 func_802AC0BC(s32 x, s32 z, s32 y, TriSideOut *f, TriScanRegs *r);
-/* func_802A860C's results besides t0 (62740.c). */
-typedef struct {
-    s32 t1; /* new z */
-    s32 s3; /* *px as read */
-    s32 fp; /* the cosine */
-} Out802A860C;
-/* func_802A8768's register results besides the FP state (62740.c). */
-typedef struct {
-    s32 s3;  /* in/out: the slot functions' result */
-    s16 *s4; /* out */
-    s32 fp;  /* out: the second tilt */
-} Regs802A8768;
 #endif
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
@@ -50,18 +18,6 @@ typedef struct {
  * more specific non-ABI explanation where one was already worked out. */
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef MTX_CHAIN_REGS_DEFINED
-#define MTX_CHAIN_REGS_DEFINED
-/* Registers func_802AA890 reads and writes besides its arguments (62740.c). */
-typedef struct {
-    s32 v1; /* out: y' >> 11 */
-    s32 a0; /* out: z' >> 11 */
-    s32 a3; /* in/out: the last matrix used */
-    s32 s1; /* in/out: y' */
-    s32 s2; /* in/out: z' */
-    s32 s0; /* in: only read when count == 0 */
-} MtxChainRegs;
-#endif
 extern s32 D_80358070;   /* matrix buffer allocator */
 extern u8 *D_803EF704;   /* the 0xFF object's two 0xC00-byte matrix buffers */
 extern u8 *D_803EF708;
@@ -257,20 +213,7 @@ void func_802BA074(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef ZONE_SCAN_REGS_DEFINED
-#define ZONE_SCAN_REGS_DEFINED
-/* func_802ABD54's scan registers (62740.c), in and out. */
-typedef struct {
-    s32 t6; /* zone x */
-    s32 t7; /* zone y */
-    s32 s0; /* zone z */
-    s32 s1; /* distance / level term */
-    s32 s2; /* zone radius */
-    s32 s3; /* scan counter / zone byte */
-    s32 s4; /* scan pointer / zone byte */
-} ZoneScanRegs;
 s32 func_802ABD54(s32 id, s32 x, s32 y, s32 z, ZoneScanRegs *r);
-#endif
 extern s32 D_803EF6DC;
 extern s32 D_803EF6E0;
 extern s32 D_803EF6E4;
@@ -348,18 +291,6 @@ void func_802BA148(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef MTX_CHAIN_REGS_DEFINED
-#define MTX_CHAIN_REGS_DEFINED
-/* Registers func_802AA890 reads and writes besides its arguments (62740.c). */
-typedef struct {
-    s32 v1; /* out: y' >> 11 */
-    s32 a0; /* out: z' >> 11 */
-    s32 a3; /* in/out: the last matrix used */
-    s32 s1; /* in/out: y' */
-    s32 s2; /* in/out: z' */
-    s32 s0; /* in: only read when count == 0 */
-} MtxChainRegs;
-#endif
 extern u8 D_803EF630[];
 extern u8 D_803EF330[];
 extern u8 D_803643D6;
@@ -655,17 +586,8 @@ void func_802BA91C(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef IO_802A6274_DEFINED
-#define IO_802A6274_DEFINED
-/* The three registers func_802A6274 takes and may hand back changed (60F60.c). */
-typedef struct {
-    s32 a3; /* in: tag byte for D_803EB792; out: last D_803EB770 byte scanned */
-    s32 t6; /* in: word for rec+0x20; out: (s16) def[0] */
-    s32 s1; /* in: word for rec+0x14; out: the record's buffer */
-} Io802A6274;
 s32 func_802A6274(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32 z, s32 w24, s32 w28,
                   s32 w18, s32 w1C, s32 w2C, s32 b35);
-#endif
 extern u8 D_803643D6;
 extern u8 D_803643D8;
 extern u8 D_803643D9;
@@ -772,18 +694,6 @@ void func_802BA9A0(s32 h2) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef MTX_CHAIN_REGS_DEFINED
-#define MTX_CHAIN_REGS_DEFINED
-/* Registers func_802AA890 reads and writes besides its arguments (62740.c). */
-typedef struct {
-    s32 v1; /* out: y' >> 11 */
-    s32 a0; /* out: z' >> 11 */
-    s32 a3; /* in/out: the last matrix used */
-    s32 s1; /* in/out: y' */
-    s32 s2; /* in/out: z' */
-    s32 s0; /* in: only read when count == 0 */
-} MtxChainRegs;
-#endif
 extern u8 D_8035805C;  /* selects which of the two matrix buffers is current */
 extern s16 D_803ED390; /* model rotation x, y, z (0x803ED390/92/94) */
 extern s16 D_803ED392;
@@ -1045,20 +955,7 @@ void func_802BB1A0(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef ZONE_SCAN_REGS_DEFINED
-#define ZONE_SCAN_REGS_DEFINED
-/* func_802ABD54's scan registers (62740.c), in and out. */
-typedef struct {
-    s32 t6; /* zone x */
-    s32 t7; /* zone y */
-    s32 s0; /* zone z */
-    s32 s1; /* distance / level term */
-    s32 s2; /* zone radius */
-    s32 s3; /* scan counter / zone byte */
-    s32 s4; /* scan pointer / zone byte */
-} ZoneScanRegs;
 s32 func_802ABD54(s32 id, s32 x, s32 y, s32 z, ZoneScanRegs *r);
-#endif
 extern u32 D_803EFAC8[]; /* x, y, z */
 /* Zone level lookup (func_802ABD54) for vehicle id 6 at its position
  * D_803EFAC8..+8; returns func_802ABD54's v1 (the zone list end).
@@ -1293,40 +1190,7 @@ check2:
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef TRI_SCAN_TYPES_DEFINED
-#define TRI_SCAN_TYPES_DEFINED
-/* func_802AC0BC's FP and integer register results (62740.c), in and out. */
-typedef struct {
-    f32 pz;    /* f12 */
-    f32 cross; /* f14 */
-    f32 cz;    /* f20 */
-    f32 side;  /* f22 */
-    f32 sideZ; /* f24 */
-    f32 dz;    /* f26 */
-} TriSideOut;
-typedef struct {
-    s32 a1; /* found flag */
-    s32 a3;
-    s32 t6;
-    s32 t7;
-    s32 fp;
-    s32 s1;
-    s32 s2;
-    s32 s3;
-    s32 s4;
-} TriScanRegs;
 s32 func_802AC0BC(s32 x, s32 z, s32 y, TriSideOut *f, TriScanRegs *r);
-#endif
-/* func_8029C6E4's register results (56040.c). */
-typedef struct {
-    s32 s0;
-    s32 s1;
-    s32 s2;
-    s32 s3;
-    s32 s4; /* 1 = found */
-    u8 *t6;
-    s32 t7;
-} Unk8029C6E4Out;
 void func_8029C6E4(Unk8029C6E4Out *o);
 extern s32 D_802E8BDC; /* current level */
 

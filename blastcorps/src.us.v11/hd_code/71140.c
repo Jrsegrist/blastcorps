@@ -1,75 +1,12 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/regs.h"
 
 #ifdef NON_MATCHING
 /* Register-block types shared by this file's rewrites (each mirrors the
  * callee's definition in 62740.c / 60F60.c; later per-function copies are
  * guarded out). */
-#define MTX_CHAIN_REGS_DEFINED
-/* Registers func_802AA890 reads and writes besides its arguments. */
-typedef struct {
-    s32 v1; /* out: y' >> 11 */
-    s32 a0; /* out: z' >> 11 */
-    s32 a3; /* in/out: the last matrix used */
-    s32 s1; /* in/out: y' */
-    s32 s2; /* in/out: z' */
-    s32 s0; /* in: only read when count == 0 */
-} MtxChainRegs;
-#define ZONE_SCAN_REGS_DEFINED
-/* func_802ABD54's scan registers, in and out. */
-typedef struct {
-    s32 t6;
-    s32 t7;
-    s32 s0;
-    s32 s1;
-    s32 s2;
-    s32 s3;
-    s32 s4;
-} ZoneScanRegs;
 s32 func_802ABD54(s32 id, s32 x, s32 y, s32 z, ZoneScanRegs *r);
-/* The ground functions' FP register state (f12, f14, f20, f22, f24, f26). */
-typedef struct {
-    f32 pz;
-    f32 cross;
-    f32 cz;
-    f32 side;
-    f32 sideZ;
-    f32 dz;
-} TriSideOut;
-/* func_802AAD0C / func_802AAE54 / func_802AB9A4's register results. */
-typedef struct {
-    s32 t3;  /* interpolated u */
-    s32 t4;  /* interpolated w */
-    f32 f12;
-    s32 f14; /* raw bits */
-    f32 f20;
-    f32 f22;
-    f32 f24; /* also an input */
-    f32 f26;
-} InterpRegs;
-/* func_802A860C's results besides t0. */
-typedef struct {
-    s32 t1;
-    s32 s3;
-    s32 fp;
-} Out802A860C;
-/* func_802A8768's register results besides the FP state. */
-typedef struct {
-    s32 s3;
-    s16 *s4;
-    s32 fp;
-} Regs802A8768;
-/* func_802A9A60's pointer results. */
-typedef struct {
-    s32 *s1;
-    s32 *s3;
-} Out802A9A60;
-/* The three registers func_802A6274 takes and may hand back changed. */
-typedef struct {
-    s32 a3;
-    s32 t6;
-    s32 s1;
-} Io802A6274;
 s32 func_802A6274(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32 z, s32 w24, s32 w28,
                   s32 w18, s32 w1C, s32 w2C, s32 b35);
 extern u8 D_803EEA90[];  /* vehicle 5's state block (the asm's $gp) */
@@ -397,20 +334,7 @@ void func_802B5FAC(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef ZONE_SCAN_REGS_DEFINED
-#define ZONE_SCAN_REGS_DEFINED
-/* func_802ABD54's scan registers (62740.c), in and out. */
-typedef struct {
-    s32 t6; /* zone x */
-    s32 t7; /* zone y */
-    s32 s0; /* zone z */
-    s32 s1; /* distance / level term */
-    s32 s2; /* zone radius */
-    s32 s3; /* scan counter / zone byte */
-    s32 s4; /* scan pointer / zone byte */
-} ZoneScanRegs;
 s32 func_802ABD54(s32 id, s32 x, s32 y, s32 z, ZoneScanRegs *r);
-#endif
 extern u32 D_803EEB38[]; /* x, y, z */
 /* Zone level lookup (func_802ABD54) for vehicle id 5 at its position
  * D_803EEB38..+8; returns func_802ABD54's v1 (the zone list end).
@@ -1012,18 +936,6 @@ void func_802B6C28(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef MTX_CHAIN_REGS_DEFINED
-#define MTX_CHAIN_REGS_DEFINED
-/* Registers func_802AA890 reads and writes besides its arguments (62740.c). */
-typedef struct {
-    s32 v1; /* out: y' >> 11 */
-    s32 a0; /* out: z' >> 11 */
-    s32 a3; /* in/out: the last matrix used */
-    s32 s1; /* in/out: y' */
-    s32 s2; /* in/out: z' */
-    s32 s0; /* in: only read when count == 0 */
-} MtxChainRegs;
-#endif
 extern u8 D_8035805C;   /* selects which of the two matrix buffers is current */
 extern s16 D_803ED392;  /* model rotation y (62740.c) */
 extern u8 *D_803EEB44;  /* this vehicle's model header */

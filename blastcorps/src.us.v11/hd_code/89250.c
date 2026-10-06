@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/regs.h"
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -10,11 +11,6 @@
  * more specific non-ABI explanation where one was already worked out. */
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-typedef struct {
-    /* 0x0 */ s32 a3;
-    /* 0x4 */ s32 t6;
-    /* 0x8 */ s32 s1;
-} Io802A6274; /* as in 60F60.c */
 s32 func_802A6274(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32 z, s32 w24, s32 w28,
                   s32 w18, s32 w1C, s32 w2C, s32 b35);
 extern u8 D_802C382C[]; /* a definition inside the 7D9D0 blob */
@@ -553,11 +549,6 @@ void func_802CE5BC(s32 x, s32 y, s32 z, s32 r, s32 kind, s32 tag) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-typedef struct {
-    s32 t1; /* new z */
-    s32 s3; /* x as read */
-    s32 fp; /* the cosine */
-} Out802A860C; /* as in 62740.c */
 s32 func_802A860C(f32 f, s32 angle, s16 *len, s32 *px, s32 *pz, Out802A860C *out); /* 62740 */
 extern s32 D_803F9320;
 extern s32 D_803F9324;
@@ -582,14 +573,6 @@ void func_802CE65C(s32 x, s32 z, s32 len, s32 angle) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-typedef struct {
-    f32 pz;    /* f12 */
-    f32 cross; /* f14 */
-    f32 cz;    /* f20 */
-    f32 side;  /* f22 */
-    f32 sideZ; /* f24 (in/out) */
-    f32 dz;    /* f26 */
-} TriSideOut; /* as in 62740.c */
 s32 func_802A9DC0(s32 x, s32 z, s32 y, TriSideOut *f, s32 *fpOut);
 s32 func_802A9F24(s32 x, s32 z, s32 y, s32 skip, TriSideOut *f, s32 *idOut, s32 *a2Out);
 s32 func_802AA094(s32 x, s32 z, s32 y, TriSideOut *f, s32 *t3io, s32 *fpio);

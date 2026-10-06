@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/regs.h"
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -10,30 +11,7 @@
  * more specific non-ABI explanation where one was already worked out. */
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef TRI_SCAN_TYPES_DEFINED
-#define TRI_SCAN_TYPES_DEFINED
-/* func_802AC0BC's FP and integer register results (62740.c), in and out. */
-typedef struct {
-    f32 pz;    /* f12 */
-    f32 cross; /* f14 */
-    f32 cz;    /* f20 */
-    f32 side;  /* f22 */
-    f32 sideZ; /* f24 */
-    f32 dz;    /* f26 */
-} TriSideOut;
-typedef struct {
-    s32 a1; /* found flag */
-    s32 a3;
-    s32 t6;
-    s32 t7;
-    s32 fp;
-    s32 s1;
-    s32 s2;
-    s32 s3;
-    s32 s4;
-} TriScanRegs;
 s32 func_802AC0BC(s32 x, s32 z, s32 y, TriSideOut *f, TriScanRegs *r);
-#endif
 extern u8 D_803F8AA0[];  /* this vehicle's state block (the asm's $gp) */
 extern u8 D_803F87A0[];  /* its animation channel table */
 extern u32 D_803F8B48[]; /* x, y, z */
@@ -262,51 +240,7 @@ void func_802CA1AC(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef TRI_SCAN_TYPES_DEFINED
-#define TRI_SCAN_TYPES_DEFINED
-/* func_802AC0BC's FP and integer register results (62740.c), in and out. */
-typedef struct {
-    f32 pz;    /* f12 */
-    f32 cross; /* f14 */
-    f32 cz;    /* f20 */
-    f32 side;  /* f22 */
-    f32 sideZ; /* f24 */
-    f32 dz;    /* f26 */
-} TriSideOut;
-typedef struct {
-    s32 a1; /* found flag */
-    s32 a3;
-    s32 t6;
-    s32 t7;
-    s32 fp;
-    s32 s1;
-    s32 s2;
-    s32 s3;
-    s32 s4;
-} TriScanRegs;
 s32 func_802AC0BC(s32 x, s32 z, s32 y, TriSideOut *f, TriScanRegs *r);
-#endif
-#ifndef MTX_CHAIN_REGS_DEFINED
-#define MTX_CHAIN_REGS_DEFINED
-/* func_802AA890's extra registers (62740.c), as func_8029C454 and
- * func_802ABBEC pass them through. */
-typedef struct {
-    s32 v1; /* out */
-    s32 a0; /* out */
-    s32 a3; /* in/out */
-    s32 s1; /* in/out */
-    s32 s2; /* in/out */
-    s32 s0; /* in */
-} MtxChainRegs;
-#endif
-#ifndef OUT_802A9A60_DEFINED
-#define OUT_802A9A60_DEFINED
-/* func_802A9A60's pointer results (the asm's s1 and s3; 62740.c). */
-typedef struct {
-    s32 *s1; /* dst + 9 */
-    s32 *s3; /* dst */
-} Out802A9A60;
-#endif
 extern u32 D_803F8B48[]; /* x, y, z */
 s32 func_802A9A60(s16 *tbl, s32 y, s32 x, s32 z, s32 *dst, s32 *mid, s16 *angle, s32 key, s32 fp, u8 *veh,
                   TriSideOut *f, Out802A9A60 *out);
@@ -345,20 +279,7 @@ void func_802CA1F8(s32 fp) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef ZONE_SCAN_REGS_DEFINED
-#define ZONE_SCAN_REGS_DEFINED
-/* func_802ABD54's scan registers (62740.c), in and out. */
-typedef struct {
-    s32 t6; /* zone x */
-    s32 t7; /* zone y */
-    s32 s0; /* zone z */
-    s32 s1; /* distance / level term */
-    s32 s2; /* zone radius */
-    s32 s3; /* scan counter / zone byte */
-    s32 s4; /* scan pointer / zone byte */
-} ZoneScanRegs;
 s32 func_802ABD54(s32 id, s32 x, s32 y, s32 z, ZoneScanRegs *r);
-#endif
 extern u32 D_803F8B48[]; /* x, y, z */
 /* Zone level lookup (func_802ABD54) for vehicle id 0xA at its position
  * D_803F8B48..+8; returns func_802ABD54's v1 (the zone list end).
@@ -375,20 +296,6 @@ s32 func_802CA308(ZoneScanRegs *r) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef INTERP_REGS_DEFINED
-#define INTERP_REGS_DEFINED
-/* func_802AAD0C's register results (62740.c). */
-typedef struct {
-    s32 t3;  /* interpolated u */
-    s32 t4;  /* interpolated w */
-    f32 f12;
-    s32 f14; /* raw bits */
-    f32 f20;
-    f32 f22;
-    f32 f24; /* also an input (kept on some paths) */
-    f32 f26;
-} InterpRegs;
-#endif
 void func_802AAD0C(s32 id, s32 x, s32 z, InterpRegs *r);
 s32 func_802A94A4(s32 index, s16 *tbl, s16 *angle, s32 *dz);
 
@@ -422,15 +329,6 @@ void func_802CA34C(s32 id, InterpRegs *r) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef REGS_802A8768_DEFINED
-#define REGS_802A8768_DEFINED
-/* func_802A8768's register results besides the FP state (62740.c). */
-typedef struct {
-    s32 s3;  /* in/out */
-    s16 *s4; /* out */
-    s32 fp;  /* out */
-} Regs802A8768;
-#endif
 extern u8 D_803ED40B;
 s32 func_802AB9A4(s16 *tbl, s32 x1, u16 *angle, s32 id, s32 z1, s32 x2, s32 z2, s32 *s3Out, InterpRegs *r);
 void func_802AAE54(s32 id, s32 x, s32 z, InterpRegs *r);
@@ -484,15 +382,6 @@ void func_802CA3D8(s32 id, s32 *s3, InterpRegs *r) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef OUT_802A860C_DEFINED
-#define OUT_802A860C_DEFINED
-/* func_802A860C's results besides t0 (62740.c). */
-typedef struct {
-    s32 t1; /* new z */
-    s32 s3; /* *px as read */
-    s32 fp; /* the cosine */
-} Out802A860C;
-#endif
 extern u8 D_8035805C;
 extern u64 *D_803F8B58;
 extern u64 *D_803F8B5C;
@@ -721,15 +610,6 @@ void func_802CA4E0(void) {
         }                                                               \
         (out) = _r;                                                     \
     } while (0)
-#endif
-#ifndef IO_802A6274_DEFINED
-#define IO_802A6274_DEFINED
-/* func_802A6274's in/out registers (60F60.c). */
-typedef struct {
-    s32 a3;
-    s32 t6;
-    s32 s1;
-} Io802A6274;
 #endif
 extern f32 D_803F8B60; /* engine/tilt animation value (0.5 = centred) */
 extern s32 D_803F8B64; /* jump: a (initial speed) */
@@ -994,19 +874,6 @@ f32 func_802CB3C8(s32 side) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef MTX_CHAIN_REGS_DEFINED
-#define MTX_CHAIN_REGS_DEFINED
-/* func_802AA890's extra registers (62740.c), as func_8029C454 and
- * func_802ABBEC pass them through. */
-typedef struct {
-    s32 v1; /* out */
-    s32 a0; /* out */
-    s32 a3; /* in/out */
-    s32 s1; /* in/out */
-    s32 s2; /* in/out */
-    s32 s0; /* in */
-} MtxChainRegs;
-#endif
 extern u8 *D_803F8B54; /* this vehicle's model: +0 / +4 / +8 offsets of the point lists, +0x18 the matrix */
 extern u8 D_8035805C;  /* which of the save copy pair is current */
 extern s16 D_803ED390[]; /* rotation angles x, y, z for func_802AA764 */

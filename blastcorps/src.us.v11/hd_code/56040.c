@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/regs.h"
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -90,35 +91,7 @@ extern f32 D_803B37BC;
 /* 4x4 s32 (16.16) matrix built by the func_8029F3D0 family. */
 extern s32 D_803B3730[16];
 
-/* Register outputs of func_8029C6E4 (s0-s3 are in/out: left alone unless
- * the asm loads them). */
-typedef struct {
-    /* 0x00 */ s32 s0; /* entry word 0 */
-    /* 0x04 */ s32 s1; /* entry word 4 */
-    /* 0x08 */ s32 s2; /* entry word 8 */
-    /* 0x0C */ s32 s3; /* entry word 0xC of the last kind-6 entry looked at */
-    /* 0x10 */ s32 s4; /* 1 = found */
-    /* 0x14 */ u8 *t6; /* entry where the scan stopped */
-    /* 0x18 */ s32 t7; /* last byte compared */
-} Unk8029C6E4Out;
 
-/* Callees in 62740.c (their C rewrites; register mappings in conventions.txt). */
-typedef struct {
-    f32 pz;    /* f12 */
-    f32 cross; /* f14 */
-    f32 cz;    /* f20 */
-    f32 side;  /* f22 */
-    f32 sideZ; /* f24 (in/out) */
-    f32 dz;    /* f26 */
-} TriSideOut; /* as in 62740.c */
-typedef struct {
-    s32 v1; /* out */
-    s32 a0; /* out */
-    s32 a3; /* in/out */
-    s32 s1; /* in/out */
-    s32 s2; /* in/out */
-    s32 s0; /* in */
-} MtxChainRegs; /* as in 62740.c */
 s32 func_802AA460(s32 x, s32 z, s32 x0, s32 z0, s32 x1, s32 z1, s32 x2, s32 z2, TriSideOut *out);
 s32 func_802AA5E0(s32 x, s32 z, s32 x0, s32 z0, s32 x1, s32 z1, s32 x2, s32 z2);
 s32 func_802AA890(s32 count, s32 *offsets, u8 *base, s32 x, s32 y, s32 z, MtxChainRegs *regs);
@@ -807,11 +780,6 @@ s32 func_8029B930(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-typedef struct {
-    /* 0x0 */ s32 a3;
-    /* 0x4 */ s32 t6;
-    /* 0x8 */ s32 s1;
-} Io802A6274; /* as in 60F60.c */
 s32 func_802A6274(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32 z, s32 w24, s32 w28,
                   s32 w18, s32 w1C, s32 w2C, s32 b35);
 extern u8 D_803A7428;

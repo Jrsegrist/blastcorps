@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/regs.h"
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -12,36 +13,6 @@
 /* Shared by the vehicle-13 setup / update functions below (C rewrites). */
 typedef struct Unk8029DEA0Entry Unk8029DEA0Entry; /* channel table entry (56040.c) */
 
-/* Results of func_802AA460 that the triangle scans hand on in FP registers
- * (62740.c). */
-typedef struct {
-    f32 pz;    /* f12 */
-    f32 cross; /* f14 */
-    f32 cz;    /* f20 */
-    f32 side;  /* f22 */
-    f32 sideZ; /* f24 (in/out: unchanged if never computed) */
-    f32 dz;    /* f26 */
-} TriSideOut;
-
-/* func_802A9A60's pointer results (62740.c). */
-typedef struct {
-    s32 *s1;
-    s32 *s3;
-} Out802A9A60;
-
-/* func_802A860C's extra results (62740.c). */
-typedef struct {
-    s32 t1; /* new z */
-    s32 s3; /* x as read */
-    s32 fp; /* the cosine */
-} Out802A860C;
-
-/* func_802A8768's register results besides the FP state (62740.c). */
-typedef struct {
-    s32 s3;  /* in/out: the slot functions' result */
-    s16 *s4; /* out */
-    s32 fp;  /* out: the second tilt */
-} Regs802A8768;
 
 extern u8 D_803F8E80[];  /* this vehicle's state block (the asm's $gp) */
 extern u8 D_803F8B80[];  /* its channel table / save area */
@@ -297,20 +268,7 @@ void func_802CBC08(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef ZONE_SCAN_REGS_DEFINED
-#define ZONE_SCAN_REGS_DEFINED
-/* func_802ABD54's scan registers (62740.c), in and out. */
-typedef struct {
-    s32 t6; /* zone x */
-    s32 t7; /* zone y */
-    s32 s0; /* zone z */
-    s32 s1; /* distance / level term */
-    s32 s2; /* zone radius */
-    s32 s3; /* scan counter / zone byte */
-    s32 s4; /* scan pointer / zone byte */
-} ZoneScanRegs;
 s32 func_802ABD54(s32 id, s32 x, s32 y, s32 z, ZoneScanRegs *r);
-#endif
 extern u32 D_803F8F28[]; /* x, y, z */
 /* Zone level lookup (func_802ABD54) for vehicle id 0xD at its position
  * D_803F8F28..+8; returns func_802ABD54's v1 (the zone list end).
@@ -327,20 +285,6 @@ s32 func_802CBD18(ZoneScanRegs *r) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef INTERP_REGS_DEFINED
-#define INTERP_REGS_DEFINED
-/* func_802AAD0C's register results (62740.c). */
-typedef struct {
-    s32 t3;  /* interpolated u */
-    s32 t4;  /* interpolated w */
-    f32 f12;
-    s32 f14; /* raw bits */
-    f32 f20;
-    f32 f22;
-    f32 f24; /* also an input (kept on some paths) */
-    f32 f26;
-} InterpRegs;
-#endif
 void func_802AAD0C(s32 id, s32 x, s32 z, InterpRegs *r); /* 62740 */
 s32 func_802A94A4(s32 index, s16 *tbl, s16 *angle, s32 *dz); /* 62740 */
 
@@ -633,17 +577,8 @@ publish:
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef IO802A6274_DEFINED
-#define IO802A6274_DEFINED
-/* The three registers func_802A6274 (60F60.c) takes and may hand back changed. */
-typedef struct {
-    /* 0x0 */ s32 a3;
-    /* 0x4 */ s32 t6;
-    /* 0x8 */ s32 s1;
-} Io802A6274;
 s32 func_802A6274(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32 z, s32 w24, s32 w28,
                   s32 w18, s32 w1C, s32 w2C, s32 b35);
-#endif
 extern u8 D_80370C1A;   /* flags (either one set animates) */
 extern u8 D_80370C1B;
 extern u8 D_803F8F45;   /* animation phase 0, 2..13 */
@@ -737,18 +672,6 @@ void func_802CC56C(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef MTX_CHAIN_REGS_DEFINED
-#define MTX_CHAIN_REGS_DEFINED
-/* Registers func_802AA890 reads and writes besides its arguments (62740.c). */
-typedef struct {
-    s32 v1; /* out: y' >> 11 */
-    s32 a0; /* out: z' >> 11 */
-    s32 a3; /* in/out: the last matrix used */
-    s32 s1; /* in/out: y' */
-    s32 s2; /* in/out: z' */
-    s32 s0; /* in: only read when count == 0 */
-} MtxChainRegs;
-#endif
 extern u8 D_8035805C;     /* which of the two save copies is current */
 extern u8 *D_803F8F34;    /* model header: word offsets to the part lists */
 extern s16 D_803ED390[3]; /* rotation angles x, y, z for func_802AA764 */

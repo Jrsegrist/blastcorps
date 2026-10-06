@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/regs.h"
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -18,83 +19,9 @@
 #define VEH_U16(v, off) (*(u16 *) ((u8 *) (v) + (off)))
 #define VEH_S16(v, off) (*(s16 *) ((u8 *) (v) + (off)))
 
-/* The six words after each vehicle's position (D_803EE38C.. for vehicle 3,
- * D_803EE768.. for vehicle 4): position, model header, and the two 0x800-byte
- * matrix buffers taken from the heap D_80358070 (swapped every frame by
- * D_8035805C). */
-typedef struct {
-    s32 x;
-    s32 y;
-    s32 z;
-    u8 *model;
-    u64 *bufA;
-    u64 *bufB;
-} PortVehPos;
 
-#ifndef ZONE_SCAN_REGS_DEFINED
-#define ZONE_SCAN_REGS_DEFINED
-/* func_802ABD54's scan registers (62740.c), in and out. */
-typedef struct {
-    s32 t6; /* zone x */
-    s32 t7; /* zone y */
-    s32 s0; /* zone z */
-    s32 s1; /* distance / level term */
-    s32 s2; /* zone radius */
-    s32 s3; /* scan counter / zone byte */
-    s32 s4; /* scan pointer / zone byte */
-} ZoneScanRegs;
 s32 func_802ABD54(s32 id, s32 x, s32 y, s32 z, ZoneScanRegs *r);
-#endif
 
-/* As in 62740.c: func_802AA890's extra registers (func_8029C454 /
- * func_802ABBEC pass them through). */
-typedef struct {
-    s32 v1;
-    s32 a0;
-    s32 a3;
-    s32 s1;
-    s32 s2;
-    s32 s0;
-} MtxChainRegs;
-
-/* As in 62740.c: func_802AAD0C / func_802AAE54 results. */
-typedef struct {
-    s32 t3;
-    s32 t4;
-    f32 f12;
-    s32 f14;
-    f32 f20;
-    f32 f22;
-    f32 f24;
-    f32 f26;
-} InterpRegs;
-
-/* As in 62740.c: the FP state the ground scans pass along (f12 .. f26). */
-typedef struct {
-    f32 pz;
-    f32 cross;
-    f32 cz;
-    f32 side;
-    f32 sideZ;
-    f32 dz;
-} TriSideOut;
-
-typedef struct {
-    s32 *s1;
-    s32 *s3;
-} Out802A9A60;
-
-typedef struct {
-    s32 t1;
-    s32 s3;
-    s32 fp;
-} Out802A860C;
-
-typedef struct {
-    s32 s3;
-    s16 *s4;
-    s32 fp;
-} Regs802A8768;
 
 extern u8 D_803EE2E0[];  /* vehicle 3 record */
 extern u8 D_803EE6C0[];  /* vehicle 4 record */
@@ -660,20 +587,7 @@ void func_802B2FA0(s32 fp) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef ZONE_SCAN_REGS_DEFINED
-#define ZONE_SCAN_REGS_DEFINED
-/* func_802ABD54's scan registers (62740.c), in and out. */
-typedef struct {
-    s32 t6; /* zone x */
-    s32 t7; /* zone y */
-    s32 s0; /* zone z */
-    s32 s1; /* distance / level term */
-    s32 s2; /* zone radius */
-    s32 s3; /* scan counter / zone byte */
-    s32 s4; /* scan pointer / zone byte */
-} ZoneScanRegs;
 s32 func_802ABD54(s32 id, s32 x, s32 y, s32 z, ZoneScanRegs *r);
-#endif
 extern u32 D_803EE38C[]; /* x, y, z */
 /* Zone level lookup (func_802ABD54) for vehicle id 3 at its position
  * D_803EE38C..+8; returns func_802ABD54's v1 (the zone list end).
@@ -819,17 +733,8 @@ void func_802B327C(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef IO802A6274_DEFINED
-#define IO802A6274_DEFINED
-/* func_802A6274's in/out registers (60F60.c). */
-typedef struct {
-    s32 a3;
-    s32 t6;
-    s32 s1;
-} Io802A6274;
 s32 func_802A6274(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32 z, s32 w24, s32 w28,
                   s32 w18, s32 w1C, s32 w2C, s32 b35);
-#endif
 extern u8 D_803EE3AE;  /* func_802A6274 spawn cooldown */
 extern u8 D_803EE3AF;  /* 0..100 level for channel 2 */
 extern s8 D_803EE3B1;  /* 0..100 boost meter */
@@ -1295,20 +1200,7 @@ void func_802B46C4(s32 fp) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef ZONE_SCAN_REGS_DEFINED
-#define ZONE_SCAN_REGS_DEFINED
-/* func_802ABD54's scan registers (62740.c), in and out. */
-typedef struct {
-    s32 t6; /* zone x */
-    s32 t7; /* zone y */
-    s32 s0; /* zone z */
-    s32 s1; /* distance / level term */
-    s32 s2; /* zone radius */
-    s32 s3; /* scan counter / zone byte */
-    s32 s4; /* scan pointer / zone byte */
-} ZoneScanRegs;
 s32 func_802ABD54(s32 id, s32 x, s32 y, s32 z, ZoneScanRegs *r);
-#endif
 extern u32 D_803EE768[]; /* x, y, z */
 /* Zone level lookup (func_802ABD54) for vehicle id 4 at its position
  * D_803EE768..+8; returns func_802ABD54's v1 (the zone list end).

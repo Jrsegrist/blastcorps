@@ -110,7 +110,7 @@ typedef struct {
 } DecodeReq;
 
 extern u64 D_803C3250[]; /* scratch copy of the packed data */
-#ifdef PORT_NATIVE
+#ifdef PORT_HOST
 /* Windows port, byte order (port/src/load/port_textures.c): the packed
  * tokens arrive big-endian (in host order before decoding), the decoded
  * texels leave as big-endian bytes, as the renderer expects them. */
@@ -146,7 +146,7 @@ s32 func_802A57DC(u8 *rec) {
     u8 *dst;
     u8 *end;
 
-#ifdef PORT_NATIVE
+#ifdef PORT_HOST
     port_texture_input(req->data, req->size, req->type);
 #endif
     len -= n;
@@ -186,7 +186,7 @@ s32 func_802A57DC(u8 *rec) {
             end = dst;
             break;
     }
-#ifdef PORT_NATIVE
+#ifdef PORT_HOST
     port_texture_output(dst, end - dst, req->type);
 #endif
     return end - dst;

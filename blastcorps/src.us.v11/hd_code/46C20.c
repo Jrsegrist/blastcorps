@@ -8,7 +8,7 @@
 extern s32 *D_802FDB30; /* ROM start of the front end */
 extern s32 *D_802FDB34; /* ROM end of the front end */
 
-#if defined(NON_MATCHING) && defined(PORT_NATIVE)
+#if defined(NON_MATCHING) && defined(PORT_HOST)
 /* Windows port: byte order on load (port/src/load/port_load.h) */
 void port_on_load(u32 rom, u32 dst, u32 len);
 #endif
@@ -39,7 +39,7 @@ void func_8028B4C4(u32 devAddr, u32 dest, u32 *size, u8 arg3, u8 arg4, u8 arg5) 
     u32 buf;
     u32 orig;
     u32 p;
-#if defined(NON_MATCHING) && defined(PORT_NATIVE)
+#if defined(NON_MATCHING) && defined(PORT_HOST)
     u32 rom = devAddr;
 #endif
 
@@ -83,7 +83,7 @@ void func_8028B4C4(u32 devAddr, u32 dest, u32 *size, u8 arg3, u8 arg4, u8 arg5) 
     if (arg3 || arg4) {
         *size = dest - orig;
     }
-#if defined(NON_MATCHING) && defined(PORT_NATIVE)
+#if defined(NON_MATCHING) && defined(PORT_HOST)
     /* the block is in place (decompressed): swap it by its asset schema */
     port_on_load(rom, orig, *size);
 #endif

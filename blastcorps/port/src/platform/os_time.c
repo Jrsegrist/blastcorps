@@ -129,7 +129,12 @@ OSTime osGetTime(void) {
     return v != ~0ull ? v : plat_now;
 }
 
+int (*plat_getcount_hook)(u32 call, u64 now, u32 *c);
+static u32 g_count_calls;
+
 u32 osGetCount(void) {
+    u32 call = g_count_calls++, c;
     plat_now += plat_cfg.count_per_gettime;
+    if (plat_getcount_hook && plat_getcount_hook(call, plat_now, &c)) return c;
     return (u32) plat_now;
 }

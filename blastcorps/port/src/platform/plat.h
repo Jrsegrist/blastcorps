@@ -76,6 +76,8 @@ u64 plat_frame_done_time(u32 frame);
 /* optional C hook for osGetTime (part 2's trace matching): returns 1 and
  * sets *t to override the value of call number `call` */
 extern int (*plat_gettime_hook)(u32 call, u64 now, u64 *t);
+/* the same for osGetCount (1C460.c and 20460.c use it as a random source) */
+extern int (*plat_getcount_hook)(u32 call, u64 now, u32 *c);
 /* front-end overlay: snapshot after boot load, restore on reload */
 void plat_fe_snapshot(void);
 /* SI devices */

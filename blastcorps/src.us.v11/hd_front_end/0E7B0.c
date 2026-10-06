@@ -641,6 +641,7 @@ s32 func_801F6264(u8 player, u8 rw) {
 
     ret = 0;
     p = (u8 *) &D_80364AF0[player];
+    PORT_SAVE_BEGIN(p, PORT_SAVE_PLAYER, 0x100);
     for (i = 0; i < 0x100 && rw == 1; i++) {
         func_8029A7E4("0x%x, ", p[i]);
     }
@@ -682,6 +683,7 @@ s32 func_801F6264(u8 player, u8 rw) {
     if (ret == 0 && rw == 0) {
         ret = func_801F76E4(p, 0x100);
     }
+    PORT_SAVE_END(p, PORT_SAVE_PLAYER, 0x100);
     if (ret == 0 && rw == 0) {
         func_801F6BD0(player, &sem);
         if (sem != 0x87569AB6CD076AEC) {
@@ -701,6 +703,7 @@ s32 func_801F65C4(u8 player, u8 slot, u8 rw) {
 
     ret = 0;
     p = (u8 *) D_80364EF0[player];
+    PORT_SAVE_BEGIN(p, PORT_SAVE_TIMES, 0x20);
     start = slot * 0x20 + 0x100;
     if (rw == 1) {
         func_801F75A4(p, 0x20);
@@ -725,6 +728,7 @@ s32 func_801F65C4(u8 player, u8 slot, u8 rw) {
     if (ret == 0 && rw == 0) {
         ret = func_801F76E4(p, 0x20);
     }
+    PORT_SAVE_END(p, PORT_SAVE_TIMES, 0x20);
     return ret;
 }
 
@@ -744,9 +748,13 @@ s32 func_801F67E4(u8 pn, u8 level, u8 rw) {
             D_80364F70[idx] = D_80364EF0[pn][D_802E8C44[D_80364AF0[pn].timeSlot[level]]];
             D_80364F70[idx + 1] = D_80364F70[idx] ^ 0x55AA;
             func_8029A7E4("%d %d EEWRITE %x %x\n", level, D_80364F70[idx], (u32) (idx * 2 + 0x100) >> 3, p);
+            PORT_SAVE_BEGIN(p, PORT_SAVE_EETIMES, 8);
             osEepromWrite(&D_80370BF8, (u32) (idx * 2 + 0x100) >> 3, (u8 *) p);
+            PORT_SAVE_END(p, PORT_SAVE_EETIMES, 8);
         } else {
+            PORT_SAVE_BEGIN(p, PORT_SAVE_EETIMES, 8);
             osEepromRead(&D_80370BF8, (u32) (idx * 2 + 0x100) >> 3, (u8 *) p);
+            PORT_SAVE_END(p, PORT_SAVE_EETIMES, 8);
             for (i = 0; i < 2; i++, level++) {
                 if (((D_80364AF0[pn].rank[level] > 0 && D_80364AF0[pn].rank[level] < 6) ? 1 : 0)
                     && level != 0x31 && level != 0x2F && level != 0x26) {
@@ -768,11 +776,14 @@ s32 func_801F6AF4(u8 player, u64 sem) {
 
     ret = 0;
     p = (u8 *) &D_80364AF0[player];
+    PORT_SAVE_BE64(sem);
     if (D_802E8BF8 != 0 || D_80364A90 == 0x40000000000000) {
         osEepromWrite(&D_80370BF8, 0x3F, (u8 *) &sem);
     } else {
         func_8029A7E4("PUTTING SEMAPHORE %llu\n", sem);
-        ret = osPfsReadWriteFile(&D_8039B630, D_8039B698[player], PFS_WRITE, 0xDE0, 0x20, (u8 *) &sem);
+        /* 0x20 bytes from &sem: the semaphore and 24 bytes of stack */
+        ret = osPfsReadWriteFile(&D_8039B630, D_8039B698[player], PFS_WRITE, 0xDE0, 0x20,
+                                 PORT_SAVE_SEMBLOCK((u8 *) &sem));
     }
     return ret;
 }
@@ -786,9 +797,11 @@ s32 func_801F6BD0(u8 player, u64 *sem) {
     p = (u8 *) &D_80364AF0[player];
     if (D_802E8BF8 != 0) {
         osEepromRead(&D_80370BF8, 0x3F, (u8 *) sem);
+        PORT_SAVE_BE64(*sem);
     } else {
         ret = osPfsReadWriteFile(&D_8039B630, D_8039B698[player], PFS_READ, 0xDE0, 0x20, buf);
         *sem = *(u64 *) buf;
+        PORT_SAVE_BE64(*sem);
         func_8029A7E4("Getting SEMAPHORE %llu\n", *sem);
     }
     return ret;
@@ -810,6 +823,7 @@ s32 func_801F6CA4(u8 player, u8 nlevels, u8 rw) {
         }
     }
     start = count * 0x40 + 0x880;
+    PORT_SAVE_SWAP(D_8039C4B8, PORT_SAVE_STATUS, 0x40);
     if (rw == 1) {
         func_801F75A4(D_8039C4B8, 0x40);
     }
@@ -830,6 +844,7 @@ s32 func_801F6CA4(u8 player, u8 nlevels, u8 rw) {
     if (ret == 0 && rw == 0) {
         ret = func_801F76E4(D_8039C4B8, 0x40);
     }
+    PORT_SAVE_SWAP(D_8039C4B8, PORT_SAVE_STATUS, 0x40);
     return ret;
 }
 

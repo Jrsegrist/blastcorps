@@ -1,4 +1,4 @@
-/* SI: controllers from an input source, EEPROM as a file, no Controller Pak.
+/* SI: controllers from an input source, EEPROM and Controller Pak as files.
  *
  * Every SI transfer completes at once: the call that would start a PIF DMA
  * posts the SI event (OS_EVENT_SI) the hardware would raise, so code that
@@ -8,13 +8,13 @@
  * EEPROM: 4 Kbit (64 blocks of 8 bytes), kept in memory and written back to
  * the file (--eeprom FILE) after each write, as raw bytes in EEPROM order.
  * A missing file starts as all 0xFF (a blank chip, as mupen64plus formats
- * it).  NOTE: the game writes its save structs through this as native
- * (little-endian) bytes; an N64-compatible file needs the save layout
- * swapped game-side (port_followups OPEN b).
+ * it).  The save routines hand over big-endian records (save.c), so the
+ * file is byte-identical to the one mupen64plus writes for the original ROM
+ * (same 512-byte .eep format) and either can be loaded by the other.
  *
- * Controller Pak: not present (osPfsInitPak -> PFS_ERR_NOPACK).  A pak image
- * needs the front end's Pfs code (hd_front_end/ul_pfs*.c) compiled natively
- * over an emulated __osContRamRead/Write; not done yet. */
+ * Controller Pak (--mpk FILE): the front end's own SDK Pfs code
+ * (hd_front_end/ul_pfs*.c ...) compiled natively, over the PIF emulation in
+ * pif.c; the query reports the pak in controller 1's status. */
 #include "plat.h"
 
 #define EEPROM_BLOCKS 64
@@ -25,9 +25,12 @@ static u16 g_latch_button;
 static s8 g_latch_x, g_latch_y;
 static int g_cont_inited;
 
+extern u8 __osMaxControllers;
+
 void plat_si_init(void) {
     unsigned size = 0;
     u8 *p;
+    plat_pak_init();
     __builtin_memset(g_eeprom, 0xFF, sizeof g_eeprom);
     if (plat_cfg.eeprom_path != NULL && (p = host_read_file(plat_cfg.eeprom_path, &size)) != NULL) {
         __builtin_memcpy(g_eeprom, p, size < sizeof g_eeprom ? size : sizeof g_eeprom);
@@ -54,7 +57,7 @@ static void fill_status(OSContStatus *data, u8 *pattern) {
     for (i = 0; i < 4; i++, data++) {
         if (i == 0 && plat_cfg.cont_present) {
             data->type = CONT_TYPE_NORMAL;
-            data->status = 0; /* no pak */
+            data->status = plat_pak_present() ? CONT_CARD_ON : 0;
             data->errno = 0;
             bits |= 1 << i;
         } else {
@@ -74,6 +77,7 @@ s32 osContInit(OSMesgQueue *mq, u8 *bitpattern, OSContStatus *data) {
     (void) mq;
     if (g_cont_inited) return 0;
     g_cont_inited = 1;
+    __osMaxControllers = MAXCONTROLLERS; /* the SDK's Pfs code loops over it */
     t = osGetTime();
     if (t < half_s) {
         osCreateMesgQueue(&tq, &tmsg, 1);
@@ -150,13 +154,21 @@ s32 osEepromWrite(OSMesgQueue *mq, u8 address, u8 *buffer) {
 }
 
 s32 osEepromLongRead(OSMesgQueue *mq, u8 address, u8 *buffer, int nbytes) {
+    /* this SDK waits 12 ms after each block read too (front end's
+     * ul_conteeplongread.c) */
+    static OSTimer timer;
+    static OSMesgQueue tq;
+    static OSMesg tmsg;
     s32 ret = 0;
+    osCreateMesgQueue(&tq, &tmsg, 1);
     while (nbytes > 0) {
         ret = osEepromRead(mq, address, buffer);
         if (ret != 0) return ret;
         nbytes -= 8;
         address++;
         buffer += 8;
+        osSetTimer(&timer, (OSTime) 12000 * PLAT_COUNT_HZ / 1000000, 0, &tq, &tmsg);
+        osRecvMesg(&tq, NULL, OS_MESG_BLOCK);
     }
     return ret;
 }
@@ -194,45 +206,4 @@ s32 func_80204410(OSMesgQueue *mq, u8 a, u8 *b, int n) {
     return osEepromLongRead(mq, a, b, n);
 }
 
-/* ---- Controller Pak: none ------------------------------------------------------ */
-
-s32 osPfsIsPlug(OSMesgQueue *mq, u8 *pattern) {
-    (void) mq;
-    *pattern = 0;
-    return 0;
-}
-s32 osPfsInitPak(OSMesgQueue *mq, OSPfs *pfs, int channel) {
-    (void) mq;
-    (void) pfs;
-    (void) channel;
-    return PFS_ERR_NOPACK;
-}
-s32 osPfsFreeBlocks(OSPfs *pfs, s32 *bytes) {
-    (void) pfs;
-    *bytes = 0;
-    return PFS_ERR_NOPACK;
-}
-s32 osPfsChecker(OSPfs *pfs) {
-    (void) pfs;
-    return PFS_ERR_NOPACK;
-}
-s32 osPfsAllocateFile(OSPfs *pfs, u16 company, u32 game, u8 *name, u8 *ext, int size, s32 *file) {
-    (void) pfs; (void) company; (void) game; (void) name; (void) ext; (void) size; (void) file;
-    return PFS_ERR_NOPACK;
-}
-s32 osPfsDeleteFile(OSPfs *pfs, u16 company, u32 game, u8 *name, u8 *ext) {
-    (void) pfs; (void) company; (void) game; (void) name; (void) ext;
-    return PFS_ERR_NOPACK;
-}
-s32 osPfsFindFile(OSPfs *pfs, u16 company, u32 game, u8 *name, u8 *ext, s32 *file) {
-    (void) pfs; (void) company; (void) game; (void) name; (void) ext; (void) file;
-    return PFS_ERR_NOPACK;
-}
-s32 osPfsReadWriteFile(OSPfs *pfs, s32 file, u8 flag, int offset, int size, u8 *data) {
-    (void) pfs; (void) file; (void) flag; (void) offset; (void) size; (void) data;
-    return PFS_ERR_NOPACK;
-}
-s32 osPfsFileState(OSPfs *pfs, s32 file, OSPfsState *state) {
-    (void) pfs; (void) file; (void) state;
-    return PFS_ERR_NOPACK;
-}
+/* ---- Controller Pak: the front end's own SDK Pfs code over pif.c ------------- */

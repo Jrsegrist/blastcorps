@@ -28,6 +28,16 @@ COPIERS = {"func_8026A5CC",   # 23C20: copy in 8-byte units
            "func_802A75DC",   # vehicle block byte loop
            "memcpy", "bcopy", "bzero", "alCopy"}
 
+# Level-time code: in a level the front end's memory (0x801E7000-0x8021ED00)
+# is heap (decoded textures, models, collision records), so what these read
+# there says nothing about the front end's data image.  (Before this filter,
+# the texture decoder's u16 accesses swapped e.g. the pak file name strings
+# D_8020C000 and character set D_8020C01C as halfwords.)
+LEVEL_HEAP_USERS = {"func_802A5AE0", "func_802A5B90",   # 60F60: texture decode
+                    "func_8029F85C", "func_8029E5AC", "func_8029EF80",   # 56040: models
+                    "func_802A1388", "func_802A08E4", "func_802A396C",   # 5CB60: level/object load
+                    "func_802AC8CC", "func_802ACCCC"}  # 679E0: vehicle blocks
+
 
 def parse(paths, keep_copiers=False):
     acc = collections.defaultdict(collections.Counter)    # (region, off) -> Counter((width, kind))
@@ -40,6 +50,8 @@ def parse(paths, keep_copiers=False):
             if f[0] == "A":
                 func = f[6] if len(f) > 6 else "?"
                 if (func in COPIERS or func.startswith("~")) and not keep_copiers:
+                    continue
+                if f[1] == "fe" and func in LEVEL_HEAP_USERS:
                     continue
                 off = int(f[2], 16)
                 if f[3] == "8" and off % 8 == 4:

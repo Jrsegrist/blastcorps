@@ -63,6 +63,8 @@ typedef struct {
     const char *cmdline;       /* debug command line the game reads at PI 0xFFB000 */
     const char *trace_path;    /* one summary line per frame */
     int quiet;
+    int game_print;            /* print the game's debug messages (func_8029A7E4) */
+    const char *mpk_path;      /* Controller Pak image (.mpk), or NULL: no pak */
 } HostOpts;
 
 /* platform entry (plat_core.c): boots the game and never returns */

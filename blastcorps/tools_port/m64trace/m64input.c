@@ -6,7 +6,8 @@
  * button word byte-swapped (plugin bit 0 = R_JPAD = N64 0x0100, ..., bit 7 =
  * A = 0x8000; bit 8 = R_CBUTTONS = 0x0001, ..., bit 13 = L_TRIG = 0x0020),
  * bits 16-23 = stick x (s8), bits 24-31 = stick y (s8).
- * Only controller 1 is plugged (no accessory). Build:
+ * Only controller 1 is plugged, with no accessory or (m64input_plugin = 2)
+ * a Controller Pak. Build:
  *     gcc -shared -fPIC -O2 -o m64input.so m64input.c
  * Written for this project from the public mupen64plus plugin API; no
  * mupen64plus headers needed. */
@@ -33,6 +34,9 @@ typedef struct {
 
 EXPORT volatile uint32_t m64input_keys = 0;
 EXPORT volatile uint32_t m64input_polls = 0; /* GetKeys calls (controller 1) */
+/* controller 1's accessory, set before the plugin is attached: 1 = none,
+ * 2 = Controller Pak (the core keeps it in <ROM name>.mpk) */
+EXPORT volatile int m64input_plugin = 1;
 
 EXPORT int PluginStartup(m64p_dynlib_handle core, void *ctx, debugcb cb) {
     (void) core; (void) ctx; (void) cb;
@@ -55,7 +59,7 @@ EXPORT int PluginGetVersion(int *type, int *version, int *api, const char **name
 EXPORT void InitiateControllers(CONTROL_INFO info) {
     info.Controls[0].Present = 1;
     info.Controls[0].RawData = 0;
-    info.Controls[0].Plugin = 1; /* PLUGIN_NONE */
+    info.Controls[0].Plugin = m64input_plugin; /* PLUGIN_NONE or PLUGIN_MEMPAK */
 }
 
 EXPORT void GetKeys(int control, uint32_t *keys) {

@@ -596,7 +596,7 @@ Without input the game only reaches the attract demos. A spec that defines
 `INPUT` gets a real controller: `m64trace.py` then attaches `m64input.so`
 instead of input-sdl. That is a small mupen64plus input plugin
 (`m64input.c`, written from the public plugin API, built with gcc into
-`~/.cache/m64input.so` on first use) whose controller-1 state is a global the
+`~/.cache/m64input-<md5 of the source>.so` on first use) whose controller-1 state is a global the
 front end sets through ctypes. The game reads it through its normal path
 (PIF -> `osContGetReadData` -> `func_8028A470`), so the front end, gameplay and
 the recording code all see it.
@@ -642,3 +642,12 @@ same pad words per game frame. Note the game itself reads the pad once per
 game frame (`func_8028A470`), not per VI, so compare by game frame
 (`D_80358060` counts them per mode) rather than by VI when timing differs
 (the NM build runs slower and drops VIs differently).
+
+`spec_input.py` does that: `M64INPUT=file` replays a bc_headless `--input`
+file keyed by the game's controller reads; `M64DUMP=addr:len,...` logs
+memory at every game-mode change (and `M64DUMPMODE`/`M64DUMPEVERY` every n
+reads in one mode); `M64PRINT=1` logs the game's debug messages
+(func_8029A7E4, like bc_headless `--print`); `M64WRITE=vi:addr:size:val`
+pokes RAM (`100:802FA268:4:1` = the `-c` debug cheats). Saves:
+`M64SAVEDIR=dir` keeps the .eep/.mpk files there instead of the user's
+mupen64plus save dir, `M64PAK=1` plugs a Controller Pak into controller 1.

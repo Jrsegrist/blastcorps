@@ -7,7 +7,9 @@ logs and resumes), so thousands of hits per run are cheap. Video glide64mk2
 and no device (no input), or, when the spec defines INPUT, the scripted input
 plugin m64input.so (built from m64input.c next to this file on first use).
 
-usage: m64trace.py ROM SPEC.py OUT.txt     (M64VERBOSE=1 for the core's messages)
+usage: m64trace.py ROM SPEC.py OUT.txt     (M64VERBOSE=1 for the core's messages,
+       M64SAVEDIR=dir for the EEPROM/pak/SRAM files instead of the user's save dir,
+       M64PAK=1 for a Controller Pak in controller 1 with scripted INPUT)
 SPEC.py defines:
   BPS = {addr: "label" | ("label", [gprs], [fprs])}   exec breakpoints (may be empty)
   VIS = 60*120                      stop after this many VI interrupts (60 per second)
@@ -107,6 +109,9 @@ setp("Core", "EnableDebugger", 3, 1)
 setp("Core", "R4300Emulator", 1, int(os.environ.get("EMUMODE", "1")))
 setp("Core", "DisableExtraMem", 3, 0)
 setp("Core", "OnScreenDisplay", 3, 0)
+if os.environ.get("M64SAVEDIR"):  # EEPROM / Controller Pak / SRAM files (default: the user's save dir)
+    os.makedirs(os.environ["M64SAVEDIR"], exist_ok=True)
+    setp("Core", "SaveSRAMPath", 4, os.environ["M64SAVEDIR"])  # M64TYPE_STRING
 setp("Video-General", "Fullscreen", 3, 0)
 setp("Video-General", "ScreenWidth", 1, 320)
 setp("Video-General", "ScreenHeight", 1, 240)
@@ -124,9 +129,12 @@ assert core.CoreDoCommand(1, len(data), buf) == 0  # ROM_OPEN
 
 def input_plugin():
     """Path of the scripted input plugin, (re)built from m64input.c if needed."""
+    import hashlib
     src = os.path.join(HERE, "m64input.c")
-    so = os.path.join(os.path.expanduser("~/.cache"), "m64input.so")
-    if not os.path.exists(so) or os.path.getmtime(so) < os.path.getmtime(src):
+    # one build per source version (worktrees with different sources share ~/.cache)
+    tag = hashlib.md5(open(src, "rb").read()).hexdigest()[:8]
+    so = os.path.join(os.path.expanduser("~/.cache"), "m64input-%s.so" % tag)
+    if not os.path.exists(so):
         os.makedirs(os.path.dirname(so), exist_ok=True)
         subprocess.check_call(["gcc", "-shared", "-fPIC", "-O2", "-o", so, src])
     return so
@@ -139,6 +147,8 @@ for typ, name in ((2, PLUG + "mupen64plus-video-glide64mk2.so"),
                   (1, PLUG + "mupen64plus-rsp-hle.so")):
     lib = C.CDLL(name)
     lib.PluginStartup.argtypes = [C.c_void_p, C.c_void_p, DEBUGCB]
+    if typ == 4 and INPUT and os.environ.get("M64PAK"):  # Controller Pak in controller 1
+        C.c_int.in_dll(lib, "m64input_plugin").value = 2
     r = lib.PluginStartup(C.c_void_p(core._handle), None, dbgmsg_c)
     assert r == 0, (name, r)
     r = core.CoreAttachPlugin(typ, C.c_void_p(lib._handle))

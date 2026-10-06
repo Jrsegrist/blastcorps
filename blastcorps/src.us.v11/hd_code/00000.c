@@ -174,7 +174,7 @@ extern u8 D_803156F5;
 
 
 #define pakToGameMessageQ D_80219F50
-extern u8 D_802E8BF4[];
+extern u16 D_802E8BF4[]; /* sprite ids (func_80272C5C) */
 extern s32 D_80364420;
 extern u8 D_80364434;
 extern f32 D_80364444;

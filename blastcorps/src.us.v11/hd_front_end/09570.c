@@ -364,7 +364,7 @@ Gfx *func_801F2000(void) {
                 }
             }
             /* j is one past the match here, so bit (j + 31) & 31 = j - 1 */
-            if (found && (D_80364AF0[D_80364AE8].unk90 & (1 << (j + 31)))) {
+            if (found && (D_80364AF0[D_80364AE8].unk90 & (1 << PORT_SHAMT(j + 31)))) {
                 func_801FCE74(vtx, i, pass * 1.5 + 2.5, pass * 1.5 + 4.0, 32, 32, 2.25f, 1);
                 gSPVertex(gfx++, vtx, 4, 0);
                 gSP1Triangle(gfx++, 0, 1, 2, 0);

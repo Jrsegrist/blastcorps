@@ -86,11 +86,17 @@ typedef struct {
     u8 pad1B;
 } MenuEntry;
 
+/* Animated sprite definition, 0x30 bytes (26570.c's YoshiSnd, 1D990.c's
+ * Anim30): only ten u16 sprite ids at 6; bytes from 0x1A are u8 frame data
+ * and an f32 scale (the byte-order swap table merges these views). */
 typedef struct {
-    u8 pad0[4];
+    s16 x;
+    s16 y;
     u8 unk4;
     u8 pad5;
-    u16 unk6[19];
+    u16 unk6[10];
+    u8 pad1A[0xE];
+    f32 scale;
     u8 unk2C;
     u8 unk2D;
     u8 pad2E[2];

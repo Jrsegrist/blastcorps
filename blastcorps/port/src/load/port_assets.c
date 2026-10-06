@@ -33,13 +33,34 @@ static void sw32(uint32_t a, uint32_t n) { port_bswap_n(P(a), n, 4); }
 
 /* Records of STRIDE bytes over [a, a + len): LEAVES is "W@OFF ..." (hex
  * offsets), the multi-byte fields of one record. */
-static void swap_records(uint32_t a, uint32_t len, uint32_t stride, const char *leaves) {
-    uint32_t r, w, off;
-    const char *s;
+typedef struct {
+    uint8_t n;
+    struct { uint16_t off; uint8_t w; } f[64];
+} Leaves;
+
+static void parse_leaves(const char *s, Leaves *l) {
+    unsigned w, off;
     int n;
+    for (l->n = 0; l->n < 64 && sscanf(s, " %u@%x%n", &w, &off, &n) == 2; s += n, l->n++) {
+        l->f[l->n].off = (uint16_t) off;
+        l->f[l->n].w = (uint8_t) w;
+    }
+}
+
+static void swap_leaves(uint32_t a, const char *leaves) {
+    Leaves l;
+    int i;
+    parse_leaves(leaves, &l);
+    for (i = 0; i < l.n; i++) port_bswap_n(P(a + l.f[i].off), 1, l.f[i].w);
+}
+
+static void swap_records(uint32_t a, uint32_t len, uint32_t stride, const char *leaves) {
+    Leaves l;
+    uint32_t r;
+    int i;
+    parse_leaves(leaves, &l);
     for (r = 0; r + stride <= len; r += stride)
-        for (s = leaves; sscanf(s, " %u@%x%n", &w, &off, &n) == 2; s += n)
-            port_bswap_n(P(a + r + off), 1, (int) w);
+        for (i = 0; i < l.n; i++) port_bswap_n(P(a + r + l.f[i].off), 1, l.f[i].w);
 }
 
 /* ------------------------------------------------------------------ kinds */

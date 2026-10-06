@@ -109,32 +109,73 @@ STAGE = 0x8021ED00
 # MODE=base: the original ROM (hand asm widths); MODE=nm: the NON_MATCHING
 # test ROM (build_nm/blastcorps.nm.us.v11.z64): the C rewrites' own widths,
 # which is what the native port reads with.  Data addresses are the same.
-if os.environ.get("MODE", "nm") == "base":
-    LOADER, LOADER_RET, LOADER_END = 0x8028B4C4, 0x8028B710, 0x8028B720
-    PIDMA = 0x802DA2F0
-    AUDIO = (0x802676A0, 0x802683E0)       # audio.c: sample DMA (.tbl pieces, RSP only)
-    PK_ENTRY, PK_RET, PK_PTR = 0x802C4108, 0x802C41B8, False   # asm: a1 = dst value
-    CODE = [(0x802447C0, 0x802E8BD0), (0x801E7000, 0x80207090)]
-    TRANSPARENT = [(0x8025C230, 0x8025C5D0), (0x802979E0, 0x802995F0), (0x802C4070, 0x802C48A0),
-                   (0x802DDD40, 0x802DDE40), (0x802E2340, 0x802E2700), (0x802DB7B0, 0x802DB850)]
-else:
-    LOADER, LOADER_RET, LOADER_END = 0x80447124, 0x80447370, 0x80447374
-    PIDMA = 0x8049CB90
-    AUDIO = (0x804231A0, 0x80423EE0)
-    PK_ENTRY, PK_RET, PK_PTR = 0x80484F9C, 0x80485010, True    # C: a1 = &dst
-    CODE = [(0x80400000, 0x804AB470), (0x80500000, 0x80520EF0)]
-    TRANSPARENT = [(0x80417D10, 0x804180B0), (0x804536A0, 0x804552D0), (0x80484F60, 0x80485500),
-                   (0x804A05E0, 0x804A0680), (0x804A4BE0, 0x804A4F00), (0x8049E050, 0x8049E0F0)]
+# Code addresses come from the ELFs and maps of the traced build (run from
+# the project root): build/ for the original, build_nm/*.rom.* for the NM ROM.
+import bisect
+import re
+from elftools.elf.elffile import ELFFile
+from elftools.elf.sections import SymbolTableSection
+BASE = os.environ.get("MODE", "nm") == "base"
+_ELFS = (["build/hd_code.us.v11.elf", "build/hd_front_end.us.v11.elf"] if BASE
+         else ["build_nm/hd_code.rom.us.v11.elf", "build_nm/hd_front_end.rom.us.v11.elf"])
+CODE, _text, _allsyms = [], {}, {}
+for _p in _ELFS:
+    with open(_p, "rb") as _f:
+        _e = ELFFile(_f)
+        for _s in _e.iter_sections():
+            if _s["sh_flags"] & 4 and _s["sh_size"]:          # executable: code ranges
+                CODE.append((_s["sh_addr"], _s["sh_addr"] + _s["sh_size"]))
+                _text[_s["sh_addr"]] = _s.data()
+        for _s in _e.iter_sections():
+            if isinstance(_s, SymbolTableSection):
+                for _y in _s.iter_symbols():
+                    if _y.name and _y["st_shndx"] != "SHN_UNDEF":
+                        _allsyms.setdefault(_y.name, _y["st_value"])
+# the hd_code ELF also maps its pinned .text tables low (NM_PIN_HD_CODE); only real code counts
+CODE = [r for r in CODE if r[1] - r[0] > 0x1000]
+
+
+def sym(n):
+    return _allsyms[n] & 0xFFFFFFFF
+
+
+def first_jr_ra(a):
+    """address of the first `jr ra` at or after a"""
+    for base, data in _text.items():
+        if base <= a < base + len(data):
+            for k in range(a - base, len(data) - 3, 4):
+                if data[k:k + 4] == b"\x03\xe0\x00\x08":
+                    return base + k
+    raise SystemExit("no jr ra after %08X" % a)
+
+
+def text_range(mapfile, obj):
+    pat = re.compile(r"^ \.text\s+0x([0-9a-f]+)\s+0x([0-9a-f]+)\s+\S*/%s\.c\.o$" % re.escape(obj))
+    for line in open(mapfile):
+        m = pat.match(line)
+        if m:
+            return int(m.group(1), 16), int(m.group(1), 16) + int(m.group(2), 16)
+    raise SystemExit("%s not in %s" % (obj, mapfile))
+
+
+_MAP = "build/hd_code.us.v11.map" if BASE else "build_nm/hd_code.rom.us.v11.map"
+LOADER = sym("func_8028B4C4")
+LOADER_RET = first_jr_ra(LOADER)
+PIDMA = sym("osPiStartDma")
+AUDIO = text_range(_MAP, "22EE0")        # audio.c: sample DMA (.tbl pieces, read by the RSP only)
+PK_ENTRY = sym("func_802C4108")          # inflate one member
+PK_RET = first_jr_ra(PK_ENTRY)
+PK_PTR = not BASE                        # hand asm: a1 = dst value; C rewrite: a1 = &dst
+# only game code counts: the decompressors' window reads and the copy loops
+# are byte-order neutral (and init's boot copy of the image isn't game code)
+TRANSPARENT = [text_range(_MAP, "17A70"), text_range(_MAP, "53220"), text_range(_MAP, "7F8B0")]
+for _n, _sz in (("memcpy", 0xA0), ("bcopy", 0x310), ("bzero", 0xA0)):
+    TRANSPARENT.append((sym(_n), sym(_n) + _sz))
 
 
 EXECS = (LOADER, LOADER_RET, PIDMA, PK_ENTRY, PK_RET)
 
-# pc -> function name, from the traced ROM's ELFs
-import bisect
-from elftools.elf.elffile import ELFFile
-from elftools.elf.sections import SymbolTableSection
-_ELFS = (["build/hd_code.us.v11.elf", "build/hd_front_end.us.v11.elf"] if os.environ.get("MODE", "nm") == "base"
-         else ["build_nm/hd_code.rom.us.v11.elf", "build_nm/hd_front_end.rom.us.v11.elf"])
+# pc -> function name
 _fsyms = {}
 for _p in _ELFS:
     with open(_p, "rb") as _f:
@@ -151,10 +192,14 @@ _fcache = {}
 
 
 def funcof(pc):
+    """the function's name; '~name' for the byte-order neutral copy and
+    decompression loops (consumers of the trace drop those)"""
     r = _fcache.get(pc)
     if r is None:
         i = bisect.bisect_right(_faddr, pc) - 1
         r = _fsyms[_faddr[i]] if i >= 0 else "?"
+        if any(a <= pc < b for a, b in TRANSPARENT):
+            r = "~" + r
         _fcache[pc] = r
     return r
 
@@ -182,6 +227,7 @@ first = {}                           # (region, off) -> 'R' | 'W'
 bps = {}                             # bp index -> dict(region, base, lo, hi, quiet, enabled)
 pending = []
 nhits = [0]
+nmis = [0]
 loads = []
 
 
@@ -201,7 +247,9 @@ def add_bp(region, lo, hi, base):
 # Breakpoints are never removed (the core compacts its array on removal, which
 # renumbers every later breakpoint): asset breakpoints come from a fixed pool
 # of slots that are retargeted with REPLACE.
-POOL = []          # slot indices, oldest use first
+POOLS = {"load": [], "dma": []}   # slot indices, oldest use first: decompressed
+                                  # loads (levels, models...) never lose their slots
+                                  # to the stream of small texture DMAs
 
 
 def free_slot(idx):
@@ -219,17 +267,18 @@ def rearm(pred=lambda b: True):
             b["quiet"] = 0
 
 
-def asset_bp(region, lo, hi):
+def asset_bp(region, lo, hi, pool="load"):
     # free asset slots this range overlaps (the heap was reused)
-    for idx in POOL:
+    for idx in POOLS["load"] + POOLS["dma"]:
         b = bps[idx]
         if b["region"] != "-" and b["lo"] < hi and lo < b["hi"]:
             free_slot(idx)
+    P = POOLS[pool]
     for a in range(lo, hi, 0x10000):   # split big assets: per-range quiet counting
-        frees = [i for i in POOL if bps[i]["region"] == "-"]
-        idx = frees[0] if frees else POOL[0]
-        POOL.remove(idx)
-        POOL.append(idx)
+        frees = [i for i in P if bps[i]["region"] == "-"]
+        idx = frees[0] if frees else P[0]
+        P.remove(idx)
+        P.append(idx)
         e = min(hi, a + 0x10000)
         bk = BKP(a & 0x1FFFFFFF, (e - 1) & 0x1FFFFFFF, F_RW)
         core.DebugBreakpointCommand(REPLACE, idx, C.byref(bk))
@@ -249,7 +298,7 @@ def on_mem(pc):
     core.DebugBreakpointTriggeredBy(C.byref(fl), C.byref(ad))
     a = ad.value | 0x80000000
     nhits[0] += 1
-    if not counted(pc):
+    if not any(lo <= pc < hi for lo, hi in CODE):
         return
     insn = core.DebugMemRead32(pc)
     w = WIDTH.get(insn >> 26)
@@ -257,6 +306,15 @@ def on_mem(pc):
         insn = core.DebugMemRead32(pc + 4)
         w = WIDTH.get(insn >> 26, "?")
     kind = "W" if fl.value & 4 else "R"
+    # the core reports the aligned word; the byte address comes from the
+    # instruction (base register + offset; the callback runs before the load
+    # writes its target register)
+    if w != "?":
+        ea = (gpr((insn >> 21) & 31) + ((insn & 0xFFFF) ^ 0x8000) - 0x8000) & 0xFFFFFFFF
+        if (ea & 0x1FFFFFFC) == (ad.value & 0x1FFFFFFC):
+            a = ea | 0x80000000
+        else:
+            nmis[0] += 1
     hit = None
     for idx, b in bps.items():
         if b["lo"] <= a < b["hi"]:
@@ -329,7 +387,7 @@ def on_exec(pc):
             return
         per_ra[ra] += 1
         if 0x80000000 <= dram < 0x80800000 and size and per_ra[ra] <= CAP:
-            asset_bp("r%06X" % dev, dram, dram + size)
+            asset_bp("r%06X" % dev, dram, dram + size, "dma" if size <= 0x4000 else "load")
 
 
 def upd(pc):
@@ -347,7 +405,7 @@ def upd(pc):
         for k in range(60):
             idx = add_bp("-", 0x807FF000, 0x807FF004, 0)
             free_slot(idx)
-            POOL.append(idx)
+            POOLS["load" if k < 30 else "dma"].append(idx)
     else:
         fl = C.c_uint32()
         ad = C.c_uint32()
@@ -387,7 +445,7 @@ def snapshot(tag):
         for (region, off), k in sorted(first.items()):
             if k == "R":
                 f.write("F %s %X\n" % (region, off))
-        f.write("# %s vi=%d hits=%d secs=%.0f\n" % (tag, st["vi"], nhits[0], time.time() - t0))
+        f.write("# %s vi=%d hits=%d ea-mismatch=%d secs=%.0f\n" % (tag, st["vi"], nhits[0], nmis[0], time.time() - t0))
     os.replace(OUTF + ".tmp", OUTF)
 
 

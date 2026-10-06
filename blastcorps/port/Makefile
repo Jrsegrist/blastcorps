@@ -106,11 +106,25 @@ linkall:
 typemap: $(B)/swaptab.c
 	@cat $(B)/typemap_report.txt
 
+# the byte-order layer against the original code: real assets through the
+# game's loaders and consumers, native vs unicorn (src/load/loadcheck_main.c,
+# tools/loadref.py)
+#   LC_TRACE=trace.txt (tools/m64widths.py output) adds T9: every traced read
+LC_FILES := 00000 46C20 17A70 53220 7F8B0 5BF40 60F60 5CB60 60D50
+loadcheck:
+	$(MAKE) B=build/lc MAIN=load/loadcheck_main GAME_FILES="$(LC_FILES)" build/lc/spike.exe
+	@if [ -n "$(LC_TRACE)" ]; then $(PYTHON) tools/widths.py facts build/lc/facts.txt $(LC_TRACE); fi
+	build/lc/spike.exe '$(ROM_ARG)' $$([ -f build/lc/facts.txt ] && echo 56789 build/lc/facts.txt) \
+		> build/lc/out_native.txt
+	cd $(ROOT) && $(PYTHON) port/tools/loadref.py $(ROM) > port/build/lc/out_ref.txt
+	@grep '^T9 total' build/lc/out_native.txt || true
+	$(PYTHON) tools/cmpout.py build/lc/out_ref.txt build/lc/out_native.txt
+
 ucode:
 	cd $(ROOT) && $(PYTHON) port/tools/ucode_id.py build
 
 clean:
 	rm -rf $(B)
 
-.PHONY: all check clean linkall typemap ucode
+.PHONY: all check clean linkall loadcheck typemap ucode
 .SECONDARY:

@@ -6,6 +6,8 @@ byte-order layer consumes.
                                   'region offset width' (port/data/image_widths.txt)
   widths.py assets TRACE...       per loaded asset (by ROM start): load sites,
                                   sizes, and a summary of the read/write widths
+  widths.py facts OUT TRACE...    per asset, every offset read and its width(s):
+                                  the oracle of `make -C port loadcheck` (T9)
 
 The traces hold no ROM bytes, only which offsets the original code reads at
 which width (and how often).
@@ -33,7 +35,7 @@ def parse(paths, keep_copiers=False):
                 continue
             if f[0] == "A":
                 func = f[6] if len(f) > 6 else "?"
-                if func in COPIERS and not keep_copiers:
+                if (func in COPIERS or func.startswith("~")) and not keep_copiers:
                     continue
                 off = int(f[2], 16)
                 if f[3] == "8" and off % 8 == 4:
@@ -62,6 +64,40 @@ def cmd_image(out, paths):
     print("%d image read facts" % len(rows))
 
 
+def cmd_facts(out, paths):
+    """The oracle for loadcheck's T9: per traced asset (ROM start, decompressed
+    size, how it arrived), every offset the code read and at which width
+    (one width per offset; offsets read at several widths are listed as such)."""
+    acc, loads = parse(paths)
+    size = {}
+    how = {}
+    for vi, rom, dest, sz, kind, ra in loads:
+        if kind in ("gz", "pk"):
+            size[rom] = max(size.get(rom, 0), sz)
+            how[rom] = kind
+        elif kind == "dma" and rom not in how:
+            size[rom] = max(size.get(rom, 0), sz)
+            how[rom] = "dma"
+    rows = collections.defaultdict(lambda: collections.defaultdict(set))
+    for (region, off), c in acc.items():
+        if region[0] != "r":
+            continue
+        rom = int(region[1:], 16)
+        for (w, kind), n in c.items():
+            if kind == "R" and w in ("1", "2", "4", "8"):
+                rows[rom][off].add(int(w))
+    with open(out, "w") as f:
+        f.write("# ROM SIZE HOW then OFF W[,W...] lines (widths.py facts; local, not committed)\n")
+        for rom in sorted(rows):
+            if rom not in size:
+                continue
+            f.write("A %06X %X %s\n" % (rom, size[rom], how[rom]))
+            for off in sorted(rows[rom]):
+                if off < size[rom]:
+                    f.write("%X %s\n" % (off, ",".join(str(w) for w in sorted(rows[rom][off]))))
+    print("%d assets" % len(rows))
+
+
 def cmd_assets(paths):
     acc, loads = parse(paths)
     by = collections.defaultdict(list)
@@ -88,5 +124,7 @@ if __name__ == "__main__":
         cmd_image(sys.argv[2], sys.argv[3:])
     elif sys.argv[1] == "assets":
         cmd_assets(sys.argv[2:])
+    elif sys.argv[1] == "facts":
+        cmd_facts(sys.argv[2], sys.argv[3:])
     else:
         sys.exit(__doc__)

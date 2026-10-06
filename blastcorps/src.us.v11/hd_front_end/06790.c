@@ -21,7 +21,6 @@ typedef struct {
 } RankName;
 
 extern FePlayer D_80364AF0[];
-extern u8 D_80364AE8; /* current player */
 extern s32 D_80215960; /* scale state */
 extern s32 D_80215964; /* text fade state */
 extern f32 D_80215968; /* scene angle */
@@ -33,15 +32,8 @@ extern s32 D_80215978; /* rank */
 extern u8 D_80215980[]; /* rank name, first line */
 extern u8 D_80215998[]; /* rank name, second line */
 extern s16 D_802159B0;
-extern Mtx D_802182D0[];
 extern RankName D_802081C0[];
-extern u8 D_802082B8[]; /* number of words on the rank name's first line */
-extern u16 D_80370C28;  /* buttons held */
-extern u16 D_80370C2A;
-extern s32 D_802FA268;
 extern u32 D_80358060; /* frame counter */
-extern u16 D_8035807C; /* perspNorm */
-extern u64 D_80364A98;
 extern u16 D_80303B78[];
 extern u16 D_80303B88[];
 

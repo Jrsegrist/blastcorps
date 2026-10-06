@@ -42,10 +42,7 @@ typedef struct {
 } MenuItem;
 
 extern Player D_80364AF0[];
-extern u8 D_80364AE8;
 extern s32 D_802E8BDC;
-extern u64 D_80364A90;
-extern u64 D_80364A98;
 extern u8 D_802FDA60[];
 extern u8 D_802FDA70[];
 extern Entry8 D_802E8F38[];
@@ -54,10 +51,6 @@ extern char D_8036EBA0[];
 extern MenuItem D_8020C070[];
 extern LevelInfo D_802E8F94[];
 extern s32 D_80358060;
-extern s32 D_802FA26C;
-extern u8 D_8039C53C[];
-extern u8 D_80370C50;
-extern u8 D_803643D5;
 
 
 #define players D_80364AF0

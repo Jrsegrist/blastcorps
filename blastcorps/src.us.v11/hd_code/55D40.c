@@ -19,8 +19,6 @@ typedef struct {
 extern CreditLine D_80304A90[];
 extern u8 D_802F47B0[][8];
 extern s32 D_80358060;
-extern u8 D_803643D6;
-extern s16 yoshiState;
 
 
 /* Credits scroller: draws the visible credit lines, advances the scroll, and ends the credits */

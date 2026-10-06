@@ -11,8 +11,6 @@ extern u32 D_803EEB38[]; /* its position x, y, z */
 extern u64 *D_803EEB48;  /* its two matrix buffers */
 extern u64 *D_803EEB4C;
 extern u8 *D_803EEB44;   /* its model header */
-extern u8 D_803ED40B;
-extern u8 D_8035805C;    /* selects which of the two matrix buffers is current */
 void func_802B7030(MtxChainRegs *regs);
 void func_802B7240(void);
 #endif
@@ -28,7 +26,6 @@ void func_802B7240(void);
 #ifdef NON_MATCHING
 extern s32 D_80358070;   /* matrix buffer allocator */
 extern u8 D_803EE790[];  /* vehicle 5's animation channels */
-extern f32 D_80364414;   /* camera yaw (degrees) */
 extern s8 D_803EEB60;
 extern u8 D_803EEB5E;
 extern u8 D_803EEB5F;
@@ -172,9 +169,6 @@ void func_802B5900(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp) {
 #ifdef NON_MATCHING
 extern u8 D_803EEA90[]; /* this vehicle's state block */
 extern u8 D_803EE790[]; /* animation channel table (Unk8029DEA0Entry, 56040.c) */
-extern u8 D_802C2208[]; /* keys of this vehicle's func_802A06B4 entries */
-extern u8 D_802C226C[];
-extern s16 D_8036444C;
 extern s16 D_80364450;
 
 /* Enter vehicle type 5 (called from 00000.c / 17210.c): clears byte 0x99 of
@@ -404,7 +398,6 @@ s32 func_802B618C(s32 id, TriSideOut *f) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_80367BFF;
 extern void *D_80367738;  /* sound player */
 extern s16 D_803EEB58;    /* engine rate */
 extern s16 D_803EEB5A;    /* heading kept while bouncing off */
@@ -412,16 +405,9 @@ extern u8 D_803EEB5E;     /* spawn cooldown */
 extern s8 D_803EEB60;     /* collision flag */
 extern s8 D_803EEB61;     /* sound to start this frame (-1 = none) */
 extern s32 D_80364AA8;
-extern u8 D_803A7424;
-extern u8 D_803A7425;
 extern u8 D_80305D20[];
-extern u8 D_802C2954[];   /* func_802A6274 definition */
 extern f32 D_8030D8E0;
 extern void *D_803F77D0;
-extern s32 D_803643E0;    /* player position, speed, heading, angle */
-extern s32 D_803643E4;
-extern s32 D_803643E8;
-extern s16 D_8036443C;
 extern s16 D_8036443E;
 extern s16 D_80364440;
 s32 func_802B60BC(ZoneScanRegs *r);
@@ -707,7 +693,6 @@ void func_802B69F8(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern f32 D_80364414;   /* camera yaw (degrees) */
 extern s16 D_803EEB5C;   /* angle offset */
 extern f32 D_803EEB50;   /* channel-4 position, 0.5 = rest */
 extern u8 D_803EEB5F;    /* level 0..100 */
@@ -717,10 +702,6 @@ extern f32 D_8030D8EC;
 extern f32 D_8030D8F0;
 extern f32 D_8030D8F4;
 extern f32 D_8030D8F8;
-extern u8 D_80370C15;    /* button bytes */
-extern u8 D_80370C16;
-extern u8 D_80370C1C;
-extern u8 D_80370C23;
 f32 func_802B71DC(s32 side);
 
 /* Moves f by step towards 0.5, stopping at 0.5 (NaN stays NaN). */
@@ -858,8 +839,6 @@ void func_802B6C28(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_8035805C;   /* selects which of the two matrix buffers is current */
-extern s16 D_803ED392;  /* model rotation y (62740.c) */
 extern u8 *D_803EEB44;  /* this vehicle's model header */
 
 /* Rebuilds vehicle 5's model matrices and collision points. The model
@@ -952,12 +931,6 @@ f32 func_802B71DC(s32 side) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern f32 D_803EBBF0;
-extern f32 D_803EBBF4;
-extern u8 D_803ED3F6;
-extern u8 D_803ED3F7;
-extern u8 D_80370C1A; /* L_TRIG held */
-extern u8 D_80370C1B;
 extern s16 D_803EEB58;
 
 /* Vehicle-module setup leaf (shape of func_802AFBA0 in 69BB0, other

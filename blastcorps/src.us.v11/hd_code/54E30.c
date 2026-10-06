@@ -11,12 +11,8 @@ typedef struct {
 } Player;
 
 extern Player D_80364AF0[];
-extern u8 D_80364AE8;
-extern u64 D_80364A98;
 extern s32 D_802E8BDC;
 extern s32 D_802E8BEC;
-extern u8 D_802E8BF0;
-extern u8 D_803643D4;
 extern s32 D_80367738;
 /* .bss, defined here (paired u64 stores share one lui) */
 u64 D_803A6AF0; /* loop mask used when the sequence finishes */

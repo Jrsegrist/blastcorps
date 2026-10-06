@@ -135,29 +135,18 @@ typedef struct {
     /* 0x21498 */ u8 pad21498[0x21498 - 0x48B0 - ((0x21498 - 0x48B0) / 8) * 8];
 } Dynamic;
 
-extern Gfx D_01000010[];
-extern Gfx D_01000038[];
 extern Dynamic D_803156F8[];
 extern u16 *D_80358050[];
 extern u16 *D_80358058;
 extern void *D_8035806C;
-extern u16 D_8035807C;
-extern f32 D_802E8C84[];
-extern s32 D_802FA264; /* debug mode */
-extern u16 D_80370C28; /* controller buttons held */
 f32 sqrtf(f32);
-extern u8 D_8035805C;
 extern void *D_80367738;
-extern u8 D_80364AE8;
 extern Player D_80364AF0[];
 extern LevelInfo D_802E8F94[];
 
 /* front end */
-extern s32 D_80217B6C;
-extern u8 D_8021A8F0;
 extern Gfx *D_8021A8F8;
 extern u8 D_8021A905;
-extern f32 D_8021A918;
 extern u16 D_8021A924;
 extern u8 D_802159F0[];
 extern Mtx D_80217B70[];
@@ -167,8 +156,6 @@ extern s8 D_8021A907;
 extern u8 D_8021A908;
 extern u8 D_8021A909;
 u64 D_8021A940[60];
-extern f32 D_8021A91C;
-extern f32 D_8021A920;
 extern f32 D_8021A934;
 extern f32 D_8021A938;
 extern u16 D_8021A926;
@@ -213,17 +200,8 @@ extern f32 D_8021A8E8; /* flight progress 0..1 */
 extern f32 D_8021A8EC; /* altitude scale */
 extern u32 D_803156C4;
 extern s32 D_80358060;
-extern s32 D_80358078;
-extern s32 D_80358080;
-extern s32 D_80358084;
-extern OSMesgQueue D_80315180;
-extern u8 D_80364A87;
-extern u64 D_80364A98; /* next game mode */
 extern s32 D_802E8BDC; /* current level */
 extern s8 D_80370C2C; /* stick x */
-extern s8 D_80370C2D; /* stick y */
-extern u16 D_80370C2A; /* controller buttons, previous frame */
-extern s16 yoshiState;
 extern f32 D_8021A90C;
 extern f32 D_8021A910;
 extern f32 D_8021A914;

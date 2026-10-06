@@ -72,32 +72,21 @@ extern s32 D_80218EF0;        /* free bytes */
 extern char D_80219F90[];
 extern char D_80219FB0[];
 extern u8 D_80301080[];
-extern u16 D_80364F70[];      /* EEPROM best-time words (time, time ^ 0x55AA) */
-extern u8 D_80364AEA;
 extern u8 D_8039C4B8[];
 extern LevelInfo D_802E8F94[];
-extern OSMesgQueue D_80370BF8; /* hd_code: SI message queue */
-extern u8 D_8039C538;
 extern s32 D_8039B698[];      /* file_no per player */
 extern OSThread D_80218D30;
 extern u8 D_80218EF8[];       /* thread stack (0x1000) */
-extern OSMesgQueue D_80219EF8;
 extern OSMesg D_80219F10[];
 extern OSMesgQueue D_80219F30;
 extern OSMesg D_80219F48[];
-extern OSMesgQueue D_80219F50;
 extern OSMesg D_80219F68[];
-extern u8 D_80218EE0[];
 extern u8 D_80315440[];       /* hd_code scheduler */
-extern u8 D_802E8BF8;
-extern u64 D_80364A90;        /* game mode */
 extern s32 D_8039C4B4;
-extern s32 D_802FA264;
 extern Player D_80364AF0[];   /* player records */
 extern u8 D_8039B6B0[];
 extern u8 D_8020BEE0[];
 extern u16 D_80364EF0[][16];  /* best times */
-extern u8 D_802E8C44[];
 
 int sprintf(char *, const char *, ...);
 void bcopy(const void *, void *, int);
@@ -344,14 +333,9 @@ void func_801F57B0(void) {
  * }
  */
 #ifdef NON_MATCHING
-extern u8 D_8039C4B0;      /* pak thread busy */
-extern s32 D_8036BF10;
 extern s32 D_80218D24;     /* a Yoshi window was opened for a pak error */
 extern s32 D_80219F88;     /* Yoshi window of the last pak error */
 extern u8 D_80310BD0[];    /* hd_code: the thread D_80219F50's receiver must be */
-extern u64 D_80364A98;     /* next game mode */
-extern s16 yoshiState;
-extern s16 currentYoshiWindow;
 s32 func_801F5FE4(void);
 s32 func_801F60C8(void);
 s32 func_801F6160(u8 player);

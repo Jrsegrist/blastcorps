@@ -32,46 +32,19 @@ typedef struct {
 } MenuEntry;
 extern MenuEntry D_8020C070[];
 
-extern u64 D_80364A90;
-extern u64 D_80364A98;
 extern s32 D_80364AA8;
-extern u8 D_80364AE8;
-extern u8 D_80364AE9;
-extern u8 D_80364AEA;
-extern s32 D_80364A64;
-extern s8 D_80364A71;
-extern u8 D_80365060[];
 extern s32 D_80367738;
-extern u16 D_8036BB16;
-extern s16 D_8036BB1A;
-extern s16 D_8036BB1E;
-extern s16 D_8036BB20;
-extern s16 currentYoshiWindow;
-extern s16 yoshiState;
-extern u8 D_8039C541;
-extern u8 D_8039CA60;
-extern u64 D_8021A830;
-extern OSMesgQueue D_80219EF8;
-extern OSMesgQueue D_80219F50;
 #define pakToGameMessageQ D_80219F50
-extern u8 D_802154B0;
 extern u8 D_8021AB70;
 extern char D_8021AB72[];
 extern s16 D_8021AB74;
 extern s16 D_8021AB76;
 extern s32 D_8021AB7C;
 extern u32 D_803156C4;
-extern OSMesgQueue D_80315180;
-extern u8 D_8035805C;
 extern u32 D_80358060;
 extern u8 *D_8035806C;
 extern u32 D_80358058;
 extern u32 D_80358050[];
-extern s32 D_80358078;
-extern s32 D_80358080;
-extern s32 D_80358084;
-extern Gfx D_01000010[];
-extern Gfx D_01000038[];
 
 int sprintf(char *, const char *, ...);
 

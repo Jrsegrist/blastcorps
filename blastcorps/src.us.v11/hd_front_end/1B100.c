@@ -18,11 +18,6 @@
 
 extern u8 *D_80358070; /* hd_code heap pointer */
 /* engine-sound channel tables in hd_code's 7D9D0 text blob */
-extern u8 D_802C2190[];
-extern u8 D_802C21A4[];
-extern u8 D_802C21B8[];
-extern u8 D_802C2208[];
-extern u8 D_802C226C[];
 
 
 /*

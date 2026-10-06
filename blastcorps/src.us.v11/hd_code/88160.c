@@ -18,7 +18,6 @@ extern u32 D_803F92F8[]; /* x, y, z */
 extern u8 *D_803F9304;   /* model header */
 extern u64 *D_803F9308;  /* save copy pair (func_802A7764) */
 extern u64 *D_803F930C;
-extern u8 D_8035805C;    /* which save copy is current */
 
 void func_802CD800(void);
 
@@ -125,7 +124,6 @@ void func_802CC920(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 D_803F9250[]; /* this vehicle's state block */
-extern s16 D_8036444C;
 extern s16 D_80364450;
 
 /* Enter vehicle type 14: clears the byte at +0x99, D_8036444C/50 = 3000,
@@ -257,7 +255,6 @@ s32 func_802CCED4(s32 id, InterpRegs *r) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803ED40B;
 void func_802CD9AC(void);
 
 /* Steer vehicle 14 along triangle `id` (asm caller func_802AB714): as
@@ -302,17 +299,10 @@ s32 func_802CCF60(s32 id, TriSideOut *f) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_80367BFF;
 extern s16 D_803F9310; /* steering target */
-extern u8 D_803A7424;
-extern u8 D_803A7425;
 extern u8 *D_803F77D0;
 extern f32 D_8030D9C0;
 extern u8 D_80306440[];
-extern s32 D_803643E0;
-extern s32 D_803643E4;
-extern s32 D_803643E8;
-extern s16 D_8036443C;
 extern u16 D_8036443E;
 extern u16 D_80364440;
 void func_802CD578(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4);
@@ -468,7 +458,6 @@ publish:
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 D_803F9312;   /* countdown */
-extern u8 D_802C2954[]; /* definition handed to func_802A6274 (7D9D0 text blob) */
 void func_802CD660(void);
 
 /* Tyre trail (func_802CD660), then the countdown D_803F9312: when nonzero
@@ -533,7 +522,6 @@ void func_802CD660(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_8035805C;     /* which of the two save copies is current */
 extern u8 *D_803F9304;    /* model header: word offsets to the part lists */
 extern s16 D_803ED390[3]; /* rotation angles x, y, z for func_802AA764 */
 
@@ -621,10 +609,6 @@ s32 func_802CD938(void) {
  * shape as func_802BAD24 (75490.c). Asm callers rely on preserved registers:
  * func_802CCF60 on t3, t4, f12, f14; func_802CD068 on a0-a3 (mixed N64 build
  * would need a thunk). */
-extern f32 D_803EBBF0;
-extern f32 D_803EBBF4;
-extern u8 D_803ED3F6;
-extern u8 D_803ED3F7;
 
 void func_802CD9AC(void) {
     D_803EBBF4 = D_803EBBF0 * 4.0f;

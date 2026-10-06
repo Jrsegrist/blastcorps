@@ -4,17 +4,9 @@
 
 
 extern FeDyn D_803156F8[];
-extern u8 D_8035805C;         /* current frame buffer index */
-extern s32 D_80358080;        /* nextdma */
-extern s32 D_80358084;        /* no_palette_dmas */
-extern s32 D_80358078;        /* display list length */
 extern s32 D_802159C0;
-extern s16 currentYoshiWindow;
 extern void *D_8035806C;
 extern void *D_80358050[];    /* frame buffers */
-extern OSMesgQueue D_80315180; /* texture DMA queue */
-extern Gfx D_01000010[];
-extern Gfx D_01000038[];
 
 
 void func_801EE390(void) {

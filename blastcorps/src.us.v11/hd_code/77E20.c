@@ -69,7 +69,6 @@ typedef struct {
 } Unk8039C800; /* size 0x28 */
 
 extern Unk8039C800 D_8039C800[];
-extern u8 D_8039C940; /* number of D_8039C800 entries */
 
 typedef struct {
     /* 0x00 */ s32 pos[3];
@@ -110,11 +109,7 @@ typedef struct Unk802BD99CModel {
 } Unk802BD99CModel;
 
 extern Unk803B9890 D_803B9890[];
-extern u8 *D_803BE708;
 extern s32 D_802E8BDC; /* current level */
-extern s32 D_803EF6DC; /* player x, y, z */
-extern s32 D_803EF6E0;
-extern s32 D_803EF6E4;
 
 /* Callees in other files (C rewrites; see conventions.txt for their asm registers). */
 
@@ -202,15 +197,8 @@ typedef struct {
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803F7805;  /* request flag, consumed here */
 extern u8 D_803F7806;
-extern u8 D_803643DB;
-extern u8 D_80364AC1;
-extern u8 D_803643DA;
-extern u8 D_802E8BD8;
 extern u8 D_803649E8;
-extern u64 D_80364A90; /* game mode */
-extern u64 D_80364A98; /* next game mode */
 
 /* If D_803F7805 is set, clears it and, unless D_803643DB or D_80364AC1 is set
  * and the level isn't finished yet, marks it finished (D_803643DA and
@@ -376,10 +364,7 @@ void func_802BC888(s32 kind, s32 id, s32 amount) {
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803643D6;
-extern u8 D_803643D7;
 extern u8 D_802E8BE4; /* screen shake time */
-extern s32 D_802E8BE8; /* screen shake size */
 
 /* Delayed damage: for each of the 40 D_803F7690 entries {object, u16 amount,
  * u8 part, u8 timer} with a running timer, counts it down; on reaching 0 the
@@ -597,11 +582,7 @@ s32 func_802BCDE0(s32 value) {
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_803643E0; /* reference point x, y, z */
-extern s32 D_803643E4;
-extern s32 D_803643E8;
 extern void *D_8036C790;
-extern u8 D_803F7808;
 
 /* Finds the closest target to the point D_803643E0/E4/E8, starting from a
  * distance limit of 9999999, over three tables (a later one wins only when
@@ -728,9 +709,7 @@ s32 func_802BD064(Unk802C1DD0Entry *next) {
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803F7809;  /* kind of the target (as D_803F7808: 2 and 3 have pos at +0) */
 extern u16 D_803EF6FC; /* divisor, 0 = none */
-extern s32 D_8036C7C8;
 
 /* D_8036C7C8 = the x/z distance from the player (D_803EF6DC, D_803EF6E4) to
  * the target, divided (unsigned) by D_803EF6FC when that is nonzero. The
@@ -763,16 +742,11 @@ void func_802BD10C(s32 arg0) {
 #ifdef NON_MATCHING
 extern Mtx *D_803F7658; /* 2 matrices (func_802C1F30's falling parts) */
 extern s32 D_803F765C;  /* Mtx pool cursor for func_802933A0 */
-extern s32 D_803F7664; /* position objects with a pose are moved to */
-extern s32 D_803F7668;
-extern s32 D_803F766C;
 extern s32 D_803F24D0[]; /* matrix pools of the two frames */
 extern s32 D_803F2ED0[];
 extern s32 *D_803F3964;
 extern s16 D_803C30A8[]; /* visible object ids, ended by -1 */
-extern u8 D_8035805C;    /* frame index */
 extern u8 D_802E8BE4;    /* screen shake time */
-extern s32 D_802E8BE8;   /* screen shake size */
 void func_802BD85C(Unk802BD99CModel *model, s32 id);
 void func_802BDDB4(Unk802C1DD0Entry *obj, u8 *rec, u8 *end);
 u32 *func_802BE228(u32 *src, u32 *srcEnd, u32 *dst, u8 *tbl, u8 *tblEnd);
@@ -1183,9 +1157,6 @@ void func_802BD99C(Unk802BD99CModel *model, s32 dx, s32 dy, s32 dz) {
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_803643F8; /* player x, z (<< 11) */
-extern s32 D_80364400;
-extern u64 D_803649D8; /* frame time */
 
 /* An animation channel record (0xC bytes, then n words). */
 #define ANIM_N(r) ((r)[4])                     /* frame count */
@@ -1491,9 +1462,6 @@ void func_802BEF9C(Unk802C1DD0Entry *e);
 void func_802BEFF4(void);
 void func_802BFEE4(u8 *vehicle);
 s32 func_802BFF6C(s32 id, s32 value, s32 bit, Unk802C1DD0Entry *e, s32 flag, s32 key);
-extern u8 D_803BE738;
-extern s32 D_80358068;
-extern s32 D_803F77F8;
 extern u8 D_803F7802;
 extern u8 D_803F7803;
 
@@ -1520,13 +1488,11 @@ static s32 sphere_hits_tri_77E20(s32 x, s32 y, s32 z, s32 r, Unk803B9890 *tri) {
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803A7300[]; /* 0x14-byte vehicle spheres: s32 x, y, z, r, u8 vehicle id at 0x10, s8 flag at 0x11 */
 extern s32 D_803F77F4;
 extern u8 D_803F7807;
 extern u8 D_803F780F;
 extern u16 D_803A7410; /* ring span */
 extern u16 D_803A7412;
-extern u8 D_803A7425;
 
 /* Collision pass of vehicle id (record `vehicle`): clears D_803F7802/7803/7807
  * and the once-per-frame latch D_803F780F, copies D_803F77F8 to D_803F77F4,
@@ -1631,7 +1597,6 @@ s32 func_802BE944(Unk802C1DD0Entry *e, s32 bit) {
 /* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern void *D_803F3960;
-extern u8 D_803F3910[];
 
 /* Resets the pointer D_803F3960 to the start of D_803F3910.
  * Register note: the asm saves/restores v0 and v1; asm caller func_802BE77C
@@ -1726,17 +1691,11 @@ typedef struct {
 } Unk803A6B30;           /* size 0x14 */
 
 extern Unk803A6B30 D_803A6B30[];
-extern u8 D_8036B971;
 extern Unk802C1DD0Entry *D_8036B974;
 extern u8 D_803F7800;
-extern u8 D_803F7805;
-extern u8 D_803F780C;
-extern u8 D_803F7812;
 extern u8 D_802E8BE4; /* screen shake time */
-extern s32 D_802E8BE8; /* screen shake size */
 extern u16 D_803F77FE;
 extern s8 *D_803A7408; /* -1-terminated list of hit counts that don't hurt */
-extern u8 D_803A7424;
 
 /* Damage from the vehicle's hit spheres to triangle tri of object e. Walks the
  * D_803A6B30 spheres (until flag -1) that are in use and belong to vehicle id,
@@ -1879,7 +1838,6 @@ tail:
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803BE738;
 
 /* On level 0x2D, sets D_803BE738 when e->unk30 is 0xE7..0xE9 (signed). The asm
  * takes e in t9 and saves v0; asm caller func_802BEBB0 keeps a0, a1, t8, t9,
@@ -1895,14 +1853,9 @@ void func_802BEF9C(Unk802C1DD0Entry *e) {
 
 /* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_80364456;   /* mode: the update is skipped in modes 0,1,2,6,7,9,0xB,0x10..0x12 */
-extern s16 D_803F77FC;  /* signed input whose sign is tracked */
 extern s32 D_803F77F4;  /* frame stamp: run counting only if it is D_80358068 - 1 */
-extern s32 D_80358068;
 extern u8 D_80370C2C;   /* flag sampled each counted frame */
 extern s8 D_803F780A;   /* last sign of D_803F77FC (-1, 0, 1) */
-extern u8 D_803F780B;   /* run length, 0..0x14 */
-extern u8 D_803F780C;   /* result: set for one call when a run of 0x14 completes with a change */
 extern u8 D_803F780D;   /* "the flag changed during this run" */
 extern u8 D_803F780E;   /* flag value at the start of the run */
 extern u8 D_803F780F;   /* once-per-frame latch, set here */
@@ -1992,9 +1945,6 @@ void func_802BF1F0(Unk802C1DD0Entry *e, s32 id) {
 
 /* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_803A73F0; /* a point x, y, z (each >> 2 here) */
-extern s32 D_803A73F4;
-extern s32 D_803A73F8;
 
 /* For a collision triangle t with unk58 set: s = t's plane function at the
  * point D_803A73F0/F4/F8 >> 2 (normal . p + d, 64-bit, wrapping where the
@@ -2060,10 +2010,7 @@ void func_802BF384(Unk802C1DD0Entry *e) {
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_80364A40; /* message to post */
 extern u32 D_803649F0; /* score */
-extern u8 *D_803BDFD4; /* end of the 0x24-byte records at D_803BDFD8 */
-extern u8 D_803BDFD8[];
 
 /* Unless e is already finished (unkEA), finishes it when every part other
  * than the 1-based part info->unkD is either done (unkEC byte == 100) or has
@@ -2253,7 +2200,6 @@ extern Unk80306344 D_80306350[];
 extern Unk80306344 D_803063D4[];
 extern u8 D_803063E0[]; /* {u8 threshold; u8 count} pairs */
 extern u16 D_803F77FE;
-extern u8 D_803EF6FF;
 
 /* Spawns debris for part `index` (1-based) of e: the part's s16 point in
  * e->info's unk2C table (8-byte records) << 16 is the position. A 0..100 roll
@@ -2348,7 +2294,6 @@ s32 func_802BFB50(s32 lo, s32 hi) {
 /* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern s8 D_8030633C[]; /* -1 terminated */
-extern u64 D_803649D8;  /* frame time */
 
 /* Unless e's info type is 1, and if obj's byte 0x31 is in the list
  * D_8030633C (s8 entries compared with the u8, so 0x80..0xFE never match),
@@ -2457,7 +2402,6 @@ void func_802BFDAC(Unk802C1DD0Entry *e, s32 index) {
 /* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 D_803F7800;
-extern u8 D_803F7801;
 
 /* D_803F7800 = 0 if D_803F7801 is 1; else 1 if D_803F7801 is 2 or any of the
  * vehicle's bytes 0x96..0x98 is 1; else 0. The asm takes the vehicle in gp
@@ -2481,9 +2425,6 @@ void func_802BFEE4(u8 *vehicle) {
 #ifdef NON_MATCHING
 extern u16 D_8036CB2A;
 extern u16 D_8036CB2C;
-extern u8 D_8036CB2E;
-extern u8 D_8036CB2F;
-extern u8 D_803F7804;
 extern u8 D_803F7807;
 extern void *D_803F77D0;  /* base of the Unk8029DEA0Entry records read by func_802A04BC */
 extern u8 D_80305E50[];   /* records {u8 bit; u8 key; u8 kind; u8 n; ...}, see below */
@@ -2605,7 +2546,6 @@ typedef struct {
 } Unk80305E10;
 
 extern Unk80305E10 D_80305E10[];
-extern s32 D_803A740C; /* frame stamp */
 
 /* Returns 1, and sets *out = 100, when any of these holds (else returns 0 and
  * leaves *out alone): D_803F780C is set (it is cleared, and nothing else is
@@ -2653,7 +2593,6 @@ s32 func_802C0284(s32 bit, s32 flag, s32 *out) {
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_803A73F4;
 
 /* Returns 0 if part `id` of e is blocked, else 1. Blocked: a record in
  * e->info's unk44..unk48 list ({u8 part; u8 pad; u8 n; n x {u8 id; u8 pad}})
@@ -2745,12 +2684,6 @@ void func_802C04F0(u32 *src) {
 
 
 extern u8 *D_80306270[];  /* per kind: {u8 n; u8 defIndex[n]} */
-extern u8 *D_802C3FFC[];  /* effect definitions, in the 7D9D0 text blob */
-extern u8 D_803F7810;
-extern u8 D_8036DCD4;
-extern u8 D_8036DCD7;
-extern u8 D_803643D6;
-extern u64 D_80364A98;
 
 /* Runs the 30 pending debris records of D_803F3968 (0x38 bytes each): a
  * record with byte 0x34 set is free; one whose u16 delay at 0x2C is nonzero
@@ -2809,7 +2742,6 @@ void func_802C0574(void) {
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803F0900[]; /* 4 entries of 0x4B8 bytes */
 
 /* For each of the 4 D_803F0900 entries: with its s16 at 0x4B0 zero, counts
  * its byte at 0x4B2 down to 0; otherwise lowers the s16 by 20 and, if that
@@ -3010,8 +2942,6 @@ typedef struct {
 } Unk803EFED0;                  /* size 0xA30 */
 
 extern Unk803EFED0 D_803EFED0[];
-extern u8 D_8035805C; /* selects the matrix buffer */
-extern u8 D_803F7810;
 
 /* Moves the D_803EFED0 entry (one) and draws it into gfx: an inactive entry
  * counts unkA2B down to 0. An active one speeds up by 16 and rises by its
@@ -3174,7 +3104,6 @@ void func_802C1214(u8 *base, Unk802C1DD0Entry *e) {
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803F1BE0[]; /* 2 entries of 0x478 bytes */
 extern Mtx *D_803F7658; /* 2 matrices for them */
 /* 23C20.c defines it with s16 parameters; the asm passes rx as a full
  * u16 + u16 sum and ry zero-extended, so it is declared with words here. */
@@ -3243,8 +3172,6 @@ void func_802C12E0(u32 **gfxA, u32 **gfxB) {
 
 /* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_803A73F0; /* a point x, z (16.16-ish; the part position is << 5) */
-extern s32 D_803A73F8;
 s32 func_802C1A28(Unk802C1DD0Entry *e, s32 index);
 
 /* Quarter-turn heading (0..0x3FF) from the sine num / d: arcsine >> 4. */
@@ -3528,10 +3455,6 @@ s32 func_802C1B1C(void) {
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_803F7660;
-extern s32 D_803F7670;
-extern s32 D_803F7674;
-extern s32 D_803F7678;
 
 /* Finds the distance from the player (D_803EF6DC/E0/E4) to the closest
  * target, starting from a limit of 9999999, over the same three tables as
@@ -3612,9 +3535,6 @@ u32 func_802C1B9C(void) {
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 /* Unk802C1DD0Info/Entry and D_803F4030/D_803F7654 are declared at the top of the file. */
-extern s32 D_803F7684;
-extern s32 D_803F7688;
-extern u8 D_8036EB92;
 extern struct {
     /* 0x00 */ s32 total;
     /* 0x04 */ s32 unk4;
@@ -3702,7 +3622,6 @@ s16 *func_802C1EE0(s32 index) {
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_8035805C;  /* selects the matrix buffer */
 extern u8 *D_803F7820; /* matrix buffers */
 extern u8 *D_803F7824;
 

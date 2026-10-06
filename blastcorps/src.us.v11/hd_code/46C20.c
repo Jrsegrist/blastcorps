@@ -7,9 +7,6 @@
 
 extern s32 *D_802FDB30; /* ROM start of the front end */
 extern s32 *D_802FDB34; /* ROM end of the front end */
-extern u8 D_80370C50;   /* front end loaded */
-extern OSIoMesg D_80370C58;
-extern OSMesgQueue D_803150A0;
 
 
 /* Load the front end overlay to 0x801E7000 once */

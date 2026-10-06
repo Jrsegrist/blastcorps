@@ -31,29 +31,13 @@ typedef struct {
 
 extern Debris D_80367D60[20];
 extern u32 D_8036B968;
-extern s32 D_80368030;
 extern s16 D_80368034;
 extern s16 D_80368036;
 extern s32 D_80368038;
 extern s32 D_8036803C;
-extern s32 D_80368040;
 extern s32 D_80368044;
-extern s32 D_80368048;
-extern u8 D_8036EA79;
-extern u8 D_802E8BD0;
 extern s32 D_80367738;
-extern s32 D_803643E0;
-extern s32 D_803643E8;
-extern s16 D_8036443C;
 extern s16 D_8036443E;
-extern s32 D_803EF2EC;
-extern s32 D_803EF2F4;
-extern s32 D_803EF308;
-extern s32 D_803EF30C;
-extern u8 D_803EF32C;
-extern u8 D_803EF32D;
-extern s32 D_803EF6DC;
-extern s32 D_803EF6E4;
 extern u16 D_803C30A8[];
 
 s32 func_80265A0C(s32 arg0);
@@ -446,17 +430,12 @@ typedef struct DynBuf {
 } DynBuf;
 
 extern Debris D_80367D60[20];
-extern f32 D_80364414;
 extern Vtx D_802E9FB0[4];
 extern u16 D_802E9FF0[];
 extern u16 D_802EA4F0[], D_802EA9F0[], D_802EAEF0[], D_802EB3F0[], D_802EB8F0[], D_802EBDF0[];
 extern u16 D_802EC2F0[], D_802EC7F0[], D_802ECCF0[], D_802ED1F0[], D_802ED6F0[], D_802EDBF0[], D_802EE0F0[], D_802EE5F0[];
 extern u16 D_802EEAF0[], D_802EEFF0[], D_802EF4F0[], D_802EF9F0[], D_802EFEF0[], D_802F03F0[], D_802F08F0[], D_802F0DF0[];
 extern u16 D_802F12F0[], D_802F17F0[], D_802F1CF0[], D_802F21F0[], D_802F26F0[], D_802F2BF0[], D_802F30F0[], D_802F35F0[];
-extern u8 D_803EF32E;
-extern s32 D_803EF310;
-extern s32 D_803EF314;
-extern s32 D_803EF318;
 extern u8 D_02000000[];
 
 s32 func_80267614();

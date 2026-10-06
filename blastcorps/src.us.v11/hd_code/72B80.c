@@ -18,9 +18,7 @@ extern u32 D_803EEF18[]; /* vehicle 8's position x, y, z */
 extern u8 *D_803EEF24;   /* vehicle 8's model header */
 extern u64 *D_803EEF28;  /* vehicle 8's model buffers */
 extern u64 *D_803EEF2C;
-extern u8 D_8035805C;    /* which of the two buffers is current */
 extern s16 D_803ED390[]; /* model rotation x, y, z */
-extern u8 D_803ED40B;
 void func_802B8278(void);
 void func_802B8424(void);
 void func_802B9B4C(void);
@@ -32,31 +30,17 @@ extern u8 D_803EF240[]; /* the flying vehicle's state block */
 extern u8 *D_803EF2F8;  /* its model header */
 extern u8 *D_803EF2FC;  /* its model buffers */
 extern u8 *D_803EF300;
-extern s32 D_803EF310;  /* marker position x, y, z, w */
-extern s32 D_803EF314;
-extern s32 D_803EF318;
 extern s32 D_803EF31C;
 extern s16 D_803EF2E6;
 extern s16 D_803EF324;
-extern s16 D_803EF328;
-extern s16 D_803EF32A;
-extern u8 D_803EF32C;
-extern u8 D_803EF32D;
 extern u8 *D_80358070;  /* heap cursor */
 extern u8 D_803EEB70[]; /* vehicle 8's 0x300-byte animation channel table (also saved/restored) */
 extern s16 D_803EEF30;  /* vehicle 8's last ring-steered heading */
 extern s8 D_803EEF33;   /* ring steering active */
 extern u8 D_803EEF34;   /* throttle lockout frames */
-extern u8 D_80367BFF;
 extern u8 D_80305D30[];
-extern u8 D_803A7424;
-extern u8 D_803A7425;
 extern void *D_803F77D0;
 extern f32 D_8030D900;
-extern s32 D_803643E0; /* player x, y, z */
-extern s32 D_803643E4;
-extern s32 D_803643E8;
-extern s16 D_8036443C;
 extern s16 D_8036443E;
 extern s16 D_80364440;
 s32 func_802B78B0(ZoneScanRegs *r);
@@ -181,7 +165,6 @@ void func_802B7340(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 D_803EEE70[]; /* this vehicle's state block */
-extern s16 D_8036444C;
 extern s16 D_80364450;
 
 /* Enter vehicle type 8: clears the byte at +0x99, D_8036444C/50 = 3000,
@@ -530,7 +513,6 @@ void func_802B7A88(void) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 D_803EEF32;   /* effect cooldown */
-extern u8 D_802C2954[]; /* definition handed to func_802A6274 */
 void func_802B80D8(void);
 
 /* Per-frame effects for vehicle type 8 ($gp = D_803EEE70, read as the
@@ -679,10 +661,6 @@ s32 func_802B83B0(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern f32 D_803EBBF0;
-extern f32 D_803EBBF4;
-extern u8 D_803ED3F6;
-extern u8 D_803ED3F7;
 
 /* Vehicle-module setup leaf (shape of func_802AFBA0 in 69BB0, other
  * constants): D_803EBBF4 = D_803EBBF0 * 4, D_803ED3F6/7 = 60, 3.
@@ -772,14 +750,8 @@ void func_802B8480(s32 a1Val, u8 *hdr) {
 /* Rounded 3-D distance from (ax, ay, az) to (bx, by, bz) (62740.c; asm
  * convention in tools_port/conventions.txt: t3-t5, t6, t7, s0 -> s1). */
 
-extern s32 D_803643E0; /* player x, y, z */
-extern s32 D_803643E4;
-extern s32 D_803643E8;
 extern void *D_80367738;  /* sound player */
 extern void *D_803EF2E8;  /* this sound's handle, NULL = none */
-extern s32 D_803EF2EC;    /* sound source x, y, z */
-extern s32 D_803EF2F0;
-extern s32 D_803EF2F4;
 
 /* Positional sound 0x13 at D_803EF2EC/F0/F4 (called from hd.c). d is the
  * rounded distance from the player D_803643E0/E4/E8. Beyond 16000 the sound
@@ -863,19 +835,8 @@ void func_802B899C(void) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 D_803EF240[]; /* this vehicle's state block */
-extern s16 D_803EF328;
-extern s16 D_803EF32A;
-extern s32 D_803EF310; /* marker position x, y, z, w */
-extern s32 D_803EF314;
-extern s32 D_803EF318;
 extern s32 D_803EF31C;
 extern s32 D_803ED808; /* player position x, y, z */
-extern s32 D_803ED80C;
-extern s32 D_803ED810;
-extern s32 D_80368030;
-extern u8 D_803EF32C;
-extern u64 D_80364A90; /* game mode */
-extern u64 D_80364A98; /* next game mode */
 
 /* Copies two halfwords of the vehicle block (+0x4E, +0x76) to D_803EF32A /
  * D_803EF328, and the marker position D_803EF310..1C to D_803ED808..10 and
@@ -904,9 +865,6 @@ void func_802B8AE4(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s16 D_803BE732; /* level extent x, z (>> 5) */
-extern s16 D_803BE736;
-extern s16 D_803EF326;
 
 /* Shadow/marker 0xFE at the sound source D_803EF2EC/F0/F4 ($gp = D_803EF240,
  * read as the global): when x and z are positive and inside the level
@@ -937,14 +895,8 @@ void func_802B8C18(s32 t3, s32 fp, TriSideOut *f) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803EF32D;
-extern u8 D_803EF32E;
-extern s32 D_803EF304; /* target height */
-extern s32 D_803EF308; /* target x, z */
-extern s32 D_803EF30C;
 extern s32 D_803EF320; /* best distance so far */
 extern s16 D_803EF324; /* turn rate */
-extern s32 D_80368048;
 extern s32 D_802E8BDC; /* current level */
 extern u8 *D_80358074;
 extern char D_80305D40[];
@@ -1255,8 +1207,6 @@ tail:
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_803EF308; /* marker x, z (y = 0) */
-extern s32 D_803EF30C;
 
 /* Distance (func_802ABCDC, y = 0) from (D_803EF2EC, D_803EF2F4) to
  * (D_803EF308, D_803EF30C), returned (the asm's s1; conventions.txt). The

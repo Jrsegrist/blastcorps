@@ -73,48 +73,19 @@ extern LevelInfo *D_80367C04;
 extern LevelInfo D_802E8F94[];
 extern u8 D_802E8F30[];
 extern Entry0A D_802E8F68[];
-extern f32 D_80364438;
-extern u8 D_80367C10;
-extern s32 D_803EF2EC;
-extern s32 D_803EF2F0;
-extern s32 D_803EF2F4;
-extern u8 D_803EFEC8;
-extern s32 D_803EFEB0;
-extern s32 D_803EFEB4;
-extern s32 D_803EFEB8;
-extern s32 D_803EFEBC;
 extern u8 D_803643D9;
-extern u8 D_803643DA;
-extern u16 D_8036EA7C;
-extern u8 D_8036EA78;
 extern u32 D_8036EA70;
-extern u8 D_8036EB92;
-extern u8 D_8036DCD4;
-extern s32 D_803643E0;
-extern s32 D_803643E4;
-extern s32 D_803643E8;
 extern char D_80367B60[][20]; /* HUD text lines (progress, lap times) */
 extern u32 D_80364AA8;
 extern u8 D_803F7806;
 extern s32 D_802E8BDC;
 extern u8 D_80367BFE;
-extern u8 D_80367BFF;
 extern s32 D_80358064;
 extern s32 D_80367B50;
 extern u8 D_80367B54;
 extern u16 D_80367B58[];
-extern u16 D_80367BF6;
 extern Entry08 D_802E8F74[];
-extern u8 D_80364410;
-extern s32 D_80364404;
-extern s32 D_80364408;
-extern s32 D_8036440C;
-extern s32 D_803F7C10;
-extern s32 D_803F7C14;
-extern u8 D_80364424;
 extern s32 D_80364428;
-extern u16 D_8036442C;
-extern s32 D_80364430;
 extern u32 D_803156C4;
 extern s32 D_80367BC0;
 extern u32 D_80367BC4;
@@ -124,22 +95,14 @@ extern s32 D_80367C0C;
 extern char D_802E9F90[]; /* "BUILDINGS" */
 extern s32 D_802E9F9C;
 extern u8 D_802E9FA0[];   /* " S" */
-extern u64 D_80364A90;
-extern u64 D_80364A98;
-extern u8 D_006A32B0[];
-extern u8 D_006A8DA0[];
 extern void *D_80358070;
 extern void *D_80367BE0[];
-extern u16 D_80367BC8;
-extern u8 D_80367C00;
 extern u8 D_80367C01;
 extern Anim30 D_802F49F4[];
 extern Anim30 *D_80367BCC;
 extern Anim30 *D_80367BD0;
 extern u8 D_80367BD4;
 extern u8 D_80367BD5;
-extern s16 D_80367BD6; /* HUD alpha cap */
-extern s16 currentYoshiWindow;
 extern char D_80367BB0[];
 extern u8 D_80367BF8;  /* race: quadrants crossed this lap */
 extern u8 D_80367BF9;  /* race: previous quadrant */
@@ -147,34 +110,22 @@ extern u8 D_80367BFA;  /* race: current quadrant */
 extern u8 D_80367BFB;  /* race: best lap */
 extern u16 D_80367BFC; /* race: best lap time */
 extern s32 D_80367BBC;
-extern u16 D_80370C28;
-extern u8 D_802E8BD0;
 extern char D_80367D10[];
 extern char D_80367D28[];
 extern ALCSPlayer *D_80367734;
 extern s16 D_80367D50; /* turbo-start banner y offset */
 extern u8 D_80367D52;  /* turbo-start banner image (1-5) */
 extern u8 D_80367D53;
-extern u8 D_80370C1C;
 extern char D_80367C18[];
 extern char D_80367C40[];
 extern s16 D_80367C68[];
 extern s16 D_80367CB8[];
 extern void *D_802F5804[];
 extern void *D_80367738;
-extern u8 D_8035805C;
-extern u8 D_803156F4;
 extern Player D_80364AF0[];
-extern u8 D_80364AE8;
-extern u8 D_803643D6;
-extern u8 D_803643D7;
 extern u32 D_803156C0;
-extern s32 D_80364A58;
 extern u16 D_80367BF4;
 extern u16 D_80367D08;
-extern u8 D_803BE738;
-extern s16 D_8036BB1A;
-extern s16 yoshiState;
 
 #ifndef NON_MATCHING
 u8 func_802C1B1C(void);

@@ -10,17 +10,9 @@
 
 f32 sqrtf(f32);
 
-extern f32 D_80364414;
-extern s16 D_8036443C;
 extern u16 D_80370C70;
-extern s16 D_80370C72;
 extern s8 D_80370C74;
-extern u8 D_80370C75;
 extern s16 D_80370C76;
-extern s16 D_803ED400;
-extern s16 D_803ED408;
-extern u8 D_803ED40A;
-extern s16 D_803F7C34;
 
 u16 func_8028BA1C(s16 arg0, s16 arg1, s8 *arg2, u8 arg3);
 f32 func_8028BD88(f32 arg0, f32 arg1);

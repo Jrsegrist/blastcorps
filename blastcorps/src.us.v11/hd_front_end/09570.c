@@ -50,7 +50,6 @@ extern s32 D_80217490[64]; /* face grid s */
 extern s32 D_80217590[64]; /* face grid t */
 extern u8 *D_80358070; /* heap pointer */
 extern Player D_80364AF0[];
-extern u8 D_80364AE8;
 
 s32 func_801F1DA8(s32);
 
@@ -200,11 +199,7 @@ typedef struct {
 } Globe; /* one face's 7x7 cells, five mip levels each */
 
 #define D_0066C900 ((u8 *) 0x0066C900) /* ROM: worldtextures.raw (compressed) */
-extern u8 D_0068B550[];                /* ... its end */
 extern u16 *D_80215A70[3];
-extern u8 *D_80215A7C;
-extern u8 *D_80215A80;
-extern u8 *D_80215A84;
 
 Gfx *func_801F1568(void) {
     u8 *base;

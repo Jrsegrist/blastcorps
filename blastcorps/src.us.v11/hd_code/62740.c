@@ -31,20 +31,11 @@
 #define VEH_S32(v, off) (*(s32 *) ((u8 *) (v) + (off)))
 #define VEH_F32(v, off) (*(f32 *) ((u8 *) (v) + (off)))
 
-extern u8 D_80367C10;
 extern s32 D_80358064;
-extern s32 D_80358068;
-extern s32 D_803A740C;
 extern u16 D_803A7410; /* ring index A (12-bit, see func_8029B930) */
 extern u16 D_803A7412; /* ring index B */
 extern s8 D_80370C2C;
-extern s8 D_80370C2D;
 extern s16 D_80370C70;
-extern s16 D_80370C72;
-extern u8 D_80370C34;
-extern u8 D_80370C75;
-extern u8 D_803649EE;
-extern u8 D_803BE738;
 extern s32 D_802E8BDC;
 extern s32 D_80305C58[]; /* {key, value, threshold} triples, value 0 ends */
 extern u8 D_803EB7A0[];  /* vehicle save buffer: 0x300 + 0xA6 + 3 words */
@@ -52,7 +43,6 @@ extern s32 D_803EBBD8[]; /* 0x14-byte swap temp */
 extern u8 *D_803EBC00;
 extern u8 *D_803EBC04;
 extern u8 *D_803EBC08;
-extern u8 D_803EBC10[]; /* 0x10-byte records, id byte at +0xC */
 extern s32 D_803ED398;
 extern s32 D_803ED39C;
 extern s32 D_803ED3A0;
@@ -64,19 +54,8 @@ extern u8 D_803ED3EB;
 extern u8 D_803ED3EE;
 extern u8 D_803ED3EF;
 extern u8 D_803ED3F2;
-extern u8 D_803ED3F7;
-extern s16 D_803ED408;
-extern u8 D_803ED40A;
 extern s8 D_803ED40C;
-extern u8 D_803ED40D;
 extern u8 D_803ED410;
-extern u8 D_80370C22;
-extern u8 D_80370C1A;
-extern u8 D_80370C1B;
-extern s16 D_803ED400;
-extern u8 D_80364456;
-extern u8 *D_803EBBEC;  /* end of the used D_803EBDB0 records */
-extern u8 D_803EBDB0[]; /* 0x38-byte triangle records, u16 id at +0x36 */
 
 
 /* Prototypes shared by the ground-height functions (func_802A92C8 ..
@@ -90,7 +69,6 @@ typedef struct {
     s32 t1; /* z */
 } Pos802A8CCC;
 
-extern u8 D_803ED3B8[]; /* 4-byte records {u8 key, u8 kinds[3]}, word -1 ends */
 extern s16 D_803ED390; /* three s16 angles x, y, z (0x803ED390/92/94; 94 has no symbol) */
 #define D_803ED394_ ((&D_803ED390)[2])
 
@@ -560,7 +538,6 @@ u64 *func_802A768C(u8 *veh, u8 *dst, s32 *w0, s32 *w1, s32 *w2, u64 *src, u64 *d
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_8035805C; /* current frame buffer index */
 
 /* Copy `size` bytes in 8-byte units from a to b, or from b to a when
  * D_8035805C (the frame buffer index) is nonzero. Both pointers must be
@@ -1284,8 +1261,6 @@ extern s16 D_803ED402;
 extern s16 D_803ED404;
 extern s16 D_803ED406;
 extern u8 D_803ED40E;
-extern u8 D_803ED40F;
-extern u8 D_803ED3F5;
 void func_802A8CCC(u8 *veh, s32 id, s32 *px, s32 *py, s32 *pz, Pos802A8CCC *pos);
 void func_802A90E4(u16 *p);
 void func_802A8FF4(u8 *veh);
@@ -1446,13 +1421,7 @@ s32 func_802A8B10(s32 *a3Out) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s16 D_803BE730; /* level box: x min, x max, z min, z max (>> 5 units) */
-extern s16 D_803BE732;
-extern s16 D_803BE734;
-extern s16 D_803BE736;
-extern u8 *D_803BE6F8; /* 9-byte respawn records: u8 key, s16 x, y, z (big-endian) */
 extern s32 D_80364AA8; /* game mode flags */
-extern u8 D_80364412;  /* "position was reset" flag */
 
 /* (Pos802A8CCC is declared at the top of the file.) */
 
@@ -1520,8 +1489,6 @@ void func_802A8CCC(u8 *veh, s32 id, s32 *px, s32 *py, s32 *pz, Pos802A8CCC *pos)
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803ED3F5;
-extern f32 D_803EBBF4;
 
 /* If D_803ED3F5 is set, triple D_803EBBF4.
  * Register note: the asm touches only v0/at/f0/f2; its caller func_802A8768
@@ -1783,7 +1750,6 @@ s32 func_802A9540(s32 index, s32 *a, s32 *b, s32 *c, s32 extra, s32 value) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803F7C49;
 
 /* Ground slot `index` while airborne: with n = b[index] (then b[index] =
  * n + 1), drop = a[index] * n + round(D_803EBBF4 * (f32) (n * n)) (32-bit
@@ -1830,8 +1796,6 @@ void func_802A95A4(s32 index, s32 *a, s32 *b, s32 *c, s16 *tbl, s32 x, s32 z, s1
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803ED3F6;
-extern u8 D_803ED40B;
 
 /* Slot `index` check: predicted = a[index] * (b[index] - 2) + round(D_803EBBF4
  * * (b[index] - 2)^2) (32-bit products, cvt.w.s rounding); if |pos -
@@ -2078,7 +2042,6 @@ void func_802A9CAC(s32 index, s32 kind) {
 s32 func_802AA2E4(s32 x, s32 z, s32 x0, s32 y0, s32 z0, s32 x1, s32 y1, s32 z1, s32 x2, s32 y2, s32 z2,
                   s32 *a3Out, s32 *t6Out);
 extern u8 *D_803F7828; /* triangle list: 0x28-byte records, 9 s32 coords + u8 at +0x24 */
-extern u8 *D_803F782C; /* its end */
 
 /* The per-triangle test every scan below makes: (x, z) inside the bounding
  * box (func_802AA5E0) and the triangle (func_802AA460, which also fills *f),
@@ -2202,8 +2165,6 @@ s32 func_802A9F24(s32 x, s32 z, s32 y, s32 skip, TriSideOut *f, s32 *idOut, s32 
 #ifdef NON_MATCHING
 extern s32 D_803BE718;  /* grid cell width */
 extern s32 D_803BE71C;  /* grid cell depth */
-extern u16 D_803BE720;  /* grid columns */
-extern u8 *D_803BDB10[]; /* per-cell triangle lists (cell i spans [i] .. [i + 1] - 4) */
 
 /* Ground lookup: the grid cell of (x, z) (signed divides by D_803BE718 /
  * D_803BE71C, row stride D_803BE720) gives a list of 0x14-byte triangles (9
@@ -2436,7 +2397,6 @@ s32 func_802AA5E0(s32 x, s32 z, s32 x0, s32 z0, s32 x1, s32 z1, s32 x2, s32 z2) 
 #endif
 
 #ifdef NON_MATCHING
-extern s16 D_803ED392; /* rotation angle y (x and z: D_803ED390, D_803ED394_) */
 extern u16 D_803EBB58[]; /* accumulated Mtx (see func_802ACCCC) */
 #endif
 
@@ -2945,7 +2905,6 @@ f32 func_802AB33C(s32 t9, s32 t1, s32 a0, s32 v0, s32 t0, s32 s7, s32 v1, f32 *f
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 /* 4-byte entries {u8 id, u8 flag, u8 pad[2]}, terminated by a 0xFFFFFFFF word. */
-extern u8 D_803ED3B8[];
 
 /* Looks up `id` in the D_803ED3B8 list. Returns 1 if the first entry with
  * that id has a nonzero flag byte, 0 if the flag is 0 or the id is absent.
@@ -3409,9 +3368,6 @@ s32 func_802ABCDC(s32 ax, s32 ay, s32 az, s32 bx, s32 by, s32 bz) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 *D_803BDFD4; /* end of the zone list that starts at D_803BDFD8 */
-extern u8 D_803BDFD8[]; /* 0x24-byte zones: s32 x, y, z, radius; u8 flags at +0x10.. */
-extern u8 D_80364A6E;   /* default level */
 extern u8 D_80364460[]; /* 0x74-byte records: s32 id at +0x5C, level at +0x60 */
 
 
@@ -3552,7 +3508,6 @@ s32 func_802ABEDC(s32 x, s32 y, s32 z) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_803EBBF8;
 
 /* Highest-below ground in an object's own triangle list (obj + its words
  * +0x24 .. +0x28; 0x14-byte triangles as in func_802AA094, skipped when byte
@@ -3600,9 +3555,6 @@ s32 func_802ABFC8(s32 x, s32 z, s32 y, u8 *obj, s32 *found, TriSideOut *f) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 *D_803BDAF4; /* 0x14-byte triangles (as func_802AA094's) */
-extern u8 *D_803BDAF8; /* their end */
-extern s32 D_803EBBFC;
 
 
 /* func_802A9DC0's nearest-height scan over D_803BDAF4 .. D_803BDAF8: each

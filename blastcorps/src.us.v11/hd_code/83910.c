@@ -61,16 +61,9 @@ extern u8 D_803F8790;
 extern u8 D_803F8791;
 extern u8 D_803F8792;
 extern u8 *D_80358070;   /* heap pointer */
-extern u8 D_8035805C;    /* which save buffer is current */
 extern s16 D_803ED390[]; /* (0, heading, 0) for func_802AA764 */
-extern u8 D_803ED40B;
 extern u8 D_80306410[];
 extern u8 *D_803F77D0;
-extern u8 D_803A7424;
-extern s32 D_803643E0;
-extern s32 D_803643E4;
-extern s32 D_803643E8;
-extern s16 D_8036443C;
 extern u16 D_8036443E;
 extern u16 D_80364440;
 
@@ -382,7 +375,6 @@ void func_802C8790(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp) {
 #ifdef NON_MATCHING
 /* Functional rewrite (tools_port/eqcheck.py verified): a0 passes straight
  * through to func_802C4310 with a1 = 0x72. */
-extern s16 D_8036444C;
 extern s16 D_80364450;
 
 void func_802C8AB0(s32 arg0) {
@@ -586,10 +578,6 @@ s32 func_802C9AF8(u8 *state) {
  * shape as func_802BAD24 (75490.c). Asm callers func_802C8C90, func_802C8FA8
  * and func_802C92C0 rely on a0-a3, f12, f14 being preserved (mixed N64 build
  * would need a thunk). */
-extern f32 D_803EBBF0;
-extern f32 D_803EBBF4;
-extern u8 D_803ED3F6;
-extern u8 D_803ED3F7;
 
 void func_802C9B30(void) {
     D_803EBBF4 = D_803EBBF0 * 2.0f;

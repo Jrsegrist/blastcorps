@@ -30,8 +30,6 @@ typedef struct {
 extern FadeEntry D_802FA280[][2];
 extern Vtx D_802FA820[2][4];
 extern FmtPair D_802FA8A0;
-extern u16 D_803BE720;
-extern u16 D_803BE722;
 extern u32 D_803BE718;
 extern u32 D_803BE71C;
 extern void *D_80358070;

@@ -22,10 +22,6 @@ typedef struct {
 
 #define HEIGHT_ZONE_NONE 3000 /* sentinel height value */
 
-extern s32 D_803643E0; /* player x */
-extern s32 D_803643E8; /* player z */
-extern u8 D_80364411;
-extern s16 D_8036444E;
 extern u16 D_80364450;
 
 /* `level` is the loaded level header (D_80358074). Its words at 0x40/0x44 are
@@ -64,9 +60,6 @@ void func_802A5510(u8 *level) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_803EF2EC; /* x */
-extern s32 D_803EF2F4; /* z */
-extern s32 D_803EF304; /* result height (world units) */
 
 /* Like func_802A5510, for the point (D_803EF2EC, D_803EF2F4) and the
  * HeightZone list at level+0x44 / +0x48: D_803EF304 = (highest containing
@@ -96,9 +89,7 @@ void func_802A5604(u8 *level) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803BE73A;       /* current level index */
 extern s16 D_80305B90[][3]; /* per-level {D_8036444C, D_80364450, return value} */
-extern s16 D_8036444C;
 
 /* Loads the per-level triple for level D_803BE73A: stores the first two
  * entries in D_8036444C / D_80364450 and returns the third (sign-extended). */

@@ -17,35 +17,20 @@ extern u8 D_803ED760[];  /* vehicle 0's state block (the asm's $gp) */
 extern u8 D_803ED460[];  /* vehicle 0's animation channel table (Unk8029DEA0Entry, 56040.c) */
 extern u32 D_803ED808[]; /* vehicle 0's position x, y, z */
 extern s32 D_803ED81C;   /* drive-in ground height */
-extern u8 D_803ED825;    /* drive-in enabled */
-extern u8 D_803ED826;    /* drive-in active */
 extern u8 D_803ED827;    /* drive-in being set up */
 extern u8 D_803ED828;    /* drive-in direction: 0 +z, 1 -z, 2 +x, else -x */
 extern s32 D_803ED814;   /* drive-in stop coordinate */
-extern s32 D_803643E0;   /* player x, y, z */
-extern s32 D_803643E4;
-extern s32 D_803643E8;
-extern u8 D_80364456;    /* current vehicle type */
 extern u8 D_80305CB0[];
 extern u8 D_80305CB1[];  /* drive-in table: 5-byte records {level, vehicle, dir, mul, zone}, level -1 ends */
-extern u8 D_803A7424;
 extern void *D_803F77D0;
-extern u8 D_803F7812;
-extern s16 D_8036444C;
 extern s16 D_80364450;
 s32 func_802AEB9C(s32 *mode);
 s32 func_802AEC3C(s32 dist, s32 key, s32 fp, TriSideOut *f);
 u8 *func_802AFA64(void);
-extern u8 D_8035805C;   /* which of the two buffers is current */
 extern u8 *D_803ED82C;  /* vehicle 0's model buffers */
 extern u8 *D_803ED830;
-extern u64 D_80364A90;  /* game mode */
-extern u64 D_80364A98;  /* next game mode */
 extern s16 D_803ED822;  /* vehicle 0's last ring-steered heading */
 extern s8 D_803ED824;   /* ring steering active */
-extern u8 D_803ED40B;
-extern u8 D_803A7425;
-extern s16 D_8036443C;
 extern s16 D_8036443E;
 extern s16 D_80364440;
 void func_802AF4BC(void);
@@ -314,8 +299,6 @@ done:
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_803643E0; /* player x (1/32 units) */
-extern s32 D_803643E8; /* player z */
 
 /* Zone test for mode *mode (asm: a3 in and out, result in a1; see
  * tools_port/conventions.txt). Mode 1: 1 when z/32 is in [0xCCD, 0xDB5).
@@ -585,7 +568,6 @@ animate:
 #ifdef NON_MATCHING
 extern u8 D_803ED760[];  /* vehicle 0's state block (the asm's $gp) */
 extern u8 D_803ED828;    /* drive-in direction: 0 +z, 1 -z, 2 +x, else -x */
-extern u8 D_803ED826;    /* drive-in active */
 extern s32 D_803ED814;   /* drive-in stop coordinate */
 extern s32 D_803ED3A8[]; /* ground heights of the three wheel slots */
 
@@ -788,7 +770,6 @@ void func_802AF4BC(void) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 *D_803ED818;  /* vehicle 0's model header */
-extern u8 D_8035805C;   /* which of the two buffers is current */
 extern u8 *D_803ED82C;  /* vehicle 0's model buffers */
 extern u8 *D_803ED830;
 extern s16 D_803ED390[]; /* model rotation x, y, z */
@@ -848,10 +829,6 @@ s32 func_802AFB84(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern f32 D_803EBBF0;
-extern f32 D_803EBBF4;
-extern u8 D_803ED3F6;
-extern u8 D_803ED3F7;
 
 /* Vehicle-module setup leaf: D_803EBBF4 = D_803EBBF0 * 4, then the byte pair
  * D_803ED3F6/7 = 40, 3. Same shape as func_802B0CE8 (6B4A0), func_802B2900

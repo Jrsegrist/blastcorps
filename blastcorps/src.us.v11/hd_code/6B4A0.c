@@ -27,21 +27,12 @@ extern u32 D_803EDBE8[]; /* vehicle 1 PortVehPos */
 extern u8 D_803ED840[];  /* vehicle 1 animation channels */
 #define VPOS1 ((PortVehPos *) D_803EDBE8)
 
-extern u8 D_8035805C;  /* which matrix buffer is current */
 extern u8 *D_80358070; /* heap cursor */
-extern s16 D_803ED392; /* rotation angle y for func_802AA764 */
-extern u8 D_803ED40B;
-extern u8 D_803A7425;
 extern u8 *D_803F77D0;
-extern s32 D_803643E0;
-extern s32 D_803643E4;
-extern s32 D_803643E8;
-extern s16 D_8036443C;
 extern s16 D_8036443E;
 extern s16 D_80364440;
 extern u8 D_80305CE0[];
 extern f32 D_8030D8A0;
-extern u8 D_80364A6D;
 
 
 /* Place the vehicle model's parts (as 6E200.c's port_veh_parts): the current
@@ -266,7 +257,6 @@ static const s16 sVeh1Bands[15] = { -0xB4, 0, 5, 0, 0x3C, 5, 0x3C, 0x64, 4, 0x64
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 D_803EDC05;
-extern s16 D_803EDC00;
 extern u8 D_803EDC06;
 extern s8 D_803EDC04;
 
@@ -307,7 +297,6 @@ void func_802AFC60(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp) {
 extern u8 D_803EDB40[]; /* this vehicle's state block */
 extern u8 D_803ED840[]; /* animation channel table (Unk8029DEA0Entry, 56040.c) */
 extern u8 D_802C2390[]; /* key of this vehicle's func_802A06B4 entry */
-extern s16 D_8036444C;
 extern s16 D_80364450;
 
 /* Enter vehicle type 1 (called from 00000.c / 17210.c): clears byte 0x99 of
@@ -501,12 +490,7 @@ void func_802B03F4(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
 extern u16 D_80364452;   /* angle (12 bits) */
 extern f32 D_8030D8A4;
 extern u8 D_803EDC06;    /* horn cooldown (frames) */
-extern s16 D_803EDC00;   /* horn uses left */
 extern u8 D_803EDC05;    /* level 0..100 */
-extern u8 D_80370C15;    /* button bytes */
-extern u8 D_80370C16;
-extern u8 D_80370C1A;
-extern u8 D_80370C1B;
 extern void *D_80367738;
 
 /* Per-frame animation/sound update of vehicle 1 (asm caller func_802B03F4;
@@ -599,7 +583,6 @@ void func_802B07DC(void) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 D_802E8BE4;
-extern s32 D_802E8BE8;
 
 /* When channel 5 of D_803ED840 is active (field 0x10 != 0) and
  * func_802BCD80(4) or func_802BCD80(5) is nonzero: sets its field 0x11 to 1,
@@ -686,10 +669,6 @@ s32 func_802B0C74(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern f32 D_803EBBF0;
-extern f32 D_803EBBF4;
-extern u8 D_803ED3F6;
-extern u8 D_803ED3F7;
 
 /* Vehicle-module setup leaf, identical to func_802AFBA0 (69BB0):
  * D_803EBBF4 = D_803EBBF0 * 4, D_803ED3F6/7 = 40, 3.

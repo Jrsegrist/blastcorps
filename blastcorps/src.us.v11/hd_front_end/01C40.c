@@ -76,23 +76,13 @@ typedef struct PlayerSelDyn {
 } PlayerSelDyn;
 
 extern Player D_80364AF0[];
-extern u8 D_80364AE8;
 extern LevelInfo D_802E8F94[];
 extern s32 D_802E8BDC;
-extern u64 D_80364A90;
-extern u64 D_80364A98;
 extern u32 D_80364AA8;
-extern u8 D_80364A87;
-extern u8 D_803643D5;
 extern MenuEntry D_8020C070[];
 extern MenuPage D_802F8BDC[];
-extern OSMesgQueue D_80219EF8;
-extern OSMesgQueue D_80219F50;
 extern PlayerSelDyn D_803156F8[];
-extern u8 D_80365060[]; /* per slot: 0 no save, 1 saved game, 2 new game */
 extern char D_80215520[][25];
-extern u8 D_8039C538;
-extern u8 D_802154B0;
 extern u16 D_803046F8[];
 extern u16 D_80304710[];
 extern u16 D_80304730[];
@@ -102,15 +92,9 @@ extern s32 D_802154EC;
 extern s32 D_80215508[];
 extern u8 D_802155A0[]; /* ticker text */
 #define SCROLL_TEXT ((char *) D_802155A0)
-extern u8 D_80364AEA;
-extern u8 D_802E8BF8;
 extern u16 D_80364EF0[][16]; /* per player: saved level times */
-extern u8 D_802E8C44[];
 extern char D_80215480[][16];
 extern u16 *D_802158A0;
-extern u8 D_8039C53C[]; /* per slot: 1 + level to save, 0 = nothing pending */
-extern u8 D_8039C540;
-extern s16 yoshiState;
 extern void *D_80367738;
 
 extern Vtx D_80208380[];
@@ -139,10 +123,7 @@ extern s16 D_8021591A;
 extern s32 D_80215920;
 extern u8 D_80215924;
 extern char *D_80215928;
-extern u16 D_80370C28; /* buttons held */
-extern u16 D_80370C2A; /* buttons held last frame */
 extern s8 D_80370C2C;  /* stick x */
-extern s16 D_8036BB20;
 extern u8 D_802F47B0[];
 extern u32 D_803156C4;
 extern f32 D_80215440;
@@ -172,8 +153,6 @@ extern s16 D_80215910[];
 extern u8 D_80215914;
 extern u16 D_80215930[];
 extern u16 D_802158A8[];
-extern u16 D_802E8C94[];
-extern u16 D_802E8C98[];
 extern u8 D_8021592E;
 extern s32 D_802154D8;
 extern f32 D_802154E4;

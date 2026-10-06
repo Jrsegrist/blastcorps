@@ -21,17 +21,13 @@ void func_802C41C0(u8 **srcp, u8 **dstp, u8 *window, s32 bits);
 
 extern u8 *D_803F7830;
 extern u8 *D_803F7834;
-extern s16 D_803F7840;  /* last |level| set by func_802C4584 (-1 = none yet) */
 extern void *D_803F7844; /* looping sound handle */
 extern void *D_803F7848; /* second looping sound handle */
 extern s16 D_803F784C;  /* its on/off flag; func_802C4724 uses the first byte */
 extern void *D_80367738;
 extern s32 D_80364AB0;  /* force the next func_802C4584 update */
-extern u8 D_80364456;
 extern f32 D_8030D940;
 extern f32 D_8030D944;
-extern u8 D_80370C1A;
-extern u8 D_80370C1B;
 #endif
 
 /* C-callable (46C20.c func_8028B4C4): saves s0-s7/gp/s8, then

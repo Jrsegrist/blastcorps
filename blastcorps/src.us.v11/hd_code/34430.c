@@ -37,7 +37,6 @@ extern Mtx D_8036CC70[][10];   /* view matrices per slot */
 extern u8 *D_8036D170;         /* 0x5460-byte buffer */
 extern u8 D_8036D178;
 extern s32 D_8036D180;
-extern u8 D_80367C00;
 extern MbRemap D_802FC060[3];
 extern f32 D_8036D174;         /* view angle, degrees */
 extern s32 D_8036D17C;

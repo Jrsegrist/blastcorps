@@ -71,8 +71,6 @@ extern u32 D_8036A8BC; /* frameSize */
 extern u32 D_8036A8C0; /* maxFrameSize */
 extern s32 D_8036A8C4; /* cmdLen */
 extern u8 D_803682F8[];
-extern u8 D_802E6820[];
-extern u8 D_802E68F0[];
 extern u8 D_8030EB90[];
 extern OSMesgQueue D_80315440;
 extern s32 D_803156A4;
@@ -83,16 +81,10 @@ s32 D_80368054;
 u64 D_80368058; /* last audio frame start */
 u64 D_80368060; /* audio frame start */
 u64 D_80368068; /* audio frame end */
-extern u8 D_80367728;
-extern u8 D_80367729;
-extern u8 D_8036772A;
-extern s32 D_8036772C;
-extern u8 D_80367730;
 
 void func_802682A4(void);
 ALDMAproc func_80268254(AMDMAState **state);
 void func_80267A9C(void *arg);
-extern s32 D_80000300; /* osTvType */
 extern s32 osViClock;
 extern OSMesg D_8036AE80[];
 extern u64 D_80368308[]; /* audio thread stack */

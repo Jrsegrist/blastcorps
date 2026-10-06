@@ -26,37 +26,19 @@ typedef struct {
     u8 padF0[0x10];
 } Player; /* 0x100 bytes */
 extern Player D_80364AF0[];
-extern u8 D_80364AE8;
-extern u8 D_80364AEA;
-extern u64 D_80364A88;
-extern u64 D_80364A90;
-extern u64 D_80364A98;
 extern s32 D_802E8BDC;
-extern u8 D_802E8C44[];
 extern u16 D_80364EF0[][16];
-extern u8 D_803643D4;
 extern s32 D_80367738;
 extern f32 D_802FDAC0[];
 extern u8 D_802F47B0[];
-extern u16 D_80370C28; /* buttons held */
-extern u16 D_80370C2A; /* buttons held last frame */
 extern s8 D_80370C2C;  /* stick x */
-extern s8 D_80370C2E;  /* stick x last frame */
 extern u32 D_803156C0; /* frame counter */
-extern OSMesgQueue D_80315180;
 
 extern FeDyn D_803156F8[];
-extern u8 D_8035805C; /* frame buffer index */
 extern u32 D_80358060;
 extern u8 *D_8035806C;
 extern u32 D_80358058;
 extern u32 D_80358050[];
-extern s32 D_80358078;
-extern u16 D_8035807C;
-extern s32 D_80358080;
-extern s32 D_80358084;
-extern Gfx D_01000010[];
-extern Gfx D_01000038[];
 extern u16 D_80304954[];
 
 typedef struct {

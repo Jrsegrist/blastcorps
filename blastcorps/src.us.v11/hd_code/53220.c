@@ -63,9 +63,7 @@ typedef struct {
 } Font;
 
 extern Player D_80364AF0[];
-extern u8 D_80364AE8;
 extern u8 D_8039CAD0;
-extern u8 D_8039CAB6;
 extern u8 D_802FF180[];
 extern MenuText D_802FF188[][20];
 extern u8 D_802FF5E8[];
@@ -208,11 +206,6 @@ typedef struct Huft {
     } v;
 } Huft;
 
-extern u8 *D_803669C0;  /* inbuf */
-extern u8 *D_803669C4;  /* output buffer */
-extern s32 D_803669EC;  /* inptr */
-extern s32 D_803669F0;  /* outcnt */
-extern s32 D_8039CAE0;  /* huft arena */
 extern u32 D_8039CAE4;  /* bb */
 extern u32 D_8039CAE8;  /* bk */
 extern u32 D_8039CAEC;  /* hufts */

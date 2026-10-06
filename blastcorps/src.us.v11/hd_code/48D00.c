@@ -48,7 +48,6 @@ extern s32 D_8039B614;
 extern s32 D_8039B618;
 extern s32 D_8039B61C;
 extern u8 D_8039B620;
-extern u8 D_803F932C;
 extern Vtx *D_80358070; /* vertex allocator */
 
 void func_8028DA5C(Vtx *v, u8 arg1);
@@ -154,7 +153,6 @@ extern u8 D_8039B089;
 extern u8 D_8039B0B0;
 extern u8 D_8039B0B4;
 extern u8 D_802E8BE4;
-extern s32 D_802E8BE8;
 extern s32 D_80367738;
 
 Entry48D00 *func_8028DE94(void);
@@ -195,20 +193,9 @@ Entry48D00 *func_8028DE94(void) {
     return NULL;
 }
 
-extern u8 D_803F932D;
-extern u8 D_803F932E;
-extern s32 D_803F9320;
-extern s32 D_803F9324;
 extern s32 D_802E8BDC;
 extern s32 D_80358060;
 extern u8 D_803643D9;
-extern s32 D_803643E0;
-extern s32 D_803643E4;
-extern s32 D_803643E8;
-extern u8 D_80364456;
-extern s32 D_803A73F0;
-extern s32 D_803A73F4;
-extern s32 D_803A73F8;
 extern s16 D_803A7410;
 extern s16 D_803A7412;
 extern u8 D_803ED40C;
@@ -524,7 +511,6 @@ void func_8028F93C(void) {
     }
 }
 
-extern u8 D_803A7424;
 
 /* Set D_803A7424 if the point (arg0, arg1, arg2) is within any active
  * entry's category radius (all in 1/32 units). */
@@ -563,9 +549,6 @@ void func_8028FAC0(s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
     }
 }
 
-extern OSMesgQueue D_80370BF8;
-extern u8 D_802FDBD0;
-extern u8 D_802FDBD4;
 
 /* Boot-time controller check: read the pads (osContStartReadData,
  * osRecvMesg, osContGetReadData), note whether START is held, latch it

@@ -4,8 +4,6 @@
 
 extern u32 D_802E8BEC;
 extern s32 D_80358060;
-extern u64 D_80364A90;
-extern u8 D_80366A18;
 
 void func_8025C5D0(void) {
     switch (D_802E8BEC) {
@@ -87,8 +85,6 @@ void func_8025C5D0(void) {
     }
 }
 
-extern u8 D_802E8BF0;
-extern u64 D_80364A90;
 extern u32 D_803156C4;
 extern void *D_80366BA4;
 extern s32 D_80366BA8;
@@ -97,7 +93,6 @@ extern u8 D_80366A10;
 extern u8 D_80366A11;
 extern s16 D_80366A04;
 extern u32 D_80366BBC;
-extern Vtx D_802FA8B0[][4];
 extern Mtx D_02000000[];
 void func_8025E1E0(Gfx **);
 Gfx *func_8025D2B4(Gfx *, s32, s32 *);
@@ -219,7 +214,6 @@ void func_8025CE74(void) {
 
 extern u8 D_00487050[];
 extern u8 D_00489E70[];
-extern u8 D_0048F5A0[];
 extern u32 D_80366BB0[];
 
 void func_8025D0B0(u8 arg0) {
@@ -241,10 +235,8 @@ void func_8025D0B0(u8 arg0) {
     D_80358070 = (u8 *) D_80358070 + size;
 }
 
-extern u64 D_80364A98;
 extern s16 D_80366A00;
 extern s16 D_80366A02;
-extern u16 D_80366A12;
 extern s16 D_80366A14;
 extern s16 D_80366A16;
 
@@ -304,11 +296,8 @@ void func_8025D184(void) {
 
 extern s16 D_80366A00;
 extern s16 D_80366A02;
-extern u16 D_80366A12;
 extern s16 D_80366A14;
 extern s16 D_80366A16;
-extern s16 D_8039CAA0;
-extern s16 yoshiState;
 
 /* Draws the scrolling title backdrop. Input bits in the u64 D_80364A90 fade
  * D_80366A14 up/down, a little state machine on D_80366A12 (0 -> 1 on
@@ -457,19 +446,14 @@ void func_8025E1E0(Gfx **arg0) {
     *arg0 = gfx;
 }
 
-extern u8 D_803643D7;
 extern u8 D_80366BC0;
 extern u16 D_80366BC2;
 extern u8 D_80366BC4;
 extern s32 D_80364AA8;
 extern s32 D_802E8BDC;
 extern u8 D_802E8F94[];
-extern u8 D_80364AE8;
 extern u8 D_80364AF0[][256];
 extern u32 D_80366BB8;
-extern s16 currentYoshiWindow;
-extern s16 D_8036BB1A;
-extern s16 yoshiState;
 extern void *D_80367734;
 extern void *D_80367738;
 extern u32 D_80367740;
@@ -539,20 +523,12 @@ void func_8025E2CC(Gfx **arg0, s32 arg1, s32 arg2) {
     *arg0 = gfx;
 }
 
-extern u8 D_803643D6;
-extern u8 D_803643D8;
 extern s32 D_802E8BDC;
 extern u8 D_802E8F94[];
 extern void *D_80367738;
-extern s16 currentYoshiWindow;
-extern s16 D_8036BB1A;
-extern s16 yoshiState;
-extern u8 D_802E8BD8;
 extern u32 D_80366BB8;
 extern u8 D_80366BC5;
-extern u8 D_80364AE8;
 extern u8 D_80364AF0[][256];
-extern u64 D_80364A98;
 
 void func_8025E67C(Gfx **arg0, s32 arg1, u8 arg2) {
     Gfx *gfx;

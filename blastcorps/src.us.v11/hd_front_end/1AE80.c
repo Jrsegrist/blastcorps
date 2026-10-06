@@ -15,12 +15,7 @@ typedef struct {
     u8 padF0[0x10];
 } Player; /* 0x100 bytes */
 extern Player D_80364AF0[];
-extern u8 D_80364AE8;
-extern OSMesgQueue D_80219EF8; /* requests to the pak/EEPROM thread */
-extern OSMesgQueue D_80219F50; /* pakToGameMessageQ */
-extern u8 D_802E8C44[];
 extern s16 D_80364EF0[][16];
-extern u16 D_80364F70[];
 extern u64 D_8039C4B8[];
 
 

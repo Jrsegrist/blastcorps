@@ -9,7 +9,6 @@ extern u16 D_803653B0[80];
 extern u8 D_8039CAF0[][0x200];
 extern u8 D_80365458[];
 extern u16 D_80365558[];
-extern f32 D_802E8C84[];
 
 
 #define ASSERT(EX, line) if (!(EX)) func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "font.c", line)

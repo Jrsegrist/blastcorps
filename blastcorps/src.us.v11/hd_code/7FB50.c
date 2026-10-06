@@ -26,7 +26,6 @@ typedef struct {
 
 extern Rec7FB50 D_803F4030[];
 extern Rec7FB50 *D_803F7654;
-extern u16 D_8036EB90;
 extern u8 D_803063F0[];
 
 
@@ -70,11 +69,7 @@ extern u8 D_803F7B50[];
  * +0x96..0x98: u8 flags; +0x9F: u8 (100 = ...); +0xA1: u8 mode (0..5); +0xA2: u8 previous mode */
 
 extern s8 D_80370C2C;
-extern s8 D_80370C2D;
-extern u8 D_80370C35;
 extern s32 D_803F7BFC;
-extern s32 D_803F7C10;
-extern s32 D_803F7C14;
 extern void *D_803F7C18;
 extern void *D_803F7C1C;
 extern f32 D_803F7C28;
@@ -82,11 +77,6 @@ extern f32 D_803F7C2C;
 extern u8 D_803F7C3C;
 extern u8 D_803F7C3E;
 extern u8 D_803F7C48;
-extern f32 D_803EBBF0;
-extern f32 D_803EBBF4;
-extern u8 D_803ED3F6;
-extern u8 D_803ED3F7;
-extern s16 D_8036444C;
 extern s16 D_80364450;
 extern void *D_80367738;
 extern f32 D_8030D968;
@@ -158,7 +148,6 @@ s32 func_802C4A40(u8 *out) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_80368040;
 
 /* apply_status: reads a bitstream in func_802C4A40's format (MSB-first; the
  * bit reader runs on across the records and restarts on a fresh byte for
@@ -360,7 +349,6 @@ extern u64 *D_803F7C08;  /* save copy pair */
 extern u64 *D_803F7C0C;
 extern s32 D_803F7C20;
 extern s32 D_803F7C24;
-extern s16 D_803F7C34;
 extern u8 D_803F7C36;
 extern u8 D_803F7C37;
 extern u8 D_803F7C38;
@@ -654,7 +642,6 @@ void func_802C59B4(s32 id, InterpRegs *r) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803ED40B;
 void func_802C7ECC(void);
 void func_802C7F28(void);
 
@@ -697,24 +684,15 @@ void func_802C5A14(s32 id, s32 *s3, InterpRegs *r) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_8035805C;  /* which of the save copy pair is current */
 extern u8 *D_803F7C04; /* this vehicle's model */
 extern u8 D_803F7C36;  /* "turning back to the ring" flag */
 extern u8 D_803F7C37;  /* bounced off the ring end (the bounce code is unreachable here) */
 extern u8 D_803F7C38;  /* throttle hold-off countdown */
 extern s16 D_803F7C30; /* ring target heading */
 extern u8 D_803F7C39;
-extern u8 D_803F7C3F;
 extern s32 D_803F7C20;
 extern s32 D_803F7C24;
-extern u8 D_803A742B;
-extern u8 D_803A7424;
-extern u8 D_803A7425;
 extern void *D_803F77D0;
-extern s32 D_803643E0;
-extern s32 D_803643E4;
-extern s32 D_803643E8;
-extern s16 D_8036443C;
 extern s16 D_8036443E;
 extern s16 D_80364440;
 extern u8 D_80306400[];
@@ -981,14 +959,8 @@ extern u8 D_803F7C45;
 extern u8 D_803F7C46;
 extern u8 D_803F7C47;
 extern u8 D_803F7C4A;
-extern u8 D_80370C1A; /* inputs */
-extern u8 D_80370C1B;
-extern u8 D_80370C1C;
-extern u8 D_80370C1D;
 extern u8 D_802E8BE4;
-extern s32 D_802E8BE8;
 extern f32 D_8030D950;
-extern u8 D_802C28E4[]; /* definition handed to func_802A6274 */
 s32 func_802C6FD8(void);
 s32 func_802C70E8(TriSideOut *f, TriScanRegs *r);
 void func_802C7354(void);
@@ -1414,7 +1386,6 @@ s32 func_802C6FD8(void) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u32 D_803F7BF8[]; /* x, y, z */
-extern s32 D_803EBBFC;   /* height of func_802AC0BC's best triangle */
 
 /* Ground check below the vehicle (D_803F7BF8 x/z, D_803F7BFC y) with
  * func_802AC0BC: when a triangle was found whose height h >= y, and h - y is
@@ -1465,7 +1436,6 @@ s32 func_802C70E8(TriSideOut *f, TriScanRegs *r) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803F7C49;
 
 /* D_803F7C49 = 1 when func_802AC0BC at (x, z, D_803F7BFC) finds ground at
  * least 200 above D_803F7BFC, else 0.
@@ -1577,7 +1547,6 @@ void func_802C7410(void) {
 extern u8 D_803F7C43; /* previous frame's +0x96 */
 extern s8 D_803F7C3B; /* 0..50 ramp */
 extern u8 D_803F7C3A; /* countdown */
-extern u8 D_802C3804[]; /* definition handed to func_802A6274 */
 
 /* When +0x96 just became 1 (D_803F7C43 == 0) with D_803F7C3E set:
  * func_80288284(4, record (9, 1) of func_802ABC88, func_802584BC(9)). Then
@@ -1643,8 +1612,6 @@ extern u8 D_803F7C44; /* phase 0 (odd = waiting for input 0 to be released) */
 extern u8 D_803F7C45; /* timer 0 */
 extern u8 D_803F7C46; /* phase 1 */
 extern u8 D_803F7C47; /* timer 1 */
-extern u8 D_80370C1A; /* input 0 */
-extern u8 D_80370C1B; /* input 1 */
 
 /* One step of a press/release tracker: when the timer has run out the phase
  * is reset; otherwise the phase advances (and the timer restarts at 4) once
@@ -1679,7 +1646,6 @@ void func_802C770C(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s16 D_803F7C34;
 extern f32 D_8030D954;
 extern f32 D_8030D958;
 extern f32 D_8030D95C;
@@ -1852,7 +1818,6 @@ f32 func_802C7C1C(s32 up) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 *D_803F7C04; /* this vehicle's model: +0 / +4 / +8 offsets of the point lists, +0x18 the matrix */
-extern u8 D_8035805C;  /* which of the save copy pair is current */
 extern s16 D_803ED390[]; /* rotation angles x, y, z for func_802AA764 */
 
 /* Place this vehicle's model (vehicle 9): builds its matrix (scale 0x4268,

@@ -90,8 +90,6 @@ typedef struct {
 } IconInfo;
 
 extern FePlayer D_80364AF0[];
-extern u8 D_80364AE8;  /* current player */
-extern u8 D_80364AEA;
 extern s32 D_802E8BDC; /* current level */
 extern FeLevelEntry D_8020D810[];
 extern LevelInfo D_802E8F94[];
@@ -99,14 +97,9 @@ extern Score D_8036EA60;
 extern Score D_8036EA70;
 extern Score D_8036EA80;
 extern Score D_8036EA90;
-extern u8 D_803643D4;
-extern u8 D_803643D5;
 extern s32 D_803649F0;
-extern u64 D_80364A98;
-extern u8 D_802E8C44[];
 extern u16 D_80364EF0[][16]; /* best times, per player */
 extern char D_8036B980[];
-extern char D_8036B9A8[];
 extern MenuEntry D_8020C070[];
 extern IconInfo D_802F49F4[];
 extern u16 D_80303B3C[];
@@ -121,22 +114,13 @@ extern u16 D_802159DC; /* scene */
 extern f32 D_802159E0; /* camera distance */
 extern f32 D_802159E4; /* spin speed */
 extern FeDyn D_803156F8[];
-extern u8 D_8035805C;  /* current frame buffer */
-extern s32 D_80358078; /* top-level display list length */
 extern u8 *D_8035806C;
 extern u32 D_80358058;
 extern u32 D_80358050[]; /* frame buffer physical addresses */
 extern u32 D_80358060;   /* frame counter */
-extern u16 D_8035807C;   /* perspNorm */
-extern u64 D_80364A90;
-extern s32 D_802FA268;
 extern void *D_80367738;
-extern Gfx D_01000010[];
-extern Gfx D_01000038[];
-extern Mtx D_802182D0[];
 
 /* ROM bounds of two compressed blobs (the first ends where the second starts) */
-extern u8 D_0048F5A0[];
 extern u8 D_0048F5A0_end[];
 extern u8 D_0048F970[];
 extern u8 D_0048F970_end[];

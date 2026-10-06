@@ -113,7 +113,6 @@ s32 func_802CE958(s32 id) {
  * probe evidence (no calls, no locals, nothing that could need a frame;
  * IDO never generates this shape on its own). Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803F9330[];
 extern u8 *D_803FB8B0;
 
 /* Reset a buffer cursor (read by 4B5E0) to the start of D_803F9330. */

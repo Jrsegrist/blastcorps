@@ -12,9 +12,6 @@
 #ifdef NON_MATCHING
 /* Shared declarations for the NON_MATCHING (port) rewrites below. */
 extern u8 *D_80358070;          /* heap pointer */
-extern OSIoMesg D_80370C58;
-extern OSMesgQueue D_80315180;
-extern u8 D_803B9888;           /* the table below is loaded */
 extern u32 *D_803B8D44;         /* ROM offsets (from 0x4CE0) of the entries, 8 bytes apart */
 extern u8 *D_803B8D40;
 extern u8 D_803B8570[];
@@ -269,7 +266,6 @@ void func_802A1040(s32 id, u8 *dest, u8 *param) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_80358080;
 extern u8 D_803B8D48[];
 
 /* Queued load of table entry `id` into `dest`: invalidates 0x1000 bytes,
@@ -295,8 +291,6 @@ void func_802A1074(s32 id, u8 *dest, u8 *param) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_80358080; /* queued-DMA counter (next OSIoMesg slot) */
-extern s32 D_80358084;
 extern u8 D_803B8D48[]; /* OSIoMesg slots, 0x14 bytes each */
 
 /* Like func_802A0F0C but doesn't wait: counts D_80358084 up and issues the

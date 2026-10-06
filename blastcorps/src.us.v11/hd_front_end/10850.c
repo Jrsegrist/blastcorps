@@ -60,25 +60,14 @@ typedef struct {
 extern s32 D_802E8BDC;        /* current level */
 extern LevelInfo D_802E8F94[];
 extern Player D_80364AF0[];
-extern u8 D_80364AEA;
-extern u8 D_80364AE8;
 extern u32 D_8021A828;        /* number of best-time menu items */
 extern u8 D_8021A7E8[];       /* player of each item */
 extern u8 D_8021A7D0[];       /* level of each row */
-extern u8 D_8021A8F0;
 extern MenuItem *D_8036BB24;
-extern u8 D_80370C50;
 extern u16 D_80364EF0[][16];  /* best times */
-extern u8 D_802E8C44[];
-extern u16 D_80370C28;        /* buttons pressed */
-extern u16 D_80370C2A;
-extern u8 D_80365060[];       /* controller present */
 extern void *D_80367738;
 extern u8 D_802F8BDC[];
 extern u8 *D_80358070;        /* heap pointer */
-extern u8 D_8039C53C[];
-extern OSMesgQueue D_80219EF8;
-extern OSMesgQueue D_80219F50;
 extern char D_80219FD0[][0x20];
 extern char D_8020D800[][4];
 

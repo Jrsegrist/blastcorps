@@ -10,9 +10,6 @@
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
-extern u8 D_80364A68;  /* dial loaded */
-extern u8 D_80364A6A;  /* icon 1 loaded */
-extern u8 D_80364A6C;  /* icon 2 loaded */
 extern u32 D_80358070; /* heap pointer */
 
 /* dial */
@@ -30,10 +27,8 @@ extern u32 D_8036EC20;
 extern Vtx *D_8036EC24;
 extern s16 D_8036EC28;
 
-extern s16 D_80367BD6; /* HUD alpha cap */
 extern u8 D_803EE3B1;  /* dial value, 0..100 */
 extern s16 D_803F8B72; /* icon 1 number */
-extern s16 D_803EDC00; /* icon 2 number */
 extern Mtx D_02000000[];
 
 

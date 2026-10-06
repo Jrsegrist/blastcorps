@@ -22,7 +22,6 @@ extern void *D_803FCD64; /* sound state */
 extern u8 D_803FCD72;
 extern u8 D_803FCD73;
 extern u8 D_803FCD74;
-extern u8 D_803FCD75; /* sound mode: 0 or 1 */
 extern u8 D_803FCD76;
 extern u8 D_803FCD77;
 extern u8 D_803FCD78;
@@ -116,7 +115,6 @@ void func_802D2A40(void);
 void func_802D2A74(void);
 void func_802D2C20(void);
 void func_802D2FA4(void);
-extern u8 D_8035805C;
 extern u8 *D_803FCD58; /* the two save copies */
 extern u8 *D_803FCD5C;
 extern u8 D_803FC9A0[]; /* channel table */
@@ -188,12 +186,6 @@ double sqrt(double);
     } while (0)
 
 extern void *D_803FCD64; /* sound state, NULL = none */
-extern s32 D_803643F8;   /* listener x, y, z (<< 11) */
-extern s32 D_803643FC;
-extern s32 D_80364400;
-extern s32 D_803FCD48;   /* sound source x, y, z */
-extern s32 D_803FCD4C;
-extern s32 D_803FCD50;
 
 /* Distance attenuation: if D_803FCD64 is set, sets its volume (parameter 8)
  * to 0x7FFF - max(d - 0x3200, 0) / 4, clamped at 0, where d is the distance
@@ -231,9 +223,6 @@ void func_802D2A74(void) {
 
 extern void *D_80367738; /* sound player */
 extern u8 D_803FC9A0[];
-extern u8 D_803FCD70;    /* event this frame */
-extern s32 D_803FCD60;
-extern u8 D_8036B964;
 extern u8 D_803FCD72;
 extern u8 D_803FCD73;
 extern u8 D_803FCD74;
@@ -243,9 +232,6 @@ extern u8 D_803FCD78;
 extern u8 D_803FCD79;
 extern u8 D_803FCD7A;
 extern u8 D_802E8BE4;
-extern s32 D_802E8BE8;
-extern u8 D_802C28E4[]; /* effect definitions in the 7D9D0 text blob */
-extern u8 D_802C3804[];
 
 /* Spawns effect def at D_803EBC10 record (0xFD, n) (func_802A6274 type 1 with
  * z = 1, tag 0, b35 0). For that type func_802A6274 ignores its other fields;
@@ -355,7 +341,6 @@ void func_802D2C20(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_8035805C;     /* which of the two save copies is current */
 extern u8 *D_803FCD54;    /* model header: word offsets to the part lists */
 extern u8 *D_803FCD58;    /* the two save copies */
 extern u8 *D_803FCD5C;

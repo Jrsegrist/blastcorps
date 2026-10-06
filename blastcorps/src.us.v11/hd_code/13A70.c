@@ -51,7 +51,6 @@ typedef struct VtxBuf {
 
 extern Struct13A70 *D_803643C8;
 extern Struct13A70 *D_803643CC;
-extern s32 D_803EBBF8;
 extern Gfx D_803650B0[];
 extern Vp D_802E8C60;
 extern Mtx D_803651F0;

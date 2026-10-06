@@ -30,11 +30,8 @@
 extern u8 *D_8021AB80;        /* the inflated picture */
 extern u8 D_8021AB84;         /* its number */
 extern u8 *D_80358070;        /* heap pointer */
-extern u64 D_80364A90;        /* game mode */
-extern u8 D_006AD3F0[];       /* compressed pictures (ROM) */
 extern u8 D_006BF2F0[];
 extern u8 D_006D3D30[];
-extern u8 D_006E8980[];
 
 
 void func_802006F0(void) {

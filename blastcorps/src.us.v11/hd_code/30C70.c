@@ -6,24 +6,15 @@
 extern s16 *D_8036C790;
 extern s16 *D_8036C794;
 extern s32 D_8036C798;
-extern s32 D_8036C7C8;     /* time left; under 500 the target turns red */
 extern s16 *D_8036C7A0[10]; /* point lists to keep on screen */
-extern u8 D_8036C7CC;
 extern Vtx D_8036C7D0[][4];   /* off-screen marker quads */
 extern Mtx D_8036C850[];      /* off-screen marker matrices */
 extern s16 D_8036443E;        /* camera yaw, 4095 = 360 degrees */
-extern u8 D_8036EB98;
 extern u32 D_80364AA8;
-extern u8 D_802E8BD0;
-extern u8 D_803643DB;
-extern u8 D_803F7808;
-extern u8 D_803F7809;
 extern s32 D_802FAD40; /* target bounce offset */
 extern s32 D_802FAD44; /* target bounce count */
 extern u8 D_802FAD48;  /* target bounce direction */
 extern u8 D_02000000[]; /* segment 2 base */
-extern u8 D_802FA940[]; /* 32x32 IA8 texture */
-extern u16 D_8035807C;   /* projection scale, 65535 = 1.0 */
 
 typedef struct SpriteVtxBuf {
     u8 pad[0x1E00];

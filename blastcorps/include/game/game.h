@@ -9,10 +9,12 @@
  *   types.h      structures used by more than one file
  *   regs.h       register structs of the NON_MATCHING asm rewrites
  *   functions.h  every function used outside its file
+ *   variables.h  every variable used by more than one file
  */
 #include "game/types.h"
 #include "game/regs.h"
 #include "game/functions.h"
+#include "game/variables.h"
 
 /*
  * LEAKED(reg): an argument the original passes in a register its (matched,

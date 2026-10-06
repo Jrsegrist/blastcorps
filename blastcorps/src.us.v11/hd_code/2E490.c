@@ -4,8 +4,6 @@
 
 extern u8 D_8036C360;
 extern u32 D_803156C4;
-extern u8 D_803B9888;
-extern u8 D_8035805C; /* current frame buffer index */
 extern void *D_80358070;
 
 /* Sprite slots (this file's .bss, 0x8036BFE0) */
@@ -88,7 +86,6 @@ u8 func_80272C5C(u16 *ids, u16 *palIds, u8 count, u8 frames, u8 flags, f32 scale
         gImmp1(pkt, OLD_RDPHALF_CONT, (_SHIFTL(dsdx, 16, 16) | _SHIFTL(dtdy, 0, 16)));       \
     }
 
-extern u64 D_80364A90;
 
 /* Draw sprite slot `slot` at (x, y): one 32-pixel-tall texture strip per frame column,
  * either through func_802742D8 (flag 4: vertex quads) or as scaled texture rectangles.

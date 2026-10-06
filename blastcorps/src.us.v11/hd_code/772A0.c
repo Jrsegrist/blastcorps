@@ -49,27 +49,14 @@ extern s32 D_803EFEA0;   /* z */
 extern u8 *D_803EFEA4;   /* model data */
 extern u64 *D_803EFEA8;  /* save-buffer pair */
 extern u64 *D_803EFEAC;
-extern s32 D_803EFEB0;   /* x interpolation: x0, x1 */
-extern s32 D_803EFEB4;   /* z interpolation: z0, z1 */
-extern s32 D_803EFEB8;
-extern s32 D_803EFEBC;
 extern s32 D_803EFEC0;   /* frame counters */
 extern s32 D_803EFEC4;
-extern u8 D_803EFEC8;    /* x follows z along the line (D_803EFEB0..) */
 extern u8 D_803EFEC9;
 extern u8 D_803EFECA;
-extern u8 D_803EFECB;
 extern u8 *D_80358070;   /* heap pointer */
-extern u8 D_8035805C;    /* which save buffer is current */
 extern s16 D_803ED390[]; /* (0, heading, 0) for func_802AA764 */
-extern u8 D_803ED40B;
 extern u8 D_80305E00[];
 extern u8 *D_803F77D0;
-extern u8 D_803A7425;
-extern s32 D_803643E0;
-extern s32 D_803643E4;
-extern s32 D_803643E8;
-extern s16 D_8036443C;
 extern u16 D_8036443E;
 extern u16 D_80364440;
 
@@ -181,7 +168,6 @@ void func_802BBA60(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s16 D_8036444C;
 extern s16 D_80364450;
 
 /* Enter vehicle type 7: D_8036444C/50 = 3000, 0, then func_802C4310(arg0,
@@ -378,9 +364,6 @@ void func_802BBEB8(void) {
 #ifdef NON_MATCHING
 extern u8 D_803EFDF0[];  /* this vehicle's state block (the asm's $gp) */
 extern u8 D_803EFEC9;    /* countdown */
-extern u8 D_80370C1C;    /* flag tested when the speed is <= 0 */
-extern u8 D_80370C23;    /* flag tested when the speed is > 0 */
-extern u8 D_802C2984[];  /* definition handed to func_802A6274 (7D9D0 text blob) */
 extern void *D_80367738; /* sound player */
 
 /* Countdown D_803EFEC9: when nonzero it just counts down. At zero, if the
@@ -473,10 +456,6 @@ void func_802BC3D0(void) {
 /* Functional rewrite (tools_port/eqcheck.py verified). Same "set timers"
  * shape as func_802BAD24 (75490.c). Asm caller func_802BBEB8 relies on
  * a0-a3 being preserved (mixed N64 build would need a thunk). */
-extern f32 D_803EBBF0;
-extern f32 D_803EBBF4;
-extern u8 D_803ED3F6;
-extern u8 D_803ED3F7;
 
 void func_802BC578(void) {
     D_803EBBF4 = D_803EBBF0 * 2.0f;

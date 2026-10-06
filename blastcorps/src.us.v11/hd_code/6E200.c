@@ -29,26 +29,14 @@ extern u8 D_803EE3C0[];  /* vehicle 4 animation channels */
 #define VPOS3 ((PortVehPos *) D_803EE38C)
 #define VPOS4 ((PortVehPos *) D_803EE768)
 
-extern u8 D_8035805C;    /* which matrix buffer is current */
 extern u8 *D_80358070;   /* heap cursor */
-extern s16 D_803ED392;   /* rotation angle y for func_802AA764 */
-extern u8 D_803ED40B;
-extern u8 D_80367BFF;
-extern u8 D_803A7424;
-extern u8 D_803A7425;
 extern u8 *D_803F77D0;
-extern s32 D_803643E0;
-extern s32 D_803643E4;
-extern s32 D_803643E8;
-extern s16 D_8036443C;
 extern s16 D_8036443E;
 extern s16 D_80364440;
-extern s16 D_803F7840;
 extern u8 D_80305D00[];
 extern u8 D_80305D10[];
 extern f32 D_8030D8C0;
 extern f32 D_8030D8D0;
-extern u8 D_80364A69;
 
 
 /* Shared body of func_802B3E40 / func_802B568C: place the vehicle model's
@@ -434,7 +422,6 @@ void func_802B29C0(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp) {
 extern u8 D_803EE2E0[]; /* vehicle type 3's state block */
 extern u8 D_803EDFE0[]; /* its animation channel table */
 extern u8 D_802C2314[]; /* key of its func_802A05D0.. sound entry */
-extern s16 D_8036444C;
 extern s16 D_80364450;
 
 /* Vehicle-type 3 setup (called from hd.c / 17210.c): clears byte 0x99 of the
@@ -676,13 +663,6 @@ extern void *D_80367738;
 extern f32 D_8030D8C4;
 extern f32 D_8030D8C8;
 extern f32 D_8030D8CC;
-extern u8 D_80370C15;
-extern u8 D_80370C16;
-extern u8 D_80370C1A;
-extern u8 D_80370C1B;
-extern u8 D_80370C1C;
-extern u8 D_80370C23;
-extern u8 D_802C2954[]; /* func_802A6274 definitions */
 extern u8 D_802C37C0[];
 void func_802B3C68(void);
 
@@ -939,12 +919,6 @@ s32 func_802B3F78(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern f32 D_803EBBF0;
-extern f32 D_803EBBF4;
-extern u8 D_803ED3F6;
-extern u8 D_803ED3F7;
-extern u8 D_80370C1C;
-extern u8 D_80370C23; /* B or Z held */
 extern s16 D_803EE3A8;
 
 /* Vehicle-module setup leaf (shape of func_802B5814, below): D_803EBBF4 =
@@ -1031,9 +1005,6 @@ void func_802B4100(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp) {
 #ifdef NON_MATCHING
 extern u8 D_803EE6C0[]; /* vehicle type 4's state block */
 extern u8 D_803EE3C0[]; /* its animation channel table */
-extern u8 D_802C2190[]; /* keys of its three sound entries */
-extern u8 D_802C21A4[];
-extern u8 D_802C21B8[];
 
 /* Vehicle-type 4 setup (called from hd.c / 17210.c), shape of func_802B2D7C:
  * clears byte 0x99 of the state block, resets channel 1 (03D4 only) and
@@ -1254,7 +1225,6 @@ void func_802B49AC(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
 extern u8 D_803EE788;  /* func_802A6274 spawn cooldown */
 extern u8 D_803EE789;  /* channel 1 restart request */
 extern f32 D_803EE780; /* 0..1 level for channel 2 */
-extern s16 D_803F7840;
 extern s8 D_80370C2C;  /* stick x (signed) */
 extern f32 D_8030D8D4;
 extern f32 D_8030D8D8;
@@ -1429,11 +1399,6 @@ s32 func_802B57C4(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern f32 D_803EBBF0;
-extern f32 D_803EBBF4;
-extern u8 D_803ED3F6;
-extern u8 D_803ED3F7;
-extern u8 D_80370C23; /* B or Z held */
 extern s16 D_803EE784;
 
 /* Vehicle-module setup leaf (shape of func_802AFBA0 in 69BB0, other

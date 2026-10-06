@@ -10,7 +10,6 @@ typedef struct {
     u8 *tex;
 } TextQuad; /* size 0xC */
 
-extern u64 D_80364A98;
 extern s32 D_802E8BDC;
 extern s32 D_80365350;
 extern u8 *D_80358070;
@@ -19,11 +18,6 @@ extern TextQuad *D_80365340;
 extern s32 D_802E8C70;
 extern s32 D_802E8C74;
 extern s32 D_802E8C78;
-extern u8 D_8035805C;
-extern f32 D_802E8C84[]; /* per-font advance */
-extern u16 D_802E8C8C[]; /* per-font characters that draw nothing */
-extern u16 D_802E8C90[];
-extern u16 D_802E8C94[];
 
 #define VTX(n) D_80365348[D_8035805C][n].v
 

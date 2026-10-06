@@ -20,15 +20,8 @@ extern s8 D_803EDFD8;
 extern u8 D_803EDFD9;
 extern u8 D_803EDFDA;
 extern u8 *D_80358070; /* matrix buffer allocator */
-extern u8 D_8035805C;  /* which of the two matrix buffers is current */
 extern s16 D_803ED390[]; /* rotation angles x, y, z for func_802AA764 */
-extern u8 D_803ED40B;
-extern u8 D_803A7425;
 extern u8 *D_803F77D0;
-extern s32 D_803643E0;
-extern s32 D_803643E4;
-extern s32 D_803643E8;
-extern s16 D_8036443C;
 extern s16 D_8036443E;
 extern s16 D_80364440;
 extern u8 D_80305CF0[];
@@ -205,7 +198,6 @@ void func_802B11B8(void) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 D_803EDF10[]; /* this vehicle's state block */
-extern s16 D_8036444C;
 extern s16 D_80364450;
 extern void *D_80367738;
 extern void *D_803EDFD0; /* engine sound handle */
@@ -430,16 +422,8 @@ void func_802B152C(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 f
 #ifdef NON_MATCHING
 extern s16 D_803EDFD6;    /* last pose byte seen on channel 1/5 */
 extern u8 D_803EDFDA;
-extern u8 D_803F7804;
 extern void *D_803F7844;  /* sound handle */
 extern f32 D_8030D8B0;
-extern u64 D_803649D8;    /* frame counter */
-extern u8 D_80370C1A;
-extern u8 D_80370C1B;
-extern u8 D_80370C1C;
-extern u8 D_80370C1D;
-extern u8 D_80370C35;
-extern u8 D_802C2984[];   /* func_802A6274 definition */
 
 #define VEH2_SPEED (*(s16 *) (D_803EDF10 + 0x76))
 
@@ -834,10 +818,6 @@ s32 func_802B28B8(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern f32 D_803EBBF0;
-extern f32 D_803EBBF4;
-extern u8 D_803ED3F6;
-extern u8 D_803ED3F7;
 
 /* Vehicle-module setup leaf, identical to func_802AFBA0 (69BB0):
  * D_803EBBF4 = D_803EBBF0 * 4, D_803ED3F6/7 = 40, 3.

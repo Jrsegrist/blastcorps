@@ -23,12 +23,7 @@ extern u8 *D_803EF708;
 extern u8 *D_803EF70C;   /* its model header */
 extern u8 D_803EF630[];  /* its state block */
 extern u8 D_803EF330[];  /* its animation channels */
-extern s32 D_803EF6DC;   /* position x, y, z */
-extern s32 D_803EF6E0;
-extern s32 D_803EF6E4;
-extern s32 D_803EF6F0;
 extern s32 D_803EF6F4;   /* start point x, z */
-extern s32 D_803EF6F8;
 extern s16 D_803EF6FC;   /* target speed */
 extern s16 D_803EF6D6;
 extern u8 D_803EF6FE;
@@ -192,9 +187,6 @@ void func_802BA074(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_803EF6DC;
-extern s32 D_803EF6E0;
-extern s32 D_803EF6E4;
 /* Zone level lookup (func_802ABD54) for vehicle id 0xFF at its position
  * D_803EF6DC..+8; returns func_802ABD54's v1 (the zone list end).
  * Register convention: the asm passes func_802ABD54's scan registers t6, t7,
@@ -213,14 +205,8 @@ s32 func_802BA104(ZoneScanRegs *r) {
 /* Rounded 3-D distance from (ax, ay, az) to (bx, by, bz) (62740.c; asm
  * convention in tools_port/conventions.txt: t3-t5, t6, t7, s0 -> s1). */
 
-extern s32 D_803643E0; /* player x, y, z */
-extern s32 D_803643E4;
-extern s32 D_803643E8;
 extern void *D_80367738;  /* sound player */
 extern void *D_803EF6D8;  /* this sound's handle, NULL = none */
-extern s32 D_803EF6DC;    /* sound source x, y, z */
-extern s32 D_803EF6E0;
-extern s32 D_803EF6E4;
 
 /* Positional sound 0x75 at D_803EF6DC/E0/E4 (called from hd.c); shape of
  * func_802B8794 (72B80). d is the rounded distance from the player
@@ -267,10 +253,6 @@ void func_802BA148(void) {
 #ifdef NON_MATCHING
 extern u8 D_803EF630[];
 extern u8 D_803EF330[];
-extern u8 D_803643D6;
-extern u8 D_802E8BD0;
-extern u8 D_8035805C;
-extern u8 D_803ED40B;
 extern s16 D_803EF6FC;
 extern u8 *D_803EF704;
 extern u8 *D_803EF708;
@@ -386,7 +368,6 @@ animate:
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern s32 D_803EF6F4; /* second point x, z (y = 0) */
-extern s32 D_803EF6F8;
 
 /* Distance (func_802ABCDC, y = 0) from (D_803EF6DC, D_803EF6E4) to
  * (D_803EF6F4, D_803EF6F8); sets D_803EF710 when it is >= D_803EF6E8 and
@@ -475,7 +456,6 @@ extern f32 D_8030D920;
 extern f32 D_8030D924;
 extern f32 D_8030D928;
 extern u16 D_80364452;   /* camera / player angle (0..0xFFF) */
-extern u8 D_802E8BD0;
 extern u8 D_803EF330[];  /* animation channel table (Unk8029DEA0Entry, 56040.c) */
 
 /* Engine sound and animation channels for vehicle D_803EF630 (speed = s16 at
@@ -527,9 +507,6 @@ s32 func_802BA6AC(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_803EF6F0;
-extern u8 D_803643DA;
-extern u8 D_802E8BD8;
 
 /* Distance (func_802ABCDC, y = 0) from (D_803EF6DC, D_803EF6E4) to
  * (D_803EF6F4, D_803EF6F8); when it is >= D_803EF6F0 (signed) sets
@@ -551,16 +528,12 @@ void func_802BA91C(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803643D6;
-extern u8 D_803643D8;
 extern u8 D_803643D9;
 extern u8 D_80305D60[];
 extern u8 D_802C3B44[]; /* func_802A6274 definition */
-extern u8 D_803A7424;
 extern u8 D_803A7426;
 extern void *D_803F77D0;
 extern u8 D_803EF6FE;   /* countdown before the effect */
-extern u8 D_803EF6FF;   /* effect finished */
 extern u8 D_803EF700;   /* effect frame count */
 extern u8 D_803EF701;   /* effect started */
 
@@ -648,9 +621,7 @@ void func_802BA9A0(s32 h2) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_8035805C;  /* selects which of the two matrix buffers is current */
 extern s16 D_803ED390; /* model rotation x, y, z (0x803ED390/92/94) */
-extern s16 D_803ED392;
 extern u8 *D_803EF704; /* matrix buffer pair */
 extern u8 *D_803EF708;
 extern u8 *D_803EF70C; /* model header */
@@ -700,10 +671,6 @@ s32 func_802BABEC(MtxChainRegs *regs) {
  * func_802CC8B8, func_802CD9AC, func_802D0784 and func_802D249C (only the
  * scale and the two byte values differ). Asm caller func_802BA354 relies on
  * a0-a3 being preserved (mixed N64 build would need a thunk). */
-extern f32 D_803EBBF0;
-extern f32 D_803EBBF4;
-extern u8 D_803ED3F6;
-extern u8 D_803ED3F7;
 
 void func_802BAD24(void) {
     D_803EBBF4 = D_803EBBF0 * 2.0f;
@@ -811,7 +778,6 @@ void func_802BAD80(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s16 D_8036444C;
 extern s16 D_80364450;
 extern u8 D_803EF720[];  /* animation channel table (Unk8029DEA0Entry, 56040.c) */
 
@@ -902,7 +868,6 @@ s32 func_802BB230(ZoneScanRegs *r) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 D_80305DF0[];
-extern s16 D_8036443C; /* player speed, heading, angle */
 extern s16 D_8036443E;
 extern s16 D_80364440;
 void func_802BB4C0(void);
@@ -991,12 +956,6 @@ void func_802BB274(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_80370C15; /* input flags */
-extern u8 D_80370C16;
-extern u8 D_80370C1A;
-extern u8 D_80370C1B;
-extern u8 D_80370C1C;
-extern u8 D_80370C1D;
 extern f32 D_8030D930; /* channel 5 limits */
 extern f32 D_8030D934;
 s32 func_802BB868(void);

@@ -25,7 +25,6 @@ typedef struct {
 
 extern Unk8029DEA0Entry D_803B35F8[];
 extern u8 D_803B9890[]; /* 0x60-byte records */
-extern u8 *D_803BD300;  /* end of the records in use */
 
 /* Several functions here (func_8029A914, the func_8029C52C -> func_8029C9D4
  * -> func_8029CB04 / func_8029CD54 -> func_8029CF04 chain) read fields of the
@@ -104,22 +103,13 @@ typedef struct {
 #ifdef NON_MATCHING
 extern u16 D_803A7410;
 extern u16 D_803A7412;
-extern s32 D_803A73F0;
-extern s32 D_803A73F4;
-extern s32 D_803A73F8;
 extern s32 D_803A7408;
 extern s16 D_803A7422;
-extern u8 D_803A7424;
-extern u8 D_803A7425;
-extern u8 D_803A7427;
 extern u8 D_803A7428;
 extern u8 D_803A7429;
 extern u8 D_803A742C;
 extern u8 D_803A742D;
 extern u8 D_803A742E;
-extern u8 D_803A742F;
-extern s16 D_803F77FC;
-extern u8 D_803F7801;
 extern u8 D_803F7811;
 extern s32 D_80358060;
 
@@ -220,11 +210,7 @@ void func_8029A914(u8 *veh) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803A7300[]; /* 0x14-byte vehicle spheres: x, y, z, r words, byte 0x10 = kind, 0x11 = state (0xFF = end) */
 extern u8 D_803A6B30[]; /* 0x14-byte part spheres: x, y, z, r words, byte 0x12 = kind, 0x13 = state (0xFF = end) */
-extern u8 D_803A742B;
-extern s32 D_80358068;
-extern s32 D_803A740C;
 s32 func_8029AB88(s32 x, s32 y, s32 z, s32 r, s32 kind);
 
 /* World collision of vehicle `kind` for this frame. Clears D_803A742B, finds
@@ -283,13 +269,7 @@ extern u32 D_803059F0[];  /* {level (0xFFFF = any), object kind, vehicle mask} t
 extern s32 D_802E8BDC;    /* current level */
 extern u8 D_803F4030[];   /* 0xFC-byte objects: +4 / +8 triangle range, +0x30 kind */
 extern u8 *D_803F7654;    /* end of the objects */
-extern u8 D_803F9330[];   /* 0x60-byte triangles */
 extern u8 *D_803FB8B0;    /* their end */
-extern u8 *D_803BD308;    /* triangle range */
-extern u8 *D_803BD30C;
-extern u8 D_803A742A;
-extern u8 *D_803BDE40[];  /* per-cell triangle lists (cell c spans [c] .. [c + 1]) */
-extern u8 *D_803BDCA8[];
 extern s16 D_803A7418[];  /* cells from func_8029C284, ended by -1 */
 
 /* The sphere-vs-triangle test (see the comment above func_8029BD0C): plane
@@ -549,8 +529,6 @@ s32 func_8029B514(s32 x, s32 y, s32 z, s32 r, u8 *rec) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803A742B;
-extern u8 D_803A7430;
 
 /* If the record's byte 0x4F is 7: sets D_803A742B and counts D_803A7430 up
  * (while it is <= 200).
@@ -570,7 +548,6 @@ void func_8029B5B8(u8 *rec) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803BE738;
 void func_8029B994(void);
 
 /* Collision hit on triangle `tri` (id `id`): appends id to buffer A
@@ -654,7 +631,6 @@ extern s32 D_80358064;
 extern u8 D_803A742C;
 extern u8 D_803A742D;
 extern u8 D_803A742E;
-extern u8 D_803A742F;
 
 /* Widens the ring span [D_803A7410, D_803A7412] to take in indices a and b
  * (each first wrapped into 0..0xFFE by one +-0xFFF step, as in the asm).
@@ -751,7 +727,6 @@ extern s32 D_803A73FC;
 extern s32 D_803A7400;
 extern s32 D_803A7404;
 extern u8 D_80370C3C;
-extern u8 D_802C2984[]; /* a definition inside the 7D9D0 blob */
 
 /* Sets up a D_803C4B70 record (func_802A6274) for the definition D_802C2984
  * with data D_803A7428 * 7000, type 0, position D_803A73FC/7400/7404 << 13,
@@ -774,8 +749,6 @@ void func_8029B994(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803BD310[]; /* 0xFC-byte switch groups: kind count at 0, kinds from 1, tri pointers from 8 (count at 0xF8), flag 0xF9 */
-extern u8 D_803ED825;
 void func_8029B614(u8 *tri, s32 id);
 
 /* Hit on a triangle of the D_803BD308 list (a switch): finds the
@@ -1091,8 +1064,6 @@ s32 func_8029C160(s32 x, s32 y, s32 z, s32 r, u8 *tri, s32 *hit) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_803BE724;
-extern s32 D_803BE728;
 extern s16 D_803BE72C;
 extern s16 D_803A7418[];
 
@@ -1112,7 +1083,6 @@ void func_8029C284(s32 x, s32 z) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803A7300[]; /* 0x14-byte entries, free when byte 0x11 == 0xFF */
 extern u8 D_803A6B30[]; /* 0x14-byte entries, free when byte 0x13 == 0xFF */
 
 #define SCALE16(h, scale) (((u32) ((h) << 5) * (u32) (scale)) >> 16)
@@ -1305,7 +1275,6 @@ void func_8029C6E4(Unk8029C6E4Out *o) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 D_803FBBB0[]; /* 0x14-byte spheres: x, y, z, r words */
-extern u8 D_803FC1F0;   /* their count */
 void func_8029C914(s32 tag, s32 qx, s32 qy, s32 qz, s32 qr);
 
 /* Contacts with the D_803FC1F0 spheres of D_803FBBB0: finds the D_803A7300
@@ -1553,7 +1522,6 @@ void func_8029CB54(s32 n, s32 kind, u8 *next, s32 x1, s32 z1, s32 x2, s32 z2) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803A7430;
 u32 func_8029CF04(u32 v, s32 key, u8 *veh);
 void func_8029CF54(s32 v);
 void func_8029CB54(s32 n, s32 kind, u8 *next, s32 x1, s32 z1, s32 x2, s32 z2);
@@ -1660,8 +1628,6 @@ u32 func_8029CF04(u32 v, s32 key, u8 *veh) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803EFECB;
-extern u8 D_803649ED;
 
 /* D_803649ED = v, unless D_803EFECB is set and the D_803ED3B8 list has the
  * pair (v, 7) (func_802AB41C).
@@ -1701,8 +1667,6 @@ s32 func_8029CFA4(s32 pz, s32 r1, s32 qx, s32 qy, s32 px, s32 py, s32 qz, s32 r2
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803BC1D0[]; /* 0xDC-byte groups */
-extern u8 *D_803BD304;  /* end of the groups in use */
 void func_8029D24C(s32 id, u8 *model, u8 *mtxBase);
 void func_8029D120(s32 id);
 u8 *func_8029D1D4(s32 sub, s32 id, s32 *last);
@@ -1765,8 +1729,6 @@ void func_8029D040(s32 val, Unk8029DEA0Entry *tbl, s32 x, s32 z, s32 id, u8 *mod
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803BC1D0[]; /* 0xDC-byte groups */
-extern u8 *D_803BD304;  /* end of the groups in use */
 
 /* Marks (byte 0x51 = 1) every 0x60-byte record in D_803B9890..D_803BD300
  * whose byte 0x4F is `id`, and every record with byte 0x4F == 0 whose byte
@@ -2218,7 +2180,6 @@ s32 func_8029DBF0(s32 id) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 D_803B9890[]; /* 0x60-byte records */
-extern u8 *D_803BD300;  /* end of the records in use */
 
 /* Returns 0 if a record in D_803B9890..D_803BD300 (0x60 bytes each) has
  * byte 0x4F == id and byte 0x51 == 0, else 1. The scan stops only at exactly
@@ -2266,7 +2227,6 @@ void func_8029DC80(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_8035805C;
 
 /* Queues a 64-byte copy src -> dst in the first free slot (src == 0) of the
  * 120-entry pool D_803B7FC8, tagged with !D_8035805C (low bit flipped), and

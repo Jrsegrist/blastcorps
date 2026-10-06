@@ -132,107 +132,63 @@ u16 func_8026F82C(u16 lo, u16 hi, u16 mask);
 extern u16 yoshiDemandV;
 extern s16 D_8036BB0C;
 extern s8 D_8036BB0E;
-extern u16 D_8036BB16;
 extern u32 D_8036BB40;
 extern u8 D_802F47B0[][8]; /* colour pairs */
-extern u8 D_803643DB;
-extern u8 D_803643D6;
-extern s8 D_80370C11;
-extern s8 D_80370C12;
-extern s8 D_80370C13;
-extern s8 D_80370C14;
-extern u16 D_80370C28; /* buttons this frame */
-extern u16 D_80370C2A; /* buttons last frame */
-extern u8 D_802E8BD4;
-extern u8 D_802E8BD8;
 extern f32 D_8036BB08;
 extern f32 D_8036BB28;
 extern f32 D_8036BB2C;
 extern s32 D_8036BB30;
-extern f32 D_8036BB34;
 extern f32 D_8036BB38;
-extern s16 D_8036BB20;
 extern u16 D_8036BB3C;
 extern u16 D_8036BB3E;
 extern s32 D_8036BB44;
 extern s32 D_802F9930;
-extern u8 D_8035805C;
 extern u8 D_8036BA48[];
 extern Gfx D_802F98B0[];
 extern u8 D_8036BAE8[];
 extern LevelInfo D_802E8F94[];
 extern u8 D_802F4878[];
-extern u8 D_802E8BF8;
 extern u16 D_8036BB48[];
 extern u16 D_8036BB4A[];
 /* Per-language special characters: [0] for English, [1] for Japanese */
-extern u16 D_802E8C8C[];
-extern u16 D_802E8C90[];
-extern u16 D_802E8C94[];
-extern u16 D_802E8C98[]; /* string terminator */
 extern u16 D_802E8C9C[];
 extern u32 D_803156C4;
 extern u32 D_8036BB00;
 extern u32 D_8036BAFC;
 /* Debug switches set from the command line */
 extern s32 D_802FA250; /* -v */
-extern s32 D_802FA254; /* -d */
 extern s32 D_802FA258; /* -s */
 extern s32 D_802FA25C; /* -j */
 extern s32 D_802FA260; /* -m */
-extern s32 D_802FA264; /* -l */
-extern s32 D_802FA268; /* -c, -C */
-extern s32 D_802FA26C; /* -C */
-extern u16 D_8036EB90;
-extern u16 D_8036BBB0[];
 extern u16 D_8036BBB2[];
 extern s32 D_8036BED4;
 extern YoshiNode *D_8036BED8;
 extern f32 D_8036BEDC;
 extern u8 D_8036BEE0;
 extern void *D_80358070;
-extern s32 D_803BE70C;
-extern s32 D_803BE710;
 extern s16 D_803BE714;
 extern Vtx D_802F99C0[]; /* quad template */
-extern f32 D_80364414;
 extern u8 D_802F9A00[]; /* 16x16 RGBA32 textures */
 extern u8 D_802F9E00[];
-extern s32 D_803643E0;
-extern s32 D_803643E4;
-extern s32 D_803643E8;
-extern u8 D_80364456;
 extern s32 D_802FA200[];
-extern u8 D_802E8BD0;
 extern void *D_80367738;
-extern u64 D_80364A90;
-extern u8 D_80364AE8;
 extern Player D_80364AF0[];
 extern YoshiTrigger D_802F48D0[];
 extern s32 D_802E8BDC;
 extern u8 D_802F499A[];
 extern u8 D_8036BAA2[];
-extern s16 D_8036BB1A;
 extern u32 D_80364AA8;
-extern u64 D_80364A98;
-extern u8 D_802F4868[];
-extern u8 D_802F4870[];
 extern struct YoshiArg D_802F8BDC[];
 extern u16 D_8036BB04;
 extern u16 D_8036BB06;
 extern PathNode *D_8036BB10;
-extern s16 D_8036BB1E;
 extern PathNode *D_8036BB24;
-extern s16 currentYoshiWindow;
-extern s16 yoshiState;
 extern u8 D_8036BA98[];
 extern YoshiSnd D_802F49F4[];
-extern u16 D_8036EA7C;
 extern PathNode D_8020C070[];
 extern PathNode D_802F5804[];
 extern PathInfo D_802F9934[];
 extern u16 D_803C30A8[];
-extern s32 D_803F7684;
 
 u8 func_8026AD30(s16 arg0) {
     YoshiTrigger *trig;

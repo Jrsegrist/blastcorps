@@ -47,23 +47,16 @@ typedef struct {
     /* 0x04 */ s32 angle;
 } SwingState;
 
-extern u8 D_802E8BD0;
 extern u32 D_803156C4;
 extern Path D_802FE980[];
 extern f32 D_8039CA10[4][4];
 extern f32 D_8039CA50;
 extern f32 D_8039CA54;
 extern f32 D_8039CA58;
-extern s32 D_803F7664;
-extern s32 D_803F7668;
-extern s32 D_803F766C;
 extern s16 D_8036E4C8;
 extern u8 D_8036E4CA;
-extern s32 D_8036DCD8;
 extern s32 D_802E8BDC;
 extern Junction D_802FEDA0[];
-extern s32 D_803643E0;
-extern s32 D_803643E8;
 
 #ifdef NON_MATCHING
 void func_802936AC(f32 mf[4][4], s16 x, s16 z, s16 ox, s16 oz, s16 *px, s16 *py, s16 *pz, WalkState *state,

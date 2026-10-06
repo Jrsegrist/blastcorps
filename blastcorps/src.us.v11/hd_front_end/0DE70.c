@@ -21,12 +21,8 @@ typedef struct {
 
 extern FeDyn D_803156F8[];
 extern s32 D_80358070; /* heap pointer */
-extern u8 D_8035805C;  /* current frame buffer */
-extern u16 D_8035807C; /* perspNorm */
-extern s16 D_8036BB20;
 
 /* ROM addresses of the compressed scene blobs */
-extern u8 D_006E8980[];
 extern u8 D_006EA850[];
 extern u8 D_006EAB90[];
 extern u8 D_006EC4C0[];
@@ -35,7 +31,6 @@ extern u32 D_802182C0;
 extern u8 *D_802182C4;
 extern Gfx *D_802182C8;
 extern void *D_802182CC;
-extern Mtx D_802182D0[];
 extern u8 *D_80218350;
 extern void *D_80218358[2];
 extern Gfx *D_80218360[2][2];

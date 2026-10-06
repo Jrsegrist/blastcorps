@@ -18,7 +18,6 @@ extern u32 D_803F8F28[]; /* x, y, z */
 extern u8 *D_803F8F34;   /* model header */
 extern u64 *D_803F8F38;  /* save copy pair (func_802A7764) */
 extern u64 *D_803F8F3C;
-extern u8 D_8035805C;    /* which save copy is current */
 
 void func_802CC70C(void);
 #endif
@@ -136,7 +135,6 @@ void func_802CB720(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 D_803F8E80[]; /* this vehicle's state block */
-extern s16 D_8036444C;
 extern s16 D_80364450;
 extern u8 D_802C2324[]; /* channel keys (7D9D0 text blob) */
 extern u8 D_802C2348[];
@@ -287,7 +285,6 @@ s32 func_802CBD5C(s32 id, InterpRegs *r) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803ED40B;
 void func_802CC8B8(void);
 
 /* Steer vehicle 13 along triangle `id` (the asm caller func_802AB714): the
@@ -337,17 +334,10 @@ s32 func_802CBDE8(s32 id, TriSideOut *f) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_80367BFF;
 extern s16 D_803F8F40; /* steering target */
-extern u8 D_803A7424;
-extern u8 D_803A7425;
 extern u8 *D_803F77D0;
 extern f32 D_8030D9B0;
 extern u8 D_80306430[];
-extern s32 D_803643E0;
-extern s32 D_803643E4;
-extern s32 D_803643E8;
-extern s16 D_8036443C;
 extern u16 D_8036443E;
 extern u16 D_80364440;
 void func_802CC400(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3);
@@ -518,11 +508,8 @@ publish:
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_80370C1A;   /* flags (either one set animates) */
-extern u8 D_80370C1B;
 extern u8 D_803F8F45;   /* animation phase 0, 2..13 */
 extern u8 D_803F8F42;   /* countdown */
-extern u8 D_802C2954[]; /* definition handed to func_802A6274 (7D9D0 text blob) */
 extern u8 D_802C2324[]; /* channel keys (7D9D0 text blob) */
 extern u8 D_802C2348[];
 void func_802CC56C(void);
@@ -606,7 +593,6 @@ void func_802CC56C(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_8035805C;     /* which of the two save copies is current */
 extern u8 *D_803F8F34;    /* model header: word offsets to the part lists */
 extern s16 D_803ED390[3]; /* rotation angles x, y, z for func_802AA764 */
 
@@ -702,10 +688,6 @@ s32 func_802CC844(void) {
  * shape as func_802BAD24 (75490.c). Asm callers rely on preserved registers:
  * func_802CBDE8 on t3, t4, f12, f14; func_802CBEF0 on a0-a3 (mixed N64 build
  * would need a thunk). */
-extern f32 D_803EBBF0;
-extern f32 D_803EBBF4;
-extern u8 D_803ED3F6;
-extern u8 D_803ED3F7;
 
 void func_802CC8B8(void) {
     D_803EBBF4 = D_803EBBF0 * 4.0f;

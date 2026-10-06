@@ -34,9 +34,6 @@ extern Node D_8020BD30[];
 extern f32 D_8020BDE4; /* D_8020BD30[3].unk0 */
 extern f32 D_8020BDEC; /* D_8020BD30[3].unk8 */
 extern Node D_8020BE98; /* D_8020BD30[6] */
-extern u8 *D_80215A7C; /* glow textures */
-extern u8 *D_80215A80;
-extern u8 *D_80215A84;
 extern Vtx D_80217690[][2][4];
 extern MtxF D_80217A10[];
 extern s32 D_80217B50; /* matrix stack index into D_80217A10 */
@@ -46,15 +43,9 @@ extern f32 D_80217B5C;
 extern f32 D_80217B60; /* camera target */
 extern f32 D_80217B64;
 extern f32 D_80217B68;
-extern s32 D_80217B6C; /* camera node */
 extern Mtx D_80217B70[][4];
 extern DrawEntry D_80218270[];
 extern s16 D_802182A8;
-extern f32 D_8021A918;
-extern f32 D_8021A91C;
-extern f32 D_8021A920;
-extern u8 D_8035805C; /* which of the two matrix buffers is current */
-extern u16 D_8035807C;
 
 f32 sqrtf(f32);
 void func_801F374C(Node *);

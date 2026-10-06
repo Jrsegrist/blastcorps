@@ -30,9 +30,6 @@ void func_802CDA10(s32 x, s32 y, s32 z) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_803A73F0;
-extern s32 D_803A73F4;
-extern s32 D_803A73F8;
 
 /* Blast damage (func_802C18D4) at the position D_803A73F0/F4/F8 << 11 with
  * the given radius and amount. The asm uses the whole registers (48D00.c
@@ -75,23 +72,12 @@ typedef struct {
 
 extern Obj89250 D_803F4030[];
 extern Obj89250 *D_803F7654;
-extern u8 D_803A7300[]; /* 0x14-byte vehicle spheres: s32 x, y, z, r, u8 id at 0x10, s8 flag at 0x11 (-1 = end) */
 extern u8 D_803A6B30[]; /* 0x14-byte hit spheres: s32 x, y, z, r, u8 id at 0x12, s8 flag at 0x13 (-1 = end) */
 extern u16 D_803F932A; /* impact damage */
-extern u8 D_803F932D;
-extern u8 D_803F932E;
 extern s32 D_803649E8;
-extern u8 D_80364456;
 extern u8 D_802E8BE4; /* screen shake time */
-extern s32 D_802E8BE8; /* screen shake size */
 extern u16 D_803A7410;
 extern u16 D_803A7412;
-extern s32 D_803A73F0;
-extern s32 D_803A73F4;
-extern s32 D_803A73F8;
-extern u8 D_803A7424;
-extern u8 D_803A7425;
-extern u8 D_803A742F;
 
 s32 func_802CDC7C(s32 x, s32 y, s32 z, s32 r, Obj89250 *e, s32 hit);
 void func_802CDD74(Obj89250 *e, Tri89250 *tri, s32 amount);
@@ -411,14 +397,7 @@ void func_802CE204(s32 x1, s32 z1, s32 x2, s32 z2) {
 /* Shared declarations for the NON_MATCHING (port) rewrites below. */
 extern u16 D_803A7410; /* ring index A (12-bit, 0..0xFFF) */
 extern u16 D_803A7412; /* ring index B */
-extern s32 D_803A73F0;
-extern s32 D_803A73F4;
-extern s32 D_803A73F8;
 extern void *D_803A7408;
-extern u8 D_803A7424;
-extern u8 D_803A7425;
-extern u8 D_803A7427;
-extern u8 D_803A742F;
 extern u8 D_80306450[];
 #endif
 
@@ -502,7 +481,6 @@ void func_802CE4F0(s32 x, s32 y, s32 z) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803A742A;
 
 /* Reports every triangle the sphere (x, y, z) radius r touches for vehicle
  * `kind` (func_8029B02C with everything >> 2 and part id 0), after storing
@@ -524,8 +502,6 @@ void func_802CE5BC(s32 x, s32 y, s32 z, s32 r, s32 kind, s32 tag) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_803F9320;
-extern s32 D_803F9324;
 extern s16 D_803F9328;
 
 /* Stores (x, z) to D_803F9320/9324 and len to D_803F9328, then moves the
@@ -547,7 +523,6 @@ void func_802CE65C(s32 x, s32 z, s32 len, s32 angle) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803F932C;
 
 #define PORT_ABS(d) ((d) < 0 ? -(d) : (d))
 

@@ -37,12 +37,7 @@ typedef struct {
 void func_80295394(s32 *x, s32 *y, s32 *z, s16 *rx, s16 *ry, s16 *rz);
 s16 func_80295924(s16 from, s16 to, f32 t);
 
-extern u64 D_80364A90;
 extern s32 D_803156C0;
-extern s32 D_803643E0;
-extern s32 D_803643E4;
-extern s32 D_803643E8;
-extern u8 D_803643D4;
 extern s16 D_803ED390[];
 extern s32 D_802FF0D0[];
 extern GhostRenderMode D_802FF11C[];
@@ -53,14 +48,11 @@ extern void *D_803BDB04;
 extern Gfx *D_803BDB08;
 extern Mtx D_02000000[];
 
-extern u8 D_8039CA61;
-extern u8 D_8039CA62;
 extern GhostSample *D_8039CA68[];
 extern GhostCounts D_8039CA70[];
 extern s32 D_8039CA78;
 extern u8 D_8039CA7C;
 extern u8 D_8039CA7D;
-extern u8 D_8039CA7E;
 extern s32 D_8039CA80;
 extern s32 D_8039CA84;
 extern u32 D_8039CA88;

@@ -589,13 +589,8 @@ s32 func_802A6274(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_8035805C; /* frame buffer index (0/1) */
 extern Gfx *D_803EB780;
 extern Gfx *D_803EB784;
-extern Gfx D_803C5770[]; /* display lists A / B, frame 0 */
-extern Gfx D_803C6F70[];
-extern Gfx D_803C6370[]; /* display lists A / B, frame 1 */
-extern Gfx D_803C7B70[];
 extern s32 D_803C4F70[]; /* 16.16 matrices (0x40 bytes each), frame 0 / 1 */
 extern s32 D_803C5370[];
 extern Vtx D_803C8770[]; /* quad vertices, frame 0 / 1 */
@@ -819,9 +814,6 @@ load:
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_803643F8; /* player x, y, z (<< 11) */
-extern s32 D_803643FC;
-extern s32 D_80364400;
 extern u16 D_80364452; /* camera heading */
 extern s32 D_803C4F30[]; /* scratch 16.16 matrix */
 

@@ -3,7 +3,6 @@
 #include "game/game.h"
 
 /* The digger code (this file's .bss starts at 0x8036C8D0) */
-extern u8 D_80364456;      /* current vehicle */
 extern void *D_80358070;
 
 /* 50-entry ring buffer of digger samples, indexed D_8036CB28..D_8036CB29 */
@@ -26,11 +25,6 @@ typedef struct {
 
 extern DigTrigger *D_803BE6FC; /* first */
 extern DigTrigger *D_803BE700; /* end */
-extern u8 D_803643D6;
-extern u8 D_803643DB;
-extern s32 D_803EF6E4;
-extern u8 D_8036CB2F;
-extern u64 D_80364A90;
 extern u32 D_80364AA8;
 extern u8 D_8036CB35;
 extern u8 D_8036CB36;
@@ -44,7 +38,6 @@ extern s16 *D_8036CB40; /* event animation frame ids */
 extern u8 D_8036CB44;
 extern u8 D_8036CB50;
 extern u8 D_8036CB51;      /* event panel alpha */
-extern u8 D_802FAD50[];    /* 32x32 RGBA32 panel frame */
 extern u8 D_02000000[];    /* segment 2 base */
 extern s16 D_802FBDD0[];
 extern s16 D_802FBDEC[];
@@ -61,7 +54,6 @@ extern u8 D_8036CB28;
 extern u8 D_8036CB29;
 extern s16 D_8036CB2A;
 extern s16 D_8036CB2C;
-extern u8 D_8036CB2E;
 extern u8 D_8036CB30;
 extern u8 D_8036CB31;
 extern u8 D_8036CB33;

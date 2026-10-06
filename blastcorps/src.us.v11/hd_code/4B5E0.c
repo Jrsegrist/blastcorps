@@ -88,7 +88,6 @@ extern s32 D_8039C710;
 extern Entry4B5E0c D_8039C718[];
 extern s32 D_8039C7F8;
 extern Entry4B5E0b D_8039C800[];
-extern u8 D_8039C940;
 extern s32 D_8039C944;
 extern s32 D_8039C948;
 extern s32 D_8039C94C;
@@ -99,28 +98,12 @@ extern s32 D_8039C95C;
 extern u8 D_803ED40C;
 extern s32 D_803FB8B0;
 extern Model4B5E0 D_802FDC08[];
-extern u8 D_803A7424;
 extern u8 D_02000000[]; /* segment 2 base */
 extern s16 D_802FDBE0[];
-extern s32 D_803643E0;
-extern s32 D_803643E4;
-extern s32 D_803643E8;
-extern s16 D_8036443C;
 extern s32 D_80367738;
 extern s16 D_803A7410;
 extern s16 D_803A7412;
-extern s32 D_803EF6DC;
-extern s32 D_803EF6E0;
-extern s32 D_803EF6E4;
-extern s32 D_803F9320;
-extern s32 D_803F9324;
-extern u8 D_803F932C;
-extern u8 D_803F932D;
-extern u8 D_803F932E;
 
-#ifdef NON_MATCHING
-extern u8 D_803F9330[];
-#endif
 void func_80291724(s32);
 
 /* Load this file's objects from level data: reset the counters, then

@@ -253,7 +253,6 @@ void func_802712FC(BcSched *sc) {
     }
 }
 
-extern u8 D_802E8BD0;
 
 /* __scHandleRetrace */
 void func_80271358(BcSched *sc) {
@@ -348,7 +347,6 @@ void func_802715DC(BcSched *sc) {
     }
 }
 
-extern u64 D_80364A90;
 extern s32 D_80358060;
 
 /* __scHandleRDP */

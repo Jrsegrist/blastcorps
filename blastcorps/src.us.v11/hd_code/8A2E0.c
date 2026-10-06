@@ -30,7 +30,6 @@ extern u8 *D_803FC1E0;  /* four 0x300-byte save copies */
 extern u8 *D_803FC1E4;
 extern u8 *D_803FC1E8;
 extern u8 *D_803FC1EC;
-extern u8 D_803FC1F0;   /* number of boxes */
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -124,7 +123,6 @@ void func_802CEAA0(u8 *obj) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern Vtx D_803FBAB0[]; /* 8 vertices per box */
-extern u8 D_803FC1F0;    /* current box index */
 
 /* Writes the 8 corner positions of the box x-10..x+10, y..y+20, z-10..z+20
  * into the vertices of box D_803FC1F0 (only ob[] is written). The asm takes
@@ -231,9 +229,6 @@ Gfx *func_802CEEFC(Gfx *gdl, s32 cur, Gfx *dl2, Mtx *mtx) {
 
 #ifdef NON_MATCHING
 void func_802CF3E0(s32 *pos);
-extern s32 D_803643E0; /* player x, y, z */
-extern s32 D_803643E4;
-extern s32 D_803643E8;
 
 float sqrtf(float);
 #pragma intrinsic(sqrtf)

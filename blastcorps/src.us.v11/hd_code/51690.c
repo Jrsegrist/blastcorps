@@ -3,14 +3,10 @@
 #include "game/game.h"
 
 extern void *D_80358070;
-extern u8 D_006A8DA0[];
-extern u8 D_006A9F10[];
 extern u8 *D_8039CA90;
 extern u8 *D_8039CA94;
 extern u8 *D_8039CA98;
 extern u8 *D_8039CA9C;
-extern s16 D_8039CAA0;
-extern u8 D_8039CAA2;
 
 /* Carves four buffers out of the heap and loads ROM asset 0x6A8DA0 into the first. */
 void func_80295E50(void) {
@@ -46,9 +42,6 @@ void func_80295E50(void) {
         gImmp1(pkt, OLD_RDPHALF_CONT, (_SHIFTL(dsdx, 16, 16) | _SHIFTL(dtdy, 0, 16)));       \
     }
 
-extern u16 D_80370C30; /* controller 1 buttons */
-extern s8 D_80370C32;  /* controller 1 stick x */
-extern s8 D_80370C33;  /* controller 1 stick y */
 Gfx *func_8029700C(Gfx *gfx, s16 x, s16 y);
 
 /*

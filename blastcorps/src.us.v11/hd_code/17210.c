@@ -12,10 +12,7 @@ typedef struct {
     s8 stickY;
 } RecEntry;
 
-extern u8 D_006A9F10[];
-extern u8 D_006AD3F0[];
 extern void *D_80358070;
-extern u8 D_8036698C;
 extern s32 D_80366990;
 extern s32 D_80366994;
 extern s32 D_80366998;
@@ -27,24 +24,10 @@ extern s8 D_803669A7;
 extern u8 D_803669A8;
 extern RecEntry *D_803669AC;
 extern void *D_803669B0;
-extern s32 D_803669B4;
 extern u16 D_80366A04;
 extern RecEntry D_80365588[];
-extern u8 D_80365580;
 extern u8 D_802E8CB0[];
-extern u64 D_80364A98;
-extern u64 D_80364A90;
 extern s32 D_803649E8;
-extern u8 D_80364456;
-extern u8 D_803643DB;
-extern u8 D_803643D6;
-extern u8 D_80364A50;
-extern u8 D_802E8BD0;
-extern u8 D_802E8BD8;
-extern s16 yoshiState;
-extern u16 D_80370C30;
-extern s8 D_80370C32;
-extern s8 D_80370C33;
 
 
 #define ASSERT(EX, line) if (!(EX)) func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "recording.c", line)

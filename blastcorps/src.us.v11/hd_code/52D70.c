@@ -18,18 +18,9 @@ typedef struct {
     /* 0x06 */ s16 z;
 } D_802E8F38_s;
 
-extern u64 D_80364A98;
-extern u8 D_80364AE8;
 extern Player D_80364AF0[];
 extern D_802E8F38_s D_802E8F38[];
 extern void *D_80358070;
-extern s32 D_802FA268;
-extern u16 D_80370C28;
-extern s16 D_8039CAB0;
-extern s16 D_8039CAB2;
-extern s16 D_8039CAB4;
-extern u8 D_8039CAB6;
-extern u8 D_8039CAB7;
 extern u8 D_8039CAB8;
 extern void *D_8039CABC;
 extern void *D_8039CAC0;

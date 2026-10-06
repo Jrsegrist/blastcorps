@@ -39,9 +39,6 @@ extern void *D_8020E430[];
 extern s32 D_80358070; /* heap pointer */
 extern s16 D_8036BB1C;
 extern void *D_80367738;
-extern u8 D_802FAD50[]; /* 32x32 RGBA32 frame texture */
-extern u8 D_0068B550[];
-extern u8 D_006A32B0[];
 
 extern u8 *D_8021AB90[4]; /* the four inflated pictures */
 extern u8 D_8021ABA0;     /* current picture */

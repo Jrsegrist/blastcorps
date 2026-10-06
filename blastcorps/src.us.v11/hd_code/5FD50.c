@@ -16,7 +16,6 @@ extern s16 D_803C3248;
 extern u8 D_803C2B90[];
 extern u8 *D_803C2B88;
 extern u16 D_803BE714;
-extern u16 D_803BE716;
 extern s16 D_803C30A8[];  /* 100 entries, then D_803C3170 */
 extern s16 *D_803C3170;
 extern s16 D_803C3178[];
@@ -296,8 +295,6 @@ void func_802A4A50(Vtx *v, u32 x, u32 z, u32 w, u32 d, u32 xs, u32 zs, s32 y0, s
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u32 D_803BE740[];  /* scheduler task: header words, then an OSTask at +0x10 */
-extern u8 D_802E6820[];   /* RSP boot ucode, ends at D_802E68F0 */
-extern u8 D_802E68F0[];
 extern u8 D_802E77B0[];   /* gfx ucode text */
 extern u8 D_8030EE60[];   /* gfx ucode data */
 extern u8 D_803BE780[];   /* dram stack (0x400) */

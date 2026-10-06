@@ -49,13 +49,9 @@ typedef struct {
 
 extern BoxType D_802FDB40[];
 extern Vtx *D_80358070;
-extern s32 D_803643E0;
-extern s32 D_803643E4;
-extern s32 D_803643E8;
 extern s32 D_80367738;
 extern Box D_8039AF00[];
 extern s32 D_8039B068;
-extern s16 D_803EDC00;
 extern s16 D_803F8B72;
 
 

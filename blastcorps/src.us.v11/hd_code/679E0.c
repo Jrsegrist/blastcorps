@@ -14,11 +14,7 @@
 
 extern u8 D_803F4030[];  /* 0xFC-byte object records */
 extern u8 *D_803F7654;   /* end of the records in use */
-extern s32 D_803EF6DC;   /* player x, y, z */
-extern s32 D_803EF6E0;
-extern s32 D_803EF6E4;
 extern u8 D_802C2A5C[];  /* definition in the 7D9D0 text blob */
-extern u8 *D_802C3FFC[]; /* definition pointers, in the 7D9D0 text blob */
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -79,9 +75,7 @@ void func_802AC284(s32 *px, s32 *py, s32 *pz) {
 extern s32 D_80364AA8;  /* game mode */
 extern s32 D_80367738;
 extern u16 D_8036E4C8;
-extern u8 D_803BE738;
 extern u8 *D_803F3960;  /* end of the (object, part) hit list */
-extern u8 D_803F3910[];
 
 /* Only in game mode 0x40: vehicle-state reset (func_8029A800 with b2 = 1,
  * b3 = 0, h1 = 0, h2 = 0x40, b4 = 0), the collision pass of vehicle id
@@ -134,7 +128,6 @@ void func_802AC2A4(s32 z, s32 a1, s32 x, s32 y, s32 b0, s32 id, u8 *vehicle) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern s32 D_802E8BDC; /* current level */
-extern u8 D_80364412;  /* "position was wrapped" flag */
 
 /* Level 0x17 only: wraps the position x (*px) and z (*pz) into the level's
  * box (x >= 0x15181 -> 0x2BC0, then x < 0x2581 -> 0x14B40; z >= 0x13881 ->

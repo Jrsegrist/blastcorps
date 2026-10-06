@@ -19,7 +19,6 @@ extern u64 *D_803FC5BC;
 extern u64 *D_803FC988;
 extern u64 *D_803FC98C;
 extern u8 *D_80358070; /* matrix buffer allocator */
-extern u8 D_8035805C;  /* which of the two matrix buffers is current */
 extern s16 D_803ED390[]; /* rotation angles x, y, z for func_802AA764 */
 extern u8 D_803FC200[];  /* vehicle 15 animation channel table */
 extern u8 D_803FC5D0[];  /* vehicle 16 animation channel table */
@@ -31,16 +30,8 @@ extern s16 D_803FC994;
 extern s8 D_803FC998;
 extern u8 D_803FC999;
 extern u8 D_803FC99A;
-extern u8 D_803ED40B;
-extern u8 D_80367BFF;
 extern f32 D_8030D9D0;
-extern u8 D_803A7424;
-extern u8 D_803A7425;
 extern u8 *D_803F77D0;
-extern s32 D_803643E0;
-extern s32 D_803643E4;
-extern s32 D_803643E8;
-extern s16 D_8036443C;
 extern s16 D_8036443E;
 extern s16 D_80364440;
 extern u8 D_80306460[];
@@ -189,7 +180,6 @@ void func_802CF6A0(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s32 t6
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 D_803FC500[]; /* this vehicle's state block */
-extern s16 D_8036444C;
 extern s16 D_80364450;
 
 /* Enter vehicle type 15: clears the byte at +0x99, D_8036444C/50 = 3000,
@@ -540,7 +530,6 @@ void func_802CFDE8(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 f
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 D_803FC5C2;   /* effect cooldown */
-extern u8 D_802C2954[]; /* definition handed to func_802A6274 */
 void func_802D0438(void);
 
 /* Per-frame effects for vehicle type 15 ($gp = D_803FC500, read as the
@@ -705,10 +694,6 @@ s32 func_802D0710(void) {
  * shape as func_802BAD24 (75490.c). Asm callers rely on preserved registers:
  * func_802CFCE0 on t3, t4, f12, f14; func_802CFDE8 on a0-a3 (mixed N64 build
  * would need a thunk). */
-extern f32 D_803EBBF0;
-extern f32 D_803EBBF4;
-extern u8 D_803ED3F6;
-extern u8 D_803ED3F7;
 
 void func_802D0784(void) {
     D_803EBBF4 = D_803EBBF0 * 4.0f;
@@ -864,7 +849,6 @@ void func_802D0BF8(void) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 D_803FC8D0[]; /* this vehicle's state block */
-extern s16 D_8036444C;
 extern s16 D_80364450;
 extern void *D_80367738;
 extern void *D_803FC990; /* engine sound handle */
@@ -1076,13 +1060,7 @@ void func_802D0F98(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 f
 #ifdef NON_MATCHING
 extern s16 D_803FC996;  /* last channel unk13 seen (sound trigger) */
 extern u8 D_803FC99A;
-extern u8 D_803F7804;
 extern void *D_803F7844; /* sound handle */
-extern u8 D_80370C1A;    /* input flags */
-extern u8 D_80370C1B;
-extern u8 D_80370C1C;
-extern u8 D_80370C1D;
-extern u8 D_80370C35;
 extern f32 D_8030D9E0;
 
 #define VEH16_U8(o) (D_803FC8D0[o])
@@ -1479,10 +1457,6 @@ s32 func_802D2444(void) {
 /* Functional rewrite (tools_port/eqcheck.py verified). Same "set timers"
  * shape as func_802BAD24 (75490.c). Asm caller func_802D0F98 relies on a0-a3
  * being preserved (mixed N64 build would need a thunk). */
-extern f32 D_803EBBF0;
-extern f32 D_803EBBF4;
-extern u8 D_803ED3F6;
-extern u8 D_803ED3F7;
 
 void func_802D249C(void) {
     D_803EBBF4 = D_803EBBF0 * 4.0f;

@@ -28,20 +28,12 @@ typedef struct {
     u8 pad3[2];
 } MenuItem; /* 0x1C */
 
-extern u8 D_80364AE8; /* current player */
-extern u8 D_80364AEA;
 extern s32 D_802E8BDC; /* current level */
 extern PlayerRec D_80364AF0[];
 extern u8 D_80364B08[][0x100]; /* = D_80364AF0[p].rank */
 extern u8 D_80364B44[][0x100]; /* = D_80364AF0[p].flags */
 extern u16 D_80364EF0[][16];
-extern u8 D_80364A87;
-extern u64 D_80364A90;
-extern u64 D_80364A98;
 extern LevelInfo D_802E8F94[];
-extern u8 D_802E8C44[];
-extern u8 D_802E8BD8;
-extern u8 D_802E8BF8;
 
 /* This level's results (D_8036EA70) and the best (D_8036EA60), 16 bytes each:
  * money, time, then three counts with their targets in D_8036EB90..93 */
@@ -51,31 +43,19 @@ extern u8 D_8036EA69;
 extern u16 D_8036EA6C;
 extern u32 D_8036EA70;
 extern s32 D_8036EA74;
-extern u8 D_8036EA78;
-extern u8 D_8036EA79;
 extern u8 D_8036EA7A;
 extern u8 D_8036EA7B;
-extern u16 D_8036EA7C;
 extern u32 D_8036EA80[4];
 extern u32 D_8036EA90[4];
-extern u16 D_8036EB90;
-extern u8 D_8036EB92;
-extern u8 D_8036EB93;
 extern u8 D_8036EB94[]; /* bonus earned, per bonus */
-extern u8 D_8036EB98;
-extern u8 D_8036EB99;
 extern u8 D_8036EB9C[];
 
-extern char D_8036B9A8[]; /* status screen lines, 0x20 each */
 extern MenuItem D_802F5804[];
 extern MenuItem D_8020C070[];
 extern MenuItem D_802F8BDC[];
 extern s32 D_80358064;
 extern s32 D_80367738;
-extern u8 D_8039C53C[];
 extern s32 D_803156C0;
-extern u8 D_80370C50;
-extern OSMesgQueue D_80219F50;
 extern u64 D_8039C4B8[]; /* pak buffer */
 
 

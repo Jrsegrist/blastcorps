@@ -26,7 +26,6 @@ extern u64 D_803109D0[]; /* idle thread stack */
 extern OSThread D_80310BD0;
 extern u8 D_80314D80[];
 extern u8 D_80314D98[];
-extern s32 D_802FA254;
 extern u32 D_803649F0;
 extern u32 D_803649F4;
 
@@ -54,18 +53,14 @@ extern Unk74 D_80364460[];
 extern Unk74 *D_803649D0;
 
 extern DynamicBuf D_803156F8[];
-extern u8 D_8035805C; /* current frame buffer index */
 
 extern u8 D_00787F40[]; /* static code segment bounds (ROM) */
 extern u8 D_00788000[];
 extern u8 D_80364A70;
-extern s32 D_80358068;
 extern s32 D_80358064;
 extern u32 D_80358060;
-extern s16 D_80367BD6;
 extern u8 D_803FF600[];
 extern u8 *D_8035806C;
-extern s32 D_80358078;
 extern s32 D_80358070; /* heap pointer */
 extern s32 D_802E8BDC; /* current level */
 extern s32 D_8036E694;
@@ -76,7 +71,6 @@ typedef struct {
     u8 pad38[0xC];
 } LevelInfo;
 extern LevelInfo D_802E8F94[];
-extern u8 D_803B9888;
 extern u8 D_80358088[];
 typedef struct {
     u8 unk0[0x1000]; /* shadow texture, 64x64 IA8 */
@@ -97,16 +91,6 @@ typedef struct {
 } Vehicle; /* 0x1040 bytes */
 extern Vehicle *D_803643C8;
 extern u8 D_803643D9;
-extern u8 D_803643DA;
-extern u8 D_803643D8;
-extern u8 D_803643D6;
-extern u8 D_803643D7;
-extern u8 D_802E8BD8;
-extern u8 D_802E8BD4;
-extern u8 D_802E8BD0;
-extern u8 D_8036EB99;
-extern s32 D_803669B4;
-extern u8 D_8039CAA2;
 
 void func_802558C8(Gfx *, s32 *);
 void func_802559F8(Gfx *, s32 *);
@@ -118,7 +102,6 @@ void func_802559F8(Gfx *, s32 *);
     if (!(EX)) \
     func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "hd.c", line)
 
-extern s32 D_80000300; /* osTvType */
 extern u32 D_80358050[]; /* frame buffer physical addresses */
 typedef struct {
     u8 pad0[0x10];
@@ -131,19 +114,13 @@ typedef struct {
     u8 padF4[0xC];
 } Player; /* 0x100 bytes */
 extern Player D_80364AF0[];
-extern u8 D_80364AE8;
-extern u8 D_803649ED;
-extern u8 D_80364456;
 extern s32 D_803649E8;
 extern u8 D_803649EC;
-extern u8 D_803649EE;
 extern s32 D_803156F0;
 extern s32 D_80367738;
 s32 func_8024AFA8(s32);
 
-extern OSMesgQueue D_803150A0;
 extern OSMesg D_803150B8[];
-extern OSMesgQueue D_80315180;
 extern OSMesg D_80315198[];
 extern u64 D_80312D80[];
 extern u8 D_80315440[];
@@ -153,27 +130,15 @@ extern u8 D_803156D8[];
 extern u16 D_80000400[][320 * 240];
 extern u8 D_8021ED00[];
 extern u32 D_80358058;
-extern u8 D_802FDBD0;
-extern u8 D_802FDBD4;
-extern s32 D_803643E0;
-extern s32 D_803643E8;
 extern f32 D_80364418;
-extern f32 D_80364414;
 extern u8 D_8036441C;
 extern u8 D_8036441D;
 #define PHYS(x) ((u32)(x) & 0x1FFFFFFF)
 
-extern u8 D_80370C1E;
-extern u8 D_80370C21;
-extern u8 D_80370C24;
-extern u8 D_80370C27;
 u8 func_80255628(void);
 
-extern u16 D_8035807C;
 extern s32 D_80358074;
-extern Gfx D_01000010[]; /* segment 1 */
 
-extern s32 D_803643E4;
 extern u32 D_80364AA8;
 extern f32 D_80364AB4;
 extern f32 D_80364AB8;
@@ -191,7 +156,6 @@ extern Message D_80364A00[5];
 extern s16 D_8036443E;
 extern u8 D_80364A3C;
 extern u8 D_80364A3D;
-extern s32 D_80364A40;
 extern s32 D_80364A44;
 extern u8 D_80364A48;
 extern s16 D_80364A4A;
@@ -199,64 +163,30 @@ extern s16 D_80364A4C;
 extern u8 D_80364A4E;
 
 extern u8 D_803156F5;
-extern u8 D_80364A84;
-extern u8 D_80364AC1;
-extern u8 D_803EF6FF;
 extern Mtx D_02000000[];
 
-extern s16 D_803EF326;
 
 extern Vehicle *D_803643CC;
 extern u8 D_80218D30[];
-extern u8 D_80218EE0[];
-extern OSMesgQueue D_80219F50;
 #define pakToGameMessageQ D_80219F50
 extern u8 D_802E8BE4;
-extern s32 D_802E8BE8;
 extern u8 D_802E8BF4[];
-extern u8 D_802E8BF8;
-extern u8 D_802FDB14;
-extern s32 D_803643F8;
-extern s32 D_803643FC;
-extern s32 D_80364400;
-extern u8 D_80364410;
 extern s32 D_80364420;
 extern u8 D_80364434;
-extern s16 D_8036443C;
 extern f32 D_80364444;
 extern f32 D_80364448;
 extern s16 D_80364452;
 extern s16 D_80364454;
 extern f32 D_803649F8;
-extern s32 D_80364A58;
 extern s32 D_80364A5C;
-extern u8 D_80364A68;
-extern u8 D_80364A69;
-extern u8 D_80364A6A;
-extern u8 D_80364A6B;
-extern u8 D_80364A6C;
-extern u8 D_80364A6D;
 extern u8 D_80364A6F;
 extern u8 D_80364A86;
-extern u8 D_80367BFF;
-extern u8 D_80370C50;
-extern u8 D_8039C4B0;
 #define pakBusy D_8039C4B0
-extern u8 D_8039CA60;
-extern u8 D_8039CA61;
-extern u8 D_8039CA62;
-extern u8 D_8039CAB7;
-extern u8 D_803A7430;
 extern s32 D_803ED808;
-extern s32 D_803ED80C;
-extern s32 D_803ED810;
 void func_8025615C(s32, s32, s32 *);
 void func_80257234(void);
 
-extern u8 D_803ED3F5;
 
-
-extern u8 D_803BE739;
 extern s32 D_80358030[2];
 extern s32 D_80358038[2];
 extern s32 D_80358040[2];
@@ -267,12 +197,7 @@ s32 func_8024B418(u8);
 
 extern u8 D_803153F0;
 extern s32 D_803156E8;
-extern s32 D_803EF6DC;
-extern s32 D_803EF6E4;
-extern s16 currentYoshiWindow;
-extern s16 yoshiState;
 
-extern u8 D_803643DB;
 /* menu tables, 0x1C-byte entries */
 typedef struct {
     u16 unk0; /* flags */
@@ -366,33 +291,17 @@ extern u8 D_00647550[]; /* level56 */
 extern u8 D_00654FC0[]; /* level57 */
 extern u8 D_00660950[]; /* level58 */
 extern u8 D_00665F80[]; /* level59 */
-extern u8 D_0066C900[]; /* worldtextures */
 
 extern s16 D_80364440;
 extern s32 D_8036506C;
-extern u8 D_803ED40D;
-extern u8 D_802FA940[];
 
-extern Gfx D_01000038[];
 extern Gfx *D_803BE6E0;
 extern Gfx *D_803BE6E4;
 extern Gfx *D_803BE6E8;
 extern Gfx *D_803BE6EC;
 extern s32 D_802E8BEC;
-extern u8 D_802E8BF0;
 extern u32 D_803156C4;
-extern u8 D_803643DC;
-extern f32 D_80364438;
 extern u32 D_80364458;
-extern u8 D_80365580;
-extern u16 D_80366A12;
-extern u16 D_80370C28;
-extern u8 D_803A6B04;
-extern Gfx D_803C5770[];
-extern Gfx D_803C6370[];
-extern Gfx D_803C6F70[];
-extern Gfx D_803C7B70[];
-extern s32 D_803EF6E0;
 extern void *D_803F7820;
 extern void *D_803F7824;
 extern u16 D_80304904[]; /* glyph lists */
@@ -408,8 +317,6 @@ void func_802507C8(Mtx *, LookAt *, Mtx *);
 #define MS_ASSERT(EX, line) \
     if (!(EX)) \
     func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "./master_switch.c", line)
-extern u8 D_80364AE9;
-extern u8 D_80364AEA;
 typedef struct {
     s32 ip;
     s32 tc;
@@ -424,39 +331,23 @@ extern Score D_8036EA70;
 extern Score D_8036EA80;
 extern Score D_8036EA90;
 #define nss D_8036EA70
-extern u8 D_802F4868[];
-extern OSMesgQueue D_80219EF8;
-extern u64 D_8021A830;
 extern u16 D_803047A0[];
 extern u16 D_803047B4[];
 extern u16 D_803047CC[];
 extern u16 D_803047DC[];
 extern u8 D_80315438;
 extern s32 D_803156C0;
-extern u8 D_803643D5;
-extern u8 D_80364A50;
 extern u32 D_80364A54;
 extern u8 D_80364A60;
-extern s32 D_80364A64;
-extern s8 D_80364A71;
-extern u8 D_80364A87;
 extern s32 D_80364AC4;
 extern u32 D_80364AC8;
 extern u32 D_80364ACC;
-extern u8 D_80365060[];
 extern u8 D_80365065;
 extern u8 D_80365066;
-extern u16 D_80367BF6;
 extern u64 D_8036BF38;
-extern u8 D_8036E68C[];
-extern u8 D_8036EB92;
 extern void *D_8039C4B4;
 extern u8 D_8039C4B8[];
 extern u8 D_8039C4F8[];
-extern u8 D_8039C53C[];
-extern u8 D_8039C540;
-extern u8 D_8039C541;
-extern s16 D_8039CAA0;
 #define saveIt D_8039C53C
 #define playerNumber D_80364AE8
 #define levelno D_802E8BDC
@@ -471,41 +362,17 @@ void func_80255D34(void);
 #define MODE_PAGE(m) D_802F8BDC[D_802F4868[func_8026F92C(m)]]
 #define MODE_ENTRY(m) D_8020C070[MODE_PAGE(m).unkE + MODE_PAGE(m).unk10 - 2]
 
-extern u64 D_80364A88;
-extern u8 D_802F4870[];
-extern s32 D_802FA268;
-extern u16 D_80370C2A;
-extern s32 D_803F7688;
-extern u16 D_8036EA7C;
-extern u16 D_8036EB90;
-extern u8 D_8036EA79;
-extern u8 D_8036EB93;
-extern s32 D_80358080;
-extern s32 D_80358084;
 extern s8 D_803A7426;
-extern u8 D_803156F4;
 extern s32 D_80364A78;
 extern u8 D_80364A7C;
 extern s32 D_80364A80;
-extern s32 D_80370C38;
 extern f32 D_802E8BE0;
-extern s32 D_803EF6F0;
-extern s32 D_803EF6F8;
-extern f32 D_8036BB34;
-extern u8 D_80370C22;
 extern s8 D_803ED40C;
 extern s8 D_803F7806;
-extern u8 D_80367C00;
-extern u8 D_8036EB98;
 extern u8 D_80364A85;
-extern u8 D_803BE738;
 extern s16 D_80366A04;
 extern s32 D_80367734;
 extern u32 D_80367740;
-extern s16 D_8036BB1A;
-extern u8 D_80366A18;
-extern u16 D_8036BB16;
-extern u16 D_80367BC8;
 #define textureDmaMessageQ D_80315180
 #define nextdma D_80358080
 #define no_palette_dmas D_80358084
@@ -2226,8 +2093,6 @@ u8 func_8024B4B8(void) {
     }
 }
 
-extern u8 D_803ED3F5;
-extern u8 D_80364456;
 
 void func_8024B5E8(void) {
     D_803ED3F5 = 1;
@@ -3182,7 +3047,6 @@ typedef struct {
     s16 unk4;
     u8 pad6[0x82];
 } Node88; /* 0x88 bytes */
-extern u16 D_8036BBB0[];
 extern Node88 *D_8036BED8;
 extern u8 D_8030F660; /* target easing settled */
 extern s32 D_8030F664; /* target height offset */
@@ -3192,17 +3056,7 @@ extern u8 D_8030F66A;
 extern s32 D_803643EC; /* wanted eye x, y, z (<< 11) */
 extern s32 D_803643F0;
 extern s32 D_803643F4;
-extern s32 D_80364404; /* fixed eye x, y, z */
-extern s32 D_80364408;
-extern s32 D_8036440C;
-extern u8 D_80364411;
-extern u8 D_80364424;
 extern u32 D_80364428;
-extern u16 D_8036442C;
-extern s32 D_80364430;
-extern s16 D_8036444C;
-extern s16 D_8036444E;
-extern s16 D_80364A72; /* tilt limits */
 extern s16 D_80364A74;
 extern f32 D_80365078; /* wanted target x, y, z */
 extern f32 D_8036507C;
@@ -3216,30 +3070,7 @@ extern f32 D_80365098;
 extern u16 D_8036509C; /* eased heading */
 extern s16 D_8036509E; /* camera type */
 extern s16 D_803650A0; /* previous camera type */
-extern u8 D_8036B8B0;
-extern s32 D_8036B8B4;
-extern s32 D_8036B8B8;
-extern s32 D_8036B8BC;
-extern u8 D_8036B965;
 extern Box *D_8036C794;
-extern u8 D_80370C1C;
-extern u8 D_80370C1D;
-extern s8 D_80370C2D;
-extern u8 D_803A7424;
-extern s32 D_803EF2EC;
-extern s32 D_803EF2F4;
-extern s32 D_803EF314;
-extern s16 D_803EF328;
-extern s16 D_803EF32A;
-extern s32 D_803F7670;
-extern s32 D_803F7674;
-extern s32 D_803F7678;
-extern s16 D_803F767C;
-extern s16 D_803F767E;
-extern s16 D_803F7680;
-extern s32 D_803FCD48;
-extern s32 D_803FCD4C;
-extern s32 D_803FCD50;
 extern s16 D_803FCD68;
 f32 func_80254E54(f32, f32, f32, f32, f32, f32);
 void func_80255034(s32, f32, s32 *, s32 *);

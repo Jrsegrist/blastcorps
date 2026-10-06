@@ -61,7 +61,6 @@ typedef struct {
     u8 pad32[2];
 } Water;
 
-extern u8 D_802E8BD0;
 extern Water D_802FC3F0[];
 extern s16 D_802FC48C[];
 extern s32 D_80358070; /* bump allocator for display memory */
@@ -72,10 +71,8 @@ extern s32 D_8036DCB8[3];
 extern s32 D_8036DCC8[2];
 extern u8 D_8036DCD0;
 extern s16 D_8036DCD2;
-extern u8 D_8036DCD4; /* level has water */
 extern u8 D_8036DCD5;
 extern u8 D_8036DCD6; /* index into D_802FC3F0 */
-extern u8 D_8036DCD7;
 
 void func_802802D4(Vtx *v, s32 i0, s32 i1, s32 i2);
 void func_8028072C(Vtx *v, s16 x0, s16 y0, s16 z0, s16 x1, s16 y1, s16 z1);
@@ -112,8 +109,6 @@ extern u8 D_8036E370;
 extern s32 D_8036E374;
 extern s32 D_8036E378;
 
-extern s32 D_803F9320;
-extern s32 D_803F9324;
 
 /* Level spawn table for the proximity objects below (one entry). */
 typedef struct {
@@ -137,11 +132,7 @@ extern s32 D_8036E4C0; /* number of placed objects */
 extern s32 D_8036E4C4;
 extern s16 D_8036E4C8;
 extern s8 D_8036E4CA;
-extern s32 D_803643E0;
-extern s32 D_803643E4;
-extern s32 D_803643E8;
 extern void *D_80367738;
-extern s32 D_8036DCD8;
 
 
 void func_8027D810(s32 arg0) {
@@ -957,7 +948,6 @@ extern s16 D_8036E4D0; /* overlay alpha */
 extern u8 D_8036E4D2;  /* overlay on */
 extern Mtx D_02000000[];
 extern Vtx D_802FC568[];
-extern s16 D_80367BD6;
 
 
 void func_802821D0(void) {
@@ -1022,13 +1012,8 @@ extern u32 D_8036E4D4; /* frame the last ring started */
 extern Gfx D_802FFF38[];
 extern Gfx D_80300A68[];
 extern u32 D_803156C4;
-extern u8 D_803643D6;
 extern Mtx D_8036E4D8[][2];
 extern f32 D_8036E5D8[]; /* ring scales */
-extern s32 D_803EF6DC;
-extern s32 D_803EF6E0;
-extern s32 D_803EF6E4;
-extern u8 D_803EF6FF;
 
 
 void func_80282728(void) {

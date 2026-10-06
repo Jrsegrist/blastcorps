@@ -1,5 +1,6 @@
 /* Boot, frame accounting, RDRAM dumps and the front-end overlay reload. */
 #include "plat.h"
+#include "../audio/port_audio.h"
 
 PlatConfig plat_cfg;
 PlatStats plat_stats;
@@ -128,6 +129,7 @@ void plat_start(const HostOpts *o) {
     *(u32 *) 0x803FFFFC = 0x7F9BE0;
 
     if (o->live != NULL && o->live->boot != NULL) o->live->boot();
+    port_audio_init(o);
     plat_fe_snapshot();
     plat_si_init();
     plat_input_init(o->input_path);

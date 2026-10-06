@@ -194,8 +194,10 @@ HL_GAME_OBJS := $(HL_HD:%=$(H)/game/hd/%.o) $(HL_FE:%=$(H)/game/fe/%.o) \
 	$(HL_UL:%=$(H)/game/ul/%.o) $(HL_UL_LE:%=$(H)/game/ul/%.o) $(HL_ULFE:%=$(H)/game/ulfe/%.o) \
 	$(HL_PLAT:%=$(H)/game/plat/%.o)
 HL_RECS := $(HL_GAME_OBJS:.o=.rec)
+# audio: the microcode interpreter and the AI output (src/audio/)
+HL_AUDIO := aspmain port_audio
 HL_HOST_OBJS := $(HL_HOST:%=$(H)/host/%.o) $(H)/host/rdram.o $(H)/host/inflate.o \
-	$(HL_LOAD:%=$(H)/host/load/%.o) $(if $(HL_LOAD),$(H)/host/swaptab.o,)
+	$(HL_LOAD:%=$(H)/host/load/%.o) $(if $(HL_LOAD),$(H)/host/swaptab.o,) $(HL_AUDIO:%=$(H)/host/audio/%.o)
 
 $(H)/addrs.txt: $(NM_ELFS) tools/gensyms.py
 	@mkdir -p $(@D)
@@ -243,7 +245,8 @@ $(H)/le/pfsallocatefile.c: $(UL_DIR)/src/io/pfsallocatefile.c Makefile
 $(H)/game/ulfe/ul_pfsallocatefile.s: $(H)/le/pfsallocatefile.c $(H)/le/PRinternal/controller.h
 	@mkdir -p $(@D)
 	$(CC) -I$(H)/le -I$(UL_DIR) $(HL_UL_CFLAGS) -S -o $@ $<
-$(H)/game/plat/%.s: src/platform/%.c src/platform/plat.h src/platform/plat_host.h src/platform/port_dma.h Makefile
+$(H)/game/plat/%.s: src/platform/%.c src/platform/plat.h src/platform/plat_host.h src/platform/port_dma.h \
+		src/audio/port_audio.h Makefile
 	@mkdir -p $(@D)
 	$(CC) $(HL_PLAT_CFLAGS) -S -o $@ $<
 
@@ -283,9 +286,14 @@ $(H)/%.pinned.s $(H)/%.rec: $(H)/%.s $(H)/addrs.txt tools/relabel.py
 $(H)/game/%.o: $(H)/game/%.pinned.s
 	$(CC) -c -o $@ $<
 
-$(H)/host/%.o: src/platform/%.c src/platform/plat_host.h src/platform/port_dma.h src/rdram.h Makefile
+$(H)/host/%.o: src/platform/%.c src/platform/plat_host.h src/platform/port_dma.h src/rdram.h \
+		src/audio/port_audio.h Makefile
 	@mkdir -p $(@D)
 	$(CC) $(HL_HOST_CFLAGS) -c -o $@ $<
+$(H)/host/audio/%.o: src/audio/%.c src/audio/aspmain.h src/audio/port_audio.h src/platform/plat_host.h src/rdram.h \
+		Makefile
+	@mkdir -p $(@D)
+	$(CC) $(HL_HOST_CFLAGS) -Wextra -Wno-unused-parameter -c -o $@ $<
 $(H)/host/%.o: src/%.c src/rdram.h Makefile
 	@mkdir -p $(@D)
 	$(CC) $(HL_HOST_CFLAGS) -c -o $@ $<

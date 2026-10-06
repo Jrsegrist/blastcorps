@@ -31,6 +31,10 @@
  *     --mpk FILE         Controller Pak 1 image (mupen64plus .mpk format: four
  *                        32 KB paks, controller 1's first; created if missing)
  *     --print            print the game's debug messages (func_8029A7E4)
+ *     --wav FILE         write what the game plays (the AI buffers) to FILE
+ *     --no-audio         don't run audio tasks (the game logic is the same)
+ *     --audio-capture FILE[:N]  record (the first N) audio tasks' inputs and
+ *                        outputs for port/tools/audio (asp_lle, asp_replay)
  *     -v / -q            verbose / quiet */
 #include <stdarg.h>
 #include <stdio.h>
@@ -46,7 +50,8 @@ static void usage(void) {
                     "       [--frame-done FILE] [--clock FILE] [--syms FILE] [--sync FILE] [--load-log]\n"
                     "       [--eeprom FILE] [--no-eeprom] [--gfx-cycles N] [--small-gfx-cycles N]\n"
                     "       [--aud-cycles N] [--gettime-cost N] [--boot-count N] [--cmdline STR]\n"
-                    "       [--mpk FILE] [--print] [-v] [-q]\n");
+                    "       [--mpk FILE] [--print] [--wav FILE] [--no-audio] [--audio-capture FILE[:N]]\n"
+                    "       [-v] [-q]\n");
     exit(1);
 }
 
@@ -122,6 +127,17 @@ int host_main(int argc, char **argv, int (*extra)(int argc, char **argv, int *i,
         else if (!strcmp(a, "--cmdline")) o.cmdline = ARG();
         else if (!strcmp(a, "--print")) o.game_print = g_game_print = 1;
         else if (!strcmp(a, "--mpk")) o.mpk_path = ARG();
+        else if (!strcmp(a, "--wav")) o.wav_path = ARG();
+        else if (!strcmp(a, "--no-audio")) o.audio_off = 1;
+        else if (!strcmp(a, "--audio-capture")) {
+            char *s = ARG(), *colon = strrchr(s, ':');
+            /* FILE:N (a drive letter's colon is followed by a path, not digits) */
+            if (colon != NULL && colon[1] >= '0' && colon[1] <= '9') {
+                o.audio_capture_max = num(colon + 1);
+                *colon = 0;
+            }
+            o.audio_capture = s;
+        }
         else if (!strcmp(a, "-v")) host_verbose = 1;
         else if (!strcmp(a, "-vv")) host_verbose = 2;
         else if (!strcmp(a, "-q")) o.quiet = 1;

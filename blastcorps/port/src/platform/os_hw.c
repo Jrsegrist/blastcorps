@@ -1,6 +1,7 @@
 /* VI, PI, SP/DP, AI and the small libultra leftovers (caches, address
  * translation, osInitialize), headless. */
 #include "plat.h"
+#include "../audio/port_audio.h"
 
 /* ---- osInitialize --------------------------------------------------------- */
 
@@ -395,8 +396,9 @@ static void complete(u32 delay, int dp) {
     }
 }
 
-/* Nothing runs on the RCP.  The game must still see every task finish:
- *  - audio (M_AUDTASK): the Acmd list is dropped (no output yet); SP done.
+/* The RCP's work happens at once; the game hears about it in virtual time:
+ *  - audio (M_AUDTASK): the command list runs on the microcode interpreter
+ *    (port/src/audio/), which writes the samples into RDRAM; SP done.
  *  - graphics: dropped and counted.  Tasks are submitted through the game's
  *    scheduler (2C560.c), which keeps the OSTask at +0x10 of its own task
  *    record (BcScTask, flags at +0x08).  Flag 0x40 marks the frame's last
@@ -411,6 +413,8 @@ void osSpTaskStartGo(OSTask *t) {
     g_sp_yield = 0;
     if (t->t.type == M_AUDTASK) {
         plat_stats.aud_tasks++;
+        port_audio_task(osVirtualToPhysical(t->t.ucode_data), t->t.ucode_data_size,
+                        osVirtualToPhysical(t->t.data_ptr), t->t.data_size);
         complete(plat_cfg.aud_cycles, 0);
         return;
     }
@@ -481,7 +485,8 @@ u32 func_802DAAC0(void) {
 /* A two-entry DMA FIFO playing at the programmed rate, timed by the virtual
  * clock.  The audio manager sizes each frame from osAiGetLength, and the
  * synthesizer's sequencer state (which the game polls) follows the sample
- * counts, so the model has to keep time even though nothing is heard. */
+ * counts.  Each accepted buffer also goes to the output (port_audio.c: the
+ * WAV file, bc.exe's speakers), which never feeds back into this timing. */
 
 static u32 g_ai_dacrate;      /* VI clocks per sample */
 static u64 g_ai_start;        /* when the playing buffer started */
@@ -519,7 +524,6 @@ s32 osAiSetFrequency(u32 frequency) {
 }
 
 s32 osAiSetNextBuffer(void *buf, u32 size) {
-    (void) buf;
     ai_update();
     if (g_ai_len[0] == 0) {
         g_ai_len[0] = size;
@@ -529,6 +533,7 @@ s32 osAiSetNextBuffer(void *buf, u32 size) {
     } else {
         return -1;
     }
+    port_audio_ai_buffer(osVirtualToPhysical(buf), size, g_ai_dacrate, (u32) osViClock);
     return 0;
 }
 

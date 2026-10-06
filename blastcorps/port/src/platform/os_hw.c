@@ -217,6 +217,31 @@ s32 osPiStartDma(OSIoMesg *mb, s32 pri, s32 direction, u32 devAddr, void *vAddr,
     return 0;
 }
 
+/* BC_CULL_LOG=1: one line per test on stderr (answer, matrices, corners) in
+ * the format of the LLE reference logs (scratchpad tools, gfx2 notes) */
+static void cull_log(const u32 *dl, u32 size, u32 v) {
+    static int on = -1;
+    int i, j;
+    if (on < 0) on = host_env("BC_CULL_LOG");
+    if (!on) return;
+    host_log("cull native | v=%08x", (unsigned) v);
+    for (i = 0; i + 1 < (int) (size / 4); i += 2) {
+        u32 w0 = dl[i], w1 = dl[i + 1];
+        if ((w0 >> 24) == 0x01) {
+            const u32 *m = (const u32 *) (unsigned long) (0x80000000u | (w1 & 0x7FFFFF));
+            host_log(" mtx%02x=", (unsigned) ((w0 >> 16) & 0xFF));
+            for (j = 0; j < 16; j++) host_log("%08x", (unsigned) m[j]);
+        } else if ((w0 >> 24) == 0x04) {
+            const Vtx *vx = (const Vtx *) (unsigned long) (w1 | ((u32) (unsigned long) dl & 0xE0000000u));
+            host_log(" vtx=");
+            for (j = 0; j < 8; j++)
+                host_log("%04x%04x%04x%020x", (unsigned) (u16) vx[j].v.ob[0], (unsigned) (u16) vx[j].v.ob[1],
+                        (unsigned) (u16) vx[j].v.ob[2], 0u);
+        }
+    }
+    host_log("\n");
+}
+
 /* One 32-bit PI read.  Inside the ROM: the big-endian word, as lw gives it.
  * The game's only use (func_802447C0) reads 16 words at 0xFFB000, past the
  * ROM, as a debug command-line *string*: there the words are returned so
@@ -256,6 +281,110 @@ void osSpTaskLoad(OSTask *t) {
 
 #define UCODE_CULL 0x802E77B0u  /* D_802E77B0: the RDP-output-to-DRAM F3D (5FD50) */
 
+/* func_802A4B0C's visibility test on the CPU.  The task's list (00000.c
+ * func_8024B8F4) loads a projection and a modelview matrix, 8 box corners
+ * and 12 triangles; the RSP writes RDP commands to output_buff, and the game
+ * treats a lone sync (0xE8000000) as "not visible".  Model, checked against
+ * the real ucode on an LLE RSP (mupen64plus + cxd4 + angrylion, 3921 tests
+ * over the attract demos, all equal): a triangle produces output iff, in clip
+ * space (v * MV * P), it is not entirely outside one of the planes
+ * x = -w, x = w, y = -w, y = w, z = -w (near) and clipping it against those
+ * five planes leaves a polygon.  The list's addresses are RDRAM physical,
+ * except the corners, which live next to the list on the game thread's
+ * (host) stack. */
+static double cull_mtx(const u32 *w, int i) {
+    u32 ip = (w[i / 2] >> ((i & 1) ? 0 : 16)) & 0xFFFF, fp = (w[8 + i / 2] >> ((i & 1) ? 0 : 16)) & 0xFFFF;
+    return (double) (s32) ((ip << 16) | fp) / 65536.0;
+}
+
+static int cull_clip(double (*p)[4], int n, int plane, double (*out)[4]) {
+    int i, m = 0;
+    for (i = 0; i < n; i++) {
+        double *a = p[i], *b = p[(i + 1) % n];
+        double da, db;
+        switch (plane) {
+            case 0: da = a[3] + a[2], db = b[3] + b[2]; break;   /* near */
+            case 1: da = a[3] - a[0], db = b[3] - b[0]; break;
+            case 2: da = a[3] + a[0], db = b[3] + b[0]; break;
+            case 3: da = a[3] - a[1], db = b[3] - b[1]; break;
+            default: da = a[3] + a[1], db = b[3] + b[1]; break;
+        }
+        if (da >= 0) {
+            int k;
+            for (k = 0; k < 4; k++) out[m][k] = a[k];
+            m++;
+        }
+        if ((da >= 0) != (db >= 0)) {
+            double t = da / (da - db);
+            int k;
+            for (k = 0; k < 4; k++) out[m][k] = a[k] + (b[k] - a[k]) * t;
+            m++;
+        }
+    }
+    return m;
+}
+
+static int cull_visible(const u32 *dl, u32 size) {
+    double mv[4][4], pr[4][4], c[16][4];
+    u32 seg[16] = {0};
+    int have = 0, i, j, k;
+    const u32 host = (u32) (unsigned long) dl;
+    __builtin_memset(c, 0, sizeof c);
+    for (i = 0; i + 1 < (int) (size / 4); i += 2) {
+        u32 w0 = dl[i], w1 = dl[i + 1];
+        u32 a = seg[(w1 >> 24) & 15] + (w1 & 0xFFFFFF);
+        const u8 *p;
+        if (w1 - (host & 0x1FFFFFFF) + 0x10000u < 0x20000u)   /* PHYS() of the host stack */
+            p = (const u8 *) (unsigned long) (w1 | (host & 0xE0000000u));
+        else
+            p = (const u8 *) (unsigned long) (0x80000000u | (a & 0x7FFFFF));
+        switch (w0 >> 24) {
+            case 0x01: {   /* G_MTX (load only in this list) */
+                double (*m)[4] = (w0 & 0x10000) ? pr : mv;
+                for (j = 0; j < 16; j++) m[j / 4][j % 4] = cull_mtx((const u32 *) p, j);
+                have |= (w0 & 0x10000) ? 1 : 2;
+                break;
+            }
+            case 0x04: {   /* G_VTX */
+                int n = ((w0 >> 20) & 15) + 1, v0 = (w0 >> 16) & 15;
+                double mvp[4][4];
+                if (have != 3) return 1;
+                for (j = 0; j < 4; j++)
+                    for (k = 0; k < 4; k++)
+                        mvp[j][k] = mv[j][0] * pr[0][k] + mv[j][1] * pr[1][k] + mv[j][2] * pr[2][k] + mv[j][3] * pr[3][k];
+                for (j = 0; j < n && v0 + j < 16; j++) {
+                    const Vtx *v = (const Vtx *) p + j;
+                    double x = v->v.ob[0], y = v->v.ob[1], z = v->v.ob[2];
+                    for (k = 0; k < 4; k++) c[v0 + j][k] = x * mvp[0][k] + y * mvp[1][k] + z * mvp[2][k] + mvp[3][k];
+                }
+                break;
+            }
+            case 0xBF: {   /* G_TRI1 */
+                double poly[2][16][4];
+                int n = 3, cur = 0, pl, codes[3];
+                for (j = 0; j < 3; j++) {
+                    const double *q = c[((w1 >> (16 - 8 * j)) & 0xFF) / 10 & 15];
+                    codes[j] = (q[0] < -q[3]) | (q[0] > q[3]) << 1 | (q[1] < -q[3]) << 2 | (q[1] > q[3]) << 3 |
+                               (q[2] < -q[3]) << 4;
+                    for (k = 0; k < 4; k++) poly[0][j][k] = q[k];
+                }
+                if (codes[0] & codes[1] & codes[2]) break;
+                for (pl = 0; pl < 5 && n > 0; pl++, cur ^= 1) n = cull_clip(poly[cur], n, pl, poly[cur ^ 1]);
+                if (n >= 3) return 1;
+                break;
+            }
+            case 0xBC:     /* G_MOVEWORD G_MW_SEGMENT */
+                if ((w0 & 0xFF) == 6) seg[((w0 >> 8) & 0xFFFF) / 4 & 15] = w1 & 0xFFFFFF;
+                break;
+            case 0xB8:     /* G_ENDDL */
+                return 0;
+            default:       /* G_DL into the static segment (viewport, modes), syncs */
+                break;
+        }
+    }
+    return 0;
+}
+
 static void complete(u32 delay, int dp) {
     if (delay == 0) {
         plat_post_event(OS_EVENT_SP);
@@ -274,9 +403,10 @@ static void complete(u32 delay, int dp) {
  *    task, the one that ends in a full sync: it gets SP and DP done, the
  *    others (shadow passes, the cull test) SP done only, like the hardware.
  *  - func_802A4B0C's visibility test (ucode D_802E77B0, which writes RDP
- *    commands to output_buff for the CPU to read): answered "visible" by
- *    making the first output word something other than a lone sync
- *    (0xE8000000).  Exact answers need a CPU F3D clip/cull evaluator. */
+ *    commands to output_buff for the CPU to read): answered by cull_visible
+ *    (a CPU model of that ucode) through the first output word (a lone
+ *    sync, 0xE8000000, means not visible), or with --clock by the
+ *    emulator's word. */
 void osSpTaskStartGo(OSTask *t) {
     g_sp_yield = 0;
     if (t->t.type == M_AUDTASK) {
@@ -293,8 +423,12 @@ void osSpTaskStartGo(OSTask *t) {
     if ((u32) t->t.ucode == UCODE_CULL) {
         u64 v;
         plat_stats.cull_tasks++;
-        /* following an emulator (--clock): its answer for this test */
-        if (!plat_clock_key_take_name(3, "func_802A4B0C", &v)) v = 0;
+        /* following an emulator (--clock): its answer for this test; else
+         * the CPU model of the real ucode (cull_visible) */
+        if (!plat_clock_key_take_name(3, "func_802A4B0C", &v)) {
+            v = cull_visible((const u32 *) t->t.data_ptr, t->t.data_size) ? 0xCC000000u : 0xE8000000u;
+            cull_log((const u32 *) t->t.data_ptr, t->t.data_size, (u32) v);
+        }
         if (t->t.output_buff != NULL) *(u32 *) t->t.output_buff = (u32) v;
         complete(plat_cfg.small_gfx_cycles, 0);
         return;

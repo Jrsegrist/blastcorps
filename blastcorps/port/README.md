@@ -179,7 +179,7 @@ Platform model (`src/platform/`):
 | SI | os_si.c, input.c | controller 1 from `--input` (or idle), osContInit's 0.5 s wait; EEPROM 4 Kbit in a file (`--eeprom`, mupen64plus's 512-byte .eep format). |
 | Controller Pak | pif.c | `--mpk FILE` (mupen64plus .mpk: four 32 KB paks, controller 1's first; created formatted if missing): the front end's own SDK Pfs objects run natively over a PIF emulation (status, pak read/write); the system blocks (ID, inode, directory) are converted by layout at the pak boundary. |
 | saves | save.c | the save thread's routines (0E7B0.c, `PORT_SAVE_*` hooks) work on a big-endian copy of each record, so CRCs and files are the N64's: EEPROM files are byte-identical to mupen64plus's for the same play (checked: new game, level completion with best time), and load either way. |
-| RSP/RDP | os_hw.c | gfx tasks dropped and counted (SP done, plus DP done for frame tasks; bc.exe draws them with RT64, same completion times); func_802A4B0C's cull test answered "visible"; audio tasks dropped, SP done. |
+| RSP/RDP | os_hw.c | gfx tasks dropped and counted (SP done, plus DP done for frame tasks; bc.exe draws them with RT64, same completion times); func_802A4B0C's cull test answered by a CPU model of its ucode (below); audio tasks dropped, SP done. |
 | AI | os_hw.c | a two-buffer DMA FIFO playing at the programmed rate in virtual time, so osAiGetLength (which sizes each audio frame) behaves; samples are discarded. The synthesizer runs (the game polls sequence/sound state). |
 | front end | plat_core.c | data+bss snapshot at boot, restored after every reload. |
 | debug output | headless_main.c | `--print`: the game's debug printf (func_8029A7E4, empty on the N64) to stderr with the frame number; `--cmdline "-c"` turns on the game's debug cheats (C-right + Z completes the level). |
@@ -247,17 +247,35 @@ bc_headless):
   isn't loaded natively; nothing native reads them).
 - `osSpTaskStartGo`: a gfx task goes to RT64 (`loadUCodeGBI` +
   `processDisplayLists`, after `port_gfx_fix_task`). func_802A4B0C's
-  visibility test (ucode D_802E77B0) stays with the platform and is
-  answered "visible" (an exact answer needs a CPU F3D clip/cull evaluator:
-  later). RT64 raises the SP/DP interrupts while it processes the task;
+  visibility test (ucode D_802E77B0, whose RDP output the CPU reads) stays
+  with the platform: os_hw.c `cull_visible` evaluates its list (projection
+  and modelview, 8 box corners, 12 triangles): visible iff a triangle is not
+  entirely outside one of x = +-w, y = +-w, z = -w in clip space and
+  clipping it to those planes leaves a polygon. This model matched the real
+  ucode, run on an LLE RSP (mupen64plus + cxd4 + angrylion-rdp-plus), in all
+  3921 tests of the attract demos; `BC_CULL_LOG=1` logs every test. (With
+  `--clock` the emulator's word is used instead; mupen64plus's HLE RSP never
+  runs this ucode, so its word always says "visible".)
+  RT64 raises the SP/DP interrupts while it processes the task;
   they are counted, and the game hears about completion from the same
   virtual-time model as bc_headless (`--gfx-cycles`, `--frame-done`).
 - every retrace: the VI registers the VI manager would program for the
   frame on screen (os_hw.c, from the game's OSViMode, osViBlack and
-  osViSetSpecialFeatures), `updateScreen`, SDL events, and pacing: virtual
+  osViSetSpecialFeatures, which edits the control word cumulatively like
+  the ROM's: the game turns VI gamma off, so RT64 applies none; bc.exe logs
+  every VI status change), `updateScreen`, SDL events, and pacing: virtual
   retrace N is shown at start + N/60 s (`--no-pace` runs flat out; more than
   a quarter second behind restarts the reference).
 - input: controller 1 from the keyboard/pad when no `--input` file is given.
+
+Debugging what is drawn: `--dl-dump F[:N]` / `--dl-dump-every N` print
+display lists (with each G_VTX's first vertex in both layouts);
+`--dl-skip LO:HI` turns the triangles whose commands lie in that physical
+range into no-ops (bisect which list draws a shape); `--gfx-fix-log` with
+`BC_GFX_WATCH=addr` reports what gfx_fix.c does to one word. Data-image
+vertices typed as words by some declaration need a `vtx` line in
+`data/image_overrides.txt` (four so far, all K0-addressed G_VTX targets in
+the hd data image now match the ROM layout).
 
 Same game logic: with the same input, bc.exe and bc_headless produce
 identical per-frame traces (2001 frames compared: retrace, time, mode,

@@ -56,6 +56,11 @@ void host_log(const char *fmt, ...) {
     va_end(ap);
 }
 
+/* is environment variable NAME set (debug switches) */
+int host_env(const char *name) {
+    return getenv(name) != NULL;
+}
+
 void host_fatal(const char *fmt, ...) {
     va_list ap;
     fflush(stdout);

@@ -17,6 +17,7 @@ void host_fiber_delete(HostFiber f);
 /* stderr logging */
 void host_log(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 void host_fatal(const char *fmt, ...) __attribute__((format(printf, 1, 2), noreturn));
+int host_env(const char *name);   /* is the environment variable set (debug switches) */
 extern int host_verbose;
 
 /* per-frame trace file (no-op until opened) */

@@ -57,7 +57,7 @@ typedef struct {
     /* 0x02 */ s16 y;
     /* 0x04 */ u8 unk4;
     /* 0x05 */ u8 unk5;
-    /* 0x06 */ u8 unk6[0x14];
+    /* 0x06 */ u16 unk6[10]; /* sprite ids */
     /* 0x1A */ u8 numFrames;
     /* 0x1B */ u8 frames[10];
     /* 0x25 */ u8 mode;

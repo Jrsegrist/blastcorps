@@ -125,3 +125,5 @@ D_80304938 = 0x80304938; /* hd.c func_8024C414: glyph list */
 D_803649D8 = 0x803649D8; /* defined in hd.c (00000), outside its modelled .bss */
 D_80364412 = 0x80364412; /* defined in hd.c (00000), outside its modelled .bss */
 D_802F98B0 = 0x802F98B0; /* yoshi.c func_8026BCE0: window background display list */
+D_802C3848 = 0x802C3848; /* 60F60 D_80305C10: effect definition in the 7D9D0 text tables */
+D_802C386C = 0x802C386C; /* 60F60 D_80305C10: effect definition in the 7D9D0 text tables */

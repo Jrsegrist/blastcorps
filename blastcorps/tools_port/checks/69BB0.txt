@@ -224,3 +224,13 @@ func_802AE888: -n 100 --seed 3 --ret int --follow func_802AEB9C,func_802AEC3C --
     --mem D_803A6B30:0xA0=rand --mem D_803A6B30+0x12*0x14:8/1=choice:0,3 --mem D_803A6B30+0x13*0x14:8/1=choice:0,1,1 \
     --mem D_803A6B30+0x9F:1=0xFF --mem D_803A7410:2=0 --mem D_803A7412:2=0xFFF --mem D_803A7425:1=rand \
     --mem D_803A740C=rand --mem D_80358068=int
+    --sig func_802AFA64=
+
+# [data] the level D_802E8BDC as a whole word: the asm (lbu) and the C (word >> 24) test its most
+# significant byte against 0x31 / 0x26, never the level number itself
+func_802AF4BC: -n 200 --seed 3 --ret void --arg gp=sym:D_803ED760 \
+    --stub-ret func_802A04BC=choice:0*3,1,2 --stub-ret func_802A04BC.t1=choice:0,2,6,1 --stub-ret func_8026A8E0=choice:0*3,1,2,5 \
+    --sig func_8026A8E0=a0,a1 --sig func_80260650=a0,a1:2,a2 --mem D_80367738=int \
+    --mem D_803ED760+0x76:2=halves:0*4,1,10,11,12,21,22,0xFFFF,0xFFF5,0xFFF4,0x8000,0x7FFF \
+    --mem D_803ED760+0xA1:1=bytes:0,1,2,0xFF --mem D_802E8BDC=choice:0,0x31,0x26,0x31000000,0x26000000,0x31313131,0x26262626 \
+    --mem D_803ED820:2=halves:0,2,6,0xFFFF,1

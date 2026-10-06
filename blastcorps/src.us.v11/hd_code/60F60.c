@@ -10,6 +10,15 @@
  * a more specific comment follows this convention; a few have their own
  * more specific non-ABI explanation where one was already worked out. */
 
+/* .data at 0x80305C10 (ROM 0xC1450-0xC1490): the 0-terminated list of effect
+ * definitions (in the 7D9D0 tables inside .text) that get a heap texture
+ * block (func_802A67C4), then func_802A5FA8's two debug strings. */
+u8 *D_80305C10[] = {
+    D_802C2954, D_802C2984, D_802C2A5C, D_802C37C0, D_802C3804, D_802C382C, D_802C3848, D_802C386C, NULL,
+};
+char D_80305C34[] = "Num texture caches=";
+char D_80305C48[] = "%d\n";
+
 #ifdef NON_MATCHING
 /* Shared declarations for the NON_MATCHING (port) rewrites below. */
 
@@ -438,8 +447,6 @@ void func_802A5F30(void) {
 #ifdef NON_MATCHING
 extern u8 D_8020ED00[]; /* heap end when (D_80364AA8 & 0x20) */
 extern u8 D_8021DD00[]; /* heap end otherwise */
-extern char D_80305C34[];
-extern char D_80305C48[];
 
 /* Carves as many 0x1010-byte HeapBlocks as fit between the heap pointer and
  * the heap end, records the range in D_803EB788 / D_803EB78C and the count
@@ -751,7 +758,7 @@ void func_802A6748(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u32 D_80305C10[]; /* 0-terminated list of definitions that get a heap block */
+/* D_80305C10 (top of this file): 0-terminated list of definitions that get a heap block */
 
 /* Texture buffer for record `rec` (its def word at +0 and byte +0x32): if a
  * heap block (D_803EB788 .. D_803EB78C, walked with `!=`) is in use for that
@@ -770,7 +777,7 @@ u8 *func_802A67C4(u8 *rec, u8 *idx, u8 *base, u16 **list, u8 *param) {
     HeapBlock *end = D_803EB78C;
     s32 key = rec[0x32];
     u32 def = *(u32 *) rec;
-    u32 *l;
+    u8 **l;
     u8 *buf;
 
     for (; b != end; b++) {
@@ -784,10 +791,10 @@ u8 *func_802A67C4(u8 *rec, u8 *idx, u8 *base, u16 **list, u8 *param) {
         goto fallback;
     }
     for (l = D_80305C10;; l++) {
-        if (*l == def) {
+        if ((u32) *l == def) {
             break;
         }
-        if (*l == 0) {
+        if (*l == NULL) {
             goto fallback;
         }
     }

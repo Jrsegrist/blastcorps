@@ -305,12 +305,13 @@ def main():
                 if len(oks) < 3 and "Nothing to be done" not in p.stdout:
                     print("\n".join(p.stdout.splitlines()[-20:]))
                     sys.exit("runchecks: matching build did not print all three OK lines")
-        # every data symbol must keep its original address in build_nm
+        # every data symbol must keep its original address in build_nm, and the
+        # C copies of the .text-bin tables must equal the bins
         p = subprocess.run([sys.executable, os.path.join(HERE, "nm_symaudit.py")], cwd=REPO,
                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
         print(p.stdout.rstrip())
         if p.returncode != 0:
-            sys.exit("runchecks: data symbols moved in the NON_MATCHING build (see above)")
+            sys.exit("runchecks: data symbols moved, or pinned tables differ, in the NON_MATCHING build (see above)")
 
     print("running %d check(s) on %d job(s)%s" % (len(checks), o.jobs,
                                                  ", capped at %d trials" % o.quick if o.quick else ""))

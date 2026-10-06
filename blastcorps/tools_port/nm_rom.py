@@ -603,6 +603,22 @@ def main():
         for a, t in tramp.items():
             off = a - o_ta
             img_b[off:off + 8] = struct.pack(">II", 0x08000000 | ((t >> 2) & 0x3FFFFFF), 0)
+    # the NM build's C definitions of the tables inside the original .text bins
+    # (.nm_pin_<ADDR>_<SIZE>, linked at their original addresses): image B
+    # carries them over the bin bytes (only SIZE bytes: the section's padding
+    # may cover code)
+    pinned = []
+    for name, (a, sz, d) in sorted(nm.sections.items()):
+        m = re.match(r"^\.nm_pin_([0-9A-F]{8})_([0-9A-F]+)$", name)
+        if not m or not sz:
+            continue
+        size = int(m.group(2), 16)
+        off = a - o_ta
+        if a != int(m.group(1), 16) or d is None or len(d) < size or off < 0 or off + size > len(o_text):
+            die("pinned table %s at %#x does not fit the original text" % (name, a))
+        changed = sum(1 for i in range(size) if img_b[off + i] != d[i])
+        img_b[off:off + size] = d[:size]
+        pinned.append((name, a, size, changed))
 
     # ---- the front end: trampolines into the NM front end, gzipped (image D) --
     # hd_code inflates the front end from ROM to 0x801E7000 when it is first
@@ -757,6 +773,9 @@ def main():
         if fe is not None else ""))
     say("  %#08x  image B -> %#x, %#x bytes (original text + %d trampolines, NM .hd_code_data)"
         % (rom_b, o_ta, len(img_b), 0 if args.no_trampolines else len(tramp)))
+    for name, a, size, changed in pinned:
+        say("            NM table %s over the original bin at %#x, %#x bytes (%d differ from the bin)"
+            % (name, a, size, changed))
     if img_d:
         say("  %#08x  image D, %#x bytes: gzip'd front end (original text + %d trampolines into the NM front "
             "end, NM .hd_front_end_data), inflated by hd_code to %#x instead of ROM %#x..%#x"

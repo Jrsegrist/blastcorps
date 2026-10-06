@@ -174,6 +174,23 @@ def main():
                 if not nums:
                     continue
                 w = nums[-1]
+                if code == 3 and s + w <= hi and not s % w:
+                    # the NON_MATCHING code reads one wider field where the
+                    # declarations (a per-file struct view) have narrower ones:
+                    # the trace wins (struct copies are the exception, listed
+                    # in image_overrides.txt)
+                    inner = [p for p in list(width) if s <= p < s + w]
+                    if inner and all(p + width[p] <= s + w and width[p] < w for p in inner) and \
+                            all(cover[k - lo] in (0, 1, 2) for k in range(s, s + w)) and \
+                            not any(p < s < p + width[p] for p in range(s - 7, s) if p in width):
+                        conflicts.append("%s: %08X declared %s, read at %d: read width used" %
+                                         (region, s, "/".join(str(width[p]) for p in sorted(inner)), w))
+                        for p in inner:
+                            del width[p]
+                        width[s] = w
+                        for k in range(s, s + w):
+                            cover[k - lo] = 3
+                        continue
                 if s in width:
                     if width[s] != w:
                         conflicts.append("%s: %08X width %d, %s at %d" % (region, s, width[s], what, w))

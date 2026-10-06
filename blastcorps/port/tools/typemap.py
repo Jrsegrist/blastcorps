@@ -199,7 +199,9 @@ for src in files:
                     if not esz:
                         continue
                     # the array's extent is settled once every file is read
-                    pending_views.append((nm, fid + ("#ptrview" if is_ptr else "#view"), esz, list(one), scalar))
+                    # (u16 *) / (s32 *) views of struct arrays rank like (void **) ones: last
+                    kind = "#ptrview" if is_ptr or len(one) <= 1 else "#view"
+                    pending_views.append((nm, fid + kind, esz, list(one), scalar))
             for die in cu.get_top_DIE().iter_children():
                 if die.tag != "DW_TAG_variable":
                     continue
@@ -214,6 +216,11 @@ for src in files:
                     defined.add(nm)
                 lv = []
                 sz = leaves(tref(die), 0, lv)
+                if (sz is None and len(lv) == 1 and lv[0][0] == "ARRAY" and lv[0][1] == 0 and lv[0][2]
+                        and nm not in defined):
+                    # `extern T D_x[];`: the extent is settled with the views
+                    pending_views.append((nm, fid, lv[0][2], list(lv[0][4]), False))
+                    continue
                 if sz is None:
                     sz = nmsize.get(nm) or (next_sym(a) - a)
                 decls[nm][fid] = (sz, list(flatten(lv, sz)))
@@ -223,9 +230,30 @@ for src in files:
 # declares, and those must not cut the array short
 declared_addrs = sorted(set(addr[n] for n in decls) | set(addr[n] for n, *_ in pending_views))
 import bisect as _bisect
+by_addr = collections.defaultdict(list)
+for _n in decls:
+    by_addr[addr[_n]].append(_n)
+
+
+def fits(b, a, esz, one):
+    """is the symbol at b just a field (or element) inside an array of `one`
+    elements starting at a?  (05C450's `extern f32 D_8020BDE4; /* D_8020BD30[3].unk0 */`)"""
+    rel = (b - a) % esz
+    for n in by_addr.get(b, []):
+        for sz, lv in decls[n].values():
+            if rel == 0 and sz == esz:
+                return True
+            first = [x for x in lv if x[0] == 0]
+            if first and any(o == rel and w == first[0][1] for o, w, _ in one):
+                return True
+    return False
+
+
 for nm, key, esz, one, scalar in pending_views:
     a = addr[nm]
     i = _bisect.bisect_right(declared_addrs, a)
+    while i < len(declared_addrs) and not scalar and fits(declared_addrs[i], a, esz, one):
+        i += 1
     nxt = declared_addrs[i] if i < len(declared_addrs) else a + esz
     ext = max(nmsize.get(nm) or 0, nxt - a)
     n = 1 if scalar else max(1, ext // esz)

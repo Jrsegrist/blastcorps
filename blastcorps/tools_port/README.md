@@ -574,3 +574,16 @@ under `-j4`; the 148-run suite went from 637 s to 69 s at `-j4`.)
 * **Infinite loops.** These are caught by `--max-insns` and `--timeout`. They are reported as a failure if only one build loops, and as "can't compare" if both do.
 * **unicorn delay-slot bugs (worked around).** (1) In unicorn 2.1, any hook that fires for a load or store in a branch delay slot (`UC_HOOK_MEM_READ`/`WRITE`, and `UC_HOOK_TLB_FILL`) corrupts MIPS execution: before calling the hook unicorn rolls the CPU back to the instruction (`cpu_restore_state`), which ORs the branch bits into `env->hflags`; the code after the delay slot never clears them, so the next block runs as if it were in a delay slot (an RI exception or a wild jump). eqcheck's TLB-fill hook repairs this (`Machine._delay_slot_fix`: when the instruction before the faulting pc is a branch, it clears the bits in a saved context and restores it; `calibrate_hflags()` finds hflags' offset in the context once per process by faulting in a beq/bne delay slot; if that fails, write tracking falls back to a full memcmp). `--explore` and `--mmio-log` still decode loads and stores in a per-instruction code hook; don't add `UC_HOOK_MEM_READ`/`UC_HOOK_MEM_WRITE` hooks. (2) A run that *ends* with a fault in a delay slot leaves the same branch state (hflags, btarget) behind, so the next `emu_start` used to execute one instruction at the new entry and then jump to the old branch target (seen as a 4-byte block followed by the previous trial's faulting code). Every run now starts from a clean CPU context saved when the machine was created.
 * `init`, `hd_code` and the front end are loaded (the front end at its 0x801E7000 overlay address). Calls into other code (level overlays, NULL pointers) are stubbed as `sub_XXXXXXXX`, and reading their data faults or returns 0. Since Oct 2026 an hd_code check with `--follow-all` that reaches a front-end function runs it for real (before, nothing was loaded there).
+
+## 8. Tracing the real game (`m64trace/`)
+
+For values the harness can't know (registers a C caller leaves behind, what the
+game really passes), `m64trace/m64trace.py ROM SPEC.py OUT.txt` runs a ROM in
+mupen64plus (ctypes over `libmupen64plus.so.2`, glide64mk2 so the frame loop
+advances, no input: the attract demos 0-8 reach nine levels in about 8 minutes
+of game time) and logs registers, FPRs and memory at exec breakpoints without
+stopping. The spec format is in the file's docstring; `spec_hd_calls.py` and
+`spec_spawn.py` are the runs behind the Oct 2026 leaked-register audit.
+`summarise.py OUT.txt` prints the distinct values per breakpoint and register,
+`dumpcmp.py` diffs RAM dumps (base ROM vs the NM test ROM). For the NM test ROM
+use addresses from `build_nm/hd_code.rom.us.v11.elf`.

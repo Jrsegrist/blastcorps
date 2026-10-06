@@ -122,7 +122,8 @@ libaudio objects compiled natively) on the platform layer in
 `src/platform/`, with no graphics or audio output. Options are listed in
 `src/platform/headless_main.c` (`--frames N`, `--dump F1,F2`, `--dump-every N`,
 `--trace FILE`, `--input FILE`, `--gettime FILE`, `--frame-done FILE`,
-`--eeprom FILE`, `--gfx-cycles N`, `--boot-count N`, `-v`...). A frame is one
+`--eeprom FILE`, `--mpk FILE`, `--print`, `--cmdline STR`, `--gfx-cycles N`,
+`--boot-count N`, `-v`...). A frame is one
 frame-ending gfx task (the scheduler task with flag 0x40); dumps are the 8 MB
 of RDRAM in host byte order, taken when that task starts.
 
@@ -156,7 +157,17 @@ Platform model (`src/platform/`):
 | frame pacing | os_hw.c | a frame's gfx task completes `--gfx-cycles` after it starts (default one retrace), or at the retrace a `--frame-done` file gives (e.g. from an emulator trace). |
 | VI | os_hw.c | the VI manager's retrace work: swap the framebuffer, send the osViSetEvent message every retraceCount retraces. |
 | PI | os_hw.c | osPiStartDma = memcpy from the ROM + `port_on_dma`, completion message at once; osPiRawReadIo reads ROM words (the debug command line at 0xFFB000 is `--cmdline`, default empty). |
-| SI | os_si.c, input.c | controller 1 from `--input` (or idle), osContInit's 0.5 s wait; EEPROM 4 Kbit in a file (raw bytes as the game writes them); no Controller Pak. |
+| SI | os_si.c, input.c | controller 1 from `--input` (or idle), osContInit's 0.5 s wait; EEPROM 4 Kbit in a file (`--eeprom`, mupen64plus's 512-byte .eep format). |
+| Controller Pak | pif.c | `--mpk FILE` (mupen64plus .mpk: four 32 KB paks, controller 1's first; created formatted if missing): the front end's own SDK Pfs objects run natively over a PIF emulation (status, pak read/write); the system blocks (ID, inode, directory) are converted by layout at the pak boundary. |
+| saves | save.c | the save thread's routines (0E7B0.c, `PORT_SAVE_*` hooks) work on a big-endian copy of each record, so CRCs and files are the N64's: EEPROM files are byte-identical to mupen64plus's for the same play (checked: new game, level completion with best time), and load either way. |
 | RSP/RDP | os_hw.c | gfx tasks dropped and counted (SP done, plus DP done for frame tasks); func_802A4B0C's cull test answered "visible"; audio tasks dropped, SP done. |
 | AI | os_hw.c | a two-buffer DMA FIFO playing at the programmed rate in virtual time, so osAiGetLength (which sizes each audio frame) behaves; samples are discarded. The synthesizer runs (the game polls sequence/sound state). |
 | front end | plat_core.c | data+bss snapshot at boot, restored after every reload. |
+| debug output | headless_main.c | `--print`: the game's debug printf (func_8029A7E4, empty on the N64) to stderr with the frame number; `--cmdline "-c"` turns on the game's debug cheats (C-right + Z completes the level). |
+
+Host-order rules the game C follows under `PORT_HOST` (include/game/port.h):
+`PORT_HALF(i)` for u16 views of 32-bit words (the N64 Mtx's elements; the
+port keeps Mtx words in host order), `PORT_SHAMT(n)` for variable shift
+amounts that can reach 32 (MIPS uses the low 5 bits), `PORT_SAVE_*` for save
+records. Tools: `tools/eepsave.py FILE [OUT --set OFF:W=VAL]` decodes or edits
+an .eep (fixing its CRC).

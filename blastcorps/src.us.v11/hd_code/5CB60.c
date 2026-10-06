@@ -1598,11 +1598,14 @@ void func_802D07E0(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s32 t6
  *    object gets the dispatcher's fp: func_802A1674's, i.e. func_802A3F80's
  *    result (the D_803B9890 collision record end; its low byte). In the asm
  *    each later object gets whatever the previous setup left in fp (most
- *    end with func_8029E558 -> func_8029E5AC, which leaves byte 0x15 of the
- *    last active animation channel there; others a func_802AE104 / scan
- *    result). The C setups don't return that, so here every object gets the
- *    first object's fp, and that is also returned (the asm's fp on exit,
- *    which func_802A1674 hands to func_802A303C). See the port notes.
+ *    end with func_8029E558 -> func_8029E5AC, which leaves byte 0x15, the
+ *    interpolation mode, of the last active animation channel there; others
+ *    a func_802AE104 / scan result), and the dispatcher returns the last
+ *    setup's (func_802A1674 hands it to func_802A303C). Traced in the
+ *    original over the nine attract-demo levels (45 spawns, 16 setup types):
+ *    every setup leaves 0 (linear channels), so here every object after the
+ *    first gets 0, and 0 is returned once a setup has run (the C setups
+ *    don't return their fp).
  *  - t6 (func_802B0DA0, func_802CF6A0, func_802D07E0: only passed through to
  *    their per-frame zone scans) and the FP state f12-f26 (only FP side
  *    results of func_802A992C; func_802CB720 / func_802CC920 write f22-f26
@@ -1704,6 +1707,7 @@ s32 func_802A350C(u8 *obj, s32 fp) {
             default: /* the asm's syscall, then its epilogue */
                 return fp;
         }
+        fp = 0; /* what the setup leaves in the asm's fp (see above) */
     }
     return fp;
 }

@@ -252,7 +252,14 @@ void func_801E7598(void) {
     D_80358080 = 0;
     D_80358084 = 0;
     func_802A5720();
+#ifdef NON_MATCHING
+    /* The asm takes its param (the texture decoder's type-4/5 table) in $fp,
+     * which the game thread's C code never sets: 0 (traced in hd.c's call;
+     * this screen needs input, so the demos don't reach it). */
+    ((void (*)(u8 *)) func_8029E0AC)(NULL);
+#else
     func_8029E0AC();
+#endif
     func_8028A470();
     if (D_80358060 >= 11 && !func_802753C0()) {
         if ((D_80370C28 & 0x9000) && !(D_80370C2A & 0x9000)) {

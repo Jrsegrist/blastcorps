@@ -364,9 +364,12 @@ func_802A30DC: -n 100 --stub-ret func_80268EE8=choice:0,1,0x100,-1 --sig func_80
 func_802A3134: -n 200 --arg t0=ptr:0x100 --mem @t0+0x54=choice:0x40,0x41 --mem @t0+0x40:4=bytes:0,1,0xFF \
     --mem D_80364AA8=choice:0,0x80,0x81,1,-0x80 --mem D_803643DC:1=rand
 # func_802A350C: spawn loop over 0..4 records of every handled type (setups
-# stubbed; t6 and the FP state that leak into them are 0 here, as in the C;
-# fp passes through). Other types hit the asm's syscall (not testable here).
-func_802A350C: -n 400 --arg t6=0 --arg f12=0 --arg f14=0 --arg f20=0 --arg f22=0 --arg f24=0 --arg f26=0 \
+# stubbed; t6 and the FP state that leak into them are 0 here, as in the C).
+# fp: in the asm each object after the first gets the fp the previous setup
+# left (0 in every traced level, which the C passes); a stub leaves fp alone,
+# so these lines start with fp = 0 (the last line checks the first object's
+# fp with a single record). Other types hit the asm's syscall (not testable).
+func_802A350C: -n 400 --arg fp=0 --arg t6=0 --arg f12=0 --arg f14=0 --arg f20=0 --arg f22=0 --arg f24=0 --arg f26=0 \
     --arg t0=ptr:0x200 --mem @t0+0x50=0x60 --mem @t0+0x54=choice:0x60,0x69,0x72,0x7B,0x84*3 \
     --mem @t0+0x60:36=bytes:0,1,0x7F,0x80,0xFF,0x12,0x34 \
     --mem @t0+0x60*9:4/1=choice:0,1,2,3,4,5,6,7,8,9,0xA,0xB,0xD,0xE,0xF,0x10,0x11,0x12 \
@@ -375,14 +378,25 @@ func_802A350C: -n 400 --arg t6=0 --arg f12=0 --arg f14=0 --arg f20=0 --arg f22=0
     --mem D_803643D4:1=choice:0,1,2,3,4,5,6,7,8,9,0xA,0xB,0xD,0xE,0xF,0x10,0x11,0x12 \
     --mem D_8036698C:1=choice:0,1,4,0x10 --mem D_803ED3F5:1=rand --mem D_803ED40F:1=rand
 # type 1 replaced by D_803643D4 (or not, in modes 1 / 0x80), D_803ED40F types, coordinate extremes
-func_802A350C: -n 200 --seed 1 --arg t6=0 --arg f12=0 --arg f14=0 --arg f20=0 --arg f22=0 --arg f24=0 --arg f26=0 \
+func_802A350C: -n 200 --seed 1 --arg fp=0 --arg t6=0 --arg f12=0 --arg f14=0 --arg f20=0 --arg f22=0 --arg f24=0 --arg f26=0 \
     --arg t0=ptr:0x200 --mem @t0+0x50=0x60 --mem @t0+0x54=0x7B \
     --mem @t0+0x60:27=hex:01_7FFF_8000_FFFF_0001_06_0000_0000_0000_8000_12_FFFF_7FFF_0000_7FFF \
     --mem D_80364AA8=choice:0,1,0x80,0x81 \
     --mem D_803643D4:1=choice:1,6,7,0xB,0x11,0x12,5 --mem D_80364A98=0 --mem D_80364A98+4=2 \
     --mem D_803ED3F5:1=rand --mem D_803ED40F:1=rand
-# empty list
+# empty list (fp returned unchanged)
 func_802A350C: -n 20 --seed 2 --arg t6=0 --arg t0=ptr:0x100 --mem @t0+0x50=0x60 --mem @t0+0x54=0x60 \
+    --mem D_803ED3F5:1=rand --mem D_803ED40F:1=rand
+# one record with a random fp: the first object gets the incoming fp (the
+# return value, 0 in the C after a setup ran, is not compared here: --conv
+# drops the fp output)
+func_802A350C: -n 200 --seed 3 --arg t6=0 --arg f12=0 --arg f14=0 --arg f20=0 --arg f22=0 --arg f24=0 --arg f26=0 \
+    --conv 'func_802A350C: in t0=a0,fp=a1 ; preserve t0 ; clobbers s0-s7,fp,gp,f20,f22,f24,f26,f28,f30' \
+    --arg fp=choice:0,0x803B9890,0x803B9950,0x12345678 --arg t0=ptr:0x200 --mem @t0+0x50=0x60 --mem @t0+0x54=0x69 \
+    --mem @t0+0x60:9=bytes:0,1,0x7F,0x80,0xFF,0x12,0x34 \
+    --mem @t0+0x60:1=choice:0,1,2,3,4,5,6,7,8,9,0xA,0xB,0xD,0xE,0xF,0x10,0x11,0x12 \
+    --mem D_80364A98=0 --mem D_80364A98+4=choice:0x20,0 --mem D_80364AA8=choice:0,1,0x80,2 \
+    --mem D_803643D4:1=choice:0,1,2,3,4,5,6,7,8,9,0xA,0xB,0xD,0xE,0xF,0x10,0x11,0x12 \
     --mem D_803ED3F5:1=rand --mem D_803ED40F:1=rand
 # func_802A1674: level setup, every callee stubbed (mapped). v0/t9 are set to
 # what initlevel's func_8026F92C(D_80364A98) leaves for each mode (the C
@@ -464,7 +478,9 @@ func_802A1674: -n 50 --seed 8 --stub-preserve func_8029DEA0=v0,v1 --sig func_802
 # no-op model, the decompressor's inner routines stubbed); func_802A1674 also
 # runs its own func_802A350C / func_802A303C / func_802A30DC / func_802A3134 and
 # func_802A3824. The setups' t6 input is not compared (the asm hands on the
-# triangle builders' t6 - see the C comment - the C passes 0).
+# triangle builders' t6 - see the C comment - the C passes 0). func_802A3F80's
+# fp result is 0 in the func_802A1674 lines: the stubbed setups leave fp alone
+# in the asm, where the real ones leave 0 (traced), which the C passes on.
 func_802A303C: -n 30 --seed 10 --follow \
     func_802A396C,func_802C4108,func_802A44E4,func_8029DF78,osInvalDCache,func_8025C230 --sig \
     func_8025C5A0=a0,a1,a2 --sig func_8025C30C=a0,a1,a2 --sig func_802994F8=a0,a1,a2 --heap 0x40000=zero --mem \
@@ -497,7 +513,7 @@ func_802A350C: -n 30 --seed 10 --follow func_802A3824 --follow \
     --mem @t0+0x60:1=0 --mem @t0+0x69*9:3/1=choice:0,1,2,3,4,5,6,7,8,9,0xA,0xB,0xD,0xE,0xF,0x10,0x11,0x12 --mem \
     D_80364A98=0 --mem D_80364A98+4=choice:0x20,2 --mem D_80364AA8=choice:0,1,0x80 --mem \
     D_803643D4:1=choice:3,5,9 --mem D_803ED3F5:1=rand --mem D_803ED40F:1=rand --mem D_803BE73A:1=rand --arg t6=0 \
-    --arg f12=0 --arg f14=0 --arg f20=0 --arg f22=0 --arg f24=0 --arg f26=0
+    --arg f12=0 --arg f14=0 --arg f20=0 --arg f22=0 --arg f24=0 --arg f26=0 --arg fp=0
 func_802A1674: -n 40 --seed 21 --follow func_802A350C,func_802A303C,func_802A30DC,func_802A3134,func_802A3824 \
     --follow func_802A396C,func_802C4108,func_802A44E4,func_8029DF78,osInvalDCache,func_8025C230 --sig \
     func_8025C5A0=a0,a1,a2 --sig func_8025C30C=a0,a1,a2 --sig func_802994F8=a0,a1,a2 --heap 0x40000=zero --mem \
@@ -518,7 +534,7 @@ func_802A1674: -n 40 --seed 21 --follow func_802A350C,func_802A303C,func_802A30D
     @a0+0x69*9:3/1=choice:0,1,2,3,4,5,6,7,8,9,0xA,0xB,0xD,0xE,0xF,0x10,0x11,0x12 --mem @a0+0x84:1=choice:0,1 \
     --arg a1=choice:0,1 --arg fp=0 --arg f12=0 --arg f14=0 --arg f20=0 --arg f22=0 --arg f24=0 --arg f26=0 --mem \
     D_80364A98=0 --mem D_80364A98+4=2 --arg v0=1 --arg t9=1 --mem D_802E8BEC=choice:0,1 --mem \
-    D_80364AA8=choice:0,1,0x80 --mem D_803643D4:1=choice:3,5,9 --stub-ret func_80268EE8=choice:0,1 --mem \
+    D_80364AA8=choice:0,1,0x80 --mem D_803643D4:1=choice:3,5,9 --stub-ret func_80268EE8=choice:0,1 --stub-ret func_802A3F80=0 --mem \
     D_803643DB:1=rand --mem D_803643DC:1=rand --mem D_80364AC1:1=rand --mem D_80370C50:1=rand --mem \
     D_803BE6FC=rand --mem D_803BE700=rand
 func_802A1674: -n 40 --seed 22 --follow func_802A350C,func_802A303C,func_802A30DC,func_802A3134,func_802A3824 \
@@ -541,7 +557,7 @@ func_802A1674: -n 40 --seed 22 --follow func_802A350C,func_802A303C,func_802A30D
     @a0+0x69*9:3/1=choice:0,1,2,3,4,5,6,7,8,9,0xA,0xB,0xD,0xE,0xF,0x10,0x11,0x12 --mem @a0+0x84:1=choice:0,1 \
     --arg a1=choice:0,1 --arg fp=0 --arg f12=0 --arg f14=0 --arg f20=0 --arg f22=0 --arg f24=0 --arg f26=0 --mem \
     D_80364A98=0 --mem D_80364A98+4=0x20 --arg v0=5 --arg t9=5 --mem D_802E8BEC=choice:0,1 --mem \
-    D_80364AA8=choice:0,1,0x80 --mem D_803643D4:1=choice:3,5,9 --stub-ret func_80268EE8=choice:0,1 --mem \
+    D_80364AA8=choice:0,1,0x80 --mem D_803643D4:1=choice:3,5,9 --stub-ret func_80268EE8=choice:0,1 --stub-ret func_802A3F80=0 --mem \
     D_803643DB:1=rand --mem D_803643DC:1=rand --mem D_80364AC1:1=rand --mem D_80370C50:1=rand --mem \
     D_803BE6FC=rand --mem D_803BE700=rand
 func_802A1674: -n 40 --seed 23 --follow func_802A350C,func_802A303C,func_802A30DC,func_802A3134,func_802A3824 \
@@ -564,6 +580,6 @@ func_802A1674: -n 40 --seed 23 --follow func_802A350C,func_802A303C,func_802A30D
     @a0+0x69*9:3/1=choice:0,1,2,3,4,5,6,7,8,9,0xA,0xB,0xD,0xE,0xF,0x10,0x11,0x12 --mem @a0+0x84:1=choice:0,1 \
     --arg a1=choice:0,1 --arg fp=0 --arg f12=0 --arg f14=0 --arg f20=0 --arg f22=0 --arg f24=0 --arg f26=0 --mem \
     D_80364A98=0 --mem D_80364A98+4=0x80 --arg v0=7 --arg t9=7 --mem D_802E8BEC=choice:0,1 --mem \
-    D_80364AA8=choice:0,1,0x80 --mem D_803643D4:1=choice:3,5,9 --stub-ret func_80268EE8=choice:0,1 --mem \
+    D_80364AA8=choice:0,1,0x80 --mem D_803643D4:1=choice:3,5,9 --stub-ret func_80268EE8=choice:0,1 --stub-ret func_802A3F80=0 --mem \
     D_803643DB:1=rand --mem D_803643DC:1=rand --mem D_80364AC1:1=rand --mem D_80370C50:1=rand --mem \
     D_803BE6FC=rand --mem D_803BE700=rand

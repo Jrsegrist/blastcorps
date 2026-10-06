@@ -77,7 +77,9 @@ static OSMesg g_vi_msg;
 static u32 g_vi_retrace_count = 1, g_vi_retrace_left = 1;
 static OSViMode *g_vi_mode;
 static u8 g_vi_black;
-static u32 g_vi_features;
+/* the VI control word of the next context (libultra __osViNext->control):
+ * osViSetMode loads the mode's, osViSetSpecialFeatures edits it */
+static u32 g_vi_ctrl;
 
 void osCreateViManager(OSPri pri) {
     (void) pri;
@@ -85,14 +87,32 @@ void osCreateViManager(OSPri pri) {
 
 void osViSetMode(OSViMode *m) {
     g_vi_mode = m;
+    g_vi_ctrl = m->comRegs.ctrl;
 }
 
 void osViBlack(u8 active) {
     g_vi_black = active;
 }
 
+/* Cumulative, like the ROM's (ultralib io/visetspecial.c): each call edits the
+ * control word.  Blast Corps calls it twice (GAMMA_OFF, then DITHER_FILTER_ON);
+ * keeping only the last call's bits left the mode's gamma correction on, and
+ * the windowed build's picture came out washed out. */
 void osViSetSpecialFeatures(u32 f) {
-    g_vi_features = f;
+    if (f & OS_VI_GAMMA_ON) g_vi_ctrl |= VI_CTRL_GAMMA_ON;
+    if (f & OS_VI_GAMMA_OFF) g_vi_ctrl &= ~VI_CTRL_GAMMA_ON;
+    if (f & OS_VI_GAMMA_DITHER_ON) g_vi_ctrl |= VI_CTRL_GAMMA_DITHER_ON;
+    if (f & OS_VI_GAMMA_DITHER_OFF) g_vi_ctrl &= ~VI_CTRL_GAMMA_DITHER_ON;
+    if (f & OS_VI_DIVOT_ON) g_vi_ctrl |= VI_CTRL_DIVOT_ON;
+    if (f & OS_VI_DIVOT_OFF) g_vi_ctrl &= ~VI_CTRL_DIVOT_ON;
+    if (f & OS_VI_DITHER_FILTER_ON) {
+        g_vi_ctrl |= VI_CTRL_DITHER_FILTER_ON;
+        g_vi_ctrl &= ~VI_CTRL_ANTIALIAS_MASK;
+    }
+    if (f & OS_VI_DITHER_FILTER_OFF) {
+        g_vi_ctrl &= ~VI_CTRL_DITHER_FILTER_ON;
+        if (g_vi_mode != NULL) g_vi_ctrl |= g_vi_mode->comRegs.ctrl & VI_CTRL_ANTIALIAS_MASK;
+    }
 }
 
 void osViSetEvent(OSMesgQueue *mq, OSMesg msg, u32 retraceCount) {
@@ -120,19 +140,9 @@ void *osViGetNextFramebuffer(void) {
  * word).  Only the windowed build looks at them. */
 static void vi_regs(HostViRegs *r) {
     const OSViMode *m = g_vi_mode;
-    u32 ctrl;
     __builtin_memset(r, 0, sizeof *r);
     if (m == NULL) return;
-    ctrl = m->comRegs.ctrl;
-    if (g_vi_features & OS_VI_GAMMA_ON) ctrl |= VI_CTRL_GAMMA_ON;
-    if (g_vi_features & OS_VI_GAMMA_OFF) ctrl &= ~VI_CTRL_GAMMA_ON;
-    if (g_vi_features & OS_VI_GAMMA_DITHER_ON) ctrl |= VI_CTRL_GAMMA_DITHER_ON;
-    if (g_vi_features & OS_VI_GAMMA_DITHER_OFF) ctrl &= ~VI_CTRL_GAMMA_DITHER_ON;
-    if (g_vi_features & OS_VI_DIVOT_ON) ctrl |= VI_CTRL_DIVOT_ON;
-    if (g_vi_features & OS_VI_DIVOT_OFF) ctrl &= ~VI_CTRL_DIVOT_ON;
-    if (g_vi_features & OS_VI_DITHER_FILTER_ON) ctrl |= VI_CTRL_DITHER_FILTER_ON;
-    if (g_vi_features & OS_VI_DITHER_FILTER_OFF) ctrl &= ~VI_CTRL_DITHER_FILTER_ON;
-    r->status = ctrl;
+    r->status = g_vi_ctrl;
     r->origin = osVirtualToPhysical(g_vi_cur) + m->fldRegs[0].origin;
     r->width = m->comRegs.width;
     r->burst = m->comRegs.burst;

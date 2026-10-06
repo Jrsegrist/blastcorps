@@ -45,3 +45,8 @@
 802F97B0 100 vtx
 802FA820 80 vtx
 802FDD48 80 vtx
+# - D_802FFF38 (39050.c declares it Gfx[]): 179 Vtx, segment 6 of the nuclear
+#   blast's dome list D_80300A68 (the first 8 are its bounding box).  As
+#   words the dome came out flat (z = 0): a red band across the screen when
+#   the carrier is hit.
+802FFF38 B30 vtx

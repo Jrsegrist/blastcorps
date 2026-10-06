@@ -385,6 +385,37 @@ void diagWalk(unsigned dl) {
     }
 }
 
+/* --dl-skip LO:HI (debugging): triangles whose commands lie in [LO, HI) (physical) are
+ * turned into no-ops while RT64 draws the task, then put back */
+uint32_t g_skipLo, g_skipHi;
+std::vector<std::pair<uint32_t *, uint32_t>> g_skipped;
+void skipWalk(unsigned dl) {
+    uint32_t seg[16] = {0};
+    uint32_t stack[16];
+    int sp = 0, n = 0;
+    auto res = [&](uint32_t a) { return ((seg[(a >> 24) & 15] + (a & 0xFFFFFF)) & 0xFFFFFF) & 0x7FFFFF; };
+    uint32_t a = dl & 0x7FFFFF;
+    while (n++ < 40000) {
+        uint32_t *w = reinterpret_cast<uint32_t *>(rdramBase() + a);
+        uint32_t op = w[0] >> 24;
+        a += 8;
+        if (op == 0xBF || op == 0xB1) {
+            if (a - 8 >= g_skipLo && a - 8 < g_skipHi) {
+                g_skipped.push_back({w, w[0]});
+                w[0] = 0;   /* G_SPNOOP */
+            }
+        } else if (op == 0x06) {
+            if (!((w[0] >> 16) & 1) && sp < 16) stack[sp++] = a;
+            a = res(w[1]);
+        } else if (op == 0xB8) {
+            if (sp == 0) return;
+            a = stack[--sp];
+        } else if (op == 0xBC && (w[0] & 0xFF) == 6) {
+            seg[((w[0] >> 8) & 0xFFFF) / 4 & 15] = w[1] & 0xFFFFFF;
+        }
+    }
+}
+
 void liveGfxTask(unsigned ucode, unsigned ucodeData, unsigned dataPtr, unsigned dataSize) {
     (void) dataSize;
     if (g_diagTasks < g_opt.dlDumpTasks && plat_frames() >= g_opt.dlDumpFrame) {
@@ -400,7 +431,10 @@ void liveGfxTask(unsigned ucode, unsigned ucodeData, unsigned dataPtr, unsigned 
     g_tasks++;
     if (g_app->interpreter->hleGBI->ucode != RT64::GBIUCode::F3D) g_otherUcodeTasks++;
     if (g_opt.gfxFix) g_fixedBytes += port_gfx_fix_task(dataPtr);
+    if (g_skipHi != 0 && g_app->interpreter->hleGBI->ucode == RT64::GBIUCode::F3D) skipWalk(dataPtr);
     g_app->processDisplayLists(rdramBase(), dataPtr & 0x3FFFFFF, 0, true);
+    for (auto &s : g_skipped) *s.first = s.second;
+    g_skipped.clear();
 }
 
 LARGE_INTEGER g_freq, g_t0;
@@ -409,6 +443,10 @@ unsigned g_nextShot;
 
 void liveVi(const HostViRegs *r, unsigned viCount, unsigned long long when, unsigned frames) {
     (void) viCount;
+    if (r->status != VI_STATUS_REG)
+        host_log("live: VI status %08X (type %u, gamma dither %u, gamma %u, divot %u, AA mode %u, dither filter %u)\n",
+                 r->status, r->status & 3, (r->status >> 2) & 1, (r->status >> 3) & 1, (r->status >> 4) & 1,
+                 (r->status >> 8) & 3, (r->status >> 16) & 1);
     VI_STATUS_REG = r->status;
     VI_ORIGIN_REG = r->origin;
     VI_WIDTH_REG = r->width;
@@ -493,6 +531,11 @@ int extraArg(int argc, char **argv, int *i, HostOpts *o) {
     else if (!strcmp(a, "--shot-every")) g_opt.shotEvery = num(next());
     else if (!strcmp(a, "--no-gfx-fix")) g_opt.gfxFix = false;
     else if (!strcmp(a, "--gfx-fix-log")) port_gfx_debug = 1;
+    else if (!strcmp(a, "--dl-skip")) {
+        const char *s = next(), *colon = strchr(s, ':');
+        g_skipLo = num(s);
+        g_skipHi = colon != nullptr ? num(colon + 1) : g_skipLo + 8;
+    }
     else if (!strcmp(a, "--dl-dump")) {
         const char *s = next(), *colon = strchr(s, ':');
         g_opt.dlDumpFrame = num(s);

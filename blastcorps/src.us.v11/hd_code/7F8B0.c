@@ -22,7 +22,7 @@ void func_802C41C0(u8 **srcp, u8 **dstp, u8 *window, s32 bits);
 extern u8 *D_803F7830;
 extern u8 *D_803F7834;
 extern void *D_803F7848; /* second looping sound handle */
-extern s16 D_803F784C;  /* its on/off flag; func_802C4724 uses the first byte */
+extern s16 D_803F784C;  /* its on/off flag; func_802C4724 uses the high byte */
 extern s32 D_80364AB0;  /* force the next func_802C4584 update */
 extern f32 D_8030D940;
 extern f32 D_8030D944;
@@ -241,10 +241,12 @@ void func_802C4724(s32 sfx) {
     u8 flag = D_80370C1A | D_80370C1B;
     void *h = D_803F7848;
 
-    if (*(u8 *) &D_803F784C == flag) {
+    /* The asm reads and stores the halfword's first byte (lbu/sb), i.e. its
+     * high byte; done on the whole halfword so either byte order agrees. */
+    if ((u8) ((u16) D_803F784C >> 8) == flag) {
         return;
     }
-    *(u8 *) &D_803F784C = flag;
+    D_803F784C = (s16) ((D_803F784C & 0xFF) | (flag << 8));
     if (flag != 0) {
         if (h == NULL) {
             func_80260650(D_80367738, sfx, &D_803F7848);

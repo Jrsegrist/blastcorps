@@ -10,7 +10,6 @@
 #define D_803F3FF8 (*(Unk803F3FF8 *) D_803F3FF8)
 #define D_803F4030 ((Unk802C1DD0Entry *) D_803F4030)
 #ifdef NON_MATCHING
-#define D_803649E8 (*(u8 *) &D_803649E8)
 #define D_803F7654 (*(Unk802C1DD0Entry * *) &D_803F7654)
 #define D_803F7828 (*(s32 * *) &D_803F7828)
 #endif
@@ -237,7 +236,10 @@ void func_802BC5E0(void) {
     if (D_80364A90 == 0x40) {
         func_80275390(0x40);
     } else {
-        D_803649E8 = 1;
+        /* The asm stores 1 with sb into the s32 D_803649E8, i.e. into its
+         * most significant byte (readers only test it against 0). Done on
+         * the word so either byte order gets the same value. */
+        D_803649E8 = (D_803649E8 & 0x00FFFFFF) | 0x01000000;
         D_80364A98 = 8;
     }
 }

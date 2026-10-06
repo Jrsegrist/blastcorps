@@ -815,3 +815,7 @@ func_802BCA2C: -n 200 --seed 2 --heap 0x100 --heap 0x300 --mem D_803F7690*8:40=r
     --mem @heap1+0x52*0x60:8/2=choice:0,1,2,3 --mem @heap1+0x51*0x60:8/1=bytes:1,2 \
     --mem D_803643D6:1=bytes:0,0,1 --mem D_803643D7:1=bytes:0,0,1 --mem D_80364A90:8=hex:0000000100000200 \
     --mem D_802E8BE4:1=rand --mem D_802E8BE8=int
+
+# [data] the "set" path with a random D_803649E8 word: the asm's sb of 1 changes only its most
+# significant byte (the C does it on the word)
+func_802BC5E0: -n 200 --seed 40 --ret void --sig func_80275390=a0,a1 --follow func_802ABCDC,func_802BD064,func_8029D210,func_802BC7DC,func_802BC714 --mem D_803F7805:1=1 --mem D_803643DB:1=0 --mem D_80364AC1:1=0 --mem D_803643DA:1=choice:0,2 --mem D_802E8BD8:1=choice:0,2 --mem D_803649E8=rand --mem D_80364A90=choice:0*3,1 --mem D_80364A90+4=choice:0x40,8,0x1000,0x41 --mem D_80364A98:8=rand

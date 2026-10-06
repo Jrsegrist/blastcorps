@@ -1,11 +1,11 @@
 #include "common.h"
 #include <ultra64.h>
 #include "game/game.h"
-/* Views: this file reads these shared variables (game/variables.h) as other types. */
 #ifdef NON_MATCHING
-#define D_802E8BDC (*(u8 *) &D_802E8BDC)
+/* The asm reads the level D_802E8BDC (an s32) with lbu: its most significant
+ * byte, 0 for every level. The word, shifted, gives that on either byte order. */
+#define LEVEL_MSB ((u8) ((u32) D_802E8BDC >> 24))
 #endif
-/* end of views */
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -216,7 +216,7 @@ s32 func_802AE888(s32 dist) {
     D_803F7812 = 1;
     if (D_803ED825 != 0) {
         for (rec = D_80305CB1; (s8) rec[0] != -1; rec += 5) {
-            if ((s8) rec[0] != *(s32 *) &D_802E8BDC || rec[1] != D_80364456) {
+            if ((s8) rec[0] != D_802E8BDC || rec[1] != D_80364456) {
                 continue;
             }
             if (rec[4] != 0) {
@@ -734,7 +734,7 @@ void func_802AF4BC(void) {
         } else {
             func_802A03D4((Unk8029DEA0Entry *) base, 1, 0);
         }
-        if (D_802E8BDC != 0x31 && D_802E8BDC != 0x26) {
+        if (LEVEL_MSB != 0x31 && LEVEL_MSB != 0x26) { /* always true in the game */
             s32 old = D_803ED820;
             s32 mode;
 

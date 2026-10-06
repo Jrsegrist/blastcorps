@@ -1032,6 +1032,14 @@ static u8 *port_load_packed(u32 rom, u32 size, u8 **end) {
     osRecvMesg(&D_803150A0, NULL, OS_MESG_BLOCK);
     func_802C4108(&src, &dst, 0x8004B400);
     func_802C4108(&src, &dst, 0x8004B400);
+#ifdef PORT_NATIVE
+    {
+        /* Windows port: byte order on load (port/src/load/port_load.h) */
+        void port_on_load(u32 rom, u32 dst, u32 len);
+
+        port_on_load(rom, (u32) D_80358070, (u32) (dst - D_80358070));
+    }
+#endif
     dst = (u8 *) func_802A44E4((u32) dst);
     old = D_80358070;
     D_80358070 = dst;

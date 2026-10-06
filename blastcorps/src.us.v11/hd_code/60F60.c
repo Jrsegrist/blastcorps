@@ -110,6 +110,13 @@ typedef struct {
 } DecodeReq;
 
 extern u64 D_803C3250[]; /* scratch copy of the packed data */
+#ifdef PORT_NATIVE
+/* Windows port, byte order (port/src/load/port_textures.c): the packed
+ * tokens arrive big-endian (in host order before decoding), the decoded
+ * texels leave as big-endian bytes, as the renderer expects them. */
+void port_texture_input(u8 *data, u32 size, s32 type);
+void port_texture_output(u8 *dst, u32 len, s32 type);
+#endif
 
 /* The decoders (non-ABI in the asm: src a0, size a1, dst a3, table t4;
  * they return the advanced dst in a3, see conventions.txt). */
@@ -139,6 +146,9 @@ s32 func_802A57DC(u8 *rec) {
     u8 *dst;
     u8 *end;
 
+#ifdef PORT_NATIVE
+    port_texture_input(req->data, req->size, req->type);
+#endif
     len -= n;
     for (; n != 0; n -= 8) {
         *d8++ = *s8++;
@@ -176,6 +186,9 @@ s32 func_802A57DC(u8 *rec) {
             end = dst;
             break;
     }
+#ifdef PORT_NATIVE
+    port_texture_output(dst, end - dst, req->type);
+#endif
     return end - dst;
 }
 

@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "rdram.h"
+#include "load/port_load.h"
 
 static uint8_t *g_rom;
 static size_t g_rom_size;
@@ -107,6 +108,10 @@ int rdram_load(const char *rom_path) {
     }
     memset((void *) (uintptr_t) (FE_DATA_VRAM + n), 0, FE_BSS_END - FE_DATA_VRAM - n);
     memset((void *) (uintptr_t) HD_BSS_START, 0, HD_BSS_END - HD_BSS_START);
+    /* the images' ROM bytes into host order (port/src/load/: generated swap
+     * table), before the native initialisers go over the C-defined objects */
+    port_load_image_hd();
+    port_load_image_fe();
     /* objects defined in the linked C: their native (host-order) initialisers */
     for (c = port_copytab; c->name; c++) {
         if (c->n64_size && c->n64_size != (uint32_t) (c->end - c->start))

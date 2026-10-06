@@ -25,7 +25,7 @@ GAME_SRC   := $(ROOT)/src.$(VERSION)/hd_code
 
 GAME_CFLAGS := -std=gnu89 -nostdinc -I$(ROOT) -I$(ROOT)/include -I$(ROOT)/include/2.0I \
 	-I$(ROOT)/include/2.0I/PR -include include/port_ultratypes.h \
-	-D_LANGUAGE_C -D_FINALROM -DNON_MATCHING -D_MIPS_SZLONG=32 -D_MIPS_SIM=1 \
+	-D_LANGUAGE_C -D_FINALROM -DNON_MATCHING -DPORT_NATIVE -D_MIPS_SZLONG=32 -D_MIPS_SIM=1 \
 	-O2 -fno-strict-aliasing -fwrapv -msse2 -mfpmath=sse -fno-common \
 	-fno-builtin-sinf -fno-builtin-cosf -fno-builtin-sin -fno-builtin-cos \
 	-Wno-unknown-pragmas -Wno-builtin-declaration-mismatch
@@ -38,8 +38,11 @@ NM_ELFS   := $(ROOT)/build_nm/hd_code.$(VERSION).elf $(ROOT)/build_nm/hd_front_e
 GAME_OBJS := $(GAME_FILES:%=$(B)/game/%.o)
 GAME_RECS := $(GAME_FILES:%=$(B)/game/%.rec)
 MAIN      ?= spike_main
-PORT_SRCS := src/rdram.c src/inflate.c src/$(MAIN).c
-PORT_OBJS := $(PORT_SRCS:src/%.c=$(B)/port/%.o)
+# byte order on load (port/src/load/, see port_load.h)
+LOAD_SRCS := src/load/swap.c src/load/port_assets.c
+PORT_SRCS := src/rdram.c src/inflate.c src/$(MAIN).c $(LOAD_SRCS)
+PORT_OBJS := $(PORT_SRCS:src/%.c=$(B)/port/%.o) $(B)/swaptab.o
+PORT_HDRS := src/rdram.h src/load/port_load.h src/platform/port_dma.h
 
 all: $(B)/spike.exe
 
@@ -58,8 +61,19 @@ $(B)/game/%.pinned.s $(B)/game/%.rec: $(B)/game/%.s $(B)/addrs.txt tools/relabel
 $(B)/game/%.o: $(B)/game/%.pinned.s
 	$(CC) -c -o $@ $<
 
-$(B)/port/%.o: src/%.c src/rdram.h
+$(B)/port/%.o: src/%.c $(PORT_HDRS)
 	@mkdir -p $(@D)
+	$(CC) $(PORT_CFLAGS) -c -o $@ $<
+
+# byte-order schema of the data images: C declarations (DWARF) + the widths
+# the code reads them at (data/image_widths.txt, from tools/m64widths.py)
+$(B)/typemap.txt: $(B)/addrs.txt tools/typemap.py
+	cd $(ROOT) && $(PYTHON) port/tools/typemap.py port/$(B)/addrs.txt port/$@ > port/$(B)/typemap_report.txt
+$(B)/swaptab.c: $(B)/typemap.txt data/image_widths.txt tools/swaptab.py $(NM_ELFS)
+	cd $(ROOT) && $(PYTHON) port/tools/swaptab.py port/$(B)/typemap.txt port/data/image_widths.txt port/$@ \
+		port/$(B)/swaptab_report.txt > port/$(B)/swaptab_coverage.txt
+	@cat $(B)/swaptab_coverage.txt
+$(B)/swaptab.o: $(B)/swaptab.c src/load/port_load.h
 	$(CC) $(PORT_CFLAGS) -c -o $@ $<
 
 $(B)/abs_syms.ld $(B)/stubs.c &: $(GAME_OBJS) $(PORT_OBJS) tools/gensyms.py
@@ -70,7 +84,7 @@ $(B)/copytab.c: $(GAME_RECS) $(B)/addrs.txt tools/gensyms.py
 
 $(B)/stubs.o: $(B)/stubs.c
 	$(CC) -O2 -w -c -o $@ $<
-$(B)/copytab.o: $(B)/copytab.c src/rdram.h
+$(B)/copytab.o: $(B)/copytab.c $(PORT_HDRS)
 	$(CC) $(PORT_CFLAGS) -c -o $@ $<
 
 $(B)/spike.exe: $(GAME_OBJS) $(PORT_OBJS) $(B)/stubs.o $(B)/copytab.o $(B)/abs_syms.ld
@@ -88,9 +102,9 @@ linkall:
 	$(MAKE) B=build/all MAIN=linkall_main GAME_FILES="$(ALL_GAME)" build/all/spike.exe
 	build/all/spike.exe '$(ROM_ARG)'
 
-# byte-order schema of the initialised image from the C declarations (DWARF)
-typemap: $(B)/addrs.txt
-	cd $(ROOT) && $(PYTHON) port/tools/typemap.py port/$(B)/addrs.txt port/$(B)/typemap.txt
+# byte-order schema of the initialised image: coverage report
+typemap: $(B)/swaptab.c
+	@cat $(B)/typemap_report.txt
 
 ucode:
 	cd $(ROOT) && $(PYTHON) port/tools/ucode_id.py build

@@ -1,0 +1,7 @@
+# Byte-order overrides for the data images (port/tools/swaptab.py).
+# ADDR SIZE ACTION   (hex; ACTION w2/w4/w8 = swap as elements of that width, be = keep big-endian)
+#
+# D_802F46C0 (77E20.c, 12 x {u64 from, u64 to}): display-list commands compared
+# with and copied into DLs as whole doublewords; DLs are two host-order u32
+# words (w0, w1), so these are too (a u64 swap would exchange w0 and w1).
+802F46C0 C0 w4

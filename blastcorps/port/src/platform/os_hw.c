@@ -238,8 +238,11 @@ void osSpTaskStartGo(OSTask *t) {
     }
     plat_stats.gfx_tasks++;
     if ((u32) t->t.ucode == UCODE_CULL) {
+        u64 v;
         plat_stats.cull_tasks++;
-        if (t->t.output_buff != NULL) *(u32 *) t->t.output_buff = 0;
+        /* following an emulator (--clock): its answer for this test */
+        if (!plat_clock_key_take_name(3, "func_802A4B0C", &v)) v = 0;
+        if (t->t.output_buff != NULL) *(u32 *) t->t.output_buff = (u32) v;
         complete(plat_cfg.small_gfx_cycles, 0);
         return;
     }

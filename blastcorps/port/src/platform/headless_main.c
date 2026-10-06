@@ -16,6 +16,7 @@
  *                        caller names for --clock, symbols in crash reports
  *     --sync FILE        the emulator's time at each thread switch point
  *                        (os_thread.c; port/tools/compare.py writes it)
+ *     --load-log         log every DMA/decompressed load and its asset kind
  *     --eeprom FILE      EEPROM image (read at boot, written on save)
  *     --no-eeprom        no EEPROM chip
  *     --gfx-cycles N     RCP time of a frame's gfx task, in 46.875 MHz counts
@@ -31,11 +32,12 @@
 #include <string.h>
 #include "rdram.h"
 #include "plat_host.h"
+#include "load/port_load.h"
 
 static void usage(void) {
     fprintf(stderr, "usage: bc_headless.exe ROM [--frames N] [--vis N] [--dump F1,F2..] [--dump-every N]\n"
                     "       [--dump-dir DIR] [--trace FILE] [--input FILE] [--no-controller] [--gettime FILE]\n"
-                    "       [--frame-done FILE] [--clock FILE] [--syms FILE] [--sync FILE]\n"
+                    "       [--frame-done FILE] [--clock FILE] [--syms FILE] [--sync FILE] [--load-log]\n"
                     "       [--eeprom FILE] [--no-eeprom] [--gfx-cycles N] [--small-gfx-cycles N]\n"
                     "       [--aud-cycles N] [--gettime-cost N] [--boot-count N] [--cmdline STR] [-v] [-q]\n");
     exit(1);
@@ -85,6 +87,7 @@ int main(int argc, char **argv) {
         else if (!strcmp(a, "--clock")) o.clock_path = ARG();
         else if (!strcmp(a, "--syms")) o.syms_path = ARG();
         else if (!strcmp(a, "--sync")) o.sync_path = ARG();
+        else if (!strcmp(a, "--load-log")) port_load_verbose = 1;
         else if (!strcmp(a, "--eeprom")) o.eeprom_path = ARG();
         else if (!strcmp(a, "--no-eeprom")) o.eeprom_present = 0;
         else if (!strcmp(a, "--gfx-cycles")) o.gfx_cycles = num(ARG());

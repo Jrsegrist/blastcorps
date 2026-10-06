@@ -19,6 +19,8 @@
 #   T ra=RA th=ID v=VALUE          osGetTime returns VALUE to RA (thread ID)
 #   C ra=RA th=ID v=VALUE          osGetCount (callers other than osGetTime)
 #   A ra=RA th=ID v=VALUE          osAiGetLength (the audio thread sizes its frames by it)
+#   U ra=RA th=ID v=WORD           func_802A4B0C's RSP visibility test: the output word it
+#                                  tests (0xE8000000 = not visible)
 #   M ra=RA th=ID c=COUNT f=FUNC q=A0   a message call (queue A0) / osStartThread (thread
 #                                  A0) from RA (running thread ID) at COUNT
 #   V (as "#in" lines)             the count register at some VIs (period, wrap-around)
@@ -89,10 +91,25 @@ A_TIME = ret_of("osGetTime")
 A_COUNT = ret_of("osGetCount")
 A_RUNNING = syms["__osRunningThread"]
 A_AILEN = ret_of("osAiGetLength")
+
+
+def call_site(func, callee):
+    """address just after func's (first) jal callee: the call has returned"""
+    a, want = syms[func], 0x0C000000 | ((syms[callee] >> 2) & 0x3FFFFFF)
+    for i in range(2000):
+        if word_at(a + 4 * i) == want:
+            return a + 4 * i + 8
+    raise KeyError((func, callee))
+
+
+# func_802A4B0C (5FD50.c): the RSP visibility test; its answer is the first
+# word of the output buffer D_803BEB80 once func_80285110 has waited for it
+A_CULL = call_site("func_802A4B0C", "func_80285110")
+A_CULLBUF = syms.get("D_803BEB80", 0x803BEB80)
 # thread switch points: the native clock catches up with the emulator's here
 SYNC = {syms[n]: n for n in ("osSendMesg", "osRecvMesg", "osJamMesg", "osStartThread")}
 
-BPS = {A_BOOT: "B", A_TASK: "F", A_RDP: "R", A_TIME: "T", A_COUNT: "C", A_AILEN: "A"}
+BPS = {A_BOOT: "B", A_TASK: "F", A_RDP: "R", A_TIME: "T", A_COUNT: "C", A_AILEN: "A", A_CULL: "U"}
 BPS.update({a: "M" for a in SYNC})
 GPRS, FPRS, MEM = [], [], []
 DEDUPE = False
@@ -155,6 +172,8 @@ def ONHIT(pc, g, rd):
         if syms["osGetTime"] <= g["ra"] < A_TIME:
             return None
         return "C ra=%x th=%d v=%x" % (g["ra"], thread_id(rd), g["v0"])
+    if pc == A_CULL:
+        return "U ra=%x th=%d v=%x" % (syms["func_802A4B0C"], thread_id(rd), rd(A_CULLBUF, 4))
     if pc == A_AILEN:
         return "A ra=%x th=%d v=%x" % (g["ra"], thread_id(rd), g["v0"])
     if pc in SYNC:

@@ -142,7 +142,7 @@ def data_syms():
 # ---------------------------------------------------------------- emulator log
 
 def parse_emu(emudir):
-    ev = {"F": [], "R": [], "T": [], "C": [], "A": [], "B": None, "V": [], "M": []}
+    ev = {"F": [], "R": [], "T": [], "C": [], "A": [], "U": [], "B": None, "V": [], "M": []}
     wrap = [0, 0]  # added, previous: the 32-bit count register, unwrapped in log (= time) order
 
     def unwrap(c):
@@ -172,7 +172,7 @@ def parse_emu(emudir):
             ev["F"].append(kv)
         elif kind == "R":
             ev["R"].append(kv)
-        elif kind in ("T", "C", "A"):
+        elif kind in ("T", "C", "A", "U"):
             ev[kind].append((int(kv["ra"], 16), int(kv["th"]), int(kv["v"], 16), vi))
         elif kind == "M":
             ev["M"].append((int(kv["ra"], 16), int(kv["th"]), unwrap(int(kv["c"])), kv["f"], int(kv.get("q", "0"), 16)))
@@ -211,7 +211,7 @@ def cmd_inject(args):
     with open(os.path.join(emudir, "clock.txt"), "w") as f:
         # the emulator's clock: count = C1 + (native time - R1 * 781250) * PERIOD / 781250
         f.write("M %d %d %.6f\n" % (ev["r1"], ev["c1"], period))
-        for kind in "TCA":
+        for kind in "TCAU":
             for ra, th, v, vi in ev[kind]:
                 it = fs.find(ra)
                 f.write("%s %s %d %x\n" % (kind, it[1] if it else "?", vi + off, v))

@@ -190,9 +190,9 @@ typedef struct {
     u32 n, cap, next, misses, used;
 } KeyQ;
 #define MAX_KEYS 256
-static KeyQ g_keys[3][MAX_KEYS]; /* osGetTime, osGetCount, osAiGetLength */
-static u32 g_nkeys[3];
-static u32 g_key_nocaller[3];
+static KeyQ g_keys[4][MAX_KEYS]; /* osGetTime, osGetCount, osAiGetLength, cull test */
+static u32 g_nkeys[4];
+static u32 g_key_nocaller[4];
 /* "M R1 C1 PERIOD": the emulator's count at native time t is
  * C1 + (t - R1 * PLAT_VI_PERIOD) * PERIOD / PLAT_VI_PERIOD */
 static int g_emu_map;
@@ -250,9 +250,9 @@ void plat_clock_keyed_load(const char *path) {
                 g_emu_period = f / scale;
             }
             g_emu_map = g_emu_period > 0;
-        } else if ((p[0] == 'T' || p[0] == 'C' || p[0] == 'A') && p[1] == ' ') {
+        } else if ((p[0] == 'T' || p[0] == 'C' || p[0] == 'A' || p[0] == 'U') && p[1] == ' ') {
             u32 vi = 0;
-            kind = p[0] == 'T' ? 0 : p[0] == 'C' ? 1 : 2;
+            kind = p[0] == 'T' ? 0 : p[0] == 'C' ? 1 : p[0] == 'A' ? 2 : 3;
             name = p + 2;
             q = name;
             while (*q && *q != ' ') q++;
@@ -289,15 +289,20 @@ void plat_clock_keyed_load(const char *path) {
 /* The caller's next value read in this retrace; else the emulator's clock
  * at this (synchronised) virtual time. */
 int plat_clock_key_take(int kind, void *ra, u64 *v) {
-    const char *name;
+    if (g_nkeys[kind] == 0 && !g_emu_map) return 0;
+    return plat_clock_key_take_name(kind, plat_sym_name((u32) ra, NULL), v);
+}
+
+int plat_clock_key_take_name(int kind, const char *name, u64 *v) {
     KeyQ *k;
     if (g_nkeys[kind] == 0 && !g_emu_map) return 0;
-    name = plat_sym_name((u32) ra, NULL);
     k = name ? key_find(kind, name, 0) : NULL;
     if (k == NULL) g_key_nocaller[kind]++;
     else {
-        while (k->next < k->n && k->vi[k->next] < plat_vi_count) k->next++;
-        if (k->next < k->n && k->vi[k->next] == plat_vi_count) {
+        /* a visibility test is answered after its task ran: allow a retrace either way */
+        u32 slack = kind == 3 ? 1 : 0;
+        while (k->next < k->n && k->vi[k->next] + slack < plat_vi_count) k->next++;
+        if (k->next < k->n && k->vi[k->next] <= plat_vi_count + slack) {
             *v = k->v[k->next++];
             k->used++;
             return 1;
@@ -305,10 +310,10 @@ int plat_clock_key_take(int kind, void *ra, u64 *v) {
         k->misses++;
         if (host_verbose)
             host_log("clock: %s from %s in retrace %u: next value is from retrace %u\n",
-                     kind == 2 ? "osAiGetLength" : kind ? "osGetCount" : "osGetTime", name, (unsigned) plat_vi_count,
+                     kind == 3 ? "cull test" : kind == 2 ? "osAiGetLength" : kind ? "osGetCount" : "osGetTime", name, (unsigned) plat_vi_count,
                      k->next < k->n ? (unsigned) k->vi[k->next] : 0u);
     }
-    if (!g_emu_map || kind == 2) return 0;
+    if (!g_emu_map || kind >= 2) return 0;
     *v = emu_time();
     return 1;
 }
@@ -316,9 +321,9 @@ int plat_clock_key_take(int kind, void *ra, u64 *v) {
 void plat_clock_report(void) {
     int kind;
     u32 i;
-    for (kind = 0; kind < 3; kind++) {
+    for (kind = 0; kind < 4; kind++) {
         if (g_nkeys[kind] == 0) continue;
-        host_log("clock: %s keyed: %u calls from unkeyed callers\n", kind == 2 ? "osAiGetLength" : kind ? "osGetCount" : "osGetTime",
+        host_log("clock: %s keyed: %u calls from unkeyed callers\n", kind == 3 ? "cull test" : kind == 2 ? "osAiGetLength" : kind ? "osGetCount" : "osGetTime",
                  (unsigned) g_key_nocaller[kind]);
         for (i = 0; i < g_nkeys[kind]; i++) {
             KeyQ *k = &g_keys[kind][i];

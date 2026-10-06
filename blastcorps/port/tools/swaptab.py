@@ -128,7 +128,10 @@ def main():
         for line in open(ovp):
             p = line.split("#")[0].split()
             if len(p) >= 3:
-                overrides.append((int(p[0], 16), int(p[1], 16), p[2]))
+                # optional STRIDE COUNT: the same range in COUNT records
+                stride, count = (int(p[3], 16), int(p[4], 16)) if len(p) >= 5 else (0, 1)
+                for k in range(count):
+                    overrides.append((int(p[0], 16) + k * stride, int(p[1], 16), p[2]))
     runs_by = {}
     summary = []
     for region, (lo, hi, mapfile, _) in IMAGES.items():

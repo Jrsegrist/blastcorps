@@ -74,7 +74,19 @@ def leaves(t, base, out, depth=0):
     if t.tag in ("DW_TAG_structure_type", "DW_TAG_union_type"):
         for m in t.iter_children():
             if m.tag == "DW_TAG_member":
+                mn = attr(m, "DW_AT_name")
+                mn = mn.decode() if isinstance(mn, bytes) else (mn or "")
                 off = attr(m, "DW_AT_data_member_location") or 0
+                if mn.startswith("pad") and t.tag == "DW_TAG_structure_type":
+                    # byte padding (`u8 pad2C[0xA]`) is what a per-file view
+                    # doesn't know, not a byte field: it must not block another
+                    # file's typed fields there (01C40.c's u16 LevelInfo.times
+                    # under 1D990.c's pad2C).  Wider "pads" are real fields.
+                    pl = []
+                    leaves(tref(m), 0, pl, depth + 1)
+                    widths = [w for x in pl for w in ([e[1] for e in x[4]] if x[0] == "ARRAY" else [x[1]])]
+                    if widths and all(w == 1 for w in widths):
+                        continue
                 leaves(tref(m), base + (off if isinstance(off, int) else 0), out, depth + 1)
                 if t.tag == "DW_TAG_union_type":
                     # a union's first member is its layout (Gfx: the two u32

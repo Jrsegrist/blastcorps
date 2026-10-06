@@ -99,14 +99,22 @@ func_802AF340: -n 100 --seed 2 --follow func_802A9A60 --stub-ret func_802A94A4=i
     --mem D_803ED760:0xA6=rand --mem D_803ED3F2:3=rand --sig func_802582C4=a0:1,a1,a2,a3,stack0
 
 # func_802AEC3C: one drive-in path check (dist a2 -> a3 = spot free). func_8029A800's b0 (t0 = 0 left by
-# func_802AFA64) is only compared with func_802AFA64 followed.
+# func_802AFA64) is only compared with func_802AFA64 followed. func_8029AA10 runs for real (the C calls
+# func_8029AA10_fp): fp in (random) and out (its part count on a world hit, else unchanged; vehicle-0 sphere
+# entries tagged 0 among others, the last one forced; parts of kinds 0-2, end marker in entry 7).
 func_802AEC3C: -n 300 --seed 0 --arg gp=sym:D_803ED760 --arg a2=int:-5000:5000 --mem D_803ED828:1=bytes:0,1,2,3,0xFF \
     --mem D_803643E0=int:-0x1000000:0x1000000 --mem D_803643E8=int:-0x1000000:0x1000000 --mem D_803643E4=int \
     --mem D_803ED81C=int --mem D_803ED760:0xA6=rand --mem D_803ED760+0x10=int:-0x10000000:0x10000000 \
     --mem D_803ED760+0x1C=int:-0x10000000:0x10000000 --mem D_803ED808:12=rand --mem D_80364456:1=bytes:0,0xB,3 \
     --mem D_803A7424:1=bytes:0,1,2 --mem D_803F77D0=int \
     --sig func_8029A800=a0,a1,a2,a3,stack0,stack1,stack3,stack4,stack5,stack6,stack7 --sig func_8028F994=a0,a1,a2 \
-    --sig func_802AFA64=
+    --sig func_802AFA64= \
+    --arg fp=int --follow func_8029AA10 --stub-ret func_8029AB88=choice:0,1,1 --mem D_803A742B:1=rand \
+    --mem D_803A7300:0xA0=rand --mem D_803A7300+0x10*0x14:8/1=choice:0,2,3 --mem D_803A7300+0x11*0x14:8/1=choice:1,0,2,0xFF \
+    --mem D_803A7300+0x9C:1=0 \
+    --mem D_803A6B30:0xA0=rand --mem D_803A6B30+0x12*0x14:8/1=choice:0,1,2 --mem D_803A6B30+0x13*0x14:8/1=choice:0,1,0x80 \
+    --mem D_803A6B30+0x9F:1=0xFF --mem D_803A7410:2=choice:0,1,0xFFF --mem D_803A7412:2=choice:0xFFF,0,0xFFE \
+    --mem D_803A7425:1=rand --mem D_803A740C=rand --mem D_80358068=int
 
 # func_802AEEC8: vehicle 0 per-frame update. Leftover inputs set to the C's choices: func_802AEE84's scan registers
 # t6/t7/s0-s4 = 0, func_802AF340's key t8 = 0, fp = 0, f12-f26 = 0. func_802A8768's f12/f14 (func_802A860C's sine
@@ -173,7 +181,13 @@ func_802AEC3C: -n 200 --seed 1 --follow func_802AFA64 --arg gp=sym:D_803ED760 --
     --mem D_803ED760:0xA6=rand --mem D_803ED760+0x10=int:-0x10000000:0x10000000 \
     --mem D_803ED760+0x1C=int:-0x10000000:0x10000000 --mem D_803ED808:12=rand --mem D_80364456:1=bytes:0,0xB \
     --mem D_803A7424:1=bytes:0,1 --mem D_803F77D0=int --sig func_8028F994=a0,a1,a2 \
-    --sig func_802AA764=a0,a1,a2,a3,stack0 --sig func_8029C454=a0,a1,a2,a3,stack0,stack1,stack2
+    --sig func_802AA764=a0,a1,a2,a3,stack0 --sig func_8029C454=a0,a1,a2,a3,stack0,stack1,stack2 \
+    --arg fp=choice:0,2,-1 --follow func_8029AA10 --stub-ret func_8029AB88=choice:0,1 --mem D_803A742B:1=rand \
+    --mem D_803A7300:0xA0=rand --mem D_803A7300+0x10*0x14:8/1=choice:0,1 --mem D_803A7300+0x11*0x14:8/1=choice:1,0 \
+    --mem D_803A7300+0x9C:1=0 \
+    --mem D_803A6B30:0xA0=rand --mem D_803A6B30+0x12*0x14:8/1=choice:0,0,1 --mem D_803A6B30+0x13*0x14:8/1=choice:0,1 \
+    --mem D_803A6B30+0x13:1=choice:0xFF,1,1 --mem D_803A6B30+0x9F:1=0xFF --mem D_803A7410:2=0 --mem D_803A7412:2=0xFFF \
+    --mem D_803A7425:1=rand --mem D_803A740C=rand --mem D_80358068=int
 
 # func_802AE888: drive-in setup (dist a0 -> v0 0/1). Table: two records per level 5/6 (zone modes 0 and 2), level 7.
 # The asm's key t8 is its caller's (D_80364456 << 2 in the real game): compared only where t8 is set to match.
@@ -195,7 +209,8 @@ func_802AE888: -n 100 --seed 2 --ret int --arg a0=choice:0,1,99,100,101,200,300 
     --arg f14=0 --arg f20=0 --arg f22=0 --arg f24=0 --arg f26=0 --mem D_803ED825:1=bytes:1 \
     --mem D_80305CB1:6=hex:0503020100_FF --mem D_802E8BDC=choice:5,6 --mem D_80364456:1=3 --stub-ret func_802AEC3C=1 \
     --mem D_803ED760:0xA6=rand --mem D_803ED808:12=rand --mem D_803ED814=int --mem D_803ED827:1=bytes:5
-# zone checks and the path checks run for real (func_802AEC3C's own callees stubbed)
+# zone checks and the path checks run for real (func_802AEC3C's own callees stubbed, except func_8029AA10:
+# its fp, the part count on a world hit, goes to the next check's func_802A9A60; 0 or 2 vehicle-0 parts)
 func_802AE888: -n 100 --seed 3 --ret int --follow func_802AEB9C,func_802AEC3C --arg a0=int:0:400 --arg t8=12 --arg fp=0 \
     --arg f12=0 --arg f14=0 --arg f20=0 --arg f22=0 --arg f24=0 --arg f26=0 --mem D_803ED825:1=bytes:1 \
     --mem D_80305CB1:16=hex:0503020202_0503010300_0703020200_FF --mem D_802E8BDC=choice:5,7 --mem D_80364456:1=3 \
@@ -203,4 +218,9 @@ func_802AE888: -n 100 --seed 3 --ret int --follow func_802AEB9C,func_802AEC3C --
     --mem D_803A7424:1=bytes:0*6,1 --mem D_803ED760:0xA6=rand --mem D_803ED760+0x10=int:-0x10000000:0x10000000 \
     --mem D_803ED760+0x1C=int:-0x10000000:0x10000000 --mem D_803ED808:12=rand --mem D_803ED814=int \
     --sig func_8029A800=a0,a1,a2,a3,stack0,stack1,stack3,stack4,stack5,stack6,stack7 --sig func_8028F994=a0,a1,a2 \
-    --sig func_802AFA64=
+    --sig func_802AFA64= \
+    --follow func_8029AA10 --stub-ret func_8029AB88=choice:0,1,1 --mem D_803A742B:1=rand \
+    --mem D_803A7300:0xA0=rand --mem D_803A7300+0x10:1=0 --mem D_803A7300+0x11:1=choice:1,1,0 \
+    --mem D_803A6B30:0xA0=rand --mem D_803A6B30+0x12*0x14:8/1=choice:0,3 --mem D_803A6B30+0x13*0x14:8/1=choice:0,1,1 \
+    --mem D_803A6B30+0x9F:1=0xFF --mem D_803A7410:2=0 --mem D_803A7412:2=0xFFF --mem D_803A7425:1=rand \
+    --mem D_803A740C=rand --mem D_80358068=int

@@ -27,7 +27,8 @@ extern s32 D_803ED814;   /* drive-in stop coordinate */
 extern u8 D_80305CB0[];
 extern u8 D_80305CB1[];  /* drive-in table: 5-byte records {level, vehicle, dir, mul, zone}, level -1 ends */
 s32 func_802AEB9C(s32 *mode);
-s32 func_802AEC3C(s32 dist, s32 key, s32 fp, TriSideOut *f);
+s32 func_802AEC3C(s32 dist, s32 key, s32 *fp, TriSideOut *f);
+s32 func_8029AA10_fp(s32 kind, s32 fp); /* 56040.c: func_8029AA10 with the asm's fp out */
 u8 *func_802AFA64(void);
 extern u8 *D_803ED82C;  /* vehicle 0's model buffers */
 extern u8 *D_803ED830;
@@ -197,10 +198,14 @@ void func_802AE860(void) {
  * D_803F7812 is 1 during the call.
  * Fidelity note: func_802AEC3C's func_802A9A60 inputs come from leftover
  * registers in the asm: key t8 = D_80364456 << 2 (what the C caller
- * func_8024B188 leaves in t8 at the call), reproduced here; fp and f12-f26 are
- * the C caller's on the first check and then whatever func_8029AA10 /
- * func_802BE77C left (fp ends up as D_803ED3F2[0..2] and +0x50); the C passes
- * 0 and zeros on every check. The asm's addi traps on overflow. */
+ * func_8024B188 leaves in t8 at the call), reproduced here; fp is the C
+ * caller's (0: the game thread's fp) on the first check and then what the
+ * previous check's func_8029AA10 left (its part count when vehicle 0's sphere
+ * touched the world, else unchanged), threaded through `fp` here; it ends up
+ * in D_803ED3F2[0..2] and +0x50. Traced in the original (Oct 2026, level 0,
+ * vehicle 4): t8 = 0x10 on every check, fp 0 on the first and 0 or 2 on the
+ * later ones. f12-f26 are pass-through FP state (zeros here). The asm's addi
+ * traps on overflow. */
 s32 func_802AE888(s32 dist) {
     s32 *pos = (s32 *) D_803ED808;
     u8 *rec;
@@ -209,6 +214,7 @@ s32 func_802AE888(s32 dist) {
     s32 mode;
     s32 off;
     s32 key;
+    s32 fp = 0;
     s32 ret = 0;
     s32 t;
     TriSideOut f;
@@ -236,11 +242,11 @@ s32 func_802AE888(s32 dist) {
         key = D_80364456 << 2;
         f.pz = f.cross = f.cz = f.side = f.sideZ = f.dz = 0.0f;
         for (off = 0; !(dist < off); off += 100) {
-            if (func_802AEC3C(off, key, 0, &f) == 0) {
+            if (func_802AEC3C(off, key, &fp, &f) == 0) {
                 goto done;
             }
         }
-        if (func_802AEC3C(dist, key, 0, &f) == 0) {
+        if (func_802AEC3C(dist, key, &fp, &f) == 0) {
             goto done;
         }
         D_803ED760[0x96] = 0;
@@ -341,9 +347,12 @@ s32 func_802AEB9C(s32 *mode) {
  * free (D_803A7424 clear), else 0.
  * Register convention (conventions.txt): dist a2, result a3; func_802A9A60's
  * leftover inputs key t8, fp, f12-f26 come in from the asm caller (here key,
- * fp, f). The asm saves v0-a0, a2, t0-t9 and gp, and also leaves a1 =
- * D_803A7424 (unread). The asm's add/sub trap on overflow. */
-s32 func_802AEC3C(s32 dist, s32 key, s32 fp, TriSideOut *f) {
+ * *fp, f). The asm doesn't save fp: it leaves what func_8029AA10 left there
+ * (the part count on a world hit, else unchanged; func_802BE77C's chain
+ * restores it), which the caller's next check reads, so *fp is in/out. The
+ * asm saves v0-a0, a2, t0-t9 and gp, and also leaves a1 = D_803A7424
+ * (unread). The asm's add/sub trap on overflow. */
+s32 func_802AEC3C(s32 dist, s32 key, s32 *fp, TriSideOut *f) {
     s32 *pos = (s32 *) D_803ED808;
     s32 x;
     s32 z;
@@ -371,11 +380,11 @@ s32 func_802AEC3C(s32 dist, s32 key, s32 fp, TriSideOut *f) {
     pos[0] = x;
     pos[2] = z;
     func_802A9A60((s16 *) (D_803ED760 + 0x52), D_803ED81C, x, z, (s32 *) (D_803ED760 + 4), &pos[1],
-                  (s16 *) (D_803ED760 + 0x4C), key, fp, D_803ED760, f, &o);
+                  (s16 *) (D_803ED760 + 0x4C), key, *fp, D_803ED760, f, &o);
     end = func_802AFA64();
     D_803ED81C = (u32) (*(s32 *) (D_803ED760 + 0x10) + *(s32 *) (D_803ED760 + 0x1C)) >> 1;
     func_8029A800(pos[2], (s32) D_80305CB0, 0, 0, pos[0], pos[1], 0, 0, (s32) end, 0, 0, D_803ED760);
-    func_8029AA10(0);
+    *fp = func_8029AA10_fp(0, *fp);
     D_803F77D0 = D_803ED460;
     func_802BE77C(0, D_803ED760);
     if (D_80364456 != 0xB) {
@@ -465,9 +474,16 @@ static void port_aeec8_ring(void) {
  * position reported (func_802A133C(z, 0, x, y)).
  * Fidelity notes: the asm feeds func_802AEE84 its C caller's t6, t7, s0-s4
  * (0 here; the results are unused), func_802AF340 its C caller's t8 as the
- * triangle-skip key (func_802475D8 leaves 0 on its main path; func_8026A8E0's
- * seed when func_802AF4BC took its random-idle path) and fp / f12-f26
- * leftovers (0 and zeros here; fp becomes D_803ED3F2[0..2] and +0x50), and
+ * triangle-skip key and fp / f12-f26 leftovers (0 and zeros here; fp becomes
+ * D_803ED3F2[0..2] and +0x50). Traced in the original (Oct 2026, gameplay,
+ * level 0): fp 0 always (the game thread's); t8 = 0x13 from func_8024B7AC
+ * (left by func_8026510C's callees), 0 from func_802475D8's mode-0x1801 path,
+ * heap pointers during the level intro, and func_8026A8E0's seed
+ * (0x47FF37D3) on frames where func_802AF4BC took its random-idle path. The
+ * key only makes func_802A9F24 skip D_803EBDB0 triangles whose u16 id equals
+ * it (and func_802A9CAC test 0xFF); those ids are vehicle types 6, 7, 0xB,
+ * 0x11, 0x12 (func_802AABE4's callers), which neither 0 nor any traced
+ * leftover equals, so 0 gives the same ground. And
  * func_802A8768 the FP registers left by func_802A860C's sine routines
  * (zeros here). The asm saves every callee-saved register. */
 void func_802AEEC8(void) {
@@ -577,8 +593,10 @@ extern s32 D_803ED814;   /* drive-in stop coordinate */
  * Register convention (conventions.txt): func_802A9A60's leftover inputs come
  * from the asm caller: key t8, fp and f12-f26 (here key, fp, f). Fidelity
  * notes: the asm's key is whatever t8 held in func_802AEEC8 (its C callers'
- * leftover, or func_8026A8E0's seed on func_802AF4BC's random-idle path); fp
- * ends up as D_803ED3F2[0..2] and +0x50. The asm passes only five arguments to
+ * leftover, or func_8026A8E0's seed on func_802AF4BC's random-idle path;
+ * traced 0x13 / 0x47FF37D3, see func_802AEEC8: no triangle id can equal it,
+ * so the C's 0 scans the same ground); fp (traced: always 0, as here) ends up
+ * as D_803ED3F2[0..2] and +0x50. The asm passes only five arguments to
  * func_802582C4: arg5 is a stale stack word (0 here), arg6/arg7 are the high
  * and low words of its own saved $ra (-1 and 0x802AEF50, the return address in
  * func_802AEEC8; func_802582C4 keeps them as s16s), reproduced here. The asm's

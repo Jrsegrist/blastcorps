@@ -79,14 +79,15 @@ enum {
     K_MODEL,     /* a vehicle model pair (*.raw + *_dl.raw) */
     K_STATIC,    /* the static segment (segment 1) */
     K_DEMOS,     /* the attract-mode recordings */
-    K_IMAGE,     /* textures/images loaded whole (title, logos, world textures) */
+    K_IMAGE,     /* textures/images loaded whole (title, world textures): texels and packed tokens */
+    K_SCENE,     /* front-end scenes (usa_star, ninlogo, reflectlogo): offsets + display lists */
     K_UNKNOWN,
     K_COUNT
 };
 
 static const char *kind_name[K_COUNT] = {
     "none", "front end", "texture table", "texture", "packed table", "sound bank", "sequence file",
-    "tune", "level", "packed object", "model", "static segment", "demos", "image", "unknown",
+    "tune", "level", "packed object", "model", "static segment", "demos", "image", "scene", "unknown",
 };
 
 static struct {
@@ -137,7 +138,8 @@ static int classify(uint32_t rom, uint32_t len) {
     if (rom >= ROM_LEVELS_LO && rom < ROM_LEVELS_HI) return K_LEVEL;
     if (rom >= ROM_WORLDTEX_LO && rom < ROM_DEMOS) return K_IMAGE;
     if (rom == ROM_DEMOS) return K_DEMOS;
-    if (rom >= ROM_LOGOS_LO && rom < ROM_PKTAB) return K_IMAGE;
+    if (rom >= ROM_DEMOS && rom < ROM_LOGOS_LO) return K_IMAGE;    /* FE background pictures */
+    if (rom >= ROM_LOGOS_LO && rom < ROM_PKTAB) return K_SCENE;
     if (rom == ROM_PKTAB) return K_PKTAB;
     if (rom >= ROM_PACKED_LO && rom < ROM_STATIC) return K_PACKED;
     if (rom == ROM_STATIC) return K_STATIC;
@@ -307,6 +309,7 @@ static int apply(int kind, uint32_t dst, uint32_t rom, uint32_t len, int at_load
         case K_MODEL:
         case K_STATIC:
         case K_DEMOS:
+        case K_SCENE:
             if (!at_load) return 0;
             return schema_apply(kind, dst, rom, len);
         default:

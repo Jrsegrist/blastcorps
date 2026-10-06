@@ -22,6 +22,7 @@ COPIERS = {"func_8026A5CC",   # 23C20: copy in 8-byte units
            "func_802A57DC",   # 60F60: packed texture -> scratch copy (u64, u16)
            "func_802A5E10",   # 60F60: type-0 (stored) texture copy
            "func_80285A78",   # 409D0: 16-byte record copy
+           "func_802C04F0",   # 77E20: 0x38-byte debris record copy (words)
            "memcpy", "bcopy", "bzero", "alCopy"}
 
 
@@ -91,7 +92,7 @@ def cmd_facts(out, paths):
         for rom in sorted(rows):
             if rom not in size:
                 continue
-            f.write("A %06X %X %s\n" % (rom, size[rom], how[rom]))
+            f.write("@ %06X %X %s\n" % (rom, size[rom], how[rom]))
             for off in sorted(rows[rom]):
                 if off < size[rom]:
                     f.write("%X %s\n" % (off, ",".join(str(w) for w in sorted(rows[rom][off]))))

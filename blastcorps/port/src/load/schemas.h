@@ -182,11 +182,202 @@ static void swap_level(uint32_t base, uint32_t len) {
     free(b.done);
 }
 
+/* --------------------------------------------------- packed objects (5CB60) */
+
+#define VTX_LEAVES "2@0 2@2 2@4 2@6 2@8 2@A"
+#define TRI_LEAVES "2@0 2@2 2@4 2@6 2@8 2@A 2@C 2@E 2@10"
+
+/* 0x28: texture records {u32 id; u8 count @4; u8 @5..7; u32 @8; s16 @C, @E;
+ * count - 1 u32 texture ids from +0x10} (func_802A2608) */
+static void obj_texrecs(Block *b, uint32_t lo, uint32_t hi) {
+    while (lo + 0x10 <= hi) {
+        uint32_t n = P(b->base + lo)[4];
+        if (n == 0) break;
+        blk_swap(b, lo, 4);
+        blk_swap(b, lo + 8, 4);
+        blk_n(b, lo + 0xC, 2, 2);
+        blk_n(b, lo + 0x10, n - 1, 4);
+        lo += 0x10 + (n - 1) * 4;
+    }
+}
+
+/* 0x38 (func_802BD1F8): s32 n, n x {s16; u8; u8}; then groups {s32 x 4
+ * (offsets); s32 m; m x {s16; u8; u8}} to the end (the last group may stop
+ * after its four words) */
+static void obj_entries(Block *b, uint32_t *p, uint32_t hi) {
+    uint32_t n, i;
+    if (*p + 4 > hi) return;
+    blk_swap(b, *p, 4);
+    n = rd32(b->base + *p);
+    *p += 4;
+    for (i = 0; i < n && *p + 4 <= hi; i++, *p += 4) {
+        blk_swap(b, *p, 2);
+        blk_keep(b, *p + 2, 2);
+    }
+}
+
+static void obj_parts(Block *b, uint32_t lo, uint32_t hi) {
+    uint32_t p = lo;
+    obj_entries(b, &p, hi);
+    while (p + 16 <= hi) {
+        blk_n(b, p, 4, 4);
+        p += 16;
+        obj_entries(b, &p, hi);
+    }
+}
+
+/* Buildings and other level objects (ROM 0x6ECCC0.., func_802A2A98): u16 at
+ * 0 and 2, bytes 4..7, s32 at 8, u16 at 0xE, s32 offsets 0x10..0x4C, Vtx
+ * from 0x50 (func_802A26A8 moves them).  Read by 5CB60.c, 77E20.c. */
+static void swap_object(uint32_t base, uint32_t len) {
+    Block b;
+    uint32_t lo, hi;
+    if (len < 0x50) return;
+    b.base = base;
+    b.len = len;
+    b.done = calloc(len + 4, 1);
+    blk_n(&b, 0, 2, 2);
+    blk_swap(&b, 8, 4);
+    blk_swap(&b, 0xE, 2);
+    blk_n(&b, 0x10, (0x50 - 0x10) / 4, 4);
+    blk_records(&b, 0x50, blk_rd32(&b, 0x1C), 0x10, VTX_LEAVES);
+    if (blk_sect(&b, 0x10, 0x14, &lo, &hi)) blk_records(&b, lo, hi, 4, "4@0");      /* display lists */
+    if (blk_sect(&b, 0x1C, 0x24, &lo, &hi)) blk_records(&b, lo, hi, 2, "2@0");      /* corner points */
+    if (blk_sect(&b, 0x24, 0x28, &lo, &hi)) blk_records(&b, lo, hi, 0x14, TRI_LEAVES);
+    if (blk_sect(&b, 0x28, 0x2C, &lo, &hi)) obj_texrecs(&b, lo, hi);
+    if (blk_sect(&b, 0x2C, 0x30, &lo, &hi)) blk_records(&b, lo, hi, 2, "2@0");
+    /* 0x38-byte debris records (func_802A26A8 moves words 0-2 and 10;
+     * func_802C0574 reads the copy: u16 delay 0x2C, u16 radius 0x2E, bytes
+     * 0x30.. (kind at 0x31, func_802A23E0), flag byte 0x34) */
+    if (blk_sect(&b, 0x30, 0x38, &lo, &hi))
+        blk_records(&b, lo, hi, 0x38, "4@0 4@4 4@8 4@C 4@10 4@14 4@18 4@1C 4@20 4@24 4@28 2@2C 2@2E");
+    if (blk_sect(&b, 0x38, 0x3C, &lo, &hi)) obj_parts(&b, lo, hi);
+    if (blk_sect(&b, 0x40, 0x44, &lo, &hi)) blk_records(&b, lo, hi, 2, "2@0");
+    /* 0x44: bytes; 0x48: 0x19-byte triangles read with BE16S */
+    free(b.done);
+}
+
+/* Vehicle models (ROM 0x48FE90.., func_802A396C): s32 offsets 0x00..0x44;
+ * Vtx [hdr[0x14], hdr[0x18]); display lists and their tables from hdr[0x18]
+ * to the end (u32 words: func_802A08E4, func_802A1388, func_8029DF78) */
+/* vehicle animation block [hdr[0x10], hdr[0x14]): s16 offsets (count = the
+ * first / 2, func_8029F85C), each to {u8 k; k + 1 bytes; pad to a word}
+ * then groups {s32; s32; k x ten s16} up to the next animation
+ * (func_8029E5AC, func_8029EF80) */
+static void mdl_anims(Block *b, uint32_t lo, uint32_t hi) {
+    uint32_t n, i;
+    if (lo + 2 > hi) return;
+    blk_swap(b, lo, 2);
+    n = (uint16_t) rd16(b->base + lo) / 2;
+    if (lo + n * 2 > hi) return;
+    blk_n(b, lo, n, 2);
+    for (i = 0; i < n; i++) {
+        uint32_t a = lo + (uint16_t) rd16(b->base + lo + i * 2), e = hi, j, k, p;
+        for (j = i + 1; j < n; j++) {
+            uint32_t o = lo + (uint16_t) rd16(b->base + lo + j * 2);
+            if (o > a) {
+                e = o;
+                break;
+            }
+        }
+        if (a + 4 > e || e > hi) continue;
+        k = P(b->base + a)[0];
+        /* header bytes: k, k bytes, one more, padded to a word */
+        blk_keep(b, a, (k + 2 + 3) & ~3u);
+        for (p = a + ((k + 2 + 3) & ~3u); p + 8 + k * 0x14 <= e; p += 8 + k * 0x14) {
+            blk_n(b, p, 2, 4);
+            blk_n(b, p + 8, k * 10, 2);
+        }
+    }
+}
+
+static void mdl_parts(Block *b, uint32_t p, uint32_t hi, uint32_t ns) {
+    while (p + ns * 2 <= hi) {
+        uint32_t n;
+        blk_n(b, p, ns, 2);
+        n = (uint16_t) rd16(b->base + p + (ns - 1) * 2);
+        p += ns * 2;
+        if (p + n * 4 > hi) break;
+        blk_n(b, p, n, 4);
+        p += n * 4;
+    }
+}
+
+static void mdl_list(Block *b, uint32_t p, uint32_t hi, uint32_t ns) {
+    uint32_t k, n;
+    if (p + 4 > hi) return;
+    blk_n(b, p, 2, 2);
+    k = (uint16_t) rd16(b->base + p);
+    n = (uint16_t) rd16(b->base + p + 2);
+    p += 4;
+    if (p + n * 4 + k * ns * 2 > hi) return;
+    blk_n(b, p, n, 4);
+    blk_n(b, p + n * 4, k * ns, 2);
+}
+
+static void swap_model(uint32_t base, uint32_t len) {
+    Block b;
+    uint32_t lo, hi;
+    if (len < 0x4C) return;
+    b.base = base;
+    b.len = len;
+    b.done = calloc(len + 4, 1);
+    blk_n(&b, 0, 0x4C / 4, 4);
+    /* collision/attachment parts (func_802ABBEC, func_8029C354/C454,
+     * func_802AABE4, func_8029D24C; func_802AA890 reads their words):
+     * [hdr0, hdr4): {s16 x4, the last = n; n x s32} ...
+     * [hdr4, hdr8): s16, pad, then {s16 x6, the last = n; n x s32} ...
+     * [hdr8, hdrC): {s16 k; s16 n; n x s32; k x ten s16}
+     * [hdrC, hdr10): the same (func_8029D24C) */
+    if (blk_sect(&b, 0x00, 0x04, &lo, &hi)) mdl_parts(&b, lo, hi, 4);
+    if (blk_sect(&b, 0x04, 0x08, &lo, &hi) && lo + 4 <= hi) {
+        blk_n(&b, lo, 2, 2);
+        mdl_parts(&b, lo + 4, hi, 6);
+    }
+    if (blk_sect(&b, 0x08, 0x0C, &lo, &hi)) mdl_list(&b, lo, hi, 10);
+    if (blk_sect(&b, 0x0C, 0x10, &lo, &hi)) mdl_list(&b, lo, hi, 10);
+    if (blk_sect(&b, 0x10, 0x14, &lo, &hi)) mdl_anims(&b, lo, hi);
+    if (blk_sect(&b, 0x14, 0x18, &lo, &hi)) blk_records(&b, lo, hi, 0x10, VTX_LEAVES);
+    lo = blk_rd32(&b, 0x18);
+    if (lo < len) blk_records(&b, lo, len, 4, "4@0");
+    free(b.done);
+}
+
+/* The attract-mode recordings (ROM 0x6A9F10, 17210.c): per demo a header
+ * (u16 at 0, 2, 8; bytes 0xA, 0xB), 0x400 five-byte RecEntry (bytes), s16
+ * length at 0x140C, then that many bytes of the vehicle's saved state, copied
+ * bytewise into the live vehicle block (func_802AC85C): left big-endian,
+ * see port/README.md (unswapped). */
+static void swap_demos(uint32_t base, uint32_t len) {
+    uint32_t p = 0;
+    while (p + 0x140E <= len) {
+        uint32_t n;
+        port_bswap_n(P(base + p), 2, 2);
+        port_bswap_n(P(base + p + 8), 1, 2);
+        port_bswap_n(P(base + p + 0x140C), 1, 2);
+        n = rd16(base + p + 0x140C);
+        p += 0x140E + n;
+    }
+}
+
 static int schema_apply(int kind, uint32_t dst, uint32_t rom, uint32_t len) {
     (void) rom;
     switch (kind) {
         case K_LEVEL:
             swap_level(dst, len);
+            return 1;
+        case K_PACKED:
+            swap_object(dst, len);
+            return 1;
+        case K_MODEL:
+            swap_model(dst, len);
+            return 1;
+        case K_DEMOS:
+            swap_demos(dst, len);
+            return 1;
+        case K_SCENE:            /* front-end scenes: offsets, then display lists */
+        case K_STATIC:           /* segment 1: display lists (RSP only) */
+            port_bswap_n(P(dst), len / 4, 4);
             return 1;
         default:
             return 0;

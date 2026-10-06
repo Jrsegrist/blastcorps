@@ -62,6 +62,9 @@ s32 func_802DA2F0(void *mb, s32 pri, s32 dir, u32 devAddr, void *dram, u32 size,
 s32 osRecvMesg(void *mq, void *msg, s32 flag) { (void) mq; (void) msg; (void) flag; return 0; }
 void osInvalDCache(void *p, s32 n) { (void) p; (void) n; }
 void osWritebackDCache(void *p, s32 n) { (void) p; (void) n; }
+/* the platform layer's game hooks (include/game/port.h) */
+void port_fe_loaded(void) {}
+void port_spin(void) {}
 void func_8029A7E4(const char *fmt, ...) { (void) fmt; }
 void port_stub_hit(const char *name) {
     fprintf(stderr, "STUB called: %s\n", name);
@@ -206,6 +209,11 @@ static int t9_load(uint32_t rom, uint32_t size, const char *how, uint8_t **raw) 
     uint32_t src, dst;
     if (size == 0 || size > 0xF0000 || rom + 0x100 > g_romsize) return 0;
     if (rom >= 0xCCE0u && rom < 0x350950u) return 0;   /* texture entries: decoded in place (T6) */
+    /* texture bundles and pictures: tokens swapped at decode time, pictures
+     * tinted bytewise in the port (196F0.c); the offset table 0x6EC4C0 shares
+     * its heap buffer with later decodes in the trace */
+    if (rom >= 0x66C900u && rom < 0x6E8980u && rom != 0x6A9F10u) return 0;
+    if (rom == 0x6EC4C0u) return 0;
     if (!strcmp(how, "dma")) {
         memcpy((void *) (uintptr_t) T9_DST, g_rom + rom, size);
     } else {
@@ -244,7 +252,7 @@ static void t9(const char *path) {
     }
     for (;;) {
         int eof = !fgets(line, sizeof line, f);
-        if (eof || line[0] == 'A') {
+        if (eof || line[0] == '@') {
             if (have) {
                 printf("T9 %06X %s size %X facts %u bad %u multi %u%s%s\n", rom, how, size, nf, bad, multi,
                        bad ? "  e.g. " : "", first);
@@ -257,7 +265,7 @@ static void t9(const char *path) {
             raw = NULL;
             have = 0;
             if (eof) break;
-            if (sscanf(line, "A %x %x %7s", &rom, &size, how) != 3) continue;
+            if (sscanf(line, "@ %x %x %7s", &rom, &size, how) != 3) continue;
             have = t9_load(rom, size, how, &raw);
             nf = bad = multi = 0;
             first[0] = 0;

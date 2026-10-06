@@ -13,6 +13,7 @@ hd 18 4
 hd 1C 4
 hd 20 1
 hd 28 1
+hd 28 4
 hd 28 4 idx
 hd 74 1
 hd 74 1 idx
@@ -256,11 +257,11 @@ hd 14F84 1 idx
 hd 14FC8 2
 hd 15000 1
 hd 15004 1
-hd 1553A 1 idx
-hd 1553B 1 idx
+hd 152BA 1 idx
+hd 152BB 1 idx
+hd 15D99 1 idx
 hd 15E30 1 idx
 hd 15E31 1 idx
-hd 16339 1 idx
 hd 16500 4 idx
 hd 16580 4
 hd 16584 4

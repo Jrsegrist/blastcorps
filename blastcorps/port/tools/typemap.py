@@ -146,6 +146,7 @@ def file_views(path):
 
 decls = collections.defaultdict(dict)   # name -> {file: (size, leaves)}
 defined = set()                          # names some game file defines (native initialiser)
+pending_views = []                       # (name, file key, element size, element leaves, scalar)
 tmp = tempfile.mkdtemp()
 # game files, then the libultra/libaudio wrappers (ultralib C; their data is
 # defined in C, so it gets native initialisers when the port links them)
@@ -197,10 +198,8 @@ for src in files:
                         continue
                     if not esz:
                         continue
-                    n = 1 if scalar else max(1, ext // esz)
-                    # byte leaves too: an explicit u8 field blocks a coarser view's word there
-                    lv = [(k * esz + o, w, fl) for k in range(n) for o, w, fl in one]
-                    decls[nm][fid + ("#ptrview" if is_ptr else "#view")] = (esz * n, lv)
+                    # the array's extent is settled once every file is read
+                    pending_views.append((nm, fid + ("#ptrview" if is_ptr else "#view"), esz, list(one), scalar))
             for die in cu.get_top_DIE().iter_children():
                 if die.tag != "DW_TAG_variable":
                     continue
@@ -219,6 +218,20 @@ for src in files:
                     sz = nmsize.get(nm) or (next_sym(a) - a)
                 decls[nm][fid] = (sz, list(flatten(lv, sz)))
 
+# array views run to the next symbol some file declares or defines: splat
+# also names addresses inside arrays (mid-array references), which no file
+# declares, and those must not cut the array short
+declared_addrs = sorted(set(addr[n] for n in decls) | set(addr[n] for n, *_ in pending_views))
+import bisect as _bisect
+for nm, key, esz, one, scalar in pending_views:
+    a = addr[nm]
+    i = _bisect.bisect_right(declared_addrs, a)
+    nxt = declared_addrs[i] if i < len(declared_addrs) else a + esz
+    ext = max(nmsize.get(nm) or 0, nxt - a)
+    n = 1 if scalar else max(1, ext // esz)
+    # byte leaves too: an explicit u8 field blocks a coarser view's word there
+    decls[nm][key] = (esz * n, [(k * esz + o, w, fl) for k in range(n) for o, w, fl in one])
+
 # per symbol: pick the layout most files agree on; record disagreements
 conflicts = []
 chosen = {}
@@ -234,16 +247,19 @@ for nm, per in decls.items():
         sz = max(sz, max(s for s, _ in per.values()))
     if len(lay) > 1:
         # several typed views of the same bytes (per-file struct views): the
-        # union of their leaves, the commonest struct view first and pointer-
-        # array views (`(void **) D_x`, a decompiler shortcut) last; a field
-        # any earlier view types, even as a byte, isn't retyped by a later one
+        # union of their leaves, pointer-array views (`(void **) D_x`, a
+        # decompiler shortcut) last; a field an earlier view types, even as a
+        # byte, isn't retyped by a later one
         isptr = {}
         for f, (s, l) in pool.items():
             isptr[(s, tuple(l))] = isptr.get((s, tuple(l)), True) and f.endswith("#ptrview")
         taken = {}
         merged = []
         clash = 0
-        for (vsz, vlv), _ in sorted(lay.most_common(), key=lambda kv: (isptr[kv[0]], -kv[1])):
+        # the most detailed view (most multi-byte fields) first: partial views
+        # declare the fields they don't know as u8 arrays
+        for (vsz, vlv), _ in sorted(lay.most_common(), key=lambda kv: (
+                isptr[kv[0]], -sum(1 for x in kv[0][1] if x[1] > 1), -kv[1])):
             for o, w, fl in vlv:
                 span = range(o, o + w)
                 if all(k not in taken for k in span):

@@ -402,6 +402,10 @@ def upd(pc):
             add_bp("hd", a, min(HD[1], a + 0x1000), HD[0])
         for a in range(FE[0], FE[1], 0x1000):
             add_bp("fe", a, min(FE[1], a + 0x1000), FE[0])
+        # EXTRA="name:lo:hi,...": more fixed regions (e.g. .bss state blocks)
+        for spec in filter(None, os.environ.get("EXTRA", "").split(",")):
+            nm_, lo_, hi_ = spec.split(":")
+            add_bp(nm_, int(lo_, 16), int(hi_, 16), int(lo_, 16))
         for k in range(60):
             idx = add_bp("-", 0x807FF000, 0x807FF004, 0)
             free_slot(idx)

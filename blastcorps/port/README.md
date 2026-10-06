@@ -309,10 +309,26 @@ Word comparison: each 32-bit word matches if some layout agrees (u32, two
 u16, u16 + two bytes, four bytes, an u64 pair, a u32 at 2 mod 4), if both are
 pointers to the same function / the exe's own constant data, or an empty
 thread queue (__osThreadTail vs NULL). This is lenient: a field swapped as
-two u16 where the code reads a u32 still "matches" (a strict, typed mode is
-future work). `tools/compare_ignore.txt` lists what legitimately differs, with
+two u16 where the code reads a u32 still "matches" (see strict mode below).
+`tools/compare_ignore.txt` lists what legitimately differs, with
 reasons: framebuffers, Z-buffer, RSP buffers, per-frame display lists, code,
 thread stacks and OSThreads, libultra internals the platform keeps
 elsewhere, scheduler timing/history, and the audio subsystem (the native
 synthesizer is ultralib's newer libaudio, and the RSP task order isn't
 modelled, so audio frames and the audio heap layout differ).
+
+Strict mode (`diff --strict`, after `make -C port strict-data
+LC_TRACE=trace.txt`): each byte also gets the width its readers use, from
+the declarations of every symbol (`TYPEMAP_ALL=1 typemap.py`), the traced
+reads of the data images and of every traced asset (placed where the exe's
+load log put it), and `data/image_overrides.txt`; a word that matches only
+under some other layout is reported. C objects' .data/.rodata, textures
+and a few buffers whose declared type isn't their readers' (`Layout.UNTYPED`)
+stay lenient. More emulator inputs: `Q` lines (the game retrace counter
+where `PORT_GVI` marks a mid-frame read, `cmp_spec.py GVI_FUNCS`), and
+`calls --args` compares the first argument words (`emu --calls` logs a0-a3,
+the exe the first four stack words; build with `HL_EXTRA=-fno-inline` for
+functions gcc inlines). Never-written record padding is logged by the exe
+(`port_garbage`, "load: garbage") and skipped; the game's reads of such
+stale bytes get the N64's big-endian view (`port_n64_byte`, from the unit
+every swap recorded).

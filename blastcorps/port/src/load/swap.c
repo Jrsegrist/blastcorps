@@ -1,4 +1,5 @@
 /* Byte-swap primitives and the data-image swap (see port_load.h). */
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "rdram.h"
@@ -15,6 +16,11 @@ void port_unit_mark(void *p, uint32_t n, int width) {
     a -= 0x80000000u;
     for (i = 0; i < n; i++, a += (uint32_t) width)
         for (k = 0; k < width; k++) unit_map[a + k] = (uint8_t) (k << 4 | width);
+}
+
+void port_garbage(const void *p, uint32_t len) {
+    if (port_load_verbose)
+        fprintf(stderr, "load: garbage %08X len %X\n", (unsigned) (uintptr_t) p, (unsigned) len);
 }
 
 uint8_t port_n64_byte(const void *p) {

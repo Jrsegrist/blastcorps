@@ -39,6 +39,9 @@ void port_bswap_n(void *p, uint32_t n, int width);
  * kept big-endian); port_n64_byte gives the byte the N64 would hold at P. */
 void port_unit_mark(void *p, uint32_t n, int width);
 uint8_t port_n64_byte(const void *p);
+/* bytes nothing writes or reads (record padding): with --load-log, logged
+ * for the comparison (port/tools/compare.py skips them until reloaded) */
+void port_garbage(const void *p, uint32_t len);
 /* apply a run table (terminated by count 0); returns the bytes swapped */
 uint32_t port_swap_runs(const PortSwapRun *runs);
 

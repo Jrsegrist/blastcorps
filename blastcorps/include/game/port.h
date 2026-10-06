@@ -28,6 +28,17 @@
  *                     the status block, whose only multi-byte value is its
  *                     "no status" marker.
  */
+/*   PORT_HALF(i)      index of halfword i of an array of 32-bit words viewed
+ *                     as u16s (the N64 Mtx's elements: integer halves, then
+ *                     fraction halves, two per word). The port keeps such
+ *                     words in host order (as ultralib's gu writes them), so
+ *                     on the little-endian host the two halves of each word
+ *                     trade places: i ^ 1. */
+#if defined(NON_MATCHING) && defined(PORT_HOST)
+#define PORT_HALF(i) ((i) ^ 1)
+#else
+#define PORT_HALF(i) (i)
+#endif
 #define PORT_SAVE_PLAYER 0  /* player record, 0x100 bytes */
 #define PORT_SAVE_TIMES 1   /* best times, 0x20 bytes */
 #define PORT_SAVE_EETIMES 2 /* EEPROM best-time words, 8 bytes */

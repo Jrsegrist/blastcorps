@@ -67,12 +67,19 @@ def _dump(rd, ctl, why):
         ctl.log("dump %s %08x %s" % (why, a, "".join("%02x" % rd(a + i, 1) for i in range(ln))))
 
 
+DUMP_MODE = int(os.environ.get("M64DUMPMODE", "0"), 16)   # with M64DUMPEVERY=n: also dump
+DUMP_EVERY = int(os.environ.get("M64DUMPEVERY", "0"))      # every n controller reads in that mode
+
+
 def INPUT(vi, rd, ctl):
     v = ctl.vars
     mode = rd(0x80364A90, 8)
     if mode != v.get("mode"):
         v["mode"] = mode
         _dump(rd, ctl, "mode=%x reads=%d" % (mode, ctl.polls))
+    if DUMP_EVERY and mode == DUMP_MODE and ctl.polls != v.get("lastpoll") and ctl.polls % DUMP_EVERY == 0:
+        v["lastpoll"] = ctl.polls
+        _dump(rd, ctl, "every mode=%x reads=%d" % (mode, ctl.polls))
     if vi == VIS - 1:
         _dump(rd, ctl, "end reads=%d" % ctl.polls)
     b, x, y = _at(ctl.polls)

@@ -2464,7 +2464,7 @@ extern u16 D_803EBB98[]; /* product temp, same layout */
 
 /* Element (row, col) of an N64 fixed-point Mtx as s15.16. */
 #define MTX_FIX(m, row, col) \
-    ((s32) (((m)[(row) * 4 + (col)] << 16) | (m)[16 + (row) * 4 + (col)]))
+    ((s32) (((m)[PORT_HALF((row) * 4 + (col))] << 16) | (m)[PORT_HALF(16 + (row) * 4 + (col))]))
 
 
 /* Concatenate `count` Mtx (each at base + offsets[i]) as M = M0 * M1 * ...
@@ -2512,8 +2512,8 @@ s32 func_802AA890(s32 count, s32 *offsets, u8 *base, s32 x, s32 y, s32 z, MtxCha
                     sum += (s64) MTX_FIX(D_803EBB58, i, k) * (s64) MTX_FIX(b, k, j);
                 }
                 sum >>= 16;
-                D_803EBB98[16 + i * 4 + j] = sum;
-                D_803EBB98[i * 4 + j] = (u32) sum >> 16;
+                D_803EBB98[PORT_HALF(16 + i * 4 + j)] = sum;
+                D_803EBB98[PORT_HALF(i * 4 + j)] = (u32) sum >> 16;
             }
         }
         src = (s32 *) D_803EBB98;
@@ -2525,7 +2525,7 @@ s32 func_802AA890(s32 count, s32 *offsets, u8 *base, s32 x, s32 y, s32 z, MtxCha
         count--;
     }
     rx = MTX_FIX(D_803EBB58, 0, 0) * x + MTX_FIX(D_803EBB58, 1, 0) * y + MTX_FIX(D_803EBB58, 2, 0) * z +
-         (D_803EBB58[12] << 16);
+         (D_803EBB58[PORT_HALF(12)] << 16);
     ry = MTX_FIX(D_803EBB58, 0, 1) * x + MTX_FIX(D_803EBB58, 1, 1) * y + MTX_FIX(D_803EBB58, 2, 1) * z +
          MTX_FIX(D_803EBB58, 3, 1);
     rz = MTX_FIX(D_803EBB58, 0, 2) * x + MTX_FIX(D_803EBB58, 1, 2) * y + MTX_FIX(D_803EBB58, 2, 2) * z +

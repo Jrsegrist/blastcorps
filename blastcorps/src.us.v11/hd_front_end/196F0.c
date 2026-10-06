@@ -76,6 +76,39 @@ void func_80200714(u8 mode) {
     size = end - start;
     func_8028B4C4((u32) start, (u32) D_80358070, &size, 0xD, 0, 2);
     pix = (u16 *) D_80358070;
+#if defined(NON_MATCHING) && defined(PORT_HOST)
+    /* Windows port, byte order: the picture is a texture and stays big-endian
+     * in memory (the renderer reads texels as bytes), so the tint reads and
+     * writes its RGBA16 pixels as big-endian halfwords. */
+    for (i = 0; i < size / 2; i++) {
+        u8 *q = (u8 *) &pix[i];
+        u16 v = (q[0] << 8) | q[1];
+
+        r = v >> 11;
+        g = (v >> 6) & 0x1F;
+        b = (v >> 1) & 0x1F;
+        switch (mode) {
+            case 3:
+            case 7:
+            case 9:
+                r = (31.0 < (f32) r * 1.25) ? 31.0 : (f32) r * 1.25;
+                g = (b < 3) ? b : 3;
+                b = b / 4;
+                break;
+            case 2:
+            case 6:
+            case 8:
+                g = (b < 2) ? b : 2;
+                tmp = r;
+                r = b / 3;
+                b = (f32) tmp * 0.8125;
+                break;
+        }
+        v = (r << 11) | (g << 6) | (b << 1) | 1;
+        q[0] = v >> 8;
+        q[1] = (u8) v;
+    }
+#else
     for (i = 0; i < size / 2; i++) {
         r = pix[i] >> 11;
         g = (pix[i] >> 6) & 0x1F;
@@ -99,6 +132,7 @@ void func_80200714(u8 mode) {
         }
         pix[i] = (r << 11) | (g << 6) | (b << 1) | 1;
     }
+#endif
     D_80358070 += size;
 }
 

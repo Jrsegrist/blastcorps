@@ -54,3 +54,8 @@
 #   words the dome came out flat (z = 0): a red band across the screen when
 #   the carrier is hit.
 802FFF38 B30 vtx
+# - 802FDFD8 (8 Vtx) inside the extent of the display list D_802FDC08 and
+#   802FE640 (45 Vtx: 16 + 14 + 15) inside D_802FE3C0, both lists typed as
+#   words; found by scanning every G_VTX in the hd data image (gfx2 notes).
+802FDFD8 80 vtx
+802FE640 2D0 vtx

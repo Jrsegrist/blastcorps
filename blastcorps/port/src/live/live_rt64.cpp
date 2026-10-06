@@ -20,6 +20,9 @@
  *     --no-pace         run as fast as possible (default: 60 retraces a second)
  *     --scale N         window size 320x240 times N (default 2)
  *     --dl-dump F[:N]   print N tasks' display lists from frame F (default 12)
+ *     --dl-dump-every N print the first task's display lists every N frames
+ *     --dl-skip LO:HI   draw triangles whose commands lie in [LO, HI) (physical)
+ *                       as no-ops (find which list draws something)
  *     --no-gfx-fix      don't convert graphics data in display-list areas
  *                       (port/src/load/gfx_fix.c; to see what it does)
  *     --gfx-fix-log     log graphics data the game changed in those areas
@@ -55,7 +58,7 @@ struct LiveOpts {
     std::vector<unsigned> shots;     /* frame numbers (game frames) to save */
     unsigned shotEvery = 0;
     const char *shotDir = ".";
-    unsigned dlDumpFrame = ~0u, dlDumpTasks = 12;
+    unsigned dlDumpFrame = ~0u, dlDumpTasks = 12, dlDumpEvery = 0;
     bool gfxFix = true;
 };
 LiveOpts g_opt;
@@ -321,7 +324,7 @@ void liveBoot() {
 /* --dl-dump: walk an F3D display list (segments, sub-lists) and print the
  * commands that matter for the data layout, with the first vertex of each
  * G_VTX in both layouts */
-unsigned g_diagTasks;
+unsigned g_diagTasks, g_dlLastFrame = ~0u;
 void diagWalk(unsigned dl) {
     uint32_t seg[16] = {0};
     uint32_t stack[16];
@@ -422,6 +425,10 @@ void liveGfxTask(unsigned ucode, unsigned ucodeData, unsigned dataPtr, unsigned 
         host_log("DIAG task %u ucode %08X dl %08X\n", g_diagTasks, ucode, dataPtr);
         diagWalk(dataPtr);
         g_diagTasks++;
+    } else if (g_opt.dlDumpEvery != 0 && plat_frames() % g_opt.dlDumpEvery == 0 && plat_frames() != g_dlLastFrame) {
+        g_dlLastFrame = plat_frames();   /* the frame's first task */
+        host_log("DIAG frame %u task ucode %08X dl %08X\n", g_dlLastFrame, ucode, dataPtr);
+        diagWalk(dataPtr);
     }
     g_app->interpreter->loadUCodeGBI(ucode & 0x3FFFFFF, ucodeData & 0x3FFFFFF, true);
     if (g_app->interpreter->hleGBI == nullptr) {
@@ -531,6 +538,7 @@ int extraArg(int argc, char **argv, int *i, HostOpts *o) {
     else if (!strcmp(a, "--shot-every")) g_opt.shotEvery = num(next());
     else if (!strcmp(a, "--no-gfx-fix")) g_opt.gfxFix = false;
     else if (!strcmp(a, "--gfx-fix-log")) port_gfx_debug = 1;
+    else if (!strcmp(a, "--dl-dump-every")) g_opt.dlDumpEvery = num(next());
     else if (!strcmp(a, "--dl-skip")) {
         const char *s = next(), *colon = strchr(s, ':');
         g_skipLo = num(s);

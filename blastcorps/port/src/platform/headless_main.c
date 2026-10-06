@@ -11,6 +11,11 @@
  *     --no-controller    controller 1 unplugged
  *     --gettime FILE     injected osGetTime values (see os_time.c)
  *     --frame-done FILE  injected frame completion retraces (see os_time.c)
+ *     --clock FILE       osGetTime/osGetCount values keyed by caller (os_time.c)
+ *     --syms FILE        `nm -n` of this exe (build/headless/bc_headless.syms):
+ *                        caller names for --clock, symbols in crash reports
+ *     --sync FILE        the emulator's time at each thread switch point
+ *                        (os_thread.c; port/tools/compare.py writes it)
  *     --eeprom FILE      EEPROM image (read at boot, written on save)
  *     --no-eeprom        no EEPROM chip
  *     --gfx-cycles N     RCP time of a frame's gfx task, in 46.875 MHz counts
@@ -30,7 +35,7 @@
 static void usage(void) {
     fprintf(stderr, "usage: bc_headless.exe ROM [--frames N] [--vis N] [--dump F1,F2..] [--dump-every N]\n"
                     "       [--dump-dir DIR] [--trace FILE] [--input FILE] [--no-controller] [--gettime FILE]\n"
-                    "       [--frame-done FILE]\n"
+                    "       [--frame-done FILE] [--clock FILE] [--syms FILE] [--sync FILE]\n"
                     "       [--eeprom FILE] [--no-eeprom] [--gfx-cycles N] [--small-gfx-cycles N]\n"
                     "       [--aud-cycles N] [--gettime-cost N] [--boot-count N] [--cmdline STR] [-v] [-q]\n");
     exit(1);
@@ -77,6 +82,9 @@ int main(int argc, char **argv) {
         else if (!strcmp(a, "--no-controller")) o.cont_present = 0;
         else if (!strcmp(a, "--gettime")) o.gettime_path = ARG();
         else if (!strcmp(a, "--frame-done")) o.frame_done_path = ARG();
+        else if (!strcmp(a, "--clock")) o.clock_path = ARG();
+        else if (!strcmp(a, "--syms")) o.syms_path = ARG();
+        else if (!strcmp(a, "--sync")) o.sync_path = ARG();
         else if (!strcmp(a, "--eeprom")) o.eeprom_path = ARG();
         else if (!strcmp(a, "--no-eeprom")) o.eeprom_present = 0;
         else if (!strcmp(a, "--gfx-cycles")) o.gfx_cycles = num(ARG());

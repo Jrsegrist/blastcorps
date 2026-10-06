@@ -137,15 +137,16 @@ The build differs from the spike's in a few ways:
 - hd_code files that are only SDK asm or RCP-register C (8FD90 ... A0A30) are
   left out; the ultralib os/io objects are replaced by the platform layer.
 - Two ultralib libc files read a double's sign/exponent half-word at index 0
-  (big-endian); sed makes copies with the little-endian index (`le/`).
+  (big-endian), and gu's sinf/cosf initialise their double constants as
+  big-endian word pairs (`du` in guint.h); sed makes little-endian copies
+  (`le/`).
 - `port_on_dma` (the hook the load layer implements, `src/platform/port_dma.h`)
   comes from `src/load/` (an identity stub while that has no sources), and
   the load layer's generated `swaptab.c` is linked too.
-- `INTERIM=1` (build dir `build/headless-interim`) links stand-ins for the
-  load layer (`src/platform/interim_swap.c`: typemap image swap, sequence
-  headers, banks, the texture table, front-end scenes) so the platform can be
-  exercised before the load layer lands. Not for use together with
-  `src/load/`.
+- `-fno-optimize-sibling-calls` everywhere and `-fno-inline` in the files
+  that call osGetTime/osGetCount: a return address names the real caller,
+  which `--clock`/`--sync` key on (below). The link also writes
+  `bc_headless.syms` (`nm -n` of the exe) for `--syms`.
 
 Platform model (`src/platform/`):
 

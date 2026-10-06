@@ -75,6 +75,8 @@ static void print_stats(void) {
     host_log("game: mode 0x%08X%08X, level %d, frames in mode %u, game VI counter %u\n",
              (unsigned) (G_MODE >> 32), (unsigned) G_MODE, (int) G_LEVEL, (unsigned) G_MODEFRAMES,
              (unsigned) G_VICOUNT);
+    plat_clock_report();
+    plat_sync_report();
 }
 
 static u64 g_last_mode = ~0ull;
@@ -125,17 +127,16 @@ void plat_start(const HostOpts *o) {
     *(u32 *) 0x803FFFF8 = 0x7E3AD0;
     *(u32 *) 0x803FFFFC = 0x7F9BE0;
 
-#if PLAT_INTERIM
-    {
-        extern void interim_swap_image(void);
-        interim_swap_image();
-    }
-#endif
-
     plat_fe_snapshot();
     plat_si_init();
     plat_input_init(o->input_path);
     plat_clock_init(o->gettime_path, o->frame_done_path);
+    if (o->syms_path) plat_syms_load(o->syms_path);
+    if (o->clock_path) plat_clock_keyed_load(o->clock_path);
+    if (o->sync_path) {
+        if (!o->syms_path) host_fatal("--sync needs --syms");
+        plat_sync_load(o->sync_path);
+    }
 
     func_802447C0();   /* osInitialize, debug command line, idle thread */
     plat_run();

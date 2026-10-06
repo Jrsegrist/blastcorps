@@ -1,0 +1,65 @@
+# Regions compare.py skips: they legitimately differ between the emulator and
+# bc_headless.exe.  `LO HI reason` (hex, [LO, HI)) or `SYMBOL [SIZE] reason`.
+# Also skipped automatically (compare.py load_ignore): the .data/.bss of the
+# libultra objects the platform layer replaces, and the hd_code text range
+# except the tables pinned there (the .nm_pin_* sections of the NM ELF).
+
+# --- graphics
+80000400 8004B400 the two 320x240 16-bit framebuffers D_80000400 (nothing renders natively)
+8004B400 80055400 in levels the RSP output buffer (D_8036E694, 0xA000: the cull test's RDP output); before, the decompressors' scratch (inflate tables, size-probe copies)
+8021ED00 80244000 the Z-buffer (cleared by the RDP); also the staging area of compressed loads (port_assets.c)
+
+# --- code and code images
+80000000 80000400 exception vectors and the OS's low-memory globals (IPL3/osInitialize)
+801E7000 80208040 front-end text + RSP ucode (emulator: the NM ROM's trampolined image; exe: native code)
+80244000 802E8BD0 hd_code text (not loaded natively; the NM ROM has the original text + trampolines)
+802AD7C0 802AD7E0 NM ROM trampolines on the functions after the pinned table D_802ACFD0 (its C size, 0x802, overlaps them)
+802AE0F0 802AE110 NM ROM trampolines on the functions after the pinned table D_802AE084
+
+# --- audio
+# The audio heap D_80370C80 (0x2A280 bytes, 1C460.c func_80261588) holds the
+# banks and the sequence table (compared), then the synthesizer, the
+# sequence player and the sound player.  Natively the synthesizer comes from
+# ultralib's newer libaudio (synthesizer/drvrnew/reverb/env are still the old
+# SDK's hand asm in the ROM), whose allocations differ by 0x10-0x40 bytes,
+# so everything allocated after the sequence table is shifted.
+8037C720 8039AF00 audio heap after the sequence table: synthesizer (newer SDK natively), sequence + sound players
+
+80368070 80368308 audio manager (22EE0.c D_80368070): Acmd list / AudioInfo pointers into the audio heap, its queues and OSThread
+D_8036A8C4 4 Acmd count of the last audio frame (the native synthesizer is ultralib's)
+# The audio thread's bookkeeping follows the RSP: natively a frame's gfx task
+# holds the RSP until its RDP finishes (no yield to audio tasks), so audio
+# frames run a retrace later than in the emulator.  Its state (buffer ring,
+# AudioInfo, Acmd lists, queues) and the sound player's lists, which point
+# into the shifted audio heap, are not compared.
+802F3AF0 802F3B00 audio manager .data (22EE0.c): buffer ring indices
+8036A300 8036AFB0 audio manager .bss (22EE0.c): AudioInfo records, Acmd lists, message queues
+D_80366BD0 60 the sound player (1A630.c): ALPlayer timing, event queue, lists into the audio heap
+802E8CE0 802E8CF4 the sound player's active/free lists and its active sound count D_802E8CF0 (1A630.c .data)
+
+# --- graphics buffers
+D_803156F8 42930 per-frame graphics data, two of 0x21498 (display lists, matrices, vertices)
+
+# --- the scheduler (2C560.c): message history and performance timers
+80315458 80315498 scheduler interrupt queue's message ring (history; the platform posts SP/DP done together)
+803156C8 803156D8 scheduler: rdpStartTime / gfxStartTime (osGetTime, performance display only)
+8036BEF0 8036BF10 scheduler yield timers (osGetTime deltas, printed only)
+8036BF20 8036BF58 scheduler RDP/gfx/retrace times (osGetTime deltas, performance display only)
+
+# --- libultra state the platform layer keeps elsewhere
+80314D80 803150A0 the PI manager's command queue + buffer (osCreatePiManager is a no-op natively)
+D_8036BF78 20 OSTimer of the audio retrace timer: libultra's timer list links and countdown
+803FDF60 803FDF70 guRotate's lazily computed degrees-to-radians factor (old SDK; native gu is ultralib's)
+803FFFF8 80400000 the front end's ROM range left by init (the NM ROM has its own copy of the front end)
+
+# --- threads: the platform runs game threads on host fibers with host stacks
+D_80310820 1B0 OSThread: idle thread (register contexts, OS links)
+D_80310BD0 1B0 OSThread: main thread
+D_803109D0 200 idle thread stack
+D_80310D80 2000 main thread stack
+D_80312D80 2000 scheduler thread stack
+80368088 80368238 OSThread: the audio thread (D_80368070 + 0x18)
+D_80368308 2000 audio thread stack
+803154F0 803156A0 OSThread: the scheduler thread (D_80315440 + 0xB0)
+D_80218D30 1B0 OSThread: the front end's pak/save thread
+D_80218EF8 1000 front-end pak thread stack

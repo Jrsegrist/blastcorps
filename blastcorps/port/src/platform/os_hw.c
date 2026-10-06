@@ -340,6 +340,8 @@ s32 osAiSetNextBuffer(void *buf, u32 size) {
 u32 osAiGetLength(void) {
     u64 done;
     ai_update();
+    /* the emulator's value for this caller in this retrace (--clock, compare.py) */
+    if (plat_clock_key_take(2, __builtin_return_address(0), &done)) return (u32) done;
     if (g_ai_len[0] == 0 || g_ai_dacrate == 0) return 0;
     done = (plat_now - g_ai_start) * (u32) osViClock / PLAT_COUNT_HZ / g_ai_dacrate * 4;
     return done >= g_ai_len[0] ? 0 : g_ai_len[0] - (u32) done;

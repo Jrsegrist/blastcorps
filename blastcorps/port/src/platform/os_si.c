@@ -48,13 +48,18 @@ static void si_done(void) {
 
 /* ---- controllers ----------------------------------------------------------- */
 
+/* osContSetCh: how many channels the SI commands cover (libultra's
+ * __osMaxControllers); the game reads only controller 1 (the other
+ * OSContPad entries are left alone, as on the N64) */
+static int g_max_ch = 4;
+
 static void fill_status(OSContStatus *data, u8 *pattern) {
     int i;
     u8 bits = 0;
-    for (i = 0; i < 4; i++, data++) {
+    for (i = 0; i < g_max_ch; i++, data++) {
         if (i == 0 && plat_cfg.cont_present) {
             data->type = CONT_TYPE_NORMAL;
-            data->status = 0; /* no pak */
+            data->status = CONT_CARD_PULL; /* no pak: what the PIF reports (mupen64plus) */
             data->errno = 0;
             bits |= 1 << i;
         } else {
@@ -105,7 +110,7 @@ s32 osContStartReadData(OSMesgQueue *mq) {
 
 void osContGetReadData(OSContPad *data) {
     int i;
-    for (i = 0; i < 4; i++, data++) {
+    for (i = 0; i < g_max_ch; i++, data++) {
         if (i == 0 && plat_cfg.cont_present) {
             data->button = g_latch_button;
             data->stick_x = g_latch_x;
@@ -118,7 +123,7 @@ void osContGetReadData(OSContPad *data) {
 }
 
 s32 osContSetCh(u8 ch) {
-    (void) ch;
+    g_max_ch = ch > 4 ? 4 : ch;
     return 0;
 }
 

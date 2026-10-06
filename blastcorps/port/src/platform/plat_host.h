@@ -62,6 +62,9 @@ typedef struct {
     int cont_present;          /* controller 1 plugged in */
     const char *cmdline;       /* debug command line the game reads at PI 0xFFB000 */
     const char *trace_path;    /* one summary line per frame */
+    const char *syms_path;     /* `nm -n` of the exe (names for --clock, crash reports) */
+    const char *clock_path;    /* keyed osGetTime/osGetCount values (os_time.c) */
+    const char *sync_path;     /* the emulator's thread timing (os_thread.c) */
     int quiet;
 } HostOpts;
 

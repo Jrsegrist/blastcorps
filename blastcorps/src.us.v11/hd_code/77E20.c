@@ -891,7 +891,11 @@ void func_802BD1F8(u32 *gA, u32 *gB, u32 *gC, u32 *gD, s32 mtxA, s32 mtxB, u32 *
             s32 n = *(s32 *) rec;
             s32 off = (*(u16 *) (rec + 4) - 1) * 2;
             s32 moving;
+#ifdef NON_MATCHING
+            s32 mtxAddr = 0; /* set and read only when moving != 0 */
+#else
             s32 mtxAddr;
+#endif
             u32 *src;
             u32 *srcEnd;
 

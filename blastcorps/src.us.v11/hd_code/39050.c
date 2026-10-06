@@ -346,6 +346,11 @@ f32 func_8027E228(type)
     default:
         func_8029A7E4("DIGGER WEIGHT NOT SET\n");
     }
+#ifdef NON_MATCHING
+    /* The original falls off the end here: f0 is whatever the caller left
+     * in it (the debug printf is empty). No digger type takes this path. */
+    return 0.0f;
+#endif
 }
 
 /* Set up the water surface for level id: allocate its vertex/display buffers, load its textures,

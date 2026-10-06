@@ -24,7 +24,11 @@ Gfx *func_8029A518(Gfx **gfxp, Gfx *gfx) {
     Gfx *ret = gfx;
     CreditLine *line;
     s32 i;
+#ifdef NON_MATCHING
+    s32 x = 0; /* never assigned: the original passes whatever its stack slot (sp+0x58) holds; not traced */
+#else
     s32 x;
+#endif
     s32 y = 0;
     s32 color;
 

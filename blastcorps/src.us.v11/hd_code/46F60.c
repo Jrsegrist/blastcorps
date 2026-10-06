@@ -96,7 +96,11 @@ u16 func_8028BA1C(s16 arg0, s16 arg1, s8 *arg2, u8 arg3) {
 
 /* Angle in degrees of the vector (arg2 - arg0, arg3 - arg1), per quadrant. */
 f32 func_8028BBF4(s16 arg0, s16 arg1, s16 arg2, s16 arg3) {
+#ifdef NON_MATCHING
+    f32 sp1C = 0.0f; /* every quadrant test sets it; never read unset */
+#else
     f32 sp1C;
+#endif
 
     if (arg2 >= arg0 && arg3 >= arg1) {
         sp1C = func_8028BD88(arg3 - arg1, arg2 - arg0) + 90.0f;

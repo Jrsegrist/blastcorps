@@ -618,7 +618,11 @@ Gfx *func_802639B4(Gfx *gdl, Gfx **arg1, u32 *arg2) {
     u8 flash;
     s16 alpha;
     s32 pad54;
+#ifdef NON_MATCHING
+    s32 i = 0; /* only read when D_80364AA8 == 2, after the lap loop above has set it */
+#else
     s32 i;
+#endif
 
     g = gdl;
     if ((D_80364A90 & 0x04000200) && currentYoshiWindow != 0x1E) {

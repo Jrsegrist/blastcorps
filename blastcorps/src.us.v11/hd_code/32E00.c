@@ -291,7 +291,11 @@ void func_80277EDC(type, arg1, arg2, sound)
     u8 sound;
 #endif
 {
+#ifdef NON_MATCHING
+    u8 pos = 0; /* types without a case (with D_80364AA8 == 1) leave it indeterminate in the original */
+#else
     u8 pos;
+#endif
 
     if ((D_80364A90 & 0x200000000400220C) && !D_8036CB34) {
         if (sound) {

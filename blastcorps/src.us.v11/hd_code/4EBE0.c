@@ -134,7 +134,11 @@ void func_802936AC(mf, x, z, ox, oz, px, py, pz, state, speed)
     f32 m[4][4];
     s32 i;
     u8 found;
+#ifdef NON_MATCHING
+    s16 targetAngle = 0; /* directions without a case leave it indeterminate in the original */
+#else
     s16 targetAngle;
+#endif
     s16 cx;
     s16 cz;
     s16 dx;

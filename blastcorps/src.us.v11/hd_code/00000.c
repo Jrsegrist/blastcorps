@@ -2016,6 +2016,64 @@ s32 func_8024B418(u8 id) {
 
 /* Per-vehicle exit check for the current vehicle (D_80364456). Declared u8
  * but has no return statement: callers read the handler's leftover v0. */
+#ifdef NON_MATCHING
+u8 func_8024B4B8(void) {
+    /* An id without a handler returns whatever v0 held in the original
+     * (indeterminate; only vehicle ids reach this). */
+    s32 ret = 0;
+
+    switch (D_80364456) {
+        case 4:
+            ret = func_802B45FC();
+            break;
+        case 3:
+            ret = func_802B2EF8();
+            break;
+        case 5:
+            ret = func_802B5F04();
+            break;
+        case 2:
+            ret = func_802B1150();
+            break;
+        case 1:
+            ret = func_802B01DC();
+            break;
+        case 6:
+            ret = func_802BB170();
+            break;
+        case 7:
+            ret = func_802BBE10();
+            break;
+        case 8:
+            ret = func_802B76F8();
+            break;
+        case 9:
+            ret = func_802C5508();
+            break;
+        case 10:
+            ret = func_802CA140();
+            break;
+        case 11:
+        case 17:
+        case 18:
+            ret = func_802C8AF0();
+            break;
+        case 13:
+            ret = func_802CBB60();
+            break;
+        case 14:
+            ret = func_802CCCD8();
+            break;
+        case 15:
+            ret = func_802CFA58();
+            break;
+        case 16:
+            ret = func_802D0B90();
+            break;
+    }
+    return ret;
+}
+#else
 u8 func_8024B4B8(void) {
     switch (D_80364456) {
         case 4:
@@ -2067,6 +2125,7 @@ u8 func_8024B4B8(void) {
             break;
     }
 }
+#endif
 
 
 void func_8024B5E8(void) {
@@ -3068,12 +3127,32 @@ void func_802507C8(Mtx *mtx, LookAt *lookAt, Mtx *view) {
     s16 ang;
     s16 sn;
     s16 cs;
+#ifdef NON_MATCHING
+    s32 offX = 0; /* camera modes without a case leave it indeterminate in the original */
+#else
     s32 offX;
+#endif
+#ifdef NON_MATCHING
+    s32 offZ = 0; /* camera modes without a case leave it indeterminate in the original */
+#else
     s32 offZ;
+#endif
     f32 diff;
+#ifdef NON_MATCHING
+    s32 radius = 0; /* camera ids without a case leave it indeterminate in the original */
+#else
     s32 radius;
+#endif
+#ifdef NON_MATCHING
+    f32 tiltRate = 0.0f; /* camera ids without a case leave it indeterminate in the original */
+#else
     f32 tiltRate;
+#endif
+#ifdef NON_MATCHING
+    f32 turnRate = 0.0f; /* camera ids without a case leave it indeterminate in the original */
+#else
     f32 turnRate;
+#endif
     s32 shakeX;
     s32 shakeY;
     s32 shakeZ;
@@ -3932,7 +4011,11 @@ void func_802507C8(Mtx *mtx, LookAt *lookAt, Mtx *view) {
 
 /* Speed limit for the current vehicle, scaled down past 10000 units of travel */
 f32 func_80254E54(f32 x0, f32 y0, f32 z0, f32 x1, f32 y1, f32 z1) {
+#ifdef NON_MATCHING
+    f32 speed = 0.0f; /* ids without a case leave the original's stack slot as it was (indeterminate) */
+#else
     f32 speed;
+#endif
     f32 dx;
     f32 dy;
     f32 dz;
@@ -4697,10 +4780,26 @@ void func_80256A34(s32 arg0) {
 
 /* Allocates the per-level display list buffers (two of each) from the heap */
 void func_80257234(void) {
+#ifdef NON_MATCHING
+    s32 a = 0; /* levels without a case leave it indeterminate in the original */
+#else
     s32 a;
+#endif
+#ifdef NON_MATCHING
+    s32 b = 0; /* levels without a case leave it indeterminate in the original */
+#else
     s32 b;
+#endif
+#ifdef NON_MATCHING
+    s32 c = 0; /* levels without a case leave it indeterminate in the original */
+#else
     s32 c;
+#endif
+#ifdef NON_MATCHING
+    s32 d = 0; /* levels without a case leave it indeterminate in the original */
+#else
     s32 d;
+#endif
 
     switch (D_802E8BDC) {
         case 16:

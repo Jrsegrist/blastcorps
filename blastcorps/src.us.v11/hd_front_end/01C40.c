@@ -700,14 +700,26 @@ void func_801EA93C(char *title, u16 *glyphs, u8 arg2, u8 width, char *buf) {
 Gfx *func_801EAA7C(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
     Gfx *gdl = arg0;
     MenuEntry *e = &D_8020C070[7];
+#ifdef NON_MATCHING
+    u8 ch = 0; /* indeterminate in the original when no slot is selected */
+#else
     u8 ch;
+#endif
     s32 i;
     s32 pass;
     s16 diff;
     s32 x;
     s32 y;
+#ifdef NON_MATCHING
+    s32 selX = 0; /* indeterminate in the original when no slot is selected */
+#else
     s32 selX;
+#endif
+#ifdef NON_MATCHING
+    s32 selY = 0; /* indeterminate in the original when no slot is selected */
+#else
     s32 selY;
+#endif
     s32 selW;
     s32 selH;
     s32 nv = 0;
@@ -1043,7 +1055,11 @@ Gfx *func_801EC49C(Gfx *arg0, s32 x, s32 y, u8 slot) {
  * level's target time for it */
 Gfx *func_801EC770(Gfx *start, void *gfxp, s32 *count) {
     Gfx *gdl;
+#ifdef NON_MATCHING
+    u8 n = 0; /* the first branch leaves it indeterminate in the original */
+#else
     u8 n;
+#endif
 
     gdl = start;
     gdl = func_80274868(gdl);

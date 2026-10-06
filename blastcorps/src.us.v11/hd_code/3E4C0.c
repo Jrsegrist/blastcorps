@@ -14,7 +14,11 @@ extern Vtx D_802FD9B8[];
 void func_80282C80(Gfx **gfxp, Mtx *mtx, s32 x, s32 y, s32 z, s32 x2, s32 y2, s32 z2) {
     Gfx *gfx;
     f32 dist;
+#ifdef NON_MATCHING
+    f32 angle = 0; /* every quadrant test sets it; never read unset */
+#else
     f32 angle;
+#endif
     u8 r;
     u8 g;
     s16 t;
@@ -294,4 +298,7 @@ f32 func_80284ADC(s16 x1, s16 z1, s16 x2, s16 z2) {
     if (x2 < x1 && z2 >= z1) {
         return (func_802AD7D4((z2 - z1) * 65535.9 / dist) + 0xC000) / 65536.0 * 360.0;
     }
+#ifdef NON_MATCHING
+    return 0.0f; /* not reached: the four tests cover every case */
+#endif
 }

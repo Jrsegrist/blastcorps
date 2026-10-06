@@ -2690,7 +2690,16 @@ static void port_tri_interp(s32 id, s32 x, s32 z, InterpRegs *r, s32 byHalves) {
     r->t3 = u[0];
     r->t4 = u[1];
     r->f12 = f.pz;
-    r->f14 = *(s32 *) &f.cross;
+    {
+        /* f14 holds the float's raw bits (a union, not *(s32 *) &f.cross:
+         * that read is type punning gcc treats as uninitialised) */
+        union {
+            f32 f;
+            s32 i;
+        } bits;
+        bits.f = f.cross;
+        r->f14 = bits.i;
+    }
     r->f20 = f.cz;
     r->f22 = f.side;
     r->f24 = f.sideZ;

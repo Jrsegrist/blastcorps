@@ -364,7 +364,11 @@ s32 func_801F6ED4(u8 arg0);
  * back on D_80219F50 when `reply` is set. */
 void func_801F58E8(void *arg) {
     OSMesg msg;
+#ifdef NON_MATCHING
+    s32 ret = 0; /* a "Nonsense pak message" keeps the previous command's result; on the first pass the original reads an indeterminate register */
+#else
     s32 ret;
+#endif
     s32 lastRet;
     u8 pad33;
     u8 player;

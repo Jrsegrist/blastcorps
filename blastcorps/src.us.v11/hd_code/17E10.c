@@ -214,7 +214,11 @@ extern u8 D_00489E70[];
 extern u32 D_80366BB0[];
 
 void func_8025D0B0(u8 arg0) {
+#ifdef NON_MATCHING
+    void *rom = NULL; /* arg0 is 0 or 1; any other value reads an indeterminate slot in the original */
+#else
     void *rom;
+#endif
     s32 size;
 
     switch (arg0) {

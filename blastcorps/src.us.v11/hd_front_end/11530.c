@@ -579,7 +579,11 @@ Gfx *func_801FA180(Gfx *arg0, Dynamic *dyn, f32 lon0, s8 *selected) {
     s32 i;
     s32 j;
     s8 out;
+#ifdef NON_MATCHING
+    s8 sel = 0; /* only stored when best < 45, which some entry setting sel guarantees */
+#else
     s8 sel;
+#endif
 
     best = 180.0f;
     D_8021A909 = 0;

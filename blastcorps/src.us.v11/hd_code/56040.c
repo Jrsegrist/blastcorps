@@ -2771,7 +2771,11 @@ void func_8029E730(u8 *rec, u8 *mtx, f32 t) {
  * live. */
 f32 func_8029E878(f32 p0, f32 p1, f32 p2, f32 p3, f32 t) {
     f32 *b = D_803B3778;
+#ifdef NON_MATCHING
+    f32 acc = 0.0f; /* the first pass (i == 3) sets it; never read unset */
+#else
     f32 acc;
+#endif
     f32 c;
     s32 i;
 

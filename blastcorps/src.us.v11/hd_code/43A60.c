@@ -88,7 +88,11 @@ void func_80288220(void) {
 
 s32 func_80288284(u8 type, s32 x, s32 y, s32 z, s32 floor) {
     s32 unused;
+#ifdef NON_MATCHING
+    s32 bpp = 0; /* formats without a case leave it indeterminate in the original */
+#else
     s32 bpp;
+#endif
 
     if (D_80370B8C == 0 && D_80370B8D == 0) {
         D_80370B78 = x;
@@ -279,7 +283,11 @@ void func_80288DF0(Gfx **gdl, u8 buf) {
     s32 ang;
     s32 ratio;
     s32 absRatio;
+#ifdef NON_MATCHING
+    s32 texId = 0; /* states without a case leave it indeterminate in the original */
+#else
     s32 texId;
+#endif
     SortEntry entries[50];
     s32 count;
     s32 lastTex;

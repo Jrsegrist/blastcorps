@@ -1,6 +1,13 @@
 #include "common.h"
 #include <ultra64.h>
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_80364460 ((u8 *) D_80364460)
+#define D_803FB8B8 ((s32 *) D_803FB8B8)
+#ifdef NON_MATCHING
+#define D_803A7408 (*(s32 *) &D_803A7408)
+#endif
+/* end of views */
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -24,7 +31,6 @@ typedef struct {
 } Unk8029DCD4Slot;
 
 extern Unk8029DEA0Entry D_803B35F8[];
-extern u8 D_803B9890[]; /* 0x60-byte records */
 
 /* Several functions here (func_8029A914, the func_8029C52C -> func_8029C9D4
  * -> func_8029CB04 / func_8029CD54 -> func_8029CF04 chain) read fields of the
@@ -101,7 +107,6 @@ typedef struct {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_803A7408;
 extern s16 D_803A7422;
 extern u8 D_803A7428;
 extern u8 D_803A7429;
@@ -204,7 +209,6 @@ void func_8029A914(u8 *veh) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803A6B30[]; /* 0x14-byte part spheres: x, y, z, r words, byte 0x12 = kind, 0x13 = state (0xFF = end) */
 s32 func_8029AB88(s32 x, s32 y, s32 z, s32 r, s32 kind);
 
 /* World collision of vehicle `kind` for this frame. Clears D_803A742B, finds
@@ -259,11 +263,6 @@ void func_8029AA10(s32 kind) {
 #ifdef NON_MATCHING
 s32 func_8029B514(s32 x, s32 y, s32 z, s32 r, u8 *rec);
 void func_8029C284(s32 x, s32 z);
-extern u32 D_803059F0[];  /* {level (0xFFFF = any), object kind, vehicle mask} triples, ended by mask 0 */
-extern s32 D_802E8BDC;    /* current level */
-extern u8 D_803F4030[];   /* 0xFC-byte objects: +4 / +8 triangle range, +0x30 kind */
-extern u8 *D_803F7654;    /* end of the objects */
-extern u8 *D_803FB8B0;    /* their end */
 extern s16 D_803A7418[];  /* cells from func_8029C284, ended by -1 */
 
 /* The sphere-vs-triangle test (see the comment above func_8029BD0C): plane
@@ -1071,7 +1070,6 @@ void func_8029C284(s32 x, s32 z) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803A6B30[]; /* 0x14-byte entries, free when byte 0x13 == 0xFF */
 
 #define SCALE16(h, scale) (((u32) ((h) << 5) * (u32) (scale)) >> 16)
 
@@ -1262,7 +1260,6 @@ void func_8029C6E4(Unk8029C6E4Out *o) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803FBBB0[]; /* 0x14-byte spheres: x, y, z, r words */
 void func_8029C914(s32 tag, s32 qx, s32 qy, s32 qz, s32 qr);
 
 /* Contacts with the D_803FC1F0 spheres of D_803FBBB0: finds the D_803A7300
@@ -1298,7 +1295,6 @@ void func_8029C748(s32 tag) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_803FB8B8[]; /* the 25 0x14-byte radar markers of 8A080.c: word 0 = id (-1 = free), x, y, z, r */
 void func_8029C914(s32 tag, s32 qx, s32 qy, s32 qz, s32 qr);
 
 /* As func_8029C748, against the 25 radar markers D_803FB8B8 (free ones,
@@ -1374,7 +1370,6 @@ void func_8029C914(s32 tag, s32 qx, s32 qy, s32 qz, s32 qr) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_803649E8;
 u32 func_8029CB04(u32 v, s32 key, u8 *veh);
 void func_8029CD54(s32 tag, s32 other, u8 *veh);
 
@@ -2166,7 +2161,6 @@ s32 func_8029DBF0(s32 id) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803B9890[]; /* 0x60-byte records */
 
 /* Returns 0 if a record in D_803B9890..D_803BD300 (0x60 bytes each) has
  * byte 0x4F == id and byte 0x51 == 0, else 1. The scan stops only at exactly
@@ -2449,7 +2443,6 @@ void func_8029E0AC(u8 *param) {
 f32 func_8029F1BC(f32 delta, f32 frac, Unk8029DEA0Entry *ch, s32 frame, s32 n, Unk8029F1BCOut *o);
 s32 func_8029E4E4(s32 key, s32 sub);
 u32 func_8029E47C(s32 key, s32 id, u8 *param);
-extern u8 D_80364460[]; /* 0x74-byte records: s32 id at +0x5C, data bases at +0xC / +0x30 */
 
 /* Texture block for (key, sub): the loaded one (func_8029E4E4) or a new load
  * (func_8029E47C with param). */

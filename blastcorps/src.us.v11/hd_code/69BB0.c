@@ -1,6 +1,11 @@
 #include "common.h"
 #include <ultra64.h>
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#ifdef NON_MATCHING
+#define D_802E8BDC (*(u8 *) &D_802E8BDC)
+#endif
+/* end of views */
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -15,14 +20,12 @@
  * asm passes them in registers; the C rewrites take pointers). */
 extern u8 D_803ED760[];  /* vehicle 0's state block (the asm's $gp) */
 extern u8 D_803ED460[];  /* vehicle 0's animation channel table (Unk8029DEA0Entry, 56040.c) */
-extern u32 D_803ED808[]; /* vehicle 0's position x, y, z */
 extern s32 D_803ED81C;   /* drive-in ground height */
 extern u8 D_803ED827;    /* drive-in being set up */
 extern u8 D_803ED828;    /* drive-in direction: 0 +z, 1 -z, 2 +x, else -x */
 extern s32 D_803ED814;   /* drive-in stop coordinate */
 extern u8 D_80305CB0[];
 extern u8 D_80305CB1[];  /* drive-in table: 5-byte records {level, vehicle, dir, mul, zone}, level -1 ends */
-extern void *D_803F77D0;
 s32 func_802AEB9C(s32 *mode);
 s32 func_802AEC3C(s32 dist, s32 key, s32 fp, TriSideOut *f);
 u8 *func_802AFA64(void);
@@ -38,7 +41,6 @@ s32 func_802AFB84(void);
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 *D_80358070; /* heap cursor */
 extern u8 *D_803ED818; /* vehicle 0's model header */
 
 /* Sets up vehicle 0 (object 0) from the model header `hdr` at (x, y, z) with
@@ -175,7 +177,6 @@ void func_802AE860(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_802E8BDC; /* current level (read here as the whole word, as the asm does) */
 
 /* Drive-in setup check for vehicle 0, called from hd.c (func_8024B188) with
  * the vehicle's distance `dist`; returns 1 when the drive-in starts, else 0
@@ -388,7 +389,6 @@ s32 func_802AEC3C(s32 dist, s32 key, s32 fp, TriSideOut *f) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u32 D_803ED808[]; /* x, y, z */
 /* Zone level lookup (func_802ABD54) for vehicle id 0 at its position
  * D_803ED808..+8; returns func_802ABD54's v1 (the zone list end).
  * Register convention: the asm passes func_802ABD54's scan registers t6, t7,
@@ -566,7 +566,6 @@ animate:
 extern u8 D_803ED760[];  /* vehicle 0's state block (the asm's $gp) */
 extern u8 D_803ED828;    /* drive-in direction: 0 +z, 1 -z, 2 +x, else -x */
 extern s32 D_803ED814;   /* drive-in stop coordinate */
-extern s32 D_803ED3A8[]; /* ground heights of the three wheel slots */
 
 /* Drive-in step of vehicle 0 ($gp = D_803ED760, read directly): speed +0x76 =
  * 80, the position D_803ED808 (x) / D_803ED810 (z) moves 100 in the direction
@@ -642,9 +641,7 @@ void func_802AF340(s32 key, s32 fp, TriSideOut *f) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 D_803ED760[];  /* this vehicle's state block (the asm's $gp) */
-extern u8 D_802E8BDC;
 extern s16 D_803ED820;   /* last channel-1 mode */
-extern void *D_80367738;
 
 /* Field 0x10 of channel idx of D_803ED460 (1 = running). */
 static s32 AnimChannelState(s32 idx) {
@@ -769,7 +766,6 @@ void func_802AF4BC(void) {
 extern u8 *D_803ED818;  /* vehicle 0's model header */
 extern u8 *D_803ED82C;  /* vehicle 0's model buffers */
 extern u8 *D_803ED830;
-extern s16 D_803ED390[]; /* model rotation x, y, z */
 
 /* Places vehicle 0's model ($gp = D_803ED760, read directly): rotation
  * (0, +0x4C, 0) and position D_803ED808..810 at scale 0x4E20 into the matrix
@@ -848,7 +844,6 @@ void func_802AFBA0(void) {
  * (hd_code/679E0.c). Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 D_803ED760[];  /* this vehicle's state block: 0xA6 bytes are (de)serialized */
-extern u32 D_803ED808[]; /* plus these three words */
 
 /* Serialize this vehicle's state (D_803ED760[0..0xA5] plus the three words
  * D_803ED808[0..2]) into `dst` via func_802AC7DC. Returns the callee's result

@@ -1,6 +1,19 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_8036BB24
+#endif /* legacy declarations */
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_802E8F94 ((LevelInfo *) D_802E8F94)
+#define D_80364AF0 ((Player *) D_80364AF0)
+#ifdef NON_MATCHING
+#define D_8036BB24 (*(MenuItem * *) &D_8036BB24)
+#endif
+/* end of views */
 
 /*
  * bestTimes.c (assert file name at 0x8020FF70): the best-times screen, a
@@ -57,16 +70,12 @@ typedef struct {
     s16 unk18;
 } MenuHeader;
 
-extern s32 D_802E8BDC;        /* current level */
-extern LevelInfo D_802E8F94[];
-extern Player D_80364AF0[];
 extern u32 D_8021A828;        /* number of best-time menu items */
 extern u8 D_8021A7E8[];       /* player of each item */
 extern u8 D_8021A7D0[];       /* level of each row */
+#ifndef NON_MATCHING
 extern MenuItem *D_8036BB24;
-extern void *D_80367738;
-extern u8 D_802F8BDC[];
-extern u8 *D_80358070;        /* heap pointer */
+#endif
 extern char D_80219FD0[][0x20];
 extern char D_8020D800[][4];
 

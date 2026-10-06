@@ -29,8 +29,6 @@ extern u8 D_803EE3C0[];  /* vehicle 4 animation channels */
 #define VPOS3 ((PortVehPos *) D_803EE38C)
 #define VPOS4 ((PortVehPos *) D_803EE768)
 
-extern u8 *D_80358070;   /* heap cursor */
-extern u8 *D_803F77D0;
 extern u8 D_80305D00[];
 extern u8 D_80305D10[];
 extern f32 D_8030D8C0;
@@ -654,7 +652,6 @@ extern u8 D_803EE3B3;  /* boost sound playing */
 extern s16 D_803EE3AC;
 extern f32 D_803EE3A4; /* 0..1 level for channel 3 */
 extern void *D_803EE388; /* boost sound handle */
-extern void *D_80367738;
 extern f32 D_8030D8C4;
 extern f32 D_8030D8C8;
 extern f32 D_8030D8CC;

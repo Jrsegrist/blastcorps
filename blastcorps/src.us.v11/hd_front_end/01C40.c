@@ -1,6 +1,27 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_8020C070
+#define LEGACY_D_802E8F94
+#define LEGACY_D_802F47B0
+#define LEGACY_D_802F8BDC
+#define LEGACY_D_803156F8
+#define LEGACY_D_80364AF0
+#endif /* legacy declarations */
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#ifdef NON_MATCHING
+#define D_8020C070 ((MenuEntry *) D_8020C070)
+#define D_802E8F94 ((LevelInfo *) D_802E8F94)
+#define D_802F47B0 ((u8 *) D_802F47B0)
+#define D_802F8BDC ((MenuPage *) D_802F8BDC)
+#define D_803156F8 ((PlayerSelDyn *) D_803156F8)
+#define D_80364AF0 ((Player *) D_80364AF0)
+#endif
+/* end of views */
 
 /* player.c (per its assert strings): save slots, player ranks and the
  * player select / Controller Pak screens */
@@ -75,12 +96,21 @@ typedef struct PlayerSelDyn {
     /* 0x1F00 */ u8 pad1F00[0x21498 - 0x1F00];
 } PlayerSelDyn;
 
+#ifndef NON_MATCHING
 extern Player D_80364AF0[];
+#endif
+#ifndef NON_MATCHING
 extern LevelInfo D_802E8F94[];
-extern s32 D_802E8BDC;
+#endif
+#ifndef NON_MATCHING
 extern MenuEntry D_8020C070[];
+#ifndef NON_MATCHING
 extern MenuPage D_802F8BDC[];
+#ifndef NON_MATCHING
 extern PlayerSelDyn D_803156F8[];
+#endif
+#endif
+#endif
 extern char D_80215520[][25];
 extern u16 D_803046F8[];
 extern u16 D_80304710[];
@@ -93,7 +123,6 @@ extern u8 D_802155A0[]; /* ticker text */
 #define SCROLL_TEXT ((char *) D_802155A0)
 extern char D_80215480[][16];
 extern u16 *D_802158A0;
-extern void *D_80367738;
 
 extern Vtx D_80208380[];
 extern Gfx D_80208400[];
@@ -121,7 +150,9 @@ extern s16 D_8021591A;
 extern s32 D_80215920;
 extern u8 D_80215924;
 extern char *D_80215928;
+#ifndef NON_MATCHING
 extern u8 D_802F47B0[];
+#endif
 extern f32 D_80215440;
 extern f32 D_80215444;
 extern f32 D_80215448;
@@ -167,12 +198,6 @@ Gfx *func_801EC49C(Gfx *arg0, s32 x, s32 y, u8 slot);
 /* Highest rank shown: 4 once unk91 reaches 12, else 3 */
 #define MAX_RANK() ((D_80364AF0[D_80364AE8].unk91 >= 12) ? 4 : 3)
 
-/* .data (0x802081C0). The u16 pointers are hd_code data (glyph strings and
- * portraits) that have no symbols yet. */
-typedef struct {
-    char *title;
-    u16 *glyphs;
-} RankTitle;
 
 RankTitle D_802081C0[31] = {
     { "ROOKIE WRECKER", (u16 *) 0x803041DC },

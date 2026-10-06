@@ -1,6 +1,12 @@
 #include "common.h"
 #include <ultra64.h>
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#ifdef NON_MATCHING
+#define D_80358070 (*(s32 *) &D_80358070)
+#define D_803ED390 (*(s16 *) D_803ED390)
+#endif
+/* end of views */
 
 #ifdef NON_MATCHING
 /* Register-block types shared by this file's rewrites (each mirrors the
@@ -17,7 +23,6 @@
  * more specific non-ABI explanation where one was already worked out. */
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_80358070;   /* matrix buffer allocator */
 extern u8 *D_803EF704;   /* the 0xFF object's two 0xC00-byte matrix buffers */
 extern u8 *D_803EF708;
 extern u8 *D_803EF70C;   /* its model header */
@@ -156,7 +161,6 @@ typedef struct {
     u16 x;
     u16 z;
 } LevelPos;
-extern s32 D_802E8BDC; /* current level */
 extern LevelPos D_80305D74[];
 extern s32 D_803EF6E8;
 extern s32 D_803EF6EC;
@@ -204,7 +208,6 @@ s32 func_802BA104(ZoneScanRegs *r) {
 /* Rounded 3-D distance from (ax, ay, az) to (bx, by, bz) (62740.c; asm
  * convention in tools_port/conventions.txt: t3-t5, t6, t7, s0 -> s1). */
 
-extern void *D_80367738;  /* sound player */
 extern void *D_803EF6D8;  /* this sound's handle, NULL = none */
 
 /* Positional sound 0x75 at D_803EF6DC/E0/E4 (called from hd.c); shape of
@@ -526,7 +529,6 @@ void func_802BA91C(void) {
 #ifdef NON_MATCHING
 extern u8 D_80305D60[];
 extern u8 D_802C3B44[]; /* func_802A6274 definition */
-extern void *D_803F77D0;
 extern u8 D_803EF6FE;   /* countdown before the effect */
 extern u8 D_803EF700;   /* effect frame count */
 extern u8 D_803EF701;   /* effect started */
@@ -615,7 +617,6 @@ void func_802BA9A0(s32 h2) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s16 D_803ED390; /* model rotation x, y, z (0x803ED390/92/94) */
 extern u8 *D_803EF704; /* matrix buffer pair */
 extern u8 *D_803EF708;
 extern u8 *D_803EF70C; /* model header */
@@ -677,7 +678,6 @@ void func_802BAD24(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_80358070;    /* matrix buffer allocator */
 extern u8 *D_803EFAD4;    /* vehicle 6's model header */
 extern u64 *D_803EFAE4;   /* its two 0x800-byte matrix buffers */
 extern u64 *D_803EFAE8;
@@ -1065,7 +1065,6 @@ check2:
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_802E8BDC; /* current level */
 
 /* On level 0x11 only: finds the kind-6 / id-0x3BD part (func_8029C6E4) and
  * returns whether func_802AC0BC finds ground under its position (words 0, 8

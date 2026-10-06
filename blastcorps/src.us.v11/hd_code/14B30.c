@@ -10,9 +10,7 @@ typedef struct {
     u8 *tex;
 } TextQuad; /* size 0xC */
 
-extern s32 D_802E8BDC;
 extern s32 D_80365350;
-extern u8 *D_80358070;
 extern Vtx *D_80365348[2];
 extern TextQuad *D_80365340;
 extern s32 D_802E8C70;

@@ -1,6 +1,18 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_80367738
+#endif /* legacy declarations */
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_02000000 ((u8 *) D_02000000)
+#ifdef NON_MATCHING
+#define D_80367738 (*(s32 *) &D_80367738)
+#endif
+/* end of views */
 
 /* Falling debris / bouncing objects: a pool of 20 that are spawned around a
  * point, home in on a target, wander inside a box and play sounds. The
@@ -35,7 +47,9 @@ extern s16 D_80368036;
 extern s32 D_80368038;
 extern s32 D_8036803C;
 extern s32 D_80368044;
+#ifndef NON_MATCHING
 extern s32 D_80367738;
+#endif
 
 s32 func_80265A0C(s32 arg0);
 void func_80265B7C(s32 arg0);
@@ -433,7 +447,6 @@ extern u16 D_802EA4F0[], D_802EA9F0[], D_802EAEF0[], D_802EB3F0[], D_802EB8F0[],
 extern u16 D_802EC2F0[], D_802EC7F0[], D_802ECCF0[], D_802ED1F0[], D_802ED6F0[], D_802EDBF0[], D_802EE0F0[], D_802EE5F0[];
 extern u16 D_802EEAF0[], D_802EEFF0[], D_802EF4F0[], D_802EF9F0[], D_802EFEF0[], D_802F03F0[], D_802F08F0[], D_802F0DF0[];
 extern u16 D_802F12F0[], D_802F17F0[], D_802F1CF0[], D_802F21F0[], D_802F26F0[], D_802F2BF0[], D_802F30F0[], D_802F35F0[];
-extern u8 D_02000000[];
 
 s32 func_80267614();
 

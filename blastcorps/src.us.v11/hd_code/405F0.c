@@ -1,6 +1,10 @@
 #include "common.h"
 #include <ultra64.h>
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_80000400 ((FrameBuffer *) D_80000400)
+#define D_803156F8 ((FrameData *) D_803156F8)
+/* end of views */
 #include <PR/sched.h>
 
 /* RSP task submission: builds an OSScTask for one of the microcode slots,
@@ -29,15 +33,8 @@ extern u8 D_802E53F0[];
 extern u8 D_8030E390[];
 extern u8 *D_8036E660[]; /* ucode text per slot */
 extern u8 *D_8036E678[]; /* ucode data per slot */
-extern u64 *D_8036E694;  /* RDP output buffer (0xA000 bytes) */
 extern RspTask D_8036E698[][2];
 extern u64 D_80367750[]; /* dram stack */
-extern u64 D_8036AFB0[]; /* yield buffer */
-extern OSMesgQueue D_803153D8;
-extern OSMesgQueue D_80315440;
-extern OSMesgQueue D_803156D8;
-extern FrameData D_803156F8[];
-extern FrameBuffer D_80000400[];
 
 
 /* Fill in the microcode table */

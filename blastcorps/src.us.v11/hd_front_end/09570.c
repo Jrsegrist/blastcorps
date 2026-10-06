@@ -1,6 +1,15 @@
 #include "common.h"
 #include <ultra64.h>
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_02000000 ((u8 *) D_02000000)
+#define D_8020D810 ((LevelInfo *) D_8020D810)
+#define D_80215A70 ((u16 * *) D_80215A70)
+#define D_802E8F38 ((Entry8 *) D_802E8F38)
+#define D_802E8F94 ((LevelFlags *) D_802E8F94)
+#define D_803156F8 ((u8 *) D_803156F8)
+#define D_80364AF0 ((Player *) D_80364AF0)
+/* end of views */
 
 /* front-end level select: level availability, the level icon display list
  * and the starfield background */
@@ -34,22 +43,15 @@ typedef struct {
     Gfx *dl[9];
 } DlTable;
 
-extern u8 D_02000000[]; /* segment 2 base */
 extern Gfx D_8020BC88[];
 extern DlTable D_8020BD08; /* per-category display lists */
-extern LevelInfo D_8020D810[];
 extern u16 D_80217288; /* perspNorm */
 extern u16 *D_8021728C; /* star textures, 16x16 RGBA16 each */
-extern Entry8 D_802E8F38[];
-extern LevelFlags D_802E8F94[];
-extern u8 D_803156F8[];
 extern Vtx D_80215A88[]; /* globe vertices, 6 faces x 64 */
 extern s32 D_80217290[64]; /* face grid x */
 extern s32 D_80217390[64]; /* face grid y */
 extern s32 D_80217490[64]; /* face grid s */
 extern s32 D_80217590[64]; /* face grid t */
-extern u8 *D_80358070; /* heap pointer */
-extern Player D_80364AF0[];
 
 s32 func_801F1DA8(s32);
 
@@ -199,7 +201,6 @@ typedef struct {
 } Globe; /* one face's 7x7 cells, five mip levels each */
 
 #define D_0066C900 ((u8 *) 0x0066C900) /* ROM: worldtextures.raw (compressed) */
-extern u16 *D_80215A70[3];
 
 Gfx *func_801F1568(void) {
     u8 *base;

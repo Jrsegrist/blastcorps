@@ -65,7 +65,6 @@ extern u8 *D_80370B90; /* texture cache */
 extern s16 D_80370B98[];
 extern s32 D_80370BB0; /* textures cached */
 extern s32 D_80370BB4; /* bytes per texture */
-extern u8 *D_80358070; /* heap pointer */
 
 void func_80289EF4(Gfx **gdl);
 u32 func_8028A0A0(s16 id);

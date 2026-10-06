@@ -1,6 +1,18 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_80367738
+#endif /* legacy declarations */
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_80364AF0 ((Player *) D_80364AF0)
+#ifdef NON_MATCHING
+#define D_80367738 (*(s32 *) &D_80367738)
+#endif
+/* end of views */
 
 typedef struct {
     u8 pad0[0x18];
@@ -10,9 +22,9 @@ typedef struct {
     u8 padEF[0x100 - 0xEF];
 } Player;
 
-extern Player D_80364AF0[];
-extern s32 D_802E8BDC;
+#ifndef NON_MATCHING
 extern s32 D_80367738;
+#endif
 /* .bss, defined here (paired u64 stores share one lui) */
 u64 D_803A6AF0; /* loop mask used when the sequence finishes */
 u64 D_803A6AF8; /* loop mask used when it is aborted */

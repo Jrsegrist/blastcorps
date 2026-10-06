@@ -1,6 +1,19 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_8036BB24
+#endif /* legacy declarations */
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_802F49F4 ((Font *) D_802F49F4)
+#define D_80364AF0 ((Player *) D_80364AF0)
+#ifdef NON_MATCHING
+#define D_8036BB24 (*(MenuItem * *) &D_8036BB24)
+#endif
+/* end of views */
 
 /*
  * Two parts: the academy/level-select yoshi window builder (func_802979E0
@@ -62,15 +75,13 @@ typedef struct {
     /* 0x2E */ u8 unk2E[2];
 } Font;
 
-extern Player D_80364AF0[];
 extern u8 D_8039CAD0;
 extern u8 D_802FF180[];
 extern MenuText D_802FF188[][20];
 extern u8 D_802FF5E8[];
-extern u8 D_802F8BDC[];
+#ifndef NON_MATCHING
 extern MenuItem *D_8036BB24;
-extern void *D_80358070;
-extern Font D_802F49F4[];
+#endif
 
 
 #define players D_80364AF0

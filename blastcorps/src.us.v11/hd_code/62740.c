@@ -1,6 +1,13 @@
 #include "common.h"
 #include <ultra64.h>
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_80364460 ((u8 *) D_80364460)
+#ifdef NON_MATCHING
+#define D_803ED390 (*(s16 *) D_803ED390)
+#define D_803ED3A8 (*(s32 *) D_803ED3A8)
+#endif
+/* end of views */
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -31,7 +38,6 @@
 #define VEH_S32(v, off) (*(s32 *) ((u8 *) (v) + (off)))
 #define VEH_F32(v, off) (*(f32 *) ((u8 *) (v) + (off)))
 
-extern s32 D_802E8BDC;
 extern s32 D_80305C58[]; /* {key, value, threshold} triples, value 0 ends */
 extern u8 D_803EB7A0[];  /* vehicle save buffer: 0x300 + 0xA6 + 3 words */
 extern s32 D_803EBBD8[]; /* 0x14-byte swap temp */
@@ -41,7 +47,6 @@ extern u8 *D_803EBC08;
 extern s32 D_803ED398;
 extern s32 D_803ED39C;
 extern s32 D_803ED3A0;
-extern s32 D_803ED3A8;
 extern s32 D_803ED3AC;
 extern s32 D_803ED3B0;
 extern u8 D_803ED3EA;
@@ -63,7 +68,6 @@ typedef struct {
     s32 t1; /* z */
 } Pos802A8CCC;
 
-extern s16 D_803ED390; /* three s16 angles x, y, z (0x803ED390/92/94; 94 has no symbol) */
 #define D_803ED394_ ((&D_803ED390)[2])
 
 /* Find the D_803ED3B8 record keyed `key` (or claim the end marker for it:
@@ -940,7 +944,6 @@ s32 func_802A8314(s32 cur);
 extern u8 D_803ED3F8;  /* sound retrigger counter */
 extern s32 D_803ED3FC; /* f32 bits: pitch */
 extern f32 D_8030D890;
-extern void *D_80367738;
 
 /* Turn the heading *heading toward *target (12-bit angles, wrapping through
  * 0x1000, snapping to the target when the step passes it). The step is
@@ -2034,7 +2037,6 @@ void func_802A9CAC(s32 index, s32 kind) {
 #ifdef NON_MATCHING
 s32 func_802AA2E4(s32 x, s32 z, s32 x0, s32 y0, s32 z0, s32 x1, s32 y1, s32 z1, s32 x2, s32 y2, s32 z2,
                   s32 *a3Out, s32 *t6Out);
-extern u8 *D_803F7828; /* triangle list: 0x28-byte records, 9 s32 coords + u8 at +0x24 */
 
 /* The per-triangle test every scan below makes: (x, z) inside the bounding
  * box (func_802AA5E0) and the triangle (func_802AA460, which also fills *f),
@@ -3359,7 +3361,6 @@ s32 func_802ABCDC(s32 ax, s32 ay, s32 az, s32 bx, s32 by, s32 bz) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_80364460[]; /* 0x74-byte records: s32 id at +0x5C, level at +0x60 */
 
 
 /* Find the first zone (D_803BDFD8 .. *D_803BDFD4, 0x24 bytes) within whose
@@ -3457,8 +3458,6 @@ found:
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803F4030[]; /* 0xFC-byte object records, info pointer at +0 */
-extern u8 *D_803F7654;  /* end of the records in use */
 s32 func_802ABFC8(s32 x, s32 z, s32 y, u8 *obj, s32 *found, TriSideOut *f);
 
 /* 1 if (x, z) at height y is over some object's own ground: for each object

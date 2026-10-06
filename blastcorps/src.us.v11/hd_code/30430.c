@@ -14,7 +14,6 @@ u8 D_8036C784;             /* fade alpha */
 #define FADE_ASSERT(EX, line) \
     if (!(EX)) func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "fade.c", line)
 
-extern s32 D_802E8BDC;
 extern f32 D_802FA930;     /* fade-in step per frame */
 
 

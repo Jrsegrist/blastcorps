@@ -19,11 +19,7 @@ extern s16 D_803EDFD4;
 extern s8 D_803EDFD8;
 extern u8 D_803EDFD9;
 extern u8 D_803EDFDA;
-extern u8 *D_80358070; /* matrix buffer allocator */
-extern s16 D_803ED390[]; /* rotation angles x, y, z for func_802AA764 */
-extern u8 *D_803F77D0;
 extern u8 D_80305CF0[];
-extern void *D_803F7844;
 
 
 s32 func_802B14E8(ZoneScanRegs *r);
@@ -196,7 +192,6 @@ void func_802B11B8(void) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 D_803EDF10[]; /* this vehicle's state block */
-extern void *D_80367738;
 extern void *D_803EDFD0; /* engine sound handle */
 extern u8 D_802C2308[]; /* key of this vehicle's func_802A06B4 entry */
 extern u8 D_803EDC10[]; /* this vehicle's animation channel table */
@@ -419,7 +414,6 @@ void func_802B152C(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 f
 #ifdef NON_MATCHING
 extern s16 D_803EDFD6;    /* last pose byte seen on channel 1/5 */
 extern u8 D_803EDFDA;
-extern void *D_803F7844;  /* sound handle */
 extern f32 D_8030D8B0;
 
 #define VEH2_SPEED (*(s16 *) (D_803EDF10 + 0x76))

@@ -1,6 +1,9 @@
 #include "common.h"
 #include <ultra64.h>
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_02000000 ((u8 *) D_02000000)
+/* end of views */
 
 /* A zone: an x/z shape (six values for func_802AC4C4) spanning ymin..ymax */
 typedef struct {
@@ -22,7 +25,6 @@ typedef struct {
 } ZoneList;
 
 extern ZoneList D_802FC360[11];
-extern s32 D_802E8BDC; /* current level */
 
 
 /* One trail segment: a quad (4 corners x/y/z), two countdown timers, an
@@ -36,7 +38,6 @@ typedef struct {
 } Trail; /* 0x1C */
 
 extern Trail D_8036D3D0[80]; /* ring, oldest at D_8036DC90, newest at D_8036DC91 */
-extern u8 D_02000000[];       /* segment 2 base */
 
 /* The trail's vertex and display-list buffer (seen through segment 2) */
 typedef struct TrailBuf {

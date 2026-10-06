@@ -52,7 +52,6 @@ extern f32 D_8039CA10[4][4];
 extern f32 D_8039CA50;
 extern f32 D_8039CA54;
 extern f32 D_8039CA58;
-extern s32 D_802E8BDC;
 extern Junction D_802FEDA0[];
 
 #ifdef NON_MATCHING

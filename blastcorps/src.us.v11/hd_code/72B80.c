@@ -1,6 +1,11 @@
 #include "common.h"
 #include <ultra64.h>
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#ifdef NON_MATCHING
+#define D_803ED808 (*(s32 *) D_803ED808)
+#endif
+/* end of views */
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -18,7 +23,6 @@ extern u32 D_803EEF18[]; /* vehicle 8's position x, y, z */
 extern u8 *D_803EEF24;   /* vehicle 8's model header */
 extern u64 *D_803EEF28;  /* vehicle 8's model buffers */
 extern u64 *D_803EEF2C;
-extern s16 D_803ED390[]; /* model rotation x, y, z */
 void func_802B8278(void);
 void func_802B8424(void);
 void func_802B9B4C(void);
@@ -33,13 +37,11 @@ extern u8 *D_803EF300;
 extern s32 D_803EF31C;
 extern s16 D_803EF2E6;
 extern s16 D_803EF324;
-extern u8 *D_80358070;  /* heap cursor */
 extern u8 D_803EEB70[]; /* vehicle 8's 0x300-byte animation channel table (also saved/restored) */
 extern s16 D_803EEF30;  /* vehicle 8's last ring-steered heading */
 extern s8 D_803EEF33;   /* ring steering active */
 extern u8 D_803EEF34;   /* throttle lockout frames */
 extern u8 D_80305D30[];
-extern void *D_803F77D0;
 extern f32 D_8030D900;
 s32 func_802B78B0(ZoneScanRegs *r);
 void func_802B7F98(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4);
@@ -747,7 +749,6 @@ void func_802B8480(s32 a1Val, u8 *hdr) {
 /* Rounded 3-D distance from (ax, ay, az) to (bx, by, bz) (62740.c; asm
  * convention in tools_port/conventions.txt: t3-t5, t6, t7, s0 -> s1). */
 
-extern void *D_80367738;  /* sound player */
 extern void *D_803EF2E8;  /* this sound's handle, NULL = none */
 
 /* Positional sound 0x13 at D_803EF2EC/F0/F4 (called from hd.c). d is the
@@ -833,7 +834,6 @@ void func_802B899C(void) {
 #ifdef NON_MATCHING
 extern u8 D_803EF240[]; /* this vehicle's state block */
 extern s32 D_803EF31C;
-extern s32 D_803ED808; /* player position x, y, z */
 
 /* Copies two halfwords of the vehicle block (+0x4E, +0x76) to D_803EF32A /
  * D_803EF328, and the marker position D_803EF310..1C to D_803ED808..10 and
@@ -894,8 +894,6 @@ void func_802B8C18(s32 t3, s32 fp, TriSideOut *f) {
 #ifdef NON_MATCHING
 extern s32 D_803EF320; /* best distance so far */
 extern s16 D_803EF324; /* turn rate */
-extern s32 D_802E8BDC; /* current level */
-extern u8 *D_80358074;
 extern char D_80305D40[];
 extern u8 D_803EEF40[]; /* animation channel table (Unk8029DEA0Entry, 56040.c) */
 s32 func_802B988C(void);

@@ -17,7 +17,6 @@
 
 extern u8 D_0048FA70[];
 extern u8 D_0048FE90[];
-extern void *D_80358070;
 extern void *D_803A6B10;
 extern s16 D_803A6B14;
 

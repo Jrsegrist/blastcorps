@@ -44,9 +44,7 @@ typedef struct Dyn {
 } Dyn;
 
 extern ShellType D_802FE3C0[];
-extern void *D_80367738;
 extern Shell D_8039C960[4];
-extern Mtx D_02000000[];
 
 f32 sqrtf(f32);
 void func_80292DDC(s32 i);

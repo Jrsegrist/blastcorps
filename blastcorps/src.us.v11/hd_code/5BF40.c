@@ -11,7 +11,6 @@
  * more specific non-ABI explanation where one was already worked out. */
 #ifdef NON_MATCHING
 /* Shared declarations for the NON_MATCHING (port) rewrites below. */
-extern u8 *D_80358070;          /* heap pointer */
 extern u32 *D_803B8D44;         /* ROM offsets (from 0x4CE0) of the entries, 8 bytes apart */
 extern u8 *D_803B8D40;
 extern u8 D_803B8570[];

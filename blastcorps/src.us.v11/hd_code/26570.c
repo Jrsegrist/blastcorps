@@ -4,9 +4,23 @@
 /* Matching build: IDO compiled the matched code here against older
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
+#define LEGACY_D_8036BB24
+#define LEGACY_D_8036BED8
 #define LEGACY_func_8026BBD0
 #endif /* legacy declarations */
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_8020C070 ((PathNode *) D_8020C070)
+#define D_802E8F94 ((LevelInfo *) D_802E8F94)
+#define D_802F49F4 ((YoshiSnd *) D_802F49F4)
+#define D_802F5804 ((PathNode *) D_802F5804)
+#define D_802F8BDC ((YoshiArg *) D_802F8BDC)
+#define D_80364AF0 ((Player *) D_80364AF0)
+#ifdef NON_MATCHING
+#define D_8036BB24 (*(PathNode * *) &D_8036BB24)
+#define D_8036BED8 (*(YoshiNode * *) &D_8036BED8)
+#endif
+/* end of views */
 
 #define YOSHI_ASSERT(EX, line) \
     if (!(EX)) func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "yoshi.c", line)
@@ -133,7 +147,6 @@ extern u16 yoshiDemandV;
 extern s16 D_8036BB0C;
 extern s8 D_8036BB0E;
 extern u32 D_8036BB40;
-extern u8 D_802F47B0[][8]; /* colour pairs */
 extern f32 D_8036BB08;
 extern f32 D_8036BB28;
 extern f32 D_8036BB2C;
@@ -146,7 +159,6 @@ extern s32 D_802F9930;
 extern u8 D_8036BA48[];
 extern Gfx D_802F98B0[];
 extern u8 D_8036BAE8[];
-extern LevelInfo D_802E8F94[];
 extern u8 D_802F4878[];
 extern u16 D_8036BB48[];
 extern u16 D_8036BB4A[];
@@ -161,29 +173,25 @@ extern s32 D_802FA25C; /* -j */
 extern s32 D_802FA260; /* -m */
 extern u16 D_8036BBB2[];
 extern s32 D_8036BED4;
+#ifndef NON_MATCHING
 extern YoshiNode *D_8036BED8;
+#endif
 extern f32 D_8036BEDC;
 extern u8 D_8036BEE0;
-extern void *D_80358070;
 extern Vtx D_802F99C0[]; /* quad template */
 extern u8 D_802F9A00[]; /* 16x16 RGBA32 textures */
 extern u8 D_802F9E00[];
 extern s32 D_802FA200[];
-extern void *D_80367738;
-extern Player D_80364AF0[];
 extern YoshiTrigger D_802F48D0[];
-extern s32 D_802E8BDC;
 extern u8 D_802F499A[];
 extern u8 D_8036BAA2[];
-extern struct YoshiArg D_802F8BDC[];
 extern u16 D_8036BB04;
 extern u16 D_8036BB06;
 extern PathNode *D_8036BB10;
+#ifndef NON_MATCHING
 extern PathNode *D_8036BB24;
+#endif
 extern u8 D_8036BA98[];
-extern YoshiSnd D_802F49F4[];
-extern PathNode D_8020C070[];
-extern PathNode D_802F5804[];
 extern PathInfo D_802F9934[];
 
 u8 func_8026AD30(s16 arg0) {

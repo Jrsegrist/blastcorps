@@ -5,7 +5,6 @@
 extern f32 sqrtf(f32);
 extern u16 D_802FCEB0[]; /* 32x32 RGBA16 arrow texture */
 extern Vtx D_802FD9B8[];
-extern Mtx D_02000000[];
 
 /*
  * Draws the on-screen arrow pointing from the player towards (x, z), tinted

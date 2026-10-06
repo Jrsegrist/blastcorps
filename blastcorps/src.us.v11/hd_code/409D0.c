@@ -1,6 +1,28 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_80367738
+#define LEGACY_D_8036EA60
+#define LEGACY_D_8036EA70
+#endif /* legacy declarations */
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_8020C070 ((MenuItem *) D_8020C070)
+#define D_802E8F94 ((LevelInfo *) D_802E8F94)
+#define D_802F5804 ((MenuItem *) D_802F5804)
+#define D_802F8BDC ((MenuItem *) D_802F8BDC)
+#define D_80364AF0 ((PlayerRec *) D_80364AF0)
+#define D_8036EA80 ((u32 *) &D_8036EA80)
+#define D_8036EA90 ((u32 *) &D_8036EA90)
+#ifdef NON_MATCHING
+#define D_80367738 (*(s32 *) &D_80367738)
+#define D_8036EA60 (*(u32 *) &D_8036EA60)
+#define D_8036EA70 (*(u32 *) &D_8036EA70)
+#endif
+/* end of views */
 
 /* stats_perm.c: per-level results (score, time, counts and the best/saved
  * copies), the end-of-level status screen and the status save to the pak. */
@@ -28,33 +50,29 @@ typedef struct {
     u8 pad3[2];
 } MenuItem; /* 0x1C */
 
-extern s32 D_802E8BDC; /* current level */
-extern PlayerRec D_80364AF0[];
 extern u8 D_80364B08[][0x100]; /* = D_80364AF0[p].rank */
 extern u8 D_80364B44[][0x100]; /* = D_80364AF0[p].flags */
-extern LevelInfo D_802E8F94[];
 
 /* This level's results (D_8036EA70) and the best (D_8036EA60), 16 bytes each:
  * money, time, then three counts with their targets in D_8036EB90..93 */
+#ifndef NON_MATCHING
 extern u32 D_8036EA60;
+#endif
 extern u8 D_8036EA68;
 extern u8 D_8036EA69;
 extern u16 D_8036EA6C;
+#ifndef NON_MATCHING
 extern u32 D_8036EA70;
+#endif
 extern s32 D_8036EA74;
 extern u8 D_8036EA7A;
 extern u8 D_8036EA7B;
-extern u32 D_8036EA80[4];
-extern u32 D_8036EA90[4];
 extern u8 D_8036EB94[]; /* bonus earned, per bonus */
 extern u8 D_8036EB9C[];
 
-extern MenuItem D_802F5804[];
-extern MenuItem D_8020C070[];
-extern MenuItem D_802F8BDC[];
+#ifndef NON_MATCHING
 extern s32 D_80367738;
-extern u64 D_8039C4B8[]; /* pak buffer */
-
+#endif
 
 #define CUR (D_80364AF0[D_80364AE8])
 #define LEVEL_DONE(l) ((CUR.rank[l] > 0 && CUR.rank[l] < 6) ? 1 : 0)

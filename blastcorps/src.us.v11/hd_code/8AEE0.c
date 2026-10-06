@@ -18,8 +18,6 @@ extern u64 *D_803FC5B8;
 extern u64 *D_803FC5BC;
 extern u64 *D_803FC988;
 extern u64 *D_803FC98C;
-extern u8 *D_80358070; /* matrix buffer allocator */
-extern s16 D_803ED390[]; /* rotation angles x, y, z for func_802AA764 */
 extern u8 D_803FC200[];  /* vehicle 15 animation channel table */
 extern u8 D_803FC5D0[];  /* vehicle 16 animation channel table */
 extern u8 D_803FC5C2;
@@ -31,10 +29,8 @@ extern s8 D_803FC998;
 extern u8 D_803FC999;
 extern u8 D_803FC99A;
 extern f32 D_8030D9D0;
-extern u8 *D_803F77D0;
 extern u8 D_80306460[];
 extern u8 D_80306470[];
-extern void *D_803F7844;
 
 
 s32 func_802CFC10(ZoneScanRegs *r);
@@ -846,7 +842,6 @@ void func_802D0BF8(void) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 D_803FC8D0[]; /* this vehicle's state block */
-extern void *D_80367738;
 extern void *D_803FC990; /* engine sound handle */
 extern u8 D_802C22D0[]; /* key of this vehicle's func_802A06B4 entry */
 extern u8 D_803FC5D0[]; /* this vehicle's animation channel table */
@@ -1056,7 +1051,6 @@ void func_802D0F98(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 f
 #ifdef NON_MATCHING
 extern s16 D_803FC996;  /* last channel unk13 seen (sound trigger) */
 extern u8 D_803FC99A;
-extern void *D_803F7844; /* sound handle */
 extern f32 D_8030D9E0;
 
 #define VEH16_U8(o) (D_803FC8D0[o])

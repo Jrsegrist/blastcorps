@@ -11,7 +11,6 @@
  * more specific non-ABI explanation where one was already worked out. */
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern void *D_80367738; /* sound player */
 
 /* Shared by eight vehicle modules, each calling it with its own state block
  * in $gp (the C takes it as a parameter; see tools_port/conventions.txt).

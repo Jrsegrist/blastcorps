@@ -2,7 +2,6 @@
 #include <ultra64.h>
 #include "game/game.h"
 
-extern void *D_80358070;
 extern u8 *D_8039CA90;
 extern u8 *D_8039CA94;
 extern u8 *D_8039CA98;

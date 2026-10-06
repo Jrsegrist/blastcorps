@@ -1,6 +1,10 @@
 #include "common.h"
 #include <ultra64.h>
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_802E8F94 ((u8 *) D_802E8F94)
+#define D_80364AF0 ((u8 (*)[256]) D_80364AF0)
+/* end of views */
 
 
 void func_8025C5D0(void) {
@@ -88,7 +92,6 @@ extern s32 D_80366BA8;
 extern u8 D_80366A10;
 extern u8 D_80366A11;
 extern u32 D_80366BBC;
-extern Mtx D_02000000[];
 void func_8025E1E0(Gfx **);
 Gfx *func_8025D2B4(Gfx *, s32, s32 *);
 
@@ -154,7 +157,6 @@ Gfx *func_8025C878(Gfx *arg0, s32 arg1, u8 arg2, s32 *arg3) {
     return gfx;
 }
 
-extern void *D_80358070;
 extern void *D_80366BA0;
 extern void *D_80366BA4;
 
@@ -427,7 +429,6 @@ Gfx *func_8025D2B4(Gfx *arg0, s32 arg1, s32 *arg2) {
     return gfx;
 }
 
-extern Mtx D_02000000[];
 
 void func_8025E1E0(Gfx **arg0) {
     Gfx *gfx = *arg0;
@@ -444,12 +445,7 @@ void func_8025E1E0(Gfx **arg0) {
 extern u8 D_80366BC0;
 extern u16 D_80366BC2;
 extern u8 D_80366BC4;
-extern s32 D_802E8BDC;
-extern u8 D_802E8F94[];
-extern u8 D_80364AF0[][256];
 extern u32 D_80366BB8;
-extern void *D_80367734;
-extern void *D_80367738;
 extern u32 D_802E8CD0[];
 
 void func_8025E2CC(Gfx **arg0, s32 arg1, s32 arg2) {
@@ -516,12 +512,8 @@ void func_8025E2CC(Gfx **arg0, s32 arg1, s32 arg2) {
     *arg0 = gfx;
 }
 
-extern s32 D_802E8BDC;
-extern u8 D_802E8F94[];
-extern void *D_80367738;
 extern u32 D_80366BB8;
 extern u8 D_80366BC5;
-extern u8 D_80364AF0[][256];
 
 void func_8025E67C(Gfx **arg0, s32 arg1, u8 arg2) {
     Gfx *gfx;

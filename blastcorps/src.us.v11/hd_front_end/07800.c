@@ -1,6 +1,23 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_80358070
+#endif /* legacy declarations */
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_8020C070 ((MenuEntry *) D_8020C070)
+#define D_8020D810 ((FeLevelEntry *) D_8020D810)
+#define D_802E8F94 ((LevelInfo *) D_802E8F94)
+#define D_802F49F4 ((IconInfo *) D_802F49F4)
+#define D_803156F8 ((FeDyn *) D_803156F8)
+#define D_80364AF0 ((FePlayer *) D_80364AF0)
+#ifdef NON_MATCHING
+#define D_80358070 (*(s32 *) &D_80358070)
+#endif
+/* end of views */
 
 /*
  * stats.c (named by its assert): end-of-level results. Grades the time,
@@ -54,16 +71,6 @@ typedef struct {
     u8 pad38[0xC];
 } LevelInfo;
 
-/* hd_code's Score (00000.c) */
-typedef struct {
-    s32 ip;
-    u32 tc; /* time */
-    u8 bd;
-    u8 cr;
-    u8 coin; /* grade */
-    u8 bdn;
-    u16 rt;
-} Score;
 
 typedef struct {
     u16 unk0; /* flags */
@@ -89,33 +96,20 @@ typedef struct {
     u8 pad2E[2];
 } IconInfo;
 
-extern FePlayer D_80364AF0[];
-extern s32 D_802E8BDC; /* current level */
-extern FeLevelEntry D_8020D810[];
-extern LevelInfo D_802E8F94[];
-extern Score D_8036EA60;
-extern Score D_8036EA70;
-extern Score D_8036EA80;
-extern Score D_8036EA90;
 extern char D_8036B980[];
-extern MenuEntry D_8020C070[];
-extern IconInfo D_802F49F4[];
 extern u16 D_80303B3C[];
 extern u16 D_80303B48[];
 extern u16 D_80303B58[];
 extern u16 D_80303B68[];
+#ifndef NON_MATCHING
 extern s32 D_80358070; /* heap pointer */
+#endif
 extern u16 D_802159D0; /* scene angle */
 extern u8 *D_802159D4; /* 256x32 IA8 banner */
 extern u8 *D_802159D8; /* 40x24 IA8 icon */
 extern u16 D_802159DC; /* scene */
 extern f32 D_802159E0; /* camera distance */
 extern f32 D_802159E4; /* spin speed */
-extern FeDyn D_803156F8[];
-extern u8 *D_8035806C;
-extern u32 D_80358058;
-extern u32 D_80358050[]; /* frame buffer physical addresses */
-extern void *D_80367738;
 
 /* ROM bounds of two compressed blobs (the first ends where the second starts) */
 extern u8 D_0048F5A0_end[];

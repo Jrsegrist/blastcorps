@@ -1,6 +1,21 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_80367738
+#define LEGACY_D_803FB8B0
+#endif /* legacy declarations */
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_02000000 ((u8 *) D_02000000)
+#define D_8039C800 ((Entry4B5E0b *) D_8039C800)
+#ifdef NON_MATCHING
+#define D_80367738 (*(s32 *) &D_80367738)
+#define D_803FB8B0 (*(s32 *) &D_803FB8B0)
+#endif
+/* end of views */
 
 /* D_8039C550: D_8039C710 0x38-byte entries (positions in 1/32 units). */
 typedef struct {
@@ -87,7 +102,6 @@ extern u8 D_8039C579;
 extern s32 D_8039C710;
 extern Entry4B5E0c D_8039C718[];
 extern s32 D_8039C7F8;
-extern Entry4B5E0b D_8039C800[];
 extern s32 D_8039C944;
 extern s32 D_8039C948;
 extern s32 D_8039C94C;
@@ -95,11 +109,14 @@ extern u8 D_8039C950;
 extern s32 D_8039C954;
 extern s32 D_8039C958;
 extern s32 D_8039C95C;
+#ifndef NON_MATCHING
 extern s32 D_803FB8B0;
+#endif
 extern Model4B5E0 D_802FDC08[];
-extern u8 D_02000000[]; /* segment 2 base */
 extern s16 D_802FDBE0[];
+#ifndef NON_MATCHING
 extern s32 D_80367738;
+#endif
 
 void func_80291724(s32);
 

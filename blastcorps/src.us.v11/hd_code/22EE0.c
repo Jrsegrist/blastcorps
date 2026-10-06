@@ -72,7 +72,6 @@ extern u32 D_8036A8C0; /* maxFrameSize */
 extern s32 D_8036A8C4; /* cmdLen */
 extern u8 D_803682F8[];
 extern u8 D_8030EB90[];
-extern OSMesgQueue D_80315440;
 extern s32 D_803156A4;
 /* .bss (0x80368050, placed by hd_code_bss.us.v11.ld); the first two words
  * are unreferenced placeholders */

@@ -604,7 +604,6 @@ u8 func_80260634(void *arg0) {
     return 0;
 }
 
-extern s32 D_802E8BDC;
 extern void *D_802E8CEC;
 SndState *func_80260300(void *, SndSound *);
 

@@ -43,7 +43,6 @@ extern f32 D_80217B5C;
 extern f32 D_80217B60; /* camera target */
 extern f32 D_80217B64;
 extern f32 D_80217B68;
-extern Mtx D_80217B70[][4];
 extern DrawEntry D_80218270[];
 extern s16 D_802182A8;
 

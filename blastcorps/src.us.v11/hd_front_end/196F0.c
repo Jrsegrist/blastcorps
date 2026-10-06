@@ -29,7 +29,6 @@
 
 extern u8 *D_8021AB80;        /* the inflated picture */
 extern u8 D_8021AB84;         /* its number */
-extern u8 *D_80358070;        /* heap pointer */
 extern u8 D_006BF2F0[];
 extern u8 D_006D3D30[];
 

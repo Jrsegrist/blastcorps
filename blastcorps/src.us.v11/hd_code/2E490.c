@@ -3,7 +3,6 @@
 #include "game/game.h"
 
 extern u8 D_8036C360;
-extern void *D_80358070;
 
 /* Sprite slots (this file's .bss, 0x8036BFE0) */
 extern void *D_8036BFE0[64][2];    /* frame images */

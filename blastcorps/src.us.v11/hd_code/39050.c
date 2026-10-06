@@ -1,6 +1,20 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_80358070
+#define LEGACY_D_803649D0
+#endif /* legacy declarations */
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_80364460 ((Digger *) D_80364460)
+#ifdef NON_MATCHING
+#define D_80358070 (*(s32 *) &D_80358070)
+#define D_803649D0 (*(Digger * *) &D_803649D0)
+#endif
+/* end of views */
 
 #define ABS(x) ((x) >= 0.0f ? (x) : -(x))
 
@@ -16,9 +30,9 @@ typedef struct {
     s32 unk70; /* 0x70 */
 } Digger;
 
-extern Digger D_80364460[];
+#ifndef NON_MATCHING
 extern Digger *D_803649D0;
-extern s32 D_803649E8;
+#endif
 extern s32 D_802FC51C;
 
 f32 sinf(f32);
@@ -63,7 +77,9 @@ typedef struct {
 
 extern Water D_802FC3F0[];
 extern s16 D_802FC48C[];
+#ifndef NON_MATCHING
 extern s32 D_80358070; /* bump allocator for display memory */
+#endif
 extern Vtx *D_8036DCA0[2]; /* double-buffered water grid */
 extern s32 D_8036DCA8[2];
 extern s32 D_8036DCB0; /* wave clock */
@@ -130,7 +146,6 @@ extern Vtx D_802FC528[];
 extern Mine D_8036E380[];
 extern s32 D_8036E4C0; /* number of placed objects */
 extern s32 D_8036E4C4;
-extern void *D_80367738;
 
 
 void func_8027D810(s32 arg0) {
@@ -944,7 +959,6 @@ void func_80281E44(Gfx **gfx) {
 extern s32 D_8036E4CC; /* overlay texture */
 extern s16 D_8036E4D0; /* overlay alpha */
 extern u8 D_8036E4D2;  /* overlay on */
-extern Mtx D_02000000[];
 extern Vtx D_802FC568[];
 
 

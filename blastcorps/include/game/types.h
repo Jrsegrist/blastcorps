@@ -86,4 +86,59 @@ typedef struct SndConfig {
     u16 slotCount;
 } SndConfig;
 
+/* A vehicle's shadow record, 0x1040 bytes (D_803643C8 / D_803643CC; hd.c;
+ * 13A70.c reads it as its Struct13A70). */
+typedef struct Vehicle {
+    u8 unk0[0x1000]; /* shadow texture, 64x64 IA8 */
+    f32 unk1000;
+    s32 unk1004; /* position, 1/32 units */
+    s32 unk1008;
+    s32 unk100C;
+    s32 unk1010;
+    u8 pad1014[4];
+    s16 unk1018; /* shadow half-width */
+    s16 unk101A; /* shadow half-depth */
+    s16 unk101C; /* rotation x */
+    s16 unk101E; /* rotation y */
+    s16 unk1020; /* rotation z */
+    u8 unk1022; /* id */
+    u8 unk1023; /* draw layer */
+    u8 pad1024[0x1C];
+} Vehicle; /* 0x1040 bytes */
+
+/* A level result (D_8036EA60 best, D_8036EA70 this run, D_8036EA80/90). */
+typedef struct Score {
+    s32 ip;
+    u32 tc; /* time */
+    u8 bd;
+    u8 cr;
+    u8 coin; /* grade */
+    u8 bdn;
+    u16 rt;
+} Score;
+
+/* One entry per level on the front end's level-select globe (D_8020D810,
+ * defined in hd_front_end/11530.c). */
+typedef struct GlobeLevel {
+    /* 0x00 */ u8 unk0;
+    /* 0x01 */ u8 unk1;
+    /* 0x04 */ char *name;
+    /* 0x08 */ u16 *jname; /* hd_code glyph string (0x0FFE-terminated) */
+    /* 0x0C */ s32 unkC;
+    /* 0x10 */ f32 unk10;
+    /* 0x14 */ f32 unk14;
+    /* 0x18 */ s8 unk18[4]; /* level ids, -1-terminated */
+    /* 0x1C */ s8 unk1C[8]; /* level ids, -1-terminated */
+    /* 0x24 */ f32 unk24;
+    /* 0x28 */ f32 unk28;
+    /* 0x2C */ f32 unk2C;
+} GlobeLevel; /* size 0x30 */
+
+/* A rank title (D_802081C0, defined in hd_front_end/01C40.c). The u16
+ * pointers are hd_code data (glyph strings and portraits). */
+typedef struct RankTitle {
+    char *title;
+    u16 *glyphs;
+} RankTitle;
+
 #endif

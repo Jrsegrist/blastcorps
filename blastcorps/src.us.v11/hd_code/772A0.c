@@ -53,10 +53,7 @@ extern s32 D_803EFEC0;   /* frame counters */
 extern s32 D_803EFEC4;
 extern u8 D_803EFEC9;
 extern u8 D_803EFECA;
-extern u8 *D_80358070;   /* heap pointer */
-extern s16 D_803ED390[]; /* (0, heading, 0) for func_802AA764 */
 extern u8 D_80305E00[];
-extern u8 *D_803F77D0;
 
 s32 func_802BBE74(ZoneScanRegs *r);
 void func_802BC2C8(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4);
@@ -361,7 +358,6 @@ void func_802BBEB8(void) {
 #ifdef NON_MATCHING
 extern u8 D_803EFDF0[];  /* this vehicle's state block (the asm's $gp) */
 extern u8 D_803EFEC9;    /* countdown */
-extern void *D_80367738; /* sound player */
 
 /* Countdown D_803EFEC9: when nonzero it just counts down. At zero, if the
  * flag for the speed's sign (s16 at +0x76: > 0 -> D_80370C23, else

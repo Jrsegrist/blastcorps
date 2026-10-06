@@ -1,6 +1,10 @@
 #include "common.h"
 #include <ultra64.h>
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_802F5804 ((PathNode *) D_802F5804)
+#define D_802F8BDC ((YoshiArg *) D_802F8BDC)
+/* end of views */
 
 /* controller.c: controller init, reading, the demo/replay pad source and
  * per-button edge flags. */
@@ -41,10 +45,7 @@ extern OSContPad D_80370BD8; /* this frame's pad */
 extern OSMesg D_80370BF0;
 extern OSContStatus D_80370BC8;
 extern u8 D_80370C10; /* a read is in flight */
-extern s32 D_802E8BDC; /* current level */
 extern Player D_80364BE0[];
-extern PathNode D_802F5804[];
-extern YoshiArg D_802F8BDC[];
 
 /* stick x/y: this frame and last frame */
 /* one flag per button, set while held */

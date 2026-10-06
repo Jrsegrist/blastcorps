@@ -30,7 +30,6 @@ typedef struct {
 extern FadeEntry D_802FA280[][2];
 extern Vtx D_802FA820[2][4];
 extern FmtPair D_802FA8A0;
-extern void *D_80358070;
 
 
 /* Draws the two-layer scrolling backdrop and returns the new display

@@ -1,6 +1,20 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_80358070
+#define LEGACY_D_80367738
+#endif /* legacy declarations */
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_02000000 ((u8 *) D_02000000)
+#ifdef NON_MATCHING
+#define D_80358070 (*(Vtx * *) &D_80358070)
+#define D_80367738 (*(s32 *) &D_80367738)
+#endif
+/* end of views */
 
 /* D_8039B070: array of D_8039B610 0x48-byte entries. */
 typedef struct {
@@ -48,7 +62,9 @@ extern s32 D_8039B614;
 extern s32 D_8039B618;
 extern s32 D_8039B61C;
 extern u8 D_8039B620;
+#ifndef NON_MATCHING
 extern Vtx *D_80358070; /* vertex allocator */
+#endif
 
 void func_8028DA5C(Vtx *v, u8 arg1);
 
@@ -152,7 +168,9 @@ extern u8 D_8039B088;
 extern u8 D_8039B089;
 extern u8 D_8039B0B0;
 extern u8 D_8039B0B4;
+#ifndef NON_MATCHING
 extern s32 D_80367738;
+#endif
 
 Entry48D00 *func_8028DE94(void);
 
@@ -192,7 +210,6 @@ Entry48D00 *func_8028DE94(void) {
     return NULL;
 }
 
-extern s32 D_802E8BDC;
 extern s16 D_802FDB70[]; /* speed cap per mode */
 
 
@@ -351,7 +368,6 @@ void func_8028DF14(u8 arg0) {
     D_8039B620 = arg0;
 }
 
-extern u8 D_02000000[]; /* segment 2 base */
 
 /* Per-frame dynamic buffer: one matrix per box at 0x600. */
 typedef struct Dyn48D00 {

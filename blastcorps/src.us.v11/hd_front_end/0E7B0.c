@@ -1,6 +1,24 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_8039C4B4
+#endif /* legacy declarations */
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_8020C070 ((MenuItem *) D_8020C070)
+#define D_802E8F94 ((LevelInfo *) D_802E8F94)
+#define D_802F8BDC ((s16 *) D_802F8BDC)
+#define D_80310BD0 ((u8 *) &D_80310BD0)
+#define D_80315440 ((u8 *) &D_80315440)
+#define D_80364AF0 ((Player *) D_80364AF0)
+#define D_8039C4B8 ((u8 *) D_8039C4B8)
+#ifdef NON_MATCHING
+#define D_8039C4B4 (*(s32 *) &D_8039C4B4)
+#endif
+/* end of views */
 
 /*
  * pfsHandler.c: the Controller Pak / EEPROM save thread. Player records
@@ -61,29 +79,24 @@ extern OSPfs D_8039B630;      /* hd_code .bss: the Controller Pak file system */
 extern u8 D_8020C000[];       /* game name */
 extern u8 D_8020C014[];       /* extension name */
 extern u8 D_8020C01C[];       /* character set (0x45 entries) */
-extern MenuItem D_8020C070[]; /* menu items; 37 + n list the pak's files */
 extern OldPfsState D_80218B20[]; /* the pak's files */
 extern s32 D_80218D28;        /* number of files listed */
 extern u8 D_802189C0[][17];   /* file game names */
 extern u8 D_80218AD0[][5];    /* file extensions */
 extern char D_80218740[][40]; /* file menu lines */
-extern s16 D_802F8BDC[];
 extern s32 D_80218EF0;        /* free bytes */
 extern char D_80219F90[];
 extern char D_80219FB0[];
 extern u8 D_80301080[];
-extern u8 D_8039C4B8[];
-extern LevelInfo D_802E8F94[];
 extern s32 D_8039B698[];      /* file_no per player */
-extern OSThread D_80218D30;
 extern u8 D_80218EF8[];       /* thread stack (0x1000) */
 extern OSMesg D_80219F10[];
 extern OSMesgQueue D_80219F30;
 extern OSMesg D_80219F48[];
 extern OSMesg D_80219F68[];
-extern u8 D_80315440[];       /* hd_code scheduler */
+#ifndef NON_MATCHING
 extern s32 D_8039C4B4;
-extern Player D_80364AF0[];   /* player records */
+#endif
 extern u8 D_8039B6B0[];
 extern u8 D_8020BEE0[];
 
@@ -334,7 +347,6 @@ void func_801F57B0(void) {
 #ifdef NON_MATCHING
 extern s32 D_80218D24;     /* a Yoshi window was opened for a pak error */
 extern s32 D_80219F88;     /* Yoshi window of the last pak error */
-extern u8 D_80310BD0[];    /* hd_code: the thread D_80219F50's receiver must be */
 s32 func_801F5FE4(void);
 s32 func_801F60C8(void);
 s32 func_801F6160(u8 player);

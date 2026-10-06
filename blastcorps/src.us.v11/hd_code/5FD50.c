@@ -1,6 +1,11 @@
 #include "common.h"
 #include <ultra64.h>
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_803153D8 ((u8 *) &D_803153D8)
+#define D_803156D8 ((u8 *) &D_803156D8)
+#define D_8036AFB0 ((u8 *) D_8036AFB0)
+/* end of views */
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -298,10 +303,6 @@ extern u8 D_8030EE60[];   /* gfx ucode data */
 extern u8 D_803BE780[];   /* dram stack (0x400) */
 extern u8 D_803BEB80[];   /* output buffer */
 extern u8 D_803C2B80[];   /* output buffer end */
-extern u8 D_8036AFB0[];   /* yield buffer (0x900) */
-extern u8 D_803153D8[];
-extern u8 D_803156D8[];
-extern OSMesgQueue D_80315440;
 
 /* Unless the level grid is 1 x 1 (D_803BE714 == D_803BE716 == 1, returns 1),
  * fills the task D_803BE740 (an M_GFXTASK OSTask at +0x10 with data_ptr /
@@ -355,7 +356,6 @@ s32 func_802A4B0C(void *dataPtr, void *wb, s32 dataSize) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 *D_80358074; /* current level header */
 u32 *func_802A4E4C(u8 *lvl, u32 *dl, u8 *rec, u8 *recEnd, u8 *grp, u8 *grpEnd);
 void func_802A4DE8(s32 arg0, u32 *gfx, u32 *dl, u32 *end);
 void func_802A5020(u8 *base);

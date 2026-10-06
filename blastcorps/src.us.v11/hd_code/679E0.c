@@ -1,6 +1,11 @@
 #include "common.h"
 #include <ultra64.h>
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#ifdef NON_MATCHING
+#define D_80367738 (*(s32 *) &D_80367738)
+#endif
+/* end of views */
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -12,8 +17,6 @@
 #ifdef NON_MATCHING
 
 
-extern u8 D_803F4030[];  /* 0xFC-byte object records */
-extern u8 *D_803F7654;   /* end of the records in use */
 extern u8 D_802C2A5C[];  /* definition in the 7D9D0 text blob */
 #endif
 
@@ -72,8 +75,6 @@ void func_802AC284(s32 *px, s32 *py, s32 *pz) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_80367738;
-extern u8 *D_803F3960;  /* end of the (object, part) hit list */
 
 /* Only in game mode 0x40: vehicle-state reset (func_8029A800 with b2 = 1,
  * b3 = 0, h1 = 0, h2 = 0x40, b4 = 0), the collision pass of vehicle id
@@ -125,7 +126,6 @@ void func_802AC2A4(s32 z, s32 a1, s32 x, s32 y, s32 b0, s32 id, u8 *vehicle) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_802E8BDC; /* current level */
 
 /* Level 0x17 only: wraps the position x (*px) and z (*pz) into the level's
  * box (x >= 0x15181 -> 0x2BC0, then x < 0x2581 -> 0x14B40; z >= 0x13881 ->

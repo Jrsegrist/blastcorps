@@ -1,6 +1,11 @@
 #include "common.h"
 #include <ultra64.h>
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#ifdef NON_MATCHING
+#define D_80358070 (*(u32 *) &D_80358070)
+#endif
+/* end of views */
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -26,7 +31,6 @@ void func_802CD800(void);
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u32 D_80358070; /* bump allocator for the save copies */
 extern u8 D_803F9312;
 extern u8 D_803F9313;
 extern u8 D_803F9314;
@@ -299,7 +303,6 @@ s32 func_802CCF60(s32 id, TriSideOut *f) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern s16 D_803F9310; /* steering target */
-extern u8 *D_803F77D0;
 extern f32 D_8030D9C0;
 extern u8 D_80306440[];
 void func_802CD578(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4);
@@ -520,7 +523,6 @@ void func_802CD660(void) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 *D_803F9304;    /* model header: word offsets to the part lists */
-extern s16 D_803ED390[3]; /* rotation angles x, y, z for func_802AA764 */
 
 /* Place vehicle 14's model: as func_802CC70C (86F60) with this vehicle's
  * header D_803F9304, save copies D_803F9308/930C, heading at +0x4C of

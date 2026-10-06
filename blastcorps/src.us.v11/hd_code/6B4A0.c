@@ -27,8 +27,6 @@ extern u32 D_803EDBE8[]; /* vehicle 1 PortVehPos */
 extern u8 D_803ED840[];  /* vehicle 1 animation channels */
 #define VPOS1 ((PortVehPos *) D_803EDBE8)
 
-extern u8 *D_80358070; /* heap cursor */
-extern u8 *D_803F77D0;
 extern u8 D_80305CE0[];
 extern f32 D_8030D8A0;
 
@@ -487,7 +485,6 @@ void func_802B03F4(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
 extern f32 D_8030D8A4;
 extern u8 D_803EDC06;    /* horn cooldown (frames) */
 extern u8 D_803EDC05;    /* level 0..100 */
-extern void *D_80367738;
 
 /* Per-frame animation/sound update of vehicle 1 (asm caller func_802B03F4;
  * the asm reads the state block through $gp = D_803EDB40, read directly

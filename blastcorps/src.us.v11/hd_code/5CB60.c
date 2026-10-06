@@ -1,13 +1,22 @@
 #include "common.h"
 #include <ultra64.h>
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_80364460 ((u8 *) D_80364460)
+#ifdef NON_MATCHING
+#define D_80365330 (*(s32 *) &D_80365330)
+#define D_803BDB08 (*(u8 * *) &D_803BDB08)
+#define D_803BE6E0 (*(u8 * *) &D_803BE6E0)
+#define D_803BE6E4 (*(u8 * *) &D_803BE6E4)
+#define D_803BE6E8 (*(u8 * *) &D_803BE6E8)
+#define D_803BE6EC (*(u8 * *) &D_803BE6EC)
+#endif
+/* end of views */
 
 #ifdef NON_MATCHING
 /* Shared declarations for the NON_MATCHING (port) rewrites below. Most of
  * these functions take a level object (in t0 or t4 in the asm) whose header
  * holds offsets of its sub-lists: OBJ_PTR(obj, off) = obj + *(s32 *)(obj + off). */
-extern u8 *D_80358070; /* heap pointer */
-extern s32 D_802E8BDC; /* current level */
 
 #define OBJ_PTR(obj, off) ((obj) + *(s32 *) ((obj) + (off)))
 /* Big-endian 16/32-bit fields at any alignment (the asm assembles them from bytes). */
@@ -51,7 +60,6 @@ u32 func_802A1320(void) {
  * more specific non-ABI explanation where one was already worked out. */
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_80364460[]; /* 0x74-byte records */
 
 /* Finds the 0x74-byte record of D_80364460 whose word at 0x5C is `id` (no
  * bound: it must exist) and stores v0Val, v1Val, a0Val and obj[0x9B] in its
@@ -77,7 +85,6 @@ void func_802A133C(s32 a0Val, s32 id, s32 v0Val, s32 v1Val, u8 *obj) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 *D_803649D0; /* end of the D_80364460 records in use */
 void func_802A1558(Gfx *src, Gfx *end, Gfx **dstp);
 
 /* Appends a 0x74-byte record to D_80364460 (cursor D_803649D0) for the model
@@ -144,8 +151,6 @@ void func_802A1558(Gfx *src, Gfx *end, Gfx **dstp) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern s32 D_803BE6F4; /* func_802A1674's second argument (a status stream pointer or 0) */
-extern u8 *D_803BE6FC;
-extern u8 *D_803BE700;
 /* u64 game-mode constants in .hd_code_data (the asm loads them by raw
  * address with ld). */
 #define D_8030D880 (*(u64 *) 0x8030D880)
@@ -355,8 +360,6 @@ void func_802A1934(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 *D_8039CAC0;
-extern u8 *D_8039CABC;
 
 /* If D_8039CAB7 is set: load packed object 0x98 (func_802A396C), D_8039CAC0 =
  * OBJ_PTR(data, 0x14) and move each 16-byte vertex record from there up to
@@ -392,9 +395,6 @@ void func_802A19F4(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 *D_803F7820;
-extern u8 *D_803F7824;
-extern u8 *D_803F7828;
 
 /* Allocates from the heap D_80358070: 2n bytes of identity matrices (0x40-
  * byte fixed-point Mtx; D_803F7820 = start, D_803F7824 = start + n), then
@@ -515,10 +515,6 @@ void func_802A1C20(u8 *obj, u8 *param, s32 *s1io) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 *D_803BE6E0;
-extern u8 *D_803BE6E4;
-extern u8 *D_803BE6E8;
-extern u8 *D_803BE6EC;
 
 /* Relocates the object's display lists: every gSPDisplayList (opcode 6) in
  * [OBJ_PTR(obj, 0x90), OBJ_PTR(obj, 0x84)) gets OBJ_PTR(obj, 0x78) - 0x80000000
@@ -548,9 +544,6 @@ void func_802A1C88(u8 *obj) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803EFED0[];
-extern u8 D_803F4030[];
-extern u8 *D_803F7654;
 void func_802A1EC8(void);
 void func_802A2BB0(void);
 u8 *func_802A2A98(s32 index);
@@ -634,7 +627,6 @@ u8 *func_802A1D54(u8 *obj, u8 *param, s32 *s1io) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_802E8BDC; /* current level */
 extern u8 *D_803BE704;
 extern u8 D_802D30D0[], D_802D3194[], D_802D32A0[], D_802D331C[], D_802D33C8[];
 extern u8 D_802D3444[], D_802D3538[], D_802D3614[], D_802D36C0[], D_802D3784[];
@@ -722,7 +714,6 @@ void func_802A2164(s32 kind, u8 *obj) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 *D_803F7654; /* next free 0xFC-byte object record */
 void func_802A2608(u8 *obj, u8 *param, s32 *s1io);
 void func_802A2458(u8 *rec, u8 *obj);
 void func_802A24BC(u8 *rec, u8 *param);
@@ -863,7 +854,6 @@ void func_802A2458(u8 *rec, u8 *obj) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_80365330;
 
 /* For a record whose type (word 0x30) is 0xBA, 0xBB or 0xBC: D_80365330 =
  * func_802A0CFC(0xF81, param) and word 0x44 = the ground height
@@ -1134,9 +1124,7 @@ void func_802A2C54(u8 *obj) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 *D_80364458;
 extern u16 D_803BE72E;
-extern u8 D_803A6B30[];  /* 100 x 0x14 */
 
 /* Level setup from the level header obj: copies its sizes and bounds into
  * globals (u16 fields at 4/6/0xC/0xE/0x14/0x16 are stored << 5), points
@@ -1301,9 +1289,6 @@ void func_802A3134(u8 *obj) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 *D_803BDAFC;
-extern u8 *D_803BDB00;
-extern u8 *D_803BDB04;
-extern u8 *D_803BDB08;
 
 /* If D_8039CA61 is set: load packed object D_8039CA7E (func_802A32CC; its s2,
  * s3, s4 results go to *out); D_803BDAFC = data, D_803BDB04 =
@@ -1840,7 +1825,6 @@ void func_802A3E9C(u8 *obj, s32 id, s32 b4F, s32 *s1io) {
 #endif
 
 #ifdef NON_MATCHING
-extern u8 D_803B9890[]; /* 0x60-byte records */
 
 /* Object groups in [OBJ_PTR(obj, 0x68), OBJ_PTR(obj, 0x6C)), each becoming a
  * 0xDC-byte group in D_803BC1D0: bytes [0xC4..0xC6] = a, kind, n from the
@@ -1930,7 +1914,6 @@ u8 *func_802A3F80(u8 *obj, s32 *s1io) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803B9890[]; /* 0x60-byte records */
 
 /* Returns 1 if a 0x60-byte record in [D_803B9890, end) has byte 0x50 == id,
  * else 0. The asm loops with `!=`.

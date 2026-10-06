@@ -26,7 +26,6 @@ extern u8 D_803F8B7B;
 extern u8 D_803F8B7C;
 extern u8 D_803F8B7D;
 extern u8 D_803F8B7E;
-extern u8 *D_80358070; /* allocation pointer for the save copies */
 
 /* Load vehicle 10 (the 5CB60 dispatcher func_802A350C, record type 10):
  * model `model` (D_803F8B54), save copies D_803F8B58 / D_803F8B5C taken
@@ -343,13 +342,11 @@ void func_802CA3D8(s32 id, s32 *s3, InterpRegs *r) {
 #ifdef NON_MATCHING
 extern u64 *D_803F8B58;
 extern u64 *D_803F8B5C;
-extern void *D_80367738;
 extern u8 D_803F8B7A;  /* throttle hold-off countdown */
 extern s8 D_803F8B78;  /* "turning back to the ring" flag */
 extern s16 D_803F8B74; /* ring target heading */
 extern s8 D_803F8B79;  /* sound to start this frame (-1 = none) */
 extern u8 D_803F8B7B;  /* bounced off the ring end */
-extern void *D_803F77D0;
 extern f32 D_8030D990;
 extern u8 D_80306420[];
 void func_802CAAFC(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4);
@@ -545,7 +542,6 @@ extern u16 D_803F8B70; /* jump: boost frames */
 extern u8 D_803F8B76;  /* record cooldown */
 extern u8 D_803F8B7D;  /* horn cooldown */
 extern u8 D_803F8B7E;  /* horn side toggle */
-extern void *D_80367738;
 extern f32 D_8030D994;
 extern f32 D_8030D998;
 extern f32 D_8030D99C;
@@ -783,7 +779,6 @@ f32 func_802CB3C8(s32 side) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 *D_803F8B54; /* this vehicle's model: +0 / +4 / +8 offsets of the point lists, +0x18 the matrix */
-extern s16 D_803ED390[]; /* rotation angles x, y, z for func_802AA764 */
 
 /* Place this vehicle's model (vehicle 10): builds its matrix (scale 0x3E80,
  * yaw = +0x4C of D_803F8AA0, the other two angles as they are) at the

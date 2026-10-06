@@ -1,6 +1,12 @@
 #include "common.h"
 #include <ultra64.h>
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_8020C070 ((MenuItem *) D_8020C070)
+#define D_802E8F38 ((Entry8 *) D_802E8F38)
+#define D_802E8F94 ((LevelInfo *) D_802E8F94)
+#define D_80364AF0 ((Player *) D_80364AF0)
+/* end of views */
 
 /* academy.c: each player's progress state machine (players[].gameState):
  * which levels/messages unlock next, and the jingles/menus that go with it */
@@ -41,15 +47,10 @@ typedef struct {
     u8 pad2[0xC];
 } MenuItem;
 
-extern Player D_80364AF0[];
-extern s32 D_802E8BDC;
 extern u8 D_802FDA60[];
 extern u8 D_802FDA70[];
-extern Entry8 D_802E8F38[];
 extern Entry30 D_8020D7E4[];
 extern char D_8036EBA0[];
-extern MenuItem D_8020C070[];
-extern LevelInfo D_802E8F94[];
 
 
 #define players D_80364AF0

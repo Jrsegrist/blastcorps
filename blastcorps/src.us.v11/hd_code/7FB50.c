@@ -1,6 +1,13 @@
 #include "common.h"
 #include <ultra64.h>
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_803F4030 ((Rec7FB50 *) D_803F4030)
+#ifdef NON_MATCHING
+#define D_803F7654 (*(Rec7FB50 * *) &D_803F7654)
+#define D_803F7844 (*(s32 *) &D_803F7844)
+#endif
+/* end of views */
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -24,8 +31,6 @@ typedef struct {
     /* 0xEC */ u8 parts[0x10]; /* 100 = part destroyed */
 } Rec7FB50; /* size 0xFC */
 
-extern Rec7FB50 D_803F4030[];
-extern Rec7FB50 *D_803F7654;
 extern u8 D_803063F0[];
 
 
@@ -76,7 +81,6 @@ extern f32 D_803F7C2C;
 extern u8 D_803F7C3C;
 extern u8 D_803F7C3E;
 extern u8 D_803F7C48;
-extern void *D_80367738;
 extern f32 D_8030D968;
 extern f32 D_8030D96C;
 extern f32 D_8030D970;
@@ -362,8 +366,6 @@ extern u8 D_803F7C45;
 extern u8 D_803F7C47;
 extern u8 D_803F7C4A;
 extern u8 D_803F7C4B;
-extern s32 D_803F7844;
-extern u8 *D_80358070; /* allocation pointer for the save copies */
 
 /* Load vehicle 9 (the 5CB60 dispatcher func_802A350C, record type 9): model
  * `model` (D_803F7C04), save copies D_803F7C08 / D_803F7C0C taken 0x1000
@@ -690,7 +692,6 @@ extern s16 D_803F7C30; /* ring target heading */
 extern u8 D_803F7C39;
 extern s32 D_803F7C20;
 extern s32 D_803F7C24;
-extern void *D_803F77D0;
 extern u8 D_80306400[];
 void func_802C61F0(s32 s0, TriSideOut *f, TriScanRegs *r);
 void func_802C617C(void);
@@ -1813,7 +1814,6 @@ f32 func_802C7C1C(s32 up) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 *D_803F7C04; /* this vehicle's model: +0 / +4 / +8 offsets of the point lists, +0x18 the matrix */
-extern s16 D_803ED390[]; /* rotation angles x, y, z for func_802AA764 */
 
 /* Place this vehicle's model (vehicle 9): builds its matrix (scale 0x4268,
  * angles (0, +0x4C of the block, 0)) at the model's +0x18 entry inside the

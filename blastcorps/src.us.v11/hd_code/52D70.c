@@ -1,6 +1,10 @@
 #include "common.h"
 #include <ultra64.h>
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_802E8F38 ((D_802E8F38_s *) D_802E8F38)
+#define D_80364AF0 ((Player *) D_80364AF0)
+/* end of views */
 
 /* Per-player state, 0x100 bytes */
 typedef struct {
@@ -18,12 +22,7 @@ typedef struct {
     /* 0x06 */ s16 z;
 } D_802E8F38_s;
 
-extern Player D_80364AF0[];
-extern D_802E8F38_s D_802E8F38[];
-extern void *D_80358070;
 extern u8 D_8039CAB8;
-extern void *D_8039CABC;
-extern void *D_8039CAC0;
 extern Mtx *D_8039CAC4;
 extern u8 D_8039CAC8;
 

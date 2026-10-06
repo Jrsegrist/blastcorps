@@ -1,6 +1,13 @@
 #include "common.h"
 #include <ultra64.h>
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_803F3FF8 (*(Debris8A2E0 *) D_803F3FF8)
+#define D_803FBBB0 ((UnkEntry8A2E0 *) D_803FBBB0)
+#ifdef NON_MATCHING
+#define D_80358070 (*(u32 *) &D_80358070)
+#endif
+/* end of views */
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -22,7 +29,6 @@ typedef struct {
 } UnkEntry8A2E0; /* size 0x14 */
 
 
-extern UnkEntry8A2E0 D_803FBBB0[];
 extern u8 D_803FBBE0[]; /* channel tables of the boxes' two models */
 extern u8 D_803FBEE0[];
 extern u8 *D_803FBBD8;  /* the boxes' model data */
@@ -34,7 +40,6 @@ extern u8 *D_803FC1EC;
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u32 D_80358070; /* bump allocator */
 void func_802CEE14(s32 x, s32 y, s32 z);
 
 /* Load channels for one model: func_8029F85C(b, a, ch, D_803FBBD8), channel 0
@@ -312,8 +317,6 @@ typedef struct {
     /* 0x36 */ u8 pad36[2];
 } Debris8A2E0;
 
-extern Debris8A2E0 D_803F3FF8;
-extern void *D_80367738; /* sound player */
 
 /* Burst at pos (s32 x, y, z): func_802A5E60(), frees every D_803F3968 slot
  * (func_802C049C), then 24 debris records (D_803F3FF8, through

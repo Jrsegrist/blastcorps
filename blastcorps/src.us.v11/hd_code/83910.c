@@ -60,10 +60,7 @@ extern u64 *D_803F878C;
 extern u8 D_803F8790;
 extern u8 D_803F8791;
 extern u8 D_803F8792;
-extern u8 *D_80358070;   /* heap pointer */
-extern s16 D_803ED390[]; /* (0, heading, 0) for func_802AA764 */
 extern u8 D_80306410[];
-extern u8 *D_803F77D0;
 
 void func_802C8150(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp);
 void func_802C8470(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp);

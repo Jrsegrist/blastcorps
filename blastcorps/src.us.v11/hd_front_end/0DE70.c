@@ -1,6 +1,18 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_80358070
+#endif /* legacy declarations */
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_803156F8 ((FeDyn *) D_803156F8)
+#ifdef NON_MATCHING
+#define D_80358070 (*(s32 *) &D_80358070)
+#endif
+/* end of views */
 
 /*
  * Front-end 3D scene setup: loads one of three compressed scene blobs, and
@@ -19,8 +31,9 @@ typedef struct {
     s32 unk20;
 } FeHdr;
 
-extern FeDyn D_803156F8[];
+#ifndef NON_MATCHING
 extern s32 D_80358070; /* heap pointer */
+#endif
 
 /* ROM addresses of the compressed scene blobs */
 extern u8 D_006EA850[];

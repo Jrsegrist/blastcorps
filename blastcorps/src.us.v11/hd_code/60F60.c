@@ -436,7 +436,6 @@ void func_802A5F30(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 *D_80358070;  /* heap pointer */
 extern u8 D_8020ED00[]; /* heap end when (D_80364AA8 & 0x20) */
 extern u8 D_8021DD00[]; /* heap end otherwise */
 extern char D_80305C34[];

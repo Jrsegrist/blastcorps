@@ -1,6 +1,10 @@
 #include "common.h"
 #include <ultra64.h>
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_802081C0 ((RankName *) D_802081C0)
+#define D_80364AF0 ((FePlayer *) D_80364AF0)
+/* end of views */
 
 /*
  * Promotion screen: "CONGRATULATIONS / ON YOUR PROMOTION!" plus the new
@@ -20,7 +24,6 @@ typedef struct {
     u8 pad4[4];
 } RankName;
 
-extern FePlayer D_80364AF0[];
 extern s32 D_80215960; /* scale state */
 extern s32 D_80215964; /* text fade state */
 extern f32 D_80215968; /* scene angle */
@@ -32,7 +35,6 @@ extern s32 D_80215978; /* rank */
 extern u8 D_80215980[]; /* rank name, first line */
 extern u8 D_80215998[]; /* rank name, second line */
 extern s16 D_802159B0;
-extern RankName D_802081C0[];
 extern u16 D_80303B78[];
 extern u16 D_80303B88[];
 

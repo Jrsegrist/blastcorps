@@ -1,12 +1,13 @@
 #include "common.h"
 #include <ultra64.h>
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_803156F8 ((FeDyn *) D_803156F8)
+#define D_80358050 ((void * *) D_80358050)
+/* end of views */
 
 
-extern FeDyn D_803156F8[];
 extern s32 D_802159C0;
-extern void *D_8035806C;
-extern void *D_80358050[];    /* frame buffers */
 
 
 void func_801EE390(void) {

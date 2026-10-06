@@ -1,22 +1,26 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_80217B70
+#define LEGACY_D_80358058
+#define LEGACY_D_80358070
+#endif /* legacy declarations */
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_802E8F94 ((LevelInfo *) D_802E8F94)
+#define D_803156F8 ((Dynamic *) D_803156F8)
+#define D_80358050 ((u16 * *) D_80358050)
+#define D_80364AF0 ((Player *) D_80364AF0)
+#ifdef NON_MATCHING
+#define D_80217B70 ((Mtx *) D_80217B70)
+#define D_80358058 (*(u16 * *) &D_80358058)
+#define D_80358070 (*(s32 *) &D_80358070)
+#endif
+/* end of views */
 
-/* One entry per level on the front end's level-select globe. */
-typedef struct {
-    /* 0x00 */ u8 unk0;
-    /* 0x01 */ u8 unk1;
-    /* 0x04 */ char *name;
-    /* 0x08 */ u16 *jname; /* hd_code glyph string (0x0FFE-terminated) */
-    /* 0x0C */ s32 unkC;
-    /* 0x10 */ f32 unk10;
-    /* 0x14 */ f32 unk14;
-    /* 0x18 */ s8 unk18[4]; /* level ids, -1-terminated */
-    /* 0x1C */ s8 unk1C[8]; /* level ids, -1-terminated */
-    /* 0x24 */ f32 unk24;
-    /* 0x28 */ f32 unk28;
-    /* 0x2C */ f32 unk2C;
-} GlobeLevel; /* size 0x30 */
 
 #define MIN2(a, b) ((a) < (b) ? (a) : (b))
 #define MAX2(a, b) ((a) < (b) ? (b) : (a))
@@ -135,21 +139,19 @@ typedef struct {
     /* 0x21498 */ u8 pad21498[0x21498 - 0x48B0 - ((0x21498 - 0x48B0) / 8) * 8];
 } Dynamic;
 
-extern Dynamic D_803156F8[];
-extern u16 *D_80358050[];
+#ifndef NON_MATCHING
 extern u16 *D_80358058;
-extern void *D_8035806C;
+#endif
 f32 sqrtf(f32);
-extern void *D_80367738;
-extern Player D_80364AF0[];
-extern LevelInfo D_802E8F94[];
 
 /* front end */
 extern Gfx *D_8021A8F8;
 extern u8 D_8021A905;
 extern u16 D_8021A924;
 extern u8 D_802159F0[];
+#ifndef NON_MATCHING
 extern Mtx D_80217B70[];
+#endif
 extern u8 D_8021A904;
 extern s8 D_8021A906;
 extern s8 D_8021A907;
@@ -169,7 +171,9 @@ extern void *D_8021AB38;
 extern f32 D_8021AB40;
 extern f32 D_8021AB44;
 extern f32 D_8021AB48;
+#ifndef NON_MATCHING
 extern s32 D_80358070;
+#endif
 void func_801F885C(s32 arg0);
 f32 func_801FD6B8(f32 a, f32 b, f32 range);
 Gfx *func_801FE5D0(Gfx *arg0, Dynamic *dyn);
@@ -184,7 +188,6 @@ extern LevelInfo *D_8021AB34;
 extern f32 D_8021AB4C;
 extern f32 D_8021AB50;
 extern f32 D_8021AB54;
-extern u8 *D_80215A70[]; /* plane icon animation frames, 32x32 RGBA32 */
 extern Vtx D_8021A840[2][4];
 extern s32 D_8021A8C0; /* flight time */
 extern f32 D_8021A8C4; /* flight start/end points */
@@ -198,7 +201,6 @@ extern f32 D_8021A8E0; /* cos of the arc */
 extern f32 D_8021A8E4; /* arc angle */
 extern f32 D_8021A8E8; /* flight progress 0..1 */
 extern f32 D_8021A8EC; /* altitude scale */
-extern s32 D_802E8BDC; /* current level */
 extern f32 D_8021A90C;
 extern f32 D_8021A910;
 extern f32 D_8021A914;

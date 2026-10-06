@@ -4,9 +4,19 @@
 /* Matching build: IDO compiled the matched code here against older
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
+#define LEGACY_D_80367738
 #define LEGACY_func_802025D0
 #endif /* legacy declarations */
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_802E8F94 ((LevelInfo *) D_802E8F94)
+#define D_802F47B0 ((u8 *) D_802F47B0)
+#define D_803156F8 ((FeDyn *) D_803156F8)
+#define D_80364AF0 ((Player *) D_80364AF0)
+#ifdef NON_MATCHING
+#define D_80367738 (*(s32 *) &D_80367738)
+#endif
+/* end of views */
 
 /* digger_loop.c: the vehicle ("digger") select screen. */
 
@@ -15,7 +25,6 @@ typedef struct {
     u32 unk2C; /* mask of vehicles available on this level */
     u8 pad30[0x14];
 } LevelInfo; /* 0x44 bytes */
-extern LevelInfo D_802E8F94[];
 
 typedef struct {
     u8 pad0[0x10];
@@ -25,16 +34,11 @@ typedef struct {
     u8 unk92[0x5E]; /* per level: last vehicle used */
     u8 padF0[0x10];
 } Player; /* 0x100 bytes */
-extern Player D_80364AF0[];
-extern s32 D_802E8BDC;
+#ifndef NON_MATCHING
 extern s32 D_80367738;
+#endif
 extern f32 D_802FDAC0[];
-extern u8 D_802F47B0[];
 
-extern FeDyn D_803156F8[];
-extern u8 *D_8035806C;
-extern u32 D_80358058;
-extern u32 D_80358050[];
 extern u16 D_80304954[];
 
 typedef struct {

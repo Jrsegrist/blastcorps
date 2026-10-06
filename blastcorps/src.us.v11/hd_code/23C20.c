@@ -1,6 +1,23 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_803649D0
+#define LEGACY_D_8036B974
+#endif /* legacy declarations */
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_802F5804 ((PathNode *) D_802F5804)
+#define D_802F8BDC ((TextArg *) D_802F8BDC)
+#define D_80364460 ((Struct80364460 *) D_80364460)
+#define D_80364AF0 ((Struct80364AF0 *) D_80364AF0)
+#ifdef NON_MATCHING
+#define D_803649D0 (*(Struct80364460 * *) &D_803649D0)
+#define D_8036B974 (*(s32 *) &D_8036B974)
+#endif
+/* end of views */
 
 /* utils2.c (from its assert strings): camera spline paths, triggers, small maths helpers. */
 
@@ -110,21 +127,18 @@ typedef struct {
     u8 unk18[0xE8];
 } Struct80364AF0;
 
-extern s32 D_802E8BDC;
 extern Struct802F3C10 D_802F3C10[];
 extern Struct802F3C24 D_802F3C24[];
 extern Struct802F3C48 D_802F3C48[];
 extern Struct802F41E8 D_802F41E8[];
 extern Struct802F4224 D_802F4224[];
-extern PathNode D_802F5804[];
-extern TextArg D_802F8BDC[];
 extern u16 D_80303AF4[];
 extern u16 D_80303B00[];
 extern u16 D_80303B10[];
 extern u16 D_80303B24[];
-extern Struct80364460 D_80364460[];
+#ifndef NON_MATCHING
 extern Struct80364460 *D_803649D0;
-extern Struct80364AF0 D_80364AF0[];
+#endif
 extern u8 D_8036B8C0;
 extern f32 D_8036B8C8[4][4];
 extern s32 D_8036B908;
@@ -139,7 +153,9 @@ extern u8 D_8036B960[4];
 extern u8 D_8036B966;
 extern s32 D_8036B96C;
 extern u8 D_8036B970;
+#ifndef NON_MATCHING
 extern s32 D_8036B974;
+#endif
 extern u8 D_8036B978;
 extern u8 D_8036B979;
 

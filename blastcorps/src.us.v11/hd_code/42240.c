@@ -1,6 +1,17 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_80358070
+#endif /* legacy declarations */
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#ifdef NON_MATCHING
+#define D_80358070 (*(u32 *) &D_80358070)
+#endif
+/* end of views */
 
 /* HUD panels drawn over the game: a 40x40 textured dial with a needle
  * (rotated by D_803EE3B1, 0..100 -> 270..450 degrees), and two 32x32 icons
@@ -10,7 +21,9 @@
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
+#ifndef NON_MATCHING
 extern u32 D_80358070; /* heap pointer */
+#endif
 
 /* dial */
 extern u32 D_8036EC00; /* texture */
@@ -26,8 +39,6 @@ extern s16 D_8036EC1C;
 extern u32 D_8036EC20;
 extern Vtx *D_8036EC24;
 extern s16 D_8036EC28;
-
-extern Mtx D_02000000[];
 
 
 /* Load the dial texture (0x760) and build its vertices */

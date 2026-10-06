@@ -1,6 +1,18 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_80358070
+#endif /* legacy declarations */
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_8020C070 ((MenuEntry *) D_8020C070)
+#ifdef NON_MATCHING
+#define D_80358070 (*(s32 *) &D_80358070)
+#endif
+/* end of views */
 
 /*
  * Front-end picture screen: four 160x120 RGBA16 images inflated from ROM,
@@ -32,13 +44,13 @@ typedef struct {
     u8 pad14[8];
 } MenuEntry;
 
-extern MenuEntry D_8020C070[];
 extern s16 D_8020E3E0[];      /* sound per picture */
 extern char D_8020E3E8[][18]; /* picture titles */
 extern void *D_8020E430[];
+#ifndef NON_MATCHING
 extern s32 D_80358070; /* heap pointer */
+#endif
 extern s16 D_8036BB1C;
-extern void *D_80367738;
 
 extern u8 *D_8021AB90[4]; /* the four inflated pictures */
 extern u8 D_8021ABA0;     /* current picture */

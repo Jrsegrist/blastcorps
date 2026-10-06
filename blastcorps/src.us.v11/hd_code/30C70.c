@@ -1,10 +1,11 @@
 #include "common.h"
 #include <ultra64.h>
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_02000000 ((u8 *) D_02000000)
+/* end of views */
 
 /* This file's .bss starts at 0x8036C790 */
-extern s16 *D_8036C790;
-extern s16 *D_8036C794;
 extern s32 D_8036C798;
 extern s16 *D_8036C7A0[10]; /* point lists to keep on screen */
 extern Vtx D_8036C7D0[][4];   /* off-screen marker quads */
@@ -12,7 +13,6 @@ extern Mtx D_8036C850[];      /* off-screen marker matrices */
 extern s32 D_802FAD40; /* target bounce offset */
 extern s32 D_802FAD44; /* target bounce count */
 extern u8 D_802FAD48;  /* target bounce direction */
-extern u8 D_02000000[]; /* segment 2 base */
 
 typedef struct SpriteVtxBuf {
     u8 pad[0x1E00];

@@ -1,10 +1,23 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_80367738
+#endif /* legacy declarations */
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_8020C070 ((MenuEntry *) D_8020C070)
+#define D_802F8BDC ((MenuPage *) D_802F8BDC)
+#define D_803156F8 ((FeDyn *) D_803156F8)
+#ifdef NON_MATCHING
+#define D_80367738 (*(s32 *) &D_80367738)
+#endif
+/* end of views */
 
 /* back_loop.c: the front end's per-frame loop (menus behind the yoshi windows) */
 
-extern FeDyn D_803156F8[];
 
 typedef struct {
     u8 pad0[4];
@@ -18,7 +31,6 @@ typedef struct {
     u16 unk18;
     u8 pad1A[2];
 } MenuPage;
-extern MenuPage D_802F8BDC[];
 
 typedef struct {
     u16 unk0; /* flags */
@@ -30,18 +42,16 @@ typedef struct {
     void *unk10; /* glyph list */
     u8 pad14[8];
 } MenuEntry;
-extern MenuEntry D_8020C070[];
 
+#ifndef NON_MATCHING
 extern s32 D_80367738;
+#endif
 #define pakToGameMessageQ D_80219F50
 extern u8 D_8021AB70;
 extern char D_8021AB72[];
 extern s16 D_8021AB74;
 extern s16 D_8021AB76;
 extern s32 D_8021AB7C;
-extern u8 *D_8035806C;
-extern u32 D_80358058;
-extern u32 D_80358050[];
 
 int sprintf(char *, const char *, ...);
 

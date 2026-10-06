@@ -1,6 +1,23 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_803643C8
+#define LEGACY_D_803643CC
+#define LEGACY_D_803F7654
+#endif /* legacy declarations */
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_02000000 (*(VtxBuf *) D_02000000)
+#define D_803F4030 ((Object *) D_803F4030)
+#ifdef NON_MATCHING
+#define D_803643C8 (*(Struct13A70 * *) &D_803643C8)
+#define D_803643CC (*(Struct13A70 * *) &D_803643CC)
+#define D_803F7654 (*(Object * *) &D_803F7654)
+#endif
+/* end of views */
 
 /* Shadow/marker records (0x1040-byte entries with a 4 KB buffer each), the
  * 64x64 off-screen render that fills one, and the ground-shadow quads drawn
@@ -49,8 +66,12 @@ typedef struct VtxBuf {
     Vtx vtx[1];
 } VtxBuf;
 
+#ifndef NON_MATCHING
 extern Struct13A70 *D_803643C8;
+#ifndef NON_MATCHING
 extern Struct13A70 *D_803643CC;
+#endif
+#endif
 extern Gfx D_803650B0[];
 extern Vp D_802E8C60;
 extern Mtx D_803651F0;
@@ -58,11 +79,9 @@ extern Mtx D_80365230;
 extern Mtx D_80365270;
 extern Mtx D_803652B0;
 extern Mtx D_803652F0;
-extern Object D_803F4030[];
+#ifndef NON_MATCHING
 extern Object *D_803F7654;
-extern u8 *D_80365330;
-extern s32 D_802E8BDC;
-extern VtxBuf D_02000000;
+#endif
 
 
 void func_80258230(u8 id, s32 arg1, s16 arg2, s16 arg3) {

@@ -16,7 +16,6 @@
 #include "game/game.h"
 
 
-extern u8 *D_80358070; /* hd_code heap pointer */
 /* engine-sound channel tables in hd_code's 7D9D0 text blob */
 
 

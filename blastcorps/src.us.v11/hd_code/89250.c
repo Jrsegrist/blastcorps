@@ -1,6 +1,12 @@
 #include "common.h"
 #include <ultra64.h>
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_803F4030 ((Obj89250 *) D_803F4030)
+#ifdef NON_MATCHING
+#define D_803F7654 (*(Obj89250 * *) &D_803F7654)
+#endif
+/* end of views */
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -70,11 +76,7 @@ typedef struct {
     /* 0xEC */ u8 pct[0x10]; /* per part; 100 = destroyed */
 } Obj89250; /* size 0xFC */
 
-extern Obj89250 D_803F4030[];
-extern Obj89250 *D_803F7654;
-extern u8 D_803A6B30[]; /* 0x14-byte hit spheres: s32 x, y, z, r, u8 id at 0x12, s8 flag at 0x13 (-1 = end) */
 extern u16 D_803F932A; /* impact damage */
-extern s32 D_803649E8;
 
 s32 func_802CDC7C(s32 x, s32 y, s32 z, s32 r, Obj89250 *e, s32 hit);
 void func_802CDD74(Obj89250 *e, Tri89250 *tri, s32 amount);
@@ -392,7 +394,6 @@ void func_802CE204(s32 x1, s32 z1, s32 x2, s32 z2) {
 
 #ifdef NON_MATCHING
 /* Shared declarations for the NON_MATCHING (port) rewrites below. */
-extern void *D_803A7408;
 extern u8 D_80306450[];
 #endif
 

@@ -1,6 +1,11 @@
 #include "common.h"
 #include <ultra64.h>
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#ifdef NON_MATCHING
+#define D_80358070 (*(u32 *) &D_80358070)
+#endif
+/* end of views */
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -11,13 +16,11 @@
  * more specific non-ABI explanation where one was already worked out. */
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u32 D_80358070;  /* bump allocator for the save copies */
 extern u8 *D_803FCD54;  /* model header */
 extern u8 *D_803FCD58;  /* the two 0x800-byte save copies */
 extern u8 *D_803FCD5C;
 extern u8 D_803FCCA0[]; /* this vehicle's state block */
 extern u8 D_803FC9A0[]; /* channel table */
-extern void *D_80367738; /* sound player */
 extern void *D_803FCD64; /* sound state */
 extern u8 D_803FCD72;
 extern u8 D_803FCD73;
@@ -221,7 +224,6 @@ void func_802D2A74(void) {
 #ifdef NON_MATCHING
 
 
-extern void *D_80367738; /* sound player */
 extern u8 D_803FC9A0[];
 extern u8 D_803FCD72;
 extern u8 D_803FCD73;
@@ -344,7 +346,6 @@ extern u8 *D_803FCD54;    /* model header: word offsets to the part lists */
 extern u8 *D_803FCD58;    /* the two save copies */
 extern u8 *D_803FCD5C;
 extern u8 D_803FCCA0[];   /* this vehicle's state block (the asm caller's $gp) */
-extern s16 D_803ED390[3]; /* rotation angles x, y, z for func_802AA764 */
 
 /* Place this vehicle's model: m = the word at +4 of the header entry at
  * hdr + hdr[6] (hdr = D_803FCD54), plus the current save copy (D_803FCD58

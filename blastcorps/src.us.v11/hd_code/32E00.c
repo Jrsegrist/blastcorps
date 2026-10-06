@@ -1,9 +1,22 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_803BE6FC
+#define LEGACY_D_803BE700
+#endif /* legacy declarations */
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_02000000 ((u8 *) D_02000000)
+#ifdef NON_MATCHING
+#define D_803BE6FC (*(DigTrigger * *) &D_803BE6FC)
+#define D_803BE700 (*(DigTrigger * *) &D_803BE700)
+#endif
+/* end of views */
 
 /* The digger code (this file's .bss starts at 0x8036C8D0) */
-extern void *D_80358070;
 
 /* 50-entry ring buffer of digger samples, indexed D_8036CB28..D_8036CB29 */
 typedef struct {
@@ -23,8 +36,12 @@ typedef struct {
     /* 0x06 */ u8 done;
 } DigTrigger;
 
+#ifndef NON_MATCHING
 extern DigTrigger *D_803BE6FC; /* first */
+#ifndef NON_MATCHING
 extern DigTrigger *D_803BE700; /* end */
+#endif
+#endif
 extern u8 D_8036CB35;
 extern u8 D_8036CB36;
 extern u8 D_8036CB37;
@@ -37,14 +54,12 @@ extern s16 *D_8036CB40; /* event animation frame ids */
 extern u8 D_8036CB44;
 extern u8 D_8036CB50;
 extern u8 D_8036CB51;      /* event panel alpha */
-extern u8 D_02000000[];    /* segment 2 base */
 extern s16 D_802FBDD0[];
 extern s16 D_802FBDEC[];
 extern s16 D_802FBE18[];
 extern s16 D_802FBE44[];
 extern s16 D_802FBE80[];
 extern Vtx D_802FBD50[8];
-extern void *D_80367738;
 
 extern DigEntry D_8036C8D0[50];
 extern u8 D_8036CB32;

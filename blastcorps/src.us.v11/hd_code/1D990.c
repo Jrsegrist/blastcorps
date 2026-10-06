@@ -4,9 +4,19 @@
 /* Matching build: IDO compiled the matched code here against older
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
+#define LEGACY_D_8036EA70
 #define LEGACY_func_802C1B1C
 #endif /* legacy declarations */
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_802E8F94 ((LevelInfo *) D_802E8F94)
+#define D_802F49F4 ((Anim30 *) D_802F49F4)
+#define D_802F5804 ((void * *) D_802F5804)
+#define D_80364AF0 ((Player *) D_80364AF0)
+#ifdef NON_MATCHING
+#define D_8036EA70 (*(u32 *) &D_8036EA70)
+#endif
+/* end of views */
 
 /* Level objectives and the HUD's objective/timer text: per-level setup,
  * the countdown intro, and the per-mission-type progress checks */
@@ -70,12 +80,12 @@ typedef struct {
 } Player;
 
 extern LevelInfo *D_80367C04;
-extern LevelInfo D_802E8F94[];
 extern u8 D_802E8F30[];
 extern Entry0A D_802E8F68[];
+#ifndef NON_MATCHING
 extern u32 D_8036EA70;
+#endif
 extern char D_80367B60[][20]; /* HUD text lines (progress, lap times) */
-extern s32 D_802E8BDC;
 extern u8 D_80367BFE;
 extern s32 D_80367B50;
 extern u8 D_80367B54;
@@ -89,10 +99,8 @@ extern s32 D_80367C0C;
 extern char D_802E9F90[]; /* "BUILDINGS" */
 extern s32 D_802E9F9C;
 extern u8 D_802E9FA0[];   /* " S" */
-extern void *D_80358070;
 extern void *D_80367BE0[];
 extern u8 D_80367C01;
-extern Anim30 D_802F49F4[];
 extern Anim30 *D_80367BCC;
 extern Anim30 *D_80367BD0;
 extern u8 D_80367BD4;
@@ -106,7 +114,6 @@ extern u16 D_80367BFC; /* race: best lap time */
 extern s32 D_80367BBC;
 extern char D_80367D10[];
 extern char D_80367D28[];
-extern ALCSPlayer *D_80367734;
 extern s16 D_80367D50; /* turbo-start banner y offset */
 extern u8 D_80367D52;  /* turbo-start banner image (1-5) */
 extern u8 D_80367D53;
@@ -114,9 +121,6 @@ extern char D_80367C18[];
 extern char D_80367C40[];
 extern s16 D_80367C68[];
 extern s16 D_80367CB8[];
-extern void *D_802F5804[];
-extern void *D_80367738;
-extern Player D_80364AF0[];
 extern u16 D_80367BF4;
 extern u16 D_80367D08;
 

@@ -1,6 +1,11 @@
 #include "common.h"
 #include <ultra64.h>
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#ifdef NON_MATCHING
+#define D_80358070 (*(s32 *) &D_80358070)
+#endif
+/* end of views */
 
 #ifdef NON_MATCHING
 /* Register-block types shared by this file's rewrites (each mirrors the
@@ -24,7 +29,6 @@ void func_802B7240(void);
  * more specific non-ABI explanation where one was already worked out. */
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_80358070;   /* matrix buffer allocator */
 extern u8 D_803EE790[];  /* vehicle 5's animation channels */
 extern s8 D_803EEB60;
 extern u8 D_803EEB5E;
@@ -397,7 +401,6 @@ s32 func_802B618C(s32 id, TriSideOut *f) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern void *D_80367738;  /* sound player */
 extern s16 D_803EEB58;    /* engine rate */
 extern s16 D_803EEB5A;    /* heading kept while bouncing off */
 extern u8 D_803EEB5E;     /* spawn cooldown */
@@ -405,7 +408,6 @@ extern s8 D_803EEB60;     /* collision flag */
 extern s8 D_803EEB61;     /* sound to start this frame (-1 = none) */
 extern u8 D_80305D20[];
 extern f32 D_8030D8E0;
-extern void *D_803F77D0;
 s32 func_802B60BC(ZoneScanRegs *r);
 void func_802B6C28(void);
 s32 func_802B7168(void);

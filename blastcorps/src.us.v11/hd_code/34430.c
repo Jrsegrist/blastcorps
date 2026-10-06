@@ -1,6 +1,17 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_80358058
+#endif /* legacy declarations */
 #include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#ifdef NON_MATCHING
+#define D_80358058 (*(void * *) &D_80358058)
+#endif
+/* end of views */
 
 /* mb.c (this file's .bss starts at 0x8036CB60) */
 
@@ -29,7 +40,6 @@ typedef struct {
     u32 to;
 } MbRemap;
 
-extern u8 *D_80358070;         /* heap pointer */
 extern MbSample D_8036CB60[11]; /* ring of samples */
 extern s32 D_8036CC68;         /* ring head */
 extern s32 D_8036CC6C;         /* ring tail */
@@ -46,7 +56,9 @@ extern Gfx D_8036D188[40];     /* display list for the view */
 extern Mtx D_8036D2C8;         /* its projection */
 extern Mtx D_8036D388;         /* its look-at */
 extern Vp D_802FBED0;
-extern void *D_80358058;       /* depth buffer */
+#ifndef NON_MATCHING
+extern void *D_80358058; /* depth buffer */
+#endif
 
 s32 func_802796D8(s32 n, s32 *a, s32 *b);
 void func_8027A7DC(Gfx **gfxp, s32 offset, s32 v);

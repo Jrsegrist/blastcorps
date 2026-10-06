@@ -17,7 +17,6 @@ typedef struct {
 } CreditLine;
 
 extern CreditLine D_80304A90[];
-extern u8 D_802F47B0[][8];
 
 
 /* Credits scroller: draws the visible credit lines, advances the scroll, and ends the credits */

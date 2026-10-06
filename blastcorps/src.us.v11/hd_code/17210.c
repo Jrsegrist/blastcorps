@@ -12,7 +12,6 @@ typedef struct {
     s8 stickY;
 } RecEntry;
 
-extern void *D_80358070;
 extern s32 D_80366990;
 extern s32 D_80366994;
 extern s32 D_80366998;
@@ -26,7 +25,6 @@ extern RecEntry *D_803669AC;
 extern void *D_803669B0;
 extern RecEntry D_80365588[];
 extern u8 D_802E8CB0[];
-extern s32 D_803649E8;
 
 
 #define ASSERT(EX, line) if (!(EX)) func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "recording.c", line)

@@ -9,29 +9,7 @@
  * streamed into a small cache on demand.
  */
 
-typedef struct {
-    /* 0x00 */ s16 *seqBirth; /* texture ids; [0] doubles as the frame count */
-    /* 0x04 */ s16 *seqLoop;
-    /* 0x08 */ s16 *seqDeath;
-    /* 0x0C */ s32 size;
-    /* 0x10 */ s16 speed;
-    /* 0x12 */ s16 speedVar;
-    /* 0x14 */ u8 life;
-    /* 0x15 */ u8 lifeVar;
-    /* 0x16 */ u8 texW;
-    /* 0x17 */ u8 texH;
-    /* 0x18 */ s8 gravity;
-    /* 0x19 */ u8 count;  /* particles per burst */
-    /* 0x1A */ u8 bursts;
-    /* 0x1B */ u8 spread; /* max tilt from vertical, degrees */
-    /* 0x1C */ u8 bounce; /* bounce damping divisor */
-    /* 0x1D */ u8 r;
-    /* 0x1E */ u8 g;
-    /* 0x1F */ u8 b;
-    /* 0x20 */ u8 a;
-    /* 0x21 */ u8 fmt; /* G_IM_FMT_* */
-    /* 0x22 */ u8 siz; /* G_IM_SIZ_* */
-} ParticleDef;
+/* ParticleDef (the emitter definitions, list D_802C4A20) is in game/types.h. */
 
 typedef struct {
     /* 0x00 */ u8 active;

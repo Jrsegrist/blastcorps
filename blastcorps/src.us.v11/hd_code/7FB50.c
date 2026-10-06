@@ -1972,3 +1972,116 @@ void func_802C80A0(void *src) {
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C80A0.s")
 #endif
+
+#ifdef NON_MATCHING
+/* The tables of the 800E0 bin (ROM 0x800E0-0x80280, 0x802C48A0-0x802C4A40),
+ * just before this file's code: the five particle emitter definitions
+ * (ParticleDef + their texture sequences, list D_802C4A20; 43A60.c).
+ * The NON_MATCHING build defines it in C and links this file's .data (it has
+ * nothing else) back at the table's original address (Makefile NM_PIN_HD_CODE,
+ * nm_ldscript.py --pin-object); nm_symaudit.py checks the bytes against the
+ * bin. Code reaches it through the absolute D_ symbols. */
+typedef struct {
+    /* 802C48A0 */ ParticleDef pd802C48A0; /* D_802C48A0 */
+    /* 802C48C4 */ s16 sq802C48C4[5];
+    /* 802C48CE */ u16 sq802C48C4_pad;
+    /* 802C48D0 */ s16 sq802C48D0[3];
+    /* 802C48D6 */ u16 sq802C48D0_pad;
+    /* 802C48D8 */ s16 sq802C48D8[19];
+    /* 802C48FE */ u16 sq802C48D8_pad;
+    /* 802C4900 */ ParticleDef pd802C4900; /* D_802C4900 */
+    /* 802C4924 */ s16 sq802C4924[7];
+    /* 802C4932 */ u16 sq802C4924_pad;
+    /* 802C4934 */ s16 sq802C4934[2];
+    /* 802C4938 */ s16 sq802C4938[8];
+    /* 802C4948 */ ParticleDef pd802C4948; /* D_802C4948 */
+    /* 802C496C */ s16 sq802C496C[7];
+    /* 802C497A */ u16 sq802C496C_pad;
+    /* 802C497C */ s16 sq802C497C[2];
+    /* 802C4980 */ s16 sq802C4980[8];
+    /* 802C4990 */ ParticleDef pd802C4990; /* D_802C4990 */
+    /* 802C49B4 */ s16 sq802C49B4[7];
+    /* 802C49C2 */ u16 sq802C49B4_pad;
+    /* 802C49C4 */ s16 sq802C49C4[2];
+    /* 802C49C8 */ s16 sq802C49C8[8];
+    /* 802C49D8 */ ParticleDef pd802C49D8; /* D_802C49D8 */
+    /* 802C49FC */ s16 sq802C49FC[6];
+    /* 802C4A08 */ s16 sq802C4A08[2];
+    /* 802C4A0C */ s16 sq802C4A0C[9];
+    /* 802C4A1E */ u16 sq802C4A0C_pad;
+    /* 802C4A20 */ ParticleDef *particleDefs[5]; /* D_802C4A20 */
+    /* 802C4A34 */ s32 particleDefsEnd;
+    /* 802C4A38 */ u32 pad802C4A38[2];
+} TextData800E0; /* size 0x1A0 */
+/* the members must sit at their ROM offsets (with 4-byte pointers) */
+typedef char TextData800E0_size_check[(sizeof(void *) != 4 || sizeof(TextData800E0) == 0x1A0) ? 1 : -1];
+
+TextData800E0 textdata_800E0 = {
+    { textdata_800E0.sq802C48C4, textdata_800E0.sq802C48D0, textdata_800E0.sq802C48D8, 5, 500, 60, 50, 20, 8, 8, -25, 50, 1, 160, 19, 0xFF, 0xFF, 0xFF, 0xFF, 0, 3 },
+    {
+        0x0004, 0x07B9, 0x07BA, 0x07BB, 0x07BC,
+    },
+    0x0000,
+    {
+        0x0002, 0x07BD, 0x07BC,
+    },
+    0x0000,
+    {
+        0x0012, 0x07BD, 0x07BD, 0x07BD, 0x07BE, 0x07BE, 0x07BE, 0x07BF,
+        0x07BF, 0x07BF, 0x07C0, 0x07C0, 0x07C0, 0x07C1, 0x07C1, 0x07C1,
+        0x07C2, 0x07C2, 0x07C2,
+    },
+    0x0000,
+    { textdata_800E0.sq802C4924, textdata_800E0.sq802C4934, textdata_800E0.sq802C4938, 5, 550, 60, 30, 20, 16, 16, -25, 50, 1, 180, 19, 0xFF, 0xFF, 0xFF, 0xFF, 0, 3 },
+    {
+        0x0006, 0x07D0, 0x07D0, 0x07D1, 0x07D1, 0x07D2, 0x07D2,
+    },
+    0x0000,
+    {
+        0x0001, 0x07D3,
+    },
+    {
+        0x0007, 0x07D4, 0x07D4, 0x07D4, 0x07D4, 0x07D4, 0x07D4, 0x07D4,
+    },
+    { textdata_800E0.sq802C496C, textdata_800E0.sq802C497C, textdata_800E0.sq802C4980, 5, 400, 60, 30, 20, 16, 16, -25, 60, 1, 160, 19, 0xFF, 0xFF, 0xFF, 0xFF, 0, 3 },
+    {
+        0x0006, 0x07D0, 0x07D0, 0x07D1, 0x07D1, 0x07D2, 0x07D2,
+    },
+    0x0000,
+    {
+        0x0001, 0x07D3,
+    },
+    {
+        0x0007, 0x07D4, 0x07D4, 0x07D4, 0x07D4, 0x07D4, 0x07D4, 0x07D4,
+    },
+    { textdata_800E0.sq802C49B4, textdata_800E0.sq802C49C4, textdata_800E0.sq802C49C8, 5, 500, 60, 30, 20, 16, 16, -25, 60, 1, 160, 19, 0xFF, 0xFF, 0xFF, 0xFF, 0, 3 },
+    {
+        0x0006, 0x07D0, 0x07D0, 0x07D1, 0x07D1, 0x07D2, 0x07D2,
+    },
+    0x0000,
+    {
+        0x0001, 0x07D3,
+    },
+    {
+        0x0007, 0x07D4, 0x07D4, 0x07D4, 0x07D4, 0x07D4, 0x07D4, 0x07D4,
+    },
+    { textdata_800E0.sq802C49FC, textdata_800E0.sq802C4A08, textdata_800E0.sq802C4A0C, 5, 500, 60, 30, 20, 16, 16, -25, 50, 1, 160, 19, 0xFF, 0xFF, 0xFF, 0xFF, 0, 3 },
+    {
+        0x0005, 0x0848, 0x0848, 0x0848, 0x0848, 0x0848,
+    },
+    {
+        0x0001, 0x0849,
+    },
+    {
+        0x0008, 0x084A, 0x084A, 0x084A, 0x084A, 0x084B, 0x084B, 0x084B,
+        0x084B,
+    },
+    0x0000,
+    {
+        &textdata_800E0.pd802C48A0, &textdata_800E0.pd802C4900, &textdata_800E0.pd802C4948,
+        &textdata_800E0.pd802C4990, &textdata_800E0.pd802C49D8,
+    },
+    -1,
+    { 0x00000000, 0x00000000 },
+};
+#endif

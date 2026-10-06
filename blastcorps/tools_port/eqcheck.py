@@ -656,6 +656,9 @@ class AddrMap:
             size = len(d) if not isinstance(d, int) else d
             same = any(v == lo and v + size <= hi for lo, hi in ref_ranges) and \
                 any(rv == v and rn == name for rv, _, rn, _ in ref.sections)
+            # the C copies of the tables inside the original .text bins sit at
+            # their original addresses (nm_ldscript.py --pin-object)
+            same = same or name.startswith(".nm_pin_")
             if not same:
                 self.moved.append((v, v + size))
         self.identity = not self.moved

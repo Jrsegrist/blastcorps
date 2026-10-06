@@ -141,4 +141,59 @@ typedef struct RankTitle {
     u16 *glyphs;
 } RankTitle;
 
+/* Tables the original keeps inside hd_code's .text (bins 7D9D0, 800E0,
+ * 8E910); the NON_MATCHING build defines them in C (7F8B0.c, 7FB50.c,
+ * 8DDB0.c). Each field has the width its readers use, so the tables read
+ * the same on either byte order. */
+
+/* Header of a billboard effect definition (func_802A6274 / func_802A64A4,
+ * listed at D_802C3FFC), followed by cols * rows * frames u16 texture ids. */
+typedef struct EffectDef {
+    /* 0x0 */ s16 id;     /* texture-group id, -1 = none */
+    /* 0x2 */ u8 cols;
+    /* 0x3 */ u8 rows;
+    /* 0x4 */ u16 fmtsiz; /* texture format/size */
+    /* 0x6 */ u8 r;
+    /* 0x7 */ u8 g;
+    /* 0x8 */ u8 b;
+    /* 0x9 */ u8 a;
+    /* 0xA */ u16 w;
+    /* 0xC */ u16 h;
+    /* 0xE */ u16 frames;
+} EffectDef; /* size 0x10 */
+
+/* A particle emitter definition (43A60.c, list D_802C4A20). */
+typedef struct ParticleDef {
+    /* 0x00 */ s16 *seqBirth; /* texture ids; [0] doubles as the frame count */
+    /* 0x04 */ s16 *seqLoop;
+    /* 0x08 */ s16 *seqDeath;
+    /* 0x0C */ s32 size;
+    /* 0x10 */ s16 speed;
+    /* 0x12 */ s16 speedVar;
+    /* 0x14 */ u8 life;
+    /* 0x15 */ u8 lifeVar;
+    /* 0x16 */ u8 texW;
+    /* 0x17 */ u8 texH;
+    /* 0x18 */ s8 gravity;
+    /* 0x19 */ u8 count;  /* particles per burst */
+    /* 0x1A */ u8 bursts;
+    /* 0x1B */ u8 spread; /* max tilt from vertical, degrees */
+    /* 0x1C */ u8 bounce; /* bounce damping divisor */
+    /* 0x1D */ u8 r;
+    /* 0x1E */ u8 g;
+    /* 0x1F */ u8 b;
+    /* 0x20 */ u8 a;
+    /* 0x21 */ u8 fmt; /* G_IM_FMT_* */
+    /* 0x22 */ u8 siz; /* G_IM_SIZ_* */
+} ParticleDef; /* size 0x24 */
+
+/* One record of a level's part list (func_802A1EC8 picks the list by level:
+ * s32 count, then count of these). `entry` is filled in at level load
+ * (func_802A21AC); func_802BD064 checks the listed parts. */
+typedef struct LevelPart {
+    /* 0x00 */ void *entry; /* the level object's 0xFC-byte record */
+    /* 0x04 */ s32 n;       /* number of part indices used */
+    /* 0x08 */ u8 idx[16];  /* indices into the record's +0xEC bytes */
+} LevelPart; /* size 0x18 */
+
 #endif

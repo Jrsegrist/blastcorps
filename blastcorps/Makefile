@@ -282,9 +282,20 @@ $(HD_FRONT_END_BSS_LD_SCRIPT): hd_front_end_bss.$(VERSION).ld tools_port/nm_ldsc
 	$(NM_LDSCRIPT) $< $@
 $(HD_CODE_BSS_LD_SCRIPT): hd_code_bss.$(VERSION).ld tools_port/nm_ldscript.py | dirs
 	$(NM_LDSCRIPT) $< $@
-$(HD_CODE_LD_SCRIPT): hd_code.$(VERSION).ld tools_port/nm_ldscript.py | dirs
+# The data tables inside hd_code's .text bins: the matching build keeps the bin
+# bytes in the text; NON_MATCHING defines them in C (ADDR:SIZE=FILE: FILE.c's
+# .data, nothing else) and links them back at their original addresses
+# (nm_ldscript.py --pin-object; nm_symaudit.py compares them with the bins).
+NM_PIN_HD_CODE := 0x802ACFD0:0x802=69000 0x802AD880:0x884=69930 0x802C2190:0x1EE0=7F8B0 \
+                  0x802C48A0:0x1A0=7FB50 0x802D30D0:0xF50=8DDB0
+NM_PIN_HD_CODE_FLAGS = $(foreach p,$(NM_PIN_HD_CODE),--pin-object \
+	$(word 1,$(subst =, ,$(p)))=src.$(VERSION)/hd_code/$(word 2,$(subst =, ,$(p))).c.o)
+# (their LMAs fall inside the relocated text's: keep them out of the flat .bin)
+OBJCOPYFLAGS += -R '.nm_pin_*'
+$(HD_CODE_LD_SCRIPT): hd_code.$(VERSION).ld tools_port/nm_ldscript.py Makefile | dirs
 	$(NM_LDSCRIPT) $< $@ --relocate .hd_code=$(NM_TEXT_VRAM) --pin-data .hd_code_data \
-		--extra-vram $(NM_EXTRA_VRAM) --extra-glob '$(BUILD_DIR)/src.$(VERSION)/hd_code/*.o'
+		--extra-vram $(NM_EXTRA_VRAM) --extra-glob '$(BUILD_DIR)/src.$(VERSION)/hd_code/*.o' \
+		$(NM_PIN_HD_CODE_FLAGS)
 
 # Bootable test ROM running the NON_MATCHING hd_code (tools_port/nm_rom.py,
 # README "Test ROM"): the same objects relinked with the text in the Expansion
@@ -296,10 +307,10 @@ BASEROM ?= ../baserom.$(VERSION).z64
 NM_ROM_ELF = $(BUILD_DIR)/hd_code.rom.$(VERSION).elf
 NM_ROM_LD_SCRIPT = $(BUILD_DIR)/hd_code.rom.$(VERSION).ld
 NM_ROM = $(BUILD_DIR)/blastcorps.nm.$(VERSION).z64
-$(NM_ROM_LD_SCRIPT): hd_code.$(VERSION).ld tools_port/nm_ldscript.py | dirs
+$(NM_ROM_LD_SCRIPT): hd_code.$(VERSION).ld tools_port/nm_ldscript.py Makefile | dirs
 	$(NM_LDSCRIPT) $< $@ --relocate .hd_code=$(NM_ROM_TEXT_VRAM) --pin-data .hd_code_data \
 		--extra-vram '((ADDR(.hd_code) + SIZEOF(.hd_code) + 0xF) & ~0xF)' \
-		--extra-glob '$(BUILD_DIR)/src.$(VERSION)/hd_code/*.o'
+		--extra-glob '$(BUILD_DIR)/src.$(VERSION)/hd_code/*.o' $(NM_PIN_HD_CODE_FLAGS)
 $(NM_ROM_ELF): $(HD_CODE_O_FILES) $(NM_ROM_LD_SCRIPT) $(HD_CODE_BSS_LD_SCRIPT) $(HD_CODE_UNDEF_FILES)
 	@$(LD) -T $(HD_CODE_BSS_LD_SCRIPT) -T $(NM_ROM_LD_SCRIPT) -Map $(@:.elf=.map) \
 		$(addprefix -T ,$(HD_CODE_UNDEF_FILES)) --no-check-sections --no-warn-mismatch -o $@

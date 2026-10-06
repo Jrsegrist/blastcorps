@@ -15,6 +15,7 @@
 #include "game/regs.h"
 #include "game/functions.h"
 #include "game/variables.h"
+#include "game/port.h"
 
 /*
  * LEAKED(reg): an argument the original passes in a register its (matched,

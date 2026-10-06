@@ -425,6 +425,7 @@ void func_80244930(void *arg) {
                     func_801EF380(1);
                     start2 = D_803156C4;
                     while ((u32) (D_803156C4 - start2) < 15) {
+                        PORT_SPIN();
                     }
                     break;
                 case 0x100000000:
@@ -715,6 +716,7 @@ void func_80244930(void *arg) {
                     func_80255DC8();
                     start = D_803156C4;
                     while ((u32) (D_803156C4 - start) < 15) {
+                        PORT_SPIN();
                     }
                     func_801ED790();
                     func_80200714(3);

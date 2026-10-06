@@ -223,7 +223,9 @@ def ONHIT(pc, g, rd):
     if pc == A_AILEN:
         return "A ra=%x th=%d v=%x" % (g["ra"], thread_id(rd), g["v0"])
     if pc in CALLS:
-        k = "K f=%s ra=%x frame=%d" % (CALLS[pc], g["ra"], st["frame"])
+        # (a0-a3: the arguments; compare.py calls shows them next to the exe's)
+        k = "K f=%s ra=%x frame=%d a=%s" % (CALLS[pc], g["ra"], st["frame"],
+                                            ",".join("%x" % (g[r] & 0xFFFFFFFF) for r in ("a0", "a1", "a2", "a3")))
         if pc not in ENTRY:
             return k
         return k + " || M ra=%x th=%d c=%d f=enter q=0 gvi=%x" % (pc, thread_id(rd), count(), rd(0x803156C4, 4))

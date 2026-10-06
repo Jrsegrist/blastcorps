@@ -31,7 +31,7 @@ matches when some layout of it agrees: one u32 (or f32/pointer), two u16, u16
 when both name the same function (emulator: the ROM's ELFs; exe: --syms).
 Regions that legitimately differ are listed in tools/compare_ignore.txt.
 """
-import array, bisect, os, re, subprocess, sys
+import array, bisect, collections, os, re, subprocess, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PORT = os.path.dirname(HERE)
@@ -186,7 +186,7 @@ def parse_seg(ev, seg, vi, seq, unwrap):
         elif kind == "P":
             ev.setdefault("P", []).append(kv)
         elif kind == "K":
-            ev.setdefault("K", []).append((kv["f"], int(kv["ra"], 16), int(kv["frame"])))
+            ev.setdefault("K", []).append((kv["f"], int(kv["ra"], 16), int(kv["frame"]), kv.get("a", "")))
         elif kind in ("T", "C", "A", "U"):
             # (visibility tests are keyed by frame, not by retrace)
             key = int(kv["frame"]) if kind == "U" and "frame" in kv else vi
@@ -485,6 +485,7 @@ def covered(nat, e, o):
 class Cmp:
     def __init__(self, emudir, natdir):
         self.emudir, self.natdir = emudir, natdir
+        self.layout = None   # strict mode (Layout), set by diff --strict
         self.dsyms = data_syms()
         self.mask, self.reasons = load_ignore(self.dsyms)
         elfs = open(os.path.join(emudir, "elfs.txt")).read().split()
@@ -555,11 +556,22 @@ class Cmp:
             return a[1] == b[1]
         return not (b is not None and b[0] <= nv < self.text_end)
 
-    def rule_ignored(self, a, e):
+    def rule_ignored(self, a, e, nat=None):
         """Conditional ignores (state-dependent, so not in compare_ignore.txt)."""
-        # (none at the moment; an example: the sound player's pending event at
-        # D_80366BD0 + 0x28 is posted from a stack SndEvent with only .type set
-        # for type 0x20, so the rest of it is stack garbage)
+        # 60F60.c's 0x1010-byte texture HeapBlocks (D_803EB788 .. D_803EB78C,
+        # carved from heap that held other data before): the trailer's only
+        # fields are the s32 at 0x1000, the u16 age at 0x1004 and the byte key
+        # at 0x1006; bytes 0x1007-0x100F are never written, so they keep
+        # whatever the memory held before, in that data's own byte order
+        o = a - BASE
+        lo = int.from_bytes(e[0x803EB788 - BASE:0x803EB78C - BASE], "big")
+        hi = int.from_bytes(e[0x803EB78C - BASE:0x803EB790 - BASE], "big")
+        if lo <= a < hi and nat is not None:
+            r = (a - lo) % 0x1010
+            if r in (0x1008, 0x100C):
+                return True
+            if r == 0x1004 and nat[o:o + 2] == e[o:o + 2][::-1] and nat[o + 2] == e[o + 2]:
+                return True
         return False
 
     def frame(self, n):
@@ -590,9 +602,23 @@ class Cmp:
                 nv = int.from_bytes(nb, "little")
                 if self.codeptr(ev, nv) or self.codeptr(ev, int.from_bytes(nb, "big")):
                     continue
-                if self.rule_ignored(BASE + o, e):
+                if self.rule_ignored(BASE + o, e, nat):
                     continue
                 diffs.append(o)
+        self.strict_only, self.typed = [], 0
+        if self.layout is not None:
+            # words the lenient rules accept but the typed layout doesn't
+            self.layout.advance(n)
+            sw, self.typed = self.layout.check(nat, e)
+            have = set(diffs)
+            for o in sw:
+                if o in have or mask[o >> 2]:
+                    continue
+                ev = int.from_bytes(e[o:o + 4], "big")
+                nv = int.from_bytes(nat[o:o + 4], "little")
+                if self.codeptr(ev, nv) or self.rule_ignored(BASE + o, e, nat):
+                    continue
+                self.strict_only.append(o)
         return diffs, nat, e
 
     def runs(self, diffs, gap=16):
@@ -605,9 +631,10 @@ class Cmp:
                 out.append([o, o + 4, 1])
         return out
 
-    def describe(self, n, diffs, nat, e, detail):
+    def describe(self, n, diffs, nat, e, detail, label=None):
         rs = self.runs(diffs)
-        print("frame %d: %d words differ in %d runs" % (n, len(diffs), len(rs)))
+        if label is None:
+            print("frame %d: %d words differ in %d runs" % (n, len(diffs), len(rs)))
         for lo, hi, cnt in rs[:detail]:
             a = BASE + lo
             it = self.dsyms.find(a)
@@ -628,6 +655,189 @@ class Cmp:
             print("  ... %d more runs" % (len(rs) - detail))
 
 
+class Layout:
+    """Strict mode: the width each RDRAM byte is read at, from sources
+    independent of the swaps under test --
+      - the C declarations (typemap.py with TYPEMAP_ALL=1: every symbol,
+        .bss included; multi-byte leaves only, since `extern u8 D_x[]` says
+        nothing about how other files cast it),
+      - the original code's traced reads of the data images
+        (data/image_widths.txt) and of every traced asset (widths.py facts:
+        per ROM asset, offset -> width), placed where the exe's load log
+        (--load-log) put each asset, in load order up to the dump.
+    A unit (start, width) expects the native bytes to be the emulator's
+    reversed (bytes: equal).  Bytes no unit covers, or several do, stay
+    lenient.  Texture decodes produce big-endian texels: bytes."""
+
+    ONES = {w: b"\x01" * w for w in (1, 2, 4, 8)}
+    FE = (0x801E7000, 0x8021ED00)   # the front end's text, data and bss
+    # assets whose traced widths are polluted (the tracer charges an access to
+    # the last load at the address; heap reused by other code afterwards)
+    UNTYPED_ROM = {0x6EC4C0: "packed-object table (u32 offsets, read by func_802A2A98 only): its 0x800 "
+                             "bytes of heap are reused by the collision/level loaders in the trace"}
+    UNTYPED = [("D_803C3250", "60F60.c texture decode scratch: declared u64 (the copy loop's unit), "
+                              "holds the packed s16 tokens"),
+               ("D_803EBB58", "62740.c accumulated Mtx: declared u16[], used as Mtx words (PORT_HALF)"),
+               ("D_803EBB98", "62740.c product Mtx: declared u16[], used as Mtx words (PORT_HALF)"),
+               ("D_803EBBD8", "62740.c record swap temp: declared s32[] (the copy unit), holds s16 records")]
+
+    def __init__(self, cmp, typemap, facts):
+        self.cmp = cmp
+        self.start = bytearray(SIZE)   # width of the unit starting here
+        self.cover = bytearray(SIZE)   # how many units cover the byte (saturating)
+        self.n_loads = 0
+        units = {1: set(), 2: set(), 4: set(), 8: set()}
+        tsize = {}
+        for line in open(typemap):
+            p = line.split()
+            if len(p) < 4:
+                continue
+            a = int(p[0], 16)
+            tsize[p[1]] = (a, int(p[2]))
+            for leaf in p[4:]:
+                o, w = leaf.split(":")
+                units[int(w.rstrip("f"))].add(a + int(o, 16) - BASE)
+        img = {"hd": 0x802E8BD0, "fe": 0x80208040}
+        seen = collections.defaultdict(set)
+        for line in open(os.path.join(PORT, "data/image_widths.txt")):
+            if line.startswith("#"):
+                continue
+            r, o, w = line.split()
+            seen[img[r] + int(o, 16) - BASE].add(int(w))
+        for a, ws in seen.items():
+            if len(ws) == 1:
+                units[ws.pop()].add(a)
+        for w, l in units.items():
+            self._add(sorted(l), w)
+        # the hand decisions for the image swap (data/image_overrides.txt)
+        for line in open(os.path.join(PORT, "data/image_overrides.txt")):
+            p = line.split("#")[0].split()
+            if len(p) < 3:
+                continue
+            lo, n = int(p[0], 16) - BASE, int(p[1], 16)
+            w = 1 if p[2] == "be" else int(p[2][1:])
+            self._clear(lo, lo + n)
+            self._add(range(lo, lo + n, w), w)
+        # C objects' .data/.rodata: the exe links its own copies (pinned ones
+        # are copied over the image in their declared host layout, the rest is
+        # never read at the N64 address), so the original code's traced widths
+        # (struct copies read words over byte fields) don't apply there
+        self.excl = []
+        for mp in ("build_nm/hd_code.us.v11.map", "build_nm/hd_front_end.us.v11.map"):
+            for line in open(os.path.join(ROOT, mp)):
+                m = re.match(r"^ \.(data|rodata|late_rodata)\s+0x([0-9a-f]+)\s+0x([0-9a-f]+)\s+(\S+)", line)
+                if m and not m.group(4).endswith(".bin.o"):
+                    lo = int(m.group(2), 16) - BASE
+                    if 0 <= lo < SIZE and int(m.group(3), 16):
+                        self.excl.append((lo, min(lo + int(m.group(3), 16), SIZE)))
+        for lo, hi in self.excl:
+            self._clear(lo, hi)
+        # declared types that aren't the readers' layout
+        for sym, why in self.UNTYPED:
+            if sym in tsize:
+                a, sz = tsize[sym]
+                self._clear(a - BASE, a - BASE + sz)
+        self.base_start, self.base_cover = bytes(self.start), bytes(self.cover)
+        # asset facts: ROM -> (size, how, {width: offsets}); offsets read at
+        # several widths stay lenient
+        self.facts = {}
+        cur = None
+        if facts and os.path.exists(facts):
+            for line in open(facts):
+                p = line.split()
+                if not p or p[0] == "#":
+                    continue
+                if p[0] == "@":
+                    cur = {1: [], 2: [], 4: [], 8: []}
+                    self.facts[int(p[1], 16)] = (int(p[2], 16), p[3], cur)
+                elif cur is not None:
+                    # (an offset read at several widths gets all of them: the
+                    # overlapping units leave its bytes lenient)
+                    for w in p[1].split(","):
+                        cur[int(w)].append(int(p[0], 16))
+            # a narrower read inside a wider one is a cast of that field
+            # (IDO reads `(u16) word` as lhu at +2, `(u8) word` as lbu at +3),
+            # which host order gets right: the wider unit stands
+            for sz, how, d in self.facts.values():
+                s4 = set(d[4])
+                s2 = set(d[2])
+                d[2] = [o for o in d[2] if o in s4 or (o - 2) not in s4]
+                d[1] = [o for o in d[1] if not any((o - k) in s4 for k in (1, 2, 3)) and (o - 1) not in s2]
+
+    def _add(self, offs, w, base=0, limit=SIZE):
+        st, cv = self.start, self.cover
+        for o in offs:
+            o += base
+            if 0 <= o and o + w <= limit:
+                st[o] = w
+                for k in range(o, o + w):
+                    if cv[k] < 255:
+                        cv[k] += 1
+
+    def _clear(self, lo, hi):
+        self.start[lo:hi] = bytes(hi - lo)
+        self.cover[lo:hi] = bytes(hi - lo)
+
+    def advance(self, frame):
+        """apply the exe's loads made before FRAME's dump"""
+        n = self.cmp.loads_at.get(frame, len(self.cmp.loads))
+        if n < self.n_loads:
+            self.start[:], self.cover[:] = self.base_start, self.base_cover
+            self.n_loads = 0
+        for dst, ln, rom, kind, how in self.cmp.loads[self.n_loads:n]:
+            lo, hi = max(dst - BASE, 0), min(dst + ln - BASE, SIZE)
+            if hi <= lo:
+                continue
+            if kind.startswith("level"):
+                # a new level resets the heap: earlier assets' layouts are
+                # stale, and so is the front end's (its memory is heap now)
+                self.start[:], self.cover[:] = self.base_start, self.base_cover
+                self._clear(self.FE[0] - BASE, self.FE[1] - BASE)
+            elif kind.startswith("front end"):
+                a, b = self.FE[0] - BASE, self.FE[1] - BASE
+                self.start[a:b], self.cover[a:b] = self.base_start[a:b], self.base_cover[a:b]
+            if how == "decode":
+                # decoded texels: big-endian bytes
+                self.start[lo:hi] = b"\x01" * (hi - lo)
+                self.cover[lo:hi] = b"\x01" * (hi - lo)
+                continue
+            # whatever was typed there before is gone; textures stay big-endian
+            # until 60F60.c decodes them (port_texture_input swaps the tokens
+            # in place then), so they stay lenient
+            self._clear(lo, hi)
+            f = self.facts.get(rom) if "texture" not in kind and rom not in self.UNTYPED_ROM else None
+            if f is not None:
+                for w, offs in f[2].items():
+                    self._add(offs, w, lo, hi)
+                if kind.startswith(("front end", "image")):
+                    for a, b in self.excl:
+                        if a < hi and b > lo:
+                            self._clear(max(a, lo), min(b, hi))
+        self.n_loads = n
+
+    def check(self, nat, e):
+        """(byte offsets of the words that differ under the typed layout,
+        bytes the layout types)"""
+        st, cv = self.start, self.cover
+        bad = set()
+        # bytes: runs of 1-byte units compared as slices
+        for m in re.finditer(b"\x01+", st):
+            a, b = m.span()
+            if nat[a:b] != e[a:b]:
+                for s in range(a, b):
+                    if nat[s] != e[s] and cv[s] == 1:
+                        bad.add(s & ~3)
+        for w in (2, 4, 8):
+            ones = self.ONES[w]
+            for m in re.finditer(re.escape(bytes([w])), st):
+                s = m.start()
+                if nat[s:s + w] != e[s:s + w][::-1] and cv[s:s + w] == ones:
+                    bad.add(s & ~3)
+                    bad.add((s + w - 1) & ~3)
+        typed = SIZE - cv.count(0)
+        return sorted(bad), typed
+
+
 def frames_in(d):
     out = set()
     for f in os.listdir(d):
@@ -644,14 +854,30 @@ def cmd_diff(args):
     hi = opt(args, "--to", 1 << 30, int)
     detail = opt(args, "--detail", 30, int)
     show_all = flag(args, "--all")
+    strict = flag(args, "--strict")
+    typemap = opt(args, "--typemap", os.path.join(PORT, "build/headless/typemap_all.txt"))
+    facts = opt(args, "--facts", os.path.join(PORT, "build/headless/facts.txt"))
     c = Cmp(emudir, natdir)
+    if strict:
+        if not os.path.exists(typemap):
+            die("strict mode needs %s (make -C port strict-data)" % typemap)
+        c.layout = Layout(c, typemap, facts)
     common = sorted(x for x in frames_in(emudir) & frames_in(natdir) if lo <= x <= hi)
     if not common:
         die("no common dumps")
     first = None
     matched = 0
+    strict_bad = 0
     for n in common:
         diffs, nat, e = c.frame(n)
+        if strict:
+            if c.strict_only:
+                strict_bad += 1
+                print("frame %d: strict: %d words match only leniently (0x%X bytes typed)" % (
+                    n, len(c.strict_only), c.typed))
+                c.describe(n, c.strict_only, nat, e, detail, "  strict")
+            elif show_all:
+                print("frame %d: strict: no extra differences (0x%X bytes typed)" % (n, c.typed))
         if not diffs:
             matched += 1
             if show_all:
@@ -669,6 +895,8 @@ def cmd_diff(args):
     print("diff: %d of %d compared frames match%s" % (
         matched, len(common) if show_all or first is None else common.index(first) + 1,
         "; first difference at frame %d" % first if first is not None else ""))
+    if strict:
+        print("strict: %d frames with words that match only leniently" % strict_bad)
 
 
 def native_trace(natdir):
@@ -729,31 +957,47 @@ def cmd_hex(args):
 def cmd_calls(args):
     """calls EMUDIR NATDIR: the calls logged on both sides (compare.py emu --calls F,G and the
     exe's --calls F,G), frame by frame: the first frame where the sequences differ"""
+    """(--args: also compare the arguments, a0-a3 / the first four stack words;
+    --nargs F=N,G=M: how many of them F and G take (default 4; an int-sized
+    argument each); --all: list every differing frame, not just the first)"""
     emudir, natdir = args[0], args[1]
+    with_args = flag(args, "--args")
+    nargs = dict((x.split("=")[0], int(x.split("=")[1])) for x in opt(args, "--nargs", "").split(",") if x)
+    show_all = flag(args, "--all")
     ev = parse_emu(emudir)
     elfs = open(os.path.join(emudir, "elfs.txt")).read().split()
     fs = elf_syms(elfs, ("STT_FUNC",))
     emu = {}
-    for f, ra, fr in ev.get("K", []):
+    for f, ra, fr, a in ev.get("K", []):
         it = fs.find(ra)
-        emu.setdefault(fr, []).append((f, it[1] if it else "?"))
+        emu.setdefault(fr, []).append((f, it[1] if it else "?", a))
     nat = {}
     for line in open(os.path.join(natdir, "run.log"), errors="replace"):
-        m = re.match(r"call: (\S+) from (\S+) frame (\d+)", line)
+        m = re.match(r"call: (\S+) from (\S+) frame (\d+)(?: args (\S+))?", line)
         if m:
-            nat.setdefault(int(m.group(3)), []).append((m.group(1), m.group(2)))
+            nat.setdefault(int(m.group(3)), []).append((m.group(1), m.group(2), m.group(4) or ""))
+
+    def key(x):
+        if not with_args:
+            return x[0]
+        return (x[0], tuple(x[2].split(",")[:nargs.get(x[0], 4)]))
+
     last = max(list(emu) + list(nat) + [0])
+    bad = 0
     for fr in range(0, last + 1):
         a, b = emu.get(fr, []), nat.get(fr, [])
         # (callers are shown, not compared: gcc inlines differently)
-        if [x[0] for x in a] != [y[0] for y in b]:
+        if [key(x) for x in a] != [key(y) for y in b]:
+            bad += 1
             print("frame %d: emulator %d calls, exe %d" % (fr + 1, len(a), len(b)))
             for i in range(max(len(a), len(b))):
-                x = a[i] if i < len(a) else ("-", "")
-                y = b[i] if i < len(b) else ("-", "")
-                print("  %s %-14s from %-14s | %-14s from %s" % ("  " if x == y else "!=", x[0], x[1], y[0], y[1]))
-            return
-    print("calls: the same in %d frames" % (last + 1))
+                x = a[i] if i < len(a) else ("-", "", "")
+                y = b[i] if i < len(b) else ("-", "", "")
+                print("  %s %-14s from %-14s %-36s | %-14s from %-14s %s" % (
+                    "  " if key(x) == key(y) else "!=", x[0], x[1], x[2], y[0], y[1], y[2]))
+            if not show_all:
+                return
+    print("calls: %d of %d frames the same" % (last + 1 - bad, last + 1))
 
 
 def demo_ranges(ev):

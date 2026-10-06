@@ -81,6 +81,13 @@ static void add_area(uint32_t addr, uint32_t len, int kind) {
     if (g_area[g_nareas].orig == NULL) return;
     memcpy(g_area[g_nareas].orig, (void *) (uintptr_t) (RDRAM_BASE + lo), hi - lo);
     g_nareas++;
+    if (port_gfx_debug && getenv("BC_GFX_WATCH") != NULL) {
+        uint32_t wa = (uint32_t) strtoul(getenv("BC_GFX_WATCH"), NULL, 16) & 0x00FFFFFFu;
+        if (lo <= wa && wa < hi)
+            fprintf(stderr, "gfx_fix: watch %08X: new %s area %08X-%08X (word there %08X)\n", (unsigned) wa,
+                    kind == AREA_WORDS ? "word" : "raw", (unsigned) lo, (unsigned) hi,
+                    (unsigned) *(uint32_t *) (uintptr_t) (RDRAM_BASE + wa));
+    }
 }
 
 void port_gfx_word_area(uint32_t addr, uint32_t len) {
@@ -95,6 +102,7 @@ void port_gfx_raw_area(uint32_t addr, uint32_t len) {
 enum { OBJ_CMD, OBJ_VTX, OBJ_MTX, OBJ_VIEWPORT, OBJ_LIGHT, OBJ_TEXELS };
 
 static uint32_t g_converted;
+static uint32_t g_watch = 1;   /* debugging: BC_GFX_WATCH=physical address (with --gfx-fix-log) */
 
 static uint32_t *word_at(uint32_t pa) {
     return (uint32_t *) (uintptr_t) (RDRAM_BASE + pa);
@@ -145,6 +153,11 @@ static void convert(uint32_t lo, uint32_t hi, int obj) {
             if (v == loaded && nv != v) {
                 *w = nv;
                 g_converted += 4;
+                if (port_gfx_debug && a == g_watch)
+                    fprintf(stderr, "gfx_fix: watch %08X converted as obj %d (range %08X-%08X, %s area %08X-%08X): "
+                            "%08X -> %08X\n", (unsigned) a, obj, (unsigned) lo, (unsigned) hi,
+                            ar->kind == AREA_WORDS ? "word" : "raw", (unsigned) ar->lo, (unsigned) ar->hi,
+                            (unsigned) v, (unsigned) nv);
             } else if (v != loaded && v != nv && port_gfx_debug) {
                 fprintf(stderr, "gfx_fix: %08X (obj %d, %s area %08X) changed by the game: %08X, loaded %08X\n",
                         (unsigned) a, obj, ar->kind == AREA_WORDS ? "word" : "raw", (unsigned) ar->lo,
@@ -166,6 +179,10 @@ uint32_t port_gfx_fix_task(uint32_t dl) {
     uint32_t timg = 0, timg_siz = 0, timg_width = 0;
     int sp = 0, steps = 0;
     if (g_nareas == 0) return 0;
+    if (g_watch == 1) {
+        const char *s = getenv("BC_GFX_WATCH");
+        g_watch = s != NULL ? (uint32_t) strtoul(s, NULL, 16) & 0x00FFFFFFu : 0xFFFFFFFFu;
+    }
     memset(seg, 0, sizeof seg);
     g_converted = 0;
 #define SEGADDR(a) (phys(seg[((a) >> 24) & 15] + ((a) & 0x00FFFFFFu)) & (RDRAM_SIZE - 1))

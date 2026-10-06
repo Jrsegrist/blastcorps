@@ -1,6 +1,15 @@
 # Byte-order overrides for the data images (port/tools/swaptab.py).
-# ADDR SIZE ACTION   (hex; ACTION w2/w4/w8 = swap as elements of that width, be = keep big-endian,
-#                     vtx = F3D Vtx records: six halfwords, colour bytes kept)
+# ADDR SIZE ACTION [STRIDE COUNT]
+#                    (hex; ACTION w2/w4/w8 = swap as elements of that width, be = keep big-endian,
+#                     vtx = F3D Vtx records: six halfwords, colour bytes kept;
+#                     STRIDE COUNT: the same range in COUNT records STRIDE apart)
+#
+# D_802E8F94 (60 level records, 0x44 bytes): +0x2C is a u32 bit mask, which
+# collectables/vehicles the level has (11530.c func_801F9258's lw: the globe's
+# vehicle pictures).  01C40.c's view calls it times[0] (u16 at +0x2E), but
+# reads only times[1..4] (+0x30..+0x36, the rank times and the time limit,
+# typed by that view).  Untyped, the mask stayed big-endian: wrong pictures.
+802E8FC0 4 w4 44 3C
 #
 # D_802F46C0 (77E20.c, 12 x {u64 from, u64 to}): display-list commands compared
 # with and copied into DLs as whole doublewords; DLs are two host-order u32
@@ -40,3 +49,13 @@
 802F97B0 100 vtx
 802FA820 80 vtx
 802FDD48 80 vtx
+# - D_802FFF38 (39050.c declares it Gfx[]): 179 Vtx, segment 6 of the nuclear
+#   blast's dome list D_80300A68 (the first 8 are its bounding box).  As
+#   words the dome came out flat (z = 0): a red band across the screen when
+#   the carrier is hit.
+802FFF38 B30 vtx
+# - 802FDFD8 (8 Vtx) inside the extent of the display list D_802FDC08 and
+#   802FE640 (45 Vtx: 16 + 14 + 15) inside D_802FE3C0, both lists typed as
+#   words; found by scanning every G_VTX in the hd data image (gfx2 notes).
+802FDFD8 80 vtx
+802FE640 2D0 vtx

@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* Per-player state, 0x100 bytes */
 typedef struct {
@@ -35,11 +36,14 @@ extern void *D_8039CAC0;
 extern Mtx *D_8039CAC4;
 extern u8 D_8039CAC8;
 
-s32 func_8026A6F0(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5);
-u8 func_8029766C(u8 arg0, u8 *arg1);
 
+/* K&R in the matching build (hd.c passes an int). */
+#ifdef NON_MATCHING
+void func_80297530(u8 arg0)
+#else
 void func_80297530(arg0)
     u8 arg0;
+#endif
 {
     u8 found;
     u8 idx;

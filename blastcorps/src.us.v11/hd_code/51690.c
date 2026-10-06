@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 extern void *D_80358070;
 extern u8 D_006A8DA0[];
@@ -10,7 +11,6 @@ extern u8 *D_8039CA98;
 extern u8 *D_8039CA9C;
 extern s16 D_8039CAA0;
 extern u8 D_8039CAA2;
-void func_8028B4C4(void *, void *, s32 *, s32, s32, s32);
 
 /* Carves four buffers out of the heap and loads ROM asset 0x6A8DA0 into the first. */
 void func_80295E50(void) {

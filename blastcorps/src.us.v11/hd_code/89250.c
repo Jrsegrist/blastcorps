@@ -1,6 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
-#include "game/regs.h"
+#include "game/game.h"
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -11,8 +11,6 @@
  * more specific non-ABI explanation where one was already worked out. */
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-s32 func_802A6274(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32 z, s32 w24, s32 w28,
-                  s32 w18, s32 w1C, s32 w2C, s32 b35);
 extern u8 D_802C382C[]; /* a definition inside the 7D9D0 blob */
 
 /* Sets up a D_803C4B70 record (func_802A6274) for the definition D_802C382C
@@ -35,7 +33,6 @@ void func_802CDA10(s32 x, s32 y, s32 z) {
 extern s32 D_803A73F0;
 extern s32 D_803A73F4;
 extern s32 D_803A73F8;
-void func_802C18D4(s32 x, s32 y, s32 z, s32 radius, s32 amount);
 
 /* Blast damage (func_802C18D4) at the position D_803A73F0/F4/F8 << 11 with
  * the given radius and amount. The asm uses the whole registers (48D00.c
@@ -96,23 +93,6 @@ extern u8 D_803A7424;
 extern u8 D_803A7425;
 extern u8 D_803A742F;
 
-s32 func_8029C160(s32 x, s32 y, s32 z, s32 r, u8 *tri, s32 *hit); /* 56040 */
-void func_8029C0DC(u8 *tri, s32 px, s32 py, s32 pz, s32 *out);     /* 56040 */
-s32 func_8029BF64(s32 bu, s32 bv, s32 cu, s32 cv, s32 au, s32 av, s32 pu, s32 pv); /* 56040 */
-s32 func_8029BD0C(s32 x, s32 y, s32 z, s32 r, u8 *tri);           /* 56040 */
-s32 func_8029BEE4(s32 x, s32 y, s32 z, s32 r, u8 *tri);           /* 56040 */
-s32 func_8029CFA4(s32 pz, s32 r1, s32 qx, s32 qy, s32 px, s32 py, s32 qz, s32 r2); /* 56040 */
-s32 func_802BD8C8(void);                                          /* 77E20 */
-void func_802BF1F0(Obj89250 *e, s32 id);                          /* 77E20 */
-void func_802BF264(Tri89250 *t);                                  /* 77E20 */
-void func_802BF384(Obj89250 *e);                                  /* 77E20 */
-void func_802BF534(Obj89250 *e);                                  /* 77E20 */
-void func_802BF668(Obj89250 *e);                                  /* 77E20 */
-void func_802BF898(Obj89250 *e, s32 part, s32 level);             /* 77E20 */
-void func_802C09B8(s32 id, Obj89250 *e);                          /* 77E20 */
-void func_802C0E8C(s32 id, Obj89250 *e);                          /* 77E20 */
-void func_802C1438(Obj89250 *e, s32 index);                       /* 77E20 */
-void func_802CE204(s32 x1, s32 z1, s32 x2, s32 z2);
 s32 func_802CDC7C(s32 x, s32 y, s32 z, s32 r, Obj89250 *e, s32 hit);
 void func_802CDD74(Obj89250 *e, Tri89250 *tri, s32 amount);
 s32 func_802CE0E4(s32 x, s32 y, s32 z, s32 r, s32 id);
@@ -375,8 +355,6 @@ s32 func_802CE0E4(s32 x, s32 y, s32 z, s32 r, s32 id) {
 #ifdef NON_MATCHING
 f32 sqrtf(f32);
 #pragma intrinsic(sqrtf)
-s32 func_802AD7FC(u32 sine);
-void func_8029B7CC(s32 a, s32 b);
 
 /* cvt.w.s under the game's FCSR: round to nearest, ties to even. */
 static s32 port_cvt_w_s(f32 x) {
@@ -442,8 +420,6 @@ extern u8 D_803A7425;
 extern u8 D_803A7427;
 extern u8 D_803A742F;
 extern u8 D_80306450[];
-s32 func_802A6F6C(void);
-void func_802BCBD8(void);
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -527,7 +503,6 @@ void func_802CE4F0(s32 x, s32 y, s32 z) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 D_803A742A;
-void func_8029B02C(s32 x, s32 y, s32 z, s32 r, s32 kind, s32 id); /* 56040 */
 
 /* Reports every triangle the sphere (x, y, z) radius r touches for vehicle
  * `kind` (func_8029B02C with everything >> 2 and part id 0), after storing
@@ -549,7 +524,6 @@ void func_802CE5BC(s32 x, s32 y, s32 z, s32 r, s32 kind, s32 tag) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-s32 func_802A860C(f32 f, s32 angle, s16 *len, s32 *px, s32 *pz, Out802A860C *out); /* 62740 */
 extern s32 D_803F9320;
 extern s32 D_803F9324;
 extern s16 D_803F9328;
@@ -573,9 +547,6 @@ void func_802CE65C(s32 x, s32 z, s32 len, s32 angle) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-s32 func_802A9DC0(s32 x, s32 z, s32 y, TriSideOut *f, s32 *fpOut);
-s32 func_802A9F24(s32 x, s32 z, s32 y, s32 skip, TriSideOut *f, s32 *idOut, s32 *a2Out);
-s32 func_802AA094(s32 x, s32 z, s32 y, TriSideOut *f, s32 *t3io, s32 *fpio);
 extern u8 D_803F932C;
 
 #define PORT_ABS(d) ((d) < 0 ? -(d) : (d))

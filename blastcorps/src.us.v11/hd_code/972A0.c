@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* libultra's hand-written os/exceptasm.s (__osExceptionPreamble through
  * __osCleanupThread: $k0/$k1 use, eret, sd/ld context saves) followed by

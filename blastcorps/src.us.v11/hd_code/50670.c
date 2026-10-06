@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* ghostdigger.c: records the player's path and plays it back as a ghost */
 
@@ -33,10 +34,6 @@ typedef struct {
     /* 0x28 */ u8 id;
 } GhostQuad;
 
-void func_8029A7E4(const char *fmt, ...);
-s32 func_80286038(s32 arg0);
-void func_802AA6D0(s32 x, s32 y, s32 z, s16 rx, s16 ry, s16 rz, s32 arg6, Mtx *arg7);
-s32 func_802AC4C4(s32 px, s32 pz, s32 x0, s32 z0, s32 x1, s32 z1, s32 x2, s32 z2);
 void func_80295394(s32 *x, s32 *y, s32 *z, s16 *rx, s16 *ry, s16 *rz);
 s16 func_80295924(s16 from, s16 to, f32 t);
 

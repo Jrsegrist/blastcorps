@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 extern s32 D_803A6B20;
 extern s32 D_803A6B24;
@@ -21,12 +22,6 @@ extern s32 D_80358060;
 extern u8 D_803643D6;
 extern s16 yoshiState;
 
-void func_80259DC8(Gfx **gfxp, char *str, s32 a2, s32 a3, s32 a4, s32 x, s32 y, s32 w, s32 h, s32 a9, s32 r, s32 g,
-                   s32 b, s32 a, s32 r2, s32 g2, s32 b2, s32 a2_);
-void func_8026AF6C(u16 yd);
-void func_80260EE0(s32);
-s32 func_802753C0(void);
-void func_80275270(u64, f32);
 
 /* Credits scroller: draws the visible credit lines, advances the scroll, and ends the credits */
 Gfx *func_8029A518(Gfx **gfxp, Gfx *gfx) {

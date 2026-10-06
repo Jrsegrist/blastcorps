@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 typedef struct {
     u8 pad0[0x18];
@@ -26,16 +27,6 @@ u8 D_803A6B02;  /* level the sequence starts in */
 u8 D_803A6B03;  /* current sequence number */
 u8 D_803A6B04;
 
-void func_8029A7E4(const char *, ...);
-void func_8025B9D0(s32, s32 *);
-void func_8026AF6C(u16);
-void func_80295E50(void);
-void func_8029A500(void);
-void func_8025BB50(void);
-void func_802609D0(void);
-void func_80260650(s32, s32, s32);
-u64 func_801ECA50(u8);
-s32 func_8026F92C(u64);
 
 #define players D_80364AF0
 #define playerNumber D_80364AE8

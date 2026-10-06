@@ -1,6 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
-#include "game/regs.h"
+#include "game/game.h"
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -81,14 +81,9 @@ extern u8 D_803EBDB0[]; /* 0x38-byte triangle records, u16 id at +0x36 */
 
 /* Prototypes shared by the ground-height functions (func_802A92C8 ..
  * func_802A9A60, func_802A8768); their definitions are further down. */
-s32 func_802ACE38(s32 x, s32 z, s32 angle, s32 *t1out); /* 679E0: 2-D rotation */
-s32 func_802A94A4(s32 index, s16 *tbl, s16 *angle, s32 *dz);
-s32 func_802A9B1C(s32 index, s32 x, s32 z, s32 y, s32 skip, u8 *veh, s32 fpIn, TriSideOut *f);
 s32 func_802A9540(s32 index, s32 *a, s32 *b, s32 *c, s32 extra, s32 value);
 s32 func_802A9514(s32 x);
 s32 func_802A9710(s32 index, s32 *a, s32 *b, s32 *c, s32 extra, s32 pos, s32 s3);
-s32 func_802A9F24(s32 x, s32 z, s32 y, s32 skip, TriSideOut *f, s32 *idOut, s32 *a2Out);
-s32 func_802AA094(s32 x, s32 z, s32 y, TriSideOut *f, s32 *t3io, s32 *fpio);
 /* func_802A8CCC's t0 / t1: position in, reset position out (unchanged if none). */
 typedef struct {
     s32 t0; /* x */
@@ -626,8 +621,6 @@ void func_802A77D0(u8 *veh) {
  * hd_code/679E0.c (see that file's comment for the probe evidence).
  * Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-void func_802A7E70(s32 rate, u16 *angle);
-void func_802A785C(u8 *veh, s16 *speed, s32 mode, u8 *flags, s16 *bands, s32 delta);
 
 /* Steering then throttle for one vehicle: func_802A7E70(rate, angle), then
  * func_802A785C(veh, speed, mode, flags, bands, delta).
@@ -973,8 +966,6 @@ void func_802A7E70(s32 rate, u16 *angle) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 s32 func_802A8314(s32 cur);
-void *func_80260650(void *, s16, void *);
-void func_80260AB8(void *, s16, s32);
 extern u8 D_803ED3F8;  /* sound retrigger counter */
 extern s32 D_803ED3FC; /* f32 bits: pitch */
 extern f32 D_8030D890;
@@ -1225,8 +1216,6 @@ s32 func_802A8590(s32 *p) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-s32 func_802AE104(s32 angle); /* 16.16 cosine (69930.c) */
-s32 func_802AE160(s32 angle); /* 16.16 sine */
 
 
 /* Offset a point by a scaled length along a heading: n = *len (s16) scaled
@@ -1297,7 +1286,6 @@ extern s16 D_803ED406;
 extern u8 D_803ED40E;
 extern u8 D_803ED40F;
 extern u8 D_803ED3F5;
-s32 func_802ACF64(u32 x);
 void func_802A8CCC(u8 *veh, s32 id, s32 *px, s32 *py, s32 *pz, Pos802A8CCC *pos);
 void func_802A90E4(u16 *p);
 void func_802A8FF4(u8 *veh);
@@ -1305,8 +1293,6 @@ void func_802A8FB4(void);
 void func_802A9038(u8 *veh);
 void func_802A9164(u8 *veh, u8 *f, s32 kind);
 s32 func_802A8B10(s32 *a3Out);
-void func_802582C4(u8 id, s32 x, s32 y, s32 z, s32 arg4, s32 arg5, s32 arg6, s32 arg7); /* 13A70 */
-s32 func_802A92C8(s32 x, s32 z, s16 *tbl, s16 *angle, s32 *ys, s32 key, u8 *veh, s32 fpIn, TriSideOut *f);
 s32 func_802A93B0(s32 index, s32 *a, s32 *b, s32 *c, s16 *tbl, s32 x, s32 z, s16 *angle, s32 *ys, s32 key,
                   u8 *veh, s32 fpIn, TriSideOut *f);
 void func_802A95A4(s32 index, s32 *a, s32 *b, s32 *c, s16 *tbl, s32 x, s32 z, s16 *angle, s32 *ys, s32 key,
@@ -1423,7 +1409,6 @@ void func_802A8768(u8 *veh, s32 id, s32 *px, s32 *py, s32 *pz, s32 x, s32 z, s32
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-s32 func_802ACF64(u32 x);
 extern s16 D_803ED402;
 extern s16 D_803ED404;
 
@@ -1468,9 +1453,6 @@ extern s16 D_803BE736;
 extern u8 *D_803BE6F8; /* 9-byte respawn records: u8 key, s16 x, y, z (big-endian) */
 extern s32 D_80364AA8; /* game mode flags */
 extern u8 D_80364412;  /* "position was reset" flag */
-void func_802A754C(u8 *veh);
-void func_802AC6FC(s32 x, s32 y, s32 z, s32 kind, s32 data);
-void func_80277EDC();
 
 /* (Pos802A8CCC is declared at the top of the file.) */
 
@@ -1973,9 +1955,6 @@ s32 func_802A9A60(s16 *tbl, s32 y, s32 x, s32 z, s32 *dst, s32 *mid, s16 *angle,
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-s32 func_802A9DC0(s32 x, s32 z, s32 y, TriSideOut *f, s32 *fpOut);
-s32 func_802A9F24(s32 x, s32 z, s32 y, s32 skip, TriSideOut *f, s32 *idOut, s32 *a2Out);
-s32 func_802AA094(s32 x, s32 z, s32 y, TriSideOut *f, s32 *t3io, s32 *fpio);
 void func_802A9CAC(s32 index, s32 kind);
 
 #define ABS_9B1C(v) ((v) < 0 ? -(v) : (v))
@@ -2098,8 +2077,6 @@ void func_802A9CAC(s32 index, s32 kind) {
 #ifdef NON_MATCHING
 s32 func_802AA2E4(s32 x, s32 z, s32 x0, s32 y0, s32 z0, s32 x1, s32 y1, s32 z1, s32 x2, s32 y2, s32 z2,
                   s32 *a3Out, s32 *t6Out);
-s32 func_802AA460(s32 x, s32 z, s32 x0, s32 z0, s32 x1, s32 z1, s32 x2, s32 z2, TriSideOut *out);
-s32 func_802AA5E0(s32 x, s32 z, s32 x0, s32 z0, s32 x1, s32 z1, s32 x2, s32 z2);
 extern u8 *D_803F7828; /* triangle list: 0x28-byte records, 9 s32 coords + u8 at +0x24 */
 extern u8 *D_803F782C; /* its end */
 
@@ -2461,7 +2438,6 @@ s32 func_802AA5E0(s32 x, s32 z, s32 x0, s32 z0, s32 x1, s32 z1, s32 x2, s32 z2) 
 #ifdef NON_MATCHING
 extern s16 D_803ED392; /* rotation angle y (x and z: D_803ED390, D_803ED394_) */
 extern u16 D_803EBB58[]; /* accumulated Mtx (see func_802ACCCC) */
-void func_802AA764(s32 x, s32 y, s32 z, s32 scale, s32 *m);
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -2480,13 +2456,6 @@ void func_802AA6D0(s32 x, s32 y, s32 z, s16 rx, s16 ry, s16 rz, s32 scale, Mtx *
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-void func_802ACC68(s32 x, s32 y, s32 z, s32 *m);
-void func_802ACBDC(s32 angle, s32 *m);
-void func_802ACB50(s32 angle, s32 *m);
-void func_802ACAC4(s32 angle, s32 *m);
-void func_802ACCCC(s32 *b, s32 *m);
-void func_802ACA60(s32 x, s32 y, s32 z, s32 *m);
-void func_802AC8CC(u16 *m);
 
 /* Build the model matrix m (16.16 words, converted in place to the Mtx
  * layout at the end by func_802AC8CC): m = scale matrix (scale on all three
@@ -2674,11 +2643,6 @@ s32 func_802AABE4(s32 id, u16 *desc, u8 *base, MtxChainRegs *regs, s16 **vertsOu
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802AABE4.s")
 #endif
 
-#ifdef NON_MATCHING
-
-void func_802AAD0C(s32 id, s32 x, s32 z, InterpRegs *r);
-void func_802AAE54(s32 id, s32 x, s32 z, InterpRegs *r);
-#endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
@@ -3022,24 +2986,6 @@ s32 func_802AB41C(s32 key0, s32 key1) {
 
 #ifdef NON_MATCHING
 /* Per-type hooks of the D_803ED3B8 tree walks below (vehicle files). */
-s32 func_802B30F4(s32 id, InterpRegs *r);
-s32 func_802B4818(s32 id, InterpRegs *r);
-void func_802B6100(s32 id, InterpRegs *r);
-void func_802B78F4(s32 id, InterpRegs *r);
-void func_802C59B4(s32 id, InterpRegs *r);
-void func_802CA34C(s32 id, InterpRegs *r);
-s32 func_802CBD5C(s32 id, InterpRegs *r);
-s32 func_802CCED4(s32 id, InterpRegs *r);
-s32 func_802CFC54(s32 id, InterpRegs *r);
-s32 func_802B3180(s32 id, InterpRegs *r);
-s32 func_802B48A4(s32 id, InterpRegs *r);
-s32 func_802B618C(s32 id, TriSideOut *f);
-void func_802B7980(s32 id, f32 *f24);
-void func_802C5A14(s32 id, s32 *s3, InterpRegs *r);
-void func_802CA3D8(s32 id, s32 *s3, InterpRegs *r);
-s32 func_802CBDE8(s32 id, TriSideOut *f);
-s32 func_802CCF60(s32 id, TriSideOut *f);
-s32 func_802CFCE0(s32 id, InterpRegs *r);
 void func_802AB50C(s32 id, InterpRegs *r);
 void func_802AB714(s32 id, s32 *s3, InterpRegs *r);
 #endif
@@ -3255,7 +3201,6 @@ s32 func_802AB8D8(s32 id) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern s16 D_803ED3E8; /* scratch heading for func_802A94A4 */
-s32 func_802ABB1C(s32 ax, s32 az, s32 dx, s32 dz, s32 bx, s32 bz);
 
 #define WRAP_12(v) ((v) >= 0x1000 ? (v) - 0xFFF : (v))
 #define ABS_B9A4(v) ((v) < 0 ? -(v) : (v))
@@ -3345,7 +3290,6 @@ s32 func_802AB9A4(s16 *tbl, s32 x1, u16 *angle, s32 id, s32 z1, s32 x2, s32 z2, 
 #ifdef NON_MATCHING
 float sqrtf(float);
 #pragma intrinsic(sqrtf)
-s32 func_802AD7FC(u32 sine); /* arcsine (69000.c) */
 
 /* Angle at point A = (ax, az) between A->B (B = (bx, bz)) and the offset
  * (dx, dz) from B: d0 = |A - B|, d1 = |B + (dx, dz) - A| (64-bit squares,

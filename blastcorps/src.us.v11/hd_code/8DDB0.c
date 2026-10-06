@@ -1,6 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
-#include "game/regs.h"
+#include "game/game.h"
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -28,22 +28,6 @@ extern u8 D_803FCD77;
 extern u8 D_803FCD78;
 extern u8 D_803FCD79;
 extern u8 D_803FCD7A;
-void func_802A1388(s32 a0Val, s32 a1Val, s32 v0Val, s32 v1Val, u8 *hdr); /* 5CB60 */
-s32 func_8029F85C(u32 *bufA, u32 *bufB, void *ch, u8 *hdr);             /* 56040 */
-void func_802A0290(void *base, s32 idx, s32 val);                       /* 56040 */
-void func_802A0320(s32 idx, void *base);                                /* 56040 */
-void func_802A0360(f32 f, void *base, s32 idx, s32 val);                /* 56040 */
-void func_802A039C(void *base, s32 idx, s32 val);                       /* 56040 */
-void func_802A03D4(void *base, s32 idx, s32 val);                       /* 56040 */
-void func_802A040C(void *base, s32 idx, s32 val);                       /* 56040 */
-void func_802A0480(f32 f, void *base, s32 idx, s32 val);                /* 56040 */
-void func_8029E558(u8 *base, u8 *other, void *ch);                      /* 56040 */
-void func_80258230(u8 id, s32 arg1, s16 arg2, s16 arg3);                /* 13A70 */
-void *func_80260650(void *arg0, s16 arg1, void *arg2);                  /* 17E10 */
-void func_80260AB8(void *arg0, s16 arg1, s32 arg2);                     /* 1A630 */
-void func_80268F54(void);                                               /* 23C20 */
-void func_802AA838(u8 *src, u8 *dst, s32 off);                          /* 62740 */
-void func_802D291C(void);
 
 /* Set up vehicle 0xFD (the level-object dispatcher func_802A30DC): model
  * header hdr -> D_803FCD54; two 0x800-byte save copies from the D_80358070
@@ -128,7 +112,6 @@ void func_802D2570(u8 *hdr) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-void func_8029E558(u8 *base, u8 *other, void *ch); /* 56040 */
 void func_802D2A40(void);
 void func_802D2A74(void);
 void func_802D2C20(void);
@@ -166,7 +149,6 @@ void func_802D291C(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-void func_80269258(void);
 
 /* Calls func_80269258, saving gp around it (the asm caller func_802D291C
  * uses gp as its base pointer). The survey lists a0, a2, a3, t6, t7, f12 and
@@ -212,7 +194,6 @@ extern s32 D_80364400;
 extern s32 D_803FCD48;   /* sound source x, y, z */
 extern s32 D_803FCD4C;
 extern s32 D_803FCD50;
-void func_80260AB8(void *arg0, s16 arg1, s32 arg2);
 
 /* Distance attenuation: if D_803FCD64 is set, sets its volume (parameter 8)
  * to 0x7FFF - max(d - 0x3200, 0) / 4, clamped at 0, where d is the distance
@@ -247,13 +228,6 @@ void func_802D2A74(void) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-s32 func_802A6274(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32 z, s32 w24, s32 w28,
-                  s32 w18, s32 w1C, s32 w2C, s32 b35);
-s32 func_802ABC88(s32 id, s32 n, u8 **recOut);           /* 62740 */
-void func_802A0290(void *base, s32 idx, s32 val);         /* 56040 */
-void func_802A039C(void *base, s32 idx, s32 val);         /* 56040 */
-void func_802A03D4(void *base, s32 idx, s32 val);         /* 56040 */
-void *func_80260650(void *arg0, s16 arg1, void *arg2);
 
 extern void *D_80367738; /* sound player */
 extern u8 D_803FC9A0[];
@@ -391,8 +365,6 @@ extern u16 D_803FCD6C;
 extern u16 D_803FCD6E;
 extern u8 D_803FCCA0[];   /* this vehicle's state block (the asm caller's $gp) */
 extern s16 D_803ED390[3]; /* rotation angles x, y, z for func_802AA764 */
-void func_802AA764(s32 x, s32 y, s32 z, s32 scale, s32 *m);                 /* 62740 */
-void func_802ABBEC(s32 id, s16 *p, s16 *end, u8 *base, MtxChainRegs *regs); /* 62740 */
 
 /* Place this vehicle's model: m = the word at +4 of the header entry at
  * hdr + hdr[6] (hdr = D_803FCD54), plus the current save copy (D_803FCD58

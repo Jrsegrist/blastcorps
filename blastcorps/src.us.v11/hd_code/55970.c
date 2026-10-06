@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 #define OLD_RDPHALF_2 0xB3
 #define OLD_RDPHALF_CONT 0xB2
@@ -19,7 +20,6 @@ extern u8 D_0048FE90[];
 extern void *D_80358070;
 extern void *D_803A6B10;
 extern s16 D_803A6B14;
-void func_8028B4C4(void *, void *, s32 *, s32, s32, s32);
 
 /* Load the 256x16 IA8 overlay texture from ROM into the heap */
 void func_8029A130(void) {

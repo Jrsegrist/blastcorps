@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* recording.c (from its assert strings): demo/attract-mode controller recording and playback */
 
@@ -45,30 +46,6 @@ extern u16 D_80370C30;
 extern s8 D_80370C32;
 extern s8 D_80370C33;
 
-void func_8028B4C4(void *, void *, s32 *, s32, s32, s32);
-void func_80257490(void **heap, s32 align);
-u8 func_80272C5C(void *, s32, s32, s32, s32, f32);
-void func_8029A7E4(const char *fmt, ...);
-s32 func_802753C0(void);
-void func_80275270(u64 mask, f32 arg1);
-void func_80275390(u64 mask);
-void func_802B40D4(void *);
-void func_802B2D7C(void);
-void func_802AFC28(void *);
-void func_802B0D70(void *);
-void func_802AFFD4(void);
-void func_802B2988(void *);
-void func_802B1228(void);
-void func_802D2524(void *);
-void func_802D0C68(void);
-void func_802B58C8(void *);
-void func_802B448C(void);
-void func_802B7308(void *);
-void func_802B5CD8(void);
-void func_802C80A0(void *);
-void func_802C5714(void);
-void func_802CB660(void *);
-void func_802C9F54(void);
 
 #define ASSERT(EX, line) if (!(EX)) func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "recording.c", line)
 

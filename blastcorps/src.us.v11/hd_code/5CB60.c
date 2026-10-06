@@ -1,6 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
-#include "game/regs.h"
+#include "game/game.h"
 
 #ifdef NON_MATCHING
 /* Shared declarations for the NON_MATCHING (port) rewrites below. Most of
@@ -29,9 +29,7 @@ typedef struct {
 
 
 void func_802A32CC(s32 type, Out802A32CC *out);
-void func_802A396C(s32 type, Out802A396C *out);
 
-void func_802A08E4(u32 *dl, u32 *end, Unk802A08E4Regs *r);
 #endif
 
 /* func_802A1320: `mfc0 $v0, $12` (read COP0 Status register) wrapped in a
@@ -138,7 +136,6 @@ void func_802A1388(s32 a0Val, s32 a1Val, s32 v0Val, s32 v1Val, u8 *hdr) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-void func_80278BF0(Gfx *src, Gfx *end, Gfx **dstp);
 
 /* Register-preserving wrapper: func_80278BF0(src, end, dstp).
  * asm: src in t2, end in t3, dstp in t4; it saves and restores every
@@ -166,11 +163,9 @@ extern u8 D_80370C50;
 #define D_8030D888 (*(u64 *) 0x8030D888)
 
 void func_802A2D68(u8 *obj);
-void func_802A0700(void);
 u8 *func_802A3008(u8 *obj);
 void func_802A1C20(u8 *obj, u8 *param, s32 *s1io);
 void func_802A1C88(u8 *obj);
-void func_8029DEA0(void);
 u8 *func_802A3D54(u8 *obj, s32 id, s32 b4F, s32 *s1io);
 u8 *func_802A3DF8(u8 *obj, s32 id, s32 b4F, s32 *s1io);
 void func_802A3E9C(u8 *obj, s32 id, s32 b4F, s32 *s1io);
@@ -178,25 +173,14 @@ u8 *func_802A3F80(u8 *obj, s32 *s1io);
 void func_802A4464(u8 *obj);
 void func_802A1A9C(u8 *obj, s32 *s1io);
 void func_802A1934(void);
-void func_8029DC80(void);
-void func_802A4510(void);
 void func_802A2C54(u8 *obj);
-void func_802A5F30(void);
-void func_802BC840(void);
 u8 *func_802A1D54(u8 *obj, u8 *param, s32 *s1io);
-void func_802C049C(void);
-void func_8028FDA0(u8 *arg0, u8 *arg1, s32 s1); /* s1: NON_MATCHING only (4B5E0.c) */
 s32 func_802A350C(u8 *obj, s32 fp);
 void func_802A303C(u8 *obj, s32 fp);
 void func_802A30DC(void);
 void func_802A3134(u8 *obj);
 void func_802A3198(Out802A32CC *out);
-void func_802CEAA0(u8 *obj);
 void func_802A19F4(void);
-void func_8026FBB0(u8 *pos, u8 *end);
-void func_8028D4C0(u8 *arg0, u8 *arg1);
-void func_8028C190(u8 *arg0, u8 *arg1);
-void func_802C4BF0(void *in);
 
 /* What the asm's v0 and t9 hold on entry from the only caller, 00000.c's
  * func_80256A34 (initlevel): its last call before func_802A1674 that sets them
@@ -510,7 +494,6 @@ void func_802A1A9C(u8 *obj, s32 *s1io) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-u32 func_802A0CFC(s32 id, u8 *param);
 
 /* Resolves the texture ids of the level object's records
  * [OBJ_PTR(obj, 0x2C), OBJ_PTR(obj, 0x30)): each record has a count byte
@@ -769,7 +752,6 @@ void func_802A2608(u8 *obj, u8 *param, s32 *s1io);
 void func_802A2458(u8 *rec, u8 *obj);
 void func_802A24BC(u8 *rec, u8 *param);
 void func_802A23E0(u8 *rec);
-u8 *func_802A41B0(u8 *rec, u8 *v, s32 id, s32 h52, s32 b57, s32 b56, s32 *s1io, s32 b4F, s32 b55);
 
 #define REC_W(rec, off) (*(s32 *) ((rec) + (off)))
 
@@ -907,7 +889,6 @@ void func_802A2458(u8 *rec, u8 *obj) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern s32 D_80365330;
-s32 func_802CE6F8(s32 x, s32 z, s32 y);
 
 /* For a record whose type (word 0x30) is 0xBA, 0xBB or 0xBC: D_80365330 =
  * func_802A0CFC(0xF81, param) and word 0x44 = the ground height
@@ -930,7 +911,6 @@ void func_802A24BC(u8 *rec, u8 *param) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-u32 func_802A0CFC(s32 id, u8 *param);
 
 /* Like func_802A1C20 for the records [OBJ_PTR(obj, 0x28), OBJ_PTR(obj, 0x2C)):
  * each record's word 0 is replaced by func_802A0CFC(word, param), then (the
@@ -1069,7 +1049,6 @@ void func_802A26A8(u8 *obj, s32 dx, s32 dy, s32 dz) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 *D_803BE6F0; /* table of u32 offsets into the compressed block at ROM 0x6EC4C0 */
-void func_802C4108(u8 **src, u8 **dst, s32 work);
 u32 func_802A44E4(u32 x);
 
 /* The load shared by func_802A2A98 / func_802A32CC / func_802A396C: DMAs
@@ -1318,7 +1297,6 @@ u8 *func_802A3008(u8 *obj) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-void func_802B9C50(u8 *model, s32 x, s32 z, s32 speed, s32 limit, s32 heading, s32 fp);
 
 /* The level's type-0xFF object: the 9-byte record at OBJ_PTR(obj, 0x54) (just
  * past func_802A350C's list) {u8 speed, BE s16 x, z, heading, limit}; when
@@ -1346,8 +1324,6 @@ void func_802A303C(u8 *obj, s32 fp) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-s32 func_80268EE8(s32 id);
-void func_802D2570(u8 *hdr);
 
 /* If func_80268EE8(D_802E8BDC) (the current level has it): D_80364AC1 = 1,
  * load model 0xFD (func_802A396C) and set up vehicle 0xFD with it
@@ -1368,7 +1344,6 @@ void func_802A30DC(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-void func_802B8480(s32 a1Val, u8 *hdr);
 
 /* When the record at OBJ_PTR(obj, 0x54) (func_802A303C's) has a nonzero first
  * byte and the game mode D_80364AA8 isn't 0x80: load model 0xFE
@@ -1398,7 +1373,6 @@ extern u8 *D_803BDAFC;
 extern u8 *D_803BDB00;
 extern u8 *D_803BDB04;
 extern u8 *D_803BDB08;
-void func_80295AE0(Gfx *gdl, Gfx *end); /* 50670 */
 
 /* If D_8039CA61 is set: load packed object D_8039CA7E (func_802A32CC; its s2,
  * s3, s4 results go to *out); D_803BDAFC = data, D_803BDB04 =
@@ -1550,22 +1524,6 @@ extern u8 D_803ED40F;
 extern u8 D_8036698C;
 extern u8 D_803643D4;
 void func_802A3824(u8 *obj);
-void func_802AE370(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, SpawnFP *f);
-void func_802AFC60(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp);
-void func_802B0DA0(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s32 t6, SpawnFP *f);
-void func_802B29C0(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp);
-void func_802B4100(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp);
-void func_802B5900(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp);
-void func_802BAD80(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp);
-void func_802BBA60(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp);
-void func_802B7340(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, SpawnFP *f);
-void func_802C5120(s32 x, s32 y, s32 z, s32 heading, u8 *model, s32 fp);
-void func_802C9B90(s32 x, s32 y, s32 z, s32 heading, u8 *model, s32 fp);
-void func_802C80D0(s32 type, s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp);
-void func_802CB720(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, SpawnFP *f);
-void func_802CC920(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, SpawnFP *f);
-void func_802CF6A0(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s32 t6, SpawnFP *f);
-void func_802D07E0(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s32 t6, SpawnFP *f);
 
 /* Spawn the level's vehicles and objects: func_802A3824(obj) (picks
  * D_803BE73A), D_803ED3F5 = D_803ED40F = 0, then for each 9-byte record in
@@ -1745,7 +1703,6 @@ void func_802A3824(u8 *obj) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-void func_8029DF78(u8 *dl, u8 *dlEnd, s32 key); /* 56040 */
 
 /* (Out802A396C is declared at the top of the file.) */
 
@@ -1857,7 +1814,6 @@ void func_802A396C(s32 type, Out802A396C *out) {
  * as func_802A41B0's b55) and leaves func_802A41B0's s2-s7 scratch. Its asm
  * caller func_802A1674 keeps t0, t9, f12, f14 live. */
 #ifdef NON_MATCHING
-u8 *func_802A41B0(u8 *rec, u8 *v, s32 id, s32 h52, s32 b57, s32 b56, s32 *s1io, s32 b4F, s32 b55);
 s32 func_802A4168(s32 id, u8 *end);
 extern u8 *D_803BDCA8[];
 extern u8 *D_803BDE40[];

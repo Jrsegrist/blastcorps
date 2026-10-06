@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 typedef struct {
     u8 unk0;
@@ -22,8 +23,6 @@ extern s16 D_80364EF0[][16];
 extern u16 D_80364F70[];
 extern u64 D_8039C4B8[];
 
-void func_8029A7E4(const char *, ...);
-void func_801F8354(u8);
 
 /* Restore the current player's records from EEPROM: one pak-thread request
  * (0xA) per even level, then for each completed level other than 0x26, 0x2F

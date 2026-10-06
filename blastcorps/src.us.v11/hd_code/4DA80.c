@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /*
  * Ballistic shells: up to four lobbed projectiles fired from one point through
@@ -37,7 +38,7 @@ typedef struct {
 } ShellType; /* size 0x5B8 */
 
 /* Per-frame dynamic buffer (segment 2); the shell matrices sit at 0xD00. */
-typedef struct {
+typedef struct Dyn {
     u8 pad[0xD00];
     Mtx mtx[4];
 } Dyn;
@@ -58,14 +59,6 @@ extern u8 D_803F932D;
 extern Mtx D_02000000[];
 
 f32 sqrtf(f32);
-s32 func_802AD7D4(s32);
-void *func_80260650(void *arg0, s16 arg1, void *arg2);
-void func_802AC61C(s32, s32, s32, u8, s32);
-void func_802CE4F0(s32, s32, s32);
-void func_802CDF94(s16);
-void func_802CE5BC(s32, s32, s32, s16, s32, s32);
-s32 func_802CDB70(s16, s16);
-s32 func_802CE6F8(s32, s32, s32);
 void func_80292DDC(s32 i);
 
 void func_80292240(void) {

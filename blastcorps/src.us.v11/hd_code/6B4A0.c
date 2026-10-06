@@ -1,6 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
-#include "game/regs.h"
+#include "game/game.h"
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -20,9 +20,6 @@
 #define VEH_S8(v, off) (*(s8 *) ((u8 *) (v) + (off)))
 #define VEH_U16(v, off) (*(u16 *) ((u8 *) (v) + (off)))
 #define VEH_S16(v, off) (*(s16 *) ((u8 *) (v) + (off)))
-
-
-s32 func_802ABD54(s32 id, s32 x, s32 y, s32 z, ZoneScanRegs *r);
 
 
 extern u8 D_803EDB40[];  /* vehicle 1 record */
@@ -46,46 +43,6 @@ extern u8 D_80305CE0[];
 extern f32 D_8030D8A0;
 extern u8 D_80364A6D;
 
-void func_802AA764(s32 x, s32 y, s32 z, s32 scale, s32 *m);
-void func_8029C454(s32 x, s32 y, s32 z, s32 tag, u8 *p, u8 *end, u8 *base, MtxChainRegs *regs);
-void func_802ABBEC(s32 id, s16 *p, s16 *end, u8 *base, MtxChainRegs *regs);
-void func_802A8768(u8 *veh, s32 id, s32 *px, s32 *py, s32 *pz, s32 x, s32 z, s32 divB, s32 divA, s16 *angle,
-                   u8 *flags, s16 *tbl, s32 *a, s32 *b, s32 *c, s32 *ys, Regs802A8768 *r, TriSideOut *f);
-s32 func_802A9A60(s16 *tbl, s32 y, s32 x, s32 z, s32 *dst, s32 *mid, s16 *angle, s32 key, s32 fp, u8 *veh,
-                  TriSideOut *f, Out802A9A60 *out);
-s32 *func_802A992C(s16 *tbl, s32 y, s32 x, s32 z, s32 *dst, s32 *mid, s16 *angle, s32 key, s32 fpIn, u8 *veh,
-                   TriSideOut *f);
-void func_802A133C(s32 a0Val, s32 id, s32 v0Val, s32 v1Val, u8 *obj);
-void func_802A1388(s32 a0Val, s32 a1Val, s32 v0Val, s32 v1Val, u8 *hdr);
-void func_802A754C(u8 *veh);
-s32 func_8029F85C(u32 *bufA, u32 *bufB, void *ch, u8 *hdr);
-void func_8029E558(u8 *base, u8 *other, void *ch);
-void func_802A0290(void *base, s32 idx, s32 val);
-void func_802A0320(s32 idx, void *base);
-void func_802A039C(void *base, s32 idx, s32 val);
-void func_802A03D4(void *base, s32 idx, s32 val);
-void func_802A040C(void *base, s32 idx, s32 val);
-void func_802A0480(f32 f, void *base, s32 idx, s32 val);
-void func_8029C354(s32 tag, u8 *p, u8 *end, u32 scale);
-void func_80258230(u8 id, s32 arg1, s16 arg2, s16 arg3);
-void func_802AA838(u8 *src, u8 *dst, s32 off);
-void func_802A7834(s32 rate, u16 *angle, u8 *veh, s16 *speed, s32 mode, u8 *flags, s16 *bands, s32 delta);
-void func_802A7FD8(u8 *veh, u16 *heading, s32 rate, s16 *speedp, u16 *target, u16 *out, s8 *flag, s32 sound);
-f32 func_802A83B8(s16 *div, u8 *f, s32 *p, f32 *out);
-void func_802A843C(u8 *veh, s16 *speed, s32 kind, s8 *f, s32 *p, s32 clamp, f32 div);
-void func_802A7070(u8 *veh, s16 *angle);
-s32 func_802A860C(f32 f, s32 angle, s16 *len, s32 *px, s32 *pz, Out802A860C *out);
-void func_8029A800(s32 z, s32 a1, s32 b2, s32 b3, s32 x, s32 y, s32 b0, s32 h1, s32 h2, s32 b4, s32 b8,
-                   u8 *veh);
-void func_8029C52C(s32 tag, u8 *veh);
-void func_8029AA10(s32 kind);
-void func_8029A914(u8 *veh);
-s32 func_802A6F6C(void);
-void func_802A70D8(u8 *veh);
-s32 func_802A71DC(u8 *veh, s32 cur, s32 target, s32 *curOut, f32 scale);
-s32 func_802A746C(u8 *veh, s32 delta, s32 v1, s32 *targetOut);
-void func_802A6FE4(u8 *veh, s32 limit);
-void func_802BE77C(s32 id, u8 *vehicle);
 
 /* Place the vehicle model's parts (as 6E200.c's port_veh_parts): the current
  * matrix buffer (D_8035805C ? bufA : bufB) plus the word at model +
@@ -299,7 +256,6 @@ static void port_veh_publish(u8 *veh, PortVehPos *p, s32 id) {
     func_802A133C(p->z, id, p->x, p->y, veh);
 }
 
-void func_802B03F4(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4);
 u8 *func_802B0B3C(MtxChainRegs *r);
 
 static const s16 sVeh1Wheels[12] = { 0x168, 0x168, -0x168, 0x168, 0x168, -0x168,
@@ -353,15 +309,6 @@ extern u8 D_803ED840[]; /* animation channel table (Unk8029DEA0Entry, 56040.c) *
 extern u8 D_802C2390[]; /* key of this vehicle's func_802A06B4 entry */
 extern s16 D_8036444C;
 extern s16 D_80364450;
-void func_802A0290(void *base, s32 idx, s32 val);
-void func_802A039C(void *base, s32 idx, s32 val);
-void func_802A03D4(void *base, s32 idx, s32 val);
-void func_802A040C(void *base, s32 idx, s32 val);
-void func_802A0508(s32 key, s32 val);
-void func_802A05D0(s32 key, s32 val);
-void func_802A05F8(s32 key, s32 val);
-void func_802A0620(s32 key, s32 val);
-void func_802C4310(s32 arg0, s32 arg1);
 
 /* Enter vehicle type 1 (called from 00000.c / 17210.c): clears byte 0x99 of
  * the state block, sets fields 0x14 / 0x11 / 0x12 of animation channels 1, 2,
@@ -411,7 +358,6 @@ extern u8 D_803ED840[]; /* animation channel table (Unk8029DEA0Entry, 56040.c) *
 /* Reads channel idx of base into out[0..7] (56040.c; asm convention in
  * tools_port/conventions.txt): out[0] = (s8) field 0x10, out[3] = field
  * 0x14, out[4] = (u16) field 0xC, ... */
-void func_802A04BC(s32 idx, void *base, s32 *out);
 
 /* Exit check for this vehicle type (called from func_8024B4B8 in hd.c, which
  * declares it void and returns the leftover v0): 0 when any of the bytes at
@@ -440,8 +386,6 @@ s32 func_802B01DC(void) {
 #ifdef NON_MATCHING
 extern u64 *D_803EDBF8; /* save copy pair (func_802A7764) */
 extern u64 *D_803EDBFC;
-void func_802A7764(u64 *a, u64 *b, s32 size);
-void func_802C444C(void);
 
 /* Leave vehicle type 1 (called from hd.c): zeroes the speed (s16 at +0x76 of
  * the state block), func_802A7764(D_803EDBF8, D_803EDBFC, 0x800), then
@@ -472,7 +416,6 @@ void func_802B02A0(s32 fp) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-s32 func_802ABD54(s32 id, s32 x, s32 y, s32 z, ZoneScanRegs *r);
 extern u32 D_803EDBE8[]; /* x, y, z */
 /* Zone level lookup (func_802ABD54) for vehicle id 1 at its position
  * D_803EDBE8..+8; returns func_802ABD54's v1 (the zone list end).
@@ -565,13 +508,6 @@ extern u8 D_80370C16;
 extern u8 D_80370C1A;
 extern u8 D_80370C1B;
 extern void *D_80367738;
-void *func_80260650(void *arg0, s16 arg1, void *arg2);
-void func_802A0290(void *base, s32 idx, s32 val);
-void func_802A0360(f32 f, void *base, s32 idx, s32 val);
-void func_802A039C(void *base, s32 idx, s32 val);
-void func_802A03D4(void *base, s32 idx, s32 val);
-void func_802A04BC(s32 idx, void *base, s32 *out);
-void func_802C4584(s32 level);
 
 /* Per-frame animation/sound update of vehicle 1 (asm caller func_802B03F4;
  * the asm reads the state block through $gp = D_803EDB40, read directly
@@ -664,9 +600,6 @@ void func_802B07DC(void) {
 #ifdef NON_MATCHING
 extern u8 D_802E8BE4;
 extern s32 D_802E8BE8;
-s32 func_802BCD80(s32 value);
-void func_802A0290(void *base, s32 idx, s32 val);
-void func_802A03D4(void *base, s32 idx, s32 val);
 
 /* When channel 5 of D_803ED840 is active (field 0x10 != 0) and
  * func_802BCD80(4) or func_802BCD80(5) is nonzero: sets its field 0x11 to 1,
@@ -778,8 +711,6 @@ void func_802B0CE8(void) {
 #ifdef NON_MATCHING
 extern u8 D_803EDB40[];  /* this vehicle's state block: 0xA6 bytes are (de)serialized */
 extern u32 D_803EDBE8[]; /* plus these three words */
-s32 func_802AC7DC(u8 *dst, u8 *src, u32 *words);
-void func_802AC85C(u8 *src, u8 *dst, u32 *words);
 
 /* Serialize this vehicle's state (D_803EDB40[0..0xA5] plus the three words
  * D_803EDBE8[0..2]) into `dst` via func_802AC7DC. Returns the callee's result

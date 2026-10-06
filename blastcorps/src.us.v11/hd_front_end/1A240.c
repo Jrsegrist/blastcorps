@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /*
  * Front-end picture screen: four 160x120 RGBA16 images inflated from ROM,
@@ -49,11 +50,6 @@ extern u8 D_8021ABA2;     /* prim alpha */
 extern s32 D_8021ABA4;    /* fade state */
 extern s32 D_8021ABA8;
 
-void func_8028B4C4(void *, void *, s32 *, s32, s32, s32);
-s32 func_801E96F8(void);
-void *func_80260650(void *, s16, void *);
-s32 func_8026A828(s32, s32);
-void func_8026AF6C(s32);
 
 /* Inflate the pictures and select picture `arg0`. */
 void func_80201240(s32 arg0) {

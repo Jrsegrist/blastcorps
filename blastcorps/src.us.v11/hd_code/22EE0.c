@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* audio.c: Rare's copy of the SDK demos' audio manager (audiomgr.c). The
  * thread renders one audio frame per retrace message from the scheduler and
@@ -88,13 +89,6 @@ extern u8 D_8036772A;
 extern s32 D_8036772C;
 extern u8 D_80367730;
 
-void func_8029A7E4(const char *, ...);
-u32 func_802D9C10(void);                      /* osAiGetLength */
-s32 func_802D9B60(void *, u32);               /* osAiSetNextBuffer */
-Acmd *func_802D9D68(Acmd *, s32 *, s16 *, s32); /* alAudioFrame */
-s32 func_802DA2F0(OldIoMesg *, s32, s32, u32, void *, u32, OSMesgQueue *); /* osPiStartDma */
-OSMesgQueue *func_80270F74(OSMesgQueue *);   /* osScGetCmdQ */
-void func_80270E50(OSMesgQueue *, void *, OSMesgQueue *, s32, s32);
 void func_802682A4(void);
 ALDMAproc func_80268254(AMDMAState **state);
 void func_80267A9C(void *arg);
@@ -107,11 +101,6 @@ s32 func_80267FE0(s32 addr, s32 len, void *state);
 /* __amHandleFrameMsg */
 void func_80267CDC(AudioInfo *info, AudioInfo *lastInfo);
 void func_80267F88(AudioInfo *info);
-void func_802613C8(void);
-void func_80261068(void);
-void func_80261284(void);
-void func_802611F0(void);
-void func_80261528(void);
 
 #define AUDIO_ASSERT(EX, line) \
     if (!(EX)) func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "audio.c", line)

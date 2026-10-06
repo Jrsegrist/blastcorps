@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* The digger code (this file's .bss starts at 0x8036C8D0) */
 extern u8 D_80364456;      /* current vehicle */
@@ -45,8 +46,6 @@ extern u8 D_8036CB50;
 extern u8 D_8036CB51;      /* event panel alpha */
 extern u8 D_802FAD50[];    /* 32x32 RGBA32 panel frame */
 extern u8 D_02000000[];    /* segment 2 base */
-void func_802A1040(s16 id, void *dest, s32 arg2);
-s32 func_8026A828(s32 arg0, s32 arg1);
 extern s16 D_802FBDD0[];
 extern s16 D_802FBDEC[];
 extern s16 D_802FBE18[];
@@ -54,7 +53,6 @@ extern s16 D_802FBE44[];
 extern s16 D_802FBE80[];
 extern Vtx D_802FBD50[8];
 extern void *D_80367738;
-void *func_80260650(void *arg0, s16 arg1, void *arg2);
 
 extern DigEntry D_8036C8D0[50];
 extern u8 D_8036CB32;
@@ -69,15 +67,12 @@ extern u8 D_8036CB31;
 extern u8 D_8036CB33;
 extern u8 D_8036CB34;
 
-void func_80277EDC();
-s32 func_8026205C(s32 arg0);
 s32 func_80277D34(void);
 s32 func_80277E08(void);
 void func_80277C20(void);
 void func_802778FC(void);
 void func_80277AE0(void);
 void func_80277B84(void);
-void func_8029A7E4(const char *fmt, ...);
 
 void func_802775C0(void) {
     D_8036CB34 = 0;
@@ -282,11 +277,15 @@ s32 func_80277E08(void) {
 
 /* Starts a digger event. A K&R definition: callers pass plain ints, and the
  * u8 parameters read their low bytes */
+#ifdef NON_MATCHING
+void func_80277EDC(u8 type, u8 arg1, s32 arg2, u8 sound)
+#else
 void func_80277EDC(type, arg1, arg2, sound)
     u8 type;
     u8 arg1;
     s32 arg2;
     u8 sound;
+#endif
 {
     u8 pos;
 

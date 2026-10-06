@@ -1,6 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
-#include "game/regs.h"
+#include "game/game.h"
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -15,22 +15,6 @@
  * functions take their register inputs as ordinary parameters; the mapping is
  * recorded per function in tools_port/conventions.txt. */
 
-/* 0x18-byte animation-channel entry (the -1-terminated table D_803B35F8 and
- * the 0x20-entry blocks built by func_8029F85C). */
-typedef struct {
-    /* 0x00 */ s32 id;
-    /* 0x04 */ f32 unk4;
-    /* 0x08 */ f32 unk8;
-    /* 0x0C */ s16 unkC;
-    /* 0x0E */ s16 unkE;
-    /* 0x10 */ s8 unk10;
-    /* 0x11 */ s8 unk11;
-    /* 0x12 */ s8 unk12;
-    /* 0x13 */ s8 unk13;
-    /* 0x14 */ u8 unk14;
-    /* 0x15 */ u8 unk15;
-    /* 0x16 */ u8 pad16[2];
-} Unk8029DEA0Entry; /* size 0x18 */
 
 /* 12-byte pending-copy slot of the 120-entry pool D_803B7FC8. */
 typedef struct {
@@ -92,11 +76,6 @@ extern f32 D_803B37BC;
 extern s32 D_803B3730[16];
 
 
-s32 func_802AA460(s32 x, s32 z, s32 x0, s32 z0, s32 x1, s32 z1, s32 x2, s32 z2, TriSideOut *out);
-s32 func_802AA5E0(s32 x, s32 z, s32 x0, s32 z0, s32 x1, s32 z1, s32 x2, s32 z2);
-s32 func_802AA890(s32 count, s32 *offsets, u8 *base, s32 x, s32 y, s32 z, MtxChainRegs *regs);
-s32 func_802AB41C(s32 key0, s32 key1);
-
 /* Register results of func_8029DA90 its asm caller reads (all in/out: left
  * alone on paths that don't write them). */
 typedef struct {
@@ -143,8 +122,6 @@ extern s16 D_803F77FC;
 extern u8 D_803F7801;
 extern u8 D_803F7811;
 extern s32 D_80358060;
-void func_802BCBD8(void);
-void func_802BCC10(void);
 
 /* Vehicle-state reset on entering a vehicle: the ring span D_803A7410/7412 =
  * 0/0xFFF, the position D_803A73F0..F8 = (x, y, z), the various mode bytes and
@@ -249,7 +226,6 @@ extern u8 D_803A742B;
 extern s32 D_80358068;
 extern s32 D_803A740C;
 s32 func_8029AB88(s32 x, s32 y, s32 z, s32 r, s32 kind);
-void func_8029B02C(s32 x, s32 y, s32 z, s32 r, s32 kind, s32 id);
 
 /* World collision of vehicle `kind` for this frame. Clears D_803A742B, finds
  * the vehicle's D_803A7300 entry (byte 0x10 == kind; unbounded scan) and, if
@@ -302,13 +278,7 @@ void func_8029AA10(s32 kind) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 s32 func_8029B514(s32 x, s32 y, s32 z, s32 r, u8 *rec);
-s32 func_8029C160(s32 x, s32 y, s32 z, s32 r, u8 *tri, s32 *hit);
-void func_8029C0DC(u8 *tri, s32 px, s32 py, s32 pz, s32 *out);
-s32 func_8029BF64(s32 bu, s32 bv, s32 cu, s32 cv, s32 au, s32 av, s32 pu, s32 pv);
-s32 func_8029BD0C(s32 x, s32 y, s32 z, s32 r, u8 *tri);
-s32 func_8029BEE4(s32 x, s32 y, s32 z, s32 r, u8 *tri);
 void func_8029C284(s32 x, s32 z);
-s32 func_802BD8C8(void); /* 77E20 */
 extern u32 D_803059F0[];  /* {level (0xFFFF = any), object kind, vehicle mask} triples, ended by mask 0 */
 extern s32 D_802E8BDC;    /* current level */
 extern u8 D_803F4030[];   /* 0xFC-byte objects: +4 / +8 triangle range, +0x30 kind */
@@ -562,7 +532,6 @@ void func_8029B02C(s32 x, s32 y, s32 z, s32 r, s32 kind, s32 id) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-s32 func_8029CFA4(s32 pz, s32 r1, s32 qx, s32 qy, s32 px, s32 py, s32 qz, s32 r2);
 
 /* Sphere (x, y, z) radius r against the sphere of record `rec`: centre at
  * words 0x10/0x14/0x18, radius at word 0xC, each >> 2 (arithmetic); returns
@@ -602,8 +571,6 @@ void func_8029B5B8(u8 *rec) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 D_803BE738;
-void func_802BCCD4(s32 value);
-void func_8029B7CC(s32 a, s32 b);
 void func_8029B994(void);
 
 /* Collision hit on triangle `tri` (id `id`): appends id to buffer A
@@ -688,7 +655,6 @@ extern u8 D_803A742C;
 extern u8 D_803A742D;
 extern u8 D_803A742E;
 extern u8 D_803A742F;
-s32 func_8029B930(void);
 
 /* Widens the ring span [D_803A7410, D_803A7412] to take in indices a and b
  * (each first wrapped into 0..0xFFE by one +-0xFFF step, as in the asm).
@@ -780,8 +746,6 @@ s32 func_8029B930(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-s32 func_802A6274(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32 z, s32 w24, s32 w28,
-                  s32 w18, s32 w1C, s32 w2C, s32 b35);
 extern u8 D_803A7428;
 extern s32 D_803A73FC;
 extern s32 D_803A7400;
@@ -1272,9 +1236,6 @@ void func_8029C52C(s32 tag, u8 *veh) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-void func_8029C6E4(Unk8029C6E4Out *o);
-void func_8028FAC0(s32 arg0, s32 arg1, s32 arg2, s32 arg3);
-void func_802920DC(s32 arg0, s32 arg1, s32 arg2, s32 arg3);
 
 /* Looks up the kind-6 / id-0x3BD part with func_8029C6E4; if found, calls
  * func_8028FAC0 and func_802920DC with its words 0/4/8 and the last word 0xC
@@ -1415,8 +1376,6 @@ void func_8029C828(s32 tag) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-void func_802CE204(s32 x1, s32 z1, s32 x2, s32 z2); /* 89250 */
-void func_802BCCD4(s32 value);                      /* 77E20 */
 
 /* Each part of the run of D_803A6B30 entries tagged `tag` (the run that
  * starts at the first such entry and ends at the next entry with another tag
@@ -1536,9 +1495,6 @@ u32 func_8029CB04(u32 v, s32 key, u8 *veh) {
 #ifdef NON_MATCHING
 extern u8 D_803A7426;
 extern u8 D_803A742C;
-void func_802BCCD4(s32 value);
-s32 func_802AD7D4(s32 sine); /* C-callable wrapper of the arcsine func_802AD7FC (69000.c) */
-void func_8029B7CC(s32 a, s32 b);
 #pragma intrinsic(sqrtf) /* sqrt.s, as the asm (applies to the rest of the file) */
 
 /* Heading from point 1 (x1, z1) to point 2 (x2, z2) of a pair of linked
@@ -2040,7 +1996,6 @@ void func_8029D534(s32 kind, u8 *rec) {
 #ifdef NON_MATCHING
 f64 sqrt(f64);
 #pragma intrinsic(sqrt)
-s32 func_802AD7FC(u32 sine);
 void func_8029D90C(u8 *tri, s64 *out);
 
 /* cvt.l.d under the game's FCSR: f64 -> s64, round to nearest, ties to even. */
@@ -2250,7 +2205,6 @@ s32 func_8029DB7C(s32 n, u8 *pairs, Unk8029DEA0Entry *tbl) {
  * inline asm or leaving as GLOBAL_ASM. (The NON_MATCHING port below uses
  * plain o32 for both; eqcheck maps the v0/v1 convention.) */
 #ifdef NON_MATCHING
-s32 func_8029DC14(s32 id);
 
 /* Wrapper: returns func_8029DC14(id). 39050.c declares it taking a u8; the
  * asm passes all of a0 through, so this takes s32. */
@@ -2651,7 +2605,6 @@ void func_8029E21C(Unk8029DEA0Entry *ch, u8 *param) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-void func_802A1074(s32 id, u8 *dest, u8 *param); /* 5BF40 */
 
 /* Takes the first of the 12 0x1010-byte blocks at D_803A7440 with byte 6
  * clear (when all 12 are in use, the asm runs on to the block just past the
@@ -2743,8 +2696,6 @@ void func_8029F110(u8 *p, s32 mode, Unk8029F110Out *o);
 f32 func_8029F060(f32 t, s32 idx, s32 n);
 void func_8029EF80(u8 *mtx, s16 *key, f32 t);
 void func_8029E730(u8 *rec, u8 *mtx, f32 t);
-void func_802ACCCC(s32 *b, s32 *m); /* 679E0 */
-void func_802AC8CC(u16 *m);         /* 679E0 */
 
 /* One animation channel of a model (matrices in buffer `base`, the other
  * buffer of the pair in D_803B3770). ch->id points at the track data a:
@@ -2826,7 +2777,6 @@ void func_8029E5AC(Unk8029DEA0Entry *ch, u8 *base) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 D_803B7FC0[4];
-void func_802ACCCC(s32 *b, s32 *m); /* 679E0 */
 s32 func_8029E938(u8 *k0, u8 *k1, u8 *k2, u8 *k3, f32 t);
 s32 func_8029EA48(u8 *k0, u8 *k1, u8 *k2, u8 *k3, f32 t);
 s32 func_8029EB58(u8 *k0, u8 *k1, u8 *k2, u8 *k3, f32 t);
@@ -2909,8 +2859,6 @@ f32 func_8029E878(f32 p0, f32 p1, f32 p2, f32 p3, f32 t) {
 #endif
 
 #ifdef NON_MATCHING
-s32 func_802AE104(s32 angle);
-s32 func_802AE160(s32 angle);
 
 /* 16.16 rotation matrices at m from sine s and cosine c (about x, y, z). */
 #define ROT_MTX_X(m, s, c)                                     \
@@ -3094,7 +3042,6 @@ s32 func_8029EDEC(u8 *k0, u8 *k1, u8 *k2, u8 *k3, f32 t) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-void func_802ACCCC(s32 *b, s32 *m); /* 679E0 */
 s32 func_8029F3D0(s32 x0, s32 y0, s32 z0, s32 x1, s32 y1, s32 z1, f32 t);
 s32 func_8029F4B8(s32 a, s32 b, f32 t);
 s32 func_8029F560(s32 a, s32 b, f32 t);

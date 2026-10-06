@@ -1,5 +1,12 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_func_8026BBD0
+#endif /* legacy declarations */
+#include "game/game.h"
 
 #define YOSHI_ASSERT(EX, line) \
     if (!(EX)) func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "yoshi.c", line)
@@ -112,42 +119,15 @@ typedef struct YoshiArg {
 /* Frame buffers passed in as arg1 */
 #define YMTX(off) ((Mtx *) (arg1 + (off)))
 
-void func_8029A7E4(const char *fmt, ...);
 u16 func_8026F8A8(u16 arg0, u16 arg1, u16 start, u16 mask);
 void func_8026FB50(struct YoshiArg *arg0);
-void func_8026AF6C(u16 yd);
 s32 func_80270A54();
-s32 func_80297EF8(s32 level);
-void *func_8025B558(u16 *text);
-u8 func_8026AD30(s16 arg0);
-void func_8026A5CC(void *arg0, void *arg1, s32 arg2);
-s32 func_8026A6F0(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5);
-void func_802AC544(s32 arg0, s32 arg1, s32 arg2);
-void *func_80260650(void *arg0, u16 arg1, void *arg2);
 void func_8026BA7C(struct YoshiArg *arg0);
-u8 func_8026FA38(char **name, s32 *arg1);
-s32 func_8026F92C(u64 in);
 Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count);
-s8 func_80272C5C(void *arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, f32 arg5);
 void func_8026EF70(YoshiArg *arg0);
 void *func_8026F004(YoshiArg *arg0, u16 idx, u8 japanese);
 u8 func_8026F644(u16 *arg0, u16 *arg1, s16 arg2);
 u16 func_8026F82C(u16 lo, u16 hi, u16 mask);
-s16 func_8025B498(s32, s32, u8 *, u16 *);
-void func_80261570(f32);
-f32 func_802574F0(f32);
-void func_80259BD4(Gfx **gdlp, s32 arg1);
-void func_80259DC8(s32 gfxp, u8 *str, u16 *wstr, s32 align, s32 fit, s32 x, s32 y, s32 w, s32 h, s32 forward,
-                   s32 r0, s32 g0, s32 b0, s32 a0, s32 r1, s32 g1, s32 b1, s32 a1);
-Gfx *func_80272ED8(Gfx *, s32, s32, s32, u32, s32, f32);
-Gfx *func_80274868(Gfx *);
-Gfx *func_80274998(Gfx *);
-Gfx *func_80274AA4(Gfx *);
-Gfx *func_80274B08(Gfx *);
-Gfx *func_80275DA4(Gfx *, s32);
-s32 func_80276080(s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32);
-s32 func_80276130(s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32,
-                  s32, s32, s32, s32);
 
 extern u16 yoshiDemandV;
 extern s16 D_8036BB0C;
@@ -490,7 +470,11 @@ void func_8026BA7C(YoshiArg *arg0) {
     }
 }
 
+#ifdef NON_MATCHING
+Gfx *func_8026BBD0(Gfx *gfx, s32 arg1, s32 *count) {
+#else
 void func_8026BBD0(Gfx *gfx, s32 arg1, s32 *count) {
+#endif
     Gfx *gdl = gfx;
 
     YOSHI_ASSERT(!(yoshiState==YOSHI_OFF && currentYoshiWindow!=NO_YOSHI_WINDOW), 1567);
@@ -498,6 +482,13 @@ void func_8026BBD0(Gfx *gfx, s32 arg1, s32 *count) {
     YOSHI_ASSERT(!(yoshiState==YOSHI_OFF && currentYoshiWindow!=NO_YOSHI_WINDOW), 1571);
     gDPPipeSync(gdl++);
     *count += gdl - gfx;
+#ifdef NON_MATCHING
+    /* The original returns nothing (a void function in the matching build)
+     * but leaves func_8026BCE0's result in v0, and its callers (hd.c, the
+     * front end) take that as the new display-list end: the next command
+     * they write replaces the pipesync above. */
+    return gdl - 1;
+#endif
 }
 
 #define PRESSED(m) ((D_80370C28 & (m)) && !(D_80370C2A & (m)))

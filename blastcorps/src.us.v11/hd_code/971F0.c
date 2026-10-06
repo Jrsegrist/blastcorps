@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* __osSetFpcCsr: libultra's hand-written os/setfpccsr.s (cfc1/ctc1 $31).
  * Permanently GLOBAL_ASM. */

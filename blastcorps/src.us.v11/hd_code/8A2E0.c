@@ -1,6 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
-#include "game/regs.h"
+#include "game/game.h"
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -21,7 +21,6 @@ typedef struct {
     /* 0x12 */ u16 unk12;
 } UnkEntry8A2E0; /* size 0x14 */
 
-typedef struct Unk8029DEA0Entry Unk8029DEA0Entry; /* channel table entry (56040.c) */
 
 extern UnkEntry8A2E0 D_803FBBB0[];
 extern u8 D_803FBBE0[]; /* channel tables of the boxes' two models */
@@ -32,21 +31,12 @@ extern u8 *D_803FC1E4;
 extern u8 *D_803FC1E8;
 extern u8 *D_803FC1EC;
 extern u8 D_803FC1F0;   /* number of boxes */
-void func_8029E558(u8 *base, u8 *other, Unk8029DEA0Entry *ch); /* 56040 */
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u32 D_80358070; /* bump allocator */
-void func_802A396C(s32 type, Out802A396C *out);                                  /* 5CB60 */
 void func_802CEE14(s32 x, s32 y, s32 z);
-s32 func_8029F85C(u32 *bufA, u32 *bufB, Unk8029DEA0Entry *ch, u8 *hdr);           /* 56040 */
-void func_802A0290(Unk8029DEA0Entry *base, s32 idx, s32 val);                    /* 56040 */
-void func_802A0320(s32 idx, Unk8029DEA0Entry *base);                             /* 56040 */
-void func_802A039C(Unk8029DEA0Entry *base, s32 idx, s32 val);                    /* 56040 */
-void func_802A03D4(Unk8029DEA0Entry *base, s32 idx, s32 val);                    /* 56040 */
-void func_802A040C(Unk8029DEA0Entry *base, s32 idx, s32 val);                    /* 56040 */
-void func_802A0480(f32 f, Unk8029DEA0Entry *base, s32 idx, s32 val);             /* 56040 */
 
 /* Load channels for one model: func_8029F85C(b, a, ch, D_803FBBD8), channel 0
  * = (100, 0, 0, 0.0, 1), run it into both copies (func_8029E558, then
@@ -164,8 +154,6 @@ void func_802CEE14(s32 x, s32 y, s32 z) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-void func_802ACA60(s32 x, s32 y, s32 z, s32 *m); /* 679E0 */
-void func_802AC8CC(u16 *m);                      /* 679E0 */
 
 #define K0_PHYS(p) ((u32) (p) - 0x80000000)
 
@@ -242,11 +230,6 @@ Gfx *func_802CEEFC(Gfx *gdl, s32 cur, Gfx *dl2, Mtx *mtx) {
 #endif
 
 #ifdef NON_MATCHING
-void func_80285AB0(u8 bit);
-s32 func_80285B10(u8 bit);
-void func_80285B68(s32 arg0);
-void func_80285CA0(void);
-void func_802A0360(f32 f, void *base, s32 idx, s32 val); /* 56040 */
 void func_802CF3E0(s32 *pos);
 extern s32 D_803643E0; /* player x, y, z */
 extern s32 D_803643E4;
@@ -336,10 +319,6 @@ typedef struct {
 
 extern Debris8A2E0 D_803F3FF8;
 extern void *D_80367738; /* sound player */
-void func_802A5E60(void);     /* 60F60 */
-void func_802C049C(void);     /* 77E20 */
-void func_802C04F0(u32 *src); /* 77E20 */
-void *func_80260650(void *arg0, s16 arg1, void *arg2);
 
 /* Burst at pos (s32 x, y, z): func_802A5E60(), frees every D_803F3968 slot
  * (func_802C049C), then 24 debris records (D_803F3FF8, through

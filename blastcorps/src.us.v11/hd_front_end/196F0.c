@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* front-end background pictures: inflate a 320x240 RGBA16 image and draw it */
 
@@ -35,9 +36,6 @@ extern u8 D_006BF2F0[];
 extern u8 D_006D3D30[];
 extern u8 D_006E8980[];
 
-void func_8028B4C4(void *, void *, u32 *, s32, s32, s32); /* inflate */
-
-void func_80200714(u8 mode);
 
 void func_802006F0(void) {
     func_80200714(D_8021AB84);

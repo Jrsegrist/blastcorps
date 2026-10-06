@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* FILE-WIDE FINDING: hand-written assembly (sd/ld $ra frames, trapping
  * addi on $sp, every register saved including k0/k1/gp/sp), split out of the
@@ -17,11 +18,6 @@ typedef struct {
 
 u32 func_802C42CC(u32 mask, LzBits *b);
 void func_802C41C0(u8 **srcp, u8 **dstp, u8 *window, s32 bits);
-void func_8025C230(u8 **arg0, u8 **arg1, s32 arg2);
-void *func_80260650(void *arg0, s16 arg1, void *arg2);
-void func_802608C8(void *arg0);
-void func_80260AB8(void *arg0, s16 arg1, s32 arg2);
-void func_802C4584(s32 level);
 
 extern u8 *D_803F7830;
 extern u8 *D_803F7834;

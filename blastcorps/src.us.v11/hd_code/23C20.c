@@ -1,23 +1,12 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* utils2.c (from its assert strings): camera spline paths, triggers, small maths helpers. */
 
-void func_8029A7E4(const char *, ...);
 f32 sqrtf(f32);
-s32 func_802753C0(void);
-s32 func_802AC4C4(s32, s32, s32, s32, s32, s32, s32, s32);
-s32 func_802AB3C0(s32);
-s32 func_8026AD30(s32);
-void func_80275270(u64, f32);
-void func_802C1DD0(s32);
-void func_8026AF6C(u16);
-void func_80260DFC(void);
-void func_8026A2E8(f32 ref, f32 *angle);
 f32 func_8026A184(f32 x, f32 y, f32 z, f32 w, f32 a, f32 b, f32 c);
 f32 func_80268D84(f32 x, f32 y, f32 z, f32 w, f32 a, f32 b, f32 c);
-s32 func_8026A610(s32 x1, s32 y1, s32 x2, s32 y2);
-s32 func_8026A6F0(s32 x1, s32 y1, s32 z1, s32 x2, s32 y2, s32 z2);
 
 #define ASSERT(EX, line) \
     if (!(EX)) func_8029A7E4("\n --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "utils2.c", line)

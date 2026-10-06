@@ -1,24 +1,12 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /*
  * Promotion screen: "CONGRATULATIONS / ON YOUR PROMOTION!" plus the new
  * rank's name, over a spinning, growing 3D scene (scene 0 of 0DE70.c).
  */
 
-/* front-end view of hd_code's per-frame-buffer DynamicBuf (0x21498 bytes) */
-typedef struct {
-    u8 pad0[0x140];
-    Mtx unk140; /* lookat view */
-    u8 pad180[0x1240 - 0x180];
-    Mtx unk1240; /* perspective */
-    Mtx unk1280;
-    Mtx unk12C0;
-    Mtx unk1300; /* scene scale */
-    u8 pad1340[0x3C00 - 0x1340];
-    LookAt unk3C00;
-    u8 pad3C20[0x21498 - 0x3C20];
-} FeDyn;
 
 /* front-end view of hd_code's Player record (0x100 bytes, D_80364AF0) */
 typedef struct {
@@ -57,12 +45,6 @@ extern u64 D_80364A98;
 extern u16 D_80303B78[];
 extern u16 D_80303B88[];
 
-void func_801F4E70();
-void func_80259CCC(FeDyn *, u8 *, void *, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32);
-void func_80259DC8(FeDyn *, u8 *, void *, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32,
-                   s32);
-s32 func_8025B300(u8 *);
-Gfx *func_801F4FBC(FeDyn *, Gfx *);
 
 /* title lines and their glyph lists */
 u8 *D_802084B0 = (u8 *) "CONGRATULATIONS";

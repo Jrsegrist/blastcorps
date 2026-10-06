@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* academy.c: each player's progress state machine (players[].gameState):
  * which levels/messages unlock next, and the jingles/menus that go with it */
@@ -58,19 +59,6 @@ extern u8 D_8039C53C[];
 extern u8 D_80370C50;
 extern u8 D_803643D5;
 
-void func_80255DC8(void);
-void func_80200714(u8);
-void func_802D6A60(char *, const char *, ...);
-void func_801ECC8C(void);
-void func_8026AF6C(s32);
-void func_80260C20(u8, f32);
-void func_802995F0(s32);
-void func_8029A7E4(const char *, ...);
-void func_801F8354(u8);
-void func_80261570(f32);
-void func_8028B3E0(void);
-void func_801ECF5C(void);
-void func_801ED4B8(void);
 
 #define players D_80364AF0
 #define playerNumber D_80364AE8

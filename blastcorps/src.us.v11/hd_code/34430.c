@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* mb.c (this file's .bss starts at 0x8036CB60) */
 
@@ -48,12 +49,7 @@ extern Mtx D_8036D388;         /* its look-at */
 extern Vp D_802FBED0;
 extern void *D_80358058;       /* depth buffer */
 
-void func_8029A7E4(const char *fmt, ...);
-void func_80257490(void *arg0, s32 arg1);
-s32 func_8026A6F0(s32 a, s32 b, s32 c, s32 d, s32 e, s32 f);
-s32 func_802ACF3C(s32 arg0);
 s32 func_802796D8(s32 n, s32 *a, s32 *b);
-void func_80284E54(Gfx *dl, s32 n, s32 a, s32 b, s32 c, s32 d);
 void func_8027A7DC(Gfx **gfxp, s32 offset, s32 v);
 s32 func_8027B87C(f32 out[4][4], f32 in[4][4]);
 

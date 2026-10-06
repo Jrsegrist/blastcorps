@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -306,7 +307,6 @@ extern u8 D_8036AFB0[];   /* yield buffer (0x900) */
 extern u8 D_803153D8[];
 extern u8 D_803156D8[];
 extern OSMesgQueue D_80315440;
-void func_80285110(s32);
 
 /* Unless the level grid is 1 x 1 (D_803BE714 == D_803BE716 == 1, returns 1),
  * fills the task D_803BE740 (an M_GFXTASK OSTask at +0x10 with data_ptr /

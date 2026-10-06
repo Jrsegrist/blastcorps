@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* A zone: an x/z shape (six values for func_802AC4C4) spanning ymin..ymax */
 typedef struct {
@@ -23,7 +24,6 @@ typedef struct {
 extern ZoneList D_802FC360[11];
 extern s32 D_802E8BDC; /* current level */
 
-s32 func_802AC4C4(s32 x, s32 z, s32 a, s32 b, s32 c, s32 d, s32 e, s32 f);
 
 /* One trail segment: a quad (4 corners x/y/z), two countdown timers, an
  * "open" flag and a style byte */
@@ -40,7 +40,7 @@ extern s32 D_80358060;        /* frame counter */
 extern u8 D_02000000[];       /* segment 2 base */
 
 /* The trail's vertex and display-list buffer (seen through segment 2) */
-typedef struct {
+typedef struct TrailBuf {
     u8 pad[0x2000];
     Vtx vtx[451];
     Gfx dl[1];
@@ -51,10 +51,14 @@ void func_8027D350(s16 x0, s16 y0, s16 z0, s16 x1, s16 y1, s16 z1, Vtx *v, s32 i
 
 /* Is (x, y, z) inside one of the current level's zones? (zones span ymin..ymax; the x/z test is func_802AC4C4) */
 /* K&R: the caller passes unconverted ints */
+#ifdef NON_MATCHING
+s32 func_8027BCF0(s16 x, s16 y, s16 z)
+#else
 s32 func_8027BCF0(x, y, z)
     s16 x;
     s16 y;
     s16 z;
+#endif
 {
     s32 i = 0;
     u8 found = 0;

@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* Shadow/marker records (0x1040-byte entries with a 4 KB buffer each), the
  * 64x64 off-screen render that fills one, and the ground-shadow quads drawn
@@ -43,7 +44,7 @@ typedef struct {
     u8 padEB[0x11];
 } Object; /* size 0xFC */
 
-typedef struct {
+typedef struct VtxBuf {
     u8 pad[0x3900];
     Vtx vtx[1];
 } VtxBuf;
@@ -64,9 +65,6 @@ extern u8 *D_80365330;
 extern s32 D_802E8BDC;
 extern VtxBuf D_02000000;
 
-u8 func_802ABEDC(s32, s32, s32);
-u8 func_8027EED8(s32, s32, s16 *);
-void func_80284E54(Gfx *, s32, s32, s32, s32, s32);
 
 void func_80258230(u8 id, s32 arg1, s16 arg2, s16 arg3) {
     D_803643CC->unk1022 = id;

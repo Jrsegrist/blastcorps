@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* This file's .bss starts at 0x8036C790 */
 extern s16 *D_8036C790;
@@ -24,25 +25,14 @@ extern u8 D_02000000[]; /* segment 2 base */
 extern u8 D_802FA940[]; /* 32x32 IA8 texture */
 extern u16 D_8035807C;   /* projection scale, 65535 = 1.0 */
 
-typedef struct {
+typedef struct SpriteVtxBuf {
     u8 pad[0x1E00];
     Vtx vtx[1]; /* sprite quads */
 } SpriteVtxBuf;
 
-s32 func_80276130(SpriteVtxBuf *arg0, u8 arg1, s32 arg2, s32 x, s32 y, s32 w, s32 h,
-                  u8 r0, u8 g0, u8 b0, u8 a0, u8 r1, u8 g1, u8 b1, u8 a1,
-                  u8 r2, u8 g2, u8 b2, u8 a2, u8 r3, u8 g3, u8 b3, u8 a3);
-void func_8027690C(void *arg0, f32 x, f32 y, f32 z, s16 *sx, s16 *sy, Mtx *arg6, Mtx *arg7, Mtx *arg8, f32 arg9);
 void func_80276D1C(Mtx *m, f32 x, f32 y, f32 z, f32 w, f32 *ox, f32 *oy, f32 *oz, f32 *ow);
-s32 func_802BCE40(void);
-void func_802BD10C(s32 arg0);
-u8 func_8026AD30(s16 arg0);
-void func_8026AF6C(u16 yd);
-void func_80277EDC();
 s32 func_802768A8(void);
 void func_8027656C(void *arg0);
-Gfx *func_80275DA4(Gfx *gfx, u8 arg1);
-s32 func_80276080(SpriteVtxBuf *arg0, u8 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5, s32 arg6, u8 r, u8 g, u8 b, u8 a);
 
 void func_80275430(void) {
     s32 i;

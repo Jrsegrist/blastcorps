@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -132,7 +133,6 @@ void func_802CE9A4(void) {
  * there they hold a stale call result, &D_8039C718[i], the old D_803FB8B0
  * and the caller's caller's s1. */
 #ifdef NON_MATCHING
-u8 *func_802A41B0(u8 *rec, u8 *v, s32 id, s32 h52, s32 b57, s32 b56, s32 *s1io, s32 b4F, s32 b55);
 
 /* The NM build used to keep this asm, which `jal`s the C func_802A41B0 with
  * its asm register convention: the C read garbage arguments and faulted on

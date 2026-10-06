@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* D_8039B070: array of D_8039B610 0x48-byte entries. */
 typedef struct {
@@ -50,8 +51,6 @@ extern u8 D_8039B620;
 extern u8 D_803F932C;
 extern Vtx *D_80358070; /* vertex allocator */
 
-s32 func_802CE6F8(s32, s32, s32);
-u32 func_802A0CC8(s16, s32);
 void func_8028DA5C(Vtx *v, u8 arg1);
 
 /* Load the boxes from level data: 12-byte records (s16 x, y, z; u8 type,
@@ -158,9 +157,6 @@ extern u8 D_802E8BE4;
 extern s32 D_802E8BE8;
 extern s32 D_80367738;
 
-void func_802CDA10(s32, s32, s32);
-void func_802608C8(s32);
-void func_80260650(s32, s32, s32);
 Entry48D00 *func_8028DE94(void);
 
 void func_8028DD64(u8 arg0) {
@@ -218,19 +214,6 @@ extern s16 D_803A7412;
 extern u8 D_803ED40C;
 extern s16 D_802FDB70[]; /* speed cap per mode */
 
-void func_8026AD30(s32);
-s32 func_8029B930(void);
-s16 func_802A6F6C(void);
-void func_802CDAE8(s16, s16);
-s32 func_802CDB70(s16, s16);
-u8 func_802CDF94(s16);
-s16 func_802CE3B8(s16);
-void func_802CE4F0(s32, s32, s32);
-void func_802CE5BC(s32, s32, s32, s16, s32, s32);
-void func_802CE65C(s32, s32, s16, s16);
-void func_802CE880(s32, s32, s32, s32, s32);
-void func_802CE90C(s32);
-s32 func_802CE958(s32);
 
 /* Per-frame update of the boxes (arg0 = current mode; the box sibling of
  * 4B5E0's func_802906C0). Counts down unk19 (then fires the box's
@@ -390,7 +373,7 @@ void func_8028DF14(u8 arg0) {
 extern u8 D_02000000[]; /* segment 2 base */
 
 /* Per-frame dynamic buffer: one matrix per box at 0x600. */
-typedef struct {
+typedef struct Dyn48D00 {
     /* 0x000 */ u8 pad[0x600];
     /* 0x600 */ Mtx mtx[1];
 } Dyn48D00;
@@ -476,7 +459,6 @@ void func_8028E9E4(Gfx **gdl, Dyn48D00 *dyn) {
     *gdl = gfx;
 }
 
-void func_802AACD4(u8, s32, s32, void *, void *);
 extern u8 D_8039B094;
 
 void func_8028F6B4(u8 arg0) {
@@ -495,10 +477,6 @@ void func_8028F6B4(u8 arg0) {
 extern s32 D_8039B610;
 extern u8 D_8039B070;
 
-s32 func_802AAE1C(u8, s16, s16, void *, void *);
-s32 func_802CE6F8(s32, s32, s32);
-void func_802CE4F0(s32, s32, s32);
-s32 func_802CDB70(s16, s16);
 void func_8028DD64(u8);
 
 void func_8028F794(u8 arg0) {
@@ -547,7 +525,6 @@ void func_8028F93C(void) {
 }
 
 extern u8 D_803A7424;
-s32 func_8026A6F0(s32, s32, s32, s32, s32, s32);
 
 /* Set D_803A7424 if the point (arg0, arg1, arg2) is within any active
  * entry's category radius (all in 1/32 units). */
@@ -589,9 +566,6 @@ void func_8028FAC0(s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
 extern OSMesgQueue D_80370BF8;
 extern u8 D_802FDBD0;
 extern u8 D_802FDBD4;
-void func_802DB4D0(OSMesgQueue *);
-void func_802DB594(OSContPad *);
-u8 func_8028FCD4(void *arg0, u8 *arg1);
 
 /* Boot-time controller check: read the pads (osContStartReadData,
  * osRecvMesg, osContGetReadData), note whether START is held, latch it

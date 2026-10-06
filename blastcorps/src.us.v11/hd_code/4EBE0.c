@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* Spline control point, 0xC bytes */
 typedef struct {
@@ -64,11 +65,14 @@ extern Junction D_802FEDA0[];
 extern s32 D_803643E0;
 extern s32 D_803643E8;
 
-void func_802936AC();
-void func_802608C8(s32 arg0);
-void func_80293F84();
-void func_8026A2E8(f32 ref, f32 *angle);
-void func_8027EED8(s32 x, s32 z, s16 *y);
+#ifdef NON_MATCHING
+void func_802936AC(f32 mf[4][4], s16 x, s16 z, s16 ox, s16 oz, s16 *px, s16 *py, s16 *pz, WalkState *state,
+                   s32 speed);
+void func_80293F84(f32 mf[4][4], s16 x, s16 z, s16 *px, s16 *py, s16 *pz, PathState *state, s32 idx);
+#else
+void func_802936AC(); /* K&R */
+void func_80293F84(); /* K&R */
+#endif
 f32 func_80294840(f32 a, f32 b, f32 c, f32 d);
 void func_802949B0(s32 idx);
 void func_80294B64(f32 mf[4][4], s32 limit, s16 *x, s16 *y, s16 *z, SwingState *state, s32 delay);
@@ -121,6 +125,10 @@ void func_802933A0(s32 x, s32 y, s32 z, s32 type, Mtx *mtx, void *state, Gfx *gf
 
 #define ABS(x) ((x) < 0 ? -(x) : (x))
 
+#ifdef NON_MATCHING
+void func_802936AC(f32 mf[4][4], s16 x, s16 z, s16 ox, s16 oz, s16 *px, s16 *py, s16 *pz, WalkState *state,
+                   s32 speed)
+#else
 void func_802936AC(mf, x, z, ox, oz, px, py, pz, state, speed)
     f32 mf[4][4];
     s16 x;
@@ -132,6 +140,7 @@ void func_802936AC(mf, x, z, ox, oz, px, py, pz, state, speed)
     s16 *pz;
     WalkState *state;
     s32 speed;
+#endif
 {
     f32 m[4][4];
     s32 i;
@@ -324,6 +333,9 @@ void func_802936AC(mf, x, z, ox, oz, px, py, pz, state, speed)
     guMtxCatF(mf, m, mf);
 }
 
+#ifdef NON_MATCHING
+void func_80293F84(f32 mf[4][4], s16 x, s16 z, s16 *px, s16 *py, s16 *pz, PathState *state, s32 idx)
+#else
 void func_80293F84(mf, x, z, px, py, pz, state, idx)
     f32 mf[4][4];
     s16 x;
@@ -333,6 +345,7 @@ void func_80293F84(mf, x, z, px, py, pz, state, idx)
     s16 *pz;
     PathState *state;
     s32 idx;
+#endif
 {
     s32 seg;
     s32 last;

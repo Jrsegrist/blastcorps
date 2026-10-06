@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* HUD panels drawn over the game: a 40x40 textured dial with a needle
  * (rotated by D_803EE3B1, 0..100 -> 270..450 degrees), and two 32x32 icons
@@ -35,10 +36,6 @@ extern s16 D_803F8B72; /* icon 1 number */
 extern s16 D_803EDC00; /* icon 2 number */
 extern Mtx D_02000000[];
 
-void func_802A0CC8(s32 id, s32 arg1);
-void func_8026A378(s16 n, char *buf);
-void func_80259DC8(Gfx **gfxp, char *str, s32 a2, s32 a3, s32 a4, s32 x, s32 y, s32 w, s32 h, s32 a9, s32 r, s32 g,
-                   s32 b, s32 a, s32 r2, s32 g2, s32 b2, s32 a2_);
 
 /* Load the dial texture (0x760) and build its vertices */
 void func_80286A00(void) {

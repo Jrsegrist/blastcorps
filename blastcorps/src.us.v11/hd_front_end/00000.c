@@ -1,5 +1,12 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_func_802025D0
+#endif /* legacy declarations */
+#include "game/game.h"
 
 /* digger_loop.c: the vehicle ("digger") select screen. */
 
@@ -38,20 +45,7 @@ extern s8 D_80370C2E;  /* stick x last frame */
 extern u32 D_803156C0; /* frame counter */
 extern OSMesgQueue D_80315180;
 
-/* one per frame buffer, 0x21498 bytes (hd_code's DynamicBuf, as the front end uses it) */
-typedef struct {
-    u8 pad0[0x140];
-    Mtx unk140; /* view */
-    u8 pad180[0x1240 - 0x180];
-    Mtx unk1240; /* perspective */
-    u8 pad1280[0x1E00 - 0x1280];
-    Vtx unk1E00[0x1E0]; /* arrow quads */
-    LookAt unk3C00;
-    u8 pad3C20[0x48B0 - 0x3C20];
-    Gfx dl[0xB5E];
-    u8 unkA3A0[0x21498 - 0xA3A0];
-} DynamicBuf;
-extern DynamicBuf D_803156F8[];
+extern FeDyn D_803156F8[];
 extern u8 D_8035805C; /* frame buffer index */
 extern u32 D_80358060;
 extern u8 *D_8035806C;
@@ -119,37 +113,10 @@ u8 D_80208194[19] = {
     0x00, 0x36, 0x50, 0x8C, 0x0B, 0x05, 0x00, 0x20, 0xCE, 0x02, 0x94, 0x72, 0x00, 0xCE, 0x7B, 0xCE, 0x50, 0x72, 0x72,
 };
 
-void func_8029A7E4(const char *, ...);
-void func_8029DEA0(void);
-void func_80202100(s32, ModelHeader **, void **, Gfx **);
-void func_80202270(ModelHeader *, void **, void *);
-void func_802022EC(void *, u8, u8, u8, f32, u8, s32);
-void func_80202380(s32);
 void func_801E74E8(u8);
-void func_80260A10(void);
-void func_80260650(s32, s32, s32);
-void func_8028A3E4(void);
-void func_802A5720(void);
-void func_8029E0AC(void);
-void func_8028A470(void);
-s32 func_802753C0(void);
-void func_80275390(u64);
-void func_80284E54(Gfx *, s32, s32, s32, s32, s32);
-void func_80259450(void);
-Gfx *func_80200BE0(Gfx *, DynamicBuf *, s32 *);
-void func_80259CCC(DynamicBuf *, char *, u16 *, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32);
-void func_80259DC8(DynamicBuf *, char *, u16 *, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32,
-                   s32, s32);
-void func_80259C24(Gfx **, DynamicBuf *);
-void func_802021FC(void *, void *, void *);
+#ifndef NON_MATCHING
 void func_802025D0(u8, u32);
-s32 func_80276130(DynamicBuf *, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32,
-                  s32, s32, s32, s32, s32, s32);
-s32 func_80276080(DynamicBuf *, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32);
-Gfx *func_80275DA4(Gfx *, s32);
-Gfx *func_8026BBD0(Gfx *, DynamicBuf *, s32 *);
-Gfx *func_80274BF0(DynamicBuf *, Gfx *);
-void func_802A57AC(void);
+#endif
 
 /* Rare's assert; line numbers are the original digger_loop.c's */
 #define DIGGER_ASSERT(EX, line) \
@@ -245,14 +212,18 @@ void func_801E7598(void) {
     static s8 D_802081B4 = 1;   /* title pulse direction */
     s32 i;
     s32 vtx = 0;
-    DynamicBuf *dyn = &D_803156F8[D_8035805C ^ 1];
+    FeDyn *dyn = &D_803156F8[D_8035805C ^ 1];
     Gfx *gdl = dyn->dl;
 
     func_8028A3E4();
     D_80358080 = 0;
     D_80358084 = 0;
     func_802A5720();
+#ifdef NON_MATCHING
+    func_8029E0AC(LEAKED(s8));
+#else
     func_8029E0AC();
+#endif
     func_8028A470();
     if (D_80358060 >= 11 && !func_802753C0()) {
         if ((D_80370C28 & 0x9000) && !(D_80370C2A & 0x9000)) {

@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* controller.c: controller init, reading, the demo/replay pad source and
  * per-button edge flags. */
@@ -99,15 +100,6 @@ extern u8 D_803ED40A;
 extern s16 D_803F7C34;
 extern u8 D_803F7C3F;
 
-void func_802DB0A0(OSMesgQueue *mq, u8 *bitpattern, OSContStatus *status);
-void func_802DB4D0(OSMesgQueue *mq);
-void func_802DB594(OSContPad *pad);
-void func_8029A7E4(const char *fmt, ...);
-void func_8026AF6C(u16 yd);
-void func_8025BEF8(void);
-void func_8025BBE8(u16 button, s8 x, s8 y);
-void func_8028B734(s8 *x, s8 *y, u8 mode);
-void func_8028A42C(void);
 void func_8028ADF0(u8 arg0, u8 arg1, u16 *btn, s8 *x, s8 *y);
 void func_8028AFA4(u16 btn, s8 *x, s8 *y);
 void func_8028B0E8(u16 *btn, s8 x, s8 y);

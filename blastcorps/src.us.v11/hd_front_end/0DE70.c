@@ -1,26 +1,12 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /*
  * Front-end 3D scene setup: loads one of three compressed scene blobs, and
  * builds the display lists that draw it (two per-frame-buffer camera setups).
  */
 
-/* front-end view of hd_code's per-frame-buffer DynamicBuf (0x21498 bytes) */
-typedef struct {
-    u8 pad0[0x140];
-    Mtx unk140; /* lookat view */
-    u8 pad180[0x240 - 0x180];
-    Mtx unk240; /* perspective */
-    u8 pad280[0x1240 - 0x280];
-    Mtx unk1240;
-    Mtx unk1280;
-    Mtx unk12C0;
-    Mtx unk1300;
-    u8 pad1340[0x3C00 - 0x1340];
-    LookAt unk3C00;
-    u8 pad3C20[0x21498 - 0x3C20];
-} FeDyn;
 
 /* header of an inflated scene blob: offsets relative to its start */
 typedef struct {
@@ -60,13 +46,6 @@ extern u8 D_80218430[];
 extern u32 D_80218730;
 extern u16 D_80218734;
 
-void func_802A0700(void);
-void func_8028B4C4(void *, void *, u32 *, s32, s32, s32);
-void func_802A08B4(Gfx *, void *);
-void func_802021FC(void *, void *, void *);
-void func_80202100(s32, u8 **, void **, Gfx **);
-void func_80202270(u8 *, void **, void *);
-void func_802022EC(void *, s32, s32, s32, f32, s32, s32);
 
 /* Inflate scene blob `arg0` onto the heap and record its parts. */
 void func_801F4E70(u8 arg0) {

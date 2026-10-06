@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* front-end level select: level availability, the level icon display list
  * and the starfield background */
@@ -51,12 +52,7 @@ extern u8 *D_80358070; /* heap pointer */
 extern Player D_80364AF0[];
 extern u8 D_80364AE8;
 
-void func_801FCE74(Vtx *, s32, f32, f32, s32, s32, f32, s32);
-void func_801FDCA4(Vtx *, s32, s32);
-s32 func_801FE760(s32);
 s32 func_801F1DA8(s32);
-s32 func_80264BA4();
-s32 func_8026A828(s32, s32);
 
 #pragma intrinsic (sqrtf)
 
@@ -209,7 +205,6 @@ extern u16 *D_80215A70[3];
 extern u8 *D_80215A7C;
 extern u8 *D_80215A80;
 extern u8 *D_80215A84;
-void func_8028B4C4(u32 devAddr, u32 dest, u32 *size, u8 arg3, u8 arg4, u8 arg5);
 
 Gfx *func_801F1568(void) {
     u8 *base;

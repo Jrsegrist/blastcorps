@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* Falling debris / bouncing objects: a pool of 20 that are spawned around a
  * point, home in on a target, wander inside a box and play sounds. The
@@ -55,11 +56,6 @@ extern s32 D_803EF6DC;
 extern s32 D_803EF6E4;
 extern u16 D_803C30A8[];
 
-s32 func_80260650(s32, s32, s32);
-void func_80260AB8(s32, s32, s32);
-s32 func_8026A610(s32, s32, s32, s32);
-s32 func_8026A8E0(s16, s16);
-void func_8026AD30(s32);
 s32 func_80265A0C(s32 arg0);
 void func_80265B7C(s32 arg0);
 
@@ -444,7 +440,7 @@ void func_802661EC(void) {
 
 /* Draw the debris: billboarded 20x32 RGBA16 sprites, animated and picked by
  * heading, plus one marker at D_803EF310 */
-typedef struct {
+typedef struct DynBuf {
     Mtx mtx[100];
     Vtx vtx[1];
 } DynBuf;
@@ -464,7 +460,6 @@ extern s32 D_803EF318;
 extern u8 D_02000000[];
 
 s32 func_80267614();
-void func_8026A5CC(void *, void *, s32);
 
 #define LOAD_TEX(ptr) \
     gDPPipeSync(gdl++); \

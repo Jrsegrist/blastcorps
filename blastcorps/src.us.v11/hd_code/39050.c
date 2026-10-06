@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 #define ABS(x) ((x) >= 0.0f ? (x) : -(x))
 
@@ -21,12 +22,13 @@ extern s32 D_803649E8;
 extern s32 D_802FC51C;
 
 f32 sinf(f32);
-void func_802C1F30(s32, s32, s32, s32, s32);
-s16 *func_802C1EE0(s32);
-void func_8029A7E4(const char *fmt, ...);
 s32 func_8027E164(s32 arg0, s32 arg1, void *arg2, void *arg3);
 f32 func_8027DD88(s32, s32, s32 *, s32 *);
-f32 func_8027E228();
+#ifdef NON_MATCHING
+f32 func_8027E228(u8 type);
+#else
+f32 func_8027E228(); /* K&R */
+#endif
 f32 func_8027DB5C(s32 *a, s32 *b, s32 arg2);
 void func_8027DA10(s32 arg0, s32 arg1, s32 arg2);
 
@@ -110,8 +112,6 @@ extern u8 D_8036E370;
 extern s32 D_8036E374;
 extern s32 D_8036E378;
 
-s16 func_8026A828(s16, s16);
-void func_802CE65C(s32, s32, s16, s16);
 extern s32 D_803F9320;
 extern s32 D_803F9324;
 
@@ -143,10 +143,6 @@ extern s32 D_803643E8;
 extern void *D_80367738;
 extern s32 D_8036DCD8;
 
-void func_8026A5CC(void *arg0, void *arg1, s32 arg2);
-s32 func_802A0CC8(s32, s32);
-s32 func_8026A6F0(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5);
-void *func_80260650(void *arg0, s16 arg1, void *arg2);
 
 void func_8027D810(s32 arg0) {
     switch (arg0) {
@@ -292,7 +288,6 @@ f32 func_8027DD88(s32 arg0, s32 arg1, s32 *p, s32 *q) {
     return t;
 }
 
-s32 func_802AC4C4(s32, s32, s32, s32, s32, s32, s32, s32);
 
 s32 func_8027E164(s32 arg0, s32 arg1, void *arg2, void *arg3) {
     if (func_802AC4C4(arg0, arg1, *(s32 *)((u8 *) arg2 + 0x0), *(s32 *)((u8 *) arg3 + 0x0),
@@ -308,8 +303,12 @@ s32 func_8027E164(s32 arg0, s32 arg1, void *arg2, void *arg3) {
     return 0;
 }
 
+#ifdef NON_MATCHING
+f32 func_8027E228(u8 type)
+#else
 f32 func_8027E228(type)
     u8 type;
+#endif
 {
     switch (type) {
     case 0:
@@ -952,7 +951,6 @@ void func_80281E44(Gfx **gfx) {
     *gfx = gdl;
 }
 
-void func_802A0B00(s32, s32);
 
 extern s32 D_8036E4CC; /* overlay texture */
 extern s16 D_8036E4D0; /* overlay alpha */
@@ -961,7 +959,6 @@ extern Mtx D_02000000[];
 extern Vtx D_802FC568[];
 extern s16 D_80367BD6;
 
-s32 func_8029DBF0(u8);
 
 void func_802821D0(void) {
     D_8036E4CC = D_80358070;
@@ -1033,7 +1030,6 @@ extern s32 D_803EF6E0;
 extern s32 D_803EF6E4;
 extern u8 D_803EF6FF;
 
-void func_802AC1A0(s32);
 
 void func_80282728(void) {
     D_8036E4D3 = 0;

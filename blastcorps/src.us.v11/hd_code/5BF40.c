@@ -1,6 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
-#include "game/regs.h"
+#include "game/game.h"
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -37,8 +37,6 @@ typedef struct {
     /* 0xC */ u8 *param;
 } DecodeReq;
 extern DecodeReq D_803C4B58;
-s32 func_802A57DC(u8 *rec);
-void func_802A5764(s32 a, s32 b, s32 c, s32 d);
 
 /* D_803B8570..D_803B8D40: the loaded-texture cache, 8-byte {id, physical
  * address} pairs; D_803B8D40 is the first free pair. */
@@ -92,7 +90,6 @@ void func_802A0700(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-void func_802A08E4(u32 *dl, u32 *end, Unk802A08E4Regs *r);
 
 /* C-callable entry: func_802A08E4(dl, end) (dl/end moved to s0/s1, which it
  * saves). The asm passes its caller's s4 through as func_802A08E4's in/out
@@ -185,7 +182,6 @@ void func_802A0B34(s32 id, u8 *param) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-u32 func_802A0CFC(s32 id, u8 *param);
 
 /* C-callable entry: returns func_802A0CFC(id, param), the texture's physical
  * address (the asm moves id/param to t6/fp and returns s0 in v0). The whole
@@ -261,7 +257,6 @@ void func_802A0F0C(s32 id, void *dest) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-void func_802A1074(s32 id, u8 *dest, u8 *param);
 
 /* C-callable entry: func_802A1074(id, dest, param) (moved to t6/s1/fp). The
  * whole id register is used (168B0.c declares u16, 32E00.c/43A60.c s16). */

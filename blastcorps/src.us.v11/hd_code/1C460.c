@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* Music player: tune selection, push/pop tune stack, volume fades and audio init */
 
@@ -31,13 +32,6 @@ typedef struct {
     s32 *params;
 } SynConfig;
 
-typedef struct {
-    u32 maxStates;
-    u32 maxEvents;
-    s32 maxSounds;
-    void *heap;
-    u16 slotCount;
-} SndConfig;
 
 extern u8 D_00350950[];
 extern u8 D_003539A0[];
@@ -82,25 +76,7 @@ extern u8 D_80370C80[];
 
 #define SEQP ((BCSeqPlayer *) D_80367734)
 
-void func_8028B4C4(void *, void *, s32 *, s32, s32, s32);
-void func_8029A7E4(const char *fmt, ...);
-s32 func_802D4E10(ALCSPlayer *seqp);
-s32 func_802D8310(ALCSPlayer *seqp);
-void func_8025EDF0(SndConfig *c);
-void *func_80260650(void *arg0, s16 arg1, void *arg2);
-void func_802609F0(void);
-void func_80260A10(void);
-void func_80260A30(u8 arg0);
-void func_80260B40(u8 arg0, u16 arg1);
-s32 func_80264BA4(s32 arg0);
-void func_802676A0(SynConfig *c, s32 pri);
-void func_80267A74(void);
-void func_80260EE0(u8 arg0);
 void func_80260F60(f32 arg0);
-void func_8026101C(void);
-void func_80261570(f32 arg0);
-void func_80261E9C(u64 arg0);
-void func_80261FB0(u8 arg0);
 
 void func_80260C20(u8 tune, f32 vol) {
     void *rom;
@@ -289,13 +265,13 @@ void func_80261588(void) {
 
     alHeapInit(&D_80367718, D_80370C80, 0x2A280);
     size2 = size1 = D_003539A0 - D_00350950;
-    func_8028B4C4(D_00350950, (void *) 0x8004B400, &size2, 0xD, 0, 2);
+    func_8028B4C4(D_00350950, 0x8004B400, &size2, 0xD, 0, 2);
     musBank = alHeapDBAlloc(0, 0, &D_80367718, 1, size2);
     func_8028B4C4(D_00350950, musBank, &size1, 0xD, 0, 2);
     alBnkfNew(musBank, D_003539A0);
     D_8036773C = musBank->bankArray[0];
     size2 = size1 = D_003A48C0 - D_003A1920;
-    func_8028B4C4(D_003A1920, (void *) 0x8004B400, &size2, 0xD, 0, 2);
+    func_8028B4C4(D_003A1920, 0x8004B400, &size2, 0xD, 0, 2);
     sfxBank = alHeapDBAlloc(0, 0, &D_80367718, 1, size2);
     func_8028B4C4(D_003A1920, sfxBank, &size1, 0xD, 0, 2);
     alBnkfNew(sfxBank, D_003A48C0);

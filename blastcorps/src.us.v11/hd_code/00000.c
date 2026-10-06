@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* hd.c (from its assert strings): boot, the main game thread and the
  * frame loop. Owns .rodata at 0x80307B90.
@@ -17,11 +18,6 @@ u64 D_80364AA0; /* game mode after next */
 u64 D_80364AD0; /* timer start */
 u8 D_80364412; /* camera: snap to the new position this frame */
 
-void func_8029A7E4(char *, ...); /* debug printf */
-void func_802D4020(void);
-void func_80270AE0(u32 *);
-void func_802D4550(s32);
-void func_802D4560(s32, void *, void *, s32);
 void func_80244870(void *);
 void func_80244930(void *);
 
@@ -57,30 +53,6 @@ typedef struct {
 extern Unk74 D_80364460[];
 extern Unk74 *D_803649D0;
 
-/* one per frame buffer, 0x21498 bytes */
-typedef struct {
-    u8 pad0[0x80];
-    Mtx unk80;  /* perspective */
-    Mtx unkC0;  /* 320x240 ortho */
-    Mtx unk100; /* 1280x960 ortho */
-    Mtx unk140;
-    Mtx unk180;
-    Mtx unk1C0; /* identity */
-    Mtx unk200;
-    Mtx unk240;
-    Mtx unk280;
-    Mtx unk2C0[0x49]; /* one per vehicle */
-    Mtx unk1500;
-    Mtx unk1540;
-    u8 pad1580[0x15C0 - 0x1580];
-    Vtx unk15C0[0x30]; /* vehicle shadow quads */
-    Vtx unk18C0[4]; /* shadow quad */
-    u8 pad1900[0x3C00 - 0x1900];
-    LookAt unk3C00;
-    u8 pad3C20[0x48B0 - 0x3C20];
-    Gfx dl[0xB5E]; /* TOPLEVEL_DL_SIZE */
-    u8 unkA3A0[0x21498 - 0xA3A0];
-} DynamicBuf;
 extern DynamicBuf D_803156F8[];
 extern u8 D_8035805C; /* current frame buffer index */
 
@@ -136,25 +108,8 @@ extern u8 D_8036EB99;
 extern s32 D_803669B4;
 extern u8 D_8039CAA2;
 
-u8 func_80261A44(u64);
-void func_802D6710(void);
-void func_8026A8BC(void);
-void func_8026A974(void);
-void func_8028AE88(void);
-void func_8028B720(void);
-void func_8028B4C4(void *, void *, u32 *, s32, s32, s32);
 void func_802558C8(Gfx *, s32 *);
 void func_802559F8(Gfx *, s32 *);
-void func_80257490(s32 *, s32);
-void func_802A0700(void);
-void func_80278E3C(void);
-void func_8028B3E0(void);
-void func_80297530(s32);
-void func_80272C50(void);
-void func_801F7850(void);
-void func_8026B118(s32);
-void func_8028A42C(void);
-void func_802592F0(void);
 
 #define TOPLEVEL_DL_SIZE 0xB5E
 
@@ -184,16 +139,7 @@ extern u8 D_803649EC;
 extern u8 D_803649EE;
 extern s32 D_803156F0;
 extern s32 D_80367738;
-s32 func_802AB878(u8);
-void func_802AB478(u8);
-void func_8028F6B4(u8);
-void func_80291ED8(u8);
-void func_802794E4(void);
 s32 func_8024AFA8(s32);
-void func_802AE860(void);
-s32 func_8026AD30(s32);
-s32 func_80260634(s32);
-void func_80260650(s32, s32, s32 *);
 
 extern OSMesgQueue D_803150A0;
 extern OSMesg D_803150B8[];
@@ -209,19 +155,12 @@ extern u8 D_8021ED00[];
 extern u32 D_80358058;
 extern u8 D_802FDBD0;
 extern u8 D_802FDBD4;
-void func_80270D20(void *, void *, s32, s32, s32);
-void func_80270E50(void *, void *, OSMesgQueue *, s32, s32);
-u8 func_8028A370(void);
-void func_80261588(void);
-void func_80284DB0(void);
-void func_8028FC10(void);
 extern s32 D_803643E0;
 extern s32 D_803643E8;
 extern f32 D_80364418;
 extern f32 D_80364414;
 extern u8 D_8036441C;
 extern u8 D_8036441D;
-s32 func_802AC4C4(s32, s32, s32, s32, s32, s32, s32, s32);
 #define PHYS(x) ((u32)(x) & 0x1FFFFFFF)
 
 extern u8 D_80370C1E;
@@ -229,12 +168,10 @@ extern u8 D_80370C21;
 extern u8 D_80370C24;
 extern u8 D_80370C27;
 u8 func_80255628(void);
-void func_802A45D4(s32);
 
 extern u16 D_8035807C;
 extern s32 D_80358074;
 extern Gfx D_01000010[]; /* segment 1 */
-void func_802A467C(s32, Gfx *, Vtx *, s32);
 
 extern s32 D_803643E4;
 extern u32 D_80364AA8;
@@ -242,7 +179,6 @@ extern f32 D_80364AB4;
 extern f32 D_80364AB8;
 extern f32 D_80364ABC;
 extern u8 D_80364AC0;
-void func_802AC61C(s32, s32, s32, s32, s32);
 
 typedef struct {
     s32 unk0;
@@ -314,106 +250,11 @@ extern u8 D_803A7430;
 extern s32 D_803ED808;
 extern s32 D_803ED80C;
 extern s32 D_803ED810;
-void func_80270ECC(void *, void *);
-void func_802D67F0(void *);
-void func_80294E30(void);
-void func_80294E88(void);
-void func_80294EB8(void);
 void func_8025615C(s32, s32, s32 *);
-void func_80285190(void);
-void func_80275430(void);
-void func_802621DC(s32);
-void func_80262238(s32);
-void func_80262150(s32);
-void func_802CE840(void);
-s32 func_8026F92C(u64);
-void func_802A1674(s32, s32);
 void func_80257234(void);
-void func_802CF628(void);
-void func_802C1DD0(s32);
-void func_80262320(s32);
-u8 func_80272C5C(void *, s32, s32, s32, s32, f32);
-void func_802775C0(void);
-void func_80286A00(void);
-void func_802873AC(void);
-void func_80287AE4(void);
-void func_802821D0(void);
-void func_80282728(void);
-void func_80281A70(s32);
-void func_80264C20(s32);
-void func_80288220(void);
-void func_8027BE4C(void);
-void func_80292240(void);
-void func_8027E344(s32);
-void func_802807D8(s32);
-void func_80268664(s32);
-void func_8026A988(void);
-void func_80258544(void *, s32, s32, s32, f32, s32, void *, void *);
-void func_80285110(s32);
-void func_802729F0(s32, s32);
-void func_8025BD98(void);
-void func_802979E0(s32);
-s32 func_802A56C4(void);
-void func_802A5FA8(void);
 
 extern u8 D_803ED3F5;
-void func_802B01DC(void);
-void func_802B1150(void);
-void func_802B2EF8(void);
-void func_802B45FC(void);
-void func_802B5F04(void);
-void func_802BB170(void);
-void func_802BBE10(void);
-void func_802B76F8(void);
-void func_802C5508(void);
-void func_802CA140(void);
-void func_802C8AF0(void);
-void func_802CBB60(void);
-void func_802CCCD8(void);
-void func_802CFA58(void);
-void func_802D0B90(void);
-void func_802B5FAC(void);
-void func_802B02A0(void);
-void func_802B46C4(void);
-void func_802B77A0(void);
-void func_802CBC08(void);
-void func_802CCD80(void);
-void func_802CFB00(void);
-void func_802C5860(void);
-void func_802B2FA0(void);
-void func_802AEEC8(void);
-void func_802B03F4(void);
-void func_802B152C(void);
-void func_802B327C(void);
-void func_802B49AC(void);
-void func_802B6294(void);
-void func_802BB274(void);
-void func_802BBEB8(void);
-void func_802B7A88(void);
-void func_802C5AFC(void);
-void func_802CA4E0(void);
-void func_802C8BB8(u8);
-void func_802CBEF0(void);
-void func_802CD068(void);
-void func_802CFDE8(void);
-void func_802D0F98(void);
 
-void func_802AFFD4(void);
-void func_802B1228(void);
-void func_802B2D7C(void);
-void func_802B448C(void);
-void func_802B5CD8(void);
-void func_802BB054(void);
-void func_802BBDC8(void);
-void func_802B76AC(void);
-void func_802C5714(void);
-void func_802C9F54(void);
-void func_802C8AB0(void);
-void func_802CBA94(void);
-void func_802CCC8C(void);
-void func_802CFA0C(void);
-void func_802D0C68(void);
-void func_8025BBE8(s32, s32, s32);
 
 extern u8 D_803BE739;
 extern s32 D_80358030[2];
@@ -423,24 +264,6 @@ extern s32 D_80358048[2];
 extern s32 D_803156EC;
 u8 func_8024B4B8(void);
 s32 func_8024B418(u8);
-u8 func_802AE888(s32);
-void func_8028F93C(void);
-void func_80292084(void);
-void func_802B4658(void);
-void func_802B2F54(void);
-void func_802B5F60(void);
-void func_802B11B8(void);
-void func_802B0254(void);
-void func_802BBE2C(void);
-void func_802B7754(void);
-void func_802C5688(void);
-void func_802CA1AC(void);
-void func_802C8B0C(u8);
-void func_802CBBBC(void);
-void func_802CCD34(void);
-void func_802BB1A0(void);
-void func_802CFAB4(void);
-void func_802D0BF8(void);
 
 extern u8 D_803153F0;
 extern s32 D_803156E8;
@@ -448,14 +271,6 @@ extern s32 D_803EF6DC;
 extern s32 D_803EF6E4;
 extern s16 currentYoshiWindow;
 extern s16 yoshiState;
-void func_802608C8(s32);
-void func_80260DFC(void);
-void func_80261040(void);
-s32 func_8026A610(s32, s32, s32, s32);
-void func_8026AF6C(s32);
-s32 func_8026B10C(void);
-void func_80277EDC(s32, s32, s32, s32);
-s32 func_802C1AA0(void);
 
 extern u8 D_803643DB;
 /* menu tables, 0x1C-byte entries */
@@ -490,11 +305,6 @@ typedef struct {
     u8 pad14[8];
 } MenuEntry;
 extern MenuEntry D_8020C070[];
-void func_80260D7C(f32);
-f32 func_80260DF0(void);
-void func_80275270(u64, f32);
-void func_80285EF4(s32);
-void func_8028B240(void);
 
 extern u8 D_004A5660[]; /* lagp */
 extern u8 D_004ACC10[]; /* chimp */
@@ -591,45 +401,8 @@ extern u16 D_8030491C[];
 extern u16 D_80304938[];
 void func_8024E4F4(Gfx **, DynamicBuf *, u8);
 void func_8024F520(Gfx **, DynamicBuf *);
-void func_8024FC2C(Gfx **, u8);
 void func_802502EC(void);
 void func_802507C8(Mtx *, LookAt *, Mtx *);
-void func_80258B78(Gfx **, DynamicBuf *);
-void func_80259450(void);
-void func_80259C24(Gfx **, DynamicBuf *);
-void func_80259CCC(DynamicBuf *, char *, void *, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32);
-void func_8025E2CC(Gfx **, DynamicBuf *, u8);
-void func_8025E67C(Gfx **, DynamicBuf *, u8);
-void func_80266248(Gfx **, DynamicBuf *);
-void func_8026A378(u32, char *);
-void func_802701A8(Gfx **, DynamicBuf *);
-Gfx *func_80271FD0(Gfx *, DynamicBuf *, s32, s16, s16, s32 *);
-void func_80274B40(Gfx **, DynamicBuf *, u8, s32, s32);
-s32 func_802753C0(void);
-void func_80275478(DynamicBuf *, Gfx **, s32);
-void func_80276E50(Gfx **, DynamicBuf *, u8, s32, s32, s32);
-void func_80278324(Gfx **, DynamicBuf *, u8);
-void func_80279EE8(Gfx **, DynamicBuf *, u8);
-void func_8027C4C8(Gfx **, DynamicBuf *);
-void func_8027F1F8(Gfx **, u8, s32);
-void func_80280F34(Gfx **, u8);
-void func_80281E44(Gfx **);
-void func_80282224(Gfx **, u8);
-void func_8028273C(Gfx **, u8);
-void func_80282C80(Gfx **, DynamicBuf *, s32, s32, s32, s32, s32, s32);
-void func_8028376C(Gfx **, DynamicBuf *, u8, s32, s32, s32, s32);
-void func_80285CC0(void);
-void func_80286C60(Gfx **, DynamicBuf *, u8, u8);
-void func_80287530(Gfx **, DynamicBuf *, u8, u8);
-void func_80287C68(Gfx **, DynamicBuf *, u8, u8);
-void func_80288DF0(Gfx **, u8);
-void func_8028CB30(Gfx **, DynamicBuf *);
-void func_8028E9E4(Gfx **, DynamicBuf *);
-void func_802917B0(Gfx **, DynamicBuf *);
-void func_80292EB8(Gfx **, DynamicBuf *);
-void func_80295120(Gfx **, DynamicBuf *);
-void func_802976E8(Gfx **);
-Gfx *func_802CEEFC(Gfx *, u8, void *, void *);
 #define SEG2(off) ((u8 *) D_02000000 + (off))
 
 #define MS_ASSERT(EX, line) \
@@ -689,72 +462,12 @@ extern s16 D_8039CAA0;
 #define levelno D_802E8BDC
 #define pakBuffer D_8039C4B8
 #define saveLevel D_8039C540
-s32 func_802C4A40(u8 *);
 #define record_status func_802C4A40
 #define areWeFading func_802753C0
 #define LEVEL_SAVE_SIZE 0x40
-s32 func_801E7000(void);
-void func_801E7598(void);
-void func_801E8C40(u8);
-void func_801E8DCC(u8);
-void func_801E8EB8(u8, s32);
-void func_801EA108(u8, s32, s32);
-void func_801EA4B8(void);
-void func_801EA6E8(void);
-void func_801EA93C(char *, u16 *, s32, s32, Player *);
-void func_801EC288(u8);
-void func_801EC30C(u8);
-void func_801ECC8C(void);
-void func_801ECE9C(void);
-void func_801ED790(void);
-u8 func_801EE800(u8 *, s32, s32);
-s8 func_801EF1E0(void);
-void func_801EF380(s32);
-void func_801EF4AC(void);
-void func_801F55D8(void);
-void func_801F6F18(void);
-void func_801F8228(void);
-void func_801F8530(s32);
-void func_801F8980(void);
-void func_801FE018(s32);
-void func_801FE990(void);
-void func_80200714(s32);
-void func_80201240(s32);
-void *func_80201E80(void);
 void func_802475D8(void);
 void func_80255AD0(void);
 void func_80255D34(void);
-void func_80255DC8(void);
-void func_80256A34(s32);
-void func_8025B2B8(void);
-void func_8025B9D0(s32, s32 *);
-void func_8025BB38(void);
-void func_8025BB50(void);
-void func_8025D184(void);
-void func_802609D0(void);
-void func_80260B40(s32, s32);
-void func_80260E80(void);
-void func_80260EE0(s32);
-void func_8026101C(void);
-void func_80261E9C(u64);
-void func_80261FB0(u8);
-void func_80264AEC(void);
-void func_802661EC(void);
-void func_8026B8F8(void);
-u8 func_80285814(void);
-void func_80285A78(Score *, Score *);
-s32 func_8028604C(s32);
-void func_802860F0(void);
-void func_80286330(void);
-s32 func_8028653C(void);
-void func_80295E50(void);
-void func_80297960(void);
-void func_80297ECC(void);
-void func_80299C0C(void);
-void func_80299C20(void);
-void func_80299E10(s32);
-void func_8029A130(void);
-void func_802CF5B0(void);
 #define MODE_PAGE(m) D_802F8BDC[D_802F4868[func_8026F92C(m)]]
 #define MODE_ENTRY(m) D_8020C070[MODE_PAGE(m).unkE + MODE_PAGE(m).unk10 - 2]
 
@@ -801,77 +514,17 @@ extern u16 D_80367BC8;
 extern s16 D_803649E0;
 extern s16 D_803649E2;
 extern s16 D_803649E4;
-void func_80285AB0(s32);
-void func_80275390(u64);
 void func_8024B8F4(Mtx *, Mtx *);
-void func_80279778(s32, s32, s32, s32, s32, s32, s32, void *, void *, u32);
-void func_8028A3E4(void);
-void func_80284E54(Gfx *, s32, s32, s32, s32, s32);
-void func_802A5720(void);
-void func_80261570(f32);
-void func_802BA148(void);
-void func_802B8794(void);
-void func_802683E0(void);
 void func_8024AE2C(void);
-void func_8028A470(void);
 void func_8024B188(void);
 void func_8024B618(void);
-void func_802B899C(void);
-void func_802B8AE4(void);
-void func_8026510C(void);
 void func_8024B7AC(void);
-void func_80294F00(void);
-void func_802BA354(void);
-u32 func_802C1B9C(void);
 void func_8024A92C(u32);
-void func_802D291C(void);
-void func_8029DDC8(void);
-void func_802BC5E0(void);
 void func_8024B5E8(void);
-void func_8028F794(u8);
-void func_80291FAC(u8);
-void func_802688C4(s32);
-void func_8026FEC4(void);
-void func_80281CE4(void);
-void func_80297804(s32, s32, s32);
-void func_8029E0AC(void);
 void func_8024A348(void);
 void func_8024ADD8(void);
-void func_802794A4(void);
-void func_802A5510(s32);
-void func_802BD1F8(void *, void *, void *, void *, void *, void *, void *, void *);
-void func_80295C70(s32, s32, s32);
-void func_802A4CDC(s32, s32, s32, s32, void *);
-void func_8027E9B8(u8);
-void func_802C0574(void);
-void func_802BCA2C(void);
-void func_8028DF14(u8);
-void func_802906C0(u8);
-void func_80292830(void);
-void func_8028C874(u8);
-void func_8026420C(void);
-void func_80262BF4(void);
-void func_802A64A4(void);
-void func_802886A0(void);
-void func_802CF1A4(void);
-void func_80279514(s32, s32, s32, s32, s32, s32);
-void func_80277620(u32);
-void func_8027D810(s32);
-void func_802C2054(void);
-void func_8026A9B4(void);
 Gfx *func_8024C414(DynamicBuf *, s32 *);
-Gfx *func_802639B4(Gfx *, DynamicBuf *, s32 *);
-Gfx *func_8025C878(Gfx *, DynamicBuf *, u8, s32 *);
-Gfx *func_80295EFC(DynamicBuf *, Gfx *, s32, s32, s32);
-Gfx *func_8029A1A8(DynamicBuf *, Gfx *);
-void func_8025C5D0(void);
-Gfx *func_8024C404(Gfx *, DynamicBuf *, s32 *);
-s32 func_802D4E10(s32);
-Gfx *func_8029A518(DynamicBuf *, Gfx *);
-Gfx *func_80274BF0(DynamicBuf *, Gfx *);
-Gfx *func_8026BBD0(Gfx *, DynamicBuf *, s32 *);
 void func_8024BDA4(u16 *);
-void func_802A57AC(void);
 #define LEVEL_DONE(l) (D_80364AF0[D_80364AE8].unk18[l] > 0 && D_80364AF0[D_80364AE8].unk18[l] < 6) ? 1 : 0
 
 /* (end of declarations) */
@@ -1850,7 +1503,11 @@ void func_802475D8(void) {
         if (D_80364A90 & 0x104) {
             func_80297804(D_803643E0, D_803643E4, D_803643E8);
         }
+#ifdef NON_MATCHING
+        func_8029E0AC(LEAKED(s8));
+#else
         func_8029E0AC();
+#endif
         if ((D_80364A90 & 0x104) && (D_80364AA8 & 1)) {
             func_8024A348();
             func_8024ADD8();
@@ -2354,10 +2011,18 @@ s32 func_8024AFA8(s32 id) {
             func_802BB054();
             break;
         case 7:
+#ifdef NON_MATCHING
+            func_802BBDC8(LEAKED(a0));
+#else
             func_802BBDC8();
+#endif
             break;
         case 8:
+#ifdef NON_MATCHING
+            func_802B76AC(LEAKED(a0));
+#else
             func_802B76AC();
+#endif
             break;
         case 9:
             func_802C5714();
@@ -2368,16 +2033,32 @@ s32 func_8024AFA8(s32 id) {
         case 11:
         case 17:
         case 18:
+#ifdef NON_MATCHING
+            func_802C8AB0(LEAKED(a0));
+#else
             func_802C8AB0();
+#endif
             break;
         case 13:
+#ifdef NON_MATCHING
+            func_802CBA94(LEAKED(a0));
+#else
             func_802CBA94();
+#endif
             break;
         case 14:
+#ifdef NON_MATCHING
+            func_802CCC8C(LEAKED(a0));
+#else
             func_802CCC8C();
+#endif
             break;
         case 15:
+#ifdef NON_MATCHING
+            func_802CFA0C(LEAKED(a0));
+#else
             func_802CFA0C();
+#endif
             break;
         case 16:
             func_802D0C68();
@@ -2545,7 +2226,6 @@ u8 func_8024B4B8(void) {
     }
 }
 
-void func_802AB670(s32 arg0);
 extern u8 D_803ED3F5;
 extern u8 D_80364456;
 
@@ -2569,10 +2249,18 @@ void func_8024B618(void) {
                         func_802B5FAC();
                         break;
                     case 1:
+#ifdef NON_MATCHING
+                        func_802B02A0(LEAKED(fp));
+#else
                         func_802B02A0();
+#endif
                         break;
                     case 4:
+#ifdef NON_MATCHING
+                        func_802B46C4(LEAKED(fp));
+#else
                         func_802B46C4();
+#endif
                         break;
                     case 8:
                         func_802B77A0();
@@ -2584,13 +2272,26 @@ void func_8024B618(void) {
                         func_802CCD80();
                         break;
                     case 15:
+#ifdef NON_MATCHING
+                        func_802CFB00(LEAKED(fp), LEAKED(a3), LEAKED(f12), LEAKED(f14), LEAKED(f20), LEAKED(f22), LEAKED(f24),
+                                      LEAKED(f26));
+#else
                         func_802CFB00();
+#endif
                         break;
                     case 9:
+#ifdef NON_MATCHING
+                        func_802C5860(LEAKED(fp));
+#else
                         func_802C5860();
+#endif
                         break;
                     case 3:
+#ifdef NON_MATCHING
+                        func_802B2FA0(LEAKED(fp));
+#else
                         func_802B2FA0();
+#endif
                         break;
                     default:
                         func_8029A7E4("MOVEABLE GEOMETRY MOVE ROUTINE NOT WRITTEN YET\n");
@@ -2611,16 +2312,33 @@ void func_8024B7AC(void) {
             func_802AEEC8();
             break;
         case 1:
+#ifdef NON_MATCHING
+            func_802B03F4(LEAKED(t6), LEAKED(t7), LEAKED(s0), LEAKED(s1), LEAKED(s2), LEAKED(s3), LEAKED(s4));
+#else
             func_802B03F4();
+#endif
             break;
         case 2:
+#ifdef NON_MATCHING
+            func_802B152C(LEAKED(t6), LEAKED(t7), LEAKED(s0), LEAKED(s1), LEAKED(s2), LEAKED(s3), LEAKED(s4),
+                          LEAKED(f14), LEAKED(f20), LEAKED(f22), LEAKED(f24), LEAKED(f26));
+#else
             func_802B152C();
+#endif
             break;
         case 3:
+#ifdef NON_MATCHING
+            func_802B327C(LEAKED(t6), LEAKED(t7), LEAKED(s0), LEAKED(s1), LEAKED(s2), LEAKED(s3), LEAKED(s4));
+#else
             func_802B327C();
+#endif
             break;
         case 4:
+#ifdef NON_MATCHING
+            func_802B49AC(LEAKED(t6), LEAKED(t7), LEAKED(s0), LEAKED(s1), LEAKED(s2), LEAKED(s3), LEAKED(s4));
+#else
             func_802B49AC();
+#endif
             break;
         case 5:
             func_802B6294();
@@ -2652,10 +2370,20 @@ void func_8024B7AC(void) {
             func_802CD068();
             break;
         case 15:
+#ifdef NON_MATCHING
+            func_802CFDE8(LEAKED(t6), LEAKED(t7), LEAKED(s0), LEAKED(s1), LEAKED(s2), LEAKED(s3), LEAKED(s4),
+                          LEAKED(f14), LEAKED(f20), LEAKED(f22), LEAKED(f24), LEAKED(f26));
+#else
             func_802CFDE8();
+#endif
             break;
         case 16:
+#ifdef NON_MATCHING
+            func_802D0F98(LEAKED(t6), LEAKED(t7), LEAKED(s0), LEAKED(s1), LEAKED(s2), LEAKED(s3), LEAKED(s4),
+                          LEAKED(f14), LEAKED(f20), LEAKED(f22), LEAKED(f24), LEAKED(f26));
+#else
             func_802D0F98();
+#endif
             break;
     }
 }
@@ -3516,11 +3244,6 @@ extern s16 D_803FCD68;
 f32 func_80254E54(f32, f32, f32, f32, f32, f32);
 void func_80255034(s32, f32, s32 *, s32 *);
 void func_80255190(void);
-f32 func_802574F0(f32);
-f32 func_80257514(f32);
-s32 func_802AD7D4(s32);
-void func_802CE4F0(s32, s32, s32);
-void func_802CE5BC(s32, s32, s32, s32, s32, s32);
 
 #define SINE(a) func_802574F0((f32) (s16) (a) / 16384.0f * 1.5708)
 #define COSINE(a) func_80257514((f32) (s16) (a) / 16384.0f * 1.5708)

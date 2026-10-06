@@ -1,11 +1,11 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 extern u32 D_802E8BEC;
 extern s32 D_80358060;
 extern u64 D_80364A90;
 extern u8 D_80366A18;
-void func_8026AF6C(s32);
 
 void func_8025C5D0(void) {
     switch (D_802E8BEC) {
@@ -221,7 +221,6 @@ extern u8 D_00487050[];
 extern u8 D_00489E70[];
 extern u8 D_0048F5A0[];
 extern u32 D_80366BB0[];
-void func_8028B4C4(void *, void *, s32 *, s32, s32, s32);
 
 void func_8025D0B0(u8 arg0) {
     void *rom;
@@ -445,7 +444,6 @@ Gfx *func_8025D2B4(Gfx *arg0, s32 arg1, s32 *arg2) {
 }
 
 extern Mtx D_02000000[];
-void func_8024FC2C(Gfx **, s32);
 
 void func_8025E1E0(Gfx **arg0) {
     Gfx *gfx = *arg0;
@@ -476,20 +474,6 @@ extern void *D_80367734;
 extern void *D_80367738;
 extern u32 D_80367740;
 extern u32 D_802E8CD0[];
-s32 func_802753C0(void);
-void func_802C1DD0(s32);
-void func_802609F0(void);
-void func_80260A10(void);
-void func_80260E2C(void);
-void func_80260DFC(void);
-void func_80260EE0(s32);
-void func_8026AF6C(s32);
-s32 func_8026205C(s32);
-void *func_80260650(void *, s16, void *);
-void func_80278318(void);
-void func_80277EDC(s32, s32, s32, s32);
-s32 func_802D4E10(void *);
-void func_80275270(u64, f32);
 
 void func_8025E2CC(Gfx **arg0, s32 arg1, s32 arg2) {
     Gfx *gfx;
@@ -569,14 +553,6 @@ extern u8 D_80366BC5;
 extern u8 D_80364AE8;
 extern u8 D_80364AF0[][256];
 extern u64 D_80364A98;
-void func_802609D0(void);
-void func_802C1DD0(s32);
-void *func_80260650(void *, s16, void *);
-void func_80261570(f32);
-void func_8026AF6C(s32);
-s32 func_8026B10C(void);
-s32 func_802753C0(void);
-void func_80275390(u64);
 
 void func_8025E67C(Gfx **arg0, s32 arg1, u8 arg2) {
     Gfx *gfx;

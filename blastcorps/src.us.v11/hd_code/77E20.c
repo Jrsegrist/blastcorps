@@ -1,6 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
-#include "game/regs.h"
+#include "game/game.h"
 
 extern void *D_80358074;
 
@@ -39,7 +39,7 @@ typedef struct {
     /* 0x48 */ s32 unk48; /*   and their end */
 } Unk802C1DD0Info;
 
-typedef struct {
+typedef struct Unk802C1DD0Entry {
     /* 0x00 */ Unk802C1DD0Info *info;
     /* 0x04 */ void *unk4;  /* its collision triangles (Unk803B9890), func_802BF668 */
     /* 0x08 */ void *unk8;  /*   and their end */
@@ -81,7 +81,7 @@ typedef struct {
 extern Unk80306480 D_80306480[];
 
 /* A collision triangle (func_802BD99C keeps its plane up to date). */
-typedef struct {
+typedef struct Unk803B9890 {
     /* 0x00 */ s64 normal[3]; /* unnormalised: cross product of two edges */
     /* 0x18 */ s64 d;         /* -(normal . vertex 1) */
     /* 0x20 */ f32 len;       /* |normal| */
@@ -103,7 +103,7 @@ typedef struct {
 
 /* What func_802BD85C/func_802BD99C get in v0: a model header and a range of
  * its triangles. */
-typedef struct {
+typedef struct Unk802BD99CModel {
     /* 0x00 */ u8 *data;
     /* 0x04 */ Unk803B9890 *start;
     /* 0x08 */ Unk803B9890 *end;
@@ -117,19 +117,13 @@ extern s32 D_803EF6E0;
 extern s32 D_803EF6E4;
 
 /* Callees in other files (C rewrites; see conventions.txt for their asm registers). */
-s32 func_802ABCDC(s32 ax, s32 ay, s32 az, s32 bx, s32 by, s32 bz); /* 62740: rounded 3-D distance */
-s32 func_8029D210(s32 sub);                  /* 56040: unk51 of the D_803B9890 entry with id sub */
-void func_802ACA60(s32 x, s32 y, s32 z, s32 *m); /* 679E0: 16.16 translation matrix */
-void func_802AC8CC(u16 *m);                  /* 679E0: 16.16 matrix to Mtx layout, in place */
 
 /* Rewritten in this file (see conventions.txt for their asm registers). */
 s32 func_802BC714(void);
 s32 func_802BC7DC(void);
-s32 func_802BCD80(s32 value);
 s32 func_802BD064(Unk802C1DD0Entry *next);
 s32 func_802BFB50(s32 lo, s32 hi);
 void func_802BFBF4(Unk802C1DD0Entry *e, s32 *obj);
-void func_802C04F0(u32 *src);
 void func_802C1214(u8 *base, Unk802C1DD0Entry *e);
 
 /* The 0x38-byte debris record that func_802BF978, func_802BFDAC (and 8A2E0's
@@ -217,7 +211,6 @@ extern u8 D_802E8BD8;
 extern u8 D_803649E8;
 extern u64 D_80364A90; /* game mode */
 extern u64 D_80364A98; /* next game mode */
-void func_80275390(u64);
 
 /* If D_803F7805 is set, clears it and, unless D_803643DB or D_80364AC1 is set
  * and the level isn't finished yet, marks it finished (D_803643DA and
@@ -348,7 +341,6 @@ void func_802BC840(void) {
 
 /* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-s32 func_8026A8E0(s32 lo, s32 hi);
 
 /* D_803F7690 holds 40 8-byte counters {s32 id; u16 amount; u8 kind; u8 timer},
  * a nonzero timer marking a slot in use. Adds `amount` to the used slot with
@@ -388,13 +380,6 @@ extern u8 D_803643D6;
 extern u8 D_803643D7;
 extern u8 D_802E8BE4; /* screen shake time */
 extern s32 D_802E8BE8; /* screen shake size */
-void func_802BF384(Unk802C1DD0Entry *e);
-void func_802BF534(Unk802C1DD0Entry *e);
-void func_802BF668(Unk802C1DD0Entry *e);
-void func_802BF898(Unk802C1DD0Entry *e, s32 part, s32 level);
-void func_802C09B8(s32 id, Unk802C1DD0Entry *e);
-void func_802C0E8C(s32 id, Unk802C1DD0Entry *e);
-void func_802C1438(Unk802C1DD0Entry *e, s32 index);
 
 /* Delayed damage: for each of the 40 D_803F7690 entries {object, u16 amount,
  * u8 part, u8 timer} with a running timer, counts it down; on reaching 0 the
@@ -788,11 +773,7 @@ extern s16 D_803C30A8[]; /* visible object ids, ended by -1 */
 extern u8 D_8035805C;    /* frame index */
 extern u8 D_802E8BE4;    /* screen shake time */
 extern s32 D_802E8BE8;   /* screen shake size */
-void func_802933A0(s32 x, s32 y, s32 z, s32 type, Mtx *mtx, void *state, Gfx *gfx1, Gfx *gfx2, s32 idx,
-                   s32 arg9, s32 arg10, s32 arg11); /* 4EBE0 */
 void func_802BD85C(Unk802BD99CModel *model, s32 id);
-s32 func_802BD8C8(void);
-void func_802BD99C(Unk802BD99CModel *model, s32 dx, s32 dy, s32 dz);
 void func_802BDDB4(Unk802C1DD0Entry *obj, u8 *rec, u8 *end);
 u32 *func_802BE228(u32 *src, u32 *srcEnd, u32 *dst, u8 *tbl, u8 *tblEnd);
 u32 *func_802BE3C8(u32 *src, u32 *srcEnd, u32 *dst, u8 *tbl, u8 *tblEnd);
@@ -1067,7 +1048,6 @@ void func_802BD85C(Unk802BD99CModel *model, s32 id) {
 #ifdef NON_MATCHING
 /* 409D0.c defines it as u8; declared s32 here because the asm tests the whole
  * of v0 (the u8 callee leaves the upper bits clear anyway). */
-s32 func_80286090(s32 level);
 
 /* Returns 1 on level 0x32 when func_80286090(level) returns 0, else 0. The
  * asm returns in t1 and preserves every other register it touches; asm
@@ -1206,7 +1186,6 @@ void func_802BD99C(Unk802BD99CModel *model, s32 dx, s32 dy, s32 dz) {
 extern s32 D_803643F8; /* player x, z (<< 11) */
 extern s32 D_80364400;
 extern u64 D_803649D8; /* frame time */
-s32 func_802AD7FC(u32 sine); /* arcsine (69000.c) */
 
 /* An animation channel record (0xC bytes, then n words). */
 #define ANIM_N(r) ((r)[4])                     /* frame count */
@@ -1436,12 +1415,6 @@ u32 *func_802BE3C8(u32 *src, u32 *srcEnd, u32 *dst, u8 *tbl, u8 *tblEnd) {
 #ifdef NON_MATCHING
 extern s32 *D_803F3964; /* matrix pool cursor (0x40-byte 16.16 matrices) */
 extern s32 D_803F38D0[]; /* scratch 16.16 matrix */
-void func_802AC8CC(u16 *m);                       /* 679E0 */
-void func_802ACA60(s32 x, s32 y, s32 z, s32 *m);
-void func_802ACAC4(s32 angle, s32 *m);
-void func_802ACB50(s32 angle, s32 *m);
-void func_802ACBDC(s32 angle, s32 *m);
-void func_802ACCCC(s32 *b, s32 *m);
 
 /* Builds the matrix of one moving part of object e in the next pool slot
  * (D_803F3964, advanced by 0x40) and returns its address - 0x80000000. off
@@ -1506,16 +1479,8 @@ s32 func_802BE574(Unk802C1DD0Entry *e, s32 off, s32 dy) {
 #ifdef NON_MATCHING
 /* Callees of func_802BE77C / func_802BEADC / func_802BEBB0 (C rewrites; see
  * conventions.txt for their asm registers). */
-s32 func_8029C160(s32 x, s32 y, s32 z, s32 r, u8 *tri, s32 *hit); /* 56040 */
-void func_8029C0DC(u8 *tri, s32 px, s32 py, s32 pz, s32 *out);     /* 56040 */
-s32 func_8029BF64(s32 bu, s32 bv, s32 cu, s32 cv, s32 au, s32 av, s32 pu, s32 pv); /* 56040 */
-s32 func_8029BD0C(s32 x, s32 y, s32 z, s32 r, u8 *tri);           /* 56040 */
-s32 func_8029BEE4(s32 x, s32 y, s32 z, s32 r, u8 *tri);           /* 56040 */
-s32 func_8029CFA4(s32 pz, s32 r1, s32 qx, s32 qy, s32 px, s32 py, s32 qz, s32 r2); /* 56040 */
 void func_802BCC48(void);
-void func_802BCCD4(s32 value);
 s32 func_802BCDE0(s32 value);
-s32 func_802BD8C8(void);
 s32 func_802BE944(Unk802C1DD0Entry *e, s32 bit);
 void func_802BE9F8(void);
 void func_802BEA30(s32 a, s32 b);
@@ -1524,17 +1489,8 @@ void func_802BEADC(s32 x, s32 y, s32 z, s32 r, Unk802C1DD0Entry *e, s32 id);
 void func_802BEBB0(s32 id, Unk802C1DD0Entry *e, Unk803B9890 *tri);
 void func_802BEF9C(Unk802C1DD0Entry *e);
 void func_802BEFF4(void);
-void func_802BF1F0(Unk802C1DD0Entry *e, s32 id);
-void func_802BF264(Unk803B9890 *t);
-void func_802BF384(Unk802C1DD0Entry *e);
-void func_802BF534(Unk802C1DD0Entry *e);
-void func_802BF668(Unk802C1DD0Entry *e);
-void func_802BF898(Unk802C1DD0Entry *e, s32 part, s32 level);
 void func_802BFEE4(u8 *vehicle);
 s32 func_802BFF6C(s32 id, s32 value, s32 bit, Unk802C1DD0Entry *e, s32 flag, s32 key);
-void func_802C09B8(s32 id, Unk802C1DD0Entry *e);
-void func_802C0E8C(s32 id, Unk802C1DD0Entry *e);
-void func_802C1438(Unk802C1DD0Entry *e, s32 index);
 extern u8 D_803BE738;
 extern s32 D_80358068;
 extern s32 D_803F77F8;
@@ -2039,7 +1995,6 @@ void func_802BF1F0(Unk802C1DD0Entry *e, s32 id) {
 extern s32 D_803A73F0; /* a point x, y, z (each >> 2 here) */
 extern s32 D_803A73F4;
 extern s32 D_803A73F8;
-void func_8029B7CC(s32 a, s32 b); /* 56040 */
 
 /* For a collision triangle t with unk58 set: s = t's plane function at the
  * point D_803A73F0/F4/F8 >> 2 (normal . p + d, 64-bit, wrapping where the
@@ -2078,7 +2033,6 @@ void func_802BF264(Unk803B9890 *t) {
 #ifdef NON_MATCHING
 /* 20460.c defines it with s16 coordinates and a u8; the asm passes the
  * unsliced shifted words, so it is declared with full words here. */
-void func_80264CB4(s32 x, s32 y, s32 z, s32 size, s32 arg4, s32 arg5);
 
 /* If exactly one of e's unkE9 parts is done (unkEC byte == 100), calls
  * func_80264CB4(x >> 5, y >> 5, z >> 5, unkC >> 5, unkE8, info->unk6), the
@@ -2163,7 +2117,6 @@ void func_802BF534(Unk802C1DD0Entry *e) {
 extern u16 D_803649E0; /* x, y, z stored for a part that falls */
 extern u16 D_803649E2;
 extern u16 D_803649E4;
-void func_802BF1F0(Unk802C1DD0Entry *e, s32 id);
 
 /* The u16 at byte offset `off` of entry e, for part index i (0-based; a part
  * byte of 0 gives -1, as in the asm). Four tables of 16: 0x48 = "fallen"
@@ -2380,7 +2333,6 @@ void func_802BF978(Unk802C1DD0Entry *e, s32 index, s32 level, Unk802C1DD0Info *i
 
 /* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-s32 func_8026A828(s32 lo, s32 hi);
 
 /* func_8026A828(lo, hi) (a random number in a range) for asm callers: the asm
  * passes a0/a1 through, returns the result in s4 and preserves every other
@@ -2397,7 +2349,6 @@ s32 func_802BFB50(s32 lo, s32 hi) {
 #ifdef NON_MATCHING
 extern s8 D_8030633C[]; /* -1 terminated */
 extern u64 D_803649D8;  /* frame time */
-s32 func_80288284(u8 type, s32 x, s32 y, s32 z, s32 floor);
 
 /* Unless e's info type is 1, and if obj's byte 0x31 is in the list
  * D_8030633C (s8 entries compared with the u8, so 0x80..0xFE never match),
@@ -2538,7 +2489,6 @@ extern void *D_803F77D0;  /* base of the Unk8029DEA0Entry records read by func_8
 extern u8 D_80305E50[];   /* records {u8 bit; u8 key; u8 kind; u8 n; ...}, see below */
 s32 func_802C0284(s32 bit, s32 flag, s32 *out);
 s32 func_802C038C(s32 id, Unk802C1DD0Entry *e);
-void func_802A04BC(s32 idx, void *base, s32 *out); /* 56040 */
 
 /* Damage amount for part `id` of e hit with `value` under rule (bit, key):
  *   bit 0xFF: 100 if flag is 1, else 0 (nothing stored);
@@ -2793,10 +2743,6 @@ void func_802C04F0(u32 *src) {
 /* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-s32 func_802A6274(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32 z, s32 w24, s32 w28,
-                  s32 w18, s32 w1C, s32 w2C, s32 b35);
-void func_802619D0(u32 id);
-void func_802C18D4(s32 x, s32 y, s32 z, s32 radius, s32 amount);
 
 extern u8 *D_80306270[];  /* per kind: {u8 n; u8 defIndex[n]} */
 extern u8 *D_802C3FFC[];  /* effect definitions, in the 7D9D0 text blob */
@@ -3232,7 +3178,6 @@ extern u8 D_803F1BE0[]; /* 2 entries of 0x478 bytes */
 extern Mtx *D_803F7658; /* 2 matrices for them */
 /* 23C20.c defines it with s16 parameters; the asm passes rx as a full
  * u16 + u16 sum and ry zero-extended, so it is declared with words here. */
-void func_8026A454(s32 x, s32 y, s32 z, s32 rx, s32 ry, Mtx *m);
 
 /* Updates and draws the 2 D_803F1BE0 entries into two display lists. An
  * inactive entry (byte 0x470 clear) counts its byte 0x472 down to 0. An
@@ -3471,7 +3416,6 @@ void func_802C1438(Unk802C1DD0Entry *e, s32 index) {
 
 /* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-s32 func_8029CFA4(s32 pz, s32 r1, s32 qx, s32 qy, s32 px, s32 py, s32 qz, s32 r2); /* 56040 */
 void func_802BC888(s32 kind, s32 id, s32 amount);
 
 /* Blast damage: for every D_803F4030 entry (up to D_803F7654, walked with

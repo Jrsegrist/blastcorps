@@ -1,15 +1,14 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /*
  * bestTimes.c (assert file name at 0x8020FF70): the best-times screen, a
  * menu of 4 rows per level (one per player) built from the save records.
  */
 
-void func_8029A7E4(const char *fmt, ...); /* debug printf */
 int sprintf(char *, const char *, ...);
 void bcopy(const void *, void *, int);
-s32 func_8025B300(u8 *);                  /* strlen */
 
 #define BT_ASSERT(EX, line) \
     if (!(EX)) func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "bestTimes.c", line)
@@ -86,20 +85,9 @@ extern char D_8020D800[][4];
 #define playerNumberAtStart D_80364AEA
 #define frontEndPresent D_80370C50
 
-void *func_80260650(void *arg0, s16 arg1, void *arg2);
-void func_801E8EB8(u8, s32);
-s32 func_801EF2BC();
-void func_801FDE50(void);
-void func_80264A34(char *buf, u16 t, s32 arg2);
-void func_802595E0(u8 *base, s32 n, s32 size, s32 (*cmp)(void *, void *));
-Gfx *func_80272ED8(Gfx *gdl, u8 slot, s16 x, s16 y, u8 alpha, u8 mode, f32 scale);
-Gfx *func_80274868(Gfx *);
-Gfx *func_80274AA4(Gfx *);
 s32 func_801F7F74(u8 lvl);
 s32 func_801F7FF4(MenuItem *a, MenuItem *b);
 s32 func_801F81B4(u8 pn);
-void func_801F8228(void);
-void func_801F8354(u8 pn);
 
 /* build the best-times menu */
 void func_801F7850(void) {

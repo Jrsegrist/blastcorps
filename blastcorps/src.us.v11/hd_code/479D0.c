@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* Collectible boxes: each is an axis-aligned textured cube (8 vertices) built
  * from a per-type table, collected when the player comes within range, then
@@ -22,7 +23,7 @@ typedef struct {
 } BoxType; /* size 0x16 */
 
 /* Input placement record. */
-typedef struct {
+typedef struct BoxSpawn {
     s16 x;
     s16 y;
     s16 z;
@@ -57,11 +58,6 @@ extern s32 D_8039B068;
 extern s16 D_803EDC00;
 extern s16 D_803F8B72;
 
-void func_80260650(s32, s32, s32);
-s32 func_8026A6F0(s32, s32, s32, s32, s32, s32);
-s32 func_802A0CC8(s16, s32);
-void func_802CE880(s32, s32, s32, s32, s32);
-void func_802CE90C(s32);
 
 void func_8028C41C(Vtx *v, u8 type, s16 x, s16 y, s16 z);
 

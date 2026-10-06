@@ -1,14 +1,10 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* back_loop.c: the front end's per-frame loop (menus behind the yoshi windows) */
 
-typedef struct {
-    u8 pad0[0x48B0];
-    Gfx dl[0xB5E];
-    u8 unkA3A0[0x21498 - 0xA3A0];
-} DynamicBuf;
-extern DynamicBuf D_803156F8[];
+extern FeDyn D_803156F8[];
 
 typedef struct {
     u8 pad0[4];
@@ -77,49 +73,6 @@ extern s32 D_80358084;
 extern Gfx D_01000010[];
 extern Gfx D_01000038[];
 
-void func_8029A7E4(const char *, ...);
-void func_80260650(s32, s32, s32 *);
-void func_801EA278(void);
-void func_802608C8(s32);
-void func_8026AF6C(s32);
-s32 func_8026F92C(u64);
-void func_801E8EB8(u8, s32);
-s32 func_801F73FC(void);
-void func_801EA108(u8, s32, s32);
-void func_801E8C40(s32);
-void func_80275390(u64);
-void func_80275270(u64, f32);
-void func_802A5720(void);
-void func_80284E54(Gfx *, s32, s32, s32, s32, s32);
-void func_80259450(void);
-Gfx *func_80200BE0(Gfx *, DynamicBuf *, s32 *);
-Gfx *func_8026BBD0(Gfx *, DynamicBuf *, s32 *);
-void func_80262008(u8, f32);
-void func_80260EE0(u8);
-void func_801E8DCC(u8);
-Gfx *func_801E9718(Gfx *, DynamicBuf *, s32);
-Gfx *func_8025C878(Gfx *, DynamicBuf *, u8, s32 *);
-void func_8028A3E4(void);
-Gfx *func_801ED800(Gfx *, DynamicBuf *, u8, s32 *);
-Gfx *func_80201364(DynamicBuf *, Gfx *);
-Gfx *func_8024C404(Gfx *, DynamicBuf *, s32 *);
-Gfx *func_801EC770(Gfx *, DynamicBuf *, s32 *);
-Gfx *func_801F51C8(DynamicBuf *, Gfx *);
-void func_8028A470(void);
-void func_802862DC(void);
-void func_80259CCC(DynamicBuf *, char *, u16 *, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32);
-void func_80259DC8(DynamicBuf *, char *, u16 *, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32,
-                   s32, s32);
-void func_801F803C(void);
-Gfx *func_801F8440(DynamicBuf *, Gfx *);
-void func_80259C24(Gfx **, DynamicBuf *);
-Gfx *func_80274BF0(DynamicBuf *, Gfx *);
-Gfx *func_801EAA7C(Gfx *, DynamicBuf *, s32 *);
-void func_802A57AC(void);
-s32 func_802753F8(void);
-s32 func_802753C0(void);
-void func_80261570(f32);
-void func_802995F0(s32);
 int sprintf(char *, const char *, ...);
 
 /* Rare's assert; line numbers are the original back_loop.c's */

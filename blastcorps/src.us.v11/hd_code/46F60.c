@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* Analog-stick steering helpers: stick angle/magnitude to steering and
  * direction-button bits. */
@@ -8,7 +9,6 @@
 #define SIGN(x) ((x) >= 0 ? 1 : -1)
 
 f32 sqrtf(f32);
-s32 func_802AD7D4(s32);
 
 extern f32 D_80364414;
 extern s16 D_8036443C;
@@ -23,7 +23,6 @@ extern u8 D_803ED40A;
 extern s16 D_803F7C34;
 
 u16 func_8028BA1C(s16 arg0, s16 arg1, s8 *arg2, u8 arg3);
-f32 func_8028BBF4(s16 arg0, s16 arg1, s16 arg2, s16 arg3);
 f32 func_8028BD88(f32 arg0, f32 arg1);
 
 void func_8028B720(void) {

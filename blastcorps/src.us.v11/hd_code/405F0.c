@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 #include <PR/sched.h>
 
 /* RSP task submission: builds an OSScTask for one of the microcode slots,
@@ -42,8 +43,6 @@ extern OSMesgQueue D_803156D8;
 extern FrameData D_803156F8[];
 extern FrameBuffer D_80000400[];
 
-void func_802D6710(void);
-void func_8029A7E4(const char *, ...);
 
 /* Fill in the microcode table */
 void func_80284DB0(void) {

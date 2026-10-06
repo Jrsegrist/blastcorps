@@ -1,14 +1,11 @@
 #include "common.h"
 #include <ultra64.h>
-#include "game/regs.h"
+#include "game/game.h"
 
 #ifdef NON_MATCHING
 /* Register-block types shared by this file's rewrites (each mirrors the
  * callee's definition in 62740.c / 60F60.c; later per-function copies are
  * guarded out). */
-s32 func_802ABD54(s32 id, s32 x, s32 y, s32 z, ZoneScanRegs *r);
-s32 func_802A6274(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32 z, s32 w24, s32 w28,
-                  s32 w18, s32 w1C, s32 w2C, s32 b35);
 extern u8 D_803EEA90[];  /* vehicle 5's state block (the asm's $gp) */
 extern u32 D_803EEB38[]; /* its position x, y, z */
 extern u64 *D_803EEB48;  /* its two matrix buffers */
@@ -18,9 +15,6 @@ extern u8 D_803ED40B;
 extern u8 D_8035805C;    /* selects which of the two matrix buffers is current */
 void func_802B7030(MtxChainRegs *regs);
 void func_802B7240(void);
-void func_802A133C(s32 a0Val, s32 id, s32 v0Val, s32 v1Val, u8 *obj);
-void func_802A8768(u8 *veh, s32 id, s32 *px, s32 *py, s32 *pz, s32 x, s32 z, s32 divB, s32 divA, s16 *angle,
-                   u8 *flags, s16 *tbl, s32 *a, s32 *b, s32 *c, s32 *ys, Regs802A8768 *r, TriSideOut *f);
 #endif
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
@@ -41,23 +35,6 @@ extern u8 D_803EEB5F;
 extern f32 D_803EEB50;
 extern f32 D_803EEB54;
 extern s16 D_803EEB5C;
-void func_802A1388(s32 a0Val, s32 a1Val, s32 v0Val, s32 v1Val, u8 *hdr);
-void func_802A754C(u8 *veh);
-s32 *func_802A992C(s16 *tbl, s32 y, s32 x, s32 z, s32 *dst, s32 *mid, s16 *angle, s32 key, s32 fpIn, u8 *veh,
-                   TriSideOut *f);
-s32 func_8029F85C(u32 *bufA, u32 *bufB, void *ch, u8 *hdr);
-void func_802A039C(void *base, s32 idx, s32 val);
-void func_802A03D4(void *base, s32 idx, s32 val);
-void func_802A040C(void *base, s32 idx, s32 val);
-void func_802A0480(f32 f, void *base, s32 idx, s32 val);
-void func_802A0290(void *base, s32 idx, s32 val);
-void func_802A0320(s32 idx, void *base);
-void func_8029E558(u8 *base, u8 *other, void *ch);
-void func_802A6F00(u8 *veh);
-void func_8029C354(s32 tag, u8 *p, u8 *end, u32 scale);
-void func_80258230(u8 id, s32 arg1, s16 arg2, s16 arg3);
-void func_802B6294(void);
-void func_802AA838(u8 *src, u8 *dst, s32 off);
 
 /* cvt.w.s under the FCSR's default rounding (nearest, ties to even). */
 #define CVT_W_S_5900(out, x)                                            \
@@ -199,16 +176,6 @@ extern u8 D_802C2208[]; /* keys of this vehicle's func_802A06B4 entries */
 extern u8 D_802C226C[];
 extern s16 D_8036444C;
 extern s16 D_80364450;
-void func_802A0290(void *base, s32 idx, s32 val);
-void func_802A0360(f32 f, void *base, s32 idx, s32 val);
-void func_802A039C(void *base, s32 idx, s32 val);
-void func_802A03D4(void *base, s32 idx, s32 val);
-void func_802A040C(void *base, s32 idx, s32 val);
-void func_802A0508(s32 key, s32 val);
-void func_802A05D0(s32 key, s32 val);
-void func_802A05F8(s32 key, s32 val);
-void func_802A0620(s32 key, s32 val);
-void func_802C4310(s32 arg0, s32 arg1);
 
 /* Enter vehicle type 5 (called from 00000.c / 17210.c): clears byte 0x99 of
  * the state block, sets fields 0x14 / 0x11 / 0x12 of animation channels 1, 2,
@@ -275,8 +242,6 @@ s32 func_802B5F04(void) {
 #ifdef NON_MATCHING
 extern u64 *D_803EEB48; /* save copy pair (func_802A7764) */
 extern u64 *D_803EEB4C;
-void func_802A7764(u64 *a, u64 *b, s32 size);
-void func_802C444C(void);
 
 /* Leave vehicle type 5 (called from hd.c): zeroes the speed (s16 at +0x76 of
  * the state block), func_802A7764(D_803EEB48, D_803EEB4C, 0x800), then
@@ -292,8 +257,6 @@ void func_802B5F60(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-s32 func_802A9A60(s16 *tbl, s32 y, s32 x, s32 z, s32 *dst, s32 *mid, s16 *angle, s32 key, s32 fp, u8 *veh,
-                  TriSideOut *f, Out802A9A60 *out);
 
 /* Place vehicle 5 on the ground at its position (called from hd.c's
  * func_8024B618 when the player switches to it): func_802A9A60 fills the
@@ -334,7 +297,6 @@ void func_802B5FAC(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-s32 func_802ABD54(s32 id, s32 x, s32 y, s32 z, ZoneScanRegs *r);
 extern u32 D_803EEB38[]; /* x, y, z */
 /* Zone level lookup (func_802ABD54) for vehicle id 5 at its position
  * D_803EEB38..+8; returns func_802ABD54's v1 (the zone list end).
@@ -350,10 +312,6 @@ s32 func_802B60BC(ZoneScanRegs *r) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-void func_802AAD0C(s32 id, s32 x, s32 z, InterpRegs *r);
-void func_802AAE54(s32 id, s32 x, s32 z, InterpRegs *r);
-s32 func_802A94A4(s32 index, s16 *tbl, s16 *angle, s32 *dz);
-s32 func_802AB9A4(s16 *tbl, s32 x1, u16 *angle, s32 id, s32 z1, s32 x2, s32 z2, s32 *s3Out, InterpRegs *r);
 
 /* Path-following setup for vehicle 5 (asm caller func_802AB50C, record
  * kind 5): the value pair at its position on triangle `id` (func_802AAD0C)
@@ -467,37 +425,9 @@ extern s16 D_8036443C;
 extern s16 D_8036443E;
 extern s16 D_80364440;
 s32 func_802B60BC(ZoneScanRegs *r);
-void func_802A75DC(u8 *veh, u8 *src, s32 *w0, s32 *w1, s32 *w2);
 void func_802B6C28(void);
-void func_802CB690(u8 *state);
 s32 func_802B7168(void);
-void func_802A7834(s32 rate, u16 *angle, u8 *veh, s16 *speed, s32 mode, u8 *flags, s16 *bands, s32 delta);
-void func_802A7FD8(u8 *veh, u16 *heading, s32 rate, s16 *speedp, u16 *target, u16 *out, s8 *flag, s32 sound);
-f32 func_802A83B8(s16 *div, u8 *f, s32 *p, f32 *out);
-void func_802A843C(u8 *veh, s16 *speed, s32 kind, s8 *f, s32 *p, s32 clamp, f32 div);
-void func_802A7070(u8 *veh, s16 *angle);
-s32 func_802A860C(f32 f, s32 angle, s16 *len, s32 *px, s32 *pz, Out802A860C *out);
-void func_8029E558(u8 *base, u8 *other, void *ch);
-u8 func_802794F0(void);
-void func_80278EB0(s32 n, f32 scale, s32 arg2);
-void func_802794A4(void);
 void func_802B69F8(void);
-s32 func_802A5ED0(void);
-void func_802AC284(s32 *px, s32 *py, s32 *pz);
-void func_8029A800(s32 z, s32 a1, s32 b2, s32 b3, s32 x, s32 y, s32 b0, s32 h1, s32 h2, s32 b4, s32 b8,
-                   u8 *veh);
-void func_8029C52C(s32 tag, u8 *veh);
-void func_8029AA10(s32 kind);
-void func_8029A914(u8 *veh);
-s32 func_802A6F6C(void);
-void func_802BE77C(s32 id, u8 *vehicle);
-u64 *func_802A768C(u8 *veh, u8 *dst, s32 *w0, s32 *w1, s32 *w2, u64 *src, u64 *dst2, s32 size, u64 **dst2End);
-void func_802A70D8(u8 *veh);
-s32 func_802A71DC(u8 *veh, s32 cur, s32 target, s32 *curOut, f32 scale);
-s32 func_802A746C(u8 *veh, s32 delta, s32 v1, s32 *targetOut);
-void func_802A6FE4(u8 *veh, s32 limit);
-void func_802AC2A4(s32 z, s32 a1, s32 x, s32 y, s32 b0, s32 id, u8 *vehicle);
-void *func_80260650(void *arg0, s16 arg1, void *arg2);
 
 #define VEH5(off, T) (*(T *) (D_803EEA90 + (off)))
 
@@ -738,8 +668,6 @@ globals:
 
 extern u32 D_803EEB38[]; /* [0], [2]: trail x, z */
 extern f32 D_803EEB54;   /* left/right balance, 0.5 = centred */
-void func_8027BE7C(u8 period, s32 y, s16 x1, s16 z1, s16 x2, s16 z2, s32 x, s32 z, s16 yaw, u8 halfw, u8 a,
-                   u8 b, u8 d);
 
 /* Tyre trail (shape of func_802B3C68 in 6E200; $gp = D_803EEA90). The two
  * sides' a/b values are 40 -+ d, where d = round(|D_803EEB54 - 0.5| * 2 *
@@ -793,13 +721,7 @@ extern u8 D_80370C15;    /* button bytes */
 extern u8 D_80370C16;
 extern u8 D_80370C1C;
 extern u8 D_80370C23;
-void func_802A0360(f32 f, void *base, s32 idx, s32 val);
-void func_802A039C(void *base, s32 idx, s32 val);
-void func_802A03D4(void *base, s32 idx, s32 val);
-void func_802A05A4(f32 f, s32 key, s32 val);
-s32 func_802A7CB0(u8 *veh, s32 range);
 f32 func_802B71DC(s32 side);
-void func_802C4584(s32 level);
 
 /* Moves f by step towards 0.5, stopping at 0.5 (NaN stays NaN). */
 #define TOWARDS_HALF(f, step)       \
@@ -939,9 +861,6 @@ void func_802B6C28(void) {
 extern u8 D_8035805C;   /* selects which of the two matrix buffers is current */
 extern s16 D_803ED392;  /* model rotation y (62740.c) */
 extern u8 *D_803EEB44;  /* this vehicle's model header */
-void func_802AA764(s32 x, s32 y, s32 z, s32 scale, s32 *m);
-void func_8029C454(s32 x, s32 y, s32 z, s32 tag, u8 *p, u8 *end, u8 *base, MtxChainRegs *regs);
-void func_802ABBEC(s32 id, s16 *p, s16 *end, u8 *base, MtxChainRegs *regs);
 
 /* Rebuilds vehicle 5's model matrices and collision points. The model
  * header D_803EEB44 holds offsets (from the header) to: the part records at
@@ -1064,8 +983,6 @@ void func_802B7240(void) {
 #ifdef NON_MATCHING
 extern u8 D_803EEA90[];  /* this vehicle's state block: 0xA6 bytes are (de)serialized */
 extern u32 D_803EEB38[]; /* plus these three words */
-s32 func_802AC7DC(u8 *dst, u8 *src, u32 *words);
-void func_802AC85C(u8 *src, u8 *dst, u32 *words);
 
 /* Serialize this vehicle's state (D_803EEA90[0..0xA5] plus the three words
  * D_803EEB38[0..2]) into `dst` via func_802AC7DC. Returns the callee's result

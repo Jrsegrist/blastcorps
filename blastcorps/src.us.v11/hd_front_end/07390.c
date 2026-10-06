@@ -1,14 +1,9 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
-/* hd_code 00000.c's per-frame-buffer work area, 0x21498 bytes */
-typedef struct {
-    u8 pad0[0x48B0];
-    Gfx dl[0xB5E]; /* TOPLEVEL_DL_SIZE */
-    u8 unkA3A0[0x21498 - 0xA3A0];
-} DynamicBuf;
 
-extern DynamicBuf D_803156F8[];
+extern FeDyn D_803156F8[];
 extern u8 D_8035805C;         /* current frame buffer index */
 extern s32 D_80358080;        /* nextdma */
 extern s32 D_80358084;        /* no_palette_dmas */
@@ -21,22 +16,13 @@ extern OSMesgQueue D_80315180; /* texture DMA queue */
 extern Gfx D_01000010[];
 extern Gfx D_01000038[];
 
-void func_802A5720(void);
-void func_8025B2B8(void);
-void func_8026AF6C(s32);
-void func_80260A10(void);
-void func_80259450(void);
-void func_80284E54(Gfx *, s32, s32, s32, s32, s32);
-Gfx *func_8026BBD0(Gfx *, DynamicBuf *, s32 *);
-void func_802A57AC(void);
-void func_80285110(s32);
 
 void func_801EE390(void) {
 }
 
 /* draw one front-end frame: a cleared screen plus the yoshi window `arg0` */
 void func_801EE398(s32 arg0) {
-    DynamicBuf *buf;
+    FeDyn *buf;
     Gfx *gdl;
     s32 i;
 

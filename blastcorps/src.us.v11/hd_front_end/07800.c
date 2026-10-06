@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /*
  * stats.c (named by its assert): end-of-level results. Grades the time,
@@ -20,21 +21,6 @@
         gImmp1(pkt, OLD_RDPHALF_CONT, (_SHIFTL(dsdx, 16, 16) | _SHIFTL(dtdy, 0, 16)));       \
     }
 
-/* front-end view of hd_code's per-frame-buffer DynamicBuf (0x21498 bytes) */
-typedef struct {
-    u8 pad0[0x140];
-    Mtx unk140; /* lookat view */
-    u8 pad180[0x1240 - 0x180];
-    Mtx unk1240; /* perspective */
-    Mtx unk1280;
-    Mtx unk12C0;
-    Mtx unk1300;
-    u8 pad1340[0x3C00 - 0x1340];
-    LookAt unk3C00;
-    u8 pad3C20[0x48B0 - 0x3C20];
-    Gfx dl[0xB5E]; /* top-level display list */
-    u8 unkA3A0[0x21498 - 0xA3A0];
-} FeDyn;
 
 /* front-end view of hd_code's Player record (0x100 bytes, D_80364AF0) */
 typedef struct {
@@ -155,23 +141,12 @@ extern u8 D_0048F5A0_end[];
 extern u8 D_0048F970[];
 extern u8 D_0048F970_end[];
 
-void func_8029A7E4(const char *fmt, ...);
 int sprintf(char *, const char *, ...);
-u32 func_802852EC(void);
-s32 func_80286038(u16);
-void func_80295A20(u32);
-void func_80264A34(char *buf, u16 t, s32 arg2);
-u8 func_80272C5C(u16 *ids, s32 arg1, u8 count, u8 frames, u8 flags, f32 scale);
-void func_801E8DCC(u8);
-void func_801F4E70();
-void func_8028B4C4(void *, void *, s32 *, s32, s32, s32);
-u8 func_801EEDB4();
-u8 func_801EF2BC();
-void func_8028A470(void);
-void func_8028A3E4(void);
-void func_80284E54(Gfx *, s32, s32, s32, s32, s32);
-void *func_80260650(void *, s16, void *);
-Gfx *func_801F4FBC(FeDyn *, Gfx *);
+#ifdef NON_MATCHING
+u8 func_801EEDB4(u8 arg0, u8 arg1, u8 arg2);
+#else
+u8 func_801EEDB4(); /* K&R */
+#endif
 
 #define levelno D_802E8BDC
 #define DUMMY_LEVELS(l) ((l) == 49 || (l) == 47 || (l) == 38)
@@ -259,11 +234,16 @@ u8 func_801EE800(u8 *arg0, u8 arg1, u8 arg2) {
 char *D_802084D0[] = { "YOUR NEW BEST!", "BEST TO DATE", "YOUR BEST STAYS", "GUEST BEST IS" };
 u16 *D_802084E0[] = { D_80303B3C, D_80303B48, D_80303B58, D_80303B68 };
 
-/* Grade a timed level `arg0` and record the best time; returns the grade. */
+/* Grade a timed level `arg0` and record the best time; returns the grade.
+ * K&R in the matching build (its callers pass unmasked ints). */
+#ifdef NON_MATCHING
+u8 func_801EEDB4(u8 arg0, u8 arg1, u8 arg2)
+#else
 u8 func_801EEDB4(arg0, arg1, arg2)
     u8 arg0;
     u8 arg1;
     u8 arg2;
+#endif
 {
     s32 x;
     s32 pad;
@@ -346,10 +326,14 @@ s8 func_801EF1E0(void) {
 }
 
 /* Grade a time against level `arg1`'s thresholds: 4 (best, needs arg2 >= 12) .. 1, else 5. */
+#ifdef NON_MATCHING
+u8 func_801EF2BC(u16 arg0, u8 arg1, u8 arg2)
+#else
 u8 func_801EF2BC(arg0, arg1, arg2)
     u16 arg0;
     u8 arg1;
     u8 arg2;
+#endif
 {
     u8 ret;
     LevelInfo *l;

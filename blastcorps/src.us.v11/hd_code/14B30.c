@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* drawtext.c (from its assert): batched text quads. */
 
@@ -26,13 +27,8 @@ extern u16 D_802E8C94[];
 
 #define VTX(n) D_80365348[D_8035805C][n].v
 
-void func_8029A7E4(char *fmt, ...);
-s32 func_8025B498(s32, u32, u8 *, u16 *);
-u8 *func_8025B0B8(u16 glyph);
-void func_8025B070(void);
 void func_8025946C(Gfx **gdlp, s32 arg1);
 void func_80259824(Gfx **gdlp, s32 arg1);
-void func_802595E0(u8 *base, s32 n, s32 size, s32 (*cmp)(void *, void *));
 void func_802597D8(u8 *dst, u8 *src, s32 n);
 s32 func_80259814(u16 *arg0, u16 *arg1);
 

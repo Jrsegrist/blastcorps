@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* osWritebackDCache: libultra's hand-written os/writebackdcache.s (`cache`
  * ops). Permanently GLOBAL_ASM. */

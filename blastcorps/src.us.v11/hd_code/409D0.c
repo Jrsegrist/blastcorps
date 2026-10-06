@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* stats_perm.c: per-level results (score, time, counts and the best/saved
  * copies), the end-of-level status screen and the status save to the pak. */
@@ -77,25 +78,6 @@ extern u8 D_80370C50;
 extern OSMesgQueue D_80219F50;
 extern u64 D_8039C4B8[]; /* pak buffer */
 
-void func_8029A7E4(const char *, ...);
-void func_802D6A60(char *, const char *, ...);
-void func_80264A34(char *, s32, s32);
-void func_802CF5B0(void);
-void func_80275270(u64, f32);
-void func_802C1DD0(s32);
-s32 func_8026B10C(void);
-void func_8026AF6C(s32);
-void func_80260650(s32, s32, s32);
-void func_80255DC8(void);
-void func_80256A34(void *);
-u32 func_802C4E58(void *, u8);
-void func_802C4BF0(void *);
-void func_80264C20(void *);
-void func_8026AD30(s32 arg0);
-
-u32 func_802852EC(void);
-void func_80285A78(u8 *src, u8 *dst);
-u16 func_8028604C(u32 frames);
 
 #define CUR (D_80364AF0[D_80364AE8])
 #define LEVEL_DONE(l) ((CUR.rank[l] > 0 && CUR.rank[l] < 6) ? 1 : 0)

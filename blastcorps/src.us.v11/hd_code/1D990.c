@@ -1,5 +1,12 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_func_802C1B1C
+#endif /* legacy declarations */
+#include "game/game.h"
 
 /* Level objectives and the HUD's objective/timer text: per-level setup,
  * the countdown intro, and the per-mission-type progress checks */
@@ -169,36 +176,17 @@ extern u8 D_803BE738;
 extern s16 D_8036BB1A;
 extern s16 yoshiState;
 
-void func_802D6A60(char *, const char *, ...);
-void func_8029A7E4(const char *, ...);
-void func_802C1DD0(s32);
-void func_8027EED8(s32, s32, s16 *);
+#ifndef NON_MATCHING
 u8 func_802C1B1C(void);
-u8 func_8026FA38(char **name, s32 *arg1);
-u8 func_80272C5C(u16 *ids, s32 arg1, u8 count, u8 frames, u8 flags, f32 scale);
-void func_8028B4C4(void *, void *, s32 *, s32, s32, s32);
-void func_8026AF6C(s32);
-void func_80260650(void *, s32, s32);
-s32 func_8026205C(s32);
-s32 func_8028604C(s32);
-s32 func_802753C0(void);
-void func_80275270(u64, f32);
-void func_80260A10(void);
-void func_802609F0(void);
+#endif
 void func_80262840(void);
 void func_80262FD0(void);
 void func_8026303C(void);
 void func_80263140(void);
 void func_80263358(void);
 void func_802633E0(void);
-void func_80264A34(char *buf, u16 t, s32 arg2);
 s32 func_8026394C(s16 x, s16 y, s16 x0, s16 y0, s16 x1, s16 y1);
-void func_80259CCC(Gfx **, char *, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32);
-void func_8025E2CC(Gfx **arg0, Gfx **arg1, s32 arg2);
 Gfx *func_80264264(Gfx **, Gfx *);
-Gfx *func_80274868(Gfx *);
-Gfx *func_80274AA4(Gfx *);
-Gfx *func_80272ED8(Gfx *, s32, s32, s32, s32, s32, f32);
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))

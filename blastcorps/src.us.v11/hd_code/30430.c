@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* fade.c (named by its assert). Its .bss (0x8036C770) is defined here in
  * declaration order and placed by hd_code_bss.us.v11.ld; the shared %hi
@@ -22,10 +23,6 @@ extern f32 D_802FA930;     /* fade-in step per frame */
 extern u8 D_8035805C;
 extern Vtx D_802FA8B0[][4];
 
-void func_8029A7E4(const char *fmt, ...);
-void func_80261570(f32 arg0);
-u16 func_8026B10C(void);
-void func_8026AF6C(u16 yd);
 
 Gfx *func_80274BF0(s32 arg0, Gfx *gfx) {
     Gfx *gdl = gfx;

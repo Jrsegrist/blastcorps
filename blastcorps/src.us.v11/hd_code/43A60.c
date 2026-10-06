@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /*
  * Billboard particle emitter: up to 50 textured quads spawned in bursts from
@@ -70,10 +71,6 @@ extern s32 D_80370BB0; /* textures cached */
 extern s32 D_80370BB4; /* bytes per texture */
 extern u8 *D_80358070; /* heap pointer */
 
-s32 func_8026A6F0(s32, s32, s32, s32, s32, s32);
-s32 func_8026A828(s32 arg0, s32 arg1);
-s32 func_802AD7D4(s32);
-void func_802A1040(s16 id, void *dest, s32 arg2);
 void func_80289EF4(Gfx **gdl);
 u32 func_8028A0A0(s16 id);
 void func_8028A1D0(SortEntry *a, s32 n);

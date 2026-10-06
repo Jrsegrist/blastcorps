@@ -1,8 +1,8 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 extern f32 sqrtf(f32);
-extern s32 func_802AD7D4(s32);
 extern s32 D_803F7660;
 extern s32 D_803F7670; /* player x */
 extern s32 D_803F7678; /* player z */
@@ -119,8 +119,6 @@ void func_80282C80(Gfx **gfxp, Mtx *mtx, s32 x, s32 y, s32 z, s32 x2, s32 y2, s3
     *gfxp = gfx;
 }
 
-extern s32 func_8026A610(s32, s32, s32, s32);
-extern void func_802C1B9C(void);
 f32 func_80284ADC(s16 x1, s16 z1, s16 x2, s16 z2);
 extern u8 D_803643DB;
 extern f32 D_80364414; /* camera heading, degrees */

@@ -1,6 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
-#include "game/regs.h"
+#include "game/game.h"
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -11,10 +11,6 @@
  * more specific non-ABI explanation where one was already worked out. */
 #ifdef NON_MATCHING
 
-s32 func_802A6274(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32 z, s32 w24, s32 w28,
-                  s32 w18, s32 w1C, s32 w2C, s32 b35);
-s32 func_802ABCDC(s32 ax, s32 ay, s32 az, s32 bx, s32 by, s32 bz);
-void func_802C18D4(s32 x, s32 y, s32 z, s32 radius, s32 amount);
 
 extern u8 D_803F4030[];  /* 0xFC-byte object records */
 extern u8 *D_803F7654;   /* end of the records in use */
@@ -86,11 +82,6 @@ extern u16 D_8036E4C8;
 extern u8 D_803BE738;
 extern u8 *D_803F3960;  /* end of the (object, part) hit list */
 extern u8 D_803F3910[];
-void func_80260650(s32 a0, s32 a1, s32 a2);
-void func_8029A800(s32 z, s32 a1, s32 b2, s32 b3, s32 x, s32 y, s32 b0, s32 h1, s32 h2, s32 b4, s32 b8,
-                   u8 *veh); /* 56040 */
-void func_802BE77C(s32 id, u8 *vehicle); /* 77E20 */
-void func_802BD99C(void *model, s32 dx, s32 dy, s32 dz); /* 77E20 */
 
 /* Only in game mode 0x40: vehicle-state reset (func_8029A800 with b2 = 1,
  * b3 = 0, h1 = 0, h2 = 0x40, b4 = 0), the collision pass of vehicle id
@@ -144,7 +135,6 @@ void func_802AC2A4(s32 z, s32 a1, s32 x, s32 y, s32 b0, s32 id, u8 *vehicle) {
 #ifdef NON_MATCHING
 extern s32 D_802E8BDC; /* current level */
 extern u8 D_80364412;  /* "position was wrapped" flag */
-void func_802AC6FC(s32 x, s32 y, s32 z, s32 kind, s32 data);
 
 /* Level 0x17 only: wraps the position x (*px) and z (*pz) into the level's
  * box (x >= 0x15181 -> 0x2BC0, then x < 0x2581 -> 0x14B40; z >= 0x13881 ->
@@ -200,7 +190,6 @@ typedef struct {
     f32 dz;
 } TriSideOut679E0;
 
-s32 func_802AA460(s32 x, s32 z, s32 x0, s32 z0, s32 x1, s32 z1, s32 x2, s32 z2, TriSideOut679E0 *out);
 
 /* 1 if the point (px, pz) is inside the triangle (x0, z0), (x1, z1),
  * (x2, z2) by func_802AA460's edge-side test, else 0: the o32 entry point
@@ -373,8 +362,6 @@ void func_802ACA60(s32 x, s32 y, s32 z, s32 *m) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-s32 func_802AE104(s32 angle); /* 16.16 cosine (69930.c) */
-s32 func_802AE160(s32 angle); /* 16.16 sine */
 
 /* func_802ACAC4 / func_802ACB50 / func_802ACBDC write a 16.16 rotation matrix
  * (about y, z and x) for `angle` (0x1000 = 360 degrees) to m. Each calls
@@ -599,7 +586,6 @@ void func_802ACEB8(s32 x, s32 angle, s32 *out) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-s32 func_802ACF64(u32 x);
 
 /* Wrapper: returns func_802ACF64(x) (34430.c uses it to turn a 16.16 ratio
  * into an angle). */

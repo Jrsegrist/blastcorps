@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* D_8039C550: D_8039C710 0x38-byte entries (positions in 1/32 units). */
 typedef struct {
@@ -76,7 +77,7 @@ typedef struct {
 } Model4B5E0;
 
 /* Per-frame dynamic buffer: one matrix per entry at 0xB00. */
-typedef struct {
+typedef struct Dyn4B5E0 {
     /* 0x000 */ u8 pad[0xB00];
     /* 0xB00 */ Mtx mtx[1];
 } Dyn4B5E0;
@@ -117,34 +118,10 @@ extern u8 D_803F932C;
 extern u8 D_803F932D;
 extern u8 D_803F932E;
 
-void func_802AACD4(u8, s32, s32, void *, void *);
-s32 func_802AAE1C(u8, s16, s16, void *, void *);
-s32 func_802CE6F8(s32, s32, s32);
-s32 func_8026A6F0(s32, s32, s32, s32, s32, s32);
-void func_802CE9A4(void);
 #ifdef NON_MATCHING
-void func_802CE9C8(u8 *items, s32 n, s32 h52, s32 id, s32 b57, s32 b4F, s32 s1);
 extern u8 D_803F9330[];
-#else
-void func_802CE9C8(u8 *, u8, u8);
 #endif
-u32 func_802A0CC8(s16, s32);
-void func_80260650(s32, s32, void *);
-void func_802608C8(s32);
-s32 func_8026A610(s32, s32, s32, s32);
 void func_80291724(s32);
-s32 func_8029B930(void);
-s16 func_802A6F6C(void);
-void func_802CDB70(s16, s32);
-u8 func_802CDF94(s16);
-s16 func_802CE3B8(s16);
-void func_802CE4F0(s32, s32, s32);
-void func_802CE5BC(s32, s32, s32, s16, s32, s32);
-void func_802CE65C(s32, s32, s16, s16);
-void func_802CE880(s32, s32, s32, s32, s32);
-void func_802CE90C(s32);
-s32 func_802CE958(s32);
-void func_802CEA68(s32, s32);
 
 /* Load this file's objects from level data: reset the counters, then
  * read D_8039C710 0x38-byte entries (s16 x, y, z, model; positions are

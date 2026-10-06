@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* sched.c's .bss (0x8036BEF0-0x8036BFC0), defined here in declaration
  * order so IDO lays it out like the original (placed by
@@ -41,7 +42,6 @@ s32 D_8036BFBC;
 /* Blast Corps' scheduler: a Rare-modified copy of the SDK's sched.c
  * (GoldenEye's src/sched.c is a later version). The OSSched here lacks the
  * SDK's two leading OSScMsg fields, and clients carry two extra words. */
-void func_8029A7E4(const char *fmt, ...);
 
 /* Rare's assert, with the original sched.c line numbers passed explicitly. */
 #define SCHED_ASSERT(EX, line) \
@@ -69,7 +69,7 @@ typedef struct BcScClient {
     /* 0x0C */ s32 unkC;
 } BcScClient;
 
-typedef struct {
+typedef struct BcSched {
     /* 0x000 */ OSMesgQueue interruptQ;
     /* 0x018 */ OSMesg intBuf[16];
     /* 0x058 */ OSMesgQueue cmdQ;
@@ -90,7 +90,6 @@ typedef struct {
 } BcSched;
 
 extern OSViMode D_80306E70[];
-void func_802DA610(s32);
 void func_80270F7C(void *arg);
 
 /* osCreateScheduler */
@@ -152,9 +151,6 @@ void *func_80270F74(void *arg0) {
     return (u8 *) arg0 + 0x58;
 }
 
-u32 func_802A1320(void);
-void func_802D4550(u32 data); /* osDpSetStatus */
-u32 func_802DAAC0(void); /* DPC status */
 void func_80271358(BcSched *sc);
 void func_802712FC(BcSched *sc);
 void func_802715DC(BcSched *sc);
@@ -258,7 +254,6 @@ void func_802712FC(BcSched *sc) {
 }
 
 extern u8 D_802E8BD0;
-u32 func_802DAAC0(void); /* DPC status */
 
 /* __scHandleRetrace */
 void func_80271358(BcSched *sc) {
@@ -439,7 +434,6 @@ void func_80271C24(BcSched *sc, BcScTask *t) {
     t->state = 2;
 }
 
-void func_802DAE1C(OSTask *task); /* osSpTaskLoad */
 
 /* Start the next RSP task: audio when availRCP is 0, else graphics. */
 void func_80271CE4(BcSched *sc, s32 availRCP) {

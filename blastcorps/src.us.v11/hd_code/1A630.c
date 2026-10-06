@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 void func_802604FC(void *arg0);
 
@@ -63,13 +64,6 @@ typedef struct {
     u8 unityPitch;
 } SndVoiceConfig;
 
-typedef struct {
-    u32 maxStates;
-    u32 maxEvents;
-    s32 maxSounds;
-    void *heap;
-    u16 slotCount;
-} SndConfig;
 
 /* Sound player globals. 1A630.c owns this 16-byte .data block (0x802E8CE0,
  * GoldenEye's D_800243E4): defining them here is what lets the paired
@@ -150,9 +144,6 @@ void func_8026005C(void *arg0);
 void func_802600D8(void *arg0);
 void func_80260148(void *, void *, u16);
 u16 func_80260210(u16 *arg0, u16 *arg1);
-void *func_80260650(void *arg0, s16 arg1, void *arg2);
-void func_80260AB8(void *arg0, s16 arg1, s32 arg2);
-void func_8029A7E4(char *, ...);
 
 #define SNDP_DRVR(sndp) (*(void **) ((u8 *) (sndp) + 0x38))
 #define SNDP_EVTQ(sndp) ((void *) ((u8 *) (sndp) + 0x14))

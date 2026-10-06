@@ -284,11 +284,14 @@ func_802BF1F0: -n 300 --heap 0x200 --arg t9=ptr:0x10 --mem @t9=rel:heap0 --mem @
     --mem @heap0+0x28=choice:0x40,0x54,0xE0,0x130 --mem @heap0+0x52*0x14:12/1=choice:0,1,2,0xFF \
     --arg t3=choice:0,1,2,0xFF,0x101,-1
 # func_802BF384(entry t9): exactly one part done -> func_80264CB4(pos >> 5 (logical), unkC >> 5, unkE8, info[6])
+# (s16/u8 parameters: the C caller narrows them through the prototype, the asm passes whole
+#  registers; the IDO callee re-reads them with lh/lbu from its home slots, so only the low
+#  bytes are compared.)
 func_802BF384: -n 300 --heap 0x20 --arg t9=ptr:0x100 --mem @t9=rel:heap0 \
     --mem @t9+0xC:16=words:0,1,-1,0x1F,0x20,0x7FFFFFFF,0x80000000,0x12345678 --mem @t9+0xE8:1=int:0:255 \
-    --mem @t9+0xE9:1=int:0:16 --mem @t9+0xEC:16=bytes:100*2,0,1 --sig func_80264CB4=a0,a1,a2,a3,stack0,stack1
+    --mem @t9+0xE9:1=int:0:16 --mem @t9+0xEC:16=bytes:100*2,0,1 --sig func_80264CB4=a0:2,a1:2,a2:2,a3:2,stack0:1,stack1
 func_802BF384: -n 100 --seed 1 --heap 0x20 --arg t9=ptr:0x100 --mem @t9=rel:heap0 --mem @t9+0xE9:1=choice:1,4,16 \
-    --mem @t9+0xEC:16=onehot:1/1:100:0 --sig func_80264CB4=a0,a1,a2,a3,stack0,stack1
+    --mem @t9+0xEC:16=onehot:1/1:100:0 --sig func_80264CB4=a0:2,a1:2,a2:2,a3:2,stack0:1,stack1
 # func_802BF534(entry t9 inside D_803F4030): finish the entry when every other part is done or flagged
 func_802BF534: -n 400 --heap 0x20 --arg t9=rel:D_803F4030+0xFC*int:0:5 --mem D_803F4030:0x5E8=bytes:100*3,0 \
     --mem D_803F4030*0xFC:6=0x80B00000 --mem D_803F4030+0xE9*0xFC:6/1=int:0:6 \
@@ -350,7 +353,7 @@ func_802C12E0: -n 400 --arg a0=ptr:0x80 --arg a1=ptr:0x80 --mem D_803F1BE0:0x8F0
     --mem D_803F1BE0+0x470*0x478:2/1=choice:0,1*3 --mem D_803F1BE0+0x472*0x478:2/1=choice:0,1,3 \
     --mem D_803F1BE0+0x46C*0x478:2/2=choice:0,0x300,0x380,0x384,0x385,0xFFFF \
     --mem D_803F1BE0+0x46E*0x478:2/2=choice:0,1,4,5,0xFFFF --mem D_803F1BE0+0x471*0x478:2/1=choice:0,4,5,6,0xFF \
-    --mem D_803F7658=choice:0x80400000,0x803F7000,0x80100040 --sig func_8026A454=a0,a1,a2,a3,stack0,stack1
+    --mem D_803F7658=choice:0x80400000,0x803F7000,0x80100040 --sig func_8026A454=a0:2,a1:2,a2:2,a3:2,stack0:2,stack1
 # func_802C1A28(entry t9, index t3): count left after the leading entries >= tbl[index - 1] -> a2
 func_802C1A28: -n 300 --heap 0x80 --arg t9=ptr:0x10 --mem @t9=rel:heap0 --mem @heap0:2=int:0:8 --mem @heap0+0x3C=0x40 \
     --mem @heap0+0x40:0x20=halves:0,1,2,5,0x7FFF,0x8000,0xFFFF --arg t3=choice:0,1,2,3,4,5,6,7,8

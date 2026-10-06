@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* One entry per level on the front end's level-select globe. */
 typedef struct {
@@ -144,31 +145,12 @@ extern u16 D_8035807C;
 extern f32 D_802E8C84[];
 extern s32 D_802FA264; /* debug mode */
 extern u16 D_80370C28; /* controller buttons held */
-void func_8029A7E4(const char *fmt, ...);
-Gfx *func_80274BF0(Dynamic *, Gfx *);
 f32 sqrtf(f32);
-void func_80259450(void);
-void func_80259DC8(void *gfxp, char *str, u16 *wstr, s32 align, s32 fit, s32 x, s32 y, s32 w, s32 h, s32 forward,
-                   s32 r0, s32 g0, s32 b0, s32 a0, s32 r1, s32 g1, s32 b1, s32 a1);
-Gfx *func_8024C404(Gfx *, Dynamic *, s32 *);
-void func_80259C24(Gfx **, Dynamic *);
-Gfx *func_80272ED8(Gfx *, s32, s32, s32, u32, s32, f32);
-Gfx *func_80274868(Gfx *);
-Gfx *func_80274AA4(Gfx *);
-s16 func_8025B498(s32, s32, char *, u16 *);
-s32 func_8025B300(char *);
-f32 func_802574F0(f32); /* sinf */
-f32 func_80257514(f32); /* cosf */
 extern u8 D_8035805C;
 extern void *D_80367738;
 extern u8 D_80364AE8;
 extern Player D_80364AF0[];
 extern LevelInfo D_802E8F94[];
-s32 func_8026A828(s32 lo, s32 hi);
-u8 func_80264BA4(u8 arg0);
-void func_80261FB0(u8 arg0);
-void *func_80260650(void *arg0, s16 arg1, void *arg2);
-u8 func_80272C5C(u16 *ids, s32 arg1, s32 count, s32 frames, s32 flags, f32 scale);
 
 /* front end */
 extern s32 D_80217B6C;
@@ -201,18 +183,11 @@ extern f32 D_8021AB40;
 extern f32 D_8021AB44;
 extern f32 D_8021AB48;
 extern s32 D_80358070;
-Gfx *func_801F1568(void);
-Gfx *func_801F2000(void);
-Gfx *func_801F2428(void);
-Gfx *func_801F2E20(void);
 void func_801F885C(s32 arg0);
 f32 func_801FD6B8(f32 a, f32 b, f32 range);
-void func_801FDE50(void);
-void func_801FDCA4(Vtx *v, s32 idx, s32 z);
 Gfx *func_801FE5D0(Gfx *arg0, Dynamic *dyn);
 Gfx *func_801FC5B8(Dynamic *dyn, Gfx *gdl, u8 from, u8 to);
 void func_801FDE98(void);
-Gfx *func_801F3450(Gfx *, Dynamic *);
 extern Gfx *D_8021A8F4;
 extern Gfx *D_8021A8FC;
 extern Gfx *D_8021A900;
@@ -259,31 +234,15 @@ extern f32 D_8021AB60;
 extern f32 D_8021AB64;
 extern Gfx *D_8021AB68;
 extern Gfx *D_8021AB6C;
-void func_802A5720(void);
-void func_802A57AC(void);
-void func_8028A3E4(void);
-void func_8028A470(void);
-void func_80284E54(Gfx *, s32, s32, s32, s32, s32);
-s32 func_802753C0(void);
-void func_80275390(u64);
-void func_80260A10(void);
-void func_802608C8(void *);
-f32 func_8028BBF4(s32, s32, s32, s32);
-u64 func_80299FE8(s32);
-void func_801ECB18(void);
 Gfx *func_801F9258(Gfx *, Dynamic *, s32 *);
 Gfx *func_801F9820(Gfx *, Dynamic *, s32 *);
 Gfx *func_801F9B84(Gfx *, Dynamic *, s32 *);
 void func_801FD748(void);
-s32 func_802AD7D4(s32);
 
 void func_801FCF38(Vtx *v, f32 x, f32 y, f32 z, u8 w, u8 h, f32 scale, u8 flip);
-void func_801FD484(f32 *arg0, f32 *arg1, f32 *arg2, f32 *arg3, f32 *arg4, f32 arg5);
-s32 func_801FE760(); /* K&R */
 Gfx *func_801FA180(Gfx *gdl, Dynamic *dyn, f32 arg2, s8 *arg3);
 Gfx *func_801FA74C(Dynamic *dyn, Gfx *arg1, u8 from, u8 to, s8 *out, f32 *lon, u8 curved, u8 r0, u8 g0, u8 b0,
                    u8 r1, u8 g1, u8 b1);
-void func_8027690C(void *arg0, f32 x, f32 y, f32 z, s16 *sx, s16 *sy, Mtx *arg6, Mtx *arg7, Mtx *arg8, f32 arg9);
 
 /* Level-select globe: initialise for the given level. */
 void func_801F8530(s32 level) {
@@ -1285,12 +1244,20 @@ Gfx *func_801FE5D0(Gfx *arg0, Dynamic *dyn) {
     return gdl;
 }
 
-/* Whether a level stays locked (needs more progress, or a prerequisite level unfinished). */
+/* Whether a level stays locked (needs more progress, or a prerequisite level unfinished).
+ * K&R in the matching build, where the unused second parameter is the
+ * scratch the checks below reuse (no caller passes it). */
+#ifdef NON_MATCHING
+s32 func_801FE760(u8 level) {
+    s32 arg1;
+    u8 locked = 0;
+#else
 s32 func_801FE760(level, arg1)
     u8 level;
     s32 arg1;
 {
     u8 locked = 0;
+#endif
 
     if (D_802E8F94[level].unk1 > D_80364AF0[D_80364AE8].unk91 &&
         ((D_802E8F94[level].type & 0x81) || (level >= 0x2B && level < 0x2F))) {

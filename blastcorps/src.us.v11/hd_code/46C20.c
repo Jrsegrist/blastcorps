@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* Front-end loader: DMAs a (possibly compressed) block from ROM in 16 KB
  * pieces and decompresses it. */
@@ -10,14 +11,6 @@ extern u8 D_80370C50;   /* front end loaded */
 extern OSIoMesg D_80370C58;
 extern OSMesgQueue D_803150A0;
 
-void func_802DB730(u32 addr, u32 len);
-void func_802DB7B0(u32 addr, u32 len);
-void func_801F57B0(void);
-void func_8029A7E4(const char *fmt, ...);
-s32 func_802DA2F0(OSIoMesg *mb, s32 pri, s32 dir, u32 devAddr, u32 vAddr, u32 nbytes, OSMesgQueue *mq);
-void func_8025C230(u32 *src, u32 *dst, u32 work);
-void func_802C4070(u32 *src, u32 *dst, u32 work, u8 type);
-void func_8028B4C4(u32 devAddr, u32 dest, u32 *size, u8 arg3, u8 arg4, u8 arg5);
 
 /* Load the front end overlay to 0x801E7000 once */
 void func_8028B3E0(void) {

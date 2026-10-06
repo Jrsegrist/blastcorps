@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /*
  * pfsHandler.c: the Controller Pak / EEPROM save thread. Player records
@@ -7,11 +8,6 @@
  * Controller Pak file, or to EEPROM, each block followed by a 4-byte CRC.
  */
 
-void func_8029A7E4(const char *fmt, ...); /* debug printf */
-u8 func_8028FCD4(void *arg0, u8 *arg1);
-u8 func_8028A370(void);
-s32 func_8025B300(u8 *);                  /* strlen */
-void func_80270E50(void *, void *, OSMesgQueue *, s32, s32);
 u8 __osContDataCrc(u8 *data);
 s32 osPfsInitPak(OSMesgQueue *, OSPfs *, int);
 
@@ -356,9 +352,6 @@ extern u8 D_80310BD0[];    /* hd_code: the thread D_80219F50's receiver must be 
 extern u64 D_80364A98;     /* next game mode */
 extern s16 yoshiState;
 extern s16 currentYoshiWindow;
-void func_8028A42C(void);
-void func_801EE390(void);
-void func_801EE398(s32 window);
 s32 func_801F5FE4(void);
 s32 func_801F60C8(void);
 s32 func_801F6160(u8 player);

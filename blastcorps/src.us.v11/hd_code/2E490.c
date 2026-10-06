@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 extern u8 D_8036C360;
 extern u32 D_803156C4;
@@ -14,12 +15,7 @@ extern u8 D_8036C220[64];          /* flags */
 extern f32 D_8036C260[64];         /* scale */
 extern Vtx *D_8036C368[2][64][2]; /* per-buffer quads, two orientations */
 
-void func_802A0700(void);
-void func_80257490(void **heap, s32 align);
-void func_802A0EE0(u16 id, void *dest);
-void func_802A0B00(u16 id, void *pal);
 
-Gfx *func_80272ED8(Gfx *gdl, u8 slot, s16 x, s16 y, u8 alpha, u8 mode, f32 scale);
 Gfx *func_802742D8(Gfx *gdl, u8 slot, s16 x, s16 y, s32 flip, s32 size, s32 half, f32 scale, u8 frame);
 
 void func_80272C50(void) {

@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 #define PHYS(x) ((u32)(x) & 0x1FFFFFFF)
 

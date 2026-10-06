@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* player.c (per its assert strings): save slots, player ranks and the
  * player select / Controller Pak screens */
@@ -62,7 +63,7 @@ typedef struct {
 
 /* Per-frame dynamic buffer (D_803156F8, two of 0x21498 bytes); only the
  * player select matrices are named here */
-typedef struct {
+typedef struct PlayerSelDyn {
     /* 0x000 */ u8 pad0[0x80];
     /* 0x080 */ Mtx persp;
     /* 0x0C0 */ u8 padC0[0xC0];
@@ -182,39 +183,9 @@ extern u16 D_802082D8[];
 extern u16 D_802082E4[];
 extern u16 D_802082E8[];
 
-u8 func_80272C5C(u16 *ids, u16 *palIds, s32 count, s32 frames, s32 flags, f32 scale);
-Gfx *func_80274868(Gfx *);
-Gfx *func_80274AA4(Gfx *);
-Gfx *func_80272ED8(Gfx *, s32, s32, s32, s32, s32, f32);
-void func_80264A34(u8 *buf, u16 t, s32 arg2);
-u8 *func_8025B558(u16 *);
-void func_80259BD4(Gfx **, void *);
-s32 func_802753C0(void);
-void func_8026AF6C(s32);
-void func_80275270(u64, f32);
-s32 func_80276130(void *, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32,
-                  s32, s32, s32, s32);
-s32 func_80276080(void *, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32);
-Gfx *func_80275DA4(Gfx *, s32);
-void func_80259CCC(void *gfxp, u8 *str, u16 *wstr, s32 align, s32 fit, s32 x, s32 y, s32 w, s32 h, s32 forward, s32 r,
-                   s32 g, s32 b, s32 a);
-void func_80259DC8(void *gfxp, u8 *str, u16 *wstr, s32 align, s32 fit, s32 x, s32 y, s32 w, s32 h, s32 forward,
-                   s32 r0, s32 g0, s32 b0, s32 a0, s32 r1, s32 g1, s32 b1, s32 a1);
-void func_801FE018(s32);
-void func_801F8354(u8);
-s32 func_8025B3F0(char *, char *);
-s32 func_8025B300(char *);
-s32 func_8025B370(u16 *);
-void func_80260650(void *, s32, s32);
-void func_80261570(f32);
-void func_8029A7E4(const char *, ...);
-void func_801E8DCC(u8 arg0);
-void func_801E8EB8(u8 slot, u8 arg1);
 void func_801E93DC(u8 arg0);
 void func_801ED480(u8 *src, u8 *dst);
-u8 func_801EF2BC(u16 time, u8 level, u8 arg2);
 u16 func_801E9528(void);
-void func_801EA108(u8 slot, u8 send, u8 newGame);
 void func_801EA268(Player *p);
 Gfx *func_801EC49C(Gfx *arg0, s32 x, s32 y, u8 slot);
 

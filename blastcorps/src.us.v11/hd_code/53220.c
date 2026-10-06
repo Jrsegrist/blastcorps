@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /*
  * Two parts: the academy/level-select yoshi window builder (func_802979E0
@@ -73,15 +74,11 @@ extern MenuItem *D_8036BB24;
 extern void *D_80358070;
 extern Font D_802F49F4[];
 
-u8 func_8029766C(u8, u8 *);
-s32 func_8025B300(u8 *);
-u8 func_80272C5C(void *, s32, s32, s32, s32, f32);
 
 #define players D_80364AF0
 #define playerNumber D_80364AE8
 
 u8 func_80297F74(void);
-u8 func_80297EF8(u8 level);
 
 /* Build the yoshi window that lists a group's levels, numbering the
  * "N left" text with how many levels remain */
@@ -241,7 +238,6 @@ s32 func_80298C18(void);
  * adds a move to $v0. */
 #define BMAX 16
 #define N_MAX 288
-void func_802DB7B0(void *, s32); /* bzero */
 
 int func_80297FE0(s32 *b, u32 n, u32 s, u16 *d, u8 *e, Huft **t, s32 *m) {
     u32 a;

@@ -1,6 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
-#include "game/regs.h"
+#include "game/game.h"
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -74,48 +74,9 @@ extern s16 D_8036443C;
 extern u16 D_8036443E;
 extern u16 D_80364440;
 
-void func_802A1388(s32 a0Val, s32 a1Val, s32 v0Val, s32 v1Val, u8 *hdr);
-void func_802A754C(u8 *veh);
-s32 *func_802A992C(s16 *tbl, s32 y, s32 x, s32 z, s32 *dst, s32 *mid, s16 *angle, s32 key, s32 fpIn, u8 *veh,
-                   TriSideOut *f);
-s32 func_8029F85C(u32 *bufA, u32 *bufB, void *ch, u8 *hdr);
-void func_802A0290(void *base, s32 idx, s32 val);
-void func_802A0320(s32 idx, void *base);
-void func_802A039C(void *base, s32 idx, s32 val);
-void func_802A03D4(void *base, s32 idx, s32 val);
-void func_802A040C(void *base, s32 idx, s32 val);
-void func_802A0480(f32 f, void *base, s32 idx, s32 val);
-void func_8029E558(u8 *base, u8 *other, void *ch);
-void func_8029C354(s32 tag, u8 *p, u8 *end, u32 scale);
-void func_80258230(u8 id, s32 arg1, s16 arg2, s16 arg3);
-void func_802AA838(u8 *src, u8 *dst, s32 off);
-void func_802A75DC(u8 *veh, u8 *src, s32 *w0, s32 *w1, s32 *w2);
-void func_802C4724(s32 sfx);
-void func_802C4584(s32 level);
-void func_802A785C(u8 *veh, s16 *speed, s32 mode, u8 *flags, s16 *bands, s32 delta);
-void func_802A7FD8(u8 *veh, u16 *heading, s32 rate, s16 *speedp, u16 *target, u16 *out, s8 *flag, s32 sound);
-f32 func_802A83B8(s16 *div, u8 *f, s32 *p, f32 *out);
-void func_802A843C(u8 *veh, s16 *speed, s32 kind, s8 *f, s32 *p, s32 clamp, f32 div);
-s32 func_802A860C(f32 f, s32 angle, s16 *len, s32 *px, s32 *pz, Out802A860C *out);
-void func_802A8768(u8 *veh, s32 id, s32 *px, s32 *py, s32 *pz, s32 x, s32 z, s32 divB, s32 divA, s16 *angle,
-                   u8 *flags, s16 *tbl, s32 *a, s32 *b, s32 *c, s32 *ys, Regs802A8768 *r, TriSideOut *f);
-void func_8029A800(s32 z, s32 a1, s32 b2, s32 b3, s32 x, s32 y, s32 b0, s32 h1, s32 h2, s32 b4, s32 b8,
-                   u8 *veh);
-void func_8029C52C(s32 tag, u8 *veh);
-void func_8029AA10(s32 kind);
-void func_802BE77C(s32 id, u8 *vehicle);
-u64 *func_802A768C(u8 *veh, u8 *dst, s32 *w0, s32 *w1, s32 *w2, u64 *src, u64 *dst2, s32 size,
-                   u64 **dst2End);
-void func_802A133C(s32 a0Val, s32 id, s32 v0Val, s32 v1Val, u8 *obj);
-void func_802AA764(s32 x, s32 y, s32 z, s32 scale, s32 *m);
-void func_8029C454(s32 x, s32 y, s32 z, s32 tag, u8 *p, u8 *end, u8 *base, MtxChainRegs *regs);
-void func_802ABBEC(s32 id, s16 *p, s16 *end, u8 *base, MtxChainRegs *regs);
-s32 func_802AABE4(s32 id, u16 *desc, u8 *base, MtxChainRegs *regs, s16 **vertsOut);
-void func_8029D040(s32 val, void *tbl, s32 x, s32 z, s32 id, u8 *model, u8 *mtxBase);
 void func_802C8150(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp);
 void func_802C8470(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp);
 void func_802C8790(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp);
-void func_802C8BB8(s32 type);
 void func_802C8C90(void);
 void func_802C8FA8(void);
 void func_802C92C0(void);
@@ -423,7 +384,6 @@ void func_802C8790(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp) {
  * through to func_802C4310 with a1 = 0x72. */
 extern s16 D_8036444C;
 extern s16 D_80364450;
-void func_802C4310(s32 arg0, s32 arg1);
 
 void func_802C8AB0(s32 arg0) {
     D_8036444C = 3000;
@@ -456,8 +416,6 @@ extern u64 *D_803F8780;
 extern u64 *D_803F8784;
 extern u64 *D_803F8788;
 extern u64 *D_803F878C;
-void func_802A7764(u64 *a, u64 *b, s32 size);
-void func_802C444C(void);
 
 /* Leave vehicle type 0x11 / 0x12 / other (11) (called from hd.c with the
  * type): func_802A7764(pair for that type, 0x800), then stops the looping

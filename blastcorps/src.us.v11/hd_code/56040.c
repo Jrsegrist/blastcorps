@@ -221,14 +221,18 @@ s32 func_8029AB88(s32 x, s32 y, s32 z, s32 r, s32 kind);
  * span D_803A7410/D_803A7412 is no longer the empty 0/0xFFF pair, sets
  * D_803A7425 and copies D_80358068 to D_803A740C.
  * The asm's register interface, as a struct would hold it: in t8 = kind;
- * out (survey) a0, a3, s3, fp, f12, f14, f20-f26 = whatever the triangle
- * tests last left there, plus fp = the last id. None of those is live in
- * any asm caller (each goes on to reload them or returns), so the C has a
- * plain (kind) interface and no outputs.
+ * out (survey) a0, a3, s3, f12, f14, f20-f26 = whatever the triangle tests
+ * last left there, and fp = the part count (0 before the loop, +1 per part)
+ * when the sphere hit the world, else fp unchanged. The fp is live in one
+ * known place: vehicle 0's drive-in check func_802AEC3C doesn't restore it,
+ * so func_802AE888's next check hands it to func_802A9A60 (traced, Oct 2026:
+ * fp = 2, vehicle 0's two parts, on checks beside buildings in level 0).
+ * func_8029AA10_fp models that; func_8029AA10 is the plain (kind) form the
+ * other callers use (none of them reads fp afterwards).
  * Register convention: kind in t8 (conventions.txt); the asm saves v1, t0,
  * t1, t3, t6, t7, s0-s2, s4, s7, t9. Asm callers keep t6 (func_802BA9A0 also
  * t7) live; a mixed build would need a thunk, the native port doesn't. */
-void func_8029AA10(s32 kind) {
+s32 func_8029AA10_fp(s32 kind, s32 fp) {
     u8 *e = D_803A7300;
     u8 *p;
     s32 id;
@@ -249,11 +253,17 @@ void func_8029AA10(s32 kind) {
             func_8029B02C(*(s32 *) (p + 0) >> 2, *(s32 *) (p + 4) >> 2, *(s32 *) (p + 8) >> 2,
                           *(s32 *) (p + 0xC) >> 2, kind, id);
         }
+        fp = id;
     }
     if (((u16) D_803A7410) != 0 || ((u16) D_803A7412) != 0xFFF) {
         D_803A7425 = 1;
         D_803A740C = D_80358068;
     }
+    return fp;
+}
+
+void func_8029AA10(s32 kind) {
+    func_8029AA10_fp(kind, 0);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029AA10.s")

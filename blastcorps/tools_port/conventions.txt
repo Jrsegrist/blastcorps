@@ -175,6 +175,7 @@ func_8029C52C: in t8=a0,gp=a1 ; preserve v0,v1,a0,a2,a3,t0,t1,t2,t3,t4,t5,t8,f12
 # world-hit reporting: switch triangle s0 (kind t8, part id fp) -> a1; sphere t3-t6 of kind t8, part id fp; vehicle kind t8
 func_8029BB28: in s0=a0,t8=a1,fp=a2 ; out a1=ret ; preserve v0,v1,a0,a2,a3,t0,t3,t4,t5,t6,t8
 func_8029B02C: in t3=a0,t4=a1,t5=a2,t6=a3,t8=stack0,fp=stack1 ; preserve v1,t0,t1,t3,t6,t7,t8,t9 ; clobbers s3,f20,f22,f24,f26,f28
+# (fp = the part count on a world hit, else unchanged: func_8029AA10_fp in C, read only by func_802AEC3C's caller)
 func_8029AA10: in t8=a0 ; preserve v1,t0,t1,t3,t6,t7,t9 ; clobbers s3,fp,f20,f22,f24,f26,f28
 # collision triangles of object t2 from model t6 (Mtx base s4); then group conditions (val a1, tbl a2, x t0, z t1)
 func_8029D24C: in t2=a0,t6=a1,s4=a2 ; preserve v1,a0,a1,a2,t0,t1,t2,t3,t6 ; clobbers s0,s1,s2,s3,s5,s6,s7,fp
@@ -552,8 +553,9 @@ func_802AE370: in s2=a0,t7=a1,s3=a2,s0=a3,s1=stack0,fp=stack1,f12=*stack2,f14=*s
 # places vehicle 0's model and parts ($gp = D_803ED760); leaves the part-list end in t2 (and t0 = 0) for func_8029A800;
 # func_8029C454/func_802AA764 leave s1, s2, s4-s7 changed
 func_802AFA64: out t2=ret ; clobbers s1,s2,s4,s5,s6,s7
-# drive-in path check at distance a2 (result a3); func_802A9A60's leftover key t8, fp, f12-f26 come in from the caller
-func_802AEC3C: in a2=a0,t8=a1,fp=a2,f12=*a3,f14=*a3+4,f20=*a3+8,f22=*a3+12,f24=*a3+16,f26=*a3+20 ; out a3=ret ; preserve v0,v1,a0,a2,t0,t1,t2,t3,t4,t5,t6,t7,t8,t9 ; clobbers s0-s7,fp,f20,f22,f24,f26,f28
+# drive-in path check at distance a2 (result a3); func_802A9A60's leftover key t8, fp, f12-f26 come in from the caller;
+# fp goes out as func_8029AA10 left it (its part count on a world hit, else unchanged) for the caller's next check
+func_802AEC3C: in a2=a0,t8=a1,fp=*a2,f12=*a3,f14=*a3+4,f20=*a3+8,f22=*a3+12,f24=*a3+16,f26=*a3+20 ; out a3=ret,fp=*a2 ; preserve v0,v1,a0,a2,t0,t1,t2,t3,t4,t5,t6,t7,t8,t9 ; clobbers s0-s7,f20,f22,f24,f26,f28
 # drive-in step ($gp = D_803ED760 read as the global); func_802A9A60's leftover key t8, fp, f12-f26 come in from the caller
 func_802AF340: in t8=a0,fp=a1,f12=*a2,f14=*a2+4,f20=*a2+8,f22=*a2+12,f24=*a2+16,f26=*a2+20 ; clobbers s0-s6,f20,f22,f24,f26,f28
 # per-frame animation update ($gp = D_803ED760, read as globals in C); f20/f30 via func_8029F9D4. Asm caller

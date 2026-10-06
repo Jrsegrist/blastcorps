@@ -118,7 +118,7 @@ loadcheck:
 	@if [ -n "$(LC_TRACE)" ]; then $(PYTHON) tools/widths.py facts build/lc/facts.txt $(LC_TRACE); fi
 	build/lc/spike.exe '$(ROM_ARG)' $$([ -f build/lc/facts.txt ] && echo 56789 build/lc/facts.txt) \
 		> build/lc/out_native.txt
-	cd $(ROOT) && $(PYTHON) port/tools/loadref.py $(ROM) > port/build/lc/out_ref.txt
+	cd $(ROOT) && $(PYTHON) port/tools/loadref.py $(abspath $(ROM)) > port/build/lc/out_ref.txt
 	@grep '^T9 total' build/lc/out_native.txt || true
 	$(PYTHON) tools/cmpout.py build/lc/out_ref.txt build/lc/out_native.txt
 

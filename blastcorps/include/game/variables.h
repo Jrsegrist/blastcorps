@@ -24,6 +24,11 @@ extern u8 D_802C28E4[]; /* effect definitions in the 7D9D0 text blob */
 extern u8 D_802C2954[]; /* definition handed to func_802A6274 (7D9D0 text blob) */
 extern u8 D_802C2984[]; /* definition handed to func_802A6274 (7D9D0 text blob) */
 extern u8 D_802C3804[]; /* definition handed to func_802A6274 */
+extern u8 D_802C2A5C[]; /* effect definitions also listed in D_80305C10 */
+extern u8 D_802C37C0[];
+extern u8 D_802C382C[];
+extern u8 D_802C3848[];
+extern u8 D_802C386C[];
 extern u8 *D_802C3FFC[]; /* definition pointers, in the 7D9D0 text blob */
 extern u8 D_802E6820[]; /* RSP boot ucode, ends at D_802E68F0 */
 extern u8 D_802E68F0[];

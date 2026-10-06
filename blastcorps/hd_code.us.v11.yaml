@@ -248,6 +248,8 @@ segments:
     - [0xAF450, bin, hd_code/hd_code_data_AF450]
     - [0xB9350, .data, hd_code/45BB0]
     - [0xB9370, bin, hd_code/hd_code_data_B9370]
+    - [0xC1450, .data, hd_code/60F60] # D_80305C10 (definition list into the 7D9D0 text tables) + 2 strings
+    - [0xC1490, bin, hd_code/hd_code_data_C1490]
     - [0xC1DD0, .data, hd_code/ul_initialize]
     - [0xC1DE0, .data, hd_code/ul_pimgr]
     - [0xC1E00, .data, hd_code/ul_sl]

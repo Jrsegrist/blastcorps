@@ -165,6 +165,11 @@ u8 *func_802A3DF8(u8 *obj, s32 id, s32 b4F, s32 *s1io);
 void func_802A3E9C(u8 *obj, s32 id, s32 b4F, s32 *s1io);
 u8 *func_802A3F80(u8 *obj, s32 *s1io);
 void func_802A4464(u8 *obj);
+/* An Mtx's s16 halves (integer parts here): PORT_HALF swaps the two halves
+ * of each word on the little-endian host, where the port keeps Mtx words
+ * in host order (game/port.h). */
+#define MTX_HALF(off) (PORT_HALF((off) / 2) * 2)
+
 void func_802A1A9C(u8 *obj, s32 *s1io);
 void func_802A1934(void);
 void func_802A2C54(u8 *obj);
@@ -418,18 +423,18 @@ void func_802A1A9C(u8 *obj, s32 *s1io) {
     D_803F7824 = m + n;
     mend = m + n + n;
     while (m != mend) {
-        *(s16 *) (m + 0x00) = 1;
-        *(s16 *) (m + 0x02) = 0;
+        *(s16 *) (m + MTX_HALF(0x00)) = 1;
+        *(s16 *) (m + MTX_HALF(0x02)) = 0;
         *(s32 *) (m + 0x04) = 0;
-        *(s16 *) (m + 0x08) = 0;
-        *(s16 *) (m + 0x0A) = 1;
+        *(s16 *) (m + MTX_HALF(0x08)) = 0;
+        *(s16 *) (m + MTX_HALF(0x0A)) = 1;
         *(s32 *) (m + 0x0C) = 0;
         *(s32 *) (m + 0x10) = 0;
-        *(s16 *) (m + 0x14) = 1;
-        *(s16 *) (m + 0x16) = 0;
+        *(s16 *) (m + MTX_HALF(0x14)) = 1;
+        *(s16 *) (m + MTX_HALF(0x16)) = 0;
         *(s32 *) (m + 0x18) = 0;
-        *(s16 *) (m + 0x1C) = 0;
-        *(s16 *) (m + 0x1E) = 1;
+        *(s16 *) (m + MTX_HALF(0x1C)) = 0;
+        *(s16 *) (m + MTX_HALF(0x1E)) = 1;
         *(s32 *) (m + 0x20) = 0;
         *(s32 *) (m + 0x24) = 0;
         *(s32 *) (m + 0x28) = 0;
@@ -1339,18 +1344,18 @@ void func_802A3198(Out802A32CC *out) {
     while (size != 0) {
         u8 *m = (u8 *) dst;
 
-        *(s16 *) (m + 0x00) = 1;
-        *(s16 *) (m + 0x02) = 0;
+        *(s16 *) (m + MTX_HALF(0x00)) = 1;
+        *(s16 *) (m + MTX_HALF(0x02)) = 0;
         *(s32 *) (m + 0x04) = 0;
-        *(s16 *) (m + 0x08) = 0;
-        *(s16 *) (m + 0x0A) = 1;
+        *(s16 *) (m + MTX_HALF(0x08)) = 0;
+        *(s16 *) (m + MTX_HALF(0x0A)) = 1;
         *(s32 *) (m + 0x0C) = 0;
         *(s32 *) (m + 0x10) = 0;
-        *(s16 *) (m + 0x14) = 1;
-        *(s16 *) (m + 0x16) = 0;
+        *(s16 *) (m + MTX_HALF(0x14)) = 1;
+        *(s16 *) (m + MTX_HALF(0x16)) = 0;
         *(s32 *) (m + 0x18) = 0;
-        *(s16 *) (m + 0x1C) = 0;
-        *(s16 *) (m + 0x1E) = 1;
+        *(s16 *) (m + MTX_HALF(0x1C)) = 0;
+        *(s16 *) (m + MTX_HALF(0x1E)) = 1;
         *(s32 *) (m + 0x20) = 0;
         *(s32 *) (m + 0x24) = 0;
         *(s32 *) (m + 0x28) = 0;

@@ -34,15 +34,23 @@ D_8036A8C4 4 Acmd count of the last audio frame (the native synthesizer is ultra
 # into the shifted audio heap, are not compared.
 802F3AF0 802F3B00 audio manager .data (22EE0.c): buffer ring indices
 8036A300 8036AFB0 audio manager .bss (22EE0.c): AudioInfo records, Acmd lists, message queues
+80367518 80367708 the music sequences' read state (ALCSeq D_80367518[]): advanced by the sequence player in audio time
 D_80366BD0 60 the sound player (1A630.c): ALPlayer timing, event queue, lists into the audio heap
 802E8CE0 802E8CF4 the sound player's active/free lists and its active sound count D_802E8CF0 (1A630.c .data)
 
 # --- graphics buffers
+803BE780 803C2B80 the visibility test's RSP task: its dram stack and RDP output buffer (5FD50.c func_802A4B0C)
 D_803156F8 42930 per-frame graphics data, two of 0x21498 (display lists, matrices, vertices)
 
 # --- the scheduler (2C560.c): message history and performance timers
 80315458 80315498 scheduler interrupt queue's message ring (history; the platform posts SP/DP done together)
+8031544C 80315450 scheduler interrupt queue: ring position (message history)
+803154A4 803154A8 scheduler command queue: ring position (audio task history)
+803154B0 803154F0 scheduler command queue's message ring (audio tasks in the shifted audio heap)
+80364AC8 80364AD8 the main loop's CPU meters (osGetTime deltas / 7825, 00000.c func_80244930)
+80368050 80368070 audio thread timing (22EE0.c .bss: osGetTime stamps)
 803156C8 803156D8 scheduler: rdpStartTime / gfxStartTime (osGetTime, performance display only)
+D_802FA270 4 scheduler: "frame task done, time the next one" flag (gates gfxStartTime only; RSP timing)
 8036BEF0 8036BF10 scheduler yield timers (osGetTime deltas, printed only)
 8036BF20 8036BF58 scheduler RDP/gfx/retrace times (osGetTime deltas, performance display only)
 

@@ -12,10 +12,13 @@
 #
 # Logged (one line per event, parsed by compare.py):
 #   B vi=V count=C                 hd_code's entry (func_802447C0): boot offset
-#   F n vi=V d=D mode=..           frame n: the frame-ending gfx task (BcScTask flag 0x40)
-#                                  reaches osSpTaskStartGo -- the point bc_headless dumps at
-#                                  (D: counts since VI V)
+#   F n vi=V d=D mode=..           frame n: the main thread sends the scheduler the
+#                                  frame's gfx task (flag 0x40) -- the point bc_headless dumps
+#                                  at (D: counts since VI V); after an M line, " || "
+#   G vi=V d=D                     a frame task reaches osSpTaskStartGo
 #   R vi=V d=D                     __scHandleRDP (func_80271904): a frame's RDP work done
+#   P vi=V d=D y=Y                 __scHandleRSP (func_802715DC) for a frame task: its RSP
+#                                  part done (y=1: it yielded to an audio task)
 #   T ra=RA th=ID v=VALUE          osGetTime returns VALUE to RA (thread ID)
 #   C ra=RA th=ID v=VALUE          osGetCount (callers other than osGetTime)
 #   A ra=RA th=ID v=VALUE          osAiGetLength (the audio thread sizes its frames by it)
@@ -87,6 +90,7 @@ def ret_of(name):
 A_BOOT = syms["func_802447C0"]
 A_TASK = syms["osSpTaskStartGo"]
 A_RDP = syms["func_80271904"]
+A_RSP = syms["func_802715DC"]  # __scHandleRSP: an RSP task finished (or yielded)
 A_TIME = ret_of("osGetTime")
 A_COUNT = ret_of("osGetCount")
 A_RUNNING = syms["__osRunningThread"]
@@ -109,8 +113,34 @@ A_CULLBUF = syms.get("D_803BEB80", 0x803BEB80)
 # thread switch points: the native clock catches up with the emulator's here
 SYNC = {syms[n]: n for n in ("osSendMesg", "osRecvMesg", "osJamMesg", "osStartThread")}
 
-BPS = {A_BOOT: "B", A_TASK: "F", A_RDP: "R", A_TIME: "T", A_COUNT: "C", A_AILEN: "A", A_CULL: "U"}
+# ... and the entries of the game functions that read the scheduler's retrace
+# counters D_803156C0/D_803156C4 (the game's clock), found by their
+# `lui 0x8031 ... 0x56C0/0x56C4(reg)` accesses
+func_sizes = {}
+for path in ELFS:
+    with open(path, "rb") as f:
+        for sec in ELFFile(f).iter_sections():
+            if sec.name == ".symtab":
+                for s in sec.iter_symbols():
+                    if s["st_info"]["type"] == "STT_FUNC" and s.name.startswith("func_") and s["st_size"]:
+                        func_sizes[s.name] = (s["st_value"], s["st_size"])
+ENTRY = {}
+for name, (a, size) in func_sizes.items():
+    try:
+        words = [word_at(a + i) for i in range(0, size, 4)]
+    except KeyError:
+        continue
+    if any(w >> 26 in (0x23, 0x09) and (w & 0xFFFF) in (0x56C0, 0x56C4) for w in words) and \
+            any(w >> 16 in (0x3C01, 0x3C02, 0x3C03, 0x3C04, 0x3C05, 0x3C06, 0x3C07, 0x3C08, 0x3C09, 0x3C0A,
+                            0x3C0B, 0x3C0C, 0x3C0D, 0x3C0E, 0x3C0F, 0x3C18, 0x3C19) and (w & 0xFFFF) == 0x8031
+                for w in words):
+        ENTRY[a] = name
+if len(ENTRY) > 80:
+    raise SystemExit("cmp_spec: too many entry breakpoints (%d)" % len(ENTRY))
+
+BPS = {A_BOOT: "B", A_TASK: "F", A_RDP: "R", A_RSP: "P", A_TIME: "T", A_COUNT: "C", A_AILEN: "A", A_CULL: "U"}
 BPS.update({a: "M" for a in SYNC})
+BPS.update({a: "E" for a in ENTRY})
 GPRS, FPRS, MEM = [], [], []
 DEDUPE = False
 DEFMAX = 1 << 40
@@ -150,20 +180,29 @@ def thread_id(rd):
     return rd(t + 0x14, 4) if 0x80000000 <= t < 0x80800000 else -1
 
 
+def frame_event(rd):
+    st["frame"] += 1
+    n = st["frame"]
+    if (DUMP_EVERY and n % DUMP_EVERY == 0) or n in DUMP_FRAMES:
+        dump(n)
+    if STOP and n >= STOP:
+        core.CoreDoCommand(6, 0, None)
+    return "F %d vi=%d d=%s mode=%08x%08x lvl=%x mf=%x gvi=%x demo=%x" % (
+        n, st["vi"], frac(), rd(0x80364A90, 4), rd(0x80364A94, 4), rd(0x802E8BDC, 4), rd(0x80358060, 4),
+        rd(0x803156C4, 4), rd(0x802E8BEC, 4))
+
+
 def ONHIT(pc, g, rd):
     if pc == A_TASK:
         t = g["a0"]
         if not (rd(t - 0x10 + 0x08, 4) & 0x40):
             return None
-        st["frame"] += 1
-        n = st["frame"]
-        if (DUMP_EVERY and n % DUMP_EVERY == 0) or n in DUMP_FRAMES:
-            dump(n)
-        if STOP and n >= STOP:
-            core.CoreDoCommand(6, 0, None)
-        return "F %d vi=%d d=%s mode=%08x%08x lvl=%x mf=%x gvi=%x demo=%x" % (
-            n, st["vi"], frac(), rd(0x80364A90, 4), rd(0x80364A94, 4), rd(0x802E8BDC, 4), rd(0x80358060, 4),
-            rd(0x803156C4, 4), rd(0x802E8BEC, 4))
+        return "G vi=%d d=%s" % (st["vi"], frac())
+    if pc == A_RSP:
+        t = rd(g["a0"] + 0x274, 4)  # sc->curRSPTask
+        if not (0x80000000 <= t < 0x80800000 and rd(t + 8, 4) & 0x40):
+            return None
+        return "P vi=%d d=%s y=%d" % (st["vi"], frac(), 1 if rd(t + 4, 4) == 3 else 0)
     if pc == A_RDP:
         return "R vi=%d d=%s" % (st["vi"], frac())
     if pc == A_TIME:
@@ -176,8 +215,17 @@ def ONHIT(pc, g, rd):
         return "U ra=%x th=%d v=%x" % (syms["func_802A4B0C"], thread_id(rd), rd(A_CULLBUF, 4))
     if pc == A_AILEN:
         return "A ra=%x th=%d v=%x" % (g["ra"], thread_id(rd), g["v0"])
+    if pc in ENTRY:
+        return "M ra=%x th=%d c=%d f=enter q=0" % (pc, thread_id(rd), count())
     if pc in SYNC:
-        return "M ra=%x th=%d c=%d f=%s q=%x" % (g["ra"], thread_id(rd), count(), SYNC[pc], g["a0"])
+        m ="M ra=%x th=%d c=%d f=%s q=%x" % (g["ra"], thread_id(rd), count(), SYNC[pc], g["a0"])
+        # a frame: the main thread sends the scheduler (D_80315440) a task with
+        # the frame flag 0x40 (405F0.c func_80284E54) -- the exe dumps here too
+        a1 = g["a1"]
+        if (SYNC[pc] == "osSendMesg" and g["a0"] == 0x80315440 and 0x80000000 <= a1 < 0x80800000
+                and rd(a1 + 8, 4) & 0x40):
+            m += " || " + frame_event(rd)
+        return m
     if pc == A_BOOT:
         return "B vi=%d count=%d vicount=%d" % (st["vi"], count(), st["vi_count"])
     return None

@@ -65,6 +65,7 @@ typedef struct {
     const char *syms_path;     /* `nm -n` of the exe (names for --clock, crash reports) */
     const char *clock_path;    /* keyed osGetTime/osGetCount values (os_time.c) */
     const char *sync_path;     /* the emulator's thread timing (os_thread.c) */
+    const char *frame_sp_path; /* when each frame task leaves the RSP (os_time.c) */
     int quiet;
     int game_print;            /* print the game's debug messages (func_8029A7E4) */
     const char *mpk_path;      /* Controller Pak image (.mpk), or NULL: no pak */

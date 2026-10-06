@@ -41,6 +41,7 @@ u64 plat_now;
 u32 plat_vi_count;
 
 static void sync_point(void *ra, char kind, void *arg);
+static void entry_add(const char *name);
 
 OSThread *plat_running(void) {
     return g_running;
@@ -286,6 +287,12 @@ static void wake_one(OSThread **q) {
 
 s32 osSendMesg(OSMesgQueue *mq, OSMesg msg, s32 flag) {
     sync_point(__builtin_return_address(0), 's', mq);
+    /* A frame: the main thread hands the scheduler (D_80315440) a task with
+     * the frame flag (0x40; 405F0.c func_80284E54).  Counted (and dumped)
+     * here, where the main thread is at the same point on any machine. */
+    if ((u32) mq == 0x80315440u && (u32) msg >= 0x80000000u && (u32) msg < 0x80800000u &&
+        (*(u32 *) ((u8 *) msg + 0x08) & 0x40))
+        plat_on_frame();
     while (mq->validCount >= mq->msgCount) {
         if (flag != OS_MESG_BLOCK) return -1;
         block_on(&mq->fullqueue);
@@ -525,6 +532,7 @@ void plat_sync_load(const char *path) {
                     g_sync[id].ev[g_sync[id].n].q = qa;
                     g_sync[id].n++;
                     lines++;
+                    if (kind == 'e') entry_add(name);
                 }
             }
         }
@@ -585,8 +593,52 @@ static void sync_point(void *ra, char kind, void *arg) {
     }
     g_sync[id].next = j + 1;
     g_sync[id].used++;
-    if (plat_now > g_sync[id].ev[j].t) g_sync[id].late++;
-    else plat_spin_until(g_sync[id].ev[j].t);
+    if (plat_now > g_sync[id].ev[j].t) {
+        g_sync[id].late++;
+        if (host_verbose && plat_now - g_sync[id].ev[j].t > PLAT_VI_PERIOD / 8)
+            host_log("sync: vi %u thread %u: %s %c %08X %.2f retraces late\n", (unsigned) plat_vi_count,
+                     (unsigned) id, name, kind, (unsigned) (u32) arg,
+                     (double) (plat_now - g_sync[id].ev[j].t) / PLAT_VI_PERIOD);
+    } else
+        plat_spin_until(g_sync[id].ev[j].t);
+}
+
+/* Function-entry switch points ('e'): the game files are built with
+ * -finstrument-functions; the entries of the functions --sync lists with
+ * kind 'e' (those that read the game's retrace counter) synchronise. */
+#define ENTRY_HASH 256
+static u32 g_entry[ENTRY_HASH];
+static int g_entry_on;
+
+static void entry_add(const char *name) {
+    u32 a = plat_sym_addr(name), h;
+    if (a == 0) return;
+    for (h = (a >> 4) % ENTRY_HASH; g_entry[h] != 0 && g_entry[h] != a; h = (h + 1) % ENTRY_HASH) {}
+    g_entry[h] = a;
+    g_entry_on = 1;
+}
+
+void __cyg_profile_func_enter(void *fn, void *site) __attribute__((no_instrument_function));
+void __cyg_profile_func_exit(void *fn, void *site) __attribute__((no_instrument_function));
+
+void __cyg_profile_func_enter(void *fn, void *site) {
+    u32 a = (u32) fn, h;
+    (void) site;
+    if (!g_entry_on) return;
+    for (h = (a >> 4) % ENTRY_HASH; g_entry[h] != 0; h = (h + 1) % ENTRY_HASH)
+        if (g_entry[h] == a) {
+            sync_point(fn, 'e', NULL);
+            return;
+        }
+}
+
+void __cyg_profile_func_exit(void *fn, void *site) {
+    (void) fn;
+    (void) site;
+}
+
+void plat_sync_point(void *ra, char kind, void *arg) {
+    sync_point(ra, kind, arg);
 }
 
 void plat_sync_report(void) {

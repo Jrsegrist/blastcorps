@@ -201,14 +201,18 @@ $(H)/addrs.txt: $(NM_ELFS) tools/gensyms.py
 
 $(H)/game/hd/%.s: $(GAME_SRC)/%.c include/port_ultratypes.h Makefile
 	@mkdir -p $(@D)
-	$(CC) $(HL_CFLAGS) -S -o $@ $<
+	$(CC) $(HL_CFLAGS) $(HL_GAME_INSTR) -S -o $@ $<
+# game functions call __cyg_profile_func_enter (os_thread.c): with --sync,
+# the entries of the functions that read the game's retrace counter are
+# switch points too (port/tools/cmp_spec.py lists them)
+HL_GAME_INSTR := -finstrument-functions
 # the callers of osGetTime/osGetCount keep their own functions (no inlining),
 # so --clock can give each caller the emulator's values (os_time.c)
 HL_CLOCK_CALLERS := 00000 1C460 20460 22EE0 23C20 2C560
 $(HL_CLOCK_CALLERS:%=$(H)/game/hd/%.s): HL_CFLAGS += -fno-inline
 $(H)/game/fe/%.s: $(FE_SRC)/%.c include/port_ultratypes.h Makefile
 	@mkdir -p $(@D)
-	$(CC) $(HL_CFLAGS) -S -o $@ $<
+	$(CC) $(HL_CFLAGS) $(HL_GAME_INSTR) -S -o $@ $<
 $(H)/game/ul/%.s: $(GAME_SRC)/%.c Makefile
 	@mkdir -p $(@D)
 	$(CC) $(HL_UL_CFLAGS) -S -o $@ $<

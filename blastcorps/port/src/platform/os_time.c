@@ -110,13 +110,21 @@ static void load_table(Table *t, const char *path, const char *what, u32 first, 
     if (!plat_cfg.quiet) host_log("clock: %u %s values from %s\n", (unsigned) lines, what, path);
 }
 
+static Table g_framesp;
+
 void plat_clock_init(const char *gettime_path, const char *frame_done_path) {
     if (gettime_path) load_table(&g_gettime, gettime_path, "--gettime", 0, 0);
     if (frame_done_path) load_table(&g_framedone, frame_done_path, "--frame-done", 1, 1);
+    if (plat_cfg.frame_sp_path) load_table(&g_framesp, plat_cfg.frame_sp_path, "--frame-sp", 1, 1);
 }
 
 u64 plat_frame_done_time(u32 frame) {
     return table_get(&g_framedone, frame);
+}
+
+/* --frame-sp: when frame N's task leaves the RSP (its RDP part runs on) */
+u64 plat_frame_sp_time(u32 frame) {
+    return table_get(&g_framesp, frame);
 }
 
 /* ---- symbols (--syms: `nm -n` of the exe) ---------------------------------
@@ -159,6 +167,17 @@ void plat_syms_load(const char *path) {
         p = eol + 1;
         while (p < end && (*p == '\n' || *p == '\r')) p++;
     }
+}
+
+/* native address of function NAME (0 if unknown) */
+u32 plat_sym_addr(const char *name) {
+    u32 i;
+    for (i = 0; i < g_nsyms; i++) {
+        const char *a = g_syms[i].name, *b = name;
+        while (*a && *a == *b) a++, b++;
+        if (*a == *b) return g_syms[i].addr;
+    }
+    return 0;
 }
 
 /* name of the function containing native address A (NULL if unknown) */
@@ -300,7 +319,9 @@ int plat_clock_key_take_name(int kind, const char *name, u64 *v) {
     if (k == NULL) g_key_nocaller[kind]++;
     else {
         /* a visibility test is answered after its task ran: allow a retrace either way */
-        u32 slack = kind == 3 ? 1 : 0;
+        /* (and the clock: the native thread may reach the call a retrace or
+         * two off when an earlier switch point couldn't be matched) */
+        u32 slack = kind == 2 ? 0 : kind == 3 ? 1 : 2;
         while (k->next < k->n && k->vi[k->next] + slack < plat_vi_count) k->next++;
         if (k->next < k->n && k->vi[k->next] <= plat_vi_count + slack) {
             *v = k->v[k->next++];
@@ -338,6 +359,7 @@ OSTime osGetTime(void) {
     u64 v;
     plat_stats.gettime_calls++;
     plat_now += plat_cfg.count_per_gettime;
+    plat_sync_point(__builtin_return_address(0), 'g', NULL);
     if (plat_clock_key_take(0, __builtin_return_address(0), &v)) return v;
     if (plat_gettime_hook && plat_gettime_hook(call, plat_now, &v)) return v;
     v = table_get(&g_gettime, call);
@@ -351,6 +373,7 @@ u32 osGetCount(void) {
     u32 call = g_count_calls++, c;
     u64 v;
     plat_now += plat_cfg.count_per_gettime;
+    plat_sync_point(__builtin_return_address(0), 'c', NULL);
     if (plat_clock_key_take(1, __builtin_return_address(0), &v)) return (u32) v;
     if (plat_getcount_hook && plat_getcount_hook(call, plat_now, &c)) return c;
     return (u32) plat_now;

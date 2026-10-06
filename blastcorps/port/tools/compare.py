@@ -151,7 +151,7 @@ def parse_emu(emudir):
         wrap[1] = c + wrap[0]
         return wrap[1]
 
-    for line in open(os.path.join(emudir, "emu.txt")):
+    for seq, line in enumerate(open(os.path.join(emudir, "emu.txt"))):
         if line.startswith("#in "):
             m = re.match(r"#in vi=\d+ V (\d+) count=(\d+)", line)
             if m:
@@ -164,7 +164,14 @@ def parse_emu(emudir):
             continue
         m = re.match(r"\S+ vi=(\d+) ", line)
         vi = int(m.group(1)) if m else 0
-        body = line[i + 2:].split()
+        for seg in line[i + 2:].split(" || "):
+            parse_seg(ev, seg, vi, seq, unwrap)
+    return ev
+
+
+def parse_seg(ev, seg, vi, seq, unwrap):
+    if True:
+        body = seg.split()
         kind = body[0]
         kv = dict(x.split("=", 1) for x in body[1:] if "=" in x)
         if kind == "F":
@@ -172,14 +179,17 @@ def parse_emu(emudir):
             ev["F"].append(kv)
         elif kind == "R":
             ev["R"].append(kv)
+        elif kind == "P":
+            ev.setdefault("P", []).append(kv)
         elif kind in ("T", "C", "A", "U"):
             ev[kind].append((int(kv["ra"], 16), int(kv["th"]), int(kv["v"], 16), vi))
+            ev.setdefault("seq" + kind, []).append(seq)
         elif kind == "M":
             ev["M"].append((int(kv["ra"], 16), int(kv["th"]), unwrap(int(kv["c"])), kv["f"], int(kv.get("q", "0"), 16)))
+            ev.setdefault("seqM", []).append(seq)
         elif kind == "B":
             kv["count"] = str(unwrap(int(kv["count"])))
             ev["B"] = kv
-    return ev
 
 
 def emu_timing(ev):
@@ -219,13 +229,37 @@ def cmd_inject(args):
         for n, r in enumerate(ev["R"], 1):
             fr = min(int(r["d"]) / period, 0.999999)
             f.write("@%d %d.%06d\n" % (n, int(r["vi"]) + off, int(fr * 1000000)))
+    # the frame tasks' RSP parts (the RSP is free for audio/cull tasks from then)
+    with open(os.path.join(emudir, "framesp.txt"), "w") as f:
+        n = 0
+        for p in ev.get("P", []):
+            if p.get("y") == "1":
+                continue
+            n += 1
+            fr = min(int(p["d"]) / period, 0.999999)
+            f.write("@%d %d.%06d\n" % (n, int(p["vi"]) + off, int(fr * 1000000)))
     nsync = 0
     with open(os.path.join(emudir, "sync.txt"), "w") as f:
-        kinds = {"osSendMesg": "s", "osRecvMesg": "r", "osJamMesg": "j", "osStartThread": "t"}
-        for ra, th, c, fn, q in ev["M"]:
+        kinds = {"osSendMesg": "s", "osRecvMesg": "r", "osJamMesg": "j", "osStartThread": "t", "enter": "e"}
+        pts = [(s, c, th, ra, kinds[fn], q) for s, (ra, th, c, fn, q) in zip(ev.get("seqM", []), ev["M"])]
+        # osGetTime / osGetCount calls are switch points too (the game reads
+        # the clock between message calls): their value is the count itself
+        # (main thread only: the scheduler's and the audio thread's clock reads
+        # follow RSP timing the platform doesn't model, see compare_ignore.txt)
+        for s, (ra, th, v, vi) in zip(ev.get("seqT", []), ev["T"]):
+            if th == 3:
+                pts.append((s, v, th, ra, "g", 0))
+        for s, (ra, th, v, vi) in zip(ev.get("seqC", []), ev["C"]):
+            if th != 3:
+                continue
+            est = ev["c1"] + (vi - 1) * period
+            k = round((est - v) / float(1 << 32))
+            pts.append((s, v + k * (1 << 32), th, ra, "c", 0))
+        pts.sort(key=lambda p: p[0])  # log order = execution order
+        for s, c, th, ra, kind, q in pts:
             it = fs.find(ra)
             if it and re.match(r"^func_[0-9A-F]{8}$", it[1]):
-                f.write("S %d %s %s %X %d\n" % (th, it[1], kinds[fn], q, ev["to_native"](c)))
+                f.write("S %d %s %s %X %d\n" % (th, it[1], kind, q, ev["to_native"](c)))
                 nsync += 1
     with open(os.path.join(emudir, "boot.txt"), "w") as f:
         f.write("%d %d %.3f\n" % (boot, off, period))
@@ -257,7 +291,15 @@ def cmd_emu(args):
     elfs = rom_elfs(kind)
     with open(os.path.join(emudir, "elfs.txt"), "w") as f:
         f.write("\n".join(elfs) + "\n")
-    env = dict(os.environ, CMP_DIR=emudir, CMP_ELFS=",".join(elfs), CMP_VIS=str(opt(args, "--vis", 36000)),
+    for f in os.listdir(emudir):
+        if f.startswith("frame_"):
+            os.remove(os.path.join(emudir, f))
+    # a blank EEPROM (no saves), as the exe has without --eeprom
+    savedir = os.path.join(emudir, "save")
+    if os.path.isdir(savedir):
+        for f in os.listdir(savedir):
+            os.remove(os.path.join(savedir, f))
+    env = dict(os.environ, M64SAVEDIR=savedir, CMP_DIR=emudir, CMP_ELFS=",".join(elfs), CMP_VIS=str(opt(args, "--vis", 36000)),
                CMP_DUMP=opt(args, "--dump", "every:10"), CMP_STOP=str(opt(args, "--stop", 0)))
     py = sys.executable
     tracer = os.path.join(ROOT, "tools_port/m64trace/m64trace.py")
@@ -286,6 +328,9 @@ def cmd_native(args):
     cmd = [exe, wpath(rom), "--boot-count", boot, "--clock", wpath(os.path.join(emudir, "clock.txt")),
            "--syms", wpath(exe[:-4] + ".syms"), "--frame-done", wpath(os.path.join(emudir, "framedone.txt")),
            "--trace", wpath(os.path.join(natdir, "trace.txt")), "--dump-dir", wpath(natdir)]
+    cmd += ["--load-log"]
+    if os.path.exists(os.path.join(emudir, "framesp.txt")):
+        cmd += ["--frame-sp", wpath(os.path.join(emudir, "framesp.txt"))]
     if not flag(extra, "--no-sync"):
         cmd += ["--sync", wpath(os.path.join(emudir, "sync.txt"))]
     if every:
@@ -404,6 +449,24 @@ def word_ok(n, e):
     return (h0 or b0) and (h1 or b1)
 
 
+def covered(nat, e, o):
+    """Every byte of the word at o lies in some unit that agrees: a byte, a u16
+    at an even address, or a u32 at an even (not necessarily 4-aligned)
+    address -- the game has u32 fields at 2 mod 4 in byte-copied records
+    (the demos' vehicle snapshots)."""
+    ok = [False] * 4
+    for start, size in ((o - 2, 4), (o, 4), (o + 2, 4), (o, 2), (o + 2, 2)):
+        if start < 0 or start + size > len(e):
+            continue
+        if nat[start:start + size] == e[start:start + size][::-1]:
+            for b in range(max(start, o), min(start + size, o + 4)):
+                ok[b - o] = True
+    for b in range(4):
+        if nat[o + b] == e[o + b]:
+            ok[b] = True
+    return all(ok)
+
+
 class Cmp:
     def __init__(self, emudir, natdir):
         self.emudir, self.natdir = emudir, natdir
@@ -433,6 +496,26 @@ class Cmp:
                     self.text_end = int(p[0], 16)
         if not self.text_end and self.nfun.items:
             self.text_end = self.nfun.items[-1][0] + 0x1000
+        # the exe's loads (--load-log): which asset an address came from
+        self.loads = []
+        self.loads_at = {}  # dump frame -> number of loads before it
+        lp = os.path.join(natdir, "run.log")
+        if os.path.exists(lp):
+            for line in open(lp, errors="replace"):
+                m = re.match(r"load: (\w+)\s+rom ([0-9A-F]+) -> ([0-9A-F]+) len ([0-9A-F]+): (.*)", line)
+                if m:
+                    self.loads.append((int(m.group(3), 16), int(m.group(4), 16), int(m.group(2), 16),
+                                       m.group(5).strip(), m.group(1)))
+                m = re.match(r"dump: .*frame_(\d+)\.bin", line)
+                if m:
+                    self.loads_at[int(m.group(1))] = len(self.loads)
+
+    def asset(self, a, frame=None):
+        n = self.loads_at.get(frame, len(self.loads))
+        for dst, ln, rom, kind, how in reversed(self.loads[:n]):
+            if dst <= a < dst + ln:
+                return "%s rom %06X+0x%X" % (kind, rom, a - dst)
+        return ""
 
     def codeptr(self, ev, nv):
         """A pointer into the exe image where the emulator has an N64 address:
@@ -486,6 +569,8 @@ class Cmp:
                 q = o & ~7  # u64/f64
                 if nat[q:q + 8] == e[q:q + 8][::-1]:
                     continue
+                if covered(nat, e, o):
+                    continue
                 ev = int.from_bytes(eb, "big")
                 nv = int.from_bytes(nb, "little")
                 if self.codeptr(ev, nv) or self.codeptr(ev, int.from_bytes(nb, "big")):
@@ -515,6 +600,9 @@ class Cmp:
             sz = ""
             if it and it[2]:
                 sz = " (%s size 0x%X)" % (it[1], it[2])
+            ast = self.asset(a, n)
+            if ast:
+                sz += " [%s]" % ast
             samples = []
             for o in diffs:
                 if lo <= o < hi and len(samples) < 3:

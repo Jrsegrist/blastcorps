@@ -13,6 +13,7 @@ The traces hold no ROM bytes, only which offsets the original code reads at
 which width (and how often).
 """
 import collections
+import os
 import sys
 
 
@@ -39,6 +40,14 @@ LEVEL_HEAP_USERS = {"func_802A5AE0", "func_802A5B90",   # 60F60: texture decode
                     "func_802AC8CC", "func_802ACCCC"}  # 679E0: vehicle blocks
 
 
+# WIDTHS_NO_DECODERS=1 (compare.py's strict facts, port/Makefile strict-data):
+# drop the texture decoders' reads.  The tracer charges an access to the last
+# load at that address, and the decoders work in heap that earlier assets
+# (e.g. the packed-object table) occupied; the strict comparison keeps
+# textures lenient anyway.
+SKIP = {"func_802A5AE0", "func_802A5B90", "func_802A57DC"} if os.environ.get("WIDTHS_NO_DECODERS") else set()
+
+
 def parse(paths, keep_copiers=False):
     acc = collections.defaultdict(collections.Counter)    # (region, off) -> Counter((width, kind))
     loads = []
@@ -52,6 +61,8 @@ def parse(paths, keep_copiers=False):
                 if (func in COPIERS or func.startswith("~")) and not keep_copiers:
                     continue
                 if f[1] == "fe" and func in LEVEL_HEAP_USERS:
+                    continue
+                if func in SKIP:
                     continue
                 off = int(f[2], 16)
                 if f[3] == "8" and off % 8 == 4:

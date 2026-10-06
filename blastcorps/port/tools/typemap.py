@@ -33,6 +33,14 @@ FLAGS = ["-m32", "-malign-double", "-g", "-O0", "-c", "-std=gnu89", "-nostdinc",
 IMAGE = (0x802E8BD0, 0x8030F660)
 # hd .text tables (pinned), hd .data/.rodata, front-end .data/.rodata
 INIT_RANGES = [(0x802447C0, 0x802E8BD0), IMAGE, (0x80208040, 0x80210E90)]
+CAP = None
+if os.environ.get("TYPEMAP_ALL"):
+    # every symbol, .bss included: the declared layouts compare.py's strict
+    # mode checks RDRAM words against (port/Makefile strict-data); open-ended
+    # extents (extern T x[], views up to the next symbol) are capped, or the
+    # big buffers (framebuffers, heap) don't fit in memory as leaf lists
+    INIT_RANGES = [(0x80000000, 0x80800000)]
+    CAP = 0x10000
 
 addr = {}
 nmsize = {}
@@ -118,6 +126,8 @@ def flatten(lv, size):
                 continue
             if n is None:
                 n = max(0, (size - base) // stride) if size else 0
+            if CAP:
+                n = min(n, max(1, CAP // stride))
             for k in range(n):
                 flat += [(base + k * stride + o, w, f) for o, w, f in elem]
         else:
@@ -223,6 +233,8 @@ for src in files:
                     continue
                 if sz is None:
                     sz = nmsize.get(nm) or (next_sym(a) - a)
+                    if CAP:
+                        sz = min(sz, CAP)
                 decls[nm][fid] = (sz, list(flatten(lv, sz)))
 
 # array views run to the next symbol some file declares or defines: splat
@@ -256,6 +268,8 @@ for nm, key, esz, one, scalar in pending_views:
         i += 1
     nxt = declared_addrs[i] if i < len(declared_addrs) else a + esz
     ext = max(nmsize.get(nm) or 0, nxt - a)
+    if CAP:
+        ext = min(ext, CAP)
     n = 1 if scalar else max(1, ext // esz)
     # byte leaves too: an explicit u8 field blocks a coarser view's word there
     decls[nm][key] = (esz * n, [(k * esz + o, w, fl) for k in range(n) for o, w, fl in one])
@@ -339,7 +353,7 @@ if ul_failed:
     print("libultra wrappers that don't compile with host gcc (their data not typed): %d: %s" %
           (len(ul_failed), " ".join(ul_failed)))
 coverage("hd_code data", *IMAGE)
-coverage("front-end data", *INIT_RANGES[2])
+coverage("front-end data", 0x80208040, 0x80210E90)
 print("symbols whose layout differs between files: %d" % len(conflicts))
 for a, nm, per in sorted(conflicts)[:40]:
     distinct = collections.OrderedDict()

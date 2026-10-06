@@ -33,6 +33,15 @@ extern const PortSwapRun port_swap_fe[];
 
 /* swap N elements of WIDTH (2, 4, 8) bytes at host pointer P */
 void port_bswap_n(void *p, uint32_t n, int width);
+/* The game reads a few never-initialised heap bytes (5CB60.c triangle
+ * records), which on the N64 hold a big-endian byte of what was there
+ * before.  Every swap records the unit it swapped (port_unit_mark, width 1 =
+ * kept big-endian); port_n64_byte gives the byte the N64 would hold at P. */
+void port_unit_mark(void *p, uint32_t n, int width);
+uint8_t port_n64_byte(const void *p);
+/* bytes nothing writes or reads (record padding): with --load-log, logged
+ * for the comparison (port/tools/compare.py skips them until reloaded) */
+void port_garbage(const void *p, uint32_t len);
 /* apply a run table (terminated by count 0); returns the bytes swapped */
 uint32_t port_swap_runs(const PortSwapRun *runs);
 

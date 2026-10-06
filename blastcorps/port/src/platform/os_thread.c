@@ -677,8 +677,25 @@ void __cyg_profile_func_enter(void *fn, void *site) {
         for (h = (a >> 4) % CALL_HASH; g_call[h] != 0; h = (h + 1) % CALL_HASH)
             if (g_call[h] == a) {
                 const char *c = plat_sym_name((u32) site, NULL);
-                host_log("call: %s from %s frame %u\n", plat_sym_name(a, NULL), c ? c : "?",
-                         (unsigned) plat_stats.frames);
+                /* the first four argument words: just above fn's return
+                 * address on the stack (found by value, above this hook's own
+                 * arguments).  Only for functions that weren't inlined (an
+                 * inlined body reports its container's return address); build
+                 * the game files with HL_EXTRA=-fno-inline when it matters. */
+                u32 *p = (u32 *) __builtin_frame_address(0) + 4, *arg = NULL;
+                int i;
+                for (i = 0; i < 1024; i++)
+                    if (p[i] == (u32) site) {
+                        arg = p + i + 1;
+                        break;
+                    }
+                if (arg)
+                    host_log("call: %s from %s frame %u args %x,%x,%x,%x\n", plat_sym_name(a, NULL), c ? c : "?",
+                             (unsigned) plat_stats.frames, (unsigned) arg[0], (unsigned) arg[1], (unsigned) arg[2],
+                             (unsigned) arg[3]);
+                else
+                    host_log("call: %s from %s frame %u\n", plat_sym_name(a, NULL), c ? c : "?",
+                             (unsigned) plat_stats.frames);
                 break;
             }
     }

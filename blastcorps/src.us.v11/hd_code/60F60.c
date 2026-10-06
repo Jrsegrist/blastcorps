@@ -494,6 +494,14 @@ void func_802A5FA8(void) {
     D_80358070 = (u8 *) end;
     for (b = (HeapBlock *) start; b != end; b++) {
         b->inUse = 0;
+#ifdef PORT_HOST
+        {
+            /* trailer bytes 0x1007-0x100F: never written (stale heap) */
+            void port_garbage(const void *p, u32 len);
+
+            port_garbage(&b->pad1006[1], 9);
+        }
+#endif
     }
 }
 #else

@@ -457,6 +457,19 @@ void func_802A1A9C(u8 *obj, s32 *s1io) {
             count = *(s32 *) (src + 0x28);
             src += 0x2C;
             while (count != 0) {
+#ifdef PORT_HOST
+                /* bytes 0x25-0x27 are never written: keep the N64's stale
+                 * bytes (port_n64_byte, see PORT_STALE_51 below) */
+                void port_unit_mark(void *p, u32 n, s32 width);
+                u8 port_n64_byte(const void *p);
+                void port_garbage(const void *p, u32 len);
+                u8 old[3];
+                s32 k;
+
+                for (k = 0; k < 3; k++) {
+                    old[k] = port_n64_byte(m + 0x25 + k);
+                }
+#endif
                 count--;
                 *(s32 *) (m + 0x00) = *(s16 *) (src + 0x00) << 5;
                 *(s32 *) (m + 0x04) = *(s16 *) (src + 0x02) << 5;
@@ -468,6 +481,14 @@ void func_802A1A9C(u8 *obj, s32 *s1io) {
                 *(s32 *) (m + 0x1C) = *(s16 *) (src + 0x0E) << 5;
                 *(s32 *) (m + 0x20) = *(s16 *) (src + 0x10) << 5;
                 m[0x24] = src[0x12];
+#ifdef PORT_HOST
+                for (k = 0; k < 3; k++) {
+                    m[0x25 + k] = old[k];
+                }
+                port_unit_mark(m, 9, 4);
+                port_unit_mark(m + 0x24, 4, 1);
+                port_garbage(m + 0x25, 3);
+#endif
                 src += 0x44;
                 m += 0x28;
             }
@@ -1742,6 +1763,36 @@ void func_802A396C(s32 type, Out802A396C *out) {
 #ifdef NON_MATCHING
 s32 func_802A4168(s32 id, u8 *end);
 
+#if defined(NON_MATCHING) && defined(PORT_HOST)
+/* Windows port: the triangle builders below (the grids, func_802A3E9C,
+ * func_802A3F80) never set a record's byte 0x51 (the "collides" flag that
+ * 56040.c's scans test), and no builder sets bytes 0x5A-0x5F, so the original
+ * reads (and leaves) whatever the heap held there: on the N64 a big-endian
+ * byte of the previous level's triangle records or assets (attract demo 1
+ * disables some of its grid triangles that way).  The host holds the same
+ * values in host order; port_n64_byte (port/src/load/swap.c) gives the byte
+ * the N64 would hold from the unit the load layer, or func_802A41B0 for its
+ * records (port_tri_mark), last put there.  Memory other code wrote since is
+ * misread -- only in these never-initialised bytes. */
+void port_unit_mark(void *p, u32 n, s32 width);
+u8 port_n64_byte(const void *p);
+void port_garbage(const void *p, u32 len);
+
+/* the layout of a record func_802A41B0 built (Unk803B9890, 77E20.c) */
+static void port_tri_mark(u8 *rec) {
+    port_unit_mark(rec, 4, 8);
+    port_unit_mark(rec + 0x20, 11, 4);
+    port_unit_mark(rec + 0x4C, 1, 2);
+    port_unit_mark(rec + 0x4E, 4, 1);
+    port_unit_mark(rec + 0x52, 1, 2);
+    port_unit_mark(rec + 0x54, 12, 1);
+}
+
+#define PORT_STALE_51(rec) ((rec)[0x51] = port_n64_byte((rec) + 0x51))
+#else
+#define PORT_STALE_51(rec)
+#endif
+
 /* Grid of (s16) obj[0x10] * (s16) obj[0x12] cells (must be >= 1: the asm
  * counts down with `!=`) at OBJ_PTR(obj, off): each cell is an unaligned BE
  * word (end of its triangles, relative to the grid) followed by 0x16-byte
@@ -1761,6 +1812,7 @@ static u8 *port_build_grid(u8 *obj, s32 off, u8 **table, s32 id, s32 b4F, s32 *s
         cellEnd = base + BE32(t);
         t += 4;
         while (t != cellEnd) {
+            PORT_STALE_51(rec);
             rec = func_802A41B0(rec, t, id, cells, (s32) cellEnd, t[0x14], s1io, b4F, 0);
             rec[-7] = t[0x15];
             t += 0x16;
@@ -1827,6 +1879,7 @@ void func_802A3E9C(u8 *obj, s32 id, s32 b4F, s32 *s1io) {
         while (n != 0) {
             n--;
             *slot++ = rec;
+            PORT_STALE_51(rec);
             rec = func_802A41B0(rec, p, id, (s32) end, n, (s32) slot, s1io, b4F, 1);
             p += 0x14;
         }
@@ -1894,7 +1947,14 @@ u8 *func_802A3F80(u8 *obj, s32 *s1io) {
         } else {
             do {
                 last = BE16S(p);
+#ifdef PORT_HOST
+                /* read back as (channel, state) byte pairs (56040.c
+                 * func_8029DB7C): keep the N64 byte order */
+                ((u8 *) w)[0] = p[0];
+                ((u8 *) w)[1] = p[1];
+#else
                 *(s16 *) w = last;
+#endif
                 n--;
                 p += 2;
                 w = (s32 *) ((u8 *) w + 2);
@@ -1908,6 +1968,7 @@ u8 *func_802A3F80(u8 *obj, s32 *s1io) {
             id = p[0x14];
             *q++ = id;
             if (func_802A4168(id, recEnd) == 0) {
+                PORT_STALE_51(rec);
                 rec = func_802A41B0(rec, p, id, (s32) end, n, last, s1io, 0, 1);
             }
             p += 0x15;
@@ -1975,6 +2036,22 @@ u8 *func_802A41B0(u8 *rec, u8 *v, s32 id, s32 h52, s32 b57, s32 b56, s32 *s1io, 
     f32 f;
     f32 sum;
 
+#ifdef PORT_HOST
+    {
+        /* bytes 0x5A-0x5F are never written either (nothing reads them):
+         * the N64's stale bytes too, so RDRAM compares equal */
+        u8 old[6];
+        s32 k;
+        for (k = 0; k < 6; k++) {
+            old[k] = port_n64_byte(rec + 0x5A + k);
+        }
+        for (k = 0; k < 6; k++) {
+            rec[0x5A + k] = old[k];
+        }
+        port_garbage(rec + 0x5A, 6);
+    }
+    port_tri_mark(rec);
+#endif
     rec[0x59] = 0;
     rec[0x55] = b55;
     rec[0x56] = b56;

@@ -270,6 +270,11 @@ static void swap_object(uint32_t base, uint32_t len) {
     if (blk_sect(&b, 0x30, 0x38, &lo, &hi))
         blk_records(&b, lo, hi, 0x38, "4@0 4@4 4@8 4@C 4@10 4@14 4@18 4@1C 4@20 4@24 4@28 2@2C 2@2E");
     if (blk_sect(&b, 0x38, 0x3C, &lo, &hi)) obj_parts(&b, lo, hi);
+    /* 0x3C: s16 x hdr[0] (func_802C1A28; 77E20.c func_802BD1F8's falling
+     * parts read their landing heights from it as u16) */
+    lo = blk_rd32(&b, 0x3C);
+    blk_n(&b, lo, (uint16_t) rd16(base), 2);
+    if (blk_sect(&b, 0x3C, 0x40, &lo, &hi)) blk_records(&b, lo, hi, 2, "2@0");
     if (blk_sect(&b, 0x40, 0x44, &lo, &hi)) blk_records(&b, lo, hi, 2, "2@0");
     /* 0x44: bytes; 0x48: 0x19-byte triangles read with BE16S */
     free(b.done);

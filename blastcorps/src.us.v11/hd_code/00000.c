@@ -2712,13 +2712,13 @@ Gfx *func_8024C414(DynamicBuf *dyn, s32 *len) {
         func_80275478((struct SpriteVtxBuf *) dyn, &gdl, (D_80364A90 & 0x100) || currentYoshiWindow == 0x4D || currentYoshiWindow == 0x49);
     }
     if (D_80364A98 == 0 && !func_802753C0()) {
-        if (!(D_80364A90 & 0x200000100400230C) && D_803156C4 % 50 * 60 / 60 >= 21 && yoshiState == 1 &&
+        if (!(D_80364A90 & 0x200000100400230C) && PORT_GVI("func_8024C414", D_803156C4) % 50 * 60 / 60 >= 21 && yoshiState == 1 &&
             (!(D_80364A90 & 2) || (D_802E8BEC && (D_80366A12 == 3 || D_802E8BEC == 1))) &&
             (D_80364A90 != 0x100000000000 || D_803A6B04) &&
             (!(D_80364A90 & 0x1801) || D_80364AF0[D_80364AE8].unk91) && D_802E8BDC != 0x2F) {
             func_80259CCC((Gfx **) dyn, (u8 *) ("PRESS START"), 0, 1, 0, 0x5C, 0xC4, 0x1A, 0x1A, 1, 0xFF, 0xFF, 0xFF, 0xFF);
         }
-        if (D_803156C4 % 40 * 60 / 60 >= 16) {
+        if (PORT_GVI("func_8024C414", D_803156C4) % 40 * 60 / 60 >= 16) {
             if (D_802E8BD0) {
                 if (D_80364A90 == 0x2000000000000000 && yoshiState == 2) {
                     func_80259CCC((Gfx **) dyn, (u8 *) ("USE Z/R TO TURN PAGES"), D_8030491C, 0, 0, 0x18, 0x14, 0xF, 0xF, 1, 0xFF, 0xFF,

@@ -65,6 +65,7 @@ void osWritebackDCache(void *p, s32 n) { (void) p; (void) n; }
 /* the platform layer's game hooks (include/game/port.h) */
 void port_fe_loaded(void) {}
 void port_spin(void) {}
+unsigned int port_gvi_read(const char *fn, unsigned int v) { (void) fn; return v; }
 void func_8029A7E4(const char *fmt, ...) { (void) fmt; }
 void port_stub_hit(const char *name) {
     fprintf(stderr, "STUB called: %s\n", name);

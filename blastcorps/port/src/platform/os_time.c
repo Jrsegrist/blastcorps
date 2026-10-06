@@ -209,9 +209,13 @@ typedef struct {
     u32 n, cap, next, misses, used;
 } KeyQ;
 #define MAX_KEYS 256
-static KeyQ g_keys[4][MAX_KEYS]; /* osGetTime, osGetCount, osAiGetLength, cull test */
-static u32 g_nkeys[4];
-static u32 g_key_nocaller[4];
+#define NKINDS 5
+/* osGetTime, osGetCount, osAiGetLength, cull test, retrace-counter reads */
+static KeyQ g_keys[NKINDS][MAX_KEYS];
+static u32 g_nkeys[NKINDS];
+static u32 g_key_nocaller[NKINDS];
+static const char *const g_kind_name[NKINDS] = {"osGetTime", "osGetCount", "osAiGetLength", "cull test",
+                                                 "retrace counter"};
 /* "M R1 C1 PERIOD": the emulator's count at native time t is
  * C1 + (t - R1 * PLAT_VI_PERIOD) * PERIOD / PLAT_VI_PERIOD */
 static int g_emu_map;
@@ -269,9 +273,9 @@ void plat_clock_keyed_load(const char *path) {
                 g_emu_period = f / scale;
             }
             g_emu_map = g_emu_period > 0;
-        } else if ((p[0] == 'T' || p[0] == 'C' || p[0] == 'A' || p[0] == 'U') && p[1] == ' ') {
+        } else if ((p[0] == 'T' || p[0] == 'C' || p[0] == 'A' || p[0] == 'U' || p[0] == 'Q') && p[1] == ' ') {
             u32 vi = 0;
-            kind = p[0] == 'T' ? 0 : p[0] == 'C' ? 1 : p[0] == 'A' ? 2 : 3;
+            kind = p[0] == 'T' ? 0 : p[0] == 'C' ? 1 : p[0] == 'A' ? 2 : p[0] == 'U' ? 3 : 4;
             name = p + 2;
             q = name;
             while (*q && *q != ' ') q++;
@@ -333,9 +337,8 @@ int plat_clock_key_take_name(int kind, const char *name, u64 *v) {
         }
         k->misses++;
         if (host_verbose)
-            host_log("clock: %s from %s in retrace %u: next value is from retrace %u\n",
-                     kind == 3 ? "cull test" : kind == 2 ? "osAiGetLength" : kind ? "osGetCount" : "osGetTime", name, (unsigned) plat_vi_count,
-                     k->next < k->n ? (unsigned) k->vi[k->next] : 0u);
+            host_log("clock: %s from %s in retrace %u: next value is from retrace %u\n", g_kind_name[kind], name,
+                     (unsigned) plat_vi_count, k->next < k->n ? (unsigned) k->vi[k->next] : 0u);
     }
     if (!g_emu_map || kind >= 2) return 0;
     *v = emu_time();
@@ -345,16 +348,24 @@ int plat_clock_key_take_name(int kind, const char *name, u64 *v) {
 void plat_clock_report(void) {
     int kind;
     u32 i;
-    for (kind = 0; kind < 4; kind++) {
+    for (kind = 0; kind < NKINDS; kind++) {
         if (g_nkeys[kind] == 0) continue;
-        host_log("clock: %s keyed: %u calls from unkeyed callers\n", kind == 3 ? "cull test" : kind == 2 ? "osAiGetLength" : kind ? "osGetCount" : "osGetTime",
-                 (unsigned) g_key_nocaller[kind]);
+        host_log("clock: %s keyed: %u calls from unkeyed callers\n", g_kind_name[kind], (unsigned) g_key_nocaller[kind]);
         for (i = 0; i < g_nkeys[kind]; i++) {
             KeyQ *k = &g_keys[kind][i];
             host_log("  %-24s used %u of %u, %u calls with no value in their retrace\n", k->name, (unsigned) k->used,
                      (unsigned) k->n, (unsigned) k->misses);
         }
     }
+}
+
+/* include/game/port.h PORT_GVI: the game's retrace counter as FN reads it
+ * mid-function; following an emulator, the value it read there (it spent CPU
+ * time the native code doesn't before the read: cmp_spec.py GVI_FUNCS). */
+u32 port_gvi_read(const char *fn, u32 v) {
+    u64 x;
+    if (g_nkeys[4] && plat_clock_key_take_name(4, fn, &x)) return (u32) x;
+    return v;
 }
 
 OSTime osGetTime(void) {

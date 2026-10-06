@@ -38,6 +38,7 @@ D_8036A8C4 4 Acmd count of the last audio frame (the native synthesizer is ultra
 80367518 80367708 the music sequences' read state (ALCSeq D_80367518[]): advanced by the sequence player in audio time
 D_80366BD0 60 the sound player (1A630.c): ALPlayer timing, event queue, lists into the audio heap
 802E8CE0 802E8CF4 the sound player's active/free lists and its active sound count D_802E8CF0 (1A630.c .data)
+803F7844 803F7848 a vehicle's special-move sound handle (8AEE0.c): which sound-player slot sndPlaySfx hands out follows the audio thread's timing (the game only tests it for NULL)
 
 # --- graphics buffers
 803BE780 803C2B80 the visibility test's RSP task: its dram stack and RDP output buffer (5FD50.c func_802A4B0C)

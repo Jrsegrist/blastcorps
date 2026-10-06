@@ -312,11 +312,11 @@ void func_801F8980(void) {
     func_802A5720();
     func_8028A3E4();
     if (((s32) D_80358060)) {
-        func_80284E54(D_803156F8[D_8035805C].gfx, D_80358078, 2, 0, 1234, 0);
-        func_80284E54(D_8021AB68, D_8021AB58, 0, 0, 1234, 0);
-        func_80284E54(D_8021AB6C, D_8021AB5C, 1, 1, 1234, 0);
+        func_80284E54((u64 *) (D_803156F8[D_8035805C].gfx), D_80358078, 2, 0, 1234, 0);
+        func_80284E54((u64 *) D_8021AB68, D_8021AB58, 0, 0, 1234, 0);
+        func_80284E54((u64 *) D_8021AB6C, D_8021AB5C, 1, 1, 1234, 0);
     } else {
-        func_80284E54(D_803156F8[D_8035805C].gfx, D_80358078, 1, 1, 1234, 0);
+        func_80284E54((u64 *) (D_803156F8[D_8035805C].gfx), D_80358078, 1, 1, 1234, 0);
     }
     D_8035805C ^= 1;
     dyn = &D_803156F8[D_8035805C];
@@ -447,7 +447,7 @@ Gfx *func_801F9258(Gfx *arg0, Dynamic *dyn, s32 *count) {
     gDPPipelineMode(gdl++, G_PM_1PRIMITIVE);
     gDPSetColorDither(gdl++, 0x80);
     gdl = func_801FE5D0(gdl, dyn);
-    gdl = func_801F3450(gdl, dyn);
+    gdl = func_801F3450(gdl, (u8 *) dyn);
     func_80259450();
     {
         u32 h;
@@ -458,10 +458,10 @@ Gfx *func_801F9258(Gfx *arg0, Dynamic *dyn, s32 *count) {
 
         size = 0x18;
         h = D_8021AB2C / 9;
-        func_80259DC8(dyn, D_8020D810[D_8021A908].name, D_8020D810[D_8021A908].jname, 0, 0xA0, 0, (0x1C - h) / 2 + 0x12,
+        func_80259DC8((Gfx **) dyn, (u8 *) (D_8020D810[D_8021A908].name), D_8020D810[D_8021A908].jname, 0, 0xA0, 0, (0x1C - h) / 2 + 0x12,
                       size, h, 1, 0xFF, 0xFF, 0xFF, D_8021AB2C, 0, 0, 0xFF, D_8021AB2C);
-        gdl = func_8024C404(gdl, dyn, &n);
-        func_80259C24(&gdl, dyn);
+        gdl = func_8024C404(gdl, (DynamicBuf *) dyn, &n);
+        func_80259C24(&gdl, (Mtx *) dyn);
         info = &D_802E8F94[D_8021A908];
         gdl = func_80274868(gdl);
         y = 0xDA;
@@ -477,8 +477,8 @@ Gfx *func_801F9258(Gfx *arg0, Dynamic *dyn, s32 *count) {
                 alt ^= 1;
             }
         }
-        x = func_8025B498(0xA0, size, D_8020D810[D_8021A908].name, D_8020D810[D_8021A908].jname);
-        w = (s32) (size * D_802E8C84[0]) * func_8025B300(D_8020D810[D_8021A908].name);
+        x = func_8025B498(0xA0, size, (u8 *) (D_8020D810[D_8021A908].name), (s32) (D_8020D810[D_8021A908].jname));
+        w = (s32) (size * D_802E8C84[0]) * func_8025B300((u8 *) (D_8020D810[D_8021A908].name));
     }
     gdl = func_80274AA4(gdl);
     gSPEndDisplayList(gdl++);
@@ -534,7 +534,7 @@ Gfx *func_801F9B84(Gfx *arg0, Dynamic *dyn, s32 *count) {
     gSPMatrix(gdl++, &dyn->translate, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
     gdl = func_801FC5B8(dyn, gdl, D_8021A904, D_8021A905);
     func_801FDE98();
-    gdl = func_80274BF0(&dyn[D_8035805C], gdl);
+    gdl = func_80274BF0((s32) &dyn[D_8035805C], gdl);
     gDPFullSync(gdl++);
     gSPEndDisplayList(gdl++);
     if (D_802FA264) {

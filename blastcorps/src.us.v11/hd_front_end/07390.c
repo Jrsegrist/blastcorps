@@ -34,7 +34,7 @@ void func_801EE398(s32 arg0) {
         osViBlack(0);
     }
     func_80259450();
-    func_80284E54(D_803156F8[D_8035805C].dl, D_80358078, 1, 1, 0x4D2, 0);
+    func_80284E54((u64 *) (D_803156F8[D_8035805C].dl), D_80358078, 1, 1, 0x4D2, 0);
     D_8035805C ^= 1;
     gSPSegment(gdl++, 0, 0);
     gSPSegment(gdl++, 2, osVirtualToPhysical(buf));
@@ -47,7 +47,7 @@ void func_801EE398(s32 arg0) {
     gDPSetFillColor(gdl++, 0x00010001);
     gDPFillRectangle(gdl++, 0, 0, 319, 239);
     gDPSetCycleType(gdl++, G_CYC_1CYCLE);
-    gdl = func_8026BBD0(gdl, &D_803156F8[D_8035805C], &D_80358078);
+    gdl = func_8026BBD0(gdl, (s32) &D_803156F8[D_8035805C], &D_80358078);
     gDPFullSync(gdl++);
     gSPEndDisplayList(gdl++);
     D_80358078 = gdl - buf->dl;

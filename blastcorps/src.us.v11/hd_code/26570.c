@@ -421,7 +421,7 @@ void func_8026BA7C(YoshiArg *arg0) {
         if (node->flags & 0x400) {
             snd = &D_802F49F4[node->unk14];
             if (snd->unk2E == -1) {
-                node->unk1A = func_80272C5C(snd->unk6, 0, snd->unk4, snd->unk2C, snd->unk2D | v, 1.0f);
+                node->unk1A = func_80272C5C((u16 *) snd->unk6, 0, snd->unk4, snd->unk2C, snd->unk2D | v, 1.0f);
                 D_8036BA98[node->unk14] = 0;
             } else {
                 node->unk1A = snd->unk2E;
@@ -600,9 +600,9 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
                     node = &D_8036BB10[i];
                     if (node->flags & 0x20) {
                         if (arg->flags & 0x80000) {
-                            node->x = func_8025B498(arg->w / 2, node->w, node->text, node->jtext);
+                            node->x = func_8025B498(arg->w / 2, node->w, node->text, (s32) node->jtext);
                         } else {
-                            node->x = func_8025B498(arg->w / 2, node->w, node->text, node->jtext);
+                            node->x = func_8025B498(arg->w / 2, node->w, node->text, (s32) node->jtext);
                         }
                     }
                 }
@@ -838,10 +838,10 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
                     u8 *c2;
 
                     c2 = D_802F47B0[18];
-                    cc = func_80276130(arg1, 0, cc, -halfW, halfH - D_8036BB44 - off, 16, D_8036BB44 / 2 + 10,
+                    cc = func_80276130((struct SpriteVtxBuf *) arg1, 0, cc, -halfW, halfH - D_8036BB44 - off, 16, D_8036BB44 / 2 + 10,
                                        c2[0], c2[1], c2[2], D_8036BB20, c2[4], c2[5], c2[6], D_8036BB20,
                                        c2[0], c2[1], c2[2], D_8036BB20, c2[4], c2[5], c2[6], D_8036BB20);
-                    cc = func_80276080(arg1, 0, cc, -3 - halfW, halfH - D_8036BB44 - off + 3, 16,
+                    cc = func_80276080((struct SpriteVtxBuf *) arg1, 0, cc, -3 - halfW, halfH - D_8036BB44 - off + 3, 16,
                                        D_8036BB44 / 2 + 10, 0, 0, 0, D_8036BB20 / 2);
                     gdl = func_80275DA4(gdl, 1);
                     gSPVertex(gdl++, arg1 + 0x1E00, 8, 0);
@@ -857,10 +857,10 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
                     /* The ROM reloads c3[0] for the second colour here (unlike the call above, where
                      * IDO reuses the first load). No plain spelling found that defeats ugen's load
                      * cache; the volatile cast reproduces it with identical code. */
-                    cc = func_80276130(arg1, 1, cc, -halfW, D_8036BB44 - halfH + off, 16, D_8036BB44 / 2 + 10,
+                    cc = func_80276130((struct SpriteVtxBuf *) arg1, 1, cc, -halfW, D_8036BB44 - halfH + off, 16, D_8036BB44 / 2 + 10,
                                        c3[0], c3[1], c3[2], D_8036BB20, c3[4], c3[5], c3[6], D_8036BB20,
                                        ((volatile u8 *) c3)[0], c3[1], c3[2], D_8036BB20, c3[4], c3[5], c3[6], D_8036BB20);
-                    cc = func_80276080(arg1, 1, cc, -3 - halfW, D_8036BB44 - halfH + off - 3, 16,
+                    cc = func_80276080((struct SpriteVtxBuf *) arg1, 1, cc, -3 - halfW, D_8036BB44 - halfH + off - 3, 16,
                                        D_8036BB44 / 2 + 10, 0, 0, 0, D_8036BB20 / 2);
                     gdl = func_80275DA4(gdl, 1);
                     gSPVertex(gdl++, &((Vtx *) (arg1 + 0x1D80))[cc], 8, 0);
@@ -921,13 +921,13 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
                             }
                             gdl = func_80272ED8(gdl, node->unk1A + frame - 1, snd->x + node->x + x,
                                                 ((node->flags & 0x1000) ? D_8036BB30 : 0) + (snd->y + node->y + y),
-                                                func_8026F644(arg, node, node->y + snd->y - halfH + D_8036BB30 + 8) *
+                                                func_8026F644((u16 *) arg, (u16 *) node, node->y + snd->y - halfH + D_8036BB30 + 8) *
                                                     D_8036BB38 * D_8036BB34,
                                                 mode, snd->scale);
                         } else {
                             gdl = func_80272ED8(gdl, node->unk1A + frame - 1, snd->x + node->x + x,
                                                 ((node->flags & 0x1000) ? D_8036BB30 : 0) + (snd->y + node->y + y),
-                                                func_8026F644(arg, node, node->y + snd->y - halfH + D_8036BB30 + 8) *
+                                                func_8026F644((u16 *) arg, (u16 *) node, node->y + snd->y - halfH + D_8036BB30 + 8) *
                                                     D_8036BB38 * D_8036BB34 * 0.7,
                                                 mode & ~1, snd->scale);
                         }
@@ -947,19 +947,19 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
                 text = func_8026F004(arg, i, 0);
                 if ((node->flags & 0x80) && !(node->flags & 0x800)) {
                     if (i == arg->sel) {
-                        func_80259DC8(arg1, text, wtext, node->flags & 8, 0, node->x - halfW - 3,
+                        func_80259DC8((Gfx **) arg1, text, wtext, node->flags & 8, 0, node->x - halfW - 3,
                                       ((node->flags & 0x1000) ? D_8036BB30 : 0) + (node->y - halfH) + 3, node->w,
                                       node->h, 1, 0, 0, 0,
-                                      D_8036BB20 * D_802F47B0[node->selColor][3] * func_8026F644(arg, node, node->y - halfH + D_8036BB30) / 65025 / 2,
+                                      D_8036BB20 * D_802F47B0[node->selColor][3] * func_8026F644((u16 *) arg, (u16 *) node, node->y - halfH + D_8036BB30) / 65025 / 2,
                                       0, 0, 0,
-                                      D_8036BB20 * D_802F47B0[node->selColor][3] * func_8026F644(arg, node, node->y - halfH + D_8036BB30 + node->h) / 65025 / 2);
+                                      D_8036BB20 * D_802F47B0[node->selColor][3] * func_8026F644((u16 *) arg, (u16 *) node, node->y - halfH + D_8036BB30 + node->h) / 65025 / 2);
                     } else if (!(node->flags & 4) || FRAMES(D_803156C4 % 23) < 16) {
-                        func_80259DC8(arg1, text, wtext, node->flags & 8, 0, node->x - halfW - 3,
+                        func_80259DC8((Gfx **) arg1, text, wtext, node->flags & 8, 0, node->x - halfW - 3,
                                       ((node->flags & 0x1000) ? D_8036BB30 : 0) + (node->y - halfH) + 3, node->w,
                                       node->h, 1, 0, 0, 0,
-                                      D_8036BB20 * D_802F47B0[node->color][3] * func_8026F644(arg, node, node->y - halfH + D_8036BB30) / 65025 / 2,
+                                      D_8036BB20 * D_802F47B0[node->color][3] * func_8026F644((u16 *) arg, (u16 *) node, node->y - halfH + D_8036BB30) / 65025 / 2,
                                       0, 0, 0,
-                                      D_8036BB20 * D_802F47B0[node->color][3] * func_8026F644(arg, node, node->y - halfH + D_8036BB30 + node->h) / 65025 / 2);
+                                      D_8036BB20 * D_802F47B0[node->color][3] * func_8026F644((u16 *) arg, (u16 *) node, node->y - halfH + D_8036BB30 + node->h) / 65025 / 2);
                     }
                 }
             }
@@ -972,23 +972,23 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
                 if (i == arg->sel) {
                     if ((!(node->flags & 4) || FRAMES(D_803156C4 % 23) < 16) &&
                         (!(node->flags & 0x40) || FRAMES(D_803156C4 % 15) < 11)) {
-                        func_80259DC8(arg1, text, wtext, node->flags & 8, 0, node->x - halfW,
+                        func_80259DC8((Gfx **) arg1, text, wtext, node->flags & 8, 0, node->x - halfW,
                                       ((node->flags & 0x1000) ? D_8036BB30 : 0) + (node->y - halfH), node->w,
                                       node->h, 1, D_802F47B0[node->selColor][0], D_802F47B0[node->selColor][1],
                                       D_802F47B0[node->selColor][2],
-                                      D_8036BB20 * D_802F47B0[node->selColor][3] * func_8026F644(arg, node, node->y - halfH + D_8036BB30) / 65025,
+                                      D_8036BB20 * D_802F47B0[node->selColor][3] * func_8026F644((u16 *) arg, (u16 *) node, node->y - halfH + D_8036BB30) / 65025,
                                       D_802F47B0[node->selColor][4], D_802F47B0[node->selColor][5],
                                       D_802F47B0[node->selColor][6],
-                                      D_8036BB20 * D_802F47B0[node->selColor][7] * func_8026F644(arg, node, node->y - halfH + D_8036BB30 + node->h) / 65025);
+                                      D_8036BB20 * D_802F47B0[node->selColor][7] * func_8026F644((u16 *) arg, (u16 *) node, node->y - halfH + D_8036BB30 + node->h) / 65025);
                     }
                 } else if (!(node->flags & 4) || FRAMES(D_803156C4 % 23) < 16) {
-                    func_80259DC8(arg1, text, wtext, node->flags & 8, 0, node->x - halfW,
+                    func_80259DC8((Gfx **) arg1, text, wtext, node->flags & 8, 0, node->x - halfW,
                                   ((node->flags & 0x1000) ? D_8036BB30 : 0) + (node->y - halfH), node->w, node->h,
                                   1, D_802F47B0[node->color][0], D_802F47B0[node->color][1],
                                   D_802F47B0[node->color][2],
-                                  D_8036BB20 * D_802F47B0[node->color][3] * func_8026F644(arg, node, node->y - halfH + D_8036BB30) / 65025,
+                                  D_8036BB20 * D_802F47B0[node->color][3] * func_8026F644((u16 *) arg, (u16 *) node, node->y - halfH + D_8036BB30) / 65025,
                                   D_802F47B0[node->color][4], D_802F47B0[node->color][5], D_802F47B0[node->color][6],
-                                  D_8036BB20 * D_802F47B0[node->color][7] * func_8026F644(arg, node, node->y - halfH + D_8036BB30 + node->h) / 65025);
+                                  D_8036BB20 * D_802F47B0[node->color][7] * func_8026F644((u16 *) arg, (u16 *) node, node->y - halfH + D_8036BB30 + node->h) / 65025);
                 }
             }
         }
@@ -1195,7 +1195,7 @@ void func_8026FBB0(s16 *pos, s16 *end) {
     if (D_80364A90 != 0x40) {
         D_8036BED4 = *D_8036BBB0 = 0;
     }
-    D_8036BED8 = D_80358070;
+    D_8036BED8 = (YoshiNode *) D_80358070;
     D_8036BEE0 = 0;
     D_8036BEDC = 999999.0f;
     while (pos != end) {
@@ -1204,11 +1204,11 @@ void func_8026FBB0(s16 *pos, s16 *end) {
         D_8036BED8[D_8036EB90].z = pos[2];
         D_8036BED8[D_8036EB90].visited = 0;
         D_8036BED8[D_8036EB90].cell = pos[0] / (D_803BE70C >> 5) + pos[2] / (D_803BE710 >> 5) * D_803BE714;
-        func_8026A5CC(D_8036BED8[D_8036EB90].vtx[0], D_802F99C0, sizeof(D_8036BED8->vtx[0]));
-        func_8026A5CC(D_8036BED8[D_8036EB90].vtx[1], D_802F99C0, sizeof(D_8036BED8->vtx[1]));
+        func_8026A5CC((u64 *) (D_8036BED8[D_8036EB90].vtx[0]), (u64 *) D_802F99C0, sizeof(D_8036BED8->vtx[0]));
+        func_8026A5CC((u64 *) (D_8036BED8[D_8036EB90].vtx[1]), (u64 *) D_802F99C0, sizeof(D_8036BED8->vtx[1]));
         D_8036EB90++, pos += 3;
     }
-    D_80358070 = (YoshiNode *) D_80358070 + D_8036EB90;
+    D_80358070 = (u8 *) ((YoshiNode *) D_80358070 + D_8036EB90);
 }
 
 u8 func_8026FE6C(s32 arg0) {

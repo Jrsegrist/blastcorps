@@ -32,7 +32,7 @@ extern u8 D_802E68F0[];
 extern RankTitle D_802081C0[31]; /* rank name, first line */
 extern u8 D_802082B8[0x20]; /* number of words on the rank name's first line */
 #ifndef LEGACY_D_8020C070
-extern u8 D_8020C070[]; /* = D_80364AF0[p].rank */
+extern u8 D_8020C070[]; /* = D_80364AF0[p].flags */
 #endif
 extern GlobeLevel D_8020D810[60]; /* 0x44 */
 extern u8 D_802154B0;
@@ -83,7 +83,7 @@ extern u8 D_802F4870[];
 extern u8 D_802F49F4[]; /* "BUILDINGS" */
 extern u8 D_802F5804[]; /* turbo-start banner y offset */
 #ifndef LEGACY_D_802F8BDC
-extern u8 D_802F8BDC[]; /* = D_80364AF0[p].flags */
+extern u8 D_802F8BDC[]; /* a read is in flight */
 #endif
 extern s32 D_802FA254; /* -d */
 extern s32 D_802FA264; /* debug mode */
@@ -108,7 +108,7 @@ extern u32 D_803156C4;
 extern OSMesgQueue D_803156D8; /* dram stack (0x400) */
 extern u8 D_803156F4;
 #ifndef LEGACY_D_803156F8
-extern DynamicBuf D_803156F8[]; /* 0x100 bytes */
+extern DynamicBuf D_803156F8[]; /* timer start */
 #endif
 extern u32 D_80358050[]; /* scene angle */
 #ifndef LEGACY_D_80358058
@@ -171,17 +171,17 @@ extern s16 D_80364450;
 extern s16 D_80364452; /* camera / player angle (0..0xFFF) */
 extern u8 D_80364456; /* mode: the update is skipped in modes 0,1,2,6,7,9,0xB,0x10..0x12 */
 #ifndef LEGACY_D_80364458
-extern u8 *D_80364458; /* level37 */
+extern u8 *D_80364458; /* level40 */
 #endif
-extern u8 D_80364460[][0x74]; /* main thread stack, filled with a guard pattern */
+extern u8 D_80364460[][0x74]; /* frame time */
 #ifndef LEGACY_D_803649D0
-extern u8 *D_803649D0; /* game mode */
+extern u8 *D_803649D0; /* previous game mode */
 #endif
 extern u64 D_803649D8; /* frame counter */
 extern s16 D_803649E0; /* x, y, z stored for a part that falls */
 extern s16 D_803649E2;
 extern s16 D_803649E4;
-extern s32 D_803649E8; /* size 0xFC */
+extern s32 D_803649E8; /* heap pointer */
 extern u8 D_803649ED;
 extern u8 D_803649EE;
 extern u32 D_803649F0; /* score */
@@ -293,16 +293,16 @@ extern u8 D_8036E68C[]; /* slot busy flags */
 extern u64 *D_8036E694; /* RDP output buffer (0xA000 bytes) */
 #endif
 #ifndef LEGACY_D_8036EA60
-extern Score D_8036EA60; /* level53 */
+extern Score D_8036EA60; /* level56 */
 #endif
 #ifndef LEGACY_D_8036EA70
-extern Score D_8036EA70; /* level54 */
+extern Score D_8036EA70; /* level57 */
 #endif
 extern u8 D_8036EA78;
 extern u8 D_8036EA79;
 extern u16 D_8036EA7C;
-extern Score D_8036EA80; /* level55 */
-extern Score D_8036EA90; /* level56 */
+extern Score D_8036EA80; /* level58 */
+extern Score D_8036EA90; /* level59 */
 extern u16 D_8036EB90;
 extern u8 D_8036EB92;
 extern u8 D_8036EB93;
@@ -372,7 +372,7 @@ extern u8 D_803A7300[]; /* 0x14-byte vehicle spheres: x, y, z, r words, byte 0x1
 extern s32 D_803A73F0; /* a point x, z (16.16-ish; the part position is << 5) */
 extern s32 D_803A73F4;
 extern s32 D_803A73F8;
-extern s8 *D_803A7408; /* -1-terminated list of hit counts that don't hurt */
+extern s8 *D_803A7408; /* size 0x14 */
 extern s32 D_803A740C; /* frame stamp */
 extern s16 D_803A7410; /* ring index A (12-bit, see func_8029B930) */
 extern s16 D_803A7412; /* ring index B */
@@ -402,10 +402,10 @@ extern u8 *D_803BDCA8[];
 extern u8 *D_803BDE40[]; /* per-cell triangle lists (cell c spans [c] .. [c + 1]) */
 extern u8 *D_803BDFD4; /* end of the zone list that starts at D_803BDFD8 */
 extern u8 D_803BDFD8[]; /* 0x24-byte zones: s32 x, y, z, radius; u8 flags at +0x10.. */
-extern Gfx *D_803BE6E0; /* level33 */
-extern Gfx *D_803BE6E4; /* level34 */
-extern Gfx *D_803BE6E8; /* level35 */
-extern Gfx *D_803BE6EC; /* level36 */
+extern Gfx *D_803BE6E0; /* level36 */
+extern Gfx *D_803BE6E4; /* level37 */
+extern Gfx *D_803BE6E8; /* level38 */
+extern Gfx *D_803BE6EC; /* level39 */
 extern u8 *D_803BE6F8; /* 9-byte respawn records: u8 key, s16 x, y, z (big-endian) */
 #ifndef LEGACY_D_803BE6FC
 extern u8 *D_803BE6FC; /* first */
@@ -495,13 +495,13 @@ extern s32 D_803EFEB8;
 extern s32 D_803EFEBC;
 extern u8 D_803EFEC8; /* x follows z along the line (D_803EFEB0..) */
 extern u8 D_803EFECB;
-extern u8 D_803EFED0[];
+extern u8 D_803EFED0[]; /* size 0xA30 */
 extern u8 D_803F0900[]; /* 4 entries of 0x4B8 bytes */
 extern u8 D_803F1BE0[]; /* 2 entries of 0x478 bytes */
 extern u8 D_803F3910[];
 extern u8 *D_803F3960; /* end of the (object, part) hit list */
 extern u8 D_803F3FF8[];
-extern u8 D_803F4030[]; /* size 0xFC */
+extern u8 D_803F4030[]; /* definition in the 7D9D0 text blob */
 #ifndef LEGACY_D_803F7654
 extern u8 *D_803F7654; /* size 0xFC */
 #endif
@@ -517,7 +517,7 @@ extern s16 D_803F767E;
 extern s16 D_803F7680;
 extern s32 D_803F7684;
 extern s32 D_803F7688;
-extern u8 *D_803F77D0; /* records {u8 bit; u8 key; u8 kind; u8 n; ...}, see below */
+extern u8 *D_803F77D0; /* drive-in direction: 0 +z, 1 -z, 2 +x, else -x */
 extern s32 D_803F77F8;
 extern s16 D_803F77FC; /* signed input whose sign is tracked */
 extern u8 D_803F7801;
@@ -531,8 +531,8 @@ extern u8 D_803F780B; /* run length, 0..0x14 */
 extern u8 D_803F780C; /* result: set for one call when a run of 0x14 completes with a change */
 extern u8 D_803F7810;
 extern u8 D_803F7812;
-extern u8 *D_803F7820; /* level38 */
-extern u8 *D_803F7824; /* level39 */
+extern u8 *D_803F7820; /* level41 */
+extern u8 *D_803F7824; /* level42 */
 extern u8 *D_803F7828; /* triangle list: 0x28-byte records, 9 s32 coords + u8 at +0x24 */
 extern u8 *D_803F782C; /* its end */
 extern s16 D_803F7840; /* last |level| set by func_802C4584 (-1 = none yet) */

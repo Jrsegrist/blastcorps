@@ -126,16 +126,16 @@ static void port_veh_init_anim(u8 *veh, PortVehPos *p, s32 id, u8 *ch, const s16
                   veh, &f);
     a = p->bufA;
     b = p->bufB;
-    func_8029F85C((u32 *) b, (u32 *) a, ch, p->model);
-    func_802A039C(ch, 0, 100);
-    func_802A03D4(ch, 0, 0);
-    func_802A040C(ch, 0, 0);
-    func_802A0480(0.0f, ch, 0, 0);
-    func_802A0290(ch, 0, 1);
-    func_8029E558((u8 *) a, (u8 *) b, ch);
-    func_802A0320(0, ch);
-    func_802A0290(ch, 0, 1);
-    func_8029E558((u8 *) b, (u8 *) a, ch);
+    func_8029F85C((u32 *) b, (u32 *) a, (Unk8029DEA0Entry *) ch, p->model);
+    func_802A039C((Unk8029DEA0Entry *) ch, 0, 100);
+    func_802A03D4((Unk8029DEA0Entry *) ch, 0, 0);
+    func_802A040C((Unk8029DEA0Entry *) ch, 0, 0);
+    func_802A0480(0.0f, (Unk8029DEA0Entry *) ch, 0, 0);
+    func_802A0290((Unk8029DEA0Entry *) ch, 0, 1);
+    func_8029E558((u8 *) a, (u8 *) b, (Unk8029DEA0Entry *) ch);
+    func_802A0320(0, (Unk8029DEA0Entry *) ch);
+    func_802A0290((Unk8029DEA0Entry *) ch, 0, 1);
+    func_8029E558((u8 *) b, (u8 *) a, (Unk8029DEA0Entry *) ch);
     for (i = 0; i < 15; i++) {
         VEH_S16(veh, 0x78 + i * 2) = bands[i];
     }
@@ -192,9 +192,9 @@ static void port_veh_move(u8 *veh, PortVehPos *p, s32 id, u8 *ch, s32 rate, s32 
                   (s16 *) (veh + 0x52), (s32 *) (veh + 0x28), (s32 *) (veh + 0x40), (s32 *) (veh + 0x34),
                   (s32 *) (veh + 4), &r8, &f);
     if (D_8035805C != 0) {
-        func_8029E558((u8 *) p->bufA, (u8 *) p->bufB, ch);
+        func_8029E558((u8 *) p->bufA, (u8 *) p->bufB, (Unk8029DEA0Entry *) ch);
     } else {
-        func_8029E558((u8 *) p->bufB, (u8 *) p->bufA, ch);
+        func_8029E558((u8 *) p->bufB, (u8 *) p->bufA, (Unk8029DEA0Entry *) ch);
     }
     /* s0/s1: func_8029E558's leftovers in the asm (register leak). */
     mc.s0 = 0;
@@ -304,25 +304,25 @@ extern u8 D_802C2390[]; /* key of this vehicle's func_802A06B4 entry */
  * (the last setter's v1); C callers ignore both. */
 void func_802AFFD4(void) {
     D_803EDB40[0x99] = 0;
-    func_802A039C(D_803ED840, 1, 0);
-    func_802A03D4(D_803ED840, 1, 0);
-    func_802A040C(D_803ED840, 1, 0);
-    func_802A0290(D_803ED840, 1, -1);
-    func_802A039C(D_803ED840, 2, 0);
-    func_802A03D4(D_803ED840, 2, 0);
-    func_802A040C(D_803ED840, 2, 0);
-    func_802A0290(D_803ED840, 2, -1);
-    func_802A039C(D_803ED840, 5, 7);
-    func_802A03D4(D_803ED840, 5, 0);
-    func_802A040C(D_803ED840, 5, 1);
-    func_802A039C(D_803ED840, 3, 0);
-    func_802A03D4(D_803ED840, 3, 0);
-    func_802A040C(D_803ED840, 3, 1);
-    func_802A0290(D_803ED840, 3, -1);
-    func_802A039C(D_803ED840, 2, 0);
-    func_802A03D4(D_803ED840, 2, 0);
-    func_802A040C(D_803ED840, 2, 1);
-    func_802A0290(D_803ED840, 2, -1);
+    func_802A039C((Unk8029DEA0Entry *) D_803ED840, 1, 0);
+    func_802A03D4((Unk8029DEA0Entry *) D_803ED840, 1, 0);
+    func_802A040C((Unk8029DEA0Entry *) D_803ED840, 1, 0);
+    func_802A0290((Unk8029DEA0Entry *) D_803ED840, 1, -1);
+    func_802A039C((Unk8029DEA0Entry *) D_803ED840, 2, 0);
+    func_802A03D4((Unk8029DEA0Entry *) D_803ED840, 2, 0);
+    func_802A040C((Unk8029DEA0Entry *) D_803ED840, 2, 0);
+    func_802A0290((Unk8029DEA0Entry *) D_803ED840, 2, -1);
+    func_802A039C((Unk8029DEA0Entry *) D_803ED840, 5, 7);
+    func_802A03D4((Unk8029DEA0Entry *) D_803ED840, 5, 0);
+    func_802A040C((Unk8029DEA0Entry *) D_803ED840, 5, 1);
+    func_802A039C((Unk8029DEA0Entry *) D_803ED840, 3, 0);
+    func_802A03D4((Unk8029DEA0Entry *) D_803ED840, 3, 0);
+    func_802A040C((Unk8029DEA0Entry *) D_803ED840, 3, 1);
+    func_802A0290((Unk8029DEA0Entry *) D_803ED840, 3, -1);
+    func_802A039C((Unk8029DEA0Entry *) D_803ED840, 2, 0);
+    func_802A03D4((Unk8029DEA0Entry *) D_803ED840, 2, 0);
+    func_802A040C((Unk8029DEA0Entry *) D_803ED840, 2, 1);
+    func_802A0290((Unk8029DEA0Entry *) D_803ED840, 2, -1);
     func_802A05D0((s32) D_802C2390, 100);
     func_802A05F8((s32) D_802C2390, 0);
     func_802A0620((s32) D_802C2390, 1);
@@ -356,7 +356,7 @@ s32 func_802B01DC(void) {
     if (D_803EDB40[0x96] == 1 || D_803EDB40[0x97] == 1 || D_803EDB40[0x98] == 1) {
         return 0;
     }
-    func_802A04BC(5, D_803ED840, ch);
+    func_802A04BC(5, (Unk8029DEA0Entry *) D_803ED840, ch);
     if (ch[0] == 1) {
         return 5;
     }
@@ -512,20 +512,20 @@ void func_802B07DC(void) {
     pos = (f32) (s32) ((u32) a % 0x555) / D_8030D8A4;
     third = (u32) a / 0x555;
     if (third == 0) {
-        func_802A0360(pos, D_803ED840, 2, 0);
+        func_802A0360(pos, (Unk8029DEA0Entry *) D_803ED840, 2, 0);
     } else if (third == 1) {
-        func_802A0360(pos, D_803ED840, 2, 1);
+        func_802A0360(pos, (Unk8029DEA0Entry *) D_803ED840, 2, 1);
     } else {
-        func_802A0360(pos, D_803ED840, 2, 2);
+        func_802A0360(pos, (Unk8029DEA0Entry *) D_803ED840, 2, 2);
     }
 
     if (D_803EDC06 != 0) {
         D_803EDC06--;
     } else {
-        func_802A04BC(5, D_803ED840, ch);
+        func_802A04BC(5, (Unk8029DEA0Entry *) D_803ED840, ch);
         if (ch[0] != 1 && (D_80370C1A != 0 || D_80370C1B != 0) && D_803EDC00 != 0) {
             D_803EDC00--;
-            func_802A0290(D_803ED840, 5, 2);
+            func_802A0290((Unk8029DEA0Entry *) D_803ED840, 5, 2);
             D_803EDC06 = 10;
             func_80260650(D_80367738, 0x37, NULL);
         }
@@ -554,19 +554,19 @@ void func_802B07DC(void) {
         }
     }
     D_803EDC05 = level;
-    func_802A0360((f32) level / 100.0f, D_803ED840, 3, 0);
+    func_802A0360((f32) level / 100.0f, (Unk8029DEA0Entry *) D_803ED840, 3, 0);
 
     speed = *(s16 *) (D_803EDB40 + 0x76);
     if (speed < 0) {
-        func_802A03D4(D_803ED840, 1, 1);
+        func_802A03D4((Unk8029DEA0Entry *) D_803ED840, 1, 1);
         speed = -speed;
     } else {
-        func_802A03D4(D_803ED840, 1, 0);
+        func_802A03D4((Unk8029DEA0Entry *) D_803ED840, 1, 0);
     }
     if (speed != 0) {
         speed = (u32) speed / 14;
     }
-    func_802A039C(D_803ED840, 1, speed);
+    func_802A039C((Unk8029DEA0Entry *) D_803ED840, 1, speed);
     func_802C4584(speed);
 }
 #else
@@ -587,10 +587,10 @@ void func_802B07DC(void) {
 s32 func_802B0AAC(void) {
     s32 ch[8];
 
-    func_802A04BC(5, D_803ED840, ch);
+    func_802A04BC(5, (Unk8029DEA0Entry *) D_803ED840, ch);
     if (ch[0] != 0 && (func_802BCD80(4) != 0 || func_802BCD80(5) != 0)) {
-        func_802A03D4(D_803ED840, 5, 1);
-        func_802A0290(D_803ED840, 5, 1);
+        func_802A03D4((Unk8029DEA0Entry *) D_803ED840, 5, 1);
+        func_802A0290((Unk8029DEA0Entry *) D_803ED840, 5, 1);
         D_802E8BE4 = 10;
         D_802E8BE8 = 600;
     }

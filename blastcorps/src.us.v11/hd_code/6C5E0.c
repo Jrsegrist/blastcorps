@@ -97,16 +97,16 @@ void func_802B0DA0(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s32 t6
                         (s16 *) (v + 0x4C), 2, fpIn, v, f);
     b0 = D_803EDFC8;
     b1 = D_803EDFCC;
-    t7 = func_8029F85C((u32 *) b1, (u32 *) b0, D_803EDC10, D_803EDFC4);
-    func_802A039C(D_803EDC10, 0, 0x64);
-    func_802A03D4(D_803EDC10, 0, 0);
-    func_802A040C(D_803EDC10, 0, 0);
-    func_802A0480(0.0f, D_803EDC10, 0, 0);
-    func_802A0290(D_803EDC10, 0, 1);
-    func_8029E558((u8 *) b0, (u8 *) b1, D_803EDC10);
-    func_802A0320(0, D_803EDC10);
-    func_802A0290(D_803EDC10, 0, 1);
-    func_8029E558((u8 *) b1, (u8 *) b0, D_803EDC10);
+    t7 = func_8029F85C((u32 *) b1, (u32 *) b0, (Unk8029DEA0Entry *) D_803EDC10, D_803EDFC4);
+    func_802A039C((Unk8029DEA0Entry *) D_803EDC10, 0, 0x64);
+    func_802A03D4((Unk8029DEA0Entry *) D_803EDC10, 0, 0);
+    func_802A040C((Unk8029DEA0Entry *) D_803EDC10, 0, 0);
+    func_802A0480(0.0f, (Unk8029DEA0Entry *) D_803EDC10, 0, 0);
+    func_802A0290((Unk8029DEA0Entry *) D_803EDC10, 0, 1);
+    func_8029E558((u8 *) b0, (u8 *) b1, (Unk8029DEA0Entry *) D_803EDC10);
+    func_802A0320(0, (Unk8029DEA0Entry *) D_803EDC10);
+    func_802A0290((Unk8029DEA0Entry *) D_803EDC10, 0, 1);
+    func_8029E558((u8 *) b1, (u8 *) b0, (Unk8029DEA0Entry *) D_803EDC10);
     *(s16 *) (v + 0x78) = -0x64;
     *(s16 *) (v + 0x7A) = 0;
     *(s16 *) (v + 0x7C) = 4;
@@ -128,8 +128,8 @@ void func_802B0DA0(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s32 t6
     model = D_803EDFC4;
     func_8029C354(2, model + *(s32 *) (model + 4), model + *(s32 *) (model + 8), 0x6590);
     func_80258230(2, 0x64, 0x2D, 0x2D);
-    func_802A0360(0.0f, D_803EDC10, 1, 0);
-    func_802A0290(D_803EDC10, 1, 1);
+    func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803EDC10, 1, 0);
+    func_802A0290((Unk8029DEA0Entry *) D_803EDC10, 1, 1);
     v[0x9A] = 1;
     func_802B152C(t6, t7, z, (s32) (v + 4), (s32) &D_803EDFB8[1], (s32) s3v, (s32) (v + 0x4C), f->cross, f->cz,
                   f->side, f->sideZ, f->dz);
@@ -181,7 +181,7 @@ extern u8 D_803EDC10[];  /* this vehicle's animation channel table */
 void func_802B11B8(void) {
     *(s16 *) (D_803EDF10 + 0x76) = 0;
     func_802A7764(D_803EDFC8, D_803EDFCC, 0x1400);
-    func_802A02E4(0x1F, D_803EDC10);
+    func_802A02E4(0x1F, (Unk8029DEA0Entry *) D_803EDC10);
     func_802C444C();
     func_802608C8(D_803EDFD0);
 }
@@ -211,18 +211,18 @@ void func_802B1228(void) {
     func_802A05D0((s32) D_802C2308, 0x19);
     func_802A05F8((s32) D_802C2308, 0);
     func_802A0620((s32) D_802C2308, 0);
-    func_802A039C(D_803EDC10, 7, 2);
-    func_802A040C(D_803EDC10, 7, 1);
-    func_802A0480(0.5f, D_803EDC10, 7, 1);
-    func_802A039C(D_803EDC10, 8, 2);
-    func_802A040C(D_803EDC10, 8, 1);
-    func_802A0480(0.5f, D_803EDC10, 8, 1);
-    func_802A039C(D_803EDC10, 9, 4);
-    func_802A040C(D_803EDC10, 9, 1);
-    func_802A0480(0.5f, D_803EDC10, 9, 1);
-    func_802A0480(0.5f, D_803EDC10, 1, 1);
-    func_802A0480(0.5f, D_803EDC10, 5, 1);
-    func_802A0480(0.0f, D_803EDC10, 3, 0);
+    func_802A039C((Unk8029DEA0Entry *) D_803EDC10, 7, 2);
+    func_802A040C((Unk8029DEA0Entry *) D_803EDC10, 7, 1);
+    func_802A0480(0.5f, (Unk8029DEA0Entry *) D_803EDC10, 7, 1);
+    func_802A039C((Unk8029DEA0Entry *) D_803EDC10, 8, 2);
+    func_802A040C((Unk8029DEA0Entry *) D_803EDC10, 8, 1);
+    func_802A0480(0.5f, (Unk8029DEA0Entry *) D_803EDC10, 8, 1);
+    func_802A039C((Unk8029DEA0Entry *) D_803EDC10, 9, 4);
+    func_802A040C((Unk8029DEA0Entry *) D_803EDC10, 9, 1);
+    func_802A0480(0.5f, (Unk8029DEA0Entry *) D_803EDC10, 9, 1);
+    func_802A0480(0.5f, (Unk8029DEA0Entry *) D_803EDC10, 1, 1);
+    func_802A0480(0.5f, (Unk8029DEA0Entry *) D_803EDC10, 5, 1);
+    func_802A0480(0.0f, (Unk8029DEA0Entry *) D_803EDC10, 3, 0);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6C5E0/func_802B1228.s")
@@ -356,9 +356,9 @@ void func_802B152C(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 f
                   0x78, (s16 *) (v + 0x4C), v + 0x96, (s16 *) (v + 0x52), (s32 *) (v + 0x28), (s32 *) (v + 0x40),
                   (s32 *) (v + 0x34), (s32 *) (v + 4), &r8, &f);
     if (D_8035805C != 0) {
-        func_8029E558((u8 *) D_803EDFC8, (u8 *) D_803EDFCC, D_803EDC10);
+        func_8029E558((u8 *) D_803EDFC8, (u8 *) D_803EDFCC, (Unk8029DEA0Entry *) D_803EDC10);
     } else {
-        func_8029E558((u8 *) D_803EDFCC, (u8 *) D_803EDFC8, D_803EDC10);
+        func_8029E558((u8 *) D_803EDFCC, (u8 *) D_803EDFC8, (Unk8029DEA0Entry *) D_803EDC10);
     }
     tag = func_802B2768((s32) (v + 0x34), (s32) (v + 0x96), (s32) &D_803EDFB8[2], &mo);
     func_8029A800(D_803EDFB8[2], (s32) D_80305CF0, 0, 0, D_803EDFB8[0], D_803EDFB8[1], tag, *(s16 *) (v + 0x76),
@@ -420,27 +420,27 @@ extern f32 D_8030D8B0;
 
 /* Channel idx's field 0x10 ((s8), func_802A04BC's v1); out gets the rest. */
 static s32 veh2_ch_get(s32 idx, s32 *out) {
-    func_802A04BC(idx, D_803EDC10, out);
+    func_802A04BC(idx, (Unk8029DEA0Entry *) D_803EDC10, out);
     return out[0];
 }
 
 /* Channel 31 (the blend track) starts: 039C = v, 03D4 = 0, 040C = 0, 0290 = 1. */
 static void veh2_ch31_start(s32 v) {
-    func_802A039C(D_803EDC10, 0x1F, v);
-    func_802A03D4(D_803EDC10, 0x1F, 0);
-    func_802A040C(D_803EDC10, 0x1F, 0);
-    func_802A0290(D_803EDC10, 0x1F, 1);
+    func_802A039C((Unk8029DEA0Entry *) D_803EDC10, 0x1F, v);
+    func_802A03D4((Unk8029DEA0Entry *) D_803EDC10, 0x1F, 0);
+    func_802A040C((Unk8029DEA0Entry *) D_803EDC10, 0x1F, 0);
+    func_802A0290((Unk8029DEA0Entry *) D_803EDC10, 0x1F, 1);
 }
 
 /* Channel ch: 03D4 = (speed < 0), 039C = |speed| / 24. */
 static void veh2_ch_speed(s32 ch) {
     s32 speed = VEH2_SPEED;
 
-    func_802A03D4(D_803EDC10, ch, speed < 0);
+    func_802A03D4((Unk8029DEA0Entry *) D_803EDC10, ch, speed < 0);
     if (speed < 0) {
         speed = -speed;
     }
-    func_802A039C(D_803EDC10, ch, (u32) speed / 24);
+    func_802A039C((Unk8029DEA0Entry *) D_803EDC10, ch, (u32) speed / 24);
 }
 
 /* State 0 (+0xA1 == 0): driving. */
@@ -466,19 +466,19 @@ static void veh2_state0(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) 
     if (VEH2_SPEED == 0) {
         /* standing: blend back to an idle pose once (+0xA3), then idle anims at random */
         if (D_803EDF10[0xA3] != 0) {
-            func_802A0360(0.0f, D_803EDC10, 7, 0);
+            func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803EDC10, 7, 0);
             if (veh2_ch_get(0x1F, o) != 0) {
-                func_802A02E4(0x1F, D_803EDC10);
-                func_8029F9D4(0x1F, 7, D_803EDC10);
+                func_802A02E4(0x1F, (Unk8029DEA0Entry *) D_803EDC10);
+                func_8029F9D4(0x1F, 7, (Unk8029DEA0Entry *) D_803EDC10);
             } else if (veh2_ch_get(1, o) != 0) {
-                func_802A02E4(1, D_803EDC10);
-                func_8029F9D4(1, 7, D_803EDC10);
+                func_802A02E4(1, (Unk8029DEA0Entry *) D_803EDC10);
+                func_8029F9D4(1, 7, (Unk8029DEA0Entry *) D_803EDC10);
             } else if (veh2_ch_get(5, o) != 0) {
-                func_802A02E4(5, D_803EDC10);
-                func_8029F9D4(5, 7, D_803EDC10);
+                func_802A02E4(5, (Unk8029DEA0Entry *) D_803EDC10);
+                func_8029F9D4(5, 7, (Unk8029DEA0Entry *) D_803EDC10);
             } else {
-                func_802A0360(0.0f, D_803EDC10, 1, 0);
-                func_8029F9D4(1, 7, D_803EDC10);
+                func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803EDC10, 1, 0);
+                func_8029F9D4(1, 7, (Unk8029DEA0Entry *) D_803EDC10);
             }
             veh2_ch31_start(0x1E);
         }
@@ -492,26 +492,26 @@ static void veh2_state0(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) 
         }
         r = func_8026A8E0(0, 2);
         r = (r == 0) ? 7 : (r == 1) ? 8 : 9;
-        func_802A0360(0.0f, D_803EDC10, r, 0);
-        func_802A0290(D_803EDC10, r, 1);
+        func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803EDC10, r, 0);
+        func_802A0290((Unk8029DEA0Entry *) D_803EDC10, r, 1);
         return;
     }
 
     /* moving: blend from the idle pose once (+0xA3 == 1 afterwards) */
     if (D_803EDF10[0xA3] != 1) {
-        func_802A0360(0.0f, D_803EDC10, 1, 0);
+        func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803EDC10, 1, 0);
         if (veh2_ch_get(7, o) != 0) {
-            func_8029F9D4(7, 1, D_803EDC10);
-            func_802A02E4(7, D_803EDC10);
+            func_8029F9D4(7, 1, (Unk8029DEA0Entry *) D_803EDC10);
+            func_802A02E4(7, (Unk8029DEA0Entry *) D_803EDC10);
         } else if (veh2_ch_get(8, o) != 0) {
-            func_8029F9D4(8, 1, D_803EDC10);
-            func_802A02E4(8, D_803EDC10);
+            func_8029F9D4(8, 1, (Unk8029DEA0Entry *) D_803EDC10);
+            func_802A02E4(8, (Unk8029DEA0Entry *) D_803EDC10);
         } else if (veh2_ch_get(9, o) != 0) {
-            func_8029F9D4(9, 1, D_803EDC10);
-            func_802A02E4(9, D_803EDC10);
+            func_8029F9D4(9, 1, (Unk8029DEA0Entry *) D_803EDC10);
+            func_802A02E4(9, (Unk8029DEA0Entry *) D_803EDC10);
         } else {
-            func_802A0360(0.0f, D_803EDC10, 7, 0);
-            func_8029F9D4(7, 1, D_803EDC10);
+            func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803EDC10, 7, 0);
+            func_8029F9D4(7, 1, (Unk8029DEA0Entry *) D_803EDC10);
         }
         veh2_ch31_start(0x28);
     }
@@ -524,13 +524,13 @@ static void veh2_state0(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) 
         if (VEH2_SPEED >= 0x96) {
             /* fast with a button held: switch to state 1 */
             D_803EDF10[0xA1] = 1;
-            func_802A0360(0.0f, D_803EDC10, 2, 0);
+            func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803EDC10, 2, 0);
             if (D_803EDF10[0xA2] == 0) {
-                func_8029F9D4(1, 2, D_803EDC10);
-                func_802A02E4(1, D_803EDC10);
+                func_8029F9D4(1, 2, (Unk8029DEA0Entry *) D_803EDC10);
+                func_802A02E4(1, (Unk8029DEA0Entry *) D_803EDC10);
             } else if (D_803EDF10[0xA2] == 1) {
-                func_8029F9D4(5, 2, D_803EDC10);
-                func_802A02E4(5, D_803EDC10);
+                func_8029F9D4(5, 2, (Unk8029DEA0Entry *) D_803EDC10);
+                func_802A02E4(5, (Unk8029DEA0Entry *) D_803EDC10);
             } else {
                 return; /* asm: syscall (+0xA2 is only ever 0 or 1) */
             }
@@ -571,13 +571,13 @@ pick:
         speed = -speed;
     }
     if (speed >= 0x78) {
-        func_802A0290(D_803EDC10, 5, o[1] != 0 ? 2 : 1);
-        func_802A0360(0.0f, D_803EDC10, 5, 0);
+        func_802A0290((Unk8029DEA0Entry *) D_803EDC10, 5, o[1] != 0 ? 2 : 1);
+        func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803EDC10, 5, 0);
         D_803EDF10[0xA2] = 1;
         goto ch5;
     }
-    func_802A0290(D_803EDC10, 1, o[1] != 0 ? 2 : 1);
-    func_802A0360(0.0f, D_803EDC10, 1, 0);
+    func_802A0290((Unk8029DEA0Entry *) D_803EDC10, 1, o[1] != 0 ? 2 : 1);
+    func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803EDC10, 1, 0);
     D_803EDF10[0xA2] = 0;
     goto ch1;
 }
@@ -626,8 +626,8 @@ void func_802B18F4(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
                 VEH2_SPEED = VEH2_SPEED >> 1;
                 func_802794A4();
                 D_803EDF10[0xA1] = 3;
-                func_802A0360(0.0f, D_803EDC10, 3, 3);
-                func_8029F9D4(0x1F, 3, D_803EDC10);
+                func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803EDC10, 3, 3);
+                func_8029F9D4(0x1F, 3, (Unk8029DEA0Entry *) D_803EDC10);
                 veh2_ch31_start(0x21);
                 D_803F7804 = 1;
                 return;
@@ -637,8 +637,8 @@ void func_802B18F4(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
                     VEH2_SPEED = 0x3C;
                 }
                 func_802C444C();
-                func_802A0360(0.0f, D_803EDC10, 1, 0);
-                func_8029F9D4(0x1F, 1, D_803EDC10);
+                func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803EDC10, 1, 0);
+                func_8029F9D4(0x1F, 1, (Unk8029DEA0Entry *) D_803EDC10);
                 veh2_to_state0_tail();
                 return;
             }
@@ -646,10 +646,10 @@ void func_802B18F4(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
             if (veh2_ch_get(0x1F, o) == 1) {
                 return;
             }
-            func_802A039C(D_803EDC10, 2, 10);
-            func_802A03D4(D_803EDC10, 2, 0);
-            func_802A040C(D_803EDC10, 2, 0);
-            func_802A0290(D_803EDC10, 2, 1);
+            func_802A039C((Unk8029DEA0Entry *) D_803EDC10, 2, 10);
+            func_802A03D4((Unk8029DEA0Entry *) D_803EDC10, 2, 0);
+            func_802A040C((Unk8029DEA0Entry *) D_803EDC10, 2, 0);
+            func_802A0290((Unk8029DEA0Entry *) D_803EDC10, 2, 1);
             D_803EDF10[0xA1] = 2;
             return;
 
@@ -657,9 +657,9 @@ void func_802B18F4(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
             if (D_803EDF10[0x9C] != 0) {
                 VEH2_SPEED = VEH2_SPEED >> 1;
                 D_803EDF10[0xA1] = 3;
-                func_802A0360(0.0f, D_803EDC10, 3, 3);
-                func_8029F9D4(2, 3, D_803EDC10);
-                func_802A02E4(2, D_803EDC10);
+                func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803EDC10, 3, 3);
+                func_8029F9D4(2, 3, (Unk8029DEA0Entry *) D_803EDC10);
+                func_802A02E4(2, (Unk8029DEA0Entry *) D_803EDC10);
                 veh2_ch31_start(0x21);
                 D_803F7804 = 1;
                 return;
@@ -674,9 +674,9 @@ void func_802B18F4(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
             if (VEH2_SPEED >= 0) {
                 VEH2_SPEED = 0x3C;
             }
-            func_802A0360(0.0f, D_803EDC10, 1, 0);
-            func_802A02E4(2, D_803EDC10);
-            func_8029F9D4(2, 1, D_803EDC10);
+            func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803EDC10, 1, 0);
+            func_802A02E4(2, (Unk8029DEA0Entry *) D_803EDC10);
+            func_8029F9D4(2, 1, (Unk8029DEA0Entry *) D_803EDC10);
             veh2_to_state0_tail();
             return;
 
@@ -695,10 +695,10 @@ void func_802B18F4(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
             }
             D_803F7804 = 0;
             func_802794A4();
-            func_802A039C(D_803EDC10, 3, 8);
-            func_802A03D4(D_803EDC10, 3, 0);
-            func_802A040C(D_803EDC10, 3, 0);
-            func_802A0290(D_803EDC10, 3, 1);
+            func_802A039C((Unk8029DEA0Entry *) D_803EDC10, 3, 8);
+            func_802A03D4((Unk8029DEA0Entry *) D_803EDC10, 3, 0);
+            func_802A040C((Unk8029DEA0Entry *) D_803EDC10, 3, 0);
+            func_802A0290((Unk8029DEA0Entry *) D_803EDC10, 3, 1);
             D_803EDF10[0xA1] = 4;
             return;
 
@@ -712,8 +712,8 @@ void func_802B18F4(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
                 return;
             }
             D_803F7804 = 1;
-            func_802A0360(0.0f, D_803EDC10, 1, 0);
-            func_802A0360(0.0f, D_803EDC10, 5, 0);
+            func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803EDC10, 1, 0);
+            func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803EDC10, 5, 0);
             D_803EDF10[0xA1] = 0;
             return;
 

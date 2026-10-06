@@ -125,7 +125,7 @@ void func_801F57B0(void) {
     func_801F74B0(D_8020C014);
     func_8029A7E4("current pak file size is %d bytes\n", filesize);
     func_8029A7E4("current playerInfo size is %d bytes\n", 0x100);
-    func_80270E50(D_80315440, D_80218EE0, &D_80219F30, 1, 3);
+    func_80270E50((struct BcSched *) D_80315440, (struct BcScClient *) D_80218EE0, &D_80219F30, 1, 3);
     PFS_ASSERT(filesize<PFS_FILE_SIZE, 104);
     osStartThread(&D_80218D30);
 }

@@ -9,9 +9,6 @@
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_80364AF0 ((Player *) D_80364AF0)
-#ifdef NON_MATCHING
-#define D_80367738 (*(s32 *) &D_80367738)
-#endif
 /* end of views */
 
 typedef struct {

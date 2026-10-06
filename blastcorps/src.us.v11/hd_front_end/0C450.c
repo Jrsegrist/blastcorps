@@ -297,7 +297,7 @@ void func_801F4878(Gfx *gdl, u8 *dyn) {
                 gSPMatrix(gfx++, &m[D_8035805C], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
                 gSPMatrix(gfx++, &m[D_8035805C + 2], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
                 gSPMatrix(gfx++, dyn + 0x1280, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
-                gfx = func_801FE238(gfx, dyn);
+                gfx = func_801FE238(gfx, (s32) dyn);
                 break;
             case 6:
                 gSPMatrix(gfx++, dyn + 0x100, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);

@@ -124,7 +124,7 @@ void func_802979E0(u8 level) {
         D_8039CAD0 = i % 6;
     }
     i = 0;
-    D_8036BB24 = D_80358070;
+    D_8036BB24 = (MenuItem *) D_80358070;
     D_80358070 = (u8 *) D_80358070 + 0x24C;
     nsel = 0;
     n = 0;
@@ -164,7 +164,7 @@ void func_802979E0(u8 level) {
     item->font = 0x18;
     item->unk16 = item->unk1A = 0;
     font = &D_802F49F4[item->font];
-    item->unk1A = func_80272C5C(font->ids, 0, font->unk4, font->unk2C, font->unk2D | 4, 1.0f);
+    item->unk1A = func_80272C5C((u16 *) font->ids, 0, font->unk4, font->unk2C, font->unk2D | 4, 1.0f);
     win->count = n + 1;
     win->cursor = D_802FF5E8[D_8039CAD0 * 5];
     if (!func_80297EF8(level)) {

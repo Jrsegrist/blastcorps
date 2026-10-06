@@ -208,7 +208,7 @@ void func_80258544(void *cimg, s32 x, s32 y, s32 z, f32 dist, Gfx *dl, void *seg
     gSPDisplayList(gdl++, PHYS(dl));
     gSPEndDisplayList(gdl++);
     osWritebackDCache(&D_803651F0, 0x140);
-    func_80284E54(D_803650B0, gdl - D_803650B0, 1, 0, 0x61F, 0);
+    func_80284E54((u64 *) D_803650B0, gdl - D_803650B0, 1, 0, 0x61F, 0);
 }
 
 void func_80258B78(Gfx **gdlp, VtxBuf *buf) {

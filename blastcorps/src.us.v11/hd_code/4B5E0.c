@@ -12,7 +12,6 @@
 #define D_02000000 ((u8 *) D_02000000)
 #define D_8039C800 ((Entry4B5E0b *) D_8039C800)
 #ifdef NON_MATCHING
-#define D_80367738 (*(s32 *) &D_80367738)
 #define D_803FB8B0 (*(s32 *) &D_803FB8B0)
 #endif
 /* end of views */
@@ -401,7 +400,7 @@ void func_802906C0(u8 arg0) {
                     if (diff < 20) {
                         D_8039C550[i].unk12 = 0;
                         D_8039C550[i].unk11 = 1;
-                        func_802CEA68(D_8039C718[D_8039C550[i].unk13].unk14, D_8039C718[D_8039C550[i].unk13].unk18);
+                        func_802CEA68((u8 *) (D_8039C718[D_8039C550[i].unk13].unk14), (u8 *) (D_8039C718[D_8039C550[i].unk13].unk18));
                         func_80291724(D_8039C550[i].unk13);
                     } else {
                         D_8039C550[i].unk14 = diff >> 1;
@@ -420,7 +419,7 @@ void func_802906C0(u8 arg0) {
         }
         if (D_8039C550[i].unk34 != 0 &&
             (D_8039C550[i].unk0C == 0 || D_8039C550[i].unk12 != 0 || D_8039C550[i].unk11 != 0)) {
-            func_802608C8(D_8039C550[i].unk34);
+            func_802608C8((void *) (D_8039C550[i].unk34));
         }
     }
     D_8039C944 = D_803643E0;
@@ -503,7 +502,7 @@ void func_80291FAC(u8 arg0) {
 
     for (i = 0; i < D_8039C710; i++) {
         if (D_8039C550[i].unk29 != 0) {
-            func_802AAE1C(arg0, D_8039C550[i].unk2A, D_8039C550[i].unk2C, &D_8039C550[i],
+            func_802AAE1C(arg0, D_8039C550[i].unk2A, D_8039C550[i].unk2C, (s32 *) &D_8039C550[i],
                           &D_8039C550[i].unk8);
             D_8039C550[i].unk4 = func_802CE6F8(D_8039C550[i].unk0, D_8039C550[i].unk8, D_8039C550[i].unk4);
         }

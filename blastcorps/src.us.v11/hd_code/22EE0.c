@@ -171,7 +171,7 @@ void func_80267A9C(void *arg) {
     done = 0;
     lastInfo = NULL;
     firstTime = 1;
-    func_80270E50(&D_80315440, D_803682F8, &D_80368070.audioFrameMsgQ, 2, 2);
+    func_80270E50((struct BcSched *) &D_80315440, (struct BcScClient *) D_803682F8, &D_80368070.audioFrameMsgQ, 2, 2);
     osSendMesg(&D_80368070.audioFrameMsgQ, (OSMesg) 5, OS_MESG_NOBLOCK);
     while (!done) {
         osRecvMesg(&D_80368070.audioFrameMsgQ, (OSMesg *) &msg, OS_MESG_BLOCK);
@@ -338,7 +338,7 @@ s32 func_80267FE0(s32 addr, s32 len, void *state) {
     addr -= delta;
     dmaPtr->startAddr = addr;
     dmaPtr->lastFrame = D_802F3AF0;
-    func_802DA2F0(&D_8036A8C8[D_802F3AF4++], OS_MESG_PRI_NORMAL, OS_READ, addr, foundBuffer, 0x200, &D_8036AE68);
+    func_802DA2F0((OSIoMesg *) &D_8036A8C8[D_802F3AF4++], OS_MESG_PRI_NORMAL, OS_READ, addr, foundBuffer, 0x200, &D_8036AE68);
     return osVirtualToPhysical(foundBuffer) + delta;
 }
 

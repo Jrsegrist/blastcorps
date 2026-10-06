@@ -126,7 +126,7 @@ static void veh83910_model(const VehDesc83910 *d) {
     data = *d->data;
     func_802AABE4(d->type, (u16 *) OBJ_PTR(data, 8), base, &regs, &verts);
     data = *d->data;
-    func_8029D040(VEH_U16(veh, 0x4C), d->chan, pos[0], pos[2], d->type, OBJ_PTR(data, 0xC), base);
+    func_8029D040(VEH_U16(veh, 0x4C), (Unk8029DEA0Entry *) d->chan, pos[0], pos[2], d->type, OBJ_PTR(data, 0xC), base);
 }
 
 /* Per-frame update (func_802C8C90 / 8FA8 / 92C0, through func_802C8BB8):
@@ -183,9 +183,9 @@ static void veh83910_frame(const VehDesc83910 *d) {
                   &VEH_U8(veh, 0x96), &VEH_S16(veh, 0x52), &VEH_S32(veh, 0x28), &VEH_S32(veh, 0x40),
                   &VEH_S32(veh, 0x34), &VEH_S32(veh, 4), &r, &tri);
     if (D_8035805C != 0) {
-        func_8029E558((u8 *) *d->bufA, (u8 *) *d->bufB, d->chan);
+        func_8029E558((u8 *) *d->bufA, (u8 *) *d->bufB, (Unk8029DEA0Entry *) d->chan);
     } else {
-        func_8029E558((u8 *) *d->bufB, (u8 *) *d->bufA, d->chan);
+        func_8029E558((u8 *) *d->bufB, (u8 *) *d->bufA, (Unk8029DEA0Entry *) d->chan);
     }
     d->model();
     /* b0 / h2 are the model update's leftover t0 (x) and t2 (the type) */
@@ -276,16 +276,16 @@ static void veh83910_init(const VehDesc83910 *d, s32 x, s32 y, s32 z, s32 angle,
                   fp, veh, &tri);
     a = *d->bufA;
     b = *d->bufB;
-    func_8029F85C((u32 *) b, (u32 *) a, d->chan, *d->data);
-    func_802A039C(d->chan, 0, 0x64);
-    func_802A03D4(d->chan, 0, 0);
-    func_802A040C(d->chan, 0, 0);
-    func_802A0480(0.0f, d->chan, 0, 0);
-    func_802A0290(d->chan, 0, 1);
-    func_8029E558((u8 *) a, (u8 *) b, d->chan);
-    func_802A0320(0, d->chan);
-    func_802A0290(d->chan, 0, 1);
-    func_8029E558((u8 *) b, (u8 *) a, d->chan);
+    func_8029F85C((u32 *) b, (u32 *) a, (Unk8029DEA0Entry *) d->chan, *d->data);
+    func_802A039C((Unk8029DEA0Entry *) d->chan, 0, 0x64);
+    func_802A03D4((Unk8029DEA0Entry *) d->chan, 0, 0);
+    func_802A040C((Unk8029DEA0Entry *) d->chan, 0, 0);
+    func_802A0480(0.0f, (Unk8029DEA0Entry *) d->chan, 0, 0);
+    func_802A0290((Unk8029DEA0Entry *) d->chan, 0, 1);
+    func_8029E558((u8 *) a, (u8 *) b, (Unk8029DEA0Entry *) d->chan);
+    func_802A0320(0, (Unk8029DEA0Entry *) d->chan);
+    func_802A0290((Unk8029DEA0Entry *) d->chan, 0, 1);
+    func_8029E558((u8 *) b, (u8 *) a, (Unk8029DEA0Entry *) d->chan);
     VEH_S16(veh, 0x78) = -0xB4;
     VEH_S16(veh, 0x7A) = 0;
     VEH_S16(veh, 0x7C) = 1;

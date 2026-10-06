@@ -329,7 +329,7 @@ void func_801E8EB8(u8 slot, u8 arg1) {
             if (D_80365060[slot] == 1) {
                 sprintf(SCROLL_TEXT, " ..... %s%s (%s) ... ", sPrefix[guest], p->name, D_802081C0[p->title].title);
                 for (i = (D_80364AF0[slot].unk91 >= 12) ? 4 : 3; i > 0; i--) {
-                    D_80215508[i] = func_8025B300(SCROLL_TEXT);
+                    D_80215508[i] = func_8025B300((u8 *) SCROLL_TEXT);
                     if (i != 1) {
                         sprintf(SCROLL_TEXT, "%s  %d .. ", SCROLL_TEXT, D_80215930[i]);
                     }
@@ -338,7 +338,7 @@ void func_801E8EB8(u8 slot, u8 arg1) {
                 if (D_802E8BF8 == 0) {
                     sprintf(SCROLL_TEXT, "%s$%d ... ", SCROLL_TEXT, p->unk14);
                 }
-                D_802154EC = func_8025B300(SCROLL_TEXT);
+                D_802154EC = func_8025B300((u8 *) SCROLL_TEXT);
                 sprintf(SCROLL_TEXT, "%s  %d", SCROLL_TEXT, p->title);
                 if ((D_80364A98 & 0x0200040000000000) || (D_80364A90 & 0x0100000000000000)) {
                     sprintf(SCROLL_TEXT, "%s ..... %s", SCROLL_TEXT, "USE Z/R TO CHANGE PLAYER, THEN A TO SELECT!");
@@ -360,7 +360,7 @@ void func_801E8EB8(u8 slot, u8 arg1) {
             D_802154D4 = 0xE;
         }
     } else {
-        D_802154D2 = func_8025B300(SCROLL_TEXT);
+        D_802154D2 = func_8025B300((u8 *) SCROLL_TEXT);
         D_8021592E = 0;
         D_80215458 = 0xC;
         if (slot == 4) {
@@ -530,10 +530,10 @@ Gfx *func_801E9718(Gfx *arg0, PlayerSelDyn *dyn, s32 arg2) {
             }
         }
         gdl = func_80274AA4(gdl);
-        func_80259CCC(dyn, (D_8021592E == 1) ? NULL : func_8025B558(D_802158A8), (D_8021592E == 1) ? D_802158A8 : NULL,
+        func_80259CCC((Gfx **) dyn, (D_8021592E == 1) ? NULL : func_8025B558(D_802158A8), (D_8021592E == 1) ? D_802158A8 : NULL,
                       0, 0, (-D_802154D8 % D_80215458) - 3, 0xC9, 0x14, 0x14, 1, 0, 0, 0,
                       (D_8021593C / 2 - 0x1B < 0) ? 0 : D_8021593C / 2 - 0x1B);
-        func_80259DC8(dyn, (D_8021592E == 1) ? NULL : func_8025B558(D_802158A8), (D_8021592E == 1) ? D_802158A8 : NULL,
+        func_80259DC8((Gfx **) dyn, (D_8021592E == 1) ? NULL : func_8025B558(D_802158A8), (D_8021592E == 1) ? D_802158A8 : NULL,
                       0, 0, -D_802154D8 % D_80215458, 0xC7, 0x14, 0x14, 1, 0xFF, 0xFF, 0xFF, D_8021593C, 0xFF, 0xFF,
                       0xFF, D_8021593C);
         gDPPipeSync(gdl++);
@@ -575,7 +575,7 @@ void func_801EA278(void) {
         osSendMesg(&D_80219EF8, (OSMesg) ((i << 16) | 6 | 0x1000000), OS_MESG_BLOCK);
         osRecvMesg(&D_80219F50, (OSMesg *) &msg, OS_MESG_BLOCK);
         if (msg == 0) {
-            if (func_8025B3F0(D_80364AF0[i].name, "NEW GAME")) {
+            if (func_8025B3F0((u8 *) (D_80364AF0[i].name), (u8 *) ("NEW GAME"))) {
                 D_80365060[i] = 1;
             } else {
                 D_80365060[i] = 2;
@@ -723,7 +723,7 @@ Gfx *func_801EAA7C(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
     s32 selW;
     s32 selH;
     s32 nv = 0;
-    s32 len = func_8025B300(D_80215928);
+    s32 len = func_8025B300((u8 *) D_80215928);
     u8 *col = &D_802F47B0[0x80];
     u8 *col2;
     s16 ang;
@@ -793,13 +793,13 @@ Gfx *func_801EAA7C(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
                     if (D_802154B6 == i) {
                         ch = D_80208498[0], selX = x, selY = y, selW = 0x18, selH = 0x14;
                     } else {
-                        func_80259DC8(dyn, D_80208498, 0, 1, 0, x, y, 0x18, 0x14, 1, 0xC8, 0xC8, 0xC8, D_8036BB20, 0xFF,
+                        func_80259DC8((Gfx **) dyn, D_80208498, 0, 1, 0, x, y, 0x18, 0x14, 1, 0xC8, 0xC8, 0xC8, D_8036BB20, 0xFF,
                                       0xFF, 0xFF, D_8036BB20);
                     }
                 } else if (D_802154B6 == i) {
-                    func_80259CCC(dyn, D_80208498, 0, 1, 0, x - 0xB, y, 0x30, 0x28, 1, 0, 0, 0, D_8036BB20 / 2);
+                    func_80259CCC((Gfx **) dyn, D_80208498, 0, 1, 0, x - 0xB, y, 0x30, 0x28, 1, 0, 0, 0, D_8036BB20 / 2);
                 } else {
-                    func_80259CCC(dyn, D_80208498, 0, 1, 0, x - 4, y + 3, 0x18, 0x14, 1, 0, 0, 0, D_8036BB20 / 2);
+                    func_80259CCC((Gfx **) dyn, D_80208498, 0, 1, 0, x - 4, y + 3, 0x18, 0x14, 1, 0, 0, 0, D_8036BB20 / 2);
                 }
             }
         }
@@ -811,8 +811,8 @@ Gfx *func_801EAA7C(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
             alpha = D_8036BB20 / 3;
         }
         D_80208498[0] = ch;
-        func_80259BD4(&gdl, dyn);
-        func_80259DC8(dyn, D_80208498, 0, 1, 0, selX - 5, selY - 5, selW * 2, selH * 2, 1, col[0], col[1], col[2],
+        func_80259BD4(&gdl, (s32) dyn);
+        func_80259DC8((Gfx **) dyn, D_80208498, 0, 1, 0, selX - 5, selY - 5, selW * 2, selH * 2, 1, col[0], col[1], col[2],
                       alpha, col[4], col[5], col[6], alpha);
     }
     if (yoshiState == 2 && (D_80370C28 & 0x1000) && !(D_80370C2A & 0x1000) && func_802753C0() == 0) {
@@ -887,9 +887,9 @@ Gfx *func_801EAA7C(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
             D_80215440 += (D_80215448 - D_80215440) * 0.2;
             D_80215444 += (D_8021544C - D_80215444) * 0.2;
             D_80208498[0] = D_802154BA;
-            func_80259CCC(dyn, D_80208498, 0, 0, 0, D_80215944 - 4.0f, D_80215948 + 4.0f, D_80215440, D_80215444, 1, 0,
+            func_80259CCC((Gfx **) dyn, D_80208498, 0, 0, 0, D_80215944 - 4.0f, D_80215948 + 4.0f, D_80215440, D_80215444, 1, 0,
                           0, 0, D_8036BB20 / 2);
-            func_80259DC8(dyn, D_80208498, 0, 0, 0, D_80215944, D_80215948, D_80215440, D_80215444, 1, col[0], col[1],
+            func_80259DC8((Gfx **) dyn, D_80208498, 0, 0, 0, D_80215944, D_80215948, D_80215440, D_80215444, 1, col[0], col[1],
                           col[2], D_8036BB20, col[4], col[5], col[6], D_8036BB20);
             if (FABS(D_80215944 - D_8021594C) < 0.15 && FABS(D_80215948 - D_80215950) < 0.15) {
                 func_80260650(D_80367738, 1, 0);
@@ -902,7 +902,7 @@ Gfx *func_801EAA7C(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
             }
             break;
     }
-    func_80259BD4(&gdl, dyn);
+    func_80259BD4(&gdl, (s32) dyn);
     D_80215940 += D_80215920;
     if (D_80215920 < 0) {
         D_80215940 += D_80215920 * 2;
@@ -917,12 +917,12 @@ Gfx *func_801EAA7C(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
         D_8021592C = 0;
     }
     col2 = &D_802F47B0[0x98];
-    nv = func_80276130(dyn, 3, nv, D_802154C4 + D_802154C8 + D_80215940, e->unk4 + e->unk8 / 2,
+    nv = func_80276130((struct SpriteVtxBuf *) dyn, 3, nv, D_802154C4 + D_802154C8 + D_80215940, e->unk4 + e->unk8 / 2,
                        e->unk6 / 3 + D_80215940 / 2, e->unk8 / 2 + 3, D_802F47B0[0x98], D_802F47B0[0x99],
                        D_802F47B0[0x9A], D_8021592C, D_802F47B0[0x9C], D_802F47B0[0x9D], D_802F47B0[0x9E], D_8021592C,
                        D_802F47B0[0x98], D_802F47B0[0x99], D_802F47B0[0x9A], D_8021592C, D_802F47B0[0x9C],
                        D_802F47B0[0x9D], D_802F47B0[0x9E], D_8021592C);
-    nv = func_80276080(dyn, 3, nv, D_802154C4 + D_802154C8 + D_80215940 + 4, e->unk4 + e->unk8 / 2 + 3,
+    nv = func_80276080((struct SpriteVtxBuf *) dyn, 3, nv, D_802154C4 + D_802154C8 + D_80215940 + 4, e->unk4 + e->unk8 / 2 + 3,
                        e->unk6 / 3 + D_80215940 / 2, e->unk8 / 2 + 3, 0, 0, 0, D_8021592C / 2);
     gdl = func_80275DA4(gdl, 0);
     gSPVertex(gdl++, &dyn->vtx[0], 8, 0);
@@ -930,10 +930,10 @@ Gfx *func_801EAA7C(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
     gSP1Triangle(gdl++, 4, 6, 7, 0);
     gSP1Triangle(gdl++, 0, 1, 2, 0);
     gSP1Triangle(gdl++, 0, 2, 3, 0);
-    nv = func_80276130(dyn, 2, nv, e->unk2 - D_80215940 - 4, e->unk4 + e->unk8 / 2, e->unk6 / 3 + D_80215940 / 2,
+    nv = func_80276130((struct SpriteVtxBuf *) dyn, 2, nv, e->unk2 - D_80215940 - 4, e->unk4 + e->unk8 / 2, e->unk6 / 3 + D_80215940 / 2,
                        e->unk8 / 2 + 3, col2[0], col2[1], col2[2], D_8021592C, col2[4], col2[5], col2[6], D_8021592C,
                        col2[0], col2[1], col2[2], D_8021592C, col2[4], col2[5], col2[6], D_8021592C);
-    nv = func_80276080(dyn, 2, nv, e->unk2 - D_80215940 - 8, e->unk4 + e->unk8 / 2 + 3, e->unk6 / 3 + D_80215940 / 2,
+    nv = func_80276080((struct SpriteVtxBuf *) dyn, 2, nv, e->unk2 - D_80215940 - 8, e->unk4 + e->unk8 / 2 + 3, e->unk6 / 3 + D_80215940 / 2,
                        e->unk8 / 2 + 3, 0, 0, 0, D_8021592C / 2);
     gdl = func_80275DA4(gdl, 0);
     gSPVertex(gdl++, &dyn->vtx[nv - 8], 8, 0);
@@ -1079,7 +1079,7 @@ Gfx *func_801EC770(Gfx *start, void *gfxp, s32 *count) {
     }
     gdl = func_80274AA4(gdl);
     if (D_80364AA8 != 1) {
-        func_80264A34(D_80215470, D_802E8F94[D_802E8BDC].times[5 - n], 0);
+        func_80264A34((char *) D_80215470, D_802E8F94[D_802E8BDC].times[5 - n], 0);
         D_80215470[5] = 0;
         func_80259DC8(gfxp, D_80215470, 0, 0, 0, 0x29, 0x7D, 0x10, 0x10, 1, 0xFF, 0xB4, 0, D_80215910[1], 0xFF, 0x78, 0,
                       D_80215910[1]);

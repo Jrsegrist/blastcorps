@@ -341,10 +341,10 @@ void func_801EF380(s32 arg0) {
     } else {
         D_802159D0 = 0;
     }
-    func_8028B4C4(D_0048F5A0, (void *) D_80358070, &size1, 12, 0, 1);
+    func_8028B4C4((u32) D_0048F5A0, (u32) ((void *) D_80358070), (u32 *) &size1, 12, 0, 1);
     D_802159D4 = (u8 *) D_80358070;
     D_80358070 += size1;
-    func_8028B4C4(D_0048F970, (void *) D_80358070, &size2, 12, 0, 1);
+    func_8028B4C4((u32) D_0048F970, (u32) ((void *) D_80358070), (u32 *) &size2, 12, 0, 1);
     D_802159D8 = (u8 *) D_80358070;
     D_80358070 += size2;
     D_802159DC = arg0;
@@ -369,7 +369,7 @@ void func_801EF4AC(void) {
     dyn = &D_803156F8[D_8035805C ^ 1];
     gdl = dyn->dl;
     func_8028A470();
-    func_80284E54(D_803156F8[D_8035805C].dl, D_80358078, 1, 1, 0x4D2, 0);
+    func_80284E54((u64 *) (D_803156F8[D_8035805C].dl), D_80358078, 1, 1, 0x4D2, 0);
     D_8035805C ^= 1;
     gSPSegment(gdl++, 0, 0);
     gSPSegment(gdl++, 2, osVirtualToPhysical(dyn));

@@ -296,9 +296,9 @@ void func_802A1674(u8 *obj, s32 arg1) {
     func_802A19F4();
     D_803BE6FC = OBJ_PTR(obj, 0x58);
     D_803BE700 = OBJ_PTR(obj, 0x5C);
-    func_8026FBB0(OBJ_PTR(obj, 0x34), OBJ_PTR(obj, 0x38));
+    func_8026FBB0((s16 *) (OBJ_PTR(obj, 0x34)), (s16 *) (OBJ_PTR(obj, 0x38)));
     func_8028D4C0(OBJ_PTR(obj, 0x38), OBJ_PTR(obj, 0x3C));
-    func_8028C190(OBJ_PTR(obj, 0x20), OBJ_PTR(obj, 0x24));
+    func_8028C190((struct BoxSpawn *) (OBJ_PTR(obj, 0x20)), (struct BoxSpawn *) (OBJ_PTR(obj, 0x24)));
     D_80370C50 = 0;
     if (D_80364A98 != 2 && D_80364A98 != D_8030D880 && D_803BE6F4 != 0) {
         func_802C4BF0((void *) D_803BE6F4);
@@ -1512,13 +1512,13 @@ s32 func_802A350C(u8 *obj, s32 fp) {
         func_802A396C(type, &o);
         switch (type) {
             case 0:
-                func_802AE370(o.s2, x, y, z, heading, fp, &f);
+                func_802AE370(o.s2, x, y, z, heading, fp, (TriSideOut *) &f);
                 break;
             case 1:
                 func_802AFC60(o.s2, x, y, z, heading, fp);
                 break;
             case 2:
-                func_802B0DA0(o.s2, x, y, z, heading, fp, 0, &f);
+                func_802B0DA0(o.s2, x, y, z, heading, fp, 0, (TriSideOut *) &f);
                 break;
             case 3:
                 func_802B29C0(o.s2, x, y, z, heading, fp);
@@ -1536,7 +1536,7 @@ s32 func_802A350C(u8 *obj, s32 fp) {
                 func_802BBA60(x, y, z, heading, o.s2, fp);
                 break;
             case 8:
-                func_802B7340(o.s2, x, y, z, heading, fp, &f);
+                func_802B7340(o.s2, x, y, z, heading, fp, (TriSideOut *) &f);
                 break;
             case 9:
                 func_802C5120(x, y, z, heading, o.s2, fp);
@@ -1550,16 +1550,16 @@ s32 func_802A350C(u8 *obj, s32 fp) {
                 func_802C80D0(type, x, y, z, heading, o.s2, fp);
                 break;
             case 0xD:
-                func_802CB720(o.s2, x, y, z, heading, fp, &f);
+                func_802CB720(o.s2, x, y, z, heading, fp, (TriSideOut *) &f);
                 break;
             case 0xE:
-                func_802CC920(o.s2, x, y, z, heading, fp, &f);
+                func_802CC920(o.s2, x, y, z, heading, fp, (TriSideOut *) &f);
                 break;
             case 0xF:
-                func_802CF6A0(o.s2, x, y, z, heading, fp, 0, &f);
+                func_802CF6A0(o.s2, x, y, z, heading, fp, 0, (TriSideOut *) &f);
                 break;
             case 0x10:
-                func_802D07E0(o.s2, x, y, z, heading, fp, 0, &f);
+                func_802D07E0(o.s2, x, y, z, heading, fp, 0, (TriSideOut *) &f);
                 break;
             default: /* the asm's syscall, then its epilogue */
                 return fp;

@@ -231,7 +231,7 @@ void func_8025D0B0(u8 arg0) {
             size = D_00489E70 - D_00487050;
             break;
     }
-    func_8028B4C4(rom, D_80358070, &size, 0xC, 0, 1);
+    func_8028B4C4((u32) rom, (u32) D_80358070, (u32 *) &size, 0xC, 0, 1);
     D_80366BB0[arg0] = (u32) D_80358070 & 0x1FFFFFFF;
     D_80358070 = (u8 *) D_80358070 + size;
 }

@@ -12,7 +12,6 @@
 #define D_02000000 ((u8 *) D_02000000)
 #ifdef NON_MATCHING
 #define D_80358070 (*(Vtx * *) &D_80358070)
-#define D_80367738 (*(s32 *) &D_80367738)
 #endif
 /* end of views */
 
@@ -183,14 +182,14 @@ void func_8028DD64(u8 arg0) {
     D_802E8BE4 = 10;
     D_802E8BE8 = 0x190;
     if (D_8039B070_entries[arg0].unk40 != 0) {
-        func_802608C8(D_8039B070_entries[arg0].unk40);
+        func_802608C8((void *) (D_8039B070_entries[arg0].unk40));
         match = func_8028DE94();
         if (match != NULL) {
-            func_80260650(D_80367738, 0x73, (s32) &match->unk40);
+            func_80260650(D_80367738, 0x73, (void *) ((s32) &match->unk40));
         }
     }
     if (*(s32 *) (&D_8039B0B4 + arg0 * 0x48) != 0) {
-        func_802608C8(*(s32 *) (&D_8039B0B4 + arg0 * 0x48));
+        func_802608C8((void *) (*(s32 *) (&D_8039B0B4 + arg0 * 0x48)));
     }
     func_80260650(D_80367738, 0x10, 0);
 }
@@ -294,7 +293,7 @@ void func_8028DF14(u8 arg0) {
                 }
                 if (D_8039B070_entries[i].unk14 == 0 && arg0 != 0) {
                     if (func_8028DE94() == NULL) {
-                        func_80260650(D_80367738, 0x73, (s32) &D_8039B070_entries[i].unk40);
+                        func_80260650(D_80367738, 0x73, (void *) ((s32) &D_8039B070_entries[i].unk40));
                     }
                     D_8039B070_entries[i].unk14 = ((s32) D_80358060);
                 }
@@ -352,13 +351,13 @@ void func_8028DF14(u8 arg0) {
             }
             if (D_8039B070_entries[i].unk1E > 0 && D_8039B070_entries[i].unk44 == 0 &&
                 D_8039B070_entries[i].unk18 != 0) {
-                func_80260650(D_80367738, 7, (s32) &D_8039B070_entries[i].unk44);
+                func_80260650(D_80367738, 7, (void *) ((s32) &D_8039B070_entries[i].unk44));
                 if (D_80364456 == 4) {
                     func_8026AD30(0x54);
                 }
             }
             if (D_8039B070_entries[i].unk44 != 0 && D_8039B070_entries[i].unk1E == 0) {
-                func_802608C8(D_8039B070_entries[i].unk44);
+                func_802608C8((void *) (D_8039B070_entries[i].unk44));
             }
         }
     }
@@ -601,7 +600,7 @@ u8 func_8028FCD4(void *arg0, u8 *arg1) {
     while (*(s32 *) ((u8 *) arg0 + 8) == 0) {
     }
     osRecvMesg(arg0, 0, 0);
-    osContGetQuery(status);
+    osContGetQuery((OSContStatus *) status);
     for (i = 0; i < 4; i++) {
         if ((status[i].unk2 & 1) && status[i].unk3 == 0) {
             *arg1 |= 1 << i;

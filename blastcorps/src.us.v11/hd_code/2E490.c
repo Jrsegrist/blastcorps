@@ -32,11 +32,11 @@ u8 func_80272C5C(u16 *ids, u16 *palIds, u8 count, u8 frames, u8 flags, f32 scale
     k = 0;
     for (slot = start; slot < count + start; slot++, k += palIds ? 0 : 1) {
         if (palIds) {
-            func_80257490(&D_80358070, 16);
+            func_80257490((s32 *) &D_80358070, 16);
             func_802A0EE0(palIds[slot - start], pal = D_80358070);
             D_80358070 = (u8 *) D_80358070 + 0x80;
         } else {
-            func_80257490(&D_80358070, 16);
+            func_80257490((s32 *) &D_80358070, 16);
             pal = NULL;
         }
         for (j = 0; j < frames; j++) {
@@ -48,7 +48,7 @@ u8 func_80272C5C(u16 *ids, u16 *palIds, u8 count, u8 frames, u8 flags, f32 scale
         if (flags & 4) {
             for (j = 0; j < 2; j++) {
                 for (m = 0; m < 2; m++) {
-                    D_8036C368[j][slot][m] = D_80358070;
+                    D_8036C368[j][slot][m] = (Vtx *) D_80358070;
                     D_80358070 = (u8 *) D_80358070 + 0x80;
                 }
             }

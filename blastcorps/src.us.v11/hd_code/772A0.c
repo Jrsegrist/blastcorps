@@ -119,16 +119,16 @@ void func_802BBA60(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp) {
                   fp, veh, &tri);
     a = D_803EFEA8;
     b = D_803EFEAC;
-    func_8029F85C((u32 *) b, (u32 *) a, D_803EFAF0, D_803EFEA4);
-    func_802A039C(D_803EFAF0, 0, 0x64);
-    func_802A03D4(D_803EFAF0, 0, 0);
-    func_802A040C(D_803EFAF0, 0, 0);
-    func_802A0480(0.0f, D_803EFAF0, 0, 0);
-    func_802A0290(D_803EFAF0, 0, 1);
-    func_8029E558((u8 *) a, (u8 *) b, D_803EFAF0);
-    func_802A0320(0, D_803EFAF0);
-    func_802A0290(D_803EFAF0, 0, 1);
-    func_8029E558((u8 *) b, (u8 *) a, D_803EFAF0);
+    func_8029F85C((u32 *) b, (u32 *) a, (Unk8029DEA0Entry *) D_803EFAF0, D_803EFEA4);
+    func_802A039C((Unk8029DEA0Entry *) D_803EFAF0, 0, 0x64);
+    func_802A03D4((Unk8029DEA0Entry *) D_803EFAF0, 0, 0);
+    func_802A040C((Unk8029DEA0Entry *) D_803EFAF0, 0, 0);
+    func_802A0480(0.0f, (Unk8029DEA0Entry *) D_803EFAF0, 0, 0);
+    func_802A0290((Unk8029DEA0Entry *) D_803EFAF0, 0, 1);
+    func_8029E558((u8 *) a, (u8 *) b, (Unk8029DEA0Entry *) D_803EFAF0);
+    func_802A0320(0, (Unk8029DEA0Entry *) D_803EFAF0);
+    func_802A0290((Unk8029DEA0Entry *) D_803EFAF0, 0, 1);
+    func_8029E558((u8 *) b, (u8 *) a, (Unk8029DEA0Entry *) D_803EFAF0);
     VEH_S16(veh, 0x78) = -0xB4;
     VEH_S16(veh, 0x7A) = 0;
     VEH_S16(veh, 0x7C) = 1;
@@ -311,9 +311,9 @@ void func_802BBEB8(void) {
                   &VEH_U8(veh, 0x96), &VEH_S16(veh, 0x52), &VEH_S32(veh, 0x28), &VEH_S32(veh, 0x40),
                   &VEH_S32(veh, 0x34), &VEH_S32(veh, 4), &r, &tri);
     if (D_8035805C != 0) {
-        func_8029E558((u8 *) D_803EFEA8, (u8 *) D_803EFEAC, D_803EFAF0);
+        func_8029E558((u8 *) D_803EFEA8, (u8 *) D_803EFEAC, (Unk8029DEA0Entry *) D_803EFAF0);
     } else {
-        func_8029E558((u8 *) D_803EFEAC, (u8 *) D_803EFEA8, D_803EFAF0);
+        func_8029E558((u8 *) D_803EFEAC, (u8 *) D_803EFEA8, (Unk8029DEA0Entry *) D_803EFAF0);
     }
     func_802BC3D0();
     D_803EFEC0++;
@@ -437,7 +437,7 @@ void func_802BC3D0(void) {
     data = D_803EFEA4;
     func_802AABE4(7, (u16 *) OBJ_PTR(data, 8), base, &regs, &verts);
     data = D_803EFEA4;
-    func_8029D040(VEH_U16(veh, 0x4C), D_803EFAF0, D_803EFE98, D_803EFEA0, 7, OBJ_PTR(data, 0xC), base);
+    func_8029D040(VEH_U16(veh, 0x4C), (Unk8029DEA0Entry *) D_803EFAF0, D_803EFE98, D_803EFEA0, 7, OBJ_PTR(data, 0xC), base);
     D_803EFECB = func_8029DC14(7);
 }
 #else

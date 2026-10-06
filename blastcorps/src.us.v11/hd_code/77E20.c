@@ -665,7 +665,7 @@ s32 func_802BCE40(void) {
     } else {
         ptr = (u8 *) best + 0xC;
     }
-    D_8036C790 = ptr;
+    D_8036C790 = (s16 *) ptr;
     D_803F7808 = kind;
     return (s32) best;
 }
@@ -1613,11 +1613,11 @@ void func_802BE9F8(void) {
  * D_803F3960). The asm takes a in t9 and b in t3 and saves v0 and v1; asm
  * caller func_802BEBB0 keeps a0, a1, t3, t8, t9, f12 and f14 live. */
 void func_802BEA30(s32 a, s32 b) {
-    s32 *p = D_803F3960;
+    s32 *p = (s32 *) D_803F3960;
 
     p[0] = a;
     p[1] = b;
-    D_803F3960 = p + 2;
+    D_803F3960 = (u8 *) (p + 2);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BEA30.s")
@@ -1631,7 +1631,7 @@ void func_802BEA30(s32 a, s32 b) {
  * and f14 live. The walk stops at the write pointer with `!=`. */
 s32 func_802BEA70(s32 a, s32 b) {
     s32 *p = (s32 *) D_803F3910;
-    s32 *end = D_803F3960;
+    s32 *end = (s32 *) D_803F3960;
 
     while (p != end) {
         p += 2;
@@ -2496,7 +2496,7 @@ s32 func_802BFF6C(s32 id, s32 value, s32 bit, Unk802C1DD0Entry *e, s32 flag, s32
                 break;
             } else {
                 v0 = kind;
-                func_802A04BC(kind, D_803F77D0, o);
+                func_802A04BC(kind, (Unk8029DEA0Entry *) D_803F77D0, o);
                 if (o[0] != 0) {
                     u8 *q = rec + o[6];
                     s32 lo = q[4];

@@ -1,11 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
 #include "game/game.h"
-/* Views: this file reads these shared variables (game/variables.h) as other types. */
-#ifdef NON_MATCHING
-#define D_80367738 (*(s32 *) &D_80367738)
-#endif
-/* end of views */
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -117,7 +112,7 @@ void func_802AC2A4(s32 z, s32 a1, s32 x, s32 y, s32 b0, s32 id, u8 *vehicle) {
         *(s32 *) (obj + 0x10) = 0xBB80;
         oz = *(s32 *) (obj + 0x18);
         *(s32 *) (obj + 0x18) = 0xBB80;
-        func_802BD99C(obj, 0xBB80 - ox, 0, 0xBB80 - oz);
+        func_802BD99C((struct Unk802BD99CModel *) obj, 0xBB80 - ox, 0, 0xBB80 - oz);
     }
 }
 #else
@@ -193,7 +188,7 @@ s32 func_802AC4C4(s32 px, s32 pz, s32 x0, s32 z0, s32 x1, s32 z1, s32 x2, s32 z2
     TriSideOut679E0 out;
 
     out.sideZ = 0.0f;
-    return func_802AA460(px, pz, x0, z0, x1, z1, x2, z2, &out);
+    return func_802AA460(px, pz, x0, z0, x1, z1, x2, z2, (TriSideOut *) &out);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/func_802AC4C4.s")

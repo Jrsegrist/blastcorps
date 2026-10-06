@@ -272,7 +272,7 @@ void func_80262320(u8 arg0) {
     if (D_80364AA8 != 1) {
         size = D_006A8DA0 - D_006A32B0;
         if (D_80364AA8 != 0x80 && D_80364A98 == 0x2000) {
-            func_8028B4C4(D_006A32B0, D_80358070, &size, 10, 0, 1);
+            func_8028B4C4((u32) D_006A32B0, (u32) D_80358070, (u32 *) &size, 10, 0, 1);
             for (i = 0; i < 5; i++) {
                 D_80367BE0[i] = (i << 15) + (u8 *) D_80358070;
             }
@@ -635,14 +635,14 @@ Gfx *func_802639B4(Gfx *gdl, Gfx **arg1, u32 *arg2) {
             for (i = 0; i < D_80367B54 - ((D_80364A90 & 0x440) ? 1 : 0) && i < D_80367C04->target; i++) {
                 if (i + 1 == D_80367BFB && i + 1 != D_80367B54) {
                     /* best lap */
-                    func_80259CCC(arg1, D_80367B60[i], 0, 1, 0, 0x18, i * 18 + 0x12, 0x14, 0x14, 1, 0xFF, 0, 0,
+                    func_80259CCC(arg1, (u8 *) D_80367B60[i], 0, 1, 0, 0x18, i * 18 + 0x12, 0x14, 0x14, 1, 0xFF, 0, 0,
                                   D_80367BD6);
                 } else if (i + 1 == D_80367B54) {
                     /* current lap */
-                    func_80259CCC(arg1, D_80367B60[i], 0, 1, 0, 0x18, i * 18 + 0x12, 0x14, 0x14, 1, 0xFF, 0xFF, 0xFF,
+                    func_80259CCC(arg1, (u8 *) D_80367B60[i], 0, 1, 0, 0x18, i * 18 + 0x12, 0x14, 0x14, 1, 0xFF, 0xFF, 0xFF,
                                   D_80367BD6);
                 } else {
-                    func_80259CCC(arg1, D_80367B60[i], 0, 1, 0, 0x18, i * 18 + 0x12, 0x14, 0x14, 1, 0xA0, 0xA0, 0xA0,
+                    func_80259CCC(arg1, (u8 *) D_80367B60[i], 0, 1, 0, 0x18, i * 18 + 0x12, 0x14, 0x14, 1, 0xA0, 0xA0, 0xA0,
                                   D_80367BD6);
                 }
             }
@@ -650,14 +650,14 @@ Gfx *func_802639B4(Gfx *gdl, Gfx **arg1, u32 *arg2) {
         case 4:
         case 0x20:
         case 0x80:
-            func_80259CCC(arg1, D_80367B60[0], 0, 1, 0, 0x38, 0x14, 0x14, 0x14, 1, 0xFF, 0xFF, 0xFF, alpha);
+            func_80259CCC(arg1, (u8 *) D_80367B60[0], 0, 1, 0, 0x38, 0x14, 0x14, 0x14, 1, 0xFF, 0xFF, 0xFF, alpha);
             break;
         case 8:
-            func_80259CCC(arg1, D_80367B60[0], 0, 1, 0, 0x1C, 0x12, 0x14, 0x14, 1, 0xFF, 0xFF, 0xFF, alpha);
+            func_80259CCC(arg1, (u8 *) D_80367B60[0], 0, 1, 0, 0x1C, 0x12, 0x14, 0x14, 1, 0xFF, 0xFF, 0xFF, alpha);
             break;
         case 0x10:
         case 0x40:
-            func_80259CCC(arg1, D_80367B60[0], 0, 1, 0, 0x38, 0x12, 0x14, 0x14, 1, 0xFF, 0xFF, 0xFF, alpha);
+            func_80259CCC(arg1, (u8 *) D_80367B60[0], 0, 1, 0, 0x38, 0x12, 0x14, 0x14, 1, 0xFF, 0xFF, 0xFF, alpha);
             break;
     }
     red = 0xFF;
@@ -677,13 +677,13 @@ Gfx *func_802639B4(Gfx *gdl, Gfx **arg1, u32 *arg2) {
     }
     if (!flash || D_803156C4 % 20 < 16) {
         if (D_80364AA8 == 2) {
-            func_80259CCC(arg1, D_80367BB0, 0, 1, 0, 0x18, i * 18 + 0x14, 0x10, 0x10, 1, red, grn, 0, D_80367BD6);
+            func_80259CCC(arg1, (u8 *) D_80367BB0, 0, 1, 0, 0x18, i * 18 + 0x14, 0x10, 0x10, 1, red, grn, 0, D_80367BD6);
         } else {
-            func_80259CCC(arg1, D_80367BB0, 0, 1, 0, 0x1C, D_80367BD8 + 0x2A, 0x10, 0x10, 1, red, grn, 0, alpha);
+            func_80259CCC(arg1, (u8 *) D_80367BB0, 0, 1, 0, 0x1C, D_80367BD8 + 0x2A, 0x10, 0x10, 1, red, grn, 0, alpha);
         }
     }
     if (D_803643D7 && D_80364A90 == 0x04000000) {
-        func_8025E2CC(&g, arg1, D_8035805C);
+        func_8025E2CC(&g, (s32) arg1, D_8035805C);
     }
     if (D_80367BC8) {
         g = func_80264264(arg1, g);

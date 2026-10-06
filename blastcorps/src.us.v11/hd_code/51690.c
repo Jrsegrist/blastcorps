@@ -16,7 +16,7 @@ void func_80295E50(void) {
     D_8039CA98 = D_8039CA94 + 0xF0;
     D_8039CA9C = D_8039CA98 + 0x180;
     size = D_006A9F10 - D_006A8DA0;
-    func_8028B4C4(D_006A8DA0, D_8039CA90, &size, 10, 0, 1);
+    func_8028B4C4((u32) D_006A8DA0, (u32) D_8039CA90, (u32 *) &size, 10, 0, 1);
     D_80358070 = (u8 *) D_80358070 + size;
     D_8039CAA0 = 0;
     D_8039CAA2 = 1;

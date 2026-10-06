@@ -111,9 +111,9 @@ void func_80278BF0(Gfx *src, Gfx *end, Gfx **dstp) {
 
 /* Allocates the buffers and resets the state */
 void func_80278E3C(void) {
-    func_80257490(D_80358070, 0x40);
+    func_80257490((s32 *) D_80358070, 0x40);
     D_8036D170 = D_80358070;
-    func_80257490(D_80358070 = D_80358070 + 0x5460, 8);
+    func_80257490((s32 *) (D_80358070 = D_80358070 + 0x5460), 8);
     D_8036D178 = 0;
     D_8036CC68 = 0;
     D_8036CC6C = 0;
@@ -320,7 +320,7 @@ void func_80279778(s32 x, s32 y, s32 z, s32 a, s32 b, s32 c, void *dl, void *seg
         gDPSetEnvColor(gdl++, 0, 0, 0, alpha);
         gSPDisplayList(gdl++, PHYS(dl));
         gSPEndDisplayList(gdl++);
-        func_80284E54(D_8036D188, gdl - D_8036D188, 2, 0, 0x54D, 0);
+        func_80284E54((u64 *) D_8036D188, gdl - D_8036D188, 2, 0, 0x54D, 0);
     }
 }
 

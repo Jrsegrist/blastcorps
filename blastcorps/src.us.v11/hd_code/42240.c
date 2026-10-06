@@ -201,8 +201,8 @@ void func_80287530(Gfx **gfxp, Gfx **gfxp2, u8 frame, u8 arg3) {
     gSP1Triangle(gdl++, 0, 1, 2, 0);
     gSP1Triangle(gdl++, 0, 2, 3, 0);
     gDPPipeSync(gdl++);
-    func_8026A378(D_803F8B72, buf);
-    func_80259DC8(gfxp2, buf, 0, 1, 0, 0x40, 0x91, 15, 15, 1, 0xFF, 0xFF, 0, MIN(D_8036EC1C, D_80367BD6), 0xFF, 0, 0,
+    func_8026A378(D_803F8B72, (u8 *) buf);
+    func_80259DC8(gfxp2, (u8 *) buf, 0, 1, 0, 0x40, 0x91, 15, 15, 1, 0xFF, 0xFF, 0, MIN(D_8036EC1C, D_80367BD6), 0xFF, 0, 0,
                   MIN(D_8036EC1C, D_80367BD6));
     gDPPipeSync(gdl++);
     *gfxp = gdl;
@@ -274,8 +274,8 @@ void func_80287C68(Gfx **gfxp, Gfx **gfxp2, u8 frame, u8 arg3) {
     gSP1Triangle(gdl++, 0, 1, 2, 0);
     gSP1Triangle(gdl++, 0, 2, 3, 0);
     gDPPipeSync(gdl++);
-    func_8026A378(D_803EDC00, buf);
-    func_80259DC8(gfxp2, buf, 0, 1, 0, 0x44, 0x97, 15, 15, 1, 0xFF, 0xFF, 0, MIN(D_8036EC28, D_80367BD6), 0xFF, 0, 0,
+    func_8026A378(D_803EDC00, (u8 *) buf);
+    func_80259DC8(gfxp2, (u8 *) buf, 0, 1, 0, 0x44, 0x97, 15, 15, 1, 0xFF, 0xFF, 0, MIN(D_8036EC28, D_80367BD6), 0xFF, 0, 0,
                   MIN(D_8036EC28, D_80367BD6));
     gDPPipeSync(gdl++);
     *gfxp = gdl;

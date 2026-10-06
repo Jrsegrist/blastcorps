@@ -11,7 +11,6 @@
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #ifdef NON_MATCHING
 #define D_80358070 (*(Vtx * *) &D_80358070)
-#define D_80367738 (*(s32 *) &D_80367738)
 #endif
 /* end of views */
 

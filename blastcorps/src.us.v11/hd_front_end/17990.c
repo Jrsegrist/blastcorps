@@ -11,9 +11,6 @@
 #define D_8020C070 ((MenuEntry *) D_8020C070)
 #define D_802F8BDC ((MenuPage *) D_802F8BDC)
 #define D_803156F8 ((FeDyn *) D_803156F8)
-#ifdef NON_MATCHING
-#define D_80367738 (*(s32 *) &D_80367738)
-#endif
 /* end of views */
 
 /* back_loop.c: the front end's per-frame loop (menus behind the yoshi windows) */
@@ -84,7 +81,7 @@ void func_801FE990(void) {
             } else {
                 D_80364A98 = 0x2000000000;
             }
-            func_802608C8(D_8021AB7C);
+            func_802608C8((void *) D_8021AB7C);
             func_8026AF6C(0x4000);
         }
     }
@@ -208,7 +205,7 @@ void func_801FE990(void) {
     D_80358080 = 0;
     D_80358084 = 0;
     func_802A5720();
-    func_80284E54(D_803156F8[D_8035805C].dl, D_80358078, 1, 1, 0x4D2, 0);
+    func_80284E54((u64 *) (D_803156F8[D_8035805C].dl), D_80358078, 1, 1, 0x4D2, 0);
     D_8035805C ^= 1;
     gdl = D_803156F8[D_8035805C].dl;
     gSPSegment(gdl++, 0, 0);
@@ -231,11 +228,11 @@ void func_801FE990(void) {
     }
     gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, D_80358050[D_8035805C]);
     func_80259450();
-    gdl = func_80200BE0(gdl, &D_803156F8[D_8035805C], &D_80358078);
+    gdl = func_80200BE0(gdl, (s32) &D_803156F8[D_8035805C], &D_80358078);
     gDPPipeSync(gdl++);
     gDPSetCycleType(gdl++, G_CYC_1CYCLE);
     if (D_80364A90 & 0xC000000000000) {
-        gdl = func_8026BBD0(gdl, &D_803156F8[D_8035805C], &D_80358078);
+        gdl = func_8026BBD0(gdl, (s32) &D_803156F8[D_8035805C], &D_80358078);
     }
     if (D_80364A90 == 0x4000000000000) {
         if (D_80358060 == 0) {
@@ -249,10 +246,10 @@ void func_801FE990(void) {
         }
     }
     if (D_80364A90 & 0x818D04001AFB8080) {
-        gdl = func_801E9718(gdl, &D_803156F8[D_8035805C], 0xC2);
+        gdl = func_801E9718(gdl, (struct PlayerSelDyn *) &D_803156F8[D_8035805C], 0xC2);
     }
     if (D_80364A90 & 0x898C0FE313F78002) {
-        gdl = func_8025C878(gdl, &D_803156F8[D_8035805C], D_8035805C, &D_80358078);
+        gdl = func_8025C878(gdl, (s32) &D_803156F8[D_8035805C], D_8035805C, &D_80358078);
     }
     if (D_80364A90 & 0x410000) {
         u8 old = D_80364AE8;
@@ -271,9 +268,9 @@ void func_801FE990(void) {
         gdl = func_801ED800(gdl, &D_803156F8[D_8035805C], D_8035805C, &D_80358078);
     }
     if (D_80364A90 == 0x1000000000000) {
-        gdl = func_80201364(D_803156F8, gdl);
+        gdl = func_80201364((s32) D_803156F8, gdl);
     }
-    gdl = func_8024C404(gdl, &D_803156F8[D_8035805C], &D_80358078);
+    gdl = func_8024C404(gdl, (DynamicBuf *) &D_803156F8[D_8035805C], &D_80358078);
     if (D_80364A90 & 0x88000080) {
         gdl = func_801EC770(gdl, &D_803156F8[D_8035805C], &D_80358078);
         if (D_80364A71 != -1 && yoshiState == 2) {
@@ -299,21 +296,21 @@ void func_801FE990(void) {
 
         x = 0x118, y = 0x8C;
         sprintf(D_8021AB72, "%d", D_80364A71);
-        func_80259CCC(&D_803156F8[D_8035805C], D_8021AB72, 0, 1, 0, x, y, 0x1A, 0x16, 1, 0, 0, 0, D_8036BB20);
-        func_80259DC8(&D_803156F8[D_8035805C], D_8021AB72, 0, 1, 0, x + 2, y + 2, 0x12, 0x12, 1, 0xFF, 0xFF, 0,
+        func_80259CCC((Gfx **) &D_803156F8[D_8035805C], (u8 *) D_8021AB72, 0, 1, 0, x, y, 0x1A, 0x16, 1, 0, 0, 0, D_8036BB20);
+        func_80259DC8((Gfx **) &D_803156F8[D_8035805C], (u8 *) D_8021AB72, 0, 1, 0, x + 2, y + 2, 0x12, 0x12, 1, 0xFF, 0xFF, 0,
                       D_8036BB20, 0xFF, 0, 0, D_8036BB20);
     }
     if (D_80364A90 & 0x40000000000) {
         func_801F803C();
-        gdl = func_801F8440(&D_803156F8[D_8035805C], gdl);
+        gdl = func_801F8440((s32) &D_803156F8[D_8035805C], gdl);
     }
-    func_80259C24(&gdl, &D_803156F8[D_8035805C]);
-    gdl = func_80274BF0(&D_803156F8[D_8035805C], gdl);
+    func_80259C24(&gdl, (Mtx *) &D_803156F8[D_8035805C]);
+    gdl = func_80274BF0((s32) &D_803156F8[D_8035805C], gdl);
     if (!(D_80364A90 & 0xC000000000000)) {
-        gdl = func_8026BBD0(gdl, &D_803156F8[D_8035805C], &D_80358078);
+        gdl = func_8026BBD0(gdl, (s32) &D_803156F8[D_8035805C], &D_80358078);
     }
     if (yoshiState != 1 && currentYoshiWindow == 0xB) {
-        gdl = func_801EAA7C(gdl, &D_803156F8[D_8035805C], &D_80358078);
+        gdl = func_801EAA7C(gdl, (struct PlayerSelDyn *) &D_803156F8[D_8035805C], &D_80358078);
     }
     gDPFullSync(gdl++);
     gSPEndDisplayList(gdl++);

@@ -138,7 +138,7 @@ void func_801F7850(void) {
                 item->unk16 = D_80364EF0[i][D_802E8C44[lvl]];
                 item->unk1A = lvl;
             }
-            func_802595E0((u8 *) &D_8036BB24[n * 4], 4, 0x1C, func_801F7FF4);
+            func_802595E0((u8 *) &D_8036BB24[n * 4], 4, 0x1C, (s32 (*)(void *, void *)) func_801F7FF4);
             for (i = 0; i < 4; i++) {
                 item = &D_8036BB24[n * 4 + i];
                 item->unk4 = i * 17;
@@ -153,7 +153,7 @@ void func_801F7850(void) {
             n++;
         }
     }
-    func_802595E0((u8 *) D_8036BB24, n, 0x70, func_801F7FF4);
+    func_802595E0((u8 *) D_8036BB24, n, 0x70, (s32 (*)(void *, void *)) func_801F7FF4);
     for (lvl = 0; lvl < n * 4; lvl++) {
         item = &D_8036BB24[lvl];
         D_8021A7E8[lvl] = item->unk18;

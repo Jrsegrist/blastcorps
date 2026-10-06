@@ -75,7 +75,7 @@ void func_80260C20(u8 tune, f32 vol) {
     D_8036770C = vol;
     D_80367708 = tune;
     rom = D_80367514->seqArray[tune].offset;
-    func_8028B4C4(rom, D_80367510, &D_80367408[tune], 0, 0, 0);
+    func_8028B4C4((u32) rom, (u32) D_80367510, (u32 *) &D_80367408[tune], 0, 0, 0);
     alCSeqNew(&D_80367518[D_802E8D84], D_80367510);
     alCSPSetSeq(D_80367734, &D_80367518[D_802E8D84]);
     alCSPPlay(D_80367734);
@@ -253,23 +253,23 @@ void func_80261588(void) {
 
     alHeapInit(&D_80367718, D_80370C80, 0x2A280);
     size2 = size1 = D_003539A0 - D_00350950;
-    func_8028B4C4(D_00350950, 0x8004B400, &size2, 0xD, 0, 2);
+    func_8028B4C4((u32) D_00350950, 0x8004B400, (u32 *) &size2, 0xD, 0, 2);
     musBank = alHeapDBAlloc(0, 0, &D_80367718, 1, size2);
-    func_8028B4C4(D_00350950, musBank, &size1, 0xD, 0, 2);
+    func_8028B4C4((u32) D_00350950, (u32) musBank, (u32 *) &size1, 0xD, 0, 2);
     alBnkfNew(musBank, D_003539A0);
     D_8036773C = musBank->bankArray[0];
     size2 = size1 = D_003A48C0 - D_003A1920;
-    func_8028B4C4(D_003A1920, 0x8004B400, &size2, 0xD, 0, 2);
+    func_8028B4C4((u32) D_003A1920, 0x8004B400, (u32 *) &size2, 0xD, 0, 2);
     sfxBank = alHeapDBAlloc(0, 0, &D_80367718, 1, size2);
-    func_8028B4C4(D_003A1920, sfxBank, &size1, 0xD, 0, 2);
+    func_8028B4C4((u32) D_003A1920, (u32) sfxBank, (u32 *) &size1, 0xD, 0, 2);
     alBnkfNew(sfxBank, D_003A48C0);
     D_80367738 = sfxBank->bankArray[0];
     D_80367514 = alHeapDBAlloc(0, 0, &D_80367718, 1, 4);
     hdrSize = 4;
-    func_8028B4C4(D_0044F5C0, D_80367514, &hdrSize, 0, 0, 0);
+    func_8028B4C4((u32) D_0044F5C0, (u32) D_80367514, (u32 *) &hdrSize, 0, 0, 0);
     seqSize = D_80367514->seqCount * 8 + 4;
     D_80367514 = alHeapDBAlloc(0, 0, &D_80367718, 1, 0x214);
-    func_8028B4C4(D_0044F5C0, D_80367514, &seqSize, 0, 0, 0);
+    func_8028B4C4((u32) D_0044F5C0, (u32) D_80367514, (u32 *) &seqSize, 0, 0, 0);
     alSeqFileNew(D_80367514, D_0044F5C0);
     D_80367510 = alHeapDBAlloc(0, 0, &D_80367718, 1, 0x21AE);
     for (i = 0; i < 0x42; i++) {
@@ -286,7 +286,7 @@ void func_80261588(void) {
     sync.fxType = 6;
     sync.outputRate = 0;
     sync.heap = &D_80367718;
-    func_802676A0(&sync, 0xC);
+    func_802676A0((ALSynConfig *) &sync, 0xC);
     seqc.maxVoices = 0x18;
     seqc.maxEvents = 0x20;
     seqc.maxChannels = 0x10;

@@ -175,7 +175,7 @@ s32 func_802CDC7C(s32 x, s32 y, s32 z, s32 r, Obj89250 *e, s32 hit) {
                 func_802CDD74(e, t, hit);
             }
         }
-        func_802BF264(t);
+        func_802BF264((struct Unk803B9890 *) t);
         hit = 1;
     }
     return hit;
@@ -211,16 +211,16 @@ void func_802CDD74(Obj89250 *e, Tri89250 *tri, s32 amount) {
         level = 100;
     }
     pcts[part - 1] = level;
-    func_802BF898(e, part, level);
+    func_802BF898((struct Unk802C1DD0Entry *) e, part, level);
     if (level == 100) {
         Tri89250 *t;
         Tri89250 *end;
 
-        func_802BF1F0(e, part);
-        func_802C1438(e, part);
-        func_802C09B8(part, e);
-        func_802C0E8C(part, e);
-        func_802BF384(e);
+        func_802BF1F0((struct Unk802C1DD0Entry *) e, part);
+        func_802C1438((struct Unk802C1DD0Entry *) e, part);
+        func_802C09B8(part, (struct Unk802C1DD0Entry *) e);
+        func_802C0E8C(part, (struct Unk802C1DD0Entry *) e);
+        func_802BF384((struct Unk802C1DD0Entry *) e);
         end = e->end;
         for (t = e->start; t != end; t++) {
             if (t->unk52 == part) {
@@ -230,8 +230,8 @@ void func_802CDD74(Obj89250 *e, Tri89250 *tri, s32 amount) {
                 t->unk51 = 1;
             }
         }
-        func_802BF668(e);
-        func_802BF534(e);
+        func_802BF668((struct Unk802C1DD0Entry *) e);
+        func_802BF534((struct Unk802C1DD0Entry *) e);
     }
 }
 #else
@@ -466,7 +466,7 @@ void func_802CE4F0(s32 x, s32 y, s32 z) {
     D_803A73F8 = z;
     D_803A742F = 0;
     D_803A7427 = 0;
-    D_803A7408 = D_80306450;
+    D_803A7408 = (s8 *) D_80306450;
     D_803A7424 = 0;
     D_803A7425 = 0;
     func_802BCBD8();

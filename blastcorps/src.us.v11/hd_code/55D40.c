@@ -44,7 +44,7 @@ Gfx *func_8029A518(Gfx **gfxp, Gfx *gfx) {
             color = 0;
         }
         if (y - D_803A6B20 >= -0x31 && y - D_803A6B20 < 0xF0) {
-            func_80259DC8(gfxp, line->str, 0, 0, color, x, y - D_803A6B20, line->size, line->size, 1,
+            func_80259DC8(gfxp, (u8 *) line->str, 0, 0, color, x, y - D_803A6B20, line->size, line->size, 1,
                           D_802F47B0[line->color][0], D_802F47B0[line->color][1], D_802F47B0[line->color][2],
                           D_802F47B0[line->color][3], D_802F47B0[line->color][4], D_802F47B0[line->color][5],
                           D_802F47B0[line->color][6], D_802F47B0[line->color][7]);

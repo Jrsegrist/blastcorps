@@ -134,8 +134,8 @@ Gfx *func_801ED800(Gfx *arg0, FeDyn *dyn, u8 arg2, s32 *arg3) {
     }
     if (D_80215974 > 0 || D_80215976 > 0) {
         p = &D_80364AF0[D_80364AE8];
-        func_80259CCC(dyn, D_802084B0, D_802084B8, 0, 0x9C, 0, 0x18, 0x1A, 0x1A, 1, 0, 0, 0, D_80215974 / 2);
-        func_80259CCC(dyn, D_802084B4, D_802084BC, 0, 0x9D, 0, 0xCB, 0x16, 0x16, 1, 0, 0, 0, D_80215974 / 2);
+        func_80259CCC((Gfx **) dyn, D_802084B0, D_802084B8, 0, 0x9C, 0, 0x18, 0x1A, 0x1A, 1, 0, 0, 0, D_80215974 / 2);
+        func_80259CCC((Gfx **) dyn, D_802084B4, D_802084BC, 0, 0x9D, 0, 0xCB, 0x16, 0x16, 1, 0, 0, 0, D_80215974 / 2);
         /* split the rank name into two lines */
         for (i = 0, j = 0; j < D_802082B8[D_80215978]; i++) {
             if ((D_80215980[i] = D_802081C0[D_80215978].unk0[i]) == ' ') {
@@ -152,8 +152,8 @@ Gfx *func_801ED800(Gfx *arg0, FeDyn *dyn, u8 arg2, s32 *arg3) {
         } else {
             size = 0x21;
         }
-        func_80259CCC(dyn, D_80215980, NULL, 0, 0x9D, 0, 0x58, size, size, 1, 0, 0, 0, D_80215976 / 2);
-        func_80259CCC(dyn, D_80215998, NULL, 0, 0x9D, 0, 0x76, size, size, 1, 0, 0, 0, D_80215976 / 2);
+        func_80259CCC((Gfx **) dyn, D_80215980, NULL, 0, 0x9D, 0, 0x58, size, size, 1, 0, 0, 0, D_80215976 / 2);
+        func_80259CCC((Gfx **) dyn, D_80215998, NULL, 0, 0x9D, 0, 0x76, size, size, 1, 0, 0, 0, D_80215976 / 2);
         D_802159B0 += D_802084C0 * 15;
         if (D_802159B0 > 0xFF) {
             D_802159B0 -= 30;
@@ -163,13 +163,13 @@ Gfx *func_801ED800(Gfx *arg0, FeDyn *dyn, u8 arg2, s32 *arg3) {
             D_802159B0 += 30;
             D_802084C0 = -D_802084C0;
         }
-        func_80259DC8(dyn, D_802084B0, D_802084B8, 0, 0xA0, 0, 0x14, 0x1A, 0x1A, 1, 0xFF, 0xFF - D_802159B0, 0,
+        func_80259DC8((Gfx **) dyn, D_802084B0, D_802084B8, 0, 0xA0, 0, 0x14, 0x1A, 0x1A, 1, 0xFF, 0xFF - D_802159B0, 0,
                       D_80215974, 0xFF, D_802159B0, 0, D_80215974);
-        func_80259DC8(dyn, D_802084B4, D_802084BC, 0, 0xA0, 0, 0xC8, 0x16, 0x16, 1, 0xFF, 0xFF - D_802159B0, 0,
+        func_80259DC8((Gfx **) dyn, D_802084B4, D_802084BC, 0, 0xA0, 0, 0xC8, 0x16, 0x16, 1, 0xFF, 0xFF - D_802159B0, 0,
                       D_80215974, 0xFF, D_802159B0, 0, D_80215974);
-        func_80259DC8(dyn, D_80215980, NULL, 0, 0xA0, 0, 0x55, size, size, 1, 0xFF, 0xFF - D_802159B0, 0,
+        func_80259DC8((Gfx **) dyn, D_80215980, NULL, 0, 0xA0, 0, 0x55, size, size, 1, 0xFF, 0xFF - D_802159B0, 0,
                       D_80215976, 0xFF, D_802159B0, 0, D_80215976);
-        func_80259DC8(dyn, D_80215998, NULL, 0, 0xA0, 0, 0x73, size, size, 1, 0xFF, 0xFF - D_802159B0, 0,
+        func_80259DC8((Gfx **) dyn, D_80215998, NULL, 0, 0xA0, 0, 0x73, size, size, 1, 0xFF, 0xFF - D_802159B0, 0,
                       D_80215976, 0xFF, D_802159B0, 0, D_80215976);
     }
     D_80215968 += 12.0 - D_8021596C * 2.0f;

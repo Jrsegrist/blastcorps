@@ -129,16 +129,16 @@ void func_802CF6A0(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s32 t6
                         (s16 *) (v + 0x4C), 0xF, fpIn, v, f);
     b0 = D_803FC5B8;
     b1 = D_803FC5BC;
-    t7 = func_8029F85C((u32 *) b1, (u32 *) b0, D_803FC200, D_803FC5B4);
-    func_802A039C(D_803FC200, 0, 0x64);
-    func_802A03D4(D_803FC200, 0, 0);
-    func_802A040C(D_803FC200, 0, 0);
-    func_802A0480(0.0f, D_803FC200, 0, 0);
-    func_802A0290(D_803FC200, 0, 1);
-    func_8029E558((u8 *) b0, (u8 *) b1, D_803FC200);
-    func_802A0320(0, D_803FC200);
-    func_802A0290(D_803FC200, 0, 1);
-    func_8029E558((u8 *) b1, (u8 *) b0, D_803FC200);
+    t7 = func_8029F85C((u32 *) b1, (u32 *) b0, (Unk8029DEA0Entry *) D_803FC200, D_803FC5B4);
+    func_802A039C((Unk8029DEA0Entry *) D_803FC200, 0, 0x64);
+    func_802A03D4((Unk8029DEA0Entry *) D_803FC200, 0, 0);
+    func_802A040C((Unk8029DEA0Entry *) D_803FC200, 0, 0);
+    func_802A0480(0.0f, (Unk8029DEA0Entry *) D_803FC200, 0, 0);
+    func_802A0290((Unk8029DEA0Entry *) D_803FC200, 0, 1);
+    func_8029E558((u8 *) b0, (u8 *) b1, (Unk8029DEA0Entry *) D_803FC200);
+    func_802A0320(0, (Unk8029DEA0Entry *) D_803FC200);
+    func_802A0290((Unk8029DEA0Entry *) D_803FC200, 0, 1);
+    func_8029E558((u8 *) b1, (u8 *) b0, (Unk8029DEA0Entry *) D_803FC200);
     *(s16 *) (v + 0x78) = -0xB4;
     *(s16 *) (v + 0x7A) = 0;
     *(s16 *) (v + 0x7C) = 2;
@@ -454,9 +454,9 @@ void func_802CFDE8(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 f
                   0x15E, (s16 *) (v + 0x4C), v + 0x96, (s16 *) (v + 0x52), (s32 *) (v + 0x28), (s32 *) (v + 0x40),
                   (s32 *) (v + 0x34), (s32 *) (v + 4), &r8, &f);
     if (D_8035805C != 0) {
-        func_8029E558((u8 *) D_803FC5B8, (u8 *) D_803FC5BC, D_803FC200);
+        func_8029E558((u8 *) D_803FC5B8, (u8 *) D_803FC5BC, (Unk8029DEA0Entry *) D_803FC200);
     } else {
-        func_8029E558((u8 *) D_803FC5BC, (u8 *) D_803FC5B8, D_803FC200);
+        func_8029E558((u8 *) D_803FC5BC, (u8 *) D_803FC5B8, (Unk8029DEA0Entry *) D_803FC200);
     }
     func_802D05D8((s32) (v + 0x34), (s32) (v + 0x96), (s32) &D_803FC5A8[2], &mo);
     func_8029A800(D_803FC5A8[2], (s32) D_80306460, 1, 1, D_803FC5A8[0], D_803FC5A8[1], 7, *(s16 *) (v + 0x76),
@@ -749,16 +749,16 @@ void func_802D07E0(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s32 t6
                         (s16 *) (v + 0x4C), 0x10, fpIn, v, f);
     b0 = D_803FC988;
     b1 = D_803FC98C;
-    t7 = func_8029F85C((u32 *) b1, (u32 *) b0, D_803FC5D0, D_803FC984);
-    func_802A039C(D_803FC5D0, 0, 0x64);
-    func_802A03D4(D_803FC5D0, 0, 0);
-    func_802A040C(D_803FC5D0, 0, 0);
-    func_802A0480(0.0f, D_803FC5D0, 0, 0);
-    func_802A0290(D_803FC5D0, 0, 1);
-    func_8029E558((u8 *) b0, (u8 *) b1, D_803FC5D0);
-    func_802A0320(0, D_803FC5D0);
-    func_802A0290(D_803FC5D0, 0, 1);
-    func_8029E558((u8 *) b1, (u8 *) b0, D_803FC5D0);
+    t7 = func_8029F85C((u32 *) b1, (u32 *) b0, (Unk8029DEA0Entry *) D_803FC5D0, D_803FC984);
+    func_802A039C((Unk8029DEA0Entry *) D_803FC5D0, 0, 0x64);
+    func_802A03D4((Unk8029DEA0Entry *) D_803FC5D0, 0, 0);
+    func_802A040C((Unk8029DEA0Entry *) D_803FC5D0, 0, 0);
+    func_802A0480(0.0f, (Unk8029DEA0Entry *) D_803FC5D0, 0, 0);
+    func_802A0290((Unk8029DEA0Entry *) D_803FC5D0, 0, 1);
+    func_8029E558((u8 *) b0, (u8 *) b1, (Unk8029DEA0Entry *) D_803FC5D0);
+    func_802A0320(0, (Unk8029DEA0Entry *) D_803FC5D0);
+    func_802A0290((Unk8029DEA0Entry *) D_803FC5D0, 0, 1);
+    func_8029E558((u8 *) b1, (u8 *) b0, (Unk8029DEA0Entry *) D_803FC5D0);
     *(s16 *) (v + 0x78) = -0x64;
     *(s16 *) (v + 0x7A) = 0;
     *(s16 *) (v + 0x7C) = 4;
@@ -780,8 +780,8 @@ void func_802D07E0(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s32 t6
     model = D_803FC984;
     func_8029C354(0x10, model + *(s32 *) (model + 4), model + *(s32 *) (model + 8), 0x2134);
     func_80258230(0x10, 0x64, 0x2D, 0x2D);
-    func_802A0360(0.0f, D_803FC5D0, 1, 0);
-    func_802A0290(D_803FC5D0, 1, 1);
+    func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803FC5D0, 1, 0);
+    func_802A0290((Unk8029DEA0Entry *) D_803FC5D0, 1, 1);
     v[0x9A] = 1;
     func_802D0F98(t6, t7, z, (s32) (v + 4), (s32) &D_803FC978[1], (s32) s3v, (s32) (v + 0x4C), f->cross, f->cz,
                   f->side, f->sideZ, f->dz);
@@ -831,7 +831,7 @@ extern u8 D_803FC5D0[];  /* this vehicle's animation channel table */
 void func_802D0BF8(void) {
     *(s16 *) (D_803FC8D0 + 0x76) = 0;
     func_802A7764(D_803FC988, D_803FC98C, 0x1400);
-    func_802A02E4(0x1F, D_803FC5D0);
+    func_802A02E4(0x1F, (Unk8029DEA0Entry *) D_803FC5D0);
     func_802C444C();
     func_802608C8(D_803FC990);
 }
@@ -863,19 +863,19 @@ void func_802D0C68(void) {
     func_802A05F8((s32) D_802C22D0, 0);
     func_802A0620((s32) D_802C22D0, 0);
     func_802A0508((s32) D_802C22D0, -1);
-    func_802A039C(D_803FC5D0, 7, 2);
-    func_802A040C(D_803FC5D0, 7, 1);
-    func_802A0480(0.5f, D_803FC5D0, 7, 1);
-    func_802A039C(D_803FC5D0, 8, 2);
-    func_802A040C(D_803FC5D0, 8, 1);
-    func_802A0480(0.5f, D_803FC5D0, 8, 1);
-    func_802A039C(D_803FC5D0, 9, 4);
-    func_802A040C(D_803FC5D0, 9, 1);
-    func_802A0480(0.5f, D_803FC5D0, 9, 1);
-    func_802A0480(0.5f, D_803FC5D0, 1, 1);
-    func_802A0480(0.5f, D_803FC5D0, 5, 1);
-    func_802A0480(0.5f, D_803FC5D0, 6, 1);
-    func_802A0480(0.0f, D_803FC5D0, 3, 0);
+    func_802A039C((Unk8029DEA0Entry *) D_803FC5D0, 7, 2);
+    func_802A040C((Unk8029DEA0Entry *) D_803FC5D0, 7, 1);
+    func_802A0480(0.5f, (Unk8029DEA0Entry *) D_803FC5D0, 7, 1);
+    func_802A039C((Unk8029DEA0Entry *) D_803FC5D0, 8, 2);
+    func_802A040C((Unk8029DEA0Entry *) D_803FC5D0, 8, 1);
+    func_802A0480(0.5f, (Unk8029DEA0Entry *) D_803FC5D0, 8, 1);
+    func_802A039C((Unk8029DEA0Entry *) D_803FC5D0, 9, 4);
+    func_802A040C((Unk8029DEA0Entry *) D_803FC5D0, 9, 1);
+    func_802A0480(0.5f, (Unk8029DEA0Entry *) D_803FC5D0, 9, 1);
+    func_802A0480(0.5f, (Unk8029DEA0Entry *) D_803FC5D0, 1, 1);
+    func_802A0480(0.5f, (Unk8029DEA0Entry *) D_803FC5D0, 5, 1);
+    func_802A0480(0.5f, (Unk8029DEA0Entry *) D_803FC5D0, 6, 1);
+    func_802A0480(0.0f, (Unk8029DEA0Entry *) D_803FC5D0, 3, 0);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8AEE0/func_802D0C68.s")
@@ -1003,9 +1003,9 @@ void func_802D0F98(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 f
                   0x78, (s16 *) (v + 0x4C), v + 0x96, (s16 *) (v + 0x52), (s32 *) (v + 0x28), (s32 *) (v + 0x40),
                   (s32 *) (v + 0x34), (s32 *) (v + 4), &r8, &f);
     if (D_8035805C != 0) {
-        func_8029E558((u8 *) D_803FC988, (u8 *) D_803FC98C, D_803FC5D0);
+        func_8029E558((u8 *) D_803FC988, (u8 *) D_803FC98C, (Unk8029DEA0Entry *) D_803FC5D0);
     } else {
-        func_8029E558((u8 *) D_803FC98C, (u8 *) D_803FC988, D_803FC5D0);
+        func_8029E558((u8 *) D_803FC98C, (u8 *) D_803FC988, (Unk8029DEA0Entry *) D_803FC5D0);
     }
     tag = func_802D22F4((s32) (v + 0x34), (s32) (v + 0x96), (s32) &D_803FC978[2], &mo);
     func_8029A800(D_803FC978[2], (s32) D_80306470, 0, 0, D_803FC978[0], D_803FC978[1], tag, *(s16 *) (v + 0x76),
@@ -1056,14 +1056,14 @@ extern f32 D_8030D9E0;
 #define VEH16_U8(o) (D_803FC8D0[o])
 #define VEH16_SPEED (*(s16 *) (D_803FC8D0 + 0x76))
 /* func_802A04BC's results: [0] = unk10 (active), [1] = unk11, [6] = unk13. */
-#define CHAN_GET(idx, e) func_802A04BC((idx), D_803FC5D0, (e))
+#define CHAN_GET(idx, e) func_802A04BC((idx), (Unk8029DEA0Entry *) D_803FC5D0, (e))
 
 /* Channel 0x1F: unk14 = val, unk11 = unk12 = 0, restart (func_802A0290). */
 static void port_802D1360_chan1F(s32 val) {
-    func_802A039C(D_803FC5D0, 0x1F, val);
-    func_802A03D4(D_803FC5D0, 0x1F, 0);
-    func_802A040C(D_803FC5D0, 0x1F, 0);
-    func_802A0290(D_803FC5D0, 0x1F, 1);
+    func_802A039C((Unk8029DEA0Entry *) D_803FC5D0, 0x1F, val);
+    func_802A03D4((Unk8029DEA0Entry *) D_803FC5D0, 0x1F, 0);
+    func_802A040C((Unk8029DEA0Entry *) D_803FC5D0, 0x1F, 0);
+    func_802A0290((Unk8029DEA0Entry *) D_803FC5D0, 0x1F, 1);
 }
 
 /* Moving, no special state: drive the gear channel chosen by +0xA2 (0, 1, 2
@@ -1108,18 +1108,18 @@ static void port_802D1360_gear(void) {
             idx = 6;
             VEH16_U8(0xA2) = 2;
         }
-        func_802A0290(D_803FC5D0, idx, (e[1] != 0) ? 2 : 1);
-        func_802A0360(0.0f, D_803FC5D0, idx, 0);
+        func_802A0290((Unk8029DEA0Entry *) D_803FC5D0, idx, (e[1] != 0) ? 2 : 1);
+        func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803FC5D0, idx, 0);
     }
     v = VEH16_SPEED;
-    func_802A03D4(D_803FC5D0, idx, v < 0);
+    func_802A03D4((Unk8029DEA0Entry *) D_803FC5D0, idx, v < 0);
     if (v < 0) {
         v = -v;
     }
     if (v != 0) {
         v = (u32) v / 24;
     }
-    func_802A039C(D_803FC5D0, idx, v);
+    func_802A039C((Unk8029DEA0Entry *) D_803FC5D0, idx, v);
 }
 
 /* State 0 (+0xA1 == 0): driving. */
@@ -1146,22 +1146,22 @@ static void port_802D1360_state0(void) {
     if (VEH16_SPEED == 0) {
         /* standing: leave the moving pose once (+0xA3), then idle anims */
         if (VEH16_U8(0xA3) != 0) {
-            func_802A0360(0.0f, D_803FC5D0, 7, 0);
+            func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803FC5D0, 7, 0);
             if (CHAN_GET(0x1F, e), e[0] != 0) {
-                func_802A02E4(0x1F, D_803FC5D0);
-                func_8029F9D4(0x1F, 7, D_803FC5D0);
+                func_802A02E4(0x1F, (Unk8029DEA0Entry *) D_803FC5D0);
+                func_8029F9D4(0x1F, 7, (Unk8029DEA0Entry *) D_803FC5D0);
             } else if (CHAN_GET(1, e), e[0] != 0) {
-                func_802A02E4(1, D_803FC5D0);
-                func_8029F9D4(1, 7, D_803FC5D0);
+                func_802A02E4(1, (Unk8029DEA0Entry *) D_803FC5D0);
+                func_8029F9D4(1, 7, (Unk8029DEA0Entry *) D_803FC5D0);
             } else if (CHAN_GET(5, e), e[0] != 0) {
-                func_802A02E4(5, D_803FC5D0);
-                func_8029F9D4(5, 7, D_803FC5D0);
+                func_802A02E4(5, (Unk8029DEA0Entry *) D_803FC5D0);
+                func_8029F9D4(5, 7, (Unk8029DEA0Entry *) D_803FC5D0);
             } else if (CHAN_GET(6, e), e[0] != 0) {
-                func_802A02E4(6, D_803FC5D0);
-                func_8029F9D4(6, 7, D_803FC5D0);
+                func_802A02E4(6, (Unk8029DEA0Entry *) D_803FC5D0);
+                func_8029F9D4(6, 7, (Unk8029DEA0Entry *) D_803FC5D0);
             } else {
-                func_802A0360(0.0f, D_803FC5D0, 1, 0);
-                func_8029F9D4(1, 7, D_803FC5D0);
+                func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803FC5D0, 1, 0);
+                func_8029F9D4(1, 7, (Unk8029DEA0Entry *) D_803FC5D0);
             }
             port_802D1360_chan1F(0x1E);
         }
@@ -1189,26 +1189,26 @@ static void port_802D1360_state0(void) {
         } else {
             r = 9;
         }
-        func_802A0360(0.0f, D_803FC5D0, r, 0);
-        func_802A0290(D_803FC5D0, r, 1);
+        func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803FC5D0, r, 0);
+        func_802A0290((Unk8029DEA0Entry *) D_803FC5D0, r, 1);
         return;
     }
 
     /* moving: enter the moving pose once (+0xA3) */
     if (VEH16_U8(0xA3) != 1) {
-        func_802A0360(0.0f, D_803FC5D0, 1, 0);
+        func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803FC5D0, 1, 0);
         if (CHAN_GET(7, e), e[0] != 0) {
-            func_8029F9D4(7, 1, D_803FC5D0);
-            func_802A02E4(7, D_803FC5D0);
+            func_8029F9D4(7, 1, (Unk8029DEA0Entry *) D_803FC5D0);
+            func_802A02E4(7, (Unk8029DEA0Entry *) D_803FC5D0);
         } else if (CHAN_GET(8, e), e[0] != 0) {
-            func_8029F9D4(8, 1, D_803FC5D0);
-            func_802A02E4(8, D_803FC5D0);
+            func_8029F9D4(8, 1, (Unk8029DEA0Entry *) D_803FC5D0);
+            func_802A02E4(8, (Unk8029DEA0Entry *) D_803FC5D0);
         } else if (CHAN_GET(9, e), e[0] != 0) {
-            func_8029F9D4(9, 1, D_803FC5D0);
-            func_802A02E4(9, D_803FC5D0);
+            func_8029F9D4(9, 1, (Unk8029DEA0Entry *) D_803FC5D0);
+            func_802A02E4(9, (Unk8029DEA0Entry *) D_803FC5D0);
         } else {
-            func_802A0360(0.0f, D_803FC5D0, 7, 0);
-            func_8029F9D4(7, 1, D_803FC5D0);
+            func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803FC5D0, 7, 0);
+            func_8029F9D4(7, 1, (Unk8029DEA0Entry *) D_803FC5D0);
         }
         port_802D1360_chan1F(0x28);
     }
@@ -1221,7 +1221,7 @@ static void port_802D1360_state0(void) {
         VEH16_SPEED >= 0x96) {
         /* start the special move (state 1) from the current gear channel */
         VEH16_U8(0xA1) = 1;
-        func_802A0360(0.0f, D_803FC5D0, 2, 0);
+        func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803FC5D0, 2, 0);
         switch (VEH16_U8(0xA2)) {
             case 0:
                 r = 1;
@@ -1235,8 +1235,8 @@ static void port_802D1360_state0(void) {
             default: /* the asm executes `syscall` here */
                 return;
         }
-        func_8029F9D4(r, 2, D_803FC5D0);
-        func_802A02E4(r, D_803FC5D0);
+        func_8029F9D4(r, 2, (Unk8029DEA0Entry *) D_803FC5D0);
+        func_802A02E4(r, (Unk8029DEA0Entry *) D_803FC5D0);
         port_802D1360_chan1F(0x50);
         func_80278EB0(6, D_8030D9E0, 0x64);
         return;
@@ -1256,13 +1256,13 @@ static void port_802D1360_state12(s32 state) {
         if (state == 1) {
             func_802794A4();
             VEH16_U8(0xA1) = 3;
-            func_802A0360(0.0f, D_803FC5D0, 3, 0);
-            func_8029F9D4(0x1F, 3, D_803FC5D0);
+            func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803FC5D0, 3, 0);
+            func_8029F9D4(0x1F, 3, (Unk8029DEA0Entry *) D_803FC5D0);
         } else {
             VEH16_U8(0xA1) = 3;
-            func_802A0360(0.0f, D_803FC5D0, 3, 0);
-            func_8029F9D4(2, 3, D_803FC5D0);
-            func_802A02E4(2, D_803FC5D0);
+            func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803FC5D0, 3, 0);
+            func_8029F9D4(2, 3, (Unk8029DEA0Entry *) D_803FC5D0);
+            func_802A02E4(2, (Unk8029DEA0Entry *) D_803FC5D0);
         }
         port_802D1360_chan1F(0x21);
         D_803F7804 = 1;
@@ -1274,10 +1274,10 @@ static void port_802D1360_state12(s32 state) {
             if (CHAN_GET(0x1F, e), e[0] == 1) {
                 return;
             }
-            func_802A039C(D_803FC5D0, 2, 0xA);
-            func_802A03D4(D_803FC5D0, 2, 0);
-            func_802A040C(D_803FC5D0, 2, 0);
-            func_802A0290(D_803FC5D0, 2, 1);
+            func_802A039C((Unk8029DEA0Entry *) D_803FC5D0, 2, 0xA);
+            func_802A03D4((Unk8029DEA0Entry *) D_803FC5D0, 2, 0);
+            func_802A040C((Unk8029DEA0Entry *) D_803FC5D0, 2, 0);
+            func_802A0290((Unk8029DEA0Entry *) D_803FC5D0, 2, 1);
             VEH16_U8(0xA1) = 2;
             return;
         }
@@ -1290,16 +1290,16 @@ static void port_802D1360_state12(s32 state) {
             VEH16_SPEED = 0x3C;
         }
         func_802C444C();
-        func_802A0360(0.0f, D_803FC5D0, 1, 0);
-        func_8029F9D4(0x1F, 1, D_803FC5D0);
+        func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803FC5D0, 1, 0);
+        func_8029F9D4(0x1F, 1, (Unk8029DEA0Entry *) D_803FC5D0);
     } else {
         func_802C444C();
         if (VEH16_SPEED >= 0) {
             VEH16_SPEED = 0x3C;
         }
-        func_802A0360(0.0f, D_803FC5D0, 1, 0);
-        func_802A02E4(2, D_803FC5D0);
-        func_8029F9D4(2, 1, D_803FC5D0);
+        func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803FC5D0, 1, 0);
+        func_802A02E4(2, (Unk8029DEA0Entry *) D_803FC5D0);
+        func_8029F9D4(2, 1, (Unk8029DEA0Entry *) D_803FC5D0);
     }
     port_802D1360_chan1F(0x32);
     func_802794A4();
@@ -1344,10 +1344,10 @@ void func_802D1360(void) {
             }
             D_803F7804 = 0;
             func_802794A4();
-            func_802A039C(D_803FC5D0, 3, 5);
-            func_802A03D4(D_803FC5D0, 3, 0);
-            func_802A040C(D_803FC5D0, 3, 0);
-            func_802A0290(D_803FC5D0, 3, 1);
+            func_802A039C((Unk8029DEA0Entry *) D_803FC5D0, 3, 5);
+            func_802A03D4((Unk8029DEA0Entry *) D_803FC5D0, 3, 0);
+            func_802A040C((Unk8029DEA0Entry *) D_803FC5D0, 3, 0);
+            func_802A0290((Unk8029DEA0Entry *) D_803FC5D0, 3, 1);
             VEH16_U8(0xA1) = 4;
             break;
         case 4:
@@ -1356,9 +1356,9 @@ void func_802D1360(void) {
                 break;
             }
             D_803F7804 = 1;
-            func_802A0360(0.0f, D_803FC5D0, 1, 0);
-            func_802A0360(0.0f, D_803FC5D0, 5, 0);
-            func_802A0360(0.0f, D_803FC5D0, 6, 0);
+            func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803FC5D0, 1, 0);
+            func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803FC5D0, 5, 0);
+            func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803FC5D0, 6, 0);
             VEH16_U8(0xA1) = 0;
             break;
         default: /* the asm executes `syscall` here */

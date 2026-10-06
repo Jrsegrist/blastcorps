@@ -52,7 +52,7 @@ void func_80297530(arg0)
         D_8039CAB4 = D_802E8F38[idx].z;
         D_8039CAB6 = idx;
         D_8039CAB8 = 0;
-        D_8039CAC4 = D_80358070;
+        D_8039CAC4 = (Mtx *) D_80358070;
         D_80358070 = (u8 *) D_80358070 + 0x80;
         guTranslate(D_8039CAC4, 0, 0, 0);
         guTranslate(D_8039CAC4 + 1, 0, 0, 0);

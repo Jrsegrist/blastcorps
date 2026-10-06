@@ -9,9 +9,6 @@
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_02000000 ((u8 *) D_02000000)
-#ifdef NON_MATCHING
-#define D_80367738 (*(s32 *) &D_80367738)
-#endif
 /* end of views */
 
 /* Falling debris / bouncing objects: a pool of 20 that are spawned around a
@@ -506,7 +503,7 @@ void func_80266248(Gfx **gdlp, DynBuf *buf) {
             }
             phys = osVirtualToPhysical(tex);
             LOAD_TEX(phys);
-            func_8026A5CC(&buf->vtx[n], D_802E9FB0, sizeof(Vtx) * 4);
+            func_8026A5CC((u64 *) (&buf->vtx[n]), (u64 *) D_802E9FB0, sizeof(Vtx) * 4);
             for (j = 0; j < 4; j++) {
                 buf->vtx[n + j].v.ob[0] = fx[j] + D_80367D60[i].x;
                 buf->vtx[n + j].v.ob[1] = fy[j] + D_80367D60[i].y;
@@ -586,7 +583,7 @@ void func_80266248(Gfx **gdlp, DynBuf *buf) {
             }
             phys = osVirtualToPhysical(tex);
             LOAD_TEX(phys);
-            func_8026A5CC(&buf->vtx[n], D_802E9FB0, sizeof(Vtx) * 4);
+            func_8026A5CC((u64 *) (&buf->vtx[n]), (u64 *) D_802E9FB0, sizeof(Vtx) * 4);
             if (flip) {
                 buf->vtx[n].v.tc[0] = 0x260;
                 buf->vtx[n + 1].v.tc[0] = 0;
@@ -611,7 +608,7 @@ void func_80266248(Gfx **gdlp, DynBuf *buf) {
             if (D_80367D60[i].unk15 == 3) {
                 found = 1;
                 LOAD_TEX(osVirtualToPhysical(D_802E9FF0));
-                func_8026A5CC(&buf->vtx[n], D_802E9FB0, sizeof(Vtx) * 4);
+                func_8026A5CC((u64 *) (&buf->vtx[n]), (u64 *) D_802E9FB0, sizeof(Vtx) * 4);
                 for (j = 0; j < 4; j++) {
                     buf->vtx[n + j].v.ob[0] = fx[j];
                     buf->vtx[n + j].v.ob[1] = fy[j];

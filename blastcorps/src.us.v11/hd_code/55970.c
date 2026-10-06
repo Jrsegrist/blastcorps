@@ -24,7 +24,7 @@ extern s16 D_803A6B14;
 void func_8029A130(void) {
     s32 size = D_0048FE90 - D_0048FA70;
 
-    func_8028B4C4(D_0048FA70, D_80358070, &size, 0xC, 0, 1);
+    func_8028B4C4((u32) D_0048FA70, (u32) D_80358070, (u32 *) &size, 0xC, 0, 1);
     D_803A6B10 = D_80358070;
     D_80358070 = (u8 *) D_80358070 + size;
     D_803A6B14 = 0;

@@ -74,7 +74,7 @@ void func_80200714(u8 mode) {
             return;
     }
     size = end - start;
-    func_8028B4C4(start, D_80358070, &size, 0xD, 0, 2);
+    func_8028B4C4((u32) start, (u32) D_80358070, &size, 0xD, 0, 2);
     pix = (u16 *) D_80358070;
     for (i = 0; i < size / 2; i++) {
         r = pix[i] >> 11;

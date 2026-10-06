@@ -18,7 +18,6 @@
 #define D_8036EA80 ((u32 *) &D_8036EA80)
 #define D_8036EA90 ((u32 *) &D_8036EA90)
 #ifdef NON_MATCHING
-#define D_80367738 (*(s32 *) &D_80367738)
 #define D_8036EA60 (*(u32 *) &D_8036EA60)
 #define D_8036EA70 (*(u32 *) &D_8036EA70)
 #endif
@@ -204,10 +203,10 @@ u8 func_80285814(void) {
                 STATS_ASSERT(create_status(pakBuffer,coin)<=LEVEL_SAVE_SIZE-4, 161);
                 func_802C4BF0(pakBuffer);
                 func_802C1DD0(0);
-                func_80264C20(pakBuffer);
+                func_80264C20((s32) pakBuffer);
                 saved = 1;
             } else {
-                func_80256A34(pakBuffer);
+                func_80256A34((s32) pakBuffer);
             }
         } else {
             func_80256A34(NULL);

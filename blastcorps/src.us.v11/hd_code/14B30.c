@@ -36,10 +36,10 @@ void func_802592F0(void) {
         D_80365350 = 0xAC;
     }
     for (i = 0; i < 2; i++) {
-        D_80365348[i] = D_80358070;
+        D_80365348[i] = (Vtx *) D_80358070;
         D_80358070 += D_80365350 * 16 * 4;
     }
-    D_80365340 = D_80358070;
+    D_80365340 = (TextQuad *) D_80358070;
     D_80358070 += D_80365350 * 12;
     func_8025B070();
 }
@@ -105,7 +105,7 @@ void func_80259824(Gfx **gdlp, s32 arg1) {
     Gfx *gdl = *gdlp;
     s32 i;
 
-    func_802595E0((u8 *) &D_80365340[D_802E8C70], D_802E8C74 - D_802E8C70, sizeof(TextQuad), func_80259814);
+    func_802595E0((u8 *) &D_80365340[D_802E8C70], D_802E8C74 - D_802E8C70, sizeof(TextQuad), (s32 (*)(void *, void *)) func_80259814);
     for (i = D_802E8C70; i < D_802E8C74; i++) {
         if (D_80365340[i].tex != tex) {
             tex = D_80365340[i].tex;
@@ -197,7 +197,7 @@ void func_80259EC4(Gfx **gfxp, u8 *str, u16 *wstr, u8 align, s32 fit, f32 x, s32
         }
     }
     if (fit) {
-        x = func_8025B498(fit, w, str, wstr);
+        x = func_8025B498(fit, w, str, (s32) wstr);
     }
     while (!done) {
         switch (font) {

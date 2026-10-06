@@ -286,8 +286,8 @@ void func_802CF1A4(void) {
         dz = (e->pos[2] >> 5) - pz;
         if (port_cvt_w_s(sqrtf((f32) (s32) ((u32) (dx * dx) + (u32) (dy * dy) + (u32) (dz * dz)))) < 0x4C) {
             e->unk10 = 1;
-            func_802A0360(0.0f, D_803FBBE0, 2, 0);
-            func_802A0360(0.0f, D_803FBBE0, 1, 0);
+            func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803FBBE0, 2, 0);
+            func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803FBBE0, 1, 0);
             func_80285B68(n);
             func_80285CA0();
             func_802CF3E0(e->pos);

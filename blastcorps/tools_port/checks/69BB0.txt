@@ -224,7 +224,6 @@ func_802AE888: -n 100 --seed 3 --ret int --follow func_802AEB9C,func_802AEC3C --
     --mem D_803A6B30:0xA0=rand --mem D_803A6B30+0x12*0x14:8/1=choice:0,3 --mem D_803A6B30+0x13*0x14:8/1=choice:0,1,1 \
     --mem D_803A6B30+0x9F:1=0xFF --mem D_803A7410:2=0 --mem D_803A7412:2=0xFFF --mem D_803A7425:1=rand \
     --mem D_803A740C=rand --mem D_80358068=int
-    --sig func_802AFA64=
 
 # [data] the level D_802E8BDC as a whole word: the asm (lbu) and the C (word >> 24) test its most
 # significant byte against 0x31 / 0x26, never the level number itself

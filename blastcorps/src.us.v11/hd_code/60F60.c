@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -74,7 +75,6 @@ void func_802A5764(s32 a, s32 b, s32 c, s32 d) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-s32 func_802A57DC(u8 *rec);
 
 /* Processes the next 16-byte record at the cursor D_803C4B54 with
  * func_802A57DC and advances the cursor by 0x10. The asm reuses the cursor
@@ -436,13 +436,10 @@ void func_802A5F30(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u32 D_80364AA8;  /* game mode flags */
-extern u8 *D_80358070;  /* heap pointer */
 extern u8 D_8020ED00[]; /* heap end when (D_80364AA8 & 0x20) */
 extern u8 D_8021DD00[]; /* heap end otherwise */
 extern char D_80305C34[];
 extern char D_80305C48[];
-void func_8029A7E4(char *, ...); /* debug printf */
 
 /* Carves as many 0x1010-byte HeapBlocks as fit between the heap pointer and
  * the heap end, records the range in D_803EB788 / D_803EB78C and the count
@@ -476,16 +473,8 @@ void func_802A5FA8(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* The three registers func_802A6274 takes and may hand back changed. */
-typedef struct {
-    /* 0x0 */ s32 a3; /* in: tag byte for D_803EB792; out: last D_803EB770 byte scanned */
-    /* 0x4 */ s32 t6; /* in: word for rec+0x20; out: (s16) def[0] (when a record was set up) */
-    /* 0x8 */ s32 s1; /* in: word for rec+0x14; out: the record's 0x100-byte buffer (when def[0] != -1) */
-} Io802A6274;
 
 extern u8 D_803EB792;
-s32 func_802ABC88(s32 id, s32 n, u8 **recOut);
-void func_802A11C4(s32 id, void *dest);
 
 /* Sets up a D_803C4B70 record for definition `def` (s16 id at +0, width and
  * height bytes at +2, +3). Stores io->a3 in D_803EB792, takes the first
@@ -598,13 +587,8 @@ s32 func_802A6274(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_8035805C; /* frame buffer index (0/1) */
 extern Gfx *D_803EB780;
 extern Gfx *D_803EB784;
-extern Gfx D_803C5770[]; /* display lists A / B, frame 0 */
-extern Gfx D_803C6F70[];
-extern Gfx D_803C6370[]; /* display lists A / B, frame 1 */
-extern Gfx D_803C7B70[];
 extern s32 D_803C4F70[]; /* 16.16 matrices (0x40 bytes each), frame 0 / 1 */
 extern s32 D_803C5370[];
 extern Vtx D_803C8770[]; /* quad vertices, frame 0 / 1 */
@@ -768,7 +752,6 @@ void func_802A6748(void) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u32 D_80305C10[]; /* 0-terminated list of definitions that get a heap block */
-void func_802A1074(s32 id, u8 *dest, u8 *param); /* 5BF40 */
 
 /* Texture buffer for record `rec` (its def word at +0 and byte +0x32): if a
  * heap block (D_803EB788 .. D_803EB78C, walked with `!=`) is in use for that
@@ -829,19 +812,7 @@ load:
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_803643F8; /* player x, y, z (<< 11) */
-extern s32 D_803643FC;
-extern s32 D_80364400;
-extern u16 D_80364452; /* camera heading */
 extern s32 D_803C4F30[]; /* scratch 16.16 matrix */
-s32 func_802ABCDC(s32 ax, s32 ay, s32 az, s32 bx, s32 by, s32 bz); /* 62740 */
-s32 func_802AD7FC(u32 sine);                                      /* 69000: arcsine */
-void func_802AC8CC(u16 *m);                                       /* 679E0 */
-void func_802ACA60(s32 x, s32 y, s32 z, s32 *m);
-void func_802ACAC4(s32 angle, s32 *m);
-void func_802ACBDC(s32 angle, s32 *m);
-void func_802ACC68(s32 x, s32 y, s32 z, s32 *m);
-void func_802ACCCC(s32 *b, s32 *m);
 
 /* Billboard matrix of record rec into the 16.16 matrix m: emits a matrix
  * load of m (gSPMatrix word 0x01040040, physical address) into the record's
@@ -922,7 +893,7 @@ void func_802A68D4(s32 *m, u8 *rec) {
     }
     func_802ACBDC(angle, D_803C4F30);
     func_802ACCCC(D_803C4F30, m);
-    func_802ACAC4(D_80364452, D_803C4F30);
+    func_802ACAC4(((u16) D_80364452), D_803C4F30);
     func_802ACCCC(D_803C4F30, m);
     func_802ACA60(x << 11, y << 11, z << 11, D_803C4F30);
     func_802ACCCC(D_803C4F30, m);
@@ -987,7 +958,6 @@ void func_802A6C10(s32 w, Vtx *v, u8 *col, s32 x, s32 y, s32 h) {
 #ifdef NON_MATCHING
 extern Gfx *D_803EB780;
 extern Gfx *D_803EB784;
-Gfx *func_80257540(Gfx *gfx);
 
 /* Runs func_80257540 on the display-list cursors D_803EB780 and D_803EB784,
  * in that order, storing the advanced cursors back.
@@ -1004,7 +974,6 @@ void func_802A6D34(void) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 Gfx **func_802A6EB8(u8 *obj);
-Gfx *func_802575F4(Gfx *gfx, Vtx *vtx, void *timg, s16 fmtsiz, s32 width, s32 height, s32 zbuf);
 
 /* Draws a textured quad into obj's display-list cursor (func_802A6EB8 picks
  * D_803EB780 or D_803EB784): *cursor = func_802575F4(*cursor, vtx, timg,

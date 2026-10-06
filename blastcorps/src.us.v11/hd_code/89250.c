@@ -1,5 +1,12 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_803F4030 ((Obj89250 *) D_803F4030)
+#ifdef NON_MATCHING
+#define D_803F7654 (*(Obj89250 * *) &D_803F7654)
+#endif
+/* end of views */
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -10,13 +17,6 @@
  * more specific non-ABI explanation where one was already worked out. */
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-typedef struct {
-    /* 0x0 */ s32 a3;
-    /* 0x4 */ s32 t6;
-    /* 0x8 */ s32 s1;
-} Io802A6274; /* as in 60F60.c */
-s32 func_802A6274(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32 z, s32 w24, s32 w28,
-                  s32 w18, s32 w1C, s32 w2C, s32 b35);
 extern u8 D_802C382C[]; /* a definition inside the 7D9D0 blob */
 
 /* Sets up a D_803C4B70 record (func_802A6274) for the definition D_802C382C
@@ -36,10 +36,6 @@ void func_802CDA10(s32 x, s32 y, s32 z) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_803A73F0;
-extern s32 D_803A73F4;
-extern s32 D_803A73F8;
-void func_802C18D4(s32 x, s32 y, s32 z, s32 radius, s32 amount);
 
 /* Blast damage (func_802C18D4) at the position D_803A73F0/F4/F8 << 11 with
  * the given radius and amount. The asm uses the whole registers (48D00.c
@@ -80,43 +76,8 @@ typedef struct {
     /* 0xEC */ u8 pct[0x10]; /* per part; 100 = destroyed */
 } Obj89250; /* size 0xFC */
 
-extern Obj89250 D_803F4030[];
-extern Obj89250 *D_803F7654;
-extern u8 D_803A7300[]; /* 0x14-byte vehicle spheres: s32 x, y, z, r, u8 id at 0x10, s8 flag at 0x11 (-1 = end) */
-extern u8 D_803A6B30[]; /* 0x14-byte hit spheres: s32 x, y, z, r, u8 id at 0x12, s8 flag at 0x13 (-1 = end) */
 extern u16 D_803F932A; /* impact damage */
-extern u8 D_803F932D;
-extern u8 D_803F932E;
-extern s32 D_803649E8;
-extern u8 D_80364456;
-extern u8 D_802E8BE4; /* screen shake time */
-extern s32 D_802E8BE8; /* screen shake size */
-extern u16 D_803A7410;
-extern u16 D_803A7412;
-extern s32 D_803A73F0;
-extern s32 D_803A73F4;
-extern s32 D_803A73F8;
-extern u8 D_803A7424;
-extern u8 D_803A7425;
-extern u8 D_803A742F;
 
-s32 func_8029C160(s32 x, s32 y, s32 z, s32 r, u8 *tri, s32 *hit); /* 56040 */
-void func_8029C0DC(u8 *tri, s32 px, s32 py, s32 pz, s32 *out);     /* 56040 */
-s32 func_8029BF64(s32 bu, s32 bv, s32 cu, s32 cv, s32 au, s32 av, s32 pu, s32 pv); /* 56040 */
-s32 func_8029BD0C(s32 x, s32 y, s32 z, s32 r, u8 *tri);           /* 56040 */
-s32 func_8029BEE4(s32 x, s32 y, s32 z, s32 r, u8 *tri);           /* 56040 */
-s32 func_8029CFA4(s32 pz, s32 r1, s32 qx, s32 qy, s32 px, s32 py, s32 qz, s32 r2); /* 56040 */
-s32 func_802BD8C8(void);                                          /* 77E20 */
-void func_802BF1F0(Obj89250 *e, s32 id);                          /* 77E20 */
-void func_802BF264(Tri89250 *t);                                  /* 77E20 */
-void func_802BF384(Obj89250 *e);                                  /* 77E20 */
-void func_802BF534(Obj89250 *e);                                  /* 77E20 */
-void func_802BF668(Obj89250 *e);                                  /* 77E20 */
-void func_802BF898(Obj89250 *e, s32 part, s32 level);             /* 77E20 */
-void func_802C09B8(s32 id, Obj89250 *e);                          /* 77E20 */
-void func_802C0E8C(s32 id, Obj89250 *e);                          /* 77E20 */
-void func_802C1438(Obj89250 *e, s32 index);                       /* 77E20 */
-void func_802CE204(s32 x1, s32 z1, s32 x2, s32 z2);
 s32 func_802CDC7C(s32 x, s32 y, s32 z, s32 r, Obj89250 *e, s32 hit);
 void func_802CDD74(Obj89250 *e, Tri89250 *tri, s32 amount);
 s32 func_802CE0E4(s32 x, s32 y, s32 z, s32 r, s32 id);
@@ -214,7 +175,7 @@ s32 func_802CDC7C(s32 x, s32 y, s32 z, s32 r, Obj89250 *e, s32 hit) {
                 func_802CDD74(e, t, hit);
             }
         }
-        func_802BF264(t);
+        func_802BF264((struct Unk803B9890 *) t);
         hit = 1;
     }
     return hit;
@@ -250,16 +211,16 @@ void func_802CDD74(Obj89250 *e, Tri89250 *tri, s32 amount) {
         level = 100;
     }
     pcts[part - 1] = level;
-    func_802BF898(e, part, level);
+    func_802BF898((struct Unk802C1DD0Entry *) e, part, level);
     if (level == 100) {
         Tri89250 *t;
         Tri89250 *end;
 
-        func_802BF1F0(e, part);
-        func_802C1438(e, part);
-        func_802C09B8(part, e);
-        func_802C0E8C(part, e);
-        func_802BF384(e);
+        func_802BF1F0((struct Unk802C1DD0Entry *) e, part);
+        func_802C1438((struct Unk802C1DD0Entry *) e, part);
+        func_802C09B8(part, (struct Unk802C1DD0Entry *) e);
+        func_802C0E8C(part, (struct Unk802C1DD0Entry *) e);
+        func_802BF384((struct Unk802C1DD0Entry *) e);
         end = e->end;
         for (t = e->start; t != end; t++) {
             if (t->unk52 == part) {
@@ -269,8 +230,8 @@ void func_802CDD74(Obj89250 *e, Tri89250 *tri, s32 amount) {
                 t->unk51 = 1;
             }
         }
-        func_802BF668(e);
-        func_802BF534(e);
+        func_802BF668((struct Unk802C1DD0Entry *) e);
+        func_802BF534((struct Unk802C1DD0Entry *) e);
     }
 }
 #else
@@ -308,7 +269,7 @@ s32 func_802CDF94(s32 r) {
             count += func_802CE0E4(x, y, z, r, id);
         }
     }
-    if (D_803A7410 != 0 || D_803A7412 != 0xFFF) {
+    if (((u16) D_803A7410) != 0 || ((u16) D_803A7412) != 0xFFF) {
         D_803A7425 = 1;
         D_803A7424 = 1;
     }
@@ -379,8 +340,6 @@ s32 func_802CE0E4(s32 x, s32 y, s32 z, s32 r, s32 id) {
 #ifdef NON_MATCHING
 f32 sqrtf(f32);
 #pragma intrinsic(sqrtf)
-s32 func_802AD7FC(u32 sine);
-void func_8029B7CC(s32 a, s32 b);
 
 /* cvt.w.s under the game's FCSR: round to nearest, ties to even. */
 static s32 port_cvt_w_s(f32 x) {
@@ -435,19 +394,7 @@ void func_802CE204(s32 x1, s32 z1, s32 x2, s32 z2) {
 
 #ifdef NON_MATCHING
 /* Shared declarations for the NON_MATCHING (port) rewrites below. */
-extern u16 D_803A7410; /* ring index A (12-bit, 0..0xFFF) */
-extern u16 D_803A7412; /* ring index B */
-extern s32 D_803A73F0;
-extern s32 D_803A73F4;
-extern s32 D_803A73F8;
-extern void *D_803A7408;
-extern u8 D_803A7424;
-extern u8 D_803A7425;
-extern u8 D_803A7427;
-extern u8 D_803A742F;
 extern u8 D_80306450[];
-s32 func_802A6F6C(void);
-void func_802BCBD8(void);
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -461,8 +408,8 @@ void func_802BCBD8(void);
  * returned instead. The asm returns the full 32-bit value; the C callers
  * declare s16. */
 s32 func_802CE3B8(s32 idx) {
-    s32 a = D_803A7410;
-    s32 b = D_803A7412;
+    s32 a = ((u16) D_803A7410);
+    s32 b = ((u16) D_803A7412);
     s32 da = a - idx;
     s32 db = b - idx;
     s32 v;
@@ -519,7 +466,7 @@ void func_802CE4F0(s32 x, s32 y, s32 z) {
     D_803A73F8 = z;
     D_803A742F = 0;
     D_803A7427 = 0;
-    D_803A7408 = D_80306450;
+    D_803A7408 = (s8 *) D_80306450;
     D_803A7424 = 0;
     D_803A7425 = 0;
     func_802BCBD8();
@@ -530,8 +477,6 @@ void func_802CE4F0(s32 x, s32 y, s32 z) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803A742A;
-void func_8029B02C(s32 x, s32 y, s32 z, s32 r, s32 kind, s32 id); /* 56040 */
 
 /* Reports every triangle the sphere (x, y, z) radius r touches for vehicle
  * `kind` (func_8029B02C with everything >> 2 and part id 0), after storing
@@ -553,14 +498,6 @@ void func_802CE5BC(s32 x, s32 y, s32 z, s32 r, s32 kind, s32 tag) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-typedef struct {
-    s32 t1; /* new z */
-    s32 s3; /* x as read */
-    s32 fp; /* the cosine */
-} Out802A860C; /* as in 62740.c */
-s32 func_802A860C(f32 f, s32 angle, s16 *len, s32 *px, s32 *pz, Out802A860C *out); /* 62740 */
-extern s32 D_803F9320;
-extern s32 D_803F9324;
 extern s16 D_803F9328;
 
 /* Stores (x, z) to D_803F9320/9324 and len to D_803F9328, then moves the
@@ -582,18 +519,6 @@ void func_802CE65C(s32 x, s32 z, s32 len, s32 angle) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-typedef struct {
-    f32 pz;    /* f12 */
-    f32 cross; /* f14 */
-    f32 cz;    /* f20 */
-    f32 side;  /* f22 */
-    f32 sideZ; /* f24 (in/out) */
-    f32 dz;    /* f26 */
-} TriSideOut; /* as in 62740.c */
-s32 func_802A9DC0(s32 x, s32 z, s32 y, TriSideOut *f, s32 *fpOut);
-s32 func_802A9F24(s32 x, s32 z, s32 y, s32 skip, TriSideOut *f, s32 *idOut, s32 *a2Out);
-s32 func_802AA094(s32 x, s32 z, s32 y, TriSideOut *f, s32 *t3io, s32 *fpio);
-extern u8 D_803F932C;
 
 #define PORT_ABS(d) ((d) < 0 ? -(d) : (d))
 

@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* __osSetSR/__osGetSR: libultra's hand-written os/setsr.s and os/getsr.s
  * (mtc0/mfc0 $12). Permanently GLOBAL_ASM. */

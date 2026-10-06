@@ -1,5 +1,17 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_80358058
+#endif /* legacy declarations */
+#include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#ifdef NON_MATCHING
+#define D_80358058 (*(void * *) &D_80358058)
+#endif
+/* end of views */
 
 /* mb.c (this file's .bss starts at 0x8036CB60) */
 
@@ -28,7 +40,6 @@ typedef struct {
     u32 to;
 } MbRemap;
 
-extern u8 *D_80358070;         /* heap pointer */
 extern MbSample D_8036CB60[11]; /* ring of samples */
 extern s32 D_8036CC68;         /* ring head */
 extern s32 D_8036CC6C;         /* ring tail */
@@ -36,7 +47,6 @@ extern Mtx D_8036CC70[][10];   /* view matrices per slot */
 extern u8 *D_8036D170;         /* 0x5460-byte buffer */
 extern u8 D_8036D178;
 extern s32 D_8036D180;
-extern u8 D_80367C00;
 extern MbRemap D_802FC060[3];
 extern f32 D_8036D174;         /* view angle, degrees */
 extern s32 D_8036D17C;
@@ -46,14 +56,11 @@ extern Gfx D_8036D188[40];     /* display list for the view */
 extern Mtx D_8036D2C8;         /* its projection */
 extern Mtx D_8036D388;         /* its look-at */
 extern Vp D_802FBED0;
-extern void *D_80358058;       /* depth buffer */
+#ifndef NON_MATCHING
+extern void *D_80358058; /* depth buffer */
+#endif
 
-void func_8029A7E4(const char *fmt, ...);
-void func_80257490(void *arg0, s32 arg1);
-s32 func_8026A6F0(s32 a, s32 b, s32 c, s32 d, s32 e, s32 f);
-s32 func_802ACF3C(s32 arg0);
 s32 func_802796D8(s32 n, s32 *a, s32 *b);
-void func_80284E54(Gfx *dl, s32 n, s32 a, s32 b, s32 c, s32 d);
 void func_8027A7DC(Gfx **gfxp, s32 offset, s32 v);
 s32 func_8027B87C(f32 out[4][4], f32 in[4][4]);
 
@@ -104,9 +111,9 @@ void func_80278BF0(Gfx *src, Gfx *end, Gfx **dstp) {
 
 /* Allocates the buffers and resets the state */
 void func_80278E3C(void) {
-    func_80257490(D_80358070, 0x40);
+    func_80257490((s32 *) D_80358070, 0x40);
     D_8036D170 = D_80358070;
-    func_80257490(D_80358070 = D_80358070 + 0x5460, 8);
+    func_80257490((s32 *) (D_80358070 = D_80358070 + 0x5460), 8);
     D_8036D178 = 0;
     D_8036CC68 = 0;
     D_8036CC6C = 0;
@@ -313,7 +320,7 @@ void func_80279778(s32 x, s32 y, s32 z, s32 a, s32 b, s32 c, void *dl, void *seg
         gDPSetEnvColor(gdl++, 0, 0, 0, alpha);
         gSPDisplayList(gdl++, PHYS(dl));
         gSPEndDisplayList(gdl++);
-        func_80284E54(D_8036D188, gdl - D_8036D188, 2, 0, 0x54D, 0);
+        func_80284E54((u64 *) D_8036D188, gdl - D_8036D188, 2, 0, 0x54D, 0);
     }
 }
 

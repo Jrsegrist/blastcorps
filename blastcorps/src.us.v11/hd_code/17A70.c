@@ -1,23 +1,17 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* kiunzip: a second copy of the gzip front end in init/1660.c, used by the
  * game to inflate assets at run time (inflate itself is func_802994F8). */
 
-extern u8 *D_803669C0;  /* input buffer */
-extern u8 *D_803669C4;  /* output buffer */
-extern s32 D_8039CAE0;
 extern s32 D_803669CC;  /* header bytes */
 extern s32 D_802E8CC0;  /* compression method */
 extern s32 D_802E8CC4;  /* exit code */
 
-void func_8029A7E4(char *fmt, ...);
-void func_802994F8(void);
 void func_8025C5A0(void);
 s32 func_8025C30C(void);
 
-extern s32 D_803669F0;
-extern s32 D_803669EC;
 extern s32 D_803669E8;
 extern s32 D_803669DC;
 extern s32 D_803669D8;

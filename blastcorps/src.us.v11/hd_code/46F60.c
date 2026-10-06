@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* Analog-stick steering helpers: stick angle/magnitude to steering and
  * direction-button bits. */
@@ -8,22 +9,11 @@
 #define SIGN(x) ((x) >= 0 ? 1 : -1)
 
 f32 sqrtf(f32);
-s32 func_802AD7D4(s32);
 
-extern f32 D_80364414;
-extern s16 D_8036443C;
-extern u16 D_80370C70;
-extern s16 D_80370C72;
 extern s8 D_80370C74;
-extern u8 D_80370C75;
 extern s16 D_80370C76;
-extern s16 D_803ED400;
-extern s16 D_803ED408;
-extern u8 D_803ED40A;
-extern s16 D_803F7C34;
 
 u16 func_8028BA1C(s16 arg0, s16 arg1, s8 *arg2, u8 arg3);
-f32 func_8028BBF4(s16 arg0, s16 arg1, s16 arg2, s16 arg3);
 f32 func_8028BD88(f32 arg0, f32 arg1);
 
 void func_8028B720(void) {
@@ -106,7 +96,11 @@ u16 func_8028BA1C(s16 arg0, s16 arg1, s8 *arg2, u8 arg3) {
 
 /* Angle in degrees of the vector (arg2 - arg0, arg3 - arg1), per quadrant. */
 f32 func_8028BBF4(s16 arg0, s16 arg1, s16 arg2, s16 arg3) {
+#ifdef NON_MATCHING
+    f32 sp1C = 0.0f; /* every quadrant test sets it; never read unset */
+#else
     f32 sp1C;
+#endif
 
     if (arg2 >= arg0 && arg3 >= arg1) {
         sp1C = func_8028BD88(arg3 - arg1, arg2 - arg0) + 90.0f;

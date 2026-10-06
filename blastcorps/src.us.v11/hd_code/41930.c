@@ -1,5 +1,12 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_8020C070 ((MenuItem *) D_8020C070)
+#define D_802E8F38 ((Entry8 *) D_802E8F38)
+#define D_802E8F94 ((LevelInfo *) D_802E8F94)
+#define D_80364AF0 ((Player *) D_80364AF0)
+/* end of views */
 
 /* academy.c: each player's progress state machine (players[].gameState):
  * which levels/messages unlock next, and the jingles/menus that go with it */
@@ -40,37 +47,11 @@ typedef struct {
     u8 pad2[0xC];
 } MenuItem;
 
-extern Player D_80364AF0[];
-extern u8 D_80364AE8;
-extern s32 D_802E8BDC;
-extern u64 D_80364A90;
-extern u64 D_80364A98;
 extern u8 D_802FDA60[];
 extern u8 D_802FDA70[];
-extern Entry8 D_802E8F38[];
 extern Entry30 D_8020D7E4[];
 extern char D_8036EBA0[];
-extern MenuItem D_8020C070[];
-extern LevelInfo D_802E8F94[];
-extern s32 D_80358060;
-extern s32 D_802FA26C;
-extern u8 D_8039C53C[];
-extern u8 D_80370C50;
-extern u8 D_803643D5;
 
-void func_80255DC8(void);
-void func_80200714(u8);
-void func_802D6A60(char *, const char *, ...);
-void func_801ECC8C(void);
-void func_8026AF6C(s32);
-void func_80260C20(u8, f32);
-void func_802995F0(s32);
-void func_8029A7E4(const char *, ...);
-void func_801F8354(u8);
-void func_80261570(f32);
-void func_8028B3E0(void);
-void func_801ECF5C(void);
-void func_801ED4B8(void);
 
 #define players D_80364AF0
 #define playerNumber D_80364AE8
@@ -120,7 +101,7 @@ void func_802860F0(void) {
 
 /* Play the current game state's sound */
 void func_802862DC(void) {
-    if (D_80358060 == 0) {
+    if (((s32) D_80358060) == 0) {
         func_80260C20(D_802FDA70[players[playerNumber].gameState], 1.0f);
     }
 }

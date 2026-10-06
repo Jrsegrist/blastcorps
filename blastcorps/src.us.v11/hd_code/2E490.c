@@ -1,11 +1,8 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 extern u8 D_8036C360;
-extern u32 D_803156C4;
-extern u8 D_803B9888;
-extern u8 D_8035805C; /* current frame buffer index */
-extern void *D_80358070;
 
 /* Sprite slots (this file's .bss, 0x8036BFE0) */
 extern void *D_8036BFE0[64][2];    /* frame images */
@@ -14,12 +11,7 @@ extern u8 D_8036C220[64];          /* flags */
 extern f32 D_8036C260[64];         /* scale */
 extern Vtx *D_8036C368[2][64][2]; /* per-buffer quads, two orientations */
 
-void func_802A0700(void);
-void func_80257490(void **heap, s32 align);
-void func_802A0EE0(u16 id, void *dest);
-void func_802A0B00(u16 id, void *pal);
 
-Gfx *func_80272ED8(Gfx *gdl, u8 slot, s16 x, s16 y, u8 alpha, u8 mode, f32 scale);
 Gfx *func_802742D8(Gfx *gdl, u8 slot, s16 x, s16 y, s32 flip, s32 size, s32 half, f32 scale, u8 frame);
 
 void func_80272C50(void) {
@@ -40,11 +32,11 @@ u8 func_80272C5C(u16 *ids, u16 *palIds, u8 count, u8 frames, u8 flags, f32 scale
     k = 0;
     for (slot = start; slot < count + start; slot++, k += palIds ? 0 : 1) {
         if (palIds) {
-            func_80257490(&D_80358070, 16);
+            func_80257490((s32 *) &D_80358070, 16);
             func_802A0EE0(palIds[slot - start], pal = D_80358070);
             D_80358070 = (u8 *) D_80358070 + 0x80;
         } else {
-            func_80257490(&D_80358070, 16);
+            func_80257490((s32 *) &D_80358070, 16);
             pal = NULL;
         }
         for (j = 0; j < frames; j++) {
@@ -56,7 +48,7 @@ u8 func_80272C5C(u16 *ids, u16 *palIds, u8 count, u8 frames, u8 flags, f32 scale
         if (flags & 4) {
             for (j = 0; j < 2; j++) {
                 for (m = 0; m < 2; m++) {
-                    D_8036C368[j][slot][m] = D_80358070;
+                    D_8036C368[j][slot][m] = (Vtx *) D_80358070;
                     D_80358070 = (u8 *) D_80358070 + 0x80;
                 }
             }
@@ -92,7 +84,6 @@ u8 func_80272C5C(u16 *ids, u16 *palIds, u8 count, u8 frames, u8 flags, f32 scale
         gImmp1(pkt, OLD_RDPHALF_CONT, (_SHIFTL(dsdx, 16, 16) | _SHIFTL(dtdy, 0, 16)));       \
     }
 
-extern u64 D_80364A90;
 
 /* Draw sprite slot `slot` at (x, y): one 32-pixel-tall texture strip per frame column,
  * either through func_802742D8 (flag 4: vertex quads) or as scaled texture rectangles.

@@ -1,23 +1,29 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_803649D0
+#define LEGACY_D_8036B974
+#endif /* legacy declarations */
+#include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_802F5804 ((PathNode *) D_802F5804)
+#define D_802F8BDC ((TextArg *) D_802F8BDC)
+#define D_80364460 ((Struct80364460 *) D_80364460)
+#define D_80364AF0 ((Struct80364AF0 *) D_80364AF0)
+#ifdef NON_MATCHING
+#define D_803649D0 (*(Struct80364460 * *) &D_803649D0)
+#define D_8036B974 (*(s32 *) &D_8036B974)
+#endif
+/* end of views */
 
 /* utils2.c (from its assert strings): camera spline paths, triggers, small maths helpers. */
 
-void func_8029A7E4(const char *, ...);
 f32 sqrtf(f32);
-s32 func_802753C0(void);
-s32 func_802AC4C4(s32, s32, s32, s32, s32, s32, s32, s32);
-s32 func_802AB3C0(s32);
-s32 func_8026AD30(s32);
-void func_80275270(u64, f32);
-void func_802C1DD0(s32);
-void func_8026AF6C(u16);
-void func_80260DFC(void);
-void func_8026A2E8(f32 ref, f32 *angle);
 f32 func_8026A184(f32 x, f32 y, f32 z, f32 w, f32 a, f32 b, f32 c);
 f32 func_80268D84(f32 x, f32 y, f32 z, f32 w, f32 a, f32 b, f32 c);
-s32 func_8026A610(s32 x1, s32 y1, s32 x2, s32 y2);
-s32 func_8026A6F0(s32 x1, s32 y1, s32 z1, s32 x2, s32 y2, s32 z2);
 
 #define ASSERT(EX, line) \
     if (!(EX)) func_8029A7E4("\n --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "utils2.c", line)
@@ -121,40 +127,18 @@ typedef struct {
     u8 unk18[0xE8];
 } Struct80364AF0;
 
-extern s32 D_802E8BDC;
 extern Struct802F3C10 D_802F3C10[];
 extern Struct802F3C24 D_802F3C24[];
 extern Struct802F3C48 D_802F3C48[];
 extern Struct802F41E8 D_802F41E8[];
 extern Struct802F4224 D_802F4224[];
-extern PathNode D_802F5804[];
-extern TextArg D_802F8BDC[];
 extern u16 D_80303AF4[];
 extern u16 D_80303B00[];
 extern u16 D_80303B10[];
 extern u16 D_80303B24[];
-extern u8 D_802E8BD8;
-extern s32 D_803643E0;
-extern s32 D_803643E4;
-extern s32 D_803643E8;
-extern u8 D_803643D6;
-extern u8 D_803643D7;
-extern u8 D_803643D9;
-extern u8 D_803643DA;
-extern u8 D_80364456;
-extern u8 D_80364A84;
-extern u64 D_80364A90;
-extern Struct80364460 D_80364460[];
+#ifndef NON_MATCHING
 extern Struct80364460 *D_803649D0;
-extern u8 D_803649ED;
-extern u64 D_80364A98;
-extern s32 D_80364AA8;
-extern u8 D_80364AE8;
-extern Struct80364AF0 D_80364AF0[];
-extern u8 D_8036B8B0;
-extern s32 D_8036B8B4;
-extern s32 D_8036B8B8;
-extern s32 D_8036B8BC;
+#endif
 extern u8 D_8036B8C0;
 extern f32 D_8036B8C8[4][4];
 extern s32 D_8036B908;
@@ -166,32 +150,14 @@ extern u8 D_8036B955;
 extern u8 D_8036B958[4];
 extern u8 D_8036B95C;
 extern u8 D_8036B960[4];
-extern u8 D_8036B964;
-extern u8 D_8036B965;
 extern u8 D_8036B966;
-extern s32 D_8036B968;
 extern s32 D_8036B96C;
 extern u8 D_8036B970;
-extern u8 D_8036B971;
+#ifndef NON_MATCHING
 extern s32 D_8036B974;
+#endif
 extern u8 D_8036B978;
 extern u8 D_8036B979;
-extern u8 D_8036C7CC;
-extern u8 D_8036EA78;
-extern u8 D_8036EB92;
-extern u8 D_8036EB98;
-extern u8 D_803A7430;
-extern u8 D_803ED826;
-extern u8 D_803EFECB;
-extern s32 D_803FCD48;
-extern s32 D_803FCD4C;
-extern s32 D_803FCD50;
-extern s32 D_803FCD60;
-extern s16 D_803FCD6A;
-extern s16 D_803FCD6C;
-extern s16 D_803FCD6E;
-extern u8 D_803FCD70;
-extern u8 D_803FCD75;
 
 /* Checks the trigger zones for the current level; sets D_803649ED on a hit. */
 void func_802683E0(void) {
@@ -524,7 +490,7 @@ void func_80269258(void) {
             case 0:
                 break;
             case 1:
-                if (D_80364AA8 == 0x80) {
+                if (((s32) D_80364AA8) == 0x80) {
                     D_8036B95C = 1;
                 } else {
                     func_802C1DD0(0);

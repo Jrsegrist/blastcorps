@@ -1,24 +1,16 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_802081C0 ((RankName *) D_802081C0)
+#define D_80364AF0 ((FePlayer *) D_80364AF0)
+/* end of views */
 
 /*
  * Promotion screen: "CONGRATULATIONS / ON YOUR PROMOTION!" plus the new
  * rank's name, over a spinning, growing 3D scene (scene 0 of 0DE70.c).
  */
 
-/* front-end view of hd_code's per-frame-buffer DynamicBuf (0x21498 bytes) */
-typedef struct {
-    u8 pad0[0x140];
-    Mtx unk140; /* lookat view */
-    u8 pad180[0x1240 - 0x180];
-    Mtx unk1240; /* perspective */
-    Mtx unk1280;
-    Mtx unk12C0;
-    Mtx unk1300; /* scene scale */
-    u8 pad1340[0x3C00 - 0x1340];
-    LookAt unk3C00;
-    u8 pad3C20[0x21498 - 0x3C20];
-} FeDyn;
 
 /* front-end view of hd_code's Player record (0x100 bytes, D_80364AF0) */
 typedef struct {
@@ -32,8 +24,6 @@ typedef struct {
     u8 pad4[4];
 } RankName;
 
-extern FePlayer D_80364AF0[];
-extern u8 D_80364AE8; /* current player */
 extern s32 D_80215960; /* scale state */
 extern s32 D_80215964; /* text fade state */
 extern f32 D_80215968; /* scene angle */
@@ -45,24 +35,9 @@ extern s32 D_80215978; /* rank */
 extern u8 D_80215980[]; /* rank name, first line */
 extern u8 D_80215998[]; /* rank name, second line */
 extern s16 D_802159B0;
-extern Mtx D_802182D0[];
-extern RankName D_802081C0[];
-extern u8 D_802082B8[]; /* number of words on the rank name's first line */
-extern u16 D_80370C28;  /* buttons held */
-extern u16 D_80370C2A;
-extern s32 D_802FA268;
-extern u32 D_80358060; /* frame counter */
-extern u16 D_8035807C; /* perspNorm */
-extern u64 D_80364A98;
 extern u16 D_80303B78[];
 extern u16 D_80303B88[];
 
-void func_801F4E70();
-void func_80259CCC(FeDyn *, u8 *, void *, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32);
-void func_80259DC8(FeDyn *, u8 *, void *, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32,
-                   s32);
-s32 func_8025B300(u8 *);
-Gfx *func_801F4FBC(FeDyn *, Gfx *);
 
 /* title lines and their glyph lists */
 u8 *D_802084B0 = (u8 *) "CONGRATULATIONS";
@@ -159,8 +134,8 @@ Gfx *func_801ED800(Gfx *arg0, FeDyn *dyn, u8 arg2, s32 *arg3) {
     }
     if (D_80215974 > 0 || D_80215976 > 0) {
         p = &D_80364AF0[D_80364AE8];
-        func_80259CCC(dyn, D_802084B0, D_802084B8, 0, 0x9C, 0, 0x18, 0x1A, 0x1A, 1, 0, 0, 0, D_80215974 / 2);
-        func_80259CCC(dyn, D_802084B4, D_802084BC, 0, 0x9D, 0, 0xCB, 0x16, 0x16, 1, 0, 0, 0, D_80215974 / 2);
+        func_80259CCC((Gfx **) dyn, D_802084B0, D_802084B8, 0, 0x9C, 0, 0x18, 0x1A, 0x1A, 1, 0, 0, 0, D_80215974 / 2);
+        func_80259CCC((Gfx **) dyn, D_802084B4, D_802084BC, 0, 0x9D, 0, 0xCB, 0x16, 0x16, 1, 0, 0, 0, D_80215974 / 2);
         /* split the rank name into two lines */
         for (i = 0, j = 0; j < D_802082B8[D_80215978]; i++) {
             if ((D_80215980[i] = D_802081C0[D_80215978].unk0[i]) == ' ') {
@@ -177,8 +152,8 @@ Gfx *func_801ED800(Gfx *arg0, FeDyn *dyn, u8 arg2, s32 *arg3) {
         } else {
             size = 0x21;
         }
-        func_80259CCC(dyn, D_80215980, NULL, 0, 0x9D, 0, 0x58, size, size, 1, 0, 0, 0, D_80215976 / 2);
-        func_80259CCC(dyn, D_80215998, NULL, 0, 0x9D, 0, 0x76, size, size, 1, 0, 0, 0, D_80215976 / 2);
+        func_80259CCC((Gfx **) dyn, D_80215980, NULL, 0, 0x9D, 0, 0x58, size, size, 1, 0, 0, 0, D_80215976 / 2);
+        func_80259CCC((Gfx **) dyn, D_80215998, NULL, 0, 0x9D, 0, 0x76, size, size, 1, 0, 0, 0, D_80215976 / 2);
         D_802159B0 += D_802084C0 * 15;
         if (D_802159B0 > 0xFF) {
             D_802159B0 -= 30;
@@ -188,13 +163,13 @@ Gfx *func_801ED800(Gfx *arg0, FeDyn *dyn, u8 arg2, s32 *arg3) {
             D_802159B0 += 30;
             D_802084C0 = -D_802084C0;
         }
-        func_80259DC8(dyn, D_802084B0, D_802084B8, 0, 0xA0, 0, 0x14, 0x1A, 0x1A, 1, 0xFF, 0xFF - D_802159B0, 0,
+        func_80259DC8((Gfx **) dyn, D_802084B0, D_802084B8, 0, 0xA0, 0, 0x14, 0x1A, 0x1A, 1, 0xFF, 0xFF - D_802159B0, 0,
                       D_80215974, 0xFF, D_802159B0, 0, D_80215974);
-        func_80259DC8(dyn, D_802084B4, D_802084BC, 0, 0xA0, 0, 0xC8, 0x16, 0x16, 1, 0xFF, 0xFF - D_802159B0, 0,
+        func_80259DC8((Gfx **) dyn, D_802084B4, D_802084BC, 0, 0xA0, 0, 0xC8, 0x16, 0x16, 1, 0xFF, 0xFF - D_802159B0, 0,
                       D_80215974, 0xFF, D_802159B0, 0, D_80215974);
-        func_80259DC8(dyn, D_80215980, NULL, 0, 0xA0, 0, 0x55, size, size, 1, 0xFF, 0xFF - D_802159B0, 0,
+        func_80259DC8((Gfx **) dyn, D_80215980, NULL, 0, 0xA0, 0, 0x55, size, size, 1, 0xFF, 0xFF - D_802159B0, 0,
                       D_80215976, 0xFF, D_802159B0, 0, D_80215976);
-        func_80259DC8(dyn, D_80215998, NULL, 0, 0xA0, 0, 0x73, size, size, 1, 0xFF, 0xFF - D_802159B0, 0,
+        func_80259DC8((Gfx **) dyn, D_80215998, NULL, 0, 0xA0, 0, 0x73, size, size, 1, 0xFF, 0xFF - D_802159B0, 0,
                       D_80215976, 0xFF, D_802159B0, 0, D_80215976);
     }
     D_80215968 += 12.0 - D_8021596C * 2.0f;

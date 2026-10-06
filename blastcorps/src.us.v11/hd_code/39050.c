@@ -1,5 +1,20 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_80358070
+#define LEGACY_D_803649D0
+#endif /* legacy declarations */
+#include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_80364460 ((Digger *) D_80364460)
+#ifdef NON_MATCHING
+#define D_80358070 (*(s32 *) &D_80358070)
+#define D_803649D0 (*(Digger * *) &D_803649D0)
+#endif
+/* end of views */
 
 #define ABS(x) ((x) >= 0.0f ? (x) : -(x))
 
@@ -15,18 +30,19 @@ typedef struct {
     s32 unk70; /* 0x70 */
 } Digger;
 
-extern Digger D_80364460[];
+#ifndef NON_MATCHING
 extern Digger *D_803649D0;
-extern s32 D_803649E8;
+#endif
 extern s32 D_802FC51C;
 
 f32 sinf(f32);
-void func_802C1F30(s32, s32, s32, s32, s32);
-s16 *func_802C1EE0(s32);
-void func_8029A7E4(const char *fmt, ...);
 s32 func_8027E164(s32 arg0, s32 arg1, void *arg2, void *arg3);
 f32 func_8027DD88(s32, s32, s32 *, s32 *);
-f32 func_8027E228();
+#ifdef NON_MATCHING
+f32 func_8027E228(u8 type);
+#else
+f32 func_8027E228(); /* K&R */
+#endif
 f32 func_8027DB5C(s32 *a, s32 *b, s32 arg2);
 void func_8027DA10(s32 arg0, s32 arg1, s32 arg2);
 
@@ -59,10 +75,11 @@ typedef struct {
     u8 pad32[2];
 } Water;
 
-extern u8 D_802E8BD0;
 extern Water D_802FC3F0[];
 extern s16 D_802FC48C[];
+#ifndef NON_MATCHING
 extern s32 D_80358070; /* bump allocator for display memory */
+#endif
 extern Vtx *D_8036DCA0[2]; /* double-buffered water grid */
 extern s32 D_8036DCA8[2];
 extern s32 D_8036DCB0; /* wave clock */
@@ -70,10 +87,8 @@ extern s32 D_8036DCB8[3];
 extern s32 D_8036DCC8[2];
 extern u8 D_8036DCD0;
 extern s16 D_8036DCD2;
-extern u8 D_8036DCD4; /* level has water */
 extern u8 D_8036DCD5;
 extern u8 D_8036DCD6; /* index into D_802FC3F0 */
-extern u8 D_8036DCD7;
 
 void func_802802D4(Vtx *v, s32 i0, s32 i1, s32 i2);
 void func_8028072C(Vtx *v, s16 x0, s16 y0, s16 z0, s16 x1, s16 y1, s16 z1);
@@ -110,10 +125,6 @@ extern u8 D_8036E370;
 extern s32 D_8036E374;
 extern s32 D_8036E378;
 
-s16 func_8026A828(s16, s16);
-void func_802CE65C(s32, s32, s16, s16);
-extern s32 D_803F9320;
-extern s32 D_803F9324;
 
 /* Level spawn table for the proximity objects below (one entry). */
 typedef struct {
@@ -135,18 +146,7 @@ extern Vtx D_802FC528[];
 extern Mine D_8036E380[];
 extern s32 D_8036E4C0; /* number of placed objects */
 extern s32 D_8036E4C4;
-extern s16 D_8036E4C8;
-extern s8 D_8036E4CA;
-extern s32 D_803643E0;
-extern s32 D_803643E4;
-extern s32 D_803643E8;
-extern void *D_80367738;
-extern s32 D_8036DCD8;
 
-void func_8026A5CC(void *arg0, void *arg1, s32 arg2);
-s32 func_802A0CC8(s32, s32);
-s32 func_8026A6F0(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5);
-void *func_80260650(void *arg0, s16 arg1, void *arg2);
 
 void func_8027D810(s32 arg0) {
     switch (arg0) {
@@ -292,7 +292,6 @@ f32 func_8027DD88(s32 arg0, s32 arg1, s32 *p, s32 *q) {
     return t;
 }
 
-s32 func_802AC4C4(s32, s32, s32, s32, s32, s32, s32, s32);
 
 s32 func_8027E164(s32 arg0, s32 arg1, void *arg2, void *arg3) {
     if (func_802AC4C4(arg0, arg1, *(s32 *)((u8 *) arg2 + 0x0), *(s32 *)((u8 *) arg3 + 0x0),
@@ -308,8 +307,12 @@ s32 func_8027E164(s32 arg0, s32 arg1, void *arg2, void *arg3) {
     return 0;
 }
 
+#ifdef NON_MATCHING
+f32 func_8027E228(u8 type)
+#else
 f32 func_8027E228(type)
     u8 type;
+#endif
 {
     switch (type) {
     case 0:
@@ -343,6 +346,11 @@ f32 func_8027E228(type)
     default:
         func_8029A7E4("DIGGER WEIGHT NOT SET\n");
     }
+#ifdef NON_MATCHING
+    /* The original falls off the end here: f0 is whatever the caller left
+     * in it (the debug printf is empty). No digger type takes this path. */
+    return 0.0f;
+#endif
 }
 
 /* Set up the water surface for level id: allocate its vertex/display buffers, load its textures,
@@ -883,7 +891,7 @@ void func_80281A70(s32 arg0) {
             D_8036E380[D_8036E4C0].x = D_802FC520[i].x;
             D_8036E380[D_8036E4C0].y = D_802FC520[i].y;
             D_8036E380[D_8036E4C0].z = D_802FC520[i].z;
-            func_8026A5CC(D_8036E380[D_8036E4C0].v, D_802FC528, sizeof(D_8036E380->v));
+            func_8026A5CC((u64 *) (D_8036E380[D_8036E4C0].v), (u64 *) D_802FC528, sizeof(D_8036E380->v));
             for (j = 0; j < 4; j++) {
                 D_8036E380[D_8036E4C0].v[j].v.ob[0] += D_8036E380[D_8036E4C0].x;
                 D_8036E380[D_8036E4C0].v[j].v.ob[1] += D_8036E380[D_8036E4C0].y;
@@ -952,16 +960,12 @@ void func_80281E44(Gfx **gfx) {
     *gfx = gdl;
 }
 
-void func_802A0B00(s32, s32);
 
 extern s32 D_8036E4CC; /* overlay texture */
 extern s16 D_8036E4D0; /* overlay alpha */
 extern u8 D_8036E4D2;  /* overlay on */
-extern Mtx D_02000000[];
 extern Vtx D_802FC568[];
-extern s16 D_80367BD6;
 
-s32 func_8029DBF0(u8);
 
 void func_802821D0(void) {
     D_8036E4CC = D_80358070;
@@ -1024,16 +1028,9 @@ extern u8 D_8036E4D3;  /* number of active rings (0..2) */
 extern u32 D_8036E4D4; /* frame the last ring started */
 extern Gfx D_802FFF38[];
 extern Gfx D_80300A68[];
-extern u32 D_803156C4;
-extern u8 D_803643D6;
 extern Mtx D_8036E4D8[][2];
 extern f32 D_8036E5D8[]; /* ring scales */
-extern s32 D_803EF6DC;
-extern s32 D_803EF6E0;
-extern s32 D_803EF6E4;
-extern u8 D_803EF6FF;
 
-void func_802AC1A0(s32);
 
 void func_80282728(void) {
     D_8036E4D3 = 0;

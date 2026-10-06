@@ -1,42 +1,21 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_803156F8 ((FeDyn *) D_803156F8)
+#define D_80358050 ((void * *) D_80358050)
+/* end of views */
 
-/* hd_code 00000.c's per-frame-buffer work area, 0x21498 bytes */
-typedef struct {
-    u8 pad0[0x48B0];
-    Gfx dl[0xB5E]; /* TOPLEVEL_DL_SIZE */
-    u8 unkA3A0[0x21498 - 0xA3A0];
-} DynamicBuf;
 
-extern DynamicBuf D_803156F8[];
-extern u8 D_8035805C;         /* current frame buffer index */
-extern s32 D_80358080;        /* nextdma */
-extern s32 D_80358084;        /* no_palette_dmas */
-extern s32 D_80358078;        /* display list length */
 extern s32 D_802159C0;
-extern s16 currentYoshiWindow;
-extern void *D_8035806C;
-extern void *D_80358050[];    /* frame buffers */
-extern OSMesgQueue D_80315180; /* texture DMA queue */
-extern Gfx D_01000010[];
-extern Gfx D_01000038[];
 
-void func_802A5720(void);
-void func_8025B2B8(void);
-void func_8026AF6C(s32);
-void func_80260A10(void);
-void func_80259450(void);
-void func_80284E54(Gfx *, s32, s32, s32, s32, s32);
-Gfx *func_8026BBD0(Gfx *, DynamicBuf *, s32 *);
-void func_802A57AC(void);
-void func_80285110(s32);
 
 void func_801EE390(void) {
 }
 
 /* draw one front-end frame: a cleared screen plus the yoshi window `arg0` */
 void func_801EE398(s32 arg0) {
-    DynamicBuf *buf;
+    FeDyn *buf;
     Gfx *gdl;
     s32 i;
 
@@ -55,7 +34,7 @@ void func_801EE398(s32 arg0) {
         osViBlack(0);
     }
     func_80259450();
-    func_80284E54(D_803156F8[D_8035805C].dl, D_80358078, 1, 1, 0x4D2, 0);
+    func_80284E54((u64 *) (D_803156F8[D_8035805C].dl), D_80358078, 1, 1, 0x4D2, 0);
     D_8035805C ^= 1;
     gSPSegment(gdl++, 0, 0);
     gSPSegment(gdl++, 2, osVirtualToPhysical(buf));
@@ -68,7 +47,7 @@ void func_801EE398(s32 arg0) {
     gDPSetFillColor(gdl++, 0x00010001);
     gDPFillRectangle(gdl++, 0, 0, 319, 239);
     gDPSetCycleType(gdl++, G_CYC_1CYCLE);
-    gdl = func_8026BBD0(gdl, &D_803156F8[D_8035805C], &D_80358078);
+    gdl = func_8026BBD0(gdl, (s32) &D_803156F8[D_8035805C], &D_80358078);
     gDPFullSync(gdl++);
     gSPEndDisplayList(gdl++);
     D_80358078 = gdl - buf->dl;

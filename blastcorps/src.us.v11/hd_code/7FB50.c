@@ -1,5 +1,13 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_803F4030 ((Rec7FB50 *) D_803F4030)
+#ifdef NON_MATCHING
+#define D_803F7654 (*(Rec7FB50 * *) &D_803F7654)
+#define D_803F7844 (*(s32 *) &D_803F7844)
+#endif
+/* end of views */
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -23,12 +31,8 @@ typedef struct {
     /* 0xEC */ u8 parts[0x10]; /* 100 = part destroyed */
 } Rec7FB50; /* size 0xFC */
 
-extern Rec7FB50 D_803F4030[];
-extern Rec7FB50 *D_803F7654;
-extern u16 D_8036EB90;
 extern u8 D_803063F0[];
 
-u8 func_8026FE6C(s32 arg0);
 
 /* Bit writer used by the status packers below: MSB-first into whole bytes.
  * (Macros rather than functions: the originals are single asm leaves.) */
@@ -69,12 +73,7 @@ extern u8 D_803F7B50[];
  * +0x78..0x95: 15 s16 tuning values
  * +0x96..0x98: u8 flags; +0x9F: u8 (100 = ...); +0xA1: u8 mode (0..5); +0xA2: u8 previous mode */
 
-extern s8 D_80370C2C;
-extern s8 D_80370C2D;
-extern u8 D_80370C35;
 extern s32 D_803F7BFC;
-extern s32 D_803F7C10;
-extern s32 D_803F7C14;
 extern void *D_803F7C18;
 extern void *D_803F7C1C;
 extern f32 D_803F7C28;
@@ -82,34 +81,16 @@ extern f32 D_803F7C2C;
 extern u8 D_803F7C3C;
 extern u8 D_803F7C3E;
 extern u8 D_803F7C48;
-extern f32 D_803EBBF0;
-extern f32 D_803EBBF4;
-extern u8 D_803ED3F6;
-extern u8 D_803ED3F7;
-extern s16 D_8036444C;
-extern s16 D_80364450;
-extern void *D_80367738;
 extern f32 D_8030D968;
 extern f32 D_8030D96C;
 extern f32 D_8030D970;
 extern f32 D_8030D974;
 
-s32 func_80258500(u8 id);
-void *func_80260650(void *arg0, s16 arg1, void *arg2);
-void func_802608C8(void *arg0);
 
 /* This vehicle's animation channel table and the channel-field setters /
  * getter of 56040.c (Unk8029DEA0Entry; asm conventions in
  * tools_port/conventions.txt). func_802A04BC's out[0] is (s8) field 0x10. */
 extern u8 D_803F7850[];
-void func_802A0290(void *base, s32 idx, s32 val);
-void func_802A02E4(s32 idx, void *base);
-void func_802A0360(f32 f, void *base, s32 idx, s32 val);
-void func_802A039C(void *base, s32 idx, s32 val);
-void func_802A03D4(void *base, s32 idx, s32 val);
-void func_802A040C(void *base, s32 idx, s32 val);
-void func_802A0480(f32 f, void *base, s32 idx, s32 val);
-void func_802A04BC(s32 idx, void *base, s32 *out);
 
 /* cvt.w.s under the default FCSR: round to nearest, ties to even (a C cast
  * truncates). */
@@ -169,9 +150,6 @@ s32 func_802C4A40(u8 *out) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_80368040;
-void func_802BF1F0(void *e, s32 id);
-void func_8026FE8C(s32 arg0);
 
 /* apply_status: reads a bitstream in func_802C4A40's format (MSB-first; the
  * bit reader runs on across the records and restarts on a fresh byte for
@@ -222,7 +200,7 @@ void func_802C4BF0(void *in) {
                 v = 0;
             } else {
                 v = 100;
-                func_802BF1F0(r, i);
+                func_802BF1F0((struct Unk802C1DD0Entry *) r, i);
                 anyDestroyed = 1;
             }
             *part++ = v;
@@ -367,37 +345,12 @@ u32 func_802C4E58(void *outp, u8 level) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef TRI_SCAN_TYPES_DEFINED
-#define TRI_SCAN_TYPES_DEFINED
-/* func_802AC0BC's FP and integer register results (62740.c), in and out. */
-typedef struct {
-    f32 pz;    /* f12 */
-    f32 cross; /* f14 */
-    f32 cz;    /* f20 */
-    f32 side;  /* f22 */
-    f32 sideZ; /* f24 */
-    f32 dz;    /* f26 */
-} TriSideOut;
-typedef struct {
-    s32 a1; /* found flag */
-    s32 a3;
-    s32 t6;
-    s32 t7;
-    s32 fp;
-    s32 s1;
-    s32 s2;
-    s32 s3;
-    s32 s4;
-} TriScanRegs;
-s32 func_802AC0BC(s32 x, s32 z, s32 y, TriSideOut *f, TriScanRegs *r);
-#endif
 extern u32 D_803F7BF8[]; /* x, y, z */
 extern u8 *D_803F7C04;   /* its model */
 extern u64 *D_803F7C08;  /* save copy pair */
 extern u64 *D_803F7C0C;
 extern s32 D_803F7C20;
 extern s32 D_803F7C24;
-extern s16 D_803F7C34;
 extern u8 D_803F7C36;
 extern u8 D_803F7C37;
 extern u8 D_803F7C38;
@@ -413,20 +366,6 @@ extern u8 D_803F7C45;
 extern u8 D_803F7C47;
 extern u8 D_803F7C4A;
 extern u8 D_803F7C4B;
-extern s32 D_803F7844;
-extern u8 *D_80358070; /* allocation pointer for the save copies */
-void func_80258230(u8 id, s32 arg1, s16 arg2, s16 arg3);
-void func_8029C354(s32 tag, u8 *p, u8 *end, u32 scale);
-void func_8029E558(u8 *base, u8 *other, void *ch);
-s32 func_8029F85C(u32 *bufA, u32 *bufB, void *ch, u8 *hdr);
-void func_802A0320(s32 idx, void *base);
-void func_802A1388(s32 a0Val, s32 a1Val, s32 v0Val, s32 v1Val, u8 *hdr);
-void func_802A754C(u8 *veh);
-void func_802A7764(u64 *a, u64 *b, s32 size);
-s32 *func_802A992C(s16 *tbl, s32 y, s32 x, s32 z, s32 *dst, s32 *mid, s16 *angle, s32 key, s32 fpIn, u8 *veh,
-                   TriSideOut *f);
-void func_802AA838(u8 *src, u8 *dst, s32 off);
-void func_802C5AFC(void);
 
 /* Load vehicle 9 (the 5CB60 dispatcher func_802A350C, record type 9): model
  * `model` (D_803F7C04), save copies D_803F7C08 / D_803F7C0C taken 0x1000
@@ -480,16 +419,16 @@ void func_802C5120(s32 x, s32 y, s32 z, s32 heading, u8 *model, s32 fp) {
     f.pz = f.cross = f.cz = f.side = f.sideZ = f.dz = 0.0f;
     func_802A992C(&VEH_S16(0x52), D_803F7BF8[1], x, z, &VEH_S32(4), (s32 *) &D_803F7BF8[1], &VEH_S16(0x4C), 9, fp,
                   D_803F7B50, &f);
-    func_8029F85C((u32 *) D_803F7C0C, (u32 *) D_803F7C08, D_803F7850, D_803F7C04);
-    func_802A039C(D_803F7850, 0, 100);
-    func_802A03D4(D_803F7850, 0, 0);
-    func_802A040C(D_803F7850, 0, 0);
-    func_802A0480(0.0f, D_803F7850, 0, 0);
-    func_802A0290(D_803F7850, 0, 1);
-    func_8029E558((u8 *) D_803F7C08, (u8 *) D_803F7C0C, D_803F7850);
-    func_802A0320(0, D_803F7850);
-    func_802A0290(D_803F7850, 0, 1);
-    func_8029E558((u8 *) D_803F7C0C, (u8 *) D_803F7C08, D_803F7850);
+    func_8029F85C((u32 *) D_803F7C0C, (u32 *) D_803F7C08, (Unk8029DEA0Entry *) D_803F7850, D_803F7C04);
+    func_802A039C((Unk8029DEA0Entry *) D_803F7850, 0, 100);
+    func_802A03D4((Unk8029DEA0Entry *) D_803F7850, 0, 0);
+    func_802A040C((Unk8029DEA0Entry *) D_803F7850, 0, 0);
+    func_802A0480(0.0f, (Unk8029DEA0Entry *) D_803F7850, 0, 0);
+    func_802A0290((Unk8029DEA0Entry *) D_803F7850, 0, 1);
+    func_8029E558((u8 *) D_803F7C08, (u8 *) D_803F7C0C, (Unk8029DEA0Entry *) D_803F7850);
+    func_802A0320(0, (Unk8029DEA0Entry *) D_803F7850);
+    func_802A0290((Unk8029DEA0Entry *) D_803F7850, 0, 1);
+    func_8029E558((u8 *) D_803F7C0C, (u8 *) D_803F7C08, (Unk8029DEA0Entry *) D_803F7850);
     D_803F7C36 = 0;
     D_803F7C37 = 0;
     D_803F7C39 = 0;
@@ -516,8 +455,8 @@ void func_802C5120(s32 x, s32 y, s32 z, s32 heading, u8 *model, s32 fp) {
     m = D_803F7C04;
     func_8029C354(9, m + *(s32 *) (m + 4), m + *(s32 *) (m + 8), 0x4268);
     func_80258230(9, 0x64, 0x2D, 0x2D);
-    func_802A0360(0.0f, D_803F7850, 6, 2);
-    func_802A0290(D_803F7850, 6, -1);
+    func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803F7850, 6, 2);
+    func_802A0290((Unk8029DEA0Entry *) D_803F7850, 6, -1);
     VEH_U8(0x9A) = 1;
     func_802C5AFC();
     VEH_U8(0x9A) = 0;
@@ -548,25 +487,25 @@ s32 func_802C5508(void) {
     }
     if (VEH_U8(0xA1) == 5) {
         VEH_U8(0xA1) = 0;
-        func_802A02E4(7, D_803F7850);
-        func_802A02E4(8, D_803F7850);
-        func_802A0360(0.0f, D_803F7850, 6, 2);
-        func_802A0360(0.0f, D_803F7850, 9, 0);
-        func_802A039C(D_803F7850, 9, 3);
-        func_802A03D4(D_803F7850, 9, 0);
-        func_802A0480(0.0f, D_803F7850, 9, 0);
-        func_802A040C(D_803F7850, 9, 1);
-        func_802A0290(D_803F7850, 9, 1);
+        func_802A02E4(7, (Unk8029DEA0Entry *) D_803F7850);
+        func_802A02E4(8, (Unk8029DEA0Entry *) D_803F7850);
+        func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803F7850, 6, 2);
+        func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803F7850, 9, 0);
+        func_802A039C((Unk8029DEA0Entry *) D_803F7850, 9, 3);
+        func_802A03D4((Unk8029DEA0Entry *) D_803F7850, 9, 0);
+        func_802A0480(0.0f, (Unk8029DEA0Entry *) D_803F7850, 9, 0);
+        func_802A040C((Unk8029DEA0Entry *) D_803F7850, 9, 1);
+        func_802A0290((Unk8029DEA0Entry *) D_803F7850, 9, 1);
         return 2;
     }
     if (VEH_U8(0xA1) != 0) {
         return 2;
     }
-    func_802A04BC(0x1F, D_803F7850, ch);
+    func_802A04BC(0x1F, (Unk8029DEA0Entry *) D_803F7850, ch);
     if (ch[0] == 1) {
         return 2;
     }
-    func_802A04BC(9, D_803F7850, ch);
+    func_802A04BC(9, (Unk8029DEA0Entry *) D_803F7850, ch);
     if (ch[0] == 0) {
         return 1;
     }
@@ -580,7 +519,6 @@ s32 func_802C5508(void) {
 #ifdef NON_MATCHING
 extern u64 *D_803F7C08; /* save copy pair (func_802A7764) */
 extern u64 *D_803F7C0C;
-void func_802A7764(u64 *a, u64 *b, s32 size);
 
 /* Teardown for this vehicle (called from func_8024B188 in hd.c): clears the
  * s16 at +0x76, func_802A7764(D_803F7C08, D_803F7C0C, 0x1000), stops
@@ -590,7 +528,7 @@ void func_802A7764(u64 *a, u64 *b, s32 size);
 void func_802C5688(void) {
     VEH_S16(0x76) = 0;
     func_802A7764(D_803F7C08, D_803F7C0C, 0x1000);
-    func_802A02E4(0x1F, D_803F7850);
+    func_802A02E4(0x1F, (Unk8029DEA0Entry *) D_803F7850);
     if (D_803F7C18 != NULL) {
         func_802608C8(D_803F7C18);
     }
@@ -611,20 +549,20 @@ void func_802C5688(void) {
  * v1 = -1; C callers use neither. */
 void func_802C5714(void) {
     VEH_U8(0x99) = 0;
-    func_802A039C(D_803F7850, 3, 0);
-    func_802A03D4(D_803F7850, 3, 0);
-    func_802A040C(D_803F7850, 3, 1);
-    func_802A0480(1.0f, D_803F7850, 3, 1);
-    func_802A0290(D_803F7850, 3, -1);
-    func_802A039C(D_803F7850, 4, 0);
-    func_802A03D4(D_803F7850, 4, 0);
-    func_802A0480(1.0f, D_803F7850, 4, 1);
-    func_802A040C(D_803F7850, 4, 1);
-    func_802A0290(D_803F7850, 4, -1);
-    func_802A039C(D_803F7850, 1, 0);
-    func_802A03D4(D_803F7850, 1, 0);
-    func_802A040C(D_803F7850, 1, 0);
-    func_802A0290(D_803F7850, 1, -1);
+    func_802A039C((Unk8029DEA0Entry *) D_803F7850, 3, 0);
+    func_802A03D4((Unk8029DEA0Entry *) D_803F7850, 3, 0);
+    func_802A040C((Unk8029DEA0Entry *) D_803F7850, 3, 1);
+    func_802A0480(1.0f, (Unk8029DEA0Entry *) D_803F7850, 3, 1);
+    func_802A0290((Unk8029DEA0Entry *) D_803F7850, 3, -1);
+    func_802A039C((Unk8029DEA0Entry *) D_803F7850, 4, 0);
+    func_802A03D4((Unk8029DEA0Entry *) D_803F7850, 4, 0);
+    func_802A0480(1.0f, (Unk8029DEA0Entry *) D_803F7850, 4, 1);
+    func_802A040C((Unk8029DEA0Entry *) D_803F7850, 4, 1);
+    func_802A0290((Unk8029DEA0Entry *) D_803F7850, 4, -1);
+    func_802A039C((Unk8029DEA0Entry *) D_803F7850, 1, 0);
+    func_802A03D4((Unk8029DEA0Entry *) D_803F7850, 1, 0);
+    func_802A040C((Unk8029DEA0Entry *) D_803F7850, 1, 0);
+    func_802A0290((Unk8029DEA0Entry *) D_803F7850, 1, -1);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C5714.s")
@@ -632,55 +570,7 @@ void func_802C5714(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef TRI_SCAN_TYPES_DEFINED
-#define TRI_SCAN_TYPES_DEFINED
-/* func_802AC0BC's FP and integer register results (62740.c), in and out. */
-typedef struct {
-    f32 pz;    /* f12 */
-    f32 cross; /* f14 */
-    f32 cz;    /* f20 */
-    f32 side;  /* f22 */
-    f32 sideZ; /* f24 */
-    f32 dz;    /* f26 */
-} TriSideOut;
-typedef struct {
-    s32 a1; /* found flag */
-    s32 a3;
-    s32 t6;
-    s32 t7;
-    s32 fp;
-    s32 s1;
-    s32 s2;
-    s32 s3;
-    s32 s4;
-} TriScanRegs;
-s32 func_802AC0BC(s32 x, s32 z, s32 y, TriSideOut *f, TriScanRegs *r);
-#endif
-#ifndef MTX_CHAIN_REGS_DEFINED
-#define MTX_CHAIN_REGS_DEFINED
-/* func_802AA890's extra registers (62740.c), as func_8029C454 and
- * func_802ABBEC pass them through. */
-typedef struct {
-    s32 v1; /* out */
-    s32 a0; /* out */
-    s32 a3; /* in/out */
-    s32 s1; /* in/out */
-    s32 s2; /* in/out */
-    s32 s0; /* in */
-} MtxChainRegs;
-#endif
-#ifndef OUT_802A9A60_DEFINED
-#define OUT_802A9A60_DEFINED
-/* func_802A9A60's pointer results (the asm's s1 and s3; 62740.c). */
-typedef struct {
-    s32 *s1; /* dst + 9 */
-    s32 *s3; /* dst */
-} Out802A9A60;
-#endif
 extern u32 D_803F7BF8[]; /* x, y, z */
-s32 func_802A9A60(s16 *tbl, s32 y, s32 x, s32 z, s32 *dst, s32 *mid, s16 *angle, s32 key, s32 fp, u8 *veh,
-                  TriSideOut *f, Out802A9A60 *out);
-void func_802A133C(s32 a0Val, s32 id, s32 v0Val, s32 v1Val, u8 *obj);
 void func_802C7CB0(MtxChainRegs *regs);
 
 /* Move this vehicle while it isn't the player's (func_8024B618, case 9):
@@ -717,20 +607,6 @@ void func_802C5860(s32 fp) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef ZONE_SCAN_REGS_DEFINED
-#define ZONE_SCAN_REGS_DEFINED
-/* func_802ABD54's scan registers (62740.c), in and out. */
-typedef struct {
-    s32 t6; /* zone x */
-    s32 t7; /* zone y */
-    s32 s0; /* zone z */
-    s32 s1; /* distance / level term */
-    s32 s2; /* zone radius */
-    s32 s3; /* scan counter / zone byte */
-    s32 s4; /* scan pointer / zone byte */
-} ZoneScanRegs;
-s32 func_802ABD54(s32 id, s32 x, s32 y, s32 z, ZoneScanRegs *r);
-#endif
 extern u32 D_803F7BF8[]; /* x, y, z */
 /* Zone level lookup (func_802ABD54) for vehicle id 9 at its position
  * D_803F7BF8..+8; returns func_802ABD54's v1 (the zone list end).
@@ -747,21 +623,6 @@ s32 func_802C5970(ZoneScanRegs *r) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef INTERP_REGS_DEFINED
-#define INTERP_REGS_DEFINED
-/* func_802AAD0C's register results (62740.c). */
-typedef struct {
-    s32 t3;  /* interpolated u */
-    s32 t4;  /* interpolated w */
-    f32 f12;
-    s32 f14; /* raw bits */
-    f32 f20;
-    f32 f22;
-    f32 f24; /* also an input (kept on some paths) */
-    f32 f26;
-} InterpRegs;
-#endif
-void func_802AAD0C(s32 id, s32 x, s32 z, InterpRegs *r);
 
 /* Value pair at this vehicle's x/z (D_803F7BF8[0], [2]) on the triangle
  * `id` (func_802AAD0C), stored as s16s at +0x6A/+0x6C of the vehicle block.
@@ -781,19 +642,6 @@ void func_802C59B4(s32 id, InterpRegs *r) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef REGS_802A8768_DEFINED
-#define REGS_802A8768_DEFINED
-/* func_802A8768's register results besides the FP state (62740.c). */
-typedef struct {
-    s32 s3;  /* in/out */
-    s16 *s4; /* out */
-    s32 fp;  /* out */
-} Regs802A8768;
-#endif
-extern u8 D_803ED40B;
-void func_802AAE54(s32 id, s32 x, s32 z, InterpRegs *r);
-void func_802A8768(u8 *veh, s32 id, s32 *px, s32 *py, s32 *pz, s32 x, s32 z, s32 divB, s32 divA, s16 *angle,
-                   u8 *flags, s16 *tbl, s32 *a, s32 *b, s32 *c, s32 *ys, Regs802A8768 *r, TriSideOut *f);
 void func_802C7ECC(void);
 void func_802C7F28(void);
 
@@ -836,55 +684,15 @@ void func_802C5A14(s32 id, s32 *s3, InterpRegs *r) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef OUT_802A860C_DEFINED
-#define OUT_802A860C_DEFINED
-/* func_802A860C's results besides t0 (62740.c). */
-typedef struct {
-    s32 t1; /* new z */
-    s32 s3; /* *px as read */
-    s32 fp; /* the cosine */
-} Out802A860C;
-#endif
-extern u8 D_8035805C;  /* which of the save copy pair is current */
 extern u8 *D_803F7C04; /* this vehicle's model */
 extern u8 D_803F7C36;  /* "turning back to the ring" flag */
 extern u8 D_803F7C37;  /* bounced off the ring end (the bounce code is unreachable here) */
 extern u8 D_803F7C38;  /* throttle hold-off countdown */
 extern s16 D_803F7C30; /* ring target heading */
 extern u8 D_803F7C39;
-extern u8 D_803F7C3F;
 extern s32 D_803F7C20;
 extern s32 D_803F7C24;
-extern u8 D_803A742B;
-extern u8 D_803A7424;
-extern u8 D_803A7425;
-extern void *D_803F77D0;
-extern s32 D_803643E0;
-extern s32 D_803643E4;
-extern s32 D_803643E8;
-extern s16 D_8036443C;
-extern s16 D_8036443E;
-extern s16 D_80364440;
 extern u8 D_80306400[];
-void func_8029A800(s32 z, s32 a1, s32 b2, s32 b3, s32 x, s32 y, s32 b0, s32 h1, s32 h2, s32 b4, s32 b8,
-                   u8 *veh);
-void func_8029A914(u8 *veh);
-void func_8029AA10(s32 kind);
-void func_8029C52C(s32 tag, u8 *veh);
-void func_8029E558(u8 *base, u8 *other, void *ch);
-s32 func_802A6F6C(void);
-void func_802A6FE4(u8 *veh, s32 limit);
-void func_802A7070(u8 *veh, s16 *angle);
-void func_802A70D8(u8 *veh);
-s32 func_802A71DC(u8 *veh, s32 cur, s32 target, s32 *curOut, f32 scale);
-s32 func_802A746C(u8 *veh, s32 delta, s32 v1, s32 *targetOut);
-void func_802A77D0(u8 *veh);
-void func_802A785C(u8 *veh, s16 *speed, s32 mode, u8 *flags, s16 *bands, s32 delta);
-void func_802A7E70(s32 rate, u16 *angle);
-f32 func_802A83B8(s16 *div, u8 *f, s32 *p, f32 *out);
-void func_802A843C(u8 *veh, s16 *speed, s32 kind, s8 *f, s32 *p, s32 clamp, f32 div);
-s32 func_802A860C(f32 f, s32 angle, s16 *len, s32 *px, s32 *pz, Out802A860C *out);
-void func_802BE77C(s32 id, u8 *vehicle);
 void func_802C61F0(s32 s0, TriSideOut *f, TriScanRegs *r);
 void func_802C617C(void);
 void func_802C71FC(s32 x, s32 z, TriSideOut *f);
@@ -1011,9 +819,9 @@ void func_802C5AFC(void) {
                   0x78, 0x78, &VEH_S16(0x4C), &VEH_U8(0x96), &VEH_S16(0x52), &VEH_S32(0x28), &VEH_S32(0x40),
                   &VEH_S32(0x34), &VEH_S32(4), &r8768, &f);
     if (D_8035805C != 0) {
-        func_8029E558((u8 *) D_803F7C08, (u8 *) D_803F7C0C, D_803F7850);
+        func_8029E558((u8 *) D_803F7C08, (u8 *) D_803F7C0C, (Unk8029DEA0Entry *) D_803F7850);
     } else {
-        func_8029E558((u8 *) D_803F7C0C, (u8 *) D_803F7C08, D_803F7850);
+        func_8029E558((u8 *) D_803F7C0C, (u8 *) D_803F7C08, (Unk8029DEA0Entry *) D_803F7850);
     }
     regs.s0 = (s32) &VEH_U8(0x96);
     regs.s1 = (s32) &D_803F7BF8[2];
@@ -1134,39 +942,6 @@ void func_802C617C(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef TRI_SCAN_TYPES_DEFINED
-#define TRI_SCAN_TYPES_DEFINED
-/* func_802AC0BC's FP and integer register results (62740.c), in and out. */
-typedef struct {
-    f32 pz;    /* f12 */
-    f32 cross; /* f14 */
-    f32 cz;    /* f20 */
-    f32 side;  /* f22 */
-    f32 sideZ; /* f24 */
-    f32 dz;    /* f26 */
-} TriSideOut;
-typedef struct {
-    s32 a1; /* found flag */
-    s32 a3;
-    s32 t6;
-    s32 t7;
-    s32 fp;
-    s32 s1;
-    s32 s2;
-    s32 s3;
-    s32 s4;
-} TriScanRegs;
-s32 func_802AC0BC(s32 x, s32 z, s32 y, TriSideOut *f, TriScanRegs *r);
-#endif
-#ifndef IO_802A6274_DEFINED
-#define IO_802A6274_DEFINED
-/* func_802A6274's in/out registers (60F60.c). */
-typedef struct {
-    s32 a3;
-    s32 t6;
-    s32 s1;
-} Io802A6274;
-#endif
 extern s32 D_803F7C20; /* frames since the countdown D_803F7C40 was at 2/3 */
 extern s32 D_803F7C24; /* frames since it was at 4 */
 extern s16 D_803F7C32; /* channel 6's last field 0x18 */
@@ -1181,18 +956,7 @@ extern u8 D_803F7C45;
 extern u8 D_803F7C46;
 extern u8 D_803F7C47;
 extern u8 D_803F7C4A;
-extern u8 D_80370C1A; /* inputs */
-extern u8 D_80370C1B;
-extern u8 D_80370C1C;
-extern u8 D_80370C1D;
-extern u8 D_802E8BE4;
-extern s32 D_802E8BE8;
 extern f32 D_8030D950;
-extern u8 D_802C28E4[]; /* definition handed to func_802A6274 */
-void func_8029F9D4(s32 a, s32 b, void *base);
-void func_8029FC74(s32 a, s32 b, void *base);
-s32 func_802A6274(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32 z, s32 w24, s32 w28,
-                  s32 w18, s32 w1C, s32 w2C, s32 b35);
 s32 func_802C6FD8(void);
 s32 func_802C70E8(TriSideOut *f, TriScanRegs *r);
 void func_802C7354(void);
@@ -1283,15 +1047,15 @@ void func_802C61F0(s32 s0, TriSideOut *f, TriScanRegs *r) {
 
     if (VEH_U8(0xA1) == 5 && (VEH_S16(0x76) != 0 || VEH_U8(0x96) != 0)) {
         VEH_U8(0xA1) = 0;
-        func_802A02E4(7, D_803F7850);
-        func_802A02E4(8, D_803F7850);
-        func_802A0360(0.0f, D_803F7850, 6, 2);
-        func_802A0360(0.0f, D_803F7850, 9, 0);
-        func_802A039C(D_803F7850, 9, 3);
-        func_802A03D4(D_803F7850, 9, 0);
-        func_802A0480(0.0f, D_803F7850, 9, 0);
-        func_802A040C(D_803F7850, 9, 1);
-        func_802A0290(D_803F7850, 9, 1);
+        func_802A02E4(7, (Unk8029DEA0Entry *) D_803F7850);
+        func_802A02E4(8, (Unk8029DEA0Entry *) D_803F7850);
+        func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803F7850, 6, 2);
+        func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803F7850, 9, 0);
+        func_802A039C((Unk8029DEA0Entry *) D_803F7850, 9, 3);
+        func_802A03D4((Unk8029DEA0Entry *) D_803F7850, 9, 0);
+        func_802A0480(0.0f, (Unk8029DEA0Entry *) D_803F7850, 9, 0);
+        func_802A040C((Unk8029DEA0Entry *) D_803F7850, 9, 1);
+        func_802A0290((Unk8029DEA0Entry *) D_803F7850, 9, 1);
     }
 
     if (VEH_U8(0x9E) != 0) {
@@ -1299,8 +1063,8 @@ void func_802C61F0(s32 s0, TriSideOut *f, TriScanRegs *r) {
         D_803F7C39 = 1;
     } else if (D_803F7C43 != 1) {
         if (VEH_U8(0x96) == 1) {
-            func_802A02E4(6, D_803F7850);
-            func_802A02E4(9, D_803F7850);
+            func_802A02E4(6, (Unk8029DEA0Entry *) D_803F7850);
+            func_802A02E4(9, (Unk8029DEA0Entry *) D_803F7850);
             D_803F7C28 = (VEH_U8(0xA2) == 5) ? D_8030D950 : 0.5f;
             D_803F7C2C = 0.5f;
             VEH_U8(0xA1) = 1;
@@ -1317,17 +1081,17 @@ void func_802C61F0(s32 s0, TriSideOut *f, TriScanRegs *r) {
         VEH_S32(0x1C) = v;
         VEH_S32(0x20) = v;
         VEH_S32(0x24) = v;
-        func_802A0360(0.0f, D_803F7850, 6, 2);
-        func_802A02E4(5, D_803F7850);
-        func_802A02E4(4, D_803F7850);
-        func_802A02E4(3, D_803F7850);
+        func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803F7850, 6, 2);
+        func_802A02E4(5, (Unk8029DEA0Entry *) D_803F7850);
+        func_802A02E4(4, (Unk8029DEA0Entry *) D_803F7850);
+        func_802A02E4(3, (Unk8029DEA0Entry *) D_803F7850);
         if (VEH_U8(0xA2) != 4) {
-            func_8029FC74(3, 4, D_803F7850);
-            func_8029F9D4(0x1E, 6, D_803F7850);
-            func_802A039C(D_803F7850, 0x1F, 0x32);
-            func_802A03D4(D_803F7850, 0x1F, 0);
-            func_802A040C(D_803F7850, 0x1F, 0);
-            func_802A0290(D_803F7850, 0x1F, 1);
+            func_8029FC74(3, 4, (Unk8029DEA0Entry *) D_803F7850);
+            func_8029F9D4(0x1E, 6, (Unk8029DEA0Entry *) D_803F7850);
+            func_802A039C((Unk8029DEA0Entry *) D_803F7850, 0x1F, 0x32);
+            func_802A03D4((Unk8029DEA0Entry *) D_803F7850, 0x1F, 0);
+            func_802A040C((Unk8029DEA0Entry *) D_803F7850, 0x1F, 0);
+            func_802A0290((Unk8029DEA0Entry *) D_803F7850, 0x1F, 1);
         }
         s4 = VEH_S16(0x76);
         if (s4 >= 0x97) {
@@ -1370,25 +1134,25 @@ void func_802C61F0(s32 s0, TriSideOut *f, TriScanRegs *r) {
 
     switch (VEH_U8(0xA1)) {
         case 5:
-            func_802A04BC(7, D_803F7850, ch);
+            func_802A04BC(7, (Unk8029DEA0Entry *) D_803F7850, ch);
             if (ch[0] == 1) {
                 break;
             }
-            func_802A04BC(8, D_803F7850, ch);
+            func_802A04BC(8, (Unk8029DEA0Entry *) D_803F7850, ch);
             if (ch[0] == 1) {
                 break;
             }
-            func_802A0360(0.0f, D_803F7850, 8, 0);
-            func_802A039C(D_803F7850, 8, 1);
-            func_802A03D4(D_803F7850, 8, 0);
-            func_802A0480(0.5f, D_803F7850, 8, 1);
-            func_802A040C(D_803F7850, 8, 1);
-            func_802A0290(D_803F7850, 8, -1);
+            func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803F7850, 8, 0);
+            func_802A039C((Unk8029DEA0Entry *) D_803F7850, 8, 1);
+            func_802A03D4((Unk8029DEA0Entry *) D_803F7850, 8, 0);
+            func_802A0480(0.5f, (Unk8029DEA0Entry *) D_803F7850, 8, 1);
+            func_802A040C((Unk8029DEA0Entry *) D_803F7850, 8, 1);
+            func_802A0290((Unk8029DEA0Entry *) D_803F7850, 8, -1);
             break;
 
         case 4:
             if (D_803F7C4A != 0) {
-                func_802A04BC(5, D_803F7850, ch);
+                func_802A04BC(5, (Unk8029DEA0Entry *) D_803F7850, ch);
                 if (ch[0] != 1) {
                     VEH_TRIPLE(0x34, D_803F7BFC);
                     VEH_TRIPLE(0x40, 1);
@@ -1400,25 +1164,25 @@ void func_802C61F0(s32 s0, TriSideOut *f, TriScanRegs *r) {
             break;
 
         case 0:
-            func_802A04BC(0x1F, D_803F7850, ch);
+            func_802A04BC(0x1F, (Unk8029DEA0Entry *) D_803F7850, ch);
             if (ch[0] == 1) {
                 break;
             }
-            func_802A04BC(9, D_803F7850, ch);
+            func_802A04BC(9, (Unk8029DEA0Entry *) D_803F7850, ch);
             if (ch[0] == 1) {
                 break;
             }
             s4 = VEH_S16(0x76);
-            func_802A03D4(D_803F7850, 6, (s4 < 0) ? 1 : 0);
+            func_802A03D4((Unk8029DEA0Entry *) D_803F7850, 6, (s4 < 0) ? 1 : 0);
             if (s4 < 0) {
                 s4 = -s4;
             }
             s4 = (u32) s4 / 16;
-            func_802A039C(D_803F7850, 6, s4);
-            func_802A0480(0.5f, D_803F7850, 6, 1);
-            func_802A040C(D_803F7850, 6, 0);
-            func_802A0290(D_803F7850, 6, -1);
-            func_802A04BC(6, D_803F7850, ch);
+            func_802A039C((Unk8029DEA0Entry *) D_803F7850, 6, s4);
+            func_802A0480(0.5f, (Unk8029DEA0Entry *) D_803F7850, 6, 1);
+            func_802A040C((Unk8029DEA0Entry *) D_803F7850, 6, 0);
+            func_802A0290((Unk8029DEA0Entry *) D_803F7850, 6, -1);
+            func_802A04BC(6, (Unk8029DEA0Entry *) D_803F7850, ch);
             /* ch[6] is the asm's t1 (the whole word; the store keeps 16 bits) */
             old = D_803F7C32;
             D_803F7C32 = ch[6];
@@ -1444,10 +1208,10 @@ void func_802C61F0(s32 s0, TriSideOut *f, TriScanRegs *r) {
             /* fall through */
         case 1:
         case 3:
-            func_802A02E4(0x1F, D_803F7850);
-            func_802A02E4(6, D_803F7850);
-            func_802A0290(D_803F7850, 4, -1);
-            func_802A0290(D_803F7850, 3, -1);
+            func_802A02E4(0x1F, (Unk8029DEA0Entry *) D_803F7850);
+            func_802A02E4(6, (Unk8029DEA0Entry *) D_803F7850);
+            func_802A0290((Unk8029DEA0Entry *) D_803F7850, 4, -1);
+            func_802A0290((Unk8029DEA0Entry *) D_803F7850, 3, -1);
             func_802C7864(&s2);
             if (D_803F7C39 != 0) {
                 if (VEH_U8(0x9C) == 0) {
@@ -1486,13 +1250,13 @@ void func_802C61F0(s32 s0, TriSideOut *f, TriScanRegs *r) {
             VEH_TRIPLE(0x28, 0);
             VEH_TRIPLE(0x34, D_803F7BFC);
             VEH_TRIPLE(0x40, 1);
-            func_802A02E4(4, D_803F7850);
-            func_802A02E4(3, D_803F7850);
-            func_802A039C(D_803F7850, 5, 10);
-            func_802A03D4(D_803F7850, 5, 0);
-            func_802A040C(D_803F7850, 5, 1);
-            func_802A0360(0.0f, D_803F7850, 5, 0);
-            func_802A0290(D_803F7850, 5, 1);
+            func_802A02E4(4, (Unk8029DEA0Entry *) D_803F7850);
+            func_802A02E4(3, (Unk8029DEA0Entry *) D_803F7850);
+            func_802A039C((Unk8029DEA0Entry *) D_803F7850, 5, 10);
+            func_802A03D4((Unk8029DEA0Entry *) D_803F7850, 5, 0);
+            func_802A040C((Unk8029DEA0Entry *) D_803F7850, 5, 1);
+            func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803F7850, 5, 0);
+            func_802A0290((Unk8029DEA0Entry *) D_803F7850, 5, 1);
             func_80260650(D_80367738, 0x5C, NULL);
             break;
 
@@ -1532,13 +1296,13 @@ void func_802C6DAC(void) {
         return;
     }
     VEH_U8(0xA1) = 5;
-    func_802A02E4(6, D_803F7850);
-    func_802A0360(0.0f, D_803F7850, 7, 0);
-    func_802A039C(D_803F7850, 7, 3);
-    func_802A03D4(D_803F7850, 7, 0);
-    func_802A0480(0.0f, D_803F7850, 7, 0);
-    func_802A040C(D_803F7850, 7, 1);
-    func_802A0290(D_803F7850, 7, 1);
+    func_802A02E4(6, (Unk8029DEA0Entry *) D_803F7850);
+    func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803F7850, 7, 0);
+    func_802A039C((Unk8029DEA0Entry *) D_803F7850, 7, 3);
+    func_802A03D4((Unk8029DEA0Entry *) D_803F7850, 7, 0);
+    func_802A0480(0.0f, (Unk8029DEA0Entry *) D_803F7850, 7, 0);
+    func_802A040C((Unk8029DEA0Entry *) D_803F7850, 7, 1);
+    func_802A0290((Unk8029DEA0Entry *) D_803F7850, 7, 1);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C6DAC.s")
@@ -1617,32 +1381,7 @@ s32 func_802C6FD8(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef TRI_SCAN_TYPES_DEFINED
-#define TRI_SCAN_TYPES_DEFINED
-/* func_802AC0BC's FP and integer register results (62740.c), in and out. */
-typedef struct {
-    f32 pz;    /* f12 */
-    f32 cross; /* f14 */
-    f32 cz;    /* f20 */
-    f32 side;  /* f22 */
-    f32 sideZ; /* f24 */
-    f32 dz;    /* f26 */
-} TriSideOut;
-typedef struct {
-    s32 a1; /* found flag */
-    s32 a3;
-    s32 t6;
-    s32 t7;
-    s32 fp;
-    s32 s1;
-    s32 s2;
-    s32 s3;
-    s32 s4;
-} TriScanRegs;
-s32 func_802AC0BC(s32 x, s32 z, s32 y, TriSideOut *f, TriScanRegs *r);
-#endif
 extern u32 D_803F7BF8[]; /* x, y, z */
-extern s32 D_803EBBFC;   /* height of func_802AC0BC's best triangle */
 
 /* Ground check below the vehicle (D_803F7BF8 x/z, D_803F7BFC y) with
  * func_802AC0BC: when a triangle was found whose height h >= y, and h - y is
@@ -1693,7 +1432,6 @@ s32 func_802C70E8(TriSideOut *f, TriScanRegs *r) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803F7C49;
 
 /* D_803F7C49 = 1 when func_802AC0BC at (x, z, D_803F7BFC) finds ground at
  * least 200 above D_803F7BFC, else 0.
@@ -1801,25 +1539,10 @@ void func_802C7410(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef IO_802A6274_DEFINED
-#define IO_802A6274_DEFINED
-/* func_802A6274's in/out registers (60F60.c). */
-typedef struct {
-    s32 a3;
-    s32 t6;
-    s32 s1;
-} Io802A6274;
-#endif
 
 extern u8 D_803F7C43; /* previous frame's +0x96 */
 extern s8 D_803F7C3B; /* 0..50 ramp */
 extern u8 D_803F7C3A; /* countdown */
-extern u8 D_802C3804[]; /* definition handed to func_802A6274 */
-s32 func_802584BC(u8 id);
-s32 func_802ABC88(s32 id, s32 n, u8 **recOut);
-s32 func_80288284(u8 type, s32 x, s32 y, s32 z, s32 floor);
-s32 func_802A6274(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32 z, s32 w24, s32 w28,
-                  s32 w18, s32 w1C, s32 w2C, s32 b35);
 
 /* When +0x96 just became 1 (D_803F7C43 == 0) with D_803F7C3E set:
  * func_80288284(4, record (9, 1) of func_802ABC88, func_802584BC(9)). Then
@@ -1856,7 +1579,7 @@ void func_802C7544(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
         }
     }
     D_803F7C3B = v;
-    func_802A039C(D_803F7850, 1, (u32) (s32) D_803F7C3B / 4);
+    func_802A039C((Unk8029DEA0Entry *) D_803F7850, 1, (u32) (s32) D_803F7C3B / 4);
     if (D_803F7C3A != 0) {
         D_803F7C3A--;
         return;
@@ -1885,8 +1608,6 @@ extern u8 D_803F7C44; /* phase 0 (odd = waiting for input 0 to be released) */
 extern u8 D_803F7C45; /* timer 0 */
 extern u8 D_803F7C46; /* phase 1 */
 extern u8 D_803F7C47; /* timer 1 */
-extern u8 D_80370C1A; /* input 0 */
-extern u8 D_80370C1B; /* input 1 */
 
 /* One step of a press/release tracker: when the timer has run out the phase
  * is reset; otherwise the phase advances (and the timer restarts at 4) once
@@ -1921,7 +1642,6 @@ void func_802C770C(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s16 D_803F7C34;
 extern f32 D_8030D954;
 extern f32 D_8030D958;
 extern f32 D_8030D95C;
@@ -1996,9 +1716,9 @@ store1:
     D_803F7C2C = f;
     f = 1.0f - f;
     if (f <= 0.5f) {
-        func_802A0360(f * 2.0f, D_803F7850, 4, 1);
+        func_802A0360(f * 2.0f, (Unk8029DEA0Entry *) D_803F7850, 4, 1);
     } else {
-        func_802A0360((f - 0.5f) * 2.0f, D_803F7850, 4, 2);
+        func_802A0360((f - 0.5f) * 2.0f, (Unk8029DEA0Entry *) D_803F7850, 4, 2);
     }
 
     f = D_803F7C28;
@@ -2033,9 +1753,9 @@ store1:
 store2:
     D_803F7C28 = f;
     if (f <= 0.5f) {
-        func_802A0360(f * 2.0f, D_803F7850, 3, 1);
+        func_802A0360(f * 2.0f, (Unk8029DEA0Entry *) D_803F7850, 3, 1);
     } else {
-        func_802A0360((f - 0.5f) * 2.0f, D_803F7850, 3, 2);
+        func_802A0360((f - 0.5f) * 2.0f, (Unk8029DEA0Entry *) D_803F7850, 3, 2);
     }
 }
 #else
@@ -2093,25 +1813,7 @@ f32 func_802C7C1C(s32 up) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef MTX_CHAIN_REGS_DEFINED
-#define MTX_CHAIN_REGS_DEFINED
-/* func_802AA890's extra registers (62740.c), as func_8029C454 and
- * func_802ABBEC pass them through. */
-typedef struct {
-    s32 v1; /* out */
-    s32 a0; /* out */
-    s32 a3; /* in/out */
-    s32 s1; /* in/out */
-    s32 s2; /* in/out */
-    s32 s0; /* in */
-} MtxChainRegs;
-#endif
 extern u8 *D_803F7C04; /* this vehicle's model: +0 / +4 / +8 offsets of the point lists, +0x18 the matrix */
-extern u8 D_8035805C;  /* which of the save copy pair is current */
-extern s16 D_803ED390[]; /* rotation angles x, y, z for func_802AA764 */
-void func_8029C454(s32 x, s32 y, s32 z, s32 tag, u8 *p, u8 *end, u8 *base, MtxChainRegs *regs);
-void func_802AA764(s32 x, s32 y, s32 z, s32 scale, s32 *m);
-void func_802ABBEC(s32 id, s16 *p, s16 *end, u8 *base, MtxChainRegs *regs);
 
 /* Place this vehicle's model (vehicle 9): builds its matrix (scale 0x4268,
  * angles (0, +0x4C of the block, 0)) at the model's +0x18 entry inside the
@@ -2249,8 +1951,6 @@ void func_802C7F28(void) {
 #ifdef NON_MATCHING
 extern u8 D_803F7B50[];  /* this vehicle's state block: 0xA6 bytes are (de)serialized */
 extern u32 D_803F7BF8[]; /* plus these three words */
-s32 func_802AC7DC(u8 *dst, u8 *src, u32 *words);
-void func_802AC85C(u8 *src, u8 *dst, u32 *words);
 
 /* Serialize this vehicle's state (D_803F7B50[0..0xA5] plus the three words
  * D_803F7BF8[0..2]) into `dst` via func_802AC7DC. Returns the callee's result

@@ -1,21 +1,26 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_80217B70
+#define LEGACY_D_80358058
+#define LEGACY_D_80358070
+#endif /* legacy declarations */
+#include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_802E8F94 ((LevelInfo *) D_802E8F94)
+#define D_803156F8 ((Dynamic *) D_803156F8)
+#define D_80358050 ((u16 * *) D_80358050)
+#define D_80364AF0 ((Player *) D_80364AF0)
+#ifdef NON_MATCHING
+#define D_80217B70 ((Mtx *) D_80217B70)
+#define D_80358058 (*(u16 * *) &D_80358058)
+#define D_80358070 (*(s32 *) &D_80358070)
+#endif
+/* end of views */
 
-/* One entry per level on the front end's level-select globe. */
-typedef struct {
-    /* 0x00 */ u8 unk0;
-    /* 0x01 */ u8 unk1;
-    /* 0x04 */ char *name;
-    /* 0x08 */ u16 *jname; /* hd_code glyph string (0x0FFE-terminated) */
-    /* 0x0C */ s32 unkC;
-    /* 0x10 */ f32 unk10;
-    /* 0x14 */ f32 unk14;
-    /* 0x18 */ s8 unk18[4]; /* level ids, -1-terminated */
-    /* 0x1C */ s8 unk1C[8]; /* level ids, -1-terminated */
-    /* 0x24 */ f32 unk24;
-    /* 0x28 */ f32 unk28;
-    /* 0x2C */ f32 unk2C;
-} GlobeLevel; /* size 0x30 */
 
 #define MIN2(a, b) ((a) < (b) ? (a) : (b))
 #define MAX2(a, b) ((a) < (b) ? (b) : (a))
@@ -134,59 +139,25 @@ typedef struct {
     /* 0x21498 */ u8 pad21498[0x21498 - 0x48B0 - ((0x21498 - 0x48B0) / 8) * 8];
 } Dynamic;
 
-extern Gfx D_01000010[];
-extern Gfx D_01000038[];
-extern Dynamic D_803156F8[];
-extern u16 *D_80358050[];
+#ifndef NON_MATCHING
 extern u16 *D_80358058;
-extern void *D_8035806C;
-extern u16 D_8035807C;
-extern f32 D_802E8C84[];
-extern s32 D_802FA264; /* debug mode */
-extern u16 D_80370C28; /* controller buttons held */
-void func_8029A7E4(const char *fmt, ...);
-Gfx *func_80274BF0(Dynamic *, Gfx *);
+#endif
 f32 sqrtf(f32);
-void func_80259450(void);
-void func_80259DC8(void *gfxp, char *str, u16 *wstr, s32 align, s32 fit, s32 x, s32 y, s32 w, s32 h, s32 forward,
-                   s32 r0, s32 g0, s32 b0, s32 a0, s32 r1, s32 g1, s32 b1, s32 a1);
-Gfx *func_8024C404(Gfx *, Dynamic *, s32 *);
-void func_80259C24(Gfx **, Dynamic *);
-Gfx *func_80272ED8(Gfx *, s32, s32, s32, u32, s32, f32);
-Gfx *func_80274868(Gfx *);
-Gfx *func_80274AA4(Gfx *);
-s16 func_8025B498(s32, s32, char *, u16 *);
-s32 func_8025B300(char *);
-f32 func_802574F0(f32); /* sinf */
-f32 func_80257514(f32); /* cosf */
-extern u8 D_8035805C;
-extern void *D_80367738;
-extern u8 D_80364AE8;
-extern Player D_80364AF0[];
-extern LevelInfo D_802E8F94[];
-s32 func_8026A828(s32 lo, s32 hi);
-u8 func_80264BA4(u8 arg0);
-void func_80261FB0(u8 arg0);
-void *func_80260650(void *arg0, s16 arg1, void *arg2);
-u8 func_80272C5C(u16 *ids, s32 arg1, s32 count, s32 frames, s32 flags, f32 scale);
 
 /* front end */
-extern s32 D_80217B6C;
-extern u8 D_8021A8F0;
 extern Gfx *D_8021A8F8;
 extern u8 D_8021A905;
-extern f32 D_8021A918;
 extern u16 D_8021A924;
 extern u8 D_802159F0[];
+#ifndef NON_MATCHING
 extern Mtx D_80217B70[];
+#endif
 extern u8 D_8021A904;
 extern s8 D_8021A906;
 extern s8 D_8021A907;
 extern u8 D_8021A908;
 extern u8 D_8021A909;
 u64 D_8021A940[60];
-extern f32 D_8021A91C;
-extern f32 D_8021A920;
 extern f32 D_8021A934;
 extern f32 D_8021A938;
 extern u16 D_8021A926;
@@ -200,19 +171,14 @@ extern void *D_8021AB38;
 extern f32 D_8021AB40;
 extern f32 D_8021AB44;
 extern f32 D_8021AB48;
+#ifndef NON_MATCHING
 extern s32 D_80358070;
-Gfx *func_801F1568(void);
-Gfx *func_801F2000(void);
-Gfx *func_801F2428(void);
-Gfx *func_801F2E20(void);
+#endif
 void func_801F885C(s32 arg0);
 f32 func_801FD6B8(f32 a, f32 b, f32 range);
-void func_801FDE50(void);
-void func_801FDCA4(Vtx *v, s32 idx, s32 z);
 Gfx *func_801FE5D0(Gfx *arg0, Dynamic *dyn);
 Gfx *func_801FC5B8(Dynamic *dyn, Gfx *gdl, u8 from, u8 to);
 void func_801FDE98(void);
-Gfx *func_801F3450(Gfx *, Dynamic *);
 extern Gfx *D_8021A8F4;
 extern Gfx *D_8021A8FC;
 extern Gfx *D_8021A900;
@@ -222,7 +188,6 @@ extern LevelInfo *D_8021AB34;
 extern f32 D_8021AB4C;
 extern f32 D_8021AB50;
 extern f32 D_8021AB54;
-extern u8 *D_80215A70[]; /* plane icon animation frames, 32x32 RGBA32 */
 extern Vtx D_8021A840[2][4];
 extern s32 D_8021A8C0; /* flight time */
 extern f32 D_8021A8C4; /* flight start/end points */
@@ -236,19 +201,6 @@ extern f32 D_8021A8E0; /* cos of the arc */
 extern f32 D_8021A8E4; /* arc angle */
 extern f32 D_8021A8E8; /* flight progress 0..1 */
 extern f32 D_8021A8EC; /* altitude scale */
-extern u32 D_803156C4;
-extern s32 D_80358060;
-extern s32 D_80358078;
-extern s32 D_80358080;
-extern s32 D_80358084;
-extern OSMesgQueue D_80315180;
-extern u8 D_80364A87;
-extern u64 D_80364A98; /* next game mode */
-extern s32 D_802E8BDC; /* current level */
-extern s8 D_80370C2C; /* stick x */
-extern s8 D_80370C2D; /* stick y */
-extern u16 D_80370C2A; /* controller buttons, previous frame */
-extern s16 yoshiState;
 extern f32 D_8021A90C;
 extern f32 D_8021A910;
 extern f32 D_8021A914;
@@ -259,31 +211,15 @@ extern f32 D_8021AB60;
 extern f32 D_8021AB64;
 extern Gfx *D_8021AB68;
 extern Gfx *D_8021AB6C;
-void func_802A5720(void);
-void func_802A57AC(void);
-void func_8028A3E4(void);
-void func_8028A470(void);
-void func_80284E54(Gfx *, s32, s32, s32, s32, s32);
-s32 func_802753C0(void);
-void func_80275390(u64);
-void func_80260A10(void);
-void func_802608C8(void *);
-f32 func_8028BBF4(s32, s32, s32, s32);
-u64 func_80299FE8(s32);
-void func_801ECB18(void);
 Gfx *func_801F9258(Gfx *, Dynamic *, s32 *);
 Gfx *func_801F9820(Gfx *, Dynamic *, s32 *);
 Gfx *func_801F9B84(Gfx *, Dynamic *, s32 *);
 void func_801FD748(void);
-s32 func_802AD7D4(s32);
 
 void func_801FCF38(Vtx *v, f32 x, f32 y, f32 z, u8 w, u8 h, f32 scale, u8 flip);
-void func_801FD484(f32 *arg0, f32 *arg1, f32 *arg2, f32 *arg3, f32 *arg4, f32 arg5);
-s32 func_801FE760(); /* K&R */
 Gfx *func_801FA180(Gfx *gdl, Dynamic *dyn, f32 arg2, s8 *arg3);
 Gfx *func_801FA74C(Dynamic *dyn, Gfx *arg1, u8 from, u8 to, s8 *out, f32 *lon, u8 curved, u8 r0, u8 g0, u8 b0,
                    u8 r1, u8 g1, u8 b1);
-void func_8027690C(void *arg0, f32 x, f32 y, f32 z, s16 *sx, s16 *sy, Mtx *arg6, Mtx *arg7, Mtx *arg8, f32 arg9);
 
 /* Level-select globe: initialise for the given level. */
 void func_801F8530(s32 level) {
@@ -375,12 +311,12 @@ void func_801F8980(void) {
     D_80358084 = 0;
     func_802A5720();
     func_8028A3E4();
-    if (D_80358060) {
-        func_80284E54(D_803156F8[D_8035805C].gfx, D_80358078, 2, 0, 1234, 0);
-        func_80284E54(D_8021AB68, D_8021AB58, 0, 0, 1234, 0);
-        func_80284E54(D_8021AB6C, D_8021AB5C, 1, 1, 1234, 0);
+    if (((s32) D_80358060)) {
+        func_80284E54((u64 *) (D_803156F8[D_8035805C].gfx), D_80358078, 2, 0, 1234, 0);
+        func_80284E54((u64 *) D_8021AB68, D_8021AB58, 0, 0, 1234, 0);
+        func_80284E54((u64 *) D_8021AB6C, D_8021AB5C, 1, 1, 1234, 0);
     } else {
-        func_80284E54(D_803156F8[D_8035805C].gfx, D_80358078, 1, 1, 1234, 0);
+        func_80284E54((u64 *) (D_803156F8[D_8035805C].gfx), D_80358078, 1, 1, 1234, 0);
     }
     D_8035805C ^= 1;
     dyn = &D_803156F8[D_8035805C];
@@ -511,7 +447,7 @@ Gfx *func_801F9258(Gfx *arg0, Dynamic *dyn, s32 *count) {
     gDPPipelineMode(gdl++, G_PM_1PRIMITIVE);
     gDPSetColorDither(gdl++, 0x80);
     gdl = func_801FE5D0(gdl, dyn);
-    gdl = func_801F3450(gdl, dyn);
+    gdl = func_801F3450(gdl, (u8 *) dyn);
     func_80259450();
     {
         u32 h;
@@ -522,10 +458,10 @@ Gfx *func_801F9258(Gfx *arg0, Dynamic *dyn, s32 *count) {
 
         size = 0x18;
         h = D_8021AB2C / 9;
-        func_80259DC8(dyn, D_8020D810[D_8021A908].name, D_8020D810[D_8021A908].jname, 0, 0xA0, 0, (0x1C - h) / 2 + 0x12,
+        func_80259DC8((Gfx **) dyn, (u8 *) (D_8020D810[D_8021A908].name), D_8020D810[D_8021A908].jname, 0, 0xA0, 0, (0x1C - h) / 2 + 0x12,
                       size, h, 1, 0xFF, 0xFF, 0xFF, D_8021AB2C, 0, 0, 0xFF, D_8021AB2C);
-        gdl = func_8024C404(gdl, dyn, &n);
-        func_80259C24(&gdl, dyn);
+        gdl = func_8024C404(gdl, (DynamicBuf *) dyn, &n);
+        func_80259C24(&gdl, (Mtx *) dyn);
         info = &D_802E8F94[D_8021A908];
         gdl = func_80274868(gdl);
         y = 0xDA;
@@ -541,8 +477,8 @@ Gfx *func_801F9258(Gfx *arg0, Dynamic *dyn, s32 *count) {
                 alt ^= 1;
             }
         }
-        x = func_8025B498(0xA0, size, D_8020D810[D_8021A908].name, D_8020D810[D_8021A908].jname);
-        w = (s32) (size * D_802E8C84[0]) * func_8025B300(D_8020D810[D_8021A908].name);
+        x = func_8025B498(0xA0, size, (u8 *) (D_8020D810[D_8021A908].name), (s32) (D_8020D810[D_8021A908].jname));
+        w = (s32) (size * D_802E8C84[0]) * func_8025B300((u8 *) (D_8020D810[D_8021A908].name));
     }
     gdl = func_80274AA4(gdl);
     gSPEndDisplayList(gdl++);
@@ -598,7 +534,7 @@ Gfx *func_801F9B84(Gfx *arg0, Dynamic *dyn, s32 *count) {
     gSPMatrix(gdl++, &dyn->translate, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
     gdl = func_801FC5B8(dyn, gdl, D_8021A904, D_8021A905);
     func_801FDE98();
-    gdl = func_80274BF0(&dyn[D_8035805C], gdl);
+    gdl = func_80274BF0((s32) &dyn[D_8035805C], gdl);
     gDPFullSync(gdl++);
     gSPEndDisplayList(gdl++);
     if (D_802FA264) {
@@ -643,7 +579,11 @@ Gfx *func_801FA180(Gfx *arg0, Dynamic *dyn, f32 lon0, s8 *selected) {
     s32 i;
     s32 j;
     s8 out;
+#ifdef NON_MATCHING
+    s8 sel = 0; /* only stored when best < 45, which some entry setting sel guarantees */
+#else
     s8 sel;
+#endif
 
     best = 180.0f;
     D_8021A909 = 0;
@@ -1285,12 +1225,20 @@ Gfx *func_801FE5D0(Gfx *arg0, Dynamic *dyn) {
     return gdl;
 }
 
-/* Whether a level stays locked (needs more progress, or a prerequisite level unfinished). */
+/* Whether a level stays locked (needs more progress, or a prerequisite level unfinished).
+ * K&R in the matching build, where the unused second parameter is the
+ * scratch the checks below reuse (no caller passes it). */
+#ifdef NON_MATCHING
+s32 func_801FE760(u8 level) {
+    s32 arg1;
+    u8 locked = 0;
+#else
 s32 func_801FE760(level, arg1)
     u8 level;
     s32 arg1;
 {
     u8 locked = 0;
+#endif
 
     if (D_802E8F94[level].unk1 > D_80364AF0[D_80364AE8].unk91 &&
         ((D_802E8F94[level].type & 0x81) || (level >= 0x2B && level < 0x2F))) {

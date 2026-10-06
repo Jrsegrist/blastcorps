@@ -13,38 +13,11 @@
 
 #ifdef NON_MATCHING
 #include <ultra64.h>
+#include "game/game.h"
 
-typedef struct Unk8029DEA0Entry Unk8029DEA0Entry;
 
-/* func_802A396C's register results (as in hd_code 5CB60.c) */
-typedef struct {
-    /* 0x0 */ u8 *s2; /* the loaded data (old heap pointer) */
-    /* 0x4 */ u8 *s4;
-    /* 0x8 */ u8 *a1; /* the new heap end */
-} Out802A396C;
-
-extern u8 *D_80358070; /* hd_code heap pointer */
 /* engine-sound channel tables in hd_code's 7D9D0 text blob */
-extern u8 D_802C2190[];
-extern u8 D_802C21A4[];
-extern u8 D_802C21B8[];
-extern u8 D_802C2208[];
-extern u8 D_802C226C[];
 
-void func_802A396C(s32 type, Out802A396C *out);
-void func_802A1388(s32 a0Val, s32 a1Val, s32 v0Val, s32 v1Val, u8 *hdr);
-void func_8029E558(u8 *base, u8 *other, Unk8029DEA0Entry *ch);
-s32 func_8029F85C(u32 *bufA, u32 *bufB, Unk8029DEA0Entry *ch, u8 *hdr);
-void func_802A039C(Unk8029DEA0Entry *base, s32 idx, s32 val);
-void func_802A03D4(Unk8029DEA0Entry *base, s32 idx, s32 val);
-void func_802A040C(Unk8029DEA0Entry *base, s32 idx, s32 val);
-void func_802A0480(f32 f, Unk8029DEA0Entry *base, s32 idx, s32 val);
-void func_802A0290(Unk8029DEA0Entry *base, s32 idx, s32 val);
-void func_802A05A4(f32 f, s32 key, s32 val);
-void func_802A05D0(s32 key, s32 val);
-void func_802A05F8(s32 key, s32 val);
-void func_802A0620(s32 key, s32 val);
-void func_802A0508(s32 key, s32 val);
 
 /*
  * Load model `type` (func_802A396C), reserve two 6000-byte heap buffers

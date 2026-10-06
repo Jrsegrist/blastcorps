@@ -1,5 +1,10 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_802F5804 ((PathNode *) D_802F5804)
+#define D_802F8BDC ((YoshiArg *) D_802F8BDC)
+/* end of views */
 
 /* controller.c: controller init, reading, the demo/replay pad source and
  * per-button edge flags. */
@@ -38,76 +43,25 @@ typedef struct {
 
 extern OSContPad D_80370BD8; /* this frame's pad */
 extern OSMesg D_80370BF0;
-extern OSMesgQueue D_80370BF8; /* SI event queue */
 extern OSContStatus D_80370BC8;
 extern u8 D_80370C10; /* a read is in flight */
-extern u8 D_8039C4B0;
-extern u8 D_802E8BD0;
-extern s32 D_802E8BDC; /* current level */
-extern u8 D_80364456;  /* control method */
-extern u32 D_80358060; /* frame counter */
-extern u32 D_80358064;
-extern u64 D_80364A90; /* game mode flags */
 extern Player D_80364BE0[];
-extern u8 D_80364AE8; /* current player */
-extern PathNode D_802F5804[];
-extern YoshiArg D_802F8BDC[];
 
 /* stick x/y: this frame and last frame */
-extern s8 D_80370C11;
-extern s8 D_80370C12;
-extern s8 D_80370C13;
-extern s8 D_80370C14;
 /* one flag per button, set while held */
-extern u8 D_80370C15; /* L_JPAD */
-extern u8 D_80370C16; /* R_JPAD */
 extern u8 D_80370C17; /* U_JPAD */
 extern u8 D_80370C18; /* D_JPAD */
 extern u8 D_80370C19; /* START */
-extern u8 D_80370C1A; /* L_TRIG */
-extern u8 D_80370C1B; /* R_TRIG */
-extern u8 D_80370C1C; /* A */
-extern u8 D_80370C1D; /* B */
-extern u8 D_80370C1E; /* L_CBUTTONS */
 extern u8 D_80370C1F; /* D_CBUTTONS */
 extern u8 D_80370C20; /* U_CBUTTONS */
-extern u8 D_80370C21; /* R_CBUTTONS */
-extern u8 D_80370C22; /* Z */
-extern u8 D_80370C23; /* B or Z */
 /* last frame's C buttons */
-extern u8 D_80370C24;
 extern u8 D_80370C25;
 extern u8 D_80370C26;
-extern u8 D_80370C27;
-extern u16 D_80370C28; /* buttons this frame */
-extern u16 D_80370C2A; /* buttons last frame */
-extern s8 D_80370C2C;
-extern s8 D_80370C2D;
-extern s8 D_80370C2E;
 extern s8 D_80370C2F;
 /* the alternative pad source */
-extern u16 D_80370C30;
-extern s8 D_80370C32;
-extern s8 D_80370C33;
-extern u8 D_80370C34;
-extern u8 D_80370C35; /* stick mode */
-extern s32 D_80370C38; /* swallow a held B */
 extern s32 D_80370BC0;
 extern s32 D_80370C40;
-extern u8 D_80370C75;
-extern u8 D_803ED40A;
-extern s16 D_803F7C34;
-extern u8 D_803F7C3F;
 
-void func_802DB0A0(OSMesgQueue *mq, u8 *bitpattern, OSContStatus *status);
-void func_802DB4D0(OSMesgQueue *mq);
-void func_802DB594(OSContPad *pad);
-void func_8029A7E4(const char *fmt, ...);
-void func_8026AF6C(u16 yd);
-void func_8025BEF8(void);
-void func_8025BBE8(u16 button, s8 x, s8 y);
-void func_8028B734(s8 *x, s8 *y, u8 mode);
-void func_8028A42C(void);
 void func_8028ADF0(u8 arg0, u8 arg1, u16 *btn, s8 *x, s8 *y);
 void func_8028AFA4(u16 btn, s8 *x, s8 *y);
 void func_8028B0E8(u16 *btn, s8 x, s8 y);
@@ -153,7 +107,7 @@ void func_8028A470(void) {
     s32 unused;
     s32 mode;
 
-    if (D_80358064 != 0) {
+    if (((u32) D_80358064) != 0) {
         if (D_8039C4B0 == 0 && D_80370C10 != 0) {
             osRecvMesg(&D_80370BF8, NULL, 1);
             func_802DB594(pad);

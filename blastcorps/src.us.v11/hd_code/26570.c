@@ -1,5 +1,26 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_8036BB24
+#define LEGACY_D_8036BED8
+#define LEGACY_func_8026BBD0
+#endif /* legacy declarations */
+#include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_8020C070 ((PathNode *) D_8020C070)
+#define D_802E8F94 ((LevelInfo *) D_802E8F94)
+#define D_802F49F4 ((YoshiSnd *) D_802F49F4)
+#define D_802F5804 ((PathNode *) D_802F5804)
+#define D_802F8BDC ((YoshiArg *) D_802F8BDC)
+#define D_80364AF0 ((Player *) D_80364AF0)
+#ifdef NON_MATCHING
+#define D_8036BB24 (*(PathNode * *) &D_8036BB24)
+#define D_8036BED8 (*(YoshiNode * *) &D_8036BED8)
+#endif
+/* end of views */
 
 #define YOSHI_ASSERT(EX, line) \
     if (!(EX)) func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "yoshi.c", line)
@@ -112,147 +133,66 @@ typedef struct YoshiArg {
 /* Frame buffers passed in as arg1 */
 #define YMTX(off) ((Mtx *) (arg1 + (off)))
 
-void func_8029A7E4(const char *fmt, ...);
 u16 func_8026F8A8(u16 arg0, u16 arg1, u16 start, u16 mask);
 void func_8026FB50(struct YoshiArg *arg0);
-void func_8026AF6C(u16 yd);
 s32 func_80270A54();
-s32 func_80297EF8(s32 level);
-void *func_8025B558(u16 *text);
-u8 func_8026AD30(s16 arg0);
-void func_8026A5CC(void *arg0, void *arg1, s32 arg2);
-s32 func_8026A6F0(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5);
-void func_802AC544(s32 arg0, s32 arg1, s32 arg2);
-void *func_80260650(void *arg0, u16 arg1, void *arg2);
 void func_8026BA7C(struct YoshiArg *arg0);
-u8 func_8026FA38(char **name, s32 *arg1);
-s32 func_8026F92C(u64 in);
 Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count);
-s8 func_80272C5C(void *arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, f32 arg5);
 void func_8026EF70(YoshiArg *arg0);
 void *func_8026F004(YoshiArg *arg0, u16 idx, u8 japanese);
 u8 func_8026F644(u16 *arg0, u16 *arg1, s16 arg2);
 u16 func_8026F82C(u16 lo, u16 hi, u16 mask);
-s16 func_8025B498(s32, s32, u8 *, u16 *);
-void func_80261570(f32);
-f32 func_802574F0(f32);
-void func_80259BD4(Gfx **gdlp, s32 arg1);
-void func_80259DC8(s32 gfxp, u8 *str, u16 *wstr, s32 align, s32 fit, s32 x, s32 y, s32 w, s32 h, s32 forward,
-                   s32 r0, s32 g0, s32 b0, s32 a0, s32 r1, s32 g1, s32 b1, s32 a1);
-Gfx *func_80272ED8(Gfx *, s32, s32, s32, u32, s32, f32);
-Gfx *func_80274868(Gfx *);
-Gfx *func_80274998(Gfx *);
-Gfx *func_80274AA4(Gfx *);
-Gfx *func_80274B08(Gfx *);
-Gfx *func_80275DA4(Gfx *, s32);
-s32 func_80276080(s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32);
-s32 func_80276130(s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32,
-                  s32, s32, s32, s32);
 
 extern u16 yoshiDemandV;
 extern s16 D_8036BB0C;
 extern s8 D_8036BB0E;
-extern u16 D_8036BB16;
 extern u32 D_8036BB40;
-extern u8 D_802F47B0[][8]; /* colour pairs */
-extern u8 D_803643DB;
-extern u8 D_803643D6;
-extern s8 D_80370C11;
-extern s8 D_80370C12;
-extern s8 D_80370C13;
-extern s8 D_80370C14;
-extern u16 D_80370C28; /* buttons this frame */
-extern u16 D_80370C2A; /* buttons last frame */
-extern u8 D_802E8BD4;
-extern u8 D_802E8BD8;
 extern f32 D_8036BB08;
 extern f32 D_8036BB28;
 extern f32 D_8036BB2C;
 extern s32 D_8036BB30;
-extern f32 D_8036BB34;
 extern f32 D_8036BB38;
-extern s16 D_8036BB20;
 extern u16 D_8036BB3C;
 extern u16 D_8036BB3E;
 extern s32 D_8036BB44;
 extern s32 D_802F9930;
-extern u8 D_8035805C;
 extern u8 D_8036BA48[];
 extern Gfx D_802F98B0[];
 extern u8 D_8036BAE8[];
-extern LevelInfo D_802E8F94[];
 extern u8 D_802F4878[];
-extern u8 D_802E8BF8;
 extern u16 D_8036BB48[];
 extern u16 D_8036BB4A[];
 /* Per-language special characters: [0] for English, [1] for Japanese */
-extern u16 D_802E8C8C[];
-extern u16 D_802E8C90[];
-extern u16 D_802E8C94[];
-extern u16 D_802E8C98[]; /* string terminator */
 extern u16 D_802E8C9C[];
-extern u32 D_803156C4;
 extern u32 D_8036BB00;
 extern u32 D_8036BAFC;
 /* Debug switches set from the command line */
 extern s32 D_802FA250; /* -v */
-extern s32 D_802FA254; /* -d */
 extern s32 D_802FA258; /* -s */
 extern s32 D_802FA25C; /* -j */
 extern s32 D_802FA260; /* -m */
-extern s32 D_802FA264; /* -l */
-extern s32 D_802FA268; /* -c, -C */
-extern s32 D_802FA26C; /* -C */
-extern u16 D_8036EB90;
-extern u16 D_8036BBB0[];
 extern u16 D_8036BBB2[];
 extern s32 D_8036BED4;
+#ifndef NON_MATCHING
 extern YoshiNode *D_8036BED8;
+#endif
 extern f32 D_8036BEDC;
 extern u8 D_8036BEE0;
-extern void *D_80358070;
-extern s32 D_803BE70C;
-extern s32 D_803BE710;
-extern s16 D_803BE714;
 extern Vtx D_802F99C0[]; /* quad template */
-extern f32 D_80364414;
 extern u8 D_802F9A00[]; /* 16x16 RGBA32 textures */
 extern u8 D_802F9E00[];
-extern s32 D_803643E0;
-extern s32 D_803643E4;
-extern s32 D_803643E8;
-extern u8 D_80364456;
 extern s32 D_802FA200[];
-extern u8 D_802E8BD0;
-extern void *D_80367738;
-extern u64 D_80364A90;
-extern u8 D_80364AE8;
-extern Player D_80364AF0[];
 extern YoshiTrigger D_802F48D0[];
-extern s32 D_802E8BDC;
 extern u8 D_802F499A[];
 extern u8 D_8036BAA2[];
-extern s16 D_8036BB1A;
-extern u32 D_80364AA8;
-extern u64 D_80364A98;
-extern u8 D_802F4868[];
-extern u8 D_802F4870[];
-extern struct YoshiArg D_802F8BDC[];
 extern u16 D_8036BB04;
 extern u16 D_8036BB06;
 extern PathNode *D_8036BB10;
-extern s16 D_8036BB1E;
+#ifndef NON_MATCHING
 extern PathNode *D_8036BB24;
-extern s16 currentYoshiWindow;
-extern s16 yoshiState;
+#endif
 extern u8 D_8036BA98[];
-extern YoshiSnd D_802F49F4[];
-extern u16 D_8036EA7C;
-extern PathNode D_8020C070[];
-extern PathNode D_802F5804[];
 extern PathInfo D_802F9934[];
-extern u16 D_803C30A8[];
-extern s32 D_803F7684;
 
 u8 func_8026AD30(s16 arg0) {
     YoshiTrigger *trig;
@@ -481,7 +421,7 @@ void func_8026BA7C(YoshiArg *arg0) {
         if (node->flags & 0x400) {
             snd = &D_802F49F4[node->unk14];
             if (snd->unk2E == -1) {
-                node->unk1A = func_80272C5C(snd->unk6, 0, snd->unk4, snd->unk2C, snd->unk2D | v, 1.0f);
+                node->unk1A = func_80272C5C((u16 *) snd->unk6, 0, snd->unk4, snd->unk2C, snd->unk2D | v, 1.0f);
                 D_8036BA98[node->unk14] = 0;
             } else {
                 node->unk1A = snd->unk2E;
@@ -490,7 +430,11 @@ void func_8026BA7C(YoshiArg *arg0) {
     }
 }
 
+#ifdef NON_MATCHING
+Gfx *func_8026BBD0(Gfx *gfx, s32 arg1, s32 *count) {
+#else
 void func_8026BBD0(Gfx *gfx, s32 arg1, s32 *count) {
+#endif
     Gfx *gdl = gfx;
 
     YOSHI_ASSERT(!(yoshiState==YOSHI_OFF && currentYoshiWindow!=NO_YOSHI_WINDOW), 1567);
@@ -498,6 +442,13 @@ void func_8026BBD0(Gfx *gfx, s32 arg1, s32 *count) {
     YOSHI_ASSERT(!(yoshiState==YOSHI_OFF && currentYoshiWindow!=NO_YOSHI_WINDOW), 1571);
     gDPPipeSync(gdl++);
     *count += gdl - gfx;
+#ifdef NON_MATCHING
+    /* The original returns nothing (a void function in the matching build)
+     * but leaves func_8026BCE0's result in v0, and its callers (hd.c, the
+     * front end) take that as the new display-list end: the next command
+     * they write replaces the pipesync above. */
+    return gdl - 1;
+#endif
 }
 
 #define PRESSED(m) ((D_80370C28 & (m)) && !(D_80370C2A & (m)))
@@ -649,9 +600,9 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
                     node = &D_8036BB10[i];
                     if (node->flags & 0x20) {
                         if (arg->flags & 0x80000) {
-                            node->x = func_8025B498(arg->w / 2, node->w, node->text, node->jtext);
+                            node->x = func_8025B498(arg->w / 2, node->w, node->text, (s32) node->jtext);
                         } else {
-                            node->x = func_8025B498(arg->w / 2, node->w, node->text, node->jtext);
+                            node->x = func_8025B498(arg->w / 2, node->w, node->text, (s32) node->jtext);
                         }
                     }
                 }
@@ -887,10 +838,10 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
                     u8 *c2;
 
                     c2 = D_802F47B0[18];
-                    cc = func_80276130(arg1, 0, cc, -halfW, halfH - D_8036BB44 - off, 16, D_8036BB44 / 2 + 10,
+                    cc = func_80276130((struct SpriteVtxBuf *) arg1, 0, cc, -halfW, halfH - D_8036BB44 - off, 16, D_8036BB44 / 2 + 10,
                                        c2[0], c2[1], c2[2], D_8036BB20, c2[4], c2[5], c2[6], D_8036BB20,
                                        c2[0], c2[1], c2[2], D_8036BB20, c2[4], c2[5], c2[6], D_8036BB20);
-                    cc = func_80276080(arg1, 0, cc, -3 - halfW, halfH - D_8036BB44 - off + 3, 16,
+                    cc = func_80276080((struct SpriteVtxBuf *) arg1, 0, cc, -3 - halfW, halfH - D_8036BB44 - off + 3, 16,
                                        D_8036BB44 / 2 + 10, 0, 0, 0, D_8036BB20 / 2);
                     gdl = func_80275DA4(gdl, 1);
                     gSPVertex(gdl++, arg1 + 0x1E00, 8, 0);
@@ -906,10 +857,10 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
                     /* The ROM reloads c3[0] for the second colour here (unlike the call above, where
                      * IDO reuses the first load). No plain spelling found that defeats ugen's load
                      * cache; the volatile cast reproduces it with identical code. */
-                    cc = func_80276130(arg1, 1, cc, -halfW, D_8036BB44 - halfH + off, 16, D_8036BB44 / 2 + 10,
+                    cc = func_80276130((struct SpriteVtxBuf *) arg1, 1, cc, -halfW, D_8036BB44 - halfH + off, 16, D_8036BB44 / 2 + 10,
                                        c3[0], c3[1], c3[2], D_8036BB20, c3[4], c3[5], c3[6], D_8036BB20,
                                        ((volatile u8 *) c3)[0], c3[1], c3[2], D_8036BB20, c3[4], c3[5], c3[6], D_8036BB20);
-                    cc = func_80276080(arg1, 1, cc, -3 - halfW, D_8036BB44 - halfH + off - 3, 16,
+                    cc = func_80276080((struct SpriteVtxBuf *) arg1, 1, cc, -3 - halfW, D_8036BB44 - halfH + off - 3, 16,
                                        D_8036BB44 / 2 + 10, 0, 0, 0, D_8036BB20 / 2);
                     gdl = func_80275DA4(gdl, 1);
                     gSPVertex(gdl++, &((Vtx *) (arg1 + 0x1D80))[cc], 8, 0);
@@ -970,13 +921,13 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
                             }
                             gdl = func_80272ED8(gdl, node->unk1A + frame - 1, snd->x + node->x + x,
                                                 ((node->flags & 0x1000) ? D_8036BB30 : 0) + (snd->y + node->y + y),
-                                                func_8026F644(arg, node, node->y + snd->y - halfH + D_8036BB30 + 8) *
+                                                func_8026F644((u16 *) arg, (u16 *) node, node->y + snd->y - halfH + D_8036BB30 + 8) *
                                                     D_8036BB38 * D_8036BB34,
                                                 mode, snd->scale);
                         } else {
                             gdl = func_80272ED8(gdl, node->unk1A + frame - 1, snd->x + node->x + x,
                                                 ((node->flags & 0x1000) ? D_8036BB30 : 0) + (snd->y + node->y + y),
-                                                func_8026F644(arg, node, node->y + snd->y - halfH + D_8036BB30 + 8) *
+                                                func_8026F644((u16 *) arg, (u16 *) node, node->y + snd->y - halfH + D_8036BB30 + 8) *
                                                     D_8036BB38 * D_8036BB34 * 0.7,
                                                 mode & ~1, snd->scale);
                         }
@@ -996,19 +947,19 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
                 text = func_8026F004(arg, i, 0);
                 if ((node->flags & 0x80) && !(node->flags & 0x800)) {
                     if (i == arg->sel) {
-                        func_80259DC8(arg1, text, wtext, node->flags & 8, 0, node->x - halfW - 3,
+                        func_80259DC8((Gfx **) arg1, text, wtext, node->flags & 8, 0, node->x - halfW - 3,
                                       ((node->flags & 0x1000) ? D_8036BB30 : 0) + (node->y - halfH) + 3, node->w,
                                       node->h, 1, 0, 0, 0,
-                                      D_8036BB20 * D_802F47B0[node->selColor][3] * func_8026F644(arg, node, node->y - halfH + D_8036BB30) / 65025 / 2,
+                                      D_8036BB20 * D_802F47B0[node->selColor][3] * func_8026F644((u16 *) arg, (u16 *) node, node->y - halfH + D_8036BB30) / 65025 / 2,
                                       0, 0, 0,
-                                      D_8036BB20 * D_802F47B0[node->selColor][3] * func_8026F644(arg, node, node->y - halfH + D_8036BB30 + node->h) / 65025 / 2);
+                                      D_8036BB20 * D_802F47B0[node->selColor][3] * func_8026F644((u16 *) arg, (u16 *) node, node->y - halfH + D_8036BB30 + node->h) / 65025 / 2);
                     } else if (!(node->flags & 4) || FRAMES(D_803156C4 % 23) < 16) {
-                        func_80259DC8(arg1, text, wtext, node->flags & 8, 0, node->x - halfW - 3,
+                        func_80259DC8((Gfx **) arg1, text, wtext, node->flags & 8, 0, node->x - halfW - 3,
                                       ((node->flags & 0x1000) ? D_8036BB30 : 0) + (node->y - halfH) + 3, node->w,
                                       node->h, 1, 0, 0, 0,
-                                      D_8036BB20 * D_802F47B0[node->color][3] * func_8026F644(arg, node, node->y - halfH + D_8036BB30) / 65025 / 2,
+                                      D_8036BB20 * D_802F47B0[node->color][3] * func_8026F644((u16 *) arg, (u16 *) node, node->y - halfH + D_8036BB30) / 65025 / 2,
                                       0, 0, 0,
-                                      D_8036BB20 * D_802F47B0[node->color][3] * func_8026F644(arg, node, node->y - halfH + D_8036BB30 + node->h) / 65025 / 2);
+                                      D_8036BB20 * D_802F47B0[node->color][3] * func_8026F644((u16 *) arg, (u16 *) node, node->y - halfH + D_8036BB30 + node->h) / 65025 / 2);
                     }
                 }
             }
@@ -1021,23 +972,23 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
                 if (i == arg->sel) {
                     if ((!(node->flags & 4) || FRAMES(D_803156C4 % 23) < 16) &&
                         (!(node->flags & 0x40) || FRAMES(D_803156C4 % 15) < 11)) {
-                        func_80259DC8(arg1, text, wtext, node->flags & 8, 0, node->x - halfW,
+                        func_80259DC8((Gfx **) arg1, text, wtext, node->flags & 8, 0, node->x - halfW,
                                       ((node->flags & 0x1000) ? D_8036BB30 : 0) + (node->y - halfH), node->w,
                                       node->h, 1, D_802F47B0[node->selColor][0], D_802F47B0[node->selColor][1],
                                       D_802F47B0[node->selColor][2],
-                                      D_8036BB20 * D_802F47B0[node->selColor][3] * func_8026F644(arg, node, node->y - halfH + D_8036BB30) / 65025,
+                                      D_8036BB20 * D_802F47B0[node->selColor][3] * func_8026F644((u16 *) arg, (u16 *) node, node->y - halfH + D_8036BB30) / 65025,
                                       D_802F47B0[node->selColor][4], D_802F47B0[node->selColor][5],
                                       D_802F47B0[node->selColor][6],
-                                      D_8036BB20 * D_802F47B0[node->selColor][7] * func_8026F644(arg, node, node->y - halfH + D_8036BB30 + node->h) / 65025);
+                                      D_8036BB20 * D_802F47B0[node->selColor][7] * func_8026F644((u16 *) arg, (u16 *) node, node->y - halfH + D_8036BB30 + node->h) / 65025);
                     }
                 } else if (!(node->flags & 4) || FRAMES(D_803156C4 % 23) < 16) {
-                    func_80259DC8(arg1, text, wtext, node->flags & 8, 0, node->x - halfW,
+                    func_80259DC8((Gfx **) arg1, text, wtext, node->flags & 8, 0, node->x - halfW,
                                   ((node->flags & 0x1000) ? D_8036BB30 : 0) + (node->y - halfH), node->w, node->h,
                                   1, D_802F47B0[node->color][0], D_802F47B0[node->color][1],
                                   D_802F47B0[node->color][2],
-                                  D_8036BB20 * D_802F47B0[node->color][3] * func_8026F644(arg, node, node->y - halfH + D_8036BB30) / 65025,
+                                  D_8036BB20 * D_802F47B0[node->color][3] * func_8026F644((u16 *) arg, (u16 *) node, node->y - halfH + D_8036BB30) / 65025,
                                   D_802F47B0[node->color][4], D_802F47B0[node->color][5], D_802F47B0[node->color][6],
-                                  D_8036BB20 * D_802F47B0[node->color][7] * func_8026F644(arg, node, node->y - halfH + D_8036BB30 + node->h) / 65025);
+                                  D_8036BB20 * D_802F47B0[node->color][7] * func_8026F644((u16 *) arg, (u16 *) node, node->y - halfH + D_8036BB30 + node->h) / 65025);
                 }
             }
         }
@@ -1244,7 +1195,7 @@ void func_8026FBB0(s16 *pos, s16 *end) {
     if (D_80364A90 != 0x40) {
         D_8036BED4 = *D_8036BBB0 = 0;
     }
-    D_8036BED8 = D_80358070;
+    D_8036BED8 = (YoshiNode *) D_80358070;
     D_8036BEE0 = 0;
     D_8036BEDC = 999999.0f;
     while (pos != end) {
@@ -1253,11 +1204,11 @@ void func_8026FBB0(s16 *pos, s16 *end) {
         D_8036BED8[D_8036EB90].z = pos[2];
         D_8036BED8[D_8036EB90].visited = 0;
         D_8036BED8[D_8036EB90].cell = pos[0] / (D_803BE70C >> 5) + pos[2] / (D_803BE710 >> 5) * D_803BE714;
-        func_8026A5CC(D_8036BED8[D_8036EB90].vtx[0], D_802F99C0, sizeof(D_8036BED8->vtx[0]));
-        func_8026A5CC(D_8036BED8[D_8036EB90].vtx[1], D_802F99C0, sizeof(D_8036BED8->vtx[1]));
+        func_8026A5CC((u64 *) (D_8036BED8[D_8036EB90].vtx[0]), (u64 *) D_802F99C0, sizeof(D_8036BED8->vtx[0]));
+        func_8026A5CC((u64 *) (D_8036BED8[D_8036EB90].vtx[1]), (u64 *) D_802F99C0, sizeof(D_8036BED8->vtx[1]));
         D_8036EB90++, pos += 3;
     }
-    D_80358070 = (YoshiNode *) D_80358070 + D_8036EB90;
+    D_80358070 = (u8 *) ((YoshiNode *) D_80358070 + D_8036EB90);
 }
 
 u8 func_8026FE6C(s32 arg0) {

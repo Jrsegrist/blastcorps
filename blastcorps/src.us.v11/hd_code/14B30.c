@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* drawtext.c (from its assert): batched text quads. */
 
@@ -9,30 +10,17 @@ typedef struct {
     u8 *tex;
 } TextQuad; /* size 0xC */
 
-extern u64 D_80364A98;
-extern s32 D_802E8BDC;
 extern s32 D_80365350;
-extern u8 *D_80358070;
 extern Vtx *D_80365348[2];
 extern TextQuad *D_80365340;
 extern s32 D_802E8C70;
 extern s32 D_802E8C74;
 extern s32 D_802E8C78;
-extern u8 D_8035805C;
-extern f32 D_802E8C84[]; /* per-font advance */
-extern u16 D_802E8C8C[]; /* per-font characters that draw nothing */
-extern u16 D_802E8C90[];
-extern u16 D_802E8C94[];
 
 #define VTX(n) D_80365348[D_8035805C][n].v
 
-void func_8029A7E4(char *fmt, ...);
-s32 func_8025B498(s32, u32, u8 *, u16 *);
-u8 *func_8025B0B8(u16 glyph);
-void func_8025B070(void);
 void func_8025946C(Gfx **gdlp, s32 arg1);
 void func_80259824(Gfx **gdlp, s32 arg1);
-void func_802595E0(u8 *base, s32 n, s32 size, s32 (*cmp)(void *, void *));
 void func_802597D8(u8 *dst, u8 *src, s32 n);
 s32 func_80259814(u16 *arg0, u16 *arg1);
 
@@ -48,10 +36,10 @@ void func_802592F0(void) {
         D_80365350 = 0xAC;
     }
     for (i = 0; i < 2; i++) {
-        D_80365348[i] = D_80358070;
+        D_80365348[i] = (Vtx *) D_80358070;
         D_80358070 += D_80365350 * 16 * 4;
     }
-    D_80365340 = D_80358070;
+    D_80365340 = (TextQuad *) D_80358070;
     D_80358070 += D_80365350 * 12;
     func_8025B070();
 }
@@ -117,7 +105,7 @@ void func_80259824(Gfx **gdlp, s32 arg1) {
     Gfx *gdl = *gdlp;
     s32 i;
 
-    func_802595E0((u8 *) &D_80365340[D_802E8C70], D_802E8C74 - D_802E8C70, sizeof(TextQuad), func_80259814);
+    func_802595E0((u8 *) &D_80365340[D_802E8C70], D_802E8C74 - D_802E8C70, sizeof(TextQuad), (s32 (*)(void *, void *)) func_80259814);
     for (i = D_802E8C70; i < D_802E8C74; i++) {
         if (D_80365340[i].tex != tex) {
             tex = D_80365340[i].tex;
@@ -209,7 +197,7 @@ void func_80259EC4(Gfx **gfxp, u8 *str, u16 *wstr, u8 align, s32 fit, f32 x, s32
         }
     }
     if (fit) {
-        x = func_8025B498(fit, w, str, wstr);
+        x = func_8025B498(fit, w, str, (s32) wstr);
     }
     while (!done) {
         switch (font) {

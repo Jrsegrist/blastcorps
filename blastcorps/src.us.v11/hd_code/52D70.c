@@ -1,5 +1,10 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_802E8F38 ((D_802E8F38_s *) D_802E8F38)
+#define D_80364AF0 ((Player *) D_80364AF0)
+/* end of views */
 
 /* Per-player state, 0x100 bytes */
 typedef struct {
@@ -17,29 +22,18 @@ typedef struct {
     /* 0x06 */ s16 z;
 } D_802E8F38_s;
 
-extern u64 D_80364A98;
-extern u8 D_80364AE8;
-extern Player D_80364AF0[];
-extern D_802E8F38_s D_802E8F38[];
-extern void *D_80358070;
-extern s32 D_802FA268;
-extern u16 D_80370C28;
-extern s16 D_8039CAB0;
-extern s16 D_8039CAB2;
-extern s16 D_8039CAB4;
-extern u8 D_8039CAB6;
-extern u8 D_8039CAB7;
 extern u8 D_8039CAB8;
-extern void *D_8039CABC;
-extern void *D_8039CAC0;
 extern Mtx *D_8039CAC4;
 extern u8 D_8039CAC8;
 
-s32 func_8026A6F0(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5);
-u8 func_8029766C(u8 arg0, u8 *arg1);
 
+/* K&R in the matching build (hd.c passes an int). */
+#ifdef NON_MATCHING
+void func_80297530(u8 arg0)
+#else
 void func_80297530(arg0)
     u8 arg0;
+#endif
 {
     u8 found;
     u8 idx;
@@ -58,7 +52,7 @@ void func_80297530(arg0)
         D_8039CAB4 = D_802E8F38[idx].z;
         D_8039CAB6 = idx;
         D_8039CAB8 = 0;
-        D_8039CAC4 = D_80358070;
+        D_8039CAC4 = (Mtx *) D_80358070;
         D_80358070 = (u8 *) D_80358070 + 0x80;
         guTranslate(D_8039CAC4, 0, 0, 0);
         guTranslate(D_8039CAC4 + 1, 0, 0, 0);

@@ -1,5 +1,19 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_8036BB24
+#endif /* legacy declarations */
+#include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_802F49F4 ((Font *) D_802F49F4)
+#define D_80364AF0 ((Player *) D_80364AF0)
+#ifdef NON_MATCHING
+#define D_8036BB24 (*(MenuItem * *) &D_8036BB24)
+#endif
+/* end of views */
 
 /*
  * Two parts: the academy/level-select yoshi window builder (func_802979E0
@@ -61,27 +75,19 @@ typedef struct {
     /* 0x2E */ u8 unk2E[2];
 } Font;
 
-extern Player D_80364AF0[];
-extern u8 D_80364AE8;
 extern u8 D_8039CAD0;
-extern u8 D_8039CAB6;
 extern u8 D_802FF180[];
 extern MenuText D_802FF188[][20];
 extern u8 D_802FF5E8[];
-extern u8 D_802F8BDC[];
+#ifndef NON_MATCHING
 extern MenuItem *D_8036BB24;
-extern void *D_80358070;
-extern Font D_802F49F4[];
+#endif
 
-u8 func_8029766C(u8, u8 *);
-s32 func_8025B300(u8 *);
-u8 func_80272C5C(void *, s32, s32, s32, s32, f32);
 
 #define players D_80364AF0
 #define playerNumber D_80364AE8
 
 u8 func_80297F74(void);
-u8 func_80297EF8(u8 level);
 
 /* Build the yoshi window that lists a group's levels, numbering the
  * "N left" text with how many levels remain */
@@ -118,7 +124,7 @@ void func_802979E0(u8 level) {
         D_8039CAD0 = i % 6;
     }
     i = 0;
-    D_8036BB24 = D_80358070;
+    D_8036BB24 = (MenuItem *) D_80358070;
     D_80358070 = (u8 *) D_80358070 + 0x24C;
     nsel = 0;
     n = 0;
@@ -158,7 +164,7 @@ void func_802979E0(u8 level) {
     item->font = 0x18;
     item->unk16 = item->unk1A = 0;
     font = &D_802F49F4[item->font];
-    item->unk1A = func_80272C5C(font->ids, 0, font->unk4, font->unk2C, font->unk2D | 4, 1.0f);
+    item->unk1A = func_80272C5C((u16 *) font->ids, 0, font->unk4, font->unk2C, font->unk2D | 4, 1.0f);
     win->count = n + 1;
     win->cursor = D_802FF5E8[D_8039CAD0 * 5];
     if (!func_80297EF8(level)) {
@@ -211,11 +217,6 @@ typedef struct Huft {
     } v;
 } Huft;
 
-extern u8 *D_803669C0;  /* inbuf */
-extern u8 *D_803669C4;  /* output buffer */
-extern s32 D_803669EC;  /* inptr */
-extern s32 D_803669F0;  /* outcnt */
-extern s32 D_8039CAE0;  /* huft arena */
 extern u32 D_8039CAE4;  /* bb */
 extern u32 D_8039CAE8;  /* bk */
 extern u32 D_8039CAEC;  /* hufts */
@@ -241,7 +242,6 @@ s32 func_80298C18(void);
  * adds a move to $v0. */
 #define BMAX 16
 #define N_MAX 288
-void func_802DB7B0(void *, s32); /* bzero */
 
 int func_80297FE0(s32 *b, u32 n, u32 s, u16 *d, u8 *e, Huft **t, s32 *m) {
     u32 a;

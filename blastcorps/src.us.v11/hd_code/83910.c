@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -25,36 +26,6 @@
 /* obj + the word at obj + off (the model header's self-relative offsets) */
 #define OBJ_PTR(obj, off) ((u8 *) (obj) + *(s32 *) ((u8 *) (obj) + (off)))
 
-/* Registers func_802AA890 reads and writes besides its arguments (62740.c). */
-typedef struct {
-    s32 v1;
-    s32 a0;
-    s32 a3;
-    s32 s1;
-    s32 s2;
-    s32 s0;
-} MtxChainRegs;
-/* FP results of the triangle scans (62740.c): f12, f14, f20, f22, f24, f26. */
-typedef struct {
-    f32 pz;
-    f32 cross;
-    f32 cz;
-    f32 side;
-    f32 sideZ;
-    f32 dz;
-} TriSideOut;
-/* func_802A860C's results besides its return value (62740.c). */
-typedef struct {
-    s32 t1;
-    s32 s3;
-    s32 fp;
-} Out802A860C;
-/* func_802A8768's register results besides the FP state (62740.c). */
-typedef struct {
-    s32 s3;
-    s16 *s4;
-    s32 fp;
-} Regs802A8768;
 
 typedef struct {
     u8 *veh;             /* the vehicle block (asm $gp) */
@@ -89,62 +60,11 @@ extern u64 *D_803F878C;
 extern u8 D_803F8790;
 extern u8 D_803F8791;
 extern u8 D_803F8792;
-extern u8 *D_80358070;   /* heap pointer */
-extern u8 D_8035805C;    /* which save buffer is current */
-extern s16 D_803ED390[]; /* (0, heading, 0) for func_802AA764 */
-extern u8 D_803ED40B;
 extern u8 D_80306410[];
-extern u8 *D_803F77D0;
-extern u8 D_803A7424;
-extern s32 D_803643E0;
-extern s32 D_803643E4;
-extern s32 D_803643E8;
-extern s16 D_8036443C;
-extern u16 D_8036443E;
-extern u16 D_80364440;
 
-void func_802A1388(s32 a0Val, s32 a1Val, s32 v0Val, s32 v1Val, u8 *hdr);
-void func_802A754C(u8 *veh);
-s32 *func_802A992C(s16 *tbl, s32 y, s32 x, s32 z, s32 *dst, s32 *mid, s16 *angle, s32 key, s32 fpIn, u8 *veh,
-                   TriSideOut *f);
-s32 func_8029F85C(u32 *bufA, u32 *bufB, void *ch, u8 *hdr);
-void func_802A0290(void *base, s32 idx, s32 val);
-void func_802A0320(s32 idx, void *base);
-void func_802A039C(void *base, s32 idx, s32 val);
-void func_802A03D4(void *base, s32 idx, s32 val);
-void func_802A040C(void *base, s32 idx, s32 val);
-void func_802A0480(f32 f, void *base, s32 idx, s32 val);
-void func_8029E558(u8 *base, u8 *other, void *ch);
-void func_8029C354(s32 tag, u8 *p, u8 *end, u32 scale);
-void func_80258230(u8 id, s32 arg1, s16 arg2, s16 arg3);
-void func_802AA838(u8 *src, u8 *dst, s32 off);
-void func_802A75DC(u8 *veh, u8 *src, s32 *w0, s32 *w1, s32 *w2);
-void func_802C4724(s32 sfx);
-void func_802C4584(s32 level);
-void func_802A785C(u8 *veh, s16 *speed, s32 mode, u8 *flags, s16 *bands, s32 delta);
-void func_802A7FD8(u8 *veh, u16 *heading, s32 rate, s16 *speedp, u16 *target, u16 *out, s8 *flag, s32 sound);
-f32 func_802A83B8(s16 *div, u8 *f, s32 *p, f32 *out);
-void func_802A843C(u8 *veh, s16 *speed, s32 kind, s8 *f, s32 *p, s32 clamp, f32 div);
-s32 func_802A860C(f32 f, s32 angle, s16 *len, s32 *px, s32 *pz, Out802A860C *out);
-void func_802A8768(u8 *veh, s32 id, s32 *px, s32 *py, s32 *pz, s32 x, s32 z, s32 divB, s32 divA, s16 *angle,
-                   u8 *flags, s16 *tbl, s32 *a, s32 *b, s32 *c, s32 *ys, Regs802A8768 *r, TriSideOut *f);
-void func_8029A800(s32 z, s32 a1, s32 b2, s32 b3, s32 x, s32 y, s32 b0, s32 h1, s32 h2, s32 b4, s32 b8,
-                   u8 *veh);
-void func_8029C52C(s32 tag, u8 *veh);
-void func_8029AA10(s32 kind);
-void func_802BE77C(s32 id, u8 *vehicle);
-u64 *func_802A768C(u8 *veh, u8 *dst, s32 *w0, s32 *w1, s32 *w2, u64 *src, u64 *dst2, s32 size,
-                   u64 **dst2End);
-void func_802A133C(s32 a0Val, s32 id, s32 v0Val, s32 v1Val, u8 *obj);
-void func_802AA764(s32 x, s32 y, s32 z, s32 scale, s32 *m);
-void func_8029C454(s32 x, s32 y, s32 z, s32 tag, u8 *p, u8 *end, u8 *base, MtxChainRegs *regs);
-void func_802ABBEC(s32 id, s16 *p, s16 *end, u8 *base, MtxChainRegs *regs);
-s32 func_802AABE4(s32 id, u16 *desc, u8 *base, MtxChainRegs *regs, s16 **vertsOut);
-void func_8029D040(s32 val, void *tbl, s32 x, s32 z, s32 id, u8 *model, u8 *mtxBase);
 void func_802C8150(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp);
 void func_802C8470(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp);
 void func_802C8790(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp);
-void func_802C8BB8(s32 type);
 void func_802C8C90(void);
 void func_802C8FA8(void);
 void func_802C92C0(void);
@@ -206,7 +126,7 @@ static void veh83910_model(const VehDesc83910 *d) {
     data = *d->data;
     func_802AABE4(d->type, (u16 *) OBJ_PTR(data, 8), base, &regs, &verts);
     data = *d->data;
-    func_8029D040(VEH_U16(veh, 0x4C), d->chan, pos[0], pos[2], d->type, OBJ_PTR(data, 0xC), base);
+    func_8029D040(VEH_U16(veh, 0x4C), (Unk8029DEA0Entry *) d->chan, pos[0], pos[2], d->type, OBJ_PTR(data, 0xC), base);
 }
 
 /* Per-frame update (func_802C8C90 / 8FA8 / 92C0, through func_802C8BB8):
@@ -263,9 +183,9 @@ static void veh83910_frame(const VehDesc83910 *d) {
                   &VEH_U8(veh, 0x96), &VEH_S16(veh, 0x52), &VEH_S32(veh, 0x28), &VEH_S32(veh, 0x40),
                   &VEH_S32(veh, 0x34), &VEH_S32(veh, 4), &r, &tri);
     if (D_8035805C != 0) {
-        func_8029E558((u8 *) *d->bufA, (u8 *) *d->bufB, d->chan);
+        func_8029E558((u8 *) *d->bufA, (u8 *) *d->bufB, (Unk8029DEA0Entry *) d->chan);
     } else {
-        func_8029E558((u8 *) *d->bufB, (u8 *) *d->bufA, d->chan);
+        func_8029E558((u8 *) *d->bufB, (u8 *) *d->bufA, (Unk8029DEA0Entry *) d->chan);
     }
     d->model();
     /* b0 / h2 are the model update's leftover t0 (x) and t2 (the type) */
@@ -356,16 +276,16 @@ static void veh83910_init(const VehDesc83910 *d, s32 x, s32 y, s32 z, s32 angle,
                   fp, veh, &tri);
     a = *d->bufA;
     b = *d->bufB;
-    func_8029F85C((u32 *) b, (u32 *) a, d->chan, *d->data);
-    func_802A039C(d->chan, 0, 0x64);
-    func_802A03D4(d->chan, 0, 0);
-    func_802A040C(d->chan, 0, 0);
-    func_802A0480(0.0f, d->chan, 0, 0);
-    func_802A0290(d->chan, 0, 1);
-    func_8029E558((u8 *) a, (u8 *) b, d->chan);
-    func_802A0320(0, d->chan);
-    func_802A0290(d->chan, 0, 1);
-    func_8029E558((u8 *) b, (u8 *) a, d->chan);
+    func_8029F85C((u32 *) b, (u32 *) a, (Unk8029DEA0Entry *) d->chan, *d->data);
+    func_802A039C((Unk8029DEA0Entry *) d->chan, 0, 0x64);
+    func_802A03D4((Unk8029DEA0Entry *) d->chan, 0, 0);
+    func_802A040C((Unk8029DEA0Entry *) d->chan, 0, 0);
+    func_802A0480(0.0f, (Unk8029DEA0Entry *) d->chan, 0, 0);
+    func_802A0290((Unk8029DEA0Entry *) d->chan, 0, 1);
+    func_8029E558((u8 *) a, (u8 *) b, (Unk8029DEA0Entry *) d->chan);
+    func_802A0320(0, (Unk8029DEA0Entry *) d->chan);
+    func_802A0290((Unk8029DEA0Entry *) d->chan, 0, 1);
+    func_8029E558((u8 *) b, (u8 *) a, (Unk8029DEA0Entry *) d->chan);
     VEH_S16(veh, 0x78) = -0xB4;
     VEH_S16(veh, 0x7A) = 0;
     VEH_S16(veh, 0x7C) = 1;
@@ -450,9 +370,6 @@ void func_802C8790(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp) {
 #ifdef NON_MATCHING
 /* Functional rewrite (tools_port/eqcheck.py verified): a0 passes straight
  * through to func_802C4310 with a1 = 0x72. */
-extern s16 D_8036444C;
-extern s16 D_80364450;
-void func_802C4310(s32 arg0, s32 arg1);
 
 void func_802C8AB0(s32 arg0) {
     D_8036444C = 3000;
@@ -485,8 +402,6 @@ extern u64 *D_803F8780;
 extern u64 *D_803F8784;
 extern u64 *D_803F8788;
 extern u64 *D_803F878C;
-void func_802A7764(u64 *a, u64 *b, s32 size);
-void func_802C444C(void);
 
 /* Leave vehicle type 0x11 / 0x12 / other (11) (called from hd.c with the
  * type): func_802A7764(pair for that type, 0x800), then stops the looping
@@ -657,10 +572,6 @@ s32 func_802C9AF8(u8 *state) {
  * shape as func_802BAD24 (75490.c). Asm callers func_802C8C90, func_802C8FA8
  * and func_802C92C0 rely on a0-a3, f12, f14 being preserved (mixed N64 build
  * would need a thunk). */
-extern f32 D_803EBBF0;
-extern f32 D_803EBBF4;
-extern u8 D_803ED3F6;
-extern u8 D_803ED3F7;
 
 void func_802C9B30(void) {
     D_803EBBF4 = D_803EBBF0 * 2.0f;

@@ -1,5 +1,27 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_8020C070
+#define LEGACY_D_802E8F94
+#define LEGACY_D_802F47B0
+#define LEGACY_D_802F8BDC
+#define LEGACY_D_803156F8
+#define LEGACY_D_80364AF0
+#endif /* legacy declarations */
+#include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#ifdef NON_MATCHING
+#define D_8020C070 ((MenuEntry *) D_8020C070)
+#define D_802E8F94 ((LevelInfo *) D_802E8F94)
+#define D_802F47B0 ((u8 *) D_802F47B0)
+#define D_802F8BDC ((MenuPage *) D_802F8BDC)
+#define D_803156F8 ((PlayerSelDyn *) D_803156F8)
+#define D_80364AF0 ((Player *) D_80364AF0)
+#endif
+/* end of views */
 
 /* player.c (per its assert strings): save slots, player ranks and the
  * player select / Controller Pak screens */
@@ -62,7 +84,7 @@ typedef struct {
 
 /* Per-frame dynamic buffer (D_803156F8, two of 0x21498 bytes); only the
  * player select matrices are named here */
-typedef struct {
+typedef struct PlayerSelDyn {
     /* 0x000 */ u8 pad0[0x80];
     /* 0x080 */ Mtx persp;
     /* 0x0C0 */ u8 padC0[0xC0];
@@ -74,24 +96,22 @@ typedef struct {
     /* 0x1F00 */ u8 pad1F00[0x21498 - 0x1F00];
 } PlayerSelDyn;
 
+#ifndef NON_MATCHING
 extern Player D_80364AF0[];
-extern u8 D_80364AE8;
+#endif
+#ifndef NON_MATCHING
 extern LevelInfo D_802E8F94[];
-extern s32 D_802E8BDC;
-extern u64 D_80364A90;
-extern u64 D_80364A98;
-extern u32 D_80364AA8;
-extern u8 D_80364A87;
-extern u8 D_803643D5;
+#endif
+#ifndef NON_MATCHING
 extern MenuEntry D_8020C070[];
+#ifndef NON_MATCHING
 extern MenuPage D_802F8BDC[];
-extern OSMesgQueue D_80219EF8;
-extern OSMesgQueue D_80219F50;
+#ifndef NON_MATCHING
 extern PlayerSelDyn D_803156F8[];
-extern u8 D_80365060[]; /* per slot: 0 no save, 1 saved game, 2 new game */
+#endif
+#endif
+#endif
 extern char D_80215520[][25];
-extern u8 D_8039C538;
-extern u8 D_802154B0;
 extern u16 D_803046F8[];
 extern u16 D_80304710[];
 extern u16 D_80304730[];
@@ -101,16 +121,8 @@ extern s32 D_802154EC;
 extern s32 D_80215508[];
 extern u8 D_802155A0[]; /* ticker text */
 #define SCROLL_TEXT ((char *) D_802155A0)
-extern u8 D_80364AEA;
-extern u8 D_802E8BF8;
-extern u16 D_80364EF0[][16]; /* per player: saved level times */
-extern u8 D_802E8C44[];
 extern char D_80215480[][16];
 extern u16 *D_802158A0;
-extern u8 D_8039C53C[]; /* per slot: 1 + level to save, 0 = nothing pending */
-extern u8 D_8039C540;
-extern s16 yoshiState;
-extern void *D_80367738;
 
 extern Vtx D_80208380[];
 extern Gfx D_80208400[];
@@ -138,12 +150,9 @@ extern s16 D_8021591A;
 extern s32 D_80215920;
 extern u8 D_80215924;
 extern char *D_80215928;
-extern u16 D_80370C28; /* buttons held */
-extern u16 D_80370C2A; /* buttons held last frame */
-extern s8 D_80370C2C;  /* stick x */
-extern s16 D_8036BB20;
+#ifndef NON_MATCHING
 extern u8 D_802F47B0[];
-extern u32 D_803156C4;
+#endif
 extern f32 D_80215440;
 extern f32 D_80215444;
 extern f32 D_80215448;
@@ -171,8 +180,6 @@ extern s16 D_80215910[];
 extern u8 D_80215914;
 extern u16 D_80215930[];
 extern u16 D_802158A8[];
-extern u16 D_802E8C94[];
-extern u16 D_802E8C98[];
 extern u8 D_8021592E;
 extern s32 D_802154D8;
 extern f32 D_802154E4;
@@ -182,51 +189,15 @@ extern u16 D_802082D8[];
 extern u16 D_802082E4[];
 extern u16 D_802082E8[];
 
-u8 func_80272C5C(u16 *ids, u16 *palIds, s32 count, s32 frames, s32 flags, f32 scale);
-Gfx *func_80274868(Gfx *);
-Gfx *func_80274AA4(Gfx *);
-Gfx *func_80272ED8(Gfx *, s32, s32, s32, s32, s32, f32);
-void func_80264A34(u8 *buf, u16 t, s32 arg2);
-u8 *func_8025B558(u16 *);
-void func_80259BD4(Gfx **, void *);
-s32 func_802753C0(void);
-void func_8026AF6C(s32);
-void func_80275270(u64, f32);
-s32 func_80276130(void *, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32,
-                  s32, s32, s32, s32);
-s32 func_80276080(void *, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32);
-Gfx *func_80275DA4(Gfx *, s32);
-void func_80259CCC(void *gfxp, u8 *str, u16 *wstr, s32 align, s32 fit, s32 x, s32 y, s32 w, s32 h, s32 forward, s32 r,
-                   s32 g, s32 b, s32 a);
-void func_80259DC8(void *gfxp, u8 *str, u16 *wstr, s32 align, s32 fit, s32 x, s32 y, s32 w, s32 h, s32 forward,
-                   s32 r0, s32 g0, s32 b0, s32 a0, s32 r1, s32 g1, s32 b1, s32 a1);
-void func_801FE018(s32);
-void func_801F8354(u8);
-s32 func_8025B3F0(char *, char *);
-s32 func_8025B300(char *);
-s32 func_8025B370(u16 *);
-void func_80260650(void *, s32, s32);
-void func_80261570(f32);
-void func_8029A7E4(const char *, ...);
-void func_801E8DCC(u8 arg0);
-void func_801E8EB8(u8 slot, u8 arg1);
 void func_801E93DC(u8 arg0);
 void func_801ED480(u8 *src, u8 *dst);
-u8 func_801EF2BC(u16 time, u8 level, u8 arg2);
 u16 func_801E9528(void);
-void func_801EA108(u8 slot, u8 send, u8 newGame);
 void func_801EA268(Player *p);
 Gfx *func_801EC49C(Gfx *arg0, s32 x, s32 y, u8 slot);
 
 /* Highest rank shown: 4 once unk91 reaches 12, else 3 */
 #define MAX_RANK() ((D_80364AF0[D_80364AE8].unk91 >= 12) ? 4 : 3)
 
-/* .data (0x802081C0). The u16 pointers are hd_code data (glyph strings and
- * portraits) that have no symbols yet. */
-typedef struct {
-    char *title;
-    u16 *glyphs;
-} RankTitle;
 
 RankTitle D_802081C0[31] = {
     { "ROOKIE WRECKER", (u16 *) 0x803041DC },
@@ -358,7 +329,7 @@ void func_801E8EB8(u8 slot, u8 arg1) {
             if (D_80365060[slot] == 1) {
                 sprintf(SCROLL_TEXT, " ..... %s%s (%s) ... ", sPrefix[guest], p->name, D_802081C0[p->title].title);
                 for (i = (D_80364AF0[slot].unk91 >= 12) ? 4 : 3; i > 0; i--) {
-                    D_80215508[i] = func_8025B300(SCROLL_TEXT);
+                    D_80215508[i] = func_8025B300((u8 *) SCROLL_TEXT);
                     if (i != 1) {
                         sprintf(SCROLL_TEXT, "%s  %d .. ", SCROLL_TEXT, D_80215930[i]);
                     }
@@ -367,7 +338,7 @@ void func_801E8EB8(u8 slot, u8 arg1) {
                 if (D_802E8BF8 == 0) {
                     sprintf(SCROLL_TEXT, "%s$%d ... ", SCROLL_TEXT, p->unk14);
                 }
-                D_802154EC = func_8025B300(SCROLL_TEXT);
+                D_802154EC = func_8025B300((u8 *) SCROLL_TEXT);
                 sprintf(SCROLL_TEXT, "%s  %d", SCROLL_TEXT, p->title);
                 if ((D_80364A98 & 0x0200040000000000) || (D_80364A90 & 0x0100000000000000)) {
                     sprintf(SCROLL_TEXT, "%s ..... %s", SCROLL_TEXT, "USE Z/R TO CHANGE PLAYER, THEN A TO SELECT!");
@@ -389,7 +360,7 @@ void func_801E8EB8(u8 slot, u8 arg1) {
             D_802154D4 = 0xE;
         }
     } else {
-        D_802154D2 = func_8025B300(SCROLL_TEXT);
+        D_802154D2 = func_8025B300((u8 *) SCROLL_TEXT);
         D_8021592E = 0;
         D_80215458 = 0xC;
         if (slot == 4) {
@@ -559,10 +530,10 @@ Gfx *func_801E9718(Gfx *arg0, PlayerSelDyn *dyn, s32 arg2) {
             }
         }
         gdl = func_80274AA4(gdl);
-        func_80259CCC(dyn, (D_8021592E == 1) ? NULL : func_8025B558(D_802158A8), (D_8021592E == 1) ? D_802158A8 : NULL,
+        func_80259CCC((Gfx **) dyn, (D_8021592E == 1) ? NULL : func_8025B558(D_802158A8), (D_8021592E == 1) ? D_802158A8 : NULL,
                       0, 0, (-D_802154D8 % D_80215458) - 3, 0xC9, 0x14, 0x14, 1, 0, 0, 0,
                       (D_8021593C / 2 - 0x1B < 0) ? 0 : D_8021593C / 2 - 0x1B);
-        func_80259DC8(dyn, (D_8021592E == 1) ? NULL : func_8025B558(D_802158A8), (D_8021592E == 1) ? D_802158A8 : NULL,
+        func_80259DC8((Gfx **) dyn, (D_8021592E == 1) ? NULL : func_8025B558(D_802158A8), (D_8021592E == 1) ? D_802158A8 : NULL,
                       0, 0, -D_802154D8 % D_80215458, 0xC7, 0x14, 0x14, 1, 0xFF, 0xFF, 0xFF, D_8021593C, 0xFF, 0xFF,
                       0xFF, D_8021593C);
         gDPPipeSync(gdl++);
@@ -604,7 +575,7 @@ void func_801EA278(void) {
         osSendMesg(&D_80219EF8, (OSMesg) ((i << 16) | 6 | 0x1000000), OS_MESG_BLOCK);
         osRecvMesg(&D_80219F50, (OSMesg *) &msg, OS_MESG_BLOCK);
         if (msg == 0) {
-            if (func_8025B3F0(D_80364AF0[i].name, "NEW GAME")) {
+            if (func_8025B3F0((u8 *) (D_80364AF0[i].name), (u8 *) ("NEW GAME"))) {
                 D_80365060[i] = 1;
             } else {
                 D_80365060[i] = 2;
@@ -729,18 +700,30 @@ void func_801EA93C(char *title, u16 *glyphs, u8 arg2, u8 width, char *buf) {
 Gfx *func_801EAA7C(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
     Gfx *gdl = arg0;
     MenuEntry *e = &D_8020C070[7];
+#ifdef NON_MATCHING
+    u8 ch = 0; /* indeterminate in the original when no slot is selected */
+#else
     u8 ch;
+#endif
     s32 i;
     s32 pass;
     s16 diff;
     s32 x;
     s32 y;
+#ifdef NON_MATCHING
+    s32 selX = 0; /* indeterminate in the original when no slot is selected */
+#else
     s32 selX;
+#endif
+#ifdef NON_MATCHING
+    s32 selY = 0; /* indeterminate in the original when no slot is selected */
+#else
     s32 selY;
+#endif
     s32 selW;
     s32 selH;
     s32 nv = 0;
-    s32 len = func_8025B300(D_80215928);
+    s32 len = func_8025B300((u8 *) D_80215928);
     u8 *col = &D_802F47B0[0x80];
     u8 *col2;
     s16 ang;
@@ -810,13 +793,13 @@ Gfx *func_801EAA7C(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
                     if (D_802154B6 == i) {
                         ch = D_80208498[0], selX = x, selY = y, selW = 0x18, selH = 0x14;
                     } else {
-                        func_80259DC8(dyn, D_80208498, 0, 1, 0, x, y, 0x18, 0x14, 1, 0xC8, 0xC8, 0xC8, D_8036BB20, 0xFF,
+                        func_80259DC8((Gfx **) dyn, D_80208498, 0, 1, 0, x, y, 0x18, 0x14, 1, 0xC8, 0xC8, 0xC8, D_8036BB20, 0xFF,
                                       0xFF, 0xFF, D_8036BB20);
                     }
                 } else if (D_802154B6 == i) {
-                    func_80259CCC(dyn, D_80208498, 0, 1, 0, x - 0xB, y, 0x30, 0x28, 1, 0, 0, 0, D_8036BB20 / 2);
+                    func_80259CCC((Gfx **) dyn, D_80208498, 0, 1, 0, x - 0xB, y, 0x30, 0x28, 1, 0, 0, 0, D_8036BB20 / 2);
                 } else {
-                    func_80259CCC(dyn, D_80208498, 0, 1, 0, x - 4, y + 3, 0x18, 0x14, 1, 0, 0, 0, D_8036BB20 / 2);
+                    func_80259CCC((Gfx **) dyn, D_80208498, 0, 1, 0, x - 4, y + 3, 0x18, 0x14, 1, 0, 0, 0, D_8036BB20 / 2);
                 }
             }
         }
@@ -828,8 +811,8 @@ Gfx *func_801EAA7C(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
             alpha = D_8036BB20 / 3;
         }
         D_80208498[0] = ch;
-        func_80259BD4(&gdl, dyn);
-        func_80259DC8(dyn, D_80208498, 0, 1, 0, selX - 5, selY - 5, selW * 2, selH * 2, 1, col[0], col[1], col[2],
+        func_80259BD4(&gdl, (s32) dyn);
+        func_80259DC8((Gfx **) dyn, D_80208498, 0, 1, 0, selX - 5, selY - 5, selW * 2, selH * 2, 1, col[0], col[1], col[2],
                       alpha, col[4], col[5], col[6], alpha);
     }
     if (yoshiState == 2 && (D_80370C28 & 0x1000) && !(D_80370C2A & 0x1000) && func_802753C0() == 0) {
@@ -904,9 +887,9 @@ Gfx *func_801EAA7C(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
             D_80215440 += (D_80215448 - D_80215440) * 0.2;
             D_80215444 += (D_8021544C - D_80215444) * 0.2;
             D_80208498[0] = D_802154BA;
-            func_80259CCC(dyn, D_80208498, 0, 0, 0, D_80215944 - 4.0f, D_80215948 + 4.0f, D_80215440, D_80215444, 1, 0,
+            func_80259CCC((Gfx **) dyn, D_80208498, 0, 0, 0, D_80215944 - 4.0f, D_80215948 + 4.0f, D_80215440, D_80215444, 1, 0,
                           0, 0, D_8036BB20 / 2);
-            func_80259DC8(dyn, D_80208498, 0, 0, 0, D_80215944, D_80215948, D_80215440, D_80215444, 1, col[0], col[1],
+            func_80259DC8((Gfx **) dyn, D_80208498, 0, 0, 0, D_80215944, D_80215948, D_80215440, D_80215444, 1, col[0], col[1],
                           col[2], D_8036BB20, col[4], col[5], col[6], D_8036BB20);
             if (FABS(D_80215944 - D_8021594C) < 0.15 && FABS(D_80215948 - D_80215950) < 0.15) {
                 func_80260650(D_80367738, 1, 0);
@@ -919,7 +902,7 @@ Gfx *func_801EAA7C(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
             }
             break;
     }
-    func_80259BD4(&gdl, dyn);
+    func_80259BD4(&gdl, (s32) dyn);
     D_80215940 += D_80215920;
     if (D_80215920 < 0) {
         D_80215940 += D_80215920 * 2;
@@ -934,12 +917,12 @@ Gfx *func_801EAA7C(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
         D_8021592C = 0;
     }
     col2 = &D_802F47B0[0x98];
-    nv = func_80276130(dyn, 3, nv, D_802154C4 + D_802154C8 + D_80215940, e->unk4 + e->unk8 / 2,
+    nv = func_80276130((struct SpriteVtxBuf *) dyn, 3, nv, D_802154C4 + D_802154C8 + D_80215940, e->unk4 + e->unk8 / 2,
                        e->unk6 / 3 + D_80215940 / 2, e->unk8 / 2 + 3, D_802F47B0[0x98], D_802F47B0[0x99],
                        D_802F47B0[0x9A], D_8021592C, D_802F47B0[0x9C], D_802F47B0[0x9D], D_802F47B0[0x9E], D_8021592C,
                        D_802F47B0[0x98], D_802F47B0[0x99], D_802F47B0[0x9A], D_8021592C, D_802F47B0[0x9C],
                        D_802F47B0[0x9D], D_802F47B0[0x9E], D_8021592C);
-    nv = func_80276080(dyn, 3, nv, D_802154C4 + D_802154C8 + D_80215940 + 4, e->unk4 + e->unk8 / 2 + 3,
+    nv = func_80276080((struct SpriteVtxBuf *) dyn, 3, nv, D_802154C4 + D_802154C8 + D_80215940 + 4, e->unk4 + e->unk8 / 2 + 3,
                        e->unk6 / 3 + D_80215940 / 2, e->unk8 / 2 + 3, 0, 0, 0, D_8021592C / 2);
     gdl = func_80275DA4(gdl, 0);
     gSPVertex(gdl++, &dyn->vtx[0], 8, 0);
@@ -947,10 +930,10 @@ Gfx *func_801EAA7C(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
     gSP1Triangle(gdl++, 4, 6, 7, 0);
     gSP1Triangle(gdl++, 0, 1, 2, 0);
     gSP1Triangle(gdl++, 0, 2, 3, 0);
-    nv = func_80276130(dyn, 2, nv, e->unk2 - D_80215940 - 4, e->unk4 + e->unk8 / 2, e->unk6 / 3 + D_80215940 / 2,
+    nv = func_80276130((struct SpriteVtxBuf *) dyn, 2, nv, e->unk2 - D_80215940 - 4, e->unk4 + e->unk8 / 2, e->unk6 / 3 + D_80215940 / 2,
                        e->unk8 / 2 + 3, col2[0], col2[1], col2[2], D_8021592C, col2[4], col2[5], col2[6], D_8021592C,
                        col2[0], col2[1], col2[2], D_8021592C, col2[4], col2[5], col2[6], D_8021592C);
-    nv = func_80276080(dyn, 2, nv, e->unk2 - D_80215940 - 8, e->unk4 + e->unk8 / 2 + 3, e->unk6 / 3 + D_80215940 / 2,
+    nv = func_80276080((struct SpriteVtxBuf *) dyn, 2, nv, e->unk2 - D_80215940 - 8, e->unk4 + e->unk8 / 2 + 3, e->unk6 / 3 + D_80215940 / 2,
                        e->unk8 / 2 + 3, 0, 0, 0, D_8021592C / 2);
     gdl = func_80275DA4(gdl, 0);
     gSPVertex(gdl++, &dyn->vtx[nv - 8], 8, 0);
@@ -1072,7 +1055,11 @@ Gfx *func_801EC49C(Gfx *arg0, s32 x, s32 y, u8 slot) {
  * level's target time for it */
 Gfx *func_801EC770(Gfx *start, void *gfxp, s32 *count) {
     Gfx *gdl;
+#ifdef NON_MATCHING
+    u8 n = 0; /* the first branch leaves it indeterminate in the original */
+#else
     u8 n;
+#endif
 
     gdl = start;
     gdl = func_80274868(gdl);
@@ -1092,7 +1079,7 @@ Gfx *func_801EC770(Gfx *start, void *gfxp, s32 *count) {
     }
     gdl = func_80274AA4(gdl);
     if (D_80364AA8 != 1) {
-        func_80264A34(D_80215470, D_802E8F94[D_802E8BDC].times[5 - n], 0);
+        func_80264A34((char *) D_80215470, D_802E8F94[D_802E8BDC].times[5 - n], 0);
         D_80215470[5] = 0;
         func_80259DC8(gfxp, D_80215470, 0, 0, 0, 0x29, 0x7D, 0x10, 0x10, 1, 0xFF, 0xB4, 0, D_80215910[1], 0xFF, 0x78, 0,
                       D_80215910[1]);

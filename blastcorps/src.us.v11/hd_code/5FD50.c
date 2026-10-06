@@ -1,5 +1,11 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_803153D8 ((u8 *) &D_803153D8)
+#define D_803156D8 ((u8 *) &D_803156D8)
+#define D_8036AFB0 ((u8 *) D_8036AFB0)
+/* end of views */
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -14,9 +20,6 @@
 extern s16 D_803C3248;
 extern u8 D_803C2B90[];
 extern u8 *D_803C2B88;
-extern u16 D_803BE714;
-extern u16 D_803BE716;
-extern s16 D_803C30A8[];  /* 100 entries, then D_803C3170 */
 extern s16 *D_803C3170;
 extern s16 D_803C3178[];
 
@@ -33,7 +36,7 @@ extern s16 D_803C3178[];
                                                 \
         D_803C3248 = (value);                   \
         D_803C2B88 = D_803C2B90;                \
-        n_ = (u32) D_803BE714 * D_803BE716;     \
+        n_ = (u32) ((u16) D_803BE714) * D_803BE716;     \
         for (i_ = 0; i_ != n_; i_++) {          \
             D_803C3178[i_] = i_;                \
             D_803C30A8[i_] = i_;                \
@@ -123,12 +126,12 @@ void func_802A470C(s32 arg0, Gfx *dataPtr, Vtx *v, s32 dataSize) {
         q[3] = *(s16 *) (lvl + 2);
         q += 4;
         end = D_803C3170;
-        top = D_803C30A8;
+        top = (s16 *) D_803C30A8;
         for (src = D_803C3178; src != end; src++, top++) {
             s16 val = *src;
             s16 cur;
 
-            for (p = D_803C30A8; p != top; p++) {
+            for (p = (s16 *) D_803C30A8; p != top; p++) {
                 if (val < *p) {
                     break;
                 }
@@ -295,18 +298,11 @@ void func_802A4A50(Vtx *v, u32 x, u32 z, u32 w, u32 d, u32 xs, u32 zs, s32 y0, s
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u32 D_803BE740[];  /* scheduler task: header words, then an OSTask at +0x10 */
-extern u8 D_802E6820[];   /* RSP boot ucode, ends at D_802E68F0 */
-extern u8 D_802E68F0[];
 extern u8 D_802E77B0[];   /* gfx ucode text */
 extern u8 D_8030EE60[];   /* gfx ucode data */
 extern u8 D_803BE780[];   /* dram stack (0x400) */
 extern u8 D_803BEB80[];   /* output buffer */
 extern u8 D_803C2B80[];   /* output buffer end */
-extern u8 D_8036AFB0[];   /* yield buffer (0x900) */
-extern u8 D_803153D8[];
-extern u8 D_803156D8[];
-extern OSMesgQueue D_80315440;
-void func_80285110(s32);
 
 /* Unless the level grid is 1 x 1 (D_803BE714 == D_803BE716 == 1, returns 1),
  * fills the task D_803BE740 (an M_GFXTASK OSTask at +0x10 with data_ptr /
@@ -319,7 +315,7 @@ void func_80285110(s32);
 s32 func_802A4B0C(void *dataPtr, void *wb, s32 dataSize) {
     u32 *t;
 
-    if (D_803BE714 == 1 && D_803BE716 == 1) {
+    if (((u16) D_803BE714) == 1 && D_803BE716 == 1) {
         return 1;
     }
     t = D_803BE740;
@@ -360,7 +356,6 @@ s32 func_802A4B0C(void *dataPtr, void *wb, s32 dataSize) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 *D_80358074; /* current level header */
 u32 *func_802A4E4C(u8 *lvl, u32 *dl, u8 *rec, u8 *recEnd, u8 *grp, u8 *grpEnd);
 void func_802A4DE8(s32 arg0, u32 *gfx, u32 *dl, u32 *end);
 void func_802A5020(u8 *base);
@@ -431,7 +426,7 @@ u32 *func_802A5334(u8 *base, u32 *dst, s16 *exclEnd, u8 *rec, u8 *end);
 /* Is `v` in the sorted, -1-terminated visible-cell list D_803C30A8? (Scans
  * to the first entry >= v, as the asm.) */
 static s32 port_cell_listed(s32 v) {
-    s16 *p = D_803C30A8;
+    s16 *p = (s16 *) D_803C30A8;
     s32 t;
 
     for (;;) {
@@ -449,7 +444,7 @@ static s32 port_cell_listed(s32 v) {
  * listed value (to the -1) the cells are scanned from the start up to the
  * first one greater than it, as the asm does. */
 static s32 port_cells_listed(s32 *cells, s32 n) {
-    s16 *p = D_803C30A8;
+    s16 *p = (s16 *) D_803C30A8;
     s32 *c;
     s32 v;
     s32 k;
@@ -707,7 +702,7 @@ u32 *func_802A5334(u8 *base, u32 *dst, s16 *exclEnd, u8 *rec, u8 *end) {
     while (rec != end) {
         s32 n = *(s32 *) (rec + 0x10);
         s32 *words = (s32 *) (rec + 0x14);
-        s16 *l = D_803C30A8;
+        s16 *l = (s16 *) D_803C30A8;
         s32 id;
         s16 *e;
         u32 *s;

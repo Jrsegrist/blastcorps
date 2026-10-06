@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -10,13 +11,6 @@
  * more specific non-ABI explanation where one was already worked out. */
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u64 D_80364A98;   /* next game mode */
-extern s16 D_80364A72;
-extern void *D_80367738; /* sound player */
-extern u8 D_80367BFF;
-extern u8 D_80367C00;
-void *func_80260650(void *arg0, s16 arg1, void *arg2);
-void func_80278EB0(s32 n, f32 scale, s32 arg2);
 
 /* Shared by eight vehicle modules, each calling it with its own state block
  * in $gp (the C takes it as a parameter; see tools_port/conventions.txt).

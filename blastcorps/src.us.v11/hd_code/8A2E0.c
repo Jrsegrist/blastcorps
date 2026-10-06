@@ -1,5 +1,13 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_803F3FF8 (*(Debris8A2E0 *) D_803F3FF8)
+#define D_803FBBB0 ((UnkEntry8A2E0 *) D_803FBBB0)
+#ifdef NON_MATCHING
+#define D_80358070 (*(u32 *) &D_80358070)
+#endif
+/* end of views */
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -20,9 +28,7 @@ typedef struct {
     /* 0x12 */ u16 unk12;
 } UnkEntry8A2E0; /* size 0x14 */
 
-typedef struct Unk8029DEA0Entry Unk8029DEA0Entry; /* channel table entry (56040.c) */
 
-extern UnkEntry8A2E0 D_803FBBB0[];
 extern u8 D_803FBBE0[]; /* channel tables of the boxes' two models */
 extern u8 D_803FBEE0[];
 extern u8 *D_803FBBD8;  /* the boxes' model data */
@@ -30,27 +36,11 @@ extern u8 *D_803FC1E0;  /* four 0x300-byte save copies */
 extern u8 *D_803FC1E4;
 extern u8 *D_803FC1E8;
 extern u8 *D_803FC1EC;
-extern u8 D_803FC1F0;   /* number of boxes */
-void func_8029E558(u8 *base, u8 *other, Unk8029DEA0Entry *ch); /* 56040 */
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-typedef struct {
-    /* 0x0 */ u8 *s2; /* the loaded data */
-    /* 0x4 */ u8 *s4;
-    /* 0x8 */ u8 *a1; /* the new heap end */
-} Out802A396C; /* as in 5CB60.c */
-extern u32 D_80358070; /* bump allocator */
-void func_802A396C(s32 type, Out802A396C *out);                                  /* 5CB60 */
 void func_802CEE14(s32 x, s32 y, s32 z);
-s32 func_8029F85C(u32 *bufA, u32 *bufB, Unk8029DEA0Entry *ch, u8 *hdr);           /* 56040 */
-void func_802A0290(Unk8029DEA0Entry *base, s32 idx, s32 val);                    /* 56040 */
-void func_802A0320(s32 idx, Unk8029DEA0Entry *base);                             /* 56040 */
-void func_802A039C(Unk8029DEA0Entry *base, s32 idx, s32 val);                    /* 56040 */
-void func_802A03D4(Unk8029DEA0Entry *base, s32 idx, s32 val);                    /* 56040 */
-void func_802A040C(Unk8029DEA0Entry *base, s32 idx, s32 val);                    /* 56040 */
-void func_802A0480(f32 f, Unk8029DEA0Entry *base, s32 idx, s32 val);             /* 56040 */
 
 /* Load channels for one model: func_8029F85C(b, a, ch, D_803FBBD8), channel 0
  * = (100, 0, 0, 0.0, 1), run it into both copies (func_8029E558, then
@@ -138,7 +128,6 @@ void func_802CEAA0(u8 *obj) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern Vtx D_803FBAB0[]; /* 8 vertices per box */
-extern u8 D_803FC1F0;    /* current box index */
 
 /* Writes the 8 corner positions of the box x-10..x+10, y..y+20, z-10..z+20
  * into the vertices of box D_803FC1F0 (only ob[] is written). The asm takes
@@ -168,8 +157,6 @@ void func_802CEE14(s32 x, s32 y, s32 z) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-void func_802ACA60(s32 x, s32 y, s32 z, s32 *m); /* 679E0 */
-void func_802AC8CC(u16 *m);                      /* 679E0 */
 
 #define K0_PHYS(p) ((u32) (p) - 0x80000000)
 
@@ -246,15 +233,7 @@ Gfx *func_802CEEFC(Gfx *gdl, s32 cur, Gfx *dl2, Mtx *mtx) {
 #endif
 
 #ifdef NON_MATCHING
-void func_80285AB0(u8 bit);
-s32 func_80285B10(u8 bit);
-void func_80285B68(s32 arg0);
-void func_80285CA0(void);
-void func_802A0360(f32 f, void *base, s32 idx, s32 val); /* 56040 */
 void func_802CF3E0(s32 *pos);
-extern s32 D_803643E0; /* player x, y, z */
-extern s32 D_803643E4;
-extern s32 D_803643E8;
 
 float sqrtf(float);
 #pragma intrinsic(sqrtf)
@@ -307,8 +286,8 @@ void func_802CF1A4(void) {
         dz = (e->pos[2] >> 5) - pz;
         if (port_cvt_w_s(sqrtf((f32) (s32) ((u32) (dx * dx) + (u32) (dy * dy) + (u32) (dz * dz)))) < 0x4C) {
             e->unk10 = 1;
-            func_802A0360(0.0f, D_803FBBE0, 2, 0);
-            func_802A0360(0.0f, D_803FBBE0, 1, 0);
+            func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803FBBE0, 2, 0);
+            func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803FBBE0, 1, 0);
             func_80285B68(n);
             func_80285CA0();
             func_802CF3E0(e->pos);
@@ -338,12 +317,6 @@ typedef struct {
     /* 0x36 */ u8 pad36[2];
 } Debris8A2E0;
 
-extern Debris8A2E0 D_803F3FF8;
-extern void *D_80367738; /* sound player */
-void func_802A5E60(void);     /* 60F60 */
-void func_802C049C(void);     /* 77E20 */
-void func_802C04F0(u32 *src); /* 77E20 */
-void *func_80260650(void *arg0, s16 arg1, void *arg2);
 
 /* Burst at pos (s32 x, y, z): func_802A5E60(), frees every D_803F3968 slot
  * (func_802C049C), then 24 debris records (D_803F3FF8, through

@@ -1,5 +1,18 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_80358070
+#define LEGACY_D_80367738
+#endif /* legacy declarations */
+#include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#ifdef NON_MATCHING
+#define D_80358070 (*(Vtx * *) &D_80358070)
+#endif
+/* end of views */
 
 /* Collectible boxes: each is an axis-aligned textured cube (8 vertices) built
  * from a per-type table, collected when the player comes within range, then
@@ -22,7 +35,7 @@ typedef struct {
 } BoxType; /* size 0x16 */
 
 /* Input placement record. */
-typedef struct {
+typedef struct BoxSpawn {
     s16 x;
     s16 y;
     s16 z;
@@ -47,21 +60,15 @@ typedef struct {
 #define SET_TC(vtx, s, t) ((vtx).v.tc[0] = (s), (vtx).v.tc[1] = (t))
 
 extern BoxType D_802FDB40[];
+#ifndef NON_MATCHING
 extern Vtx *D_80358070;
-extern s32 D_803643E0;
-extern s32 D_803643E4;
-extern s32 D_803643E8;
+#ifndef NON_MATCHING
 extern s32 D_80367738;
+#endif
+#endif
 extern Box D_8039AF00[];
 extern s32 D_8039B068;
-extern s16 D_803EDC00;
-extern s16 D_803F8B72;
 
-void func_80260650(s32, s32, s32);
-s32 func_8026A6F0(s32, s32, s32, s32, s32, s32);
-s32 func_802A0CC8(s16, s32);
-void func_802CE880(s32, s32, s32, s32, s32);
-void func_802CE90C(s32);
 
 void func_8028C41C(Vtx *v, u8 type, s16 x, s16 y, s16 z);
 

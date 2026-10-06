@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* Music player: tune selection, push/pop tune stack, volume fades and audio init */
 
@@ -31,13 +32,6 @@ typedef struct {
     s32 *params;
 } SynConfig;
 
-typedef struct {
-    u32 maxStates;
-    u32 maxEvents;
-    s32 maxSounds;
-    void *heap;
-    u16 slotCount;
-} SndConfig;
 
 extern u8 D_00350950[];
 extern u8 D_003539A0[];
@@ -48,16 +42,12 @@ extern u8 D_0044F5C0[];
 extern u8 D_802E8D84;
 extern s16 D_802E8D00[];
 extern f32 D_802E8D88;
-extern s32 D_802E8BDC;
 extern u8 D_802E8DC8[];
 extern u8 D_802E8E04[];
 extern u8 D_802E8E40[];
 extern u16 D_802E8E7C[];
 extern u8 D_802E8D8C[];
-extern u8 D_802E8F94[][0x44];
 extern s32 D_802E8EB4[][6];
-extern s32 D_803156C4;
-extern u64 D_80364A90;
 extern TuneState D_80366C30[];
 extern TuneState *D_80367400;
 extern s32 D_80367408[];
@@ -69,38 +59,12 @@ extern f32 D_8036770C;
 extern f32 D_80367710;
 extern f32 D_80367714;
 extern ALHeap D_80367718;
-extern u8 D_80367728;
-extern u8 D_80367729;
-extern u8 D_8036772A;
-extern s32 D_8036772C;
-extern u8 D_80367730;
-extern ALCSPlayer *D_80367734;
-extern void *D_80367738;
 extern void *D_8036773C;
-extern s32 D_80367740;
 extern u8 D_80370C80[];
 
 #define SEQP ((BCSeqPlayer *) D_80367734)
 
-void func_8028B4C4(void *, void *, s32 *, s32, s32, s32);
-void func_8029A7E4(const char *fmt, ...);
-s32 func_802D4E10(ALCSPlayer *seqp);
-s32 func_802D8310(ALCSPlayer *seqp);
-void func_8025EDF0(SndConfig *c);
-void *func_80260650(void *arg0, s16 arg1, void *arg2);
-void func_802609F0(void);
-void func_80260A10(void);
-void func_80260A30(u8 arg0);
-void func_80260B40(u8 arg0, u16 arg1);
-s32 func_80264BA4(s32 arg0);
-void func_802676A0(SynConfig *c, s32 pri);
-void func_80267A74(void);
-void func_80260EE0(u8 arg0);
 void func_80260F60(f32 arg0);
-void func_8026101C(void);
-void func_80261570(f32 arg0);
-void func_80261E9C(u64 arg0);
-void func_80261FB0(u8 arg0);
 
 void func_80260C20(u8 tune, f32 vol) {
     void *rom;
@@ -111,7 +75,7 @@ void func_80260C20(u8 tune, f32 vol) {
     D_8036770C = vol;
     D_80367708 = tune;
     rom = D_80367514->seqArray[tune].offset;
-    func_8028B4C4(rom, D_80367510, &D_80367408[tune], 0, 0, 0);
+    func_8028B4C4((u32) rom, (u32) D_80367510, (u32 *) &D_80367408[tune], 0, 0, 0);
     alCSeqNew(&D_80367518[D_802E8D84], D_80367510);
     alCSPSetSeq(D_80367734, &D_80367518[D_802E8D84]);
     alCSPPlay(D_80367734);
@@ -132,13 +96,13 @@ void func_80260DFC(void) {
 }
 
 void func_80260E2C(void) {
-    D_80367740 = D_803156C4;
+    D_80367740 = ((s32) D_803156C4);
     D_8036772C = alCSPGetTempo(D_80367734);
     func_80261FB0(D_802E8E04[D_802E8BDC]);
 }
 
 void func_80260E80(void) {
-    D_80367740 = D_803156C4;
+    D_80367740 = ((s32) D_803156C4);
     func_80261FB0(D_802E8E40[D_802E8BDC]);
 }
 
@@ -289,23 +253,23 @@ void func_80261588(void) {
 
     alHeapInit(&D_80367718, D_80370C80, 0x2A280);
     size2 = size1 = D_003539A0 - D_00350950;
-    func_8028B4C4(D_00350950, (void *) 0x8004B400, &size2, 0xD, 0, 2);
+    func_8028B4C4((u32) D_00350950, 0x8004B400, (u32 *) &size2, 0xD, 0, 2);
     musBank = alHeapDBAlloc(0, 0, &D_80367718, 1, size2);
-    func_8028B4C4(D_00350950, musBank, &size1, 0xD, 0, 2);
+    func_8028B4C4((u32) D_00350950, (u32) musBank, (u32 *) &size1, 0xD, 0, 2);
     alBnkfNew(musBank, D_003539A0);
     D_8036773C = musBank->bankArray[0];
     size2 = size1 = D_003A48C0 - D_003A1920;
-    func_8028B4C4(D_003A1920, (void *) 0x8004B400, &size2, 0xD, 0, 2);
+    func_8028B4C4((u32) D_003A1920, 0x8004B400, (u32 *) &size2, 0xD, 0, 2);
     sfxBank = alHeapDBAlloc(0, 0, &D_80367718, 1, size2);
-    func_8028B4C4(D_003A1920, sfxBank, &size1, 0xD, 0, 2);
+    func_8028B4C4((u32) D_003A1920, (u32) sfxBank, (u32 *) &size1, 0xD, 0, 2);
     alBnkfNew(sfxBank, D_003A48C0);
     D_80367738 = sfxBank->bankArray[0];
     D_80367514 = alHeapDBAlloc(0, 0, &D_80367718, 1, 4);
     hdrSize = 4;
-    func_8028B4C4(D_0044F5C0, D_80367514, &hdrSize, 0, 0, 0);
+    func_8028B4C4((u32) D_0044F5C0, (u32) D_80367514, (u32 *) &hdrSize, 0, 0, 0);
     seqSize = D_80367514->seqCount * 8 + 4;
     D_80367514 = alHeapDBAlloc(0, 0, &D_80367718, 1, 0x214);
-    func_8028B4C4(D_0044F5C0, D_80367514, &seqSize, 0, 0, 0);
+    func_8028B4C4((u32) D_0044F5C0, (u32) D_80367514, (u32 *) &seqSize, 0, 0, 0);
     alSeqFileNew(D_80367514, D_0044F5C0);
     D_80367510 = alHeapDBAlloc(0, 0, &D_80367718, 1, 0x21AE);
     for (i = 0; i < 0x42; i++) {
@@ -322,7 +286,7 @@ void func_80261588(void) {
     sync.fxType = 6;
     sync.outputRate = 0;
     sync.heap = &D_80367718;
-    func_802676A0(&sync, 0xC);
+    func_802676A0((ALSynConfig *) &sync, 0xC);
     seqc.maxVoices = 0x18;
     seqc.maxEvents = 0x20;
     seqc.maxChannels = 0x10;

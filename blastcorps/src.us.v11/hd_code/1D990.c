@@ -1,5 +1,22 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_8036EA70
+#define LEGACY_func_802C1B1C
+#endif /* legacy declarations */
+#include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_802E8F94 ((LevelInfo *) D_802E8F94)
+#define D_802F49F4 ((Anim30 *) D_802F49F4)
+#define D_802F5804 ((void * *) D_802F5804)
+#define D_80364AF0 ((Player *) D_80364AF0)
+#ifdef NON_MATCHING
+#define D_8036EA70 (*(u32 *) &D_8036EA70)
+#endif
+/* end of views */
 
 /* Level objectives and the HUD's objective/timer text: per-level setup,
  * the countdown intro, and the per-mission-type progress checks */
@@ -63,52 +80,17 @@ typedef struct {
 } Player;
 
 extern LevelInfo *D_80367C04;
-extern LevelInfo D_802E8F94[];
 extern u8 D_802E8F30[];
 extern Entry0A D_802E8F68[];
-extern f32 D_80364438;
-extern u8 D_80367C10;
-extern s32 D_803EF2EC;
-extern s32 D_803EF2F0;
-extern s32 D_803EF2F4;
-extern u8 D_803EFEC8;
-extern s32 D_803EFEB0;
-extern s32 D_803EFEB4;
-extern s32 D_803EFEB8;
-extern s32 D_803EFEBC;
-extern u8 D_803643D9;
-extern u8 D_803643DA;
-extern u16 D_8036EA7C;
-extern u8 D_8036EA78;
+#ifndef NON_MATCHING
 extern u32 D_8036EA70;
-extern u8 D_8036EB92;
-extern u8 D_8036DCD4;
-extern s32 D_803643E0;
-extern s32 D_803643E4;
-extern s32 D_803643E8;
+#endif
 extern char D_80367B60[][20]; /* HUD text lines (progress, lap times) */
-extern u32 D_80364AA8;
-extern u8 D_803F7806;
-extern s32 D_802E8BDC;
 extern u8 D_80367BFE;
-extern u8 D_80367BFF;
-extern s32 D_80358064;
 extern s32 D_80367B50;
 extern u8 D_80367B54;
 extern u16 D_80367B58[];
-extern u16 D_80367BF6;
 extern Entry08 D_802E8F74[];
-extern u8 D_80364410;
-extern s32 D_80364404;
-extern s32 D_80364408;
-extern s32 D_8036440C;
-extern s32 D_803F7C10;
-extern s32 D_803F7C14;
-extern u8 D_80364424;
-extern s32 D_80364428;
-extern u16 D_8036442C;
-extern s32 D_80364430;
-extern u32 D_803156C4;
 extern s32 D_80367BC0;
 extern u32 D_80367BC4;
 extern s16 D_80367BD8;
@@ -117,22 +99,12 @@ extern s32 D_80367C0C;
 extern char D_802E9F90[]; /* "BUILDINGS" */
 extern s32 D_802E9F9C;
 extern u8 D_802E9FA0[];   /* " S" */
-extern u64 D_80364A90;
-extern u64 D_80364A98;
-extern u8 D_006A32B0[];
-extern u8 D_006A8DA0[];
-extern void *D_80358070;
 extern void *D_80367BE0[];
-extern u16 D_80367BC8;
-extern u8 D_80367C00;
 extern u8 D_80367C01;
-extern Anim30 D_802F49F4[];
 extern Anim30 *D_80367BCC;
 extern Anim30 *D_80367BD0;
 extern u8 D_80367BD4;
 extern u8 D_80367BD5;
-extern s16 D_80367BD6; /* HUD alpha cap */
-extern s16 currentYoshiWindow;
 extern char D_80367BB0[];
 extern u8 D_80367BF8;  /* race: quadrants crossed this lap */
 extern u8 D_80367BF9;  /* race: previous quadrant */
@@ -140,65 +112,29 @@ extern u8 D_80367BFA;  /* race: current quadrant */
 extern u8 D_80367BFB;  /* race: best lap */
 extern u16 D_80367BFC; /* race: best lap time */
 extern s32 D_80367BBC;
-extern u16 D_80370C28;
-extern u8 D_802E8BD0;
 extern char D_80367D10[];
 extern char D_80367D28[];
-extern ALCSPlayer *D_80367734;
 extern s16 D_80367D50; /* turbo-start banner y offset */
 extern u8 D_80367D52;  /* turbo-start banner image (1-5) */
 extern u8 D_80367D53;
-extern u8 D_80370C1C;
 extern char D_80367C18[];
 extern char D_80367C40[];
 extern s16 D_80367C68[];
 extern s16 D_80367CB8[];
-extern void *D_802F5804[];
-extern void *D_80367738;
-extern u8 D_8035805C;
-extern u8 D_803156F4;
-extern Player D_80364AF0[];
-extern u8 D_80364AE8;
-extern u8 D_803643D6;
-extern u8 D_803643D7;
-extern u32 D_803156C0;
-extern s32 D_80364A58;
 extern u16 D_80367BF4;
 extern u16 D_80367D08;
-extern u8 D_803BE738;
-extern s16 D_8036BB1A;
-extern s16 yoshiState;
 
-void func_802D6A60(char *, const char *, ...);
-void func_8029A7E4(const char *, ...);
-void func_802C1DD0(s32);
-void func_8027EED8(s32, s32, s16 *);
+#ifndef NON_MATCHING
 u8 func_802C1B1C(void);
-u8 func_8026FA38(char **name, s32 *arg1);
-u8 func_80272C5C(u16 *ids, s32 arg1, u8 count, u8 frames, u8 flags, f32 scale);
-void func_8028B4C4(void *, void *, s32 *, s32, s32, s32);
-void func_8026AF6C(s32);
-void func_80260650(void *, s32, s32);
-s32 func_8026205C(s32);
-s32 func_8028604C(s32);
-s32 func_802753C0(void);
-void func_80275270(u64, f32);
-void func_80260A10(void);
-void func_802609F0(void);
+#endif
 void func_80262840(void);
 void func_80262FD0(void);
 void func_8026303C(void);
 void func_80263140(void);
 void func_80263358(void);
 void func_802633E0(void);
-void func_80264A34(char *buf, u16 t, s32 arg2);
 s32 func_8026394C(s16 x, s16 y, s16 x0, s16 y0, s16 x1, s16 y1);
-void func_80259CCC(Gfx **, char *, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32);
-void func_8025E2CC(Gfx **arg0, Gfx **arg1, s32 arg2);
 Gfx *func_80264264(Gfx **, Gfx *);
-Gfx *func_80274868(Gfx *);
-Gfx *func_80274AA4(Gfx *);
-Gfx *func_80272ED8(Gfx *, s32, s32, s32, s32, s32, f32);
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
@@ -336,7 +272,7 @@ void func_80262320(u8 arg0) {
     if (D_80364AA8 != 1) {
         size = D_006A8DA0 - D_006A32B0;
         if (D_80364AA8 != 0x80 && D_80364A98 == 0x2000) {
-            func_8028B4C4(D_006A32B0, D_80358070, &size, 10, 0, 1);
+            func_8028B4C4((u32) D_006A32B0, (u32) D_80358070, (u32 *) &size, 10, 0, 1);
             for (i = 0; i < 5; i++) {
                 D_80367BE0[i] = (i << 15) + (u8 *) D_80358070;
             }
@@ -682,7 +618,11 @@ Gfx *func_802639B4(Gfx *gdl, Gfx **arg1, u32 *arg2) {
     u8 flash;
     s16 alpha;
     s32 pad54;
+#ifdef NON_MATCHING
+    s32 i = 0; /* only read when D_80364AA8 == 2, after the lap loop above has set it */
+#else
     s32 i;
+#endif
 
     g = gdl;
     if ((D_80364A90 & 0x04000200) && currentYoshiWindow != 0x1E) {
@@ -695,14 +635,14 @@ Gfx *func_802639B4(Gfx *gdl, Gfx **arg1, u32 *arg2) {
             for (i = 0; i < D_80367B54 - ((D_80364A90 & 0x440) ? 1 : 0) && i < D_80367C04->target; i++) {
                 if (i + 1 == D_80367BFB && i + 1 != D_80367B54) {
                     /* best lap */
-                    func_80259CCC(arg1, D_80367B60[i], 0, 1, 0, 0x18, i * 18 + 0x12, 0x14, 0x14, 1, 0xFF, 0, 0,
+                    func_80259CCC(arg1, (u8 *) D_80367B60[i], 0, 1, 0, 0x18, i * 18 + 0x12, 0x14, 0x14, 1, 0xFF, 0, 0,
                                   D_80367BD6);
                 } else if (i + 1 == D_80367B54) {
                     /* current lap */
-                    func_80259CCC(arg1, D_80367B60[i], 0, 1, 0, 0x18, i * 18 + 0x12, 0x14, 0x14, 1, 0xFF, 0xFF, 0xFF,
+                    func_80259CCC(arg1, (u8 *) D_80367B60[i], 0, 1, 0, 0x18, i * 18 + 0x12, 0x14, 0x14, 1, 0xFF, 0xFF, 0xFF,
                                   D_80367BD6);
                 } else {
-                    func_80259CCC(arg1, D_80367B60[i], 0, 1, 0, 0x18, i * 18 + 0x12, 0x14, 0x14, 1, 0xA0, 0xA0, 0xA0,
+                    func_80259CCC(arg1, (u8 *) D_80367B60[i], 0, 1, 0, 0x18, i * 18 + 0x12, 0x14, 0x14, 1, 0xA0, 0xA0, 0xA0,
                                   D_80367BD6);
                 }
             }
@@ -710,14 +650,14 @@ Gfx *func_802639B4(Gfx *gdl, Gfx **arg1, u32 *arg2) {
         case 4:
         case 0x20:
         case 0x80:
-            func_80259CCC(arg1, D_80367B60[0], 0, 1, 0, 0x38, 0x14, 0x14, 0x14, 1, 0xFF, 0xFF, 0xFF, alpha);
+            func_80259CCC(arg1, (u8 *) D_80367B60[0], 0, 1, 0, 0x38, 0x14, 0x14, 0x14, 1, 0xFF, 0xFF, 0xFF, alpha);
             break;
         case 8:
-            func_80259CCC(arg1, D_80367B60[0], 0, 1, 0, 0x1C, 0x12, 0x14, 0x14, 1, 0xFF, 0xFF, 0xFF, alpha);
+            func_80259CCC(arg1, (u8 *) D_80367B60[0], 0, 1, 0, 0x1C, 0x12, 0x14, 0x14, 1, 0xFF, 0xFF, 0xFF, alpha);
             break;
         case 0x10:
         case 0x40:
-            func_80259CCC(arg1, D_80367B60[0], 0, 1, 0, 0x38, 0x12, 0x14, 0x14, 1, 0xFF, 0xFF, 0xFF, alpha);
+            func_80259CCC(arg1, (u8 *) D_80367B60[0], 0, 1, 0, 0x38, 0x12, 0x14, 0x14, 1, 0xFF, 0xFF, 0xFF, alpha);
             break;
     }
     red = 0xFF;
@@ -737,13 +677,13 @@ Gfx *func_802639B4(Gfx *gdl, Gfx **arg1, u32 *arg2) {
     }
     if (!flash || D_803156C4 % 20 < 16) {
         if (D_80364AA8 == 2) {
-            func_80259CCC(arg1, D_80367BB0, 0, 1, 0, 0x18, i * 18 + 0x14, 0x10, 0x10, 1, red, grn, 0, D_80367BD6);
+            func_80259CCC(arg1, (u8 *) D_80367BB0, 0, 1, 0, 0x18, i * 18 + 0x14, 0x10, 0x10, 1, red, grn, 0, D_80367BD6);
         } else {
-            func_80259CCC(arg1, D_80367BB0, 0, 1, 0, 0x1C, D_80367BD8 + 0x2A, 0x10, 0x10, 1, red, grn, 0, alpha);
+            func_80259CCC(arg1, (u8 *) D_80367BB0, 0, 1, 0, 0x1C, D_80367BD8 + 0x2A, 0x10, 0x10, 1, red, grn, 0, alpha);
         }
     }
     if (D_803643D7 && D_80364A90 == 0x04000000) {
-        func_8025E2CC(&g, arg1, D_8035805C);
+        func_8025E2CC(&g, (s32) arg1, D_8035805C);
     }
     if (D_80367BC8) {
         g = func_80264264(arg1, g);

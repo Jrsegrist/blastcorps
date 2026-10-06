@@ -1,60 +1,13 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 #ifdef NON_MATCHING
 /* Shared declarations for the vehicle type 2 (state block D_803EDF10)
  * rewrites below: the same code as vehicle 16's in 8AEE0.c with id 2 and
  * scale 0x6590. The structs mirror the callees' C rewrites (56040.c,
  * 62740.c). */
-#define ZONE_SCAN_REGS_DEFINED
-/* func_802ABD54's scan registers (62740.c), in and out. */
-typedef struct {
-    s32 t6; /* zone x */
-    s32 t7; /* zone y */
-    s32 s0; /* zone z */
-    s32 s1; /* distance / level term */
-    s32 s2; /* zone radius */
-    s32 s3; /* scan counter / zone byte */
-    s32 s4; /* scan pointer / zone byte */
-} ZoneScanRegs;
-s32 func_802ABD54(s32 id, s32 x, s32 y, s32 z, ZoneScanRegs *r);
 
-typedef struct {
-    f32 pz;    /* f12 */
-    f32 cross; /* f14 */
-    f32 cz;    /* f20 */
-    f32 side;  /* f22 */
-    f32 sideZ; /* f24 */
-    f32 dz;    /* f26 */
-} TriSideOut; /* the triangle scans' FP pass-through state (62740.c) */
-typedef struct {
-    s32 v1;
-    s32 a0;
-    s32 a3;
-    s32 s1;
-    s32 s2;
-    s32 s0;
-} MtxChainRegs; /* func_802AA890's extra registers (62740.c) */
-typedef struct {
-    s32 t1;
-    s32 s3;
-    s32 fp;
-} Out802A860C;
-typedef struct {
-    s32 s3;
-    s16 *s4;
-    s32 fp;
-} Regs802A8768;
-typedef struct {
-    s32 *s1;
-    s32 *s3;
-} Out802A9A60;
-/* func_802B2768's results besides t0 (the return value). */
-typedef struct {
-    s32 t2; /* end of the second point list */
-    s32 s1; /* func_802AA890's y' (MtxChainRegs.s1) */
-    s32 s4; /* the matrix base */
-} VehMtxOut;
 
 extern u8 D_803EDF10[];  /* vehicle 2 state block */
 extern u32 D_803EDFB8[]; /* x, y, z */
@@ -66,74 +19,14 @@ extern s16 D_803EDFD4;
 extern s8 D_803EDFD8;
 extern u8 D_803EDFD9;
 extern u8 D_803EDFDA;
-extern u8 *D_80358070; /* matrix buffer allocator */
-extern u8 D_8035805C;  /* which of the two matrix buffers is current */
-extern s16 D_803ED390[]; /* rotation angles x, y, z for func_802AA764 */
-extern u8 D_803ED40B;
-extern u8 D_803A7425;
-extern u8 *D_803F77D0;
-extern s32 D_803643E0;
-extern s32 D_803643E4;
-extern s32 D_803643E8;
-extern s16 D_8036443C;
-extern s16 D_8036443E;
-extern s16 D_80364440;
 extern u8 D_80305CF0[];
-extern void *D_803F7844;
 
-void func_802A1388(s32 a0Val, s32 a1Val, s32 v0Val, s32 v1Val, u8 *hdr);
-void func_802A754C(u8 *veh);
-s32 *func_802A992C(s16 *tbl, s32 y, s32 x, s32 z, s32 *dst, s32 *mid, s16 *angle, s32 key, s32 fpIn, u8 *veh,
-                   TriSideOut *f);
-s32 func_802A9A60(s16 *tbl, s32 y, s32 x, s32 z, s32 *dst, s32 *mid, s16 *angle, s32 key, s32 fp, u8 *veh,
-                  TriSideOut *f, Out802A9A60 *out);
-s32 func_8029F85C(u32 *bufA, u32 *bufB, void *ch, u8 *hdr);
-void func_802A0290(void *base, s32 idx, s32 val);
-void func_802A0320(s32 idx, void *base);
-void func_802A0360(f32 f, void *base, s32 idx, s32 val);
-void func_802A039C(void *base, s32 idx, s32 val);
-void func_802A03D4(void *base, s32 idx, s32 val);
-void func_802A040C(void *base, s32 idx, s32 val);
-void func_802A0480(f32 f, void *base, s32 idx, s32 val);
-void func_8029E558(u8 *base, u8 *other, void *ch);
-void func_8029C354(s32 tag, u8 *p, u8 *end, u32 scale);
-void func_80258230(u8 id, s32 arg1, s16 arg2, s16 arg3);
-void func_802AA838(u8 *src, u8 *dst, s32 off);
-void func_802A7764(u64 *a, u64 *b, s32 size);
-void func_802AA764(s32 x, s32 y, s32 z, s32 scale, s32 *m);
-void func_8029C454(s32 x, s32 y, s32 z, s32 tag, u8 *p, u8 *end, u8 *base, MtxChainRegs *regs);
-void func_802ABBEC(s32 id, s16 *p, s16 *end, u8 *base, MtxChainRegs *regs);
-void func_802A133C(s32 a0Val, s32 id, s32 v0Val, s32 v1Val, u8 *obj);
-void func_802A8768(u8 *veh, s32 id, s32 *px, s32 *py, s32 *pz, s32 x, s32 z, s32 divB, s32 divA, s16 *angle,
-                   u8 *flags, s16 *tbl, s32 *a, s32 *b, s32 *c, s32 *ys, Regs802A8768 *r, TriSideOut *f);
-void func_802A7E70(s32 rate, u16 *angle);
-void func_802A785C(u8 *veh, s16 *speed, s32 mode, u8 *flags, s16 *bands, s32 delta);
-void func_802A77D0(u8 *veh);
-void func_802A7FD8(u8 *veh, u16 *heading, s32 rate, s16 *speedp, u16 *target, u16 *out, s8 *flag,
-                   s32 sound);
-f32 func_802A83B8(s16 *div, u8 *f, s32 *p, f32 *out);
-void func_802A843C(u8 *veh, s16 *speed, s32 kind, s8 *f, s32 *p, s32 clamp, f32 div);
-void func_802A7070(u8 *veh, s16 *angle);
-s32 func_802A860C(f32 f, s32 angle, s16 *len, s32 *px, s32 *pz, Out802A860C *out);
-void func_8029A800(s32 z, s32 a1, s32 b2, s32 b3, s32 x, s32 y, s32 b0, s32 h1, s32 h2, s32 b4, s32 b8,
-                   u8 *veh);
-void func_8029C52C(s32 tag, u8 *veh);
-void func_8029AA10(s32 kind);
-void func_802BE77C(s32 id, u8 *vehicle);
-void func_8029A914(u8 *veh);
-s32 func_802A6F6C(void);
-void func_802A70D8(u8 *veh);
-s32 func_802A71DC(u8 *veh, s32 cur, s32 target, s32 *curOut, f32 scale);
-s32 func_802A746C(u8 *veh, s32 delta, s32 v1, s32 *targetOut);
-void func_802A6FE4(u8 *veh, s32 limit);
 
 s32 func_802B14E8(ZoneScanRegs *r);
 void func_802B18F4(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4);
 s32 func_802B28B8(void);
 void func_802B2900(void);
 s32 func_802B2768(s32 a3, s32 s0, s32 s1, VehMtxOut *out);
-void func_802B152C(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 f14, f32 f20, f32 f22, f32 f24,
-                   f32 f26);
 #endif
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
@@ -204,16 +97,16 @@ void func_802B0DA0(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s32 t6
                         (s16 *) (v + 0x4C), 2, fpIn, v, f);
     b0 = D_803EDFC8;
     b1 = D_803EDFCC;
-    t7 = func_8029F85C((u32 *) b1, (u32 *) b0, D_803EDC10, D_803EDFC4);
-    func_802A039C(D_803EDC10, 0, 0x64);
-    func_802A03D4(D_803EDC10, 0, 0);
-    func_802A040C(D_803EDC10, 0, 0);
-    func_802A0480(0.0f, D_803EDC10, 0, 0);
-    func_802A0290(D_803EDC10, 0, 1);
-    func_8029E558((u8 *) b0, (u8 *) b1, D_803EDC10);
-    func_802A0320(0, D_803EDC10);
-    func_802A0290(D_803EDC10, 0, 1);
-    func_8029E558((u8 *) b1, (u8 *) b0, D_803EDC10);
+    t7 = func_8029F85C((u32 *) b1, (u32 *) b0, (Unk8029DEA0Entry *) D_803EDC10, D_803EDFC4);
+    func_802A039C((Unk8029DEA0Entry *) D_803EDC10, 0, 0x64);
+    func_802A03D4((Unk8029DEA0Entry *) D_803EDC10, 0, 0);
+    func_802A040C((Unk8029DEA0Entry *) D_803EDC10, 0, 0);
+    func_802A0480(0.0f, (Unk8029DEA0Entry *) D_803EDC10, 0, 0);
+    func_802A0290((Unk8029DEA0Entry *) D_803EDC10, 0, 1);
+    func_8029E558((u8 *) b0, (u8 *) b1, (Unk8029DEA0Entry *) D_803EDC10);
+    func_802A0320(0, (Unk8029DEA0Entry *) D_803EDC10);
+    func_802A0290((Unk8029DEA0Entry *) D_803EDC10, 0, 1);
+    func_8029E558((u8 *) b1, (u8 *) b0, (Unk8029DEA0Entry *) D_803EDC10);
     *(s16 *) (v + 0x78) = -0x64;
     *(s16 *) (v + 0x7A) = 0;
     *(s16 *) (v + 0x7C) = 4;
@@ -235,8 +128,8 @@ void func_802B0DA0(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s32 t6
     model = D_803EDFC4;
     func_8029C354(2, model + *(s32 *) (model + 4), model + *(s32 *) (model + 8), 0x6590);
     func_80258230(2, 0x64, 0x2D, 0x2D);
-    func_802A0360(0.0f, D_803EDC10, 1, 0);
-    func_802A0290(D_803EDC10, 1, 1);
+    func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803EDC10, 1, 0);
+    func_802A0290((Unk8029DEA0Entry *) D_803EDC10, 1, 1);
     v[0x9A] = 1;
     func_802B152C(t6, t7, z, (s32) (v + 4), (s32) &D_803EDFB8[1], (s32) s3v, (s32) (v + 0x4C), f->cross, f->cz,
                   f->side, f->sideZ, f->dz);
@@ -279,10 +172,6 @@ extern u64 *D_803EDFC8;
 extern u64 *D_803EDFCC;
 extern void *D_803EDFD0; /* engine sound handle */
 extern u8 D_803EDC10[];  /* this vehicle's animation channel table */
-void func_802A7764(u64 *a, u64 *b, s32 size);
-void func_802A02E4(s32 idx, void *base);
-void func_802C444C(void);
-void func_802608C8(void *arg0);
 
 /* Vehicle-type 2 shutdown (called from hd.c's func_8024B188): zeroes the
  * speed (s16 at +0x76), func_802A7764(D_803EDFC8, D_803EDFCC, 0x1400), stops
@@ -292,7 +181,7 @@ void func_802608C8(void *arg0);
 void func_802B11B8(void) {
     *(s16 *) (D_803EDF10 + 0x76) = 0;
     func_802A7764(D_803EDFC8, D_803EDFCC, 0x1400);
-    func_802A02E4(0x1F, D_803EDC10);
+    func_802A02E4(0x1F, (Unk8029DEA0Entry *) D_803EDC10);
     func_802C444C();
     func_802608C8(D_803EDFD0);
 }
@@ -303,19 +192,9 @@ void func_802B11B8(void) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 D_803EDF10[]; /* this vehicle's state block */
-extern s16 D_8036444C;
-extern s16 D_80364450;
-extern void *D_80367738;
 extern void *D_803EDFD0; /* engine sound handle */
 extern u8 D_802C2308[]; /* key of this vehicle's func_802A06B4 entry */
 extern u8 D_803EDC10[]; /* this vehicle's animation channel table */
-void *func_80260650(void *arg0, s16 arg1, void *arg2);
-void func_802A039C(void *base, s32 idx, s32 val);
-void func_802A040C(void *base, s32 idx, s32 val);
-void func_802A0480(f32 f, void *base, s32 idx, s32 val);
-void func_802A05D0(s32 key, s32 val);
-void func_802A05F8(s32 key, s32 val);
-void func_802A0620(s32 key, s32 val);
 
 /* Vehicle-type 2 setup (called from 00000.c / 17210.c): clears byte 0x99 of
  * the state block, D_8036444C/50 = 4200, 3000, starts the engine sound 0x50
@@ -332,18 +211,18 @@ void func_802B1228(void) {
     func_802A05D0((s32) D_802C2308, 0x19);
     func_802A05F8((s32) D_802C2308, 0);
     func_802A0620((s32) D_802C2308, 0);
-    func_802A039C(D_803EDC10, 7, 2);
-    func_802A040C(D_803EDC10, 7, 1);
-    func_802A0480(0.5f, D_803EDC10, 7, 1);
-    func_802A039C(D_803EDC10, 8, 2);
-    func_802A040C(D_803EDC10, 8, 1);
-    func_802A0480(0.5f, D_803EDC10, 8, 1);
-    func_802A039C(D_803EDC10, 9, 4);
-    func_802A040C(D_803EDC10, 9, 1);
-    func_802A0480(0.5f, D_803EDC10, 9, 1);
-    func_802A0480(0.5f, D_803EDC10, 1, 1);
-    func_802A0480(0.5f, D_803EDC10, 5, 1);
-    func_802A0480(0.0f, D_803EDC10, 3, 0);
+    func_802A039C((Unk8029DEA0Entry *) D_803EDC10, 7, 2);
+    func_802A040C((Unk8029DEA0Entry *) D_803EDC10, 7, 1);
+    func_802A0480(0.5f, (Unk8029DEA0Entry *) D_803EDC10, 7, 1);
+    func_802A039C((Unk8029DEA0Entry *) D_803EDC10, 8, 2);
+    func_802A040C((Unk8029DEA0Entry *) D_803EDC10, 8, 1);
+    func_802A0480(0.5f, (Unk8029DEA0Entry *) D_803EDC10, 8, 1);
+    func_802A039C((Unk8029DEA0Entry *) D_803EDC10, 9, 4);
+    func_802A040C((Unk8029DEA0Entry *) D_803EDC10, 9, 1);
+    func_802A0480(0.5f, (Unk8029DEA0Entry *) D_803EDC10, 9, 1);
+    func_802A0480(0.5f, (Unk8029DEA0Entry *) D_803EDC10, 1, 1);
+    func_802A0480(0.5f, (Unk8029DEA0Entry *) D_803EDC10, 5, 1);
+    func_802A0480(0.0f, (Unk8029DEA0Entry *) D_803EDC10, 3, 0);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6C5E0/func_802B1228.s")
@@ -381,20 +260,6 @@ void func_802B13D8(s32 fpIn, s32 a3, f32 f12, f32 f14, f32 f20, f32 f22, f32 f24
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef ZONE_SCAN_REGS_DEFINED
-#define ZONE_SCAN_REGS_DEFINED
-/* func_802ABD54's scan registers (62740.c), in and out. */
-typedef struct {
-    s32 t6; /* zone x */
-    s32 t7; /* zone y */
-    s32 s0; /* zone z */
-    s32 s1; /* distance / level term */
-    s32 s2; /* zone radius */
-    s32 s3; /* scan counter / zone byte */
-    s32 s4; /* scan pointer / zone byte */
-} ZoneScanRegs;
-s32 func_802ABD54(s32 id, s32 x, s32 y, s32 z, ZoneScanRegs *r);
-#endif
 extern u32 D_803EDFB8[]; /* x, y, z */
 /* Zone level lookup (func_802ABD54) for vehicle id 2 at its position
  * D_803EDFB8..+8; returns func_802ABD54's v1 (the zone list end).
@@ -491,9 +356,9 @@ void func_802B152C(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 f
                   0x78, (s16 *) (v + 0x4C), v + 0x96, (s16 *) (v + 0x52), (s32 *) (v + 0x28), (s32 *) (v + 0x40),
                   (s32 *) (v + 0x34), (s32 *) (v + 4), &r8, &f);
     if (D_8035805C != 0) {
-        func_8029E558((u8 *) D_803EDFC8, (u8 *) D_803EDFCC, D_803EDC10);
+        func_8029E558((u8 *) D_803EDFC8, (u8 *) D_803EDFCC, (Unk8029DEA0Entry *) D_803EDC10);
     } else {
-        func_8029E558((u8 *) D_803EDFCC, (u8 *) D_803EDFC8, D_803EDC10);
+        func_8029E558((u8 *) D_803EDFCC, (u8 *) D_803EDFC8, (Unk8029DEA0Entry *) D_803EDC10);
     }
     tag = func_802B2768((s32) (v + 0x34), (s32) (v + 0x96), (s32) &D_803EDFB8[2], &mo);
     func_8029A800(D_803EDFB8[2], (s32) D_80305CF0, 0, 0, D_803EDFB8[0], D_803EDFB8[1], tag, *(s16 *) (v + 0x76),
@@ -547,64 +412,35 @@ void func_802B152C(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 f
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef IO802A6274_DEFINED
-#define IO802A6274_DEFINED
-/* func_802A6274's in/out registers (60F60.c). */
-typedef struct {
-    s32 a3;
-    s32 t6;
-    s32 s1;
-} Io802A6274;
-s32 func_802A6274(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32 z, s32 w24, s32 w28,
-                  s32 w18, s32 w1C, s32 w2C, s32 b35);
-#endif
 extern s16 D_803EDFD6;    /* last pose byte seen on channel 1/5 */
 extern u8 D_803EDFDA;
-extern u8 D_803F7804;
-extern void *D_803F7844;  /* sound handle */
 extern f32 D_8030D8B0;
-extern u64 D_803649D8;    /* frame counter */
-extern u8 D_80370C1A;
-extern u8 D_80370C1B;
-extern u8 D_80370C1C;
-extern u8 D_80370C1D;
-extern u8 D_80370C35;
-extern u8 D_802C2984[];   /* func_802A6274 definition */
-void func_802A0290(void *base, s32 idx, s32 val);
-void func_802A03D4(void *base, s32 idx, s32 val);
-void func_802A0360(f32 f, void *base, s32 idx, s32 val);
-void func_802A04BC(s32 idx, void *base, s32 *out);
-void func_8029F9D4(s32 a, s32 b, void *base);
-s32 func_8026A8E0(s32 lo, s32 hi);
-void func_80278EB0(s32 n, f32 scale, s32 arg2);
-void func_802794A4(void);
-void func_802BCC10(void);
 
 #define VEH2_SPEED (*(s16 *) (D_803EDF10 + 0x76))
 
 /* Channel idx's field 0x10 ((s8), func_802A04BC's v1); out gets the rest. */
 static s32 veh2_ch_get(s32 idx, s32 *out) {
-    func_802A04BC(idx, D_803EDC10, out);
+    func_802A04BC(idx, (Unk8029DEA0Entry *) D_803EDC10, out);
     return out[0];
 }
 
 /* Channel 31 (the blend track) starts: 039C = v, 03D4 = 0, 040C = 0, 0290 = 1. */
 static void veh2_ch31_start(s32 v) {
-    func_802A039C(D_803EDC10, 0x1F, v);
-    func_802A03D4(D_803EDC10, 0x1F, 0);
-    func_802A040C(D_803EDC10, 0x1F, 0);
-    func_802A0290(D_803EDC10, 0x1F, 1);
+    func_802A039C((Unk8029DEA0Entry *) D_803EDC10, 0x1F, v);
+    func_802A03D4((Unk8029DEA0Entry *) D_803EDC10, 0x1F, 0);
+    func_802A040C((Unk8029DEA0Entry *) D_803EDC10, 0x1F, 0);
+    func_802A0290((Unk8029DEA0Entry *) D_803EDC10, 0x1F, 1);
 }
 
 /* Channel ch: 03D4 = (speed < 0), 039C = |speed| / 24. */
 static void veh2_ch_speed(s32 ch) {
     s32 speed = VEH2_SPEED;
 
-    func_802A03D4(D_803EDC10, ch, speed < 0);
+    func_802A03D4((Unk8029DEA0Entry *) D_803EDC10, ch, speed < 0);
     if (speed < 0) {
         speed = -speed;
     }
-    func_802A039C(D_803EDC10, ch, (u32) speed / 24);
+    func_802A039C((Unk8029DEA0Entry *) D_803EDC10, ch, (u32) speed / 24);
 }
 
 /* State 0 (+0xA1 == 0): driving. */
@@ -630,19 +466,19 @@ static void veh2_state0(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) 
     if (VEH2_SPEED == 0) {
         /* standing: blend back to an idle pose once (+0xA3), then idle anims at random */
         if (D_803EDF10[0xA3] != 0) {
-            func_802A0360(0.0f, D_803EDC10, 7, 0);
+            func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803EDC10, 7, 0);
             if (veh2_ch_get(0x1F, o) != 0) {
-                func_802A02E4(0x1F, D_803EDC10);
-                func_8029F9D4(0x1F, 7, D_803EDC10);
+                func_802A02E4(0x1F, (Unk8029DEA0Entry *) D_803EDC10);
+                func_8029F9D4(0x1F, 7, (Unk8029DEA0Entry *) D_803EDC10);
             } else if (veh2_ch_get(1, o) != 0) {
-                func_802A02E4(1, D_803EDC10);
-                func_8029F9D4(1, 7, D_803EDC10);
+                func_802A02E4(1, (Unk8029DEA0Entry *) D_803EDC10);
+                func_8029F9D4(1, 7, (Unk8029DEA0Entry *) D_803EDC10);
             } else if (veh2_ch_get(5, o) != 0) {
-                func_802A02E4(5, D_803EDC10);
-                func_8029F9D4(5, 7, D_803EDC10);
+                func_802A02E4(5, (Unk8029DEA0Entry *) D_803EDC10);
+                func_8029F9D4(5, 7, (Unk8029DEA0Entry *) D_803EDC10);
             } else {
-                func_802A0360(0.0f, D_803EDC10, 1, 0);
-                func_8029F9D4(1, 7, D_803EDC10);
+                func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803EDC10, 1, 0);
+                func_8029F9D4(1, 7, (Unk8029DEA0Entry *) D_803EDC10);
             }
             veh2_ch31_start(0x1E);
         }
@@ -656,26 +492,26 @@ static void veh2_state0(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) 
         }
         r = func_8026A8E0(0, 2);
         r = (r == 0) ? 7 : (r == 1) ? 8 : 9;
-        func_802A0360(0.0f, D_803EDC10, r, 0);
-        func_802A0290(D_803EDC10, r, 1);
+        func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803EDC10, r, 0);
+        func_802A0290((Unk8029DEA0Entry *) D_803EDC10, r, 1);
         return;
     }
 
     /* moving: blend from the idle pose once (+0xA3 == 1 afterwards) */
     if (D_803EDF10[0xA3] != 1) {
-        func_802A0360(0.0f, D_803EDC10, 1, 0);
+        func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803EDC10, 1, 0);
         if (veh2_ch_get(7, o) != 0) {
-            func_8029F9D4(7, 1, D_803EDC10);
-            func_802A02E4(7, D_803EDC10);
+            func_8029F9D4(7, 1, (Unk8029DEA0Entry *) D_803EDC10);
+            func_802A02E4(7, (Unk8029DEA0Entry *) D_803EDC10);
         } else if (veh2_ch_get(8, o) != 0) {
-            func_8029F9D4(8, 1, D_803EDC10);
-            func_802A02E4(8, D_803EDC10);
+            func_8029F9D4(8, 1, (Unk8029DEA0Entry *) D_803EDC10);
+            func_802A02E4(8, (Unk8029DEA0Entry *) D_803EDC10);
         } else if (veh2_ch_get(9, o) != 0) {
-            func_8029F9D4(9, 1, D_803EDC10);
-            func_802A02E4(9, D_803EDC10);
+            func_8029F9D4(9, 1, (Unk8029DEA0Entry *) D_803EDC10);
+            func_802A02E4(9, (Unk8029DEA0Entry *) D_803EDC10);
         } else {
-            func_802A0360(0.0f, D_803EDC10, 7, 0);
-            func_8029F9D4(7, 1, D_803EDC10);
+            func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803EDC10, 7, 0);
+            func_8029F9D4(7, 1, (Unk8029DEA0Entry *) D_803EDC10);
         }
         veh2_ch31_start(0x28);
     }
@@ -688,13 +524,13 @@ static void veh2_state0(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) 
         if (VEH2_SPEED >= 0x96) {
             /* fast with a button held: switch to state 1 */
             D_803EDF10[0xA1] = 1;
-            func_802A0360(0.0f, D_803EDC10, 2, 0);
+            func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803EDC10, 2, 0);
             if (D_803EDF10[0xA2] == 0) {
-                func_8029F9D4(1, 2, D_803EDC10);
-                func_802A02E4(1, D_803EDC10);
+                func_8029F9D4(1, 2, (Unk8029DEA0Entry *) D_803EDC10);
+                func_802A02E4(1, (Unk8029DEA0Entry *) D_803EDC10);
             } else if (D_803EDF10[0xA2] == 1) {
-                func_8029F9D4(5, 2, D_803EDC10);
-                func_802A02E4(5, D_803EDC10);
+                func_8029F9D4(5, 2, (Unk8029DEA0Entry *) D_803EDC10);
+                func_802A02E4(5, (Unk8029DEA0Entry *) D_803EDC10);
             } else {
                 return; /* asm: syscall (+0xA2 is only ever 0 or 1) */
             }
@@ -735,13 +571,13 @@ pick:
         speed = -speed;
     }
     if (speed >= 0x78) {
-        func_802A0290(D_803EDC10, 5, o[1] != 0 ? 2 : 1);
-        func_802A0360(0.0f, D_803EDC10, 5, 0);
+        func_802A0290((Unk8029DEA0Entry *) D_803EDC10, 5, o[1] != 0 ? 2 : 1);
+        func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803EDC10, 5, 0);
         D_803EDF10[0xA2] = 1;
         goto ch5;
     }
-    func_802A0290(D_803EDC10, 1, o[1] != 0 ? 2 : 1);
-    func_802A0360(0.0f, D_803EDC10, 1, 0);
+    func_802A0290((Unk8029DEA0Entry *) D_803EDC10, 1, o[1] != 0 ? 2 : 1);
+    func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803EDC10, 1, 0);
     D_803EDF10[0xA2] = 0;
     goto ch1;
 }
@@ -790,8 +626,8 @@ void func_802B18F4(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
                 VEH2_SPEED = VEH2_SPEED >> 1;
                 func_802794A4();
                 D_803EDF10[0xA1] = 3;
-                func_802A0360(0.0f, D_803EDC10, 3, 3);
-                func_8029F9D4(0x1F, 3, D_803EDC10);
+                func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803EDC10, 3, 3);
+                func_8029F9D4(0x1F, 3, (Unk8029DEA0Entry *) D_803EDC10);
                 veh2_ch31_start(0x21);
                 D_803F7804 = 1;
                 return;
@@ -801,8 +637,8 @@ void func_802B18F4(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
                     VEH2_SPEED = 0x3C;
                 }
                 func_802C444C();
-                func_802A0360(0.0f, D_803EDC10, 1, 0);
-                func_8029F9D4(0x1F, 1, D_803EDC10);
+                func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803EDC10, 1, 0);
+                func_8029F9D4(0x1F, 1, (Unk8029DEA0Entry *) D_803EDC10);
                 veh2_to_state0_tail();
                 return;
             }
@@ -810,10 +646,10 @@ void func_802B18F4(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
             if (veh2_ch_get(0x1F, o) == 1) {
                 return;
             }
-            func_802A039C(D_803EDC10, 2, 10);
-            func_802A03D4(D_803EDC10, 2, 0);
-            func_802A040C(D_803EDC10, 2, 0);
-            func_802A0290(D_803EDC10, 2, 1);
+            func_802A039C((Unk8029DEA0Entry *) D_803EDC10, 2, 10);
+            func_802A03D4((Unk8029DEA0Entry *) D_803EDC10, 2, 0);
+            func_802A040C((Unk8029DEA0Entry *) D_803EDC10, 2, 0);
+            func_802A0290((Unk8029DEA0Entry *) D_803EDC10, 2, 1);
             D_803EDF10[0xA1] = 2;
             return;
 
@@ -821,9 +657,9 @@ void func_802B18F4(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
             if (D_803EDF10[0x9C] != 0) {
                 VEH2_SPEED = VEH2_SPEED >> 1;
                 D_803EDF10[0xA1] = 3;
-                func_802A0360(0.0f, D_803EDC10, 3, 3);
-                func_8029F9D4(2, 3, D_803EDC10);
-                func_802A02E4(2, D_803EDC10);
+                func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803EDC10, 3, 3);
+                func_8029F9D4(2, 3, (Unk8029DEA0Entry *) D_803EDC10);
+                func_802A02E4(2, (Unk8029DEA0Entry *) D_803EDC10);
                 veh2_ch31_start(0x21);
                 D_803F7804 = 1;
                 return;
@@ -838,9 +674,9 @@ void func_802B18F4(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
             if (VEH2_SPEED >= 0) {
                 VEH2_SPEED = 0x3C;
             }
-            func_802A0360(0.0f, D_803EDC10, 1, 0);
-            func_802A02E4(2, D_803EDC10);
-            func_8029F9D4(2, 1, D_803EDC10);
+            func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803EDC10, 1, 0);
+            func_802A02E4(2, (Unk8029DEA0Entry *) D_803EDC10);
+            func_8029F9D4(2, 1, (Unk8029DEA0Entry *) D_803EDC10);
             veh2_to_state0_tail();
             return;
 
@@ -859,10 +695,10 @@ void func_802B18F4(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
             }
             D_803F7804 = 0;
             func_802794A4();
-            func_802A039C(D_803EDC10, 3, 8);
-            func_802A03D4(D_803EDC10, 3, 0);
-            func_802A040C(D_803EDC10, 3, 0);
-            func_802A0290(D_803EDC10, 3, 1);
+            func_802A039C((Unk8029DEA0Entry *) D_803EDC10, 3, 8);
+            func_802A03D4((Unk8029DEA0Entry *) D_803EDC10, 3, 0);
+            func_802A040C((Unk8029DEA0Entry *) D_803EDC10, 3, 0);
+            func_802A0290((Unk8029DEA0Entry *) D_803EDC10, 3, 1);
             D_803EDF10[0xA1] = 4;
             return;
 
@@ -876,8 +712,8 @@ void func_802B18F4(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
                 return;
             }
             D_803F7804 = 1;
-            func_802A0360(0.0f, D_803EDC10, 1, 0);
-            func_802A0360(0.0f, D_803EDC10, 5, 0);
+            func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803EDC10, 1, 0);
+            func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803EDC10, 5, 0);
             D_803EDF10[0xA1] = 0;
             return;
 
@@ -973,10 +809,6 @@ s32 func_802B28B8(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern f32 D_803EBBF0;
-extern f32 D_803EBBF4;
-extern u8 D_803ED3F6;
-extern u8 D_803ED3F7;
 
 /* Vehicle-module setup leaf, identical to func_802AFBA0 (69BB0):
  * D_803EBBF4 = D_803EBBF0 * 4, D_803ED3F6/7 = 40, 3.
@@ -998,8 +830,6 @@ void func_802B2900(void) {
 #ifdef NON_MATCHING
 extern u8 D_803EDF10[];  /* this vehicle's state block: 0xA6 bytes are (de)serialized */
 extern u32 D_803EDFB8[]; /* plus these three words */
-s32 func_802AC7DC(u8 *dst, u8 *src, u32 *words);
-void func_802AC85C(u8 *src, u8 *dst, u32 *words);
 
 /* Serialize this vehicle's state (D_803EDF10[0..0xA5] plus the three words
  * D_803EDFB8[0..2]) into `dst` via func_802AC7DC. Returns the callee's result

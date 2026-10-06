@@ -1,5 +1,27 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_80367738
+#define LEGACY_D_8036EA60
+#define LEGACY_D_8036EA70
+#endif /* legacy declarations */
+#include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_8020C070 ((MenuItem *) D_8020C070)
+#define D_802E8F94 ((LevelInfo *) D_802E8F94)
+#define D_802F5804 ((MenuItem *) D_802F5804)
+#define D_802F8BDC ((MenuItem *) D_802F8BDC)
+#define D_80364AF0 ((PlayerRec *) D_80364AF0)
+#define D_8036EA80 ((u32 *) &D_8036EA80)
+#define D_8036EA90 ((u32 *) &D_8036EA90)
+#ifdef NON_MATCHING
+#define D_8036EA60 (*(u32 *) &D_8036EA60)
+#define D_8036EA70 (*(u32 *) &D_8036EA70)
+#endif
+/* end of views */
 
 /* stats_perm.c: per-level results (score, time, counts and the best/saved
  * copies), the end-of-level status screen and the status save to the pak. */
@@ -27,75 +49,29 @@ typedef struct {
     u8 pad3[2];
 } MenuItem; /* 0x1C */
 
-extern u8 D_80364AE8; /* current player */
-extern u8 D_80364AEA;
-extern s32 D_802E8BDC; /* current level */
-extern PlayerRec D_80364AF0[];
 extern u8 D_80364B08[][0x100]; /* = D_80364AF0[p].rank */
 extern u8 D_80364B44[][0x100]; /* = D_80364AF0[p].flags */
-extern u16 D_80364EF0[][16];
-extern u8 D_80364A87;
-extern u64 D_80364A90;
-extern u64 D_80364A98;
-extern LevelInfo D_802E8F94[];
-extern u8 D_802E8C44[];
-extern u8 D_802E8BD8;
-extern u8 D_802E8BF8;
 
 /* This level's results (D_8036EA70) and the best (D_8036EA60), 16 bytes each:
  * money, time, then three counts with their targets in D_8036EB90..93 */
+#ifndef NON_MATCHING
 extern u32 D_8036EA60;
+#endif
 extern u8 D_8036EA68;
 extern u8 D_8036EA69;
 extern u16 D_8036EA6C;
+#ifndef NON_MATCHING
 extern u32 D_8036EA70;
+#endif
 extern s32 D_8036EA74;
-extern u8 D_8036EA78;
-extern u8 D_8036EA79;
 extern u8 D_8036EA7A;
 extern u8 D_8036EA7B;
-extern u16 D_8036EA7C;
-extern u32 D_8036EA80[4];
-extern u32 D_8036EA90[4];
-extern u16 D_8036EB90;
-extern u8 D_8036EB92;
-extern u8 D_8036EB93;
 extern u8 D_8036EB94[]; /* bonus earned, per bonus */
-extern u8 D_8036EB98;
-extern u8 D_8036EB99;
 extern u8 D_8036EB9C[];
 
-extern char D_8036B9A8[]; /* status screen lines, 0x20 each */
-extern MenuItem D_802F5804[];
-extern MenuItem D_8020C070[];
-extern MenuItem D_802F8BDC[];
-extern s32 D_80358064;
+#ifndef NON_MATCHING
 extern s32 D_80367738;
-extern u8 D_8039C53C[];
-extern s32 D_803156C0;
-extern u8 D_80370C50;
-extern OSMesgQueue D_80219F50;
-extern u64 D_8039C4B8[]; /* pak buffer */
-
-void func_8029A7E4(const char *, ...);
-void func_802D6A60(char *, const char *, ...);
-void func_80264A34(char *, s32, s32);
-void func_802CF5B0(void);
-void func_80275270(u64, f32);
-void func_802C1DD0(s32);
-s32 func_8026B10C(void);
-void func_8026AF6C(s32);
-void func_80260650(s32, s32, s32);
-void func_80255DC8(void);
-void func_80256A34(void *);
-u32 func_802C4E58(void *, u8);
-void func_802C4BF0(void *);
-void func_80264C20(void *);
-void func_8026AD30(s32 arg0);
-
-u32 func_802852EC(void);
-void func_80285A78(u8 *src, u8 *dst);
-u16 func_8028604C(u32 frames);
+#endif
 
 #define CUR (D_80364AF0[D_80364AE8])
 #define LEVEL_DONE(l) ((CUR.rank[l] > 0 && CUR.rank[l] < 6) ? 1 : 0)
@@ -227,10 +203,10 @@ u8 func_80285814(void) {
                 STATS_ASSERT(create_status(pakBuffer,coin)<=LEVEL_SAVE_SIZE-4, 161);
                 func_802C4BF0(pakBuffer);
                 func_802C1DD0(0);
-                func_80264C20(pakBuffer);
+                func_80264C20((s32) pakBuffer);
                 saved = 1;
             } else {
-                func_80256A34(pakBuffer);
+                func_80256A34((s32) pakBuffer);
             }
         } else {
             func_80256A34(NULL);
@@ -337,7 +313,7 @@ void func_80285CC0(void) {
 void func_80285EF4(s32 start) {
     s32 t;
 
-    t = func_8028604C(D_803156C0 - start);
+    t = func_8028604C(((s32) D_803156C0) - start);
     func_802C1DD0(0);
     D_8036EA74 += t;
     func_802852EC();

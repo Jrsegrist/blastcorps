@@ -1,26 +1,24 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_80358070
+#endif /* legacy declarations */
+#include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_803156F8 ((FeDyn *) D_803156F8)
+#ifdef NON_MATCHING
+#define D_80358070 (*(s32 *) &D_80358070)
+#endif
+/* end of views */
 
 /*
  * Front-end 3D scene setup: loads one of three compressed scene blobs, and
  * builds the display lists that draw it (two per-frame-buffer camera setups).
  */
 
-/* front-end view of hd_code's per-frame-buffer DynamicBuf (0x21498 bytes) */
-typedef struct {
-    u8 pad0[0x140];
-    Mtx unk140; /* lookat view */
-    u8 pad180[0x240 - 0x180];
-    Mtx unk240; /* perspective */
-    u8 pad280[0x1240 - 0x280];
-    Mtx unk1240;
-    Mtx unk1280;
-    Mtx unk12C0;
-    Mtx unk1300;
-    u8 pad1340[0x3C00 - 0x1340];
-    LookAt unk3C00;
-    u8 pad3C20[0x21498 - 0x3C20];
-} FeDyn;
 
 /* header of an inflated scene blob: offsets relative to its start */
 typedef struct {
@@ -33,14 +31,11 @@ typedef struct {
     s32 unk20;
 } FeHdr;
 
-extern FeDyn D_803156F8[];
+#ifndef NON_MATCHING
 extern s32 D_80358070; /* heap pointer */
-extern u8 D_8035805C;  /* current frame buffer */
-extern u16 D_8035807C; /* perspNorm */
-extern s16 D_8036BB20;
+#endif
 
 /* ROM addresses of the compressed scene blobs */
-extern u8 D_006E8980[];
 extern u8 D_006EA850[];
 extern u8 D_006EAB90[];
 extern u8 D_006EC4C0[];
@@ -49,7 +44,6 @@ extern u32 D_802182C0;
 extern u8 *D_802182C4;
 extern Gfx *D_802182C8;
 extern void *D_802182CC;
-extern Mtx D_802182D0[];
 extern u8 *D_80218350;
 extern void *D_80218358[2];
 extern Gfx *D_80218360[2][2];
@@ -60,13 +54,6 @@ extern u8 D_80218430[];
 extern u32 D_80218730;
 extern u16 D_80218734;
 
-void func_802A0700(void);
-void func_8028B4C4(void *, void *, u32 *, s32, s32, s32);
-void func_802A08B4(Gfx *, void *);
-void func_802021FC(void *, void *, void *);
-void func_80202100(s32, u8 **, void **, Gfx **);
-void func_80202270(u8 *, void **, void *);
-void func_802022EC(void *, s32, s32, s32, f32, s32, s32);
 
 /* Inflate scene blob `arg0` onto the heap and record its parts. */
 void func_801F4E70(u8 arg0) {
@@ -88,13 +75,13 @@ void func_801F4E70(u8 arg0) {
             D_802182C0 = D_006EC4C0 - D_006EAB90;
             break;
     }
-    func_8028B4C4(D_802182C4, (void *) D_80358070, &D_802182C0, 12, 10, 1);
+    func_8028B4C4((u32) D_802182C4, (u32) ((void *) D_80358070), &D_802182C0, 12, 10, 1);
     hdr = (FeHdr *) D_80358070;
     D_80358070 += D_802182C0;
     D_802182C8 = (Gfx *) (hdr->unk1C + (u32) hdr);
     p = (void *) (hdr->unk20 + (u32) hdr);
     D_802182CC = (void *) (hdr->unk14 + (u32) hdr);
-    func_802A08B4(D_802182C8, p);
+    func_802A08B4((u32 *) D_802182C8, p);
 }
 
 /* Draw the scene loaded by func_801F4E70. */
@@ -156,10 +143,10 @@ void func_801F55D8(void) {
     s32 i;
     FeDyn *dyn;
 
-    func_80202100(0x96, &D_80218350, D_80218358, D_80218360[0]);
+    func_80202100(0x96, &D_80218350, (u8 **) D_80218358, (u8 **) D_80218360[0]);
     guTranslate(&D_80218370, 150.0f, -45.0f, 0.0f);
     guScale(&D_802183B0, 1.5f, 1.5f, 1.5f);
-    func_80202270(D_80218350, D_80218358, D_80218430);
+    func_80202270(D_80218350, (u32 **) D_80218358, D_80218430);
     func_802022EC(D_80218430, 1, 0, 0, 0.0f, 2, 0);
     func_802022EC(D_80218430, 2, 0, 0, 0.0f, 1, 1);
     guRotate(&D_802183F0, 20.0f, 1.0f, 0.0f, 0.0f);

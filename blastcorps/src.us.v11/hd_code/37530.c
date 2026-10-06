@@ -1,5 +1,9 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_02000000 ((u8 *) D_02000000)
+/* end of views */
 
 /* A zone: an x/z shape (six values for func_802AC4C4) spanning ymin..ymax */
 typedef struct {
@@ -21,9 +25,7 @@ typedef struct {
 } ZoneList;
 
 extern ZoneList D_802FC360[11];
-extern s32 D_802E8BDC; /* current level */
 
-s32 func_802AC4C4(s32 x, s32 z, s32 a, s32 b, s32 c, s32 d, s32 e, s32 f);
 
 /* One trail segment: a quad (4 corners x/y/z), two countdown timers, an
  * "open" flag and a style byte */
@@ -36,11 +38,9 @@ typedef struct {
 } Trail; /* 0x1C */
 
 extern Trail D_8036D3D0[80]; /* ring, oldest at D_8036DC90, newest at D_8036DC91 */
-extern s32 D_80358060;        /* frame counter */
-extern u8 D_02000000[];       /* segment 2 base */
 
 /* The trail's vertex and display-list buffer (seen through segment 2) */
-typedef struct {
+typedef struct TrailBuf {
     u8 pad[0x2000];
     Vtx vtx[451];
     Gfx dl[1];
@@ -51,10 +51,14 @@ void func_8027D350(s16 x0, s16 y0, s16 z0, s16 x1, s16 y1, s16 z1, Vtx *v, s32 i
 
 /* Is (x, y, z) inside one of the current level's zones? (zones span ymin..ymax; the x/z test is func_802AC4C4) */
 /* K&R: the caller passes unconverted ints */
+#ifdef NON_MATCHING
+s32 func_8027BCF0(s16 x, s16 y, s16 z)
+#else
 s32 func_8027BCF0(x, y, z)
     s16 x;
     s16 y;
     s16 z;
+#endif
 {
     s32 i = 0;
     u8 found = 0;
@@ -128,7 +132,7 @@ void func_8027BE7C(u8 period, s32 y, s16 x1, s16 z1, s16 x2, s16 z2, s32 x, s32 
     c2z = (s32) ((f32) z + p2z) >> 5;
     y >>= 5;
     guMtxXFMF(mf, halfw, 0.0f, 0.0f, &hx, &py, &hz);
-    if (D_8036DC94 + 1 != D_80358060 || D_8036DC94 == -1) {
+    if (D_8036DC94 + 1 != ((s32) D_80358060) || D_8036DC94 == -1) {
         D_8036D3D0[D_8036DC91].c = 1;
         D_8036DC91++;
         if (D_8036DC91 == 80) {
@@ -171,7 +175,7 @@ void func_8027BE7C(u8 period, s32 y, s16 x1, s16 z1, s16 x2, s16 z2, s32 x, s32 
             }
         }
     }
-    D_8036DC94 = D_80358060;
+    D_8036DC94 = ((s32) D_80358060);
 }
 
 /* Draws the trail: each run of open segments becomes triangle strips in a sub display list, with a cull box for long runs */

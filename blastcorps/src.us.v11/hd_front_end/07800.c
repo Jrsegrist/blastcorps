@@ -1,5 +1,23 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_80358070
+#endif /* legacy declarations */
+#include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_8020C070 ((MenuEntry *) D_8020C070)
+#define D_8020D810 ((FeLevelEntry *) D_8020D810)
+#define D_802E8F94 ((LevelInfo *) D_802E8F94)
+#define D_802F49F4 ((IconInfo *) D_802F49F4)
+#define D_803156F8 ((FeDyn *) D_803156F8)
+#define D_80364AF0 ((FePlayer *) D_80364AF0)
+#ifdef NON_MATCHING
+#define D_80358070 (*(s32 *) &D_80358070)
+#endif
+/* end of views */
 
 /*
  * stats.c (named by its assert): end-of-level results. Grades the time,
@@ -20,21 +38,6 @@
         gImmp1(pkt, OLD_RDPHALF_CONT, (_SHIFTL(dsdx, 16, 16) | _SHIFTL(dtdy, 0, 16)));       \
     }
 
-/* front-end view of hd_code's per-frame-buffer DynamicBuf (0x21498 bytes) */
-typedef struct {
-    u8 pad0[0x140];
-    Mtx unk140; /* lookat view */
-    u8 pad180[0x1240 - 0x180];
-    Mtx unk1240; /* perspective */
-    Mtx unk1280;
-    Mtx unk12C0;
-    Mtx unk1300;
-    u8 pad1340[0x3C00 - 0x1340];
-    LookAt unk3C00;
-    u8 pad3C20[0x48B0 - 0x3C20];
-    Gfx dl[0xB5E]; /* top-level display list */
-    u8 unkA3A0[0x21498 - 0xA3A0];
-} FeDyn;
 
 /* front-end view of hd_code's Player record (0x100 bytes, D_80364AF0) */
 typedef struct {
@@ -68,16 +71,6 @@ typedef struct {
     u8 pad38[0xC];
 } LevelInfo;
 
-/* hd_code's Score (00000.c) */
-typedef struct {
-    s32 ip;
-    u32 tc; /* time */
-    u8 bd;
-    u8 cr;
-    u8 coin; /* grade */
-    u8 bdn;
-    u16 rt;
-} Score;
 
 typedef struct {
     u16 unk0; /* flags */
@@ -103,75 +96,32 @@ typedef struct {
     u8 pad2E[2];
 } IconInfo;
 
-extern FePlayer D_80364AF0[];
-extern u8 D_80364AE8;  /* current player */
-extern u8 D_80364AEA;
-extern s32 D_802E8BDC; /* current level */
-extern FeLevelEntry D_8020D810[];
-extern LevelInfo D_802E8F94[];
-extern Score D_8036EA60;
-extern Score D_8036EA70;
-extern Score D_8036EA80;
-extern Score D_8036EA90;
-extern u8 D_803643D4;
-extern u8 D_803643D5;
-extern s32 D_803649F0;
-extern u64 D_80364A98;
-extern u8 D_802E8C44[];
-extern u16 D_80364EF0[][16]; /* best times, per player */
 extern char D_8036B980[];
-extern char D_8036B9A8[];
-extern MenuEntry D_8020C070[];
-extern IconInfo D_802F49F4[];
 extern u16 D_80303B3C[];
 extern u16 D_80303B48[];
 extern u16 D_80303B58[];
 extern u16 D_80303B68[];
+#ifndef NON_MATCHING
 extern s32 D_80358070; /* heap pointer */
+#endif
 extern u16 D_802159D0; /* scene angle */
 extern u8 *D_802159D4; /* 256x32 IA8 banner */
 extern u8 *D_802159D8; /* 40x24 IA8 icon */
 extern u16 D_802159DC; /* scene */
 extern f32 D_802159E0; /* camera distance */
 extern f32 D_802159E4; /* spin speed */
-extern FeDyn D_803156F8[];
-extern u8 D_8035805C;  /* current frame buffer */
-extern s32 D_80358078; /* top-level display list length */
-extern u8 *D_8035806C;
-extern u32 D_80358058;
-extern u32 D_80358050[]; /* frame buffer physical addresses */
-extern u32 D_80358060;   /* frame counter */
-extern u16 D_8035807C;   /* perspNorm */
-extern u64 D_80364A90;
-extern s32 D_802FA268;
-extern void *D_80367738;
-extern Gfx D_01000010[];
-extern Gfx D_01000038[];
-extern Mtx D_802182D0[];
 
 /* ROM bounds of two compressed blobs (the first ends where the second starts) */
-extern u8 D_0048F5A0[];
 extern u8 D_0048F5A0_end[];
 extern u8 D_0048F970[];
 extern u8 D_0048F970_end[];
 
-void func_8029A7E4(const char *fmt, ...);
 int sprintf(char *, const char *, ...);
-u32 func_802852EC(void);
-s32 func_80286038(u16);
-void func_80295A20(u32);
-void func_80264A34(char *buf, u16 t, s32 arg2);
-u8 func_80272C5C(u16 *ids, s32 arg1, u8 count, u8 frames, u8 flags, f32 scale);
-void func_801E8DCC(u8);
-void func_801F4E70();
-void func_8028B4C4(void *, void *, s32 *, s32, s32, s32);
-u8 func_801EEDB4();
-u8 func_801EF2BC();
-void func_8028A470(void);
-void func_8028A3E4(void);
-void func_80284E54(Gfx *, s32, s32, s32, s32, s32);
-void *func_80260650(void *, s16, void *);
-Gfx *func_801F4FBC(FeDyn *, Gfx *);
+#ifdef NON_MATCHING
+u8 func_801EEDB4(u8 arg0, u8 arg1, u8 arg2);
+#else
+u8 func_801EEDB4(); /* K&R */
+#endif
 
 #define levelno D_802E8BDC
 #define DUMMY_LEVELS(l) ((l) == 49 || (l) == 47 || (l) == 38)
@@ -229,7 +179,7 @@ u8 func_801EE800(u8 *arg0, u8 arg1, u8 arg2) {
     if (arg1 && arg2) {
         STATS_ASSERT(!DUMMY_LEVELS(levelno), 94);
         if (D_802E8F94[levelno].unk0 == 1) {
-            p->unk14 = D_803649F0;
+            p->unk14 = ((s32) D_803649F0);
         }
         if (p->unkA < 360) {
             func_8029A7E4("UNITS UP %d\n", D_8036EA70.coin % 5 - D_8036EA60.coin % 5);
@@ -259,11 +209,16 @@ u8 func_801EE800(u8 *arg0, u8 arg1, u8 arg2) {
 char *D_802084D0[] = { "YOUR NEW BEST!", "BEST TO DATE", "YOUR BEST STAYS", "GUEST BEST IS" };
 u16 *D_802084E0[] = { D_80303B3C, D_80303B48, D_80303B58, D_80303B68 };
 
-/* Grade a timed level `arg0` and record the best time; returns the grade. */
+/* Grade a timed level `arg0` and record the best time; returns the grade.
+ * K&R in the matching build (its callers pass unmasked ints). */
+#ifdef NON_MATCHING
+u8 func_801EEDB4(u8 arg0, u8 arg1, u8 arg2)
+#else
 u8 func_801EEDB4(arg0, arg1, arg2)
     u8 arg0;
     u8 arg1;
     u8 arg2;
+#endif
 {
     s32 x;
     s32 pad;
@@ -346,10 +301,14 @@ s8 func_801EF1E0(void) {
 }
 
 /* Grade a time against level `arg1`'s thresholds: 4 (best, needs arg2 >= 12) .. 1, else 5. */
+#ifdef NON_MATCHING
+u8 func_801EF2BC(u16 arg0, u8 arg1, u8 arg2)
+#else
 u8 func_801EF2BC(arg0, arg1, arg2)
     u16 arg0;
     u8 arg1;
     u8 arg2;
+#endif
 {
     u8 ret;
     LevelInfo *l;
@@ -382,10 +341,10 @@ void func_801EF380(s32 arg0) {
     } else {
         D_802159D0 = 0;
     }
-    func_8028B4C4(D_0048F5A0, (void *) D_80358070, &size1, 12, 0, 1);
+    func_8028B4C4((u32) D_0048F5A0, (u32) ((void *) D_80358070), (u32 *) &size1, 12, 0, 1);
     D_802159D4 = (u8 *) D_80358070;
     D_80358070 += size1;
-    func_8028B4C4(D_0048F970, (void *) D_80358070, &size2, 12, 0, 1);
+    func_8028B4C4((u32) D_0048F970, (u32) ((void *) D_80358070), (u32 *) &size2, 12, 0, 1);
     D_802159D8 = (u8 *) D_80358070;
     D_80358070 += size2;
     D_802159DC = arg0;
@@ -410,7 +369,7 @@ void func_801EF4AC(void) {
     dyn = &D_803156F8[D_8035805C ^ 1];
     gdl = dyn->dl;
     func_8028A470();
-    func_80284E54(D_803156F8[D_8035805C].dl, D_80358078, 1, 1, 0x4D2, 0);
+    func_80284E54((u64 *) (D_803156F8[D_8035805C].dl), D_80358078, 1, 1, 0x4D2, 0);
     D_8035805C ^= 1;
     gSPSegment(gdl++, 0, 0);
     gSPSegment(gdl++, 2, osVirtualToPhysical(dyn));

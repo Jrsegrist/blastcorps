@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* font.c (from its assert strings): text/glyph-slot cache and string helpers */
 
@@ -8,11 +9,7 @@ extern u16 D_803653B0[80];
 extern u8 D_8039CAF0[][0x200];
 extern u8 D_80365458[];
 extern u16 D_80365558[];
-extern f32 D_802E8C84[];
 
-void func_8029A7E4(const char *fmt, ...);
-void func_802A1040(u16 arg0, u8 *arg1, s32 arg2);
-s32 func_802D6A60(u8 *buf, const char *fmt, ...);
 
 #define ASSERT(EX, line) if (!(EX)) func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "font.c", line)
 
@@ -160,7 +157,7 @@ u16 *func_8025B5D4(u16 *dst, u16 *src, u16 *str, s32 num) {
                 }
                 break;
             case 0x1004:
-                func_802D6A60(buf, "%d", num);
+                func_802D6A60((char *) buf, "%d", num);
                 for (k = 0; buf[k] != 0; k++, j++) {
                     dst[j] = buf[k] - 0x20;
                 }

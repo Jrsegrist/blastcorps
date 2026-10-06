@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* The file after sched.c. Its .rodata (two pairs of doubles at
  * 0x8030C4D0) and .bss (0x8036BFC0) each start on a fresh 16-byte
@@ -29,13 +30,7 @@ typedef struct {
 extern FadeEntry D_802FA280[][2];
 extern Vtx D_802FA820[2][4];
 extern FmtPair D_802FA8A0;
-extern u16 D_803BE720;
-extern u16 D_803BE722;
-extern u32 D_803BE718;
-extern u32 D_803BE71C;
-extern void *D_80358070;
 
-void func_802A0B00(u16 id, s32 arg1);
 
 /* Draws the two-layer scrolling backdrop and returns the new display
  * list end; *height gets the backdrop's visible height */

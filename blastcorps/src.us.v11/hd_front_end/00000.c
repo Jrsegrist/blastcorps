@@ -1,5 +1,19 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_80367738
+#define LEGACY_func_802025D0
+#endif /* legacy declarations */
+#include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_802E8F94 ((LevelInfo *) D_802E8F94)
+#define D_802F47B0 ((u8 *) D_802F47B0)
+#define D_803156F8 ((FeDyn *) D_803156F8)
+#define D_80364AF0 ((Player *) D_80364AF0)
+/* end of views */
 
 /* digger_loop.c: the vehicle ("digger") select screen. */
 
@@ -8,7 +22,6 @@ typedef struct {
     u32 unk2C; /* mask of vehicles available on this level */
     u8 pad30[0x14];
 } LevelInfo; /* 0x44 bytes */
-extern LevelInfo D_802E8F94[];
 
 typedef struct {
     u8 pad0[0x10];
@@ -18,51 +31,11 @@ typedef struct {
     u8 unk92[0x5E]; /* per level: last vehicle used */
     u8 padF0[0x10];
 } Player; /* 0x100 bytes */
-extern Player D_80364AF0[];
-extern u8 D_80364AE8;
-extern u8 D_80364AEA;
-extern u64 D_80364A88;
-extern u64 D_80364A90;
-extern u64 D_80364A98;
-extern s32 D_802E8BDC;
-extern u8 D_802E8C44[];
-extern u16 D_80364EF0[][16];
-extern u8 D_803643D4;
+#ifndef NON_MATCHING
 extern s32 D_80367738;
+#endif
 extern f32 D_802FDAC0[];
-extern u8 D_802F47B0[];
-extern u16 D_80370C28; /* buttons held */
-extern u16 D_80370C2A; /* buttons held last frame */
-extern s8 D_80370C2C;  /* stick x */
-extern s8 D_80370C2E;  /* stick x last frame */
-extern u32 D_803156C0; /* frame counter */
-extern OSMesgQueue D_80315180;
 
-/* one per frame buffer, 0x21498 bytes (hd_code's DynamicBuf, as the front end uses it) */
-typedef struct {
-    u8 pad0[0x140];
-    Mtx unk140; /* view */
-    u8 pad180[0x1240 - 0x180];
-    Mtx unk1240; /* perspective */
-    u8 pad1280[0x1E00 - 0x1280];
-    Vtx unk1E00[0x1E0]; /* arrow quads */
-    LookAt unk3C00;
-    u8 pad3C20[0x48B0 - 0x3C20];
-    Gfx dl[0xB5E];
-    u8 unkA3A0[0x21498 - 0xA3A0];
-} DynamicBuf;
-extern DynamicBuf D_803156F8[];
-extern u8 D_8035805C; /* frame buffer index */
-extern u32 D_80358060;
-extern u8 *D_8035806C;
-extern u32 D_80358058;
-extern u32 D_80358050[];
-extern s32 D_80358078;
-extern u16 D_8035807C;
-extern s32 D_80358080;
-extern s32 D_80358084;
-extern Gfx D_01000010[];
-extern Gfx D_01000038[];
 extern u16 D_80304954[];
 
 typedef struct {
@@ -119,37 +92,10 @@ u8 D_80208194[19] = {
     0x00, 0x36, 0x50, 0x8C, 0x0B, 0x05, 0x00, 0x20, 0xCE, 0x02, 0x94, 0x72, 0x00, 0xCE, 0x7B, 0xCE, 0x50, 0x72, 0x72,
 };
 
-void func_8029A7E4(const char *, ...);
-void func_8029DEA0(void);
-void func_80202100(s32, ModelHeader **, void **, Gfx **);
-void func_80202270(ModelHeader *, void **, void *);
-void func_802022EC(void *, u8, u8, u8, f32, u8, s32);
-void func_80202380(s32);
 void func_801E74E8(u8);
-void func_80260A10(void);
-void func_80260650(s32, s32, s32);
-void func_8028A3E4(void);
-void func_802A5720(void);
-void func_8029E0AC(void);
-void func_8028A470(void);
-s32 func_802753C0(void);
-void func_80275390(u64);
-void func_80284E54(Gfx *, s32, s32, s32, s32, s32);
-void func_80259450(void);
-Gfx *func_80200BE0(Gfx *, DynamicBuf *, s32 *);
-void func_80259CCC(DynamicBuf *, char *, u16 *, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32);
-void func_80259DC8(DynamicBuf *, char *, u16 *, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32,
-                   s32, s32);
-void func_80259C24(Gfx **, DynamicBuf *);
-void func_802021FC(void *, void *, void *);
+#ifndef NON_MATCHING
 void func_802025D0(u8, u32);
-s32 func_80276130(DynamicBuf *, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32,
-                  s32, s32, s32, s32, s32, s32);
-s32 func_80276080(DynamicBuf *, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32);
-Gfx *func_80275DA4(Gfx *, s32);
-Gfx *func_8026BBD0(Gfx *, DynamicBuf *, s32 *);
-Gfx *func_80274BF0(DynamicBuf *, Gfx *);
-void func_802A57AC(void);
+#endif
 
 /* Rare's assert; line numbers are the original digger_loop.c's */
 #define DIGGER_ASSERT(EX, line) \
@@ -182,12 +128,12 @@ s32 func_801E7000(void) {
         slot[i] = -1;
         if ((D_80364AF0[D_80364AEA].unk10 & (1 << i) & level->unk2C) &&
             (D_80364AE8 == D_80364AEA || D_80364EF0[D_80364AEA][D_802E8C44[i]] != 0)) {
-            func_80202100(i, &D_80210E90[D_80211A6A], D_80210EE0[D_80211A6A], D_80210F78[D_80211A6A]);
+            func_80202100(i, (u8 **) &D_80210E90[D_80211A6A], (u8 **) D_80210EE0[D_80211A6A], (u8 **) D_80210F78[D_80211A6A]);
             D_80211A70[i] = x;
             x += 380.0;
             guTranslate(&D_802110A8[D_80211A6A], D_80211A70[i], D_8020816C[i], 0.0f);
             guScale(&D_80211568[D_80211A6A], D_802FDAC0[i], D_802FDAC0[i], D_802FDAC0[i]);
-            func_80202270(D_80210E90[D_80211A6A], D_80210EE0[D_80211A6A], D_80211AC0[D_80211A6A]);
+            func_80202270((u8 *) D_80210E90[D_80211A6A], (u32 **) D_80210EE0[D_80211A6A], D_80211AC0[D_80211A6A]);
             func_802022EC(D_80211AC0[D_80211A6A], D_802080F8[i], D_8020804C[i], D_80208060[i].unk0,
                           D_80208060[i].unk4, D_8020810C[i], 0);
             func_80202380(i);
@@ -245,7 +191,7 @@ void func_801E7598(void) {
     static s8 D_802081B4 = 1;   /* title pulse direction */
     s32 i;
     s32 vtx = 0;
-    DynamicBuf *dyn = &D_803156F8[D_8035805C ^ 1];
+    FeDyn *dyn = &D_803156F8[D_8035805C ^ 1];
     Gfx *gdl = dyn->dl;
 
     func_8028A3E4();
@@ -256,7 +202,7 @@ void func_801E7598(void) {
     /* The asm takes its param (the texture decoder's type-4/5 table) in $fp,
      * which the game thread's C code never sets: 0 (traced in hd.c's call;
      * this screen needs input, so the demos don't reach it). */
-    ((void (*)(u8 *)) func_8029E0AC)(NULL);
+    func_8029E0AC(LEAKED(s8));
 #else
     func_8029E0AC();
 #endif
@@ -317,7 +263,7 @@ void func_801E7598(void) {
         }
         D_802153E6 -= 750;
     }
-    func_80284E54(D_803156F8[D_8035805C].dl, D_80358078, 1, 1, 0x4D2, 0);
+    func_80284E54((u64 *) (D_803156F8[D_8035805C].dl), D_80358078, 1, 1, 0x4D2, 0);
     D_8035805C ^= 1;
     gSPSegment(gdl++, 0, 0);
     gSPSegment(gdl++, 2, osVirtualToPhysical(dyn));
@@ -331,10 +277,10 @@ void func_801E7598(void) {
     gDPFillRectangle(gdl++, 0, 0, 319, 239);
     gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, D_80358050[D_8035805C]);
     func_80259450();
-    gdl = func_80200BE0(gdl, dyn, &D_80358078);
+    gdl = func_80200BE0(gdl, (s32) dyn, &D_80358078);
     gDPPipeSync(gdl++);
     gDPSetCycleType(gdl++, G_CYC_1CYCLE);
-    func_80259CCC(dyn, D_80208040, D_80208044, 0, 0xA0, 0x50, 0x18, 0x15, 0x15, 1, 0, 0, 0, 0xA0);
+    func_80259CCC((Gfx **) dyn, (u8 *) D_80208040, D_80208044, 0, 0xA0, 0x50, 0x18, 0x15, 0x15, 1, 0, 0, 0, 0xA0);
     if (D_803156C0 % 20 * 60 / 60 < 16) {
         D_802081B0 += D_802081B4 * 30;
         if (D_802081B0 >= 0x100) {
@@ -345,10 +291,10 @@ void func_801E7598(void) {
             D_802081B0 += 60;
             D_802081B4 = -D_802081B4;
         }
-        func_80259DC8(dyn, D_80208040, D_80208044, 0, 0xA0, 0x54, 0x15, 0x15, 0x15, 1, 0xFF, 0xFF - D_802081B0, 0,
+        func_80259DC8((Gfx **) dyn, (u8 *) D_80208040, D_80208044, 0, 0xA0, 0x54, 0x15, 0x15, 0x15, 1, 0xFF, 0xFF - D_802081B0, 0,
                       0xFF, 0xFF, D_802081B0, 0, 0xFF);
     }
-    func_80259C24(&gdl, dyn);
+    func_80259C24(&gdl, (Mtx *) dyn);
     if (D_80358060 < 2) {
         guPerspective(&dyn->unk1240, &D_8035807C, 45.0f, 1.3333334f, 40.0f, 4000.0f, 1.0f);
     }
@@ -402,9 +348,9 @@ void func_801E7598(void) {
     if (D_80211A68 + 1 != D_80211A6A) {
         u8 *c = &D_802F47B0[0x98];
 
-        vtx = func_80276130(dyn, 2, vtx, D_802153EC + 0x108, 0x20, D_802153EC / 4 + 12, 0x10, c[0], c[1], c[2], c[3],
+        vtx = func_80276130((struct SpriteVtxBuf *) dyn, 2, vtx, D_802153EC + 0x108, 0x20, D_802153EC / 4 + 12, 0x10, c[0], c[1], c[2], c[3],
                             c[4], c[5], c[6], c[7], c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7]);
-        vtx = func_80276080(dyn, 2, vtx, D_802153EC + 0x10C, 0x23, D_802153EC / 4 + 12, 0x10, 0, 0, 0, 0xA0);
+        vtx = func_80276080((struct SpriteVtxBuf *) dyn, 2, vtx, D_802153EC + 0x10C, 0x23, D_802153EC / 4 + 12, 0x10, 0, 0, 0, 0xA0);
         gdl = func_80275DA4(gdl, 0);
         gSPVertex(gdl++, &dyn->unk1E00[0], 8, 0);
         gSP1Triangle(gdl++, 4, 5, 6, 0);
@@ -415,9 +361,9 @@ void func_801E7598(void) {
     if (D_80211A68 > 0) {
         u8 *c = &D_802F47B0[0x98];
 
-        vtx = func_80276130(dyn, 3, vtx, 0x34 - D_802153EC, 0x20, D_802153EC / 4 + 12, 0x10, c[0], c[1], c[2], c[3],
+        vtx = func_80276130((struct SpriteVtxBuf *) dyn, 3, vtx, 0x34 - D_802153EC, 0x20, D_802153EC / 4 + 12, 0x10, c[0], c[1], c[2], c[3],
                             c[4], c[5], c[6], c[7], c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7]);
-        vtx = func_80276080(dyn, 3, vtx, 0x30 - D_802153EC, 0x23, D_802153EC / 4 + 12, 0x10, 0, 0, 0, 0xA0);
+        vtx = func_80276080((struct SpriteVtxBuf *) dyn, 3, vtx, 0x30 - D_802153EC, 0x23, D_802153EC / 4 + 12, 0x10, 0, 0, 0, 0xA0);
         gdl = func_80275DA4(gdl, 0);
         gSPVertex(gdl++, &dyn->unk1E00[vtx - 8], 8, 0);
         gSP1Triangle(gdl++, 4, 5, 6, 0);
@@ -425,8 +371,8 @@ void func_801E7598(void) {
         gSP1Triangle(gdl++, 0, 1, 2, 0);
         gSP1Triangle(gdl++, 0, 2, 3, 0);
     }
-    gdl = func_8026BBD0(gdl, &D_803156F8[D_8035805C], &D_80358078);
-    gdl = func_80274BF0(dyn, gdl);
+    gdl = func_8026BBD0(gdl, (s32) &D_803156F8[D_8035805C], &D_80358078);
+    gdl = func_80274BF0((s32) dyn, gdl);
     gDPFullSync(gdl++);
     gSPEndDisplayList(gdl++);
     D_80358078 = gdl - dyn->dl;

@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* __osGetCause: raw COP0 Cause-register read (mfc0 $13), libultra's
  * hand-written os/getcause.s - not expressible in plain C. Permanently

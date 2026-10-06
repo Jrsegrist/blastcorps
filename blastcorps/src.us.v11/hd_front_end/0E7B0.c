@@ -1,5 +1,24 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_8039C4B4
+#endif /* legacy declarations */
+#include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_8020C070 ((MenuItem *) D_8020C070)
+#define D_802E8F94 ((LevelInfo *) D_802E8F94)
+#define D_802F8BDC ((s16 *) D_802F8BDC)
+#define D_80310BD0 ((u8 *) &D_80310BD0)
+#define D_80315440 ((u8 *) &D_80315440)
+#define D_80364AF0 ((Player *) D_80364AF0)
+#define D_8039C4B8 ((u8 *) D_8039C4B8)
+#ifdef NON_MATCHING
+#define D_8039C4B4 (*(s32 *) &D_8039C4B4)
+#endif
+/* end of views */
 
 /*
  * pfsHandler.c: the Controller Pak / EEPROM save thread. Player records
@@ -7,11 +26,6 @@
  * Controller Pak file, or to EEPROM, each block followed by a 4-byte CRC.
  */
 
-void func_8029A7E4(const char *fmt, ...); /* debug printf */
-u8 func_8028FCD4(void *arg0, u8 *arg1);
-u8 func_8028A370(void);
-s32 func_8025B300(u8 *);                  /* strlen */
-void func_80270E50(void *, void *, OSMesgQueue *, s32, s32);
 u8 __osContDataCrc(u8 *data);
 s32 osPfsInitPak(OSMesgQueue *, OSPfs *, int);
 
@@ -65,43 +79,26 @@ extern OSPfs D_8039B630;      /* hd_code .bss: the Controller Pak file system */
 extern u8 D_8020C000[];       /* game name */
 extern u8 D_8020C014[];       /* extension name */
 extern u8 D_8020C01C[];       /* character set (0x45 entries) */
-extern MenuItem D_8020C070[]; /* menu items; 37 + n list the pak's files */
 extern OldPfsState D_80218B20[]; /* the pak's files */
 extern s32 D_80218D28;        /* number of files listed */
 extern u8 D_802189C0[][17];   /* file game names */
 extern u8 D_80218AD0[][5];    /* file extensions */
 extern char D_80218740[][40]; /* file menu lines */
-extern s16 D_802F8BDC[];
 extern s32 D_80218EF0;        /* free bytes */
 extern char D_80219F90[];
 extern char D_80219FB0[];
 extern u8 D_80301080[];
-extern u16 D_80364F70[];      /* EEPROM best-time words (time, time ^ 0x55AA) */
-extern u8 D_80364AEA;
-extern u8 D_8039C4B8[];
-extern LevelInfo D_802E8F94[];
-extern OSMesgQueue D_80370BF8; /* hd_code: SI message queue */
-extern u8 D_8039C538;
 extern s32 D_8039B698[];      /* file_no per player */
-extern OSThread D_80218D30;
 extern u8 D_80218EF8[];       /* thread stack (0x1000) */
-extern OSMesgQueue D_80219EF8;
 extern OSMesg D_80219F10[];
 extern OSMesgQueue D_80219F30;
 extern OSMesg D_80219F48[];
-extern OSMesgQueue D_80219F50;
 extern OSMesg D_80219F68[];
-extern u8 D_80218EE0[];
-extern u8 D_80315440[];       /* hd_code scheduler */
-extern u8 D_802E8BF8;
-extern u64 D_80364A90;        /* game mode */
+#ifndef NON_MATCHING
 extern s32 D_8039C4B4;
-extern s32 D_802FA264;
-extern Player D_80364AF0[];   /* player records */
+#endif
 extern u8 D_8039B6B0[];
 extern u8 D_8020BEE0[];
-extern u16 D_80364EF0[][16];  /* best times */
-extern u8 D_802E8C44[];
 
 int sprintf(char *, const char *, ...);
 void bcopy(const void *, void *, int);
@@ -128,7 +125,7 @@ void func_801F57B0(void) {
     func_801F74B0(D_8020C014);
     func_8029A7E4("current pak file size is %d bytes\n", filesize);
     func_8029A7E4("current playerInfo size is %d bytes\n", 0x100);
-    func_80270E50(D_80315440, D_80218EE0, &D_80219F30, 1, 3);
+    func_80270E50((struct BcSched *) D_80315440, (struct BcScClient *) D_80218EE0, &D_80219F30, 1, 3);
     PFS_ASSERT(filesize<PFS_FILE_SIZE, 104);
     osStartThread(&D_80218D30);
 }
@@ -348,17 +345,8 @@ void func_801F57B0(void) {
  * }
  */
 #ifdef NON_MATCHING
-extern u8 D_8039C4B0;      /* pak thread busy */
-extern s32 D_8036BF10;
 extern s32 D_80218D24;     /* a Yoshi window was opened for a pak error */
 extern s32 D_80219F88;     /* Yoshi window of the last pak error */
-extern u8 D_80310BD0[];    /* hd_code: the thread D_80219F50's receiver must be */
-extern u64 D_80364A98;     /* next game mode */
-extern s16 yoshiState;
-extern s16 currentYoshiWindow;
-void func_8028A42C(void);
-void func_801EE390(void);
-void func_801EE398(s32 window);
 s32 func_801F5FE4(void);
 s32 func_801F60C8(void);
 s32 func_801F6160(u8 player);
@@ -376,7 +364,11 @@ s32 func_801F6ED4(u8 arg0);
  * back on D_80219F50 when `reply` is set. */
 void func_801F58E8(void *arg) {
     OSMesg msg;
+#ifdef NON_MATCHING
+    s32 ret = 0; /* a "Nonsense pak message" keeps the previous command's result; on the first pass the original reads an indeterminate register */
+#else
     s32 ret;
+#endif
     s32 lastRet;
     u8 pad33;
     u8 player;

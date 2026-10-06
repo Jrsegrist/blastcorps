@@ -1,14 +1,20 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_80367738
+#endif /* legacy declarations */
+#include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_8020C070 ((MenuEntry *) D_8020C070)
+#define D_802F8BDC ((MenuPage *) D_802F8BDC)
+#define D_803156F8 ((FeDyn *) D_803156F8)
+/* end of views */
 
 /* back_loop.c: the front end's per-frame loop (menus behind the yoshi windows) */
 
-typedef struct {
-    u8 pad0[0x48B0];
-    Gfx dl[0xB5E];
-    u8 unkA3A0[0x21498 - 0xA3A0];
-} DynamicBuf;
-extern DynamicBuf D_803156F8[];
 
 typedef struct {
     u8 pad0[4];
@@ -22,7 +28,6 @@ typedef struct {
     u16 unk18;
     u8 pad1A[2];
 } MenuPage;
-extern MenuPage D_802F8BDC[];
 
 typedef struct {
     u16 unk0; /* flags */
@@ -34,92 +39,17 @@ typedef struct {
     void *unk10; /* glyph list */
     u8 pad14[8];
 } MenuEntry;
-extern MenuEntry D_8020C070[];
 
-extern u64 D_80364A90;
-extern u64 D_80364A98;
-extern s32 D_80364AA8;
-extern u8 D_80364AE8;
-extern u8 D_80364AE9;
-extern u8 D_80364AEA;
-extern s32 D_80364A64;
-extern s8 D_80364A71;
-extern u8 D_80365060[];
+#ifndef NON_MATCHING
 extern s32 D_80367738;
-extern u16 D_8036BB16;
-extern s16 D_8036BB1A;
-extern s16 D_8036BB1E;
-extern s16 D_8036BB20;
-extern s16 currentYoshiWindow;
-extern s16 yoshiState;
-extern u8 D_8039C541;
-extern u8 D_8039CA60;
-extern u64 D_8021A830;
-extern OSMesgQueue D_80219EF8;
-extern OSMesgQueue D_80219F50;
+#endif
 #define pakToGameMessageQ D_80219F50
-extern u8 D_802154B0;
 extern u8 D_8021AB70;
 extern char D_8021AB72[];
 extern s16 D_8021AB74;
 extern s16 D_8021AB76;
 extern s32 D_8021AB7C;
-extern u32 D_803156C4;
-extern OSMesgQueue D_80315180;
-extern u8 D_8035805C;
-extern u32 D_80358060;
-extern u8 *D_8035806C;
-extern u32 D_80358058;
-extern u32 D_80358050[];
-extern s32 D_80358078;
-extern s32 D_80358080;
-extern s32 D_80358084;
-extern Gfx D_01000010[];
-extern Gfx D_01000038[];
 
-void func_8029A7E4(const char *, ...);
-void func_80260650(s32, s32, s32 *);
-void func_801EA278(void);
-void func_802608C8(s32);
-void func_8026AF6C(s32);
-s32 func_8026F92C(u64);
-void func_801E8EB8(u8, s32);
-s32 func_801F73FC(void);
-void func_801EA108(u8, s32, s32);
-void func_801E8C40(s32);
-void func_80275390(u64);
-void func_80275270(u64, f32);
-void func_802A5720(void);
-void func_80284E54(Gfx *, s32, s32, s32, s32, s32);
-void func_80259450(void);
-Gfx *func_80200BE0(Gfx *, DynamicBuf *, s32 *);
-Gfx *func_8026BBD0(Gfx *, DynamicBuf *, s32 *);
-void func_80262008(u8, f32);
-void func_80260EE0(u8);
-void func_801E8DCC(u8);
-Gfx *func_801E9718(Gfx *, DynamicBuf *, s32);
-Gfx *func_8025C878(Gfx *, DynamicBuf *, u8, s32 *);
-void func_8028A3E4(void);
-Gfx *func_801ED800(Gfx *, DynamicBuf *, u8, s32 *);
-Gfx *func_80201364(DynamicBuf *, Gfx *);
-Gfx *func_8024C404(Gfx *, DynamicBuf *, s32 *);
-Gfx *func_801EC770(Gfx *, DynamicBuf *, s32 *);
-Gfx *func_801F51C8(DynamicBuf *, Gfx *);
-void func_8028A470(void);
-void func_802862DC(void);
-void func_80259CCC(DynamicBuf *, char *, u16 *, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32);
-void func_80259DC8(DynamicBuf *, char *, u16 *, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32, s32,
-                   s32, s32);
-void func_801F803C(void);
-Gfx *func_801F8440(DynamicBuf *, Gfx *);
-void func_80259C24(Gfx **, DynamicBuf *);
-Gfx *func_80274BF0(DynamicBuf *, Gfx *);
-Gfx *func_801EAA7C(Gfx *, DynamicBuf *, s32 *);
-void func_802A57AC(void);
-s32 func_802753F8(void);
-s32 func_802753C0(void);
-void func_80261570(f32);
-void func_802995F0(s32);
 int sprintf(char *, const char *, ...);
 
 /* Rare's assert; line numbers are the original back_loop.c's */
@@ -151,7 +81,7 @@ void func_801FE990(void) {
             } else {
                 D_80364A98 = 0x2000000000;
             }
-            func_802608C8(D_8021AB7C);
+            func_802608C8((void *) D_8021AB7C);
             func_8026AF6C(0x4000);
         }
     }
@@ -218,8 +148,8 @@ void func_801FE990(void) {
                             D_80364A98 = 0x40;
                             break;
                         case 2:
-                            if (!(D_80364AA8 & 0x81)) {
-                                if (D_80364AA8 == 2 && D_80364A90 == 0x8000000) {
+                            if (!(((s32) D_80364AA8) & 0x81)) {
+                                if (((s32) D_80364AA8) == 2 && D_80364A90 == 0x8000000) {
                                     D_8039CA60 = 1;
                                 }
                                 D_80364A98 = 0x20000000;
@@ -275,7 +205,7 @@ void func_801FE990(void) {
     D_80358080 = 0;
     D_80358084 = 0;
     func_802A5720();
-    func_80284E54(D_803156F8[D_8035805C].dl, D_80358078, 1, 1, 0x4D2, 0);
+    func_80284E54((u64 *) (D_803156F8[D_8035805C].dl), D_80358078, 1, 1, 0x4D2, 0);
     D_8035805C ^= 1;
     gdl = D_803156F8[D_8035805C].dl;
     gSPSegment(gdl++, 0, 0);
@@ -298,11 +228,11 @@ void func_801FE990(void) {
     }
     gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, D_80358050[D_8035805C]);
     func_80259450();
-    gdl = func_80200BE0(gdl, &D_803156F8[D_8035805C], &D_80358078);
+    gdl = func_80200BE0(gdl, (s32) &D_803156F8[D_8035805C], &D_80358078);
     gDPPipeSync(gdl++);
     gDPSetCycleType(gdl++, G_CYC_1CYCLE);
     if (D_80364A90 & 0xC000000000000) {
-        gdl = func_8026BBD0(gdl, &D_803156F8[D_8035805C], &D_80358078);
+        gdl = func_8026BBD0(gdl, (s32) &D_803156F8[D_8035805C], &D_80358078);
     }
     if (D_80364A90 == 0x4000000000000) {
         if (D_80358060 == 0) {
@@ -316,10 +246,10 @@ void func_801FE990(void) {
         }
     }
     if (D_80364A90 & 0x818D04001AFB8080) {
-        gdl = func_801E9718(gdl, &D_803156F8[D_8035805C], 0xC2);
+        gdl = func_801E9718(gdl, (struct PlayerSelDyn *) &D_803156F8[D_8035805C], 0xC2);
     }
     if (D_80364A90 & 0x898C0FE313F78002) {
-        gdl = func_8025C878(gdl, &D_803156F8[D_8035805C], D_8035805C, &D_80358078);
+        gdl = func_8025C878(gdl, (s32) &D_803156F8[D_8035805C], D_8035805C, &D_80358078);
     }
     if (D_80364A90 & 0x410000) {
         u8 old = D_80364AE8;
@@ -338,9 +268,9 @@ void func_801FE990(void) {
         gdl = func_801ED800(gdl, &D_803156F8[D_8035805C], D_8035805C, &D_80358078);
     }
     if (D_80364A90 == 0x1000000000000) {
-        gdl = func_80201364(D_803156F8, gdl);
+        gdl = func_80201364((s32) D_803156F8, gdl);
     }
-    gdl = func_8024C404(gdl, &D_803156F8[D_8035805C], &D_80358078);
+    gdl = func_8024C404(gdl, (DynamicBuf *) &D_803156F8[D_8035805C], &D_80358078);
     if (D_80364A90 & 0x88000080) {
         gdl = func_801EC770(gdl, &D_803156F8[D_8035805C], &D_80358078);
         if (D_80364A71 != -1 && yoshiState == 2) {
@@ -366,21 +296,21 @@ void func_801FE990(void) {
 
         x = 0x118, y = 0x8C;
         sprintf(D_8021AB72, "%d", D_80364A71);
-        func_80259CCC(&D_803156F8[D_8035805C], D_8021AB72, 0, 1, 0, x, y, 0x1A, 0x16, 1, 0, 0, 0, D_8036BB20);
-        func_80259DC8(&D_803156F8[D_8035805C], D_8021AB72, 0, 1, 0, x + 2, y + 2, 0x12, 0x12, 1, 0xFF, 0xFF, 0,
+        func_80259CCC((Gfx **) &D_803156F8[D_8035805C], (u8 *) D_8021AB72, 0, 1, 0, x, y, 0x1A, 0x16, 1, 0, 0, 0, D_8036BB20);
+        func_80259DC8((Gfx **) &D_803156F8[D_8035805C], (u8 *) D_8021AB72, 0, 1, 0, x + 2, y + 2, 0x12, 0x12, 1, 0xFF, 0xFF, 0,
                       D_8036BB20, 0xFF, 0, 0, D_8036BB20);
     }
     if (D_80364A90 & 0x40000000000) {
         func_801F803C();
-        gdl = func_801F8440(&D_803156F8[D_8035805C], gdl);
+        gdl = func_801F8440((s32) &D_803156F8[D_8035805C], gdl);
     }
-    func_80259C24(&gdl, &D_803156F8[D_8035805C]);
-    gdl = func_80274BF0(&D_803156F8[D_8035805C], gdl);
+    func_80259C24(&gdl, (Mtx *) &D_803156F8[D_8035805C]);
+    gdl = func_80274BF0((s32) &D_803156F8[D_8035805C], gdl);
     if (!(D_80364A90 & 0xC000000000000)) {
-        gdl = func_8026BBD0(gdl, &D_803156F8[D_8035805C], &D_80358078);
+        gdl = func_8026BBD0(gdl, (s32) &D_803156F8[D_8035805C], &D_80358078);
     }
     if (yoshiState != 1 && currentYoshiWindow == 0xB) {
-        gdl = func_801EAA7C(gdl, &D_803156F8[D_8035805C], &D_80358078);
+        gdl = func_801EAA7C(gdl, (struct PlayerSelDyn *) &D_803156F8[D_8035805C], &D_80358078);
     }
     gDPFullSync(gdl++);
     gSPEndDisplayList(gdl++);

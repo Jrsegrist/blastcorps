@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* front-end 3D scene: a small hierarchy of nodes (D_8020BD30[7]) drawn with a
  * float matrix stack, a look-at camera and a depth-sorted display list table */
@@ -33,9 +34,6 @@ extern Node D_8020BD30[];
 extern f32 D_8020BDE4; /* D_8020BD30[3].unk0 */
 extern f32 D_8020BDEC; /* D_8020BD30[3].unk8 */
 extern Node D_8020BE98; /* D_8020BD30[6] */
-extern u8 *D_80215A7C; /* glow textures */
-extern u8 *D_80215A80;
-extern u8 *D_80215A84;
 extern Vtx D_80217690[][2][4];
 extern MtxF D_80217A10[];
 extern s32 D_80217B50; /* matrix stack index into D_80217A10 */
@@ -45,21 +43,10 @@ extern f32 D_80217B5C;
 extern f32 D_80217B60; /* camera target */
 extern f32 D_80217B64;
 extern f32 D_80217B68;
-extern s32 D_80217B6C; /* camera node */
-extern Mtx D_80217B70[][4];
 extern DrawEntry D_80218270[];
 extern s16 D_802182A8;
-extern f32 D_8021A918;
-extern f32 D_8021A91C;
-extern f32 D_8021A920;
-extern u8 D_8035805C; /* which of the two matrix buffers is current */
-extern u16 D_8035807C;
 
 f32 sqrtf(f32);
-void func_801FD484(f32 *, f32 *, f32 *, f32 *, f32 *, f32);
-Gfx *func_801FE238(Gfx *, u8 *);
-void func_802595E0(u8 *base, s32 n, s32 size, s32 (*cmp)(void *, void *));
-void func_8027690C(void *arg0, f32 x, f32 y, f32 z, s16 *sx, s16 *sy, Mtx *arg6, Mtx *arg7, Mtx *arg8, f32 arg9);
 void func_801F374C(Node *);
 Gfx *func_801F3964(Gfx *, u8 *, Node *, f32);
 Gfx *func_801F4110(Gfx *, u8 *, Node *, f32);
@@ -310,7 +297,7 @@ void func_801F4878(Gfx *gdl, u8 *dyn) {
                 gSPMatrix(gfx++, &m[D_8035805C], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
                 gSPMatrix(gfx++, &m[D_8035805C + 2], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
                 gSPMatrix(gfx++, dyn + 0x1280, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
-                gfx = func_801FE238(gfx, dyn);
+                gfx = func_801FE238(gfx, (s32) dyn);
                 break;
             case 6:
                 gSPMatrix(gfx++, dyn + 0x100, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);

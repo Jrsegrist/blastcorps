@@ -1,5 +1,15 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_80367738
+#endif /* legacy declarations */
+#include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_02000000 ((u8 *) D_02000000)
+/* end of views */
 
 /* Falling debris / bouncing objects: a pool of 20 that are spawned around a
  * point, home in on a target, wander inside a box and play sounds. The
@@ -29,37 +39,15 @@ typedef struct {
 } Debris; /* size 0x24 */
 
 extern Debris D_80367D60[20];
-extern u32 D_8036B968;
-extern s32 D_80368030;
 extern s16 D_80368034;
 extern s16 D_80368036;
 extern s32 D_80368038;
 extern s32 D_8036803C;
-extern s32 D_80368040;
 extern s32 D_80368044;
-extern s32 D_80368048;
-extern u8 D_8036EA79;
-extern u8 D_802E8BD0;
+#ifndef NON_MATCHING
 extern s32 D_80367738;
-extern s32 D_803643E0;
-extern s32 D_803643E8;
-extern s16 D_8036443C;
-extern s16 D_8036443E;
-extern s32 D_803EF2EC;
-extern s32 D_803EF2F4;
-extern s32 D_803EF308;
-extern s32 D_803EF30C;
-extern u8 D_803EF32C;
-extern u8 D_803EF32D;
-extern s32 D_803EF6DC;
-extern s32 D_803EF6E4;
-extern u16 D_803C30A8[];
+#endif
 
-s32 func_80260650(s32, s32, s32);
-void func_80260AB8(s32, s32, s32);
-s32 func_8026A610(s32, s32, s32, s32);
-s32 func_8026A8E0(s16, s16);
-void func_8026AD30(s32);
 s32 func_80265A0C(s32 arg0);
 void func_80265B7C(s32 arg0);
 
@@ -444,27 +432,20 @@ void func_802661EC(void) {
 
 /* Draw the debris: billboarded 20x32 RGBA16 sprites, animated and picked by
  * heading, plus one marker at D_803EF310 */
-typedef struct {
+typedef struct DynBuf {
     Mtx mtx[100];
     Vtx vtx[1];
 } DynBuf;
 
 extern Debris D_80367D60[20];
-extern f32 D_80364414;
 extern Vtx D_802E9FB0[4];
 extern u16 D_802E9FF0[];
 extern u16 D_802EA4F0[], D_802EA9F0[], D_802EAEF0[], D_802EB3F0[], D_802EB8F0[], D_802EBDF0[];
 extern u16 D_802EC2F0[], D_802EC7F0[], D_802ECCF0[], D_802ED1F0[], D_802ED6F0[], D_802EDBF0[], D_802EE0F0[], D_802EE5F0[];
 extern u16 D_802EEAF0[], D_802EEFF0[], D_802EF4F0[], D_802EF9F0[], D_802EFEF0[], D_802F03F0[], D_802F08F0[], D_802F0DF0[];
 extern u16 D_802F12F0[], D_802F17F0[], D_802F1CF0[], D_802F21F0[], D_802F26F0[], D_802F2BF0[], D_802F30F0[], D_802F35F0[];
-extern u8 D_803EF32E;
-extern s32 D_803EF310;
-extern s32 D_803EF314;
-extern s32 D_803EF318;
-extern u8 D_02000000[];
 
 s32 func_80267614();
-void func_8026A5CC(void *, void *, s32);
 
 #define LOAD_TEX(ptr) \
     gDPPipeSync(gdl++); \
@@ -522,7 +503,7 @@ void func_80266248(Gfx **gdlp, DynBuf *buf) {
             }
             phys = osVirtualToPhysical(tex);
             LOAD_TEX(phys);
-            func_8026A5CC(&buf->vtx[n], D_802E9FB0, sizeof(Vtx) * 4);
+            func_8026A5CC((u64 *) (&buf->vtx[n]), (u64 *) D_802E9FB0, sizeof(Vtx) * 4);
             for (j = 0; j < 4; j++) {
                 buf->vtx[n + j].v.ob[0] = fx[j] + D_80367D60[i].x;
                 buf->vtx[n + j].v.ob[1] = fy[j] + D_80367D60[i].y;
@@ -602,7 +583,7 @@ void func_80266248(Gfx **gdlp, DynBuf *buf) {
             }
             phys = osVirtualToPhysical(tex);
             LOAD_TEX(phys);
-            func_8026A5CC(&buf->vtx[n], D_802E9FB0, sizeof(Vtx) * 4);
+            func_8026A5CC((u64 *) (&buf->vtx[n]), (u64 *) D_802E9FB0, sizeof(Vtx) * 4);
             if (flip) {
                 buf->vtx[n].v.tc[0] = 0x260;
                 buf->vtx[n + 1].v.tc[0] = 0;
@@ -627,7 +608,7 @@ void func_80266248(Gfx **gdlp, DynBuf *buf) {
             if (D_80367D60[i].unk15 == 3) {
                 found = 1;
                 LOAD_TEX(osVirtualToPhysical(D_802E9FF0));
-                func_8026A5CC(&buf->vtx[n], D_802E9FB0, sizeof(Vtx) * 4);
+                func_8026A5CC((u64 *) (&buf->vtx[n]), (u64 *) D_802E9FB0, sizeof(Vtx) * 4);
                 for (j = 0; j < 4; j++) {
                     buf->vtx[n + j].v.ob[0] = fx[j];
                     buf->vtx[n + j].v.ob[1] = fy[j];

@@ -1,9 +1,22 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_803BE6FC
+#define LEGACY_D_803BE700
+#endif /* legacy declarations */
+#include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_02000000 ((u8 *) D_02000000)
+#ifdef NON_MATCHING
+#define D_803BE6FC (*(DigTrigger * *) &D_803BE6FC)
+#define D_803BE700 (*(DigTrigger * *) &D_803BE700)
+#endif
+/* end of views */
 
 /* The digger code (this file's .bss starts at 0x8036C8D0) */
-extern u8 D_80364456;      /* current vehicle */
-extern void *D_80358070;
 
 /* 50-entry ring buffer of digger samples, indexed D_8036CB28..D_8036CB29 */
 typedef struct {
@@ -23,14 +36,12 @@ typedef struct {
     /* 0x06 */ u8 done;
 } DigTrigger;
 
+#ifndef NON_MATCHING
 extern DigTrigger *D_803BE6FC; /* first */
+#ifndef NON_MATCHING
 extern DigTrigger *D_803BE700; /* end */
-extern u8 D_803643D6;
-extern u8 D_803643DB;
-extern s32 D_803EF6E4;
-extern u8 D_8036CB2F;
-extern u64 D_80364A90;
-extern u32 D_80364AA8;
+#endif
+#endif
 extern u8 D_8036CB35;
 extern u8 D_8036CB36;
 extern u8 D_8036CB37;
@@ -43,41 +54,29 @@ extern s16 *D_8036CB40; /* event animation frame ids */
 extern u8 D_8036CB44;
 extern u8 D_8036CB50;
 extern u8 D_8036CB51;      /* event panel alpha */
-extern u8 D_802FAD50[];    /* 32x32 RGBA32 panel frame */
-extern u8 D_02000000[];    /* segment 2 base */
-void func_802A1040(s16 id, void *dest, s32 arg2);
-s32 func_8026A828(s32 arg0, s32 arg1);
 extern s16 D_802FBDD0[];
 extern s16 D_802FBDEC[];
 extern s16 D_802FBE18[];
 extern s16 D_802FBE44[];
 extern s16 D_802FBE80[];
 extern Vtx D_802FBD50[8];
-extern void *D_80367738;
-void *func_80260650(void *arg0, s16 arg1, void *arg2);
 
 extern DigEntry D_8036C8D0[50];
 extern u8 D_8036CB32;
 extern void *D_8036CB48[2];
 extern u8 D_8036CB28;
 extern u8 D_8036CB29;
-extern s16 D_8036CB2A;
-extern s16 D_8036CB2C;
-extern u8 D_8036CB2E;
 extern u8 D_8036CB30;
 extern u8 D_8036CB31;
 extern u8 D_8036CB33;
 extern u8 D_8036CB34;
 
-void func_80277EDC();
-s32 func_8026205C(s32 arg0);
 s32 func_80277D34(void);
 s32 func_80277E08(void);
 void func_80277C20(void);
 void func_802778FC(void);
 void func_80277AE0(void);
 void func_80277B84(void);
-void func_8029A7E4(const char *fmt, ...);
 
 void func_802775C0(void) {
     D_8036CB34 = 0;
@@ -282,13 +281,21 @@ s32 func_80277E08(void) {
 
 /* Starts a digger event. A K&R definition: callers pass plain ints, and the
  * u8 parameters read their low bytes */
+#ifdef NON_MATCHING
+void func_80277EDC(u8 type, u8 arg1, s32 arg2, u8 sound)
+#else
 void func_80277EDC(type, arg1, arg2, sound)
     u8 type;
     u8 arg1;
     s32 arg2;
     u8 sound;
+#endif
 {
+#ifdef NON_MATCHING
+    u8 pos = 0; /* types without a case (with D_80364AA8 == 1) leave it indeterminate in the original */
+#else
     u8 pos;
+#endif
 
     if ((D_80364A90 & 0x200000000400220C) && !D_8036CB34) {
         if (sound) {

@@ -1,104 +1,97 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_802E8F94 ((u8 *) D_802E8F94)
+#define D_80364AF0 ((u8 (*)[256]) D_80364AF0)
+/* end of views */
 
-extern u32 D_802E8BEC;
-extern s32 D_80358060;
-extern u64 D_80364A90;
-extern u8 D_80366A18;
-void func_8026AF6C(s32);
 
 void func_8025C5D0(void) {
-    switch (D_802E8BEC) {
+    switch (((u32) D_802E8BEC)) {
         case 0:
             if (D_80364A90 == 2) {
-                if (D_80358060 == 0x96) {
+                if (((s32) D_80358060) == 0x96) {
                     func_8026AF6C(0x803E);
                 }
-                if (D_80358060 == 0x190) {
+                if (((s32) D_80358060) == 0x190) {
                     func_8026AF6C(0x8025);
                 }
-                if (D_80358060 == 0x2BC) {
+                if (((s32) D_80358060) == 0x2BC) {
                     func_8026AF6C(0x8026);
                 }
             } else {
-                if (D_80358060 == 0x64) {
+                if (((s32) D_80358060) == 0x64) {
                     func_8026AF6C(0x8027);
                 }
-                if (D_80358060 == 0x12C) {
+                if (((s32) D_80358060) == 0x12C) {
                     func_8026AF6C(0x8028);
                 }
-                if (D_80358060 == 0x1F4) {
+                if (((s32) D_80358060) == 0x1F4) {
                     func_8026AF6C(0x8029);
                 }
-                if (D_80358060 == 0x2BC) {
+                if (((s32) D_80358060) == 0x2BC) {
                     func_8026AF6C(0x802A);
                 }
             }
             break;
         case 1:
-            if (D_80358060 == 0xB4) {
+            if (((s32) D_80358060) == 0xB4) {
                 func_8026AF6C(0x802B);
             }
-            if (D_80358060 == 0x1D6) {
+            if (((s32) D_80358060) == 0x1D6) {
                 func_8026AF6C(0x802C);
             }
             break;
         case 2:
-            if (D_80358060 == 0xB4) {
+            if (((s32) D_80358060) == 0xB4) {
                 func_8026AF6C(0x802D);
             }
             break;
         case 3:
-            if (D_80358060 == 0xB4) {
+            if (((s32) D_80358060) == 0xB4) {
                 func_8026AF6C(0x802E);
             }
             break;
         case 4:
-            if (D_80358060 == 0xB4) {
+            if (((s32) D_80358060) == 0xB4) {
                 func_8026AF6C(0x802F);
             }
             break;
         case 5:
-            if (D_80358060 == 0xB4) {
+            if (((s32) D_80358060) == 0xB4) {
                 func_8026AF6C(0x8030);
             }
             break;
         case 6:
-            if (D_80358060 == 0xB4) {
+            if (((s32) D_80358060) == 0xB4) {
                 func_8026AF6C(0x8031);
             }
-            if (D_80358060 == 0x1D6) {
+            if (((s32) D_80358060) == 0x1D6) {
                 func_8026AF6C(0x8032);
             }
             break;
         case 7:
-            if (D_80358060 == 0xB4) {
+            if (((s32) D_80358060) == 0xB4) {
                 func_8026AF6C(0x8033);
             }
             break;
         case 8:
-            if (D_80358060 == 0xB4) {
+            if (((s32) D_80358060) == 0xB4) {
                 func_8026AF6C(0x8034);
             }
             break;
     }
-    if (D_80358060 == 0x82) {
+    if (((s32) D_80358060) == 0x82) {
         D_80366A18 = 1;
     }
 }
 
-extern u8 D_802E8BF0;
-extern u64 D_80364A90;
-extern u32 D_803156C4;
 extern void *D_80366BA4;
 extern s32 D_80366BA8;
-extern s32 D_80358060;
 extern u8 D_80366A10;
 extern u8 D_80366A11;
-extern s16 D_80366A04;
 extern u32 D_80366BBC;
-extern Vtx D_802FA8B0[][4];
-extern Mtx D_02000000[];
 void func_8025E1E0(Gfx **);
 Gfx *func_8025D2B4(Gfx *, s32, s32 *);
 
@@ -117,11 +110,11 @@ Gfx *func_8025C878(Gfx *arg0, s32 arg1, u8 arg2, s32 *arg3) {
             buf = (u8 *) D_80366BA4 + 0x3c0;
         }
         D_80366BA8 = 0;
-        if (D_80358060 == 0) {
+        if (((s32) D_80358060) == 0) {
             D_80366A10 = 0;
             D_80366A11 = 0;
         }
-        if ((u32) D_80358060 > D_80366A04) {
+        if ((u32) ((s32) D_80358060) > D_80366A04) {
             if (time < D_80366BBC + 0x78) {
                 gDPPipeSync(gfx++);
                 gSPMatrix(gfx++, &D_02000000[3], G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
@@ -152,7 +145,7 @@ Gfx *func_8025C878(Gfx *arg0, s32 arg1, u8 arg2, s32 *arg3) {
                 func_8025E1E0(&gfx);
             }
         } else {
-            if (D_80366A04 == D_80358060) {
+            if (D_80366A04 == ((s32) D_80358060)) {
                 D_80366BBC = time;
             }
             func_8025E1E0(&gfx);
@@ -164,7 +157,6 @@ Gfx *func_8025C878(Gfx *arg0, s32 arg1, u8 arg2, s32 *arg3) {
     return gfx;
 }
 
-extern void *D_80358070;
 extern void *D_80366BA0;
 extern void *D_80366BA4;
 
@@ -219,12 +211,14 @@ void func_8025CE74(void) {
 
 extern u8 D_00487050[];
 extern u8 D_00489E70[];
-extern u8 D_0048F5A0[];
 extern u32 D_80366BB0[];
-void func_8028B4C4(void *, void *, s32 *, s32, s32, s32);
 
 void func_8025D0B0(u8 arg0) {
+#ifdef NON_MATCHING
+    void *rom = NULL; /* arg0 is 0 or 1; any other value reads an indeterminate slot in the original */
+#else
     void *rom;
+#endif
     s32 size;
 
     switch (arg0) {
@@ -237,15 +231,13 @@ void func_8025D0B0(u8 arg0) {
             size = D_00489E70 - D_00487050;
             break;
     }
-    func_8028B4C4(rom, D_80358070, &size, 0xC, 0, 1);
+    func_8028B4C4((u32) rom, (u32) D_80358070, (u32 *) &size, 0xC, 0, 1);
     D_80366BB0[arg0] = (u32) D_80358070 & 0x1FFFFFFF;
     D_80358070 = (u8 *) D_80358070 + size;
 }
 
-extern u64 D_80364A98;
 extern s16 D_80366A00;
 extern s16 D_80366A02;
-extern u16 D_80366A12;
 extern s16 D_80366A14;
 extern s16 D_80366A16;
 
@@ -305,11 +297,8 @@ void func_8025D184(void) {
 
 extern s16 D_80366A00;
 extern s16 D_80366A02;
-extern u16 D_80366A12;
 extern s16 D_80366A14;
 extern s16 D_80366A16;
-extern s16 D_8039CAA0;
-extern s16 yoshiState;
 
 /* Draws the scrolling title backdrop. Input bits in the u64 D_80364A90 fade
  * D_80366A14 up/down, a little state machine on D_80366A12 (0 -> 1 on
@@ -342,7 +331,7 @@ Gfx *func_8025D2B4(Gfx *arg0, s32 arg1, s32 *arg2) {
 
     switch (D_80366A12) {
         case 0:
-            if (D_80358060 == 0x3C) {
+            if (((s32) D_80358060) == 0x3C) {
                 D_80366A12 = 1;
             }
             break;
@@ -444,8 +433,6 @@ Gfx *func_8025D2B4(Gfx *arg0, s32 arg1, s32 *arg2) {
     return gfx;
 }
 
-extern Mtx D_02000000[];
-void func_8024FC2C(Gfx **, s32);
 
 void func_8025E1E0(Gfx **arg0) {
     Gfx *gfx = *arg0;
@@ -459,37 +446,11 @@ void func_8025E1E0(Gfx **arg0) {
     *arg0 = gfx;
 }
 
-extern u8 D_803643D7;
 extern u8 D_80366BC0;
 extern u16 D_80366BC2;
 extern u8 D_80366BC4;
-extern s32 D_80364AA8;
-extern s32 D_802E8BDC;
-extern u8 D_802E8F94[];
-extern u8 D_80364AE8;
-extern u8 D_80364AF0[][256];
 extern u32 D_80366BB8;
-extern s16 currentYoshiWindow;
-extern s16 D_8036BB1A;
-extern s16 yoshiState;
-extern void *D_80367734;
-extern void *D_80367738;
-extern u32 D_80367740;
 extern u32 D_802E8CD0[];
-s32 func_802753C0(void);
-void func_802C1DD0(s32);
-void func_802609F0(void);
-void func_80260A10(void);
-void func_80260E2C(void);
-void func_80260DFC(void);
-void func_80260EE0(s32);
-void func_8026AF6C(s32);
-s32 func_8026205C(s32);
-void *func_80260650(void *, s16, void *);
-void func_80278318(void);
-void func_80277EDC(s32, s32, s32, s32);
-s32 func_802D4E10(void *);
-void func_80275270(u64, f32);
 
 void func_8025E2CC(Gfx **arg0, s32 arg1, s32 arg2) {
     Gfx *gfx;
@@ -505,7 +466,7 @@ void func_8025E2CC(Gfx **arg0, s32 arg1, s32 arg2) {
                 func_80260A10();
                 D_80366BC2 = 5;
                 D_80366BC4 = 0;
-                if (D_80364AA8 != 1) {
+                if (((s32) D_80364AA8) != 1) {
                     func_80260E2C();
                     D_80366BC4 = 1;
                 }
@@ -546,7 +507,7 @@ void func_8025E2CC(Gfx **arg0, s32 arg1, s32 arg2) {
             }
         } else if (func_802D4E10(D_80367734) == 0 ||
                    (D_80366BC4 != 0 && D_803156C4 - D_80367740 >= 0x1E1) ||
-                   (D_80366BC4 == 0 && D_803156C4 - D_80366BB8 > D_802E8CD0[(D_80364AA8 & 0x81) ? 1 : 0])) {
+                   (D_80366BC4 == 0 && D_803156C4 - D_80366BB8 > D_802E8CD0[(((s32) D_80364AA8) & 0x81) ? 1 : 0])) {
             func_80275270(0x08000000, 0.75f);
             D_80366BB8 = 0;
             D_80366BC0 = 0;
@@ -555,28 +516,8 @@ void func_8025E2CC(Gfx **arg0, s32 arg1, s32 arg2) {
     *arg0 = gfx;
 }
 
-extern u8 D_803643D6;
-extern u8 D_803643D8;
-extern s32 D_802E8BDC;
-extern u8 D_802E8F94[];
-extern void *D_80367738;
-extern s16 currentYoshiWindow;
-extern s16 D_8036BB1A;
-extern s16 yoshiState;
-extern u8 D_802E8BD8;
 extern u32 D_80366BB8;
 extern u8 D_80366BC5;
-extern u8 D_80364AE8;
-extern u8 D_80364AF0[][256];
-extern u64 D_80364A98;
-void func_802609D0(void);
-void func_802C1DD0(s32);
-void *func_80260650(void *, s16, void *);
-void func_80261570(f32);
-void func_8026AF6C(s32);
-s32 func_8026B10C(void);
-s32 func_802753C0(void);
-void func_80275390(u64);
 
 void func_8025E67C(Gfx **arg0, s32 arg1, u8 arg2) {
     Gfx *gfx;

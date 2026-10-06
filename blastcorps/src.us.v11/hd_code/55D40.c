@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 extern s32 D_803A6B20;
 extern s32 D_803A6B24;
@@ -16,24 +17,18 @@ typedef struct {
 } CreditLine;
 
 extern CreditLine D_80304A90[];
-extern u8 D_802F47B0[][8];
-extern s32 D_80358060;
-extern u8 D_803643D6;
-extern s16 yoshiState;
 
-void func_80259DC8(Gfx **gfxp, char *str, s32 a2, s32 a3, s32 a4, s32 x, s32 y, s32 w, s32 h, s32 a9, s32 r, s32 g,
-                   s32 b, s32 a, s32 r2, s32 g2, s32 b2, s32 a2_);
-void func_8026AF6C(u16 yd);
-void func_80260EE0(s32);
-s32 func_802753C0(void);
-void func_80275270(u64, f32);
 
 /* Credits scroller: draws the visible credit lines, advances the scroll, and ends the credits */
 Gfx *func_8029A518(Gfx **gfxp, Gfx *gfx) {
     Gfx *ret = gfx;
     CreditLine *line;
     s32 i;
+#ifdef NON_MATCHING
+    s32 x = 0; /* never assigned: the original passes whatever its stack slot (sp+0x58) holds; not traced */
+#else
     s32 x;
+#endif
     s32 y = 0;
     s32 color;
 
@@ -49,7 +44,7 @@ Gfx *func_8029A518(Gfx **gfxp, Gfx *gfx) {
             color = 0;
         }
         if (y - D_803A6B20 >= -0x31 && y - D_803A6B20 < 0xF0) {
-            func_80259DC8(gfxp, line->str, 0, 0, color, x, y - D_803A6B20, line->size, line->size, 1,
+            func_80259DC8(gfxp, (u8 *) line->str, 0, 0, color, x, y - D_803A6B20, line->size, line->size, 1,
                           D_802F47B0[line->color][0], D_802F47B0[line->color][1], D_802F47B0[line->color][2],
                           D_802F47B0[line->color][3], D_802F47B0[line->color][4], D_802F47B0[line->color][5],
                           D_802F47B0[line->color][6], D_802F47B0[line->color][7]);
@@ -64,10 +59,10 @@ Gfx *func_8029A518(Gfx **gfxp, Gfx *gfx) {
             y += 0x11;
         }
     }
-    if (D_80358060 == 100) {
+    if (((s32) D_80358060) == 100) {
         func_8026AF6C(0x8036);
     }
-    if ((u32) D_80358060 >= 0x18C) {
+    if ((u32) ((s32) D_80358060) >= 0x18C) {
         D_803A6B20++;
     }
     if (D_803643D6) {

@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -10,10 +11,6 @@
  * more specific non-ABI explanation where one was already worked out. */
 #ifdef NON_MATCHING
 /* Shared declarations for the NON_MATCHING (port) rewrites below. */
-extern u8 *D_80358070;          /* heap pointer */
-extern OSIoMesg D_80370C58;
-extern OSMesgQueue D_80315180;
-extern u8 D_803B9888;           /* the table below is loaded */
 extern u32 *D_803B8D44;         /* ROM offsets (from 0x4CE0) of the entries, 8 bytes apart */
 extern u8 *D_803B8D40;
 extern u8 D_803B8570[];
@@ -36,8 +33,6 @@ typedef struct {
     /* 0xC */ u8 *param;
 } DecodeReq;
 extern DecodeReq D_803C4B58;
-s32 func_802A57DC(u8 *rec);
-void func_802A5764(s32 a, s32 b, s32 c, s32 d);
 
 /* D_803B8570..D_803B8D40: the loaded-texture cache, 8-byte {id, physical
  * address} pairs; D_803B8D40 is the first free pair. */
@@ -91,13 +86,6 @@ void func_802A0700(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Register results of func_802A08E4 its asm callers read. */
-typedef struct {
-    /* 0x0 */ u8 **s2; /* &D_803B8D40 */
-    /* 0x4 */ u8 *s3;  /* the new D_803B8D40 */
-    /* 0x8 */ u8 *s4;  /* in/out: last cache pair looked at (only set when a G_SETTIMG was seen) */
-} Unk802A08E4Regs;
-void func_802A08E4(u32 *dl, u32 *end, Unk802A08E4Regs *r);
 
 /* C-callable entry: func_802A08E4(dl, end) (dl/end moved to s0/s1, which it
  * saves). The asm passes its caller's s4 through as func_802A08E4's in/out
@@ -190,7 +178,6 @@ void func_802A0B34(s32 id, u8 *param) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-u32 func_802A0CFC(s32 id, u8 *param);
 
 /* C-callable entry: returns func_802A0CFC(id, param), the texture's physical
  * address (the asm moves id/param to t6/fp and returns s0 in v0). The whole
@@ -266,7 +253,6 @@ void func_802A0F0C(s32 id, void *dest) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-void func_802A1074(s32 id, u8 *dest, u8 *param);
 
 /* C-callable entry: func_802A1074(id, dest, param) (moved to t6/s1/fp). The
  * whole id register is used (168B0.c declares u16, 32E00.c/43A60.c s16). */
@@ -279,7 +265,6 @@ void func_802A1040(s32 id, u8 *dest, u8 *param) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_80358080;
 extern u8 D_803B8D48[];
 
 /* Queued load of table entry `id` into `dest`: invalidates 0x1000 bytes,
@@ -305,8 +290,6 @@ void func_802A1074(s32 id, u8 *dest, u8 *param) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_80358080; /* queued-DMA counter (next OSIoMesg slot) */
-extern s32 D_80358084;
 extern u8 D_803B8D48[]; /* OSIoMesg slots, 0x14 bytes each */
 
 /* Like func_802A0F0C but doesn't wait: counts D_80358084 up and issues the

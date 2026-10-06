@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /*
  * Billboard particle emitter: up to 50 textured quads spawned in bursts from
@@ -50,10 +51,6 @@ typedef struct {
 
 extern ParticleDef *D_802C4A20[];
 extern Vtx D_802FDA80[4];
-extern s32 D_803643F8; /* camera position */
-extern s32 D_803643FC;
-extern s32 D_80364400;
-extern s16 D_80364452; /* camera yaw, 0..4095 */
 extern ParticleDef *D_8036EC30;
 extern Particle D_8036EC38[50];
 extern Mtx D_8036F278[][50];
@@ -68,12 +65,7 @@ extern u8 *D_80370B90; /* texture cache */
 extern s16 D_80370B98[];
 extern s32 D_80370BB0; /* textures cached */
 extern s32 D_80370BB4; /* bytes per texture */
-extern u8 *D_80358070; /* heap pointer */
 
-s32 func_8026A6F0(s32, s32, s32, s32, s32, s32);
-s32 func_8026A828(s32 arg0, s32 arg1);
-s32 func_802AD7D4(s32);
-void func_802A1040(s16 id, void *dest, s32 arg2);
 void func_80289EF4(Gfx **gdl);
 u32 func_8028A0A0(s16 id);
 void func_8028A1D0(SortEntry *a, s32 n);
@@ -96,7 +88,11 @@ void func_80288220(void) {
 
 s32 func_80288284(u8 type, s32 x, s32 y, s32 z, s32 floor) {
     s32 unused;
+#ifdef NON_MATCHING
+    s32 bpp = 0; /* formats without a case leave it indeterminate in the original */
+#else
     s32 bpp;
+#endif
 
     if (D_80370B8C == 0 && D_80370B8D == 0) {
         D_80370B78 = x;
@@ -287,7 +283,11 @@ void func_80288DF0(Gfx **gdl, u8 buf) {
     s32 ang;
     s32 ratio;
     s32 absRatio;
+#ifdef NON_MATCHING
+    s32 texId = 0; /* states without a case leave it indeterminate in the original */
+#else
     s32 texId;
+#endif
     SortEntry entries[50];
     s32 count;
     s32 lastTex;

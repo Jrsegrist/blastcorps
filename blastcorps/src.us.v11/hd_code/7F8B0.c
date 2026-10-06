@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* FILE-WIDE FINDING: hand-written assembly (sd/ld $ra frames, trapping
  * addi on $sp, every register saved including k0/k1/gp/sp), split out of the
@@ -17,25 +18,14 @@ typedef struct {
 
 u32 func_802C42CC(u32 mask, LzBits *b);
 void func_802C41C0(u8 **srcp, u8 **dstp, u8 *window, s32 bits);
-void func_8025C230(u8 **arg0, u8 **arg1, s32 arg2);
-void *func_80260650(void *arg0, s16 arg1, void *arg2);
-void func_802608C8(void *arg0);
-void func_80260AB8(void *arg0, s16 arg1, s32 arg2);
-void func_802C4584(s32 level);
 
 extern u8 *D_803F7830;
 extern u8 *D_803F7834;
-extern s16 D_803F7840;  /* last |level| set by func_802C4584 (-1 = none yet) */
-extern void *D_803F7844; /* looping sound handle */
 extern void *D_803F7848; /* second looping sound handle */
 extern s16 D_803F784C;  /* its on/off flag; func_802C4724 uses the first byte */
-extern void *D_80367738;
 extern s32 D_80364AB0;  /* force the next func_802C4584 update */
-extern u8 D_80364456;
 extern f32 D_8030D940;
 extern f32 D_8030D944;
-extern u8 D_80370C1A;
-extern u8 D_80370C1B;
 #endif
 
 /* C-callable (46C20.c func_8028B4C4): saves s0-s7/gp/s8, then

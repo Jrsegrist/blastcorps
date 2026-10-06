@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* audio.c: Rare's copy of the SDK demos' audio manager (audiomgr.c). The
  * thread renders one audio frame per retrace message from the scheduler and
@@ -70,10 +71,7 @@ extern u32 D_8036A8BC; /* frameSize */
 extern u32 D_8036A8C0; /* maxFrameSize */
 extern s32 D_8036A8C4; /* cmdLen */
 extern u8 D_803682F8[];
-extern u8 D_802E6820[];
-extern u8 D_802E68F0[];
 extern u8 D_8030EB90[];
-extern OSMesgQueue D_80315440;
 extern s32 D_803156A4;
 /* .bss (0x80368050, placed by hd_code_bss.us.v11.ld); the first two words
  * are unreferenced placeholders */
@@ -82,23 +80,10 @@ s32 D_80368054;
 u64 D_80368058; /* last audio frame start */
 u64 D_80368060; /* audio frame start */
 u64 D_80368068; /* audio frame end */
-extern u8 D_80367728;
-extern u8 D_80367729;
-extern u8 D_8036772A;
-extern s32 D_8036772C;
-extern u8 D_80367730;
 
-void func_8029A7E4(const char *, ...);
-u32 func_802D9C10(void);                      /* osAiGetLength */
-s32 func_802D9B60(void *, u32);               /* osAiSetNextBuffer */
-Acmd *func_802D9D68(Acmd *, s32 *, s16 *, s32); /* alAudioFrame */
-s32 func_802DA2F0(OldIoMesg *, s32, s32, u32, void *, u32, OSMesgQueue *); /* osPiStartDma */
-OSMesgQueue *func_80270F74(OSMesgQueue *);   /* osScGetCmdQ */
-void func_80270E50(OSMesgQueue *, void *, OSMesgQueue *, s32, s32);
 void func_802682A4(void);
 ALDMAproc func_80268254(AMDMAState **state);
 void func_80267A9C(void *arg);
-extern s32 D_80000300; /* osTvType */
 extern s32 osViClock;
 extern OSMesg D_8036AE80[];
 extern u64 D_80368308[]; /* audio thread stack */
@@ -107,11 +92,6 @@ s32 func_80267FE0(s32 addr, s32 len, void *state);
 /* __amHandleFrameMsg */
 void func_80267CDC(AudioInfo *info, AudioInfo *lastInfo);
 void func_80267F88(AudioInfo *info);
-void func_802613C8(void);
-void func_80261068(void);
-void func_80261284(void);
-void func_802611F0(void);
-void func_80261528(void);
 
 #define AUDIO_ASSERT(EX, line) \
     if (!(EX)) func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "audio.c", line)
@@ -191,7 +171,7 @@ void func_80267A9C(void *arg) {
     done = 0;
     lastInfo = NULL;
     firstTime = 1;
-    func_80270E50(&D_80315440, D_803682F8, &D_80368070.audioFrameMsgQ, 2, 2);
+    func_80270E50((struct BcSched *) &D_80315440, (struct BcScClient *) D_803682F8, &D_80368070.audioFrameMsgQ, 2, 2);
     osSendMesg(&D_80368070.audioFrameMsgQ, (OSMesg) 5, OS_MESG_NOBLOCK);
     while (!done) {
         osRecvMesg(&D_80368070.audioFrameMsgQ, (OSMesg *) &msg, OS_MESG_BLOCK);
@@ -358,7 +338,7 @@ s32 func_80267FE0(s32 addr, s32 len, void *state) {
     addr -= delta;
     dmaPtr->startAddr = addr;
     dmaPtr->lastFrame = D_802F3AF0;
-    func_802DA2F0(&D_8036A8C8[D_802F3AF4++], OS_MESG_PRI_NORMAL, OS_READ, addr, foundBuffer, 0x200, &D_8036AE68);
+    func_802DA2F0((OSIoMesg *) &D_8036A8C8[D_802F3AF4++], OS_MESG_PRI_NORMAL, OS_READ, addr, foundBuffer, 0x200, &D_8036AE68);
     return osVirtualToPhysical(foundBuffer) + delta;
 }
 

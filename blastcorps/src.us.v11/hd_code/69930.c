@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* FILE-WIDE FINDING: hand-written assembly (sd/ld $ra frames, results
  * returned in $s8 or $f0), split out of the old 68810 bin blob. Like the

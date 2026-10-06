@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* front-end background pictures: inflate a 320x240 RGBA16 image and draw it */
 
@@ -28,16 +29,9 @@
 
 extern u8 *D_8021AB80;        /* the inflated picture */
 extern u8 D_8021AB84;         /* its number */
-extern u8 *D_80358070;        /* heap pointer */
-extern u64 D_80364A90;        /* game mode */
-extern u8 D_006AD3F0[];       /* compressed pictures (ROM) */
 extern u8 D_006BF2F0[];
 extern u8 D_006D3D30[];
-extern u8 D_006E8980[];
 
-void func_8028B4C4(void *, void *, u32 *, s32, s32, s32); /* inflate */
-
-void func_80200714(u8 mode);
 
 void func_802006F0(void) {
     func_80200714(D_8021AB84);
@@ -80,7 +74,7 @@ void func_80200714(u8 mode) {
             return;
     }
     size = end - start;
-    func_8028B4C4(start, D_80358070, &size, 0xD, 0, 2);
+    func_8028B4C4((u32) start, (u32) D_80358070, &size, 0xD, 0, 2);
     pix = (u16 *) D_80358070;
     for (i = 0; i < size / 2; i++) {
         r = pix[i] >> 11;

@@ -1,16 +1,11 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
-extern void *D_80358070;
-extern u8 D_006A8DA0[];
-extern u8 D_006A9F10[];
 extern u8 *D_8039CA90;
 extern u8 *D_8039CA94;
 extern u8 *D_8039CA98;
 extern u8 *D_8039CA9C;
-extern s16 D_8039CAA0;
-extern u8 D_8039CAA2;
-void func_8028B4C4(void *, void *, s32 *, s32, s32, s32);
 
 /* Carves four buffers out of the heap and loads ROM asset 0x6A8DA0 into the first. */
 void func_80295E50(void) {
@@ -21,7 +16,7 @@ void func_80295E50(void) {
     D_8039CA98 = D_8039CA94 + 0xF0;
     D_8039CA9C = D_8039CA98 + 0x180;
     size = D_006A9F10 - D_006A8DA0;
-    func_8028B4C4(D_006A8DA0, D_8039CA90, &size, 10, 0, 1);
+    func_8028B4C4((u32) D_006A8DA0, (u32) D_8039CA90, (u32 *) &size, 10, 0, 1);
     D_80358070 = (u8 *) D_80358070 + size;
     D_8039CAA0 = 0;
     D_8039CAA2 = 1;
@@ -46,9 +41,6 @@ void func_80295E50(void) {
         gImmp1(pkt, OLD_RDPHALF_CONT, (_SHIFTL(dsdx, 16, 16) | _SHIFTL(dtdy, 0, 16)));       \
     }
 
-extern u16 D_80370C30; /* controller 1 buttons */
-extern s8 D_80370C32;  /* controller 1 stick x */
-extern s8 D_80370C33;  /* controller 1 stick y */
 Gfx *func_8029700C(Gfx *gfx, s16 x, s16 y);
 
 /*

@@ -1,23 +1,13 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* Front-end loader: DMAs a (possibly compressed) block from ROM in 16 KB
  * pieces and decompresses it. */
 
 extern s32 *D_802FDB30; /* ROM start of the front end */
 extern s32 *D_802FDB34; /* ROM end of the front end */
-extern u8 D_80370C50;   /* front end loaded */
-extern OSIoMesg D_80370C58;
-extern OSMesgQueue D_803150A0;
 
-void func_802DB730(u32 addr, u32 len);
-void func_802DB7B0(u32 addr, u32 len);
-void func_801F57B0(void);
-void func_8029A7E4(const char *fmt, ...);
-s32 func_802DA2F0(OSIoMesg *mb, s32 pri, s32 dir, u32 devAddr, u32 vAddr, u32 nbytes, OSMesgQueue *mq);
-void func_8025C230(u32 *src, u32 *dst, u32 work);
-void func_802C4070(u32 *src, u32 *dst, u32 work, u8 type);
-void func_8028B4C4(u32 devAddr, u32 dest, u32 *size, u8 arg3, u8 arg4, u8 arg5);
 
 /* Load the front end overlay to 0x801E7000 once */
 void func_8028B3E0(void) {
@@ -26,9 +16,9 @@ void func_8028B3E0(void) {
     osViBlack(1);
     if (D_80370C50 == 0) {
         osInvalDCache((void *) 0x801E7000, 0x37D00);
-        func_802DB730(0x801E7000, 0x37D00);
+        func_802DB730((void *) 0x801E7000, 0x37D00);
         func_8028B4C4(*D_802FDB30, 0x801E7000, &size, 0xD, 10, 1);
-        func_802DB7B0(size + 0x801E7000, 0x37D00 - size);
+        func_802DB7B0((void *) (size + 0x801E7000), 0x37D00 - size);
         D_80370C50 = 1;
         func_801F57B0();
         func_8029A7E4("got front end\n");
@@ -54,23 +44,23 @@ void func_8028B4C4(u32 devAddr, u32 dest, u32 *size, u8 arg3, u8 arg4, u8 arg5) 
     osInvalDCache((void *) buf, *size);
     p = buf;
     for (i = 0; i < *size / 0x4000; i++) {
-        func_802DA2F0(&D_80370C58, 0, 0, devAddr, p, 0x4000, &D_803150A0);
+        func_802DA2F0(&D_80370C58, 0, 0, devAddr, (void *) p, 0x4000, &D_803150A0);
         osRecvMesg(&D_803150A0, NULL, 1);
         devAddr += 0x4000;
         p += 0x4000;
     }
     rem = *size - (*size / 0x4000) * 0x4000;
     if (rem) {
-        func_802DA2F0(&D_80370C58, 0, 0, devAddr, p, rem, &D_803150A0);
+        func_802DA2F0(&D_80370C58, 0, 0, devAddr, (void *) p, rem, &D_803150A0);
         osRecvMesg(&D_803150A0, NULL, 1);
     }
     switch (arg5) {
         case 1:
             if (arg3) {
-                func_8025C230(&buf, &dest, 0x8004B400);
+                func_8025C230((u8 **) &buf, (u8 **) &dest, 0x8004B400);
             }
             if (arg4) {
-                func_8025C230(&buf, &dest, 0x8004B400);
+                func_8025C230((u8 **) &buf, (u8 **) &dest, 0x8004B400);
             }
             break;
         case 2:

@@ -1,5 +1,6 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 /* recording.c (from its assert strings): demo/attract-mode controller recording and playback */
 
@@ -11,10 +12,6 @@ typedef struct {
     s8 stickY;
 } RecEntry;
 
-extern u8 D_006A9F10[];
-extern u8 D_006AD3F0[];
-extern void *D_80358070;
-extern u8 D_8036698C;
 extern s32 D_80366990;
 extern s32 D_80366994;
 extern s32 D_80366998;
@@ -26,49 +23,9 @@ extern s8 D_803669A7;
 extern u8 D_803669A8;
 extern RecEntry *D_803669AC;
 extern void *D_803669B0;
-extern s32 D_803669B4;
-extern u16 D_80366A04;
 extern RecEntry D_80365588[];
-extern u8 D_80365580;
 extern u8 D_802E8CB0[];
-extern u64 D_80364A98;
-extern u64 D_80364A90;
-extern s32 D_803649E8;
-extern u8 D_80364456;
-extern u8 D_803643DB;
-extern u8 D_803643D6;
-extern u8 D_80364A50;
-extern u8 D_802E8BD0;
-extern u8 D_802E8BD8;
-extern s16 yoshiState;
-extern u16 D_80370C30;
-extern s8 D_80370C32;
-extern s8 D_80370C33;
 
-void func_8028B4C4(void *, void *, s32 *, s32, s32, s32);
-void func_80257490(void **heap, s32 align);
-u8 func_80272C5C(void *, s32, s32, s32, s32, f32);
-void func_8029A7E4(const char *fmt, ...);
-s32 func_802753C0(void);
-void func_80275270(u64 mask, f32 arg1);
-void func_80275390(u64 mask);
-void func_802B40D4(void *);
-void func_802B2D7C(void);
-void func_802AFC28(void *);
-void func_802B0D70(void *);
-void func_802AFFD4(void);
-void func_802B2988(void *);
-void func_802B1228(void);
-void func_802D2524(void *);
-void func_802D0C68(void);
-void func_802B58C8(void *);
-void func_802B448C(void);
-void func_802B7308(void *);
-void func_802B5CD8(void);
-void func_802C80A0(void *);
-void func_802C5714(void);
-void func_802CB660(void *);
-void func_802C9F54(void);
 
 #define ASSERT(EX, line) if (!(EX)) func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "recording.c", line)
 
@@ -84,9 +41,9 @@ void func_8025B9D0(s32 arg0, s32 *arg1) {
     rom = D_006A9F10;
     size = D_006AD3F0 - rom;
     p = D_80358070;
-    func_8028B4C4(rom, p, &size, 9, 0, 1);
+    func_8028B4C4((u32) rom, (u32) p, (u32 *) &size, 9, 0, 1);
     D_80358070 = (u8 *) D_80358070 + size;
-    func_80257490(&D_80358070, 0x10);
+    func_80257490((s32 *) &D_80358070, 0x10);
     for (i = 0; i < arg0; i++) {
         len = *(s16 *) (p + 0x140C);
         p = p + len + 0x140E;
@@ -99,7 +56,7 @@ void func_8025B9D0(s32 arg0, s32 *arg1) {
     D_803669AC = (RecEntry *) (p + 0xC);
     len = *(s16 *) (p + 0x140C);
     p = p + 0x140E;
-    func_80257490((void **) &p, 2);
+    func_80257490((s32 *) ((void **) &p), 2);
     D_803669B0 = p;
     D_80366994 = 0;
     D_803669A0 = D_803669AC->count;
@@ -115,7 +72,7 @@ void func_8025BB50(void) {
     D_80366998 = D_80366990;
     D_80366994 = 0;
     D_803669AC = D_80365588;
-    D_80365580 = func_80272C5C(D_802E8CB0, 0, 1, 1, 1, 1.0f);
+    D_80365580 = func_80272C5C((u16 *) D_802E8CB0, 0, 1, 1, 1, 1.0f);
     D_803669A0 = D_803669AC[D_80366994].count;
 }
 

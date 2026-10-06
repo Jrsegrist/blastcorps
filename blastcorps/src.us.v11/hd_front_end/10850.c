@@ -1,15 +1,27 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_8036BB24
+#endif /* legacy declarations */
+#include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_802E8F94 ((LevelInfo *) D_802E8F94)
+#define D_80364AF0 ((Player *) D_80364AF0)
+#ifdef NON_MATCHING
+#define D_8036BB24 (*(MenuItem * *) &D_8036BB24)
+#endif
+/* end of views */
 
 /*
  * bestTimes.c (assert file name at 0x8020FF70): the best-times screen, a
  * menu of 4 rows per level (one per player) built from the save records.
  */
 
-void func_8029A7E4(const char *fmt, ...); /* debug printf */
 int sprintf(char *, const char *, ...);
 void bcopy(const void *, void *, int);
-s32 func_8025B300(u8 *);                  /* strlen */
 
 #define BT_ASSERT(EX, line) \
     if (!(EX)) func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "bestTimes.c", line)
@@ -58,48 +70,21 @@ typedef struct {
     s16 unk18;
 } MenuHeader;
 
-extern s32 D_802E8BDC;        /* current level */
-extern LevelInfo D_802E8F94[];
-extern Player D_80364AF0[];
-extern u8 D_80364AEA;
-extern u8 D_80364AE8;
 extern u32 D_8021A828;        /* number of best-time menu items */
 extern u8 D_8021A7E8[];       /* player of each item */
 extern u8 D_8021A7D0[];       /* level of each row */
-extern u8 D_8021A8F0;
+#ifndef NON_MATCHING
 extern MenuItem *D_8036BB24;
-extern u8 D_80370C50;
-extern u16 D_80364EF0[][16];  /* best times */
-extern u8 D_802E8C44[];
-extern u16 D_80370C28;        /* buttons pressed */
-extern u16 D_80370C2A;
-extern u8 D_80365060[];       /* controller present */
-extern void *D_80367738;
-extern u8 D_802F8BDC[];
-extern u8 *D_80358070;        /* heap pointer */
-extern u8 D_8039C53C[];
-extern OSMesgQueue D_80219EF8;
-extern OSMesgQueue D_80219F50;
+#endif
 extern char D_80219FD0[][0x20];
 extern char D_8020D800[][4];
 
 #define playerNumberAtStart D_80364AEA
 #define frontEndPresent D_80370C50
 
-void *func_80260650(void *arg0, s16 arg1, void *arg2);
-void func_801E8EB8(u8, s32);
-s32 func_801EF2BC();
-void func_801FDE50(void);
-void func_80264A34(char *buf, u16 t, s32 arg2);
-void func_802595E0(u8 *base, s32 n, s32 size, s32 (*cmp)(void *, void *));
-Gfx *func_80272ED8(Gfx *gdl, u8 slot, s16 x, s16 y, u8 alpha, u8 mode, f32 scale);
-Gfx *func_80274868(Gfx *);
-Gfx *func_80274AA4(Gfx *);
 s32 func_801F7F74(u8 lvl);
 s32 func_801F7FF4(MenuItem *a, MenuItem *b);
 s32 func_801F81B4(u8 pn);
-void func_801F8228(void);
-void func_801F8354(u8 pn);
 
 /* build the best-times menu */
 void func_801F7850(void) {
@@ -153,7 +138,7 @@ void func_801F7850(void) {
                 item->unk16 = D_80364EF0[i][D_802E8C44[lvl]];
                 item->unk1A = lvl;
             }
-            func_802595E0((u8 *) &D_8036BB24[n * 4], 4, 0x1C, func_801F7FF4);
+            func_802595E0((u8 *) &D_8036BB24[n * 4], 4, 0x1C, (s32 (*)(void *, void *)) func_801F7FF4);
             for (i = 0; i < 4; i++) {
                 item = &D_8036BB24[n * 4 + i];
                 item->unk4 = i * 17;
@@ -168,7 +153,7 @@ void func_801F7850(void) {
             n++;
         }
     }
-    func_802595E0((u8 *) D_8036BB24, n, 0x70, func_801F7FF4);
+    func_802595E0((u8 *) D_8036BB24, n, 0x70, (s32 (*)(void *, void *)) func_801F7FF4);
     for (lvl = 0; lvl < n * 4; lvl++) {
         item = &D_8036BB24[lvl];
         D_8021A7E8[lvl] = item->unk18;

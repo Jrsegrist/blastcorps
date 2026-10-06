@@ -1,5 +1,18 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_80358070
+#endif /* legacy declarations */
+#include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_8020C070 ((MenuEntry *) D_8020C070)
+#ifdef NON_MATCHING
+#define D_80358070 (*(s32 *) &D_80358070)
+#endif
+/* end of views */
 
 /*
  * Front-end picture screen: four 160x120 RGBA16 images inflated from ROM,
@@ -31,16 +44,13 @@ typedef struct {
     u8 pad14[8];
 } MenuEntry;
 
-extern MenuEntry D_8020C070[];
 extern s16 D_8020E3E0[];      /* sound per picture */
 extern char D_8020E3E8[][18]; /* picture titles */
 extern void *D_8020E430[];
+#ifndef NON_MATCHING
 extern s32 D_80358070; /* heap pointer */
+#endif
 extern s16 D_8036BB1C;
-extern void *D_80367738;
-extern u8 D_802FAD50[]; /* 32x32 RGBA32 frame texture */
-extern u8 D_0068B550[];
-extern u8 D_006A32B0[];
 
 extern u8 *D_8021AB90[4]; /* the four inflated pictures */
 extern u8 D_8021ABA0;     /* current picture */
@@ -49,11 +59,6 @@ extern u8 D_8021ABA2;     /* prim alpha */
 extern s32 D_8021ABA4;    /* fade state */
 extern s32 D_8021ABA8;
 
-void func_8028B4C4(void *, void *, s32 *, s32, s32, s32);
-s32 func_801E96F8(void);
-void *func_80260650(void *, s16, void *);
-s32 func_8026A828(s32, s32);
-void func_8026AF6C(s32);
 
 /* Inflate the pictures and select picture `arg0`. */
 void func_80201240(s32 arg0) {
@@ -61,7 +66,7 @@ void func_80201240(s32 arg0) {
     s32 i;
 
     size = D_006A32B0 - D_0068B550;
-    func_8028B4C4(D_0068B550, (void *) D_80358070, &size, 13, 0, 1);
+    func_8028B4C4((u32) D_0068B550, (u32) ((void *) D_80358070), (u32 *) &size, 13, 0, 1);
     for (i = 0; i < 4; i++) {
         D_8021AB90[i] = (u8 *) (i * 160 * 120 * 2 + D_80358070);
     }

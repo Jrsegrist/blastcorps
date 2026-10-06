@@ -1,5 +1,11 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#ifdef NON_MATCHING
+#define D_80358070 (*(u32 *) &D_80358070)
+#endif
+/* end of views */
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -9,40 +15,7 @@
  * a more specific comment follows this convention; a few have their own
  * more specific non-ABI explanation where one was already worked out. */
 #ifdef NON_MATCHING
-/* Shared by the vehicle-14 setup / update functions below (C rewrites; same
- * code as vehicle 13's in 86F60.c with this vehicle's data and constants). */
-typedef struct Unk8029DEA0Entry Unk8029DEA0Entry; /* channel table entry (56040.c) */
 
-/* Results of func_802AA460 that the triangle scans hand on in FP registers
- * (62740.c). */
-typedef struct {
-    f32 pz;    /* f12 */
-    f32 cross; /* f14 */
-    f32 cz;    /* f20 */
-    f32 side;  /* f22 */
-    f32 sideZ; /* f24 (in/out: unchanged if never computed) */
-    f32 dz;    /* f26 */
-} TriSideOut;
-
-/* func_802A9A60's pointer results (62740.c). */
-typedef struct {
-    s32 *s1;
-    s32 *s3;
-} Out802A9A60;
-
-/* func_802A860C's extra results (62740.c). */
-typedef struct {
-    s32 t1; /* new z */
-    s32 s3; /* x as read */
-    s32 fp; /* the cosine */
-} Out802A860C;
-
-/* func_802A8768's register results besides the FP state (62740.c). */
-typedef struct {
-    s32 s3;  /* in/out: the slot functions' result */
-    s16 *s4; /* out */
-    s32 fp;  /* out: the second tilt */
-} Regs802A8768;
 
 extern u8 D_803F9250[];  /* this vehicle's state block (the asm's $gp) */
 extern u8 D_803F8F50[];  /* its channel table / save area */
@@ -50,38 +23,17 @@ extern u32 D_803F92F8[]; /* x, y, z */
 extern u8 *D_803F9304;   /* model header */
 extern u64 *D_803F9308;  /* save copy pair (func_802A7764) */
 extern u64 *D_803F930C;
-extern u8 D_8035805C;    /* which save copy is current */
 
-void func_802CD068(void);
 void func_802CD800(void);
-void func_8029E558(u8 *base, u8 *other, Unk8029DEA0Entry *ch);                                 /* 56040 */
-void func_802A133C(s32 a0Val, s32 id, s32 v0Val, s32 v1Val, u8 *obj);                          /* 5CB60 */
-void func_802A8768(u8 *veh, s32 id, s32 *px, s32 *py, s32 *pz, s32 x, s32 z, s32 divB, s32 divA, s16 *angle,
-                   u8 *flags, s16 *tbl, s32 *a, s32 *b, s32 *c, s32 *ys, Regs802A8768 *r, TriSideOut *f); /* 62740 */
 
 #define VEH14_S16(off) (*(s16 *) (D_803F9250 + (off)))
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u32 D_80358070; /* bump allocator for the save copies */
 extern u8 D_803F9312;
 extern u8 D_803F9313;
 extern u8 D_803F9314;
-void func_802A1388(s32 a0Val, s32 a1Val, s32 v0Val, s32 v1Val, u8 *hdr);                            /* 5CB60 */
-void func_802A754C(u8 *veh);                                                                     /* 62740 */
-s32 *func_802A992C(s16 *tbl, s32 y, s32 x, s32 z, s32 *dst, s32 *mid, s16 *angle, s32 key, s32 fpIn, u8 *veh,
-                   TriSideOut *f);                                                               /* 62740 */
-s32 func_8029F85C(u32 *bufA, u32 *bufB, Unk8029DEA0Entry *ch, u8 *hdr);                           /* 56040 */
-void func_802A0290(Unk8029DEA0Entry *base, s32 idx, s32 val);                                    /* 56040 */
-void func_802A0320(s32 idx, Unk8029DEA0Entry *base);                                             /* 56040 */
-void func_802A039C(Unk8029DEA0Entry *base, s32 idx, s32 val);                                    /* 56040 */
-void func_802A03D4(Unk8029DEA0Entry *base, s32 idx, s32 val);                                    /* 56040 */
-void func_802A040C(Unk8029DEA0Entry *base, s32 idx, s32 val);                                    /* 56040 */
-void func_802A0480(f32 f, Unk8029DEA0Entry *base, s32 idx, s32 val);                             /* 56040 */
-void func_8029C354(s32 tag, u8 *p, u8 *end, u32 scale);                                          /* 56040 */
-void func_80258230(u8 id, s32 arg1, s16 arg2, s16 arg3);                                         /* 13A70 */
-void func_802AA838(u8 *src, u8 *dst, s32 off);                                                   /* 62740 */
 
 /* Set up vehicle 14 (the level-object dispatcher func_802A350C's case 0xE):
  * as func_802CB720 (86F60) with this vehicle's data (header D_803F9304, save
@@ -176,9 +128,6 @@ void func_802CC920(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 D_803F9250[]; /* this vehicle's state block */
-extern s16 D_8036444C;
-extern s16 D_80364450;
-void func_802C4310(s32 arg0, s32 arg1);
 
 /* Enter vehicle type 14: clears the byte at +0x99, D_8036444C/50 = 3000,
  * 1000, then func_802C4310(arg0, 0x7B) (arg0 passes straight through; hd.c
@@ -218,8 +167,6 @@ s32 func_802CCCD8(void) {
 extern u8 D_803F9250[];
 extern u64 *D_803F9308; /* save copy pair (func_802A7764) */
 extern u64 *D_803F930C;
-void func_802A7764(u64 *a, u64 *b, s32 size);
-void func_802C444C(void);
 
 /* Leave vehicle type 14 (called from hd.c): clears the speed (s16 at +0x76),
  * func_802A7764(D_803F9308, D_803F930C, 0x100), then stops the looping
@@ -236,8 +183,6 @@ void func_802CCD34(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-s32 func_802A9A60(s16 *tbl, s32 y, s32 x, s32 z, s32 *dst, s32 *mid, s16 *angle, s32 key, s32 fp, u8 *veh,
-                  TriSideOut *f, Out802A9A60 *out); /* 62740 */
 
 /* Re-seat vehicle 14 on the ground (hd.c calls it): as func_802CBC08
  * (86F60): wheel heights (func_802A9A60, key 0xE), model placement
@@ -266,20 +211,6 @@ void func_802CCD80(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef ZONE_SCAN_REGS_DEFINED
-#define ZONE_SCAN_REGS_DEFINED
-/* func_802ABD54's scan registers (62740.c), in and out. */
-typedef struct {
-    s32 t6; /* zone x */
-    s32 t7; /* zone y */
-    s32 s0; /* zone z */
-    s32 s1; /* distance / level term */
-    s32 s2; /* zone radius */
-    s32 s3; /* scan counter / zone byte */
-    s32 s4; /* scan pointer / zone byte */
-} ZoneScanRegs;
-s32 func_802ABD54(s32 id, s32 x, s32 y, s32 z, ZoneScanRegs *r);
-#endif
 extern u32 D_803F92F8[]; /* x, y, z */
 /* Zone level lookup (func_802ABD54) for vehicle id 0xE at its position
  * D_803F92F8..+8; returns func_802ABD54's v1 (the zone list end).
@@ -296,22 +227,6 @@ s32 func_802CCE90(ZoneScanRegs *r) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef INTERP_REGS_DEFINED
-#define INTERP_REGS_DEFINED
-/* func_802AAD0C's register results (62740.c). */
-typedef struct {
-    s32 t3;  /* interpolated u */
-    s32 t4;  /* interpolated w */
-    f32 f12;
-    s32 f14; /* raw bits */
-    f32 f20;
-    f32 f22;
-    f32 f24; /* also an input (kept on some paths) */
-    f32 f26;
-} InterpRegs;
-#endif
-void func_802AAD0C(s32 id, s32 x, s32 z, InterpRegs *r); /* 62740 */
-s32 func_802A94A4(s32 index, s16 *tbl, s16 *angle, s32 *dz); /* 62740 */
 
 /* As func_802CBD5C (86F60) for vehicle 14 (D_803F9250, position
  * D_803F92F8..9300): value pairs on triangle `id` at the position -> +0x6A/
@@ -343,9 +258,6 @@ s32 func_802CCED4(s32 id, InterpRegs *r) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803ED40B;
-s32 func_802AB9A4(s16 *tbl, s32 x1, u16 *angle, s32 id, s32 z1, s32 x2, s32 z2, s32 *s3Out, InterpRegs *r); /* 62740 */
-void func_802AAE54(s32 id, s32 x, s32 z, InterpRegs *r);                                                 /* 62740 */
 void func_802CD9AC(void);
 
 /* Steer vehicle 14 along triangle `id` (asm caller func_802AB714): as
@@ -390,45 +302,11 @@ s32 func_802CCF60(s32 id, TriSideOut *f) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_80367BFF;
 extern s16 D_803F9310; /* steering target */
-extern u8 D_803A7424;
-extern u8 D_803A7425;
-extern u8 *D_803F77D0;
 extern f32 D_8030D9C0;
 extern u8 D_80306440[];
-extern s32 D_803643E0;
-extern s32 D_803643E4;
-extern s32 D_803643E8;
-extern s16 D_8036443C;
-extern u16 D_8036443E;
-extern u16 D_80364440;
-void func_802A75DC(u8 *veh, u8 *src, s32 *w0, s32 *w1, s32 *w2);                                /* 62740 */
-void func_802C4724(s32 sfx);                                                                     /* 7F8B0 */
 void func_802CD578(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4);
-void func_802CB690(u8 *state);                                                                   /* 86ED0 */
 s32 func_802CD938(void);
-void func_802A7E70(s32 rate, u16 *angle);                                                        /* 62740 */
-void func_802A785C(u8 *veh, s16 *speed, s32 mode, u8 *flags, s16 *bands, s32 delta);             /* 62740 */
-void func_802A7FD8(u8 *veh, u16 *heading, s32 rate, s16 *speedp, u16 *target, u16 *out, s8 *flag,
-                   s32 sound);                                                                   /* 62740 */
-f32 func_802A83B8(s16 *div, u8 *f, s32 *p, f32 *out);                                            /* 62740 */
-void func_802A843C(u8 *veh, s16 *speed, s32 kind, s8 *f, s32 *p, s32 clamp, f32 div);            /* 62740 */
-void func_802A7070(u8 *veh, s16 *angle);                                                         /* 62740 */
-s32 func_802A860C(f32 f, s32 angle, s16 *len, s32 *px, s32 *pz, Out802A860C *out);               /* 62740 */
-void func_8029A800(s32 z, s32 a1, s32 b2, s32 b3, s32 x, s32 y, s32 b0, s32 h1, s32 h2, s32 b4, s32 b8,
-                   u8 *veh);                                                                     /* 56040 */
-void func_8029C52C(s32 tag, u8 *veh);                                                                     /* 56040 */
-void func_8029AA10(s32 kind);                                                                    /* 56040 */
-void func_802BE77C(s32 id, u8 *vehicle);                                                         /* 77E20 */
-void func_8029A914(u8 *veh);                                                                        /* 56040 */
-s32 func_802A6F6C(void);                                                                         /* 62740 */
-u64 *func_802A768C(u8 *veh, u8 *dst, s32 *w0, s32 *w1, s32 *w2, u64 *src, u64 *dst2, s32 size,
-                   u64 **dst2End);                                                               /* 62740 */
-void func_802A70D8(u8 *veh);                                                                     /* 62740 */
-s32 func_802A71DC(u8 *veh, s32 cur, s32 target, s32 *curOut, f32 scale);                         /* 62740 */
-s32 func_802A746C(u8 *veh, s32 delta, s32 v1, s32 *targetOut);                                   /* 62740 */
-void func_802A6FE4(u8 *veh, s32 limit);                                                          /* 62740 */
 
 /* Per-frame update of vehicle 14 (hd.c, and once from func_802CC920): as
  * func_802CBEF0 (86F60) with this vehicle's data and constants: zone lookup
@@ -579,21 +457,7 @@ publish:
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef IO802A6274_DEFINED
-#define IO802A6274_DEFINED
-/* The three registers func_802A6274 (60F60.c) takes and may hand back changed. */
-typedef struct {
-    /* 0x0 */ s32 a3;
-    /* 0x4 */ s32 t6;
-    /* 0x8 */ s32 s1;
-} Io802A6274;
-s32 func_802A6274(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32 z, s32 w24, s32 w28,
-                  s32 w18, s32 w1C, s32 w2C, s32 b35);
-#endif
 extern u8 D_803F9312;   /* countdown */
-extern u8 D_802C2954[]; /* definition handed to func_802A6274 (7D9D0 text blob) */
-s32 func_802A5ED0(void);
-void func_802C4584(s32 level);
 void func_802CD660(void);
 
 /* Tyre trail (func_802CD660), then the countdown D_803F9312: when nonzero
@@ -637,8 +501,6 @@ void func_802CD578(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u32 D_803F92F8[]; /* [0], [2]: trail x, z */
-void func_8027BE7C(u8 period, s32 y, s16 x1, s16 z1, s16 x2, s16 z2, s32 x, s32 z, s16 yaw, u8 halfw, u8 a,
-                   u8 b, u8 d);
 
 /* Tyre trail (shape of func_802B3C68 in 6E200; $gp = D_803F9250): if the
  * byte at +0x99 is set, +0x98 isn't 1, +0x50 < 3 and +0x9B is clear,
@@ -660,24 +522,7 @@ void func_802CD660(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-#ifndef MTX_CHAIN_REGS_DEFINED
-#define MTX_CHAIN_REGS_DEFINED
-/* Registers func_802AA890 reads and writes besides its arguments (62740.c). */
-typedef struct {
-    s32 v1; /* out: y' >> 11 */
-    s32 a0; /* out: z' >> 11 */
-    s32 a3; /* in/out: the last matrix used */
-    s32 s1; /* in/out: y' */
-    s32 s2; /* in/out: z' */
-    s32 s0; /* in: only read when count == 0 */
-} MtxChainRegs;
-#endif
-extern u8 D_8035805C;     /* which of the two save copies is current */
 extern u8 *D_803F9304;    /* model header: word offsets to the part lists */
-extern s16 D_803ED390[3]; /* rotation angles x, y, z for func_802AA764 */
-void func_802AA764(s32 x, s32 y, s32 z, s32 scale, s32 *m);                                     /* 62740 */
-void func_8029C454(s32 x, s32 y, s32 z, s32 tag, u8 *p, u8 *end, u8 *base, MtxChainRegs *regs); /* 56040 */
-void func_802ABBEC(s32 id, s16 *p, s16 *end, u8 *base, MtxChainRegs *regs);                     /* 62740 */
 
 /* Place vehicle 14's model: as func_802CC70C (86F60) with this vehicle's
  * header D_803F9304, save copies D_803F9308/930C, heading at +0x4C of
@@ -763,10 +608,6 @@ s32 func_802CD938(void) {
  * shape as func_802BAD24 (75490.c). Asm callers rely on preserved registers:
  * func_802CCF60 on t3, t4, f12, f14; func_802CD068 on a0-a3 (mixed N64 build
  * would need a thunk). */
-extern f32 D_803EBBF0;
-extern f32 D_803EBBF4;
-extern u8 D_803ED3F6;
-extern u8 D_803ED3F7;
 
 void func_802CD9AC(void) {
     D_803EBBF4 = D_803EBBF0 * 4.0f;

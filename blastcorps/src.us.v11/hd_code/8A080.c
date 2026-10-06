@@ -1,5 +1,9 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_803FB8B8 ((RadarMarker *) D_803FB8B8)
+/* end of views */
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
  * doubleword form, not the normal 32-bit `sw`/`lw` pair - the same signature
@@ -24,7 +28,6 @@ typedef struct {
 #define RADAR_MARKER_COUNT 25
 #define RADAR_MARKER_FREE (-1)
 
-extern RadarMarker D_803FB8B8[RADAR_MARKER_COUNT];
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -112,8 +115,6 @@ s32 func_802CE958(s32 id) {
  * probe evidence (no calls, no locals, nothing that could need a frame;
  * IDO never generates this shape on its own). Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803F9330[];
-extern u8 *D_803FB8B0;
 
 /* Reset a buffer cursor (read by 4B5E0) to the start of D_803F9330. */
 void func_802CE9A4(void) {
@@ -132,7 +133,6 @@ void func_802CE9A4(void) {
  * there they hold a stale call result, &D_8039C718[i], the old D_803FB8B0
  * and the caller's caller's s1. */
 #ifdef NON_MATCHING
-u8 *func_802A41B0(u8 *rec, u8 *v, s32 id, s32 h52, s32 b57, s32 b56, s32 *s1io, s32 b4F, s32 b55);
 
 /* The NM build used to keep this asm, which `jal`s the C func_802A41B0 with
  * its asm register convention: the C read garbage arguments and faulted on

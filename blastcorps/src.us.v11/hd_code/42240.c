@@ -1,5 +1,17 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_80358070
+#endif /* legacy declarations */
+#include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#ifdef NON_MATCHING
+#define D_80358070 (*(u32 *) &D_80358070)
+#endif
+/* end of views */
 
 /* HUD panels drawn over the game: a 40x40 textured dial with a needle
  * (rotated by D_803EE3B1, 0..100 -> 270..450 degrees), and two 32x32 icons
@@ -9,10 +21,9 @@
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
-extern u8 D_80364A68;  /* dial loaded */
-extern u8 D_80364A6A;  /* icon 1 loaded */
-extern u8 D_80364A6C;  /* icon 2 loaded */
+#ifndef NON_MATCHING
 extern u32 D_80358070; /* heap pointer */
+#endif
 
 /* dial */
 extern u32 D_8036EC00; /* texture */
@@ -29,16 +40,6 @@ extern u32 D_8036EC20;
 extern Vtx *D_8036EC24;
 extern s16 D_8036EC28;
 
-extern s16 D_80367BD6; /* HUD alpha cap */
-extern u8 D_803EE3B1;  /* dial value, 0..100 */
-extern s16 D_803F8B72; /* icon 1 number */
-extern s16 D_803EDC00; /* icon 2 number */
-extern Mtx D_02000000[];
-
-void func_802A0CC8(s32 id, s32 arg1);
-void func_8026A378(s16 n, char *buf);
-void func_80259DC8(Gfx **gfxp, char *str, s32 a2, s32 a3, s32 a4, s32 x, s32 y, s32 w, s32 h, s32 a9, s32 r, s32 g,
-                   s32 b, s32 a, s32 r2, s32 g2, s32 b2, s32 a2_);
 
 /* Load the dial texture (0x760) and build its vertices */
 void func_80286A00(void) {
@@ -200,8 +201,8 @@ void func_80287530(Gfx **gfxp, Gfx **gfxp2, u8 frame, u8 arg3) {
     gSP1Triangle(gdl++, 0, 1, 2, 0);
     gSP1Triangle(gdl++, 0, 2, 3, 0);
     gDPPipeSync(gdl++);
-    func_8026A378(D_803F8B72, buf);
-    func_80259DC8(gfxp2, buf, 0, 1, 0, 0x40, 0x91, 15, 15, 1, 0xFF, 0xFF, 0, MIN(D_8036EC1C, D_80367BD6), 0xFF, 0, 0,
+    func_8026A378(D_803F8B72, (u8 *) buf);
+    func_80259DC8(gfxp2, (u8 *) buf, 0, 1, 0, 0x40, 0x91, 15, 15, 1, 0xFF, 0xFF, 0, MIN(D_8036EC1C, D_80367BD6), 0xFF, 0, 0,
                   MIN(D_8036EC1C, D_80367BD6));
     gDPPipeSync(gdl++);
     *gfxp = gdl;
@@ -273,8 +274,8 @@ void func_80287C68(Gfx **gfxp, Gfx **gfxp2, u8 frame, u8 arg3) {
     gSP1Triangle(gdl++, 0, 1, 2, 0);
     gSP1Triangle(gdl++, 0, 2, 3, 0);
     gDPPipeSync(gdl++);
-    func_8026A378(D_803EDC00, buf);
-    func_80259DC8(gfxp2, buf, 0, 1, 0, 0x44, 0x97, 15, 15, 1, 0xFF, 0xFF, 0, MIN(D_8036EC28, D_80367BD6), 0xFF, 0, 0,
+    func_8026A378(D_803EDC00, (u8 *) buf);
+    func_80259DC8(gfxp2, (u8 *) buf, 0, 1, 0, 0x44, 0x97, 15, 15, 1, 0xFF, 0xFF, 0, MIN(D_8036EC28, D_80367BD6), 0xFF, 0, 0,
                   MIN(D_8036EC28, D_80367BD6));
     gDPPipeSync(gdl++);
     *gfxp = gdl;

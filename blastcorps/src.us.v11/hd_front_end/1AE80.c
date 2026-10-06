@@ -1,11 +1,15 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_802E8F94 ((LevelInfo *) D_802E8F94)
+#define D_80364AF0 ((Player *) D_80364AF0)
+/* end of views */
 
 typedef struct {
     u8 unk0;
     u8 pad1[0x43];
 } LevelInfo; /* 0x44 bytes */
-extern LevelInfo D_802E8F94[];
 
 typedef struct {
     u8 pad0[0x18];
@@ -13,17 +17,7 @@ typedef struct {
     u8 unk92[0x5E]; /* per level */
     u8 padF0[0x10];
 } Player; /* 0x100 bytes */
-extern Player D_80364AF0[];
-extern u8 D_80364AE8;
-extern OSMesgQueue D_80219EF8; /* requests to the pak/EEPROM thread */
-extern OSMesgQueue D_80219F50; /* pakToGameMessageQ */
-extern u8 D_802E8C44[];
-extern s16 D_80364EF0[][16];
-extern u16 D_80364F70[];
-extern u64 D_8039C4B8[];
 
-void func_8029A7E4(const char *, ...);
-void func_801F8354(u8);
 
 /* Restore the current player's records from EEPROM: one pak-thread request
  * (0xA) per even level, then for each completed level other than 0x26, 0x2F

@@ -1,18 +1,10 @@
 #include "common.h"
 #include <ultra64.h>
+#include "game/game.h"
 
 extern f32 sqrtf(f32);
-extern s32 func_802AD7D4(s32);
-extern s32 D_803F7660;
-extern s32 D_803F7670; /* player x */
-extern s32 D_803F7678; /* player z */
-extern s16 D_80364452;
-extern u32 D_803156C4;
-extern s16 D_80367BD6;
-extern u16 D_8035807C;
 extern u16 D_802FCEB0[]; /* 32x32 RGBA16 arrow texture */
 extern Vtx D_802FD9B8[];
-extern Mtx D_02000000[];
 
 /*
  * Draws the on-screen arrow pointing from the player towards (x, z), tinted
@@ -22,7 +14,11 @@ extern Mtx D_02000000[];
 void func_80282C80(Gfx **gfxp, Mtx *mtx, s32 x, s32 y, s32 z, s32 x2, s32 y2, s32 z2) {
     Gfx *gfx;
     f32 dist;
+#ifdef NON_MATCHING
+    f32 angle = 0; /* every quadrant test sets it; never read unset */
+#else
     f32 angle;
+#endif
     u8 r;
     u8 g;
     s16 t;
@@ -119,13 +115,7 @@ void func_80282C80(Gfx **gfxp, Mtx *mtx, s32 x, s32 y, s32 z, s32 x2, s32 y2, s3
     *gfxp = gfx;
 }
 
-extern s32 func_8026A610(s32, s32, s32, s32);
-extern void func_802C1B9C(void);
 f32 func_80284ADC(s16 x1, s16 z1, s16 x2, s16 z2);
-extern u8 D_803643DB;
-extern f32 D_80364414; /* camera heading, degrees */
-extern s16 D_803F767C;
-extern s16 D_803F7680;
 extern u8 D_802FC5B0[];
 extern u8 D_802FC6B0[];
 extern u8 D_802FD6B0[];
@@ -308,4 +298,7 @@ f32 func_80284ADC(s16 x1, s16 z1, s16 x2, s16 z2) {
     if (x2 < x1 && z2 >= z1) {
         return (func_802AD7D4((z2 - z1) * 65535.9 / dist) + 0xC000) / 65536.0 * 360.0;
     }
+#ifdef NON_MATCHING
+    return 0.0f; /* not reached: the four tests cover every case */
+#endif
 }

@@ -1,5 +1,15 @@
 #include "common.h"
 #include <ultra64.h>
+#ifndef NON_MATCHING /* legacy declarations */
+/* Matching build: IDO compiled the matched code here against older
+ * declarations of these, which the file keeps; the NON_MATCHING build
+ * uses game/game.h's. */
+#define LEGACY_D_80367738
+#endif /* legacy declarations */
+#include "game/game.h"
+/* Views: this file reads these shared variables (game/variables.h) as other types. */
+#define D_80364AF0 ((Player *) D_80364AF0)
+/* end of views */
 
 typedef struct {
     u8 pad0[0x18];
@@ -9,14 +19,9 @@ typedef struct {
     u8 padEF[0x100 - 0xEF];
 } Player;
 
-extern Player D_80364AF0[];
-extern u8 D_80364AE8;
-extern u64 D_80364A98;
-extern s32 D_802E8BDC;
-extern s32 D_802E8BEC;
-extern u8 D_802E8BF0;
-extern u8 D_803643D4;
+#ifndef NON_MATCHING
 extern s32 D_80367738;
+#endif
 /* .bss, defined here (paired u64 stores share one lui) */
 u64 D_803A6AF0; /* loop mask used when the sequence finishes */
 u64 D_803A6AF8; /* loop mask used when it is aborted */
@@ -26,16 +31,6 @@ u8 D_803A6B02;  /* level the sequence starts in */
 u8 D_803A6B03;  /* current sequence number */
 u8 D_803A6B04;
 
-void func_8029A7E4(const char *, ...);
-void func_8025B9D0(s32, s32 *);
-void func_8026AF6C(u16);
-void func_80295E50(void);
-void func_8029A500(void);
-void func_8025BB50(void);
-void func_802609D0(void);
-void func_80260650(s32, s32, s32);
-u64 func_801ECA50(u8);
-s32 func_8026F92C(u64);
 
 #define players D_80364AF0
 #define playerNumber D_80364AE8

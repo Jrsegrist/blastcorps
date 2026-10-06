@@ -2,19 +2,53 @@
  *
  * The game reads osGetTime() every frame as a random source (00000.c
  * D_803649D8, camera shake, animation choice), so matching an emulator
- * trace needs the emulator's values.  --gettime FILE supplies them: one
- * value per line (decimal or 0x hex), consumed by successive osGetTime
- * calls; '#' starts a comment; a line "@N V" sets the value for call N
- * (0-based) and later calls continue from there.  Calls past the end of the
- * file fall back to the virtual clock.  Optionally every call charges
- * count_per_gettime cycles of CPU time (default 0). */
+ * trace needs the emulator's values:
+ *
+ *  --gettime FILE     one value per line (decimal or 0x hex), consumed by
+ *                     successive osGetTime calls; "@N V" sets the value of
+ *                     call N (0-based) and later lines continue from there.
+ *                     Calls the file doesn't cover fall back to the clock.
+ *  plat_gettime_hook  the same from C, for anything smarter.
+ *
+ * Frame pacing: running game code takes no virtual time, so the time a frame
+ * costs on the N64 (CPU + RCP) is charged when its gfx task completes:
+ *  --gfx-cycles N     every frame task completes N counts after it starts
+ *                     (default 781250 = one retrace);
+ *  --frame-done FILE  per frame: "@N VI[.F]" (or one "VI[.F]" per line from
+ *                     frame 1): frame N's task completes at retrace VI plus
+ *                     fraction F of a period (default .5), e.g. taken from an
+ *                     emulator trace; frames the file doesn't cover use
+ *                     --gfx-cycles.
+ * --gettime-cost N charges N counts per osGetTime/osGetCount call. */
 #include "plat.h"
 
-static u64 *g_inj;
-static u32 g_ninj;
+int (*plat_gettime_hook)(u32 call, u64 now, u64 *t);
+
+typedef struct {
+    u64 *v;
+    u32 n, cap;
+} Table;
+
+static Table g_gettime, g_framedone;
 static u32 g_calls;
 
-static int parse_u64(const char **pp, u64 *out) {
+static void table_set(Table *t, u32 idx, u64 v) {
+    if (idx >= t->cap) {
+        u32 ncap = t->cap ? t->cap * 2 : 1024;
+        while (ncap <= idx) ncap *= 2;
+        t->v = host_realloc(t->v, ncap * sizeof(u64));
+        while (t->cap < ncap) t->v[t->cap++] = ~0ull;
+    }
+    t->v[idx] = v;
+    if (idx + 1 > t->n) t->n = idx + 1;
+}
+
+static u64 table_get(const Table *t, u32 idx) {
+    return idx < t->n ? t->v[idx] : ~0ull;
+}
+
+/* number: decimal or 0x hex; with `vis`, decimal VI[.F] -> count units */
+static int parse_val(const char **pp, u64 *out, int vis) {
     const char *p = *pp;
     u64 v = 0;
     int base = 10, any = 0;
@@ -32,18 +66,27 @@ static int parse_u64(const char **pp, u64 *out) {
         v = v * base + d;
         any = 1;
     }
+    if (vis) {
+        u64 frac_num = PLAT_VI_PERIOD / 2, scale = 1;
+        if (*p == '.') {
+            u64 f = 0;
+            p++;
+            while (*p >= '0' && *p <= '9' && scale < 1000000) f = f * 10 + (*p++ - '0'), scale *= 10;
+            frac_num = f * PLAT_VI_PERIOD / scale;
+        }
+        v = v * PLAT_VI_PERIOD + frac_num;
+    }
     *pp = p;
     *out = v;
     return any;
 }
 
-void plat_clock_init(const char *path) {
+static void load_table(Table *t, const char *path, const char *what, u32 first, int vis) {
     unsigned size;
     char *text, *p, *end;
-    u32 cap = 0, idx = 0;
-    if (path == NULL) return;
+    u32 idx = first, lines = 0;
     text = host_read_file(path, &size);
-    if (text == NULL) host_fatal("can't read --gettime file %s", path);
+    if (text == NULL) host_fatal("can't read %s file %s", what, path);
     p = text;
     end = text + size;
     while (p < end) {
@@ -56,29 +99,34 @@ void plat_clock_init(const char *path) {
         while (*q == ' ' || *q == '\t') q++;
         if (*q == '@') {
             q++;
-            if (parse_u64(&q, &n)) idx = (u32) n;
+            if (parse_val(&q, &n, 0)) idx = (u32) n;
         }
-        if (*q != '#' && parse_u64(&q, &v)) {
-            if (idx >= cap) {
-                u32 ncap = cap ? cap * 2 : 1024;
-                while (ncap <= idx) ncap *= 2;
-                g_inj = host_realloc(g_inj, ncap * sizeof(u64));
-                while (cap < ncap) g_inj[cap++] = ~0ull;
-            }
-            g_inj[idx++] = v;
-            if (idx > g_ninj) g_ninj = idx;
+        if (*q != '#' && parse_val(&q, &v, vis)) {
+            table_set(t, idx++, v);
+            lines++;
         }
         p = eol + 1;
     }
-    if (!plat_cfg.quiet) host_log("clock: %u injected osGetTime values from %s\n", (unsigned) g_ninj, path);
+    if (!plat_cfg.quiet) host_log("clock: %u %s values from %s\n", (unsigned) lines, what, path);
+}
+
+void plat_clock_init(const char *gettime_path, const char *frame_done_path) {
+    if (gettime_path) load_table(&g_gettime, gettime_path, "--gettime", 0, 0);
+    if (frame_done_path) load_table(&g_framedone, frame_done_path, "--frame-done", 1, 1);
+}
+
+u64 plat_frame_done_time(u32 frame) {
+    return table_get(&g_framedone, frame);
 }
 
 OSTime osGetTime(void) {
     u32 call = g_calls++;
+    u64 v;
     plat_stats.gettime_calls++;
     plat_now += plat_cfg.count_per_gettime;
-    if (call < g_ninj && g_inj[call] != ~0ull) return g_inj[call];
-    return plat_now;
+    if (plat_gettime_hook && plat_gettime_hook(call, plat_now, &v)) return v;
+    v = table_get(&g_gettime, call);
+    return v != ~0ull ? v : plat_now;
 }
 
 u32 osGetCount(void) {

@@ -114,6 +114,7 @@ static void describe(void) {
 
 void plat_start(const HostOpts *o) {
     plat_cfg = *o;
+    plat_now = o->boot_count;
     plat_rom = o->rom;
     plat_rom_size = o->rom_size;
     host_install_crash_handler(describe);
@@ -134,7 +135,7 @@ void plat_start(const HostOpts *o) {
     plat_fe_snapshot();
     plat_si_init();
     plat_input_init(o->input_path);
-    plat_clock_init(o->gettime_path);
+    plat_clock_init(o->gettime_path, o->frame_done_path);
 
     func_802447C0();   /* osInitialize, debug command line, idle thread */
     plat_run();

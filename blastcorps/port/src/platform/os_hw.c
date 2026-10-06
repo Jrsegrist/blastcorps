@@ -244,8 +244,10 @@ void osSpTaskStartGo(OSTask *t) {
         return;
     }
     if (*(u32 *) ((u8 *) t - 0x10 + 0x08) & 0x40) {
+        u64 when;
         plat_on_frame();
-        complete(plat_cfg.gfx_cycles, 1);
+        when = plat_frame_done_time(plat_stats.frames);
+        complete(when == ~0ull ? plat_cfg.gfx_cycles : (when > plat_now ? (u32) (when - plat_now) : 0), 1);
     } else {
         complete(plat_cfg.small_gfx_cycles, 0);
     }

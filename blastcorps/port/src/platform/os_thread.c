@@ -470,7 +470,10 @@ void plat_timer_fire(OSTimer *t) {
 
 void plat_run(void) {
     g_main_fiber = host_fiber_init();
-    plat_event_add(plat_now + PLAT_VI_PERIOD, PEV_VI, NULL);
+    /* retraces at fixed multiples of the period from power-on (the clock may
+     * start late: --boot-count) */
+    plat_vi_count = (u32) (plat_now / PLAT_VI_PERIOD);
+    plat_event_add((plat_now / PLAT_VI_PERIOD + 1) * PLAT_VI_PERIOD, PEV_VI, NULL);
     for (;;) {
         OSThread *next = pop(&g_runq);
         if (next != NULL) {

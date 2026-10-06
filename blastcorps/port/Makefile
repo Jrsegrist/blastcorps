@@ -98,7 +98,7 @@ ucode:
 # ---------------------------------------------------------------------------
 # headless (stage 3): every game file of hd_code and the front end, the
 # ultralib gu/libm/libc/libaudio objects, and the platform layer
-# (src/platform/) in build/headless/bc_headless.exe.  See src/platform/README.md.
+# (src/platform/) in build/headless/bc_headless.exe.  See README.md ("Headless").
 #
 #   make -C port headless
 #   build/headless/bc_headless.exe ROM --frames N [--dump F,..] [--trace FILE] ...

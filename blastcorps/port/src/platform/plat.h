@@ -70,7 +70,12 @@ void plat_on_frame(void);
 void plat_input_init(const char *path);
 void plat_input_read(u32 index, u16 *button, s8 *x, s8 *y);
 /* clock injection (os_time.c) */
-void plat_clock_init(const char *gettime_path);
+void plat_clock_init(const char *gettime_path, const char *frame_done_path);
+/* injected completion time of frame N's gfx task, or ~0 (use gfx_cycles) */
+u64 plat_frame_done_time(u32 frame);
+/* optional C hook for osGetTime (part 2's trace matching): returns 1 and
+ * sets *t to override the value of call number `call` */
+extern int (*plat_gettime_hook)(u32 call, u64 now, u64 *t);
 /* front-end overlay: snapshot after boot load, restore on reload */
 void plat_fe_snapshot(void);
 /* SI devices */

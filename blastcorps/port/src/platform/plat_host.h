@@ -49,12 +49,14 @@ typedef struct {
     unsigned aud_cycles;       /* RSP time of an audio task */
     unsigned small_gfx_cycles; /* RSP time of other gfx tasks (shadows, cull test) */
     unsigned count_per_gettime;/* CPU counts charged per osGetTime/osGetCount */
+    unsigned boot_count;       /* count (time since power-on) when hd_code starts */
     const char *dump_dir;
     unsigned *dump_frames;     /* frame numbers to dump RDRAM at (ascending) */
     unsigned n_dump_frames;
     unsigned dump_every;       /* also dump every N frames (0 = off) */
     const char *input_path;
     const char *gettime_path;
+    const char *frame_done_path;
     const char *eeprom_path;
     int eeprom_present;
     int cont_present;          /* controller 1 plugged in */

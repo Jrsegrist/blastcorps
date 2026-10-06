@@ -10,12 +10,15 @@
  *     --input FILE       controller 1 recording (see input.c)
  *     --no-controller    controller 1 unplugged
  *     --gettime FILE     injected osGetTime values (see os_time.c)
+ *     --frame-done FILE  injected frame completion retraces (see os_time.c)
  *     --eeprom FILE      EEPROM image (read at boot, written on save)
  *     --no-eeprom        no EEPROM chip
  *     --gfx-cycles N     RCP time of a frame's gfx task, in 46.875 MHz counts
  *                        (default 781250 = one retrace)
  *     --small-gfx-cycles N, --aud-cycles N   other gfx tasks / audio tasks (0)
  *     --gettime-cost N   CPU counts charged per osGetTime/osGetCount (0)
+ *     --boot-count N     virtual time (counts since power-on) when hd_code
+ *                        starts (0); retraces stay on multiples of 781250
  *     --cmdline STR      the debug command line at PI 0xFFB000 (default none)
  *     -v / -q            verbose / quiet */
 #include <stdio.h>
@@ -27,8 +30,9 @@
 static void usage(void) {
     fprintf(stderr, "usage: bc_headless.exe ROM [--frames N] [--vis N] [--dump F1,F2..] [--dump-every N]\n"
                     "       [--dump-dir DIR] [--trace FILE] [--input FILE] [--no-controller] [--gettime FILE]\n"
+                    "       [--frame-done FILE]\n"
                     "       [--eeprom FILE] [--no-eeprom] [--gfx-cycles N] [--small-gfx-cycles N]\n"
-                    "       [--aud-cycles N] [--gettime-cost N] [--cmdline STR] [-v] [-q]\n");
+                    "       [--aud-cycles N] [--gettime-cost N] [--boot-count N] [--cmdline STR] [-v] [-q]\n");
     exit(1);
 }
 
@@ -72,12 +76,14 @@ int main(int argc, char **argv) {
         else if (!strcmp(a, "--input")) o.input_path = ARG();
         else if (!strcmp(a, "--no-controller")) o.cont_present = 0;
         else if (!strcmp(a, "--gettime")) o.gettime_path = ARG();
+        else if (!strcmp(a, "--frame-done")) o.frame_done_path = ARG();
         else if (!strcmp(a, "--eeprom")) o.eeprom_path = ARG();
         else if (!strcmp(a, "--no-eeprom")) o.eeprom_present = 0;
         else if (!strcmp(a, "--gfx-cycles")) o.gfx_cycles = num(ARG());
         else if (!strcmp(a, "--small-gfx-cycles")) o.small_gfx_cycles = num(ARG());
         else if (!strcmp(a, "--aud-cycles")) o.aud_cycles = num(ARG());
         else if (!strcmp(a, "--gettime-cost")) o.count_per_gettime = num(ARG());
+        else if (!strcmp(a, "--boot-count")) o.boot_count = num(ARG());
         else if (!strcmp(a, "--cmdline")) o.cmdline = ARG();
         else if (!strcmp(a, "-v")) host_verbose = 1;
         else if (!strcmp(a, "-q")) o.quiet = 1;

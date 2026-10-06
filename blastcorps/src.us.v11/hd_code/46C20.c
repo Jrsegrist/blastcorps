@@ -24,6 +24,7 @@ void func_8028B3E0(void) {
         func_802DB730((void *) 0x801E7000, 0x37D00);
         func_8028B4C4(*D_802FDB30, 0x801E7000, &size, 0xD, 10, 1);
         func_802DB7B0((void *) (size + 0x801E7000), 0x37D00 - size);
+        PORT_FE_LOADED();
         D_80370C50 = 1;
         func_801F57B0();
         func_8029A7E4("got front end\n");

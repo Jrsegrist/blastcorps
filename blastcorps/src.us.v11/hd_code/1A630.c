@@ -607,7 +607,28 @@ u8 func_80260634(void *arg0) {
 extern void *D_802E8CEC;
 SndState *func_80260300(void *, SndSound *);
 
+/* The functions below post sound events built in separate locals (eventCode,
+ * eventParam, ...) that IDO lays out as one SndEvent: type, then state, data
+ * and ptr in the following stack slots. Other compilers place locals freely,
+ * so the NON_MATCHING build passes a real SndEvent. Fields the original takes
+ * from unused stack slots are 0 here. */
+#ifdef NON_MATCHING
+static ALEvent *sndEvt(SndEvent *e, u16 type, void *state, s32 data, void *ptr) {
+    e->type = type;
+    e->state = state;
+    e->u.data = data;
+    e->ptr = ptr;
+    return (ALEvent *) e;
+}
+#define SND_EVT_DECL SndEvent sndEvtTmp;
+#define SND_EVT(type_, state_, data_, ptr_) sndEvt(&sndEvtTmp, (type_), (void *) (state_), (s32) (data_), (void *) (ptr_))
+#else
+#define SND_EVT_DECL
+#define SND_EVT(type_, state_, data_, ptr_) ((ALEvent *) &(type_))
+#endif
+
 void *func_80260650(void *arg0, s16 arg1, void *arg2) {
+    SND_EVT_DECL
     void *node;
     void *result;
     void *entry4dead;
@@ -657,12 +678,12 @@ mainLogic:
 
             if (*(u8 *) ((u8 *) node + 0x3e) & 0x10) {
                 *(u8 *) ((u8 *) node + 0x3e) &= ~0x10;
-                alEvtqPostEvent((ALEventQueue *) ((u8 *) D_802E8CEC + 0x14), (ALEvent *) &eventCode,
+                alEvtqPostEvent((ALEventQueue *) ((u8 *) D_802E8CEC + 0x14), SND_EVT(eventCode, eventParam, 0, 0),
                     totalSomething + 1);
                 adjusted = scaled + 1;
                 flag1 = arg1;
             } else {
-                alEvtqPostEvent((ALEventQueue *) ((u8 *) D_802E8CEC + 0x14), (ALEvent *) &eventCode,
+                alEvtqPostEvent((ALEventQueue *) ((u8 *) D_802E8CEC + 0x14), SND_EVT(eventCode, eventParam, 0, 0),
                     scaled + 1);
             }
             result = node;
@@ -685,7 +706,8 @@ mainLogic:
             eventParam2 = (s32) result;
             extra1 = flag1;
             extra2 = (s32) arg0;
-            alEvtqPostEvent((ALEventQueue *) ((u8 *) D_802E8CEC + 0x14), (ALEvent *) &eventCode2, adjusted);
+            alEvtqPostEvent((ALEventQueue *) ((u8 *) D_802E8CEC + 0x14),
+                            SND_EVT(eventCode2, eventParam2, extra1, extra2), adjusted);
         }
     }
 
@@ -705,6 +727,7 @@ extern void *D_802E8CEC;
  * would need, but writing it as one keeps the 0x24/0x20-offset slots from
  * ever materializing their own address, which doesn't match target). */
 void func_802608C8(void *arg0) {
+    SND_EVT_DECL
     s32 eventTail;
     s32 eventHead;
     s32 eventParam;
@@ -716,7 +739,7 @@ void func_802608C8(void *arg0) {
 
     if (arg0 != NULL) {
         *((u8 *) arg0 + 0x3e) &= ~0x10;
-        alEvtqPostEvent((ALEventQueue *) ((u8 *) D_802E8CEC + 0x14), (ALEvent *) &eventCode, 0);
+        alEvtqPostEvent((ALEventQueue *) ((u8 *) D_802E8CEC + 0x14), SND_EVT(eventCode, eventParam, 0, 0), 0);
     } else {
         func_8029A7E4("WARNING: Attempt to stop NULL sound aborted\n");
     }
@@ -724,6 +747,7 @@ void func_802608C8(void *arg0) {
 
 
 void func_80260934(u8 arg0) {
+    SND_EVT_DECL
     s32 savedState;
     s32 unused2;
     s32 unused1;
@@ -740,7 +764,8 @@ void func_80260934(u8 arg0) {
             eventParam = (s32) entry;
             if ((*((u8 *) entry + 0x3e) & arg0) == arg0) {
                 *((u8 *) entry + 0x3e) &= ~0x10;
-                alEvtqPostEvent((ALEventQueue *) ((u8 *) D_802E8CEC + 0x14), (ALEvent *) &eventCode, 0);
+                alEvtqPostEvent((ALEventQueue *) ((u8 *) D_802E8CEC + 0x14), SND_EVT(eventCode, eventParam, 0, 0),
+                                0);
             }
             entry = *(void **) entry;
         } while (entry != NULL);
@@ -781,6 +806,7 @@ void func_80260A30(u8 arg0) {
 
 
 void func_80260AB8(void *arg0, s16 arg1, s32 arg2) {
+    SND_EVT_DECL
     s32 unused;
     s32 eventExtra;
     s32 eventParam;
@@ -792,7 +818,8 @@ void func_80260AB8(void *arg0, s16 arg1, s32 arg2) {
     eventExtra = arg2;
 
     if (arg0 != NULL) {
-        alEvtqPostEvent((ALEventQueue *) ((u8 *) D_802E8CEC + 0x14), (ALEvent *) &eventCode, 0);
+        alEvtqPostEvent((ALEventQueue *) ((u8 *) D_802E8CEC + 0x14), SND_EVT(eventCode, eventParam, eventExtra, 0),
+                        0);
     } else {
         func_8029A7E4("WARNING: Attempt to modify NULL sound aborted\n");
     }
@@ -807,6 +834,7 @@ u16 func_80260B24(u8 arg0) {
 extern void *D_802E8CEC;
 
 void func_80260B40(u8 arg0, u16 arg1) {
+    SND_EVT_DECL
     s32 savedState;
     void *entry;
     s32 count;
@@ -825,7 +853,7 @@ void func_80260B40(u8 arg0, u16 arg1) {
         if ((*(u8 *) ((u8 *) (*(void **) ((u8 *) (*(void **) ((u8 *) entry + 8)) + 4)) + 2) & 0x3f) == arg0) {
             eventCode = 0x800;
             eventParam = (s32) entry;
-            alEvtqPostEvent((ALEventQueue *) ((u8 *) D_802E8CEC + 0x14), (ALEvent *) &eventCode, 0);
+            alEvtqPostEvent((ALEventQueue *) ((u8 *) D_802E8CEC + 0x14), SND_EVT(eventCode, eventParam, 0, 0), 0);
         }
         count = count + 1;
         entry = *(void **) entry;

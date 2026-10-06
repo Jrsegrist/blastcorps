@@ -25,7 +25,7 @@ GAME_SRC   := $(ROOT)/src.$(VERSION)/hd_code
 
 GAME_CFLAGS := -std=gnu89 -nostdinc -I$(ROOT) -I$(ROOT)/include -I$(ROOT)/include/2.0I \
 	-I$(ROOT)/include/2.0I/PR -include include/port_ultratypes.h \
-	-D_LANGUAGE_C -D_FINALROM -DNON_MATCHING -D_MIPS_SZLONG=32 -D_MIPS_SIM=1 \
+	-D_LANGUAGE_C -D_FINALROM -DNON_MATCHING -DPORT_HOST -D_MIPS_SZLONG=32 -D_MIPS_SIM=1 \
 	-O2 -fno-strict-aliasing -fwrapv -msse2 -mfpmath=sse -fno-common \
 	-fno-builtin-sinf -fno-builtin-cosf -fno-builtin-sin -fno-builtin-cos \
 	-Wno-unknown-pragmas -Wno-builtin-declaration-mismatch
@@ -38,8 +38,11 @@ NM_ELFS   := $(ROOT)/build_nm/hd_code.$(VERSION).elf $(ROOT)/build_nm/hd_front_e
 GAME_OBJS := $(GAME_FILES:%=$(B)/game/%.o)
 GAME_RECS := $(GAME_FILES:%=$(B)/game/%.rec)
 MAIN      ?= spike_main
-PORT_SRCS := src/rdram.c src/inflate.c src/$(MAIN).c
-PORT_OBJS := $(PORT_SRCS:src/%.c=$(B)/port/%.o)
+# byte order on load (port/src/load/, see port_load.h)
+LOAD_SRCS := src/load/swap.c src/load/port_assets.c
+PORT_SRCS := src/rdram.c src/inflate.c src/$(MAIN).c $(LOAD_SRCS)
+PORT_OBJS := $(PORT_SRCS:src/%.c=$(B)/port/%.o) $(B)/swaptab.o
+PORT_HDRS := src/rdram.h src/load/port_load.h src/load/schemas.h src/platform/port_dma.h
 
 all: $(B)/spike.exe
 
@@ -58,8 +61,21 @@ $(B)/game/%.pinned.s $(B)/game/%.rec: $(B)/game/%.s $(B)/addrs.txt tools/relabel
 $(B)/game/%.o: $(B)/game/%.pinned.s
 	$(CC) -c -o $@ $<
 
-$(B)/port/%.o: src/%.c src/rdram.h
+$(B)/port/%.o: src/%.c $(PORT_HDRS)
 	@mkdir -p $(@D)
+	$(CC) $(PORT_CFLAGS) -c -o $@ $<
+
+# byte-order schema of the data images: C declarations (DWARF) + the widths
+# the code reads them at (data/image_widths.txt, from tools/m64widths.py)
+$(B)/typemap.txt: $(B)/addrs.txt tools/typemap.py
+	cd $(ROOT) && $(PYTHON) port/tools/typemap.py port/$(B)/addrs.txt port/$@ > port/$(B)/typemap_report.txt
+SWAPTAB_DATA := data/image_widths.txt data/image_static.txt data/image_overrides.txt
+$(B)/swaptab.c: $(B)/typemap.txt $(SWAPTAB_DATA) tools/swaptab.py $(NM_ELFS)
+	cd $(ROOT) && $(PYTHON) port/tools/swaptab.py port/$(B)/typemap.txt port/data/image_widths.txt port/$@ \
+		port/$(B)/swaptab_report.txt --static port/data/image_static.txt port/$(B)/addrs.txt \
+		> port/$(B)/swaptab_coverage.txt
+	@cat $(B)/swaptab_coverage.txt
+$(B)/swaptab.o: $(B)/swaptab.c src/load/port_load.h
 	$(CC) $(PORT_CFLAGS) -c -o $@ $<
 
 $(B)/abs_syms.ld $(B)/stubs.c &: $(GAME_OBJS) $(PORT_OBJS) tools/gensyms.py
@@ -70,7 +86,7 @@ $(B)/copytab.c: $(GAME_RECS) $(B)/addrs.txt tools/gensyms.py
 
 $(B)/stubs.o: $(B)/stubs.c
 	$(CC) -O2 -w -c -o $@ $<
-$(B)/copytab.o: $(B)/copytab.c src/rdram.h
+$(B)/copytab.o: $(B)/copytab.c $(PORT_HDRS)
 	$(CC) $(PORT_CFLAGS) -c -o $@ $<
 
 $(B)/spike.exe: $(GAME_OBJS) $(PORT_OBJS) $(B)/stubs.o $(B)/copytab.o $(B)/abs_syms.ld
@@ -88,9 +104,23 @@ linkall:
 	$(MAKE) B=build/all MAIN=linkall_main GAME_FILES="$(ALL_GAME)" build/all/spike.exe
 	build/all/spike.exe '$(ROM_ARG)'
 
-# byte-order schema of the initialised image from the C declarations (DWARF)
-typemap: $(B)/addrs.txt
-	cd $(ROOT) && $(PYTHON) port/tools/typemap.py port/$(B)/addrs.txt port/$(B)/typemap.txt
+# byte-order schema of the initialised image: coverage report
+typemap: $(B)/swaptab.c
+	@cat $(B)/typemap_report.txt
+
+# the byte-order layer against the original code: real assets through the
+# game's loaders and consumers, native vs unicorn (src/load/loadcheck_main.c,
+# tools/loadref.py)
+#   LC_TRACE=trace.txt (tools/m64widths.py output) adds T9: every traced read
+LC_FILES := 00000 46C20 17A70 53220 7F8B0 5BF40 60F60 5CB60 60D50
+loadcheck:
+	$(MAKE) B=build/lc MAIN=loadcheck_main GAME_FILES="$(LC_FILES)" build/lc/spike.exe
+	@if [ -n "$(LC_TRACE)" ]; then $(PYTHON) tools/widths.py facts build/lc/facts.txt $(LC_TRACE); fi
+	build/lc/spike.exe '$(ROM_ARG)' $$([ -f build/lc/facts.txt ] && echo 56789 build/lc/facts.txt) \
+		> build/lc/out_native.txt
+	cd $(ROOT) && $(PYTHON) port/tools/loadref.py $(ROM) > port/build/lc/out_ref.txt
+	@grep '^T9 total' build/lc/out_native.txt || true
+	$(PYTHON) tools/cmpout.py build/lc/out_ref.txt build/lc/out_native.txt
 
 ucode:
 	cd $(ROOT) && $(PYTHON) port/tools/ucode_id.py build
@@ -167,7 +197,7 @@ HL_GAME_OBJS := $(HL_HD:%=$(H)/game/hd/%.o) $(HL_FE:%=$(H)/game/fe/%.o) \
 	$(HL_PLAT:%=$(H)/game/plat/%.o)
 HL_RECS := $(HL_GAME_OBJS:.o=.rec)
 HL_HOST_OBJS := $(HL_HOST:%=$(H)/host/%.o) $(H)/host/rdram.o $(H)/host/inflate.o \
-	$(HL_LOAD:%=$(H)/host/load/%.o)
+	$(HL_LOAD:%=$(H)/host/load/%.o) $(if $(HL_LOAD),$(H)/host/swaptab.o,)
 
 $(H)/addrs.txt: $(NM_ELFS) tools/gensyms.py
 	@mkdir -p $(@D)
@@ -225,9 +255,18 @@ $(H)/interim_typemap.c: $(H)/typemap.txt tools/typemap_c.py
 $(H)/host/interim_typemap.o: $(H)/interim_typemap.c
 	@mkdir -p $(@D)
 	$(CC) -O2 -c -o $@ $<
-$(H)/host/load/%.o: src/load/%.c src/rdram.h src/platform/port_dma.h Makefile
+$(H)/host/load/%.o: src/load/%.c src/rdram.h src/platform/port_dma.h $(wildcard src/load/*.h) Makefile
 	@mkdir -p $(@D)
 	$(CC) $(HL_HOST_CFLAGS) -Isrc/load -c -o $@ $<
+# the load layer's generated image swap table (see $(B)/swaptab.c above)
+$(H)/swaptab.c: $(H)/typemap.txt $(SWAPTAB_DATA) tools/swaptab.py $(NM_ELFS)
+	cd $(ROOT) && $(PYTHON) port/tools/swaptab.py port/$(H)/typemap.txt port/data/image_widths.txt port/$@ \
+		port/$(H)/swaptab_report.txt --static port/data/image_static.txt port/$(H)/addrs.txt \
+		> port/$(H)/swaptab_coverage.txt
+	@cat $(H)/swaptab_coverage.txt
+$(H)/host/swaptab.o: $(H)/swaptab.c src/load/port_load.h
+	@mkdir -p $(@D)
+	$(CC) $(HL_HOST_CFLAGS) -c -o $@ $<
 
 $(H)/abs_syms.ld $(H)/stubs.c &: $(HL_GAME_OBJS) $(HL_HOST_OBJS) tools/gensyms.py
 	cd $(ROOT) && $(PYTHON) port/tools/gensyms.py link port/$(H) $(addprefix port/,$(HL_GAME_OBJS) $(HL_HOST_OBJS))
@@ -250,5 +289,5 @@ headless: $(H)/bc_headless.exe
 clean:
 	rm -rf $(B)
 
-.PHONY: all check clean linkall typemap ucode headless
+.PHONY: all check clean linkall loadcheck typemap ucode headless
 .SECONDARY:

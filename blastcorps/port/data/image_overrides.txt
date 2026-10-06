@@ -1,0 +1,19 @@
+# Byte-order overrides for the data images (port/tools/swaptab.py).
+# ADDR SIZE ACTION   (hex; ACTION w2/w4/w8 = swap as elements of that width, be = keep big-endian)
+#
+# D_802F46C0 (77E20.c, 12 x {u64 from, u64 to}): display-list commands compared
+# with and copied into DLs as whole doublewords; DLs are two host-order u32
+# words (w0, w1), so these are too (a u64 swap would exchange w0 and w1).
+802F46C0 C0 w4
+#
+# D_802E8BF8: u8 EEPROM-present flag (written at boot, read as a byte by the
+# front end) that is also word 0 of a 19-word table func_8024B188 indexes by
+# vehicle (00000.c port_802E8BF8_word).  On the N64 the flag is word 0's most
+# significant byte, so word 0 stays big-endian and is read bytewise; words
+# 1-18 (the exit distances) are host-order s32.
+802E8BF8 4 be
+802E8BFC 48 w4
+#
+# D_802FA8A0 (2D810.c FmtPair {u16 fmt[2]}): copied whole into a local
+# (`FmtPair fmts = D_802FA8A0;`, one lw in the trace), then read as u16s.
+802FA8A0 4 w2

@@ -96,8 +96,8 @@ int main(int argc, char **argv) {
         ntext = rom_gunzip(ROM_HD_TEXT, hdtext, sizeof hdtext);
         memcpy((void *) 0x802AD880, hdtext + (0x802AD880 - 0x802447C0), 0x884);
         fprintf(stderr, "raw mode: hd text %ld bytes\n", ntext);
-    } else {
-        /* typed: s16 D_80305B90[][3] lives in a .data bin; swap by its type */
+        /* rdram_load swapped the image by the generated table (typed mode);
+         * put s16 D_80305B90[][3] back as the ROM holds it */
         swap_range(0x80305B90, T2_ENTRIES * 3, 2);
     }
 

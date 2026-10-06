@@ -28,7 +28,8 @@ ADDRS, OUT = sys.argv[1], sys.argv[2]
 SHIM = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "include", "port_ultratypes.h")
 FLAGS = ["-m32", "-malign-double", "-g", "-O0", "-c", "-std=gnu89", "-nostdinc", "-I", ".", "-I", "include",
          "-I", "include/2.0I", "-I", "include/2.0I/PR", "-include", SHIM, "-D_LANGUAGE_C", "-D_FINALROM",
-         "-DNON_MATCHING", "-D_MIPS_SZLONG=32", "-D_MIPS_SIM=1", "-w", "-fno-eliminate-unused-debug-symbols"]
+         "-DNON_MATCHING", "-DPORT_HOST", "-D_MIPS_SZLONG=32", "-D_MIPS_SIM=1", "-w",
+         "-fno-eliminate-unused-debug-symbols", "-fno-eliminate-unused-debug-types"]
 IMAGE = (0x802E8BD0, 0x8030F660)
 # hd .text tables (pinned), hd .data/.rodata, front-end .data/.rodata
 INIT_RANGES = [(0x802447C0, 0x802E8BD0), IMAGE, (0x80208040, 0x80210E90)]
@@ -75,6 +76,11 @@ def leaves(t, base, out, depth=0):
             if m.tag == "DW_TAG_member":
                 off = attr(m, "DW_AT_data_member_location") or 0
                 leaves(tref(m), base + (off if isinstance(off, int) else 0), out, depth + 1)
+                if t.tag == "DW_TAG_union_type":
+                    # a union's first member is its layout (Gfx: the two u32
+                    # words, Mtx: the s32 matrix, Vtx: Vtx_t), not the
+                    # alignment members after it
+                    break
         return attr(t, "DW_AT_byte_size")
     if t.tag == "DW_TAG_array_type":
         et = tref(t)
@@ -119,18 +125,83 @@ def flatten(lv, size):
     return flat
 
 
+import re
+VIEW_ARR = re.compile(r"^\s*#\s*define\s+(D_[0-9A-F]{8})\s+\(\(\s*(?:struct\s+)?([A-Za-z_]\w*)\s*(\*?)\s*\*\s*\)\s*&?\s*\1\s*\)")
+VIEW_SCAL = re.compile(r"^\s*#\s*define\s+(D_[0-9A-F]{8})\s+\(\*\s*\(\s*(?:struct\s+)?([A-Za-z_]\w*)\s*(\*?)\s*\*\s*\)\s*&\s*\1\s*\)")
+
+
+def file_views(path):
+    """name -> (type name, element is a pointer, scalar view)"""
+    out = {}
+    for line in open(path, errors="replace"):
+        m = VIEW_ARR.match(line)
+        if m:
+            out[m.group(1)] = (m.group(2), m.group(3) == "*" or m.group(2) == "void", False)
+            continue
+        m = VIEW_SCAL.match(line)
+        if m:
+            out[m.group(1)] = (m.group(2), m.group(3) == "*", True)
+    return out
+
+
 decls = collections.defaultdict(dict)   # name -> {file: (size, leaves)}
+defined = set()                          # names some game file defines (native initialiser)
+pending_views = []                       # (name, file key, element size, element leaves, scalar)
 tmp = tempfile.mkdtemp()
-files = [f for f in sorted(glob.glob("src.us.v11/hd_code/*.c")) if not os.path.basename(f).startswith("ul_")]
+# game files, then the libultra/libaudio wrappers (ultralib C; their data is
+# defined in C, so it gets native initialisers when the port links them)
+UL = "../lib/ultralib"
+UL_FLAGS = ["-m32", "-malign-double", "-g", "-O0", "-c", "-nostdinc", "-I", UL, "-I", UL + "/include",
+            "-I", UL + "/include/compiler/gcc", "-I", UL + "/include/PR", "-I", ".", "-D_MIPS_SZLONG=32",
+            "-DBUILD_VERSION=VERSION_I", "-DBUILD_VERSION_STRING=\"2.0I\"", "-DNDEBUG", "-D_FINALROM",
+            "-DF3DEX_GBI", "-D_LANGUAGE_C", "-w", "-fno-eliminate-unused-debug-symbols"]
+files = [f for seg in ("hd_code", "hd_front_end") for f in sorted(glob.glob("src.us.v11/%s/*.c" % seg))]
+ul_failed = []
 for src in files:
-    obj = os.path.join(tmp, os.path.basename(src) + ".o")
-    r = subprocess.run(["gcc"] + FLAGS + ["-o", obj, src], capture_output=True, text=True)
+    fid = os.path.basename(os.path.dirname(src)) + "/" + os.path.basename(src)
+    obj = os.path.join(tmp, fid.replace("/", "_") + ".o")
+    is_ul = os.path.basename(src).startswith("ul_")
+    r = subprocess.run(["gcc"] + (UL_FLAGS if is_ul else FLAGS) + ["-o", obj, src], capture_output=True, text=True)
+    if r.returncode and is_ul:
+        ul_failed.append(fid)
+        continue
     if r.returncode:
         print("compile failed: %s\n%s" % (src, r.stderr[:500]))
         continue
+    views = {} if is_ul else file_views(src)
     with open(obj, "rb") as f:
         dw = ELFFile(f).get_dwarf_info()
         for cu in dw.iter_CUs():
+            if views:
+                # the file's `#define D_x ((T *) D_x)` views: T's layout over the
+                # symbol's extent (array view) or once (scalar view)
+                types = {}
+                for die in cu.iter_DIEs():
+                    if die.tag in ("DW_TAG_typedef", "DW_TAG_base_type", "DW_TAG_structure_type"):
+                        n = attr(die, "DW_AT_name")
+                        n = n.decode() if isinstance(n, bytes) else n
+                        if n and (n not in types or die.tag == "DW_TAG_typedef"):
+                            types[n] = die
+                for nm, (tname, is_ptr, scalar) in views.items():
+                    if nm not in addr or not any(r0 <= addr[nm] < r1 for r0, r1 in INIT_RANGES):
+                        continue
+                    a = addr[nm]
+                    ext = nmsize.get(nm) or (next_sym(a) - a)
+                    one = []
+                    if is_ptr:
+                        esz = 4
+                        one = [(0, 4, False)]
+                    elif tname in types:
+                        esz = leaves(types[tname], 0, one)
+                        one = flatten(one, esz or 0)
+                    else:
+                        continue
+                    if not esz:
+                        continue
+                    # the array's extent is settled once every file is read
+                    # (u16 *) / (s32 *) views of struct arrays rank like (void **) ones: last
+                    kind = "#ptrview" if is_ptr or len(one) <= 1 else "#view"
+                    pending_views.append((nm, fid + kind, esz, list(one), scalar))
             for die in cu.get_top_DIE().iter_children():
                 if die.tag != "DW_TAG_variable":
                     continue
@@ -141,48 +212,139 @@ for src in files:
                 if nm not in addr or not any(r0 <= addr[nm] < r1 for r0, r1 in INIT_RANGES):
                     continue
                 a = addr[nm]
+                if "DW_AT_location" in die.attributes:
+                    defined.add(nm)
                 lv = []
                 sz = leaves(tref(die), 0, lv)
+                if (sz is None and len(lv) == 1 and lv[0][0] == "ARRAY" and lv[0][1] == 0 and lv[0][2]
+                        and nm not in defined):
+                    # `extern T D_x[];`: the extent is settled with the views
+                    pending_views.append((nm, fid, lv[0][2], list(lv[0][4]), False))
+                    continue
                 if sz is None:
                     sz = nmsize.get(nm) or (next_sym(a) - a)
-                decls[nm][os.path.basename(src)] = (sz, [x for x in flatten(lv, sz) if x[1] > 1])
+                decls[nm][fid] = (sz, list(flatten(lv, sz)))
+
+# array views run to the next symbol some file declares or defines: splat
+# also names addresses inside arrays (mid-array references), which no file
+# declares, and those must not cut the array short
+declared_addrs = sorted(set(addr[n] for n in decls) | set(addr[n] for n, *_ in pending_views))
+import bisect as _bisect
+by_addr = collections.defaultdict(list)
+for _n in decls:
+    by_addr[addr[_n]].append(_n)
+
+
+def fits(b, a, esz, one):
+    """is the symbol at b just a field (or element) inside an array of `one`
+    elements starting at a?  (05C450's `extern f32 D_8020BDE4; /* D_8020BD30[3].unk0 */`)"""
+    rel = (b - a) % esz
+    for n in by_addr.get(b, []):
+        for sz, lv in decls[n].values():
+            if rel == 0 and sz == esz:
+                return True
+            first = [x for x in lv if x[0] == 0]
+            if first and any(o == rel and w == first[0][1] for o, w, _ in one):
+                return True
+    return False
+
+
+for nm, key, esz, one, scalar in pending_views:
+    a = addr[nm]
+    i = _bisect.bisect_right(declared_addrs, a)
+    while i < len(declared_addrs) and not scalar and fits(declared_addrs[i], a, esz, one):
+        i += 1
+    nxt = declared_addrs[i] if i < len(declared_addrs) else a + esz
+    ext = max(nmsize.get(nm) or 0, nxt - a)
+    n = 1 if scalar else max(1, ext // esz)
+    # byte leaves too: an explicit u8 field blocks a coarser view's word there
+    decls[nm][key] = (esz * n, [(k * esz + o, w, fl) for k in range(n) for o, w, fl in one])
 
 # per symbol: pick the layout most files agree on; record disagreements
 conflicts = []
 chosen = {}
 for nm, per in decls.items():
-    lay = collections.Counter((sz, tuple(lv)) for sz, lv in per.values())
+    # a typed layout (one with multi-byte leaves) beats `extern u8 D_x[]`
+    # declarations, which only say "some bytes" (files then view them with
+    # their own #define casts)
+    typed = {f: v for f, v in per.items() if any(x[1] > 1 for x in v[1])}
+    pool = typed or per
+    lay = collections.Counter((sz, tuple(lv)) for sz, lv in pool.values())
     (sz, lv), _ = lay.most_common(1)[0]
-    chosen[nm] = (sz, list(lv))
+    if typed:
+        sz = max(sz, max(s for s, _ in per.values()))
     if len(lay) > 1:
-        conflicts.append((addr[nm], nm, {f: (s, len(l)) for f, (s, l) in per.items()}))
+        # several typed views of the same bytes (per-file struct views): the
+        # union of their leaves, pointer-array views (`(void **) D_x`, a
+        # decompiler shortcut) last; a field an earlier view types, even as a
+        # byte, isn't retyped by a later one
+        isptr = {}
+        for f, (s, l) in pool.items():
+            isptr[(s, tuple(l))] = isptr.get((s, tuple(l)), True) and f.endswith("#ptrview")
+        taken = {}
+        merged = []
+        clash = 0
+        # the most detailed view (most multi-byte fields) first: partial views
+        # declare the fields they don't know as u8 arrays
+        for (vsz, vlv), _ in sorted(lay.most_common(), key=lambda kv: (
+                isptr[kv[0]], -sum(1 for x in kv[0][1] if x[1] > 1), -kv[1])):
+            for o, w, fl in vlv:
+                span = range(o, o + w)
+                if all(k not in taken for k in span):
+                    for k in span:
+                        taken[k] = (o, w)
+                    merged.append((o, w, fl))
+                elif any(taken.get(k) != (o, w) for k in span):
+                    clash += 1
+        lv = sorted(merged)
+        if clash:
+            conflicts.append((addr[nm], nm, {f: (s, len([x for x in l if x[1] > 1])) for f, (s, l) in pool.items()}))
+    chosen[nm] = (sz, [x for x in lv if x[1] > 1])
 
+# OUT columns: addr name size D|- leaves   (D = some game file defines it: the
+# native initialiser overwrites the image there, so it needs no swap)
 with open(OUT, "w") as f:
     for nm, (sz, lv) in sorted(chosen.items(), key=lambda kv: addr[kv[0]]):
-        f.write("%08X %s %d %s\n" % (addr[nm], nm, sz, " ".join("%X:%d%s" % (o, w, "f" if fl else "")
-                                                               for o, w, fl in lv)))
+        f.write("%08X %s %d %s %s\n" % (addr[nm], nm, sz, "D" if nm in defined else "-",
+                                        " ".join("%X:%d%s" % (o, w, "f" if fl else "") for o, w, fl in lv)))
 
-# coverage of the hd_code data image
-lo, hi = IMAGE
-state = bytearray(hi - lo)   # 0 untyped, 1 declared byte-only/opaque, 2 multi-byte leaf
-for nm, (sz, lv) in chosen.items():
-    a = addr[nm]
-    if not (lo <= a < hi):
-        continue
-    for k in range(a, min(a + sz, hi)):
-        if state[k - lo] == 0:
-            state[k - lo] = 1
-    for o, w, _ in lv:
-        for k in range(a + o, min(a + o + w, hi)):
-            state[k - lo] = 2
-tot = hi - lo
-c = collections.Counter(state)
-nsyms_img = sum(1 for nm in chosen if lo <= addr[nm] < hi)
-nsyms_all = sum(1 for nm, a in addr.items() if lo <= a < hi)
-print("hd_code data image 0x%X bytes; %d of its %d symbols are declared in C" % (tot, nsyms_img, nsyms_all))
-print("  bytes inside multi-byte typed leaves: 0x%X (%.1f%%)" % (c[2], 100.0 * c[2] / tot))
-print("  bytes declared but byte-typed/opaque (u8[], char): 0x%X (%.1f%%)" % (c[1], 100.0 * c[1] / tot))
-print("  bytes no declaration covers: 0x%X (%.1f%%)" % (c[0], 100.0 * c[0] / tot))
+
+def coverage(label, lo, hi):
+    state = bytearray(hi - lo)   # 0 untyped, 1 declared byte-only/opaque, 2 multi-byte leaf, 3 native
+    for nm, (sz, lv) in chosen.items():
+        a = addr[nm]
+        if not (lo <= a < hi):
+            continue
+        for k in range(a, min(a + sz, hi)):
+            if state[k - lo] == 0:
+                state[k - lo] = 1
+        for o, w, _ in lv:
+            for k in range(a + o, min(a + o + w, hi)):
+                state[k - lo] = 2
+        if nm in defined:
+            for k in range(a, min(a + sz, hi)):
+                state[k - lo] = 3
+    tot = hi - lo
+    c = collections.Counter(state)
+    nsyms_img = sum(1 for nm in chosen if lo <= addr[nm] < hi)
+    nsyms_all = sum(1 for nm, a in addr.items() if lo <= a < hi)
+    print("%s image 0x%X bytes; %d of its %d symbols are declared in C" % (label, tot, nsyms_img, nsyms_all))
+    print("  bytes defined in C (native initialiser): 0x%X (%.1f%%)" % (c[3], 100.0 * c[3] / tot))
+    print("  bytes inside multi-byte typed leaves: 0x%X (%.1f%%)" % (c[2], 100.0 * c[2] / tot))
+    print("  bytes declared but byte-typed/opaque (u8[], char): 0x%X (%.1f%%)" % (c[1], 100.0 * c[1] / tot))
+    print("  bytes no declaration covers: 0x%X (%.1f%%)" % (c[0], 100.0 * c[0] / tot))
+
+
+if ul_failed:
+    print("libultra wrappers that don't compile with host gcc (their data not typed): %d: %s" %
+          (len(ul_failed), " ".join(ul_failed)))
+coverage("hd_code data", *IMAGE)
+coverage("front-end data", *INIT_RANGES[2])
 print("symbols whose layout differs between files: %d" % len(conflicts))
 for a, nm, per in sorted(conflicts)[:40]:
-    print("  %08X %s: %s" % (a, nm, ", ".join("%s size %s/%d leaves" % (f, s, n) for f, (s, n) in sorted(per.items()))))
+    distinct = collections.OrderedDict()
+    for f, (s, n) in sorted(per.items()):
+        distinct.setdefault((s, n), []).append(f)
+    print("  %08X %s: %s" % (a, nm, "; ".join("size %s/%d leaves: %s%s" % (s, n, ", ".join(fs[:3]),
+                                                                          " +%d" % (len(fs) - 3) if len(fs) > 3 else "")
+                                             for (s, n), fs in distinct.items())))

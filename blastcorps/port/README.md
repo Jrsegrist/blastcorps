@@ -46,11 +46,9 @@ a Windows path through `wslpath -w`.
    data) to 0x801E7000/0x80208040. Both `.bss` ranges are cleared, then the
    native initialisers are copied in. The hd_code text is not loaded; its
    tables are C (NM_PIN_HD_CODE).
-6. **Byte order.** Image bytes that came from the ROM are big-endian. Code
-   reads them natively only after they are swapped by type. `tools/typemap.py`
-   derives a per-symbol leaf layout (offset, width) from the DWARF of every
-   game file's declarations. `spike_main.c` swaps what its tests read. Stage 3
-   applies the full map.
+6. **Byte order.** Image bytes that came from the ROM are big-endian; the load
+   layer (`src/load/`, next section) swaps them by type before the native
+   initialisers go in.
 
 ## The spike's tests (`src/spike_main.c`, reference `tools/n64ref.py`)
 
@@ -63,6 +61,58 @@ memory big-endian). `check` compares the outputs line by line:
 | T2 | func_802A56C4 (60D50.c) | s16 D_80305B90[][3] in a hd .data bin | 21/21 | 3/21 |
 | T3 | func_802A5510 (60D50.c) | level asset (s32 offsets + s16 HeightZones) in the heap | 300/300 | 26/300 (274 access violations) |
 | T4 | func_802CB690 (86ED0.c, vehicle helper) | .bss only; records its calls | 200/200 | 200/200 |
+
+## Byte order on load (`src/load/`, stage 3)
+
+Memory is host-endian (little-endian): everything the game's C reads
+natively is swapped once, by the width the code reads it at, when it arrives
+from the ROM. Textures, palettes, pictures, compressed streams and the byte
+streams the code reads bytewise (5CB60.c's BE16U/BE16S/BE32) stay big-endian.
+
+- **Data images** (hd_code .data/.rodata at 0x802E8BD0, front end at
+  0x80208040): `rdram_load` calls `port_load_image_hd/fe` (swap.c) with the
+  table `build/swaptab.c` that `tools/swaptab.py` generates from
+  1. `tools/typemap.py`: the DWARF of every game file's declarations and its
+     per-file `#define D_x ((T *) D_x)` struct views (merged: the most
+     detailed view first; arrays run past splat's mid-array symbols);
+  2. `data/image_widths.txt`: the widths the NON_MATCHING code reads each
+     address at (traced, below); the trace wins where it reads one wider field
+     over narrower declared ones;
+  3. `data/image_static.txt`: fixed-address accesses of the native code
+     (`tools/mixscan.py --widths`), for bytes 1-2 leave untyped;
+  4. `data/image_overrides.txt`: hand decisions (D_802F46C0 DL commands as
+     words, the D_802E8BF8 flag/word alias kept big-endian, struct copies).
+  Bytes from C objects need nothing: their native initialisers are copied
+  over the image. `make -C port typemap` prints the coverage.
+- **Assets**: `port_on_dma` (every PI copy, from the platform) and
+  `port_on_load` (after the game decompressed a block: hooks in 46C20.c
+  func_8028B4C4 and 5CB60.c's packed loader) classify the ROM range
+  (port_assets.c) and apply the schema (schemas.h): the texture table, sound
+  banks (walked like alBnkfNew), the sequence file and tunes, levels (header
+  offsets, triangles, collision cells, lifts, group chain, display lists,
+  segment-8 vertices), packed objects (buildings), vehicle models
+  (parts, animations, vertices, display lists), the demo recordings, the
+  front-end scenes and the static segment. Texture entries are swapped
+  around 60F60.c's decoder (`port_texture_input/output`, NON_MATCHING hooks):
+  s16 tokens in, big-endian texels out.
+- **Exceptions fixed in NON_MATCHING C** (`PORT_HOST`): 00000.c
+  `port_802E8BF8_word` (the u8 EEPROM flag is word 0's MSB of a word table),
+  196F0.c (the front-end background pictures are tinted on big-endian pixels).
+
+Tools:
+- `tools/m64widths.py ROM OUT VIS` (MODE=nm for the NON_MATCHING test ROM,
+  the default; MODE=base for the original): mupen64plus access-width tracer.
+  Memory breakpoints (physical ranges; the core reports the aligned word, the
+  byte address is recomputed from the instruction) over the data images and
+  every loaded asset; per (region, offset, width, R/W, function). Run from the
+  project root; about 25 minutes for the 30000 VIs of the nine attract demos.
+  `EXTRA=name:lo:hi,...` adds regions (.bss state blocks).
+- `tools/widths.py image|facts|assets`: reduce traces.
+- `make -C port loadcheck [LC_TRACE=trace.txt]`: real assets through the
+  game's own loaders and consumers, native vs the original code in unicorn
+  (`tools/loadref.py`): T5 the D_802E8BF8 alias, T6 520 texture decodes, T7
+  every level's object stream, T8 every level's height zones; with a trace,
+  T9 checks every traced read of every traced asset right after loading.
 
 ## Headless (stage 3): `make -C port headless`
 
@@ -89,7 +139,8 @@ The build differs from the spike's in a few ways:
 - Two ultralib libc files read a double's sign/exponent half-word at index 0
   (big-endian); sed makes copies with the little-endian index (`le/`).
 - `port_on_dma` (the hook the load layer implements, `src/platform/port_dma.h`)
-  is an identity stub while `src/load/` has no sources.
+  comes from `src/load/` (an identity stub while that has no sources), and
+  the load layer's generated `swaptab.c` is linked too.
 - `INTERIM=1` (build dir `build/headless-interim`) links stand-ins for the
   load layer (`src/platform/interim_swap.c`: typemap image swap, sequence
   headers, banks, the texture table, front-end scenes) so the platform can be

@@ -16,6 +16,8 @@ for line in open(sys.argv[1]):
         continue
     base = int(p[0], 16)
     for leaf in p[3:]:
+        if ":" not in leaf:      # the D/- (defined in C) column
+            continue
         off, w = leaf.split(":")
         a = base + int(off, 16)
         w = int(w.rstrip("f"))

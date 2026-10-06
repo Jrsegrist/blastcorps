@@ -22,6 +22,8 @@
 #   T ra=RA th=ID v=VALUE          osGetTime returns VALUE to RA (thread ID)
 #   C ra=RA th=ID v=VALUE          osGetCount (callers other than osGetTime)
 #   A ra=RA th=ID v=VALUE          osAiGetLength (the audio thread sizes its frames by it)
+#   Q ra=FUNC th=ID v=VALUE        the game retrace counter D_803156C4 as a GVI_FUNCS
+#                                  function reads it (port.h PORT_GVI)
 #   U ra=RA th=ID v=WORD           func_802A4B0C's RSP visibility test: the output word it
 #                                  tests (0xE8000000 = not visible)
 #   M ra=RA th=ID c=COUNT f=FUNC q=A0 gvi=G   a message call (queue A0) / osStartThread
@@ -89,6 +91,8 @@ def ret_of(name):
     raise KeyError(name)
 
 
+REGS = ["r0", "at", "v0", "v1", "a0", "a1", "a2", "a3", "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",
+        "s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7", "t8", "t9", "k0", "k1", "gp", "sp", "fp", "ra"]
 A_BOOT = syms["func_802447C0"]
 A_TASK = syms["osSpTaskStartGo"]
 A_RDP = syms["func_80271904"]
@@ -144,10 +148,22 @@ for n in filter(None, os.environ.get("CMP_CALLS", "").split(",")):
 if len(ENTRY) > 80:
     raise SystemExit("cmp_spec: too many entry breakpoints (%d)" % len(ENTRY))
 
+# Retrace-counter reads the exe takes from the emulator (port.h PORT_GVI):
+# where the game reads D_803156C4 mid-function, after CPU time the native
+# code doesn't take (00000.c func_8024C414: the blinking "PRESS START").
+GVI_FUNCS = ["func_8024C414"]
+GVI = {}
+for name in GVI_FUNCS:
+    a, size = func_sizes[name]
+    for i in range(0, size, 4):
+        w = word_at(a + i)
+        if w >> 26 == 0x23 and (w & 0xFFFF) == 0x56C4:
+            GVI[a + i] = name
 BPS = {A_BOOT: "B", A_TASK: "F", A_RDP: "R", A_RSP: "P", A_TIME: "T", A_COUNT: "C", A_AILEN: "A", A_CULL: "U"}
 BPS.update({a: "M" for a in SYNC})
 BPS.update({a: "E" for a in ENTRY})
 BPS.update({a: "K" for a in CALLS})
+BPS.update({a: "Q" for a in GVI})
 GPRS, FPRS, MEM = [], [], []
 DEDUPE = False
 DEFMAX = 1 << 40
@@ -213,7 +229,13 @@ def ONHIT(pc, g, rd):
     if pc == A_RDP:
         return "R vi=%d d=%s" % (st["vi"], frac())
     if pc == A_TIME:
-        return "T ra=%x th=%d v=%x" % (g["ra"], thread_id(rd), (g["v0"] << 32) | g["v1"])
+        # the jr ra's delay slot finishes the high word (IDO: addu v0,v0,t4):
+        # the breakpoint sees v0 before it
+        v0 = g["v0"]
+        ds = word_at(A_TIME + 4)
+        if ds >> 26 == 0 and ds & 0x7FF == 0x21 and (ds >> 11) & 31 == 2:
+            v0 = (g[REGS[(ds >> 21) & 31]] + g[REGS[(ds >> 16) & 31]]) & 0xFFFFFFFF
+        return "T ra=%x th=%d v=%x" % (g["ra"], thread_id(rd), (v0 << 32) | (g["v1"] & 0xFFFFFFFF))
     if pc == A_COUNT:
         if syms["osGetTime"] <= g["ra"] < A_TIME:
             return None
@@ -222,6 +244,9 @@ def ONHIT(pc, g, rd):
         return "U ra=%x th=%d v=%x frame=%d" % (syms["func_802A4B0C"], thread_id(rd), rd(A_CULLBUF, 4), st["frame"])
     if pc == A_AILEN:
         return "A ra=%x th=%d v=%x" % (g["ra"], thread_id(rd), g["v0"])
+    if pc in GVI:
+        # (the lw hasn't run: memory holds what it loads)
+        return "Q ra=%x th=%d v=%x" % (syms[GVI[pc]], thread_id(rd), rd(0x803156C4, 4))
     if pc in CALLS:
         # (a0-a3: the arguments; compare.py calls shows them next to the exe's)
         k = "K f=%s ra=%x frame=%d a=%s" % (CALLS[pc], g["ra"], st["frame"],

@@ -47,6 +47,16 @@
 #else
 #define PORT_SHAMT(n) (n)
 #endif
+/*   PORT_GVI(fn, v)   v, a read of the game's retrace counter D_803156C4 in
+ *                     function fn after code the native port runs in no time;
+ *                     when following an emulator, the value the emulator
+ *                     read there (port/tools/cmp_spec.py GVI_FUNCS). */
+#if defined(NON_MATCHING) && defined(PORT_HOST)
+unsigned int port_gvi_read(const char *fn, unsigned int v);
+#define PORT_GVI(fn, v) port_gvi_read(fn, v)
+#else
+#define PORT_GVI(fn, v) (v)
+#endif
 #define PORT_SAVE_PLAYER 0  /* player record, 0x100 bytes */
 #define PORT_SAVE_TIMES 1   /* best times, 0x20 bytes */
 #define PORT_SAVE_EETIMES 2 /* EEPROM best-time words, 8 bytes */

@@ -19,6 +19,7 @@
 /* front end overlay: text (and its RSP ucode) then data+rodata, then .bss */
 #define FE_VRAM      0x801E7000u
 #define FE_DATA_VRAM 0x80208040u
+#define FE_DATA_END  0x80210E90u   /* end of .data+.rodata (start of .bss) */
 #define FE_BSS_END   0x8021ED00u
 
 /* compressed segments in the ROM (gzip members; blastcorps.us.v11.yaml) */

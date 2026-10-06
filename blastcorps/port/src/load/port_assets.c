@@ -323,6 +323,7 @@ static int apply(int kind, uint32_t dst, uint32_t rom, uint32_t len, int at_load
 static void handle(uint32_t dst, uint32_t rom, uint32_t len, int at_load) {
     int kind = classify(rom, len);
     int done;
+    port_gfx_forget(dst, len);   /* graphics areas the new data replaces */
     if (dst >= 0x8021ED00u && dst < 0x80244000u && !at_load) return;   /* compressed staging */
     done = apply(kind, dst, rom, len, at_load);
     if (done) {

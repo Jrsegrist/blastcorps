@@ -1,0 +1,110 @@
+diff --git a/plume_d3d12.cpp b/plume_d3d12.cpp
+index 2cdcf18..c6cb8db 100644
+--- a/plume_d3d12.cpp
++++ b/plume_d3d12.cpp
+@@ -799,10 +799,18 @@ namespace plume {
+             return;
+         }
+         
++#ifdef __MINGW32__ // RT64_MINGW_PATCH
++        heap->GetCPUDescriptorHandleForHeapStart(&cpuDescriptorHandle);
++#else
+         cpuDescriptorHandle = heap->GetCPUDescriptorHandleForHeapStart();
++#endif
+ 
+         if (shaderVisible) {
++#ifdef __MINGW32__
++            heap->GetGPUDescriptorHandleForHeapStart(&gpuDescriptorHandle);
++#else
+             gpuDescriptorHandle = heap->GetGPUDescriptorHandleForHeapStart();
++#endif
+         }
+ 
+         addFreeBlock(0, heapSize);
+@@ -2928,7 +2936,11 @@ namespace plume {
+         // When using an UMA architecture without explicit support for GPU Upload heaps,
+         // we instead just make a custom heap with the same properties as Upload heaps.
+         if ((desc.heapType == RenderHeapType::GPU_UPLOAD) && gpuUploadHeapFallback) {
++#ifdef __MINGW32__
++            device->d3d->GetCustomHeapProperties(&poolDesc.HeapProperties, 0, D3D12_HEAP_TYPE_UPLOAD);
++#else
+             poolDesc.HeapProperties = device->d3d->GetCustomHeapProperties(0, D3D12_HEAP_TYPE_UPLOAD);
++#endif
+         }
+         else {
+             poolDesc.HeapProperties.Type = toD3D12(desc.heapType);
+diff --git a/plume_render_interface_types.h b/plume_render_interface_types.h
+index 9dcfedf..2281168 100644
+--- a/plume_render_interface_types.h
++++ b/plume_render_interface_types.h
+@@ -15,7 +15,7 @@
+ #include <cfloat>
+ #include <cstdint>
+ 
+-#if defined(_WIN64)
++#if defined(_WIN32)
+ #include <Windows.h>
+ #elif defined(__ANDROID__)
+ #include "android/native_window.h"
+@@ -34,7 +34,7 @@
+ #endif
+ 
+ namespace plume {
+-#if defined(_WIN64)
++#if defined(_WIN32)
+     // Native HWND handle to the target window.
+     typedef HWND RenderWindow;
+ #elif defined(__ANDROID__)
+diff --git a/plume_vulkan.cpp b/plume_vulkan.cpp
+index f1dd503..57ce1ac 100644
+--- a/plume_vulkan.cpp
++++ b/plume_vulkan.cpp
+@@ -48,7 +48,7 @@ namespace plume {
+ #   ifdef VULKAN_OBJECT_NAMES_ENABLED
+         VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
+ #   endif
+-#   if defined(_WIN64)
++#   if defined(_WIN32)
+         VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
+ #   elif defined(__ANDROID__)
+         VK_KHR_ANDROID_SURFACE_EXTENSION_NAME,
+@@ -1855,7 +1855,7 @@ namespace plume {
+ 
+         this->descriptorSetCount = uint32_t(pipelineLayout->descriptorSetLayouts.size());
+ 
+-        VkResult res = vkCreateRayTracingPipelinesKHR(device->vk, nullptr, nullptr, 1, &pipelineInfo, nullptr, &vk);
++        VkResult res = vkCreateRayTracingPipelinesKHR(device->vk, VK_NULL_HANDLE, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &vk);
+         if (res != VK_SUCCESS) {
+             fprintf(stderr, "vkCreateRayTracingPipelinesKHR failed with error code 0x%X.\n", res);
+             return;
+@@ -2082,7 +2082,7 @@ namespace plume {
+ 
+         VkResult res;
+ 
+-#   ifdef _WIN64
++#   ifdef _WIN32
+         assert(desc.renderWindow != 0);
+         VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = {};
+         surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+@@ -2458,7 +2458,7 @@ namespace plume {
+     }
+ 
+     void VulkanSwapChain::getWindowSize(uint32_t &dstWidth, uint32_t &dstHeight) const {
+-#   if defined(_WIN64)
++#   if defined(_WIN32)
+         RECT rect;
+         GetClientRect(desc.renderWindow, &rect);
+         dstWidth = rect.right - rect.left;
+diff --git a/plume_vulkan.h b/plume_vulkan.h
+index 0a1edbe..a0cf5cc 100644
+--- a/plume_vulkan.h
++++ b/plume_vulkan.h
+@@ -14,7 +14,7 @@
+ #include <unordered_map>
+ #include <unordered_set>
+ 
+-#if defined(_WIN64)
++#if defined(_WIN32)
+ #define VK_USE_PLATFORM_WIN32_KHR
+ #elif defined(__ANDROID__)
+ #define VK_USE_PLATFORM_ANDROID_KHR

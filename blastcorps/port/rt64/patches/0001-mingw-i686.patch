@@ -1,0 +1,211 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 79dfc38..d423a9c 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -36,7 +36,13 @@ function(preprocess INFILE OUTFILE OPTIONS)
+ endfunction()
+ 
+ if (WIN32)
+-    set (DXC "${PROJECT_SOURCE_DIR}/src/contrib/dxc/bin/x64/dxc.exe")
++    if (CMAKE_HOST_UNIX AND RT64_HOST_DXC_DIR)
++        set (DXC "LD_LIBRARY_PATH=${RT64_HOST_DXC_DIR}/lib" "${RT64_HOST_DXC_DIR}/bin/dxc")
++    elseif (CMAKE_HOST_UNIX)
++        set (DXC "LD_LIBRARY_PATH=${PROJECT_SOURCE_DIR}/src/contrib/dxc/lib/x64" "${PROJECT_SOURCE_DIR}/src/contrib/dxc/bin/x64/dxc-linux")
++    else()
++        set (DXC "${PROJECT_SOURCE_DIR}/src/contrib/dxc/bin/x64/dxc.exe")
++    endif()
+     add_compile_definitions(
+         NOMINMAX
+         __PRFCHWINTRIN_H
+@@ -69,7 +75,22 @@ set(ZSTD_LEGACY_SUPPORT OFF)
+ set(ZSTD_BUILD_STATIC ON)
+ set(ZSTD_BUILD_SHARED OFF)
+ 
+-add_subdirectory(src/tools/file_to_c)
++if (CMAKE_CROSSCOMPILING)
++    add_executable(file_to_c IMPORTED)
++    set_property(TARGET file_to_c PROPERTY IMPORTED_LOCATION "${HOST_FILE_TO_C}")
++else()
++    if (CMAKE_CROSSCOMPILING)
++    add_executable(file_to_c IMPORTED)
++    set_property(TARGET file_to_c PROPERTY IMPORTED_LOCATION "${HOST_FILE_TO_C}")
++else()
++    if (CMAKE_CROSSCOMPILING)
++    add_executable(file_to_c IMPORTED)
++    set_property(TARGET file_to_c PROPERTY IMPORTED_LOCATION "${HOST_FILE_TO_C}")
++else()
++    add_subdirectory(src/tools/file_to_c)
++endif()
++endif()
++endif()
+ add_subdirectory(src/contrib/re-spirv)
+ add_subdirectory(src/contrib/nativefiledialog-extended)
+ add_subdirectory(src/contrib/zstd/build/cmake)
+@@ -287,8 +308,8 @@ endfunction()
+ # Point cmake at src/contrib/mupen64plus-win32-deps/SDL2-2.26.3 for SDL2 on windows, look for an installed package on other systems
+ if (WIN32)
+     set(SDL2_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/src/contrib/mupen64plus-win32-deps/SDL2-2.26.3/include")
+-    set(SDL2_LIBRARIES "SDL2" "SDL2main")
+-    link_directories("${PROJECT_SOURCE_DIR}/src/contrib/mupen64plus-win32-deps/SDL2-2.26.3/lib/x64")
++    set(SDL2_LIBRARIES "SDL2")
++    link_directories("${PROJECT_SOURCE_DIR}/src/contrib/mupen64plus-win32-deps/SDL2-2.26.3/lib/${RT64_WIN_ARCH}")
+ else()
+     find_package(SDL2 REQUIRED)
+ endif()
+@@ -446,8 +467,7 @@ target_link_libraries(rt64 libzstd_static)
+ target_link_libraries(rt64 plume)
+ 
+ # Add tools.
+-add_subdirectory(src/tools/texture_hasher)
+-add_subdirectory(src/tools/texture_packer)
++# texture tools skipped for cross build
+ 
+ # Add any Apple-specific source files and libraries
+ if (APPLE)
+@@ -467,10 +487,9 @@ if (WIN32)
+         "${PROJECT_SOURCE_DIR}/src/contrib/imgui/backends/imgui_impl_win32.cpp"
+     )
+     target_link_libraries(rt64
+-        delayimp.lib
+         D3D12
+         DXGI
+-        Shcore.lib
++        shcore
+         ${PROJECT_SOURCE_DIR}/src/contrib/dxc/lib/x64/dxcompiler.lib)
+ 
+     target_include_directories(rt64 PRIVATE ${zstd_SOURCE_DIR}/lib)
+diff --git a/src/common/rt64_thread.cpp b/src/common/rt64_thread.cpp
+index c4b080b..a25191e 100644
+--- a/src/common/rt64_thread.cpp
++++ b/src/common/rt64_thread.cpp
+@@ -7,7 +7,7 @@
+ #include <cassert>
+ #include <thread>
+ 
+-#if defined(_WIN64)
++#if defined(_WIN32) // RT64_MINGW_PATCH: was _WIN64 (32-bit Windows build)
+ #   include <Windows.h>
+ #   include "utf8conv/utf8conv.h"
+ #elif defined(__linux__)
+@@ -42,7 +42,13 @@ namespace RT64 {
+     void Thread::setCurrentThreadName(const std::string &str) {
+ #   if defined(_WIN32)
+         std::wstring nameWide = win32::Utf8ToUtf16(str);
++#       ifdef __MINGW32__
++        typedef HRESULT (WINAPI *SetThreadDescriptionFn)(HANDLE, PCWSTR);
++        static SetThreadDescriptionFn fn = (SetThreadDescriptionFn)(void *)GetProcAddress(GetModuleHandleW(L"kernel32.dll"), "SetThreadDescription");
++        if (fn != nullptr) fn(GetCurrentThread(), nameWide.c_str());
++#       else
+         SetThreadDescription(GetCurrentThread(), nameWide.c_str());
++#       endif
+ #   elif defined(__linux__)
+         pthread_setname_np(pthread_self(), str.c_str());
+ #   elif defined(__APPLE__)
+diff --git a/src/common/rt64_tmem_hasher.h b/src/common/rt64_tmem_hasher.h
+index 8c6af2b..9cade92 100644
+--- a/src/common/rt64_tmem_hasher.h
++++ b/src/common/rt64_tmem_hasher.h
+@@ -23,7 +23,7 @@ static unsigned bitScanForward64(uint64_t val) {
+         __assume(0);
+     }
+ #endif
+-#elif defined(__GNUC__) && (__GNUC__ >= 4) && defined(__LP64__)
++#elif defined(__GNUC__) && (__GNUC__ >= 4) /* RT64_MINGW_PATCH: was && defined(__LP64__) */
+     return (unsigned)__builtin_ctzll(val);
+ #elif defined(__ICCARM__)
+     return (unsigned)__builtin_ctzll(val);
+diff --git a/src/common/rt64_user_configuration.cpp b/src/common/rt64_user_configuration.cpp
+index cc35442..0c17ca7 100644
+--- a/src/common/rt64_user_configuration.cpp
++++ b/src/common/rt64_user_configuration.cpp
+@@ -141,7 +141,7 @@ namespace RT64 {
+ 
+     UserConfiguration::GraphicsAPI UserConfiguration::resolveGraphicsAPI(GraphicsAPI graphicsAPI) {
+         if (graphicsAPI == UserConfiguration::GraphicsAPI::Automatic) {
+-#       if defined(_WIN64)
++#       if defined(_WIN32)
+             // Change the default graphics API when running under Wine to avoid using the D3D12 translation layer when possible. Recreate the default user configuration right afterwards so this new value is assigned.
+             return Sommelier::detectWine() ? UserConfiguration::GraphicsAPI::Vulkan : UserConfiguration::GraphicsAPI::D3D12;
+ #       elif defined(__APPLE__)
+diff --git a/src/hle/rt64_application.cpp b/src/hle/rt64_application.cpp
+index ee8bc1f..316baba 100644
+--- a/src/hle/rt64_application.cpp
++++ b/src/hle/rt64_application.cpp
+@@ -87,7 +87,7 @@ namespace RT64 {
+     }
+ 
+     Application::SetupResult Application::setup(uint32_t threadId) {
+-#   ifdef _WIN64
++#   ifdef _WIN32
+         if (!DynamicLibraries::load()) {
+             fprintf(stderr, "Failed to load dynamic libraries. Make sure the dependencies are next to the Plugin's DLL.\n");
+             return SetupResult::Success;
+@@ -132,7 +132,7 @@ namespace RT64 {
+         // Resolve the graphics API option in case it's automatic.
+         chosenGraphicsAPI = UserConfiguration::resolveGraphicsAPI(userConfig.graphicsAPI);
+ 
+-#   ifdef _WIN64
++#   ifdef _WIN32
+         // Windows can try falling back to the other API option in case of failure.
+         const uint32_t CreationAttempts = (userConfig.graphicsAPI == UserConfiguration::GraphicsAPI::Automatic) ? 2 : 1;
+ #   else
+@@ -140,7 +140,7 @@ namespace RT64 {
+ #   endif
+ 
+         for (uint32_t creationAttempt = 0; (creationAttempt < CreationAttempts) && (device == nullptr); creationAttempt++) {
+-#       ifdef _WIN64
++#       ifdef _WIN32
+             if (creationAttempt == 1) {
+                 if (chosenGraphicsAPI == UserConfiguration::GraphicsAPI::D3D12) {
+                     fprintf(stderr, "Unable to initialize a D3D12 device. Falling back to Vulkan.\n");
+@@ -158,7 +158,7 @@ namespace RT64 {
+             // Create a render interface with the preferred backend.
+             switch (chosenGraphicsAPI) {
+             case UserConfiguration::GraphicsAPI::D3D12:
+-#       ifdef _WIN64
++#       ifdef _WIN32
+                 renderInterface = CreateD3D12Interface();
+                 break;
+ #       else
+diff --git a/src/hle/rt64_application_window.cpp b/src/hle/rt64_application_window.cpp
+index 08f83e5..9b16b1a 100755
+--- a/src/hle/rt64_application_window.cpp
++++ b/src/hle/rt64_application_window.cpp
+@@ -342,7 +342,7 @@ namespace RT64 {
+         int32_t newWindowLeft = INT32_MAX;
+         int32_t newWindowTop = INT32_MAX;
+ 
+-#   if defined(_WIN64)
++#   if defined(_WIN32)
+         RECT rect;
+         GetWindowRect(windowHandle, &rect);
+         newWindowLeft = rect.left;
+diff --git a/src/hle/rt64_application_window.h b/src/hle/rt64_application_window.h
+index 73f8222..cb2340c 100644
+--- a/src/hle/rt64_application_window.h
++++ b/src/hle/rt64_application_window.h
+@@ -77,7 +77,7 @@ namespace RT64 {
+ 
+ #   ifdef _WIN32
+         void windowMessage(UINT message, WPARAM wParam, LPARAM lParam);
+-        static LRESULT windowHookCallback(int nCode, WPARAM wParam, LPARAM lParam);
++        static LRESULT CALLBACK windowHookCallback(int nCode, WPARAM wParam, LPARAM lParam);
+ #   endif
+     };
+ };
+diff --git a/src/render/rt64_shader_compiler.h b/src/render/rt64_shader_compiler.h
+index e7c3377..f3f8e77 100644
+--- a/src/render/rt64_shader_compiler.h
++++ b/src/render/rt64_shader_compiler.h
+@@ -8,6 +8,11 @@
+ 
+ #include <Windows.h>
+ #include <dxcapi.h>
++#ifdef __MINGW32__ // RT64_MINGW_PATCH
++__CRT_UUID_DECL(IDxcCompiler, 0x8c210bf3, 0x011f, 0x4422, 0x8d, 0x70, 0x6f, 0x9a, 0xcb, 0x8d, 0xb6, 0x17)
++__CRT_UUID_DECL(IDxcLinker, 0xf1b5be2a, 0x62dd, 0x4327, 0xa1, 0xc2, 0x42, 0xac, 0x1e, 0x1e, 0x78, 0xe6)
++__CRT_UUID_DECL(IDxcUtils, 0x4605c4cb, 0x2019, 0x492a, 0xad, 0xa4, 0x65, 0xf2, 0x0b, 0xb7, 0xd6, 0x7f)
++#endif
+ 
+ #include <string>
+ 

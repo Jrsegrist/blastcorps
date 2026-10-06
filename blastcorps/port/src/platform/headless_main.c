@@ -77,7 +77,8 @@ static int cmp_u(const void *a, const void *b) {
     return x < y ? -1 : x > y;
 }
 
-int main(int argc, char **argv) {
+int host_main(int argc, char **argv, int (*extra)(int argc, char **argv, int *i, HostOpts *o),
+              void (*prestart)(HostOpts *o)) {
     HostOpts o;
     int i;
     size_t rom_size;
@@ -88,6 +89,7 @@ int main(int argc, char **argv) {
     for (i = 1; i < argc; i++) {
         const char *a = argv[i];
 #define ARG() (i + 1 < argc ? argv[++i] : (usage(), (char *) NULL))
+        if (extra != NULL && extra(argc, argv, &i, &o)) continue;
         if (!strcmp(a, "--frames")) o.frames = num(ARG());
         else if (!strcmp(a, "--vis")) o.max_vis = num(ARG());
         else if (!strcmp(a, "--dump")) {
@@ -133,5 +135,12 @@ int main(int argc, char **argv) {
     if (rdram_map() || rdram_load(o.rom_path)) return 1;
     o.rom = rom_bytes(&rom_size);
     o.rom_size = (unsigned) rom_size;
+    if (prestart != NULL) prestart(&o);
     plat_start(&o);
 }
+
+#ifndef PORT_LIVE
+int main(int argc, char **argv) {
+    return host_main(argc, argv, NULL, NULL);
+}
+#endif

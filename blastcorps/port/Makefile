@@ -39,7 +39,7 @@ GAME_OBJS := $(GAME_FILES:%=$(B)/game/%.o)
 GAME_RECS := $(GAME_FILES:%=$(B)/game/%.rec)
 MAIN      ?= spike_main
 # byte order on load (port/src/load/, see port_load.h)
-LOAD_SRCS := src/load/swap.c src/load/port_assets.c
+LOAD_SRCS := src/load/swap.c src/load/port_assets.c src/load/gfx_fix.c
 PORT_SRCS := src/rdram.c src/inflate.c src/$(MAIN).c $(LOAD_SRCS)
 PORT_OBJS := $(PORT_SRCS:src/%.c=$(B)/port/%.o) $(B)/swaptab.o
 PORT_HDRS := src/rdram.h src/load/port_load.h src/load/schemas.h src/platform/port_dma.h
@@ -321,6 +321,61 @@ $(H)/bc_headless.exe: $(HL_GAME_OBJS) $(HL_HOST_OBJS) $(H)/stubs.o $(H)/copytab.
 
 headless: $(H)/bc_headless.exe
 
+# ---------------------------------------------------------------------------
+# windowed (stage 4): bc_headless's game and platform objects plus src/live/
+# (SDL2 window, input, RT64 renderer) in build/game/bc.exe, with the run-time
+# DLLs next to it.  RT64 is built by rt64/build_rt64.sh into $(TP)/rt64_bc
+# (pinned commit, patches in rt64/patches).  See README.md ("Windowed").
+#
+#   make -C port game
+#   build/game/bc.exe ROM [bc_headless options] [--api d3d12|vulkan] [--shot F,..] ...
+G := build/game
+TP ?= $(HOME)/thirdparty
+RT64_W := $(TP)/rt64_bc
+RT64_SRC := $(RT64_W)/src
+RT64_B := $(RT64_W)/build-i686
+CXX := i686-w64-mingw32-g++-posix
+RT64_LIBS := $(RT64_B)/rt64.a $(RT64_B)/src/contrib/plume/libplume.a $(RT64_B)/src/contrib/re-spirv/libre-spirv.a \
+	$(RT64_B)/src/contrib/nativefiledialog-extended/src/libnfd.a $(RT64_B)/src/contrib/zstd/build/cmake/lib/libzstd.a
+RT64_DLLS := dxcompiler.dll dxil.dll SDL2.dll
+SDL_DIR := $(RT64_SRC)/src/contrib/mupen64plus-win32-deps/SDL2-2.26.3
+LIVE_CXXFLAGS := -O2 -std=gnu++17 -g -Wall -Wno-unknown-pragmas -Wno-attributes \
+	-DRT64_NATIVE_HOST_LAYOUT -DSDL_MAIN_HANDLED -DFFX_GCC -DHLSL_CPU -DIMGUI_IMPL_VULKAN_NO_PROTOTYPES -DNOMINMAX \
+	-D__PRFCHWINTRIN_H -DImTextureID=ImU64 -D_WIN32_WINNT=0x0A00 -DWINVER=0x0A00 -D__REQUIRED_RPCNDR_H_VERSION__=475 \
+	-include $(RT64_W)/shim/rt64_mingw_compat.h -I$(RT64_W)/shim \
+	-I$(TP)/DirectX-Headers/include/directx -I$(TP)/DirectX-Headers/include/dxguids -I$(TP)/DirectX-Headers/include \
+	-I$(SDL_DIR)/include -I$(RT64_SRC)/src -I$(RT64_SRC)/src/contrib -I$(RT64_SRC)/src/contrib/plume \
+	-I$(RT64_SRC)/src/contrib/imgui -I$(RT64_SRC)/src/contrib/hlslpp/include -I$(RT64_SRC)/src/contrib/dxc/inc \
+	-I$(RT64_B)/src -I$(RT64_SRC)/src/contrib/plume/contrib/volk \
+	-I$(RT64_SRC)/src/contrib/plume/contrib/Vulkan-Headers/include \
+	-I$(RT64_SRC)/src/contrib/plume/contrib/VulkanMemoryAllocator/include \
+	-I$(RT64_SRC)/src/contrib/plume/contrib/D3D12MemoryAllocator/include \
+	-Isrc -Isrc/platform
+LIVE_SYSLIBS := -ld3d12 -ld3dcompiler -ldxgi -lshcore -ldxguid -lole32 -loleaut32 -luuid -lshell32 -lshlwapi \
+	-lcomdlg32 -lgdi32 -luser32 -ldwmapi -limm32 -lversion -lsetupapi -lwinmm
+# the same objects as bc_headless, but the host entry comes from src/live/
+G_HOST_OBJS := $(filter-out $(H)/host/headless_main.o,$(HL_HOST_OBJS)) $(G)/host/headless_main.o \
+	$(G)/live/live_rt64.o
+
+$(G)/rt64.stamp: rt64/build_rt64.sh $(wildcard rt64/patches/*.patch)
+	@mkdir -p $(@D)
+	TP=$(TP) JOBS=$${JOBS:-2} bash rt64/build_rt64.sh
+	touch $@
+$(G)/host/headless_main.o: src/platform/headless_main.c src/platform/plat_host.h src/rdram.h Makefile
+	@mkdir -p $(@D)
+	$(CC) $(HL_HOST_CFLAGS) -DPORT_LIVE -c -o $@ $<
+$(G)/live/%.o: src/live/%.cpp src/platform/plat_host.h src/rdram.h $(G)/rt64.stamp Makefile
+	@mkdir -p $(@D)
+	$(CXX) $(LIVE_CXXFLAGS) -c -o $@ $<
+$(G)/bc.exe: $(HL_GAME_OBJS) $(G_HOST_OBJS) $(H)/stubs.o $(H)/copytab.o $(H)/abs_syms.ld $(G)/rt64.stamp
+	$(CXX) -o $@ $(HL_GAME_OBJS) $(G_HOST_OBJS) $(H)/stubs.o $(H)/copytab.o $(H)/abs_syms.ld $(RT64_LIBS) \
+		$(RT64_W)/dll/SDL2.dll $(RT64_W)/dll/libdxcompiler.a $(LIVE_SYSLIBS) \
+		-static -static-libgcc -static-libstdc++ $(LDFLAGS) -Wl,-Map=$(G)/bc.map
+	$(CC:gcc=nm) -n $@ > $(G)/bc.syms
+	cp -u $(addprefix $(RT64_W)/dll/,$(RT64_DLLS)) $(G)/
+
+game: $(G)/bc.exe
+
 # frame-by-frame comparison with the emulator over attract demo DEMO
 # (tools/compare.py; the emulator run is cached in CMP_CACHE)
 DEMO ?= 0
@@ -332,5 +387,5 @@ compare: $(H)/bc_headless.exe
 clean:
 	rm -rf $(B)
 
-.PHONY: all check clean linkall loadcheck typemap ucode headless compare
+.PHONY: all check clean linkall loadcheck typemap ucode headless compare game
 .SECONDARY:

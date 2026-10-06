@@ -70,9 +70,42 @@ typedef struct {
     int quiet;
     int game_print;            /* print the game's debug messages (func_8029A7E4) */
     const char *mpk_path;      /* Controller Pak image (.mpk), or NULL: no pak */
+    const struct HostLive *live; /* renderer, window, live input (bc.exe); NULL in bc_headless */
 } HostOpts;
+
+/* The VI registers as libultra's VI manager would program them for the
+ * frame on screen (os_hw.c fills them at every retrace). */
+typedef struct {
+    unsigned status, origin, width, intr, burst, v_sync, h_sync, leap, h_start, v_start, v_burst,
+        x_scale, y_scale;
+} HostViRegs;
+
+/* What the windowed build (bc.exe, port/src/live/) adds to the platform.
+ * The game logic steps exactly as in bc_headless: these hooks observe the
+ * game (they render its graphics tasks and show its frames) and pace the
+ * virtual clock to real time, but never change what the game sees, except
+ * through `input` (the player's controller). */
+typedef struct HostLive {
+    /* after the ROM images are in RDRAM, before the game starts */
+    void (*boot)(void);
+    /* a graphics task the RSP would run: physical addresses of the ucode
+     * text and data and of the display list */
+    void (*gfx_task)(unsigned ucode, unsigned ucode_data, unsigned data_ptr, unsigned data_size);
+    /* a retrace (virtual time `when`, in counts): VI registers of the frame
+     * on screen; paces to real time and presents */
+    void (*vi)(const HostViRegs *regs, unsigned vi_count, unsigned long long when, unsigned frames);
+    /* controller 1 now: returns 1 and fills the pad if the live input is used */
+    int (*input)(unsigned short *button, signed char *x, signed char *y);
+} HostLive;
 
 /* platform entry (plat_core.c): boots the game and never returns */
 void plat_start(const HostOpts *o) __attribute__((noreturn));
+
+/* option parsing and start-up shared by bc_headless.exe and bc.exe
+ * (headless_main.c).  `extra` gets the options host_main doesn't know
+ * (return 1 if consumed; *i may advance), `prestart` runs just before the
+ * game starts (after the ROM is loaded). */
+int host_main(int argc, char **argv, int (*extra)(int argc, char **argv, int *i, HostOpts *o),
+              void (*prestart)(HostOpts *o));
 
 #endif

@@ -47,6 +47,26 @@ void port_on_load(uint32_t rom, uint32_t dst, uint32_t len);
 /* (port/src/platform/port_dma.h) after every ROM -> RDRAM DMA. */
 void port_on_dma(uint32_t dst, uint32_t rom, uint32_t len);
 
+/* Graphics data inside display-list areas (gfx_fix.c).  The schemas swap a
+ * display-list area of an asset as u32 words (the CPU walks and patches the
+ * commands as words), but such an area can also hold vertices, viewports,
+ * lights and texels: as words they end up in the emulator's layout, while the
+ * renderer (RT64 in RT64_NATIVE_HOST_LAYOUT) reads host-order Vtx fields and
+ * big-endian texels like everywhere else.  The schemas register the areas
+ * they swapped by words; before the renderer runs a task,
+ * port_gfx_fix_task walks its display lists (F3D: segments, sub-lists) and
+ * converts whatever those areas hold besides commands to the native layout,
+ * once per load.  Only the windowed build calls it. */
+void port_gfx_word_area(uint32_t addr, uint32_t len);
+/* the same for parts of the data images left as ROM bytes (swap.c) */
+void port_gfx_raw_area(uint32_t addr, uint32_t len);
+/* every load/DMA: areas overlapping the new data are forgotten */
+void port_gfx_forget(uint32_t addr, uint32_t len);
+/* walk the display list at physical address DL; returns the bytes converted */
+uint32_t port_gfx_fix_task(uint32_t dl);
+/* 1: log words left alone because the game changed them since the load */
+extern int port_gfx_debug;
+
 /* Statistics: per asset kind, how many loads and bytes were handled. */
 void port_load_report(void);
 /* 1: log every DMA/load and the kind it was classified as (stderr). */

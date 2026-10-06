@@ -19,7 +19,8 @@ disagrees with its declaration, or at two widths: the exception list).
 
   3. port/data/image_overrides.txt: ranges where both are wrong for the
      native code ('ADDR SIZE w4' forces 4-byte words, 'be' keeps the bytes
-     big-endian; the reason is in each line's comment).
+     big-endian, 'vtx' lays out F3D vertices for the renderer; the reason is
+     in each line's comment).
 
   4. --static FILE ADDRS: fixed-address and element accesses of the native
      game code (port/tools/mixscan.py --widths), for bytes 1-2 leave untyped.
@@ -235,6 +236,12 @@ def main():
                 w = int(act[1:])
                 for s in range(s0, s0 + n, w):
                     width[s] = w
+            elif act == "vtx":
+                # F3D Vtx records {s16 x, y, z, flag, s, t; u8 r, g, b, a}:
+                # six halfwords, the colour bytes stay as they are
+                for r in range(s0, s0 + n, 16):
+                    for h in range(0, 12, 2):
+                        width[r + h] = 2
         # runs: consecutive leaves of one width
         runs = []
         for s in sorted(width):

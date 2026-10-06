@@ -39,6 +39,14 @@
 #else
 #define PORT_HALF(i) (i)
 #endif
+/*   PORT_SHAMT(n)     a variable shift amount as MIPS sllv/srlv/srav use it
+ *                     (low 5 bits); in C a shift by 32 or more is undefined
+ *                     and gcc folds it away. */
+#if defined(NON_MATCHING) && defined(PORT_HOST)
+#define PORT_SHAMT(n) ((n) & 31)
+#else
+#define PORT_SHAMT(n) (n)
+#endif
 #define PORT_SAVE_PLAYER 0  /* player record, 0x100 bytes */
 #define PORT_SAVE_TIMES 1   /* best times, 0x20 bytes */
 #define PORT_SAVE_EETIMES 2 /* EEPROM best-time words, 8 bytes */

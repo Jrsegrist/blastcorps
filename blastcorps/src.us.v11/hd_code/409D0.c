@@ -229,17 +229,19 @@ void func_80285A78(u8 *src, u8 *dst) {
     }
 }
 
-/* Set flag `bit` (1-based) for the current level */
+/* Set flag `bit` (1-based) for the current level. The shift is 32 or more:
+ * MIPS sllv uses its low 5 bits (bit 1 -> 1 << 0); C leaves it undefined,
+ * so the port masks it (PORT_SHAMT). */
 void func_80285AB0(u8 bit) {
     D_80364A87 |= 2;
-    CUR.flags[D_802E8BDC] |= 1 << (bit + 0x1F);
+    CUR.flags[D_802E8BDC] |= 1 << PORT_SHAMT(bit + 0x1F);
 }
 
 /* Test flag `bit` (1-based) for the current level */
 s32 func_80285B10(u8 bit) {
     s32 unused;
 
-    return (D_80364B44[D_80364AE8][D_802E8BDC] & (1 << (bit + 0x1F))) ? 1 : 0;
+    return (D_80364B44[D_80364AE8][D_802E8BDC] & (1 << PORT_SHAMT(bit + 0x1F))) ? 1 : 0;
 }
 
 /* Level just completed by the active player: mark it and fade out */

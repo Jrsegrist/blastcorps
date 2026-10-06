@@ -303,10 +303,28 @@ $(NM_ROM_LD_SCRIPT): hd_code.$(VERSION).ld tools_port/nm_ldscript.py | dirs
 $(NM_ROM_ELF): $(HD_CODE_O_FILES) $(NM_ROM_LD_SCRIPT) $(HD_CODE_BSS_LD_SCRIPT) $(HD_CODE_UNDEF_FILES)
 	@$(LD) -T $(HD_CODE_BSS_LD_SCRIPT) -T $(NM_ROM_LD_SCRIPT) -Map $(@:.elf=.map) \
 		$(addprefix -T ,$(HD_CODE_UNDEF_FILES)) --no-check-sections --no-warn-mismatch -o $@
-nmrom: hd_code $(NM_ROM_ELF)
+# the NM front end for the ROM: text in Expansion Pak RAM after the NM hd_code
+# (nm_rom.py DMAs both as image A), data pinned, calls into the ROM-linked hd_code
+NM_ROM_FE_TEXT_VRAM ?= 0x80500000
+NM_ROM_FE_ELF = $(BUILD_DIR)/hd_front_end.rom.$(VERSION).elf
+NM_ROM_FE_LD_SCRIPT = $(BUILD_DIR)/hd_front_end.rom.$(VERSION).ld
+NM_ROM_FE_UNDEF_FILES = $(foreach f,undefined_syms_auto undefined_funcs_auto undefined_syms_hd_code_auto undefined_syms,$(BUILD_DIR)/$(f).hd_front_end.rom.$(VERSION).txt)
+$(BUILD_DIR)/%.hd_front_end.rom.$(VERSION).txt: %.hd_front_end.$(VERSION).txt tools_port/nm_ldscript.py $(NM_ROM_ELF) | dirs
+	$(NM_LDSCRIPT) $< $@ --provide --resolve-elf $(NM_ROM_ELF)
+$(NM_ROM_FE_LD_SCRIPT): hd_front_end.$(VERSION).ld tools_port/nm_ldscript.py | dirs
+	$(NM_LDSCRIPT) $< $@ --relocate .hd_front_end=$(NM_ROM_FE_TEXT_VRAM) --pin-data .hd_front_end_data \
+		--extra-vram '((ADDR(.hd_front_end) + SIZEOF(.hd_front_end) + 0xF) & ~0xF)' --extra-name .nm_extra_fe \
+		--extra-glob '$(BUILD_DIR)/src.$(VERSION)/hd_front_end/*.o'
+$(NM_ROM_FE_ELF): $(HD_FRONT_END_O_FILES) $(NM_ROM_FE_LD_SCRIPT) $(HD_FRONT_END_BSS_LD_SCRIPT) $(NM_ROM_FE_UNDEF_FILES)
+	@$(LD) -T $(HD_FRONT_END_BSS_LD_SCRIPT) -T $(NM_ROM_FE_LD_SCRIPT) -Map $(@:.elf=.map) \
+		$(addprefix -T ,$(NM_ROM_FE_UNDEF_FILES)) --no-check-sections --no-warn-mismatch -o $@
+nmrom: hd_code hd_front_end $(NM_ROM_ELF) $(NM_ROM_FE_ELF)
 	$(PYTHON) tools_port/nm_rom.py --baserom $(BASEROM) --elf $(NM_ROM_ELF) \
 		--orig-elf build/hd_code.$(VERSION).elf --init-elf build/init.$(VERSION).elf \
 		--front-end hd_front_end.$(VERSION).bin --conventions tools_port/conventions.txt \
+		--fe-elf $(NM_ROM_FE_ELF) --fe-orig-elf build/hd_front_end.$(VERSION).elf \
+		--fe-src-dir $(HD_FRONT_END_SRC_DIR) --rarezip $(TOOLS_DIR)/rarezip.py \
+		--fe-time $(HD_FRONT_END_TEXT_TIMESTAMP) $(HD_FRONT_END_DATA_TIMESTAMP) \
 		--src-dir $(HD_CODE_SRC_DIR) --sha1 ../blastcorps.$(VERSION).sha1 -o $(NM_ROM)
 .PHONY: nmrom
 endif

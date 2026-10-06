@@ -21,6 +21,13 @@ Layout (see tools_port/README.md, "Test ROM"):
     inline loader: write back + invalidate the D-cache, PI-DMA image A and
     image B, invalidate the I-cache, `a0 = gp`, jump to the NM entry
     (func_802447C0) with init's stack, exactly like the original `j`.
+  * With --fe-elf: the NM front end (hd_front_end.rom.*.elf, text at
+    0x80500000) joins image A, and image D, appended after B, is the
+    front end hd_code inflates to 0x801E7000 (func_8028B3E0): the original
+    front-end text with a trampoline on every safe function entry plus the NM
+    .hd_front_end_data, both gzipped again with tools/rarezip.py.  The loader
+    stores image D's ROM range at 0x803FFFF8/C, where init has just put the
+    original front end's range.
   * The ROM is padded to 12 MB (it must stay below 0xFFB000: func_802447C0
     reads a debug command line from ROM 0xFFB000, which is past the end of the
     original 8 MB ROM) and the header CRCs (CIC-6102) are recomputed.
@@ -64,6 +71,8 @@ HD_DATA_ROM_GZ = 0x7D73B4
 HD_GZ_END = 0x7E3AC7
 FRONT_END_VRAM = 0x801E7000     # func_8028B3E0 (46C20.c)
 FRONT_END_TEXT_SIZE = 0x21040   # hd_front_end.us.v11.yaml
+FE_GZ_ROM, FE_GZ_END = 0x7E3AD0, 0x7F9BE0   # gzip'd front end (text, data); init stores the range
+                                            # at 0x803FFFF8 / 0x803FFFFC (hd_code D_802FDB30/4)
 INIT_RANGE = (0x8021ED00, 0x80224B50)
 
 
@@ -107,6 +116,18 @@ def gunzip_member(b):
     return d.decompress(b)
 
 
+def gunzip_members(b):
+    """Every gzip member in b, in order (stops at trailing padding)."""
+    out = []
+    while b and b[:2] == b"\x1f\x8b":
+        d = zlib.decompressobj(16 + zlib.MAX_WBITS)
+        out.append(d.decompress(b))
+        if not d.eof:
+            die("truncated gzip member")
+        b = d.unused_data
+    return out, len(b)
+
+
 def cic6102_crc(rom):
     m = 0xFFFFFFFF
     t1 = t2 = t3 = t4 = t5 = t6 = 0xF8CA4DDC
@@ -146,12 +167,14 @@ def rewritten_functions(src_dir):
     return out
 
 
-def conventions(path):
+def conventions(path, full_only=False):
+    """Functions with a conventions.txt line (FULL_ONLY: an `in`/`out` one,
+    i.e. a C version that doesn't take the asm's registers)."""
     names = set()
     for line in open(path):
         line = line.split("#", 1)[0].strip()
-        m = re.match(r"^([A-Za-z_]\w*)\s*:", line)
-        if m:
+        m = re.match(r"^([A-Za-z_]\w*)\s*:(.*)$", line)
+        if m and (not full_only or re.search(r"(^|;)\s*(in|out)\s", m.group(2))):
             names.add(m.group(1))
     return names
 
@@ -208,7 +231,7 @@ nm_boot:
     addiu   $t0, $t0, 0x10
     bne     $t0, $t1, 1b
     nop
-    # image A: NM text + .nm_extra -> Expansion Pak RAM
+    # image A: NM text + .nm_extra (+ the NM front end's) -> Expansion Pak RAM
     move    $a0, $zero
     li      $a1, {rom_a:#x}
     li      $a2, {vram_a:#x}
@@ -232,6 +255,13 @@ nm_boot:
     andi    $v0, $v0, 3
     bnez    $v0, 3b
     nop
+    # the front end's ROM range, which init has just stored at 0x803FFFF8/C
+    # (hd_code func_8028B3E0 inflates it): image D, the patched front end
+    lui     $t0, 0x8040
+    li      $t1, {fe_start:#x}
+    sw      $t1, -8($t0)
+    li      $t1, {fe_end:#x}
+    sw      $t1, -4($t0)
     # invalidate the whole I-cache (16 KB, 32-byte lines)
     lui     $t0, 0x8000
     addiu   $t1, $t0, 0x4000
@@ -272,6 +302,12 @@ def main():
     ap.add_argument("--orig-elf", required=True, help="matching hd_code elf (build/)")
     ap.add_argument("--init-elf", required=True, help="matching init elf (build/)")
     ap.add_argument("--front-end", required=True, help="inflated hd_front_end text+data")
+    ap.add_argument("--fe-elf", help="NM front end linked for the ROM (text in Expansion Pak RAM)")
+    ap.add_argument("--fe-orig-elf", help="matching front-end elf (build/)")
+    ap.add_argument("--fe-src-dir")
+    ap.add_argument("--rarezip", help="tools/rarezip.py (gzips the patched front end)")
+    ap.add_argument("--fe-time", type=int, nargs=2, default=[0, 0], metavar=("TEXT", "DATA"),
+                    help="gzip header times of the front-end text and data members")
     ap.add_argument("--conventions", required=True)
     ap.add_argument("--src-dir", required=True)
     ap.add_argument("--no-trampolines", action="store_true")
@@ -330,6 +366,45 @@ def main():
         img_a += d if d is not None else bytes(sz)
         end = a + sz
     img_a += bytes((-len(img_a)) % 16)
+    hd_img_len = len(img_a)
+
+    # ---- the NM front end: its text (+ .nm_extra_fe) joins image A ---------
+    fe = None
+    if args.fe_elf:
+        fe = Elf(args.fe_elf)
+        feo = Elf(args.fe_orig_elf)
+        f_ta, f_ts, f_text = feo.sec(".hd_front_end")
+        f_da, f_ds, f_data = feo.sec(".hd_front_end_data")
+        g_ta, g_ts, g_text = fe.sec(".hd_front_end")
+        g_da, g_ds, g_data = fe.sec(".hd_front_end_data")
+        if (f_ta, f_ts) != (FRONT_END_VRAM, FRONT_END_TEXT_SIZE) or f_da != f_ta + f_ts:
+            die("unexpected original front-end layout")
+        if (g_da, g_ds) != (f_da, f_ds):
+            die("NM .hd_front_end_data at %#x+%#x, original %#x+%#x" % (g_da, g_ds, f_da, f_ds))
+        members, pad = gunzip_members(base[FE_GZ_ROM:FE_GZ_END])
+        if members != [f_text, f_data]:
+            die("base ROM %#x..%#x does not inflate to %s's front-end text + data" % (FE_GZ_ROM, FE_GZ_END,
+                                                                                   args.fe_orig_elf))
+        if g_ta < n_ta + len(img_a):
+            die("NM front end at %#x overlaps the NM hd_code image (ends %#x)" % (g_ta, n_ta + len(img_a)))
+        img_a += bytes(g_ta - (n_ta + len(img_a)))
+        end = g_ta
+        for name in (".hd_front_end", ".nm_extra_fe", ".nm_extra_fe_bss"):
+            if name not in fe.sections:
+                continue
+            a, sz, d = fe.sec(name)
+            if sz == 0:
+                continue
+            if a < end:
+                die("%s at %#x overlaps (ends %#x)" % (name, a, end))
+            img_a += bytes(a - end)
+            img_a += d if d is not None else bytes(sz)
+            end = a + sz
+        img_a += bytes((-len(img_a)) % 16)
+        for name, (a, sz, d) in fe.sections.items():
+            if sz and n_ta <= a < 0x80800000 and name not in (".hd_front_end", ".nm_extra_fe", ".nm_extra_fe_bss"):
+                die("unexpected front-end section %s at %#x" % (name, a))
+
     if n_ta + len(img_a) > 0x80800000:
         die("NM image does not fit the Expansion Pak RAM")
     for name, (a, sz, d) in nm.sections.items():
@@ -415,8 +490,8 @@ def main():
             ref(t, "orig-branch@%08X" % pc)
     for i, w in enumerate(be_words(n_data)):     # what the game really loads
         ref(w, "data@%08X" % (n_da + 4 * i))
-    fe = open(args.front_end, "rb").read()
-    fe_words = be_words(fe)
+    fe_img = open(args.front_end, "rb").read()
+    fe_words = be_words(fe_img)
     fe_calls = {}
     for i, w in enumerate(fe_words):
         pc = FRONT_END_VRAM + 4 * i
@@ -529,11 +604,109 @@ def main():
             off = a - o_ta
             img_b[off:off + 8] = struct.pack(">II", 0x08000000 | ((t >> 2) & 0x3FFFFFF), 0)
 
+    # ---- the front end: trampolines into the NM front end, gzipped (image D) --
+    # hd_code inflates the front end from ROM to 0x801E7000 when it is first
+    # needed (func_8028B3E0); everything else enters it at original addresses
+    # (hd_code calls, pointers in its data).  So the original front-end text
+    # gets a trampoline on every function entry it is safe on, and the data
+    # becomes the NM .hd_front_end_data (C .data with pointers into the NM
+    # front end); both are gzipped again as image D, whose ROM range the
+    # loader stores where init put the original range.
+    img_d = b""
+    ftramp, fskipped = {}, []
+    if fe is not None:
+        fe_rewritten = rewritten_functions(args.fe_src_dir) if args.fe_src_dir else set()
+        fe_conv = conventions(args.conventions, full_only=True)
+        fw = be_words(f_text)
+        f_end = f_ta + f_ts
+        fblobs = []
+        for name, (addr, sec) in feo.syms.items():
+            m = re.match(r"_binary_(.*)_start$", name)
+            if m and sec == ".hd_front_end":
+                e = feo.syms.get("_binary_%s_end" % m.group(1))
+                if e:
+                    fblobs.append((addr, e[0]))
+
+        def f_in_blob(a):
+            return any(s <= a < e for s, e in fblobs)
+        fstarts = {}
+        for name, a in feo.funcs.items():
+            # (jump-table case labels of a GLOBAL_ASM function are glabels too)
+            if f_ta <= a < f_end and not f_in_blob(a) and not re.match(r"^L[0-9A-F]{8}", name):
+                fstarts.setdefault(a, []).append(name)
+        fbounds = sorted(set(fstarts) | {s for s, _ in fblobs} | {e for _, e in fblobs} | {f_end})
+
+        def fsize(a):
+            return fbounds[fbounds.index(a) + 1] - a
+        # who can enter an address: branches in the original front end, and
+        # any word in the front-end data, its text bins, hd_code's text/data
+        fbr = {}
+        fvals = set()
+        for i, w in enumerate(fw):
+            pc = f_ta + 4 * i
+            if f_in_blob(pc):
+                fvals.add(w)
+                continue
+            t = branch_target(w, pc)
+            if t is not None:
+                fbr.setdefault(t, []).append(pc)
+        for ws in (be_words(f_data), be_words(g_data), o_words, be_words(o_data), be_words(n_data)):
+            fvals.update(ws)
+        for i, w in enumerate(o_words):
+            t = branch_target(w, o_ta + 4 * i)
+            if t is not None and (w >> 26) in (2, 3):
+                fvals.add(t)
+        for a in sorted(fstarts):
+            names = fstarts[a]
+            nm_addrs = {fe.funcs.get(n) for n in names} - {None}
+            nm_addrs = {x for x in nm_addrs if g_ta <= x < g_ta + g_ts}
+            if len(nm_addrs) != 1:
+                fskipped.append((a, names, "not in the NM front-end text"))
+                continue
+            if fsize(a) < 8:
+                fskipped.append((a, names, "shorter than 8 bytes"))
+                continue
+            prev = fw[(a - f_ta) // 4 - 1] if a > f_ta else 0
+            if branch_target(prev, a - 4) is not None or (prev >> 26 == 0 and (prev & 0x3E) == 8):
+                fskipped.append((a, names, "first word is a delay slot"))
+                continue
+            if any(n in fe_rewritten and n in fe_conv for n in names):
+                fskipped.append((a, names, "rewritten with a non-ABI convention"))
+                continue
+            r4 = [p for p in fbr.get(a + 4, []) if not (a <= p < a + fsize(a))]
+            if r4 or (a + 4) in fvals:
+                fskipped.append((a, names, "second word is a target"))
+                continue
+            ftramp[a] = nm_addrs.pop()
+        f_text2 = bytearray(f_text)
+        if not args.no_trampolines:
+            for a, t in ftramp.items():
+                off = a - f_ta
+                f_text2[off:off + 8] = struct.pack(">II", 0x08000000 | ((t >> 2) & 0x3FFFFFF), 0)
+        f_text2 = bytes(f_text2)
+        with tempfile.TemporaryDirectory() as tmp:
+            for raw, blob, t in (("hd_front_end_text.raw", f_text2, args.fe_time[0]),
+                                 ("hd_front_end_data.raw", g_data, args.fe_time[1])):
+                p = os.path.join(tmp, raw)
+                open(p, "wb").write(blob)
+                subprocess.run([sys.executable, args.rarezip, p, p + ".gz", "--name", raw, "--time", str(t),
+                                "--level", "6"], check=True)
+                img_d += open(p + ".gz", "rb").read()
+        if gunzip_members(img_d)[0] != [f_text2, g_data]:
+            die("image D does not inflate back to the patched front end")
+        if len(img_d) > 0x802447C0 - 0x8021ED00:
+            die("image D (%#x bytes) does not fit func_8028B4C4's staging buffer" % len(img_d))
+        if f_ta + len(f_text2) + len(g_data) > f_ta + 0x37D00:
+            die("front end larger than func_8028B3E0's 0x37D00 bytes")
+
     # ---- ROM ---------------------------------------------------------------
     rom = bytearray(base)
     rom_a = APPEND_AT
     rom_b = rom_a + len(img_a)
     rom += img_a + img_b
+    rom += bytes((-len(rom)) % 16)
+    rom_d = len(rom)
+    rom += img_d
     if len(rom) > ROM_SIZE:
         die("ROM too large (%#x)" % len(rom))
     rom += b"\xff" * (ROM_SIZE - len(rom))
@@ -543,7 +716,8 @@ def main():
     if entry != n_ta:
         say("note: NM entry func_802447C0 at %#x (not the text start)" % entry)
     params = dict(rom_a=rom_a, vram_a=n_ta, size_a=len(img_a), rom_b=rom_b, vram_b=o_ta,
-                  size_b=len(img_b), entry=entry)
+                  size_b=len(img_b), entry=entry,
+                  fe_start=rom_d if img_d else FE_GZ_ROM, fe_end=rom_d + len(img_d) if img_d else FE_GZ_END)
     isyms = {k: init.funcs[k] for k in ("osPiRawStartDma", "osPiGetStatus")}
     with tempfile.TemporaryDirectory() as tmp:
         loader, dis = assemble_loader(params, isyms, tmp)
@@ -578,10 +752,16 @@ def main():
     say()
     say("ROM layout")
     say("  %#08x  base ROM (unchanged except init+0x1AE0..0x1BF8 and the header CRCs)" % 0)
-    say("  %#08x  image A -> %#x, %#x bytes (NM .hd_code %#x + .nm_extra)" % (rom_a, n_ta, len(img_a), n_ts))
+    say("  %#08x  image A -> %#x, %#x bytes (NM .hd_code %#x + .nm_extra%s)" % (
+        rom_a, n_ta, len(img_a), n_ts, "; NM front end .hd_front_end %#x at %#x + .nm_extra_fe" % (g_ts, g_ta)
+        if fe is not None else ""))
     say("  %#08x  image B -> %#x, %#x bytes (original text + %d trampolines, NM .hd_code_data)"
         % (rom_b, o_ta, len(img_b), 0 if args.no_trampolines else len(tramp)))
-    say("  %#08x  0xFF padding to %#x" % (rom_b + len(img_b), ROM_SIZE))
+    if img_d:
+        say("  %#08x  image D, %#x bytes: gzip'd front end (original text + %d trampolines into the NM front "
+            "end, NM .hd_front_end_data), inflated by hd_code to %#x instead of ROM %#x..%#x"
+            % (rom_d, len(img_d), 0 if args.no_trampolines else len(ftramp), FRONT_END_VRAM, FE_GZ_ROM, FE_GZ_END))
+    say("  %#08x  0xFF padding to %#x" % (rom_d + len(img_d), ROM_SIZE))
     say()
     say("loader (init boot tail at %#x, %#x of %#x bytes):" % (PATCH_START, len(loader), plen))
     say("\n".join(l for l in dis.splitlines() if re.match(r"^\s*8022", l)))
@@ -714,11 +894,29 @@ def main():
     say("function entries left as original code: %d" % len(skipped))
     for a, names, why in skipped:
         say("  %08X %-28s %s" % (a, "/".join(names), why))
+    if fe is not None:
+        say()
+        fw2 = be_words(g_data)
+        fbad = []
+        for i, (ow_, nw_) in enumerate(zip(be_words(f_data), fw2)):
+            if ow_ != nw_ and not (f_ta <= ow_ < f_end and g_ta <= nw_ < g_ta + g_ts):
+                fbad.append((f_da + 4 * i, ow_, nw_))
+        say("front end: %d trampolines into the NM front end (%d functions rewritten in C); entries left as "
+            "original code: %d" % (len(ftramp), len(fe_rewritten), len(fskipped)))
+        for a, names, why in fskipped:
+            say("  %08X %-28s %s" % (a, "/".join(names), why))
+        say("NM .hd_front_end_data words that differ from the original other than as front-end code pointers: %d"
+            % len(fbad))
+        for a, ow_, nw_ in fbad[:100]:
+            say("  %08X: %08X -> %08X" % (a, ow_, nw_))
 
     open(os.path.splitext(args.out)[0] + ".txt", "w").write("\n".join(rep) + "\n")
     print(rep[0])
     print("trampolines %d, original bodies that can run %d (%d rewritten), NM jal/j into original text %d"
           % (len(tramp), len(running), len(rw_running), len(nm_into_orig)))
+    if fe is not None:
+        print("front end: %d trampolines, %d entries left original, image D %#x bytes at ROM %#x"
+              % (len(ftramp), len(fskipped), len(img_d), rom_d))
     print("full report: %s" % (os.path.splitext(args.out)[0] + ".txt"))
 
 

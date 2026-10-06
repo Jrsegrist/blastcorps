@@ -1850,7 +1850,13 @@ void func_802475D8(void) {
         if (D_80364A90 & 0x104) {
             func_80297804(D_803643E0, D_803643E4, D_803643E8);
         }
+#ifdef NON_MATCHING
+        /* The asm takes its param (the texture decoder's type-4/5 table) in
+         * $fp: 0 here in every level (traced). */
+        ((void (*)(u8 *)) func_8029E0AC)(NULL);
+#else
         func_8029E0AC();
+#endif
         if ((D_80364A90 & 0x104) && (D_80364AA8 & 1)) {
             func_8024A348();
             func_8024ADD8();
@@ -2554,6 +2560,39 @@ void func_8024B5E8(void) {
     func_802AB670(D_80364456);
 }
 
+#ifdef NON_MATCHING
+/* Leaked-register inputs of the hand-asm vehicle functions called below (and
+ * func_8029E0AC in func_802475D8), which this file declares `void (void)`
+ * (traced in the original ROM with mupen64plus breakpoints over attract demos
+ * 0-8, nine levels; see the port notes, trace_values.md):
+ *  - $fp ($s8): 0 at func_8024B618, func_8024B7AC and func_8029E0AC in every
+ *    level (func_802475D8 and the IDO code above it never set $s8, and the
+ *    hand asm they call before these points restores it). The re-ground
+ *    functions of func_8024B618 save and restore fp themselves, so every one
+ *    of them gets 0. It reaches state: func_802A9A60 stores it into
+ *    D_803ED3F2[0..2] and veh+0x50 = their average (the ground byte), and
+ *    func_8029E0AC hands it to the texture decoder as the type-4/5 table.
+ *  - func_802CFB00's a3 (the previous loop iteration's leftover; only read by
+ *    func_802D05D8 for a zero-matrix point) and its FP pass-through state
+ *    f12-f26 (only FP side results of the triangle scans): 0. Not reached in
+ *    the demos.
+ *  - the per-frame updates' zone registers t6, t7, s0-s4 (and f14-f26 for
+ *    func_802B152C / func_802CFDE8 / func_802D0F98). Measured: t6 = this
+ *    switch's case label (the jump-table target, e.g. 0x8024B7F8), t7 = the
+ *    level's leftover small integer (2..7, also in t8), s0 = 0, s1 = 1 / 0x30
+ *    / 0x3A, s2/s3/s4 = 0x803B8D40 / 0x803B8578 / 0x803B8570. They only pass
+ *    through func_802ABD54 (unchanged when the level has no zones, as in 8 of
+ *    the 9 demo levels) into the type-1 func_802A6274 effect records, which
+ *    never store them (and the FP state only feeds FP side results): dead.
+ *    0, as the other updates (func_802AEEC8, func_802B6294, ...) use. */
+#define PORT_CALL_FP(fn) ((void (*)(s32)) (fn))(0)
+#define PORT_CALL_ZONE(fn) ((void (*)(s32, s32, s32, s32, s32, s32, s32)) (fn))(0, 0, 0, 0, 0, 0, 0)
+#define PORT_CALL_ZONE_FP(fn)                                                                          \
+    ((void (*)(s32, s32, s32, s32, s32, s32, s32, f32, f32, f32, f32, f32)) (fn))(0, 0, 0, 0, 0, 0, 0, \
+                                                                                     0.0f, 0.0f, 0.0f, \
+                                                                                     0.0f, 0.0f)
+#endif
+
 /* Moves every placed vehicle other than the current one */
 void func_8024B618(void) {
     s32 i;
@@ -2568,6 +2607,33 @@ void func_8024B618(void) {
                     case 5:
                         func_802B5FAC();
                         break;
+#ifdef NON_MATCHING
+                    case 1:
+                        PORT_CALL_FP(func_802B02A0);
+                        break;
+                    case 4:
+                        PORT_CALL_FP(func_802B46C4);
+                        break;
+                    case 8:
+                        func_802B77A0();
+                        break;
+                    case 13:
+                        func_802CBC08();
+                        break;
+                    case 14:
+                        func_802CCD80();
+                        break;
+                    case 15:
+                        ((void (*)(s32, s32, f32, f32, f32, f32, f32, f32)) func_802CFB00)(0, 0, 0.0f, 0.0f, 0.0f,
+                                                                                          0.0f, 0.0f, 0.0f);
+                        break;
+                    case 9:
+                        PORT_CALL_FP(func_802C5860);
+                        break;
+                    case 3:
+                        PORT_CALL_FP(func_802B2FA0);
+                        break;
+#else
                     case 1:
                         func_802B02A0();
                         break;
@@ -2592,6 +2658,7 @@ void func_8024B618(void) {
                     case 3:
                         func_802B2FA0();
                         break;
+#endif
                     default:
                         func_8029A7E4("MOVEABLE GEOMETRY MOVE ROUTINE NOT WRITTEN YET\n");
                         break;
@@ -2610,6 +2677,20 @@ void func_8024B7AC(void) {
             D_803649ED = 0;
             func_802AEEC8();
             break;
+#ifdef NON_MATCHING
+        case 1:
+            PORT_CALL_ZONE(func_802B03F4);
+            break;
+        case 2:
+            PORT_CALL_ZONE_FP(func_802B152C);
+            break;
+        case 3:
+            PORT_CALL_ZONE(func_802B327C);
+            break;
+        case 4:
+            PORT_CALL_ZONE(func_802B49AC);
+            break;
+#else
         case 1:
             func_802B03F4();
             break;
@@ -2622,6 +2703,7 @@ void func_8024B7AC(void) {
         case 4:
             func_802B49AC();
             break;
+#endif
         case 5:
             func_802B6294();
             break;
@@ -2651,12 +2733,21 @@ void func_8024B7AC(void) {
         case 14:
             func_802CD068();
             break;
+#ifdef NON_MATCHING
+        case 15:
+            PORT_CALL_ZONE_FP(func_802CFDE8);
+            break;
+        case 16:
+            PORT_CALL_ZONE_FP(func_802D0F98);
+            break;
+#else
         case 15:
             func_802CFDE8();
             break;
         case 16:
             func_802D0F98();
             break;
+#endif
     }
 }
 

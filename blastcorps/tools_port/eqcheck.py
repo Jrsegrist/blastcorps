@@ -506,7 +506,7 @@ def void_rewrites(version):
 
 # ---------------------------------------------------------------------------
 class Build:
-    """Symbols and loadable sections of one build (hd_code ELF + init ELF)."""
+    """Symbols and loadable sections of one build (init, hd_code and front-end ELFs)."""
 
     def __init__(self, label, elfs):
         self.label = label
@@ -714,6 +714,14 @@ class ModelMem:
     def sym(self, name):
         """Address of NAME in the build this run uses."""
         return self.m.b.resolve(name)
+
+    def stop(self):
+        """End the run here, as --stop-at does (a thread blocking for good)."""
+        raise ModelStop()
+
+
+class ModelStop(Exception):
+    pass
 
 
 def load_model(spec):
@@ -925,6 +933,8 @@ class Machine:
         self.reads = None
         self.trace_writes = None
         self.prev_block = 0
+        self.stop_counts = {}
+        self.stopped = False
 
     def in_code(self, a):
         return self.b.in_text(a) or any(lo <= a < hi for lo, hi in self.prefill_text)
@@ -967,7 +977,7 @@ class Machine:
             self._stub(name)        # runs the model
             return
         if name in self.opts.follow_set or self.opts.follow_all and not name.startswith("sub_") \
-                or name == self.opts.func:
+                and name not in self.opts.no_follow_set or name == self.opts.func:
             if target_addr is not None:
                 uc.reg_write(REG["pc"], sext32(target_addr))
             return
@@ -987,6 +997,16 @@ class Machine:
         f12/f14, pointer arguments) and v0/f0 when it is C.  Arguments are
         labelled by C slot, so the two builds compare."""
         uc = self.uc
+        stop = self.opts.stop_at.get(name)
+        if stop is not None:
+            # --stop-at NAME:K: the K-th call to NAME ends the run (for thread
+            # loops that never return): recorded, then straight to the sentinel
+            c = self.stop_counts[name] = self.stop_counts.get(name, 0) + 1
+            if c == stop:
+                self.events.append(("stop", name, c))
+                self.stopped = True
+                uc.reg_write(REG["pc"], sext32(SENTINEL))
+                return
         model = self.opts.models.get(name)
         if model is not None:
             return self._run_model(name, model)
@@ -1071,6 +1091,12 @@ class Machine:
             args = [self.read_loc(r) for r in ("a0", "a1", "a2", "a3")]
         try:
             res = model(args, ModelMem(self))
+        except ModelStop:
+            # the model ends the run here (e.g. a blocking receive on an empty queue)
+            self.events.append(("stop", name, 0))
+            self.stopped = True
+            uc.reg_write(REG["pc"], sext32(SENTINEL))
+            return
         except Exception as e:      # a model bug: this run can't be compared
             self.fault = ("error", "model %s raised %s: %s" % (name, type(e).__name__, e), self.last_block)
             uc.emu_stop()
@@ -2090,6 +2116,8 @@ def ev_str(e):
         return "%s(%s)" % (e[1], ", ".join("%s=0x%X" % (r, v) for r, v in e[2]))
     if e[0] == "mmio_w":
         return "MMIO write [0x%08X].%d = 0x%X" % (e[1], e[2], e[3])
+    if e[0] == "stop":
+        return "stopped at %s call #%d" % (e[1], e[2]) if e[2] else "stopped by the %s model" % e[1]
     return "MMIO read [0x%08X].%d" % (e[1], e[2])
 
 
@@ -2161,13 +2189,21 @@ def compare(opts, ref_m, new_m, amap, r_ref, r_new, outs=None):
             diffs[-1] += " (both then faulted: %s)" % fault_str(fr, ref_m.b)
         return diffs
 
+    if ref_m.stopped != new_m.stopped:
+        diffs.append("outcome: %s %s, %s %s" % (ref_m.b.label, "stopped (--stop-at)" if ref_m.stopped else "returned",
+                                                new_m.b.label, "stopped (--stop-at)" if new_m.stopped else "returned"))
+        return diffs
+    stopped = ref_m.stopped     # both: registers mid-function are not comparable
+
     # convention outputs (asm register vs C return value / pointer argument)
-    for label, vr, vn in outs or []:
+    for label, vr, vn in ([] if stopped else outs or []):
         if not same_val(vr, vn):
             diffs.append("output %s: %s=0x%08X %s=0x%08X" % (label, ref_m.b.label, vr, new_m.b.label, vn))
 
     # registers
     regs = list(opts.ret_regs) + ([] if opts.no_saved else [r for r in SAVED_REGS if r not in opts.ret_regs])
+    if stopped:
+        regs = []
     for r in regs:
         if r in opts.ignore_regs or r in opts.conv_skip_saved and r not in opts.ret_regs:
             continue
@@ -2266,6 +2302,9 @@ def parse_args(argv):
     ap.add_argument("--follow", action="append", default=[],
                     help="run this callee for real instead of stubbing it (repeatable, comma list)")
     ap.add_argument("--follow-all", action="store_true", help="run every callee for real")
+    ap.add_argument("--no-follow", action="append", default=[],
+                    help="with --follow-all: still stub this callee (repeatable, comma list), e.g. OS calls "
+                         "that block or DMA")
     ap.add_argument("--sig", action="append", default=[],
                     help="NAME=a0,a1,f12 : which arg registers to record for calls to NAME "
                          "(default a0-a3; NAME=* sets the default)")
@@ -2282,6 +2321,9 @@ def parse_args(argv):
     ap.add_argument("--model", action="append", default=[],
                     help="NAME=FILE.py[:FUNC] : run Python FUNC(args, mem) (default `model`) in place of NAME "
                          "in both builds; FILE is also looked up in tools_port/models/")
+    ap.add_argument("--stop-at", action="append", default=[],
+                    help="NAME[:K] : end the run at the K-th (default 1st) call to the stubbed or modelled NAME, "
+                         "comparing memory and calls but not registers (for loops that never return)")
     ap.add_argument("--no-conv", action="store_true", help="ignore all register conventions")
     ap.add_argument("--mmio", action="append", default=[],
                     help="0xA4xxxxxx=VALUE: initial word at an MMIO register (MMIO is plain memory here)")
@@ -2304,6 +2346,14 @@ def parse_args(argv):
     for k, v in vars(o).items():
         setattr(opts, k, v)
     opts.follow_set = set(x for f in o.follow for x in f.split(","))
+    opts.no_follow_set = set(x for f in o.no_follow for x in f.split(","))
+    opts.stop_at = {}
+    for s in o.stop_at:
+        n, _, k = s.partition(":")
+        try:
+            opts.stop_at[n] = int(k, 0) if k else 1
+        except ValueError:
+            raise SystemExit("eqcheck: bad --stop-at %r: want NAME[:K]" % s)
     # register conventions
     opts.convs = {} if o.no_conv else load_convs(o.conv_file, must_exist=o.conv_file != CONV_FILE)
     for i, line in enumerate(o.conv_lines):
@@ -2473,30 +2523,35 @@ def parse_args(argv):
     return opts
 
 
+SEGMENTS = ("init", "hd_code", "hd_front_end")     # ELFs of a build, in load order
+
+
 def load_build(d, version, label):
-    hd = os.path.join(d, "hd_code.%s.elf" % version)
-    ini = os.path.join(d, "init.%s.elf" % version)
-    for p in (hd, ini):
+    """init, hd_code and the front end of one build dir as one Build: a
+    function is found in whichever segment defines it, and each segment's
+    calls into the other resolve by name."""
+    elfs = [os.path.join(d, "%s.%s.elf" % (s, version)) for s in SEGMENTS]
+    for p in elfs:
         if not os.path.exists(p):
             sys.exit("eqcheck: %s not found (build it first)" % p)
     # Parsing the ELF symbol tables takes most of a short run's startup, so the
     # parsed Build is cached next to the ELFs, keyed by their size/mtime and by
     # this script's own mtime.
     key = tuple((os.path.abspath(p), os.stat(p).st_size, os.stat(p).st_mtime_ns)
-                for p in (ini, hd, os.path.abspath(__file__)))
+                for p in elfs + [os.path.abspath(__file__)])
     if REUSE:
         # a long-lived process (runchecks' workers) keeps the parsed builds;
         # each run gets its own shallow copy (the label differs per run)
         c = _BUILDS.get(key)
         if c is None:
-            c = _BUILDS[key] = load_build_uncached(d, version, label, key, ini, hd)
+            c = _BUILDS[key] = load_build_uncached(d, version, label, key, elfs)
         b = copy.copy(c)
         b.label = label
         return b
-    return load_build_uncached(d, version, label, key, ini, hd)
+    return load_build_uncached(d, version, label, key, elfs)
 
 
-def load_build_uncached(d, version, label, key, ini, hd):
+def load_build_uncached(d, version, label, key, elfs):
     cache = os.path.join(d, ".eqcheck_cache.%s.pickle" % version)
     try:
         with open(cache, "rb") as f:
@@ -2507,7 +2562,7 @@ def load_build_uncached(d, version, label, key, ini, hd):
             return b
     except Exception:
         pass
-    b = Build(label, [ini, hd])
+    b = Build(label, elfs)
     b.cache_key = key
     tmp = "%s.%d.tmp" % (cache, os.getpid())
     try:

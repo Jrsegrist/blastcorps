@@ -1,0 +1,12 @@
+# fe_09570: hd_front_end 09570.c, func_801F1568 (globe display list: inflate the textures, set their
+# pointers, build the vertices, then 6 faces x 7 x 7 cells of five mip levels and two triangles).
+# Its output depends only on the heap pointer D_80358070 (the inflate, func_8028B4C4, is stubbed and
+# leaves the size at the ROM range's length); the display list (~64 KB) lands in the heap.
+func_801F1568: -n 12 --ret ptr --heap 0x60000 --mem D_80358070=rel:heap0+0x8*int:0:0x40 --follow func_801F0570 \
+    --mem D_80215A70:12=rand --mem D_80215A7C:12=rand --mem D_8021728C=rand \
+    --sig func_8028B4C4=a0,a1,a3,stack0,stack1
+# vertices stubbed (only their addresses go into the list)
+func_801F1568: -n 6 --seed 1 --ret ptr --heap 0x60000 --mem D_80358070=rel:heap0+choice:0,4,0x1000 \
+    --sig func_801F0570= --sig func_8028B4C4=a0,a1,a3,stack0,stack1
+func_801F1568: -n 6 --seed 2 --ret ptr --follow-all --no-follow func_8028B4C4 --heap 0x60000 \
+    --mem D_80358070=rel:heap0+0x10*int:0:16 --sig func_8028B4C4=a0,a1,a3,stack0,stack1

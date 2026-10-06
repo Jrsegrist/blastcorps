@@ -145,6 +145,11 @@ void func_801F57B0(void) {
  * declared them s32 with no return statement), and func_801F58E8 takes no
  * argument (cast it for osCreateThread).
  *
+ * The NON_MATCHING build uses this C (below the comment; it keeps the
+ * osCreateThread prototype's unused argument), checked with
+ * tools_port/checks/fe_0E7B0.txt; func_801F6160/61C8/6ED4 now return their
+ * osPfs* call's result explicitly, which compiles to the same bytes.
+ *
  * void func_801F58E8(void) {
  *     OSMesg msg;
  *     s32 ret;
@@ -342,7 +347,235 @@ void func_801F57B0(void) {
  *     }
  * }
  */
+#ifdef NON_MATCHING
+extern u8 D_8039C4B0;      /* pak thread busy */
+extern s32 D_8036BF10;
+extern s32 D_80218D24;     /* a Yoshi window was opened for a pak error */
+extern s32 D_80219F88;     /* Yoshi window of the last pak error */
+extern u8 D_80310BD0[];    /* hd_code: the thread D_80219F50's receiver must be */
+extern u64 D_80364A98;     /* next game mode */
+extern s16 yoshiState;
+extern s16 currentYoshiWindow;
+void func_8028A42C(void);
+void func_801EE390(void);
+void func_801EE398(s32 window);
+s32 func_801F5FE4(void);
+s32 func_801F60C8(void);
+s32 func_801F6160(u8 player);
+s32 func_801F61C8(s32 arg0);
+s32 func_801F6210(u8 item);
+s32 func_801F6264(u8 player, u8 rw);
+s32 func_801F65C4(u8 player, u8 slot, u8 rw);
+s32 func_801F67E4(u8 pn, u8 level, u8 rw);
+s32 func_801F6AF4(u8 player, u64 sem);
+s32 func_801F6CA4(u8 player, u8 nlevels, u8 rw);
+s32 func_801F6ED4(u8 arg0);
+
+/* The save thread: one pak/EEPROM command per message (cmd | arg1 << 8 |
+ * player << 16 | reply << 24), retried until it settles, the result sent
+ * back on D_80219F50 when `reply` is set. */
+void func_801F58E8(void *arg) {
+    OSMesg msg;
+    s32 ret;
+    s32 lastRet;
+    u8 pad33;
+    u8 player;
+    u8 arg1;
+    u8 reply;
+    u8 cmd;
+    u8 next;
+    u8 done;
+    s32 yoshi;
+    u32 tries;
+
+    while (1) {
+        D_8039C4B0 = 0;
+        tries = 0;
+        osSetEventMesg(OS_EVENT_SI, &D_80370BF8, 0);
+        osRecvMesg(&D_80219EF8, &msg, OS_MESG_BLOCK);
+        osSetEventMesg(OS_EVENT_SI, &D_80370BF8, 0);
+        while (D_8036BF10 != 0) {
+        }
+        cmd = (u32) msg & 0xFF;
+        arg1 = ((u32) msg >> 8) & 0xFF;
+        player = ((u32) msg >> 16) & 0xFF;
+        reply = ((u32) msg >> 24) & 0xFF;
+        D_8020C014[0] = player + 0x11;
+        D_8039C4B0 = 1;
+        func_8028A42C();
+        func_801EE390();
+        D_80218D24 = 0;
+        do {
+            done = 0;
+            next = 0;
+            yoshi = 0x5B;
+            lastRet = 0;
+            switch (cmd) {
+                case 1:
+                case 2:
+                    ret = func_801F60C8();
+                    break;
+                case 3:
+                    ret = func_801F6160(player);
+                    break;
+                case 4:
+                    ret = func_801F61C8(player);
+                    break;
+                case 5:
+                    ret = func_801F6210(player);
+                    break;
+                case 6:
+                    ret = func_801F6264(player, 0);
+                    break;
+                case 7:
+                    ret = func_801F6264(player, 1);
+                    break;
+                case 8:
+                    ret = func_801F65C4(player, arg1, 0);
+                    break;
+                case 9:
+                    ret = func_801F65C4(player, arg1, 1);
+                    break;
+                case 10:
+                    ret = func_801F67E4(player, arg1, 0);
+                    break;
+                case 11:
+                    ret = func_801F67E4(player, arg1, 1);
+                    break;
+                case 12:
+                    ret = func_801F6CA4(player, arg1, 0);
+                    break;
+                case 13:
+                    ret = func_801F6CA4(player, arg1, 1);
+                    break;
+                case 14:
+                    ret = osPfsFreeBlocks(&D_8039B630, &D_80218EF0);
+                    break;
+                case 15:
+                    ret = func_801F5FE4();
+                    break;
+                case 16:
+                    done = 1;
+                    ret = osEepromProbe(&D_80370BF8);
+                    break;
+                case 17:
+                    ret = func_801F6ED4(player);
+                    break;
+                case 18:
+                    ret = osPfsChecker(&D_8039B630);
+                    break;
+                case 19:
+                    ret = 10;
+                    break;
+                case 20:
+                    ret = func_801F6AF4(player, 0x2704197125121981);
+                    break;
+                case 21:
+                    ret = func_801F6AF4(player, 0x87569AB6CD076AEC);
+                    break;
+                case 22:
+                    ret = 0;
+                    break;
+                default:
+                    /* ret keeps its previous value (unset on the first pass) */
+                    func_8029A7E4("Nonsense pak message\n");
+                    break;
+            }
+            func_8029A7E4("pak command %d returned %d\n", cmd, ret);
+            switch (ret) {
+                case 0x6E382:
+                    if ((D_80364A90 & 0x10E18000) || (D_80364A98 & 0x20000000000000)) {
+                        done = 1;
+                        break;
+                    }
+                    // fallthrough
+                case 6:
+                case 10:
+                case 11:
+                    if (tries >= 4) {
+                        if (cmd != 0x13) {
+                            if (ret == 0x6E382) {
+                                D_80219F88 = 0x5D;
+                            } else {
+                                D_80219F88 = 0x5C;
+                            }
+                            func_801F6AF4(player, 0x2704197125121981);
+                            next = 0x13;
+                        }
+                        yoshi = D_80219F88;
+                    } else {
+                        yoshi = 0;
+                        tries++;
+                    }
+                    break;
+                case 0:
+                case 5:
+                case 9:
+                    done = 1;
+                    break;
+                case 8:
+                    if (!(D_80364A90 & 0x10E18000) || func_801F5FE4() != 0) {
+                        break;
+                    }
+                    // fallthrough
+                case 7:
+                    D_8039C538 = (player < D_8039C538) ? player : D_8039C538;
+                    done = 1;
+                    break;
+                case 3:
+                    if (tries >= 4) {
+                        if (cmd != 0x13) {
+                            func_801F6AF4(player, 0x2704197125121981);
+                            next = 0x13;
+                        }
+                        yoshi = 0x5C;
+                    } else {
+                        func_8029A7E4("trying to fix pak ...\n");
+                        if (cmd != 0x12) {
+                            osSendMesg(&D_80219EF8, (OSMesg) (cmd | (arg1 << 8) | (player << 16) | (reply << 24)),
+                                       OS_MESG_NOBLOCK);
+                        }
+                        next = 0x12;
+                        reply = 0;
+                        tries++;
+                    }
+                    break;
+                case 2:
+                    /* never true: lastRet is reset at the top of every pass */
+                    if (lastRet == 8 && !(D_80364A90 & 0x10E18000)) {
+                        PFS_ASSERT(1==0, 342);
+                        done = 1;
+                    }
+                    break;
+                case 1:
+                    if (D_80364A98 & 0x20000000000000) {
+                        done = 1;
+                    }
+                    break;
+            }
+            lastRet = ret;
+            if (D_8036BF10 == 0 && yoshi != 0 && !done && !next && D_80219F50.mtqueue == (OSThread *) D_80310BD0) {
+                func_801EE398(yoshi);
+                D_80218D24 = 1;
+            }
+            if (next) {
+                cmd = next;
+                next = 0;
+            }
+            osRecvMesg(&D_80219F30, NULL, OS_MESG_BLOCK);
+        } while (!done);
+        if (D_80218D24) {
+            yoshiState = 1;
+            currentYoshiWindow = -1;
+        }
+        if (reply) {
+            osSendMesg(&D_80219F50, (OSMesg) ret, OS_MESG_BLOCK);
+        }
+    }
+}
+#else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/0E7B0/func_801F58E8.s")
+#endif
 
 s32 func_801F5FE4(void) {
     s32 ret;
@@ -386,12 +619,13 @@ s32 func_801F60C8(void) {
     return ret;
 }
 
-void func_801F6160(u8 player) {
-    osPfsAllocateFile(&D_8039B630, 0x3031, 0x4E424345, D_8020C000, D_8020C014, PFS_FILE_SIZE, &D_8039B698[player]);
+s32 func_801F6160(u8 player) {
+    return osPfsAllocateFile(&D_8039B630, 0x3031, 0x4E424345, D_8020C000, D_8020C014, PFS_FILE_SIZE,
+                             &D_8039B698[player]);
 }
 
-void func_801F61C8(s32 arg0) {
-    osPfsDeleteFile(&D_8039B630, 0x3031, 0x4E424345, D_8020C000, D_8020C014);
+s32 func_801F61C8(s32 arg0) {
+    return osPfsDeleteFile(&D_8039B630, 0x3031, 0x4E424345, D_8020C000, D_8020C014);
 }
 
 /* delete the file behind menu item `item` (file list starts at item 37) */
@@ -607,8 +841,8 @@ s32 func_801F6CA4(u8 player, u8 nlevels, u8 rw) {
     return ret;
 }
 
-void func_801F6ED4(u8 arg0) {
-    osPfsFileState(&D_8039B630, arg0, (OSPfsState *) &D_80218B20[D_80218D28]);
+s32 func_801F6ED4(u8 arg0) {
+    return osPfsFileState(&D_8039B630, arg0, (OSPfsState *) &D_80218B20[D_80218D28]);
 }
 
 /* list the pak's files into menu items 37 + n; returns whether there are any */

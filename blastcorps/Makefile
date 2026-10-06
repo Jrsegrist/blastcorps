@@ -132,11 +132,14 @@ ifeq ($(NON_MATCHING),1)
 # .rodata/.data/.bss at NM_EXTRA_VRAM. tools_port/eqcheck.py maps by symbol.
 NM_TEXT_VRAM  ?= 0x80800000
 NM_EXTRA_VRAM ?= 0x80A00000
+# the front end the same way: text moved, .hd_front_end_data pinned, its own
+# catch-all (.nm_extra_fe); its calls into hd_code resolve to the NM hd_code
+NM_FE_TEXT_VRAM  ?= 0x80900000
+NM_FE_EXTRA_VRAM ?= 0x80A80000
 CFLAGS += -DNON_MATCHING
 INIT_LD_SCRIPT = $(BUILD_DIR)/init.$(VERSION).ld
 HD_CODE_LD_SCRIPT = $(BUILD_DIR)/hd_code.$(VERSION).ld
 HD_CODE_BSS_LD_SCRIPT = $(BUILD_DIR)/hd_code_bss.$(VERSION).ld
-# the front end stays at its original address (it has no rewrites yet)
 HD_FRONT_END_LD_SCRIPT = $(BUILD_DIR)/hd_front_end.$(VERSION).ld
 HD_FRONT_END_BSS_LD_SCRIPT = $(BUILD_DIR)/hd_front_end_bss.$(VERSION).ld
 # symbol files rewritten as PROVIDE(), so a relocated function's real
@@ -265,10 +268,16 @@ $(BUILD_DIR)/hd_code.$(VERSION).elf: $(HD_CODE_LD_SCRIPT) $(HD_CODE_BSS_LD_SCRIP
 $(BUILD_DIR)/hd_front_end.$(VERSION).elf: $(HD_FRONT_END_LD_SCRIPT) $(HD_FRONT_END_BSS_LD_SCRIPT) $(HD_FRONT_END_UNDEF_FILES)
 $(BUILD_DIR)/%.txt: %.txt tools_port/nm_ldscript.py | dirs
 	$(NM_LDSCRIPT) $< $@ --provide
+# the front end's symbol files: hd_code functions at their NM addresses
+$(BUILD_DIR)/%.hd_front_end.$(VERSION).txt: %.hd_front_end.$(VERSION).txt tools_port/nm_ldscript.py \
+		$(BUILD_DIR)/hd_code.$(VERSION).elf | dirs
+	$(NM_LDSCRIPT) $< $@ --provide --resolve-elf $(BUILD_DIR)/hd_code.$(VERSION).elf
 $(INIT_LD_SCRIPT): init.$(VERSION).ld tools_port/nm_ldscript.py | dirs
 	$(NM_LDSCRIPT) $< $@
 $(HD_FRONT_END_LD_SCRIPT): hd_front_end.$(VERSION).ld tools_port/nm_ldscript.py | dirs
-	$(NM_LDSCRIPT) $< $@
+	$(NM_LDSCRIPT) $< $@ --relocate .hd_front_end=$(NM_FE_TEXT_VRAM) --pin-data .hd_front_end_data \
+		--extra-vram $(NM_FE_EXTRA_VRAM) --extra-name .nm_extra_fe \
+		--extra-glob '$(BUILD_DIR)/src.$(VERSION)/hd_front_end/*.o'
 $(HD_FRONT_END_BSS_LD_SCRIPT): hd_front_end_bss.$(VERSION).ld tools_port/nm_ldscript.py | dirs
 	$(NM_LDSCRIPT) $< $@
 $(HD_CODE_BSS_LD_SCRIPT): hd_code_bss.$(VERSION).ld tools_port/nm_ldscript.py | dirs
@@ -294,10 +303,28 @@ $(NM_ROM_LD_SCRIPT): hd_code.$(VERSION).ld tools_port/nm_ldscript.py | dirs
 $(NM_ROM_ELF): $(HD_CODE_O_FILES) $(NM_ROM_LD_SCRIPT) $(HD_CODE_BSS_LD_SCRIPT) $(HD_CODE_UNDEF_FILES)
 	@$(LD) -T $(HD_CODE_BSS_LD_SCRIPT) -T $(NM_ROM_LD_SCRIPT) -Map $(@:.elf=.map) \
 		$(addprefix -T ,$(HD_CODE_UNDEF_FILES)) --no-check-sections --no-warn-mismatch -o $@
-nmrom: hd_code $(NM_ROM_ELF)
+# the NM front end for the ROM: text in Expansion Pak RAM after the NM hd_code
+# (nm_rom.py DMAs both as image A), data pinned, calls into the ROM-linked hd_code
+NM_ROM_FE_TEXT_VRAM ?= 0x80500000
+NM_ROM_FE_ELF = $(BUILD_DIR)/hd_front_end.rom.$(VERSION).elf
+NM_ROM_FE_LD_SCRIPT = $(BUILD_DIR)/hd_front_end.rom.$(VERSION).ld
+NM_ROM_FE_UNDEF_FILES = $(foreach f,undefined_syms_auto undefined_funcs_auto undefined_syms_hd_code_auto undefined_syms,$(BUILD_DIR)/$(f).hd_front_end.rom.$(VERSION).txt)
+$(BUILD_DIR)/%.hd_front_end.rom.$(VERSION).txt: %.hd_front_end.$(VERSION).txt tools_port/nm_ldscript.py $(NM_ROM_ELF) | dirs
+	$(NM_LDSCRIPT) $< $@ --provide --resolve-elf $(NM_ROM_ELF)
+$(NM_ROM_FE_LD_SCRIPT): hd_front_end.$(VERSION).ld tools_port/nm_ldscript.py | dirs
+	$(NM_LDSCRIPT) $< $@ --relocate .hd_front_end=$(NM_ROM_FE_TEXT_VRAM) --pin-data .hd_front_end_data \
+		--extra-vram '((ADDR(.hd_front_end) + SIZEOF(.hd_front_end) + 0xF) & ~0xF)' --extra-name .nm_extra_fe \
+		--extra-glob '$(BUILD_DIR)/src.$(VERSION)/hd_front_end/*.o'
+$(NM_ROM_FE_ELF): $(HD_FRONT_END_O_FILES) $(NM_ROM_FE_LD_SCRIPT) $(HD_FRONT_END_BSS_LD_SCRIPT) $(NM_ROM_FE_UNDEF_FILES)
+	@$(LD) -T $(HD_FRONT_END_BSS_LD_SCRIPT) -T $(NM_ROM_FE_LD_SCRIPT) -Map $(@:.elf=.map) \
+		$(addprefix -T ,$(NM_ROM_FE_UNDEF_FILES)) --no-check-sections --no-warn-mismatch -o $@
+nmrom: hd_code hd_front_end $(NM_ROM_ELF) $(NM_ROM_FE_ELF)
 	$(PYTHON) tools_port/nm_rom.py --baserom $(BASEROM) --elf $(NM_ROM_ELF) \
 		--orig-elf build/hd_code.$(VERSION).elf --init-elf build/init.$(VERSION).elf \
 		--front-end hd_front_end.$(VERSION).bin --conventions tools_port/conventions.txt \
+		--fe-elf $(NM_ROM_FE_ELF) --fe-orig-elf build/hd_front_end.$(VERSION).elf \
+		--fe-src-dir $(HD_FRONT_END_SRC_DIR) --rarezip $(TOOLS_DIR)/rarezip.py \
+		--fe-time $(HD_FRONT_END_TEXT_TIMESTAMP) $(HD_FRONT_END_DATA_TIMESTAMP) \
 		--src-dir $(HD_CODE_SRC_DIR) --sha1 ../blastcorps.$(VERSION).sha1 -o $(NM_ROM)
 .PHONY: nmrom
 endif

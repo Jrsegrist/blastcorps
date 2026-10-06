@@ -1,7 +1,8 @@
 # tools_port: NON_MATCHING builds and the equivalence harness
 
 The native port needs real C for the roughly 660 hand-written asm functions in
-hd_code (56040 through 8DDB0). That C can't byte-match, so it is checked for
+hd_code (56040 through 8DDB0), and for the front end's hand-written 1B100 and
+its parked near-misses. That C can't byte-match, so it is checked for
 *functional* equivalence instead. Two pieces support this:
 
 * `make NON_MATCHING=1` builds `#ifdef NON_MATCHING` rewrites into `build_nm/`.
@@ -45,8 +46,18 @@ What `NON_MATCHING=1` changes (Makefile plus `tools_port/nm_ldscript.py`):
 | hd_code `.text` VRAM | 0x802447C0 | `NM_TEXT_VRAM` (default 0x80800000) |
 | `.hd_code_data` | 0x802E8BD0 | same address, and every `*_bin` blob is pinned to its original address |
 | sections nothing places (e.g. new `.rodata` in a hand-asm file) | discarded, so the link fails | `.nm_extra` at `NM_EXTRA_VRAM` (0x80A00000) |
+| front end `.hd_front_end` (text + RSP ucode bin) VRAM | 0x801E7000 | `NM_FE_TEXT_VRAM` (0x80900000) |
+| `.hd_front_end_data` | 0x80208040 | same address, bins pinned |
+| front end: sections nothing places | discarded | `.nm_extra_fe` at `NM_FE_EXTRA_VRAM` (0x80A80000) |
 | `undefined_*.txt` | `name = addr;` (overrides objects) | functions (`func_*`, aliases `a = b;`, all of `undefined_funcs*`) become `PROVIDE(name = addr);`, so a moved function's own definition wins; data assignments stay hard |
+| front end's `undefined_*.hd_front_end.txt` | hd_code functions at their original addresses | hd_code functions at their **NM** addresses (`nm_ldscript.py --resolve-elf build_nm/hd_code.elf`), so front-end C calls hd_code's relocated code and its C rewrites directly (a rewrite with a non-ABI convention is not at, and doesn't take the registers of, the original address) |
 | `all` | sha1 verify | link only |
+
+hd_code's calls into the front end still go to the original front-end
+addresses (hd_code links first; the front end links against it). In the
+harness those land in the original front-end text, which the NM machine is
+pre-filled with, and are translated to the NM function by name (the same
+mechanism as pointers in the data blobs); in the test ROM they hit trampolines.
 
 Data assignments must stay hard because some data symbols are pinned in
 `undefined_syms` *and* defined in C (hd.c's u64 `D_80364A88/90/98` sit outside
@@ -54,8 +65,9 @@ its modelled `.bss`). With a `PROVIDE()` the C definition would win in
 `build_nm` and the variable would move (D_80364A98 landed at 0x80312D88, on
 top of D_80312D80), while the hand asm still used 0x80364A98: two homes for one
 variable. `python3 tools_port/nm_symaudit.py` compares the symbol tables of
-`build/` and `build_nm/` and lists every non-text symbol whose address
-differs; `runchecks -b`/`-B` runs it after building and stops if anything moved.
+`build/` and `build_nm/` (init, hd_code and the front end) and lists every
+non-text symbol whose address differs; `runchecks -b`/`-B` runs it after
+building and stops if anything moved.
 
 Why the text moves: code ends exactly where the data segment starts, and most
 data symbols are absolute `D_xxxxxxxx = 0x...` definitions, so data can't move.
@@ -99,6 +111,22 @@ init:
   lists them, the front-end calls that stay on original code, every NM
   jal/j outside the NM text, lui/lo constants and data words that still point
   into the original text, and the loader's disassembly.
+* **The NON_MATCHING front end runs too.** The front-end objects are relinked
+  as `build_nm/hd_front_end.rom.us.v11.elf` with the text at
+  `NM_ROM_FE_TEXT_VRAM` (0x80500000, after the NM hd_code; image A covers
+  both, one DMA), data pinned, calling the ROM-linked hd_code's addresses.
+  hd_code inflates the front end from ROM to 0x801E7000 when it first needs
+  it (`func_8028B3E0`, from the range init stores at 0x803FFFF8/C), so
+  `nm_rom.py` builds image D: the original front-end text with a trampoline
+  on every function entry (all 155; skipped like hd_code's: second word a
+  target, first word a delay slot, a full convention) followed by the NM
+  `.hd_front_end_data`, each gzipped again with `tools/rarezip.py`; the loader
+  overwrites init's two words with image D's ROM range. The report lists the
+  front-end entries left as original code and any front-end data word that
+  changed other than as a code pointer. Checked in mupen64plus (glide64mk2):
+  the NM front-end functions run (breakpoints in 0x805xxxxx hit, the
+  original entries hold `j 0x805xxxxx`), and the ROM goes front end -> attract
+  demos 0..8 like the base ROM (the NM build runs a little slower).
 * The ROM is padded to 12 MB: `func_802447C0` reads a debug command line from
   ROM 0xFFB000, past the end of the original ROM, so the ROM must stay below
   that. Header CRCs are recomputed (CIC-6102). Emulators won't find the ROM in
@@ -114,7 +142,10 @@ bash tools_port/eq.sh FUNC [options]             # same, from anywhere: activate
 ```
 
 By default it compares `build/` (the original asm) against `build_nm/` (your
-rewrite), runs 200 trials, and stops at the first failing trial.
+rewrite), runs 200 trials, and stops at the first failing trial. Each build is
+init + hd_code + the front end (three ELFs): FUNC is found in whichever
+segment defines it, front-end and hd_code functions call each other by name,
+and the NM machine is pre-filled with the original text of both segments.
 
 **Start with `--explore`.** It runs the reference once and prints which
 globals, heap, or stack bytes the function read and wrote, plus the calls it
@@ -236,7 +267,8 @@ value is a deterministic hash of the seed, the trial, the callee, and the call
 number, so both builds get the same values. The ordered list of calls is
 compared between the builds.
 
-* `--follow NAME[,NAME]` runs that callee for real, using each build's own version of it. `--follow-all` runs every callee.
+* `--follow NAME[,NAME]` runs that callee for real, using each build's own version of it. `--follow-all` runs every callee; `--no-follow NAME[,NAME]` keeps stubbing those under `--follow-all` (OS calls that block or DMA, a decompressor, a callee whose own checks stub its callees).
+* `--stop-at NAME[:K]` ends the run at the K-th (default first) call to the stubbed or modelled NAME, as if the function had returned there: memory and calls are compared, registers are not (they're mid-function). For loops that never return, e.g. the front end's save thread `func_801F58E8`. A `--model` can end the run itself with `mem.stop()`; `tools_port/models/mesgqueue.py` models `osRecvMesg`/`osSendMesg` on the real OSMesgQueue (and stops when the thread blocks on its empty command queue).
 * **Static helpers are followed automatically.** A callee that exists only in the new build (no symbol of that name in the reference build, typically a `static` helper a rewrite introduced) is part of the rewrite, so it always runs for real instead of showing up as an extra call. The run prints `note: following NAME, which exists only in build_nm`.
 * `--sig NAME=a0,a1` sets which registers count as NAME's arguments. Use it when a callee takes fewer than 4 arguments and the two versions leave different garbage in the unused ones. **`--sig NAME=` (empty list) compares no arguments at all**, just that the call happened, for a callee that takes none (otherwise leftover a0-a3 garbage is compared). `--sig '*=a0'` changes the default. Stack arguments can be listed as `stack0` (= `sp+0x10`), `stack1`, ... For a callee in `conventions.txt` (section 3a) the arguments are already mapped, and `--sig` then selects C slots (`--sig func_802ABCDC=a0,a1,a2`). **Widths:** an entry `REG:W` (W = 1, 2, 4, 8) compares only the low W bytes: `--sig func_8027BE7C=a0:1,a1,a2:2,stack4:2` compares a `u8`/`s16` argument at its declared width, so leftover upper bits (asm passes the whole register, C a truncated value) don't count. This works with and without a convention (no more per-line `--conv` just for widths).
 * `--stub-ret NAME=SPEC` sets what a stubbed callee returns (its first convention output, if it has one; `--stub-ret NAME.REG=SPEC` sets the output in asm register REG). SPEC is `rand` (default), a constant, `ptr:SIZE` (deterministic heap blocks, useful for allocators), `seq:1,0,5` (the k-th call in a trial returns the k-th value, cycling: one run drives several branches), or any value spec from the `--arg` table (`choice:0,1*3`, `int:LO:HI`, `int64`, `float`, `fbits`, `sym:NAME`, `val:NAME`), drawn per trial and call, identically in both builds. A constant wider than 32 bits returns `v0:v1` (o32 `u64`); for a convention output declared 64-bit (`ret64`, below) the whole value is delivered.
@@ -361,7 +393,9 @@ Every rewrite's eqcheck runs are checked in, so any later change (a struct
 refactor, a shared header, an eqcheck change) can be re-verified in one go.
 
 **Spec format.** One file per source file, `tools_port/checks/<FILE>.txt`
-(for `src.us.v11/hd_code/<FILE>.c`). Each line is one eqcheck run:
+(for `src.us.v11/hd_code/<FILE>.c`; `checks/fe_<FILE>.txt` for the front end's
+`src.us.v11/hd_front_end/<FILE>.c`, so names can't clash). Each line is one
+eqcheck run:
 
 ```
 # comment
@@ -389,7 +423,8 @@ bash tools_port/runchecks.sh -b --changed          # only files whose .c or chec
 bash tools_port/runchecks.sh --changed --since HEAD~3
 ```
 
-`--changed` selects check files whose `src.us.v11/hd_code/<FILE>.c` or
+`--changed` selects check files whose `src.us.v11/hd_code/<FILE>.c` (or
+`src.us.v11/hd_front_end/<FILE>.c` for `fe_<FILE>`) or
 `tools_port/checks/<FILE>.txt` differs from the merge base of `--since`
 (default `main`) and HEAD, counting committed, staged, unstaged and untracked
 changes, and reports any rewrite in those files that has no check line. It doesn't notice
@@ -411,12 +446,15 @@ is nonzero on any failure.
 
 **Coverage.** Without a filter the runner also lists every function whose
 `#pragma GLOBAL_ASM` sits in the `#else` branch of an `#ifdef NON_MATCHING`
-block in `src.us.v11/hd_code/*.c` and reports any with no check line
+block in `src.us.v11/hd_code/*.c` or `src.us.v11/hd_front_end/*.c` (counted
+per segment) and reports any with no check line
 (`MISSING`, which makes the exit status nonzero). It also notes check lines for
-functions that have no rewrite.
+functions that have no rewrite. With `-B` the matching build must print all
+three `: OK` lines.
 
-Current suite (Oct 2026): 386 rewritten functions, 935 runs, all PASS, about
-2 minutes wall at `-j4` (6.3 minutes before the worker pool, TLB write
+Current suite (Oct 2026): 681 hd_code + 9 front-end rewrites, 1789 runs, all
+PASS, about 4 minutes wall at `-j4`. (Earlier: 386 functions, 935 runs, about
+2 minutes wall at `-j4`; 6.3 minutes before the worker pool, TLB write
 tracking and the emu_start timeout change, see section 6; 148 runs took
 637 s at `-j4` before the earlier restore/diff speedup).
 
@@ -535,4 +573,4 @@ under `-j4`; the 148-run suite went from 637 s to 69 s at `-j4`.)
 * **Data blobs keep original code addresses.** Jump tables and function-pointer tables inside the raw `.bin` blobs, and functions that live *inside* a blob (such as func_802C4310 in `7D9D0_data`), point at the original text. The NM machine is pre-filled with the original text at its old address, so those paths still execute (the original code). Function entries reached that way are translated by name, and other blocks print a `note:`.
 * **Infinite loops.** These are caught by `--max-insns` and `--timeout`. They are reported as a failure if only one build loops, and as "can't compare" if both do.
 * **unicorn delay-slot bugs (worked around).** (1) In unicorn 2.1, any hook that fires for a load or store in a branch delay slot (`UC_HOOK_MEM_READ`/`WRITE`, and `UC_HOOK_TLB_FILL`) corrupts MIPS execution: before calling the hook unicorn rolls the CPU back to the instruction (`cpu_restore_state`), which ORs the branch bits into `env->hflags`; the code after the delay slot never clears them, so the next block runs as if it were in a delay slot (an RI exception or a wild jump). eqcheck's TLB-fill hook repairs this (`Machine._delay_slot_fix`: when the instruction before the faulting pc is a branch, it clears the bits in a saved context and restores it; `calibrate_hflags()` finds hflags' offset in the context once per process by faulting in a beq/bne delay slot; if that fails, write tracking falls back to a full memcmp). `--explore` and `--mmio-log` still decode loads and stores in a per-instruction code hook; don't add `UC_HOOK_MEM_READ`/`UC_HOOK_MEM_WRITE` hooks. (2) A run that *ends* with a fault in a delay slot leaves the same branch state (hflags, btarget) behind, so the next `emu_start` used to execute one instruction at the new entry and then jump to the old branch target (seen as a 4-byte block followed by the previous trial's faulting code). Every run now starts from a clean CPU context saved when the machine was created.
-* Only `hd_code` and `init` are loaded. Calls into other overlays are stubbed as `sub_XXXXXXXX`, and reading their data faults or returns 0.
+* `init`, `hd_code` and the front end are loaded (the front end at its 0x801E7000 overlay address). Calls into other code (level overlays, NULL pointers) are stubbed as `sub_XXXXXXXX`, and reading their data faults or returns 0. Since Oct 2026 an hd_code check with `--follow-all` that reaches a front-end function runs it for real (before, nothing was loaded there).

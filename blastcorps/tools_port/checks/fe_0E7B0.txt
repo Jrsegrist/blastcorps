@@ -1,0 +1,86 @@
+# fe_0E7B0: hd_front_end 0E7B0.c (pfsHandler.c), the save thread func_801F58E8 (a loop that never returns).
+# osRecvMesg / osSendMesg are modelled on the real queues (tools_port/models/mesgqueue.py): the thread
+# takes the queued commands from D_80219EF8 (messages in D_80219F10: cmd | arg1 << 8 | player << 16 |
+# reply << 24), D_80219F30 always "delivers", replies go to D_80219F50, and the run ends when the thread
+# blocks on an empty command queue (or at the 60th osRecvMesg: a command that never settles loops).
+# Memory (queues, globals) and the calls are compared, registers are not (the run stops mid-loop).
+# D_8036BF10 stays 0 (otherwise the thread spins).
+
+# random commands 0..24 (0, 23, 24: "Nonsense"), every result branch, game-mode bits, Yoshi window test
+func_801F58E8: -n 400 --model osRecvMesg=mesgqueue.py:recv --model osSendMesg=mesgqueue.py:send \
+    --stop-at osRecvMesg:60 --mem D_8036BF10=0 \
+    --mem D_80219EF8+8=choice:1,2,3 --mem D_80219EF8+0xC=0 --mem D_80219EF8+0x10=8 --mem D_80219EF8+0x14=sym:D_80219F10 \
+    --mem D_80219F10:32=rand --mem D_80219F10*4:8/1=choice:0,1 --mem D_80219F10+1*4:8/1=int:0:3 \
+    --mem D_80219F10+2*4:8/1=int:0:59 --mem D_80219F10+3*4:8/1=int:0:24 \
+    --mem D_80219F30:0x18=zero --mem D_80219F30+0x10=1 --mem D_80219F30+0x14=sym:D_80219F48 \
+    --mem D_80219F50=choice:0x80310BD0,0 --mem D_80219F50+8=0 --mem D_80219F50+0xC=0 --mem D_80219F50+0x10=8 \
+    --mem D_80219F50+0x14=sym:D_80219F68 --mem D_80219F68:32=rand \
+    --mem D_80364A90=int --mem D_80364A90+4=choice:0,0x10E18000,0x8000,0x12345 --mem D_80364A98=choice:0,0x200000 \
+    --mem D_80364A98+4=int --mem D_8039C538:1=int:0:255 --mem D_80219F88=rand --mem D_80218D24=rand \
+    --mem D_8039C4B0:1=rand --mem D_8020C014:1=rand --mem yoshiState:2=rand --mem currentYoshiWindow:2=rand \
+    --stub-ret func_801F60C8=choice:0,1,2,3,4,5,6,7,8,9,10,11,12,0x6E382,-1 \
+    --stub-ret func_801F6160=choice:0,1,2,3,5,6,7,8,9,10,11,0x6E382 --stub-ret func_801F61C8=choice:0,3,6,9,0x6E382,-1 \
+    --stub-ret func_801F6210=choice:0,1,3,5,10,0x6E382 --stub-ret func_801F6264=choice:0,2,3,6,7,8,0x6E382 \
+    --stub-ret func_801F65C4=choice:0,1,3,8,9,11,0x6E382 --stub-ret func_801F67E4=choice:0,2,4,6,7,10,0x6E382 \
+    --stub-ret func_801F6CA4=choice:0,3,5,8,11,0x6E382 --stub-ret osPfsFreeBlocks=choice:0,1,3,8,10 \
+    --stub-ret func_801F5FE4=choice:0,1,5 --stub-ret osEepromProbe=choice:0,1,8 --stub-ret func_801F6ED4=choice:0,3,5,6 \
+    --stub-ret osPfsChecker=choice:0,2,3,7,11 --stub-ret func_801F6AF4=choice:0,1,6,9 \
+    --sig osSetEventMesg=a0,a1,a2 --sig func_8028A42C= --sig func_801EE390= --sig func_801EE398=a0 \
+    --sig func_801F60C8= --sig func_801F5FE4= --sig func_801F6160=a0:1 --sig func_801F61C8=a0 --sig func_801F6210=a0:1 \
+    --sig func_801F6264=a0:1,a1:1 --sig func_801F65C4=a0:1,a1:1,a2:1 --sig func_801F67E4=a0:1,a1:1,a2:1 \
+    --sig func_801F6CA4=a0:1,a1:1,a2:1 --sig func_801F6ED4=a0:1 --sig func_801F6AF4=a0:1,a2,a3 \
+    --sig osPfsFreeBlocks=a0,a1 --sig osPfsChecker=a0 --sig osEepromProbe=a0 --sig func_8029A7E4=a0,a1,a2,a3
+# retries: commands whose results ask for another try (3: resend + 0x12, 6/10/11: tries, then 0x13 and
+# the Yoshi window from D_80219F88), reply set, a full command queue for the resend
+func_801F58E8: -n 300 --seed 1 --model osRecvMesg=mesgqueue.py:recv --model osSendMesg=mesgqueue.py:send \
+    --stop-at osRecvMesg:60 --mem D_8036BF10=0 \
+    --mem D_80219EF8+8=choice:1,2,8 --mem D_80219EF8+0xC=choice:0,7 --mem D_80219EF8+0x10=8 \
+    --mem D_80219EF8+0x14=sym:D_80219F10 --mem D_80219F10:32=rand --mem D_80219F10*4:8/1=choice:1,0 \
+    --mem D_80219F10+1*4:8/1=int:0:3 --mem D_80219F10+2*4:8/1=int:0:59 --mem D_80219F10+3*4:8/1=choice:3,6,10,0x12,0x13 \
+    --mem D_80219F30:0x18=zero --mem D_80219F30+0x10=1 --mem D_80219F30+0x14=sym:D_80219F48 \
+    --mem D_80219F50=choice:0x80310BD0,0 --mem D_80219F50+8=choice:0,8 --mem D_80219F50+0xC=0 --mem D_80219F50+0x10=8 \
+    --mem D_80219F50+0x14=sym:D_80219F68 --mem D_80219F68:32=rand \
+    --mem D_80364A90=0 --mem D_80364A90+4=choice:0,0x10E18000 --mem D_80364A98=choice:0,0x200000 --mem D_80364A98+4=0 \
+    --mem D_8039C538:1=int:0:255 --mem D_80219F88=rand --mem D_80218D24=rand \
+    --stub-ret func_801F6160=choice:3*3,0 --stub-ret func_801F6264=choice:6*4,10,0 --stub-ret func_801F67E4=choice:10*4,11,0 \
+    --stub-ret func_801F6AF4=choice:0,1 --stub-ret func_801F60C8=choice:3,0 \
+    --sig osSetEventMesg=a0,a1,a2 --sig func_8028A42C= --sig func_801EE390= --sig func_801EE398=a0 \
+    --sig func_801F60C8= --sig func_801F6160=a0:1 --sig func_801F6264=a0:1,a1:1 --sig func_801F67E4=a0:1,a1:1,a2:1 \
+    --sig func_801F6AF4=a0:1,a2,a3 --sig func_8029A7E4=a0,a1,a2,a3
+# 0x6E382 (bad CRC/semaphore): done in pak-error game modes, else retried; 8 and 7 (pak changed / EEPROM)
+func_801F58E8: -n 200 --seed 2 --model osRecvMesg=mesgqueue.py:recv --model osSendMesg=mesgqueue.py:send \
+    --stop-at osRecvMesg:60 --mem D_8036BF10=0 \
+    --mem D_80219EF8+8=choice:1,2 --mem D_80219EF8+0xC=0 --mem D_80219EF8+0x10=8 --mem D_80219EF8+0x14=sym:D_80219F10 \
+    --mem D_80219F10:32=rand --mem D_80219F10+3*4:8/1=choice:6,7,8,9,12,13 --mem D_80219F10+1*4:8/1=int:0:3 \
+    --mem D_80219F30:0x18=zero --mem D_80219F30+0x10=1 --mem D_80219F30+0x14=sym:D_80219F48 \
+    --mem D_80219F50=sym:D_80310BD0 --mem D_80219F50+8=0 --mem D_80219F50+0xC=0 --mem D_80219F50+0x10=8 \
+    --mem D_80219F50+0x14=sym:D_80219F68 \
+    --mem D_80364A90=int --mem D_80364A90+4=choice:0,0x10E18000,0x10000000,0x8000 --mem D_80364A98=choice:0,0x200000,0x100000 \
+    --mem D_80364A98+4=int --mem D_8039C538:1=choice:0,1,2,3,4,0xFF \
+    --stub-ret func_801F6264=choice:0x6E382*3,8,7 --stub-ret func_801F65C4=choice:0x6E382*3,8,7,0 \
+    --stub-ret func_801F6CA4=choice:0x6E382,8,7,0 --stub-ret func_801F5FE4=choice:0,1 --stub-ret func_801F6AF4=0 \
+    --sig osSetEventMesg=a0,a1,a2 --sig func_8028A42C= --sig func_801EE390= --sig func_801EE398=a0 --sig func_801F5FE4= \
+    --sig func_801F6264=a0:1,a1:1 --sig func_801F65C4=a0:1,a1:1,a2:1 --sig func_801F6CA4=a0:1,a1:1,a2:1 \
+    --sig func_801F6AF4=a0:1,a2,a3 --sig func_8029A7E4=a0,a1,a2,a3
+# the command functions run (pak/EEPROM SDK calls stubbed): func_801F6160 / 61C8 / 6ED4 now return their
+# osPfs* result explicitly
+func_801F58E8: -n 300 --seed 3 --follow-all --model osRecvMesg=mesgqueue.py:recv --model osSendMesg=mesgqueue.py:send \
+    --no-follow osSetEventMesg,func_8028A42C,func_801EE390,func_801EE398,osPfsAllocateFile,osPfsDeleteFile \
+    --no-follow osPfsFileState,osPfsFindFile,osPfsReadWriteFile,osPfsFreeBlocks,osPfsChecker,osPfsInitPak \
+    --no-follow osEepromProbe,func_8028FCD4,func_8028A370,func_80204C10,func_802050F0,func_802042D0,func_80204410 \
+    --no-follow __osContDataCrc,func_8029A7E4 \
+    --stop-at osRecvMesg:60 --mem D_8036BF10=0 \
+    --mem D_80219EF8+8=choice:1,2,3 --mem D_80219EF8+0xC=0 --mem D_80219EF8+0x10=8 --mem D_80219EF8+0x14=sym:D_80219F10 \
+    --mem D_80219F10:32=rand --mem D_80219F10*4:8/1=choice:0,1 --mem D_80219F10+1*4:8/1=int:0:3 \
+    --mem D_80219F10+2*4:8/1=int:0:59 --mem D_80219F10+3*4:8/1=choice:1,2,3,4,5,14,15,16,17,18,19,20,21,22 \
+    --mem D_80219F30:0x18=zero --mem D_80219F30+0x10=1 --mem D_80219F30+0x14=sym:D_80219F48 \
+    --mem D_80219F50=choice:0x80310BD0,0 --mem D_80219F50+8=0 --mem D_80219F50+0xC=0 --mem D_80219F50+0x10=8 \
+    --mem D_80219F50+0x14=sym:D_80219F68 --mem D_80370BF8+8=0 \
+    --mem D_80364A90=int --mem D_80364A90+4=choice:0,0x10E18000 --mem D_80364A98=choice:0,0x200000 --mem D_80364A98+4=0 \
+    --mem D_8039C538:1=int:0:255 --mem D_80218D28=int:0:15 --mem D_802E8BF8:1=choice:0,1 \
+    --stub-ret osPfsAllocateFile=choice:0,1,3,5,6,9 --stub-ret osPfsDeleteFile=choice:0,3,5,10,0x6E382 \
+    --stub-ret osPfsFileState=choice:0,3,5,6,9 --stub-ret osPfsFreeBlocks=choice:0,3,10 --stub-ret osPfsChecker=choice:0,7,11 \
+    --stub-ret osEepromProbe=choice:0,1,9 --stub-ret func_8028FCD4=choice:0,1 --stub-ret osPfsInitPak=choice:0,3,10 \
+    --stub-ret osPfsReadWriteFile=choice:0,1 --stub-ret func_80204C10=0 \
+    --sig osSetEventMesg=a0,a1,a2 --sig func_8028A42C= --sig func_801EE390= --sig func_801EE398=a0 \
+    --sig func_8028FCD4=a0 --sig func_8028A370= --sig func_8029A7E4=a0,a1,a2,a3

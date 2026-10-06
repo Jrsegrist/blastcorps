@@ -3,8 +3,8 @@
 
 Usage: nm_ldscript.py IN.ld OUT.ld --build-dir build_nm
                       [--relocate SECTION=VRAM] [--pin-data SECTION]
-                      [--extra-vram ADDR --extra-glob GLOB]
-       nm_ldscript.py undefined_syms.X.txt OUT.txt --provide
+                      [--extra-vram ADDR --extra-glob GLOB [--extra-name .nm_extra_fe]]
+       nm_ldscript.py undefined_syms.X.txt OUT.txt --provide [--resolve-elf OTHER.elf]
 
 What it does (see tools_port/README.md for the why):
   * rewrites every `build/...` object path to `<build-dir>/...`;
@@ -29,11 +29,50 @@ What it does (see tools_port/README.md for the why):
     there to its *original* address, silently bypassing the rewrite.  Data
     assignments stay hard, so every data symbol keeps its original address
     even when a C file also defines it (tools_port/nm_symaudit.py checks).
+  * --resolve-elf OTHER.elf (with --provide) gives every assignment whose
+    name is a code symbol of OTHER.elf (defined in one of its executable
+    sections) that symbol's address there.  The front end's symbol files name
+    hd_code's functions at their original addresses; resolved against the
+    NON_MATCHING hd_code ELF, the NON_MATCHING front end calls hd_code's
+    relocated (and rewritten) code directly, which matters for rewrites with
+    a non-ABI convention (their C version is not at, and does not take the
+    registers of, the original address).
+  * --extra-name names the catch-all section (default .nm_extra), so two
+    segments' catch-alls stay apart (the front end uses .nm_extra_fe).
 """
 import argparse
 import os
 import re
 import sys
+
+
+SKIP_NAME = re.compile(r"^(\.|L[0-9A-F]{8}|jtbl_|D_|_asmpp_|_binary_|.*_(START|END|VRAM|bin|SIZE)$)")
+
+
+def code_symbols(path):
+    """name -> address of the code symbols of an ELF: symbols defined in an
+    executable section (not data labels inside text bins, local labels or
+    segment markers)."""
+    from elftools.elf.elffile import ELFFile
+    from elftools.elf.sections import SymbolTableSection
+    out = {}
+    with open(path, "rb") as f:
+        e = ELFFile(f)
+        secs = list(e.iter_sections())
+        for st in secs:
+            if not isinstance(st, SymbolTableSection):
+                continue
+            for sy in st.iter_symbols():
+                shndx = sy["st_shndx"]
+                if not sy.name or not isinstance(shndx, int) or SKIP_NAME.match(sy.name):
+                    continue
+                if sy["st_info"]["type"] in ("STT_SECTION", "STT_FILE", "STT_OBJECT"):
+                    continue
+                if not secs[shndx]["sh_flags"] & 4:         # SHF_EXECINSTR
+                    continue
+                if sy["st_info"]["bind"] == "STB_GLOBAL" or sy.name not in out:
+                    out[sy.name] = sy["st_value"]
+    return out
 
 
 def main():
@@ -45,8 +84,10 @@ def main():
     ap.add_argument("--pin-data", action="append", default=[])
     ap.add_argument("--extra-vram")
     ap.add_argument("--extra-glob", action="append", default=[])
+    ap.add_argument("--extra-name", default=".nm_extra")
     ap.add_argument("--provide", action="store_true",
                     help="symbol-assignment file: wrap every assignment in PROVIDE()")
+    ap.add_argument("--resolve-elf", help="(--provide) take code symbols' addresses from this ELF")
     args = ap.parse_args()
 
     text = open(args.inp).read()
@@ -61,13 +102,16 @@ def main():
         # its modelled .bss); a PROVIDE would let the C definition win and move
         # the variable, while the hand asm still uses the raw original address.
         funcs_file = "undefined_funcs" in os.path.basename(args.inp)
+        code = code_symbols(args.resolve_elf) if args.resolve_elf else {}
 
         def wrap(m):
             name, val = m.group(2), m.group(3).strip()
-            is_func = funcs_file or name.startswith("func_") or \
+            if name in code:
+                val = "0x%08X" % code[name]
+            is_func = funcs_file or name in code or name.startswith("func_") or \
                 re.match(r"^[A-Za-z_.$][\w.$]*$", val) is not None   # alias of another symbol
             if not is_func:
-                return m.group(0)
+                return "%s%s = %s;" % (m.group(1), name, val)
             return "%sPROVIDE(%s = %s);" % (m.group(1), name, val)
         text = re.sub(r"^(\s*)([A-Za-z_.$][\w.$]*)\s*=\s*([^;]+);", wrap, text, flags=re.M)
         open(args.out, "w").write(text)
@@ -100,16 +144,17 @@ def main():
         if args.extra_vram and re.match(r"\s*/DISCARD/", line):
             globs = args.extra_glob
             sel = lambda secs: " ".join("%s(%s)" % (g, secs) for g in globs)
+            xn = args.extra_name
             out.append("    /* NON_MATCHING: sections the matching layout never placed */")
-            out.append("    .nm_extra %s : SUBALIGN(16)" % args.extra_vram)
+            out.append("    %s %s : SUBALIGN(16)" % (xn, args.extra_vram))
             out.append("    {")
-            out.append("        nm_extra_START = .;")
+            out.append("        %s_START = .;" % xn[1:])
             out.append("        %s;" % sel(".text"))
             out.append("        %s;" % sel(".rodata .rodata.* .late_rodata"))
             out.append("        %s;" % sel(".data .data.* .sdata"))
-            out.append("        nm_extra_END = .;")
+            out.append("        %s_END = .;" % xn[1:])
             out.append("    }")
-            out.append("    .nm_extra_bss (NOLOAD) : SUBALIGN(16)")
+            out.append("    %s_bss (NOLOAD) : SUBALIGN(16)" % xn)
             out.append("    {")
             out.append("        %s;" % sel(".bss .sbss COMMON .scommon"))
             out.append("    }")

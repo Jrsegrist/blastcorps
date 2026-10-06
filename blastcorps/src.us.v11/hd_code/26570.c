@@ -152,7 +152,6 @@ extern u16 D_8036BB48[];
 extern u16 D_8036BB4A[];
 /* Per-language special characters: [0] for English, [1] for Japanese */
 extern u16 D_802E8C9C[];
-extern u32 D_803156C4;
 extern u32 D_8036BB00;
 extern u32 D_8036BAFC;
 /* Debug switches set from the command line */
@@ -166,7 +165,6 @@ extern YoshiNode *D_8036BED8;
 extern f32 D_8036BEDC;
 extern u8 D_8036BEE0;
 extern void *D_80358070;
-extern s16 D_803BE714;
 extern Vtx D_802F99C0[]; /* quad template */
 extern u8 D_802F9A00[]; /* 16x16 RGBA32 textures */
 extern u8 D_802F9E00[];
@@ -177,7 +175,6 @@ extern YoshiTrigger D_802F48D0[];
 extern s32 D_802E8BDC;
 extern u8 D_802F499A[];
 extern u8 D_8036BAA2[];
-extern u32 D_80364AA8;
 extern struct YoshiArg D_802F8BDC[];
 extern u16 D_8036BB04;
 extern u16 D_8036BB06;
@@ -188,7 +185,6 @@ extern YoshiSnd D_802F49F4[];
 extern PathNode D_8020C070[];
 extern PathNode D_802F5804[];
 extern PathInfo D_802F9934[];
-extern u16 D_803C30A8[];
 
 u8 func_8026AD30(s16 arg0) {
     YoshiTrigger *trig;

@@ -9,8 +9,6 @@ extern s32 D_8036C798;
 extern s16 *D_8036C7A0[10]; /* point lists to keep on screen */
 extern Vtx D_8036C7D0[][4];   /* off-screen marker quads */
 extern Mtx D_8036C850[];      /* off-screen marker matrices */
-extern s16 D_8036443E;        /* camera yaw, 4095 = 360 degrees */
-extern u32 D_80364AA8;
 extern s32 D_802FAD40; /* target bounce offset */
 extern s32 D_802FAD44; /* target bounce count */
 extern u8 D_802FAD48;  /* target bounce direction */

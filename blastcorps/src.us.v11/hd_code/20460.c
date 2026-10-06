@@ -30,15 +30,12 @@ typedef struct {
 } Debris; /* size 0x24 */
 
 extern Debris D_80367D60[20];
-extern u32 D_8036B968;
 extern s16 D_80368034;
 extern s16 D_80368036;
 extern s32 D_80368038;
 extern s32 D_8036803C;
 extern s32 D_80368044;
 extern s32 D_80367738;
-extern s16 D_8036443E;
-extern u16 D_803C30A8[];
 
 s32 func_80265A0C(s32 arg0);
 void func_80265B7C(s32 arg0);

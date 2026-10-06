@@ -29,8 +29,6 @@ extern u8 D_803ED840[];  /* vehicle 1 animation channels */
 
 extern u8 *D_80358070; /* heap cursor */
 extern u8 *D_803F77D0;
-extern s16 D_8036443E;
-extern s16 D_80364440;
 extern u8 D_80305CE0[];
 extern f32 D_8030D8A0;
 
@@ -297,7 +295,6 @@ void func_802AFC60(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp) {
 extern u8 D_803EDB40[]; /* this vehicle's state block */
 extern u8 D_803ED840[]; /* animation channel table (Unk8029DEA0Entry, 56040.c) */
 extern u8 D_802C2390[]; /* key of this vehicle's func_802A06B4 entry */
-extern s16 D_80364450;
 
 /* Enter vehicle type 1 (called from 00000.c / 17210.c): clears byte 0x99 of
  * the state block, sets fields 0x14 / 0x11 / 0x12 of animation channels 1, 2,
@@ -487,7 +484,6 @@ void func_802B03F4(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u16 D_80364452;   /* angle (12 bits) */
 extern f32 D_8030D8A4;
 extern u8 D_803EDC06;    /* horn cooldown (frames) */
 extern u8 D_803EDC05;    /* level 0..100 */
@@ -506,7 +502,7 @@ extern void *D_80367738;
  * 1 gets direction (speed < 0) and |speed| / 14, which also goes to
  * func_802C4584. The asm clobbers s4 and s5 (conventions.txt). */
 void func_802B07DC(void) {
-    s32 a = D_80364452 + 0x800;
+    s32 a = ((u16) D_80364452) + 0x800;
     s32 third;
     f32 pos;
     s32 ch[8];
@@ -582,7 +578,6 @@ void func_802B07DC(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_802E8BE4;
 
 /* When channel 5 of D_803ED840 is active (field 0x10 != 0) and
  * func_802BCD80(4) or func_802BCD80(5) is nonzero: sets its field 0x11 to 1,

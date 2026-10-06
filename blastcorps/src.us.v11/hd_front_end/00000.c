@@ -27,15 +27,11 @@ typedef struct {
 } Player; /* 0x100 bytes */
 extern Player D_80364AF0[];
 extern s32 D_802E8BDC;
-extern u16 D_80364EF0[][16];
 extern s32 D_80367738;
 extern f32 D_802FDAC0[];
 extern u8 D_802F47B0[];
-extern s8 D_80370C2C;  /* stick x */
-extern u32 D_803156C0; /* frame counter */
 
 extern FeDyn D_803156F8[];
-extern u32 D_80358060;
 extern u8 *D_8035806C;
 extern u32 D_80358058;
 extern u32 D_80358050[];

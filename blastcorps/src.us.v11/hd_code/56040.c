@@ -101,8 +101,6 @@ typedef struct {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u16 D_803A7410;
-extern u16 D_803A7412;
 extern s32 D_803A7408;
 extern s16 D_803A7422;
 extern u8 D_803A7428;
@@ -111,7 +109,6 @@ extern u8 D_803A742C;
 extern u8 D_803A742D;
 extern u8 D_803A742E;
 extern u8 D_803F7811;
-extern s32 D_80358060;
 
 /* Vehicle-state reset on entering a vehicle: the ring span D_803A7410/7412 =
  * 0/0xFFF, the position D_803A73F0..F8 = (x, y, z), the various mode bytes and
@@ -144,7 +141,7 @@ void func_8029A800(s32 z, s32 a1, s32 b2, s32 b3, s32 x, s32 y, s32 b0, s32 h1, 
     D_803A7408 = a1;
     D_803A7424 = 0;
     D_803A7425 = 0;
-    if (D_80358060 == 0) {
+    if (((s32) D_80358060) == 0) {
         func_802BCC10();
     }
     if (b2 != 0 && b8 != 0xFF) {
@@ -158,9 +155,6 @@ void func_8029A800(s32 z, s32 a1, s32 b2, s32 b3, s32 x, s32 y, s32 b0, s32 h1, 
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u16 D_803A7410;
-extern u16 D_803A7412;
-extern s32 D_80358064;
 extern u8 D_803A742D;
 extern u8 D_803A742E;
 
@@ -192,12 +186,12 @@ void func_8029A914(u8 *veh) {
         VEH_GP_S16(veh, 0x76) = 10;
     }
     if (VEH_GP_S16(veh, 0x76) < 0) {
-        v = D_803A7410 - 0x800;
+        v = ((u16) D_803A7410) - 0x800;
         if (v < 0) {
             v += 0xFFF;
         }
         D_803A7410 = v;
-        v = D_803A7412 + 0x800;
+        v = ((u16) D_803A7412) + 0x800;
         if (v > 0xFFF) {
             v -= 0xFFF;
         }
@@ -252,7 +246,7 @@ void func_8029AA10(s32 kind) {
                           *(s32 *) (p + 0xC) >> 2, kind, id);
         }
     }
-    if (D_803A7410 != 0 || D_803A7412 != 0xFFF) {
+    if (((u16) D_803A7410) != 0 || ((u16) D_803A7412) != 0xFFF) {
         D_803A7425 = 1;
         D_803A740C = D_80358068;
     }
@@ -625,9 +619,6 @@ tail:
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u16 D_803A7410; /* ring index A (12-bit, 0..0xFFF) */
-extern u16 D_803A7412; /* ring index B */
-extern s32 D_80358064;
 extern u8 D_803A742C;
 extern u8 D_803A742D;
 extern u8 D_803A742E;
@@ -661,8 +652,8 @@ void func_8029B7CC(s32 a, s32 b) {
         b -= 0xFFF;
     }
     before = func_8029B930();
-    ca = D_803A7410;
-    cb = D_803A7412;
+    ca = ((u16) D_803A7410);
+    cb = ((u16) D_803A7412);
     if (ca == 0 && cb == 0xFFF) {
         D_803A7410 = a;
         D_803A7412 = b;
@@ -692,8 +683,6 @@ void func_8029B7CC(s32 a, s32 b) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u16 D_803A7410; /* ring index A (12-bit, 0..0xFFF) */
-extern u16 D_803A7412; /* ring index B */
 
 /* Distance from index A forward to index B in the 0x1000-entry ring, with
  * the asm's quirks kept: the wrapped case uses 0xFFF (not 0x1000), and a
@@ -704,8 +693,8 @@ extern u16 D_803A7412; /* ring index B */
  * version is plain o32, so a mixed N64 build would need a thunk preserving
  * those for the asm caller; the native port does not. */
 s32 func_8029B930(void) {
-    s32 a = D_803A7410;
-    s32 b = D_803A7412;
+    s32 a = ((u16) D_803A7410);
+    s32 b = ((u16) D_803A7412);
 
     if (b < a) {
         return b + (0xFFF - a);
@@ -1064,7 +1053,6 @@ s32 func_8029C160(s32 x, s32 y, s32 z, s32 r, u8 *tri, s32 *hit) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s16 D_803BE72C;
 extern s16 D_803A7418[];
 
 /* Grid cell of (x, z): D_803A7418[0] = (x*4) / D_803BE724 +
@@ -1195,7 +1183,7 @@ void func_8029C52C(s32 tag, u8 *veh) {
     func_8029C9D4(tag, veh);
     func_8029C828(tag);
     func_8029C748(tag);
-    if (D_803A7410 != 0 || D_803A7412 != 0xFFF) {
+    if (((u16) D_803A7410) != 0 || ((u16) D_803A7412) != 0xFFF) {
         D_803A7425 = 1;
         D_803A7424 = 1;
     }
@@ -1462,7 +1450,6 @@ u32 func_8029CB04(u32 v, s32 key, u8 *veh) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803A7426;
 extern u8 D_803A742C;
 #pragma intrinsic(sqrtf) /* sqrt.s, as the asm (applies to the rest of the file) */
 

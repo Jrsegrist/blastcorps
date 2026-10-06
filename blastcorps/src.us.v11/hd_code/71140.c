@@ -169,7 +169,6 @@ void func_802B5900(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp) {
 #ifdef NON_MATCHING
 extern u8 D_803EEA90[]; /* this vehicle's state block */
 extern u8 D_803EE790[]; /* animation channel table (Unk8029DEA0Entry, 56040.c) */
-extern s16 D_80364450;
 
 /* Enter vehicle type 5 (called from 00000.c / 17210.c): clears byte 0x99 of
  * the state block, sets fields 0x14 / 0x11 / 0x12 of animation channels 1, 2,
@@ -404,12 +403,9 @@ extern s16 D_803EEB5A;    /* heading kept while bouncing off */
 extern u8 D_803EEB5E;     /* spawn cooldown */
 extern s8 D_803EEB60;     /* collision flag */
 extern s8 D_803EEB61;     /* sound to start this frame (-1 = none) */
-extern s32 D_80364AA8;
 extern u8 D_80305D20[];
 extern f32 D_8030D8E0;
 extern void *D_803F77D0;
-extern s16 D_8036443E;
-extern s16 D_80364440;
 s32 func_802B60BC(ZoneScanRegs *r);
 void func_802B6C28(void);
 s32 func_802B7168(void);
@@ -559,7 +555,7 @@ void func_802B6294(void) {
     if (D_803A7425 == 0) {
         D_803A7424 = 0;
         D_803EEB61 = -1;
-        if (D_80364AA8 == 0x40) {
+        if (((s32) D_80364AA8) == 0x40) {
             goto no_hit;
         }
         D_803F77D0 = D_803EE790;
@@ -607,7 +603,7 @@ void func_802B6294(void) {
     VEH5(0x74, s16) = cur;
     func_802A746C(D_803EEA90, turn, d, &tgt);
     func_802A6FE4(D_803EEA90, 0);
-    if (D_80364AA8 != 0x40) {
+    if (((s32) D_80364AA8) != 0x40) {
         D_803F77D0 = D_803EE790;
         func_802BE77C(5, D_803EEA90);
     }

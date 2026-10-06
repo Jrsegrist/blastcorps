@@ -64,7 +64,6 @@ extern u32 D_8021A828;        /* number of best-time menu items */
 extern u8 D_8021A7E8[];       /* player of each item */
 extern u8 D_8021A7D0[];       /* level of each row */
 extern MenuItem *D_8036BB24;
-extern u16 D_80364EF0[][16];  /* best times */
 extern void *D_80367738;
 extern u8 D_802F8BDC[];
 extern u8 *D_80358070;        /* heap pointer */

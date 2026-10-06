@@ -122,10 +122,8 @@ extern u16 D_80303AF4[];
 extern u16 D_80303B00[];
 extern u16 D_80303B10[];
 extern u16 D_80303B24[];
-extern u8 D_803643D9;
 extern Struct80364460 D_80364460[];
 extern Struct80364460 *D_803649D0;
-extern s32 D_80364AA8;
 extern Struct80364AF0 D_80364AF0[];
 extern u8 D_8036B8C0;
 extern f32 D_8036B8C8[4][4];
@@ -139,15 +137,11 @@ extern u8 D_8036B958[4];
 extern u8 D_8036B95C;
 extern u8 D_8036B960[4];
 extern u8 D_8036B966;
-extern s32 D_8036B968;
 extern s32 D_8036B96C;
 extern u8 D_8036B970;
 extern s32 D_8036B974;
 extern u8 D_8036B978;
 extern u8 D_8036B979;
-extern s16 D_803FCD6A;
-extern s16 D_803FCD6C;
-extern s16 D_803FCD6E;
 
 /* Checks the trigger zones for the current level; sets D_803649ED on a hit. */
 void func_802683E0(void) {
@@ -480,7 +474,7 @@ void func_80269258(void) {
             case 0:
                 break;
             case 1:
-                if (D_80364AA8 == 0x80) {
+                if (((s32) D_80364AA8) == 0x80) {
                     D_8036B95C = 1;
                 } else {
                     func_802C1DD0(0);

@@ -86,7 +86,6 @@ extern s32 D_8039C4B4;
 extern Player D_80364AF0[];   /* player records */
 extern u8 D_8039B6B0[];
 extern u8 D_8020BEE0[];
-extern u16 D_80364EF0[][16];  /* best times */
 
 int sprintf(char *, const char *, ...);
 void bcopy(const void *, void *, int);

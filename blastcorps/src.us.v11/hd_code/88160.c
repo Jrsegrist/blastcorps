@@ -124,7 +124,6 @@ void func_802CC920(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 D_803F9250[]; /* this vehicle's state block */
-extern s16 D_80364450;
 
 /* Enter vehicle type 14: clears the byte at +0x99, D_8036444C/50 = 3000,
  * 1000, then func_802C4310(arg0, 0x7B) (arg0 passes straight through; hd.c
@@ -303,8 +302,6 @@ extern s16 D_803F9310; /* steering target */
 extern u8 *D_803F77D0;
 extern f32 D_8030D9C0;
 extern u8 D_80306440[];
-extern u16 D_8036443E;
-extern u16 D_80364440;
 void func_802CD578(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4);
 s32 func_802CD938(void);
 

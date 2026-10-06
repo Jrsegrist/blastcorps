@@ -57,8 +57,6 @@ extern u8 *D_80358070;   /* heap pointer */
 extern s16 D_803ED390[]; /* (0, heading, 0) for func_802AA764 */
 extern u8 D_80305E00[];
 extern u8 *D_803F77D0;
-extern u16 D_8036443E;
-extern u16 D_80364440;
 
 s32 func_802BBE74(ZoneScanRegs *r);
 void func_802BC2C8(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4);
@@ -168,7 +166,6 @@ void func_802BBA60(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s16 D_80364450;
 
 /* Enter vehicle type 7: D_8036444C/50 = 3000, 0, then func_802C4310(arg0,
  * 0x20) (arg0 passes straight through; hd.c calls this with no arguments

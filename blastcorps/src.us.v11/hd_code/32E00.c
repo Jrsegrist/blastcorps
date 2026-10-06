@@ -25,7 +25,6 @@ typedef struct {
 
 extern DigTrigger *D_803BE6FC; /* first */
 extern DigTrigger *D_803BE700; /* end */
-extern u32 D_80364AA8;
 extern u8 D_8036CB35;
 extern u8 D_8036CB36;
 extern u8 D_8036CB37;
@@ -52,8 +51,6 @@ extern u8 D_8036CB32;
 extern void *D_8036CB48[2];
 extern u8 D_8036CB28;
 extern u8 D_8036CB29;
-extern s16 D_8036CB2A;
-extern s16 D_8036CB2C;
 extern u8 D_8036CB30;
 extern u8 D_8036CB31;
 extern u8 D_8036CB33;

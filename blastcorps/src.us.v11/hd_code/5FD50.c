@@ -15,8 +15,6 @@
 extern s16 D_803C3248;
 extern u8 D_803C2B90[];
 extern u8 *D_803C2B88;
-extern u16 D_803BE714;
-extern s16 D_803C30A8[];  /* 100 entries, then D_803C3170 */
 extern s16 *D_803C3170;
 extern s16 D_803C3178[];
 
@@ -33,7 +31,7 @@ extern s16 D_803C3178[];
                                                 \
         D_803C3248 = (value);                   \
         D_803C2B88 = D_803C2B90;                \
-        n_ = (u32) D_803BE714 * D_803BE716;     \
+        n_ = (u32) ((u16) D_803BE714) * D_803BE716;     \
         for (i_ = 0; i_ != n_; i_++) {          \
             D_803C3178[i_] = i_;                \
             D_803C30A8[i_] = i_;                \
@@ -123,12 +121,12 @@ void func_802A470C(s32 arg0, Gfx *dataPtr, Vtx *v, s32 dataSize) {
         q[3] = *(s16 *) (lvl + 2);
         q += 4;
         end = D_803C3170;
-        top = D_803C30A8;
+        top = (s16 *) D_803C30A8;
         for (src = D_803C3178; src != end; src++, top++) {
             s16 val = *src;
             s16 cur;
 
-            for (p = D_803C30A8; p != top; p++) {
+            for (p = (s16 *) D_803C30A8; p != top; p++) {
                 if (val < *p) {
                     break;
                 }
@@ -316,7 +314,7 @@ extern OSMesgQueue D_80315440;
 s32 func_802A4B0C(void *dataPtr, void *wb, s32 dataSize) {
     u32 *t;
 
-    if (D_803BE714 == 1 && D_803BE716 == 1) {
+    if (((u16) D_803BE714) == 1 && D_803BE716 == 1) {
         return 1;
     }
     t = D_803BE740;
@@ -428,7 +426,7 @@ u32 *func_802A5334(u8 *base, u32 *dst, s16 *exclEnd, u8 *rec, u8 *end);
 /* Is `v` in the sorted, -1-terminated visible-cell list D_803C30A8? (Scans
  * to the first entry >= v, as the asm.) */
 static s32 port_cell_listed(s32 v) {
-    s16 *p = D_803C30A8;
+    s16 *p = (s16 *) D_803C30A8;
     s32 t;
 
     for (;;) {
@@ -446,7 +444,7 @@ static s32 port_cell_listed(s32 v) {
  * listed value (to the -1) the cells are scanned from the start up to the
  * first one greater than it, as the asm does. */
 static s32 port_cells_listed(s32 *cells, s32 n) {
-    s16 *p = D_803C30A8;
+    s16 *p = (s16 *) D_803C30A8;
     s32 *c;
     s32 v;
     s32 k;
@@ -704,7 +702,7 @@ u32 *func_802A5334(u8 *base, u32 *dst, s16 *exclEnd, u8 *rec, u8 *end) {
     while (rec != end) {
         s32 n = *(s32 *) (rec + 0x10);
         s32 *words = (s32 *) (rec + 0x14);
-        s16 *l = D_803C30A8;
+        s16 *l = (s16 *) D_803C30A8;
         s32 id;
         s16 *e;
         u32 *s;

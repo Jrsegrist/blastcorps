@@ -10,7 +10,6 @@
 
 f32 sqrtf(f32);
 
-extern u16 D_80370C70;
 extern s8 D_80370C74;
 extern s16 D_80370C76;
 

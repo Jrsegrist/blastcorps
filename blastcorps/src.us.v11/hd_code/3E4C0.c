@@ -3,8 +3,6 @@
 #include "game/game.h"
 
 extern f32 sqrtf(f32);
-extern s16 D_80364452;
-extern u32 D_803156C4;
 extern u16 D_802FCEB0[]; /* 32x32 RGBA16 arrow texture */
 extern Vtx D_802FD9B8[];
 extern Mtx D_02000000[];

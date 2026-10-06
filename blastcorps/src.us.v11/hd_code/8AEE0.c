@@ -32,8 +32,6 @@ extern u8 D_803FC999;
 extern u8 D_803FC99A;
 extern f32 D_8030D9D0;
 extern u8 *D_803F77D0;
-extern s16 D_8036443E;
-extern s16 D_80364440;
 extern u8 D_80306460[];
 extern u8 D_80306470[];
 extern void *D_803F7844;
@@ -180,7 +178,6 @@ void func_802CF6A0(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s32 t6
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 D_803FC500[]; /* this vehicle's state block */
-extern s16 D_80364450;
 
 /* Enter vehicle type 15: clears the byte at +0x99, D_8036444C/50 = 3000,
  * 1000, then func_802C4310(arg0, 0xCE) (arg0 passes straight through; hd.c
@@ -849,7 +846,6 @@ void func_802D0BF8(void) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 D_803FC8D0[]; /* this vehicle's state block */
-extern s16 D_80364450;
 extern void *D_80367738;
 extern void *D_803FC990; /* engine sound handle */
 extern u8 D_802C22D0[]; /* key of this vehicle's func_802A06B4 entry */

@@ -130,8 +130,6 @@ extern Vtx D_802FC528[];
 extern Mine D_8036E380[];
 extern s32 D_8036E4C0; /* number of placed objects */
 extern s32 D_8036E4C4;
-extern s16 D_8036E4C8;
-extern s8 D_8036E4CA;
 extern void *D_80367738;
 
 
@@ -1011,7 +1009,6 @@ extern u8 D_8036E4D3;  /* number of active rings (0..2) */
 extern u32 D_8036E4D4; /* frame the last ring started */
 extern Gfx D_802FFF38[];
 extern Gfx D_80300A68[];
-extern u32 D_803156C4;
 extern Mtx D_8036E4D8[][2];
 extern f32 D_8036E5D8[]; /* ring scales */
 

@@ -52,7 +52,6 @@ extern Vtx *D_80358070;
 extern s32 D_80367738;
 extern Box D_8039AF00[];
 extern s32 D_8039B068;
-extern s16 D_803F8B72;
 
 
 void func_8028C41C(Vtx *v, u8 type, s16 x, s16 y, s16 z);

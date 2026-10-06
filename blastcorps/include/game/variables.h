@@ -48,7 +48,9 @@ extern f32 D_8021A920;
 extern u8 D_802E8BD0;
 extern u8 D_802E8BD4;
 extern u8 D_802E8BD8;
+extern u8 D_802E8BE4; /* screen shake time */
 extern s32 D_802E8BE8; /* screen shake size */
+extern s32 D_802E8BEC;
 extern u8 D_802E8BF0;
 extern u8 D_802E8BF8;
 extern u8 D_802E8C44[];
@@ -73,8 +75,12 @@ extern u8 D_802FDBD4;
 /* hd_code .bss (0x8030F660-0x80400000) */
 extern OSMesgQueue D_803150A0;
 extern OSMesgQueue D_80315180; /* texture DMA queue */
+extern u32 D_803156C0; /* frame counter */
+extern u32 D_803156C4;
 extern u8 D_803156F4;
 extern u8 D_8035805C; /* selects which of the two matrix buffers is current */
+extern u32 D_80358060; /* frame counter */
+extern s32 D_80358064;
 extern s32 D_80358068;
 extern s32 D_80358078; /* top-level display list length */
 extern u16 D_8035807C; /* projection scale, 65535 = 1.0 */
@@ -85,6 +91,7 @@ extern u8 D_803643D5;
 extern u8 D_803643D6;
 extern u8 D_803643D7;
 extern u8 D_803643D8;
+extern u8 D_803643D9;
 extern u8 D_803643DA;
 extern u8 D_803643DB;
 extern u8 D_803643DC;
@@ -102,16 +109,25 @@ extern u8 D_80364411;
 extern u8 D_80364412; /* camera: snap to the new position this frame */
 extern f32 D_80364414; /* camera heading, degrees */
 extern u8 D_80364424;
+extern u32 D_80364428;
 extern u16 D_8036442C;
 extern s32 D_80364430;
 extern f32 D_80364438;
 extern s16 D_8036443C; /* player speed, heading, angle */
+extern s16 D_8036443E; /* camera yaw, 4095 = 360 degrees */
+extern s16 D_80364440;
 extern s16 D_8036444C;
 extern s16 D_8036444E;
+extern s16 D_80364450;
+extern s16 D_80364452; /* camera / player angle (0..0xFFF) */
 extern u8 D_80364456; /* mode: the update is skipped in modes 0,1,2,6,7,9,0xB,0x10..0x12 */
 extern u64 D_803649D8; /* frame counter */
+extern s16 D_803649E0; /* x, y, z stored for a part that falls */
+extern s16 D_803649E2;
+extern s16 D_803649E4;
 extern u8 D_803649ED;
 extern u8 D_803649EE;
+extern u32 D_803649F0; /* score */
 extern s32 D_80364A40; /* message to post */
 extern u8 D_80364A50;
 extern s32 D_80364A58;
@@ -130,10 +146,12 @@ extern u8 D_80364A87;
 extern u64 D_80364A88; /* previous game mode */
 extern u64 D_80364A90; /* game mode flags */
 extern u64 D_80364A98; /* next game mode */
+extern u32 D_80364AA8; /* game mode flags */
 extern u8 D_80364AC1;
 extern u8 D_80364AE8; /* current player */
 extern u8 D_80364AE9;
 extern u8 D_80364AEA;
+extern u16 D_80364EF0[][16]; /* per player: saved level times */
 extern u16 D_80364F70[]; /* EEPROM best-time words (time, time ^ 0x55AA) */
 extern u8 D_80365060[]; /* per slot: 0 no save, 1 saved game, 2 new game */
 extern u8 D_80365580;
@@ -143,6 +161,7 @@ extern u8 *D_803669C0; /* input buffer */
 extern u8 *D_803669C4; /* output buffer */
 extern s32 D_803669EC; /* inptr */
 extern s32 D_803669F0; /* outcnt */
+extern s16 D_80366A04;
 extern u16 D_80366A12;
 extern u8 D_80366A18;
 extern u8 D_80367728;
@@ -150,6 +169,7 @@ extern u8 D_80367729;
 extern u8 D_8036772A;
 extern s32 D_8036772C;
 extern u8 D_80367730;
+extern u32 D_80367740;
 extern u16 D_80367BC8;
 extern s16 D_80367BD6; /* HUD alpha cap */
 extern u16 D_80367BF6;
@@ -165,6 +185,7 @@ extern s32 D_8036B8B8;
 extern s32 D_8036B8BC;
 extern u8 D_8036B964;
 extern u8 D_8036B965;
+extern s32 D_8036B968;
 extern u8 D_8036B971;
 extern char D_8036B9A8[]; /* status screen lines, 0x20 each */
 extern u16 D_8036BB16;
@@ -174,13 +195,18 @@ extern s16 D_8036BB20;
 extern f32 D_8036BB34;
 extern u16 D_8036BBB0[];
 extern s32 D_8036BF10;
+extern OSTime D_8036BF38;
 extern s32 D_8036C7C8; /* time left; under 500 the target turns red */
 extern u8 D_8036C7CC;
+extern s16 D_8036CB2A;
+extern s16 D_8036CB2C;
 extern u8 D_8036CB2E;
 extern u8 D_8036CB2F;
 extern u8 D_8036DCD4; /* level has water */
 extern u8 D_8036DCD7;
 extern s32 D_8036DCD8;
+extern s16 D_8036E4C8;
+extern s8 D_8036E4CA;
 extern u8 D_8036E68C[]; /* slot busy flags */
 extern u8 D_8036EA78;
 extern u8 D_8036EA79;
@@ -209,6 +235,7 @@ extern u8 D_80370C24;
 extern u8 D_80370C27;
 extern u16 D_80370C28; /* controller buttons held */
 extern u16 D_80370C2A; /* controller buttons, previous frame */
+extern s8 D_80370C2C; /* flag sampled each counted frame */
 extern s8 D_80370C2D; /* stick y */
 extern s8 D_80370C2E; /* stick x last frame */
 extern u16 D_80370C30; /* controller 1 buttons */
@@ -219,6 +246,7 @@ extern u8 D_80370C35; /* stick mode */
 extern s32 D_80370C38; /* swallow a held B */
 extern u8 D_80370C50; /* front end loaded */
 extern OSIoMesg D_80370C58;
+extern u16 D_80370C70;
 extern s16 D_80370C72;
 extern u8 D_80370C75;
 extern u8 D_8039C4B0; /* pak thread busy */
@@ -245,8 +273,11 @@ extern s32 D_803A73F0; /* a point x, z (16.16-ish; the part position is << 5) */
 extern s32 D_803A73F4;
 extern s32 D_803A73F8;
 extern s32 D_803A740C; /* frame stamp */
+extern s16 D_803A7410; /* ring index A (12-bit, see func_8029B930) */
+extern s16 D_803A7412; /* ring index B */
 extern u8 D_803A7424;
 extern u8 D_803A7425;
+extern s8 D_803A7426;
 extern u8 D_803A7427;
 extern u8 D_803A742A;
 extern u8 D_803A742B;
@@ -270,11 +301,15 @@ extern u8 *D_803BE6F8; /* 9-byte respawn records: u8 key, s16 x, y, z (big-endia
 extern u8 *D_803BE708;
 extern s32 D_803BE70C;
 extern s32 D_803BE710;
+extern s16 D_803BE714;
 extern u16 D_803BE716;
+extern u32 D_803BE718; /* grid cell width */
+extern u32 D_803BE71C; /* grid cell depth */
 extern u16 D_803BE720; /* grid columns */
 extern u16 D_803BE722;
 extern s32 D_803BE724;
 extern s32 D_803BE728;
+extern s16 D_803BE72C;
 extern s16 D_803BE730; /* level box: x min, x max, z min, z max (>> 5 units) */
 extern s16 D_803BE732; /* level extent x, z (>> 5) */
 extern s16 D_803BE734;
@@ -282,6 +317,7 @@ extern s16 D_803BE736;
 extern u8 D_803BE738;
 extern u8 D_803BE739;
 extern u8 D_803BE73A; /* current level index */
+extern u16 D_803C30A8[]; /* visible object ids, ended by -1 */
 extern Gfx D_803C5770[]; /* display lists A / B, frame 0 */
 extern Gfx D_803C6370[]; /* display lists A / B, frame 1 */
 extern Gfx D_803C6F70[];
@@ -302,6 +338,7 @@ extern s16 D_803ED400;
 extern s16 D_803ED408;
 extern u8 D_803ED40A;
 extern u8 D_803ED40B;
+extern u8 D_803ED40C;
 extern u8 D_803ED40D;
 extern u8 D_803ED40F;
 extern s32 D_803ED80C;
@@ -309,6 +346,7 @@ extern s32 D_803ED810;
 extern u8 D_803ED825; /* drive-in enabled */
 extern u8 D_803ED826; /* drive-in active */
 extern s16 D_803EDC00; /* horn uses left */
+extern u8 D_803EE3B1; /* dial value, 0..100 */
 extern s32 D_803EF2EC; /* sound source x, y, z */
 extern s32 D_803EF2F0;
 extern s32 D_803EF2F4; /* z */
@@ -329,6 +367,7 @@ extern s32 D_803EF6E0;
 extern s32 D_803EF6E4;
 extern s32 D_803EF6F0;
 extern s32 D_803EF6F8;
+extern s16 D_803EF6FC; /* divisor, 0 = none */
 extern u8 D_803EF6FF; /* effect finished */
 extern s32 D_803EFEB0; /* x interpolation: x0, x1 */
 extern s32 D_803EFEB4; /* z interpolation: z0, z1 */
@@ -356,8 +395,10 @@ extern s16 D_803F77FC; /* signed input whose sign is tracked */
 extern u8 D_803F7801;
 extern u8 D_803F7804;
 extern u8 D_803F7805; /* request flag, consumed here */
+extern u8 D_803F7806;
 extern u8 D_803F7808;
 extern u8 D_803F7809; /* kind of the target (as D_803F7808: 2 and 3 have pos at +0) */
+extern u8 D_803F780A; /* last sign of D_803F77FC (-1, 0, 1) */
 extern u8 D_803F780B; /* run length, 0..0x14 */
 extern u8 D_803F780C; /* result: set for one call when a run of 0x14 completes with a change */
 extern u8 D_803F7810;
@@ -369,6 +410,7 @@ extern s32 D_803F7C14;
 extern s16 D_803F7C34;
 extern u8 D_803F7C3F;
 extern u8 D_803F7C49;
+extern s16 D_803F8B72; /* horn presses left */
 extern s32 D_803F9320;
 extern s32 D_803F9324;
 extern u8 D_803F932C;
@@ -380,6 +422,10 @@ extern s32 D_803FCD48; /* sound source x, y, z */
 extern s32 D_803FCD4C;
 extern s32 D_803FCD50;
 extern s32 D_803FCD60;
+extern s16 D_803FCD68;
+extern s16 D_803FCD6A; /* angles x, y, z */
+extern s16 D_803FCD6C;
+extern s16 D_803FCD6E;
 extern u8 D_803FCD70; /* event this frame */
 extern u8 D_803FCD75; /* sound mode: 0 or 1 */
 

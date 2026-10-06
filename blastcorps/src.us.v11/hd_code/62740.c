@@ -31,11 +31,6 @@
 #define VEH_S32(v, off) (*(s32 *) ((u8 *) (v) + (off)))
 #define VEH_F32(v, off) (*(f32 *) ((u8 *) (v) + (off)))
 
-extern s32 D_80358064;
-extern u16 D_803A7410; /* ring index A (12-bit, see func_8029B930) */
-extern u16 D_803A7412; /* ring index B */
-extern s8 D_80370C2C;
-extern s16 D_80370C70;
 extern s32 D_802E8BDC;
 extern s32 D_80305C58[]; /* {key, value, threshold} triples, value 0 ends */
 extern u8 D_803EB7A0[];  /* vehicle save buffer: 0x300 + 0xA6 + 3 words */
@@ -54,7 +49,6 @@ extern u8 D_803ED3EB;
 extern u8 D_803ED3EE;
 extern u8 D_803ED3EF;
 extern u8 D_803ED3F2;
-extern s8 D_803ED40C;
 extern u8 D_803ED410;
 
 
@@ -153,8 +147,8 @@ void func_802A6F00(u8 *veh) {
  * version is plain o32, so a mixed N64 build would need a thunk preserving
  * those; the native port does not. */
 s32 func_802A6F6C(void) {
-    s32 a = D_803A7410;
-    s32 b = D_803A7412;
+    s32 a = ((u16) D_803A7410);
+    s32 b = ((u16) D_803A7412);
     s32 mid;
 
     if (b < a) {
@@ -259,12 +253,12 @@ void func_802A70D8(u8 *veh) {
     }
     VEH_U16(veh, 0x4E) = t;
     VEH_S16(veh, 0x76) = -VEH_S16(veh, 0x76);
-    t = D_803A7410 - 0x800;
+    t = ((u16) D_803A7410) - 0x800;
     if (t < 0) {
         t += 0xFFF;
     }
     D_803A7410 = t;
-    t = D_803A7412 + 0x800;
+    t = ((u16) D_803A7412) + 0x800;
     if (0xFFF < t) {
         t -= 0xFFF;
     }
@@ -291,8 +285,8 @@ void func_802A70D8(u8 *veh) {
  * callers keep a3, t6, f12 and f14 live (a mixed N64 build would need a
  * thunk). */
 s32 func_802A71DC(u8 *veh, s32 cur, s32 target, s32 *curOut, f32 scale) {
-    s32 a = D_803A7410;
-    s32 b = D_803A7412;
+    s32 a = ((u16) D_803A7410);
+    s32 b = ((u16) D_803A7412);
     s32 lo;
     s32 hi;
     s32 da;
@@ -657,7 +651,7 @@ void func_802A785C(u8 *veh, s16 *speed, s32 mode, u8 *flags, s16 *bands, s32 del
             *speed = s;
         }
     } else {
-        if (D_803ED40C != 0 && D_802E8BDC != 0x22 && D_80364456 != 0xB && D_80364456 != 0x11 &&
+        if (((s8) D_803ED40C) != 0 && D_802E8BDC != 0x22 && D_80364456 != 0xB && D_80364456 != 0x11 &&
             D_80364456 != 0x12) {
             s = *speed;
             if (s >= 0) {
@@ -791,7 +785,7 @@ s32 func_802A7C28(u8 *veh, s32 x, s16 *band) {
     } else {
         n = 7 - n;
     }
-    if (D_803ED40C != 0) {
+    if (((s8) D_803ED40C) != 0) {
         n -= 2;
     }
     while (n != 0) {
@@ -1421,7 +1415,6 @@ s32 func_802A8B10(s32 *a3Out) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_80364AA8; /* game mode flags */
 
 /* (Pos802A8CCC is declared at the top of the file.) */
 
@@ -1462,7 +1455,7 @@ void func_802A8CCC(u8 *veh, s32 id, s32 *px, s32 *py, s32 *pz, Pos802A8CCC *pos)
     if (!out && gx >= D_803BE730 && gx <= D_803BE732 && gz >= D_803BE734 && gz <= D_803BE736) {
         return;
     }
-    key = (D_80364AA8 == 1 || D_80364AA8 == 0x80) ? id : 1;
+    key = (((s32) D_80364AA8) == 1 || ((s32) D_80364AA8) == 0x80) ? id : 1;
     rec = D_803BE6F8;
     while (rec[0] != key) {
         rec += 9;
@@ -2163,8 +2156,6 @@ s32 func_802A9F24(s32 x, s32 z, s32 y, s32 skip, TriSideOut *f, s32 *idOut, s32 
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_803BE718;  /* grid cell width */
-extern s32 D_803BE71C;  /* grid cell depth */
 
 /* Ground lookup: the grid cell of (x, z) (signed divides by D_803BE718 /
  * D_803BE71C, row stride D_803BE720) gives a list of 0x14-byte triangles (9
@@ -2178,8 +2169,8 @@ extern s32 D_803BE71C;  /* grid cell depth */
  * a zero cell size, `y - h` and the index arithmetic are trapping. Asm callers
  * keep a2, t2, t4, t6 and t8 live. */
 s32 func_802AA094(s32 x, s32 z, s32 y, TriSideOut *f, s32 *t3io, s32 *fpio) {
-    s32 cx = x / D_803BE718;
-    s32 cz = z / D_803BE71C;
+    s32 cx = x / ((s32) D_803BE718);
+    s32 cz = z / ((s32) D_803BE71C);
     u8 **cell = &D_803BDB10[D_803BE720 * cz + cx];
     u8 *rec = cell[0];
     u8 *end = cell[1] - 4;

@@ -72,9 +72,7 @@ void func_802AC284(s32 *px, s32 *py, s32 *pz) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_80364AA8;  /* game mode */
 extern s32 D_80367738;
-extern u16 D_8036E4C8;
 extern u8 *D_803F3960;  /* end of the (object, part) hit list */
 
 /* Only in game mode 0x40: vehicle-state reset (func_8029A800 with b2 = 1,
@@ -93,7 +91,7 @@ void func_802AC2A4(s32 z, s32 a1, s32 x, s32 y, s32 b0, s32 id, u8 *vehicle) {
     u8 *p;
     u8 *end;
 
-    if (D_80364AA8 != 0x40) {
+    if (((s32) D_80364AA8) != 0x40) {
         return;
     }
     func_8029A800(z, a1, 1, 0, x, y, b0, 0, 0x40, 0, id, vehicle);
@@ -101,7 +99,7 @@ void func_802AC2A4(s32 z, s32 a1, s32 x, s32 y, s32 b0, s32 id, u8 *vehicle) {
     if (D_803F3910 == D_803F3960) {
         return;
     }
-    if (D_8036E4C8 == 0) {
+    if (((u16) D_8036E4C8) == 0) {
         D_803BE738 = 1;
         return;
     }

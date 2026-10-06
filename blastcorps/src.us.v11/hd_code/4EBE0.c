@@ -47,14 +47,11 @@ typedef struct {
     /* 0x04 */ s32 angle;
 } SwingState;
 
-extern u32 D_803156C4;
 extern Path D_802FE980[];
 extern f32 D_8039CA10[4][4];
 extern f32 D_8039CA50;
 extern f32 D_8039CA54;
 extern f32 D_8039CA58;
-extern s16 D_8036E4C8;
-extern u8 D_8036E4CA;
 extern s32 D_802E8BDC;
 extern Junction D_802FEDA0[];
 
@@ -159,7 +156,7 @@ void func_802936AC(mf, x, z, ox, oz, px, py, pz, state, speed)
         func_802608C8(D_8036DCD8);
     }
     if (D_802E8BD0 == 0) {
-        if (D_8036E4CA) {
+        if (((u8) D_8036E4CA)) {
             state->last = -1;
             switch (state->dir) {
                 case 1:

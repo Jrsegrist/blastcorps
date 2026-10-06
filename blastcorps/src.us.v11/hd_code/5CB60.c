@@ -8,7 +8,6 @@
  * holds offsets of its sub-lists: OBJ_PTR(obj, off) = obj + *(s32 *)(obj + off). */
 extern u8 *D_80358070; /* heap pointer */
 extern s32 D_802E8BDC; /* current level */
-extern u16 D_803BE714;
 
 #define OBJ_PTR(obj, off) ((obj) + *(s32 *) ((obj) + (off)))
 /* Big-endian 16/32-bit fields at any alignment (the asm assembles them from bytes). */
@@ -79,7 +78,6 @@ void func_802A133C(s32 a0Val, s32 id, s32 v0Val, s32 v1Val, u8 *obj) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 *D_803649D0; /* end of the D_80364460 records in use */
-extern s32 D_80364AA8;
 void func_802A1558(Gfx *src, Gfx *end, Gfx **dstp);
 
 /* Appends a 0x74-byte record to D_80364460 (cursor D_803649D0) for the model
@@ -122,7 +120,7 @@ void func_802A1388(s32 a0Val, s32 a1Val, s32 v0Val, s32 v1Val, u8 *hdr) {
     for (i = 0; i < 9; i++) {
         *(s32 *) (rec + 0x30 + i * 4) = *(s32 *) (rec + 0xC + i * 4) + delta;
     }
-    if (D_80364AA8 != 1 || a1Val != 0) {
+    if (((s32) D_80364AA8) != 1 || a1Val != 0) {
         func_802A1558(*(Gfx **) (rec + 0xC), *(Gfx **) (rec + 0x18), (Gfx **) (rec + 0x58));
     }
 }
@@ -145,7 +143,6 @@ void func_802A1558(Gfx *src, Gfx *end, Gfx **dstp) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_802E8BEC;
 extern s32 D_803BE6F4; /* func_802A1674's second argument (a status stream pointer or 0) */
 extern u8 *D_803BE6FC;
 extern u8 *D_803BE700;
@@ -805,7 +802,7 @@ void func_802A21AC(s32 type, u8 *obj, s32 x, s32 y, s32 z, s32 flag, s32 tag, u8
         *(u8 **) list = rec;
         D_803BE704 = list + 0x18;
     }
-    rec[0xE8] = ((u32) z / ((u32) D_803BE710 >> 5)) * D_803BE714 + (u32) x / ((u32) D_803BE70C >> 5);
+    rec[0xE8] = ((u32) z / ((u32) D_803BE710 >> 5)) * ((u16) D_803BE714) + (u32) x / ((u32) D_803BE70C >> 5);
     func_802A24BC(rec, param);
     func_802A23E0(rec);
     e = OBJ_PTR(obj, 0x48);
@@ -1138,15 +1135,8 @@ void func_802A2C54(u8 *obj) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 *D_80364458;
-extern s32 D_803BE718;
-extern s32 D_803BE71C;
-extern u16 D_803BE72C;
 extern u16 D_803BE72E;
 extern u8 D_803A6B30[];  /* 100 x 0x14 */
-extern u8 D_803A7426;
-extern u8 D_803F7806;
-extern u8 D_803ED40C;
-extern u8 D_803F780A;
 
 /* Level setup from the level header obj: copies its sizes and bounds into
  * globals (u16 fields at 4/6/0xC/0xE/0x14/0x16 are stored << 5), points
@@ -1298,7 +1288,7 @@ void func_802A30DC(void) {
 void func_802A3134(u8 *obj) {
     Out802A396C o;
 
-    if (*OBJ_PTR(obj, 0x54) != 0 && D_80364AA8 != 0x80) {
+    if (*OBJ_PTR(obj, 0x54) != 0 && ((s32) D_80364AA8) != 0x80) {
         func_802A396C(0xFE, &o);
         func_802B8480((s32) o.a1, o.s2);
         D_803643DC = 1;
@@ -1523,7 +1513,7 @@ s32 func_802A350C(u8 *obj, s32 fp) {
             p += 9;
             continue;
         }
-        if (type == 1 && D_80364AA8 != 1 && D_80364AA8 != 0x80) {
+        if (type == 1 && ((s32) D_80364AA8) != 1 && ((s32) D_80364AA8) != 0x80) {
             type = D_803643D4;
         }
         if (type == 6 || type == 7 || type == 0xB || type == 0x11 || type == 0x12) {
@@ -1598,7 +1588,6 @@ s32 func_802A350C(u8 *obj, s32 fp) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_80364AA8;
 
 /* 9-byte records in [OBJ_PTR(obj, 0x50), OBJ_PTR(obj, 0x54)): a kind byte and
  * three unaligned big-endian s16 (x, y, z). Finds the first record of kind 0
@@ -1625,7 +1614,7 @@ void func_802A3824(u8 *obj) {
     for (; p != end; p += 9) {
         kind = p[0];
         if (kind != 0 && BE16S(p + 1) == x && BE16S(p + 3) == y && BE16S(p + 5) == z) {
-            if (D_80364AA8 != 1 && D_80364AA8 != 0x80) {
+            if (((s32) D_80364AA8) != 1 && ((s32) D_80364AA8) != 0x80) {
                 kind = D_803643D4;
             }
             D_803BE73A = kind;

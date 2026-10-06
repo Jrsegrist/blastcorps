@@ -26,7 +26,6 @@ extern u64 D_803109D0[]; /* idle thread stack */
 extern OSThread D_80310BD0;
 extern u8 D_80314D80[];
 extern u8 D_80314D98[];
-extern u32 D_803649F0;
 extern u32 D_803649F4;
 
 /* a drawable object, 0x74 bytes */
@@ -57,8 +56,6 @@ extern DynamicBuf D_803156F8[];
 extern u8 D_00787F40[]; /* static code segment bounds (ROM) */
 extern u8 D_00788000[];
 extern u8 D_80364A70;
-extern s32 D_80358064;
-extern u32 D_80358060;
 extern u8 D_803FF600[];
 extern u8 *D_8035806C;
 extern s32 D_80358070; /* heap pointer */
@@ -90,7 +87,6 @@ typedef struct {
     u8 pad1024[0x1C];
 } Vehicle; /* 0x1040 bytes */
 extern Vehicle *D_803643C8;
-extern u8 D_803643D9;
 
 void func_802558C8(Gfx *, s32 *);
 void func_802559F8(Gfx *, s32 *);
@@ -139,7 +135,6 @@ u8 func_80255628(void);
 
 extern s32 D_80358074;
 
-extern u32 D_80364AA8;
 extern f32 D_80364AB4;
 extern f32 D_80364AB8;
 extern f32 D_80364ABC;
@@ -153,7 +148,6 @@ typedef struct {
     u8 unk9;
 } Message; /* 0xC bytes */
 extern Message D_80364A00[5];
-extern s16 D_8036443E;
 extern u8 D_80364A3C;
 extern u8 D_80364A3D;
 extern s32 D_80364A44;
@@ -169,13 +163,11 @@ extern Mtx D_02000000[];
 extern Vehicle *D_803643CC;
 extern u8 D_80218D30[];
 #define pakToGameMessageQ D_80219F50
-extern u8 D_802E8BE4;
 extern u8 D_802E8BF4[];
 extern s32 D_80364420;
 extern u8 D_80364434;
 extern f32 D_80364444;
 extern f32 D_80364448;
-extern s16 D_80364452;
 extern s16 D_80364454;
 extern f32 D_803649F8;
 extern s32 D_80364A5C;
@@ -292,15 +284,12 @@ extern u8 D_00654FC0[]; /* level57 */
 extern u8 D_00660950[]; /* level58 */
 extern u8 D_00665F80[]; /* level59 */
 
-extern s16 D_80364440;
 extern s32 D_8036506C;
 
 extern Gfx *D_803BE6E0;
 extern Gfx *D_803BE6E4;
 extern Gfx *D_803BE6E8;
 extern Gfx *D_803BE6EC;
-extern s32 D_802E8BEC;
-extern u32 D_803156C4;
 extern u32 D_80364458;
 extern void *D_803F7820;
 extern void *D_803F7824;
@@ -336,7 +325,6 @@ extern u16 D_803047B4[];
 extern u16 D_803047CC[];
 extern u16 D_803047DC[];
 extern u8 D_80315438;
-extern s32 D_803156C0;
 extern u32 D_80364A54;
 extern u8 D_80364A60;
 extern s32 D_80364AC4;
@@ -344,7 +332,6 @@ extern u32 D_80364AC8;
 extern u32 D_80364ACC;
 extern u8 D_80365065;
 extern u8 D_80365066;
-extern u64 D_8036BF38;
 extern void *D_8039C4B4;
 extern u8 D_8039C4B8[];
 extern u8 D_8039C4F8[];
@@ -362,25 +349,17 @@ void func_80255D34(void);
 #define MODE_PAGE(m) D_802F8BDC[D_802F4868[func_8026F92C(m)]]
 #define MODE_ENTRY(m) D_8020C070[MODE_PAGE(m).unkE + MODE_PAGE(m).unk10 - 2]
 
-extern s8 D_803A7426;
 extern s32 D_80364A78;
 extern u8 D_80364A7C;
 extern s32 D_80364A80;
 extern f32 D_802E8BE0;
-extern s8 D_803ED40C;
-extern s8 D_803F7806;
 extern u8 D_80364A85;
-extern s16 D_80366A04;
 extern s32 D_80367734;
-extern u32 D_80367740;
 #define textureDmaMessageQ D_80315180
 #define nextdma D_80358080
 #define no_palette_dmas D_80358084
 #define NUM_TEXTURE_DMAS 0x90
 #define cmo_hit_request D_803643D9
-extern s16 D_803649E0;
-extern s16 D_803649E2;
-extern s16 D_803649E4;
 void func_8024B8F4(Mtx *, Mtx *);
 void func_8024AE2C(void);
 void func_8024B188(void);
@@ -668,7 +647,7 @@ void func_80244930(void *arg) {
                             }
                             D_802E8BD8 = !D_802E8BD4;
                             func_8029A7E4("Unpause at start = %d\n", D_802E8BD4);
-                            D_80364A58 = D_803156C0;
+                            D_80364A58 = ((s32) D_803156C0);
                             D_80358064 = 0;
                             func_8025BB38();
                             func_8029A7E4("snew ip=%8d : tc=%5d : bd=%2d : cr=%2d : rt=%3d : coin=%1d : bdn=%1d\n",
@@ -1379,13 +1358,13 @@ void func_802475D8(void) {
             func_8024A348();
             func_8024ADD8();
         }
-        if (D_80364AA8 != 1 && D_80367C00 && (u32) (D_803156C0 - D_80364A58) > 90) {
+        if (D_80364AA8 != 1 && D_80367C00 && (u32) (((s32) D_803156C0) - D_80364A58) > 90) {
             D_80367C00 = 0;
             func_802794A4();
         }
     }
     if ((D_803643D6 || D_803643D7 || (D_802E8BDC == 0x32 && D_8036EB98 && !(LEVEL_DONE(0x32)))) && D_80364AA8 == 1 && D_80364A5C == 0) {
-        func_8029A7E4("TIME IN LEVEL=%d\n", D_80364A5C = D_803156C0 - D_80364A58);
+        func_8029A7E4("TIME IN LEVEL=%d\n", D_80364A5C = ((s32) D_803156C0) - D_80364A58);
     }
     func_802A5510(D_80358074);
     if (D_80364A90 & 0x1801) {
@@ -3056,7 +3035,6 @@ extern u8 D_8030F66A;
 extern s32 D_803643EC; /* wanted eye x, y, z (<< 11) */
 extern s32 D_803643F0;
 extern s32 D_803643F4;
-extern u32 D_80364428;
 extern s16 D_80364A74;
 extern f32 D_80365078; /* wanted target x, y, z */
 extern f32 D_8036507C;
@@ -3071,7 +3049,6 @@ extern u16 D_8036509C; /* eased heading */
 extern s16 D_8036509E; /* camera type */
 extern s16 D_803650A0; /* previous camera type */
 extern Box *D_8036C794;
-extern s16 D_803FCD68;
 f32 func_80254E54(f32, f32, f32, f32, f32, f32);
 void func_80255034(s32, f32, s32 *, s32 *);
 void func_80255190(void);

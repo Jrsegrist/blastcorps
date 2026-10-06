@@ -18,7 +18,6 @@ typedef struct {
 
 extern CreditLine D_80304A90[];
 extern u8 D_802F47B0[][8];
-extern s32 D_80358060;
 
 
 /* Credits scroller: draws the visible credit lines, advances the scroll, and ends the credits */
@@ -57,10 +56,10 @@ Gfx *func_8029A518(Gfx **gfxp, Gfx *gfx) {
             y += 0x11;
         }
     }
-    if (D_80358060 == 100) {
+    if (((s32) D_80358060) == 100) {
         func_8026AF6C(0x8036);
     }
-    if ((u32) D_80358060 >= 0x18C) {
+    if ((u32) ((s32) D_80358060) >= 0x18C) {
         D_803A6B20++;
     }
     if (D_803643D6) {

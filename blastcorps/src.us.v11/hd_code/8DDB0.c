@@ -231,7 +231,6 @@ extern u8 D_803FCD77;
 extern u8 D_803FCD78;
 extern u8 D_803FCD79;
 extern u8 D_803FCD7A;
-extern u8 D_802E8BE4;
 
 /* Spawns effect def at D_803EBC10 record (0xFD, n) (func_802A6274 type 1 with
  * z = 1, tag 0, b35 0). For that type func_802A6274 ignores its other fields;
@@ -344,10 +343,6 @@ void func_802D2C20(void) {
 extern u8 *D_803FCD54;    /* model header: word offsets to the part lists */
 extern u8 *D_803FCD58;    /* the two save copies */
 extern u8 *D_803FCD5C;
-extern u16 D_803FCD68;
-extern u16 D_803FCD6A;    /* angles x, y, z */
-extern u16 D_803FCD6C;
-extern u16 D_803FCD6E;
 extern u8 D_803FCCA0[];   /* this vehicle's state block (the asm caller's $gp) */
 extern s16 D_803ED390[3]; /* rotation angles x, y, z for func_802AA764 */
 
@@ -372,11 +367,11 @@ void func_802D2FA4(void) {
     s32 *m;
 
     m = (s32 *) (*(s32 *) (hdr + *(s32 *) (hdr + 0x18) + 4) + (s32) (D_8035805C ? D_803FCD58 : D_803FCD5C));
-    D_803ED390[0] = D_803FCD6A;
-    *(u16 *) (D_803FCCA0 + 0x4C) = D_803FCD6C;
-    D_803FCD68 = D_803FCD6C;
-    D_803ED390[1] = D_803FCD6C;
-    D_803ED390[2] = D_803FCD6E;
+    D_803ED390[0] = ((u16) D_803FCD6A);
+    *(u16 *) (D_803FCCA0 + 0x4C) = ((u16) D_803FCD6C);
+    D_803FCD68 = ((u16) D_803FCD6C);
+    D_803ED390[1] = ((u16) D_803FCD6C);
+    D_803ED390[2] = ((u16) D_803FCD6E);
     func_802AA764(D_803FCD48, D_803FCD4C, D_803FCD50, 0x11558, m);
     base = D_8035805C ? D_803FCD58 : D_803FCD5C;
     hdr = D_803FCD54;

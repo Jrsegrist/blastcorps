@@ -64,8 +64,6 @@ extern u8 *D_80358070;   /* heap pointer */
 extern s16 D_803ED390[]; /* (0, heading, 0) for func_802AA764 */
 extern u8 D_80306410[];
 extern u8 *D_803F77D0;
-extern u16 D_8036443E;
-extern u16 D_80364440;
 
 void func_802C8150(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp);
 void func_802C8470(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp);
@@ -375,7 +373,6 @@ void func_802C8790(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp) {
 #ifdef NON_MATCHING
 /* Functional rewrite (tools_port/eqcheck.py verified): a0 passes straight
  * through to func_802C4310 with a1 = 0x72. */
-extern s16 D_80364450;
 
 void func_802C8AB0(s32 arg0) {
     D_8036444C = 3000;

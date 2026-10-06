@@ -75,9 +75,6 @@ extern Obj89250 *D_803F7654;
 extern u8 D_803A6B30[]; /* 0x14-byte hit spheres: s32 x, y, z, r, u8 id at 0x12, s8 flag at 0x13 (-1 = end) */
 extern u16 D_803F932A; /* impact damage */
 extern s32 D_803649E8;
-extern u8 D_802E8BE4; /* screen shake time */
-extern u16 D_803A7410;
-extern u16 D_803A7412;
 
 s32 func_802CDC7C(s32 x, s32 y, s32 z, s32 r, Obj89250 *e, s32 hit);
 void func_802CDD74(Obj89250 *e, Tri89250 *tri, s32 amount);
@@ -270,7 +267,7 @@ s32 func_802CDF94(s32 r) {
             count += func_802CE0E4(x, y, z, r, id);
         }
     }
-    if (D_803A7410 != 0 || D_803A7412 != 0xFFF) {
+    if (((u16) D_803A7410) != 0 || ((u16) D_803A7412) != 0xFFF) {
         D_803A7425 = 1;
         D_803A7424 = 1;
     }
@@ -395,8 +392,6 @@ void func_802CE204(s32 x1, s32 z1, s32 x2, s32 z2) {
 
 #ifdef NON_MATCHING
 /* Shared declarations for the NON_MATCHING (port) rewrites below. */
-extern u16 D_803A7410; /* ring index A (12-bit, 0..0xFFF) */
-extern u16 D_803A7412; /* ring index B */
 extern void *D_803A7408;
 extern u8 D_80306450[];
 #endif
@@ -412,8 +407,8 @@ extern u8 D_80306450[];
  * returned instead. The asm returns the full 32-bit value; the C callers
  * declare s16. */
 s32 func_802CE3B8(s32 idx) {
-    s32 a = D_803A7410;
-    s32 b = D_803A7412;
+    s32 a = ((u16) D_803A7410);
+    s32 b = ((u16) D_803A7412);
     s32 da = a - idx;
     s32 db = b - idx;
     s32 v;

@@ -22,7 +22,6 @@ typedef struct {
 
 #define HEIGHT_ZONE_NONE 3000 /* sentinel height value */
 
-extern u16 D_80364450;
 
 /* `level` is the loaded level header (D_80358074). Its words at 0x40/0x44 are
  * the start/end offsets of a HeightZone list. Finds the highest zone that
@@ -50,7 +49,7 @@ void func_802A5510(u8 *level) {
     if (best == HEIGHT_ZONE_NONE) {
         D_80364411 = 1;
     } else {
-        D_8036444E = (best << 5) + D_80364450;
+        D_8036444E = (best << 5) + ((u16) D_80364450);
         D_80364411 = 0;
     }
 }

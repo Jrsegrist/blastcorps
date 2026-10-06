@@ -78,7 +78,6 @@ typedef struct PlayerSelDyn {
 extern Player D_80364AF0[];
 extern LevelInfo D_802E8F94[];
 extern s32 D_802E8BDC;
-extern u32 D_80364AA8;
 extern MenuEntry D_8020C070[];
 extern MenuPage D_802F8BDC[];
 extern PlayerSelDyn D_803156F8[];
@@ -92,7 +91,6 @@ extern s32 D_802154EC;
 extern s32 D_80215508[];
 extern u8 D_802155A0[]; /* ticker text */
 #define SCROLL_TEXT ((char *) D_802155A0)
-extern u16 D_80364EF0[][16]; /* per player: saved level times */
 extern char D_80215480[][16];
 extern u16 *D_802158A0;
 extern void *D_80367738;
@@ -123,9 +121,7 @@ extern s16 D_8021591A;
 extern s32 D_80215920;
 extern u8 D_80215924;
 extern char *D_80215928;
-extern s8 D_80370C2C;  /* stick x */
 extern u8 D_802F47B0[];
-extern u32 D_803156C4;
 extern f32 D_80215440;
 extern f32 D_80215444;
 extern f32 D_80215448;

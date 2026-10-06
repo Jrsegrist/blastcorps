@@ -2,96 +2,91 @@
 #include <ultra64.h>
 #include "game/game.h"
 
-extern u32 D_802E8BEC;
-extern s32 D_80358060;
 
 void func_8025C5D0(void) {
-    switch (D_802E8BEC) {
+    switch (((u32) D_802E8BEC)) {
         case 0:
             if (D_80364A90 == 2) {
-                if (D_80358060 == 0x96) {
+                if (((s32) D_80358060) == 0x96) {
                     func_8026AF6C(0x803E);
                 }
-                if (D_80358060 == 0x190) {
+                if (((s32) D_80358060) == 0x190) {
                     func_8026AF6C(0x8025);
                 }
-                if (D_80358060 == 0x2BC) {
+                if (((s32) D_80358060) == 0x2BC) {
                     func_8026AF6C(0x8026);
                 }
             } else {
-                if (D_80358060 == 0x64) {
+                if (((s32) D_80358060) == 0x64) {
                     func_8026AF6C(0x8027);
                 }
-                if (D_80358060 == 0x12C) {
+                if (((s32) D_80358060) == 0x12C) {
                     func_8026AF6C(0x8028);
                 }
-                if (D_80358060 == 0x1F4) {
+                if (((s32) D_80358060) == 0x1F4) {
                     func_8026AF6C(0x8029);
                 }
-                if (D_80358060 == 0x2BC) {
+                if (((s32) D_80358060) == 0x2BC) {
                     func_8026AF6C(0x802A);
                 }
             }
             break;
         case 1:
-            if (D_80358060 == 0xB4) {
+            if (((s32) D_80358060) == 0xB4) {
                 func_8026AF6C(0x802B);
             }
-            if (D_80358060 == 0x1D6) {
+            if (((s32) D_80358060) == 0x1D6) {
                 func_8026AF6C(0x802C);
             }
             break;
         case 2:
-            if (D_80358060 == 0xB4) {
+            if (((s32) D_80358060) == 0xB4) {
                 func_8026AF6C(0x802D);
             }
             break;
         case 3:
-            if (D_80358060 == 0xB4) {
+            if (((s32) D_80358060) == 0xB4) {
                 func_8026AF6C(0x802E);
             }
             break;
         case 4:
-            if (D_80358060 == 0xB4) {
+            if (((s32) D_80358060) == 0xB4) {
                 func_8026AF6C(0x802F);
             }
             break;
         case 5:
-            if (D_80358060 == 0xB4) {
+            if (((s32) D_80358060) == 0xB4) {
                 func_8026AF6C(0x8030);
             }
             break;
         case 6:
-            if (D_80358060 == 0xB4) {
+            if (((s32) D_80358060) == 0xB4) {
                 func_8026AF6C(0x8031);
             }
-            if (D_80358060 == 0x1D6) {
+            if (((s32) D_80358060) == 0x1D6) {
                 func_8026AF6C(0x8032);
             }
             break;
         case 7:
-            if (D_80358060 == 0xB4) {
+            if (((s32) D_80358060) == 0xB4) {
                 func_8026AF6C(0x8033);
             }
             break;
         case 8:
-            if (D_80358060 == 0xB4) {
+            if (((s32) D_80358060) == 0xB4) {
                 func_8026AF6C(0x8034);
             }
             break;
     }
-    if (D_80358060 == 0x82) {
+    if (((s32) D_80358060) == 0x82) {
         D_80366A18 = 1;
     }
 }
 
-extern u32 D_803156C4;
 extern void *D_80366BA4;
 extern s32 D_80366BA8;
-extern s32 D_80358060;
 extern u8 D_80366A10;
 extern u8 D_80366A11;
-extern s16 D_80366A04;
 extern u32 D_80366BBC;
 extern Mtx D_02000000[];
 void func_8025E1E0(Gfx **);
@@ -112,11 +107,11 @@ Gfx *func_8025C878(Gfx *arg0, s32 arg1, u8 arg2, s32 *arg3) {
             buf = (u8 *) D_80366BA4 + 0x3c0;
         }
         D_80366BA8 = 0;
-        if (D_80358060 == 0) {
+        if (((s32) D_80358060) == 0) {
             D_80366A10 = 0;
             D_80366A11 = 0;
         }
-        if ((u32) D_80358060 > D_80366A04) {
+        if ((u32) ((s32) D_80358060) > D_80366A04) {
             if (time < D_80366BBC + 0x78) {
                 gDPPipeSync(gfx++);
                 gSPMatrix(gfx++, &D_02000000[3], G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
@@ -147,7 +142,7 @@ Gfx *func_8025C878(Gfx *arg0, s32 arg1, u8 arg2, s32 *arg3) {
                 func_8025E1E0(&gfx);
             }
         } else {
-            if (D_80366A04 == D_80358060) {
+            if (D_80366A04 == ((s32) D_80358060)) {
                 D_80366BBC = time;
             }
             func_8025E1E0(&gfx);
@@ -330,7 +325,7 @@ Gfx *func_8025D2B4(Gfx *arg0, s32 arg1, s32 *arg2) {
 
     switch (D_80366A12) {
         case 0:
-            if (D_80358060 == 0x3C) {
+            if (((s32) D_80358060) == 0x3C) {
                 D_80366A12 = 1;
             }
             break;
@@ -449,14 +444,12 @@ void func_8025E1E0(Gfx **arg0) {
 extern u8 D_80366BC0;
 extern u16 D_80366BC2;
 extern u8 D_80366BC4;
-extern s32 D_80364AA8;
 extern s32 D_802E8BDC;
 extern u8 D_802E8F94[];
 extern u8 D_80364AF0[][256];
 extern u32 D_80366BB8;
 extern void *D_80367734;
 extern void *D_80367738;
-extern u32 D_80367740;
 extern u32 D_802E8CD0[];
 
 void func_8025E2CC(Gfx **arg0, s32 arg1, s32 arg2) {
@@ -473,7 +466,7 @@ void func_8025E2CC(Gfx **arg0, s32 arg1, s32 arg2) {
                 func_80260A10();
                 D_80366BC2 = 5;
                 D_80366BC4 = 0;
-                if (D_80364AA8 != 1) {
+                if (((s32) D_80364AA8) != 1) {
                     func_80260E2C();
                     D_80366BC4 = 1;
                 }
@@ -514,7 +507,7 @@ void func_8025E2CC(Gfx **arg0, s32 arg1, s32 arg2) {
             }
         } else if (func_802D4E10(D_80367734) == 0 ||
                    (D_80366BC4 != 0 && D_803156C4 - D_80367740 >= 0x1E1) ||
-                   (D_80366BC4 == 0 && D_803156C4 - D_80366BB8 > D_802E8CD0[(D_80364AA8 & 0x81) ? 1 : 0])) {
+                   (D_80366BC4 == 0 && D_803156C4 - D_80366BB8 > D_802E8CD0[(((s32) D_80364AA8) & 0x81) ? 1 : 0])) {
             func_80275270(0x08000000, 0.75f);
             D_80366BB8 = 0;
             D_80366BC0 = 0;

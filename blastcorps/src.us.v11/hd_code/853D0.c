@@ -18,7 +18,6 @@ extern u8 *D_803F8B54;   /* its model */
 extern u64 *D_803F8B58;  /* save copy pair */
 extern u64 *D_803F8B5C;
 extern f32 D_803F8B60;
-extern u16 D_803F8B72;
 extern u8 D_803F8B76;
 extern u8 D_803F8B77;
 extern s8 D_803F8B78;
@@ -133,7 +132,6 @@ void func_802C9B90(s32 x, s32 y, s32 z, s32 heading, u8 *model, s32 fp) {
 #ifdef NON_MATCHING
 extern u8 D_803F8AA0[]; /* this vehicle's state block (the asm's $gp) */
 extern u8 D_803F87A0[]; /* its animation channel table (Unk8029DEA0Entry, 56040.c) */
-extern s16 D_80364450;
 
 /* Enter this vehicle (vehicle type 10; called from hd.c and 17210.c): clears
  * the byte at +0x99, sets the pair D_8036444C / D_80364450 to (0xD48, 1000),
@@ -353,8 +351,6 @@ extern s8 D_803F8B79;  /* sound to start this frame (-1 = none) */
 extern u8 D_803F8B7B;  /* bounced off the ring end */
 extern void *D_803F77D0;
 extern f32 D_8030D990;
-extern s16 D_8036443E;
-extern s16 D_80364440;
 extern u8 D_80306420[];
 void func_802CAAFC(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4);
 s32 func_802CB564(void);
@@ -546,7 +542,6 @@ extern s32 D_803F8B64; /* jump: a (initial speed) */
 extern s32 D_803F8B68; /* jump: n (frame) */
 extern s32 D_803F8B6C; /* jump: base height */
 extern u16 D_803F8B70; /* jump: boost frames */
-extern u16 D_803F8B72; /* horn presses left */
 extern u8 D_803F8B76;  /* record cooldown */
 extern u8 D_803F8B7D;  /* horn cooldown */
 extern u8 D_803F8B7E;  /* horn side toggle */
@@ -656,7 +651,7 @@ void func_802CAAFC(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
 
     if (D_803F8B7D != 0) {
         D_803F8B7D--;
-    } else if ((D_80370C1A != 0 || D_80370C1B != 0) && D_803F8B72 != 0) {
+    } else if ((D_80370C1A != 0 || D_80370C1B != 0) && ((u16) D_803F8B72) != 0) {
         D_803F8B72--;
         func_80260650(D_80367738, 3, NULL);
         D_803F8B7E ^= 1;

@@ -24,7 +24,6 @@ extern s8 D_803669A7;
 extern u8 D_803669A8;
 extern RecEntry *D_803669AC;
 extern void *D_803669B0;
-extern u16 D_80366A04;
 extern RecEntry D_80365588[];
 extern u8 D_802E8CB0[];
 extern s32 D_803649E8;

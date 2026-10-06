@@ -347,7 +347,6 @@ void func_802715DC(BcSched *sc) {
     }
 }
 
-extern s32 D_80358060;
 
 /* __scHandleRDP */
 void func_80271904(BcSched *sc) {
@@ -369,7 +368,7 @@ void func_80271904(BcSched *sc) {
     }
     now = osGetTime();
     D_8036BF20 = (now - sc->rdpStartTime) / 7825;
-    if (D_80358060 == 3) {
+    if (((s32) D_80358060) == 3) {
         osViBlack(FALSE);
     }
     func_80271A84(sc, t);

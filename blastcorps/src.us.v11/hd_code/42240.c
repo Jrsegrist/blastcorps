@@ -27,8 +27,6 @@ extern u32 D_8036EC20;
 extern Vtx *D_8036EC24;
 extern s16 D_8036EC28;
 
-extern u8 D_803EE3B1;  /* dial value, 0..100 */
-extern s16 D_803F8B72; /* icon 1 number */
 extern Mtx D_02000000[];
 
 

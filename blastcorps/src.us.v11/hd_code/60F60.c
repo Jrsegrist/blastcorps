@@ -436,7 +436,6 @@ void func_802A5F30(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u32 D_80364AA8;  /* game mode flags */
 extern u8 *D_80358070;  /* heap pointer */
 extern u8 D_8020ED00[]; /* heap end when (D_80364AA8 & 0x20) */
 extern u8 D_8021DD00[]; /* heap end otherwise */
@@ -814,7 +813,6 @@ load:
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u16 D_80364452; /* camera heading */
 extern s32 D_803C4F30[]; /* scratch 16.16 matrix */
 
 /* Billboard matrix of record rec into the 16.16 matrix m: emits a matrix
@@ -896,7 +894,7 @@ void func_802A68D4(s32 *m, u8 *rec) {
     }
     func_802ACBDC(angle, D_803C4F30);
     func_802ACCCC(D_803C4F30, m);
-    func_802ACAC4(D_80364452, D_803C4F30);
+    func_802ACAC4(((u16) D_80364452), D_803C4F30);
     func_802ACCCC(D_803C4F30, m);
     func_802ACA60(x << 11, y << 11, z << 11, D_803C4F30);
     func_802ACCCC(D_803C4F30, m);

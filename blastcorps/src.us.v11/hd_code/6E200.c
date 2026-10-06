@@ -31,8 +31,6 @@ extern u8 D_803EE3C0[];  /* vehicle 4 animation channels */
 
 extern u8 *D_80358070;   /* heap cursor */
 extern u8 *D_803F77D0;
-extern s16 D_8036443E;
-extern s16 D_80364440;
 extern u8 D_80305D00[];
 extern u8 D_80305D10[];
 extern f32 D_8030D8C0;
@@ -375,7 +373,6 @@ static const s16 sVeh4Bands[15] = { -0xB4, 0, 6, 0, 0x50, 6, 0x50, 0x8C, 4, 0x8C
 #ifdef NON_MATCHING
 extern u8 D_803EE3AF;
 extern f32 D_803EE3A4;
-extern s8 D_803EE3B1;
 extern u8 D_803EE3B2;
 extern u8 D_803EE3AE;
 extern s8 D_803EE3B0;
@@ -422,7 +419,6 @@ void func_802B29C0(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp) {
 extern u8 D_803EE2E0[]; /* vehicle type 3's state block */
 extern u8 D_803EDFE0[]; /* its animation channel table */
 extern u8 D_802C2314[]; /* key of its func_802A05D0.. sound entry */
-extern s16 D_80364450;
 
 /* Vehicle-type 3 setup (called from hd.c / 17210.c): clears byte 0x99 of the
  * state block, resets animation channels 1-3 of D_803EDFE0, resets the
@@ -653,7 +649,6 @@ void func_802B327C(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
 #ifdef NON_MATCHING
 extern u8 D_803EE3AE;  /* func_802A6274 spawn cooldown */
 extern u8 D_803EE3AF;  /* 0..100 level for channel 2 */
-extern s8 D_803EE3B1;  /* 0..100 boost meter */
 extern u8 D_803EE3B2;  /* boost countdown */
 extern u8 D_803EE3B3;  /* boost sound playing */
 extern s16 D_803EE3AC;
@@ -776,7 +771,7 @@ void func_802B37B0(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
     /* 5. boost */
     if (D_803EE3B2 != 0) {
         D_803EE3B2--;
-    } else if ((D_80370C1A != 0 || D_80370C1B != 0) && D_803EE3B1 >= 4) {
+    } else if ((D_80370C1A != 0 || D_80370C1B != 0) && ((s8) D_803EE3B1) >= 4) {
         D_803EE3B1 -= 4;
         if (D_803EE3B3 == 0) {
             D_803EE3B3 = 1;
@@ -805,7 +800,7 @@ void func_802B37B0(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
         }
         *(s16 *) (D_803EE2E0 + 0x76) = speed;
     }
-    v = D_803EE3B1 + 1;
+    v = ((s8) D_803EE3B1) + 1;
     if (v > 100) {
         v = 100;
     }
@@ -1225,7 +1220,6 @@ void func_802B49AC(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
 extern u8 D_803EE788;  /* func_802A6274 spawn cooldown */
 extern u8 D_803EE789;  /* channel 1 restart request */
 extern f32 D_803EE780; /* 0..1 level for channel 2 */
-extern s8 D_80370C2C;  /* stick x (signed) */
 extern f32 D_8030D8D4;
 extern f32 D_8030D8D8;
 extern f32 D_8030D8DC;

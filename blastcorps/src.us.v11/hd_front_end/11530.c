@@ -198,10 +198,7 @@ extern f32 D_8021A8E0; /* cos of the arc */
 extern f32 D_8021A8E4; /* arc angle */
 extern f32 D_8021A8E8; /* flight progress 0..1 */
 extern f32 D_8021A8EC; /* altitude scale */
-extern u32 D_803156C4;
-extern s32 D_80358060;
 extern s32 D_802E8BDC; /* current level */
-extern s8 D_80370C2C; /* stick x */
 extern f32 D_8021A90C;
 extern f32 D_8021A910;
 extern f32 D_8021A914;
@@ -312,7 +309,7 @@ void func_801F8980(void) {
     D_80358084 = 0;
     func_802A5720();
     func_8028A3E4();
-    if (D_80358060) {
+    if (((s32) D_80358060)) {
         func_80284E54(D_803156F8[D_8035805C].gfx, D_80358078, 2, 0, 1234, 0);
         func_80284E54(D_8021AB68, D_8021AB58, 0, 0, 1234, 0);
         func_80284E54(D_8021AB6C, D_8021AB5C, 1, 1, 1234, 0);

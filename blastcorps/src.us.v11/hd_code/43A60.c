@@ -51,7 +51,6 @@ typedef struct {
 
 extern ParticleDef *D_802C4A20[];
 extern Vtx D_802FDA80[4];
-extern s16 D_80364452; /* camera yaw, 0..4095 */
 extern ParticleDef *D_8036EC30;
 extern Particle D_8036EC38[50];
 extern Mtx D_8036F278[][50];

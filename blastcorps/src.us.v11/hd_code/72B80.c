@@ -41,8 +41,6 @@ extern u8 D_803EEF34;   /* throttle lockout frames */
 extern u8 D_80305D30[];
 extern void *D_803F77D0;
 extern f32 D_8030D900;
-extern s16 D_8036443E;
-extern s16 D_80364440;
 s32 func_802B78B0(ZoneScanRegs *r);
 void func_802B7F98(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4);
 s32 func_802B83B0(void);
@@ -165,7 +163,6 @@ void func_802B7340(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 D_803EEE70[]; /* this vehicle's state block */
-extern s16 D_80364450;
 
 /* Enter vehicle type 8: clears the byte at +0x99, D_8036444C/50 = 3000,
  * 1000, then func_802C4310(arg0, 0xCE) (arg0 passes straight through; hd.c

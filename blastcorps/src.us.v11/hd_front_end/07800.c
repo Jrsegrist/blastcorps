@@ -97,8 +97,6 @@ extern Score D_8036EA60;
 extern Score D_8036EA70;
 extern Score D_8036EA80;
 extern Score D_8036EA90;
-extern s32 D_803649F0;
-extern u16 D_80364EF0[][16]; /* best times, per player */
 extern char D_8036B980[];
 extern MenuEntry D_8020C070[];
 extern IconInfo D_802F49F4[];
@@ -117,7 +115,6 @@ extern FeDyn D_803156F8[];
 extern u8 *D_8035806C;
 extern u32 D_80358058;
 extern u32 D_80358050[]; /* frame buffer physical addresses */
-extern u32 D_80358060;   /* frame counter */
 extern void *D_80367738;
 
 /* ROM bounds of two compressed blobs (the first ends where the second starts) */
@@ -188,7 +185,7 @@ u8 func_801EE800(u8 *arg0, u8 arg1, u8 arg2) {
     if (arg1 && arg2) {
         STATS_ASSERT(!DUMMY_LEVELS(levelno), 94);
         if (D_802E8F94[levelno].unk0 == 1) {
-            p->unk14 = D_803649F0;
+            p->unk14 = ((s32) D_803649F0);
         }
         if (p->unkA < 360) {
             func_8029A7E4("UNITS UP %d\n", D_8036EA70.coin % 5 - D_8036EA60.coin % 5);

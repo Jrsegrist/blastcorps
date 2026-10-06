@@ -37,12 +37,10 @@ typedef struct {
 void func_80295394(s32 *x, s32 *y, s32 *z, s16 *rx, s16 *ry, s16 *rz);
 s16 func_80295924(s16 from, s16 to, f32 t);
 
-extern s32 D_803156C0;
 extern s16 D_803ED390[];
 extern s32 D_802FF0D0[];
 extern GhostRenderMode D_802FF11C[];
 extern GhostQuad D_802FF150[];
-extern u16 D_803C30A8[];
 extern void *D_803BDB00;
 extern void *D_803BDB04;
 extern Gfx *D_803BDB08;
@@ -84,7 +82,7 @@ void func_80294EB8(void) {
 void func_80294F00(void) {
     if (D_80364A90 & 0x104) {
         if (D_8039CA80 == -1) {
-            D_8039CA80 = D_803156C0;
+            D_8039CA80 = ((s32) D_803156C0);
         }
         if (D_8039CA70[0].recCount < 0xCCC) {
             D_8039CA68[1][D_8039CA70[0].recCount].x = D_803643E0;
@@ -93,7 +91,7 @@ void func_80294F00(void) {
             D_8039CA68[1][D_8039CA70[0].recCount].rx = D_803ED390[0];
             D_8039CA68[1][D_8039CA70[0].recCount].ry = D_803ED390[1];
             D_8039CA68[1][D_8039CA70[0].recCount].rz = D_803ED390[2];
-            D_8039CA68[1][D_8039CA70[0].recCount].time = D_803156C0 - D_8039CA80;
+            D_8039CA68[1][D_8039CA70[0].recCount].time = ((s32) D_803156C0) - D_8039CA80;
             D_8039CA70[0].recCount++;
         } else {
             D_8039CA8C = 1;
@@ -136,7 +134,7 @@ void func_80295394(s32 *x, s32 *y, s32 *z, s16 *rx, s16 *ry, s16 *rz) {
     s32 elapsed;
     f32 frac;
 
-    t = D_803156C0 - D_8039CA84;
+    t = ((s32) D_803156C0) - D_8039CA84;
     if (D_80364A90 == 0x2000) {
         *x = D_8039CA68[0][0].x;
         *y = D_8039CA68[0][0].y;
@@ -144,7 +142,7 @@ void func_80295394(s32 *x, s32 *y, s32 *z, s16 *rx, s16 *ry, s16 *rz) {
         *rx = D_8039CA68[0][0].rx;
         *ry = D_8039CA68[0][0].ry;
         *rz = D_8039CA68[0][0].rz;
-        D_8039CA84 = D_803156C0;
+        D_8039CA84 = ((s32) D_803156C0);
     } else {
         found = 0;
         while (D_8039CA78 < D_8039CA70[0].playCount - 2 && !found) {

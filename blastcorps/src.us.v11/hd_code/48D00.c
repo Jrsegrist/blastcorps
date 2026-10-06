@@ -152,7 +152,6 @@ extern u8 D_8039B088;
 extern u8 D_8039B089;
 extern u8 D_8039B0B0;
 extern u8 D_8039B0B4;
-extern u8 D_802E8BE4;
 extern s32 D_80367738;
 
 Entry48D00 *func_8028DE94(void);
@@ -194,11 +193,6 @@ Entry48D00 *func_8028DE94(void) {
 }
 
 extern s32 D_802E8BDC;
-extern s32 D_80358060;
-extern u8 D_803643D9;
-extern s16 D_803A7410;
-extern s16 D_803A7412;
-extern u8 D_803ED40C;
 extern s16 D_802FDB70[]; /* speed cap per mode */
 
 
@@ -285,7 +279,7 @@ void func_8028DF14(u8 arg0) {
                     if (func_8028DE94() == NULL) {
                         func_80260650(D_80367738, 0x73, (s32) &D_8039B070_entries[i].unk40);
                     }
-                    D_8039B070_entries[i].unk14 = D_80358060;
+                    D_8039B070_entries[i].unk14 = ((s32) D_80358060);
                 }
                 if (D_8039B620 == arg0) {
                     dx = D_803643E0 - D_8039B614, dy = D_803643E4 - D_8039B618;

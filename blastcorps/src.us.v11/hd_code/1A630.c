@@ -604,7 +604,6 @@ u8 func_80260634(void *arg0) {
     return 0;
 }
 
-extern s32 D_80358060;
 extern s32 D_802E8BDC;
 extern void *D_802E8CEC;
 SndState *func_80260300(void *, SndSound *);
@@ -632,7 +631,7 @@ void *func_80260650(void *arg0, s16 arg1, void *arg2) {
     result = NULL;
     flag1 = 0;
     totalSomething = 0;
-    if (arg1 == 0 || (D_80358060 == 0 && arg1 == 0xc)) {
+    if (arg1 == 0 || (((s32) D_80358060) == 0 && arg1 == 0xc)) {
         goto retNull;
     }
     if (arg1 == 0x14 || arg1 == 0x15) {

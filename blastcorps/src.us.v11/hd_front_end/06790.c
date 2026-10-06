@@ -33,7 +33,6 @@ extern u8 D_80215980[]; /* rank name, first line */
 extern u8 D_80215998[]; /* rank name, second line */
 extern s16 D_802159B0;
 extern RankName D_802081C0[];
-extern u32 D_80358060; /* frame counter */
 extern u16 D_80303B78[];
 extern u16 D_80303B88[];
 

@@ -32,7 +32,6 @@ typedef struct {
 } MenuEntry;
 extern MenuEntry D_8020C070[];
 
-extern s32 D_80364AA8;
 extern s32 D_80367738;
 #define pakToGameMessageQ D_80219F50
 extern u8 D_8021AB70;
@@ -40,8 +39,6 @@ extern char D_8021AB72[];
 extern s16 D_8021AB74;
 extern s16 D_8021AB76;
 extern s32 D_8021AB7C;
-extern u32 D_803156C4;
-extern u32 D_80358060;
 extern u8 *D_8035806C;
 extern u32 D_80358058;
 extern u32 D_80358050[];
@@ -144,8 +141,8 @@ void func_801FE990(void) {
                             D_80364A98 = 0x40;
                             break;
                         case 2:
-                            if (!(D_80364AA8 & 0x81)) {
-                                if (D_80364AA8 == 2 && D_80364A90 == 0x8000000) {
+                            if (!(((s32) D_80364AA8) & 0x81)) {
+                                if (((s32) D_80364AA8) == 2 && D_80364A90 == 0x8000000) {
                                     D_8039CA60 = 1;
                                 }
                                 D_80364A98 = 0x20000000;

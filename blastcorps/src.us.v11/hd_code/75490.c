@@ -24,7 +24,6 @@ extern u8 *D_803EF70C;   /* its model header */
 extern u8 D_803EF630[];  /* its state block */
 extern u8 D_803EF330[];  /* its animation channels */
 extern s32 D_803EF6F4;   /* start point x, z */
-extern s16 D_803EF6FC;   /* target speed */
 extern s16 D_803EF6D6;
 extern u8 D_803EF6FE;
 extern u8 D_803EF700;
@@ -253,7 +252,6 @@ void func_802BA148(void) {
 #ifdef NON_MATCHING
 extern u8 D_803EF630[];
 extern u8 D_803EF330[];
-extern s16 D_803EF6FC;
 extern u8 *D_803EF704;
 extern u8 *D_803EF708;
 s32 func_802BA5A4(void);
@@ -398,7 +396,6 @@ typedef struct {
     u8 value;
 } ZoneEntry;
 extern ZoneEntry D_80305D62[];
-extern s16 D_803EF6FC;
 
 /* Scans D_80305D62 (terminated by a negative z) for entries of the current
  * level (D_802E8BDC) whose z <= player z / 32 (D_803EF6E4 >> 5); the last
@@ -455,7 +452,6 @@ extern s16 D_803EF6D6;   /* last speed sent to the engine sound */
 extern f32 D_8030D920;
 extern f32 D_8030D924;
 extern f32 D_8030D928;
-extern u16 D_80364452;   /* camera / player angle (0..0xFFF) */
 extern u8 D_803EF330[];  /* animation channel table (Unk8029DEA0Entry, 56040.c) */
 
 /* Engine sound and animation channels for vehicle D_803EF630 (speed = s16 at
@@ -483,7 +479,7 @@ s32 func_802BA6AC(void) {
 
         func_80260AB8(D_803EF6D8, 0x10, *(s32 *) &p);
     }
-    a = D_80364452 + 0x800;
+    a = ((u16) D_80364452) + 0x800;
     if ((s32) a >= 0x1000) {
         a -= 0xFFF;
     }
@@ -528,10 +524,8 @@ void func_802BA91C(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803643D9;
 extern u8 D_80305D60[];
 extern u8 D_802C3B44[]; /* func_802A6274 definition */
-extern u8 D_803A7426;
 extern void *D_803F77D0;
 extern u8 D_803EF6FE;   /* countdown before the effect */
 extern u8 D_803EF700;   /* effect frame count */
@@ -571,7 +565,7 @@ void func_802BA9A0(s32 h2) {
         func_8029A800(D_803EF6E4, (s32) D_80305D60, 0, 0, D_803EF6DC, D_803EF6E0, (s32) &D_803643D6,
                       *(s16 *) (D_803EF630 + 0x76), h2, 0, 0xFF, D_803EF630);
         func_8029C52C(0xFF, D_803EF630);
-        if (D_803A7426 == 0) {
+        if (((u8) D_803A7426) == 0) {
             D_803A7424 = 0;
             if (D_803EF710 != 0) {
                 func_8029AA10(0xFF);
@@ -778,7 +772,6 @@ void func_802BAD80(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s16 D_80364450;
 extern u8 D_803EF720[];  /* animation channel table (Unk8029DEA0Entry, 56040.c) */
 
 /* Enter vehicle type 6 (called from hd.c): D_8036444C/50 = 6000, 9000, then
@@ -868,8 +861,6 @@ s32 func_802BB230(ZoneScanRegs *r) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 D_80305DF0[];
-extern s16 D_8036443E;
-extern s16 D_80364440;
 void func_802BB4C0(void);
 s32 func_802BB8B8(MtxChainRegs *regs, s32 *t2Out);
 

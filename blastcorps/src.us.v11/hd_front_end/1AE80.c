@@ -15,7 +15,6 @@ typedef struct {
     u8 padF0[0x10];
 } Player; /* 0x100 bytes */
 extern Player D_80364AF0[];
-extern s16 D_80364EF0[][16];
 extern u64 D_8039C4B8[];
 
 

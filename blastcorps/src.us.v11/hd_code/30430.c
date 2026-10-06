@@ -14,8 +14,6 @@ u8 D_8036C784;             /* fade alpha */
 #define FADE_ASSERT(EX, line) \
     if (!(EX)) func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "fade.c", line)
 
-extern u32 D_803156C4;
-extern s32 D_80358060;
 extern s32 D_802E8BDC;
 extern f32 D_802FA930;     /* fade-in step per frame */
 
@@ -23,7 +21,7 @@ extern f32 D_802FA930;     /* fade-in step per frame */
 Gfx *func_80274BF0(s32 arg0, Gfx *gfx) {
     Gfx *gdl = gfx;
 
-    if (!D_80358060) {
+    if (!((s32) D_80358060)) {
         if ((D_80364A90 & 0x4055800100040000) || ((D_80364A90 & 0x1801) && D_802E8BDC == 50)) {
             D_8036C784 = 0xFF;
             if (D_80364A90 & 0x0051800100040000) {

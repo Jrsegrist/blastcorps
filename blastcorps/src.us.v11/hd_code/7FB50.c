@@ -68,7 +68,6 @@ extern u8 D_803F7B50[];
  * +0x78..0x95: 15 s16 tuning values
  * +0x96..0x98: u8 flags; +0x9F: u8 (100 = ...); +0xA1: u8 mode (0..5); +0xA2: u8 previous mode */
 
-extern s8 D_80370C2C;
 extern s32 D_803F7BFC;
 extern void *D_803F7C18;
 extern void *D_803F7C1C;
@@ -77,7 +76,6 @@ extern f32 D_803F7C2C;
 extern u8 D_803F7C3C;
 extern u8 D_803F7C3E;
 extern u8 D_803F7C48;
-extern s16 D_80364450;
 extern void *D_80367738;
 extern f32 D_8030D968;
 extern f32 D_8030D96C;
@@ -693,8 +691,6 @@ extern u8 D_803F7C39;
 extern s32 D_803F7C20;
 extern s32 D_803F7C24;
 extern void *D_803F77D0;
-extern s16 D_8036443E;
-extern s16 D_80364440;
 extern u8 D_80306400[];
 void func_802C61F0(s32 s0, TriSideOut *f, TriScanRegs *r);
 void func_802C617C(void);
@@ -959,7 +955,6 @@ extern u8 D_803F7C45;
 extern u8 D_803F7C46;
 extern u8 D_803F7C47;
 extern u8 D_803F7C4A;
-extern u8 D_802E8BE4;
 extern f32 D_8030D950;
 s32 func_802C6FD8(void);
 s32 func_802C70E8(TriSideOut *f, TriScanRegs *r);

@@ -50,7 +50,6 @@ extern Entry30 D_8020D7E4[];
 extern char D_8036EBA0[];
 extern MenuItem D_8020C070[];
 extern LevelInfo D_802E8F94[];
-extern s32 D_80358060;
 
 
 #define players D_80364AF0
@@ -101,7 +100,7 @@ void func_802860F0(void) {
 
 /* Play the current game state's sound */
 void func_802862DC(void) {
-    if (D_80358060 == 0) {
+    if (((s32) D_80358060) == 0) {
         func_80260C20(D_802FDA70[players[playerNumber].gameState], 1.0f);
     }
 }

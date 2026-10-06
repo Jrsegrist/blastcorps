@@ -43,14 +43,9 @@ typedef struct Dyn {
     Mtx mtx[4];
 } Dyn;
 
-extern s8 D_802E8BE4;
 extern ShellType D_802FE3C0[];
-extern s8 D_803643D9;
 extern void *D_80367738;
 extern Shell D_8039C960[4];
-extern s16 D_803A7410;
-extern s16 D_803A7412;
-extern u16 D_803BE714;
 extern Mtx D_02000000[];
 
 f32 sqrtf(f32);
@@ -125,7 +120,7 @@ void func_80292830(void) {
     s32 limX;
     s32 limZ;
 
-    limX = D_803BE714 * D_803BE70C;
+    limX = ((u16) D_803BE714) * D_803BE70C;
     limZ = D_803BE716 * D_803BE710;
     for (i = 0; i < 4; i++) {
         if (D_8039C960[i].active) {

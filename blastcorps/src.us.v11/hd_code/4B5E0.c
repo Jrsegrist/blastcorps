@@ -95,14 +95,11 @@ extern u8 D_8039C950;
 extern s32 D_8039C954;
 extern s32 D_8039C958;
 extern s32 D_8039C95C;
-extern u8 D_803ED40C;
 extern s32 D_803FB8B0;
 extern Model4B5E0 D_802FDC08[];
 extern u8 D_02000000[]; /* segment 2 base */
 extern s16 D_802FDBE0[];
 extern s32 D_80367738;
-extern s16 D_803A7410;
-extern s16 D_803A7412;
 
 void func_80291724(s32);
 

@@ -23,7 +23,6 @@ extern s32 D_803ED814;   /* drive-in stop coordinate */
 extern u8 D_80305CB0[];
 extern u8 D_80305CB1[];  /* drive-in table: 5-byte records {level, vehicle, dir, mul, zone}, level -1 ends */
 extern void *D_803F77D0;
-extern s16 D_80364450;
 s32 func_802AEB9C(s32 *mode);
 s32 func_802AEC3C(s32 dist, s32 key, s32 fp, TriSideOut *f);
 u8 *func_802AFA64(void);
@@ -31,8 +30,6 @@ extern u8 *D_803ED82C;  /* vehicle 0's model buffers */
 extern u8 *D_803ED830;
 extern s16 D_803ED822;  /* vehicle 0's last ring-steered heading */
 extern s8 D_803ED824;   /* ring steering active */
-extern s16 D_8036443E;
-extern s16 D_80364440;
 void func_802AF4BC(void);
 void func_802AF340(s32 key, s32 fp, TriSideOut *f);
 void func_802AFBA0(void);

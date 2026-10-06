@@ -73,20 +73,14 @@ extern LevelInfo *D_80367C04;
 extern LevelInfo D_802E8F94[];
 extern u8 D_802E8F30[];
 extern Entry0A D_802E8F68[];
-extern u8 D_803643D9;
 extern u32 D_8036EA70;
 extern char D_80367B60[][20]; /* HUD text lines (progress, lap times) */
-extern u32 D_80364AA8;
-extern u8 D_803F7806;
 extern s32 D_802E8BDC;
 extern u8 D_80367BFE;
-extern s32 D_80358064;
 extern s32 D_80367B50;
 extern u8 D_80367B54;
 extern u16 D_80367B58[];
 extern Entry08 D_802E8F74[];
-extern s32 D_80364428;
-extern u32 D_803156C4;
 extern s32 D_80367BC0;
 extern u32 D_80367BC4;
 extern s16 D_80367BD8;
@@ -123,7 +117,6 @@ extern s16 D_80367CB8[];
 extern void *D_802F5804[];
 extern void *D_80367738;
 extern Player D_80364AF0[];
-extern u32 D_803156C0;
 extern u16 D_80367BF4;
 extern u16 D_80367D08;
 

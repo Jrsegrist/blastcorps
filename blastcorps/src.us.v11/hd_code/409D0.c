@@ -32,7 +32,6 @@ extern s32 D_802E8BDC; /* current level */
 extern PlayerRec D_80364AF0[];
 extern u8 D_80364B08[][0x100]; /* = D_80364AF0[p].rank */
 extern u8 D_80364B44[][0x100]; /* = D_80364AF0[p].flags */
-extern u16 D_80364EF0[][16];
 extern LevelInfo D_802E8F94[];
 
 /* This level's results (D_8036EA70) and the best (D_8036EA60), 16 bytes each:
@@ -53,9 +52,7 @@ extern u8 D_8036EB9C[];
 extern MenuItem D_802F5804[];
 extern MenuItem D_8020C070[];
 extern MenuItem D_802F8BDC[];
-extern s32 D_80358064;
 extern s32 D_80367738;
-extern s32 D_803156C0;
 extern u64 D_8039C4B8[]; /* pak buffer */
 
 
@@ -299,7 +296,7 @@ void func_80285CC0(void) {
 void func_80285EF4(s32 start) {
     s32 t;
 
-    t = func_8028604C(D_803156C0 - start);
+    t = func_8028604C(((s32) D_803156C0) - start);
     func_802C1DD0(0);
     D_8036EA74 += t;
     func_802852EC();

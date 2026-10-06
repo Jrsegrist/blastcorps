@@ -50,7 +50,6 @@ extern u16 D_802E8E7C[];
 extern u8 D_802E8D8C[];
 extern u8 D_802E8F94[][0x44];
 extern s32 D_802E8EB4[][6];
-extern s32 D_803156C4;
 extern TuneState D_80366C30[];
 extern TuneState *D_80367400;
 extern s32 D_80367408[];
@@ -65,7 +64,6 @@ extern ALHeap D_80367718;
 extern ALCSPlayer *D_80367734;
 extern void *D_80367738;
 extern void *D_8036773C;
-extern s32 D_80367740;
 extern u8 D_80370C80[];
 
 #define SEQP ((BCSeqPlayer *) D_80367734)
@@ -102,13 +100,13 @@ void func_80260DFC(void) {
 }
 
 void func_80260E2C(void) {
-    D_80367740 = D_803156C4;
+    D_80367740 = ((s32) D_803156C4);
     D_8036772C = alCSPGetTempo(D_80367734);
     func_80261FB0(D_802E8E04[D_802E8BDC]);
 }
 
 void func_80260E80(void) {
-    D_80367740 = D_803156C4;
+    D_80367740 = ((s32) D_803156C4);
     func_80261FB0(D_802E8E40[D_802E8BDC]);
 }
 

@@ -42,8 +42,6 @@ extern OSMesg D_80370BF0;
 extern OSContStatus D_80370BC8;
 extern u8 D_80370C10; /* a read is in flight */
 extern s32 D_802E8BDC; /* current level */
-extern u32 D_80358060; /* frame counter */
-extern u32 D_80358064;
 extern Player D_80364BE0[];
 extern PathNode D_802F5804[];
 extern YoshiArg D_802F8BDC[];
@@ -58,7 +56,6 @@ extern u8 D_80370C20; /* U_CBUTTONS */
 /* last frame's C buttons */
 extern u8 D_80370C25;
 extern u8 D_80370C26;
-extern s8 D_80370C2C;
 extern s8 D_80370C2F;
 /* the alternative pad source */
 extern s32 D_80370BC0;
@@ -109,7 +106,7 @@ void func_8028A470(void) {
     s32 unused;
     s32 mode;
 
-    if (D_80358064 != 0) {
+    if (((u32) D_80358064) != 0) {
         if (D_8039C4B0 == 0 && D_80370C10 != 0) {
             osRecvMesg(&D_80370BF8, NULL, 1);
             func_802DB594(pad);

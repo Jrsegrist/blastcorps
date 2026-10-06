@@ -197,7 +197,6 @@ typedef struct {
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803F7806;
 extern u8 D_803649E8;
 
 /* If D_803F7805 is set, clears it and, unless D_803643DB or D_80364AC1 is set
@@ -364,7 +363,6 @@ void func_802BC888(s32 kind, s32 id, s32 amount) {
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_802E8BE4; /* screen shake time */
 
 /* Delayed damage: for each of the 40 D_803F7690 entries {object, u16 amount,
  * u8 part, u8 timer} with a running timer, counts it down; on reaching 0 the
@@ -474,7 +472,6 @@ void func_802BCC10(void) {
 
 /* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_80358060;
 
 /* If D_80358060 is set, copies buffer A (D_803F77D8 up to its write pointer)
  * into buffer B byte by byte, front to back; then sets B's write pointer to
@@ -485,7 +482,7 @@ extern s32 D_80358060;
 void func_802BCC48(void) {
     u8 *dst = D_803F77E8;
 
-    if (D_80358060 != 0) {
+    if (((s32) D_80358060) != 0) {
         u8 *src = D_803F77D8;
         u8 *end = D_803F77D4;
 
@@ -709,7 +706,6 @@ s32 func_802BD064(Unk802C1DD0Entry *next) {
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u16 D_803EF6FC; /* divisor, 0 = none */
 
 /* D_8036C7C8 = the x/z distance from the player (D_803EF6DC, D_803EF6E4) to
  * the target, divided (unsigned) by D_803EF6FC when that is nonzero. The
@@ -729,8 +725,8 @@ void func_802BD10C(s32 arg0) {
         z = target[6];
     }
     dist = func_802ABCDC(x, 0, z, D_803EF6DC, 0, D_803EF6E4);
-    if (D_803EF6FC != 0) {
-        dist = (u32) dist / D_803EF6FC;
+    if (((u16) D_803EF6FC) != 0) {
+        dist = (u32) dist / ((u16) D_803EF6FC);
     }
     D_8036C7C8 = dist;
 }
@@ -745,8 +741,6 @@ extern s32 D_803F765C;  /* Mtx pool cursor for func_802933A0 */
 extern s32 D_803F24D0[]; /* matrix pools of the two frames */
 extern s32 D_803F2ED0[];
 extern s32 *D_803F3964;
-extern s16 D_803C30A8[]; /* visible object ids, ended by -1 */
-extern u8 D_802E8BE4;    /* screen shake time */
 void func_802BD85C(Unk802BD99CModel *model, s32 id);
 void func_802BDDB4(Unk802C1DD0Entry *obj, u8 *rec, u8 *end);
 u32 *func_802BE228(u32 *src, u32 *srcEnd, u32 *dst, u8 *tbl, u8 *tblEnd);
@@ -828,7 +822,7 @@ void func_802BD1F8(u32 *gA, u32 *gB, u32 *gC, u32 *gD, s32 mtxA, s32 mtxB, u32 *
         s32 count;
         s32 first;
 
-        for (s = D_803C30A8;; s++) {
+        for (s = (s16 *) D_803C30A8;; s++) {
             if (*s == -1) {
                 goto tail;
             }
@@ -1491,8 +1485,6 @@ static s32 sphere_hits_tri_77E20(s32 x, s32 y, s32 z, s32 r, Unk803B9890 *tri) {
 extern s32 D_803F77F4;
 extern u8 D_803F7807;
 extern u8 D_803F780F;
-extern u16 D_803A7410; /* ring span */
-extern u16 D_803A7412;
 
 /* Collision pass of vehicle id (record `vehicle`): clears D_803F7802/7803/7807
  * and the once-per-frame latch D_803F780F, copies D_803F77F8 to D_803F77F4,
@@ -1549,7 +1541,7 @@ void func_802BE77C(s32 id, u8 *vehicle) {
     if (id != 0xFF) {
         func_802BCC48();
     }
-    if (D_803A7410 != 0 || D_803A7412 != 0xFFF) {
+    if (((u16) D_803A7410) != 0 || ((u16) D_803A7412) != 0xFFF) {
         D_803A7425 = 1;
     }
     vehicle[0x9C] = D_803F7802;
@@ -1693,7 +1685,6 @@ typedef struct {
 extern Unk803A6B30 D_803A6B30[];
 extern Unk802C1DD0Entry *D_8036B974;
 extern u8 D_803F7800;
-extern u8 D_802E8BE4; /* screen shake time */
 extern u16 D_803F77FE;
 extern s8 *D_803A7408; /* -1-terminated list of hit counts that don't hurt */
 
@@ -1854,8 +1845,6 @@ void func_802BEF9C(Unk802C1DD0Entry *e) {
 /* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern s32 D_803F77F4;  /* frame stamp: run counting only if it is D_80358068 - 1 */
-extern u8 D_80370C2C;   /* flag sampled each counted frame */
-extern s8 D_803F780A;   /* last sign of D_803F77FC (-1, 0, 1) */
 extern u8 D_803F780D;   /* "the flag changed during this run" */
 extern u8 D_803F780E;   /* flag value at the start of the run */
 extern u8 D_803F780F;   /* once-per-frame latch, set here */
@@ -1891,9 +1880,9 @@ void func_802BEFF4(void) {
     }
     D_803F780F = 1;
 
-    if (D_803F77F4 + 1 == D_80358068 && (sign == 0 || D_803F780A != sign)) {
+    if (D_803F77F4 + 1 == D_80358068 && (sign == 0 || ((s8) D_803F780A) != sign)) {
         count = D_803F780B;
-        flag = (D_80370C2C != 0) ? 1 : 0;
+        flag = (((u8) D_80370C2C) != 0) ? 1 : 0;
         if (count == 0) {
             D_803F780E = flag;
             D_803F780D = 0;
@@ -2010,7 +1999,6 @@ void func_802BF384(Unk802C1DD0Entry *e) {
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u32 D_803649F0; /* score */
 
 /* Unless e is already finished (unkEA), finishes it when every part other
  * than the 1-based part info->unkD is either done (unkEC byte == 100) or has
@@ -2061,9 +2049,6 @@ void func_802BF534(Unk802C1DD0Entry *e) {
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u16 D_803649E0; /* x, y, z stored for a part that falls */
-extern u16 D_803649E2;
-extern u16 D_803649E4;
 
 /* The u16 at byte offset `off` of entry e, for part index i (0-based; a part
  * byte of 0 gives -1, as in the asm). Four tables of 16: 0x48 = "fallen"
@@ -2117,9 +2102,9 @@ void func_802BF668(Unk802C1DD0Entry *e) {
                 func_802BF1F0(e, rec[0]);
                 part = rec[0] - 1;
                 ENTRY_U16(e, 0x48, part) = 1;
-                ENTRY_U16(e, 0x88, part) = D_803649E0;
-                ENTRY_U16(e, 0xA8, part) = D_803649E2;
-                ENTRY_U16(e, 0xC8, part) = D_803649E4;
+                ENTRY_U16(e, 0x88, part) = ((u16) D_803649E0);
+                ENTRY_U16(e, 0xA8, part) = ((u16) D_803649E2);
+                ENTRY_U16(e, 0xC8, part) = ((u16) D_803649E4);
                 part++;
                 for (r = e->unk4, rend = e->unk8; r != rend; r++) {
                     if (r->unk52 == part) {
@@ -2423,8 +2408,6 @@ void func_802BFEE4(u8 *vehicle) {
 
 /* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u16 D_8036CB2A;
-extern u16 D_8036CB2C;
 extern u8 D_803F7807;
 extern void *D_803F77D0;  /* base of the Unk8029DEA0Entry records read by func_802A04BC */
 extern u8 D_80305E50[];   /* records {u8 bit; u8 key; u8 kind; u8 n; ...}, see below */

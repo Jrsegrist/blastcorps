@@ -114,9 +114,47 @@ void *osViGetNextFramebuffer(void) {
     return g_vi_next;
 }
 
+/* The registers libultra's VI manager programs for the frame on screen
+ * (__osViSwapContext: field 0 of a non-interlaced mode; osViBlack blanks
+ * the picture through hStart; osViSetSpecialFeatures edits the control
+ * word).  Only the windowed build looks at them. */
+static void vi_regs(HostViRegs *r) {
+    const OSViMode *m = g_vi_mode;
+    u32 ctrl;
+    __builtin_memset(r, 0, sizeof *r);
+    if (m == NULL) return;
+    ctrl = m->comRegs.ctrl;
+    if (g_vi_features & OS_VI_GAMMA_ON) ctrl |= VI_CTRL_GAMMA_ON;
+    if (g_vi_features & OS_VI_GAMMA_OFF) ctrl &= ~VI_CTRL_GAMMA_ON;
+    if (g_vi_features & OS_VI_GAMMA_DITHER_ON) ctrl |= VI_CTRL_GAMMA_DITHER_ON;
+    if (g_vi_features & OS_VI_GAMMA_DITHER_OFF) ctrl &= ~VI_CTRL_GAMMA_DITHER_ON;
+    if (g_vi_features & OS_VI_DIVOT_ON) ctrl |= VI_CTRL_DIVOT_ON;
+    if (g_vi_features & OS_VI_DIVOT_OFF) ctrl &= ~VI_CTRL_DIVOT_ON;
+    if (g_vi_features & OS_VI_DITHER_FILTER_ON) ctrl |= VI_CTRL_DITHER_FILTER_ON;
+    if (g_vi_features & OS_VI_DITHER_FILTER_OFF) ctrl &= ~VI_CTRL_DITHER_FILTER_ON;
+    r->status = ctrl;
+    r->origin = osVirtualToPhysical(g_vi_cur) + m->fldRegs[0].origin;
+    r->width = m->comRegs.width;
+    r->burst = m->comRegs.burst;
+    r->v_sync = m->comRegs.vSync;
+    r->h_sync = m->comRegs.hSync;
+    r->leap = m->comRegs.leap;
+    r->h_start = g_vi_black ? 0 : m->comRegs.hStart;
+    r->x_scale = m->comRegs.xScale;
+    r->y_scale = m->fldRegs[0].yScale;
+    r->v_start = m->fldRegs[0].vStart;
+    r->v_burst = m->fldRegs[0].vBurst;
+    r->intr = m->fldRegs[0].vIntr;
+}
+
 /* the VI manager's work at each retrace */
 void plat_vi_retrace(void) {
     g_vi_cur = g_vi_next;
+    if (plat_cfg.live != NULL) {
+        HostViRegs r;
+        vi_regs(&r);
+        plat_cfg.live->vi(&r, plat_vi_count, plat_now, plat_stats.frames);
+    }
     if (g_vi_mq != NULL && --g_vi_retrace_left == 0) {
         g_vi_retrace_left = g_vi_retrace_count;
         osSendMesg(g_vi_mq, g_vi_msg, OS_MESG_NOBLOCK);
@@ -237,6 +275,11 @@ void osSpTaskStartGo(OSTask *t) {
         return;
     }
     plat_stats.gfx_tasks++;
+    /* bc.exe: the renderer draws the task now; its completion still comes
+     * at the modelled virtual time below, as in bc_headless */
+    if (plat_cfg.live != NULL && (u32) t->t.ucode != UCODE_CULL)
+        plat_cfg.live->gfx_task(osVirtualToPhysical(t->t.ucode), osVirtualToPhysical(t->t.ucode_data),
+                                osVirtualToPhysical(t->t.data_ptr), t->t.data_size);
     if ((u32) t->t.ucode == UCODE_CULL) {
         u64 v;
         plat_stats.cull_tasks++;

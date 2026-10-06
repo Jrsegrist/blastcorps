@@ -89,6 +89,10 @@ void plat_input_read(u32 index, u16 *button, s8 *x, s8 *y) {
     u32 lo = 0, hi = g_n;
     *button = 0;
     *x = *y = 0;
+    /* bc.exe without --input: the player's keyboard / gamepad */
+    if (g_lines == NULL && plat_cfg.live != NULL && plat_cfg.live->input != NULL &&
+        plat_cfg.live->input(button, x, y))
+        return;
     while (lo < hi) {
         u32 mid = (lo + hi) / 2;
         if (g_lines[mid].index <= index) lo = mid + 1;

@@ -127,6 +127,7 @@ void plat_start(const HostOpts *o) {
     *(u32 *) 0x803FFFF8 = 0x7E3AD0;
     *(u32 *) 0x803FFFFC = 0x7F9BE0;
 
+    if (o->live != NULL && o->live->boot != NULL) o->live->boot();
     plat_fe_snapshot();
     plat_si_init();
     plat_input_init(o->input_path);

@@ -54,6 +54,24 @@ static void blk_records(Block *b, uint32_t lo, uint32_t hi, uint32_t stride, con
         for (i = 0; i < l.n; i++) blk_swap(b, r + l.f[i].off, l.f[i].w);
 }
 
+/* a display-list area: u32 words (once each); the runs swapped here are
+ * registered with gfx_fix.c, which converts the vertices, viewports, lights
+ * and texels the lists use inside them before they are drawn */
+static void blk_words(Block *b, uint32_t lo, uint32_t hi) {
+    uint32_t r, start = 0;
+    int run = 0;
+    for (r = lo; r + 4 <= hi; r += 4) {
+        if (blk_ok(b, r, 4)) {
+            blk_swap(b, r, 4);
+            if (!run) start = r, run = 1;
+        } else if (run) {
+            port_gfx_word_area(b->base + start, r - start);
+            run = 0;
+        }
+    }
+    if (run) port_gfx_word_area(b->base + start, r - start);
+}
+
 static uint32_t blk_rd32(Block *b, uint32_t off) { return off + 4 <= b->len ? rd32(b->base + off) : 0; }
 static uint32_t blk_be32(Block *b, uint32_t off) {
     uint8_t *p = P(b->base + off);
@@ -176,9 +194,9 @@ static void swap_level(uint32_t base, uint32_t len) {
     if (blk_sect(&b, 0x74, 0x78, &lo, &hi)) lvl_groups(&b, lo, hi);
     /* display lists and the visibility records/groups (0xA0..0xC0): all u32
      * words (func_802A08E4, func_802A1C88, func_802A4E4C, func_802A51FC) */
-    if (blk_sect(&b, 0xA0, 0xC0, &lo, &hi)) blk_records(&b, lo, hi, 4, "4@0");
-    if (blk_sect(&b, 0x78, 0x84, &lo, &hi)) blk_records(&b, lo, hi, 4, "4@0");
-    if (blk_sect(&b, 0x88, 0x9C, &lo, &hi)) blk_records(&b, lo, hi, 4, "4@0");
+    if (blk_sect(&b, 0xA0, 0xC0, &lo, &hi)) blk_words(&b, lo, hi);
+    if (blk_sect(&b, 0x78, 0x84, &lo, &hi)) blk_words(&b, lo, hi);
+    if (blk_sect(&b, 0x88, 0x9C, &lo, &hi)) blk_words(&b, lo, hi);
     free(b.done);
 }
 
@@ -241,7 +259,7 @@ static void swap_object(uint32_t base, uint32_t len) {
     blk_swap(&b, 0xE, 2);
     blk_n(&b, 0x10, (0x50 - 0x10) / 4, 4);
     blk_records(&b, 0x50, blk_rd32(&b, 0x1C), 0x10, VTX_LEAVES);
-    if (blk_sect(&b, 0x10, 0x14, &lo, &hi)) blk_records(&b, lo, hi, 4, "4@0");      /* display lists */
+    if (blk_sect(&b, 0x10, 0x14, &lo, &hi)) blk_words(&b, lo, hi);      /* display lists */
     if (blk_sect(&b, 0x1C, 0x24, &lo, &hi)) blk_records(&b, lo, hi, 2, "2@0");      /* corner points */
     if (blk_sect(&b, 0x24, 0x28, &lo, &hi)) blk_records(&b, lo, hi, 0x14, TRI_LEAVES);
     if (blk_sect(&b, 0x28, 0x2C, &lo, &hi)) obj_texrecs(&b, lo, hi);
@@ -339,7 +357,7 @@ static void swap_model(uint32_t base, uint32_t len) {
     if (blk_sect(&b, 0x10, 0x14, &lo, &hi)) mdl_anims(&b, lo, hi);
     if (blk_sect(&b, 0x14, 0x18, &lo, &hi)) blk_records(&b, lo, hi, 0x10, VTX_LEAVES);
     lo = blk_rd32(&b, 0x18);
-    if (lo < len) blk_records(&b, lo, len, 4, "4@0");
+    if (lo < len) blk_words(&b, lo, len);
     free(b.done);
 }
 
@@ -389,6 +407,7 @@ static int schema_apply(int kind, uint32_t dst, uint32_t rom, uint32_t len) {
         case K_SCENE:            /* front-end scenes: offsets, then display lists */
         case K_STATIC:           /* segment 1: display lists (RSP only) */
             port_bswap_n(P(dst), len / 4, 4);
+            port_gfx_word_area(dst, len & ~3u);
             return 1;
         default:
             return 0;

@@ -365,6 +365,10 @@ static int g_nextra, g_extra_i;
 static BOOL CALLBACK dump_callback(PVOID param, const PMINIDUMP_CALLBACK_INPUT in, PMINIDUMP_CALLBACK_OUTPUT o) {
     (void) param;
     if (in == NULL || o == NULL) return FALSE;
+    /* the reporter stays out of the dump, so MiniDumpWriteDump doesn't
+     * suspend it: if the dump hangs (a corrupt heap), the reporter's time
+     * limit still ends the process */
+    if (in->CallbackType == IncludeThreadCallback) return in->IncludeThread.ThreadId != g_reporter_tid;
     if (in->CallbackType == MemoryCallback) {
         if (g_extra_i >= g_nextra) return FALSE;
         o->MemoryBase = g_extra[g_extra_i].base;
@@ -571,7 +575,7 @@ static void report(void) {
      * with a time limit (heap and loader locks) */
     SetEvent(g_dump_go);
     if (WaitForSingleObject(g_dump_done, 20000) == WAIT_TIMEOUT) {
-        out("minidump: not written: timed out (the crashed thread may hold the heap's lock)\n");
+        out("minidump: not written: timed out after 20 s (the process heap is locked or corrupt)\n");
         if (g_dump_path[0]) DeleteFileW(g_dump_path);   /* (gone when the process ends) */
     } else if (g_heap_bad)
         out("minidump: not written: the process heap is corrupt (HeapValidate failed)\n");

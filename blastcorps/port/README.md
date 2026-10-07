@@ -337,11 +337,12 @@ runtime locks or heap), which writes:
   allocates from the process heap, whose lock a crash inside the heap leaves
   held for good (it happened: see "Rare boot crash" below); the report on
   stderr is complete by then, and an unfinished dump deletes itself. It also
-  suspends every other thread, so on a corrupt heap it could crash or hang
-  with the reporter suspended: the dumper first runs `HeapValidate` (which
-  waits for the heap lock before anything is suspended) and writes no dump
-  if the heap is corrupt ("minidump: not written: the process heap is
-  corrupt").
+  suspends every other thread of the dump, so the reporter is left out of
+  the dump (`IncludeThreadCallback`) and keeps its time limit; the dumper
+  first runs `HeapValidate` and writes no dump when that finds the heap
+  corrupt. With the pre-784dbcf bank walk (below), a real heap-corruption
+  crash now ends after 20 s with exit code 4, the full report and the .txt
+  ("minidump: not written: timed out ..."); before, it hung.
 They go to `--crash-dir DIR` (both exes; compare.py passes the native run's
 folder), else bc.exe: bc.log's folder (the exe's), bc_headless: the current
 folder, falling back to `%TEMP%`. Then bc.exe shows a message box (unless

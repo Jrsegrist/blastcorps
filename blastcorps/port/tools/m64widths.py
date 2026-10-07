@@ -61,6 +61,17 @@ setp("Core", "EnableDebugger", 3, 1)
 setp("Core", "R4300Emulator", 1, int(os.environ.get("EMUMODE", "1")))
 setp("Core", "DisableExtraMem", 3, 0)
 setp("Core", "OnScreenDisplay", 3, 0)
+# W_SAVEDIR=dir: EEPROM / pak files there (emptied first: a blank EEPROM, as
+# compare.py's runs have) instead of the user's mupen64plus save directory,
+# where a previous run's save changes the menus (W_INPUT runs need this)
+if os.environ.get("W_SAVEDIR"):
+    _sd = os.environ["W_SAVEDIR"]
+    os.makedirs(_sd, exist_ok=True)
+    for _f in os.listdir(_sd):
+        os.remove(os.path.join(_sd, _f))
+    _h = C.c_void_p()
+    core.ConfigOpenSection(b"Core", C.byref(_h))
+    core.ConfigSetParameter(_h, b"SaveSRAMPath", 4, C.c_char_p((_sd + "/").encode()))
 setp("Video-General", "Fullscreen", 3, 0)
 setp("Video-General", "ScreenWidth", 1, 320)
 setp("Video-General", "ScreenHeight", 1, 240)
@@ -73,13 +84,64 @@ buf = C.create_string_buffer(data, len(data))
 core.CoreDoCommand.argtypes = [C.c_int, C.c_int, C.c_void_p]
 assert core.CoreDoCommand(1, len(data), buf) == 0
 plugs = []
-for typ, name in ((2, PLUG + "mupen64plus-video-glide64mk2.so"), (4, PLUG + "mupen64plus-input-sdl.so"),
+# W_INPUT=file (bc_headless --input format): controller 1 read by read, through
+# the scripted input plugin (tools_port/m64trace/m64input.c), set at each
+# osContStartReadData; W_POKE=R:ADDR:SIZE:VAL,... (hex ADDR/VAL): RAM writes at
+# controller read R (e.g. compare.py level's globe poke: 925:80364AF8:1:L)
+W_INPUT = os.environ.get("W_INPUT")
+W_POKES = [(int(r), int(a, 16), int(s), int(v, 16)) for r, a, s, v in
+           (p.split(":") for p in os.environ.get("W_POKE", "").split(",") if p)]
+_inplug = None
+if W_INPUT:
+    import hashlib, subprocess
+    _src = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../tools_port/m64trace/m64input.c")
+    _so = os.path.expanduser("~/.cache/m64input-%s.so" % hashlib.md5(open(_src, "rb").read()).hexdigest()[:8])
+    if not os.path.exists(_so):
+        os.makedirs(os.path.dirname(_so), exist_ok=True)
+        subprocess.check_call(["gcc", "-shared", "-fPIC", "-O2", "-o", _so, _src])
+    _inplug = _so
+for typ, name in ((2, PLUG + "mupen64plus-video-glide64mk2.so"),
+                  (4, _inplug or PLUG + "mupen64plus-input-sdl.so"),
                   (1, PLUG + "mupen64plus-rsp-hle.so")):
     lib = C.CDLL(name)
     lib.PluginStartup.argtypes = [C.c_void_p, C.c_void_p, DEBUGCB]
     assert lib.PluginStartup(C.c_void_p(core._handle), None, dbgmsg_c) == 0
     assert core.CoreAttachPlugin(typ, C.c_void_p(lib._handle)) == 0
     plugs.append(lib)
+    if typ == 4 and _inplug:
+        _keys = C.c_uint32.in_dll(lib, "m64input_keys")
+
+
+def _load_input(path):
+    rows, idx = [], 0
+    for line in open(path):
+        q = line.split("#")[0].strip()
+        if not q:
+            continue
+        parts = q.replace(",", " ").split()
+        if parts[0].startswith("@"):
+            idx = int(parts[0][1:], 0)
+            parts = parts[1:]
+        if not parts:
+            continue
+        v = [int(p, 0) for p in parts] + [0, 0]
+        rows.append((idx, v[0] & 0xFFFF, v[1], v[2]))
+        idx += 1
+    return rows
+
+
+_rows = _load_input(W_INPUT) if W_INPUT else []
+_reads = [0]
+
+
+def _pad_at(n):
+    cur = (0, 0, 0)
+    for idx, b, x, y in _rows:
+        if idx > n:
+            break
+        cur = (b, x, y)
+    b, x, y = cur
+    return ((b >> 8) | ((b & 0xFF) << 8)) | ((x & 0xFF) << 16) | ((y & 0xFF) << 24)
 core.DebugMemRead32.restype = C.c_uint32
 core.DebugMemRead32.argtypes = [C.c_uint32]
 core.DebugMemRead8.restype = C.c_uint8
@@ -173,7 +235,11 @@ for _n, _sz in (("memcpy", 0xA0), ("bcopy", 0x310), ("bzero", 0xA0)):
     TRANSPARENT.append((sym(_n), sym(_n) + _sz))
 
 
-EXECS = (LOADER, LOADER_RET, PIDMA, PK_ENTRY, PK_RET)
+READ = sym("osContStartReadData")
+EXECS = (LOADER, LOADER_RET, PIDMA, PK_ENTRY, PK_RET) + ((READ,) if W_INPUT or W_POKES else ())
+core.DebugMemWrite8.argtypes = [C.c_uint32, C.c_uint8]
+core.DebugMemWrite16.argtypes = [C.c_uint32, C.c_uint16]
+core.DebugMemWrite32.argtypes = [C.c_uint32, C.c_uint32]
 
 # pc -> function name
 _fsyms = {}
@@ -347,6 +413,16 @@ def on_mem(pc):
 
 def on_exec(pc):
     global regs_p
+    if pc == READ:
+        n = _reads[0]
+        _reads[0] += 1
+        if _inplug:
+            _keys.value = _pad_at(n)
+        for r, a, s, v in W_POKES:
+            if r == n:
+                {1: core.DebugMemWrite8, 2: core.DebugMemWrite16, 4: core.DebugMemWrite32}[s](a, v)
+                out.write("P %d read %d %08X=%X\n" % (st["vi"], n, a, v))
+        return
     if pc == PK_ENTRY:       # hand asm: a1 = dst (value, returned advanced); C: a1 = &dst
         if PK_PTR:
             ptr = gpr(5) | 0x80000000

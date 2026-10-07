@@ -27,16 +27,21 @@ extern void func_802447C0(void);
 #define FE_DATA_START 0x80208040u
 #define FE_END 0x8021ED00u
 static u8 *g_fe_snap;
+static void *g_fe_units;   /* their units for the stale-byte emulation (load/swap.c) */
+void *port_unit_save(unsigned int addr, unsigned int n);
+void port_unit_restore(unsigned int addr, const void *saved, unsigned int n);
 
 void plat_fe_snapshot(void) {
     u32 n = FE_END - FE_DATA_START;
     g_fe_snap = host_realloc(NULL, n);
     __builtin_memcpy(g_fe_snap, (void *) FE_DATA_START, n);
+    g_fe_units = port_unit_save(FE_DATA_START, n);
 }
 
 void port_fe_loaded(void) {
     plat_stats.fe_reloads++;
     __builtin_memcpy((void *) FE_DATA_START, g_fe_snap, FE_END - FE_DATA_START);
+    port_unit_restore(FE_DATA_START, g_fe_units, FE_END - FE_DATA_START);
     if (!plat_cfg.quiet)
         host_log("fe: front end reloaded (#%u) at frame %u, vi %u\n", (unsigned) plat_stats.fe_reloads,
                  (unsigned) plat_stats.frames, (unsigned) plat_vi_count);
@@ -91,9 +96,9 @@ static u64 g_last_mode = ~0ull;
 void plat_on_frame(void) {
     u32 f = ++plat_stats.frames;
     u32 i;
-    host_trace("%u vi=%u t=%u mode=%08X%08X lvl=%d mf=%u gvi=%u\n", (unsigned) f, (unsigned) plat_vi_count,
+    host_trace("%u vi=%u t=%u mode=%08X%08X lvl=%d mf=%u gvi=%u rd=%u\n", (unsigned) f, (unsigned) plat_vi_count,
                (unsigned) plat_now, (unsigned) (G_MODE >> 32), (unsigned) G_MODE, (int) G_LEVEL,
-               (unsigned) G_MODEFRAMES, (unsigned) G_VICOUNT);
+               (unsigned) G_MODEFRAMES, (unsigned) G_VICOUNT, (unsigned) plat_stats.cont_reads);
     if (G_MODE != g_last_mode) {
         g_last_mode = G_MODE;
         if (!plat_cfg.quiet)
@@ -103,6 +108,15 @@ void plat_on_frame(void) {
     for (i = 0; i < plat_cfg.n_dump_frames; i++)
         if (plat_cfg.dump_frames[i] == f) dump_rdram(f);
     if (plat_cfg.dump_every && f % plat_cfg.dump_every == 0) dump_rdram(f);
+    host_watch_frame(f);   /* --watch (debugging, plat_host.c) */
+    for (i = 0; i < plat_cfg.n_pokes; i++) {
+        const unsigned *p = plat_cfg.pokes[i];
+        if (p[0] != f) continue;
+        if (p[2] == 1) *(u8 *) p[1] = (u8) p[3];
+        else if (p[2] == 2) *(u16 *) p[1] = (u16) p[3];
+        else *(u32 *) p[1] = p[3];
+        if (!plat_cfg.quiet) host_log("poke: frame %u: %08X = %X (%u bytes)\n", (unsigned) f, p[1], p[3], p[2]);
+    }
     if (plat_cfg.frames && f >= plat_cfg.frames) {
         host_log("stopping: %u frames reached\n", (unsigned) f);
         print_stats();

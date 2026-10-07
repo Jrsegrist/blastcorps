@@ -37,6 +37,12 @@
  *     --no-audio         don't run audio tasks (the game logic is the same)
  *     --audio-capture FILE[:N]  record (the first N) audio tasks' inputs and
  *                        outputs for port/tools/audio (asp_lle, asp_replay)
+ *     --poke F:ADDR:SIZE:VALUE,...  write RAM (hex address and value, host
+ *                        order at that width) when frame F is sent, after its
+ *                        dump (compare.py's CMP_POKE does the same in the
+ *                        emulator): e.g. pick the level a run loads
+ *     --watch F:ADDR[:N] debugging: log the first N (20) writes to ADDR's 4 KB
+ *                        page from frame F on (eip and stack code pointers)
  *     -v / -q            verbose / quiet */
 #include <stdarg.h>
 #include <stdio.h>
@@ -142,6 +148,23 @@ int host_main(int argc, char **argv, int (*extra)(int argc, char **argv, int *i,
         else if (!strcmp(a, "--wav")) o.wav_path = ARG();
         else if (!strcmp(a, "--wav-all")) o.wav_all = 1;
         else if (!strcmp(a, "--no-audio")) o.audio_off = 1;
+        else if (!strcmp(a, "--watch")) {
+            const char *s = ARG();
+            if (host_watch_set(s)) usage(s);
+        } else if (!strcmp(a, "--poke")) {
+            /* F:ADDR:SIZE:VALUE,... (ADDR and VALUE hex): after frame F's dump */
+            char *s = ARG(), *tok;
+            for (tok = strtok(s, ","); tok; tok = strtok(NULL, ",")) {
+                unsigned f, ad, sz, v;
+                if (sscanf(tok, "%u:%x:%u:%x", &f, &ad, &sz, &v) != 4 || (sz != 1 && sz != 2 && sz != 4) ||
+                    ad < 0x80000000u || ad >= 0x80800000u || ad % sz)
+                    usage(tok);
+                o.pokes = realloc(o.pokes, (o.n_pokes + 1) * sizeof *o.pokes);
+                o.pokes[o.n_pokes][0] = f, o.pokes[o.n_pokes][1] = ad;
+                o.pokes[o.n_pokes][2] = sz, o.pokes[o.n_pokes][3] = v;
+                o.n_pokes++;
+            }
+        }
         else if (!strcmp(a, "--audio-capture")) {
             char *s = ARG(), *colon = strrchr(s, ':');
             /* FILE:N (a drive letter's colon is followed by a path, not digits) */

@@ -90,6 +90,21 @@ static void add_area(uint32_t addr, uint32_t len, int kind) {
     }
 }
 
+/* is ADDR inside a RAW area (data-image bytes left as the ROM has them, which
+ * only bc.exe's renderer converts)?  swap.c's display-list units skip them.
+ * With W, the word there as loaded (host value of the ROM's big-endian word),
+ * the same in bc_headless and bc.exe whether or not the renderer converted it */
+int port_gfx_in_raw(uint32_t addr, uint32_t *w) {
+    uint32_t a = phys(addr);
+    int i;
+    for (i = 0; i < g_nareas; i++)
+        if (g_area[i].kind == AREA_RAW && g_area[i].lo <= a && a < g_area[i].hi) {
+            if (w != NULL) *w = g_area[i].orig ? __builtin_bswap32(g_area[i].orig[((a & ~3u) - g_area[i].lo) >> 2]) : 0;
+            return 1;
+        }
+    return 0;
+}
+
 void port_gfx_word_area(uint32_t addr, uint32_t len) {
     add_area(addr, len, AREA_WORDS);
 }

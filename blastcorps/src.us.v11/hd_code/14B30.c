@@ -16,6 +16,24 @@ extern TextQuad *D_80365340;
 extern s32 D_802E8C70;
 extern s32 D_802E8C74;
 extern s32 D_802E8C78;
+#ifdef PORT_HOST
+void port_unit_mark(void *p, u32 n, s32 width);
+u8 port_n64_byte(const void *p);
+
+void port_garbage(const void *p, u32 len);
+
+/* A quad func_80259EC4 just wrote: record its units, for the stale-byte
+ * emulation (a later user of this heap memory that leaves bytes unwritten,
+ * 2E490.c's sprite quads, sees the N64's big-endian key / vertex index /
+ * texture words).  The two padding bytes after the key are never written nor
+ * read (the heap's old bytes, which the sort moves around): func_802592F0
+ * logs them as garbage for the comparator. */
+static void port_textquad(TextQuad *q) {
+    port_unit_mark(&q->key, 1, 2);
+    port_unit_mark(&q->vtx, 1, 4);
+    port_unit_mark(&q->tex, 1, 4);
+}
+#endif
 
 #define VTX(n) D_80365348[D_8035805C][n].v
 
@@ -41,6 +59,11 @@ void func_802592F0(void) {
     }
     D_80365340 = (TextQuad *) D_80358070;
     D_80358070 += D_80365350 * 12;
+#ifdef PORT_HOST
+    for (i = 0; i < D_80365350; i++) {
+        port_garbage((u8 *) &D_80365340[i].key + 2, 2);
+    }
+#endif
     func_8025B070();
 }
 
@@ -471,6 +494,9 @@ void func_80259EC4(Gfx **gfxp, u8 *str, u16 *wstr, u8 align, s32 fit, f32 x, s32
             }
             D_80365340[D_802E8C74].vtx = D_802E8C74;
             D_80365340[D_802E8C74].tex = func_8025B0B8(glyph);
+#ifdef PORT_HOST
+            port_textquad(&D_80365340[D_802E8C74]);
+#endif
             D_802E8C74++;
             if (!(D_802E8C74 < D_80365350)) {
                 func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", "index<maxCharacters", "drawtext.c", 435);

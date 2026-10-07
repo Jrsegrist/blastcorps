@@ -948,6 +948,15 @@ void func_801FCF38(Vtx *v, f32 x, f32 y, f32 z, u8 w, u8 h, f32 scale, u8 flip) 
     f32 z2;
     f32 z3;
 
+#ifdef PORT_HOST
+    {
+        /* the quads live in fresh heap memory (09570.c's icon buffer, the
+         * cursor): their flag halfwords are never written, the N64 keeps the
+         * heap's bytes; give the native records those (port/src/load/swap.c) */
+        void port_vtx_stale(void *v, u32 n);
+        port_vtx_stale(v, 4);
+    }
+#endif
     ux = -z;
     uy = 0.0f;
     uz = x;

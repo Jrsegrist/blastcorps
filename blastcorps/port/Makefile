@@ -444,6 +444,20 @@ verify:
 	$(MAKE) loadcheck
 	$(PYTHON) tools/compare.py verify --frames $(VERIFY_FRAMES) --cache $(CMP_CACHE) $(VERIFY_ARGS)
 
+# every level (data/levels.txt): menus -> new game -> the globe centred on the
+# level -> 1900 frames with tools/levels_input.py's driving pattern, in the
+# emulator (cached per level in CMP_CACHE/level-nm-LL, ~3.5 minutes each the
+# first time) and bc_headless; timeline and RAM dumps (every 20 frames from
+# frame 1000 to 1100, then every 100) against data/verify_levels_expect.txt
+# (tools/compare.py verify-levels).  LEVELS=a,b-c for some; LEVEL_JOBS
+# emulators at a time.
+LEVEL_JOBS ?= 2
+verify-levels:
+	$(MAKE) -C $(ROOT) VERSION=$(VERSION) NON_MATCHING=1 nmrom BASEROM=$(abspath $(ROM)) > /dev/null
+	$(MAKE) $(H)/bc_headless.exe
+	$(PYTHON) tools/compare.py verify-levels --cache $(CMP_CACHE) --jobs $(LEVEL_JOBS) \
+		$(if $(LEVELS),--levels $(LEVELS)) $(VERIFY_LEVELS_ARGS)
+
 # the strict (typed) comparison's layouts: every symbol's declared leaves,
 # and with LC_TRACE (tools/m64widths.py output) the traced reads of every asset
 strict-data: $(H)/typemap_all.txt
@@ -454,5 +468,5 @@ $(H)/typemap_all.txt: $(H)/addrs.txt tools/typemap.py
 clean:
 	rm -rf $(B)
 
-.PHONY: all check clean linkall loadcheck typemap ucode headless compare game strict-data dist verify FORCE
+.PHONY: all check clean linkall loadcheck typemap ucode headless compare game strict-data dist verify verify-levels FORCE
 .SECONDARY:

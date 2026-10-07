@@ -67,6 +67,12 @@ extern Vtx *D_80358070; /* vertex allocator */
 
 void func_8028DA5C(Vtx *v, u8 arg1);
 
+#ifdef PORT_HOST
+/* func_8028DA5C writes ob and tc only: the boxes' flag and colour bytes are
+ * whatever the heap held on the N64 (port_vtx_stale, port/src/load/swap.c). */
+void port_vtx_stale(void *v, u32 n);
+#endif
+
 /* Load the boxes from level data: 12-byte records (s16 x, y, z; u8 type,
  * u8 timer; s16 unk1A, unk1C). Positions are scaled by 32 and snapped to
  * the ground; each box gets its face textures and 8 vertices. */
@@ -110,6 +116,9 @@ void func_8028D4C0(u8 *arg0, u8 *arg1) {
         D_8039B070_entries[D_8039B610].unk18 = 1;
         D_8039B070_entries[D_8039B610].unk3C = D_80358070;
         D_80358070 += 8;
+#ifdef PORT_HOST
+        port_vtx_stale(D_8039B070_entries[D_8039B610].unk3C, 8);
+#endif
         func_8028DA5C(D_8039B070_entries[D_8039B610].unk3C, D_8039B070_entries[D_8039B610].unk0E);
         /* One statement (a for-loop increment, probably). */
         D_8039B610++, arg0 += 12;

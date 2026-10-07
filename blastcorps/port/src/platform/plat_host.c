@@ -179,10 +179,65 @@ void host_exit(int code) {
 
 static void (*g_describe)(void);
 
+/* Debugging (--watch FRAME:ADDR[:N], plat_core.c): from frame FRAME, log the
+ * first N (default 20) writes to ADDR's 4 KB page: eip and the stack's code
+ * pointers (symbolise with bc_headless.syms).  The page is made read-only;
+ * each write is let through by single-stepping it and re-protecting. */
+static DWORD g_watch_page, g_watch_left;
+static int g_watch_step;
+extern unsigned plat_frames(void);
+
+static unsigned g_wf, g_wa, g_wn;
+
+/* --watch FRAME:ADDR[:N] (WSL doesn't pass this environment to the exe) */
+int host_watch_set(const char *s) {
+    if (sscanf(s, "%u:%x:%u", &g_wf, &g_wa, &g_wn) < 2) return -1;
+    fprintf(stderr, "watch: page of %08X from frame %u\n", g_wa, g_wf);
+    return 0;
+}
+
+void host_watch_frame(unsigned frame) {
+    unsigned wa = g_wa, wn = g_wn;
+    DWORD old;
+    if (g_wf == 0 || frame != g_wf) return;
+    g_watch_page = wa & ~0xFFFu;
+    g_watch_left = wn ? wn : 20;
+    VirtualProtect((void *) g_watch_page, 0x1000, PAGE_READONLY, &old);
+}
+
+static int watch_filter(EXCEPTION_POINTERS *ep) {
+    EXCEPTION_RECORD *er = ep->ExceptionRecord;
+    CONTEXT *c = ep->ContextRecord;
+    DWORD old;
+    if (er->ExceptionCode == EXCEPTION_SINGLE_STEP && g_watch_step) {
+        g_watch_step = 0;
+        if (g_watch_left) VirtualProtect((void *) g_watch_page, 0x1000, PAGE_READONLY, &old);
+        return 1;
+    }
+    if (er->ExceptionCode == EXCEPTION_ACCESS_VIOLATION && er->NumberParameters >= 2 &&
+        er->ExceptionInformation[0] == 1 && (er->ExceptionInformation[1] & ~0xFFFu) == g_watch_page &&
+        g_watch_page) {
+        DWORD *sp = (DWORD *) c->Esp;
+        int i, k = 0;
+        fprintf(stderr, "WATCH: frame %u write %08lX eip=%08lX stack", plat_frames(),
+                (unsigned long) er->ExceptionInformation[1], (unsigned long) c->Eip);
+        for (i = 0; i < 64 && k < 8; i++)
+            if (sp[i] >= 0x401000 && sp[i] < 0x01000000) fprintf(stderr, " %08lX", sp[i]), k++;
+        fprintf(stderr, "\n");
+        g_watch_left--;
+        VirtualProtect((void *) g_watch_page, 0x1000, PAGE_READWRITE, &old);
+        c->EFlags |= 0x100;   /* trap after the store, then re-protect */
+        g_watch_step = 1;
+        return 1;
+    }
+    return 0;
+}
+
 static LONG WINAPI crash_filter(EXCEPTION_POINTERS *ep) {
     EXCEPTION_RECORD *er = ep->ExceptionRecord;
     CONTEXT *c = ep->ContextRecord;
     DWORD code = er->ExceptionCode;
+    if (g_watch_page && watch_filter(ep)) return EXCEPTION_CONTINUE_EXECUTION;
     /* only real faults; leave debugger/C++ exceptions alone */
     if (code != EXCEPTION_ACCESS_VIOLATION && code != EXCEPTION_INT_DIVIDE_BY_ZERO &&
         code != EXCEPTION_ILLEGAL_INSTRUCTION && code != EXCEPTION_STACK_OVERFLOW &&

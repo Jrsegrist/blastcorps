@@ -281,7 +281,7 @@ void func_801E7598(void) {
     gDPPipeSync(gdl++);
     gDPSetCycleType(gdl++, G_CYC_1CYCLE);
     func_80259CCC((Gfx **) dyn, (u8 *) D_80208040, D_80208044, 0, 0xA0, 0x50, 0x18, 0x15, 0x15, 1, 0, 0, 0, 0xA0);
-    if (D_803156C0 % 20 * 60 / 60 < 16) {
+    if (PORT_GVI("func_801E7598", D_803156C0) % 20 * 60 / 60 < 16) {
         D_802081B0 += D_802081B4 * 30;
         if (D_802081B0 >= 0x100) {
             D_802081B0 -= 60;

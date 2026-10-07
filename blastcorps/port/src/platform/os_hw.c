@@ -2,6 +2,7 @@
  * translation, osInitialize), headless. */
 #include "plat.h"
 #include "../audio/port_audio.h"
+void port_mark_gfx_task(unsigned int dl); /* load/swap.c */
 
 /* ---- osInitialize --------------------------------------------------------- */
 
@@ -426,6 +427,8 @@ void osSpTaskStartGo(OSTask *t) {
         return;
     }
     plat_stats.gfx_tasks++;
+    /* the units the lists hold, for the stale-byte emulation (swap.c) */
+    if ((u32) t->t.ucode != UCODE_CULL) port_mark_gfx_task(osVirtualToPhysical(t->t.data_ptr));
     /* bc.exe: the renderer draws the task now; its completion still comes
      * at the modelled virtual time below, as in bc_headless */
     if (plat_cfg.live != NULL && (u32) t->t.ucode != UCODE_CULL)

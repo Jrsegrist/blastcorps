@@ -14,6 +14,16 @@ extern Vtx *D_8036C368[2][64][2]; /* per-buffer quads, two orientations */
 
 Gfx *func_802742D8(Gfx *gdl, u8 slot, s16 x, s16 y, s32 flip, s32 size, s32 half, f32 scale, u8 frame);
 
+#ifdef PORT_HOST
+/* func_802742D8's sprite quads (fresh heap memory) get ob and tc only: their
+ * flag and colour bytes are whatever the heap held, which the RSP shades the
+ * sprite with (G_SHADE).  port_vtx_stale (port/src/load/swap.c) gives the
+ * native records the N64's stale bytes first, as for 42240.c's HUD quads;
+ * only the four it is about to write (each orientation's other four stay
+ * untouched heap bytes on the N64; converting again is harmless). */
+void port_vtx_stale(void *v, u32 n);
+#endif
+
 void func_80272C50(void) {
     D_8036C360 = 0;
 }
@@ -182,6 +192,9 @@ Gfx *func_802742D8(Gfx *gdl, u8 slot, s16 x, s16 y, s32 flip, s32 size, s32 half
     } else {
         t = size << 5;
     }
+#ifdef PORT_HOST
+    port_vtx_stale(flip ? vtx + 4 : vtx, 4);
+#endif
     if (flip) {
         vtx += 4;
         vtx[0].v.ob[0] = x0;

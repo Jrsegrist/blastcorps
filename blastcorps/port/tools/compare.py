@@ -12,7 +12,10 @@ word after normalising byte order (see diff below).
 
 usage (run from port/; `make -C port compare DEMO=n` drives it):
   compare.py emu    EMUDIR [--rom ROM] [--vis N] [--dump SPEC] [--stop F] [--lle]
-                    (--lle: audio tasks and the visibility test on an LLE RSP, see lle_env)
+                    [--input FILE] [--poke F:ADDR:SIZE:VAL,..]
+                    (--lle: audio tasks and the visibility test on an LLE RSP, see lle_env;
+                    --input: controller 1 per read, bc_headless's --input format; --poke:
+                    RAM writes at frame sends, as bc_headless --poke: pass both to native too)
   compare.py inject EMUDIR                    -> EMUDIR/{clock,framedone,boot}.txt
   compare.py native EMUDIR NATDIR [--frames N] [--dump SPEC] [--exe EXE] [--rom ROM]
   compare.py diff   EMUDIR NATDIR [--from F] [--to F] [--detail N] [--all]
@@ -193,6 +196,8 @@ def parse_seg(ev, seg, vi, seq, unwrap):
         elif kind in ("T", "C", "A", "U", "Q"):
             # (visibility tests are keyed by frame, not by retrace)
             key = int(kv["frame"]) if kind == "U" and "frame" in kv else vi
+            if "name" in kv:   # (a PORT_GVI site with its own key, cmp_spec.py GVI_SITES)
+                ev.setdefault("names" + kind, {})[len(ev[kind])] = kv["name"]
             ev[kind].append((int(kv["ra"], 16), int(kv["th"]), int(kv["v"], 16), key))
             ev.setdefault("seq" + kind, []).append(seq)
         elif kind == "M":
@@ -234,9 +239,11 @@ def cmd_inject(args):
         # the emulator's clock: count = C1 + (native time - R1 * 781250) * PERIOD / 781250
         f.write("M %d %d %.6f\n" % (ev["r1"], ev["c1"], period))
         for kind in "TCAUQ":
-            for ra, th, v, vi in ev[kind]:
+            names = ev.get("names" + kind, {})
+            for i, (ra, th, v, vi) in enumerate(ev[kind]):
                 it = fs.find(ra)
-                f.write("%s %s %d %x\n" % (kind, it[1] if it else "?", vi if kind == "U" else vi + off, v))
+                name = names.get(i) or (it[1] if it else "?")
+                f.write("%s %s %d %x\n" % (kind, name, vi if kind == "U" else vi + off, v))
     # The scheduler's retrace handler (func_80271358) reads osGetTime once per
     # retrace: where an RDP-done handler ran before the retrace handler of
     # its own retrace (the DP interrupt's message reached the scheduler
@@ -363,7 +370,9 @@ def cmd_emu(args):
             os.remove(os.path.join(savedir, f))
     env = dict(os.environ, M64SAVEDIR=savedir, CMP_DIR=emudir, CMP_ELFS=",".join(elfs), CMP_VIS=str(opt(args, "--vis", 36000)),
                CMP_DUMP=opt(args, "--dump", "every:10"), CMP_STOP=str(opt(args, "--stop", 0)),
-               CMP_CALLS=opt(args, "--calls", ""))
+               CMP_CALLS=opt(args, "--calls", ""), CMP_POKE=opt(args, "--poke", ""),
+               CMP_SHOTS=opt(args, "--shots", ""),
+               CMP_INPUT=os.path.abspath(opt(args, "--input", "")) if "--input" in args else "")
     if flag(args, "--lle"):
         env.update(lle_env(emudir))
     py = sys.executable
@@ -1326,13 +1335,207 @@ def cmd_verify(args):
         ", strict %d/%d" % (res["dumps_strict_ok"], compared) if strict else ""))
 
 
+# ---------------------------------------------------------------- levels
+
+# How a run reaches level L (both sides, same input): data/levels_input.txt
+# drives the menus (START/A from read 400: new game, player A) to the globe
+# and presses A at read 985; at frame 930, before the globe first opens, the
+# player's "last level" byte (D_80364AF0[0].pad0[8], 00000.c case 0x4000) is
+# set to L, so the globe opens centred on L and A selects it.  The game then
+# loads L its own way (intro page / sequence / bonus info, A taps), and the
+# input drives the vehicle from read 1220.
+LEVEL_POKE_FRAME = 930
+LEVEL_SLOT0_LAST = 0x80364AF8
+
+
+def level_names():
+    """level number -> name (the globe table's strings, hd_front_end 11530.c)"""
+    p = os.path.join(PORT, "data/levels.txt")
+    out = {}
+    if os.path.exists(p):
+        for line in open(p):
+            f = line.split("#")[0].split(None, 1)
+            if f and f[0].isdigit():
+                out[int(f[0])] = f[1].strip() if len(f) > 1 else ""
+    return out
+
+
+def run_level(level, cache, frames, every, input_path, kind="nm", shots="", force=False, keep=False,
+              strict=False):
+    """one level: the emulator side (cached by ROM, spec, input and parameters), then
+    bc_headless, timeline + dump comparison; returns a dict of results"""
+    rom = default_rom(kind)
+    emudir = os.path.join(cache, "level-%s-%02d" % (kind, level))
+    natdir = emudir + "-native"
+    poke = "%d:%08X:1:%X" % (LEVEL_POKE_FRAME, LEVEL_SLOT0_LAST, level)
+    # dumps once the level is under way (from frame 1000), every 20 frames up to
+    # 1100 whatever EVERY is: the level loads around 1013-1172, and the
+    # comparator's stale-trailer rule (60F60.c HeapBlocks) learns from the
+    # frames where the blocks still cover the earlier level's memory
+    frs = sorted(set(range(1000, min(1100, frames + 1), 20)) | set(range(1000, frames + 1, every)))
+    dump = "+".join(str(f) for f in frs)
+    params = "level=%d frames=%d poke=%s input=%s shots=%s\n" % (level, frames, poke, rom_sha1(input_path), shots)
+    pfile = os.path.join(emudir, "params.txt")
+    # (a cached run with more dumps will do: the frames this run compares must be there)
+    want = set(frs)
+    stale = force or emu_stale(emudir, rom) or not os.path.exists(pfile) or open(pfile).read() != params \
+        or not want <= frames_in(emudir)
+    if stale:
+        print("level %d: emulator run (%s ROM, %d frames) into %s ..." % (level, kind, frames, emudir))
+        sys.stdout.flush()
+        if os.path.exists(pfile):
+            os.remove(pfile)
+        cmd_emu([emudir, "--kind", kind, "--lle", "--vis", str(frames * 4), "--stop", str(frames),
+                 "--dump", dump.replace("+", ","), "--input", input_path, "--poke", poke]
+                + (["--shots", shots] if shots else []))
+        open(pfile, "w").write(params)
+    else:
+        cmd_inject([emudir])
+    sys.stdout.flush()
+    r = cmd_native([emudir, natdir, "--frames", str(frames), "--dump", dump.replace("+", ","),
+                    "--input", wpath(input_path), "--poke", poke])
+    res = {"level": level, "exe_exit": r}
+    res["frames"], res["timeline_retrace"], res["timeline_state"] = cmd_frames([emudir, natdir, "3"])
+    # the level's own frames: from the first frame in a level mode with level L
+    ev = parse_emu(emudir)
+    nat = native_trace(natdir)
+    lvl_frames = [f["n"] for f in ev["F"] if int(f["lvl"], 16) == level and int(f["mode"], 16) in (4, 0x100)]
+    res["level_from"] = lvl_frames[0] if lvl_frames else 0
+    res["level_frames"] = len(lvl_frames)
+    res["emu_modes"] = " ".join(sorted(set("%X" % int(f["mode"], 16) for f in ev["F"]
+                                           if f["n"] >= LEVEL_POKE_FRAME and int(f["lvl"], 16) == level)))
+    res["native_frames"] = len(nat)
+    typemap = os.path.join(PORT, "build/headless/typemap_all.txt")
+    strict = strict and os.path.exists(typemap)
+    if frames_in(emudir) & frames_in(natdir):
+        dargs = [emudir, natdir, "--all", "--brief", "--detail", "6"] + (["--strict"] if strict else [])
+        matched, compared, first, strict_bad = cmd_diff(dargs)
+        res["dumps"], res["dumps_match"], res["first_diff"] = compared, matched, first or 0
+        if strict:
+            res["dumps_strict_ok"] = compared - strict_bad
+    else:
+        res["dumps"] = res["dumps_match"] = 0
+    res.update(run_log_facts(natdir))
+    if not keep:
+        # keep the logs, drop the native dumps (the emulator's stay: they are the cache)
+        for f in os.listdir(natdir):
+            if f.startswith("frame_"):
+                os.remove(os.path.join(natdir, f))
+    return res
+
+
+def cmd_level(args):
+    """level --level L [--cache DIR] [--frames N] [--every K] [--input FILE] [--kind nm|base]
+    [--shots F,..] [--force] [--keep]: reach level L in the emulator and in bc_headless with
+    the same input (see LEVEL_POKE_FRAME) and compare them"""
+    level = opt(args, "--level", 0, int)
+    cache = os.path.expanduser(opt(args, "--cache", "~/cmp_cache"))
+    frames = opt(args, "--frames", 1900, int)
+    every = opt(args, "--every", 20, int)
+    inp = os.path.abspath(opt(args, "--input", os.path.join(PORT, "data/levels_input.txt")))
+    kind = opt(args, "--kind", "nm")
+    shots = opt(args, "--shots", "")
+    # (--strict: also the typed comparison; in a level, heap data lands on
+    # declared arrays like the frame buffers D_80000400, so it reports noise)
+    res = run_level(level, cache, frames, every, inp, kind, shots, flag(args, "--force"), flag(args, "--keep"),
+                    flag(args, "--strict"))
+    print("level: results")
+    for k in sorted(res):
+        print("  %-24s %s" % (k, res[k]))
+    return res
+
+
+def _level_job(a):
+    """one level of verify-levels, its output in CACHE/level-LL.log"""
+    lv, cache, frames, every, inp = a
+    log = open(os.path.join(cache, "level-%02d.log" % lv), "w")
+    sys.stdout.flush()
+    saved = os.dup(1)
+    os.dup2(log.fileno(), 1)
+    try:
+        return run_level(lv, cache, frames, every, inp)
+    except SystemExit as e:
+        return {"level": lv, "exe_exit": -1, "frames": 0, "timeline_retrace": 0, "timeline_state": 0,
+                "level_frames": 0, "level_from": 0, "dumps": 0, "dumps_match": 0, "error": str(e)}
+    finally:
+        sys.stdout.flush()
+        os.dup2(saved, 1)
+        os.close(saved)
+        log.close()
+
+
+def cmd_verify_levels(args):
+    """verify-levels [--cache DIR] [--levels a,b-c] [--frames N] [--every K] [--expect FILE]
+    [--jobs J]: every level (data/levels.txt) through run_level (J at a time, each one's
+    output in DIR/level-LL.log); fails when a level's numbers are worse than in --expect
+    (default data/verify_levels_expect.txt: `L key VALUE` lines, VALUE as in
+    verify_expect.txt; `* key VALUE` applies to every level).  Prints a table."""
+    cache = os.path.expanduser(opt(args, "--cache", "~/cmp_cache"))
+    frames = opt(args, "--frames", 1900, int)
+    every = opt(args, "--every", 100, int)
+    expect = opt(args, "--expect", os.path.join(PORT, "data/verify_levels_expect.txt"))
+    inp = os.path.abspath(opt(args, "--input", os.path.join(PORT, "data/levels_input.txt")))
+    names = level_names()
+    sel = opt(args, "--levels", None)
+    if sel:
+        levels = []
+        for part in sel.split(","):
+            a, _, b = part.partition("-")
+            levels += list(range(int(a), int(b or a) + 1))
+    else:
+        levels = sorted(names) or list(range(60))
+    jobs = opt(args, "--jobs", 1, int)
+    exp = {}
+    if os.path.exists(expect):
+        for line in open(expect):
+            p = line.split("#")[0].split()
+            if len(p) == 3:
+                exp.setdefault(p[0], []).append((p[1], p[2]))
+    table, bad = [], []
+    os.makedirs(cache, exist_ok=True)
+    print("verify-levels: %d levels, %d at a time (each level's log: %s/level-LL.log)" % (len(levels), jobs, cache))
+    sys.stdout.flush()
+    if jobs > 1:
+        import concurrent.futures
+        with concurrent.futures.ProcessPoolExecutor(jobs) as pool:
+            results = list(pool.map(_level_job, [(lv, cache, frames, every, inp) for lv in levels]))
+    else:
+        results = [_level_job((lv, cache, frames, every, inp)) for lv in levels]
+    for lv, res in zip(levels, results):
+        table.append(res)
+        for k, v in exp.get("*", []) + exp.get(str(lv), []):
+            have = res.get(k)
+            if have is None:
+                bad.append("level %d: %s missing" % (lv, k))
+            elif v.startswith("<="):
+                if have > int(v[2:]):
+                    bad.append("level %d: %s = %s (expected at most %s)" % (lv, k, have, v[2:]))
+            elif v.startswith("="):
+                if have != int(v[1:]):
+                    bad.append("level %d: %s = %s (expected %s)" % (lv, k, have, v[1:]))
+            elif have < int(v):
+                bad.append("level %d: %s = %s (expected at least %s)" % (lv, k, have, v))
+    print("verify-levels: %d levels, %d frames each" % (len(table), frames))
+    print("  lvl name                  exit timeline  in-level  dumps    strict first")
+    for r in table:
+        print("  %3d %-20s %5d %4d/%-4d %4d@%-4d %3d/%-3d %3s/%-3s %s" % (
+            r["level"], names.get(r["level"], "")[:20], r["exe_exit"], r["timeline_state"], r["frames"],
+            r["level_frames"], r["level_from"], r["dumps_match"], r["dumps"], r.get("dumps_strict_ok", "-"),
+            r["dumps"], r.get("first_diff") or "-"))
+    if bad:
+        print("verify-levels: FAILED: " + "; ".join(bad))
+        sys.exit(1)
+    print("verify-levels: OK")
+
+
 def main():
     if len(sys.argv) < 2:
         print(__doc__)
         sys.exit(1)
     cmd, args = sys.argv[1], sys.argv[2:]
     {"emu": cmd_emu, "inject": cmd_inject, "native": cmd_native, "diff": cmd_diff, "frames": cmd_frames,
-     "demos": cmd_demos, "hex": cmd_hex, "run": cmd_run, "calls": cmd_calls, "verify": cmd_verify}[cmd](args)
+     "demos": cmd_demos, "hex": cmd_hex, "run": cmd_run, "calls": cmd_calls, "verify": cmd_verify,
+     "level": cmd_level, "verify-levels": cmd_verify_levels}[cmd](args)
 
 
 if __name__ == "__main__":

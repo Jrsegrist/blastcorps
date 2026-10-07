@@ -158,7 +158,8 @@ typedef struct {
 } Bank;
 
 static int bank_once(Bank *b, uint32_t off, uint32_t size) {
-    if (off == 0 || off + size > b->len || b->done[off]) return 0;
+    /* (no wrap-around: an offset near 4 GB must not pass as off + size <= len) */
+    if (off == 0 || off >= b->len || size > b->len - off || b->done[off]) return 0;
     b->done[off] = 1;
     return 1;
 }
@@ -182,7 +183,7 @@ static void bank_wavetable(Bank *b, uint32_t off) {
             sw32(b->base + book, 2);
             order = rd32(b->base + book);
             npred = rd32(b->base + book + 4);
-            if (order * npred * 8 * 2 + 8 + book <= b->len)
+            if ((uint64_t) order * npred * 8 * 2 + 8 + book <= b->len)
                 sw16(b->base + book + 8, order * npred * 8);
         }
     } else if (bank_once(b, loop, 0xC)) {   /* AL_RAW16_WAVE */
@@ -204,7 +205,7 @@ static void bank_instrument(Bank *b, uint32_t off) {
     if (!bank_once(b, off, 0x10)) return;
     sw16(a + 0xC, 2);     /* bendRange, soundCount */
     n = (uint16_t) rd16(a + 0xE);
-    if (0x10 + n * 4 + off > b->len) return;
+    if ((uint64_t) 0x10 + n * 4 + off > b->len) return;
     sw32(a + 0x10, n);
     for (i = 0; i < n; i++) bank_sound(b, rd32(a + 0x10 + i * 4));
 }
@@ -224,7 +225,7 @@ static void swap_bank(uint32_t base, uint32_t len) {
         sw16(a, 1);       /* instCount; flags, pad bytes */
         sw32(a + 4, 2);   /* sampleRate, percussion */
         ninst = (uint16_t) rd16(a);
-        if (off + 0xC + ninst * 4 > len) continue;
+        if ((uint64_t) off + 0xC + ninst * 4 > len) continue;
         sw32(a + 0xC, ninst);
         if (rd32(a + 8)) bank_instrument(&b, rd32(a + 8));
         for (j = 0; j < ninst; j++)

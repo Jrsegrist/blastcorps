@@ -51,6 +51,10 @@ extern void (*host_exit_hook)(void);
 
 /* install the crash reporter; `describe` is called to add game state */
 void host_install_crash_handler(void (*describe)(void));
+/* debugging: --watch FRAME:ADDR[:N] logs the first N writes to ADDR's 4 KB
+ * page from that frame on (host_watch_frame is called once per frame) */
+int host_watch_set(const char *spec);
+void host_watch_frame(unsigned frame);
 
 /* Run options (headless_main.c parses them; the platform reads them as
  * plat_cfg).  Plain C types only: unsigned/int are 32 bits here. */
@@ -90,6 +94,8 @@ typedef struct HostOpts {
     const char *audio_capture; /* --audio-capture: audio tasks' inputs/outputs (port/tools/audio) */
     unsigned audio_capture_max;
     int audio_off;             /* --no-audio: audio tasks are not run (no output) */
+    unsigned (*pokes)[4];      /* --poke: {frame, address, size, value}: RAM writes when a frame is sent */
+    unsigned n_pokes;
     const struct HostLive *live; /* renderer, window, live input (bc.exe); NULL in bc_headless */
 } HostOpts;
 

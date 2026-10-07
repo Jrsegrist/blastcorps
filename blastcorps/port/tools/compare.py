@@ -369,6 +369,8 @@ def cmd_emu(args):
                             env=env, stdout=log, stderr=subprocess.STDOUT, cwd=ROOT)
     if r != 0:
         die("emulator run failed (%s)" % os.path.join(emudir, "emu.log"))
+    with open(os.path.join(emudir, "rom.sha1"), "w") as f:
+        f.write(rom_sha1(rom) + "\n")
     cmd_inject([emudir])
 
 
@@ -1200,8 +1202,20 @@ def emu_stale(emudir, rom):
     if not os.path.exists(log) or not os.path.exists(os.path.join(emudir, "boot.txt")):
         return True
     t = os.path.getmtime(log)
-    return any(t < os.path.getmtime(p) for p in (rom, os.path.join(HERE, "cmp_spec.py"),
+    # the ROM by content (make nmrom rewrites it every time)
+    sp = os.path.join(emudir, "rom.sha1")
+    if os.path.exists(sp):
+        if open(sp).read().strip() != rom_sha1(rom):
+            return True
+    elif t < os.path.getmtime(rom):
+        return True
+    return any(t < os.path.getmtime(p) for p in (os.path.join(HERE, "cmp_spec.py"),
                                                  os.path.join(ROOT, "tools_port/m64trace/m64trace.py")))
+
+
+def rom_sha1(rom):
+    import hashlib
+    return hashlib.sha1(open(rom, "rb").read()).hexdigest()
 
 
 def run_log_facts(natdir):
@@ -1270,17 +1284,24 @@ def cmd_verify(args):
             if m:
                 res["emu_audio_tasks"], res["emu_audio_lle_identical"] = int(m.group(1)), int(m.group(2))
                 res["emu_cull_tasks_lle"] = int(m.group(4))
+                res["emu_audio_lle_different"] = int(m.group(3))
     print("verify: results")
     for k in sorted(res):
         print("  %-24s %s" % (k, res[k]))
     # expectations: "key min" (at least), "key =value", "key <=value"
     bad = []
     if os.path.exists(expect):
+        section = None   # "frames N" lines start the expectations for N frames
         for line in open(expect):
             p = line.split("#")[0].split()
             if len(p) != 2:
                 continue
             k, v = p
+            if k == "frames":
+                section = int(v)
+                continue
+            if section is not None and section != frames:
+                continue
             have = res.get(k)
             if have is None:
                 bad.append("%s missing" % k)

@@ -422,6 +422,7 @@ static int write_dump(HANDLE f, EXCEPTION_POINTERS *ep, DWORD tid) {
  * short by the end of the process leaves no file behind. */
 static HANDLE g_dump_go, g_dump_done, g_dump_file, g_reporter_thread;
 static volatile LONG g_dump_ok, g_heap_bad;
+static DWORD g_dump_err;
 
 static void set_delete(HANDLE f, BOOL del) {
     FILE_DISPOSITION_INFO d;
@@ -481,7 +482,8 @@ static DWORD WINAPI dumper(void *arg) {
             DeleteFileW(path);
         } else if (g_dump_file != INVALID_HANDLE_VALUE) {
             set_delete(g_dump_file, TRUE);
-            if (write_dump(g_dump_file, g_ep, g_crash_tid)) {
+            if (!write_dump(g_dump_file, g_ep, g_crash_tid)) g_dump_err = GetLastError();
+            else {
                 set_delete(g_dump_file, FALSE);
                 g_dump_ok = 1;
             }
@@ -582,10 +584,11 @@ static void report(void) {
     else if (g_dump_ok)
         out("minidump: %s\n", g_dump_name);
     else
-        out("minidump: not written (%s; %s)\n", p_MiniDumpWriteDump == NULL ? "no dbghelp.dll"
-                                                : g_dump_file == INVALID_HANDLE_VALUE ? "can't create the file"
-                                                                                      : "MiniDumpWriteDump failed",
-            g_dump_name);
+        out("minidump: not written (%s, error 0x%lX; %s)\n",
+            p_MiniDumpWriteDump == NULL ? "no dbghelp.dll"
+            : g_dump_file == INVALID_HANDLE_VALUE ? "can't create the file"
+                                                  : "MiniDumpWriteDump failed",
+            g_dump_err, g_dump_name);
     dump_ok = g_dump_ok;
     strcpy(dumpname, g_dump_name);
     if (host_gui && !host_no_msgbox) {

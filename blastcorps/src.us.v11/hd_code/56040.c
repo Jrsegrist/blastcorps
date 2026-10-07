@@ -2110,8 +2110,17 @@ s32 func_8029DA90(s32 val, s32 x, s32 z, s32 n, s32 *table, Unk8029DA90Regs *r) 
             continue;
         }
         range = (u16 *) (tri + n * 6);
+#ifdef PORT_HOST
+        /* the word after the triangles is a host-order s32 (5CB60.c
+         * func_802A3F80 stores the data's BE word as one): (lo, hi) are its
+         * high and low halves, as the N64 reads them (level 13's mission
+         * intro area test read them swapped) */
+        lo = (u32) * (s32 *) range >> 16;
+        hi = (u32) * (s32 *) range & 0xFFFF;
+#else
         lo = range[0];
         hi = range[1];
+#endif
         r->s1 = lo;
         r->s3 = hi;
         if (hi < lo) {

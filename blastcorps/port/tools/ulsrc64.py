@@ -102,7 +102,11 @@ def main():
     ul, outinc, outsrc = sys.argv[1:4]
     os.makedirs(outsrc, exist_ok=True)
     total = 0
-    for path in sys.argv[4:]:
+    paths = []
+    for a in sys.argv[4:]:
+        # @FILE: the files listed in FILE, one per line (the CMake build)
+        paths += [l.strip() for l in open(a[1:]) if l.strip()] if a.startswith("@") else [a]
+    for path in paths:
         text = open(path, newline="").read()
         m = re.search(r'^#include "(src/[\w/]+\.c)"\s*$', text, re.M)
         if m and len(text.strip().split("\n")) <= 3:
@@ -118,7 +122,7 @@ def main():
             out, k = rewrite(text, os.path.basename(path).replace("ul_", "", 1))
         total += k
         open(os.path.join(outsrc, os.path.basename(path)), "w", newline="").write(out)
-    print("ulsrc64: %d function-pointer uses rewritten in %d files" % (total, len(sys.argv) - 4))
+    print("ulsrc64: %d function-pointer uses rewritten in %d files" % (total, len(paths)))
 
 
 if __name__ == "__main__":

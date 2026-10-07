@@ -64,7 +64,7 @@ def main():
         for d, _, fs in os.walk(os.path.join(ul, top)):
             for fn in fs:
                 if fn.endswith(".h"):
-                    rel = os.path.relpath(os.path.join(d, fn), ul)
+                    rel = os.path.relpath(os.path.join(d, fn), ul).replace(os.sep, "/")
                     if rel in edits:
                         continue
                     dst = os.path.join(outdir, rel)

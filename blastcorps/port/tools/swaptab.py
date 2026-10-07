@@ -25,7 +25,8 @@ disagrees with its declaration, or at two widths: the exception list).
   4. --static FILE ADDRS: fixed-address and element accesses of the native
      game code (port/tools/mixscan.py --widths), for bytes 1-2 leave untyped.
 
-usage: swaptab.py TYPEMAP WIDTHS OUT.c [REPORT] [--static FILE ADDRS]   (project root)
+usage: swaptab.py TYPEMAP WIDTHS OUT.c [REPORT] [--static FILE ADDRS] [--maps HD.map FE.map]
+       (from the project root, which has build_nm/*.map, unless --maps names them)
 """
 import os
 import collections
@@ -106,6 +107,13 @@ def load_static(path):
 def main():
     args = sys.argv[1:]
     static_path = addrs_path = None
+    if "--maps" in args:
+        # the NM link maps from elsewhere (the MSVC build's inputs folder)
+        i = args.index("--maps")
+        for region, path in (("hd", args[i + 1]), ("fe", args[i + 2])):
+            lo, hi, _, sec = IMAGES[region]
+            IMAGES[region] = (lo, hi, path, sec)
+        del args[i:i + 3]
     if "--static" in args:
         i = args.index("--static")
         static_path, addrs_path = args[i + 1], args[i + 2]

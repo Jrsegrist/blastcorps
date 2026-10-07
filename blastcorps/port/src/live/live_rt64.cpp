@@ -31,6 +31,7 @@
  *     --fullscreen / --windowed, --vsync / --no-vsync
  *     --saves DIR       keep the EEPROM and Controller Pak files in DIR
  *     --no-saves        keep no save files (the EEPROM starts blank, no pak)
+ *     --no-pak          no Controller Pak (bc.ini controller_pak = 0)
  *     --config FILE     settings file (default bc.ini next to the exe)
  *     --no-config       no settings file: built-in defaults, no saves unless
  *                       --eeprom/--mpk/--saves (tests and comparisons use this,
@@ -58,6 +59,7 @@
 #include <windows.h>
 #include <shellapi.h>
 #include <shlobj.h>
+#include <io.h>
 #include <algorithm>
 #include <atomic>
 #include <cmath>
@@ -725,20 +727,12 @@ void liveVi(const HostViRegs *r, unsigned viCount, unsigned long long when, unsi
         if (last != frames) saveFrame(*r, frames), last = frames;
     }
 
-    const double before = g_opt.paceLog != nullptr ? secondsSince(g_tStart) : 0.0;
-    g_app->updateScreen();
-    if (g_opt.paceLog != nullptr) {
-        const double after = secondsSince(g_tStart);
-        const double due = g_t0.QuadPart == 0 ? 0.0
-            : double(g_t0.QuadPart - g_tStart.QuadPart) / double(g_freq.QuadPart) + double(when - g_when0) / 46875000.0;
-        g_pace.push_back({before, due, after - before, frames});
-    }
-    pumpEvents();
-
-    /* real time: retrace N of virtual time at t0 + N/60 s.  The game logic
-     * runs on the virtual clock either way; this only decides when each
-     * retrace's picture is handed to RT64 (vsync then shows it at the
-     * display's next refresh). */
+    /* real time: retrace N of virtual time is shown at t0 + N/60 s.  The game
+     * logic runs on the virtual clock either way; this only decides when each
+     * retrace's picture goes to RT64 (and vsync then shows it at the
+     * display's next refresh).  Waiting before handing it over (not after)
+     * keeps the hand-over times regular: the game's and RT64's own work for
+     * the next retrace happens after it, inside the wait's slack. */
     if (g_opt.pace) {
         LARGE_INTEGER now;
         QueryPerformanceCounter(&now);
@@ -755,12 +749,21 @@ void liveVi(const HostViRegs *r, unsigned viCount, unsigned long long when, unsi
         } else {
             while (t < due) {
                 const double left = due - t;
-                if (left > 0.002) Sleep(DWORD((left - 0.001) * 1000.0));
+                if (left > 0.002) Sleep(DWORD((left - 0.0015) * 1000.0));
                 QueryPerformanceCounter(&now);
                 t = double(now.QuadPart - g_t0.QuadPart) / double(g_freq.QuadPart);
             }
         }
     }
+    const double before = g_opt.paceLog != nullptr ? secondsSince(g_tStart) : 0.0;
+    g_app->updateScreen();
+    if (g_opt.paceLog != nullptr) {
+        const double after = secondsSince(g_tStart);
+        const double due = g_t0.QuadPart == 0 ? 0.0
+            : double(g_t0.QuadPart - g_tStart.QuadPart) / double(g_freq.QuadPart) + double(when - g_when0) / 46875000.0;
+        g_pace.push_back({before, due, after - before, frames});
+    }
+    pumpEvents();
 }
 
 int liveInput(unsigned short *button, signed char *x, signed char *y) {
@@ -800,6 +803,8 @@ int extraArg(int argc, char **argv, int *i, HostOpts *o) {
         g_cfg.saves = next();
         o->eeprom_path = (g_eepromPath = live::absPath(g_cfg, g_cfg.saves) + "\\blastcorps.eep").c_str();
         o->mpk_path = g_cfg.pak ? (g_mpkPath = live::absPath(g_cfg, g_cfg.saves) + "\\blastcorps.mpk").c_str() : nullptr;
+    } else if (!strcmp(a, "--no-pak")) {
+        o->mpk_path = nullptr;
     } else if (!strcmp(a, "--no-saves")) {
         o->eeprom_path = nullptr;
         o->mpk_path = nullptr;
@@ -869,6 +874,7 @@ void prestart(HostOpts *o) {
         host_message(msg.c_str(), 0);
     }
 
+    timeBeginPeriod(1);   /* 1 ms Sleep granularity for the pacing */
     SDL_SetMainReady();
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_EVENTS) != 0)
         host_fatal("Can't start SDL (video, controllers): %s", SDL_GetError());
@@ -966,7 +972,9 @@ void setupLog(const std::string &dir) {
     if (f != nullptr) {
         setvbuf(stderr, nullptr, _IONBF, 0);
         host_log_path = path.c_str();
-        _wfreopen(live::wide(path).c_str(), L"a", stdout);
+        /* stdout (RT64's messages) into the same open file */
+        _dup2(_fileno(stderr), _fileno(stdout));
+        setvbuf(stdout, nullptr, _IONBF, 0);
     }
 }
 

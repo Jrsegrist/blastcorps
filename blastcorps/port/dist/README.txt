@@ -51,7 +51,7 @@ Settings: bc.ini
 ----------------
 bc.ini is created next to bc.exe on the first start, with every setting explained in
 it. Edit it with Notepad while the game is closed. It holds:
-  [game]       rom (the ROM's path), saves (the saves folder), controller_pak
+  [game]       rom (the ROM's path), saves (the saves folder), controller_pak (0/1)
   [video]      api (d3d12 or vulkan), scale (window size 320x240 times this),
                fullscreen, vsync
   [audio]      volume, mute
@@ -67,15 +67,16 @@ Command-line options (for shortcuts or a .bat file) override bc.ini, for example
   bc.exe "D:\ROMs\Blast Corps (USA) (Rev 1).z64"   use this ROM (not remembered)
   bc.exe --api vulkan          bc.exe --fullscreen      bc.exe --no-vsync
   bc.exe --mute                bc.exe --volume 50       bc.exe --scale 4
-  bc.exe --saves D:\BCsaves    bc.exe --config other.ini
+  bc.exe --saves D:\BCsaves    bc.exe --config other.ini   bc.exe --no-pak
 
 
 Saves
 -----
 The game saves to its EEPROM like the cartridge does: progress, times and medals are
-kept in saves\blastcorps.eep next to bc.exe. A Controller Pak is plugged in too
-(saves\blastcorps.mpk), for the game's Controller Pak options. Change the folder with
-"saves =" in bc.ini; "controller_pak = 0" unplugs the pak.
+kept in saves\blastcorps.eep next to bc.exe. Change the folder with "saves =" in
+bc.ini. "controller_pak = 1" plugs a Controller Pak into the controller
+(saves\blastcorps.mpk); as on the N64, the game then keeps its progress on the pak
+and leaves the EEPROM alone, so switch it only if you want to play from a pak.
 
 Both files use the same formats as the mupen64plus emulator (a 512-byte .eep; a
 128 KB .mpk with four paks), so saves can be copied between the two: rename the
@@ -86,11 +87,14 @@ Frame rate and smoothness
 -------------------------
 The game runs at its original speed on any monitor: its logic is tied to a virtual
 60 Hz video clock, not to your display. It draws a new picture 20-30 times a second
-like on the N64; there is no frame interpolation or higher frame rate (yet). With
-vsync on (the default) each picture is shown at the display's next refresh, without
-tearing. On 60 Hz displays that is one refresh per N64 field; on 120/144 Hz and
-other high-refresh displays the speed is the same, and pictures stay up for 2 or 3
-refreshes in turn (at 144 Hz), which is barely visible.
+like on the N64; there is no frame interpolation or higher frame rate (yet). Each
+1/60 s field is handed to the display on a steady 60 Hz timer, and with vsync on
+(the default) shown at the display's next refresh, without tearing. On 60 Hz
+displays that is one refresh per N64 field. On 120/144 Hz and other high-refresh
+displays the speed is the same; a field then stays up for a whole number of
+refreshes (2 or 3 in turn at 144 Hz), a slight unevenness the eye barely sees.
+When a level starts, the first second can stutter briefly while the graphics
+driver prepares new shaders; the game then catches up and runs smoothly.
 
 
 If something goes wrong

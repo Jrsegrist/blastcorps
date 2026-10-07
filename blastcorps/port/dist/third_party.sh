@@ -54,17 +54,22 @@ trap 'rm -rf "$TMP"' EXIT
 mit "Copyright (c) 2013-2025 Niels Lohmann <https://nlohmann.me>" > "$TMP/json.txt"
 mit "Copyright (C) 2016-2022 Giovanni Dicanio" > "$TMP/utf8conv.txt"
 # miniz: the licence comment at the top of miniz.c
-awk 'NR==1,/\*\//' "$C/miniz/miniz.c" | sed -e 's/^ \* \{0,1\}//; s/^\/\*\*\{0,1\}//; s/^ \*\///' > "$TMP/miniz.txt"
+awk 'NR==1,/\*\//' "$C/miniz/miniz.c" | sed -n '/Copyright/,$p' | sed -e 's/^ \* \{0,1\}//; s/^ *\*\**\/$//' > "$TMP/miniz.txt"
 # mingw-w64 runtime (CRT, winpthreads): Debian's copyright file, the parts linked
 CR=/usr/share/doc/mingw-w64-common/copyright
 awk '/^Files: \*$/{p=1} p&&/^Files: mingw-w64-crt\/cfguard/{exit} p' "$CR" > "$TMP/mingw_crt.txt"
 awk '/^Files: mingw-w64-libraries\/winpthreads\/\*/{p=1} p&&/^Files: mingw-w64-libraries\/winpthreads\/tests_pthread/{exit} p' \
     "$CR" > "$TMP/winpthreads.txt"
+# ... and the texts of the licences those stanzas name (stand-alone "License:" paragraphs)
+for l in expat BSD-3-clause; do
+    awk -v L="License: $l" 'BEGIN{RS=""} $0 ~ "^" L "\n" {print; print ""; exit}' "$CR" >> "$TMP/winpthreads.txt"
+done
+grep -q "Permission is hereby granted" "$TMP/winpthreads.txt" || { echo "third_party.sh: no expat text" >&2; exit 1; }
 # GCC runtime (libgcc, libstdc++, linked statically): the GCC Runtime Library Exception
 GC=/usr/share/doc/gcc-mingw-w64-base/copyright
-awk '/^GCC RUNTIME LIBRARY EXCEPTION/{p=1} p&&/^-+$/&&NR>1&&seen{exit} p{print; if(/^-+$/)seen=1}' "$GC" \
-    > "$TMP/gccrt.txt"
-[ -s "$TMP/gccrt.txt" ] || { echo "third_party.sh: no GCC runtime exception text in $GC" >&2; exit 1; }
+awk '/^GCC RUNTIME LIBRARY EXCEPTION/{p=1} p{print} p&&/requirements of the license of GCC\./{exit}' "$GC" > "$TMP/gccrt.txt"
+grep -q "requirements of the license of GCC" "$TMP/gccrt.txt" ||
+    { echo "third_party.sh: no GCC runtime exception text in $GC" >&2; exit 1; }
 for f in json utf8conv miniz mingw_crt winpthreads; do
     [ -s "$TMP/$f.txt" ] || { echo "third_party.sh: empty $f licence" >&2; exit 1; }
 done

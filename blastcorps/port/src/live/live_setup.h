@@ -33,7 +33,7 @@ struct Config {
     std::string dir;                /* the exe's folder, with a trailing backslash */
     std::string rom;                /* as written in the file */
     std::string saves;              /* folder ("" = don't keep saves) */
-    bool pak = true;
+    bool pak = false;
     bool vulkan = false;
     unsigned scale = 3;
     bool fullscreen = false;

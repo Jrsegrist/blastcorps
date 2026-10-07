@@ -286,6 +286,64 @@ what the renderer writes (colour and depth images: framebuffers, Z, the
 shadow and other render-to-texture images), the staged ucode, the graphics
 data gfx_fix.c converted, and pointers to the exes' own code/data.
 
+## Player setup and package (stage 6)
+
+bc.exe is a Windows GUI program (`-mwindows`): double-clicking it opens no
+console. Its log goes to stderr when the parent gave it one (WSL, a
+redirect, a script: everything above works unchanged), otherwise to
+`bc.log` next to the exe (or `%TEMP%`). With `host_gui` set, `host_fatal`,
+the crash reporter, C++ `terminate` and bad options also show a message box
+(`BC_NO_MSGBOX=1`, passed with `WSLENV`, only logs them: automated tests).
+
+`src/live/live_setup.cpp`:
+- **ROM.** A ROM argument is used as given; otherwise `rom =` from bc.ini;
+  otherwise (or if that one fails the check) a Windows open-file dialog
+  (GetOpenFileNameW), and the choice is written back to bc.ini.  Every ROM is
+  read as .z64, .v64 (byte pairs swapped) or .n64 (little-endian words;
+  `rom_normalise` in rdram.c, which `rdram_load` also uses) and must have the
+  SHA-1 of Blast Corps (USA) (Rev 1); US v1.0, Japan, Europe, other games and
+  modified dumps get their own message.  `--no-rom-check` skips the check
+  (the NON_MATCHING test ROM).
+- **bc.ini** next to the exe (`--config FILE` for another), created on the
+  first start from the commented defaults (the text in live_setup.cpp is
+  the defaults): `[game]` rom, saves, controller_pak; `[video]` api, scale,
+  fullscreen, vsync; `[audio]` volume, mute; `[keyboard]`/`[controller]` one
+  line per N64 button (SDL key names / SDL game-controller names, axes as
+  `rightx+`), the analog stick's source and dead zone, quit.  Lines it
+  doesn't understand are listed in one warning box; their defaults stay.
+  Command-line options override it.
+- **Saves**: `saves/blastcorps.eep` (and with `controller_pak = 1`
+  `saves/blastcorps.mpk`) next to the exe; `--saves DIR`, `--no-saves`,
+  `--no-pak`, `--eeprom`/`--mpk` override.  With a pak the game keeps its
+  progress on the pak and never touches the EEPROM (checked: level completion
+  with a pak = 0 EEPROM accesses), so the default is no pak.
+- **`--no-config`**: no bc.ini, the built-in defaults, no save files unless
+  `--eeprom`/`--mpk`/`--saves`: bc.exe then runs exactly like bc_headless
+  with the same options.  Tests and comparisons should pass it (with a ROM
+  argument), so a developer's bc.ini can't change what they measure.
+- Keys: F1 puts the bindings in the window title, Alt+Enter / F11 switch
+  fullscreen (desktop resolution; RT64 keeps 4:3), the window is resizable.
+- Pacing: each retrace's picture is handed to RT64 when its virtual time is
+  due (60 per second of real time, QueryPerformanceCounter, 1 ms timer
+  resolution), *before* the game works on the next retrace, so the hand-overs
+  are regular; vsync (`vsync = 1`, plume's swap chain) then shows it at the
+  next refresh.  `--pace-log FILE` writes the hand-over and present times
+  and logs a summary at exit.  Measured on this PC (60 Hz display, AMD
+  integrated GPU, 1500 retraces of attract mode): 60.000 retraces/s; hand-over
+  interval sd 0.6-2 ms (was 7-8 ms when the wait came after the hand-over),
+  97-99.7 % within 2 ms of 16.67 ms; the misses are the first second of demo
+  0 (level start: up to 50-77 ms behind with D3D12 while shaders compile,
+  ~14 ms with Vulkan), then a catch-up.  Same per-frame trace with vsync
+  on/off, windowed/fullscreen, D3D12/Vulkan.
+- `make -C port dist`: `build/dist/BlastCorps-port-<hash>/` and its zip:
+  bc.exe (debug info stripped), the three DLLs, `README.txt` (from
+  `dist/README.txt`: running, controls, bc.ini, saves, known issues) and
+  `THIRD_PARTY_LICENSES.txt` (`dist/third_party.sh` gathers every licence
+  from the RT64 tree, DirectX-Headers, the DXC release and the mingw-w64/GCC
+  runtime copyright files; it fails if one is missing).  No ROM data.  The
+  exe's icon is drawn by `tools/make_icon.py`; `res/bc.rc` adds the version
+  resource (git hash) and a manifest.
+
 ## Audio (stage 5): `src/audio/`
 
 The game's audio thread (22EE0.c, Rare's audiomgr) builds a command list

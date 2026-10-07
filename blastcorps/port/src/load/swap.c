@@ -9,6 +9,18 @@
  * port_n64_byte): (offset in the unit << 4) | width, 0 = never recorded. */
 static uint8_t unit_map[0x800000];
 
+/* the front end's data image is put back from a snapshot at every reload
+ * (plat_core.c): its units with it */
+void *port_unit_save(uint32_t addr, uint32_t n) {
+    void *s = malloc(n);
+    if (s != NULL) memcpy(s, unit_map + (addr - 0x80000000u), n);
+    return s;
+}
+
+void port_unit_restore(uint32_t addr, const void *s, uint32_t n) {
+    if (s != NULL) memcpy(unit_map + (addr - 0x80000000u), s, n);
+}
+
 void port_unit_mark(void *p, uint32_t n, int width) {
     uint32_t a = (uint32_t) (uintptr_t) p, i;
     int k;
@@ -35,15 +47,23 @@ void port_mark_gfx_task(uint32_t dl) {
         uint8_t *p = (uint8_t *) (uintptr_t) (0x80000000u + pc);
         memcpy(&w0, p, 4);
         memcpy(&w1, p + 4, 4);
-        port_unit_mark(p, 2, 4);
+        /* (lists in the data images' raw areas are ROM bytes: bc_headless
+         * never converts them; the commands below are read as bc.exe's
+         * renderer would after converting) */
+        if (port_gfx_in_raw(pc, &w0)) {
+            port_gfx_in_raw(pc + 4, &w1);
+        } else {
+            port_unit_mark(p, 2, 4);
+        }
         pc += 8;
         switch (w0 >> 24) {
             case 0x01:   /* G_MTX */
-                port_unit_mark((void *) (uintptr_t) (0x80000000u + MSEG(w1)), 16, 4);
+                if (!port_gfx_in_raw(MSEG(w1), NULL))
+                    port_unit_mark((void *) (uintptr_t) (0x80000000u + MSEG(w1)), 16, 4);
                 break;
             case 0x04: { /* G_VTX */
                 uint32_t a = MSEG(w1), n = (w0 & 0xFFFF) / 16, i;
-                for (i = 0; i < n && a + 16 <= 0x800000u; i++, a += 16) {
+                for (i = 0; i < n && a + 16 <= 0x800000u && !port_gfx_in_raw(a, NULL); i++, a += 16) {
                     port_unit_mark((void *) (uintptr_t) (0x80000000u + a), 6, 2);
                     port_unit_mark((void *) (uintptr_t) (0x80000000u + a + 12), 4, 1);
                 }
@@ -87,6 +107,24 @@ uint8_t port_n64_byte(const void *p) {
     return b[w - 1 - 2 * k];
 }
 
+/* Store the byte the N64 would hold at P (the inverse of port_n64_byte):
+ * where P lies in a recorded host-order unit, the byte goes to its host
+ * position in that unit. */
+void port_n64_store_byte(void *p, uint8_t v) {
+    uint32_t a = (uint32_t) (uintptr_t) p;
+    uint8_t *b = p;
+    int m, w, k;
+    if (a < 0x80000000u || a >= 0x80800000u) {
+        *b = v;
+        return;
+    }
+    m = unit_map[a - 0x80000000u];
+    w = m & 15;
+    k = m >> 4;
+    if (w < 2) *b = v;
+    else b[w - 1 - 2 * k] = v;
+}
+
 /* N Vtx records the game builds in fresh heap memory without writing every
  * field (42240.c's HUD quads write ob and tc only): the N64 keeps whatever
  * the heap held in the rest, and the RSP reads the colour bytes.  Give the
@@ -105,6 +143,10 @@ void port_vtx_stale(void *v, uint32_t n) {
         memcpy(p + 12, b + 12, 4);
         port_unit_mark(p, 6, 2);
         port_unit_mark(p + 12, 4, 1);
+        /* the flag halfword: nobody reads it (F3D ignores it), and what the
+         * heap held there is only as good as the units recorded for it (game
+         * C's own stores aren't): tell the comparator */
+        port_garbage(p + 6, 2);
     }
 }
 

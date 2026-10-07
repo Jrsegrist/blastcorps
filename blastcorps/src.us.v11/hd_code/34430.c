@@ -109,11 +109,34 @@ void func_80278BF0(Gfx *src, Gfx *end, Gfx **dstp) {
     gSPEndDisplayList(dst++);
 }
 
+#ifdef PORT_HOST
+/* func_80278E3C passes the heap pointer's value, not its address, to the
+ * round-up helper (an original slip): it "rounds" whatever s32 the heap holds
+ * there.  On the N64 that word is big-endian bytes of the previous user (e.g.
+ * a text vertex's x/y); do the same arithmetic on those bytes (port_n64_byte)
+ * and put the result back where the N64 bytes live in the host layout. */
+u8 port_n64_byte(const void *p);
+void port_n64_store_byte(void *p, u8 v);
+
+static void port_round_stale(u8 *p, s32 align) {
+    s32 v = (port_n64_byte(p) << 24) | (port_n64_byte(p + 1) << 16) | (port_n64_byte(p + 2) << 8) | port_n64_byte(p + 3);
+    s32 k;
+
+    func_80257490(&v, align);
+    for (k = 0; k < 4; k++) {
+        port_n64_store_byte(p + k, (u8) (v >> (24 - 8 * k)));
+    }
+}
+#define ROUND_HEAP_WORD(p, align) port_round_stale((u8 *) (p), align)
+#else
+#define ROUND_HEAP_WORD(p, align) func_80257490((s32 *) (p), align)
+#endif
+
 /* Allocates the buffers and resets the state */
 void func_80278E3C(void) {
-    func_80257490((s32 *) D_80358070, 0x40);
+    ROUND_HEAP_WORD(D_80358070, 0x40);
     D_8036D170 = D_80358070;
-    func_80257490((s32 *) (D_80358070 = D_80358070 + 0x5460), 8);
+    ROUND_HEAP_WORD(D_80358070 = D_80358070 + 0x5460, 8);
     D_8036D178 = 0;
     D_8036CC68 = 0;
     D_8036CC6C = 0;

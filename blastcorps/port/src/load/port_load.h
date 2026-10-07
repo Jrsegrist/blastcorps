@@ -38,7 +38,10 @@ void port_bswap_n(void *p, uint32_t n, int width);
  * before.  Every swap records the unit it swapped (port_unit_mark, width 1 =
  * kept big-endian); port_n64_byte gives the byte the N64 would hold at P. */
 void port_unit_mark(void *p, uint32_t n, int width);
+void *port_unit_save(uint32_t addr, uint32_t n);
+void port_unit_restore(uint32_t addr, const void *saved, uint32_t n);
 uint8_t port_n64_byte(const void *p);
+void port_n64_store_byte(void *p, uint8_t v);  /* its inverse */
 /* ... and the units of a graphics task's display lists, matrices and
  * vertices (dl: physical address), from the platform's osSpTaskStartGo */
 void port_mark_gfx_task(uint32_t dl);
@@ -73,6 +76,7 @@ void port_on_dma(uint32_t dst, uint32_t rom, uint32_t len);
  * converts whatever those areas hold besides commands to the native layout,
  * once per load.  Only the windowed build calls it. */
 void port_gfx_word_area(uint32_t addr, uint32_t len);
+int port_gfx_in_raw(uint32_t addr, uint32_t *word_as_loaded);
 /* the same for parts of the data images left as ROM bytes (swap.c) */
 void port_gfx_raw_area(uint32_t addr, uint32_t len);
 /* every load/DMA: areas overlapping the new data are forgotten */

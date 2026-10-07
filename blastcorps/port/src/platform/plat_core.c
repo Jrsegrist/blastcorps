@@ -27,16 +27,21 @@ extern void func_802447C0(void);
 #define FE_DATA_START 0x80208040u
 #define FE_END 0x8021ED00u
 static u8 *g_fe_snap;
+static void *g_fe_units;   /* their units for the stale-byte emulation (load/swap.c) */
+void *port_unit_save(unsigned int addr, unsigned int n);
+void port_unit_restore(unsigned int addr, const void *saved, unsigned int n);
 
 void plat_fe_snapshot(void) {
     u32 n = FE_END - FE_DATA_START;
     g_fe_snap = host_realloc(NULL, n);
     __builtin_memcpy(g_fe_snap, (void *) FE_DATA_START, n);
+    g_fe_units = port_unit_save(FE_DATA_START, n);
 }
 
 void port_fe_loaded(void) {
     plat_stats.fe_reloads++;
     __builtin_memcpy((void *) FE_DATA_START, g_fe_snap, FE_END - FE_DATA_START);
+    port_unit_restore(FE_DATA_START, g_fe_units, FE_END - FE_DATA_START);
     if (!plat_cfg.quiet)
         host_log("fe: front end reloaded (#%u) at frame %u, vi %u\n", (unsigned) plat_stats.fe_reloads,
                  (unsigned) plat_stats.frames, (unsigned) plat_vi_count);
@@ -103,6 +108,7 @@ void plat_on_frame(void) {
     for (i = 0; i < plat_cfg.n_dump_frames; i++)
         if (plat_cfg.dump_frames[i] == f) dump_rdram(f);
     if (plat_cfg.dump_every && f % plat_cfg.dump_every == 0) dump_rdram(f);
+    host_watch_frame(f);   /* --watch (debugging, plat_host.c) */
     for (i = 0; i < plat_cfg.n_pokes; i++) {
         const unsigned *p = plat_cfg.pokes[i];
         if (p[0] != f) continue;

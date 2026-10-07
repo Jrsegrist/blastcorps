@@ -36,6 +36,7 @@ void *host_fopen(const char *path, const char *mode);
 /* per-frame trace file (no-op until opened) */
 int host_trace_open(const char *path);
 void host_trace(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
+void host_trace_flush_raw(void);   /* crash.c: flush it without taking the C runtime's lock */
 
 /* whole-file helpers: read returns a malloc'd buffer (NULL if missing) */
 void *host_read_file(const char *path, unsigned *size);
@@ -49,8 +50,30 @@ void host_set_fpu_mode(void);
 void host_exit(int code) __attribute__((noreturn));
 extern void (*host_exit_hook)(void);
 
-/* install the crash reporter; `describe` is called to add game state */
-void host_install_crash_handler(void (*describe)(void));
+/* Crash reporting (crash.c).  host_crash_init runs first in main (both
+ * exes): it reads --no-msgbox and --crash-dir DIR from the command line (and
+ * BC_NO_MSGBOX from the environment) and installs the handlers.  A crash
+ * writes a report (exception, module + RVA, registers, backtrace with names,
+ * game state) to stderr and bc-crash-YYYYMMDD-HHMMSS.txt, a minidump
+ * bc-crash-YYYYMMDD-HHMMSS.dmp next to it (in the crash folder: --crash-dir,
+ * bc.exe: bc.log's folder, bc_headless: the current folder), shows a message
+ * box (bc.exe, unless --no-msgbox) and exits with code 4. */
+extern int host_no_msgbox;   /* --no-msgbox: no dialog of any kind; errors are only logged */
+#define HOST_CRASH_CODE 0xE0424301u   /* exception code of host_crash_now's reports */
+void host_crash_init(int argc, char **argv, const char *exe_kind, const char *version);
+void host_crash_set_dir(const char *dir);   /* UTF-8; NULL/"" = the current folder */
+/* `describe` adds the game state to a report (writes one line into buf; no
+ * stdio or heap); `after` (may be NULL) runs once the report and dump are out */
+void host_crash_set_describe(void (*describe)(char *buf, unsigned size), void (*after)(void));
+void host_crash_rearm(void);                /* re-install the filter (after RT64 starts) */
+void host_crash_now(const char *why) __attribute__((noreturn));   /* report a crash from here */
+int host_snprintf(char *buf, unsigned size, const char *fmt, ...) __attribute__((format(printf, 3, 4)));
+/* --crash-test KIND[:FRAME] (testing the reporter): av, div, stack, thread,
+ * abort, fatal, box, cxx (bc.exe: an uncaught C++ exception) at game frame
+ * FRAME (default 1); host_crash_test_frame is called once per frame */
+int host_crash_test_set(const char *spec);
+void host_crash_test_frame(unsigned frame);
+extern void (*host_crash_test_cxx)(void);
 /* debugging: --watch FRAME:ADDR[:N] logs the first N writes to ADDR's 4 KB
  * page from that frame on (host_watch_frame is called once per frame) */
 int host_watch_set(const char *spec);

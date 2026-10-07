@@ -100,7 +100,10 @@ driver prepares new shaders; the game then catches up and runs smoothly.
 If something goes wrong
 -----------------------
 Errors are shown in a message box. The log of the last run is in bc.log next to
-bc.exe; please include it in a report.
+bc.exe; please include it in a report. If the game crashes, it also writes
+bc-crash-<date>-<time>.txt (what happened) and a .dmp file of the same name (part
+of the program's memory, for debugging; it can include file paths and your Windows
+user name) next to bc.log; please include both. Both can be deleted afterwards.
 - "The renderer could not start": try the other graphics API (api = vulkan in
   bc.ini, or d3d12), and update the graphics driver.
 - A missing SDL2.dll, dxcompiler.dll or dxil.dll: keep all files of this folder

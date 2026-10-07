@@ -157,7 +157,7 @@ HL_UL_LE := ul_xprintf ul_xldtob ul_sinf ul_cosf
 # platform files that see the game's <ultra64.h>
 HL_PLAT := os_thread os_time os_hw os_si input plat_core save pif
 # host-side platform files (<windows.h>, the C runtime)
-HL_HOST := plat_host headless_main
+HL_HOST := plat_host headless_main crash
 # the load layer (byte order, port_on_dma) lives in src/load/; without it,
 # port_on_dma is the identity stub
 HL_LOAD := $(basename $(notdir $(wildcard src/load/*.c)))

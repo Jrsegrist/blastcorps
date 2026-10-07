@@ -43,6 +43,12 @@
  *                        emulator): e.g. pick the level a run loads
  *     --watch F:ADDR[:N] debugging: log the first N (20) writes to ADDR's 4 KB
  *                        page from frame F on (eip and stack code pointers)
+ *     --no-msgbox        never show a dialog (bc.exe: errors, crashes, RT64 and
+ *                        SDL message boxes are only logged); for automated runs
+ *     --crash-dir DIR    where a crash's bc-crash-*.dmp/.txt go (default: the
+ *                        current folder; bc.exe: bc.log's folder)
+ *     --crash-test KIND[:F]  crash on purpose at frame F (testing the crash
+ *                        report): av, div, stack, thread, abort, fatal, box, cxx
  *     -v / -q            verbose / quiet */
 #include <stdarg.h>
 #include <stdio.h>
@@ -68,7 +74,8 @@ static void usage(const char *bad) {
                     "       [--eeprom FILE] [--no-eeprom] [--gfx-cycles N] [--small-gfx-cycles N]\n"
                     "       [--aud-cycles N] [--gettime-cost N] [--boot-count N] [--cmdline STR]\n"
                     "       [--mpk FILE] [--print] [--wav FILE] [--wav-all] [--no-audio] [--audio-capture FILE[:N]]\n"
-                    "       [-v] [-q]\n");
+                    "       [--poke F:ADDR:SIZE:VALUE,..] [--watch F:ADDR[:N]] [--no-msgbox] [--crash-dir DIR]\n"
+                    "       [--crash-test KIND[:F]] [-v] [-q]\n");
     exit(1);
 }
 
@@ -148,7 +155,12 @@ int host_main(int argc, char **argv, int (*extra)(int argc, char **argv, int *i,
         else if (!strcmp(a, "--wav")) o.wav_path = ARG();
         else if (!strcmp(a, "--wav-all")) o.wav_all = 1;
         else if (!strcmp(a, "--no-audio")) o.audio_off = 1;
-        else if (!strcmp(a, "--watch")) {
+        else if (!strcmp(a, "--no-msgbox")) host_no_msgbox = 1;   /* (read first by host_crash_init) */
+        else if (!strcmp(a, "--crash-dir")) host_crash_set_dir(ARG());
+        else if (!strcmp(a, "--crash-test")) {
+            const char *s = ARG();
+            if (host_crash_test_set(s)) usage(s);
+        } else if (!strcmp(a, "--watch")) {
             const char *s = ARG();
             if (host_watch_set(s)) usage(s);
         } else if (!strcmp(a, "--poke")) {
@@ -196,6 +208,7 @@ int host_main(int argc, char **argv, int (*extra)(int argc, char **argv, int *i,
 
 #ifndef PORT_LIVE
 int main(int argc, char **argv) {
+    host_crash_init(argc, argv, "bc_headless", NULL);
     return host_main(argc, argv, NULL, NULL);
 }
 #endif

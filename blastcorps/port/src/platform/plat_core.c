@@ -109,6 +109,7 @@ void plat_on_frame(void) {
         if (plat_cfg.dump_frames[i] == f) dump_rdram(f);
     if (plat_cfg.dump_every && f % plat_cfg.dump_every == 0) dump_rdram(f);
     host_watch_frame(f);   /* --watch (debugging, plat_host.c) */
+    host_crash_test_frame(f);   /* --crash-test (crash.c) */
     for (i = 0; i < plat_cfg.n_pokes; i++) {
         const unsigned *p = plat_cfg.pokes[i];
         if (p[0] != f) continue;
@@ -125,11 +126,19 @@ void plat_on_frame(void) {
     }
 }
 
-static void describe(void) {
-    host_log("  thread %s, frame %u, vi %u\n", plat_thread_name(plat_running()), (unsigned) plat_stats.frames,
-             (unsigned) plat_vi_count);
-    print_stats();
-    if (plat_cfg.dump_dir) dump_rdram(9999999); /* frame_9999999.bin: RDRAM at the crash */
+/* the game state in a crash report (crash.c; no stdio, no heap) */
+static void describe(char *buf, unsigned size) {
+    host_snprintf(buf, size,
+                  "game: thread %s, frame %u, retrace %u, mode 0x%08X%08X (next 0x%08X%08X), level %d, "
+                  "frames in mode %u, game VI counter %u",
+                  plat_thread_name(plat_running()), (unsigned) plat_stats.frames, (unsigned) plat_vi_count,
+                  (unsigned) (G_MODE >> 32), (unsigned) G_MODE, (unsigned) (G_NEXTMODE >> 32), (unsigned) G_NEXTMODE,
+                  (int) G_LEVEL, (unsigned) G_MODEFRAMES, (unsigned) G_VICOUNT);
+}
+
+/* after the report: with --dump-dir, frame_9999999.bin = RDRAM at the crash */
+static void after_crash(void) {
+    if (plat_cfg.dump_dir) dump_rdram(9999999);
 }
 
 /* ---- boot ------------------------------------------------------------------- */
@@ -139,7 +148,7 @@ void plat_start(const HostOpts *o) {
     plat_now = o->boot_count;
     plat_rom = o->rom;
     plat_rom_size = o->rom_size;
-    host_install_crash_handler(describe);
+    host_crash_set_describe(describe, after_crash);
     if (o->trace_path && host_trace_open(o->trace_path) != 0) host_fatal("can't write %s", o->trace_path);
 
     /* what init.us.v11 leaves behind besides the inflated images: the front

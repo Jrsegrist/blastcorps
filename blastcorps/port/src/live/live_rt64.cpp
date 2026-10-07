@@ -524,7 +524,9 @@ void setFullscreen(bool on) {
     }
     g_opt.fullscreen = on;
     SDL_ShowCursor(on ? SDL_DISABLE : SDL_ENABLE);
-    host_log("live: %s\n", on ? "fullscreen" : "windowed");
+    int pw, ph;
+    SDL_GetWindowSizeInPixels(g_window, &pw, &ph);
+    host_log("live: %s (%dx%d pixels)\n", on ? "fullscreen" : "windowed", pw, ph);
 }
 
 bool isQuitKey(SDL_Scancode sc) {
@@ -875,6 +877,11 @@ void prestart(HostOpts *o) {
     }
 
     timeBeginPeriod(1);   /* 1 ms Sleep granularity for the pacing */
+    /* DPI aware: the swap chain gets the display's real pixels (a sharp
+     * picture on scaled desktops, e.g. 1920x1080 at 125 %); window sizes stay
+     * in desktop points, so the window looks as large as before */
+    SDL_SetHint(SDL_HINT_WINDOWS_DPI_AWARENESS, "permonitorv2");
+    SDL_SetHint(SDL_HINT_WINDOWS_DPI_SCALING, "1");
     SDL_SetMainReady();
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_EVENTS) != 0)
         host_fatal("Can't start SDL (video, controllers): %s", SDL_GetError());
@@ -945,10 +952,12 @@ void prestart(HostOpts *o) {
                    g_opt.vulkan ? "Vulkan" : "Direct3D 12", int(res), g_opt.vulkan ? "d3d12" : "vulkan",
                    g_opt.vulkan ? "d3d12" : "vulkan");
     g_app->swapChain->setVsyncEnabled(g_opt.vsync);
-    int ww, wh;
+    int ww, wh, pw, ph;
     SDL_GetWindowSize(g_window, &ww, &wh);
-    host_log("live: RT64 up (%s), window %dx%d%s, vsync %s, display %u Hz\n", g_opt.vulkan ? "Vulkan" : "D3D12", ww,
-             wh, g_opt.fullscreen ? " fullscreen" : "", g_opt.vsync ? "on" : "off", displayHz());
+    SDL_GetWindowSizeInPixels(g_window, &pw, &ph);
+    host_log("live: RT64 up (%s), window %dx%d (%dx%d pixels)%s, vsync %s, display %u Hz\n",
+             g_opt.vulkan ? "Vulkan" : "D3D12", ww, wh, pw, ph, g_opt.fullscreen ? " fullscreen" : "",
+             g_opt.vsync ? "on" : "off", displayHz());
     o->live = &kLive;
 }
 

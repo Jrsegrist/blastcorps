@@ -8,6 +8,7 @@
 
 int host_verbose;
 int host_gui;
+int host_no_msgbox;   /* --no-msgbox: message boxes only logged (automated runs) */
 void *host_gui_window;
 const char *host_log_path;
 static FILE *g_trace;
@@ -28,7 +29,7 @@ void host_message(const char *text, int error) {
     static wchar_t w[8192];
     fprintf(stderr, "message box (%s): %s\n", error ? "error" : "warning", text);
     fflush(stderr);
-    if (getenv("BC_NO_MSGBOX") != NULL) return;   /* automated tests */
+    if (host_no_msgbox || getenv("BC_NO_MSGBOX") != NULL) return;   /* automated tests */
     if (host_gui_window != NULL) ShowWindow((HWND) host_gui_window, SW_HIDE);
     if (to_wide(text, w, 8192) <= 0) MultiByteToWideChar(CP_ACP, 0, text, -1, w, 8192);
     MessageBoxW(NULL, w, L"Blast Corps",

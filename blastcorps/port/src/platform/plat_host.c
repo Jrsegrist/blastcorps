@@ -7,7 +7,30 @@
 #include "audio/port_audio.h"
 
 int host_verbose;
+int host_gui;
+void *host_gui_window;
+const char *host_log_path;
 static FILE *g_trace;
+
+/* UTF-8 -> UTF-16 (0 if the text isn't valid UTF-8 or doesn't fit) */
+static int to_wide(const char *s, wchar_t *w, int n) {
+    return MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, s, -1, w, n);
+}
+
+void *host_fopen(const char *path, const char *mode) {
+    static wchar_t wp[4096];
+    wchar_t wm[16];
+    if (to_wide(path, wp, 4096) > 0 && to_wide(mode, wm, 16) > 0) return _wfopen(wp, wm);
+    return fopen(path, mode);
+}
+
+void host_message(const char *text, int error) {
+    static wchar_t w[8192];
+    if (host_gui_window != NULL) ShowWindow((HWND) host_gui_window, SW_HIDE);
+    if (to_wide(text, w, 8192) <= 0) MultiByteToWideChar(CP_ACP, 0, text, -1, w, 8192);
+    MessageBoxW(NULL, w, L"Blast Corps",
+                MB_OK | MB_SETFOREGROUND | MB_TOPMOST | (error ? MB_ICONERROR : MB_ICONWARNING));
+}
 
 /* Fiber stacks: reserve 1 MB each (commit grows on demand). */
 #define FIBER_STACK_COMMIT 0x10000
@@ -72,11 +95,18 @@ void host_fatal(const char *fmt, ...) {
     va_end(ap);
     fprintf(stderr, "\n");
     fflush(stderr);
+    if (host_gui) {
+        static char msg[4096];
+        va_start(ap, fmt);
+        vsnprintf(msg, sizeof msg, fmt, ap);
+        va_end(ap);
+        host_message(msg, 1);
+    }
     ExitProcess(2);
 }
 
 int host_trace_open(const char *path) {
-    g_trace = fopen(path, "w");
+    g_trace = host_fopen(path, "w");
     return g_trace ? 0 : -1;
 }
 
@@ -89,7 +119,7 @@ void host_trace(const char *fmt, ...) {
 }
 
 void *host_read_file(const char *path, unsigned *size) {
-    FILE *f = fopen(path, "rb");
+    FILE *f = host_fopen(path, "rb");
     long n;
     void *p;
     if (f == NULL) return NULL;
@@ -108,7 +138,7 @@ void *host_read_file(const char *path, unsigned *size) {
 }
 
 int host_write_file(const char *path, const void *data, unsigned size) {
-    FILE *f = fopen(path, "wb");
+    FILE *f = host_fopen(path, "wb");
     if (f == NULL) return -1;
     if (fwrite(data, 1, size, f) != size) {
         fclose(f);
@@ -131,12 +161,17 @@ void host_set_fpu_mode(void) {
     __builtin_ia32_ldmxcsr(csr);
 }
 
+void (*host_exit_hook)(void);
+
 void host_exit(int code) {
+    void (*hook)(void) = host_exit_hook;
+    host_exit_hook = NULL;
+    if (hook != NULL) hook();
     port_audio_close();
     if (g_trace) fclose(g_trace);
     fflush(stdout);
     fflush(stderr);
-    ExitProcess(code);
+    ExitProcess((UINT) code);
 }
 
 static void (*g_describe)(void);
@@ -178,6 +213,15 @@ static LONG WINAPI crash_filter(EXCEPTION_POINTERS *ep) {
     if (g_describe) g_describe();
     if (g_trace) fflush(g_trace);
     fflush(stderr);
+    if (host_gui) {
+        char msg[1024];
+        snprintf(msg, sizeof msg,
+                 "Blast Corps has crashed (exception 0x%08lX at 0x%08lX).\n\n"
+                 "The details were written to %s.\n\n"
+                 "Please report it with that log and what you were doing.",
+                 code, (unsigned long) c->Eip, host_log_path ? host_log_path : "the log (stderr)");
+        host_message(msg, 1);
+    }
     ExitProcess(4);
     return EXCEPTION_EXECUTE_HANDLER;
 }

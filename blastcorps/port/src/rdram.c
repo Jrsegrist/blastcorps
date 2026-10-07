@@ -1,4 +1,5 @@
 #include <windows.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -7,19 +8,66 @@
 
 static uint8_t *g_rom;
 static size_t g_rom_size;
+static char g_err[1024];
+
+const char *rdram_error(void) {
+    return g_err;
+}
+
+/* record (and print) why loading failed; returns -1 */
+static int fail(const char *fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(g_err, sizeof g_err, fmt, ap);
+    va_end(ap);
+    fprintf(stderr, "rdram: %s\n", g_err);
+    return -1;
+}
+
+/* fopen for a UTF-8 path (bc.exe's paths), else the ANSI code page */
+static FILE *open_path(const char *path, const char *mode) {
+    wchar_t wp[4096], wm[8];
+    if (MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, path, -1, wp, 4096) > 0 &&
+        MultiByteToWideChar(CP_UTF8, 0, mode, -1, wm, 8) > 0)
+        return _wfopen(wp, wm);
+    return fopen(path, mode);
+}
+
+int rom_normalise(uint8_t *p, size_t n) {
+    size_t i;
+    if (n < 4) return -1;
+    if (p[0] == 0x80 && p[1] == 0x37 && p[2] == 0x12 && p[3] == 0x40) return ROM_Z64;
+    if (p[0] == 0x37 && p[1] == 0x80 && p[2] == 0x40 && p[3] == 0x12) {   /* .v64: bytes swapped in pairs */
+        for (i = 0; i + 1 < n; i += 2) {
+            uint8_t t = p[i];
+            p[i] = p[i + 1];
+            p[i + 1] = t;
+        }
+        return ROM_V64;
+    }
+    if (p[0] == 0x40 && p[1] == 0x12 && p[2] == 0x37 && p[3] == 0x80) {   /* .n64: little-endian words */
+        for (i = 0; i + 3 < n; i += 4) {
+            uint32_t v;
+            memcpy(&v, p + i, 4);
+            v = __builtin_bswap32(v);
+            memcpy(p + i, &v, 4);
+        }
+        return ROM_N64;
+    }
+    return -1;
+}
 
 int rdram_map(void) {
     void *p = VirtualAlloc((void *) (uintptr_t) RDRAM_BASE, RDRAM_SIZE, MEM_RESERVE | MEM_COMMIT,
                            PAGE_READWRITE);
     if (p != (void *) (uintptr_t) RDRAM_BASE) {
         MEMORY_BASIC_INFORMATION mbi;
-        fprintf(stderr, "rdram: VirtualAlloc(0x%08X) failed (got %p, error %lu)\n", RDRAM_BASE, p,
-                GetLastError());
+        unsigned long err = GetLastError();
         if (VirtualQuery((void *) (uintptr_t) RDRAM_BASE, &mbi, sizeof mbi))
             fprintf(stderr, "rdram: region there: alloc base %p state 0x%lx type 0x%lx size 0x%lx\n",
                     mbi.AllocationBase, mbi.State, mbi.Type, (unsigned long) mbi.RegionSize);
-        fprintf(stderr, "rdram: (is the exe linked with --large-address-aware?)\n");
-        return -1;
+        return fail("VirtualAlloc(0x%08X) failed (got %p, error %lu); is the exe linked with "
+                    "--large-address-aware?", RDRAM_BASE, p, err);
     }
     return 0;
 }
@@ -29,25 +77,27 @@ uint8_t *rom_bytes(size_t *size) {
     return g_rom;
 }
 
+/* the ROM file into g_rom, in .z64 (big-endian) order */
 static int load_rom(const char *path) {
-    FILE *f = fopen(path, "rb");
-    if (!f) {
-        fprintf(stderr, "rdram: can't open ROM %s\n", path);
-        return -1;
-    }
+    FILE *f = open_path(path, "rb");
+    long n;
+    if (!f) return fail("Can't open the ROM file %s", path);
     fseek(f, 0, SEEK_END);
-    g_rom_size = (size_t) ftell(f);
+    n = ftell(f);
     fseek(f, 0, SEEK_SET);
-    g_rom = malloc(g_rom_size);
-    if (fread(g_rom, 1, g_rom_size, f) != g_rom_size) {
+    if (n < 0x800000 || n > 0x4000000) {
         fclose(f);
-        return -1;
+        return fail("%s is not a Blast Corps ROM (%ld bytes; the game is 8 MB)", path, n);
+    }
+    g_rom_size = (size_t) n;
+    g_rom = malloc(g_rom_size);
+    if (g_rom == NULL || fread(g_rom, 1, g_rom_size, f) != g_rom_size) {
+        fclose(f);
+        return fail("Can't read the ROM file %s", path);
     }
     fclose(f);
-    if (g_rom_size < 0x800000 || g_rom[0] != 0x80 || g_rom[1] != 0x37) {
-        fprintf(stderr, "rdram: %s is not a big-endian (.z64) Blast Corps ROM\n", path);
-        return -1;
-    }
+    if (rom_normalise(g_rom, g_rom_size) < 0)
+        return fail("%s is not an N64 ROM image (.z64, .v64 or .n64)", path);
     return 0;
 }
 
@@ -89,23 +139,17 @@ int rdram_load(const char *rom_path) {
     if (load_rom(rom_path)) return -1;
     /* hd_code .data/.rodata at its link address (the code half is native) */
     n = rom_gunzip(ROM_HD_DATA, (void *) (uintptr_t) HD_DATA_VRAM, HD_BSS_START - HD_DATA_VRAM);
-    if (n != (long) HD_DATA_SIZE) {
-        fprintf(stderr, "rdram: hd_code data inflated to %ld bytes, expected 0x%X\n", n, HD_DATA_SIZE);
-        return -1;
-    }
+    if (n != (long) HD_DATA_SIZE)
+        return fail("%s: the game data inflated to %ld bytes, expected 0x%X (not Blast Corps (USA) (Rev 1)?)",
+                    rom_path, n, HD_DATA_SIZE);
     /* front end: text+ucode then data (the game reloads it per menu visit;
      * here once).  Its .text bytes are only needed for the RSP ucode. */
     n = rom_gunzip(ROM_FE_TEXT, (void *) (uintptr_t) FE_VRAM, FE_DATA_VRAM - FE_VRAM);
-    if (n != (long) (FE_DATA_VRAM - FE_VRAM)) {
-        fprintf(stderr, "rdram: front-end text inflated to %ld bytes, expected 0x%X\n", n,
-                FE_DATA_VRAM - FE_VRAM);
-        return -1;
-    }
+    if (n != (long) (FE_DATA_VRAM - FE_VRAM))
+        return fail("%s: the front-end code inflated to %ld bytes, expected 0x%X", rom_path, n,
+                    FE_DATA_VRAM - FE_VRAM);
     n = rom_gunzip(ROM_FE_DATA, (void *) (uintptr_t) FE_DATA_VRAM, FE_BSS_END - FE_DATA_VRAM);
-    if (n <= 0) {
-        fprintf(stderr, "rdram: front-end data inflate failed\n");
-        return -1;
-    }
+    if (n <= 0) return fail("%s: the front-end data didn't inflate", rom_path);
     memset((void *) (uintptr_t) (FE_DATA_VRAM + n), 0, FE_BSS_END - FE_DATA_VRAM - n);
     memset((void *) (uintptr_t) HD_BSS_START, 0, HD_BSS_END - HD_BSS_START);
     /* the images' ROM bytes into host order (port/src/load/: generated swap

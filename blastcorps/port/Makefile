@@ -364,27 +364,64 @@ LIVE_CXXFLAGS := -O2 -std=gnu++17 -g -Wall -Wno-unknown-pragmas -Wno-attributes 
 LIVE_SYSLIBS := -ld3d12 -ld3dcompiler -ldxgi -lshcore -ldxguid -lole32 -loleaut32 -luuid -lshell32 -lshlwapi \
 	-lcomdlg32 -lgdi32 -luser32 -ldwmapi -limm32 -lversion -lsetupapi -lwinmm
 # the same objects as bc_headless, but the host entry comes from src/live/
+# (live_setup.cpp: bc.ini, bindings, the ROM dialog and check), plus the exe's
+# icon and version resource (res/bc.rc)
 G_HOST_OBJS := $(filter-out $(H)/host/headless_main.o,$(HL_HOST_OBJS)) $(G)/host/headless_main.o \
-	$(G)/live/live_rt64.o
+	$(G)/live/live_rt64.o $(G)/live/live_setup.o $(G)/bc_res.o
+WINDRES := i686-w64-mingw32-windres
+# the version the exe reports (log, file properties, dist folder name)
+GIT_HASH := $(shell git rev-parse --short HEAD 2>/dev/null || echo dev)
+GIT_DIRTY := $(shell git diff --quiet HEAD -- . 2>/dev/null || echo -modified)
+BC_VERSION := $(GIT_HASH)$(GIT_DIRTY)
 
 $(G)/rt64.stamp: rt64/build_rt64.sh $(wildcard rt64/patches/*.patch)
 	@mkdir -p $(@D)
 	TP=$(TP) JOBS=$${JOBS:-2} bash rt64/build_rt64.sh
 	touch $@
+# rewritten only when the version changes (the objects that show it rebuild)
+$(G)/version.h: FORCE
+	@mkdir -p $(@D)
+	@printf '#define BC_VERSION "%s"\n' '$(BC_VERSION)' > $@.tmp
+	@cmp -s $@.tmp $@ && rm $@.tmp || mv $@.tmp $@
 $(G)/host/headless_main.o: src/platform/headless_main.c src/platform/plat_host.h src/rdram.h Makefile
 	@mkdir -p $(@D)
 	$(CC) $(HL_HOST_CFLAGS) -DPORT_LIVE -c -o $@ $<
-$(G)/live/%.o: src/live/%.cpp src/platform/plat_host.h src/rdram.h $(G)/rt64.stamp Makefile
+$(G)/live/%.o: src/live/%.cpp src/live/live_setup.h src/platform/plat_host.h src/rdram.h $(G)/version.h \
+		$(G)/rt64.stamp Makefile
 	@mkdir -p $(@D)
-	$(CXX) $(LIVE_CXXFLAGS) -c -o $@ $<
+	$(CXX) $(LIVE_CXXFLAGS) -include $(G)/version.h -c -o $@ $<
+$(G)/bc.ico: tools/make_icon.py
+	@mkdir -p $(@D)
+	$(PYTHON) tools/make_icon.py $@
+$(G)/bc_res.o: res/bc.rc $(G)/bc.ico $(G)/version.h
+	$(WINDRES) -I$(G) -Ires -O coff -o $@ $<
+# -mwindows: a GUI program (no console window when double-clicked); the log
+# goes to stderr when there is one, else to bc.log (live_rt64.cpp)
 $(G)/bc.exe: $(HL_GAME_OBJS) $(G_HOST_OBJS) $(H)/stubs.o $(H)/copytab.o $(H)/abs_syms.ld $(G)/rt64.stamp
 	$(CXX) -o $@ $(HL_GAME_OBJS) $(G_HOST_OBJS) $(H)/stubs.o $(H)/copytab.o $(H)/abs_syms.ld $(RT64_LIBS) \
 		$(RT64_W)/dll/SDL2.dll $(RT64_W)/dll/libdxcompiler.a $(LIVE_SYSLIBS) \
-		-static -static-libgcc -static-libstdc++ $(LDFLAGS) -Wl,-Map=$(G)/bc.map
+		-static -static-libgcc -static-libstdc++ -mwindows $(LDFLAGS) -Wl,-Map=$(G)/bc.map
 	$(CC:gcc=nm) -n $@ > $(G)/bc.syms
 	cp -u $(addprefix $(RT64_W)/dll/,$(RT64_DLLS)) $(G)/
 
 game: $(G)/bc.exe
+
+# ---------------------------------------------------------------------------
+# the player package: build/dist/BlastCorps-port-<hash>/ (bc.exe, its DLLs,
+# README.txt, THIRD_PARTY_LICENSES.txt) and a zip of it.  No ROM data: the
+# game reads the player's own ROM at run time.
+DIST_NAME := BlastCorps-port-$(BC_VERSION)
+DIST := build/dist/$(DIST_NAME)
+dist: $(G)/bc.exe dist/README.txt dist/third_party.sh
+	rm -rf $(DIST) $(DIST).zip
+	mkdir -p $(DIST)
+	cp $(G)/bc.exe $(addprefix $(G)/,$(RT64_DLLS)) $(DIST)/
+	sed -e 's/@VERSION@/$(BC_VERSION)/' dist/README.txt | sed -e 's/$$/\r/' > $(DIST)/README.txt
+	TP=$(TP) RT64_SRC=$(RT64_SRC) bash dist/third_party.sh | sed -e 's/$$/\r/' > $(DIST)/THIRD_PARTY_LICENSES.txt
+	cd build/dist && $(PYTHON) -m zipfile -c $(DIST_NAME).zip $(DIST_NAME)/
+	@ls -l $(DIST) $(DIST).zip
+
+FORCE:
 
 # frame-by-frame comparison with the emulator over attract demo DEMO
 # (tools/compare.py; the emulator run is cached in CMP_CACHE)
@@ -404,5 +441,5 @@ $(H)/typemap_all.txt: $(H)/addrs.txt tools/typemap.py
 clean:
 	rm -rf $(B)
 
-.PHONY: all check clean linkall loadcheck typemap ucode headless compare game strict-data
+.PHONY: all check clean linkall loadcheck typemap ucode headless compare game strict-data dist FORCE
 .SECONDARY:

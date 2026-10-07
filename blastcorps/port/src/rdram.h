@@ -45,6 +45,15 @@ int rdram_load(const char *rom_path);
 
 uint8_t *rom_bytes(size_t *size);
 
+/* why rdram_map/rdram_load failed (a sentence for the user) */
+const char *rdram_error(void);
+
+/* a ROM image in place into .z64 (big-endian) order: returns the format it
+ * was in (.z64; .v64 = bytes swapped in pairs; .n64 = little-endian
+ * words), or -1 if the header isn't an N64 ROM's.  rdram_load does this. */
+enum { ROM_Z64, ROM_V64, ROM_N64 };
+int rom_normalise(uint8_t *p, size_t n);
+
 /* gunzip one member at ROM offset OFF into DST (max DSTMAX); returns size or -1 */
 long rom_gunzip(uint32_t off, void *dst, size_t dstmax);
 

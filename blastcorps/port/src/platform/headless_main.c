@@ -46,7 +46,16 @@
 #include "plat_host.h"
 #include "load/port_load.h"
 
-static void usage(void) {
+void (*host_opts_hook)(HostOpts *o);
+void (*host_rom_hook)(HostOpts *o);
+
+static void usage(const char *bad) {
+    if (host_gui) {
+        if (bad != NULL)
+            host_fatal("Unknown command-line option, or one without its value: \"%s\".\n\nREADME.txt lists the options.",
+                       bad);
+        host_fatal("No ROM was given.");
+    }
     fprintf(stderr, "usage: bc_headless.exe ROM [--frames N] [--vis N] [--dump F1,F2..] [--dump-every N]\n"
                     "       [--dump-dir DIR] [--trace FILE] [--input FILE] [--no-controller] [--gettime FILE]\n"
                     "       [--frame-done FILE] [--clock FILE] [--syms FILE] [--sync FILE] [--load-log]\n"
@@ -93,9 +102,10 @@ int host_main(int argc, char **argv, int (*extra)(int argc, char **argv, int *i,
     o.gfx_cycles = 781250;
     o.cont_present = 1;
     o.eeprom_present = 1;
+    if (host_opts_hook != NULL) host_opts_hook(&o);
     for (i = 1; i < argc; i++) {
         const char *a = argv[i];
-#define ARG() (i + 1 < argc ? argv[++i] : (usage(), (char *) NULL))
+#define ARG() (i + 1 < argc ? argv[++i] : (usage(a), (char *) NULL))
         if (extra != NULL && extra(argc, argv, &i, &o)) continue;
         if (!strcmp(a, "--frames")) o.frames = num(ARG());
         else if (!strcmp(a, "--vis")) o.max_vis = num(ARG());
@@ -144,14 +154,17 @@ int host_main(int argc, char **argv, int (*extra)(int argc, char **argv, int *i,
         else if (!strcmp(a, "-v")) host_verbose = 1;
         else if (!strcmp(a, "-vv")) host_verbose = 2;
         else if (!strcmp(a, "-q")) o.quiet = 1;
-        else if (a[0] == '-') usage();
+        else if (a[0] == '-') usage(a);
         else if (o.rom_path == NULL) o.rom_path = a;
-        else usage();
+        else usage(a);
 #undef ARG
     }
-    if (o.rom_path == NULL) usage();
+    if (host_rom_hook != NULL) host_rom_hook(&o);
+    if (o.rom_path == NULL) usage(NULL);
     setvbuf(stdout, NULL, _IOLBF, 0);
-    if (rdram_map() || rdram_load(o.rom_path)) return 1;
+    if (rdram_map())
+        host_fatal("Can't reserve the N64's memory at 0x80000000: %s", rdram_error());
+    if (rdram_load(o.rom_path)) host_fatal("%s", rdram_error());
     o.rom = rom_bytes(&rom_size);
     o.rom_size = (unsigned) rom_size;
     if (prestart != NULL) prestart(&o);

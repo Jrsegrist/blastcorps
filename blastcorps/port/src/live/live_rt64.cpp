@@ -18,7 +18,7 @@
  *     --shot F,..       save the picture on screen once the game reached frame F
  *                       (bc_FFFFFFF.png in --shot-dir; --shot-every N: every N frames)
  *     --no-pace         run as fast as possible (default: 60 retraces a second)
- *     --scale N         window size 320x240 times N (default 2)
+ *     --scale N         window size 320x240 times N (default 3; bc.ini scale)
  *     --dl-dump F[:N]   print N tasks' display lists from frame F (default 12)
  *     --dl-dump-every N print the first task's display lists every N frames
  *     --dl-skip LO:HI   draw triangles whose commands lie in [LO, HI) (physical)
@@ -28,6 +28,26 @@
  *     --gfx-fix-log     log graphics data the game changed in those areas
  *     --mute            start with the sound off (M toggles it)
  *     --volume N        sound volume in percent (default 100; - and = keys step it)
+ *     --fullscreen / --windowed, --vsync / --no-vsync
+ *     --saves DIR       keep the EEPROM and Controller Pak files in DIR
+ *     --no-saves        keep no save files (the EEPROM starts blank, no pak)
+ *     --config FILE     settings file (default bc.ini next to the exe)
+ *     --no-config       no settings file: built-in defaults, no saves unless
+ *                       --eeprom/--mpk/--saves (tests and comparisons use this,
+ *                       so bc.exe runs like bc_headless with the same options)
+ *     --no-rom-check    accept any Blast Corps-layout ROM (e.g. the NON_MATCHING
+ *                       test ROM) instead of only the US v1.1 release
+ *     --pace-log FILE   per retrace: pacing and present times (CSV), and a
+ *                       summary in the log at exit
+ *
+ * Player setup (live_setup.cpp): bc.ini next to the exe holds the ROM path,
+ * graphics API, window, sound, key and controller bindings and the saves
+ * folder (created with commented defaults on the first start; command-line
+ * options override it).  Without a ROM argument and a working configured
+ * ROM, a file dialog asks for one; the ROM is checked (Blast Corps (USA)
+ * (Rev 1) by SHA-1, .z64/.v64/.n64) and remembered.  bc.exe is a Windows
+ * GUI program: errors show a message box; the log goes to stderr when it
+ * has one, else to bc.log next to the exe.
  *
  * Sound: the buffers the game hands the AI (port/src/audio/) are queued to
  * an SDL audio device at the AI's rate.  The game makes them in virtual time,
@@ -36,11 +56,15 @@
  * grew past 0.3 s (after a stall) is dropped.  With --no-pace nothing plays.
  */
 #include <windows.h>
+#include <shellapi.h>
+#include <shlobj.h>
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <exception>
 #include <string>
 #include <vector>
 
@@ -48,6 +72,9 @@
 #include <SDL_syswm.h>
 
 #include "hle/rt64_application.h"
+#include "rhi/rt64_render_hooks.h"
+
+#include "live_setup.h"
 
 extern "C" {
 #include "plat_host.h"
@@ -56,13 +83,19 @@ extern "C" {
 unsigned plat_frames(void); /* save.c */
 }
 
+#ifndef BC_VERSION
+#define BC_VERSION "dev"
+#endif
+
 namespace {
 
 /* ---- options ------------------------------------------------------------- */
 struct LiveOpts {
     bool vulkan = false;
     bool pace = true;
-    unsigned scale = 2;              /* window size: 320x240 times this */
+    unsigned scale = 3;              /* window size: 320x240 times this */
+    bool fullscreen = false;
+    bool vsync = true;
     std::vector<unsigned> shots;     /* frame numbers (game frames) to save */
     unsigned shotEvery = 0;
     const char *shotDir = ".";
@@ -70,8 +103,12 @@ struct LiveOpts {
     bool gfxFix = true;
     bool mute = false;
     int volume = 100;                /* percent */
+    bool romCheck = true;
+    const char *paceLog = nullptr;
 };
 LiveOpts g_opt;
+live::Config g_cfg;                  /* bc.ini (or the built-in defaults) */
+std::string g_eepromPath, g_mpkPath; /* the saves the config names */
 
 /* ---- RT64 state ------------------------------------------------------------ */
 SDL_Window *g_window;
@@ -242,60 +279,53 @@ void openPad() {
         }
 }
 
-int axis(SDL_GameControllerAxis a) {
-    int v = SDL_GameControllerGetAxis(g_pad, a);
-    if (v > -7000 && v < 7000) return 0;
+/* an axis as an N64 stick value (-80..80), 0 inside the dead zone */
+int axis(int a) {
+    int v = SDL_GameControllerGetAxis(g_pad, SDL_GameControllerAxis(a));
+    if (v > -g_cfg.deadzone && v < g_cfg.deadzone) return 0;
     return v * 80 / 32767;
 }
 
-/* N64 pad from the keyboard and the first game controller:
+bool padActive(const live::PadInput &in) {
+    if (in.button >= 0) return SDL_GameControllerGetButton(g_pad, SDL_GameControllerButton(in.button)) != 0;
+    if (in.axis == SDL_CONTROLLER_AXIS_TRIGGERLEFT || in.axis == SDL_CONTROLLER_AXIS_TRIGGERRIGHT)
+        return SDL_GameControllerGetAxis(g_pad, SDL_GameControllerAxis(in.axis)) > 12000;
+    return axis(in.axis) * in.dir > 40;
+}
+
+/* N64 pad from the keyboard and the first game controller, by the bindings
+ * in bc.ini (live_setup.cpp has the defaults):
  *   stick: arrows (keyboard), left stick       A: X / gamepad A
  *   B: C / gamepad B or X                      Z: Z or Space / either trigger
  *   START: Enter / Start                       L, R: A, S / shoulders
  *   C buttons: I J K L / right stick           D-pad: T F G H / D-pad */
 void pollInput() {
     const Uint8 *k = SDL_GetKeyboardState(nullptr);
+    /* Alt+Enter switches fullscreen: that Enter isn't a game key */
+    const bool altEnter = (SDL_GetModState() & KMOD_ALT) != 0 && k[SDL_SCANCODE_RETURN];
+    auto keyDown = [&](int act) {
+        for (SDL_Scancode sc : g_cfg.keys[act])
+            if (k[sc] && !(altEnter && sc == SDL_SCANCODE_RETURN)) return true;
+        return false;
+    };
     unsigned b = 0;
     int x = 0, y = 0;
-    if (k[SDL_SCANCODE_X]) b |= 0x8000;
-    if (k[SDL_SCANCODE_C]) b |= 0x4000;
-    if (k[SDL_SCANCODE_Z] || k[SDL_SCANCODE_SPACE]) b |= 0x2000;
-    if (k[SDL_SCANCODE_RETURN]) b |= 0x1000;
-    if (k[SDL_SCANCODE_T]) b |= 0x0800;
-    if (k[SDL_SCANCODE_G]) b |= 0x0400;
-    if (k[SDL_SCANCODE_F]) b |= 0x0200;
-    if (k[SDL_SCANCODE_H]) b |= 0x0100;
-    if (k[SDL_SCANCODE_A]) b |= 0x0020;
-    if (k[SDL_SCANCODE_S]) b |= 0x0010;
-    if (k[SDL_SCANCODE_I]) b |= 0x0008;
-    if (k[SDL_SCANCODE_K]) b |= 0x0004;
-    if (k[SDL_SCANCODE_J]) b |= 0x0002;
-    if (k[SDL_SCANCODE_L]) b |= 0x0001;
-    if (k[SDL_SCANCODE_LEFT]) x -= 80;
-    if (k[SDL_SCANCODE_RIGHT]) x += 80;
-    if (k[SDL_SCANCODE_UP]) y += 80;
-    if (k[SDL_SCANCODE_DOWN]) y -= 80;
+    for (int i = 0; i < live::kButtons; i++)
+        if (keyDown(i)) b |= live::kButtonBits[i];
+    if (keyDown(live::A_STICK_LEFT)) x -= 80;
+    if (keyDown(live::A_STICK_RIGHT)) x += 80;
+    if (keyDown(live::A_STICK_UP)) y += 80;
+    if (keyDown(live::A_STICK_DOWN)) y -= 80;
     if (g_pad != nullptr) {
-        auto btn = [](SDL_GameControllerButton c) { return SDL_GameControllerGetButton(g_pad, c) != 0; };
-        if (btn(SDL_CONTROLLER_BUTTON_A)) b |= 0x8000;
-        if (btn(SDL_CONTROLLER_BUTTON_B) || btn(SDL_CONTROLLER_BUTTON_X)) b |= 0x4000;
-        if (SDL_GameControllerGetAxis(g_pad, SDL_CONTROLLER_AXIS_TRIGGERLEFT) > 12000 ||
-            SDL_GameControllerGetAxis(g_pad, SDL_CONTROLLER_AXIS_TRIGGERRIGHT) > 12000)
-            b |= 0x2000;
-        if (btn(SDL_CONTROLLER_BUTTON_START)) b |= 0x1000;
-        if (btn(SDL_CONTROLLER_BUTTON_DPAD_UP)) b |= 0x0800;
-        if (btn(SDL_CONTROLLER_BUTTON_DPAD_DOWN)) b |= 0x0400;
-        if (btn(SDL_CONTROLLER_BUTTON_DPAD_LEFT)) b |= 0x0200;
-        if (btn(SDL_CONTROLLER_BUTTON_DPAD_RIGHT)) b |= 0x0100;
-        if (btn(SDL_CONTROLLER_BUTTON_LEFTSHOULDER)) b |= 0x0020;
-        if (btn(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER)) b |= 0x0010;
-        int rx = axis(SDL_CONTROLLER_AXIS_RIGHTX), ry = axis(SDL_CONTROLLER_AXIS_RIGHTY);
-        if (ry < -40) b |= 0x0008;
-        if (ry > 40) b |= 0x0004;
-        if (rx < -40) b |= 0x0002;
-        if (rx > 40) b |= 0x0001;
-        int lx = axis(SDL_CONTROLLER_AXIS_LEFTX), ly = -axis(SDL_CONTROLLER_AXIS_LEFTY);
-        if (lx != 0 || ly != 0) x = lx, y = ly;
+        for (int i = 0; i < live::kButtons; i++)
+            for (const live::PadInput &in : g_cfg.pad[i])
+                if (padActive(in)) b |= live::kButtonBits[i];
+        if (g_cfg.padStick >= 0) {
+            const bool right = g_cfg.padStick == 1;
+            int lx = axis(right ? SDL_CONTROLLER_AXIS_RIGHTX : SDL_CONTROLLER_AXIS_LEFTX);
+            int ly = -axis(right ? SDL_CONTROLLER_AXIS_RIGHTY : SDL_CONTROLLER_AXIS_LEFTY);
+            if (lx != 0 || ly != 0) x = lx, y = ly;
+        }
     }
     g_button = (unsigned short) b;
     g_stickX = (signed char) std::max(-80, std::min(80, x));
@@ -372,6 +402,102 @@ void liveAudio(const short *lr, unsigned frames, unsigned rate) {
         g_audioDrops++;
 }
 
+/* ---- pacing measurement (--pace-log) ---------------------------------------- */
+struct PaceRec {
+    double t;        /* real time when the retrace's picture went to RT64 (s) */
+    double due;      /* its due time on the paced clock (s) */
+    double update;   /* time spent in updateScreen (s) */
+    unsigned frames; /* game frames so far */
+};
+std::vector<PaceRec> g_pace;
+constexpr size_t kMaxPresents = 1 << 20;
+double *g_presentTimes;              /* RT64's present thread: each picture presented */
+std::atomic<size_t> g_presents;
+unsigned g_paceResets;
+LARGE_INTEGER g_freq, g_t0, g_tStart;
+
+double secondsSince(const LARGE_INTEGER &t0) {
+    LARGE_INTEGER now;
+    QueryPerformanceCounter(&now);
+    return double(now.QuadPart - t0.QuadPart) / double(g_freq.QuadPart);
+}
+
+void presentHook(plume::RenderCommandList *, plume::RenderFramebuffer *) {
+    size_t i = g_presents.fetch_add(1);
+    if (i < kMaxPresents) g_presentTimes[i] = secondsSince(g_tStart);
+}
+
+unsigned displayHz() {
+    HMONITOR mon = MonitorFromWindow(HWND(host_gui_window), MONITOR_DEFAULTTONEAREST);
+    MONITORINFOEXW mi = {};
+    mi.cbSize = sizeof mi;
+    DEVMODEW dm = {};
+    dm.dmSize = sizeof dm;
+    if (!GetMonitorInfoW(mon, &mi) || !EnumDisplaySettingsW(mi.szDevice, ENUM_CURRENT_SETTINGS, &dm)) return 0;
+    return dm.dmDisplayFrequency;
+}
+
+struct Stats {
+    double mean = 0, sd = 0, p01 = 0, p99 = 0, min = 0, max = 0;
+    size_t n = 0;
+};
+Stats stats(std::vector<double> v) {
+    Stats s;
+    s.n = v.size();
+    if (v.empty()) return s;
+    std::sort(v.begin(), v.end());
+    double sum = 0, sq = 0;
+    for (double x : v) sum += x;
+    s.mean = sum / double(v.size());
+    for (double x : v) sq += (x - s.mean) * (x - s.mean);
+    s.sd = std::sqrt(sq / double(v.size()));
+    s.min = v.front();
+    s.max = v.back();
+    s.p01 = v[v.size() / 100];
+    s.p99 = v[v.size() - 1 - v.size() / 100];
+    return s;
+}
+
+void writePaceLog() {
+    if (g_opt.paceLog == nullptr || g_pace.size() < 2) return;
+    FILE *f = static_cast<FILE *>(host_fopen(g_opt.paceLog, "w"));
+    if (f != nullptr) {
+        fprintf(f, "kind,index,t_ms,due_ms,update_ms,frames\n");
+        for (size_t i = 0; i < g_pace.size(); i++)
+            fprintf(f, "vi,%u,%.3f,%.3f,%.3f,%u\n", unsigned(i), g_pace[i].t * 1e3, g_pace[i].due * 1e3,
+                    g_pace[i].update * 1e3, g_pace[i].frames);
+        size_t np = std::min(g_presents.load(), kMaxPresents);
+        for (size_t i = 0; i < np; i++) fprintf(f, "present,%u,%.3f,,,\n", unsigned(i), g_presentTimes[i] * 1e3);
+        fclose(f);
+    }
+    /* skip the first second (start-up, shader compiles) */
+    std::vector<double> vi, upd, pr;
+    double t0 = g_pace.front().t + 1.0;
+    for (size_t i = 1; i < g_pace.size(); i++) {
+        if (g_pace[i].t < t0) continue;
+        vi.push_back((g_pace[i].t - g_pace[i - 1].t) * 1e3);
+        upd.push_back(g_pace[i].update * 1e3);
+    }
+    size_t np = std::min(g_presents.load(), kMaxPresents);
+    for (size_t i = 1; i < np; i++)
+        if (g_presentTimes[i] >= t0) pr.push_back((g_presentTimes[i] - g_presentTimes[i - 1]) * 1e3);
+    Stats a = stats(vi), u = stats(upd), p = stats(pr);
+    size_t over = 0, prOver = 0;
+    for (double d : vi) over += d > 1.5 * 1000.0 / 60.0;
+    for (double d : pr) prOver += d > 1.5 * 1000.0 / 60.0;
+    const double span = g_pace.back().t - g_pace.front().t;
+    host_log("live: pacing: %u retraces in %.2f s real time = %.3f/s (virtual 60.000); display %u Hz, vsync %s, %s; "
+             "%u pacing resets\n",
+             unsigned(g_pace.size()), span, double(g_pace.size() - 1) / span, displayHz(), g_opt.vsync ? "on" : "off",
+             g_opt.fullscreen ? "fullscreen" : "windowed", g_paceResets);
+    host_log("live: pacing: retrace interval ms mean %.3f sd %.3f p1 %.3f p99 %.3f min %.3f max %.3f, %u > 25 ms\n",
+             a.mean, a.sd, a.p01, a.p99, a.min, a.max, unsigned(over));
+    host_log("live: pacing: updateScreen ms mean %.3f p99 %.3f max %.3f\n", u.mean, u.p99, u.max);
+    host_log("live: pacing: %u presents (%u retraces); present interval ms mean %.3f sd %.3f p1 %.3f p99 %.3f "
+             "max %.3f, %u > 25 ms\n",
+             unsigned(np), unsigned(g_pace.size()), p.mean, p.sd, p.p01, p.p99, p.max, unsigned(prOver));
+}
+
 [[noreturn]] void shutdown(int code) {
     if (g_audioDev != 0) {
         host_log("live: sound queue resets %u, failed queue calls %u\n", g_audioResets, g_audioDrops);
@@ -386,12 +512,40 @@ void liveAudio(const short *lr, unsigned frames, unsigned rate) {
     host_exit(code);
 }
 
+const char kTitle[] = "Blast Corps  (F1: controls)";
+bool g_helpShown;
+
+void setFullscreen(bool on) {
+    if (SDL_SetWindowFullscreen(g_window, on ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0) != 0) {
+        host_log("live: fullscreen switch failed: %s\n", SDL_GetError());
+        return;
+    }
+    g_opt.fullscreen = on;
+    SDL_ShowCursor(on ? SDL_DISABLE : SDL_ENABLE);
+    host_log("live: %s\n", on ? "fullscreen" : "windowed");
+}
+
+bool isQuitKey(SDL_Scancode sc) {
+    for (SDL_Scancode q : g_cfg.keys[live::A_QUIT])
+        if (q == sc) return true;
+    return false;
+}
+
 void pumpEvents() {
     SDL_Event e;
     while (SDL_PollEvent(&e)) {
-        if (e.type == SDL_QUIT || (e.type == SDL_KEYDOWN && e.key.keysym.scancode == SDL_SCANCODE_ESCAPE)) shutdown(0);
+        if (e.type == SDL_QUIT || (e.type == SDL_KEYDOWN && isQuitKey(e.key.keysym.scancode))) shutdown(0);
+        if (e.type == SDL_CONTROLLERBUTTONDOWN && g_pad != nullptr)
+            for (const live::PadInput &in : g_cfg.pad[live::A_QUIT])
+                if (in.button == e.cbutton.button) shutdown(0);
         if (e.type == SDL_KEYDOWN && !e.key.repeat) {
-            if (e.key.keysym.scancode == SDL_SCANCODE_M) {
+            const SDL_Scancode sc = e.key.keysym.scancode;
+            if (sc == SDL_SCANCODE_F11 || (sc == SDL_SCANCODE_RETURN && (e.key.keysym.mod & KMOD_ALT) != 0)) {
+                setFullscreen(!g_opt.fullscreen);
+            } else if (sc == SDL_SCANCODE_F1) {
+                g_helpShown = !g_helpShown;
+                SDL_SetWindowTitle(g_window, g_helpShown ? live::helpLine(g_cfg).c_str() : kTitle);
+            } else if (e.key.keysym.scancode == SDL_SCANCODE_M) {
                 g_opt.mute = !g_opt.mute;
                 host_log("live: sound %s\n", g_opt.mute ? "off" : "on");
             } else if (e.key.keysym.scancode == SDL_SCANCODE_MINUS || e.key.keysym.scancode == SDL_SCANCODE_EQUALS) {
@@ -537,7 +691,6 @@ void liveGfxTask(unsigned ucode, unsigned ucodeData, unsigned dataPtr, unsigned 
     g_skipped.clear();
 }
 
-LARGE_INTEGER g_freq, g_t0;
 unsigned long long g_when0;
 unsigned g_nextShot;
 
@@ -572,10 +725,20 @@ void liveVi(const HostViRegs *r, unsigned viCount, unsigned long long when, unsi
         if (last != frames) saveFrame(*r, frames), last = frames;
     }
 
+    const double before = g_opt.paceLog != nullptr ? secondsSince(g_tStart) : 0.0;
     g_app->updateScreen();
+    if (g_opt.paceLog != nullptr) {
+        const double after = secondsSince(g_tStart);
+        const double due = g_t0.QuadPart == 0 ? 0.0
+            : double(g_t0.QuadPart - g_tStart.QuadPart) / double(g_freq.QuadPart) + double(when - g_when0) / 46875000.0;
+        g_pace.push_back({before, due, after - before, frames});
+    }
     pumpEvents();
 
-    /* real time: retrace N of virtual time at t0 + N/60 s */
+    /* real time: retrace N of virtual time at t0 + N/60 s.  The game logic
+     * runs on the virtual clock either way; this only decides when each
+     * retrace's picture is handed to RT64 (vsync then shows it at the
+     * display's next refresh). */
     if (g_opt.pace) {
         LARGE_INTEGER now;
         QueryPerformanceCounter(&now);
@@ -588,6 +751,7 @@ void liveVi(const HostViRegs *r, unsigned viCount, unsigned long long when, unsi
         if (t > due + 0.25) {   /* far behind (a level load, a stall): start over */
             g_t0 = now;
             g_when0 = when;
+            g_paceResets++;
         } else {
             while (t < due) {
                 const double left = due - t;
@@ -618,13 +782,28 @@ unsigned num(const char *s) {
 }
 
 int extraArg(int argc, char **argv, int *i, HostOpts *o) {
-    (void) o;
     const char *a = argv[*i];
     auto next = [&]() -> const char * {
         if (*i + 1 >= argc) host_fatal("%s needs a value", a);
         return argv[++*i];
     };
     if (!strcmp(a, "--api")) g_opt.vulkan = !strcmp(next(), "vulkan");
+    else if (!strcmp(a, "--fullscreen")) g_opt.fullscreen = true;
+    else if (!strcmp(a, "--windowed")) g_opt.fullscreen = false;
+    else if (!strcmp(a, "--vsync")) g_opt.vsync = true;
+    else if (!strcmp(a, "--no-vsync")) g_opt.vsync = false;
+    else if (!strcmp(a, "--no-rom-check")) g_opt.romCheck = false;
+    else if (!strcmp(a, "--pace-log")) g_opt.paceLog = next();
+    else if (!strcmp(a, "--config") || !strcmp(a, "--no-config")) {
+        if (a[2] == 'c') next();   /* read before host_main (main) */
+    } else if (!strcmp(a, "--saves")) {
+        g_cfg.saves = next();
+        o->eeprom_path = (g_eepromPath = live::absPath(g_cfg, g_cfg.saves) + "\\blastcorps.eep").c_str();
+        o->mpk_path = g_cfg.pak ? (g_mpkPath = live::absPath(g_cfg, g_cfg.saves) + "\\blastcorps.mpk").c_str() : nullptr;
+    } else if (!strcmp(a, "--no-saves")) {
+        o->eeprom_path = nullptr;
+        o->mpk_path = nullptr;
+    }
     else if (!strcmp(a, "--no-pace")) g_opt.pace = false;
     else if (!strcmp(a, "--scale")) g_opt.scale = std::max(1u, num(next()));
     else if (!strcmp(a, "--shot-dir")) g_opt.shotDir = next();
@@ -659,16 +838,56 @@ int extraArg(int argc, char **argv, int *i, HostOpts *o) {
     return 1;
 }
 
+/* the save files' folder must exist before the platform opens them */
+void makeSaveDirs(const HostOpts *o) {
+    for (const char *p : {o->eeprom_path, o->mpk_path}) {
+        if (p == nullptr) continue;
+        std::wstring w = live::wide(p);
+        size_t slash = w.find_last_of(L"\\/");
+        if (slash == std::wstring::npos || slash == 0) continue;
+        std::wstring dir = w.substr(0, slash);
+        wchar_t full[32768];
+        if (GetFullPathNameW(dir.c_str(), 32768, full, nullptr) == 0) continue;
+        int r = SHCreateDirectoryExW(nullptr, full, nullptr);
+        if (r != ERROR_SUCCESS && r != ERROR_ALREADY_EXISTS && r != ERROR_FILE_EXISTS)
+            g_cfg.warnings.push_back("can't create the saves folder " + live::utf8(full) +
+                                     " (error " + std::to_string(r) + "): the game won't be saved");
+    }
+}
+
 void prestart(HostOpts *o) {
+    host_log("live: Blast Corps port %s, ROM %s\n", BC_VERSION, o->rom_path);
+    host_log("live: saves: EEPROM %s, Controller Pak %s\n", o->eeprom_path ? o->eeprom_path : "(not kept)",
+             o->mpk_path ? o->mpk_path : "(none)");
+    makeSaveDirs(o);
+    if (!g_cfg.warnings.empty()) {
+        std::string msg = "Some settings were not understood and their defaults are used:\n\n";
+        for (const std::string &w : g_cfg.warnings) {
+            host_log("live: config: %s\n", w.c_str());
+            msg += w + "\n";
+        }
+        host_message(msg.c_str(), 0);
+    }
+
     SDL_SetMainReady();
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_EVENTS) != 0)
-        host_fatal("live: SDL_Init: %s", SDL_GetError());
-    g_window = SDL_CreateWindow("Blast Corps", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, int(320 * g_opt.scale),
-                                int(240 * g_opt.scale), SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
-    if (g_window == nullptr) host_fatal("live: SDL_CreateWindow: %s", SDL_GetError());
+        host_fatal("Can't start SDL (video, controllers): %s", SDL_GetError());
+    /* the window at 320x240 times the scale, as large as fits the desktop */
+    SDL_Rect usable;
+    unsigned scale = g_opt.scale;
+    if (SDL_GetDisplayUsableBounds(0, &usable) == 0)
+        while (scale > 1 && (320 * scale > unsigned(usable.w) || 240 * scale + 40 > unsigned(usable.h))) scale--;
+    Uint32 flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI;
+    if (g_opt.fullscreen) flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+    g_window = SDL_CreateWindow(kTitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, int(320 * scale),
+                                int(240 * scale), flags);
+    if (g_window == nullptr) host_fatal("Can't create the game window: %s", SDL_GetError());
+    SDL_SetWindowMinimumSize(g_window, 320, 240);
+    if (g_opt.fullscreen) SDL_ShowCursor(SDL_DISABLE);
     SDL_SysWMinfo wm;
     SDL_VERSION(&wm.version);
-    if (!SDL_GetWindowWMInfo(g_window, &wm)) host_fatal("live: SDL_GetWindowWMInfo: %s", SDL_GetError());
+    if (!SDL_GetWindowWMInfo(g_window, &wm)) host_fatal("SDL_GetWindowWMInfo: %s", SDL_GetError());
+    host_gui_window = wm.info.win.window;
     openPad();
 
     RT64::Application::Core core = {};
@@ -708,17 +927,144 @@ void prestart(HostOpts *o) {
     g_app = new RT64::Application(core, appConfig);
     g_app->userConfig.graphicsAPI =
         g_opt.vulkan ? RT64::UserConfiguration::GraphicsAPI::Vulkan : RT64::UserConfiguration::GraphicsAPI::D3D12;
+    if (g_opt.paceLog != nullptr) {
+        g_presentTimes = new double[kMaxPresents];
+        RT64::SetRenderHooks(nullptr, presentHook, nullptr);
+    }
     RT64::Application::SetupResult res = g_app->setup(GetCurrentThreadId());
     if (res != RT64::Application::SetupResult::Success || !g_app->device)
-        host_fatal("live: RT64 setup failed (%d) with %s", int(res), g_opt.vulkan ? "Vulkan" : "D3D12");
-    host_log("live: RT64 up (%s), window %ux%u\n", g_opt.vulkan ? "Vulkan" : "D3D12", 320 * g_opt.scale,
-             240 * g_opt.scale);
-    QueryPerformanceFrequency(&g_freq);
+        host_fatal("The renderer (RT64) could not start with %s (setup result %d).\n\n"
+                   "Your graphics card or driver may not support it. Try the other graphics API: set\n"
+                   "    api = %s\nin bc.ini (or start bc.exe --api %s), and make sure your graphics driver is up to date.",
+                   g_opt.vulkan ? "Vulkan" : "Direct3D 12", int(res), g_opt.vulkan ? "d3d12" : "vulkan",
+                   g_opt.vulkan ? "d3d12" : "vulkan");
+    g_app->swapChain->setVsyncEnabled(g_opt.vsync);
+    int ww, wh;
+    SDL_GetWindowSize(g_window, &ww, &wh);
+    host_log("live: RT64 up (%s), window %dx%d%s, vsync %s, display %u Hz\n", g_opt.vulkan ? "Vulkan" : "D3D12", ww,
+             wh, g_opt.fullscreen ? " fullscreen" : "", g_opt.vsync ? "on" : "off", displayHz());
     o->live = &kLive;
+}
+
+/* ---- the process: GUI program, log, config, ROM ----------------------------- */
+
+/* GUI subsystem: stderr exists when the parent handed us one (a console
+ * redirect, WSL, a script); otherwise the log goes to bc.log next to the
+ * exe (or in %TEMP% if that folder can't be written) */
+void setupLog(const std::string &dir) {
+    HANDLE h = GetStdHandle(STD_ERROR_HANDLE);
+    if (h != nullptr && h != INVALID_HANDLE_VALUE && GetFileType(h) != FILE_TYPE_UNKNOWN) return;
+    static std::string path;
+    path = dir + "bc.log";
+    FILE *f = _wfreopen(live::wide(path).c_str(), L"w", stderr);
+    if (f == nullptr) {
+        wchar_t tmp[MAX_PATH + 1];
+        GetTempPathW(MAX_PATH + 1, tmp);
+        path = live::utf8(tmp) + "bc.log";
+        f = _wfreopen(live::wide(path).c_str(), L"w", stderr);
+    }
+    if (f != nullptr) {
+        setvbuf(stderr, nullptr, _IONBF, 0);
+        host_log_path = path.c_str();
+        _wfreopen(live::wide(path).c_str(), L"a", stdout);
+    }
+}
+
+/* host_main's hooks */
+void optsHook(HostOpts *o) {
+    g_opt.vulkan = g_cfg.vulkan;
+    g_opt.scale = g_cfg.scale;
+    g_opt.fullscreen = g_cfg.fullscreen;
+    g_opt.vsync = g_cfg.vsync;
+    g_opt.volume = g_cfg.volume;
+    g_opt.mute = g_cfg.mute;
+    if (!g_cfg.file.empty() && !g_cfg.saves.empty()) {
+        const std::string dir = live::absPath(g_cfg, g_cfg.saves);
+        g_eepromPath = dir + "\\blastcorps.eep";
+        o->eeprom_path = g_eepromPath.c_str();
+        if (g_cfg.pak) {
+            g_mpkPath = dir + "\\blastcorps.mpk";
+            o->mpk_path = g_mpkPath.c_str();
+        }
+    }
+}
+
+void romHook(HostOpts *o) {
+    static std::string chosen;
+    if (o->rom_path != nullptr) {   /* given on the command line */
+        if (g_opt.romCheck) {
+            std::string why = live::romCheck(o->rom_path);
+            if (!why.empty()) host_fatal("%s", why.c_str());
+        }
+        return;
+    }
+    if (!g_cfg.rom.empty()) {
+        chosen = live::absPath(g_cfg, g_cfg.rom);
+        std::string why = live::romCheck(chosen);
+        if (why.empty()) {
+            o->rom_path = chosen.c_str();
+            return;
+        }
+        host_log("live: configured ROM: %s\n", why.c_str());
+        host_message(("The ROM set in " + g_cfg.file + " can't be used:\n\n" + why + "\n\nPlease choose your ROM.")
+                         .c_str(), 0);
+    }
+    for (;;) {
+        chosen = live::romDialog();
+        if (chosen.empty())
+            host_fatal("Blast Corps needs your own copy of the game: a ROM image of Blast Corps (USA) (Rev 1), "
+                       "also known as v1.1, as a .z64, .v64 or .n64 file.\n\n"
+                       "No ROM was chosen, so the game will close. Start it again to choose one, or put its path "
+                       "in bc.ini (rom = ...).");
+        std::string why = live::romCheck(chosen);
+        if (why.empty()) break;
+        host_log("live: chosen ROM: %s\n", why.c_str());
+        host_message((why + "\n\nPlease choose another file.").c_str(), 1);
+    }
+    o->rom_path = chosen.c_str();
+    if (live::configSetRom(g_cfg, chosen)) host_log("live: ROM %s remembered in %s\n", chosen.c_str(), g_cfg.file.c_str());
+}
+
+void terminateHandler() {
+    std::string what = "unknown exception";
+    try {
+        std::exception_ptr e = std::current_exception();
+        if (e) std::rethrow_exception(e);
+    } catch (const std::exception &x) {
+        what = x.what();
+    } catch (...) {
+    }
+    host_fatal("Blast Corps stopped on an internal error (C++: %s).", what.c_str());
 }
 
 }  // namespace
 
-int main(int argc, char **argv) {
-    return host_main(argc, argv, extraArg, prestart);
+int main(int, char **) {
+    host_gui = 1;
+    std::set_terminate(terminateHandler);
+    QueryPerformanceFrequency(&g_freq);
+    QueryPerformanceCounter(&g_tStart);
+    /* the command line as UTF-8 (paths with any characters) */
+    int argc = 0;
+    wchar_t **wargv = CommandLineToArgvW(GetCommandLineW(), &argc);
+    static std::vector<std::string> args;
+    std::vector<char *> argv;
+    for (int i = 0; i < argc; i++) args.push_back(live::utf8(wargv[i]));
+    for (std::string &s : args) argv.push_back(&s[0]);
+    argv.push_back(nullptr);
+
+    g_cfg.dir = live::exeDir();
+    setupLog(g_cfg.dir);
+    std::string configFile = g_cfg.dir + "bc.ini";
+    bool noConfig = false;
+    for (int i = 1; i < argc; i++) {
+        if (args[i] == "--no-config") noConfig = true;
+        else if (args[i] == "--config" && i + 1 < argc) configFile = live::absPath(g_cfg, args[i + 1]);
+    }
+    if (noConfig) live::configDefaults(g_cfg);
+    else live::configLoad(g_cfg, configFile);
+    host_exit_hook = writePaceLog;
+    host_opts_hook = optsHook;
+    host_rom_hook = romHook;
+    return host_main(argc, argv.data(), extraArg, prestart);
 }

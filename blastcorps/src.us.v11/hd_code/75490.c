@@ -23,9 +23,9 @@
  * more specific non-ABI explanation where one was already worked out. */
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 *D_803EF704;   /* the 0xFF object's two 0xC00-byte matrix buffers */
-extern u8 *D_803EF708;
-extern u8 *D_803EF70C;   /* its model header */
+extern u8 * N64P D_803EF704;   /* the 0xFF object's two 0xC00-byte matrix buffers */
+extern u8 * N64P D_803EF708;
+extern u8 * N64P D_803EF70C;   /* its model header */
 extern u8 D_803EF630[];  /* its state block */
 extern u8 D_803EF330[];  /* its animation channels */
 extern s32 D_803EF6F4;   /* start point x, z */
@@ -69,8 +69,8 @@ void func_802B9C50(u8 *model, s32 x, s32 z, s32 speed, s32 limit, s32 heading, s
 
     D_803EF70C = model;
     buf = D_80358070;
-    D_803EF704 = (u8 *) buf;
-    D_803EF708 = (u8 *) (buf + 0xC00);
+    D_803EF704 = (u8 *) N64_IPTR(buf);
+    D_803EF708 = (u8 *) N64_IPTR((buf + 0xC00));
     D_80358070 = buf + 0x1800;
     func_802A1388(0xFF, 0, (s32) D_803EF704, (s32) D_803EF708, model);
     D_803EF6DC = x;
@@ -208,7 +208,7 @@ s32 func_802BA104(ZoneScanRegs *r) {
 /* Rounded 3-D distance from (ax, ay, az) to (bx, by, bz) (62740.c; asm
  * convention in tools_port/conventions.txt: t3-t5, t6, t7, s0 -> s1). */
 
-extern void *D_803EF6D8;  /* this sound's handle, NULL = none */
+extern void * N64P D_803EF6D8;  /* this sound's handle, NULL = none */
 
 /* Positional sound 0x75 at D_803EF6DC/E0/E4 (called from hd.c); shape of
  * func_802B8794 (72B80). d is the rounded distance from the player
@@ -255,8 +255,8 @@ void func_802BA148(void) {
 #ifdef NON_MATCHING
 extern u8 D_803EF630[];
 extern u8 D_803EF330[];
-extern u8 *D_803EF704;
-extern u8 *D_803EF708;
+extern u8 * N64P D_803EF704;
+extern u8 * N64P D_803EF708;
 s32 func_802BA5A4(void);
 s32 func_802BA6AC(void);
 s32 func_802BA638(s32 *termZ, s32 *lastLevel, s32 *level);
@@ -617,9 +617,9 @@ void func_802BA9A0(s32 h2) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 *D_803EF704; /* matrix buffer pair */
-extern u8 *D_803EF708;
-extern u8 *D_803EF70C; /* model header */
+extern u8 * N64P D_803EF704; /* matrix buffer pair */
+extern u8 * N64P D_803EF708;
+extern u8 * N64P D_803EF70C; /* model header */
 
 /* Rebuilds the type-0xFF object's model matrices and points, as
  * func_802B7030 (71140) does for vehicle 5: header D_803EF70C, buffers
@@ -678,9 +678,9 @@ void func_802BAD24(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 *D_803EFAD4;    /* vehicle 6's model header */
-extern u64 *D_803EFAE4;   /* its two 0x800-byte matrix buffers */
-extern u64 *D_803EFAE8;
+extern u8 * N64P D_803EFAD4;    /* vehicle 6's model header */
+extern u64 * N64P D_803EFAE4;   /* its two 0x800-byte matrix buffers */
+extern u64 * N64P D_803EFAE8;
 extern u8 D_803EFA20[];
 extern u32 D_803EFAC8[];
 extern u8 D_803EF720[];
@@ -712,8 +712,8 @@ void func_802BAD80(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp) {
 
     D_803EFAD4 = model;
     buf = D_80358070;
-    D_803EFAE4 = (u64 *) buf;
-    D_803EFAE8 = (u64 *) (buf + 0x800);
+    D_803EFAE4 = (u64 *) N64_IPTR(buf);
+    D_803EFAE8 = (u64 *) N64_IPTR((buf + 0x800));
     D_80358070 = buf + 0x1000;
     func_802A1388(6, 0, (s32) D_803EFAE4, (s32) D_803EFAE8, model);
     func_802A754C(D_803EFA20);
@@ -816,11 +816,11 @@ s32 func_802BB170(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u64 *D_803EFAE4;  /* save copy pair (func_802A7764) */
-extern u64 *D_803EFAE8;
-extern void *D_803EFAD8; /* sound handles, NULL = none */
-extern void *D_803EFADC;
-extern void *D_803EFAE0;
+extern u64 * N64P D_803EFAE4;  /* save copy pair (func_802A7764) */
+extern u64 * N64P D_803EFAE8;
+extern void * N64P D_803EFAD8; /* sound handles, NULL = none */
+extern void * N64P D_803EFADC;
+extern void * N64P D_803EFAE0;
 
 /* Leave vehicle type 6 (called from hd.c): func_802A7764(D_803EFAE4,
  * D_803EFAE8, 0x800), then stops the sounds D_803EFADC, D_803EFAD8 and
@@ -1115,7 +1115,7 @@ s32 func_802BB868(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 *D_803EFAD4; /* model header */
+extern u8 * N64P D_803EFAD4; /* model header */
 
 /* Rebuilds vehicle 6's model (D_803EFA20, the asm's $gp; header
  * D_803EFAD4, buffers D_803EFAE4 (D_8035805C set) / D_803EFAE8): rotation

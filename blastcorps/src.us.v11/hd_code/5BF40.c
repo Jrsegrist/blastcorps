@@ -11,8 +11,8 @@
  * more specific non-ABI explanation where one was already worked out. */
 #ifdef NON_MATCHING
 /* Shared declarations for the NON_MATCHING (port) rewrites below. */
-extern u32 *D_803B8D44;         /* ROM offsets (from 0x4CE0) of the entries, 8 bytes apart */
-extern u8 *D_803B8D40;
+extern u32 * N64P D_803B8D44;         /* ROM offsets (from 0x4CE0) of the entries, 8 bytes apart */
+extern u8 * N64P D_803B8D40;
 extern u8 D_803B8570[];
 /* Entry n of the D_803B8D44 table spans ROM [0x4CE0 + w[2n], 0x4CE0 + w[2n + 2]). */
 #define TABLE_ROM_BASE 0x4CE0
@@ -27,10 +27,10 @@ typedef struct {
 
 /* The 16-byte decode request handed to func_802A57DC (60F60.c's DecodeReq). */
 typedef struct {
-    /* 0x0 */ u8 *data;
+    /* 0x0 */ u8 * N64P data;
     /* 0x4 */ u32 size;
     /* 0x8 */ s32 type;
-    /* 0xC */ u8 *param;
+    /* 0xC */ u8 * N64P param;
 } DecodeReq;
 extern DecodeReq D_803C4B58;
 

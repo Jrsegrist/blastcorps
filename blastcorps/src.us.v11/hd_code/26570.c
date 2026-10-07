@@ -17,8 +17,8 @@
 #define D_802F8BDC ((YoshiArg *) D_802F8BDC)
 #define D_80364AF0 ((Player *) D_80364AF0)
 #ifdef NON_MATCHING
-#define D_8036BB24 (*(PathNode * *) &D_8036BB24)
-#define D_8036BED8 (*(YoshiNode * *) &D_8036BED8)
+#define D_8036BB24 (*(PathNode * N64P *) &D_8036BB24)
+#define D_8036BED8 (*(YoshiNode * N64P *) &D_8036BED8)
 #endif
 /* end of views */
 
@@ -40,8 +40,8 @@ typedef struct {
     /* 0x06 */ u16 w;
     /* 0x08 */ u16 h;
     /* 0x0A */ u8 unkA[2];
-    /* 0x0C */ u8 *text;
-    /* 0x10 */ u16 *jtext;
+    /* 0x0C */ u8 * N64P text;
+    /* 0x10 */ u16 * N64P jtext;
     /* 0x14 */ u8 unk14; /* sprite */
     /* 0x15 */ u8 unk15;
     /* 0x16 */ u16 sound; /* played when selected */
@@ -131,7 +131,7 @@ typedef struct YoshiArg {
 } YoshiArg;
 
 /* Frame buffers passed in as arg1 */
-#define YMTX(off) ((Mtx *) (arg1 + (off)))
+#define YMTX(off) ((Mtx *) N64_IPTR(arg1 + (off)))
 
 u16 func_8026F8A8(u16 arg0, u16 arg1, u16 start, u16 mask);
 void func_8026FB50(struct YoshiArg *arg0);
@@ -187,7 +187,7 @@ extern u8 D_802F499A[];
 extern u8 D_8036BAA2[];
 extern u16 D_8036BB04;
 extern u16 D_8036BB06;
-extern PathNode *D_8036BB10;
+extern PathNode * N64P D_8036BB10;
 #ifndef NON_MATCHING
 extern PathNode *D_8036BB24;
 #endif
@@ -838,10 +838,10 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
                     u8 *c2;
 
                     c2 = D_802F47B0[18];
-                    cc = func_80276130((struct SpriteVtxBuf *) arg1, 0, cc, -halfW, halfH - D_8036BB44 - off, 16, D_8036BB44 / 2 + 10,
+                    cc = func_80276130((struct SpriteVtxBuf *) N64_IPTR(arg1), 0, cc, -halfW, halfH - D_8036BB44 - off, 16, D_8036BB44 / 2 + 10,
                                        c2[0], c2[1], c2[2], D_8036BB20, c2[4], c2[5], c2[6], D_8036BB20,
                                        c2[0], c2[1], c2[2], D_8036BB20, c2[4], c2[5], c2[6], D_8036BB20);
-                    cc = func_80276080((struct SpriteVtxBuf *) arg1, 0, cc, -3 - halfW, halfH - D_8036BB44 - off + 3, 16,
+                    cc = func_80276080((struct SpriteVtxBuf *) N64_IPTR(arg1), 0, cc, -3 - halfW, halfH - D_8036BB44 - off + 3, 16,
                                        D_8036BB44 / 2 + 10, 0, 0, 0, D_8036BB20 / 2);
                     gdl = func_80275DA4(gdl, 1);
                     gSPVertex(gdl++, arg1 + 0x1E00, 8, 0);
@@ -857,13 +857,13 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
                     /* The ROM reloads c3[0] for the second colour here (unlike the call above, where
                      * IDO reuses the first load). No plain spelling found that defeats ugen's load
                      * cache; the volatile cast reproduces it with identical code. */
-                    cc = func_80276130((struct SpriteVtxBuf *) arg1, 1, cc, -halfW, D_8036BB44 - halfH + off, 16, D_8036BB44 / 2 + 10,
+                    cc = func_80276130((struct SpriteVtxBuf *) N64_IPTR(arg1), 1, cc, -halfW, D_8036BB44 - halfH + off, 16, D_8036BB44 / 2 + 10,
                                        c3[0], c3[1], c3[2], D_8036BB20, c3[4], c3[5], c3[6], D_8036BB20,
                                        ((volatile u8 *) c3)[0], c3[1], c3[2], D_8036BB20, c3[4], c3[5], c3[6], D_8036BB20);
-                    cc = func_80276080((struct SpriteVtxBuf *) arg1, 1, cc, -3 - halfW, D_8036BB44 - halfH + off - 3, 16,
+                    cc = func_80276080((struct SpriteVtxBuf *) N64_IPTR(arg1), 1, cc, -3 - halfW, D_8036BB44 - halfH + off - 3, 16,
                                        D_8036BB44 / 2 + 10, 0, 0, 0, D_8036BB20 / 2);
                     gdl = func_80275DA4(gdl, 1);
-                    gSPVertex(gdl++, &((Vtx *) (arg1 + 0x1D80))[cc], 8, 0);
+                    gSPVertex(gdl++, &((Vtx *) N64_IPTR((arg1 + 0x1D80)))[cc], 8, 0);
                     gSP1Triangle(gdl++, 4, 5, 6, 0);
                     gSP1Triangle(gdl++, 4, 6, 7, 0);
                     gSP1Triangle(gdl++, 0, 1, 2, 0);
@@ -947,14 +947,14 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
                 text = func_8026F004(arg, i, 0);
                 if ((node->flags & 0x80) && !(node->flags & 0x800)) {
                     if (i == arg->sel) {
-                        func_80259DC8((Gfx **) arg1, text, wtext, node->flags & 8, 0, node->x - halfW - 3,
+                        func_80259DC8((Gfx * N64P *) N64_IPTR(arg1), text, wtext, node->flags & 8, 0, node->x - halfW - 3,
                                       ((node->flags & 0x1000) ? D_8036BB30 : 0) + (node->y - halfH) + 3, node->w,
                                       node->h, 1, 0, 0, 0,
                                       D_8036BB20 * D_802F47B0[node->selColor][3] * func_8026F644((u16 *) arg, (u16 *) node, node->y - halfH + D_8036BB30) / 65025 / 2,
                                       0, 0, 0,
                                       D_8036BB20 * D_802F47B0[node->selColor][3] * func_8026F644((u16 *) arg, (u16 *) node, node->y - halfH + D_8036BB30 + node->h) / 65025 / 2);
                     } else if (!(node->flags & 4) || FRAMES(D_803156C4 % 23) < 16) {
-                        func_80259DC8((Gfx **) arg1, text, wtext, node->flags & 8, 0, node->x - halfW - 3,
+                        func_80259DC8((Gfx * N64P *) N64_IPTR(arg1), text, wtext, node->flags & 8, 0, node->x - halfW - 3,
                                       ((node->flags & 0x1000) ? D_8036BB30 : 0) + (node->y - halfH) + 3, node->w,
                                       node->h, 1, 0, 0, 0,
                                       D_8036BB20 * D_802F47B0[node->color][3] * func_8026F644((u16 *) arg, (u16 *) node, node->y - halfH + D_8036BB30) / 65025 / 2,
@@ -972,7 +972,7 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
                 if (i == arg->sel) {
                     if ((!(node->flags & 4) || FRAMES(D_803156C4 % 23) < 16) &&
                         (!(node->flags & 0x40) || FRAMES(D_803156C4 % 15) < 11)) {
-                        func_80259DC8((Gfx **) arg1, text, wtext, node->flags & 8, 0, node->x - halfW,
+                        func_80259DC8((Gfx * N64P *) N64_IPTR(arg1), text, wtext, node->flags & 8, 0, node->x - halfW,
                                       ((node->flags & 0x1000) ? D_8036BB30 : 0) + (node->y - halfH), node->w,
                                       node->h, 1, D_802F47B0[node->selColor][0], D_802F47B0[node->selColor][1],
                                       D_802F47B0[node->selColor][2],
@@ -982,7 +982,7 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
                                       D_8036BB20 * D_802F47B0[node->selColor][7] * func_8026F644((u16 *) arg, (u16 *) node, node->y - halfH + D_8036BB30 + node->h) / 65025);
                     }
                 } else if (!(node->flags & 4) || FRAMES(D_803156C4 % 23) < 16) {
-                    func_80259DC8((Gfx **) arg1, text, wtext, node->flags & 8, 0, node->x - halfW,
+                    func_80259DC8((Gfx * N64P *) N64_IPTR(arg1), text, wtext, node->flags & 8, 0, node->x - halfW,
                                   ((node->flags & 0x1000) ? D_8036BB30 : 0) + (node->y - halfH), node->w, node->h,
                                   1, D_802F47B0[node->color][0], D_802F47B0[node->color][1],
                                   D_802F47B0[node->color][2],
@@ -1161,7 +1161,7 @@ s32 func_8026F92C(u64 in) {
     return i;
 }
 
-u8 func_8026FA38(char **name, s32 *arg1) {
+u8 func_8026FA38(char * N64P *name, s32 *arg1) {
     s32 i;
     s32 result = 0;
 

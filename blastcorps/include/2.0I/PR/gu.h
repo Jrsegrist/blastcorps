@@ -48,7 +48,7 @@
  * Data Structures
  */
 typedef struct {
-	unsigned char   *base;
+	unsigned char   * N64P base;
 	int             fmt, siz;
 	int             xsize, ysize;
 	int             lsize;

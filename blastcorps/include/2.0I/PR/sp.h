@@ -42,7 +42,7 @@ struct bitmap {
 
 	s16	t;		/* Vertical offset into base	*/
 
-	void	*buf;		/* Pointer to bitmap data	*/
+	void	* N64P buf;		/* Pointer to bitmap data	*/
 				/* Don't re-load if new buf	*/
 				/* is the same as the old one   */
 				/* Skip if NULL */
@@ -74,7 +74,7 @@ struct sprite {
 	s16	startTLUT;	/* Lookup Table Entry Starting index */
 	s16	nTLUT;		/* Total number of Lookup Table Entries */
 
-	int	*LUT;		/* Pointer to Lookup Table	*/
+	int	* N64P LUT;		/* Pointer to Lookup Table	*/
 
 	s16	istart;		/* Starting bitmap index	*/
 	s16	istep;		/* Bitmaps index step (see SP_INCY) */
@@ -88,11 +88,11 @@ struct sprite {
 	u8	bmfmt;		/* Bitmap Format	 	*/
 	u8	bmsiz;		/* Bitmap Texel Size		*/
 
-	Bitmap	*bitmap;	/* Pointer to first bitmap	*/
+	Bitmap	* N64P bitmap;	/* Pointer to first bitmap	*/
 
-	Gfx	*rsp_dl;	/* Pointer to RSP display list	*/
+	Gfx	* N64P rsp_dl;	/* Pointer to RSP display list	*/
 
-	Gfx	*rsp_dl_next;	/* Pointer to next RSP display entry	*/
+	Gfx	* N64P rsp_dl_next;	/* Pointer to next RSP display entry	*/
 
 	s16	frac_s,		/* Fractional Texture offsets */
 		frac_t;		/* These have 5 fraction bits */

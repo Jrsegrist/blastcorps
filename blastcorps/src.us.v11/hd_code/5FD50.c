@@ -19,8 +19,8 @@
 /* Shared declarations for the NON_MATCHING (port) rewrites below. */
 extern s16 D_803C3248;
 extern u8 D_803C2B90[];
-extern u8 *D_803C2B88;
-extern s16 *D_803C3170;
+extern u8 * N64P D_803C2B88;
+extern s16 * N64P D_803C3170;
 extern s16 D_803C3178[];
 
 /* Body shared by func_802A4510 / func_802A45D4: D_803C3248 = value, reset
@@ -93,8 +93,8 @@ void func_802A467C(s32 arg0, Gfx *arg1, Vtx *arg2, s32 arg3) {
 #ifdef NON_MATCHING
 /* The two list cursors func_802A484C advances (the asm's t3 and s5). */
 typedef struct {
-    /* 0x0 */ s16 *quads; /* {x, z, w, h} halfword quads still to test */
-    /* 0x4 */ s16 *cells; /* visible single cells (z * stride + x) */
+    /* 0x0 */ s16 * N64P quads; /* {x, z, w, h} halfword quads still to test */
+    /* 0x4 */ s16 * N64P cells; /* visible single cells (z * stride + x) */
 } Io802A484C;
 void func_802A484C(Io802A484C *io, void *dataPtr, Vtx *v, s32 dataSize, s32 x, s32 z, u32 w, u32 h,
                    s32 stride, u8 *grid, u32 xs, u32 zs);
@@ -110,7 +110,7 @@ void func_802A484C(Io802A484C *io, void *dataPtr, Vtx *v, s32 dataSize, s32 x, s
  * Register convention: ABI inputs (lvl is an s32 as func_802A467C passes it);
  * the asm leaves s0-s7 changed (conventions.txt); its add/addi trap. */
 void func_802A470C(s32 arg0, Gfx *dataPtr, Vtx *v, s32 dataSize) {
-    u8 *lvl = (u8 *) arg0;
+    u8 *lvl = (u8 *) N64_IPTR(arg0);
     s16 *q = (s16 *) D_803C2B88;
     Io802A484C io;
 

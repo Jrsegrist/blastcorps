@@ -19,8 +19,8 @@ typedef struct {
 
 /* Zones per level */
 typedef struct {
-    Zone *start;
-    Zone *end;
+    Zone * N64P start;
+    Zone * N64P end;
     u8 level;
 } ZoneList;
 

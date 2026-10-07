@@ -23,7 +23,7 @@ extern s32 D_803669D8;
 
 /* Inflates the gzip stream at *arg0 into *arg1, then advances both
  * pointers past the consumed input and the produced output. */
-void func_8025C230(u8 **arg0, u8 **arg1, s32 arg2) {
+void func_8025C230(u8 * N64P *arg0, u8 * N64P *arg1, s32 arg2) {
     D_803669C0 = *arg0;
     D_803669C4 = *arg1;
     D_8039CAE0 = arg2;

@@ -24,21 +24,21 @@ typedef struct {
 } SndKeyMap;
 
 typedef struct {
-    SndEnvelope *envelope;
-    SndKeyMap *keyMap;
-    void *wavetable;
+    SndEnvelope * N64P envelope;
+    SndKeyMap * N64P keyMap;
+    void * N64P wavetable;
     u8 samplePan;
     u8 sampleVolume;
 } SndSound;
 
 typedef struct SndState {
-    struct SndState *next;
-    struct SndState *prev;
-    SndSound *sound;
+    struct SndState * N64P next;
+    struct SndState * N64P prev;
+    SndSound * N64P sound;
     u8 voice[0x1C];
     f32 pitch_28;
     f32 pitch_2c;
-    struct SndState *state;
+    struct SndState * N64P state;
     s16 vol;
     u8 priority;
     s32 unk38;
@@ -50,12 +50,12 @@ typedef struct SndState {
 
 typedef struct {
     u16 type;
-    SndState *state;
+    SndState * N64P state;
     union {
         s32 data;
         f32 pitch;
     } u;
-    void *ptr;
+    void * N64P ptr;
 } SndEvent;
 
 typedef struct {
@@ -70,9 +70,9 @@ typedef struct {
  * head/tail stores in func_80260300 share one %hi, as in the target. */
 extern u8 D_80366BD0[];
 ALLink D_802E8CE0 = { NULL, NULL }; /* active list: next = head, prev = tail */
-void *D_802E8CE8 = NULL;            /* free list */
-void *D_802E8CEC = D_80366BD0;      /* the sound player */
-extern u16 *D_80366C28;
+void * N64P D_802E8CE8 = NULL;            /* free list */
+void * N64P D_802E8CEC = N64_DPTR(D_80366BD0);      /* the sound player */
+extern u16 * N64P D_80366C28;
 s32 func_8025F044(void *node);
 void func_8025F0F0(void *sndp, SndEvent *event);
 
@@ -89,13 +89,13 @@ void func_8025EDF0(SndConfig *c) {
     SNDP_FIELD(s32, 0x40) = 0;
     SNDP_FIELD(s32, 0x4C) = 33000;
     ptr = alHeapDBAlloc(0, 0, c->heap, 1, c->maxStates * sizeof(SndState));
-    SNDP_FIELD(void *, 0x44) = ptr;
+    SNDP_FIELD(void * N64P, 0x44) = ptr;
     ptr = alHeapDBAlloc(0, 0, c->heap, 1, c->maxEvents * 28);
     alEvtqNew((ALEventQueue *) ((u8 *) D_802E8CEC + 0x14), (ALEventListItem *) ptr, c->maxEvents);
-    D_802E8CE8 = SNDP_FIELD(void *, 0x44);
+    D_802E8CE8 = SNDP_FIELD(void * N64P, 0x44);
 
     for (i = 1; i < c->maxStates; i++) {
-        sState = SNDP_FIELD(SndState *, 0x44);
+        sState = SNDP_FIELD(SndState * N64P, 0x44);
         alLink((ALLink *) &sState[i], (ALLink *) (&sState[i] - 1));
     }
 
@@ -104,11 +104,11 @@ void func_8025EDF0(SndConfig *c) {
         D_80366C28[i] = 0x7FFF;
     }
 
-    SNDP_FIELD(void *, 0x38) = alGlobals;
-    SNDP_FIELD(void *, 0x00) = NULL;
-    SNDP_FIELD(void *, 0x08) = func_8025F044;
-    SNDP_FIELD(void *, 0x04) = D_802E8CEC;
-    alSynAddPlayer(SNDP_FIELD(void *, 0x38), D_802E8CEC);
+    SNDP_FIELD(void * N64P, 0x38) = alGlobals;
+    SNDP_FIELD(void * N64P, 0x00) = NULL;
+    SNDP_FIELD(void * N64P, 0x08) = func_8025F044;
+    SNDP_FIELD(void * N64P, 0x04) = D_802E8CEC;
+    alSynAddPlayer(SNDP_FIELD(void * N64P, 0x38), D_802E8CEC);
 
     evt.type = 0x20;
     alEvtqPostEvent((ALEventQueue *) ((u8 *) D_802E8CEC + 0x14), (ALEvent *) &evt, SNDP_FIELD(s32, 0x4C));
@@ -139,13 +139,13 @@ s32 func_8025F044(void *node) {
 }
 
 extern s16 D_802E8CF0;
-extern u16 *D_80366C28;
+extern u16 * N64P D_80366C28;
 void func_8026005C(void *arg0);
 void func_802600D8(void *arg0);
 void func_80260148(void *, void *, u16);
 u16 func_80260210(u16 *arg0, u16 *arg1);
 
-#define SNDP_DRVR(sndp) (*(void **) ((u8 *) (sndp) + 0x38))
+#define SNDP_DRVR(sndp) (*(void * N64P *) ((u8 *) (sndp) + 0x38))
 #define SNDP_EVTQ(sndp) ((void *) ((u8 *) (sndp) + 0x14))
 #define SNDP_MAXSOUNDS(sndp) (*(s32 *) ((u8 *) (sndp) + 0x48))
 #define SLOT_VOLUME(keyMap) (((s16 *) D_80366C28)[(keyMap)->keyMin & 0x3F])
@@ -406,14 +406,14 @@ void func_8025F0F0(void *sndp, SndEvent *event) {
     } while (!lastInSequence && soundState != NULL && !isEventForSingleSound);
 }
 
-extern void *D_802E8CEC;
+extern void * N64P D_802E8CEC;
 
 void func_80260148(void *, void *, u16);
 
 void func_8026005C(void *arg0) {
     if (*((u8 *) arg0 + 0x3e) & 4) {
-        alSynStopVoice((ALSynth *) (*(s32 *) ((u8 *) D_802E8CEC + 0x38)), (ALVoice *) ((u8 *) arg0 + 0xc));
-        alSynFreeVoice((ALSynth *) (*(s32 *) ((u8 *) D_802E8CEC + 0x38)), (ALVoice *) ((u8 *) arg0 + 0xc));
+        alSynStopVoice((ALSynth *) N64_IPTR((*(s32 *) ((u8 *) D_802E8CEC + 0x38))), (ALVoice *) ((u8 *) arg0 + 0xc));
+        alSynFreeVoice((ALSynth *) N64_IPTR((*(s32 *) ((u8 *) D_802E8CEC + 0x38))), (ALVoice *) ((u8 *) arg0 + 0xc));
     }
     func_802604FC(arg0);
     func_80260148((u8 *) D_802E8CEC + 0x14, arg0, 0xffff);
@@ -443,14 +443,14 @@ void func_80260148(void *arg0, void *arg1, u16 arg2) {
     s32 savedState;
 
     savedState = osSetIntMask(1);
-    list = *(void **) ((u8 *) arg0 + 8);
+    list = *(void * N64P *) ((u8 *) arg0 + 8);
     while (list != NULL) {
-        next = *(void **) list;
+        next = *(void * N64P *) list;
         addr = (u8 *) list + 0xc;
         entry2 = list;
         dup = next;
 
-        if (*(void **) ((u8 *) list + 0x10) == arg1) {
+        if (*(void * N64P *) ((u8 *) list + 0x10) == arg1) {
             if ((*(u16 *) ((u8 *) list + 0xc) & arg2) != 0) {
                 if (next != NULL) {
                     *(s32 *) ((u8 *) next + 8) += *(s32 *) ((u8 *) list + 8);
@@ -465,7 +465,7 @@ void func_80260148(void *arg0, void *arg1, u16 arg2) {
     osSetIntMask(savedState);
 }
 
-extern void *D_802E8CE8;
+extern void * N64P D_802E8CE8;
 
 u16 func_80260210(u16 *arg0, u16 *arg1) {
     s32 savedState;
@@ -486,21 +486,21 @@ u16 func_80260210(u16 *arg0, u16 *arg1) {
     if (list1 != NULL) {
         do {
             count1 = count1 + 1;
-        } while ((list1 = *(void **) list1) != NULL);
+        } while ((list1 = *(void * N64P *) list1) != NULL);
     }
 
     count2 = 0;
     if (list2 != NULL) {
         do {
             count2 = count2 + 1;
-        } while ((list2 = *(void **) list2) != NULL);
+        } while ((list2 = *(void * N64P *) list2) != NULL);
     }
 
     count3 = 0;
     if (list3 != NULL) {
         do {
             count3 = count3 + 1;
-        } while ((list3 = *(void **) ((u8 *) list3 + 4)) != NULL);
+        } while ((list3 = *(void * N64P *) ((u8 *) list3 + 4)) != NULL);
     }
 
     *arg0 = count2;
@@ -561,21 +561,21 @@ extern s16 D_802E8CF0;
 
 void func_802604FC(void *arg0) {
     if (D_802E8CE0.next == arg0) {
-        D_802E8CE0.next = *(void **) arg0;
+        D_802E8CE0.next = *(void * N64P *) arg0;
     }
     if (D_802E8CE0.prev == arg0) {
-        D_802E8CE0.prev = *(void **) ((u8 *) arg0 + 4);
+        D_802E8CE0.prev = *(void * N64P *) ((u8 *) arg0 + 4);
     }
     alUnlink(arg0);
 
     if (D_802E8CE8 != NULL) {
-        *(void **) arg0 = D_802E8CE8;
+        *(void * N64P *) arg0 = D_802E8CE8;
         *(s32 *) ((u8 *) arg0 + 4) = 0;
         *(s32 *) ((u8 *) D_802E8CE8 + 4) = (s32) arg0;
         D_802E8CE8 = arg0;
     } else {
         *(s32 *) ((u8 *) arg0 + 4) = 0;
-        *(void **) arg0 = *(void **) ((u8 *) arg0 + 4);
+        *(void * N64P *) arg0 = *(void * N64P *) ((u8 *) arg0 + 4);
         D_802E8CE8 = arg0;
     }
 
@@ -583,11 +583,11 @@ void func_802604FC(void *arg0) {
         D_802E8CF0--;
     }
     *(u8 *) ((u8 *) arg0 + 0x3f) = 0;
-    if (*(void **) ((u8 *) arg0 + 0x30) != NULL) {
-        if (**(void ***) ((u8 *) arg0 + 0x30) == arg0) {
-            **(void ***) ((u8 *) arg0 + 0x30) = NULL;
+    if (*(void * N64P *) ((u8 *) arg0 + 0x30) != NULL) {
+        if (**(void * N64P * N64P *) ((u8 *) arg0 + 0x30) == arg0) {
+            **(void * N64P * N64P *) ((u8 *) arg0 + 0x30) = NULL;
         }
-        *(void **) ((u8 *) arg0 + 0x30) = NULL;
+        *(void * N64P *) ((u8 *) arg0 + 0x30) = NULL;
     }
 }
 
@@ -604,7 +604,7 @@ u8 func_80260634(void *arg0) {
     return 0;
 }
 
-extern void *D_802E8CEC;
+extern void * N64P D_802E8CEC;
 SndState *func_80260300(void *, SndSound *);
 
 /* The functions below post sound events built in separate locals (eventCode,
@@ -621,7 +621,7 @@ static ALEvent *sndEvt(SndEvent *e, u16 type, void *state, s32 data, void *ptr) 
     return (ALEvent *) e;
 }
 #define SND_EVT_DECL SndEvent sndEvtTmp;
-#define SND_EVT(type_, state_, data_, ptr_) sndEvt(&sndEvtTmp, (type_), (void *) (state_), (s32) (data_), (void *) (ptr_))
+#define SND_EVT(type_, state_, data_, ptr_) sndEvt(&sndEvtTmp, (type_), (void *) N64_IPTR(state_), (s32) (data_), (void *) N64_IPTR(ptr_))
 #else
 #define SND_EVT_DECL
 #define SND_EVT(type_, state_, data_, ptr_) ((ALEvent *) &(type_))
@@ -666,14 +666,14 @@ retNull:
 
 mainLogic:
     do {
-        entry = *(void **) ((u8 *) (*(void **) ((u8 *) arg0 + 0xc))
+        entry = *(void * N64P *) ((u8 *) (*(void * N64P *) ((u8 *) arg0 + 0xc))
             + (arg1 << 2) + 0xc);
         node = func_80260300(arg0, entry);
         if (node != NULL) {
-            *(void **) ((u8 *) D_802E8CEC + 0x40) = node;
+            *(void * N64P *) ((u8 *) D_802E8CEC + 0x40) = node;
             eventCode = 1;
             eventParam = (s32) node;
-            scaled = (s32) *(u8 *) ((u8 *) (*(void **) ((u8 *) entry + 4)) + 1)
+            scaled = (s32) *(u8 *) ((u8 *) (*(void * N64P *) ((u8 *) entry + 4)) + 1)
                 * 33333;
 
             if (*(u8 *) ((u8 *) node + 0x3e) & 0x10) {
@@ -692,7 +692,7 @@ mainLogic:
         }
 
         totalSomething = totalSomething + scaled;
-        entry4dead = *(void **) ((u8 *) entry + 4);
+        entry4dead = *(void * N64P *) ((u8 *) entry + 4);
         arg1 = ((*(u8 *) ((u8 *) entry4dead + 2) & 0xc0) << 2)
             + *(u8 *) entry4dead;
     } while (arg1 != 0 && node != NULL);
@@ -712,12 +712,12 @@ mainLogic:
     }
 
     if (arg2 != NULL) {
-        *(void **) arg2 = result;
+        *(void * N64P *) arg2 = result;
     }
     return result;
 }
 
-extern void *D_802E8CEC;
+extern void * N64P D_802E8CEC;
 
 
 /* eventTail/eventHead are dead stack space never read or written here - the
@@ -767,7 +767,7 @@ void func_80260934(u8 arg0) {
                 alEvtqPostEvent((ALEventQueue *) ((u8 *) D_802E8CEC + 0x14), SND_EVT(eventCode, eventParam, 0, 0),
                                 0);
             }
-            entry = *(void **) entry;
+            entry = *(void * N64P *) entry;
         } while (entry != NULL);
     }
     osSetIntMask(savedState);
@@ -795,11 +795,11 @@ void func_80260A30(u8 arg0) {
     count = 0;
     if (entry != NULL) {
         do {
-            if ((*(u8 *) ((u8 *) (*(void **) ((u8 *) (*(void **) ((u8 *) entry + 8)) + 4)) + 2) & 0x3f) == arg0) {
+            if ((*(u8 *) ((u8 *) (*(void * N64P *) ((u8 *) (*(void * N64P *) ((u8 *) entry + 8)) + 4)) + 2) & 0x3f) == arg0) {
                 func_802608C8(entry);
             }
             count = count + 1;
-        } while ((entry = *(void **) entry) != NULL);
+        } while ((entry = *(void * N64P *) entry) != NULL);
     }
     osSetIntMask(savedState);
 }
@@ -825,13 +825,13 @@ void func_80260AB8(void *arg0, s16 arg1, s32 arg2) {
     }
 }
 
-extern u16 *D_80366C28;
+extern u16 * N64P D_80366C28;
 
 u16 func_80260B24(u8 arg0) {
     return D_80366C28[arg0];
 }
 
-extern void *D_802E8CEC;
+extern void * N64P D_802E8CEC;
 
 void func_80260B40(u8 arg0, u16 arg1) {
     SND_EVT_DECL
@@ -850,13 +850,13 @@ void func_80260B40(u8 arg0, u16 arg1) {
 
     count = 0;
     while (entry != NULL) {
-        if ((*(u8 *) ((u8 *) (*(void **) ((u8 *) (*(void **) ((u8 *) entry + 8)) + 4)) + 2) & 0x3f) == arg0) {
+        if ((*(u8 *) ((u8 *) (*(void * N64P *) ((u8 *) (*(void * N64P *) ((u8 *) entry + 8)) + 4)) + 2) & 0x3f) == arg0) {
             eventCode = 0x800;
             eventParam = (s32) entry;
             alEvtqPostEvent((ALEventQueue *) ((u8 *) D_802E8CEC + 0x14), SND_EVT(eventCode, eventParam, 0, 0), 0);
         }
         count = count + 1;
-        entry = *(void **) entry;
+        entry = *(void * N64P *) entry;
     }
 
     osSetIntMask(savedState);

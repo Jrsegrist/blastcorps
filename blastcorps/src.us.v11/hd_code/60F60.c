@@ -13,8 +13,9 @@
 /* .data at 0x80305C10 (ROM 0xC1450-0xC1490): the 0-terminated list of effect
  * definitions (in the 7D9D0 tables inside .text) that get a heap texture
  * block (func_802A67C4), then func_802A5FA8's two debug strings. */
-u8 *D_80305C10[] = {
-    D_802C2954, D_802C2984, D_802C2A5C, D_802C37C0, D_802C3804, D_802C382C, D_802C3848, D_802C386C, NULL,
+u8 * N64P D_80305C10[] = {
+    N64_DPTR(D_802C2954), N64_DPTR(D_802C2984), N64_DPTR(D_802C2A5C), N64_DPTR(D_802C37C0),
+    N64_DPTR(D_802C3804), N64_DPTR(D_802C382C), N64_DPTR(D_802C3848), N64_DPTR(D_802C386C), NULL,
 };
 char D_80305C34[] = "Num texture caches=";
 char D_80305C48[] = "%d\n";
@@ -24,7 +25,7 @@ char D_80305C48[] = "%d\n";
 
 /* One of 16 records at D_803C4B70 (stride 0x3C). */
 typedef struct {
-    /* 0x00 */ u8 *def;     /* points at a definition whose u16 at +0xE is a count */
+    /* 0x00 */ u8 * N64P def;     /* points at a definition whose u16 at +0xE is a count */
     /* 0x04 */ u8 pad4[0x2E];
     /* 0x32 */ u8 last;     /* def's count - 1 */
     /* 0x33 */ u8 active;
@@ -42,16 +43,16 @@ typedef struct {
 
 extern Rec3C D_803C4B70[16];
 extern u8 D_803EB770[16];
-extern HeapBlock *D_803EB788;  /* first block */
-extern HeapBlock *D_803EB78C;  /* end of the blocks */
+extern HeapBlock * N64P D_803EB788;  /* first block */
+extern HeapBlock * N64P D_803EB78C;  /* end of the blocks */
 extern s16 D_803EB790;         /* number of blocks (asm reads it with lh) */
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 D_803C4250[];
-extern u8 *D_803C4B50;
-extern u8 *D_803C4B54;
+extern u8 * N64P D_803C4B50;
+extern u8 * N64P D_803C4B54;
 
 /* Resets the two cursors D_803C4B50 / D_803C4B54 to the start of the
  * buffer D_803C4250. */
@@ -103,10 +104,10 @@ void func_802A57AC(void) {
 #ifdef NON_MATCHING
 /* A 16-byte decode request (the records func_802A57AC walks). */
 typedef struct {
-    /* 0x0 */ u8 *data;  /* packed on entry, decoded in place */
+    /* 0x0 */ u8 * N64P data;  /* packed on entry, decoded in place */
     /* 0x4 */ u32 size;  /* packed size in bytes (even) */
     /* 0x8 */ s32 type;  /* decoder: 0..6, anything else = none */
-    /* 0xC */ u8 *param; /* u16 table for types 4 and 5 */
+    /* 0xC */ u8 * N64P param; /* u16 table for types 4 and 5 */
 } DecodeReq;
 
 extern u64 D_803C3250[]; /* scratch copy of the packed data */
@@ -572,7 +573,7 @@ s32 func_802A6274(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32
     }
 
     rec[0x33] = 1;
-    *(u8 **) (rec + 0x00) = def;
+    *(u8 * N64P *) (rec + 0x00) = def;
     *(s32 *) (rec + 0x04) = data;
     rec[0x34] = type;
     rec[0x32] = 0;
@@ -614,7 +615,7 @@ s32 func_802A6274(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32
     io->t6 = *(s16 *) def;
     if (io->t6 != -1) {
         io->s1 = (s32) (D_803EB770 - 0x1000 + i * 0x100);
-        func_802A11C4(io->t6, (void *) io->s1);
+        func_802A11C4(io->t6, (void *) N64_IPTR(io->s1));
     }
     return 1;
 }
@@ -624,8 +625,8 @@ s32 func_802A6274(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern Gfx *D_803EB780;
-extern Gfx *D_803EB784;
+extern Gfx * N64P D_803EB780;
+extern Gfx * N64P D_803EB784;
 extern s32 D_803C4F70[]; /* 16.16 matrices (0x40 bytes each), frame 0 / 1 */
 extern s32 D_803C5370[];
 extern Vtx D_803C8770[]; /* quad vertices, frame 0 / 1 */
@@ -639,7 +640,7 @@ void func_802A68D4(s32 *m, u8 *rec);
 void func_802A6C10(s32 w, Vtx *v, u8 *col, s32 x, s32 y, s32 h);
 void func_802A6D34(void);
 void func_802A6DE8(u8 *obj, Vtx *vtx, void *timg, s32 fmtsiz, s32 width, s32 height, s32 zbuf);
-Gfx **func_802A6EB8(u8 *obj);
+Gfx * N64P *func_802A6EB8(u8 *obj);
 
 /* Draws the 16 D_803C4B70 billboard records into the display lists of this
  * frame's buffer set (D_8035805C picks lists, matrices, vertices and texture
@@ -692,14 +693,14 @@ void func_802A64A4(void) {
         s32 x0;
         s32 y;
         s32 frame;
-        Gfx **cur;
+        Gfx * N64P *cur;
         Gfx *g;
 
         if (rec[0x33] == 0) {
             continue;
         }
         func_802A68D4(mtx, rec);
-        def = *(u8 **) rec;
+        def = *(u8 * N64P *) rec;
         zbuf = rec[0x35];
         idx = rec + 0x37;
         cols = def[2];
@@ -734,7 +735,7 @@ void func_802A64A4(void) {
         g->words.w0 = 0xBD000000;
         g->words.w1 = 0;
         *cur = g + 1;
-        def = *(u8 **) rec;
+        def = *(u8 * N64P *) rec;
         frame = rec[0x32] + 1;
         if (frame != *(u16 *) (def + 0xE)) {
             rec[0x32] = frame;
@@ -807,7 +808,7 @@ u8 *func_802A67C4(u8 *rec, u8 *idx, u8 *base, u16 **list, u8 *param) {
     HeapBlock *end = D_803EB78C;
     s32 key = rec[0x32];
     u32 def = *(u32 *) rec;
-    u8 **l;
+    u8 * N64P *l;
     u8 *buf;
 
     for (; b != end; b++) {
@@ -871,7 +872,7 @@ extern s32 D_803C4F30[]; /* scratch 16.16 matrix */
  * f12/f14 the survey lists as read by func_802A64A4 are dead there. The asm's
  * ddiv traps on a zero divisor (distance << 11 wrapping to 0; game range). */
 void func_802A68D4(s32 *m, u8 *rec) {
-    Gfx **cur = func_802A6EB8(rec);
+    Gfx * N64P *cur = func_802A6EB8(rec);
     Gfx *g = *cur;
     s32 scale;
     s32 x;
@@ -993,8 +994,8 @@ void func_802A6C10(s32 w, Vtx *v, u8 *col, s32 x, s32 y, s32 h) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern Gfx *D_803EB780;
-extern Gfx *D_803EB784;
+extern Gfx * N64P D_803EB780;
+extern Gfx * N64P D_803EB784;
 
 /* Runs func_80257540 on the display-list cursors D_803EB780 and D_803EB784,
  * in that order, storing the advanced cursors back.
@@ -1010,7 +1011,7 @@ void func_802A6D34(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-Gfx **func_802A6EB8(u8 *obj);
+Gfx * N64P *func_802A6EB8(u8 *obj);
 
 /* Draws a textured quad into obj's display-list cursor (func_802A6EB8 picks
  * D_803EB780 or D_803EB784): *cursor = func_802575F4(*cursor, vtx, timg,
@@ -1036,7 +1037,7 @@ void func_802A6DE8(u8 *obj, Vtx *vtx, void *timg, s32 fmtsiz, s32 width, s32 hei
  * registers live across the call: func_802A64A4 a0-a3, t0, t1, t3-t5,
  * f12, f14; func_802A68D4 a0-a3, t0, t4, f12, f14; func_802A6DE8 t1, t8
  * (a mixed N64 build would need a thunk, the native port doesn't). */
-Gfx **func_802A6EB8(u8 *obj) {
+Gfx * N64P *func_802A6EB8(u8 *obj) {
     if (obj[0x3B] != 0) {
         return &D_803EB784;
     }

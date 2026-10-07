@@ -31,8 +31,8 @@ extern u8 D_80207090[]; /* microcode text/data pairs */
 extern u8 D_80210690[];
 extern u8 D_802E53F0[];
 extern u8 D_8030E390[];
-extern u8 *D_8036E660[]; /* ucode text per slot */
-extern u8 *D_8036E678[]; /* ucode data per slot */
+extern u8 * N64P D_8036E660[]; /* ucode text per slot */
+extern u8 * N64P D_8036E678[]; /* ucode data per slot */
 extern RspTask D_8036E698[][2];
 extern u64 D_80367750[]; /* dram stack */
 

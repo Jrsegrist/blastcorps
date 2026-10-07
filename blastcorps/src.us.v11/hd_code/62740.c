@@ -41,9 +41,9 @@
 extern s32 D_80305C58[]; /* {key, value, threshold} triples, value 0 ends */
 extern u8 D_803EB7A0[];  /* vehicle save buffer: 0x300 + 0xA6 + 3 words */
 extern s32 D_803EBBD8[]; /* 0x14-byte swap temp */
-extern u8 *D_803EBC00;
-extern u8 *D_803EBC04;
-extern u8 *D_803EBC08;
+extern u8 * N64P D_803EBC00;
+extern u8 * N64P D_803EBC04;
+extern u8 * N64P D_803EBC08;
 extern s32 D_803ED398;
 extern s32 D_803ED39C;
 extern s32 D_803ED3A0;
@@ -2173,7 +2173,7 @@ s32 func_802A9F24(s32 x, s32 z, s32 y, s32 skip, TriSideOut *f, s32 *idOut, s32 
 s32 func_802AA094(s32 x, s32 z, s32 y, TriSideOut *f, s32 *t3io, s32 *fpio) {
     s32 cx = x / ((s32) D_803BE718);
     s32 cz = z / ((s32) D_803BE71C);
-    u8 **cell = &D_803BDB10[D_803BE720 * cz + cx];
+    u8 * N64P *cell = &D_803BDB10[D_803BE720 * cz + cx];
     u8 *rec = cell[0];
     u8 *end = cell[1] - 4;
     u32 bestD = 0x5F5E0FF;
@@ -3414,7 +3414,7 @@ s32 func_802ABD54(s32 id, s32 x, s32 y, s32 z, ZoneScanRegs *r) {
         s3 = zone[0x13];
         s4 = (s32) (zone + 0x15);
         while (s3 != 0) {
-            if (id == *(u8 *) s4) {
+            if (id == *(u8 *) N64_IPTR(s4)) {
                 break;
             }
             s4++;
@@ -3487,7 +3487,7 @@ s32 func_802ABEDC(s32 x, s32 y, s32 z) {
 
     f.sideZ = 0.0f;
     for (e = D_803F4030; e != end; e += 0xFC) {
-        u8 *info = *(u8 **) e;
+        u8 *info = *(u8 * N64P *) e;
         s16 *box = (s16 *) (info + *(s32 *) (info + 0x20));
         s32 x0 = box[0] << 5;
         s32 z0 = box[1] << 5;

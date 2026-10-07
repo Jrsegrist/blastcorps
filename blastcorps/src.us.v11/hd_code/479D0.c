@@ -10,7 +10,7 @@
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #ifdef NON_MATCHING
-#define D_80358070 (*(Vtx * *) &D_80358070)
+#define D_80358070 (*(Vtx * N64P *) &D_80358070)
 #endif
 /* end of views */
 
@@ -52,7 +52,7 @@ typedef struct {
     s16 padA;
     s32 tex0;
     s32 tex1;
-    Vtx *vtx;
+    Vtx * N64P vtx;
 } Box; /* size 0x18 */
 
 /* Vtx texture coordinates; a macro in the original (the two stores come out

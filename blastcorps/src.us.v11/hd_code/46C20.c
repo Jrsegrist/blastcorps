@@ -5,8 +5,8 @@
 /* Front-end loader: DMAs a (possibly compressed) block from ROM in 16 KB
  * pieces and decompresses it. */
 
-extern s32 *D_802FDB30; /* ROM start of the front end */
-extern s32 *D_802FDB34; /* ROM end of the front end */
+extern s32 * N64P D_802FDB30; /* ROM start of the front end */
+extern s32 * N64P D_802FDB34; /* ROM end of the front end */
 
 #if defined(NON_MATCHING) && defined(PORT_HOST)
 /* Windows port: byte order on load (port/src/load/port_load.h) */
@@ -66,10 +66,10 @@ void func_8028B4C4(u32 devAddr, u32 dest, u32 *size, u8 arg3, u8 arg4, u8 arg5) 
     switch (arg5) {
         case 1:
             if (arg3) {
-                func_8025C230((u8 **) &buf, (u8 **) &dest, 0x8004B400);
+                func_8025C230((u8 * N64P *) &buf, (u8 * N64P *) &dest, 0x8004B400);
             }
             if (arg4) {
-                func_8025C230((u8 **) &buf, (u8 **) &dest, 0x8004B400);
+                func_8025C230((u8 * N64P *) &buf, (u8 * N64P *) &dest, 0x8004B400);
             }
             break;
         case 2:

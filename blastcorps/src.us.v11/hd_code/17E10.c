@@ -87,7 +87,7 @@ void func_8025C5D0(void) {
     }
 }
 
-extern void *D_80366BA4;
+extern void * N64P D_80366BA4;
 extern s32 D_80366BA8;
 extern u8 D_80366A10;
 extern u8 D_80366A11;
@@ -157,8 +157,8 @@ Gfx *func_8025C878(Gfx *arg0, s32 arg1, u8 arg2, s32 *arg3) {
     return gfx;
 }
 
-extern void *D_80366BA0;
-extern void *D_80366BA4;
+extern void * N64P D_80366BA0;
+extern void * N64P D_80366BA4;
 
 void func_8025CE74(void) {
     D_80366BA0 = D_80358070;

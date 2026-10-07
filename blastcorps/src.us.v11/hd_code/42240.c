@@ -36,17 +36,17 @@ extern u32 D_80358070; /* heap pointer */
 
 /* dial */
 extern u32 D_8036EC00; /* texture */
-extern Vtx *D_8036EC04; /* 4 dial + 4 needle vertices */
-extern Mtx *D_8036EC08; /* needle rotation, one per frame */
-extern Mtx *D_8036EC0C; /* needle translation, one per frame */
+extern Vtx * N64P D_8036EC04; /* 4 dial + 4 needle vertices */
+extern Mtx * N64P D_8036EC08; /* needle rotation, one per frame */
+extern Mtx * N64P D_8036EC0C; /* needle translation, one per frame */
 extern s16 D_8036EC10;  /* alpha */
 /* icon 1 */
 extern u32 D_8036EC14;
-extern Vtx *D_8036EC18;
+extern Vtx * N64P D_8036EC18;
 extern s16 D_8036EC1C;
 /* icon 2 */
 extern u32 D_8036EC20;
-extern Vtx *D_8036EC24;
+extern Vtx * N64P D_8036EC24;
 extern s16 D_8036EC28;
 
 
@@ -181,7 +181,7 @@ void func_802873AC(void) {
 }
 
 /* Draw icon 1 and its number (D_803F8B72) while arg3 == 10 or still fading out */
-void func_80287530(Gfx **gfxp, Gfx **gfxp2, u8 frame, u8 arg3) {
+void func_80287530(Gfx **gfxp, Gfx * N64P *gfxp2, u8 frame, u8 arg3) {
     Gfx *gdl = *gfxp;
     char buf[20];
 
@@ -257,7 +257,7 @@ void func_80287AE4(void) {
 }
 
 /* Draw icon 2 and its number (D_803EDC00) while arg3 == 1 or still fading out */
-void func_80287C68(Gfx **gfxp, Gfx **gfxp2, u8 frame, u8 arg3) {
+void func_80287C68(Gfx **gfxp, Gfx * N64P *gfxp2, u8 frame, u8 arg3) {
     Gfx *gdl = *gfxp;
     char buf[20];
 

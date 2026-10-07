@@ -9,7 +9,7 @@
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #ifdef NON_MATCHING
-#define D_80358058 (*(void * *) &D_80358058)
+#define D_80358058 (*(void * N64P *) &D_80358058)
 #endif
 /* end of views */
 
@@ -44,7 +44,7 @@ extern MbSample D_8036CB60[11]; /* ring of samples */
 extern s32 D_8036CC68;         /* ring head */
 extern s32 D_8036CC6C;         /* ring tail */
 extern Mtx D_8036CC70[][10];   /* view matrices per slot */
-extern u8 *D_8036D170;         /* 0x5460-byte buffer */
+extern u8 * N64P D_8036D170;         /* 0x5460-byte buffer */
 extern u8 D_8036D178;
 extern s32 D_8036D180;
 extern MbRemap D_802FC060[3];
@@ -65,7 +65,7 @@ void func_8027A7DC(Gfx **gfxp, s32 offset, s32 v);
 s32 func_8027B87C(f32 out[4][4], f32 in[4][4]);
 
 /* Copies a display list to the heap, dropping G_ENDDLs and remapping render modes */
-void func_80278BF0(Gfx *src, Gfx *end, Gfx **dstp) {
+void func_80278BF0(Gfx *src, Gfx *end, Gfx * N64P *dstp) {
     Gfx *dst;
     s8 c;
     u32 v;

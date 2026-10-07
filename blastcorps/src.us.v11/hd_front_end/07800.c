@@ -56,7 +56,7 @@ typedef struct {
 
 typedef struct {
     u8 pad0[4];
-    char *unk4; /* level name */
+    char * N64P unk4; /* level name */
     u8 pad8[0x10];
     s8 unk18[0x18]; /* -1 terminated */
 } FeLevelEntry;     /* 0x30 bytes, one per level */
@@ -78,8 +78,8 @@ typedef struct {
     u16 unk6;
     u16 unk8;
     u8 padA[2];
-    char *unkC;  /* title */
-    void *unk10; /* glyph list */
+    char * N64P unkC;  /* title */
+    void * N64P unk10; /* glyph list */
     u8 unk14;
     u8 pad15[5];
     u8 unk1A;
@@ -111,8 +111,8 @@ extern u16 D_80303B68[];
 extern s32 D_80358070; /* heap pointer */
 #endif
 extern u16 D_802159D0; /* scene angle */
-extern u8 *D_802159D4; /* 256x32 IA8 banner */
-extern u8 *D_802159D8; /* 40x24 IA8 icon */
+extern u8 * N64P D_802159D4; /* 256x32 IA8 banner */
+extern u8 * N64P D_802159D8; /* 40x24 IA8 icon */
 extern u16 D_802159DC; /* scene */
 extern f32 D_802159E0; /* camera distance */
 extern f32 D_802159E4; /* spin speed */
@@ -212,8 +212,10 @@ u8 func_801EE800(u8 *arg0, u8 arg1, u8 arg2) {
 }
 
 /* results screen banner and its glyph list, by outcome */
-char *D_802084D0[] = { "YOUR NEW BEST!", "BEST TO DATE", "YOUR BEST STAYS", "GUEST BEST IS" };
-u16 *D_802084E0[] = { D_80303B3C, D_80303B48, D_80303B58, D_80303B68 };
+char * N64P D_802084D0[] = { N64_DPTR("YOUR NEW BEST!"), N64_DPTR("BEST TO DATE"), N64_DPTR("YOUR BEST STAYS"),
+                              N64_DPTR("GUEST BEST IS") };
+u16 * N64P D_802084E0[] = { N64_DPTR(D_80303B3C), N64_DPTR(D_80303B48), N64_DPTR(D_80303B58),
+                             N64_DPTR(D_80303B68) };
 
 /* Grade a timed level `arg0` and record the best time; returns the grade.
  * K&R in the matching build (its callers pass unmasked ints). */
@@ -347,11 +349,11 @@ void func_801EF380(s32 arg0) {
     } else {
         D_802159D0 = 0;
     }
-    func_8028B4C4((u32) D_0048F5A0, (u32) ((void *) D_80358070), (u32 *) &size1, 12, 0, 1);
-    D_802159D4 = (u8 *) D_80358070;
+    func_8028B4C4((u32) D_0048F5A0, (u32) ((void *) N64_IPTR(D_80358070)), (u32 *) &size1, 12, 0, 1);
+    D_802159D4 = (u8 *) N64_IPTR(D_80358070);
     D_80358070 += size1;
-    func_8028B4C4((u32) D_0048F970, (u32) ((void *) D_80358070), (u32 *) &size2, 12, 0, 1);
-    D_802159D8 = (u8 *) D_80358070;
+    func_8028B4C4((u32) D_0048F970, (u32) ((void *) N64_IPTR(D_80358070)), (u32 *) &size2, 12, 0, 1);
+    D_802159D8 = (u8 *) N64_IPTR(D_80358070);
     D_80358070 += size2;
     D_802159DC = arg0;
     D_802159E0 = 0.0f;

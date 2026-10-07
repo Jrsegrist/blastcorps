@@ -52,19 +52,19 @@ s32 D_8036BFBC;
 #define RSP_STATE_SUSPENDED 3
 
 typedef struct BcScTask {
-    /* 0x00 */ struct BcScTask *next;
+    /* 0x00 */ struct BcScTask * N64P next;
     /* 0x04 */ u32 state;
     /* 0x08 */ u32 flags;
-    /* 0x0C */ void *framebuffer;
+    /* 0x0C */ void * N64P framebuffer;
     /* 0x10 */ OSTask list;
     /* 0x50 */ u32 unk50;
-    /* 0x54 */ OSMesgQueue *msgQ;
+    /* 0x54 */ OSMesgQueue * N64P msgQ;
     /* 0x58 */ OSMesg msg;
 } BcScTask;
 
 typedef struct BcScClient {
-    /* 0x00 */ struct BcScClient *next;
-    /* 0x04 */ OSMesgQueue *msgQ;
+    /* 0x00 */ struct BcScClient * N64P next;
+    /* 0x04 */ OSMesgQueue * N64P msgQ;
     /* 0x08 */ s32 unk8;
     /* 0x0C */ s32 unkC;
 } BcScClient;
@@ -75,13 +75,13 @@ typedef struct BcSched {
     /* 0x058 */ OSMesgQueue cmdQ;
     /* 0x070 */ OSMesg cmdMsgBuf[16];
     /* 0x0B0 */ OSThread thread;
-    /* 0x260 */ BcScClient *clientList;
-    /* 0x264 */ BcScTask *audioListHead;
-    /* 0x268 */ BcScTask *gfxListHead;
-    /* 0x26C */ BcScTask *audioListTail; /* starts as &audioListHead: tail->next is head */
-    /* 0x270 */ BcScTask *gfxListTail;
-    /* 0x274 */ BcScTask *curRSPTask;
-    /* 0x278 */ BcScTask *curRDPTask;
+    /* 0x260 */ BcScClient * N64P clientList;
+    /* 0x264 */ BcScTask * N64P audioListHead;
+    /* 0x268 */ BcScTask * N64P gfxListHead;
+    /* 0x26C */ BcScTask * N64P audioListTail; /* starts as &audioListHead: tail->next is head */
+    /* 0x270 */ BcScTask * N64P gfxListTail;
+    /* 0x274 */ BcScTask * N64P curRSPTask;
+    /* 0x278 */ BcScTask * N64P curRDPTask;
     /* 0x27C */ s32 unk27C;
     /* 0x280 */ s32 retraceCount;
     /* 0x284 */ s32 frameCount;
@@ -267,12 +267,12 @@ void func_80271358(BcSched *sc) {
     }
     D_8036BF38 = osGetTime();
     if (D_8036BF1C) {
-        osViSwapBuffer(((BcScTask *) D_8036BF1C)->framebuffer);
+        osViSwapBuffer(((BcScTask *) N64_IPTR(D_8036BF1C))->framebuffer);
         D_8036BF18 = D_8036BF14;
         D_8036BF14 = sc->frameCount + 1;
         func_802D4550(8);
-        if (((BcScTask *) D_8036BF1C)->msgQ != NULL) {
-            func_80271F48(((BcScTask *) D_8036BF1C)->msgQ, ((BcScTask *) D_8036BF1C)->msg, OS_MESG_NOBLOCK);
+        if (((BcScTask *) N64_IPTR(D_8036BF1C))->msgQ != NULL) {
+            func_80271F48(((BcScTask *) N64_IPTR(D_8036BF1C))->msgQ, ((BcScTask *) N64_IPTR(D_8036BF1C))->msg, OS_MESG_NOBLOCK);
         }
         D_8036BF1C = 0;
     } else if (osViGetCurrentFramebuffer() == osViGetNextFramebuffer()) {
@@ -293,7 +293,7 @@ void func_80271358(BcSched *sc) {
     }
 
     if (sc->audioListHead != NULL && !(sc->frameCount & 1)) {
-        osSetTimer(&D_8036BF78, 280000, 0, ((OSMesgQueue **) sc->audioListHead->unk50)[1], (OSMesg) 5);
+        osSetTimer(&D_8036BF78, 280000, 0, ((OSMesgQueue * N64P *) sc->audioListHead->unk50)[1], (OSMesg) 5);
     }
 
     for (client = sc->clientList; client != NULL; client = client->next) {

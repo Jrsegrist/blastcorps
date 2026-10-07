@@ -82,7 +82,7 @@ typedef struct SndConfig {
     u32 maxStates;
     u32 maxEvents;
     s32 maxSounds;
-    void *heap;
+    void * N64P heap;
     u16 slotCount;
 } SndConfig;
 
@@ -122,8 +122,8 @@ typedef struct Score {
 typedef struct GlobeLevel {
     /* 0x00 */ u8 unk0;
     /* 0x01 */ u8 unk1;
-    /* 0x04 */ char *name;
-    /* 0x08 */ u16 *jname; /* hd_code glyph string (0x0FFE-terminated) */
+    /* 0x04 */ char * N64P name;
+    /* 0x08 */ u16 * N64P jname; /* hd_code glyph string (0x0FFE-terminated) */
     /* 0x0C */ s32 unkC;
     /* 0x10 */ f32 unk10;
     /* 0x14 */ f32 unk14;
@@ -137,8 +137,8 @@ typedef struct GlobeLevel {
 /* A rank title (D_802081C0, defined in hd_front_end/01C40.c). The u16
  * pointers are hd_code data (glyph strings and portraits). */
 typedef struct RankTitle {
-    char *title;
-    u16 *glyphs;
+    char * N64P title;
+    u16 * N64P glyphs;
 } RankTitle;
 
 /* Tables the original keeps inside hd_code's .text (bins 7D9D0, 800E0,
@@ -164,9 +164,9 @@ typedef struct EffectDef {
 
 /* A particle emitter definition (43A60.c, list D_802C4A20). */
 typedef struct ParticleDef {
-    /* 0x00 */ s16 *seqBirth; /* texture ids; [0] doubles as the frame count */
-    /* 0x04 */ s16 *seqLoop;
-    /* 0x08 */ s16 *seqDeath;
+    /* 0x00 */ s16 * N64P seqBirth; /* texture ids; [0] doubles as the frame count */
+    /* 0x04 */ s16 * N64P seqLoop;
+    /* 0x08 */ s16 * N64P seqDeath;
     /* 0x0C */ s32 size;
     /* 0x10 */ s16 speed;
     /* 0x12 */ s16 speedVar;
@@ -191,7 +191,7 @@ typedef struct ParticleDef {
  * s32 count, then count of these). `entry` is filled in at level load
  * (func_802A21AC); func_802BD064 checks the listed parts. */
 typedef struct LevelPart {
-    /* 0x00 */ void *entry; /* the level object's 0xFC-byte record */
+    /* 0x00 */ void * N64P entry; /* the level object's 0xFC-byte record */
     /* 0x04 */ s32 n;       /* number of part indices used */
     /* 0x08 */ u8 idx[16];  /* indices into the record's +0xEC bytes */
 } LevelPart; /* size 0x18 */

@@ -4,7 +4,7 @@
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_803F4030 ((Rec7FB50 *) D_803F4030)
 #ifdef NON_MATCHING
-#define D_803F7654 (*(Rec7FB50 * *) &D_803F7654)
+#define D_803F7654 (*(Rec7FB50 * N64P *) &D_803F7654)
 #define D_803F7844 (*(s32 *) &D_803F7844)
 #endif
 /* end of views */
@@ -21,7 +21,7 @@
 /* D_803F4030: array of 0xFC-byte records (55 slots); D_803F7654 points one
  * past the last record in use. Only the fields below are known. */
 typedef struct {
-    /* 0x00 */ u8 *unk0;    /* points at something whose byte +4 is a kind (1 = excluded) */
+    /* 0x00 */ u8 * N64P unk0;    /* points at something whose byte +4 is a kind (1 = excluded) */
     /* 0x04 */ u8 pad4[0x2C];
     /* 0x30 */ s32 unk30;   /* 0x38 = excluded */
     /* 0x34 */ u8 pad34[0xB5];
@@ -37,7 +37,7 @@ extern u8 D_803063F0[];
 /* Bit writer used by the status packers below: MSB-first into whole bytes.
  * (Macros rather than functions: the originals are single asm leaves.) */
 typedef struct {
-    u8 *out;
+    u8 * N64P out;
     u32 bits;
     s32 count;
 } BitWriter7FB50;
@@ -74,8 +74,8 @@ extern u8 D_803F7B50[];
  * +0x96..0x98: u8 flags; +0x9F: u8 (100 = ...); +0xA1: u8 mode (0..5); +0xA2: u8 previous mode */
 
 extern s32 D_803F7BFC;
-extern void *D_803F7C18;
-extern void *D_803F7C1C;
+extern void * N64P D_803F7C18;
+extern void * N64P D_803F7C1C;
 extern f32 D_803F7C28;
 extern f32 D_803F7C2C;
 extern u8 D_803F7C3C;
@@ -218,8 +218,8 @@ void func_802C4BF0(void *in) {
         for (i = 0; n != 0; i++) {
             n--;
             if (r->parts[i] == 100) {
-                u8 *e = *(u8 **) ((u8 *) r + 4);
-                u8 *eEnd = *(u8 **) ((u8 *) r + 8);
+                u8 *e = *(u8 * N64P *) ((u8 *) r + 4);
+                u8 *eEnd = *(u8 * N64P *) ((u8 *) r + 8);
 
                 for (; e != eEnd; e += 0x60) {
                     s32 id = *(u16 *) (e + 0x52);
@@ -346,9 +346,9 @@ u32 func_802C4E58(void *outp, u8 level) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u32 D_803F7BF8[]; /* x, y, z */
-extern u8 *D_803F7C04;   /* its model */
-extern u64 *D_803F7C08;  /* save copy pair */
-extern u64 *D_803F7C0C;
+extern u8 * N64P D_803F7C04;   /* its model */
+extern u64 * N64P D_803F7C08;  /* save copy pair */
+extern u64 * N64P D_803F7C0C;
 extern s32 D_803F7C20;
 extern s32 D_803F7C24;
 extern u8 D_803F7C36;
@@ -517,8 +517,8 @@ s32 func_802C5508(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u64 *D_803F7C08; /* save copy pair (func_802A7764) */
-extern u64 *D_803F7C0C;
+extern u64 * N64P D_803F7C08; /* save copy pair (func_802A7764) */
+extern u64 * N64P D_803F7C0C;
 
 /* Teardown for this vehicle (called from func_8024B188 in hd.c): clears the
  * s16 at +0x76, func_802A7764(D_803F7C08, D_803F7C0C, 0x1000), stops
@@ -684,7 +684,7 @@ void func_802C5A14(s32 id, s32 *s3, InterpRegs *r) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 *D_803F7C04; /* this vehicle's model */
+extern u8 * N64P D_803F7C04; /* this vehicle's model */
 extern u8 D_803F7C36;  /* "turning back to the ring" flag */
 extern u8 D_803F7C37;  /* bounced off the ring end (the bounce code is unreachable here) */
 extern u8 D_803F7C38;  /* throttle hold-off countdown */
@@ -1813,7 +1813,7 @@ f32 func_802C7C1C(s32 up) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 *D_803F7C04; /* this vehicle's model: +0 / +4 / +8 offsets of the point lists, +0x18 the matrix */
+extern u8 * N64P D_803F7C04; /* this vehicle's model: +0 / +4 / +8 offsets of the point lists, +0x18 the matrix */
 
 /* Place this vehicle's model (vehicle 9): builds its matrix (scale 0x4268,
  * angles (0, +0x4C of the block, 0)) at the model's +0x18 entry inside the
@@ -2009,7 +2009,7 @@ typedef struct {
     /* 802C4A08 */ s16 sq802C4A08[2];
     /* 802C4A0C */ s16 sq802C4A0C[9];
     /* 802C4A1E */ u16 sq802C4A0C_pad;
-    /* 802C4A20 */ ParticleDef *particleDefs[5]; /* D_802C4A20 */
+    /* 802C4A20 */ ParticleDef * N64P particleDefs[5]; /* D_802C4A20 */
     /* 802C4A34 */ s32 particleDefsEnd;
     /* 802C4A38 */ u32 pad802C4A38[2];
 } TextData800E0; /* size 0x1A0 */
@@ -2017,7 +2017,7 @@ typedef struct {
 typedef char TextData800E0_size_check[(sizeof(void *) != 4 || sizeof(TextData800E0) == 0x1A0) ? 1 : -1];
 
 TextData800E0 textdata_800E0 = {
-    { textdata_800E0.sq802C48C4, textdata_800E0.sq802C48D0, textdata_800E0.sq802C48D8, 5, 500, 60, 50, 20, 8, 8, -25, 50, 1, 160, 19, 0xFF, 0xFF, 0xFF, 0xFF, 0, 3 },
+    { N64_DPTR(textdata_800E0.sq802C48C4), N64_DPTR(textdata_800E0.sq802C48D0), N64_DPTR(textdata_800E0.sq802C48D8), 5, 500, 60, 50, 20, 8, 8, -25, 50, 1, 160, 19, 0xFF, 0xFF, 0xFF, 0xFF, 0, 3 },
     {
         0x0004, 0x07B9, 0x07BA, 0x07BB, 0x07BC,
     },
@@ -2032,7 +2032,7 @@ TextData800E0 textdata_800E0 = {
         0x07C2, 0x07C2, 0x07C2,
     },
     0x0000,
-    { textdata_800E0.sq802C4924, textdata_800E0.sq802C4934, textdata_800E0.sq802C4938, 5, 550, 60, 30, 20, 16, 16, -25, 50, 1, 180, 19, 0xFF, 0xFF, 0xFF, 0xFF, 0, 3 },
+    { N64_DPTR(textdata_800E0.sq802C4924), N64_DPTR(textdata_800E0.sq802C4934), N64_DPTR(textdata_800E0.sq802C4938), 5, 550, 60, 30, 20, 16, 16, -25, 50, 1, 180, 19, 0xFF, 0xFF, 0xFF, 0xFF, 0, 3 },
     {
         0x0006, 0x07D0, 0x07D0, 0x07D1, 0x07D1, 0x07D2, 0x07D2,
     },
@@ -2043,7 +2043,7 @@ TextData800E0 textdata_800E0 = {
     {
         0x0007, 0x07D4, 0x07D4, 0x07D4, 0x07D4, 0x07D4, 0x07D4, 0x07D4,
     },
-    { textdata_800E0.sq802C496C, textdata_800E0.sq802C497C, textdata_800E0.sq802C4980, 5, 400, 60, 30, 20, 16, 16, -25, 60, 1, 160, 19, 0xFF, 0xFF, 0xFF, 0xFF, 0, 3 },
+    { N64_DPTR(textdata_800E0.sq802C496C), N64_DPTR(textdata_800E0.sq802C497C), N64_DPTR(textdata_800E0.sq802C4980), 5, 400, 60, 30, 20, 16, 16, -25, 60, 1, 160, 19, 0xFF, 0xFF, 0xFF, 0xFF, 0, 3 },
     {
         0x0006, 0x07D0, 0x07D0, 0x07D1, 0x07D1, 0x07D2, 0x07D2,
     },
@@ -2054,7 +2054,7 @@ TextData800E0 textdata_800E0 = {
     {
         0x0007, 0x07D4, 0x07D4, 0x07D4, 0x07D4, 0x07D4, 0x07D4, 0x07D4,
     },
-    { textdata_800E0.sq802C49B4, textdata_800E0.sq802C49C4, textdata_800E0.sq802C49C8, 5, 500, 60, 30, 20, 16, 16, -25, 60, 1, 160, 19, 0xFF, 0xFF, 0xFF, 0xFF, 0, 3 },
+    { N64_DPTR(textdata_800E0.sq802C49B4), N64_DPTR(textdata_800E0.sq802C49C4), N64_DPTR(textdata_800E0.sq802C49C8), 5, 500, 60, 30, 20, 16, 16, -25, 60, 1, 160, 19, 0xFF, 0xFF, 0xFF, 0xFF, 0, 3 },
     {
         0x0006, 0x07D0, 0x07D0, 0x07D1, 0x07D1, 0x07D2, 0x07D2,
     },
@@ -2065,7 +2065,7 @@ TextData800E0 textdata_800E0 = {
     {
         0x0007, 0x07D4, 0x07D4, 0x07D4, 0x07D4, 0x07D4, 0x07D4, 0x07D4,
     },
-    { textdata_800E0.sq802C49FC, textdata_800E0.sq802C4A08, textdata_800E0.sq802C4A0C, 5, 500, 60, 30, 20, 16, 16, -25, 50, 1, 160, 19, 0xFF, 0xFF, 0xFF, 0xFF, 0, 3 },
+    { N64_DPTR(textdata_800E0.sq802C49FC), N64_DPTR(textdata_800E0.sq802C4A08), N64_DPTR(textdata_800E0.sq802C4A0C), 5, 500, 60, 30, 20, 16, 16, -25, 50, 1, 160, 19, 0xFF, 0xFF, 0xFF, 0xFF, 0, 3 },
     {
         0x0005, 0x0848, 0x0848, 0x0848, 0x0848, 0x0848,
     },
@@ -2078,8 +2078,8 @@ TextData800E0 textdata_800E0 = {
     },
     0x0000,
     {
-        &textdata_800E0.pd802C48A0, &textdata_800E0.pd802C4900, &textdata_800E0.pd802C4948,
-        &textdata_800E0.pd802C4990, &textdata_800E0.pd802C49D8,
+        N64_DPTR(&textdata_800E0.pd802C48A0), N64_DPTR(&textdata_800E0.pd802C4900), N64_DPTR(&textdata_800E0.pd802C4948),
+        N64_DPTR(&textdata_800E0.pd802C4990), N64_DPTR(&textdata_800E0.pd802C49D8),
     },
     -1,
     { 0x00000000, 0x00000000 },

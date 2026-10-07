@@ -17,7 +17,7 @@
 
 extern u8 D_0048FA70[];
 extern u8 D_0048FE90[];
-extern void *D_803A6B10;
+extern void * N64P D_803A6B10;
 extern s16 D_803A6B14;
 
 /* Load the 256x16 IA8 overlay texture from ROM into the heap */

@@ -10,8 +10,8 @@
 #define D_803F3FF8 (*(Unk803F3FF8 *) D_803F3FF8)
 #define D_803F4030 ((Unk802C1DD0Entry *) D_803F4030)
 #ifdef NON_MATCHING
-#define D_803F7654 (*(Unk802C1DD0Entry * *) &D_803F7654)
-#define D_803F7828 (*(s32 * *) &D_803F7828)
+#define D_803F7654 (*(Unk802C1DD0Entry * N64P *) &D_803F7654)
+#define D_803F7828 (*(s32 * N64P *) &D_803F7828)
 #endif
 /* end of views */
 
@@ -52,9 +52,9 @@ typedef struct {
 } Unk802C1DD0Info;
 
 typedef struct Unk802C1DD0Entry {
-    /* 0x00 */ Unk802C1DD0Info *info;
-    /* 0x04 */ void *unk4;  /* its collision triangles (Unk803B9890), func_802BF668 */
-    /* 0x08 */ void *unk8;  /*   and their end */
+    /* 0x00 */ Unk802C1DD0Info * N64P info;
+    /* 0x04 */ void * N64P unk4;  /* its collision triangles (Unk803B9890), func_802BF668 */
+    /* 0x08 */ void * N64P unk8;  /*   and their end */
     /* 0x0C */ s32 unkC;
     /* 0x10 */ s32 pos[3];
     /* 0x1C */ u8 pad1C[0xC];
@@ -112,9 +112,9 @@ typedef struct Unk803B9890 {
 /* What func_802BD85C/func_802BD99C get in v0: a model header and a range of
  * its triangles. */
 typedef struct Unk802BD99CModel {
-    /* 0x00 */ u8 *data;
-    /* 0x04 */ Unk803B9890 *start;
-    /* 0x08 */ Unk803B9890 *end;
+    /* 0x00 */ u8 * N64P data;
+    /* 0x04 */ Unk803B9890 * N64P start;
+    /* 0x08 */ Unk803B9890 * N64P end;
 } Unk802BD99CModel;
 
 
@@ -404,7 +404,7 @@ void func_802BCA2C(void) {
         }
         amount = *(u16 *) (p + 4);
         p[7] = 0;
-        e = *(Unk802C1DD0Entry **) p;
+        e = *(Unk802C1DD0Entry * N64P *) p;
         part = p[6];
         D_802E8BE4 = 10;
         if (amount < 0x1F5) {
@@ -451,9 +451,9 @@ void func_802BCA2C(void) {
 /* Two small byte buffers, each with a write pointer stored just before it:
  * buffer A is D_803F77D8 (write pointer D_803F77D4), buffer B is D_803F77E8
  * (write pointer D_803F77E4). Used by func_802BCBD8/802BCC10/802BCC48. */
-extern u8 *D_803F77D4;
+extern u8 * N64P D_803F77D4;
 extern u8 D_803F77D8[];
-extern u8 *D_803F77E4;
+extern u8 * N64P D_803F77E4;
 extern u8 D_803F77E8[];
 
 /* Resets buffer A: its write pointer goes back to the buffer start.
@@ -696,7 +696,7 @@ s32 func_802BD064(Unk802C1DD0Entry *next) {
         return 0;
     }
     for (n = *(s32 *) t, t += 4; n != 0; n--, t += 0x18) {
-        if (*(Unk802C1DD0Entry **) t == e) {
+        if (*(Unk802C1DD0Entry * N64P *) t == e) {
             for (k = *(s32 *) (t + 4), b = t + 8; k != 0; k--, b++) {
                 if (((u8 *) e)[0xEC + *b] != 100) {
                     return 0;
@@ -719,7 +719,7 @@ s32 func_802BD064(Unk802C1DD0Entry *next) {
  * target's x/z words are at +0x0/+0x8 for kinds 2 and 3, else +0x10/+0x18 (a
  * D_803F4030 entry). The C callers pass the target pointer as an s32. */
 void func_802BD10C(s32 arg0) {
-    s32 *target = (s32 *) arg0;
+    s32 *target = (s32 *) N64_IPTR(arg0);
     s32 x;
     s32 z;
     s32 dist;
@@ -743,11 +743,11 @@ void func_802BD10C(s32 arg0) {
 
 /* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern Mtx *D_803F7658; /* 2 matrices (func_802C1F30's falling parts) */
+extern Mtx * N64P D_803F7658; /* 2 matrices (func_802C1F30's falling parts) */
 extern s32 D_803F765C;  /* Mtx pool cursor for func_802933A0 */
 extern s32 D_803F24D0[]; /* matrix pools of the two frames */
 extern s32 D_803F2ED0[];
-extern s32 *D_803F3964;
+extern s32 * N64P D_803F3964;
 void func_802BD85C(Unk802BD99CModel *model, s32 id);
 void func_802BDDB4(Unk802C1DD0Entry *obj, u8 *rec, u8 *end);
 u32 *func_802BE228(u32 *src, u32 *srcEnd, u32 *dst, u8 *tbl, u8 *tblEnd);
@@ -808,7 +808,7 @@ void func_802BD1F8(u32 *gA, u32 *gB, u32 *gC, u32 *gD, s32 mtxA, s32 mtxB, u32 *
     Unk802C1DD0Entry *end;
     Unk802C1DD0Entry *o;
 
-    D_803F7658 = (Mtx *) mtxA;
+    D_803F7658 = (Mtx *) N64_IPTR(mtxA);
     D_803F765C = mtxB;
     func_802C08C4(gE);
     func_802C0CBC(gF);
@@ -849,7 +849,7 @@ void func_802BD1F8(u32 *gA, u32 *gB, u32 *gC, u32 *gD, s32 mtxA, s32 mtxB, u32 *
             s32 oz;
 
             D_803F765C = mtx + 0x40;
-            func_802933A0(*(s32 *) (ob + 0x1C), *(s32 *) (ob + 0x20), *(s32 *) (ob + 0x24), count, (Mtx *) mtx,
+            func_802933A0(*(s32 *) (ob + 0x1C), *(s32 *) (ob + 0x20), *(s32 *) (ob + 0x24), count, (Mtx *) N64_IPTR(mtx),
                           ob + 0x38, (Gfx *) gA, (Gfx *) gB, *(s32 *) (ob + 0x34), o->pos[0], o->pos[1],
                           o->pos[2]);
             gA += 2;
@@ -1389,7 +1389,7 @@ u32 *func_802BE3C8(u32 *src, u32 *srcEnd, u32 *dst, u8 *tbl, u8 *tblEnd) {
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 *D_803F3964; /* matrix pool cursor (0x40-byte 16.16 matrices) */
+extern s32 * N64P D_803F3964; /* matrix pool cursor (0x40-byte 16.16 matrices) */
 extern s32 D_803F38D0[]; /* scratch 16.16 matrix */
 
 /* Builds the matrix of one moving part of object e in the next pool slot
@@ -2696,7 +2696,7 @@ void func_802C04F0(u32 *src) {
 #ifdef NON_MATCHING
 
 
-extern u8 *D_80306270[];  /* per kind: {u8 n; u8 defIndex[n]} */
+extern u8 * N64P D_80306270[];  /* per kind: {u8 n; u8 defIndex[n]} */
 
 /* Runs the 30 pending debris records of D_803F3968 (0x38 bytes each): a
  * record with byte 0x34 set is free; one whose u16 delay at 0x2C is nonzero
@@ -3126,7 +3126,7 @@ void func_802C1214(u8 *base, Unk802C1DD0Entry *e) {
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern Mtx *D_803F7658; /* 2 matrices for them */
+extern Mtx * N64P D_803F7658; /* 2 matrices for them */
 /* 23C20.c defines it with s16 parameters; the asm passes rx as a full
  * u16 + u16 sum and ry zero-extended, so it is declared with words here. */
 
@@ -3260,7 +3260,7 @@ void func_802C1438(Unk802C1DD0Entry *e, s32 index) {
             break;
         }
     }
-    *(u8 **) (slot + 0x460) = base + 0x50;
+    *(u8 * N64P *) (slot + 0x460) = base + 0x50;
     a = (u32 *) slot;
     b = (u32 *) (slot + 0x230);
     a[0] = 0x01040040;

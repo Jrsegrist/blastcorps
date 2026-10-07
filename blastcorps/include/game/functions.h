@@ -56,8 +56,8 @@ void func_80259450(void);
 void func_802595E0(u8 *base, s32 n, s32 size, s32 (*cmp)(void *, void *));
 void func_80259BD4(Gfx **gdlp, s32 arg1);
 void func_80259C24(Gfx **gdlp, Mtx *arg1);
-void func_80259CCC(Gfx **gfxp, u8 *str, u16 *wstr, u8 align, s32 fit, s32 x, s32 y, s32 w, s32 h, u8 forward, u8 r, u8 g, u8 b, u8 a);
-void func_80259DC8(Gfx **gfxp, u8 *str, u16 *wstr, u8 align, s32 fit, s32 x, s32 y, s32 w, s32 h, u8 forward, u8 r0, u8 g0, u8 b0, u8 a0, u8 r1, u8 g1, u8 b1, u8 a1);
+void func_80259CCC(Gfx * N64P *gfxp, u8 *str, u16 *wstr, u8 align, s32 fit, s32 x, s32 y, s32 w, s32 h, u8 forward, u8 r, u8 g, u8 b, u8 a);
+void func_80259DC8(Gfx * N64P *gfxp, u8 *str, u16 *wstr, u8 align, s32 fit, s32 x, s32 y, s32 w, s32 h, u8 forward, u8 r0, u8 g0, u8 b0, u8 a0, u8 r1, u8 g1, u8 b1, u8 a1);
 
 /* hd_code/168B0.c */
 void func_8025B070(void);
@@ -78,7 +78,7 @@ void func_8025BD98(void);
 void func_8025BEF8(void);
 
 /* hd_code/17A70.c */
-void func_8025C230(u8 **arg0, u8 **arg1, s32 arg2);
+void func_8025C230(u8 * N64P *arg0, u8 * N64P *arg1, s32 arg2);
 
 /* hd_code/17E10.c */
 void func_8025C5D0(void);
@@ -129,7 +129,7 @@ void func_802621DC(u8 arg0);
 void func_80262238(u8 arg0);
 void func_80262320(u8 arg0);
 void func_80262BF4(void);
-Gfx *func_802639B4(Gfx *gdl, Gfx **arg1, u32 *arg2);
+Gfx *func_802639B4(Gfx *gdl, Gfx * N64P *arg1, u32 *arg2);
 void func_8026420C(void);
 void func_80264A34(char *buf, u16 t, s32 arg2);
 void func_80264AEC(void);
@@ -176,7 +176,7 @@ void func_8026B8F8(void);
 Gfx *func_8026BBD0(Gfx *gfx, s32 arg1, s32 *count);
 #endif
 s32 func_8026F92C(u64 in);
-u8 func_8026FA38(char **name, s32 *arg1);
+u8 func_8026FA38(char * N64P *name, s32 *arg1);
 void func_8026FBB0(s16 *pos, s16 *end);
 u8 func_8026FE6C(s32 arg0);
 void func_8026FE8C(s32 arg0);
@@ -232,7 +232,7 @@ void func_80278318(void);
 void func_80278324(Gfx **gfx, s32 arg1, u8 buf);
 
 /* hd_code/34430.c */
-void func_80278BF0(Gfx *src, Gfx *end, Gfx **dstp);
+void func_80278BF0(Gfx *src, Gfx *end, Gfx * N64P *dstp);
 void func_80278E3C(void);
 void func_80278EB0(s32 n, f32 scale, s32 arg2);
 void func_802794A4(void);
@@ -297,9 +297,9 @@ u8 func_8028653C(void);
 void func_80286A00(void);
 void func_80286C60(Gfx **gfxp, s32 arg1, u8 frame, u8 arg3);
 void func_802873AC(void);
-void func_80287530(Gfx **gfxp, Gfx **gfxp2, u8 frame, u8 arg3);
+void func_80287530(Gfx **gfxp, Gfx * N64P *gfxp2, u8 frame, u8 arg3);
 void func_80287AE4(void);
-void func_80287C68(Gfx **gfxp, Gfx **gfxp2, u8 frame, u8 arg3);
+void func_80287C68(Gfx **gfxp, Gfx * N64P *gfxp2, u8 frame, u8 arg3);
 
 /* hd_code/43A60.c */
 void func_80288220(void);
@@ -407,7 +407,7 @@ Gfx *func_8029A1A8(s32 arg0, Gfx *arg1);
 
 /* hd_code/55D40.c */
 void func_8029A500(void);
-Gfx *func_8029A518(Gfx **gfxp, Gfx *gfx);
+Gfx *func_8029A518(Gfx * N64P *gfxp, Gfx *gfx);
 
 /* hd_code/56010.c */
 void func_8029A7E4(const char *fmt, ...);
@@ -997,9 +997,9 @@ Gfx *func_80201364(s32 arg0, Gfx *arg1);
 s32 func_80201E80(void);
 
 /* hd_front_end/1B100.c */
-void func_80202100(s32 type, u8 **model, u8 **heap, u8 **dl);
+void func_80202100(s32 type, u8 * N64P *model, u8 * N64P *heap, u8 * N64P *dl);
 void func_802021FC(void *ch, void *base, void *other);
-void func_80202270(u8 *hdr, u32 **bufs, void *ch);
+void func_80202270(u8 *hdr, u32 * N64P *bufs, void *ch);
 void func_802022EC(void *base, s32 idx, s32 v040C, s32 v0480, f32 f, s32 v039C, s32 v03D4);
 void func_80202380(s32 kind);
 #ifndef LEGACY_func_802025D0

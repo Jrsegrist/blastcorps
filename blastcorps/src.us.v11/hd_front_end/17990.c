@@ -35,8 +35,8 @@ typedef struct {
     u16 unk6;
     u16 unk8;
     u8 padA[2];
-    char *unkC;  /* title */
-    void *unk10; /* glyph list */
+    char * N64P unkC;  /* title */
+    void * N64P unk10; /* glyph list */
     u8 pad14[8];
 } MenuEntry;
 
@@ -81,7 +81,7 @@ void func_801FE990(void) {
             } else {
                 D_80364A98 = 0x2000000000;
             }
-            func_802608C8((void *) D_8021AB7C);
+            func_802608C8((void *) N64_IPTR(D_8021AB7C));
             func_8026AF6C(0x4000);
         }
     }
@@ -296,8 +296,8 @@ void func_801FE990(void) {
 
         x = 0x118, y = 0x8C;
         sprintf(D_8021AB72, "%d", D_80364A71);
-        func_80259CCC((Gfx **) &D_803156F8[D_8035805C], (u8 *) D_8021AB72, 0, 1, 0, x, y, 0x1A, 0x16, 1, 0, 0, 0, D_8036BB20);
-        func_80259DC8((Gfx **) &D_803156F8[D_8035805C], (u8 *) D_8021AB72, 0, 1, 0, x + 2, y + 2, 0x12, 0x12, 1, 0xFF, 0xFF, 0,
+        func_80259CCC((Gfx * N64P *) &D_803156F8[D_8035805C], (u8 *) D_8021AB72, 0, 1, 0, x, y, 0x1A, 0x16, 1, 0, 0, 0, D_8036BB20);
+        func_80259DC8((Gfx * N64P *) &D_803156F8[D_8035805C], (u8 *) D_8021AB72, 0, 1, 0, x + 2, y + 2, 0x12, 0x12, 1, 0xFF, 0xFF, 0,
                       D_8036BB20, 0xFF, 0, 0, D_8036BB20);
     }
     if (D_80364A90 & 0x40000000000) {

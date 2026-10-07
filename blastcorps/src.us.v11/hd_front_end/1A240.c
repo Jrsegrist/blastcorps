@@ -39,20 +39,20 @@ typedef struct {
     u16 unk6;
     u16 unk8;
     u8 padA[2];
-    char *unkC;  /* title */
-    void *unk10; /* glyph list */
+    char * N64P unkC;  /* title */
+    void * N64P unk10; /* glyph list */
     u8 pad14[8];
 } MenuEntry;
 
 extern s16 D_8020E3E0[];      /* sound per picture */
 extern char D_8020E3E8[][18]; /* picture titles */
-extern void *D_8020E430[];
+extern void * N64P D_8020E430[];
 #ifndef NON_MATCHING
 extern s32 D_80358070; /* heap pointer */
 #endif
 extern s16 D_8036BB1C;
 
-extern u8 *D_8021AB90[4]; /* the four inflated pictures */
+extern u8 * N64P D_8021AB90[4]; /* the four inflated pictures */
 extern u8 D_8021ABA0;     /* current picture */
 extern u8 D_8021ABA1;     /* env alpha */
 extern u8 D_8021ABA2;     /* prim alpha */
@@ -66,9 +66,9 @@ void func_80201240(s32 arg0) {
     s32 i;
 
     size = D_006A32B0 - D_0068B550;
-    func_8028B4C4((u32) D_0068B550, (u32) ((void *) D_80358070), (u32 *) &size, 13, 0, 1);
+    func_8028B4C4((u32) D_0068B550, (u32) ((void *) N64_IPTR(D_80358070)), (u32 *) &size, 13, 0, 1);
     for (i = 0; i < 4; i++) {
-        D_8021AB90[i] = (u8 *) (i * 160 * 120 * 2 + D_80358070);
+        D_8021AB90[i] = (u8 *) N64_IPTR((i * 160 * 120 * 2 + D_80358070));
     }
     D_80358070 += size;
     D_8021ABA0 = arg0;

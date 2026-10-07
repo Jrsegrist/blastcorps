@@ -4,7 +4,7 @@
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_02000000 ((u8 *) D_02000000)
 #define D_8020D810 ((LevelInfo *) D_8020D810)
-#define D_80215A70 ((u16 * *) D_80215A70)
+#define D_80215A70 ((u16 * N64P *) D_80215A70)
 #define D_802E8F38 ((Entry8 *) D_802E8F38)
 #define D_802E8F94 ((LevelFlags *) D_802E8F94)
 #define D_803156F8 ((u8 *) D_803156F8)
@@ -40,13 +40,13 @@ typedef struct {
 } LevelFlags; /* 0x44 */
 
 typedef struct {
-    Gfx *dl[9];
+    Gfx * N64P dl[9];
 } DlTable;
 
 extern Gfx D_8020BC88[];
 extern DlTable D_8020BD08; /* per-category display lists */
 extern u16 D_80217288; /* perspNorm */
-extern u16 *D_8021728C; /* star textures, 16x16 RGBA16 each */
+extern u16 * N64P D_8021728C; /* star textures, 16x16 RGBA16 each */
 extern Vtx D_80215A88[]; /* globe vertices, 6 faces x 64 */
 extern s32 D_80217290[64]; /* face grid x */
 extern s32 D_80217390[64]; /* face grid y */

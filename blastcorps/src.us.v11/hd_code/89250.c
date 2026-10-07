@@ -4,7 +4,7 @@
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_803F4030 ((Obj89250 *) D_803F4030)
 #ifdef NON_MATCHING
-#define D_803F7654 (*(Obj89250 * *) &D_803F7654)
+#define D_803F7654 (*(Obj89250 * N64P *) &D_803F7654)
 #endif
 /* end of views */
 
@@ -65,9 +65,9 @@ typedef struct {
 } Tri89250; /* size 0x60 */
 
 typedef struct {
-    /* 0x00 */ Obj89250Info *info;
-    /* 0x04 */ Tri89250 *start; /* collision triangles */
-    /* 0x08 */ Tri89250 *end;
+    /* 0x00 */ Obj89250Info * N64P info;
+    /* 0x04 */ Tri89250 * N64P start; /* collision triangles */
+    /* 0x08 */ Tri89250 * N64P end;
     /* 0x0C */ s32 radius;
     /* 0x10 */ s32 pos[3];
     /* 0x1C */ u8 pad1C[0x14];

@@ -17,7 +17,7 @@ typedef struct {
     u8 pad0[0x2C];
     s32 state;
     u8 pad30[0x30];
-    u32 *chanState;
+    u32 * N64P chanState;
 } BCSeqPlayer;
 
 typedef struct {
@@ -25,11 +25,11 @@ typedef struct {
     s32 maxPVoices;
     s32 maxUpdates;
     s32 maxFXbusses;
-    void *dmaproc;
-    ALHeap *heap;
+    void * N64P dmaproc;
+    ALHeap * N64P heap;
     s32 outputRate;
     u8 fxType;
-    s32 *params;
+    s32 * N64P params;
 } SynConfig;
 
 
@@ -49,17 +49,17 @@ extern u16 D_802E8E7C[];
 extern u8 D_802E8D8C[];
 extern s32 D_802E8EB4[][6];
 extern TuneState D_80366C30[];
-extern TuneState *D_80367400;
+extern TuneState * N64P D_80367400;
 extern s32 D_80367408[];
-extern void *D_80367510;
-extern ALSeqFile *D_80367514;
+extern void * N64P D_80367510;
+extern ALSeqFile * N64P D_80367514;
 extern ALCSeq D_80367518[];
 extern u8 D_80367708;
 extern f32 D_8036770C;
 extern f32 D_80367710;
 extern f32 D_80367714;
 extern ALHeap D_80367718;
-extern void *D_8036773C;
+extern void * N64P D_8036773C;
 extern u8 D_80370C80[];
 
 #define SEQP ((BCSeqPlayer *) D_80367734)

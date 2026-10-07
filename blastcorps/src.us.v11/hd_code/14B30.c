@@ -7,12 +7,12 @@
 typedef struct {
     u16 key;
     s32 vtx;
-    u8 *tex;
+    u8 * N64P tex;
 } TextQuad; /* size 0xC */
 
 extern s32 D_80365350;
-extern Vtx *D_80365348[2];
-extern TextQuad *D_80365340;
+extern Vtx * N64P D_80365348[2];
+extern TextQuad * N64P D_80365340;
 extern s32 D_802E8C70;
 extern s32 D_802E8C74;
 extern s32 D_802E8C78;
@@ -168,18 +168,18 @@ void func_80259C24(Gfx **gdlp, Mtx *arg1) {
     *gdlp = gdl;
 }
 
-void func_80259EC4(Gfx **gfxp, u8 *str, u16 *wstr, u8 align, s32 fit, f32 x, s32 y, f32 w, s32 h, u8 forward,
+void func_80259EC4(Gfx * N64P *gfxp, u8 *str, u16 *wstr, u8 align, s32 fit, f32 x, s32 y, f32 w, s32 h, u8 forward,
                    u8 r0, u8 g0, u8 b0, u8 a0, u8 r1, u8 g1, u8 b1, u8 a1, u8 r2, u8 g2, u8 b2, u8 a2,
                    u8 r3, u8 g3, u8 b3, u8 a3);
 
 /* Draws a string in one flat colour. */
-void func_80259CCC(Gfx **gfxp, u8 *str, u16 *wstr, u8 align, s32 fit, s32 x, s32 y, s32 w, s32 h, u8 forward,
+void func_80259CCC(Gfx * N64P *gfxp, u8 *str, u16 *wstr, u8 align, s32 fit, s32 x, s32 y, s32 w, s32 h, u8 forward,
                    u8 r, u8 g, u8 b, u8 a) {
     func_80259EC4(gfxp, str, wstr, align, fit, x, y, w, h, forward, r, g, b, a, r, g, b, a, r, g, b, a, r, g, b, a);
 }
 
 /* Draws a string with a vertical gradient (top colour, bottom colour). */
-void func_80259DC8(Gfx **gfxp, u8 *str, u16 *wstr, u8 align, s32 fit, s32 x, s32 y, s32 w, s32 h, u8 forward,
+void func_80259DC8(Gfx * N64P *gfxp, u8 *str, u16 *wstr, u8 align, s32 fit, s32 x, s32 y, s32 w, s32 h, u8 forward,
                    u8 r0, u8 g0, u8 b0, u8 a0, u8 r1, u8 g1, u8 b1, u8 a1) {
     func_80259EC4(gfxp, str, wstr, align, fit, x, y, w, h, forward, r0, g0, b0, a0, r0, g0, b0, a0, r1, g1, b1, a1,
                   r1, g1, b1, a1);
@@ -189,7 +189,7 @@ void func_80259DC8(Gfx **gfxp, u8 *str, u16 *wstr, u8 align, s32 fit, s32 x, s32
  * terminated wide string wstr) into the current vertex buffer and the
  * TextQuad list; func_80259824 later sorts and draws them. Characters with
  * all four alphas zero, and the per-font space characters, only advance. */
-void func_80259EC4(Gfx **gfxp, u8 *str, u16 *wstr, u8 align, s32 fit, f32 x, s32 y, f32 w, s32 h, u8 forward,
+void func_80259EC4(Gfx * N64P *gfxp, u8 *str, u16 *wstr, u8 align, s32 fit, f32 x, s32 y, f32 w, s32 h, u8 forward,
                    u8 r0, u8 g0, u8 b0, u8 a0, u8 r1, u8 g1, u8 b1, u8 a1, u8 r2, u8 g2, u8 b2, u8 a2,
                    u8 r3, u8 g3, u8 b3, u8 a3) {
     u16 glyph;

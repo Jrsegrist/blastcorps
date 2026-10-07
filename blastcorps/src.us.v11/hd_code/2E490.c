@@ -5,11 +5,11 @@
 extern u8 D_8036C360;
 
 /* Sprite slots (this file's .bss, 0x8036BFE0) */
-extern void *D_8036BFE0[64][2];    /* frame images */
+extern void * N64P D_8036BFE0[64][2];    /* frame images */
 extern u8 D_8036C1E0[64];          /* frame count */
 extern u8 D_8036C220[64];          /* flags */
 extern f32 D_8036C260[64];         /* scale */
-extern Vtx *D_8036C368[2][64][2]; /* per-buffer quads, two orientations */
+extern Vtx * N64P D_8036C368[2][64][2]; /* per-buffer quads, two orientations */
 
 
 Gfx *func_802742D8(Gfx *gdl, u8 slot, s16 x, s16 y, s32 flip, s32 size, s32 half, f32 scale, u8 frame);

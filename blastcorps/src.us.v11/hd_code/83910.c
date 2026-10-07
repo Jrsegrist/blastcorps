@@ -31,9 +31,9 @@ typedef struct {
     u8 *veh;             /* the vehicle block (asm $gp) */
     u8 *chan;            /* animation channel table */
     s32 *pos;            /* x, y, z */
-    u8 **data;           /* model data */
-    u64 **bufA;          /* save-buffer pair (func_802A7764 / func_802AA838) */
-    u64 **bufB;
+    u8 * N64P *data;     /* model data */
+    u64 * N64P *bufA;    /* save-buffer pair (func_802A7764 / func_802AA838) */
+    u64 * N64P *bufB;
     u8 *flag;            /* set while a hit has been undone */
     s32 type;            /* vehicle type / part tag */
     void (*model)(void); /* this copy's model update */
@@ -48,15 +48,15 @@ extern u8 D_803F8250[];
 extern s32 D_803F8748[]; /* x, y, z (D_803F8748, D_803F874C, D_803F8750) */
 extern s32 D_803F8754[];
 extern s32 D_803F8760[];
-extern u8 *D_803F876C;
-extern u8 *D_803F8770;
-extern u8 *D_803F8774;
-extern u64 *D_803F8778;
-extern u64 *D_803F877C;
-extern u64 *D_803F8780;
-extern u64 *D_803F8784;
-extern u64 *D_803F8788;
-extern u64 *D_803F878C;
+extern u8 * N64P D_803F876C;
+extern u8 * N64P D_803F8770;
+extern u8 * N64P D_803F8774;
+extern u64 * N64P D_803F8778;
+extern u64 * N64P D_803F877C;
+extern u64 * N64P D_803F8780;
+extern u64 * N64P D_803F8784;
+extern u64 * N64P D_803F8788;
+extern u64 * N64P D_803F878C;
 extern u8 D_803F8790;
 extern u8 D_803F8791;
 extern u8 D_803F8792;
@@ -396,12 +396,12 @@ s32 func_802C8AF0(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u64 *D_803F8778; /* save copy pairs (func_802A7764), one per vehicle */
-extern u64 *D_803F877C;
-extern u64 *D_803F8780;
-extern u64 *D_803F8784;
-extern u64 *D_803F8788;
-extern u64 *D_803F878C;
+extern u64 * N64P D_803F8778; /* save copy pairs (func_802A7764), one per vehicle */
+extern u64 * N64P D_803F877C;
+extern u64 * N64P D_803F8780;
+extern u64 * N64P D_803F8784;
+extern u64 * N64P D_803F8788;
+extern u64 * N64P D_803F878C;
 
 /* Leave vehicle type 0x11 / 0x12 / other (11) (called from hd.c with the
  * type): func_802A7764(pair for that type, 0x800), then stops the looping

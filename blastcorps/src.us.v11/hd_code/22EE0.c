@@ -7,26 +7,26 @@
  * streams sample data through a small cache of 0x200-byte DMA buffers. */
 
 typedef struct BcScTask {
-    /* 0x00 */ struct BcScTask *next;
+    /* 0x00 */ struct BcScTask * N64P next;
     /* 0x04 */ u32 state;
     /* 0x08 */ u32 flags;
-    /* 0x0C */ void *framebuffer;
+    /* 0x0C */ void * N64P framebuffer;
     /* 0x10 */ OSTask list;
-    /* 0x50 */ void *unk50;
-    /* 0x54 */ OSMesgQueue *msgQ;
+    /* 0x50 */ void * N64P unk50;
+    /* 0x54 */ OSMesgQueue * N64P msgQ;
     /* 0x58 */ OSMesg msg;
     /* 0x5C */ s32 pad5C;
 } BcScTask;
 
 typedef struct {
-    /* 0x00 */ s16 *data;
+    /* 0x00 */ s16 * N64P data;
     /* 0x04 */ s16 frameSamples;
     /* 0x08 */ BcScTask task;
 } AudioInfo;
 
 typedef struct {
-    /* 0x000 */ Acmd *ACMDList[2];
-    /* 0x008 */ AudioInfo *audioInfo[3];
+    /* 0x000 */ Acmd * N64P ACMDList[2];
+    /* 0x008 */ AudioInfo * N64P audioInfo[3];
     /* 0x018 */ OSThread thread;
     /* 0x1C8 */ OSMesgQueue audioFrameMsgQ;
     /* 0x1E0 */ OSMesg audioFrameMsgBuf[8];
@@ -39,13 +39,13 @@ typedef struct {
     /* 0x00 */ ALLink node;
     /* 0x08 */ u32 startAddr;
     /* 0x0C */ u32 lastFrame;
-    /* 0x10 */ u8 *ptr;
+    /* 0x10 */ u8 * N64P ptr;
 } AMDMABuffer;
 
 typedef struct {
     /* 0x00 */ u8 initialized;
-    /* 0x04 */ AMDMABuffer *firstUsed;
-    /* 0x08 */ AMDMABuffer *firstFree;
+    /* 0x04 */ AMDMABuffer * N64P firstUsed;
+    /* 0x08 */ AMDMABuffer * N64P firstFree;
 } AMDMAState;
 
 extern AMAudioMgr D_80368070;
@@ -60,7 +60,7 @@ extern OSMesgQueue D_8036AE68; /* audDMAMessageQ */
 /* the old SDK's OSIoMesg, without piHandle */
 typedef struct {
     OSIoMesgHdr hdr;
-    void *dramAddr;
+    void * N64P dramAddr;
     u32 devAddr;
     u32 size;
 } OldIoMesg;
@@ -269,7 +269,7 @@ void func_80267CDC(AudioInfo *info, AudioInfo *lastInfo) {
 
 /* __amHandleDoneMsg */
 void func_80267F88(AudioInfo *info) {
-    static s32 D_802F3C04 = 1; /* firstTime */
+    static s32 D_802F3C04 N64_KEEP = 1; /* firstTime (never cleared: N64_KEEP) */
     u32 samplesLeft;
 
     samplesLeft = func_802D9C10() >> 2;

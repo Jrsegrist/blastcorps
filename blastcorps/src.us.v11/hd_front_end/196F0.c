@@ -27,7 +27,7 @@
         _g->words.w1 = (unsigned int) (m1);                               \
     }
 
-extern u8 *D_8021AB80;        /* the inflated picture */
+extern u8 * N64P D_8021AB80;        /* the inflated picture */
 extern u8 D_8021AB84;         /* its number */
 extern u8 D_006BF2F0[];
 extern u8 D_006D3D30[];
@@ -137,7 +137,7 @@ void func_80200714(u8 mode) {
 }
 
 void func_80200BD4(s32 arg0) {
-    D_8021AB80 = (u8 *) arg0;
+    D_8021AB80 = (u8 *) N64_IPTR(arg0);
 }
 
 /* draw the picture as 64x16 texture rectangles (translucent in some modes) */

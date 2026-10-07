@@ -13,9 +13,9 @@
 #define D_02000000 (*(VtxBuf *) D_02000000)
 #define D_803F4030 ((Object *) D_803F4030)
 #ifdef NON_MATCHING
-#define D_803643C8 (*(Struct13A70 * *) &D_803643C8)
-#define D_803643CC (*(Struct13A70 * *) &D_803643CC)
-#define D_803F7654 (*(Object * *) &D_803F7654)
+#define D_803643C8 (*(Struct13A70 * N64P *) &D_803643C8)
+#define D_803643CC (*(Struct13A70 * N64P *) &D_803643CC)
+#define D_803F7654 (*(Object * N64P *) &D_803F7654)
 #endif
 /* end of views */
 

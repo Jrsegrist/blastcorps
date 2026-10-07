@@ -7,7 +7,7 @@
 
 /* This file's .bss starts at 0x8036C790 */
 extern s32 D_8036C798;
-extern s16 *D_8036C7A0[10]; /* point lists to keep on screen */
+extern s16 * N64P D_8036C7A0[10]; /* point lists to keep on screen */
 extern Vtx D_8036C7D0[][4];   /* off-screen marker quads */
 extern Mtx D_8036C850[];      /* off-screen marker matrices */
 extern s32 D_802FAD40; /* target bounce offset */

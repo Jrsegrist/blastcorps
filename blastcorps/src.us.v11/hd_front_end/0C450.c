@@ -12,8 +12,8 @@ typedef struct Node {
     f32 unk4;
     f32 unk8; /* spin period (0 = no spin) */
     f32 unkC;
-    struct Node *unk10; /* next sibling */
-    struct Node *unk14; /* first child */
+    struct Node * N64P unk10; /* next sibling */
+    struct Node * N64P unk14; /* first child */
     u8 unk18[4]; /* rgb */
     f32 unk1C; /* spin angle */
     f32 unk20; /* world position from the matrix stack */
@@ -27,7 +27,7 @@ typedef struct Node {
 
 typedef struct {
     s32 unk0; /* node index */
-    Gfx *unk4;
+    Gfx * N64P unk4;
 } DrawEntry;
 
 extern Node D_8020BD30[];

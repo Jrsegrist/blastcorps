@@ -62,10 +62,10 @@ typedef struct {
 } __OSThreadContext;
 
 typedef struct OSThread_s {
-	struct OSThread_s	*next;		/* run/mesg queue link */
+	struct OSThread_s	* N64P next;		/* run/mesg queue link */
 	OSPri			priority;	/* run/mesg queue priority */
-	struct OSThread_s	**queue;	/* queue thread is on */
-	struct OSThread_s	*tlnext;	/* all threads queue link */
+	struct OSThread_s	* N64P * N64P queue;	/* queue thread is on */
+	struct OSThread_s	* N64P tlnext;	/* all threads queue link */
 	u16			state;		/* OS_STATE_* */
 	u16			flags;		/* flags for rmon */
 	OSId			id;		/* id for debugging */
@@ -81,20 +81,20 @@ typedef u32 OSHWIntr;
 /*
  * Structure for message
  */
-typedef void *	OSMesg;
+typedef void * N64P	OSMesg;
 
 /*
  * Structure for message queue
  */
 typedef struct OSMesgQueue_s {
-	OSThread	*mtqueue;	/* Queue to store threads blocked
+	OSThread	* N64P mtqueue;	/* Queue to store threads blocked
 					   on empty mailboxes (receive) */
-	OSThread	*fullqueue;	/* Queue to store threads blocked
+	OSThread	* N64P fullqueue;	/* Queue to store threads blocked
 					   on full mailboxes (send) */
 	s32		validCount;	/* Contains number of valid message */
 	s32		first;		/* Points to first valid message */
 	s32		msgCount;	/* Contains total # of messages */
-	OSMesg		*msg;		/* Points to message buffer array */
+	OSMesg		* N64P msg;		/* Points to message buffer array */
 } OSMesgQueue;
 
 /*
@@ -108,8 +108,8 @@ typedef struct OSMesgQueue_s {
 
 typedef struct {
 	u32		errStatus;	/* error status */
-        void     	*dramAddr;      /* RDRAM buffer address (DMA) */
-	void		*C2Addr;	/* C2 buffer address */
+        void     	* N64P dramAddr;      /* RDRAM buffer address (DMA) */
+	void		* N64P C2Addr;	/* C2 buffer address */
 	u32		sectorSize;	/* size of transfering sector */
 	u32		C1ErrNum;	/* total # of C1 errors */
 	u32		C1ErrSector[4];	/* error sectors */
@@ -128,7 +128,7 @@ typedef struct {
 
 
 typedef struct OSPiHandle_s {
-        struct OSPiHandle_s     *next;  /* point to next handle on the table */
+        struct OSPiHandle_s     * N64P next;  /* point to next handle on the table */
         u8                      type;   /* DEVICE_TYPE_BULK for disk */
         u8                      latency;        /* domain latency */
         u8                      pageSize;       /* domain page size */
@@ -153,16 +153,16 @@ typedef struct {
         u16 		type;		/* Message type */
         u8 		pri;		/* Message priority (High or Normal) */
         u8		status;		/* Return status */
-	OSMesgQueue	*retQueue;	/* Return message queue to notify I/O 
+	OSMesgQueue	* N64P retQueue;	/* Return message queue to notify I/O 
 					 * completion */
 } OSIoMesgHdr;
 
 typedef struct {
 	OSIoMesgHdr	hdr;		/* Message header */
-	void *		dramAddr;	/* RDRAM buffer address (DMA) */
+	void * N64P		dramAddr;	/* RDRAM buffer address (DMA) */
 	u32		devAddr;	/* Device buffer address (DMA) */
 	u32 		size;		/* DMA transfer size in bytes */
-	OSPiHandle	*piHandle;	/* PI device handle */
+	OSPiHandle	* N64P piHandle;	/* PI device handle */
 } OSIoMesg;
 
 /*
@@ -170,10 +170,10 @@ typedef struct {
  */
 typedef struct {
         s32             active;		/* Status flag */
-	OSThread	*thread;	/* Calling thread */
-        OSMesgQueue  	*cmdQueue;	/* Command queue */
-        OSMesgQueue  	*evtQueue;	/* Event queue */
-        OSMesgQueue  	*acsQueue;	/* Access queue */
+	OSThread	* N64P thread;	/* Calling thread */
+        OSMesgQueue  	* N64P cmdQueue;	/* Command queue */
+        OSMesgQueue  	* N64P evtQueue;	/* Event queue */
+        OSMesgQueue  	* N64P acsQueue;	/* Access queue */
 					/* Raw DMA routine */
         s32             (*dma)(s32, u32, void *, u32);
         s32             (*edma)(OSPiHandle *, s32, u32, void *, u32);
@@ -226,12 +226,12 @@ typedef u64	OSTime;
  * Structure for interval timer
  */
 typedef struct OSTimer_s {
-	struct OSTimer_s	*next;	/* point to next timer in list */
-	struct OSTimer_s	*prev;	/* point to previous timer in list */
+	struct OSTimer_s	* N64P next;	/* point to next timer in list */
+	struct OSTimer_s	* N64P prev;	/* point to previous timer in list */
 	OSTime			interval;	/* duration set by user */
 	OSTime			value;		/* time remaining before */
 						/* timer fires           */
-	OSMesgQueue		*mq;		/* Message Queue */
+	OSMesgQueue		* N64P mq;		/* Message Queue */
 	OSMesg			msg;		/* Message to send */
 } OSTimer;
 
@@ -253,7 +253,7 @@ typedef struct {
 } OSContPad;
 
 typedef struct {
-	void    *address;               /* Ram pad Address:  11 bits */
+	void    * N64P address;               /* Ram pad Address:  11 bits */
 	u8      databuffer[32];         /* address of the data buffer */
         u8      addressCrc;             /* CRC code for address */
 	u8      dataCrc;                /* CRC code for data */
@@ -268,7 +268,7 @@ typedef struct {
 
 typedef struct {
 	int		status;
-	OSMesgQueue 	*queue;
+	OSMesgQueue 	* N64P queue;
 	int		channel;
 	u8		id[32];
 	u8		label[32];
@@ -295,10 +295,10 @@ typedef struct {
  * Structure for Profiler 
  */
 typedef struct {
-	u16	*histo_base;		/* histogram base */
+	u16	* N64P histo_base;		/* histogram base */
 	u32	histo_size;		/* histogram size */
-	u32	*text_start;		/* start of text segment */
-	u32	*text_end;		/* end of text segment */
+	u32	* N64P text_start;		/* start of text segment */
+	u32	* N64P text_end;		/* end of text segment */
 } OSProf;
 
 #endif /* defined(_LANGUAGE_C) || defined(_LANGUAGE_C_PLUS_PLUS) */
@@ -762,7 +762,7 @@ extern OSViMode	osViModeMpalHpn2;
 extern OSViMode	osViModeMpalHpf2;
 
 extern s32 	osRomType;	/* Bulk or cartridge ROM. 0=cartridge 1=bulk */
-extern void 	*osRomBase;	/* Rom base address of the game image */
+extern void 	* N64P osRomBase;	/* Rom base address of the game image */
 extern s32 	osTvType;	/* 0 = PAL, 1 = NTSC, 2 = MPAL */
 extern s32 	osResetType;	/* 0 = cold reset, 1 = NMI */
 extern s32 	osCicId;
@@ -837,8 +837,8 @@ extern void		osSetTLBASID(s32);
 extern u32		 osVirtualToPhysical(void *);
 extern void *		 osPhysicalToVirtual(u32);
 
-#define	OS_K0_TO_PHYSICAL(x)	(u32)(((char *)(x)-0x80000000))
-#define	OS_K1_TO_PHYSICAL(x)	(u32)(((char *)(x)-0xa0000000))
+#define	OS_K0_TO_PHYSICAL(x)	(u32)(((char *)N64_IPTR(x)-0x80000000))
+#define	OS_K1_TO_PHYSICAL(x)	(u32)(((char *)N64_IPTR(x)-0xa0000000))
 
 #define	OS_PHYSICAL_TO_K0(x)	(void *)(((u32)(x)+0x80000000))
 #define	OS_PHYSICAL_TO_K1(x)	(void *)(((u32)(x)+0xa0000000))

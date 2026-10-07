@@ -27,7 +27,7 @@
  * The loads and stores keep the asm's order (the last call's arguments are
  * read back from memory).
  */
-void func_80202100(s32 type, u8 **model, u8 **heap, u8 **dl) {
+void func_80202100(s32 type, u8 * N64P *model, u8 * N64P *heap, u8 * N64P *dl) {
     Out802A396C o;
     u8 *data;
     u8 *h;
@@ -60,7 +60,7 @@ void func_802021FC(void *ch, void *base, void *other) {
 }
 
 /* func_8029F85C(bufs[1], bufs[0], ch, hdr); its result is dropped */
-void func_80202270(u8 *hdr, u32 **bufs, void *ch) {
+void func_80202270(u8 *hdr, u32 * N64P *bufs, void *ch) {
     func_8029F85C(bufs[1], bufs[0], ch, hdr);
 }
 

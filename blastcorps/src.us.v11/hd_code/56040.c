@@ -25,8 +25,8 @@
 
 /* 12-byte pending-copy slot of the 120-entry pool D_803B7FC8. */
 typedef struct {
-    /* 0x00 */ u8 *src;  /* 0 = free */
-    /* 0x04 */ u8 *dst;
+    /* 0x00 */ u8 * N64P src;  /* 0 = free */
+    /* 0x04 */ u8 * N64P dst;
     /* 0x08 */ s32 parity;
 } Unk8029DCD4Slot;
 
@@ -340,8 +340,8 @@ s32 func_8029AB88(s32 x, s32 y, s32 z, s32 r, s32 kind) {
             if (func_8029B514(x, y, z, r, obj) == 0) {
                 continue;
             }
-            end = *(u8 **) (obj + 8);
-            for (tri = *(u8 **) (obj + 4); tri != end; tri += 0x60) {
+            end = *(u8 * N64P *) (obj + 8);
+            for (tri = *(u8 * N64P *) (obj + 4); tri != end; tri += 0x60) {
                 if (tri[0x51] != 0 && port_sphere_hits_tri(x, y, z, r, tri)) {
                     return 1;
                 }
@@ -450,8 +450,8 @@ void func_8029B02C(s32 x, s32 y, s32 z, s32 r, s32 kind, s32 id) {
             if (func_8029B514(x, y, z, r, obj) == 0) {
                 continue;
             }
-            end = *(u8 **) (obj + 8);
-            for (tri = *(u8 **) (obj + 4); tri != end; tri += 0x60) {
+            end = *(u8 * N64P *) (obj + 8);
+            for (tri = *(u8 * N64P *) (obj + 4); tri != end; tri += 0x60) {
                 if (tri[0x51] != 0 && port_sphere_hits_tri(x, y, z, r, tri)) {
                     func_8029B614(tri, id);
                 }
@@ -577,7 +577,7 @@ void func_8029B614(u8 *tri, s32 id) {
     s32 h;
 
     func_802BCCD4(id);
-    for (p = (s8 *) D_803A7408;; p++) {
+    for (p = (s8 *) N64_IPTR(D_803A7408);; p++) {
         c = *p;
         if (c == id) {
             goto tail;
@@ -765,7 +765,7 @@ void func_8029B614(u8 *tri, s32 id);
  * overflow where this C wraps. */
 s32 func_8029BB28(u8 *tri, s32 kind, s32 id) {
     u8 *g = D_803BD310;
-    u8 **p;
+    u8 * N64P *p;
     u8 *b;
     s32 n;
     s64 s;
@@ -773,7 +773,7 @@ s32 func_8029BB28(u8 *tri, s32 kind, s32 id) {
     s32 side;
 
     for (;; g += 0xFC) {
-        p = (u8 **) (g + 8);
+        p = (u8 * N64P *) (g + 8);
         for (n = g[0xF8]; n != 0; n--) {
             if (*p++ == tri) {
                 goto found;
@@ -806,7 +806,7 @@ found:
         return 0;
     }
     D_803ED825 ^= 1;
-    p = (u8 **) (g + 8);
+    p = (u8 * N64P *) (g + 8);
     for (n = g[0xF8]; n != 0; n--) {
         b = *p++;
         if (b[0x54] != 0) {
@@ -2205,7 +2205,7 @@ s32 func_8029DC14(s32 id) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern Unk8029DCD4Slot D_803B7FC8[120];
-extern Unk8029DCD4Slot *D_803B8568; /* last slot in use (sits right after D_803B7FC8) */
+extern Unk8029DCD4Slot * N64P D_803B8568; /* last slot in use (sits right after D_803B7FC8) */
 
 /* Resets the 120-entry pool D_803B7FC8: the next-free pointer goes back to
  * the start and words 0 and 4 of every 12-byte entry are cleared.
@@ -2339,7 +2339,7 @@ void func_8029DE50(u64 *dst, u64 *src) {
 #ifdef NON_MATCHING
 /* Unk8029DEA0Entry is defined in the file-level NON_MATCHING block at the top. */
 extern u8 D_803A7440[12][0x1010];
-extern void *D_803B35F0;
+extern void * N64P D_803B35F0;
 extern u8 D_803B3500[];
 extern Unk8029DEA0Entry D_803B35F8[];
 /* List in the 7D9D0 data blob, ended by -1. In the ROM its 12 entries are
@@ -2406,7 +2406,7 @@ void func_8029DF78(u8 *dl, u8 *dlEnd, s32 key) {
     u8 *p;
     u32 tex;
 
-    while ((s32) (e = (u8 *) *lp) != -1) {
+    while ((s32) (e = (u8 *) N64_IPTR(*lp)) != -1) {
         lp++;
         if (e[0] != key || e[2] == 0) {
             continue;
@@ -2489,7 +2489,7 @@ u32 func_8029E47C(s32 key, s32 id, u8 *param);
  * func_8029E47C's callee leaves them; its caller func_8029E0AC is said to
  * read those, not modelled). */
 void func_8029E21C(Unk8029DEA0Entry *ch, u8 *param) {
-    u8 *a = (u8 *) ch->id;
+    u8 *a = (u8 *) N64_IPTR(ch->id);
     s32 key = ch->id;
     s32 frame = ch->unk13;
     f32 frac = ch->unk4;
@@ -2537,11 +2537,11 @@ void func_8029E21C(Unk8029DEA0Entry *ch, u8 *param) {
             if (*(s32 *) (e + 0) != key || *(s32 *) (e + 8) != i) {
                 continue;
             }
-            *(s32 *) (base + *(s32 *) (e + 4)) = first;
+            *(s32 *) N64_IPTR((base + *(s32 *) (e + 4))) = first;
             if (blend == 0) {
                 continue;
             }
-            p = (u32 *) (base + *(s32 *) (e + 0x10));
+            p = (u32 *) N64_IPTR((base + *(s32 *) (e + 0x10)));
             e += 0xC;
             *p++ = second;
             do {
@@ -2624,7 +2624,7 @@ s32 func_8029E4E4(s32 key, s32 sub) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 *D_803B3770; /* the other matrix buffer of the pair (see func_8029E5AC) */
+extern u8 * N64P D_803B3770; /* the other matrix buffer of the pair (see func_8029E5AC) */
 void func_8029E5AC(Unk8029DEA0Entry *ch, u8 *base);
 
 /* Animates a model's 32 channels: D_803B3770 = other, then
@@ -2650,7 +2650,7 @@ void func_8029E558(u8 *base, u8 *other, Unk8029DEA0Entry *ch) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 *D_803B3770;
+extern u8 * N64P D_803B3770;
 void func_8029F110(u8 *p, s32 mode, Unk8029F110Out *o);
 f32 func_8029F060(f32 t, s32 idx, s32 n);
 void func_8029EF80(u8 *mtx, s16 *key, f32 t);
@@ -2679,7 +2679,7 @@ void func_8029E730(u8 *rec, u8 *mtx, f32 t);
  * t1). Its add/sub/addi trap on overflow (not reached). */
 void func_8029E5AC(Unk8029DEA0Entry *ch, u8 *base) {
     s32 frame = ch->unk13;
-    u8 *a = (u8 *) ch->id;
+    u8 *a = (u8 *) N64_IPTR(ch->id);
     f32 frac = ch->unk4;
     u8 *k = a + frame;
     s32 n = a[0];
@@ -3565,8 +3565,8 @@ void func_8029F9D4(s32 a, s32 b, Unk8029DEA0Entry *base) {
     out[1] = 1;
     out[2] = 1;
     dst = (s16 *) (out + 4);
-    ra = port_track_records((u8 *) ea->id, &na, &sa);
-    rb = port_track_records((u8 *) eb->id, &nb, &sb);
+    ra = port_track_records((u8 *) N64_IPTR(ea->id), &na, &sa);
+    rb = port_track_records((u8 *) N64_IPTR(eb->id), &nb, &sb);
     for (; na != 0; na--, ra += sa) {
         u32 key = *(u32 *) ra;
 
@@ -3603,7 +3603,7 @@ void func_8029F9D4(s32 a, s32 b, Unk8029DEA0Entry *base) {
 void func_8029FC74(s32 a, s32 b, Unk8029DEA0Entry *base) {
     Unk8029DEA0Entry *ea = base + a;
     Unk8029DEA0Entry *eb = base + b;
-    u8 *hb = (u8 *) eb->id;
+    u8 *hb = (u8 *) N64_IPTR(eb->id);
     u8 *out = PORT_TRACK_BUF;
     s16 *dst;
     u8 *r;
@@ -3615,7 +3615,7 @@ void func_8029FC74(s32 a, s32 b, Unk8029DEA0Entry *base) {
     out[1] = 1;
     out[2] = 1;
     dst = (s16 *) (out + 4);
-    for (r = port_track_records((u8 *) ea->id, &cnt, &stride); cnt != 0; cnt--, r += stride) {
+    for (r = port_track_records((u8 *) N64_IPTR(ea->id), &cnt, &stride); cnt != 0; cnt--, r += stride) {
         ((u32 *) dst)[0] = *(u32 *) r;
         ((u32 *) dst)[1] = *(u32 *) (r + 4);
         dst += 4;
@@ -3683,7 +3683,7 @@ s16 *func_8029FFA0(s16 *dst, Unk8029DEA0Entry *ch, u8 *keys) {
     s32 i;
 
     func_8029F110((u8 *) ch, (u8) ch->unk15, &basis);
-    func_8029F060(t, (u8) ch->unk13, *(u8 *) ch->id);
+    func_8029F060(t, (u8) ch->unk13, *(u8 *) N64_IPTR(ch->id));
     keys += 8;
     k0 = (s16 *) (keys + D_803B7FC0[0] * 0x14);
     k1 = (s16 *) (keys + D_803B7FC0[1] * 0x14);

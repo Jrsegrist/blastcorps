@@ -70,8 +70,8 @@ typedef struct {
 
 typedef struct {
     u8 pad0[0xC];
-    char *text;  /* 0x0C */
-    void *unk10; /* 0x10 */
+    char * N64P text;  /* 0x0C */
+    void * N64P unk10; /* 0x10 */
     u8 pad14[8];
 } MenuItem; /* 0x1C */
 

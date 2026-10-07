@@ -11,7 +11,7 @@
 #define D_802F49F4 ((Font *) D_802F49F4)
 #define D_80364AF0 ((Player *) D_80364AF0)
 #ifdef NON_MATCHING
-#define D_8036BB24 (*(MenuItem * *) &D_8036BB24)
+#define D_8036BB24 (*(MenuItem * N64P *) &D_8036BB24)
 #endif
 /* end of views */
 
@@ -39,7 +39,7 @@ typedef struct {
     /* 0x06 */ s16 w;
     /* 0x08 */ s16 h;
     /* 0x0A */ u8 padA[2];
-    /* 0x0C */ u8 *text;
+    /* 0x0C */ u8 * N64P text;
     /* 0x10 */ s32 jtext;
     /* 0x14 */ u8 font;
     /* 0x15 */ u8 pad15;
@@ -60,7 +60,7 @@ typedef struct {
 } Window;
 
 typedef struct {
-    u8 *text;
+    u8 * N64P text;
     s32 jtext;
 } MenuText;
 
@@ -213,7 +213,7 @@ typedef struct Huft {
     u8 pad[2];
     union {
         u16 n;
-        struct Huft *t;
+        struct Huft * N64P t;
     } v;
 } Huft;
 
@@ -230,7 +230,7 @@ extern u16 D_802FF700[]; /* mask_bits */
 extern s32 D_802FF724;   /* lbits */
 extern s32 D_802FF728;   /* dbits */
 
-int func_80297FE0(s32 *b, u32 n, u32 s, u16 *d, u8 *e, Huft **t, s32 *m);
+int func_80297FE0(s32 *b, u32 n, u32 s, u16 *d, u8 *e, Huft * N64P *t, s32 *m);
 s32 func_8029867C(Huft *tl, Huft *td, u32 bl, u32 bd);
 s32 func_80298DC0(void);
 s32 func_80298A84(void);
@@ -243,7 +243,7 @@ s32 func_80298C18(void);
 #define BMAX 16
 #define N_MAX 288
 
-int func_80297FE0(s32 *b, u32 n, u32 s, u16 *d, u8 *e, Huft **t, s32 *m) {
+int func_80297FE0(s32 *b, u32 n, u32 s, u16 *d, u8 *e, Huft * N64P *t, s32 *m) {
     u32 a;
     u32 c[BMAX + 1];
     u32 f;
@@ -349,7 +349,7 @@ int func_80297FE0(s32 *b, u32 n, u32 s, u16 *d, u8 *e, Huft **t, s32 *m) {
                 q = (Huft *) (D_8039CAEC * 8 + D_8039CAE0);
                 D_8039CAEC += z + 1;
                 *t = q + 1;
-                *(t = (Huft **) &(q->v.t)) = NULL;
+                *(t = (Huft * N64P *) &(q->v.t)) = NULL;
                 u[h] = ++q;
 
                 if (h) {
@@ -541,8 +541,8 @@ s32 func_80298A84(void) {
 
 s32 func_80298C18(void) {
     s32 i;
-    Huft *tl;
-    Huft *td;
+    Huft * N64P tl;
+    Huft * N64P td;
     s32 bl;
     s32 bd;
     s32 l[288];
@@ -580,8 +580,8 @@ s32 func_80298DC0(void) {
     u32 l;
     u32 m;
     u32 n;
-    Huft *tl;
-    Huft *td;
+    Huft * N64P tl;
+    Huft * N64P td;
     s32 bl;
     s32 bd;
     u32 nb;

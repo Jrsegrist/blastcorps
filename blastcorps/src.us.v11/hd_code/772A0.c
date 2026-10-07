@@ -46,9 +46,9 @@ extern u8 D_803EFAF0[];  /* its animation channel table */
 extern s32 D_803EFE98;   /* x */
 extern s32 D_803EFE9C;   /* y */
 extern s32 D_803EFEA0;   /* z */
-extern u8 *D_803EFEA4;   /* model data */
-extern u64 *D_803EFEA8;  /* save-buffer pair */
-extern u64 *D_803EFEAC;
+extern u8 * N64P D_803EFEA4;   /* model data */
+extern u64 * N64P D_803EFEA8;  /* save-buffer pair */
+extern u64 * N64P D_803EFEAC;
 extern s32 D_803EFEC0;   /* frame counters */
 extern s32 D_803EFEC4;
 extern u8 D_803EFEC9;
@@ -202,8 +202,8 @@ s32 func_802BBE10(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u64 *D_803EFEA8; /* save copy pair (func_802A7764) */
-extern u64 *D_803EFEAC;
+extern u64 * N64P D_803EFEA8; /* save copy pair (func_802A7764) */
+extern u64 * N64P D_803EFEAC;
 
 /* Leave vehicle type 7 (called from hd.c): func_802A7764(D_803EFEA8,
  * D_803EFEAC, 0x800), then stop the looping sounds (func_802C444C). The asm

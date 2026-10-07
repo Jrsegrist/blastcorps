@@ -43,7 +43,7 @@ extern "C" {
 typedef struct {
     u32 magic;          /* log identifier                       */
     u32 len;            /* length of log data + log structure   */
-    u32 *base;          /* starting addr array                  */
+    u32 * N64P base;          /* starting addr array                  */
     s32 startCount;     /* read offset from dataBase            */
     s32 writeOffset;    /* write offset from dataBase           */
 } OSLog;

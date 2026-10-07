@@ -42,8 +42,12 @@ def main():
     lines = open(inp).read().split("\n")
     # IDO emits no symbol for a function-local static; the project names them
     # D_<address> by convention (22EE0's `static s32 D_802F3C04`), so trust the name
+    # (zero-initialised ones are .lcomm: `static s16 D_802081B0 = 0;` in the
+    # front end's 00000.c lived in host .bss, so the front end's reload never
+    # reset it and the RDRAM word never changed)
     for line in lines:
-        m = re.match(r"^(_D_([0-9A-F]{8}))\.\d+:", line)
+        m = re.match(r"^(_D_([0-9A-F]{8}))\.\d+:", line) or \
+            re.match(r"^\s*\.l?comm\s+(_D_([0-9A-F]{8}))\.\d+\s*,", line)
         if m and m.group(1) not in addrs and 0x80000000 <= int(m.group(2), 16) < 0x80800000:
             addrs[m.group(1)] = int(m.group(2), 16)
     out, rec = [], []

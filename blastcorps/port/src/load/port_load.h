@@ -39,6 +39,9 @@ void port_bswap_n(void *p, uint32_t n, int width);
  * kept big-endian); port_n64_byte gives the byte the N64 would hold at P. */
 void port_unit_mark(void *p, uint32_t n, int width);
 uint8_t port_n64_byte(const void *p);
+/* ... and the units of a graphics task's display lists, matrices and
+ * vertices (dl: physical address), from the platform's osSpTaskStartGo */
+void port_mark_gfx_task(uint32_t dl);
 /* N Vtx built in fresh heap memory with fields left unwritten: the N64's
  * stale bytes in the native Vtx layout (42240.c) */
 void port_vtx_stale(void *v, uint32_t n);

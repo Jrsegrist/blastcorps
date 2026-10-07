@@ -25,7 +25,6 @@ extern int host_verbose;
  * after hiding host_gui_window (an HWND, so a fullscreen window doesn't
  * cover the box); host_log_path names the log file stderr went to, if any. */
 extern int host_gui;
-extern int host_no_msgbox;   /* --no-msgbox (WSL doesn't pass BC_NO_MSGBOX to the exe) */
 extern void *host_gui_window;
 extern const char *host_log_path;
 /* a message box (UTF-8 text); `error` picks the icon */

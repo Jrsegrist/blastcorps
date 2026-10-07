@@ -41,8 +41,6 @@
  *                        order at that width) when frame F is sent, after its
  *                        dump (compare.py's CMP_POKE does the same in the
  *                        emulator): e.g. pick the level a run loads
- *     --no-msgbox        bc.exe: errors and crashes only logged, no message box
- *                        (automated runs; WSL doesn't pass BC_NO_MSGBOX on)
  *     --watch F:ADDR[:N] debugging: log the first N (20) writes to ADDR's 4 KB
  *                        page from frame F on (eip and stack code pointers)
  *     -v / -q            verbose / quiet */
@@ -150,7 +148,6 @@ int host_main(int argc, char **argv, int (*extra)(int argc, char **argv, int *i,
         else if (!strcmp(a, "--wav")) o.wav_path = ARG();
         else if (!strcmp(a, "--wav-all")) o.wav_all = 1;
         else if (!strcmp(a, "--no-audio")) o.audio_off = 1;
-        else if (!strcmp(a, "--no-msgbox")) host_no_msgbox = 1;
         else if (!strcmp(a, "--watch")) {
             const char *s = ARG();
             if (host_watch_set(s)) usage(s);

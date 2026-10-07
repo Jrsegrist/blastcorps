@@ -331,6 +331,18 @@ $(H)/bc_headless.exe: $(HL_GAME_OBJS) $(HL_HOST_OBJS) $(H)/stubs.o $(H)/copytab.
 
 headless: $(H)/bc_headless.exe
 
+# debugging heap corruption: the same exe with every malloc/calloc/realloc/free
+# of the port and game code on pages of its own, an inaccessible page after
+# each block and freed blocks unmapped (src/platform/checked_heap.c): an
+# overrun or a use after free faults at the guilty instruction (README.md,
+# "Heap checking")
+headless-checked: $(H)/bc_headless_checked.exe
+$(H)/bc_headless_checked.exe: $(HL_GAME_OBJS) $(HL_HOST_OBJS) $(H)/host/checked_heap.o $(H)/stubs.o $(H)/copytab.o \
+		$(H)/abs_syms.ld
+	$(CC) -o $@ $(HL_GAME_OBJS) $(HL_HOST_OBJS) $(H)/host/checked_heap.o $(H)/stubs.o $(H)/copytab.o \
+		$(H)/abs_syms.ld $(LDFLAGS) -Wl,--wrap=malloc,--wrap=calloc,--wrap=realloc,--wrap=free
+	$(CC:gcc=nm) -n $@ > $(H)/bc_headless_checked.syms
+
 # ---------------------------------------------------------------------------
 # windowed (stage 4): bc_headless's game and platform objects plus src/live/
 # (SDL2 window, input, RT64 renderer) in build/game/bc.exe, with the run-time
@@ -468,5 +480,6 @@ $(H)/typemap_all.txt: $(H)/addrs.txt tools/typemap.py
 clean:
 	rm -rf $(B)
 
-.PHONY: all check clean linkall loadcheck typemap ucode headless compare game strict-data dist verify verify-levels FORCE
+.PHONY: all check clean linkall loadcheck typemap ucode headless headless-checked compare game strict-data dist verify \
+	verify-levels FORCE
 .SECONDARY:

@@ -336,14 +336,48 @@ runtime locks or heap), which writes:
   thread with a 20-second limit: MiniDumpWriteDump (and creating a file)
   allocates from the process heap, whose lock a crash inside the heap leaves
   held for good (it happened: see "Rare boot crash" below); the report on
-  stderr is complete by then, and an unfinished dump deletes itself.
+  stderr is complete by then, and an unfinished dump deletes itself. It also
+  suspends every other thread, so on a corrupt heap it could crash or hang
+  with the reporter suspended: the dumper first runs `HeapValidate` (which
+  waits for the heap lock before anything is suspended) and writes no dump
+  if the heap is corrupt ("minidump: not written: the process heap is
+  corrupt").
 They go to `--crash-dir DIR` (both exes; compare.py passes the native run's
 folder), else bc.exe: bc.log's folder (the exe's), bc_headless: the current
 folder, falling back to `%TEMP%`. Then bc.exe shows a message box (unless
 `--no-msgbox`) and the process ends with exit code 4 through
 `TerminateProcess` (no DLL detach or atexit code runs in a crashed process;
 `host_fatal` ends the same way, code 2). `--crash-test KIND[:FRAME]` crashes
-on purpose (av, div, stack, thread, abort, fatal, box; bc.exe also cxx).
+on purpose (av, div, stack, thread, abort, fatal, box, heaplock, heapbad;
+bc.exe also cxx).
+
+**Heap checking** (`make -C port headless-checked`,
+`src/platform/checked_heap.c`): `build/headless/bc_headless_checked.exe`,
+the same objects linked with `--wrap=malloc,calloc,realloc,free`, puts every
+block of the port and game code on pages of its own in a reserved arena
+(0x90000000, above RDRAM) like Windows' page heap: an inaccessible page right
+after the block (an overrun faults at the guilty instruction), the alignment
+slack and the gap before the block checked at free (overruns by a few bytes,
+underruns), freed pages decommitted and never reused (use after free
+faults), and a free/realloc of a pointer it never gave out (stale or garbage)
+or a double free stops with a crash report. MinGW has no AddressSanitizer
+for i686. It runs as bc_headless does (same options), slower to allocate.
+
+**Rare boot crash** (heap corruption seen 3 times in ~250 runs before
+784dbcf: `free()` of the sound bank map after the swap, once in `sscanf`, at
+retrace 30-107). Cause: `swap_bank` (load/port_assets.c) walks the first
+copy of each sound bank (at 0x8004B400, where it is decompressed) and meets
+offsets 0xFFFFFFFB, 0xFFFFFFFC and 0xFFFFFFFF; the old `bank_once` check
+`off + size > len` wrapped and passed, so `done[off] = 1` wrote 1-5 bytes
+*before* the map, into the heap block header, whenever the byte there read 0
+(an encoded header byte: rarely, and differently every run). Fixed by
+784dbcf (bounds without wrap-around). Confirmed afterwards: the old walk
+under the checked heap stops at every boot ("block of 19209 bytes was written
+before its start (-4)", at the first bank swap, retrace 30); the old walk on
+the normal heap crashed 10 times in 1800 boots, every time at that swap
+(faults in ntdll's heap code, heap words holding stdout text); the current
+code ran 2000 bc_headless boots, 60 bc.exe level runs (1300 frames) and all
+60 levels to frame 1900 under the checked heap without a fault.
 Example (bc_headless --crash-test av:5):
 
     CRASH: access violation (exception 0xC0000005) at 0x004A68EA = bc_headless.exe+0xA68EA

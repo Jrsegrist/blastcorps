@@ -296,8 +296,105 @@ bc.exe is a Windows GUI program (`-mwindows`): double-clicking it opens no
 console. Its log goes to stderr when the parent gave it one (WSL, a
 redirect, a script: everything above works unchanged), otherwise to
 `bc.log` next to the exe (or `%TEMP%`). With `host_gui` set, `host_fatal`,
-the crash reporter, C++ `terminate` and bad options also show a message box
-(`BC_NO_MSGBOX=1`, passed with `WSLENV`, only logs them: automated tests).
+the crash reporter, C++ `terminate` and bad options also show a message box.
+
+**`--no-msgbox`** (both exes; every script that runs one passes it:
+compare.py's `native`, so `verify`, `verify-levels`, `level`, `run`): no
+dialog of any kind, for automated runs. Errors and crash reports go only to
+the log (stderr) and the crash files; `host_message` just logs; bc.exe shows
+no ROM file dialog (no ROM -> exit 2); Windows' fault, critical-error and
+WER dialogs are off (`SetErrorMode`, `WerSetFlags`); the C runtime's assert
+and abort messages go to stderr; `MessageBox*` calls from the exe's own
+imports (RT64) and SDL2.dll only log their text; SDL assertions become crash
+reports. It is read by `host_crash_init` before anything else (so even a bad
+option or a missing ROM stays quiet) and accepted by the shared option
+parser (`host_main`, headless_main.c). `BC_NO_MSGBOX=1` in the environment
+does the same, but WSL doesn't pass the environment to Windows exes.
+Exit codes: 0 done, 1 usage (bc_headless), 2 fatal error (`host_fatal`;
+bad option, missing ROM ...), 4 crash.
+
+**Crash reports** (`src/platform/crash.c`, both exes). `host_crash_init`,
+first in `main`, installs an unhandled-exception filter (re-armed after RT64
+starts), `std::terminate` (bc.exe), `SIGABRT` and SDL assertion handlers,
+and starts a reporter thread that waits. A crash on any thread or fiber hands
+the exception to that thread (its own stack: stack overflows work; no C
+runtime locks or heap), which writes:
+- to stderr (bc.exe: its log) and `bc-crash-YYYYMMDD-HHMMSS.txt`: the
+  exception (code, fault address as module + RVA, read/write address),
+  registers, the host thread (main = the game's fibers; the fiber), the game
+  state (game thread, frame, retrace, mode, next mode, level, frames in mode,
+  game VI counter), and a backtrace: return addresses found on the stack
+  (call-site checked; the code has no frame pointers), named from the exe's
+  own COFF symbol table (read from the .exe file: `nm` names, kept by the
+  dist build's `strip --strip-debug`, so no symbol file is shipped) or the
+  nearest DLL export; a frame whose direct call targets the function below it
+  is confirmed, others are marked `?` (indirect calls, tail calls or stale);
+- `bc-crash-YYYYMMDD-HHMMSS.dmp` (`MiniDumpWriteDump` from System32's
+  dbghelp.dll, loaded at start-up): threads, indirectly referenced memory, the
+  8 MB RDRAM and the exe's .data/.bss (~17 MB); with `--dump-dir`, also
+  `frame_9999999.bin` as before. The files are written by a second waiting
+  thread with a 20-second limit: MiniDumpWriteDump (and creating a file)
+  allocates from the process heap, whose lock a crash inside the heap leaves
+  held for good (it happened: see "Rare boot crash" below); the report on
+  stderr is complete by then, and an unfinished dump deletes itself. It also
+  suspends every other thread of the dump, so the reporter is left out of
+  the dump (`IncludeThreadCallback`) and keeps its time limit; the dumper
+  first runs `HeapValidate` and writes no dump when that finds the heap
+  corrupt. With the pre-784dbcf bank walk (below), a real heap-corruption
+  crash now ends after 20 s with exit code 4, the full report and the .txt
+  ("minidump: not written: timed out ..."); before, it hung.
+They go to `--crash-dir DIR` (both exes; compare.py passes the native run's
+folder), else bc.exe: bc.log's folder (the exe's), bc_headless: the current
+folder, falling back to `%TEMP%`. Then bc.exe shows a message box (unless
+`--no-msgbox`) and the process ends with exit code 4 through
+`TerminateProcess` (no DLL detach or atexit code runs in a crashed process;
+`host_fatal` ends the same way, code 2). `--crash-test KIND[:FRAME]` crashes
+on purpose (av, div, stack, thread, abort, fatal, box, heaplock, heapbad;
+bc.exe also cxx).
+
+**Heap checking** (`make -C port headless-checked`,
+`src/platform/checked_heap.c`): `build/headless/bc_headless_checked.exe`,
+the same objects linked with `--wrap=malloc,calloc,realloc,free`, puts every
+block of the port and game code on pages of its own in a reserved arena
+(0x90000000, above RDRAM) like Windows' page heap: an inaccessible page right
+after the block (an overrun faults at the guilty instruction), the alignment
+slack and the gap before the block checked at free (overruns by a few bytes,
+underruns), freed pages decommitted and never reused (use after free
+faults), and a free/realloc of a pointer it never gave out (stale or garbage)
+or a double free stops with a crash report. MinGW has no AddressSanitizer
+for i686. It runs as bc_headless does (same options), slower to allocate.
+
+**Rare boot crash** (heap corruption seen 3 times in ~250 runs before
+784dbcf: `free()` of the sound bank map after the swap, once in `sscanf`, at
+retrace 30-107). Cause: `swap_bank` (load/port_assets.c) walks the first
+copy of each sound bank (at 0x8004B400, where it is decompressed) and meets
+offsets 0xFFFFFFFB, 0xFFFFFFFC and 0xFFFFFFFF; the old `bank_once` check
+`off + size > len` wrapped and passed, so `done[off] = 1` wrote 1-5 bytes
+*before* the map, into the heap block header, whenever the byte there read 0
+(an encoded header byte: rarely, and differently every run). Fixed by
+784dbcf (bounds without wrap-around). Confirmed afterwards: the old walk
+under the checked heap stops at every boot ("block of 19209 bytes was written
+before its start (-4)", at the first bank swap, retrace 30); the old walk on
+the normal heap crashed 10 times in 1800 boots, every time at that swap
+(faults in ntdll's heap code, heap words holding stdout text); the current
+code ran 2000 bc_headless boots, 60 bc.exe level runs (1300 frames) and all
+60 levels to frame 1900 under the checked heap without a fault.
+Example (bc_headless --crash-test av:5):
+
+    CRASH: access violation (exception 0xC0000005) at 0x004A68EA = bc_headless.exe+0xA68EA
+      read of address 0x00000010
+      eax=00000010 ebx=004BFB50 ecx=3998626C edx=00030000 esi=00000005 edi=80315440
+      ebp=80055400 esp=0400FD60 eip=004A68EA eflags=00010246
+      host thread 20584 (main: the game's fibers), fiber 014E9FA8; Blast Corps port dev, exe bc_headless
+      game: thread 3@80310BD0, frame 5, retrace 49, mode 0x0000000000000010 (next 0x0000000000000000), level 0, frames in mode 4, game VI counter 49
+    backtrace (return addresses found on the stack; ? = not confirmed by the call chain, may be stale):
+      #0   004A68EA  bc_headless.exe+0A68EA  host_crash_test_frame+0x11A
+      #1 ? 004A2949  bc_headless.exe+0A2949  host_log+0x29
+      #3   004A12DA  bc_headless.exe+0A12DA  plat_on_frame+0x11A
+      ...
+      #19  0040D9AC  bc_headless.exe+00D9AC  func_80244930+0x1EC
+      #22? 0049BAE0  bc_headless.exe+09BAE0  fiber_main+0x10
+    minidump: ...\bc-crash-20261007-093519.dmp
 
 `src/live/live_setup.cpp`:
 - **ROM.** A ROM argument is used as given; otherwise `rom =` from bc.ini;

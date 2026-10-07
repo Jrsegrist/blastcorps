@@ -1,5 +1,6 @@
 /* Host (Windows) services: fibers, logging, files, crash reporting. */
 #include <windows.h>
+#include <io.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,9 +27,10 @@ void *host_fopen(const char *path, const char *mode) {
 
 void host_message(const char *text, int error) {
     static wchar_t w[8192];
-    fprintf(stderr, "message box (%s): %s\n", error ? "error" : "warning", text);
+    fprintf(stderr, "message box (%s)%s: %s\n", error ? "error" : "warning",
+            host_no_msgbox ? ", not shown (--no-msgbox)" : "", text);
     fflush(stderr);
-    if (getenv("BC_NO_MSGBOX") != NULL) return;   /* automated tests */
+    if (host_no_msgbox) return;   /* --no-msgbox / BC_NO_MSGBOX (crash.c): automated runs */
     if (host_gui_window != NULL) ShowWindow((HWND) host_gui_window, SW_HIDE);
     if (to_wide(text, w, 8192) <= 0) MultiByteToWideChar(CP_ACP, 0, text, -1, w, 8192);
     MessageBoxW(NULL, w, L"Blast Corps",
@@ -105,6 +107,9 @@ void host_fatal(const char *fmt, ...) {
         va_end(ap);
         host_message(msg, 1);
     }
+    /* no DLL/atexit teardown: the error may have left RT64's threads or the
+     * heap in any state (stdio is flushed; saves are written as they happen) */
+    TerminateProcess(GetCurrentProcess(), 2);
     ExitProcess(2);
 }
 
@@ -177,8 +182,6 @@ void host_exit(int code) {
     ExitProcess((UINT) code);
 }
 
-static void (*g_describe)(void);
-
 /* Debugging (--watch FRAME:ADDR[:N], plat_core.c): from frame FRAME, log the
  * first N (default 20) writes to ADDR's 4 KB page: eip and the stack's code
  * pointers (symbolise with bc_headless.syms).  The page is made read-only;
@@ -188,11 +191,13 @@ static int g_watch_step;
 extern unsigned plat_frames(void);
 
 static unsigned g_wf, g_wa, g_wn;
+static LONG WINAPI watch_handler(EXCEPTION_POINTERS *ep);
 
 /* --watch FRAME:ADDR[:N] (WSL doesn't pass this environment to the exe) */
 int host_watch_set(const char *s) {
     if (sscanf(s, "%u:%x:%u", &g_wf, &g_wa, &g_wn) < 2) return -1;
     fprintf(stderr, "watch: page of %08X from frame %u\n", g_wa, g_wf);
+    AddVectoredExceptionHandler(1, watch_handler);
     return 0;
 }
 
@@ -233,58 +238,22 @@ static int watch_filter(EXCEPTION_POINTERS *ep) {
     return 0;
 }
 
-static LONG WINAPI crash_filter(EXCEPTION_POINTERS *ep) {
-    EXCEPTION_RECORD *er = ep->ExceptionRecord;
-    CONTEXT *c = ep->ContextRecord;
-    DWORD code = er->ExceptionCode;
+/* first chance, before any handler: only --watch's own faults and steps
+ * (everything else goes on to the program's handlers, then crash.c) */
+static LONG WINAPI watch_handler(EXCEPTION_POINTERS *ep) {
     if (g_watch_page && watch_filter(ep)) return EXCEPTION_CONTINUE_EXECUTION;
-    /* only real faults; leave debugger/C++ exceptions alone */
-    if (code != EXCEPTION_ACCESS_VIOLATION && code != EXCEPTION_INT_DIVIDE_BY_ZERO &&
-        code != EXCEPTION_ILLEGAL_INSTRUCTION && code != EXCEPTION_STACK_OVERFLOW &&
-        code != EXCEPTION_INT_OVERFLOW && code != EXCEPTION_PRIV_INSTRUCTION &&
-        code != EXCEPTION_ARRAY_BOUNDS_EXCEEDED && code != EXCEPTION_IN_PAGE_ERROR)
-        return EXCEPTION_CONTINUE_SEARCH;
-    fflush(stdout);
-    fprintf(stderr, "\nCRASH: exception 0x%08lX at eip=%08lX", code, (unsigned long) c->Eip);
-    if (code == EXCEPTION_ACCESS_VIOLATION && er->NumberParameters >= 2)
-        fprintf(stderr, " (%s 0x%08lX)", er->ExceptionInformation[0] == 1 ? "write" : "read",
-                (unsigned long) er->ExceptionInformation[1]);
-    fprintf(stderr, "\n  eax=%08lX ebx=%08lX ecx=%08lX edx=%08lX esi=%08lX edi=%08lX ebp=%08lX esp=%08lX\n",
-            c->Eax, c->Ebx, c->Ecx, c->Edx, c->Esi, c->Edi, c->Ebp, c->Esp);
-    {
-        /* a few return-address candidates from the stack (no frame pointers) */
-        DWORD *sp = (DWORD *) c->Esp;
-        int i, n = 0;
-        MEMORY_BASIC_INFORMATION mbi;
-        fprintf(stderr, "  stack code ptrs:");
-        for (i = 0; i < 512 && n < 16; i++) {
-            DWORD v;
-            if (!VirtualQuery(sp + i, &mbi, sizeof mbi) || mbi.State != MEM_COMMIT) break;
-            v = sp[i];
-            if (v >= 0x401000 && v < 0x01000000) {
-                fprintf(stderr, " %08lX", v);
-                n++;
-            }
-        }
-        fprintf(stderr, "\n");
-    }
-    if (g_describe) g_describe();
-    if (g_trace) fflush(g_trace);
-    fflush(stderr);
-    if (host_gui) {
-        char msg[1024];
-        snprintf(msg, sizeof msg,
-                 "Blast Corps has crashed (exception 0x%08lX at 0x%08lX).\n\n"
-                 "The details were written to %s.\n\n"
-                 "Please report it with that log and what you were doing.",
-                 code, (unsigned long) c->Eip, host_log_path ? host_log_path : "the log (stderr)");
-        host_message(msg, 1);
-    }
-    ExitProcess(4);
-    return EXCEPTION_EXECUTE_HANDLER;
+    return EXCEPTION_CONTINUE_SEARCH;
 }
 
-void host_install_crash_handler(void (*describe)(void)) {
-    g_describe = describe;
-    AddVectoredExceptionHandler(1, crash_filter);
+/* crash.c: what the per-frame trace file holds in its buffer, written
+ * without the C runtime's lock (the crashed thread may hold it) */
+void host_trace_flush_raw(void) {
+    FILE *f = g_trace;
+    DWORD w;
+    HANDLE h;
+    if (f == NULL || f->_base == NULL || f->_ptr <= f->_base || !(f->_flag & _IOWRT)) return;
+    h = (HANDLE) _get_osfhandle(f->_file);
+    if (h == INVALID_HANDLE_VALUE) return;
+    WriteFile(h, f->_base, (DWORD) (f->_ptr - f->_base), &w, NULL);
+    f->_ptr = f->_base;   /* (the process ends right after) */
 }

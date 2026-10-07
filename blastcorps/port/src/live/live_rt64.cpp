@@ -40,6 +40,11 @@
  *                       test ROM) instead of only the US v1.1 release
  *     --pace-log FILE   per retrace: pacing and present times (CSV), and a
  *                       summary in the log at exit
+ *     --no-msgbox       (headless_main.c) no dialog of any kind: errors, crash
+ *                       reports, RT64/SDL boxes only logged; no ROM file dialog
+ *
+ * Crashes (port/src/platform/crash.c): a report in the log and in
+ * bc-crash-*.txt, a minidump bc-crash-*.dmp next to bc.log, a message box.
  *
  * Player setup (live_setup.cpp): bc.ini next to the exe holds the ROM path,
  * graphics API, window, sound, key and controller bindings and the saves
@@ -67,6 +72,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <exception>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -952,6 +958,7 @@ void prestart(HostOpts *o) {
                    g_opt.vulkan ? "Vulkan" : "Direct3D 12", int(res), g_opt.vulkan ? "d3d12" : "vulkan",
                    g_opt.vulkan ? "d3d12" : "vulkan");
     g_app->swapChain->setVsyncEnabled(g_opt.vsync);
+    host_crash_rearm();   /* in case the renderer or a driver installed its own filter */
     int ww, wh, pw, ph;
     SDL_GetWindowSize(g_window, &ww, &wh);
     SDL_GetWindowSizeInPixels(g_window, &pw, &ph);
@@ -1023,9 +1030,12 @@ void romHook(HostOpts *o) {
             return;
         }
         host_log("live: configured ROM: %s\n", why.c_str());
+        if (host_no_msgbox) host_fatal("The ROM set in %s can't be used: %s", g_cfg.file.c_str(), why.c_str());
         host_message(("The ROM set in " + g_cfg.file + " can't be used:\n\n" + why + "\n\nPlease choose your ROM.")
                          .c_str(), 0);
     }
+    /* --no-msgbox: no file dialog either */
+    if (host_no_msgbox) host_fatal("No ROM was given (--no-msgbox: no file dialog).");
     for (;;) {
         chosen = live::romDialog();
         if (chosen.empty())
@@ -1042,25 +1052,39 @@ void romHook(HostOpts *o) {
     if (live::configSetRom(g_cfg, chosen)) host_log("live: ROM %s remembered in %s\n", chosen.c_str(), g_cfg.file.c_str());
 }
 
+/* an uncaught C++ exception (RT64, the standard library): a crash report */
 void terminateHandler() {
-    std::string what = "unknown exception";
+    static char why[512];
+    const char *what = "not a std::exception";
     try {
         std::exception_ptr e = std::current_exception();
         if (e) std::rethrow_exception(e);
+        what = "std::terminate called without an exception";
     } catch (const std::exception &x) {
-        what = x.what();
+        snprintf(why, sizeof why, "uncaught C++ exception: %s", x.what());
+        host_crash_now(why);
     } catch (...) {
     }
-    host_fatal("Blast Corps stopped on an internal error (C++: %s).", what.c_str());
+    snprintf(why, sizeof why, "uncaught C++ exception (%s)", what);
+    host_crash_now(why);
+}
+
+/* SDL_assert_release failures: a crash report (SDL's own handler shows a box) */
+SDL_AssertState SDLCALL sdlAssert(const SDL_AssertData *d, void *) {
+    static char why[512];
+    snprintf(why, sizeof why, "SDL assertion failed: %s (%s:%d, %s)", d->condition, d->filename, d->linenum,
+             d->function);
+    host_crash_now(why);
+}
+
+void crashTestCxx() {
+    throw std::runtime_error("crash test (--crash-test cxx)");
 }
 
 }  // namespace
 
 int main(int, char **) {
     host_gui = 1;
-    std::set_terminate(terminateHandler);
-    QueryPerformanceFrequency(&g_freq);
-    QueryPerformanceCounter(&g_tStart);
     /* the command line as UTF-8 (paths with any characters) */
     int argc = 0;
     wchar_t **wargv = CommandLineToArgvW(GetCommandLineW(), &argc);
@@ -1069,9 +1093,24 @@ int main(int, char **) {
     for (int i = 0; i < argc; i++) args.push_back(live::utf8(wargv[i]));
     for (std::string &s : args) argv.push_back(&s[0]);
     argv.push_back(nullptr);
+    host_crash_init(argc, argv.data(), "bc", BC_VERSION);   /* reads --no-msgbox, --crash-dir */
+    std::set_terminate(terminateHandler);
+    SDL_SetAssertionHandler(sdlAssert, nullptr);
+    host_crash_test_cxx = crashTestCxx;
+    QueryPerformanceFrequency(&g_freq);
+    QueryPerformanceCounter(&g_tStart);
 
     g_cfg.dir = live::exeDir();
     setupLog(g_cfg.dir);
+    /* crash dumps next to the log (bc.log's folder; the exe's when the log is stderr) */
+    if (std::find(args.begin(), args.end(), std::string("--crash-dir")) == args.end()) {
+        std::string dir = g_cfg.dir;
+        if (host_log_path != nullptr) {
+            dir = host_log_path;
+            dir.resize(dir.find_last_of("\\/") + 1);
+        }
+        host_crash_set_dir(dir.c_str());
+    }
     std::string configFile = g_cfg.dir + "bc.ini";
     bool noConfig = false;
     for (int i = 1; i < argc; i++) {

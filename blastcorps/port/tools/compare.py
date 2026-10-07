@@ -398,14 +398,15 @@ def cmd_native(args):
     extra = args
     os.makedirs(natdir, exist_ok=True)
     for f in os.listdir(natdir):
-        if f.startswith("frame_"):
+        if f.startswith("frame_") or f.startswith("bc-crash-"):
             os.remove(os.path.join(natdir, f))
     boot, off, _ = open(os.path.join(emudir, "boot.txt")).read().split()
     every, lst = parse_dump(dump)
     cmd = [exe, wpath(rom), "--boot-count", boot, "--clock", wpath(os.path.join(emudir, "clock.txt")),
            "--syms", wpath(exe[:-4] + ".syms"), "--frame-done", wpath(os.path.join(emudir, "framedone.txt")),
            "--trace", wpath(os.path.join(natdir, "trace.txt")), "--dump-dir", wpath(natdir)]
-    cmd += ["--load-log"]
+    # never a dialog on the desktop (errors, crashes: run.log and bc-crash-*.txt/.dmp in natdir)
+    cmd += ["--load-log", "--no-msgbox", "--crash-dir", wpath(natdir)]
     if os.path.exists(os.path.join(emudir, "framesp.txt")):
         cmd += ["--frame-sp", wpath(os.path.join(emudir, "framesp.txt"))]
     if not flag(extra, "--no-sync"):
@@ -420,6 +421,9 @@ def cmd_native(args):
     with open(os.path.join(natdir, "run.log"), "w") as log:
         r = subprocess.call(cmd, stdout=log, stderr=subprocess.STDOUT, cwd=natdir)
     print("native: exit %d (%s)" % (r, os.path.join(natdir, "run.log")))
+    for f in sorted(os.listdir(natdir)):
+        if f.startswith("bc-crash-"):
+            print("native: CRASH report %s" % os.path.join(natdir, f))
     return r
 
 

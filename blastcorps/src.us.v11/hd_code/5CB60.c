@@ -123,6 +123,15 @@ void func_802A1388(s32 a0Val, s32 a1Val, s32 v0Val, s32 v1Val, u8 *hdr) {
     while (src != end) {
         *dst++ = *src++;
     }
+#ifdef PORT_HOST
+    /* the copy is display-list commands (host-order words, like the model's
+     * own): record that for the stale-byte emulation (level 6's collision
+     * records land on a copy made on the bonus-level screen) */
+    {
+        void port_unit_mark(void *p, u32 n, s32 width);
+        port_unit_mark(D_80358070, (u32) ((u8 *) dst - (u8 *) D_80358070) / 4, 4);
+    }
+#endif
     D_80358070 = (u8 *) dst;
     for (i = 0; i < 9; i++) {
         *(s32 *) (rec + 0x30 + i * 4) = *(s32 *) (rec + 0xC + i * 4) + delta;

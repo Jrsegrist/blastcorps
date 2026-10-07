@@ -72,6 +72,13 @@ extern s32 D_8039B068;
 
 void func_8028C41C(Vtx *v, u8 type, s16 x, s16 y, s16 z);
 
+#ifdef PORT_HOST
+/* The boxes' vertices (fresh heap memory) get ob and tc only: flag and
+ * colour bytes are whatever the heap held on the N64.  port_vtx_stale
+ * (port/src/load/swap.c) gives the native records those bytes first. */
+void port_vtx_stale(void *v, u32 n);
+#endif
+
 /* Spawn boxes from the records [arg0, arg1). */
 void func_8028C190(BoxSpawn *arg0, BoxSpawn *arg1) {
     D_8039B068 = 0;
@@ -86,6 +93,9 @@ void func_8028C190(BoxSpawn *arg0, BoxSpawn *arg1) {
         D_8039AF00[D_8039B068].tex1 = func_802A0CC8(D_802FDB40[D_8039AF00[D_8039B068].type].tex1Id, 0);
         D_8039AF00[D_8039B068].vtx = D_80358070;
         D_80358070 += 8;
+#ifdef PORT_HOST
+        port_vtx_stale(D_8039AF00[D_8039B068].vtx, 8);
+#endif
         func_8028C41C(D_8039AF00[D_8039B068].vtx, D_8039AF00[D_8039B068].type, D_8039AF00[D_8039B068].x,
                       D_8039AF00[D_8039B068].y, D_8039AF00[D_8039B068].z);
         D_8039B068++;

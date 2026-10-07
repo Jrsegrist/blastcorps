@@ -1,6 +1,10 @@
 #include "common.h"
 #include <ultra64.h>
 #include "game/game.h"
+
+#ifdef PORT_HOST
+void port_vtx_stale(void *v, u32 n); /* port/src/load/swap.c */
+#endif
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_02000000 ((u8 *) D_02000000)
 #define D_8020D810 ((LevelInfo *) D_8020D810)
@@ -409,6 +413,11 @@ Gfx *func_801F2428(void) {
     vtx = (Vtx *) D_80358070;
     dls = D_8020BD08;
     prev = NULL;
+#ifdef PORT_HOST
+    /* fresh heap memory: the icons' flag halfwords are never written (the
+     * N64 keeps what the heap held); give the native records those bytes */
+    port_vtx_stale(vtx, 0x1E00 / sizeof(Vtx));
+#endif
     D_80358070 += 0x1E00;
     gfx = (Gfx *) D_80358070;
     dl = gfx;

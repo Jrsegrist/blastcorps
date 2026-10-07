@@ -155,7 +155,7 @@ HL_UL := ul_lookat ul_lookatref ul_mtxcatf ul_mtxcatl ul_mtxutil ul_normalize ul
 # ... plus four with a big-endian view of a double, fixed up by sed (below)
 HL_UL_LE := ul_xprintf ul_xldtob ul_sinf ul_cosf
 # platform files that see the game's <ultra64.h>
-HL_PLAT := os_thread os_time os_hw os_si input plat_core save pif
+HL_PLAT := os_thread os_time os_hw os_si input plat_core save pif layout_check
 # host-side platform files (<windows.h>, the C runtime)
 HL_HOST := plat_host headless_main crash
 # the load layer (byte order, port_on_dma) lives in src/load/; without it,
@@ -478,6 +478,7 @@ $(H)/typemap_all.txt: $(H)/addrs.txt tools/typemap.py
 	cd $(ROOT) && TYPEMAP_ALL=1 $(PYTHON) port/tools/typemap.py port/$(H)/addrs.txt port/$@ > /dev/null
 
 include port64.mk
+include msvc.mk
 
 clean:
 	rm -rf $(B)

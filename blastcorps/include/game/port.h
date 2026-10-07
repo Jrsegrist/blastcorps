@@ -62,9 +62,10 @@ unsigned int port_gvi_read(const char *fn, unsigned int v);
 #define PORT_SAVE_EETIMES 2 /* EEPROM best-time words, 8 bytes */
 #define PORT_SAVE_STATUS 3  /* level status block, 0x40 bytes (in place) */
 #if defined(NON_MATCHING) && defined(PORT_HOST)
+#include <stdarg.h>
 void port_spin(void);
 void port_fe_loaded(void);
-void port_game_print(const char *fmt, __builtin_va_list ap); /* the game's debug printf */
+void port_game_print(const char *fmt, va_list ap); /* the game's debug printf */
 void *port_save_begin(void *p, int kind, int size);
 void *port_save_end(void *p, int kind, int size);
 unsigned long long port_save_be64(unsigned long long v);

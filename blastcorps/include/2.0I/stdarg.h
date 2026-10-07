@@ -2,7 +2,17 @@
 #define STDARG_H
 
 // When not building with IDO, use the builtin vaarg macros for portability.
-#ifndef __sgi
+#if defined(_MSC_VER) && !defined(__sgi)
+// MSVC (the native port's x64 build): the Windows x64 calling convention's
+// va_list, a char * walking 8-byte argument slots (larger or odd-sized
+// arguments are passed by reference); __va_start is a compiler intrinsic
+typedef char *va_list;
+void __cdecl __va_start(va_list *, ...);
+#define va_start(ap, v) ((void) __va_start(&(ap), (v)))
+#define va_arg(ap, t) \
+    ((sizeof(t) > 8 || (sizeof(t) & (sizeof(t) - 1)) != 0) ? **(t **) (((ap) += 8) - 8) : *(t *) (((ap) += 8) - 8))
+#define va_end(ap) ((void) ((ap) = (va_list) 0))
+#elif !defined(__sgi)
 #define va_list __builtin_va_list
 #define va_start __builtin_va_start
 #define va_arg __builtin_va_arg

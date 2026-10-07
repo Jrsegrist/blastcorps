@@ -31,9 +31,9 @@ void plat_si_init(void) {
     unsigned size = 0;
     u8 *p;
     plat_pak_init();
-    __builtin_memset(g_eeprom, 0xFF, sizeof g_eeprom);
+    PORT_MEMSET(g_eeprom, 0xFF, sizeof g_eeprom);
     if (plat_cfg.eeprom_path != NULL && (p = host_read_file(plat_cfg.eeprom_path, &size)) != NULL) {
-        __builtin_memcpy(g_eeprom, p, size < sizeof g_eeprom ? size : sizeof g_eeprom);
+        PORT_MEMCPY(g_eeprom, p, size < sizeof g_eeprom ? size : sizeof g_eeprom);
     }
 }
 
@@ -144,7 +144,7 @@ s32 osEepromRead(OSMesgQueue *mq, u8 address, u8 *buffer) {
     (void) mq;
     if (!plat_cfg.eeprom_present) return CONT_NO_RESPONSE_ERROR;
     if (address >= EEPROM_BLOCKS) return -1;
-    __builtin_memcpy(buffer, g_eeprom + address * 8, 8);
+    PORT_MEMCPY(buffer, g_eeprom + address * 8, 8);
     plat_stats.eeprom_reads++;
     return 0;
 }
@@ -153,7 +153,7 @@ s32 osEepromWrite(OSMesgQueue *mq, u8 address, u8 *buffer) {
     (void) mq;
     if (!plat_cfg.eeprom_present) return CONT_NO_RESPONSE_ERROR;
     if (address >= EEPROM_BLOCKS) return -1;
-    __builtin_memcpy(g_eeprom + address * 8, buffer, 8);
+    PORT_MEMCPY(g_eeprom + address * 8, buffer, 8);
     g_eeprom_dirty = 1;
     plat_stats.eeprom_writes++;
     plat_si_flush();

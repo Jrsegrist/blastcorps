@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "platform/port_cc.h"
 #include "rdram.h"
 #include "load/port_load.h"
 
@@ -174,7 +175,7 @@ void port_bswap_n(void *p, uint32_t n, int width) {
             for (i = 0; i < n; i++, b += 2) {
                 uint16_t v;
                 memcpy(&v, b, 2);
-                v = __builtin_bswap16(v);
+                v = PORT_BSWAP16(v);
                 memcpy(b, &v, 2);
             }
             break;
@@ -182,7 +183,7 @@ void port_bswap_n(void *p, uint32_t n, int width) {
             for (i = 0; i < n; i++, b += 4) {
                 uint32_t v;
                 memcpy(&v, b, 4);
-                v = __builtin_bswap32(v);
+                v = PORT_BSWAP32(v);
                 memcpy(b, &v, 4);
             }
             break;
@@ -190,7 +191,7 @@ void port_bswap_n(void *p, uint32_t n, int width) {
             for (i = 0; i < n; i++, b += 8) {
                 uint64_t v;
                 memcpy(&v, b, 8);
-                v = __builtin_bswap64(v);
+                v = PORT_BSWAP64(v);
                 memcpy(b, &v, 8);
             }
             break;

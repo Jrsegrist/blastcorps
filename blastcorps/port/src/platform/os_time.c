@@ -387,8 +387,8 @@ OSTime osGetTime(void) {
     u64 v;
     plat_stats.gettime_calls++;
     plat_now += plat_cfg.count_per_gettime;
-    plat_sync_point(__builtin_return_address(0), 'g', NULL);
-    if (plat_clock_key_take(0, __builtin_return_address(0), &v)) return v;
+    plat_sync_point(PORT_RETADDR(), 'g', NULL);
+    if (plat_clock_key_take(0, PORT_RETADDR(), &v)) return v;
     if (plat_gettime_hook && plat_gettime_hook(call, plat_now, &v)) return v;
     v = table_get(&g_gettime, call);
     return v != ~0ull ? v : plat_now;
@@ -401,8 +401,8 @@ u32 osGetCount(void) {
     u32 call = g_count_calls++, c;
     u64 v;
     plat_now += plat_cfg.count_per_gettime;
-    plat_sync_point(__builtin_return_address(0), 'c', NULL);
-    if (plat_clock_key_take(1, __builtin_return_address(0), &v)) return (u32) v;
+    plat_sync_point(PORT_RETADDR(), 'c', NULL);
+    if (plat_clock_key_take(1, PORT_RETADDR(), &v)) return (u32) v;
     if (plat_getcount_hook && plat_getcount_hook(call, plat_now, &c)) return c;
     return (u32) plat_now;
 }

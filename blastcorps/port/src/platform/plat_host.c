@@ -4,6 +4,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <xmmintrin.h>
 #include "plat_host.h"
 #include "audio/port_audio.h"
 
@@ -11,7 +12,12 @@ int host_verbose;
 int host_gui;
 void *host_gui_window;
 const char *host_log_path;
-static FILE *g_trace;
+/* the per-frame trace: its own buffer and a file handle (not stdio), so the
+ * crash reporter can write what is buffered without the C runtime's locks
+ * and without knowing a C runtime's FILE internals */
+static HANDLE g_trace = INVALID_HANDLE_VALUE;
+static char g_trace_buf[1 << 16];
+static unsigned g_trace_len;
 
 /* UTF-8 -> UTF-16 (0 if the text isn't valid UTF-8 or doesn't fit) */
 static int to_wide(const char *s, wchar_t *w, int n) {
@@ -94,10 +100,16 @@ int host_env(const char *name) {
     return getenv(name) != NULL;
 }
 
+static void trace_flush(void) {
+    DWORD w;
+    if (g_trace != INVALID_HANDLE_VALUE && g_trace_len) WriteFile(g_trace, g_trace_buf, g_trace_len, &w, NULL);
+    g_trace_len = 0;
+}
+
 void host_fatal(const char *fmt, ...) {
     va_list ap;
     fflush(stdout);
-    if (g_trace) fflush(g_trace);
+    trace_flush();
     fprintf(stderr, "FATAL: ");
     va_start(ap, fmt);
     vfprintf(stderr, fmt, ap);
@@ -118,16 +130,30 @@ void host_fatal(const char *fmt, ...) {
 }
 
 int host_trace_open(const char *path) {
-    g_trace = host_fopen(path, "w");
-    return g_trace ? 0 : -1;
+    static wchar_t wp[4096];
+    if (to_wide(path, wp, 4096) > 0)
+        g_trace = CreateFileW(wp, GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    else
+        g_trace = CreateFileA(path, GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    return g_trace != INVALID_HANDLE_VALUE ? 0 : -1;
 }
 
+/* text as stdio's "w" mode writes it: \n -> \r\n */
 void host_trace(const char *fmt, ...) {
+    char line[1024];
     va_list ap;
-    if (g_trace == NULL) return;
+    int n, i;
+    if (g_trace == INVALID_HANDLE_VALUE) return;
     va_start(ap, fmt);
-    vfprintf(g_trace, fmt, ap);
+    n = vsnprintf(line, sizeof line, fmt, ap);
     va_end(ap);
+    if (n < 0) return;
+    if (n >= (int) sizeof line) n = sizeof line - 1;
+    if (g_trace_len + 2 * (unsigned) n > sizeof g_trace_buf) trace_flush();
+    for (i = 0; i < n; i++) {
+        if (line[i] == '\n') g_trace_buf[g_trace_len++] = '\r';
+        g_trace_buf[g_trace_len++] = line[i];
+    }
 }
 
 void *host_read_file(const char *path, unsigned *size) {
@@ -165,12 +191,29 @@ void *host_realloc(void *p, unsigned size) {
     return q;
 }
 
+unsigned host_unwind_caller(unsigned long long rip, unsigned long long rsp, unsigned long long rbp) {
+#ifdef _WIN64
+    CONTEXT c;
+    DWORD64 base, frame;
+    PVOID hd;
+    PRUNTIME_FUNCTION fe = RtlLookupFunctionEntry(rip, &base, NULL);
+    if (fe == NULL) return (unsigned) *(DWORD64 *) (ULONG_PTR) rsp;   /* a leaf: the return address is on top */
+    ZeroMemory(&c, sizeof c);
+    c.Rip = rip;
+    c.Rsp = rsp;
+    c.Rbp = rbp;
+    RtlVirtualUnwind(UNW_FLAG_NHANDLER, base, rip, fe, &c, &hd, &frame, NULL);
+    return (unsigned) c.Rip;
+#else
+    (void) rip, (void) rsp, (void) rbp;
+    return 0;
+#endif
+}
+
 void host_set_fpu_mode(void) {
     /* MXCSR: FTZ (bit 15) like the VR4300's FPCSR FS; all exceptions masked
      * (default).  Rounding: nearest (default), as FPCSR RM_RN. */
-    unsigned int csr = __builtin_ia32_stmxcsr();
-    csr |= 0x8000;
-    __builtin_ia32_ldmxcsr(csr);
+    _mm_setcsr(_mm_getcsr() | 0x8000);
 }
 
 void (*host_exit_hook)(void);
@@ -180,7 +223,9 @@ void host_exit(int code) {
     host_exit_hook = NULL;
     if (hook != NULL) hook();
     port_audio_close();
-    if (g_trace) fclose(g_trace);
+    trace_flush();
+    if (g_trace != INVALID_HANDLE_VALUE) CloseHandle(g_trace);
+    g_trace = INVALID_HANDLE_VALUE;
     fflush(stdout);
     fflush(stderr);
     ExitProcess((UINT) code);
@@ -264,12 +309,5 @@ static LONG WINAPI watch_handler(EXCEPTION_POINTERS *ep) {
 /* crash.c: what the per-frame trace file holds in its buffer, written
  * without the C runtime's lock (the crashed thread may hold it) */
 void host_trace_flush_raw(void) {
-    FILE *f = g_trace;
-    DWORD w;
-    HANDLE h;
-    if (f == NULL || f->_base == NULL || f->_ptr <= f->_base || !(f->_flag & _IOWRT)) return;
-    h = (HANDLE) _get_osfhandle(f->_file);
-    if (h == INVALID_HANDLE_VALUE) return;
-    WriteFile(h, f->_base, (DWORD) (f->_ptr - f->_base), &w, NULL);
-    f->_ptr = f->_base;   /* (the process ends right after) */
+    trace_flush();   /* (no C runtime involved) */
 }

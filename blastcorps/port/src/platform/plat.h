@@ -6,6 +6,7 @@
 #define PLAT_H
 
 #include <ultra64.h>
+#include "port_cc.h"
 #include "plat_host.h"
 #include "port_dma.h"
 
@@ -33,7 +34,7 @@ int plat_advance(void);
 /* post an interrupt-style event message (OS_EVENT_*) now */
 void plat_post_event(int event);
 /* the idle loop: runs game threads; returns never */
-void plat_run(void) __attribute__((noreturn));
+PORT_NORETURN void plat_run(void);
 /* thread currently running (NULL = host idle loop) */
 OSThread *plat_running(void);
 const char *plat_thread_name(OSThread *t);

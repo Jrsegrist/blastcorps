@@ -35,15 +35,15 @@ static u32 bswap32(u32 v) {
 
 static void swap16(u8 *p, int off) {
     u16 v;
-    __builtin_memcpy(&v, p + off, 2);
+    PORT_MEMCPY(&v, p + off, 2);
     v = bswap16(v);
-    __builtin_memcpy(p + off, &v, 2);
+    PORT_MEMCPY(p + off, &v, 2);
 }
 static void swap32(u8 *p, int off) {
     u32 v;
-    __builtin_memcpy(&v, p + off, 4);
+    PORT_MEMCPY(&v, p + off, 4);
     v = bswap32(v);
-    __builtin_memcpy(p + off, &v, 4);
+    PORT_MEMCPY(p + off, &v, 4);
 }
 
 /* host <-> N64 order (an involution) */
@@ -65,8 +65,8 @@ static void convert(u8 *p, int kind, int size) {
         case KIND_STATUS: {
             static const u8 le[8] = { 0x21, 0x43, 0x65, 0x87, 0x78, 0x56, 0x34, 0x12 };
             static const u8 be[8] = { 0x12, 0x34, 0x56, 0x78, 0x87, 0x65, 0x43, 0x21 };
-            if (__builtin_memcmp(p, le, 8) == 0) __builtin_memcpy(p, be, 8);
-            else if (__builtin_memcmp(p, be, 8) == 0) __builtin_memcpy(p, le, 8);
+            if (PORT_MEMCMP(p, le, 8) == 0) PORT_MEMCPY(p, be, 8);
+            else if (PORT_MEMCMP(p, be, 8) == 0) PORT_MEMCPY(p, le, 8);
             break;
         }
     }
@@ -86,7 +86,7 @@ void *port_save_begin(void *p, int kind, int size) {
     g_orig = p;
     g_kind = kind;
     g_size = size;
-    __builtin_memcpy(g_buf, p, size);
+    PORT_MEMCPY(g_buf, p, size);
     convert(g_buf, kind, size);
     return g_buf;
 }
@@ -99,7 +99,7 @@ void *port_save_end(void *buf, int kind, int size) {
     }
     if (buf != g_buf || g_orig == NULL || kind != g_kind) host_fatal("port_save_end: unmatched (kind %d)", kind);
     convert(g_buf, kind, g_size);
-    __builtin_memcpy(g_orig, g_buf, g_size);
+    PORT_MEMCPY(g_orig, g_buf, g_size);
     if (host_verbose)
         host_log("save: kind %d at %p done (frame %u): %02x %02x %02x %02x ... %02x %02x %02x %02x\n", kind,
                  (void *) g_orig, (unsigned) plat_stats.frames, g_buf[0], g_buf[1], g_buf[2], g_buf[3],
@@ -117,8 +117,8 @@ void *port_save_end(void *buf, int kind, int size) {
 void *port_save_semblock(const void *sem) {
     static u8 block[0x20];
     static const u8 tail[0x18] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x80, 0x2D, 0xC2, 0xC8, 0, 0, 0, 0, 0, 0, 0, 0 };
-    __builtin_memcpy(block, sem, 8);
-    __builtin_memcpy(block + 8, tail, sizeof tail);
+    PORT_MEMCPY(block, sem, 8);
+    PORT_MEMCPY(block + 8, tail, sizeof tail);
     return block;
 }
 

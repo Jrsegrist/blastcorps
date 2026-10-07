@@ -19,7 +19,12 @@
  *
  * Names: the exe's own COFF symbol table (the PE file keeps it: `nm` reads
  * it; the dist build strips only the DWARF), read from the file at crash
- * time, else the nearest export of a DLL.  The backtrace (i686) is a scan of
+ * time, else the nearest export of a DLL.  MSVC builds have no COFF symbol
+ * table: the names (and source lines) come from the exe's PDB through
+ * dbghelp, looked up on a thread of their own with a time limit (dbghelp
+ * allocates from the process heap, which a crash can leave locked); without
+ * the PDB next to the exe, a frame is module + RVA (the .dmp and the PDB
+ * open in Visual Studio).  The backtrace (i686) is a scan of
  * the crashed stack for return addresses: values pointing into code right
  * after a call instruction (the code is built without frame pointers), so it
  * can list a stale frame or two among the real ones; x86_64 walks the frames
@@ -38,6 +43,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef _MSC_VER
+#include <crtdbg.h>
+#endif
 #include "plat_host.h"
 
 /* addresses: 32 bits in the i686 build, 64 in the x86_64 one (the exe and
@@ -193,7 +201,84 @@ typedef struct {
     Addr sym;        /* best symbol's address (0: none) */
     char name[160];
     DWORD str_off;   /* long name: offset in the string table (0: short name in `name`) */
+    char line[128];  /* " (file.c:123)" from the PDB, else "" */
 } SymQuery;
+
+#if defined(_MSC_VER) && !defined(__clang__)
+#define PDB_NAMES 1
+typedef BOOL(WINAPI *SymInitializeW_t)(HANDLE, PCWSTR, BOOL);
+typedef DWORD(WINAPI *SymSetOptions_t)(DWORD);
+typedef BOOL(WINAPI *SymFromAddr_t)(HANDLE, DWORD64, PDWORD64, PSYMBOL_INFO);
+typedef BOOL(WINAPI *SymGetLineFromAddr64_t)(HANDLE, DWORD64, PDWORD, PIMAGEHLP_LINE64);
+static SymFromAddr_t p_SymFromAddr;
+static SymGetLineFromAddr64_t p_SymGetLineFromAddr64;
+static int g_sym_ok;
+static HANDLE g_names_go, g_names_done;
+static SymQuery *volatile g_names_q;
+static volatile int g_names_n;
+
+/* the PDB lookups (started at boot, waits) */
+static DWORD WINAPI namer(void *arg) {
+    static union {
+        SYMBOL_INFO si;
+        char buf[sizeof(SYMBOL_INFO) + 256];
+    } u;
+    int i;
+    (void) arg;
+    WaitForSingleObject(g_names_go, INFINITE);
+    for (i = 0; i < g_names_n; i++) {
+        SymQuery *q = &g_names_q[i];
+        DWORD64 disp = 0;
+        DWORD ldisp = 0;
+        IMAGEHLP_LINE64 ln;
+        memset(&u, 0, sizeof u);
+        u.si.SizeOfStruct = sizeof(SYMBOL_INFO);
+        u.si.MaxNameLen = 255;
+        if (p_SymFromAddr(GetCurrentProcess(), q->addr, &disp, &u.si)) {
+            q->sym = q->addr - (Addr) disp;
+            q->str_off = 0;
+            host_snprintf(q->name, sizeof q->name, "%s", u.si.Name);
+        }
+        memset(&ln, 0, sizeof ln);
+        ln.SizeOfStruct = sizeof ln;
+        if (p_SymGetLineFromAddr64 != NULL && p_SymGetLineFromAddr64(GetCurrentProcess(), q->addr, &ldisp, &ln) &&
+            ln.FileName != NULL) {
+            const char *f = strrchr(ln.FileName, '\\');
+            host_snprintf(q->line, sizeof q->line, " (%s:%lu)", f ? f + 1 : ln.FileName, (unsigned long) ln.LineNumber);
+        }
+    }
+    SetEvent(g_names_done);
+    return 0;
+}
+
+static void pdb_names(SymQuery *q, int nq) {
+    if (!g_sym_ok || g_names_go == NULL) return;
+    g_names_q = q;
+    g_names_n = nq;
+    SetEvent(g_names_go);
+    if (WaitForSingleObject(g_names_done, 15000) == WAIT_TIMEOUT)
+        out("  (names: the PDB lookup timed out: the process heap is locked or corrupt)\n");
+}
+
+static void pdb_init(HMODULE dbghelp) {
+    SymInitializeW_t init = (SymInitializeW_t) (void *) GetProcAddress(dbghelp, "SymInitializeW");
+    SymSetOptions_t opts = (SymSetOptions_t) (void *) GetProcAddress(dbghelp, "SymSetOptions");
+    wchar_t dir[MAX_PATH], *slash;
+    p_SymFromAddr = (SymFromAddr_t) (void *) GetProcAddress(dbghelp, "SymFromAddr");
+    p_SymGetLineFromAddr64 = (SymGetLineFromAddr64_t) (void *) GetProcAddress(dbghelp, "SymGetLineFromAddr64");
+    if (init == NULL || opts == NULL || p_SymFromAddr == NULL) return;
+    /* the PDB next to the exe; loaded at the first lookup (deferred) */
+    wcscpy(dir, g_exe_path);
+    slash = wcsrchr(dir, L'\\');
+    if (slash) *slash = 0;
+    opts(SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS | SYMOPT_LOAD_LINES | SYMOPT_FAIL_CRITICAL_ERRORS | SYMOPT_NO_PROMPTS);
+    g_sym_ok = init(GetCurrentProcess(), dir, TRUE);
+    if (!g_sym_ok) return;
+    g_names_go = CreateEventW(NULL, TRUE, FALSE, NULL);
+    g_names_done = CreateEventW(NULL, TRUE, FALSE, NULL);
+    CloseHandle(CreateThread(NULL, 0x40000, namer, NULL, STACK_SIZE_PARAM_IS_A_RESERVATION, NULL));
+}
+#endif
 
 static BYTE g_symbuf[18 * 3640];
 
@@ -381,7 +466,11 @@ static void print_frames(const Addr *frames, int n) {
     int i, last_ok = 0;
     memset(q, 0, sizeof q);
     for (i = 0; i < n; i++) q[i].addr = i == 0 ? frames[i] : frames[i] - 1;   /* the call, not what follows */
+#ifdef PDB_NAMES
+    pdb_names(q, n);
+#else
     coff_names(q, n);
+#endif
     module_name(exe, exe_name, sizeof exe_name);
     for (i = 0; i < n; i++) {
         HMODULE m = module_of(frames[i]);
@@ -391,7 +480,11 @@ static void print_frames(const Addr *frames, int n) {
         Addr t;
         char mark = ' ';
         start[i] = 0;
+#ifdef PDB_NAMES
+        if (m != NULL && q[i].sym) {   /* the PDB's (or dbghelp's export) name, any module */
+#else
         if (m == exe && q[i].sym) {
+#endif
 #ifndef _WIN64
             if (name[0] == '_') name++;   /* i686 C names */
 #endif
@@ -414,9 +507,9 @@ static void print_frames(const Addr *frames, int n) {
         if (m == NULL)
             out("  #%-2d%c " AF "  (not in a module)\n", i, mark, AV(frames[i]));
         else if (name != NULL)
-            out("  #%-2d%c " AF "  %s+%06lX  %s+0x%lX\n", i, mark, AV(frames[i]),
+            out("  #%-2d%c " AF "  %s+%06lX  %s+0x%lX%s\n", i, mark, AV(frames[i]),
                 m == exe ? exe_name : module_name(m, mod, sizeof mod), (unsigned long) (frames[i] - (Addr) m), name,
-                (unsigned long) off);
+                (unsigned long) off, q[i].line);
         else
             out("  #%-2d%c " AF "  %s+%06lX\n", i, mark, AV(frames[i]), module_name(m, mod, sizeof mod),
                 (unsigned long) (frames[i] - (Addr) m));
@@ -768,6 +861,20 @@ static void sigabrt(int sig) {
     host_crash_now("abort() was called (a failed assertion or a C runtime error: see the lines above)");
 }
 
+#ifdef _MSC_VER
+/* the C runtime's invalid-parameter check (it would end the process with a
+ * fail-fast, no report); the debug runtime names the function and line */
+static void invalid_parameter(const wchar_t *expr, const wchar_t *func, const wchar_t *file, unsigned line,
+                              uintptr_t reserved) {
+    static char why[1024];
+    (void) reserved;
+    host_snprintf(why, sizeof why, "invalid parameter passed to a C runtime function%s%ls%s%ls%s%ls:%u",
+                  func ? " " : "", func ? func : L"", expr ? ": " : "", expr ? expr : L"", file ? " at " : "",
+                  file ? file : L"", line);
+    host_crash_now(why);
+}
+#endif
+
 /* ---- --no-msgbox: MessageBox* imported by a module only log their text ---------- */
 static void log_box(const char *kind, const char *text) {
     fprintf(stderr, "message box suppressed (--no-msgbox; %s): %s\n", kind, text ? text : "");
@@ -898,6 +1005,19 @@ void host_crash_init(int argc, char **argv, const char *exe_kind, const char *ve
     /* the C runtime's assert/abort/R60xx messages: stderr, never a box */
     _set_error_mode(_OUT_TO_STDERR);
     signal(SIGABRT, sigabrt);
+#ifdef _MSC_VER
+    _set_invalid_parameter_handler(invalid_parameter);
+    _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
+#ifdef _DEBUG
+    /* the debug runtime's assertion and error reports: stderr, never a box */
+    _CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_FILE);
+    _CrtSetReportFile(_CRT_WARN, _CRTDBG_FILE_STDERR);
+    _CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_FILE);
+    _CrtSetReportFile(_CRT_ERROR, _CRTDBG_FILE_STDERR);
+    _CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE);
+    _CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDERR);
+#endif
+#endif
     if (host_no_msgbox) {
         typedef HRESULT(WINAPI * WerSetFlags_t)(DWORD);
         WerSetFlags_t wsf = (WerSetFlags_t) (void *) GetProcAddress(GetModuleHandleW(L"kernel32.dll"), "WerSetFlags");
@@ -913,6 +1033,9 @@ void host_crash_init(int argc, char **argv, const char *exe_kind, const char *ve
         dbghelp = LoadLibraryW(sys);
         if (dbghelp != NULL)
             p_MiniDumpWriteDump = (MiniDumpWriteDump_t) (void *) GetProcAddress(dbghelp, "MiniDumpWriteDump");
+#ifdef PDB_NAMES
+        if (dbghelp != NULL) pdb_init(dbghelp);
+#endif
     }
     p_GetMappedFileNameW =
         (GetMappedFileNameW_t) (void *) GetProcAddress(GetModuleHandleW(L"kernel32.dll"), "K32GetMappedFileNameW");
@@ -949,7 +1072,7 @@ int host_crash_test_set(const char *spec) {
 static volatile int g_sink;
 static volatile int *volatile g_bad = (volatile int *) 0x10;
 static volatile int g_depth_limit = 0x7FFFFFFF;
-static __attribute__((noinline)) int recurse(int n) {
+static PORT_NOINLINE int recurse(int n) {
     volatile char pad[4096];
     pad[0] = (char) n;
     if (n >= g_depth_limit) return 0;

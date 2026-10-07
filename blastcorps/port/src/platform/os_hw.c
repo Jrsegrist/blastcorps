@@ -39,10 +39,10 @@ float cosf(float x) {
 }
 
 void bcopy(const void *src, void *dst, int n) {
-    __builtin_memmove(dst, src, n);
+    PORT_MEMMOVE(dst, src, n);
 }
 void bzero(void *p, int n) {
-    __builtin_memset(p, 0, n);
+    PORT_MEMSET(p, 0, n);
 }
 
 /* ---- caches, address translation ----------------------------------------- */
@@ -142,7 +142,7 @@ void *osViGetNextFramebuffer(void) {
  * word).  Only the windowed build looks at them. */
 static void vi_regs(HostViRegs *r) {
     const OSViMode *m = g_vi_mode;
-    __builtin_memset(r, 0, sizeof *r);
+    PORT_MEMSET(r, 0, sizeof *r);
     if (m == NULL) return;
     r->status = g_vi_ctrl;
     r->origin = osVirtualToPhysical(g_vi_cur) + m->fldRegs[0].origin;
@@ -205,10 +205,10 @@ s32 osPiStartDma(OSIoMesg *mb, s32 pri, s32 direction, u32 devAddr, void *vAddr,
         u32 n = nbytes, avail = off < plat_rom_size ? plat_rom_size - off : 0;
         if (n > avail) {
             if (host_verbose) host_log("pi: dma past ROM end (0x%X+0x%X)\n", (unsigned) off, (unsigned) n);
-            __builtin_memset(dst + avail, 0, n - avail);
+            PORT_MEMSET(dst + avail, 0, n - avail);
             n = avail;
         }
-        if (n) __builtin_memcpy(dst, plat_rom + off, n);
+        if (n) PORT_MEMCPY(dst, plat_rom + off, n);
         port_on_dma((u32) vAddr, off, nbytes);
         plat_stats.pi_dmas++;
         plat_stats.pi_bytes += nbytes;
@@ -263,7 +263,7 @@ s32 osPiRawReadIo(u32 devAddr, u32 *data) {
             for (i = 0; i < 4; i++)
                 if (base + i < len) b[i] = (u8) s[base + i];
         }
-        __builtin_memcpy(data, b, 4);
+        PORT_MEMCPY(data, b, 4);
     }
     return 0;
 }
@@ -331,7 +331,7 @@ static int cull_visible(const u32 *dl, u32 size) {
     u32 seg[16] = {0};
     int have = 0, i, j, k;
     const u32 host = (u32) (unsigned long) dl;
-    __builtin_memset(c, 0, sizeof c);
+    PORT_MEMSET(c, 0, sizeof c);
     for (i = 0; i + 1 < (int) (size / 4); i += 2) {
         u32 w0 = dl[i], w1 = dl[i + 1];
         u32 a = seg[(w1 >> 24) & 15] + (w1 & 0xFFFFFF);
@@ -569,7 +569,7 @@ u32 osAiGetLength(void) {
     u64 done;
     ai_update();
     /* the emulator's value for this caller in this retrace (--clock, compare.py) */
-    if (plat_clock_key_take(2, __builtin_return_address(0), &done)) return (u32) done;
+    if (plat_clock_key_take(2, PORT_RETADDR(), &done)) return (u32) done;
     if (g_ai_len[0] == 0 || g_ai_dacrate == 0) return 0;
     done = (plat_now - g_ai_start) * (u32) osViClock / PLAT_COUNT_HZ / g_ai_dacrate * 4;
     return done >= g_ai_len[0] ? 0 : g_ai_len[0] - (u32) done;

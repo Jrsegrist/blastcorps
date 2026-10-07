@@ -26,7 +26,13 @@ typedef double f64;
 #ifndef _SIZE_T
 #define _SIZE_T
 #define _SIZE_T_DEF
+#if defined(_MSC_VER) && !defined(__clang__) && defined(_WIN64)
+typedef unsigned __int64 size_t;
+#elif defined(_MSC_VER) && !defined(__clang__)
+typedef unsigned int size_t;
+#else
 typedef __SIZE_TYPE__ size_t;
+#endif
 #endif
 #ifndef TRUE
 #define TRUE 1
@@ -38,4 +44,12 @@ typedef __SIZE_TYPE__ size_t;
 #define NULL 0
 #endif
 #include "port_n64ptr.h"
+#if defined(_MSC_VER) && !defined(__clang__)
+/* MSVC: calls to sinf/cosf go to the SDK's (ultralib's gu, N64-identical
+ * results), never to the compiler's intrinsic forms (as gcc's
+ * -fno-builtin-sinf); os_hw.c defines them */
+float sinf(float);
+float cosf(float);
+#pragma function(sinf, cosf)
+#endif
 #endif

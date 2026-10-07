@@ -80,8 +80,14 @@
 
 /* Structure for debug port */
 typedef struct {
+#if defined(_MSC_VER) && !defined(__clang__)
+	/* (MSVC: a byte unit, so buf follows at offset 1 as with IDO and gcc) */
+	unsigned char type : 6;
+	unsigned char length : 2;
+#else
 	unsigned type : 6;	/* 0: invalid, 1: print, 2: debug */
 	unsigned length : 2;	/* 1, 2, or 3 */
+#endif
 	char buf[3];		/* character buffer */
 } rdbPacket;
 

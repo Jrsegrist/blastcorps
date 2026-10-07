@@ -7,8 +7,12 @@ B ?= build
 CFLAGS := -O2 -g -Wall -Wextra -Wno-unused-parameter
 ASP := ../../src/audio/aspmain.c ../../src/audio/aspmain.h
 
-all: $(B)/rsp_tap.so $(B)/ai_dump.so $(B)/asp_replay $(B)/asp_lle $(B)/wavcmp
+all: $(B)/rsp_tap.so $(B)/ai_dump.so $(B)/asp_replay $(B)/asp_lle $(B)/asp_dump $(B)/asp_listdiff $(B)/wavcmp
 
+$(B)/asp_dump: asp_dump.c capture.h capfile.h ranges.h | $(B)
+	gcc $(CFLAGS) -o $@ asp_dump.c
+$(B)/asp_listdiff: asp_listdiff.c capture.h capfile.h ranges.h | $(B)
+	gcc $(CFLAGS) -o $@ asp_listdiff.c
 $(B)/asp_lle: asp_lle.c capture.h capfile.h ranges.h m64p_min.h $(ASP) | $(B)
 	gcc $(CFLAGS) -rdynamic -o $@ asp_lle.c -ldl
 

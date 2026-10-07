@@ -91,8 +91,87 @@ static long env_lag(const float *er, long nr, const float *et, long nt, long t0,
 
 typedef struct {
     double r, snr, exact, rms_ref, rms_test;
+    double spec_corr, spec_db;   /* band spectrum: correlation of band levels, mean |level difference| (dB) */
     long lag;
 } Win;
+
+/* ---- band spectrum (listening proxy that ignores phase and small time offsets) */
+#define FFTN 2048
+#define NBANDS 32
+
+static void fft(double *re, double *im, int n) {
+    int i, j, k, len;
+    for (i = 1, j = 0; i < n; i++) {
+        int bit = n >> 1;
+        for (; j & bit; bit >>= 1) j ^= bit;
+        j ^= bit;
+        if (i < j) {
+            double t = re[i]; re[i] = re[j]; re[j] = t;
+            t = im[i]; im[i] = im[j]; im[j] = t;
+        }
+    }
+    for (len = 2; len <= n; len <<= 1) {
+        double ang = -2 * M_PI / len, wr = cos(ang), wi = sin(ang);
+        for (i = 0; i < n; i += len) {
+            double cr = 1, ci = 0;
+            for (k = 0; k < len / 2; k++) {
+                double ur = re[i + k], ui = im[i + k];
+                double vr = re[i + k + len / 2] * cr - im[i + k + len / 2] * ci;
+                double vi = re[i + k + len / 2] * ci + im[i + k + len / 2] * cr;
+                double t;
+                re[i + k] = ur + vr, im[i + k] = ui + vi;
+                re[i + k + len / 2] = ur - vr, im[i + k + len / 2] = ui - vi;
+                t = cr * wr - ci * wi;
+                ci = cr * wi + ci * wr;
+                cr = t;
+            }
+        }
+    }
+}
+
+/* band levels (dB) of frames [t0, t0+len) of w (mono mix), 32 log bands 60 Hz .. rate/2 */
+static void bands(const Wav *w, long t0, long len, double *db) {
+    static double re[FFTN], im[FFTN];
+    double e[NBANDS] = { 0 };
+    long s, i;
+    int b;
+    for (s = t0; s + FFTN <= t0 + len; s += FFTN / 2) {
+        for (i = 0; i < FFTN; i++) {
+            long j = s + i;
+            double x = (j >= 0 && j < w->n) ? (w->s[j * 2] + w->s[j * 2 + 1]) * 0.5 : 0;
+            re[i] = x * (0.5 - 0.5 * cos(2 * M_PI * i / (FFTN - 1)));
+            im[i] = 0;
+        }
+        fft(re, im, FFTN);
+        for (i = 1; i < FFTN / 2; i++) {
+            double f = (double) i * w->rate / FFTN;
+            if (f < 60) continue;
+            b = (int) (NBANDS * log(f / 60.0) / log(w->rate / 2.0 / 60.0));
+            if (b >= NBANDS) b = NBANDS - 1;
+            e[b] += re[i] * re[i] + im[i] * im[i];
+        }
+    }
+    for (b = 0; b < NBANDS; b++) db[b] = 10 * log10(e[b] + 1.0);
+}
+
+static void spectrum_compare(const Wav *ref, const Wav *t, long t0, long len, long lag, Win *o) {
+    double a[NBANDS], b[NBANDS], sa = 0, sb = 0, sab = 0, saa = 0, sbb = 0, d = 0, top = 0;
+    int k, m = 0;
+    bands(t, t0, len, a);
+    bands(ref, t0 + lag, len, b);
+    for (k = 0; k < NBANDS; k++) if (a[k] > top) top = a[k];
+    for (k = 0; k < NBANDS; k++) if (b[k] > top) top = b[k];
+    for (k = 0; k < NBANDS; k++) {
+        if (a[k] < top - 60 && b[k] < top - 60) continue;   /* bands with nothing in either */
+        sa += a[k], sb += b[k], sab += a[k] * b[k], saa += a[k] * a[k], sbb += b[k] * b[k];
+        d += fabs(a[k] - b[k]);
+        m++;
+    }
+    if (m < 2) { o->spec_corr = 1, o->spec_db = 0; return; }
+    sab -= sa * sb / m, saa -= sa * sa / m, sbb -= sb * sb / m;
+    o->spec_corr = (saa > 0 && sbb > 0) ? sab / sqrt(saa * sbb) : 1;
+    o->spec_db = d / m;
+}
 
 static void measure(const Wav *ref, const Wav *t, long t0, long len, long lag, Win *o) {
     double sxy = 0, sxx = 0, syy = 0, sd = 0;
@@ -143,26 +222,32 @@ static int cmp_d(const void *a, const void *b) {
 }
 
 static void summary(const char *name, Win *w, long n, double secs) {
-    double *r = malloc((n + 1) * sizeof *r), *s = malloc((n + 1) * sizeof *s), ex = 0, rr = 0, rt = 0;
+    double *r = malloc((n + 1) * sizeof *r), *s = malloc((n + 1) * sizeof *s), *sc = malloc((n + 1) * sizeof *sc),
+           *sd = malloc((n + 1) * sizeof *sd), *ld = malloc((n + 1) * sizeof *ld), ex = 0, rr = 0, rt = 0;
     long i, m = 0, silent = 0, good = 0;
     for (i = 0; i < n; i++) {
         if (w[i].rms_ref < 30 && w[i].rms_test < 30) { silent++; continue; }
-        r[m] = w[i].r, s[m] = w[i].snr, m++;
+        r[m] = w[i].r, s[m] = w[i].snr, sc[m] = w[i].spec_corr, sd[m] = w[i].spec_db;
+        ld[m] = fabs(20 * log10((w[i].rms_test + 1) / (w[i].rms_ref + 1)));
+        m++;
         ex += w[i].exact, rr += w[i].rms_ref, rt += w[i].rms_test;
         if (w[i].r > 0.99) good++;
     }
     if (m == 0) {
-        printf("%-22s %4ld windows (%.0f s), all silent\n", name, n, secs);
-        free(r), free(s);
-        return;
+        printf("%-20s %4ld windows (%.0f s), all silent\n", name, n, secs);
+    } else {
+        qsort(r, m, sizeof *r, cmp_d);
+        qsort(s, m, sizeof *s, cmp_d);
+        qsort(sc, m, sizeof *sc, cmp_d);
+        qsort(sd, m, sizeof *sd, cmp_d);
+        qsort(ld, m, sizeof *ld, cmp_d);
+        printf("%-20s %3ld win (%3ld silent) | waveform: corr med %.3f p10 %.3f, SNR med %5.1f dB, r>0.99 %3.0f%%, "
+               "bit-exact %5.1f%% | spectrum: band corr med %.3f p10 %.3f, band diff med %.1f dB p90 %.1f | "
+               "loudness diff med %.1f dB p90 %.1f (rms %.0f/%.0f)\n",
+               name, n, silent, r[m / 2], r[m / 10], s[m / 2], 100.0 * good / m, 100 * ex / m, sc[m / 2], sc[m / 10],
+               sd[m / 2], sd[m * 9 / 10], ld[m / 2], ld[m * 9 / 10], rr / m, rt / m);
     }
-    qsort(r, m, sizeof *r, cmp_d);
-    qsort(s, m, sizeof *s, cmp_d);
-    printf("%-22s %4ld win (%3.0f s, %3ld silent): corr median %.4f p10 %.4f min %.4f; SNR median %5.1f dB p10 %5.1f; "
-           "r>0.99 %3.0f%%; bit-exact samples %5.1f%%; rms ref %.0f test %.0f\n",
-           name, n, secs, silent, r[m / 2], r[m / 10], r[0], s[m / 2], s[m / 10], 100.0 * good / m, 100 * ex / m,
-           rr / m, rt / m);
-    free(r), free(s);
+    free(r), free(s), free(sc), free(sd), free(ld);
 }
 
 int main(int argc, char **argv) {
@@ -219,9 +304,11 @@ int main(int argc, char **argv) {
             el = env_lag(er, nbr, et, nbt, t0 / B, W / B, lag / B - 64, lag / B + 64, &c);
             lag = refine(&a, &b, t0, W, el * B, B + 8);
             measure(&a, &b, t0, W, lag, &win[k]);
+            spectrum_compare(&a, &b, t0, W, lag, &win[k]);
             if (verbose)
-                printf("  %6.1f s lag %8ld r %.5f snr %6.1f exact %5.1f%% rms %5.0f/%5.0f\n", (double) t0 / b.rate, lag,
-                       win[k].r, win[k].snr, 100 * win[k].exact, win[k].rms_ref, win[k].rms_test);
+                printf("  %6.1f s lag %8ld r %.5f snr %6.1f exact %5.1f%% rms %5.0f/%5.0f spec corr %.3f diff %.1f dB\n",
+                       (double) t0 / b.rate, lag, win[k].r, win[k].snr, 100 * win[k].exact, win[k].rms_ref,
+                       win[k].rms_test, win[k].spec_corr, win[k].spec_db);
         }
         summary("all", win, nw, (double) nw * W / b.rate);
         if (secf) {

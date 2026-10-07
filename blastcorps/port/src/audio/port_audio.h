@@ -10,9 +10,10 @@ struct HostOpts;
 void port_audio_init(const struct HostOpts *o);
 /* osSpTaskStartGo, M_AUDTASK: physical addresses */
 void port_audio_task(unsigned ucode_data, unsigned ucode_data_size, unsigned data_ptr, unsigned data_size);
-/* osAiSetNextBuffer accepted a buffer (physical address, bytes; the DAC
- * rate in VI clocks per sample and the VI clock give the sample rate) */
-void port_audio_ai_buffer(unsigned addr, unsigned bytes, unsigned dacrate, unsigned vi_clock);
+/* osAiSetNextBuffer got a buffer (physical address, bytes; the DAC rate in
+ * VI clocks per sample and the VI clock give the sample rate); `accepted`:
+ * the AI's FIFO took it (a full FIFO drops it, as the hardware does) */
+void port_audio_ai_buffer(unsigned addr, unsigned bytes, unsigned dacrate, unsigned vi_clock, int accepted);
 /* at exit: finish the WAV file, print statistics */
 void port_audio_close(void);
 

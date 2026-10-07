@@ -1005,6 +1005,15 @@ void asp_run_task(AspState *s, const AspBus *bus, const AspTask *t) {
     int32_t k1, fp, n;
 
     s->tasks++;
+    /* An empty command list (alAudioFrame before the synthesizer has a
+     * client) would make the microcode fetch with a length of -1: a DMA of
+     * 256 rows that rewrites all of DMEM with RDRAM, then one command from
+     * it.  That one command is arbitrary (a SAVEBUFF of garbage can land
+     * anywhere), so the interpreter runs none. */
+    if ((int32_t) t->data_size <= 0) {
+        if (s->empty_tasks++ == 0 && s->log) s->log("asp: empty command list (task %u) skipped\n", s->tasks);
+        return;
+    }
     /* rspboot: ucode_data (ucode_data_size bytes) into DMEM 0 */
     if (t->ucode_data_size != 0)
         dma_read(s, bus, 0, t->ucode_data, (t->ucode_data_size - 1) & 0xFFF, ASP_DMA_UCODE_DATA);

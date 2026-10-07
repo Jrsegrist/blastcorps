@@ -72,6 +72,7 @@ typedef struct HostOpts {
     int game_print;            /* print the game's debug messages (func_8029A7E4) */
     const char *mpk_path;      /* Controller Pak image (.mpk), or NULL: no pak */
     const char *wav_path;      /* --wav: the AI stream (what the game plays) as a WAV file */
+    int wav_all;               /* --wav-all: also the buffers a full AI FIFO drops (every task's output) */
     const char *audio_capture; /* --audio-capture: audio tasks' inputs/outputs (port/tools/audio) */
     unsigned audio_capture_max;
     int audio_off;             /* --no-audio: audio tasks are not run (no output) */

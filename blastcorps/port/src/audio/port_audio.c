@@ -25,9 +25,11 @@ static AspState g_asp;
 static uint8_t *g_hd_data;          /* the ROM's hd data image (big-endian) */
 static const HostLive *g_live;
 static int g_off;
-static FILE *g_wav;
+static FILE *g_wav, *g_wav_idx;   /* FILE.wav and FILE.wav.frames (game frame -> sample offset) */
 static uint32_t g_wav_bytes, g_wav_rate;
-static unsigned g_buffers;
+unsigned plat_frames(void);       /* save.c */
+static unsigned g_buffers, g_rejected;
+static int g_wav_all;               /* --wav-all: also the buffers a full AI FIFO dropped */
 static unsigned long long g_frames_out;
 
 /* --audio-capture: each task's inputs and results (port/tools/audio/capture.h) */
@@ -140,11 +142,17 @@ void port_audio_init(const struct HostOpts *o) {
         free(g_hd_data);
         g_hd_data = NULL;
     }
+    g_wav_all = o->wav_all;
     if (o->wav_path != NULL) {
         g_wav = fopen(o->wav_path, "wb");
         if (g_wav == NULL) host_fatal("can't write %s", o->wav_path);
         g_wav_rate = 22050;
         wav_header();
+        {
+            char idx[1024];
+            snprintf(idx, sizeof idx, "%s.frames", o->wav_path);
+            g_wav_idx = fopen(idx, "w");
+        }
     }
     if (o->audio_capture != NULL) {
         g_cap = fopen(o->audio_capture, "wb");
@@ -198,13 +206,18 @@ void port_audio_task(unsigned ucode_data, unsigned ucode_data_size, unsigned dat
     }
 }
 
-void port_audio_ai_buffer(unsigned addr, unsigned bytes, unsigned dacrate, unsigned vi_clock) {
+void port_audio_ai_buffer(unsigned addr, unsigned bytes, unsigned dacrate, unsigned vi_clock, int accepted) {
     static int16_t *buf;
     static unsigned cap;
     unsigned frames = bytes / 4, i, rate = dacrate ? vi_clock / dacrate : 22050;
     const uint8_t *p = ram(addr);
-    g_buffers++;
-    g_frames_out += frames;
+    if (!accepted) {
+        g_rejected++;
+        if (!g_wav_all) return;
+    } else {
+        g_buffers++;
+        g_frames_out += frames;
+    }
     if (frames == 0 || (g_wav == NULL && (g_live == NULL || g_live->audio == NULL))) return;
     if (frames * 2 > cap) {
         cap = frames * 2;
@@ -215,10 +228,11 @@ void port_audio_ai_buffer(unsigned addr, unsigned bytes, unsigned dacrate, unsig
     for (i = 0; i < frames * 2; i++) buf[i] = (int16_t) ((p[i * 2] << 8) | p[i * 2 + 1]);
     if (g_wav != NULL) {
         if (g_wav_bytes == 0) g_wav_rate = rate;
+        if (g_wav_idx != NULL) fprintf(g_wav_idx, "%u %u\n", plat_frames(), g_wav_bytes / 4);
         fwrite(buf, 4, frames, g_wav);
         g_wav_bytes += frames * 4;
     }
-    if (g_live != NULL && g_live->audio != NULL) g_live->audio(buf, frames, rate);
+    if (g_live != NULL && g_live->audio != NULL && accepted) g_live->audio(buf, frames, rate);
 }
 
 void port_audio_close(void) {
@@ -227,11 +241,16 @@ void port_audio_close(void) {
         fclose(g_wav);
         g_wav = NULL;
     }
+    if (g_wav_idx != NULL) {
+        fclose(g_wav_idx);
+        g_wav_idx = NULL;
+    }
     if (g_cap != NULL) {
         fclose(g_cap);
         g_cap = NULL;
     }
     if (g_asp.tasks != 0)
-        host_log("audio: %u tasks (%u commands, %u unknown), %u AI buffers, %llu sample frames\n", g_asp.tasks,
-                 g_asp.cmds, g_asp.bad_cmds, g_buffers, g_frames_out);
+        host_log("audio: %u tasks (%u commands, %u unknown, %u empty), %u AI buffers (%llu sample frames), %u dropped "
+                 "by a full AI FIFO\n", g_asp.tasks, g_asp.cmds, g_asp.bad_cmds, g_asp.empty_tasks, g_buffers,
+                 g_frames_out, g_rejected);
 }

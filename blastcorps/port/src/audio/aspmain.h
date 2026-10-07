@@ -3,7 +3,7 @@
  * Kong Racing" variant).  It executes an audio task's command list against
  * RDRAM the way the RSP does, with a model of the RSP's data memory (DMEM)
  * and of the vector unit operations each command uses, so its output matches
- * the real microcode bit for bit.  See port/src/audio/README.md.
+ * the real microcode bit for bit.  See port/README.md ("Audio").
  *
  * Plain C, no libultra types: the same file builds into the Windows port
  * and into the Linux test tools (which run it next to an LLE RSP). */
@@ -50,7 +50,7 @@ typedef struct AspState {
     AspVU vu;
     uint32_t pending_dma;      /* the microcode's s6 "a DMA may be in flight" flag (no effect here) */
     /* statistics */
-    uint32_t tasks, cmds, cmd_count[16], bad_cmds, imem_dma, odd_dma;
+    uint32_t tasks, cmds, cmd_count[16], bad_cmds, imem_dma, odd_dma, empty_tasks;
     void (*log)(const char *fmt, ...);   /* optional diagnostics */
 } AspState;
 

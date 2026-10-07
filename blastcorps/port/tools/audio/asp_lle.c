@@ -75,7 +75,7 @@ int main(int argc, char **argv) {
     CapHeader h;
     static CapRecord c;
     int rc = 0;
-    unsigned max = ~0u, verbose = 0, n = 0, same = 0, diff = 0, i;
+    unsigned max = ~0u, verbose = 0, n = 0, same = 0, diff = 0, empty = 0, i;
     unsigned long long bytes = 0, compared = 0;
 
     if (argc < 3) {
@@ -149,6 +149,10 @@ int main(int argc, char **argv) {
         unsigned nd = 0, shown = 0;
         uint32_t task[16];
         h = c.h;
+        if ((int32_t) h.task.data_size <= 0) {   /* aspmain skips empty lists (see asp_run_task) */
+            empty++;
+            continue;
+        }
         cap_apply_reads(&c, put_be);
         /* RSP state: DMEM as before the task, the OSTask at 0xFC0, rspboot in IMEM */
         for (i = 0; i < 0xFC0; i++) spmem[i ^ 3] = c.dmem[i];
@@ -191,6 +195,7 @@ int main(int argc, char **argv) {
         if (nd) { diff++; bytes += nd; } else same++;
     }
     if (rc < 0) fprintf(stderr, "bad capture record\n");
-    printf("lle: %u tasks, %u identical, %u different (%llu of %llu written bytes)\n", n, same, diff, bytes, compared);
+    printf("lle: %u tasks, %u identical, %u different (%llu of %llu written bytes); %u empty lists skipped\n", n, same,
+           diff, bytes, compared, empty);
     return diff != 0;
 }

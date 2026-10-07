@@ -179,8 +179,8 @@ Platform model (`src/platform/`):
 | SI | os_si.c, input.c | controller 1 from `--input` (or idle), osContInit's 0.5 s wait; EEPROM 4 Kbit in a file (`--eeprom`, mupen64plus's 512-byte .eep format). |
 | Controller Pak | pif.c | `--mpk FILE` (mupen64plus .mpk: four 32 KB paks, controller 1's first; created formatted if missing): the front end's own SDK Pfs objects run natively over a PIF emulation (status, pak read/write); the system blocks (ID, inode, directory) are converted by layout at the pak boundary. |
 | saves | save.c | the save thread's routines (0E7B0.c, `PORT_SAVE_*` hooks) work on a big-endian copy of each record, so CRCs and files are the N64's: EEPROM files are byte-identical to mupen64plus's for the same play (checked: new game, level completion with best time), and load either way. |
-| RSP/RDP | os_hw.c | gfx tasks dropped and counted (SP done, plus DP done for frame tasks; bc.exe draws them with RT64, same completion times); func_802A4B0C's cull test answered by a CPU model of its ucode (below); audio tasks dropped, SP done. |
-| AI | os_hw.c | a two-buffer DMA FIFO playing at the programmed rate in virtual time, so osAiGetLength (which sizes each audio frame) behaves; samples are discarded. The synthesizer runs (the game polls sequence/sound state). |
+| RSP/RDP | os_hw.c | gfx tasks dropped and counted (SP done, plus DP done for frame tasks; bc.exe draws them with RT64, same completion times); func_802A4B0C's cull test answered by a CPU model of its ucode (below); audio tasks run at once on the microcode interpreter (src/audio/, "Audio" below), SP done. |
+| AI | os_hw.c | a two-buffer DMA FIFO playing at the programmed rate in virtual time, so osAiGetLength (which sizes each audio frame) behaves; each accepted buffer goes to the output (`--wav FILE`; bc.exe's speakers), which never feeds back into the timing. |
 | front end | plat_core.c | data+bss snapshot at boot, restored after every reload. |
 | debug output | headless_main.c | `--print`: the game's debug printf (func_8029A7E4, empty on the N64) to stderr with the frame number; `--cmdline "-c"` turns on the game's debug cheats (C-right + Z completes the level). |
 
@@ -194,7 +194,8 @@ an .eep (fixing its CRC).
 ## Windowed (stage 4): `make -C port game`
 
 `build/game/bc.exe ROM [bc_headless options] [--api d3d12|vulkan]
-[--shot F1,F2..] [--shot-dir DIR] [--shot-every N] [--no-pace] [--scale N]`
+[--shot F1,F2..] [--shot-dir DIR] [--shot-every N] [--no-pace] [--scale N]
+[--mute] [--volume N]`
 plays the game in a window: bc_headless's game and platform objects plus
 `src/live/live_rt64.cpp` (SDL2 window and input, the RT64 renderer). The
 exe needs `dxcompiler.dll`, `dxil.dll` and `SDL2.dll` next to it (the build
@@ -202,7 +203,8 @@ copies them). Options are listed at the top of live_rt64.cpp; `--frames N`
 and the other bc_headless options work as there.
 
 Keys: arrows = stick, X = A, C = B, Z or Space = Z, Enter = START, A/S =
-L/R, I J K L = C buttons, T F G H = D-pad, Esc quits; an SDL game controller
+L/R, I J K L = C buttons, T F G H = D-pad, M = sound on/off, - and = =
+volume, Esc quits; an SDL game controller
 (XInput pads etc.) maps the same way (left stick, A, B/X, triggers = Z,
 Start, shoulders, right stick = C buttons, D-pad). `--input FILE` replays a
 recording instead.
@@ -283,6 +285,79 @@ level, frames in mode, game retrace counter). Their RDRAM differs only in
 what the renderer writes (colour and depth images: framebuffers, Z, the
 shadow and other render-to-texture images), the staged ucode, the graphics
 data gfx_fix.c converted, and pointers to the exes' own code/data.
+
+## Audio (stage 5): `src/audio/`
+
+The game's audio thread (22EE0.c, Rare's audiomgr) builds a command list
+each audio frame with libaudio (the old-SDK synthesizer, compiled natively
+from the ul_* objects) and starts an M_AUDTASK with the ROM's audio
+microcode (D_802E68F0, the "Blast Corps / Diddy Kong Racing" variant of
+aspMain).  `src/audio/aspmain.c` executes that command list as the RSP
+would: a model of DMEM (the microcode's map: segment table 0x320,
+parameters 0x360, command buffer 0x380, ADPCM table 0x4C0, sample buffers
+from 0x5C0, state scratch 0xF90), SP DMA with its 8-byte alignment, and
+each command's vector-unit arithmetic (accumulator width, saturation,
+rounding, vector flags) as the microcode does it.  The constant tables
+(resampler filter, masks, ramps) come from the task's ucode data at run
+time, read from the ROM's data image; nothing ROM-derived is in the source.
+`port_audio.c` connects it to the platform: osSpTaskStartGo runs the task,
+osAiSetNextBuffer hands the finished buffer to the output.
+
+RDRAM layout at the interpreter's boundary (the bus in port_audio.c): the
+command list is host-order u32 words (like display lists); A_LOADADPCM's
+codebooks / pole-filter coefficients and A_SETLOOP's loop states are
+host-order s16 (the load layer swaps them in the sound banks; libaudio
+computes the coefficients and copies the loop state natively); everything
+else the microcode moves stays in N64 byte order: ROM sample data, the
+microcode's own state blocks (ADPCM, resampler, envelope mixer, pole
+filter), reverb delay lines and the output buffers, which no C code reads.
+The AI plays big-endian L/R pairs; the output converts them.
+
+Outputs: `bc_headless --wav FILE` (the stream the game hands the AI, plus
+`FILE.frames`: game frame -> sample offset; `--wav-all` also keeps buffers
+a full AI FIFO drops, i.e. every task's output), deterministic; bc.exe queues
+the same buffers to SDL audio at the AI rate (osViClock / dacrate, 22047 Hz)
+with a little resampling (at most 0.5%) holding the device queue near
+60 ms against drift between the paced virtual clock and the sound card; a
+queue past 0.3 s (after a stall) is dropped.  `--mute`, `--volume N`, keys
+M (mute), - and = (volume).  `--no-audio` skips the audio tasks (the game
+logic is the same either way: bc.exe and bc_headless give identical traces
+and identical WAVs).
+
+Verification (`tools/audio/`, Linux tools; the LLE RSP is cxd4,
+CC0-licensed, from `~/thirdparty/ref`, loaded at run time as a test oracle,
+not shipped or copied):
+- `rsp_tap.so`, an RSP plugin for mupen64plus: every audio task runs on the
+  LLE RSP (the ROM's real microcode) and on aspmain from the same RDRAM and
+  DMEM copy; all 8 MB of RDRAM are compared afterwards.  Other tasks go to
+  `TAP_HLE` (rsp-hle).  `TAP_CAPTURE=file` saves each task's inputs and
+  results.  `ai_dump.so`, an audio plugin, writes the AI stream to a WAV.
+- `bc_headless --audio-capture FILE[:N]` records the native tasks;
+  `asp_lle FILE build/hd_code.us.v11.bin` hosts the LLE plugin itself and
+  runs them with the ROM's rspboot and microcode (from the build's
+  decompressed segment); `asp_replay` reruns captures on aspmain.
+- `wavcmp cmp REF.wav TEST.wav [SECTIONS]` aligns two recordings window by
+  window and reports correlation, SNR and bit-exact samples.
+- `compare.py emu` takes `CMP_TRACER` (a tracer with these plugins), so one
+  emulator run gives both the clock logs for bc_headless and the sound.
+  `asp_dump` prints captured command lists (`-sizes`: samples per task),
+  `asp_listdiff A B` compares two captures' lists command by command.
+  `BC_AILEN_SEQ=1` (WSLENV) makes `--clock`'s osAiGetLength values go to
+  the audio thread in call order, for audio comparisons.
+
+Results (Oct 2026): every audio task of the emulator's attract cycle
+(17,236 and 17,243 tasks in two runs, base and NM ROM) leaves all 8 MB of
+RDRAM and the sample-buffer DMEM identical to the LLE microcode's; so do
+3,958 of bc_headless's own tasks under asp_lle.  With the emulator's clock
+and its audio frame sizes, bc_headless's command lists equal the ROM's
+(addresses aside) until the first sound the game starts in a different
+audio frame (task 328, ~11 s), and the WAVs are bit-identical up to there;
+the rest of the 132 s compared differs only by that event timing (band
+spectrum within 0.2 dB, loudness within 0.1 dB; see the agent notes).  The
+interpreter skips empty command lists (the microcode would run one
+command out of a 256-row DMA of junk).  Not exercised by this game's lists
+(so checked only against the microcode's code, not run): RESAMPLE flag 2
+(the restored 16-byte input tail), ENVMIXER without A_AUX, commands 16+.
 
 ## Comparing with the emulator: `make -C port compare DEMO=n`
 

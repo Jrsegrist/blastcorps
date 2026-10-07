@@ -42,7 +42,7 @@ static FILE *rep, *cap;
 static unsigned cap_max = ~0u, cap_n;
 static uint8_t *pre, *work;   /* RDRAM copies (emulator layout: byte A at A^3) */
 static AspState st;
-static unsigned n_tasks, n_same, n_diff, n_dmem_diff;
+static unsigned n_tasks, n_same, n_diff, n_dmem_diff, n_empty;
 static unsigned long long diff_bytes;
 static RangeList rd, wr;
 
@@ -110,8 +110,8 @@ EXPORT m64p_error CALL PluginStartup(m64p_dynlib_handle core, void *ctx, void (*
 
 static void summary(void) {
     unsigned i;
-    logf_("tap: audio tasks %u, identical %u, different %u (%llu bytes), DMEM buffer area different %u\n",
-          n_tasks, n_same, n_diff, diff_bytes, n_dmem_diff);
+    logf_("tap: audio tasks %u, identical %u, different %u (%llu bytes), DMEM buffer area different %u; "
+          "%u empty lists not compared\n", n_tasks, n_same, n_diff, diff_bytes, n_dmem_diff, n_empty);
     logf_("tap: commands %u:", st.cmds);
     for (i = 0; i < 16; i++) logf_(" %u", st.cmd_count[i]);
     logf_("\n");
@@ -175,6 +175,10 @@ EXPORT unsigned int CALL DoRspCycles(unsigned int cycles) {
     t.data_size = dw(0xFC0 + 0x34);
 
     r = lle_cycles(cycles);
+    if ((int32_t) t.data_size <= 0) {   /* aspmain skips empty lists (asp_run_task); not compared */
+        n_empty++;
+        return r;
+    }
 
     memcpy(st.dmem, dmem_pre, 4096);
     vu_pre = st.vu;

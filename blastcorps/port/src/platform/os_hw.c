@@ -524,6 +524,11 @@ s32 osAiSetFrequency(u32 frequency) {
 }
 
 s32 osAiSetNextBuffer(void *buf, u32 size) {
+    /* AI_LEN holds 18 bits, 8-byte units (the audio manager's first frame
+     * can ask for a "negative" size when osAiGetLength reads junk, as it
+     * does in mupen64plus before the first DMA; the hardware plays the low
+     * bits) */
+    size &= 0x3FFF8;
     ai_update();
     if (g_ai_len[0] == 0) {
         g_ai_len[0] = size;
@@ -531,9 +536,10 @@ s32 osAiSetNextBuffer(void *buf, u32 size) {
     } else if (g_ai_len[1] == 0) {
         g_ai_len[1] = size;
     } else {
+        port_audio_ai_buffer(osVirtualToPhysical(buf), size, g_ai_dacrate, (u32) osViClock, 0);
         return -1;
     }
-    port_audio_ai_buffer(osVirtualToPhysical(buf), size, g_ai_dacrate, (u32) osViClock);
+    port_audio_ai_buffer(osVirtualToPhysical(buf), size, g_ai_dacrate, (u32) osViClock, 1);
     return 0;
 }
 

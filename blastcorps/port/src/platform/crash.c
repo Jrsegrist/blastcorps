@@ -525,6 +525,8 @@ static DWORD WINAPI dumper(void *arg) {
                 break;
         }
     }
+    /* deleted when closed (or when the process ends) until the dump is complete */
+    if (g_dump_file != INVALID_HANDLE_VALUE) set_delete(g_dump_file, TRUE);
     WideCharToMultiByte(CP_UTF8, 0, path, -1, g_dump_name, sizeof g_dump_name, NULL, NULL);
     g_dump_name[sizeof g_dump_name - 1] = 0;
     /* the report next to it first (the dump may never finish) */
@@ -588,6 +590,7 @@ static const char *code_name(DWORD code) {
         case 0xC0000409: return "stack buffer overrun / fail-fast";
         case 0xC000041D: return "exception in a user callback";
         case 0xE06D7363: return "unhandled C++ exception (MSVC-built code)";
+        case 0x20474343: return "unhandled C++ exception (GCC-built code, SEH unwinding)";
         case HOST_CRASH_CODE: return "fatal internal error";
         default: return "exception";
     }
@@ -654,8 +657,10 @@ static void report(void) {
      * with a time limit (heap and loader locks) */
     SetEvent(g_dump_go);
     if (WaitForSingleObject(g_dump_done, 20000) == WAIT_TIMEOUT) {
+        /* (no DeleteFileW: converting the path can need the locked heap and
+         * hang here; the unfinished file is delete-on-close, gone when the
+         * process ends) */
         out("minidump: not written: timed out after 20 s (the process heap is locked or corrupt)\n");
-        if (g_dump_path[0]) DeleteFileW(g_dump_path);   /* (gone when the process ends) */
     } else if (g_heap_bad)
         out("minidump: not written: the process heap is corrupt (HeapValidate failed)\n");
     else if (g_dump_ok)

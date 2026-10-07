@@ -173,6 +173,53 @@ $(H64)/bc_headless.exe: $(HL64_LINK_OBJS) $(H64)/align.ok
 
 headless64: $(H64)/bc_headless.exe
 
+# ---- game64 / dist64: bc.exe in 64 bits (as `game` / `dist`) ----
+# RT64 for x86_64 from the same patched sources (rt64/build_rt64.sh ARCH=x86_64),
+# the C++ host side (src/live/) with mingw-w64's x86_64 g++
+G64 := build/game64
+RT64_B64 := $(RT64_W)/build-x86_64
+RT64_DLL64 := $(RT64_W)/dll-x86_64
+RT64_LIBS64 := $(subst $(RT64_B)/,$(RT64_B64)/,$(RT64_LIBS))
+CXX64 := x86_64-w64-mingw32-g++-posix
+LIVE64_CXXFLAGS := $(subst -I$(RT64_B)/,-I$(RT64_B64)/,$(LIVE_CXXFLAGS))
+G64_HOST_OBJS := $(filter-out $(H64)/host/headless_main.o,$(HL64_HOST_OBJS)) $(G64)/host/headless_main.o \
+	$(G64)/live/live_rt64.o $(G64)/live/live_setup.o $(G64)/bc_res.o
+$(G64)/rt64.stamp: rt64/build_rt64.sh $(wildcard rt64/patches/*.patch)
+	@mkdir -p $(@D)
+	ARCH=x86_64 TP=$(TP) JOBS=$${JOBS:-2} bash rt64/build_rt64.sh
+	touch $@
+$(G64)/host/headless_main.o: src/platform/headless_main.c src/platform/plat_host.h src/rdram.h Makefile port64.mk
+	@mkdir -p $(@D)
+	$(CC64) $(HL64_HOST_CFLAGS) -DPORT_LIVE -c -o $@ $<
+$(G64)/live/%.o: src/live/%.cpp src/live/live_setup.h src/platform/plat_host.h src/rdram.h $(G)/version.h \
+		$(G64)/rt64.stamp Makefile port64.mk
+	@mkdir -p $(@D)
+	$(CXX64) $(LIVE64_CXXFLAGS) -include $(G)/version.h -c -o $@ $<
+$(G64)/bc_res.o: res/bc.rc $(G)/bc.ico $(G)/version.h
+	@mkdir -p $(@D)
+	x86_64-w64-mingw32-windres -I$(G) -Ires -O coff -o $@ $<
+G64_LINK := $(HL64_GAME_OBJS) $(G64_HOST_OBJS) $(H64)/stubs.o $(H64)/copytab.o $(H64)/ptrtab.o $(H64)/abs_syms.o
+$(G64)/bc.exe: $(G64_LINK) $(H64)/align.ok $(G64)/rt64.stamp
+	$(CXX64) -o $@ $(G64_LINK) $(RT64_LIBS64) $(RT64_DLL64)/SDL2.dll $(RT64_DLL64)/libdxcompiler.a $(LIVE_SYSLIBS) \
+		-static -static-libgcc -static-libstdc++ -mwindows $(LDFLAGS64) -Wl,-Map=$(G64)/bc.map
+	$(NM64) -n $@ > $(G64)/bc.syms
+	cp -u $(addprefix $(RT64_DLL64)/,$(RT64_DLLS)) $(G64)/
+game64: $(G64)/bc.exe
+
+DIST64_NAME := BlastCorps-port-$(BC_VERSION)-x64
+DIST64 := build/dist/$(DIST64_NAME)
+dist64: $(G64)/bc.exe dist/README.txt dist/third_party.sh
+	rm -rf $(DIST64) $(DIST64).zip
+	mkdir -p $(DIST64)
+	cp $(G64)/bc.exe $(addprefix $(G64)/,$(RT64_DLLS)) $(DIST64)/
+	x86_64-w64-mingw32-strip --strip-debug $(DIST64)/bc.exe
+	sed -e 's/@VERSION@/$(BC_VERSION) (64-bit)/' -e 's/@BITS@/64-bit (x86_64)/' dist/README.txt | sed -e 's/$$/\r/' \
+		> $(DIST64)/README.txt
+	TP=$(TP) RT64_SRC=$(RT64_SRC) bash dist/third_party.sh | sed -e 's/$$/\r/' > $(DIST64)/THIRD_PARTY_LICENSES.txt
+	cd build/dist && $(PYTHON) -m zipfile -c $(DIST64_NAME).zip $(DIST64_NAME)/
+	@ls -l $(DIST64) $(DIST64).zip
+.PHONY: game64 dist64
+
 # ---- loadcheck64: the load layer through the 64-bit build (as `loadcheck`) ----
 LC64 := build/lc64
 LC64_CFLAGS := $(filter-out -msse2 -mfpmath=sse -Wno-builtin-declaration-mismatch,$(GAME_CFLAGS)) $(C64_COMMON) -g

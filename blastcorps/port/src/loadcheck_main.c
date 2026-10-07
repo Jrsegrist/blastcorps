@@ -246,6 +246,8 @@ static int t9_load(uint32_t rom, uint32_t size, const char *how, uint8_t **raw) 
     return 1;
 }
 
+static int g_t9_all;
+
 static void t9(const char *path) {
     FILE *f = fopen(path, "r");
     char line[256], how[8] = "";
@@ -293,6 +295,9 @@ static void t9(const char *path) {
             if (be != nat) {
                 if (!bad) snprintf(first, sizeof first, "+%X w%u N64 %llX native %llX", off, w,
                                    (unsigned long long) be, (unsigned long long) nat);
+                if (g_t9_all)   /* (spike.exe ROM TESTS FACTS all: every wrong read) */
+                    printf("T9bad %06X +%X w%u N64 %llX native %llX\n", rom, off, w, (unsigned long long) be,
+                           (unsigned long long) nat);
                 bad++;
             }
         }
@@ -313,6 +318,7 @@ int main(int argc, char **argv) {
     if (strchr(tests, '6')) t6();
     if (strchr(tests, '7')) t7();
     if (strchr(tests, '8')) t8();
+    g_t9_all = argc > 4 && !strcmp(argv[4], "all");
     if (strchr(tests, '9')) t9(argc > 3 ? argv[3] : "build/lc/facts.txt");
     fflush(stdout);
     port_load_report();

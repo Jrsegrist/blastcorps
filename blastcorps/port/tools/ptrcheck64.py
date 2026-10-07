@@ -3,22 +3,28 @@
 
 The 64-bit exe keeps N64 memory at its N64 addresses with N64 layouts: every
 pointer stored in N64 memory (a struct field, a pinned global, an element of
-a pinned table) must stay 4 bytes (N64PTR(T), include/game/n64ptr.h).  This
+a pinned table) must stay 4 bytes (`T * N64P`, port/include/port_n64ptr.h).  This
 reads clang's AST of each translation unit (x86_64 target, the 64-bit build's
 flags) and reports what still has a host-width (8-byte) pointer:
 
   FIELD  record.field   a pointer field of a record (struct/union)
   FNPTR  record.field   a function pointer field (clang can't load __ptr32
-                        function pointers correctly: use N64FNPTR, a u32)
+                        function pointers correctly: use N64FN(T), a u32)
   VAR    name           a pinned global (in ADDRS, or named D_<addr>) holding a
                         pointer
   CAST   file:line      a cast to a pointer to a host-width pointer
                         (`*(u8 **) p` reads 8 bytes of N64 memory)
+  SEXT   file:line      a signed 32-bit int cast to a host-width pointer: an
+                        address >= 0x80000000 sign-extends (N64_IPTR)
+  SIZEOF file:line      sizeof of a host-width pointer type (a table of N64
+                        pointers sized with it is twice as big)
+  PADD   file:line      pointer arithmetic with a pointer cast to a signed int
+                        (`m += (s32) buf`: N64_A32)
 
 usage: ptrcheck64.py ADDRS ALLOW OUT -- CLANG_CMD... -- FILE.c...
-  ALLOW  lines 'FIELD record.field' / 'VAR name' / 'CAST file:line' that are
-         known host-only (a reason after '#'); 'FIELD record.*' for a whole
-         record
+  ALLOW  finding keys known to be host-only, fnmatch patterns ('FIELD
+         record.*' for a whole record), a reason after '#'
+         (data/ptrcheck64_allow.txt)
   Exit status 1 if anything not allowed is found.
 """
 import fnmatch

@@ -38,8 +38,14 @@ cc64ir = $(CC64) $(1) -S -emit-llvm -o $@.ll $< && \
 	$(CC64) $(1) -Wno-unused-command-line-argument -Xclang -disable-llvm-optzns -c -o $@ $@.a.ll && \
 	rm -f $@.ll $@.a.ll
 IR64_DEPS := tools/llalign64.py $(H64)/addrs.txt
+# -fno-inline-functions: only `inline` functions are inlined.  --sync and
+# --clock key the emulator's values on the calling game function (a return
+# address); clang inlines far more than gcc (func_802A2BB0's PI wait came out
+# inside func_802A1D54: 8627 sync mismatches in verify), so game functions
+# keep their own bodies, as the N64's do.
 HL64_CFLAGS := $(filter-out -msse2 -mfpmath=sse -Wno-builtin-declaration-mismatch,$(GAME_CFLAGS)) -DPORT_HOST \
-	$(C64_COMMON) -g -fno-optimize-sibling-calls -Wno-incompatible-library-redeclaration $(HL_EXTRA)
+	$(C64_COMMON) -g -fno-optimize-sibling-calls -fno-inline-functions -Wno-incompatible-library-redeclaration \
+	$(HL_EXTRA)
 # ultralib's headers come from the marked copies (ulhdr64.py) in $(H64)/ulinc
 HL64_UL_CFLAGS := -I$(H64)/ulinc $(subst -I$(UL_DIR)/include,-I$(H64)/ulinc/include,$(subst \
 	-I$(UL_DIR)/src/libc,-I$(H64)/ulinc/src/libc,$(filter-out -msse2 -mfpmath=sse $(HL_ABI),$(HL_UL_CFLAGS)))) \
@@ -166,6 +172,58 @@ $(H64)/bc_headless.exe: $(HL64_LINK_OBJS) $(H64)/align.ok
 	@head -3 $(H64)/link_report.txt
 
 headless64: $(H64)/bc_headless.exe
+
+# ---- loadcheck64: the load layer through the 64-bit build (as `loadcheck`) ----
+LC64 := build/lc64
+LC64_CFLAGS := $(filter-out -msse2 -mfpmath=sse -Wno-builtin-declaration-mismatch,$(GAME_CFLAGS)) $(C64_COMMON) -g
+LC64_GAME_OBJS := $(LC_FILES:%=$(LC64)/game/%.o)
+LC64_HOST_OBJS := $(LC64)/host/rdram.o $(LC64)/host/inflate.o $(LC64)/host/loadcheck_main.o \
+	$(LOAD_SRCS:src/load/%.c=$(LC64)/host/load/%.o) $(LC64)/host/swaptab.o
+$(LC64)/game/%.raw.o: $(GAME_SRC)/%.c include/port_ultratypes.h include/port_n64ptr.h $(IR64_DEPS) Makefile port64.mk
+	@mkdir -p $(@D)
+	$(call cc64ir,$(LC64_CFLAGS))
+$(LC64)/%.o $(LC64)/%.rec: $(LC64)/%.raw.o $(H64)/addrs.txt tools/coffpin.py
+	$(PYTHON) tools/coffpin.py $(H64)/addrs.txt $< $(LC64)/$*.o $(LC64)/$*.rec
+$(LC64)/host/%.o: src/%.c $(PORT_HDRS) Makefile port64.mk
+	@mkdir -p $(@D)
+	$(CC64) $(HL64_HOST_CFLAGS) -c -o $@ $<
+$(LC64)/host/swaptab.o: $(H)/swaptab.c src/load/port_load.h
+	@mkdir -p $(@D)
+	$(CC64) $(HL64_HOST_CFLAGS) -c -o $@ $<
+$(LC64)/abs_syms.o $(LC64)/stubs.c &: $(LC64_GAME_OBJS) $(LC64_HOST_OBJS) tools/gensyms.py tools/rdramobj.py
+	cd $(ROOT) && NM=$(NM64) $(PYTHON) port/tools/gensyms.py link64 port/$(LC64) \
+		$(addprefix port/,$(LC64_GAME_OBJS) $(LC64_HOST_OBJS))
+$(LC64)/copytab.c: $(LC64_GAME_OBJS:.o=.rec) $(H64)/addrs.txt tools/gensyms.py
+	$(PYTHON) tools/gensyms.py copytab64 $@ $(H64)/addrs.txt $(LC64_GAME_OBJS:.o=.rec)
+$(LC64)/ptrtab.c: $(LC64_GAME_OBJS:.o=.rec) $(NM_ELFS) tools/gensyms.py
+	cd $(ROOT) && $(PYTHON) port/tools/gensyms.py ptrtab port/$@ $(addprefix port/,$(LC64_GAME_OBJS:.o=.rec))
+$(LC64)/%.o: $(LC64)/%.c src/rdram.h
+	$(CC64) $(HL64_HOST_CFLAGS) -Isrc -w -c -o $@ $<
+LC64_LINK := $(LC64_GAME_OBJS) $(LC64_HOST_OBJS) $(LC64)/stubs.o $(LC64)/copytab.o $(LC64)/ptrtab.o $(LC64)/abs_syms.o
+$(LC64)/spike.exe: $(LC64_LINK)
+	$(LD64) -o $@ $(LC64_LINK) $(LDFLAGS64)
+loadcheck64: $(LC64)/spike.exe
+	@if [ -n "$(LC_TRACE)" ]; then $(PYTHON) tools/widths.py facts $(LC64)/facts.txt $(LC_TRACE); fi
+	$(LC64)/spike.exe '$(ROM_ARG)' $$([ -f $(LC64)/facts.txt ] && echo 56789 $(LC64)/facts.txt) \
+		> $(LC64)/out_native.txt
+	cd $(ROOT) && $(PYTHON) port/tools/loadref.py $(abspath $(ROM)) > port/$(LC64)/out_ref.txt
+	@grep '^T9 total' $(LC64)/out_native.txt || true
+	$(PYTHON) tools/cmpout.py $(LC64)/out_ref.txt $(LC64)/out_native.txt
+
+# ---- verify64 / verify-levels64: the emulator comparisons with the 64-bit exe
+# (tools/compare.py CMP_EXE; the native runs go to ...-native64 folders) ----
+verify64:
+	$(MAKE) -C $(ROOT) VERSION=$(VERSION) NON_MATCHING=1 nmrom BASEROM=$(abspath $(ROM)) > /dev/null
+	$(MAKE) $(H64)/bc_headless.exe $(H)/typemap_all.txt
+	$(MAKE) loadcheck64
+	CMP_EXE=$(H64)/bc_headless.exe $(PYTHON) tools/compare.py verify --frames $(VERIFY_FRAMES) --cache $(CMP_CACHE) \
+		$(VERIFY_ARGS)
+verify-levels64:
+	$(MAKE) -C $(ROOT) VERSION=$(VERSION) NON_MATCHING=1 nmrom BASEROM=$(abspath $(ROM)) > /dev/null
+	$(MAKE) $(H64)/bc_headless.exe
+	CMP_EXE=$(H64)/bc_headless.exe $(PYTHON) tools/compare.py verify-levels --cache $(CMP_CACHE) --jobs $(LEVEL_JOBS) \
+		$(if $(LEVELS),--levels $(LEVELS)) $(VERIFY_LEVELS_ARGS)
+.PHONY: loadcheck64 verify64 verify-levels64
 
 # the pointer-width audit (tools/ptrcheck64.py: host-width pointers in N64
 # records and pinned globals, casts to host-width pointer pointers, signed

@@ -117,7 +117,8 @@ def nm_syms(path):
     s = Syms()
     for line in open(path):
         p = line.split()
-        if len(p) == 3 and p[1] in "Tt" and len(p[0]) == 8:
+        # (`nm -n` of the i686 exe: 8 digits; of the x86_64 one: 16)
+        if len(p) == 3 and p[1] in "Tt" and len(p[0]) in (8, 16):
             name = p[2][1:] if p[2].startswith("_") else p[2]
             s.add(int(p[0], 16), name.split(".")[0])
     return s.done()
@@ -388,10 +389,23 @@ def cmd_emu(args):
     cmd_inject([emudir])
 
 
+def native_exe():
+    """the bc_headless under test: CMP_EXE (make -C port verify64: the x86_64
+    build), else build/headless/bc_headless.exe"""
+    e = os.environ.get("CMP_EXE")
+    return os.path.abspath(e) if e else os.path.join(PORT, "build/headless/bc_headless.exe")
+
+
+def native_tag():
+    """the native run folders of the x86_64 exe get a suffix ("...-native64"),
+    so the i686 and x86_64 runs of the same emulator run are both kept"""
+    return "64" if os.environ.get("CMP_EXE", "").find("headless64") >= 0 else ""
+
+
 def cmd_native(args):
     emudir, natdir = args[0], args[1]
     args = args[2:]
-    exe = opt(args, "--exe", os.path.join(PORT, "build/headless/bc_headless.exe"))
+    exe = opt(args, "--exe", native_exe())
     rom = opt(args, "--rom", None) or default_rom("base")
     frames = opt(args, "--frames", None)
     dump = opt(args, "--dump", "every:10")
@@ -575,8 +589,13 @@ class Cmp:
                                     ("STT_FUNC", "STT_NOTYPE", "STT_OBJECT")).items:
                 if 0x801E7000 <= a < 0x80208040 or 0x802447C0 <= a < 0x802E8BD0:
                     self.orig_fun.setdefault(n, a)
-        sp = os.path.join(PORT, "build/headless/bc_headless.syms")
+        sp = native_exe()[:-4] + ".syms"
         self.nfun = nm_syms(sp) if os.path.exists(sp) else Syms().done()
+        # the exe's image (pointers into it are its own code/data): i686 at
+        # 0x400000, x86_64 at 0x40000000 (port64.mk)
+        self.exe_lo, self.exe_hi = 0x00401000, 0x01000000
+        if self.nfun.items and self.nfun.items[0][0] >= 0x40000000:
+            self.exe_lo, self.exe_hi = 0x40001000, 0x48000000
         # end of the exe's .text: after it, pointers are data (rdata, data, bss)
         self.text_end = 0
         if os.path.exists(sp):
@@ -626,7 +645,7 @@ class Cmp:
             # don't map back exactly (rewritten functions change size); the
             # native code never jumps through them
             return True
-        if not (0x80000000 <= ev < 0x80800000 and 0x00401000 <= nv < 0x01000000):
+        if not (0x80000000 <= ev < 0x80800000 and self.exe_lo <= nv < self.exe_hi):
             return False
         a = self.efun.find(ev)
         b = self.nfun.find(nv)
@@ -1198,7 +1217,7 @@ def cmd_run(args):
     every = opt(args, "--every", 10, int)
     rom = default_rom(kind)
     emudir = os.path.join(cache, "attract-%s-demo%d" % (kind, demo))
-    natdir = os.path.join(cache, "attract-%s-demo%d-native" % (kind, demo))
+    natdir = os.path.join(cache, "attract-%s-demo%d-native%s" % (kind, demo, native_tag()))
     if emu_stale(emudir, rom):
         print("compare: emulator run (%s ROM, %d VIs, dumps every %d frames) into %s ..." % (kind, vis, every, emudir))
         cmd_emu([emudir, "--kind", kind, "--lle", "--vis", str(vis), "--dump", "every:%d" % every])
@@ -1273,7 +1292,7 @@ def cmd_verify(args):
     no_strict = flag(args, "--no-strict")
     rom = default_rom("nm")
     emudir = os.path.join(cache, "verify-nm-%d" % frames)
-    natdir = emudir + "-native"
+    natdir = emudir + "-native" + native_tag()
     if emu_stale(emudir, rom):
         print("verify: emulator run (NM ROM, LLE audio + visibility tests, %d frames, dumps every %d) into %s ..."
               % (frames, every, emudir))
@@ -1370,7 +1389,7 @@ def run_level(level, cache, frames, every, input_path, kind="nm", shots="", forc
     bc_headless, timeline + dump comparison; returns a dict of results"""
     rom = default_rom(kind)
     emudir = os.path.join(cache, "level-%s-%02d" % (kind, level))
-    natdir = emudir + "-native"
+    natdir = emudir + "-native" + native_tag()
     poke = "%d:%08X:1:%X" % (LEVEL_POKE_FRAME, LEVEL_SLOT0_LAST, level)
     # dumps once the level is under way (from frame 1000), every 20 frames up to
     # 1100 whatever EVERY is: the level loads around 1013-1172, and the

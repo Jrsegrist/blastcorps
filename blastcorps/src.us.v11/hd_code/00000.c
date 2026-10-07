@@ -641,7 +641,7 @@ void func_80244930(void *arg) {
                             }
                             D_802E8BD8 = !D_802E8BD4;
                             func_8029A7E4("Unpause at start = %d\n", D_802E8BD4);
-                            D_80364A58 = ((s32) D_803156C0);
+                            D_80364A58 = ((s32) PORT_GVI("func_80244930:4A58", D_803156C0));
                             D_80358064 = 0;
                             func_8025BB38();
                             func_8029A7E4("snew ip=%8d : tc=%5d : bd=%2d : cr=%2d : rt=%3d : coin=%1d : bdn=%1d\n",

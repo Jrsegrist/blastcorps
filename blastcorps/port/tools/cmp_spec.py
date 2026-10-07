@@ -187,6 +187,22 @@ for name in GVI_FUNCS:
         w = word_at(a + i)
         if w >> 26 == 0x23 and (w & 0xFFFF) in (0x56C0, 0x56C4):
             GVI[a + i] = (name, 0x80310000 + (w & 0xFFFF))
+# Single reads in big functions, keyed by their own name "FUNC:STORE": the
+# D_803156C0 load whose value the next few instructions store to %lo STORE
+# (00000.c func_80244930: D_80364A58 = the level's start time, read after the
+# level's loading CPU time the native code doesn't take)
+GVI_SITES = [("func_80244930", 0x4A58)]
+for name, store in GVI_SITES:
+    a, size = func_sizes[name]
+    for i in range(0, size, 4):
+        w = word_at(a + i)
+        if w >> 26 == 0x23 and (w & 0xFFFF) == 0x56C0:
+            rt = (w >> 16) & 31
+            for k in range(1, 6):
+                w2 = word_at(a + i + 4 * k)
+                if w2 >> 26 == 0x2B and (w2 & 0xFFFF) == store and (w2 >> 16) & 31 == rt:
+                    GVI[a + i] = (name, 0x803156C0, "%s:%X" % (name, store))
+                    break
 BPS = {A_BOOT: "B", A_TASK: "F", A_RDP: "R", A_RSP: "P", A_TIME: "T", A_COUNT: "C", A_CULL: "U"}
 BPS.update({a: "A" for a in AILEN_RET})
 if A_AFRAME:
@@ -367,7 +383,8 @@ def ONHIT(pc, g, rd):
         return "Z ra=%x th=%d v=%x" % (g["ra"], thread_id(rd), g["a3"])
     if pc in GVI:
         # (the lw hasn't run: memory holds what it loads)
-        return "Q ra=%x th=%d v=%x" % (syms[GVI[pc][0]], thread_id(rd), rd(GVI[pc][1], 4))
+        q = "Q ra=%x th=%d v=%x" % (syms[GVI[pc][0]], thread_id(rd), rd(GVI[pc][1], 4))
+        return q + (" name=%s" % GVI[pc][2] if len(GVI[pc]) > 2 else "")
     if pc in CALLS:
         # (a0-a3: the arguments; compare.py calls shows them next to the exe's)
         k = "K f=%s ra=%x frame=%d a=%s" % (CALLS[pc], g["ra"], st["frame"],

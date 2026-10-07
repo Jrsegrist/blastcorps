@@ -196,6 +196,8 @@ def parse_seg(ev, seg, vi, seq, unwrap):
         elif kind in ("T", "C", "A", "U", "Q"):
             # (visibility tests are keyed by frame, not by retrace)
             key = int(kv["frame"]) if kind == "U" and "frame" in kv else vi
+            if "name" in kv:   # (a PORT_GVI site with its own key, cmp_spec.py GVI_SITES)
+                ev.setdefault("names" + kind, {})[len(ev[kind])] = kv["name"]
             ev[kind].append((int(kv["ra"], 16), int(kv["th"]), int(kv["v"], 16), key))
             ev.setdefault("seq" + kind, []).append(seq)
         elif kind == "M":
@@ -237,9 +239,11 @@ def cmd_inject(args):
         # the emulator's clock: count = C1 + (native time - R1 * 781250) * PERIOD / 781250
         f.write("M %d %d %.6f\n" % (ev["r1"], ev["c1"], period))
         for kind in "TCAUQ":
-            for ra, th, v, vi in ev[kind]:
+            names = ev.get("names" + kind, {})
+            for i, (ra, th, v, vi) in enumerate(ev[kind]):
                 it = fs.find(ra)
-                f.write("%s %s %d %x\n" % (kind, it[1] if it else "?", vi if kind == "U" else vi + off, v))
+                name = names.get(i) or (it[1] if it else "?")
+                f.write("%s %s %d %x\n" % (kind, name, vi if kind == "U" else vi + off, v))
     # The scheduler's retrace handler (func_80271358) reads osGetTime once per
     # retrace: where an RDP-done handler ran before the retrace handler of
     # its own retrace (the DP interrupt's message reached the scheduler

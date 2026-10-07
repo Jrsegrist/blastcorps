@@ -26,6 +26,14 @@
  *     --no-gfx-fix      don't convert graphics data in display-list areas
  *                       (port/src/load/gfx_fix.c; to see what it does)
  *     --gfx-fix-log     log graphics data the game changed in those areas
+ *     --mute            start with the sound off (M toggles it)
+ *     --volume N        sound volume in percent (default 100; - and = keys step it)
+ *
+ * Sound: the buffers the game hands the AI (port/src/audio/) are queued to
+ * an SDL audio device at the AI's rate.  The game makes them in virtual time,
+ * which the pacing keeps on real time; a slight resampling (at most 0.5%)
+ * holds the device queue near 60 ms against clock drift, and a queue that
+ * grew past 0.3 s (after a stall) is dropped.  With --no-pace nothing plays.
  */
 #include <windows.h>
 #include <algorithm>
@@ -60,6 +68,8 @@ struct LiveOpts {
     const char *shotDir = ".";
     unsigned dlDumpFrame = ~0u, dlDumpTasks = 12, dlDumpEvery = 0;
     bool gfxFix = true;
+    bool mute = false;
+    int volume = 100;                /* percent */
 };
 LiveOpts g_opt;
 
@@ -292,7 +302,81 @@ void pollInput() {
     g_stickY = (signed char) std::max(-80, std::min(80, y));
 }
 
+/* ---- sound ------------------------------------------------------------------- */
+SDL_AudioDeviceID g_audioDev;
+unsigned g_audioRate, g_audioDrops, g_audioResets;
+bool g_audioFailed;
+double g_audioPos = -1.0;            /* resampler position in the next buffer (-1: the previous last frame) */
+int16_t g_audioPrev[2];
+std::vector<int16_t> g_audioOut;
+
+bool openAudio(unsigned rate) {
+    if (g_audioDev != 0 && rate == g_audioRate) return true;
+    if (g_audioFailed) return false;
+    if (g_audioDev != 0) SDL_CloseAudioDevice(g_audioDev);
+    if (!SDL_WasInit(SDL_INIT_AUDIO) && SDL_InitSubSystem(SDL_INIT_AUDIO) != 0) {
+        host_log("live: no sound (SDL audio: %s)\n", SDL_GetError());
+        g_audioFailed = true;
+        return false;
+    }
+    SDL_AudioSpec want = {}, have = {};
+    want.freq = int(rate);
+    want.format = AUDIO_S16SYS;
+    want.channels = 2;
+    want.samples = 512;
+    g_audioDev = SDL_OpenAudioDevice(nullptr, 0, &want, &have, 0);
+    if (g_audioDev == 0) {
+        host_log("live: no sound (SDL_OpenAudioDevice: %s)\n", SDL_GetError());
+        g_audioFailed = true;
+        return false;
+    }
+    g_audioRate = rate;
+    SDL_PauseAudioDevice(g_audioDev, 0);
+    host_log("live: sound at %u Hz (%s)\n", rate, SDL_GetCurrentAudioDriver());
+    return true;
+}
+
+void liveAudio(const short *lr, unsigned frames, unsigned rate) {
+    if (!g_opt.pace || frames == 0 || !openAudio(rate)) return;
+    const double target = rate * 0.060;   /* queue length held near 60 ms */
+    double queued = double(SDL_GetQueuedAudioSize(g_audioDev)) / 4.0;
+    if (queued > rate * 0.3) {            /* far behind real time (a stall): start over */
+        SDL_ClearQueuedAudio(g_audioDev);
+        g_audioResets++;
+        queued = 0;
+    }
+    /* step through the input faster when the queue is long, slower when short */
+    double step = 1.0 + std::max(-0.005, std::min(0.005, (queued - target) / target * 0.005));
+    static unsigned calls;
+    if (host_verbose && ++calls % 500 == 0)
+        host_log("live: sound queue %.0f ms, step %.4f, resets %u (frame %u)\n", queued * 1000.0 / rate, step,
+                 g_audioResets, plat_frames());
+    const float gain = g_opt.mute ? 0.0f : float(g_opt.volume) / 100.0f;
+    g_audioOut.clear();
+    double p = g_audioPos;
+    while (p < double(frames - 1)) {
+        long i = long(std::floor(p));
+        double f = p - double(i);
+        for (int c = 0; c < 2; c++) {
+            double a = i < 0 ? g_audioPrev[c] : lr[i * 2 + c];
+            double b = lr[(i + 1) * 2 + c];
+            double v = (a + (b - a) * f) * gain;
+            g_audioOut.push_back(int16_t(std::max(-32768.0, std::min(32767.0, v))));
+        }
+        p += step;
+    }
+    g_audioPos = p - double(frames);
+    g_audioPrev[0] = lr[(frames - 1) * 2];
+    g_audioPrev[1] = lr[(frames - 1) * 2 + 1];
+    if (!g_audioOut.empty() && SDL_QueueAudio(g_audioDev, g_audioOut.data(), Uint32(g_audioOut.size() * 2)) != 0)
+        g_audioDrops++;
+}
+
 [[noreturn]] void shutdown(int code) {
+    if (g_audioDev != 0) {
+        host_log("live: sound queue resets %u, failed queue calls %u\n", g_audioResets, g_audioDrops);
+        SDL_CloseAudioDevice(g_audioDev);
+    }
     host_log("live: %u gfx tasks rendered (%u with an unknown ucode), RT64 interrupts SP %u DP %u, %u bytes of "
              "graphics data in display-list areas converted\n",
              g_tasks, g_unknownUcode, g_spIntr, g_dpIntr, g_fixedBytes);
@@ -306,6 +390,15 @@ void pumpEvents() {
     SDL_Event e;
     while (SDL_PollEvent(&e)) {
         if (e.type == SDL_QUIT || (e.type == SDL_KEYDOWN && e.key.keysym.scancode == SDL_SCANCODE_ESCAPE)) shutdown(0);
+        if (e.type == SDL_KEYDOWN && !e.key.repeat) {
+            if (e.key.keysym.scancode == SDL_SCANCODE_M) {
+                g_opt.mute = !g_opt.mute;
+                host_log("live: sound %s\n", g_opt.mute ? "off" : "on");
+            } else if (e.key.keysym.scancode == SDL_SCANCODE_MINUS || e.key.keysym.scancode == SDL_SCANCODE_EQUALS) {
+                g_opt.volume = std::max(0, std::min(100, g_opt.volume + (e.key.keysym.scancode == SDL_SCANCODE_MINUS ? -10 : 10)));
+                host_log("live: volume %d%%\n", g_opt.volume);
+            }
+        }
         if (e.type == SDL_CONTROLLERDEVICEADDED) openPad();
         if (e.type == SDL_CONTROLLERDEVICEREMOVED && g_pad != nullptr &&
             !SDL_GameControllerGetAttached(g_pad)) {
@@ -517,7 +610,7 @@ int liveInput(unsigned short *button, signed char *x, signed char *y) {
     return 1;
 }
 
-const HostLive kLive = {liveBoot, liveGfxTask, liveVi, liveInput};
+const HostLive kLive = {liveBoot, liveGfxTask, liveVi, liveInput, liveAudio};
 
 /* ---- start-up ---------------------------------------------------------------- */
 unsigned num(const char *s) {
@@ -537,6 +630,8 @@ int extraArg(int argc, char **argv, int *i, HostOpts *o) {
     else if (!strcmp(a, "--shot-dir")) g_opt.shotDir = next();
     else if (!strcmp(a, "--shot-every")) g_opt.shotEvery = num(next());
     else if (!strcmp(a, "--no-gfx-fix")) g_opt.gfxFix = false;
+    else if (!strcmp(a, "--mute")) g_opt.mute = true;
+    else if (!strcmp(a, "--volume")) g_opt.volume = std::max(0, std::min(100, int(num(next()))));
     else if (!strcmp(a, "--gfx-fix-log")) port_gfx_debug = 1;
     else if (!strcmp(a, "--dl-dump-every")) g_opt.dlDumpEvery = num(next());
     else if (!strcmp(a, "--dl-skip")) {

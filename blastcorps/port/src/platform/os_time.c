@@ -329,6 +329,19 @@ int plat_clock_key_take_name(int kind, const char *name, u64 *v) {
          * tests are keyed by frame (sent so far), in order. */
         u32 slack = kind == 2 ? 3 : kind == 3 ? 0 : 2;
         u32 now = kind == 3 ? plat_stats.frames : plat_vi_count;
+        /* BC_AILEN_SEQ=1 (audio comparisons): osAiGetLength's values in call
+         * order, whatever the retrace, so every audio frame has the
+         * emulator's size and the synthesizer output can be compared */
+        static int seq = -1;
+        if (seq < 0) seq = host_env("BC_AILEN_SEQ");
+        if (seq && kind == 2) {
+            if (k->next < k->n) {
+                *v = k->v[k->next++];
+                k->used++;
+                return 1;
+            }
+            return 0;
+        }
         while (k->next < k->n && k->vi[k->next] + slack < now) k->next++;
         if (k->next < k->n && k->vi[k->next] <= now + slack) {
             *v = k->v[k->next++];

@@ -40,7 +40,7 @@ void host_install_crash_handler(void (*describe)(void));
 
 /* Run options (headless_main.c parses them; the platform reads them as
  * plat_cfg).  Plain C types only: unsigned/int are 32 bits here. */
-typedef struct {
+typedef struct HostOpts {
     const char *rom_path;
     unsigned char *rom;        /* the ROM image (big-endian .z64) */
     unsigned rom_size;
@@ -71,6 +71,11 @@ typedef struct {
     int quiet;
     int game_print;            /* print the game's debug messages (func_8029A7E4) */
     const char *mpk_path;      /* Controller Pak image (.mpk), or NULL: no pak */
+    const char *wav_path;      /* --wav: the AI stream (what the game plays) as a WAV file */
+    int wav_all;               /* --wav-all: also the buffers a full AI FIFO drops (every task's output) */
+    const char *audio_capture; /* --audio-capture: audio tasks' inputs/outputs (port/tools/audio) */
+    unsigned audio_capture_max;
+    int audio_off;             /* --no-audio: audio tasks are not run (no output) */
     const struct HostLive *live; /* renderer, window, live input (bc.exe); NULL in bc_headless */
 } HostOpts;
 
@@ -97,6 +102,9 @@ typedef struct HostLive {
     void (*vi)(const HostViRegs *regs, unsigned vi_count, unsigned long long when, unsigned frames);
     /* controller 1 now: returns 1 and fills the pad if the live input is used */
     int (*input)(unsigned short *button, signed char *x, signed char *y);
+    /* a buffer the AI starts playing: `frames` host-order L/R sample pairs
+     * at `rate` Hz (virtual time; the output paces it to real time) */
+    void (*audio)(const short *lr, unsigned frames, unsigned rate);
 } HostLive;
 
 /* platform entry (plat_core.c): boots the game and never returns */

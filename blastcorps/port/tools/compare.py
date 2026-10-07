@@ -317,7 +317,9 @@ def cmd_emu(args):
                CMP_DUMP=opt(args, "--dump", "every:10"), CMP_STOP=str(opt(args, "--stop", 0)),
                CMP_CALLS=opt(args, "--calls", ""))
     py = sys.executable
-    tracer = os.path.join(ROOT, "tools_port/m64trace/m64trace.py")
+    # CMP_TRACER: a variant of the tracer (e.g. with the LLE audio plugins of
+    # port/tools/audio, to record the emulator's sound on the same run)
+    tracer = os.environ.get("CMP_TRACER") or os.path.join(ROOT, "tools_port/m64trace/m64trace.py")
     with open(os.path.join(emudir, "emu.log"), "w") as log:
         r = subprocess.call([py, tracer, rom, os.path.join(HERE, "cmp_spec.py"), os.path.join(emudir, "emu.txt")],
                             env=env, stdout=log, stderr=subprocess.STDOUT, cwd=ROOT)

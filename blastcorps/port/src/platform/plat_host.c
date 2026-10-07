@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "plat_host.h"
+#include "audio/port_audio.h"
 
 int host_verbose;
 static FILE *g_trace;
@@ -131,6 +132,7 @@ void host_set_fpu_mode(void) {
 }
 
 void host_exit(int code) {
+    port_audio_close();
     if (g_trace) fclose(g_trace);
     fflush(stdout);
     fflush(stderr);

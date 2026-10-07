@@ -20,6 +20,19 @@ void host_fatal(const char *fmt, ...) __attribute__((format(printf, 1, 2), noret
 int host_env(const char *name);   /* is the environment variable set (debug switches) */
 extern int host_verbose;
 
+/* bc.exe is a Windows GUI program: with host_gui set, host_fatal and the
+ * crash reporter also show a message box (nobody may be reading stderr),
+ * after hiding host_gui_window (an HWND, so a fullscreen window doesn't
+ * cover the box); host_log_path names the log file stderr went to, if any. */
+extern int host_gui;
+extern void *host_gui_window;
+extern const char *host_log_path;
+/* a message box (UTF-8 text); `error` picks the icon */
+void host_message(const char *text, int error);
+
+/* fopen for a UTF-8 path (falls back to the ANSI code page); returns FILE * */
+void *host_fopen(const char *path, const char *mode);
+
 /* per-frame trace file (no-op until opened) */
 int host_trace_open(const char *path);
 void host_trace(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
@@ -32,8 +45,9 @@ void *host_realloc(void *p, unsigned size);
 /* flush-to-zero for the current fiber (the game's osInitialize sets FPCSR FS) */
 void host_set_fpu_mode(void);
 
-/* exit the process (flushes stdio) */
+/* exit the process (flushes stdio); host_exit_hook (if set) runs first */
 void host_exit(int code) __attribute__((noreturn));
+extern void (*host_exit_hook)(void);
 
 /* install the crash reporter; `describe` is called to add game state */
 void host_install_crash_handler(void (*describe)(void));
@@ -116,5 +130,12 @@ void plat_start(const HostOpts *o) __attribute__((noreturn));
  * game starts (after the ROM is loaded). */
 int host_main(int argc, char **argv, int (*extra)(int argc, char **argv, int *i, HostOpts *o),
               void (*prestart)(HostOpts *o));
+
+/* bc.exe's hooks into host_main (NULL in bc_headless): `host_opts_hook`
+ * sets defaults (from the config file) before the command line is parsed;
+ * `host_rom_hook` runs after it and finds and checks the ROM (the command
+ * line's, the configured one, or a file dialog), setting o->rom_path. */
+extern void (*host_opts_hook)(HostOpts *o);
+extern void (*host_rom_hook)(HostOpts *o);
 
 #endif

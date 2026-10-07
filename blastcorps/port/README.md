@@ -450,13 +450,20 @@ before that retrace natively (`inject` counts them).
 
 Results (Oct 2026, all nine attract demos, 14,498 frames, LLE run): the
 timeline (retrace, mode, level, frames in mode, game VI) is identical on
-every frame; RAM dumps: see the agent notes for the current counts;
-4,177 visibility tests, the native model agrees with the LLE RSP's answer
-on all of them; 16,986 emulator audio tasks identical to the interpreter's.
-`diff --audio` (the audio heap, synthesizer, sequence and sound players,
-audio manager): the whole audio state matches through demo 0 except the
-padding and unused union bytes of ALEvent copies in the event queues
-(stack garbage on both machines).
+every frame; RAM dumps (every 10th frame) 1445 of 1449 match, and strict
+mode finds no word that matches only leniently in any of them (the 4 left:
+the scheduler's cmdQ.validCount at the dump instant, when the audio
+thread's timer fires a little earlier natively than the game thread's
+frame send); 4,177 visibility tests, the native model agrees with the LLE
+RSP's answer on all of them; 16,986 emulator audio tasks identical to the
+interpreter's.  `diff --audio` (the audio heap, synthesizer, sequence and
+sound players, audio manager): the audio state matches through frame 2370
+except the padding and unused union bytes of ALEvent copies in the event
+queues (stack garbage on both machines); from frame 2380 (demo 1) some
+voice/DMA state differs.  Sound (`--wav` vs the emulator's LLE WAV, 564 s,
+1 s windows): waveform correlation median 1.000 in every section, the
+title and logos bit-exact, demo 0 98% of samples bit-exact, the rest
+44-88% bit-exact with a median SNR of ~75 dB.
 
 ## Quick regression check: `make -C port verify`
 

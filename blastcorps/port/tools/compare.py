@@ -290,6 +290,11 @@ def cmd_inject(args):
         # interrupts and take little CPU, and their call sequences follow the
         # RSP's task order, which the platform doesn't model; a switch point
         # matched one call off makes a high-priority thread hold the CPU.
+        # (Tried: switch points for the audio thread's task send to sc->cmdQ
+        # and the scheduler's retrace-handler clock read, for the 4 dumps of
+        # 1449 where cmdQ.validCount differs; they didn't change it: the
+        # native audio timer still fires a little before the game thread's
+        # frame send there.)
         pts = [p for p in pts if p[2] not in (4, 5)]
         for s, c, th, ra, kind, q, gv in pts:
             it = fs.find(ra)

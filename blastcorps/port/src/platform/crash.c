@@ -416,8 +416,8 @@ static int write_dump(HANDLE f, EXCEPTION_POINTERS *ep, DWORD tid) {
  * inside the heap leaves its lock held by the crashed thread for good.  The
  * file is marked delete-on-close until the dump is complete, so a dump cut
  * short by the end of the process leaves no file behind. */
-static HANDLE g_dump_go, g_dump_done, g_dump_file;
-static volatile LONG g_dump_ok;
+static HANDLE g_dump_go, g_dump_done, g_dump_file, g_reporter_thread;
+static volatile LONG g_dump_ok, g_heap_bad;
 
 static void set_delete(HANDLE f, BOOL del) {
     FILE_DISPOSITION_INFO d;
@@ -465,7 +465,17 @@ static DWORD WINAPI dumper(void *arg) {
             wcscpy(path + n - 4, L".dmp");
             if (txt != INVALID_HANDLE_VALUE) WriteFile(txt, g_report, g_report_len, &w, NULL);
         }
-        if (g_dump_file != INVALID_HANDLE_VALUE) {
+        /* MiniDumpWriteDump suspends every other thread (the reporter too) and
+         * allocates from the process heap: on a corrupt heap it can crash or
+         * hang with them suspended.  HeapValidate first (it waits for the
+         * heap's lock: one the crashed thread holds stops the dumper here,
+         * before anything is suspended; the reporter's time limit goes on) */
+        if (g_dump_file != INVALID_HANDLE_VALUE && !HeapValidate(GetProcessHeap(), 0, NULL)) {
+            g_heap_bad = 1;
+            set_delete(g_dump_file, TRUE);
+            CloseHandle(g_dump_file);
+            DeleteFileW(path);
+        } else if (g_dump_file != INVALID_HANDLE_VALUE) {
             set_delete(g_dump_file, TRUE);
             if (write_dump(g_dump_file, g_ep, g_crash_tid)) {
                 set_delete(g_dump_file, FALSE);
@@ -475,7 +485,10 @@ static DWORD WINAPI dumper(void *arg) {
         }
         if (txt != INVALID_HANDLE_VALUE) {
             char line[MAX_PATH * 3 + 64];
-            int len = host_snprintf(line, sizeof line, "minidump: %s\n", g_dump_ok ? g_dump_name : "not written");
+            int len = host_snprintf(line, sizeof line, "minidump: %s\n",
+                                    g_dump_ok   ? g_dump_name
+                                    : g_heap_bad ? "not written: the process heap is corrupt (HeapValidate failed)"
+                                                 : "not written");
             WriteFile(txt, line, (DWORD) len, &w, NULL);
             CloseHandle(txt);
         }
@@ -560,7 +573,9 @@ static void report(void) {
     if (WaitForSingleObject(g_dump_done, 20000) == WAIT_TIMEOUT) {
         out("minidump: not written: timed out (the crashed thread may hold the heap's lock)\n");
         if (g_dump_path[0]) DeleteFileW(g_dump_path);   /* (gone when the process ends) */
-    } else if (g_dump_ok)
+    } else if (g_heap_bad)
+        out("minidump: not written: the process heap is corrupt (HeapValidate failed)\n");
+    else if (g_dump_ok)
         out("minidump: %s\n", g_dump_name);
     else
         out("minidump: not written (%s; %s)\n", p_MiniDumpWriteDump == NULL ? "no dbghelp.dll"
@@ -605,7 +620,10 @@ static DWORD WINAPI reporter(void *arg) {
 static LONG crash_dispatch(EXCEPTION_POINTERS *ep) {
     DWORD tid = GetCurrentThreadId();
     if (tid == g_dumper_tid && g_reporter_tid != 0) {
-        /* MiniDumpWriteDump (or `after`) crashed: the reporter goes on without it */
+        /* MiniDumpWriteDump (or `after`) crashed: the reporter goes on without
+         * it (resumed: the dump had suspended it) and ends the process */
+        if (g_reporter_thread != NULL)
+            while (ResumeThread(g_reporter_thread) > 1) {}
         SetEvent(g_dump_done);
         Sleep(INFINITE);
     }
@@ -813,7 +831,7 @@ void host_crash_init(int argc, char **argv, const char *exe_kind, const char *ve
     g_done = CreateEventW(NULL, TRUE, FALSE, NULL);
     g_dump_go = CreateEventW(NULL, TRUE, FALSE, NULL);
     g_dump_done = CreateEventW(NULL, TRUE, FALSE, NULL);
-    CloseHandle(CreateThread(NULL, 0x40000, reporter, NULL, STACK_SIZE_PARAM_IS_A_RESERVATION, &g_reporter_tid));
+    g_reporter_thread = CreateThread(NULL, 0x40000, reporter, NULL, STACK_SIZE_PARAM_IS_A_RESERVATION, &g_reporter_tid);
     CloseHandle(CreateThread(NULL, 0x40000, dumper, NULL, STACK_SIZE_PARAM_IS_A_RESERVATION, &g_dumper_tid));
     g_prev_filter = SetUnhandledExceptionFilter(unhandled_filter);
     (void) g_prev_filter;
@@ -833,7 +851,8 @@ int host_crash_test_set(const char *spec) {
     g_test_frame = colon ? (unsigned) strtoul(colon + 1, NULL, 0) : 1;
     if (strcmp(g_test_kind, "av") && strcmp(g_test_kind, "thread") && strcmp(g_test_kind, "stack") &&
         strcmp(g_test_kind, "abort") && strcmp(g_test_kind, "fatal") && strcmp(g_test_kind, "box") &&
-        strcmp(g_test_kind, "cxx") && strcmp(g_test_kind, "div") && strcmp(g_test_kind, "heaplock"))
+        strcmp(g_test_kind, "cxx") && strcmp(g_test_kind, "div") && strcmp(g_test_kind, "heaplock") &&
+        strcmp(g_test_kind, "heapbad"))
         return -1;
     return 0;
 }
@@ -860,6 +879,10 @@ void host_crash_test_frame(unsigned frame) {
     if (!strcmp(g_test_kind, "av")) g_sink = *g_bad;
     else if (!strcmp(g_test_kind, "heaplock")) {   /* a crash inside the heap: its lock stays held */
         HeapLock(GetProcessHeap());
+        g_sink = *g_bad;
+    } else if (!strcmp(g_test_kind, "heapbad")) {   /* a corrupt heap block header, then a fault */
+        unsigned char *p = HeapAlloc(GetProcessHeap(), 0, 64);
+        memset(p - 8, 0x41, 8);
         g_sink = *g_bad;
     }
     else if (!strcmp(g_test_kind, "div")) {

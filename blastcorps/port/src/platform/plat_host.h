@@ -70,6 +70,7 @@ void host_crash_now(const char *why) __attribute__((noreturn));   /* report a cr
 int host_snprintf(char *buf, unsigned size, const char *fmt, ...) __attribute__((format(printf, 3, 4)));
 /* --crash-test KIND[:FRAME] (testing the reporter): av, div, stack, thread,
  * abort, fatal, box, heaplock (a fault with the process heap's lock held),
+ * heapbad (a fault after corrupting a heap block header),
  * cxx (bc.exe: an uncaught C++ exception) at game frame
  * FRAME (default 1); host_crash_test_frame is called once per frame */
 int host_crash_test_set(const char *spec);

@@ -3444,6 +3444,16 @@ s32 func_8029F85C(u32 *bufA, u32 *bufB, Unk8029DEA0Entry *ch, u8 *hdr) {
     remain = *(s32 *) blk;
     src = (u32 *) (blk + 8);
     end = (u32 *) ((u8 *) src + *(s32 *) (blk + 4));
+#ifdef PORT_HOST
+    {
+        /* both buffers are matrix words (host order): record the units for
+         * the stale-byte emulation (level 8's collision records' byte 0x51
+         * lands on a buffer left from the bonus screen's vehicle model) */
+        void port_unit_mark(void *p, u32 n, s32 width);
+        port_unit_mark(bufA, (u32) remain / 4, 4);
+        port_unit_mark(bufB, (u32) remain / 4, 4);
+    }
+#endif
     while (src != end) {
         u32 w = *src++;
 

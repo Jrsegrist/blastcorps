@@ -69,7 +69,8 @@ void host_crash_rearm(void);                /* re-install the filter (after RT64
 void host_crash_now(const char *why) __attribute__((noreturn));   /* report a crash from here */
 int host_snprintf(char *buf, unsigned size, const char *fmt, ...) __attribute__((format(printf, 3, 4)));
 /* --crash-test KIND[:FRAME] (testing the reporter): av, div, stack, thread,
- * abort, fatal, box, cxx (bc.exe: an uncaught C++ exception) at game frame
+ * abort, fatal, box, heaplock (a fault with the process heap's lock held),
+ * cxx (bc.exe: an uncaught C++ exception) at game frame
  * FRAME (default 1); host_crash_test_frame is called once per frame */
 int host_crash_test_set(const char *spec);
 void host_crash_test_frame(unsigned frame);

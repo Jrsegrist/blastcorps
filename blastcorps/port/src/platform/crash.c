@@ -50,7 +50,7 @@ static const char *host_crash_exe_kind = "?";
 static DWORD g_main_tid;
 static HANDLE g_go, g_done;
 static volatile LONG g_crashing;
-static DWORD g_reporter_tid;
+static DWORD g_reporter_tid, g_dumper_tid;
 static EXCEPTION_POINTERS *volatile g_ep;
 static volatile DWORD g_crash_tid;
 static void *volatile g_crash_fiber;
@@ -61,6 +61,7 @@ static const char *g_box;               /* the message box text (bc.exe without 
 static volatile LONG g_boxing;          /* the box is up */
 static wchar_t g_dir[MAX_PATH];         /* where the .dmp/.txt go ("" = current folder) */
 static wchar_t g_exe_path[MAX_PATH];
+static HANDLE g_exe_file = INVALID_HANDLE_VALUE;   /* the exe, for its symbol table */
 static LPTOP_LEVEL_EXCEPTION_FILTER g_prev_filter;
 
 typedef BOOL(WINAPI *MiniDumpWriteDump_t)(HANDLE, DWORD, HANDLE, MINIDUMP_TYPE, PMINIDUMP_EXCEPTION_INFORMATION,
@@ -192,14 +193,13 @@ static void coff_names(SymQuery *q, int nq) {
     symptr = nt->FileHeader.PointerToSymbolTable;
     sec = IMAGE_FIRST_SECTION(nt);
     nsec = nt->FileHeader.NumberOfSections;
-    f = CreateFileW(g_exe_path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING,
-                    0, NULL);
+    f = g_exe_file;   /* opened at start-up (opening a file can need the heap) */
     if (f == INVALID_HANDLE_VALUE) return;
-    if (SetFilePointer(f, (LONG) symptr, NULL, FILE_BEGIN) == INVALID_SET_FILE_POINTER) goto end;
+    if (SetFilePointer(f, (LONG) symptr, NULL, FILE_BEGIN) == INVALID_SET_FILE_POINTER) return;
     while (done < nsyms) {
         DWORD want = nsyms - done, k;
         if (want > sizeof g_symbuf / 18) want = sizeof g_symbuf / 18;
-        if (!ReadFile(f, g_symbuf, want * 18, &rd, NULL) || rd != want * 18) goto end;
+        if (!ReadFile(f, g_symbuf, want * 18, &rd, NULL) || rd != want * 18) return;
         for (k = 0; k < want; k++) {
             BYTE *e = g_symbuf + k * 18;
             DWORD value, va;
@@ -249,8 +249,6 @@ static void coff_names(SymQuery *q, int nq) {
         if (ReadFile(f, q[i].name, sizeof q[i].name - 1, &rd, NULL)) q[i].name[rd < sizeof q[i].name ? rd : 0] = 0;
         q[i].name[sizeof q[i].name - 1] = 0;
     }
-end:
-    CloseHandle(f);
 }
 
 /* ---- the backtrace ------------------------------------------------------------ */
@@ -386,13 +384,11 @@ static void add_extra(DWORD base, DWORD size) {
     g_nextra++;
 }
 
-static int write_dump(const wchar_t *path, EXCEPTION_POINTERS *ep, DWORD tid) {
-    HANDLE f;
+static int write_dump(HANDLE f, EXCEPTION_POINTERS *ep, DWORD tid) {
     MINIDUMP_EXCEPTION_INFORMATION mei;
     MINIDUMP_CALLBACK_INFORMATION cb;
     HMODULE exe = GetModuleHandleW(NULL);
     IMAGE_NT_HEADERS *nt = nt_headers(exe);
-    BOOL ok;
     if (p_MiniDumpWriteDump == NULL) return 0;
     /* the N64's RDRAM and the exe's writable sections (.data, .bss) */
     g_nextra = g_extra_i = 0;
@@ -404,20 +400,89 @@ static int write_dump(const wchar_t *path, EXCEPTION_POINTERS *ep, DWORD tid) {
             if ((s[i].Characteristics & IMAGE_SCN_MEM_WRITE) && !(s[i].Characteristics & IMAGE_SCN_MEM_EXECUTE))
                 add_extra((DWORD) exe + s[i].VirtualAddress, s[i].Misc.VirtualSize);
     }
-    f = CreateFileW(path, GENERIC_WRITE, 0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (f == INVALID_HANDLE_VALUE) return 0;
     mei.ThreadId = tid;
     mei.ExceptionPointers = ep;
     mei.ClientPointers = FALSE;
     cb.CallbackRoutine = dump_callback;
     cb.CallbackParam = NULL;
-    ok = p_MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), f,
-                             (MINIDUMP_TYPE) (MiniDumpWithIndirectlyReferencedMemory | MiniDumpWithThreadInfo |
-                                              MiniDumpWithUnloadedModules),
-                             &mei, NULL, &cb);
-    CloseHandle(f);
-    if (!ok) DeleteFileW(path);
-    return ok;
+    return p_MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), f,
+                               (MINIDUMP_TYPE) (MiniDumpWithIndirectlyReferencedMemory | MiniDumpWithThreadInfo |
+                                                MiniDumpWithUnloadedModules),
+                               &mei, NULL, &cb);
+}
+
+/* The dump is written on a third thread (also started at boot), with a time
+ * limit: MiniDumpWriteDump allocates from the process heap, and a crash
+ * inside the heap leaves its lock held by the crashed thread for good.  The
+ * file is marked delete-on-close until the dump is complete, so a dump cut
+ * short by the end of the process leaves no file behind. */
+static HANDLE g_dump_go, g_dump_done, g_dump_file;
+static volatile LONG g_dump_ok;
+
+static void set_delete(HANDLE f, BOOL del) {
+    FILE_DISPOSITION_INFO d;
+    d.DeleteFile = del;
+    SetFileInformationByHandle(f, FileDispositionInfo, &d, sizeof d);
+}
+
+static void make_stem(void);
+static wchar_t g_stem[MAX_PATH];
+static wchar_t g_dump_path[MAX_PATH + 16];
+static char g_dump_name[MAX_PATH * 3];
+
+/* (creating files can allocate from the process heap too: path conversion) */
+static DWORD WINAPI dumper(void *arg) {
+    int i, k;
+    wchar_t *path = g_dump_path;
+    (void) arg;
+    WaitForSingleObject(g_dump_go, INFINITE);
+    /* bc-crash-YYYYMMDD-HHMMSS[-N].dmp: a new file in the crash folder, else %TEMP% */
+    g_dump_file = INVALID_HANDLE_VALUE;
+    for (k = 0; k < 2 && g_dump_file == INVALID_HANDLE_VALUE; k++) {
+        if (k == 1) GetTempPathW(MAX_PATH, g_dir);
+        make_stem();
+        for (i = 0; i < 20; i++) {
+            if (i == 0) _snwprintf(path, MAX_PATH + 16, L"%ls.dmp", g_stem);
+            else _snwprintf(path, MAX_PATH + 16, L"%ls-%d.dmp", g_stem, i + 1);
+            path[MAX_PATH + 15] = 0;
+            g_dump_file = CreateFileW(path, GENERIC_WRITE | DELETE, FILE_SHARE_DELETE, NULL, CREATE_NEW,
+                                      FILE_ATTRIBUTE_NORMAL, NULL);
+            if (g_dump_file != INVALID_HANDLE_VALUE ||
+                (GetLastError() != ERROR_FILE_EXISTS && GetLastError() != ERROR_ALREADY_EXISTS))
+                break;
+        }
+    }
+    WideCharToMultiByte(CP_UTF8, 0, path, -1, g_dump_name, sizeof g_dump_name, NULL, NULL);
+    g_dump_name[sizeof g_dump_name - 1] = 0;
+    /* the report next to it first (the dump may never finish) */
+    {
+        size_t n = wcslen(path);
+        HANDLE txt = INVALID_HANDLE_VALUE;
+        DWORD w;
+        if (n > 4) {
+            wcscpy(path + n - 4, L".txt");
+            txt = CreateFileW(path, GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+            wcscpy(path + n - 4, L".dmp");
+            if (txt != INVALID_HANDLE_VALUE) WriteFile(txt, g_report, g_report_len, &w, NULL);
+        }
+        if (g_dump_file != INVALID_HANDLE_VALUE) {
+            set_delete(g_dump_file, TRUE);
+            if (write_dump(g_dump_file, g_ep, g_crash_tid)) {
+                set_delete(g_dump_file, FALSE);
+                g_dump_ok = 1;
+            }
+            CloseHandle(g_dump_file);
+        }
+        if (txt != INVALID_HANDLE_VALUE) {
+            char line[MAX_PATH * 3 + 64];
+            int len = host_snprintf(line, sizeof line, "minidump: %s\n", g_dump_ok ? g_dump_name : "not written");
+            WriteFile(txt, line, (DWORD) len, &w, NULL);
+            CloseHandle(txt);
+        }
+    }
+    if (g_after != NULL) g_after();
+    SetEvent(g_dump_done);
+    return 0;
 }
 
 /* ---- the report ----------------------------------------------------------------- */
@@ -443,8 +508,6 @@ static const char *code_name(DWORD code) {
 
 /* a file name in g_dir: bc-crash-YYYYMMDD-HHMMSS[-N].EXT; the .dmp is created
  * first (CREATE_NEW picks a free N), the .txt gets the same stem */
-static wchar_t g_stem[MAX_PATH];
-
 static void make_stem(void) {
     SYSTEMTIME t;
     GetLocalTime(&t);
@@ -462,8 +525,7 @@ static void report(void) {
     HMODULE m = module_of(addr);
     static DWORD frames[MAX_FRAMES];
     static char mod[128], dumpname[MAX_PATH * 3], msg[2048];
-    static wchar_t path[MAX_PATH + 16];
-    int nframes, i, dump_ok = 0;
+    int nframes, dump_ok = 0;
     g_err_handle = (HANDLE) _get_osfhandle(2);
     if (g_err_handle == INVALID_HANDLE_VALUE || g_err_handle == NULL) g_err_handle = GetStdHandle(STD_ERROR_HANDLE);
     host_trace_flush_raw();   /* the per-frame trace up to the crash */
@@ -492,52 +554,28 @@ static void report(void) {
     nframes = backtrace(c, frames, MAX_FRAMES);
     print_frames(frames, nframes);
 
-    make_stem();
-    for (i = 0; i < 20 && !dump_ok; i++) {
-        if (i == 0) _snwprintf(path, MAX_PATH + 16, L"%ls.dmp", g_stem);
-        else _snwprintf(path, MAX_PATH + 16, L"%ls-%d.dmp", g_stem, i + 1);
-        path[MAX_PATH + 15] = 0;
-        if (GetFileAttributesW(path) != INVALID_FILE_ATTRIBUTES) continue;
-        dump_ok = write_dump(path, ep, g_crash_tid);
-        if (!dump_ok) break;
-    }
-    if (!dump_ok && g_dir[0] == 0) {
-        /* the current folder isn't writable: %TEMP% */
-        GetTempPathW(MAX_PATH, g_dir);
-        make_stem();
-        _snwprintf(path, MAX_PATH + 16, L"%ls.dmp", g_stem);
-        path[MAX_PATH + 15] = 0;
-        dump_ok = write_dump(path, ep, g_crash_tid);
-    }
-    if (dump_ok) {
-        WideCharToMultiByte(CP_UTF8, 0, path, -1, dumpname, sizeof dumpname, NULL, NULL);
-        dumpname[sizeof dumpname - 1] = 0;
-        out("minidump: %s\n", dumpname);
-    } else {
-        out("minidump: not written (%s, error %lu)\n", p_MiniDumpWriteDump ? "MiniDumpWriteDump failed" : "no dbghelp.dll",
-            GetLastError());
-    }
-    /* the report next to the dump */
-    if (dump_ok) {
-        size_t n = wcslen(path);
-        HANDLE f;
-        if (n > 4) {
-            DWORD w;
-            wcscpy(path + n - 4, L".txt");
-            f = CreateFileW(path, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-            if (f != INVALID_HANDLE_VALUE) {
-                WriteFile(f, g_report, g_report_len, &w, NULL);
-                CloseHandle(f);
-            }
-        }
-    }
+    /* the files (the .dmp, the .txt copy of the above) on the dumper thread,
+     * with a time limit (heap and loader locks) */
+    SetEvent(g_dump_go);
+    if (WaitForSingleObject(g_dump_done, 20000) == WAIT_TIMEOUT) {
+        out("minidump: not written: timed out (the crashed thread may hold the heap's lock)\n");
+        if (g_dump_path[0]) DeleteFileW(g_dump_path);   /* (gone when the process ends) */
+    } else if (g_dump_ok)
+        out("minidump: %s\n", g_dump_name);
+    else
+        out("minidump: not written (%s; %s)\n", p_MiniDumpWriteDump == NULL ? "no dbghelp.dll"
+                                                : g_dump_file == INVALID_HANDLE_VALUE ? "can't create the file"
+                                                                                      : "MiniDumpWriteDump failed",
+            g_dump_name);
+    dump_ok = g_dump_ok;
+    strcpy(dumpname, g_dump_name);
     if (host_gui && !host_no_msgbox) {
         host_snprintf(msg, sizeof msg,
                       "Blast Corps has crashed (%s, exception 0x%08lX at 0x%08lX%s%s).\n\n"
                       "The details were written to %s%s%s.\n\n"
                       "Please report it with %s and what you were doing.",
                       code_name(code), code, addr, m != NULL ? " in " : "", m != NULL ? mod : "",
-                      host_log_path ? host_log_path : "the log",
+                      host_log_path != NULL ? host_log_path : "the log",
                       dump_ok ? " and " : "", dump_ok ? dumpname : "", dump_ok ? "those files" : "that log");
         g_box = msg;
     }
@@ -547,7 +585,6 @@ static DWORD WINAPI reporter(void *arg) {
     (void) arg;
     WaitForSingleObject(g_go, INFINITE);
     report();
-    if (g_after != NULL) g_after();
     if (g_box != NULL) {
         static wchar_t w[2048];
         /* (the game window's thread may be the crashed one: no synchronous
@@ -567,6 +604,11 @@ static DWORD WINAPI reporter(void *arg) {
 /* every crash path ends here (on the crashed thread) */
 static LONG crash_dispatch(EXCEPTION_POINTERS *ep) {
     DWORD tid = GetCurrentThreadId();
+    if (tid == g_dumper_tid && g_reporter_tid != 0) {
+        /* MiniDumpWriteDump (or `after`) crashed: the reporter goes on without it */
+        SetEvent(g_dump_done);
+        Sleep(INFINITE);
+    }
     if (tid == g_reporter_tid) {
         /* the reporter itself crashed: stop now */
         static const char m[] = "\nCRASH: the crash reporter crashed too; exiting\n";
@@ -739,6 +781,8 @@ void host_crash_init(int argc, char **argv, const char *exe_kind, const char *ve
     host_crash_exe_kind = exe_kind;
     if (version != NULL) host_crash_version = version;
     GetModuleFileNameW(NULL, g_exe_path, MAX_PATH);
+    g_exe_file = CreateFileW(g_exe_path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
+                             OPEN_EXISTING, 0, NULL);
     if (getenv("BC_NO_MSGBOX") != NULL) host_no_msgbox = 1;
     for (i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--no-msgbox")) host_no_msgbox = 1;
@@ -767,7 +811,10 @@ void host_crash_init(int argc, char **argv, const char *exe_kind, const char *ve
         (GetMappedFileNameW_t) (void *) GetProcAddress(GetModuleHandleW(L"kernel32.dll"), "K32GetMappedFileNameW");
     g_go = CreateEventW(NULL, TRUE, FALSE, NULL);
     g_done = CreateEventW(NULL, TRUE, FALSE, NULL);
+    g_dump_go = CreateEventW(NULL, TRUE, FALSE, NULL);
+    g_dump_done = CreateEventW(NULL, TRUE, FALSE, NULL);
     CloseHandle(CreateThread(NULL, 0x40000, reporter, NULL, STACK_SIZE_PARAM_IS_A_RESERVATION, &g_reporter_tid));
+    CloseHandle(CreateThread(NULL, 0x40000, dumper, NULL, STACK_SIZE_PARAM_IS_A_RESERVATION, &g_dumper_tid));
     g_prev_filter = SetUnhandledExceptionFilter(unhandled_filter);
     (void) g_prev_filter;
 }
@@ -786,7 +833,7 @@ int host_crash_test_set(const char *spec) {
     g_test_frame = colon ? (unsigned) strtoul(colon + 1, NULL, 0) : 1;
     if (strcmp(g_test_kind, "av") && strcmp(g_test_kind, "thread") && strcmp(g_test_kind, "stack") &&
         strcmp(g_test_kind, "abort") && strcmp(g_test_kind, "fatal") && strcmp(g_test_kind, "box") &&
-        strcmp(g_test_kind, "cxx") && strcmp(g_test_kind, "div"))
+        strcmp(g_test_kind, "cxx") && strcmp(g_test_kind, "div") && strcmp(g_test_kind, "heaplock"))
         return -1;
     return 0;
 }
@@ -811,6 +858,10 @@ void host_crash_test_frame(unsigned frame) {
     fprintf(stderr, "crash test: %s at frame %u\n", g_test_kind, frame);
     fflush(stderr);
     if (!strcmp(g_test_kind, "av")) g_sink = *g_bad;
+    else if (!strcmp(g_test_kind, "heaplock")) {   /* a crash inside the heap: its lock stays held */
+        HeapLock(GetProcessHeap());
+        g_sink = *g_bad;
+    }
     else if (!strcmp(g_test_kind, "div")) {
         volatile int z = 0;
         g_sink = (g_sink + 7) / z;

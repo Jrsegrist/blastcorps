@@ -48,7 +48,8 @@
  *     --crash-dir DIR    where a crash's bc-crash-*.dmp/.txt go (default: the
  *                        current folder; bc.exe: bc.log's folder)
  *     --crash-test KIND[:F]  crash on purpose at frame F (testing the crash
- *                        report): av, div, stack, thread, abort, fatal, box, cxx
+ *                        report): av, div, stack, thread, abort, fatal, box,
+ *                        heaplock, cxx (bc.exe)
  *     -v / -q            verbose / quiet */
 #include <stdarg.h>
 #include <stdio.h>

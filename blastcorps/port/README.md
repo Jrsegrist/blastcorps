@@ -332,7 +332,11 @@ runtime locks or heap), which writes:
 - `bc-crash-YYYYMMDD-HHMMSS.dmp` (`MiniDumpWriteDump` from System32's
   dbghelp.dll, loaded at start-up): threads, indirectly referenced memory, the
   8 MB RDRAM and the exe's .data/.bss (~17 MB); with `--dump-dir`, also
-  `frame_9999999.bin` as before.
+  `frame_9999999.bin` as before. The files are written by a second waiting
+  thread with a 20-second limit: MiniDumpWriteDump (and creating a file)
+  allocates from the process heap, whose lock a crash inside the heap leaves
+  held for good (it happened: see "Rare boot crash" below); the report on
+  stderr is complete by then, and an unfinished dump deletes itself.
 They go to `--crash-dir DIR` (both exes; compare.py passes the native run's
 folder), else bc.exe: bc.log's folder (the exe's), bc_headless: the current
 folder, falling back to `%TEMP%`. Then bc.exe shows a message box (unless

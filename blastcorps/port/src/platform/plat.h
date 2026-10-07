@@ -52,7 +52,9 @@ extern u32 plat_rom_size;
 typedef struct {
     u32 frames;            /* frame (swap-buffer) gfx tasks */
     u32 gfx_tasks;         /* all gfx tasks dropped */
-    u32 cull_tasks;        /* func_802A4B0C visibility tests answered "visible" */
+    u32 cull_tasks;        /* func_802A4B0C visibility tests */
+    u32 cull_hidden;       /* ... answered "not visible" */
+    u32 cull_keyed, cull_disagree;   /* --clock: the emulator's answers; how many the model differs from */
     u32 aud_tasks;
     u32 pi_dmas;
     u64 pi_bytes;

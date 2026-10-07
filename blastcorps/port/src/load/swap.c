@@ -35,6 +35,27 @@ uint8_t port_n64_byte(const void *p) {
     return b[w - 1 - 2 * k];
 }
 
+/* N Vtx records the game builds in fresh heap memory without writing every
+ * field (42240.c's HUD quads write ob and tc only): the N64 keeps whatever
+ * the heap held in the rest, and the RSP reads the colour bytes.  Give the
+ * native records those stale bytes in the native Vtx layout (halfwords in
+ * host order, colour bytes as on the N64) before the game writes its fields. */
+void port_vtx_stale(void *v, uint32_t n) {
+    uint8_t *p = v, b[16];
+    uint32_t i;
+    int k;
+    for (i = 0; i < n; i++, p += 16) {
+        for (k = 0; k < 16; k++) b[k] = port_n64_byte(p + k);
+        for (k = 0; k < 6; k++) {
+            uint16_t h = (uint16_t) (b[2 * k] << 8 | b[2 * k + 1]);
+            memcpy(p + 2 * k, &h, 2);
+        }
+        memcpy(p + 12, b + 12, 4);
+        port_unit_mark(p, 6, 2);
+        port_unit_mark(p + 12, 4, 1);
+    }
+}
+
 void port_bswap_n(void *p, uint32_t n, int width) {
     uint8_t *b = p;
     uint32_t i;

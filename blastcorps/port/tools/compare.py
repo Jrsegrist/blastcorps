@@ -11,7 +11,8 @@ and dumps RDRAM at the same frame numbers; the dumps are then compared word by
 word after normalising byte order (see diff below).
 
 usage (run from port/; `make -C port compare DEMO=n` drives it):
-  compare.py emu    EMUDIR [--rom ROM] [--vis N] [--dump SPEC] [--stop F]
+  compare.py emu    EMUDIR [--rom ROM] [--vis N] [--dump SPEC] [--stop F] [--lle]
+                    (--lle: audio tasks and the visibility test on an LLE RSP, see lle_env)
   compare.py inject EMUDIR                    -> EMUDIR/{clock,framedone,boot}.txt
   compare.py native EMUDIR NATDIR [--frames N] [--dump SPEC] [--exe EXE] [--rom ROM]
   compare.py diff   EMUDIR NATDIR [--from F] [--to F] [--detail N] [--all]
@@ -21,6 +22,7 @@ usage (run from port/; `make -C port compare DEMO=n` drives it):
   compare.py calls  EMUDIR NATDIR             calls of chosen functions per frame (emu --calls F,G
                                               and the exe's --calls F,G): where execution forks
   compare.py run    --demo N [--cache DIR] [--kind nm|base]   the lot (make -C port compare)
+  compare.py verify [--frames N] [--cache DIR]   quick regression check (make -C port verify)
 
 Dump SPEC: "every:N", "a-b", "f1,f2" joined with '+'.
 
@@ -182,6 +184,7 @@ def parse_seg(ev, seg, vi, seq, unwrap):
             kv["n"] = int(body[1])
             ev["F"].append(kv)
         elif kind == "R":
+            kv["seq"] = seq
             ev["R"].append(kv)
         elif kind == "P":
             ev.setdefault("P", []).append(kv)
@@ -234,10 +237,28 @@ def cmd_inject(args):
             for ra, th, v, vi in ev[kind]:
                 it = fs.find(ra)
                 f.write("%s %s %d %x\n" % (kind, it[1] if it else "?", vi if kind == "U" else vi + off, v))
+    # The scheduler's retrace handler (func_80271358) reads osGetTime once per
+    # retrace: where an RDP-done handler ran before the retrace handler of
+    # its own retrace (the DP interrupt's message reached the scheduler
+    # before the VI manager's retrace message, which comes ~2000 counts
+    # after the VI, or later when the CPU is busy), the exe gets the RDP done
+    # just before that retrace, so the scheduler sees the same order (sched.c
+    # D_8036BF14 = frameCount + 1 depends on it)
+    retr = {}
+    for s, (ra, th, v, vi) in zip(ev.get("seqT", []), ev["T"]):
+        it = fs.find(ra)
+        if it and it[1] == "func_80271358":
+            retr.setdefault(vi, s)
+    nflip = 0
     with open(os.path.join(emudir, "framedone.txt"), "w") as f:
         for n, r in enumerate(ev["R"], 1):
             fr = min(int(r["d"]) / period, 0.999999)
-            f.write("@%d %d.%06d\n" % (n, int(r["vi"]) + off, int(fr * 1000000)))
+            vi = int(r["vi"])
+            if vi in retr and r["seq"] < retr[vi]:
+                f.write("@%d %d.999990\n" % (n, vi + off - 1))
+                nflip += 1
+            else:
+                f.write("@%d %d.%06d\n" % (n, vi + off, int(fr * 1000000)))
     # the frame tasks' RSP parts (the RSP is free for audio/cull tasks from then)
     with open(os.path.join(emudir, "framesp.txt"), "w") as f:
         n = 0
@@ -269,6 +290,11 @@ def cmd_inject(args):
         # interrupts and take little CPU, and their call sequences follow the
         # RSP's task order, which the platform doesn't model; a switch point
         # matched one call off makes a high-priority thread hold the CPU.
+        # (Tried: switch points for the audio thread's task send to sc->cmdQ
+        # and the scheduler's retrace-handler clock read, for the 4 dumps of
+        # 1449 where cmdQ.validCount differs; they didn't change it: the
+        # native audio timer still fires a little before the game thread's
+        # frame send there.)
         pts = [p for p in pts if p[2] not in (4, 5)]
         for s, c, th, ra, kind, q, gv in pts:
             it = fs.find(ra)
@@ -278,8 +304,8 @@ def cmd_inject(args):
     with open(os.path.join(emudir, "boot.txt"), "w") as f:
         f.write("%d %d %.3f\n" % (boot, off, period))
     print("inject: %d frames, %d osGetTime, %d osGetCount values, %d sync points; VI period %.1f counts, "
-          "boot count %d, native retrace = emulator VI + %d"
-          % (len(ev["F"]), len(ev["T"]), len(ev["C"]), nsync, period, boot, off))
+          "boot count %d, native retrace = emulator VI + %d; %d RDP-done handlers before their retrace's"
+          % (len(ev["F"]), len(ev["T"]), len(ev["C"]), nsync, period, boot, off, nflip))
 
 
 # ---------------------------------------------------------------- runs
@@ -295,6 +321,28 @@ def default_rom(kind):
         if os.path.exists(p):
             return p
     die("no base ROM")
+
+
+def lle_env(emudir):
+    """emu --lle: the RSP tasks whose results the game reads run on an LLE RSP
+    (cxd4 from ~/thirdparty/ref, a CC0 test oracle loaded at run time) through
+    port/tools/audio's rsp_tap.so: every audio task (checked against the
+    port's interpreter as well) and func_802A4B0C's visibility test (ucode
+    D_802E77B0; mupen64plus's HLE RSP never runs it, so its answer would
+    always be "visible").  Graphics go to the HLE RSP as before.  ai_dump.so
+    records the emulator's AI stream to EMUDIR/emu.wav (+ ai_log.txt)."""
+    tools = os.path.join(PORT, "build/audio_tools")
+    r = subprocess.call(["make", "-s", "-C", os.path.join(HERE, "audio"), "B=" + tools,
+                         tools + "/rsp_tap.so", tools + "/ai_dump.so"])
+    if r != 0:
+        die("can't build port/tools/audio")
+    hle = "/usr/lib/x86_64-linux-gnu/mupen64plus/mupen64plus-rsp-hle.so"
+    return {"M64RSP": tools + "/rsp_tap.so", "M64AUDIO": tools + "/ai_dump.so", "TAP_HLE": hle,
+            "TAP_LLE_UCODE": "2E77B0", "TAP_OUT": os.path.join(emudir, "tap.txt"),
+            "AI_DUMP": os.path.join(emudir, "emu.wav"), "AI_DUMP_LOG": os.path.join(emudir, "ai_log.txt"),
+            "SDL_AUDIODRIVER": "dummy",
+            # cxd4 runs the tasks it gets itself (graphics never reach it)
+            "M64CFG": "rsp-cxd4:DisplayListToGraphicsPlugin:3:0;rsp-cxd4:AudioListToAudioPlugin:3:0"}
 
 
 def cmd_emu(args):
@@ -316,15 +364,18 @@ def cmd_emu(args):
     env = dict(os.environ, M64SAVEDIR=savedir, CMP_DIR=emudir, CMP_ELFS=",".join(elfs), CMP_VIS=str(opt(args, "--vis", 36000)),
                CMP_DUMP=opt(args, "--dump", "every:10"), CMP_STOP=str(opt(args, "--stop", 0)),
                CMP_CALLS=opt(args, "--calls", ""))
+    if flag(args, "--lle"):
+        env.update(lle_env(emudir))
     py = sys.executable
-    # CMP_TRACER: a variant of the tracer (e.g. with the LLE audio plugins of
-    # port/tools/audio, to record the emulator's sound on the same run)
+    # CMP_TRACER: a variant of the tracer
     tracer = os.environ.get("CMP_TRACER") or os.path.join(ROOT, "tools_port/m64trace/m64trace.py")
     with open(os.path.join(emudir, "emu.log"), "w") as log:
         r = subprocess.call([py, tracer, rom, os.path.join(HERE, "cmp_spec.py"), os.path.join(emudir, "emu.txt")],
                             env=env, stdout=log, stderr=subprocess.STDOUT, cwd=ROOT)
     if r != 0:
         die("emulator run failed (%s)" % os.path.join(emudir, "emu.log"))
+    with open(os.path.join(emudir, "rom.sha1"), "w") as f:
+        f.write(rom_sha1(rom) + "\n")
     cmd_inject([emudir])
 
 
@@ -378,7 +429,7 @@ def parse_dump(s):
 
 # ---------------------------------------------------------------- comparison
 
-def load_ignore(dsyms):
+def load_ignore(dsyms, audio=False):
     """tools/compare_ignore.txt: `LO HI reason` (hex, [LO, HI)) or `SYMBOL [SIZE] reason`;
     plus the .data/.bss of the libultra objects the platform layer replaces"""
     mask = bytearray(SIZE // 4)
@@ -402,7 +453,12 @@ def load_ignore(dsyms):
         if hi - lo < 0x1000:
             small.append((lo, hi, why))
 
-    for line in open(os.path.join(HERE, "compare_ignore.txt")):
+    section = ""
+    for line in open(os.environ.get("CMP_IGNORE") or os.path.join(HERE, "compare_ignore.txt")):
+        if line.startswith("# ---"):
+            section = line[5:].strip()
+        if audio and section == "audio":
+            continue   # (diff --audio: the audio subsystem is compared)
         line = line.split("#")[0].strip()
         if not line:
             continue
@@ -485,14 +541,14 @@ def covered(nat, e, o):
 
 
 class Cmp:
-    def __init__(self, emudir, natdir):
+    def __init__(self, emudir, natdir, audio=False):
         self.emudir, self.natdir = emudir, natdir
         self.layout = None   # strict mode (Layout), set by diff --strict
         self.stale = {}      # rule_ignored: words judged stale, while both sides keep them
         self.garb = bytearray(SIZE)   # port_garbage bytes (until a load covers them)
         self.garb_n = 0
         self.dsyms = data_syms()
-        self.mask, self.reasons = load_ignore(self.dsyms)
+        self.mask, self.reasons = load_ignore(self.dsyms, audio)
         elfs = open(os.path.join(emudir, "elfs.txt")).read().split()
         self.efun = elf_syms(elfs, ("STT_FUNC", "STT_NOTYPE", "STT_OBJECT"))
         tails = [a for a, n, _ in self.efun.items if n == "__osThreadTail"]
@@ -563,6 +619,12 @@ class Cmp:
         b = self.nfun.find(nv)
         if a is not None and b is not None and a[0] == ev and b[0] == nv:
             return a[1] == b[1]
+        if (self.nm_text_lo <= ev < self.nm_text_hi and a is not None and a[0] != ev and b is not None
+                and b[0] == nv and nv < self.text_end):
+            # a function the NM ELF has no symbol for (IDO emits none for
+            # static functions, e.g. libaudio's __CSPVoiceHandler) against the
+            # start of a native function: a function pointer both ways
+            return True
         return not (b is not None and b[0] <= nv < self.text_end)
 
     def rule_ignored(self, a, e, nat=None):
@@ -593,13 +655,26 @@ class Cmp:
             p = int.from_bytes(e[ptr - BASE:ptr - BASE + 4], "big") | 0x80000000
             if p <= a < p + 120 * 90 * 2:
                 return True
+        # 34430.c func_80278E3C passes the heap pointer D_80358070's value,
+        # not its address, to the round-up helper func_80257490 (an original
+        # bug, kept): it "rounds" the stale s32 just past that buffer (the
+        # emulator's text Vtx x/y pair there gets y += 15; natively the same
+        # bytes are a host-order word, already a multiple of 8).  Nothing reads it.
+        p = int.from_bytes(e[0x8036D170 - BASE:0x8036D174 - BASE], "big") | 0x80000000
+        if a == p + 0x5460:
+            return True
         lo = int.from_bytes(e[0x803EB788 - BASE:0x803EB78C - BASE], "big")
         hi = int.from_bytes(e[0x803EB78C - BASE:0x803EB790 - BASE], "big")
         if nat is not None and self.stale.get(o) == (nat[o:o + 4], e[o:o + 4]):
             return True   # (a trailer of an earlier level's blocks, unchanged since)
         if lo <= a < hi and nat is not None:
             r = (a - lo) % 0x1010
-            if r in (0x1008, 0x100C) or (
+            # a free block (inUse at 0x1000 is 0 on both sides: func_802A5FA8
+            # clears it, the age and key at 0x1004 are only written once the
+            # block is used): its trailer is all stale bytes
+            u = o - r + 0x1000
+            free = r == 0x1004 and e[u:u + 4] == bytes(4) and nat[u:u + 4] == bytes(4)
+            if r in (0x1008, 0x100C) or free or (
                     r == 0x1004 and nat[o:o + 2] == e[o:o + 2][::-1] and nat[o + 2] == e[o + 2]):
                 self.stale[o] = (nat[o:o + 4], e[o:o + 4])
                 return True
@@ -767,11 +842,14 @@ class Layout:
             p = line.split("#")[0].split()
             if len(p) < 3:
                 continue
-            lo, n = int(p[0], 16) - BASE, int(p[1], 16)
-            self._clear(lo, lo + n)
-            if p[2] == "be" or re.match(r"^w[248]$", p[2]):
-                w = 1 if p[2] == "be" else int(p[2][1:])
-                self._add(range(lo, lo + n, w), w)
+            # optional STRIDE COUNT: the same range in COUNT records (swaptab.py)
+            stride, count = (int(p[3], 16), int(p[4], 16)) if len(p) >= 5 else (0, 1)
+            for k in range(count):
+                lo, n = int(p[0], 16) - BASE + k * stride, int(p[1], 16)
+                self._clear(lo, lo + n)
+                if p[2] == "be" or re.match(r"^w[248]$", p[2]):
+                    w = 1 if p[2] == "be" else int(p[2][1:])
+                    self._add(range(lo, lo + n, w), w)
             # (other actions, e.g. `vtx`: RSP-only data in the renderer's
             # layout, no CPU reader: lenient)
         # C objects' .data/.rodata: the exe links its own copies (pinned ones
@@ -852,8 +930,11 @@ class Layout:
             elif kind.startswith("front end"):
                 a, b = self.FE[0] - BASE, self.FE[1] - BASE
                 self.start[a:b], self.cover[a:b] = self.base_start[a:b], self.base_cover[a:b]
-            if how == "decode":
-                # decoded texels: big-endian bytes
+            if how == "decode" or "(as is)" in kind:
+                # decoded texels, and assets the load layer keeps as they are
+                # (pictures, e.g. the 320x240 one at ROM 6BF2F0: the original
+                # code's traced u16 pixel reads don't make them host order):
+                # big-endian bytes
                 self.start[lo:hi] = b"\x01" * (hi - lo)
                 self.cover[lo:hi] = b"\x01" * (hi - lo)
                 continue
@@ -910,10 +991,14 @@ def cmd_diff(args):
     hi = opt(args, "--to", 1 << 30, int)
     detail = opt(args, "--detail", 30, int)
     show_all = flag(args, "--all")
+    brief = flag(args, "--brief")   # (with --all: no lines for matching frames)
     strict = flag(args, "--strict")
+    # --audio: also compare the audio subsystem (compare_ignore.txt's audio section);
+    # meaningful with an emu --lle run (the emulator's real audio frame sizes)
+    audio = flag(args, "--audio")
     typemap = opt(args, "--typemap", os.path.join(PORT, "build/headless/typemap_all.txt"))
     facts = opt(args, "--facts", os.path.join(PORT, "build/headless/facts.txt"))
-    c = Cmp(emudir, natdir)
+    c = Cmp(emudir, natdir, audio)
     if strict:
         if not os.path.exists(typemap):
             die("strict mode needs %s (make -C port strict-data)" % typemap)
@@ -932,11 +1017,11 @@ def cmd_diff(args):
                 print("frame %d: strict: %d words match only leniently (0x%X bytes typed)" % (
                     n, len(c.strict_only), c.typed))
                 c.describe(n, c.strict_only, nat, e, detail, "  strict")
-            elif show_all:
+            elif show_all and not brief:
                 print("frame %d: strict: no extra differences (0x%X bytes typed)" % (n, c.typed))
         if not diffs:
             matched += 1
-            if show_all:
+            if show_all and not brief:
                 print("frame %d: match" % n)
             continue
         if first is None:
@@ -948,11 +1033,12 @@ def cmd_diff(args):
             rs = c.runs(diffs)
             print("frame %d: %d words differ in %d runs, first %s" % (n, len(diffs), len(rs),
                                                                        c.dsyms.name(BASE + rs[0][0])))
+    compared = len(common) if show_all or first is None else common.index(first) + 1
     print("diff: %d of %d compared frames match%s" % (
-        matched, len(common) if show_all or first is None else common.index(first) + 1,
-        "; first difference at frame %d" % first if first is not None else ""))
+        matched, compared, "; first difference at frame %d" % first if first is not None else ""))
     if strict:
         print("strict: %d frames with words that match only leniently" % strict_bad)
+    return matched, compared, first, strict_bad
 
 
 def native_trace(natdir):
@@ -992,8 +1078,10 @@ def cmd_frames(args):
             shown += 1
             print("frame %d: emu vi %d mode %X lvl %d mf %d gvi %d | native vi %d mode %X lvl %d mf %d gvi %d"
                   % ((n, evi) + es + (nv[0],) + ns))
+    both = len([f for f in ev["F"] if f["n"] in nat])
     print("frames: %d in both; same submission retrace %d, same (mode, level, frames-in-mode, game VI) %d"
-          % (len([f for f in ev["F"] if f["n"] in nat]), same_vi, same_state))
+          % (both, same_vi, same_state))
+    return both, same_vi, same_state
 
 
 def cmd_hex(args):
@@ -1098,12 +1186,9 @@ def cmd_run(args):
     rom = default_rom(kind)
     emudir = os.path.join(cache, "attract-%s-demo%d" % (kind, demo))
     natdir = os.path.join(cache, "attract-%s-demo%d-native" % (kind, demo))
-    log = os.path.join(emudir, "emu.txt")
-    stale = (not os.path.exists(log) or os.path.getmtime(log) < os.path.getmtime(os.path.join(HERE, "cmp_spec.py"))
-             or os.path.getmtime(log) < os.path.getmtime(rom))
-    if stale:
+    if emu_stale(emudir, rom):
         print("compare: emulator run (%s ROM, %d VIs, dumps every %d frames) into %s ..." % (kind, vis, every, emudir))
-        cmd_emu([emudir, "--kind", kind, "--vis", str(vis), "--dump", "every:%d" % every])
+        cmd_emu([emudir, "--kind", kind, "--lle", "--vis", str(vis), "--dump", "every:%d" % every])
     else:
         cmd_inject([emudir])
     ranges = demo_ranges(parse_emu(emudir))
@@ -1116,13 +1201,138 @@ def cmd_run(args):
     print("demo %d: frames %d-%d%s" % (demo, lo, hi, "" if r == 0 else " (the exe stopped early: exit %d)" % r))
 
 
+def emu_stale(emudir, rom):
+    """the cached emulator run predates the ROM, the spec or the tracer"""
+    log = os.path.join(emudir, "emu.txt")
+    if not os.path.exists(log) or not os.path.exists(os.path.join(emudir, "boot.txt")):
+        return True
+    t = os.path.getmtime(log)
+    # the ROM by content (make nmrom rewrites it every time)
+    sp = os.path.join(emudir, "rom.sha1")
+    if os.path.exists(sp):
+        if open(sp).read().strip() != rom_sha1(rom):
+            return True
+    elif t < os.path.getmtime(rom):
+        return True
+    return any(t < os.path.getmtime(p) for p in (os.path.join(HERE, "cmp_spec.py"),
+                                                 os.path.join(ROOT, "tools_port/m64trace/m64trace.py")))
+
+
+def rom_sha1(rom):
+    import hashlib
+    return hashlib.sha1(open(rom, "rb").read()).hexdigest()
+
+
+def run_log_facts(natdir):
+    """summary lines of the exe's run.log worth reporting"""
+    out = {}
+    for line in open(os.path.join(natdir, "run.log"), errors="replace"):
+        m = re.match(r"cull: (\d+) tests, (\d+) not visible(?:; (\d+) answers from --clock, the model disagrees "
+                     r"with (\d+))?", line)
+        if m:
+            out["cull_tests"], out["cull_hidden"] = int(m.group(1)), int(m.group(2))
+            if m.group(3):
+                out["cull_model_disagree"] = int(m.group(4))
+        m = re.match(r"sync: thread (\d+): (\d+) of (\d+) points used .*, (\d+) mismatches", line)
+        if m and m.group(1) == "3":
+            out["sync_main_used"], out["sync_main_points"] = int(m.group(2)), int(m.group(3))
+            out["sync_main_mismatches"] = int(m.group(4))
+        m = re.match(r"audio: (\d+) tasks", line)
+        if m:
+            out["audio_tasks"] = int(m.group(1))
+    return out
+
+
+def cmd_verify(args):
+    """verify [--cache DIR] [--frames N] [--every K] [--expect FILE] [--no-strict]: the quick
+    regression check behind `make -C port verify`.  The emulator side (NM test ROM,
+    LLE audio and visibility tests, the first N frames: boot, logos, front end,
+    attract demo 0) is cached in DIR/verify-nm-N and redone only when the ROM,
+    cmp_spec.py or the tracer change; bc_headless follows it; reported: the
+    per-frame timeline, the RAM dumps (lenient, and strict where `make -C port
+    strict-data` has built the layouts), the visibility tests (emulator LLE vs the
+    exe's model), the emulator's audio tasks (LLE vs the port's interpreter).
+    Fails when a number is worse than in --expect (default data/verify_expect.txt)."""
+    cache = os.path.expanduser(opt(args, "--cache", "~/cmp_cache"))
+    frames = opt(args, "--frames", 1500, int)
+    every = opt(args, "--every", 10, int)
+    expect = opt(args, "--expect", os.path.join(PORT, "data/verify_expect.txt"))
+    no_strict = flag(args, "--no-strict")
+    rom = default_rom("nm")
+    emudir = os.path.join(cache, "verify-nm-%d" % frames)
+    natdir = emudir + "-native"
+    if emu_stale(emudir, rom):
+        print("verify: emulator run (NM ROM, LLE audio + visibility tests, %d frames, dumps every %d) into %s ..."
+              % (frames, every, emudir))
+        sys.stdout.flush()
+        cmd_emu([emudir, "--kind", "nm", "--lle", "--vis", "40000", "--stop", str(frames),
+                 "--dump", "every:%d" % every])
+    else:
+        print("verify: cached emulator run %s" % emudir)
+        cmd_inject([emudir])
+    sys.stdout.flush()
+    r = cmd_native([emudir, natdir, "--frames", str(frames), "--dump", "every:%d" % every])
+    res = {"exe_exit": r}
+    res["frames"], res["timeline_retrace"], res["timeline_state"] = cmd_frames([emudir, natdir, "5"])
+    typemap = os.path.join(PORT, "build/headless/typemap_all.txt")
+    strict = os.path.exists(typemap) and not no_strict
+    dargs = [emudir, natdir, "--all", "--brief", "--detail", "6"] + (["--strict"] if strict else [])
+    matched, compared, first, strict_bad = cmd_diff(dargs)
+    res["dumps"], res["dumps_match"] = compared, matched
+    if strict:
+        res["dumps_strict_ok"] = compared - strict_bad
+    res.update(run_log_facts(natdir))
+    tap = os.path.join(emudir, "tap.txt")
+    if os.path.exists(tap):
+        for line in open(tap):
+            m = re.match(r"tap: audio tasks (\d+), identical (\d+), different (\d+).*?(\d+) other tasks on the LLE", line)
+            if m:
+                res["emu_audio_tasks"], res["emu_audio_lle_identical"] = int(m.group(1)), int(m.group(2))
+                res["emu_cull_tasks_lle"] = int(m.group(4))
+                res["emu_audio_lle_different"] = int(m.group(3))
+    print("verify: results")
+    for k in sorted(res):
+        print("  %-24s %s" % (k, res[k]))
+    # expectations: "key min" (at least), "key =value", "key <=value"
+    bad = []
+    if os.path.exists(expect):
+        section = None   # "frames N" lines start the expectations for N frames
+        for line in open(expect):
+            p = line.split("#")[0].split()
+            if len(p) != 2:
+                continue
+            k, v = p
+            if k == "frames":
+                section = int(v)
+                continue
+            if section is not None and section != frames:
+                continue
+            have = res.get(k)
+            if have is None:
+                bad.append("%s missing" % k)
+            elif v.startswith("<="):
+                if have > int(v[2:]):
+                    bad.append("%s = %s (expected at most %s)" % (k, have, v[2:]))
+            elif v.startswith("="):
+                if have != int(v[1:]):
+                    bad.append("%s = %s (expected %s)" % (k, have, v[1:]))
+            elif have < int(v):
+                bad.append("%s = %s (expected at least %s)" % (k, have, v))
+    if bad:
+        print("verify: FAILED: " + "; ".join(bad))
+        sys.exit(1)
+    print("verify: OK (%d frames: timeline %d/%d, dumps %d/%d match%s)" % (
+        frames, res["timeline_state"], res["frames"], matched, compared,
+        ", strict %d/%d" % (res["dumps_strict_ok"], compared) if strict else ""))
+
+
 def main():
     if len(sys.argv) < 2:
         print(__doc__)
         sys.exit(1)
     cmd, args = sys.argv[1], sys.argv[2:]
     {"emu": cmd_emu, "inject": cmd_inject, "native": cmd_native, "diff": cmd_diff, "frames": cmd_frames,
-     "demos": cmd_demos, "hex": cmd_hex, "run": cmd_run, "calls": cmd_calls}[cmd](args)
+     "demos": cmd_demos, "hex": cmd_hex, "run": cmd_run, "calls": cmd_calls, "verify": cmd_verify}[cmd](args)
 
 
 if __name__ == "__main__":

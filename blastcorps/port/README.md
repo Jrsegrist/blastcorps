@@ -13,6 +13,7 @@ make -C port linkall                     # every hd_code game file in one exe
 make -C port typemap ucode               # byte-order schema coverage / RSP microcode hashes
 make -C port headless                    # build/headless/bc_headless.exe: the game, no output
 make -C port game                        # build/game/bc.exe: the game in a window (RT64)
+make -C port verify                      # quick regression check against the emulator
 ```
 
 Needs `i686-w64-mingw32-gcc` (WSL), the project venv (pyelftools, unicorn),
@@ -256,8 +257,11 @@ bc_headless):
   clipping it to those planes leaves a polygon. This model matched the real
   ucode, run on an LLE RSP (mupen64plus + cxd4 + angrylion-rdp-plus), in all
   3921 tests of the attract demos; `BC_CULL_LOG=1` logs every test. (With
-  `--clock` the emulator's word is used instead; mupen64plus's HLE RSP never
-  runs this ucode, so its word always says "visible".)
+  `--clock` the emulator's word is used instead, and the model is checked
+  against it: the stats line `cull: N tests, H not visible; ... the model
+  disagrees with D`. Comparison runs take the word from an LLE RSP,
+  `compare.py emu --lle`; mupen64plus's HLE RSP never runs this ucode, so
+  its word would always say "visible".)
   RT64 raises the SP/DP interrupts while it processes the task;
   they are counted, and the game hears about completion from the same
   virtual-time model as bc_headless (`--gfx-cycles`, `--frame-done`).
@@ -464,9 +468,8 @@ two u16 where the code reads a u32 still "matches" (see strict mode below).
 `tools/compare_ignore.txt` lists what legitimately differs, with
 reasons: framebuffers, Z-buffer, RSP buffers, per-frame display lists, code,
 thread stacks and OSThreads, libultra internals the platform keeps
-elsewhere, scheduler timing/history, and the audio subsystem (the native
-synthesizer is ultralib's newer libaudio, and the RSP task order isn't
-modelled, so audio frames and the audio heap layout differ).
+elsewhere, scheduler timing/history, and the audio subsystem (its section
+of the file; `diff --audio` compares it, see below).
 
 Strict mode (`diff --strict`, after `make -C port strict-data
 LC_TRACE=trace.txt`): each byte also gets the width its readers use, from
@@ -482,4 +485,57 @@ the exe the first four stack words; build with `HL_EXTRA=-fno-inline` for
 functions gcc inlines). Never-written record padding is logged by the exe
 (`port_garbage`, "load: garbage") and skipped; the game's reads of such
 stale bytes get the N64's big-endian view (`port_n64_byte`, from the unit
-every swap recorded).
+every swap recorded; `port_vtx_stale` does the same for the HUD quads
+42240.c builds without writing their colour bytes, which the RSP reads).
+
+**LLE RSP (`emu --lle`, the default for `run` and `verify`).** The
+emulator runs the RSP tasks whose results the game reads on cxd4 (an LLE
+RSP, CC0, from `~/thirdparty/ref`, loaded at run time as an oracle) through
+`tools/audio/rsp_tap.so`: every audio task (each also checked against
+the port's interpreter) and func_802A4B0C's visibility test
+(`TAP_LLE_UCODE`); graphics stay on the HLE plugin; `ai_dump.so` writes the
+emulator's sound to `EMUDIR/emu.wav`.  The emulator log also has
+osAiGetLength's real values (logged in the caller after the call returns:
+at the callee's `jr ra` the debugger saw a stale v0, which once made the
+native audio frames absurd, the audio thread stop after ~3,990 tasks and
+the timeline slip at frame ~3505) and each audio frame's sample count (Z
+lines).  The sound player's event-posting calls (1A630.c sndPlaySfx and
+friends) are entry switch points, so the game thread posts each sound
+before or after the audio thread's frame as in the emulator.  An RDP-done
+handler that ran before its own retrace's handler in the emulator (the
+DP interrupt's message overtook the VI manager's) gets its completion just
+before that retrace natively (`inject` counts them).
+
+Results (Oct 2026, all nine attract demos, 14,498 frames, LLE run): the
+timeline (retrace, mode, level, frames in mode, game VI) is identical on
+every frame; RAM dumps (every 10th frame) 1445 of 1449 match, and strict
+mode finds no word that matches only leniently in any of them (the 4 left:
+the scheduler's cmdQ.validCount at the dump instant, when the audio
+thread's timer fires a little earlier natively than the game thread's
+frame send); 4,177 visibility tests, the native model agrees with the LLE
+RSP's answer on all of them; 16,986 emulator audio tasks identical to the
+interpreter's.  `diff --audio` (the audio heap, synthesizer, sequence and
+sound players, audio manager): the audio state matches through frame 2370
+except the padding and unused union bytes of ALEvent copies in the event
+queues (stack garbage on both machines); from frame 2380 (demo 1) some
+voice/DMA state differs.  Sound (`--wav` vs the emulator's LLE WAV, 564 s,
+1 s windows): waveform correlation median 1.000 in every section, the
+title and logos bit-exact, demo 0 98% of samples bit-exact, the rest
+44-88% bit-exact with a median SNR of ~75 dB.
+
+## Quick regression check: `make -C port verify`
+
+Rebuilds the NM test ROM and bc_headless, runs `loadcheck`, then
+`tools/compare.py verify --frames VERIFY_FRAMES` (default 1500: boot,
+logos, front end and attract demo 0): the emulator side (NM ROM, `--lle`,
+dumps every 10 frames) is cached in `$(CMP_CACHE)/verify-nm-N` and redone
+only when the ROM (by content: `make nmrom` rewrites it every time),
+`cmp_spec.py` or the tracer change (the whole check takes about 5
+minutes then, 1.5 minutes with the cache).  Reported: frames
+whose timeline matches, RAM dumps that match (lenient, and strict with the
+layouts of `make -C port strict-data`), the visibility tests (emulator LLE
+vs the exe's model), the emulator's audio tasks vs the interpreter, the
+main thread's switch points used.  It fails when a number is worse than
+in `data/verify_expect.txt` (`key MIN`, `key =N`, `key <=N`).
+`VERIFY_FRAMES=14498 make -C port verify` covers all nine demos (about 25
+minutes the first time, ~12 GB of dumps).

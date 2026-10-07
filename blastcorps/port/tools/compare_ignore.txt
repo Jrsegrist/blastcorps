@@ -42,6 +42,7 @@ D_80366BD0 60 the sound player (1A630.c): ALPlayer timing, event queue, lists in
 
 # --- graphics buffers
 803BE780 803C2B80 the visibility test's RSP task: its dram stack and RDP output buffer (5FD50.c func_802A4B0C)
+803C2B80 803C2B88 ... and the u64 its output_buff_size points at (D_803C2B80): the ucode stores the output's length (LLE RSP); the game never reads it
 D_803156F8 42930 per-frame graphics data, two of 0x21498 (display lists, matrices, vertices)
 
 # --- the scheduler (2C560.c): message history and performance timers

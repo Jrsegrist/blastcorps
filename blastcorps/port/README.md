@@ -564,11 +564,31 @@ window (Glide64mk2) at those frames.
 `make -C port verify-levels [LEVELS=a,b-c] [LEVEL_JOBS=2]` runs every level
 for 1900 frames (the level from frame ~1046-1172, ~730-855 frames in it),
 emulator side cached in `$(CMP_CACHE)/level-nm-LL` (about 3.5 minutes per
-level the first time, dumps every 100 frames from frame 1000), and compares
+level the first time; 14 dumps: every 20 frames from frame 1000 to 1100,
+where the level loads and the comparator's stale-trailer rule learns the old
+level's heap, then every 100), and compares
 the timeline and the RAM dumps (lenient: in a level, heap data lands on
 declared arrays such as the frame buffers, so the strict typing reports
 noise; `compare.py level --strict` has it).  Expectations per level are in
 `data/verify_levels_expect.txt` (`L key VALUE`, `* key VALUE` for all).
+All 60 levels take about 85 minutes the first time (two emulators at a
+time; ~5.6 GB of cache) and 11 minutes cached.
+
+Results (Oct 2026): every level is reached, no crash, the timeline matches
+on all 1900 frames in 59 levels (49, the ending: two mission-intro frames
+are submitted a retrace early natively), and all 14 RAM dumps match in 55;
+the rest differ in what the comparison can't follow: 47 a streaming
+decompressor's progress between frames, 58 the music's sequence position
+(audio thread timing), 23 and 45 RDP-rendered words on the level-end screen.
+bc.exe, following the emulator's clock, shows the same pictures as the
+emulator's Glide64mk2 window (radar colour aside, a Glide64 error) and gives
+bc_headless's per-frame trace in all 60.  The fixes this found (levels agent):
+a crash in level 13 (an untyped trigger table), the trail zones' table, the
+area test's halves, a front-end static in host .bss, two mid-function
+retrace reads (PORT_GVI), and the stale-byte emulation: display lists,
+matrices, vertices and text quads built in heap memory record their units,
+and the never-written vertex fields of several builders (sprites, boxes,
+globe icons, water) get the N64's old bytes.
 
 Debugging what native code wrote: `--watch F:ADDR[:N]` logs the first N
 writes to ADDR's 4 KB page from frame F on (eip and the stack's code

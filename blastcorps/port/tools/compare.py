@@ -1368,12 +1368,16 @@ def run_level(level, cache, frames, every, input_path, kind="nm", shots="", forc
     emudir = os.path.join(cache, "level-%s-%02d" % (kind, level))
     natdir = emudir + "-native"
     poke = "%d:%08X:1:%X" % (LEVEL_POKE_FRAME, LEVEL_SLOT0_LAST, level)
-    # dumps only once the level is under way (from frame 1000)
-    dump = "+".join(str(f) for f in range(1000, frames + 1, every))
+    # dumps once the level is under way (from frame 1000), every 20 frames up to
+    # 1100 whatever EVERY is: the level loads around 1013-1172, and the
+    # comparator's stale-trailer rule (60F60.c HeapBlocks) learns from the
+    # frames where the blocks still cover the earlier level's memory
+    frs = sorted(set(range(1000, min(1100, frames + 1), 20)) | set(range(1000, frames + 1, every)))
+    dump = "+".join(str(f) for f in frs)
     params = "level=%d frames=%d poke=%s input=%s shots=%s\n" % (level, frames, poke, rom_sha1(input_path), shots)
     pfile = os.path.join(emudir, "params.txt")
     # (a cached run with more dumps will do: the frames this run compares must be there)
-    want = set(range(1000, frames + 1, every))
+    want = set(frs)
     stale = force or emu_stale(emudir, rom) or not os.path.exists(pfile) or open(pfile).read() != params \
         or not want <= frames_in(emudir)
     if stale:

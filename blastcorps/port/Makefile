@@ -447,9 +447,10 @@ verify:
 # every level (data/levels.txt): menus -> new game -> the globe centred on the
 # level -> 1900 frames with tools/levels_input.py's driving pattern, in the
 # emulator (cached per level in CMP_CACHE/level-nm-LL, ~3.5 minutes each the
-# first time) and bc_headless; timeline and RAM dumps every 100 frames from
-# frame 1000 against data/verify_levels_expect.txt (tools/compare.py
-# verify-levels).  LEVELS=a,b-c for some; LEVEL_JOBS emulators at a time.
+# first time) and bc_headless; timeline and RAM dumps (every 20 frames from
+# frame 1000 to 1100, then every 100) against data/verify_levels_expect.txt
+# (tools/compare.py verify-levels).  LEVELS=a,b-c for some; LEVEL_JOBS
+# emulators at a time.
 LEVEL_JOBS ?= 2
 verify-levels:
 	$(MAKE) -C $(ROOT) VERSION=$(VERSION) NON_MATCHING=1 nmrom BASEROM=$(abspath $(ROM)) > /dev/null

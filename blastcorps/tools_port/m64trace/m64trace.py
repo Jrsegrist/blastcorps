@@ -30,7 +30,7 @@ SPEC.py defines:
                                     ctl.polls = the game's controller reads so far;
                                     ctl.hits = {bp addr: hits}; ctl.vars = a dict the
                                     script may keep state in.
-  LOADSTATE = "path"                load this save state at the first VI (the INPUT
+  LOADSTATE = "path"              load this save state at the first VI (the INPUT
                                     script keeps running from there)
   WATCH = [(addr, size), ...]       logged as "#w vi=N ..." whenever one changes
   WRITES = [(lo, hi), ...]          memory write breakpoints (RDRAM, [lo, hi)); each
@@ -142,6 +142,7 @@ def input_plugin():
     if not os.path.exists(so):
         os.makedirs(os.path.dirname(so), exist_ok=True)
         subprocess.check_call(["gcc", "-shared", "-fPIC", "-O2", "-o", so, src])
+    os.environ["M64INPUT_SO"] = so  # (specs read its poll count: ctypes.CDLL(so) is the same handle)
     return so
 
 

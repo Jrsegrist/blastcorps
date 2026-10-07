@@ -90,6 +90,8 @@ typedef struct HostOpts {
     const char *audio_capture; /* --audio-capture: audio tasks' inputs/outputs (port/tools/audio) */
     unsigned audio_capture_max;
     int audio_off;             /* --no-audio: audio tasks are not run (no output) */
+    unsigned (*pokes)[4];      /* --poke: {frame, address, size, value}: RAM writes when a frame is sent */
+    unsigned n_pokes;
     const struct HostLive *live; /* renderer, window, live input (bc.exe); NULL in bc_headless */
 } HostOpts;
 

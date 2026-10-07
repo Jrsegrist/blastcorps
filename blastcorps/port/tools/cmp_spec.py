@@ -197,13 +197,79 @@ GPRS, FPRS, MEM = [], [], []
 DEDUPE = False
 DEFMAX = 1 << 40
 
+
+# CMP_INPUT=file: controller 1, a bc_headless --input file ("[@N] BUTTONS X Y" per
+# controller read).  Read n is the game's n-th osContStartReadData (the exe's
+# count): the pad is set at that call's entry, before its PIF read.  (The
+# input plugin's own poll count also has the PIF's other controller commands:
+# 2 more than the game's reads by the first frame.)
+def load_input(path):
+    rows, idx = [], 0
+    for line in open(path):
+        q = line.split("#")[0].strip()
+        if not q:
+            continue
+        parts = q.replace(",", " ").split()
+        if parts[0].startswith("@"):
+            idx = int(parts[0][1:], 0)
+            parts = parts[1:]
+        if not parts:
+            continue
+        v = [int(p, 0) for p in parts] + [0, 0]
+        rows.append((idx, v[0] & 0xFFFF, v[1], v[2]))
+        idx += 1
+    table, cur = [], (0, 0, 0)
+    for i, (idx, b, x, y) in enumerate(rows):
+        while len(table) < idx:
+            table.append(cur)
+        cur = (b, x, y)
+    table.append(cur)
+    return table
+
+
+INPUT_TABLE = load_input(os.environ["CMP_INPUT"]) if os.environ.get("CMP_INPUT") else []
+A_READ = syms["osContStartReadData"]
+BPS[A_READ] = "I"   # (not logged: ONHIT returns None)
+# CMP_POKE=F:ADDR:SIZE:VALUE,... (hex ADDR/VALUE): write RAM when frame F is sent,
+# after its dump (bc_headless --poke, same syntax)
+POKES = [(int(f), int(a, 16), int(s), int(v, 16)) for f, a, s, v in
+         (p.split(":") for p in os.environ.get("CMP_POKE", "").split(",") if p)]
+
+# CMP_SHOTS=f1,f2,...: a picture of the emulator's window (Glide64mk2, what was on
+# screen when frame f was sent: an earlier frame's picture) as CMP_DIR/emu_shot_F.png
+# (ImageMagick `import`; a quick visual reference, not the accurate one)
+SHOTS = set(int(x) for x in os.environ.get("CMP_SHOTS", "").split(",") if x)
+_shot_win = {}
+
+
+def shot(n):
+    import subprocess
+    if "wid" not in _shot_win:
+        t = subprocess.run(["xwininfo", "-root", "-tree"], capture_output=True, text=True).stdout
+        _shot_win["wid"] = None
+        for ln in t.splitlines():
+            if '"glide64mk2' in ln.lower() and "python3" in ln:
+                wid = ln.split()[0]
+                # (this process's window: other emulators may be running)
+                p = subprocess.run(["xprop", "-id", wid, "_NET_WM_PID"], capture_output=True, text=True).stdout
+                if p.split("=")[-1].strip() == str(os.getpid()):
+                    _shot_win["wid"] = wid
+                    break
+    if _shot_win["wid"]:
+        subprocess.run(["import", "-window", _shot_win["wid"], os.path.join(OUT, "emu_shot_%d.png" % n)],
+                       capture_output=True)
+
+
 core = C.CDLL("/usr/lib/x86_64-linux-gnu/libmupen64plus.so.2")
 core.DebugGetCPUDataPtr.restype = C.c_void_p
 core.DebugGetCPUDataPtr.argtypes = [C.c_int]
 core.DebugMemGetPointer.restype = C.c_void_p
 core.DebugMemGetPointer.argtypes = [C.c_int]
+core.DebugMemWrite32.argtypes = [C.c_uint32, C.c_uint32]
+core.DebugMemWrite16.argtypes = [C.c_uint32, C.c_uint16]
+core.DebugMemWrite8.argtypes = [C.c_uint32, C.c_uint8]
 
-st = {"vi": 0, "vi_count": 0, "frame": 0}
+st = {"vi": 0, "vi_count": 0, "frame": 0, "reads": 0, "pad": (0, 0, 0)}
 os.makedirs(OUT, exist_ok=True)
 
 
@@ -237,11 +303,32 @@ def frame_event(rd):
     n = st["frame"]
     if (DUMP_EVERY and n % DUMP_EVERY == 0) or n in DUMP_FRAMES:
         dump(n)
+    for f, a, sz, val in POKES:
+        if f == n:  # after the dump, like bc_headless --poke
+            {1: core.DebugMemWrite8, 2: core.DebugMemWrite16, 4: core.DebugMemWrite32}[sz](a, val)
+    if n in SHOTS:
+        shot(n)
     if STOP and n >= STOP:
         core.CoreDoCommand(6, 0, None)
-    return "F %d vi=%d d=%s mode=%08x%08x lvl=%x mf=%x gvi=%x demo=%x" % (
+    return "F %d vi=%d d=%s mode=%08x%08x lvl=%x mf=%x gvi=%x demo=%x rd=%d" % (
         n, st["vi"], frac(), rd(0x80364A90, 4), rd(0x80364A94, 4), rd(0x802E8BDC, 4), rd(0x80358060, 4),
-        rd(0x803156C4, 4), rd(0x802E8BEC, 4))
+        rd(0x803156C4, 4), rd(0x802E8BEC, 4), st["reads"])
+
+
+_inlib = []
+
+
+def set_pad(b, x, y):
+    """controller 1 now (the scripted input plugin m64trace loaded, M64INPUT_SO;
+    dlopen gives the same handle)"""
+    if not _inlib:
+        so = os.environ.get("M64INPUT_SO")
+        _inlib.append(C.CDLL(so) if so else None)
+    if _inlib[0]:
+        b &= 0xFFFF
+        C.c_uint32.in_dll(_inlib[0], "m64input_keys").value = (
+            ((b >> 8) | ((b & 0xFF) << 8)) | ((x & 0xFF) << 16) | ((y & 0xFF) << 24))
+    st["pad"] = (b, x, y)
 
 
 def ONHIT(pc, g, rd):
@@ -300,6 +387,12 @@ def ONHIT(pc, g, rd):
         return m
     if pc == A_BOOT:
         return "B vi=%d count=%d vicount=%d" % (st["vi"], count(), st["vi_count"])
+    if pc == A_READ:
+        n = st["reads"]
+        st["reads"] += 1
+        if INPUT_TABLE:
+            set_pad(*(INPUT_TABLE[n] if n < len(INPUT_TABLE) else INPUT_TABLE[-1]))
+        return None
     return None
 
 
@@ -308,4 +401,4 @@ def INPUT(vi, rd, ctl):
     st["vi_count"] = count()
     if vi <= 3 or vi % 600 == 0:
         ctl.log("V %d count=%d" % (vi, st["vi_count"]))
-    return 0, 0, 0
+    return st["pad"]   # (m64trace sets the plugin's pad every VI: keep the last read's)

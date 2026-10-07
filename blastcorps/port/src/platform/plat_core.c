@@ -91,9 +91,9 @@ static u64 g_last_mode = ~0ull;
 void plat_on_frame(void) {
     u32 f = ++plat_stats.frames;
     u32 i;
-    host_trace("%u vi=%u t=%u mode=%08X%08X lvl=%d mf=%u gvi=%u\n", (unsigned) f, (unsigned) plat_vi_count,
+    host_trace("%u vi=%u t=%u mode=%08X%08X lvl=%d mf=%u gvi=%u rd=%u\n", (unsigned) f, (unsigned) plat_vi_count,
                (unsigned) plat_now, (unsigned) (G_MODE >> 32), (unsigned) G_MODE, (int) G_LEVEL,
-               (unsigned) G_MODEFRAMES, (unsigned) G_VICOUNT);
+               (unsigned) G_MODEFRAMES, (unsigned) G_VICOUNT, (unsigned) plat_stats.cont_reads);
     if (G_MODE != g_last_mode) {
         g_last_mode = G_MODE;
         if (!plat_cfg.quiet)
@@ -103,6 +103,14 @@ void plat_on_frame(void) {
     for (i = 0; i < plat_cfg.n_dump_frames; i++)
         if (plat_cfg.dump_frames[i] == f) dump_rdram(f);
     if (plat_cfg.dump_every && f % plat_cfg.dump_every == 0) dump_rdram(f);
+    for (i = 0; i < plat_cfg.n_pokes; i++) {
+        const unsigned *p = plat_cfg.pokes[i];
+        if (p[0] != f) continue;
+        if (p[2] == 1) *(u8 *) p[1] = (u8) p[3];
+        else if (p[2] == 2) *(u16 *) p[1] = (u16) p[3];
+        else *(u32 *) p[1] = p[3];
+        if (!plat_cfg.quiet) host_log("poke: frame %u: %08X = %X (%u bytes)\n", (unsigned) f, p[1], p[3], p[2]);
+    }
     if (plat_cfg.frames && f >= plat_cfg.frames) {
         host_log("stopping: %u frames reached\n", (unsigned) f);
         print_stats();

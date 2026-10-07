@@ -69,6 +69,23 @@ int rdram_map(void) {
         return fail("VirtualAlloc(0x%08X) failed (got %p, error %lu); is the exe linked with "
                     "--large-address-aware?", RDRAM_BASE, p, err);
     }
+#if UINTPTR_MAX > 0xFFFFFFFFu
+    /* 64-bit: N64 memory holds 4-byte pointers (N64P), so every host address
+     * the game can store there must be below 4 GB: the exe (fixed base, no
+     * ASLR), the heap and the stacks (no high-entropy VA: bottom-up) */
+    {
+        void *heap = malloc(64);
+        int local;
+        uintptr_t top = (uintptr_t) 1 << 32;
+        if ((uintptr_t) heap >= top || (uintptr_t) &local >= top || (uintptr_t) &rdram_map >= top) {
+            free(heap);
+            return fail("host memory above 4 GB (heap %p, stack %p, code %p): the 64-bit build needs "
+                        "it below (linked without dynamic base and high-entropy VA?)", heap, (void *) &local,
+                        (void *) &rdram_map);
+        }
+        free(heap);
+    }
+#endif
     return 0;
 }
 
@@ -164,6 +181,12 @@ int rdram_load(const char *rom_path) {
         memcpy((void *) (uintptr_t) c->addr, c->start, c->end - c->start);
         copies++;
     }
+#ifdef PORT_PTRTAB
+    {
+        const PortPtrSlot *s;
+        for (s = port_ptrtab; s->addr; s++) *(uint32_t *) (uintptr_t) s->addr = s->value;
+    }
+#endif
     printf("rdram: hd data 0x%X bytes at 0x%08X, front end data 0x%lX bytes at 0x%08X, %d native "
            "initialisers copied\n", HD_DATA_SIZE, HD_DATA_VRAM, n, FE_DATA_VRAM, copies);
     return 0;

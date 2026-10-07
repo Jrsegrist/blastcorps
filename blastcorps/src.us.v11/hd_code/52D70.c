@@ -23,7 +23,7 @@ typedef struct {
 } D_802E8F38_s;
 
 extern u8 D_8039CAB8;
-extern Mtx *D_8039CAC4;
+extern Mtx * N64P D_8039CAC4;
 extern u8 D_8039CAC8;
 
 

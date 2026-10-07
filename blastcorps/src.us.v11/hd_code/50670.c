@@ -41,7 +41,7 @@ extern s32 D_802FF0D0[];
 extern GhostRenderMode D_802FF11C[];
 extern GhostQuad D_802FF150[];
 
-extern GhostSample *D_8039CA68[];
+extern GhostSample * N64P D_8039CA68[];
 extern GhostCounts D_8039CA70[];
 extern s32 D_8039CA78;
 extern u8 D_8039CA7C;

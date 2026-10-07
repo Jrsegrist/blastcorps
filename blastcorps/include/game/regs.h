@@ -112,7 +112,7 @@ typedef struct {
 
 /* Register results of func_802A08E4 its asm callers read (5BF40.c). */
 typedef struct {
-    /* 0x0 */ u8 **s2; /* &D_803B8D40 */
+    /* 0x0 */ u8 * N64P *s2; /* &D_803B8D40 */
     /* 0x4 */ u8 *s3;  /* the new D_803B8D40 */
     /* 0x8 */ u8 *s4;  /* in/out: last cache pair looked at (only set when a G_SETTIMG was seen) */
 } Unk802A08E4Regs;
@@ -134,14 +134,15 @@ typedef struct {
 
 /* A vehicle's position, model and its two 0x800-byte matrix buffers taken
  * from the heap D_80358070 (swapped every frame by D_8035805C); the shared
- * spawn helpers of 6B4A0.c and 6E200.c. */
+ * spawn helpers of 6B4A0.c and 6E200.c.  (N64 memory: a view of the vehicle
+ * blocks D_803EE38C / D_803EE768.) */
 typedef struct {
     s32 x;
     s32 y;
     s32 z;
-    u8 *model;
-    u64 *bufA;
-    u64 *bufB;
+    u8 * N64P model;
+    u64 * N64P bufA;
+    u64 * N64P bufB;
 } PortVehPos;
 
 #endif

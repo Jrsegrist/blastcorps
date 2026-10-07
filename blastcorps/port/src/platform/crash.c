@@ -19,10 +19,11 @@
  *
  * Names: the exe's own COFF symbol table (the PE file keeps it: `nm` reads
  * it; the dist build strips only the DWARF), read from the file at crash
- * time, else the nearest export of a DLL.  The backtrace is a scan of the
- * crashed stack for return addresses: values pointing into code right after
- * a call instruction (the code is built without frame pointers), so it can
- * list a stale frame or two among the real ones.
+ * time, else the nearest export of a DLL.  The backtrace (i686) is a scan of
+ * the crashed stack for return addresses: values pointing into code right
+ * after a call instruction (the code is built without frame pointers), so it
+ * can list a stale frame or two among the real ones; x86_64 walks the frames
+ * with the unwind data first (exact) and scans only where that stops.
  *
  * --no-msgbox (or BC_NO_MSGBOX in the environment): no window of any kind
  * pops up: host_message only logs, the crash report shows no box, Windows'
@@ -38,6 +39,21 @@
 #include <stdlib.h>
 #include <string.h>
 #include "plat_host.h"
+
+/* addresses: 32 bits in the i686 build, 64 in the x86_64 one (the exe and
+ * RDRAM are below 4 GB either way; DLLs and the stack need not be) */
+typedef ULONG_PTR Addr;
+#ifdef _WIN64
+#define PC(c) ((c)->Rip)
+#define SP(c) ((c)->Rsp)
+#define AF "%012llX"
+#define AV(x) ((unsigned long long) (x))
+#else
+#define PC(c) ((c)->Eip)
+#define SP(c) ((c)->Esp)
+#define AF "%08lX"
+#define AV(x) ((unsigned long) (x))
+#endif
 
 int host_no_msgbox;
 static const char *host_crash_tag = "Blast Corps port";
@@ -106,14 +122,14 @@ static void out(const char *fmt, ...) {
 }
 
 /* ---- modules and names -------------------------------------------------------- */
-static HMODULE module_of(DWORD addr) {
+static HMODULE module_of(Addr addr) {
     MEMORY_BASIC_INFORMATION mbi;
     if (!VirtualQuery((void *) addr, &mbi, sizeof mbi) || mbi.State != MEM_COMMIT || mbi.Type != MEM_IMAGE)
         return NULL;
     return (HMODULE) mbi.AllocationBase;
 }
 
-static int is_code(DWORD addr) {
+static int is_code(Addr addr) {
     MEMORY_BASIC_INFORMATION mbi;
     if (!VirtualQuery((void *) addr, &mbi, sizeof mbi) || mbi.State != MEM_COMMIT) return 0;
     return (mbi.Protect & (PAGE_EXECUTE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY)) != 0;
@@ -140,11 +156,11 @@ static IMAGE_NT_HEADERS *nt_headers(HMODULE m) {
 }
 
 /* a DLL: the nearest named export at or below addr */
-static int export_name(HMODULE m, DWORD addr, char *buf, unsigned size, DWORD *off) {
+static int export_name(HMODULE m, Addr addr, char *buf, unsigned size, DWORD *off) {
     IMAGE_NT_HEADERS *nt = nt_headers(m);
     IMAGE_DATA_DIRECTORY *dd;
     IMAGE_EXPORT_DIRECTORY *ex;
-    DWORD *funcs, *names, rva = addr - (DWORD) m, best = 0, i;
+    DWORD *funcs, *names, rva = (DWORD) (addr - (Addr) m), best = 0, i;
     WORD *ords;
     const char *best_name = NULL;
     if (nt == NULL) return 0;
@@ -173,8 +189,8 @@ static int export_name(HMODULE m, DWORD addr, char *buf, unsigned size, DWORD *o
  * offset into the string table that follows the symbols), value (section
  * offset), section number, type, storage class, aux count. */
 typedef struct {
-    DWORD addr;      /* what to name */
-    DWORD sym;       /* best symbol's address (0: none) */
+    Addr addr;       /* what to name */
+    Addr sym;        /* best symbol's address (0: none) */
     char name[160];
     DWORD str_off;   /* long name: offset in the string table (0: short name in `name`) */
 } SymQuery;
@@ -202,7 +218,8 @@ static void coff_names(SymQuery *q, int nq) {
         if (!ReadFile(f, g_symbuf, want * 18, &rd, NULL) || rd != want * 18) return;
         for (k = 0; k < want; k++) {
             BYTE *e = g_symbuf + k * 18;
-            DWORD value, va;
+            DWORD value;
+            Addr va;
             short secno;
             WORD type;
             BYTE cls, naux;
@@ -223,7 +240,7 @@ static void coff_names(SymQuery *q, int nq) {
             memcpy(&type, e + 14, 2);
             if (type != 0x20 && cls != IMAGE_SYM_CLASS_EXTERNAL) continue;
             if (e[0] == '.') continue;
-            va = (DWORD) exe + sec[secno - 1].VirtualAddress + value;
+            va = (Addr) exe + sec[secno - 1].VirtualAddress + value;
             for (i = 0; i < nq; i++) {
                 if (va <= q[i].addr && va >= q[i].sym) {
                     DWORD z;
@@ -252,8 +269,9 @@ static void coff_names(SymQuery *q, int nq) {
 }
 
 /* ---- the backtrace ------------------------------------------------------------ */
-/* is `ret` a return address: right after a call instruction? */
-static int after_call(DWORD ret) {
+/* is `ret` a return address: right after a call instruction?  (x86_64: the
+ * same encodings after an optional REX prefix; FF 15 is call [rip+d32]) */
+static int after_call(Addr ret) {
     const BYTE *p = (const BYTE *) ret;
     if (ret < 0x10000 || !is_code(ret - 7) || !is_code(ret - 1)) return 0;
     if (p[-5] == 0xE8) return 1;                                                  /* call rel32 */
@@ -268,52 +286,96 @@ static int after_call(DWORD ret) {
     return 0;
 }
 
-static int backtrace(const CONTEXT *c, DWORD *frames, int max) {
-    int n = 0;
-    DWORD sp = c->Esp & ~3u, end;
+/* the stack scan: from sp, every word that is a return address */
+static int scan_stack(Addr sp, Addr pc, Addr *frames, int n, int max) {
+    Addr end;
     MEMORY_BASIC_INFORMATION mbi;
-    frames[n++] = c->Eip;
+    sp &= ~(Addr) (sizeof(Addr) - 1);
     if (!VirtualQuery((void *) sp, &mbi, sizeof mbi) || mbi.State != MEM_COMMIT) return n;
-    end = (DWORD) mbi.BaseAddress + mbi.RegionSize;
+    end = (Addr) mbi.BaseAddress + mbi.RegionSize;
     /* the committed part of this stack can span regions (guard page moves) */
     for (;;) {
         MEMORY_BASIC_INFORMATION next;
         if (!VirtualQuery((void *) end, &next, sizeof next) || next.State != MEM_COMMIT ||
             next.AllocationBase != mbi.AllocationBase)
             break;
-        end = (DWORD) next.BaseAddress + next.RegionSize;
+        end = (Addr) next.BaseAddress + next.RegionSize;
     }
     if (end - sp > 0x40000) end = sp + 0x40000;
-    for (; sp + 4 <= end && n < max; sp += 4) {
-        DWORD v = *(DWORD *) sp;
-        if (n == 1 && v == c->Eip) continue;   /* host_crash_now: its own return address */
+    for (; sp + sizeof(Addr) <= end && n < max; sp += sizeof(Addr)) {
+        Addr v = *(Addr *) sp;
+        if (n == 1 && v == pc) continue;   /* host_crash_now: its own return address */
         if (after_call(v)) frames[n++] = v;
     }
     return n;
 }
 
+#ifdef _WIN64
+/* x86_64: every function has unwind data (.pdata/.xdata), so the frames can
+ * be walked exactly (fiber stacks too); where that stops (no unwind data:
+ * a leaf, a corrupt stack), the scan takes over from the last stack pointer */
+static int backtrace(const CONTEXT *c0, Addr *frames, int max) {
+    static CONTEXT c;
+    int n = 0;
+    c = *c0;
+    frames[n++] = c.Rip;
+    while (n < max) {
+        DWORD64 base = 0;
+        PVOID handler = NULL;
+        DWORD64 frame = 0;
+        PRUNTIME_FUNCTION f = RtlLookupFunctionEntry(c.Rip, &base, NULL);
+        if (f == NULL) {
+            /* a leaf function (no unwind data, no frame): return address on top */
+            if (n != 1 || !is_code(*(Addr *) c.Rsp)) break;
+            c.Rip = *(DWORD64 *) c.Rsp;
+            c.Rsp += 8;
+            frames[n++] = c.Rip;
+            continue;
+        }
+        RtlVirtualUnwind(UNW_FLAG_NHANDLER, base, c.Rip, f, &c, &handler, &frame, NULL);
+        if (c.Rip == 0 || !is_code(c.Rip)) return n;
+        frames[n++] = c.Rip;
+    }
+    if (n < max) n = scan_stack(c.Rsp, c.Rip, frames, n, max);
+    return n;
+}
+#else
+static int backtrace(const CONTEXT *c, Addr *frames, int max) {
+    int n = 0;
+    frames[n++] = PC(c);
+    return scan_stack(SP(c), PC(c), frames, n, max);
+}
+#endif
+
 /* a direct call's target (following an import thunk `jmp [iat]`), else 0 */
-static DWORD call_target(DWORD ret) {
+static Addr call_target(Addr ret) {
     const BYTE *p = (const BYTE *) ret;
-    DWORD t;
+    Addr t;
     LONG rel;
     if (p[-5] != 0xE8) return 0;
     memcpy(&rel, p - 4, 4);
-    t = ret + (DWORD) rel;
+    t = ret + (Addr) (LONG_PTR) rel;
     if (is_code(t) && ((const BYTE *) t)[0] == 0xFF && ((const BYTE *) t)[1] == 0x25) {
-        DWORD slot;
-        memcpy(&slot, (const BYTE *) t + 2, 4);
+        Addr slot;
         MEMORY_BASIC_INFORMATION mbi;
+#ifdef _WIN64
+        memcpy(&rel, (const BYTE *) t + 2, 4);   /* jmp [rip+d32] */
+        slot = t + 6 + (Addr) (LONG_PTR) rel;
+#else
+        DWORD s32;
+        memcpy(&s32, (const BYTE *) t + 2, 4);   /* jmp [d32] */
+        slot = s32;
+#endif
         if (VirtualQuery((void *) slot, &mbi, sizeof mbi) && mbi.State == MEM_COMMIT &&
             !(mbi.Protect & (PAGE_NOACCESS | PAGE_GUARD)))
-            t = *(DWORD *) slot;
+            t = *(Addr *) slot;
     }
     return t;
 }
 
-static void print_frames(const DWORD *frames, int n) {
+static void print_frames(const Addr *frames, int n) {
     static SymQuery q[MAX_FRAMES];
-    static DWORD start[MAX_FRAMES];
+    static Addr start[MAX_FRAMES];
     HMODULE exe = GetModuleHandleW(NULL);
     char exe_name[128];
     int i, last_ok = 0;
@@ -325,11 +387,14 @@ static void print_frames(const DWORD *frames, int n) {
         HMODULE m = module_of(frames[i]);
         char mod[128], nm[160];
         const char *name = q[i].name;
-        DWORD off = 0, t;
+        DWORD off = 0;
+        Addr t;
         char mark = ' ';
         start[i] = 0;
         if (m == exe && q[i].sym) {
+#ifndef _WIN64
             if (name[0] == '_') name++;   /* i686 C names */
+#endif
             start[i] = q[i].sym;
         } else if (m != NULL && export_name(m, q[i].addr, nm, sizeof nm, &off)) {
             name = nm;
@@ -345,20 +410,23 @@ static void print_frames(const DWORD *frames, int n) {
             if (t != 0 && start[last_ok] != 0 && t == start[last_ok]) last_ok = i;
             else mark = '?';
         }
-        off = name != NULL ? frames[i] - start[i] : 0;
+        off = name != NULL ? (DWORD) (frames[i] - start[i]) : 0;
         if (m == NULL)
-            out("  #%-2d%c %08lX  (not in a module)\n", i, mark, frames[i]);
+            out("  #%-2d%c " AF "  (not in a module)\n", i, mark, AV(frames[i]));
         else if (name != NULL)
-            out("  #%-2d%c %08lX  %s+%06lX  %s+0x%lX\n", i, mark, frames[i], m == exe ? exe_name : module_name(m, mod, sizeof mod),
-                frames[i] - (DWORD) m, name, off);
+            out("  #%-2d%c " AF "  %s+%06lX  %s+0x%lX\n", i, mark, AV(frames[i]),
+                m == exe ? exe_name : module_name(m, mod, sizeof mod), (unsigned long) (frames[i] - (Addr) m), name,
+                (unsigned long) off);
         else
-            out("  #%-2d%c %08lX  %s+%06lX\n", i, mark, frames[i], module_name(m, mod, sizeof mod), frames[i] - (DWORD) m);
+            out("  #%-2d%c " AF "  %s+%06lX\n", i, mark, AV(frames[i]), module_name(m, mod, sizeof mod),
+                (unsigned long) (frames[i] - (Addr) m));
     }
 }
 
 /* ---- the minidump ------------------------------------------------------------- */
 static struct {
-    DWORD base, size;
+    Addr base;
+    DWORD size;
 } g_extra[8];
 static int g_nextra, g_extra_i;
 
@@ -379,7 +447,7 @@ static BOOL CALLBACK dump_callback(PVOID param, const PMINIDUMP_CALLBACK_INPUT i
     return TRUE;
 }
 
-static void add_extra(DWORD base, DWORD size) {
+static void add_extra(Addr base, DWORD size) {
     MEMORY_BASIC_INFORMATION mbi;
     if (g_nextra >= 8 || size == 0) return;
     if (!VirtualQuery((void *) base, &mbi, sizeof mbi) || mbi.State != MEM_COMMIT) return;
@@ -402,7 +470,7 @@ static int write_dump(HANDLE f, EXCEPTION_POINTERS *ep, DWORD tid) {
         int i;
         for (i = 0; i < nt->FileHeader.NumberOfSections; i++)
             if ((s[i].Characteristics & IMAGE_SCN_MEM_WRITE) && !(s[i].Characteristics & IMAGE_SCN_MEM_EXECUTE))
-                add_extra((DWORD) exe + s[i].VirtualAddress, s[i].Misc.VirtualSize);
+                add_extra((Addr) exe + s[i].VirtualAddress, s[i].Misc.VirtualSize);
     }
     mei.ThreadId = tid;
     mei.ExceptionPointers = ep;
@@ -457,6 +525,8 @@ static DWORD WINAPI dumper(void *arg) {
                 break;
         }
     }
+    /* deleted when closed (or when the process ends) until the dump is complete */
+    if (g_dump_file != INVALID_HANDLE_VALUE) set_delete(g_dump_file, TRUE);
     WideCharToMultiByte(CP_UTF8, 0, path, -1, g_dump_name, sizeof g_dump_name, NULL, NULL);
     g_dump_name[sizeof g_dump_name - 1] = 0;
     /* the report next to it first (the dump may never finish) */
@@ -520,6 +590,7 @@ static const char *code_name(DWORD code) {
         case 0xC0000409: return "stack buffer overrun / fail-fast";
         case 0xC000041D: return "exception in a user callback";
         case 0xE06D7363: return "unhandled C++ exception (MSVC-built code)";
+        case 0x20474343: return "unhandled C++ exception (GCC-built code, SEH unwinding)";
         case HOST_CRASH_CODE: return "fatal internal error";
         default: return "exception";
     }
@@ -540,26 +611,35 @@ static void report(void) {
     EXCEPTION_POINTERS *ep = g_ep;
     EXCEPTION_RECORD *er = ep->ExceptionRecord;
     CONTEXT *c = ep->ContextRecord;
-    DWORD code = er->ExceptionCode, addr = (DWORD) er->ExceptionAddress;
+    DWORD code = er->ExceptionCode;
+    Addr addr = (Addr) er->ExceptionAddress;
     HMODULE m = module_of(addr);
-    static DWORD frames[MAX_FRAMES];
+    static Addr frames[MAX_FRAMES];
     static char mod[128], dumpname[MAX_PATH * 3], msg[2048];
     int nframes, dump_ok = 0;
     g_err_handle = (HANDLE) _get_osfhandle(2);
     if (g_err_handle == INVALID_HANDLE_VALUE || g_err_handle == NULL) g_err_handle = GetStdHandle(STD_ERROR_HANDLE);
     host_trace_flush_raw();   /* the per-frame trace up to the crash */
 
-    out("\nCRASH: %s (exception 0x%08lX) at 0x%08lX", code_name(code), code, addr);
-    if (m != NULL) out(" = %s+0x%lX", module_name(m, mod, sizeof mod), addr - (DWORD) m);
+    out("\nCRASH: %s (exception 0x%08lX) at 0x" AF, code_name(code), code, AV(addr));
+    if (m != NULL) out(" = %s+0x%lX", module_name(m, mod, sizeof mod), (unsigned long) (addr - (Addr) m));
     out("\n");
     if (g_reason != NULL) out("  %s\n", g_reason);
     if ((code == EXCEPTION_ACCESS_VIOLATION || code == EXCEPTION_IN_PAGE_ERROR) && er->NumberParameters >= 2)
-        out("  %s of address 0x%08lX\n",
+        out("  %s of address 0x" AF "\n",
             er->ExceptionInformation[0] == 0 ? "read" : er->ExceptionInformation[0] == 8 ? "execution" : "write",
-            (unsigned long) er->ExceptionInformation[1]);
+            AV(er->ExceptionInformation[1]));
+#ifdef _WIN64
+    out("  rax=%016llX rbx=%016llX rcx=%016llX rdx=%016llX\n  rsi=%016llX rdi=%016llX rbp=%016llX rsp=%016llX\n"
+        "  r8 =%016llX r9 =%016llX r10=%016llX r11=%016llX\n  r12=%016llX r13=%016llX r14=%016llX r15=%016llX\n"
+        "  rip=%016llX eflags=%08lX\n",
+        c->Rax, c->Rbx, c->Rcx, c->Rdx, c->Rsi, c->Rdi, c->Rbp, c->Rsp, c->R8, c->R9, c->R10, c->R11, c->R12, c->R13,
+        c->R14, c->R15, c->Rip, c->EFlags);
+#else
     out("  eax=%08lX ebx=%08lX ecx=%08lX edx=%08lX esi=%08lX edi=%08lX\n  ebp=%08lX esp=%08lX eip=%08lX "
         "eflags=%08lX\n",
         c->Eax, c->Ebx, c->Ecx, c->Edx, c->Esi, c->Edi, c->Ebp, c->Esp, c->Eip, c->EFlags);
+#endif
     out("  host thread %lu (%s)", g_crash_tid, g_crash_tid == g_main_tid ? "main: the game's fibers" : "not the main thread");
     if (g_crash_tid == g_main_tid) out(", fiber %p", g_crash_fiber);
     out("; %s %s, exe %s\n", host_crash_tag, host_crash_version, host_crash_exe_kind);
@@ -577,8 +657,10 @@ static void report(void) {
      * with a time limit (heap and loader locks) */
     SetEvent(g_dump_go);
     if (WaitForSingleObject(g_dump_done, 20000) == WAIT_TIMEOUT) {
+        /* (no DeleteFileW: converting the path can need the locked heap and
+         * hang here; the unfinished file is delete-on-close, gone when the
+         * process ends) */
         out("minidump: not written: timed out after 20 s (the process heap is locked or corrupt)\n");
-        if (g_dump_path[0]) DeleteFileW(g_dump_path);   /* (gone when the process ends) */
     } else if (g_heap_bad)
         out("minidump: not written: the process heap is corrupt (HeapValidate failed)\n");
     else if (g_dump_ok)
@@ -593,10 +675,10 @@ static void report(void) {
     strcpy(dumpname, g_dump_name);
     if (host_gui && !host_no_msgbox) {
         host_snprintf(msg, sizeof msg,
-                      "Blast Corps has crashed (%s, exception 0x%08lX at 0x%08lX%s%s).\n\n"
+                      "Blast Corps has crashed (%s, exception 0x%08lX at 0x" AF "%s%s).\n\n"
                       "The details were written to %s%s%s.\n\n"
                       "Please report it with %s and what you were doing.",
-                      code_name(code), code, addr, m != NULL ? " in " : "", m != NULL ? mod : "",
+                      code_name(code), code, AV(addr), m != NULL ? " in " : "", m != NULL ? mod : "",
                       host_log_path != NULL ? host_log_path : "the log",
                       dump_ok ? " and " : "", dump_ok ? dumpname : "", dump_ok ? "those files" : "that log");
         g_box = msg;
@@ -672,7 +754,7 @@ void host_crash_now(const char *why) {
     RtlCaptureContext(&c);
     memset(&er, 0, sizeof er);
     er.ExceptionCode = HOST_CRASH_CODE;
-    er.ExceptionAddress = (void *) c.Eip;
+    er.ExceptionAddress = (void *) PC(&c);
     ep.ExceptionRecord = &er;
     ep.ContextRecord = &c;
     g_reason = why;
@@ -765,7 +847,7 @@ static int patch_iat(HMODULE m) {
                 DWORD old;
                 if (strcmp((const char *) ibn->Name, repl[k].name) != 0) continue;
                 if (VirtualProtect(&iat->u1.Function, sizeof(void *), PAGE_READWRITE, &old)) {
-                    iat->u1.Function = (DWORD) repl[k].fn;
+                    iat->u1.Function = (ULONG_PTR) repl[k].fn;
                     VirtualProtect(&iat->u1.Function, sizeof(void *), old, &old);
                     patched++;
                 }

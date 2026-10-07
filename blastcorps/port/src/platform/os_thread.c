@@ -33,8 +33,8 @@ typedef struct {
 static HostThread g_threads[MAX_THREADS];
 static HostFiber g_main_fiber;
 static OSThread *g_running;   /* NULL while the host loop runs */
-static OSThread *g_runq;      /* ready threads, highest priority first */
-static OSThread *g_active;    /* all created threads (tlnext) */
+static OSThread * N64P g_runq;    /* ready threads, highest priority first */
+static OSThread * N64P g_active;  /* all created threads (tlnext) */
 static OSThread *g_idle;      /* parked idle thread */
 
 u64 plat_now;
@@ -74,15 +74,15 @@ const char *plat_thread_name(OSThread *t) {
 /* ---- queues ------------------------------------------------------------ */
 
 /* insert behind every thread of the same or higher priority */
-static void enqueue(OSThread **q, OSThread *t) {
-    OSThread **pp = q;
+static void enqueue(OSThread * N64P *q, OSThread *t) {
+    OSThread * N64P *pp = q;
     while (*pp != NULL && (*pp)->priority >= t->priority) pp = &(*pp)->next;
     t->next = *pp;
     *pp = t;
     t->queue = q;
 }
 
-static OSThread *pop(OSThread **q) {
+static OSThread *pop(OSThread * N64P *q) {
     OSThread *t = *q;
     if (t != NULL) {
         *q = t->next;
@@ -93,7 +93,7 @@ static OSThread *pop(OSThread **q) {
 }
 
 static void unlink_thread(OSThread *t) {
-    OSThread **pp = t->queue;
+    OSThread * N64P *pp = t->queue;
     if (pp == NULL) return;
     while (*pp != NULL && *pp != t) pp = &(*pp)->next;
     if (*pp == t) *pp = t->next;
@@ -120,7 +120,7 @@ static void dispatch_from_thread(void) {
     }
 }
 
-static void enqueue_and_yield(OSThread **q) {
+static void enqueue_and_yield(OSThread * N64P *q) {
     if (q != NULL) enqueue(q, g_running);
     dispatch_from_thread();
 }
@@ -199,7 +199,7 @@ void osStartThread(OSThread *t) {
 }
 
 void osDestroyThread(OSThread *t) {
-    OSThread **pp;
+    OSThread * N64P *pp;
     HostThread *h;
     if (t == NULL) t = g_running;
     if (t == NULL) return;
@@ -240,7 +240,7 @@ void osSetThreadPri(OSThread *t, OSPri pri) {
     if (t->priority != pri) {
         t->priority = pri;
         if (t != g_running && t->state != OS_STATE_STOPPED && t->queue != NULL) {
-            OSThread **q = t->queue;
+            OSThread * N64P *q = t->queue;
             unlink_thread(t);
             enqueue(q, t);
         }
@@ -270,13 +270,13 @@ void osCreateMesgQueue(OSMesgQueue *mq, OSMesg *msg, s32 count) {
     mq->msg = msg;
 }
 
-static void block_on(OSThread **q) {
+static void block_on(OSThread * N64P *q) {
     if (g_running == NULL) host_fatal("blocking message call outside a game thread");
     g_running->state = OS_STATE_WAITING;
     enqueue_and_yield(q);
 }
 
-static void wake_one(OSThread **q) {
+static void wake_one(OSThread * N64P *q) {
     OSThread *t = pop(q);
     if (t != NULL) {
         t->state = OS_STATE_RUNNABLE;

@@ -368,8 +368,8 @@ s32 func_802B01DC(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u64 *D_803EDBF8; /* save copy pair (func_802A7764) */
-extern u64 *D_803EDBFC;
+extern u64 * N64P D_803EDBF8; /* save copy pair (func_802A7764) */
+extern u64 * N64P D_803EDBFC;
 
 /* Leave vehicle type 1 (called from hd.c): zeroes the speed (s16 at +0x76 of
  * the state block), func_802A7764(D_803EDBF8, D_803EDBFC, 0x800), then

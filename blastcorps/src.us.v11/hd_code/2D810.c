@@ -16,7 +16,7 @@ f32 D_8036BFD0;
 /* One backdrop texture, 0xC bytes; two per level */
 typedef struct {
     /* 0x00 */ s16 id;
-    /* 0x04 */ void *ptr;
+    /* 0x04 */ void * N64P ptr;
     /* 0x08 */ u8 unk8; /* log2 of the s scale */
     /* 0x09 */ u8 unk9; /* log2 of the t scale */
     /* 0x0A */ u8 unkA; /* cms */

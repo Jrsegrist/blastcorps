@@ -37,13 +37,13 @@ typedef struct {
 } Entry8;
 
 typedef struct {
-    char *name;
+    char * N64P name;
     u8 pad[0x2C];
 } Entry30;
 
 typedef struct {
     u8 pad[0xC];
-    char *text;
+    char * N64P text;
     u8 pad2[0xC];
 } MenuItem;
 

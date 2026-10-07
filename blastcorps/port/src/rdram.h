@@ -37,6 +37,16 @@ typedef struct {
 
 extern const PortCopy port_copytab[];
 
+/* 64-bit build: the N64 value of each pointer slot of the pinned C objects
+ * (their native initialisers hold 0 there: N64_DPTR; gensyms.py ptrtab) */
+typedef struct {
+    uint32_t addr, value;
+} PortPtrSlot;
+#if defined(__x86_64__) || defined(_M_X64)
+#define PORT_PTRTAB 1
+extern const PortPtrSlot port_ptrtab[];
+#endif
+
 /* Reserve+commit RDRAM at 0x80000000.  Returns 0 on success. */
 int rdram_map(void);
 /* Read the ROM file, inflate the data segments into place, zero .bss,

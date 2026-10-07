@@ -20,9 +20,9 @@
  * asm passes them in registers; the C rewrites take pointers). */
 extern u8 D_803EEE70[];  /* vehicle 8's state block (the asm's $gp) */
 extern u32 D_803EEF18[]; /* vehicle 8's position x, y, z */
-extern u8 *D_803EEF24;   /* vehicle 8's model header */
-extern u64 *D_803EEF28;  /* vehicle 8's model buffers */
-extern u64 *D_803EEF2C;
+extern u8 * N64P D_803EEF24;   /* vehicle 8's model header */
+extern u64 * N64P D_803EEF28;  /* vehicle 8's model buffers */
+extern u64 * N64P D_803EEF2C;
 void func_802B8278(void);
 void func_802B8424(void);
 void func_802B9B4C(void);
@@ -31,9 +31,9 @@ f32 func_802B98E0(void);
 void func_802B8C18(s32 t3, s32 fp, TriSideOut *f);
 extern u8 D_803EEF40[]; /* the flying vehicle's animation channel table (Unk8029DEA0Entry, 56040.c) */
 extern u8 D_803EF240[]; /* the flying vehicle's state block */
-extern u8 *D_803EF2F8;  /* its model header */
-extern u8 *D_803EF2FC;  /* its model buffers */
-extern u8 *D_803EF300;
+extern u8 * N64P D_803EF2F8;  /* its model header */
+extern u8 * N64P D_803EF2FC;  /* its model buffers */
+extern u8 * N64P D_803EF300;
 extern s32 D_803EF31C;
 extern s16 D_803EF2E6;
 extern s16 D_803EF324;
@@ -201,8 +201,8 @@ s32 func_802B76F8(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u64 *D_803EEF28;
-extern u64 *D_803EEF2C;
+extern u64 * N64P D_803EEF28;
+extern u64 * N64P D_803EEF2C;
 
 /* Vehicle-type 8 exit: zero the speed (s16 at +0x76), copy 0x100 bytes
  * between the two buffers D_803EEF28/D_803EEF2C point at (func_802A7764),
@@ -594,11 +594,11 @@ void func_802B80D8(void) {
  * build would need a thunk). */
 void func_802B8278(void) {
     u8 *hdr = D_803EEF24;
-    u8 *m = *(u8 **) (hdr + *(s32 *) (hdr + 0x18) + 4);
+    u8 *m = *(u8 * N64P *) (hdr + *(s32 *) (hdr + 0x18) + 4);
     MtxChainRegs regs;
     u8 *base;
 
-    m += (s32) (D_8035805C != 0 ? D_803EEF28 : D_803EEF2C);
+    m += (N64_A32) (D_8035805C != 0 ? D_803EEF28 : D_803EEF2C);
     D_803ED390[1] = VEH8_U16(0x4C);
     func_802AA764(D_803EEF18[0], D_803EEF18[1], D_803EEF18[2], 0x32C8, (s32 *) m);
     base = (u8 *) (D_8035805C != 0 ? D_803EEF28 : D_803EEF2C);
@@ -749,7 +749,7 @@ void func_802B8480(s32 a1Val, u8 *hdr) {
 /* Rounded 3-D distance from (ax, ay, az) to (bx, by, bz) (62740.c; asm
  * convention in tools_port/conventions.txt: t3-t5, t6, t7, s0 -> s1). */
 
-extern void *D_803EF2E8;  /* this sound's handle, NULL = none */
+extern void * N64P D_803EF2E8;  /* this sound's handle, NULL = none */
 
 /* Positional sound 0x13 at D_803EF2EC/F0/F4 (called from hd.c). d is the
  * rounded distance from the player D_803643E0/E4/E8. Beyond 16000 the sound
@@ -1263,9 +1263,9 @@ f32 func_802B98E0(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 *D_803EF2F8; /* the flying vehicle's model header */
-extern u8 *D_803EF2FC; /* its model buffers */
-extern u8 *D_803EF300;
+extern u8 * N64P D_803EF2F8; /* the flying vehicle's model header */
+extern u8 * N64P D_803EF2FC; /* its model buffers */
+extern u8 * N64P D_803EF300;
 
 /* Places the flying vehicle's model ($gp = D_803EF240, read directly):
  * rotation (0, +0x4C, 0) and position D_803EF2EC/F0/F4 at scale 0x5208 into
@@ -1278,10 +1278,10 @@ extern u8 *D_803EF300;
  * here (fidelity note). The asm's add traps on overflow. */
 void func_802B9B4C(void) {
     u8 *hdr = D_803EF2F8;
-    u8 *m = *(u8 **) (hdr + *(s32 *) (hdr + 0x18) + 4);
+    u8 *m = *(u8 * N64P *) (hdr + *(s32 *) (hdr + 0x18) + 4);
     MtxChainRegs regs;
 
-    m += (s32) (D_8035805C != 0 ? D_803EF2FC : D_803EF300);
+    m += (N64_A32) (D_8035805C != 0 ? D_803EF2FC : D_803EF300);
     D_803ED390[0] = 0;
     D_803ED390[2] = 0;
     D_803ED390[1] = *(u16 *) (D_803EF240 + 0x4C);

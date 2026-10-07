@@ -48,13 +48,13 @@ typedef struct {
 } OSScMsg;
 
 typedef struct OSScTask_s {
-    struct OSScTask_s   *next;          /* note: this must be first */
+    struct OSScTask_s   * N64P next;          /* note: this must be first */
     u32                 state;
     u32			flags;
-    void		*framebuffer;	/* used by graphics tasks */
+    void		* N64P framebuffer;	/* used by graphics tasks */
 
     OSTask              list;
-    OSMesgQueue         *msgQ;
+    OSMesgQueue         * N64P msgQ;
     OSMesg              msg;
 #ifndef _FINALROM                       /* all #ifdef items should    */
     OSTime              startTime;      /* remain at the end!!, or    */
@@ -82,8 +82,8 @@ typedef struct OSScTask_s {
  *
  */
 typedef struct SCClient_s {
-    struct SCClient_s   *next;  /* next client in the list      */
-    OSMesgQueue         *msgQ;  /* where to send the frame msg  */
+    struct SCClient_s   * N64P next;  /* next client in the list      */
+    OSMesgQueue         * N64P msgQ;  /* where to send the frame msg  */
 } OSScClient;
 
 typedef struct {
@@ -94,13 +94,13 @@ typedef struct {
     OSMesgQueue cmdQ;
     OSMesg      cmdMsgBuf[OS_SC_MAX_MESGS];
     OSThread    thread;
-    OSScClient  *clientList;
-    OSScTask    *audioListHead;
-    OSScTask    *gfxListHead;
-    OSScTask    *audioListTail;
-    OSScTask    *gfxListTail;
-    OSScTask    *curRSPTask;
-    OSScTask    *curRDPTask;
+    OSScClient  * N64P clientList;
+    OSScTask    * N64P audioListHead;
+    OSScTask    * N64P gfxListHead;
+    OSScTask    * N64P audioListTail;
+    OSScTask    * N64P gfxListTail;
+    OSScTask    * N64P curRSPTask;
+    OSScTask    * N64P curRDPTask;
     u32         frameCount;
     s32         doAudio;
 } OSSched;

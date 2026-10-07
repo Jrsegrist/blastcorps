@@ -429,7 +429,7 @@ dist: $(G)/bc.exe dist/README.txt dist/third_party.sh
 	mkdir -p $(DIST)
 	cp $(G)/bc.exe $(addprefix $(G)/,$(RT64_DLLS)) $(DIST)/
 	$(CC:gcc=strip) --strip-debug $(DIST)/bc.exe
-	sed -e 's/@VERSION@/$(BC_VERSION)/' dist/README.txt | sed -e 's/$$/\r/' > $(DIST)/README.txt
+	sed -e 's/@VERSION@/$(BC_VERSION)/' -e 's/@BITS@/32-bit/' dist/README.txt | sed -e 's/$$/\r/' > $(DIST)/README.txt
 	TP=$(TP) RT64_SRC=$(RT64_SRC) bash dist/third_party.sh | sed -e 's/$$/\r/' > $(DIST)/THIRD_PARTY_LICENSES.txt
 	cd build/dist && $(PYTHON) -m zipfile -c $(DIST_NAME).zip $(DIST_NAME)/
 	@ls -l $(DIST) $(DIST).zip
@@ -476,6 +476,8 @@ strict-data: $(H)/typemap_all.txt
 	@if [ -n "$(LC_TRACE)" ]; then WIDTHS_NO_DECODERS=1 $(PYTHON) tools/widths.py facts $(H)/facts.txt $(LC_TRACE); fi
 $(H)/typemap_all.txt: $(H)/addrs.txt tools/typemap.py
 	cd $(ROOT) && TYPEMAP_ALL=1 $(PYTHON) port/tools/typemap.py port/$(H)/addrs.txt port/$@ > /dev/null
+
+include port64.mk
 
 clean:
 	rm -rf $(B)

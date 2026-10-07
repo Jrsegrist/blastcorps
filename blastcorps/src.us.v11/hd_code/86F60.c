@@ -20,9 +20,9 @@
 extern u8 D_803F8E80[];  /* this vehicle's state block (the asm's $gp) */
 extern u8 D_803F8B80[];  /* its channel table / save area */
 extern u32 D_803F8F28[]; /* x, y, z */
-extern u8 *D_803F8F34;   /* model header */
-extern u64 *D_803F8F38;  /* save copy pair (func_802A7764) */
-extern u64 *D_803F8F3C;
+extern u8 * N64P D_803F8F34;   /* model header */
+extern u64 * N64P D_803F8F38;  /* save copy pair (func_802A7764) */
+extern u64 * N64P D_803F8F3C;
 
 void func_802CC70C(void);
 #endif
@@ -188,8 +188,8 @@ s32 func_802CBB60(void) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 D_803F8E80[];
-extern u64 *D_803F8F38; /* save copy pair (func_802A7764) */
-extern u64 *D_803F8F3C;
+extern u64 * N64P D_803F8F38; /* save copy pair (func_802A7764) */
+extern u64 * N64P D_803F8F3C;
 
 /* Leave vehicle type 13 (called from hd.c): clears the speed (s16 at +0x76),
  * func_802A7764(D_803F8F38, D_803F8F3C, 0x100), then stops the looping
@@ -593,7 +593,7 @@ void func_802CC56C(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 *D_803F8F34;    /* model header: word offsets to the part lists */
+extern u8 * N64P D_803F8F34;    /* model header: word offsets to the part lists */
 
 /* Place vehicle 13's model: m = the word at +4 of the header entry at
  * hdr + hdr[6], plus the current save copy (D_803F8F38 when D_8035805C is
@@ -617,7 +617,7 @@ void func_802CC70C(void) {
     u8 *base;
     s32 *m;
 
-    m = (s32 *) (*(s32 *) (hdr + *(s32 *) (hdr + 0x18) + 4) +
+    m = (s32 *) N64_IPTR(*(s32 *) (hdr + *(s32 *) (hdr + 0x18) + 4) +
                  (s32) (D_8035805C ? (u8 *) D_803F8F38 : (u8 *) D_803F8F3C));
     D_803ED390[1] = *(u16 *) (D_803F8E80 + 0x4C);
     func_802AA764(D_803F8F28[0], D_803F8F28[1], D_803F8F28[2], 0x4268, m);

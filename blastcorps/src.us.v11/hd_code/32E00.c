@@ -11,8 +11,8 @@
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_02000000 ((u8 *) D_02000000)
 #ifdef NON_MATCHING
-#define D_803BE6FC (*(DigTrigger * *) &D_803BE6FC)
-#define D_803BE700 (*(DigTrigger * *) &D_803BE700)
+#define D_803BE6FC (*(DigTrigger * N64P *) &D_803BE6FC)
+#define D_803BE700 (*(DigTrigger * N64P *) &D_803BE700)
 #endif
 /* end of views */
 
@@ -50,7 +50,7 @@ extern u8 D_8036CB39;
 extern u8 D_8036CB3A;
 extern u8 D_8036CB3B;
 extern u8 D_8036CB3C;
-extern s16 *D_8036CB40; /* event animation frame ids */
+extern s16 * N64P D_8036CB40; /* event animation frame ids */
 extern u8 D_8036CB44;
 extern u8 D_8036CB50;
 extern u8 D_8036CB51;      /* event panel alpha */
@@ -63,7 +63,7 @@ extern Vtx D_802FBD50[8];
 
 extern DigEntry D_8036C8D0[50];
 extern u8 D_8036CB32;
-extern void *D_8036CB48[2];
+extern void * N64P D_8036CB48[2];
 extern u8 D_8036CB28;
 extern u8 D_8036CB29;
 extern u8 D_8036CB30;

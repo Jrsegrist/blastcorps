@@ -16,12 +16,12 @@
  * more specific non-ABI explanation where one was already worked out. */
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 *D_803FCD54;  /* model header */
-extern u8 *D_803FCD58;  /* the two 0x800-byte save copies */
-extern u8 *D_803FCD5C;
+extern u8 * N64P D_803FCD54;  /* model header */
+extern u8 * N64P D_803FCD58;  /* the two 0x800-byte save copies */
+extern u8 * N64P D_803FCD5C;
 extern u8 D_803FCCA0[]; /* this vehicle's state block */
 extern u8 D_803FC9A0[]; /* channel table */
-extern void *D_803FCD64; /* sound state */
+extern void * N64P D_803FCD64; /* sound state */
 extern u8 D_803FCD72;
 extern u8 D_803FCD73;
 extern u8 D_803FCD74;
@@ -118,8 +118,8 @@ void func_802D2A40(void);
 void func_802D2A74(void);
 void func_802D2C20(void);
 void func_802D2FA4(void);
-extern u8 *D_803FCD58; /* the two save copies */
-extern u8 *D_803FCD5C;
+extern u8 * N64P D_803FCD58; /* the two save copies */
+extern u8 * N64P D_803FCD5C;
 extern u8 D_803FC9A0[]; /* channel table */
 extern u8 D_803FCCA0[]; /* this vehicle's state block */
 
@@ -188,7 +188,7 @@ double sqrt(double);
         (out) = _r;                                                     \
     } while (0)
 
-extern void *D_803FCD64; /* sound state, NULL = none */
+extern void * N64P D_803FCD64; /* sound state, NULL = none */
 
 /* Distance attenuation: if D_803FCD64 is set, sets its volume (parameter 8)
  * to 0x7FFF - max(d - 0x3200, 0) / 4, clamped at 0, where d is the distance
@@ -342,9 +342,9 @@ void func_802D2C20(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 *D_803FCD54;    /* model header: word offsets to the part lists */
-extern u8 *D_803FCD58;    /* the two save copies */
-extern u8 *D_803FCD5C;
+extern u8 * N64P D_803FCD54;    /* model header: word offsets to the part lists */
+extern u8 * N64P D_803FCD58;    /* the two save copies */
+extern u8 * N64P D_803FCD5C;
 extern u8 D_803FCCA0[];   /* this vehicle's state block (the asm caller's $gp) */
 
 /* Place this vehicle's model: m = the word at +4 of the header entry at
@@ -367,7 +367,7 @@ void func_802D2FA4(void) {
     u8 *base;
     s32 *m;
 
-    m = (s32 *) (*(s32 *) (hdr + *(s32 *) (hdr + 0x18) + 4) + (s32) (D_8035805C ? D_803FCD58 : D_803FCD5C));
+    m = (s32 *) N64_IPTR((*(s32 *) (hdr + *(s32 *) (hdr + 0x18) + 4) + (s32) (D_8035805C ? D_803FCD58 : D_803FCD5C)));
     D_803ED390[0] = ((u16) D_803FCD6A);
     *(u16 *) (D_803FCCA0 + 0x4C) = ((u16) D_803FCD6C);
     D_803FCD68 = ((u16) D_803FCD6C);

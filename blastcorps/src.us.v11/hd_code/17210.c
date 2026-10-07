@@ -21,8 +21,8 @@ extern u16 D_803669A4;
 extern s8 D_803669A6;
 extern s8 D_803669A7;
 extern u8 D_803669A8;
-extern RecEntry *D_803669AC;
-extern void *D_803669B0;
+extern RecEntry * N64P D_803669AC;
+extern void * N64P D_803669B0;
 extern RecEntry D_80365588[];
 extern u16 D_802E8CB0[]; /* sprite ids (func_80272C5C) */
 

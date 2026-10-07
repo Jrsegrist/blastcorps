@@ -14,12 +14,15 @@ make -C port typemap ucode               # byte-order schema coverage / RSP micr
 make -C port headless                    # build/headless/bc_headless.exe: the game, no output
 make -C port game                        # build/game/bc.exe: the game in a window (RT64)
 make -C port verify                      # quick regression check against the emulator
+make -C port headless64 game64 dist64    # the same in 64 bits (x86_64, clang): "64-bit" below
+make -C port ptrcheck64 verify64 verify-levels64 loadcheck64
 ```
 
 Needs `i686-w64-mingw32-gcc` (WSL), the project venv (pyelftools, unicorn),
 host `gcc` (for `typemap`) and the ROM at run time (`ROM=`, default
 `../baserom.us.v11.z64` or `~/blastcorps/baserom.us.v11.z64`). The exe gets
-a Windows path through `wslpath -w`.
+a Windows path through `wslpath -w`.  The 64-bit build also needs `clang-18`
+and the x86_64 mingw-w64 toolchain (`x86_64-w64-mingw32-gcc`/`g++-posix`).
 
 ## How it fits together
 
@@ -693,3 +696,75 @@ pointers; WSL doesn't hand environment variables to the exe, hence an
 option); the emulator side is `tools_port/m64trace` with `WRITES`/`ONWRITE`
 over `cmp_spec.py` (scratchpad tools of the levels work).  `m64widths.py`
 takes `W_INPUT` / `W_POKE` / `W_SAVEDIR` to trace a level's access widths.
+
+## 64-bit (x86_64): `make -C port headless64 game64 dist64` (port64.mk)
+
+The same sources built as a 64-bit exe: `build/headless64/bc_headless.exe`,
+`build/game64/bc.exe`, `build/dist/BlastCorps-port-<hash>-x64/`.  The i686
+build stays the reference; both give the same per-frame traces.
+
+**Memory model.**  N64 memory stays at 0x80000000 with N64 layouts: every
+N64 address is still a valid host pointer, and every pointer stored in N64
+memory stays 4 bytes.  The game and SDK headers and the game C mark those
+(`port/include/port_n64ptr.h`; they expand to nothing in the IDO builds,
+`include/2.0I/PR/ultratypes.h`, and in the i686 port):
+
+| mark | 64-bit meaning | where |
+|---|---|---|
+| `T * N64P x` | `__ptr32 __uptr`: a 4-byte pointer, zero-extended when loaded | record fields, pinned globals, casts that read an N64 pointer (`*(u8 * N64P *) (p + 8)`), functions taking pointers to such pointers |
+| `N64FN(T) x` | a u32 (clang can't use `__ptr32` function pointers): `N64FN_SET`, `N64FN_GET(T, x)` | libaudio's handlers in N64 memory |
+| `N64_IPTR(x)` | `(unsigned) x`: zero-extend | a signed 32-bit address cast to a pointer |
+| `N64_A32` | `unsigned` | an int holding an address added to a pointer |
+| `N64_DPTR(x)` | 0, the value comes from the pointer table | pointers in static initialisers of N64 data |
+| `N64_KEEP` | `used` | a pinned static clang would fold away |
+
+The compiler is clang 18 (`--target=x86_64-w64-mingw32 -fms-extensions`;
+gcc has no `__ptr32`), linked with mingw-w64's x86_64 binutils, CRT and
+libgcc; C++ (src/live, RT64) is x86_64-w64-mingw32-g++-posix.  Everything
+the game can store a host address of must be below 4 GB: the exe (fixed base
+0x40000000, no dynamic base, no high-entropy VA, no relocations), the heap and
+the fiber stacks (bottom-up allocations without high-entropy VA; rdram.c and
+the fiber trampoline check it).
+
+**Pinning without linker scripts** (and without assembly text, so the same
+steps work on MSVC objects): `tools/coffpin.py` rewrites each game COFF
+object (built `-fdata-sections`): a pinned initialised object keeps its bytes
+as `__native_<name>` (the copy table), a bss one becomes undefined, and every
+relocation to it goes to an undefined `<name>`; `gensyms.py link64` writes
+those as absolute COFF symbols in an object (`tools/rdramobj.py`), which GNU ld
+and lld link alike (an lld-linked bc_headless gives the same trace).  Code
+reaches RDRAM RIP-relative (< 1.1 GB from the image).  `gensyms.py ptrtab`
+lists every pointer slot of the pinned C objects (the NON_MATCHING objects'
+R_MIPS_32 data relocations) with the NM ELF's word, written at start-up: the
+`N64_DPTR` initialisers (strings, tables of N64 addresses) get the N64's own
+values.  (RDRAM as a section of the image at 0x80000000 would avoid absolute
+symbols, but the image would then cover 0x7FFE0000, where Windows maps
+KUSER_SHARED_DATA: such an exe doesn't start.)
+
+**ultralib** (the ul_* objects see ultralib's own headers):
+`tools/ulhdr64.py` copies them with the marks listed in
+`data/ultralib_n64ptr.txt` into `build/headless64/ulinc`, and
+`tools/ulsrc64.py` rewrites the libaudio sources' uses of N64FN fields, the
+bank loader's s32 address offsets (bnkf.c) and `sizeof(ALFilter *)` (the bus
+source tables live in the audio heap, which the game sizes exactly: 0 bytes
+left over).
+
+**Alignment.**  The x86-64 ABI gives global arrays of 16 bytes or more
+16-byte alignment, and clang assumes it for every array, extern ones too: it
+used `movaps` on an 8-aligned N64 array.  The game code is compiled to LLVM
+IR, `tools/llalign64.py` lowers every alignment above 4 on memory accesses
+and N64 globals, then the code is generated; `tools/align64.py` checks the
+objects (no 16-byte-aligned access except stack and constants).
+
+**Inlining.**  `-fno-inline-functions` for the game: `--sync`/`--clock` key
+the emulator's values on the calling game function, and clang inlined more
+than gcc (verify64 had 8627 sync mismatches).
+
+**Checks**: `make -C port ptrcheck64` (`tools/ptrcheck64.py`, clang's AST:
+host-width pointer fields and pinned globals, casts to host-pointer pointers,
+signed int -> pointer casts, sizeof of host pointers, pointer + (s32) pointer;
+`tools/layout64.py`: every record laid out i686 vs x86_64;
+`data/ptrcheck64_allow.txt` lists the host-only records), `verify64`,
+`verify-levels64` (compare.py with `CMP_EXE`; native folders `...-native64`),
+`loadcheck64`.  RT64 is built for x86_64 from the same patched tree
+(`ARCH=x86_64 rt64/build_rt64.sh`: build-x86_64, dll-x86_64).

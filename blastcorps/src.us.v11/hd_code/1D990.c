@@ -11,7 +11,7 @@
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_802E8F94 ((LevelInfo *) D_802E8F94)
 #define D_802F49F4 ((Anim30 *) D_802F49F4)
-#define D_802F5804 ((void * *) D_802F5804)
+#define D_802F5804 ((void * N64P *) D_802F5804)
 #define D_80364AF0 ((Player *) D_80364AF0)
 #ifdef NON_MATCHING
 #define D_8036EA70 (*(u32 *) &D_8036EA70)
@@ -79,7 +79,7 @@ typedef struct {
     u8 pad54[0x100 - 0x54];
 } Player;
 
-extern LevelInfo *D_80367C04;
+extern LevelInfo * N64P D_80367C04;
 extern u8 D_802E8F30[];
 extern Entry0A D_802E8F68[];
 #ifndef NON_MATCHING
@@ -94,15 +94,15 @@ extern Entry08 D_802E8F74[];
 extern s32 D_80367BC0;
 extern u32 D_80367BC4;
 extern s16 D_80367BD8;
-extern char *D_80367C08;
+extern char * N64P D_80367C08;
 extern s32 D_80367C0C;
 extern char D_802E9F90[]; /* "BUILDINGS" */
 extern s32 D_802E9F9C;
 extern u8 D_802E9FA0[];   /* " S" */
-extern void *D_80367BE0[];
+extern void * N64P D_80367BE0[];
 extern u8 D_80367C01;
-extern Anim30 *D_80367BCC;
-extern Anim30 *D_80367BD0;
+extern Anim30 * N64P D_80367BCC;
+extern Anim30 * N64P D_80367BD0;
 extern u8 D_80367BD4;
 extern u8 D_80367BD5;
 extern char D_80367BB0[];
@@ -134,7 +134,7 @@ void func_80263140(void);
 void func_80263358(void);
 void func_802633E0(void);
 s32 func_8026394C(s16 x, s16 y, s16 x0, s16 y0, s16 x1, s16 y1);
-Gfx *func_80264264(Gfx **, Gfx *);
+Gfx *func_80264264(Gfx * N64P *, Gfx *);
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
@@ -610,7 +610,7 @@ s32 func_8026394C(s16 x, s16 y, s16 x0, s16 y0, s16 x1, s16 y1) {
 
 /* Draw the objective HUD: progress text or lap times, the time limit
  * (flashing red under ten seconds), and the objective icon(s) */
-Gfx *func_802639B4(Gfx *gdl, Gfx **arg1, u32 *arg2) {
+Gfx *func_802639B4(Gfx *gdl, Gfx * N64P *arg1, u32 *arg2) {
     Gfx *g;
     s32 pad60;
     u8 grn;
@@ -712,7 +712,7 @@ void func_8026420C(void) {
 /* Turbo-start banner: a small state machine in D_80367BC8 that scrolls the
  * countdown images in, rewards a turbo start, then scrolls them out; draws
  * the current image as eight 32-pixel-wide strips */
-Gfx *func_80264264(Gfx **arg0, Gfx *gdl) {
+Gfx *func_80264264(Gfx * N64P *arg0, Gfx *gdl) {
     Gfx *g;
     s32 i;
     s32 x0;

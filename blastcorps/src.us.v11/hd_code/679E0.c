@@ -102,7 +102,7 @@ void func_802AC2A4(s32 z, s32 a1, s32 x, s32 y, s32 b0, s32 id, u8 *vehicle) {
     func_80260650(D_80367738, 0x3D, 0);
     end = D_803F3960;
     for (p = D_803F3910; p != end; p += 8) {
-        u8 *obj = *(u8 **) p;
+        u8 *obj = *(u8 * N64P *) p;
         s32 ox;
         s32 oz;
 

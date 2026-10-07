@@ -4,6 +4,7 @@
 # (does nothing when the build is up to date).
 #
 #   bash port/rt64/build_rt64.sh            -> $TP/rt64_bc/build-i686/rt64.a (+ deps), $TP/rt64_bc/dll/*.dll
+#   ARCH=x86_64 bash port/rt64/build_rt64.sh -> build-x86_64/, dll-x86_64/ (the 64-bit build, port64.mk)
 #
 # Third-party sources live outside the repo, in $TP (default ~/thirdparty):
 #   $TP/rt64_bc/src         RT64 at RT64_COMMIT with the patches in port/rt64/patches applied
@@ -22,8 +23,13 @@ set -e
 HERE=$(cd "$(dirname "$0")" && pwd)
 TP=${TP:-$HOME/thirdparty}
 JOBS=${JOBS:-2}
-ARCH=i686
-WA=x86
+# ARCH=x86_64: the 64-bit build (port64.mk), from the same patched sources
+ARCH=${ARCH:-i686}
+case $ARCH in
+  i686) WA=x86; DLLDIR=dll ;;
+  x86_64) WA=x64; DLLDIR=dll-x86_64 ;;
+  *) echo "rt64: ARCH must be i686 or x86_64" >&2; exit 1 ;;
+esac
 RT64_URL=https://github.com/rt64/rt64.git
 RT64_COMMIT=43373749dac9bbc1b653e6a02aed40a9e1783bed   # 2026-09-02
 DXC_TAG=v1.9.2609
@@ -122,8 +128,14 @@ fi
 ninja -C $B -j$JOBS rt64
 
 # --- run-time DLLs next to the exe: dxcompiler.dll + dxil.dll (DXC), SDL2.dll (zlib licence) --------
-mkdir -p $W/dll
-cp -u $D/bin/$WA/dxcompiler.dll $D/bin/$WA/dxil.dll $SRC/src/contrib/mupen64plus-win32-deps/SDL2-2.26.3/lib/$WA/SDL2.dll $W/dll/
-printf "LIBRARY dxcompiler.dll\nEXPORTS\nDxcCreateInstance@12\nDxcCreateInstance2@16\n" > $W/dll/dxcompiler.def
-[ -f $W/dll/libdxcompiler.a ] || $ARCH-w64-mingw32-dlltool -k -d $W/dll/dxcompiler.def -l $W/dll/libdxcompiler.a
+mkdir -p $W/$DLLDIR
+cp -u $D/bin/$WA/dxcompiler.dll $D/bin/$WA/dxil.dll $SRC/src/contrib/mupen64plus-win32-deps/SDL2-2.26.3/lib/$WA/SDL2.dll \
+  $W/$DLLDIR/
+if [ $ARCH = i686 ]; then   # stdcall names carry the argument size on i686 only
+  printf "LIBRARY dxcompiler.dll\nEXPORTS\nDxcCreateInstance@12\nDxcCreateInstance2@16\n" > $W/$DLLDIR/dxcompiler.def
+  [ -f $W/$DLLDIR/libdxcompiler.a ] || $ARCH-w64-mingw32-dlltool -k -d $W/$DLLDIR/dxcompiler.def -l $W/$DLLDIR/libdxcompiler.a
+else
+  printf "LIBRARY dxcompiler.dll\nEXPORTS\nDxcCreateInstance\nDxcCreateInstance2\n" > $W/$DLLDIR/dxcompiler.def
+  [ -f $W/$DLLDIR/libdxcompiler.a ] || $ARCH-w64-mingw32-dlltool -d $W/$DLLDIR/dxcompiler.def -l $W/$DLLDIR/libdxcompiler.a
+fi
 echo "rt64: $B/rt64.a ready"

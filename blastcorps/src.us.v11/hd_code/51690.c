@@ -2,10 +2,10 @@
 #include <ultra64.h>
 #include "game/game.h"
 
-extern u8 *D_8039CA90;
-extern u8 *D_8039CA94;
-extern u8 *D_8039CA98;
-extern u8 *D_8039CA9C;
+extern u8 * N64P D_8039CA90;
+extern u8 * N64P D_8039CA94;
+extern u8 * N64P D_8039CA98;
+extern u8 * N64P D_8039CA9C;
 
 /* Carves four buffers out of the heap and loads ROM asset 0x6A8DA0 into the first. */
 void func_80295E50(void) {

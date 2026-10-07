@@ -27,9 +27,9 @@ typedef struct {
     s32 val; /* texture address, sort key */
 } SortEntry;
 
-extern ParticleDef *D_802C4A20[];
+extern ParticleDef * N64P D_802C4A20[];
 extern Vtx D_802FDA80[4];
-extern ParticleDef *D_8036EC30;
+extern ParticleDef * N64P D_8036EC30;
 extern Particle D_8036EC38[50];
 extern Mtx D_8036F278[][50];
 extern s32 D_80370B78; /* emitter position */
@@ -39,7 +39,7 @@ extern u8 D_80370B84; /* bursts emitted */
 extern s32 D_80370B88; /* floor height */
 extern u8 D_80370B8C;  /* emitter busy */
 extern u8 D_80370B8D;  /* cooldown */
-extern u8 *D_80370B90; /* texture cache */
+extern u8 * N64P D_80370B90; /* texture cache */
 extern s16 D_80370B98[];
 extern s32 D_80370BB0; /* textures cached */
 extern s32 D_80370BB4; /* bytes per texture */

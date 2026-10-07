@@ -86,5 +86,19 @@ typedef unsigned long   size_t;
 #define NULL    0
 #endif
 
+/* N64 pointer marks for the 64-bit Windows port (port/include/port_n64ptr.h,
+ * forced into the port build); they mean nothing here */
+#ifndef N64P
+#define N64P
+#define N64PTR(T) T *
+#define N64FN(T) T
+#define N64FN_SET(f, fn) ((f) = (fn))
+#define N64FN_GET(T, f) (f)
+#define N64_IPTR(x) (x)
+#define N64_DPTR(x) x
+#define N64_KEEP
+#define N64_A32 s32
+#endif
+
 #endif  /* _ULTRATYPES_H_ */
 

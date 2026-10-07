@@ -14,9 +14,9 @@
 extern u8 D_803F8AA0[];  /* this vehicle's state block (the asm's $gp) */
 extern u8 D_803F87A0[];  /* its animation channel table */
 extern u32 D_803F8B48[]; /* x, y, z */
-extern u8 *D_803F8B54;   /* its model */
-extern u64 *D_803F8B58;  /* save copy pair */
-extern u64 *D_803F8B5C;
+extern u8 * N64P D_803F8B54;   /* its model */
+extern u64 * N64P D_803F8B58;  /* save copy pair */
+extern u64 * N64P D_803F8B5C;
 extern f32 D_803F8B60;
 extern u8 D_803F8B76;
 extern u8 D_803F8B77;
@@ -192,8 +192,8 @@ s32 func_802CA140(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u64 *D_803F8B58; /* save copy pair (func_802A7764) */
-extern u64 *D_803F8B5C;
+extern u64 * N64P D_803F8B58; /* save copy pair (func_802A7764) */
+extern u64 * N64P D_803F8B5C;
 
 /* Teardown for this vehicle (called from func_8024B188 in hd.c): clears the
  * s16 at +0x76, func_802A7764(D_803F8B58, D_803F8B5C, 0x700) and stops its
@@ -340,8 +340,8 @@ void func_802CA3D8(s32 id, s32 *s3, InterpRegs *r) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u64 *D_803F8B58;
-extern u64 *D_803F8B5C;
+extern u64 * N64P D_803F8B58;
+extern u64 * N64P D_803F8B5C;
 extern u8 D_803F8B7A;  /* throttle hold-off countdown */
 extern s8 D_803F8B78;  /* "turning back to the ring" flag */
 extern s16 D_803F8B74; /* ring target heading */
@@ -778,7 +778,7 @@ f32 func_802CB3C8(s32 side) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 *D_803F8B54; /* this vehicle's model: +0 / +4 / +8 offsets of the point lists, +0x18 the matrix */
+extern u8 * N64P D_803F8B54; /* this vehicle's model: +0 / +4 / +8 offsets of the point lists, +0x18 the matrix */
 
 /* Place this vehicle's model (vehicle 10): builds its matrix (scale 0x3E80,
  * yaw = +0x4C of D_803F8AA0, the other two angles as they are) at the

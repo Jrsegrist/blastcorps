@@ -43,9 +43,9 @@ typedef struct {
     s32 unk14; /* offset of the segment 6 data */
     s32 unk18; /* offset of the matrix table */
 } ModelHeader;
-extern ModelHeader *D_80210E90[];
-extern void *D_80210EE0[][2];
-extern Gfx *D_80210F78[][4];
+extern ModelHeader * N64P D_80210E90[];
+extern void * N64P D_80210EE0[][2];
+extern Gfx * N64P D_80210F78[][4];
 extern Mtx D_802110A8[];
 extern Mtx D_80211568[];
 extern Mtx D_80211A28;
@@ -70,8 +70,8 @@ typedef struct {
 } Struct80208060;
 
 /* .data, per vehicle (19) */
-char *D_80208040 = "SELECT VEHICLE!";
-u16 *D_80208044 = D_80304954;
+char * N64P D_80208040 = N64_DPTR("SELECT VEHICLE!");
+u16 * N64P D_80208044 = N64_DPTR(D_80304954);
 s32 D_80208048 = 0xFFFF0000;
 u8 D_8020804C[19] = { 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 Struct80208060 D_80208060[19] = {
@@ -128,12 +128,12 @@ s32 func_801E7000(void) {
         slot[i] = -1;
         if ((D_80364AF0[D_80364AEA].unk10 & (1 << i) & level->unk2C) &&
             (D_80364AE8 == D_80364AEA || D_80364EF0[D_80364AEA][D_802E8C44[i]] != 0)) {
-            func_80202100(i, (u8 **) &D_80210E90[D_80211A6A], (u8 **) D_80210EE0[D_80211A6A], (u8 **) D_80210F78[D_80211A6A]);
+            func_80202100(i, (u8 * N64P *) &D_80210E90[D_80211A6A], (u8 * N64P *) D_80210EE0[D_80211A6A], (u8 * N64P *) D_80210F78[D_80211A6A]);
             D_80211A70[i] = x;
             x += 380.0;
             guTranslate(&D_802110A8[D_80211A6A], D_80211A70[i], D_8020816C[i], 0.0f);
             guScale(&D_80211568[D_80211A6A], D_802FDAC0[i], D_802FDAC0[i], D_802FDAC0[i]);
-            func_80202270((u8 *) D_80210E90[D_80211A6A], (u32 **) D_80210EE0[D_80211A6A], D_80211AC0[D_80211A6A]);
+            func_80202270((u8 *) D_80210E90[D_80211A6A], (u32 * N64P *) D_80210EE0[D_80211A6A], D_80211AC0[D_80211A6A]);
             func_802022EC(D_80211AC0[D_80211A6A], D_802080F8[i], D_8020804C[i], D_80208060[i].unk0,
                           D_80208060[i].unk4, D_8020810C[i], 0);
             func_80202380(i);
@@ -280,7 +280,7 @@ void func_801E7598(void) {
     gdl = func_80200BE0(gdl, (s32) dyn, &D_80358078);
     gDPPipeSync(gdl++);
     gDPSetCycleType(gdl++, G_CYC_1CYCLE);
-    func_80259CCC((Gfx **) dyn, (u8 *) D_80208040, D_80208044, 0, 0xA0, 0x50, 0x18, 0x15, 0x15, 1, 0, 0, 0, 0xA0);
+    func_80259CCC((Gfx * N64P *) dyn, (u8 *) D_80208040, D_80208044, 0, 0xA0, 0x50, 0x18, 0x15, 0x15, 1, 0, 0, 0, 0xA0);
     if (PORT_GVI("func_801E7598", D_803156C0) % 20 * 60 / 60 < 16) {
         D_802081B0 += D_802081B4 * 30;
         if (D_802081B0 >= 0x100) {
@@ -291,7 +291,7 @@ void func_801E7598(void) {
             D_802081B0 += 60;
             D_802081B4 = -D_802081B4;
         }
-        func_80259DC8((Gfx **) dyn, (u8 *) D_80208040, D_80208044, 0, 0xA0, 0x54, 0x15, 0x15, 0x15, 1, 0xFF, 0xFF - D_802081B0, 0,
+        func_80259DC8((Gfx * N64P *) dyn, (u8 *) D_80208040, D_80208044, 0, 0xA0, 0x54, 0x15, 0x15, 0x15, 1, 0xFF, 0xFF - D_802081B0, 0,
                       0xFF, 0xFF, D_802081B0, 0, 0xFF);
     }
     func_80259C24(&gdl, (Mtx *) dyn);

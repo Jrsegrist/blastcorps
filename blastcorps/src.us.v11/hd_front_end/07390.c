@@ -3,7 +3,7 @@
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_803156F8 ((FeDyn *) D_803156F8)
-#define D_80358050 ((void * *) D_80358050)
+#define D_80358050 ((void * N64P *) D_80358050)
 /* end of views */
 
 

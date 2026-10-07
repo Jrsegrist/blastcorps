@@ -156,7 +156,7 @@ void func_802936AC(mf, x, z, ox, oz, px, py, pz, state, speed)
     i = 0;
     found = 0;
     if (D_8036E4C8 == 0 && D_8036DCD8 != 0) {
-        func_802608C8((void *) D_8036DCD8);
+        func_802608C8((void *) N64_IPTR(D_8036DCD8));
     }
     if (D_802E8BD0 == 0) {
         if (((u8) D_8036E4CA)) {

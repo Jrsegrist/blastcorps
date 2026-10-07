@@ -85,8 +85,8 @@ extern "C" {
  * Structure for region header/control area 
  */
 typedef struct _Region_s {
-	u8	*r_startBufferAddress;	/* start address to data buffer */
-	u8	*r_endAddress;		/* end address of region */
+	u8	* N64P r_startBufferAddress;	/* start address to data buffer */
+	u8	* N64P r_endAddress;		/* end address of region */
 	s32	r_bufferSize;		/* size of buffers for this region */
 	s32	r_bufferCount;		/* up to 32K entries; MSB is used for 
 					   setting end-of-list/used */

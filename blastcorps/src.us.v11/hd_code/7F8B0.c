@@ -11,17 +11,17 @@
 #ifdef NON_MATCHING
 /* Bit-reader state of the LZSS decompressor (the asm keeps it in a0, t3, t4). */
 typedef struct {
-    /* 0x0 */ u8 *src; /* a0: next source byte */
+    /* 0x0 */ u8 * N64P src; /* a0: next source byte */
     /* 0x4 */ u32 cur; /* t3: current source byte */
     /* 0x8 */ u32 bit; /* t4: mask of the next bit of `cur` (0x80 = load a new byte first) */
 } LzBits;
 
 u32 func_802C42CC(u32 mask, LzBits *b);
-void func_802C41C0(u8 **srcp, u8 **dstp, u8 *window, s32 bits);
+void func_802C41C0(u8 * N64P *srcp, u8 * N64P *dstp, u8 *window, s32 bits);
 
-extern u8 *D_803F7830;
-extern u8 *D_803F7834;
-extern void *D_803F7848; /* second looping sound handle */
+extern u8 * N64P D_803F7830;
+extern u8 * N64P D_803F7834;
+extern void * N64P D_803F7848; /* second looping sound handle */
 extern s16 D_803F784C;  /* its on/off flag; func_802C4724 uses the high byte */
 extern s32 D_80364AB0;  /* force the next func_802C4584 update */
 extern f32 D_8030D940;
@@ -34,7 +34,7 @@ extern f32 D_8030D944;
 /* Decompress the LZSS stream at *src into *dst (window `work`, `type` offset
  * bits), advancing both pointers. */
 void func_802C4070(u32 *src, u32 *dst, u32 work, u8 type) {
-    func_802C41C0((u8 **) src, (u8 **) dst, (u8 *) work, type);
+    func_802C41C0((u8 * N64P *) src, (u8 * N64P *) dst, (u8 *) work, type);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7F8B0/func_802C4070.s")
@@ -72,7 +72,7 @@ void func_802C4108(u8 **src, u8 **dst, s32 work) {
  * 1..15 (game data uses 10 and 12; the asm shifts by it with sllv).
  * Register convention: src/dst in and out in a0/a1 (here through the
  * pointers); clobbers s0, s4-s7 (conventions.txt). */
-void func_802C41C0(u8 **srcp, u8 **dstp, u8 *window, s32 bits) {
+void func_802C41C0(u8 * N64P *srcp, u8 * N64P *dstp, u8 *window, s32 bits) {
     LzBits b;
     u8 *dst = *dstp;
     u32 wmask = (1 << bits) - 1;
@@ -307,7 +307,7 @@ typedef struct {
     /* 802C2390 */ u8 ta802C2390[4]; /* D_802C2390: id, n = 8 frames, k = 1 textures per frame, blend */
     /* 802C2394 */ u16 ta802C2390_keys[8];
     /* 802C23A4 */ u16 ta802C2390_ids[8];
-    /* 802C23B4 */ u8 *texAnims[12]; /* D_802C23B4 */
+    /* 802C23B4 */ u8 * N64P texAnims[12]; /* D_802C23B4 */
     /* 802C23E4 */ s32 texAnimsEnd;
     /* 802C23E8 */ u32 pad802C23E8[2];
     /* 802C23F0 */ EffectDef ed802C23F0; /* D_802C23F0 */
@@ -373,7 +373,7 @@ typedef struct {
     /* 802C3DE4 */ u16 ed802C3DD4_ids[104];
     /* 802C3EB4 */ EffectDef ed802C3EB4; /* D_802C3EB4 */
     /* 802C3EC4 */ u16 ed802C3EB4_ids[156];
-    /* 802C3FFC */ u8 *effectDefs[28]; /* D_802C3FFC */
+    /* 802C3FFC */ u8 * N64P effectDefs[28]; /* D_802C3FFC */
     /* 802C406C */ u32 pad802C406C;
 } TextData7D9D0; /* size 0x1EE0 */
 /* the members must sit at their ROM offsets (with 4-byte pointers) */
@@ -479,10 +479,10 @@ TextData7D9D0 textdata_7D9D0 = {
         0x08D9, 0x08DB, 0x08DC, 0x08DD, 0x08DE, 0x08DF, 0x08E0, 0x08D9,
     },
     {
-        (u8 *) textdata_7D9D0.ta802C2190, (u8 *) textdata_7D9D0.ta802C21A4, (u8 *) textdata_7D9D0.ta802C21B8,
-        (u8 *) textdata_7D9D0.ta802C2208, (u8 *) textdata_7D9D0.ta802C226C, (u8 *) textdata_7D9D0.ta802C22D0,
-        (u8 *) textdata_7D9D0.ta802C2308, (u8 *) textdata_7D9D0.ta802C2314, (u8 *) textdata_7D9D0.ta802C2324,
-        (u8 *) textdata_7D9D0.ta802C2348, (u8 *) textdata_7D9D0.ta802C236C, (u8 *) textdata_7D9D0.ta802C2390,
+        N64_DPTR((u8 *) textdata_7D9D0.ta802C2190), N64_DPTR((u8 *) textdata_7D9D0.ta802C21A4), N64_DPTR((u8 *) textdata_7D9D0.ta802C21B8),
+        N64_DPTR((u8 *) textdata_7D9D0.ta802C2208), N64_DPTR((u8 *) textdata_7D9D0.ta802C226C), N64_DPTR((u8 *) textdata_7D9D0.ta802C22D0),
+        N64_DPTR((u8 *) textdata_7D9D0.ta802C2308), N64_DPTR((u8 *) textdata_7D9D0.ta802C2314), N64_DPTR((u8 *) textdata_7D9D0.ta802C2324),
+        N64_DPTR((u8 *) textdata_7D9D0.ta802C2348), N64_DPTR((u8 *) textdata_7D9D0.ta802C236C), N64_DPTR((u8 *) textdata_7D9D0.ta802C2390),
     },
     -1,
     { 0x00000000, 0x00000000 },
@@ -1005,16 +1005,16 @@ TextData7D9D0 textdata_7D9D0 = {
         0x0D3D, 0x0D3E, 0x0D3F, 0x0D40,
     },
     {
-        (u8 *) &textdata_7D9D0.ed802C23F0, (u8 *) &textdata_7D9D0.ed802C24E8, (u8 *) &textdata_7D9D0.ed802C26D8,
-        (u8 *) &textdata_7D9D0.ed802C2744, (u8 *) &textdata_7D9D0.ed802C28E4, (u8 *) &textdata_7D9D0.ed802C2954,
-        (u8 *) &textdata_7D9D0.ed802C2984, (u8 *) &textdata_7D9D0.ed802C29D0, (u8 *) &textdata_7D9D0.ed802C2A5C,
-        (u8 *) &textdata_7D9D0.ed802C2A80, (u8 *) &textdata_7D9D0.ed802C2C70, (u8 *) &textdata_7D9D0.ed802C2E60,
-        (u8 *) &textdata_7D9D0.ed802C3050, (u8 *) &textdata_7D9D0.ed802C3240, (u8 *) &textdata_7D9D0.ed802C3430,
-        (u8 *) &textdata_7D9D0.ed802C3620, (u8 *) &textdata_7D9D0.ed802C37C0, (u8 *) &textdata_7D9D0.ed802C37E4,
-        (u8 *) &textdata_7D9D0.ed802C3804, (u8 *) &textdata_7D9D0.ed802C382C, (u8 *) &textdata_7D9D0.ed802C3848,
-        (u8 *) &textdata_7D9D0.ed802C386C, (u8 *) &textdata_7D9D0.ed802C3888, (u8 *) &textdata_7D9D0.ed802C399C,
-        (u8 *) &textdata_7D9D0.ed802C3B44, (u8 *) &textdata_7D9D0.ed802C3C14, (u8 *) &textdata_7D9D0.ed802C3DD4,
-        (u8 *) &textdata_7D9D0.ed802C3EB4,
+        N64_DPTR((u8 *) &textdata_7D9D0.ed802C23F0), N64_DPTR((u8 *) &textdata_7D9D0.ed802C24E8), N64_DPTR((u8 *) &textdata_7D9D0.ed802C26D8),
+        N64_DPTR((u8 *) &textdata_7D9D0.ed802C2744), N64_DPTR((u8 *) &textdata_7D9D0.ed802C28E4), N64_DPTR((u8 *) &textdata_7D9D0.ed802C2954),
+        N64_DPTR((u8 *) &textdata_7D9D0.ed802C2984), N64_DPTR((u8 *) &textdata_7D9D0.ed802C29D0), N64_DPTR((u8 *) &textdata_7D9D0.ed802C2A5C),
+        N64_DPTR((u8 *) &textdata_7D9D0.ed802C2A80), N64_DPTR((u8 *) &textdata_7D9D0.ed802C2C70), N64_DPTR((u8 *) &textdata_7D9D0.ed802C2E60),
+        N64_DPTR((u8 *) &textdata_7D9D0.ed802C3050), N64_DPTR((u8 *) &textdata_7D9D0.ed802C3240), N64_DPTR((u8 *) &textdata_7D9D0.ed802C3430),
+        N64_DPTR((u8 *) &textdata_7D9D0.ed802C3620), N64_DPTR((u8 *) &textdata_7D9D0.ed802C37C0), N64_DPTR((u8 *) &textdata_7D9D0.ed802C37E4),
+        N64_DPTR((u8 *) &textdata_7D9D0.ed802C3804), N64_DPTR((u8 *) &textdata_7D9D0.ed802C382C), N64_DPTR((u8 *) &textdata_7D9D0.ed802C3848),
+        N64_DPTR((u8 *) &textdata_7D9D0.ed802C386C), N64_DPTR((u8 *) &textdata_7D9D0.ed802C3888), N64_DPTR((u8 *) &textdata_7D9D0.ed802C399C),
+        N64_DPTR((u8 *) &textdata_7D9D0.ed802C3B44), N64_DPTR((u8 *) &textdata_7D9D0.ed802C3C14), N64_DPTR((u8 *) &textdata_7D9D0.ed802C3DD4),
+        N64_DPTR((u8 *) &textdata_7D9D0.ed802C3EB4),
     },
     0x00000000,
 };

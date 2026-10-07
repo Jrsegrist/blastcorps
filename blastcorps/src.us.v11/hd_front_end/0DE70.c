@@ -41,12 +41,12 @@ extern u8 D_006EAB90[];
 extern u8 D_006EC4C0[];
 
 extern u32 D_802182C0;
-extern u8 *D_802182C4;
-extern Gfx *D_802182C8;
-extern void *D_802182CC;
-extern u8 *D_80218350;
-extern void *D_80218358[2];
-extern Gfx *D_80218360[2][2];
+extern u8 * N64P D_802182C4;
+extern Gfx * N64P D_802182C8;
+extern void * N64P D_802182CC;
+extern u8 * N64P D_80218350;
+extern void * N64P D_80218358[2];
+extern Gfx * N64P D_80218360[2][2];
 extern Mtx D_80218370;
 extern Mtx D_802183B0;
 extern Mtx D_802183F0;
@@ -75,8 +75,8 @@ void func_801F4E70(u8 arg0) {
             D_802182C0 = D_006EC4C0 - D_006EAB90;
             break;
     }
-    func_8028B4C4((u32) D_802182C4, (u32) ((void *) D_80358070), &D_802182C0, 12, 10, 1);
-    hdr = (FeHdr *) D_80358070;
+    func_8028B4C4((u32) D_802182C4, (u32) ((void *) N64_IPTR(D_80358070)), &D_802182C0, 12, 10, 1);
+    hdr = (FeHdr *) N64_IPTR(D_80358070);
     D_80358070 += D_802182C0;
     D_802182C8 = (Gfx *) (hdr->unk1C + (u32) hdr);
     p = (void *) (hdr->unk20 + (u32) hdr);
@@ -143,10 +143,10 @@ void func_801F55D8(void) {
     s32 i;
     FeDyn *dyn;
 
-    func_80202100(0x96, &D_80218350, (u8 **) D_80218358, (u8 **) D_80218360[0]);
+    func_80202100(0x96, &D_80218350, (u8 * N64P *) D_80218358, (u8 * N64P *) D_80218360[0]);
     guTranslate(&D_80218370, 150.0f, -45.0f, 0.0f);
     guScale(&D_802183B0, 1.5f, 1.5f, 1.5f);
-    func_80202270(D_80218350, (u32 **) D_80218358, D_80218430);
+    func_80202270(D_80218350, (u32 * N64P *) D_80218358, D_80218430);
     func_802022EC(D_80218430, 1, 0, 0, 0.0f, 2, 0);
     func_802022EC(D_80218430, 2, 0, 0, 0.0f, 1, 1);
     guRotate(&D_802183F0, 20.0f, 1.0f, 0.0f, 0.0f);

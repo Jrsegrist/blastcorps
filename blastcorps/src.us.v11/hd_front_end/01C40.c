@@ -59,8 +59,8 @@ typedef struct {
     /* 0x06 */ u16 unk6;
     /* 0x08 */ u16 unk8;
     /* 0x0A */ u8 padA[2];
-    /* 0x0C */ char *unkC; /* title */
-    /* 0x10 */ void *unk10; /* glyph list */
+    /* 0x0C */ char * N64P unkC; /* title */
+    /* 0x10 */ void * N64P unk10; /* glyph list */
     /* 0x14 */ u8 unk14;
     /* 0x15 */ u8 pad15[3];
     /* 0x18 */ u8 unk18;
@@ -122,7 +122,7 @@ extern s32 D_80215508[];
 extern u8 D_802155A0[]; /* ticker text */
 #define SCROLL_TEXT ((char *) D_802155A0)
 extern char D_80215480[][16];
-extern u16 *D_802158A0;
+extern u16 * N64P D_802158A0;
 
 extern Vtx D_80208380[];
 extern Gfx D_80208400[];
@@ -149,7 +149,7 @@ extern s16 D_80215918;
 extern s16 D_8021591A;
 extern s32 D_80215920;
 extern u8 D_80215924;
-extern char *D_80215928;
+extern char * N64P D_80215928;
 #ifndef NON_MATCHING
 extern u8 D_802F47B0[];
 #endif
@@ -200,37 +200,37 @@ Gfx *func_801EC49C(Gfx *arg0, s32 x, s32 y, u8 slot);
 
 
 RankTitle D_802081C0[31] = {
-    { "ROOKIE WRECKER", (u16 *) 0x803041DC },
-    { "TRAINED CRUSHER", (u16 *) 0x803041EC },
-    { "EXPERIENCED RAVAGER", (u16 *) 0x803041FC },
-    { "DECORATED DAMAGER", (u16 *) 0x8030420C },
-    { "PROFESSIONAL RAZER", (u16 *) 0x8030421C },
-    { "EXPERT DESTROYER", (u16 *) 0x8030422C },
-    { "GIFTED RUINER", (u16 *) 0x8030423C },
-    { "ACCOMPLISHED CONQUEROR", (u16 *) 0x8030424C },
-    { "MASTER DESPOILER", (u16 *) 0x8030425C },
-    { "DEMOLITION FANATIC", (u16 *) 0x8030426C },
-    { "GRAND ERADICATOR", (u16 *) 0x8030427C },
-    { "HEAVY DUTY WASTER", (u16 *) 0x80304288 },
-    { "TOTAL PULVERISER", (u16 *) 0x8030429C },
-    { "CHAMPION RANSACKER", (u16 *) 0x803042AC },
-    { "MECHANICAL MAESTRO", (u16 *) 0x803042B8 },
-    { "CHIEF OBLITERATOR", (u16 *) 0x803042CC },
-    { "COMMANDING DESOLATOR", (u16 *) 0x803042E0 },
-    { "SUPREME DEVASTATOR", (u16 *) 0x803042F0 },
-    { "ULTIMATE ANNIHILATOR", (u16 *) 0x80304304 },
-    { "LEVELING LEGEND", (u16 *) 0x8030430C },
-    { "DESTRUCTIVE PSYCHOPATH", (u16 *) 0x80304318 },
-    { "MINDLESS DESECRATOR", (u16 *) 0x80304328 },
-    { "HYSTERICAL CLAUSTROPHOBE", (u16 *) 0x80304334 },
-    { "UNCONTROLLABLE MADMAN", (u16 *) 0x80304344 },
-    { "WORLD CLASS MEGALOMANIAC", (u16 *) 0x80304358 },
-    { "CAPTAIN OF CARNAGE", (u16 *) 0x80304364 },
-    { "SINGLE MINDED CHAOSMONGER", (u16 *) 0x80304370 },
-    { "GRAND HIGH SLAUGHTERMASTER", (u16 *) 0x8030437C },
-    { "LUNATIC LORD OF HAVOC", (u16 *) 0x80304388 },
-    { "ARMAGEDDON ADEPT", (u16 *) 0x80304394 },
-    { "YOU CAN STOP NOW.", (u16 *) 0x8030439C },
+    { N64_DPTR("ROOKIE WRECKER"), (u16 * N64P) 0x803041DC },
+    { N64_DPTR("TRAINED CRUSHER"), (u16 * N64P) 0x803041EC },
+    { N64_DPTR("EXPERIENCED RAVAGER"), (u16 * N64P) 0x803041FC },
+    { N64_DPTR("DECORATED DAMAGER"), (u16 * N64P) 0x8030420C },
+    { N64_DPTR("PROFESSIONAL RAZER"), (u16 * N64P) 0x8030421C },
+    { N64_DPTR("EXPERT DESTROYER"), (u16 * N64P) 0x8030422C },
+    { N64_DPTR("GIFTED RUINER"), (u16 * N64P) 0x8030423C },
+    { N64_DPTR("ACCOMPLISHED CONQUEROR"), (u16 * N64P) 0x8030424C },
+    { N64_DPTR("MASTER DESPOILER"), (u16 * N64P) 0x8030425C },
+    { N64_DPTR("DEMOLITION FANATIC"), (u16 * N64P) 0x8030426C },
+    { N64_DPTR("GRAND ERADICATOR"), (u16 * N64P) 0x8030427C },
+    { N64_DPTR("HEAVY DUTY WASTER"), (u16 * N64P) 0x80304288 },
+    { N64_DPTR("TOTAL PULVERISER"), (u16 * N64P) 0x8030429C },
+    { N64_DPTR("CHAMPION RANSACKER"), (u16 * N64P) 0x803042AC },
+    { N64_DPTR("MECHANICAL MAESTRO"), (u16 * N64P) 0x803042B8 },
+    { N64_DPTR("CHIEF OBLITERATOR"), (u16 * N64P) 0x803042CC },
+    { N64_DPTR("COMMANDING DESOLATOR"), (u16 * N64P) 0x803042E0 },
+    { N64_DPTR("SUPREME DEVASTATOR"), (u16 * N64P) 0x803042F0 },
+    { N64_DPTR("ULTIMATE ANNIHILATOR"), (u16 * N64P) 0x80304304 },
+    { N64_DPTR("LEVELING LEGEND"), (u16 * N64P) 0x8030430C },
+    { N64_DPTR("DESTRUCTIVE PSYCHOPATH"), (u16 * N64P) 0x80304318 },
+    { N64_DPTR("MINDLESS DESECRATOR"), (u16 * N64P) 0x80304328 },
+    { N64_DPTR("HYSTERICAL CLAUSTROPHOBE"), (u16 * N64P) 0x80304334 },
+    { N64_DPTR("UNCONTROLLABLE MADMAN"), (u16 * N64P) 0x80304344 },
+    { N64_DPTR("WORLD CLASS MEGALOMANIAC"), (u16 * N64P) 0x80304358 },
+    { N64_DPTR("CAPTAIN OF CARNAGE"), (u16 * N64P) 0x80304364 },
+    { N64_DPTR("SINGLE MINDED CHAOSMONGER"), (u16 * N64P) 0x80304370 },
+    { N64_DPTR("GRAND HIGH SLAUGHTERMASTER"), (u16 * N64P) 0x8030437C },
+    { N64_DPTR("LUNATIC LORD OF HAVOC"), (u16 * N64P) 0x80304388 },
+    { N64_DPTR("ARMAGEDDON ADEPT"), (u16 * N64P) 0x80304394 },
+    { N64_DPTR("YOU CAN STOP NOW."), (u16 * N64P) 0x8030439C },
 };
 
 u8 D_802082B8[0x20] = {
@@ -391,7 +391,7 @@ Vtx D_80208380[8] = {
 };
 
 Gfx D_80208400[] = {
-    gsSPVertex(D_80208380, 8, 0),
+    gsSPVertex(N64_DPTR(D_80208380), 8, 0),
     gsDPPipeSync(),
     gsSP1Triangle(0, 5, 1, 0),
     gsSP1Triangle(5, 1, 6, 0),
@@ -530,10 +530,10 @@ Gfx *func_801E9718(Gfx *arg0, PlayerSelDyn *dyn, s32 arg2) {
             }
         }
         gdl = func_80274AA4(gdl);
-        func_80259CCC((Gfx **) dyn, (D_8021592E == 1) ? NULL : func_8025B558(D_802158A8), (D_8021592E == 1) ? D_802158A8 : NULL,
+        func_80259CCC((Gfx * N64P *) dyn, (D_8021592E == 1) ? NULL : func_8025B558(D_802158A8), (D_8021592E == 1) ? D_802158A8 : NULL,
                       0, 0, (-D_802154D8 % D_80215458) - 3, 0xC9, 0x14, 0x14, 1, 0, 0, 0,
                       (D_8021593C / 2 - 0x1B < 0) ? 0 : D_8021593C / 2 - 0x1B);
-        func_80259DC8((Gfx **) dyn, (D_8021592E == 1) ? NULL : func_8025B558(D_802158A8), (D_8021592E == 1) ? D_802158A8 : NULL,
+        func_80259DC8((Gfx * N64P *) dyn, (D_8021592E == 1) ? NULL : func_8025B558(D_802158A8), (D_8021592E == 1) ? D_802158A8 : NULL,
                       0, 0, -D_802154D8 % D_80215458, 0xC7, 0x14, 0x14, 1, 0xFF, 0xFF, 0xFF, D_8021593C, 0xFF, 0xFF,
                       0xFF, D_8021593C);
         gDPPipeSync(gdl++);
@@ -793,13 +793,13 @@ Gfx *func_801EAA7C(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
                     if (D_802154B6 == i) {
                         ch = D_80208498[0], selX = x, selY = y, selW = 0x18, selH = 0x14;
                     } else {
-                        func_80259DC8((Gfx **) dyn, D_80208498, 0, 1, 0, x, y, 0x18, 0x14, 1, 0xC8, 0xC8, 0xC8, D_8036BB20, 0xFF,
+                        func_80259DC8((Gfx * N64P *) dyn, D_80208498, 0, 1, 0, x, y, 0x18, 0x14, 1, 0xC8, 0xC8, 0xC8, D_8036BB20, 0xFF,
                                       0xFF, 0xFF, D_8036BB20);
                     }
                 } else if (D_802154B6 == i) {
-                    func_80259CCC((Gfx **) dyn, D_80208498, 0, 1, 0, x - 0xB, y, 0x30, 0x28, 1, 0, 0, 0, D_8036BB20 / 2);
+                    func_80259CCC((Gfx * N64P *) dyn, D_80208498, 0, 1, 0, x - 0xB, y, 0x30, 0x28, 1, 0, 0, 0, D_8036BB20 / 2);
                 } else {
-                    func_80259CCC((Gfx **) dyn, D_80208498, 0, 1, 0, x - 4, y + 3, 0x18, 0x14, 1, 0, 0, 0, D_8036BB20 / 2);
+                    func_80259CCC((Gfx * N64P *) dyn, D_80208498, 0, 1, 0, x - 4, y + 3, 0x18, 0x14, 1, 0, 0, 0, D_8036BB20 / 2);
                 }
             }
         }
@@ -812,7 +812,7 @@ Gfx *func_801EAA7C(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
         }
         D_80208498[0] = ch;
         func_80259BD4(&gdl, (s32) dyn);
-        func_80259DC8((Gfx **) dyn, D_80208498, 0, 1, 0, selX - 5, selY - 5, selW * 2, selH * 2, 1, col[0], col[1], col[2],
+        func_80259DC8((Gfx * N64P *) dyn, D_80208498, 0, 1, 0, selX - 5, selY - 5, selW * 2, selH * 2, 1, col[0], col[1], col[2],
                       alpha, col[4], col[5], col[6], alpha);
     }
     if (yoshiState == 2 && (D_80370C28 & 0x1000) && !(D_80370C2A & 0x1000) && func_802753C0() == 0) {
@@ -887,9 +887,9 @@ Gfx *func_801EAA7C(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
             D_80215440 += (D_80215448 - D_80215440) * 0.2;
             D_80215444 += (D_8021544C - D_80215444) * 0.2;
             D_80208498[0] = D_802154BA;
-            func_80259CCC((Gfx **) dyn, D_80208498, 0, 0, 0, D_80215944 - 4.0f, D_80215948 + 4.0f, D_80215440, D_80215444, 1, 0,
+            func_80259CCC((Gfx * N64P *) dyn, D_80208498, 0, 0, 0, D_80215944 - 4.0f, D_80215948 + 4.0f, D_80215440, D_80215444, 1, 0,
                           0, 0, D_8036BB20 / 2);
-            func_80259DC8((Gfx **) dyn, D_80208498, 0, 0, 0, D_80215944, D_80215948, D_80215440, D_80215444, 1, col[0], col[1],
+            func_80259DC8((Gfx * N64P *) dyn, D_80208498, 0, 0, 0, D_80215944, D_80215948, D_80215440, D_80215444, 1, col[0], col[1],
                           col[2], D_8036BB20, col[4], col[5], col[6], D_8036BB20);
             if (FABS(D_80215944 - D_8021594C) < 0.15 && FABS(D_80215948 - D_80215950) < 0.15) {
                 func_80260650(D_80367738, 1, 0);

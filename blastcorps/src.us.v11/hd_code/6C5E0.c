@@ -11,9 +11,9 @@
 
 extern u8 D_803EDF10[];  /* vehicle 2 state block */
 extern u32 D_803EDFB8[]; /* x, y, z */
-extern u8 *D_803EDFC4;   /* model */
-extern u64 *D_803EDFC8;
-extern u64 *D_803EDFCC;
+extern u8 * N64P D_803EDFC4;   /* model */
+extern u64 * N64P D_803EDFC8;
+extern u64 * N64P D_803EDFCC;
 extern u8 D_803EDC10[]; /* animation channel table */
 extern s16 D_803EDFD4;
 extern s8 D_803EDFD8;
@@ -168,9 +168,9 @@ s32 func_802B1150(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u64 *D_803EDFC8;
-extern u64 *D_803EDFCC;
-extern void *D_803EDFD0; /* engine sound handle */
+extern u64 * N64P D_803EDFC8;
+extern u64 * N64P D_803EDFCC;
+extern void * N64P D_803EDFD0; /* engine sound handle */
 extern u8 D_803EDC10[];  /* this vehicle's animation channel table */
 
 /* Vehicle-type 2 shutdown (called from hd.c's func_8024B188): zeroes the
@@ -192,7 +192,7 @@ void func_802B11B8(void) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 D_803EDF10[]; /* this vehicle's state block */
-extern void *D_803EDFD0; /* engine sound handle */
+extern void * N64P D_803EDFD0; /* engine sound handle */
 extern u8 D_802C2308[]; /* key of this vehicle's func_802A06B4 entry */
 extern u8 D_803EDC10[]; /* this vehicle's animation channel table */
 
@@ -751,7 +751,7 @@ s32 func_802B2768(s32 a3, s32 s0, s32 s1, VehMtxOut *out) {
     s32 y;
     s32 z;
 
-    m = (s32 *) (*(s32 *) (model + *(s32 *) (model + 0x18) + 4) +
+    m = (s32 *) N64_IPTR(*(s32 *) (model + *(s32 *) (model + 0x18) + 4) +
                  (s32) (D_8035805C != 0 ? D_803EDFC8 : D_803EDFCC));
     a = *(u16 *) (D_803EDF10 + 0x4C) + 0x400;
     if (a >= 0x1000) {

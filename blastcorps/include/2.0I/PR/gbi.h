@@ -1079,8 +1079,8 @@ typedef union {
  */
 
 typedef struct {
-  void *SourceImagePointer;
-  void *TlutPointer;
+  void * N64P SourceImagePointer;
+  void * N64P TlutPointer;
   short Stride;
   short SubImageWidth;
   short SubImageHeight;

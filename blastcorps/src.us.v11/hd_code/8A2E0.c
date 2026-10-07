@@ -31,11 +31,11 @@ typedef struct {
 
 extern u8 D_803FBBE0[]; /* channel tables of the boxes' two models */
 extern u8 D_803FBEE0[];
-extern u8 *D_803FBBD8;  /* the boxes' model data */
-extern u8 *D_803FC1E0;  /* four 0x300-byte save copies */
-extern u8 *D_803FC1E4;
-extern u8 *D_803FC1E8;
-extern u8 *D_803FC1EC;
+extern u8 * N64P D_803FBBD8;  /* the boxes' model data */
+extern u8 * N64P D_803FC1E0;  /* four 0x300-byte save copies */
+extern u8 * N64P D_803FC1E4;
+extern u8 * N64P D_803FC1E8;
+extern u8 * N64P D_803FC1EC;
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */

@@ -374,7 +374,7 @@ extern f32 D_803EE3A4;
 extern u8 D_803EE3B2;
 extern u8 D_803EE3AE;
 extern s8 D_803EE3B0;
-extern void *D_803EE388;
+extern void * N64P D_803EE388;
 
 /* Vehicle 3 setup, called from the asm dispatcher func_802A350C: model
  * header, buffers and record (port_veh_init_head with this vehicle's wheel
@@ -468,8 +468,8 @@ s32 func_802B2EF8(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u64 *D_803EE39C;
-extern u64 *D_803EE3A0;
+extern u64 * N64P D_803EE39C;
+extern u64 * N64P D_803EE3A0;
 
 /* Vehicle-type 3 shutdown (called from hd.c's func_8024B188): zeroes the
  * speed (s16 at +0x76), func_802A7764(D_803EE39C, D_803EE3A0, 0x800), then
@@ -651,7 +651,7 @@ extern u8 D_803EE3B2;  /* boost countdown */
 extern u8 D_803EE3B3;  /* boost sound playing */
 extern s16 D_803EE3AC;
 extern f32 D_803EE3A4; /* 0..1 level for channel 3 */
-extern void *D_803EE388; /* boost sound handle */
+extern void * N64P D_803EE388; /* boost sound handle */
 extern f32 D_8030D8C4;
 extern f32 D_8030D8C8;
 extern f32 D_8030D8CC;
@@ -1050,8 +1050,8 @@ s32 func_802B45FC(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u64 *D_803EE778;
-extern u64 *D_803EE77C;
+extern u64 * N64P D_803EE778;
+extern u64 * N64P D_803EE77C;
 
 /* Vehicle-type 4 shutdown (called from hd.c's func_8024B188): zeroes the
  * speed (s16 at +0x76), func_802A7764(D_803EE778, D_803EE77C, 0x800),

@@ -67,6 +67,10 @@ void port_fe_loaded(void) {}
 void port_spin(void) {}
 unsigned int port_gvi_read(const char *fn, unsigned int v) { (void) fn; return v; }
 void func_8029A7E4(const char *fmt, ...) { (void) fmt; }
+/* the SDK's block copy/clear (bc_headless: os_hw.c); gcc turns the game's
+ * calls into memset/memmove, clang (the x86_64 build) calls them */
+void bzero(void *p, int n) { memset(p, 0, (size_t) n); }
+void bcopy(const void *src, void *dst, int n) { memmove(dst, src, (size_t) n); }
 void port_stub_hit(const char *name) {
     fprintf(stderr, "STUB called: %s\n", name);
     exit(3);

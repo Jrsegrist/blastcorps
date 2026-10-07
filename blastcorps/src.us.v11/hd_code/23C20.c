@@ -14,7 +14,7 @@
 #define D_80364460 ((Struct80364460 *) D_80364460)
 #define D_80364AF0 ((Struct80364AF0 *) D_80364AF0)
 #ifdef NON_MATCHING
-#define D_803649D0 (*(Struct80364460 * *) &D_803649D0)
+#define D_803649D0 (*(Struct80364460 * N64P *) &D_803649D0)
 #define D_8036B974 (*(s32 *) &D_8036B974)
 #endif
 /* end of views */
@@ -98,8 +98,8 @@ typedef struct {
     /* 0x02 */ u8 unk2[4];
     /* 0x06 */ s16 unk6;
     /* 0x08 */ u8 unk8[4];
-    /* 0x0C */ char *text;
-    /* 0x10 */ u16 *jtext;
+    /* 0x0C */ char * N64P text;
+    /* 0x10 */ u16 * N64P jtext;
     /* 0x14 */ u8 unk14[8];
 } PathNode;
 

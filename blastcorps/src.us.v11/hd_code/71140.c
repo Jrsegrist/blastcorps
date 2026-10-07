@@ -13,9 +13,9 @@
  * guarded out). */
 extern u8 D_803EEA90[];  /* vehicle 5's state block (the asm's $gp) */
 extern u32 D_803EEB38[]; /* its position x, y, z */
-extern u64 *D_803EEB48;  /* its two matrix buffers */
-extern u64 *D_803EEB4C;
-extern u8 *D_803EEB44;   /* its model header */
+extern u64 * N64P D_803EEB48;  /* its two matrix buffers */
+extern u64 * N64P D_803EEB4C;
+extern u8 * N64P D_803EEB44;   /* its model header */
 void func_802B7030(MtxChainRegs *regs);
 void func_802B7240(void);
 #endif
@@ -85,8 +85,8 @@ void func_802B5900(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp) {
 
     D_803EEB44 = model;
     buf = D_80358070;
-    D_803EEB48 = (u64 *) buf;
-    D_803EEB4C = (u64 *) (buf + 0x800);
+    D_803EEB48 = (u64 *) N64_IPTR(buf);
+    D_803EEB4C = (u64 *) N64_IPTR((buf + 0x800));
     D_80358070 = buf + 0x1000;
     func_802A1388(5, 1, (s32) D_803EEB48, (s32) D_803EEB4C, model);
     func_802A754C(D_803EEA90);
@@ -237,8 +237,8 @@ s32 func_802B5F04(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u64 *D_803EEB48; /* save copy pair (func_802A7764) */
-extern u64 *D_803EEB4C;
+extern u64 * N64P D_803EEB48; /* save copy pair (func_802A7764) */
+extern u64 * N64P D_803EEB4C;
 
 /* Leave vehicle type 5 (called from hd.c): zeroes the speed (s16 at +0x76 of
  * the state block), func_802A7764(D_803EEB48, D_803EEB4C, 0x800), then
@@ -837,7 +837,7 @@ void func_802B6C28(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 *D_803EEB44;  /* this vehicle's model header */
+extern u8 * N64P D_803EEB44;  /* this vehicle's model header */
 
 /* Rebuilds vehicle 5's model matrices and collision points. The model
  * header D_803EEB44 holds offsets (from the header) to: the part records at

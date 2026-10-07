@@ -12,12 +12,12 @@ extern u8 D_803FC500[]; /* vehicle 15 state block */
 extern u8 D_803FC8D0[]; /* vehicle 16 state block */
 extern u32 D_803FC5A8[]; /* vehicle 15 x, y, z */
 extern u32 D_803FC978[]; /* vehicle 16 x, y, z */
-extern u8 *D_803FC5B4;   /* vehicle 15 model */
-extern u8 *D_803FC984;   /* vehicle 16 model */
-extern u64 *D_803FC5B8;
-extern u64 *D_803FC5BC;
-extern u64 *D_803FC988;
-extern u64 *D_803FC98C;
+extern u8 * N64P D_803FC5B4;   /* vehicle 15 model */
+extern u8 * N64P D_803FC984;   /* vehicle 16 model */
+extern u64 * N64P D_803FC5B8;
+extern u64 * N64P D_803FC5BC;
+extern u64 * N64P D_803FC988;
+extern u64 * N64P D_803FC98C;
 extern u8 D_803FC200[];  /* vehicle 15 animation channel table */
 extern u8 D_803FC5D0[];  /* vehicle 16 animation channel table */
 extern u8 D_803FC5C2;
@@ -211,8 +211,8 @@ s32 func_802CFA58(void) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 D_803FC500[];
-extern u64 *D_803FC5B8;
-extern u64 *D_803FC5BC;
+extern u64 * N64P D_803FC5B8;
+extern u64 * N64P D_803FC5BC;
 
 /* Vehicle-type 15 exit: zero the speed (s16 at +0x76), copy 0x100 bytes
  * between the two buffers D_803FC5B8/D_803FC5BC point at (func_802A7764),
@@ -613,7 +613,7 @@ s32 func_802D05D8(s32 a3, s32 s0, s32 s1, VehMtxOut *out) {
     s32 y;
     s32 z;
 
-    m = (s32 *) (*(s32 *) (model + *(s32 *) (model + 0x18) + 4) +
+    m = (s32 *) N64_IPTR(*(s32 *) (model + *(s32 *) (model + 0x18) + 4) +
                  (s32) (D_8035805C != 0 ? D_803FC5B8 : D_803FC5BC));
     D_803ED390[1] = *(u16 *) (D_803FC500 + 0x4C);
     func_802AA764(D_803FC5A8[0], D_803FC5A8[1], D_803FC5A8[2], 0x32C8, m);
@@ -817,9 +817,9 @@ s32 func_802D0B90(void) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 D_803FC8D0[];
-extern u64 *D_803FC988;
-extern u64 *D_803FC98C;
-extern void *D_803FC990; /* engine sound handle */
+extern u64 * N64P D_803FC988;
+extern u64 * N64P D_803FC98C;
+extern void * N64P D_803FC990; /* engine sound handle */
 extern u8 D_803FC5D0[];  /* this vehicle's animation channel table */
 
 /* Vehicle-type 16 exit: zero the speed (s16 at +0x76), copy 0x1400 bytes
@@ -842,7 +842,7 @@ void func_802D0BF8(void) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 D_803FC8D0[]; /* this vehicle's state block */
-extern void *D_803FC990; /* engine sound handle */
+extern void * N64P D_803FC990; /* engine sound handle */
 extern u8 D_802C22D0[]; /* key of this vehicle's func_802A06B4 entry */
 extern u8 D_803FC5D0[]; /* this vehicle's animation channel table */
 
@@ -1386,7 +1386,7 @@ s32 func_802D22F4(s32 a3, s32 s0, s32 s1, VehMtxOut *out) {
     s32 y;
     s32 z;
 
-    m = (s32 *) (*(s32 *) (model + *(s32 *) (model + 0x18) + 4) +
+    m = (s32 *) N64_IPTR(*(s32 *) (model + *(s32 *) (model + 0x18) + 4) +
                  (s32) (D_8035805C != 0 ? D_803FC988 : D_803FC98C));
     a = *(u16 *) (D_803FC8D0 + 0x4C) + 0x400;
     if (a >= 0x1000) {

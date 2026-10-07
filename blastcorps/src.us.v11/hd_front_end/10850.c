@@ -11,7 +11,7 @@
 #define D_802E8F94 ((LevelInfo *) D_802E8F94)
 #define D_80364AF0 ((Player *) D_80364AF0)
 #ifdef NON_MATCHING
-#define D_8036BB24 (*(MenuItem * *) &D_8036BB24)
+#define D_8036BB24 (*(MenuItem * N64P *) &D_8036BB24)
 #endif
 /* end of views */
 
@@ -52,8 +52,8 @@ typedef struct {
     s16 unk6;
     s16 unk8;
     u8 padA[2];
-    char *text;  /* 0x0C */
-    void *unk10; /* 0x10 */
+    char * N64P text;  /* 0x0C */
+    void * N64P unk10; /* 0x10 */
     u8 unk14;
     u8 pad15;
     u16 unk16;   /* 0x16: best time */

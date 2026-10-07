@@ -11,7 +11,7 @@
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_02000000 ((u8 *) D_02000000)
 #ifdef NON_MATCHING
-#define D_80358070 (*(Vtx * *) &D_80358070)
+#define D_80358070 (*(Vtx * N64P *) &D_80358070)
 #endif
 /* end of views */
 
@@ -40,7 +40,7 @@ typedef struct {
     /* 0x28 */ s16 unk28;
     /* 0x2A */ s16 unk2A;
     /* 0x2C */ u32 unk2C[4]; /* face textures */
-    /* 0x3C */ Vtx *unk3C;   /* 8 corner vertices */
+    /* 0x3C */ Vtx * N64P unk3C;   /* 8 corner vertices */
     /* 0x40 */ s32 unk40;
     /* 0x44 */ s32 unk44;
 } Entry48D00;
@@ -191,14 +191,14 @@ void func_8028DD64(u8 arg0) {
     D_802E8BE4 = 10;
     D_802E8BE8 = 0x190;
     if (D_8039B070_entries[arg0].unk40 != 0) {
-        func_802608C8((void *) (D_8039B070_entries[arg0].unk40));
+        func_802608C8((void *) N64_IPTR((D_8039B070_entries[arg0].unk40)));
         match = func_8028DE94();
         if (match != NULL) {
-            func_80260650(D_80367738, 0x73, (void *) ((s32) &match->unk40));
+            func_80260650(D_80367738, 0x73, (void *) N64_IPTR(((s32) &match->unk40)));
         }
     }
     if (*(s32 *) (&D_8039B0B4 + arg0 * 0x48) != 0) {
-        func_802608C8((void *) (*(s32 *) (&D_8039B0B4 + arg0 * 0x48)));
+        func_802608C8((void *) N64_IPTR((*(s32 *) (&D_8039B0B4 + arg0 * 0x48))));
     }
     func_80260650(D_80367738, 0x10, 0);
 }
@@ -302,7 +302,7 @@ void func_8028DF14(u8 arg0) {
                 }
                 if (D_8039B070_entries[i].unk14 == 0 && arg0 != 0) {
                     if (func_8028DE94() == NULL) {
-                        func_80260650(D_80367738, 0x73, (void *) ((s32) &D_8039B070_entries[i].unk40));
+                        func_80260650(D_80367738, 0x73, (void *) N64_IPTR(((s32) &D_8039B070_entries[i].unk40)));
                     }
                     D_8039B070_entries[i].unk14 = ((s32) D_80358060);
                 }
@@ -360,13 +360,13 @@ void func_8028DF14(u8 arg0) {
             }
             if (D_8039B070_entries[i].unk1E > 0 && D_8039B070_entries[i].unk44 == 0 &&
                 D_8039B070_entries[i].unk18 != 0) {
-                func_80260650(D_80367738, 7, (void *) ((s32) &D_8039B070_entries[i].unk44));
+                func_80260650(D_80367738, 7, (void *) N64_IPTR(((s32) &D_8039B070_entries[i].unk44)));
                 if (D_80364456 == 4) {
                     func_8026AD30(0x54);
                 }
             }
             if (D_8039B070_entries[i].unk44 != 0 && D_8039B070_entries[i].unk1E == 0) {
-                func_802608C8((void *) (D_8039B070_entries[i].unk44));
+                func_802608C8((void *) N64_IPTR((D_8039B070_entries[i].unk44)));
             }
         }
     }

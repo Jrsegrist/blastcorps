@@ -30,8 +30,8 @@ s32 func_802AEB9C(s32 *mode);
 s32 func_802AEC3C(s32 dist, s32 key, s32 *fp, TriSideOut *f);
 s32 func_8029AA10_fp(s32 kind, s32 fp); /* 56040.c: func_8029AA10 with the asm's fp out */
 u8 *func_802AFA64(void);
-extern u8 *D_803ED82C;  /* vehicle 0's model buffers */
-extern u8 *D_803ED830;
+extern u8 * N64P D_803ED82C;  /* vehicle 0's model buffers */
+extern u8 * N64P D_803ED830;
 extern s16 D_803ED822;  /* vehicle 0's last ring-steered heading */
 extern s8 D_803ED824;   /* ring steering active */
 void func_802AF4BC(void);
@@ -42,7 +42,7 @@ s32 func_802AFB84(void);
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 *D_803ED818; /* vehicle 0's model header */
+extern u8 * N64P D_803ED818; /* vehicle 0's model header */
 
 /* Sets up vehicle 0 (object 0) from the model header `hdr` at (x, y, z) with
  * heading `heading` (called by the object dispatcher func_802A350C):
@@ -781,9 +781,9 @@ void func_802AF4BC(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 *D_803ED818;  /* vehicle 0's model header */
-extern u8 *D_803ED82C;  /* vehicle 0's model buffers */
-extern u8 *D_803ED830;
+extern u8 * N64P D_803ED818;  /* vehicle 0's model header */
+extern u8 * N64P D_803ED82C;  /* vehicle 0's model buffers */
+extern u8 * N64P D_803ED830;
 
 /* Places vehicle 0's model ($gp = D_803ED760, read directly): rotation
  * (0, +0x4C, 0) and position D_803ED808..810 at scale 0x4E20 into the matrix
@@ -800,10 +800,10 @@ extern u8 *D_803ED830;
 u8 *func_802AFA64(void) {
     u8 *hdr = D_803ED818;
     s32 *pos = (s32 *) D_803ED808;
-    u8 *m = *(u8 **) (hdr + *(s32 *) (hdr + 0x18) + 4);
+    u8 *m = *(u8 * N64P *) (hdr + *(s32 *) (hdr + 0x18) + 4);
     MtxChainRegs regs;
 
-    m += (s32) (D_8035805C != 0 ? D_803ED82C : D_803ED830);
+    m += (N64_A32) (D_8035805C != 0 ? D_803ED82C : D_803ED830);
     D_803ED390[0] = 0;
     D_803ED390[2] = 0;
     D_803ED390[1] = *(u16 *) (D_803ED760 + 0x4C);

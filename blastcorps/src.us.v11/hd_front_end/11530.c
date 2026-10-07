@@ -12,11 +12,11 @@
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_802E8F94 ((LevelInfo *) D_802E8F94)
 #define D_803156F8 ((Dynamic *) D_803156F8)
-#define D_80358050 ((u16 * *) D_80358050)
+#define D_80358050 ((u16 * N64P *) D_80358050)
 #define D_80364AF0 ((Player *) D_80364AF0)
 #ifdef NON_MATCHING
 #define D_80217B70 ((Mtx *) D_80217B70)
-#define D_80358058 (*(u16 * *) &D_80358058)
+#define D_80358058 (*(u16 * N64P *) &D_80358058)
 #define D_80358070 (*(s32 *) &D_80358070)
 #endif
 /* end of views */
@@ -24,69 +24,69 @@
 
 #define MIN2(a, b) ((a) < (b) ? (a) : (b))
 #define MAX2(a, b) ((a) < (b) ? (b) : (a))
-#define JTEXT(addr) ((u16 *) (addr))
+#define JTEXT(addr) ((u16 * N64P) (addr))
 
 GlobeLevel D_8020D810[60] = {
-    { 0x64, 1, "SIMIAN ACRES", JTEXT(0x80303700), 0, 0.0f, 0.0f, { -1 }, { 0x1C, 0x13, 0x03, 0x37, 0x32, -1 } },
-    { 0x64, 1, "ANGEL CITY", JTEXT(0x8030370C), 0, -20.0f, -120.0f, { -1 }, { -1 } },
-    { 0x64, 1, "OUTLAND FARM", JTEXT(0x80303720), 0, 20.0f, 60.0f, { 0x25, 0x1B, -1 }, { 0x05, 0x0D, 0x09, -1 } },
-    { 0x64, 1, "BLACKRIDGE WORKS", JTEXT(0x80303734), 0, -20.0f, -20.0f, { 0x14, 0x06, -1 }, { 0x1D, 0x35, 0x0F, 0x0A, -1 } },
-    { 0x64, 1, "GLORY CROSSING", JTEXT(0x80303748), 0, 70.0f, 180.0f, { -1 }, { -1 } },
-    { 0x64, 1, "SHUTTLE GULLY", JTEXT(0x8030375C), 0, 50.0f, 20.0f, { 0x29, -1 }, { 0x04, 0x21, 0x02, -1 } },
-    { 0x64, 1, "SALVAGE WHARF", JTEXT(0x8030376C), 0, -30.0f, -10.0f, { -1 }, { -1 } },
-    { 0x64, 1, "SKYFALL", JTEXT(0x8030377C), 0, 40.0f, 20.0f, { -1 }, { 0x05, -1 } },
-    { 0x64, 1, "TWILIGHT FOUNDRY", JTEXT(0x80303794), 0, 10.0f, 30.0f, { -1 }, { -1 } },
-    { 0x64, 1, "CRYSTAL RIFT", JTEXT(0x803037A8), 0, 20.0f, 120.0f, { 0x33, 0x1F, -1 }, { -1 } },
-    { 0x64, 1, "ARGENT TOWERS", JTEXT(0x803037B8), 0, -20.0f, 20.0f, { 0x15, 0x22, -1 }, { 0x0D, 0x11, 0x10, 0x03, -1 } },
-    { 0x64, 1, "SKERRIES", JTEXT(0x803037CC), 0, 70.0f, 0.0f, { -1 }, { -1 } },
-    { 0x64, 1, "DIAMOND SANDS", JTEXT(0x803037D8), 0, -70.0f, 110.0f, { -1 }, { -1 } },
-    { 0x64, 1, "EBONY COAST", JTEXT(0x803037EC), 0, -20.0f, 60.0f, { 0x20, -1 }, { 0x1A, 0x11, 0x02, -1 } },
-    { 0x64, 1, "OYSTER HARBOR", JTEXT(0x803037FC), 0, -70.0f, -110.0f, { 0x17, -1 }, { -1 } },
-    { 0x64, 1, "CARRICK POINT", JTEXT(0x8030380C), 0, 20.0f, -20.0f, { 0x19, 0x1E, -1 }, { 0x21, 0x12, 0x10, 0x03, -1 } },
-    { 0x64, 1, "HAVOC DISTRICT", JTEXT(0x8030381C), 0, 20.0f, 20.0f, { 0x16, 0x08, -1 }, { 0x07, 0x02, 0x0F, 0x0A, -1 } },
-    { 0x64, 1, "IRONSTONE MINE", JTEXT(0x8030382C), 0, -50.0f, 20.0f, { -1 }, { 0x0A, 0x0C, 0x0D, 0x3A, -1 } },
-    { 0x64, 1, "BEETON TRACKS", JTEXT(0x80303844), 0, 20.0f, -60.0f, { 0x30, -1 }, { 0x1D, 0x0F, 0x21, 0x39, -1 } },
-    { 0x00, 0, "J-BOMB", JTEXT(0x80303854), 0, 10.0f, 10.0f, { -1 }, { 0x10, -1 } },
-    { 0x64, 1, "JADE PLATEAU", JTEXT(0x80303864), 0, -10.0f, -30.0f, { -1 }, { -1 } },
-    { 0x64, 1, "MARINE QUARTER", JTEXT(0x80303874), 0, -30.0f, 10.0f, { -1 }, { -1 } },
-    { 0x64, 1, "COOTER CREEK", JTEXT(0x80303884), 0, 30.0f, 10.0f, { 0x0B, -1 }, { -1 } },
-    { 0x64, 1, "GIBBON'S GATE", JTEXT(0x80303890), 0, -50.0f, 180.0f, { -1 }, { -1 } },
-    { 0x64, 1, "BABOON CATACOMB", JTEXT(0x803038A0), 0, 30.0f, -150.0f, { -1 }, { 0x25, -1 } },
-    { 0x64, 1, "SLEEK STREETS", JTEXT(0x803038B0), 0, 10.0f, -30.0f, { -1 }, { -1 } },
-    { 0x64, 1, "OBSIDIAN MILE", JTEXT(0x803038C0), 0, -20.0f, 120.0f, { -1 }, { -1 } },
-    { 0x64, 1, "CORVINE BLUFF", JTEXT(0x803038D0), 0, 10.0f, 50.0f, { 0x38, -1 }, { -1 } },
-    { 0x28, 1, "SIDESWIPE", JTEXT(0x803038E0), 0, 10.0f, -10.0f, { -1 }, { 0x0F, -1 } },
-    { 0x64, 1, "ECHO MARCHES", JTEXT(0x803038F8), 0, -20.0f, -60.0f, { 0x2A, 0x27, -1 }, { 0x01, 0x3A, 0x12, -1 } },
-    { 0x64, 1, "KIPLING PLANT", JTEXT(0x80303904), 0, 30.0f, -10.0f, { -1 }, { -1 } },
-    { 0x64, 1, "FALCHION FIELD", JTEXT(0x80303918), 0, 45.0f, 100.0f, { -1 }, { -1 } },
-    { 0x64, 1, "MORGAN HALL", JTEXT(0x80303930), 0, -10.0f, 50.0f, { -1 }, { -1 } },
-    { 0x64, 1, "TEMPEST CITY", JTEXT(0x8030393C), 0, 50.0f, -20.0f, { 0x23, -1 }, { 0x12, 0x05, 0x04, -1 } },
-    { 0x64, 1, "ORION PLAZA", JTEXT(0x80303950), 0, -10.0f, 30.0f, { -1 }, { -1 } },
-    { 0x64, 1, "GLANDER'S RANCH", JTEXT(0x80303960), 0, 50.0f, -70.0f, { -1 }, { -1 } },
-    { 0x64, 1, "DAGGER PASS", JTEXT(0x80303974), 0, -20.0f, 180.0f, { 0x34, -1 }, { -1 } },
-    { 0x64, 1, "GEODE SQUARE", JTEXT(0x80303980), 0, 50.0f, 180.0f, { 0x3B, -1 }, { -1 } },
-    { 0x64, 1, "SHUTTLE ISLAND", JTEXT(0x80303990), 0, 0.0f, -140.0f, { -1 }, { 0x28, -1 } },
-    { 0x64, 1, "MICA PARK", JTEXT(0x803039A8), 0, -40.0f, -80.0f, { -1 }, { -1 } },
-    { 0x64, 1, "MOON", JTEXT(0x803039B4), 0, 10.0f, -140.0f, { -1 }, { 0x2B, -1 } },
-    { 0x64, 1, "COBALT QUARRY", JTEXT(0x803039BC), 0, 50.0f, 70.0f, { -1 }, { -1 } },
-    { 0x64, 1, "MORAINE CHASE", JTEXT(0x803039CC), 0, -10.0f, -80.0f, { -1 }, { -1 } },
-    { 0x64, 1, "MERCURY", JTEXT(0x803039E0), 0, 20.0f, -140.0f, { -1 }, { 0x2C, -1 } },
-    { 0x64, 1, "VENUS", JTEXT(0x803039F0), 0, 30.0f, -140.0f, { -1 }, { 0x2D, -1 } },
-    { 0x64, 1, "MARS", JTEXT(0x803039FC), 0, 40.0f, -140.0f, { -1 }, { 0x2E, -1 } },
-    { 0x64, 1, "NEPTUNE", JTEXT(0x80303A04), 0, 50.0f, -140.0f, { -1 }, { -1 } },
-    { 0x00, 0, "CMO INTRO", JTEXT(0x80303A14), 0, 70.0f, 0.0f, { -1 }, { -1 } },
-    { 0x64, 1, "SILVER JUNCTION", JTEXT(0x80303A24), 0, 10.0f, -80.0f, { -1 }, { -1 } },
-    { 0x64, 1, "END SEQUENCE", JTEXT(0x80303A34), 0, 0.0f, -10.0f, { -1 }, { -1 } },
-    { 0x64, 1, "SHUTTLE CLEAR", JTEXT(0x80303A48), 0, 0.0f, -15.0f, { -1 }, { 0x26, -1 } },
-    { 0x64, 1, "DARK HEARTLAND", JTEXT(0x80303A58), 0, 0.0f, 90.0f, { -1 }, { -1 } },
-    { 0x64, 1, "MAGMA PEAK", JTEXT(0x80303A68), 0, 0.0f, -150.0f, { 0x18, -1 }, { -1 } },
-    { 0x0A, 0, "THUNDERFIST", JTEXT(0x80303A74), 0, -40.0f, -20.0f, { -1 }, { 0x3A, -1 } },
-    { 0x64, 1, "SALINE WATCH", JTEXT(0x80303A8C), 0, 0.0f, 150.0f, { 0x24, -1 }, { -1 } },
-    { 0x64, 1, "BACKLASH", JTEXT(0x80303A98), 0, -10.0f, 10.0f, { -1 }, { 0x0A, -1 } },
-    { 0x64, 1, "BISON RIDGE", JTEXT(0x80303AB0), 0, 0.0f, 40.0f, { -1 }, { -1 } },
-    { 0x64, 1, "EMBER HAMLET", JTEXT(0x80303AC0), 0, 20.0f, -120.0f, { -1 }, { -1 } },
-    { 0x64, 1, "CROMLECH COURT", JTEXT(0x80303AD4), 0, -50.0f, -20.0f, { -1 }, { 0x0E, 0x11, 0x1D, -1 } },
-    { 0x64, 1, "LIZARD ISLAND", JTEXT(0x80303AE8), 0, 30.0f, 150.0f, { 0x36, -1 }, { -1 } },
+    { 0x64, 1, N64_DPTR("SIMIAN ACRES"), JTEXT(0x80303700), 0, 0.0f, 0.0f, { -1 }, { 0x1C, 0x13, 0x03, 0x37, 0x32, -1 } },
+    { 0x64, 1, N64_DPTR("ANGEL CITY"), JTEXT(0x8030370C), 0, -20.0f, -120.0f, { -1 }, { -1 } },
+    { 0x64, 1, N64_DPTR("OUTLAND FARM"), JTEXT(0x80303720), 0, 20.0f, 60.0f, { 0x25, 0x1B, -1 }, { 0x05, 0x0D, 0x09, -1 } },
+    { 0x64, 1, N64_DPTR("BLACKRIDGE WORKS"), JTEXT(0x80303734), 0, -20.0f, -20.0f, { 0x14, 0x06, -1 }, { 0x1D, 0x35, 0x0F, 0x0A, -1 } },
+    { 0x64, 1, N64_DPTR("GLORY CROSSING"), JTEXT(0x80303748), 0, 70.0f, 180.0f, { -1 }, { -1 } },
+    { 0x64, 1, N64_DPTR("SHUTTLE GULLY"), JTEXT(0x8030375C), 0, 50.0f, 20.0f, { 0x29, -1 }, { 0x04, 0x21, 0x02, -1 } },
+    { 0x64, 1, N64_DPTR("SALVAGE WHARF"), JTEXT(0x8030376C), 0, -30.0f, -10.0f, { -1 }, { -1 } },
+    { 0x64, 1, N64_DPTR("SKYFALL"), JTEXT(0x8030377C), 0, 40.0f, 20.0f, { -1 }, { 0x05, -1 } },
+    { 0x64, 1, N64_DPTR("TWILIGHT FOUNDRY"), JTEXT(0x80303794), 0, 10.0f, 30.0f, { -1 }, { -1 } },
+    { 0x64, 1, N64_DPTR("CRYSTAL RIFT"), JTEXT(0x803037A8), 0, 20.0f, 120.0f, { 0x33, 0x1F, -1 }, { -1 } },
+    { 0x64, 1, N64_DPTR("ARGENT TOWERS"), JTEXT(0x803037B8), 0, -20.0f, 20.0f, { 0x15, 0x22, -1 }, { 0x0D, 0x11, 0x10, 0x03, -1 } },
+    { 0x64, 1, N64_DPTR("SKERRIES"), JTEXT(0x803037CC), 0, 70.0f, 0.0f, { -1 }, { -1 } },
+    { 0x64, 1, N64_DPTR("DIAMOND SANDS"), JTEXT(0x803037D8), 0, -70.0f, 110.0f, { -1 }, { -1 } },
+    { 0x64, 1, N64_DPTR("EBONY COAST"), JTEXT(0x803037EC), 0, -20.0f, 60.0f, { 0x20, -1 }, { 0x1A, 0x11, 0x02, -1 } },
+    { 0x64, 1, N64_DPTR("OYSTER HARBOR"), JTEXT(0x803037FC), 0, -70.0f, -110.0f, { 0x17, -1 }, { -1 } },
+    { 0x64, 1, N64_DPTR("CARRICK POINT"), JTEXT(0x8030380C), 0, 20.0f, -20.0f, { 0x19, 0x1E, -1 }, { 0x21, 0x12, 0x10, 0x03, -1 } },
+    { 0x64, 1, N64_DPTR("HAVOC DISTRICT"), JTEXT(0x8030381C), 0, 20.0f, 20.0f, { 0x16, 0x08, -1 }, { 0x07, 0x02, 0x0F, 0x0A, -1 } },
+    { 0x64, 1, N64_DPTR("IRONSTONE MINE"), JTEXT(0x8030382C), 0, -50.0f, 20.0f, { -1 }, { 0x0A, 0x0C, 0x0D, 0x3A, -1 } },
+    { 0x64, 1, N64_DPTR("BEETON TRACKS"), JTEXT(0x80303844), 0, 20.0f, -60.0f, { 0x30, -1 }, { 0x1D, 0x0F, 0x21, 0x39, -1 } },
+    { 0x00, 0, N64_DPTR("J-BOMB"), JTEXT(0x80303854), 0, 10.0f, 10.0f, { -1 }, { 0x10, -1 } },
+    { 0x64, 1, N64_DPTR("JADE PLATEAU"), JTEXT(0x80303864), 0, -10.0f, -30.0f, { -1 }, { -1 } },
+    { 0x64, 1, N64_DPTR("MARINE QUARTER"), JTEXT(0x80303874), 0, -30.0f, 10.0f, { -1 }, { -1 } },
+    { 0x64, 1, N64_DPTR("COOTER CREEK"), JTEXT(0x80303884), 0, 30.0f, 10.0f, { 0x0B, -1 }, { -1 } },
+    { 0x64, 1, N64_DPTR("GIBBON'S GATE"), JTEXT(0x80303890), 0, -50.0f, 180.0f, { -1 }, { -1 } },
+    { 0x64, 1, N64_DPTR("BABOON CATACOMB"), JTEXT(0x803038A0), 0, 30.0f, -150.0f, { -1 }, { 0x25, -1 } },
+    { 0x64, 1, N64_DPTR("SLEEK STREETS"), JTEXT(0x803038B0), 0, 10.0f, -30.0f, { -1 }, { -1 } },
+    { 0x64, 1, N64_DPTR("OBSIDIAN MILE"), JTEXT(0x803038C0), 0, -20.0f, 120.0f, { -1 }, { -1 } },
+    { 0x64, 1, N64_DPTR("CORVINE BLUFF"), JTEXT(0x803038D0), 0, 10.0f, 50.0f, { 0x38, -1 }, { -1 } },
+    { 0x28, 1, N64_DPTR("SIDESWIPE"), JTEXT(0x803038E0), 0, 10.0f, -10.0f, { -1 }, { 0x0F, -1 } },
+    { 0x64, 1, N64_DPTR("ECHO MARCHES"), JTEXT(0x803038F8), 0, -20.0f, -60.0f, { 0x2A, 0x27, -1 }, { 0x01, 0x3A, 0x12, -1 } },
+    { 0x64, 1, N64_DPTR("KIPLING PLANT"), JTEXT(0x80303904), 0, 30.0f, -10.0f, { -1 }, { -1 } },
+    { 0x64, 1, N64_DPTR("FALCHION FIELD"), JTEXT(0x80303918), 0, 45.0f, 100.0f, { -1 }, { -1 } },
+    { 0x64, 1, N64_DPTR("MORGAN HALL"), JTEXT(0x80303930), 0, -10.0f, 50.0f, { -1 }, { -1 } },
+    { 0x64, 1, N64_DPTR("TEMPEST CITY"), JTEXT(0x8030393C), 0, 50.0f, -20.0f, { 0x23, -1 }, { 0x12, 0x05, 0x04, -1 } },
+    { 0x64, 1, N64_DPTR("ORION PLAZA"), JTEXT(0x80303950), 0, -10.0f, 30.0f, { -1 }, { -1 } },
+    { 0x64, 1, N64_DPTR("GLANDER'S RANCH"), JTEXT(0x80303960), 0, 50.0f, -70.0f, { -1 }, { -1 } },
+    { 0x64, 1, N64_DPTR("DAGGER PASS"), JTEXT(0x80303974), 0, -20.0f, 180.0f, { 0x34, -1 }, { -1 } },
+    { 0x64, 1, N64_DPTR("GEODE SQUARE"), JTEXT(0x80303980), 0, 50.0f, 180.0f, { 0x3B, -1 }, { -1 } },
+    { 0x64, 1, N64_DPTR("SHUTTLE ISLAND"), JTEXT(0x80303990), 0, 0.0f, -140.0f, { -1 }, { 0x28, -1 } },
+    { 0x64, 1, N64_DPTR("MICA PARK"), JTEXT(0x803039A8), 0, -40.0f, -80.0f, { -1 }, { -1 } },
+    { 0x64, 1, N64_DPTR("MOON"), JTEXT(0x803039B4), 0, 10.0f, -140.0f, { -1 }, { 0x2B, -1 } },
+    { 0x64, 1, N64_DPTR("COBALT QUARRY"), JTEXT(0x803039BC), 0, 50.0f, 70.0f, { -1 }, { -1 } },
+    { 0x64, 1, N64_DPTR("MORAINE CHASE"), JTEXT(0x803039CC), 0, -10.0f, -80.0f, { -1 }, { -1 } },
+    { 0x64, 1, N64_DPTR("MERCURY"), JTEXT(0x803039E0), 0, 20.0f, -140.0f, { -1 }, { 0x2C, -1 } },
+    { 0x64, 1, N64_DPTR("VENUS"), JTEXT(0x803039F0), 0, 30.0f, -140.0f, { -1 }, { 0x2D, -1 } },
+    { 0x64, 1, N64_DPTR("MARS"), JTEXT(0x803039FC), 0, 40.0f, -140.0f, { -1 }, { 0x2E, -1 } },
+    { 0x64, 1, N64_DPTR("NEPTUNE"), JTEXT(0x80303A04), 0, 50.0f, -140.0f, { -1 }, { -1 } },
+    { 0x00, 0, N64_DPTR("CMO INTRO"), JTEXT(0x80303A14), 0, 70.0f, 0.0f, { -1 }, { -1 } },
+    { 0x64, 1, N64_DPTR("SILVER JUNCTION"), JTEXT(0x80303A24), 0, 10.0f, -80.0f, { -1 }, { -1 } },
+    { 0x64, 1, N64_DPTR("END SEQUENCE"), JTEXT(0x80303A34), 0, 0.0f, -10.0f, { -1 }, { -1 } },
+    { 0x64, 1, N64_DPTR("SHUTTLE CLEAR"), JTEXT(0x80303A48), 0, 0.0f, -15.0f, { -1 }, { 0x26, -1 } },
+    { 0x64, 1, N64_DPTR("DARK HEARTLAND"), JTEXT(0x80303A58), 0, 0.0f, 90.0f, { -1 }, { -1 } },
+    { 0x64, 1, N64_DPTR("MAGMA PEAK"), JTEXT(0x80303A68), 0, 0.0f, -150.0f, { 0x18, -1 }, { -1 } },
+    { 0x0A, 0, N64_DPTR("THUNDERFIST"), JTEXT(0x80303A74), 0, -40.0f, -20.0f, { -1 }, { 0x3A, -1 } },
+    { 0x64, 1, N64_DPTR("SALINE WATCH"), JTEXT(0x80303A8C), 0, 0.0f, 150.0f, { 0x24, -1 }, { -1 } },
+    { 0x64, 1, N64_DPTR("BACKLASH"), JTEXT(0x80303A98), 0, -10.0f, 10.0f, { -1 }, { 0x0A, -1 } },
+    { 0x64, 1, N64_DPTR("BISON RIDGE"), JTEXT(0x80303AB0), 0, 0.0f, 40.0f, { -1 }, { -1 } },
+    { 0x64, 1, N64_DPTR("EMBER HAMLET"), JTEXT(0x80303AC0), 0, 20.0f, -120.0f, { -1 }, { -1 } },
+    { 0x64, 1, N64_DPTR("CROMLECH COURT"), JTEXT(0x80303AD4), 0, -50.0f, -20.0f, { -1 }, { 0x0E, 0x11, 0x1D, -1 } },
+    { 0x64, 1, N64_DPTR("LIZARD ISLAND"), JTEXT(0x80303AE8), 0, 30.0f, 150.0f, { 0x36, -1 }, { -1 } },
 };
 
 u16 D_8020E350[38] = {
@@ -145,7 +145,7 @@ extern u16 *D_80358058;
 f32 sqrtf(f32);
 
 /* front end */
-extern Gfx *D_8021A8F8;
+extern Gfx * N64P D_8021A8F8;
 extern u8 D_8021A905;
 extern u16 D_8021A924;
 extern u8 D_802159F0[];
@@ -167,7 +167,7 @@ extern u8 D_8021AB20;
 extern f32 D_8021AB28;
 extern s16 D_8021AB2C;
 extern u8 D_8021AB2E;
-extern void *D_8021AB38;
+extern void * N64P D_8021AB38;
 extern f32 D_8021AB40;
 extern f32 D_8021AB44;
 extern f32 D_8021AB48;
@@ -179,12 +179,12 @@ f32 func_801FD6B8(f32 a, f32 b, f32 range);
 Gfx *func_801FE5D0(Gfx *arg0, Dynamic *dyn);
 Gfx *func_801FC5B8(Dynamic *dyn, Gfx *gdl, u8 from, u8 to);
 void func_801FDE98(void);
-extern Gfx *D_8021A8F4;
-extern Gfx *D_8021A8FC;
-extern Gfx *D_8021A900;
+extern Gfx * N64P D_8021A8F4;
+extern Gfx * N64P D_8021A8FC;
+extern Gfx * N64P D_8021A900;
 extern u8 D_8021AB21;
-extern Player *D_8021AB30;
-extern LevelInfo *D_8021AB34;
+extern Player * N64P D_8021AB30;
+extern LevelInfo * N64P D_8021AB34;
 extern f32 D_8021AB4C;
 extern f32 D_8021AB50;
 extern f32 D_8021AB54;
@@ -209,8 +209,8 @@ extern s32 D_8021AB58;
 extern s32 D_8021AB5C;
 extern f32 D_8021AB60;
 extern f32 D_8021AB64;
-extern Gfx *D_8021AB68;
-extern Gfx *D_8021AB6C;
+extern Gfx * N64P D_8021AB68;
+extern Gfx * N64P D_8021AB6C;
 Gfx *func_801F9258(Gfx *, Dynamic *, s32 *);
 Gfx *func_801F9820(Gfx *, Dynamic *, s32 *);
 Gfx *func_801F9B84(Gfx *, Dynamic *, s32 *);
@@ -458,7 +458,7 @@ Gfx *func_801F9258(Gfx *arg0, Dynamic *dyn, s32 *count) {
 
         size = 0x18;
         h = D_8021AB2C / 9;
-        func_80259DC8((Gfx **) dyn, (u8 *) (D_8020D810[D_8021A908].name), D_8020D810[D_8021A908].jname, 0, 0xA0, 0, (0x1C - h) / 2 + 0x12,
+        func_80259DC8((Gfx * N64P *) dyn, (u8 *) (D_8020D810[D_8021A908].name), D_8020D810[D_8021A908].jname, 0, 0xA0, 0, (0x1C - h) / 2 + 0x12,
                       size, h, 1, 0xFF, 0xFF, 0xFF, D_8021AB2C, 0, 0, 0xFF, D_8021AB2C);
         gdl = func_8024C404(gdl, (DynamicBuf *) dyn, &n);
         func_80259C24(&gdl, (Mtx *) dyn);
@@ -640,7 +640,7 @@ Gfx *func_801FA180(Gfx *arg0, Dynamic *dyn, f32 lon0, s8 *selected) {
             }
         }
     }
-    osWritebackDCache((void *) D_8021A928[D_8035805C], 0x17000);
+    osWritebackDCache((void *) N64_IPTR(D_8021A928[D_8035805C]), 0x17000);
     if (best < 45.0f) {
         *selected = sel;
     } else {
@@ -774,7 +774,7 @@ Gfx *func_801FA74C(Dynamic *dyn, Gfx *arg1, u8 from, u8 to, s8 *out, f32 *lon, u
     dist = sqrtf((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0) + (z1 - z0) * (z1 - z0));
     steps = MAX2(MIN2(dist / 32.0, 15.0), 3.0);
     n = steps + 1;
-    v = vbase = (Vtx *) D_8021A928[D_8035805C] + D_8021A909 * 16;
+    v = vbase = (Vtx *) N64_IPTR(D_8021A928[D_8035805C]) + D_8021A909 * 16;
     cosang = (x0 * x1 + y0 * y1 + z0 * z1) / 250.0 / 250.0;
     angle = 90.0 - ((cosang >= 0.0f) ? 1 : -1) * func_802AD7D4(((cosang > 0.0f) ? cosang : -cosang) * 65535.0) /
                        16.0 / 11.377777;

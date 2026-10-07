@@ -143,14 +143,15 @@ void plat_syms_load(const char *path) {
     if (text == NULL) host_fatal("can't read --syms file %s", path);
     for (p = text, end = text + size; p < end;) {
         char *eol = p, *name, *dot;
-        u32 a = 0;
+        u64 a = 0;
         int n = 0;
         while (eol < end && *eol != '\n' && *eol != '\r') eol++;
         *eol = 0;
-        while (n < 8 && ((*p >= '0' && *p <= '9') || (*p >= 'a' && *p <= 'f')))
-            a = a * 16 + (*p <= '9' ? *p - '0' : *p - 'a' + 10), p++, n++;
-        /* "XXXXXXXX T name": text symbols only */
-        if (n == 8 && p[0] == ' ' && (p[1] == 'T' || p[1] == 't') && p[2] == ' ') {
+        while (n < 16 && ((*p >= '0' && *p <= '9') || (*p >= 'a' && *p <= 'f')))
+            a = a * 16 + (u64) (*p <= '9' ? *p - '0' : *p - 'a' + 10), p++, n++;
+        /* "XXXXXXXX T name" (x86_64: 16 digits; the exe is below 4 GB):
+         * text symbols only */
+        if ((n == 8 || n == 16) && a >> 32 == 0 && p[0] == ' ' && (p[1] == 'T' || p[1] == 't') && p[2] == ' ') {
             name = p + 3;
             if (*name == '_') name++;          /* i686 C symbols have a leading _ */
             dot = name;
@@ -160,7 +161,7 @@ void plat_syms_load(const char *path) {
                 cap = cap ? cap * 2 : 4096;
                 g_syms = host_realloc(g_syms, cap * sizeof(Sym));
             }
-            g_syms[g_nsyms].addr = a;
+            g_syms[g_nsyms].addr = (u32) a;
             g_syms[g_nsyms].name = name;
             g_nsyms++;
         }

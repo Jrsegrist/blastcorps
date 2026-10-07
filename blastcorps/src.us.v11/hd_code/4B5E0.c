@@ -400,7 +400,7 @@ void func_802906C0(u8 arg0) {
                     if (diff < 20) {
                         D_8039C550[i].unk12 = 0;
                         D_8039C550[i].unk11 = 1;
-                        func_802CEA68((u8 *) (D_8039C718[D_8039C550[i].unk13].unk14), (u8 *) (D_8039C718[D_8039C550[i].unk13].unk18));
+                        func_802CEA68((u8 *) N64_IPTR((D_8039C718[D_8039C550[i].unk13].unk14)), (u8 *) N64_IPTR((D_8039C718[D_8039C550[i].unk13].unk18)));
                         func_80291724(D_8039C550[i].unk13);
                     } else {
                         D_8039C550[i].unk14 = diff >> 1;
@@ -419,7 +419,7 @@ void func_802906C0(u8 arg0) {
         }
         if (D_8039C550[i].unk34 != 0 &&
             (D_8039C550[i].unk0C == 0 || D_8039C550[i].unk12 != 0 || D_8039C550[i].unk11 != 0)) {
-            func_802608C8((void *) (D_8039C550[i].unk34));
+            func_802608C8((void *) N64_IPTR((D_8039C550[i].unk34)));
         }
     }
     D_8039C944 = D_803643E0;

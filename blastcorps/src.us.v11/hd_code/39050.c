@@ -12,7 +12,7 @@
 #define D_80364460 ((Digger *) D_80364460)
 #ifdef NON_MATCHING
 #define D_80358070 (*(s32 *) &D_80358070)
-#define D_803649D0 (*(Digger * *) &D_803649D0)
+#define D_803649D0 (*(Digger * N64P *) &D_803649D0)
 #endif
 /* end of views */
 
@@ -80,7 +80,7 @@ extern s16 D_802FC48C[];
 #ifndef NON_MATCHING
 extern s32 D_80358070; /* bump allocator for display memory */
 #endif
-extern Vtx *D_8036DCA0[2]; /* double-buffered water grid */
+extern Vtx * N64P D_8036DCA0[2]; /* double-buffered water grid */
 extern s32 D_8036DCA8[2];
 extern s32 D_8036DCB0; /* wave clock */
 extern s32 D_8036DCB8[3];
@@ -385,9 +385,9 @@ void func_8027E344(s32 id) {
         return;
     }
     D_8036DCD4 = 1;
-    D_8036DCA0[0] = (Vtx *) D_80358070;
+    D_8036DCA0[0] = (Vtx *) N64_IPTR(D_80358070);
     D_80358070 += (D_802FC3F0[D_8036DCD6].nx + 1) * (D_802FC3F0[D_8036DCD6].nz + 1) * sizeof(Vtx);
-    D_8036DCA0[1] = (Vtx *) D_80358070;
+    D_8036DCA0[1] = (Vtx *) N64_IPTR(D_80358070);
     D_80358070 += (D_802FC3F0[D_8036DCD6].nx + 1) * (D_802FC3F0[D_8036DCD6].nz + 1) * sizeof(Vtx);
 #ifdef PORT_HOST
     {
@@ -543,8 +543,8 @@ void func_8027F1F8(Gfx **gfx, u8 buf, u8 layer) {
 
     gdl = *gfx;
     done = 0;
-    dl = (Gfx *) D_8036DCC8[buf];
-    bbox = (Vtx *) D_8036DCA8[buf];
+    dl = (Gfx *) N64_IPTR(D_8036DCC8[buf]);
+    bbox = (Vtx *) N64_IPTR(D_8036DCA8[buf]);
     if (D_8036DCD4 == 0 || layer != D_8036DCD7) {
         return;
     }

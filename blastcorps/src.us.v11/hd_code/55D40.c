@@ -20,7 +20,7 @@ extern CreditLine D_80304A90[];
 
 
 /* Credits scroller: draws the visible credit lines, advances the scroll, and ends the credits */
-Gfx *func_8029A518(Gfx **gfxp, Gfx *gfx) {
+Gfx *func_8029A518(Gfx * N64P *gfxp, Gfx *gfx) {
     Gfx *ret = gfx;
     CreditLine *line;
     s32 i;

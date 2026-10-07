@@ -49,6 +49,10 @@ typedef struct {
 static void WINAPI fiber_trampoline(void *p) {
     FiberStart s = *(FiberStart *) p;
     free(p);
+#ifdef _WIN64
+    /* game threads store addresses of their locals in N64 memory (4 bytes) */
+    if ((ULONG_PTR) &s >> 32) host_fatal("a fiber stack is above 4 GB (%p)", (void *) &s);
+#endif
     host_set_fpu_mode();
     s.fn(s.arg);
     host_fatal("fiber function returned");
@@ -186,7 +190,8 @@ void host_exit(int code) {
  * first N (default 20) writes to ADDR's 4 KB page: eip and the stack's code
  * pointers (symbolise with bc_headless.syms).  The page is made read-only;
  * each write is let through by single-stepping it and re-protecting. */
-static DWORD g_watch_page, g_watch_left;
+static ULONG_PTR g_watch_page;
+static DWORD g_watch_left;
 static int g_watch_step;
 extern unsigned plat_frames(void);
 
@@ -220,14 +225,25 @@ static int watch_filter(EXCEPTION_POINTERS *ep) {
         return 1;
     }
     if (er->ExceptionCode == EXCEPTION_ACCESS_VIOLATION && er->NumberParameters >= 2 &&
-        er->ExceptionInformation[0] == 1 && (er->ExceptionInformation[1] & ~0xFFFu) == g_watch_page &&
+        er->ExceptionInformation[0] == 1 && (er->ExceptionInformation[1] & ~(ULONG_PTR) 0xFFF) == g_watch_page &&
         g_watch_page) {
-        DWORD *sp = (DWORD *) c->Esp;
+        /* the stack's words that point into the exe's image (code pointers) */
+        ULONG_PTR *sp, lo = (ULONG_PTR) GetModuleHandleW(NULL), hi;
+        IMAGE_DOS_HEADER *dos = (IMAGE_DOS_HEADER *) lo;
+        IMAGE_NT_HEADERS *nt = (IMAGE_NT_HEADERS *) (lo + dos->e_lfanew);
         int i, k = 0;
+        hi = lo + nt->OptionalHeader.SizeOfImage;
+#ifdef _WIN64
+        sp = (ULONG_PTR *) c->Rsp;
+        fprintf(stderr, "WATCH: frame %u write %08lX rip=%08llX stack", plat_frames(),
+                (unsigned long) er->ExceptionInformation[1], (unsigned long long) c->Rip);
+#else
+        sp = (ULONG_PTR *) c->Esp;
         fprintf(stderr, "WATCH: frame %u write %08lX eip=%08lX stack", plat_frames(),
                 (unsigned long) er->ExceptionInformation[1], (unsigned long) c->Eip);
+#endif
         for (i = 0; i < 64 && k < 8; i++)
-            if (sp[i] >= 0x401000 && sp[i] < 0x01000000) fprintf(stderr, " %08lX", sp[i]), k++;
+            if (sp[i] >= lo + 0x1000 && sp[i] < hi) fprintf(stderr, " %08llX", (unsigned long long) sp[i]), k++;
         fprintf(stderr, "\n");
         g_watch_left--;
         VirtualProtect((void *) g_watch_page, 0x1000, PAGE_READWRITE, &old);

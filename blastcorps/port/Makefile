@@ -477,6 +477,8 @@ strict-data: $(H)/typemap_all.txt
 $(H)/typemap_all.txt: $(H)/addrs.txt tools/typemap.py
 	cd $(ROOT) && TYPEMAP_ALL=1 $(PYTHON) port/tools/typemap.py port/$(H)/addrs.txt port/$@ > /dev/null
 
+include port64.mk
+
 clean:
 	rm -rf $(B)
 

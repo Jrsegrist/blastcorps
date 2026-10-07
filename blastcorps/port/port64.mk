@@ -1,0 +1,193 @@
+# ---------------------------------------------------------------------------
+# 64-bit (x86_64) build: the same game, platform and host sources as
+# headless/game, compiled with clang for x86_64-w64-mingw32 and linked with
+# mingw-w64's x86_64 binutils/CRT.  N64 memory stays at 0x80000000 with N64
+# layouts (4-byte pointers: N64P, port/include/port_n64ptr.h).  See README.md
+# ("64-bit").  Included by Makefile.
+#
+#   make -C port headless64          build/headless64/bc_headless.exe
+#   make -C port game64 dist64       build/game64/bc.exe, its package
+#   make -C port ptrcheck64          pointer-width audit + record layouts (i686 vs x86_64)
+#   make -C port verify64 / verify-levels64 / loadcheck64
+H64 := build/headless64
+CC64 := clang-18 --target=x86_64-w64-mingw32
+LD64 := x86_64-w64-mingw32-gcc
+NM64 := x86_64-w64-mingw32-nm
+# -fms-extensions: __ptr32 (N64P); -mno-ms-bitfields: GCC bitfield packing (the
+# GBI's Gfx); -fdata-sections: one section per object, for coffpin.py;
+# -fno-auto-import: direct (RIP-relative) access to data, no .refptr stubs;
+# -ffp-contract=off: no FMA contraction (the i686 build has none either).
+# Errors: a pointer that changes address space under another pointer
+# (`u8 **p = D_x` with D_x an N64P array) and pointer/integer mixups.
+# Not warned: int <-> pointer casts of 32-bit values (N64 addresses); the
+# dangerous kind, a signed 32-bit int cast to a pointer (it sign-extends:
+# N64_IPTR), is what ptrcheck64 reports as SEXT.
+C64_COMMON := -fms-extensions -mno-ms-bitfields -fdata-sections -fno-addrsig -fno-auto-import -ffp-contract=off \
+	-Werror=incompatible-pointer-types -Werror=int-conversion -Wno-pointer-to-int-cast \
+	-Wno-void-pointer-to-int-cast -Wno-int-to-pointer-cast -Wno-int-to-void-pointer-cast
+# Code that sees N64 data is compiled through LLVM IR: the x86-64 ABI gives a
+# global array of 16 bytes or more 16-byte alignment and clang assumes it for
+# every array, extern ones too, so it used movaps on D_8036B8C8 (an N64 array at
+# an 8-aligned address: a fault).  tools/llalign64.py lowers every alignment
+# above 4 on memory accesses and N64 globals in the optimised IR, then the code
+# is generated (no further IR optimisation); tools/align64.py checks the
+# objects: no 16-byte-aligned access except on the stack or constants.
+# $(call cc64ir,FLAGS): $< -> $@
+cc64ir = $(CC64) $(1) -S -emit-llvm -o $@.ll $< && \
+	$(PYTHON) tools/llalign64.py $@.ll $@.a.ll $(H64)/addrs.txt && \
+	$(CC64) $(1) -Wno-unused-command-line-argument -Xclang -disable-llvm-optzns -c -o $@ $@.a.ll && \
+	rm -f $@.ll $@.a.ll
+IR64_DEPS := tools/llalign64.py $(H64)/addrs.txt
+HL64_CFLAGS := $(filter-out -msse2 -mfpmath=sse -Wno-builtin-declaration-mismatch,$(GAME_CFLAGS)) -DPORT_HOST \
+	$(C64_COMMON) -g -fno-optimize-sibling-calls -Wno-incompatible-library-redeclaration $(HL_EXTRA)
+# ultralib's headers come from the marked copies (ulhdr64.py) in $(H64)/ulinc
+HL64_UL_CFLAGS := -I$(H64)/ulinc $(subst -I$(UL_DIR)/include,-I$(H64)/ulinc/include,$(subst \
+	-I$(UL_DIR)/src/libc,-I$(H64)/ulinc/src/libc,$(filter-out -msse2 -mfpmath=sse $(HL_ABI),$(HL_UL_CFLAGS)))) \
+	$(C64_COMMON) -include include/port_n64ptr.h
+HL64_PLAT_CFLAGS := $(HL64_CFLAGS) -Isrc/platform -Wall -Wno-unknown-pragmas
+HL64_HOST_CFLAGS := -O2 -Wall -Isrc -Isrc/platform -g -fno-addrsig -Wno-pointer-to-int-cast
+# a fixed base below RDRAM (RIP-relative reach), no relocations, no ASLR: every
+# host address the game can be handed (image, heap, fiber stacks) is below 4 GB
+LDFLAGS64 := -Wl,--image-base,0x40000000 -Wl,--disable-dynamicbase -Wl,--disable-high-entropy-va \
+	-Wl,--disable-reloc-section
+
+HL64_GAME_OBJS := $(HL_HD:%=$(H64)/game/hd/%.o) $(HL_FE:%=$(H64)/game/fe/%.o) \
+	$(HL_UL:%=$(H64)/game/ul/%.o) $(HL_UL_LE:%=$(H64)/game/ul/%.o) $(HL_ULFE:%=$(H64)/game/ulfe/%.o) \
+	$(HL_PLAT:%=$(H64)/game/plat/%.o)
+HL64_RECS := $(HL64_GAME_OBJS:.o=.rec)
+HL64_HOST_OBJS := $(HL_HOST:%=$(H64)/host/%.o) $(H64)/host/rdram.o $(H64)/host/inflate.o \
+	$(HL_LOAD:%=$(H64)/host/load/%.o) $(if $(HL_LOAD),$(H64)/host/swaptab.o,) $(HL_AUDIO:%=$(H64)/host/audio/%.o)
+
+$(H64)/addrs.txt: $(H)/addrs.txt
+	@mkdir -p $(@D)
+	cp $< $@
+
+# ultralib's public headers with the N64 pointer marks (tools/ulhdr64.py,
+# data/ultralib_n64ptr.txt): the ul_* objects share these records with the game
+UL64_HDRS := $(shell sed -n 's/^\([^#: ][^: ]*\):.*/\1/p' data/ultralib_n64ptr.txt 2>/dev/null | sort -u)
+# ... and its sources with the function pointers kept in N64 memory used
+# through N64FN_SET/N64FN_GET (tools/ulsrc64.py): $(H64)/ulsrc/ul_*.c
+UL64_SRCS := $(HL_UL:%=$(GAME_SRC)/%.c) $(HL_ULFE:%=$(FE_SRC)/%.c)
+$(H64)/ulinc.stamp: data/ultralib_n64ptr.txt tools/ulhdr64.py tools/ulsrc64.py $(UL64_SRCS)
+	rm -rf $(H64)/ulinc $(H64)/ulsrc
+	@mkdir -p $(H64)/ulinc
+	$(PYTHON) tools/ulhdr64.py $(UL_DIR) data/ultralib_n64ptr.txt $(H64)/ulinc
+	$(PYTHON) tools/ulsrc64.py $(UL_DIR) $(H64)/ulinc $(H64)/ulsrc $(UL64_SRCS)
+	touch $@
+$(H64)/ulsrc/%.c: $(H64)/ulinc.stamp
+	@test -f $@
+
+$(H64)/game/hd/%.raw.o: $(GAME_SRC)/%.c include/port_ultratypes.h include/port_n64ptr.h $(IR64_DEPS) Makefile \
+		port64.mk
+	@mkdir -p $(@D)
+	$(call cc64ir,$(HL64_CFLAGS) $(HL_GAME_INSTR))
+$(HL_CLOCK_CALLERS:%=$(H64)/game/hd/%.raw.o): HL64_CFLAGS += -fno-inline
+$(H64)/game/fe/%.raw.o: $(FE_SRC)/%.c include/port_ultratypes.h include/port_n64ptr.h $(IR64_DEPS) Makefile \
+		port64.mk
+	@mkdir -p $(@D)
+	$(call cc64ir,$(HL64_CFLAGS) $(HL_GAME_INSTR))
+$(H64)/game/ul/%.raw.o: $(H64)/ulsrc/%.c $(H64)/ulinc.stamp $(IR64_DEPS) Makefile port64.mk
+	@mkdir -p $(@D)
+	$(call cc64ir,$(HL64_UL_CFLAGS))
+$(H64)/game/ul/ul_sinf.raw.o: $(H)/le/sinf.c $(H64)/ulinc.stamp $(IR64_DEPS)
+	@mkdir -p $(@D)
+	$(call cc64ir,$(HL64_UL_CFLAGS) -I$(UL_DIR)/src/gu)
+$(H64)/game/ul/ul_cosf.raw.o: $(H)/le/cosf.c $(H64)/ulinc.stamp $(IR64_DEPS)
+	@mkdir -p $(@D)
+	$(call cc64ir,$(HL64_UL_CFLAGS) -I$(UL_DIR)/src/gu)
+$(H64)/game/ul/ul_xldtob.raw.o: $(H)/le/xldtob.c $(H64)/ulinc.stamp $(IR64_DEPS)
+	@mkdir -p $(@D)
+	$(call cc64ir,$(HL64_UL_CFLAGS))
+$(H64)/game/ul/ul_xprintf.raw.o: $(H)/le/xprintf.c $(H64)/ulinc.stamp $(IR64_DEPS)
+	@mkdir -p $(@D)
+	$(call cc64ir,$(HL64_UL_CFLAGS))
+$(H64)/game/ulfe/%.raw.o: $(H64)/ulsrc/%.c $(H)/le/PRinternal/controller.h $(H64)/ulinc.stamp $(IR64_DEPS) Makefile \
+		port64.mk
+	@mkdir -p $(@D)
+	$(call cc64ir,-I$(H)/le $(HL64_UL_CFLAGS))
+$(H64)/game/ulfe/ul_pfsallocatefile.raw.o: $(H)/le/pfsallocatefile.c $(H)/le/PRinternal/controller.h \
+		$(H64)/ulinc.stamp $(IR64_DEPS)
+	@mkdir -p $(@D)
+	$(call cc64ir,-I$(H)/le $(HL64_UL_CFLAGS))
+$(H64)/game/plat/%.raw.o: src/platform/%.c src/platform/plat.h src/platform/plat_host.h src/platform/port_dma.h \
+		src/audio/port_audio.h include/port_n64ptr.h $(IR64_DEPS) Makefile port64.mk
+	@mkdir -p $(@D)
+	$(call cc64ir,$(HL64_PLAT_CFLAGS))
+
+# pin the object's N64 data (tools/coffpin.py: works on the COFF object)
+$(H64)/%.o $(H64)/%.rec: $(H64)/%.raw.o $(H64)/addrs.txt tools/coffpin.py
+	$(PYTHON) tools/coffpin.py $(H64)/addrs.txt $< $(H64)/$*.o $(H64)/$*.rec
+
+$(H64)/host/%.o: src/platform/%.c src/platform/plat_host.h src/platform/port_dma.h src/rdram.h \
+		src/audio/port_audio.h Makefile port64.mk
+	@mkdir -p $(@D)
+	$(CC64) $(HL64_HOST_CFLAGS) -c -o $@ $<
+$(H64)/host/audio/%.o: src/audio/%.c src/audio/aspmain.h src/audio/port_audio.h src/platform/plat_host.h src/rdram.h \
+		Makefile port64.mk
+	@mkdir -p $(@D)
+	$(CC64) $(HL64_HOST_CFLAGS) -Wextra -Wno-unused-parameter -c -o $@ $<
+$(H64)/host/%.o: src/%.c src/rdram.h Makefile port64.mk
+	@mkdir -p $(@D)
+	$(CC64) $(HL64_HOST_CFLAGS) -c -o $@ $<
+$(H64)/host/load/%.o: src/load/%.c src/rdram.h src/platform/port_dma.h $(wildcard src/load/*.h) Makefile port64.mk
+	@mkdir -p $(@D)
+	$(CC64) $(HL64_HOST_CFLAGS) -Isrc/load -c -o $@ $<
+$(H64)/host/swaptab.o: $(H)/swaptab.c src/load/port_load.h
+	@mkdir -p $(@D)
+	$(CC64) $(HL64_HOST_CFLAGS) -c -o $@ $<
+
+# the N64 data symbols the objects use, as absolute symbols in a COFF object
+# (tools/rdramobj.py), and a trap for every function nothing defines
+$(H64)/abs_syms.o $(H64)/stubs.c &: $(HL64_GAME_OBJS) $(HL64_HOST_OBJS) tools/gensyms.py tools/rdramobj.py
+	cd $(ROOT) && NM=$(NM64) $(PYTHON) port/tools/gensyms.py link64 port/$(H64) \
+		$(addprefix port/,$(HL64_GAME_OBJS) $(HL64_HOST_OBJS))
+$(H64)/copytab.c: $(HL64_RECS) $(H64)/addrs.txt tools/gensyms.py
+	$(PYTHON) tools/gensyms.py copytab64 $@ $(H64)/addrs.txt $(HL64_RECS)
+# every pointer slot of the pinned objects: the NON_MATCHING ELF's value
+# (N64_DPTR initialisers are 0 natively)
+$(H64)/ptrtab.c: $(HL64_RECS) $(NM_ELFS) tools/gensyms.py
+	cd $(ROOT) && $(PYTHON) port/tools/gensyms.py ptrtab port/$@ $(addprefix port/,$(HL64_RECS))
+$(H64)/stubs.o: $(H64)/stubs.c
+	$(CC64) -O2 -w -c -o $@ $<
+$(H64)/copytab.o: $(H64)/copytab.c src/rdram.h
+	$(CC64) $(HL64_HOST_CFLAGS) -Isrc -c -o $@ $<
+$(H64)/ptrtab.o: $(H64)/ptrtab.c src/rdram.h
+	$(CC64) $(HL64_HOST_CFLAGS) -Isrc -c -o $@ $<
+
+HL64_LINK_OBJS := $(HL64_GAME_OBJS) $(HL64_HOST_OBJS) $(H64)/stubs.o $(H64)/copytab.o $(H64)/ptrtab.o $(H64)/abs_syms.o
+$(H64)/align.ok: $(HL64_GAME_OBJS) tools/align64.py
+	$(PYTHON) tools/align64.py x86_64-w64-mingw32-objdump $(HL64_GAME_OBJS) > $(H64)/align.txt || \
+		{ cat $(H64)/align.txt; exit 1; }
+	@tail -1 $(H64)/align.txt
+	@touch $@
+$(H64)/bc_headless.exe: $(HL64_LINK_OBJS) $(H64)/align.ok
+	$(LD64) -o $@ $(HL64_LINK_OBJS) $(LDFLAGS64) -Wl,-Map=$(H64)/bc_headless.map
+	$(NM64) -n $@ > $(H64)/bc_headless.syms
+	@head -3 $(H64)/link_report.txt
+
+headless64: $(H64)/bc_headless.exe
+
+# the pointer-width audit (tools/ptrcheck64.py: host-width pointers in N64
+# records and pinned globals, casts to host-width pointer pointers, signed
+# int -> pointer casts) and the record layouts i686 vs x86_64
+# (tools/layout64.py); data/ptrcheck64_allow.txt lists what is host-only
+P64_ALLOW := data/ptrcheck64_allow.txt
+P64_GAME := $(HL_HD:%=$(GAME_SRC)/%.c) $(HL_FE:%=$(FE_SRC)/%.c)
+P64_PLAT := $(HL_PLAT:%=src/platform/%.c)
+P64_UL := $(HL_UL:%=$(H64)/ulsrc/%.c) $(HL_ULFE:%=$(H64)/ulsrc/%.c)
+ptrcheck64: $(H64)/addrs.txt $(H64)/ulinc.stamp
+	@rc=0; \
+	$(PYTHON) tools/ptrcheck64.py $(H64)/addrs.txt $(P64_ALLOW) $(H64)/ptrcheck_game.txt -- \
+		$(CC64) $(HL64_CFLAGS) -w -- $(P64_GAME) || rc=1; \
+	$(PYTHON) tools/ptrcheck64.py $(H64)/addrs.txt $(P64_ALLOW) $(H64)/ptrcheck_plat.txt -- \
+		$(CC64) $(HL64_PLAT_CFLAGS) -w -- $(P64_PLAT) || rc=1; \
+	$(PYTHON) tools/ptrcheck64.py $(H64)/addrs.txt $(P64_ALLOW) $(H64)/ptrcheck_ul.txt -- \
+		$(CC64) -I$(H)/le $(HL64_UL_CFLAGS) -w -- $(P64_UL) || rc=1; \
+	$(PYTHON) tools/layout64.py $(P64_ALLOW) $(H64)/layout_game.txt -- $(CC64) $(HL64_CFLAGS) -- $(P64_GAME) || rc=1; \
+	$(PYTHON) tools/layout64.py $(P64_ALLOW) $(H64)/layout_plat.txt -- $(CC64) $(HL64_PLAT_CFLAGS) -- $(P64_PLAT) \
+		|| rc=1; \
+	$(PYTHON) tools/layout64.py $(P64_ALLOW) $(H64)/layout_ul.txt -- $(CC64) -I$(H)/le $(HL64_UL_CFLAGS) -- $(P64_UL) \
+		|| rc=1; \
+	exit $$rc
+
+.PHONY: headless64 ptrcheck64

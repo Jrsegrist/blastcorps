@@ -76,6 +76,11 @@ static void print_stats(void) {
     host_log("game: mode 0x%08X%08X, level %d, frames in mode %u, game VI counter %u\n",
              (unsigned) (G_MODE >> 32), (unsigned) G_MODE, (int) G_LEVEL, (unsigned) G_MODEFRAMES,
              (unsigned) G_VICOUNT);
+    host_log("cull: %u tests, %u not visible", (unsigned) plat_stats.cull_tasks, (unsigned) plat_stats.cull_hidden);
+    if (plat_stats.cull_keyed)
+        host_log("; %u answers from --clock, the model disagrees with %u", (unsigned) plat_stats.cull_keyed,
+                 (unsigned) plat_stats.cull_disagree);
+    host_log("\n");
     plat_clock_report();
     plat_sync_report();
 }

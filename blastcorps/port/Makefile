@@ -394,6 +394,18 @@ CMP_KIND ?= nm
 compare: $(H)/bc_headless.exe
 	$(PYTHON) tools/compare.py run --demo $(DEMO) --cache $(CMP_CACHE) --kind $(CMP_KIND) $(CMP_ARGS)
 
+# quick regression check: loadcheck, then bc_headless following a cached
+# emulator run (NM test ROM, rebuilt first; LLE audio and visibility tests) of
+# the first VERIFY_FRAMES frames: timeline, RAM dumps (lenient and strict),
+# visibility tests and audio tasks against the emulator's; fails when a number
+# is worse than in data/verify_expect.txt (tools/compare.py verify)
+VERIFY_FRAMES ?= 1500
+verify:
+	$(MAKE) -C $(ROOT) VERSION=$(VERSION) NON_MATCHING=1 nmrom BASEROM=$(abspath $(ROM)) > /dev/null
+	$(MAKE) $(H)/bc_headless.exe $(H)/typemap_all.txt
+	$(MAKE) loadcheck
+	$(PYTHON) tools/compare.py verify --frames $(VERIFY_FRAMES) --cache $(CMP_CACHE) $(VERIFY_ARGS)
+
 # the strict (typed) comparison's layouts: every symbol's declared leaves,
 # and with LC_TRACE (tools/m64widths.py output) the traced reads of every asset
 strict-data: $(H)/typemap_all.txt
@@ -404,5 +416,5 @@ $(H)/typemap_all.txt: $(H)/addrs.txt tools/typemap.py
 clean:
 	rm -rf $(B)
 
-.PHONY: all check clean linkall loadcheck typemap ucode headless compare game strict-data
+.PHONY: all check clean linkall loadcheck typemap ucode headless compare game strict-data verify
 .SECONDARY:

@@ -21,7 +21,9 @@
 #                                  part done (y=1: it yielded to an audio task)
 #   T ra=RA th=ID v=VALUE          osGetTime returns VALUE to RA (thread ID)
 #   C ra=RA th=ID v=VALUE          osGetCount (callers other than osGetTime)
-#   A ra=RA th=ID v=VALUE          osAiGetLength (the audio thread sizes its frames by it)
+#   A ra=RA th=ID v=VALUE          osAiGetLength (the audio thread sizes its frames by it),
+#                                  logged at the return site RA in the caller
+#   Z ra=RA th=ID v=N              alAudioFrame asked for N samples (the audio frame size)
 #   Q ra=FUNC th=ID v=VALUE        the game retrace counter D_803156C4 as a GVI_FUNCS
 #                                  function reads it (port.h PORT_GVI)
 #   U ra=RA th=ID v=WORD           func_802A4B0C's RSP visibility test: the output word it
@@ -100,7 +102,6 @@ A_RSP = syms["func_802715DC"]  # __scHandleRSP: an RSP task finished (or yielded
 A_TIME = ret_of("osGetTime")
 A_COUNT = ret_of("osGetCount")
 A_RUNNING = syms["__osRunningThread"]
-A_AILEN = ret_of("osAiGetLength")
 
 
 def call_site(func, callee):
@@ -141,12 +142,37 @@ for name, (a, size) in func_sizes.items():
                             0x3C0B, 0x3C0C, 0x3C0D, 0x3C0E, 0x3C0F, 0x3C18, 0x3C19) and (w & 0xFFFF) == 0x8031
                 for w in words):
         ENTRY[a] = name
+# ... and the sound player's calls that post events to the audio thread
+# (1A630.c, sndPlaySfx and friends: alEvtqPostEvent from the game thread):
+# which audio frame handles a sound depends on whether the game thread posts it
+# before or after the audio thread's frame in that retrace
+SOUND_FUNCS = ["func_80260650", "func_802600D8", "func_80260AB8", "func_80260B40", "func_80260934",
+               "func_802608C8"]
+for name in SOUND_FUNCS:
+    if name in func_sizes:
+        ENTRY[func_sizes[name][0]] = name
 # CMP_CALLS=func_a,func_b: log every call of these (for `compare.py calls`)
 CALLS = {}
 for n in filter(None, os.environ.get("CMP_CALLS", "").split(",")):
     CALLS[syms[n]] = n
 if len(ENTRY) > 80:
     raise SystemExit("cmp_spec: too many entry breakpoints (%d)" % len(ENTRY))
+
+# osAiGetLength's value, logged in the caller just after the call returns
+# (the audio manager sizes each frame from it).  Logging it at the callee's
+# `jr ra` gave a stale v0 (the AI_LEN load hadn't landed in the debugger's
+# view yet: 0 or the previous call's result in 33,977 hits).
+_JAL_AILEN = 0x0C000000 | ((syms["osAiGetLength"] >> 2) & 0x3FFFFFF)
+AILEN_RET = {}
+for name, (a, size) in func_sizes.items():
+    for i in range(0, size, 4):
+        try:
+            if word_at(a + i) == _JAL_AILEN:
+                AILEN_RET[a + i + 8] = name
+        except KeyError:
+            break
+# the audio frame size the synthesizer is asked for (alAudioFrame's 4th argument)
+A_AFRAME = syms.get("alAudioFrame", syms.get("func_802D9D68"))
 
 # Retrace-counter reads the exe takes from the emulator (port.h PORT_GVI):
 # where the game reads D_803156C4 mid-function, after CPU time the native
@@ -159,7 +185,10 @@ for name in GVI_FUNCS:
         w = word_at(a + i)
         if w >> 26 == 0x23 and (w & 0xFFFF) == 0x56C4:
             GVI[a + i] = name
-BPS = {A_BOOT: "B", A_TASK: "F", A_RDP: "R", A_RSP: "P", A_TIME: "T", A_COUNT: "C", A_AILEN: "A", A_CULL: "U"}
+BPS = {A_BOOT: "B", A_TASK: "F", A_RDP: "R", A_RSP: "P", A_TIME: "T", A_COUNT: "C", A_CULL: "U"}
+BPS.update({a: "A" for a in AILEN_RET})
+if A_AFRAME:
+    BPS[A_AFRAME] = "Z"
 BPS.update({a: "M" for a in SYNC})
 BPS.update({a: "E" for a in ENTRY})
 BPS.update({a: "K" for a in CALLS})
@@ -242,8 +271,11 @@ def ONHIT(pc, g, rd):
         return "C ra=%x th=%d v=%x" % (g["ra"], thread_id(rd), g["v0"])
     if pc == A_CULL:
         return "U ra=%x th=%d v=%x frame=%d" % (syms["func_802A4B0C"], thread_id(rd), rd(A_CULLBUF, 4), st["frame"])
-    if pc == A_AILEN:
-        return "A ra=%x th=%d v=%x" % (g["ra"], thread_id(rd), g["v0"])
+    if pc in AILEN_RET:
+        # (ra: this return site, in the caller)
+        return "A ra=%x th=%d v=%x" % (pc, thread_id(rd), g["v0"])
+    if pc == A_AFRAME:
+        return "Z ra=%x th=%d v=%x" % (g["ra"], thread_id(rd), g["a3"])
     if pc in GVI:
         # (the lw hasn't run: memory holds what it loads)
         return "Q ra=%x th=%d v=%x" % (syms[GVI[pc]], thread_id(rd), rd(0x803156C4, 4))

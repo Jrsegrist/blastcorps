@@ -33,6 +33,9 @@ SPEC.py defines:
   LOADSTATE = "path"                load this save state at the first VI (the INPUT
                                     script keeps running from there)
   WATCH = [(addr, size), ...]       logged as "#w vi=N ..." whenever one changes
+  WRITES = [(lo, hi), ...]          memory write breakpoints (RDRAM, [lo, hi)); each
+  ONWRITE = f(pc, addr, gprs, read) write calls ONWRITE (before the store): its text is
+                                    logged as "W vi=N pc=PC | text" (None: not logged)
 Output: one line per (new) hit, then "#count LABEL N | values" lines.
 NM test ROM addresses come from build_nm/hd_code.rom.us.v11.elf (text at 0x804xxxxx).
 Summaries: summarise.py OUT.txt; RAM dump diffs: dumpcmp.py A B [n lo hi].
@@ -58,6 +61,8 @@ DUMPS = {int(a): v for a, v in spec.get("DUMPS", {}).items()}
 INPUT = spec.get("INPUT")
 LOADSTATE = spec.get("LOADSTATE")
 WATCH = spec.get("WATCH", [])
+WRITES = spec.get("WRITES", [])
+ONWRITE = spec.get("ONWRITE")
 
 core = C.CDLL("/usr/lib/x86_64-linux-gnu/libmupen64plus.so.2")
 PLUG = "/usr/lib/x86_64-linux-gnu/mupen64plus/"
@@ -140,11 +145,23 @@ def input_plugin():
     return so
 
 
+# M64RSP / M64AUDIO: other RSP / audio plugins (e.g. port/tools/audio's rsp_tap.so,
+# LLE audio and visibility tests, and ai_dump.so); M64CFG="Section:Name:type:value;..."
+# config values set before the plugins start (type 1 int, 3 bool, 4 string)
+for item in filter(None, os.environ.get("M64CFG", "").split(";")):
+    sec, name, typ, val = item.split(":", 3)
+    try:
+        setp(sec, name, int(typ), val if int(typ) == 4 else int(val))
+    except AssertionError:
+        sys.stderr.write("m64trace: can't set %s\n" % item)
 inlib = None
 plugs = []
-for typ, name in ((2, PLUG + "mupen64plus-video-glide64mk2.so"),
-                  (4, input_plugin() if INPUT else PLUG + "mupen64plus-input-sdl.so"),
-                  (1, PLUG + "mupen64plus-rsp-hle.so")):
+_plugins = [(2, PLUG + "mupen64plus-video-glide64mk2.so"),
+            (4, input_plugin() if INPUT else PLUG + "mupen64plus-input-sdl.so"),
+            (1, os.environ.get("M64RSP") or PLUG + "mupen64plus-rsp-hle.so")]
+if os.environ.get("M64AUDIO"):
+    _plugins.insert(1, (3, os.environ["M64AUDIO"]))
+for typ, name in _plugins:
     lib = C.CDLL(name)
     lib.PluginStartup.argtypes = [C.c_void_p, C.c_void_p, DEBUGCB]
     if typ == 4 and INPUT and os.environ.get("M64PAK"):  # Controller Pak in controller 1
@@ -176,6 +193,7 @@ class BKP(C.Structure):
 
 
 core.DebugBreakpointCommand.argtypes = [C.c_int, C.c_uint, C.POINTER(BKP)]
+core.DebugBreakpointTriggeredBy.argtypes = [C.POINTER(C.c_uint32), C.POINTER(C.c_uint32)]
 
 out = open(OUTF, "w")
 state = {"vi": 0, "started": False, "hits": {}, "bpidx": {}}
@@ -213,6 +231,21 @@ def upd(pc):
         for a in BPS:
             b = BKP(a, a, 1 | 8)
             state["bpidx"][a] = core.DebugBreakpointCommand(2, 0, C.byref(b))
+        for lo, hi in WRITES:
+            b = BKP(lo & 0x1FFFFFFF, (hi - 1) & 0x1FFFFFFF, 1 | 4)
+            core.DebugBreakpointCommand(2, 0, C.byref(b))
+    elif WRITES and pc not in BPS:
+        # a memory write breakpoint: ONWRITE(pc, address, gprs, read) -> text or None
+        fl, ad = C.c_uint32(), C.c_uint32()
+        core.DebugBreakpointTriggeredBy(C.byref(fl), C.byref(ad))
+        if fl.value & 4 and ONWRITE:
+            g = {nm: gpr(i) for i, nm in enumerate(GPRN)}
+            try:
+                t = ONWRITE(pc, ad.value | 0x80000000, g, rdmem)
+            except Exception as e:
+                t = "onwrite-err %r" % e
+            if t is not None:
+                out.write("W vi=%d pc=%x | %s\n" % (state["vi"], pc, t))
     elif pc in BPS:
         n = state["hits"].get(pc, 0) + 1
         state["hits"][pc] = n

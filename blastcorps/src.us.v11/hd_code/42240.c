@@ -21,6 +21,15 @@
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
+#ifdef PORT_HOST
+/* The quads below are built in fresh heap memory, and their flag and colour
+ * bytes (and the needle's texture coordinates) are never written: the RSP
+ * shades the dial and the icons with whatever bytes the heap held there (an
+ * original slip).  port_vtx_stale (port/src/load/swap.c) first gives the
+ * native records the N64's stale bytes, so they draw (and compare) the same. */
+void port_vtx_stale(void *v, u32 n);
+#endif
+
 #ifndef NON_MATCHING
 extern u32 D_80358070; /* heap pointer */
 #endif
@@ -50,6 +59,9 @@ void func_80286A00(void) {
     D_8036EC0C = (Mtx *) (D_80358070 += 0x80);
     D_8036EC04 = (Vtx *) (D_80358070 += 0x80);
     D_80358070 += 0x80;
+#ifdef PORT_HOST
+    port_vtx_stale(D_8036EC04, 8);
+#endif
     D_8036EC04[0].v.ob[0] = 38;
     D_8036EC04[0].v.ob[1] = 123;
     D_8036EC04[0].v.ob[2] = -5;
@@ -142,6 +154,9 @@ void func_802873AC(void) {
     func_802A0CC8(0x996, 0);
     D_8036EC18 = (Vtx *) D_80358070;
     D_80358070 += 0x40;
+#ifdef PORT_HOST
+    port_vtx_stale(D_8036EC18, 4);
+#endif
     D_8036EC18[0].v.ob[0] = 34;
     D_8036EC18[0].v.ob[1] = 135;
     D_8036EC18[0].v.ob[2] = -5;
@@ -215,6 +230,9 @@ void func_80287AE4(void) {
     func_802A0CC8(0x998, 0);
     D_8036EC24 = (Vtx *) D_80358070;
     D_80358070 += 0x40;
+#ifdef PORT_HOST
+    port_vtx_stale(D_8036EC24, 4);
+#endif
     D_8036EC24[0].v.ob[0] = 34;
     D_8036EC24[0].v.ob[1] = 145;
     D_8036EC24[0].v.ob[2] = -5;

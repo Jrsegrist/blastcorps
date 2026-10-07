@@ -39,6 +39,9 @@ void port_bswap_n(void *p, uint32_t n, int width);
  * kept big-endian); port_n64_byte gives the byte the N64 would hold at P. */
 void port_unit_mark(void *p, uint32_t n, int width);
 uint8_t port_n64_byte(const void *p);
+/* N Vtx built in fresh heap memory with fields left unwritten: the N64's
+ * stale bytes in the native Vtx layout (42240.c) */
+void port_vtx_stale(void *v, uint32_t n);
 /* bytes nothing writes or reads (record padding): with --load-log, logged
  * for the comparison (port/tools/compare.py skips them until reloaded) */
 void port_garbage(const void *p, uint32_t len);

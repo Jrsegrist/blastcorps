@@ -412,7 +412,14 @@ static void complete(u32 delay, int dp) {
 void osSpTaskStartGo(OSTask *t) {
     g_sp_yield = 0;
     if (t->t.type == M_AUDTASK) {
+        static int log = -1;
         plat_stats.aud_tasks++;
+        /* BC_AUDIO_LOG=1: when each audio task starts (compare.py's emulator
+         * log has the same per audio frame: its Z lines) */
+        if (log < 0) log = host_env("BC_AUDIO_LOG");
+        if (log)
+            host_log("audtask %u retrace %u +%u frame %u\n", (unsigned) plat_stats.aud_tasks, (unsigned) plat_vi_count,
+                     (unsigned) (plat_now % PLAT_VI_PERIOD), (unsigned) plat_stats.frames);
         port_audio_task(osVirtualToPhysical(t->t.ucode_data), t->t.ucode_data_size,
                         osVirtualToPhysical(t->t.data_ptr), t->t.data_size);
         complete(plat_cfg.aud_cycles, 0);
@@ -425,14 +432,26 @@ void osSpTaskStartGo(OSTask *t) {
         plat_cfg.live->gfx_task(osVirtualToPhysical(t->t.ucode), osVirtualToPhysical(t->t.ucode_data),
                                 osVirtualToPhysical(t->t.data_ptr), t->t.data_size);
     if ((u32) t->t.ucode == UCODE_CULL) {
-        u64 v;
+        u64 v, m;
         plat_stats.cull_tasks++;
-        /* following an emulator (--clock): its answer for this test; else
-         * the CPU model of the real ucode (cull_visible) */
-        if (!plat_clock_key_take_name(3, "func_802A4B0C", &v)) {
-            v = cull_visible((const u32 *) t->t.data_ptr, t->t.data_size) ? 0xCC000000u : 0xE8000000u;
-            cull_log((const u32 *) t->t.data_ptr, t->t.data_size, (u32) v);
+        m = cull_visible((const u32 *) t->t.data_ptr, t->t.data_size) ? 0xCC000000u : 0xE8000000u;
+        cull_log((const u32 *) t->t.data_ptr, t->t.data_size, (u32) m);
+        /* following an emulator (--clock): its answer for this test (an LLE
+         * RSP's with compare.py emu --lle; mupen64plus's HLE RSP doesn't run
+         * this ucode and always says "visible"), checked against the model;
+         * else the CPU model of the real ucode (cull_visible) */
+        if (plat_clock_key_take_name(3, "func_802A4B0C", &v)) {
+            plat_stats.cull_keyed++;
+            if (((u32) v == 0xE8000000u) != ((u32) m == 0xE8000000u)) {
+                plat_stats.cull_disagree++;
+                if (host_verbose)
+                    host_log("cull: frame %u: emulator %08x, model %08x\n", (unsigned) plat_stats.frames,
+                             (unsigned) v, (unsigned) m);
+            }
+        } else {
+            v = m;
         }
+        if ((u32) v == 0xE8000000u) plat_stats.cull_hidden++;
         if (t->t.output_buff != NULL) *(u32 *) t->t.output_buff = (u32) v;
         complete(plat_cfg.small_gfx_cycles, 0);
         return;

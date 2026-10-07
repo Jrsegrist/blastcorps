@@ -10,6 +10,10 @@
  *   TAP_CAPTURE=file   write each audio task's inputs and the LLE's results
  *                      (capture.h; asp_replay replays them offline)
  *   TAP_CAPTURE_MAX=n  at most n tasks captured (default all)
+ *   TAP_HLE=path       non-audio tasks go to this plugin (e.g. rsp-hle)
+ *   TAP_LLE_UCODE=a,b  ...except tasks of these microcodes (hex RDRAM
+ *                      addresses), which run on the LLE RSP too
+ *   TAP_NOCHECK=1      audio tasks on the LLE RSP only (no aspmain check)
  * Linux only (dlopen). */
 #define _GNU_SOURCE
 #include <dlfcn.h>
@@ -45,6 +49,8 @@ static AspState st;
 static unsigned n_tasks, n_same, n_diff, n_dmem_diff, n_empty;
 static unsigned long long diff_bytes;
 static RangeList rd, wr;
+static uint32_t lle_ucode[8];
+static unsigned n_lle_ucode, n_lle_other, no_check;
 
 static void logf_(const char *fmt, ...) {
     va_list ap;
@@ -101,6 +107,16 @@ EXPORT m64p_error CALL PluginStartup(m64p_dynlib_handle core, void *ctx, void (*
     if (getenv("TAP_OUT")) rep = fopen(getenv("TAP_OUT"), "w");
     if (getenv("TAP_CAPTURE")) cap = fopen(getenv("TAP_CAPTURE"), "wb");
     if (getenv("TAP_CAPTURE_MAX")) cap_max = (unsigned) atoi(getenv("TAP_CAPTURE_MAX"));
+    if (getenv("TAP_LLE_UCODE")) {
+        const char *s = getenv("TAP_LLE_UCODE");
+        char *e;
+        while (*s && n_lle_ucode < 8) {
+            lle_ucode[n_lle_ucode++] = (uint32_t) strtoul(s, &e, 16) & 0x7FFFFF;
+            if (e == s) break;
+            s = *e == ',' ? e + 1 : e;
+        }
+    }
+    no_check = getenv("TAP_NOCHECK") != NULL;
     pre = malloc(RDRAM_SIZE);
     work = malloc(RDRAM_SIZE);
     asp_init(&st);
@@ -111,7 +127,8 @@ EXPORT m64p_error CALL PluginStartup(m64p_dynlib_handle core, void *ctx, void (*
 static void summary(void) {
     unsigned i;
     logf_("tap: audio tasks %u, identical %u, different %u (%llu bytes), DMEM buffer area different %u; "
-          "%u empty lists not compared\n", n_tasks, n_same, n_diff, diff_bytes, n_dmem_diff, n_empty);
+          "%u empty lists not compared; %u other tasks on the LLE RSP (TAP_LLE_UCODE)%s\n", n_tasks, n_same, n_diff,
+          diff_bytes, n_dmem_diff, n_empty, n_lle_other, no_check ? "; TAP_NOCHECK: not compared" : "");
     logf_("tap: commands %u:", st.cmds);
     for (i = 0; i < 16; i++) logf_(" %u", st.cmd_count[i]);
     logf_("\n");
@@ -164,7 +181,23 @@ EXPORT unsigned int CALL DoRspCycles(unsigned int cycles) {
     AspVU vu_pre;
     uint32_t a, ndiff = 0, shown = 0;
 
-    if ((*info.SP_STATUS_REG & 3) != 0 || dw(0xFC0) != 2) return hle_cycles ? hle_cycles(cycles) : lle_cycles(cycles);
+    if ((*info.SP_STATUS_REG & 3) != 0) return hle_cycles ? hle_cycles(cycles) : lle_cycles(cycles);
+    if (dw(0xFC0) != 2) {
+        /* TAP_LLE_UCODE: tasks of these microcodes run on the LLE RSP too
+         * (e.g. Blast Corps' visibility test, whose output the CPU reads and
+         * which the HLE plugin doesn't know) */
+        unsigned k;
+        for (k = 0; k < n_lle_ucode; k++)
+            if ((dw(0xFC0 + 0x10) & 0x7FFFFF) == lle_ucode[k]) {
+                n_lle_other++;
+                return lle_cycles(cycles);
+            }
+        return hle_cycles ? hle_cycles(cycles) : lle_cycles(cycles);
+    }
+    if (no_check) {   /* TAP_NOCHECK: LLE only, no aspmain comparison */
+        n_tasks++;
+        return lle_cycles(cycles);
+    }
 
     memcpy(pre, info.RDRAM, RDRAM_SIZE);
     memcpy(work, info.RDRAM, RDRAM_SIZE);

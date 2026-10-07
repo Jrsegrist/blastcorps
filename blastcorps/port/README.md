@@ -539,3 +539,40 @@ main thread's switch points used.  It fails when a number is worse than
 in `data/verify_expect.txt` (`key MIN`, `key =N`, `key <=N`).
 `VERIFY_FRAMES=14498 make -C port verify` covers all nine demos (about 25
 minutes the first time, ~12 GB of dumps).
+
+## Every level: `make -C port verify-levels`
+
+The attract demos load 9 of the game's 60 levels (`D_802E8BDC` 0-59; the
+type byte of each `D_802E8F94` record is in `data/levels.txt`).  To reach any
+level with the same input on both sides, `tools/compare.py level --level L`
+plays `data/levels_input.txt` (made by `tools/levels_input.py`): START / A
+from controller read 400 (title, new game, player A, the opening sequence),
+A on the globe at read 985, A taps for the intro pages, then from read 1220 a
+driving pattern (accelerate, turn both ways, brake and reverse, stop, Z out,
+walk, A, Z in, ...).  At frame 930, before the globe first opens, both sides
+write L to player 0's "last level" byte (`D_80364AF0[0].pad0[8]`, 0x80364AF8:
+00000.c reads it once, on the first entry to the globe, 0x4000), so the globe
+opens centred on L and A selects it; the game loads it its own way (mission
+intro, bonus-level page, sequence).  The poke is `CMP_POKE` / `compare.py emu
+--poke` in the emulator and `--poke F:ADDR:SIZE:VALUE` in the exes (applied
+when frame F is sent, after its dump); the input is `CMP_INPUT` / `--input`.
+In the emulator the pad is set at the entry of each `osContStartReadData`,
+so read n gets line n exactly (the input plugin's own count includes 2 more
+PIF commands by the first frame).  `--shots F,..` also saves the emulator's
+window (Glide64mk2) at those frames.
+
+`make -C port verify-levels [LEVELS=a,b-c] [LEVEL_JOBS=2]` runs every level
+for 1900 frames (the level from frame ~1046-1172, ~730-855 frames in it),
+emulator side cached in `$(CMP_CACHE)/level-nm-LL` (about 3.5 minutes per
+level the first time, dumps every 100 frames from frame 1000), and compares
+the timeline and the RAM dumps (lenient: in a level, heap data lands on
+declared arrays such as the frame buffers, so the strict typing reports
+noise; `compare.py level --strict` has it).  Expectations per level are in
+`data/verify_levels_expect.txt` (`L key VALUE`, `* key VALUE` for all).
+
+Debugging what native code wrote: `--watch F:ADDR[:N]` logs the first N
+writes to ADDR's 4 KB page from frame F on (eip and the stack's code
+pointers; WSL doesn't hand environment variables to the exe, hence an
+option); the emulator side is `tools_port/m64trace` with `WRITES`/`ONWRITE`
+over `cmp_spec.py` (scratchpad tools of the levels work).  `m64widths.py`
+takes `W_INPUT` / `W_POKE` / `W_SAVEDIR` to trace a level's access widths.

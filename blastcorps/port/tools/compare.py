@@ -1361,7 +1361,7 @@ def level_names():
 
 
 def run_level(level, cache, frames, every, input_path, kind="nm", shots="", force=False, keep=False,
-              strict=True):
+              strict=False):
     """one level: the emulator side (cached by ROM, spec, input and parameters), then
     bc_headless, timeline + dump comparison; returns a dict of results"""
     rom = default_rom(kind)
@@ -1431,18 +1431,41 @@ def cmd_level(args):
     inp = os.path.abspath(opt(args, "--input", os.path.join(PORT, "data/levels_input.txt")))
     kind = opt(args, "--kind", "nm")
     shots = opt(args, "--shots", "")
-    res = run_level(level, cache, frames, every, inp, kind, shots, flag(args, "--force"), flag(args, "--keep"))
+    # (--strict: also the typed comparison; in a level, heap data lands on
+    # declared arrays like the frame buffers D_80000400, so it reports noise)
+    res = run_level(level, cache, frames, every, inp, kind, shots, flag(args, "--force"), flag(args, "--keep"),
+                    flag(args, "--strict"))
     print("level: results")
     for k in sorted(res):
         print("  %-24s %s" % (k, res[k]))
     return res
 
 
+def _level_job(a):
+    """one level of verify-levels, its output in CACHE/level-LL.log"""
+    lv, cache, frames, every, inp = a
+    log = open(os.path.join(cache, "level-%02d.log" % lv), "w")
+    sys.stdout.flush()
+    saved = os.dup(1)
+    os.dup2(log.fileno(), 1)
+    try:
+        return run_level(lv, cache, frames, every, inp)
+    except SystemExit as e:
+        return {"level": lv, "exe_exit": -1, "frames": 0, "timeline_retrace": 0, "timeline_state": 0,
+                "level_frames": 0, "level_from": 0, "dumps": 0, "dumps_match": 0, "error": str(e)}
+    finally:
+        sys.stdout.flush()
+        os.dup2(saved, 1)
+        os.close(saved)
+        log.close()
+
+
 def cmd_verify_levels(args):
-    """verify-levels [--cache DIR] [--levels a,b-c] [--frames N] [--every K] [--expect FILE]:
-    every level (data/levels.txt) through cmd_level; fails when a level's numbers are worse
-    than in --expect (default data/verify_levels_expect.txt: `L key VALUE` lines, VALUE as
-    in verify_expect.txt; `* key VALUE` applies to every level).  Prints a table."""
+    """verify-levels [--cache DIR] [--levels a,b-c] [--frames N] [--every K] [--expect FILE]
+    [--jobs J]: every level (data/levels.txt) through run_level (J at a time, each one's
+    output in DIR/level-LL.log); fails when a level's numbers are worse than in --expect
+    (default data/verify_levels_expect.txt: `L key VALUE` lines, VALUE as in
+    verify_expect.txt; `* key VALUE` applies to every level).  Prints a table."""
     cache = os.path.expanduser(opt(args, "--cache", "~/cmp_cache"))
     frames = opt(args, "--frames", 1900, int)
     every = opt(args, "--every", 100, int)
@@ -1457,6 +1480,7 @@ def cmd_verify_levels(args):
             levels += list(range(int(a), int(b or a) + 1))
     else:
         levels = sorted(names) or list(range(60))
+    jobs = opt(args, "--jobs", 1, int)
     exp = {}
     if os.path.exists(expect):
         for line in open(expect):
@@ -1464,8 +1488,16 @@ def cmd_verify_levels(args):
             if len(p) == 3:
                 exp.setdefault(p[0], []).append((p[1], p[2]))
     table, bad = [], []
-    for lv in levels:
-        res = run_level(lv, cache, frames, every, inp)
+    os.makedirs(cache, exist_ok=True)
+    print("verify-levels: %d levels, %d at a time (each level's log: %s/level-LL.log)" % (len(levels), jobs, cache))
+    sys.stdout.flush()
+    if jobs > 1:
+        import concurrent.futures
+        with concurrent.futures.ProcessPoolExecutor(jobs) as pool:
+            results = list(pool.map(_level_job, [(lv, cache, frames, every, inp) for lv in levels]))
+    else:
+        results = [_level_job((lv, cache, frames, every, inp)) for lv in levels]
+    for lv, res in zip(levels, results):
         table.append(res)
         for k, v in exp.get("*", []) + exp.get(str(lv), []):
             have = res.get(k)

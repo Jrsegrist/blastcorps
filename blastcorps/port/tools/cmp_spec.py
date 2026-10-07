@@ -177,14 +177,16 @@ A_AFRAME = syms.get("alAudioFrame", syms.get("func_802D9D68"))
 # Retrace-counter reads the exe takes from the emulator (port.h PORT_GVI):
 # where the game reads D_803156C4 mid-function, after CPU time the native
 # code doesn't take (00000.c func_8024C414: the blinking "PRESS START").
-GVI_FUNCS = ["func_8024C414"]
+# Also D_803156C0 (the scheduler's retrace count): hd_front_end 00000.c
+# func_801E7598 (the vehicle select screen's title pulse).
+GVI_FUNCS = ["func_8024C414", "func_801E7598"]
 GVI = {}
 for name in GVI_FUNCS:
     a, size = func_sizes[name]
     for i in range(0, size, 4):
         w = word_at(a + i)
-        if w >> 26 == 0x23 and (w & 0xFFFF) == 0x56C4:
-            GVI[a + i] = name
+        if w >> 26 == 0x23 and (w & 0xFFFF) in (0x56C0, 0x56C4):
+            GVI[a + i] = (name, 0x80310000 + (w & 0xFFFF))
 BPS = {A_BOOT: "B", A_TASK: "F", A_RDP: "R", A_RSP: "P", A_TIME: "T", A_COUNT: "C", A_CULL: "U"}
 BPS.update({a: "A" for a in AILEN_RET})
 if A_AFRAME:
@@ -365,7 +367,7 @@ def ONHIT(pc, g, rd):
         return "Z ra=%x th=%d v=%x" % (g["ra"], thread_id(rd), g["a3"])
     if pc in GVI:
         # (the lw hasn't run: memory holds what it loads)
-        return "Q ra=%x th=%d v=%x" % (syms[GVI[pc]], thread_id(rd), rd(0x803156C4, 4))
+        return "Q ra=%x th=%d v=%x" % (syms[GVI[pc][0]], thread_id(rd), rd(GVI[pc][1], 4))
     if pc in CALLS:
         # (a0-a3: the arguments; compare.py calls shows them next to the exe's)
         k = "K f=%s ra=%x frame=%d a=%s" % (CALLS[pc], g["ra"], st["frame"],

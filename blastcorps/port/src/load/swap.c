@@ -95,6 +95,21 @@ void port_garbage(const void *p, uint32_t len) {
         fprintf(stderr, "load: garbage %08X len %X\n", (unsigned) (uintptr_t) p, (unsigned) len);
 }
 
+/* N Vtx whose bytes 6-15 (flag, s, t, colour) nobody reads (cull boxes:
+ * gSPCullDisplayList takes the positions only): garbage for the comparator,
+ * logged once per record until a load replaces the memory (bit 7 of the
+ * unit map at the flag's first byte; port_unit_mark clears it) */
+void port_vtx_unread(void *v, uint32_t n) {
+    uint32_t a = (uint32_t) (uintptr_t) v, i;
+    if (a < 0x80000000u || a + n * 16 > 0x80800000u) return;
+    for (i = 0; i < n; i++, a += 16) {
+        uint8_t *m = &unit_map[a - 0x80000000u + 6];
+        if (*m & 0x80) continue;
+        *m |= 0x80;
+        port_garbage((void *) (uintptr_t) (a + 6), 10);
+    }
+}
+
 uint8_t port_n64_byte(const void *p) {
     uint32_t a = (uint32_t) (uintptr_t) p;
     const uint8_t *b = p;
@@ -102,7 +117,7 @@ uint8_t port_n64_byte(const void *p) {
     if (a < 0x80000000u || a >= 0x80800000u) return *b;
     m = unit_map[a - 0x80000000u];
     w = m & 15;
-    k = m >> 4;
+    k = (m >> 4) & 7;
     if (w < 2) return *b;
     return b[w - 1 - 2 * k];
 }
@@ -120,7 +135,7 @@ void port_n64_store_byte(void *p, uint8_t v) {
     }
     m = unit_map[a - 0x80000000u];
     w = m & 15;
-    k = m >> 4;
+    k = (m >> 4) & 7;
     if (w < 2) *b = v;
     else b[w - 1 - 2 * k] = v;
 }

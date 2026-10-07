@@ -42,6 +42,7 @@ void *port_unit_save(uint32_t addr, uint32_t n);
 void port_unit_restore(uint32_t addr, const void *saved, uint32_t n);
 uint8_t port_n64_byte(const void *p);
 void port_n64_store_byte(void *p, uint8_t v);  /* its inverse */
+void port_vtx_unread(void *v, uint32_t n);      /* cull-box Vtx: bytes 6-15 unread (garbage) */
 /* ... and the units of a graphics task's display lists, matrices and
  * vertices (dl: physical address), from the platform's osSpTaskStartGo */
 void port_mark_gfx_task(uint32_t dl);

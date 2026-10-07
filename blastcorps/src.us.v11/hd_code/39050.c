@@ -389,6 +389,17 @@ void func_8027E344(s32 id) {
     D_80358070 += (D_802FC3F0[D_8036DCD6].nx + 1) * (D_802FC3F0[D_8036DCD6].nz + 1) * sizeof(Vtx);
     D_8036DCA0[1] = (Vtx *) D_80358070;
     D_80358070 += (D_802FC3F0[D_8036DCD6].nx + 1) * (D_802FC3F0[D_8036DCD6].nz + 1) * sizeof(Vtx);
+#ifdef PORT_HOST
+    {
+        /* every vertex gets x, z, s, t here and y every frame; the flag and
+         * colour bytes stay whatever the heap held on the N64 (the RSP shades
+         * the water with them): give the native records those bytes */
+        void port_vtx_stale(void *v, u32 n);
+        u32 nv = (D_802FC3F0[D_8036DCD6].nx + 1) * (D_802FC3F0[D_8036DCD6].nz + 1);
+        port_vtx_stale(D_8036DCA0[0], nv);
+        port_vtx_stale(D_8036DCA0[1], nv);
+    }
+#endif
     D_8036DCA8[0] = D_80358070;
     D_80358070 += 0x12C0;
     D_8036DCA8[1] = D_80358070;
@@ -727,6 +738,14 @@ void func_802802D4(Vtx *v, s32 i0, s32 i1, s32 i2) {
 
 /* Set the 8 corner positions of the box (x0..x1, y0..y1, z0..z1). */
 void func_8028072C(Vtx *v, s16 x0, s16 y0, s16 z0, s16 x1, s16 y1, s16 z1) {
+#ifdef PORT_HOST
+    {
+        /* a cull box: only the corners' positions are written (and read, by
+         * gSPCullDisplayList); the rest keeps the heap's bytes on the N64 */
+        void port_vtx_unread(void *v, u32 n);
+        port_vtx_unread(v, 8);
+    }
+#endif
     v[0].v.ob[0] = x0;
     v[0].v.ob[1] = y0;
     v[0].v.ob[2] = z0;

@@ -1,5 +1,7 @@
 # Blast Corps
 
+[![CI](https://github.com/Jrsegrist/blastcorps/actions/workflows/ci.yml/badge.svg)](https://github.com/Jrsegrist/blastcorps/actions/workflows/ci.yml)
+
 - This repo is about to contain a full decompilation of Blast Corps `(Japan)`, `(USA)`, `(USA) (Rev 1)` and `(Europe) (En,De)`.
 - Naming and documentation of the source code and data structures are in progress.
 
@@ -120,6 +122,19 @@ ninja -C build-tools
 ./build-tools/tools/src/blast_textures
 ./build-tools/tools/src/gen_level_table
 ```
+
+# Continuous integration
+
+GitHub Actions (`.github/workflows/ci.yml`) runs on every push and pull request to `main`, without the ROM:
+
+- **Windows**: builds the native Windows port (`blastcorps/port`, MSVC x64) from a clean checkout and packages it;
+  the player package (`BlastCorps-port-<hash>.zip`) and its symbols (`-pdb.zip`) are attached to the run as
+  artifacts. They contain no game data: the game reads it from the player's own ROM.
+- **Linux**: the Python tools' self-tests and `make -C blastcorps/port norom-check` (the declared types against
+  the committed `port/inputs`, the pointer-width audit, record layouts and the alignment check).
+
+The matching ROM build, the NON_MATCHING build, `runchecks`, `check-inputs`, `verify` and `verify-levels` need the
+ROM, so they stay local: see `blastcorps/port/README.md`, "Continuous integration".
 
 # Related
 

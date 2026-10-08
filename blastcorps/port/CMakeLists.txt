@@ -22,7 +22,7 @@
 #     memory at 0x80000000 is reachable RIP-relative and every host address the
 #     game stores is below 4 GB.
 cmake_minimum_required(VERSION 3.25)
-project(BlastCorpsPort LANGUAGES C CXX ASM_MASM)
+project(BlastCorpsPort LANGUAGES C CXX ASM_MASM RC)
 
 if(NOT MSVC OR NOT CMAKE_C_COMPILER_ID STREQUAL "MSVC" OR NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
     message(FATAL_ERROR "This project builds with MSVC for x64 only (Visual Studio's \"x64\" environment).")
@@ -38,8 +38,11 @@ set(BC_UL_DIR "${BC_ROOT}/../lib/ultralib" CACHE PATH "ultralib (the lib/ultrali
 # addresses, symbol kinds, the N64 pointer slots, the C declarations' types and
 # the NM link maps.  Made in WSL by `make -C port inputs` (port/build/inputs).
 set(BC_INPUTS "${BC_PORT}/build/inputs" CACHE PATH "the decomp inputs folder (make -C port inputs)")
-set(BC_THIRDPARTY "${CMAKE_BINARY_DIR}/thirdparty" CACHE PATH "downloads (SDL2, DXC, RT64)")
-option(BC_GAME "also build bc.exe (RT64, SDL2, DXC are downloaded)" ON)
+# bc.exe's third-party code, downloaded at configure time (not in the repo): RT64
+# (git, at a pinned commit, with port/rt64/patches), the official DXC and SDL2
+# releases.  Shared by every build folder.
+set(BC_THIRDPARTY "${BC_PORT}/build/thirdparty" CACHE PATH "downloads (RT64, DXC, SDL2)")
+option(BC_GAME "also build bc.exe (downloads RT64, DXC, SDL2)" ON)
 
 foreach(f addrs.txt elfsyms.txt nmptrs.txt typemap.txt hd_code.us.v11.map hd_front_end.us.v11.map)
     if(NOT EXISTS "${BC_INPUTS}/${f}")
@@ -141,6 +144,10 @@ lesrc(pfsalloc ${BC_UL_DIR}/src/io/pfsallocatefile.c ${GEN}/le/pfsallocatefile.c
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 # a PDB for everything (crash reports, the debugger)
 set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "ProgramDatabase")
+# the game's optimisation flags are set per target (BC_OPT, /Ob1); RT64 keeps
+# CMake's defaults (bc.exe section)
+set(BC_C_FLAGS_RELEASE_DEFAULT "${CMAKE_C_FLAGS_RELEASE}")
+set(BC_C_FLAGS_DEBUG_DEFAULT "${CMAKE_C_FLAGS_DEBUG}")
 string(REGEX REPLACE "/O[12xd]|/Ob[0-3]|/RTC1|/DNDEBUG" "" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
 string(REGEX REPLACE "/O[12xd]|/Ob[0-3]|/RTC1" "" CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}")
 set(BC_OPT $<IF:$<CONFIG:Debug>,/Od,/O2>)
@@ -156,8 +163,8 @@ set(BC_OPT $<IF:$<CONFIG:Debug>,/Od,/O2>)
 #                         keeps MSVC from turning calls in tail position into jumps,
 #                         so a return address names its real caller (as gcc's
 #                         -fno-optimize-sibling-calls)
-#   /hotpatch (game files) + /FUNCTIONPADMIN (link): a first instruction of 2+ bytes
-#                         and free bytes before every function, where plat_host.c
+#   /FUNCTIONPADMIN (link): free bytes before every function (and x64 code always
+#                         starts a function with an instruction of 2+ bytes), where plat_host.c
 #                         patches in --sync's function-entry switch points and
 #                         --calls (the role of -finstrument-functions)
 #   no -fwrapv, -fno-strict-aliasing, -malign-double, -mno-ms-bitfields: MSVC does
@@ -189,9 +196,9 @@ endfunction()
 
 add_custom_target(bc_ulgen DEPENDS ${GEN}/ulinc.stamp ${GEN}/le/PRinternal/controller.h)
 game_lib(bc_hd SOURCES ${HD_SRCS} INC ${GAME_INC} DEFS ${GAME_DEFS}
-    OPTS ${GAME_OPTS} $<$<NOT:$<CONFIG:Debug>>:/Ob1> /GH /hotpatch)
+    OPTS ${GAME_OPTS} $<$<NOT:$<CONFIG:Debug>>:/Ob1> /GH)
 game_lib(bc_fe SOURCES ${FE_SRCS} INC ${GAME_INC} DEFS ${GAME_DEFS}
-    OPTS ${GAME_OPTS} $<$<NOT:$<CONFIG:Debug>>:/Ob1> /GH /hotpatch)
+    OPTS ${GAME_OPTS} $<$<NOT:$<CONFIG:Debug>>:/Ob1> /GH)
 foreach(n ${HL_CLOCK_CALLERS})
     set_source_files_properties(${BC_HD_SRC}/${n}.c PROPERTIES COMPILE_OPTIONS /Ob0)
 endforeach()
@@ -265,6 +272,8 @@ host_lib(bc_core ${BC_PORT}/src/rdram.c ${BC_PORT}/src/inflate.c ${BC_PORT}/src/
 # the platform's host side: fibers, logging, crash reports, the entry hook, audio
 host_lib(bc_host ${BC_PORT}/src/platform/plat_host.c ${BC_PORT}/src/platform/crash.c
     ${BC_PORT}/src/platform/entry_x64.asm ${BC_PORT}/src/audio/aspmain.c ${BC_PORT}/src/audio/port_audio.c)
+# (MASM: RT64's zstd enables CMake's generic ASM language, which claims .asm too)
+set_source_files_properties(${BC_PORT}/src/platform/entry_x64.asm PROPERTIES LANGUAGE ASM_MASM)
 host_lib(bc_headless_main ${BC_PORT}/src/platform/headless_main.c)
 host_lib(bc_lc_main ${BC_PORT}/src/loadcheck_main.c)
 
@@ -341,3 +350,108 @@ bc_exe(bc_headless REPORT ${bc_headless_REPORT} OPTS /SUBSYSTEM:CONSOLE LIBS win
 link_tables(bc_loadcheck LIBS bc_lc HOST bc_core bc_lc_main)
 bc_exe(bc_loadcheck REPORT ${bc_loadcheck_REPORT} OPTS /SUBSYSTEM:CONSOLE
     SOURCES $<TARGET_OBJECTS:bc_core> $<TARGET_OBJECTS:bc_lc_main> ${bc_loadcheck_LINK})
+set_target_properties(bc_loadcheck PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+# ---- bc.exe: the game in a window (SDL2, RT64) ---------------------------------------
+if(BC_GAME)
+    # RT64 at the pinned commit with the port's patches: 0003 (RDRAM in the port's
+    # own layout) and 0004 (the L3D line microcode).  0001/0002 are the mingw
+    # cross build's and not needed with MSVC.
+    set(BC_RT64_COMMIT 43373749dac9bbc1b653e6a02aed40a9e1783bed)
+    set(BC_RT64_PATCHES ${BC_PORT}/rt64/patches/0003-native-host-layout.patch
+        ${BC_PORT}/rt64/patches/0004-l3d-and-fixes.patch)
+    set(BC_RT64_SOURCE "${BC_THIRDPARTY}/rt64" CACHE PATH "RT64 sources (fetched with git when missing)")
+    execute_process(COMMAND ${CMAKE_COMMAND} -DDEST=${BC_RT64_SOURCE} -DCOMMIT=${BC_RT64_COMMIT}
+        "-DPATCHES=${BC_RT64_PATCHES}" -P ${BC_PORT}/cmake/fetch_rt64.cmake RESULT_VARIABLE r)
+    if(NOT r EQUAL 0)
+        message(FATAL_ERROR "RT64 could not be prepared in ${BC_RT64_SOURCE} (needs git; or set BC_GAME=OFF)")
+    endif()
+    # the official DXC (Microsoft, its licence files are in the zip) and SDL2 (zlib)
+    # releases, where RT64 expects its contrib copies
+    function(bc_download name url sha256)
+        set(zip ${BC_THIRDPARTY}/${name}.zip)
+        if(NOT EXISTS ${BC_THIRDPARTY}/${name}/.done)
+            file(DOWNLOAD ${url} ${zip} EXPECTED_HASH SHA256=${sha256} SHOW_PROGRESS)
+            file(REMOVE_RECURSE ${BC_THIRDPARTY}/${name})
+            file(ARCHIVE_EXTRACT INPUT ${zip} DESTINATION ${BC_THIRDPARTY}/${name})
+            file(TOUCH ${BC_THIRDPARTY}/${name}/.done)
+        endif()
+    endfunction()
+    bc_download(dxc
+        https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.9.2609/dxc_2026_09_29.zip
+        ad31b1fc8443175d204f77a611fdb3ef2ec42759bdc2f1167368de24a4a7e7f1)
+    bc_download(sdl2 https://github.com/libsdl-org/SDL/releases/download/release-2.26.3/SDL2-devel-2.26.3-VC.zip
+        3b561bfcd7676d42f2b84ebde12d7433d176035ed28335c4fb9e554ef2764ec5)
+    set(BC_DXC ${BC_THIRDPARTY}/dxc)
+    set(BC_SDL2 ${BC_THIRDPARTY}/sdl2/SDL2-2.26.3)
+    set(rt64c ${BC_RT64_SOURCE}/src/contrib)
+    file(COPY ${BC_DXC}/bin/x64/dxc.exe ${BC_DXC}/bin/x64/dxcompiler.dll ${BC_DXC}/bin/x64/dxil.dll
+        DESTINATION ${rt64c}/dxc/bin/x64)
+    file(COPY ${BC_DXC}/lib/x64/dxcompiler.lib DESTINATION ${rt64c}/dxc/lib/x64)
+    file(COPY ${BC_DXC}/inc/ DESTINATION ${rt64c}/dxc/inc)
+    file(COPY ${BC_SDL2}/include/ DESTINATION ${rt64c}/mupen64plus-win32-deps/SDL2-2.26.3/include)
+    file(COPY ${BC_SDL2}/lib/x64/ DESTINATION ${rt64c}/mupen64plus-win32-deps/SDL2-2.26.3/lib/x64)
+
+    # RT64 itself: static, CMake's own optimisation flags
+    set(RT64_STATIC ON CACHE BOOL "" FORCE)
+    set(RT64_NATIVE_HOST_LAYOUT ON CACHE BOOL "" FORCE)
+    set(_c_rel "${CMAKE_C_FLAGS_RELEASE}")
+    set(_c_dbg "${CMAKE_C_FLAGS_DEBUG}")
+    set(CMAKE_C_FLAGS_RELEASE "${BC_C_FLAGS_RELEASE_DEFAULT}")
+    set(CMAKE_C_FLAGS_DEBUG "${BC_C_FLAGS_DEBUG_DEFAULT}")
+    # zstd enables the ASM language for its GNU-syntax decoder loop, which it
+    # leaves out with MSVC; CMake 4.3 then lacks a compile rule for cl as an
+    # assembler (no ASM source is ever compiled)
+    set(CMAKE_ASM_COMPILE_OBJECT "<CMAKE_ASM_COMPILER> /nologo /c <DEFINES> <INCLUDES> <FLAGS> /Fo<OBJECT> <SOURCE>")
+    # (binary folder "r": RT64's zstd objects sit deep below it, and object paths must stay under 250 characters)
+    add_subdirectory(${BC_RT64_SOURCE} r EXCLUDE_FROM_ALL)
+    set(CMAKE_C_FLAGS_RELEASE "${_c_rel}")
+    set(CMAKE_C_FLAGS_DEBUG "${_c_dbg}")
+
+    # the exe's icon (tools/make_icon.py) and resources (res/bc.rc: icon, version, manifest)
+    add_custom_command(OUTPUT ${GEN}/bc.ico COMMAND ${PY} ${TOOLS}/make_icon.py ${GEN}/bc.ico
+        DEPENDS ${TOOLS}/make_icon.py COMMENT "bc.ico (make_icon.py)" VERBATIM)
+    set_source_files_properties(${BC_PORT}/res/bc.rc PROPERTIES OBJECT_DEPENDS
+        "${GEN}/bc.ico;${GEN}/version.h;${BC_PORT}/res/bc.manifest")
+    # the platform's entry with the live (bc.exe) hooks
+    host_lib(bc_game_main ${BC_PORT}/src/platform/headless_main.c)
+    target_compile_definitions(bc_game_main PRIVATE PORT_LIVE)
+    # src/live: SDL2 window and input, the RT64 renderer, bc.ini
+    add_library(bc_live OBJECT ${BC_PORT}/src/live/live_rt64.cpp ${BC_PORT}/src/live/live_setup.cpp)
+    add_dependencies(bc_live bc_version rt64)
+    target_compile_features(bc_live PRIVATE cxx_std_17)
+    target_compile_definitions(bc_live PRIVATE RT64_NATIVE_HOST_LAYOUT SDL_MAIN_HANDLED HLSL_CPU FFX_GCC
+        IMGUI_IMPL_VULKAN_NO_PROTOTYPES NOMINMAX __PRFCHWINTRIN_H _WIN32_WINNT=0x0A00 WINVER=0x0A00
+        _CRT_SECURE_NO_WARNINGS)
+    target_compile_options(bc_live PRIVATE /EHsc /W3 /wd4244 /wd4267 /wd4996 /GS- /FI${GEN}/version.h)
+    target_include_directories(bc_live PRIVATE ${BC_PORT}/src ${BC_PORT}/src/platform ${BC_SDL2}/include
+        ${BC_RT64_SOURCE}/src ${rt64c} ${rt64c}/plume ${rt64c}/imgui ${rt64c}/hlslpp/include ${rt64c}/dxc/inc
+        ${CMAKE_BINARY_DIR}/src ${rt64c}/plume/contrib/volk ${rt64c}/plume/contrib/Vulkan-Headers/include
+        ${rt64c}/plume/contrib/VulkanMemoryAllocator/include ${rt64c}/plume/contrib/D3D12MemoryAllocator/include)
+
+    link_tables(bc LIBS ${HL_LIBS} HOST bc_core bc_host bc_game_main bc_live)
+    bc_exe(bc REPORT ${bc_REPORT} OPTS /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup
+        LIBS rt64 ${BC_SDL2}/lib/x64/SDL2.lib d3d12 dxgi dxguid shcore dwmapi imm32 version setupapi winmm
+        SOURCES $<TARGET_OBJECTS:bc_core> $<TARGET_OBJECTS:bc_host> $<TARGET_OBJECTS:bc_game_main>
+            $<TARGET_OBJECTS:bc_live> ${BC_PORT}/res/bc.rc ${bc_LINK})
+    target_include_directories(bc PRIVATE ${GEN} ${BC_PORT}/res)
+    # (RT64 names SDL2 by library name; res/bc.rc has the exe's manifest)
+    target_link_directories(bc PRIVATE ${BC_SDL2}/lib/x64)
+    target_link_options(bc PRIVATE /MANIFEST:NO)
+    add_dependencies(bc bc_version)
+    # the run-time DLLs next to the exe
+    add_custom_command(TARGET bc POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${BC_SDL2}/lib/x64/SDL2.dll ${BC_DXC}/bin/x64/dxcompiler.dll
+            ${BC_DXC}/bin/x64/dxil.dll $<TARGET_FILE_DIR:bc>
+        VERBATIM)
+
+    # the player package: dist/BlastCorps-port-VERSION/ and its zip (bc.exe, the
+    # DLLs, README.txt, THIRD_PARTY_LICENSES.txt; no game data), and the matching
+    # symbols (bc.pdb ...) in BlastCorps-port-VERSION-pdb.zip (dist/make_dist.py)
+    add_custom_target(dist
+        COMMAND ${PY} ${BC_PORT}/dist/make_dist.py --exe-dir $<TARGET_FILE_DIR:bc> --out ${CMAKE_BINARY_DIR}/dist
+            --version-h ${GEN}/version.h --rt64 ${BC_RT64_SOURCE} --dxc ${BC_DXC} --sdl2 ${BC_SDL2}
+            --readme ${BC_PORT}/dist/README.txt
+        DEPENDS bc ${BC_PORT}/dist/make_dist.py ${BC_PORT}/dist/README.txt
+        COMMENT "the player package (dist/make_dist.py)" VERBATIM)
+endif()

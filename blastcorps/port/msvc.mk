@@ -9,12 +9,14 @@
 #                           is all the Windows side needs then
 #   make -C port msvc       build the MSVC exes (tools/msvc_build.sh: a copy of
 #                           the sources in MSVC_DIR, CMake + Ninja in Visual
-#                           Studio's x64 environment) -> MSVC_DIR/build-Release
+#                           Studio's x64 environment) -> MSVC_DIR/Release
 #   make -C port verify-msvc / verify-levels-msvc / loadcheck-msvc / dist-msvc
 #
 # MSVC_DIR: a folder on a Windows drive (default %LOCALAPPDATA%\blastcorps-msvc);
 # MSVC_CONFIG: Release (default) or Debug; MSVC_PYTHON: a Windows python.exe if
-# CMake can't find one.
+# CMake can't find one; MSVC_THIRDPARTY: a Windows folder for RT64, DXC and SDL2
+# (default MSVC_DIR\src\blastcorps\port\build\thirdparty; RT64 is fetched with
+# the Windows git).
 INPUTS := build/inputs
 inputs: $(INPUTS)/stamp
 $(INPUTS)/stamp: $(NM_ELFS) $(H)/typemap.txt tools/gensyms.py
@@ -27,12 +29,12 @@ $(INPUTS)/stamp: $(NM_ELFS) $(H)/typemap.txt tools/gensyms.py
 MSVC_DIR ?= $(shell d=$$(cd /mnt/c && cmd.exe /c 'echo %LOCALAPPDATA%' 2>/dev/null | tr -d '\r'); \
 	[ -n "$$d" ] && echo "$$(wslpath "$$d")/blastcorps-msvc")
 MSVC_CONFIG ?= Release
-MSVC_B = $(MSVC_DIR)/build-$(MSVC_CONFIG)
+MSVC_B = $(MSVC_DIR)/$(MSVC_CONFIG)
 MSVC_TARGETS ?=
 msvc: inputs
 	@[ -n "$(MSVC_DIR)" ] || { echo "msvc: set MSVC_DIR (a folder on a Windows drive)"; exit 1; }
-	MSVC_PYTHON='$(MSVC_PYTHON)' BC_VERSION=$(BC_VERSION) bash tools/msvc_build.sh '$(MSVC_DIR)' $(MSVC_CONFIG) \
-		$(MSVC_TARGETS)
+	MSVC_PYTHON='$(MSVC_PYTHON)' MSVC_THIRDPARTY='$(MSVC_THIRDPARTY)' BC_VERSION=$(BC_VERSION) \
+		bash tools/msvc_build.sh '$(MSVC_DIR)' $(MSVC_CONFIG) $(MSVC_TARGETS)
 
 # loadcheck through the MSVC exe (as `loadcheck`)
 LCM := build/lcmsvc
@@ -61,4 +63,13 @@ verify-levels-msvc:
 	CMP_EXE='$(MSVC_B)/bc_headless.exe' CMP_TAG=msvc $(PYTHON) tools/compare.py verify-levels --cache $(CMP_CACHE) \
 		--jobs $(LEVEL_JOBS) $(if $(LEVELS),--levels $(LEVELS)) $(VERIFY_LEVELS_ARGS)
 
-.PHONY: inputs msvc loadcheck-msvc verify-msvc verify-levels-msvc
+# the player package from the MSVC build (CMake target `dist`): build/dist-msvc/
+# BlastCorps-port-<hash>.zip and BlastCorps-port-<hash>-pdb.zip (its symbols)
+dist-msvc:
+	$(MAKE) msvc MSVC_TARGETS=dist
+	@mkdir -p build/dist-msvc
+	cp '$(MSVC_B)/dist/BlastCorps-port-$(BC_VERSION).zip' '$(MSVC_B)/dist/BlastCorps-port-$(BC_VERSION)-pdb.zip' \
+		build/dist-msvc/
+	@ls -l build/dist-msvc/BlastCorps-port-$(BC_VERSION).zip build/dist-msvc/BlastCorps-port-$(BC_VERSION)-pdb.zip
+
+.PHONY: inputs msvc loadcheck-msvc verify-msvc verify-levels-msvc dist-msvc

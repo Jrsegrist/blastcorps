@@ -194,9 +194,9 @@ void *host_realloc(void *p, unsigned size) {
 
 #if defined(_MSC_VER) && defined(_WIN64)
 /* ---- function-entry hooks (MSVC: os_thread.c's --sync entry points, --calls) ----
- * The game files are compiled /hotpatch (a function's first instruction is
- * at least 2 bytes) and linked /FUNCTIONPADMIN (free bytes before every
- * function).  A hooked function's first instruction becomes `jmp short` to
+ * MSVC's x64 code starts every function with an instruction of at least 2
+ * bytes (hot-patchable), and the exe is linked /FUNCTIONPADMIN (free bytes
+ * before every function).  A hooked function's first instruction becomes `jmp short` to
  * the padding, which jumps to a thunk of its own (entry_x64.asm explains
  * it); the thunk runs the relocated first instruction and jumps back. */
 #define PAD 8   /* /FUNCTIONPADMIN:8 (CMakeLists.txt) */

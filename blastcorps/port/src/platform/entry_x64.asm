@@ -4,8 +4,9 @@
 ;
 ; plat_host.c host_entry_hook patches the functions to hook, and only those:
 ; the function's first instruction becomes a short jump into the padding the
-; linker leaves before it (/hotpatch, /FUNCTIONPADMIN), which jumps to a
-; thunk of its own:
+; linker leaves before it (/FUNCTIONPADMIN; MSVC's x64 code starts every
+; function with an instruction of at least 2 bytes), which jumps to a thunk of
+; its own:
 ;       push  FUNCTION            ; the key
 ;       call  port_entry_common   ; returns to the next line, dropping the key
 ;       <the function's first instruction, relocated>

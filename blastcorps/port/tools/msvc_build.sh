@@ -6,8 +6,9 @@
 #
 #   tools/msvc_build.sh DIR CONFIG [TARGET...]
 #     DIR      a folder on a Windows drive (a WSL path: /mnt/c/...)
-#     CONFIG   Release or Debug  -> DIR/build-CONFIG
+#     CONFIG   Release or Debug  -> DIR/CONFIG
 #   environment: MSVC_PYTHON  a Windows python.exe (default: the one CMake finds)
+#                MSVC_THIRDPARTY  BC_THIRDPARTY (a Windows path)
 #                BC_VERSION   the version the exes report (default: CMake asks git)
 #                JOBS         parallel compiles (default 2)
 set -e
@@ -30,9 +31,10 @@ vs=$("$vswhere" -latest -products '*' -requires Microsoft.VisualStudio.Component
      -property installationPath | tr -d '\r')
 [ -n "$vs" ] || { echo "msvc_build: no Visual Studio with the x64 C++ tools" >&2; exit 1; }
 wdir=$(wslpath -w "$dir")
-b=build-$cfg
+b=$cfg
 defs="-DCMAKE_BUILD_TYPE=$cfg"
 [ -n "$MSVC_PYTHON" ] && defs="$defs -DPython3_EXECUTABLE=$MSVC_PYTHON"
+[ -n "$MSVC_THIRDPARTY" ] && defs="$defs -DBC_THIRDPARTY=$MSVC_THIRDPARTY"
 [ -n "$BC_VERSION" ] && defs="$defs -DBC_GIT_VERSION=$BC_VERSION"
 tgt=""
 [ $# -gt 0 ] && tgt="--target $*"

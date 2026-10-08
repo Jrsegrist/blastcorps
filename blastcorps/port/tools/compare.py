@@ -398,7 +398,10 @@ def native_exe():
 
 def native_tag():
     """the native run folders of the x86_64 exe get a suffix ("...-native64"),
-    so the i686 and x86_64 runs of the same emulator run are both kept"""
+    so the i686 and x86_64 runs of the same emulator run are both kept;
+    CMP_TAG names it (the MSVC build: "msvc")"""
+    if os.environ.get("CMP_TAG"):
+        return os.environ["CMP_TAG"]
     return "64" if os.environ.get("CMP_EXE", "").find("headless64") >= 0 else ""
 
 

@@ -3,7 +3,9 @@
 # version.h, for the CMake build)
 find_package(Git QUIET)
 set(v dev)
-if(GIT_FOUND)
+if(OVERRIDE)
+    set(v ${OVERRIDE})   # BC_GIT_VERSION (a build of a copy of the sources: tools/msvc_build.sh)
+elseif(GIT_FOUND)
     execute_process(COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD WORKING_DIRECTORY ${SRC}
         OUTPUT_VARIABLE h OUTPUT_STRIP_TRAILING_WHITESPACE RESULT_VARIABLE r ERROR_QUIET)
     if(r EQUAL 0 AND h)

@@ -45,10 +45,10 @@ void *host_read_file(const char *path, unsigned *size);
 int host_write_file(const char *path, const void *data, unsigned size);
 void *host_realloc(void *p, unsigned size);
 
-/* x86_64: the return address of the function that called the one at RIP
- * (past its prologue, stack and frame pointers RSP, RBP), from the unwind
- * tables; 0 if unknown (MSVC's --calls, os_thread.c) */
-unsigned host_unwind_caller(unsigned long long rip, unsigned long long rsp, unsigned long long rbp);
+/* MSVC x64 build: make the function at FN call port_entry_hook (os_thread.c)
+ * before its first instruction (--sync's entry points, --calls); 0 if done
+ * (or already), -1 if its first instruction can't be relocated */
+int host_entry_hook(unsigned fn);
 
 /* flush-to-zero for the current fiber (the game's osInitialize sets FPCSR FS) */
 void host_set_fpu_mode(void);

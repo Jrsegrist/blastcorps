@@ -628,34 +628,22 @@ static void sync_point(void *ra, char kind, void *arg) {
     }
 }
 
-/* Function-entry switch points ('e'): the game files are instrumented, and
- * the entries of the functions --sync lists with kind 'e' (those that read
- * the game's retrace counter) synchronise.  gcc/clang: -finstrument-functions,
- * __cyg_profile_func_enter gets the function's address.  MSVC: /Gh /GH, every
- * function calls _penter (penter_x64.asm) at the end of its prologue, which
- * hands over the return address of that call: inside the function, so it
- * names it (plat_sym_name) and is its key here (entry_key).  (/GH, the
- * _pexit call before each return, keeps MSVC from turning calls into jumps:
- * a return address names its real caller, as -fno-optimize-sibling-calls.) */
+/* Function-entry switch points ('e'): the entries of the functions --sync
+ * lists with kind 'e' (those that read the game's retrace counter)
+ * synchronise.  gcc/clang: the game files are built -finstrument-functions,
+ * __cyg_profile_func_enter gets the function's address.  MSVC: only the
+ * functions listed get a hook, patched into their entry at start-up
+ * (host_entry_hook, entry_x64.asm), which runs before any of their
+ * instructions; port_entry_hook gets the function's address. */
 #define ENTRY_HASH 256
 static u32 g_entry[ENTRY_HASH];
 static int g_entry_on;
 
 #if defined(_MSC_VER) && !defined(__clang__)
-#define PORT_PENTER 1
-void _penter(void);
-int port_penter_on;   /* penter_x64.asm: call port_penter_hook at all */
-/* the key of the function at FN: the address after its `call _penter` */
+#define PORT_ENTRY_DETOUR 1
+/* the function at FN, its entry hooked; 0 if it can't be */
 static u32 entry_key(u32 fn) {
-    const u8 *p = (const u8 *) (size_t) fn;
-    u32 i, target = (u32) (size_t) &_penter;
-    s32 rel;
-    for (i = 0; i < 64; i++)
-        if (p[i] == 0xE8) {
-            PORT_MEMCPY(&rel, p + i + 1, 4);
-            if (fn + i + 5 + (u32) rel == target) return fn + i + 5;
-        }
-    return 0;
+    return host_entry_hook(fn) == 0 ? fn : 0;
 }
 #else
 #define entry_key(fn) (fn)
@@ -667,16 +655,10 @@ static void entry_add(const char *name) {
     u32 a = plat_sym_addr(name), h;
     if (a == 0) return;
     a = entry_key(a);
-    if (a == 0) {
-        host_log("--sync: %s has no entry hook (not an instrumented game function)\n", name);
-        return;
-    }
+    if (a == 0) host_fatal("--sync: can't hook the entry of %s", name);
     for (h = (a >> 4) % ENTRY_HASH; g_entry[h] != 0 && g_entry[h] != a; h = (h + 1) % ENTRY_HASH) {}
     g_entry[h] = a;
     g_entry_on = 1;
-#ifdef PORT_PENTER
-    port_penter_on = 1;
-#endif
 }
 
 /* --calls NAME,NAME: log every call of these game functions (with the caller
@@ -695,16 +677,12 @@ void plat_calls_init(const char *names) {
         if (*names == ',') names++;
         a = plat_sym_addr(buf);
         if (a == 0 || entry_key(a) == 0) {
-            host_log("--calls: no instrumented function %s\n", buf);
+            host_log("--calls: no function %s (or its entry can't be hooked)\n", buf);
             continue;
         }
-        a = entry_key(a);
         for (h = (a >> 4) % CALL_HASH; g_call[h] != 0 && g_call[h] != a; h = (h + 1) % CALL_HASH) {}
         g_call[h] = a;
         g_call_on = 1;
-#ifdef PORT_PENTER
-        port_penter_on = 1;
-#endif
     }
 }
 
@@ -717,17 +695,16 @@ static void entry_sync(u32 a) {
         }
 }
 
-#ifdef PORT_PENTER
-/* penter_x64.asm: KEY = the return address of the game function's `call
- * _penter`, RSP/RBP its stack and frame registers at that call, SAVED its
- * argument registers r9, r8, rdx, rcx (in that order) */
-void port_penter_hook(unsigned long long key, unsigned long long rsp, unsigned long long rbp,
-                      const unsigned long long *saved) {
-    u32 a = (u32) key, h;
+#ifdef PORT_ENTRY_DETOUR
+/* entry_x64.asm: FN = the hooked game function, RSP its stack pointer at
+ * entry (its return address is on top), SAVED its argument registers r9,
+ * r8, rdx, rcx (in that order) */
+void port_entry_hook(unsigned long long fn, unsigned long long rsp, const unsigned long long *saved) {
+    u32 a = (u32) fn, h;
     if (g_call_on) {
         for (h = (a >> 4) % CALL_HASH; g_call[h] != 0; h = (h + 1) % CALL_HASH)
             if (g_call[h] == a) {
-                const char *c = plat_sym_name(host_unwind_caller(key, rsp, rbp), NULL);
+                const char *c = plat_sym_name((u32) *(const unsigned long long *) (size_t) rsp, NULL);
                 host_log("call: %s from %s frame %u args %x,%x,%x,%x\n", plat_sym_name(a, NULL), c ? c : "?",
                          (unsigned) plat_stats.frames, (unsigned) saved[3], (unsigned) saved[2],
                          (unsigned) saved[1], (unsigned) saved[0]);

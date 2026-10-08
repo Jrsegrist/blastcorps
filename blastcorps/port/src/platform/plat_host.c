@@ -4,6 +4,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <xmmintrin.h>
 #include "plat_host.h"
 #include "audio/port_audio.h"
@@ -191,24 +192,155 @@ void *host_realloc(void *p, unsigned size) {
     return q;
 }
 
-unsigned host_unwind_caller(unsigned long long rip, unsigned long long rsp, unsigned long long rbp) {
-#ifdef _WIN64
-    CONTEXT c;
-    DWORD64 base, frame;
-    PVOID hd;
-    PRUNTIME_FUNCTION fe = RtlLookupFunctionEntry(rip, &base, NULL);
-    if (fe == NULL) return (unsigned) *(DWORD64 *) (ULONG_PTR) rsp;   /* a leaf: the return address is on top */
-    ZeroMemory(&c, sizeof c);
-    c.Rip = rip;
-    c.Rsp = rsp;
-    c.Rbp = rbp;
-    RtlVirtualUnwind(UNW_FLAG_NHANDLER, base, rip, fe, &c, &hd, &frame, NULL);
-    return (unsigned) c.Rip;
-#else
-    (void) rip, (void) rsp, (void) rbp;
-    return 0;
-#endif
+#if defined(_MSC_VER) && defined(_WIN64)
+/* ---- function-entry hooks (MSVC: os_thread.c's --sync entry points, --calls) ----
+ * The game files are compiled /hotpatch (a function's first instruction is
+ * at least 2 bytes) and linked /FUNCTIONPADMIN (free bytes before every
+ * function).  A hooked function's first instruction becomes `jmp short` to
+ * the padding, which jumps to a thunk of its own (entry_x64.asm explains
+ * it); the thunk runs the relocated first instruction and jumps back. */
+#define PAD 8   /* /FUNCTIONPADMIN:8 (CMakeLists.txt) */
+
+/* the length of the x86-64 instruction at P (0 if it isn't one this knows or
+ * can't be moved: a short branch); *REL = the offset of its 32-bit
+ * PC-relative field (a RIP-relative operand, a rel32 call/jump/jcc) or -1 */
+static int insn_length(const unsigned char *p, int *rel) {
+    int i = 0, rex_w = 0, osz = 0, modrm = 0, imm = 0, op;
+    *rel = -1;
+    for (;;) {
+        unsigned char b = p[i];
+        if (b == 0x66) osz = 1;
+        else if (b != 0x67 && b != 0xF0 && b != 0xF2 && b != 0xF3 && b != 0x2E && b != 0x3E && b != 0x26 &&
+                 b != 0x36 && b != 0x64 && b != 0x65)
+            break;
+        if (++i > 4) return 0;
+    }
+    if ((p[i] & 0xF0) == 0x40) rex_w = (p[i++] >> 3) & 1;
+    op = p[i++];
+    if (op == 0x0F) {
+        int op2 = p[i++];
+        if (op2 == 0x38) i++, modrm = 1;
+        else if (op2 == 0x3A) i++, modrm = 1, imm = 1;
+        else if (op2 >= 0x80 && op2 <= 0x8F) *rel = i, imm = 4;   /* jcc rel32 */
+        else if (op2 == 0x05 || op2 == 0x0B || op2 == 0x31 || op2 == 0xA2 || op2 == 0x77 || op2 == 0xA0 ||
+                 op2 == 0xA1 || op2 == 0xA8 || op2 == 0xA9 || (op2 >= 0xC8 && op2 <= 0xCF))
+            ;
+        else {
+            modrm = 1;
+            if ((op2 >= 0x70 && op2 <= 0x73) || op2 == 0xA4 || op2 == 0xAC || op2 == 0xBA || op2 == 0xC2 ||
+                (op2 >= 0xC4 && op2 <= 0xC6))
+                imm = 1;
+        }
+    } else if (op < 0x40) {
+        switch (op & 7) {
+            case 0: case 1: case 2: case 3: modrm = 1; break;
+            case 4: imm = 1; break;
+            case 5: imm = osz ? 2 : 4; break;
+            default: return 0;
+        }
+    } else if (op >= 0x50 && op <= 0x5F) ;
+    else if (op == 0x63 || (op >= 0x84 && op <= 0x8F) || (op >= 0xD0 && op <= 0xD3) || (op >= 0xD8 && op <= 0xDF) ||
+             op == 0xFE || op == 0xFF)
+        modrm = 1;
+    else if (op == 0x68) imm = 4;
+    else if (op == 0x6A || op == 0xA8 || (op >= 0xB0 && op <= 0xB7) || op == 0xCD) imm = 1;
+    else if (op == 0x69 || op == 0x81 || op == 0xC7) modrm = 1, imm = osz ? 2 : 4;
+    else if (op == 0x6B || op == 0x80 || op == 0x83 || op == 0xC0 || op == 0xC1 || op == 0xC6) modrm = 1, imm = 1;
+    else if ((op >= 0x90 && op <= 0x99) || (op >= 0x9B && op <= 0x9F) || (op >= 0xA4 && op <= 0xA7) ||
+             (op >= 0xAA && op <= 0xAF) || op == 0xC3 || op == 0xC9 || op == 0xCC || (op >= 0xF5 && op <= 0xFD))
+        ;
+    else if (op >= 0xA0 && op <= 0xA3) imm = 8;
+    else if (op == 0xA9) imm = osz ? 2 : 4;
+    else if (op >= 0xB8 && op <= 0xBF) imm = rex_w ? 8 : osz ? 2 : 4;
+    else if (op == 0xC2) imm = 2;
+    else if (op == 0xC8) imm = 3;
+    else if (op == 0xE8 || op == 0xE9) *rel = i, imm = 4;
+    else if (op == 0xF6 || op == 0xF7) {
+        modrm = 1;
+        if (((p[i] >> 3) & 7) < 2) imm = op == 0xF6 ? 1 : osz ? 2 : 4;
+    } else
+        return 0;   /* (short branches, VEX, ...) */
+    if (modrm) {
+        int m = p[i++], mod = m >> 6, rm = m & 7;
+        if (mod != 3) {
+            if (rm == 4) {
+                if (mod == 0 && (p[i] & 7) == 5) i += 4;
+                i++;
+            } else if (mod == 0 && rm == 5) {
+                *rel = i;
+                i += 4;
+            }
+            i += mod == 1 ? 1 : mod == 2 ? 4 : 0;
+        }
+    }
+    return i + imm;
 }
+
+void port_entry_common(void);   /* entry_x64.asm */
+static unsigned char *g_thunks;
+static unsigned g_thunks_used;
+#define THUNK_SIZE 48
+#define THUNK_AREA 0x10000
+
+int host_entry_hook(unsigned fn) {
+    unsigned char *f = (unsigned char *) (ULONG_PTR) fn, *t;
+    LONG_PTR d;
+    int len, rel, i;
+    INT32 v;
+    DWORD old;
+    if (f[0] == 0xEB && f[1] == (unsigned char) -(PAD + 2)) return 0;   /* hooked already */
+    len = insn_length(f, &rel);
+    if (len < 2 || len > 15) return -1;
+    for (i = 1; i <= PAD; i++)
+        if (f[-i] != 0xCC && f[-i] != 0x90 && f[-i] != 0x00) return -1;   /* not padding */
+    if (g_thunks == NULL) {
+        /* within 2 GB of the exe and of N64 memory: right after the image */
+        ULONG_PTR base = (ULONG_PTR) GetModuleHandleW(NULL);
+        IMAGE_NT_HEADERS *nt = (IMAGE_NT_HEADERS *) (base + ((IMAGE_DOS_HEADER *) base)->e_lfanew);
+        ULONG_PTR a = (base + nt->OptionalHeader.SizeOfImage + 0xFFFF) & ~(ULONG_PTR) 0xFFFF;
+        for (i = 0; i < 4096 && g_thunks == NULL; i++, a += 0x10000)
+            g_thunks = VirtualAlloc((void *) a, THUNK_AREA, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+        if (g_thunks == NULL) return -1;
+    }
+    if (g_thunks_used + THUNK_SIZE > THUNK_AREA) return -1;
+    t = g_thunks + g_thunks_used;
+    g_thunks_used += THUNK_SIZE;
+    /* push FN (an imm32, sign-extended: the exe is below 2 GB); call port_entry_common */
+    t[0] = 0x68;
+    memcpy(t + 1, &fn, 4);
+    t[5] = 0xE8;
+    v = (INT32) ((unsigned char *) port_entry_common - (t + 10));
+    memcpy(t + 6, &v, 4);
+    /* the first instruction, its PC-relative field moved with it */
+    memcpy(t + 10, f, len);
+    if (rel >= 0) {
+        memcpy(&v, f + rel, 4);
+        d = (LONG_PTR) v + (f - (t + 10));
+        if (d != (INT32) d) return -1;
+        v = (INT32) d;
+        memcpy(t + 10 + rel, &v, 4);
+    }
+    /* jmp FN + len */
+    t[10 + len] = 0xE9;
+    v = (INT32) ((f + len) - (t + 15 + len));
+    memcpy(t + 11 + len, &v, 4);
+    /* the padding before FN: jmp THUNK; FN: jmp short to the padding */
+    if (!VirtualProtect(f - PAD, PAD + 2, PAGE_EXECUTE_READWRITE, &old)) return -1;
+    f[-PAD] = 0xE9;
+    v = (INT32) (t - (f - PAD + 5));
+    memcpy(f - PAD + 1, &v, 4);
+    f[1] = (unsigned char) -(PAD + 2);
+    f[0] = 0xEB;
+    VirtualProtect(f - PAD, PAD + 2, old, &old);
+    FlushInstructionCache(GetCurrentProcess(), f - PAD, PAD + 2);
+    return 0;
+}
+#else
+int host_entry_hook(unsigned fn) {
+    (void) fn;
+    return -1;
+}
+#endif
 
 void host_set_fpu_mode(void) {
     /* MXCSR: FTZ (bit 15) like the VR4300's FPCSR FS; all exceptions masked

@@ -19,8 +19,11 @@ if(EXISTS ${DEST}/.bc_stamp)
     endif()
 endif()
 find_package(Git REQUIRED)
+# (core.longpaths: Git for Windows otherwise stops at 260 characters, and some
+# submodules' files and nested .git/modules paths are long: spirv-cross's test
+# shaders, plume's allocators; the setting reaches the submodule gits too)
 function(git)
-    execute_process(COMMAND ${GIT_EXECUTABLE} ${ARGN} RESULT_VARIABLE r)
+    execute_process(COMMAND ${GIT_EXECUTABLE} -c core.longpaths=true ${ARGN} RESULT_VARIABLE r)
     if(NOT r EQUAL 0)
         message(FATAL_ERROR "fetch_rt64: git ${ARGN} failed")
     endif()

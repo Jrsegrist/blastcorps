@@ -39,25 +39,35 @@ Controls (default; change them in bc.ini)
   C buttons      I J K L             Right stick
   D-pad          T F G H             D-pad
 
-  F1            shows the keys in the window title (F1 again hides them)
+  F1            settings menu (also Back+Start on a game controller)
   Alt+Enter, F11  fullscreen on/off
   M             sound off/on;   - and =  volume down/up
-  Esc           quit
+  Esc           quit (in the settings menu: back to the game)
 
 The keyboard stick is digital (full tilt); a game controller's stick is analog.
+
+
+Settings menu
+-------------
+F1 (or Back+Start on a game controller) opens the settings menu over the game, which
+waits while it is open. It works with the mouse, the keyboard (arrows, Enter) or a
+game controller (D-pad, A, B). Changes apply at once and are written to bc.ini when
+the menu closes (Esc, F1 or "Back to the game"). The graphics API changes on the
+next start.
 
 
 Settings: bc.ini
 ----------------
 bc.ini is created next to bc.exe on the first start, with every setting explained in
-it. Edit it with Notepad while the game is closed. It holds:
+it. The settings menu writes it too; you can also edit it with Notepad while the
+game is closed. It holds:
   [game]       rom (the ROM's path), saves (the saves folder), controller_pak (0/1)
   [video]      api (d3d12 or vulkan), scale (window size 320x240 times this),
                fullscreen, vsync
   [audio]      volume, mute
   [keyboard]   one line per N64 button: SDL key names, several separated by commas
-  [controller] the same for a game controller, plus which stick is the analog stick
-               and its dead zone
+  [controller] the same for a game controller, plus which stick is the analog stick,
+               its dead zone and the buttons that open the settings menu
 Delete bc.ini to get the defaults back. If a line isn't understood, the game says so
 when it starts and uses the default for it.
 
@@ -68,6 +78,7 @@ Command-line options (for shortcuts or a .bat file) override bc.ini, for example
   bc.exe --api vulkan          bc.exe --fullscreen      bc.exe --no-vsync
   bc.exe --mute                bc.exe --volume 50       bc.exe --scale 4
   bc.exe --saves D:\BCsaves    bc.exe --config other.ini   bc.exe --no-pak
+  bc.exe --set audio.volume=50   (any bc.ini setting as section.key=value, this run only)
 
 
 Saves

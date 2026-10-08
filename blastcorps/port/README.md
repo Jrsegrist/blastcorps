@@ -346,7 +346,7 @@ and the other bc_headless options work as there.
 
 Keys: arrows = stick, X = A, C = B, Z or Space = Z, Enter = START, A/S =
 L/R, I J K L = C buttons, T F G H = D-pad, M = sound on/off, - and = =
-volume, Esc quits; an SDL game controller
+volume, F1 = settings menu, Esc quits; an SDL game controller
 (XInput pads etc.) maps the same way (left stick, A, B/X, triggers = Z,
 Start, shoulders, right stick = C buttons, D-pad). `--input FILE` replays a
 recording instead.
@@ -544,8 +544,39 @@ it without a fault.  The x64-asan preset is the tool for this now.
   `--eeprom`/`--mpk`/`--saves`: bc.exe then runs exactly like bc_headless
   with the same options.  Tests and comparisons should pass it (with a ROM
   argument), so a developer's bc.ini can't change what they measure.
-- Keys: F1 puts the bindings in the window title, Alt+Enter / F11 switch
-  fullscreen (desktop resolution; RT64 keeps 4:3), the window is resizable.
+- Keys: Alt+Enter / F11 switch fullscreen (desktop resolution; RT64 keeps
+  4:3), the window is resizable; F1 (`menu` in `[keyboard]`) or Back+Start
+  (`menu` in `[controller]`) opens the settings menu.
+- **`--set section.key=value`** (repeatable): a bc.ini setting for this run
+  only, over the file or `--no-config`'s defaults (e.g. `--set
+  audio.volume=50`); a bad one is listed with the file's warnings (fatal
+  with `--no-msgbox`).
+- **The settings menu** (`src/live/live_menu.cpp`): an overlay drawn with
+  Dear ImGui, which RT64 bundles (MIT): RT64's `Inspector` class sets ImGui
+  up for the device and swap chain RT64 made (D3D12 or Vulkan backend, SDL2
+  input), the menu builds a frame on the main thread and RT64's present
+  thread draws it over the picture from the render hook (`RT64::
+  SetRenderHooks`, the draw hook).  Nothing of it exists until the menu is
+  first opened, and the hook draws nothing while it is closed.  While it is
+  open the game waits inside the retrace hook (`liveVi`): RT64's own pause
+  (`state->debuggerInspector.paused`, its debugger's) re-renders the last
+  frame's work and presents it at each `updateScreen`, ~60 times a second,
+  so video settings show at once; the game's virtual clock doesn't move
+  (same per-frame trace), the pacing starts over afterwards and the game
+  gets no input until every key and button is let go.  It works with the
+  mouse, keyboard (arrows, Enter, Esc) and a controller (ImGui's gamepad
+  navigation), and runs in the swap chain's pixels (bc.exe is DPI aware;
+  ImGui's D3D12 backend ignores the framebuffer scale).  Each change is
+  applied at once (`settingChanged`: fullscreen, window size, vsync, volume,
+  mute; the graphics API on the next start) and the settings changed are
+  written to bc.ini when it closes (`configSave`: only their lines are
+  rewritten, or added to their section; comments and everything else stay;
+  nothing with `--no-config`).  Testing: `--menu-shot F` opens it at frame
+  F, saves a picture of the window and closes it, `--menu-set S.K=V`
+  changes settings in it as a player would; `--wshot F,..` saves the
+  window's picture (PrintWindow with PW_RENDERFULLCONTENT, after RT64
+  presented: RT64's output at the window's size, unlike `--shot`'s 320x240
+  RDRAM picture) and `--window WxH` sets the window's size.
 - Pacing: each retrace's picture is handed to RT64 when its virtual time is
   due (60 per second of real time, QueryPerformanceCounter, 1 ms timer
   resolution), *before* the game works on the next retrace, so the hand-overs

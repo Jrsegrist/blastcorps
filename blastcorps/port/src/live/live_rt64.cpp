@@ -40,6 +40,15 @@
  *                       test ROM) instead of only the US v1.1 release
  *     --pace-log FILE   per retrace: pacing and present times (CSV), and a
  *                       summary in the log at exit
+ *     --set S.K=V       a bc.ini setting for this run ([S] K = V; not saved), e.g.
+ *                       --set audio.volume=50
+ *     --window WxH      the window's size (desktop points) instead of 320x240 x scale
+ *     --wshot F,..      save the window's picture (RT64's output at the window's size,
+ *                       win_FFFFFFF.png in --shot-dir) once the game reached frame F
+ *     --menu-shot F     open the settings menu at frame F, save its picture
+ *                       (menu_FFFFFFF.png) and close it again (testing)
+ *     --menu-set S.K=V  in that menu, change a setting as a player would (applied
+ *                       at once, written to bc.ini when the menu closes)
  *     --no-msgbox       (headless_main.c) no dialog of any kind: errors, crash
  *                       reports, RT64/SDL boxes only logged; no ROM file dialog
  *
@@ -51,7 +60,9 @@
  * folder (created with commented defaults on the first start; command-line
  * options override it).  Without a ROM argument and a working configured
  * ROM, a file dialog asks for one; the ROM is checked (Blast Corps (USA)
- * (Rev 1) by SHA-1, .z64/.v64/.n64) and remembered.  bc.exe is a Windows
+ * (Rev 1) by SHA-1, .z64/.v64/.n64) and remembered.  The settings menu
+ * (live_menu.cpp; F1, or Back+Start on a controller) changes the settings
+ * while the game is paused and writes them to bc.ini.  bc.exe is a Windows
  * GUI program: errors show a message box; the log goes to stderr when it
  * has one, else to bc.log next to the exe.
  *
@@ -82,6 +93,7 @@
 #include "hle/rt64_application.h"
 #include "rhi/rt64_render_hooks.h"
 
+#include "live_menu.h"
 #include "live_setup.h"
 
 extern "C" {
@@ -113,6 +125,10 @@ struct LiveOpts {
     int volume = 100;                /* percent */
     bool romCheck = true;
     const char *paceLog = nullptr;
+    unsigned windowW = 0, windowH = 0;   /* --window WxH: the window's size in desktop points */
+    std::vector<unsigned> wshots;        /* --wshot: frames whose window picture is saved */
+    unsigned menuShot = ~0u;             /* --menu-shot F: open the menu at frame F, save its picture, close it */
+    std::vector<std::string> menuSets;   /* --menu-set S.K=V: changed in that menu (as a player would) */
 };
 LiveOpts g_opt;
 live::Config g_cfg;                  /* bc.ini (or the built-in defaults) */
@@ -273,10 +289,54 @@ void saveFrame(const HostViRegs &r, unsigned frame) {
                  w, h, r.origin, g_tasks, g_otherUcodeTasks, g_fixedBytes);
 }
 
+/* the window's picture as presented (RT64's output at the window's size:
+ * internal resolution, widescreen, the settings menu): --wshot, --menu-shot.
+ * Waits until RT64 presented what it was given, then asks the compositor for
+ * the client area (PrintWindow with PW_RENDERFULLCONTENT, which also works
+ * for a flip-model swap chain). */
+void saveWindow(const char *name) {
+    if (g_app == nullptr || host_gui_window == nullptr) return;
+    g_app->presentQueue->waitForPresentId(g_app->state->presentId);
+    Sleep(120);
+    HWND hw = HWND(host_gui_window);
+    RECT rc;
+    GetClientRect(hw, &rc);
+    const int w = rc.right - rc.left, h = rc.bottom - rc.top;
+    if (w <= 0 || h <= 0) return;
+    HDC wdc = GetDC(hw), mdc = CreateCompatibleDC(wdc);
+    BITMAPINFO bi = {};
+    bi.bmiHeader.biSize = sizeof bi.bmiHeader;
+    bi.bmiHeader.biWidth = w;
+    bi.bmiHeader.biHeight = -h;
+    bi.bmiHeader.biPlanes = 1;
+    bi.bmiHeader.biBitCount = 32;
+    bi.bmiHeader.biCompression = BI_RGB;
+    void *bits = nullptr;
+    HBITMAP bmp = CreateDIBSection(wdc, &bi, DIB_RGB_COLORS, &bits, nullptr, 0);
+    HGDIOBJ old = SelectObject(mdc, bmp);
+    const BOOL ok = PrintWindow(hw, mdc, PW_CLIENTONLY | 0x2 /* PW_RENDERFULLCONTENT */);
+    std::vector<uint8_t> rgb(size_t(w) * h * 3);
+    const uint8_t *p = static_cast<const uint8_t *>(bits);
+    for (size_t i = 0; i < size_t(w) * h; i++) {
+        rgb[i * 3 + 0] = p[i * 4 + 2];
+        rgb[i * 3 + 1] = p[i * 4 + 1];
+        rgb[i * 3 + 2] = p[i * 4 + 0];
+    }
+    SelectObject(mdc, old);
+    DeleteObject(bmp);
+    DeleteDC(mdc);
+    ReleaseDC(hw, wdc);
+    char path[512];
+    snprintf(path, sizeof path, "%s/%s.png", g_opt.shotDir, name);
+    if (ok && writePng(path, unsigned(w), unsigned(h), rgb)) host_log("live: saved %s (%dx%d window)\n", path, w, h);
+    else host_log("live: window picture %s failed\n", path);
+}
+
 /* ---- input ------------------------------------------------------------------- */
 SDL_GameController *g_pad;
 unsigned short g_button;
 signed char g_stickX, g_stickY;
+bool g_inputHold;
 
 void openPad() {
     if (g_pad != nullptr) return;
@@ -335,9 +395,23 @@ void pollInput() {
             if (lx != 0 || ly != 0) x = lx, y = ly;
         }
     }
+    /* after the settings menu: nothing until every input is let go (the
+     * buttons that closed it don't reach the game) */
+    if (g_inputHold) {
+        if (b != 0 || x != 0 || y != 0) b = 0, x = 0, y = 0;
+        else g_inputHold = false;
+    }
     g_button = (unsigned short) b;
     g_stickX = (signed char) std::max(-80, std::min(80, x));
     g_stickY = (signed char) std::max(-80, std::min(80, y));
+}
+
+/* are the controller's menu buttons all held? */
+bool menuCombo() {
+    if (g_pad == nullptr || g_cfg.menuPad.empty()) return false;
+    for (int b : g_cfg.menuPad)
+        if (!SDL_GameControllerGetButton(g_pad, SDL_GameControllerButton(b))) return false;
+    return true;
 }
 
 /* ---- sound ------------------------------------------------------------------- */
@@ -520,8 +594,7 @@ void writePaceLog() {
     host_exit(code);
 }
 
-const char kTitle[] = "Blast Corps  (F1: controls)";
-bool g_helpShown;
+const char kTitle[] = "Blast Corps  (F1: settings)";
 
 void setFullscreen(bool on) {
     if (SDL_SetWindowFullscreen(g_window, on ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0) != 0) {
@@ -535,26 +608,61 @@ void setFullscreen(bool on) {
     host_log("live: %s (%dx%d pixels)\n", on ? "fullscreen" : "windowed", pw, ph);
 }
 
-bool isQuitKey(SDL_Scancode sc) {
-    for (SDL_Scancode q : g_cfg.keys[live::A_QUIT])
+bool isKey(int action, SDL_Scancode sc) {
+    for (SDL_Scancode q : g_cfg.keys[action])
         if (q == sc) return true;
     return false;
+}
+
+/* the settings menu sees what bc.exe runs with now (keys and options may have
+ * changed it since bc.ini was read) */
+void openMenu() {
+    g_cfg.fullscreen = g_opt.fullscreen;
+    g_cfg.vsync = g_opt.vsync;
+    g_cfg.volume = g_opt.volume;
+    g_cfg.mute = g_opt.mute;
+    live::menuOpen();
 }
 
 void pumpEvents() {
     SDL_Event e;
     while (SDL_PollEvent(&e)) {
-        if (e.type == SDL_QUIT || (e.type == SDL_KEYDOWN && isQuitKey(e.key.keysym.scancode))) shutdown(0);
-        if (e.type == SDL_CONTROLLERBUTTONDOWN && g_pad != nullptr)
+        if (e.type == SDL_QUIT) shutdown(0);
+        if (live::menuIsOpen()) {
+            /* the menu's own keys: Esc or the menu key close it, as do the
+             * controller's menu buttons; fullscreen still switches */
+            if (e.type == SDL_KEYDOWN && !e.key.repeat) {
+                const SDL_Scancode sc = e.key.keysym.scancode;
+                if (sc == SDL_SCANCODE_ESCAPE || isKey(live::A_MENU, sc)) {
+                    live::menuClose();
+                    continue;
+                }
+                if (sc == SDL_SCANCODE_F11 || (sc == SDL_SCANCODE_RETURN && (e.key.keysym.mod & KMOD_ALT) != 0)) {
+                    setFullscreen(!g_opt.fullscreen);
+                    g_cfg.fullscreen = g_opt.fullscreen;
+                    continue;
+                }
+            }
+            if (e.type == SDL_CONTROLLERBUTTONDOWN && menuCombo()) {
+                live::menuClose();
+                continue;
+            }
+            live::menuEvent(e);
+            if (e.type == SDL_CONTROLLERDEVICEADDED) openPad();
+            continue;
+        }
+        if (e.type == SDL_KEYDOWN && isKey(live::A_QUIT, e.key.keysym.scancode)) shutdown(0);
+        if (e.type == SDL_CONTROLLERBUTTONDOWN && g_pad != nullptr) {
             for (const live::PadInput &in : g_cfg.pad[live::A_QUIT])
                 if (in.button == e.cbutton.button) shutdown(0);
+            if (menuCombo()) openMenu();
+        }
         if (e.type == SDL_KEYDOWN && !e.key.repeat) {
             const SDL_Scancode sc = e.key.keysym.scancode;
             if (sc == SDL_SCANCODE_F11 || (sc == SDL_SCANCODE_RETURN && (e.key.keysym.mod & KMOD_ALT) != 0)) {
                 setFullscreen(!g_opt.fullscreen);
-            } else if (sc == SDL_SCANCODE_F1) {
-                g_helpShown = !g_helpShown;
-                SDL_SetWindowTitle(g_window, g_helpShown ? live::helpLine(g_cfg).c_str() : kTitle);
+            } else if (isKey(live::A_MENU, sc)) {
+                openMenu();
             } else if (e.key.keysym.scancode == SDL_SCANCODE_M) {
                 g_opt.mute = !g_opt.mute;
                 host_log("live: sound %s\n", g_opt.mute ? "off" : "on");
@@ -702,7 +810,38 @@ void liveGfxTask(unsigned ucode, unsigned ucodeData, unsigned dataPtr, unsigned 
 }
 
 unsigned long long g_when0;
-unsigned g_nextShot;
+unsigned g_nextShot, g_nextWshot;
+bool g_quitRequested;
+
+/* The settings menu is open: the game waits (inside this retrace's hook)
+ * while the menu runs, about 60 times a second, over the last picture.
+ * RT64's own pause (its debugger's) re-renders the last frame's work and
+ * presents it again at every updateScreen, so video settings show at once.
+ * The pacing starts over afterwards.  `shotFrame` != 0: --menu-shot (save
+ * the window's picture after a few frames and close the menu). */
+void runMenu(unsigned shotFrame) {
+    g_app->state->debuggerInspector.paused = true;
+    for (unsigned n = 0; live::menuIsOpen(); n++) {
+        if (shotFrame != 0 && n == 2)
+            for (const std::string &s : g_opt.menuSets)
+                if (!live::menuTestSet(s)) host_log("live: --menu-set %s: not understood\n", s.c_str());
+        live::menuFrame();
+        g_app->updateScreen();
+        if (shotFrame != 0 && n == 30) {
+            char name[32];
+            snprintf(name, sizeof name, "menu_%07u", shotFrame);
+            saveWindow(name);
+            live::menuClose();
+        }
+        if (g_quitRequested) shutdown(0);
+        Sleep(15);
+        if (live::menuIsOpen()) pumpEvents();
+    }
+    g_app->state->debuggerInspector.paused = false;
+    if (g_quitRequested) shutdown(0);
+    g_t0.QuadPart = 0;   /* pacing: start over from the next retrace */
+    g_inputHold = true;
+}
 
 void liveVi(const HostViRegs *r, unsigned viCount, unsigned long long when, unsigned frames) {
     (void) viCount;
@@ -771,7 +910,20 @@ void liveVi(const HostViRegs *r, unsigned viCount, unsigned long long when, unsi
             : double(g_t0.QuadPart - g_tStart.QuadPart) / double(g_freq.QuadPart) + double(when - g_when0) / 46875000.0;
         g_pace.push_back({before, due, after - before, frames});
     }
+    /* pictures of the window (testing): --wshot, --menu-shot */
+    while (g_nextWshot < g_opt.wshots.size() && frames >= g_opt.wshots[g_nextWshot]) {
+        char name[32];
+        snprintf(name, sizeof name, "win_%07u", frames);
+        saveWindow(name);
+        g_nextWshot++;
+    }
+    if (g_opt.menuShot != ~0u && frames >= g_opt.menuShot) {
+        g_opt.menuShot = ~0u;
+        openMenu();
+        runMenu(frames);
+    }
     pumpEvents();
+    if (live::menuIsOpen()) runMenu(0);
 }
 
 int liveInput(unsigned short *button, signed char *x, signed char *y) {
@@ -786,6 +938,48 @@ int liveInput(unsigned short *button, signed char *x, signed char *y) {
 }
 
 const HostLive kLive = {liveBoot, liveGfxTask, liveVi, liveInput, liveAudio};
+
+/* ---- settings changed in the menu ------------------------------------------- */
+/* RT64's present thread, after the picture: --pace-log's times, the menu */
+void drawHook(plume::RenderCommandList *list, plume::RenderFramebuffer *fb) {
+    if (g_presentTimes != nullptr) presentHook(list, fb);
+    live::menuDraw(list);
+}
+
+void deinitHook() {
+    live::menuShutdown();
+}
+
+/* the menu changed g_cfg: apply it now where that is possible */
+void settingChanged(const live::Setting &s) {
+    if (s.section == "video") {
+        if (s.key == "fullscreen") {
+            if (g_cfg.fullscreen != g_opt.fullscreen) setFullscreen(g_cfg.fullscreen);
+            if (live::menuIsOpen()) SDL_ShowCursor(SDL_ENABLE);
+        } else if (s.key == "scale") {
+            g_opt.scale = g_cfg.scale;
+            if (!g_opt.fullscreen) SDL_SetWindowSize(g_window, int(320 * g_opt.scale), int(240 * g_opt.scale));
+        } else if (s.key == "vsync") {
+            g_opt.vsync = g_cfg.vsync;
+            g_app->swapChain->setVsyncEnabled(g_opt.vsync);
+        }
+        /* api: the next start */
+    } else if (s.section == "audio") {
+        g_opt.volume = g_cfg.volume;
+        g_opt.mute = g_cfg.mute;
+    }
+    host_log("live: setting %s.%s = %s\n", s.section.c_str(), s.key.c_str(), live::configValue(g_cfg, s).c_str());
+}
+
+/* the menu's status line */
+std::string rendererStatus() {
+    char buf[256];
+    int pw = 0, ph = 0;
+    SDL_GetWindowSizeInPixels(g_window, &pw, &ph);
+    snprintf(buf, sizeof buf, "%s, %dx%d pixels%s, display %u Hz", g_opt.vulkan ? "Vulkan" : "Direct3D 12", pw, ph,
+             g_opt.fullscreen ? " (fullscreen)" : "", displayHz());
+    return buf;
+}
 
 /* ---- start-up ---------------------------------------------------------------- */
 unsigned num(const char *s) {
@@ -817,6 +1011,23 @@ int extraArg(int argc, char **argv, int *i, HostOpts *o) {
         o->eeprom_path = nullptr;
         o->mpk_path = nullptr;
     }
+    else if (!strcmp(a, "--set")) next();   /* applied with the config file (main) */
+    else if (!strcmp(a, "--window")) {
+        const char *s = next();
+        if (sscanf(s, "%ux%u", &g_opt.windowW, &g_opt.windowH) != 2 || g_opt.windowW < 160 || g_opt.windowH < 120)
+            host_fatal("--window %s: WIDTHxHEIGHT, e.g. 1680x720", s);
+    } else if (!strcmp(a, "--wshot")) {
+        std::string s = next();
+        size_t p = 0;
+        while (p < s.size()) {
+            size_t q = s.find(',', p);
+            if (q == std::string::npos) q = s.size();
+            g_opt.wshots.push_back(num(s.substr(p, q - p).c_str()));
+            p = q + 1;
+        }
+        std::sort(g_opt.wshots.begin(), g_opt.wshots.end());
+    } else if (!strcmp(a, "--menu-shot")) g_opt.menuShot = std::max(1u, num(next()));
+    else if (!strcmp(a, "--menu-set")) g_opt.menuSets.push_back(next());
     else if (!strcmp(a, "--no-pace")) g_opt.pace = false;
     else if (!strcmp(a, "--scale")) g_opt.scale = std::max(1u, num(next()));
     else if (!strcmp(a, "--shot-dir")) g_opt.shotDir = next();
@@ -898,8 +1109,9 @@ void prestart(HostOpts *o) {
         while (scale > 1 && (320 * scale > unsigned(usable.w) || 240 * scale + 40 > unsigned(usable.h))) scale--;
     Uint32 flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI;
     if (g_opt.fullscreen) flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
-    g_window = SDL_CreateWindow(kTitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, int(320 * scale),
-                                int(240 * scale), flags);
+    const int winW = g_opt.windowW != 0 ? int(g_opt.windowW) : int(320 * scale);
+    const int winH = g_opt.windowH != 0 ? int(g_opt.windowH) : int(240 * scale);
+    g_window = SDL_CreateWindow(kTitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, winW, winH, flags);
     if (g_window == nullptr) host_fatal("Can't create the game window: %s", SDL_GetError());
     SDL_SetWindowMinimumSize(g_window, 320, 240);
     if (g_opt.fullscreen) SDL_ShowCursor(SDL_DISABLE);
@@ -946,10 +1158,9 @@ void prestart(HostOpts *o) {
     g_app = new RT64::Application(core, appConfig);
     g_app->userConfig.graphicsAPI =
         g_opt.vulkan ? RT64::UserConfiguration::GraphicsAPI::Vulkan : RT64::UserConfiguration::GraphicsAPI::D3D12;
-    if (g_opt.paceLog != nullptr) {
-        g_presentTimes = new double[kMaxPresents];
-        RT64::SetRenderHooks(nullptr, presentHook, nullptr);
-    }
+    if (g_opt.paceLog != nullptr) g_presentTimes = new double[kMaxPresents];
+    /* the present thread's hook: --pace-log's times, the settings menu */
+    RT64::SetRenderHooks(nullptr, drawHook, deinitHook);
     RT64::Application::SetupResult res = g_app->setup(GetCurrentThreadId());
     if (res != RT64::Application::SetupResult::Success || !g_app->device)
         host_fatal("The renderer (RT64) could not start with %s (setup result %d).\n\n"
@@ -958,6 +1169,14 @@ void prestart(HostOpts *o) {
                    g_opt.vulkan ? "Vulkan" : "Direct3D 12", int(res), g_opt.vulkan ? "d3d12" : "vulkan",
                    g_opt.vulkan ? "d3d12" : "vulkan");
     g_app->swapChain->setVsyncEnabled(g_opt.vsync);
+    live::MenuEnv menu;
+    menu.app = g_app;
+    menu.window = g_window;
+    menu.cfg = &g_cfg;
+    menu.changed = settingChanged;
+    menu.quit = [] { g_quitRequested = true; };
+    menu.status = rendererStatus;
+    live::menuSetup(menu);
     host_crash_rearm();   /* in case the renderer or a driver installed its own filter */
     int ww, wh, pw, ph;
     SDL_GetWindowSize(g_window, &ww, &wh);
@@ -1119,6 +1338,10 @@ int main(int, char **) {
     }
     if (noConfig) live::configDefaults(g_cfg);
     else live::configLoad(g_cfg, configFile);
+    /* --set section.key=value: a setting for this run (over bc.ini; not saved) */
+    for (int i = 1; i + 1 < argc; i++)
+        if (args[i] == "--set" && !live::configSet(g_cfg, args[++i]) && host_no_msgbox)
+            host_fatal("%s", g_cfg.warnings.back().c_str());
     host_exit_hook = writePaceLog;
     host_opts_hook = optsHook;
     host_rom_hook = romHook;

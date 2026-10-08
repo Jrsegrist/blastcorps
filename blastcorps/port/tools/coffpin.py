@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Pin a game object file's data to N64 addresses (fixed-RAM model, any COFF compiler).
 
-The object-file counterpart of relabel.py (which rewrites gcc's assembly text):
-it works on the COFF object itself, so clang (the 64-bit build) and MSVC objects
-go through the same step.  Every data object the NON_MATCHING ELF places in N64
+It works on the COFF object itself (no assembly text, no linker script), so the
+MSVC objects and the clang check build's go through the same step.  Every data
+object the NON_MATCHING ELF places in N64
 memory (ADDRS, from gensyms.py addrs; function-local statics by their
 D_<address> name: clang calls them `fn.D_xxxxxxxx`, gcc `D_xxxxxxxx.N`) is taken
 out of the object:

@@ -115,7 +115,7 @@ user name) next to bc.log; please include both. Both can be deleted afterwards.
 Known issues
 ------------
 - Only Blast Corps (USA) (Rev 1) is supported.
-- @BITS@ program; either way the game's memory sits at the N64's addresses (by design).
+- 64-bit (x86_64) program; the game's memory sits at the N64's addresses (by design).
 - Some rare differences from the N64 remain under investigation (see the project's
   notes): a few vertex values in two attract demos, and when exactly a sound starts
   (by one audio frame) compared with the console.

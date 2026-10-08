@@ -137,7 +137,7 @@ def data_syms():
                   os.path.join(ROOT, "build_nm/hd_front_end.us.v11.elf")],
                  ("STT_OBJECT", "STT_NOTYPE"))
     have = set(a for a, _, _ in s.items)
-    p = os.path.join(PORT, "build/headless/addrs.txt")
+    p = os.path.join(PORT, "build/gen/addrs.txt")
     if os.path.exists(p):
         for line in open(p):
             f = line.split()
@@ -390,19 +390,29 @@ def cmd_emu(args):
 
 
 def native_exe():
-    """the bc_headless under test: CMP_EXE (make -C port verify64: the x86_64
-    build), else build/headless/bc_headless.exe"""
+    """the bc_headless under test: CMP_EXE (the make targets pass the MSVC
+    build's), else the MSVC build's in MSVC_DIR (default
+    %LOCALAPPDATA%/blastcorps-msvc, as port/msvc.mk), Release"""
     e = os.environ.get("CMP_EXE")
-    return os.path.abspath(e) if e else os.path.join(PORT, "build/headless/bc_headless.exe")
+    if e:
+        return os.path.abspath(e)
+    d = os.environ.get("MSVC_DIR")
+    if not d:
+        r = subprocess.run(["cmd.exe", "/c", "echo %LOCALAPPDATA%"], capture_output=True, text=True, cwd="/mnt/c")
+        la = r.stdout.strip()
+        if not la or "%" in la:
+            die("no CMP_EXE and no MSVC_DIR: which bc_headless.exe? (make -C port msvc builds it)")
+        d = subprocess.run(["wslpath", la], capture_output=True, text=True).stdout.strip() + "/blastcorps-msvc"
+    return os.path.join(d, "Release", "bc_headless.exe")
 
 
 def native_tag():
-    """the native run folders of the x86_64 exe get a suffix ("...-native64"),
-    so the i686 and x86_64 runs of the same emulator run are both kept;
-    CMP_TAG names it (the MSVC build: "msvc")"""
+    """the native run folders get a suffix naming the build ("...-nativemsvc";
+    the clang check's exe: "...-native64"), so runs of different builds against
+    the same emulator run are kept apart; CMP_TAG overrides it"""
     if os.environ.get("CMP_TAG"):
         return os.environ["CMP_TAG"]
-    return "64" if os.environ.get("CMP_EXE", "").find("headless64") >= 0 else ""
+    return "64" if native_exe().find("headless64") >= 0 else "msvc"
 
 
 def cmd_native(args):
@@ -1031,8 +1041,8 @@ def cmd_diff(args):
     # --audio: also compare the audio subsystem (compare_ignore.txt's audio section);
     # meaningful with an emu --lle run (the emulator's real audio frame sizes)
     audio = flag(args, "--audio")
-    typemap = opt(args, "--typemap", os.path.join(PORT, "build/headless/typemap_all.txt"))
-    facts = opt(args, "--facts", os.path.join(PORT, "build/headless/facts.txt"))
+    typemap = opt(args, "--typemap", os.path.join(PORT, "build/gen/typemap_all.txt"))
+    facts = opt(args, "--facts", os.path.join(PORT, "build/gen/facts.txt"))
     c = Cmp(emudir, natdir, audio)
     if strict:
         if not os.path.exists(typemap):
@@ -1309,7 +1319,7 @@ def cmd_verify(args):
     r = cmd_native([emudir, natdir, "--frames", str(frames), "--dump", "every:%d" % every])
     res = {"exe_exit": r}
     res["frames"], res["timeline_retrace"], res["timeline_state"] = cmd_frames([emudir, natdir, "5"])
-    typemap = os.path.join(PORT, "build/headless/typemap_all.txt")
+    typemap = os.path.join(PORT, "build/gen/typemap_all.txt")
     strict = os.path.exists(typemap) and not no_strict
     dargs = [emudir, natdir, "--all", "--brief", "--detail", "6"] + (["--strict"] if strict else [])
     matched, compared, first, strict_bad = cmd_diff(dargs)
@@ -1431,7 +1441,7 @@ def run_level(level, cache, frames, every, input_path, kind="nm", shots="", forc
     res["emu_modes"] = " ".join(sorted(set("%X" % int(f["mode"], 16) for f in ev["F"]
                                            if f["n"] >= LEVEL_POKE_FRAME and int(f["lvl"], 16) == level)))
     res["native_frames"] = len(nat)
-    typemap = os.path.join(PORT, "build/headless/typemap_all.txt")
+    typemap = os.path.join(PORT, "build/gen/typemap_all.txt")
     strict = strict and os.path.exists(typemap)
     if frames_in(emudir) & frames_in(natdir):
         dargs = [emudir, natdir, "--all", "--brief", "--detail", "6"] + (["--strict"] if strict else [])

@@ -1,14 +1,15 @@
 # ---------------------------------------------------------------------------
-# 64-bit (x86_64) build: the same game, platform and host sources as
-# headless/game, compiled with clang for x86_64-w64-mingw32 and linked with
-# mingw-w64's x86_64 binutils/CRT.  N64 memory stays at 0x80000000 with N64
-# layouts (4-byte pointers: N64P, port/include/port_n64ptr.h).  See README.md
-# ("64-bit").  Included by Makefile.
+# The clang check: the game, ultralib and platform sources built as a clang
+# x86_64 bc_headless (x86_64-w64-mingw32, mingw-w64's binutils and CRT).  Nobody
+# plays it: it is a second compiler for the same sources, with checks MSVC
+# doesn't have.  See README.md ("The clang check").  Included by Makefile.
 #
-#   make -C port headless64          build/headless64/bc_headless.exe
-#   make -C port game64 dist64       build/game64/bc.exe, its package
-#   make -C port ptrcheck64          pointer-width audit + record layouts (i686 vs x86_64)
-#   make -C port verify64 / verify-levels64 / loadcheck64
+#   make -C port clang-check      all of the below, then its per-frame traces
+#                                 against the MSVC bc_headless (tools/tracecmp.py:
+#                                 the attract demos and every level)
+#   make -C port headless64       build/headless64/bc_headless.exe (+ align64.py)
+#   make -C port ptrcheck64       pointer-width audit + record layouts (i686 vs x86_64)
+#   make -C port overflow-census  signed overflows at run time (-fsanitize)
 H64 := build/headless64
 CC64 := clang-18 --target=x86_64-w64-mingw32
 LD64 := x86_64-w64-mingw32-gcc
@@ -16,7 +17,7 @@ NM64 := x86_64-w64-mingw32-nm
 # -fms-extensions: __ptr32 (N64P); -mno-ms-bitfields: GCC bitfield packing (the
 # GBI's Gfx); -fdata-sections: one section per object, for coffpin.py;
 # -fno-auto-import: direct (RIP-relative) access to data, no .refptr stubs;
-# -ffp-contract=off: no FMA contraction (the i686 build has none either).
+# -ffp-contract=off: no FMA contraction.
 # Errors: a pointer that changes address space under another pointer
 # (`u8 **p = D_x` with D_x an N64P array) and pointer/integer mixups.
 # Not warned: int <-> pointer casts of 32-bit values (N64 addresses); the
@@ -38,17 +39,32 @@ cc64ir = $(CC64) $(1) -S -emit-llvm -o $@.ll $< && \
 	$(CC64) $(1) -Wno-unused-command-line-argument -Xclang -disable-llvm-optzns -c -o $@ $@.a.ll && \
 	rm -f $@.ll $@.a.ll
 IR64_DEPS := tools/llalign64.py $(H64)/addrs.txt
-# -fno-inline-functions: only `inline` functions are inlined.  --sync and
-# --clock key the emulator's values on the calling game function (a return
-# address); clang inlines far more than gcc (func_802A2BB0's PI wait came out
-# inside func_802A1D54: 8627 sync mismatches in verify), so game functions
-# keep their own bodies, as the N64's do.
-HL64_CFLAGS := $(filter-out -msse2 -mfpmath=sse -Wno-builtin-declaration-mismatch,$(GAME_CFLAGS)) -DPORT_HOST \
+# The game C: -DNON_MATCHING -DPORT_HOST (the game's port hooks,
+# include/game/port.h), the port's <ultratypes.h> shim forced in, the SDK's
+# sinf/cosf kept (-fno-builtin-*).
+# -fno-optimize-sibling-calls: a call's return address names its real caller
+# (the keys of --clock and --sync, see os_time.c / os_thread.c; crash reports).
+# -fno-inline-functions: only `inline` functions are inlined: clang inlines far
+# more than the N64's compiler (func_802A2BB0's PI wait came out inside
+# func_802A1D54: 8627 sync mismatches in verify), so game functions keep their
+# own bodies.  HL_EXTRA: extra flags for debugging.
+HL64_CFLAGS := -std=gnu89 -nostdinc -I$(ROOT) -I$(ROOT)/include -I$(ROOT)/include/2.0I \
+	-I$(ROOT)/include/2.0I/PR -include include/port_ultratypes.h \
+	-D_LANGUAGE_C -D_FINALROM -DNON_MATCHING -DPORT_HOST -D_MIPS_SZLONG=32 -D_MIPS_SIM=1 \
+	-O2 -fno-strict-aliasing -fwrapv -fno-common \
+	-fno-builtin-sinf -fno-builtin-cosf -fno-builtin-sin -fno-builtin-cos \
+	-Wno-unknown-pragmas -DPORT_HOST \
 	$(C64_COMMON) -g -fno-optimize-sibling-calls -fno-inline-functions -Wno-incompatible-library-redeclaration \
 	$(HL_EXTRA)
-# ultralib's headers come from the marked copies (ulhdr64.py) in $(H64)/ulinc
-HL64_UL_CFLAGS := -I$(H64)/ulinc $(subst -I$(UL_DIR)/include,-I$(H64)/ulinc/include,$(subst \
-	-I$(UL_DIR)/src/libc,-I$(H64)/ulinc/src/libc,$(filter-out -msse2 -mfpmath=sse $(HL_ABI),$(HL_UL_CFLAGS)))) \
+# game functions call __cyg_profile_func_enter (os_thread.c): with --sync,
+# the entries of the functions that read the game's retrace counter are
+# switch points too (port/tools/cmp_spec.py lists them)
+HL_GAME_INSTR := -finstrument-functions
+# ultralib: its own headers, from the marked copies (ulhdr64.py) in $(H64)/ulinc
+HL64_UL_CFLAGS := -I$(H64)/ulinc -std=gnu89 -nostdinc -I$(UL_DIR) -I$(H64)/ulinc/include \
+	-I$(H64)/ulinc/include/compiler/modern_gcc -I$(H64)/ulinc/include/PR -I$(H64)/ulinc/src/libc \
+	-D_MIPS_SZLONG=32 -DBUILD_VERSION=VERSION_I -DBUILD_VERSION_STRING=\"2.0I\" -DNDEBUG -D_FINALROM \
+	-DF3DEX_GBI -D_LANGUAGE_C -O2 -fno-strict-aliasing -fwrapv -mlong-double-64 -fno-common -fno-builtin -g -w \
 	$(C64_COMMON) -include include/port_n64ptr.h
 HL64_PLAT_CFLAGS := $(HL64_CFLAGS) -Isrc/platform -Wall -Wno-unknown-pragmas
 HL64_HOST_CFLAGS := -O2 -Wall -Isrc -Isrc/platform -g -fno-addrsig -Wno-pointer-to-int-cast
@@ -62,15 +78,14 @@ HL64_GAME_OBJS := $(HL_HD:%=$(H64)/game/hd/%.o) $(HL_FE:%=$(H64)/game/fe/%.o) \
 	$(HL_PLAT:%=$(H64)/game/plat/%.o)
 HL64_RECS := $(HL64_GAME_OBJS:.o=.rec)
 HL64_HOST_OBJS := $(HL_HOST:%=$(H64)/host/%.o) $(H64)/host/rdram.o $(H64)/host/inflate.o \
-	$(HL_LOAD:%=$(H64)/host/load/%.o) $(if $(HL_LOAD),$(H64)/host/swaptab.o,) $(HL_AUDIO:%=$(H64)/host/audio/%.o)
+	$(HL_LOAD:%=$(H64)/host/load/%.o) $(H64)/host/swaptab.o $(HL_AUDIO:%=$(H64)/host/audio/%.o)
 
-$(H64)/addrs.txt: $(H)/addrs.txt
+$(H64)/addrs.txt: $(GEN)/addrs.txt
 	@mkdir -p $(@D)
 	cp $< $@
 
 # ultralib's public headers with the N64 pointer marks (tools/ulhdr64.py,
 # data/ultralib_n64ptr.txt): the ul_* objects share these records with the game
-UL64_HDRS := $(shell sed -n 's/^\([^#: ][^: ]*\):.*/\1/p' data/ultralib_n64ptr.txt 2>/dev/null | sort -u)
 # ... and its sources with the function pointers kept in N64 memory used
 # through N64FN_SET/N64FN_GET (tools/ulsrc64.py): $(H64)/ulsrc/ul_*.c
 UL64_SRCS := $(HL_UL:%=$(GAME_SRC)/%.c) $(HL_ULFE:%=$(FE_SRC)/%.c)
@@ -95,26 +110,26 @@ $(H64)/game/fe/%.raw.o: $(FE_SRC)/%.c include/port_ultratypes.h include/port_n64
 $(H64)/game/ul/%.raw.o: $(H64)/ulsrc/%.c $(H64)/ulinc.stamp $(IR64_DEPS) Makefile port64.mk
 	@mkdir -p $(@D)
 	$(call cc64ir,$(HL64_UL_CFLAGS))
-$(H64)/game/ul/ul_sinf.raw.o: $(H)/le/sinf.c $(H64)/ulinc.stamp $(IR64_DEPS)
+$(H64)/game/ul/ul_sinf.raw.o: $(GEN)/le/sinf.c $(H64)/ulinc.stamp $(IR64_DEPS)
 	@mkdir -p $(@D)
 	$(call cc64ir,$(HL64_UL_CFLAGS) -I$(UL_DIR)/src/gu)
-$(H64)/game/ul/ul_cosf.raw.o: $(H)/le/cosf.c $(H64)/ulinc.stamp $(IR64_DEPS)
+$(H64)/game/ul/ul_cosf.raw.o: $(GEN)/le/cosf.c $(H64)/ulinc.stamp $(IR64_DEPS)
 	@mkdir -p $(@D)
 	$(call cc64ir,$(HL64_UL_CFLAGS) -I$(UL_DIR)/src/gu)
-$(H64)/game/ul/ul_xldtob.raw.o: $(H)/le/xldtob.c $(H64)/ulinc.stamp $(IR64_DEPS)
+$(H64)/game/ul/ul_xldtob.raw.o: $(GEN)/le/xldtob.c $(H64)/ulinc.stamp $(IR64_DEPS)
 	@mkdir -p $(@D)
 	$(call cc64ir,$(HL64_UL_CFLAGS))
-$(H64)/game/ul/ul_xprintf.raw.o: $(H)/le/xprintf.c $(H64)/ulinc.stamp $(IR64_DEPS)
+$(H64)/game/ul/ul_xprintf.raw.o: $(GEN)/le/xprintf.c $(H64)/ulinc.stamp $(IR64_DEPS)
 	@mkdir -p $(@D)
 	$(call cc64ir,$(HL64_UL_CFLAGS))
-$(H64)/game/ulfe/%.raw.o: $(H64)/ulsrc/%.c $(H)/le/PRinternal/controller.h $(H64)/ulinc.stamp $(IR64_DEPS) Makefile \
-		port64.mk
+$(H64)/game/ulfe/%.raw.o: $(H64)/ulsrc/%.c $(GEN)/le/PRinternal/controller.h $(H64)/ulinc.stamp $(IR64_DEPS) \
+		Makefile port64.mk
 	@mkdir -p $(@D)
-	$(call cc64ir,-I$(H)/le $(HL64_UL_CFLAGS))
-$(H64)/game/ulfe/ul_pfsallocatefile.raw.o: $(H)/le/pfsallocatefile.c $(H)/le/PRinternal/controller.h \
+	$(call cc64ir,-I$(GEN)/le $(HL64_UL_CFLAGS))
+$(H64)/game/ulfe/ul_pfsallocatefile.raw.o: $(GEN)/le/pfsallocatefile.c $(GEN)/le/PRinternal/controller.h \
 		$(H64)/ulinc.stamp $(IR64_DEPS)
 	@mkdir -p $(@D)
-	$(call cc64ir,-I$(H)/le $(HL64_UL_CFLAGS))
+	$(call cc64ir,-I$(GEN)/le $(HL64_UL_CFLAGS))
 $(H64)/game/plat/%.raw.o: src/platform/%.c src/platform/plat.h src/platform/plat_host.h src/platform/port_dma.h \
 		src/audio/port_audio.h include/port_n64ptr.h $(IR64_DEPS) Makefile port64.mk
 	@mkdir -p $(@D)
@@ -138,7 +153,7 @@ $(H64)/host/%.o: src/%.c src/rdram.h Makefile port64.mk
 $(H64)/host/load/%.o: src/load/%.c src/rdram.h src/platform/port_dma.h $(wildcard src/load/*.h) Makefile port64.mk
 	@mkdir -p $(@D)
 	$(CC64) $(HL64_HOST_CFLAGS) -Isrc/load -c -o $@ $<
-$(H64)/host/swaptab.o: $(H)/swaptab.c src/load/port_load.h
+$(H64)/host/swaptab.o: $(GEN)/swaptab.c src/load/port_load.h
 	@mkdir -p $(@D)
 	$(CC64) $(HL64_HOST_CFLAGS) -c -o $@ $<
 
@@ -150,7 +165,8 @@ $(H64)/abs_syms.o $(H64)/stubs.c &: $(HL64_GAME_OBJS) $(HL64_HOST_OBJS) tools/ge
 $(H64)/copytab.c: $(HL64_RECS) $(H64)/addrs.txt tools/gensyms.py
 	$(PYTHON) tools/gensyms.py copytab64 $@ $(H64)/addrs.txt $(HL64_RECS)
 # every pointer slot of the pinned objects: the NON_MATCHING ELF's value
-# (N64_DPTR initialisers are 0 natively)
+# (N64_DPTR initialisers are 0 natively); read from the ELFs here, from
+# inputs/nmptrs.txt in the MSVC build
 $(H64)/ptrtab.c: $(HL64_RECS) $(NM_ELFS) tools/gensyms.py
 	cd $(ROOT) && $(PYTHON) port/tools/gensyms.py ptrtab port/$@ $(addprefix port/,$(HL64_RECS))
 $(H64)/stubs.o: $(H64)/stubs.c
@@ -173,105 +189,6 @@ $(H64)/bc_headless.exe: $(HL64_LINK_OBJS) $(H64)/align.ok
 
 headless64: $(H64)/bc_headless.exe
 
-# ---- game64 / dist64: bc.exe in 64 bits (as `game` / `dist`) ----
-# RT64 for x86_64 from the same patched sources (rt64/build_rt64.sh ARCH=x86_64),
-# the C++ host side (src/live/) with mingw-w64's x86_64 g++
-G64 := build/game64
-RT64_B64 := $(RT64_W)/build-x86_64
-RT64_DLL64 := $(RT64_W)/dll-x86_64
-RT64_LIBS64 := $(subst $(RT64_B)/,$(RT64_B64)/,$(RT64_LIBS))
-CXX64 := x86_64-w64-mingw32-g++-posix
-LIVE64_CXXFLAGS := $(subst -I$(RT64_B)/,-I$(RT64_B64)/,$(LIVE_CXXFLAGS))
-G64_HOST_OBJS := $(filter-out $(H64)/host/headless_main.o,$(HL64_HOST_OBJS)) $(G64)/host/headless_main.o \
-	$(G64)/live/live_rt64.o $(G64)/live/live_setup.o $(G64)/bc_res.o
-$(G64)/rt64.stamp: rt64/build_rt64.sh $(wildcard rt64/patches/*.patch)
-	@mkdir -p $(@D)
-	ARCH=x86_64 TP=$(TP) JOBS=$${JOBS:-2} bash rt64/build_rt64.sh
-	touch $@
-$(G64)/host/headless_main.o: src/platform/headless_main.c src/platform/plat_host.h src/rdram.h Makefile port64.mk
-	@mkdir -p $(@D)
-	$(CC64) $(HL64_HOST_CFLAGS) -DPORT_LIVE -c -o $@ $<
-$(G64)/live/%.o: src/live/%.cpp src/live/live_setup.h src/platform/plat_host.h src/rdram.h $(G)/version.h \
-		$(G64)/rt64.stamp Makefile port64.mk
-	@mkdir -p $(@D)
-	$(CXX64) $(LIVE64_CXXFLAGS) -include $(G)/version.h -c -o $@ $<
-$(G64)/bc_res.o: res/bc.rc $(G)/bc.ico $(G)/version.h
-	@mkdir -p $(@D)
-	x86_64-w64-mingw32-windres -I$(G) -Ires -O coff -o $@ $<
-G64_LINK := $(HL64_GAME_OBJS) $(G64_HOST_OBJS) $(H64)/stubs.o $(H64)/copytab.o $(H64)/ptrtab.o $(H64)/abs_syms.o
-$(G64)/bc.exe: $(G64_LINK) $(H64)/align.ok $(G64)/rt64.stamp
-	$(CXX64) -o $@ $(G64_LINK) $(RT64_LIBS64) $(RT64_DLL64)/SDL2.dll $(RT64_DLL64)/libdxcompiler.a $(LIVE_SYSLIBS) \
-		-static -static-libgcc -static-libstdc++ -mwindows $(LDFLAGS64) -Wl,-Map=$(G64)/bc.map
-	$(NM64) -n $@ > $(G64)/bc.syms
-	cp -u $(addprefix $(RT64_DLL64)/,$(RT64_DLLS)) $(G64)/
-game64: $(G64)/bc.exe
-
-DIST64_NAME := BlastCorps-port-$(BC_VERSION)-x64
-DIST64 := build/dist/$(DIST64_NAME)
-dist64: $(G64)/bc.exe dist/README.txt dist/third_party.sh
-	rm -rf $(DIST64) $(DIST64).zip
-	mkdir -p $(DIST64)
-	cp $(G64)/bc.exe $(addprefix $(G64)/,$(RT64_DLLS)) $(DIST64)/
-	x86_64-w64-mingw32-strip --strip-debug $(DIST64)/bc.exe
-	sed -e 's/@VERSION@/$(BC_VERSION) (64-bit)/' -e 's/@BITS@/64-bit (x86_64)/' dist/README.txt | sed -e 's/$$/\r/' \
-		> $(DIST64)/README.txt
-	TP=$(TP) RT64_SRC=$(RT64_SRC) bash dist/third_party.sh | sed -e 's/$$/\r/' > $(DIST64)/THIRD_PARTY_LICENSES.txt
-	cd build/dist && $(PYTHON) -m zipfile -c $(DIST64_NAME).zip $(DIST64_NAME)/
-	@ls -l $(DIST64) $(DIST64).zip
-.PHONY: game64 dist64
-
-# ---- loadcheck64: the load layer through the 64-bit build (as `loadcheck`) ----
-LC64 := build/lc64
-LC64_CFLAGS := $(filter-out -msse2 -mfpmath=sse -Wno-builtin-declaration-mismatch,$(GAME_CFLAGS)) $(C64_COMMON) -g
-LC64_GAME_OBJS := $(LC_FILES:%=$(LC64)/game/%.o)
-LC64_HOST_OBJS := $(LC64)/host/rdram.o $(LC64)/host/inflate.o $(LC64)/host/loadcheck_main.o \
-	$(LOAD_SRCS:src/load/%.c=$(LC64)/host/load/%.o) $(LC64)/host/swaptab.o
-$(LC64)/game/%.raw.o: $(GAME_SRC)/%.c include/port_ultratypes.h include/port_n64ptr.h $(IR64_DEPS) Makefile port64.mk
-	@mkdir -p $(@D)
-	$(call cc64ir,$(LC64_CFLAGS))
-$(LC64)/%.o $(LC64)/%.rec: $(LC64)/%.raw.o $(H64)/addrs.txt tools/coffpin.py
-	$(PYTHON) tools/coffpin.py $(H64)/addrs.txt $< $(LC64)/$*.o $(LC64)/$*.rec
-$(LC64)/host/%.o: src/%.c $(PORT_HDRS) Makefile port64.mk
-	@mkdir -p $(@D)
-	$(CC64) $(HL64_HOST_CFLAGS) -c -o $@ $<
-$(LC64)/host/swaptab.o: $(H)/swaptab.c src/load/port_load.h
-	@mkdir -p $(@D)
-	$(CC64) $(HL64_HOST_CFLAGS) -c -o $@ $<
-$(LC64)/abs_syms.o $(LC64)/stubs.c &: $(LC64_GAME_OBJS) $(LC64_HOST_OBJS) tools/gensyms.py tools/rdramobj.py
-	cd $(ROOT) && NM=$(NM64) $(PYTHON) port/tools/gensyms.py link64 port/$(LC64) \
-		$(addprefix port/,$(LC64_GAME_OBJS) $(LC64_HOST_OBJS))
-$(LC64)/copytab.c: $(LC64_GAME_OBJS:.o=.rec) $(H64)/addrs.txt tools/gensyms.py
-	$(PYTHON) tools/gensyms.py copytab64 $@ $(H64)/addrs.txt $(LC64_GAME_OBJS:.o=.rec)
-$(LC64)/ptrtab.c: $(LC64_GAME_OBJS:.o=.rec) $(NM_ELFS) tools/gensyms.py
-	cd $(ROOT) && $(PYTHON) port/tools/gensyms.py ptrtab port/$@ $(addprefix port/,$(LC64_GAME_OBJS:.o=.rec))
-$(LC64)/%.o: $(LC64)/%.c src/rdram.h
-	$(CC64) $(HL64_HOST_CFLAGS) -Isrc -w -c -o $@ $<
-LC64_LINK := $(LC64_GAME_OBJS) $(LC64_HOST_OBJS) $(LC64)/stubs.o $(LC64)/copytab.o $(LC64)/ptrtab.o $(LC64)/abs_syms.o
-$(LC64)/spike.exe: $(LC64_LINK)
-	$(LD64) -o $@ $(LC64_LINK) $(LDFLAGS64)
-loadcheck64: $(LC64)/spike.exe
-	@if [ -n "$(LC_TRACE)" ]; then $(PYTHON) tools/widths.py facts $(LC64)/facts.txt $(LC_TRACE); fi
-	$(LC64)/spike.exe '$(ROM_ARG)' $$([ -f $(LC64)/facts.txt ] && echo 56789 $(LC64)/facts.txt) \
-		> $(LC64)/out_native.txt
-	cd $(ROOT) && $(PYTHON) port/tools/loadref.py $(abspath $(ROM)) > port/$(LC64)/out_ref.txt
-	@grep '^T9 total' $(LC64)/out_native.txt || true
-	$(PYTHON) tools/cmpout.py $(LC64)/out_ref.txt $(LC64)/out_native.txt
-
-# ---- verify64 / verify-levels64: the emulator comparisons with the 64-bit exe
-# (tools/compare.py CMP_EXE; the native runs go to ...-native64 folders) ----
-verify64:
-	$(MAKE) -C $(ROOT) VERSION=$(VERSION) NON_MATCHING=1 nmrom BASEROM=$(abspath $(ROM)) > /dev/null
-	$(MAKE) $(H64)/bc_headless.exe $(H)/typemap_all.txt
-	$(MAKE) loadcheck64
-	CMP_EXE=$(H64)/bc_headless.exe $(PYTHON) tools/compare.py verify --frames $(VERIFY_FRAMES) --cache $(CMP_CACHE) \
-		$(VERIFY_ARGS)
-verify-levels64:
-	$(MAKE) -C $(ROOT) VERSION=$(VERSION) NON_MATCHING=1 nmrom BASEROM=$(abspath $(ROM)) > /dev/null
-	$(MAKE) $(H64)/bc_headless.exe
-	CMP_EXE=$(H64)/bc_headless.exe $(PYTHON) tools/compare.py verify-levels --cache $(CMP_CACHE) --jobs $(LEVEL_JOBS) \
-		$(if $(LEVELS),--levels $(LEVELS)) $(VERIFY_LEVELS_ARGS)
-.PHONY: loadcheck64 verify64 verify-levels64
-
 # the pointer-width audit (tools/ptrcheck64.py: host-width pointers in N64
 # records and pinned globals, casts to host-width pointer pointers, signed
 # int -> pointer casts) and the record layouts i686 vs x86_64
@@ -280,28 +197,27 @@ P64_ALLOW := data/ptrcheck64_allow.txt
 P64_GAME := $(HL_HD:%=$(GAME_SRC)/%.c) $(HL_FE:%=$(FE_SRC)/%.c)
 P64_PLAT := $(HL_PLAT:%=src/platform/%.c)
 P64_UL := $(HL_UL:%=$(H64)/ulsrc/%.c) $(HL_ULFE:%=$(H64)/ulsrc/%.c)
-ptrcheck64: $(H64)/addrs.txt $(H64)/ulinc.stamp
+ptrcheck64: $(H64)/addrs.txt $(H64)/ulinc.stamp $(GEN)/le/PRinternal/controller.h
 	@rc=0; \
 	$(PYTHON) tools/ptrcheck64.py $(H64)/addrs.txt $(P64_ALLOW) $(H64)/ptrcheck_game.txt -- \
 		$(CC64) $(HL64_CFLAGS) -w -- $(P64_GAME) || rc=1; \
 	$(PYTHON) tools/ptrcheck64.py $(H64)/addrs.txt $(P64_ALLOW) $(H64)/ptrcheck_plat.txt -- \
 		$(CC64) $(HL64_PLAT_CFLAGS) -w -- $(P64_PLAT) || rc=1; \
 	$(PYTHON) tools/ptrcheck64.py $(H64)/addrs.txt $(P64_ALLOW) $(H64)/ptrcheck_ul.txt -- \
-		$(CC64) -I$(H)/le $(HL64_UL_CFLAGS) -w -- $(P64_UL) || rc=1; \
+		$(CC64) -I$(GEN)/le $(HL64_UL_CFLAGS) -w -- $(P64_UL) || rc=1; \
 	$(PYTHON) tools/layout64.py $(P64_ALLOW) $(H64)/layout_game.txt -- $(CC64) $(HL64_CFLAGS) -- $(P64_GAME) || rc=1; \
 	$(PYTHON) tools/layout64.py $(P64_ALLOW) $(H64)/layout_plat.txt -- $(CC64) $(HL64_PLAT_CFLAGS) -- $(P64_PLAT) \
 		|| rc=1; \
-	$(PYTHON) tools/layout64.py $(P64_ALLOW) $(H64)/layout_ul.txt -- $(CC64) -I$(H)/le $(HL64_UL_CFLAGS) -- $(P64_UL) \
-		|| rc=1; \
+	$(PYTHON) tools/layout64.py $(P64_ALLOW) $(H64)/layout_ul.txt -- $(CC64) -I$(GEN)/le $(HL64_UL_CFLAGS) -- \
+		$(P64_UL) || rc=1; \
 	exit $$rc
 
-.PHONY: headless64 ptrcheck64
-
-# the signed-overflow census (tools/overflow_census.py; MSVC has no -fwrapv):
-# a bc_headless built here with -fno-wrapv -fsanitize=signed-integer-overflow
-# (build/hl64ubsan, tools/ubsan_minimal.c), run over the attract demos and every
-# level; fails if any signed add/multiply overflows that the source doesn't
-# wrap explicitly (PORT_WRAP_*, include/game/port.h).  OC_ARGS: e.g. --levels 0-9
+# the signed-overflow census (tools/overflow_census.py; MSVC has no -fwrapv and
+# no signed-overflow sanitizer): a bc_headless built here with -fno-wrapv
+# -fsanitize=signed-integer-overflow (build/hl64ubsan, tools/ubsan_minimal.c),
+# run over the attract demos and every level; fails if any signed add/multiply
+# overflows that the source doesn't wrap explicitly (PORT_WRAP_*,
+# include/game/port.h).  OC_ARGS: e.g. --levels 0-9
 OC := build/hl64ubsan
 overflow-census:
 	@mkdir -p $(OC)
@@ -309,4 +225,14 @@ overflow-census:
 	$(MAKE) H64=$(OC) HL_EXTRA="-fno-wrapv -fsanitize=signed-integer-overflow -fsanitize-minimal-runtime" \
 		LDFLAGS64="$(LDFLAGS64) $(OC)/ubsan_minimal.o" $(OC)/bc_headless.exe
 	$(PYTHON) tools/overflow_census.py $(OC)/bc_headless.exe '$(ROM_ARG)' data/levels_input.txt $(OC)/runs $(OC_ARGS)
-.PHONY: overflow-census
+
+# the clang check: the audit, the alignment check (headless64), then the clang
+# exe's per-frame traces against the MSVC exe's: the attract demos and every
+# level (tools/tracecmp.py, both on the free-running virtual clock; no
+# emulator).  CLANG_CHECK_ARGS: e.g. --levels 0-9 --attract 2000
+clang-check: ptrcheck64 headless64
+	$(MAKE) msvc MSVC_TARGETS=bc_headless
+	$(PYTHON) tools/tracecmp.py $(H64)/bc_headless.exe '$(MSVC_B)/bc_headless.exe' '$(ROM_ARG)' \
+		data/levels_input.txt build/clang-check --jobs $(LEVEL_JOBS) $(CLANG_CHECK_ARGS)
+
+.PHONY: headless64 ptrcheck64 overflow-census clang-check

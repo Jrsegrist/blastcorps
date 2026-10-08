@@ -65,7 +65,8 @@ game is closed. It holds:
   [video]      api (d3d12 or vulkan), scale (window size 320x240 times this),
                fullscreen, vsync; optional enhancements (off by default):
                resolution (internal resolution: window, 1 = the N64's, 2, 3, 4 ...),
-               msaa (0, 2, 4, 8), filtering (aa, linear, nearest)
+               msaa (0, 2, 4, 8), filtering (aa, linear, nearest),
+               aspect (original = 4:3, 16:9, 16:10, 21:9, window: widescreen)
   [audio]      volume, mute
   [keyboard]   one line per N64 button: SDL key names, several separated by commas
   [controller] the same for a game controller, plus which stick is the analog stick,
@@ -73,7 +74,11 @@ game is closed. It holds:
 Delete bc.ini to get the defaults back. If a line isn't understood, the game says so
 when it starts and uses the default for it.
 
-The window can be resized freely; the picture keeps the N64's 4:3 shape.
+The window can be resized freely; the picture keeps the N64's 4:3 shape unless
+widescreen is on (aspect): then the 3D world fills the wider picture, nothing is
+stretched, and the HUD, menus and other 2D pictures stay 4:3 in the middle. With
+widescreen the game also treats the wider view as visible (which parts of the level
+it draws), so it can play out slightly differently from the N64.
 
 Command-line options (for shortcuts or a .bat file) override bc.ini, for example:
   bc.exe "D:\ROMs\Blast Corps (USA) (Rev 1).z64"   use this ROM (not remembered)
@@ -82,6 +87,7 @@ Command-line options (for shortcuts or a .bat file) override bc.ini, for example
   bc.exe --saves D:\BCsaves    bc.exe --config other.ini   bc.exe --no-pak
   bc.exe --set audio.volume=50   (any bc.ini setting as section.key=value, this run only)
   bc.exe --resolution 4        bc.exe --msaa 4          bc.exe --filtering nearest
+  bc.exe --aspect 16:9
 
 
 Saves
@@ -133,8 +139,8 @@ Known issues
 - Some rare differences from the N64 remain under investigation (see the project's
   notes): a few vertex values in two attract demos, and when exactly a sound starts
   (by one audio frame) compared with the console.
-- No frame interpolation, widescreen or texture packs yet (planned as options; the
-  default will stay the original behaviour).
+- No frame interpolation yet (planned as an option; the default will stay the
+  original behaviour).
 - The analog stick from the keyboard is all-or-nothing.
 
 

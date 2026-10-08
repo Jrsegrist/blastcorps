@@ -593,6 +593,32 @@ it without a fault.  The x64-asan preset is the tool for this now.
     `updateMultisampling` for a new sample count, as RT64's own inspector
     does).  At high resolutions some seams between the level's ground
     polygons show (the N64's rasteriser hides them at 240 lines).
+  - `aspect` (`--aspect`): `original` (4:3, the default), `16:9`, `16:10`,
+    `21:9`, any `W:H` up to 4:1, or `window` (as wide as the window).
+    RT64's own widescreen (`userConfig.aspectRatio` Manual + `aspectTarget`,
+    or Expand): every projection whose viewport covers the whole width gets
+    a wider viewport and its x scale narrowed to match
+    (`rt64_projection_processor.cpp`, perspective and orthographic), so the
+    3D view widens without stretching; 2D rectangles and partial-width views
+    keep their 4:3 shape in the middle (the HUD, text, the radar, the
+    front end's pictures: pillarboxed); full-width fill rectangles stretch.
+    No game code changes: the game still builds its 4:3 perspective
+    (00000.c func_8024C414 `guPerspective(..., D_80364438, 4/3, ...)`, the
+    front-end screens likewise).  The game's CPU-side visibility test
+    (func_802A4B0C via 00000.c func_8024B8F4, which uses that projection)
+    decides which level cells, and the buildings and objects on them, are
+    drawn, so it must widen with the view: `host_cull_wide` (os_hw.c) makes
+    `cull_visible` accept |x| <= k w with k = the aspect / (4/3) (from the
+    window's size with `window`, updated on resize), else cells at the
+    edges would pop in.  1.0 (4:3) runs the exact model; with widescreen on
+    the game sees more cells visible, so its per-frame trace can differ from
+    the N64's (it's an option).  bc_headless `--cull-wide K` runs the same;
+    checked against an independent model of the K-times-wider frustum over
+    every test of levels 0, 13, 30 (1187 tests, K = 1, 4/3, 1.75: all
+    agree; at 1.75, 184 tests turn visible only through the wider view).
+    Limits: markers that point at off-screen targets (30C70.c) still use
+    the 4:3 edges; the HUD is centred, not anchored to the screen edges
+    (that would need RT64's extended GBI origins in the game's lists).
 - Pacing: each retrace's picture is handed to RT64 when its virtual time is
   due (60 per second of real time, QueryPerformanceCounter, 1 ms timer
   resolution), *before* the game works on the next retrace, so the hand-overs

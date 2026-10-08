@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cmath>
 #include <cstdio>
 #include <memory>
 #include <mutex>
@@ -169,6 +170,24 @@ void videoTab(Config &c) {
         ImGui::EndDisabled();
         if (map.size() < 2) help("This graphics card (or its driver) has no programmable sample positions, which RT64 needs for MSAA.");
         else help("Smooths the edges of 3D shapes (multisample anti-aliasing).");
+    }
+    {
+        static const double ratios[] = {0, 16.0 / 9.0, 16.0 / 10.0, 21.0 / 9.0, -1};
+        std::vector<std::string> items = {"N64 4:3 (default)", "16:9", "16:10", "21:9", "As wide as the window"};
+        int sel = -1;
+        for (int i = 0; i < 5; i++)
+            if (std::abs(c.aspect - ratios[i]) < 1e-6) sel = i;
+        if (sel < 0) {
+            items.push_back("Custom (" + aspectName(c.aspect) + ")");
+            sel = 5;
+        }
+        if (combo("Aspect ratio", &sel, items) && sel < 5) {
+            c.aspect = ratios[sel];
+            markChanged("video", "aspect");
+        }
+        help("Widescreen: the 3D view gets wider (more of the level at the sides, nothing stretched); the HUD and "
+             "other 2D pictures keep their 4:3 shape in the middle. The game then also counts the wider view as "
+             "visible (which level cells it draws), so it can differ slightly from the N64's.");
     }
     {
         int f = c.filtering;

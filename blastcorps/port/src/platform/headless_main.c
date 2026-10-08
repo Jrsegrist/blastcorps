@@ -35,6 +35,8 @@
  *                        (and FILE.frames: game frame -> sample offset)
  *     --wav-all          ... including buffers a full AI FIFO drops
  *     --no-audio         don't run audio tasks (the game logic is the same)
+ *     --cull-wide K      the visibility test as wide as K times the 4:3 view
+ *                        (bc.exe's widescreen option; default 1, the N64's)
  *     --audio-capture FILE[:N]  record (the first N) audio tasks' inputs and
  *                        outputs for port/tools/audio (asp_lle, asp_replay)
  *     --poke F:ADDR:SIZE:VALUE,...  write RAM (hex address and value, host
@@ -75,6 +77,7 @@ static void usage(const char *bad) {
                     "       [--eeprom FILE] [--no-eeprom] [--gfx-cycles N] [--small-gfx-cycles N]\n"
                     "       [--aud-cycles N] [--gettime-cost N] [--boot-count N] [--cmdline STR]\n"
                     "       [--mpk FILE] [--print] [--wav FILE] [--wav-all] [--no-audio] [--audio-capture FILE[:N]]\n"
+                    "       [--cull-wide K]\n"
                     "       [--poke F:ADDR:SIZE:VALUE,..] [--watch F:ADDR[:N]] [--no-msgbox] [--crash-dir DIR]\n"
                     "       [--crash-test KIND[:F]] [-v] [-q]\n");
     exit(1);
@@ -156,6 +159,10 @@ int host_main(int argc, char **argv, int (*extra)(int argc, char **argv, int *i,
         else if (!strcmp(a, "--wav")) o.wav_path = ARG();
         else if (!strcmp(a, "--wav-all")) o.wav_all = 1;
         else if (!strcmp(a, "--no-audio")) o.audio_off = 1;
+        else if (!strcmp(a, "--cull-wide")) {
+            host_cull_wide = atof(ARG());
+            if (!(host_cull_wide >= 1.0 && host_cull_wide <= 4.0)) host_fatal("--cull-wide: from 1 to 4");
+        }
         else if (!strcmp(a, "--no-msgbox")) host_no_msgbox = 1;   /* (read first by host_crash_init) */
         else if (!strcmp(a, "--crash-dir")) host_crash_set_dir(ARG());
         else if (!strcmp(a, "--crash-test")) {

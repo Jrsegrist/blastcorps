@@ -68,6 +68,10 @@ static const char kDefaultIni[] =
     "; How the picture is scaled to the window: aa (anti-aliased pixel scaling, the default),\r\n"
     "; linear (smooth) or nearest (sharp pixels).\r\n"
     "filtering = aa\r\n"
+    "; Aspect ratio: original (the N64's 4:3), 16:9, 16:10, 21:9, any W:H, or window (as wide\r\n"
+    "; as the window). Widescreen shows more of the world at the sides; the HUD, menus and\r\n"
+    "; other 2D pictures keep their shape in the middle.\r\n"
+    "aspect = original\r\n"
     "\r\n"
     "[audio]\r\n"
     "; Volume in percent (0-100); - and = change it in the game, M switches the sound off and on.\r\n"
@@ -282,6 +286,26 @@ static void parseText(Config &c, const std::string &text, const std::string &nam
                 std::string l = lower(v);
                 if (l == "off" || l == "none") c.msaa = 0;
                 else ok = parseInt(l, 0, 8, n) && (n == 0 || n == 2 || n == 4 || n == 8) && (c.msaa = n, true);
+            } else if (key == "aspect") {
+                std::string l = lower(v);
+                if (l == "original" || l == "4:3" || l == "off") c.aspect = 0;
+                else if (l == "window" || l == "match" || l == "expand") c.aspect = -1;
+                else {
+                    /* W:H or a number, from 4:3 (the N64's) up to 4:1 */
+                    double a = -1;
+                    const size_t colon = l.find(':');
+                    int w, h;
+                    if (colon != std::string::npos) {
+                        if (parseInt(trim(l.substr(0, colon)), 1, 10000, w) && parseInt(trim(l.substr(colon + 1)), 1, 10000, h))
+                            a = double(w) / h;
+                    } else {
+                        char *end;
+                        a = strtod(l.c_str(), &end);
+                        if (l.empty() || *end != 0) a = -1;
+                    }
+                    ok = a >= 4.0 / 3.0 - 1e-6 && a <= 4.0;
+                    if (ok) c.aspect = std::fabs(a - 4.0 / 3.0) < 1e-6 ? 0 : a;
+                }
             } else if (key == "filtering") {
                 std::string l = lower(v);
                 if (l == "aa" || l == "pixel" || l == "default") c.filtering = 0;
@@ -521,6 +545,7 @@ std::string configValue(const Config &c, const Setting &s) {
         if (k == "resolution") return c.resolution == 0 ? "window" : std::to_string(c.resolution);
         if (k == "msaa") return std::to_string(c.msaa);
         if (k == "filtering") return c.filtering == 1 ? "linear" : c.filtering == 2 ? "nearest" : "aa";
+        if (k == "aspect") return aspectName(c.aspect);
     } else if (s.section == "audio") {
         if (k == "volume") return std::to_string(c.volume);
         if (k == "mute") return c.mute ? "1" : "0";

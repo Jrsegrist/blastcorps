@@ -45,6 +45,7 @@
  *     --resolution R    internal resolution: window (default), 1 (320x240), 2, 3, 4 ...
  *     --msaa N          multisample anti-aliasing: 0 (default), 2, 4, 8
  *     --filtering F     the picture's scaling: aa (default), linear, nearest
+ *     --aspect A        widescreen: original (4:3, default), 16:9, 16:10, 21:9, W:H, window
  *     --window WxH      the window's size (desktop points) instead of 320x240 x scale
  *     --wshot F,..      save the window's picture (RT64's output at the window's size,
  *                       win_FFFFFFF.png in --shot-dir) once the game reached frame F
@@ -612,6 +613,24 @@ void setFullscreen(bool on) {
     host_log("live: %s (%dx%d pixels)\n", on ? "fullscreen" : "windowed", pw, ph);
 }
 
+/* widescreen: the visibility test as wide as the picture RT64 draws
+ * (host_cull_wide, os_hw.c); 1 with the N64's 4:3 */
+void updateCullWide() {
+    double k = 1.0;
+    if (g_cfg.aspect > 0) {
+        k = g_cfg.aspect / (4.0 / 3.0);
+    } else if (g_cfg.aspect < 0 && g_window != nullptr) {
+        int pw = 0, ph = 0;
+        SDL_GetWindowSizeInPixels(g_window, &pw, &ph);
+        if (pw > 0 && ph > 0) k = double(pw) / double(ph) / (4.0 / 3.0);
+    }
+    if (k < 1.0) k = 1.0;
+    if (k != host_cull_wide) {
+        host_cull_wide = k;
+        host_log("live: widescreen: visibility test %.3f times the 4:3 width (frame %u)\n", k, plat_frames());
+    }
+}
+
 bool isKey(int action, SDL_Scancode sc) {
     for (SDL_Scancode q : g_cfg.keys[action])
         if (q == sc) return true;
@@ -632,6 +651,8 @@ void pumpEvents() {
     SDL_Event e;
     while (SDL_PollEvent(&e)) {
         if (e.type == SDL_QUIT) shutdown(0);
+        if (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED && g_cfg.aspect < 0)
+            updateCullWide();
         if (live::menuIsOpen()) {
             /* the menu's own keys: Esc or the menu key close it, as do the
              * controller's menu buttons; fullscreen still switches */
@@ -978,11 +999,22 @@ void configToRT64(RT64::UserConfiguration &u) {
                      : g_cfg.msaa == 2 ? U::Antialiasing::MSAA2X : U::Antialiasing::None;
     u.filtering = g_cfg.filtering == 1 ? U::Filtering::Linear : g_cfg.filtering == 2 ? U::Filtering::Nearest
                                                                                       : U::Filtering::AntiAliasedPixelScaling;
+    /* widescreen: RT64 widens the viewport of every projection that covers the
+     * whole width and narrows its x scale to match (no stretching); 2D
+     * rectangles and partial-width views keep their 4:3 shape, centred */
+    if (g_cfg.aspect == 0) {
+        u.aspectRatio = U::AspectRatio::Original;
+    } else if (g_cfg.aspect < 0) {
+        u.aspectRatio = U::AspectRatio::Expand;
+    } else {
+        u.aspectRatio = U::AspectRatio::Manual;
+        u.aspectTarget = g_cfg.aspect;
+    }
 }
 
 /* the menu changed g_cfg: apply it now where that is possible */
 void settingChanged(const live::Setting &s) {
-    if (s.section == "video" && (s.key == "resolution" || s.key == "filtering" || s.key == "msaa")) {
+    if (s.section == "video" && (s.key == "resolution" || s.key == "filtering" || s.key == "msaa" || s.key == "aspect")) {
         const uint32_t before = g_app->userConfig.msaaSampleCount();
         if (s.key == "msaa" && g_cfg.msaa > 1 && (msaaSupported() & unsigned(g_cfg.msaa)) == 0) {
             host_log("live: %dx MSAA isn't supported by this device\n", g_cfg.msaa);
@@ -992,7 +1024,8 @@ void settingChanged(const live::Setting &s) {
         g_app->userConfig.validate();
         /* new sample count: RT64 rebuilds its targets and shaders (as its inspector does) */
         if (g_app->userConfig.msaaSampleCount() != before) g_app->updateMultisampling();
-        g_app->updateUserConfig(s.key == "resolution");
+        g_app->updateUserConfig(s.key == "resolution" || s.key == "aspect");
+        updateCullWide();
     } else if (s.section == "video") {
         if (s.key == "fullscreen") {
             if (g_cfg.fullscreen != g_opt.fullscreen) setFullscreen(g_cfg.fullscreen);
@@ -1039,6 +1072,7 @@ const std::pair<const char *, const char *> kSetAliases[] = {
     {"--resolution", "video.resolution"},
     {"--msaa", "video.msaa"},
     {"--filtering", "video.filtering"},
+    {"--aspect", "video.aspect"},
 };
 
 int extraArg(int argc, char **argv, int *i, HostOpts *o) {
@@ -1246,11 +1280,14 @@ void prestart(HostOpts *o) {
     host_log("live: RT64 up (%s), window %dx%d (%dx%d pixels)%s, vsync %s, display %u Hz\n",
              g_opt.vulkan ? "Vulkan" : "D3D12", ww, wh, pw, ph, g_opt.fullscreen ? " fullscreen" : "",
              g_opt.vsync ? "on" : "off", displayHz());
-    if (g_cfg.resolution != 0 || g_cfg.msaa != 0 || g_cfg.filtering != 0 || g_app->userConfig.msaaSampleCount() > 1)
-        host_log("live: video: resolution %s, MSAA %ux%s, filtering %s\n",
+    if (g_cfg.resolution != 0 || g_cfg.msaa != 0 || g_cfg.filtering != 0 || g_cfg.aspect != 0 ||
+        g_app->userConfig.msaaSampleCount() > 1)
+        host_log("live: video: resolution %s, MSAA %ux%s, filtering %s, aspect %s\n",
                  live::configValue(g_cfg, {"video", "resolution"}).c_str(), g_app->userConfig.msaaSampleCount(),
                  g_cfg.msaa > 1 && g_app->userConfig.msaaSampleCount() < 2 ? " (not supported here)" : "",
-                 live::configValue(g_cfg, {"video", "filtering"}).c_str());
+                 live::configValue(g_cfg, {"video", "filtering"}).c_str(),
+                 live::configValue(g_cfg, {"video", "aspect"}).c_str());
+    updateCullWide();
     o->live = &kLive;
 }
 

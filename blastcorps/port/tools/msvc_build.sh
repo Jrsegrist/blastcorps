@@ -6,7 +6,8 @@
 #
 #   tools/msvc_build.sh DIR CONFIG [TARGET...]
 #     DIR      a folder on a Windows drive (a WSL path: /mnt/c/...)
-#     CONFIG   Release or Debug  -> DIR/CONFIG
+#     CONFIG   Release, Debug or Asan (Release + AddressSanitizer, bc_headless
+#              only)  -> DIR/CONFIG
 #   environment: MSVC_PYTHON  a Windows python.exe (default: the one CMake finds)
 #                MSVC_THIRDPARTY  BC_THIRDPARTY (a Windows path)
 #                BC_VERSION   the version the exes report (default: CMake asks git)
@@ -18,11 +19,11 @@ dir=$1
 cfg=$2
 shift 2
 case "$dir" in /mnt/[a-z]/*) ;; *) echo "msvc_build: $dir is not on a Windows drive" >&2; exit 1 ;; esac
-[ -f "$port/build/inputs/stamp" ] || { echo "msvc_build: no inputs (make -C port inputs)" >&2; exit 1; }
-mkdir -p "$dir/src/blastcorps/port/build" "$dir/src/lib"
+[ -f "$port/inputs/addrs.txt" ] || { echo "msvc_build: no port/inputs (make -C port inputs)" >&2; exit 1; }
+mkdir -p "$dir/src/blastcorps/port" "$dir/src/lib"
 rsync -a --delete --exclude build --exclude __pycache__ "$root/src.us.v11" "$root/include" "$dir/src/blastcorps/"
+# (port/inputs, the committed inputs folder, comes along)
 rsync -a --delete --exclude /build --exclude /out --exclude __pycache__ "$port/" "$dir/src/blastcorps/port/"
-rsync -a --delete "$port/build/inputs" "$dir/src/blastcorps/port/build/"
 rsync -aL --delete --exclude .git "$root/../lib/ultralib/" "$dir/src/lib/ultralib/"
 
 vswhere="/mnt/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe"
@@ -32,7 +33,11 @@ vs=$("$vswhere" -latest -products '*' -requires Microsoft.VisualStudio.Component
 [ -n "$vs" ] || { echo "msvc_build: no Visual Studio with the x64 C++ tools" >&2; exit 1; }
 wdir=$(wslpath -w "$dir")
 b=$cfg
-defs="-DCMAKE_BUILD_TYPE=$cfg"
+# (BC_INPUTS given each time: build folders configured before port/inputs was
+# committed have the old default, port/build/inputs, in their cache)
+defs="-DCMAKE_BUILD_TYPE=$cfg -DBC_INPUTS=$wdir\\src\\blastcorps\\port\\inputs"
+# Asan: Release with AddressSanitizer, bc_headless only (the x64-asan preset)
+[ "$cfg" = Asan ] && defs="-DCMAKE_BUILD_TYPE=Release -DBC_ASAN=ON -DBC_GAME=OFF -DBC_INPUTS=$wdir\\src\\blastcorps\\port\\inputs"
 [ -n "$MSVC_PYTHON" ] && defs="$defs -DPython3_EXECUTABLE=$MSVC_PYTHON"
 [ -n "$MSVC_THIRDPARTY" ] && defs="$defs -DBC_THIRDPARTY=$MSVC_THIRDPARTY"
 [ -n "$BC_VERSION" ] && defs="$defs -DBC_GIT_VERSION=$BC_VERSION"

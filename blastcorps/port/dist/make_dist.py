@@ -15,7 +15,7 @@ writes, in --out:
 
 THIRD_PARTY_LICENSES.txt: every third-party component compiled into bc.exe or
 shipped next to it, with its licence text from the source trees the build
-used (port/dist/third_party.sh does the same for the mingw builds).
+used.
 """
 import argparse
 import os
@@ -187,7 +187,7 @@ def main():
     os.makedirs(d)
     for f in ("bc.exe", "SDL2.dll", "dxcompiler.dll", "dxil.dll"):
         shutil.copy2(os.path.join(a.exe_dir, f), d)
-    readme = read(a.readme).replace("@VERSION@", a.version).replace("@BITS@", "64-bit (x86_64)")
+    readme = read(a.readme).replace("@VERSION@", a.version)
     open(os.path.join(d, "README.txt"), "wb").write(crlf(readme))
     open(os.path.join(d, "THIRD_PARTY_LICENSES.txt"), "wb").write(crlf(licences(a.rt64, a.dxc, a.sdl2)))
     files = sorted(os.listdir(d))

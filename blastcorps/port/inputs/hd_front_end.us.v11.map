@@ -1,0 +1,1411 @@
+
+Discarded input sections
+
+ .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/ul_conteepread.c.o
+ .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/ul_conteepread.c.o
+ .gptab.bss     0x00000000       0x18 build_nm/src.us.v11/hd_front_end/ul_conteepread.c.o
+ .mdebug        0x00000000      0x720 build_nm/src.us.v11/hd_front_end/ul_conteepread.c.o
+ .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/ul_pfsisplug.c.o
+ .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/ul_pfsisplug.c.o
+ .gptab.bss     0x00000000       0x18 build_nm/src.us.v11/hd_front_end/ul_pfsisplug.c.o
+ .mdebug        0x00000000      0x7c0 build_nm/src.us.v11/hd_front_end/ul_pfsisplug.c.o
+ .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/11530.c.o
+ .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/11530.c.o
+ .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/00000.c.o
+ .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/00000.c.o
+ .gptab.data    0x00000000       0x48 build_nm/src.us.v11/hd_front_end/00000.c.o
+ .mdebug        0x00000000     0x1690 build_nm/src.us.v11/hd_front_end/00000.c.o
+ .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/01C40.c.o
+ .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/01C40.c.o
+ .gptab.data    0x00000000       0x70 build_nm/src.us.v11/hd_front_end/01C40.c.o
+ .mdebug        0x00000000     0x2fd0 build_nm/src.us.v11/hd_front_end/01C40.c.o
+ .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/06790.c.o
+ .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/06790.c.o
+ .gptab.data    0x00000000       0x20 build_nm/src.us.v11/hd_front_end/06790.c.o
+ .mdebug        0x00000000      0xb18 build_nm/src.us.v11/hd_front_end/06790.c.o
+ .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/07390.c.o
+ .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/07390.c.o
+ .mdebug        0x00000000      0x870 build_nm/src.us.v11/hd_front_end/07390.c.o
+ .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/07800.c.o
+ .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/07800.c.o
+ .gptab.data    0x00000000       0x18 build_nm/src.us.v11/hd_front_end/07800.c.o
+ .mdebug        0x00000000     0x1458 build_nm/src.us.v11/hd_front_end/07800.c.o
+ .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/09570.c.o
+ .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/09570.c.o
+ .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/0C450.c.o
+ .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/0C450.c.o
+ .mdebug        0x00000000      0xfe8 build_nm/src.us.v11/hd_front_end/0C450.c.o
+ .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/0DE70.c.o
+ .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/0DE70.c.o
+ .mdebug        0x00000000      0xc5c build_nm/src.us.v11/hd_front_end/0DE70.c.o
+ .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/0E7B0.c.o
+ .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/0E7B0.c.o
+ .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/10850.c.o
+ .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/10850.c.o
+ .mdebug        0x00000000      0xea4 build_nm/src.us.v11/hd_front_end/10850.c.o
+ .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/17990.c.o
+ .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/17990.c.o
+ .mdebug        0x00000000     0x12ac build_nm/src.us.v11/hd_front_end/17990.c.o
+ .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/196F0.c.o
+ .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/196F0.c.o
+ .mdebug        0x00000000      0x700 build_nm/src.us.v11/hd_front_end/196F0.c.o
+ .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/1A240.c.o
+ .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/1A240.c.o
+ .mdebug        0x00000000      0x794 build_nm/src.us.v11/hd_front_end/1A240.c.o
+ .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/1AE80.c.o
+ .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/1AE80.c.o
+ .mdebug        0x00000000      0x604 build_nm/src.us.v11/hd_front_end/1AE80.c.o
+ .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/1B100.c.o
+ .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/1B100.c.o
+ .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/ul_pfsfreeblocks.c.o
+ .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/ul_pfsfreeblocks.c.o
+ .mdebug        0x00000000      0x3e0 build_nm/src.us.v11/hd_front_end/ul_pfsfreeblocks.c.o
+ .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/ul_conteepprobe.c.o
+ .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/ul_conteepprobe.c.o
+ .mdebug        0x00000000      0x3f8 build_nm/src.us.v11/hd_front_end/ul_conteepprobe.c.o
+ .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/ul_pfschecker.c.o
+ .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/ul_pfschecker.c.o
+ .mdebug        0x00000000      0x624 build_nm/src.us.v11/hd_front_end/ul_pfschecker.c.o
+ .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/ul_pfsinitpak.c.o
+ .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/ul_pfsinitpak.c.o
+ .mdebug        0x00000000      0x7f4 build_nm/src.us.v11/hd_front_end/ul_pfsinitpak.c.o
+ .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/ul_pfsallocatefile.c.o
+ .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/ul_pfsallocatefile.c.o
+ .mdebug        0x00000000      0x714 build_nm/src.us.v11/hd_front_end/ul_pfsallocatefile.c.o
+ .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/ul_pfsdeletefile.c.o
+ .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/ul_pfsdeletefile.c.o
+ .mdebug        0x00000000      0x630 build_nm/src.us.v11/hd_front_end/ul_pfsdeletefile.c.o
+ .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/ul_conteeplongwrite.c.o
+ .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/ul_conteeplongwrite.c.o
+ .mdebug        0x00000000      0x750 build_nm/src.us.v11/hd_front_end/ul_conteeplongwrite.c.o
+ .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/ul_conteeplongread.c.o
+ .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/ul_conteeplongread.c.o
+ .mdebug        0x00000000      0x748 build_nm/src.us.v11/hd_front_end/ul_conteeplongread.c.o
+ .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/ul_pfssearchfile.c.o
+ .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/ul_pfssearchfile.c.o
+ .mdebug        0x00000000      0x3e4 build_nm/src.us.v11/hd_front_end/ul_pfssearchfile.c.o
+ .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/ul_pfsreadwritefile.c.o
+ .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/ul_pfsreadwritefile.c.o
+ .mdebug        0x00000000      0x44c build_nm/src.us.v11/hd_front_end/ul_pfsreadwritefile.c.o
+ .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/ul_conteepwrite.c.o
+ .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/ul_conteepwrite.c.o
+ .mdebug        0x00000000      0x7cc build_nm/src.us.v11/hd_front_end/ul_conteepwrite.c.o
+ .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/ul_pfsfilestate.c.o
+ .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/ul_pfsfilestate.c.o
+ .mdebug        0x00000000      0x450 build_nm/src.us.v11/hd_front_end/ul_pfsfilestate.c.o
+ .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/ul_crc.c.o
+ .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/ul_crc.c.o
+ .mdebug        0x00000000      0x370 build_nm/src.us.v11/hd_front_end/ul_crc.c.o
+ .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/ul_contpfs.c.o
+ .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/ul_contpfs.c.o
+ .mdebug        0x00000000      0x9b4 build_nm/src.us.v11/hd_front_end/ul_contpfs.c.o
+ .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/ul_contramread.c.o
+ .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/ul_contramread.c.o
+ .mdebug        0x00000000      0x788 build_nm/src.us.v11/hd_front_end/ul_contramread.c.o
+ .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/ul_contramwrite.c.o
+ .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/ul_contramwrite.c.o
+ .mdebug        0x00000000      0x78c build_nm/src.us.v11/hd_front_end/ul_contramwrite.c.o
+
+Memory Configuration
+
+Name             Origin             Length             Attributes
+*default*        0x00000000         0xffffffff
+
+Linker script and memory map
+
+LOAD build_nm/src.us.v11/hd_front_end/ul_conteepread.c.o
+LOAD build_nm/src.us.v11/hd_front_end/ul_pfsisplug.c.o
+LOAD build_nm/src.us.v11/hd_front_end/11530.c.o
+LOAD build_nm/src.us.v11/hd_front_end/00000.c.o
+LOAD build_nm/src.us.v11/hd_front_end/01C40.c.o
+LOAD build_nm/src.us.v11/hd_front_end/06790.c.o
+LOAD build_nm/src.us.v11/hd_front_end/07390.c.o
+LOAD build_nm/src.us.v11/hd_front_end/07800.c.o
+LOAD build_nm/src.us.v11/hd_front_end/09570.c.o
+LOAD build_nm/src.us.v11/hd_front_end/0C450.c.o
+LOAD build_nm/src.us.v11/hd_front_end/0DE70.c.o
+LOAD build_nm/src.us.v11/hd_front_end/0E7B0.c.o
+LOAD build_nm/src.us.v11/hd_front_end/10850.c.o
+LOAD build_nm/src.us.v11/hd_front_end/17990.c.o
+LOAD build_nm/src.us.v11/hd_front_end/196F0.c.o
+LOAD build_nm/src.us.v11/hd_front_end/1A240.c.o
+LOAD build_nm/src.us.v11/hd_front_end/1AE80.c.o
+LOAD build_nm/src.us.v11/hd_front_end/1B100.c.o
+LOAD build_nm/src.us.v11/hd_front_end/ul_pfsfreeblocks.c.o
+LOAD build_nm/src.us.v11/hd_front_end/ul_conteepprobe.c.o
+LOAD build_nm/src.us.v11/hd_front_end/ul_pfschecker.c.o
+LOAD build_nm/src.us.v11/hd_front_end/ul_pfsinitpak.c.o
+LOAD build_nm/src.us.v11/hd_front_end/ul_pfsallocatefile.c.o
+LOAD build_nm/src.us.v11/hd_front_end/ul_pfsdeletefile.c.o
+LOAD build_nm/src.us.v11/hd_front_end/ul_conteeplongwrite.c.o
+LOAD build_nm/src.us.v11/hd_front_end/ul_conteeplongread.c.o
+LOAD build_nm/src.us.v11/hd_front_end/ul_pfssearchfile.c.o
+LOAD build_nm/src.us.v11/hd_front_end/ul_pfsreadwritefile.c.o
+LOAD build_nm/src.us.v11/hd_front_end/ul_conteepwrite.c.o
+LOAD build_nm/src.us.v11/hd_front_end/ul_pfsfilestate.c.o
+LOAD build_nm/src.us.v11/hd_front_end/ul_crc.c.o
+LOAD build_nm/src.us.v11/hd_front_end/ul_contpfs.c.o
+LOAD build_nm/src.us.v11/hd_front_end/ul_contramread.c.o
+LOAD build_nm/src.us.v11/hd_front_end/ul_contramwrite.c.o
+LOAD build_nm/assets/hd_front_end/20090.bin.o
+LOAD build_nm/assets/hd_front_end/hd_front_end_data_214F0.bin.o
+LOAD build_nm/assets/hd_front_end/hd_front_end_data_273E0.bin.o
+LOAD build_nm/assets/hd_front_end/hd_front_end_data_28480.bin.o
+LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
+
+.bss_ul_conteepread
+                0x8021abb0       0x40
+ build_nm/src.us.v11/hd_front_end/ul_conteepread.c.o(.bss)
+ .bss           0x8021abb0       0x40 build_nm/src.us.v11/hd_front_end/ul_conteepread.c.o
+
+.bss_ul_pfsisplug
+                0x8021abf0       0x40
+ build_nm/src.us.v11/hd_front_end/ul_pfsisplug.c.o(.bss)
+ .bss           0x8021abf0       0x40 build_nm/src.us.v11/hd_front_end/ul_pfsisplug.c.o
+
+.bss_11530      0x8021a940      0x1e0
+ build_nm/src.us.v11/hd_front_end/11530.c.o(.bss)
+ .bss           0x8021a940      0x1e0 build_nm/src.us.v11/hd_front_end/11530.c.o
+                0x00029e90                        __romPos = 0x0
+                0x00029e90                        . = __romPos
+                0x00000000                        hd_front_end_ROM_START = __romPos
+                0x80900000                        hd_front_end_VRAM = ADDR (.hd_front_end)
+
+.hd_front_end   0x80900000    0x20ef0 load address 0x00000000
+                0x80900000                        hd_front_end_TEXT_START = .
+ build_nm/src.us.v11/hd_front_end/00000.c.o(.text)
+ .text          0x80900000     0x1bb0 build_nm/src.us.v11/hd_front_end/00000.c.o
+                0x80900000                func_801E7000
+                0x809004e8                func_801E74E8
+                0x80900598                func_801E7598
+ build_nm/src.us.v11/hd_front_end/01C40.c.o(.text)
+ .text          0x80901bb0     0x4b60 build_nm/src.us.v11/hd_front_end/01C40.c.o
+                0x80901bb0                func_801E8C40
+                0x80901d3c                func_801E8DCC
+                0x80901e28                func_801E8EB8
+                0x8090234c                func_801E93DC
+                0x80902498                func_801E9528
+                0x80902668                func_801E96F8
+                0x80902688                func_801E9718
+                0x80903078                func_801EA108
+                0x809031d8                func_801EA268
+                0x809031e8                func_801EA278
+                0x80903428                func_801EA4B8
+                0x80903658                func_801EA6E8
+                0x809038ac                func_801EA93C
+                0x809039ec                func_801EAA7C
+                0x80905204                func_801EC288
+                0x80905288                func_801EC30C
+                0x809053e0                func_801EC464
+                0x80905418                func_801EC49C
+                0x809056ec                func_801EC770
+                0x809059d0                func_801ECA50
+                0x80905a98                func_801ECB18
+                0x80905c0c                func_801ECC8C
+                0x80905e1c                func_801ECE9C
+                0x80905edc                func_801ECF5C
+                0x80906404                func_801ED480
+                0x8090643c                func_801ED4B8
+ build_nm/src.us.v11/hd_front_end/06790.c.o(.text)
+ .text          0x80906710      0xc00 build_nm/src.us.v11/hd_front_end/06790.c.o
+                0x80906710                func_801ED790
+                0x80906780                func_801ED800
+ build_nm/src.us.v11/hd_front_end/07390.c.o(.text)
+ .text          0x80907310      0x470 build_nm/src.us.v11/hd_front_end/07390.c.o
+                0x80907310                func_801EE390
+                0x80907318                func_801EE398
+ build_nm/src.us.v11/hd_front_end/07800.c.o(.text)
+ .text          0x80907780     0x1d80 build_nm/src.us.v11/hd_front_end/07800.c.o
+                0x80907780                func_801EE800
+                0x80907d34                func_801EEDB4
+                0x80908160                func_801EF1E0
+                0x8090823c                func_801EF2BC
+                0x80908300                func_801EF380
+                0x80908440                func_801EF4AC
+ build_nm/src.us.v11/hd_front_end/09570.c.o(.text)
+ .text          0x80909500     0x2ef0 build_nm/src.us.v11/hd_front_end/09570.c.o
+                0x80909500                func_801F0570
+                0x8090a4f8                func_801F1568
+                0x8090ad3c                func_801F1DA8
+                0x8090af94                func_801F2000
+                0x8090b3bc                func_801F2428
+                0x8090bdb4                func_801F2E20
+ build_nm/src.us.v11/hd_front_end/0C450.c.o(.text)
+ .text          0x8090c3f0     0x1a20 build_nm/src.us.v11/hd_front_end/0C450.c.o
+                0x8090c3f0                func_801F3450
+                0x8090c650                func_801F36B0
+                0x8090c6ec                func_801F374C
+                0x8090c904                func_801F3964
+                0x8090d0b0                func_801F4110
+                0x8090d818                func_801F4878
+                0x8090dbdc                func_801F4C3C
+                0x8090ddbc                func_801F4E1C
+ build_nm/src.us.v11/hd_front_end/0DE70.c.o(.text)
+ .text          0x8090de10      0x950 build_nm/src.us.v11/hd_front_end/0DE70.c.o
+                0x8090de10                func_801F4E70
+                0x8090df64                func_801F4FBC
+                0x8090e170                func_801F51C8
+                0x8090e580                func_801F55D8
+ build_nm/src.us.v11/hd_front_end/0E7B0.c.o(.text)
+ .text          0x8090e760     0x20d0 build_nm/src.us.v11/hd_front_end/0E7B0.c.o
+                0x8090e760                func_801F57B0
+                0x8090e898                func_801F58E8
+                0x8090efb4                func_801F5FE4
+                0x8090f098                func_801F60C8
+                0x8090f130                func_801F6160
+                0x8090f198                func_801F61C8
+                0x8090f1e0                func_801F6210
+                0x8090f234                func_801F6264
+                0x8090f598                func_801F65C4
+                0x8090f7b8                func_801F67E4
+                0x8090fac8                func_801F6AF4
+                0x8090fba4                func_801F6BD0
+                0x8090fc78                func_801F6CA4
+                0x8090fea8                func_801F6ED4
+                0x8090feec                func_801F6F18
+                0x809103d0                func_801F73FC
+                0x809103e4                func_801F7410
+                0x80910484                func_801F74B0
+                0x80910578                func_801F75A4
+                0x809106b8                func_801F76E4
+ build_nm/src.us.v11/hd_front_end/10850.c.o(.text)
+ .text          0x80910830      0xd00 build_nm/src.us.v11/hd_front_end/10850.c.o
+                0x80910830                func_801F7850
+                0x80910f78                func_801F7F74
+                0x80910ff8                func_801F7FF4
+                0x80911040                func_801F803C
+                0x809111b8                func_801F81B4
+                0x8091122c                func_801F8228
+                0x8091135c                func_801F8354
+                0x80911448                func_801F8440
+ build_nm/src.us.v11/hd_front_end/11530.c.o(.text)
+ .text          0x80911530     0x64b0 build_nm/src.us.v11/hd_front_end/11530.c.o
+                0x80911530                func_801F8530
+                0x80911860                func_801F885C
+                0x80911984                func_801F8980
+                0x8091225c                func_801F9258
+                0x80912824                func_801F9820
+                0x80912b8c                func_801F9B84
+                0x8091318c                func_801FA180
+                0x8091375c                func_801FA74C
+                0x809155e0                func_801FC5B8
+                0x80915e9c                func_801FCE74
+                0x80915f60                func_801FCF38
+                0x809164ac                func_801FD484
+                0x809166e0                func_801FD6B8
+                0x80916770                func_801FD748
+                0x80916ccc                func_801FDCA4
+                0x80916e78                func_801FDE50
+                0x80916ec0                func_801FDE98
+                0x80917040                func_801FE018
+                0x80917260                func_801FE238
+                0x809175f8                func_801FE5D0
+                0x80917788                func_801FE760
+ build_nm/src.us.v11/hd_front_end/17990.c.o(.text)
+ .text          0x809179e0     0x1d60 build_nm/src.us.v11/hd_front_end/17990.c.o
+                0x809179e0                func_801FE990
+ build_nm/src.us.v11/hd_front_end/196F0.c.o(.text)
+ .text          0x80919740      0xb50 build_nm/src.us.v11/hd_front_end/196F0.c.o
+                0x80919740                func_802006F0
+                0x80919764                func_80200714
+                0x80919c24                func_80200BD4
+                0x80919c30                func_80200BE0
+ build_nm/src.us.v11/hd_front_end/1A240.c.o(.text)
+ .text          0x8091a290      0xc50 build_nm/src.us.v11/hd_front_end/1A240.c.o
+                0x8091a290                func_80201240
+                0x8091a3bc                func_80201364
+ build_nm/src.us.v11/hd_front_end/1AE80.c.o(.text)
+ .text          0x8091aee0      0x280 build_nm/src.us.v11/hd_front_end/1AE80.c.o
+                0x8091aee0                func_80201E80
+ build_nm/src.us.v11/hd_front_end/1B100.c.o(.text)
+ .text          0x8091b160      0x480 build_nm/src.us.v11/hd_front_end/1B100.c.o
+                0x8091b160                func_80202100
+                0x8091b25c                func_802021FC
+                0x8091b290                func_80202270
+                0x8091b2cc                func_802022EC
+                0x8091b348                func_80202380
+                0x8091b4cc                func_802025D0
+ build_nm/src.us.v11/hd_front_end/ul_pfsfreeblocks.c.o(.text)
+ .text          0x8091b5e0      0x150 build_nm/src.us.v11/hd_front_end/ul_pfsfreeblocks.c.o
+                0x8091b5e0                osPfsFreeBlocks
+ build_nm/src.us.v11/hd_front_end/ul_conteepprobe.c.o(.text)
+ .text          0x8091b730       0x70 build_nm/src.us.v11/hd_front_end/ul_conteepprobe.c.o
+                0x8091b730                osEepromProbe
+ build_nm/src.us.v11/hd_front_end/ul_pfschecker.c.o(.text)
+ .text          0x8091b7a0      0xa60 build_nm/src.us.v11/hd_front_end/ul_pfschecker.c.o
+                0x8091b7a0                osPfsChecker
+                0x8091be64                corrupted_init
+                0x8091c018                corrupted
+ build_nm/src.us.v11/hd_front_end/ul_pfsinitpak.c.o(.text)
+ .text          0x8091c200      0x1c0 build_nm/src.us.v11/hd_front_end/ul_pfsinitpak.c.o
+                0x8091c200                osPfsInitPak
+                0x8091c2b4                __osPfsGetStatus
+ build_nm/src.us.v11/hd_front_end/ul_pfsallocatefile.c.o(.text)
+ .text          0x8091c3c0      0x7b0 build_nm/src.us.v11/hd_front_end/ul_pfsallocatefile.c.o
+                0x8091c3c0                osPfsAllocateFile
+                0x8091c844                __osPfsDeclearPage
+ build_nm/src.us.v11/hd_front_end/ul_pfsdeletefile.c.o(.text)
+ .text          0x8091cb70      0x610 build_nm/src.us.v11/hd_front_end/ul_pfsdeletefile.c.o
+                0x8091cb70                osPfsDeleteFile
+                0x8091ce50                __osPfsReleasePages
+                0x8091d088                __osBlockSum
+ build_nm/src.us.v11/hd_front_end/ul_conteeplongwrite.c.o(.text)
+ .text          0x8091d180      0x140 build_nm/src.us.v11/hd_front_end/ul_conteeplongwrite.c.o
+                0x8091d180                osEepromLongWrite
+ build_nm/src.us.v11/hd_front_end/ul_conteeplongread.c.o(.text)
+ .text          0x8091d2c0      0x140 build_nm/src.us.v11/hd_front_end/ul_conteeplongread.c.o
+                0x8091d2c0                osEepromLongRead
+ build_nm/src.us.v11/hd_front_end/ul_pfssearchfile.c.o(.text)
+ .text          0x8091d400      0x1c0 build_nm/src.us.v11/hd_front_end/ul_pfssearchfile.c.o
+                0x8091d400                osPfsFindFile
+ build_nm/src.us.v11/hd_front_end/ul_pfsreadwritefile.c.o(.text)
+ .text          0x8091d5c0      0x500 build_nm/src.us.v11/hd_front_end/ul_pfsreadwritefile.c.o
+                0x8091d6bc                osPfsReadWriteFile
+ build_nm/src.us.v11/hd_front_end/ul_conteepwrite.c.o(.text)
+ .text          0x8091dac0      0x4e0 build_nm/src.us.v11/hd_front_end/ul_conteepwrite.c.o
+                0x8091dac0                osEepromWrite
+                0x8091dd7c                __osEepStatus
+ build_nm/src.us.v11/hd_front_end/ul_conteepread.c.o(.text)
+ .text          0x8091dfa0      0x300 build_nm/src.us.v11/hd_front_end/ul_conteepread.c.o
+                0x8091dfa0                osEepromRead
+ build_nm/src.us.v11/hd_front_end/ul_pfsfilestate.c.o(.text)
+ .text          0x8091e2a0      0x2f0 build_nm/src.us.v11/hd_front_end/ul_pfsfilestate.c.o
+                0x8091e2a0                osPfsFileState
+ build_nm/src.us.v11/hd_front_end/ul_crc.c.o(.text)
+ .text          0x8091e590      0x180 build_nm/src.us.v11/hd_front_end/ul_crc.c.o
+                0x8091e590                __osContAddressCrc
+                0x8091e640                __osContDataCrc
+ build_nm/src.us.v11/hd_front_end/ul_contpfs.c.o(.text)
+ .text          0x8091e710      0xd60 build_nm/src.us.v11/hd_front_end/ul_contpfs.c.o
+                0x8091e710                __osSumcalc
+                0x8091e76c                __osIdCheckSum
+                0x8091e7d4                __osRepairPackId
+                0x8091ebec                __osCheckPackId
+                0x8091ed84                __osGetId
+                0x8091efe0                __osCheckId
+                0x8091f0dc                __osPfsRWInode
+                0x8091f3fc                __osPfsSelectBank
+ build_nm/src.us.v11/hd_front_end/ul_contramread.c.o(.text)
+ .text          0x8091f470      0x3b0 build_nm/src.us.v11/hd_front_end/ul_contramread.c.o
+                0x8091f470                __osContRamRead
+ build_nm/src.us.v11/hd_front_end/ul_contramwrite.c.o(.text)
+ .text          0x8091f820      0x3b0 build_nm/src.us.v11/hd_front_end/ul_contramwrite.c.o
+                0x8091f820                __osContRamWrite
+ build_nm/src.us.v11/hd_front_end/ul_pfsisplug.c.o(.text)
+ .text          0x8091fbd0      0x370 build_nm/src.us.v11/hd_front_end/ul_pfsisplug.c.o
+                0x8091fbd0                osPfsIsPlug
+                0x8091fd70                __osPfsRequestData
+                0x8091fe6c                __osPfsGetInitData
+                0x8091ff40                        hd_front_end_TEXT_END = .
+                0x8091ff40                        hd_front_end_DATA_START = .
+                0x8091ff40                        hd_front_end_20090_bin = .
+ build_nm/assets/hd_front_end/20090.bin.o(.data)
+ .data          0x8091ff40      0xfb0 build_nm/assets/hd_front_end/20090.bin.o
+                0x8091ff40                _binary_assets_hd_front_end_20090_bin_start
+                0x80920ef0                _binary_assets_hd_front_end_20090_bin_end
+                0x00029e90                        __romPos = 0x21040
+                0x00029e90                        . = __romPos
+                0x00021040                        hd_front_end_data_ROM_START = __romPos
+                0x80208040                        hd_front_end_data_VRAM = ADDR (.hd_front_end_data)
+
+.hd_front_end_data
+                0x80208040     0x8e50 load address 0x00021040
+                0x80208040                        hd_front_end_00000_c = .
+ build_nm/src.us.v11/hd_front_end/00000.c.o(.data)
+ .data          0x80208040      0x180 build_nm/src.us.v11/hd_front_end/00000.c.o
+                0x80208040                D_80208040
+                0x80208044                D_80208044
+                0x80208048                D_80208048
+                0x8020804c                D_8020804C
+                0x80208060                D_80208060
+                0x802080f8                D_802080F8
+                0x8020810c                D_8020810C
+                0x80208120                D_80208120
+                0x8020816c                D_8020816C
+                0x80208194                D_80208194
+                0x802081c0                        hd_front_end_01C40_c = .
+ build_nm/src.us.v11/hd_front_end/01C40.c.o(.data)
+ .data          0x802081c0      0x2f0 build_nm/src.us.v11/hd_front_end/01C40.c.o
+                0x802081c0                D_802081C0
+                0x802082b8                D_802082B8
+                0x802082d8                D_802082D8
+                0x802082e4                D_802082E4
+                0x802082e8                D_802082E8
+                0x802082ec                D_802082EC
+                0x802082f8                D_802082F8
+                0x802082fc                D_802082FC
+                0x80208314                D_80208314
+                0x80208348                D_80208348
+                0x80208350                D_80208350
+                0x80208380                D_80208380
+                0x80208400                D_80208400
+                0x80208448                D_80208448
+                0x80208470                D_80208470
+                0x80208498                D_80208498
+                0x802084b0                        hd_front_end_06790_c = .
+ build_nm/src.us.v11/hd_front_end/06790.c.o(.data)
+ .data          0x802084b0       0x20 build_nm/src.us.v11/hd_front_end/06790.c.o
+                0x802084b0                D_802084B0
+                0x802084b4                D_802084B4
+                0x802084b8                D_802084B8
+                0x802084bc                D_802084BC
+                0x802084c0                D_802084C0
+                0x802084d0                        hd_front_end_07800_c = .
+ build_nm/src.us.v11/hd_front_end/07800.c.o(.data)
+ .data          0x802084d0       0x20 build_nm/src.us.v11/hd_front_end/07800.c.o
+                0x802084d0                D_802084D0
+                0x802084e0                D_802084E0
+                0x000004b0                        . = 0x4b0
+                0x802084f0                        hd_front_end_hd_front_end_data_214F0_bin = .
+ build_nm/assets/hd_front_end/hd_front_end_data_214F0.bin.o(.data)
+ .data          0x802084f0     0x5320 build_nm/assets/hd_front_end/hd_front_end_data_214F0.bin.o
+                0x802084f0                _binary_assets_hd_front_end_hd_front_end_data_214F0_bin_start
+                0x8020d810                _binary_assets_hd_front_end_hd_front_end_data_214F0_bin_end
+                0x8020d810                        hd_front_end_11530_c = .
+ build_nm/src.us.v11/hd_front_end/11530.c.o(.data)
+ .data          0x8020d810      0xbd0 build_nm/src.us.v11/hd_front_end/11530.c.o
+                0x8020d810                D_8020D810
+                0x8020e350                D_8020E350
+                0x8020e39c                D_8020E39C
+                0x8020e3a8                D_8020E3A8
+                0x8020e3d8                D_8020E3D8
+                0x000063a0                        . = 0x63a0
+                0x8020e3e0                        hd_front_end_hd_front_end_data_273E0_bin = .
+ build_nm/assets/hd_front_end/hd_front_end_data_273E0.bin.o(.data)
+ .data          0x8020e3e0       0x60 build_nm/assets/hd_front_end/hd_front_end_data_273E0.bin.o
+                0x8020e3e0                _binary_assets_hd_front_end_hd_front_end_data_273E0_bin_start
+                0x8020e440                _binary_assets_hd_front_end_hd_front_end_data_273E0_bin_end
+ build_nm/src.us.v11/hd_front_end/00000.c.o(.rodata)
+ .rodata        0x8020e440       0x90 build_nm/src.us.v11/hd_front_end/00000.c.o
+ build_nm/src.us.v11/hd_front_end/01C40.c.o(.rodata)
+ .rodata        0x8020e4d0      0x870 build_nm/src.us.v11/hd_front_end/01C40.c.o
+ build_nm/src.us.v11/hd_front_end/06790.c.o(.rodata)
+ .rodata        0x8020ed40       0x70 build_nm/src.us.v11/hd_front_end/06790.c.o
+ build_nm/src.us.v11/hd_front_end/07800.c.o(.rodata)
+ .rodata        0x8020edb0      0x210 build_nm/src.us.v11/hd_front_end/07800.c.o
+                0x8020efa4                D_8020EFA4
+ build_nm/src.us.v11/hd_front_end/09570.c.o(.rodata)
+ .rodata        0x8020efc0       0xd0 build_nm/src.us.v11/hd_front_end/09570.c.o
+ build_nm/src.us.v11/hd_front_end/0C450.c.o(.rodata)
+ .rodata        0x8020f090       0x20 build_nm/src.us.v11/hd_front_end/0C450.c.o
+ build_nm/src.us.v11/hd_front_end/0E7B0.c.o(.rodata)
+ .rodata        0x8020f0b0      0x3d0 build_nm/src.us.v11/hd_front_end/0E7B0.c.o
+                0x00007440                        . = 0x7440
+                0x8020f480                        hd_front_end_hd_front_end_data_28480_bin = .
+ build_nm/assets/hd_front_end/hd_front_end_data_28480.bin.o(.data)
+ .data          0x8020f480      0xaa0 build_nm/assets/hd_front_end/hd_front_end_data_28480.bin.o
+                0x8020f480                _binary_assets_hd_front_end_hd_front_end_data_28480_bin_start
+                0x8020ff20                _binary_assets_hd_front_end_hd_front_end_data_28480_bin_end
+ build_nm/src.us.v11/hd_front_end/10850.c.o(.rodata)
+ .rodata        0x8020ff20       0x60 build_nm/src.us.v11/hd_front_end/10850.c.o
+ build_nm/src.us.v11/hd_front_end/11530.c.o(.rodata)
+ .rodata        0x8020ff80      0x5d0 build_nm/src.us.v11/hd_front_end/11530.c.o
+ build_nm/src.us.v11/hd_front_end/17990.c.o(.rodata)
+ .rodata        0x80210550       0xd0 build_nm/src.us.v11/hd_front_end/17990.c.o
+ build_nm/src.us.v11/hd_front_end/196F0.c.o(.rodata)
+ .rodata        0x80210620       0x50 build_nm/src.us.v11/hd_front_end/196F0.c.o
+ build_nm/src.us.v11/hd_front_end/1AE80.c.o(.rodata)
+ .rodata        0x80210670       0x20 build_nm/src.us.v11/hd_front_end/1AE80.c.o
+                0x00008650                        . = 0x8650
+                0x80210690                        hd_front_end_hd_front_end_data_29690_bin = .
+ build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o(.data)
+ .data          0x80210690      0x800 build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
+                0x80210690                _binary_assets_hd_front_end_hd_front_end_data_29690_bin_start
+                0x80210e90                _binary_assets_hd_front_end_hd_front_end_data_29690_bin_end
+                0x80210e90                        hd_front_end_DATA_END = .
+                0x80210e90                        hd_front_end_BSS_START = .
+                0x80210e90                        hd_front_end_BSS_END = .
+                0x00029e90                        hd_front_end_ROM_END = 0x29e90
+                0x00029e90                        __romPos = 0x29e90
+
+.nm_extra_fe    0x80a80000        0x0
+                0x80a80000                        nm_extra_fe_START = .
+ build_nm/src.us.v11/hd_front_end/*.o(.text)
+ build_nm/src.us.v11/hd_front_end/*.o(.rodata .rodata.* .late_rodata)
+ build_nm/src.us.v11/hd_front_end/*.o(.data .data.* .sdata)
+                0x80a80000                        nm_extra_fe_END = .
+
+.nm_extra_fe_bss
+ build_nm/src.us.v11/hd_front_end/*.o(.bss .sbss COMMON .scommon)
+
+/DISCARD/
+ *(*)
+                0x8021abf0                        __osPfsPifRam = 0x8021abf0
+                0x8021abb0                        __osEepPifRam = 0x8021abb0
+                0x803ff280                        __osContLastCmd = 0x803ff280
+                0x803ff281                        __osMaxControllers = 0x803ff281
+                0x8036bb18                        currentYoshiWindow = 0x8036bb18
+                0x8036bb1c                        yoshiState = 0x8036bb1c
+                0x802e8bdc                        D_802E8BDC = 0x802e8bdc
+                0x80211a68                        D_80211A68 = 0x80211a68
+                0x803643d4                        D_803643D4 = 0x803643d4
+                0x80364aea                        D_80364AEA = 0x80364aea
+                0x80364b00                        D_80364B00 = 0x80364b00
+                0x80364ae8                        D_80364AE8 = 0x80364ae8
+                0x802e8c44                        D_802E8C44 = 0x802e8c44
+                0x80364ef0                        D_80364EF0 = 0x80364ef0
+                0x80211a6a                        D_80211A6A = 0x80211a6a
+                0x80210e90                        D_80210E90 = 0x80210e90
+                0x80210ee0                        D_80210EE0 = 0x80210ee0
+                0x80210f78                        D_80210F78 = 0x80210f78
+                0x80211a70                        D_80211A70 = 0x80211a70
+                0x802110a8                        D_802110A8 = 0x802110a8
+                0x802fdac0                        D_802FDAC0 = 0x802fdac0
+                0x80211568                        D_80211568 = 0x80211568
+                0x80211ac0                        D_80211AC0 = 0x80211ac0
+                0x802153c0                        D_802153C0 = 0x802153c0
+                0x80211a28                        D_80211A28 = 0x80211a28
+                0x80364a90                        D_80364A90 = 0x80364a90
+                0x80364a94                        D_80364A94 = 0x80364a94
+                0x80364b82                        D_80364B82 = 0x80364b82
+                0x802153d4                        D_802153D4 = 0x802153d4
+                0x802153d8                        D_802153D8 = 0x802153d8
+                0x802153dc                        D_802153DC = 0x802153dc
+                0x802153e6                        D_802153E6 = 0x802153e6
+                0x802153e4                        D_802153E4 = 0x802153e4
+                0x80367738                        D_80367738 = 0x80367738
+                0x8035805c                        D_8035805C = 0x8035805c
+                0x803156f8                        D_803156F8 = 0x803156f8
+                0x80358080                        D_80358080 = 0x80358080
+                0x80358084                        D_80358084 = 0x80358084
+                0x80358060                        D_80358060 = 0x80358060
+                0x80370c28                        D_80370C28 = 0x80370c28
+                0x80370c2a                        D_80370C2A = 0x80370c2a
+                0x80364a88                        D_80364A88 = 0x80364a88
+                0x802153e8                        D_802153E8 = 0x802153e8
+                0x80364a8c                        D_80364A8C = 0x80364a8c
+                0x80364a98                        D_80364A98 = 0x80364a98
+                0x80364a9c                        D_80364A9C = 0x80364a9c
+                0x80370c2c                        D_80370C2C = 0x80370c2c
+                0x80370c2e                        D_80370C2E = 0x80370c2e
+                0x80358078                        D_80358078 = 0x80358078
+                0x803156c0                        D_803156C0 = 0x803156c0
+                0x8035807c                        D_8035807C = 0x8035807c
+                0x802153e0                        D_802153E0 = 0x802153e0
+                0x802153f0                        D_802153F0 = 0x802153f0
+                0x802153ec                        D_802153EC = 0x802153ec
+                0x802f47b0                        D_802F47B0 = 0x802f47b0
+                0x80315180                        D_80315180 = 0x80315180
+                0x80215915                        D_80215915 = 0x80215915
+                0x80215916                        D_80215916 = 0x80215916
+                0x8021593c                        D_8021593C = 0x8021593c
+                0x8021592e                        D_8021592E = 0x8021592e
+                0x802e8c94                        D_802E8C94 = 0x802e8c94
+                0x802158a8                        D_802158A8 = 0x802158a8
+                0x802e8c98                        D_802E8C98 = 0x802e8c98
+                0x802154d8                        D_802154D8 = 0x802154d8
+                0x802154e8                        D_802154E8 = 0x802154e8
+                0x802154f0                        D_802154F0 = 0x802154f0
+                0x802154e4                        D_802154E4 = 0x802154e4
+                0x80364af0                        D_80364AF0 = 0x80364af0
+                0x802154ec                        D_802154EC = 0x802154ec
+                0x80215508                        D_80215508 = 0x80215508
+                0x802158a0                        D_802158A0 = 0x802158a0
+                0x802155a0                        D_802155A0 = 0x802155a0
+                0x80365060                        D_80365060 = 0x80365060
+                0x80364b81                        D_80364B81 = 0x80364b81
+                0x80215930                        D_80215930 = 0x80215930
+                0x802e8bf8                        D_802E8BF8 = 0x802e8bf8
+                0x802154d2                        D_802154D2 = 0x802154d2
+                0x80215458                        D_80215458 = 0x80215458
+                0x802154d4                        D_802154D4 = 0x802154d4
+                0x802154dc                        D_802154DC = 0x802154dc
+                0x802154e0                        D_802154E0 = 0x802154e0
+                0x802e8f94                        D_802E8F94 = 0x802e8f94
+                0x802158aa                        D_802158AA = 0x802158aa
+                0x80219ef8                        D_80219EF8 = 0x80219ef8
+                0x80219f50                        D_80219F50 = 0x80219f50
+                0x8039c538                        D_8039C538 = 0x8039c538
+                0x80215520                        D_80215520 = 0x80215520
+                0x802154b0                        D_802154B0 = 0x802154b0
+                0x8020c070                        D_8020C070 = 0x8020c070
+                0x8020c0aa                        D_8020C0AA = 0x8020c0aa
+                0x803046f8                        D_803046F8 = 0x803046f8
+                0x80304710                        D_80304710 = 0x80304710
+                0x802f8bdc                        D_802F8BDC = 0x802f8bdc
+                0x8020c0c1                        D_8020C0C1 = 0x8020c0c1
+                0x8020c0c0                        D_8020C0C0 = 0x8020c0c0
+                0x80304730                        D_80304730 = 0x80304730
+                0x802154b2                        D_802154B2 = 0x802154b2
+                0x802154b4                        D_802154B4 = 0x802154b4
+                0x80215918                        D_80215918 = 0x80215918
+                0x802154b8                        D_802154B8 = 0x802154b8
+                0x802154b6                        D_802154B6 = 0x802154b6
+                0x802154ba                        D_802154BA = 0x802154ba
+                0x802154bc                        D_802154BC = 0x802154bc
+                0x802154be                        D_802154BE = 0x802154be
+                0x802154c0                        D_802154C0 = 0x802154c0
+                0x802154cc                        D_802154CC = 0x802154cc
+                0x802154c8                        D_802154C8 = 0x802154c8
+                0x80215928                        D_80215928 = 0x80215928
+                0x802154c4                        D_802154C4 = 0x802154c4
+                0x80215924                        D_80215924 = 0x80215924
+                0x802154d0                        D_802154D0 = 0x802154d0
+                0x8021591a                        D_8021591A = 0x8021591a
+                0x80215920                        D_80215920 = 0x80215920
+                0x8021592c                        D_8021592C = 0x8021592c
+                0x8021546c                        D_8021546C = 0x8021546c
+                0x8036bb20                        D_8036BB20 = 0x8036bb20
+                0x803156c4                        D_803156C4 = 0x803156c4
+                0x80215464                        D_80215464 = 0x80215464
+                0x80215468                        D_80215468 = 0x80215468
+                0x80215454                        D_80215454 = 0x80215454
+                0x8021545c                        D_8021545C = 0x8021545c
+                0x80215460                        D_80215460 = 0x80215460
+                0x80215450                        D_80215450 = 0x80215450
+                0x80215944                        D_80215944 = 0x80215944
+                0x80215948                        D_80215948 = 0x80215948
+                0x8021594c                        D_8021594C = 0x8021594c
+                0x80215950                        D_80215950 = 0x80215950
+                0x80215440                        D_80215440 = 0x80215440
+                0x80215444                        D_80215444 = 0x80215444
+                0x80215448                        D_80215448 = 0x80215448
+                0x8021544c                        D_8021544C = 0x8021544c
+                0x80215940                        D_80215940 = 0x80215940
+                0x80215902                        D_80215902 = 0x80215902
+                0x80215900                        D_80215900 = 0x80215900
+                0x80215908                        D_80215908 = 0x80215908
+                0x80215910                        D_80215910 = 0x80215910
+                0x80215914                        D_80215914 = 0x80215914
+                0x80364aa8                        D_80364AA8 = 0x80364aa8
+                0x80215470                        D_80215470 = 0x80215470
+                0x80364a87                        D_80364A87 = 0x80364a87
+                0x803643d5                        D_803643D5 = 0x803643d5
+                0x8039c53c                        D_8039C53C = 0x8039c53c
+                0x8039c540                        D_8039C540 = 0x8039c540
+                0x8020d530                        D_8020D530 = 0x8020d530
+                0x80215480                        D_80215480 = 0x80215480
+                0x8020d4b8                        D_8020D4B8 = 0x8020d4b8
+                0x80215960                        D_80215960 = 0x80215960
+                0x80215964                        D_80215964 = 0x80215964
+                0x8021596c                        D_8021596C = 0x8021596c
+                0x80215968                        D_80215968 = 0x80215968
+                0x80215976                        D_80215976 = 0x80215976
+                0x80364afc                        D_80364AFC = 0x80364afc
+                0x80215974                        D_80215974 = 0x80215974
+                0x80215978                        D_80215978 = 0x80215978
+                0x802fa268                        D_802FA268 = 0x802fa268
+                0x80215970                        D_80215970 = 0x80215970
+                0x80215980                        D_80215980 = 0x80215980
+                0x8021597f                        D_8021597F = 0x8021597f
+                0x80215998                        D_80215998 = 0x80215998
+                0x802159b0                        D_802159B0 = 0x802159b0
+                0x802182d0                        D_802182D0 = 0x802182d0
+                0x802159c0                        D_802159C0 = 0x802159c0
+                0x8036ea79                        D_8036EA79 = 0x8036ea79
+                0x8036ea7c                        D_8036EA7C = 0x8036ea7c
+                0x8036ea78                        D_8036EA78 = 0x8036ea78
+                0x8036ea6c                        D_8036EA6C = 0x8036ea6c
+                0x8036ea6a                        D_8036EA6A = 0x8036ea6a
+                0x8036ea6b                        D_8036EA6B = 0x8036ea6b
+                0x8036ea60                        D_8036EA60 = 0x8036ea60
+                0x8036ea64                        D_8036EA64 = 0x8036ea64
+                0x8036ea68                        D_8036EA68 = 0x8036ea68
+                0x8036ea8c                        D_8036EA8C = 0x8036ea8c
+                0x8036ea8a                        D_8036EA8A = 0x8036ea8a
+                0x8036ea8b                        D_8036EA8B = 0x8036ea8b
+                0x8036ea80                        D_8036EA80 = 0x8036ea80
+                0x8036ea84                        D_8036EA84 = 0x8036ea84
+                0x8036ea88                        D_8036EA88 = 0x8036ea88
+                0x8036ea9c                        D_8036EA9C = 0x8036ea9c
+                0x8036ea9a                        D_8036EA9A = 0x8036ea9a
+                0x8036ea9b                        D_8036EA9B = 0x8036ea9b
+                0x8036ea90                        D_8036EA90 = 0x8036ea90
+                0x8036ea94                        D_8036EA94 = 0x8036ea94
+                0x8036ea98                        D_8036EA98 = 0x8036ea98
+                0x8036ea7a                        D_8036EA7A = 0x8036ea7a
+                0x8036ea7b                        D_8036EA7B = 0x8036ea7b
+                0x803649f0                        D_803649F0 = 0x803649f0
+                0x8036ea74                        D_8036EA74 = 0x8036ea74
+                0x8036b9a8                        D_8036B9A8 = 0x8036b9a8
+                0x802f49f4                        D_802F49F4 = 0x802f49f4
+                0x80364b44                        D_80364B44 = 0x80364b44
+                0x802159d0                        D_802159D0 = 0x802159d0
+                0x80358070                        D_80358070 = 0x80358070
+                0x802159d4                        D_802159D4 = 0x802159d4
+                0x802159d8                        D_802159D8 = 0x802159d8
+                0x802159dc                        D_802159DC = 0x802159dc
+                0x802159e0                        D_802159E0 = 0x802159e0
+                0x802159e4                        D_802159E4 = 0x802159e4
+                0x80217490                        D_80217490 = 0x80217490
+                0x80217590                        D_80217590 = 0x80217590
+                0x80217290                        D_80217290 = 0x80217290
+                0x80217390                        D_80217390 = 0x80217390
+                0x80215a90                        D_80215A90 = 0x80215a90
+                0x80215a92                        D_80215A92 = 0x80215a92
+                0x80215a97                        D_80215A97 = 0x80215a97
+                0x8021728c                        D_8021728C = 0x8021728c
+                0x80215a70                        D_80215A70 = 0x80215a70
+                0x80215a7c                        D_80215A7C = 0x80215a7c
+                0x80215a80                        D_80215A80 = 0x80215a80
+                0x80215a84                        D_80215A84 = 0x80215a84
+                0x80215a88                        D_80215A88 = 0x80215a88
+                0x802e8f38                        D_802E8F38 = 0x802e8f38
+                0x80364b80                        D_80364B80 = 0x80364b80
+                0x8020bd08                        D_8020BD08 = 0x8020bd08
+                0x80364b08                        D_80364B08 = 0x80364b08
+                0x80217b6c                        D_80217B6C = 0x80217b6c
+                0x8020bd30                        D_8020BD30 = 0x8020bd30
+                0x80217a10                        D_80217A10 = 0x80217a10
+                0x80217b50                        D_80217B50 = 0x80217b50
+                0x8020be98                        D_8020BE98 = 0x8020be98
+                0x802182a8                        D_802182A8 = 0x802182a8
+                0x80217b54                        D_80217B54 = 0x80217b54
+                0x80217b58                        D_80217B58 = 0x80217b58
+                0x80217b5c                        D_80217B5C = 0x80217b5c
+                0x80217b60                        D_80217B60 = 0x80217b60
+                0x80217b64                        D_80217B64 = 0x80217b64
+                0x80217b68                        D_80217B68 = 0x80217b68
+                0x80218270                        D_80218270 = 0x80218270
+                0x8020bde4                        D_8020BDE4 = 0x8020bde4
+                0x80217b70                        D_80217B70 = 0x80217b70
+                0x8020bdec                        D_8020BDEC = 0x8020bdec
+                0x80217690                        D_80217690 = 0x80217690
+                0x80218274                        D_80218274 = 0x80218274
+                0x8021a918                        D_8021A918 = 0x8021a918
+                0x8021a91c                        D_8021A91C = 0x8021a91c
+                0x802182c4                        D_802182C4 = 0x802182c4
+                0x802182c0                        D_802182C0 = 0x802182c0
+                0x802182c8                        D_802182C8 = 0x802182c8
+                0x802182cc                        D_802182CC = 0x802182cc
+                0x80218734                        D_80218734 = 0x80218734
+                0x80218358                        D_80218358 = 0x80218358
+                0x80218730                        D_80218730 = 0x80218730
+                0x80218350                        D_80218350 = 0x80218350
+                0x802183f0                        D_802183F0 = 0x802183f0
+                0x80218370                        D_80218370 = 0x80218370
+                0x802183b0                        D_802183B0 = 0x802183b0
+                0x80218360                        D_80218360 = 0x80218360
+                0x80218430                        D_80218430 = 0x80218430
+                0x80218ef8                        D_80218EF8 = 0x80218ef8
+                0x80219f10                        D_80219F10 = 0x80219f10
+                0x80219f30                        D_80219F30 = 0x80219f30
+                0x80219f48                        D_80219F48 = 0x80219f48
+                0x80219f68                        D_80219F68 = 0x80219f68
+                0x8020c000                        D_8020C000 = 0x8020c000
+                0x8020c014                        D_8020C014 = 0x8020c014
+                0x80218ee0                        D_80218EE0 = 0x80218ee0
+                0x80218d30                        D_80218D30 = 0x80218d30
+                0x8039c4b0                        D_8039C4B0 = 0x8039c4b0
+                0x80370bf8                        D_80370BF8 = 0x80370bf8
+                0x8036bf10                        D_8036BF10 = 0x8036bf10
+                0x80218d24                        D_80218D24 = 0x80218d24
+                0x8039b630                        D_8039B630 = 0x8039b630
+                0x80218ef0                        D_80218EF0 = 0x80218ef0
+                0x80219f88                        D_80219F88 = 0x80219f88
+                0x80310bd0                        D_80310BD0 = 0x80310bd0
+                0x80370c00                        D_80370C00 = 0x80370c00
+                0x8039b698                        D_8039B698 = 0x8039b698
+                0x80218b20                        D_80218B20 = 0x80218b20
+                0x8039c4b4                        D_8039C4B4 = 0x8039c4b4
+                0x802fa264                        D_802FA264 = 0x802fa264
+                0x8039b6b0                        D_8039B6B0 = 0x8039b6b0
+                0x8020bee0                        D_8020BEE0 = 0x8020bee0
+                0x80364f70                        D_80364F70 = 0x80364f70
+                0x8039c4b8                        D_8039C4B8 = 0x8039c4b8
+                0x80218d28                        D_80218D28 = 0x80218d28
+                0x802189c0                        D_802189C0 = 0x802189c0
+                0x80218ad0                        D_80218AD0 = 0x80218ad0
+                0x802189d0                        D_802189D0 = 0x802189d0
+                0x80218740                        D_80218740 = 0x80218740
+                0x8020c488                        D_8020C488 = 0x8020c488
+                0x80219f90                        D_80219F90 = 0x80219f90
+                0x80219fb0                        D_80219FB0 = 0x80219fb0
+                0x80301080                        D_80301080 = 0x80301080
+                0x8020c01c                        D_8020C01C = 0x8020c01c
+                0x8036bb24                        D_8036BB24 = 0x8036bb24
+                0x80219fd0                        D_80219FD0 = 0x80219fd0
+                0x8020d800                        D_8020D800 = 0x8020d800
+                0x8021a7e8                        D_8021A7E8 = 0x8021a7e8
+                0x8021a7d0                        D_8021A7D0 = 0x8021a7d0
+                0x8021a828                        D_8021A828 = 0x8021a828
+                0x80370c50                        D_80370C50 = 0x80370c50
+                0x8021a8f0                        D_8021A8F0 = 0x8021a8f0
+                0x8021ab30                        D_8021AB30 = 0x8021ab30
+                0x8021ab34                        D_8021AB34 = 0x8021ab34
+                0x8021a920                        D_8021A920 = 0x8021a920
+                0x8021a8f4                        D_8021A8F4 = 0x8021a8f4
+                0x8021a8fc                        D_8021A8FC = 0x8021a8fc
+                0x8021a900                        D_8021A900 = 0x8021a900
+                0x8021a928                        D_8021A928 = 0x8021a928
+                0x8021a8f8                        D_8021A8F8 = 0x8021a8f8
+                0x8021a904                        D_8021A904 = 0x8021a904
+                0x8021a908                        D_8021A908 = 0x8021a908
+                0x8021a926                        D_8021A926 = 0x8021a926
+                0x8021a930                        D_8021A930 = 0x8021a930
+                0x8021a907                        D_8021A907 = 0x8021a907
+                0x8021ab21                        D_8021AB21 = 0x8021ab21
+                0x8021a906                        D_8021A906 = 0x8021a906
+                0x8021ab28                        D_8021AB28 = 0x8021ab28
+                0x8021ab38                        D_8021AB38 = 0x8021ab38
+                0x8021ab2c                        D_8021AB2C = 0x8021ab2c
+                0x8021ab40                        D_8021AB40 = 0x8021ab40
+                0x8021ab44                        D_8021AB44 = 0x8021ab44
+                0x8021ab48                        D_8021AB48 = 0x8021ab48
+                0x8021ab20                        D_8021AB20 = 0x8021ab20
+                0x8021ab2e                        D_8021AB2E = 0x8021ab2e
+                0x8021a905                        D_8021A905 = 0x8021a905
+                0x8021a924                        D_8021A924 = 0x8021a924
+                0x8021ab68                        D_8021AB68 = 0x8021ab68
+                0x8021ab58                        D_8021AB58 = 0x8021ab58
+                0x8021ab6c                        D_8021AB6C = 0x8021ab6c
+                0x8021ab5c                        D_8021AB5C = 0x8021ab5c
+                0x80370c2d                        D_80370C2D = 0x80370c2d
+                0x8021ab24                        D_8021AB24 = 0x8021ab24
+                0x8021a90c                        D_8021A90C = 0x8021a90c
+                0x8021a910                        D_8021A910 = 0x8021a910
+                0x8021a914                        D_8021A914 = 0x8021a914
+                0x8021a938                        D_8021A938 = 0x8021a938
+                0x8021ab60                        D_8021AB60 = 0x8021ab60
+                0x8021ab64                        D_8021AB64 = 0x8021ab64
+                0x8021a934                        D_8021A934 = 0x8021a934
+                0x802e8c84                        D_802E8C84 = 0x802e8c84
+                0x8021a944                        D_8021A944 = 0x8021a944
+                0x8021a940                        D_8021A940 = 0x8021a940
+                0x8021a909                        D_8021A909 = 0x8021a909
+                0x8021a840                        D_8021A840 = 0x8021a840
+                0x8021a8c4                        D_8021A8C4 = 0x8021a8c4
+                0x8021a8cc                        D_8021A8CC = 0x8021a8cc
+                0x8021a8d4                        D_8021A8D4 = 0x8021a8d4
+                0x8021a8c8                        D_8021A8C8 = 0x8021a8c8
+                0x8021a8d0                        D_8021A8D0 = 0x8021a8d0
+                0x8021a8d8                        D_8021A8D8 = 0x8021a8d8
+                0x8021a8dc                        D_8021A8DC = 0x8021a8dc
+                0x8021a8c0                        D_8021A8C0 = 0x8021a8c0
+                0x8021a8e8                        D_8021A8E8 = 0x8021a8e8
+                0x8021a8e0                        D_8021A8E0 = 0x8021a8e0
+                0x8021a8e4                        D_8021A8E4 = 0x8021a8e4
+                0x8021ab4c                        D_8021AB4C = 0x8021ab4c
+                0x8021ab50                        D_8021AB50 = 0x8021ab50
+                0x8021ab54                        D_8021AB54 = 0x8021ab54
+                0x802159f0                        D_802159F0 = 0x802159f0
+                0x80364b3f                        D_80364B3F = 0x80364b3f
+                0x80364b24                        D_80364B24 = 0x80364b24
+                0x80364b3d                        D_80364B3D = 0x80364b3d
+                0x80364b0f                        D_80364B0F = 0x80364b0f
+                0x80364b1b                        D_80364B1B = 0x80364b1b
+                0x8021ab7c                        D_8021AB7C = 0x8021ab7c
+                0x80219f58                        D_80219F58 = 0x80219f58
+                0x8021ab70                        D_8021AB70 = 0x8021ab70
+                0x8036bb16                        D_8036BB16 = 0x8036bb16
+                0x8039c541                        D_8039C541 = 0x8039c541
+                0x8021ab74                        D_8021AB74 = 0x8021ab74
+                0x8039ca60                        D_8039CA60 = 0x8039ca60
+                0x80364ae9                        D_80364AE9 = 0x80364ae9
+                0x8021a830                        D_8021A830 = 0x8021a830
+                0x8021a834                        D_8021A834 = 0x8021a834
+                0x8021ab76                        D_8021AB76 = 0x8021ab76
+                0x80358050                        D_80358050 = 0x80358050
+                0x8036bb1e                        D_8036BB1E = 0x8036bb1e
+                0x80364a71                        D_80364A71 = 0x80364a71
+                0x80364a64                        D_80364A64 = 0x80364a64
+                0x8021ab72                        D_8021AB72 = 0x8021ab72
+                0x8036bb1a                        D_8036BB1A = 0x8036bb1a
+                0x8021ab84                        D_8021AB84 = 0x8021ab84
+                0x8021ab80                        D_8021AB80 = 0x8021ab80
+                0x8021ab90                        D_8021AB90 = 0x8021ab90
+                0x8021aba0                        D_8021ABA0 = 0x8021aba0
+                0x8021aba2                        D_8021ABA2 = 0x8021aba2
+                0x8020e3e8                        D_8020E3E8 = 0x8020e3e8
+                0x8021aba1                        D_8021ABA1 = 0x8021aba1
+                0x8020e430                        D_8020E430 = 0x8020e430
+                0x8021aba4                        D_8021ABA4 = 0x8021aba4
+                0x8021aba8                        D_8021ABA8 = 0x8021aba8
+                0x802fad50                        D_802FAD50 = 0x802fad50
+                0x802c2208                        D_802C2208 = 0x802c2208
+                0x802c226c                        D_802C226C = 0x802c226c
+                0x802c2190                        D_802C2190 = 0x802c2190
+                0x802c21a4                        D_802C21A4 = 0x802c21a4
+                0x802c21b8                        D_802C21B8 = 0x802c21b8
+                0x802c2324                        D_802C2324 = 0x802c2324
+                0x802c2348                        D_802C2348 = 0x802c2348
+                0x803ff2a8                        D_803FF2A8 = 0x803ff2a8
+                0x803ff2c0                        D_803FF2C0 = 0x803ff2c0
+                0x803ff288                        D_803FF288 = 0x803ff288
+                0x8021abec                        D_8021ABEC = 0x8021abec
+                0x8021ac2c                        D_8021AC2C = 0x8021ac2c
+                0x80896ca0                        PROVIDE (osCreateThread = 0x80896ca0)
+                0x80896df0                        PROVIDE (osStartThread = 0x80896df0)
+                0x808971b0                        PROVIDE (osSendMesg = 0x808971b0)
+                0x80897300                        PROVIDE (osRecvMesg = 0x80897300)
+                0x80897440                        PROVIDE (osViBlack = 0x80897440)
+                0x808975a8                        PROVIDE (__ull_div = 0x808975a8)
+                0x808975e4                        PROVIDE (__ll_lshift = 0x808975e4)
+                0x808976a8                        PROVIDE (__ll_mul = 0x808976a8)
+                0x80897810                        PROVIDE (osVirtualToPhysical = 0x80897810)
+                0x80897890                        PROVIDE (osWritebackDCache = 0x80897890)
+                0x80897910                        PROVIDE (guTranslateF = 0x80897910)
+                0x80897958                        PROVIDE (guTranslate = 0x80897958)
+                0x80897da0                        PROVIDE (guPerspective = 0x80897da0)
+                0x80897e00                        PROVIDE (guRotateF = 0x80897e00)
+                0x80897f94                        PROVIDE (guRotate = 0x80897f94)
+                0x80897ff0                        PROVIDE (guMtxXFMF = 0x80897ff0)
+                0x80898090                        PROVIDE (guMtxCatF = 0x80898090)
+                0x80898200                        PROVIDE (guMtxF2L = 0x80898200)
+                0x80898300                        PROVIDE (guMtxIdentF = 0x80898300)
+                0x80898388                        PROVIDE (guMtxIdent = 0x80898388)
+                0x808984c4                        PROVIDE (guScale = 0x808984c4)
+                0x80898950                        PROVIDE (guLookAtReflect = 0x80898950)
+                0x808989d0                        PROVIDE (sqrtf = 0x808989d0)
+                0x80898c98                        PROVIDE (guLookAt = 0x80898c98)
+                0x80898ed0                        PROVIDE (osCreateMesgQueue = 0x80898ed0)
+                0x80899450                        PROVIDE (sprintf = 0x80899450)
+                0x8089c210                        PROVIDE (osGetCount = 0x8089c210)
+                0x8089c220                        PROVIDE (sins = 0x8089c220)
+                0x8089c290                        PROVIDE (coss = 0x8089c290)
+                0x8089d3d0                        PROVIDE (osSetEventMesg = 0x8089d3d0)
+                0x8089d590                        PROVIDE (osSetTimer = 0x8089d590)
+                0x808a4d30                        PROVIDE (bcopy = 0x808a4d30)
+                0x808a5150                        PROVIDE (__osSiRawStartDma = 0x808a5150)
+                0x808a5250                        PROVIDE (__osSiGetAccess = 0x808a5250)
+                0x808a5294                        PROVIDE (__osSiRelAccess = 0x808a5294)
+                0x8086ca80                        PROVIDE (func_802AD7D4 = 0x8086ca80)
+                0x8085ac3c                        PROVIDE (func_8029DEA0 = 0x8085ac3c)
+                0x808565c4                        PROVIDE (func_8029A7E4 = 0x808565c4)
+                0x8081c5c4                        PROVIDE (func_80260A10 = 0x8081c5c4)
+                0x8081c160                        PROVIDE (func_80260650 = 0x8081c160)
+                0x80846144                        PROVIDE (func_8028A3E4 = 0x80846144)
+                0x80863ac0                        PROVIDE (func_802A5720 = 0x80863ac0)
+                0x8085aea4                        PROVIDE (func_8029E0AC = 0x8085aea4)
+                0x808461d0                        PROVIDE (func_8028A470 = 0x808461d0)
+                0x80831040                        PROVIDE (func_802753C0 = 0x80831040)
+                0x80831010                        PROVIDE (func_80275390 = 0x80831010)
+                0x80840b74                        PROVIDE (func_80284E54 = 0x80840b74)
+                0x80814f30                        PROVIDE (func_80259450 = 0x80814f30)
+                0x808157ac                        PROVIDE (func_80259CCC = 0x808157ac)
+                0x808158a8                        PROVIDE (func_80259DC8 = 0x808158a8)
+                0x80815704                        PROVIDE (func_80259C24 = 0x80815704)
+                0x80831db0                        PROVIDE (func_80276130 = 0x80831db0)
+                0x80831d00                        PROVIDE (func_80276080 = 0x80831d00)
+                0x80831a24                        PROVIDE (func_80275DA4 = 0x80831a24)
+                0x808277f0                        PROVIDE (func_8026BBD0 = 0x808277f0)
+                0x80830870                        PROVIDE (func_80274BF0 = 0x80830870)
+                0x80863b04                        PROVIDE (func_802A57AC = 0x80863b04)
+                0x8082e8dc                        PROVIDE (func_80272C5C = 0x8082e8dc)
+                0x80816de0                        PROVIDE (func_8025B300 = 0x80816de0)
+                0x80816e50                        PROVIDE (func_8025B370 = 0x80816e50)
+                0x808304e8                        PROVIDE (func_80274868 = 0x808304e8)
+                0x8082eb58                        PROVIDE (func_80272ED8 = 0x8082eb58)
+                0x80830724                        PROVIDE (func_80274AA4 = 0x80830724)
+                0x80817038                        PROVIDE (func_8025B558 = 0x80817038)
+                0x80816ed0                        PROVIDE (func_8025B3F0 = 0x80816ed0)
+                0x808156b4                        PROVIDE (func_80259BD4 = 0x808156b4)
+                0x80826b8c                        PROVIDE (func_8026AF6C = 0x80826b8c)
+                0x80830ef0                        PROVIDE (func_80275270 = 0x80830ef0)
+                0x8082062c                        PROVIDE (func_80264A34 = 0x8082062c)
+                0x8081d160                        PROVIDE (func_80261570 = 0x8081d160)
+                0x80816d98                        PROVIDE (func_8025B2B8 = 0x80816d98)
+                0x80840e30                        PROVIDE (func_80285110 = 0x80840e30)
+                0x8084100c                        PROVIDE (func_802852EC = 0x8084100c)
+                0x80841d64                        PROVIDE (func_80286038 = 0x80841d64)
+                0x808517e0                        PROVIDE (func_80295A20 = 0x808517e0)
+                0x80847224                        PROVIDE (func_8028B4C4 = 0x80847224)
+                0x8082079c                        PROVIDE (func_80264BA4 = 0x8082079c)
+                0x80826434                        PROVIDE (func_8026A828 = 0x80826434)
+                0x808150c0                        PROVIDE (func_802595E0 = 0x808150c0)
+                0x8083258c                        PROVIDE (func_8027690C = 0x8083258c)
+                0x8085d980                        PROVIDE (func_802A0700 = 0x8085d980)
+                0x8085da3c                        PROVIDE (func_802A08B4 = 0x8085da3c)
+                0x8082cad0                        PROVIDE (func_80270E50 = 0x8082cad0)
+                0x8084618c                        PROVIDE (func_8028A42C = 0x8084618c)
+                0x8084ba38                        PROVIDE (func_8028FCD4 = 0x8084ba38)
+                0x808460d0                        PROVIDE (func_8028A370 = 0x808460d0)
+                0x8081dba0                        PROVIDE (func_80261FB0 = 0x8081dba0)
+                0x80847954                        PROVIDE (func_8028BBF4 = 0x80847954)
+                0x8081c434                        PROVIDE (func_802608C8 = 0x8081c434)
+                0x80855dc8                        PROVIDE (func_80299FE8 = 0x80855dc8)
+                0x80807d94                        PROVIDE (func_8024C404 = 0x80807d94)
+                0x80816f78                        PROVIDE (func_8025B498 = 0x80816f78)
+                0x80812fa8                        PROVIDE (func_802574F0 = 0x80812fa8)
+                0x80812fcc                        PROVIDE (func_80257514 = 0x80812fcc)
+                0x8082b550                        PROVIDE (func_8026F92C = 0x8082b550)
+                0x8081dbf8                        PROVIDE (func_80262008 = 0x8081dbf8)
+                0x8081cad0                        PROVIDE (func_80260EE0 = 0x8081cad0)
+                0x80818358                        PROVIDE (func_8025C878 = 0x80818358)
+                0x8084200c                        PROVIDE (func_802862DC = 0x8084200c)
+                0x80831078                        PROVIDE (func_802753F8 = 0x80831078)
+                0x808553d0                        PROVIDE (func_802995F0 = 0x808553d0)
+                0x80861424                        PROVIDE (func_802A396C = 0x80861424)
+                0x8085e220                        PROVIDE (func_802A1388 = 0x8085e220)
+                0x8085b484                        PROVIDE (func_8029E558 = 0x8085b484)
+                0x8085cc10                        PROVIDE (func_8029F85C = 0x8085cc10)
+                0x8085d6b0                        PROVIDE (func_802A039C = 0x8085d6b0)
+                0x8085d6c8                        PROVIDE (func_802A03D4 = 0x8085d6c8)
+                0x8085d6e0                        PROVIDE (func_802A040C = 0x8085d6e0)
+                0x8085d714                        PROVIDE (func_802A0480 = 0x8085d714)
+                0x8085d638                        PROVIDE (func_802A0290 = 0x8085d638)
+                0x8085d840                        PROVIDE (func_802A05D0 = 0x8085d840)
+                0x8085d868                        PROVIDE (func_802A05F8 = 0x8085d868)
+                0x8085d890                        PROVIDE (func_802A0620 = 0x8085d890)
+                0x8085d784                        PROVIDE (func_802A0508 = 0x8085d784)
+                0x8085d808                        PROVIDE (func_802A05A4 = 0x8085d808)
+                0x80000300                        osTvType = 0x80000300
+                0x80000308                        osRomBase = 0x80000308
+                0x8000030c                        osResetType = 0x8000030c
+                0x8000031c                        osAppNMIBuffer = 0x8000031c
+                [!provide]                        PROVIDE (osInitialize = 0x80896a10)
+                [!provide]                        PROVIDE (osPiRawReadIo = 0x80896c40)
+                [!provide]                        PROVIDE (osCreateThread = 0x80896ca0)
+                [!provide]                        PROVIDE (osStartThread = 0x80896df0)
+                [!provide]                        PROVIDE (osCreatePiManager = 0x80896f50)
+                [!provide]                        PROVIDE (osSetThreadPri = 0x808970d0)
+                [!provide]                        PROVIDE (osSendMesg = 0x808971b0)
+                [!provide]                        PROVIDE (osRecvMesg = 0x80897300)
+                [!provide]                        PROVIDE (osViBlack = 0x80897440)
+                [!provide]                        PROVIDE (osGetTime = 0x808974b0)
+                [!provide]                        PROVIDE (__ull_rshift = 0x80897540)
+                [!provide]                        PROVIDE (__ull_rem = 0x8089756c)
+                [!provide]                        PROVIDE (__ull_div = 0x808975a8)
+                [!provide]                        PROVIDE (__ll_lshift = 0x808975e4)
+                [!provide]                        PROVIDE (__ll_rem = 0x80897610)
+                [!provide]                        PROVIDE (__ll_div = 0x8089764c)
+                [!provide]                        PROVIDE (__ll_mul = 0x808976a8)
+                [!provide]                        PROVIDE (__ull_divremi = 0x808976d8)
+                [!provide]                        PROVIDE (__ll_mod = 0x80897738)
+                [!provide]                        PROVIDE (__ll_rshift = 0x808977d4)
+                [!provide]                        PROVIDE (alCSPGetState = 0x80897800)
+                [!provide]                        PROVIDE (osVirtualToPhysical = 0x80897810)
+                [!provide]                        PROVIDE (osWritebackDCache = 0x80897890)
+                [!provide]                        PROVIDE (guTranslateF = 0x80897910)
+                [!provide]                        PROVIDE (guTranslate = 0x80897958)
+                [!provide]                        PROVIDE (guOrthoF = 0x808979b0)
+                [!provide]                        PROVIDE (guOrtho = 0x80897b04)
+                [!provide]                        PROVIDE (guPerspectiveF = 0x80897b70)
+                [!provide]                        PROVIDE (guPerspective = 0x80897da0)
+                [!provide]                        PROVIDE (guRotateF = 0x80897e00)
+                [!provide]                        PROVIDE (guRotate = 0x80897f94)
+                [!provide]                        PROVIDE (guMtxXFMF = 0x80897ff0)
+                [!provide]                        PROVIDE (guMtxCatF = 0x80898090)
+                [!provide]                        PROVIDE (guMtxF2L = 0x80898200)
+                [!provide]                        PROVIDE (guMtxIdentF = 0x80898300)
+                [!provide]                        PROVIDE (guMtxIdent = 0x80898388)
+                [!provide]                        PROVIDE (guMtxL2F = 0x808983b8)
+                [!provide]                        PROVIDE (guScaleF = 0x80898470)
+                [!provide]                        PROVIDE (guScale = 0x808984c4)
+                [!provide]                        PROVIDE (guLookAtReflectF = 0x80898510)
+                [!provide]                        PROVIDE (guLookAtReflect = 0x80898950)
+                [!provide]                        PROVIDE (sqrtf = 0x808989d0)
+                [!provide]                        PROVIDE (guLookAtF = 0x808989e0)
+                [!provide]                        PROVIDE (guLookAt = 0x80898c98)
+                [!provide]                        PROVIDE (sinf = 0x80898d10)
+                [!provide]                        PROVIDE (osCreateMesgQueue = 0x80898ed0)
+                [!provide]                        PROVIDE (osViSetSpecialFeatures = 0x80898f40)
+                [!provide]                        PROVIDE (osWritebackDCacheAll = 0x80899100)
+                [!provide]                        PROVIDE (osInvalDCache = 0x80899130)
+                [!provide]                        PROVIDE (osDestroyThread = 0x808991e0)
+                [!provide]                        PROVIDE (cosf = 0x808992e0)
+                [!provide]                        PROVIDE (sprintf = 0x80899450)
+                [!provide]                        PROVIDE (alHeapDBAlloc = 0x80899500)
+                [!provide]                        PROVIDE (alEvtqFlushType = 0x80899560)
+                [!provide]                        PROVIDE (alEvtqFlush = 0x8089960c)
+                [!provide]                        PROVIDE (alEvtqPostEvent = 0x8089967c)
+                [!provide]                        PROVIDE (alEvtqNextEvent = 0x808997a0)
+                [!provide]                        PROVIDE (alEvtqNew = 0x8089982c)
+                [!provide]                        PROVIDE (alUnlink = 0x808998a0)
+                [!provide]                        PROVIDE (alLink = 0x808998d0)
+                [!provide]                        PROVIDE (alClose = 0x808998f4)
+                [!provide]                        PROVIDE (alInit = 0x8089992c)
+                [!provide]                        PROVIDE (alSynAddPlayer = 0x80899960)
+                [!provide]                        PROVIDE (_allocatePVoice = 0x808999b0)
+                [!provide]                        PROVIDE (alSynAllocVoice = 0x80899a98)
+                [!provide]                        PROVIDE (alSynSetVol = 0x80899be0)
+                [!provide]                        PROVIDE (alSynStartVoice = 0x80899c80)
+                [!provide]                        PROVIDE (alSynSetPan = 0x80899d10)
+                [!provide]                        PROVIDE (alSynSetPitch = 0x80899da0)
+                [!provide]                        PROVIDE (alSynSetFXMix = 0x80899e30)
+                [!provide]                        PROVIDE (alSynStopVoice = 0x80899ed0)
+                [!provide]                        PROVIDE (alSynFreeVoice = 0x80899f50)
+                [!provide]                        PROVIDE (alCents2Ratio = 0x8089a000)
+                [!provide]                        PROVIDE (osSetIntMask = 0x8089a050)
+                [!provide]                        PROVIDE (alCSPStop = 0x8089a0b0)
+                [!provide]                        PROVIDE (alCSeqGetLoc = 0x8089a0e0)
+                [!provide]                        PROVIDE (alCSeqSetLoc = 0x8089a180)
+                [!provide]                        PROVIDE (alCSeqNextEvent = 0x8089a344)
+                [!provide]                        PROVIDE (alCSeqNew = 0x8089a63c)
+                [!provide]                        PROVIDE (alCSeqNewMarker = 0x8089a750)
+                [!provide]                        PROVIDE (alCSeqSecToTicks = 0x8089a8c4)
+                [!provide]                        PROVIDE (alCSeqTicksToSec = 0x8089a9c0)
+                [!provide]                        PROVIDE (__alCSeqNextDelta = 0x8089aa2c)
+                [!provide]                        PROVIDE (alCSPSetSeq = 0x8089aba0)
+                [!provide]                        PROVIDE (alCSPPlay = 0x8089abe0)
+                [!provide]                        PROVIDE (alCSPSetVol = 0x8089ac10)
+                [!provide]                        PROVIDE (alCSPGetTempo = 0x8089ac50)
+                [!provide]                        PROVIDE (alCSPSetTempo = 0x8089ac90)
+                [!provide]                        PROVIDE (alHeapInit = 0x8089ad10)
+                [!provide]                        PROVIDE (alBnkfNew = 0x8089ae54)
+                [!provide]                        PROVIDE (alSeqFileNew = 0x8089af58)
+                [!provide]                        PROVIDE (__CSPPostNextSeqEvent = 0x8089afa0)
+                [!provide]                        PROVIDE (alCSPNew = 0x8089c060)
+                [!provide]                        PROVIDE (alCSPSetBank = 0x8089c1d0)
+                [!provide]                        PROVIDE (osGetCount = 0x8089c210)
+                [!provide]                        PROVIDE (sins = 0x8089c220)
+                [!provide]                        PROVIDE (coss = 0x8089c290)
+                [!provide]                        PROVIDE (__osViInit = 0x8089c2c0)
+                [!provide]                        PROVIDE (osAiSetFrequency = 0x8089c3f0)
+                [!provide]                        PROVIDE (osAiSetNextBuffer = 0x8089c550)
+                [!provide]                        PROVIDE (osAiGetLength = 0x8089c600)
+                [!provide]                        PROVIDE (_timeToSamples = 0x8089c618)
+                [!provide]                        PROVIDE (_freePVoice = 0x8089c670)
+                [!provide]                        PROVIDE (_collectPVoices = 0x8089c6a8)
+                [!provide]                        PROVIDE (__freeParam = 0x8089c708)
+                [!provide]                        PROVIDE (__allocParam = 0x8089c720)
+                [!provide]                        PROVIDE (alAudioFrame = 0x8089c758)
+                [!provide]                        PROVIDE (alSynNew = 0x8089c9e0)
+                [!provide]                        PROVIDE (osPiStartDma = 0x8089cce0)
+                [!provide]                        PROVIDE (osCreateViManager = 0x8089d000)
+                [!provide]                        PROVIDE (__d_to_ll = 0x8089cdf0)
+                [!provide]                        PROVIDE (__f_to_ll = 0x8089ce0c)
+                [!provide]                        PROVIDE (__d_to_ull = 0x8089ce28)
+                [!provide]                        PROVIDE (__f_to_ull = 0x8089cec8)
+                [!provide]                        PROVIDE (__ll_to_d = 0x8089cf64)
+                [!provide]                        PROVIDE (__ll_to_f = 0x8089cf7c)
+                [!provide]                        PROVIDE (__ull_to_d = 0x8089cf94)
+                [!provide]                        PROVIDE (__ull_to_f = 0x8089cfc8)
+                [!provide]                        PROVIDE (osViSetMode = 0x8089d360)
+                [!provide]                        PROVIDE (osSetEventMesg = 0x8089d3d0)
+                [!provide]                        PROVIDE (osViSetEvent = 0x8089d440)
+                [!provide]                        PROVIDE (osViGetCurrentFramebuffer = 0x8089d4c0)
+                [!provide]                        PROVIDE (osViGetNextFramebuffer = 0x8089d500)
+                [!provide]                        PROVIDE (osViSwapBuffer = 0x8089d540)
+                [!provide]                        PROVIDE (osSetTimer = 0x8089d590)
+                [!provide]                        PROVIDE (osSpTaskYielded = 0x8089d670)
+                [!provide]                        PROVIDE (osSpTaskLoad = 0x8089d80c)
+                [!provide]                        PROVIDE (osSpTaskStartGo = 0x8089d96c)
+                [!provide]                        PROVIDE (osSpTaskYield = 0x8089d9b0)
+                [!provide]                        PROVIDE (guMtxXFML = 0x8089d9d0)
+                [!provide]                        PROVIDE (guMtxCatL = 0x8089da30)
+                [!provide]                        PROVIDE (osContInit = 0x8089da90)
+                [!provide]                        PROVIDE (__osContGetInitData = 0x8089dc8c)
+                [!provide]                        PROVIDE (__osPackRequestData = 0x8089dd5c)
+                [!provide]                        PROVIDE (osContSetCh = 0x8089de50)
+                [!provide]                        PROVIDE (osContStartReadData = 0x8089dec0)
+                [!provide]                        PROVIDE (osContGetReadData = 0x8089df84)
+                [!provide]                        PROVIDE (osInvalICache = 0x8089e120)
+                [!provide]                        PROVIDE (bzero = 0x8089e1a0)
+                [!provide]                        PROVIDE (osContStartQuery = 0x8089e240)
+                [!provide]                        PROVIDE (osContGetQuery = 0x8089e2c4)
+                [!provide]                        PROVIDE (guNormalize = 0x8089e2f0)
+                [!provide]                        PROVIDE (__osSetSR = 0x8089e380)
+                [!provide]                        PROVIDE (__osGetSR = 0x8089e390)
+                [!provide]                        PROVIDE (__osSetFpcCsr = 0x8089e3a0)
+                [!provide]                        PROVIDE (__osSiRawReadIo = 0x8089e3b0)
+                [!provide]                        PROVIDE (__osSiRawWriteIo = 0x8089e400)
+                [!provide]                        PROVIDE (__osExceptionPreamble = 0x8089e450)
+                [!provide]                        PROVIDE (__osException = 0x8089e460)
+                [!provide]                        PROVIDE (send_mesg = 0x8089e9a8)
+                [!provide]                        PROVIDE (__osEnqueueAndYield = 0x8089ea90)
+                [!provide]                        PROVIDE (__osEnqueueThread = 0x8089eb20)
+                [!provide]                        PROVIDE (__osPopThread = 0x8089eb68)
+                [!provide]                        PROVIDE (__osDispatchThread = 0x8089eb78)
+                [!provide]                        PROVIDE (__osCleanupThread = 0x8089ecb8)
+                [!provide]                        PROVIDE (osMapTLBRdb = 0x8089ecc0)
+                [!provide]                        PROVIDE (__osDisableInt = 0x8089ed20)
+                [!provide]                        PROVIDE (__osRestoreInt = 0x8089ed40)
+                [!provide]                        PROVIDE (__osDequeueThread = 0x8089ed60)
+                [!provide]                        PROVIDE (__osPiCreateAccessQueue = 0x8089eda0)
+                [!provide]                        PROVIDE (__osPiGetAccess = 0x8089edf0)
+                [!provide]                        PROVIDE (__osPiRelAccess = 0x8089ee34)
+                [!provide]                        PROVIDE (osGetThreadPri = 0x8089ee60)
+                [!provide]                        PROVIDE (osPiRawStartDma = 0x8089ee80)
+                [!provide]                        PROVIDE (__osDevMgrMain = 0x8089ef60)
+                [!provide]                        PROVIDE (__osTimerServicesInit = 0x8089f0e0)
+                [!provide]                        PROVIDE (__osTimerInterrupt = 0x8089f16c)
+                [!provide]                        PROVIDE (__osSetTimerIntr = 0x8089f2e4)
+                [!provide]                        PROVIDE (__osInsertTimer = 0x8089f358)
+                [!provide]                        PROVIDE (__osProbeTLB = 0x8089f4e0)
+                [!provide]                        PROVIDE (_Printf = 0x8089f5a0)
+                0x802dd3dc                        _Putfld = 0x802dd3dc
+                [!provide]                        PROVIDE (memcpy = 0x808a0730)
+                [!provide]                        PROVIDE (strlen = 0x808a075c)
+                [!provide]                        PROVIDE (strchr = 0x808a0784)
+                [!provide]                        PROVIDE (alCopy = 0x808a07d0)
+                [!provide]                        PROVIDE (alSynDelete = 0x808a0850)
+                [!provide]                        PROVIDE (__setInstChanState = 0x808a0860)
+                [!provide]                        PROVIDE (__resetPerfChanState = 0x808a08b4)
+                [!provide]                        PROVIDE (__initFromBank = 0x808a0934)
+                [!provide]                        PROVIDE (__vsDelta = 0x808a09f0)
+                [!provide]                        PROVIDE (__vsVol = 0x808a0a14)
+                [!provide]                        PROVIDE (__seqpReleaseVoice = 0x808a0a9c)
+                [!provide]                        PROVIDE (__voiceNeedsNoteKill = 0x808a0bc8)
+                [!provide]                        PROVIDE (__unmapVoice = 0x808a0c70)
+                [!provide]                        PROVIDE (__postNextSeqEvent = 0x808a0ce0)
+                [!provide]                        PROVIDE (__vsPan = 0x808a0e34)
+                [!provide]                        PROVIDE (__lookupVoice = 0x808a0e7c)
+                [!provide]                        PROVIDE (__mapVoice = 0x808a0ef0)
+                [!provide]                        PROVIDE (__lookupSoundQuick = 0x808a0f60)
+                [!provide]                        PROVIDE (__seqpStopOsc = 0x808a1ea0)
+                [!provide]                        PROVIDE (__initChanState = 0x808a1fa4)
+                [!provide]                        PROVIDE (alSeqpNew = 0x808a2014)
+                [!provide]                        PROVIDE (alSynStartVoiceParams = 0x808a21a0)
+                [!provide]                        PROVIDE (__osViSwapContext = 0x808a2290)
+                [!provide]                        PROVIDE (__osAiDeviceBusy = 0x808a25f0)
+                [!provide]                        PROVIDE (alSaveNew = 0x808a2620)
+                [!provide]                        PROVIDE (alMainBusNew = 0x808a2664)
+                [!provide]                        PROVIDE (alAuxBusNew = 0x808a26b8)
+                [!provide]                        PROVIDE (alResampleNew = 0x808a270c)
+                [!provide]                        PROVIDE (alLoadNew = 0x808a2794)
+                [!provide]                        PROVIDE (alEnvmixerNew = 0x808a283c)
+                [!provide]                        PROVIDE (init_lpfilter = 0x808a28e0)
+                [!provide]                        PROVIDE (alFxNew = 0x808a2980)
+                [!provide]                        PROVIDE (alSynAllocFX = 0x808a2da0)
+                [!provide]                        PROVIDE (alMainBusParam = 0x808a2e40)
+                [!provide]                        PROVIDE (alMainBusPull = 0x808a2e70)
+                [!provide]                        PROVIDE (alLoadParam = 0x808a2f90)
+                [!provide]                        PROVIDE (alRaw16Pull = 0x808a3164)
+                [!provide]                        PROVIDE (alAdpcmPull = 0x808a363c)
+                [!provide]                        PROVIDE (alResampleParam = 0x808a3ae0)
+                [!provide]                        PROVIDE (alResamplePull = 0x808a3bcc)
+                [!provide]                        PROVIDE (_ldexpf = 0x808a3de0)
+                [!provide]                        PROVIDE (_frexpf = 0x808a3e08)
+                [!provide]                        PROVIDE (alEnvmixerParam = 0x808a3ef4)
+                [!provide]                        PROVIDE (alEnvmixerPull = 0x808a433c)
+                [!provide]                        PROVIDE (alAuxBusParam = 0x808a49c0)
+                [!provide]                        PROVIDE (alAuxBusPull = 0x808a49f0)
+                [!provide]                        PROVIDE (alSaveParam = 0x808a4ad0)
+                [!provide]                        PROVIDE (alSavePull = 0x808a4b04)
+                [!provide]                        PROVIDE (osJamMesg = 0x808a4b90)
+                [!provide]                        PROVIDE (osPiGetCmdQueue = 0x808a4ce0)
+                [!provide]                        PROVIDE (__osViGetCurrentContext = 0x808a4d10)
+                [!provide]                        PROVIDE (__osSpGetStatus = 0x808a4d20)
+                [!provide]                        PROVIDE (bcopy = 0x808a4d30)
+                [!provide]                        PROVIDE (__osSpSetStatus = 0x808a5040)
+                [!provide]                        PROVIDE (__osSpSetPc = 0x808a5050)
+                [!provide]                        PROVIDE (__osSpRawStartDma = 0x808a5090)
+                [!provide]                        PROVIDE (__osSpDeviceBusy = 0x808a5120)
+                [!provide]                        PROVIDE (__osSiRawStartDma = 0x808a5150)
+                [!provide]                        PROVIDE (__osSiCreateAccessQueue = 0x808a5200)
+                [!provide]                        PROVIDE (__osSiGetAccess = 0x808a5250)
+                [!provide]                        PROVIDE (__osSiRelAccess = 0x808a5294)
+                [!provide]                        PROVIDE (__osSiDeviceBusy = 0x808a52c0)
+                [!provide]                        PROVIDE (kdebugserver = 0x808a5588)
+                [!provide]                        PROVIDE (__osSyncPutChars = 0x808a5770)
+                [!provide]                        PROVIDE (__osSetCompare = 0x808a58a0)
+                [!provide]                        PROVIDE (_Litob = 0x808a58b0)
+                [!provide]                        PROVIDE (_Ldtob = 0x808a5bb0)
+                [!provide]                        PROVIDE (alSeqGetLoc = 0x808a6980)
+                [!provide]                        PROVIDE (alSeqSetLoc = 0x808a699c)
+                [!provide]                        PROVIDE (alSeqGetTicks = 0x808a69b8)
+                [!provide]                        PROVIDE (alSeqNextEvent = 0x808a6a14)
+                [!provide]                        PROVIDE (alSeqNewMarker = 0x808a6b98)
+                [!provide]                        PROVIDE (alSeqSecToTicks = 0x808a6cb8)
+                [!provide]                        PROVIDE (alSeqTicksToSec = 0x808a6d9c)
+                [!provide]                        PROVIDE (__alSeqNextDelta = 0x808a6df0)
+                [!provide]                        PROVIDE (alSeqNew = 0x808a6ec8)
+                [!provide]                        PROVIDE (alSynSetPriority = 0x808a6fa0)
+                [!provide]                        PROVIDE (alFilterNew = 0x808a6fb0)
+                [!provide]                        PROVIDE (_doModFunc = 0x808a6fd0)
+                [!provide]                        PROVIDE (_filterBuffer = 0x808a7078)
+                [!provide]                        PROVIDE (_saveBuffer = 0x808a7130)
+                [!provide]                        PROVIDE (_loadBuffer = 0x808a72b8)
+                [!provide]                        PROVIDE (_loadOutputBuffer = 0x808a7444)
+                [!provide]                        PROVIDE (alFxParamHdl = 0x808a7668)
+                [!provide]                        PROVIDE (alFxParam = 0x808a7880)
+                [!provide]                        PROVIDE (alFxPull = 0x808a7898)
+                [!provide]                        PROVIDE (__osGetCause = 0x808a7be0)
+                [!provide]                        PROVIDE (__osAtomicDec = 0x808a7bf0)
+                [!provide]                        PROVIDE (lldiv = 0x808a7c50)
+                [!provide]                        PROVIDE (ldiv = 0x808a7d50)
+                0x80306590                        osClockRate = 0x80306590
+                0x80306598                        __osShutdown = 0x80306598
+                0x803065a0                        __osPiDevMgr = 0x803065a0
+                0x803065c0                        alGlobals = 0x803065c0
+                0x80306e30                        __osViCurr = 0x80306e30
+                0x80306e34                        __osViNext = 0x80306e34
+                0x80306e38                        __osViTvType = 0x80306e38
+                0x80306e3c                        osViClock = 0x80306e3c
+                0x80307760                        __osThreadTail = 0x80307760
+                0x80307768                        __osRunQueue = 0x80307768
+                0x8030776c                        __osActiveQueue = 0x8030776c
+                0x80307770                        __osRunningThread = 0x80307770
+                0x80307780                        __osPiAccessQueueEnabled = 0x80307780
+                0x80307790                        __osTimerList = 0x80307790
+                0x80307b20                        __osSiAccessQueueEnabled = 0x80307b20
+                0x80307b40                        __osRdbSendMessage = 0x80307b40
+                0x80307b44                        __osRdbWriteOK = 0x80307b44
+                0x8030de10                        __libm_qnan_f = 0x8030de10
+                0x803ff180                        __osEventStateTab = 0x803ff180
+                0x803ff240                        __osContPifRam = 0x803ff240
+                0x803ff280                        __osContLastCmd = 0x803ff280
+                0x803ff281                        __osMaxControllers = 0x803ff281
+                0x803ff2d8                        __osPiAccessQueue = 0x803ff2d8
+                0x803ff310                        __osCurrentTime = 0x803ff310
+                0x803ff318                        __osBaseCounter = 0x803ff318
+                0x803ff31c                        __osViIntrCount = 0x803ff31c
+                0x803ff320                        __osTimerCounter = 0x803ff320
+                0x803ff338                        __osSiAccessQueue = 0x803ff338
+                0x80307774                        __osFaultedThread = 0x80307774
+                0x803077f0                        osViModeNtscLan1 = 0x803077f0
+                0x80307840                        osViModeMpalLan1 = 0x80307840
+                0x803ff2f0                        __osBaseTimer = 0x803ff2f0
+                0x8036bb18                        currentYoshiWindow = 0x8036bb18
+                0x8036bb1c                        yoshiState = 0x8036bb1c
+                0x8036bb14                        yoshiDemandV = 0x8036bb14
+                0x8036c778                        postFadeLoop_done = 0x8036c778
+                0x8030c688                        D_8030C688 = 0x8030c688
+                0x8030c690                        D_8030C690 = 0x8030c690
+                0x8030c694                        D_8030C694 = 0x8030c694
+                0x8030c698                        D_8030C698 = 0x8030c698
+                0x8030c6a0                        D_8030C6A0 = 0x8030c6a0
+                0x8030c6a8                        D_8030C6A8 = 0x8030c6a8
+                0x8030c6b0                        D_8030C6B0 = 0x8030c6b0
+                0x8030c6b8                        D_8030C6B8 = 0x8030c6b8
+                0x8030c6c0                        D_8030C6C0 = 0x8030c6c0
+                0x8030c6c8                        D_8030C6C8 = 0x8030c6c8
+                [!provide]                        PROVIDE (func_802AD7D4 = 0x8086ca80)
+                [!provide]                        PROVIDE (func_802AD7FC = 0x8086caa4)
+                [!provide]                        PROVIDE (func_802AE104 = 0x8086d468)
+                [!provide]                        PROVIDE (func_802AE160 = 0x8086d4c8)
+                [!provide]                        PROVIDE (func_802AE1BC = 0x8086d528)
+                [!provide]                        PROVIDE (func_802AE290 = 0x8086d668)
+                [!provide]                        PROVIDE (func_802C4070 = 0x808850b0)
+                [!provide]                        PROVIDE (func_802C4108 = 0x808850ec)
+                [!provide]                        PROVIDE (func_802C41C0 = 0x80885168)
+                [!provide]                        PROVIDE (func_802C42CC = 0x8088538c)
+                [!provide]                        PROVIDE (func_802C4310 = 0x80885418)
+                [!provide]                        PROVIDE (func_802C444C = 0x8088546c)
+                [!provide]                        PROVIDE (func_802C4584 = 0x808854b4)
+                [!provide]                        PROVIDE (func_802C4724 = 0x80885588)
+                [!provide]                        PROVIDE (func_8029CB04 = 0x80858f38)
+                [!provide]                        PROVIDE (func_8029CB54 = 0x80858f70)
+                0x803ff288                        __osEepromTimer = 0x803ff288
+                0x803ff2a8                        __osEepromTimerQ = 0x803ff2a8
+                0x803ff2c0                        __osEepromTimerMsg = 0x803ff2c0
+                0x80304954                        D_80304954 = 0x80304954
+                0x80358058                        D_80358058 = 0x80358058
+                0x8035806c                        D_8035806C = 0x8035806c
+                0x01000010                        D_01000010 = 0x1000010
+                0x006e8980                        D_006E8980 = 0x6e8980
+                0x006ea850                        D_006EA850 = 0x6ea850
+                0x006eab90                        D_006EAB90 = 0x6eab90
+                0x006ec4c0                        D_006EC4C0 = 0x6ec4c0
+                0x0068b550                        D_0068B550 = 0x68b550
+                0x006a32b0                        D_006A32B0 = 0x6a32b0
+                0x8020e3e0                        D_8020E3E0 = 0x8020e3e0
+                0x8036bb1c                        D_8036BB1C = 0x8036bb1c
+                0x0048f5a0                        D_0048F5A0 = 0x48f5a0
+                0x0048f970                        D_0048F5A0_end = 0x48f970
+                0x0048f970                        D_0048F970 = 0x48f970
+                0x0048fa70                        D_0048F970_end = 0x48fa70
+                0x80303b78                        D_80303B78 = 0x80303b78
+                0x80303b88                        D_80303B88 = 0x80303b88
+                0x80303b3c                        D_80303B3C = 0x80303b3c
+                0x80303b48                        D_80303B48 = 0x80303b48
+                0x80303b58                        D_80303B58 = 0x80303b58
+                0x80303b68                        D_80303B68 = 0x80303b68
+                0x8036b980                        D_8036B980 = 0x8036b980
+                0x8036ea70                        D_8036EA70 = 0x8036ea70
+                0x01000038                        D_01000038 = 0x1000038
+                0x80315440                        D_80315440 = 0x80315440
+                0x80204c10                        PROVIDE (func_80204C10 = 0x80204c10)
+                0x802050f0                        PROVIDE (func_802050F0 = 0x802050f0)
+                0x802042d0                        PROVIDE (func_802042D0 = 0x802042d0)
+                0x80204410                        PROVIDE (func_80204410 = 0x80204410)
+                0x006ad3f0                        D_006AD3F0 = 0x6ad3f0
+                0x006bf2f0                        D_006BF2F0 = 0x6bf2f0
+                0x006d3d30                        D_006D3D30 = 0x6d3d30
+                0x8021591c                        D_8021591C = 0x8021591c
+                0x8020bc88                        D_8020BC88 = 0x8020bc88
+                0x80217288                        D_80217288 = 0x80217288
+                0x02000000                        D_02000000 = 0x2000000
+                0x8021a8ec                        D_8021A8EC = 0x8021a8ec
+OUTPUT(build_nm/hd_front_end.us.v11.elf elf32-tradbigmips)

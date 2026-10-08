@@ -338,35 +338,76 @@ void saveWindow(const char *name) {
 }
 
 /* ---- input ------------------------------------------------------------------- */
-SDL_GameController *g_pad;
+/* every game controller SDL knows is opened (in the order they appeared);
+ * bc.ini's controller.pad picks which one plays (default the first) or all */
+std::vector<SDL_GameController *> g_pads;
 unsigned short g_button;
 signed char g_stickX, g_stickY;
 bool g_inputHold;
 
 void openPad() {
-    if (g_pad != nullptr) return;
-    for (int i = 0; i < SDL_NumJoysticks(); i++)
-        if (SDL_IsGameController(i) && (g_pad = SDL_GameControllerOpen(i)) != nullptr) {
-            host_log("live: controller: %s\n", SDL_GameControllerName(g_pad));
-            return;
+    for (int i = 0; i < SDL_NumJoysticks(); i++) {
+        if (!SDL_IsGameController(i)) continue;
+        SDL_JoystickID id = SDL_JoystickGetDeviceInstanceID(i);
+        bool have = false;
+        for (SDL_GameController *p : g_pads)
+            have |= SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(p)) == id;
+        if (have) continue;
+        SDL_GameController *p = SDL_GameControllerOpen(i);
+        if (p != nullptr) {
+            g_pads.push_back(p);
+            host_log("live: controller %u: %s\n", unsigned(g_pads.size()), SDL_GameControllerName(p));
+        }
+    }
+}
+
+void closeRemovedPads() {
+    for (size_t i = 0; i < g_pads.size();)
+        if (!SDL_GameControllerGetAttached(g_pads[i])) {
+            host_log("live: controller %u removed\n", unsigned(i + 1));
+            SDL_GameControllerClose(g_pads[i]);
+            g_pads.erase(g_pads.begin() + i);
+        } else {
+            i++;
         }
 }
 
-/* an axis as an N64 stick value (-80..80), 0 inside the dead zone */
-int axis(int a) {
-    int v = SDL_GameControllerGetAxis(g_pad, SDL_GameControllerAxis(a));
+/* the controllers that drive the N64 pad now */
+std::vector<SDL_GameController *> activePads() {
+    if (g_cfg.padIndex < 0) return g_pads;
+    if (size_t(g_cfg.padIndex) < g_pads.size()) return {g_pads[size_t(g_cfg.padIndex)]};
+    return {};
+}
+
+std::vector<std::string> padNames() {
+    std::vector<std::string> out;
+    for (SDL_GameController *p : g_pads) out.push_back(SDL_GameControllerName(p) ? SDL_GameControllerName(p) : "?");
+    return out;
+}
+
+bool isActivePadEvent(SDL_JoystickID which) {
+    for (SDL_GameController *p : activePads())
+        if (SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(p)) == which) return true;
+    return false;
+}
+
+/* an axis as an N64 stick value (-80..80 at full tilt), 0 inside the dead
+ * zone; the stick sensitivity scales it (100 %: the full N64 range) */
+int axis(SDL_GameController *pad, int a, bool stick) {
+    int v = SDL_GameControllerGetAxis(pad, SDL_GameControllerAxis(a));
     if (v > -g_cfg.deadzone && v < g_cfg.deadzone) return 0;
-    return v * 80 / 32767;
+    if (!stick || g_cfg.sensitivity == 100) return v * 80 / 32767;
+    return int(double(v) * 80.0 * g_cfg.sensitivity / (100.0 * 32767.0));
 }
 
-bool padActive(const live::PadInput &in) {
-    if (in.button >= 0) return SDL_GameControllerGetButton(g_pad, SDL_GameControllerButton(in.button)) != 0;
+bool padActive(SDL_GameController *pad, const live::PadInput &in) {
+    if (in.button >= 0) return SDL_GameControllerGetButton(pad, SDL_GameControllerButton(in.button)) != 0;
     if (in.axis == SDL_CONTROLLER_AXIS_TRIGGERLEFT || in.axis == SDL_CONTROLLER_AXIS_TRIGGERRIGHT)
-        return SDL_GameControllerGetAxis(g_pad, SDL_GameControllerAxis(in.axis)) > 12000;
-    return axis(in.axis) * in.dir > 40;
+        return SDL_GameControllerGetAxis(pad, SDL_GameControllerAxis(in.axis)) > 12000;
+    return axis(pad, in.axis, false) * in.dir > 40;
 }
 
-/* N64 pad from the keyboard and the first game controller, by the bindings
+/* N64 pad from the keyboard and the game controller(s), by the bindings
  * in bc.ini (live_setup.cpp has the defaults):
  *   stick: arrows (keyboard), left stick       A: X / gamepad A
  *   B: C / gamepad B or X                      Z: Z or Space / either trigger
@@ -389,14 +430,14 @@ void pollInput() {
     if (keyDown(live::A_STICK_RIGHT)) x += 80;
     if (keyDown(live::A_STICK_UP)) y += 80;
     if (keyDown(live::A_STICK_DOWN)) y -= 80;
-    if (g_pad != nullptr) {
+    for (SDL_GameController *pad : activePads()) {
         for (int i = 0; i < live::kButtons; i++)
             for (const live::PadInput &in : g_cfg.pad[i])
-                if (padActive(in)) b |= live::kButtonBits[i];
+                if (padActive(pad, in)) b |= live::kButtonBits[i];
         if (g_cfg.padStick >= 0) {
             const bool right = g_cfg.padStick == 1;
-            int lx = axis(right ? SDL_CONTROLLER_AXIS_RIGHTX : SDL_CONTROLLER_AXIS_LEFTX);
-            int ly = -axis(right ? SDL_CONTROLLER_AXIS_RIGHTY : SDL_CONTROLLER_AXIS_LEFTY);
+            int lx = axis(pad, right ? SDL_CONTROLLER_AXIS_RIGHTX : SDL_CONTROLLER_AXIS_LEFTX, true);
+            int ly = -axis(pad, right ? SDL_CONTROLLER_AXIS_RIGHTY : SDL_CONTROLLER_AXIS_LEFTY, true);
             if (lx != 0 || ly != 0) x = lx, y = ly;
         }
     }
@@ -411,12 +452,15 @@ void pollInput() {
     g_stickY = (signed char) std::max(-80, std::min(80, y));
 }
 
-/* are the controller's menu buttons all held? */
+/* are a playing controller's menu buttons all held? */
 bool menuCombo() {
-    if (g_pad == nullptr || g_cfg.menuPad.empty()) return false;
-    for (int b : g_cfg.menuPad)
-        if (!SDL_GameControllerGetButton(g_pad, SDL_GameControllerButton(b))) return false;
-    return true;
+    if (g_cfg.menuPad.empty()) return false;
+    for (SDL_GameController *pad : activePads()) {
+        bool all = true;
+        for (int b : g_cfg.menuPad) all &= SDL_GameControllerGetButton(pad, SDL_GameControllerButton(b)) != 0;
+        if (all) return true;
+    }
+    return false;
 }
 
 /* ---- sound ------------------------------------------------------------------- */
@@ -653,7 +697,14 @@ void pumpEvents() {
         if (e.type == SDL_QUIT) shutdown(0);
         if (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED && g_cfg.aspect < 0)
             updateCullWide();
+        if (e.type == SDL_CONTROLLERDEVICEADDED) openPad();
+        if (e.type == SDL_CONTROLLERDEVICEREMOVED) closeRemovedPads();
         if (live::menuIsOpen()) {
+            /* waiting for a key or button to bind: everything goes to the menu */
+            if (live::menuCapturing()) {
+                live::menuEvent(e);
+                continue;
+            }
             /* the menu's own keys: Esc or the menu key close it, as do the
              * controller's menu buttons; fullscreen still switches */
             if (e.type == SDL_KEYDOWN && !e.key.repeat) {
@@ -673,11 +724,10 @@ void pumpEvents() {
                 continue;
             }
             live::menuEvent(e);
-            if (e.type == SDL_CONTROLLERDEVICEADDED) openPad();
             continue;
         }
         if (e.type == SDL_KEYDOWN && isKey(live::A_QUIT, e.key.keysym.scancode)) shutdown(0);
-        if (e.type == SDL_CONTROLLERBUTTONDOWN && g_pad != nullptr) {
+        if (e.type == SDL_CONTROLLERBUTTONDOWN && isActivePadEvent(e.cbutton.which)) {
             for (const live::PadInput &in : g_cfg.pad[live::A_QUIT])
                 if (in.button == e.cbutton.button) shutdown(0);
             if (menuCombo()) openMenu();
@@ -695,12 +745,6 @@ void pumpEvents() {
                 g_opt.volume = std::max(0, std::min(100, g_opt.volume + (e.key.keysym.scancode == SDL_SCANCODE_MINUS ? -10 : 10)));
                 host_log("live: volume %d%%\n", g_opt.volume);
             }
-        }
-        if (e.type == SDL_CONTROLLERDEVICEADDED) openPad();
-        if (e.type == SDL_CONTROLLERDEVICEREMOVED && g_pad != nullptr &&
-            !SDL_GameControllerGetAttached(g_pad)) {
-            SDL_GameControllerClose(g_pad);
-            g_pad = nullptr;
         }
     }
     pollInput();
@@ -1272,6 +1316,7 @@ void prestart(HostOpts *o) {
     menu.quit = [] { g_quitRequested = true; };
     menu.status = rendererStatus;
     menu.msaaSupported = msaaSupported;
+    menu.padNames = padNames;
     live::menuSetup(menu);
     host_crash_rearm();   /* in case the renderer or a driver installed its own filter */
     int ww, wh, pw, ph;

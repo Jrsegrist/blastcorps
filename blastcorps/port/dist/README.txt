@@ -27,7 +27,7 @@ the files of this folder kept together (bc.exe, SDL2.dll, dxcompiler.dll, dxil.d
 The folder must be writable (settings, saves and the log are kept here).
 
 
-Controls (default; change them in bc.ini)
+Controls (default; change them in the settings menu or bc.ini)
 ------------------------------------------
   N64            Keyboard            Game controller (XInput/Xbox and others)
   Analog stick   Arrow keys          Left stick
@@ -70,7 +70,8 @@ game is closed. It holds:
   [audio]      volume, mute
   [keyboard]   one line per N64 button: SDL key names, several separated by commas
   [controller] the same for a game controller, plus which stick is the analog stick,
-               its dead zone and the buttons that open the settings menu
+               its dead zone and sensitivity, which controller plays (pad = 1, 2 ...
+               or any) and the buttons that open the settings menu
 Delete bc.ini to get the defaults back. If a line isn't understood, the game says so
 when it starts and uses the default for it.
 

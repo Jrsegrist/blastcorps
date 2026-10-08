@@ -616,9 +616,20 @@ it without a fault.  The x64-asan preset is the tool for this now.
     checked against an independent model of the K-times-wider frustum over
     every test of levels 0, 13, 30 (1187 tests, K = 1, 4/3, 1.75: all
     agree; at 1.75, 184 tests turn visible only through the wider view).
-    Limits: markers that point at off-screen targets (30C70.c) still use
+    Limits (widescreen): markers that point at off-screen targets (30C70.c) still use
     the 4:3 edges; the HUD is centred, not anchored to the screen edges
     (that would need RT64's extended GBI origins in the game's lists).
+  - Controls (`[keyboard]`, `[controller]`): the menu's Controls tab remaps
+    every binding (click it, press the key, controller button, stick or
+    trigger; Backspace clears; the menu's own controller buttons are a
+    combination held together), sets the analog stick (left/right/none),
+    its dead zone and `sensitivity` (percent of the N64's full range at full
+    tilt; 100 = before), picks the controller (`pad = 1` the first one found,
+    the default, `N`, or `any` = all at once) and resets to the defaults.
+    Every SDL game controller is opened (hot-plugged ones too).  The game is
+    one-player: the platform reports only controller 1 (with the Controller
+    Pak); the ROM has no Rumble Pak code (no osMotor calls), so there is
+    nothing to map for rumble or other pads.
 - Pacing: each retrace's picture is handed to RT64 when its virtual time is
   due (60 per second of real time, QueryPerformanceCounter, 1 ms timer
   resolution), *before* the game works on the next retrace, so the hand-overs

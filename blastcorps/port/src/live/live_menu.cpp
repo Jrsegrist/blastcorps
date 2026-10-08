@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cfloat>
 #include <cmath>
 #include <cstdio>
 #include <memory>
@@ -45,7 +46,7 @@ std::atomic<bool> g_visible{false};   /* the present thread draws the menu */
 bool g_open;
 std::vector<Setting> g_dirty;         /* changed since the menu opened (saved when it closes) */
 std::string g_saveNote;               /* the last save's result */
-int g_tab;
+int g_selectTab = -1;                 /* testing: open this tab on the next frame */
 float g_fontPx = 16.0f;
 
 void markChanged(const std::string &section, const std::string &key) {
@@ -221,28 +222,172 @@ void audioTab(Config &c) {
     }
 }
 
+/* binding capture: the next key (keyboard column) or controller button /
+ * axis (controller column) becomes the action's binding */
+struct Capture {
+    int action = -1;
+    bool pad = false;
+    int frames = 0;              /* menu frames since it started (events of the click itself are ignored) */
+    std::vector<int> combo;      /* the menu's controller buttons, collected while held */
+};
+Capture g_cap;
+
+bool padBindable(int a) {
+    return a != A_STICK_UP && a != A_STICK_DOWN && a != A_STICK_LEFT && a != A_STICK_RIGHT;
+}
+
+int g_navCooldown;   /* menu frames without ImGui's gamepad navigation (the button just bound is still held) */
+
+void finishCapture() {
+    g_cap = Capture();
+    g_navCooldown = 30;
+}
+
+/* an event while capturing (the first ones belong to the click that started it) */
+void captureEvent(const SDL_Event &e) {
+    Config &c = *g_env.cfg;
+    if (g_cap.frames < 2) return;
+    const int a = g_cap.action;
+    if (e.type == SDL_KEYDOWN && !e.key.repeat) {
+        const SDL_Scancode sc = e.key.keysym.scancode;
+        if (sc == SDL_SCANCODE_ESCAPE) return finishCapture();
+        if (sc == SDL_SCANCODE_BACKSPACE || sc == SDL_SCANCODE_DELETE) {   /* clear */
+            if (g_cap.pad) {
+                if (a == A_MENU) c.menuPad.clear();
+                else c.pad[a].clear();
+                markChanged("controller", kActionNames[a]);
+            } else {
+                c.keys[a].clear();
+                markChanged("keyboard", kActionNames[a]);
+            }
+            return finishCapture();
+        }
+        if (!g_cap.pad) {
+            c.keys[a] = {sc};
+            markChanged("keyboard", kActionNames[a]);
+            return finishCapture();
+        }
+        return;
+    }
+    if (!g_cap.pad) return;
+    if (a == A_MENU) {   /* a combination: every button held until the first is let go */
+        if (e.type == SDL_CONTROLLERBUTTONDOWN &&
+            std::find(g_cap.combo.begin(), g_cap.combo.end(), int(e.cbutton.button)) == g_cap.combo.end())
+            g_cap.combo.push_back(e.cbutton.button);
+        if (e.type == SDL_CONTROLLERBUTTONUP && !g_cap.combo.empty()) {
+            c.menuPad = g_cap.combo;
+            markChanged("controller", "menu");
+            finishCapture();
+        }
+        return;
+    }
+    PadInput in;
+    if (e.type == SDL_CONTROLLERBUTTONDOWN) {
+        in.button = e.cbutton.button;
+    } else if (e.type == SDL_CONTROLLERAXISMOTION && std::abs(int(e.caxis.value)) > 20000) {
+        const bool trigger = e.caxis.axis == SDL_CONTROLLER_AXIS_TRIGGERLEFT || e.caxis.axis == SDL_CONTROLLER_AXIS_TRIGGERRIGHT;
+        if (trigger && e.caxis.value < 0) return;
+        in.axis = e.caxis.axis;
+        in.dir = trigger || e.caxis.value > 0 ? 1 : -1;
+    } else {
+        return;
+    }
+    c.pad[a] = {in};
+    markChanged("controller", kActionNames[a]);
+    finishCapture();
+}
+
+void resetControls(Config &c) {
+    Config d;
+    d.dir = c.dir;
+    configDefaults(d);
+    for (int a = 0; a < A_COUNT; a++) {
+        c.keys[a] = d.keys[a];
+        markChanged("keyboard", kActionNames[a]);
+        if (padBindable(a) && a != A_MENU) {
+            c.pad[a] = d.pad[a];
+            markChanged("controller", kActionNames[a]);
+        }
+    }
+    c.menuPad = d.menuPad;
+    c.padStick = d.padStick;
+    c.deadzone = d.deadzone;
+    c.sensitivity = d.sensitivity;
+    c.padIndex = d.padIndex;
+    for (const char *k : {"menu", "stick", "deadzone", "sensitivity", "pad"}) markChanged("controller", k);
+}
+
 void controlsTab(Config &c) {
-    ImGui::TextWrapped("%s", helpLine(c).c_str());
-    ImGui::Spacing();
-    if (ImGui::BeginTable("bindings", 3, ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV)) {
+    if (g_cap.action >= 0) {
+        ImGui::TextColored(ImVec4(1.0f, 0.85f, 0.3f, 1.0f), g_cap.pad
+                               ? (g_cap.action == A_MENU ? "Hold the controller buttons for \"%s\" together, then let go"
+                                                         : "Press a controller button, or push a stick or trigger, for \"%s\"")
+                               : "Press a key for \"%s\"",
+                           kActionLabels[g_cap.action]);
+        ImGui::TextDisabled("Esc: cancel   Backspace: no binding");
+    } else {
+        ImGui::TextDisabled("Click a binding (or select it and press A / Enter), then press the new key or button.");
+    }
+    const float rowH = ImGui::GetFrameHeightWithSpacing();
+    const float tableH = ImGui::GetContentRegionAvail().y - rowH * 5.6f - ImGui::GetTextLineHeightWithSpacing() * 3.2f;
+    if (ImGui::BeginTable("bindings", 3, ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_ScrollY,
+                          ImVec2(0.0f, std::max(rowH * 4.0f, tableH)))) {
+        ImGui::TableSetupScrollFreeze(0, 1);
         ImGui::TableSetupColumn("N64");
         ImGui::TableSetupColumn("Keyboard");
         ImGui::TableSetupColumn("Controller");
         ImGui::TableHeadersRow();
         for (int a = 0; a < A_COUNT; a++) {
+            ImGui::PushID(a);
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
+            ImGui::AlignTextToFramePadding();
             ImGui::TextUnformatted(kActionLabels[a]);
             ImGui::TableNextColumn();
-            ImGui::TextUnformatted(keyNames(c.keys[a]).c_str());
+            std::string k = keyNames(c.keys[a]);
+            if (g_cap.action == a && !g_cap.pad) k = "...";
+            if (ImGui::Button((k.empty() ? "-" : k).append("##k").c_str(), ImVec2(-FLT_MIN, 0.0f))) g_cap = {a, false, 0, {}};
             ImGui::TableNextColumn();
-            if (a == A_MENU) ImGui::TextUnformatted(menuPadNames(c.menuPad).c_str());
-            else if (a >= A_STICK_UP && a <= A_STICK_RIGHT) ImGui::TextUnformatted(c.padStick < 0 ? "-" : c.padStick ? "right stick" : "left stick");
-            else ImGui::TextUnformatted(padNames(c.pad[a]).c_str());
+            if (padBindable(a)) {
+                std::string p = a == A_MENU ? menuPadNames(c.menuPad) : padNames(c.pad[a]);
+                if (g_cap.action == a && g_cap.pad) p = "...";
+                if (ImGui::Button((p.empty() ? "-" : p).append("##p").c_str(), ImVec2(-FLT_MIN, 0.0f))) g_cap = {a, true, 0, {}};
+            } else {
+                ImGui::AlignTextToFramePadding();
+                ImGui::TextDisabled("%s", c.padStick < 0 ? "-" : c.padStick ? "right stick" : "left stick");
+            }
+            ImGui::PopID();
         }
         ImGui::EndTable();
     }
-    ImGui::TextDisabled("Bindings are set in bc.ini ([keyboard], [controller]).");
+    int stick = c.padStick + 1;
+    if (combo("Controller's analog stick", &stick, {"None", "Left stick (default)", "Right stick"})) {
+        c.padStick = stick - 1;
+        markChanged("controller", "stick");
+    }
+    int dz = c.deadzone;
+    if (ImGui::SliderInt("Dead zone", &dz, 0, 20000)) {
+        c.deadzone = dz;
+        markChanged("controller", "deadzone");
+    }
+    int sens = c.sensitivity;
+    if (ImGui::SliderInt("Stick sensitivity", &sens, 25, 200, "%d %%")) {
+        c.sensitivity = sens;
+        markChanged("controller", "sensitivity");
+    }
+    help("100 %: full tilt is the N64 stick's full range, as before.");
+    std::vector<std::string> pads = {"All of them"};
+    std::vector<std::string> connected = g_env.padNames ? g_env.padNames() : std::vector<std::string>();
+    const int n = std::max(int(connected.size()), c.padIndex + 1);
+    for (int i = 0; i < n; i++)
+        pads.push_back(std::to_string(i + 1) + ": " + (i < int(connected.size()) ? connected[i] : "(not connected)"));
+    int sel = c.padIndex + 1;
+    if (combo("Game controller", &sel, pads)) {
+        c.padIndex = sel - 1;
+        markChanged("controller", "pad");
+    }
+    help("Which game controller plays (the game has one player). The first one found is the default.");
+    if (ImGui::Button("Default controls")) resetControls(c);
 }
 
 void build() {
@@ -256,18 +401,20 @@ void build() {
                      ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
                          ImGuiWindowFlags_NoSavedSettings)) {
         if (ImGui::BeginTabBar("tabs")) {
-            if (ImGui::BeginTabItem("Video")) {
+            auto flags = [](int i) { return g_selectTab == i ? ImGuiTabItemFlags_SetSelected : 0; };
+            if (ImGui::BeginTabItem("Video", nullptr, flags(0))) {
                 videoTab(c);
                 ImGui::EndTabItem();
             }
-            if (ImGui::BeginTabItem("Sound")) {
+            if (ImGui::BeginTabItem("Sound", nullptr, flags(1))) {
                 audioTab(c);
                 ImGui::EndTabItem();
             }
-            if (ImGui::BeginTabItem("Controls")) {
+            if (ImGui::BeginTabItem("Controls", nullptr, flags(2))) {
                 controlsTab(c);
                 ImGui::EndTabItem();
             }
+            g_selectTab = -1;
             ImGui::EndTabBar();
         }
         /* bottom rows */
@@ -311,6 +458,7 @@ void menuClose() {
     if (!g_open) return;
     g_open = false;
     g_visible = false;
+    g_cap = Capture();
     if (g_env.cfg->fullscreen) SDL_ShowCursor(SDL_DISABLE);
     if (!g_dirty.empty() && !g_env.cfg->file.empty()) {
         const bool ok = configSave(*g_env.cfg, g_dirty);
@@ -323,8 +471,16 @@ void menuClose() {
     g_dirty.clear();
 }
 
+bool menuCapturing() {
+    return g_open && g_cap.action >= 0;
+}
+
 bool menuEvent(SDL_Event &e) {
     if (!g_open || !g_inspector) return false;
+    if (g_cap.action >= 0) {
+        captureEvent(e);
+        return true;
+    }
     /* (the mouse position comes from menuFrame, in pixels) */
     if (e.type != SDL_MOUSEMOTION) g_inspector->handleSdlEvent(&e);
     return true;
@@ -337,13 +493,17 @@ bool menuEvent(SDL_Event &e) {
 void menuFrame() {
     if (!g_open || !g_inspector) return;
     std::lock_guard<std::mutex> lock(g_inspector->frameMutex);
+    ImGuiIO &io = ImGui::GetIO();
+    if (g_cap.action >= 0) g_cap.frames++;
+    if (g_navCooldown > 0) g_navCooldown--;
+    if (g_cap.action >= 0 || g_navCooldown > 0) io.ConfigFlags &= ~ImGuiConfigFlags_NavEnableGamepad;
+    else io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
     ImGui_ImplSDL2_NewFrame();
     if (g_inspector->graphicsAPI == RT64::UserConfiguration::GraphicsAPI::Vulkan) ImGui_ImplVulkan_NewFrame();
     else ImGui_ImplDX12_NewFrame();
     int ww = 0, wh = 0, pw = 0, ph = 0;
     SDL_GetWindowSize(g_env.window, &ww, &wh);
     SDL_GetWindowSizeInPixels(g_env.window, &pw, &ph);
-    ImGuiIO &io = ImGui::GetIO();
     if (pw > 0 && ph > 0 && ww > 0 && wh > 0) {
         io.DisplaySize = ImVec2(float(pw), float(ph));
         io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
@@ -364,7 +524,30 @@ void menuDraw(plume::RenderCommandList *list) {
 }
 
 bool menuTestSet(const std::string &spec) {
-    if (!g_open || !configSet(*g_env.cfg, spec)) return false;
+    if (!g_open) return false;
+    /* tab=N: show that tab; presskey=ACTION:KEY: bind a key the way a player
+     * does (start the capture, then a key press arrives as an SDL event) */
+    if (spec.rfind("tab=", 0) == 0) {
+        g_selectTab = atoi(spec.c_str() + 4);
+        return true;
+    }
+    if (spec.rfind("presskey=", 0) == 0) {
+        const size_t colon = spec.find(':');
+        if (colon == std::string::npos) return false;
+        const std::string act = spec.substr(9, colon - 9);
+        for (int a = 0; a < A_COUNT; a++)
+            if (act == kActionNames[a]) {
+                SDL_Event e = {};
+                e.type = SDL_KEYDOWN;
+                e.key.state = SDL_PRESSED;
+                e.key.keysym.scancode = SDL_GetScancodeFromName(spec.substr(colon + 1).c_str());
+                if (e.key.keysym.scancode == SDL_SCANCODE_UNKNOWN) return false;
+                g_cap = {a, false, 2, {}};
+                return SDL_PushEvent(&e) == 1;
+            }
+        return false;
+    }
+    if (!configSet(*g_env.cfg, spec)) return false;
     const size_t dot = spec.find('.'), eq = spec.find('=');
     std::string key = spec.substr(dot + 1, eq - dot - 1);
     for (char &ch : key) ch = char(tolower((unsigned char) ch));

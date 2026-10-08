@@ -39,6 +39,8 @@ void menuClose();                     /* saves the settings it changed */
 bool menuIsOpen();
 /* while open: every SDL event goes here first; true if the menu used it */
 bool menuEvent(SDL_Event &e);
+/* waiting for the key or button to bind (then every event is the menu's) */
+bool menuCapturing();
 /* one frame of the menu (main thread, before RT64's updateScreen) */
 void menuFrame();
 /* RT64's present thread, after the picture: draws the menu's last frame */

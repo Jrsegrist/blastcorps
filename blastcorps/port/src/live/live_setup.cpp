@@ -129,6 +129,11 @@ static const char kDefaultIni[] =
     "stick = left\r\n"
     "; Dead zone of that stick (0-32767).\r\n"
     "deadzone = 7000\r\n"
+    "; Its sensitivity in percent: 100 = the N64 stick's full range at full tilt (default).\r\n"
+    "sensitivity = 100\r\n"
+    "; Which game controller plays: 1 = the first one found (default), 2 = the second ...,\r\n"
+    "; or any = all of them together.\r\n"
+    "pad = 1\r\n"
     "; Buttons that, held together, open the settings menu (joined with +).\r\n"
     "menu = back+start\r\n";
 
@@ -329,6 +334,12 @@ static void parseText(Config &c, const std::string &text, const std::string &nam
                 else ok = false;
             } else if (section == "controller" && key == "deadzone") {
                 ok = parseInt(v, 0, 32767, c.deadzone);
+            } else if (section == "controller" && key == "sensitivity") {
+                ok = parseInt(v, 10, 400, c.sensitivity);
+            } else if (section == "controller" && key == "pad") {
+                std::string l = lower(v);
+                if (l == "any" || l == "all") c.padIndex = -1;
+                else ok = parseInt(l, 1, 16, n) && (c.padIndex = n - 1, true);
             } else if (section == "controller" && key == "menu") {
                 std::vector<int> combo;
                 size_t p = 0;
@@ -556,6 +567,8 @@ std::string configValue(const Config &c, const Setting &s) {
         if (k == "stick") return c.padStick == 0 ? "left" : c.padStick == 1 ? "right" : "none";
         if (k == "deadzone") return std::to_string(c.deadzone);
         if (k == "menu") return menuPadNames(c.menuPad);
+        if (k == "sensitivity") return std::to_string(c.sensitivity);
+        if (k == "pad") return c.padIndex < 0 ? "any" : std::to_string(c.padIndex + 1);
         for (int i = 0; i < A_COUNT; i++)
             if (k == kActionNames[i]) return padNames(c.pad[i]);
     }

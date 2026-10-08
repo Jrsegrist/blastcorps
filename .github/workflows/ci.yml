@@ -32,7 +32,7 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: ultralib submodule
         run: git submodule update --init lib/ultralib
@@ -44,7 +44,7 @@ jobs:
           "BC_BUILD=$env:RUNNER_TEMP\b" >> $env:GITHUB_ENV
           "BC_THIRDPARTY=$env:RUNNER_TEMP\thirdparty" >> $env:GITHUB_ENV
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -66,16 +66,45 @@ jobs:
             ForEach-Object { $_.ToString("x2") })
           "key=thirdparty-v1-$h" >> $env:GITHUB_OUTPUT
 
-      - name: Third-party cache
-        uses: actions/cache@v4
+      - name: Third-party cache (restore)
+        id: tpcache
+        uses: actions/cache/restore@v6
         with:
           path: ${{ env.BC_THIRDPARTY }}
           key: ${{ runner.os }}-${{ steps.tpkey.outputs.key }}
 
+      # VsDevCmd.bat's environment for the later steps (what a "x64 Native Tools
+      # Command Prompt" has: cl, link, the Windows SDK, CMake and Ninja)
       - name: Visual Studio x64 environment
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x64
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $vs = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
+            -property installationPath
+          if (-not $vs) { throw "no Visual Studio with the x64 C++ tools" }
+          "Visual Studio: $vs"
+          $bat = Join-Path $env:RUNNER_TEMP "vsenv.bat"
+          "@call `"$vs\Common7\Tools\VsDevCmd.bat`" -arch=amd64 -host_arch=amd64 -no_logo`r`n" +
+            "@if errorlevel 1 exit /b 1`r`n@set`r`n" | Set-Content -Encoding ascii -NoNewline $bat
+          $vars = & cmd.exe /d /c $bat
+          if ($LASTEXITCODE) { throw "VsDevCmd.bat failed" }
+          $n = 0
+          foreach ($l in $vars) {
+            if ($l -notmatch '^([^=]+)=(.*)$') { continue }
+            $name, $value = $Matches[1], $Matches[2]
+            if ([Environment]::GetEnvironmentVariable($name) -eq $value) { continue }
+            if ($name -eq "Path") {
+              # the new folders, through GITHUB_PATH (each line goes in front: reversed keeps VS's order)
+              $old = $env:Path -split ";"
+              $new = @($value -split ";" | Where-Object { $_ -and $old -notcontains $_ })
+              [array]::Reverse($new)
+              $new | ForEach-Object { $_ >> $env:GITHUB_PATH }
+              "PATH: $($new.Count) folders added"
+            } else {
+              "$name=$value" >> $env:GITHUB_ENV
+              $n++
+            }
+          }
+          "$n variables set"
 
       - name: Tools
         run: |
@@ -91,6 +120,14 @@ jobs:
           cmake --preset x64-release -B "${{ env.BC_BUILD }}"
           "-DBC_THIRDPARTY=${{ env.BC_THIRDPARTY }}"
           "-DPython3_EXECUTABLE=${{ env.pythonLocation }}\python.exe"
+
+      # (right after the downloads, so a failing build still keeps them)
+      - name: Third-party cache (save)
+        if: steps.tpcache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ env.BC_THIRDPARTY }}
+          key: ${{ runner.os }}-${{ steps.tpkey.outputs.key }}
 
       - name: Build bc.exe and bc_headless.exe
         run: cmake --build "${{ env.BC_BUILD }}"
@@ -126,14 +163,14 @@ jobs:
           "pdb=$(($z | Where-Object Name -like '*-pdb.zip').FullName)" >> $env:GITHUB_OUTPUT
 
       - name: Upload the player package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: BlastCorps-port-${{ github.sha }}
           path: ${{ steps.dist.outputs.zip }}
           if-no-files-found: error
 
       - name: Upload the symbols (bc.pdb, map, syms)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: BlastCorps-port-${{ github.sha }}-pdb
           path: ${{ steps.dist.outputs.pdb }}
@@ -144,7 +181,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: ultralib submodule
         run: git submodule update --init lib/ultralib
@@ -154,7 +191,7 @@ jobs:
           sudo apt-get update -q
           sudo apt-get install -y -q --no-install-recommends clang-18 binutils-mingw-w64-x86-64 gcc-multilib
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 

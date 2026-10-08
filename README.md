@@ -104,6 +104,27 @@ addresses are PI (cartridge DMA) registers, and `0x1FC007FC` is the PIF RAM cont
 whether an existing N64 decomp (e.g. the [n64decomp](https://github.com/n64decomp) projects) already has a matching,
 documented implementation before decompiling these from scratch.
 
+## Decomp status
+
+`python3 tools_port/decomp_status.py` (from `blastcorps/`, after a matching build) counts every
+function of the three code segments by category. Permanent hand-written assembly is listed in
+`tools_port/hand_asm.txt`; `-v` lists the functions that are not matched C.
+
+| segment | functions | matched C | hand asm + NM C | hand asm, no C | near-miss | unmatched IDO C | IDO C matched |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| init | 43 | 31 | 0 | 12 | 0 | 0 | 100.0% |
+| hd_code | 1417 | 709 | 681 | 27 | 0 | 0 | 100.0% |
+| hd_front_end | 155 | 147 | 6 | 0 | 2 | 0 | 98.7% |
+| total | 1615 | 887 | 687 | 39 | 2 | 0 | 99.8% |
+
+- **matched C**: compiled from C in the byte-matching build (game code and the ultralib-based SDK).
+- **hand asm**: Rare's hand-written game code (hd_code 56040–8DDB0, the front end's 1B100
+  wrappers), the libultra `.s` routines and the boot entry. They stay `GLOBAL_ASM` in the
+  matching build; the port uses the `NON_MATCHING` C versions where they exist ("+ NM C"), and its
+  platform layer replaces the SDK ones.
+- **near-miss**: IDO-compiled functions still `GLOBAL_ASM` in the matching build, with
+  `NON_MATCHING` C that the port uses (front end func_801F58E8 and func_801FA74C).
+
 ## C tools
 
 C tools from queueRAM's `blast_corps_docs`, `sm64tools` and other places.

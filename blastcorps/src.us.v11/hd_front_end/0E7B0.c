@@ -137,7 +137,12 @@ void func_801F57B0(void) {
  * (0x801F5EE8, the switch end) carrying `sb done` in its delay slot. IDO drops
  * that branch for every spelling tried: explicit break/goto/else, trailing
  * `default:`/`case 4:` (4 is the jtbl's default), do/while(0), while+break,
- * dead code after the break, an unused label. The callers' func_801F6160,
+ * dead code after the break, an unused label. Oct 2026, ~35 more: a break inside the if,
+ * double breaks, used labels (gotos) in and after the switch, trailing cases with if (0) /
+ * dead-assert / while (0) bodies, dead calls/stores/return/continue after the break, ternary
+ * and && statements, empty else, a nested switch, `if (!c) break;`, block locals. No -O1
+ * function in the matched build contains a `b` to the next instruction (only -O3 ultralib
+ * code does), so this may be an assembler or toolchain-version quirk. The callers' func_801F6160,
  * func_801F61C8 and func_801F6ED4 return values are used here (original
  * declared them s32 with no return statement), and func_801F58E8 takes no
  * argument (cast it for osCreateThread).

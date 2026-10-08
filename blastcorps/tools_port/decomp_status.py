@@ -1,0 +1,229 @@
+#!/usr/bin/env python3
+"""decomp_status: how far the matching decompilation is, per segment.
+
+Every function in the matching build falls in exactly one category:
+
+  matched C       compiled from C in the matching build (game C, ultralib wrappers)
+  hand+NM C       permanent hand-written asm (GLOBAL_ASM) with a NON_MATCHING C version
+  hand, no C      permanent hand-written asm with no C (e.g. libultra .s the port replaces)
+  near-miss       IDO C still behind GLOBAL_ASM, with a NON_MATCHING C draft
+  unmatched C     IDO C still behind GLOBAL_ASM, no C at all
+
+"Permanent hand-written" comes from tools_port/hand_asm.txt.  Functions are counted from the
+matching build's ELFs (build/<segment>.us.v11.elf: defined FUNC symbols, without jump-table
+L-labels), and the GLOBAL_ASM side from the #pragma lines in src.us.v11/<segment>/*.c and the
+glabels of each pragma's .s.  A pragma counts as having NON_MATCHING C when it sits on the
+matching-only side of an `#ifdef NON_MATCHING` / `#ifndef NON_MATCHING` block whose other side
+defines the function.
+
+usage: python3 tools_port/decomp_status.py [-v] [--markdown]
+  run from the repo dir (blastcorps/) after a matching build.
+"""
+import argparse
+import glob
+import os
+import re
+import subprocess
+import sys
+
+SEGMENTS = ['init', 'hd_code', 'hd_front_end']
+VERSION = 'us.v11'
+CATS = ['matched', 'hand_nm', 'hand', 'near', 'unmatched']
+CAT_TITLES = {
+    'matched': 'matched C',
+    'hand_nm': 'hand asm + NM C',
+    'hand': 'hand asm, no C',
+    'near': 'near-miss',
+    'unmatched': 'unmatched IDO C',
+}
+LABEL_RE = re.compile(r'^L[0-9A-F]{8}(_[0-9A-F]+)?$')
+PRAGMA_RE = re.compile(r'^\s*#\s*pragma\s+GLOBAL_ASM\(\s*"([^"]+)"\s*\)')
+COND_RE = re.compile(r'^\s*#\s*(ifdef|ifndef|if|elif|else|endif)\b(.*)')
+GLABEL_RE = re.compile(r'^\s*glabel\s+(\S+)')
+
+
+def load_hand_list(path):
+    """{(segment, file): set of names or None for every pragma}"""
+    hand = {}
+    for ln, line in enumerate(open(path), 1):
+        line = line.split('#', 1)[0].split()
+        if not line:
+            continue
+        key = line[0]
+        if '/' not in key or len(line) < 2:
+            sys.exit('%s:%d: expected "<segment>/<file> * | name..."' % (path, ln))
+        seg, f = key.split('/', 1)
+        names = None if line[1:] == ['*'] else set(line[1:])
+        hand[(seg, f)] = names
+    return hand
+
+
+def pragma_funcs(spath):
+    """function names defined by a GLOBAL_ASM .s (its non-label glabels in .text)"""
+    if not os.path.exists(spath):
+        return [os.path.splitext(os.path.basename(spath))[0]]
+    names = []
+    section = '.text'
+    for line in open(spath):
+        s = line.strip()
+        if s.startswith('.section'):
+            section = s.split()[1]
+            continue
+        if s in ('.text', '.late_rodata', '.rodata', '.data', '.bss'):
+            section = s
+            continue
+        m = GLABEL_RE.match(line)
+        if m and section == '.text' and not LABEL_RE.match(m.group(1)):
+            names.append(m.group(1))
+    return names or [os.path.splitext(os.path.basename(spath))[0]]
+
+
+def scan_source(cpath):
+    """[(pragma path, has_nm_c)] for one .c file"""
+    lines = open(cpath).read().split('\n')
+    # conditional stack entries: [is_nm, nm_when_true, in_true_branch, nm_text, pragmas]
+    stack = []
+    out = []
+    for line in lines:
+        m = COND_RE.match(line)
+        if m:
+            d, rest = m.group(1), m.group(2).strip()
+            if d in ('ifdef', 'ifndef', 'if'):
+                is_nm = bool(re.match(r'^(defined\s*\(?\s*)?NON_MATCHING\b', rest)) or \
+                    (d == 'if' and re.match(r'^defined\s*\(\s*NON_MATCHING\s*\)\s*$', rest) is not None)
+                nm_when_true = d != 'ifndef'
+                stack.append([is_nm, nm_when_true, True, [], []])
+            elif d in ('else', 'elif') and stack:
+                stack[-1][2] = False
+            elif d == 'endif' and stack:
+                is_nm, nm_true, _, nm_text, prags = stack.pop()
+                text = '\n'.join(nm_text)
+                for p in prags:
+                    p['nm_text'].append(text)
+            continue
+        m = PRAGMA_RE.match(line)
+        if m:
+            entry = {'path': m.group(1), 'nm_text': []}
+            for st in stack:
+                is_nm, nm_true, in_true = st[0], st[1], st[2]
+                if is_nm and nm_true != in_true:
+                    st[4].append(entry)  # pragma on the matching-only side
+            out.append(entry)
+            continue
+        for st in stack:
+            if st[0] and st[1] == st[2]:
+                st[3].append(line)
+    res = []
+    for e in out:
+        res.append((e['path'], e['nm_text']))
+    return res
+
+
+def elf_funcs(elf):
+    try:
+        txt = subprocess.run(['mips-linux-gnu-readelf', '-sW', elf], capture_output=True, text=True,
+                             check=True).stdout
+    except (OSError, subprocess.CalledProcessError) as e:
+        sys.exit('decomp_status: cannot read %s (%s); run the matching build first' % (elf, e))
+    names = set()
+    for line in txt.split('\n'):
+        f = line.split()
+        if len(f) < 8 or f[3] != 'FUNC' or f[6] in ('UND', 'ABS'):
+            continue
+        if LABEL_RE.match(f[7]):
+            continue
+        names.add(f[7])
+    return names
+
+
+def defines(text, name):
+    """does `text` define function `name` (a column-0 definition, ANSI or K&R)?"""
+    return re.search(r'^[A-Za-z_][\w \t*]*?\b%s\s*\([^;{}]*\)\s*(\{|[A-Za-z_])' % re.escape(name), text,
+                     re.M) is not None
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument('-v', '--verbose', action='store_true',
+                    help='list the hand-asm-without-C, near-miss and unmatched functions')
+    ap.add_argument('--markdown', action='store_true', help='print a Markdown table')
+    args = ap.parse_args()
+
+    hand = load_hand_list('tools_port/hand_asm.txt')
+    used_hand = set()
+    problems = []
+    rows = {}
+    lists = {'hand': [], 'near': [], 'unmatched': []}
+    for seg in SEGMENTS:
+        counts = dict.fromkeys(CATS, 0)
+        asm_names = set()
+        for cpath in sorted(glob.glob('src.%s/%s/*.c' % (VERSION, seg))):
+            f = os.path.splitext(os.path.basename(cpath))[0]
+            hl = hand.get((seg, f), False)
+            for spath, nm_texts in scan_source(cpath):
+                for name in pragma_funcs(spath):
+                    asm_names.add(name)
+                    is_hand = hl is None or (hl and name in hl)
+                    if is_hand:
+                        used_hand.add((seg, f, name if hl else '*'))
+                    has_nm = any(defines(t, name) for t in nm_texts)
+                    if nm_texts and not has_nm:
+                        problems.append('%s/%s: %s is under NON_MATCHING but no C defines it' % (seg, f, name))
+                    cat = ('hand_nm' if has_nm else 'hand') if is_hand else ('near' if has_nm else 'unmatched')
+                    counts[cat] += 1
+                    if cat in lists:
+                        lists[cat].append('%s/%s %s' % (seg, f, name))
+        funcs = elf_funcs('build/%s.%s.elf' % (seg, VERSION))
+        missing = asm_names - funcs
+        if missing:
+            problems.append('%s: GLOBAL_ASM functions missing from the ELF: %s' % (seg, ' '.join(sorted(missing))))
+        counts['matched'] = len(funcs - asm_names)
+        rows[seg] = counts
+    for (seg, f), names in hand.items():
+        for n in (['*'] if names is None else names):
+            if (seg, f, n) not in used_hand:
+                problems.append('hand_asm.txt: %s/%s %s is not a GLOBAL_ASM function (matched? stale entry?)'
+                                % (seg, f, n))
+
+    total = dict.fromkeys(CATS, 0)
+    for seg in SEGMENTS:
+        for c in CATS:
+            total[c] += rows[seg][c]
+    rows['total'] = total
+
+    def pct(r):
+        ido = r['matched'] + r['near'] + r['unmatched']
+        return 100.0 * r['matched'] / ido if ido else 100.0
+
+    head = ['segment', 'functions'] + [CAT_TITLES[c] for c in CATS] + ['IDO C matched']
+    body = []
+    for seg in SEGMENTS + ['total']:
+        r = rows[seg]
+        body.append([seg, str(sum(r.values()))] + [str(r[c]) for c in CATS] + ['%.1f%%' % pct(r)])
+    if args.markdown:
+        print('| ' + ' | '.join(head) + ' |')
+        print('|' + '|'.join(['---'] + ['---:'] * (len(head) - 1)) + '|')
+        for b in body:
+            print('| ' + ' | '.join(b) + ' |')
+    else:
+        w = [max(len(x[i]) for x in [head] + body) for i in range(len(head))]
+        fmt = '  '.join('%-' + str(w[0]) + 's' if i == 0 else '%' + str(w[i]) + 's' for i in range(len(head)))
+        print(fmt % tuple(head))
+        print('  '.join('-' * x for x in w))
+        for b in body:
+            if b[0] == 'total':
+                print('  '.join('-' * x for x in w))
+            print(fmt % tuple(b))
+    if args.verbose:
+        for c in ('hand', 'near', 'unmatched'):
+            if lists[c]:
+                print('\n%s:' % CAT_TITLES[c])
+                for x in lists[c]:
+                    print('  ' + x)
+    for p in problems:
+        print('warning: ' + p, file=sys.stderr)
+    return 1 if problems else 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

@@ -653,15 +653,23 @@ Gfx *func_801FA180(Gfx *arg0, Dynamic *dyn, f32 lon0, s8 *selected) {
  * TODO: func_801FA74C (1947 insns) draws one route between two levels: an arc of line segments
  * over the globe (gSPVertex + gSPLineW3D), coloured from (r0,g0,b0) to (r1,g1,b1), brightened
  * towards the camera, with the route-open fade timed by D_8021AB28 and a sound on completion.
- * The draft below is structurally complete (same frame 0x130, same locals, same rodata order)
- * but compiles to 1953 instructions with register-allocation differences throughout: IDO picks
- * other FP registers from the very first FP op (scale = 1.0f gets $f10, target $f4), and in the
- * func_8027690C call (i != 0 branch) x/y stay cached in FP registers, which then defeats the CSE
- * of D_8035805C, &D_80217B70 and dyn between the two Mtx arguments (+3 insns per call site).
- * Tried: statement/declaration-initializer orders, matrix spellings (array/struct/pointer
- * arithmetic), comma/one-line xyz, a pos[3] array, operand orders. Fixed along the way: the
- * MAX with D_8021AB28 is "(AB28 > e) ? AB28 : e", the colour factors are (f32) u8, *lon gets an
- * int ternary, the acos sign goes first (as in func_801FC5B8).
+ * The draft below compiles to 1953 instructions. Two edits give the target's 1947 with every
+ * opcode equal, leaving only register numbers (779 instructions, nearly all FP):
+ *   1. `switch (D_80217B6C) { case 3: <the i != 0 / else calls> break; default: if (i != 0)
+ *      *lon = ...; }` instead of the if/else: the case label stops ugen caching x/y in FP
+ *      registers across the func_8027690C call (+3 insns per call site otherwise);
+ *   2. bright = MAX2R(E, 0.0) with `#define MAX2R(a, b) ((b) > (a) ? (b) : (a))`: testing
+ *      0.0 first hoists its mtc1 pair.
+ * They are not applied to the NON_MATCHING code: with them, `make -C port verify` diverges at
+ * frame 1360 (emulator vs native, front-end counters off by one; probably a timing race the
+ * slower/faster code exposes), so the port keeps this form.
+ * IDO's FP temp choice is whole-function (a spelling change at the end moves registers at the
+ * start). A scripted greedy/random search over ~60 spelling sites (MIN/MAX/FABS operand orders,
+ * compare directions, sum/product operand orders) got the register diffs to 619 at best, with
+ * mixed macro spellings that look like noise. Fixed earlier: the MAX with D_8021AB28 is
+ * "(AB28 > e) ? AB28 : e", the colour factors are (f32) u8, *lon gets an int ternary, the acos
+ * sign goes first (as in func_801FC5B8). Also tried earlier: statement/declaration-initializer
+ * orders, matrix spellings, a pos[3] array.
  */
 #ifdef NON_MATCHING
 /* (The NON_MATCHING build uses this draft; checks in tools_port/checks/fe_11530.txt.) */

@@ -32,6 +32,7 @@ Discarded input sections
  .mdebug        0x00000000     0x1458 build_nm/src.us.v11/hd_front_end/07800.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/09570.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/09570.c.o
+ .mdebug        0x00000000     0x11e0 build_nm/src.us.v11/hd_front_end/09570.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/0C450.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/0C450.c.o
  .mdebug        0x00000000      0xfe8 build_nm/src.us.v11/hd_front_end/0C450.c.o
@@ -171,7 +172,7 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x00000000                        hd_front_end_ROM_START = __romPos
                 0x80900000                        hd_front_end_VRAM = ADDR (.hd_front_end)
 
-.hd_front_end   0x80900000    0x20ef0 load address 0x00000000
+.hd_front_end   0x80900000    0x20ee0 load address 0x00000000
                 0x80900000                        hd_front_end_TEXT_START = .
  build_nm/src.us.v11/hd_front_end/00000.c.o(.text)
  .text          0x80900000     0x1bb0 build_nm/src.us.v11/hd_front_end/00000.c.o
@@ -223,186 +224,186 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x80908300                func_801EF380
                 0x80908440                func_801EF4AC
  build_nm/src.us.v11/hd_front_end/09570.c.o(.text)
- .text          0x80909500     0x2ef0 build_nm/src.us.v11/hd_front_end/09570.c.o
+ .text          0x80909500     0x2ee0 build_nm/src.us.v11/hd_front_end/09570.c.o
                 0x80909500                func_801F0570
                 0x8090a4f8                func_801F1568
-                0x8090ad3c                func_801F1DA8
-                0x8090af94                func_801F2000
-                0x8090b3bc                func_801F2428
-                0x8090bdb4                func_801F2E20
+                0x8090ad38                func_801F1DA8
+                0x8090af90                func_801F2000
+                0x8090b3b8                func_801F2428
+                0x8090bdb0                func_801F2E20
  build_nm/src.us.v11/hd_front_end/0C450.c.o(.text)
- .text          0x8090c3f0     0x1a20 build_nm/src.us.v11/hd_front_end/0C450.c.o
-                0x8090c3f0                func_801F3450
-                0x8090c650                func_801F36B0
-                0x8090c6ec                func_801F374C
-                0x8090c904                func_801F3964
-                0x8090d0b0                func_801F4110
-                0x8090d818                func_801F4878
-                0x8090dbdc                func_801F4C3C
-                0x8090ddbc                func_801F4E1C
+ .text          0x8090c3e0     0x1a20 build_nm/src.us.v11/hd_front_end/0C450.c.o
+                0x8090c3e0                func_801F3450
+                0x8090c640                func_801F36B0
+                0x8090c6dc                func_801F374C
+                0x8090c8f4                func_801F3964
+                0x8090d0a0                func_801F4110
+                0x8090d808                func_801F4878
+                0x8090dbcc                func_801F4C3C
+                0x8090ddac                func_801F4E1C
  build_nm/src.us.v11/hd_front_end/0DE70.c.o(.text)
- .text          0x8090de10      0x950 build_nm/src.us.v11/hd_front_end/0DE70.c.o
-                0x8090de10                func_801F4E70
-                0x8090df64                func_801F4FBC
-                0x8090e170                func_801F51C8
-                0x8090e580                func_801F55D8
+ .text          0x8090de00      0x950 build_nm/src.us.v11/hd_front_end/0DE70.c.o
+                0x8090de00                func_801F4E70
+                0x8090df54                func_801F4FBC
+                0x8090e160                func_801F51C8
+                0x8090e570                func_801F55D8
  build_nm/src.us.v11/hd_front_end/0E7B0.c.o(.text)
- .text          0x8090e760     0x20d0 build_nm/src.us.v11/hd_front_end/0E7B0.c.o
-                0x8090e760                func_801F57B0
-                0x8090e898                func_801F58E8
-                0x8090efb4                func_801F5FE4
-                0x8090f098                func_801F60C8
-                0x8090f130                func_801F6160
-                0x8090f198                func_801F61C8
-                0x8090f1e0                func_801F6210
-                0x8090f234                func_801F6264
-                0x8090f598                func_801F65C4
-                0x8090f7b8                func_801F67E4
-                0x8090fac8                func_801F6AF4
-                0x8090fba4                func_801F6BD0
-                0x8090fc78                func_801F6CA4
-                0x8090fea8                func_801F6ED4
-                0x8090feec                func_801F6F18
-                0x809103d0                func_801F73FC
-                0x809103e4                func_801F7410
-                0x80910484                func_801F74B0
-                0x80910578                func_801F75A4
-                0x809106b8                func_801F76E4
+ .text          0x8090e750     0x20d0 build_nm/src.us.v11/hd_front_end/0E7B0.c.o
+                0x8090e750                func_801F57B0
+                0x8090e888                func_801F58E8
+                0x8090efa4                func_801F5FE4
+                0x8090f088                func_801F60C8
+                0x8090f120                func_801F6160
+                0x8090f188                func_801F61C8
+                0x8090f1d0                func_801F6210
+                0x8090f224                func_801F6264
+                0x8090f588                func_801F65C4
+                0x8090f7a8                func_801F67E4
+                0x8090fab8                func_801F6AF4
+                0x8090fb94                func_801F6BD0
+                0x8090fc68                func_801F6CA4
+                0x8090fe98                func_801F6ED4
+                0x8090fedc                func_801F6F18
+                0x809103c0                func_801F73FC
+                0x809103d4                func_801F7410
+                0x80910474                func_801F74B0
+                0x80910568                func_801F75A4
+                0x809106a8                func_801F76E4
  build_nm/src.us.v11/hd_front_end/10850.c.o(.text)
- .text          0x80910830      0xd00 build_nm/src.us.v11/hd_front_end/10850.c.o
-                0x80910830                func_801F7850
-                0x80910f78                func_801F7F74
-                0x80910ff8                func_801F7FF4
-                0x80911040                func_801F803C
-                0x809111b8                func_801F81B4
-                0x8091122c                func_801F8228
-                0x8091135c                func_801F8354
-                0x80911448                func_801F8440
+ .text          0x80910820      0xd00 build_nm/src.us.v11/hd_front_end/10850.c.o
+                0x80910820                func_801F7850
+                0x80910f68                func_801F7F74
+                0x80910fe8                func_801F7FF4
+                0x80911030                func_801F803C
+                0x809111a8                func_801F81B4
+                0x8091121c                func_801F8228
+                0x8091134c                func_801F8354
+                0x80911438                func_801F8440
  build_nm/src.us.v11/hd_front_end/11530.c.o(.text)
- .text          0x80911530     0x64b0 build_nm/src.us.v11/hd_front_end/11530.c.o
-                0x80911530                func_801F8530
-                0x80911860                func_801F885C
-                0x80911984                func_801F8980
-                0x8091225c                func_801F9258
-                0x80912824                func_801F9820
-                0x80912b8c                func_801F9B84
-                0x8091318c                func_801FA180
-                0x8091375c                func_801FA74C
-                0x809155e0                func_801FC5B8
-                0x80915e9c                func_801FCE74
-                0x80915f60                func_801FCF38
-                0x809164ac                func_801FD484
-                0x809166e0                func_801FD6B8
-                0x80916770                func_801FD748
-                0x80916ccc                func_801FDCA4
-                0x80916e78                func_801FDE50
-                0x80916ec0                func_801FDE98
-                0x80917040                func_801FE018
-                0x80917260                func_801FE238
-                0x809175f8                func_801FE5D0
-                0x80917788                func_801FE760
+ .text          0x80911520     0x64b0 build_nm/src.us.v11/hd_front_end/11530.c.o
+                0x80911520                func_801F8530
+                0x80911850                func_801F885C
+                0x80911974                func_801F8980
+                0x8091224c                func_801F9258
+                0x80912814                func_801F9820
+                0x80912b7c                func_801F9B84
+                0x8091317c                func_801FA180
+                0x8091374c                func_801FA74C
+                0x809155d0                func_801FC5B8
+                0x80915e8c                func_801FCE74
+                0x80915f50                func_801FCF38
+                0x8091649c                func_801FD484
+                0x809166d0                func_801FD6B8
+                0x80916760                func_801FD748
+                0x80916cbc                func_801FDCA4
+                0x80916e68                func_801FDE50
+                0x80916eb0                func_801FDE98
+                0x80917030                func_801FE018
+                0x80917250                func_801FE238
+                0x809175e8                func_801FE5D0
+                0x80917778                func_801FE760
  build_nm/src.us.v11/hd_front_end/17990.c.o(.text)
- .text          0x809179e0     0x1d60 build_nm/src.us.v11/hd_front_end/17990.c.o
-                0x809179e0                func_801FE990
+ .text          0x809179d0     0x1d60 build_nm/src.us.v11/hd_front_end/17990.c.o
+                0x809179d0                func_801FE990
  build_nm/src.us.v11/hd_front_end/196F0.c.o(.text)
- .text          0x80919740      0xb50 build_nm/src.us.v11/hd_front_end/196F0.c.o
-                0x80919740                func_802006F0
-                0x80919764                func_80200714
-                0x80919c24                func_80200BD4
-                0x80919c30                func_80200BE0
+ .text          0x80919730      0xb50 build_nm/src.us.v11/hd_front_end/196F0.c.o
+                0x80919730                func_802006F0
+                0x80919754                func_80200714
+                0x80919c14                func_80200BD4
+                0x80919c20                func_80200BE0
  build_nm/src.us.v11/hd_front_end/1A240.c.o(.text)
- .text          0x8091a290      0xc50 build_nm/src.us.v11/hd_front_end/1A240.c.o
-                0x8091a290                func_80201240
-                0x8091a3bc                func_80201364
+ .text          0x8091a280      0xc50 build_nm/src.us.v11/hd_front_end/1A240.c.o
+                0x8091a280                func_80201240
+                0x8091a3ac                func_80201364
  build_nm/src.us.v11/hd_front_end/1AE80.c.o(.text)
- .text          0x8091aee0      0x280 build_nm/src.us.v11/hd_front_end/1AE80.c.o
-                0x8091aee0                func_80201E80
+ .text          0x8091aed0      0x280 build_nm/src.us.v11/hd_front_end/1AE80.c.o
+                0x8091aed0                func_80201E80
  build_nm/src.us.v11/hd_front_end/1B100.c.o(.text)
- .text          0x8091b160      0x480 build_nm/src.us.v11/hd_front_end/1B100.c.o
-                0x8091b160                func_80202100
-                0x8091b25c                func_802021FC
-                0x8091b290                func_80202270
-                0x8091b2cc                func_802022EC
-                0x8091b348                func_80202380
-                0x8091b4cc                func_802025D0
+ .text          0x8091b150      0x480 build_nm/src.us.v11/hd_front_end/1B100.c.o
+                0x8091b150                func_80202100
+                0x8091b24c                func_802021FC
+                0x8091b280                func_80202270
+                0x8091b2bc                func_802022EC
+                0x8091b338                func_80202380
+                0x8091b4bc                func_802025D0
  build_nm/src.us.v11/hd_front_end/ul_pfsfreeblocks.c.o(.text)
- .text          0x8091b5e0      0x150 build_nm/src.us.v11/hd_front_end/ul_pfsfreeblocks.c.o
-                0x8091b5e0                osPfsFreeBlocks
+ .text          0x8091b5d0      0x150 build_nm/src.us.v11/hd_front_end/ul_pfsfreeblocks.c.o
+                0x8091b5d0                osPfsFreeBlocks
  build_nm/src.us.v11/hd_front_end/ul_conteepprobe.c.o(.text)
- .text          0x8091b730       0x70 build_nm/src.us.v11/hd_front_end/ul_conteepprobe.c.o
-                0x8091b730                osEepromProbe
+ .text          0x8091b720       0x70 build_nm/src.us.v11/hd_front_end/ul_conteepprobe.c.o
+                0x8091b720                osEepromProbe
  build_nm/src.us.v11/hd_front_end/ul_pfschecker.c.o(.text)
- .text          0x8091b7a0      0xa60 build_nm/src.us.v11/hd_front_end/ul_pfschecker.c.o
-                0x8091b7a0                osPfsChecker
-                0x8091be64                corrupted_init
-                0x8091c018                corrupted
+ .text          0x8091b790      0xa60 build_nm/src.us.v11/hd_front_end/ul_pfschecker.c.o
+                0x8091b790                osPfsChecker
+                0x8091be54                corrupted_init
+                0x8091c008                corrupted
  build_nm/src.us.v11/hd_front_end/ul_pfsinitpak.c.o(.text)
- .text          0x8091c200      0x1c0 build_nm/src.us.v11/hd_front_end/ul_pfsinitpak.c.o
-                0x8091c200                osPfsInitPak
-                0x8091c2b4                __osPfsGetStatus
+ .text          0x8091c1f0      0x1c0 build_nm/src.us.v11/hd_front_end/ul_pfsinitpak.c.o
+                0x8091c1f0                osPfsInitPak
+                0x8091c2a4                __osPfsGetStatus
  build_nm/src.us.v11/hd_front_end/ul_pfsallocatefile.c.o(.text)
- .text          0x8091c3c0      0x7b0 build_nm/src.us.v11/hd_front_end/ul_pfsallocatefile.c.o
-                0x8091c3c0                osPfsAllocateFile
-                0x8091c844                __osPfsDeclearPage
+ .text          0x8091c3b0      0x7b0 build_nm/src.us.v11/hd_front_end/ul_pfsallocatefile.c.o
+                0x8091c3b0                osPfsAllocateFile
+                0x8091c834                __osPfsDeclearPage
  build_nm/src.us.v11/hd_front_end/ul_pfsdeletefile.c.o(.text)
- .text          0x8091cb70      0x610 build_nm/src.us.v11/hd_front_end/ul_pfsdeletefile.c.o
-                0x8091cb70                osPfsDeleteFile
-                0x8091ce50                __osPfsReleasePages
-                0x8091d088                __osBlockSum
+ .text          0x8091cb60      0x610 build_nm/src.us.v11/hd_front_end/ul_pfsdeletefile.c.o
+                0x8091cb60                osPfsDeleteFile
+                0x8091ce40                __osPfsReleasePages
+                0x8091d078                __osBlockSum
  build_nm/src.us.v11/hd_front_end/ul_conteeplongwrite.c.o(.text)
- .text          0x8091d180      0x140 build_nm/src.us.v11/hd_front_end/ul_conteeplongwrite.c.o
-                0x8091d180                osEepromLongWrite
+ .text          0x8091d170      0x140 build_nm/src.us.v11/hd_front_end/ul_conteeplongwrite.c.o
+                0x8091d170                osEepromLongWrite
  build_nm/src.us.v11/hd_front_end/ul_conteeplongread.c.o(.text)
- .text          0x8091d2c0      0x140 build_nm/src.us.v11/hd_front_end/ul_conteeplongread.c.o
-                0x8091d2c0                osEepromLongRead
+ .text          0x8091d2b0      0x140 build_nm/src.us.v11/hd_front_end/ul_conteeplongread.c.o
+                0x8091d2b0                osEepromLongRead
  build_nm/src.us.v11/hd_front_end/ul_pfssearchfile.c.o(.text)
- .text          0x8091d400      0x1c0 build_nm/src.us.v11/hd_front_end/ul_pfssearchfile.c.o
-                0x8091d400                osPfsFindFile
+ .text          0x8091d3f0      0x1c0 build_nm/src.us.v11/hd_front_end/ul_pfssearchfile.c.o
+                0x8091d3f0                osPfsFindFile
  build_nm/src.us.v11/hd_front_end/ul_pfsreadwritefile.c.o(.text)
- .text          0x8091d5c0      0x500 build_nm/src.us.v11/hd_front_end/ul_pfsreadwritefile.c.o
-                0x8091d6bc                osPfsReadWriteFile
+ .text          0x8091d5b0      0x500 build_nm/src.us.v11/hd_front_end/ul_pfsreadwritefile.c.o
+                0x8091d6ac                osPfsReadWriteFile
  build_nm/src.us.v11/hd_front_end/ul_conteepwrite.c.o(.text)
- .text          0x8091dac0      0x4e0 build_nm/src.us.v11/hd_front_end/ul_conteepwrite.c.o
-                0x8091dac0                osEepromWrite
-                0x8091dd7c                __osEepStatus
+ .text          0x8091dab0      0x4e0 build_nm/src.us.v11/hd_front_end/ul_conteepwrite.c.o
+                0x8091dab0                osEepromWrite
+                0x8091dd6c                __osEepStatus
  build_nm/src.us.v11/hd_front_end/ul_conteepread.c.o(.text)
- .text          0x8091dfa0      0x300 build_nm/src.us.v11/hd_front_end/ul_conteepread.c.o
-                0x8091dfa0                osEepromRead
+ .text          0x8091df90      0x300 build_nm/src.us.v11/hd_front_end/ul_conteepread.c.o
+                0x8091df90                osEepromRead
  build_nm/src.us.v11/hd_front_end/ul_pfsfilestate.c.o(.text)
- .text          0x8091e2a0      0x2f0 build_nm/src.us.v11/hd_front_end/ul_pfsfilestate.c.o
-                0x8091e2a0                osPfsFileState
+ .text          0x8091e290      0x2f0 build_nm/src.us.v11/hd_front_end/ul_pfsfilestate.c.o
+                0x8091e290                osPfsFileState
  build_nm/src.us.v11/hd_front_end/ul_crc.c.o(.text)
- .text          0x8091e590      0x180 build_nm/src.us.v11/hd_front_end/ul_crc.c.o
-                0x8091e590                __osContAddressCrc
-                0x8091e640                __osContDataCrc
+ .text          0x8091e580      0x180 build_nm/src.us.v11/hd_front_end/ul_crc.c.o
+                0x8091e580                __osContAddressCrc
+                0x8091e630                __osContDataCrc
  build_nm/src.us.v11/hd_front_end/ul_contpfs.c.o(.text)
- .text          0x8091e710      0xd60 build_nm/src.us.v11/hd_front_end/ul_contpfs.c.o
-                0x8091e710                __osSumcalc
-                0x8091e76c                __osIdCheckSum
-                0x8091e7d4                __osRepairPackId
-                0x8091ebec                __osCheckPackId
-                0x8091ed84                __osGetId
-                0x8091efe0                __osCheckId
-                0x8091f0dc                __osPfsRWInode
-                0x8091f3fc                __osPfsSelectBank
+ .text          0x8091e700      0xd60 build_nm/src.us.v11/hd_front_end/ul_contpfs.c.o
+                0x8091e700                __osSumcalc
+                0x8091e75c                __osIdCheckSum
+                0x8091e7c4                __osRepairPackId
+                0x8091ebdc                __osCheckPackId
+                0x8091ed74                __osGetId
+                0x8091efd0                __osCheckId
+                0x8091f0cc                __osPfsRWInode
+                0x8091f3ec                __osPfsSelectBank
  build_nm/src.us.v11/hd_front_end/ul_contramread.c.o(.text)
- .text          0x8091f470      0x3b0 build_nm/src.us.v11/hd_front_end/ul_contramread.c.o
-                0x8091f470                __osContRamRead
+ .text          0x8091f460      0x3b0 build_nm/src.us.v11/hd_front_end/ul_contramread.c.o
+                0x8091f460                __osContRamRead
  build_nm/src.us.v11/hd_front_end/ul_contramwrite.c.o(.text)
- .text          0x8091f820      0x3b0 build_nm/src.us.v11/hd_front_end/ul_contramwrite.c.o
-                0x8091f820                __osContRamWrite
+ .text          0x8091f810      0x3b0 build_nm/src.us.v11/hd_front_end/ul_contramwrite.c.o
+                0x8091f810                __osContRamWrite
  build_nm/src.us.v11/hd_front_end/ul_pfsisplug.c.o(.text)
- .text          0x8091fbd0      0x370 build_nm/src.us.v11/hd_front_end/ul_pfsisplug.c.o
-                0x8091fbd0                osPfsIsPlug
-                0x8091fd70                __osPfsRequestData
-                0x8091fe6c                __osPfsGetInitData
-                0x8091ff40                        hd_front_end_TEXT_END = .
-                0x8091ff40                        hd_front_end_DATA_START = .
-                0x8091ff40                        hd_front_end_20090_bin = .
+ .text          0x8091fbc0      0x370 build_nm/src.us.v11/hd_front_end/ul_pfsisplug.c.o
+                0x8091fbc0                osPfsIsPlug
+                0x8091fd60                __osPfsRequestData
+                0x8091fe5c                __osPfsGetInitData
+                0x8091ff30                        hd_front_end_TEXT_END = .
+                0x8091ff30                        hd_front_end_DATA_START = .
+                0x8091ff30                        hd_front_end_20090_bin = .
  build_nm/assets/hd_front_end/20090.bin.o(.data)
- .data          0x8091ff40      0xfb0 build_nm/assets/hd_front_end/20090.bin.o
-                0x8091ff40                _binary_assets_hd_front_end_20090_bin_start
-                0x80920ef0                _binary_assets_hd_front_end_20090_bin_end
+ .data          0x8091ff30      0xfb0 build_nm/assets/hd_front_end/20090.bin.o
+                0x8091ff30                _binary_assets_hd_front_end_20090_bin_start
+                0x80920ee0                _binary_assets_hd_front_end_20090_bin_end
                 0x00029e90                        __romPos = 0x21040
                 0x00029e90                        . = __romPos
                 0x00021040                        hd_front_end_data_ROM_START = __romPos
@@ -1406,6 +1407,7 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x8021591c                        D_8021591C = 0x8021591c
                 0x8020bc88                        D_8020BC88 = 0x8020bc88
                 0x80217288                        D_80217288 = 0x80217288
+                0x0066c900                        D_0066C900 = 0x66c900
                 0x02000000                        D_02000000 = 0x2000000
                 0x8021a8ec                        D_8021A8EC = 0x8021a8ec
 OUTPUT(build_nm/hd_front_end.us.v11.elf elf32-tradbigmips)

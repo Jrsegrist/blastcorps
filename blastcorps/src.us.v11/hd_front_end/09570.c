@@ -180,31 +180,23 @@ void func_801F0570(void) {
 }
 
 /*
- * TODO: func_801F1568 builds the globe display list: inflates worldtextures.raw
+ * func_801F1568 builds the globe display list: inflates worldtextures.raw
  * (ROM D_0066C900..D_0068B550) to the heap, carves the texture pointers out of
  * its tail, builds the vertices (func_801F0570) and emits, per face and grid cell,
  * five mip levels of a 17x17..2x2 RGBA16 texture plus two triangles.
- * Near-miss (528/528 insns, same length): everything matches up to the end of the
- * lod loop, where the target loads texoff, ww, lod, tmem, step (registers
- * t4 t6 t0 t3 t5) and this C loads lod first; that one allocation-order
- * difference renames registers in the rest of the function. Statement order,
- * comma forms, for/do-while forms and moving the increments into the loop
- * header were tried (IDO gives identical code for most), plus a 25-minute
- * permuter run, without a match.
- *
- * The NON_MATCHING build uses that draft (completed with the triangle commands
- * read off the asm), checked with tools_port/checks/fe_09570.txt.
+ * Matched once the mip loop became a for loop with all three counters in its
+ * header (`for (lod = 0, tmem = 0, texoff = 0; ...; lod++, tmem += step,
+ * texoff += ww + 3)`) and two unused words sat below `size` (frame 0xB0).
+ * D_0066C900 is a real symbol (undefined_syms.hd_front_end).
  */
-#ifdef NON_MATCHING
 typedef struct {
     u16 tex[49][0x1A4];
 } Globe; /* one face's 7x7 cells, five mip levels each */
 
-#define D_0066C900 ((u8 *) 0x0066C900) /* ROM: worldtextures.raw (compressed) */
-
 Gfx *func_801F1568(void) {
     u8 *base;
     s32 size;
+    s32 pad[2];
     s32 i;
     s32 j;
     s32 idx;
@@ -243,11 +235,8 @@ Gfx *func_801F1568(void) {
         for (i = 0; i < 7; i++) {
             gSPVertex(gfx++, &D_80215A88[faceOff + i * 8 + 8], 8, flip);
             for (j = 0; j < 7; j++) {
-                lod = 0;
                 idx = i * 7 + j;
-                tmem = 0;
-                texoff = 0;
-                do {
+                for (lod = 0, tmem = 0, texoff = 0; lod < 5; lod++, tmem += step, texoff += ww + 3) {
                     w = (16 >> lod) + 1;
                     line = (w + 3) >> 2;
                     step = w * line;
@@ -258,9 +247,7 @@ Gfx *func_801F1568(void) {
                     gDPSetTile(gfx++, G_IM_FMT_RGBA, G_IM_SIZ_16b, line, tmem, lod, 0, 0, 0, lod, 0, 0, lod);
                     gDPSetTileSize(gfx++, lod, ((j * 16) << 2) >> lod, ((i * 16) << 2) >> lod,
                                    ((j * 16 + 16) << 2) >> lod, ((i * 16 + 16) << 2) >> lod);
-                    tmem += step;
-                    texoff += ww + 3;
-                } while (++lod < 5);
+                }
                 /* faces 1, 2 and 5 wind the other way */
                 if (k == 1 || k == 2 || k == 5) {
                     if (flip == 8) {
@@ -285,9 +272,6 @@ Gfx *func_801F1568(void) {
     D_80358070 += (gfx - dl) * sizeof(Gfx);
     return dl;
 }
-#else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/09570/func_801F1568.s")
-#endif
 
 /* hd.c's LEVEL_DONE */
 #define LEVEL_DONE(l) (D_80364AF0[D_80364AE8].unk18[l] > 0 && D_80364AF0[D_80364AE8].unk18[l] < 6) ? 1 : 0

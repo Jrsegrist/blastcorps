@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "platform/port_cc.h"
 #include "rdram.h"
 #include "load/port_load.h"
 
@@ -49,7 +50,7 @@ int rom_normalise(uint8_t *p, size_t n) {
         for (i = 0; i + 3 < n; i += 4) {
             uint32_t v;
             memcpy(&v, p + i, 4);
-            v = __builtin_bswap32(v);
+            v = PORT_BSWAP32(v);
             memcpy(p + i, &v, 4);
         }
         return ROM_N64;
@@ -138,12 +139,12 @@ void swap_range(uint32_t addr, uint32_t n, int width) {
         } else if (width == 4) {
             uint32_t v;
             memcpy(&v, p, 4);
-            v = __builtin_bswap32(v);
+            v = PORT_BSWAP32(v);
             memcpy(p, &v, 4);
         } else if (width == 8) {
             uint64_t v;
             memcpy(&v, p, 8);
-            v = __builtin_bswap64(v);
+            v = PORT_BSWAP64(v);
             memcpy(p, &v, 8);
         }
     }

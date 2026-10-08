@@ -296,3 +296,17 @@ ptrcheck64: $(H64)/addrs.txt $(H64)/ulinc.stamp
 	exit $$rc
 
 .PHONY: headless64 ptrcheck64
+
+# the signed-overflow census (tools/overflow_census.py; MSVC has no -fwrapv):
+# a bc_headless built here with -fno-wrapv -fsanitize=signed-integer-overflow
+# (build/hl64ubsan, tools/ubsan_minimal.c), run over the attract demos and every
+# level; fails if any signed add/multiply overflows that the source doesn't
+# wrap explicitly (PORT_WRAP_*, include/game/port.h).  OC_ARGS: e.g. --levels 0-9
+OC := build/hl64ubsan
+overflow-census:
+	@mkdir -p $(OC)
+	x86_64-w64-mingw32-gcc -O2 -c -o $(OC)/ubsan_minimal.o tools/ubsan_minimal.c
+	$(MAKE) H64=$(OC) HL_EXTRA="-fno-wrapv -fsanitize=signed-integer-overflow -fsanitize-minimal-runtime" \
+		LDFLAGS64="$(LDFLAGS64) $(OC)/ubsan_minimal.o" $(OC)/bc_headless.exe
+	$(PYTHON) tools/overflow_census.py $(OC)/bc_headless.exe '$(ROM_ARG)' data/levels_input.txt $(OC)/runs $(OC_ARGS)
+.PHONY: overflow-census

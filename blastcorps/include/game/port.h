@@ -47,6 +47,19 @@
 #else
 #define PORT_SHAMT(n) (n)
 #endif
+/*   PORT_WRAP_MUL(a, b), PORT_WRAP_ADD(a, b)   a signed 32-bit multiply or add
+ *                     that overflows at run time (the N64 wraps; in C it is
+ *                     undefined, and MSVC has no -fwrapv): done on u32 in the
+ *                     port.  The sites are the ones a signed-overflow census of
+ *                     the attract mode and all levels finds (`make -C port
+ *                     overflow-census`). */
+#if defined(NON_MATCHING) && defined(PORT_HOST)
+#define PORT_WRAP_MUL(a, b) ((s32) ((u32) (a) * (u32) (b)))
+#define PORT_WRAP_ADD(a, b) ((s32) ((u32) (a) + (u32) (b)))
+#else
+#define PORT_WRAP_MUL(a, b) ((a) * (b))
+#define PORT_WRAP_ADD(a, b) ((a) + (b))
+#endif
 /*   PORT_GVI(fn, v)   v, a read of the game's retrace counter D_803156C4 in
  *                     function fn after code the native port runs in no time;
  *                     when following an emulator, the value the emulator
@@ -62,9 +75,10 @@ unsigned int port_gvi_read(const char *fn, unsigned int v);
 #define PORT_SAVE_EETIMES 2 /* EEPROM best-time words, 8 bytes */
 #define PORT_SAVE_STATUS 3  /* level status block, 0x40 bytes (in place) */
 #if defined(NON_MATCHING) && defined(PORT_HOST)
+#include <stdarg.h>
 void port_spin(void);
 void port_fe_loaded(void);
-void port_game_print(const char *fmt, __builtin_va_list ap); /* the game's debug printf */
+void port_game_print(const char *fmt, va_list ap); /* the game's debug printf */
 void *port_save_begin(void *p, int kind, int size);
 void *port_save_end(void *p, int kind, int size);
 unsigned long long port_save_be64(unsigned long long v);

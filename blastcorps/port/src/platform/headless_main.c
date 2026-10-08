@@ -197,7 +197,7 @@ int host_main(int argc, char **argv, int (*extra)(int argc, char **argv, int *i,
     }
     if (host_rom_hook != NULL) host_rom_hook(&o);
     if (o.rom_path == NULL) usage(NULL);
-    setvbuf(stdout, NULL, _IOLBF, 0);
+    setvbuf(stdout, NULL, _IOLBF, 4096);   /* (the UCRT wants a size; Windows has no line buffering) */
     if (rdram_map())
         host_fatal("Can't reserve the N64's memory at 0x80000000: %s", rdram_error());
     if (rdram_load(o.rom_path)) host_fatal("%s", rdram_error());

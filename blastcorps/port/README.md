@@ -16,6 +16,8 @@ make -C port game                        # build/game/bc.exe: the game in a wind
 make -C port verify                      # quick regression check against the emulator
 make -C port headless64 game64 dist64    # the same in 64 bits (x86_64, clang): "64-bit" below
 make -C port ptrcheck64 verify64 verify-levels64 loadcheck64
+make -C port inputs msvc                 # the MSVC x64 build (CMakeLists.txt): "Build on Windows
+make -C port verify-msvc verify-levels-msvc loadcheck-msvc dist-msvc   #  with Visual Studio" below
 ```
 
 Needs `i686-w64-mingw32-gcc` (WSL), the project venv (pyelftools, unicorn),
@@ -768,3 +770,107 @@ signed int -> pointer casts, sizeof of host pointers, pointer + (s32) pointer;
 `verify-levels64` (compare.py with `CMP_EXE`; native folders `...-native64`),
 `loadcheck64`.  RT64 is built for x86_64 from the same patched tree
 (`ARCH=x86_64 rt64/build_rt64.sh`: build-x86_64, dll-x86_64).
+
+## Build on Windows with Visual Studio (`CMakeLists.txt`)
+
+The MSVC x64 build: `bc.exe` (the game in a window), `bc_headless.exe` and
+the player package, from the same sources and with the same memory model as
+the 64-bit build above.  This is the build that is played, shipped and
+improved; the make-based builds above remain until they are retired.
+
+**Prerequisites**
+- Visual Studio 2022 or later with the "Desktop development with C++"
+  workload (MSVC x64 tools, a Windows SDK, "C++ CMake tools for Windows",
+  which bring CMake and Ninja).  Tested with Visual Studio 2026 18.10
+  (MSVC 14.51, CMake 4.3, Windows SDK 10.0.26100).
+- Python 3 (python.org; only its standard library is used) on `PATH`, or
+  `-DPython3_EXECUTABLE=...`: the build's generated sources come from the
+  Python tools in `tools/` (pinning, tables, ultralib copies).
+- Git for Windows: the first configure fetches RT64 (and the decomp itself
+  is cloned with it; `git submodule update --init lib/ultralib`).
+- The decomp's inputs folder, made on the decomp side (WSL, which builds the
+  N64 code with IDO and splits the ROM): `make VERSION=us.v11 NON_MATCHING=1`
+  at the decomp root, then `make -C port inputs` -> `port/build/inputs/`
+  (data addresses, which symbols are functions, the N64 pointer slots, the C
+  declarations' types and the two link maps; a few MB of text, no ROM data).
+  Copy it into the Windows clone's `port/build/inputs`, or point `BC_INPUTS`
+  at it (`\\wsl.localhost\Ubuntu\home\<you>\...\port\build\inputs`).
+- The ROM, Blast Corps (USA) (Rev 1), only to run the game (bc.exe asks for
+  it with a file dialog, or takes it as its first argument).
+
+**Building**
+1. Visual Studio: File > Open > Folder..., the `blastcorps/port` folder.  It
+   reads `CMakePresets.json`: choose "x64 Release" (the default, optimised,
+   with a PDB), "x64 Debug" (no optimisation, for stepping through the game
+   code) or "x64 Release, bc_headless.exe only" (nothing downloaded).
+2. The first configure downloads into `port/build/thirdparty` (shared by all
+   presets): RT64 at the pinned commit with its submodules (git, ~500 MB) plus
+   the port's patches 0003 and 0004 (`cmake/fetch_rt64.cmake`), the official
+   DXC v1.9.2609 and SDL2 2.26.3 releases (SHA-256 checked).
+3. Build > Build All: `out/build/<preset>/bc.exe` (with SDL2.dll,
+   dxcompiler.dll, dxil.dll next to it) and `bc_headless.exe`.  The target
+   `dist` makes the player package: `dist/BlastCorps-port-<hash>.zip` and
+   `dist/BlastCorps-port-<hash>-pdb.zip` (bc.pdb, the map and the .syms
+   that match the exe).
+4. Run and debug: pick `bc.exe` as the startup item and press F5; arguments
+   (the ROM, `--no-config` ...) go into its launch configuration
+   (Debug > Debug and Launch Settings: `"args": [ "D:\\roms\\bc.z64" ]`).
+   Breakpoints work in the game's C (`src.us.v11/hd_code/*.c`), the platform
+   layer and RT64.  N64 memory sits at its N64 addresses, so a game variable
+   is watched as `*(u64 *)0x80364A90` (the game mode).
+
+From a command prompt ("x64 Native Tools Command Prompt for VS"):
+`cmake --preset x64-release`, `cmake --build --preset x64-release`,
+`cmake --build --preset dist`.  The Visual Studio generator works too
+(`cmake -G "Visual Studio 18 2026" -A x64 ...`).
+
+**Verification** runs in WSL, as for the other builds, against the MSVC exes:
+`make -C port msvc` builds them (`tools/msvc_build.sh`: the sources mirrored to
+`MSVC_DIR` on the Windows side, default `%LOCALAPPDATA%\blastcorps-msvc`,
+because MSVC compiling over `\\wsl.localhost` is slow; Visual Studio found
+with vswhere; `MSVC_PYTHON`, `MSVC_THIRDPARTY` if needed), then
+`make -C port loadcheck-msvc verify-msvc verify-levels-msvc dist-msvc`
+(`compare.py` with `CMP_EXE`, native folders `...-nativemsvc`).
+
+**How the MSVC build differs** (details in `CMakeLists.txt` and the tools):
+- Same steps as `port64.mk`: game, ultralib and platform objects are pinned
+  by `tools/coffpin.py` (`--batch` over each object library), the N64 data
+  symbols are absolute COFF symbols (`gensyms.py linkcoff`, `rdramobj.py`),
+  plus the copy, pointer and byte-order tables.  link.exe resolves a REL32
+  fixup against an absolute symbol as image base + value and an ADDR64 one as
+  the value, and refuses ADDR32NB ones (MSVC indexes global arrays off
+  `__ImageBase`): the symbols are written as address - image base, and
+  coffpin adds the base to ADDR64/ADDR32 addends and resolves ADDR32NB itself.
+  It also handles `/Gw`'s per-variable COMDAT sections, MSVC's names for local
+  statics and its COMMON symbols (C tentative definitions).
+- Game code: `/O2 /Ob1` (only `inline` functions are inlined; `/Ob0` in the
+  files that read the clock), `/GH` (an empty `_pexit` call before each return
+  keeps tail calls as calls: return addresses name their callers, as
+  `-fno-optimize-sibling-calls`).  `--sync`'s function-entry points and
+  `--calls` patch only the functions they name, at start-up, into their entry
+  (`plat_host.c host_entry_hook`, `entry_x64.asm`, the linker's
+  `/FUNCTIONPADMIN`): the hook runs before any instruction of the function.
+  (MSVC's own `/Gh` hook comes after the prologue, and the compiler schedules
+  body code, N64 memory accesses among it, before it.)
+- MSVC has no `-fwrapv`: the signed adds and multiplies that really overflow
+  are wrapped explicitly (`PORT_WRAP_MUL`/`PORT_WRAP_ADD`, `game/port.h`:
+  the two random-number generators in 23C20.c and the debris size in
+  77E20.c), found by `make -C port overflow-census` (a clang build with
+  `-fno-wrapv -fsanitize=signed-integer-overflow` over the attract demos and
+  every level; it fails if a new one appears).  No `-fno-strict-aliasing`
+  equivalent is needed (MSVC does no type-based alias analysis), nor
+  `-malign-double` (8-byte members are naturally aligned).  The GBI's
+  bit-fields are written for Microsoft's layout rules where they differ
+  (`gbi.h`, `rdb.h`; `layout_check.c` asserts every GBI and ABI record's
+  size and offsets and checks the bit positions at start-up).  `sinf`/`cosf`
+  stay the SDK's (`#pragma function`).  MSVC doesn't assume 16-byte
+  alignment of N64 data (`tools/align64.py` over its objects finds only
+  stack saves; its two other hits are objdump decoding a jump table and the
+  middle of an instruction after MSVC's `$LN` labels, checked with dumpbin),
+  so the clang build's IR alignment pass has no MSVC counterpart.
+- Crash reports name functions and source lines from the exe's PDB (dbghelp,
+  with a time limit); the minidump opens in Visual Studio with the PDB.
+- The static C runtime (`/MT`): the package needs no Visual C++
+  redistributable.
+- RT64 builds with MSVC from its pristine tree plus patches 0003 and 0004;
+  0001 and 0002 only serve the mingw cross build.

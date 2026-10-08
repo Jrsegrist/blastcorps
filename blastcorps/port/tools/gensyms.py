@@ -19,6 +19,19 @@ The 64-bit build (port64.mk; COFF x86_64 objects pinned by coffpin.py):
                                        pinned C objects (NM objects' R_MIPS_32 data
                                        relocations, words from the NM ELFs)
 
+The MSVC build (port/CMakeLists.txt) takes what it needs from the NON_MATCHING
+build as a folder of text files, so it needs neither the ELFs nor pyelftools
+(only Python's standard library):
+  gensyms.py inputs OUTDIR             (WSL, `make -C port inputs`) OUTDIR/addrs.txt,
+                                       elfsyms.txt ('name addr func|data size' for
+                                       every ELF symbol) and nmptrs.txt ('addr value'
+                                       for every pointer slot of the NM objects' data)
+  gensyms.py linkcoff OUTDIR ELFSYMS BASE --game LIST.. --host LIST..
+                                       like link64, reading the COFF objects itself (no
+                                       nm); absolute symbols relative to the image base
+                                       (rdramobj.py --base); LIST: a file of object paths
+  gensyms.py ptrtab-in OUT.c NMPTRS RECORD...   ptrtab from nmptrs.txt
+
 The NON_MATCHING ELFs (build_nm/) are the source of truth for addresses: data
 and .bss are pinned at their original N64 addresses there, and the pinned
 .text tables (NM_PIN_HD_CODE) too.  Text moved (0x80800000+), and anything at
@@ -28,9 +41,6 @@ import os
 import re
 import subprocess
 import sys
-
-from elftools.elf.elffile import ELFFile
-from elftools.elf.sections import SymbolTableSection
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 VERSION = "us.v11"
@@ -59,6 +69,8 @@ def undefined_funcs():
 
 def elf_symbols():
     """name -> (addr, is_func, size).  hd_code wins over the front end (it links first)."""
+    from elftools.elf.elffile import ELFFile
+    from elftools.elf.sections import SymbolTableSection
     ufuncs = undefined_funcs()
     syms = {}
     for rel in ELFS:
@@ -188,7 +200,9 @@ def cmd_link64(outdir, objs):
     defined, undefined = nm_objects(objs)
     data, stubs, unknown = [], [], []
     for c, users in sorted(undefined.items()):
-        if c in defined or c in RUNTIME or c.startswith("__imp_") or c.startswith("."):
+        # (__ubsan_handle_*: a sanitizer build's runtime, linked separately)
+        if c in defined or c in RUNTIME or c.startswith("__imp_") or c.startswith(".") or \
+                c.startswith("__ubsan_handle_"):
             continue
         if c in syms:
             v, is_func, _ = syms[c]
@@ -283,11 +297,17 @@ def cmd_ptrtab(out, records):
     objects) inside a pinned C object, with the word the NM ELF holds there:
     start-up writes them over the native initialisers (whose N64_DPTR slots
     are 0 in the 64-bit build)"""
-    from elftools.elf.relocation import RelocationSection
     # every pinned object: one whose initialiser is only N64_DPTR slots is all
     # zero natively, so the compiler put it in .bss
     rows = read_records(records)
     ranges = sorted((a, a + s, n) for n, a, k, s in rows)
+    return write_ptrtab(out, ranges, nm_pointer_slots())
+
+
+def nm_pointer_slots():
+    """{address: N64 word} for every pointer slot (R_MIPS_32 data relocation) of the NM objects"""
+    from elftools.elf.elffile import ELFFile
+    from elftools.elf.relocation import RelocationSection
     secaddr = nm_sections(["build_nm/hd_code.%s.map" % VERSION, "build_nm/hd_front_end.%s.map" % VERSION])
     slots = set()
     for (obj, sec), base in secaddr.items():
@@ -312,6 +332,19 @@ def cmd_ptrtab(out, records):
             for s in elf.iter_sections():
                 if s["sh_type"] == "SHT_PROGBITS" and s["sh_addr"] and s["sh_flags"] & 2:
                     images.append((s["sh_addr"], s.data()))
+    out = {}
+    for a in sorted(slots):
+        v = None
+        for base, data in images:
+            if base <= a < base + len(data) - 3:
+                v = int.from_bytes(data[a - base:a - base + 4], "big")
+                break
+        out[a] = v
+    return out
+
+
+def write_ptrtab(out, ranges, slots):
+    """ranges: sorted (start, end, name) of the pinned objects; slots: {addr: word or None}"""
     import bisect
     starts = [r[0] for r in ranges]
     found, bad = [], []
@@ -322,11 +355,7 @@ def cmd_ptrtab(out, records):
         if a % 4:
             bad.append("%08X in %s: unaligned slot" % (a, ranges[i][2]))
             continue
-        v = None
-        for base, data in images:
-            if base <= a < base + len(data) - 3:
-                v = int.from_bytes(data[a - base:a - base + 4], "big")
-                break
+        v = slots[a]
         if v is None:
             bad.append("%08X in %s: not in the NM ELF" % (a, ranges[i][2]))
         elif v != 0 and not (0x80000000 <= v < PIN_LIMIT):
@@ -347,9 +376,148 @@ def cmd_ptrtab(out, records):
     return 1 if bad else 0
 
 
+# ---- the MSVC build (port/CMakeLists.txt): text inputs, no ELFs, no nm ----
+
+def cmd_inputs(outdir):
+    """what the MSVC build needs from the NON_MATCHING build, as text files"""
+    os.makedirs(outdir, exist_ok=True)
+    cmd_addrs(os.path.join(outdir, "addrs.txt"))
+    syms = elf_symbols()
+    with open(os.path.join(outdir, "elfsyms.txt"), "w") as f:
+        for n, (v, is_func, size) in sorted(syms.items(), key=lambda kv: (kv[1][0], kv[0])):
+            f.write("%s %08X %s %d\n" % (n, v, "func" if is_func else "data", size))
+    with open(os.path.join(outdir, "nmptrs.txt"), "w") as f:
+        for a, v in sorted(nm_pointer_slots().items()):
+            f.write("%08X %s\n" % (a, "-" if v is None else "%08X" % v))
+
+
+def load_elfsyms(path):
+    syms = {}
+    for line in open(path):
+        p = line.split()
+        if len(p) >= 4:
+            syms[p[0]] = (int(p[1], 16), p[2] == "func", int(p[3]))
+    return syms
+
+
+def read_list(path):
+    return [l.strip() for l in open(path) if l.strip()]
+
+
+# MSVC's run-time and compiler helpers (from the CRT / the import libraries)
+MSVC_RUNTIME = {"__chkstk", "_fltused", "__security_cookie", "__security_check_cookie", "__GSHandlerCheck",
+                "__C_specific_handler", "_penter", "_pexit", "__ImageBase", "_tls_index", "_tls_array",
+                "__guard_dispatch_icall_fptr", "__guard_check_icall_fptr", "__report_rangecheckfailure",
+                "_Avx2WmemEnabled", "__isa_available", "__favor"}
+
+
+def cmd_linkcoff(outdir, elfsyms_path, base, game_lists, host_lists):
+    """link64 for MSVC objects: symbols read from the COFF objects themselves"""
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import coffpin
+    import rdramobj
+    syms = load_elfsyms(elfsyms_path)
+    n64data = {n: v[0] for n, v in syms.items() if not v[1]}
+    game = [o for l in game_lists for o in read_list(l)]
+    host = [o for l in host_lists for o in read_list(l)]
+    defined, undefined, absfix = set(), {}, []
+    for o in game + host:
+        c = coffpin.Coff(open(o, "rb").read())
+        for name, value, secno, typ, cls, naux, aux, idx in c.syms:
+            if cls != coffpin.CLASS_EXTERNAL:
+                continue
+            if secno != 0 or value != 0:      # defined, absolute or COMMON
+                defined.add(name)
+            elif o in game:
+                undefined.setdefault(name, []).append(os.path.basename(o))
+        if o in host:
+            # coffpin.py --base fixes the game objects' ADDR64/ADDR32 fixups to N64
+            # data; host code must not have any (link.exe would get them wrong)
+            idx_sym = {s[7]: s for s in c.syms}
+            for si, va, symi, t, _ in c.relocs_full():
+                s = idx_sym.get(symi)
+                if t in (coffpin.REL_ADDR64, coffpin.REL_ADDR32, coffpin.REL_ADDR32NB) and s and s[2] == 0 and \
+                        s[1] == 0 and coffpin.is_n64_name(s[0], n64data):
+                    absfix.append("%s: %s" % (os.path.basename(o), s[0]))
+    data, stubs, unknown = [], [], []
+    for c, users in sorted(undefined.items()):
+        if c in defined or c in RUNTIME or c in MSVC_RUNTIME or c.startswith("__imp_") or c.startswith("."):
+            continue
+        if c in syms:
+            v, is_func, _ = syms[c]
+            if is_func:
+                stubs.append(c)
+            else:
+                data.append((c, v))      # an N64 address, or a ROM offset (D_00xxxxxx)
+        elif re.match(r"D_[0-9A-F]{8}$", c) and 0x80000000 <= int(c[2:], 16) < PIN_LIMIT:
+            data.append((c, int(c[2:], 16)))
+        elif c.startswith("func_") or c.startswith("os") or c.startswith("__os") or c.startswith("gu") \
+                or c.startswith("al") or c in ("bzero", "bcopy", "bcmp", "sprintf", "sqrtf", "sinf", "cosf"):
+            stubs.append(c)
+        else:
+            unknown.append((c, users))
+    rdramobj.write(os.path.join(outdir, "abs_syms.obj"), data, base=base)
+    with open(os.path.join(outdir, "abs_syms.txt"), "w") as f:
+        f.write("".join("%s %08X\n" % (n, v) for n, v in data))
+    # (a function MSVC knows as an intrinsic can't be defined in C: its stub
+    # gets another name and the linker takes it for the missing one)
+    intrinsic = {"sinf", "cosf", "sqrtf", "sin", "cos", "sqrt", "fabs", "fabsf", "memcpy", "memset", "memcmp",
+                 "strlen", "strcmp", "strcpy", "ldiv", "lldiv", "abs", "labs"}
+    stubs_c = "/* generated by port/tools/gensyms.py: functions no linked object defines */\n" \
+              "void port_stub_hit(const char *name);\n" + \
+              "".join("void %s(void) { port_stub_hit(\"%s\"); }\n" % (c, c) for c in stubs if c not in intrinsic) + \
+              "".join("void port_stub_%s(void) { port_stub_hit(\"%s\"); }\n"
+                      "#pragma comment(linker, \"/alternatename:%s=port_stub_%s\")\n" % (c, c, c, c)
+                      for c in stubs if c in intrinsic)
+    p = os.path.join(outdir, "stubs.c")
+    if not os.path.exists(p) or open(p).read() != stubs_c:
+        open(p, "w").write(stubs_c)
+    with open(os.path.join(outdir, "link_report.txt"), "w") as f:
+        f.write("absolute data symbols: %d\nstubbed functions: %d\nunknown: %d\n" %
+                (len(data), len(stubs), len(unknown)))
+        for c, users in unknown:
+            f.write("UNKNOWN %s (used by %s)\n" % (c, ", ".join(sorted(set(users)))))
+    print("gensyms: %d absolute data symbols, %d stubbed functions, %d unknown" % (len(data), len(stubs), len(unknown)))
+    for c, users in unknown:
+        print("  unknown symbol %s (used by %s)" % (c, ", ".join(sorted(set(users)))))
+    for a in absfix:
+        print("  host object with an absolute fixup to N64 data (not supported by link.exe): " + a)
+    return 1 if unknown or absfix else 0
+
+
+def cmd_ptrtab_in(out, nmptrs_path, records):
+    rows = read_records(records)
+    ranges = sorted((a, a + s, n) for n, a, k, s in rows)
+    slots = {}
+    for line in open(nmptrs_path):
+        p = line.split()
+        if len(p) == 2:
+            slots[int(p[0], 16)] = None if p[1] == "-" else int(p[1], 16)
+    return write_ptrtab(out, ranges, slots)
+
+
 def main():
+    # @FILE: the arguments listed in FILE, one per line (long object lists)
+    argv = []
+    for a in sys.argv:
+        argv += read_list(a[1:]) if a.startswith("@") else [a]
+    sys.argv = argv
     cmd = sys.argv[1]
-    if cmd == "addrs":
+    if cmd == "inputs":
+        cmd_inputs(sys.argv[2])
+    elif cmd == "linkcoff":
+        args = sys.argv[5:]
+        lists = {"--game": [], "--host": []}
+        cur = None
+        for a in args:
+            if a in lists:
+                cur = lists[a]
+            else:
+                cur.append(a)
+        sys.exit(cmd_linkcoff(sys.argv[2], sys.argv[3], int(sys.argv[4], 16), lists["--game"], lists["--host"]))
+    elif cmd == "ptrtab-in":
+        sys.exit(cmd_ptrtab_in(sys.argv[2], sys.argv[3], sys.argv[4:]))
+    elif cmd == "addrs":
         cmd_addrs(sys.argv[2])
     elif cmd == "link":
         sys.exit(cmd_link(sys.argv[2], sys.argv[3:]))

@@ -35,23 +35,34 @@ def main():
             p = line.split()
             if len(p) == 3 and p[1] in "bBdDrR":
                 own.add(p[2])
-        platform = "/plat/" in o
+        platform = "/plat/" in o or "/bc_plat/" in o
         fn = "?"
+        # registers that hold a stack address: MSVC saves xmm6-15 through a copy
+        # of rsp (`mov %rsp,%rax` / `lea N(%rsp),%r11`, then movaps to -N(%rax))
+        stackreg = set()
         lines = r.stdout.splitlines()
         for i, line in enumerate(lines):
             m = re.match(r"^[0-9a-f]+ <(.*)>:", line)
             if m:
-                fn = m.group(1)
+                if not m.group(1).startswith("$"):   # (MSVC's local labels $LNn: not a new function)
+                    fn = m.group(1)
+                    stackreg = set()
                 continue
             m = re.match(r"^\s*[0-9a-f]+:\s+(\w+)\s+(.*)$", line)
             if not m:
                 continue
             mn, ops = m.group(1), m.group(2)
+            dst = re.search(r",(%r\w+)\s*$", ops.split("#")[0].strip())
+            if dst:
+                if (mn == "mov" and ops.startswith("%rsp,")) or (mn == "lea" and "(%rsp" in ops):
+                    stackreg.add(dst.group(1))
+                else:
+                    stackreg.discard(dst.group(1))
             if "%xmm" not in ops or "(" not in ops:
                 continue
             if UNALIGNED_OK.match(mn):
                 continue
-            if re.search(r"\(%rsp[,)]", ops):
+            if re.search(r"\(%rsp[,)]", ops) or any(re.search(r"\(%s[,)]" % re.escape(s), ops) for s in stackreg):
                 continue
             if "(%rip)" in ops and i + 1 < len(lines):
                 # the object's own constant pool or data (aligned by the compiler)

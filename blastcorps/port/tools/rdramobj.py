@@ -12,7 +12,13 @@ relocations, no dynamic base); RDRAM itself is reserved at 0x80000000 at run
 time (rdram.c).  (A section of the image at 0x80000000 would need the image to
 span 0x7FFE0000, where Windows maps KUSER_SHARED_DATA in every process.)
 
-usage: rdramobj.py OUT.o SYMS      SYMS: 'name addr' lines (hex address)
+usage: rdramobj.py [--base HEX] OUT.o SYMS      SYMS: 'name addr' lines (hex address)
+
+--base IMAGE_BASE (MSVC's link.exe): each value is written as the address minus
+the image base, modulo 2^32: link.exe resolves REL32 fixups against an absolute
+symbol as image base + value (it takes the value for an RVA), so the code then
+reaches the N64 address; ADDR64/ADDR32 fixups take the value as it is, and
+coffpin.py --base adds the image base to their addends.
 """
 import struct
 import sys
@@ -22,7 +28,7 @@ RDRAM_SIZE = 0x800000
 MACHINE_AMD64 = 0x8664
 
 
-def write(out, syms, machine=MACHINE_AMD64):
+def write(out, syms, machine=MACHINE_AMD64, base=0):
     strtab = bytearray(b"\0\0\0\0")
     symtab = bytearray()
     n = 0
@@ -37,7 +43,7 @@ def write(out, syms, machine=MACHINE_AMD64):
             nm = b"\0\0\0\0" + struct.pack("<I", len(strtab))
             strtab += b + b"\0"
         # value, section -1 (absolute), type 0, class external, no aux
-        symtab += nm + struct.pack("<IhHBB", addr, -1, 0, 2, 0)
+        symtab += nm + struct.pack("<IhHBB", (addr - base) & 0xFFFFFFFF, -1, 0, 2, 0)
         n += 1
     struct.pack_into("<I", strtab, 0, len(strtab))
     data = bytearray(struct.pack("<HHIIIHH", machine, 0, 0, 20, n, 0, 0))
@@ -46,14 +52,19 @@ def write(out, syms, machine=MACHINE_AMD64):
 
 
 def main():
-    out, syms_path = sys.argv[1:3]
+    args = sys.argv[1:]
+    base = 0
+    if args[:1] == ["--base"]:
+        base = int(args[1], 16)
+        args = args[2:]
+    out, syms_path = args[0:2]
     syms, seen = [], set()
     for line in open(syms_path):
         p = line.split()
         if len(p) >= 2 and p[0] not in seen:
             seen.add(p[0])
             syms.append((p[0], int(p[1], 16)))
-    write(out, syms)
+    write(out, syms, base=base)
 
 
 if __name__ == "__main__":

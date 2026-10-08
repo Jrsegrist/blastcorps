@@ -34,13 +34,13 @@ void port_unit_restore(unsigned int addr, const void *saved, unsigned int n);
 void plat_fe_snapshot(void) {
     u32 n = FE_END - FE_DATA_START;
     g_fe_snap = host_realloc(NULL, n);
-    __builtin_memcpy(g_fe_snap, (void *) FE_DATA_START, n);
+    PORT_MEMCPY(g_fe_snap, (void *) FE_DATA_START, n);
     g_fe_units = port_unit_save(FE_DATA_START, n);
 }
 
 void port_fe_loaded(void) {
     plat_stats.fe_reloads++;
-    __builtin_memcpy((void *) FE_DATA_START, g_fe_snap, FE_END - FE_DATA_START);
+    PORT_MEMCPY((void *) FE_DATA_START, g_fe_snap, FE_END - FE_DATA_START);
     port_unit_restore(FE_DATA_START, g_fe_units, FE_END - FE_DATA_START);
     if (!plat_cfg.quiet)
         host_log("fe: front end reloaded (#%u) at frame %u, vi %u\n", (unsigned) plat_stats.fe_reloads,
@@ -143,7 +143,11 @@ static void after_crash(void) {
 
 /* ---- boot ------------------------------------------------------------------- */
 
+int port_layout_check(void);   /* layout_check.c */
+
 void plat_start(const HostOpts *o) {
+    int bad = port_layout_check();
+    if (bad) host_fatal("layout_check.c line %d: a GBI/ABI bit-field is not where the game expects it", bad);
     plat_cfg = *o;
     plat_now = o->boot_count;
     plat_rom = o->rom;

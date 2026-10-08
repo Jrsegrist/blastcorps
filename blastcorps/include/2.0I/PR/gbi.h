@@ -1461,11 +1461,26 @@ typedef struct {
 		Tri		tri;
 } Gtri;
 
+/*
+ * MSVC (the native port's x64 build) lays out bit-fields by Microsoft's
+ * rules: a bit-field whose type has another size, and a plain member after a
+ * bit-field, start a new storage unit.  Gpopmtx and Gsetcolor are written
+ * with one 32-bit type there, which gives the same layout as IDO's and gcc's
+ * (port/src/platform/layout_check.c checks every packet type).
+ */
+#if defined(_MSC_VER) && !defined(__clang__)
+#define GBI_MS_BITFIELDS 1
+#endif
+
 typedef struct {
 		int		cmd:8;
 		int		pad1:24;
 		int             pad2:24;
+#ifdef GBI_MS_BITFIELDS
+		unsigned int	param:8;
+#else
 		unsigned char	param:8;
+#endif
 } Gpopmtx;
 
 /*
@@ -1545,9 +1560,15 @@ typedef struct {
 
 typedef struct {
 		int		cmd:8;
+#ifdef GBI_MS_BITFIELDS
+		unsigned int	pad:8;
+		unsigned int	prim_min_level:8;
+		unsigned int	prim_level:8;
+#else
 		unsigned char	pad;
 		unsigned char	prim_min_level;
 		unsigned char	prim_level;
+#endif
 		unsigned long	color;
 } Gsetcolor;
 

@@ -172,7 +172,7 @@ void osCreateThread(OSThread *t, OSId id, void (*entry)(void *), void *arg, void
 }
 
 void osStartThread(OSThread *t) {
-    sync_point(__builtin_return_address(0), 't', t);
+    sync_point(PORT_RETADDR(), 't', t);
     switch (t->state) {
         case OS_STATE_WAITING:
             t->state = OS_STATE_RUNNABLE;
@@ -286,7 +286,7 @@ static void wake_one(OSThread * N64P *q) {
 }
 
 s32 osSendMesg(OSMesgQueue *mq, OSMesg msg, s32 flag) {
-    sync_point(__builtin_return_address(0), 's', mq);
+    sync_point(PORT_RETADDR(), 's', mq);
     /* A frame: the main thread hands the scheduler (D_80315440) a task with
      * the frame flag (0x40; 405F0.c func_80284E54).  Counted (and dumped)
      * here, where the main thread is at the same point on any machine. */
@@ -304,7 +304,7 @@ s32 osSendMesg(OSMesgQueue *mq, OSMesg msg, s32 flag) {
 }
 
 s32 osJamMesg(OSMesgQueue *mq, OSMesg msg, s32 flag) {
-    sync_point(__builtin_return_address(0), 'j', mq);
+    sync_point(PORT_RETADDR(), 'j', mq);
     while (mq->validCount >= mq->msgCount) {
         if (flag != OS_MESG_BLOCK) return -1;
         block_on(&mq->fullqueue);
@@ -317,7 +317,7 @@ s32 osJamMesg(OSMesgQueue *mq, OSMesg msg, s32 flag) {
 }
 
 s32 osRecvMesg(OSMesgQueue *mq, OSMesg *msg, s32 flag) {
-    sync_point(__builtin_return_address(0), 'r', mq);
+    sync_point(PORT_RETADDR(), 'r', mq);
     while (mq->validCount == 0) {
         if (flag == OS_MESG_NOBLOCK) return -1;
         block_on(&mq->mtqueue);
@@ -628,23 +628,38 @@ static void sync_point(void *ra, char kind, void *arg) {
     }
 }
 
-/* Function-entry switch points ('e'): the game files are built with
- * -finstrument-functions; the entries of the functions --sync lists with
- * kind 'e' (those that read the game's retrace counter) synchronise. */
+/* Function-entry switch points ('e'): the entries of the functions --sync
+ * lists with kind 'e' (those that read the game's retrace counter)
+ * synchronise.  gcc/clang: the game files are built -finstrument-functions,
+ * __cyg_profile_func_enter gets the function's address.  MSVC: only the
+ * functions listed get a hook, patched into their entry at start-up
+ * (host_entry_hook, entry_x64.asm), which runs before any of their
+ * instructions; port_entry_hook gets the function's address. */
 #define ENTRY_HASH 256
 static u32 g_entry[ENTRY_HASH];
 static int g_entry_on;
 
+#if defined(_MSC_VER) && !defined(__clang__)
+#define PORT_ENTRY_DETOUR 1
+/* the function at FN, its entry hooked; 0 if it can't be */
+static u32 entry_key(u32 fn) {
+    return host_entry_hook(fn) == 0 ? fn : 0;
+}
+#else
+#define entry_key(fn) (fn)
+void __cyg_profile_func_enter(void *fn, void *site) __attribute__((no_instrument_function));
+void __cyg_profile_func_exit(void *fn, void *site) __attribute__((no_instrument_function));
+#endif
+
 static void entry_add(const char *name) {
     u32 a = plat_sym_addr(name), h;
     if (a == 0) return;
+    a = entry_key(a);
+    if (a == 0) host_fatal("--sync: can't hook the entry of %s", name);
     for (h = (a >> 4) % ENTRY_HASH; g_entry[h] != 0 && g_entry[h] != a; h = (h + 1) % ENTRY_HASH) {}
     g_entry[h] = a;
     g_entry_on = 1;
 }
-
-void __cyg_profile_func_enter(void *fn, void *site) __attribute__((no_instrument_function));
-void __cyg_profile_func_exit(void *fn, void *site) __attribute__((no_instrument_function));
 
 /* --calls NAME,NAME: log every call of these game functions (with the caller
  * and the frame; port/tools/compare.py calls lines them up with the
@@ -661,8 +676,8 @@ void plat_calls_init(const char *names) {
         buf[n] = 0;
         if (*names == ',') names++;
         a = plat_sym_addr(buf);
-        if (a == 0) {
-            host_log("--calls: no function %s\n", buf);
+        if (a == 0 || entry_key(a) == 0) {
+            host_log("--calls: no function %s (or its entry can't be hooked)\n", buf);
             continue;
         }
         for (h = (a >> 4) % CALL_HASH; g_call[h] != 0 && g_call[h] != a; h = (h + 1) % CALL_HASH) {}
@@ -671,6 +686,34 @@ void plat_calls_init(const char *names) {
     }
 }
 
+static void entry_sync(u32 a) {
+    u32 h;
+    for (h = (a >> 4) % ENTRY_HASH; g_entry[h] != 0; h = (h + 1) % ENTRY_HASH)
+        if (g_entry[h] == a) {
+            sync_point((void *) (size_t) a, 'e', NULL);
+            return;
+        }
+}
+
+#ifdef PORT_ENTRY_DETOUR
+/* entry_x64.asm: FN = the hooked game function, RSP its stack pointer at
+ * entry (its return address is on top), SAVED its argument registers r9,
+ * r8, rdx, rcx (in that order) */
+void port_entry_hook(unsigned long long fn, unsigned long long rsp, const unsigned long long *saved) {
+    u32 a = (u32) fn, h;
+    if (g_call_on) {
+        for (h = (a >> 4) % CALL_HASH; g_call[h] != 0; h = (h + 1) % CALL_HASH)
+            if (g_call[h] == a) {
+                const char *c = plat_sym_name((u32) *(const unsigned long long *) (size_t) rsp, NULL);
+                host_log("call: %s from %s frame %u args %x,%x,%x,%x\n", plat_sym_name(a, NULL), c ? c : "?",
+                         (unsigned) plat_stats.frames, (unsigned) saved[3], (unsigned) saved[2],
+                         (unsigned) saved[1], (unsigned) saved[0]);
+                break;
+            }
+    }
+    if (g_entry_on) entry_sync(a);
+}
+#else
 void __cyg_profile_func_enter(void *fn, void *site) {
     u32 a = (u32) fn, h;
     if (g_call_on) {
@@ -699,18 +742,14 @@ void __cyg_profile_func_enter(void *fn, void *site) {
                 break;
             }
     }
-    if (!g_entry_on) return;
-    for (h = (a >> 4) % ENTRY_HASH; g_entry[h] != 0; h = (h + 1) % ENTRY_HASH)
-        if (g_entry[h] == a) {
-            sync_point(fn, 'e', NULL);
-            return;
-        }
+    if (g_entry_on) entry_sync(a);
 }
 
 void __cyg_profile_func_exit(void *fn, void *site) {
     (void) fn;
     (void) site;
 }
+#endif
 
 void plat_sync_point(void *ra, char kind, void *arg) {
     sync_point(ra, kind, arg);

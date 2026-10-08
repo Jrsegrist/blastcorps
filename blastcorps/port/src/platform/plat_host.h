@@ -4,6 +4,8 @@
 #ifndef PLAT_HOST_H
 #define PLAT_HOST_H
 
+#include "port_cc.h"
+
 typedef void *HostFiber;
 
 /* Turn the calling (main) thread into a fiber; returns it. */
@@ -15,8 +17,8 @@ void host_fiber_switch(HostFiber f);
 void host_fiber_delete(HostFiber f);
 
 /* stderr logging */
-void host_log(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
-void host_fatal(const char *fmt, ...) __attribute__((format(printf, 1, 2), noreturn));
+void host_log(const char *fmt, ...) PORT_PRINTF(1, 2);
+PORT_NORETURN void host_fatal(const char *fmt, ...) PORT_PRINTF(1, 2);
 int host_env(const char *name);   /* is the environment variable set (debug switches) */
 extern int host_verbose;
 
@@ -35,7 +37,7 @@ void *host_fopen(const char *path, const char *mode);
 
 /* per-frame trace file (no-op until opened) */
 int host_trace_open(const char *path);
-void host_trace(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
+void host_trace(const char *fmt, ...) PORT_PRINTF(1, 2);
 void host_trace_flush_raw(void);   /* crash.c: flush it without taking the C runtime's lock */
 
 /* whole-file helpers: read returns a malloc'd buffer (NULL if missing) */
@@ -43,11 +45,16 @@ void *host_read_file(const char *path, unsigned *size);
 int host_write_file(const char *path, const void *data, unsigned size);
 void *host_realloc(void *p, unsigned size);
 
+/* MSVC x64 build: make the function at FN call port_entry_hook (os_thread.c)
+ * before its first instruction (--sync's entry points, --calls); 0 if done
+ * (or already), -1 if its first instruction can't be relocated */
+int host_entry_hook(unsigned fn);
+
 /* flush-to-zero for the current fiber (the game's osInitialize sets FPCSR FS) */
 void host_set_fpu_mode(void);
 
 /* exit the process (flushes stdio); host_exit_hook (if set) runs first */
-void host_exit(int code) __attribute__((noreturn));
+PORT_NORETURN void host_exit(int code);
 extern void (*host_exit_hook)(void);
 
 /* Crash reporting (crash.c).  host_crash_init runs first in main (both
@@ -66,8 +73,8 @@ void host_crash_set_dir(const char *dir);   /* UTF-8; NULL/"" = the current fold
  * stdio or heap); `after` (may be NULL) runs once the report and dump are out */
 void host_crash_set_describe(void (*describe)(char *buf, unsigned size), void (*after)(void));
 void host_crash_rearm(void);                /* re-install the filter (after RT64 starts) */
-void host_crash_now(const char *why) __attribute__((noreturn));   /* report a crash from here */
-int host_snprintf(char *buf, unsigned size, const char *fmt, ...) __attribute__((format(printf, 3, 4)));
+PORT_NORETURN void host_crash_now(const char *why);   /* report a crash from here */
+int host_snprintf(char *buf, unsigned size, const char *fmt, ...) PORT_PRINTF(3, 4);
 /* --crash-test KIND[:FRAME] (testing the reporter): av, div, stack, thread,
  * abort, fatal, box, heaplock (a fault with the process heap's lock held),
  * heapbad (a fault after corrupting a heap block header),
@@ -153,7 +160,7 @@ typedef struct HostLive {
 } HostLive;
 
 /* platform entry (plat_core.c): boots the game and never returns */
-void plat_start(const HostOpts *o) __attribute__((noreturn));
+PORT_NORETURN void plat_start(const HostOpts *o);
 
 /* option parsing and start-up shared by bc_headless.exe and bc.exe
  * (headless_main.c).  `extra` gets the options host_main doesn't know

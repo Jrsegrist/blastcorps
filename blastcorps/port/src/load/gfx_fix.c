@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "platform/port_cc.h"
 #include "rdram.h"
 #include "port_load.h"
 
@@ -99,7 +100,7 @@ int port_gfx_in_raw(uint32_t addr, uint32_t *w) {
     int i;
     for (i = 0; i < g_nareas; i++)
         if (g_area[i].kind == AREA_RAW && g_area[i].lo <= a && a < g_area[i].hi) {
-            if (w != NULL) *w = g_area[i].orig ? __builtin_bswap32(g_area[i].orig[((a & ~3u) - g_area[i].lo) >> 2]) : 0;
+            if (w != NULL) *w = g_area[i].orig ? PORT_BSWAP32(g_area[i].orig[((a & ~3u) - g_area[i].lo) >> 2]) : 0;
             return 1;
         }
     return 0;
@@ -135,16 +136,16 @@ static uint32_t bytes_in_halves(uint32_t v) {
 static uint32_t native_word(int kind, int obj, int colour, uint32_t v) {
     if (kind == AREA_WORDS) {
         switch (obj) {
-            case OBJ_VTX: return colour ? __builtin_bswap32(v) : halves(v);
+            case OBJ_VTX: return colour ? PORT_BSWAP32(v) : halves(v);
             case OBJ_VIEWPORT: return halves(v);
             case OBJ_LIGHT:
-            case OBJ_TEXELS: return __builtin_bswap32(v);
+            case OBJ_TEXELS: return PORT_BSWAP32(v);
             default: return v;   /* commands, matrices: words already */
         }
     }
     switch (obj) {
         case OBJ_CMD:
-        case OBJ_MTX: return __builtin_bswap32(v);
+        case OBJ_MTX: return PORT_BSWAP32(v);
         case OBJ_VTX: return colour ? v : bytes_in_halves(v);
         case OBJ_VIEWPORT: return bytes_in_halves(v);
         default: return v;   /* lights, texels: bytes already */

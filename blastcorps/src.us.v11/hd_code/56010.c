@@ -10,10 +10,10 @@ void func_8029A7D0(s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
  * can print the messages (bc_headless.exe --print). */
 void func_8029A7E4(const char *fmt, ...) {
 #if defined(NON_MATCHING) && defined(PORT_HOST)
-    __builtin_va_list ap;
+    va_list ap; /* <stdarg.h> from game/port.h */
 
-    __builtin_va_start(ap, fmt);
+    va_start(ap, fmt);
     port_game_print(fmt, ap);
-    __builtin_va_end(ap);
+    va_end(ap);
 #endif
 }

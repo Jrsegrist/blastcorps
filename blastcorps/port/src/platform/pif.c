@@ -93,10 +93,10 @@ static void format_pak(u8 *pak, int n) {
     u8 id[BLOCK];
     u16 sum = 0, isum = 0;
     int i;
-    __builtin_memset(pak, 0, PAK_SIZE);
+    PORT_MEMSET(pak, 0, PAK_SIZE);
     /* ID: repaired, random, serials: an arbitrary fixed pattern (per pak);
      * deviceid 1 (bit 0: a valid pak), one bank, version 0 */
-    __builtin_memset(id, 0, sizeof id);
+    PORT_MEMSET(id, 0, sizeof id);
     for (i = 0; i < 0x18; i++) id[i] = (u8) (0x5A ^ (i * 37) ^ (n << 4));
     put16(id + 0x18, 0x0001);
     id[0x1A] = 1;
@@ -108,15 +108,15 @@ static void format_pak(u8 *pak, int n) {
     }
     put16(id + 0x1C, sum);
     put16(id + 0x1E, isum);
-    __builtin_memcpy(pak + 1 * BLOCK, id, BLOCK);
-    __builtin_memcpy(pak + 3 * BLOCK, id, BLOCK);
-    __builtin_memcpy(pak + 4 * BLOCK, id, BLOCK);
-    __builtin_memcpy(pak + 6 * BLOCK, id, BLOCK);
+    PORT_MEMCPY(pak + 1 * BLOCK, id, BLOCK);
+    PORT_MEMCPY(pak + 3 * BLOCK, id, BLOCK);
+    PORT_MEMCPY(pak + 4 * BLOCK, id, BLOCK);
+    PORT_MEMCPY(pak + 6 * BLOCK, id, BLOCK);
     /* inode table and backup: pages 0-4 are the system's, 5-127 free (3);
      * entry 0's low byte is the byte sum of entries 5-127 */
     for (i = 5; i < 128; i++) put16(pak + 0x100 + 2 * i, 0x0003);
     put16(pak + 0x100, (u16) ((123 * 3) & 0xFF));
-    __builtin_memcpy(pak + 0x200, pak + 0x100, 0x100);
+    PORT_MEMCPY(pak + 0x200, pak + 0x100, 0x100);
 }
 
 static void mpk_flush(u32 off, u32 len) {
@@ -135,7 +135,7 @@ void plat_pak_init(void) {
     p = host_read_file(plat_cfg.mpk_path, &size);
     if (p != NULL) {
         for (i = 0; i < 4; i++) format_pak(g_mpk + i * PAK_SIZE, i);
-        __builtin_memcpy(g_mpk, p, size < MPK_SIZE ? size : MPK_SIZE);
+        PORT_MEMCPY(g_mpk, p, size < MPK_SIZE ? size : MPK_SIZE);
     } else {
         for (i = 0; i < 4; i++) format_pak(g_mpk + i * PAK_SIZE, i);
         mpk_flush(0, MPK_SIZE);
@@ -170,28 +170,28 @@ static int joybus(int channel, u8 *t, int tx, u8 *r, int rx) {
             return 0;
         case 0x02: /* pak read: address (host u16: addr << 5 | crc) */
             if (tx < 3 || rx < 33) return 1;
-            __builtin_memcpy(&field, t + 1, 2);
+            PORT_MEMCPY(&field, t + 1, 2);
             addr = field >> 5;
             if (g_pak && addr < PAK_SIZE / BLOCK) {
-                __builtin_memcpy(data, g_mpk + addr * BLOCK, BLOCK);
+                PORT_MEMCPY(data, g_mpk + addr * BLOCK, BLOCK);
                 convert_block(addr, data);
             } else {
-                __builtin_memset(data, 0, BLOCK);
+                PORT_MEMSET(data, 0, BLOCK);
             }
-            __builtin_memcpy(r, data, BLOCK);
+            PORT_MEMCPY(r, data, BLOCK);
             r[BLOCK] = __osContDataCrc(data);
             if (!g_pak) r[BLOCK] = (u8) ~r[BLOCK];
             g_pak_reads++;
             return 0;
         case 0x03: /* pak write */
             if (tx < 35 || rx < 1) return 1;
-            __builtin_memcpy(&field, t + 1, 2);
+            PORT_MEMCPY(&field, t + 1, 2);
             addr = field >> 5;
-            __builtin_memcpy(data, t + 3, BLOCK);
+            PORT_MEMCPY(data, t + 3, BLOCK);
             r[0] = __osContDataCrc(data);
             if (g_pak && addr < PAK_SIZE / BLOCK) {
                 convert_block(addr, data);
-                __builtin_memcpy(g_mpk + addr * BLOCK, data, BLOCK);
+                PORT_MEMCPY(g_mpk + addr * BLOCK, data, BLOCK);
                 mpk_flush(addr * BLOCK, BLOCK);
             } else if (!g_pak) {
                 r[0] = (u8) ~r[0];
@@ -231,15 +231,15 @@ static void pif_execute(void) {
 
 s32 __osSiRawStartDma(s32 direction, void *dramAddr) {
     if (direction == OS_READ) {
-        __builtin_memcpy(dramAddr, g_pif, sizeof g_pif);
+        PORT_MEMCPY(dramAddr, g_pif, sizeof g_pif);
     } else {
         u32 status;
-        __builtin_memcpy(g_pif, dramAddr, sizeof g_pif);
-        __builtin_memcpy(&status, g_pif + 0x3C, 4);
+        PORT_MEMCPY(g_pif, dramAddr, sizeof g_pif);
+        PORT_MEMCPY(&status, g_pif + 0x3C, 4);
         if (status & 1) {
             pif_execute();
             status = 0;
-            __builtin_memcpy(g_pif + 0x3C, &status, 4);
+            PORT_MEMCPY(g_pif + 0x3C, &status, 4);
         }
     }
     plat_post_event(OS_EVENT_SI);

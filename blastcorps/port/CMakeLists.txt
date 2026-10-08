@@ -36,8 +36,9 @@ set(BC_FE_SRC ${BC_ROOT}/src.us.v11/hd_front_end)
 set(BC_UL_DIR "${BC_ROOT}/../lib/ultralib" CACHE PATH "ultralib (the lib/ultralib submodule)")
 # What the build takes from the NON_MATCHING (IDO) build of the decomp: data
 # addresses, symbol kinds, the N64 pointer slots, the C declarations' types and
-# the NM link maps.  Made in WSL by `make -C port inputs` (port/build/inputs).
-set(BC_INPUTS "${BC_PORT}/build/inputs" CACHE PATH "the decomp inputs folder (make -C port inputs)")
+# the NM link maps.  Committed in port/inputs (made in WSL by
+# `make -C port inputs`; `make -C port check-inputs` checks it against the code).
+set(BC_INPUTS "${BC_PORT}/inputs" CACHE PATH "the decomp inputs folder (port/inputs, make -C port inputs)")
 # bc.exe's third-party code, downloaded at configure time (not in the repo): RT64
 # (git, at a pinned commit, with port/rt64/patches), the official DXC and SDL2
 # releases.  Shared by every build folder.
@@ -47,9 +48,8 @@ option(BC_GAME "also build bc.exe (downloads RT64, DXC, SDL2)" ON)
 foreach(f addrs.txt elfsyms.txt nmptrs.txt typemap.txt hd_code.us.v11.map hd_front_end.us.v11.map)
     if(NOT EXISTS "${BC_INPUTS}/${f}")
         message(FATAL_ERROR "BC_INPUTS (${BC_INPUTS}) has no ${f}.\n"
-            "Make the inputs folder in WSL: `make -C port inputs` (it needs the NON_MATCHING build of the "
-            "decomp), then point BC_INPUTS at it (e.g. \\\\wsl.localhost\\Ubuntu\\home\\you\\blastcorps\\"
-            "blastcorps\\port\\build\\inputs) or copy it to port/build/inputs.")
+            "port/inputs is part of the repository; if it is missing, make it in WSL: `make -C port inputs` "
+            "(it needs the NON_MATCHING build of the decomp).")
     endif()
 endforeach()
 if(NOT EXISTS "${BC_UL_DIR}/include/PR/ultratypes.h")
@@ -358,8 +358,8 @@ set_target_properties(bc_loadcheck PROPERTIES EXCLUDE_FROM_ALL TRUE)
 # ---- bc.exe: the game in a window (SDL2, RT64) ---------------------------------------
 if(BC_GAME)
     # RT64 at the pinned commit with the port's patches: 0003 (RDRAM in the port's
-    # own layout) and 0004 (the L3D line microcode).  0001/0002 are the mingw
-    # cross build's and not needed with MSVC.
+    # own layout) and 0004 (the L3D line microcode).  (0001/0002 served the
+    # retired mingw cross build.)
     set(BC_RT64_COMMIT 43373749dac9bbc1b653e6a02aed40a9e1783bed)
     set(BC_RT64_PATCHES ${BC_PORT}/rt64/patches/0003-native-host-layout.patch
         ${BC_PORT}/rt64/patches/0004-l3d-and-fixes.patch)

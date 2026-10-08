@@ -2266,7 +2266,7 @@ void func_802BF978(Unk802C1DD0Entry *e, s32 index, s32 level, Unk802C1DD0Info *i
         d->pos[1] = y;
         d->pos[2] = z;
         roll = func_802BFB50(KT_LO(t), KT_HI(t));
-        v = info->unk5 * roll;
+        v = PORT_WRAP_MUL(info->unk5, roll);
         if (D_803EF6FF != 0) {
             v <<= 1;
         }

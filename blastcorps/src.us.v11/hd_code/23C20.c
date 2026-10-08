@@ -673,7 +673,7 @@ s32 func_8026A6F0(s32 x1, s32 y1, s32 z1, s32 x2, s32 y2, s32 z2) {
 s32 func_8026A828(s32 lo, s32 hi) {
     f32 f;
 
-    D_8036B968 = D_8036B968 * 0x41C64E6D + 0x3039;
+    D_8036B968 = PORT_WRAP_ADD(PORT_WRAP_MUL(D_8036B968, 0x41C64E6D), 0x3039);
     f = (D_8036B968 & 0x7FFFFFFF) / 2147483648.0f;
     f = (hi - lo) * f + lo;
     return f + 0.5;
@@ -687,7 +687,7 @@ void func_8026A8BC(void) {
 s32 func_8026A8E0(s32 lo, s32 hi) {
     f32 f;
 
-    D_8036B96C = D_8036B96C * 0x41C64E6D + 0x3039;
+    D_8036B96C = PORT_WRAP_ADD(PORT_WRAP_MUL(D_8036B96C, 0x41C64E6D), 0x3039);
     f = (D_8036B96C & 0x7FFFFFFF) / 2147483648.0f;
     f = (hi - lo) * f + lo;
     return f + 0.5;

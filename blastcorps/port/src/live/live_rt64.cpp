@@ -42,6 +42,9 @@
  *                       summary in the log at exit
  *     --set S.K=V       a bc.ini setting for this run ([S] K = V; not saved), e.g.
  *                       --set audio.volume=50
+ *     --resolution R    internal resolution: window (default), 1 (320x240), 2, 3, 4 ...
+ *     --msaa N          multisample anti-aliasing: 0 (default), 2, 4, 8
+ *     --filtering F     the picture's scaling: aa (default), linear, nearest
  *     --window WxH      the window's size (desktop points) instead of 320x240 x scale
  *     --wshot F,..      save the window's picture (RT64's output at the window's size,
  *                       win_FFFFFFF.png in --shot-dir) once the game reached frame F
@@ -91,6 +94,7 @@
 #include <SDL_syswm.h>
 
 #include "hle/rt64_application.h"
+#include "render/rt64_render_target.h"
 #include "rhi/rt64_render_hooks.h"
 
 #include "live_menu.h"
@@ -950,9 +954,46 @@ void deinitHook() {
     live::menuShutdown();
 }
 
+/* MSAA sample counts the device can render with (a mask of 1, 2, 4, 8);
+ * 1 only when it lacks programmable sample locations, which RT64 needs */
+unsigned msaaSupported() {
+    if (g_app == nullptr || !g_app->device || !g_app->device->getCapabilities().sampleLocations) return 1;
+    const bool hdr = g_app->shaderLibrary->usesHDR;
+    return unsigned(g_app->device->getSampleCountsSupported(RT64::RenderTarget::colorBufferFormat(hdr)) &
+                    g_app->device->getSampleCountsSupported(RT64::RenderTarget::depthBufferFormat()));
+}
+
+/* bc.ini's video enhancements as RT64's user configuration.  The defaults
+ * (resolution = window, msaa = 0, filtering = aa) are RT64's own defaults,
+ * what bc.exe always used. */
+void configToRT64(RT64::UserConfiguration &u) {
+    using U = RT64::UserConfiguration;
+    if (g_cfg.resolution == 0) u.resolution = U::Resolution::WindowIntegerScale;
+    else if (g_cfg.resolution == 1) u.resolution = U::Resolution::Original;
+    else {
+        u.resolution = U::Resolution::Manual;
+        u.resolutionMultiplier = double(g_cfg.resolution);
+    }
+    u.antialiasing = g_cfg.msaa == 8 ? U::Antialiasing::MSAA8X : g_cfg.msaa == 4 ? U::Antialiasing::MSAA4X
+                     : g_cfg.msaa == 2 ? U::Antialiasing::MSAA2X : U::Antialiasing::None;
+    u.filtering = g_cfg.filtering == 1 ? U::Filtering::Linear : g_cfg.filtering == 2 ? U::Filtering::Nearest
+                                                                                      : U::Filtering::AntiAliasedPixelScaling;
+}
+
 /* the menu changed g_cfg: apply it now where that is possible */
 void settingChanged(const live::Setting &s) {
-    if (s.section == "video") {
+    if (s.section == "video" && (s.key == "resolution" || s.key == "filtering" || s.key == "msaa")) {
+        const uint32_t before = g_app->userConfig.msaaSampleCount();
+        if (s.key == "msaa" && g_cfg.msaa > 1 && (msaaSupported() & unsigned(g_cfg.msaa)) == 0) {
+            host_log("live: %dx MSAA isn't supported by this device\n", g_cfg.msaa);
+            g_cfg.msaa = int(before > 1 ? before : 0);
+        }
+        configToRT64(g_app->userConfig);
+        g_app->userConfig.validate();
+        /* new sample count: RT64 rebuilds its targets and shaders (as its inspector does) */
+        if (g_app->userConfig.msaaSampleCount() != before) g_app->updateMultisampling();
+        g_app->updateUserConfig(s.key == "resolution");
+    } else if (s.section == "video") {
         if (s.key == "fullscreen") {
             if (g_cfg.fullscreen != g_opt.fullscreen) setFullscreen(g_cfg.fullscreen);
             if (live::menuIsOpen()) SDL_ShowCursor(SDL_ENABLE);
@@ -976,8 +1017,15 @@ std::string rendererStatus() {
     char buf[256];
     int pw = 0, ph = 0;
     SDL_GetWindowSizeInPixels(g_window, &pw, &ph);
-    snprintf(buf, sizeof buf, "%s, %dx%d pixels%s, display %u Hz", g_opt.vulkan ? "Vulkan" : "Direct3D 12", pw, ph,
-             g_opt.fullscreen ? " (fullscreen)" : "", displayHz());
+    float sx, sy;
+    {
+        std::scoped_lock<std::mutex> lock(g_app->sharedQueueResources->configurationMutex);
+        sx = g_app->sharedQueueResources->resolutionScale.x;
+        sy = g_app->sharedQueueResources->resolutionScale.y;
+    }
+    snprintf(buf, sizeof buf, "%s, window %dx%d%s, drawn at %.0fx%.0f, display %u Hz",
+             g_opt.vulkan ? "Vulkan" : "Direct3D 12", pw, ph, g_opt.fullscreen ? " (fullscreen)" : "", 320.0f * sx,
+             240.0f * sy, displayHz());
     return buf;
 }
 
@@ -986,12 +1034,24 @@ unsigned num(const char *s) {
     return unsigned(strtoul(s, nullptr, 0));
 }
 
+/* options that set a bc.ini setting for the run (main applies them) */
+const std::pair<const char *, const char *> kSetAliases[] = {
+    {"--resolution", "video.resolution"},
+    {"--msaa", "video.msaa"},
+    {"--filtering", "video.filtering"},
+};
+
 int extraArg(int argc, char **argv, int *i, HostOpts *o) {
     const char *a = argv[*i];
     auto next = [&]() -> const char * {
         if (*i + 1 >= argc) host_fatal("%s needs a value", a);
         return argv[++*i];
     };
+    for (const auto &alias : kSetAliases)
+        if (!strcmp(a, alias.first)) {
+            next();
+            return 1;
+        }
     if (!strcmp(a, "--api")) g_opt.vulkan = !strcmp(next(), "vulkan");
     else if (!strcmp(a, "--fullscreen")) g_opt.fullscreen = true;
     else if (!strcmp(a, "--windowed")) g_opt.fullscreen = false;
@@ -1158,6 +1218,7 @@ void prestart(HostOpts *o) {
     g_app = new RT64::Application(core, appConfig);
     g_app->userConfig.graphicsAPI =
         g_opt.vulkan ? RT64::UserConfiguration::GraphicsAPI::Vulkan : RT64::UserConfiguration::GraphicsAPI::D3D12;
+    configToRT64(g_app->userConfig);
     if (g_opt.paceLog != nullptr) g_presentTimes = new double[kMaxPresents];
     /* the present thread's hook: --pace-log's times, the settings menu */
     RT64::SetRenderHooks(nullptr, drawHook, deinitHook);
@@ -1176,6 +1237,7 @@ void prestart(HostOpts *o) {
     menu.changed = settingChanged;
     menu.quit = [] { g_quitRequested = true; };
     menu.status = rendererStatus;
+    menu.msaaSupported = msaaSupported;
     live::menuSetup(menu);
     host_crash_rearm();   /* in case the renderer or a driver installed its own filter */
     int ww, wh, pw, ph;
@@ -1184,6 +1246,11 @@ void prestart(HostOpts *o) {
     host_log("live: RT64 up (%s), window %dx%d (%dx%d pixels)%s, vsync %s, display %u Hz\n",
              g_opt.vulkan ? "Vulkan" : "D3D12", ww, wh, pw, ph, g_opt.fullscreen ? " fullscreen" : "",
              g_opt.vsync ? "on" : "off", displayHz());
+    if (g_cfg.resolution != 0 || g_cfg.msaa != 0 || g_cfg.filtering != 0 || g_app->userConfig.msaaSampleCount() > 1)
+        host_log("live: video: resolution %s, MSAA %ux%s, filtering %s\n",
+                 live::configValue(g_cfg, {"video", "resolution"}).c_str(), g_app->userConfig.msaaSampleCount(),
+                 g_cfg.msaa > 1 && g_app->userConfig.msaaSampleCount() < 2 ? " (not supported here)" : "",
+                 live::configValue(g_cfg, {"video", "filtering"}).c_str());
     o->live = &kLive;
 }
 
@@ -1338,10 +1405,17 @@ int main(int, char **) {
     }
     if (noConfig) live::configDefaults(g_cfg);
     else live::configLoad(g_cfg, configFile);
-    /* --set section.key=value: a setting for this run (over bc.ini; not saved) */
-    for (int i = 1; i + 1 < argc; i++)
-        if (args[i] == "--set" && !live::configSet(g_cfg, args[++i]) && host_no_msgbox)
-            host_fatal("%s", g_cfg.warnings.back().c_str());
+    /* --set section.key=value: a setting for this run (over bc.ini; not saved);
+     * --resolution X etc. are short for --set video.resolution=X */
+    for (int i = 1; i + 1 < argc; i++) {
+        std::string spec;
+        if (args[i] == "--set") spec = args[i + 1];
+        for (const auto &alias : kSetAliases)
+            if (args[i] == alias.first) spec = std::string(alias.second) + "=" + args[i + 1];
+        if (spec.empty()) continue;
+        i++;
+        if (!live::configSet(g_cfg, spec) && host_no_msgbox) host_fatal("%s", g_cfg.warnings.back().c_str());
+    }
     host_exit_hook = writePaceLog;
     host_opts_hook = optsHook;
     host_rom_hook = romHook;

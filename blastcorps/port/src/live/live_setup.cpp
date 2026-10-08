@@ -58,6 +58,16 @@ static const char kDefaultIni[] =
     "fullscreen = 0\r\n"
     "; Wait for the display's refresh (no tearing): 1 = yes, 0 = no.\r\n"
     "vsync = 1\r\n"
+    "; The settings below are optional enhancements; their defaults show the game as before.\r\n"
+    "; The settings menu (F1) changes them too.\r\n"
+    "; Internal resolution: window = from the window's size (the default), 1 = the N64's own\r\n"
+    "; 320x240, 2, 3, 4 ... = that many times it (sharper; needs a faster graphics card).\r\n"
+    "resolution = window\r\n"
+    "; Multisample anti-aliasing: 0 (off), 2, 4 or 8.\r\n"
+    "msaa = 0\r\n"
+    "; How the picture is scaled to the window: aa (anti-aliased pixel scaling, the default),\r\n"
+    "; linear (smooth) or nearest (sharp pixels).\r\n"
+    "filtering = aa\r\n"
     "\r\n"
     "[audio]\r\n"
     "; Volume in percent (0-100); - and = change it in the game, M switches the sound off and on.\r\n"
@@ -262,7 +272,23 @@ static void parseText(Config &c, const std::string &text, const std::string &nam
             } else if (key == "scale") ok = parseInt(v, 1, 16, n) && (c.scale = unsigned(n), true);
             else if (key == "fullscreen") ok = parseBool(v, c.fullscreen);
             else if (key == "vsync") ok = parseBool(v, c.vsync);
-            else ok = false;
+            else if (key == "resolution") {
+                std::string l = lower(v);
+                if (l == "window" || l == "auto") c.resolution = 0;
+                else if (l == "original" || l == "native" || l == "n64") c.resolution = 1;
+                else if (!l.empty() && l.back() == 'x') ok = parseInt(l.substr(0, l.size() - 1), 1, 16, c.resolution);
+                else ok = parseInt(l, 1, 16, c.resolution);
+            } else if (key == "msaa") {
+                std::string l = lower(v);
+                if (l == "off" || l == "none") c.msaa = 0;
+                else ok = parseInt(l, 0, 8, n) && (n == 0 || n == 2 || n == 4 || n == 8) && (c.msaa = n, true);
+            } else if (key == "filtering") {
+                std::string l = lower(v);
+                if (l == "aa" || l == "pixel" || l == "default") c.filtering = 0;
+                else if (l == "linear" || l == "bilinear" || l == "smooth") c.filtering = 1;
+                else if (l == "nearest" || l == "sharp" || l == "point") c.filtering = 2;
+                else ok = false;
+            } else ok = false;
         } else if (section == "audio") {
             if (key == "volume") ok = parseInt(v, 0, 100, c.volume);
             else if (key == "mute") ok = parseBool(v, c.mute);
@@ -492,6 +518,9 @@ std::string configValue(const Config &c, const Setting &s) {
         if (k == "scale") return std::to_string(c.scale);
         if (k == "fullscreen") return c.fullscreen ? "1" : "0";
         if (k == "vsync") return c.vsync ? "1" : "0";
+        if (k == "resolution") return c.resolution == 0 ? "window" : std::to_string(c.resolution);
+        if (k == "msaa") return std::to_string(c.msaa);
+        if (k == "filtering") return c.filtering == 1 ? "linear" : c.filtering == 2 ? "nearest" : "aa";
     } else if (s.section == "audio") {
         if (k == "volume") return std::to_string(c.volume);
         if (k == "mute") return c.mute ? "1" : "0";

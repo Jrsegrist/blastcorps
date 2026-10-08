@@ -577,6 +577,22 @@ it without a fault.  The x64-asan preset is the tool for this now.
   window's picture (PrintWindow with PW_RENDERFULLCONTENT, after RT64
   presented: RT64's output at the window's size, unlike `--shot`'s 320x240
   RDRAM picture) and `--window WxH` sets the window's size.
+- **Optional enhancements** (all off by default: with the defaults bc.exe
+  renders exactly as before, and none of them changes the game logic or its
+  per-frame trace, except widescreen's visibility test, below).  `[video]`:
+  - `resolution` (`--resolution`): `window` (the default: RT64's
+    WindowIntegerScale, the whole multiple of 240 lines that covers the
+    swap chain, what bc.exe always used), `1` (the N64's 320x240,
+    `Resolution::Original`) or `N` (`Manual`, N times 320x240; higher than
+    the window = supersampled).  `msaa` (`--msaa`): 0 (default), 2, 4, 8
+    (RT64 needs programmable sample positions; the menu offers what the
+    device supports).  `filtering` (`--filtering`): `aa` (RT64's
+    anti-aliased pixel scaling, the default), `linear`, `nearest`: how the
+    finished picture is scaled to the window.  Applied before RT64 starts
+    (`configToRT64`) and live from the menu (`updateUserConfig`, and
+    `updateMultisampling` for a new sample count, as RT64's own inspector
+    does).  At high resolutions some seams between the level's ground
+    polygons show (the N64's rasteriser hides them at 240 lines).
 - Pacing: each retrace's picture is handed to RT64 when its virtual time is
   due (60 per second of real time, QueryPerformanceCounter, 1 ms timer
   resolution), *before* the game works on the next retrace, so the hand-overs

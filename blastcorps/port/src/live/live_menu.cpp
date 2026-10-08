@@ -135,6 +135,50 @@ void videoTab(Config &c) {
         c.vsync = b;
         markChanged("video", "vsync");
     }
+    ImGui::SeparatorText("Picture (optional enhancements)");
+    {
+        /* internal resolution: 0 window, 1 the N64's, 2..8 */
+        std::vector<std::string> items = {"From the window size (default)", "N64 (320x240)"};
+        for (int i = 2; i <= 8; i++) items.push_back(std::to_string(i) + "x (" + std::to_string(320 * i) + "x" + std::to_string(240 * i) + ")");
+        int r = std::min(c.resolution, 8);
+        if (combo("Internal resolution", &r, items)) {
+            c.resolution = r;
+            markChanged("video", "resolution");
+        }
+        help("How sharp the 3D world is drawn. \"From the window size\" picks the whole multiple of 240 lines that "
+             "covers the window, as before; higher values need a faster graphics card.");
+    }
+    {
+        const unsigned ok = g_env.msaaSupported ? g_env.msaaSupported() : 1;
+        static const int counts[] = {0, 2, 4, 8};
+        std::vector<std::string> items;
+        std::vector<int> map;
+        for (int n : counts)
+            if (n == 0 || (ok & unsigned(n)) != 0) {
+                items.push_back(n == 0 ? "Off (default)" : std::to_string(n) + "x MSAA");
+                map.push_back(n);
+            }
+        int sel = 0;
+        for (int i = 0; i < int(map.size()); i++)
+            if (map[i] == c.msaa) sel = i;
+        ImGui::BeginDisabled(map.size() < 2);
+        if (combo("Anti-aliasing", &sel, items)) {
+            c.msaa = map[sel];
+            markChanged("video", "msaa");
+        }
+        ImGui::EndDisabled();
+        if (map.size() < 2) help("This graphics card (or its driver) has no programmable sample positions, which RT64 needs for MSAA.");
+        else help("Smooths the edges of 3D shapes (multisample anti-aliasing).");
+    }
+    {
+        int f = c.filtering;
+        if (combo("Picture scaling", &f, {"Anti-aliased pixel scaling (default)", "Bilinear (smooth)", "Nearest (sharp pixels)"})) {
+            c.filtering = f;
+            markChanged("video", "filtering");
+        }
+        help("How the finished picture is scaled to the window.");
+    }
+    ImGui::SeparatorText("Graphics card");
     int api = c.vulkan ? 1 : 0;
     if (combo("Graphics API", &api, {"Direct3D 12", "Vulkan"})) {
         c.vulkan = api == 1;

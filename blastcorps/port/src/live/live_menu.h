@@ -30,6 +30,7 @@ struct MenuEnv {
     std::function<void()> quit;                            /* the "Quit the game" button */
     std::function<std::vector<std::string>()> padNames;    /* the game controllers connected now */
     std::function<std::string()> status;                   /* one line about the renderer (resolution ...) */
+    std::function<unsigned()> msaaSupported;               /* MSAA sample counts possible (mask: 2, 4, 8) */
 };
 
 void menuSetup(const MenuEnv &env);   /* once RT64 runs */

@@ -63,7 +63,9 @@ it. The settings menu writes it too; you can also edit it with Notepad while the
 game is closed. It holds:
   [game]       rom (the ROM's path), saves (the saves folder), controller_pak (0/1)
   [video]      api (d3d12 or vulkan), scale (window size 320x240 times this),
-               fullscreen, vsync
+               fullscreen, vsync; optional enhancements (off by default):
+               resolution (internal resolution: window, 1 = the N64's, 2, 3, 4 ...),
+               msaa (0, 2, 4, 8), filtering (aa, linear, nearest)
   [audio]      volume, mute
   [keyboard]   one line per N64 button: SDL key names, several separated by commas
   [controller] the same for a game controller, plus which stick is the analog stick,
@@ -79,6 +81,7 @@ Command-line options (for shortcuts or a .bat file) override bc.ini, for example
   bc.exe --mute                bc.exe --volume 50       bc.exe --scale 4
   bc.exe --saves D:\BCsaves    bc.exe --config other.ini   bc.exe --no-pak
   bc.exe --set audio.volume=50   (any bc.ini setting as section.key=value, this run only)
+  bc.exe --resolution 4        bc.exe --msaa 4          bc.exe --filtering nearest
 
 
 Saves

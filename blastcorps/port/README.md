@@ -1,76 +1,230 @@
-# port/: Windows build (stage 0 spike)
+# port/: the native Windows port
 
-A 32-bit (i686) Windows exe that maps the N64's 8 MB of RDRAM at
-0x80000000 and runs the game's NON_MATCHING C against it. Nothing in
-`src.us.v11/` changes for this; the matching build is untouched.
+Blast Corps' NON_MATCHING C, compiled with MSVC for x64 Windows: `bc.exe`
+(the game in a window, RT64 renderer), `bc_headless.exe` (the same game
+logic, no output: the test vehicle) and the player package.  The N64's 8 MB
+of RDRAM sits at 0x80000000 in the process and the game's data at its N64
+addresses, in N64 layouts.  Nothing in `src.us.v11/` changes for this beyond
+`NON_MATCHING`/`PORT_HOST` code; the matching build is untouched.
+
+There is one build: MSVC (`CMakeLists.txt`), opened in Visual Studio or
+driven from WSL.  Around it:
+
+- **Build on Windows with Visual Studio**: what a player or developer needs;
+  no WSL.  The facts the build takes from the decomp are committed in
+  `port/inputs/`.
+- **Verification from WSL** (`Makefile`, `msvc.mk`): `port/inputs`, the
+  checks against the emulator and the original code, all run against the
+  MSVC exes.
+- **The clang check** (`port64.mk`): a clang x86_64 bc_headless of the same
+  sources that nobody plays, for the checks MSVC can't do (pointer-width
+  audit, record layouts, signed-overflow census) and as a second compiler
+  whose per-frame traces must equal MSVC's.
+- **The matching ROM build**: unchanged.
 
 ```
-make VERSION=us.v11 NON_MATCHING=1 -j8   # build_nm/ ELFs: the address source
-make VERSION=us.v11 -j8                  # build/ ELFs: the reference for `check`
-make -C port -j8                         # port/build/spike.exe
-make -C port check                       # run it, compare with the original MIPS code
-make -C port linkall                     # every hd_code game file in one exe
-make -C port typemap ucode               # byte-order schema coverage / RSP microcode hashes
-make -C port headless                    # build/headless/bc_headless.exe: the game, no output
-make -C port game                        # build/game/bc.exe: the game in a window (RT64)
-make -C port verify                      # quick regression check against the emulator
-make -C port headless64 game64 dist64    # the same in 64 bits (x86_64, clang): "64-bit" below
-make -C port ptrcheck64 verify64 verify-levels64 loadcheck64
-make -C port inputs msvc                 # the MSVC x64 build (CMakeLists.txt): "Build on Windows
-make -C port verify-msvc verify-levels-msvc loadcheck-msvc dist-msvc   #  with Visual Studio" below
+# Windows (x64 Native Tools Command Prompt, or Visual Studio: Open Folder > port/)
+cmake --preset x64-release && cmake --build --preset x64-release   # bc.exe, bc_headless.exe
+cmake --build --preset dist                                        # the player package
+
+# WSL (needs the NON_MATCHING build: make VERSION=us.v11 NON_MATCHING=1 at the decomp root)
+make -C port msvc                  # the MSVC exes, from WSL (MSVC_DIR on a Windows drive)
+make -C port verify                # check-inputs, loadcheck, bc_headless vs the emulator
+make -C port verify-levels         # every level vs the emulator
+make -C port loadcheck dist compare strict-data typemap ucode
+make -C port inputs check-inputs   # port/inputs: rewrite / check against the code
+make -C port asan                  # bc_headless with AddressSanitizer
+make -C port clang-check           # the clang check (ptrcheck64, headless64, traces vs MSVC)
+make -C port overflow-census       # signed overflows at run time (clang -fsanitize)
 ```
 
-Needs `i686-w64-mingw32-gcc` (WSL), the project venv (pyelftools, unicorn),
-host `gcc` (for `typemap`) and the ROM at run time (`ROM=`, default
-`../baserom.us.v11.z64` or `~/blastcorps/baserom.us.v11.z64`). The exe gets
-a Windows path through `wslpath -w`.  The 64-bit build also needs `clang-18`
-and the x86_64 mingw-w64 toolchain (`x86_64-w64-mingw32-gcc`/`g++-posix`).
+## Build on Windows with Visual Studio
 
-## How it fits together
+**Prerequisites**
+- Visual Studio 2022 or later with the "Desktop development with C++"
+  workload (MSVC x64 tools, a Windows SDK, "C++ CMake tools for Windows",
+  which bring CMake and Ninja).  Tested with Visual Studio 2026 18.10
+  (MSVC 14.51, CMake 4.3, Windows SDK 10.0.26100).
+- Python 3 (python.org; only its standard library is used) on `PATH`, or
+  `-DPython3_EXECUTABLE=...`: the build's generated sources come from the
+  Python tools in `tools/` (pinning, tables, ultralib copies).
+- Git for Windows: the repository and its ultralib submodule
+  (`git submodule update --init lib/ultralib`), and the first configure
+  fetches RT64.
+- The ROM, Blast Corps (USA) (Rev 1), only to run the game (bc.exe asks for
+  it with a file dialog, or takes it as its first argument).
 
-1. **RDRAM.** `src/rdram.c` reserves and commits 8 MB at 0x80000000 with
-   `VirtualAlloc`. The exe is linked `--large-address-aware` (without it,
-   addresses at or above 2 GB don't exist for the process),
-   `--disable-dynamicbase` and `--disable-reloc-section`. Absolute symbols
-   must never be rebased, so the image always loads at 0x400000.
-2. **Game C.** Each game file is compiled to assembly with
-   `-DNON_MATCHING -O2 -fno-strict-aliasing -fwrapv -msse2 -mfpmath=sse`. The
-   port's `include/port_ultratypes.h` is forced in. `-fno-builtin-{sin,cos}{,f}`
-   keeps the libultra versions, because gcc otherwise turns sinf and cosf into
-   `sincosf`.
-3. **Pinning data (`tools/relabel.py`).** Every data object the C defines that
-   the NON_MATCHING ELF places at an N64 address becomes an absolute symbol at
-   that address. Its native initialiser is kept under `__native_<name>`, and
-   `build/copytab.c` lists these. Start-up copies the initialisers over the
-   image, already in host byte order and layout. The copy is checked against
-   the N64 `st_size`. Function-local statics (`D_xxxxxxxx.N`) are pinned by
-   name.
-4. **Undefined symbols (`tools/gensyms.py link`).** Data symbols become
-   `_name = 0x8xxxxxxx;` lines in `build/abs_syms.ld`, an implicit linker
-   script. Functions that no linked object defines become traps in
-   `build/stubs.c`. Compiler and C-runtime helpers come from libgcc/msvcrt.
-5. **Image load (`rdram_load`).** The hd_code `.data`/`.rodata` gzip member
-   (ROM 0x7D73B4) is inflated to 0x802E8BD0, and the front end (text+ucode,
-   data) to 0x801E7000/0x80208040. Both `.bss` ranges are cleared, then the
-   native initialisers are copied in. The hd_code text is not loaded; its
-   tables are C (NM_PIN_HD_CODE).
-6. **Byte order.** Image bytes that came from the ROM are big-endian; the load
-   layer (`src/load/`, next section) swaps them by type before the native
-   initialisers go in.
+Nothing else: the facts the build needs from the decomp's NON_MATCHING
+build (data addresses, which symbols are functions, the N64 pointer slots,
+the C declarations' types and the two link maps) are in `port/inputs/`,
+which is part of the repository (made in WSL by `make -C port inputs`; see
+"Verification from WSL").  It holds no ROM data.
 
-## The spike's tests (`src/spike_main.c`, reference `tools/n64ref.py`)
+**Building**
+1. Visual Studio: File > Open > Folder..., the `blastcorps/port` folder.  It
+   reads `CMakePresets.json`: choose "x64 Release" (the default, optimised,
+   with a PDB), "x64 Debug" (no optimisation, for stepping through the game
+   code), "x64 Release, bc_headless.exe only" (nothing downloaded) or
+   "x64 Release + AddressSanitizer" (below).
+2. The first configure downloads into `port/build/thirdparty` (shared by all
+   presets): RT64 at the pinned commit with its submodules (git, ~500 MB) plus
+   the port's patches 0003 and 0004 (`cmake/fetch_rt64.cmake`), the official
+   DXC v1.9.2609 and SDL2 2.26.3 releases (SHA-256 checked).
+3. Build > Build All: `out/build/<preset>/bc.exe` (with SDL2.dll,
+   dxcompiler.dll, dxil.dll next to it) and `bc_headless.exe`.  The target
+   `dist` makes the player package: `dist/BlastCorps-port-<hash>.zip` and
+   `dist/BlastCorps-port-<hash>-pdb.zip` (bc.pdb, the map and the .syms
+   that match the exe).
+4. Run and debug: pick `bc.exe` as the startup item and press F5; arguments
+   (the ROM, `--no-config` ...) go into its launch configuration
+   (Debug > Debug and Launch Settings: `"args": [ "D:\\roms\\bc.z64" ]`).
+   Breakpoints work in the game's C (`src.us.v11/hd_code/*.c`), the platform
+   layer and RT64.  N64 memory sits at its N64 addresses, so a game variable
+   is watched as `*(u64 *)0x80364A90` (the game mode).
 
-`n64ref.py` runs the same cases through the original code (`build/`, unicorn,
-memory big-endian). `check` compares the outputs line by line:
+From a command prompt ("x64 Native Tools Command Prompt for VS"):
+`cmake --preset x64-release`, `cmake --build --preset x64-release`,
+`cmake --build --preset dist`.  The Visual Studio generator works too
+(`cmake -G "Visual Studio 18 2026" -A x64 ...`).  Keep the binary folder's
+path short: RT64's object paths must stay under 250 characters.
 
-| test | function | reads | typed | raw (no swap) |
-|---|---|---|---|---|
-| T1 | func_802AD7D4/7FC arcsine (69000.c) | u16 table D_802AD880 in a .text bin, defined in 69930.c | 65536/65536 | 9/65536 |
-| T2 | func_802A56C4 (60D50.c) | s16 D_80305B90[][3] in a hd .data bin | 21/21 | 3/21 |
-| T3 | func_802A5510 (60D50.c) | level asset (s32 offsets + s16 HeightZones) in the heap | 300/300 | 26/300 (274 access violations) |
-| T4 | func_802CB690 (86ED0.c, vehicle helper) | .bss only; records its calls | 200/200 | 200/200 |
+**Heap checking: the x64-asan preset** (`BC_ASAN`; from WSL `make -C port
+asan` -> `MSVC_DIR/Asan/bc_headless.exe`).  bc_headless with the port's host
+code (load layer, platform, audio, crash reporter: everything that uses the
+C heap) built `/fsanitize=address`: a heap overrun or underrun, a use after
+free, a double or bad free stops with AddressSanitizer's report (the access,
+the block, where it was allocated and freed, with source lines);
+`--crash-test heapover` checks that it does.  It runs as bc_headless does
+(same options, same per-frame trace), about five times slower.  The game C
+is not instrumented: it has no heap, and ASan's redzones around globals
+would cover the N64 data that follows them.  Two things make it work with
+the fixed-address RDRAM:
+- ASan's run time puts its shadow memory in the first large free range of
+  the address space while its DLL initialises, before any code of the exe
+  runs; that range starts at 0x7FFF0000 and covers 0x80000000.  So N64
+  memory comes from `bc_rdram.dll` (`src/rdram_asan_dll.c`), a DLL with no
+  code and one 8 MB section, linked at a fixed base of 0x7FFF0000 with 64 KB
+  section alignment: its section starts at 0x80000000, the loader maps it
+  with the exe's imports before any DLL initialises, and ASan's shadow goes
+  elsewhere.  `rdram_map` makes that range writable and clears it instead of
+  VirtualAlloc'ing it.
+- ASan's heap lives above 4 GB.  Only host code keeps heap blocks (the game
+  is never given one), so the ASan build lets `rdram_map`'s below-4-GB check
+  pass for the heap; a heap address that did reach N64 memory would be cut
+  to 4 bytes and fault at once.
+The DLLs (`bc_rdram.dll`, `clang_rt.asan_dynamic-x86_64.dll` from the
+compiler's folder) are copied next to the exe.  This replaces the retired
+32-bit build's page-heap wrapper (`checked_heap.c`, mingw `--wrap`).
 
-## Byte order on load (`src/load/`, stage 3)
+## How the port works
+
+### Memory model
+
+N64 memory is at 0x80000000-0x80800000 in the 64-bit process (`src/rdram.c`
+reserves and commits it with `VirtualAlloc`), so every N64 address is a
+valid host pointer and N64-layout data keeps 4-byte pointers: RAM stays
+byte-identical to the N64's apart from byte order.  Everything the game can
+be given a host address of must be below 4 GB: the exe (linked at a fixed
+base 0x40000000, `/FIXED /DYNAMICBASE:NO /HIGHENTROPYVA:NO`, no relocations;
+code reaches RDRAM RIP-relative, < 1.1 GB away), the heap and the fiber
+stacks (bottom-up allocations without high-entropy VA; `rdram_map` and the
+fiber trampoline check it).
+
+The game and SDK headers and the game C mark what is an N64 pointer
+(`port/include/port_n64ptr.h`; the marks expand to nothing in the IDO builds,
+`include/2.0I/PR/ultratypes.h`):
+
+| mark | meaning (MSVC and clang) | where |
+|---|---|---|
+| `T * N64P x` | `__ptr32 __uptr`: a 4-byte pointer, zero-extended when loaded | record fields, pinned globals, casts that read an N64 pointer (`*(u8 * N64P *) (p + 8)`), functions taking pointers to such pointers |
+| `N64FN(T) x` | a u32 (clang can't use `__ptr32` function pointers): `N64FN_SET`, `N64FN_GET(T, x)` | libaudio's handlers in N64 memory |
+| `N64_IPTR(x)` | `(unsigned) x`: zero-extend | a signed 32-bit address cast to a pointer |
+| `N64_A32` | `unsigned` | an int holding an address added to a pointer |
+| `N64_DPTR(x)` | 0, the value comes from the pointer table | pointers in static initialisers of N64 data |
+| `N64_KEEP` | `used` | a pinned static clang would fold away |
+
+ultralib's ul_* objects see ultralib's own headers: `tools/ulhdr64.py`
+copies them with the marks listed in `data/ultralib_n64ptr.txt`, and
+`tools/ulsrc64.py` rewrites the libaudio sources' uses of N64FN fields, the
+bank loader's s32 address offsets (bnkf.c) and `sizeof(ALFilter *)` (the bus
+source tables live in the audio heap, which the game sizes exactly: 0 bytes
+left over).  `tools/lesrc.py` makes little-endian copies of five SDK
+sources (`le/`): two libc files read a double's sign/exponent half-word at
+index 0, gu's sinf/cosf initialise their double constants as big-endian word
+pairs, and the Controller Pak's inode/ID byte pairs and a directory entry's
+never-written bytes (see the tool).
+
+### Pinning data, tables, the link
+
+- **Pinning (`tools/coffpin.py`).** Every data object the C defines that the
+  NON_MATCHING ELF places at an N64 address is taken out of its COFF object
+  (built with one section per variable, `/Gw`): an initialised one keeps its
+  bytes as `__native_<name>` (the copy table), a bss one becomes undefined,
+  and every relocation to it goes to an undefined `<name>`.  Function-local
+  statics (`D_xxxxxxxx`) are pinned by name.
+- **Absolute symbols (`gensyms.py linkcoff`, `tools/rdramobj.py`).** The N64
+  data symbols the objects use become absolute COFF symbols in one object;
+  functions nothing defines become traps (`stubs.c`).  link.exe resolves a
+  REL32 fixup against an absolute symbol as image base + value and an ADDR64
+  one as the value, and refuses ADDR32NB ones (MSVC indexes global arrays
+  off `__ImageBase`): the symbols are written as address - image base, and
+  coffpin adds the base to ADDR64/ADDR32 addends and resolves ADDR32NB
+  itself.  It also handles `/Gw`'s per-variable COMDAT sections, MSVC's names
+  for local statics and its COMMON symbols (C tentative definitions).
+  (RDRAM as a section of the image at 0x80000000 would avoid absolute
+  symbols, but the image would then cover 0x7FFE0000, where Windows maps
+  KUSER_SHARED_DATA: such an exe doesn't start.)
+- **Copy table (`gensyms.py copytab64`).** Start-up copies the native
+  initialisers over the loaded image, already in host byte order and layout;
+  each copy is checked against the N64 `st_size`.
+- **Pointer table (`gensyms.py ptrtab-in`, `inputs/nmptrs.txt`).** Every
+  pointer slot of the pinned C objects (the NON_MATCHING objects' R_MIPS_32
+  data relocations) with the word the NM ELF holds there, written after the
+  copy: the `N64_DPTR` initialisers (strings, tables of N64 addresses) get
+  the N64's own values.
+- **Image load (`rdram_load`).** The hd_code `.data`/`.rodata` gzip member
+  (ROM 0x7D73B4) is inflated to 0x802E8BD0, and the front end (text+ucode,
+  data) to 0x801E7000/0x80208040.  Both `.bss` ranges are cleared, the load
+  layer swaps the image bytes by type (below), then the native initialisers
+  and the pointer table go in.  The hd_code text is not loaded; its tables
+  are C (NM_PIN_HD_CODE).
+
+### MSVC specifics
+
+- Game code: `/O2 /Ob1` (only `inline` functions are inlined; `/Ob0` in the
+  files that read the clock), `/GH` (an empty `_pexit` call before each return
+  keeps tail calls as calls: return addresses name their callers, which
+  `--clock`/`--sync` key on and crash reports use).  `--sync`'s
+  function-entry points and `--calls` patch only the functions they name, at
+  start-up, into their entry (`plat_host.c host_entry_hook`, `entry_x64.asm`,
+  the linker's `/FUNCTIONPADMIN`): the hook runs before any instruction of
+  the function.  (MSVC's own `/Gh` hook comes after the prologue, and the
+  compiler schedules body code, N64 memory accesses among it, before it.)
+- MSVC has no `-fwrapv`: the signed adds and multiplies that really overflow
+  are wrapped explicitly (`PORT_WRAP_MUL`/`PORT_WRAP_ADD`, `game/port.h`:
+  the two random-number generators in 23C20.c and the debris size in
+  77E20.c), found by the clang check's overflow census.  No
+  `-fno-strict-aliasing` equivalent is needed (MSVC does no type-based alias
+  analysis), nor `-malign-double` (8-byte members are naturally aligned).
+  The GBI's bit-fields are written for Microsoft's layout rules where they
+  differ (`gbi.h`, `rdb.h`; `layout_check.c` asserts every GBI and ABI
+  record's size and offsets and checks the bit positions at start-up).
+  `sinf`/`cosf` stay the SDK's (`#pragma function`).  MSVC doesn't assume
+  16-byte alignment of N64 data (`tools/align64.py` over its objects finds
+  only stack saves), so the clang build's IR alignment pass has no MSVC
+  counterpart.
+- Crash reports name functions and source lines from the exe's PDB
+  (dbghelp, with a time limit); the minidump opens in Visual Studio with the
+  PDB.  The static C runtime (`/MT`): the package needs no Visual C++
+  redistributable.
+- `-DPORT_HOST` enables the game's port hooks (`include/game/port.h`):
+  `PORT_SPIN()` in the two busy-waits on the VI counter (00000.c),
+  `PORT_FE_LOADED()` after the front end is inflated (46C20.c) and the rest
+  below.  Both expand to nothing in the N64 builds.  hd_code files that are
+  only SDK asm or RCP-register C (8FD90 ... A0A30) are left out; the ultralib
+  os/io objects are replaced by the platform layer.
+
+### Byte order on load (`src/load/`)
 
 Memory is host-endian (little-endian): everything the game's C reads
 natively is swapped once, by the width the code reads it at, when it arrives
@@ -79,15 +233,17 @@ streams the code reads bytewise (5CB60.c's BE16U/BE16S/BE32) stay big-endian.
 
 - **Data images** (hd_code .data/.rodata at 0x802E8BD0, front end at
   0x80208040): `rdram_load` calls `port_load_image_hd/fe` (swap.c) with the
-  table `build/swaptab.c` that `tools/swaptab.py` generates from
-  1. `tools/typemap.py`: the DWARF of every game file's declarations and its
-     per-file `#define D_x ((T *) D_x)` struct views (merged: the most
-     detailed view first; arrays run past splat's mid-array symbols);
+  table `swaptab.c` that `tools/swaptab.py` generates from
+  1. `tools/typemap.py`: the DWARF of every game file's declarations (host
+     gcc in WSL; `inputs/typemap.txt`) and its per-file
+     `#define D_x ((T *) D_x)` struct views (merged: the most detailed view
+     first; arrays run past splat's mid-array symbols);
   2. `data/image_widths.txt`: the widths the NON_MATCHING code reads each
      address at (traced, below); the trace wins where it reads one wider field
      over narrower declared ones;
-  3. `data/image_static.txt`: fixed-address accesses of the native code
-     (`tools/mixscan.py --widths`), for bytes 1-2 leave untyped;
+  3. `data/image_static.txt`: fixed-address accesses of the native code, for
+     bytes 1-2 leave untyped (made once by `tools/mixscan.py --widths` over
+     the retired i686 build's gcc assembly);
   4. `data/image_overrides.txt`: hand decisions (D_802F46C0 DL commands as
      words, the D_802E8BF8 flag/word alias kept big-endian, struct copies).
   Bytes from C objects need nothing: their native initialisers are copied
@@ -103,7 +259,7 @@ streams the code reads bytewise (5CB60.c's BE16U/BE16S/BE32) stay big-endian.
   front-end scenes and the static segment. Texture entries are swapped
   around 60F60.c's decoder (`port_texture_input/output`, NON_MATCHING hooks):
   s16 tokens in, big-endian texels out.
-- **Graphics data the renderer reads** (`src/load/gfx_fix.c`, stage 4): the
+- **Graphics data the renderer reads** (`src/load/gfx_fix.c`): the
   schemas swap an asset's display-list area as u32 words (the CPU walks and
   patches commands as words), but such an area can also hold vertices,
   viewports, lights and texels, which then end up in the emulator's layout
@@ -132,46 +288,26 @@ Tools:
   `EXTRA=name:lo:hi,...` adds regions (.bss state blocks).
 - `tools/widths.py image|facts|assets`: reduce traces.
 - `make -C port loadcheck [LC_TRACE=trace.txt]`: real assets through the
-  game's own loaders and consumers, native vs the original code in unicorn
+  game's own loaders and consumers (`bc_loadcheck.exe`,
+  `src/loadcheck_main.c`), native vs the original code in unicorn
   (`tools/loadref.py`): T5 the D_802E8BF8 alias, T6 520 texture decodes, T7
   every level's object stream, T8 every level's height zones; with a trace,
   T9 checks every traced read of every traced asset right after loading.
 
-## Headless (stage 3): `make -C port headless`
+### bc_headless and the platform layer
 
-`build/headless/bc_headless.exe ROM [options]` runs the whole game logic (every
-hd_code and front-end game file, plus the ultralib gu, libm, printf and
-libaudio objects compiled natively) on the platform layer in
-`src/platform/`, with no graphics or audio output. Options are listed in
+`bc_headless.exe ROM [options]` runs the whole game logic (every hd_code and
+front-end game file, plus the ultralib gu, libm, printf and libaudio objects
+compiled natively) on the platform layer in `src/platform/`, with no
+graphics or audio output. Options are listed in
 `src/platform/headless_main.c` (`--frames N`, `--dump F1,F2`, `--dump-every N`,
 `--trace FILE`, `--input FILE`, `--gettime FILE`, `--frame-done FILE`,
 `--eeprom FILE`, `--mpk FILE`, `--print`, `--cmdline STR`, `--gfx-cycles N`,
-`--boot-count N`, `-v`...). A frame is one
-frame-ending gfx task (the scheduler task with flag 0x40); dumps are the 8 MB
-of RDRAM in host byte order, taken when the main thread sends that task to
-the scheduler.
-
-The build differs from the spike's in a few ways:
-- `-malign-double -mno-ms-bitfields`: u64/f64 members 8-aligned and GCC
-  bitfield packing, so struct layouts match IDO's (MinGW's MS bitfields make
-  the GBI's `Gfx` 16 bytes).
-- `-DPORT_HOST` enables the game's port hooks (`include/game/port.h`):
-  `PORT_SPIN()` in the two busy-waits on the VI counter (00000.c) and
-  `PORT_FE_LOADED()` after the front end is inflated (46C20.c). Both expand
-  to nothing in the N64 builds.
-- hd_code files that are only SDK asm or RCP-register C (8FD90 ... A0A30) are
-  left out; the ultralib os/io objects are replaced by the platform layer.
-- Two ultralib libc files read a double's sign/exponent half-word at index 0
-  (big-endian), and gu's sinf/cosf initialise their double constants as
-  big-endian word pairs (`du` in guint.h); sed makes little-endian copies
-  (`le/`).
-- `port_on_dma` (the hook the load layer implements, `src/platform/port_dma.h`)
-  comes from `src/load/` (an identity stub while that has no sources), and
-  the load layer's generated `swaptab.c` is linked too.
-- `-fno-optimize-sibling-calls` everywhere and `-fno-inline` in the files
-  that call osGetTime/osGetCount: a return address names the real caller,
-  which `--clock`/`--sync` key on (below). The link also writes
-  `bc_headless.syms` (`nm -n` of the exe) for `--syms`.
+`--boot-count N`, `--syms FILE`, `-v`...). A frame is one frame-ending gfx
+task (the scheduler task with flag 0x40); dumps are the 8 MB of RDRAM in host
+byte order, taken when the main thread sends that task to the scheduler.
+The build writes `bc_headless.syms` (`tools/mapsyms.py`: link.exe's map as
+`nm -n` output) for `--syms`.
 
 Platform model (`src/platform/`):
 
@@ -194,12 +330,12 @@ Host-order rules the game C follows under `PORT_HOST` (include/game/port.h):
 `PORT_HALF(i)` for u16 views of 32-bit words (the N64 Mtx's elements; the
 port keeps Mtx words in host order), `PORT_SHAMT(n)` for variable shift
 amounts that can reach 32 (MIPS uses the low 5 bits), `PORT_SAVE_*` for save
-records. Tools: `tools/eepsave.py FILE [OUT --set OFF:W=VAL]` decodes or edits
-an .eep (fixing its CRC).
+records, `PORT_WRAP_*` for signed overflow. Tools: `tools/eepsave.py FILE
+[OUT --set OFF:W=VAL]` decodes or edits an .eep (fixing its CRC).
 
-## Windowed (stage 4): `make -C port game`
+### bc.exe: the game in a window
 
-`build/game/bc.exe ROM [bc_headless options] [--api d3d12|vulkan]
+`bc.exe ROM [bc_headless options] [--api d3d12|vulkan]
 [--shot F1,F2..] [--shot-dir DIR] [--shot-every N] [--no-pace] [--scale N]
 [--mute] [--volume N]`
 plays the game in a window: bc_headless's game and platform objects plus
@@ -215,18 +351,12 @@ volume, Esc quits; an SDL game controller
 Start, shoulders, right stick = C buttons, D-pad). `--input FILE` replays a
 recording instead.
 
-**Building RT64.** The first `make -C port game` runs `rt64/build_rt64.sh`:
-it clones RT64 (github.com/rt64/rt64, MIT) at the pinned commit 43373749
-into `$TP/rt64_bc/src` (`TP` default `~/thirdparty`; outside the repo),
-applies `rt64/patches/0001-0004`, fetches DirectX-Headers and DXC v1.9.2609
-(the Linux dxc compiles the shaders, the Windows x86 DLLs run next to the
-exe: both must be the same version), and builds a static i686 library with
-mingw-w64 (`JOBS`, default 2). It reruns only when a patch changes. The
-patches: 0001/0002 the mingw/i686 build (stage-0 spike); 0003
-`RT64_NATIVE_HOST_LAYOUT`; 0004 the L3D handler. To change RT64, edit
-`$TP/rt64_bc/src` (each patch is a local commit there), rebuild with
-`ninja -C $TP/rt64_bc/build-i686 rt64`, and regenerate the patch with
-`git diff`.
+**RT64** (github.com/rt64/rt64, MIT) at the pinned commit 43373749, with
+`rt64/patches/0003` (`RT64_NATIVE_HOST_LAYOUT`) and `0004` (the L3D
+handler), is fetched by `cmake/fetch_rt64.cmake` and built with MSVC as a
+static subproject.  To change RT64, edit the fetched tree
+(`port/build/thirdparty/rt64`, each patch a local commit there), rebuild,
+and regenerate the patch with `git diff`.
 
 **RT64_NATIVE_HOST_LAYOUT** (`src/common/rt64_rdram_layout.h` in the
 patched tree): RT64 normally reads RDRAM in the emulator's layout (each
@@ -289,17 +419,17 @@ vertices typed as words by some declaration need a `vtx` line in
 the hd data image now match the ROM layout).
 
 Same game logic: with the same input, bc.exe and bc_headless produce
-identical per-frame traces (2001 frames compared: retrace, time, mode,
-level, frames in mode, game retrace counter). Their RDRAM differs only in
-what the renderer writes (colour and depth images: framebuffers, Z, the
-shadow and other render-to-texture images), the staged ucode, the graphics
-data gfx_fix.c converted, and pointers to the exes' own code/data.
+identical per-frame traces (retrace, time, mode, level, frames in mode, game
+retrace counter). Their RDRAM differs only in what the renderer writes
+(colour and depth images: framebuffers, Z, the shadow and other
+render-to-texture images), the staged ucode, the graphics data gfx_fix.c
+converted, and pointers to the exes' own code/data.
 
-## Player setup and package (stage 6)
+### Player setup and package
 
-bc.exe is a Windows GUI program (`-mwindows`): double-clicking it opens no
-console. Its log goes to stderr when the parent gave it one (WSL, a
-redirect, a script: everything above works unchanged), otherwise to
+bc.exe is a Windows GUI program (`/SUBSYSTEM:WINDOWS`): double-clicking it
+opens no console. Its log goes to stderr when the parent gave it one (WSL, a
+redirect, a script: everything below works unchanged), otherwise to
 `bc.log` next to the exe (or `%TEMP%`). With `host_gui` set, `host_fatal`,
 the crash reporter, C++ `terminate` and bad options also show a message box.
 
@@ -328,12 +458,12 @@ runtime locks or heap), which writes:
   exception (code, fault address as module + RVA, read/write address),
   registers, the host thread (main = the game's fibers; the fiber), the game
   state (game thread, frame, retrace, mode, next mode, level, frames in mode,
-  game VI counter), and a backtrace: return addresses found on the stack
-  (call-site checked; the code has no frame pointers), named from the exe's
-  own COFF symbol table (read from the .exe file: `nm` names, kept by the
-  dist build's `strip --strip-debug`, so no symbol file is shipped) or the
-  nearest DLL export; a frame whose direct call targets the function below it
-  is confirmed, others are marked `?` (indirect calls, tail calls or stale);
+  game VI counter), and a backtrace: return addresses found on the stack,
+  call-site checked and unwound with the x64 unwind tables, named with
+  source lines from the exe's PDB (dbghelp, with a time limit) or the
+  nearest DLL export; a frame whose direct call targets the function below
+  it is confirmed, others are marked `?` (indirect calls, tail calls or
+  stale);
 - `bc-crash-YYYYMMDD-HHMMSS.dmp` (`MiniDumpWriteDump` from System32's
   dbghelp.dll, loaded at start-up): threads, indirectly referenced memory, the
   8 MB RDRAM and the exe's .data/.bss (~17 MB); with `--dump-dir`, also
@@ -345,29 +475,34 @@ runtime locks or heap), which writes:
   suspends every other thread of the dump, so the reporter is left out of
   the dump (`IncludeThreadCallback`) and keeps its time limit; the dumper
   first runs `HeapValidate` and writes no dump when that finds the heap
-  corrupt. With the pre-784dbcf bank walk (below), a real heap-corruption
-  crash now ends after 20 s with exit code 4, the full report and the .txt
-  ("minidump: not written: timed out ..."); before, it hung.
+  corrupt; the PDB lookup first checks that the heap's lock is free.
 They go to `--crash-dir DIR` (both exes; compare.py passes the native run's
 folder), else bc.exe: bc.log's folder (the exe's), bc_headless: the current
 folder, falling back to `%TEMP%`. Then bc.exe shows a message box (unless
 `--no-msgbox`) and the process ends with exit code 4 through
 `TerminateProcess` (no DLL detach or atexit code runs in a crashed process;
 `host_fatal` ends the same way, code 2). `--crash-test KIND[:FRAME]` crashes
-on purpose (av, div, stack, thread, abort, fatal, box, heaplock, heapbad;
-bc.exe also cxx).
+on purpose (av, div, stack, thread, abort, fatal, box, heaplock, heapbad,
+heapover; bc.exe also cxx).
+Example (bc_headless --crash-test av:5):
 
-**Heap checking** (`make -C port headless-checked`,
-`src/platform/checked_heap.c`): `build/headless/bc_headless_checked.exe`,
-the same objects linked with `--wrap=malloc,calloc,realloc,free`, puts every
-block of the port and game code on pages of its own in a reserved arena
-(0x90000000, above RDRAM) like Windows' page heap: an inaccessible page right
-after the block (an overrun faults at the guilty instruction), the alignment
-slack and the gap before the block checked at free (overruns by a few bytes,
-underruns), freed pages decommitted and never reused (use after free
-faults), and a free/realloc of a pointer it never gave out (stale or garbage)
-or a double free stops with a crash report. MinGW has no AddressSanitizer
-for i686. It runs as bc_headless does (same options), slower to allocate.
+    CRASH: access violation (exception 0xC0000005) at 0x00004000A350 = bc_headless.exe+0xA350
+      read of address 0x000000000010
+      rax=0000000000000010 rbx=0000000040939410 rcx=0000000040105E10 rdx=0000000000002002
+      ...
+      rip=000000004000A350 eflags=00010246
+      host thread 24892 (main: the game's fibers), fiber 0000000002AC4A00; Blast Corps port dev, exe bc_headless
+      game: thread 3@80310BD0, frame 5, retrace 49, mode 0x0000000000000010 (next 0x0000000000000000), level 0, frames in mode 4, game VI counter 49
+    backtrace (return addresses found on the stack; ? = not confirmed by the call chain, may be stale):
+      #0   00004000A350  bc_headless.exe+00A350  host_crash_test_frame+0x100 (crash.c:1120)
+      #1   0000400AECB8  bc_headless.exe+0AECB8  plat_on_frame+0x128 (plat_core.c:112)
+      #2   0000400A9376  bc_headless.exe+0A9376  osSendMesg+0x46 (os_thread.c:295)
+      #3   00004004B40F  bc_headless.exe+04B40F  func_80284E54+0x17F (405F0.c:97)
+      #4   00004008ECE9  bc_headless.exe+08ECE9  func_801EF4AC+0x79 (07800.c:380)
+      #5   000040024270  bc_headless.exe+024270  func_80244930+0x1930 (00000.c:977)
+      #6 ? 0000400A8DEE  bc_headless.exe+0A8DEE  fiber_main+0xE (os_thread.c:138)
+      ...
+    minidump: ...\bc-crash-20261007-212029.dmp
 
 **Rare boot crash** (heap corruption seen 3 times in ~250 runs before
 784dbcf: `free()` of the sound bank map after the swap, once in `sscanf`, at
@@ -377,29 +512,11 @@ offsets 0xFFFFFFFB, 0xFFFFFFFC and 0xFFFFFFFF; the old `bank_once` check
 `off + size > len` wrapped and passed, so `done[off] = 1` wrote 1-5 bytes
 *before* the map, into the heap block header, whenever the byte there read 0
 (an encoded header byte: rarely, and differently every run). Fixed by
-784dbcf (bounds without wrap-around). Confirmed afterwards: the old walk
-under the checked heap stops at every boot ("block of 19209 bytes was written
-before its start (-4)", at the first bank swap, retrace 30); the old walk on
-the normal heap crashed 10 times in 1800 boots, every time at that swap
-(faults in ntdll's heap code, heap words holding stdout text); the current
-code ran 2000 bc_headless boots, 60 bc.exe level runs (1300 frames) and all
-60 levels to frame 1900 under the checked heap without a fault.
-Example (bc_headless --crash-test av:5):
-
-    CRASH: access violation (exception 0xC0000005) at 0x004A68EA = bc_headless.exe+0xA68EA
-      read of address 0x00000010
-      eax=00000010 ebx=004BFB50 ecx=3998626C edx=00030000 esi=00000005 edi=80315440
-      ebp=80055400 esp=0400FD60 eip=004A68EA eflags=00010246
-      host thread 20584 (main: the game's fibers), fiber 014E9FA8; Blast Corps port dev, exe bc_headless
-      game: thread 3@80310BD0, frame 5, retrace 49, mode 0x0000000000000010 (next 0x0000000000000000), level 0, frames in mode 4, game VI counter 49
-    backtrace (return addresses found on the stack; ? = not confirmed by the call chain, may be stale):
-      #0   004A68EA  bc_headless.exe+0A68EA  host_crash_test_frame+0x11A
-      #1 ? 004A2949  bc_headless.exe+0A2949  host_log+0x29
-      #3   004A12DA  bc_headless.exe+0A12DA  plat_on_frame+0x11A
-      ...
-      #19  0040D9AC  bc_headless.exe+00D9AC  func_80244930+0x1EC
-      #22? 0049BAE0  bc_headless.exe+09BAE0  fiber_main+0x10
-    minidump: ...\bc-crash-20261007-093519.dmp
+784dbcf (bounds without wrap-around), found and confirmed with the (since
+retired) 32-bit build's page-heap wrapper: the old walk stopped at every
+boot ("block of 19209 bytes was written before its start (-4)"), the
+current code ran 2000 boots, 60 bc.exe level runs and all 60 levels under
+it without a fault.  The x64-asan preset is the tool for this now.
 
 `src/live/live_setup.cpp`:
 - **ROM.** A ROM argument is used as given; otherwise `rom =` from bc.ini;
@@ -441,16 +558,17 @@ Example (bc_headless --crash-test av:5):
   0 (level start: up to 50-77 ms behind with D3D12 while shaders compile,
   ~14 ms with Vulkan), then a catch-up.  Same per-frame trace with vsync
   on/off, windowed/fullscreen, D3D12/Vulkan.
-- `make -C port dist`: `build/dist/BlastCorps-port-<hash>/` and its zip:
-  bc.exe (debug info stripped), the three DLLs, `README.txt` (from
+- **The package** (CMake target `dist`, `dist/make_dist.py`; from WSL
+  `make -C port dist` -> `port/build/dist/`): `BlastCorps-port-<hash>/` and
+  its zip: bc.exe, SDL2.dll, dxcompiler.dll, dxil.dll, `README.txt` (from
   `dist/README.txt`: running, controls, bc.ini, saves, known issues) and
-  `THIRD_PARTY_LICENSES.txt` (`dist/third_party.sh` gathers every licence
-  from the RT64 tree, DirectX-Headers, the DXC release and the mingw-w64/GCC
-  runtime copyright files; it fails if one is missing).  No ROM data.  The
+  `THIRD_PARTY_LICENSES.txt` (every licence from the trees the build used:
+  RT64 and its contrib code, DXC, SDL2; it fails if one is missing), plus
+  `BlastCorps-port-<hash>-pdb.zip` (bc.pdb, map, syms).  No ROM data.  The
   exe's icon is drawn by `tools/make_icon.py`; `res/bc.rc` adds the version
   resource (git hash) and a manifest.
 
-## Audio (stage 5): `src/audio/`
+### Audio (`src/audio/`)
 
 The game's audio thread (22EE0.c, Rare's audiomgr) builds a command list
 each audio frame with libaudio (the old-SDK synthesizer, compiled natively
@@ -523,20 +641,67 @@ command out of a 256-row DMA of junk).  Not exercised by this game's lists
 (so checked only against the microcode's code, not run): RESAMPLE flag 2
 (the restored 16-byte input tail), ENVMIXER without A_AUX, commands 16+.
 
-## Comparing with the emulator: `make -C port compare DEMO=n`
+## Verification from WSL
+
+The decomp side (WSL Ubuntu: IDO, splat, the NON_MATCHING build) makes the
+MSVC build's inputs and runs every check against the MSVC exes.  Needs the
+project venv (pyelftools, unicorn), host `gcc` (typemap.py), Visual Studio
+on the Windows side, the NON_MATCHING ELFs (`make VERSION=us.v11
+NON_MATCHING=1` at the decomp root), the matching ELFs (`build/`, for
+loadcheck's reference) and the ROM (`ROM=`, default `../baserom.us.v11.z64`
+or `~/blastcorps/baserom.us.v11.z64`).  The exes get Windows paths through
+`wslpath -w`.
+
+**`port/inputs/`** (`make -C port inputs`, `gensyms.py inputs`): what the
+MSVC build takes from the NON_MATCHING build, as text files, so the Windows
+side needs neither the ELFs nor pyelftools:
+- `addrs.txt`: every data symbol at an N64 address, with its size;
+- `elfsyms.txt`: every ELF symbol's name, address, kind (func/data) and size;
+- `nmptrs.txt`: every pointer slot (R_MIPS_32 data relocation) of the NM *C*
+  objects' data with the word the NM ELF holds there (a symbol's address
+  plus the C source's addend; data the build extracts from the ROM is never
+  read);
+- `typemap.txt`: the declared scalar leaves of every data-image symbol
+  (`tools/typemap.py`: host gcc's DWARF of the game C);
+- `hd_code.us.v11.map`, `hd_front_end.us.v11.map`: the NM link maps
+  (section addresses and sizes per object, symbols).
+Facts of the decomp's own code and its NM link only: no ROM bytes (asset
+contents, images, values read from the ROM).  The folder is committed.
+After a change to the game code (anything that moves NM data, changes a
+declaration or a pointer initialiser), run `make -C port inputs` and commit
+the result; **`make -C port check-inputs`** (part of `verify`) brings the
+NON_MATCHING build up to date, makes the inputs again in
+`build/inputs-check` and fails if they differ from `port/inputs`.
+
+**`make -C port msvc`** builds the MSVC exes from WSL (`tools/msvc_build.sh`:
+the sources, `port/inputs` included, mirrored to `MSVC_DIR` on the Windows
+side, default `%LOCALAPPDATA%\blastcorps-msvc`, because MSVC compiling over
+`\\wsl.localhost` is slow; Visual Studio found with vswhere; CMake + Ninja
+in its x64 environment; `MSVC_CONFIG` Release (default), Debug or Asan;
+`MSVC_PYTHON`, `MSVC_THIRDPARTY` if needed) -> `MSVC_DIR/<config>/`.  Every
+target below builds what it needs this way.  (The old `-msvc` names,
+`verify-msvc` etc., still work.)
+
+Other generated files live in `port/build/gen/`: `addrs.txt`,
+`typemap.txt`, `typemap_all.txt` (every symbol, for strict mode),
+`swaptab.c` and `le/` (for the clang check), `facts.txt`.
+
+### Comparing with the emulator: `make -C port compare DEMO=n`
 
 `tools/compare.py` runs the attract mode in mupen64plus (tools_port/m64trace,
 spec `tools/cmp_spec.py`), feeds bc_headless the emulator's clock, and
-compares RDRAM frame by frame. It uses the NON_MATCHING test ROM
-(`build_nm/blastcorps.nm.us.v11.z64`, `make ... nmrom`), which runs the same C
-as the exe, so a difference is a port problem (byte order, platform, host
-compiler), not a rewrite bug; `CMP_KIND=base` uses the original ROM. The
-emulator run (log + RDRAM dumps every 10 frames, ~1 GB per demo) is cached in
-`CMP_CACHE` (default `~/cmp_cache/attract-nm-demoN`) and redone when
-cmp_spec.py or the ROM changes. Output: the timeline (submission retrace,
-game mode, level, frames in mode, game retrace counter per frame), then per
-compared frame "match" or the differing runs with symbols and the asset an
-address was loaded from.
+compares RDRAM frame by frame.  The exe is `CMP_EXE` (the make targets pass
+the MSVC build's; without it, the Release build in `MSVC_DIR`); its native
+runs go to `...-nativemsvc` folders (`CMP_TAG`).  It uses the NON_MATCHING
+test ROM (`build_nm/blastcorps.nm.us.v11.z64`, `make ... nmrom`), which runs
+the same C as the exe, so a difference is a port problem (byte order,
+platform, host compiler), not a rewrite bug; `CMP_KIND=base` uses the
+original ROM. The emulator run (log + RDRAM dumps every 10 frames, ~1 GB per
+demo) is cached in `CMP_CACHE` (default `~/cmp_cache/attract-nm-demoN`) and
+redone when cmp_spec.py or the ROM changes. Output: the timeline (submission
+retrace, game mode, level, frames in mode, game retrace counter per frame),
+then per compared frame "match" or the differing runs with symbols and the
+asset an address was loaded from.
 
 A frame is the main thread handing the scheduler its frame task (osSendMesg
 to D_80315440 with flag 0x40): the same program point on both machines; the
@@ -554,11 +719,11 @@ What the emulator log gives the exe:
 - `--sync`: the CPU time model. Game code takes no time natively; every
   message call (osSendMesg/RecvMesg/JamMesg/StartThread), main-thread clock
   read, and entry of a function that reads the game's retrace counter (found
-  by cmp_spec.py; the game files are built `-finstrument-functions`) is a
-  switch point: the native thread spins (interrupts and higher-priority
-  threads run) until the emulator's time for it, and until the game's
-  retrace counter D_803156C4 reads what it read there. Not for the scheduler
-  and audio threads (interrupt driven; their call order follows the RSP).
+  by cmp_spec.py; patched in at start-up, see "MSVC specifics") is a switch
+  point: the native thread spins (interrupts and higher-priority threads
+  run) until the emulator's time for it, and until the game's retrace
+  counter D_803156C4 reads what it read there. Not for the scheduler and
+  audio threads (interrupt driven; their call order follows the RSP).
 - `--frame-done` / `--frame-sp`: when each frame task's RDP and RSP parts
   finished; `--boot-count`: the power-on time when hd_code starts.
 
@@ -583,12 +748,12 @@ and a few buffers whose declared type isn't their readers' (`Layout.UNTYPED`)
 stay lenient. More emulator inputs: `Q` lines (the game retrace counter
 where `PORT_GVI` marks a mid-frame read, `cmp_spec.py GVI_FUNCS`), and
 `calls --args` compares the first argument words (`emu --calls` logs a0-a3,
-the exe the first four stack words; build with `HL_EXTRA=-fno-inline` for
-functions gcc inlines). Never-written record padding is logged by the exe
-(`port_garbage`, "load: garbage") and skipped; the game's reads of such
-stale bytes get the N64's big-endian view (`port_n64_byte`, from the unit
-every swap recorded; `port_vtx_stale` does the same for the HUD quads
-42240.c builds without writing their colour bytes, which the RSP reads).
+the exe its argument registers' home area, which may be stale). Never-written
+record padding is logged by the exe (`port_garbage`, "load: garbage") and
+skipped; the game's reads of such stale bytes get the N64's big-endian view
+(`port_n64_byte`, from the unit every swap recorded; `port_vtx_stale` does
+the same for the HUD quads 42240.c builds without writing their colour
+bytes, which the RSP reads).
 
 **LLE RSP (`emu --lle`, the default for `run` and `verify`).** The
 emulator runs the RSP tasks whose results the game reads on cxd4 (an LLE
@@ -625,24 +790,24 @@ voice/DMA state differs.  Sound (`--wav` vs the emulator's LLE WAV, 564 s,
 title and logos bit-exact, demo 0 98% of samples bit-exact, the rest
 44-88% bit-exact with a median SNR of ~75 dB.
 
-## Quick regression check: `make -C port verify`
+### Quick regression check: `make -C port verify`
 
-Rebuilds the NM test ROM and bc_headless, runs `loadcheck`, then
-`tools/compare.py verify --frames VERIFY_FRAMES` (default 1500: boot,
-logos, front end and attract demo 0): the emulator side (NM ROM, `--lle`,
-dumps every 10 frames) is cached in `$(CMP_CACHE)/verify-nm-N` and redone
-only when the ROM (by content: `make nmrom` rewrites it every time),
-`cmp_spec.py` or the tracer change (the whole check takes about 5
-minutes then, 1.5 minutes with the cache).  Reported: frames
-whose timeline matches, RAM dumps that match (lenient, and strict with the
-layouts of `make -C port strict-data`), the visibility tests (emulator LLE
-vs the exe's model), the emulator's audio tasks vs the interpreter, the
+Rebuilds the NM test ROM, runs `check-inputs`, builds the MSVC bc_headless
+and bc_loadcheck, runs `loadcheck`, then `tools/compare.py verify --frames
+VERIFY_FRAMES` (default 1500: boot, logos, front end and attract demo 0): the
+emulator side (NM ROM, `--lle`, dumps every 10 frames) is cached in
+`$(CMP_CACHE)/verify-nm-N` and redone only when the ROM (by content: `make
+nmrom` rewrites it every time), `cmp_spec.py` or the tracer change (the whole
+check takes about 5 minutes then, 1.5 minutes with the cache).  Reported:
+frames whose timeline matches, RAM dumps that match (lenient, and strict with
+the layouts of `make -C port strict-data`), the visibility tests (emulator
+LLE vs the exe's model), the emulator's audio tasks vs the interpreter, the
 main thread's switch points used.  It fails when a number is worse than
 in `data/verify_expect.txt` (`key MIN`, `key =N`, `key <=N`).
 `VERIFY_FRAMES=14498 make -C port verify` covers all nine demos (about 25
 minutes the first time, ~12 GB of dumps).
 
-## Every level: `make -C port verify-levels`
+### Every level: `make -C port verify-levels`
 
 The attract demos load 9 of the game's 60 levels (`D_802E8BDC` 0-59; the
 type byte of each `D_802E8F94` record is in `data/levels.txt`).  To reach any
@@ -693,184 +858,64 @@ and the never-written vertex fields of several builders (sprites, boxes,
 globe icons, water) get the N64's old bytes.
 
 Debugging what native code wrote: `--watch F:ADDR[:N]` logs the first N
-writes to ADDR's 4 KB page from frame F on (eip and the stack's code
+writes to ADDR's 4 KB page from frame F on (rip and the stack's code
 pointers; WSL doesn't hand environment variables to the exe, hence an
 option); the emulator side is `tools_port/m64trace` with `WRITES`/`ONWRITE`
 over `cmp_spec.py` (scratchpad tools of the levels work).  `m64widths.py`
 takes `W_INPUT` / `W_POKE` / `W_SAVEDIR` to trace a level's access widths.
 
-## 64-bit (x86_64): `make -C port headless64 game64 dist64` (port64.mk)
+## The clang check (`port64.mk`)
 
-The same sources built as a 64-bit exe: `build/headless64/bc_headless.exe`,
-`build/game64/bc.exe`, `build/dist/BlastCorps-port-<hash>-x64/`.  The i686
-build stays the reference; both give the same per-frame traces.
+`make -C port clang-check`: the same game, ultralib and platform sources
+built by clang 18 as an x86_64 `build/headless64/bc_headless.exe`
+(`--target=x86_64-w64-mingw32 -fms-extensions`, mingw-w64's x86_64 binutils
+and CRT, all from apt), checked, then run against the MSVC bc_headless.
+Nobody plays it and nothing ships from it; it exists for what MSVC can't
+check and as a second compiler for the same sources:
 
-**Memory model.**  N64 memory stays at 0x80000000 with N64 layouts: every
-N64 address is still a valid host pointer, and every pointer stored in N64
-memory stays 4 bytes.  The game and SDK headers and the game C mark those
-(`port/include/port_n64ptr.h`; they expand to nothing in the IDO builds,
-`include/2.0I/PR/ultratypes.h`, and in the i686 port):
+1. **`ptrcheck64`**: `tools/ptrcheck64.py` over clang's AST of every game,
+   platform and ultralib file: host-width pointer fields and pinned globals,
+   casts to host-pointer pointers, signed int -> pointer casts (they
+   sign-extend: `N64_IPTR`), sizeof of host pointers, pointer + (s32)
+   pointer; `tools/layout64.py`: every record laid out i686 vs x86_64 (sizes
+   and offsets must be equal); `data/ptrcheck64_allow.txt` lists the
+   host-only records.  clang also errors on a pointer that changes address
+   space under another pointer (`u8 **p = D_x` with D_x an N64P array).
+2. **`headless64`** with **`tools/align64.py`**: the x86-64 ABI gives global
+   arrays of 16 bytes or more 16-byte alignment, and clang assumes it for
+   every array, extern ones too: it used `movaps` on an 8-aligned N64 array.
+   The game code is compiled to LLVM IR, `tools/llalign64.py` lowers every
+   alignment above 4 on memory accesses and N64 globals, then the code is
+   generated; align64.py checks the objects (no 16-byte-aligned access
+   except stack and constants).  `-fno-inline-functions` and
+   `-fno-optimize-sibling-calls` for the game, as MSVC's `/Ob1 /GH`;
+   `-finstrument-functions` gives `--sync` its entry points.  Pinning is the
+   same `coffpin.py`; the absolute symbols come from `gensyms.py link64`
+   (nm over the objects; GNU ld and lld link them alike), the pointer table
+   from the NM ELFs (`gensyms.py ptrtab`) rather than `inputs/nmptrs.txt`.
+3. **Traces** (`tools/tracecmp.py`): the clang exe and the MSVC exe side by
+   side over the attract demos (4000 frames) and every level (1900 frames,
+   `data/levels_input.txt` and the globe poke, as verify-levels), on the
+   free-running virtual clock (no emulator); every per-frame trace must be
+   identical and every run must exit 0.  `CLANG_CHECK_ARGS` narrows it
+   (`--levels 0-9 --attract 2000`); `LEVEL_JOBS` runs at a time.
 
-| mark | 64-bit meaning | where |
-|---|---|---|
-| `T * N64P x` | `__ptr32 __uptr`: a 4-byte pointer, zero-extended when loaded | record fields, pinned globals, casts that read an N64 pointer (`*(u8 * N64P *) (p + 8)`), functions taking pointers to such pointers |
-| `N64FN(T) x` | a u32 (clang can't use `__ptr32` function pointers): `N64FN_SET`, `N64FN_GET(T, x)` | libaudio's handlers in N64 memory |
-| `N64_IPTR(x)` | `(unsigned) x`: zero-extend | a signed 32-bit address cast to a pointer |
-| `N64_A32` | `unsigned` | an int holding an address added to a pointer |
-| `N64_DPTR(x)` | 0, the value comes from the pointer table | pointers in static initialisers of N64 data |
-| `N64_KEEP` | `used` | a pinned static clang would fold away |
+**`make -C port overflow-census`**: MSVC has no `-fwrapv` and no
+signed-overflow sanitizer, so the census is a clang build
+(`build/hl64ubsan`, `-fno-wrapv -fsanitize=signed-integer-overflow` with a
+minimal runtime of our own, `tools/ubsan_minimal.c`) run over the attract
+demos and every level (`tools/overflow_census.py`); it fails if any signed
+add or multiply overflows that the source doesn't wrap explicitly
+(`PORT_WRAP_*`).  `OC_ARGS`: e.g. `--levels 0-9`.  (Its build crashes in
+level 47: 01C40.c func_801E8EB8 reads `bios[slot]` with slot 4, past its
+4-entry array, in the player select's biography mode; a latent
+out-of-bounds read of the original code that the normal builds survive.)
 
-The compiler is clang 18 (`--target=x86_64-w64-mingw32 -fms-extensions`;
-gcc has no `__ptr32`), linked with mingw-w64's x86_64 binutils, CRT and
-libgcc; C++ (src/live, RT64) is x86_64-w64-mingw32-g++-posix.  Everything
-the game can store a host address of must be below 4 GB: the exe (fixed base
-0x40000000, no dynamic base, no high-entropy VA, no relocations), the heap and
-the fiber stacks (bottom-up allocations without high-entropy VA; rdram.c and
-the fiber trampoline check it).
+## The matching ROM build
 
-**Pinning without linker scripts** (and without assembly text, so the same
-steps work on MSVC objects): `tools/coffpin.py` rewrites each game COFF
-object (built `-fdata-sections`): a pinned initialised object keeps its bytes
-as `__native_<name>` (the copy table), a bss one becomes undefined, and every
-relocation to it goes to an undefined `<name>`; `gensyms.py link64` writes
-those as absolute COFF symbols in an object (`tools/rdramobj.py`), which GNU ld
-and lld link alike (an lld-linked bc_headless gives the same trace).  Code
-reaches RDRAM RIP-relative (< 1.1 GB from the image).  `gensyms.py ptrtab`
-lists every pointer slot of the pinned C objects (the NON_MATCHING objects'
-R_MIPS_32 data relocations) with the NM ELF's word, written at start-up: the
-`N64_DPTR` initialisers (strings, tables of N64 addresses) get the N64's own
-values.  (RDRAM as a section of the image at 0x80000000 would avoid absolute
-symbols, but the image would then cover 0x7FFE0000, where Windows maps
-KUSER_SHARED_DATA: such an exe doesn't start.)
-
-**ultralib** (the ul_* objects see ultralib's own headers):
-`tools/ulhdr64.py` copies them with the marks listed in
-`data/ultralib_n64ptr.txt` into `build/headless64/ulinc`, and
-`tools/ulsrc64.py` rewrites the libaudio sources' uses of N64FN fields, the
-bank loader's s32 address offsets (bnkf.c) and `sizeof(ALFilter *)` (the bus
-source tables live in the audio heap, which the game sizes exactly: 0 bytes
-left over).
-
-**Alignment.**  The x86-64 ABI gives global arrays of 16 bytes or more
-16-byte alignment, and clang assumes it for every array, extern ones too: it
-used `movaps` on an 8-aligned N64 array.  The game code is compiled to LLVM
-IR, `tools/llalign64.py` lowers every alignment above 4 on memory accesses
-and N64 globals, then the code is generated; `tools/align64.py` checks the
-objects (no 16-byte-aligned access except stack and constants).
-
-**Inlining.**  `-fno-inline-functions` for the game: `--sync`/`--clock` key
-the emulator's values on the calling game function, and clang inlined more
-than gcc (verify64 had 8627 sync mismatches).
-
-**Checks**: `make -C port ptrcheck64` (`tools/ptrcheck64.py`, clang's AST:
-host-width pointer fields and pinned globals, casts to host-pointer pointers,
-signed int -> pointer casts, sizeof of host pointers, pointer + (s32) pointer;
-`tools/layout64.py`: every record laid out i686 vs x86_64;
-`data/ptrcheck64_allow.txt` lists the host-only records), `verify64`,
-`verify-levels64` (compare.py with `CMP_EXE`; native folders `...-native64`),
-`loadcheck64`.  RT64 is built for x86_64 from the same patched tree
-(`ARCH=x86_64 rt64/build_rt64.sh`: build-x86_64, dll-x86_64).
-
-## Build on Windows with Visual Studio (`CMakeLists.txt`)
-
-The MSVC x64 build: `bc.exe` (the game in a window), `bc_headless.exe` and
-the player package, from the same sources and with the same memory model as
-the 64-bit build above.  This is the build that is played, shipped and
-improved; the make-based builds above remain until they are retired.
-
-**Prerequisites**
-- Visual Studio 2022 or later with the "Desktop development with C++"
-  workload (MSVC x64 tools, a Windows SDK, "C++ CMake tools for Windows",
-  which bring CMake and Ninja).  Tested with Visual Studio 2026 18.10
-  (MSVC 14.51, CMake 4.3, Windows SDK 10.0.26100).
-- Python 3 (python.org; only its standard library is used) on `PATH`, or
-  `-DPython3_EXECUTABLE=...`: the build's generated sources come from the
-  Python tools in `tools/` (pinning, tables, ultralib copies).
-- Git for Windows: the first configure fetches RT64 (and the decomp itself
-  is cloned with it; `git submodule update --init lib/ultralib`).
-- The decomp's inputs folder, made on the decomp side (WSL, which builds the
-  N64 code with IDO and splits the ROM): `make VERSION=us.v11 NON_MATCHING=1`
-  at the decomp root, then `make -C port inputs` -> `port/build/inputs/`
-  (data addresses, which symbols are functions, the N64 pointer slots, the C
-  declarations' types and the two link maps; a few MB of text, no ROM data).
-  Copy it into the Windows clone's `port/build/inputs`, or point `BC_INPUTS`
-  at it (`\\wsl.localhost\Ubuntu\home\<you>\...\port\build\inputs`).
-- The ROM, Blast Corps (USA) (Rev 1), only to run the game (bc.exe asks for
-  it with a file dialog, or takes it as its first argument).
-
-**Building**
-1. Visual Studio: File > Open > Folder..., the `blastcorps/port` folder.  It
-   reads `CMakePresets.json`: choose "x64 Release" (the default, optimised,
-   with a PDB), "x64 Debug" (no optimisation, for stepping through the game
-   code) or "x64 Release, bc_headless.exe only" (nothing downloaded).
-2. The first configure downloads into `port/build/thirdparty` (shared by all
-   presets): RT64 at the pinned commit with its submodules (git, ~500 MB) plus
-   the port's patches 0003 and 0004 (`cmake/fetch_rt64.cmake`), the official
-   DXC v1.9.2609 and SDL2 2.26.3 releases (SHA-256 checked).
-3. Build > Build All: `out/build/<preset>/bc.exe` (with SDL2.dll,
-   dxcompiler.dll, dxil.dll next to it) and `bc_headless.exe`.  The target
-   `dist` makes the player package: `dist/BlastCorps-port-<hash>.zip` and
-   `dist/BlastCorps-port-<hash>-pdb.zip` (bc.pdb, the map and the .syms
-   that match the exe).
-4. Run and debug: pick `bc.exe` as the startup item and press F5; arguments
-   (the ROM, `--no-config` ...) go into its launch configuration
-   (Debug > Debug and Launch Settings: `"args": [ "D:\\roms\\bc.z64" ]`).
-   Breakpoints work in the game's C (`src.us.v11/hd_code/*.c`), the platform
-   layer and RT64.  N64 memory sits at its N64 addresses, so a game variable
-   is watched as `*(u64 *)0x80364A90` (the game mode).
-
-From a command prompt ("x64 Native Tools Command Prompt for VS"):
-`cmake --preset x64-release`, `cmake --build --preset x64-release`,
-`cmake --build --preset dist`.  The Visual Studio generator works too
-(`cmake -G "Visual Studio 18 2026" -A x64 ...`).
-
-**Verification** runs in WSL, as for the other builds, against the MSVC exes:
-`make -C port msvc` builds them (`tools/msvc_build.sh`: the sources mirrored to
-`MSVC_DIR` on the Windows side, default `%LOCALAPPDATA%\blastcorps-msvc`,
-because MSVC compiling over `\\wsl.localhost` is slow; Visual Studio found
-with vswhere; `MSVC_PYTHON`, `MSVC_THIRDPARTY` if needed), then
-`make -C port loadcheck-msvc verify-msvc verify-levels-msvc dist-msvc`
-(`compare.py` with `CMP_EXE`, native folders `...-nativemsvc`).
-
-**How the MSVC build differs** (details in `CMakeLists.txt` and the tools):
-- Same steps as `port64.mk`: game, ultralib and platform objects are pinned
-  by `tools/coffpin.py` (`--batch` over each object library), the N64 data
-  symbols are absolute COFF symbols (`gensyms.py linkcoff`, `rdramobj.py`),
-  plus the copy, pointer and byte-order tables.  link.exe resolves a REL32
-  fixup against an absolute symbol as image base + value and an ADDR64 one as
-  the value, and refuses ADDR32NB ones (MSVC indexes global arrays off
-  `__ImageBase`): the symbols are written as address - image base, and
-  coffpin adds the base to ADDR64/ADDR32 addends and resolves ADDR32NB itself.
-  It also handles `/Gw`'s per-variable COMDAT sections, MSVC's names for local
-  statics and its COMMON symbols (C tentative definitions).
-- Game code: `/O2 /Ob1` (only `inline` functions are inlined; `/Ob0` in the
-  files that read the clock), `/GH` (an empty `_pexit` call before each return
-  keeps tail calls as calls: return addresses name their callers, as
-  `-fno-optimize-sibling-calls`).  `--sync`'s function-entry points and
-  `--calls` patch only the functions they name, at start-up, into their entry
-  (`plat_host.c host_entry_hook`, `entry_x64.asm`, the linker's
-  `/FUNCTIONPADMIN`): the hook runs before any instruction of the function.
-  (MSVC's own `/Gh` hook comes after the prologue, and the compiler schedules
-  body code, N64 memory accesses among it, before it.)
-- MSVC has no `-fwrapv`: the signed adds and multiplies that really overflow
-  are wrapped explicitly (`PORT_WRAP_MUL`/`PORT_WRAP_ADD`, `game/port.h`:
-  the two random-number generators in 23C20.c and the debris size in
-  77E20.c), found by `make -C port overflow-census` (a clang build with
-  `-fno-wrapv -fsanitize=signed-integer-overflow` over the attract demos and
-  every level; it fails if a new one appears).  No `-fno-strict-aliasing`
-  equivalent is needed (MSVC does no type-based alias analysis), nor
-  `-malign-double` (8-byte members are naturally aligned).  The GBI's
-  bit-fields are written for Microsoft's layout rules where they differ
-  (`gbi.h`, `rdb.h`; `layout_check.c` asserts every GBI and ABI record's
-  size and offsets and checks the bit positions at start-up).  `sinf`/`cosf`
-  stay the SDK's (`#pragma function`).  MSVC doesn't assume 16-byte
-  alignment of N64 data (`tools/align64.py` over its objects finds only
-  stack saves; its two other hits are objdump decoding a jump table and the
-  middle of an instruction after MSVC's `$LN` labels, checked with dumpbin),
-  so the clang build's IR alignment pass has no MSVC counterpart.
-- Crash reports name functions and source lines from the exe's PDB (dbghelp,
-  with a time limit); the minidump opens in Visual Studio with the PDB.
-- The static C runtime (`/MT`): the package needs no Visual C++
-  redistributable.
-- RT64 builds with MSVC from its pristine tree plus patches 0003 and 0004;
-  0001 and 0002 only serve the mingw cross build.
+Unchanged: `make VERSION=us.v11 -j` at the decomp root builds the matching
+ROM and checks it (the three OK lines), `make VERSION=us.v11 NON_MATCHING=1`
+the NON_MATCHING ELFs and `nmrom` the NM test ROM; `bash
+tools_port/runchecks.sh` the rewrite checks.  Port changes to game code are
+`NON_MATCHING`/`PORT_HOST` only (`include/game/port.h`, the N64P marks), so
+the matching build stays byte-identical.

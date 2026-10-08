@@ -619,6 +619,20 @@ it without a fault.  The x64-asan preset is the tool for this now.
     Limits (widescreen): markers that point at off-screen targets (30C70.c) still use
     the 4:3 edges; the HUD is centred, not anchored to the screen edges
     (that would need RT64's extended GBI origins in the game's lists).
+  - `texture_pack` (`--texture-pack`, which also enables it) and
+    `texture_pack_enabled` (default 0): an RT64 texture pack (a folder with
+    `rt64.json`, or an `.rtz`; RT64's TEXTURE-PACKS.md) through RT64's
+    `TextureCache::loadReplacementDirectory`; off = `clearReplacementDirectories`.
+    Live from the menu (the main thread, which submits textures, as RT64
+    requires).  `--texture-hashes F` logs the RT64 hashes (version 5) of the
+    textures loaded at frame F, for pack makers.  Checked with a synthetic
+    pack (every texture of level 0 replaced by a checkerboard, by
+    `rt64.json` entries with auto-path `rt64`): replaced from the command line
+    and when switched on in the menu, back to the originals when switched
+    off.  No Blast Corps pack exists to try; the port's RDRAM keeps textures
+    as big-endian bytes and RT64_NATIVE_HOST_LAYOUT loads TMEM without the
+    XOR, so TMEM (and the hashes) should be the emulator's, but that is not
+    checked against a pack made under an emulator.
   - Controls (`[keyboard]`, `[controller]`): the menu's Controls tab remaps
     every binding (click it, press the key, controller button, stick or
     trigger; Backspace clears; the menu's own controller buttons are a

@@ -66,7 +66,9 @@ game is closed. It holds:
                fullscreen, vsync; optional enhancements (off by default):
                resolution (internal resolution: window, 1 = the N64's, 2, 3, 4 ...),
                msaa (0, 2, 4, 8), filtering (aa, linear, nearest),
-               aspect (original = 4:3, 16:9, 16:10, 21:9, window: widescreen)
+               aspect (original = 4:3, 16:9, 16:10, 21:9, window: widescreen),
+               texture_pack (an RT64 texture pack folder or .rtz) and
+               texture_pack_enabled (0/1)
   [audio]      volume, mute
   [keyboard]   one line per N64 button: SDL key names, several separated by commas
   [controller] the same for a game controller, plus which stick is the analog stick,
@@ -88,7 +90,7 @@ Command-line options (for shortcuts or a .bat file) override bc.ini, for example
   bc.exe --saves D:\BCsaves    bc.exe --config other.ini   bc.exe --no-pak
   bc.exe --set audio.volume=50   (any bc.ini setting as section.key=value, this run only)
   bc.exe --resolution 4        bc.exe --msaa 4          bc.exe --filtering nearest
-  bc.exe --aspect 16:9
+  bc.exe --aspect 16:9         bc.exe --texture-pack D:\packs\mypack
 
 
 Saves

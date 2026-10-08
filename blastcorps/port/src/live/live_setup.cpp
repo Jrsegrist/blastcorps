@@ -72,6 +72,10 @@ static const char kDefaultIni[] =
     "; as the window). Widescreen shows more of the world at the sides; the HUD, menus and\r\n"
     "; other 2D pictures keep their shape in the middle.\r\n"
     "aspect = original\r\n"
+    "; A texture pack in RT64's format (a folder with an rt64.json, or an .rtz file; relative\r\n"
+    "; paths are relative to this folder) and whether it is used: 1 = yes, 0 = no (default).\r\n"
+    "texture_pack =\r\n"
+    "texture_pack_enabled = 0\r\n"
     "\r\n"
     "[audio]\r\n"
     "; Volume in percent (0-100); - and = change it in the game, M switches the sound off and on.\r\n"
@@ -311,6 +315,10 @@ static void parseText(Config &c, const std::string &text, const std::string &nam
                     ok = a >= 4.0 / 3.0 - 1e-6 && a <= 4.0;
                     if (ok) c.aspect = std::fabs(a - 4.0 / 3.0) < 1e-6 ? 0 : a;
                 }
+            } else if (key == "texture_pack") {
+                c.texturePack = v;
+            } else if (key == "texture_pack_enabled") {
+                ok = parseBool(v, c.texturePackOn);
             } else if (key == "filtering") {
                 std::string l = lower(v);
                 if (l == "aa" || l == "pixel" || l == "default") c.filtering = 0;
@@ -557,6 +565,8 @@ std::string configValue(const Config &c, const Setting &s) {
         if (k == "msaa") return std::to_string(c.msaa);
         if (k == "filtering") return c.filtering == 1 ? "linear" : c.filtering == 2 ? "nearest" : "aa";
         if (k == "aspect") return aspectName(c.aspect);
+        if (k == "texture_pack") return c.texturePack;
+        if (k == "texture_pack_enabled") return c.texturePackOn ? "1" : "0";
     } else if (s.section == "audio") {
         if (k == "volume") return std::to_string(c.volume);
         if (k == "mute") return c.mute ? "1" : "0";

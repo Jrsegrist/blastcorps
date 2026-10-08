@@ -46,6 +46,8 @@
  *     --msaa N          multisample anti-aliasing: 0 (default), 2, 4, 8
  *     --filtering F     the picture's scaling: aa (default), linear, nearest
  *     --aspect A        widescreen: original (4:3, default), 16:9, 16:10, 21:9, W:H, window
+ *     --texture-pack P  use this RT64 texture pack (folder with rt64.json, or .rtz)
+ *     --texture-hashes F  log the RT64 hashes of the textures loaded at frame F
  *     --window WxH      the window's size (desktop points) instead of 320x240 x scale
  *     --wshot F,..      save the window's picture (RT64's output at the window's size,
  *                       win_FFFFFFF.png in --shot-dir) once the game reached frame F
@@ -95,7 +97,9 @@
 #include <SDL_syswm.h>
 
 #include "hle/rt64_application.h"
+#include "common/rt64_tmem_hasher.h"
 #include "render/rt64_render_target.h"
+#include "render/rt64_texture_cache.h"
 #include "rhi/rt64_render_hooks.h"
 
 #include "live_menu.h"
@@ -881,6 +885,8 @@ void liveGfxTask(unsigned ucode, unsigned ucodeData, unsigned dataPtr, unsigned 
 unsigned long long g_when0;
 unsigned g_nextShot, g_nextWshot;
 bool g_quitRequested;
+unsigned g_hashFrame = ~0u;          /* --texture-hashes */
+void logTextureHashes(unsigned frame);
 
 /* The settings menu is open: the game waits (inside this retrace's hook)
  * while the menu runs, about 60 times a second, over the last picture.
@@ -979,6 +985,10 @@ void liveVi(const HostViRegs *r, unsigned viCount, unsigned long long when, unsi
             : double(g_t0.QuadPart - g_tStart.QuadPart) / double(g_freq.QuadPart) + double(when - g_when0) / 46875000.0;
         g_pace.push_back({before, due, after - before, frames});
     }
+    if (frames >= g_hashFrame) {
+        logTextureHashes(frames);
+        g_hashFrame = ~0u;
+    }
     /* pictures of the window (testing): --wshot, --menu-shot */
     while (g_nextWshot < g_opt.wshots.size() && frames >= g_opt.wshots[g_nextWshot]) {
         char name[32];
@@ -1056,8 +1066,50 @@ void configToRT64(RT64::UserConfiguration &u) {
     }
 }
 
+/* texture pack (RT64's replacements): loaded when enabled and set, cleared
+ * when turned off.  Called before the game starts and from the menu (the
+ * main thread, which is the one that submits textures, as RT64 requires).
+ * Returns a line for the log / menu. */
+bool g_packLoaded;
+std::string g_packStatus;
+void applyTexturePack() {
+    if (g_cfg.texturePackOn && !g_cfg.texturePack.empty()) {
+        const std::string path = live::absPath(g_cfg, g_cfg.texturePack);
+        const bool ok = g_app->textureCache->loadReplacementDirectory(
+            RT64::ReplacementDirectory(std::filesystem::path(live::wide(path))));
+        g_packLoaded = true;
+        g_packStatus = (ok ? "loaded " : "could not load ") + path;
+        host_log("live: texture pack %s\n", g_packStatus.c_str());
+    } else if (g_packLoaded) {
+        g_app->textureCache->clearReplacementDirectories();
+        g_packLoaded = false;
+        g_packStatus = "off";
+        host_log("live: texture pack off\n");
+    }
+}
+
+/* --texture-hashes F (for making texture packs and testing): the RT64
+ * hashes of the textures loaded at frame F */
+void logTextureHashes(unsigned frame) {
+    std::unique_lock<std::mutex> lock(g_app->textureCache->textureMapMutex);
+    const RT64::TextureMap &m = g_app->textureCache->textureMap;
+    unsigned n = 0;
+    for (size_t i = 0; i < m.textures.size(); i++)
+        if (m.textures[i] != nullptr) {
+            host_log("texture %016llx %ux%u (hash version %u, frame %u)\n", (unsigned long long) m.hashes[i],
+                     unsigned(m.textures[i]->width), unsigned(m.textures[i]->height),
+                     unsigned(RT64::TMEMHasher::CurrentHashVersion), frame);
+            n++;
+        }
+    host_log("live: %u textures loaded at frame %u\n", n, frame);
+}
+
 /* the menu changed g_cfg: apply it now where that is possible */
 void settingChanged(const live::Setting &s) {
+    if (s.section == "video" && (s.key == "texture_pack" || s.key == "texture_pack_enabled")) {
+        applyTexturePack();
+        return;
+    }
     if (s.section == "video" && (s.key == "resolution" || s.key == "filtering" || s.key == "msaa" || s.key == "aspect")) {
         const uint32_t before = g_app->userConfig.msaaSampleCount();
         if (s.key == "msaa" && g_cfg.msaa > 1 && (msaaSupported() & unsigned(g_cfg.msaa)) == 0) {
@@ -1117,6 +1169,7 @@ const std::pair<const char *, const char *> kSetAliases[] = {
     {"--msaa", "video.msaa"},
     {"--filtering", "video.filtering"},
     {"--aspect", "video.aspect"},
+    {"--texture-pack", "video.texture_pack"},   /* (and turns it on) */
 };
 
 int extraArg(int argc, char **argv, int *i, HostOpts *o) {
@@ -1166,6 +1219,7 @@ int extraArg(int argc, char **argv, int *i, HostOpts *o) {
         std::sort(g_opt.wshots.begin(), g_opt.wshots.end());
     } else if (!strcmp(a, "--menu-shot")) g_opt.menuShot = std::max(1u, num(next()));
     else if (!strcmp(a, "--menu-set")) g_opt.menuSets.push_back(next());
+    else if (!strcmp(a, "--texture-hashes")) g_hashFrame = num(next());
     else if (!strcmp(a, "--no-pace")) g_opt.pace = false;
     else if (!strcmp(a, "--scale")) g_opt.scale = std::max(1u, num(next()));
     else if (!strcmp(a, "--shot-dir")) g_opt.shotDir = next();
@@ -1317,6 +1371,7 @@ void prestart(HostOpts *o) {
     menu.status = rendererStatus;
     menu.msaaSupported = msaaSupported;
     menu.padNames = padNames;
+    menu.packStatus = [] { return g_packStatus; };
     live::menuSetup(menu);
     host_crash_rearm();   /* in case the renderer or a driver installed its own filter */
     int ww, wh, pw, ph;
@@ -1333,6 +1388,7 @@ void prestart(HostOpts *o) {
                  live::configValue(g_cfg, {"video", "filtering"}).c_str(),
                  live::configValue(g_cfg, {"video", "aspect"}).c_str());
     updateCullWide();
+    applyTexturePack();
     o->live = &kLive;
 }
 
@@ -1495,6 +1551,7 @@ int main(int, char **) {
         for (const auto &alias : kSetAliases)
             if (args[i] == alias.first) spec = std::string(alias.second) + "=" + args[i + 1];
         if (spec.empty()) continue;
+        if (args[i] == "--texture-pack") g_cfg.texturePackOn = true;
         i++;
         if (!live::configSet(g_cfg, spec) && host_no_msgbox) host_fatal("%s", g_cfg.warnings.back().c_str());
     }

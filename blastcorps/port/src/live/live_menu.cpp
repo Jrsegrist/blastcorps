@@ -198,6 +198,32 @@ void videoTab(Config &c) {
         }
         help("How the finished picture is scaled to the window.");
     }
+    {
+        static char buf[1024];
+        static bool init;
+        if (!init || !ImGui::IsAnyItemActive()) {
+            snprintf(buf, sizeof buf, "%s", c.texturePack.c_str());
+            init = true;
+        }
+        ImGui::InputText("Texture pack", buf, sizeof buf);
+        if (ImGui::IsItemDeactivatedAfterEdit() && c.texturePack != buf) {
+            c.texturePack = buf;
+            markChanged("video", "texture_pack");
+        }
+        help("An RT64 texture pack: a folder with an rt64.json, or an .rtz file (relative to the game's folder).");
+        bool on = c.texturePackOn;
+        if (ImGui::Checkbox("Use the texture pack", &on)) {
+            c.texturePackOn = on;
+            markChanged("video", "texture_pack_enabled");
+        }
+        if (g_env.packStatus) {
+            const std::string st = g_env.packStatus();
+            if (!st.empty()) {
+                ImGui::SameLine();
+                ImGui::TextDisabled("(%s)", st.c_str());
+            }
+        }
+    }
     ImGui::SeparatorText("Graphics card");
     int api = c.vulkan ? 1 : 0;
     if (combo("Graphics API", &api, {"Direct3D 12", "Vulkan"})) {

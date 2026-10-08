@@ -33,6 +33,7 @@ make -C port verify                # check-inputs, loadcheck, bc_headless vs the
 make -C port verify-levels         # every level vs the emulator
 make -C port loadcheck dist compare strict-data typemap ucode
 make -C port inputs check-inputs   # port/inputs: rewrite / check against the code
+make -C port norom-check           # what needs no ROM (the CI's Linux job)
 make -C port asan                  # bc_headless with AddressSanitizer
 make -C port clang-check           # the clang check (ptrcheck64, headless64, traces vs MSVC)
 make -C port overflow-census       # signed overflows at run time (clang -fsanitize)
@@ -910,6 +911,44 @@ add or multiply overflows that the source doesn't wrap explicitly
 level 47: 01C40.c func_801E8EB8 reads `bios[slot]` with slot 4, past its
 4-entry array, in the player select's biography mode; a latent
 out-of-bounds read of the original code that the normal builds survive.)
+
+## Continuous integration
+
+`.github/workflows/ci.yml` (GitHub Actions) runs on every push and pull
+request to `main` and by hand (Actions > CI > Run workflow).  It has no ROM and
+uses nothing derived from one, and no secrets.
+
+- **Windows** (`windows-latest`, Visual Studio 2022 there; developed with
+  2026): a clean checkout plus `lib/ultralib`, then in Visual Studio's x64
+  environment `cmake --preset x64-release` (with the committed `port/inputs`,
+  binary folder `RUNNER_TEMP\b`), the default build (bc.exe, bc_headless.exe),
+  `bc_loadcheck` and `dist`.  Smoke tests without a ROM: the exes start and
+  fail as they should (bc_headless: usage, exit 1; a missing ROM, exit 2;
+  bc.exe `--no-config --no-msgbox` with no ROM or a missing one, exit 2, no
+  dialog).  `dist/check_dist.py` checks that each zip holds exactly the files
+  `make_dist.py` puts in it and nothing that starts like a ROM image; the two
+  zips are the run's artifacts.  RT64 (with its submodules), DXC and SDL2 are
+  cached (`BC_THIRDPARTY` in `RUNNER_TEMP`), keyed by the RT64 commit, the
+  download URLs and SHA-256s in CMakeLists.txt, `fetch_rt64.cmake` and the
+  patches; a miss fetches them again (a few minutes).
+- **Linux** (`ubuntu-24.04`, the WSL distribution's release: the same gcc 13
+  and clang 18): `compileall` over the Python tools, the synthetic
+  `tools_port/tests/test_eqcheck.py`, and **`make -C port norom-check`**:
+  without the NON_MATCHING build (its asm and assets are extracted from the
+  ROM) the data addresses come from the committed `inputs/addrs.txt`, in
+  `build/norom`: `typemap.txt` made again from the game C must equal
+  `inputs/typemap.txt` (the part of `check-inputs` that needs no NM build: a
+  declaration changed without `make -C port inputs` fails here), `ptrcheck64`
+  and `layout64`, and the clang game objects through `llalign64.py` and
+  `align64.py`.
+
+Stays local, because it needs the ROM: the matching build and its three OK
+lines, the NON_MATCHING build and `nmrom`, `tools_port/runchecks.sh`,
+`check-inputs` (it rebuilds the NM build: the other five inputs files),
+`loadcheck`, `verify`, `verify-levels`, `compare`, `clang-check`'s traces and
+link (its pointer table comes from the NM ELFs), `overflow-census`, the asan
+runs.  The exes' start-up `layout_check.c` runs only after a ROM is read.
+Run those before merging into `main`, as before.
 
 ## The matching ROM build
 

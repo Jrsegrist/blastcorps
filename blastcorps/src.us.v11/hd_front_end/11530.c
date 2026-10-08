@@ -653,19 +653,23 @@ Gfx *func_801FA180(Gfx *arg0, Dynamic *dyn, f32 lon0, s8 *selected) {
  * TODO: func_801FA74C (1947 insns) draws one route between two levels: an arc of line segments
  * over the globe (gSPVertex + gSPLineW3D), coloured from (r0,g0,b0) to (r1,g1,b1), brightened
  * towards the camera, with the route-open fade timed by D_8021AB28 and a sound on completion.
- * The draft below compiles to the target's 1947 instructions with every opcode equal; only
- * register numbers differ (779 instructions, nearly all FP: IDO's FP temp choice already differs
- * at the first ops of the progress MIN/MAX, and the choice is whole-function, so a spelling
- * change at the end of the function moves registers at its start).
- * Fixed so far: `switch (D_80217B6C) { case 3: ... default: ... }` instead of if/else (the
- * case label stops ugen caching x/y in FP registers across the call, which had cost +3
- * insns per func_8027690C call); bright's MAX tests 0.0 first (MAX2R), which hoists the 0.0;
- * the MAX with D_8021AB28 is "(AB28 > e) ? AB28 : e"; the colour factors are (f32) u8; *lon
- * gets an int ternary; the acos sign goes first (as in func_801FC5B8).
- * Tried without a match (Oct 2026, scripted greedy/random search over ~60 spelling sites:
- * MIN/MAX/FABS operand orders, compare directions, sum/product operand orders): best 619
- * differing instructions, all register numbers, with mixed macro spellings that look like noise.
- * Earlier: statement/declaration-initializer orders, matrix spellings, a pos[3] array.
+ * The draft below compiles to 1953 instructions. Two edits give the target's 1947 with every
+ * opcode equal, leaving only register numbers (779 instructions, nearly all FP):
+ *   1. `switch (D_80217B6C) { case 3: <the i != 0 / else calls> break; default: if (i != 0)
+ *      *lon = ...; }` instead of the if/else: the case label stops ugen caching x/y in FP
+ *      registers across the func_8027690C call (+3 insns per call site otherwise);
+ *   2. bright = MAX2R(E, 0.0) with `#define MAX2R(a, b) ((b) > (a) ? (b) : (a))`: testing
+ *      0.0 first hoists its mtc1 pair.
+ * They are not applied to the NON_MATCHING code: with them, `make -C port verify` diverges at
+ * frame 1360 (emulator vs native, front-end counters off by one; probably a timing race the
+ * slower/faster code exposes), so the port keeps this form.
+ * IDO's FP temp choice is whole-function (a spelling change at the end moves registers at the
+ * start). A scripted greedy/random search over ~60 spelling sites (MIN/MAX/FABS operand orders,
+ * compare directions, sum/product operand orders) got the register diffs to 619 at best, with
+ * mixed macro spellings that look like noise. Fixed earlier: the MAX with D_8021AB28 is
+ * "(AB28 > e) ? AB28 : e", the colour factors are (f32) u8, *lon gets an int ternary, the acos
+ * sign goes first (as in func_801FC5B8). Also tried earlier: statement/declaration-initializer
+ * orders, matrix spellings, a pos[3] array.
  */
 #ifdef NON_MATCHING
 /* (The NON_MATCHING build uses this draft; checks in tools_port/checks/fe_11530.txt.) */
@@ -678,7 +682,6 @@ typedef struct {
 #define D_80217B70x (*(GlobeMtx *) D_80217B70)
 
 #define FABS(x) ((x) > 0 ? (x) : -(x))
-#define MAX2R(a, b) ((b) > (a) ? (b) : (a)) /* MAX2 evaluating b first */
 
 /* One route between two levels: an arc of line segments over the globe, coloured r0..r1 along it. */
 Gfx *func_801FA74C(Dynamic *dyn, Gfx *arg1, u8 from, u8 to, s8 *out, f32 *lon, u8 curved, u8 r0, u8 g0, u8 b0,
@@ -802,8 +805,7 @@ Gfx *func_801FA74C(Dynamic *dyn, Gfx *arg1, u8 from, u8 to, s8 *out, f32 *lon, u
         y = (a * y0 + b * y1) * scale;
         z = (a * z0 + b * z1) * scale;
         if (*out != -1 && i < 2) {
-            switch (D_80217B6C) {
-            case 3:
+            if (D_80217B6C == 3) {
                 if (i != 0) {
                     func_8027690C(dyn, x, y, z, &sx1, &sy1, &D_80217B70x.view[D_8035805C],
                                   &D_80217B70x.rot[D_8035805C], &dyn->translate, 1.0f);
@@ -812,17 +814,14 @@ Gfx *func_801FA74C(Dynamic *dyn, Gfx *arg1, u8 from, u8 to, s8 *out, f32 *lon, u
                     func_8027690C(dyn, x, y, z, &sx0, &sy0, &D_80217B70x.view[D_8035805C],
                                   &D_80217B70x.rot[D_8035805C], &dyn->translate, 1.0f);
                 }
-                break;
-            default:
-                if (i != 0) {
-                    *lon = (from < to) ? 0 : 180;
-                }
+            } else if (i != 0) {
+                *lon = (from < to) ? 0 : 180;
             }
         }
         v->v.ob[0] = x;
         v->v.ob[1] = y;
         v->v.ob[2] = z;
-        bright = MAX2R((x * D_8021A90C + y * D_8021A910 + z * D_8021A914) / scale / 250000.0, 0.0);
+        bright = MAX2((x * D_8021A90C + y * D_8021A910 + z * D_8021A914) / scale / 250000.0, 0.0);
         if (curved) {
             extra = 1.0 / MAX2(FABS(bright - D_8021AB40), 0.001) * D_8021AB44 * D_8021AB44 * D_8021AB48;
         } else {

@@ -172,7 +172,8 @@ set(BC_OPT $<IF:$<CONFIG:Debug>,/Od,/O2>)
 #   bitfields are written with one storage type (checked: layout_check.c)
 set(GAME_INC ${BC_ROOT} ${BC_ROOT}/include ${BC_ROOT}/include/2.0I ${BC_ROOT}/include/2.0I/PR)
 set(GAME_DEFS _LANGUAGE_C _FINALROM NON_MATCHING PORT_HOST _MIPS_SZLONG=32 _MIPS_SIM=1)
-set(GAME_OPTS /X /std:c17 /W1 /wd4311 /wd4312 /wd4068 /GS- /Gw /Gy ${BC_OPT}
+# (/U_DEBUG: the debug C runtime defines _DEBUG, which turns on ultralib's debug code)
+set(GAME_OPTS /X /std:c17 /W1 /wd4311 /wd4312 /wd4068 /GS- /Gw /Gy /U_DEBUG ${BC_OPT}
     /FI${BC_PORT}/include/port_ultratypes.h)
 set(UL_INC ${GEN}/ulinc ${BC_UL_DIR} ${GEN}/ulinc/include ${BC_PORT}/include/msvc
     ${GEN}/ulinc/include/compiler/modern_gcc ${GEN}/ulinc/include/PR ${GEN}/ulinc/src/libc)
@@ -180,7 +181,7 @@ set(UL_INC ${GEN}/ulinc ${BC_UL_DIR} ${GEN}/ulinc/include ${BC_PORT}/include/msv
 # as a 32-bit type)
 set(UL_DEFS _MIPS_SZLONG=32 BUILD_VERSION=VERSION_I "BUILD_VERSION_STRING=\"2.0I\"" NDEBUG _FINALROM F3DEX_GBI
     _LANGUAGE_C _SIZE_T_DEF)
-set(UL_OPTS /X /std:c17 /w /GS- /Gw /Gy /Oi- ${BC_OPT} /FI${BC_PORT}/include/port_n64ptr.h
+set(UL_OPTS /X /std:c17 /w /GS- /Gw /Gy /Oi- /U_DEBUG ${BC_OPT} /FI${BC_PORT}/include/port_n64ptr.h
     /FI${BC_PORT}/include/msvc/ul_msvc.h)
 
 function(game_lib name)
@@ -314,10 +315,9 @@ function(link_tables name)
         COMMAND ${PY} ${TOOLS}/gensyms.py ptrtab-in ${lt}/ptrtab.c ${BC_INPUTS}/nmptrs.txt @${lt}/recs.txt
         DEPENDS ${recs} ${TOOLS}/gensyms.py ${BC_INPUTS}/nmptrs.txt
         COMMENT "${name}: pointer table (gensyms.py ptrtab-in)" VERBATIM)
-    add_library(${name}_tables OBJECT ${lt}/stubs.c ${lt}/copytab.c ${lt}/ptrtab.c)
-    target_include_directories(${name}_tables PRIVATE ${HOST_INC})
-    target_compile_options(${name}_tables PRIVATE /w /GS- ${BC_OPT})
-    set(${name}_LINK ${pinned} ${lt}/abs_syms.obj $<TARGET_OBJECTS:${name}_tables> PARENT_SCOPE)
+    # (the tables are compiled as the exe's own sources: an object library of
+    # per-configuration generated files confuses the Visual Studio generator)
+    set(${name}_LINK ${pinned} ${lt}/abs_syms.obj ${lt}/stubs.c ${lt}/copytab.c ${lt}/ptrtab.c PARENT_SCOPE)
     set(${name}_REPORT ${lt}/link_report.txt PARENT_SCOPE)
 endfunction()
 
@@ -330,6 +330,9 @@ set(BC_LINK_OPTS /BASE:${BC_IMAGE_BASE} /FIXED /DYNAMICBASE:NO /HIGHENTROPYVA:NO
 function(bc_exe name)
     cmake_parse_arguments(A "" "REPORT" "SOURCES;OPTS;LIBS" ${ARGN})
     add_executable(${name} ${A_SOURCES})
+    # (its own C sources: the generated tables)
+    target_include_directories(${name} PRIVATE ${HOST_INC})
+    target_compile_options(${name} PRIVATE $<$<COMPILE_LANGUAGE:C>:/w /GS- ${BC_OPT}>)
     target_link_options(${name} PRIVATE ${BC_LINK_OPTS} /MAP:$<TARGET_FILE_DIR:${name}>/${name}.map ${A_OPTS})
     target_link_libraries(${name} PRIVATE ${A_LIBS})
     add_custom_command(TARGET ${name} POST_BUILD

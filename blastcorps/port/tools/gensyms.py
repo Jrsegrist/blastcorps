@@ -200,7 +200,9 @@ def cmd_link64(outdir, objs):
     defined, undefined = nm_objects(objs)
     data, stubs, unknown = [], [], []
     for c, users in sorted(undefined.items()):
-        if c in defined or c in RUNTIME or c.startswith("__imp_") or c.startswith("."):
+        # (__ubsan_handle_*: a sanitizer build's runtime, linked separately)
+        if c in defined or c in RUNTIME or c.startswith("__imp_") or c.startswith(".") or \
+                c.startswith("__ubsan_handle_"):
             continue
         if c in syms:
             v, is_func, _ = syms[c]

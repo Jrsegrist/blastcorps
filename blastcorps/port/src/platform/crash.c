@@ -213,7 +213,7 @@ typedef BOOL(WINAPI *SymGetLineFromAddr64_t)(HANDLE, DWORD64, PDWORD, PIMAGEHLP_
 static SymFromAddr_t p_SymFromAddr;
 static SymGetLineFromAddr64_t p_SymGetLineFromAddr64;
 static int g_sym_ok;
-static HANDLE g_names_go, g_names_done;
+static HANDLE g_names_go, g_names_done, g_names_heap;
 static SymQuery *volatile g_names_q;
 static volatile int g_names_n;
 
@@ -226,6 +226,10 @@ static DWORD WINAPI namer(void *arg) {
     int i;
     (void) arg;
     WaitForSingleObject(g_names_go, INFINITE);
+    /* dbghelp allocates from the process heap: is its lock free? */
+    HeapLock(GetProcessHeap());
+    HeapUnlock(GetProcessHeap());
+    SetEvent(g_names_heap);
     for (i = 0; i < g_names_n; i++) {
         SymQuery *q = &g_names_q[i];
         DWORD64 disp = 0;
@@ -256,8 +260,10 @@ static void pdb_names(SymQuery *q, int nq) {
     g_names_q = q;
     g_names_n = nq;
     SetEvent(g_names_go);
-    if (WaitForSingleObject(g_names_done, 15000) == WAIT_TIMEOUT)
-        out("  (names: the PDB lookup timed out: the process heap is locked or corrupt)\n");
+    if (WaitForSingleObject(g_names_heap, 2000) == WAIT_TIMEOUT)
+        out("  (no names: the process heap is locked, so the PDB can't be read)\n");
+    else if (WaitForSingleObject(g_names_done, 15000) == WAIT_TIMEOUT)
+        out("  (names: the PDB lookup timed out)\n");
 }
 
 static void pdb_init(HMODULE dbghelp) {
@@ -276,6 +282,7 @@ static void pdb_init(HMODULE dbghelp) {
     if (!g_sym_ok) return;
     g_names_go = CreateEventW(NULL, TRUE, FALSE, NULL);
     g_names_done = CreateEventW(NULL, TRUE, FALSE, NULL);
+    g_names_heap = CreateEventW(NULL, TRUE, FALSE, NULL);
     CloseHandle(CreateThread(NULL, 0x40000, namer, NULL, STACK_SIZE_PARAM_IS_A_RESERVATION, NULL));
 }
 #endif

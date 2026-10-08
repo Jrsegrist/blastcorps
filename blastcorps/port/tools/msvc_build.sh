@@ -6,7 +6,8 @@
 #
 #   tools/msvc_build.sh DIR CONFIG [TARGET...]
 #     DIR      a folder on a Windows drive (a WSL path: /mnt/c/...)
-#     CONFIG   Release or Debug  -> DIR/CONFIG
+#     CONFIG   Release, Debug or Asan (Release + AddressSanitizer, bc_headless
+#              only)  -> DIR/CONFIG
 #   environment: MSVC_PYTHON  a Windows python.exe (default: the one CMake finds)
 #                MSVC_THIRDPARTY  BC_THIRDPARTY (a Windows path)
 #                BC_VERSION   the version the exes report (default: CMake asks git)
@@ -35,6 +36,8 @@ b=$cfg
 # (BC_INPUTS given each time: build folders configured before port/inputs was
 # committed have the old default, port/build/inputs, in their cache)
 defs="-DCMAKE_BUILD_TYPE=$cfg -DBC_INPUTS=$wdir\\src\\blastcorps\\port\\inputs"
+# Asan: Release with AddressSanitizer, bc_headless only (the x64-asan preset)
+[ "$cfg" = Asan ] && defs="-DCMAKE_BUILD_TYPE=Release -DBC_ASAN=ON -DBC_GAME=OFF -DBC_INPUTS=$wdir\\src\\blastcorps\\port\\inputs"
 [ -n "$MSVC_PYTHON" ] && defs="$defs -DPython3_EXECUTABLE=$MSVC_PYTHON"
 [ -n "$MSVC_THIRDPARTY" ] && defs="$defs -DBC_THIRDPARTY=$MSVC_THIRDPARTY"
 [ -n "$BC_VERSION" ] && defs="$defs -DBC_GIT_VERSION=$BC_VERSION"

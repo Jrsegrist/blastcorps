@@ -58,9 +58,31 @@ int rom_normalise(uint8_t *p, size_t n) {
     return -1;
 }
 
+#ifdef BC_ASAN
+/* the AddressSanitizer build: N64 memory is bc_rdram.dll's section at
+ * 0x80000000 (rdram_asan_dll.c: ASan's shadow memory would otherwise take the
+ * range before the exe runs) */
+__declspec(dllimport) extern unsigned char bc_rdram[];
+#endif
+
 int rdram_map(void) {
+#ifdef BC_ASAN
+    /* the DLL's one section starts at 0x80000000 and covers the 8 MB (the
+     * array itself follows a few bytes of the linker's own data): writable
+     * and zero, as VirtualAlloc's would be */
+    void *p = NULL;
+    DWORD old;
+    if ((uintptr_t) bc_rdram >= RDRAM_BASE && (uintptr_t) bc_rdram < RDRAM_BASE + 0x1000 &&
+        VirtualProtect((void *) (uintptr_t) RDRAM_BASE, RDRAM_SIZE, PAGE_READWRITE, &old)) {
+        p = (void *) (uintptr_t) RDRAM_BASE;
+        memset(p, 0, RDRAM_SIZE);
+    } else {
+        fprintf(stderr, "rdram: bc_rdram.dll's memory is at %p, not 0x%08X\n", (void *) bc_rdram, RDRAM_BASE);
+    }
+#else
     void *p = VirtualAlloc((void *) (uintptr_t) RDRAM_BASE, RDRAM_SIZE, MEM_RESERVE | MEM_COMMIT,
                            PAGE_READWRITE);
+#endif
     if (p != (void *) (uintptr_t) RDRAM_BASE) {
         MEMORY_BASIC_INFORMATION mbi;
         unsigned long err = GetLastError();
@@ -78,6 +100,17 @@ int rdram_map(void) {
         void *heap = malloc(64);
         int local;
         uintptr_t top = (uintptr_t) 1 << 32;
+#ifdef BC_ASAN
+        /* AddressSanitizer's allocator lives above 4 GB.  Only the port's host
+         * code keeps heap blocks (the game C has no heap and is given none), so
+         * the ASan build allows it; a heap address that did reach N64 memory
+         * would be cut to 4 bytes and fault at once */
+        if ((uintptr_t) heap >= top) {
+            fprintf(stderr, "rdram: AddressSanitizer build: heap above 4 GB (%p)\n", heap);
+            free(heap);
+            heap = NULL;
+        }
+#endif
         if ((uintptr_t) heap >= top || (uintptr_t) &local >= top || (uintptr_t) &rdram_map >= top) {
             free(heap);
             return fail("host memory above 4 GB (heap %p, stack %p, code %p): the 64-bit build needs "

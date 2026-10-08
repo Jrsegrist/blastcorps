@@ -1071,7 +1071,7 @@ int host_crash_test_set(const char *spec) {
     if (strcmp(g_test_kind, "av") && strcmp(g_test_kind, "thread") && strcmp(g_test_kind, "stack") &&
         strcmp(g_test_kind, "abort") && strcmp(g_test_kind, "fatal") && strcmp(g_test_kind, "box") &&
         strcmp(g_test_kind, "cxx") && strcmp(g_test_kind, "div") && strcmp(g_test_kind, "heaplock") &&
-        strcmp(g_test_kind, "heapbad"))
+        strcmp(g_test_kind, "heapbad") && strcmp(g_test_kind, "heapover"))
         return -1;
     return 0;
 }
@@ -1103,8 +1103,13 @@ void host_crash_test_frame(unsigned frame) {
         unsigned char *p = HeapAlloc(GetProcessHeap(), 0, 64);
         memset(p - 8, 0x41, 8);
         g_sink = *g_bad;
-    }
-    else if (!strcmp(g_test_kind, "div")) {
+    } else if (!strcmp(g_test_kind, "heapover")) {   /* a write just past a malloc block (the ASan build stops) */
+        volatile unsigned char *p = malloc(61);
+        g_sink = 61;
+        p[g_sink] = 1;
+        free((void *) p);
+        fprintf(stderr, "crash test: heapover went unnoticed\n");
+    } else if (!strcmp(g_test_kind, "div")) {
         volatile int z = 0;
         g_sink = (g_sink + 7) / z;
     } else if (!strcmp(g_test_kind, "stack")) g_sink = recurse(0);

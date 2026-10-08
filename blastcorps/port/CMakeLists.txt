@@ -44,6 +44,12 @@ set(BC_INPUTS "${BC_PORT}/inputs" CACHE PATH "the decomp inputs folder (port/inp
 # releases.  Shared by every build folder.
 set(BC_THIRDPARTY "${BC_PORT}/build/thirdparty" CACHE PATH "downloads (RT64, DXC, SDL2)")
 option(BC_GAME "also build bc.exe (downloads RT64, DXC, SDL2)" ON)
+# AddressSanitizer (the x64-asan preset): the port's host code (load layer,
+# platform, audio: everything that uses the C heap) is built /fsanitize=address,
+# so a heap overrun, use after free or double free stops with ASan's report.
+# The game C isn't instrumented (it has no heap; ASan's redzones around globals
+# would cover N64 data that follows them in RDRAM).  See README.md.
+option(BC_ASAN "build the host code with AddressSanitizer" OFF)
 
 foreach(f addrs.txt elfsyms.txt nmptrs.txt typemap.txt hd_code.us.v11.map hd_front_end.us.v11.map)
     if(NOT EXISTS "${BC_INPUTS}/${f}")
@@ -253,6 +259,10 @@ endforeach()
 set(HOST_INC ${BC_PORT}/src ${BC_PORT}/src/platform ${BC_PORT}/src/load)
 set(HOST_OPTS /W3 /wd4996 /wd4244 /wd4267 /wd4311 /wd4312 /GS- /Gy ${BC_OPT})
 set(HOST_DEFS _CRT_SECURE_NO_WARNINGS)
+if(BC_ASAN)
+    list(APPEND HOST_OPTS /fsanitize=address)
+    list(APPEND HOST_DEFS BC_ASAN)
+endif()
 function(host_lib name)
     add_library(${name} OBJECT ${ARGN})
     target_include_directories(${name} PRIVATE ${HOST_INC} ${GEN})
@@ -276,6 +286,14 @@ host_lib(bc_host ${BC_PORT}/src/platform/plat_host.c ${BC_PORT}/src/platform/cra
 # (MASM: RT64's zstd enables CMake's generic ASM language, which claims .asm too)
 set_source_files_properties(${BC_PORT}/src/platform/entry_x64.asm PROPERTIES LANGUAGE ASM_MASM)
 host_lib(bc_headless_main ${BC_PORT}/src/platform/headless_main.c)
+if(BC_ASAN)
+    # N64 memory as a DLL's only section at 0x80000000 (rdram_asan_dll.c): ASan's
+    # shadow memory takes the range at 0x80000000 before the exe could reserve it
+    add_library(bc_rdram SHARED ${BC_PORT}/src/rdram_asan_dll.c)
+    target_compile_options(bc_rdram PRIVATE /GS- /Zl)
+    target_link_options(bc_rdram PRIVATE /NOENTRY /NODEFAULTLIB /BASE:0x7FFF0000 /FIXED /DYNAMICBASE:NO
+        /ALIGN:65536 /INCREMENTAL:NO /DEBUG:NONE)
+endif()
 host_lib(bc_lc_main ${BC_PORT}/src/loadcheck_main.c)
 
 # ---- link-time tables, per exe -----------------------------------------------------
@@ -340,18 +358,26 @@ function(bc_exe name)
             $<TARGET_FILE_DIR:${name}>/${name}.syms
         COMMAND ${CMAKE_COMMAND} -E cat ${A_REPORT}
         VERBATIM)
+    if(BC_ASAN)
+        # (ASan's run-time DLL, from the compiler's own folder, next to the exe)
+        get_filename_component(cldir "${CMAKE_C_COMPILER}" DIRECTORY)
+        add_custom_command(TARGET ${name} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${cldir}/clang_rt.asan_dynamic-x86_64.dll
+                $<TARGET_FILE_DIR:${name}>
+            VERBATIM)
+    endif()
 endfunction()
 
 # ---- bc_headless.exe ---------------------------------------------------------------
 set(HL_LIBS bc_hd bc_fe bc_ul bc_ulfe bc_plat)
 link_tables(bc_headless LIBS ${HL_LIBS} HOST bc_core bc_host bc_headless_main)
-bc_exe(bc_headless REPORT ${bc_headless_REPORT} OPTS /SUBSYSTEM:CONSOLE LIBS winmm
+bc_exe(bc_headless REPORT ${bc_headless_REPORT} OPTS /SUBSYSTEM:CONSOLE LIBS winmm $<$<BOOL:${BC_ASAN}>:bc_rdram>
     SOURCES $<TARGET_OBJECTS:bc_core> $<TARGET_OBJECTS:bc_host> $<TARGET_OBJECTS:bc_headless_main>
         ${bc_headless_LINK})
 
 # ---- bc_loadcheck.exe (loadcheck_main.c: the load layer through the game's loaders) ----
 link_tables(bc_loadcheck LIBS bc_lc HOST bc_core bc_lc_main)
-bc_exe(bc_loadcheck REPORT ${bc_loadcheck_REPORT} OPTS /SUBSYSTEM:CONSOLE
+bc_exe(bc_loadcheck REPORT ${bc_loadcheck_REPORT} OPTS /SUBSYSTEM:CONSOLE LIBS $<$<BOOL:${BC_ASAN}>:bc_rdram>
     SOURCES $<TARGET_OBJECTS:bc_core> $<TARGET_OBJECTS:bc_lc_main> ${bc_loadcheck_LINK})
 set_target_properties(bc_loadcheck PROPERTIES EXCLUDE_FROM_ALL TRUE)
 

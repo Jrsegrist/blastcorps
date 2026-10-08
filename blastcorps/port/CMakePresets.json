@@ -38,12 +38,20 @@
       "description": "No bc.exe: nothing is downloaded (no RT64, DXC, SDL2, git)",
       "inherits": "x64-base",
       "cacheVariables": { "CMAKE_BUILD_TYPE": "Release", "BC_GAME": "OFF" }
+    },
+    {
+      "name": "x64-asan",
+      "displayName": "x64 Release + AddressSanitizer, bc_headless.exe only",
+      "description": "The host code (load layer, platform, audio) with /fsanitize=address: heap overruns, use after free and double frees stop with a report",
+      "inherits": "x64-base",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release", "BC_GAME": "OFF", "BC_ASAN": "ON" }
     }
   ],
   "buildPresets": [
     { "name": "x64-release", "configurePreset": "x64-release" },
     { "name": "x64-debug", "configurePreset": "x64-debug" },
     { "name": "x64-headless", "configurePreset": "x64-headless" },
+    { "name": "x64-asan", "configurePreset": "x64-asan" },
     { "name": "dist", "configurePreset": "x64-release", "targets": [ "dist" ] }
   ]
 }

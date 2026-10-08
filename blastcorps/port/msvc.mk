@@ -11,10 +11,11 @@
 #   make -C port verify-levels  every level against the emulator
 #   make -C port compare DEMO=n one attract demo against the emulator
 #   make -C port dist           the player package -> build/dist/
+#   make -C port asan           bc_headless with AddressSanitizer (x64-asan preset)
 #
 # MSVC_DIR: a folder on a Windows drive (default %LOCALAPPDATA%\blastcorps-msvc);
-# MSVC_CONFIG: Release (default) or Debug; MSVC_PYTHON: a Windows python.exe
-# if CMake can't find one; MSVC_THIRDPARTY: a Windows folder for RT64,
+# MSVC_CONFIG: Release (default), Debug or Asan; MSVC_PYTHON: a Windows
+# python.exe if CMake can't find one; MSVC_THIRDPARTY: a Windows folder for RT64,
 # DXC and SDL2 (default MSVC_DIR\src\blastcorps\port\build\thirdparty; RT64 is
 # fetched with the Windows git).
 MSVC_DIR ?= $(shell d=$$(cd /mnt/c && cmd.exe /c 'echo %LOCALAPPDATA%' 2>/dev/null | tr -d '\r'); \
@@ -87,10 +88,14 @@ dist:
 		build/dist/
 	@ls -l build/dist/BlastCorps-port-$(BC_VERSION).zip build/dist/BlastCorps-port-$(BC_VERSION)-pdb.zip
 
+# bc_headless with AddressSanitizer (CMake BC_ASAN, preset x64-asan): MSVC_DIR/Asan
+asan:
+	$(MAKE) msvc MSVC_CONFIG=Asan MSVC_TARGETS=bc_headless
+
 # the old names of the MSVC targets
 loadcheck-msvc: loadcheck
 verify-msvc: verify
 verify-levels-msvc: verify-levels
 dist-msvc: dist
 
-.PHONY: msvc loadcheck verify verify-levels compare dist loadcheck-msvc verify-msvc verify-levels-msvc dist-msvc
+.PHONY: msvc loadcheck verify verify-levels compare dist asan loadcheck-msvc verify-msvc verify-levels-msvc dist-msvc

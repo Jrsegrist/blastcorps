@@ -162,6 +162,28 @@ check-inputs:
 		echo "check-inputs: FAILED: port/inputs is out of date with the code: run make -C port inputs and commit it"; \
 		exit 1; fi
 
+# What can be checked without the ROM (the CI's Linux job, .github/workflows/ci.yml).
+# The NON_MATCHING build needs the ROM (splat's asm and the assets come from it),
+# so the data addresses come from the committed inputs/addrs.txt instead, in a
+# folder of its own (build/norom; -o: its addrs.txt is never remade from the ELFs):
+#   - typemap.txt made again from the game C (host gcc's DWARF) must equal
+#     inputs/typemap.txt: the part of check-inputs that needs no NM build;
+#   - ptrcheck64 (pointer widths, record layouts) and the clang game objects'
+#     alignment check (align64.py).  The clang exe isn't linked (its pointer
+#     table comes from the NM ELFs) and nothing runs (that needs the ROM).
+NOROM := build/norom
+NOROM_MAKE = $(MAKE) GEN=$(NOROM)/gen H64=$(NOROM)/headless64 -o $(NOROM)/gen/addrs.txt
+norom-check:
+	@mkdir -p $(NOROM)/gen
+	cp $(INPUTS)/addrs.txt $(NOROM)/gen/addrs.txt
+	$(NOROM_MAKE) $(NOROM)/gen/typemap.txt
+	@if cmp -s $(INPUTS)/typemap.txt $(NOROM)/gen/typemap.txt; then echo "norom-check: typemap.txt OK"; else \
+		diff $(INPUTS)/typemap.txt $(NOROM)/gen/typemap.txt | head -20; \
+		echo "norom-check: FAILED: inputs/typemap.txt differs from the game C's declarations:" \
+			"run make -C port inputs and commit it"; exit 1; fi
+	$(NOROM_MAKE) ptrcheck64 $(NOROM)/headless64/align.ok
+	@echo "norom-check: OK"
+
 # ---------------------------------------------------------------------------
 # the version the exes report (log, file properties, dist folder name)
 GIT_HASH := $(shell git rev-parse --short HEAD 2>/dev/null || echo dev)
@@ -184,5 +206,5 @@ include port64.mk
 clean:
 	rm -rf build
 
-.PHONY: all clean typemap ucode strict-data inputs check-inputs FORCE
+.PHONY: all clean typemap ucode strict-data inputs check-inputs norom-check FORCE
 .SECONDARY:

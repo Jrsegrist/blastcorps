@@ -77,7 +77,7 @@ void func_80294EB8(void) {
 void func_80294F00(void) {
     if (D_80364A90 & 0x104) {
         if (D_8039CA80 == -1) {
-            D_8039CA80 = ((s32) D_803156C0);
+            D_8039CA80 = ((s32) PORT_GVI("func_80294F00", D_803156C0));
         }
         if (D_8039CA70[0].recCount < 0xCCC) {
             D_8039CA68[1][D_8039CA70[0].recCount].x = D_803643E0;
@@ -86,7 +86,7 @@ void func_80294F00(void) {
             D_8039CA68[1][D_8039CA70[0].recCount].rx = D_803ED390[0];
             D_8039CA68[1][D_8039CA70[0].recCount].ry = D_803ED390[1];
             D_8039CA68[1][D_8039CA70[0].recCount].rz = D_803ED390[2];
-            D_8039CA68[1][D_8039CA70[0].recCount].time = ((s32) D_803156C0) - D_8039CA80;
+            D_8039CA68[1][D_8039CA70[0].recCount].time = ((s32) PORT_GVI("func_80294F00", D_803156C0)) - D_8039CA80;
             D_8039CA70[0].recCount++;
         } else {
             D_8039CA8C = 1;

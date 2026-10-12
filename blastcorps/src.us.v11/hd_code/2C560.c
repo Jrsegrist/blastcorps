@@ -262,7 +262,9 @@ void func_80271358(BcSched *sc) {
     s32 count;
 
     sc->frameCount++;
-    if (!D_802E8BD0) {
+    /* (PORT_EMU: the main thread sets/clears D_802E8BD0 after its frame's
+     * CPU time; a retrace inside that time sees the old value) */
+    if (!PORT_EMU("func_80271358:8BD0", D_802E8BD0)) {
         sc->retraceCount++;
     }
     D_8036BF38 = osGetTime();

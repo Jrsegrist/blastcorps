@@ -861,7 +861,7 @@ void func_80244930(void *arg) {
                         D_802F8BDC[6].unk18 = 0x17, D_802F8BDC[7].unk18 = 0x21;
                     }
                     D_80364A50 = 0;
-                    D_80364A54 = D_803156C4;
+                    D_80364A54 = PORT_GVI("func_80244930:4A54", D_803156C4);
                     func_80255DC8();
                     if (D_802E8F94[D_802E8BDC].unk0 == 1 &&
                         ((D_80364AF0[D_80364AE8].unk18[D_802E8BDC] > 0 && D_80364AF0[D_80364AE8].unk18[D_802E8BDC] < 6) ? 1 : 0) &&

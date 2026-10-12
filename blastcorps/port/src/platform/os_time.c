@@ -382,6 +382,21 @@ u32 port_gvi_read(const char *fn, u32 v) {
     return v;
 }
 
+/* include/game/port.h PORT_EMU: following an emulator, the value it read at
+ * SITE in this very retrace (no slack: the site runs once per retrace, and a
+ * neighbouring retrace's value is exactly what must not be used); else v. */
+u32 port_emu_read(const char *site, u32 v) {
+    KeyQ *k;
+    if (g_nkeys[4] == 0 || (k = key_find(4, site, 0)) == NULL) return v;
+    while (k->next < k->n && k->vi[k->next] < plat_vi_count) k->next++;
+    if (k->next < k->n && k->vi[k->next] == plat_vi_count) {
+        k->used++;
+        return (u32) k->v[k->next++];
+    }
+    k->misses++;
+    return v;
+}
+
 OSTime osGetTime(void) {
     u32 call = g_calls++;
     u64 v;

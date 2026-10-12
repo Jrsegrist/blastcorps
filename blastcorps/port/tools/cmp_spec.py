@@ -178,8 +178,10 @@ A_AFRAME = syms.get("alAudioFrame", syms.get("func_802D9D68"))
 # where the game reads D_803156C4 mid-function, after CPU time the native
 # code doesn't take (00000.c func_8024C414: the blinking "PRESS START").
 # Also D_803156C0 (the scheduler's retrace count): hd_front_end 00000.c
-# func_801E7598 (the vehicle select screen's title pulse).
-GVI_FUNCS = ["func_8024C414", "func_801E7598"]
+# func_801E7598 (the vehicle select screen's title pulse).  And 50670.c
+# func_80294F00 (the ghost recorder's sample time, D_803156C0 - start): a
+# retrace can land between its entry (a switch point) and the read.
+GVI_FUNCS = ["func_8024C414", "func_801E7598", "func_80294F00"]
 GVI = {}
 for name in GVI_FUNCS:
     a, size = func_sizes[name]
@@ -188,21 +190,40 @@ for name in GVI_FUNCS:
         if w >> 26 == 0x23 and (w & 0xFFFF) in (0x56C0, 0x56C4):
             GVI[a + i] = (name, 0x80310000 + (w & 0xFFFF))
 # Single reads in big functions, keyed by their own name "FUNC:STORE": the
-# D_803156C0 load whose value the next few instructions store to %lo STORE
-# (00000.c func_80244930: D_80364A58 = the level's start time, read after the
-# level's loading CPU time the native code doesn't take)
-GVI_SITES = [("func_80244930", 0x4A58)]
-for name, store in GVI_SITES:
+# D_803156C0 (or D_803156C4) load whose value the next few instructions store
+# to %lo STORE.  00000.c func_80244930:
+#   D_80364A58 = D_803156C0: the level's start time, read after the level's
+#     loading CPU time the native code doesn't take;
+#   D_80364A54 = D_803156C4: when mode 0x40 starts (after a completed level's
+#     mode 0x200), read after that mode's setup calls on a loading frame.
+GVI_SITES = [("func_80244930", 0x4A58, 0x56C0), ("func_80244930", 0x4A54, 0x56C4)]
+for name, store, src in GVI_SITES:
     a, size = func_sizes[name]
     for i in range(0, size, 4):
         w = word_at(a + i)
-        if w >> 26 == 0x23 and (w & 0xFFFF) == 0x56C0:
+        if w >> 26 == 0x23 and (w & 0xFFFF) == src:
             rt = (w >> 16) & 31
             for k in range(1, 6):
                 w2 = word_at(a + i + 4 * k)
                 if w2 >> 26 == 0x2B and (w2 & 0xFFFF) == store and (w2 >> 16) & 31 == rt:
-                    GVI[a + i] = (name, 0x803156C0, "%s:%X" % (name, store))
+                    GVI[a + i] = (name, 0x80310000 + src, "%s:%X" % (name, store))
                     break
+# Other words the exe takes from the emulator, once per retrace (port.h
+# PORT_EMU, key "FUNC:LO"): the load of ADDR (SIZE bytes) in FUNC.
+#   2C560.c func_80271358 (__scHandleRetrace) counts the retrace in
+#   D_803156C0 unless D_802E8BD0 (the main thread's display freeze around
+#   loads) is set; the main thread clears it after its frame's CPU time
+#   (00000.c func_802475D8, after func_802A5720), so a retrace there sees it
+#   still set in the emulator and already clear natively.
+EMU_SITES = [("func_80271358", 0x802E8BD0, 1)]
+for name, addr, size in EMU_SITES:
+    a, fsize = func_sizes[name]
+    lo = addr & 0xFFFF
+    ops = {1: (0x20, 0x24), 2: (0x21, 0x25), 4: (0x23,)}[size]
+    found = [a + i for i in range(0, fsize, 4) if word_at(a + i) >> 26 in ops and word_at(a + i) & 0xFFFF == lo]
+    if len(found) != 1:
+        raise SystemExit("cmp_spec: EMU_SITES %s %08X: %d loads" % (name, addr, len(found)))
+    GVI[found[0]] = (name, addr, "%s:%X" % (name, lo), size)
 BPS = {A_BOOT: "B", A_TASK: "F", A_RDP: "R", A_RSP: "P", A_TIME: "T", A_COUNT: "C", A_CULL: "U"}
 BPS.update({a: "A" for a in AILEN_RET})
 if A_AFRAME:
@@ -383,7 +404,7 @@ def ONHIT(pc, g, rd):
         return "Z ra=%x th=%d v=%x" % (g["ra"], thread_id(rd), g["a3"])
     if pc in GVI:
         # (the lw hasn't run: memory holds what it loads)
-        q = "Q ra=%x th=%d v=%x" % (syms[GVI[pc][0]], thread_id(rd), rd(GVI[pc][1], 4))
+        q = "Q ra=%x th=%d v=%x" % (syms[GVI[pc][0]], thread_id(rd), rd(GVI[pc][1], GVI[pc][3] if len(GVI[pc]) > 3 else 4))
         return q + (" name=%s" % GVI[pc][2] if len(GVI[pc]) > 2 else "")
     if pc in CALLS:
         # (a0-a3: the arguments; compare.py calls shows them next to the exe's)

@@ -133,6 +133,10 @@ user name) next to bc.log; please include both. Both can be deleted afterwards.
   together.
 - No sound: check the volume keys (- and =) and M; the log says which sound device
   was opened.
+- The keyboard stops working: another window took the focus (for example the Xbox
+  button's Game Bar, or a notification). Game controllers keep working; in
+  fullscreen a controller button brings the game back to the front, otherwise click
+  the game's window. bc.log records focus changes and controllers coming and going.
 
 
 Known issues

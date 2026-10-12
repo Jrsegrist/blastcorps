@@ -102,6 +102,7 @@
 #include "render/rt64_texture_cache.h"
 #include "rhi/rt64_render_hooks.h"
 
+#include "live_input.h"
 #include "live_menu.h"
 #include "live_setup.h"
 
@@ -342,73 +343,17 @@ void saveWindow(const char *name) {
 }
 
 /* ---- input ------------------------------------------------------------------- */
-/* every game controller SDL knows is opened (in the order they appeared);
- * bc.ini's controller.pad picks which one plays (default the first) or all */
-std::vector<SDL_GameController *> g_pads;
+/* the controllers and the N64 pad: live_input.cpp.  bc.ini's controller.pad
+ * picks which controller plays (default the first) or all of them. */
+live::PadSet g_pads;
 unsigned short g_button;
 signed char g_stickX, g_stickY;
-bool g_inputHold;
-
-void openPad() {
-    for (int i = 0; i < SDL_NumJoysticks(); i++) {
-        if (!SDL_IsGameController(i)) continue;
-        SDL_JoystickID id = SDL_JoystickGetDeviceInstanceID(i);
-        bool have = false;
-        for (SDL_GameController *p : g_pads)
-            have |= SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(p)) == id;
-        if (have) continue;
-        SDL_GameController *p = SDL_GameControllerOpen(i);
-        if (p != nullptr) {
-            g_pads.push_back(p);
-            host_log("live: controller %u: %s\n", unsigned(g_pads.size()), SDL_GameControllerName(p));
-        }
-    }
-}
-
-void closeRemovedPads() {
-    for (size_t i = 0; i < g_pads.size();)
-        if (!SDL_GameControllerGetAttached(g_pads[i])) {
-            host_log("live: controller %u removed\n", unsigned(i + 1));
-            SDL_GameControllerClose(g_pads[i]);
-            g_pads.erase(g_pads.begin() + i);
-        } else {
-            i++;
-        }
-}
-
-/* the controllers that drive the N64 pad now */
-std::vector<SDL_GameController *> activePads() {
-    if (g_cfg.padIndex < 0) return g_pads;
-    if (size_t(g_cfg.padIndex) < g_pads.size()) return {g_pads[size_t(g_cfg.padIndex)]};
-    return {};
-}
+live::InputGate g_gate;              /* after the settings menu (live_input.h) */
+bool g_focused = true;               /* the window has the keyboard focus */
+unsigned g_lastScan;                 /* retrace of the last controller rescan */
 
 std::vector<std::string> padNames() {
-    std::vector<std::string> out;
-    for (SDL_GameController *p : g_pads) out.push_back(SDL_GameControllerName(p) ? SDL_GameControllerName(p) : "?");
-    return out;
-}
-
-bool isActivePadEvent(SDL_JoystickID which) {
-    for (SDL_GameController *p : activePads())
-        if (SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(p)) == which) return true;
-    return false;
-}
-
-/* an axis as an N64 stick value (-80..80 at full tilt), 0 inside the dead
- * zone; the stick sensitivity scales it (100 %: the full N64 range) */
-int axis(SDL_GameController *pad, int a, bool stick) {
-    int v = SDL_GameControllerGetAxis(pad, SDL_GameControllerAxis(a));
-    if (v > -g_cfg.deadzone && v < g_cfg.deadzone) return 0;
-    if (!stick || g_cfg.sensitivity == 100) return v * 80 / 32767;
-    return int(double(v) * 80.0 * g_cfg.sensitivity / (100.0 * 32767.0));
-}
-
-bool padActive(SDL_GameController *pad, const live::PadInput &in) {
-    if (in.button >= 0) return SDL_GameControllerGetButton(pad, SDL_GameControllerButton(in.button)) != 0;
-    if (in.axis == SDL_CONTROLLER_AXIS_TRIGGERLEFT || in.axis == SDL_CONTROLLER_AXIS_TRIGGERRIGHT)
-        return SDL_GameControllerGetAxis(pad, SDL_GameControllerAxis(in.axis)) > 12000;
-    return axis(pad, in.axis, false) * in.dir > 40;
+    return g_pads.names();
 }
 
 /* N64 pad from the keyboard and the game controller(s), by the bindings
@@ -418,53 +363,15 @@ bool padActive(SDL_GameController *pad, const live::PadInput &in) {
  *   START: Enter / Start                       L, R: A, S / shoulders
  *   C buttons: I J K L / right stick           D-pad: T F G H / D-pad */
 void pollInput() {
-    const Uint8 *k = SDL_GetKeyboardState(nullptr);
-    /* Alt+Enter switches fullscreen: that Enter isn't a game key */
-    const bool altEnter = (SDL_GetModState() & KMOD_ALT) != 0 && k[SDL_SCANCODE_RETURN];
-    auto keyDown = [&](int act) {
-        for (SDL_Scancode sc : g_cfg.keys[act])
-            if (k[sc] && !(altEnter && sc == SDL_SCANCODE_RETURN)) return true;
-        return false;
-    };
-    unsigned b = 0;
-    int x = 0, y = 0;
-    for (int i = 0; i < live::kButtons; i++)
-        if (keyDown(i)) b |= live::kButtonBits[i];
-    if (keyDown(live::A_STICK_LEFT)) x -= 80;
-    if (keyDown(live::A_STICK_RIGHT)) x += 80;
-    if (keyDown(live::A_STICK_UP)) y += 80;
-    if (keyDown(live::A_STICK_DOWN)) y -= 80;
-    for (SDL_GameController *pad : activePads()) {
-        for (int i = 0; i < live::kButtons; i++)
-            for (const live::PadInput &in : g_cfg.pad[i])
-                if (padActive(pad, in)) b |= live::kButtonBits[i];
-        if (g_cfg.padStick >= 0) {
-            const bool right = g_cfg.padStick == 1;
-            int lx = axis(pad, right ? SDL_CONTROLLER_AXIS_RIGHTX : SDL_CONTROLLER_AXIS_LEFTX, true);
-            int ly = -axis(pad, right ? SDL_CONTROLLER_AXIS_RIGHTY : SDL_CONTROLLER_AXIS_LEFTY, true);
-            if (lx != 0 || ly != 0) x = lx, y = ly;
-        }
-    }
-    /* after the settings menu: nothing until every input is let go (the
-     * buttons that closed it don't reach the game) */
-    if (g_inputHold) {
-        if (b != 0 || x != 0 || y != 0) b = 0, x = 0, y = 0;
-        else g_inputHold = false;
-    }
-    g_button = (unsigned short) b;
-    g_stickX = (signed char) std::max(-80, std::min(80, x));
-    g_stickY = (signed char) std::max(-80, std::min(80, y));
+    live::N64Pad p = live::readPad(g_cfg, g_pads, SDL_GetKeyboardState(nullptr), (SDL_GetModState() & KMOD_ALT) != 0);
+    g_gate.apply(p);
+    g_button = p.button;
+    g_stickX = (signed char) p.x;
+    g_stickY = (signed char) p.y;
 }
 
-/* are a playing controller's menu buttons all held? */
 bool menuCombo() {
-    if (g_cfg.menuPad.empty()) return false;
-    for (SDL_GameController *pad : activePads()) {
-        bool all = true;
-        for (int b : g_cfg.menuPad) all &= SDL_GameControllerGetButton(pad, SDL_GameControllerButton(b)) != 0;
-        if (all) return true;
-    }
-    return false;
+    return live::menuComboHeld(g_cfg, g_pads);
 }
 
 /* ---- sound ------------------------------------------------------------------- */
@@ -679,6 +586,23 @@ void updateCullWide() {
     }
 }
 
+/* focus and visibility, logged: without the keyboard focus SDL delivers no
+ * keys (and resets the ones held); controllers keep working
+ * (SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, set at start-up) */
+void windowEvent(const SDL_WindowEvent &w) {
+    const char *what = nullptr;
+    switch (w.event) {
+        case SDL_WINDOWEVENT_FOCUS_LOST: g_focused = false; what = "lost the keyboard focus (keys stop; controllers keep working)"; break;
+        case SDL_WINDOWEVENT_FOCUS_GAINED: g_focused = true; what = "has the keyboard focus"; break;
+        case SDL_WINDOWEVENT_MINIMIZED: what = "minimized"; break;
+        case SDL_WINDOWEVENT_RESTORED: what = "restored"; break;
+        case SDL_WINDOWEVENT_HIDDEN: what = "hidden"; break;
+        case SDL_WINDOWEVENT_SHOWN: what = "shown"; break;
+        default: break;
+    }
+    if (what != nullptr) host_log("live: window %s (frame %u)\n", what, plat_frames());
+}
+
 bool isKey(int action, SDL_Scancode sc) {
     for (SDL_Scancode q : g_cfg.keys[action])
         if (q == sc) return true;
@@ -701,8 +625,15 @@ void pumpEvents() {
         if (e.type == SDL_QUIT) shutdown(0);
         if (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED && g_cfg.aspect < 0)
             updateCullWide();
-        if (e.type == SDL_CONTROLLERDEVICEADDED) openPad();
-        if (e.type == SDL_CONTROLLERDEVICEREMOVED) closeRemovedPads();
+        if (e.type == SDL_CONTROLLERDEVICEADDED || e.type == SDL_CONTROLLERDEVICEREMOVED) g_pads.scan();
+        if (e.type == SDL_WINDOWEVENT) windowEvent(e.window);
+        /* a controller used while another window has the focus (e.g. the Xbox
+         * button's Game Bar, a notification that took it): fullscreen, take
+         * the focus back so the keyboard works again too */
+        if (!g_focused && g_opt.fullscreen && e.type == SDL_CONTROLLERBUTTONDOWN && g_pads.isActive(g_cfg, e.cbutton.which)) {
+            host_log("live: controller button while unfocused: raising the window (frame %u)\n", plat_frames());
+            SDL_RaiseWindow(g_window);
+        }
         if (live::menuIsOpen()) {
             /* waiting for a key or button to bind: everything goes to the menu */
             if (live::menuCapturing()) {
@@ -731,7 +662,7 @@ void pumpEvents() {
             continue;
         }
         if (e.type == SDL_KEYDOWN && isKey(live::A_QUIT, e.key.keysym.scancode)) shutdown(0);
-        if (e.type == SDL_CONTROLLERBUTTONDOWN && isActivePadEvent(e.cbutton.which)) {
+        if (e.type == SDL_CONTROLLERBUTTONDOWN && g_pads.isActive(g_cfg, e.cbutton.which)) {
             for (const live::PadInput &in : g_cfg.pad[live::A_QUIT])
                 if (in.button == e.cbutton.button) shutdown(0);
             if (menuCombo()) openMenu();
@@ -750,6 +681,11 @@ void pumpEvents() {
                 host_log("live: volume %d%%\n", g_opt.volume);
             }
         }
+    }
+    /* once a second: controllers whose device events were missed */
+    if (++g_lastScan >= 60) {
+        g_lastScan = 0;
+        g_pads.scan();
     }
     pollInput();
 }
@@ -915,7 +851,9 @@ void runMenu(unsigned shotFrame) {
     g_app->state->debuggerInspector.paused = false;
     if (g_quitRequested) shutdown(0);
     g_t0.QuadPart = 0;   /* pacing: start over from the next retrace */
-    g_inputHold = true;
+    /* what is held now (the keys or buttons that closed the menu) doesn't
+     * reach the game until let go (each on its own, at most a second) */
+    g_gate.close(live::readPad(g_cfg, g_pads, SDL_GetKeyboardState(nullptr), (SDL_GetModState() & KMOD_ALT) != 0));
 }
 
 void liveVi(const HostViRegs *r, unsigned viCount, unsigned long long when, unsigned frames) {
@@ -1291,6 +1229,12 @@ void prestart(HostOpts *o) {
      * in desktop points, so the window looks as large as before */
     SDL_SetHint(SDL_HINT_WINDOWS_DPI_AWARENESS, "permonitorv2");
     SDL_SetHint(SDL_HINT_WINDOWS_DPI_SCALING, "1");
+    /* game controllers keep working when another window takes the focus (the
+     * Game Bar of the Xbox button, a notification): SDL's default drops their
+     * input until the window gets the focus back, which a controller-only
+     * player in fullscreen can't do (the keyboard stops too: it can't be
+     * helped; a controller button takes the focus back, pumpEvents) */
+    SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
     SDL_SetMainReady();
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_EVENTS) != 0)
         host_fatal("Can't start SDL (video, controllers): %s", SDL_GetError());
@@ -1311,7 +1255,7 @@ void prestart(HostOpts *o) {
     SDL_VERSION(&wm.version);
     if (!SDL_GetWindowWMInfo(g_window, &wm)) host_fatal("SDL_GetWindowWMInfo: %s", SDL_GetError());
     host_gui_window = wm.info.win.window;
-    openPad();
+    g_pads.scan();
 
     RT64::Application::Core core = {};
     core.window = wm.info.win.window;

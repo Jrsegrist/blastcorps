@@ -447,7 +447,7 @@ if(BC_GAME)
     target_compile_definitions(bc_game_main PRIVATE PORT_LIVE)
     # src/live: SDL2 window and input, the RT64 renderer, bc.ini
     add_library(bc_live OBJECT ${BC_PORT}/src/live/live_rt64.cpp ${BC_PORT}/src/live/live_setup.cpp
-        ${BC_PORT}/src/live/live_menu.cpp)
+        ${BC_PORT}/src/live/live_menu.cpp ${BC_PORT}/src/live/live_input.cpp)
     add_dependencies(bc_live bc_version rt64)
     target_compile_features(bc_live PRIVATE cxx_std_17)
     target_compile_definitions(bc_live PRIVATE RT64_NATIVE_HOST_LAYOUT SDL_MAIN_HANDLED HLSL_CPU FFX_GCC
@@ -458,6 +458,17 @@ if(BC_GAME)
         ${BC_RT64_SOURCE}/src ${rt64c} ${rt64c}/plume ${rt64c}/imgui ${rt64c}/hlslpp/include ${rt64c}/dxc/inc
         ${CMAKE_BINARY_DIR}/src ${rt64c}/plume/contrib/volk ${rt64c}/plume/contrib/Vulkan-Headers/include
         ${rt64c}/plume/contrib/VulkanMemoryAllocator/include ${rt64c}/plume/contrib/D3D12MemoryAllocator/include)
+
+    # bc_inputtest.exe: tests of the controller handling (live_input.cpp) with SDL's
+    # virtual controllers; no window, ROM or renderer (exit status 0: all pass)
+    add_executable(bc_inputtest ${BC_PORT}/src/live/input_test.cpp ${BC_PORT}/src/live/live_input.cpp
+        ${BC_PORT}/src/live/live_setup.cpp)
+    target_compile_features(bc_inputtest PRIVATE cxx_std_17)
+    target_compile_definitions(bc_inputtest PRIVATE SDL_MAIN_HANDLED NOMINMAX _CRT_SECURE_NO_WARNINGS)
+    target_compile_options(bc_inputtest PRIVATE /EHsc /W3 /wd4244 /wd4267)
+    target_include_directories(bc_inputtest PRIVATE ${BC_PORT}/src ${BC_PORT}/src/platform ${BC_SDL2}/include)
+    target_link_libraries(bc_inputtest PRIVATE ${BC_SDL2}/lib/x64/SDL2.lib comdlg32)
+    target_link_options(bc_inputtest PRIVATE /SUBSYSTEM:CONSOLE)
 
     link_tables(bc LIBS ${HL_LIBS} HOST bc_core bc_host bc_game_main bc_live)
     bc_exe(bc REPORT ${bc_REPORT} OPTS /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup

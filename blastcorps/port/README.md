@@ -562,8 +562,11 @@ it without a fault.  The x64-asan preset is the tool for this now.
   (`state->debuggerInspector.paused`, its debugger's) re-renders the last
   frame's work and presents it at each `updateScreen`, ~60 times a second,
   so video settings show at once; the game's virtual clock doesn't move
-  (same per-frame trace), the pacing starts over afterwards and the game
-  gets no input until every key and button is let go.  It works with the
+  (same per-frame trace), the pacing starts over afterwards, and the keys
+  and buttons held when it closed don't reach the game until each is let go
+  (`live::InputGate`: per input, the stick until it is back in its dead
+  zone, at most one second, so nothing stuck can keep input blocked; new
+  inputs pass at once).  It works with the
   mouse, keyboard (arrows, Enter, Esc) and a controller (ImGui's gamepad
   navigation), and runs in the swap chain's pixels (bc.exe is DPI aware;
   ImGui's D3D12 backend ignores the framebuffer scale).  Each change is
@@ -642,7 +645,22 @@ it without a fault.  The x64-asan preset is the tool for this now.
     its dead zone and `sensitivity` (percent of the N64's full range at full
     tilt; 100 = before), picks the controller (`pad = 1` the first one found,
     the default, `N`, or `any` = all at once) and resets to the defaults.
-    Every SDL game controller is opened (hot-plugged ones too).  The game is
+    Every SDL game controller is opened (`src/live/live_input.cpp`,
+    `live::PadSet`): on SDL's device events and once a second, detached ones
+    are closed and new ones opened, so a controller that drops out and
+    reconnects (a new SDL instance id) plays again as `pad = 1`.
+    Controllers keep working when the window loses the focus
+    (`SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS`: SDL's default drops their
+    input then, and with the keyboard also gone a player in fullscreen had
+    no input at all after an unseen focus steal, e.g. the Xbox button's Game
+    Bar); in fullscreen a controller button pressed while unfocused also
+    raises the window to get the keyboard back.  bc.log records controllers
+    added/removed (name, SDL id, frame), focus lost/gained,
+    minimise/restore, the menu opening/closing and the input gate
+    closing/opening (with what held it).  `bc_inputtest.exe` (built with
+    bc.exe; SDL virtual controllers, no window or ROM) tests the pad
+    mapping, the menu combination, the gate (held, released, stuck) and
+    unplug/replug with `pad = 1`, `2` and `any`.  The game is
     one-player: the platform reports only controller 1 (with the Controller
     Pak); the ROM has no Rumble Pak code (no osMotor calls), so there is
     nothing to map for rumble or other pads.

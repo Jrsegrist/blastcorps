@@ -50,6 +50,10 @@ struct Config {
                                        2 nearest */
     double aspect = 0;              /* 0 = the N64's 4:3; > 0 = widescreen at this width/height;
                                        -1 = as wide as the window */
+    int framerate = 0;              /* frames shown per second: 0 = the game's own (20/30 a second),
+                                       -1 = the display's refresh rate, N = N a second; above the
+                                       game's own, RT64 adds interpolated frames (presentation only:
+                                       the game itself runs exactly as before) */
     std::string texturePack;        /* RT64 texture pack folder or .rtz (relative to the exe's folder) */
     bool texturePackOn = false;
     std::vector<SDL_Scancode> keys[A_COUNT];
@@ -95,6 +99,7 @@ bool configSave(Config &c, const std::vector<Setting> &which);
 
 /* names as the file writes them */
 std::string aspectName(double aspect);          /* "original", "16:9", "window", "1.85" ... */
+std::string framerateName(int framerate);       /* "original", "display", "60" ... */
 std::string keyNames(const std::vector<SDL_Scancode> &keys);
 std::string padNames(const std::vector<PadInput> &in);
 std::string padInputName(const PadInput &in);   /* "a", "leftx-", "righttrigger" */

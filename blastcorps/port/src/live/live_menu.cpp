@@ -191,6 +191,24 @@ void videoTab(Config &c) {
              "visible (which level cells it draws), so it can differ slightly from the N64's.");
     }
     {
+        static const int rates[] = {0, -1, 60, 120, 144, 165, 240};
+        std::vector<std::string> items = {"Original (default)", "Display's refresh rate", "60", "120", "144", "165", "240"};
+        int sel = -1;
+        for (int i = 0; i < 7; i++)
+            if (c.framerate == rates[i]) sel = i;
+        if (sel < 0) {
+            items.push_back("Custom (" + framerateName(c.framerate) + ")");
+            sel = 7;
+        }
+        if (combo("Frame rate", &sel, items) && sel < 7) {
+            c.framerate = rates[sel];
+            markChanged("video", "framerate");
+        }
+        help("Smoother motion: the renderer adds in-between pictures between the game's own 20 or 30 a second "
+             "(the camera and moving objects are interpolated). The game itself runs exactly as before. Capped at "
+             "the display's refresh rate; objects that jump (respawns, cuts) are shown without blending.");
+    }
+    {
         int f = c.filtering;
         if (combo("Picture scaling", &f, {"Anti-aliased pixel scaling (default)", "Bilinear (smooth)", "Nearest (sharp pixels)"})) {
             c.filtering = f;

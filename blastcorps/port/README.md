@@ -583,7 +583,8 @@ it without a fault.  The x64-asan preset is the tool for this now.
   RDRAM picture) and `--window WxH` sets the window's size.
 - **Optional enhancements** (all off by default: with the defaults bc.exe
   renders exactly as before, and none of them changes the game logic or its
-  per-frame trace, except widescreen's visibility test, below).  `[video]`:
+  per-frame trace, except the visibility test of widescreen and of a higher
+  frame rate, below).  `[video]`:
   - `resolution` (`--resolution`): `window` (the default: RT64's
     WindowIntegerScale, the whole multiple of 240 lines that covers the
     swap chain, what bc.exe always used), `1` (the N64's 320x240,
@@ -625,6 +626,41 @@ it without a fault.  The x64-asan preset is the tool for this now.
     Limits (widescreen): markers that point at off-screen targets (30C70.c) still use
     the 4:3 edges; the HUD is centred, not anchored to the screen edges
     (that would need RT64's extended GBI origins in the game's lists).
+  - `framerate` (`--framerate`): `original` (the default: RT64's
+    `refreshRate` Original, every picture as the game made it, 30 a second
+    in play), `display` (`RefreshRate::Display`: the display's refresh rate)
+    or `N` (30-1000, `Manual` + `refreshRateTarget`; RT64 caps it at the
+    display's rate). Above the game's own rate RT64's workload queue renders
+    extra pictures between the game's last two frames
+    (`rt64_workload_queue.cpp`, `curFrameWeight`) and its present thread
+    shows them 1/N s apart (`rt64_present_queue.cpp`). The game logic is
+    untouched: it keeps its own cadence and the per-frame trace is the same
+    as with the option off (below). Nothing is added to the game's display
+    lists either (no extended GBI, so N64 RAM is exactly as with the option
+    off): RT64 matches the two frames' draw calls itself (every matrix is
+    `G_EX_ID_AUTO`: calls with the same combiner, other modes, geometry mode
+    and triangle count, paired by the nearest transform,
+    `rt64_game_frame.cpp`), so the camera (projection and view) and every
+    model matrix it finds again are interpolated: vehicles, the carrier,
+    the train, debris, the globe; a matrix that moved more than ten times as
+    far as the frame before is not blended (`RigidBody::updateLinear`,
+    AUTO). `live_rt64.cpp` adds, only with the option on:
+    the game's cadence (the median of the last three intervals between
+    frame-buffer swaps, `State::setRefreshRate`: RT64's own guess from the VI
+    history turns interpolation off whenever the cadence wavers); cuts
+    (`interpTask`: a frame of a new game mode or level, or whose camera,
+    read from the frame's own `DynamicBuf.unk140` view matrix, jumped more
+    than 400 units and 4 times as far as the frame before, or turned more
+    than 40 degrees, gets rate 0: RT64 shows it as it is, with no in-between
+    pictures into it; in play the camera moves at most ~7 units and turns
+    under 1 degree a frame, the mission intro's cuts move 2500-7500); and a
+    visibility test 1.1 times as wide (`host_cull_wide`, times the widescreen
+    factor), so cells at the sides of an in-between picture whose camera is
+    still turning don't pop in. `--interp-log` logs every frame's camera
+    motion; `--display-hz N` tells RT64 the display runs at N Hz (testing a
+    rate above this PC's 60 Hz display, with `--no-vsync`); `--wseq F:MS`
+    saves every new picture the window shows for MS ms from frame F (screen
+    copies: the window must be uncovered).
   - `texture_pack` (`--texture-pack`, which also enables it) and
     `texture_pack_enabled` (default 0): an RT64 texture pack (a folder with
     `rt64.json`, or an `.rtz`; RT64's TEXTURE-PACKS.md) through RT64's

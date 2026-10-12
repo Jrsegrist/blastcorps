@@ -100,6 +100,20 @@ int main(int, char **) {
     }
     live::Config c;
     live::configDefaults(c);
+
+    /* video.framerate (the frame rate option): parsing and the names written back */
+    {
+        live::Config f;
+        live::configDefaults(f);
+        check(f.framerate == 0 && live::configValue(f, {"video", "framerate"}) == "original", "framerate default: original");
+        check(live::configSet(f, "video.framerate=144") && f.framerate == 144 &&
+                  live::configValue(f, {"video", "framerate"}) == "144", "framerate 144");
+        check(live::configSet(f, "video.framerate=display") && f.framerate == -1 &&
+                  live::configValue(f, {"video", "framerate"}) == "display", "framerate display");
+        check(live::configSet(f, "video.framerate=original") && f.framerate == 0, "framerate original");
+        check(!live::configSet(f, "video.framerate=10") && f.framerate == 0, "framerate 10 rejected (below 30)");
+        check(!live::configSet(f, "video.framerate=fast") && f.framerate == 0, "framerate 'fast' rejected");
+    }
     live::PadSet pads;
     const unsigned short A = live::kButtonBits[live::A_A], START = live::kButtonBits[live::A_START],
                          Z = live::kButtonBits[live::A_Z];

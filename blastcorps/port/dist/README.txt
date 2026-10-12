@@ -67,6 +67,9 @@ game is closed. It holds:
                resolution (internal resolution: window, 1 = the N64's, 2, 3, 4 ...),
                msaa (0, 2, 4, 8), filtering (aa, linear, nearest),
                aspect (original = 4:3, 16:9, 16:10, 21:9, window: widescreen),
+               framerate (original = the game's own 20/30 pictures a second,
+               display = the display's refresh rate, or a number like 60, 120, 144:
+               smoother motion from in-between pictures),
                texture_pack (an RT64 texture pack folder or .rtz) and
                texture_pack_enabled (0/1)
   [audio]      volume, mute
@@ -83,6 +86,13 @@ stretched, and the HUD, menus and other 2D pictures stay 4:3 in the middle. With
 widescreen the game also treats the wider view as visible (which parts of the level
 it draws), so it can play out slightly differently from the N64.
 
+A higher frame rate (framerate) only changes what you see: the game still runs at
+its own pace, and the renderer adds pictures between the game's own ones (the camera
+and moving vehicles and objects glide instead of stepping). It is capped at the
+display's refresh rate (on a 60 Hz display, 60). Cuts (a new screen, the mission
+intro, a respawn) are shown without blending. It also counts a slightly wider view
+as visible, as widescreen does.
+
 Command-line options (for shortcuts or a .bat file) override bc.ini, for example:
   bc.exe "D:\ROMs\Blast Corps (USA) (Rev 1).z64"   use this ROM (not remembered)
   bc.exe --api vulkan          bc.exe --fullscreen      bc.exe --no-vsync
@@ -91,6 +101,7 @@ Command-line options (for shortcuts or a .bat file) override bc.ini, for example
   bc.exe --set audio.volume=50   (any bc.ini setting as section.key=value, this run only)
   bc.exe --resolution 4        bc.exe --msaa 4          bc.exe --filtering nearest
   bc.exe --aspect 16:9         bc.exe --texture-pack D:\packs\mypack
+  bc.exe --framerate 60        bc.exe --framerate display
 
 
 Saves

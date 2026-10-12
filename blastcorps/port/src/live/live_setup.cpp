@@ -72,6 +72,11 @@ static const char kDefaultIni[] =
     "; as the window). Widescreen shows more of the world at the sides; the HUD, menus and\r\n"
     "; other 2D pictures keep their shape in the middle.\r\n"
     "aspect = original\r\n"
+    "; Frame rate: original (the game's own 20 or 30 pictures a second, the default), display\r\n"
+    "; (as many as the display's refresh rate) or a number, e.g. 60, 120, 144. Above the\r\n"
+    "; game's own rate the renderer adds in-between pictures (smoother motion; the game itself\r\n"
+    "; still runs at its own pace). Needs vsync or a display at least that fast.\r\n"
+    "framerate = original\r\n"
     "; A texture pack in RT64's format (a folder with an rt64.json, or an .rtz file; relative\r\n"
     "; paths are relative to this folder) and whether it is used: 1 = yes, 0 = no (default).\r\n"
     "texture_pack =\r\n"
@@ -315,6 +320,11 @@ static void parseText(Config &c, const std::string &text, const std::string &nam
                     ok = a >= 4.0 / 3.0 - 1e-6 && a <= 4.0;
                     if (ok) c.aspect = std::fabs(a - 4.0 / 3.0) < 1e-6 ? 0 : a;
                 }
+            } else if (key == "framerate" || key == "frame_rate" || key == "fps") {
+                std::string l = lower(v);
+                if (l == "original" || l == "off" || l == "game" || l == "0") c.framerate = 0;
+                else if (l == "display" || l == "monitor" || l == "auto") c.framerate = -1;
+                else ok = parseInt(l, 30, 1000, c.framerate);
             } else if (key == "texture_pack") {
                 c.texturePack = v;
             } else if (key == "texture_pack_enabled") {
@@ -550,6 +560,10 @@ std::string aspectName(double a) {
     return buf;
 }
 
+std::string framerateName(int f) {
+    return f == 0 ? "original" : f < 0 ? "display" : std::to_string(f);
+}
+
 std::string configValue(const Config &c, const Setting &s) {
     const std::string &k = s.key;
     if (s.section == "game") {
@@ -565,6 +579,7 @@ std::string configValue(const Config &c, const Setting &s) {
         if (k == "msaa") return std::to_string(c.msaa);
         if (k == "filtering") return c.filtering == 1 ? "linear" : c.filtering == 2 ? "nearest" : "aa";
         if (k == "aspect") return aspectName(c.aspect);
+        if (k == "framerate") return framerateName(c.framerate);
         if (k == "texture_pack") return c.texturePack;
         if (k == "texture_pack_enabled") return c.texturePackOn ? "1" : "0";
     } else if (s.section == "audio") {

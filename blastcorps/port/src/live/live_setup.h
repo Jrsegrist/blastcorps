@@ -12,14 +12,15 @@
 namespace live {
 
 /* what a binding drives: the N64 buttons (in the order of kButtonBits),
- * the four analog-stick directions, and quitting */
+ * the four analog-stick directions, quitting and the settings menu */
 enum Action {
     A_A, A_B, A_Z, A_START, A_DUP, A_DDOWN, A_DLEFT, A_DRIGHT, A_L, A_R, A_CUP, A_CDOWN, A_CLEFT, A_CRIGHT,
-    A_STICK_UP, A_STICK_DOWN, A_STICK_LEFT, A_STICK_RIGHT, A_QUIT, A_COUNT
+    A_STICK_UP, A_STICK_DOWN, A_STICK_LEFT, A_STICK_RIGHT, A_QUIT, A_MENU, A_COUNT
 };
 constexpr int kButtons = A_STICK_UP;           /* actions before this are N64 buttons */
 extern const unsigned short kButtonBits[kButtons];
 extern const char *const kActionNames[A_COUNT];  /* the config keys */
+extern const char *const kActionLabels[A_COUNT]; /* for people (the settings menu) */
 
 /* one game-controller input: a button, or an axis pushed one way */
 struct PadInput {
@@ -40,11 +41,31 @@ struct Config {
     bool vsync = true;
     int volume = 100;
     bool mute = false;
+    /* optional enhancements (all off by default: the defaults are what the
+     * port did before they existed) */
+    int resolution = 0;             /* internal resolution: 0 = from the window (RT64's integer
+                                       scale of the window), 1 = the N64's (320x240), N = N times it */
+    int msaa = 0;                   /* multisample anti-aliasing: 0 (off), 2, 4 or 8 samples */
+    int filtering = 0;              /* the picture's scaling: 0 anti-aliased pixel scaling, 1 bilinear,
+                                       2 nearest */
+    double aspect = 0;              /* 0 = the N64's 4:3; > 0 = widescreen at this width/height;
+                                       -1 = as wide as the window */
+    std::string texturePack;        /* RT64 texture pack folder or .rtz (relative to the exe's folder) */
+    bool texturePackOn = false;
     std::vector<SDL_Scancode> keys[A_COUNT];
     std::vector<PadInput> pad[A_COUNT];
+    std::vector<int> menuPad;       /* controller buttons that, held together, open the menu */
     int padStick = 0;               /* 0 left stick, 1 right stick, -1 none */
     int deadzone = 7000;
+    int sensitivity = 100;          /* analog stick, percent of the full N64 range */
+    int padIndex = 0;               /* which game controller: 0 the first, N the N+1th, -1 all */
     std::vector<std::string> warnings;  /* problems found in the file (shown once) */
+};
+
+/* one setting of the file: [section] key */
+struct Setting {
+    std::string section, key;
+    bool operator==(const Setting &o) const { return section == o.section && key == o.key; }
 };
 
 std::string utf8(const std::wstring &w);
@@ -61,6 +82,23 @@ void configDefaults(Config &c);
 bool configLoad(Config &c, const std::string &file);
 /* remember the ROM: rewrite (or add) the `rom =` line, keeping the rest */
 bool configSetRom(Config &c, const std::string &rom);
+/* "section.key=value" over the settings (bc.exe --set); false (and a
+ * warning in c.warnings) if it isn't understood */
+bool configSet(Config &c, const std::string &spec);
+/* a setting's current value as the file writes it */
+std::string configValue(const Config &c, const Setting &s);
+/* write these settings' current values to the file: their lines are
+ * rewritten (or added at the end of their section); everything else,
+ * comments included, stays as it was.  False if there is no file
+ * (--no-config) or it can't be written. */
+bool configSave(Config &c, const std::vector<Setting> &which);
+
+/* names as the file writes them */
+std::string aspectName(double aspect);          /* "original", "16:9", "window", "1.85" ... */
+std::string keyNames(const std::vector<SDL_Scancode> &keys);
+std::string padNames(const std::vector<PadInput> &in);
+std::string padInputName(const PadInput &in);   /* "a", "leftx-", "righttrigger" */
+std::string menuPadNames(const std::vector<int> &buttons);   /* "back+start" */
 
 /* "" if `path` is Blast Corps (USA) (Rev 1) in .z64, .v64 or .n64 form,
  * else a message for the user saying what it is instead */

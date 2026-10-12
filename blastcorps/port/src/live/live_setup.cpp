@@ -3,6 +3,7 @@
 #include <windows.h>
 #include <commdlg.h>
 
+#include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -23,7 +24,11 @@ const unsigned short kButtonBits[kButtons] = {
 };
 const char *const kActionNames[A_COUNT] = {
     "a", "b", "z", "start", "d_up", "d_down", "d_left", "d_right", "l", "r", "c_up", "c_down", "c_left", "c_right",
-    "stick_up", "stick_down", "stick_left", "stick_right", "quit",
+    "stick_up", "stick_down", "stick_left", "stick_right", "quit", "menu",
+};
+const char *const kActionLabels[A_COUNT] = {
+    "A", "B", "Z", "Start", "D-pad up", "D-pad down", "D-pad left", "D-pad right", "L", "R", "C up", "C down",
+    "C left", "C right", "Stick up", "Stick down", "Stick left", "Stick right", "Quit the game", "Settings menu",
 };
 
 /* The defaults ARE this text: configDefaults parses it, and a missing
@@ -53,6 +58,24 @@ static const char kDefaultIni[] =
     "fullscreen = 0\r\n"
     "; Wait for the display's refresh (no tearing): 1 = yes, 0 = no.\r\n"
     "vsync = 1\r\n"
+    "; The settings below are optional enhancements; their defaults show the game as before.\r\n"
+    "; The settings menu (F1) changes them too.\r\n"
+    "; Internal resolution: window = from the window's size (the default), 1 = the N64's own\r\n"
+    "; 320x240, 2, 3, 4 ... = that many times it (sharper; needs a faster graphics card).\r\n"
+    "resolution = window\r\n"
+    "; Multisample anti-aliasing: 0 (off), 2, 4 or 8.\r\n"
+    "msaa = 0\r\n"
+    "; How the picture is scaled to the window: aa (anti-aliased pixel scaling, the default),\r\n"
+    "; linear (smooth) or nearest (sharp pixels).\r\n"
+    "filtering = aa\r\n"
+    "; Aspect ratio: original (the N64's 4:3), 16:9, 16:10, 21:9, any W:H, or window (as wide\r\n"
+    "; as the window). Widescreen shows more of the world at the sides; the HUD, menus and\r\n"
+    "; other 2D pictures keep their shape in the middle.\r\n"
+    "aspect = original\r\n"
+    "; A texture pack in RT64's format (a folder with an rt64.json, or an .rtz file; relative\r\n"
+    "; paths are relative to this folder) and whether it is used: 1 = yes, 0 = no (default).\r\n"
+    "texture_pack =\r\n"
+    "texture_pack_enabled = 0\r\n"
     "\r\n"
     "[audio]\r\n"
     "; Volume in percent (0-100); - and = change it in the game, M switches the sound off and on.\r\n"
@@ -63,8 +86,8 @@ static const char kDefaultIni[] =
     "[keyboard]\r\n"
     "; The N64 controller from the keyboard. Values are SDL key names, for example X, Space,\r\n"
     "; Return, Left Shift, Right Ctrl, Keypad 8, Up, F5. Several keys: separate them with\r\n"
-    "; commas. Empty: not bound. Fixed keys: F1 help, Alt+Enter/F11 fullscreen, M sound,\r\n"
-    "; - and = volume.\r\n"
+    "; commas. Empty: not bound. Fixed keys: Alt+Enter/F11 fullscreen, M sound, - and = volume.\r\n"
+    "; menu opens the settings menu (Esc or the menu key closes it).\r\n"
     "a = X\r\n"
     "b = C\r\n"
     "z = Z, Space\r\n"
@@ -84,6 +107,7 @@ static const char kDefaultIni[] =
     "stick_left = Left\r\n"
     "stick_right = Right\r\n"
     "quit = Escape\r\n"
+    "menu = F1\r\n"
     "\r\n"
     "[controller]\r\n"
     "; The N64 controller from the first game controller (Xbox/XInput and others SDL knows).\r\n"
@@ -108,7 +132,14 @@ static const char kDefaultIni[] =
     "; The N64 analog stick comes from: left, right or none.\r\n"
     "stick = left\r\n"
     "; Dead zone of that stick (0-32767).\r\n"
-    "deadzone = 7000\r\n";
+    "deadzone = 7000\r\n"
+    "; Its sensitivity in percent: 100 = the N64 stick's full range at full tilt (default).\r\n"
+    "sensitivity = 100\r\n"
+    "; Which game controller plays: 1 = the first one found (default), 2 = the second ...,\r\n"
+    "; or any = all of them together.\r\n"
+    "pad = 1\r\n"
+    "; Buttons that, held together, open the settings menu (joined with +).\r\n"
+    "menu = back+start\r\n";
 
 /* ---- strings and paths ----------------------------------------------------- */
 std::string utf8(const std::wstring &w) {
@@ -254,7 +285,47 @@ static void parseText(Config &c, const std::string &text, const std::string &nam
             } else if (key == "scale") ok = parseInt(v, 1, 16, n) && (c.scale = unsigned(n), true);
             else if (key == "fullscreen") ok = parseBool(v, c.fullscreen);
             else if (key == "vsync") ok = parseBool(v, c.vsync);
-            else ok = false;
+            else if (key == "resolution") {
+                std::string l = lower(v);
+                if (l == "window" || l == "auto") c.resolution = 0;
+                else if (l == "original" || l == "native" || l == "n64") c.resolution = 1;
+                else if (!l.empty() && l.back() == 'x') ok = parseInt(l.substr(0, l.size() - 1), 1, 16, c.resolution);
+                else ok = parseInt(l, 1, 16, c.resolution);
+            } else if (key == "msaa") {
+                std::string l = lower(v);
+                if (l == "off" || l == "none") c.msaa = 0;
+                else ok = parseInt(l, 0, 8, n) && (n == 0 || n == 2 || n == 4 || n == 8) && (c.msaa = n, true);
+            } else if (key == "aspect") {
+                std::string l = lower(v);
+                if (l == "original" || l == "4:3" || l == "off") c.aspect = 0;
+                else if (l == "window" || l == "match" || l == "expand") c.aspect = -1;
+                else {
+                    /* W:H or a number, from 4:3 (the N64's) up to 4:1 */
+                    double a = -1;
+                    const size_t colon = l.find(':');
+                    int w, h;
+                    if (colon != std::string::npos) {
+                        if (parseInt(trim(l.substr(0, colon)), 1, 10000, w) && parseInt(trim(l.substr(colon + 1)), 1, 10000, h))
+                            a = double(w) / h;
+                    } else {
+                        char *end;
+                        a = strtod(l.c_str(), &end);
+                        if (l.empty() || *end != 0) a = -1;
+                    }
+                    ok = a >= 4.0 / 3.0 - 1e-6 && a <= 4.0;
+                    if (ok) c.aspect = std::fabs(a - 4.0 / 3.0) < 1e-6 ? 0 : a;
+                }
+            } else if (key == "texture_pack") {
+                c.texturePack = v;
+            } else if (key == "texture_pack_enabled") {
+                ok = parseBool(v, c.texturePackOn);
+            } else if (key == "filtering") {
+                std::string l = lower(v);
+                if (l == "aa" || l == "pixel" || l == "default") c.filtering = 0;
+                else if (l == "linear" || l == "bilinear" || l == "smooth") c.filtering = 1;
+                else if (l == "nearest" || l == "sharp" || l == "point") c.filtering = 2;
+                else ok = false;
+            } else ok = false;
         } else if (section == "audio") {
             if (key == "volume") ok = parseInt(v, 0, 100, c.volume);
             else if (key == "mute") ok = parseBool(v, c.mute);
@@ -271,6 +342,26 @@ static void parseText(Config &c, const std::string &text, const std::string &nam
                 else ok = false;
             } else if (section == "controller" && key == "deadzone") {
                 ok = parseInt(v, 0, 32767, c.deadzone);
+            } else if (section == "controller" && key == "sensitivity") {
+                ok = parseInt(v, 10, 400, c.sensitivity);
+            } else if (section == "controller" && key == "pad") {
+                std::string l = lower(v);
+                if (l == "any" || l == "all") c.padIndex = -1;
+                else ok = parseInt(l, 1, 16, n) && (c.padIndex = n - 1, true);
+            } else if (section == "controller" && key == "menu") {
+                std::vector<int> combo;
+                size_t p = 0;
+                while (ok && p <= v.size()) {
+                    size_t q = v.find('+', p);
+                    if (q == std::string::npos) q = v.size();
+                    std::string item = lower(trim(v.substr(p, q - p)));
+                    p = q + 1;
+                    if (item.empty()) continue;
+                    SDL_GameControllerButton b = SDL_GameControllerGetButtonFromString(item.c_str());
+                    if (b == SDL_CONTROLLER_BUTTON_INVALID) ok = false;
+                    else combo.push_back(b);
+                }
+                if (ok) c.menuPad = combo;
             } else if (act < 0) {
                 ok = false;
             } else if (section == "keyboard") {
@@ -326,41 +417,178 @@ bool configLoad(Config &c, const std::string &file) {
     return true;
 }
 
-bool configSetRom(Config &c, const std::string &rom) {
-    c.rom = rom;
-    if (c.file.empty()) return false;
-    std::string text, out, section;
-    if (!readText(c.file, text)) text = kDefaultIni;
-    bool done = false, inGame = false;
+/* Rewrite the lines of `values` ({section, key} -> value) in the file's
+ * text: an existing "key = value" line of the section gets the new value
+ * (the first one; the key keeps its spelling), a missing one is added at
+ * the end of its section (before the next section's header), a missing
+ * section at the end of the file.  Everything else stays as it was. */
+static std::string rewriteText(const std::string &text, const std::vector<std::pair<Setting, std::string>> &values) {
+    std::vector<bool> done(values.size(), false);
+    std::string out, section;
+    bool inSection = false;
+    auto flush = [&](const std::string &sec) {   /* the section's missing keys */
+        for (size_t i = 0; i < values.size(); i++)
+            if (!done[i] && values[i].first.section == sec) {
+                out += values[i].first.key + " = " + values[i].second + "\r\n";
+                done[i] = true;
+            }
+    };
     size_t pos = 0;
-    const std::string newLine = "rom = " + rom + "\r\n";
     while (pos < text.size()) {
         size_t eol = text.find('\n', pos);
         std::string raw = text.substr(pos, eol == std::string::npos ? std::string::npos : eol + 1 - pos);
         pos = eol == std::string::npos ? text.size() : eol + 1;
         std::string line = trim(raw);
         if (!line.empty() && line[0] == '[') {
-            if (inGame && !done) out += newLine, done = true;   /* [game] without rom = */
-            inGame = lower(line).rfind("[game]", 0) == 0;
-        } else if (inGame && !done && line[0] != ';') {
+            if (inSection) flush(section);
+            size_t close = line.find(']');
+            section = lower(trim(line.substr(1, close == std::string::npos ? std::string::npos : close - 1)));
+            inSection = true;
+        } else if (inSection && !line.empty() && line[0] != ';' && line[0] != '#') {
             size_t eq = line.find('=');
-            if (eq != std::string::npos && lower(trim(line.substr(0, eq))) == "rom") {
-                out += newLine;
-                done = true;
-                continue;
+            if (eq != std::string::npos) {
+                std::string key = trim(line.substr(0, eq)), lkey = lower(key);
+                bool replaced = false;
+                for (size_t i = 0; i < values.size(); i++)
+                    if (!done[i] && values[i].first.section == section && values[i].first.key == lkey) {
+                        out += key + " = " + values[i].second + "\r\n";
+                        done[i] = replaced = true;
+                        break;
+                    }
+                if (replaced) continue;
             }
         }
         out += raw;
     }
-    if (!done) {
-        if (inGame) out += (out.empty() || out.back() == '\n' ? "" : "\r\n") + newLine;
-        else out += std::string(out.empty() || out.back() == '\n' ? "" : "\r\n") + "\r\n[game]\r\n" + newLine;
+    if (inSection) {
+        bool missing = false;
+        for (size_t i = 0; i < values.size(); i++) missing |= !done[i] && values[i].first.section == section;
+        if (missing && !out.empty() && out.back() != '\n') out += "\r\n";
+        flush(section);
     }
+    for (size_t i = 0; i < values.size(); i++) {
+        if (done[i]) continue;
+        out += std::string(out.empty() || out.back() == '\n' ? "" : "\r\n") + "\r\n[" + values[i].first.section +
+               "]\r\n";
+        flush(values[i].first.section);
+    }
+    return out;
+}
+
+static bool writeValues(Config &c, const std::vector<std::pair<Setting, std::string>> &values) {
+    if (c.file.empty()) return false;
+    std::string text;
+    if (!readText(c.file, text)) text = kDefaultIni;
+    const std::string out = rewriteText(text, values);
+    if (out == text) return true;
     if (host_write_file(c.file.c_str(), out.data(), unsigned(out.size())) != 0) {
         host_log("live: can't write %s\n", c.file.c_str());
         return false;
     }
     return true;
+}
+
+bool configSetRom(Config &c, const std::string &rom) {
+    c.rom = rom;
+    return writeValues(c, {{{"game", "rom"}, rom}});
+}
+
+bool configSet(Config &c, const std::string &spec) {
+    size_t dot = spec.find('.'), eq = spec.find('=');
+    if (dot == std::string::npos || eq == std::string::npos || dot > eq) {
+        c.warnings.push_back("--set " + spec + ": not section.key=value");
+        return false;
+    }
+    const size_t before = c.warnings.size();
+    parseText(c, "[" + spec.substr(0, dot) + "]\n" + spec.substr(dot + 1, eq - dot - 1) + " = " + spec.substr(eq + 1),
+              "--set " + spec);
+    return c.warnings.size() == before;
+}
+
+/* ---- names as the file writes them -------------------------------------------- */
+std::string keyNames(const std::vector<SDL_Scancode> &keys) {
+    std::string s;
+    for (SDL_Scancode k : keys) s += (s.empty() ? "" : ", ") + std::string(SDL_GetScancodeName(k));
+    return s;
+}
+
+std::string padInputName(const PadInput &in) {
+    if (in.button >= 0) {
+        const char *n = SDL_GameControllerGetStringForButton(SDL_GameControllerButton(in.button));
+        return n != nullptr ? n : "?";
+    }
+    const char *n = SDL_GameControllerGetStringForAxis(SDL_GameControllerAxis(in.axis));
+    std::string s = n != nullptr ? n : "?";
+    if (in.axis != SDL_CONTROLLER_AXIS_TRIGGERLEFT && in.axis != SDL_CONTROLLER_AXIS_TRIGGERRIGHT)
+        s += in.dir > 0 ? "+" : "-";
+    return s;
+}
+
+std::string padNames(const std::vector<PadInput> &in) {
+    std::string s;
+    for (const PadInput &p : in) s += (s.empty() ? "" : ", ") + padInputName(p);
+    return s;
+}
+
+std::string menuPadNames(const std::vector<int> &buttons) {
+    std::string s;
+    for (int b : buttons) {
+        const char *n = SDL_GameControllerGetStringForButton(SDL_GameControllerButton(b));
+        s += (s.empty() ? "" : "+") + std::string(n != nullptr ? n : "?");
+    }
+    return s;
+}
+
+std::string aspectName(double a) {
+    if (a == 0) return "original";
+    if (a < 0) return "window";
+    static const struct { int w, h; } kNamed[] = {{16, 9}, {16, 10}, {21, 9}, {4, 3}, {5, 4}, {32, 9}};
+    for (const auto &n : kNamed)
+        if (std::fabs(a - double(n.w) / n.h) < 1e-6) return std::to_string(n.w) + ":" + std::to_string(n.h);
+    char buf[32];
+    snprintf(buf, sizeof buf, "%.4g", a);
+    return buf;
+}
+
+std::string configValue(const Config &c, const Setting &s) {
+    const std::string &k = s.key;
+    if (s.section == "game") {
+        if (k == "rom") return c.rom;
+        if (k == "saves") return c.saves;
+        if (k == "controller_pak") return c.pak ? "1" : "0";
+    } else if (s.section == "video") {
+        if (k == "api") return c.vulkan ? "vulkan" : "d3d12";
+        if (k == "scale") return std::to_string(c.scale);
+        if (k == "fullscreen") return c.fullscreen ? "1" : "0";
+        if (k == "vsync") return c.vsync ? "1" : "0";
+        if (k == "resolution") return c.resolution == 0 ? "window" : std::to_string(c.resolution);
+        if (k == "msaa") return std::to_string(c.msaa);
+        if (k == "filtering") return c.filtering == 1 ? "linear" : c.filtering == 2 ? "nearest" : "aa";
+        if (k == "aspect") return aspectName(c.aspect);
+        if (k == "texture_pack") return c.texturePack;
+        if (k == "texture_pack_enabled") return c.texturePackOn ? "1" : "0";
+    } else if (s.section == "audio") {
+        if (k == "volume") return std::to_string(c.volume);
+        if (k == "mute") return c.mute ? "1" : "0";
+    } else if (s.section == "keyboard") {
+        for (int i = 0; i < A_COUNT; i++)
+            if (k == kActionNames[i]) return keyNames(c.keys[i]);
+    } else if (s.section == "controller") {
+        if (k == "stick") return c.padStick == 0 ? "left" : c.padStick == 1 ? "right" : "none";
+        if (k == "deadzone") return std::to_string(c.deadzone);
+        if (k == "menu") return menuPadNames(c.menuPad);
+        if (k == "sensitivity") return std::to_string(c.sensitivity);
+        if (k == "pad") return c.padIndex < 0 ? "any" : std::to_string(c.padIndex + 1);
+        for (int i = 0; i < A_COUNT; i++)
+            if (k == kActionNames[i]) return padNames(c.pad[i]);
+    }
+    return std::string();
+}
+
+bool configSave(Config &c, const std::vector<Setting> &which) {
+    std::vector<std::pair<Setting, std::string>> values;
+    for (const Setting &s : which) values.push_back({s, configValue(c, s)});
+    return writeValues(c, values);
 }
 
 /* ---- the ROM ------------------------------------------------------------------- */
@@ -486,7 +714,8 @@ std::string helpLine(const Config &c) {
                     "  A " + key(A_A) + "  B " + key(A_B) + "  Z " + key(A_Z) + "  Start " + key(A_START) +
                     "  L/R " + key(A_L) + "/" + key(A_R) + "  C " + key(A_CUP) + key(A_CLEFT) + key(A_CDOWN) +
                     key(A_CRIGHT) + "  D-pad " + key(A_DUP) + key(A_DLEFT) + key(A_DDOWN) + key(A_DRIGHT) +
-                    "  |  M sound  -/= volume  Alt+Enter fullscreen  " + key(A_QUIT) + " quit  (F1 hides)";
+                    "  |  M sound  -/= volume  Alt+Enter fullscreen  " + key(A_QUIT) + " quit  " + key(A_MENU) +
+                    " settings";
     return s;
 }
 

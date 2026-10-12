@@ -143,7 +143,8 @@ typedef struct {
  * The game logic steps exactly as in bc_headless: these hooks observe the
  * game (they render its graphics tasks and show its frames) and pace the
  * virtual clock to real time, but never change what the game sees, except
- * through `input` (the player's controller). */
+ * through `input` (the player's controller) and, with the widescreen
+ * option on, host_cull_wide. */
 typedef struct HostLive {
     /* after the ROM images are in RDRAM, before the game starts */
     void (*boot)(void);
@@ -159,6 +160,14 @@ typedef struct HostLive {
      * at `rate` Hz (virtual time; the output paces it to real time) */
     void (*audio)(const short *lr, unsigned frames, unsigned rate);
 } HostLive;
+
+/* Widescreen (bc.exe's optional enhancement; os_hw.c): the width of
+ * func_802A4B0C's visibility test as a multiple of the game's 4:3 view, so
+ * level cells (and the objects on them) at the edges of a wider picture are
+ * drawn.  1.0 (the default) is the exact model of the N64's ucode; another
+ * value changes what the game sees (which cells are visible), so the game
+ * can then differ from the N64's.  bc_headless: --cull-wide K (testing). */
+extern double host_cull_wide;
 
 /* platform entry (plat_core.c): boots the game and never returns */
 PORT_NORETURN void plat_start(const HostOpts *o);

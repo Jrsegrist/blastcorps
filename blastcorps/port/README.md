@@ -901,7 +901,9 @@ load log put it), and `data/image_overrides.txt`; a word that matches only
 under some other layout is reported. C objects' .data/.rodata, textures
 and a few buffers whose declared type isn't their readers' (`Layout.UNTYPED`)
 stay lenient. More emulator inputs: `Q` lines (the game retrace counter
-where `PORT_GVI` marks a mid-frame read, `cmp_spec.py GVI_FUNCS`), and
+where `PORT_GVI` marks a mid-frame read, `cmp_spec.py GVI_FUNCS`/`GVI_SITES`;
+and, once per retrace, the display-freeze flag D_802E8BD0 as the scheduler's
+retrace handler read it, `PORT_EMU`, `EMU_SITES`), and
 `calls --args` compares the first argument words (`emu --calls` logs a0-a3,
 the exe its argument registers' home area, which may be stale). Never-written
 record padding is logged by the exe (`port_garbage`, "load: garbage") and
@@ -1024,7 +1026,11 @@ area test's halves, a front-end static in host .bss, two mid-function
 retrace reads (PORT_GVI), and the stale-byte emulation: display lists,
 matrices, vertices and text quads built in heap memory record their units,
 and the never-written vertex fields of several builders (sprites, boxes,
-globe icons, water) get the N64's old bytes.
+globe icons, water) get the N64's old bytes.  When the matched globe display
+list (hd_front_end func_801F1568) changed the NM ROM's CPU timing, three
+more such races showed up (lvfix agent): the mode-0x40 start time
+(func_80244930:4A54), the ghost recorder's sample time (func_80294F00) and
+the retrace handler's freeze test (func_80271358:8BD0, PORT_EMU).
 
 Debugging what native code wrote: `--watch F:ADDR[:N]` logs the first N
 writes to ADDR's 4 KB page from frame F on (rip and the stack's code

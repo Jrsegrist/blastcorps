@@ -134,6 +134,7 @@ void *port_save_semblock(const void *sem);
 #define PORT_ITAG_PEOPLE 11   /* person sprite D_80367D60[] (world-space quad) */
 #define PORT_ITAG_GSHADOW 12  /* ground shadow of a D_803F4030[] object (world-space quad) */
 #define PORT_ITAG_MARKER 13   /* people's marker */
+#define PORT_ITAG_RADAR 14    /* the radar's sweep and heading arrow (blended; then back to HUD) */
 #define PORT_ITAG_CUT 30
 #define PORT_ITAG_SPAWN 31
 #if defined(NON_MATCHING) && defined(PORT_HOST)

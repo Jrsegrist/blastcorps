@@ -32,7 +32,9 @@
  *    object, with RT64's vertex interpolation (each vertex blended with the
  *    same vertex of the frame before);
  *  - the HUD and 2D (from PORT_ITAG_HUD on) get G_EX_ID_IGNORE: drawn exactly
- *    as the game drew them, never blended;
+ *    as the game drew them, never blended (text, the dial, the radar's
+ *    blips), except the radar's turning sweep and heading arrow
+ *    (PORT_ITAG_RADAR) and the attract mode's bobbing logo (untagged: AUTO);
  *  - untagged drawing (the terrain, the backdrop) keeps RT64's own matching
  *    (G_EX_ID_AUTO), as with video.interpolation = auto;
  *  - a tagged object that moved much further than it moves normally (a
@@ -68,7 +70,7 @@ namespace {
 /* the tag kinds (include/game/port.h) */
 enum {
     K_NONE = 0, K_HUD = 1, K_OBJ, K_SHADOW, K_SHADOWFE, K_BUILDING, K_BPART, K_FALL, K_RISE, K_BILLBOARD,
-    K_PARTICLE, K_PEOPLE, K_GSHADOW, K_MARKER, K_CUT = 30, K_SPAWN = 31
+    K_PARTICLE, K_PEOPLE, K_GSHADOW, K_MARKER, K_RADAR, K_CUT = 30, K_SPAWN = 31
 };
 
 /* world-space vertices rebuilt every frame: vertex interpolation */

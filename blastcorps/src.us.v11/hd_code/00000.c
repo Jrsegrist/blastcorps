@@ -1432,7 +1432,9 @@ void func_802475D8(void) {
     }
     if (D_80364A90 & 0x100000000002) {
         if (D_80364A90 == 2) {
+            PORT_ITAG(gdl, PORT_ITAG_NONE, 0); /* the attract mode's bobbing logo: blended */
             gdl = func_8025C878(gdl, (s32) &D_803156F8[D_8035805C], D_8035805C, &D_80358078);
+            PORT_ITAG(gdl, PORT_ITAG_HUD, 0);
         }
         if (D_802E8BF0 || D_80366A12 == 3 || D_802E8BEC >= 9) {
             if ((yoshiState == 1 || yoshiState == 8 || D_802E8BEC >= 9) && (!D_802E8BF0 || D_80358060 <= D_80366A04)) {

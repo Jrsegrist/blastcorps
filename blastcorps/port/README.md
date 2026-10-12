@@ -661,6 +661,56 @@ it without a fault.  The x64-asan preset is the tool for this now.
     rate above this PC's 60 Hz display, with `--no-vsync`); `--wseq F:MS`
     saves every new picture the window shows for MS ms from frame F (screen
     copies: the window must be uncovered).
+  - `interpolation` (`--interpolation`, only with `framerate` above
+    original): `tagged` (the default) or `auto` (RT64's own matching, as
+    above). Tagged: the game names what it draws and RT64 pairs every object
+    with itself (`src/live/live_interp.cpp`):
+    - in the game, `PORT_ITAG(gdl, kind, index)` where a draw loop starts an
+      object, `PORT_ISPAWN(kind, slot)` where a slot pool starts a new
+      object, `PORT_ICUT_IF(snap)` in the camera (include/game/port.h). They
+      expand to nothing outside `NON_MATCHING && PORT_HOST`; in the port they
+      call `port_itag` (plat_core.c), which hands them to `host_itag_hook`
+      (NULL unless tagged interpolation is on). Nothing is written to the
+      display lists or to RDRAM and nothing goes back to the game, so its
+      per-frame trace is the same with the option on (checked: all 60
+      levels). Tagged: the `D_80364460` records (vehicles, the carrier; per
+      LOD), vehicle shadows, building objects and their moving parts, falling
+      parts, the rising piece, explosion/smoke billboards, particles, people,
+      ground shadows and, from the dial on, the HUD;
+    - while RT64 reads a task, the GBI's function table (public plain
+      function pointers) is wrapped, so every command passes `dispatch`
+      first (RT64 itself is unchanged; `auto` or `original` unwrap it). A
+      tagged address makes that object the owner of what follows at that
+      display-list level and in the lists it calls (RT64's return-address
+      stack is followed); each model matrix it loads gets
+      `RSP::matrixId(hash(kind, slot, generation, the matrix's
+      segment-relative address or its order), G_EX_ORDER_LINEAR, position /
+      rotation / scale interpolated)`, the call behind RT64's extended
+      `gEXMatrixGroup`. RT64 pairs equal IDs of the two frames
+      (`GameFrame::match`) instead of guessing; an ID that is new (a spawn, a
+      new generation) is shown as it is;
+    - a tagged matrix that moved over 400 units and 8 times its last move (a
+      respawn, a teleport) starts a new generation (no blend across the
+      jump); people and the ground shadows (world-space quads rebuilt every
+      frame) get a transform each with vertex interpolation; the HUD and 2D
+      get `G_EX_ID_IGNORE` (never blended, exactly as drawn); untagged
+      drawing (terrain, water, the backdrop, tyre trails, front end) keeps
+      `G_EX_ID_AUTO`;
+    - the game's camera snap counts as a cut when the camera really jumped
+      (over 60 units or 15 degrees: the snap is also set every frame of the
+      shuttle and map views, which move smoothly).
+    - cost: the same time in `processDisplayLists` as `auto` (level 0, 1900
+      frames: 5.95 vs 6.00 ms per task, noise).
+  - `fps_counter` (`--fps-counter`): `off` (default), `on` (pictures
+    presented a second, counted on RT64's present thread, and the game's own
+    frames a second), `detailed` (also the mean and longest present interval
+    and a graph of the last ones); `fps_counter_corner`: `top-left` (default:
+    clear of the money, top right, and the radar, bottom left), `top-right`,
+    `bottom-left`, `bottom-right`. The `fps_counter` key (F2) switches off ->
+    on -> detailed for the run, `[controller] fps_counter` a held button
+    combination (default none). Drawn with the menu's ImGui overlay (a frame
+    built once a retrace, drawn at every present); off, none of it runs, and
+    it only reads clocks.
   - `texture_pack` (`--texture-pack`, which also enables it) and
     `texture_pack_enabled` (default 0): an RT64 texture pack (a folder with
     `rt64.json`, or an `.rtz`; RT64's TEXTURE-PACKS.md) through RT64's

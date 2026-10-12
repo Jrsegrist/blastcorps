@@ -69,7 +69,9 @@ game is closed. It holds:
                aspect (original = 4:3, 16:9, 16:10, 21:9, window: widescreen),
                framerate (original = the game's own 20/30 pictures a second,
                display = the display's refresh rate, or a number like 60, 120, 144:
-               smoother motion from in-between pictures),
+               smoother motion from in-between pictures), interpolation (tagged,
+               the default, or auto), fps_counter (off, on, detailed) and
+               fps_counter_corner (top-left, top-right, bottom-left, bottom-right),
                texture_pack (an RT64 texture pack folder or .rtz) and
                texture_pack_enabled (0/1)
   [audio]      volume, mute
@@ -91,7 +93,15 @@ its own pace, and the renderer adds pictures between the game's own ones (the ca
 and moving vehicles and objects glide instead of stepping). It is capped at the
 display's refresh rate (on a 60 Hz display, 60). Cuts (a new screen, the mission
 intro, a respawn) are shown without blending. It also counts a slightly wider view
-as visible, as widescreen does.
+as visible, as widescreen does. With interpolation = tagged (the default) each
+vehicle, building part, piece of debris, smoke puff and person is matched with
+itself from one game frame to the next, new ones appear without smearing, and the
+HUD is never blended; auto lets the renderer guess the pairs instead (to compare).
+
+The frame-rate counter (F2, or fps_counter in the settings menu) shows in a corner
+how many pictures a second reach the display and how many frames a second the game
+itself makes (30 in play); F2 again adds frame times and a graph, a third time hides
+it.
 
 Command-line options (for shortcuts or a .bat file) override bc.ini, for example:
   bc.exe "D:\ROMs\Blast Corps (USA) (Rev 1).z64"   use this ROM (not remembered)
@@ -102,6 +112,7 @@ Command-line options (for shortcuts or a .bat file) override bc.ini, for example
   bc.exe --resolution 4        bc.exe --msaa 4          bc.exe --filtering nearest
   bc.exe --aspect 16:9         bc.exe --texture-pack D:\packs\mypack
   bc.exe --framerate 60        bc.exe --framerate display
+  bc.exe --interpolation auto  bc.exe --fps-counter on
 
 
 Saves
@@ -121,7 +132,7 @@ Frame rate and smoothness
 -------------------------
 The game runs at its original speed on any monitor: its logic is tied to a virtual
 60 Hz video clock, not to your display. It draws a new picture 20-30 times a second
-like on the N64; there is no frame interpolation or higher frame rate (yet). Each
+like on the N64 (with framerate = original, the default; see above). Each
 1/60 s field is handed to the display on a steady 60 Hz timer, and with vsync on
 (the default) shown at the display's next refresh, without tearing. On 60 Hz
 displays that is one refresh per N64 field. On 120/144 Hz and other high-refresh

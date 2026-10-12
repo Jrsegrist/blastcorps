@@ -169,6 +169,7 @@ void func_802886A0(void) {
                     }
                 }
                 if (found) {
+                    PORT_ISPAWN(PORT_ITAG_PARTICLE, slot);
                     D_8036EC38[slot].active = 1;
                     D_8036EC38[slot].pos[0] = D_80370B78;
                     D_8036EC38[slot].pos[1] = D_80370B7C;
@@ -348,12 +349,14 @@ void func_80288DF0(Gfx **gdl, u8 buf) {
                          D_8036EC38[n].pos[2] / 32.0f);
             guMtxCatF(mf1, mf2, mf1);
             guMtxF2L(mf1, &D_8036F278[buf][n]);
+            PORT_ITAG(gfx, PORT_ITAG_PARTICLE, n);
             gSPMatrix(gfx++, osVirtualToPhysical(&D_8036F278[buf][n]), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
             gSPVertex(gfx++, osVirtualToPhysical(D_802FDA80), 4, 0);
             gSP1Triangle(gfx++, 0, 1, 2, 0);
             gSP1Triangle(gfx++, 0, 2, 3, 0);
             gSPPopMatrix(gfx++, G_MTX_MODELVIEW);
         }
+        PORT_ITAG(gfx, PORT_ITAG_NONE, 0);
         *gdl = gfx;
     }
 }

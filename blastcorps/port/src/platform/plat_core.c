@@ -47,6 +47,15 @@ void port_fe_loaded(void) {
                  (unsigned) plat_stats.frames, (unsigned) plat_vi_count);
 }
 
+/* ---- frame interpolation tags (port.h PORT_ITAG) ----------------------------- */
+/* bc.exe's tagged interpolation records them (live_interp.cpp); nothing else
+ * does, and nothing goes back to the game. */
+void (*host_itag_hook)(unsigned addr, int kind, int index);
+
+void port_itag(const void *gdl, int kind, int index) {
+    if (host_itag_hook != NULL) host_itag_hook((unsigned) (size_t) gdl, kind, index);
+}
+
 /* ---- frames ---------------------------------------------------------------- */
 
 static void dump_rdram(u32 frame) {

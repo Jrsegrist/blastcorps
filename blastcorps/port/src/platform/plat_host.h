@@ -169,6 +169,12 @@ typedef struct HostLive {
  * can then differ from the N64's.  bc_headless: --cull-wide K (testing). */
 extern double host_cull_wide;
 
+/* Frame interpolation tags from the game (port.h PORT_ITAG; plat_core.c):
+ * bc.exe's tagged interpolation sets this (NULL: a tag costs one call).
+ * `addr` is the display-list address the tag applies from (0 for
+ * PORT_ISPAWN and PORT_ICUT).  It must not change anything the game sees. */
+extern void (*host_itag_hook)(unsigned addr, int kind, int index);
+
 /* platform entry (plat_core.c): boots the game and never returns */
 PORT_NORETURN void plat_start(const HostOpts *o);
 

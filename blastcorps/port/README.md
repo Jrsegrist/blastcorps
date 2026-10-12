@@ -611,8 +611,10 @@ it without a fault.  The x64-asan preset is the tool for this now.
     `cull_visible` accept |x| <= k w with k = the aspect / (4/3) (from the
     window's size with `window`, updated on resize), else cells at the
     edges would pop in.  1.0 (4:3) runs the exact model; with widescreen on
-    the game sees more cells visible, so its per-frame trace can differ from
-    the N64's (it's an option).  bc_headless `--cull-wide K` runs the same;
+    the game sees more cells visible, so it can in principle play out
+    differently from the N64 (it's an option); measured: at 21:9 the
+    per-frame trace (retrace, time, mode, level, frames in mode, game
+    retrace counter) is the same as with 4:3 in all 60 levels (1900 frames).  bc_headless `--cull-wide K` runs the same;
     checked against an independent model of the K-times-wider frustum over
     every test of levels 0, 13, 30 (1187 tests, K = 1, 4/3, 1.75: all
     agree; at 1.75, 184 tests turn visible only through the wider view).

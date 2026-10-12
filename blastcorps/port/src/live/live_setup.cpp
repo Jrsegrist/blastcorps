@@ -24,11 +24,12 @@ const unsigned short kButtonBits[kButtons] = {
 };
 const char *const kActionNames[A_COUNT] = {
     "a", "b", "z", "start", "d_up", "d_down", "d_left", "d_right", "l", "r", "c_up", "c_down", "c_left", "c_right",
-    "stick_up", "stick_down", "stick_left", "stick_right", "quit", "menu",
+    "stick_up", "stick_down", "stick_left", "stick_right", "quit", "menu", "fps_counter",
 };
 const char *const kActionLabels[A_COUNT] = {
     "A", "B", "Z", "Start", "D-pad up", "D-pad down", "D-pad left", "D-pad right", "L", "R", "C up", "C down",
     "C left", "C right", "Stick up", "Stick down", "Stick left", "Stick right", "Quit the game", "Settings menu",
+    "Frame-rate counter",
 };
 
 /* The defaults ARE this text: configDefaults parses it, and a missing
@@ -77,6 +78,14 @@ static const char kDefaultIni[] =
     "; game's own rate the renderer adds in-between pictures (smoother motion; the game itself\r\n"
     "; still runs at its own pace). Needs vsync or a display at least that fast.\r\n"
     "framerate = original\r\n"
+    "; How the in-between pictures match the objects of two frames: tagged (the default: by each\r\n"
+    "; object's identity in the game) or auto (the renderer guesses from what is drawn).\r\n"
+    "interpolation = tagged\r\n"
+    "; Frame-rate counter: off (default), on (pictures shown a second and the game's own frames\r\n"
+    "; a second) or detailed (also frame times and a graph). The fps_counter key (F2) switches it.\r\n"
+    "fps_counter = off\r\n"
+    "; Its corner: top-left (default), top-right, bottom-left or bottom-right.\r\n"
+    "fps_counter_corner = top-left\r\n"
     "; A texture pack in RT64's format (a folder with an rt64.json, or an .rtz file; relative\r\n"
     "; paths are relative to this folder) and whether it is used: 1 = yes, 0 = no (default).\r\n"
     "texture_pack =\r\n"
@@ -113,6 +122,8 @@ static const char kDefaultIni[] =
     "stick_right = Right\r\n"
     "quit = Escape\r\n"
     "menu = F1\r\n"
+    "; fps_counter switches the frame-rate counter (off, on, detailed).\r\n"
+    "fps_counter = F2\r\n"
     "\r\n"
     "[controller]\r\n"
     "; The N64 controller from the first game controller (Xbox/XInput and others SDL knows).\r\n"
@@ -144,7 +155,9 @@ static const char kDefaultIni[] =
     "; or any = all of them together.\r\n"
     "pad = 1\r\n"
     "; Buttons that, held together, open the settings menu (joined with +).\r\n"
-    "menu = back+start\r\n";
+    "menu = back+start\r\n"
+    "; Buttons that, held together, switch the frame-rate counter (e.g. back+y; empty: none).\r\n"
+    "fps_counter =\r\n";
 
 /* ---- strings and paths ----------------------------------------------------- */
 std::string utf8(const std::wstring &w) {
@@ -325,6 +338,28 @@ static void parseText(Config &c, const std::string &text, const std::string &nam
                 if (l == "original" || l == "off" || l == "game" || l == "0") c.framerate = 0;
                 else if (l == "display" || l == "monitor" || l == "auto") c.framerate = -1;
                 else ok = parseInt(l, 30, 1000, c.framerate);
+            } else if (key == "interpolation") {
+                std::string l = lower(v);
+                if (l == "tagged" || l == "tags" || l == "explicit") c.interpolation = 1;
+                else if (l == "auto" || l == "automatic") c.interpolation = 0;
+                else ok = false;
+            } else if (key == "fps_counter" || key == "fps") {
+                std::string l = lower(v);
+                if (l == "off" || l == "0" || l == "no") c.fpsCounter = 0;
+                else if (l == "on" || l == "1" || l == "yes" || l == "simple") c.fpsCounter = 1;
+                else if (l == "detailed" || l == "2" || l == "full") c.fpsCounter = 2;
+                else ok = false;
+            } else if (key == "fps_counter_corner") {
+                std::string l = lower(v);
+                int k = -1;
+                for (int i = 0; i < 4; i++)
+                    if (l == cornerName(i)) k = i;
+                if (l == "topleft" || l == "tl") k = 0;
+                else if (l == "topright" || l == "tr") k = 1;
+                else if (l == "bottomleft" || l == "bl") k = 2;
+                else if (l == "bottomright" || l == "br") k = 3;
+                if (k < 0) ok = false;
+                else c.fpsCorner = k;
             } else if (key == "texture_pack") {
                 c.texturePack = v;
             } else if (key == "texture_pack_enabled") {
@@ -358,7 +393,7 @@ static void parseText(Config &c, const std::string &text, const std::string &nam
                 std::string l = lower(v);
                 if (l == "any" || l == "all") c.padIndex = -1;
                 else ok = parseInt(l, 1, 16, n) && (c.padIndex = n - 1, true);
-            } else if (section == "controller" && key == "menu") {
+            } else if (section == "controller" && (key == "menu" || key == "fps_counter")) {
                 std::vector<int> combo;
                 size_t p = 0;
                 while (ok && p <= v.size()) {
@@ -371,7 +406,7 @@ static void parseText(Config &c, const std::string &text, const std::string &nam
                     if (b == SDL_CONTROLLER_BUTTON_INVALID) ok = false;
                     else combo.push_back(b);
                 }
-                if (ok) c.menuPad = combo;
+                if (ok) (key == "menu" ? c.menuPad : c.fpsPad) = combo;
             } else if (act < 0) {
                 ok = false;
             } else if (section == "keyboard") {
@@ -564,6 +599,15 @@ std::string framerateName(int f) {
     return f == 0 ? "original" : f < 0 ? "display" : std::to_string(f);
 }
 
+std::string fpsCounterName(int m) {
+    return m == 1 ? "on" : m == 2 ? "detailed" : "off";
+}
+
+std::string cornerName(int c) {
+    static const char *const names[4] = {"top-left", "top-right", "bottom-left", "bottom-right"};
+    return c >= 0 && c < 4 ? names[c] : "top-left";
+}
+
 std::string configValue(const Config &c, const Setting &s) {
     const std::string &k = s.key;
     if (s.section == "game") {
@@ -580,6 +624,9 @@ std::string configValue(const Config &c, const Setting &s) {
         if (k == "filtering") return c.filtering == 1 ? "linear" : c.filtering == 2 ? "nearest" : "aa";
         if (k == "aspect") return aspectName(c.aspect);
         if (k == "framerate") return framerateName(c.framerate);
+        if (k == "interpolation") return c.interpolation ? "tagged" : "auto";
+        if (k == "fps_counter") return fpsCounterName(c.fpsCounter);
+        if (k == "fps_counter_corner") return cornerName(c.fpsCorner);
         if (k == "texture_pack") return c.texturePack;
         if (k == "texture_pack_enabled") return c.texturePackOn ? "1" : "0";
     } else if (s.section == "audio") {
@@ -592,6 +639,7 @@ std::string configValue(const Config &c, const Setting &s) {
         if (k == "stick") return c.padStick == 0 ? "left" : c.padStick == 1 ? "right" : "none";
         if (k == "deadzone") return std::to_string(c.deadzone);
         if (k == "menu") return menuPadNames(c.menuPad);
+        if (k == "fps_counter") return menuPadNames(c.fpsPad);
         if (k == "sensitivity") return std::to_string(c.sensitivity);
         if (k == "pad") return c.padIndex < 0 ? "any" : std::to_string(c.padIndex + 1);
         for (int i = 0; i < A_COUNT; i++)

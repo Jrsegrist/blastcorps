@@ -48,7 +48,11 @@
  *     --aspect A        widescreen: original (4:3, default), 16:9, 16:10, 21:9, W:H, window
  *     --framerate F     pictures a second: original (the game's 20/30, default), display, or N
  *                       (RT64 interpolates in-between pictures; the game runs as before)
- *     --interp-log      log every frame's camera motion (the interpolation cut test)
+ *     --interpolation M tagged (default: objects paired by the game's tags, live_interp.cpp)
+ *                       or auto (RT64 pairs them itself); only with --framerate above original
+ *     --fps-counter M   the frame-rate counter: off (default), on, detailed (F2 switches it)
+ *     --interp-log      log every frame's camera motion (the interpolation cut test) and
+ *                       tagged objects that jumped
  *     --display-hz N    (testing) tell RT64 the display runs at N Hz (its cap on --framerate)
  *     --wseq F:MS       (testing) from frame F, every new picture the window shows for MS ms
  *                       (seq_F_NN.png + seq_F.txt with the times, in --shot-dir)
@@ -95,6 +99,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <exception>
+#include <mutex>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -110,6 +115,7 @@
 #include "rhi/rt64_render_hooks.h"
 
 #include "live_input.h"
+#include "live_interp.h"
 #include "live_menu.h"
 #include "live_setup.h"
 
@@ -160,6 +166,8 @@ uint32_t MI_INTR_REG, DPC_START_REG, DPC_END_REG, DPC_CURRENT_REG, DPC_STATUS_RE
 uint32_t VI_STATUS_REG, VI_ORIGIN_REG, VI_WIDTH_REG, VI_INTR_REG, VI_V_CURRENT_LINE_REG, VI_TIMING_REG, VI_V_SYNC_REG,
     VI_H_SYNC_REG, VI_LEAP_REG, VI_H_START_REG, VI_V_START_REG, VI_V_BURST_REG, VI_X_SCALE_REG, VI_Y_SCALE_REG;
 unsigned g_spIntr, g_dpIntr, g_tasks, g_unknownUcode, g_fixedBytes, g_otherUcodeTasks;
+double g_dlSeconds;                  /* time in processDisplayLists (frame-rate option on) */
+unsigned g_dlTasks;
 
 /* RT64 raises the RSP/RDP interrupts as it finishes a task (during
  * processDisplayLists).  The game hears about task completion from the
@@ -560,6 +568,93 @@ void presentHook(plume::RenderCommandList *, plume::RenderFramebuffer *) {
     if (i < kMaxPresents) g_presentTimes[i] = secondsSince(g_tStart);
 }
 
+/* ---- the frame-rate counter (video.fps_counter, F2) --------------------------
+ * Presented pictures are counted on RT64's present thread (drawHook), the
+ * game's frames from the platform's frame count; twice a second the numbers
+ * go to the overlay (live_menu.cpp), which draws them in a corner.  Off,
+ * nothing of this runs.  It only reads clocks: the game never sees it. */
+struct Counter {
+    std::atomic<bool> on{false};
+    std::mutex mutex;                 /* the present times (present thread -> main thread) */
+    std::vector<double> times;        /* present times (s) since the last update */
+    std::vector<float> graph;         /* the last present intervals (ms) */
+    double lastPresent = 0, lastUpdate = -1;
+    unsigned lastFrames = 0;
+    live::CounterStats stats;
+} g_counter;
+
+void counterPresent() {
+    const double t = secondsSince(g_tStart);
+    std::lock_guard<std::mutex> lock(g_counter.mutex);
+    g_counter.times.push_back(t);
+}
+
+void counterApply() {
+    const bool on = g_cfg.fpsCounter != 0;
+    if (on != g_counter.on.load()) {
+        g_counter.on = on;
+        std::lock_guard<std::mutex> lock(g_counter.mutex);
+        g_counter.times.clear();
+        g_counter.graph.clear();
+        g_counter.lastUpdate = -1;
+    }
+    g_counter.stats.mode = g_cfg.fpsCounter;
+    g_counter.stats.corner = g_cfg.fpsCorner;
+    live::counterSet(g_counter.stats);
+}
+
+/* each retrace (main thread) */
+void counterTick(unsigned frames) {
+    if (!g_counter.on) return;
+    const double now = secondsSince(g_tStart);
+    if (g_counter.lastUpdate < 0) {
+        g_counter.lastUpdate = now;
+        g_counter.lastFrames = frames;
+    } else if (now - g_counter.lastUpdate >= 0.5) {
+        std::vector<double> t;
+        {
+            std::lock_guard<std::mutex> lock(g_counter.mutex);
+            t.swap(g_counter.times);
+        }
+        const double dt = now - g_counter.lastUpdate;
+        live::CounterStats &s = g_counter.stats;
+        s.shown = double(t.size()) / dt;
+        s.game = double(frames - g_counter.lastFrames) / dt;
+        double sum = 0, mx = 0;
+        unsigned n = 0;
+        double prev = g_counter.lastPresent;
+        for (double x : t) {
+            if (prev > 0) {
+                const double ms = (x - prev) * 1e3;
+                sum += ms;
+                mx = std::max(mx, ms);
+                n++;
+                g_counter.graph.push_back(float(ms));
+            }
+            prev = x;
+        }
+        if (!t.empty()) g_counter.lastPresent = t.back();
+        if (g_counter.graph.size() > 120) g_counter.graph.erase(g_counter.graph.begin(), g_counter.graph.end() - 120);
+        s.frameMs = n != 0 ? sum / n : 0;
+        s.frameMsMax = mx;
+        s.graph = g_counter.graph;
+        s.note = g_cfg.framerate == 0 ? "original frame rate"
+                 : live::interpTagsOn() ? "interpolated, tagged" : "interpolated, auto";
+        g_counter.lastUpdate = now;
+        g_counter.lastFrames = frames;
+        live::counterSet(s);
+    }
+    live::counterFrame();
+}
+
+/* the counter key / controller buttons: off -> on -> detailed -> off (for
+ * this run; the menu saves it) */
+void counterCycle() {
+    g_cfg.fpsCounter = (g_cfg.fpsCounter + 1) % 3;
+    host_log("live: frame-rate counter %s\n", live::fpsCounterName(g_cfg.fpsCounter).c_str());
+    counterApply();
+}
+
 unsigned displayHz() {
     HMONITOR mon = MonitorFromWindow(HWND(host_gui_window), MONITOR_DEFAULTTONEAREST);
     MONITORINFOEXW mi = {};
@@ -733,6 +828,8 @@ constexpr uint32_t kDynSize = 0x21498u, kDynDl = 0x48B0u, kDynDlEnd = 0xA3A0u, k
 constexpr double kCutMove = 400.0;           /* world units the camera may move in a frame ... */
 constexpr double kCutMoveFactor = 4.0;       /* ... or this many times as far as the frame before */
 constexpr double kCutTurnDeg = 40.0;         /* degrees the camera may turn in a frame */
+constexpr double kSnapMove = 60.0;           /* ... when the game snapped its camera */
+constexpr double kSnapTurnDeg = 15.0;
 
 /* an N64 Mtx (s15.16; the integer halves in words 0-7, the fractions in
  * 8-15, two elements a word, as libultra's guMtxF2L writes them) */
@@ -785,6 +882,7 @@ void interpTask(uint32_t dl) {
     g_interp.lastFrame = frame;
     g_interp.frames++;
     const char *why = nullptr;
+    const bool snap = live::interpTagsTakeCut();
     const unsigned long long mode = BC_MODE;
     const int level = BC_LEVEL;
     if (mode != g_interp.lastMode || level != g_interp.lastLevel) why = "game mode or level";
@@ -803,6 +901,12 @@ void interpTask(uint32_t dl) {
                          move, turn, eye[0], eye[1], eye[2]);
             if (why == nullptr && move > kCutMove && move > kCutMoveFactor * g_interp.lastMove) why = "camera jump";
             if (why == nullptr && turn > kCutTurnDeg) why = "camera turn";
+            /* the game snapped its camera (PORT_ICUT_IF, tagged interpolation):
+             * a cut if it really jumped (the snap is also set every frame in
+             * the shuttle's and the map's views, which move smoothly) */
+            if (why == nullptr && snap && ((move > kSnapMove && move > kCutMoveFactor * g_interp.lastMove) ||
+                                           turn > kSnapTurnDeg))
+                why = "the game's camera snap";
             g_interp.lastMove = move;
         }
         memcpy(g_interp.eye, eye, sizeof eye);
@@ -825,6 +929,9 @@ void interpTask(uint32_t dl) {
 /* the option on or off (start-up, the menu): RT64's own guess of the rate
  * again when off */
 void interpApply() {
+    /* tags: only with in-between pictures and video.interpolation = tagged
+     * (off or auto: the GBI untouched, no tag recorded) */
+    live::interpTagsEnable(g_cfg.framerate != 0 && g_cfg.interpolation == 1);
     if (g_cfg.framerate == 0) g_app->state->setRefreshRate(UINT16_MAX);
     g_interp.frames = 0;
     g_interp.lastFrame = ~0u;
@@ -911,6 +1018,7 @@ void pumpEvents() {
             for (const live::PadInput &in : g_cfg.pad[live::A_QUIT])
                 if (in.button == e.cbutton.button) shutdown(0);
             if (menuCombo()) openMenu();
+            else if (live::comboHeld(g_cfg, g_pads, g_cfg.fpsPad)) counterCycle();
         }
         if (e.type == SDL_KEYDOWN && !e.key.repeat) {
             const SDL_Scancode sc = e.key.keysym.scancode;
@@ -918,6 +1026,8 @@ void pumpEvents() {
                 setFullscreen(!g_opt.fullscreen);
             } else if (isKey(live::A_MENU, sc)) {
                 openMenu();
+            } else if (isKey(live::A_FPS, sc)) {
+                counterCycle();
             } else if (e.key.keysym.scancode == SDL_SCANCODE_M) {
                 g_opt.mute = !g_opt.mute;
                 host_log("live: sound %s\n", g_opt.mute ? "off" : "on");
@@ -1038,6 +1148,15 @@ void skipWalk(unsigned dl) {
     }
 }
 
+/* the game frame's top-level display list (inside a DynamicBuf), not an
+ * offscreen task */
+bool isFrameDl(uint32_t dl) {
+    dl &= 0x3FFFFFF;
+    for (int i = 0; i < 2; i++)
+        if (dl >= kDynBase + i * kDynSize + kDynDl && dl < kDynBase + i * kDynSize + kDynDlEnd) return true;
+    return false;
+}
+
 void liveGfxTask(unsigned ucode, unsigned ucodeData, unsigned dataPtr, unsigned dataSize) {
     (void) dataSize;
     if (g_diagTasks < g_opt.dlDumpTasks && plat_frames() >= g_opt.dlDumpFrame) {
@@ -1059,7 +1178,17 @@ void liveGfxTask(unsigned ucode, unsigned ucodeData, unsigned dataPtr, unsigned 
     if (g_opt.gfxFix) g_fixedBytes += port_gfx_fix_task(dataPtr);
     if (g_skipHi != 0 && g_app->interpreter->hleGBI->ucode == RT64::GBIUCode::F3D) skipWalk(dataPtr);
     if (g_cfg.framerate != 0) interpTask(dataPtr);
+    const bool frameDl = isFrameDl(dataPtr);
+    live::interpTagsBeforeTask(dataPtr, frameDl);
+    LARGE_INTEGER t0, t1;
+    if (g_cfg.framerate != 0) QueryPerformanceCounter(&t0);
     g_app->processDisplayLists(rdramBase(), dataPtr & 0x3FFFFFF, 0, true);
+    if (g_cfg.framerate != 0) {
+        QueryPerformanceCounter(&t1);
+        g_dlSeconds += double(t1.QuadPart - t0.QuadPart) / double(g_freq.QuadPart);
+        g_dlTasks++;
+    }
+    live::interpTagsAfterTask(frameDl);
     for (auto &s : g_skipped) *s.first = s.second;
     g_skipped.clear();
 }
@@ -1162,6 +1291,7 @@ void liveVi(const HostViRegs *r, unsigned viCount, unsigned long long when, unsi
             }
         }
     }
+    counterTick(frames);
     const double before = g_opt.paceLog != nullptr ? secondsSince(g_tStart) : 0.0;
     g_app->updateScreen();
     if (g_opt.paceLog != nullptr) {
@@ -1211,6 +1341,7 @@ const HostLive kLive = {liveBoot, liveGfxTask, liveVi, liveInput, liveAudio};
 /* RT64's present thread, after the picture: --pace-log's times, the menu */
 void drawHook(plume::RenderCommandList *list, plume::RenderFramebuffer *fb) {
     if (g_presentTimes != nullptr) presentHook(list, fb);
+    if (g_counter.on) counterPresent();
     live::menuDraw(list);
 }
 
@@ -1308,7 +1439,11 @@ void settingChanged(const live::Setting &s) {
         applyTexturePack();
         return;
     }
-    if (s.section == "video" && (s.key == "resolution" || s.key == "filtering" || s.key == "msaa" || s.key == "aspect" ||
+    if (s.section == "video" && (s.key == "fps_counter" || s.key == "fps_counter_corner")) {
+        counterApply();
+    } else if (s.section == "video" && s.key == "interpolation") {
+        interpApply();
+    } else if (s.section == "video" && (s.key == "resolution" || s.key == "filtering" || s.key == "msaa" || s.key == "aspect" ||
                                  s.key == "framerate")) {
         if (s.key == "framerate") interpApply();
         const uint32_t before = g_app->userConfig.msaaSampleCount();
@@ -1370,6 +1505,8 @@ const std::pair<const char *, const char *> kSetAliases[] = {
     {"--filtering", "video.filtering"},
     {"--aspect", "video.aspect"},
     {"--framerate", "video.framerate"},
+    {"--interpolation", "video.interpolation"},
+    {"--fps-counter", "video.fps_counter"},
     {"--texture-pack", "video.texture_pack"},   /* (and turns it on) */
 };
 
@@ -1586,6 +1723,10 @@ void prestart(HostOpts *o) {
     menu.padNames = padNames;
     menu.packStatus = [] { return g_packStatus; };
     live::menuSetup(menu);
+    live::interpTagsSetup(g_app);
+    live::interpTagsSetLog(g_interp.log);
+    live::interpTagsEnable(g_cfg.framerate != 0 && g_cfg.interpolation == 1);
+    if (g_cfg.fpsCounter != 0) counterApply();
     host_crash_rearm();   /* in case the renderer or a driver installed its own filter */
     int ww, wh, pw, ph;
     SDL_GetWindowSize(g_window, &ww, &wh);
@@ -1774,6 +1915,10 @@ int main(int, char **) {
     host_exit_hook = [] {
         if (g_wseq.thread.joinable()) g_wseq.thread.join();
         writePaceLog();
+        if (g_dlTasks != 0)
+            host_log("live: frame rate option: %.3f ms per task in processDisplayLists (%u tasks, interpolation %s)\n",
+                     g_dlSeconds * 1e3 / g_dlTasks, g_dlTasks, live::interpTagsOn() ? "tagged" : "auto");
+        live::interpTagsSummary();
     };
     host_opts_hook = optsHook;
     host_rom_hook = romHook;

@@ -48,6 +48,7 @@ std::vector<Setting> g_dirty;         /* changed since the menu opened (saved wh
 std::string g_saveNote;               /* the last save's result */
 int g_selectTab = -1;                 /* testing: open this tab on the next frame */
 float g_fontPx = 16.0f;
+CounterStats g_counter;               /* the frame-rate counter's numbers */
 
 void markChanged(const std::string &section, const std::string &key) {
     Setting s{section, key};
@@ -207,6 +208,32 @@ void videoTab(Config &c) {
         help("Smoother motion: the renderer adds in-between pictures between the game's own 20 or 30 a second "
              "(the camera and moving objects are interpolated). The game itself runs exactly as before. Capped at "
              "the display's refresh rate; objects that jump (respawns, cuts) are shown without blending.");
+        int m = c.interpolation;
+        ImGui::BeginDisabled(c.framerate == 0);
+        if (combo("Interpolation", &m, {"Automatic (the renderer guesses)", "Tagged (default)"})) {
+            c.interpolation = m;
+            markChanged("video", "interpolation");
+        }
+        ImGui::EndDisabled();
+        help("How in-between pictures pair the objects of two frames. Tagged: by each object's identity in the game "
+             "(vehicles, debris, smoke, people), with the HUD drawn exactly. Automatic: the renderer matches what "
+             "looks alike (look-alike debris can swap, new objects can smear).");
+    }
+    {
+        int f = c.fpsCounter;
+        if (combo("Frame-rate counter", &f, {"Off (default)", "On", "Detailed (frame times and a graph)"})) {
+            c.fpsCounter = f;
+            markChanged("video", "fps_counter");
+        }
+        help("Pictures shown a second (with in-between pictures) and the game's own frames a second. The F2 key "
+             "(Controls: \"Frame-rate counter\") switches it in the game.");
+        int k = c.fpsCorner;
+        ImGui::BeginDisabled(c.fpsCounter == 0);
+        if (combo("Counter corner", &k, {"Top left (default)", "Top right", "Bottom left", "Bottom right"})) {
+            c.fpsCorner = k;
+            markChanged("video", "fps_counter_corner");
+        }
+        ImGui::EndDisabled();
     }
     {
         int f = c.filtering;
@@ -298,6 +325,7 @@ void captureEvent(const SDL_Event &e) {
         if (sc == SDL_SCANCODE_BACKSPACE || sc == SDL_SCANCODE_DELETE) {   /* clear */
             if (g_cap.pad) {
                 if (a == A_MENU) c.menuPad.clear();
+                else if (a == A_FPS) c.fpsPad.clear();
                 else c.pad[a].clear();
                 markChanged("controller", kActionNames[a]);
             } else {
@@ -314,13 +342,13 @@ void captureEvent(const SDL_Event &e) {
         return;
     }
     if (!g_cap.pad) return;
-    if (a == A_MENU) {   /* a combination: every button held until the first is let go */
+    if (a == A_MENU || a == A_FPS) {   /* a combination: every button held until the first is let go */
         if (e.type == SDL_CONTROLLERBUTTONDOWN &&
             std::find(g_cap.combo.begin(), g_cap.combo.end(), int(e.cbutton.button)) == g_cap.combo.end())
             g_cap.combo.push_back(e.cbutton.button);
         if (e.type == SDL_CONTROLLERBUTTONUP && !g_cap.combo.empty()) {
-            c.menuPad = g_cap.combo;
-            markChanged("controller", "menu");
+            (a == A_MENU ? c.menuPad : c.fpsPad) = g_cap.combo;
+            markChanged("controller", kActionNames[a]);
             finishCapture();
         }
         return;
@@ -348,12 +376,14 @@ void resetControls(Config &c) {
     for (int a = 0; a < A_COUNT; a++) {
         c.keys[a] = d.keys[a];
         markChanged("keyboard", kActionNames[a]);
-        if (padBindable(a) && a != A_MENU) {
+        if (padBindable(a) && a != A_MENU && a != A_FPS) {
             c.pad[a] = d.pad[a];
             markChanged("controller", kActionNames[a]);
         }
     }
     c.menuPad = d.menuPad;
+    c.fpsPad = d.fpsPad;
+    markChanged("controller", "fps_counter");
     c.padStick = d.padStick;
     c.deadzone = d.deadzone;
     c.sensitivity = d.sensitivity;
@@ -364,7 +394,8 @@ void resetControls(Config &c) {
 void controlsTab(Config &c) {
     if (g_cap.action >= 0) {
         ImGui::TextColored(ImVec4(1.0f, 0.85f, 0.3f, 1.0f), g_cap.pad
-                               ? (g_cap.action == A_MENU ? "Hold the controller buttons for \"%s\" together, then let go"
+                               ? (g_cap.action == A_MENU || g_cap.action == A_FPS
+                                      ? "Hold the controller buttons for \"%s\" together, then let go"
                                                          : "Press a controller button, or push a stick or trigger, for \"%s\"")
                                : "Press a key for \"%s\"",
                            kActionLabels[g_cap.action]);
@@ -373,7 +404,8 @@ void controlsTab(Config &c) {
         ImGui::TextDisabled("Click a binding (or select it and press A / Enter), then press the new key or button.");
     }
     const float rowH = ImGui::GetFrameHeightWithSpacing();
-    const float tableH = ImGui::GetContentRegionAvail().y - rowH * 5.6f - ImGui::GetTextLineHeightWithSpacing() * 3.2f;
+    /* (the tab area already ends above the menu's bottom rows) */
+    const float tableH = ImGui::GetContentRegionAvail().y - rowH * 5.3f;
     if (ImGui::BeginTable("bindings", 3, ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_ScrollY,
                           ImVec2(0.0f, std::max(rowH * 4.0f, tableH)))) {
         ImGui::TableSetupScrollFreeze(0, 1);
@@ -393,7 +425,8 @@ void controlsTab(Config &c) {
             if (ImGui::Button((k.empty() ? "-" : k).append("##k").c_str(), ImVec2(-FLT_MIN, 0.0f))) g_cap = {a, false, 0, {}};
             ImGui::TableNextColumn();
             if (padBindable(a)) {
-                std::string p = a == A_MENU ? menuPadNames(c.menuPad) : padNames(c.pad[a]);
+                std::string p = a == A_MENU ? menuPadNames(c.menuPad)
+                                : a == A_FPS ? menuPadNames(c.fpsPad) : padNames(c.pad[a]);
                 if (g_cap.action == a && g_cap.pad) p = "...";
                 if (ImGui::Button((p.empty() ? "-" : p).append("##p").c_str(), ImVec2(-FLT_MIN, 0.0f))) g_cap = {a, true, 0, {}};
             } else {
@@ -434,7 +467,42 @@ void controlsTab(Config &c) {
     if (ImGui::Button("Default controls")) resetControls(c);
 }
 
+/* the frame-rate counter's box, in its corner (outside the 4:3 HUD's corner
+ * items: the money is top right, the radar bottom left) */
+void drawCounter() {
+    const CounterStats &s = g_counter;
+    if (s.mode == 0) return;
+    ImGuiIO &io = ImGui::GetIO();
+    const float pad = std::max(6.0f, g_fontPx * 0.4f);
+    const bool right = (s.corner & 1) != 0, bottom = (s.corner & 2) != 0;
+    ImGui::SetNextWindowPos(ImVec2(right ? io.DisplaySize.x - pad : pad, bottom ? io.DisplaySize.y - pad : pad),
+                            ImGuiCond_Always, ImVec2(right ? 1.0f : 0.0f, bottom ? 1.0f : 0.0f));
+    ImGui::SetNextWindowBgAlpha(0.45f);
+    const ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs |
+                                   ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings |
+                                   ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav |
+                                   ImGuiWindowFlags_NoMove;
+    if (ImGui::Begin("##fpscounter", nullptr, flags)) {
+        ImGui::SetWindowFontScale(0.8f);
+        ImGui::Text("%.0f fps", s.shown);
+        ImGui::SameLine();
+        ImGui::TextDisabled("game %.0f/s", s.game);
+        if (s.mode == 2) {
+            ImGui::Text("%.2f ms  (max %.1f)", s.frameMs, s.frameMsMax);
+            if (!s.note.empty()) ImGui::TextDisabled("%s", s.note.c_str());
+            if (!s.graph.empty()) {
+                float top = 34.0f;
+                for (float v : s.graph) top = std::max(top, v);
+                ImGui::PlotLines("##ft", s.graph.data(), int(s.graph.size()), 0, nullptr, 0.0f, top * 1.1f,
+                                 ImVec2(g_fontPx * 8.0f, g_fontPx * 2.0f));
+            }
+        }
+    }
+    ImGui::End();
+}
+
 void build() {
+    drawCounter();
     Config &c = *g_env.cfg;
     ImGuiIO &io = ImGui::GetIO();
     const ImVec2 size(std::min(io.DisplaySize.x * 0.9f, g_fontPx * 42.0f), std::min(io.DisplaySize.y * 0.9f, g_fontPx * 30.0f));
@@ -444,6 +512,10 @@ void build() {
     if (ImGui::Begin("Blast Corps settings", nullptr,
                      ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
                          ImGuiWindowFlags_NoSavedSettings)) {
+        /* the tabs scroll above the bottom rows (status, buttons) */
+        const float bottomH = ImGui::GetFrameHeightWithSpacing() + ImGui::GetTextLineHeightWithSpacing() * 2.0f +
+                              ImGui::GetStyle().ItemSpacing.y * 2.0f;
+        ImGui::BeginChild("tabarea", ImVec2(0.0f, -bottomH));
         if (ImGui::BeginTabBar("tabs")) {
             auto flags = [](int i) { return g_selectTab == i ? ImGuiTabItemFlags_SetSelected : 0; };
             if (ImGui::BeginTabItem("Video", nullptr, flags(0))) {
@@ -461,6 +533,7 @@ void build() {
             g_selectTab = -1;
             ImGui::EndTabBar();
         }
+        ImGui::EndChild();
         /* bottom rows */
         const float line = ImGui::GetTextLineHeightWithSpacing();
         ImGui::SetCursorPosY(ImGui::GetWindowHeight() - ImGui::GetFrameHeightWithSpacing() - line * 2.0f -
@@ -534,6 +607,43 @@ bool menuEvent(SDL_Event &e) {
  * DPI aware with SDL's window sizes in desktop points, and the D3D12
  * backend draws in DisplaySize units (it ignores DisplayFramebufferScale),
  * so the menu works in pixels and the mouse is scaled to them */
+namespace {
+/* the backends' new frame, in the swap chain's pixels (see menuFrame) */
+void newFrame(bool mouse) {
+    ImGuiIO &io = ImGui::GetIO();
+    ImGui_ImplSDL2_NewFrame();
+    if (g_inspector->graphicsAPI == RT64::UserConfiguration::GraphicsAPI::Vulkan) ImGui_ImplVulkan_NewFrame();
+    else ImGui_ImplDX12_NewFrame();
+    int ww = 0, wh = 0, pw = 0, ph = 0;
+    SDL_GetWindowSize(g_env.window, &ww, &wh);
+    SDL_GetWindowSizeInPixels(g_env.window, &pw, &ph);
+    if (pw > 0 && ph > 0 && ww > 0 && wh > 0) {
+        io.DisplaySize = ImVec2(float(pw), float(ph));
+        io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
+        int mx, my;
+        if (mouse && SDL_GetMouseFocus() == g_env.window) {
+            SDL_GetMouseState(&mx, &my);
+            io.AddMousePosEvent(float(mx) * pw / ww, float(my) * ph / wh);
+        }
+    }
+    ImGui::NewFrame();
+}
+}  // namespace
+
+void counterSet(const CounterStats &s) {
+    g_counter = s;
+    if (s.mode == 0 && !g_open) g_visible = false;
+}
+
+void counterFrame() {
+    if (g_open || g_counter.mode == 0 || !ensureInspector()) return;
+    std::lock_guard<std::mutex> lock(g_inspector->frameMutex);
+    newFrame(false);
+    drawCounter();
+    ImGui::Render();
+    g_visible = true;
+}
+
 void menuFrame() {
     if (!g_open || !g_inspector) return;
     std::lock_guard<std::mutex> lock(g_inspector->frameMutex);

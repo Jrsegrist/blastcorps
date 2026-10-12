@@ -447,7 +447,7 @@ if(BC_GAME)
     target_compile_definitions(bc_game_main PRIVATE PORT_LIVE)
     # src/live: SDL2 window and input, the RT64 renderer, bc.ini
     add_library(bc_live OBJECT ${BC_PORT}/src/live/live_rt64.cpp ${BC_PORT}/src/live/live_setup.cpp
-        ${BC_PORT}/src/live/live_menu.cpp ${BC_PORT}/src/live/live_input.cpp)
+        ${BC_PORT}/src/live/live_menu.cpp ${BC_PORT}/src/live/live_input.cpp ${BC_PORT}/src/live/live_interp.cpp)
     add_dependencies(bc_live bc_version rt64)
     target_compile_features(bc_live PRIVATE cxx_std_17)
     target_compile_definitions(bc_live PRIVATE RT64_NATIVE_HOST_LAYOUT SDL_MAIN_HANDLED HLSL_CPU FFX_GCC

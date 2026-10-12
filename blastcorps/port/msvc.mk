@@ -24,7 +24,9 @@ MSVC_CONFIG ?= Release
 MSVC_B = $(MSVC_DIR)/$(MSVC_CONFIG)
 MSVC_TARGETS ?=
 # the exe the emulator comparisons run (tools/compare.py CMP_EXE; its native
-# runs go to ...-nativemsvc folders)
+# runs go to ...-nativemsvc-EXEHASH folders; every cache folder name carries
+# its ROM's hash, so worktrees sharing CMP_CACHE keep apart: README "The cache
+# is shared by worktrees")
 CMP_ENV = CMP_EXE='$(MSVC_B)/bc_headless.exe' CMP_TAG=msvc
 msvc:
 	@[ -n "$(MSVC_DIR)" ] || { echo "msvc: set MSVC_DIR (a folder on a Windows drive)"; exit 1; }
@@ -62,7 +64,7 @@ verify:
 
 # every level (data/levels.txt): menus -> new game -> the globe centred on the
 # level -> 1900 frames with tools/levels_input.py's driving pattern, in the
-# emulator (cached per level in CMP_CACHE/level-nm-LL, ~3.5 minutes each the
+# emulator (cached per level in CMP_CACHE/level-nm-LL-ROMHASH, ~3.5 minutes each the
 # first time) and bc_headless; timeline and RAM dumps (every 20 frames from
 # frame 1000 to 1100, then every 100) against data/verify_levels_expect.txt
 # (tools/compare.py verify-levels).  LEVELS=a,b-c for some; LEVEL_JOBS

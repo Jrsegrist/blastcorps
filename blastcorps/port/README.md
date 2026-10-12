@@ -816,7 +816,7 @@ test ROM (`build_nm/blastcorps.nm.us.v11.z64`, `make ... nmrom`), which runs
 the same C as the exe, so a difference is a port problem (byte order,
 platform, host compiler), not a rewrite bug; `CMP_KIND=base` uses the
 original ROM. The emulator run (log + RDRAM dumps every 10 frames, ~1 GB per
-demo) is cached in `CMP_CACHE` (default `~/cmp_cache/attract-nm-demoN`) and
+demo) is cached in `CMP_CACHE` (default `~/cmp_cache/attract-nm-demoN-ROMHASH`) and
 redone when cmp_spec.py or the ROM changes. Output: the timeline (submission
 retrace, game mode, level, frames in mode, game retrace counter per frame),
 then per compared frame "match" or the differing runs with symbols and the
@@ -915,7 +915,7 @@ Rebuilds the NM test ROM, runs `check-inputs`, builds the MSVC bc_headless
 and bc_loadcheck, runs `loadcheck`, then `tools/compare.py verify --frames
 VERIFY_FRAMES` (default 1500: boot, logos, front end and attract demo 0): the
 emulator side (NM ROM, `--lle`, dumps every 10 frames) is cached in
-`$(CMP_CACHE)/verify-nm-N` and redone only when the ROM (by content: `make
+`$(CMP_CACHE)/verify-nm-N-ROMHASH` and redone only when the ROM (by content: `make
 nmrom` rewrites it every time), `cmp_spec.py` or the tracer change (the whole
 check takes about 5 minutes then, 1.5 minutes with the cache).  Reported:
 frames whose timeline matches, RAM dumps that match (lenient, and strict with
@@ -925,6 +925,20 @@ main thread's switch points used.  It fails when a number is worse than
 in `data/verify_expect.txt` (`key MIN`, `key =N`, `key <=N`).
 `VERIFY_FRAMES=14498 make -C port verify` covers all nine demos (about 25
 minutes the first time, ~12 GB of dumps).
+
+**The cache is shared by worktrees.** Every emulator-run folder carries the
+first 8 hex digits of its ROM's SHA-1 (`verify-nm-1500-990290a8`,
+`level-nm-07-990290a8`, `attract-nm-demo0-990290a8`), its native counterparts
+add the exe (`...-nativemsvc-1a2b3c`: `CMP_TAG` and a hash of the exe's path)
+and verify-levels' per-level logs sit next to them (`....log`). So checks run
+from worktrees with different NM ROMs never write into each other's folders;
+worktrees with the same ROM share the emulator run, and each run holds an
+flock on `FOLDER.lock` from the staleness check to its last comparison (a
+second run of the same folder prints "in use ... waiting"). A folder is
+reused only when its `rom.sha1` (the full hash) and `spec.sha1` (cmp_spec.py +
+the tracer, by content) match. `tools/cmp_cache_clean.py` lists folders of
+ROMs no worktree has any more (`--old`: also the folders from before the
+hash names) and removes them with `--delete`.
 
 ### Every level: `make -C port verify-levels`
 
@@ -949,7 +963,7 @@ window (Glide64mk2) at those frames.
 
 `make -C port verify-levels [LEVELS=a,b-c] [LEVEL_JOBS=2]` runs every level
 for 1900 frames (the level from frame ~1046-1172, ~730-855 frames in it),
-emulator side cached in `$(CMP_CACHE)/level-nm-LL` (about 3.5 minutes per
+emulator side cached in `$(CMP_CACHE)/level-nm-LL-ROMHASH` (about 3.5 minutes per
 level the first time; 14 dumps: every 20 frames from frame 1000 to 1100,
 where the level loads and the comparator's stale-trailer rule learns the old
 level's heap, then every 100), and compares

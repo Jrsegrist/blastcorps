@@ -386,6 +386,8 @@ def cmd_emu(args):
         die("emulator run failed (%s)" % os.path.join(emudir, "emu.log"))
     with open(os.path.join(emudir, "rom.sha1"), "w") as f:
         f.write(rom_sha1(rom) + "\n")
+    with open(os.path.join(emudir, "spec.sha1"), "w") as f:
+        f.write(spec_sha1() + "\n")
     cmd_inject([emudir])
 
 
@@ -409,10 +411,61 @@ def native_exe():
 def native_tag():
     """the native run folders get a suffix naming the build ("...-nativemsvc";
     the clang check's exe: "...-native64"), so runs of different builds against
-    the same emulator run are kept apart; CMP_TAG overrides it"""
-    if os.environ.get("CMP_TAG"):
-        return os.environ["CMP_TAG"]
-    return "64" if native_exe().find("headless64") >= 0 else "msvc"
+    the same emulator run are kept apart; CMP_TAG overrides it.  A short hash
+    of the exe's path follows ("...-nativemsvc-1a2b3c"): two worktrees (each
+    with its own MSVC_DIR) testing the same NM ROM never share a native folder."""
+    import hashlib
+    tag = os.environ.get("CMP_TAG") or ("64" if native_exe().find("headless64") >= 0 else "msvc")
+    return tag + "-" + hashlib.sha1(native_exe().encode()).hexdigest()[:6]
+
+
+# ---------------------------------------------------------------- the cache
+#
+# The cache (CMP_CACHE, default ~/cmp_cache) is shared by every worktree.  An
+# emulator run's folder is named by its run AND the short hash of the ROM it
+# ran ("verify-nm-1500-990290a8", "level-nm-07-990290a8"), and its native
+# counterparts by that plus the exe ("...-nativemsvc-1a2b3c"), so worktrees
+# with different NM ROMs never write into each other's folders; worktrees with
+# the same ROM share the (expensive) emulator run.  Every run holds a lock on
+# its emulator folder (FOLDER.lock, flock) from the staleness check to the
+# last comparison, so a second user of the same folder waits instead of
+# rewriting it mid-check.  A folder is reused only when its rom.sha1 (the full
+# hash) matches.  Folders from before this scheme (no hash in the name) are
+# never touched; tools/cmp_cache_clean.py lists (and with --delete removes)
+# folders no ROM given to it still needs.
+
+def rom_tag(rom):
+    """the short ROM hash in cache folder names"""
+    return rom_sha1(rom)[:8]
+
+
+class CacheLock:
+    """an exclusive flock on EMUDIR.lock for the duration of a run"""
+
+    def __init__(self, emudir):
+        self.path = emudir.rstrip("/") + ".lock"
+
+    def __enter__(self):
+        import fcntl
+        os.makedirs(os.path.dirname(self.path) or ".", exist_ok=True)
+        self.f = open(self.path, "a+")
+        try:
+            fcntl.flock(self.f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError:
+            print("cache: %s is in use by another run, waiting ..." % self.path)
+            sys.stdout.flush()
+            fcntl.flock(self.f, fcntl.LOCK_EX)
+        self.f.seek(0)
+        self.f.truncate()
+        self.f.write("pid %d cwd %s\n" % (os.getpid(), os.getcwd()))
+        self.f.flush()
+        return self
+
+    def __exit__(self, *exc):
+        import fcntl
+        fcntl.flock(self.f, fcntl.LOCK_UN)
+        self.f.close()
+        return False
 
 
 def cmd_native(args):
@@ -1229,8 +1282,13 @@ def cmd_run(args):
     vis = opt(args, "--vis", min(32000, 3700 * (demo + 1) + 600), int)
     every = opt(args, "--every", 10, int)
     rom = default_rom(kind)
-    emudir = os.path.join(cache, "attract-%s-demo%d" % (kind, demo))
-    natdir = os.path.join(cache, "attract-%s-demo%d-native%s" % (kind, demo, native_tag()))
+    emudir = os.path.join(cache, "attract-%s-demo%d-%s" % (kind, demo, rom_tag(rom)))
+    natdir = emudir + "-native" + native_tag()
+    with CacheLock(emudir):
+        run_demo(demo, kind, vis, every, emudir, natdir, rom)
+
+
+def run_demo(demo, kind, vis, every, emudir, natdir, rom):
     if emu_stale(emudir, rom):
         print("compare: emulator run (%s ROM, %d VIs, dumps every %d frames) into %s ..." % (kind, vis, every, emudir))
         cmd_emu([emudir, "--kind", kind, "--lle", "--vis", str(vis), "--dump", "every:%d" % every])
@@ -1259,13 +1317,35 @@ def emu_stale(emudir, rom):
             return True
     elif t < os.path.getmtime(rom):
         return True
-    return any(t < os.path.getmtime(p) for p in (os.path.join(HERE, "cmp_spec.py"),
-                                                 os.path.join(ROOT, "tools_port/m64trace/m64trace.py")))
+    # the spec and the tracer by content when the run recorded them (worktrees
+    # sharing the folder have their own checkouts, with their own mtimes)
+    ss = os.path.join(emudir, "spec.sha1")
+    if os.path.exists(ss):
+        return open(ss).read().strip() != spec_sha1()
+    return any(t < os.path.getmtime(p) for p in spec_files())
+
+
+def spec_files():
+    return (os.path.join(HERE, "cmp_spec.py"), os.path.join(ROOT, "tools_port/m64trace/m64trace.py"))
+
+
+def spec_sha1():
+    import hashlib
+    h = hashlib.sha1()
+    for p in spec_files():
+        h.update(open(p, "rb").read())
+    return h.hexdigest()
+
+
+_rom_sha1 = {}
 
 
 def rom_sha1(rom):
     import hashlib
-    return hashlib.sha1(open(rom, "rb").read()).hexdigest()
+    key = (os.path.abspath(rom), os.path.getmtime(rom), os.path.getsize(rom))
+    if key not in _rom_sha1:
+        _rom_sha1[key] = hashlib.sha1(open(rom, "rb").read()).hexdigest()
+    return _rom_sha1[key]
 
 
 def run_log_facts(natdir):
@@ -1288,24 +1368,8 @@ def run_log_facts(natdir):
     return out
 
 
-def cmd_verify(args):
-    """verify [--cache DIR] [--frames N] [--every K] [--expect FILE] [--no-strict]: the quick
-    regression check behind `make -C port verify`.  The emulator side (NM test ROM,
-    LLE audio and visibility tests, the first N frames: boot, logos, front end,
-    attract demo 0) is cached in DIR/verify-nm-N and redone only when the ROM,
-    cmp_spec.py or the tracer change; bc_headless follows it; reported: the
-    per-frame timeline, the RAM dumps (lenient, and strict where `make -C port
-    strict-data` has built the layouts), the visibility tests (emulator LLE vs the
-    exe's model), the emulator's audio tasks (LLE vs the port's interpreter).
-    Fails when a number is worse than in --expect (default data/verify_expect.txt)."""
-    cache = os.path.expanduser(opt(args, "--cache", "~/cmp_cache"))
-    frames = opt(args, "--frames", 1500, int)
-    every = opt(args, "--every", 10, int)
-    expect = opt(args, "--expect", os.path.join(PORT, "data/verify_expect.txt"))
-    no_strict = flag(args, "--no-strict")
-    rom = default_rom("nm")
-    emudir = os.path.join(cache, "verify-nm-%d" % frames)
-    natdir = emudir + "-native" + native_tag()
+def verify_run(emudir, natdir, rom, frames, every, no_strict):
+    """cmd_verify's runs and comparisons (under the cache folder's lock)"""
     if emu_stale(emudir, rom):
         print("verify: emulator run (NM ROM, LLE audio + visibility tests, %d frames, dumps every %d) into %s ..."
               % (frames, every, emudir))
@@ -1335,6 +1399,29 @@ def cmd_verify(args):
                 res["emu_audio_tasks"], res["emu_audio_lle_identical"] = int(m.group(1)), int(m.group(2))
                 res["emu_cull_tasks_lle"] = int(m.group(4))
                 res["emu_audio_lle_different"] = int(m.group(3))
+    return res, matched, compared, strict
+
+
+def cmd_verify(args):
+    """verify [--cache DIR] [--frames N] [--every K] [--expect FILE] [--no-strict]: the quick
+    regression check behind `make -C port verify`.  The emulator side (NM test ROM,
+    LLE audio and visibility tests, the first N frames: boot, logos, front end,
+    attract demo 0) is cached in DIR/verify-nm-N-ROMHASH and redone only when the ROM,
+    cmp_spec.py or the tracer change; bc_headless follows it; reported: the
+    per-frame timeline, the RAM dumps (lenient, and strict where `make -C port
+    strict-data` has built the layouts), the visibility tests (emulator LLE vs the
+    exe's model), the emulator's audio tasks (LLE vs the port's interpreter).
+    Fails when a number is worse than in --expect (default data/verify_expect.txt)."""
+    cache = os.path.expanduser(opt(args, "--cache", "~/cmp_cache"))
+    frames = opt(args, "--frames", 1500, int)
+    every = opt(args, "--every", 10, int)
+    expect = opt(args, "--expect", os.path.join(PORT, "data/verify_expect.txt"))
+    no_strict = flag(args, "--no-strict")
+    rom = default_rom("nm")
+    emudir = os.path.join(cache, "verify-nm-%d-%s" % (frames, rom_tag(rom)))
+    natdir = emudir + "-native" + native_tag()
+    with CacheLock(emudir):
+        res, matched, compared, strict = verify_run(emudir, natdir, rom, frames, every, no_strict)
     print("verify: results")
     for k in sorted(res):
         print("  %-24s %s" % (k, res[k]))
@@ -1401,8 +1488,19 @@ def run_level(level, cache, frames, every, input_path, kind="nm", shots="", forc
     """one level: the emulator side (cached by ROM, spec, input and parameters), then
     bc_headless, timeline + dump comparison; returns a dict of results"""
     rom = default_rom(kind)
-    emudir = os.path.join(cache, "level-%s-%02d" % (kind, level))
-    natdir = emudir + "-native" + native_tag()
+    emudir, natdir = level_dirs(cache, kind, level, rom)
+    with CacheLock(emudir):
+        return run_level_locked(level, frames, every, input_path, kind, shots, force, keep, strict,
+                                rom, emudir, natdir)
+
+
+def level_dirs(cache, kind, level, rom):
+    """a level's emulator and native folders in the cache"""
+    emudir = os.path.join(cache, "level-%s-%02d-%s" % (kind, level, rom_tag(rom)))
+    return emudir, emudir + "-native" + native_tag()
+
+
+def run_level_locked(level, frames, every, input_path, kind, shots, force, keep, strict, rom, emudir, natdir):
     poke = "%d:%08X:1:%X" % (LEVEL_POKE_FRAME, LEVEL_SLOT0_LAST, level)
     # dumps once the level is under way (from frame 1000), every 20 frames up to
     # 1100 whatever EVERY is: the level loads around 1013-1172, and the
@@ -1482,9 +1580,10 @@ def cmd_level(args):
 
 
 def _level_job(a):
-    """one level of verify-levels, its output in CACHE/level-LL.log"""
+    """one level of verify-levels, its output in the log next to its native
+    folder (CACHE/level-nm-LL-ROMHASH-nativeTAG.log)"""
     lv, cache, frames, every, inp = a
-    log = open(os.path.join(cache, "level-%02d.log" % lv), "w")
+    log = open(level_dirs(cache, "nm", lv, default_rom("nm"))[1] + ".log", "w")
     sys.stdout.flush()
     saved = os.dup(1)
     os.dup2(log.fileno(), 1)
@@ -1503,7 +1602,7 @@ def _level_job(a):
 def cmd_verify_levels(args):
     """verify-levels [--cache DIR] [--levels a,b-c] [--frames N] [--every K] [--expect FILE]
     [--jobs J]: every level (data/levels.txt) through run_level (J at a time, each one's
-    output in DIR/level-LL.log); fails when a level's numbers are worse than in --expect
+    output in DIR/level-nm-LL-ROMHASH-nativeTAG.log); fails when a level's numbers are worse than in --expect
     (default data/verify_levels_expect.txt: `L key VALUE` lines, VALUE as in
     verify_expect.txt; `* key VALUE` applies to every level).  Prints a table."""
     cache = os.path.expanduser(opt(args, "--cache", "~/cmp_cache"))
@@ -1529,7 +1628,8 @@ def cmd_verify_levels(args):
                 exp.setdefault(p[0], []).append((p[1], p[2]))
     table, bad = [], []
     os.makedirs(cache, exist_ok=True)
-    print("verify-levels: %d levels, %d at a time (each level's log: %s/level-LL.log)" % (len(levels), jobs, cache))
+    print("verify-levels: %d levels, %d at a time (each level's log: %s.log)"
+          % (len(levels), jobs, level_dirs(cache, "nm", 0, default_rom("nm"))[1].replace("-00-", "-LL-")))
     sys.stdout.flush()
     if jobs > 1:
         import concurrent.futures

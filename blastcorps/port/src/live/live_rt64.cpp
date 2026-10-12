@@ -40,6 +40,21 @@
  *                       test ROM) instead of only the US v1.1 release
  *     --pace-log FILE   per retrace: pacing and present times (CSV), and a
  *                       summary in the log at exit
+ *     --set S.K=V       a bc.ini setting for this run ([S] K = V; not saved), e.g.
+ *                       --set audio.volume=50
+ *     --resolution R    internal resolution: window (default), 1 (320x240), 2, 3, 4 ...
+ *     --msaa N          multisample anti-aliasing: 0 (default), 2, 4, 8
+ *     --filtering F     the picture's scaling: aa (default), linear, nearest
+ *     --aspect A        widescreen: original (4:3, default), 16:9, 16:10, 21:9, W:H, window
+ *     --texture-pack P  use this RT64 texture pack (folder with rt64.json, or .rtz)
+ *     --texture-hashes F  log the RT64 hashes of the textures loaded at frame F
+ *     --window WxH      the window's size (desktop points) instead of 320x240 x scale
+ *     --wshot F,..      save the window's picture (RT64's output at the window's size,
+ *                       win_FFFFFFF.png in --shot-dir) once the game reached frame F
+ *     --menu-shot F     open the settings menu at frame F, save its picture
+ *                       (menu_FFFFFFF.png) and close it again (testing)
+ *     --menu-set S.K=V  in that menu, change a setting as a player would (applied
+ *                       at once, written to bc.ini when the menu closes)
  *     --no-msgbox       (headless_main.c) no dialog of any kind: errors, crash
  *                       reports, RT64/SDL boxes only logged; no ROM file dialog
  *
@@ -51,7 +66,9 @@
  * folder (created with commented defaults on the first start; command-line
  * options override it).  Without a ROM argument and a working configured
  * ROM, a file dialog asks for one; the ROM is checked (Blast Corps (USA)
- * (Rev 1) by SHA-1, .z64/.v64/.n64) and remembered.  bc.exe is a Windows
+ * (Rev 1) by SHA-1, .z64/.v64/.n64) and remembered.  The settings menu
+ * (live_menu.cpp; F1, or Back+Start on a controller) changes the settings
+ * while the game is paused and writes them to bc.ini.  bc.exe is a Windows
  * GUI program: errors show a message box; the log goes to stderr when it
  * has one, else to bc.log next to the exe.
  *
@@ -80,8 +97,13 @@
 #include <SDL_syswm.h>
 
 #include "hle/rt64_application.h"
+#include "common/rt64_tmem_hasher.h"
+#include "render/rt64_render_target.h"
+#include "render/rt64_texture_cache.h"
 #include "rhi/rt64_render_hooks.h"
 
+#include "live_input.h"
+#include "live_menu.h"
 #include "live_setup.h"
 
 extern "C" {
@@ -113,6 +135,10 @@ struct LiveOpts {
     int volume = 100;                /* percent */
     bool romCheck = true;
     const char *paceLog = nullptr;
+    unsigned windowW = 0, windowH = 0;   /* --window WxH: the window's size in desktop points */
+    std::vector<unsigned> wshots;        /* --wshot: frames whose window picture is saved */
+    unsigned menuShot = ~0u;             /* --menu-shot F: open the menu at frame F, save its picture, close it */
+    std::vector<std::string> menuSets;   /* --menu-set S.K=V: changed in that menu (as a player would) */
 };
 LiveOpts g_opt;
 live::Config g_cfg;                  /* bc.ini (or the built-in defaults) */
@@ -273,71 +299,79 @@ void saveFrame(const HostViRegs &r, unsigned frame) {
                  w, h, r.origin, g_tasks, g_otherUcodeTasks, g_fixedBytes);
 }
 
+/* the window's picture as presented (RT64's output at the window's size:
+ * internal resolution, widescreen, the settings menu): --wshot, --menu-shot.
+ * Waits until RT64 presented what it was given, then asks the compositor for
+ * the client area (PrintWindow with PW_RENDERFULLCONTENT, which also works
+ * for a flip-model swap chain). */
+void saveWindow(const char *name) {
+    if (g_app == nullptr || host_gui_window == nullptr) return;
+    g_app->presentQueue->waitForPresentId(g_app->state->presentId);
+    Sleep(120);
+    HWND hw = HWND(host_gui_window);
+    RECT rc;
+    GetClientRect(hw, &rc);
+    const int w = rc.right - rc.left, h = rc.bottom - rc.top;
+    if (w <= 0 || h <= 0) return;
+    HDC wdc = GetDC(hw), mdc = CreateCompatibleDC(wdc);
+    BITMAPINFO bi = {};
+    bi.bmiHeader.biSize = sizeof bi.bmiHeader;
+    bi.bmiHeader.biWidth = w;
+    bi.bmiHeader.biHeight = -h;
+    bi.bmiHeader.biPlanes = 1;
+    bi.bmiHeader.biBitCount = 32;
+    bi.bmiHeader.biCompression = BI_RGB;
+    void *bits = nullptr;
+    HBITMAP bmp = CreateDIBSection(wdc, &bi, DIB_RGB_COLORS, &bits, nullptr, 0);
+    HGDIOBJ old = SelectObject(mdc, bmp);
+    const BOOL ok = PrintWindow(hw, mdc, PW_CLIENTONLY | 0x2 /* PW_RENDERFULLCONTENT */);
+    std::vector<uint8_t> rgb(size_t(w) * h * 3);
+    const uint8_t *p = static_cast<const uint8_t *>(bits);
+    for (size_t i = 0; i < size_t(w) * h; i++) {
+        rgb[i * 3 + 0] = p[i * 4 + 2];
+        rgb[i * 3 + 1] = p[i * 4 + 1];
+        rgb[i * 3 + 2] = p[i * 4 + 0];
+    }
+    SelectObject(mdc, old);
+    DeleteObject(bmp);
+    DeleteDC(mdc);
+    ReleaseDC(hw, wdc);
+    char path[512];
+    snprintf(path, sizeof path, "%s/%s.png", g_opt.shotDir, name);
+    if (ok && writePng(path, unsigned(w), unsigned(h), rgb)) host_log("live: saved %s (%dx%d window)\n", path, w, h);
+    else host_log("live: window picture %s failed\n", path);
+}
+
 /* ---- input ------------------------------------------------------------------- */
-SDL_GameController *g_pad;
+/* the controllers and the N64 pad: live_input.cpp.  bc.ini's controller.pad
+ * picks which controller plays (default the first) or all of them. */
+live::PadSet g_pads;
 unsigned short g_button;
 signed char g_stickX, g_stickY;
+live::InputGate g_gate;              /* after the settings menu (live_input.h) */
+bool g_focused = true;               /* the window has the keyboard focus */
+unsigned g_lastScan;                 /* retrace of the last controller rescan */
 
-void openPad() {
-    if (g_pad != nullptr) return;
-    for (int i = 0; i < SDL_NumJoysticks(); i++)
-        if (SDL_IsGameController(i) && (g_pad = SDL_GameControllerOpen(i)) != nullptr) {
-            host_log("live: controller: %s\n", SDL_GameControllerName(g_pad));
-            return;
-        }
+std::vector<std::string> padNames() {
+    return g_pads.names();
 }
 
-/* an axis as an N64 stick value (-80..80), 0 inside the dead zone */
-int axis(int a) {
-    int v = SDL_GameControllerGetAxis(g_pad, SDL_GameControllerAxis(a));
-    if (v > -g_cfg.deadzone && v < g_cfg.deadzone) return 0;
-    return v * 80 / 32767;
-}
-
-bool padActive(const live::PadInput &in) {
-    if (in.button >= 0) return SDL_GameControllerGetButton(g_pad, SDL_GameControllerButton(in.button)) != 0;
-    if (in.axis == SDL_CONTROLLER_AXIS_TRIGGERLEFT || in.axis == SDL_CONTROLLER_AXIS_TRIGGERRIGHT)
-        return SDL_GameControllerGetAxis(g_pad, SDL_GameControllerAxis(in.axis)) > 12000;
-    return axis(in.axis) * in.dir > 40;
-}
-
-/* N64 pad from the keyboard and the first game controller, by the bindings
+/* N64 pad from the keyboard and the game controller(s), by the bindings
  * in bc.ini (live_setup.cpp has the defaults):
  *   stick: arrows (keyboard), left stick       A: X / gamepad A
  *   B: C / gamepad B or X                      Z: Z or Space / either trigger
  *   START: Enter / Start                       L, R: A, S / shoulders
  *   C buttons: I J K L / right stick           D-pad: T F G H / D-pad */
 void pollInput() {
-    const Uint8 *k = SDL_GetKeyboardState(nullptr);
-    /* Alt+Enter switches fullscreen: that Enter isn't a game key */
-    const bool altEnter = (SDL_GetModState() & KMOD_ALT) != 0 && k[SDL_SCANCODE_RETURN];
-    auto keyDown = [&](int act) {
-        for (SDL_Scancode sc : g_cfg.keys[act])
-            if (k[sc] && !(altEnter && sc == SDL_SCANCODE_RETURN)) return true;
-        return false;
-    };
-    unsigned b = 0;
-    int x = 0, y = 0;
-    for (int i = 0; i < live::kButtons; i++)
-        if (keyDown(i)) b |= live::kButtonBits[i];
-    if (keyDown(live::A_STICK_LEFT)) x -= 80;
-    if (keyDown(live::A_STICK_RIGHT)) x += 80;
-    if (keyDown(live::A_STICK_UP)) y += 80;
-    if (keyDown(live::A_STICK_DOWN)) y -= 80;
-    if (g_pad != nullptr) {
-        for (int i = 0; i < live::kButtons; i++)
-            for (const live::PadInput &in : g_cfg.pad[i])
-                if (padActive(in)) b |= live::kButtonBits[i];
-        if (g_cfg.padStick >= 0) {
-            const bool right = g_cfg.padStick == 1;
-            int lx = axis(right ? SDL_CONTROLLER_AXIS_RIGHTX : SDL_CONTROLLER_AXIS_LEFTX);
-            int ly = -axis(right ? SDL_CONTROLLER_AXIS_RIGHTY : SDL_CONTROLLER_AXIS_LEFTY);
-            if (lx != 0 || ly != 0) x = lx, y = ly;
-        }
-    }
-    g_button = (unsigned short) b;
-    g_stickX = (signed char) std::max(-80, std::min(80, x));
-    g_stickY = (signed char) std::max(-80, std::min(80, y));
+    live::N64Pad p = live::readPad(g_cfg, g_pads, SDL_GetKeyboardState(nullptr), (SDL_GetModState() & KMOD_ALT) != 0);
+    g_gate.apply(p);
+    g_button = p.button;
+    g_stickX = (signed char) p.x;
+    g_stickY = (signed char) p.y;
+}
+
+bool menuCombo() {
+    return live::menuComboHeld(g_cfg, g_pads);
 }
 
 /* ---- sound ------------------------------------------------------------------- */
@@ -520,8 +554,7 @@ void writePaceLog() {
     host_exit(code);
 }
 
-const char kTitle[] = "Blast Corps  (F1: controls)";
-bool g_helpShown;
+const char kTitle[] = "Blast Corps  (F1: settings)";
 
 void setFullscreen(bool on) {
     if (SDL_SetWindowFullscreen(g_window, on ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0) != 0) {
@@ -535,26 +568,111 @@ void setFullscreen(bool on) {
     host_log("live: %s (%dx%d pixels)\n", on ? "fullscreen" : "windowed", pw, ph);
 }
 
-bool isQuitKey(SDL_Scancode sc) {
-    for (SDL_Scancode q : g_cfg.keys[live::A_QUIT])
+/* widescreen: the visibility test as wide as the picture RT64 draws
+ * (host_cull_wide, os_hw.c); 1 with the N64's 4:3 */
+void updateCullWide() {
+    double k = 1.0;
+    if (g_cfg.aspect > 0) {
+        k = g_cfg.aspect / (4.0 / 3.0);
+    } else if (g_cfg.aspect < 0 && g_window != nullptr) {
+        int pw = 0, ph = 0;
+        SDL_GetWindowSizeInPixels(g_window, &pw, &ph);
+        if (pw > 0 && ph > 0) k = double(pw) / double(ph) / (4.0 / 3.0);
+    }
+    if (k < 1.0) k = 1.0;
+    if (k != host_cull_wide) {
+        host_cull_wide = k;
+        host_log("live: widescreen: visibility test %.3f times the 4:3 width (frame %u)\n", k, plat_frames());
+    }
+}
+
+/* focus and visibility, logged: without the keyboard focus SDL delivers no
+ * keys (and resets the ones held); controllers keep working
+ * (SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, set at start-up) */
+void windowEvent(const SDL_WindowEvent &w) {
+    const char *what = nullptr;
+    switch (w.event) {
+        case SDL_WINDOWEVENT_FOCUS_LOST: g_focused = false; what = "lost the keyboard focus (keys stop; controllers keep working)"; break;
+        case SDL_WINDOWEVENT_FOCUS_GAINED: g_focused = true; what = "has the keyboard focus"; break;
+        case SDL_WINDOWEVENT_MINIMIZED: what = "minimized"; break;
+        case SDL_WINDOWEVENT_RESTORED: what = "restored"; break;
+        case SDL_WINDOWEVENT_HIDDEN: what = "hidden"; break;
+        case SDL_WINDOWEVENT_SHOWN: what = "shown"; break;
+        default: break;
+    }
+    if (what != nullptr) host_log("live: window %s (frame %u)\n", what, plat_frames());
+}
+
+bool isKey(int action, SDL_Scancode sc) {
+    for (SDL_Scancode q : g_cfg.keys[action])
         if (q == sc) return true;
     return false;
+}
+
+/* the settings menu sees what bc.exe runs with now (keys and options may have
+ * changed it since bc.ini was read) */
+void openMenu() {
+    g_cfg.fullscreen = g_opt.fullscreen;
+    g_cfg.vsync = g_opt.vsync;
+    g_cfg.volume = g_opt.volume;
+    g_cfg.mute = g_opt.mute;
+    live::menuOpen();
 }
 
 void pumpEvents() {
     SDL_Event e;
     while (SDL_PollEvent(&e)) {
-        if (e.type == SDL_QUIT || (e.type == SDL_KEYDOWN && isQuitKey(e.key.keysym.scancode))) shutdown(0);
-        if (e.type == SDL_CONTROLLERBUTTONDOWN && g_pad != nullptr)
+        if (e.type == SDL_QUIT) shutdown(0);
+        if (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED && g_cfg.aspect < 0)
+            updateCullWide();
+        if (e.type == SDL_CONTROLLERDEVICEADDED || e.type == SDL_CONTROLLERDEVICEREMOVED) g_pads.scan();
+        if (e.type == SDL_WINDOWEVENT) windowEvent(e.window);
+        /* a controller used while another window has the focus (e.g. the Xbox
+         * button's Game Bar, a notification that took it): fullscreen, take
+         * the focus back so the keyboard works again too */
+        if (!g_focused && g_opt.fullscreen && e.type == SDL_CONTROLLERBUTTONDOWN && g_pads.isActive(g_cfg, e.cbutton.which)) {
+            host_log("live: controller button while unfocused: raising the window (frame %u)\n", plat_frames());
+            SDL_RaiseWindow(g_window);
+        }
+        if (live::menuIsOpen()) {
+            /* waiting for a key or button to bind: everything goes to the menu */
+            if (live::menuCapturing()) {
+                live::menuEvent(e);
+                continue;
+            }
+            /* the menu's own keys: Esc or the menu key close it, as do the
+             * controller's menu buttons; fullscreen still switches */
+            if (e.type == SDL_KEYDOWN && !e.key.repeat) {
+                const SDL_Scancode sc = e.key.keysym.scancode;
+                if (sc == SDL_SCANCODE_ESCAPE || isKey(live::A_MENU, sc)) {
+                    live::menuClose();
+                    continue;
+                }
+                if (sc == SDL_SCANCODE_F11 || (sc == SDL_SCANCODE_RETURN && (e.key.keysym.mod & KMOD_ALT) != 0)) {
+                    setFullscreen(!g_opt.fullscreen);
+                    g_cfg.fullscreen = g_opt.fullscreen;
+                    continue;
+                }
+            }
+            if (e.type == SDL_CONTROLLERBUTTONDOWN && menuCombo()) {
+                live::menuClose();
+                continue;
+            }
+            live::menuEvent(e);
+            continue;
+        }
+        if (e.type == SDL_KEYDOWN && isKey(live::A_QUIT, e.key.keysym.scancode)) shutdown(0);
+        if (e.type == SDL_CONTROLLERBUTTONDOWN && g_pads.isActive(g_cfg, e.cbutton.which)) {
             for (const live::PadInput &in : g_cfg.pad[live::A_QUIT])
                 if (in.button == e.cbutton.button) shutdown(0);
+            if (menuCombo()) openMenu();
+        }
         if (e.type == SDL_KEYDOWN && !e.key.repeat) {
             const SDL_Scancode sc = e.key.keysym.scancode;
             if (sc == SDL_SCANCODE_F11 || (sc == SDL_SCANCODE_RETURN && (e.key.keysym.mod & KMOD_ALT) != 0)) {
                 setFullscreen(!g_opt.fullscreen);
-            } else if (sc == SDL_SCANCODE_F1) {
-                g_helpShown = !g_helpShown;
-                SDL_SetWindowTitle(g_window, g_helpShown ? live::helpLine(g_cfg).c_str() : kTitle);
+            } else if (isKey(live::A_MENU, sc)) {
+                openMenu();
             } else if (e.key.keysym.scancode == SDL_SCANCODE_M) {
                 g_opt.mute = !g_opt.mute;
                 host_log("live: sound %s\n", g_opt.mute ? "off" : "on");
@@ -563,12 +681,11 @@ void pumpEvents() {
                 host_log("live: volume %d%%\n", g_opt.volume);
             }
         }
-        if (e.type == SDL_CONTROLLERDEVICEADDED) openPad();
-        if (e.type == SDL_CONTROLLERDEVICEREMOVED && g_pad != nullptr &&
-            !SDL_GameControllerGetAttached(g_pad)) {
-            SDL_GameControllerClose(g_pad);
-            g_pad = nullptr;
-        }
+    }
+    /* once a second: controllers whose device events were missed */
+    if (++g_lastScan >= 60) {
+        g_lastScan = 0;
+        g_pads.scan();
     }
     pollInput();
 }
@@ -702,7 +819,42 @@ void liveGfxTask(unsigned ucode, unsigned ucodeData, unsigned dataPtr, unsigned 
 }
 
 unsigned long long g_when0;
-unsigned g_nextShot;
+unsigned g_nextShot, g_nextWshot;
+bool g_quitRequested;
+unsigned g_hashFrame = ~0u;          /* --texture-hashes */
+void logTextureHashes(unsigned frame);
+
+/* The settings menu is open: the game waits (inside this retrace's hook)
+ * while the menu runs, about 60 times a second, over the last picture.
+ * RT64's own pause (its debugger's) re-renders the last frame's work and
+ * presents it again at every updateScreen, so video settings show at once.
+ * The pacing starts over afterwards.  `shotFrame` != 0: --menu-shot (save
+ * the window's picture after a few frames and close the menu). */
+void runMenu(unsigned shotFrame) {
+    g_app->state->debuggerInspector.paused = true;
+    for (unsigned n = 0; live::menuIsOpen(); n++) {
+        if (shotFrame != 0 && n == 2)
+            for (const std::string &s : g_opt.menuSets)
+                if (!live::menuTestSet(s)) host_log("live: --menu-set %s: not understood\n", s.c_str());
+        live::menuFrame();
+        g_app->updateScreen();
+        if (shotFrame != 0 && n == 30) {
+            char name[32];
+            snprintf(name, sizeof name, "menu_%07u", shotFrame);
+            saveWindow(name);
+            live::menuClose();
+        }
+        if (g_quitRequested) shutdown(0);
+        Sleep(15);
+        if (live::menuIsOpen()) pumpEvents();
+    }
+    g_app->state->debuggerInspector.paused = false;
+    if (g_quitRequested) shutdown(0);
+    g_t0.QuadPart = 0;   /* pacing: start over from the next retrace */
+    /* what is held now (the keys or buttons that closed the menu) doesn't
+     * reach the game until let go (each on its own, at most a second) */
+    g_gate.close(live::readPad(g_cfg, g_pads, SDL_GetKeyboardState(nullptr), (SDL_GetModState() & KMOD_ALT) != 0));
+}
 
 void liveVi(const HostViRegs *r, unsigned viCount, unsigned long long when, unsigned frames) {
     (void) viCount;
@@ -771,7 +923,24 @@ void liveVi(const HostViRegs *r, unsigned viCount, unsigned long long when, unsi
             : double(g_t0.QuadPart - g_tStart.QuadPart) / double(g_freq.QuadPart) + double(when - g_when0) / 46875000.0;
         g_pace.push_back({before, due, after - before, frames});
     }
+    if (frames >= g_hashFrame) {
+        logTextureHashes(frames);
+        g_hashFrame = ~0u;
+    }
+    /* pictures of the window (testing): --wshot, --menu-shot */
+    while (g_nextWshot < g_opt.wshots.size() && frames >= g_opt.wshots[g_nextWshot]) {
+        char name[32];
+        snprintf(name, sizeof name, "win_%07u", frames);
+        saveWindow(name);
+        g_nextWshot++;
+    }
+    if (g_opt.menuShot != ~0u && frames >= g_opt.menuShot) {
+        g_opt.menuShot = ~0u;
+        openMenu();
+        runMenu(frames);
+    }
     pumpEvents();
+    if (live::menuIsOpen()) runMenu(0);
 }
 
 int liveInput(unsigned short *button, signed char *x, signed char *y) {
@@ -787,10 +956,159 @@ int liveInput(unsigned short *button, signed char *x, signed char *y) {
 
 const HostLive kLive = {liveBoot, liveGfxTask, liveVi, liveInput, liveAudio};
 
+/* ---- settings changed in the menu ------------------------------------------- */
+/* RT64's present thread, after the picture: --pace-log's times, the menu */
+void drawHook(plume::RenderCommandList *list, plume::RenderFramebuffer *fb) {
+    if (g_presentTimes != nullptr) presentHook(list, fb);
+    live::menuDraw(list);
+}
+
+void deinitHook() {
+    live::menuShutdown();
+}
+
+/* MSAA sample counts the device can render with (a mask of 1, 2, 4, 8);
+ * 1 only when it lacks programmable sample locations, which RT64 needs */
+unsigned msaaSupported() {
+    if (g_app == nullptr || !g_app->device || !g_app->device->getCapabilities().sampleLocations) return 1;
+    const bool hdr = g_app->shaderLibrary->usesHDR;
+    return unsigned(g_app->device->getSampleCountsSupported(RT64::RenderTarget::colorBufferFormat(hdr)) &
+                    g_app->device->getSampleCountsSupported(RT64::RenderTarget::depthBufferFormat()));
+}
+
+/* bc.ini's video enhancements as RT64's user configuration.  The defaults
+ * (resolution = window, msaa = 0, filtering = aa) are RT64's own defaults,
+ * what bc.exe always used. */
+void configToRT64(RT64::UserConfiguration &u) {
+    using U = RT64::UserConfiguration;
+    if (g_cfg.resolution == 0) u.resolution = U::Resolution::WindowIntegerScale;
+    else if (g_cfg.resolution == 1) u.resolution = U::Resolution::Original;
+    else {
+        u.resolution = U::Resolution::Manual;
+        u.resolutionMultiplier = double(g_cfg.resolution);
+    }
+    u.antialiasing = g_cfg.msaa == 8 ? U::Antialiasing::MSAA8X : g_cfg.msaa == 4 ? U::Antialiasing::MSAA4X
+                     : g_cfg.msaa == 2 ? U::Antialiasing::MSAA2X : U::Antialiasing::None;
+    u.filtering = g_cfg.filtering == 1 ? U::Filtering::Linear : g_cfg.filtering == 2 ? U::Filtering::Nearest
+                                                                                      : U::Filtering::AntiAliasedPixelScaling;
+    /* widescreen: RT64 widens the viewport of every projection that covers the
+     * whole width and narrows its x scale to match (no stretching); 2D
+     * rectangles and partial-width views keep their 4:3 shape, centred */
+    if (g_cfg.aspect == 0) {
+        u.aspectRatio = U::AspectRatio::Original;
+    } else if (g_cfg.aspect < 0) {
+        u.aspectRatio = U::AspectRatio::Expand;
+    } else {
+        u.aspectRatio = U::AspectRatio::Manual;
+        u.aspectTarget = g_cfg.aspect;
+    }
+}
+
+/* texture pack (RT64's replacements): loaded when enabled and set, cleared
+ * when turned off.  Called before the game starts and from the menu (the
+ * main thread, which is the one that submits textures, as RT64 requires).
+ * Returns a line for the log / menu. */
+bool g_packLoaded;
+std::string g_packStatus;
+void applyTexturePack() {
+    if (g_cfg.texturePackOn && !g_cfg.texturePack.empty()) {
+        const std::string path = live::absPath(g_cfg, g_cfg.texturePack);
+        const bool ok = g_app->textureCache->loadReplacementDirectory(
+            RT64::ReplacementDirectory(std::filesystem::path(live::wide(path))));
+        g_packLoaded = true;
+        g_packStatus = (ok ? "loaded " : "could not load ") + path;
+        host_log("live: texture pack %s\n", g_packStatus.c_str());
+    } else if (g_packLoaded) {
+        g_app->textureCache->clearReplacementDirectories();
+        g_packLoaded = false;
+        g_packStatus = "off";
+        host_log("live: texture pack off\n");
+    }
+}
+
+/* --texture-hashes F (for making texture packs and testing): the RT64
+ * hashes of the textures loaded at frame F */
+void logTextureHashes(unsigned frame) {
+    std::unique_lock<std::mutex> lock(g_app->textureCache->textureMapMutex);
+    const RT64::TextureMap &m = g_app->textureCache->textureMap;
+    unsigned n = 0;
+    for (size_t i = 0; i < m.textures.size(); i++)
+        if (m.textures[i] != nullptr) {
+            host_log("texture %016llx %ux%u (hash version %u, frame %u)\n", (unsigned long long) m.hashes[i],
+                     unsigned(m.textures[i]->width), unsigned(m.textures[i]->height),
+                     unsigned(RT64::TMEMHasher::CurrentHashVersion), frame);
+            n++;
+        }
+    host_log("live: %u textures loaded at frame %u\n", n, frame);
+}
+
+/* the menu changed g_cfg: apply it now where that is possible */
+void settingChanged(const live::Setting &s) {
+    if (s.section == "video" && (s.key == "texture_pack" || s.key == "texture_pack_enabled")) {
+        applyTexturePack();
+        return;
+    }
+    if (s.section == "video" && (s.key == "resolution" || s.key == "filtering" || s.key == "msaa" || s.key == "aspect")) {
+        const uint32_t before = g_app->userConfig.msaaSampleCount();
+        if (s.key == "msaa" && g_cfg.msaa > 1 && (msaaSupported() & unsigned(g_cfg.msaa)) == 0) {
+            host_log("live: %dx MSAA isn't supported by this device\n", g_cfg.msaa);
+            g_cfg.msaa = int(before > 1 ? before : 0);
+        }
+        configToRT64(g_app->userConfig);
+        g_app->userConfig.validate();
+        /* new sample count: RT64 rebuilds its targets and shaders (as its inspector does) */
+        if (g_app->userConfig.msaaSampleCount() != before) g_app->updateMultisampling();
+        g_app->updateUserConfig(s.key == "resolution" || s.key == "aspect");
+        updateCullWide();
+    } else if (s.section == "video") {
+        if (s.key == "fullscreen") {
+            if (g_cfg.fullscreen != g_opt.fullscreen) setFullscreen(g_cfg.fullscreen);
+            if (live::menuIsOpen()) SDL_ShowCursor(SDL_ENABLE);
+        } else if (s.key == "scale") {
+            g_opt.scale = g_cfg.scale;
+            if (!g_opt.fullscreen) SDL_SetWindowSize(g_window, int(320 * g_opt.scale), int(240 * g_opt.scale));
+        } else if (s.key == "vsync") {
+            g_opt.vsync = g_cfg.vsync;
+            g_app->swapChain->setVsyncEnabled(g_opt.vsync);
+        }
+        /* api: the next start */
+    } else if (s.section == "audio") {
+        g_opt.volume = g_cfg.volume;
+        g_opt.mute = g_cfg.mute;
+    }
+    host_log("live: setting %s.%s = %s\n", s.section.c_str(), s.key.c_str(), live::configValue(g_cfg, s).c_str());
+}
+
+/* the menu's status line */
+std::string rendererStatus() {
+    char buf[256];
+    int pw = 0, ph = 0;
+    SDL_GetWindowSizeInPixels(g_window, &pw, &ph);
+    float sx, sy;
+    {
+        std::scoped_lock<std::mutex> lock(g_app->sharedQueueResources->configurationMutex);
+        sx = g_app->sharedQueueResources->resolutionScale.x;
+        sy = g_app->sharedQueueResources->resolutionScale.y;
+    }
+    snprintf(buf, sizeof buf, "%s, window %dx%d%s, drawn at %.0fx%.0f, display %u Hz",
+             g_opt.vulkan ? "Vulkan" : "Direct3D 12", pw, ph, g_opt.fullscreen ? " (fullscreen)" : "", 320.0f * sx,
+             240.0f * sy, displayHz());
+    return buf;
+}
+
 /* ---- start-up ---------------------------------------------------------------- */
 unsigned num(const char *s) {
     return unsigned(strtoul(s, nullptr, 0));
 }
+
+/* options that set a bc.ini setting for the run (main applies them) */
+const std::pair<const char *, const char *> kSetAliases[] = {
+    {"--resolution", "video.resolution"},
+    {"--msaa", "video.msaa"},
+    {"--filtering", "video.filtering"},
+    {"--aspect", "video.aspect"},
+    {"--texture-pack", "video.texture_pack"},   /* (and turns it on) */
+};
 
 int extraArg(int argc, char **argv, int *i, HostOpts *o) {
     const char *a = argv[*i];
@@ -798,6 +1116,11 @@ int extraArg(int argc, char **argv, int *i, HostOpts *o) {
         if (*i + 1 >= argc) host_fatal("%s needs a value", a);
         return argv[++*i];
     };
+    for (const auto &alias : kSetAliases)
+        if (!strcmp(a, alias.first)) {
+            next();
+            return 1;
+        }
     if (!strcmp(a, "--api")) g_opt.vulkan = !strcmp(next(), "vulkan");
     else if (!strcmp(a, "--fullscreen")) g_opt.fullscreen = true;
     else if (!strcmp(a, "--windowed")) g_opt.fullscreen = false;
@@ -817,6 +1140,24 @@ int extraArg(int argc, char **argv, int *i, HostOpts *o) {
         o->eeprom_path = nullptr;
         o->mpk_path = nullptr;
     }
+    else if (!strcmp(a, "--set")) next();   /* applied with the config file (main) */
+    else if (!strcmp(a, "--window")) {
+        const char *s = next();
+        if (sscanf(s, "%ux%u", &g_opt.windowW, &g_opt.windowH) != 2 || g_opt.windowW < 160 || g_opt.windowH < 120)
+            host_fatal("--window %s: WIDTHxHEIGHT, e.g. 1680x720", s);
+    } else if (!strcmp(a, "--wshot")) {
+        std::string s = next();
+        size_t p = 0;
+        while (p < s.size()) {
+            size_t q = s.find(',', p);
+            if (q == std::string::npos) q = s.size();
+            g_opt.wshots.push_back(num(s.substr(p, q - p).c_str()));
+            p = q + 1;
+        }
+        std::sort(g_opt.wshots.begin(), g_opt.wshots.end());
+    } else if (!strcmp(a, "--menu-shot")) g_opt.menuShot = std::max(1u, num(next()));
+    else if (!strcmp(a, "--menu-set")) g_opt.menuSets.push_back(next());
+    else if (!strcmp(a, "--texture-hashes")) g_hashFrame = num(next());
     else if (!strcmp(a, "--no-pace")) g_opt.pace = false;
     else if (!strcmp(a, "--scale")) g_opt.scale = std::max(1u, num(next()));
     else if (!strcmp(a, "--shot-dir")) g_opt.shotDir = next();
@@ -888,6 +1229,12 @@ void prestart(HostOpts *o) {
      * in desktop points, so the window looks as large as before */
     SDL_SetHint(SDL_HINT_WINDOWS_DPI_AWARENESS, "permonitorv2");
     SDL_SetHint(SDL_HINT_WINDOWS_DPI_SCALING, "1");
+    /* game controllers keep working when another window takes the focus (the
+     * Game Bar of the Xbox button, a notification): SDL's default drops their
+     * input until the window gets the focus back, which a controller-only
+     * player in fullscreen can't do (the keyboard stops too: it can't be
+     * helped; a controller button takes the focus back, pumpEvents) */
+    SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
     SDL_SetMainReady();
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_EVENTS) != 0)
         host_fatal("Can't start SDL (video, controllers): %s", SDL_GetError());
@@ -898,8 +1245,9 @@ void prestart(HostOpts *o) {
         while (scale > 1 && (320 * scale > unsigned(usable.w) || 240 * scale + 40 > unsigned(usable.h))) scale--;
     Uint32 flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI;
     if (g_opt.fullscreen) flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
-    g_window = SDL_CreateWindow(kTitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, int(320 * scale),
-                                int(240 * scale), flags);
+    const int winW = g_opt.windowW != 0 ? int(g_opt.windowW) : int(320 * scale);
+    const int winH = g_opt.windowH != 0 ? int(g_opt.windowH) : int(240 * scale);
+    g_window = SDL_CreateWindow(kTitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, winW, winH, flags);
     if (g_window == nullptr) host_fatal("Can't create the game window: %s", SDL_GetError());
     SDL_SetWindowMinimumSize(g_window, 320, 240);
     if (g_opt.fullscreen) SDL_ShowCursor(SDL_DISABLE);
@@ -907,7 +1255,7 @@ void prestart(HostOpts *o) {
     SDL_VERSION(&wm.version);
     if (!SDL_GetWindowWMInfo(g_window, &wm)) host_fatal("SDL_GetWindowWMInfo: %s", SDL_GetError());
     host_gui_window = wm.info.win.window;
-    openPad();
+    g_pads.scan();
 
     RT64::Application::Core core = {};
     core.window = wm.info.win.window;
@@ -946,10 +1294,10 @@ void prestart(HostOpts *o) {
     g_app = new RT64::Application(core, appConfig);
     g_app->userConfig.graphicsAPI =
         g_opt.vulkan ? RT64::UserConfiguration::GraphicsAPI::Vulkan : RT64::UserConfiguration::GraphicsAPI::D3D12;
-    if (g_opt.paceLog != nullptr) {
-        g_presentTimes = new double[kMaxPresents];
-        RT64::SetRenderHooks(nullptr, presentHook, nullptr);
-    }
+    configToRT64(g_app->userConfig);
+    if (g_opt.paceLog != nullptr) g_presentTimes = new double[kMaxPresents];
+    /* the present thread's hook: --pace-log's times, the settings menu */
+    RT64::SetRenderHooks(nullptr, drawHook, deinitHook);
     RT64::Application::SetupResult res = g_app->setup(GetCurrentThreadId());
     if (res != RT64::Application::SetupResult::Success || !g_app->device)
         host_fatal("The renderer (RT64) could not start with %s (setup result %d).\n\n"
@@ -958,6 +1306,17 @@ void prestart(HostOpts *o) {
                    g_opt.vulkan ? "Vulkan" : "Direct3D 12", int(res), g_opt.vulkan ? "d3d12" : "vulkan",
                    g_opt.vulkan ? "d3d12" : "vulkan");
     g_app->swapChain->setVsyncEnabled(g_opt.vsync);
+    live::MenuEnv menu;
+    menu.app = g_app;
+    menu.window = g_window;
+    menu.cfg = &g_cfg;
+    menu.changed = settingChanged;
+    menu.quit = [] { g_quitRequested = true; };
+    menu.status = rendererStatus;
+    menu.msaaSupported = msaaSupported;
+    menu.padNames = padNames;
+    menu.packStatus = [] { return g_packStatus; };
+    live::menuSetup(menu);
     host_crash_rearm();   /* in case the renderer or a driver installed its own filter */
     int ww, wh, pw, ph;
     SDL_GetWindowSize(g_window, &ww, &wh);
@@ -965,6 +1324,15 @@ void prestart(HostOpts *o) {
     host_log("live: RT64 up (%s), window %dx%d (%dx%d pixels)%s, vsync %s, display %u Hz\n",
              g_opt.vulkan ? "Vulkan" : "D3D12", ww, wh, pw, ph, g_opt.fullscreen ? " fullscreen" : "",
              g_opt.vsync ? "on" : "off", displayHz());
+    if (g_cfg.resolution != 0 || g_cfg.msaa != 0 || g_cfg.filtering != 0 || g_cfg.aspect != 0 ||
+        g_app->userConfig.msaaSampleCount() > 1)
+        host_log("live: video: resolution %s, MSAA %ux%s, filtering %s, aspect %s\n",
+                 live::configValue(g_cfg, {"video", "resolution"}).c_str(), g_app->userConfig.msaaSampleCount(),
+                 g_cfg.msaa > 1 && g_app->userConfig.msaaSampleCount() < 2 ? " (not supported here)" : "",
+                 live::configValue(g_cfg, {"video", "filtering"}).c_str(),
+                 live::configValue(g_cfg, {"video", "aspect"}).c_str());
+    updateCullWide();
+    applyTexturePack();
     o->live = &kLive;
 }
 
@@ -1119,6 +1487,18 @@ int main(int, char **) {
     }
     if (noConfig) live::configDefaults(g_cfg);
     else live::configLoad(g_cfg, configFile);
+    /* --set section.key=value: a setting for this run (over bc.ini; not saved);
+     * --resolution X etc. are short for --set video.resolution=X */
+    for (int i = 1; i + 1 < argc; i++) {
+        std::string spec;
+        if (args[i] == "--set") spec = args[i + 1];
+        for (const auto &alias : kSetAliases)
+            if (args[i] == alias.first) spec = std::string(alias.second) + "=" + args[i + 1];
+        if (spec.empty()) continue;
+        if (args[i] == "--texture-pack") g_cfg.texturePackOn = true;
+        i++;
+        if (!live::configSet(g_cfg, spec) && host_no_msgbox) host_fatal("%s", g_cfg.warnings.back().c_str());
+    }
     host_exit_hook = writePaceLog;
     host_opts_hook = optsHook;
     host_rom_hook = romHook;

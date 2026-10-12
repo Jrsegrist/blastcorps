@@ -27,7 +27,7 @@ the files of this folder kept together (bc.exe, SDL2.dll, dxcompiler.dll, dxil.d
 The folder must be writable (settings, saves and the log are kept here).
 
 
-Controls (default; change them in bc.ini)
+Controls (default; change them in the settings menu or bc.ini)
 ------------------------------------------
   N64            Keyboard            Game controller (XInput/Xbox and others)
   Analog stick   Arrow keys          Left stick
@@ -39,35 +39,58 @@ Controls (default; change them in bc.ini)
   C buttons      I J K L             Right stick
   D-pad          T F G H             D-pad
 
-  F1            shows the keys in the window title (F1 again hides them)
+  F1            settings menu (also Back+Start on a game controller)
   Alt+Enter, F11  fullscreen on/off
   M             sound off/on;   - and =  volume down/up
-  Esc           quit
+  Esc           quit (in the settings menu: back to the game)
 
 The keyboard stick is digital (full tilt); a game controller's stick is analog.
+
+
+Settings menu
+-------------
+F1 (or Back+Start on a game controller) opens the settings menu over the game, which
+waits while it is open. It works with the mouse, the keyboard (arrows, Enter) or a
+game controller (D-pad, A, B). Changes apply at once and are written to bc.ini when
+the menu closes (Esc, F1 or "Back to the game"). The graphics API changes on the
+next start.
 
 
 Settings: bc.ini
 ----------------
 bc.ini is created next to bc.exe on the first start, with every setting explained in
-it. Edit it with Notepad while the game is closed. It holds:
+it. The settings menu writes it too; you can also edit it with Notepad while the
+game is closed. It holds:
   [game]       rom (the ROM's path), saves (the saves folder), controller_pak (0/1)
   [video]      api (d3d12 or vulkan), scale (window size 320x240 times this),
-               fullscreen, vsync
+               fullscreen, vsync; optional enhancements (off by default):
+               resolution (internal resolution: window, 1 = the N64's, 2, 3, 4 ...),
+               msaa (0, 2, 4, 8), filtering (aa, linear, nearest),
+               aspect (original = 4:3, 16:9, 16:10, 21:9, window: widescreen),
+               texture_pack (an RT64 texture pack folder or .rtz) and
+               texture_pack_enabled (0/1)
   [audio]      volume, mute
   [keyboard]   one line per N64 button: SDL key names, several separated by commas
-  [controller] the same for a game controller, plus which stick is the analog stick
-               and its dead zone
+  [controller] the same for a game controller, plus which stick is the analog stick,
+               its dead zone and sensitivity, which controller plays (pad = 1, 2 ...
+               or any) and the buttons that open the settings menu
 Delete bc.ini to get the defaults back. If a line isn't understood, the game says so
 when it starts and uses the default for it.
 
-The window can be resized freely; the picture keeps the N64's 4:3 shape.
+The window can be resized freely; the picture keeps the N64's 4:3 shape unless
+widescreen is on (aspect): then the 3D world fills the wider picture, nothing is
+stretched, and the HUD, menus and other 2D pictures stay 4:3 in the middle. With
+widescreen the game also treats the wider view as visible (which parts of the level
+it draws), so it can play out slightly differently from the N64.
 
 Command-line options (for shortcuts or a .bat file) override bc.ini, for example:
   bc.exe "D:\ROMs\Blast Corps (USA) (Rev 1).z64"   use this ROM (not remembered)
   bc.exe --api vulkan          bc.exe --fullscreen      bc.exe --no-vsync
   bc.exe --mute                bc.exe --volume 50       bc.exe --scale 4
   bc.exe --saves D:\BCsaves    bc.exe --config other.ini   bc.exe --no-pak
+  bc.exe --set audio.volume=50   (any bc.ini setting as section.key=value, this run only)
+  bc.exe --resolution 4        bc.exe --msaa 4          bc.exe --filtering nearest
+  bc.exe --aspect 16:9         bc.exe --texture-pack D:\packs\mypack
 
 
 Saves
@@ -110,6 +133,10 @@ user name) next to bc.log; please include both. Both can be deleted afterwards.
   together.
 - No sound: check the volume keys (- and =) and M; the log says which sound device
   was opened.
+- The keyboard stops working: another window took the focus (for example the Xbox
+  button's Game Bar, or a notification). Game controllers keep working; in
+  fullscreen a controller button brings the game back to the front, otherwise click
+  the game's window. bc.log records focus changes and controllers coming and going.
 
 
 Known issues
@@ -119,8 +146,8 @@ Known issues
 - Some rare differences from the N64 remain under investigation (see the project's
   notes): a few vertex values in two attract demos, and when exactly a sound starts
   (by one audio frame) compared with the console.
-- No frame interpolation, widescreen or texture packs yet (planned as options; the
-  default will stay the original behaviour).
+- No frame interpolation yet (planned as an option; the default will stay the
+  original behaviour).
 - The analog stick from the keyboard is all-or-nothing.
 
 

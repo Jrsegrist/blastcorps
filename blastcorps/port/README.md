@@ -347,7 +347,7 @@ and the other bc_headless options work as there.
 
 Keys: arrows = stick, X = A, C = B, Z or Space = Z, Enter = START, A/S =
 L/R, I J K L = C buttons, T F G H = D-pad, M = sound on/off, - and = =
-volume, Esc quits; an SDL game controller
+volume, F1 = settings menu, Esc quits; an SDL game controller
 (XInput pads etc.) maps the same way (left stick, A, B/X, triggers = Z,
 Start, shoulders, right stick = C buttons, D-pad). `--input FILE` replays a
 recording instead.
@@ -545,8 +545,126 @@ it without a fault.  The x64-asan preset is the tool for this now.
   `--eeprom`/`--mpk`/`--saves`: bc.exe then runs exactly like bc_headless
   with the same options.  Tests and comparisons should pass it (with a ROM
   argument), so a developer's bc.ini can't change what they measure.
-- Keys: F1 puts the bindings in the window title, Alt+Enter / F11 switch
-  fullscreen (desktop resolution; RT64 keeps 4:3), the window is resizable.
+- Keys: Alt+Enter / F11 switch fullscreen (desktop resolution; RT64 keeps
+  4:3), the window is resizable; F1 (`menu` in `[keyboard]`) or Back+Start
+  (`menu` in `[controller]`) opens the settings menu.
+- **`--set section.key=value`** (repeatable): a bc.ini setting for this run
+  only, over the file or `--no-config`'s defaults (e.g. `--set
+  audio.volume=50`); a bad one is listed with the file's warnings (fatal
+  with `--no-msgbox`).
+- **The settings menu** (`src/live/live_menu.cpp`): an overlay drawn with
+  Dear ImGui, which RT64 bundles (MIT): RT64's `Inspector` class sets ImGui
+  up for the device and swap chain RT64 made (D3D12 or Vulkan backend, SDL2
+  input), the menu builds a frame on the main thread and RT64's present
+  thread draws it over the picture from the render hook (`RT64::
+  SetRenderHooks`, the draw hook).  Nothing of it exists until the menu is
+  first opened, and the hook draws nothing while it is closed.  While it is
+  open the game waits inside the retrace hook (`liveVi`): RT64's own pause
+  (`state->debuggerInspector.paused`, its debugger's) re-renders the last
+  frame's work and presents it at each `updateScreen`, ~60 times a second,
+  so video settings show at once; the game's virtual clock doesn't move
+  (same per-frame trace), the pacing starts over afterwards, and the keys
+  and buttons held when it closed don't reach the game until each is let go
+  (`live::InputGate`: per input, the stick until it is back in its dead
+  zone, at most one second, so nothing stuck can keep input blocked; new
+  inputs pass at once).  It works with the
+  mouse, keyboard (arrows, Enter, Esc) and a controller (ImGui's gamepad
+  navigation), and runs in the swap chain's pixels (bc.exe is DPI aware;
+  ImGui's D3D12 backend ignores the framebuffer scale).  Each change is
+  applied at once (`settingChanged`: fullscreen, window size, vsync, volume,
+  mute; the graphics API on the next start) and the settings changed are
+  written to bc.ini when it closes (`configSave`: only their lines are
+  rewritten, or added to their section; comments and everything else stay;
+  nothing with `--no-config`).  Testing: `--menu-shot F` opens it at frame
+  F, saves a picture of the window and closes it, `--menu-set S.K=V`
+  changes settings in it as a player would; `--wshot F,..` saves the
+  window's picture (PrintWindow with PW_RENDERFULLCONTENT, after RT64
+  presented: RT64's output at the window's size, unlike `--shot`'s 320x240
+  RDRAM picture) and `--window WxH` sets the window's size.
+- **Optional enhancements** (all off by default: with the defaults bc.exe
+  renders exactly as before, and none of them changes the game logic or its
+  per-frame trace, except widescreen's visibility test, below).  `[video]`:
+  - `resolution` (`--resolution`): `window` (the default: RT64's
+    WindowIntegerScale, the whole multiple of 240 lines that covers the
+    swap chain, what bc.exe always used), `1` (the N64's 320x240,
+    `Resolution::Original`) or `N` (`Manual`, N times 320x240; higher than
+    the window = supersampled).  `msaa` (`--msaa`): 0 (default), 2, 4, 8
+    (RT64 needs programmable sample positions; the menu offers what the
+    device supports).  `filtering` (`--filtering`): `aa` (RT64's
+    anti-aliased pixel scaling, the default), `linear`, `nearest`: how the
+    finished picture is scaled to the window.  Applied before RT64 starts
+    (`configToRT64`) and live from the menu (`updateUserConfig`, and
+    `updateMultisampling` for a new sample count, as RT64's own inspector
+    does).  At high resolutions some seams between the level's ground
+    polygons show (the N64's rasteriser hides them at 240 lines).
+  - `aspect` (`--aspect`): `original` (4:3, the default), `16:9`, `16:10`,
+    `21:9`, any `W:H` up to 4:1, or `window` (as wide as the window).
+    RT64's own widescreen (`userConfig.aspectRatio` Manual + `aspectTarget`,
+    or Expand): every projection whose viewport covers the whole width gets
+    a wider viewport and its x scale narrowed to match
+    (`rt64_projection_processor.cpp`, perspective and orthographic), so the
+    3D view widens without stretching; 2D rectangles and partial-width views
+    keep their 4:3 shape in the middle (the HUD, text, the radar, the
+    front end's pictures: pillarboxed); full-width fill rectangles stretch.
+    No game code changes: the game still builds its 4:3 perspective
+    (00000.c func_8024C414 `guPerspective(..., D_80364438, 4/3, ...)`, the
+    front-end screens likewise).  The game's CPU-side visibility test
+    (func_802A4B0C via 00000.c func_8024B8F4, which uses that projection)
+    decides which level cells, and the buildings and objects on them, are
+    drawn, so it must widen with the view: `host_cull_wide` (os_hw.c) makes
+    `cull_visible` accept |x| <= k w with k = the aspect / (4/3) (from the
+    window's size with `window`, updated on resize), else cells at the
+    edges would pop in.  1.0 (4:3) runs the exact model; with widescreen on
+    the game sees more cells visible, so it can in principle play out
+    differently from the N64 (it's an option); measured: at 21:9 the
+    per-frame trace (retrace, time, mode, level, frames in mode, game
+    retrace counter) is the same as with 4:3 in all 60 levels (1900 frames).  bc_headless `--cull-wide K` runs the same;
+    checked against an independent model of the K-times-wider frustum over
+    every test of levels 0, 13, 30 (1187 tests, K = 1, 4/3, 1.75: all
+    agree; at 1.75, 184 tests turn visible only through the wider view).
+    Limits (widescreen): markers that point at off-screen targets (30C70.c) still use
+    the 4:3 edges; the HUD is centred, not anchored to the screen edges
+    (that would need RT64's extended GBI origins in the game's lists).
+  - `texture_pack` (`--texture-pack`, which also enables it) and
+    `texture_pack_enabled` (default 0): an RT64 texture pack (a folder with
+    `rt64.json`, or an `.rtz`; RT64's TEXTURE-PACKS.md) through RT64's
+    `TextureCache::loadReplacementDirectory`; off = `clearReplacementDirectories`.
+    Live from the menu (the main thread, which submits textures, as RT64
+    requires).  `--texture-hashes F` logs the RT64 hashes (version 5) of the
+    textures loaded at frame F, for pack makers.  Checked with a synthetic
+    pack (every texture of level 0 replaced by a checkerboard, by
+    `rt64.json` entries with auto-path `rt64`): replaced from the command line
+    and when switched on in the menu, back to the originals when switched
+    off.  No Blast Corps pack exists to try; the port's RDRAM keeps textures
+    as big-endian bytes and RT64_NATIVE_HOST_LAYOUT loads TMEM without the
+    XOR, so TMEM (and the hashes) should be the emulator's, but that is not
+    checked against a pack made under an emulator.
+  - Controls (`[keyboard]`, `[controller]`): the menu's Controls tab remaps
+    every binding (click it, press the key, controller button, stick or
+    trigger; Backspace clears; the menu's own controller buttons are a
+    combination held together), sets the analog stick (left/right/none),
+    its dead zone and `sensitivity` (percent of the N64's full range at full
+    tilt; 100 = before), picks the controller (`pad = 1` the first one found,
+    the default, `N`, or `any` = all at once) and resets to the defaults.
+    Every SDL game controller is opened (`src/live/live_input.cpp`,
+    `live::PadSet`): on SDL's device events and once a second, detached ones
+    are closed and new ones opened, so a controller that drops out and
+    reconnects (a new SDL instance id) plays again as `pad = 1`.
+    Controllers keep working when the window loses the focus
+    (`SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS`: SDL's default drops their
+    input then, and with the keyboard also gone a player in fullscreen had
+    no input at all after an unseen focus steal, e.g. the Xbox button's Game
+    Bar); in fullscreen a controller button pressed while unfocused also
+    raises the window to get the keyboard back.  bc.log records controllers
+    added/removed (name, SDL id, frame), focus lost/gained,
+    minimise/restore, the menu opening/closing and the input gate
+    closing/opening (with what held it).  `bc_inputtest.exe` (built with
+    bc.exe; SDL virtual controllers, no window or ROM) tests the pad
+    mapping, the menu combination, the gate (held, released, stuck) and
+    unplug/replug with `pad = 1`, `2` and `any`.  The game is
+    one-player: the platform reports only controller 1 (with the Controller
+    Pak); the ROM has no Rumble Pak code (no osMotor calls), so there is
+    nothing to map for rumble or other pads.
 - Pacing: each retrace's picture is handed to RT64 when its virtual time is
   due (60 per second of real time, QueryPerformanceCounter, 1 ms timer
   resolution), *before* the game works on the next retrace, so the hand-overs

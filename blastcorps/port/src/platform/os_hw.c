@@ -326,6 +326,11 @@ static int cull_clip(double (*p)[4], int n, int plane, double (*out)[4]) {
     return m;
 }
 
+/* bc.exe's widescreen (an option, plat_host.h): the renderer shows k times
+ * the 4:3 view's width, so the test accepts |x| <= k w (x / k against the
+ * original planes).  1: the exact model above. */
+double host_cull_wide = 1.0;
+
 static int cull_visible(const u32 *dl, u32 size) {
     double mv[4][4], pr[4][4], c[16][4];
     u32 seg[16] = {0};
@@ -358,6 +363,7 @@ static int cull_visible(const u32 *dl, u32 size) {
                     const Vtx *v = (const Vtx *) p + j;
                     double x = v->v.ob[0], y = v->v.ob[1], z = v->v.ob[2];
                     for (k = 0; k < 4; k++) c[v0 + j][k] = x * mvp[0][k] + y * mvp[1][k] + z * mvp[2][k] + mvp[3][k];
+                    if (host_cull_wide != 1.0) c[v0 + j][0] /= host_cull_wide;
                 }
                 break;
             }

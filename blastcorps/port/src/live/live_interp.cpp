@@ -166,7 +166,13 @@ uint32_t ownerId(const Owner &o, uint32_t ordinal) {
     return h;
 }
 
+unsigned g_test;   /* --tag-test (experiments): 1 no vertex interpolation, 2 HUD auto, 4 no decompose,
+                      8 ORDER_AUTO, 16 IDs auto (wrapping and tags only) */
+
 void apply(RT64::State *state, uint32_t id, uint8_t vpos) {
+    if (g_test & 1) vpos = G_EX_COMPONENT_SKIP;
+    if ((g_test & 2) && id == G_EX_ID_IGNORE) id = G_EX_ID_AUTO;
+    if (g_test & 16) id = G_EX_ID_AUTO;
     if (id == g_applied && vpos == g_appliedVpos) return;
     g_applied = id;
     g_appliedVpos = vpos;
@@ -183,10 +189,11 @@ void apply(RT64::State *state, uint32_t id, uint8_t vpos) {
                      G_EX_COMPONENT_SKIP, G_EX_COMPONENT_SKIP, G_EX_ORDER_LINEAR, G_EX_ASPECT_AUTO, G_EX_EDIT_NONE,
                      false, false);
     } else {
-        rsp.matrixId(id, false, false, true, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE,
+        rsp.matrixId(id, false, false, !(g_test & 4), G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE,
                      G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, vpos,
-                     G_EX_COMPONENT_SKIP, G_EX_COMPONENT_AUTO, G_EX_COMPONENT_AUTO, G_EX_ORDER_LINEAR,
-                     G_EX_ASPECT_AUTO, G_EX_EDIT_NONE, false, false);
+                     G_EX_COMPONENT_SKIP, G_EX_COMPONENT_AUTO, G_EX_COMPONENT_AUTO,
+                     (g_test & 8) ? G_EX_ORDER_AUTO : G_EX_ORDER_LINEAR, G_EX_ASPECT_AUTO, G_EX_EDIT_NONE, false,
+                     false);
     }
 }
 
@@ -371,6 +378,10 @@ bool interpTagsOn() {
 
 void interpTagsSetLog(bool on) {
     g_log = on;
+}
+
+void interpTagsSetTest(unsigned mask) {
+    g_test = mask;
 }
 
 void interpTagsBeforeTask(unsigned dl, bool mainFrame) {

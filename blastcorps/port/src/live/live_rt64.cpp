@@ -53,6 +53,8 @@
  *     --fps-counter M   the frame-rate counter: off (default), on, detailed (F2 switches it)
  *     --interp-log      log every frame's camera motion (the interpolation cut test) and
  *                       tagged objects that jumped
+ *     --tag-test MASK   (testing) tagged interpolation experiments: 1 no vertex blending, 2 HUD
+ *                       matched like the rest, 4 no decomposition, 8 ORDER_AUTO, 16 every ID auto
  *     --display-hz N    (testing) tell RT64 the display runs at N Hz (its cap on --framerate)
  *     --wseq F:MS       (testing) from frame F, every new picture the window shows for MS ms
  *                       (seq_F_NN.png + seq_F.txt with the times, in --shot-dir)
@@ -1560,6 +1562,7 @@ int extraArg(int argc, char **argv, int *i, HostOpts *o) {
     else if (!strcmp(a, "--texture-hashes")) g_hashFrame = num(next());
     else if (!strcmp(a, "--display-hz")) g_interp.displayHz = std::max(1u, num(next()));
     else if (!strcmp(a, "--interp-log")) g_interp.log = true;
+    else if (!strcmp(a, "--tag-test")) live::interpTagsSetTest(num(next()));
     else if (!strcmp(a, "--wseq")) {
         const char *s = next();
         if (sscanf(s, "%u:%u", &g_wseq.frame, &g_wseq.ms) != 2) host_fatal("--wseq %s: FRAME:MILLISECONDS", s);

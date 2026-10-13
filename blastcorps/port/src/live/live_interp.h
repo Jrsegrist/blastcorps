@@ -24,6 +24,8 @@ void interpTagsAfterTask(bool mainFrame);
 bool interpTagsTakeCut();
 /* --interp-log: log jumps (a tagged object that teleported) and per-frame counts */
 void interpTagsSetLog(bool on);
+/* --tag-test MASK (experiments; see live_interp.cpp g_test) */
+void interpTagsSetTest(unsigned mask);
 /* one line for the log at exit (tag counts, time spent) */
 void interpTagsSummary();
 

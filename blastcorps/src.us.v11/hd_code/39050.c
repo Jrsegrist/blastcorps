@@ -1065,7 +1065,7 @@ void func_8028273C(Gfx **gfx, u8 arg1) {
     s32 i;
 
     gdl = *gfx;
-    if (D_803643D6 != 0) {
+    if (gCarrierHit != 0) {
         if (D_803EF6FF != 0 && D_8036E4D3 == 0) {
             D_8036E4D3 = 1;
             D_8036E5D8[0] = 0.001f;

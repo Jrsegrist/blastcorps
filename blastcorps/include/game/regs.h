@@ -117,7 +117,7 @@ typedef struct {
     /* 0x8 */ u8 *s4;  /* in/out: last cache pair looked at (only set when a G_SETTIMG was seen) */
 } Unk802A08E4Regs;
 
-/* Register results of func_802A396C its asm callers read (5CB60.c). */
+/* Register results of lvl_load_model its asm callers read (5CB60.c). */
 typedef struct {
     /* 0x0 */ u8 *s2; /* the loaded data (old heap pointer) */
     /* 0x4 */ u8 *s4; /* func_802A08E4's s4 (in: the ROM start) */

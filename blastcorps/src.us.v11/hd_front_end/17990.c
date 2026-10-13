@@ -147,8 +147,8 @@ void func_801FE990(void) {
                             gNextGameMode = 0x40;
                             break;
                         case 2:
-                            if (!(((s32) D_80364AA8) & 0x81)) {
-                                if (((s32) D_80364AA8) == 2 && gGameMode == 0x8000000) {
+                            if (!(((s32) gLevelKind) & 0x81)) {
+                                if (((s32) gLevelKind) == 2 && gGameMode == 0x8000000) {
                                     D_8039CA60 = 1;
                                 }
                                 gNextGameMode = 0x20000000;

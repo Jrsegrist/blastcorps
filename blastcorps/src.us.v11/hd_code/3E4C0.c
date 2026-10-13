@@ -162,7 +162,7 @@ void func_8028376C(Gfx **gfxp, Mtx *mtx, u8 idx, s32 x, s32 z, s32 x2, s32 z2) {
         shift = 15;
         scale = 4800;
     }
-    if (D_803643DB == 0) {
+    if (gHaveCarrier == 0) {
         shift = 10;
         scale = 1200;
     }
@@ -224,7 +224,7 @@ void func_8028376C(Gfx **gfxp, Mtx *mtx, u8 idx, s32 x, s32 z, s32 x2, s32 z2) {
     gDPSetCycleType(gfx++, G_CYC_1CYCLE);
     gDPSetCombine(gfx++, 0xFFFFFF, 0xFFFE773B);
     gDPSetPrimColor(gfx++, 0, 0, 0, 0, 0, D_80367BD6);
-    if (D_803643DB != 0) {
+    if (gHaveCarrier != 0) {
         gDPSetRenderMode(gfx++, 0x005041C8, 0);
         if ((D_803156C4 % 40 > 20 || shift != 10) && sx >= 0x22 && sx < 0x53 && sy >= 0xAB && sy < 0xDC) {
             gSPVertex(gfx++, osVirtualToPhysical(D_802FD830[idx]), 4, 0);
@@ -253,7 +253,7 @@ void func_8028376C(Gfx **gfxp, Mtx *mtx, u8 idx, s32 x, s32 z, s32 x2, s32 z2) {
     gSP1Triangle(gfx++, 0, 1, 2, 0);
     gSP1Triangle(gfx++, 0, 2, 3, 0);
     gSPPopMatrix(gfx++, G_MTX_MODELVIEW);
-    if (D_803643DB != 0) {
+    if (gHaveCarrier != 0) {
         gSPTexture(gfx++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
         gDPPipeSync(gfx++);
         gDPSetCycleType(gfx++, G_CYC_1CYCLE);

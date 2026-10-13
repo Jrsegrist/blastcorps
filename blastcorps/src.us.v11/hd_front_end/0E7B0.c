@@ -9,7 +9,7 @@
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_8020C070 ((MenuItem *) D_8020C070)
-#define D_802E8F94 ((LevelInfo *) D_802E8F94)
+#define gLevelInfo ((LevelInfo *) gLevelInfo)
 #define D_802F8BDC ((s16 *) D_802F8BDC)
 #define gMainThread ((u8 *) &gMainThread)
 #define gScheduler ((u8 *) &gScheduler)
@@ -822,7 +822,7 @@ s32 func_801F6CA4(u8 player, u8 nlevels, u8 rw) {
     ret = 0;
     count = 0;
     for (i = 0; i < nlevels; i++) {
-        if (D_802E8F94[i].type == 1 && i != 0x31 && i != 0x2F && i != 0x26) {
+        if (gLevelInfo[i].type == 1 && i != 0x31 && i != 0x2F && i != 0x26) {
             count++;
         }
     }

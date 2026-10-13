@@ -179,7 +179,7 @@ is a sentinel. On top of that you can set:
 * `--mem TARGET[:SIZE]=FILL` sets memory contents. TARGET is `SYM`, `SYM+0x10`, a raw address, or relative to an argument or heap block: `@a0`, `@a0+0x40`, `@heap1+0x10` (see below). Symbols resolve separately in each build. An unknown symbol is an error naming the symbol and the build.
 * **Sizing.** Without `:SIZE` a value fill writes a word (4 bytes). For `--mem SYM=...` (no offset) whose ELF symbol has a size of 1 or 2 (C-defined `u8`/`s16` globals) the write is sized from the symbol, with a `note:`. Absolute `D_` symbols from `undefined_syms*.txt` have no size; then, if the next symbol starts less than 4 bytes after the target, you get a `warning:` and should write `SYM:1=` or `SYM:2=` yourself. A word written over a byte global silently clobbers its neighbours.
 * `--mem TARGET*STRIDE:COUNT[/W]=FILL` fills the same W-byte field (default 4) in COUNT records STRIDE bytes apart, each record drawn separately: `--mem D_803FB8B8+8*0x14:25/2=choice:0,0x7FFF` sets the halfword at +8 of all 25 entries of a 0x14-byte table.
-* `--heap SIZE[=FILL]` allocates a scratch-heap block without putting its address in any register (FILL defaults to `rand`; `zero`, `words:..` etc. work). Use it for memory reached only through a global or a field: `--heap 0x300 --mem D_80358074=rel:heap0`. `--heap` blocks are numbered first (`heap0`, `heap1`, ...), before `--arg ptr` blocks.
+* `--heap SIZE[=FILL]` allocates a scratch-heap block without putting its address in any register (FILL defaults to `rand`; `zero`, `words:..` etc. work). Use it for memory reached only through a global or a field: `--heap 0x300 --mem gLevelData=rel:heap0`. `--heap` blocks are numbered first (`heap0`, `heap1`, ...), before `--arg ptr` blocks.
 
 | SPEC / FILL | meaning |
 |---|---|
@@ -221,7 +221,7 @@ Scratch-heap blocks are numbered in allocation order: `heap0`, `heap1`, ...
   BASE is an `--arg` register, `heap`/`heapN`, a symbol (`NAME` or `sym:NAME`), or a number. Each
   `+TERM` is a constant (`+0x10`, `+-4`), any value spec (`+choice:0,0x60,0x5A0`),
   or `K*SPEC`, K times a random value (`+0x60*int:0:16`, `+0x14*choice:0,24`).
-  The same works as a `--mem` fill, which stores a pointer: `--mem D_80358074=rel:heap0+0x20`.
+  The same works as a `--mem` fill, which stores a pointer: `--mem gLevelData=rel:heap0+0x20`.
 
 > **`rel:SYM+k` is SYM's ADDRESS plus k, never the value stored at SYM.**
 > `--mem D_X=rel:D_Y+1` stores `&D_Y + 1` (a pointer), not `D_Y + 1`. A
@@ -234,7 +234,7 @@ Scratch-heap blocks are numbered in allocation order: `heap0`, `heap1`, ...
 # a1 = a0 + 0..16 records of 0x60 bytes, inside a 0x600-byte block
 eqcheck.py func_802CEA68 --arg a0=ptr:0x600 --arg a1=rel:a0+0x60*int:0:16 --ret void
 # a global pointing at a heap block, and fields inside that block
-eqcheck.py func_802C1EE0 --arg a0=int:1:20 --mem D_80358074=ptr:0x300 \
+eqcheck.py func_802C1EE0 --arg a0=int:1:20 --mem gLevelData=ptr:0x300 \
     --mem @heap0+0x74=choice:0x100*2,0x102,0 --mem @heap0+0x100:0x200=halves:4,6,8,0x10
 ```
 

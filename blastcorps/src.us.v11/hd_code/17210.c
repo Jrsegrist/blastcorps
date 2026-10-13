@@ -29,7 +29,7 @@ extern u16 D_802E8CB0[]; /* sprite ids (func_80272C5C) */
 
 #define ASSERT(EX, line) if (!(EX)) debug_printf("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "recording.c", line)
 
-void func_8025B9D0(s32 arg0, s32 *arg1) {
+void rec_start_playback(s32 arg0, s32 *arg1) {
     s32 i;
     u8 *rom;
     s32 size;
@@ -76,7 +76,7 @@ void func_8025BB50(void) {
     D_803669A0 = D_803669AC[D_80366994].count;
 }
 
-void func_8025BBE8(u16 buttons, s8 x, s8 y) {
+void rec_record(u16 buttons, s8 x, s8 y) {
     if (D_803669A8 == 0) {
         if (buttons != D_803669A4 || x != D_803669A6 || y != D_803669A7 || D_8036699C == 0xFF || gNextGameMode != 0) {
             if (D_80366990 < 0x400) {
@@ -145,10 +145,10 @@ void func_8025BD98(void) {
     D_803669B4 = 0;
 }
 
-void func_8025BEF8(void) {
+void rec_next(void) {
     s32 pad[2];
 
-    if (D_80366994 > D_80366998 || (D_803643DB && D_803643D6 && (gGameMode & 0x440))) {
+    if (D_80366994 > D_80366998 || (gHaveCarrier && gCarrierHit && (gGameMode & 0x440))) {
         if (yoshiState != 1 || ((gGameMode & 0x440) && !D_80364A50)) {
             if (!gPaused) {
                 gPauseRequest = 1;

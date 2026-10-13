@@ -273,7 +273,7 @@ void func_802688C4(s32 path) {
                                    D_802F3C48[pts[3]].y << 5, t, t2, t3);
         D_8036B8BC = func_80268D84(D_802F3C48[pts[0]].z << 5, D_802F3C48[pts[1]].z << 5, D_802F3C48[pts[2]].z << 5,
                                    D_802F3C48[pts[3]].z << 5, t, t2, t3);
-        if (!D_803643D7 && !D_803643D6 && !areWeFading()) {
+        if (!gLevelDone && !gCarrierHit && !areWeFading()) {
             D_8036B908 += D_802F3C24[D_8036B8C0].unk8 *
                           ((D_802F3C48[pts[2]].speed - D_802F3C48[pts[1]].speed) * t + D_802F3C48[pts[1]].speed);
         }
@@ -452,7 +452,7 @@ void func_80269258(void) {
         D_803FCD4C = D_802F41E8[D_8036B955].unkE << 5;
     }
     D_803FCD70 = 0;
-    if (!D_803643D7 && !D_803643D6 && !areWeFading()) {
+    if (!gLevelDone && !gCarrierHit && !areWeFading()) {
         D_8036B950 += D_802F41E8[D_8036B955].unk10 *
                       ((D_802F4224[pts[2]].speed - D_802F4224[pts[1]].speed) * t + D_802F4224[pts[1]].speed);
     }
@@ -476,7 +476,7 @@ void func_80269258(void) {
                     if (D_803FCD75 == 1) {
                         func_80275270(0x200000000000, 0.5f);
                     } else {
-                        D_803643DA = 1;
+                        gLevelDoneRequest = 1;
                         gPauseRequest = 1;
                     }
                     break;
@@ -490,7 +490,7 @@ void func_80269258(void) {
             case 0:
                 break;
             case 1:
-                if (((s32) D_80364AA8) == 0x80) {
+                if (((s32) gLevelKind) == 0x80) {
                     D_8036B95C = 1;
                 } else {
                     func_802C1DD0(0);

@@ -37,7 +37,7 @@ extern u8 D_802C236C[];  /* its func_802A06B4 entry key */
 void func_802BA074(void);
 s32 func_802BABEC(MtxChainRegs *regs);
 
-/* Level setup of the type-0xFF object (asm caller func_802A303C): model
+/* Level setup of the type-0xFF object (asm caller lvl_spawn_carrier): model
  * header -> D_803EF70C, two 0xC00-byte matrix buffers from gHeapPtr
  * (D_803EF704 / D_803EF708; the allocator advances by 0x1800),
  * veh_add_record(0xFF, 0, buffers, model); position x/z (and the start point
@@ -270,7 +270,7 @@ void func_802BA91C(void);
 /* Per-frame update of the type-0xFF object D_803EF630 (called from hd.c's
  * hd_game_frame and from func_802B9C50): zone lookup (func_802BA104), the
  * distance flags (func_802BA5A4); then, while byte +0x9A is clear, the engine
- * sound/animation (func_802BA6AC), skipping the movement when D_803643D6 or
+ * sound/animation (func_802BA6AC), skipping the movement when gCarrierHit or
  * gPaused is set. Movement: the zone value scan (func_802BA638, which may
  * set the target speed D_803EF6FC); the speed (s16 +0x76) rises by 8 towards
  * D_803EF6FC (never above it) when below it; func_802BAD24; the drive step
@@ -315,7 +315,7 @@ void func_802BA354(void) {
     func_802BA5A4();
     if ((s8) D_803EF630[0x9A] == 0) {
         func_802BA6AC();
-        if ((s8) D_803643D6 != 0 || (s8) gPaused != 0) {
+        if ((s8) gCarrierHit != 0 || (s8) gPaused != 0) {
             goto animate;
         }
     }
@@ -509,7 +509,7 @@ s32 func_802BA6AC(void) {
 
 /* Distance (func_802ABCDC, y = 0) from (D_803EF6DC, D_803EF6E4) to
  * (D_803EF6F4, D_803EF6F8); when it is >= D_803EF6F0 (signed) sets
- * D_803643DA and gPauseRequest to 1. The asm leaves the distance in s1 and
+ * gLevelDoneRequest and gPauseRequest to 1. The asm leaves the distance in s1 and
  * D_803EF6F8 in s0 (conventions.txt: clobbers s0, s1); asm caller
  * func_802BA354 keeps a2, a3, f12, f14 live (a mixed N64 build would need a
  * thunk; the native port won't). */
@@ -517,7 +517,7 @@ void func_802BA91C(void) {
     s32 dist = func_802ABCDC(D_803EF6DC, 0, D_803EF6E4, D_803EF6F4, 0, D_803EF6F8);
 
     if (dist >= D_803EF6F0) {
-        D_803643DA = 1;
+        gLevelDoneRequest = 1;
         gPauseRequest = 1;
     }
 }
@@ -536,7 +536,7 @@ extern u8 D_803EF701;   /* effect started */
 #define ABS_BA9A0(v) ((v) < 0 ? -(v) : (v))
 
 /* Collision/effect step of the type-0xFF object (D_803EF630, the asm's $gp).
- * Unless D_803643D6 is set: func_8029A800((x, y, z) = D_803EF6DC/E0/E4, table
+ * Unless gCarrierHit is set: func_8029A800((x, y, z) = D_803EF6DC/E0/E4, table
  * D_80305D60, 0, 0, b0, speed (s16 +0x76), h2, 0, 0xFF), func_8029C52C(0xFF, D_803EF630);
  * then, unless D_803A7426 is set, D_803A7424 = 0, func_8029AA10(0xFF) when
  * D_803EF710 is set and func_802BE77C(0xFF, veh) (with D_803F77D0 =
@@ -549,7 +549,7 @@ extern u8 D_803EF701;   /* effect started */
  * func_802A6274 record (def D_802C3B44, data 0x7A120, type 1 at (0xFF, 2, 0))
  * and sets D_803EF701, and later frames count D_803EF700 up to 0x12, which
  * sets D_803EF6FF.
- * Leaked registers (kept): b0 is the asm's t0 = &D_803643D6 (so D_803A7428
+ * Leaked registers (kept): b0 is the asm's t0 = &gCarrierHit (so D_803A7428
  * gets 0xD6) and h2 its t2, func_802BABEC's leftover point-list end pointer
  * (its low half goes to D_803A7422), passed in here as `h2`. The
  * func_802A6274 call (type 1, z = 0) ignores the asm's other leftover
@@ -563,8 +563,8 @@ void func_802BA9A0(s32 h2) {
     Io802A6274 io;
     s32 n;
 
-    if (D_803643D6 == 0) {
-        func_8029A800(D_803EF6E4, (s32) D_80305D60, 0, 0, D_803EF6DC, D_803EF6E0, (s32) &D_803643D6,
+    if (gCarrierHit == 0) {
+        func_8029A800(D_803EF6E4, (s32) D_80305D60, 0, 0, D_803EF6DC, D_803EF6E0, (s32) &gCarrierHit,
                       *(s16 *) (D_803EF630 + 0x76), h2, 0, 0xFF, D_803EF630);
         func_8029C52C(0xFF, D_803EF630);
         if (((u8) D_803A7426) == 0) {
@@ -685,7 +685,7 @@ extern u8 D_803EFA20[];
 extern u32 D_803EFAC8[];
 extern u8 D_803EF720[];
 
-/* Level setup of vehicle 6 (asm caller func_802A350C, the level's object
+/* Level setup of vehicle 6 (asm caller lvl_spawn_vehicles, the level's object
  * list): model header `model` -> D_803EFAD4; two 0x800-byte matrix buffers
  * from the allocator gHeapPtr (D_803EFAE4, D_803EFAE8; the allocator
  * advances by 0x1000); veh_add_record(6, 0, buffers, model); $gp record
@@ -703,7 +703,7 @@ extern u8 D_803EF720[];
  * reaches D_803ED3F2 when a slot's grid scan finds no triangle: the
  * dispatcher's leftover fp, FIDELITY AUDIT). func_802A992C's FP inputs
  * (the dispatcher's f12-f26, passed through) are 0 here. The asm restores
- * t0-t5 (func_802A350C keeps t1/t2 live), points $gp at D_803EFA20 and
+ * t0-t5 (lvl_spawn_vehicles keeps t1/t2 live), points $gp at D_803EFA20 and
  * leaves s0-s7, fp and f20-f28 as its callees leave them (clobbers). */
 void func_802BAD80(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp) {
     TriSideOut f;

@@ -2210,7 +2210,7 @@ extern Unk8029DCD4Slot * N64P D_803B8568; /* last slot in use (sits right after 
 /* Resets the 120-entry pool D_803B7FC8: the next-free pointer goes back to
  * the start and words 0 and 4 of every 12-byte entry are cleared.
  * Register note: the asm saves/restores v0 and v1 (clobbers at); asm caller
- * func_802A1674 keeps t0, f12 and f14 live across the call (a mixed N64
+ * initlevel keeps t0, f12 and f14 live across the call (a mixed N64
  * build would need a thunk; the native port doesn't). */
 void func_8029DC80(void) {
     s32 i;
@@ -2352,7 +2352,7 @@ extern s32 D_802C23B4[];
  * unk8) zeroed. The terminating -1 is also stored, as the id of the entry
  * after the last.
  * Register note: the asm saves/restores v0, v1 and a0-a3 (clobbers at and
- * f0); asm caller func_802A1674 keeps t0, t6, t9, f12 and f14 live. */
+ * f0); asm caller initlevel keeps t0, t6, t9, f12 and f14 live. */
 void func_8029DEA0(void) {
     s32 i;
     s32 *src;

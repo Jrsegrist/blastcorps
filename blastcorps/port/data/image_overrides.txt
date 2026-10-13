@@ -4,7 +4,7 @@
 #                     vtx = F3D Vtx records: six halfwords, colour bytes kept;
 #                     STRIDE COUNT: the same range in COUNT records STRIDE apart)
 #
-# D_802E8F94 (60 level records, 0x44 bytes): +0x2C is a u32 bit mask, which
+# gLevelInfo (60 level records, 0x44 bytes): +0x2C is a u32 bit mask, which
 # collectables/vehicles the level has (11530.c func_801F9258's lw: the globe's
 # vehicle pictures).  01C40.c's view calls it times[0] (u16 at +0x2E), but
 # reads only times[1..4] (+0x30..+0x36, the rank times and the time limit,

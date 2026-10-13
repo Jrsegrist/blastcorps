@@ -148,7 +148,7 @@ void cont_update(void) {
             case 0x100000000000:
                 if (levelno != 0x26 && levelno != 0x31) {
                     do {
-                        func_8025BEF8();
+                        rec_next();
                         if (gRecButtons & 0x40) {
                             D_80370C40 = 0;
                         } else if (gRecButtons & 0x80) {
@@ -164,7 +164,7 @@ void cont_update(void) {
             case 4:
             case 0x100:
                 if (!gPaused || gGameMode == 0x2000) {
-                    func_8025BBE8(pad->button & ~START_BUTTON, pad->stick_x, pad->stick_y);
+                    rec_record(pad->button & ~START_BUTTON, pad->stick_x, pad->stick_y);
                 }
                 break;
             case 1:

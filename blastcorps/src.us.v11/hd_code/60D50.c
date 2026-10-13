@@ -23,7 +23,7 @@ typedef struct {
 #define HEIGHT_ZONE_NONE 3000 /* sentinel height value */
 
 
-/* `level` is the loaded level header (D_80358074). Its words at 0x40/0x44 are
+/* `level` is the loaded level header (gLevelData). Its words at 0x40/0x44 are
  * the start/end offsets of a HeightZone list. Finds the highest zone that
  * contains the player (inclusive bounds, starting from -1). A result of
  * HEIGHT_ZONE_NONE sets D_80364411; otherwise gCamHeight = height * 32 +

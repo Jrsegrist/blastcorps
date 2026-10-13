@@ -5,7 +5,7 @@
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
 #define LEGACY_D_8020C070
-#define LEGACY_D_802E8F94
+#define LEGACY_gLevelInfo
 #define LEGACY_D_802F47B0
 #define LEGACY_D_802F8BDC
 #define LEGACY_gDynamicBufs
@@ -15,7 +15,7 @@
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #ifdef NON_MATCHING
 #define D_8020C070 ((MenuEntry *) D_8020C070)
-#define D_802E8F94 ((LevelInfo *) D_802E8F94)
+#define gLevelInfo ((LevelInfo *) gLevelInfo)
 #define D_802F47B0 ((u8 *) D_802F47B0)
 #define D_802F8BDC ((MenuPage *) D_802F8BDC)
 #define gDynamicBufs ((PlayerSelDyn *) gDynamicBufs)
@@ -26,7 +26,7 @@
 /* player.c (per its assert strings): save slots, player ranks and the
  * player select / Controller Pak screens */
 
-/* One entry per level in D_802E8F94 (0x44 bytes), as in hd_code 1D990.c */
+/* One entry per level in gLevelInfo (0x44 bytes), as in hd_code 1D990.c */
 typedef struct {
     /* 0x00 */ u8 type;
     /* 0x01 */ u8 pad1[0x2D];
@@ -100,7 +100,7 @@ typedef struct PlayerSelDyn {
 extern Player players[];
 #endif
 #ifndef NON_MATCHING
-extern LevelInfo D_802E8F94[];
+extern LevelInfo gLevelInfo[];
 #endif
 #ifndef NON_MATCHING
 extern MenuEntry D_8020C070[];
@@ -421,7 +421,7 @@ void func_801E93DC(u8 arg0) {
         if (p->rank[i] > 0 && p->rank[i] < 5) {
             D_80215930[p->rank[i]]++;
         }
-        if (((players[arg0].rank[i] > 0 && players[arg0].rank[i] < 6) ? 1 : 0) && (D_802E8F94[i].type & 0x81) &&
+        if (((players[arg0].rank[i] > 0 && players[arg0].rank[i] < 6) ? 1 : 0) && (gLevelInfo[i].type & 0x81) &&
             i != 0x31 && i != 0x2F && i != 0x26) {
             D_80215930[3]++;
         }
@@ -975,7 +975,7 @@ void func_801EC30C(u8 arg0) {
     func_80272C5C(D_802082E8, 0, 1, 2, 1, 1.0f);
     D_80215902[0] = 3;
     D_80215902[1] = arg0;
-    if (D_802E8F94[levelno].type == 1) {
+    if (gLevelInfo[levelno].type == 1) {
         j = 0;
     } else {
         j = 1;
@@ -1063,7 +1063,7 @@ Gfx *func_801EC770(Gfx *start, void *gfxp, s32 *count) {
 
     gdl = start;
     gdl = func_80274868(gdl);
-    if (D_80364AA8 == 1) {
+    if (gLevelKind == 1) {
         gdl = func_801EC49C(gdl, 0x5C, 0x68, 0);
         if (D_80215902[1] != 0) {
             gdl = func_801EC49C(gdl, 0xA8, 0x68, 1);
@@ -1078,8 +1078,8 @@ Gfx *func_801EC770(Gfx *start, void *gfxp, s32 *count) {
         gdl = func_80272ED8(gdl, n + D_80215914, 0x2E, 0x6C, (D_80215910[1] * 3) / 4, 0, 0.75f);
     }
     gdl = func_80274AA4(gdl);
-    if (D_80364AA8 != 1) {
-        func_80264A34((char *) D_80215470, D_802E8F94[levelno].times[5 - n], 0);
+    if (gLevelKind != 1) {
+        func_80264A34((char *) D_80215470, gLevelInfo[levelno].times[5 - n], 0);
         D_80215470[5] = 0;
         func_80259DC8(gfxp, D_80215470, 0, 0, 0, 0x29, 0x7D, 0x10, 0x10, 1, 0xFF, 0xB4, 0, D_80215910[1], 0xFF, 0x78, 0,
                       D_80215910[1]);
@@ -1094,7 +1094,7 @@ u64 func_801ECA50(u8 level) {
 
     if ((players[playerNumber].rank[level] > 0 && players[playerNumber].rank[level] < 6) ? 1 : 0) {
         mask = 0x80;
-    } else if (D_802E8F94[level].type & 0x81) {
+    } else if (gLevelInfo[level].type & 0x81) {
         mask = 0x800;
     } else {
         mask = 0x20000000;
@@ -1108,7 +1108,7 @@ void func_801ECB18(void) {
     D_80364A87 = 0;
     D_803643D5 = 0;
     if ((players[playerNumber].rank[levelno] > 0 && players[playerNumber].rank[levelno] < 6) ? 1 : 0) {
-        if (D_802E8F94[levelno].type == 1) {
+        if (gLevelInfo[levelno].type == 1) {
             osSendMesg(&D_80219EF8, (OSMesg) ((levelno << 8) | 0xC | (playerNumber << 16)), OS_MESG_BLOCK);
         }
         osSendMesg(&D_80219EF8, (OSMesg) ((levelno << 8) | 8 | (playerNumber << 16) | 0x1000000), OS_MESG_BLOCK);
@@ -1153,11 +1153,11 @@ void func_801ECE9C(void) {
     s32 i;
 
     for (i = 0; i < 0x3C; i++) {
-        if (D_802E8F94[i].type & 0x81) {
+        if (gLevelInfo[i].type & 0x81) {
             if (players[playerNumber].unk91 >= 11 && gNextGameMode == 0x4000) {
-                D_802E8F94[i].type = 0x80;
+                gLevelInfo[i].type = 0x80;
             } else {
-                D_802E8F94[i].type = 1;
+                gLevelInfo[i].type = 1;
             }
         }
     }
@@ -1183,8 +1183,8 @@ void func_801ECF5C(void) {
     PLAYER_ASSERT(saveIt[playerNumber], 1384);
     for (level = 0; level < 0x3C; level++) {
         if (((players[playerNumber].rank[level] > 0 && players[playerNumber].rank[level] < 6) ? 1 : 0) &&
-            D_802E8F94[level].type == 1 && level != 0x31 && level != 0x2F && level != 0x26) {
-            info = &D_802E8F94[level];
+            gLevelInfo[level].type == 1 && level != 0x31 && level != 0x2F && level != 0x26) {
+            info = &gLevelInfo[level];
             if (saveIt[playerNumber] != level + 1) {
                 osSendMesg(&D_80219EF8, (OSMesg) ((level << 8) | 8 | (playerNumber << 16) | 0x1000000), OS_MESG_BLOCK);
                 osRecvMesg(&pakToGameMessageQ, NULL, OS_MESG_BLOCK);
@@ -1247,7 +1247,7 @@ void func_801ED4B8(void) {
     for (level = 0; level < 0x3C; level++) {
         if (((players[playerNumber].rank[level] > 0 && players[playerNumber].rank[level] < 6) ? 1 : 0) &&
             level != 0x31 && level != 0x2F && level != 0x26) {
-            info = &D_802E8F94[level];
+            info = &gLevelInfo[level];
             if (saveIt[playerNumber] != level + 1) {
                 osSendMesg(&D_80219EF8, (OSMesg) ((level << 8) | 8 | (playerNumber << 16) | 0x1000000), OS_MESG_BLOCK);
                 osRecvMesg(&pakToGameMessageQ, NULL, OS_MESG_BLOCK);

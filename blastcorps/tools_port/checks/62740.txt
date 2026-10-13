@@ -655,11 +655,11 @@ func_802A860C: -n 200 --seed 3 --arg f12=choice:0,0x3F800000,0xBF800000,0x3F7FFF
     --follow func_802AE104,func_802AE160,func_802AE1BC,func_802AE290
 
 # func_802A8CCC (veh gp, id t8, px t7, py s2, pz s1, x/z t0/t1 in/out): vehicle-7 level limits, box D_803BE730..36,
-# respawn record (key id or 1 by D_80364AA8; keys 1, 2, 7, 0xD always present in records 12..15)
+# respawn record (key id or 1 by gLevelKind; keys 1, 2, 7, 0xD always present in records 12..15)
 func_802A8CCC: -n 400 --seed 0 --heap 0x100 --arg gp=rel:heap0 --arg t8=choice:7*3,1,2,0xD --heap 0x10 --arg t7=rel:heap1 \
     --arg s2=rel:heap1+4 --arg s1=rel:heap1+8 --arg t0=int:-0x1000:0x20000 --arg t1=int:-0x1000:0x20000 --heap 0x90 \
     --mem D_803BE6F8=rel:heap2 --mem @heap2+0x6C:1=1 --mem @heap2+0x75:1=2 --mem @heap2+0x7E:1=7 --mem @heap2+0x87:1=0xD \
-    --mem D_80364AA8=choice:0,1,0x80,2,0x81 --mem levelno=choice:0,0x12,0xD,5 --mem D_803BE730:2=halves:0,100,500 \
+    --mem gLevelKind=choice:0,1,0x80,2,0x81 --mem levelno=choice:0,0x12,0xD,5 --mem D_803BE730:2=halves:0,100,500 \
     --mem D_803BE732:2=halves:1000,2000,4000 --mem D_803BE734:2=halves:0,100,900 --mem D_803BE736:2=halves:1000,2000,4000 \
     --mem gCamSnap:1=bytes:0,2 --sig func_802AC6FC=a0,a1,a2,a3,stack0
 # vehicle 7 level limits exactly at their edges (box wide open)
@@ -667,20 +667,20 @@ func_802A8CCC: -n 300 --seed 1 --heap 0x100 --arg gp=rel:heap0 --arg t8=7 --heap
     --arg s2=rel:heap1+4 --arg s1=rel:heap1+8 --arg t0=choice:0x7CE0,0x7CFF,0x7D00,0x7D1F,0x7D20 \
     --arg t1=choice:0x7060,0x707F,0x7080,0x709F,0x8960,0x897F,0x8980,0x899F --heap 0x90 \
     --mem D_803BE6F8=rel:heap2 --mem @heap2+0x6C:1=1 --mem @heap2+0x75:1=2 --mem @heap2+0x7E:1=7 --mem @heap2+0x87:1=0xD \
-    --mem D_80364AA8=choice:0,1 --mem levelno=choice:0,0x12,0xD,5 --mem D_803BE730:2=0x8000 --mem D_803BE732:2=0x7FFF \
+    --mem gLevelKind=choice:0,1 --mem levelno=choice:0,0x12,0xD,5 --mem D_803BE730:2=0x8000 --mem D_803BE732:2=0x7FFF \
     --mem D_803BE734:2=0x8000 --mem D_803BE736:2=0x7FFF --sig func_802AC6FC=a0,a1,a2,a3,stack0
 # box edges (other vehicles): just inside / outside each side of 100..1000 x 200..900
 func_802A8CCC: -n 300 --seed 2 --heap 0x100 --arg gp=rel:heap0 --arg t8=choice:1,2,0xD --heap 0x10 --arg t7=rel:heap1 \
     --arg s2=rel:heap1+4 --arg s1=rel:heap1+8 --arg t0=choice:0xC7F,0xC80,0x7D1F,0x7D20,0x4000 \
     --arg t1=choice:0x18FF,0x1900,0x709F,0x70A0,0x4000 --heap 0x90 --mem D_803BE6F8=rel:heap2 --mem @heap2+0x6C:1=1 \
-    --mem @heap2+0x75:1=2 --mem @heap2+0x7E:1=7 --mem @heap2+0x87:1=0xD --mem D_80364AA8=choice:0,0x80 \
+    --mem @heap2+0x75:1=2 --mem @heap2+0x7E:1=7 --mem @heap2+0x87:1=0xD --mem gLevelKind=choice:0,0x80 \
     --mem levelno=5 --mem D_803BE730:2=100 --mem D_803BE732:2=1000 --mem D_803BE734:2=200 --mem D_803BE736:2=900 \
     --sig func_802AC6FC=a0,a1,a2,a3,stack0
 # callees run for real (func_802A754C, func_802AC6FC; func_802A6274 and func_80277EDC stubbed)
 func_802A8CCC: -n 200 --seed 3 --heap 0x100 --arg gp=rel:heap0 --arg t8=choice:7,1,2,0xD --heap 0x10 --arg t7=rel:heap1 \
     --arg s2=rel:heap1+4 --arg s1=rel:heap1+8 --arg t0=int:-0x1000:0x20000 --arg t1=int:-0x1000:0x20000 --heap 0x90 \
     --mem D_803BE6F8=rel:heap2 --mem @heap2+0x6C:1=1 --mem @heap2+0x75:1=2 --mem @heap2+0x7E:1=7 --mem @heap2+0x87:1=0xD \
-    --mem D_80364AA8=choice:0,1,0x80 --mem levelno=choice:0,0x12,0xD,5 --mem D_803BE730:2=halves:0,100,500 \
+    --mem gLevelKind=choice:0,1,0x80 --mem levelno=choice:0,0x12,0xD,5 --mem D_803BE730:2=halves:0,100,500 \
     --mem D_803BE732:2=halves:1000,2000,4000 --mem D_803BE734:2=halves:0,100,900 --mem D_803BE736:2=halves:1000,2000,4000 \
     --follow func_802A754C,func_802AC6FC
 

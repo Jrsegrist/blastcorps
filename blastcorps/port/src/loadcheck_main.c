@@ -1,7 +1,7 @@
 /* loadcheck: the byte-order layer (port/src/load/) against the original code.
  *
  * Real game C (NON_MATCHING, native) loads real assets from the user's ROM
- * through the game's own loaders (func_8028B4C4, func_8025615C, 5BF40's
+ * through the game's own loaders (func_8028B4C4, lvl_load_file, 5BF40's
  * texture loads), with osPiStartDma emulated here the way the platform layer
  * does it (copy from the ROM, then port_on_dma).  The same cases run through
  * the ORIGINAL MIPS code in unicorn on big-endian memory
@@ -10,7 +10,7 @@
  *
  *   T5  port_802E8BF8_word: the D_802E8BF8 flag/word-table alias (00000.c)
  *   T6  texture entries: DMA + func_802A57DC decode, output bytes (BE) CRC
- *   T7  every level: func_8025615C load + func_802A2C54 object-stream unpack
+ *   T7  every level: lvl_load_file load + func_802A2C54 object-stream unpack
  *   T8  every level: func_802A5510 height zones at random positions
  *   T9  (needs a trace) every read the N64 code made of each traced asset
  *
@@ -38,7 +38,7 @@ typedef uint32_t u32;
 s32 port_802E8BF8_word(s32 i);
 void func_802A0700(void);
 void func_802A0B34(s32 id, u8 *param);
-void func_8025615C(s32 level, s32 dest, s32 *size);
+void lvl_load_file(s32 level, s32 dest, s32 *size);
 void func_802A2C54(u8 *obj);
 void func_802A5510(u8 *level);
 
@@ -144,7 +144,7 @@ static void t6(void) {
 /* level loads: returns the decompressed size or 0 */
 static s32 load_level(int lvl) {
     s32 size = 0;
-    func_8025615C(lvl, (s32) HEAP, &size);
+    lvl_load_file(lvl, (s32) HEAP, &size);
     return size;
 }
 

@@ -2,7 +2,7 @@
 #include <ultra64.h>
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_802E8F94 ((u8 *) D_802E8F94)
+#define gLevelInfo ((u8 *) gLevelInfo)
 #define players ((u8 (*)[256]) players)
 /* end of views */
 
@@ -456,9 +456,9 @@ void func_8025E2CC(Gfx **arg0, s32 arg1, s32 arg2) {
     Gfx *gfx;
 
     gfx = *arg0;
-    if (D_803643D7 != 0 && areWeFading() == 0) {
+    if (gLevelDone != 0 && areWeFading() == 0) {
         if (D_80366BC0 == 0) {
-            func_802C1DD0(D_802E8F94[levelno * 68] == 0x20 || D_802E8F94[levelno * 68] == 0x80);
+            func_802C1DD0(gLevelInfo[levelno * 68] == 0x20 || gLevelInfo[levelno * 68] == 0x80);
             D_80366BB8 = 0;
             if ((players[playerNumber][levelno + 0x18] > 0 &&
                  players[playerNumber][levelno + 0x18] < 6) ? 1 : 0) {
@@ -466,7 +466,7 @@ void func_8025E2CC(Gfx **arg0, s32 arg1, s32 arg2) {
                 func_80260A10();
                 D_80366BC2 = 5;
                 D_80366BC4 = 0;
-                if (((s32) D_80364AA8) != 1) {
+                if (((s32) gLevelKind) != 1) {
                     func_80260E2C();
                     D_80366BC4 = 1;
                 }
@@ -498,7 +498,7 @@ void func_8025E2CC(Gfx **arg0, s32 arg1, s32 arg2) {
                 func_80260650(D_80367738, func_8026205C(2), NULL);
             }
         }
-        D_80366BC0 = D_803643D7;
+        D_80366BC0 = gLevelDone;
         if (D_80366BB8 == 0) {
             if (yoshiState == 8 && currentYoshiWindow == D_80366BC2) {
                 D_80366BB8 = D_803156C4;
@@ -507,7 +507,7 @@ void func_8025E2CC(Gfx **arg0, s32 arg1, s32 arg2) {
             }
         } else if (func_802D4E10(D_80367734) == 0 ||
                    (D_80366BC4 != 0 && D_803156C4 - D_80367740 >= 0x1E1) ||
-                   (D_80366BC4 == 0 && D_803156C4 - D_80366BB8 > D_802E8CD0[(((s32) D_80364AA8) & 0x81) ? 1 : 0])) {
+                   (D_80366BC4 == 0 && D_803156C4 - D_80366BB8 > D_802E8CD0[(((s32) gLevelKind) & 0x81) ? 1 : 0])) {
             func_80275270(0x08000000, 0.75f);
             D_80366BB8 = 0;
             D_80366BC0 = 0;
@@ -529,10 +529,10 @@ void func_8025E67C(Gfx **arg0, s32 arg1, u8 arg2) {
 
     gfx = *arg0;
     time = D_803156C4;
-    if (D_803643D6 != 0) {
+    if (gCarrierHit != 0) {
         if (D_803643D8 == 0) {
             func_802609D0();
-            func_802C1DD0(D_802E8F94[levelno * 68] == 0x20 || D_802E8F94[levelno * 68] == 0x80);
+            func_802C1DD0(gLevelInfo[levelno * 68] == 0x20 || gLevelInfo[levelno * 68] == 0x80);
             switch (levelno) {
                 case 0x31:
                     func_80260650(D_80367738, 0x31, NULL);

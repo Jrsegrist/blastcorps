@@ -64,7 +64,7 @@ extern DecodeReq D_803C4B58;
 /* Once (until D_803B9888 is set): takes 0x8000 heap bytes for the table
  * D_803B8D44, DMAs ROM 0x4CE0..+0x8000 into it and waits, then points
  * D_803B8D40 at D_803B8570.
- * The asm saves and restores every register; func_802A1674 keeps t0, t6, t9
+ * The asm saves and restores every register; initlevel keeps t0, t6, t9
  * across it. (Its survey outputs f12/f14 are what the libultra calls leave.) */
 void func_802A0700(void) {
     u8 *buf;

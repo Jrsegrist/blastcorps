@@ -61,7 +61,7 @@ void func_802CEE14(s32 x, s32 y, s32 z);
 
 /* Level setup of the boxes (pickups, level object in obj; its list at
  * obj + obj[0x28] .. obj + obj[0x2C], 8-byte records {s16 x, y, z; u16 w}):
- * D_803FC1F0 = 0; if the list isn't empty, load model 0x96 (func_802A396C)
+ * D_803FC1F0 = 0; if the list isn't empty, load model 0x96 (lvl_load_model)
  * into D_803FBBD8, then for each record: entry pos = (x, y, z) << 5, the
  * box vertices (func_802CEE14(x, y, z), unshifted), unkC = 0x280, flag 0,
  * unk12 = w, D_803FC1F0++. If any box exists: four 0x300-byte copies from
@@ -69,10 +69,10 @@ void func_802CEE14(s32 x, s32 y, s32 z);
  * channels D_803FBBE0 (copies 1E0/1E4) with channels 1 and 2 set to (2, 0,
  * 0, -1), and D_803FBEE0 (copies 1E8/1EC).
  * Register convention: obj in t0 (conventions.txt); the asm saves t0 (asm
- * caller func_802A1674 keeps it) and leaves t1/t2 (list end, the model
- * pointer), func_802A396C's s2/s4 and the channel routines' s0-s5, fp,
+ * caller initlevel keeps it) and leaves t1/t2 (list end, the model
+ * pointer), lvl_load_model's s2/s4 and the channel routines' s0-s5, fp,
  * f20, f30 changed; the survey lists t1, t2, s3, f12, f14 as read by
- * func_802A1674 (dead there, not modelled). Its loop uses `!=` (the list
+ * initlevel (dead there, not modelled). Its loop uses `!=` (the list
  * must end on a record boundary). */
 void func_802CEAA0(u8 *obj) {
     Out802A396C o;
@@ -85,7 +85,7 @@ void func_802CEAA0(u8 *obj) {
     p = (s16 *) (obj + *(s32 *) (obj + 0x28));
     end = (s16 *) (obj + *(s32 *) (obj + 0x2C));
     if (p != end) {
-        func_802A396C(0x96, &o);
+        lvl_load_model(0x96, &o);
         D_803FBBD8 = o.s2;
         e = D_803FBBB0;
         while (p != end) {

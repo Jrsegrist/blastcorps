@@ -65,7 +65,7 @@ Gfx *func_8029A518(Gfx * N64P *gfxp, Gfx *gfx) {
     if ((u32) ((s32) gFramesInMode) >= 0x18C) {
         D_803A6B20++;
     }
-    if (D_803643D6) {
+    if (gCarrierHit) {
         D_803A6B24++;
     }
     if (D_803A6B24 == 0x7D) {

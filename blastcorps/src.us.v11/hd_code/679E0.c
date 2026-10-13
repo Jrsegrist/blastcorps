@@ -87,7 +87,7 @@ void func_802AC2A4(s32 z, s32 a1, s32 x, s32 y, s32 b0, s32 id, u8 *vehicle) {
     u8 *p;
     u8 *end;
 
-    if (((s32) D_80364AA8) != 0x40) {
+    if (((s32) gLevelKind) != 0x40) {
         return;
     }
     func_8029A800(z, a1, 1, 0, x, y, b0, 0, 0x40, 0, id, vehicle);

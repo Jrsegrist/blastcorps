@@ -9,7 +9,7 @@
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_802E8F94 ((LevelInfo *) D_802E8F94)
+#define gLevelInfo ((LevelInfo *) gLevelInfo)
 #define D_802F49F4 ((Anim30 *) D_802F49F4)
 #define D_802F5804 ((void * N64P *) D_802F5804)
 #define players ((Player *) players)
@@ -21,7 +21,7 @@
 /* Level objectives and the HUD's objective/timer text: per-level setup,
  * the countdown intro, and the per-mission-type progress checks */
 
-/* One entry per level in D_802E8F94 (0x44 bytes) */
+/* One entry per level in gLevelInfo (0x44 bytes) */
 typedef struct {
     /* 0x00 */ u8 type;
     /* 0x01 */ u8 pad1;
@@ -177,7 +177,7 @@ void cam_set_level_fovy(u8 arg0) {
 void func_802621DC(u8 arg0) {
     LevelInfo *p;
 
-    p = &D_802E8F94[arg0];
+    p = &gLevelInfo[arg0];
     D_803EF2EC = p->unk26[0] << 5;
     D_803EF2F0 = p->unk26[1] << 5;
     D_803EF2F4 = p->unk26[2] << 5;
@@ -234,7 +234,7 @@ void func_80262320(u8 arg0) {
     } else {
         gCamFixedEye = 0;
     }
-    D_80367C04 = &D_802E8F94[arg0];
+    D_80367C04 = &gLevelInfo[arg0];
     D_803F7C10 = D_80367C04->unk1C << 5;
     D_803F7C14 = D_80367C04->unk1E << 5;
     D_80364424 = D_80367C04->unk38;
@@ -244,7 +244,7 @@ void func_80262320(u8 arg0) {
     D_80367BC0 = D_803156C4;
     D_80367BC4 = -1;
     D_80367BD8 = 0;
-    switch (D_80364AA8) {
+    switch (gLevelKind) {
         case 4:
         case 0x80:
             anim = 6;
@@ -269,9 +269,9 @@ void func_80262320(u8 arg0) {
         unused = 0;
         D_80367C0C = D_802E9F9C;
     }
-    if (D_80364AA8 != 1) {
+    if (gLevelKind != 1) {
         size = D_006A8DA0 - D_006A32B0;
-        if (D_80364AA8 != 0x80 && gNextGameMode == 0x2000) {
+        if (gLevelKind != 0x80 && gNextGameMode == 0x2000) {
             func_8028B4C4((u32) D_006A32B0, (u32) gHeapPtr, (u32 *) &size, 10, 0, 1);
             for (i = 0; i < 5; i++) {
                 D_80367BE0[i] = (i << 15) + (u8 *) gHeapPtr;
@@ -295,7 +295,7 @@ void func_80262320(u8 arg0) {
         D_80367BFE = 0;
     }
     D_80367BCC = &D_802F49F4[anim];
-    if (D_802E8F94[arg0].type == 0x20) {
+    if (gLevelInfo[arg0].type == 0x20) {
         D_80367BD0 = NULL;
         D_80367BD4 = func_80272C5C(D_80367BCC->ids, 0, D_80367BCC->count, D_80367BCC->unk2C, D_80367BCC->unk2D,
                                    D_80367BCC->scale * 0.5);
@@ -328,7 +328,7 @@ void func_80262840(void) {
             case 0:
                 D_80367C68[0] = 0xFFF;
                 D_80367CB8[0] = 0xFFF;
-                switch (D_80364AA8) {
+                switch (gLevelKind) {
                     case 2:
                         func_802D6A60(D_80367C18, "FINISH %d LAPS IN", D_80367C04->target);
                         break;
@@ -388,7 +388,7 @@ void func_80262840(void) {
 /* Per-frame objective update: the time limit, the countdown beeps, and the
  * progress check for the current mission type */
 void func_80262BF4(void) {
-    if (!D_803643D7 && !D_803643D6) {
+    if (!gLevelDone && !gCarrierHit) {
         D_80367BF6 = D_80367C04->time - MIN(D_80367C04->time, func_8028604C(D_803156C0 - D_80364A58));
     }
     func_80264A34(D_80367BB0, D_80367BF6, 1);
@@ -397,7 +397,7 @@ void func_80262BF4(void) {
             func_80262840();
             break;
         case 0x04000000:
-            if (D_803643D6 && areWeFading() == 0 && yoshiState == 1) {
+            if (gCarrierHit && areWeFading() == 0 && yoshiState == 1) {
                 if ((players[playerNumber].rank[levelno] > 0 && players[playerNumber].rank[levelno] < 6) ? 1
                                                                                                                  : 0) {
                     func_80275270(0x08000000, 0.25f);
@@ -416,22 +416,22 @@ void func_80262BF4(void) {
                 }
                 D_80367D08 = D_80367BF4;
             }
-            if (D_803BE738 && D_80364AA8 == 0x40) {
+            if (D_803BE738 && gLevelKind == 0x40) {
                 func_80260650(D_80367738, 0x3C, 0);
             }
             if (D_803BE738) {
                 cmo_hit_request = 1;
             }
-            if (D_803643D6) {
+            if (gCarrierHit) {
                 func_80260A10();
                 func_802609F0();
                 func_8026AF6C(0xA00E);
                 D_8036BB1A = -1;
                 gNextGameMode = 0x04000000;
-            } else if (D_803643D7) {
+            } else if (gLevelDone) {
                 gNextGameMode = 0x04000000;
             } else {
-                switch (D_80364AA8) {
+                switch (gLevelKind) {
                     case 2:
                         func_802633E0();
                         break;
@@ -458,7 +458,7 @@ void func_80262BF4(void) {
 /* Mission type 0x10/0x40 (find the RDUs): progress text */
 void func_80262FD0(void) {
     if (D_8036EA7C >= D_80367C04->target) {
-        D_803643DA = 1;
+        gLevelDoneRequest = 1;
     }
     func_802D6A60(D_80367B60[0], "%d/%d", D_8036EA7C, D_80367C04->target);
 }
@@ -469,7 +469,7 @@ void func_8026303C(void) {
 
     func_802C1DD0(0);
     if (D_8036EA78 >= D_80367C04->target) {
-        D_803643DA = 1;
+        gLevelDoneRequest = 1;
     }
     if (D_8036DCD4) {
         func_8027EED8(gPlayerX >> 5, gPlayerZ >> 5, &h);
@@ -487,15 +487,15 @@ void func_80263140(void) {
     s16 h;
 
     func_802C1DD0(1);
-    switch (D_80364AA8) {
+    switch (gLevelKind) {
         case 0x20:
             if (D_8036EA78 >= D_8036EB92) {
-                D_803643DA = 1;
+                gLevelDoneRequest = 1;
             }
             break;
         case 0x80:
             if (D_803F7806 || (levelno == 0x32 && D_8036EA78 >= D_8036EB92)) {
-                D_803643DA = 1;
+                gLevelDoneRequest = 1;
             }
             break;
     }
@@ -507,7 +507,7 @@ void func_80263140(void) {
     } else if (D_80367C04->unk24 > (gPlayerY >> 5)) {
         cmo_hit_request = 1;
     }
-    switch (D_80364AA8) {
+    switch (gLevelKind) {
         case 0x20:
             func_802D6A60(D_80367B60[0], "%d/%d", D_8036EA78, D_8036EB92);
             break;
@@ -527,7 +527,7 @@ void func_80263358(void) {
 
     func_802C1DD0(0);
     if (nss >= D_80367C04->target) {
-        D_803643DA = 1;
+        gLevelDoneRequest = 1;
     }
     left = D_80367C04->target - nss;
     if (left < 0) {
@@ -571,7 +571,7 @@ void func_802633E0(void) {
                     D_80367BFC = D_80367B58[D_80367B54 - 1];
                 }
                 if (D_80367C04->target - 1 < D_80367B54) {
-                    D_803643DA = 1;
+                    gLevelDoneRequest = 1;
                 } else {
                     left = D_80367C04->target - D_80367B54;
                     if (!gPaused) {
@@ -619,7 +619,7 @@ Gfx *func_802639B4(Gfx *gdl, Gfx * N64P *arg1, u32 *arg2) {
     s16 alpha;
     s32 pad54;
 #ifdef NON_MATCHING
-    s32 i = 0; /* only read when D_80364AA8 == 2, after the lap loop above has set it */
+    s32 i = 0; /* only read when gLevelKind == 2, after the lap loop above has set it */
 #else
     s32 i;
 #endif
@@ -630,7 +630,7 @@ Gfx *func_802639B4(Gfx *gdl, Gfx * N64P *arg1, u32 *arg2) {
     } else {
         alpha = D_80367BD6;
     }
-    switch (D_80364AA8) {
+    switch (gLevelKind) {
         case 2:
             for (i = 0; i < D_80367B54 - ((gGameMode & 0x440) ? 1 : 0) && i < D_80367C04->target; i++) {
                 if (i + 1 == D_80367BFB && i + 1 != D_80367B54) {
@@ -676,13 +676,13 @@ Gfx *func_802639B4(Gfx *gdl, Gfx * N64P *arg1, u32 *arg2) {
         flash = 0;
     }
     if (!flash || D_803156C4 % 20 < 16) {
-        if (D_80364AA8 == 2) {
+        if (gLevelKind == 2) {
             func_80259CCC(arg1, (u8 *) D_80367BB0, 0, 1, 0, 0x18, i * 18 + 0x14, 0x10, 0x10, 1, red, grn, 0, D_80367BD6);
         } else {
             func_80259CCC(arg1, (u8 *) D_80367BB0, 0, 1, 0, 0x1C, D_80367BD8 + 0x2A, 0x10, 0x10, 1, red, grn, 0, alpha);
         }
     }
-    if (D_803643D7 && gGameMode == 0x04000000) {
+    if (gLevelDone && gGameMode == 0x04000000) {
         func_8025E2CC(&g, (s32) arg1, gBufferIndex);
     }
     if (D_80367BC8) {
@@ -767,7 +767,7 @@ Gfx *func_80264264(Gfx * N64P *arg0, Gfx *gdl) {
             }
             break;
     }
-    if (D_80364AA8 != 0x80) {
+    if (gLevelKind != 0x80) {
         gDPPipeSync(g++);
         gSPTexture(g++, 0, 0, 0, G_TX_RENDERTILE, G_OFF);
         gDPSetTexturePersp(g++, G_TP_NONE);
@@ -810,7 +810,7 @@ void func_80264AEC(void) {
     u16 sum;
 
     sum = 0;
-    if (D_80364AA8 == 2 && D_80367B54 >= 2) {
+    if (gLevelKind == 2 && D_80367B54 >= 2) {
         for (i = 0; i < D_80367B54 - 1; i++) {
             sum += D_80367B58[i];
         }

@@ -10,7 +10,7 @@
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_802E8F94 ((LevelInfo *) D_802E8F94)
+#define gLevelInfo ((LevelInfo *) gLevelInfo)
 #define gDynamicBufs ((Dynamic *) gDynamicBufs)
 #define gFrameBufferPhys ((u16 * N64P *) gFrameBufferPhys)
 #define players ((Player *) players)
@@ -103,7 +103,7 @@ Lights1 D_8020E3A8[2] = {
 
 f32 D_8020E3D8 = 0.0f;
 
-/* hd_code: one entry per level in D_802E8F94 (0x44 bytes), as in hd_code 1D990.c */
+/* hd_code: one entry per level in gLevelInfo (0x44 bytes), as in hd_code 1D990.c */
 typedef struct {
     /* 0x00 */ u8 type;
     /* 0x01 */ u8 unk1; /* needed (save) progress */
@@ -230,7 +230,7 @@ void func_801F8530(s32 level) {
     f32 lon;
 
     D_8021AB30 = &players[playerNumber];
-    D_8021AB34 = &D_802E8F94[level];
+    D_8021AB34 = &gLevelInfo[level];
     D_8021A91C = func_801FD6B8(90.0f, D_8020D810[level].unk14, 180.0f);
     D_8021A920 = func_801FD6B8(90.0f, D_8020D810[level].unk10, 180.0f);
     D_8021A8F4 = func_801F1568();
@@ -296,7 +296,7 @@ void func_801F885C(s32 arg0) {
         }
     }
     D_80217B6C = tune;
-    D_8021AB34 = &D_802E8F94[D_8021A905];
+    D_8021AB34 = &gLevelInfo[D_8021A905];
 }
 
 /* Level-select: one frame (input, globe spin, fades, draw). */
@@ -462,7 +462,7 @@ Gfx *func_801F9258(Gfx *arg0, Dynamic *dyn, s32 *count) {
                       size, h, 1, 0xFF, 0xFF, 0xFF, D_8021AB2C, 0, 0, 0xFF, D_8021AB2C);
         gdl = func_8024C404(gdl, (DynamicBuf *) dyn, &n);
         func_80259C24(&gdl, (Mtx *) dyn);
-        info = &D_802E8F94[D_8021A908];
+        info = &gLevelInfo[D_8021A908];
         gdl = func_80274868(gdl);
         y = 0xDA;
         for (i = 0, alt = 0; i < 0x13 && y > 0x28; i++) {
@@ -1185,7 +1185,7 @@ void func_801FE018(u8 rank) {
     for (i = 0; i < 60; i++) {
         if ((players[playerNumber].rank[i] > 0 && players[playerNumber].rank[i] < 6) ? 1 : 0) {
             e = &D_8020D810[i];
-            info = &D_802E8F94[i];
+            info = &gLevelInfo[i];
             for (j = 0; j < 8 && e->unk1C[j] != -1; j++) {
                 if (D_8021AB30->rank[e->unk1C[j]] == 0 && func_801FE760(e->unk1C[j]) == 0) {
                     D_8021AB30->rank[e->unk1C[j]] = rank;
@@ -1257,8 +1257,8 @@ s32 func_801FE760(level, arg1)
     u8 locked = 0;
 #endif
 
-    if (D_802E8F94[level].unk1 > players[playerNumber].unk91 &&
-        ((D_802E8F94[level].type & 0x81) || (level >= 0x2B && level < 0x2F))) {
+    if (gLevelInfo[level].unk1 > players[playerNumber].unk91 &&
+        ((gLevelInfo[level].type & 0x81) || (level >= 0x2B && level < 0x2F))) {
         locked = 1;
     }
     if (level == 0xA) {

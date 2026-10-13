@@ -31,7 +31,7 @@ extern u8 D_803FCD78;
 extern u8 D_803FCD79;
 extern u8 D_803FCD7A;
 
-/* Set up vehicle 0xFD (the level-object dispatcher func_802A30DC): model
+/* Set up vehicle 0xFD (the level-object dispatcher lvl_spawn_shuttle): model
  * header hdr -> D_803FCD54; two 0x800-byte save copies from the gHeapPtr
  * bump pointer (D_803FCD58/5C; trapping adds); veh_add_record(0xFD, 0,
  * copies, hdr); heading/target/speed of D_803FCCA0 and the event flags
@@ -44,9 +44,9 @@ extern u8 D_803FCD7A;
  * update with +0x9A set (func_802D291C), and the model matrix copy (word +4
  * of the entry at hdr + hdr[6], D_803FCD5C -> D_803FCD58, func_802AA838).
  * Register notes: hdr comes in s2 (conventions.txt); the asm saves t0-t5
- * (asm caller func_802A30DC keeps t2), points $gp at D_803FCCA0 and leaves
+ * (asm caller lvl_spawn_shuttle keeps t2), points $gp at D_803FCCA0 and leaves
  * it, and leaves the channel routines' s0-s5, fp, f20 and func_802D291C's
- * f12/f14 (survey: read by func_802A30DC; not modelled). In mode 0 the asm
+ * f12/f14 (survey: read by lvl_spawn_shuttle; not modelled). In mode 0 the asm
  * hands func_802A0360 whatever f0 func_80260AB8 left (the mtc1 zero before
  * the sound calls; those IDO sound routines do no FP work): 0.0 here. Any
  * other mode hits the asm's `syscall` debug trap and then runs mode 1, as

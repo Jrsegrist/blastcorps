@@ -155,12 +155,12 @@ void func_80299C20(void) {
         case 47:
             D_802E8BEC = 0;
             D_802E8BF0 = 0;
-            func_8025B9D0(0, &levelno);
+            rec_start_playback(0, &levelno);
             break;
         case 55:
             D_802E8BEC = 9;
             D_802E8BF0 = 0;
-            func_8025B9D0(9, &levelno);
+            rec_start_playback(9, &levelno);
             D_803643D4 = 5;
             func_8026AF6C(0x8041);
             func_80295E50();
@@ -168,7 +168,7 @@ void func_80299C20(void) {
         case 28:
             D_802E8BEC = 10;
             D_802E8BF0 = 0;
-            func_8025B9D0(10, &levelno);
+            rec_start_playback(10, &levelno);
             D_803643D4 = 1;
             func_8026AF6C(0x8042);
             func_80295E50();
@@ -176,7 +176,7 @@ void func_80299C20(void) {
         case 53:
             D_802E8BEC = 11;
             D_802E8BF0 = 0;
-            func_8025B9D0(11, &levelno);
+            rec_start_playback(11, &levelno);
             D_803643D4 = 2;
             func_8026AF6C(0x8043);
             func_80295E50();
@@ -184,7 +184,7 @@ void func_80299C20(void) {
         case 7:
             D_802E8BEC = 12;
             D_802E8BF0 = 0;
-            func_8025B9D0(12, &levelno);
+            rec_start_playback(12, &levelno);
             D_803643D4 = 3;
             func_8026AF6C(0x8044);
             func_80295E50();
@@ -192,7 +192,7 @@ void func_80299C20(void) {
         case 19:
             D_802E8BEC = 13;
             D_802E8BF0 = 0;
-            func_8025B9D0(13, &levelno);
+            rec_start_playback(13, &levelno);
             D_803643D4 = 9;
             func_8026AF6C(0x8045);
             func_80295E50();

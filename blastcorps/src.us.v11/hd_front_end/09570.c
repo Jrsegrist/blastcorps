@@ -6,7 +6,7 @@
 #define D_8020D810 ((LevelInfo *) D_8020D810)
 #define D_80215A70 ((u16 * N64P *) D_80215A70)
 #define D_802E8F38 ((Entry8 *) D_802E8F38)
-#define D_802E8F94 ((LevelFlags *) D_802E8F94)
+#define gLevelInfo ((LevelFlags *) gLevelInfo)
 #define gDynamicBufs ((u8 *) gDynamicBufs)
 #define players ((Player *) players)
 /* end of views */
@@ -449,7 +449,7 @@ Gfx *func_801F2428(void) {
                             continue;
                         }
                     }
-                    if (D_802E8F94[lvl].unk0 & 0x81) {
+                    if (gLevelInfo[lvl].unk0 & 0x81) {
                         scale = 1.75f;
                     } else {
                         scale = 1.0f;

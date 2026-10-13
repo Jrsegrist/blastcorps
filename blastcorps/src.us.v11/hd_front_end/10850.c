@@ -8,7 +8,7 @@
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_802E8F94 ((LevelInfo *) D_802E8F94)
+#define gLevelInfo ((LevelInfo *) gLevelInfo)
 #define players ((Player *) players)
 #ifdef NON_MATCHING
 #define D_8036BB24 (*(MenuItem * N64P *) &D_8036BB24)
@@ -116,7 +116,7 @@ void func_801F7850(void) {
                 item = &D_8036BB24[n * 4 + i];
                 p = &players[i];
                 if (D_80365060[i] == 1 && D_80364EF0[i][D_802E8C44[lvl]] > 0
-                    && (D_802E8F94[levelno].type != 0x80 || p->unk91 >= 11)) {
+                    && (gLevelInfo[levelno].type != 0x80 || p->unk91 >= 11)) {
                     func_80264A34(timeStr, D_80364EF0[i][D_802E8C44[lvl]], 0);
                     sprintf(D_80219FD0[n * 4 + i], "%-7.7s %s", p, timeStr);
                     item->text = D_80219FD0[n * 4 + i];
@@ -161,7 +161,7 @@ void func_801F7850(void) {
         item->unk16 = 0x1E;
         item->unk4 += lvl / 4 * 100;
     }
-    if (D_802E8F94[levelno].type == 0x80) {
+    if (gLevelInfo[levelno].type == 0x80) {
         item = &D_8036BB24[lvl];
         item->text = 0;
         item->unk10 = 0;
@@ -182,7 +182,7 @@ void func_801F7850(void) {
 
 /* whether best-time slot `lvl` is shown (special levels: only slot 0) */
 s32 func_801F7F74(u8 lvl) {
-    if (D_802E8F94[levelno].type == 0x80) {
+    if (gLevelInfo[levelno].type == 0x80) {
         return lvl == 0;
     }
     return (players[playerNumberAtStart].unk10 & (1 << lvl)) ? 1 : 0;
@@ -273,7 +273,7 @@ Gfx *func_801F8440(s32 arg0, Gfx *gfx) {
 
     off = 0;
     g = gfx;
-    if (D_802E8F94[levelno].type != 0x80) {
+    if (gLevelInfo[levelno].type != 0x80) {
         g = func_80274868(g);
         g = func_80272ED8(g, D_8021A7D0[((u16 *) D_802F8BDC)[0x280 / 2] / 4] + D_8021A8F0, 0x18 - off, 100, 0xFF - off * 2, 1, 1.0f);
         g = func_80274AA4(g);

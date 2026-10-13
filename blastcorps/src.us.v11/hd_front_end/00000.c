@@ -9,7 +9,7 @@
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_802E8F94 ((LevelInfo *) D_802E8F94)
+#define gLevelInfo ((LevelInfo *) gLevelInfo)
 #define D_802F47B0 ((u8 *) D_802F47B0)
 #define gDynamicBufs ((FeDyn *) gDynamicBufs)
 #define players ((Player *) players)
@@ -119,7 +119,7 @@ s32 func_801E7000(void) {
 
     D_80211A68 = 0;
     x = 0;
-    level = &D_802E8F94[levelno];
+    level = &gLevelInfo[levelno];
     D_80211A6A = 0;
     unused = 0xE73C;
     D_802153E8 = D_803643D4;

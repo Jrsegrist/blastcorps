@@ -68,7 +68,7 @@ s32 func_802B83B0(void);
 extern u8 D_803EEF32; /* effect cooldown */
 
 /* Sets up vehicle 8 (object 8) from the model header `hdr` at (x, y, z) with
- * heading `heading` (called by the object dispatcher func_802A350C):
+ * heading `heading` (called by the object dispatcher lvl_spawn_vehicles):
  * D_803EEF24 = hdr, two 0x100-byte buffers from the heap gHeapPtr
  * (D_803EEF28, D_803EEF2C; the cursor moves 0x200), the object record
  * (veh_add_record(8, 0, buf1, buf2, hdr)), the state block D_803EEE70 reset
@@ -83,7 +83,7 @@ extern u8 D_803EEF32; /* effect cooldown */
  * from the second buffer to the first (func_802AA838).
  * Register convention (conventions.txt): hdr s2, x t7, y s3, z s0, heading
  * s1; func_802A992C's fp and f12-f26 inputs are the dispatcher's leftovers
- * (here fp, f). The asm saves t0-t5 (asm caller func_802A350C keeps t1, t2
+ * (here fp, f). The asm saves t0-t5 (asm caller lvl_spawn_vehicles keeps t1, t2
  * live), points $gp at D_803EEE70 and leaves s0-s7, fp and the FP registers
  * as its callees leave them. Its addi traps on overflow. Fidelity note: the
  * func_802B7A88 call inherits leftover registers in the asm (its zone scan
@@ -679,7 +679,7 @@ void func_802B8424(void) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 /* Sets up the flying vehicle (object 0xFE) from the model header `hdr`
- * (called by the object dispatcher func_802A3134): D_803EF2F8 = hdr, two
+ * (called by the object dispatcher lvl_spawn_chopper): D_803EF2F8 = hdr, two
  * 0x800-byte buffers from the heap gHeapPtr (D_803EF2FC, D_803EF300; the
  * cursor moves 0x1000), the object record (veh_add_record(0xFE, a1Val, buf1,
  * buf2, hdr)), state block D_803EF240: heading +0x4C/+0x4E = 0, speed +0x76 =
@@ -692,7 +692,7 @@ void func_802B8424(void) {
  * the model matrix copied from the second buffer to the first
  * (func_802AA838 at header word [header word 0x18 + 4]).
  * Register convention (conventions.txt): a1Val a1, hdr s2. The asm saves
- * t0-t5 (asm caller func_802A3134 keeps t1 live), points $gp at D_803EF240
+ * t0-t5 (asm caller lvl_spawn_chopper keeps t1 live), points $gp at D_803EF240
  * and leaves s0-s7, fp, f20, f30 as its callees leave them. Its addi traps on
  * overflow. Fidelity note: the asm caller's fp, f24 and f26 reach
  * func_802B899C's callees as leftovers (not modelled, see func_802B899C). */
@@ -1104,7 +1104,7 @@ static void port_state4(void) {
  *      D_803EF304, then state 0 once both.
  * Heading update: heading +0x4E (and +0x4C) += D_803EF324 (wrapped by 0xFFF)
  * and the position D_803EF2EC/F4 advanced by the speed +0x76 along it
- * (func_802A860C). Finally, outside states 4/5: func_802A5604(D_80358074)
+ * (func_802A860C). Finally, outside states 4/5: func_802A5604(gLevelData)
  * and D_803EF2F0 0x14 a frame toward D_803EF304. The asm's add/sub/neg trap
  * on overflow; the state-3 divides trap on a zero distance (not reached).
  * Register convention: no inputs. The asm leaves gp = D_803EF240 and its
@@ -1192,7 +1192,7 @@ heading:
     D_803EF2F4 = o.t1;
 tail:
     if (D_803EF32C != 4 && D_803EF32C != 5) {
-        func_802A5604(D_80358074);
+        func_802A5604(gLevelData);
         D_803EF2F0 = port_approach_14(D_803EF2F0, D_803EF304);
     }
 }

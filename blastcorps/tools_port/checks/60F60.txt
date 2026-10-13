@@ -19,11 +19,11 @@ func_802A5F30: -n 50 --ret void --mem D_803C4B70:0x3C0=rand --mem D_803EB770:16=
 # D_8021DD00; start a multiple of 4 below, at, or above the end (negative span -> 0 blocks).
 # Only a0 of the printf calls is compared: the asm's first call passes the caller's a1 through.
 # The count passed in a1 to the second call is checked via D_803EB790.
-func_802A5FA8: -n 300 --ret void --sig debug_printf=a0 --mem D_80364AA8=choice:0,0x20,0x21,-1,0xDF,0x20000 --mem gHeapPtr=rel:D_8020ED00+-0x1010*int:0:20+choice:0,-4,4,-0x100C,0x1010,0x1000
+func_802A5FA8: -n 300 --ret void --sig debug_printf=a0 --mem gLevelKind=choice:0,0x20,0x21,-1,0xDF,0x20000 --mem gHeapPtr=rel:D_8020ED00+-0x1010*int:0:20+choice:0,-4,4,-0x100C,0x1010,0x1000
 # exact multiples (span = k * 0x1010), and starts relative to the higher end D_8021DD00
-func_802A5FA8: -n 200 --seed 1 --ret void --sig debug_printf=a0 --mem D_80364AA8=choice:0,0x20 --mem gHeapPtr=rel:D_8021DD00+-0x1010*int:0:30
+func_802A5FA8: -n 200 --seed 1 --ret void --sig debug_printf=a0 --mem gLevelKind=choice:0,0x20 --mem gHeapPtr=rel:D_8021DD00+-0x1010*int:0:30
 # start above the end: count 0
-func_802A5FA8: -n 100 --seed 2 --ret void --sig debug_printf=a0 --mem D_80364AA8=choice:0,0x20 --mem gHeapPtr=rel:D_8021DD00+choice:0,4,0x1010,0x10000
+func_802A5FA8: -n 100 --seed 2 --ret void --sig debug_printf=a0 --mem gLevelKind=choice:0,0x20 --mem gHeapPtr=rel:D_8021DD00+choice:0,4,0x1010,0x10000
 
 # func_802A6748: age the in-use blocks of [D_803EB788, D_803EB78C); 4 blocks of 0x1010 at heap,
 # end = 0..4 blocks; inUse / age (0x3C -> freed at 0x3D) per block; count with 0x7FFF / 0xFFFF

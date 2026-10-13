@@ -7,7 +7,7 @@
 from ROM offset devAddr to vAddr, the way the PI manager would before posting
 its message, and returns 0; `noop` stands in for the blocking osRecvMesg.
 Both builds get the same bytes, so level/model data loaded through
-func_802A396C, func_802A2A98, func_802A0700, LOAD_TABLE_ENTRY ... is real.
+lvl_load_model, func_802A2A98, func_802A0700, LOAD_TABLE_ENTRY ... is real.
 """
 import os
 

@@ -73,7 +73,7 @@ s32 func_802D22F4(s32 a3, s32 s0, s32 s1, VehMtxOut *out);
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 /* Spawn vehicle type 15 (called from the level-object dispatcher
- * func_802A350C with a spawn record decoded into registers): model `model`
+ * lvl_spawn_vehicles with a spawn record decoded into registers): model `model`
  * (D_803FC5B4), two 0x100-byte matrix buffers taken from gHeapPtr (into
  * D_803FC5B8/BC), veh_add_record(0xF, 0, ...), the record reset
  * (func_802A754C), the wheel offsets at +0x52..+0x68 and speed bands at
@@ -84,9 +84,9 @@ s32 func_802D22F4(s32 a3, s32 s0, s32 s1, VehMtxOut *out);
  * func_802CFDE8 with +0x9A set, and the matrix copy func_802AA838.
  * Register convention (conventions.txt): model s2, x t7, y s3, z s0, heading
  * s1, fp; t6 and func_802A992C's FP state (f) only pass through to
- * func_802CFDE8. The asm restores t0-t5 (asm caller func_802A350C keeps t1
+ * func_802CFDE8. The asm restores t0-t5 (asm caller lvl_spawn_vehicles keeps t1
  * and t2 live) and leaves s0-s7, fp, gp and f20-f30 changed; the survey's
- * s2-s4, fp, f12-f26 "outputs" are rewritten by func_802A350C before use.
+ * s2-s4, fp, f12-f26 "outputs" are rewritten by lvl_spawn_vehicles before use.
  * Leaked registers (FIDELITY): func_802CFDE8's zone registers here are the
  * stub-model values - t6 the caller's, t7 func_8029F85C's result (the asm
  * expects the C func_80258230 to keep t6/t7), s0 = z and s1 = +4, which in
@@ -699,7 +699,7 @@ void func_802D0784(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Spawn vehicle type 16 (from the dispatcher func_802A350C), the shape of
+/* Spawn vehicle type 16 (from the dispatcher lvl_spawn_vehicles), the shape of
  * func_802CF6A0: model D_803FC984, 0x1400-byte matrix buffers D_803FC988/98C,
  * veh_add_record(0x10, 1, ...), wheel offsets and speed bands, state bytes
  * +0xA1/A2 = 0 and +0xA3 = 1, the ground slots, the animation channels of

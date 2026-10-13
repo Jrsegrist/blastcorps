@@ -367,7 +367,7 @@ extern u8 D_803F7C47;
 extern u8 D_803F7C4A;
 extern u8 D_803F7C4B;
 
-/* Load vehicle 9 (the 5CB60 dispatcher func_802A350C, record type 9): model
+/* Load vehicle 9 (the 5CB60 dispatcher lvl_spawn_vehicles, record type 9): model
  * `model` (D_803F7C04), save copies D_803F7C08 / D_803F7C0C taken 0x1000
  * bytes each from gHeapPtr (veh_add_record(9, 0, copies, model)), record
  * reset (func_802A754C), wheel table +0x52..0x68, position (x, y, z),
@@ -384,9 +384,9 @@ extern u8 D_803F7C4B;
  * model s2, fp (handed to func_802A992C, which stores it into D_803ED3F2:
  * the dispatcher's leftover $fp in the game). The FP block func_802A992C
  * passes through starts at 0 here (not read first). The asm saves t0-t5
- * (asm caller func_802A350C keeps t1, t2 live: a mixed N64 build would need
+ * (asm caller lvl_spawn_vehicles keeps t1, t2 live: a mixed N64 build would need
  * a thunk) and leaves s2-s4, fp and f12-f26 as its callees leave them
- * (survey: read by func_802A350C's next records; not modelled) and $gp =
+ * (survey: read by lvl_spawn_vehicles's next records; not modelled) and $gp =
  * the block. Adds are trapping in the asm. */
 void func_802C5120(s32 x, s32 y, s32 z, s32 heading, u8 *model, s32 fp) {
     TriSideOut f;

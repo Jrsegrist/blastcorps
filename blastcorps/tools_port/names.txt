@@ -244,3 +244,34 @@ func_8024AE2C = veh_apply_switch         # the vehicle switch gNextVehicle asks 
 func_8024AFA8 = veh_enter                # the type's enter routine ("changing to digger %d"); 0 if not a vehicle
 func_8024B188 = veh_leave
 D_803649ED = gNextVehicle                # a pending vehicle switch (0 / 0xFF: none)
+
+# --- 4. the level table, level loading, the mission state ----------------
+D_802E8F94 = gLevelInfo                # LevelInfo[60], 0x44 bytes each; +0 = the level's kind
+D_80364AA8 = gLevelKind                # gLevelInfo[levelno]'s kind: 1 = main mission; 2, 4, 8, 0x10, 0x20, 0x40 the others
+func_8025615C = lvl_load_file          # inflates the level's ROM file (lagp, chimp ... level59) to dest
+func_80256A34 = hd_setup_level         # the level's state, its file (at the heap), initlevel, vehicles, HUD
+func_80257234 = lvl_alloc_dl_buffers   # the four level display lists, two of each, sized per level
+func_802A1674 = initlevel              # hd.c's debug output names it ("enter initlevel" ... "exit initlevel")
+func_802A2D68 = lvl_read_header
+func_802A350C = lvl_spawn_vehicles     # the level's vehicles and objects
+func_802A303C = lvl_spawn_carrier      # type 0xFF, the missile carrier: gHaveCarrier
+func_802A30DC = lvl_spawn_shuttle      # type 0xFD: gHaveShuttle
+func_802A3134 = lvl_spawn_chopper      # type 0xFE: gHaveChopper
+func_802A396C = lvl_load_model         # a packed model by type (the vehicle data list: docs/blast_corps_vehicles.txt)
+func_802A4CDC = lvl_build_visible_dls  # the four visible-geometry display lists of this frame (5FD50.c)
+func_802A4E4C = lvl_build_visible_dl
+D_80358074 = gLevelData                # the inflated level file, on the heap
+D_80364458 = gLevelSegment8            # its display data (header + 0xC8), segment 8
+D_80358030 = gLevelDl0                 # the four per-frame level display lists ([gBufferIndex])
+D_80358038 = gLevelDl1
+D_80358040 = gLevelDl2
+D_80358048 = gLevelDl3
+D_803643DB = gHaveCarrier
+D_80364AC1 = gHaveShuttle
+D_803643DC = gHaveChopper
+D_803643DA = gLevelDoneRequest
+D_803643D7 = gLevelDone                # mission complete (from gLevelDoneRequest at the end of a frame)
+D_803643D6 = gCarrierHit               # mission failed (from cmo_hit_request)
+func_8025B9D0 = rec_start_playback     # recording.c: a demo / replay recording
+func_8025BBE8 = rec_record             # recording.c: this frame's pad into the recording
+func_8025BEF8 = rec_next               # recording.c: the next recorded pad into gRecButtons

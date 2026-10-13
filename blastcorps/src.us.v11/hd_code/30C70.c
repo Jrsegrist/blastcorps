@@ -57,7 +57,7 @@ void func_80275478(SpriteVtxBuf *arg0, Gfx **gfxp, u8 arg2) {
     ret = func_802BCE40();
     pts = D_8036C790;
     D_8036C7CC = 0;
-    if (!D_8036EB98 && !ret && D_80364AA8 == 1 && !gPaused) {
+    if (!D_8036EB98 && !ret && gLevelKind == 1 && !gPaused) {
         if (!func_8026AD30(0x4B)) {
             func_8026AF6C(0x803D);
             func_80277EDC(3, 1, 2, 0x82);
@@ -111,7 +111,7 @@ void func_80275478(SpriteVtxBuf *arg0, Gfx **gfxp, u8 arg2) {
     }
     if (D_8036C794 != NULL) {
         func_802BD10C(D_8036C798);
-        if (D_8036C7C8 >= 1501 || !D_803643DB) {
+        if (D_8036C7C8 >= 1501 || !gHaveCarrier) {
             g = 0xFF;
             r = 0;
         } else if (D_8036C7C8 < 500) {

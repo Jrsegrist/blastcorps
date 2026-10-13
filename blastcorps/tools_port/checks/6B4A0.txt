@@ -84,7 +84,7 @@ func_802B0254: -n 100 --seed 0 --ret void --sig func_802A7764=a0,a1,a2 --sig fun
 func_802B0254: -n 30 --seed 1 --ret void --follow func_802A7764 --sig func_802C444C= --heap 0x800 --heap 0x800 \
     --mem D_803EDB40+0x76:2=rand --mem D_803EDBF8=rel:heap0 --mem D_803EDBFC=rel:heap1
 # func_802B07DC: vehicle 1 per-frame update ($gp = D_803EDB40). Channel 2 <- angle gCamYaw thirds; horn (cooldown
-# D_803EDC06, channel 5 state, buttons gHeldL/B, uses D_803EDC00, sound 0x37); level D_803EDC05 (+-5 / towards
+# D_803EDC06, channel 5 state, buttons gHeldL/gHeldR, uses D_803EDC00, sound 0x37); level D_803EDC05 (+-5 / towards
 # 50) -> channel 3; speed direction and |speed| / 14 -> channel 1 and func_802C4584. Getter stubbed (field 0x10 from
 # --stub-ret), then the setters/getter followed.
 func_802B07DC: -n 400 --seed 0 --ret void --arg gp=sym:D_803EDB40 --stub-ret func_802A04BC=choice:0,1,2,-1 \

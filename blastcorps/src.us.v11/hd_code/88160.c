@@ -35,7 +35,7 @@ extern u8 D_803F9312;
 extern u8 D_803F9313;
 extern u8 D_803F9314;
 
-/* Set up vehicle 14 (the level-object dispatcher func_802A350C's case 0xE):
+/* Set up vehicle 14 (the level-object dispatcher lvl_spawn_vehicles's case 0xE):
  * as func_802CB720 (86F60) with this vehicle's data (header D_803F9304, save
  * copies D_803F9308/930C from gHeapPtr, block D_803F9250, channels
  * D_803F8F50, position D_803F92F8..9300), id 0xE, wheel offsets
@@ -47,7 +47,7 @@ extern u8 D_803F9314;
  * asm saves t0-t5 and leaves $gp = D_803F9250; fp/f20 (as func_8029E558
  * leaves them) and f12/f14 (as func_802CD068 leaves them), which its caller
  * hands to the next object's setup, aren't modelled. Asm caller
- * func_802A350C keeps t1, t2 live (a mixed N64 build would need a thunk). */
+ * lvl_spawn_vehicles keeps t1, t2 live (a mixed N64 build would need a thunk). */
 void func_802CC920(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut *f) {
     u32 p;
     u8 *h;

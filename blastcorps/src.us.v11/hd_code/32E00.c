@@ -118,10 +118,10 @@ void func_80277620(s32 now) {
         func_80277AE0();
         func_80277B84();
     }
-    if (now == 50 && !D_803643D6) {
+    if (now == 50 && !gCarrierHit) {
         func_80277EDC(2, 1, 2, func_8026205C(1));
     }
-    if (D_803643DB) {
+    if (gHaveCarrier) {
         limit = D_803EF6E4 >> 5;
         while (p < D_803BE700) {
             if (!p->done && limit > p->time) {
@@ -292,7 +292,7 @@ void func_80277EDC(type, arg1, arg2, sound)
 #endif
 {
 #ifdef NON_MATCHING
-    u8 pos = 0; /* types without a case (with D_80364AA8 == 1) leave it indeterminate in the original */
+    u8 pos = 0; /* types without a case (with gLevelKind == 1) leave it indeterminate in the original */
 #else
     u8 pos;
 #endif
@@ -342,7 +342,7 @@ void func_80277EDC(type, arg1, arg2, sound)
                 D_8036CB3B = 1;
                 break;
         }
-        if (D_80364AA8 != 1) {
+        if (gLevelKind != 1) {
             pos = 1;
         }
         switch (pos) {

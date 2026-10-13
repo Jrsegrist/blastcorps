@@ -10,7 +10,7 @@
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_8020C070 ((MenuEntry *) D_8020C070)
 #define D_8020D810 ((FeLevelEntry *) D_8020D810)
-#define D_802E8F94 ((LevelInfo *) D_802E8F94)
+#define gLevelInfo ((LevelInfo *) gLevelInfo)
 #define D_802F49F4 ((IconInfo *) D_802F49F4)
 #define gDynamicBufs ((FeDyn *) gDynamicBufs)
 #define players ((FePlayer *) players)
@@ -147,13 +147,13 @@ u8 func_801EE800(u8 *arg0, u8 arg1, u8 arg2) {
     s32 pad[2];
 
     p = &players[playerNumber];
-    l = &D_802E8F94[levelno];
+    l = &gLevelInfo[levelno];
     PRINT_SCORE("new", nss);
     PRINT_SCORE("old", D_8036EA60);
     PRINT_SCORE("res", D_8036EA80);
     PRINT_SCORE("rs2", D_8036EA90);
     debug_printf("units %d\n", p->unkA);
-    if (D_802E8F94[levelno].unk0 == 1) {
+    if (gLevelInfo[levelno].unk0 == 1) {
         t = func_802852EC();
         if (arg2) {
             if (arg1) {
@@ -183,7 +183,7 @@ u8 func_801EE800(u8 *arg0, u8 arg1, u8 arg2) {
     *arg0 = 0;
     if (arg1 && arg2) {
         STATS_ASSERT(!DUMMY_LEVELS(levelno), 94);
-        if (D_802E8F94[levelno].unk0 == 1) {
+        if (gLevelInfo[levelno].unk0 == 1) {
             p->unk14 = ((s32) D_803649F0);
         }
         if (p->unkA < 360) {
@@ -197,11 +197,11 @@ u8 func_801EE800(u8 *arg0, u8 arg1, u8 arg2) {
             *arg0 = 1;
             p->unkC++;
         }
-        if (!(D_802E8F94[levelno].unk0 & 0x81)) {
+        if (!(gLevelInfo[levelno].unk0 & 0x81)) {
             p->unk92[levelno] = nss.bdn;
         }
         D_80364EF0[playerNumber][D_802E8C44[nss.bdn]] = nss.tc;
-        if (D_803643D5 && D_802E8F94[levelno].unk0 == 1) {
+        if (D_803643D5 && gLevelInfo[levelno].unk0 == 1) {
             D_80364EF0[playerNumber][D_802E8C44[0]] = nss.tc;
         }
         p->unk18[levelno] = ret;
@@ -238,12 +238,12 @@ u8 func_801EEDB4(arg0, arg1, arg2)
     u16 old;
 
     p = &players[playerNumber];
-    l = &D_802E8F94[arg0];
+    l = &gLevelInfo[arg0];
     if (gNextGameMode == 0x08000000 && arg1 && l->unk0 == 2) {
         func_80295A20(func_80286038(nss.tc));
     }
     if (arg2 && arg1) {
-        if (D_802E8F94[arg0].unk0 == 0x80) {
+        if (gLevelInfo[arg0].unk0 == 0x80) {
             nss.bdn = 0;
         } else if (nss.tc <= D_8036EA60.tc) {
             nss.bdn = D_803643D4;
@@ -320,7 +320,7 @@ u8 func_801EF2BC(arg0, arg1, arg2)
     u8 ret;
     LevelInfo *l;
 
-    l = &D_802E8F94[arg1];
+    l = &gLevelInfo[arg1];
     if (l->unk30 >= arg0 && arg2 >= 12) {
         ret = 4;
     } else if (l->unk32 >= arg0) {

@@ -217,7 +217,7 @@ func_802A3DF8: in t0=a0,v0=a1,t9=a2,s1=*a3 ; out t6=ret,s1=*a3 ; preserve v0,t0,
 func_802A3E9C: in t0=a0,v0=a1,t9=a2,s1=*a3 ; out s1=*a3 ; preserve v0,t0,t9,f12,f14 ; clobbers s2-s7,gp
 func_802A3F80: in t0=a0,s1=*a1 ; out fp=ret,s1=*a1 ; preserve t0,f12,f14 ; clobbers s0,s2-s7,gp
 # level object in t0 (s0, s2, s3 left as scratch; s1 counts the items down: 0 out when the count word is non-zero,
-# and it reaches func_802CE9C8 via func_802A1674 / func_8028FDA0)
+# and it reaches func_802CE9C8 via initlevel / func_8028FDA0)
 func_802A1A9C: in t0=a0,s1=*a1 ; out s1=*a1 ; preserve t0,f12,f14 ; clobbers s0,s2,s3
 func_802A1C88: in t0=a0 ; preserve t0,t6,t9,f12,f14
 func_802A20F4: in t4=a0,s0=a1 ; preserve v0,v1,a0,a2,a3,t1,t2,t3,t4,t5,t6,t7,f12,f14
@@ -233,15 +233,15 @@ func_802A24BC: in v1=a0,fp=a1 ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,
 func_802A2A98: in t3=a0 ; out s0=ret ; preserve t0,t1,t2,t3,t4,t5,t6 ; clobbers s2,s7
 # packed block of type t3 from ROM, DL ids resolved (func_802A08E4 s4 = ROM start): data -> s2, s3/s4 (+ a1 = heap end)
 func_802A32CC: in t3=a0 ; out s2=*a1,s3=*a1+4,s4=*a1+8 ; preserve t0,t1,t2,t3,t4,t5,t6,t7 ; clobbers s5,s6,s7
-func_802A396C: in t3=a0 ; out s2=*a1,s4=*a1+4,a1=*a1+8 ; preserve t0,t1,t2,t3,t4,t5,t6,t7 ; clobbers s5,s6,s7
+lvl_load_model: in t3=a0 ; out s2=*a1,s4=*a1+4,a1=*a1+8 ; preserve t0,t1,t2,t3,t4,t5,t6,t7 ; clobbers s5,s6,s7
 func_802A2C54: in t0=a0 ; preserve t0,f12,f14
-func_802A2D68: in t0=a0 ; preserve t0,t6,t9,f12,f14
+lvl_read_header: in t0=a0 ; preserve t0,t6,t9,f12,f14
 func_802A3824: in t0=a0 ; preserve a1,a2,a3,t0,f12,f14
 # (disp) level-setup dispatchers: obj in t0; fp = the previous object's leftover ground byte, in (and out of the spawn loop)
-func_802A350C: in t0=a0,fp=a1 ; out fp=ret ; preserve t0 ; clobbers s0-s7,gp,f20,f22,f24,f26,f28,f30
-func_802A303C: in t0=a0,fp=a1 ; preserve t0 ; clobbers s0-s7,fp,gp,f20,f22,f24,f26,f28,f30
-func_802A30DC: preserve t0 ; clobbers s0-s7,fp,gp,f20,f22,f24,f26,f28,f30
-func_802A3134: in t0=a0 ; preserve t0 ; clobbers s0-s7,fp,gp,f20,f22,f24,f26,f28,f30
+lvl_spawn_vehicles: in t0=a0,fp=a1 ; out fp=ret ; preserve t0 ; clobbers s0-s7,gp,f20,f22,f24,f26,f28,f30
+lvl_spawn_carrier: in t0=a0,fp=a1 ; preserve t0 ; clobbers s0-s7,fp,gp,f20,f22,f24,f26,f28,f30
+lvl_spawn_shuttle: preserve t0 ; clobbers s0-s7,fp,gp,f20,f22,f24,f26,f28,f30
+lvl_spawn_chopper: in t0=a0 ; preserve t0 ; clobbers s0-s7,fp,gp,f20,f22,f24,f26,f28,f30
 # any record in [D_803B9890, fp) with byte 0x50 == v0 -> t5
 func_802A4168: in v0=a0,fp=a1 ; out t5=ret ; preserve t1,t2,t3,t4,t6,t7,t9
 # collision triangle setup; t4 advanced by 0x60; s1 in (byte 0x58) and out (P0.x - P2.x)
@@ -254,7 +254,7 @@ func_802A1C20: in t0=a0,fp=a1,s1=*a2 ; out s1=*a2 ; preserve v0,v1,a0,a1,a2,a3,t
 func_802A2608: in t4=a0,fp=a1,s1=*a2 ; out s1=*a2 ; preserve v0,v1,a0,a1,a2,a3,t0,t3,t4,t5,t6,t7,t8,t9
 # G_SETTIMG ids in level object t0's display list via func_802A08E4; list end -> s1 (s4 passes through)
 func_802A3008: in t0=a0 ; out s1=ret ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,t8,t9 ; clobbers s0,s2,s3,s4,s5,s6
-# phase D (wt-g3): packed object 0x98 vertices moved by D_8039CAB0/2/4 (saves t0; func_802A396C's s2/s4 left)
+# phase D (wt-g3): packed object 0x98 vertices moved by D_8039CAB0/2/4 (saves t0; lvl_load_model's s2/s4 left)
 func_802A19F4: preserve t0 ; clobbers s2,s4,s5,s6,s7
 # packed object D_8039CA7E (func_802A32CC: s2-s4 out when loaded), its matrices to the heap, func_80295AE0
 func_802A3198: in s2=*a0,s3=*a0+4,s4=*a0+8 ; out s2=*a0,s3=*a0+4,s4=*a0+8 ; preserve t0 ; clobbers s0,s5,s6,s7
@@ -283,7 +283,7 @@ func_802A51FC: in a0=a0,a1=a1,t5=a2,t6=a3,gp=stack0 ; out a1=ret ; preserve a0,a
 # grid visibility step (lvl a0, task data a1-a3): quad stack D_803C2B88, cell lists; s0-s7 left changed
 cull_walk_grid: in a0=a0,a1=a1,a2=a2,a3=a3 ; clobbers s0-s7
 # visible-part display list: lvl a0, dl a1 (-> a1), records [a2, a3), groups [t8, t9); saves t0-t2
-func_802A4E4C: in a0=a0,a1=a1,a2=a2,a3=a3,t8=stack0,t9=stack1 ; out a1=ret ; preserve a0,t0,t1,t2,t8,t9 ; clobbers s0,s1,s2,gp
+lvl_build_visible_dl: in a0=a0,a1=a1,a2=a2,a3=a3,t8=stack0,t9=stack1 ; out a1=ret ; preserve a0,t0,t1,t2,t8,t9 ; clobbers s0,s1,s2,gp
 
 # --- 60F60 ---
 # func_802A57AC reuses a0 (the record) and v1 (&D_803C4B54) after the call;
@@ -469,7 +469,7 @@ func_802C7C1C: in s2=a0 ; out f2=fret ; clobbers s3
 func_802C7DFC: out s3=ret ; preserve a0,a1,a2,a3
 func_802C7ECC: preserve a0,a1,a2,a3,t3,t4,t6,f12,f14
 func_802C7F28: preserve a0,a1,a2,a3,t3,t4,f12,f14
-# load vehicle 9 (dispatcher func_802A350C): x t7, y s3, z s0, heading s1, model s2, $fp on to func_802A992C; s-/FP leftovers not modelled
+# load vehicle 9 (dispatcher lvl_spawn_vehicles): x t7, y s3, z s0, heading s1, model s2, $fp on to func_802A992C; s-/FP leftovers not modelled
 func_802C5120: in t7=a0,s3=a1,s0=a2,s1=a3,s2=stack0,fp=stack1 ; preserve t0,t1,t2,t3,t4,t5 ; clobbers s0-s7,fp,gp,f20,f22,f24,f26,f28,f30
 # move while not the player's vehicle (C veh_update_others): $fp (leaked from the caller) goes on to func_802A9A60
 func_802C5860: in fp=a0
@@ -720,12 +720,12 @@ func_802BBE74: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+
 func_802BBDC8: clobbers gp
 # countdown / effect spawn / sound level; t6, t7, s0-s4 pass through to func_802A6274 (s1 comes back changed)
 func_802BC2C8: in t6=a0,t7=a1,s0=a2,s1=a3,s2=stack0,s3=stack1,s4=stack2 ; clobbers s1,s5
-# spawn vehicle 7 (from func_802A350C): x t7, y s3, z s0, heading s1, model data s2, ground byte fp; saves t0-t5
+# spawn vehicle 7 (from lvl_spawn_vehicles): x t7, y s3, z s0, heading s1, model data s2, ground byte fp; saves t0-t5
 func_802BBA60: in t7=a0,s3=a1,s0=a2,s1=a3,s2=stack0,fp=stack1 ; preserve t0,t1,t2,t3,t4,t5 ; clobbers s0-s7,gp,fp,f20,f22,f24,f26,f28,f30
 # vehicle 7 model update: block in $gp (always D_803EFDF0); leaves t0 = x, t2 = 7 for its caller
 func_802BC3D0: clobbers s0-s7,fp,f20,f22,f24,f26,f28
 # --- 83910 ---
-# spawn dispatcher (from func_802A350C): type t3, x t7, y s3, z s0, heading s1, model data s2, ground byte fp; saves t0-t5
+# spawn dispatcher (from lvl_spawn_vehicles): type t3, x t7, y s3, z s0, heading s1, model data s2, ground byte fp; saves t0-t5
 func_802C80D0: in t3=a0,t7=a1,s3=a2,s0=a3,s1=stack0,s2=stack1,fp=stack2 ; preserve t0,t1,t2,t3,t4,t5 ; clobbers s0-s7,gp,fp,f20,f22,f24,f26,f28,f30
 # spawn vehicle 0x0B / 0x11 / 0x12: inputs as func_802C80D0's
 func_802C8150: in t7=a0,s3=a1,s0=a2,s1=a3,s2=stack0,fp=stack1 ; clobbers s0-s7,gp,fp,f20,f22,f24,f26,f28,f30
@@ -756,7 +756,7 @@ func_802CB224: preserve a1,a2,a3
 func_802CB3C8: in s2=a0 ; out f2=fret ; preserve a1,a2,a3 ; clobbers s3
 # rounded speed/divisor ($gp = D_803F8AA0) in s3
 func_802CB564: out s3=ret ; preserve a0,a1,a2,a3
-# load vehicle 10 (dispatcher func_802A350C): x t7, y s3, z s0, heading s1, model s2, $fp on to func_802A992C; s-/FP leftovers not modelled
+# load vehicle 10 (dispatcher lvl_spawn_vehicles): x t7, y s3, z s0, heading s1, model s2, $fp on to func_802A992C; s-/FP leftovers not modelled
 func_802C9B90: in t7=a0,s3=a1,s0=a2,s1=a3,s2=stack0,fp=stack1 ; preserve t0,t1,t2,t3,t4,t5 ; clobbers s0-s7,fp,gp,f20,f22,f24,f26,f28,f30
 # move while not the player's vehicle: $fp (leaked from the caller) goes on to func_802A9A60
 func_802CA1F8: in fp=a0
@@ -847,7 +847,7 @@ func_802CFCE0: in a3=a0,f24=*a1+24 ; out s3=ret,f24=*a1+24,f26=*a1+28 ; preserve
 # per-frame update: zone registers t6, t7, s0-s4 and the FP pass-through state f14-f26 (C caller passes garbage)
 func_802CFDE8: in t6=a0,t7=a1,s0=a2,s1=a3,s2=stack0,s3=stack1,s4=stack2,f14=stack3,f20=stack4,f22=stack5,f24=stack6,f26=stack7
 func_802D0F98: in t6=a0,t7=a1,s0=a2,s1=a3,s2=stack0,s3=stack1,s4=stack2,f14=stack3,f20=stack4,f22=stack5,f24=stack6,f26=stack7
-# spawn (from func_802A350C): model s2, x t7, y s3, z s0, heading s1, fp; t6 and the FP state pass through
+# spawn (from lvl_spawn_vehicles): model s2, x t7, y s3, z s0, heading s1, fp; t6 and the FP state pass through
 func_802CF6A0: in s2=a0,t7=a1,s3=a2,s0=a3,s1=stack0,fp=stack1,t6=stack2,f12=*stack3,f14=*stack3+4,f20=*stack3+8,f22=*stack3+12,f24=*stack3+16,f26=*stack3+20 ; preserve t0,t1,t2,t3,t4,t5 ; clobbers s0-s7,fp,gp,f20,f22,f24,f26,f28,f30
 func_802D07E0: in s2=a0,t7=a1,s3=a2,s0=a3,s1=stack0,fp=stack1,t6=stack2,f12=*stack3,f14=*stack3+4,f20=*stack3+8,f22=*stack3+12,f24=*stack3+16,f26=*stack3+20 ; preserve t0,t1,t2,t3,t4,t5 ; clobbers s0-s7,fp,gp,f20,f22,f24,f26,f28,f30
 # --- 8DDB0 ---
@@ -855,7 +855,7 @@ func_802D07E0: in s2=a0,t7=a1,s3=a2,s0=a3,s1=stack0,fp=stack1,t6=stack2,f12=*sta
 func_802D2C20: clobbers s0,s1,s5,s6,s7
 # model placement ($gp = D_803FCCA0): angles, func_802AA764, then points (func_802ABBEC, id 0xFD); leaves junk in s1, s2, s4-s7
 func_802D2FA4: clobbers s1,s2,s4,s5,s6,s7
-# vehicle 0xFD setup (dispatcher func_802A30DC): header in s2; saves t0-t5, leaves $gp = D_803FCCA0 and channel-routine junk
+# vehicle 0xFD setup (dispatcher lvl_spawn_shuttle): header in s2; saves t0-t5, leaves $gp = D_803FCCA0 and channel-routine junk
 func_802D2570: in s2=a0 ; preserve t0,t1,t2,t3,t4,t5 ; clobbers gp,s0-s7,fp,f20,f30
 # --- 77E20 ---
 # 1 if every D_8039C800 entry has unk26 set; saves t0, t1, t3

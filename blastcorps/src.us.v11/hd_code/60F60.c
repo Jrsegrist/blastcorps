@@ -450,7 +450,7 @@ s32 func_802A5ED0(void) {
 #ifdef NON_MATCHING
 /* Clears the heap-block range and count, deactivates all 16 records of
  * D_803C4B70 and clears the 16 bytes of D_803EB770.
- * Asm callers rely on preserved: func_802A1674 keeps t0, f12, f14. */
+ * Asm callers rely on preserved: initlevel keeps t0, f12, f14. */
 void func_802A5F30(void) {
     s32 i;
 
@@ -468,7 +468,7 @@ void func_802A5F30(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_8020ED00[]; /* heap end when (D_80364AA8 & 0x20) */
+extern u8 D_8020ED00[]; /* heap end when (gLevelKind & 0x20) */
 extern u8 D_8021DD00[]; /* heap end otherwise */
 
 /* Carves as many 0x1010-byte HeapBlocks as fit between the heap pointer and
@@ -477,7 +477,7 @@ extern u8 D_8021DD00[]; /* heap end otherwise */
  * messages and clears each block's inUse word. */
 void func_802A5FA8(void) {
     u8 *start = gHeapPtr;
-    s32 span = ((D_80364AA8 & 0x20) ? D_8020ED00 : D_8021DD00) - start;
+    s32 span = ((gLevelKind & 0x20) ? D_8020ED00 : D_8021DD00) - start;
     u32 n;
     HeapBlock *b;
     HeapBlock *end;

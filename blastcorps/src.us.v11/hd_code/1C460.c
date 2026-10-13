@@ -375,7 +375,7 @@ u8 func_80261A44(u64 event) {
             tune = 0xF;
             break;
         case 0x2000:
-            if (D_802E8F94[levelno][0] != 1) {
+            if (gLevelInfo[levelno][0] != 1) {
                 func_80261570(0.0f);
                 break;
             }

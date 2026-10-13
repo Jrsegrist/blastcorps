@@ -36,7 +36,7 @@ extern u8 D_803F8F45;
 
 #define VEH13_S16(off) (*(s16 *) (D_803F8E80 + (off)))
 
-/* Set up vehicle 13 (the level-object dispatcher func_802A350C's case 0xD):
+/* Set up vehicle 13 (the level-object dispatcher lvl_spawn_vehicles's case 0xD):
  * model header hdr -> D_803F8F34; two 0x100-byte save copies from the
  * gHeapPtr bump pointer (D_803F8F38, D_803F8F3C; trapping adds);
  * veh_add_record(0xD, 0, copies, hdr); reset the record (func_802A754C) and
@@ -56,7 +56,7 @@ extern u8 D_803F8F45;
  * leaves it there. It also leaves fp, f20 (as func_8029E558 leaves them) and
  * f12/f14 (as func_802CBEF0 leaves them), which its caller hands to the next
  * object's setup (func_802A992C's fp feeds D_803ED3F2 / +0x50 there): not
- * modelled (see the port notes). Asm caller func_802A350C keeps t1, t2 live
+ * modelled (see the port notes). Asm caller lvl_spawn_vehicles keeps t1, t2 live
  * (a mixed N64 build would need a thunk; the native port won't). */
 void func_802CB720(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut *f) {
     u32 p;

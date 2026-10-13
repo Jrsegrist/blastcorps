@@ -33,7 +33,7 @@ struct VtxBuf;
 Gfx *func_8024C404(Gfx *arg0, DynamicBuf *arg1, s32 *arg2);
 void veh_draw_layer(Gfx **gfx, u8 lod);
 void hd_mode_setup(void);
-void func_80256A34(s32 arg0);
+void hd_setup_level(s32 arg0);
 void align_up(s32 *arg0, s32 arg1);
 f32 hd_sinf(f32 arg0);
 f32 hd_cosf(f32 arg0);
@@ -70,12 +70,12 @@ s16 func_8025B498(s16 x, u16 scale, u8 *str, s32 arg3);
 u8 *func_8025B558(u16 *arg0);
 
 /* hd_code/17210.c */
-void func_8025B9D0(s32 arg0, s32 *arg1);
+void rec_start_playback(s32 arg0, s32 *arg1);
 void func_8025BB38(void);
 void func_8025BB50(void);
-void func_8025BBE8(u16 buttons, s8 x, s8 y);
+void rec_record(u16 buttons, s8 x, s8 y);
 void func_8025BD98(void);
-void func_8025BEF8(void);
+void rec_next(void);
 
 /* hd_code/17A70.c */
 void func_8025C230(u8 * N64P *arg0, u8 * N64P *arg1, s32 arg2);
@@ -478,15 +478,15 @@ void func_802A11C4(s32 id, void *dest);
 u32 func_802A1320(void);
 void veh_set_record(s32 a0Val, s32 id, s32 v0Val, s32 v1Val, u8 *obj);
 void veh_add_record(s32 a0Val, s32 a1Val, s32 v0Val, s32 v1Val, u8 *hdr);
-void func_802A1674(u8 *obj, s32 arg1);
-void func_802A396C(s32 type, Out802A396C *out);
+void initlevel(u8 *obj, s32 arg1);
+void lvl_load_model(s32 type, Out802A396C *out);
 u8 *func_802A41B0(u8 *rec, u8 *v, s32 id, s32 h52, s32 b57, s32 b56, s32 *s1io, s32 b4F, s32 b55);
 
 /* hd_code/5FD50.c */
 void cull_restart_now(void);
 void cull_restart(s32 arg0);
 void cull_step_delayed(s32 arg0, Gfx *arg1, Vtx *arg2, s32 arg3);
-void func_802A4CDC(u32 *dl0, u32 *dl1, u32 *dl2, u32 *dl3, u32 *gfx);
+void lvl_build_visible_dls(u32 *dl0, u32 *dl1, u32 *dl2, u32 *dl3, u32 *gfx);
 
 /* hd_code/60D50.c */
 void func_802A5510(u8 *level);

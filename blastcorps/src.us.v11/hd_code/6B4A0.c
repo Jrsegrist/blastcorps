@@ -256,7 +256,7 @@ extern u8 D_803EDC05;
 extern u8 D_803EDC06;
 extern s8 D_803EDC04;
 
-/* Vehicle 1 setup, called from the asm dispatcher func_802A350C: model
+/* Vehicle 1 setup, called from the asm dispatcher lvl_spawn_vehicles: model
  * header, buffers and record (port_veh_init_head with this vehicle's wheel
  * table), level D_803EDC05 = 50, horn uses D_803EDC00 = 0, cooldown
  * D_803EDC06 = 0, D_803EDC04 = 0, ground slots and animation reset

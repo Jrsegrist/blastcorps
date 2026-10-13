@@ -1425,7 +1425,7 @@ s32 func_802A8B10(s32 *a3Out) {
  * gz = z >> 5, vehicle 7 counts as out on level 0 when gx < 1000, on level
  * 0x12 when gz < 900 and on level 0xD when gz < 0x44C; any vehicle is out
  * when (gx, gz) leaves the box D_803BE730..36. When out: the respawn record
- * with key `id` (key 1 unless D_80364AA8 is 1 or 0x80; the scan has no end
+ * with key `id` (key 1 unless gLevelKind is 1 or 0x80; the scan has no end
  * check, the key must exist) gives x, y, z (each s16 << 5), stored to *px,
  * *py, *pz and handed back in pos; gCamSnap = 1; func_802A754C(veh);
  * words 1..9 of veh = y; effect kind 0x13 (data 1000000) at the new position
@@ -1458,7 +1458,7 @@ void func_802A8CCC(u8 *veh, s32 id, s32 *px, s32 *py, s32 *pz, Pos802A8CCC *pos)
     if (!out && gx >= D_803BE730 && gx <= D_803BE732 && gz >= D_803BE734 && gz <= D_803BE736) {
         return;
     }
-    key = (((s32) D_80364AA8) == 1 || ((s32) D_80364AA8) == 0x80) ? id : 1;
+    key = (((s32) gLevelKind) == 1 || ((s32) gLevelKind) == 0x80) ? id : 1;
     rec = D_803BE6F8;
     while (rec[0] != key) {
         rec += 9;

@@ -171,16 +171,16 @@ cull_walk_grid: -n 100 --seed 4 --ret void --follow cull_test_cells,cull_grid_he
     --mem @a0+0x100:0x40=halves:0,1,0x7FFF,0x8000,0xFFFF,0x1234 --arg a1=int --arg a2=ptr:0x80 --arg a3=int \
     --mem D_803C2B90:0x40=rand --mem D_803C2B88=sym:D_803C2B90 --mem D_803C3178:0x20=rand \
     --mem D_803C3170=rel:D_803C3178+2*int:0:12 --mem gVisibleCells:0xC8=rand
-# func_802A4E4C(lvl, dl, rec, recEnd, grp t8, grpEnd t9): fixed DL copy, then groups of visible records (cells
+# lvl_build_visible_dl(lvl, dl, rec, recEnd, grp t8, grpEnd t9): fixed DL copy, then groups of visible records (cells
 # in the sorted list gVisibleCells) and of the variable-size records (n = 2 cells, 0x1C bytes), then func_802A5334.
-func_802A4E4C: -n 300 --stub-ret func_802A5334=ptr:0x40 --arg a0=ptr:0x100 --mem @a0+0x88=0x40 \
+lvl_build_visible_dl: -n 300 --stub-ret func_802A5334=ptr:0x40 --arg a0=ptr:0x100 --mem @a0+0x88=0x40 \
     --mem @a0+0x8C=rel:0x40+8*int:0:4 --arg a1=ptr:0x100 --arg a2=ptr:0x80 --arg a3=rel:a2+0x14*int:0:5 \
     --mem @a2+0xC*0x14:5=choice:1,2,2,3 --mem @a2+0x10*0x14:5=choice:0,1,2,3,5,7 \
     --arg t8=ptr:0x60 --arg t9=rel:t8+0x1C*int:0:3 --mem @t8+0xC*0x1C:3=choice:1,2,3,4 --mem @t8+0x10*0x1C:3=2 \
     --mem @t8+0x14*0x1C:3=choice:0,1,2,3,5 --mem @t8+0x18*0x1C:3=choice:1,3,5,7,9 \
     --mem gVisibleCells:6=halves:1,2,3,5,7,0x8000 --mem gVisibleCells+6:2=halves:0xFFFF --mem D_803C2EB0:0x10=rand
 # empty visible list (first entry -1); every cell listed
-func_802A4E4C: -n 100 --seed 1 --stub-ret func_802A5334=ptr:0x40 --arg a0=ptr:0x100 --mem @a0+0x88=0x40 \
+lvl_build_visible_dl: -n 100 --seed 1 --stub-ret func_802A5334=ptr:0x40 --arg a0=ptr:0x100 --mem @a0+0x88=0x40 \
     --mem @a0+0x8C=0x48 --arg a1=ptr:0x100 --arg a2=ptr:0x80 --arg a3=rel:a2+0x14*int:0:5 \
     --mem @a2+0xC*0x14:5=choice:1,2 --mem @a2+0x10*0x14:5=choice:0,1 \
     --arg t8=ptr:0x60 --arg t9=rel:t8+0x1C*int:0:3 --mem @t8+0xC*0x1C:3=choice:1,2 --mem @t8+0x10*0x1C:3=2 \
@@ -188,7 +188,7 @@ func_802A4E4C: -n 100 --seed 1 --stub-ret func_802A5334=ptr:0x40 --arg a0=ptr:0x
     --mem gVisibleCells:6=halves:0xFFFF,0,1 --mem gVisibleCells+6:2=halves:0xFFFF --mem D_803C2EB0:0x10=rand
 # followed: display lists at lvl+0x40 (start) / +0x48 (alternate) / +0x70 (end), no animation record
 # (func_802A50DC returns 0), records as above
-func_802A4E4C: -n 300 --seed 2 --follow func_802A50DC,func_802A51FC,func_802A5334 --arg a0=ptr:0x100 \
+lvl_build_visible_dl: -n 300 --seed 2 --follow func_802A50DC,func_802A51FC,func_802A5334 --arg a0=ptr:0x100 \
     --mem @a0+0x40:0x40=words:0xFD000000,0xFA000000,0x06000000,0x12345678 --mem @a0+0x2C=0x80 --mem @a0+0x30=0x80 \
     --mem @a0+0x88=0xC0 --mem @a0+0x8C=rel:0xC0+8*int:0:4 --arg a1=ptr:0x400 --arg a2=ptr:0x80 \
     --arg a3=rel:a2+0x14*int:0:5 --mem @a2*0x14:5=0x40 --mem @a2+4*0x14:5=0x48 --mem @a2+8*0x14:5=0x70 \
@@ -199,18 +199,18 @@ func_802A4E4C: -n 300 --seed 2 --follow func_802A50DC,func_802A51FC,func_802A533
     --mem gVisibleCells:6=halves:1,2,3,5,7,0x8000 --mem gVisibleCells+6:2=halves:0xFFFF --mem D_803C2EB0:0x10=rand
 # end-block
 # ---- phase D wave 3 (wt-f1) ----
-# func_802A4CDC(dl0..dl3, gfx): four func_802A4E4C passes over the level D_80358074's record / group ranges
+# lvl_build_visible_dls(dl0..dl3, gfx): four lvl_build_visible_dl passes over the level gLevelData's record / group ranges
 # (offsets at +0xA0.. / +0xB0..), then func_802A4DE8 over [+*0x7C, +*0x80) into gfx and func_802A5020(lvl).
 # Stubbed with random offsets (incl. negative), then followed: the packed DLs one command each, empty animation
-# list, and (last run) func_802A4E4C for real over empty ranges with a 0..4-command fixed list.
-func_802A4CDC: -n 300 --heap 0x200 --mem D_80358074=rel:heap0 --mem @heap0+0x7C:8=words:0,0x40,0x100,-0x40,0x1F8 \
+# list, and (last run) lvl_build_visible_dl for real over empty ranges with a 0..4-command fixed list.
+lvl_build_visible_dls: -n 300 --heap 0x200 --mem gLevelData=rel:heap0 --mem @heap0+0x7C:8=words:0,0x40,0x100,-0x40,0x1F8 \
     --mem @heap0+0xA0:0x24=words:0,0x40,0x100,-0x40,0x1F8 --arg a0=int --arg a1=int --arg a2=int --arg a3=int --arg stack0=int \
     --sig func_802A4DE8=a0,a1,a2,a3 --sig func_802A5020=a0
-func_802A4CDC: -n 300 --seed 1 --heap 0x200 --mem D_80358074=rel:heap0 --mem @heap0+0xA0:0x24=words:0x100,0x108,0x110 \
+lvl_build_visible_dls: -n 300 --seed 1 --heap 0x200 --mem gLevelData=rel:heap0 --mem @heap0+0xA0:0x24=words:0x100,0x108,0x110 \
     --mem @heap0+0x7C=0x100 --mem @heap0+0x80=rel:0x100+8*int:0:8 --mem @heap0+0x100:0x40=words:0xB8000000 \
     --mem @heap0+0x2C=0x40 --mem @heap0+0x30=0x40 --arg a0=int --arg a1=int --arg a2=int --arg a3=int --arg stack0=ptr:0x60 \
     --follow func_802A4DE8,func_802A5020
-func_802A4CDC: -n 200 --seed 2 --heap 0x200 --mem D_80358074=rel:heap0 --mem @heap0+0xA0:0x24=words:0x1C0 \
+lvl_build_visible_dls: -n 200 --seed 2 --heap 0x200 --mem gLevelData=rel:heap0 --mem @heap0+0xA0:0x24=words:0x1C0 \
     --mem @heap0+0x88=0x180 --mem @heap0+0x8C=rel:0x180+8*int:0:4 \
     --mem @heap0+0x7C=0x100 --mem @heap0+0x80=rel:0x100+8*int:0:8 --mem @heap0+0x100:0x40=words:0xB8000000 \
     --mem @heap0+0x2C=0x40 --mem @heap0+0x30=0x40 --arg a0=ptr:0x60 --arg a1=ptr:0x60 --arg a2=ptr:0x60 --arg a3=ptr:0x60 \

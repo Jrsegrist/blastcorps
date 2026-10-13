@@ -4,7 +4,7 @@
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_8020C070 ((MenuItem *) D_8020C070)
 #define D_802E8F38 ((Entry8 *) D_802E8F38)
-#define D_802E8F94 ((LevelInfo *) D_802E8F94)
+#define gLevelInfo ((LevelInfo *) gLevelInfo)
 #define players ((Player *) players)
 /* end of views */
 
@@ -170,8 +170,8 @@ u8 func_8028653C(void) {
             case 2:
             case 3:
                 for (i = 0; i < 60 && advance; i++) {
-                    if (D_802E8F94[i].state == players[playerNumber].gameState && !LEVEL_DONE(i) &&
-                        D_802E8F94[i].type == 1) {
+                    if (gLevelInfo[i].state == players[playerNumber].gameState && !LEVEL_DONE(i) &&
+                        gLevelInfo[i].type == 1) {
                         advance = 0;
                     }
                 }

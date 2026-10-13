@@ -45,7 +45,7 @@ s32 func_802AFB84(void);
 extern u8 * N64P D_803ED818; /* vehicle 0's model header */
 
 /* Sets up vehicle 0 (object 0) from the model header `hdr` at (x, y, z) with
- * heading `heading` (called by the object dispatcher func_802A350C):
+ * heading `heading` (called by the object dispatcher lvl_spawn_vehicles):
  * D_803ED818 = hdr, two 0xC80-byte buffers from the heap gHeapPtr
  * (D_803ED82C, D_803ED830; the cursor moves 0x1900), the object record
  * (veh_add_record(0, 0, buf1, buf2, hdr)), the state block D_803ED760 reset
@@ -62,7 +62,7 @@ extern u8 * N64P D_803ED818; /* vehicle 0's model header */
  * 0, 1 / 0.5, 1) and gCamDistance / D_80364450 = 0xD48, 0.
  * Register convention (conventions.txt): hdr s2, x t7, y s3, z s0, heading
  * s1; func_802A992C's fp and f12-f26 inputs are the dispatcher's leftovers
- * (here fp, f). The asm saves t0-t5 (asm caller func_802A350C keeps t1, t2
+ * (here fp, f). The asm saves t0-t5 (asm caller lvl_spawn_vehicles keeps t1, t2
  * live), points $gp at D_803ED760 and leaves s0-s7, fp and the FP registers
  * as its callees leave them. Its addi traps on overflow. Fidelity note: the
  * func_802AEEC8 call inherits leftovers in the asm (fp from func_8029E558's

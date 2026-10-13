@@ -49,7 +49,7 @@ extern s16 D_803C3178[];
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 /* cull_restart(0).
- * Asm callers rely on preserved: func_802A1674 keeps t0, f12, f14 (the asm
+ * Asm callers rely on preserved: initlevel keeps t0, f12, f14 (the asm
  * saves t0-t3). */
 void cull_restart_now(void) {
     RESET_INDEX_LISTS(0);
@@ -356,36 +356,36 @@ s32 cull_rsp_test(void *dataPtr, void *wb, s32 dataSize) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-u32 *func_802A4E4C(u8 *lvl, u32 *dl, u8 *rec, u8 *recEnd, u8 *grp, u8 *grpEnd);
+u32 *lvl_build_visible_dl(u8 *lvl, u32 *dl, u8 *rec, u8 *recEnd, u8 *grp, u8 *grpEnd);
 void func_802A4DE8(s32 arg0, u32 *gfx, u32 *dl, u32 *end);
 void func_802A5020(u8 *base);
 
 /* Builds the level's four visible-geometry display lists into dl0..dl3:
  * list k uses the record ranges [lvl + *(lvl + 0xA0 + 4k), lvl + *(lvl +
  * 0xA4 + 4k)) and groups [lvl + *(lvl + 0xB0 + 4k), lvl + *(lvl + 0xB4 +
- * 4k)) (func_802A4E4C; its returned end pointers are dropped). Then writes
+ * 4k)) (lvl_build_visible_dl; its returned end pointers are dropped). Then writes
  * a gSPDisplayList for each list packed in [lvl + *(lvl + 0x7C), lvl +
  * *(lvl + 0x80)) into gfx (func_802A4DE8), and steps the level's animation
- * records (func_802A5020). lvl is D_80358074. ABI: dl0..dl3 in a0-a3, gfx
+ * records (func_802A5020). lvl is gLevelData. ABI: dl0..dl3 in a0-a3, gfx
  * on the stack (00000.c declares the four as s32). The asm's offset adds
  * trap on overflow (pointer + small offset, never in game). */
-void func_802A4CDC(u32 *dl0, u32 *dl1, u32 *dl2, u32 *dl3, u32 *gfx) {
-    u8 *lvl = D_80358074;
+void lvl_build_visible_dls(u32 *dl0, u32 *dl1, u32 *dl2, u32 *dl3, u32 *gfx) {
+    u8 *lvl = gLevelData;
 
-    func_802A4E4C(lvl, dl0, lvl + *(s32 *) (lvl + 0xA0), lvl + *(s32 *) (lvl + 0xA4),
+    lvl_build_visible_dl(lvl, dl0, lvl + *(s32 *) (lvl + 0xA0), lvl + *(s32 *) (lvl + 0xA4),
                   lvl + *(s32 *) (lvl + 0xB0), lvl + *(s32 *) (lvl + 0xB4));
-    func_802A4E4C(lvl, dl1, lvl + *(s32 *) (lvl + 0xA4), lvl + *(s32 *) (lvl + 0xA8),
+    lvl_build_visible_dl(lvl, dl1, lvl + *(s32 *) (lvl + 0xA4), lvl + *(s32 *) (lvl + 0xA8),
                   lvl + *(s32 *) (lvl + 0xB4), lvl + *(s32 *) (lvl + 0xB8));
-    func_802A4E4C(lvl, dl2, lvl + *(s32 *) (lvl + 0xA8), lvl + *(s32 *) (lvl + 0xAC),
+    lvl_build_visible_dl(lvl, dl2, lvl + *(s32 *) (lvl + 0xA8), lvl + *(s32 *) (lvl + 0xAC),
                   lvl + *(s32 *) (lvl + 0xB8), lvl + *(s32 *) (lvl + 0xBC));
-    func_802A4E4C(lvl, dl3, lvl + *(s32 *) (lvl + 0xAC), lvl + *(s32 *) (lvl + 0xB0),
+    lvl_build_visible_dl(lvl, dl3, lvl + *(s32 *) (lvl + 0xAC), lvl + *(s32 *) (lvl + 0xB0),
                   lvl + *(s32 *) (lvl + 0xBC), lvl + *(s32 *) (lvl + 0xC0));
     func_802A4DE8((s32) lvl, gfx, (u32 *) (lvl + *(s32 *) (lvl + 0x7C)),
                   (u32 *) (lvl + *(s32 *) (lvl + 0x80)));
     func_802A5020(lvl);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5FD50/func_802A4CDC.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5FD50/lvl_build_visible_dls.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -396,7 +396,7 @@ void func_802A4CDC(u32 *dl0, u32 *dl1, u32 *dl2, u32 *dl3, u32 *gfx) {
  * gSPEndDisplayList. `end` must sit exactly after one of the lists (the asm
  * compares with `!=`). The asm also leaves gfx advanced in a1, which its only
  * caller does not read. arg0 is unused.
- * Asm callers rely on preserved: func_802A4CDC keeps a0. */
+ * Asm callers rely on preserved: lvl_build_visible_dls keeps a0. */
 void func_802A4DE8(s32 arg0, u32 *gfx, u32 *dl, u32 *end) {
     u32 w0;
 
@@ -478,8 +478,8 @@ static s32 port_cells_listed(s32 *cells, s32 n) {
  * Register convention: lvl, dl, rec, recEnd in a0-a3, grp/grpEnd in t8/t9,
  * result in a1 (conventions.txt); the asm saves t0-t2 and leaves s0-s2 and gp
  * changed; its add/addi trap and its loops use `!=`. Asm caller
- * func_802A4CDC keeps a0, t0-t2 live. */
-u32 *func_802A4E4C(u8 *lvl, u32 *dl, u8 *rec, u8 *recEnd, u8 *grp, u8 *grpEnd) {
+ * lvl_build_visible_dls keeps a0, t0-t2 live. */
+u32 *lvl_build_visible_dl(u8 *lvl, u32 *dl, u8 *rec, u8 *recEnd, u8 *grp, u8 *grpEnd) {
     u32 *src = (u32 *) (lvl + *(s32 *) (lvl + 0x88));
     u32 *srcEnd = (u32 *) (lvl + *(s32 *) (lvl + 0x8C));
     s16 *excl = D_803C2EB0;
@@ -526,7 +526,7 @@ u32 *func_802A4E4C(u8 *lvl, u32 *dl, u8 *rec, u8 *recEnd, u8 *grp, u8 *grpEnd) {
     return dl + 2;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5FD50/func_802A4E4C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5FD50/lvl_build_visible_dl.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -590,7 +590,7 @@ extern u8 D_803C324B;  /* alpha */
  * D_803C3244 = frame word frame + 1 (0 when that is nFrames) and D_803C324B
  * = alpha, and returns 1. The asm walks the list with `!=`.
  * asm: base in a0, id in t4, result in gp; it saves v0, v1, a1, a2.
- * Asm callers rely on preserved: func_802A4E4C keeps a0-a3, t4, t8, t9;
+ * Asm callers rely on preserved: lvl_build_visible_dl keeps a0-a3, t4, t8, t9;
  * func_802A5334 keeps a0, a1, t0, t1, t3, t8, t9. */
 s32 func_802A50DC(u8 *base, s32 id) {
     u8 *p = base + *(s32 *) (base + 0x2C);
@@ -643,7 +643,7 @@ s32 func_802A50DC(u8 *base, s32 id) {
  * G_SETPRIMCOLOR (0xFA). The copy loop uses `!=`.
  * asm: base/dst in a0/a1 (a1 returned advanced), start/end in t5/t6, patch
  * in gp (clobbered).
- * Asm callers rely on preserved: func_802A4E4C keeps a0, a2, a3, t4, t7-t9. */
+ * Asm callers rely on preserved: lvl_build_visible_dl keeps a0, a2, a3, t4, t7-t9. */
 u32 *func_802A51FC(u8 *base, u32 *dst, s32 start, s32 end, s32 patch) {
     u32 *s = (u32 *) (base + start);
     u32 *e = (u32 *) (base + end);

@@ -376,7 +376,7 @@ extern u8 D_803EE3AE;
 extern s8 D_803EE3B0;
 extern void * N64P D_803EE388;
 
-/* Vehicle 3 setup, called from the asm dispatcher func_802A350C: model
+/* Vehicle 3 setup, called from the asm dispatcher lvl_spawn_vehicles: model
  * header, buffers and record (port_veh_init_head with this vehicle's wheel
  * table), D_803F7840 = 0, level D_803EE3AF = 50, D_803EE3A4 = 0.5, ground
  * slots and animation reset (port_veh_init_anim, band table), func_802A6F00,
@@ -970,7 +970,7 @@ extern u8 D_803EE789;
 extern u8 D_803EE78A;
 extern f32 D_803EE780;
 
-/* Vehicle 4 setup, called from the asm dispatcher func_802A350C; as
+/* Vehicle 4 setup, called from the asm dispatcher lvl_spawn_vehicles; as
  * func_802B29C0 with this vehicle's tables: func_802A6F00, then
  * D_803EE789/8A/88 = 0, D_803F7840 = 0, D_803EE780 = 0.5; parts scale
  * 0x2710, func_80258230(4, 0x96, 0x32, 0x32), update func_802B49AC; no

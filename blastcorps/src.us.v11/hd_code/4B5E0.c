@@ -131,7 +131,7 @@ void func_80291724(s32);
  * func_802CE9C8 leaves v0 alone), t6 = &D_8039C718[i], t9 = the old
  * D_803FB8B0, and s1 = the caller's s1 (this function never touches the
  * s-registers), which the NM build takes as an extra parameter from
- * func_802A1674 (5CB60.c). */
+ * initlevel (5CB60.c). */
 #ifdef NON_MATCHING
 void func_8028FDA0(u8 *arg0, u8 *arg1, s32 s1) {
     s32 v0 = (s32) D_803F9330;

@@ -20,7 +20,7 @@
 
 
 /*
- * Load model `type` (func_802A396C), reserve two 6000-byte heap buffers
+ * Load model `type` (lvl_load_model), reserve two 6000-byte heap buffers
  * (heap[0], heap[1]) and set up the two display-list ranges in dl[0..3]
  * (start in the model data at its header offsets 0x1C / 0x2C, write position
  * in the second buffer), then veh_add_record(type, 0, heap[0], heap[1], model).
@@ -34,7 +34,7 @@ void func_80202100(s32 type, u8 * N64P *model, u8 * N64P *heap, u8 * N64P *dl) {
     s32 off1C;
     s32 off2C;
 
-    func_802A396C(type, &o);
+    lvl_load_model(type, &o);
     data = o.s2;
     *model = data;
     h = gHeapPtr;

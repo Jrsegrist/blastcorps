@@ -52,7 +52,7 @@ extern s16 D_803EEB5C;
         (out) = _r;                                                     \
     } while (0)
 
-/* Level setup of vehicle 5 (asm caller func_802A350C, the level's object
+/* Level setup of vehicle 5 (asm caller lvl_spawn_vehicles, the level's object
  * list), the shape of func_802BAD80 (75490): model header -> D_803EEB44,
  * two 0x800-byte matrix buffers from gHeapPtr (D_803EEB48 / D_803EEB4C;
  * the allocator advances by 0x1000), veh_add_record(5, 1, buffers, model),
@@ -73,7 +73,7 @@ extern s16 D_803EEB5C;
  * heading s1, and fp, which the asm hands to func_802A992C (reaching
  * D_803ED3F2 when a slot's grid scan finds no triangle: the dispatcher's
  * leftover fp, FIDELITY AUDIT); func_802A992C's FP inputs (passed through)
- * are 0 here. The asm restores t0-t5 (func_802A350C keeps t1/t2 live),
+ * are 0 here. The asm restores t0-t5 (lvl_spawn_vehicles keeps t1/t2 live),
  * points $gp at D_803EEA90 and leaves s0-s7, fp and f20-f28 as its callees
  * leave them (clobbers). */
 void func_802B5900(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp) {
@@ -435,7 +435,7 @@ void func_802B69F8(void);
  * 4. Collision: func_8029A800 (table D_80305D20, 1, 1, b0 8, speed, 100, 0,
  *    kind 5), func_8029C52C(5), func_8029AA10(5); D_803EEB61 = 12. Without a
  *    hit (D_803A7425 == 0): D_803A7424 = 0, D_803EEB61 = -1 and, unless
- *    D_80364AA8 == 0x40, func_802BE77C(5) (D_803F77D0 = D_803EE790); if that
+ *    gLevelKind == 0x40, func_802BE77C(5) (D_803F77D0 = D_803EE790); if that
  *    set D_803A7424 the vehicle bounces: D_803EEB60 = 0, func_802A768C
  *    (restore the saved state, 0x800 bytes), speed = -max(|v|, 80) / 2 with
  *    v's sign (0 counts as positive) and the model rebuilt; else D_803EEB60
@@ -443,7 +443,7 @@ void func_802B69F8(void);
  *    correction: d = |((+0x4E - 0x800) wrapped by +0xFFF) - func_802A6F6C()|
  *    folded to <= 0x800, func_802A70D8, func_802A71DC(+0x4E -> +0x4C,
  *    D_8030D8E0) whose new heading goes to D_803EEB5A, +0x4E and +0x74,
- *    func_802A746C(its turn, d), func_802A6FE4(0) and, unless D_80364AA8 ==
+ *    func_802A746C(its turn, d), func_802A6FE4(0) and, unless gLevelKind ==
  *    0x40, func_802BE77C(5).
  * 5. Player globals gPlayerX/Y/Z = the position, D_8036443C/3E/40 =
  *    speed, +0x4E, +0x4C; veh_set_record(z, 5, x, y, veh); func_802AC2A4(z,
@@ -557,7 +557,7 @@ void func_802B6294(void) {
     if (D_803A7425 == 0) {
         D_803A7424 = 0;
         D_803EEB61 = -1;
-        if (((s32) D_80364AA8) == 0x40) {
+        if (((s32) gLevelKind) == 0x40) {
             goto no_hit;
         }
         D_803F77D0 = D_803EE790;
@@ -605,7 +605,7 @@ void func_802B6294(void) {
     VEH5(0x74, s16) = cur;
     func_802A746C(D_803EEA90, turn, d, &tgt);
     func_802A6FE4(D_803EEA90, 0);
-    if (((s32) D_80364AA8) != 0x40) {
+    if (((s32) gLevelKind) != 0x40) {
         D_803F77D0 = D_803EE790;
         func_802BE77C(5, D_803EEA90);
     }
@@ -933,7 +933,7 @@ extern s16 D_803EEB58;
 
 /* Vehicle-module setup leaf (shape of func_802AFBA0 in 69BB0, other
  * constants): D_803EBBF4 = D_803EBBF0 * 2, D_803ED3F6/7 = 60, 2, then
- * D_803EEB58 = 3200 if either button flag gHeldL/B is set, else 9000.
+ * D_803EEB58 = 3200 if either button flag gHeldL/gHeldR is set, else 9000.
  * Register note: the asm touches only at/v0/v1/f0/f2. Its asm callers keep
  * registers live across the call (func_802B618C: t3, t4, f12, f14;
  * func_802B6294: a0-a3); a mixed N64 build would need a thunk preserving

@@ -11,7 +11,7 @@
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_8020C070 ((MenuItem *) D_8020C070)
-#define D_802E8F94 ((LevelInfo *) D_802E8F94)
+#define gLevelInfo ((LevelInfo *) gLevelInfo)
 #define D_802F5804 ((MenuItem *) D_802F5804)
 #define D_802F8BDC ((MenuItem *) D_802F8BDC)
 #define players ((PlayerRec *) players)
@@ -85,7 +85,7 @@ void func_80285190(void) {
     s32 i;
 
     D_8036EA7B = players[playerNumber].flags[levelno + 0x3E];
-    D_8036EA74 = D_80364EF0[playerNumber][D_802E8C44[(D_802E8F94[levelno].type == 1) ? 1 : D_8036EA7B]];
+    D_8036EA74 = D_80364EF0[playerNumber][D_802E8C44[(gLevelInfo[levelno].type == 1) ? 1 : D_8036EA7B]];
     D_8036EA7A = D_80364B08[playerNumber][levelno] % 8;
     for (i = 0; i < 4; i++) {
         D_8036EB94[i] = 0;
@@ -189,9 +189,9 @@ u8 func_80285814(void) {
         osRecvMesg(&pakToGameMessageQ, NULL, OS_MESG_BLOCK);
     }
     if (LEVEL_DONE(levelno)) {
-        if (D_802E8F94[levelno].type == 1) {
+        if (gLevelInfo[levelno].type == 1) {
             if (pakBuffer[0] == 0x1234567887654321) {
-                func_80256A34(NULL);
+                hd_setup_level(NULL);
                 debug_printf("Creating status ...\n");
                 coin = D_80364B08[playerNumber][levelno];
                 if (coin == 5) {
@@ -203,13 +203,13 @@ u8 func_80285814(void) {
                 func_80264C20((s32) pakBuffer);
                 saved = 1;
             } else {
-                func_80256A34((s32) pakBuffer);
+                hd_setup_level((s32) pakBuffer);
             }
         } else {
-            func_80256A34(NULL);
+            hd_setup_level(NULL);
         }
     } else {
-        func_80256A34(NULL);
+        hd_setup_level(NULL);
     }
     func_80285A78((u8 *) &nss, (u8 *) &D_8036EA60);
     func_80285A78((u8 *) &nss, (u8 *) D_8036EA80);
@@ -247,7 +247,7 @@ void func_80285B68(s32 arg0) {
 
     if (gGameMode & 0x104) {
         if (LEVEL_DONE(levelno)) {
-            if (D_802E8F94[levelno].type != 1 && playerNumber == playerNumberAtStart) {
+            if (gLevelInfo[levelno].type != 1 && playerNumber == playerNumberAtStart) {
                 func_802CF5B0();
                 gPauseRequest = 1;
                 func_80275270(0x4000, 1.25f);

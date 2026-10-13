@@ -38,7 +38,7 @@ s32 func_802B2768(s32 a3, s32 s0, s32 s1, VehMtxOut *out);
  * more specific non-ABI explanation where one was already worked out. */
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Spawn vehicle type 2 (from the dispatcher func_802A350C). Same code as
+/* Spawn vehicle type 2 (from the dispatcher lvl_spawn_vehicles). Same code as
  * func_802D07E0 (8AEE0.c, vehicle 16) with id 2, scale 0x6590 and this
  * vehicle's globals: model D_803EDFC4, 0x1400-byte matrix buffers
  * D_803EDFC8/CC, wheel offsets and speed bands, state bytes +0xA1/A2 = 0 and
@@ -48,9 +48,9 @@ s32 func_802B2768(s32 a3, s32 s0, s32 s1, VehMtxOut *out);
  * C8, the matrix copy, and D_803F7844 is cleared.
  * Register convention (conventions.txt): model s2, x t7, y s3, z s0, heading
  * s1, fp; t6 and func_802A992C's FP state pass through to func_802B152C. The
- * asm restores t0-t5 (func_802A350C keeps t1, t2 live) and leaves s0-s7, fp,
+ * asm restores t0-t5 (lvl_spawn_vehicles keeps t1, t2 live) and leaves s0-s7, fp,
  * gp, f20-f30 changed (the survey's s2-s4, fp, f12-f26 "outputs" are
- * rewritten by func_802A350C before use).
+ * rewritten by lvl_spawn_vehicles before use).
  * Leaked registers (FIDELITY): func_802B152C's zone registers here are the
  * stub-model values - t6 the caller's, t7 func_8029F85C's result (the asm
  * expects the C func_80258230 to keep t6/t7), s0 = z, s1 = +4, which in the

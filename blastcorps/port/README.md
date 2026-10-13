@@ -1046,7 +1046,7 @@ hash names) and removes them with `--delete`.
 ### Every level: `make -C port verify-levels`
 
 The attract demos load 9 of the game's 60 levels (`levelno` 0-59; the
-type byte of each `D_802E8F94` record is in `data/levels.txt`).  To reach any
+type byte of each `gLevelInfo` record is in `data/levels.txt`).  To reach any
 level with the same input on both sides, `tools/compare.py level --level L`
 plays `data/levels_input.txt` (made by `tools/levels_input.py`): START / A
 from controller read 400 (title, new game, player A, the opening sequence),

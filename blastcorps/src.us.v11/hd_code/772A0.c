@@ -63,7 +63,7 @@ void func_802BC578(void);
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Spawn vehicle type 7, called from func_802A350C's object loop with the
+/* Spawn vehicle type 7, called from lvl_spawn_vehicles's object loop with the
  * spawn record in t7 (x), s3 (y), s0 (z), s1 (heading), s2 (model data) and
  * fp (the ground-scan byte the previous object left; see func_802A992C):
  * as 83910.c's veh83910_init (save buffers from the heap, model record,
@@ -71,9 +71,9 @@ void func_802BC578(void);
  * with scale 0x3A98, func_80258230, one frame (func_802BBEB8) with byte
  * +0x9A set, buffer copy), and in addition D_803EFEC9 = D_803EFECA = 0 and
  * both frame counters D_803EFEC0 / D_803EFEC4 = 999999.
- * The asm saves t0-t5: asm caller func_802A350C keeps t1 and t2 live (a
+ * The asm saves t0-t5: asm caller lvl_spawn_vehicles keeps t1 and t2 live (a
  * mixed N64 build would need a thunk). It leaves s2-s4, fp and f12-f26 as
- * its callees leave them, and func_802A350C hands fp and f12-f26 on to the
+ * its callees leave them, and lvl_spawn_vehicles hands fp and f12-f26 on to the
  * next object's spawn (not modelled; see the fidelity notes).
  * Fidelity: func_802A992C's FP inputs (the dispatcher's f12-f26) start at 0;
  * they only pass through to its FP outputs. */

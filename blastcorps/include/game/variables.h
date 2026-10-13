@@ -77,8 +77,8 @@ extern u16 D_802E8C90[];
 extern u16 D_802E8C94[];
 extern u16 D_802E8C98[]; /* string terminator */
 extern u8 D_802E8F38[][8];
-#ifndef LEGACY_D_802E8F94
-extern u8 D_802E8F94[][0x44]; /* 0x44 bytes */
+#ifndef LEGACY_gLevelInfo
+extern u8 gLevelInfo[][0x44]; /* one 0x44-byte record per level; +0 its kind */
 #endif
 #ifndef LEGACY_D_802F47B0
 extern u8 D_802F47B0[][8]; /* 0x100 bytes */
@@ -127,8 +127,8 @@ extern u8 * N64P gStaticSegment; /* the static segment (segment 1), loaded at 0x
 #ifndef LEGACY_gHeapPtr
 extern u8 * N64P gHeapPtr; /* the heap's next free byte (a bump allocator from 0x8004B400) */
 #endif
-#ifndef LEGACY_D_80358074
-extern u8 * N64P D_80358074; /* animation channel table (Unk8029DEA0Entry, 56040.c) */
+#ifndef LEGACY_gLevelData
+extern u8 * N64P gLevelData; /* the level's inflated file, on the heap */
 #endif
 extern s32 gFrameDlLen; /* top-level display list length */
 extern u16 gPerspNorm; /* projection scale, 65535 = 1.0 */
@@ -142,13 +142,13 @@ extern Vehicle * N64P gVehicleShadowsEnd; /* size 0xFC */
 #endif
 extern u8 D_803643D4;
 extern u8 D_803643D5;
-extern u8 D_803643D6;
-extern u8 D_803643D7;
+extern u8 gCarrierHit;        /* the mission failed: the carrier hit something */
+extern u8 gLevelDone;         /* the mission is complete */
 extern u8 D_803643D8;
 extern u8 cmo_hit_request;
-extern u8 D_803643DA;
-extern u8 D_803643DB;
-extern u8 D_803643DC;
+extern u8 gLevelDoneRequest;
+extern u8 gHaveCarrier;       /* the level has the missile carrier (type 0xFF) */
+extern u8 gHaveChopper;       /* ... the BCT chopper (0xFE) */
 extern s32 gPlayerX; /* the player's position (the camera's subject), 1/32 units */
 extern s32 gPlayerY;
 extern s32 gPlayerZ;
@@ -175,8 +175,8 @@ extern s16 gCamHeight;
 extern s16 D_80364450;
 extern s16 gCamYaw; /* camera / player angle (0..0xFFF) */
 extern u8 gCurVehicle; /* the type of the vehicle the player drives (0: on foot) */
-#ifndef LEGACY_D_80364458
-extern u8 * N64P D_80364458; /* level40 */
+#ifndef LEGACY_gLevelSegment8
+extern u8 * N64P gLevelSegment8; /* the level file's display data (segment 8) */
 #endif
 extern u8 gVehicles[][0x74]; /* one record per loaded vehicle model (00000.c's Unk74) */
 #ifndef LEGACY_gVehiclesEnd
@@ -208,8 +208,8 @@ extern u8 D_80364A87;
 extern u64 gPrevGameMode; /* previous game mode */
 extern u64 gGameMode; /* game mode flags */
 extern u64 gNextGameMode; /* next game mode */
-extern u32 D_80364AA8; /* game mode flags */
-extern u8 D_80364AC1;
+extern u32 gLevelKind; /* gLevelInfo[levelno]'s kind: 1 = main mission */
+extern u8 gHaveShuttle;       /* ... the shuttle (0xFD) */
 extern u8 playerNumber; /* current player */
 extern u8 D_80364AE9;
 extern u8 playerNumberAtStart;

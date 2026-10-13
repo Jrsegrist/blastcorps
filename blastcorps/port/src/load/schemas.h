@@ -169,11 +169,11 @@ static void swap_level(uint32_t base, uint32_t len) {
     b.base = base;
     b.len = len;
     b.done = calloc(len + 4, 1);
-    /* header: u16 x 12 (grid and bounds, func_802A2D68), s32 at 0x18 and
+    /* header: u16 x 12 (grid and bounds, lvl_read_header), s32 at 0x18 and
      * 0x1C, then the s32 section offsets 0x20..0xC4 */
     blk_n(&b, 0, 12, 2);
     blk_n(&b, 0x18, (0xC8 - 0x18) / 4, 4);
-    /* segment 8 (D_80364458 = level + 0xC8): Vtx up to the first section */
+    /* segment 8 (gLevelSegment8 = level + 0xC8): Vtx up to the first section */
     blk_records(&b, 0xC8, blk_rd32(&b, 0x20), 0x10, "2@0 2@2 2@4 2@6 2@8 2@A");
     if (blk_sect(&b, 0x20, 0x24, &lo, &hi)) blk_records(&b, lo, hi, 2, "2@0");   /* BoxSpawn s16 x4 */
     if (blk_sect(&b, 0x24, 0x28, &lo, &hi))                                       /* triangles */
@@ -193,7 +193,7 @@ static void swap_level(uint32_t base, uint32_t len) {
     if (blk_sect(&b, 0x60, 0x74, &lo, &hi)) blk_keep(&b, lo, hi - lo);
     if (blk_sect(&b, 0x74, 0x78, &lo, &hi)) lvl_groups(&b, lo, hi);
     /* display lists and the visibility records/groups (0xA0..0xC0): all u32
-     * words (func_802A08E4, func_802A1C88, func_802A4E4C, func_802A51FC) */
+     * words (func_802A08E4, func_802A1C88, lvl_build_visible_dl, func_802A51FC) */
     if (blk_sect(&b, 0xA0, 0xC0, &lo, &hi)) blk_words(&b, lo, hi);
     if (blk_sect(&b, 0x78, 0x84, &lo, &hi)) blk_words(&b, lo, hi);
     if (blk_sect(&b, 0x88, 0x9C, &lo, &hi)) blk_words(&b, lo, hi);
@@ -280,7 +280,7 @@ static void swap_object(uint32_t base, uint32_t len) {
     free(b.done);
 }
 
-/* Vehicle models (ROM 0x48FE90.., func_802A396C): s32 offsets 0x00..0x44;
+/* Vehicle models (ROM 0x48FE90.., lvl_load_model): s32 offsets 0x00..0x44;
  * Vtx [hdr[0x14], hdr[0x18]); display lists and their tables from hdr[0x18]
  * to the end (u32 words: func_802A08E4, veh_add_record, func_8029DF78) */
 /* vehicle animation block [hdr[0x10], hdr[0x14]): s16 offsets (count = the

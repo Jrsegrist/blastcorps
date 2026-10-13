@@ -56,7 +56,7 @@ Discarded input sections
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/00000.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/00000.c.o
  .gptab.bss     0x00000000       0x28 build_nm/src.us.v11/hd_code/00000.c.o
- .mdebug        0x00000000     0xa2ac build_nm/src.us.v11/hd_code/00000.c.o
+ .mdebug        0x00000000     0xa2d0 build_nm/src.us.v11/hd_code/00000.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/22EE0.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/22EE0.c.o
  .gptab.data    0x00000000       0x20 build_nm/src.us.v11/hd_code/22EE0.c.o
@@ -77,7 +77,7 @@ Discarded input sections
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/54E30.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/54E30.c.o
  .gptab.bss     0x00000000       0x20 build_nm/src.us.v11/hd_code/54E30.c.o
- .mdebug        0x00000000      0xa30 build_nm/src.us.v11/hd_code/54E30.c.o
+ .mdebug        0x00000000      0xa34 build_nm/src.us.v11/hd_code/54E30.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/12D80.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/12D80.c.o
  .mdebug        0x00000000      0x2e8 build_nm/src.us.v11/hd_code/12D80.c.o
@@ -108,25 +108,25 @@ Discarded input sections
  .mdebug        0x00000000     0x1e50 build_nm/src.us.v11/hd_code/1C460.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/1D990.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/1D990.c.o
- .mdebug        0x00000000     0x240c build_nm/src.us.v11/hd_code/1D990.c.o
+ .mdebug        0x00000000     0x2414 build_nm/src.us.v11/hd_code/1D990.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/20460.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/20460.c.o
  .mdebug        0x00000000     0x1874 build_nm/src.us.v11/hd_code/20460.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/23C20.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/23C20.c.o
- .mdebug        0x00000000     0x2000 build_nm/src.us.v11/hd_code/23C20.c.o
+ .mdebug        0x00000000     0x2008 build_nm/src.us.v11/hd_code/23C20.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/26570.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/26570.c.o
- .mdebug        0x00000000     0x2b04 build_nm/src.us.v11/hd_code/26570.c.o
+ .mdebug        0x00000000     0x2b08 build_nm/src.us.v11/hd_code/26570.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/2E490.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/2E490.c.o
  .mdebug        0x00000000      0xcb8 build_nm/src.us.v11/hd_code/2E490.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/30C70.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/30C70.c.o
- .mdebug        0x00000000     0x10e4 build_nm/src.us.v11/hd_code/30C70.c.o
+ .mdebug        0x00000000     0x10e8 build_nm/src.us.v11/hd_code/30C70.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/32E00.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/32E00.c.o
- .mdebug        0x00000000     0x11cc build_nm/src.us.v11/hd_code/32E00.c.o
+ .mdebug        0x00000000     0x11d0 build_nm/src.us.v11/hd_code/32E00.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/34430.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/34430.c.o
  .mdebug        0x00000000     0x157c build_nm/src.us.v11/hd_code/34430.c.o
@@ -157,7 +157,7 @@ Discarded input sections
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/45BB0.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/45BB0.c.o
  .gptab.data    0x00000000       0x28 build_nm/src.us.v11/hd_code/45BB0.c.o
- .mdebug        0x00000000     0x15a4 build_nm/src.us.v11/hd_code/45BB0.c.o
+ .mdebug        0x00000000     0x159c build_nm/src.us.v11/hd_code/45BB0.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/46C20.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/46C20.c.o
  .mdebug        0x00000000      0x708 build_nm/src.us.v11/hd_code/46C20.c.o
@@ -196,7 +196,7 @@ Discarded input sections
  .mdebug        0x00000000      0x4ec build_nm/src.us.v11/hd_code/55970.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/55D40.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/55D40.c.o
- .mdebug        0x00000000      0x5c0 build_nm/src.us.v11/hd_code/55D40.c.o
+ .mdebug        0x00000000      0x5c4 build_nm/src.us.v11/hd_code/55D40.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/56010.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/56010.c.o
  .mdebug        0x00000000      0x25c build_nm/src.us.v11/hd_code/56010.c.o
@@ -1031,9 +1031,9 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x808114d0                hd_init
                 0x80811734                hd_check_stack
                 0x808117c8                hd_mode_setup
-                0x80811b7c                func_8025615C
-                0x80812454                func_80256A34
-                0x80812c6c                func_80257234
+                0x80811b7c                lvl_load_file
+                0x80812454                hd_setup_level
+                0x80812c6c                lvl_alloc_dl_buffers
                 0x80812f48                align_up
                 0x80812fa8                hd_sinf
                 0x80812fcc                hd_cosf
@@ -1078,12 +1078,12 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x808173f4                func_8025B918
  build_nm/src.us.v11/hd_code/17210.c.o(.text)
  .text          0x808174b0      0x860 build_nm/src.us.v11/hd_code/17210.c.o
-                0x808174b0                func_8025B9D0
+                0x808174b0                rec_start_playback
                 0x80817618                func_8025BB38
                 0x80817630                func_8025BB50
-                0x808176c8                func_8025BBE8
+                0x808176c8                rec_record
                 0x80817878                func_8025BD98
-                0x808179d8                func_8025BEF8
+                0x808179d8                rec_next
  build_nm/src.us.v11/hd_code/17A70.c.o(.text)
  .text          0x80817d10      0x3a0 build_nm/src.us.v11/hd_code/17A70.c.o
                 0x80817d10                func_8025C230
@@ -1659,7 +1659,7 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x8085e1e0                veh_set_record
                 0x8085e220                veh_add_record
                 0x8085e40c                func_802A1558
-                0x8085e4dc                func_802A1674
+                0x8085e4dc                initlevel
                 0x8085e7c8                func_802A1934
                 0x8085e850                func_802A19F4
                 0x8085e9f8                func_802A1A9C
@@ -1678,16 +1678,16 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x80860264                func_802A2A98
                 0x808602ac                func_802A2BB0
                 0x8086033c                func_802A2C54
-                0x80860474                func_802A2D68
+                0x80860474                lvl_read_header
                 0x808606ec                func_802A3008
-                0x80860724                func_802A303C
-                0x80860800                func_802A30DC
-                0x80860848                func_802A3134
+                0x80860724                lvl_spawn_carrier
+                0x80860800                lvl_spawn_shuttle
+                0x80860848                lvl_spawn_chopper
                 0x808608ac                func_802A3198
                 0x80860b88                func_802A32CC
-                0x80860ccc                func_802A350C
+                0x80860ccc                lvl_spawn_vehicles
                 0x808611a4                func_802A3824
-                0x80861424                func_802A396C
+                0x80861424                lvl_load_model
                 0x8086180c                func_802A3D54
                 0x80861854                func_802A3DF8
                 0x8086189c                func_802A3E9C
@@ -1706,9 +1706,9 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x80862b38                cull_grid_height_range
                 0x80862c9c                cull_box_corners
                 0x80862d64                cull_rsp_test
-                0x80862ee0                func_802A4CDC
+                0x80862ee0                lvl_build_visible_dls
                 0x8086300c                func_802A4DE8
-                0x80863104                func_802A4E4C
+                0x80863104                lvl_build_visible_dl
                 0x80863348                func_802A5020
                 0x808633f8                func_802A50DC
                 0x808634cc                func_802A51FC
@@ -3408,6 +3408,20 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x80370c35                        gControlMethod = 0x80370c35
                 0x80370c38                        gSwallowB = 0x80370c38
                 0x803649ed                        gNextVehicle = 0x803649ed
+                0x802e8f94                        gLevelInfo = 0x802e8f94
+                0x80364aa8                        gLevelKind = 0x80364aa8
+                0x80358074                        gLevelData = 0x80358074
+                0x80364458                        gLevelSegment8 = 0x80364458
+                0x80358030                        gLevelDl0 = 0x80358030
+                0x80358038                        gLevelDl1 = 0x80358038
+                0x80358040                        gLevelDl2 = 0x80358040
+                0x80358048                        gLevelDl3 = 0x80358048
+                0x803643db                        gHaveCarrier = 0x803643db
+                0x80364ac1                        gHaveShuttle = 0x80364ac1
+                0x803643dc                        gHaveChopper = 0x803643dc
+                0x803643da                        gLevelDoneRequest = 0x803643da
+                0x803643d7                        gLevelDone = 0x803643d7
+                0x803643d6                        gCarrierHit = 0x803643d6
                 0x80314d80                        D_80314D80 = 0x80314d80
                 0x80314d98                        D_80314D98 = 0x80314d98
                 0x802fa254                        D_802FA254 = 0x802fa254
@@ -3459,15 +3473,12 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x8036ea90                        D_8036EA90 = 0x8036ea90
                 0x8036ea94                        D_8036EA94 = 0x8036ea94
                 0x8036ea98                        D_8036EA98 = 0x8036ea98
-                0x80364aa8                        D_80364AA8 = 0x80364aa8
                 0x802f4868                        D_802F4868 = 0x802f4868
                 0x802f8bdc                        D_802F8BDC = 0x802f8bdc
                 0x8020c070                        D_8020C070 = 0x8020c070
                 0x80364a60                        D_80364A60 = 0x80364a60
                 0x80315438                        D_80315438 = 0x80315438
                 0x80364a71                        D_80364A71 = 0x80364a71
-                0x803643d7                        D_803643D7 = 0x803643d7
-                0x802e8f94                        D_802E8F94 = 0x802e8f94
                 0x8039c4f8                        D_8039C4F8 = 0x8039c4f8
                 0x80364a5c                        D_80364A5C = 0x80364a5c
                 0x80365066                        D_80365066 = 0x80365066
@@ -3483,8 +3494,6 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x80364a8c                        D_80364A8C = 0x80364a8c
                 0x8036bf3c                        D_8036BF3C = 0x8036bf3c
                 0x80364ad4                        D_80364AD4 = 0x80364ad4
-                0x803643d6                        D_803643D6 = 0x803643d6
-                0x803643da                        D_803643DA = 0x803643da
                 0x8036eb90                        D_8036EB90 = 0x8036eb90
                 0x803f7688                        D_803F7688 = 0x803f7688
                 0x8036eb93                        D_8036EB93 = 0x8036eb93
@@ -3493,11 +3502,8 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x803649d8                        D_803649D8 = 0x803649d8
                 0x803156f4                        D_803156F4 = 0x803156f4
                 0x8036eb99                        D_8036EB99 = 0x8036eb99
-                0x803643db                        D_803643DB = 0x803643db
-                0x80364ac1                        D_80364AC1 = 0x80364ac1
                 0x80364a78                        D_80364A78 = 0x80364a78
                 0x803156f5                        D_803156F5 = 0x803156f5
-                0x803643dc                        D_803643DC = 0x803643dc
                 0x803649ee                        D_803649EE = 0x803649ee
                 0x80367738                        D_80367738 = 0x80367738
                 0x80364a7c                        D_80364A7C = 0x80364a7c
@@ -3514,7 +3520,6 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x80367c00                        D_80367C00 = 0x80367c00
                 0x8036eb98                        D_8036EB98 = 0x8036eb98
                 0x80364b3a                        D_80364B3A = 0x80364b3a
-                0x80358074                        D_80358074 = 0x80358074
                 0x80364a85                        D_80364A85 = 0x80364a85
                 0x803be738                        D_803BE738 = 0x803be738
                 0x80366a12                        D_80366A12 = 0x80366a12
@@ -3561,7 +3566,6 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x80364be0                        D_80364BE0 = 0x80364be0
                 0x803156ec                        D_803156EC = 0x803156ec
                 0x803ed3f5                        D_803ED3F5 = 0x803ed3f5
-                0x80364458                        D_80364458 = 0x80364458
                 0x803f7820                        D_803F7820 = 0x803f7820
                 0x803f7824                        D_803F7824 = 0x803f7824
                 0x803c5770                        D_803C5770 = 0x803c5770
@@ -3645,10 +3649,6 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x80364b04                        D_80364B04 = 0x80364b04
                 0x8039cab7                        D_8039CAB7 = 0x8039cab7
                 0x803be739                        D_803BE739 = 0x803be739
-                0x80358030                        D_80358030 = 0x80358030
-                0x80358038                        D_80358038 = 0x80358038
-                0x80358040                        D_80358040 = 0x80358040
-                0x80358048                        D_80358048 = 0x80358048
                 0x803ebbf8                        D_803EBBF8 = 0x803ebbf8
                 0x803650b0                        D_803650B0 = 0x803650b0
                 0x802e8c60                        D_802E8C60 = 0x802e8c60
@@ -5232,7 +5232,7 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x003a1920                        D_003A1920 = 0x3a1920
                 0x003a48c0                        D_003A48C0 = 0x3a48c0
                 0x0044f5c0                        D_0044F5C0 = 0x44f5c0
-                0x802e8f94                        D_802E8F94 = 0x802e8f94
+                0x802e8f94                        gLevelInfo = 0x802e8f94
                 0x006a9f10                        D_006A9F10 = 0x6a9f10
                 0x006ad3f0                        D_006AD3F0 = 0x6ad3f0
                 0x8039b070                        D_8039B070_entries = 0x8039b070

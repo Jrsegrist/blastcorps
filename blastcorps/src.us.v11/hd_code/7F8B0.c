@@ -47,7 +47,7 @@ void func_802C4070(u32 *src, u32 *dst, u32 work, u8 type) {
 /* Register convention: the asm takes and returns the two pointers in a0/a1
  * (here through src/dst; conventions.txt) and restores a2 and every
  * s-register. Asm callers (5CB60's func_802A2A98, func_802A32CC,
- * func_802A396C) keep a2, f12 and f14 live across the call. */
+ * lvl_load_model) keep a2, f12 and f14 live across the call. */
 void func_802C4108(u8 **src, u8 **dst, s32 work) {
     D_803F7830 = *src;
     D_803F7834 = *dst;

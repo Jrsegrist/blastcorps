@@ -204,12 +204,12 @@ typedef struct {
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-/* If D_803F7805 is set, clears it and, unless D_803643DB or D_80364AC1 is set
- * and the level isn't finished yet, marks it finished (D_803643DA and
+/* If D_803F7805 is set, clears it and, unless gHaveCarrier or gHaveShuttle is set
+ * and the level isn't finished yet, marks it finished (gLevelDoneRequest and
  * gPauseRequest = 1). "Finished" means D_803F7806 is set, every D_8039C800 entry
  * has unk26 set (func_802BC7DC) and no D_80306480 entry of the current level
  * at or beyond the player's z has an id whose D_803B9890 unk51 is set
- * (func_802BC714). Then, if D_803643DB is clear: in game mode 0x40 it calls
+ * (func_802BC714). Then, if gHaveCarrier is clear: in game mode 0x40 it calls
  * func_80275390(0x40), otherwise it sets D_803649E8 = 1 and the next mode 8.
  * Declared void in hd.c; the asm leaves garbage in v0. */
 void func_802BC5E0(void) {
@@ -217,7 +217,7 @@ void func_802BC5E0(void) {
         return;
     }
     D_803F7805 = 0;
-    if (D_803643DB != 0 || D_80364AC1 != 0) {
+    if (gHaveCarrier != 0 || gHaveShuttle != 0) {
         if (D_803F7806 == 0) {
             return;
         }
@@ -228,9 +228,9 @@ void func_802BC5E0(void) {
             return;
         }
     }
-    D_803643DA = 1;
+    gLevelDoneRequest = 1;
     gPauseRequest = 1;
-    if (D_803643DB != 0) {
+    if (gHaveCarrier != 0) {
         return;
     }
     if (gGameMode == 0x40) {
@@ -320,7 +320,7 @@ s32 func_802BC7DC(void) {
 extern u8 D_803F7690[40][8];
 
 /* Clears byte 7 of each of the 40 8-byte entries of D_803F7690.
- * Register note: the asm saves/restores v0 and v1; asm caller func_802A1674
+ * Register note: the asm saves/restores v0 and v1; asm caller initlevel
  * keeps t0, f12 and f14 live across the call (a mixed N64 build would need a
  * thunk; the native port doesn't). */
 void func_802BC840(void) {
@@ -376,7 +376,7 @@ void func_802BC888(s32 kind, s32 id, s32 amount) {
  * u8 part, u8 timer} with a running timer, counts it down; on reaching 0 the
  * entry is spent (timer 0), the screen shakes (10, min(amount, 500)) and the
  * part's percentage += amount, capped at 100. A part reaching 100 collapses:
- * func_802C1438, func_802C09B8 unless D_803643D6 or D_803643D7 is set,
+ * func_802C1438, func_802C09B8 unless gCarrierHit or gLevelDone is set,
  * func_802C0E8C, func_802BF384 unless the game mode gGameMode is 0x200 or
  * 0x400, and the part's triangles off. Then func_802BF668, func_802BF534 and
  * func_802BF898(e, part, percentage).
@@ -423,7 +423,7 @@ void func_802BCA2C(void) {
             Unk803B9890 *end;
 
             func_802C1438(e, part);
-            if (D_803643D6 == 0 && D_803643D7 == 0) {
+            if (gCarrierHit == 0 && gLevelDone == 0) {
                 func_802C09B8(part, e);
             }
             func_802C0E8C(part, e);
@@ -1184,8 +1184,8 @@ static s32 heading_802BDDB4(s32 num, f32 d) {
 }
 
 /* Steps the animation channel records rec..end (each 0xC + n * 4 bytes) of
- * object `obj`. Objects with unk30 == 0x38 are skipped while D_803643DB or
- * D_80364AC1 is set unless D_803F7806, func_802BC7DC() and func_802BC714()
+ * object `obj`. Objects with unk30 == 0x38 are skipped while gHaveCarrier or
+ * gHaveShuttle is set unless D_803F7806, func_802BC7DC() and func_802BC714()
  * all say otherwise. Type 0: the u16 tick counter (+0xE) counts up to the
  * period (+0xC), then restarts at 0 and the frame (+5) advances (wrapping at
  * n); the blend word (+8) = tick * 255 / period. Type 1: when (low word of
@@ -1202,7 +1202,7 @@ static s32 heading_802BDDB4(s32 num, f32 d) {
  * Divisors (period, n, the spans) of 0 trap (break 7); the object can't sit
  * exactly at the player (0 / 0). */
 void func_802BDDB4(Unk802C1DD0Entry *obj, u8 *rec, u8 *end) {
-    if (obj->unk30 == 0x38 && (D_803643DB != 0 || D_80364AC1 != 0)) {
+    if (obj->unk30 == 0x38 && (gHaveCarrier != 0 || gHaveShuttle != 0)) {
         if (D_803F7806 == 0 || func_802BC7DC() == 0 || func_802BC714() == 0) {
             return;
         }
@@ -2656,7 +2656,7 @@ extern u8 D_803F3968[30][0x38];
 
 /* Sets byte 0x34 of each of the 30 0x38-byte entries of D_803F3968 to 1.
  * Register note: the asm saves/restores v0, v1 and a0; asm callers keep
- * registers live across the call (func_802A1674: a2, a3, t0, t1, t2, f12,
+ * registers live across the call (initlevel: a2, a3, t0, t1, t2, f12,
  * f14; func_802BA9A0: a0, a2, a3, t6, t7, f12, f14; func_802CF3E0: t1). */
 void func_802C049C(void) {
     s32 i;
@@ -2709,7 +2709,7 @@ extern u8 * N64P D_80306270[];  /* per kind: {u8 n; u8 defIndex[n]} */
  * would trap) and spawned with func_802A6274 (type 0, the record's words as
  * position/data/fields, tag 1 for kind 0x15 or when D_803F7810 is set or
  * D_8036DCD4 is set with D_8036DCD7 == 1, else 0). If that succeeded and
- * neither the u64 gNextGameMode nor D_803643D6 is set, func_802619D0(kind)
+ * neither the u64 gNextGameMode nor gCarrierHit is set, func_802619D0(kind)
  * (the asm saves every register around that call). The record is then
  * freed, and a nonzero u16 radius at 0x2E applies func_802C18D4 blast
  * damage at its position with amount r[0x30] << 4. Saves s0-s7. */
@@ -2743,7 +2743,7 @@ void func_802C0574(void) {
         if (func_802A6274(&io, def, *(s32 *) (r + 0x0C), 0, *(s32 *) (r + 0x00), *(s32 *) (r + 0x04),
                           *(s32 *) (r + 0x08), *(s32 *) (r + 0x14), *(s32 *) (r + 0x18), *(s32 *) (r + 0x20),
                           *(s32 *) (r + 0x24), *(s32 *) (r + 0x28), r[0x35]) != 0
-            && gNextGameMode == 0 && D_803643D6 == 0) {
+            && gNextGameMode == 0 && gCarrierHit == 0) {
             func_802619D0(r[0x31]);
         }
         r[0x34] = 1;
@@ -3618,7 +3618,7 @@ void func_802C1DD0(s32 onlyFlagged) {
 #endif
 
 /* TODO: func_802C1EE0 - walk a u16-offset chain rooted at
- * D_80358074 + D_80358074->unk74: `u8 *t1 = (u8*)D_80358074 + *(s32*)((u8*)D_80358074 + 0x74);
+ * gLevelData + gLevelData->unk74: `u8 *t1 = (u8*)gLevelData + *(s32*)((u8*)gLevelData + 0x74);
  * u16 *t2 = (u16*)(t1 + 4); for (arg0--; arg0 != 0; arg0--) t2 = (u16*)(t1 + *t2);
  * return (u8*)t2 + 2;` (target: 11 instructions, a pure leaf with zero calls).
  * The target saves/restores $ra via an 8-byte `sd $ra`/`ld $ra` frame despite
@@ -3631,12 +3631,12 @@ void func_802C1DD0(s32 onlyFlagged) {
 #ifdef NON_MATCHING
 /* Returns record `index` (1-based) of a chain of variable-length records.
  * The chain starts at level + *(s32 *)(level + 0x74), where level is
- * D_80358074. Each record is {u16 offsetOfNextRecord, s16 data[]}, with
+ * gLevelData. Each record is {u16 offsetOfNextRecord, s16 data[]}, with
  * offsets relative to the chain start, and the first record sits at chain + 4.
  * The result points at the record's data, just past its link. index 0 makes
  * the asm loop ~2^32 times, so callers must pass index >= 1. */
 s16 *func_802C1EE0(s32 index) {
-    u8 *chain = (u8 *) D_80358074 + *(s32 *) ((u8 *) D_80358074 + 0x74);
+    u8 *chain = (u8 *) gLevelData + *(s32 *) ((u8 *) gLevelData + 0x74);
     u16 *record = (u16 *) (chain + 4);
 
     for (index--; index != 0; index--) {
@@ -3660,7 +3660,7 @@ s16 *func_802C1EE0(s32 index) {
  * offset gets base = (x, y, z) >> 11. Groups are found through their `next`
  * offsets; group 0 makes the asm loop ~2^32 times, so callers pass >= 1. */
 void func_802C1F30(s32 group, s32 part, s32 x, s32 y, s32 z) {
-    u8 *level = D_80358074;
+    u8 *level = gLevelData;
     u8 *chain = level + *(s32 *) (level + 0x74);
     Unk802C2054Group *g = (Unk802C2054Group *) (chain + 4);
     Unk802C2054Record *r;
@@ -3699,7 +3699,7 @@ void func_802C1F30(s32 group, s32 part, s32 x, s32 y, s32 z) {
 #ifdef NON_MATCHING
 /* Unk802C2054Group/Record are declared at the top of the file. */
 
-/* Walks the level's group list (at D_80358074 + *(s32 *)(D_80358074 + 0x74);
+/* Walks the level's group list (at gLevelData + *(s32 *)(gLevelData + 0x74);
  * an initial zero word means "empty") and, for each record, writes nine words
  * (index[k] << 5) + part[k / 3].base[k % 3] to the output array D_803F7828,
  * 10 words (0x28 bytes) per record; word 9 of each output slot is left
@@ -3709,7 +3709,7 @@ void func_802C1F30(s32 group, s32 part, s32 x, s32 y, s32 z) {
  * never uses it (dead), so `next` acts only as an end marker here.
  * `count` is counted down with `!=` and must not be negative. */
 void func_802C2054(void) {
-    u8 *level = D_80358074;
+    u8 *level = gLevelData;
     u8 *chain = level + *(s32 *) (level + 0x74);
     s32 *out = D_803F7828;
     u8 *p;

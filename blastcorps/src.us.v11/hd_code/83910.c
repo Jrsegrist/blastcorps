@@ -315,12 +315,12 @@ static void veh83910_init(const VehDesc83910 *d, s32 x, s32 y, s32 z, s32 angle,
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 /* Spawn dispatcher for vehicle types 0x0B / 0x11 / other (0x12), called
- * from func_802A350C's object loop with the type in t3 and the spawn record
+ * from lvl_spawn_vehicles's object loop with the type in t3 and the spawn record
  * in t7 (x), s3 (y), s0 (z), s1 (heading), s2 (model data) and fp (the
  * ground-scan byte the previous object left; see func_802A992C). The asm
- * saves t0-t5: asm caller func_802A350C keeps t1 and t2 live (a mixed N64
+ * saves t0-t5: asm caller lvl_spawn_vehicles keeps t1 and t2 live (a mixed N64
  * build would need a thunk). It leaves s2-s4, fp and f12-f26 as the spawn
- * leaves them, and func_802A350C hands fp and f12-f26 on to the next
+ * leaves them, and lvl_spawn_vehicles hands fp and f12-f26 on to the next
  * object's spawn (not modelled; see the fidelity notes). */
 void func_802C80D0(s32 type, s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp) {
     if (type == 0x0B) {

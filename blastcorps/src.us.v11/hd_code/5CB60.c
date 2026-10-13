@@ -93,7 +93,7 @@ void func_802A1558(Gfx *src, Gfx *end, Gfx * N64P *dstp);
  * words 0x14 and 0x24..0x44, 0x54 = hdr + word 0x48. Copies the 8-byte units
  * [hdr + w[0x1C], hdr + w[0x20]) to the heap gHeapPtr (advanced; the asm
  * loops with `!=`), and sets words 0x30..0x50 to words 0xC..0x2C moved by the
- * copy's displacement (heap - word 0xC). Unless D_80364AA8 == 1 and a1Val ==
+ * copy's displacement (heap - word 0xC). Unless gLevelKind == 1 and a1Val ==
  * 0, it then runs func_802A1558(word 0xC, word 0x18, rec + 0x58).
  * Register convention: a0Val/a1Val in a0/a1, v0Val/v1Val in v0/v1, hdr in s2
  * (conventions.txt); the asm saves t0-t6. Asm callers keep a1, a3, t7, f12,
@@ -136,7 +136,7 @@ void veh_add_record(s32 a0Val, s32 a1Val, s32 v0Val, s32 v1Val, u8 *hdr) {
     for (i = 0; i < 9; i++) {
         *(s32 *) (rec + 0x30 + i * 4) = *(s32 *) (rec + 0xC + i * 4) + delta;
     }
-    if (((s32) D_80364AA8) != 1 || a1Val != 0) {
+    if (((s32) gLevelKind) != 1 || a1Val != 0) {
         func_802A1558(*(Gfx * N64P *) (rec + 0xC), *(Gfx * N64P *) (rec + 0x18), (Gfx * N64P *) (rec + 0x58));
     }
 }
@@ -159,13 +159,13 @@ void func_802A1558(Gfx *src, Gfx *end, Gfx * N64P *dstp) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_803BE6F4; /* func_802A1674's second argument (a status stream pointer or 0) */
+extern s32 D_803BE6F4; /* initlevel's second argument (a status stream pointer or 0) */
 /* u64 game-mode constants in .hd_code_data (the asm loads them by raw
  * address with ld). */
 #define D_8030D880 (*(u64 *) 0x8030D880)
 #define D_8030D888 (*(u64 *) 0x8030D888)
 
-void func_802A2D68(u8 *obj);
+void lvl_read_header(u8 *obj);
 u8 *func_802A3008(u8 *obj);
 void func_802A1C20(u8 *obj, u8 *param, s32 *s1io);
 void func_802A1C88(u8 *obj);
@@ -183,15 +183,15 @@ void func_802A1A9C(u8 *obj, s32 *s1io);
 void func_802A1934(void);
 void func_802A2C54(u8 *obj);
 u8 *func_802A1D54(u8 *obj, u8 *param, s32 *s1io);
-s32 func_802A350C(u8 *obj, s32 fp);
-void func_802A303C(u8 *obj, s32 fp);
-void func_802A30DC(void);
-void func_802A3134(u8 *obj);
+s32 lvl_spawn_vehicles(u8 *obj, s32 fp);
+void lvl_spawn_carrier(u8 *obj, s32 fp);
+void lvl_spawn_shuttle(void);
+void lvl_spawn_chopper(u8 *obj);
 void func_802A3198(Out802A32CC *out);
 void func_802A19F4(void);
 
 /* What the asm's v0 and t9 hold on entry from the only caller, 00000.c's
- * func_80256A34 (initlevel): its last call before func_802A1674 that sets them
+ * hd_setup_level (hd.c's level setup): its last call before initlevel that sets them
  * is lowest_set_bit(gNextGameMode) (the debug print after it is an empty stub),
  * which returns the index of the lowest set bit of the game mode (-1 for 0)
  * and leaves t9 = that index, or the mode's low word when bit 0 is set (the
@@ -218,19 +218,21 @@ static s32 port_initlevel_v0(s32 *t9) {
     return n;
 }
 
-/* Level setup from the level object obj (heap data; offsets as OBJ_PTR):
- * D_803BE6F4 = arg1, then the level header (func_802A2D68), the texture
+/* initlevel (the name hd.c's debug output gives it: "enter initlevel" ...
+ * "exit initlevel" around the call): level setup from the level object obj
+ * (heap data; offsets as OBJ_PTR):
+ * D_803BE6F4 = arg1, then the level header (lvl_read_header), the texture
  * table (func_802A0700), display lists and textures (func_802A3008,
  * func_802A1C20, func_802A1C88), the animation channels (func_8029DEA0), the
  * collision triangles (func_802A3D54, func_802A3DF8, func_802A3E9C,
  * func_802A3F80), grids and tables (func_802A4464 .. func_802BC840), the
  * placed objects (func_802A1D54), func_802C049C, func_8028FDA0(obj words
  * 0x3C/0x40). Unless the game mode gNextGameMode is 0x80 the level's vehicles
- * and objects are spawned (func_802A350C). D_80364AC1 = D_803643DB =
- * D_803643DC = 0; then mode 2: the type-0xFF object (func_802A303C) unless
+ * and objects are spawned (lvl_spawn_vehicles). gHaveShuttle = gHaveCarrier =
+ * gHaveChopper = 0; then mode 2: the type-0xFF object (lvl_spawn_carrier) unless
  * D_802E8BEC; other modes: unless the mode is 0x80 or arg1 is set, the
- * type-0xFF object and the 0xFD vehicle (func_802A30DC), then always the
- * 0xFE vehicle (func_802A3134). Then func_802A3198, func_802CEAA0,
+ * type-0xFF object and the 0xFD vehicle (lvl_spawn_shuttle), then always the
+ * 0xFE vehicle (lvl_spawn_chopper). Then func_802A3198, func_802CEAA0,
  * func_802A19F4, D_803BE6FC / D_803BE700 = OBJ_PTR(obj, 0x58 / 0x5C),
  * func_8026FBB0 / func_8028D4C0 / func_8028C190 on the obj ranges
  * 0x34-0x38, 0x38-0x3C, 0x20-0x24, frontEndPresent = 0, and when the mode is
@@ -239,13 +241,13 @@ static s32 port_initlevel_v0(s32 *t9) {
  * Registers the asm hands on (it saves every callee-saved register itself):
  *  - s1: func_802A3008's result, threaded through func_802A1C20 and the
  *    triangle builders (s1).
- *  - fp: func_802A1C20's param is the caller's fp (func_80256A34 and the
+ *  - fp: func_802A1C20's param is the caller's fp (hd_setup_level and the
  *    IDO code above it never set $s8; its value comes from whatever hand asm
  *    last left it): NULL here (it only reaches D_803C4B58.param, read by the
  *    decoder for packed types 4/5). From func_802A3F80 on, fp is its result
  *    (the D_803B9890 record end), handed to func_802A1D54 and on to the
- *    spawns: func_802A350C returns the fp the next object would get, and
- *    that goes to func_802A303C.
+ *    spawns: lvl_spawn_vehicles returns the fp the next object would get, and
+ *    that goes to lvl_spawn_carrier.
  *  - v0 / t9 (triangle id and byte 0x4F of the D_803BDCA8 / D_803BDE40 /
  *    group records): the caller's, never changed before those calls (every
  *    callee in between preserves them); see port_initlevel_v0.
@@ -255,7 +257,7 @@ static s32 port_initlevel_v0(s32 *t9) {
  *    and func_802A1D54 change it: the NM build passes it to func_8028FDA0 as
  *    an extra argument.
  */
-void func_802A1674(u8 *obj, s32 arg1) {
+void initlevel(u8 *obj, s32 arg1) {
     Out802A32CC o;
     s32 s1;
     s32 id;
@@ -263,7 +265,7 @@ void func_802A1674(u8 *obj, s32 arg1) {
     u8 *fp;
 
     D_803BE6F4 = arg1;
-    func_802A2D68(obj);
+    lvl_read_header(obj);
     func_802A0700();
     s1 = (s32) func_802A3008(obj);
     func_802A1C20(obj, NULL, &s1);
@@ -286,21 +288,21 @@ void func_802A1674(u8 *obj, s32 arg1) {
     func_802C049C();
     func_8028FDA0(OBJ_PTR(obj, 0x3C), OBJ_PTR(obj, 0x40), s1);
     if (gNextGameMode != 0x80) {
-        fp = (u8 *) N64_IPTR(func_802A350C(obj, (s32) fp));
+        fp = (u8 *) N64_IPTR(lvl_spawn_vehicles(obj, (s32) fp));
     }
-    D_80364AC1 = 0;
-    D_803643DB = 0;
-    D_803643DC = 0;
+    gHaveShuttle = 0;
+    gHaveCarrier = 0;
+    gHaveChopper = 0;
     if (gNextGameMode == 2) {
         if (D_802E8BEC == 0) {
-            func_802A303C(obj, (s32) fp);
+            lvl_spawn_carrier(obj, (s32) fp);
         }
     } else {
         if (gNextGameMode != 0x80 && D_803BE6F4 == 0) {
-            func_802A303C(obj, (s32) fp);
-            func_802A30DC();
+            lvl_spawn_carrier(obj, (s32) fp);
+            lvl_spawn_shuttle();
         }
-        func_802A3134(obj);
+        lvl_spawn_chopper(obj);
     }
     o.s2 = NULL;
     o.s3 = NULL;
@@ -319,7 +321,7 @@ void func_802A1674(u8 *obj, s32 arg1) {
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A1674.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/initlevel.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -343,7 +345,7 @@ typedef struct {
  * >> 5 (arithmetic) to the four corner points of a square of half-size
  * `radius`: (x-r, y, z-r), (x+r, y, z-r), (x-r, y, z+r) at 0x16/0x1C/...,
  * i.e. box = {x-r, y, z-r, x+r, y, z-r, x-r, y, z+r, x+r, y, z+r}.
- * Asm callers rely on preserved: func_802A1674 keeps t0, f12, f14 (the asm
+ * Asm callers rely on preserved: initlevel keeps t0, f12, f14 (the asm
  * saves v0, v1, a0-a3). */
 void func_802A1934(void) {
     BoxEntry *e;
@@ -375,14 +377,14 @@ void func_802A1934(void) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-/* If D_8039CAB7 is set: load packed object 0x98 (func_802A396C), D_8039CAC0 =
+/* If D_8039CAB7 is set: load packed object 0x98 (lvl_load_model), D_8039CAC0 =
  * OBJ_PTR(data, 0x14) and move each 16-byte vertex record from there up to
  * OBJ_PTR(data, 0x18) by (D_8039CAB0, D_8039CAB2, D_8039CAB4) (s16 x, y, z at
  * +0/+2/+4; the asm loops with `!=` and its adds trap); D_8039CABC =
  * OBJ_PTR(data, 0x24).
- * The asm saves t0 (asm caller func_802A1674 keeps it) and leaves
- * func_802A396C's s2/s4 (and s5-s7) changed and f12/f14 as the libultra
- * calls leave them (the survey lists those as read by func_802A1674; not
+ * The asm saves t0 (asm caller initlevel keeps it) and leaves
+ * lvl_load_model's s2/s4 (and s5-s7) changed and f12/f14 as the libultra
+ * calls leave them (the survey lists those as read by initlevel; not
  * modelled). */
 void func_802A19F4(void) {
     Out802A396C o;
@@ -390,7 +392,7 @@ void func_802A19F4(void) {
     u8 *end;
 
     if (D_8039CAB7 != 0) {
-        func_802A396C(0x98, &o);
+        lvl_load_model(0x98, &o);
         p = OBJ_PTR(o.s2, 0x14);
         D_8039CAC0 = p;
         end = OBJ_PTR(o.s2, 0x18);
@@ -419,9 +421,9 @@ void func_802A19F4(void) {
  * end. The asm loops with `!=`, so n must be a multiple of 0x20.
  * asm: obj in t0; it leaves scratch values in s0, s2, s3 (no caller reads
  * them) and counts the item loops down in s1, so s1 comes back 0 when n != 0
- * (unchanged otherwise). func_802A1674 hands that s1 on to func_8028FDA0's
+ * (unchanged otherwise). initlevel hands that s1 on to func_8028FDA0's
  * func_802CE9C8, hence `s1io`.
- * Asm callers rely on preserved: func_802A1674 keeps t0, f12, f14. */
+ * Asm callers rely on preserved: initlevel keeps t0, f12, f14. */
 void func_802A1A9C(u8 *obj, s32 *s1io) {
     u8 *hdr = OBJ_PTR(obj, 0x74);
     s32 n = *(s32 *) hdr;
@@ -521,10 +523,10 @@ void func_802A1A9C(u8 *obj, s32 *s1io) {
  * the last word. The walk stops only at exactly the end, and a count byte of
  * 0 loops (about 2^32 times) in the asm too, so both are preconditions.
  * The asm also sets s1 = 0x80000000 for every record (a leftover that its
- * caller func_802A1674 hands on to func_802A3D54's in/out s1; modelled
+ * caller initlevel hands on to func_802A3D54's in/out s1; modelled
  * through `s1io`) and leaves t6 = the last id.
  * Register convention: obj in t0, param in fp (conventions.txt); its add/addi
- * trap. Asm caller func_802A1674 keeps t0, t9 live. */
+ * trap. Asm caller initlevel keeps t0, t9 live. */
 void func_802A1C20(u8 *obj, u8 *param, s32 *s1io) {
     u8 *rec = OBJ_PTR(obj, 0x2C);
     u8 *end = OBJ_PTR(obj, 0x30);
@@ -556,7 +558,7 @@ void func_802A1C20(u8 *obj, u8 *param, s32 *s1io) {
  * added to its address word; then D_803BE6E0/E4/E8/EC = OBJ_PTR(obj, 0x90/
  * 0x94/0x98/0x9C). The asm loops with `!=` over 8-byte commands.
  * asm: obj in t0; it saves every register it uses but at.
- * Asm callers rely on preserved: func_802A1674 keeps t0, t6, t9, f12, f14. */
+ * Asm callers rely on preserved: initlevel keeps t0, t6, t9, f12, f14. */
 void func_802A1C88(u8 *obj) {
     u32 reloc = (u32) OBJ_PTR(obj, 0x78) - 0x80000000;
     u32 *cmd = (u32 *) OBJ_PTR(obj, 0x90);
@@ -602,12 +604,12 @@ void func_802A21AC(s32 type, u8 *obj, s32 x, s32 y, s32 z, s32 flag, s32 tag, u8
  * asm's t1 and t2).
  * Register convention: obj t0, param fp; result t1. The asm leaves s0, s2-s7
  * (and the libultra calls' f12/f14, func_802A21AC's f20-f28) changed; the
- * survey lists those as read by func_802A1674 (dead there, not modelled).
+ * survey lists those as read by initlevel (dead there, not modelled).
  * s1 is modelled (`s1io`, unchanged without placements): per placement it is
  * the new D_8036EB93 sum (the register: old byte + count, not truncated),
- * then whatever func_802A21AC leaves; func_802A1674 hands it on to
+ * then whatever func_802A21AC leaves; initlevel hands it on to
  * func_8028FDA0's func_802CE9C8.
- * Asm caller func_802A1674 keeps t0 live. */
+ * Asm caller initlevel keeps t0 live. */
 u8 *func_802A1D54(u8 *obj, u8 *param, s32 *s1io) {
     Unk802A08E4Regs r;
     u8 *p;
@@ -778,7 +780,7 @@ void func_802A23E0(u8 *rec);
  * f20-f28 changed (listed as read by func_802A1D54; dead there). s1 is
  * modelled (`s1io`): func_802A2608's, then per entry its byte 0x16 into
  * func_802A41B0's chain; the last value reaches func_802CE9C8 through
- * func_802A1D54 / func_802A1674 / func_8028FDA0. */
+ * func_802A1D54 / initlevel / func_8028FDA0. */
 void func_802A21AC(s32 type, u8 *obj, s32 x, s32 y, s32 z, s32 flag, s32 tag, u8 *param, s32 *s1io) {
     u8 *rec;
     u8 *list;
@@ -1051,7 +1053,7 @@ void func_802A26A8(u8 *obj, s32 dx, s32 dy, s32 dz) {
 extern u8 * N64P D_803BE6F0; /* table of u32 offsets into the compressed block at ROM 0x6EC4C0 */
 u32 func_802A44E4(u32 x);
 
-/* The load shared by func_802A2A98 / func_802A32CC / func_802A396C: DMAs
+/* The load shared by func_802A2A98 / func_802A32CC / lvl_load_model: DMAs
  * `size` bytes from ROM `rom` into the buffer 0x8021ED00 (cache invalidated
  * first, waiting for completion), decompresses two streams from it to the
  * heap gHeapPtr (func_802C4108 twice, window 0x8004B400), rounds the heap
@@ -1130,7 +1132,7 @@ void func_802A2BB0(void) {
  * last two bytes at 0x11/0x14 and 1 at 0x12. D_803BDFD4 = end of the entries.
  * The asm loops with `!=`, so the stream must end on a record boundary.
  * asm: obj in t0; it clobbers t1-t6.
- * Asm callers rely on preserved: func_802A1674 keeps t0, f12, f14. */
+ * Asm callers rely on preserved: initlevel keeps t0, f12, f14. */
 void func_802A2C54(u8 *obj) {
     u8 *p = OBJ_PTR(obj, 0x60);
     u8 *end = OBJ_PTR(obj, 0x64);
@@ -1171,16 +1173,16 @@ extern u16 D_803BE72E;
 
 /* Level setup from the level header obj: copies its sizes and bounds into
  * globals (u16 fields at 4/6/0xC/0xE/0x14/0x16 are stored << 5), points
- * D_80364458/D_803BDAF4/D_803BDAF8/D_803BE6F8 into it, marks four tables
+ * gLevelSegment8/D_803BDAF4/D_803BDAF8/D_803BE6F8 into it, marks four tables
  * empty (-1 bytes/words) and clears a set of per-level flags.
  * asm: obj in t0; it clobbers t1-t3 and f0.
- * Asm callers rely on preserved: func_802A1674 keeps t0, t6, t9, f12, f14. */
-void func_802A2D68(u8 *obj) {
+ * Asm callers rely on preserved: initlevel keeps t0, t6, t9, f12, f14. */
+void lvl_read_header(u8 *obj) {
     s16 *v;
     s32 i;
 
     D_803EBBF0 = *(s32 *) (obj + 0x18);
-    D_80364458 = obj + 0xC8;
+    gLevelSegment8 = obj + 0xC8;
     D_803BDAF4 = OBJ_PTR(obj, 0x24);
     D_803BDAF8 = OBJ_PTR(obj, 0x28);
     D_803BE714 = *(u16 *) (obj + 0x0);
@@ -1233,7 +1235,7 @@ void func_802A2D68(u8 *obj) {
     D_803F7812 = 0;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A2D68.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/lvl_read_header.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -1242,12 +1244,12 @@ void func_802A2D68(u8 *obj) {
 
 /* Resolves the G_SETTIMG texture ids in the level object's display list
  * [OBJ_PTR(obj, 0x78), OBJ_PTR(obj, 0x84)) with func_802A08E4. Returns the
- * list end, which the asm leaves in s1 and its caller func_802A1674 hands on
+ * list end, which the asm leaves in s1 and its caller initlevel hands on
  * to func_802A3D54's in/out s1 when func_802A1C20 doesn't overwrite it.
  * Register convention: obj in t0, result in s1 (conventions.txt); the asm
  * saves t0 and passes its caller's s4 through as func_802A08E4's in/out s4
  * (`r` is a local here); s0, s2-s6 are left changed (dead in the caller).
- * Asm caller func_802A1674 keeps t0, t6, t9 live. */
+ * Asm caller initlevel keeps t0, t6, t9 live. */
 u8 *func_802A3008(u8 *obj) {
     Unk802A08E4Regs r;
     u8 *end = OBJ_PTR(obj, 0x84);
@@ -1263,70 +1265,70 @@ u8 *func_802A3008(u8 *obj) {
 #ifdef NON_MATCHING
 
 /* The level's type-0xFF object: the 9-byte record at OBJ_PTR(obj, 0x54) (just
- * past func_802A350C's list) {u8 speed, BE s16 x, z, heading, limit}; when
- * its first byte is set, load model 0xFF (func_802A396C) and set it up with
+ * past lvl_spawn_vehicles's list) {u8 speed, BE s16 x, z, heading, limit}; when
+ * its first byte is set, load model 0xFF (lvl_load_model) and set it up with
  * func_802B9C50(model, x << 5, z << 5, speed, limit << 5, heading, fp), then
- * D_803643DB = 1.
+ * gHaveCarrier = 1.
  * Register convention: obj in t0, fp (the previous object's leftover: here
- * what func_802A350C returns) (conventions.txt); the asm saves t0 and leaves
+ * what lvl_spawn_vehicles returns) (conventions.txt); the asm saves t0 and leaves
  * s1, s2, s4 and the setup's s0-s7, fp, gp and FP registers changed. Its add
  * traps (a heap address: in range). */
-void func_802A303C(u8 *obj, s32 fp) {
+void lvl_spawn_carrier(u8 *obj, s32 fp) {
     u8 *p = OBJ_PTR(obj, 0x54);
     Out802A396C o;
     s32 speed = p[0];
 
     if (speed != 0) {
-        func_802A396C(0xFF, &o);
+        lvl_load_model(0xFF, &o);
         func_802B9C50(o.s2, BE16S(p + 1) << 5, BE16S(p + 3) << 5, speed, BE16S(p + 7) << 5, BE16S(p + 5), fp);
-        D_803643DB = 1;
+        gHaveCarrier = 1;
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A303C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/lvl_spawn_carrier.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-/* If func_80268EE8(levelno) (the current level has it): D_80364AC1 = 1,
- * load model 0xFD (func_802A396C) and set up vehicle 0xFD with it
- * (func_802D2570). The asm saves t0 (not read) and leaves func_802A396C's s2,
+/* If func_80268EE8(levelno) (the current level has it): gHaveShuttle = 1,
+ * load model 0xFD (lvl_load_model) and set up vehicle 0xFD with it
+ * (func_802D2570). The asm saves t0 (not read) and leaves lvl_load_model's s2,
  * s4 and the setup's registers changed (conventions.txt: clobbers). */
-void func_802A30DC(void) {
+void lvl_spawn_shuttle(void) {
     Out802A396C o;
 
     if (func_80268EE8(levelno) != 0) {
-        D_80364AC1 = 1;
-        func_802A396C(0xFD, &o);
+        gHaveShuttle = 1;
+        lvl_load_model(0xFD, &o);
         func_802D2570(o.s2);
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A30DC.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/lvl_spawn_shuttle.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-/* When the record at OBJ_PTR(obj, 0x54) (func_802A303C's) has a nonzero first
- * byte and the game mode D_80364AA8 isn't 0x80: load model 0xFE
- * (func_802A396C) and set up the flying vehicle with func_802B8480(heap end,
- * model) - its a1 input is the heap end func_802A396C leaves in a1 - then
- * D_803643DC = 1.
+/* When the record at OBJ_PTR(obj, 0x54) (lvl_spawn_carrier's) has a nonzero first
+ * byte and the game mode gLevelKind isn't 0x80: load model 0xFE
+ * (lvl_load_model) and set up the flying vehicle with func_802B8480(heap end,
+ * model) - its a1 input is the heap end lvl_load_model leaves in a1 - then
+ * gHaveChopper = 1.
  * Register convention: obj in t0 (conventions.txt); the asm saves t0 and
  * leaves s2, s4 and the setup's registers changed. Its add traps. */
-void func_802A3134(u8 *obj) {
+void lvl_spawn_chopper(u8 *obj) {
     Out802A396C o;
 
-    if (*OBJ_PTR(obj, 0x54) != 0 && ((s32) D_80364AA8) != 0x80) {
-        func_802A396C(0xFE, &o);
+    if (*OBJ_PTR(obj, 0x54) != 0 && ((s32) gLevelKind) != 0x80) {
+        lvl_load_model(0xFE, &o);
         func_802B8480((s32) o.a1, o.s2);
-        D_803643DC = 1;
+        gHaveChopper = 1;
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A3134.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/lvl_spawn_chopper.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -1344,8 +1346,8 @@ extern u8 * N64P D_803BDAFC;
  * trap (heap addresses: in range).
  * Register convention: s2, s3, s4 out through `out` when loaded (in/out:
  * unchanged otherwise); the asm sets s0 = 1 then (clobbers s0) and saves t0
- * (asm caller func_802A1674 keeps it). f12/f14 as the callees leave them are
- * listed as read by func_802A1674 (not modelled). */
+ * (asm caller initlevel keeps it). f12/f14 as the callees leave them are
+ * listed as read by initlevel (not modelled). */
 void func_802A3198(Out802A32CC *out) {
     u8 *data;
     s32 *src;
@@ -1485,8 +1487,8 @@ void func_802A3824(u8 *obj);
  * [OBJ_PTR(obj, 0x50), OBJ_PTR(obj, 0x54)) {u8 type, BE s16 x, y, z,
  * heading}: in game mode gNextGameMode == 2 (and == the u64 D_8030D888) only
  * records of type D_8036698C are spawned; type 1 becomes the player's
- * vehicle D_803643D4 unless D_80364AA8 is 1 or 0x80; types 6, 7, 0xB, 0x11,
- * 0x12 set D_803ED40F. The model is loaded (func_802A396C(type)) and the
+ * vehicle D_803643D4 unless gLevelKind is 1 or 0x80; types 6, 7, 0xB, 0x11,
+ * 0x12 set D_803ED40F. The model is loaded (lvl_load_model(type)) and the
  * type's setup runs with (x, y, z) << 5 and the heading (0 func_802AE370, 1
  * func_802AFC60, 2 func_802B0DA0, 3 func_802B29C0, 4 func_802B4100, 5
  * func_802B5900, 6 func_802BAD80, 7 func_802BBA60, 8 func_802B7340, 9
@@ -1498,13 +1500,13 @@ void func_802A3824(u8 *obj);
  * Leftover registers (the setups take them as by-value inputs):
  *  - fp: the ground byte func_802A992C stores into D_803ED3F2[] (and so
  *    veh+0x50) for a wheel slot whose scan finds no fp of its own. The first
- *    object gets the dispatcher's fp: func_802A1674's, i.e. func_802A3F80's
+ *    object gets the dispatcher's fp: initlevel's, i.e. func_802A3F80's
  *    result (the D_803B9890 collision record end; its low byte). In the asm
  *    each later object gets whatever the previous setup left in fp (most
  *    end with func_8029E558 -> func_8029E5AC, which leaves byte 0x15, the
  *    interpolation mode, of the last active animation channel there; others
  *    a func_802AE104 / scan result), and the dispatcher returns the last
- *    setup's (func_802A1674 hands it to func_802A303C). Traced in the
+ *    setup's (initlevel hands it to lvl_spawn_carrier). Traced in the
  *    original over the nine attract-demo levels (45 spawns, 16 setup types):
  *    every setup leaves 0 (linear channels), so here every object after the
  *    first gets 0, and 0 is returned once a setup has run (the C setups
@@ -1515,8 +1517,8 @@ void func_802A3824(u8 *obj);
  *    back, chained here): 0.
  * Register convention: obj in t0, fp in/out (conventions.txt). The asm saves
  * t0; the setups save t0-t5 and leave s0-s7, gp and the FP registers
- * changed. Asm caller func_802A1674 keeps t0. */
-s32 func_802A350C(u8 *obj, s32 fp) {
+ * changed. Asm caller initlevel keeps t0. */
+s32 lvl_spawn_vehicles(u8 *obj, s32 fp) {
     SpawnFP f;
     Out802A396C o;
     u8 *p;
@@ -1544,7 +1546,7 @@ s32 func_802A350C(u8 *obj, s32 fp) {
             p += 9;
             continue;
         }
-        if (type == 1 && ((s32) D_80364AA8) != 1 && ((s32) D_80364AA8) != 0x80) {
+        if (type == 1 && ((s32) gLevelKind) != 1 && ((s32) gLevelKind) != 0x80) {
             type = D_803643D4;
         }
         if (type == 6 || type == 7 || type == 0xB || type == 0x11 || type == 0x12) {
@@ -1555,7 +1557,7 @@ s32 func_802A350C(u8 *obj, s32 fp) {
         z = BE16S(p + 5) << 5;
         heading = BE16S(p + 7);
         p += 9;
-        func_802A396C(type, &o);
+        lvl_load_model(type, &o);
         switch (type) {
             case 0:
                 func_802AE370(o.s2, x, y, z, heading, fp, (TriSideOut *) &f);
@@ -1615,7 +1617,7 @@ s32 func_802A350C(u8 *obj, s32 fp) {
     return fp;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A350C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/lvl_spawn_vehicles.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -1625,9 +1627,9 @@ s32 func_802A350C(u8 *obj, s32 fp) {
  * three unaligned big-endian s16 (x, y, z). Finds the first record of kind 0
  * (searched from the start with no end bound: it must exist), then for every
  * nonzero-kind record at the same position sets D_803BE73A to its kind, or
- * to D_803643D4 unless D_80364AA8 is 1 or 0x80. The asm loops with `!=`.
+ * to D_803643D4 unless gLevelKind is 1 or 0x80. The asm loops with `!=`.
  * asm: obj in t0; it changes no register but at.
- * Asm callers rely on preserved: func_802A350C keeps a1-a3, t0, f12, f14. */
+ * Asm callers rely on preserved: lvl_spawn_vehicles keeps a1-a3, t0, f12, f14. */
 void func_802A3824(u8 *obj) {
     u8 *p = OBJ_PTR(obj, 0x50);
     u8 *end = OBJ_PTR(obj, 0x54);
@@ -1646,7 +1648,7 @@ void func_802A3824(u8 *obj) {
     for (; p != end; p += 9) {
         kind = p[0];
         if (kind != 0 && BE16S(p + 1) == x && BE16S(p + 3) == y && BE16S(p + 5) == z) {
-            if (((s32) D_80364AA8) != 1 && ((s32) D_80364AA8) != 0x80) {
+            if (((s32) gLevelKind) != 1 && ((s32) gLevelKind) != 0x80) {
                 kind = D_803643D4;
             }
             D_803BE73A = kind;
@@ -1669,10 +1671,10 @@ void func_802A3824(u8 *obj) {
  * Register convention: type in t3; s2, s4, a1 through `out`
  * (conventions.txt). The asm saves t0-t7, s0, s1, s3 and leaves s5-s7
  * changed (and f12 / f14 as the callees leave them). Asm callers rely on
- * preserved: func_802A303C keeps t1, t2, t4-t7; func_802A30DC /
- * func_802CEAA0 keep t1, t2; func_802A3134 keeps t1; func_802A350C keeps
+ * preserved: lvl_spawn_carrier keeps t1, t2, t4-t7; lvl_spawn_shuttle /
+ * func_802CEAA0 keep t1, t2; lvl_spawn_chopper keeps t1; lvl_spawn_vehicles keeps
  * t1-t3, t7. */
-void func_802A396C(s32 type, Out802A396C *out) {
+void lvl_load_model(s32 type, Out802A396C *out) {
     u32 rom;
     u32 romEnd;
     u8 *end;
@@ -1756,7 +1758,7 @@ void func_802A396C(s32 type, Out802A396C *out) {
     out->a1 = end;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A396C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/lvl_load_model.s")
 #endif
 
 /* func_802A3D54 .. func_802A3F80: build the level's collision triangle
@@ -1768,7 +1770,7 @@ void func_802A396C(s32 type, Out802A396C *out) {
  * byte in t9, and the in/out s1 that func_802A41B0 threads from one call to
  * the next (through `s1io`). The asm saves t0 only, sets gp (0 or 1, passed
  * as func_802A41B0's b55) and leaves func_802A41B0's s2-s7 scratch. Its asm
- * caller func_802A1674 keeps t0, t9, f12, f14 live. */
+ * caller initlevel keeps t0, t9, f12, f14 live. */
 #ifdef NON_MATCHING
 s32 func_802A4168(s32 id, u8 *end);
 
@@ -2139,7 +2141,7 @@ u8 *func_802A41B0(u8 *rec, u8 *v, s32 id, s32 h52, s32 b57, s32 b56, s32 *s1io, 
  * each of the n blocks and once more at the end (n + 1 entries in
  * D_803BDB10). The asm counts n down with `!= 0`, so n must be >= 0.
  * asm: obj in t0; it clobbers t1-t3, t5, t6, hi/lo.
- * Asm callers rely on preserved: func_802A1674 keeps t0, f12, f14. */
+ * Asm callers rely on preserved: initlevel keeps t0, f12, f14. */
 void func_802A4464(u8 *obj) {
     s32 n = *(s16 *) (obj + 8) * *(s16 *) (obj + 0xA);
     u8 *base = OBJ_PTR(obj, 0x30);
@@ -2171,7 +2173,7 @@ void func_802A4464(u8 *obj) {
 #ifdef NON_MATCHING
 /* Port rewrite (not matching): round x up to a multiple of 8 unless it is a
  * multiple of 4. asm: x in a1; the result in v0 and also left in a1, which
- * its asm callers (func_802A2A98, func_802A32CC, func_802A396C) read back
+ * its asm callers (func_802A2A98, func_802A32CC, lvl_load_model) read back
  * as the new heap pointer.
  * Asm callers rely on preserved: a2, a3, f12, f14. */
 u32 func_802A44E4(u32 x) {

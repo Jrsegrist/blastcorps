@@ -11,7 +11,7 @@
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_8020C070 ((PathNode *) D_8020C070)
-#define D_802E8F94 ((LevelInfo *) D_802E8F94)
+#define gLevelInfo ((LevelInfo *) gLevelInfo)
 #define D_802F49F4 ((YoshiSnd *) D_802F49F4)
 #define D_802F5804 ((PathNode *) D_802F5804)
 #define D_802F8BDC ((YoshiArg *) D_802F8BDC)
@@ -297,25 +297,25 @@ void func_8026B118(u8 arg0) {
             D_8020C070[25].unk14 = 0;
             /* fallthrough */
         case 0x40000000:
-            arg = &D_802F8BDC[D_802F4868[lowest_set_bit(D_802E8F94[levelno].unk0)]];
+            arg = &D_802F8BDC[D_802F4868[lowest_set_bit(gLevelInfo[levelno].unk0)]];
             if (D_802E8BF8) {
                 D_8020C070[29].flags &= ~1;
                 D_8020C070[29].unk14 = 11;
             }
-            if (D_802E8F94[levelno].unk0 == 1) {
+            if (gLevelInfo[levelno].unk0 == 1) {
                 if (func_80297EF8(levelno)) {
                     D_8020C070[18].unk14 = 24;
                 } else {
                     D_8020C070[18].unk14 = 0;
                 }
-            } else if (D_802E8F94[levelno].unk0 == 0x20) {
+            } else if (gLevelInfo[levelno].unk0 == 0x20) {
                 D_8020C070[23].flags &= ~0x400;
                 D_8020C070[26].flags &= ~0x400;
                 D_8020C070[27].unk14 = 0;
                 D_8020C070[28].unk14 = 0;
             } else {
-                D_8020C070[23].unk14 = D_802F4878[lowest_set_bit(D_802E8F94[levelno].unk0)];
-                D_8020C070[26].unk14 = D_802F4878[lowest_set_bit(D_802E8F94[levelno].unk0)];
+                D_8020C070[23].unk14 = D_802F4878[lowest_set_bit(gLevelInfo[levelno].unk0)];
+                D_8020C070[26].unk14 = D_802F4878[lowest_set_bit(gLevelInfo[levelno].unk0)];
                 D_8020C070[27].unk14 = 0;
                 D_8020C070[28].unk14 = 0;
             }
@@ -327,22 +327,22 @@ void func_8026B118(u8 arg0) {
             arg = &D_802F8BDC[56];
             break;
         case 0x40:
-            arg = &D_802F8BDC[D_802F4870[lowest_set_bit(D_802E8F94[levelno].unk0)]];
-            if (D_802E8F94[levelno].unk0 == 0x20) {
+            arg = &D_802F8BDC[D_802F4870[lowest_set_bit(gLevelInfo[levelno].unk0)]];
+            if (gLevelInfo[levelno].unk0 == 0x20) {
                 D_802F5804[27].flags &= ~0x400;
                 D_802F5804[28].flags &= ~0x400;
                 D_802F5804[29].unk14 = 0;
                 D_802F5804[30].unk14 = 0;
             } else {
-                D_802F5804[27].unk14 = D_802F4878[lowest_set_bit(D_802E8F94[levelno].unk0)];
-                D_802F5804[28].unk14 = D_802F4878[lowest_set_bit(D_802E8F94[levelno].unk0)];
+                D_802F5804[27].unk14 = D_802F4878[lowest_set_bit(gLevelInfo[levelno].unk0)];
+                D_802F5804[28].unk14 = D_802F4878[lowest_set_bit(gLevelInfo[levelno].unk0)];
                 D_802F5804[29].unk14 = 0;
                 D_802F5804[30].unk14 = 0;
             }
             break;
         case 0x2000:
             if (((players[playerNumber].unk18[levelno] > 0 && players[playerNumber].unk18[levelno] < 6) ? 1 : 0) &&
-                D_802E8F94[levelno].unk0 == 1) {
+                gLevelInfo[levelno].unk0 == 1) {
                 arg = &D_802F8BDC[6];
             } else {
                 arg = NULL;
@@ -390,7 +390,7 @@ void func_8026B118(u8 arg0) {
 }
 
 void func_8026B8F8(void) {
-    if (D_80364AA8 & 0x20) {
+    if (gLevelKind & 0x20) {
         D_8020C070[23].flags |= 0x400;
         D_8020C070[26].flags |= 0x400;
         D_802F5804[27].flags |= 0x400;
@@ -398,9 +398,9 @@ void func_8026B8F8(void) {
         D_8020C070[23].unk14 = D_8020C070[26].unk14 = D_802F5804[27].unk14 = D_802F5804[28].unk14 =
             func_8026FA38(NULL, NULL);
         if (gNextGameMode == 0x40) {
-            func_8026BA7C(&D_802F8BDC[D_802F4870[lowest_set_bit(D_80364AA8)]]);
+            func_8026BA7C(&D_802F8BDC[D_802F4870[lowest_set_bit(gLevelKind)]]);
         } else {
-            func_8026BA7C(&D_802F8BDC[D_802F4868[lowest_set_bit(D_80364AA8)]]);
+            func_8026BA7C(&D_802F8BDC[D_802F4868[lowest_set_bit(gLevelKind)]]);
         }
     }
 }
@@ -504,7 +504,7 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
     c = D_802F47B0[20];
     c[2] = 255 - D_8036BB0C;
     c[6] = D_8036BB0C;
-    if (gGameMode == 0x200 && D_803643DB && D_803643D6) {
+    if (gGameMode == 0x200 && gHaveCarrier && gCarrierHit) {
         D_8036BB1A = -1;
         if (yoshiState == 4 || yoshiState == 2) {
             debug_printf("putting off!\n");
@@ -1252,7 +1252,7 @@ void func_8026FEC4(void) {
                 D_8036BED8[i].visited = 1;
                 if (!flag) {
                     flag = 1;
-                    if (D_80364AA8 == 0x40) {
+                    if (gLevelKind == 0x40) {
                         func_80260650(D_80367738, 0x3B, NULL);
                     } else {
                         func_80260650(D_80367738, 0x27, NULL);

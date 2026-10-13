@@ -361,9 +361,9 @@ index 7de5b69..37420d1 100644
 +        const double submittedAgo = std::chrono::duration<double>(now - present.queuedTime).count();
 +        const double latency = submittedAgo + showIn;
 +
-+        // The lowest latency of the last two to four seconds: what this display mode (windowed, or
++        // The lowest latency of the last 10 to 20 seconds: what this display mode (windowed, or
 +        // fullscreen with its own flip queue) gives; a picture a refresh above it is behind.
-+        if ((pacingLatencyWindowStart == Timestamp()) || (now - pacingLatencyWindowStart > std::chrono::seconds(2))) {
++        if ((pacingLatencyWindowStart == Timestamp()) || (now - pacingLatencyWindowStart > std::chrono::seconds(10))) {
 +            pacingLatencyPrevMin = pacingLatencyMin;
 +            pacingLatencyMin = 1e9;
 +            pacingLatencyWindowStart = now;

@@ -904,10 +904,14 @@ it without a fault.  The x64-asan preset is the tool for this now.
     `original` 0-0.3 % of the shown intervals off their due length (was
     0-40 %, run to run), `60` 594 of 594 pictures one refresh each in all 5
     runs, `display` 593/594 (was 1-8 % two-refresh holds);
-    fullscreen `original` 0-3 % (was 15-29 %); fullscreen `60` is limited by
-    this GPU at the screen's resolution in both pacings (5-12 % two-refresh
-    holds).  The latency from a retrace's due time to the display is about a
-    refresh higher (orig 25-28 ms vs 13-21; `60` 45-55 vs 37-47).
+    fullscreen `original` 0-3 % (was 15-29 %).  Those runs had other work
+    (builds, emulator runs) on the PC; with the PC idle both pacings are
+    near perfect (windowed `60` 595/595 and 591-596/598 one-refresh holds,
+    `original` 297/297 and 298/298; fullscreen `60` 573-595/595 and 592-598/598,
+    the same at internal resolution 1, so not GPU-bound): the vsync pacing
+    keeps it so when the PC is busy.  Its cost is latency from a retrace's
+    due time to the display: about half to one refresh more (idle: `original`
+    17-18 ms vs 7, `60` 34-44 vs 30-37; fullscreen `60` 40-46 vs 32-43).
   - `--flip-log FILE` (testing): every present RT64 made (submission, call,
     hold) and, with D3D12, every refresh and the present on screen (DXGI
     frame statistics, polled every millisecond), as CSV.

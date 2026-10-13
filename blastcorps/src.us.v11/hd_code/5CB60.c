@@ -592,7 +592,7 @@ void func_802A21AC(s32 type, u8 *obj, s32 x, s32 y, s32 z, s32 flag, s32 tag, u8
 /* Level objects setup: D_8036EB93 = 0, func_802A1EC8 (per-level list), clear
  * a few flag bytes of the tables at D_803EFED0 (1 x 0xA30: bytes 0xA2A/B),
  * D_803F0900 (4 x 0x4B8: half 0x4B0, byte 0x4B2) and D_803F1BE0 (2 x 0x478:
- * bytes 0x470/0x472), D_803F7654 = D_803F4030 (record pool), func_802A2BB0
+ * bytes 0x470/0x472), gObjectsEnd = gObjects (record pool), func_802A2BB0
  * (offset table). Then for each 14-byte placement in [OBJ_PTR(obj, 0x5C),
  * OBJ_PTR(obj, 0x60)) {BE u16 x, y, z, type; u8 flag, count; u16 at 0xA,
  * 0xC}: data = func_802A2A98(type) (load), func_802A2164(type, data),
@@ -635,7 +635,7 @@ u8 *func_802A1D54(u8 *obj, u8 *param, s32 *s1io) {
         p[0x470] = 0;
         p[0x472] = 0;
     }
-    D_803F7654 = D_803F4030;
+    gObjectsEnd = gObjects;
     func_802A2BB0();
     p = OBJ_PTR(obj, 0x5C);
     end = OBJ_PTR(obj, 0x60);
@@ -761,7 +761,7 @@ void func_802A23E0(u8 *rec);
 /* Set up a placed level object of `type` from its loaded data obj at (x, y, z)
  * (map units, << 5 into the record): func_802A2608(obj, param) resolves its
  * ids; type 0x38 also stores x/y/z in D_803F767C/7E/80. Takes the next
- * 0xFC-byte record from D_803F7654: func_802A2458 (centre), word 0 = obj, 0x30
+ * 0xFC-byte record from gObjectsEnd: func_802A2458 (centre), word 0 = obj, 0x30
  * = type, 0x34 = tag, 0xC = obj's u16 at 2 << 5, 0x10/0x1C = x, 0x14/0x20 =
  * y, 0x18/0x24 = z (<< 5), 0x38..0x40 = 0, bytes 0xEA = 0, 0xEB = flag, 0xE9 =
  * n (obj's u16 at 0) and n zero bytes at 0xEC, n zero halves at 0x48 and at
@@ -771,7 +771,7 @@ void func_802A23E0(u8 *rec);
  * param), func_802A23E0(rec), and the 0x19-byte triangle entries
  * [OBJ_PTR(obj, 0x48), OBJ_PTR(obj, 0x4C)) are built at the heap gHeapPtr
  * with func_802A41B0 (byte 0x51 of the current output = entry byte 0x17 == 0;
- * the asm passes &D_803F7654, left in v0, as the id); word 4 / 8 = the heap
+ * the asm passes &gObjectsEnd, left in v0, as the id); word 4 / 8 = the heap
  * before / after, gHeapPtr = the end. The asm's addi trap; the divides trap
  * on a zero cell size.
  * Register convention: type t3, obj t4, x t5, y t6, z t7, flag s0, tag t9,
@@ -796,8 +796,8 @@ void func_802A21AC(s32 type, u8 *obj, s32 x, s32 y, s32 z, s32 flag, s32 tag, u8
         D_803F767E = y;
         D_803F7680 = z;
     }
-    rec = D_803F7654;
-    D_803F7654 = rec + 0xFC;
+    rec = gObjectsEnd;
+    gObjectsEnd = rec + 0xFC;
     func_802A2458(rec, obj);
     REC_W(rec, 0x34) = tag;
     REC_W(rec, 0x38) = 0;
@@ -840,7 +840,7 @@ void func_802A21AC(s32 type, u8 *obj, s32 x, s32 y, s32 z, s32 flag, s32 tag, u8
     while (e != eEnd) {
         out[0x51] = (e[0x17] != 0) ? 0 : 1;
         *s1io = e[0x16];
-        out = func_802A41B0(out, e, (s32) &D_803F7654, e[0x15], e[0x17], e[0x14], s1io, tag, e[0x18]);
+        out = func_802A41B0(out, e, (s32) &gObjectsEnd, e[0x15], e[0x17], e[0x14], s1io, tag, e[0x18]);
         e += 0x19;
     }
     REC_W(rec, 8) = (s32) out;

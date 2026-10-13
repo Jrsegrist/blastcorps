@@ -1619,6 +1619,11 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 [!provide]                        PROVIDE (rec_start_playback = 0x808174b0)
                 [!provide]                        PROVIDE (rec_record = 0x808176c8)
                 [!provide]                        PROVIDE (rec_next = 0x808179d8)
+                0x803f4030                        gObjects = 0x803f4030
+                0x803f7654                        gObjectsEnd = 0x803f7654
+                [!provide]                        PROVIDE (obj_draw_all = 0x8087d7cc)
+                [!provide]                        PROVIDE (obj_find_nearest_target = 0x8087d350)
+                [!provide]                        PROVIDE (obj_parts_destroyed = 0x8087d5fc)
                 0x803ff288                        __osEepromTimer = 0x803ff288
                 0x803ff2a8                        __osEepromTimerQ = 0x803ff2a8
                 0x803ff2c0                        __osEepromTimerMsg = 0x803ff2c0

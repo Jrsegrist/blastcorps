@@ -506,9 +506,9 @@ extern u8 D_803F1BE0[]; /* 2 entries of 0x478 bytes */
 extern u8 D_803F3910[];
 extern u8 * N64P D_803F3960; /* end of the (object, part) hit list */
 extern u8 D_803F3FF8[];
-extern u8 D_803F4030[]; /* definition in the 7D9D0 text blob */
-#ifndef LEGACY_D_803F7654
-extern u8 * N64P D_803F7654; /* size 0xFC */
+extern u8 gObjects[]; /* the level's objects (buildings ...), 0xFC-byte records (77E20.c) */
+#ifndef LEGACY_gObjectsEnd
+extern u8 * N64P gObjectsEnd; /* one past the last object record */
 #endif
 extern s32 D_803F7660;
 extern s32 D_803F7664; /* position objects with a pose are moved to */

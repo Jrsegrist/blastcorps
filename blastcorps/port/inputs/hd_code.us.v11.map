@@ -123,7 +123,7 @@ Discarded input sections
  .mdebug        0x00000000      0xcb8 build_nm/src.us.v11/hd_code/2E490.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/30C70.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/30C70.c.o
- .mdebug        0x00000000     0x10e8 build_nm/src.us.v11/hd_code/30C70.c.o
+ .mdebug        0x00000000     0x10f0 build_nm/src.us.v11/hd_code/30C70.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/32E00.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/32E00.c.o
  .mdebug        0x00000000     0x11d0 build_nm/src.us.v11/hd_code/32E00.c.o
@@ -2050,10 +2050,10 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x8087d11c                func_802BCD20
                 0x8087d1d8                func_802BCD80
                 0x8087d294                func_802BCDE0
-                0x8087d350                func_802BCE40
-                0x8087d5fc                func_802BD064
+                0x8087d350                obj_find_nearest_target
+                0x8087d5fc                obj_parts_destroyed
                 0x8087d72c                func_802BD10C
-                0x8087d7cc                func_802BD1F8
+                0x8087d7cc                obj_draw_all
                 0x8087df90                func_802BD85C
                 0x8087e070                func_802BD8C8
                 0x8087e0b4                func_802BD99C
@@ -3422,6 +3422,8 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x803643da                        gLevelDoneRequest = 0x803643da
                 0x803643d7                        gLevelDone = 0x803643d7
                 0x803643d6                        gCarrierHit = 0x803643d6
+                0x803f4030                        gObjects = 0x803f4030
+                0x803f7654                        gObjectsEnd = 0x803f7654
                 0x80314d80                        D_80314D80 = 0x80314d80
                 0x80314d98                        D_80314D98 = 0x80314d98
                 0x802fa254                        D_802FA254 = 0x802fa254
@@ -3657,8 +3659,6 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x80365270                        D_80365270 = 0x80365270
                 0x803652b0                        D_803652B0 = 0x803652b0
                 0x80365230                        D_80365230 = 0x80365230
-                0x803f4030                        D_803F4030 = 0x803f4030
-                0x803f7654                        D_803F7654 = 0x803f7654
                 0x80365350                        D_80365350 = 0x80365350
                 0x80365340                        D_80365340 = 0x80365340
                 0x802e8c70                        D_802E8C70 = 0x802e8c70

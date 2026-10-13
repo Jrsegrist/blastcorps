@@ -2,9 +2,9 @@
 #include <ultra64.h>
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_803F4030 ((Rec7FB50 *) D_803F4030)
+#define gObjects ((Rec7FB50 *) gObjects)
 #ifdef NON_MATCHING
-#define D_803F7654 (*(Rec7FB50 * N64P *) &D_803F7654)
+#define gObjectsEnd (*(Rec7FB50 * N64P *) &gObjectsEnd)
 #define D_803F7844 (*(s32 *) &D_803F7844)
 #endif
 /* end of views */
@@ -18,7 +18,7 @@
  * more specific non-ABI explanation where one was already worked out. */
 
 #ifdef NON_MATCHING
-/* D_803F4030: array of 0xFC-byte records (55 slots); D_803F7654 points one
+/* gObjects: array of 0xFC-byte records (55 slots); gObjectsEnd points one
  * past the last record in use. Only the fields below are known. */
 typedef struct {
     /* 0x00 */ u8 * N64P unk0;    /* points at something whose byte +4 is a kind (1 = excluded) */
@@ -126,7 +126,7 @@ s32 record_status(u8 *out) {
     w.out = out;
     w.bits = 0;
     w.count = 0;
-    for (r = D_803F4030; r != D_803F7654; r++) {
+    for (r = gObjects; r != gObjectsEnd; r++) {
         part = r->parts;
         for (n = r->numParts; n != 0; n--) {
             BITW_PUT(w,*part++ == 100);
@@ -175,8 +175,8 @@ void func_802C4BF0(void *in) {
     s32 n;
     s32 i;
 
-    end = D_803F7654;
-    for (r = D_803F4030; r != end; r++) {
+    end = gObjectsEnd;
+    for (r = gObjects; r != end; r++) {
         u8 *part = r->parts;
         s32 allIntact = 1;
         s32 anyDestroyed = 0;
@@ -212,8 +212,8 @@ void func_802C4BF0(void *in) {
     }
     D_80368040 = sum;
 
-    end = D_803F7654;
-    for (r = D_803F4030; r != end; r++) {
+    end = gObjectsEnd;
+    for (r = gObjects; r != end; r++) {
         n = r->numParts;
         for (i = 0; n != 0; i++) {
             n--;
@@ -282,14 +282,14 @@ u32 create_status(void *outp, u8 level) {
     pct = D_803063F0[level - 1];
 
     eligible = 0;
-    for (r = D_803F4030; r != D_803F7654; r++) {
+    for (r = gObjects; r != gObjectsEnd; r++) {
         if (REC7FB50_ELIGIBLE(r)) {
             eligible++;
         }
     }
     /* Note: unlike `eligible`, this counts done records whether eligible or not. */
     done = 0;
-    for (r = D_803F4030; r != D_803F7654; r++) {
+    for (r = gObjects; r != gObjectsEnd; r++) {
         if (r->unkEB != 0) {
             done++;
         }
@@ -307,7 +307,7 @@ u32 create_status(void *outp, u8 level) {
     w.out = outp;
     w.bits = 0;
     w.count = 0;
-    for (r = D_803F4030; r != D_803F7654; r++) {
+    for (r = gObjects; r != gObjectsEnd; r++) {
         bit = 0;
         if (REC7FB50_ELIGIBLE(r)) {
             if (r->unkEB != 0) {

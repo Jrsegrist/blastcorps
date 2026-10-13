@@ -275,3 +275,10 @@ D_803643D6 = gCarrierHit               # mission failed (from cmo_hit_request)
 func_8025B9D0 = rec_start_playback     # recording.c: a demo / replay recording
 func_8025BBE8 = rec_record             # recording.c: this frame's pad into the recording
 func_8025BEF8 = rec_next               # recording.c: the next recorded pad into gRecButtons
+
+# --- 5. the level objects (buildings and other destructible objects, 77E20.c) ---
+D_803F4030 = gObjects                  # 0xFC-byte records (77E20.c's Unk802C1DD0Entry), one per placed object
+D_803F7654 = gObjectsEnd               # one past the last record in use
+func_802BD1F8 = obj_draw_all           # the visible objects (gVisibleCells) into the scene and per-object lists
+func_802BCE40 = obj_find_nearest_target # the closest target object / table entry to the player
+func_802BD064 = obj_parts_destroyed    # 1 if every part the level's part list gives for the object is at 100

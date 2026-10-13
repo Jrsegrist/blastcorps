@@ -258,7 +258,7 @@ func_802A3008: in t0=a0 ; out s1=ret ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4
 func_802A19F4: preserve t0 ; clobbers s2,s4,s5,s6,s7
 # packed object D_8039CA7E (func_802A32CC: s2-s4 out when loaded), its matrices to the heap, func_80295AE0
 func_802A3198: in s2=*a0,s3=*a0+4,s4=*a0+8 ; out s2=*a0,s3=*a0+4,s4=*a0+8 ; preserve t0 ; clobbers s0,s5,s6,s7
-# placed object setup: type t3, data t4, x/y/z t5-t7, flag s0, tag t9, param fp; record from D_803F7654, triangles at the heap
+# placed object setup: type t3, data t4, x/y/z t5-t7, flag s0, tag t9, param fp; record from gObjectsEnd, triangles at the heap
 func_802A21AC: in t3=a0,t4=a1,t5=a2,t6=a3,t7=stack0,s0=stack1,t9=stack2,fp=stack3,s1=*stack4 ; out s1=*stack4 ; preserve t0,t1,t2 ; clobbers s0,s2-s7,gp,f20,f22,f24,f26,f28
 # level objects from level object t0's placement list (param fp); list end -> t1 (= t2)
 func_802A1D54: in t0=a0,fp=a1,s1=*a2 ; out t1=ret,s1=*a2 ; preserve t0 ; clobbers s0,s2-s7,gp,f20,f22,f24,f26,f28
@@ -870,8 +870,8 @@ func_802BC888: in t3=a0,t9=a1,a2=a2 ; preserve a0,a1,t3,t4,t6,t7,t9
 func_802BCD20: in v0=a0 ; out v1=ret
 func_802BCD80: in v0=a0 ; out v1=ret ; preserve a0,a1,a2,a3,f12,f14
 func_802BCDE0: in fp=a0 ; out v1=ret ; preserve a0,a1,a2,t3,t8,t9,f12,f14
-# done-check of the D_803F4030 entry before t0 (callers pass entry + 0xFC); saves t0-t2, t4
-func_802BD064: in t0=a0 ; out v0=ret ; preserve t0,t1,t2,t4,t5,t6,t7
+# done-check of the gObjects entry before t0 (callers pass entry + 0xFC); saves t0-t2, t4
+obj_parts_destroyed: in t0=a0 ; out v0=ret ; preserve t0,t1,t2,t4,t5,t6,t7
 # clear unk51 of model triangles with unk52 == a3 + 1 (model in v0); changes nothing else
 func_802BD85C: in v0=a0,a3=a1 ; preserve v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,f12,f14
 # level 0x32 and !func_80286090(level) -> t1; preserves everything else
@@ -886,7 +886,7 @@ func_802BE944: in t3=a0,t8=a1 ; out t9=ret ; preserve a0,a1,t3,t4,t6,t8,f12,f14
 # pair list D_803F3910..D_803F3960: append (t9, t3) / find (t9, t3) -> t7
 func_802BEA30: in t9=a0,t3=a1 ; preserve a0,a1,t3,t8,t9,f12,f14
 func_802BEA70: in t9=a0,t3=a1 ; out t7=ret ; preserve a0,a1,t3,t8,t9,f12,f14
-# entry in t9 (D_803F4030 entries)
+# entry in t9 (gObjects entries)
 func_802BEF9C: in t9=a0 ; preserve a0,a1,t8,t9,f12,f14
 func_802BF1F0: in t9=a0,t3=a1 ; preserve a1,t0,t1,t2,t3,t4,t5,t6,t7,t9,f12,f14
 func_802BF384: in t9=a0 ; preserve a0,a1,t3,t5,t9,f12,f14

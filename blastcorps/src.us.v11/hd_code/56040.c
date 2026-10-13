@@ -299,7 +299,7 @@ static s32 port_sphere_hits_tri(s32 x, s32 y, s32 z, s32 r, u8 *tri) {
  * order (each list walked with `!=`, 0x60-byte triangles):
  * 1. for each D_803059F0 entry whose mask has bit (kind & 31) and whose level
  *    is 0xFFFF or levelno (object kind 0x38 only while func_802BD8C8()
- *    is 0): every D_803F4030 object of that kind that func_8029B514 says the
+ *    is 0): every gObjects object of that kind that func_8029B514 says the
  *    sphere touches, its triangles with byte 0x51 set;
  * 2. D_803F9330 .. D_803FB8B0 with byte 0x51 set, except (kind 0xC8) those
  *    whose u16 at +0x52 equals D_803A742A;
@@ -332,8 +332,8 @@ s32 func_8029AB88(s32 x, s32 y, s32 z, s32 r, s32 kind) {
         if (e[1] == 0x38 && func_802BD8C8() != 0) {
             continue;
         }
-        objEnd = D_803F7654;
-        for (obj = D_803F4030; obj != objEnd; obj += 0xFC) {
+        objEnd = gObjectsEnd;
+        for (obj = gObjects; obj != objEnd; obj += 0xFC) {
             if (*(u32 *) (obj + 0x30) != e[1]) {
                 continue;
             }
@@ -442,8 +442,8 @@ void func_8029B02C(s32 x, s32 y, s32 z, s32 r, s32 kind, s32 id) {
         if (e[1] == 0x38 && func_802BD8C8() != 0) {
             continue;
         }
-        objEnd = D_803F7654;
-        for (obj = D_803F4030; obj != objEnd; obj += 0xFC) {
+        objEnd = gObjectsEnd;
+        for (obj = gObjects; obj != objEnd; obj += 0xFC) {
             if (*(u32 *) (obj + 0x30) != e[1]) {
                 continue;
             }

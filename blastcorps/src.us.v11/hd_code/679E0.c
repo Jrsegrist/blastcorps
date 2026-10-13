@@ -17,18 +17,18 @@ extern u8 D_802C2A5C[];  /* definition in the 7D9D0 text blob */
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* For every D_803F4030 record (up to D_803F7654, read once; walked with `!=`,
- * so it must be D_803F4030 + n records) whose byte 0xEA is 0 and whose
+/* For every gObjects record (up to gObjectsEnd, read once; walked with `!=`,
+ * so it must be gObjects + n records) whose byte 0xEA is 0 and whose
  * position (words +0x10/+0x14/+0x18) is closer than radius << 5 to the
  * player (func_802ABCDC, signed compare), apply func_802C18D4 blast damage
  * at the position << 11 with radius 10 and amount 100000. The player
  * position is reloaded for every record. Saves every s-register, gp and fp. */
 void func_802AC1A0(s32 radius) {
-    u8 *end = D_803F7654;
+    u8 *end = gObjectsEnd;
     u8 *e;
     s32 limit = radius << 5;
 
-    for (e = D_803F4030; e != end; e += 0xFC) {
+    for (e = gObjects; e != end; e += 0xFC) {
         if (e[0xEA] == 0) {
             s32 x = *(s32 *) (e + 0x10);
             s32 y = *(s32 *) (e + 0x14);

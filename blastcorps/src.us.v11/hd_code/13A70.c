@@ -6,16 +6,16 @@
  * uses game/game.h's. */
 #define LEGACY_gVehicleShadows
 #define LEGACY_gVehicleShadowsEnd
-#define LEGACY_D_803F7654
+#define LEGACY_gObjectsEnd
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_02000000 (*(VtxBuf *) D_02000000)
-#define D_803F4030 ((Object *) D_803F4030)
+#define gObjects ((Object *) gObjects)
 #ifdef NON_MATCHING
 #define gVehicleShadows (*(Struct13A70 * N64P *) &gVehicleShadows)
 #define gVehicleShadowsEnd (*(Struct13A70 * N64P *) &gVehicleShadowsEnd)
-#define D_803F7654 (*(Object * N64P *) &D_803F7654)
+#define gObjectsEnd (*(Object * N64P *) &gObjectsEnd)
 #endif
 /* end of views */
 
@@ -80,7 +80,7 @@ extern Mtx D_80365270;
 extern Mtx D_803652B0;
 extern Mtx D_803652F0;
 #ifndef NON_MATCHING
-extern Object *D_803F7654;
+extern Object *gObjectsEnd;
 #endif
 
 
@@ -228,19 +228,19 @@ void func_80258B78(Gfx **gdlp, VtxBuf *buf) {
     gSPTexture(gdl++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
     gDPSetCombineMode(gdl++, G_CC_MODULATEIA_PRIM, G_CC_MODULATEIA_PRIM);
     gDPSetPrimColor(gdl++, 0, 0, 200, 200, 200, 200);
-    while (&D_803F4030[i] != D_803F7654) {
-        if (D_803F4030[i].unkEA == 0) {
-            switch (D_803F4030[i].type) {
+    while (&gObjects[i] != gObjectsEnd) {
+        if (gObjects[i].unkEA == 0) {
+            switch (gObjects[i].type) {
                 case 0xBA:
                 case 0xBB:
                 case 0xBC:
-                    h = 60 - (D_803F4030[i].y - D_803F4030[i].unk44) / 800;
+                    h = 60 - (gObjects[i].y - gObjects[i].unk44) / 800;
                     if (h < 0) {
                         h = 0;
                     }
-                    x = D_803F4030[i].x >> 5;
-                    y = D_803F4030[i].unk44 >> 5;
-                    z = D_803F4030[i].z >> 5;
+                    x = gObjects[i].x >> 5;
+                    y = gObjects[i].unk44 >> 5;
+                    z = gObjects[i].z >> 5;
                     buf->vtx[n].v.ob[0] = x - h;
                     buf->vtx[n].v.ob[1] = y;
                     buf->vtx[n].v.ob[2] = z - h;

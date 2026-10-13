@@ -587,21 +587,21 @@ func_802AAE54: -n 100 --seed 3 --follow-all --arg a3=7 --arg t0=choice:-1000,300
     --mem D_803EBDB0+0xD2:2=3000 --mem D_803EBDB0+0xD6:2=-1000 --mem D_803EBDB0+0xD8:2=-1000 --mem D_803EBDB0+0xDC:2=3000 \
     --mem D_803EBDB0+0xDE:2=7
 
-# func_802ABEDC(x, y, z) (o32, C caller): objects D_803F4030..D_803F7654 whose info box holds (x, z) -> func_802ABFC8
-func_802ABEDC: -n 300 --heap 0x100 --arg a0=int --arg a1=int --arg a2=int --mem D_803F4030:0x3F0=rand \
-    --mem D_803F4030*0xFC:4=rel:heap0 --mem @heap0+0x20=0x40 --mem @heap0+0x40:8=rand \
-    --mem D_803F7654=rel:D_803F4030+0xFC*int:0:4 --stub-ret func_802AA5E0=1 --sig func_802ABFC8=a0,a1,a2,a3,*stack0
-func_802ABEDC: -n 200 --seed 1 --heap 0x100 --arg a0=int --arg a1=int --arg a2=int --mem D_803F4030:0x3F0=rand \
-    --mem D_803F4030*0xFC:4=rel:heap0 --mem @heap0+0x20=0x40 --mem @heap0+0x40:8=rand \
-    --mem D_803F7654=rel:D_803F4030+0xFC*int:0:4 --stub-ret func_802AA5E0=0 --sig func_802ABFC8=a0,a1,a2,a3,*stack0
+# func_802ABEDC(x, y, z) (o32, C caller): objects gObjects..gObjectsEnd whose info box holds (x, z) -> func_802ABFC8
+func_802ABEDC: -n 300 --heap 0x100 --arg a0=int --arg a1=int --arg a2=int --mem gObjects:0x3F0=rand \
+    --mem gObjects*0xFC:4=rel:heap0 --mem @heap0+0x20=0x40 --mem @heap0+0x40:8=rand \
+    --mem gObjectsEnd=rel:gObjects+0xFC*int:0:4 --stub-ret func_802AA5E0=1 --sig func_802ABFC8=a0,a1,a2,a3,*stack0
+func_802ABEDC: -n 200 --seed 1 --heap 0x100 --arg a0=int --arg a1=int --arg a2=int --mem gObjects:0x3F0=rand \
+    --mem gObjects*0xFC:4=rel:heap0 --mem @heap0+0x20=0x40 --mem @heap0+0x40:8=rand \
+    --mem gObjectsEnd=rel:gObjects+0xFC*int:0:4 --stub-ret func_802AA5E0=0 --sig func_802ABFC8=a0,a1,a2,a3,*stack0
 # boxes and triangles for real (func_802ABFC8's list at info+0x30..+0x94, the box at info+0xA0)
 func_802ABEDC: -n 300 --seed 2 --follow-all --heap 0x100 --arg a0=int:-40:40 --arg a1=int:-2000:2000 --arg a2=int:-40:40 \
-    --mem D_803F4030:0x3F0=rand --mem D_803F4030*0xFC:4=rel:heap0 --mem @heap0+0x24=0x30 \
+    --mem gObjects:0x3F0=rand --mem gObjects*0xFC:4=rel:heap0 --mem @heap0+0x24=0x30 \
     --mem @heap0+0x28=choice:0x30,0x44,0x58,0x6C,0x80,0x94 --mem @heap0+0x30:0x64=halves:0,0,1,2,0xFFFF,0xFFFE,0x20,0xFFE0 \
-    --mem @heap0+0x20=0xA0 --mem @heap0+0xA0:8=halves:0xFFFF,0,1,2,0xFFFE --mem D_803F7654=rel:D_803F4030+0xFC*int:0:4 \
+    --mem @heap0+0x20=0xA0 --mem @heap0+0xA0:8=halves:0xFFFF,0,1,2,0xFFFE --mem gObjectsEnd=rel:gObjects+0xFC*int:0:4 \
     --mem D_803EBBF8=rand
 # no objects
-func_802ABEDC: -n 20 --seed 3 --arg a0=int --arg a1=int --arg a2=int --mem D_803F7654=sym:D_803F4030
+func_802ABEDC: -n 20 --seed 3 --arg a0=int --arg a1=int --arg a2=int --mem gObjectsEnd=sym:gObjects
 
 # func_802AACD4 / func_802AAE1C (o32: id, x, z, uOut, wOut): func_802AAD0C / func_802AAE54's t3, t4 stored as
 # halves / words; stubbed (only id, x, z compared: the asm passes the caller's f24 along), then followed

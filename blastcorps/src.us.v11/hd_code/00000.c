@@ -1383,7 +1383,7 @@ void hd_game_frame(void) {
     } else if (D_80364A85) {
         cull_restart(10);
     }
-    func_802BD1F8((u32 *) (&gDynamicBufs[gBufferIndex].unkA3A0[0x1E0]), (u32 *) (&gDynamicBufs[gBufferIndex].unkA3A0[0x578]),
+    obj_draw_all((u32 *) (&gDynamicBufs[gBufferIndex].unkA3A0[0x1E0]), (u32 *) (&gDynamicBufs[gBufferIndex].unkA3A0[0x578]),
                   (u32 *) (&gDynamicBufs[gBufferIndex].unkA3A0[0x910]), (u32 *) (&gDynamicBufs[gBufferIndex].unkA3A0[0x112B0]),
                   (s32) &gDynamicBufs[gBufferIndex], (s32) (&gDynamicBufs[gBufferIndex].unk2C0[0x2D]), (u32 *) (&gDynamicBufs[gBufferIndex].unkA3A0[0x17070]),
                   (u32 *) (&gDynamicBufs[gBufferIndex].unkA3A0[0x170D8]));

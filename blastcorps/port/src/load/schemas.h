@@ -219,7 +219,7 @@ static void obj_texrecs(Block *b, uint32_t lo, uint32_t hi) {
     }
 }
 
-/* 0x38 (func_802BD1F8): s32 n, n x {s16; u8; u8}; then groups {s32 x 4
+/* 0x38 (obj_draw_all): s32 n, n x {s16; u8; u8}; then groups {s32 x 4
  * (offsets); s32 m; m x {s16; u8; u8}} to the end (the last group may stop
  * after its four words) */
 static void obj_entries(Block *b, uint32_t *p, uint32_t hi) {
@@ -270,7 +270,7 @@ static void swap_object(uint32_t base, uint32_t len) {
     if (blk_sect(&b, 0x30, 0x38, &lo, &hi))
         blk_records(&b, lo, hi, 0x38, "4@0 4@4 4@8 4@C 4@10 4@14 4@18 4@1C 4@20 4@24 4@28 2@2C 2@2E");
     if (blk_sect(&b, 0x38, 0x3C, &lo, &hi)) obj_parts(&b, lo, hi);
-    /* 0x3C: s16 x hdr[0] (func_802C1A28; 77E20.c func_802BD1F8's falling
+    /* 0x3C: s16 x hdr[0] (func_802C1A28; 77E20.c obj_draw_all's falling
      * parts read their landing heights from it as u16) */
     lo = blk_rd32(&b, 0x3C);
     blk_n(&b, lo, (uint16_t) rd16(base), 2);

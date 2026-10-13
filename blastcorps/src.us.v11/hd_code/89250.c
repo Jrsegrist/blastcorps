@@ -2,9 +2,9 @@
 #include <ultra64.h>
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_803F4030 ((Obj89250 *) D_803F4030)
+#define gObjects ((Obj89250 *) gObjects)
 #ifdef NON_MATCHING
-#define D_803F7654 (*(Obj89250 * N64P *) &D_803F7654)
+#define gObjectsEnd (*(Obj89250 * N64P *) &gObjectsEnd)
 #endif
 /* end of views */
 
@@ -48,7 +48,7 @@ void func_802CDAE8(s32 amount, s32 radius) {
 #endif
 
 #ifdef NON_MATCHING
-/* The parts of 77E20.c's D_803F4030 object (Unk802C1DD0Entry) and collision
+/* The parts of 77E20.c's gObjects object (Unk802C1DD0Entry) and collision
  * triangle (Unk803B9890) that func_802CDB70..func_802CDD74 use. */
 typedef struct {
     /* 0x00 */ u8 pad0[4];
@@ -105,8 +105,8 @@ static s32 sphere_hits_tri_89250(s32 x, s32 y, s32 z, s32 r, Tri89250 *tri) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 /* Impact of the point D_803A73F0/F4/F8 with radius r against the objects:
- * stores amount (low 16 bits) to D_803F932A, then every object (D_803F4030
- * up to D_803F7654, read once, walked with `!=`) within range (func_8029CFA4)
+ * stores amount (low 16 bits) to D_803F932A, then every object (gObjects
+ * up to gObjectsEnd, read once, walked with `!=`) within range (func_8029CFA4)
  * and not a 0x38 object while func_802BD8C8 is set gets the triangle pass
  * func_802CDC7C, which carries a "hit" flag from object to object (the first
  * hit applies the damage). Clears the ring span D_803A7410/7412 when
@@ -118,12 +118,12 @@ s32 func_802CDB70(s32 r, s32 amount) {
     s32 x = D_803A73F0;
     s32 y = D_803A73F4;
     s32 z = D_803A73F8;
-    Obj89250 *end = D_803F7654;
+    Obj89250 *end = gObjectsEnd;
     Obj89250 *o;
     s32 hit = 0;
 
     D_803F932A = amount;
-    for (o = D_803F4030; o != end; o++) {
+    for (o = gObjects; o != end; o++) {
         if (func_8029CFA4(z, r, o->pos[0], o->pos[1], x, y, o->pos[2], o->radius) == 0) {
             continue;
         }

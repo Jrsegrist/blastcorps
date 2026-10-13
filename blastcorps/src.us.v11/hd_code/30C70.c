@@ -54,7 +54,7 @@ void func_80275478(SpriteVtxBuf *arg0, Gfx **gfxp, u8 arg2) {
     s32 ret;
 
     minX = 0x7FFF, maxX = -0x8000, minY = 0x7FFF, maxY = -0x8000;
-    ret = func_802BCE40();
+    ret = obj_find_nearest_target();
     pts = D_8036C790;
     D_8036C7CC = 0;
     if (!D_8036EB98 && !ret && gLevelKind == 1 && !gPaused) {

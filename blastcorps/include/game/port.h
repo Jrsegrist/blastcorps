@@ -125,14 +125,14 @@ void *port_save_semblock(const void *sem);
 #define PORT_ITAG_OBJ 2       /* gVehicles[] record (vehicles, the carrier): index | lod << 8 */
 #define PORT_ITAG_SHADOW 3    /* vehicle shadow quad, gVehicleShadows[] index */
 #define PORT_ITAG_SHADOWFE 4  /* the flying vehicle's shadow */
-#define PORT_ITAG_BUILDING 5  /* D_803F4030[] building object (posed or not) */
+#define PORT_ITAG_BUILDING 5  /* gObjects[] building object (posed or not) */
 #define PORT_ITAG_BPART 6     /* a building's moving part: object << 8 | part */
 #define PORT_ITAG_FALL 7      /* falling part slot D_803F1BE0[] */
 #define PORT_ITAG_RISE 8      /* rising piece D_803EFED0 */
 #define PORT_ITAG_BILLBOARD 9 /* explosion / smoke record D_803C4B70[] */
 #define PORT_ITAG_PARTICLE 10 /* particle D_8036EC38[] */
 #define PORT_ITAG_PEOPLE 11   /* person sprite D_80367D60[] (world-space quad) */
-#define PORT_ITAG_GSHADOW 12  /* ground shadow of a D_803F4030[] object (world-space quad) */
+#define PORT_ITAG_GSHADOW 12  /* ground shadow of a gObjects[] object (world-space quad) */
 #define PORT_ITAG_MARKER 13   /* people's marker */
 #define PORT_ITAG_RADAR 14    /* the radar's sweep and heading arrow (blended; then back to HUD) */
 #define PORT_ITAG_CUT 30

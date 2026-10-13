@@ -3470,7 +3470,7 @@ found:
 s32 func_802ABFC8(s32 x, s32 z, s32 y, u8 *obj, s32 *found, TriSideOut *f);
 
 /* 1 if (x, z) at height y is over some object's own ground: for each object
- * record D_803F4030 .. D_803F7654 (read once, walked with `!=`), its info's
+ * record gObjects .. gObjectsEnd (read once, walked with `!=`), its info's
  * s16 box at info + info->unk20 (x0, z0, x1, z1, << 5) is tested with
  * func_802AA5E0 as the triangle (x0, z0), (x1, z1), (x1, z0) and, failing
  * that, (x0, z0), (x1, z1), (x0, z1); on a hit func_802ABFC8(x, z, y, info)
@@ -3480,13 +3480,13 @@ s32 func_802ABFC8(s32 x, s32 z, s32 y, u8 *obj, s32 *found, TriSideOut *f);
  * scans, passing the caller's f24 in) although its only caller is C; the C
  * keeps them. Its v1 is func_802ABFC8's last result (unused by the caller). */
 s32 func_802ABEDC(s32 x, s32 y, s32 z) {
-    u8 *end = D_803F7654;
+    u8 *end = gObjectsEnd;
     u8 *e;
     s32 found = 0;
     TriSideOut f;
 
     f.sideZ = 0.0f;
-    for (e = D_803F4030; e != end; e += 0xFC) {
+    for (e = gObjects; e != end; e += 0xFC) {
         u8 *info = *(u8 * N64P *) e;
         s16 *box = (s16 *) (info + *(s32 *) (info + 0x20));
         s32 x0 = box[0] << 5;

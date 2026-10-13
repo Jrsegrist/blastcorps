@@ -189,7 +189,7 @@ typedef struct ParticleDef {
 
 /* One record of a level's part list (func_802A1EC8 picks the list by level:
  * s32 count, then count of these). `entry` is filled in at level load
- * (func_802A21AC); func_802BD064 checks the listed parts. */
+ * (func_802A21AC); obj_parts_destroyed checks the listed parts. */
 typedef struct LevelPart {
     /* 0x00 */ void * N64P entry; /* the level object's 0xFC-byte record */
     /* 0x04 */ s32 n;       /* number of part indices used */

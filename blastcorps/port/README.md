@@ -354,10 +354,11 @@ recording instead.
 
 **RT64** (github.com/rt64/rt64, MIT) at the pinned commit 43373749, with
 `rt64/patches/0003` (`RT64_NATIVE_HOST_LAYOUT`), `0004` (the L3D
-handler) and `0006` (the view hook), is fetched by `cmake/fetch_rt64.cmake`
-and built with MSVC as a static subproject.  The commit and the patches, in
-the order they apply, are listed once, in `cmake/rt64_pin.cmake`: a new
-patch is a file in `rt64/patches` plus a line there.  To change RT64, edit the fetched tree
+handler), `0005` (vsync pacing, under "Pacing" below) and `0006` (the view
+hook), is fetched by `cmake/fetch_rt64.cmake` and built with MSVC as a
+static subproject.  The commit and the patches, in the order they apply, are
+listed once, in `cmake/rt64_pin.cmake`: a new patch is a file in
+`rt64/patches` plus a line there.  To change RT64, edit the fetched tree
 (`port/build/thirdparty/rt64`, each patch a local commit there), rebuild,
 and regenerate the patch with `git diff`.
 
@@ -707,10 +708,9 @@ it without a fault.  The x64-asan preset is the tool for this now.
     - cost: the same time in `processDisplayLists` as `auto` (level 0: 2.36
       vs 2.38 ms per task paced at 60, 2.33 vs 2.31 at 144) and the same
       presents (60.00/s at 60 with vsync; 143.7 vs 143.9/s at 144 without,
-      interval sd 0.34 vs 0.37 ms). At 60 on a 60 Hz display with vsync the
-      present intervals of some runs alternate ~8 / ~25 ms (sd up to 9 ms)
-      in both modes: RT64's present timer beating against vsync, not the
-      tags (`--tag-test` switches parts of the tagging off to check).
+      interval sd 0.34 vs 0.37 ms). (Those intervals were RT64's draw times;
+      the uneven pacing at 60 with vsync they showed is fixed by the vsync
+      pacing, under "Pacing" below.)
     - checked: per-frame traces at 60 (tagged) and 144 (tagged, counter
       detailed) identical to options off and to the branch's base bc.exe in
       all 60 levels (1900 frames), no crash.
@@ -856,6 +856,65 @@ it without a fault.  The x64-asan preset is the tool for this now.
   0 (level start: up to 50-77 ms behind with D3D12 while shaders compile,
   ~14 ms with Vulkan), then a catch-up.  Same per-frame trace with vsync
   on/off, windowed/fullscreen, D3D12/Vulkan.
+- **Vsync pacing** (RT64 patch `rt64/patches/0005-vsync-pacing.patch`,
+  `PresentQueue::holdFor` / `waitForHold` / `dropToCatchUp` / `noteStruggle`):
+  only how pictures reach the display changes; the game, its virtual clock
+  and the hand-overs above are untouched.
+  - The problem: RT64's present thread handed the swap chain a picture every
+    1/rate s on its own timer, and plume's D3D12 swap chain presents with a
+    sync interval of 0 even with vsync on (it uses present wait), so the
+    display showed whichever picture was newest at each refresh.  At a
+    target rate equal to the display's the timer beat against the refreshes,
+    and RT64's present thread fell behind (its lag crept from 10 to 45 ms),
+    after which its workload queue rendered one picture instead of two for
+    some game frames: measured with DXGI frame statistics (`--flip-log`), at
+    `framerate = 60` on a 60 Hz display 10-18 % of the shown intervals were
+    33 ms instead of 16.7.
+  - Now, with vsync on: every picture is presented with a sync interval of 1
+    (never dropped by the display) and held for the refreshes the game's
+    timeline gives it: an in-between picture one refresh at the display's
+    rate (N at 1/N of it; other target rates keep RT64's timer); a game
+    picture the refreshes between its retrace's due time (`liveVi` hands it
+    over, `State::presentDueTime`) and the next one's, less its in-between
+    pictures' (2 in play, 1 or 2 in the front end; `original` included).  A
+    hold over one refresh waits for the middle of the refresh before the due
+    one, counted from when the picture before was really shown (DXGI frame
+    statistics), so the phase of the game's retraces against the display's
+    doesn't matter.  Drift between the two clocks changes a hold only when the
+    timeline is 3/4 of a refresh off.  Latency is kept low: an in-between
+    picture that would queue behind another and show a refresh later (after
+    it was queued) than the lowest such latency of the last seconds (what
+    windowed or fullscreen gives) is dropped once; a wait that stayed over a refresh
+    too long for 30 pictures is shortened once.  When the PC can't keep up
+    (six pictures dropped or presented over five refreshes after they were
+    queued, within 2 s: a busy GPU or CPU; a game thread that was late
+    itself, e.g. loading, doesn't count) RT64's own pacing takes over for
+    5 s.  RT64's workload queue renders fewer in-between pictures
+    (`frameReduction`) only after waiting over half a display frame for the
+    present thread to let go of a target: with vsync pacing that happens on
+    a refresh, and any wait used to make every third game frame one picture
+    short.  D3D12 only: Vulkan's FIFO swap chain never drops a picture, and
+    RT64's timer feeding it measured regular (present intervals sd 0.03-0.09
+    ms at 60 on the 60 Hz display; the vsync pacing there made them bursty,
+    with no frame statistics to check the display), so it keeps RT64's
+    pacing.  Vsync off,
+    `--no-pace` or `--present-pacing timer`: RT64's own pacing, as before.
+  - Measured (this PC: 60 Hz display, AMD integrated GPU, D3D12, level 0
+    frames 1150-1450, runs whose game hand-overs were regular): windowed
+    `original` 0-0.3 % of the shown intervals off their due length (was
+    0-40 %, run to run), `60` 594 of 594 pictures one refresh each in all 5
+    runs, `display` 593/594 (was 1-8 % two-refresh holds);
+    fullscreen `original` 0-3 % (was 15-29 %).  Those runs had other work
+    (builds, emulator runs) on the PC; with the PC idle both pacings are
+    near perfect (windowed `60` 595/595 and 591-596/598 one-refresh holds,
+    `original` 297/297 and 298/298; fullscreen `60` 573-595/595 and 592-598/598,
+    the same at internal resolution 1, so not GPU-bound): the vsync pacing
+    keeps it so when the PC is busy.  Its cost is latency from a retrace's
+    due time to the display: about half to one refresh more (idle: `original`
+    17-18 ms vs 7, `60` 34-44 vs 30-37; fullscreen `60` 40-46 vs 32-43).
+  - `--flip-log FILE` (testing): every present RT64 made (submission, call,
+    hold) and, with D3D12, every refresh and the present on screen (DXGI
+    frame statistics, polled every millisecond), as CSV.
 - **The package** (CMake target `dist`, `dist/make_dist.py`; from WSL
   `make -C port dist` -> `port/build/dist/`): `BlastCorps-port-<hash>/` and
   its zip: bc.exe, SDL2.dll, dxcompiler.dll, dxil.dll, `README.txt` (from

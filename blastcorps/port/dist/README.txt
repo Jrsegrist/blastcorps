@@ -153,7 +153,9 @@ The game runs at its original speed on any monitor: its logic is tied to a virtu
 60 Hz video clock, not to your display. It draws a new picture 20-30 times a second
 like on the N64 (with framerate = original, the default; see above). Each
 1/60 s field is handed to the display on a steady 60 Hz timer, and with vsync on
-(the default) shown at the display's next refresh, without tearing. On 60 Hz
+(the default) each picture stays on screen for exactly the refreshes it is due
+(in-between pictures of a higher framerate: one refresh each when the framerate
+is the display's), without tearing. On 60 Hz
 displays that is one refresh per N64 field. On 120/144 Hz and other high-refresh
 displays the speed is the same; a field then stays up for a whole number of
 refreshes (2 or 3 in turn at 144 Hz), a slight unevenness the eye barely sees.

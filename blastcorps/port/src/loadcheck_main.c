@@ -65,6 +65,7 @@ void osWritebackDCache(void *p, s32 n) { (void) p; (void) n; }
 /* the platform layer's game hooks (include/game/port.h) */
 void port_fe_loaded(void) {}
 void port_spin(void) {}
+void port_itag(const void *gdl, int kind, int index) { (void) gdl; (void) kind; (void) index; }
 unsigned int port_gvi_read(const char *fn, unsigned int v) { (void) fn; return v; }
 void func_8029A7E4(const char *fmt, ...) { (void) fmt; }
 /* the SDK's block copy/clear (bc_headless: os_hw.c); gcc turns the game's

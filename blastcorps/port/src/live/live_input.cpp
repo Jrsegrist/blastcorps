@@ -119,14 +119,18 @@ N64Pad readPad(const Config &c, const PadSet &pads, const Uint8 *k, bool altHeld
     return p;
 }
 
-bool menuComboHeld(const Config &c, const PadSet &pads) {
-    if (c.menuPad.empty()) return false;
+bool comboHeld(const Config &c, const PadSet &pads, const std::vector<int> &buttons) {
+    if (buttons.empty()) return false;
     for (SDL_GameController *pad : pads.active(c)) {
         bool all = true;
-        for (int b : c.menuPad) all &= SDL_GameControllerGetButton(pad, SDL_GameControllerButton(b)) != 0;
+        for (int b : buttons) all &= SDL_GameControllerGetButton(pad, SDL_GameControllerButton(b)) != 0;
         if (all) return true;
     }
     return false;
+}
+
+bool menuComboHeld(const Config &c, const PadSet &pads) {
+    return comboHeld(c, pads, c.menuPad);
 }
 
 /* ---- the gate after the menu ------------------------------------------------------- */

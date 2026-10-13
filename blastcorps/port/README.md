@@ -583,7 +583,8 @@ it without a fault.  The x64-asan preset is the tool for this now.
   RDRAM picture) and `--window WxH` sets the window's size.
 - **Optional enhancements** (all off by default: with the defaults bc.exe
   renders exactly as before, and none of them changes the game logic or its
-  per-frame trace, except widescreen's visibility test, below).  `[video]`:
+  per-frame trace, except the visibility test of widescreen and of a higher
+  frame rate, below).  `[video]`:
   - `resolution` (`--resolution`): `window` (the default: RT64's
     WindowIntegerScale, the whole multiple of 240 lines that covers the
     swap chain, what bc.exe always used), `1` (the N64's 320x240,
@@ -625,6 +626,102 @@ it without a fault.  The x64-asan preset is the tool for this now.
     Limits (widescreen): markers that point at off-screen targets (30C70.c) still use
     the 4:3 edges; the HUD is centred, not anchored to the screen edges
     (that would need RT64's extended GBI origins in the game's lists).
+  - `framerate` (`--framerate`): `original` (the default: RT64's
+    `refreshRate` Original, every picture as the game made it, 30 a second
+    in play), `display` (`RefreshRate::Display`: the display's refresh rate)
+    or `N` (30-1000, `Manual` + `refreshRateTarget`; RT64 caps it at the
+    display's rate). Above the game's own rate RT64's workload queue renders
+    extra pictures between the game's last two frames
+    (`rt64_workload_queue.cpp`, `curFrameWeight`) and its present thread
+    shows them 1/N s apart (`rt64_present_queue.cpp`). The game logic is
+    untouched: it keeps its own cadence and the per-frame trace is the same
+    as with the option off (below). Nothing is added to the game's display
+    lists either (no extended GBI, so N64 RAM is exactly as with the option
+    off): RT64 matches the two frames' draw calls itself (every matrix is
+    `G_EX_ID_AUTO`: calls with the same combiner, other modes, geometry mode
+    and triangle count, paired by the nearest transform,
+    `rt64_game_frame.cpp`), so the camera (projection and view) and every
+    model matrix it finds again are interpolated: vehicles, the carrier,
+    the train, debris, the globe; a matrix that moved more than ten times as
+    far as the frame before is not blended (`RigidBody::updateLinear`,
+    AUTO). `live_rt64.cpp` adds, only with the option on:
+    the game's cadence (the median of the last three intervals between
+    frame-buffer swaps, `State::setRefreshRate`: RT64's own guess from the VI
+    history turns interpolation off whenever the cadence wavers); cuts
+    (`interpTask`: a frame of a new game mode or level, or whose camera,
+    read from the frame's own `DynamicBuf.unk140` view matrix, jumped more
+    than 400 units and 4 times as far as the frame before, or turned more
+    than 40 degrees, gets rate 0: RT64 shows it as it is, with no in-between
+    pictures into it; in play the camera moves at most ~7 units and turns
+    under 1 degree a frame, the mission intro's cuts move 2500-7500); and a
+    visibility test 1.1 times as wide (`host_cull_wide`, times the widescreen
+    factor), so cells at the sides of an in-between picture whose camera is
+    still turning don't pop in. `--interp-log` logs every frame's camera
+    motion; `--display-hz N` tells RT64 the display runs at N Hz (testing a
+    rate above this PC's 60 Hz display, with `--no-vsync`); `--wseq F:MS`
+    saves every new picture the window shows for MS ms from frame F (screen
+    copies: the window must be uncovered).
+  - `interpolation` (`--interpolation`, only with `framerate` above
+    original): `tagged` (the default) or `auto` (RT64's own matching, as
+    above). Tagged: the game names what it draws and RT64 pairs every object
+    with itself (`src/live/live_interp.cpp`):
+    - in the game, `PORT_ITAG(gdl, kind, index)` where a draw loop starts an
+      object, `PORT_ISPAWN(kind, slot)` where a slot pool starts a new
+      object, `PORT_ICUT_IF(snap)` in the camera (include/game/port.h). They
+      expand to nothing outside `NON_MATCHING && PORT_HOST`; in the port they
+      call `port_itag` (plat_core.c), which hands them to `host_itag_hook`
+      (NULL unless tagged interpolation is on). Nothing is written to the
+      display lists or to RDRAM and nothing goes back to the game, so its
+      per-frame trace is the same with the option on (checked: all 60
+      levels). Tagged: the `D_80364460` records (vehicles, the carrier; per
+      LOD), vehicle shadows, building objects and their moving parts, falling
+      parts, the rising piece, explosion/smoke billboards, particles, people,
+      ground shadows and, from the dial on, the HUD;
+    - while RT64 reads a task, the GBI's function table (public plain
+      function pointers) is wrapped, so every command passes `dispatch`
+      first (RT64 itself is unchanged; `auto` or `original` unwrap it). A
+      tagged address makes that object the owner of what follows at that
+      display-list level and in the lists it calls (RT64's return-address
+      stack is followed); each model matrix it loads gets
+      `RSP::matrixId(hash(kind, slot, generation, the matrix's
+      segment-relative address or its order), G_EX_ORDER_LINEAR, position /
+      rotation / scale interpolated)`, the call behind RT64's extended
+      `gEXMatrixGroup`. RT64 pairs equal IDs of the two frames
+      (`GameFrame::match`) instead of guessing; an ID that is new (a spawn, a
+      new generation) is shown as it is;
+    - a tagged matrix that moved over 400 units and 8 times its last move (a
+      respawn, a teleport) starts a new generation (no blend across the
+      jump); people and the ground shadows (world-space quads rebuilt every
+      frame) get a transform each with vertex interpolation; the HUD and 2D
+      get `G_EX_ID_IGNORE` (never blended, exactly as drawn: text, the dial,
+      the radar's blips), except the radar's sweep and heading arrow
+      (`PORT_ITAG_RADAR`, blended) and the attract mode's bobbing logo
+      (left to RT64's matching); untagged
+      drawing (terrain, water, the backdrop, tyre trails, front end) keeps
+      `G_EX_ID_AUTO`;
+    - the game's camera snap counts as a cut when the camera really jumped
+      (over 60 units or 15 degrees: the snap is also set every frame of the
+      shuttle and map views, which move smoothly).
+    - cost: the same time in `processDisplayLists` as `auto` (level 0: 2.36
+      vs 2.38 ms per task paced at 60, 2.33 vs 2.31 at 144) and the same
+      presents (60.00/s at 60 with vsync; 143.7 vs 143.9/s at 144 without,
+      interval sd 0.34 vs 0.37 ms). At 60 on a 60 Hz display with vsync the
+      present intervals of some runs alternate ~8 / ~25 ms (sd up to 9 ms)
+      in both modes: RT64's present timer beating against vsync, not the
+      tags (`--tag-test` switches parts of the tagging off to check).
+    - checked: per-frame traces at 60 (tagged) and 144 (tagged, counter
+      detailed) identical to options off and to the branch's base bc.exe in
+      all 60 levels (1900 frames), no crash.
+  - `fps_counter` (`--fps-counter`): `off` (default), `on` (pictures
+    presented a second, counted on RT64's present thread, and the game's own
+    frames a second), `detailed` (also the mean and longest present interval
+    and a graph of the last ones); `fps_counter_corner`: `top-left` (default:
+    clear of the money, top right, and the radar, bottom left), `top-right`,
+    `bottom-left`, `bottom-right`. The `fps_counter` key (F2) switches off ->
+    on -> detailed for the run, `[controller] fps_counter` a held button
+    combination (default none). Drawn with the menu's ImGui overlay (a frame
+    built once a retrace, drawn at every present); off, none of it runs, and
+    it only reads clocks.
   - `texture_pack` (`--texture-pack`, which also enables it) and
     `texture_pack_enabled` (default 0): an RT64 texture pack (a folder with
     `rt64.json`, or an `.rtz`; RT64's TEXTURE-PACKS.md) through RT64's
@@ -816,7 +913,7 @@ test ROM (`build_nm/blastcorps.nm.us.v11.z64`, `make ... nmrom`), which runs
 the same C as the exe, so a difference is a port problem (byte order,
 platform, host compiler), not a rewrite bug; `CMP_KIND=base` uses the
 original ROM. The emulator run (log + RDRAM dumps every 10 frames, ~1 GB per
-demo) is cached in `CMP_CACHE` (default `~/cmp_cache/attract-nm-demoN`) and
+demo) is cached in `CMP_CACHE` (default `~/cmp_cache/attract-nm-demoN-ROMHASH`) and
 redone when cmp_spec.py or the ROM changes. Output: the timeline (submission
 retrace, game mode, level, frames in mode, game retrace counter per frame),
 then per compared frame "match" or the differing runs with symbols and the
@@ -917,7 +1014,7 @@ Rebuilds the NM test ROM, runs `check-inputs`, builds the MSVC bc_headless
 and bc_loadcheck, runs `loadcheck`, then `tools/compare.py verify --frames
 VERIFY_FRAMES` (default 1500: boot, logos, front end and attract demo 0): the
 emulator side (NM ROM, `--lle`, dumps every 10 frames) is cached in
-`$(CMP_CACHE)/verify-nm-N` and redone only when the ROM (by content: `make
+`$(CMP_CACHE)/verify-nm-N-ROMHASH` and redone only when the ROM (by content: `make
 nmrom` rewrites it every time), `cmp_spec.py` or the tracer change (the whole
 check takes about 5 minutes then, 1.5 minutes with the cache).  Reported:
 frames whose timeline matches, RAM dumps that match (lenient, and strict with
@@ -927,6 +1024,20 @@ main thread's switch points used.  It fails when a number is worse than
 in `data/verify_expect.txt` (`key MIN`, `key =N`, `key <=N`).
 `VERIFY_FRAMES=14498 make -C port verify` covers all nine demos (about 25
 minutes the first time, ~12 GB of dumps).
+
+**The cache is shared by worktrees.** Every emulator-run folder carries the
+first 8 hex digits of its ROM's SHA-1 (`verify-nm-1500-990290a8`,
+`level-nm-07-990290a8`, `attract-nm-demo0-990290a8`), its native counterparts
+add the exe (`...-nativemsvc-1a2b3c`: `CMP_TAG` and a hash of the exe's path)
+and verify-levels' per-level logs sit next to them (`....log`). So checks run
+from worktrees with different NM ROMs never write into each other's folders;
+worktrees with the same ROM share the emulator run, and each run holds an
+flock on `FOLDER.lock` from the staleness check to its last comparison (a
+second run of the same folder prints "in use ... waiting"). A folder is
+reused only when its `rom.sha1` (the full hash) and `spec.sha1` (cmp_spec.py +
+the tracer, by content) match. `tools/cmp_cache_clean.py` lists folders of
+ROMs no worktree has any more (`--old`: also the folders from before the
+hash names) and removes them with `--delete`.
 
 ### Every level: `make -C port verify-levels`
 
@@ -951,7 +1062,7 @@ window (Glide64mk2) at those frames.
 
 `make -C port verify-levels [LEVELS=a,b-c] [LEVEL_JOBS=2]` runs every level
 for 1900 frames (the level from frame ~1046-1172, ~730-855 frames in it),
-emulator side cached in `$(CMP_CACHE)/level-nm-LL` (about 3.5 minutes per
+emulator side cached in `$(CMP_CACHE)/level-nm-LL-ROMHASH` (about 3.5 minutes per
 level the first time; 14 dumps: every 20 frames from frame 1000 to 1100,
 where the level loads and the comparator's stale-trailer rule learns the old
 level's heap, then every 100), and compares

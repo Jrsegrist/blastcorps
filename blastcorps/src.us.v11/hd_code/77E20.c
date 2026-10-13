@@ -840,6 +840,8 @@ void func_802BD1F8(u32 *gA, u32 *gB, u32 *gC, u32 *gD, s32 mtxA, s32 mtxB, u32 *
         if (o->unk30 == 0x38 && func_802BD8C8() != 0) {
             goto tail;
         }
+        PORT_ITAG(gA, PORT_ITAG_BUILDING, o - D_803F4030);
+        PORT_ITAG(gB, PORT_ITAG_BUILDING, o - D_803F4030);
         info = (u8 *) o->info;
         count = *(u16 *) (info + 0xE);
         if (count != 0) {
@@ -936,6 +938,7 @@ void func_802BD1F8(u32 *gA, u32 *gB, u32 *gC, u32 *gD, s32 mtxA, s32 mtxB, u32 *
                     func_802BD85C((Unk802BD99CModel *) o, idx);
                 }
                 mtxAddr = func_802BE574(o, off, dy);
+                PORT_ITAG(gC, PORT_ITAG_BPART, ((o - D_803F4030) << 8) | ((u32) off >> 1));
                 gC[0] = 0x01040040;
                 gC[1] = mtxAddr;
                 gC += 2;
@@ -951,6 +954,7 @@ void func_802BD1F8(u32 *gA, u32 *gB, u32 *gC, u32 *gD, s32 mtxA, s32 mtxB, u32 *
                 gC[0] = 0xBD000000;
                 gC[1] = 0;
                 gC += 2;
+                PORT_ITAG(gD, PORT_ITAG_BPART, ((o - D_803F4030) << 8) | ((u32) off >> 1));
                 gD[0] = 0x01040040;
                 gD[1] = mtxAddr;
                 gD += 2;
@@ -2791,6 +2795,7 @@ u32 *func_802C08C4(u32 *gfx) {
         gfx[5] = (u32) e - 0x80000000;
         gfx += 6;
     }
+    PORT_ITAG(gfx, PORT_ITAG_NONE, 0);
     gfx[0] = 0xB8000000;
     gfx[1] = 0;
     return gfx + 2;
@@ -3006,6 +3011,7 @@ u32 *func_802C0CBC(u32 *gfx) {
         z = func_802BFB50(-32, 32) << 12;
         func_802ACA60(x, -(h << 11), z, p->mtx[(D_8035805C != 0) ? 1 : 0]);
         func_802AC8CC((u16 *) p->mtx[(D_8035805C != 0) ? 1 : 0]);
+        PORT_ITAG(gfx, PORT_ITAG_RISE, 1 - i);
         gfx[0] = 0xE7000000;
         gfx[1] = 0;
         gfx[2] = 0xBC003006;
@@ -3174,6 +3180,8 @@ void func_802C12E0(u32 **gfxA, u32 **gfxB) {
         func_8026A454(*(s16 *) (e + 0x464), *(s16 *) (e + 0x466), *(s16 *) (e + 0x468), sum,
                       *(u16 *) (e + 0x46A), m);
         seg = *(u32 *) (e + 0x460) - 0x80000000;
+        PORT_ITAG(a, PORT_ITAG_FALL, 2 - i);
+        PORT_ITAG(b, PORT_ITAG_FALL, 2 - i);
         a[0] = 0xBC002406;
         a[1] = seg;
         b[0] = 0xBC002406;
@@ -3185,6 +3193,8 @@ void func_802C12E0(u32 **gfxA, u32 **gfxB) {
         a += 4;
         b += 4;
     }
+    PORT_ITAG(a, PORT_ITAG_NONE, 0);
+    PORT_ITAG(b, PORT_ITAG_NONE, 0);
     *gfxA = a;
     *gfxB = b;
 }
@@ -3260,6 +3270,7 @@ void func_802C1438(Unk802C1DD0Entry *e, s32 index) {
             break;
         }
     }
+    PORT_ISPAWN(PORT_ITAG_FALL, 2 - i);
     *(u8 * N64P *) (slot + 0x460) = base + 0x50;
     a = (u32 *) slot;
     b = (u32 *) (slot + 0x230);

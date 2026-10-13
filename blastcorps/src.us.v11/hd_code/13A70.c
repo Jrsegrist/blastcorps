@@ -270,6 +270,7 @@ void func_80258B78(Gfx **gdlp, VtxBuf *buf) {
                                             G_TX_CLAMP, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
                         loaded = 1;
                     }
+                    PORT_ITAG(gdl, PORT_ITAG_GSHADOW, i);
                     gDPPipeSync(gdl++);
                     if (D_802E8BDC == 0x10 && x == 0x19B7 && z == 0xF99) {
                         gSPSetGeometryMode(gdl++, G_ZBUFFER);
@@ -286,6 +287,7 @@ void func_80258B78(Gfx **gdlp, VtxBuf *buf) {
         }
         i++;
     }
+    PORT_ITAG(gdl, PORT_ITAG_NONE, 0);
     gDPPipeSync(gdl++);
     *gdlp = gdl;
 }

@@ -52,6 +52,23 @@ void menuShutdown();
  * (applied now, saved when the menu closes) */
 bool menuTestSet(const std::string &spec);
 
+/* The frame-rate counter: a small box in a corner of the window, drawn by
+ * the same overlay as the menu (and with it while the menu is open).  Off,
+ * nothing of it exists or runs. */
+struct CounterStats {
+    int mode = 0;               /* 0 off, 1 on, 2 detailed */
+    int corner = 0;             /* 0 top-left, 1 top-right, 2 bottom-left, 3 bottom-right */
+    double shown = 0;           /* pictures presented a second */
+    double game = 0;            /* the game's own frames a second */
+    double frameMs = 0, frameMsMax = 0;   /* present intervals (mean, max) */
+    std::vector<float> graph;   /* the last present intervals, ms (detailed) */
+    std::string note;           /* e.g. "interpolated, tagged" */
+};
+void counterSet(const CounterStats &s);
+/* main thread, about 60 times a second while the menu is closed and the
+ * counter on: its ImGui frame */
+void counterFrame();
+
 }  // namespace live
 
 #endif

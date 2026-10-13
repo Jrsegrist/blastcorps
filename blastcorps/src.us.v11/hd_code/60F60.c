@@ -552,6 +552,7 @@ s32 func_802A6274(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32
         }
         rec += 0x3C;
     }
+    PORT_ISPAWN(PORT_ITAG_BILLBOARD, i);
 
     n = def[2] * def[3];
     slot = rec + 0x37;
@@ -699,6 +700,7 @@ void func_802A64A4(void) {
         if (rec[0x33] == 0) {
             continue;
         }
+        PORT_ITAG(*func_802A6EB8(rec), PORT_ITAG_BILLBOARD, 16 - n);
         func_802A68D4(mtx, rec);
         def = *(u8 * N64P *) rec;
         zbuf = rec[0x35];
@@ -750,6 +752,8 @@ void func_802A64A4(void) {
             }
         }
     }
+    PORT_ITAG(D_803EB780, PORT_ITAG_NONE, 0);
+    PORT_ITAG(D_803EB784, PORT_ITAG_NONE, 0);
     D_803EB780->words.w0 = 0xB8000000;
     D_803EB780->words.w1 = 0;
     D_803EB784->words.w0 = 0xB8000000;

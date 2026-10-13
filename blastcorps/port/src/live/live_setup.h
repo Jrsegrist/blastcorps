@@ -15,7 +15,7 @@ namespace live {
  * the four analog-stick directions, quitting and the settings menu */
 enum Action {
     A_A, A_B, A_Z, A_START, A_DUP, A_DDOWN, A_DLEFT, A_DRIGHT, A_L, A_R, A_CUP, A_CDOWN, A_CLEFT, A_CRIGHT,
-    A_STICK_UP, A_STICK_DOWN, A_STICK_LEFT, A_STICK_RIGHT, A_QUIT, A_MENU, A_COUNT
+    A_STICK_UP, A_STICK_DOWN, A_STICK_LEFT, A_STICK_RIGHT, A_QUIT, A_MENU, A_FPS, A_COUNT
 };
 constexpr int kButtons = A_STICK_UP;           /* actions before this are N64 buttons */
 extern const unsigned short kButtonBits[kButtons];
@@ -50,11 +50,21 @@ struct Config {
                                        2 nearest */
     double aspect = 0;              /* 0 = the N64's 4:3; > 0 = widescreen at this width/height;
                                        -1 = as wide as the window */
+    int framerate = 0;              /* frames shown per second: 0 = the game's own (20/30 a second),
+                                       -1 = the display's refresh rate, N = N a second; above the
+                                       game's own, RT64 adds interpolated frames (presentation only:
+                                       the game itself runs exactly as before) */
+    int interpolation = 1;          /* with framerate != 0: 1 = tagged (each object matched by its
+                                       identity in the game, live_interp.cpp), 0 = auto (RT64 matches
+                                       the draw calls itself) */
+    int fpsCounter = 0;             /* frame-rate counter: 0 off, 1 on, 2 detailed (frame times, graph) */
+    int fpsCorner = 0;              /* its corner: 0 top-left, 1 top-right, 2 bottom-left, 3 bottom-right */
     std::string texturePack;        /* RT64 texture pack folder or .rtz (relative to the exe's folder) */
     bool texturePackOn = false;
     std::vector<SDL_Scancode> keys[A_COUNT];
     std::vector<PadInput> pad[A_COUNT];
     std::vector<int> menuPad;       /* controller buttons that, held together, open the menu */
+    std::vector<int> fpsPad;        /* ... that switch the frame-rate counter (default none) */
     int padStick = 0;               /* 0 left stick, 1 right stick, -1 none */
     int deadzone = 7000;
     int sensitivity = 100;          /* analog stick, percent of the full N64 range */
@@ -95,6 +105,9 @@ bool configSave(Config &c, const std::vector<Setting> &which);
 
 /* names as the file writes them */
 std::string aspectName(double aspect);          /* "original", "16:9", "window", "1.85" ... */
+std::string framerateName(int framerate);       /* "original", "display", "60" ... */
+std::string fpsCounterName(int mode);           /* "off", "on", "detailed" */
+std::string cornerName(int corner);             /* "top-left" ... */
 std::string keyNames(const std::vector<SDL_Scancode> &keys);
 std::string padNames(const std::vector<PadInput> &in);
 std::string padInputName(const PadInput &in);   /* "a", "leftx-", "righttrigger" */

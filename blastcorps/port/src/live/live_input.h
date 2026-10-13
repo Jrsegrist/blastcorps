@@ -43,6 +43,8 @@ N64Pad readPad(const Config &c, const PadSet &pads, const Uint8 *keys, bool altH
 
 /* all of a playing controller's menu buttons held */
 bool menuComboHeld(const Config &c, const PadSet &pads);
+/* all of these buttons held on a playing controller (false if none given) */
+bool comboHeld(const Config &c, const PadSet &pads, const std::vector<int> &buttons);
 
 /* After the settings menu closes, the buttons and stick held at that moment
  * don't reach the game until each is let go (each button separately; the

@@ -100,6 +100,41 @@ int main(int, char **) {
     }
     live::Config c;
     live::configDefaults(c);
+
+    /* video.framerate (the frame rate option): parsing and the names written back */
+    {
+        live::Config f;
+        live::configDefaults(f);
+        check(f.framerate == 0 && live::configValue(f, {"video", "framerate"}) == "original", "framerate default: original");
+        check(live::configSet(f, "video.framerate=144") && f.framerate == 144 &&
+                  live::configValue(f, {"video", "framerate"}) == "144", "framerate 144");
+        check(live::configSet(f, "video.framerate=display") && f.framerate == -1 &&
+                  live::configValue(f, {"video", "framerate"}) == "display", "framerate display");
+        check(live::configSet(f, "video.framerate=original") && f.framerate == 0, "framerate original");
+        check(!live::configSet(f, "video.framerate=10") && f.framerate == 0, "framerate 10 rejected (below 30)");
+        check(!live::configSet(f, "video.framerate=fast") && f.framerate == 0, "framerate 'fast' rejected");
+    }
+    /* video.interpolation, the frame-rate counter and its bindings */
+    {
+        live::Config f;
+        live::configDefaults(f);
+        check(f.interpolation == 1 && live::configValue(f, {"video", "interpolation"}) == "tagged",
+              "interpolation default: tagged");
+        check(live::configSet(f, "video.interpolation=auto") && f.interpolation == 0 &&
+                  live::configValue(f, {"video", "interpolation"}) == "auto", "interpolation auto");
+        check(!live::configSet(f, "video.interpolation=maybe") && f.interpolation == 0, "interpolation 'maybe' rejected");
+        check(f.fpsCounter == 0 && live::configValue(f, {"video", "fps_counter"}) == "off", "fps counter default: off");
+        check(live::configSet(f, "video.fps_counter=detailed") && f.fpsCounter == 2 &&
+                  live::configValue(f, {"video", "fps_counter"}) == "detailed", "fps counter detailed");
+        check(live::configSet(f, "video.fps_counter=on") && f.fpsCounter == 1, "fps counter on");
+        check(f.fpsCorner == 0 && live::configSet(f, "video.fps_counter_corner=bottom-right") && f.fpsCorner == 3 &&
+                  live::configValue(f, {"video", "fps_counter_corner"}) == "bottom-right", "fps counter corner");
+        check(!live::configSet(f, "video.fps_counter_corner=middle") && f.fpsCorner == 3, "corner 'middle' rejected");
+        check(f.keys[live::A_FPS].size() == 1 && f.keys[live::A_FPS][0] == SDL_SCANCODE_F2, "fps counter key F2");
+        check(f.fpsPad.empty() && live::configSet(f, "controller.fps_counter=back+y") && f.fpsPad.size() == 2 &&
+                  live::configValue(f, {"controller", "fps_counter"}) == "back+y", "fps counter buttons back+y");
+        check(f.menuPad.size() == 2, "menu buttons untouched");
+    }
     live::PadSet pads;
     const unsigned short A = live::kButtonBits[live::A_A], START = live::kButtonBits[live::A_START],
                          Z = live::kButtonBits[live::A_Z];

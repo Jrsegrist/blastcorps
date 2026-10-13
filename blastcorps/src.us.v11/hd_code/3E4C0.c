@@ -191,6 +191,7 @@ void func_8028376C(Gfx **gfxp, Mtx *mtx, u8 idx, s32 x, s32 z, s32 x2, s32 z2) {
     D_802FD830[idx][7].v.ob[0] = px + 1;
     D_802FD830[idx][7].v.ob[1] = py - 2;
 
+    PORT_ITAG(gfx, PORT_ITAG_RADAR, 0);
     gSPMatrix(gfx++, &D_02000000[3], G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
     gSPMatrix(gfx++, &D_02000000[7], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
     gSPClearGeometryMode(gfx++, 0xFFFFFFFF);
@@ -270,6 +271,7 @@ void func_8028376C(Gfx **gfxp, Mtx *mtx, u8 idx, s32 x, s32 z, s32 x2, s32 z2) {
         gSP1Triangle(gfx++, 0, 1, 2, 0);
         gSP1Triangle(gfx++, 1, 2, 3, 0);
     }
+    PORT_ITAG(gfx, PORT_ITAG_HUD, 0);
     gDPPipeSync(gfx++);
     *gfxp = gfx;
 }

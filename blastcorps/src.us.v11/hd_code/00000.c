@@ -1432,7 +1432,9 @@ void func_802475D8(void) {
     }
     if (D_80364A90 & 0x100000000002) {
         if (D_80364A90 == 2) {
+            PORT_ITAG(gdl, PORT_ITAG_NONE, 0); /* the attract mode's bobbing logo: blended */
             gdl = func_8025C878(gdl, (s32) &D_803156F8[D_8035805C], D_8035805C, &D_80358078);
+            PORT_ITAG(gdl, PORT_ITAG_HUD, 0);
         }
         if (D_802E8BF0 || D_80366A12 == 3 || D_802E8BEC >= 9) {
             if ((yoshiState == 1 || yoshiState == 8 || D_802E8BEC >= 9) && (!D_802E8BF0 || D_80358060 <= D_80366A04)) {
@@ -2678,6 +2680,7 @@ Gfx *func_8024C414(DynamicBuf *dyn, s32 *len) {
     if (D_803643DB) {
         func_8028273C(&gdl, D_8035805C);
     }
+    PORT_ITAG(gdl, PORT_ITAG_HUD, 0);
     if (D_80364A68 && (D_80364A90 & 0x104)) {
         func_80286C60(&gdl, (s32) dyn, D_8035805C, D_80364456);
     }
@@ -2898,6 +2901,7 @@ void func_8024E4F4(Gfx **gfx, DynamicBuf *dyn, u8 layer) {
             dyn->unk15C0[D_8036506C].v.cn[2] = 10;
             dyn->unk15C0[D_8036506C].v.cn[3] = 0x8C;
             D_8036506C++;
+            PORT_ITAG(gdl, PORT_ITAG_SHADOW, i);
             if (D_803643D6 && !(D_80364AA8 & 0x81) && D_803643C8[i].unk1022 == D_80364456) {
                 gSPMatrix(gdl++, &D_02000000[0x55], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
             }
@@ -2913,6 +2917,7 @@ void func_8024E4F4(Gfx **gfx, DynamicBuf *dyn, u8 layer) {
         }
         i++;
     }
+    PORT_ITAG(gdl, PORT_ITAG_NONE, 0);
     *gfx = gdl;
 }
 
@@ -2994,12 +2999,14 @@ void func_8024F520(Gfx **gfx, DynamicBuf *dyn) {
     dyn->unk18C0[3].v.cn[3] = 0x8C;
     guTranslate(&dyn->unk240, x, y, z);
     guRotate(&dyn->unk280, (f32) D_803EF326 * 360.0 / 4096.0, 0.0f, 1.0f, 0.0f);
+    PORT_ITAG(gdl, PORT_ITAG_SHADOWFE, 0);
     gSPMatrix(gdl++, &D_02000000[9], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
     gSPMatrix(gdl++, &D_02000000[10], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
     gSPVertex(gdl++, &D_02000000[0x63], 4, 0);
     gSP1Triangle(gdl++, 0, 1, 2, 0);
     gSP1Triangle(gdl++, 0, 2, 3, 0);
     gSPPopMatrix(gdl++, G_MTX_MODELVIEW);
+    PORT_ITAG(gdl, PORT_ITAG_NONE, 0);
     *gfx = gdl;
 }
 
@@ -3016,6 +3023,7 @@ void func_8024FC2C(Gfx **gfx, u8 lod) {
     while (&D_80364460[i] != D_803649D0) {
         if ((D_80364460[i].unk5C != 0 || all) && (D_80364460[i].unk5C != 0xFF || !D_803EF6FF) &&
             (D_80364460[i].unk5C == 0xFD || !D_80364A84 || !D_80364AC1)) {
+            PORT_ITAG(gdl, PORT_ITAG_OBJ, i | (lod << 8));
             gSPSegment(gdl++, 6, osVirtualToPhysical(D_80364460[i].unk0));
             if ((D_80364A90 & 0x1801) && (D_80364460[i].unk5C == 0xFE || D_80364460[i].unk5C == 0)) {
                 alt = D_8035805C;
@@ -3058,6 +3066,7 @@ void func_8024FC2C(Gfx **gfx, u8 lod) {
                         break;
                 }
             }
+            PORT_ITAG(gdl, PORT_ITAG_NONE, 0);
             gSPMatrix(gdl++, &D_02000000[7], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
         }
         i++;
@@ -4054,6 +4063,7 @@ void func_802507C8(Mtx *mtx, LookAt *lookAt, Mtx *view) {
     } else {
         guLookAt(view, posX + 2.0, posY, posZ + 2.0, D_80365084, D_80365088, D_8036508C, 0.0f, 1.0f, 0.0f);
     }
+    PORT_ICUT_IF(D_80364412);
     D_80364412 = 0;
 }
 

@@ -97,6 +97,7 @@ void func_80264CB4(s16 arg0, s16 arg1, s16 arg2, s16 arg3, u8 arg4, s32 arg5) {
             }
         }
         if (found) {
+            PORT_ISPAWN(PORT_ITAG_PEOPLE, i);
             D_80367D60[i].x = arg0;
             D_80367D60[i].z = arg2;
             D_80367D60[i].y = arg1;
@@ -502,6 +503,7 @@ void func_80266248(Gfx **gdlp, DynBuf *buf) {
                 case 5: tex = D_802EBDF0; break;
             }
             phys = osVirtualToPhysical(tex);
+            PORT_ITAG(gdl, PORT_ITAG_PEOPLE, i);
             LOAD_TEX(phys);
             func_8026A5CC((u64 *) (&buf->vtx[n]), (u64 *) D_802E9FB0, sizeof(Vtx) * 4);
             for (j = 0; j < 4; j++) {
@@ -582,6 +584,7 @@ void func_80266248(Gfx **gdlp, DynBuf *buf) {
                 }
             }
             phys = osVirtualToPhysical(tex);
+            PORT_ITAG(gdl, PORT_ITAG_PEOPLE, i);
             LOAD_TEX(phys);
             func_8026A5CC((u64 *) (&buf->vtx[n]), (u64 *) D_802E9FB0, sizeof(Vtx) * 4);
             if (flip) {
@@ -607,6 +610,7 @@ void func_80266248(Gfx **gdlp, DynBuf *buf) {
         while (i < 20 && !found) {
             if (D_80367D60[i].unk15 == 3) {
                 found = 1;
+                PORT_ITAG(gdl, PORT_ITAG_MARKER, 0);
                 LOAD_TEX(osVirtualToPhysical(D_802E9FF0));
                 func_8026A5CC((u64 *) (&buf->vtx[n]), (u64 *) D_802E9FB0, sizeof(Vtx) * 4);
                 for (j = 0; j < 4; j++) {
@@ -626,6 +630,7 @@ void func_80266248(Gfx **gdlp, DynBuf *buf) {
             }
         }
     }
+    PORT_ITAG(gdl, PORT_ITAG_NONE, 0);
     gDPPipeSync(gdl++);
     *gdlp = gdl;
 }

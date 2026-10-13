@@ -69,7 +69,7 @@ which is part of the repository (made in WSL by `make -C port inputs`; see
    "x64 Release + AddressSanitizer" (below).
 2. The first configure downloads into `port/build/thirdparty` (shared by all
    presets): RT64 at the pinned commit with its submodules (git, ~500 MB) plus
-   the port's patches 0003 and 0004 (`cmake/fetch_rt64.cmake`), the official
+   the port's patches 0003, 0004 and 0005 (`cmake/fetch_rt64.cmake`), the official
    DXC v1.9.2609 and SDL2 2.26.3 releases (SHA-256 checked).
 3. Build > Build All: `out/build/<preset>/bc.exe` (with SDL2.dll,
    dxcompiler.dll, dxil.dll next to it) and `bc_headless.exe`.  The target
@@ -353,8 +353,8 @@ Start, shoulders, right stick = C buttons, D-pad). `--input FILE` replays a
 recording instead.
 
 **RT64** (github.com/rt64/rt64, MIT) at the pinned commit 43373749, with
-`rt64/patches/0003` (`RT64_NATIVE_HOST_LAYOUT`) and `0004` (the L3D
-handler), is fetched by `cmake/fetch_rt64.cmake` and built with MSVC as a
+`rt64/patches/0003` (`RT64_NATIVE_HOST_LAYOUT`), `0004` (the L3D
+handler) and `0005` (vsync pacing, under "Pacing" below), is fetched by `cmake/fetch_rt64.cmake` and built with MSVC as a
 static subproject.  To change RT64, edit the fetched tree
 (`port/build/thirdparty/rt64`, each patch a local commit there), rebuild,
 and regenerate the patch with `git diff`.

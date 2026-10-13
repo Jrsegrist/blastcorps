@@ -40,6 +40,10 @@
  *                       test ROM) instead of only the US v1.1 release
  *     --pace-log FILE   per retrace: pacing and present times (CSV), and a
  *                       summary in the log at exit
+ *     --flip-log FILE   (testing) every present RT64 made and, with D3D12, every display
+ *                       refresh and the present it showed (DXGI frame statistics), CSV
+ *     --present-pacing P  vsync (default: with vsync on, pictures go to the display on its
+ *                       refreshes, port patch 0005) or timer (RT64's own present timer)
  *     --set S.K=V       a bc.ini setting for this run ([S] K = V; not saved), e.g.
  *                       --set audio.volume=50
  *     --resolution R    internal resolution: window (default), 1 (320x240), 2, 3, 4 ...
@@ -115,6 +119,7 @@
 #include "render/rt64_render_target.h"
 #include "render/rt64_texture_cache.h"
 #include "rhi/rt64_render_hooks.h"
+#include "plume_d3d12.h"
 
 #include "live_input.h"
 #include "live_interp.h"
@@ -150,6 +155,7 @@ struct LiveOpts {
     int volume = 100;                /* percent */
     bool romCheck = true;
     const char *paceLog = nullptr;
+    bool vsyncPacing = true;             /* --present-pacing: vsync (default) or timer (RT64's own) */
     unsigned windowW = 0, windowH = 0;   /* --window WxH: the window's size in desktop points */
     std::vector<unsigned> wshots;        /* --wshot: frames whose window picture is saved */
     unsigned menuShot = ~0u;             /* --menu-shot F: open the menu at frame F, save its picture, close it */
@@ -559,6 +565,8 @@ std::atomic<size_t> g_presents;
 unsigned g_paceResets;
 LARGE_INTEGER g_freq, g_t0, g_tStart;
 
+unsigned displayHz();
+
 double secondsSince(const LARGE_INTEGER &t0) {
     LARGE_INTEGER now;
     QueryPerformanceCounter(&now);
@@ -568,6 +576,100 @@ double secondsSince(const LARGE_INTEGER &t0) {
 void presentHook(plume::RenderCommandList *, plume::RenderFramebuffer *) {
     size_t i = g_presents.fetch_add(1);
     if (i < kMaxPresents) g_presentTimes[i] = secondsSince(g_tStart);
+}
+
+/* ---- flip timing (--flip-log, testing) --------------------------------------
+ * When the pictures really reached the display, not when they were drawn:
+ *  - RT64's present thread reports every swap chain present (port patch 0005,
+ *    PresentQueue::presentedHook): its submission time (the retrace hand-over
+ *    that queued it), the present call's time, the sync interval it used, and
+ *    (D3D12) DXGI's present count;
+ *  - a thread polls DXGI's frame statistics (IDXGISwapChain::
+ *    GetFrameStatistics) every millisecond: every display refresh (its count and
+ *    QPC time) and which present was on screen from which refresh.
+ * Both go to FILE at exit (tools: the pace_flip.py analysis); Vulkan gets the
+ * present records only. */
+struct FlipRec { unsigned syncRefresh, presentCount, presentRefresh; double t; };
+struct PresentedRec {
+    unsigned long long presentId;
+    unsigned frameIndex, frameCount, syncInterval, dxgiCount;
+    double submit, present;
+};
+struct FlipLog {
+    const char *path = nullptr;
+    std::mutex mutex;
+    std::vector<FlipRec> flips;
+    std::vector<PresentedRec> presents;
+    std::thread thread;
+    std::atomic<bool> stop{false};
+    IDXGISwapChain *dxgi = nullptr;
+} g_flip;
+
+double steadyMs(const RT64::Timestamp &t) {
+    const double ns = double(std::chrono::duration_cast<std::chrono::nanoseconds>(t.time_since_epoch()).count());
+    return ns / 1e6 - double(g_tStart.QuadPart) * 1e3 / double(g_freq.QuadPart);
+}
+
+void presentedHook(const RT64::PresentQueue::PresentedInfo &p) {
+    PresentedRec r = {p.presentId, p.frameIndex, p.frameCount, p.hold, 0, steadyMs(p.submitTime),
+                      steadyMs(p.presentTime)};
+    UINT n = 0;
+    if (g_flip.dxgi != nullptr && SUCCEEDED(g_flip.dxgi->GetLastPresentCount(&n))) r.dxgiCount = n;
+    std::lock_guard<std::mutex> lock(g_flip.mutex);
+    if (g_flip.presents.size() < kMaxPresents) g_flip.presents.push_back(r);
+}
+
+void flipThread() {
+    DXGI_FRAME_STATISTICS last = {};
+    while (!g_flip.stop) {
+        DXGI_FRAME_STATISTICS s = {};
+        if (SUCCEEDED(g_flip.dxgi->GetFrameStatistics(&s)) &&
+            (s.SyncRefreshCount != last.SyncRefreshCount || s.PresentCount != last.PresentCount)) {
+            last = s;
+            const double t = double(s.SyncQPCTime.QuadPart - g_tStart.QuadPart) * 1e3 / double(g_freq.QuadPart);
+            std::lock_guard<std::mutex> lock(g_flip.mutex);
+            if (g_flip.flips.size() < kMaxPresents) g_flip.flips.push_back({s.SyncRefreshCount, s.PresentCount, s.PresentRefreshCount, t});
+        }
+        Sleep(1);   /* (1 ms timer resolution: every refresh is seen) */
+    }
+}
+
+void flipStart() {
+    if (g_flip.path == nullptr) return;
+    g_app->presentQueue->presentedHook = presentedHook;
+    if (!g_opt.vulkan) {
+        auto *sc = static_cast<plume::D3D12SwapChain *>(g_app->swapChain.get());
+        g_flip.dxgi = sc->d3d;
+        g_flip.thread = std::thread(flipThread);
+    }
+}
+
+/* at exit (host_exit_hook), or before the renderer ends (shutdown); once */
+void flipWrite() {
+    if (g_flip.path == nullptr) return;
+    const char *path = g_flip.path;
+    g_flip.path = nullptr;
+    g_flip.stop = true;
+    if (g_flip.thread.joinable()) g_flip.thread.join();
+    if (g_app != nullptr) g_app->presentQueue->presentedHook = nullptr;
+    std::lock_guard<std::mutex> lock(g_flip.mutex);
+    FILE *f = static_cast<FILE *>(host_fopen(path, "w"));
+    if (f == nullptr) return;
+    fprintf(f, "kind,a,b,c,d,e,f,g\n");
+    fprintf(f, "info,%u,%s,%s,%s,%s,,\n", displayHz(), g_opt.vsync ? "vsync" : "novsync",
+            g_opt.fullscreen ? "fullscreen" : "windowed", g_opt.vulkan ? "vulkan" : "d3d12",
+            g_app->presentQueue->vsyncPacing ? "vsyncpacing" : "timerpacing");
+    for (const FlipRec &r : g_flip.flips)
+        fprintf(f, "flip,%u,%u,%u,%.4f,,,\n", r.syncRefresh, r.presentCount, r.presentRefresh, r.t);
+    for (const PresentedRec &r : g_flip.presents)
+        fprintf(f, "present,%llu,%u,%u,%u,%u,%.4f,%.4f\n", r.presentId, r.frameIndex, r.frameCount, r.syncInterval,
+                r.dxgiCount, r.submit, r.present);
+    fclose(f);
+    host_log("live: flip log: %u refreshes, %u presents -> %s; vsync pacing: %u pictures dropped to catch up, "
+             "%u holds shortened, %u fallbacks to RT64's pacing\n", unsigned(g_flip.flips.size()),
+             unsigned(g_flip.presents.size()), path, g_app ? unsigned(g_app->presentQueue->pacingDrops) : 0u,
+             g_app ? unsigned(g_app->presentQueue->pacingTrims) : 0u,
+             g_app ? unsigned(g_app->presentQueue->pacingFallbacks) : 0u);
 }
 
 /* ---- the frame-rate counter (video.fps_counter, F2) --------------------------
@@ -737,6 +839,7 @@ void writePaceLog() {
              "graphics data in display-list areas converted\n",
              g_tasks, g_unknownUcode, g_spIntr, g_dpIntr, g_fixedBytes);
     if (g_wseq.thread.joinable()) g_wseq.thread.join();
+    flipWrite();
     if (g_app != nullptr) g_app->end();
     if (g_window != nullptr) SDL_DestroyWindow(g_window);
     SDL_Quit();
@@ -1294,8 +1397,19 @@ void liveVi(const HostViRegs *r, unsigned viCount, unsigned long long when, unsi
         }
     }
     counterTick(frames);
+    /* the presents this retrace queues are due at its paced time (port patch
+     * 0005: the vsync pacing holds pictures by these times, so a retrace the
+     * game thread was late for keeps its place on the display's timeline) */
+    if (g_opt.pace && g_t0.QuadPart != 0) {
+        LARGE_INTEGER now;
+        QueryPerformanceCounter(&now);
+        const double dueAgo = double(now.QuadPart - g_t0.QuadPart) / double(g_freq.QuadPart) -
+                              double(when - g_when0) / 46875000.0;
+        g_app->state->presentDueTime = RT64::Timer::current() - std::chrono::nanoseconds(int64_t(dueAgo * 1e9));
+    }
     const double before = g_opt.paceLog != nullptr ? secondsSince(g_tStart) : 0.0;
     g_app->updateScreen();
+    g_app->state->presentDueTime = RT64::Timestamp();
     if (g_opt.paceLog != nullptr) {
         const double after = secondsSince(g_tStart);
         const double due = g_t0.QuadPart == 0 ? 0.0
@@ -1530,6 +1644,13 @@ int extraArg(int argc, char **argv, int *i, HostOpts *o) {
     else if (!strcmp(a, "--no-vsync")) g_opt.vsync = false;
     else if (!strcmp(a, "--no-rom-check")) g_opt.romCheck = false;
     else if (!strcmp(a, "--pace-log")) g_opt.paceLog = next();
+    else if (!strcmp(a, "--flip-log")) g_flip.path = next();
+    else if (!strcmp(a, "--present-pacing")) {
+        const char *s = next();
+        if (!strcmp(s, "vsync")) g_opt.vsyncPacing = true;
+        else if (!strcmp(s, "timer")) g_opt.vsyncPacing = false;
+        else host_fatal("--present-pacing %s: vsync or timer", s);
+    }
     else if (!strcmp(a, "--config") || !strcmp(a, "--no-config")) {
         if (a[2] == 'c') next();   /* read before host_main (main) */
     } else if (!strcmp(a, "--saves")) {
@@ -1715,6 +1836,11 @@ void prestart(HostOpts *o) {
                    g_opt.vulkan ? "Vulkan" : "Direct3D 12", int(res), g_opt.vulkan ? "d3d12" : "vulkan",
                    g_opt.vulkan ? "d3d12" : "vulkan");
     g_app->swapChain->setVsyncEnabled(g_opt.vsync);
+    /* pictures to the display on its refreshes with vsync (port patch 0005,
+     * PresentQueue::holdFor), unless --present-pacing timer; not with
+     * --no-pace (no real time to keep: RT64 shows what it can, as before) */
+    g_app->presentQueue->vsyncPacing = g_opt.vsyncPacing && g_opt.pace;
+    flipStart();
     live::MenuEnv menu;
     menu.app = g_app;
     menu.window = g_window;
@@ -1917,6 +2043,7 @@ int main(int, char **) {
     }
     host_exit_hook = [] {
         if (g_wseq.thread.joinable()) g_wseq.thread.join();
+        flipWrite();
         writePaceLog();
         if (g_dlTasks != 0)
             host_log("live: frame rate option: %.3f ms per task in processDisplayLists (%u tasks, interpolation %s)\n",

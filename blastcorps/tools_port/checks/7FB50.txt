@@ -2,29 +2,29 @@
 # (D_803F7654 = one past the last record in use; must be on the stride), and
 # func_802C770C (two press/release trackers).
 
-# func_802C4A40 (record_status): bit per part (== 100), then func_8026FE6C(i)
+# record_status (record_status): bit per part (== 100), then func_8026FE6C(i)
 # for i < D_8036EB90. Whole table filled from a byte pool (numParts at +0xE9
 # up to 100, which deliberately runs past the record into the next one).
-func_802C4A40: -n 300 --sig func_8026FE6C=a0 --arg a0=ptrz:0x800 \
+record_status: -n 300 --sig func_8026FE6C=a0 --arg a0=ptrz:0x800 \
     --mem D_803F4030:0x3624=bytes:0,1,2,3,7,8,9,100*3,99,101 \
     --mem D_803F7654=rel:D_803F4030+0xFC*int:0:10 --mem D_8036EB90:2=int:0:40
 # full table (55 records), count boundaries around a byte
-func_802C4A40: -n 100 --seed 1 --sig func_8026FE6C=a0 --arg a0=ptrz:0x1000 \
+record_status: -n 100 --seed 1 --sig func_8026FE6C=a0 --arg a0=ptrz:0x1000 \
     --mem D_803F4030:0x3624=bytes:0,1,2,8,100*2 \
     --mem D_803F7654=rel:D_803F4030+0x3624 --mem D_8036EB90:2=choice:0,1,7,8,9,15,16,17,0x100
 # empty table, no calls / few calls
-func_802C4A40: -n 30 --seed 2 --sig func_8026FE6C=a0 --arg a0=ptrz:0x100 \
+record_status: -n 30 --seed 2 --sig func_8026FE6C=a0 --arg a0=ptrz:0x100 \
     --mem D_803F7654=sym:D_803F4030 --mem D_8036EB90:2=choice:0,1,8
 # numParts 0xFF / 0 in exactly one record (others small)
-func_802C4A40: -n 100 --seed 3 --sig func_8026FE6C=a0 --arg a0=ptrz:0x800 \
+record_status: -n 100 --seed 3 --sig func_8026FE6C=a0 --arg a0=ptrz:0x800 \
     --mem D_803F4030:0x3624=bytes:1,2,100 \
     --mem D_803F4030:0x9D8=onehot:0xFC@0xE9/1:0,0xFF:bytes:1,2,100 \
     --mem D_803F7654=rel:D_803F4030+0x9D8 --mem D_8036EB90:2=int:0:20
 
-# func_802C4E58 (create_status). a2 is unused by the function; its ptr block
+# create_status (create_status). a2 is unused by the function; its ptr block
 # (heap1) is the target of each record's +0 pointer, whose byte +4 is the kind
 # (1 = excluded). Records 0..9 get explicit fields; D_803F7654 picks 0..10 of them.
-func_802C4E58: -n 300 \
+create_status: -n 300 \
     --arg a0=ptrz:0x800 \
     --arg a1=choice:1,2,3,4,5,6 \
     --arg a2=ptr:0x20 \
@@ -74,7 +74,7 @@ func_802C4E58: -n 300 \
     --mem D_803063F0:8=bytes:0,1,10,25,50,99,100,200,255 \
     --mem D_8036EB90:2=int:0:40
 # mostly done records (extra clamps at 0), full-range levels incl. 0 (index -1)
-func_802C4E58: -n 200 \
+create_status: -n 200 \
     --seed 1 \
     --arg a0=ptrz:0x800 \
     --arg a1=int:0:255 \
@@ -125,7 +125,7 @@ func_802C4E58: -n 200 \
     --mem 0x803063EF:0x101=bytes:0,1,50,100,255 \
     --mem D_8036EB90:2=choice:0,1,7,8,9,16,17,100
 # no records in use; section 2 only
-func_802C4E58: -n 50 --seed 2 --arg a0=ptrz:0x400 --arg a1=choice:1,4,5,6 \
+create_status: -n 50 --seed 2 --arg a0=ptrz:0x400 --arg a1=choice:1,4,5,6 \
     --mem D_803F7654=sym:D_803F4030 --mem D_803063F0:8=bytes:0,50,100,255 \
     --mem D_8036EB90:2=choice:0,1,7,8,9,0x100
 
@@ -451,5 +451,5 @@ func_802C5AFC: -n 300 --seed 1 --follow func_802C5970,func_802C7ECC,func_802C7F2
 func_802C5AFC: -n 300 --seed 2 --mem D_803F7B50:0xA6=rand --mem D_803F7B50+0x9A:1=bytes:0,0,1,0x80 --mem D_803F7B50+0xA1:1=bytes:0,1,2,3,4,5,6 --mem D_803F7B50+0x96:1=bytes:0,1,2 --mem D_803F7B50+0x9C:1=bytes:0,1 --mem D_803F7B50+0x4C:4=halves:0,1,0x7FF,0x800,0x801,0xFFE,0xFFF --mem D_803F7BF8:12=rand --mem D_803F7C36:4=bytes:0,1,0x80,5 --mem D_803F7C30:2=rand --mem D_803F7C3F:1=rand --mem D_803F7C20=choice:0,2,3,4,-1 --mem D_803F7C24=choice:0,2,3,4,-1 --mem D_803A742B:1=bytes:0,1 --mem D_803A7425:1=1 --mem D_803A7424:1=rand --mem D_8035805C:1=bytes:0,1 --mem D_803F77D0=rand --mem D_803643E0:12=rand --mem D_8036443C:6=rand --mem D_803ED40B:1=rand --stub-ret func_802A6F6C=choice:0,1,0x7FF,0x800,0x801,0xFFE,0xFFF --stub-ret func_802A71DC=int:-0x100:0x100 --stub-ret func_802A71DC.a0=int:0:0xFFF --sig func_802C5970= --sig func_802C61F0=a0,*a2+0x8,*a2+0x14,*a2+0x18,*a2+0x1C,*a2+0x20 --sig func_802C71FC=a0,a1 --sig func_802C7ECC= --sig func_802C7F28= --sig func_802C7410= --sig func_802C7DFC= --sig func_802C617C= --sig func_8029A914=a0 --sig func_802A6F6C= --sig func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12 --sig func_8029A800=a0,a1,a2,a3,stack0,stack1,stack3,stack5,stack6,stack7 --model func_802BE77C=oracle_D_803A7424.py --heap 4 --mem @heap0:1=bytes:0,1
 func_802C5AFC: -n 300 --seed 3 --mem D_803F7B50:0xA6=rand --mem D_803F7B50+0x9A:1=bytes:0,0,1,0x80 --mem D_803F7B50+0xA1:1=bytes:0,1,2,3,4,5,6 --mem D_803F7B50+0x96:1=bytes:0,1,2 --mem D_803F7B50+0x9C:1=bytes:0,1 --mem D_803F7B50+0x76:2=halves:0,1,2,0xFFFF,0xFFFE,0x7FFF,0x8000,0x100 --mem D_803F7BF8:12=rand --mem D_803F7C36:4=bytes:0,1,0x80,5 --mem D_803F7C30:2=rand --mem D_803F7C3F:1=rand --mem D_803F7C20=choice:2,3 --mem D_803F7C24=choice:2,3 --mem D_803A742B:1=bytes:0,1 --mem D_803A7425:1=0 --mem D_803A7424:1=rand --mem D_8035805C:1=bytes:0,1 --mem D_803F77D0=rand --mem D_803643E0:12=rand --mem D_8036443C:6=rand --mem D_803ED40B:1=rand --stub-ret func_802A6F6C=int:0:0xFFF --sig func_802C5970= --sig func_802C61F0=a0,*a2+0x8,*a2+0x14,*a2+0x18,*a2+0x1C,*a2+0x20 --sig func_802C71FC=a0,a1 --sig func_802C7ECC= --sig func_802C7F28= --sig func_802C7410= --sig func_802C7DFC= --sig func_802C617C= --sig func_8029A914=a0 --sig func_802A6F6C= --sig func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12 --sig func_8029A800=a0,a1,a2,a3,stack0,stack1,stack3,stack5,stack6,stack7 --model func_802BE77C=oracle_D_803A7424.py --heap 4 --mem @heap0:1=bytes:0,1,1
 # func_802C5120 (load vehicle 9; x t7, y s3, z s0, heading s1, model s2, fp): callees stubbed (func_802A992C's FP pass-through dropped), then with the per-frame update func_802C5AFC followed
-func_802C5120: -n 300 --arg t7=int --arg s3=int --arg s0=int --arg s1=int --arg s2=0x80B00000 --arg fp=int --heap 0x100 --mem @heap0+4=choice:0x40,0x44 --mem @heap0+8=choice:0x60,0x64 --mem @heap0+0x18=choice:0x20,0x30 --mem D_80358070=choice:0x80B10000,0x80B20000 --mem D_803F7B50:0xA6=rand --mem D_803F7BF8:0x54=rand --mem D_803F7844=rand --sig func_802A992C=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5 --sig func_802C5AFC= --sig func_80258230=a0:1,a1,a2:2,a3:2 --sig func_802A7764=a0,a1,a2
-func_802C5120: -n 200 --seed 1 --follow func_802C5AFC --arg t7=int --arg s3=int --arg s0=int --arg s1=int --arg s2=0x80B00000 --arg fp=int --heap 0x100 --mem @heap0+4=choice:0x40,0x44 --mem @heap0+8=choice:0x60,0x64 --mem @heap0+0x18=choice:0x20,0x30 --mem D_80358070=choice:0x80B10000,0x80B20000 --mem D_803F7B50:0xA6=rand --mem D_803F7BF8:0x54=rand --mem D_803F7844=rand --sig func_802A992C=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5 --sig func_80258230=a0:1,a1,a2:2,a3:2 --sig func_802A7764=a0,a1,a2 --sig func_802C5970= --sig func_802C61F0=a0,*a2+0x8,*a2+0x14,*a2+0x18,*a2+0x1C,*a2+0x20 --sig func_802C71FC=a0,a1 --sig func_802C7ECC= --sig func_802C7F28= --sig func_802C7410= --sig func_802C7DFC= --sig func_802C617C= --sig func_8029A914=a0 --sig func_802A6F6C= --sig func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12 --sig func_8029A800=a0,a1,a2,a3,stack0,stack1,stack3,stack5,stack6,stack7 --model func_802BE77C=oracle_D_803A7424.py --mem D_803A7425:1=bytes:0,1 --mem D_803A742B:1=bytes:0,1 --mem D_803643E0:12=rand --mem D_8036443C:6=rand
+func_802C5120: -n 300 --arg t7=int --arg s3=int --arg s0=int --arg s1=int --arg s2=0x80B00000 --arg fp=int --heap 0x100 --mem @heap0+4=choice:0x40,0x44 --mem @heap0+8=choice:0x60,0x64 --mem @heap0+0x18=choice:0x20,0x30 --mem gHeapPtr=choice:0x80B10000,0x80B20000 --mem D_803F7B50:0xA6=rand --mem D_803F7BF8:0x54=rand --mem D_803F7844=rand --sig func_802A992C=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5 --sig func_802C5AFC= --sig func_80258230=a0:1,a1,a2:2,a3:2 --sig func_802A7764=a0,a1,a2
+func_802C5120: -n 200 --seed 1 --follow func_802C5AFC --arg t7=int --arg s3=int --arg s0=int --arg s1=int --arg s2=0x80B00000 --arg fp=int --heap 0x100 --mem @heap0+4=choice:0x40,0x44 --mem @heap0+8=choice:0x60,0x64 --mem @heap0+0x18=choice:0x20,0x30 --mem gHeapPtr=choice:0x80B10000,0x80B20000 --mem D_803F7B50:0xA6=rand --mem D_803F7BF8:0x54=rand --mem D_803F7844=rand --sig func_802A992C=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5 --sig func_80258230=a0:1,a1,a2:2,a3:2 --sig func_802A7764=a0,a1,a2 --sig func_802C5970= --sig func_802C61F0=a0,*a2+0x8,*a2+0x14,*a2+0x18,*a2+0x1C,*a2+0x20 --sig func_802C71FC=a0,a1 --sig func_802C7ECC= --sig func_802C7F28= --sig func_802C7410= --sig func_802C7DFC= --sig func_802C617C= --sig func_8029A914=a0 --sig func_802A6F6C= --sig func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12 --sig func_8029A800=a0,a1,a2,a3,stack0,stack1,stack3,stack5,stack6,stack7 --model func_802BE77C=oracle_D_803A7424.py --mem D_803A7425:1=bytes:0,1 --mem D_803A742B:1=bytes:0,1 --mem D_803643E0:12=rand --mem D_8036443C:6=rand

@@ -223,7 +223,7 @@ static void veh83910_frame(const VehDesc83910 *d) {
 }
 
 /* Spawn (func_802C8150 / 8470 / 8790, through func_802C80D0): model data
- * `data`, two 0x800-byte save buffers from the heap D_80358070, model record
+ * `data`, two 0x800-byte save buffers from the heap gHeapPtr, model record
  * (func_802A1388), reset the block (func_802A754C) and its wheel offsets
  * (+0x52..+0x68) and gear bands (+0x78..+0x94), position and headings,
  * ground (func_802A992C), animation channel 0 (func_8029F85C, the setters,
@@ -241,10 +241,10 @@ static void veh83910_init(const VehDesc83910 *d, s32 x, s32 y, s32 z, s32 angle,
     TriSideOut tri;
 
     *d->data = data;
-    heap = D_80358070;
+    heap = gHeapPtr;
     *d->bufA = (u64 *) heap;
     *d->bufB = (u64 *) (heap + 0x800);
-    D_80358070 = heap + 0x1000;
+    gHeapPtr = heap + 0x1000;
     func_802A1388(d->type, 0, (s32) *d->bufA, (s32) *d->bufB, data);
     *d->flag = 0;
     func_802A754C(veh);

@@ -29,7 +29,7 @@ extern u8 D_803F8B7E;
 
 /* Load vehicle 10 (the 5CB60 dispatcher func_802A350C, record type 10):
  * model `model` (D_803F8B54), save copies D_803F8B58 / D_803F8B5C taken
- * 0x700 bytes each from D_80358070 (func_802A1388(10, 0, copies, model)),
+ * 0x700 bytes each from gHeapPtr (func_802A1388(10, 0, copies, model)),
  * record reset (func_802A754C), wheel table +0x52..0x68, position (x, y,
  * z), heading `heading` at +0x4C/+0x4E/+0x74, D_803F8B60 = 0.5, ground
  * heights (func_802A992C, key 10, fp), the model's animation channels
@@ -52,9 +52,9 @@ void func_802C9B90(s32 x, s32 y, s32 z, s32 heading, u8 *model, s32 fp) {
     u8 *m;
 
     D_803F8B54 = model;
-    D_803F8B58 = (u64 *) D_80358070;
-    D_803F8B5C = (u64 *) (D_80358070 + 0x700);
-    D_80358070 += 0xE00;
+    D_803F8B58 = (u64 *) gHeapPtr;
+    D_803F8B5C = (u64 *) (gHeapPtr + 0x700);
+    gHeapPtr += 0xE00;
     func_802A1388(10, 0, (s32) D_803F8B58, (s32) D_803F8B5C, model);
     func_802A754C(D_803F8AA0);
     *(s16 *) (D_803F8AA0 + 0x52) = 0x104;

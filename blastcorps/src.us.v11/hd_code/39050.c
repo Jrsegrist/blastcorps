@@ -4,14 +4,14 @@
 /* Matching build: IDO compiled the matched code here against older
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
-#define LEGACY_D_80358070
+#define LEGACY_gHeapPtr
 #define LEGACY_D_803649D0
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_80364460 ((Digger *) D_80364460)
 #ifdef NON_MATCHING
-#define D_80358070 (*(s32 *) &D_80358070)
+#define gHeapPtr (*(s32 *) &gHeapPtr)
 #define D_803649D0 (*(Digger * N64P *) &D_803649D0)
 #endif
 /* end of views */
@@ -78,7 +78,7 @@ typedef struct {
 extern Water D_802FC3F0[];
 extern s16 D_802FC48C[];
 #ifndef NON_MATCHING
-extern s32 D_80358070; /* bump allocator for display memory */
+extern s32 gHeapPtr; /* bump allocator for display memory */
 #endif
 extern Vtx * N64P D_8036DCA0[2]; /* double-buffered water grid */
 extern s32 D_8036DCA8[2];
@@ -344,7 +344,7 @@ f32 func_8027E228(type)
     case 0xFF:
         return 0.8f;
     default:
-        func_8029A7E4("DIGGER WEIGHT NOT SET\n");
+        debug_printf("DIGGER WEIGHT NOT SET\n");
     }
 #ifdef NON_MATCHING
     /* The original falls off the end here: f0 is whatever the caller left
@@ -385,10 +385,10 @@ void func_8027E344(s32 id) {
         return;
     }
     D_8036DCD4 = 1;
-    D_8036DCA0[0] = (Vtx *) N64_IPTR(D_80358070);
-    D_80358070 += (D_802FC3F0[D_8036DCD6].nx + 1) * (D_802FC3F0[D_8036DCD6].nz + 1) * sizeof(Vtx);
-    D_8036DCA0[1] = (Vtx *) N64_IPTR(D_80358070);
-    D_80358070 += (D_802FC3F0[D_8036DCD6].nx + 1) * (D_802FC3F0[D_8036DCD6].nz + 1) * sizeof(Vtx);
+    D_8036DCA0[0] = (Vtx *) N64_IPTR(gHeapPtr);
+    gHeapPtr += (D_802FC3F0[D_8036DCD6].nx + 1) * (D_802FC3F0[D_8036DCD6].nz + 1) * sizeof(Vtx);
+    D_8036DCA0[1] = (Vtx *) N64_IPTR(gHeapPtr);
+    gHeapPtr += (D_802FC3F0[D_8036DCD6].nx + 1) * (D_802FC3F0[D_8036DCD6].nz + 1) * sizeof(Vtx);
 #ifdef PORT_HOST
     {
         /* every vertex gets x, z, s, t here and y every frame; the flag and
@@ -400,24 +400,24 @@ void func_8027E344(s32 id) {
         port_vtx_stale(D_8036DCA0[1], nv);
     }
 #endif
-    D_8036DCA8[0] = D_80358070;
-    D_80358070 += 0x12C0;
-    D_8036DCA8[1] = D_80358070;
-    D_80358070 += 0x12C0;
+    D_8036DCA8[0] = gHeapPtr;
+    gHeapPtr += 0x12C0;
+    D_8036DCA8[1] = gHeapPtr;
+    gHeapPtr += 0x12C0;
     size = D_802FC3F0[D_8036DCD6].nx * D_802FC3F0[D_8036DCD6].nz * 2 * 8;
     size += (D_802FC3F0[D_8036DCD6].nx / 8 + 1) * D_802FC3F0[D_8036DCD6].nz * 8;
     size += 0x1C20;
-    D_8036DCC8[0] = D_80358070;
-    D_80358070 += size;
-    D_8036DCC8[1] = D_80358070;
-    D_80358070 += size;
+    D_8036DCC8[0] = gHeapPtr;
+    gHeapPtr += size;
+    D_8036DCC8[1] = gHeapPtr;
+    gHeapPtr += size;
     D_8036DCD7 = D_802FC3F0[D_8036DCD6].unk31;
     if ((D_8036DCD5 = D_802FC3F0[D_8036DCD6].unk24) != 0) {
-        D_8036DCB8[0] = D_80358070;
+        D_8036DCB8[0] = gHeapPtr;
         func_802A0CC8(D_802FC3F0[D_8036DCD6].tex, 0);
     } else {
         for (i = 0; i < 3; i++) {
-            D_8036DCB8[i] = D_80358070;
+            D_8036DCB8[i] = gHeapPtr;
             func_802A0CC8(D_802FC48C[i], 0);
         }
     }
@@ -457,7 +457,7 @@ void func_8027E9B8(u8 buf) {
     s32 stepZ;
     register f32 s;
 
-    if (D_8036DCD4 != 0 && D_802E8BD0 == 0) {
+    if (D_8036DCD4 != 0 && gPaused == 0) {
         D_8036DCB0++;
         D_8036DCD2 += 15;
         if (D_8036DCD2 >= 255) {
@@ -798,7 +798,7 @@ void func_802807D8(u8 id) {
     } while (!found && D_8036E370 < 4);
     if (found) {
         D_8036E374 = D_802FC494[D_8036E370].count;
-        D_8036E378 = D_80358070;
+        D_8036E378 = gHeapPtr;
         func_802A0CC8(D_802FC494[D_8036E370].tex, 0);
         for (i = 0; i < D_8036E374; i++) {
             x = func_8026A828(D_802FC494[D_8036E370].x0, D_802FC494[D_8036E370].x1);
@@ -987,9 +987,9 @@ extern Vtx D_802FC568[];
 
 
 void func_802821D0(void) {
-    D_8036E4CC = D_80358070;
+    D_8036E4CC = gHeapPtr;
     func_802A0B00(0xA98, 0);
-    D_80358070 += 0x800;
+    gHeapPtr += 0x800;
     D_8036E4D0 = 0;
     D_8036E4D2 = 0;
 }

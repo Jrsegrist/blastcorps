@@ -141,7 +141,7 @@ void func_80292830(void) {
                 func_802CE4F0(D_8039C960[i].x, D_8039C960[i].y, D_8039C960[i].z);
                 func_802CDF94(D_802FE3C0[D_8039C960[i].type].unk5A0);
                 if (D_803F932D) {
-                    D_803643D9 = 1;
+                    cmo_hit_request = 1;
                 }
                 savedA = D_803A7410, savedB = D_803A7412;
                 func_802CE5BC(D_8039C960[i].x, D_8039C960[i].y, D_8039C960[i].z,

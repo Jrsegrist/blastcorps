@@ -9,7 +9,7 @@
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_802F49F4 ((Font *) D_802F49F4)
-#define D_80364AF0 ((Player *) D_80364AF0)
+#define players ((Player *) players)
 #ifdef NON_MATCHING
 #define D_8036BB24 (*(MenuItem * N64P *) &D_8036BB24)
 #endif
@@ -84,8 +84,6 @@ extern MenuItem *D_8036BB24;
 #endif
 
 
-#define players D_80364AF0
-#define playerNumber D_80364AE8
 
 u8 func_80297F74(void);
 
@@ -124,8 +122,8 @@ void func_802979E0(u8 level) {
         D_8039CAD0 = i % 6;
     }
     i = 0;
-    D_8036BB24 = (MenuItem *) D_80358070;
-    D_80358070 = (u8 *) D_80358070 + 0x24C;
+    D_8036BB24 = (MenuItem *) gHeapPtr;
+    gHeapPtr = (u8 *) gHeapPtr + 0x24C;
     nsel = 0;
     n = 0;
     stop = 0;

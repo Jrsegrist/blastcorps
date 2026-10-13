@@ -49,7 +49,7 @@ void func_80200714(u8 mode) {
     u8 b;
     u8 tmp;
 
-    D_8021AB80 = D_80358070;
+    D_8021AB80 = gHeapPtr;
     D_8021AB84 = mode;
     switch (mode) {
         case 1:
@@ -74,8 +74,8 @@ void func_80200714(u8 mode) {
             return;
     }
     size = end - start;
-    func_8028B4C4((u32) start, (u32) D_80358070, &size, 0xD, 0, 2);
-    pix = (u16 *) D_80358070;
+    func_8028B4C4((u32) start, (u32) gHeapPtr, &size, 0xD, 0, 2);
+    pix = (u16 *) gHeapPtr;
 #if defined(NON_MATCHING) && defined(PORT_HOST)
     /* Windows port, byte order: the picture is a texture and stays big-endian
      * in memory (the renderer reads texels as bytes), so the tint reads and
@@ -133,7 +133,7 @@ void func_80200714(u8 mode) {
         pix[i] = (r << 11) | (g << 6) | (b << 1) | 1;
     }
 #endif
-    D_80358070 += size;
+    gHeapPtr += size;
 }
 
 void func_80200BD4(s32 arg0) {
@@ -150,12 +150,12 @@ Gfx *func_80200BE0(Gfx *gfx, s32 arg1, s32 *count) {
     gDPPipeSync(gdl++);
     gSPTexture(gdl++, 0, 0, 0, 0, G_OFF);
     gDPSetTexturePersp(gdl++, G_TP_NONE);
-    if (D_80364A90 & 0xC000000000000) {
+    if (gGameMode & 0xC000000000000) {
         gDPSetCycleType(gdl++, G_CYC_1CYCLE);
         gDPSetRenderMode(gdl++, FORCE_BL | GBL_c1(G_BL_CLR_IN, G_BL_0, G_BL_CLR_IN, G_BL_1),
                          GBL_c2(G_BL_CLR_IN, G_BL_0, G_BL_CLR_IN, G_BL_1));
         gDPSetCombineRaw(gdl++, 0x157E2A, 0xFFFFFDFE);
-        switch (D_80364A90) {
+        switch (gGameMode) {
             case 0x4000000000000:
             case 0x8000000000000:
                 alpha = 0x60;
@@ -173,7 +173,7 @@ Gfx *func_80200BE0(Gfx *gfx, s32 arg1, s32 *count) {
         for (y = 0; y < 240; y += 16) {
             gDPLoadTextureTile(gdl++, D_8021AB80, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, 240, x, y, x + 63, y + 15, 0,
                                G_TX_CLAMP, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
-            if (D_80364A90 & 0xC000000000000) {
+            if (gGameMode & 0xC000000000000) {
                 gSPTextureRectangleOld(gdl++, x << 2, y << 2, (x + 64) << 2, (y + 16) << 2, G_TX_RENDERTILE, x << 5,
                                        y << 5, 1 << 10, 1 << 10);
             } else {

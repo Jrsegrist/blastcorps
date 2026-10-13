@@ -11,7 +11,7 @@ import os
 
 VIS = int(os.environ.get("M64VIS", "3000"))
 BPS = {}
-# M64PRINT=1: log the game's debug messages (func_8029A7E4, an empty function
+# M64PRINT=1: log the game's debug messages (debug_printf, an empty function
 # in the ROM: format string and a1-a3), like bc_headless.exe --print
 if os.environ.get("M64PRINT"):
     BPS = {0x8029A7E4: ("print", ["a1", "a2", "a3"], [])}

@@ -147,7 +147,7 @@ Each named function gets a one- or two-line comment on what it does, ending with
 
 **The rename map.** `blastcorps/tools_port/names.txt` holds every rename as `old = new` (fields as
 `field Type.old = new`, renamed by hand: the compiler reports a use that was missed). It is also the alias
-table for old names in notes and reports: `python3 tools_port/rename.py --which func_80244930`.
+table for old names in notes and reports: `python3 tools_port/rename.py --which func_XXXXXXXX`.
 `tools_port/rename.py` applies the map to the whole tree (C, headers, symbol_addrs and undefined_syms, the
 check files, conventions.txt, hand_asm.txt, the port's tools and data files, READMEs), adds each new name to
 its segment's `symbol_addrs` file at its address, and is safe to re-run. Tools that classify symbols by their

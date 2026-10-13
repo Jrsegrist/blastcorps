@@ -78,7 +78,7 @@ void func_80264CB4(s16 arg0, s16 arg1, s16 arg2, s16 arg3, u8 arg4, s32 arg5) {
     i = 0;
     n = 0;
     D_8036EA79 += arg5;
-    if (arg5 != 0 && D_802E8BD0 == 0) {
+    if (arg5 != 0 && gPaused == 0) {
         func_8026AD30(0x48);
     }
     if (arg3 > 200) {

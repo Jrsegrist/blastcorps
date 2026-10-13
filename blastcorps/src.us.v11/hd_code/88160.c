@@ -3,7 +3,7 @@
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #ifdef NON_MATCHING
-#define D_80358070 (*(u32 *) &D_80358070)
+#define gHeapPtr (*(u32 *) &gHeapPtr)
 #endif
 /* end of views */
 
@@ -37,7 +37,7 @@ extern u8 D_803F9314;
 
 /* Set up vehicle 14 (the level-object dispatcher func_802A350C's case 0xE):
  * as func_802CB720 (86F60) with this vehicle's data (header D_803F9304, save
- * copies D_803F9308/930C from D_80358070, block D_803F9250, channels
+ * copies D_803F9308/930C from gHeapPtr, block D_803F9250, channels
  * D_803F8F50, position D_803F92F8..9300), id 0xE, wheel offsets
  * +-250/400 and +-320/500, its speed bands, scale 0x55F0, and only
  * D_803F9312..14 cleared (there is no phase byte). One update with +0x9A set
@@ -55,10 +55,10 @@ void func_802CC920(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut
     u8 *copyB;
 
     D_803F9304 = hdr;
-    p = D_80358070;
+    p = gHeapPtr;
     D_803F9308 = (u64 *) p;
     D_803F930C = (u64 *) (p + 0x100);
-    D_80358070 = p + 0x200;
+    gHeapPtr = p + 0x200;
     func_802A1388(0xE, 0, (s32) D_803F9308, (s32) D_803F930C, hdr);
     func_802A754C(D_803F9250);
     VEH14_S16(0x52) = 250;

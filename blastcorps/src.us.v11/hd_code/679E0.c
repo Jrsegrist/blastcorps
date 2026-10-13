@@ -135,7 +135,7 @@ void func_802AC2A4(s32 z, s32 a1, s32 x, s32 y, s32 b0, s32 id, u8 *vehicle) {
 void func_802AC3B8(s32 *px, s32 *py, s32 *pz) {
     s32 v;
 
-    if (D_802E8BDC != 0x17) {
+    if (levelno != 0x17) {
         return;
     }
     v = *px;

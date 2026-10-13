@@ -4,7 +4,7 @@
 # with trapping add/sub (and counts with a trapping addi), so the pools keep those in range.
 
 # func_802A0700: one-time table load, flag clear / set
-func_802A0700: -n 200 --ret void --mem D_803B9888:1=choice:0,0,1,2,0xFF --mem D_80358070=int --mem D_803B8D44=int \
+func_802A0700: -n 200 --ret void --mem D_803B9888:1=choice:0,0,1,2,0xFF --mem gHeapPtr=int --mem D_803B8D44=int \
     --mem D_803B8D40=int --sig osInvalDCache=a0,a1 --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 \
     --sig osRecvMesg=a0,a1,a2
 
@@ -17,12 +17,12 @@ func_802A0F0C: -n 50 --seed 1 --arg t6=choice:0,1 --arg s1=choice:0,0x80400000 -
     --mem D_803B8D44=rel:heap0 --sig osInvalDCache=a0,a1 --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 \
     --sig osRecvMesg=a0,a1,a2
 
-# func_802A11C4 (t6 = id, s1 = dest): queued DMA, OSIoMesg slot from D_80358080
+# func_802A11C4 (t6 = id, s1 = dest): queued DMA, OSIoMesg slot from nextdma
 func_802A11C4: -n 300 --arg t6=int:0:30 --arg s1=int --heap 0x200=words:0,0x10,0x100,0x1000,0x7FF0,0xFFFF00 \
-    --mem D_803B8D44=rel:heap0 --mem D_80358080=int:0:10 --mem D_80358084=int:0:1000 --sig osInvalDCache=a0,a1 \
+    --mem D_803B8D44=rel:heap0 --mem nextdma=int:0:10 --mem no_palette_dmas=int:0:1000 --sig osInvalDCache=a0,a1 \
     --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2
 func_802A11C4: -n 50 --seed 1 --arg t6=0 --arg s1=int --heap 0x20=words:0,0x100,0xFFFFFF00 --mem D_803B8D44=rel:heap0 \
-    --mem D_80358080=choice:0,-1,0x7FFFFFFE,0x80000000 --mem D_80358084=choice:0,-1,0x7FFFFFFE --sig osInvalDCache=a0,a1 \
+    --mem nextdma=choice:0,-1,0x7FFFFFFE,0x80000000 --mem no_palette_dmas=choice:0,-1,0x7FFFFFFE --sig osInvalDCache=a0,a1 \
     --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2
 
 # func_802A0EE0(id, dest): wrapper of func_802A0F0C (stubbed under its convention, then followed)
@@ -37,52 +37,52 @@ func_802A0EE0: -n 200 --seed 1 --ret void --follow func_802A0F0C --arg a0=int:0:
 func_802A08E4: -n 300 --heap 0x100=words:0,0x10,0x100,0x1000,0x7FF0 --heap 0x100 --mem D_803B8D44=rel:heap0 \
     --arg s0=rel:heap1 --arg s1=rel:heap1+8*int:0:16 --mem @heap1*8:16=choice:0xFD100000,0xFD000000,0x06000000,0xFC000000,0xFE000000 \
     --mem @heap1+4*8:16=int:0:5 --mem D_803B8570:0x40=rand --mem D_803B8570*8:8=int:0:5 \
-    --mem D_803B8D40=rel:D_803B8570+8*int:0:6 --mem D_80358070=choice:0x80400000,0x80123450,0x80000000 \
+    --mem D_803B8D40=rel:D_803B8570+8*int:0:6 --mem gHeapPtr=choice:0x80400000,0x80123450,0x80000000 \
     --mem D_803C4B58:0x10=rand --sig osInvalDCache=a0,a1 --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 \
     --sig osRecvMesg=a0,a1,a2 --sig func_802A57DC=a0
 # empty cache / every command a G_SETTIMG of one id (first misses, the rest hit the new pair)
 func_802A08E4: -n 100 --seed 1 --heap 0x100=words:0,0x10,0x100 --heap 0x100 --mem D_803B8D44=rel:heap0 \
     --arg s0=rel:heap1 --arg s1=rel:heap1+8*int:1:16 --mem @heap1*8:16=0xFD100000 --mem @heap1+4*8:16=choice:3 \
-    --mem D_803B8D40=sym:D_803B8570 --mem D_80358070=0x80400000 --mem D_803C4B58:0x10=rand --sig osInvalDCache=a0,a1 \
+    --mem D_803B8D40=sym:D_803B8570 --mem gHeapPtr=0x80400000 --mem D_803C4B58:0x10=rand --sig osInvalDCache=a0,a1 \
     --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 --sig osRecvMesg=a0,a1,a2 --sig func_802A57DC=a0
 # decoder followed (type 7 = copy only, returns 0; even sizes), real heap buffer
 func_802A08E4: -n 200 --seed 2 --heap 0x100=words:0,0x100007,0x10,0x80007,0x40,0x7 --heap 0x100 --heap 0x200 \
     --mem D_803B8D44=rel:heap0 --arg s0=rel:heap1 --arg s1=rel:heap1+8*int:0:16 \
     --mem @heap1*8:16=choice:0xFD100000,0x06000000 --mem @heap1+4*8:16=int:0:2 --mem D_803B8570:0x40=rand \
-    --mem D_803B8570*8:8=int:0:5 --mem D_803B8D40=rel:D_803B8570+8*int:0:4 --mem D_80358070=rel:heap2 \
+    --mem D_803B8570*8:8=int:0:5 --mem D_803B8D40=rel:D_803B8570+8*int:0:4 --mem gHeapPtr=rel:heap2 \
     --follow func_802A57DC --sig osInvalDCache=a0,a1 --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 \
     --sig osRecvMesg=a0,a1,a2
 
 # func_802A0B34 (t6 = id, fp = param): load entry id at the heap, decode with param
 func_802A0B34: -n 300 --arg t6=int:0:30 --heap 0x200=words:0,0x10,0x100,0x1000,0x7FF0,0xFFFF00 --mem D_803B8D44=rel:heap0 \
-    --mem D_80358070=int --mem D_803C4B58:0x10=rand --sig osInvalDCache=a0,a1 \
+    --mem gHeapPtr=int --mem D_803C4B58:0x10=rand --sig osInvalDCache=a0,a1 \
     --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 --sig osRecvMesg=a0,a1,a2 --sig func_802A57DC=a0
 func_802A0B34: -n 200 --seed 1 --arg t6=int:0:2 --heap 0x40=words:0,0x100007,0x10,0x80007,0x40,0x7 --heap 0x200 \
-    --mem D_803B8D44=rel:heap0 --mem D_80358070=rel:heap1 --follow func_802A57DC --sig osInvalDCache=a0,a1 \
+    --mem D_803B8D44=rel:heap0 --mem gHeapPtr=rel:heap1 --follow func_802A57DC --sig osInvalDCache=a0,a1 \
     --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 --sig osRecvMesg=a0,a1,a2
 
 # func_802A0CFC (t6 = id, fp = param): cached physical address, or append + load -> s0
 func_802A0CFC: -n 300 --arg t6=int:0:5 --heap 0x200=words:0,0x10,0x100,0x1000,0x7FF0 --mem D_803B8D44=rel:heap0 \
     --mem D_803B8570:0x40=rand --mem D_803B8570*8:8=int:0:5 --mem D_803B8D40=rel:D_803B8570+8*int:0:6 \
-    --mem D_80358070=choice:0x80400000,0x80123450,0x80000000 --mem D_803C4B58:0x10=rand --sig osInvalDCache=a0,a1 \
+    --mem gHeapPtr=choice:0x80400000,0x80123450,0x80000000 --mem D_803C4B58:0x10=rand --sig osInvalDCache=a0,a1 \
     --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 --sig osRecvMesg=a0,a1,a2 --sig func_802A57DC=a0
 # id only in the last pair / empty cache
 func_802A0CFC: -n 100 --seed 1 --arg t6=9 --heap 0x200=words:0,0x10,0x100 --mem D_803B8D44=rel:heap0 \
-    --mem D_803B8570:0x30=onehot:8:9:words:1,2,3 --mem D_803B8D40=rel:D_803B8570+0x30 --mem D_80358070=0x80400000 \
+    --mem D_803B8570:0x30=onehot:8:9:words:1,2,3 --mem D_803B8D40=rel:D_803B8570+0x30 --mem gHeapPtr=0x80400000 \
     --sig osInvalDCache=a0,a1 --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 --sig osRecvMesg=a0,a1,a2 --sig func_802A57DC=a0
 func_802A0CFC: -n 50 --seed 2 --arg t6=int:0:3 --heap 0x200=words:0,0x10,0x100 --mem D_803B8D44=rel:heap0 \
-    --mem D_803B8D40=sym:D_803B8570 --mem D_80358070=0x80400000 --mem D_803B8570:0x10=rand --sig osInvalDCache=a0,a1 \
+    --mem D_803B8D40=sym:D_803B8570 --mem gHeapPtr=0x80400000 --mem D_803B8570:0x10=rand --sig osInvalDCache=a0,a1 \
     --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 --sig osRecvMesg=a0,a1,a2 --sig func_802A57DC=a0
 func_802A0CFC: -n 200 --seed 3 --arg t6=int:0:2 --heap 0x40=words:0,0x100007,0x10,0x80007,0x40,0x7 --heap 0x200 \
-    --mem D_803B8D44=rel:heap0 --mem D_80358070=rel:heap1 --mem D_803B8570:0x40=rand --mem D_803B8570*8:8=int:0:5 \
+    --mem D_803B8D44=rel:heap0 --mem gHeapPtr=rel:heap1 --mem D_803B8570:0x40=rand --mem D_803B8570*8:8=int:0:5 \
     --mem D_803B8D40=rel:D_803B8570+8*int:0:4 --follow func_802A57DC --sig osInvalDCache=a0,a1 \
     --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 --sig osRecvMesg=a0,a1,a2
 
-# func_802A1074 (t6 = id, s1 = dest, fp = param): queued DMA (OSIoMesg slot D_80358080++) + decode request
+# func_802A1074 (t6 = id, s1 = dest, fp = param): queued DMA (OSIoMesg slot nextdma++) + decode request
 func_802A1074: -n 300 --arg t6=int:0:30 --heap 0x200=words:0,0x10,0x100,0x1000,0x7FF0,0xFFFF00 --mem D_803B8D44=rel:heap0 \
-    --mem D_80358080=choice:0,1,5,-1,0x7FFFFFFE --sig osInvalDCache=a0,a1 --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2
+    --mem nextdma=choice:0,1,5,-1,0x7FFFFFFE --sig osInvalDCache=a0,a1 --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2
 func_802A1074: -n 200 --seed 1 --follow func_802A5764 --arg t6=int:0:30 --heap 0x200=words:0,0x10,0x100,0x1000,0x7FF0,0xFFFF00 \
-    --heap 0x40 --mem D_803B8D44=rel:heap0 --mem D_803C4B50=rel:heap1 --mem D_80358080=int:0:10 --sig osInvalDCache=a0,a1 \
+    --heap 0x40 --mem D_803B8D44=rel:heap0 --mem D_803C4B50=rel:heap1 --mem nextdma=int:0:10 --sig osInvalDCache=a0,a1 \
     --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2
 # [e1] 5BF40 C-callable wrappers: func_802A08B4 / func_802A0B00 / func_802A0CC8 / func_802A1040 (callee stubbed
 # under its convention, then followed with the callee's own check inputs)
@@ -91,37 +91,37 @@ func_802A08B4: -n 300 --seed 1 --follow func_802A08E4 --heap 0x100=words:0,0x10,
     --mem D_803B8D44=rel:heap0 --arg a0=rel:heap1 --arg a1=rel:heap1+8*int:0:16 \
     --mem @heap1*8:16=choice:0xFD100000,0xFD000000,0x06000000,0xFC000000,0xFE000000 \
     --mem @heap1+4*8:16=int:0:5 --mem D_803B8570:0x40=rand --mem D_803B8570*8:8=int:0:5 \
-    --mem D_803B8D40=rel:D_803B8570+8*int:0:6 --mem D_80358070=choice:0x80400000,0x80123450,0x80000000 \
+    --mem D_803B8D40=rel:D_803B8570+8*int:0:6 --mem gHeapPtr=choice:0x80400000,0x80123450,0x80000000 \
     --mem D_803C4B58:0x10=rand --sig osInvalDCache=a0,a1 --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 \
     --sig osRecvMesg=a0,a1,a2 --sig func_802A57DC=a0
 func_802A08B4: -n 100 --seed 2 --follow func_802A08E4 --heap 0x100=words:0,0x10,0x100 --heap 0x100 --mem D_803B8D44=rel:heap0 \
     --arg a0=rel:heap1 --arg a1=rel:heap1+8*choice:0,1,16 --mem @heap1*8:16=0xFD100000 --mem @heap1+4*8:16=choice:3 \
-    --mem D_803B8D40=sym:D_803B8570 --mem D_80358070=0x80400000 --mem D_803C4B58:0x10=rand --sig osInvalDCache=a0,a1 \
+    --mem D_803B8D40=sym:D_803B8570 --mem gHeapPtr=0x80400000 --mem D_803C4B58:0x10=rand --sig osInvalDCache=a0,a1 \
     --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 --sig osRecvMesg=a0,a1,a2 --sig func_802A57DC=a0
 func_802A0B00: -n 200 --ret void --arg a0=choice:0,1,0xFFFF,0x10000,-1,0x12345678,0x8000 --arg a1=int
 func_802A0B00: -n 300 --seed 1 --ret void --follow func_802A0B34 --arg a0=int:0:30 --arg a1=int \
     --heap 0x200=words:0,0x10,0x100,0x1000,0x7FF0,0xFFFF00 --mem D_803B8D44=rel:heap0 \
-    --mem D_80358070=int --mem D_803C4B58:0x10=rand --sig osInvalDCache=a0,a1 \
+    --mem gHeapPtr=int --mem D_803C4B58:0x10=rand --sig osInvalDCache=a0,a1 \
     --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 --sig osRecvMesg=a0,a1,a2 --sig func_802A57DC=a0
 func_802A0B00: -n 200 --seed 2 --ret void --follow func_802A0B34,func_802A57DC --arg a0=int:0:2 --arg a1=int \
     --heap 0x40=words:0,0x100007,0x10,0x80007,0x40,0x7 --heap 0x200 \
-    --mem D_803B8D44=rel:heap0 --mem D_80358070=rel:heap1 --sig osInvalDCache=a0,a1 \
+    --mem D_803B8D44=rel:heap0 --mem gHeapPtr=rel:heap1 --sig osInvalDCache=a0,a1 \
     --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 --sig osRecvMesg=a0,a1,a2
 func_802A0CC8: -n 200 --arg a0=choice:0,1,0xFFFF,0x10000,-1,0x12345678,0x8000 --arg a1=int
 func_802A0CC8: -n 300 --seed 1 --follow func_802A0CFC --arg a0=int:0:5 --arg a1=int \
     --heap 0x200=words:0,0x10,0x100,0x1000,0x7FF0 --mem D_803B8D44=rel:heap0 \
     --mem D_803B8570:0x40=rand --mem D_803B8570*8:8=int:0:5 --mem D_803B8D40=rel:D_803B8570+8*int:0:6 \
-    --mem D_80358070=choice:0x80400000,0x80123450,0x80000000 --mem D_803C4B58:0x10=rand --sig osInvalDCache=a0,a1 \
+    --mem gHeapPtr=choice:0x80400000,0x80123450,0x80000000 --mem D_803C4B58:0x10=rand --sig osInvalDCache=a0,a1 \
     --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 --sig osRecvMesg=a0,a1,a2 --sig func_802A57DC=a0
 func_802A0CC8: -n 100 --seed 2 --follow func_802A0CFC --arg a0=9 --arg a1=int --heap 0x200=words:0,0x10,0x100 \
     --mem D_803B8D44=rel:heap0 --mem D_803B8570:0x30=onehot:8:9:words:1,2,3 --mem D_803B8D40=rel:D_803B8570+0x30 \
-    --mem D_80358070=0x80400000 --sig osInvalDCache=a0,a1 --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 \
+    --mem gHeapPtr=0x80400000 --sig osInvalDCache=a0,a1 --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 \
     --sig osRecvMesg=a0,a1,a2 --sig func_802A57DC=a0
 func_802A1040: -n 200 --ret void --arg a0=choice:0,1,0xFFFF,0x10000,-1,0x12345678,0x8000 --arg a1=int --arg a2=int
 func_802A1040: -n 300 --seed 1 --ret void --follow func_802A1074 --arg a0=int:0:30 --arg a1=int --arg a2=int \
     --heap 0x200=words:0,0x10,0x100,0x1000,0x7FF0,0xFFFF00 --mem D_803B8D44=rel:heap0 \
-    --mem D_80358080=choice:0,1,5,-1,0x7FFFFFFE --sig osInvalDCache=a0,a1 --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2
+    --mem nextdma=choice:0,1,5,-1,0x7FFFFFFE --sig osInvalDCache=a0,a1 --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2
 func_802A1040: -n 200 --seed 2 --ret void --follow func_802A1074,func_802A5764 --arg a0=int:0:30 --arg a1=int --arg a2=int \
     --heap 0x200=words:0,0x10,0x100,0x1000,0x7FF0,0xFFFF00 --heap 0x40 --mem D_803B8D44=rel:heap0 --mem D_803C4B50=rel:heap1 \
-    --mem D_80358080=int:0:10 --sig osInvalDCache=a0,a1 --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2
+    --mem nextdma=int:0:10 --sig osInvalDCache=a0,a1 --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2
 # end-block

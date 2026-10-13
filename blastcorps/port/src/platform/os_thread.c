@@ -287,8 +287,8 @@ static void wake_one(OSThread * N64P *q) {
 
 s32 osSendMesg(OSMesgQueue *mq, OSMesg msg, s32 flag) {
     sync_point(PORT_RETADDR(), 's', mq);
-    /* A frame: the main thread hands the scheduler (D_80315440) a task with
-     * the frame flag (0x40; 405F0.c func_80284E54).  Counted (and dumped)
+    /* A frame: the main thread hands the scheduler (gScheduler) a task with
+     * the frame flag (0x40; 405F0.c rsp_send_task).  Counted (and dumped)
      * here, where the main thread is at the same point on any machine. */
     if ((u32) mq == 0x80315440u && (u32) msg >= 0x80000000u && (u32) msg < 0x80800000u &&
         (*(u32 *) ((u8 *) msg + 0x08) & 0x40))
@@ -470,7 +470,7 @@ void plat_spin_until(u64 t) {
  * Game code takes no virtual time here, so a thread reaches its next message
  * call earlier than on the N64.  port/tools/compare.py logs, in the emulator,
  * the time of every osSendMesg / osRecvMesg / osJamMesg / osStartThread a
- * game function (func_*) makes, per thread: lines "S ID NAME TIME" (thread
+ * game function (func_*, or a renamed one the file lists as "G NAME") makes, per thread: lines "S ID NAME TIME" (thread
  * id, calling function, native count units).  Before the native thread makes
  * the same call, the clock runs up to that time (plat_spin_until), so threads
  * interleave with each other and with retraces as they did in the emulator.
@@ -492,6 +492,9 @@ static struct {
 } g_sync[SYNC_IDS];
 static int g_sync_on;
 static s32 sync_gvi_pending;
+/* game functions renamed from their func_ names (tools_port/names.txt): "G NAME" lines */
+static const char **g_sync_game;
+static u32 g_sync_ngame, g_sync_capgame;
 
 #define GAME_VI_COUNTER (*(volatile u32 *) 0x803156C4) /* the scheduler's frameCount */
 
@@ -506,6 +509,14 @@ void plat_sync_load(const char *path) {
         u64 t = 0;
         while (eol < end && *eol != '\n') eol++;
         *eol = 0;
+        /* "G NAME": a game function whose name isn't func_XXXXXXXX */
+        if (p[0] == 'G' && p[1] == ' ' && p[2]) {
+            if (g_sync_ngame == g_sync_capgame) {
+                g_sync_capgame = g_sync_capgame ? g_sync_capgame * 2 : 256;
+                g_sync_game = host_realloc(g_sync_game, g_sync_capgame * sizeof(*g_sync_game));
+            }
+            g_sync_game[g_sync_ngame++] = p + 2;
+        }
         /* "S ID NAME KIND QUEUE(hex) TIME" */
         if (p[0] == 'S' && p[1] == ' ') {
             q = p + 2;
@@ -562,12 +573,21 @@ static int name_eq(const char *a, const char *b) {
     return *a == *b;
 }
 
+/* a game function: func_XXXXXXXX, or a name the sync file lists ("G") */
+static int sync_game_function(const char *name) {
+    u32 i;
+    if (name[0] == 'f' && name[1] == 'u' && name[2] == 'n' && name[3] == 'c' && name[4] == '_') return 1;
+    for (i = 0; i < g_sync_ngame; i++)
+        if (name_eq(g_sync_game[i], name)) return 1;
+    return 0;
+}
+
 static void sync_point(void *ra, char kind, void *arg) {
     const char *name;
     u32 id, k, j;
     if (!g_sync_on || g_running == NULL) return;
     name = plat_sym_name((u32) ra, NULL);
-    if (name == NULL || name[0] != 'f' || name[1] != 'u' || name[2] != 'n' || name[3] != 'c' || name[4] != '_')
+    if (name == NULL || !sync_game_function(name))
         return;
     id = (u32) g_running->id;
     if (id >= SYNC_IDS) return;

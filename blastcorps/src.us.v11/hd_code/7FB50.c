@@ -115,7 +115,7 @@ extern u8 D_803F7850[];
  * of every record in use whether it is 100, then (2) func_8026FE6C(i) for
  * i = 0 .. D_8036EB90-1. Each section is padded to a whole byte. Returns the
  * number of bytes written. */
-s32 func_802C4A40(u8 *out) {
+s32 record_status(u8 *out) {
     BitWriter7FB50 w;
     Rec7FB50 *r;
     u8 *part;
@@ -145,13 +145,13 @@ s32 func_802C4A40(u8 *out) {
     return w.out - out;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C4A40.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/record_status.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-/* apply_status: reads a bitstream in func_802C4A40's format (MSB-first; the
+/* apply_status: reads a bitstream in record_status's format (MSB-first; the
  * bit reader runs on across the records and restarts on a fresh byte for
  * section 2). Section 1, per record in use and per part i (1-based): a set
  * bit destroys the part (parts[i-1] = 100, func_802BF1F0(record, i)), a
@@ -258,7 +258,7 @@ void func_802C4BF0(void *in) {
 /* A record counts toward a random status unless it is excluded. */
 #define REC7FB50_ELIGIBLE(r) ((r)->unk30 != 0x38 && (r)->unk0[4] != 1)
 
-/* create_status: build a status bitstream in the format func_802C4A40 writes,
+/* create_status: build a status bitstream in the format record_status writes,
  * for difficulty/percentage level `level` (1-based index into D_803063F0, a
  * table of percentages).
  * Section 1: for every record in use, numParts copies of one bit. The bit is
@@ -267,7 +267,7 @@ void func_802C4BF0(void *in) {
  * eligible ones, plus one (none at all when level == 5).
  * Section 2: D_8036EB90 bits, the first D_803063F0[level-1] percent of them 1.
  * Each section is padded to a whole byte. Returns the number of bytes written. */
-u32 func_802C4E58(void *outp, u8 level) {
+u32 create_status(void *outp, u8 level) {
     BitWriter7FB50 w;
     Rec7FB50 *r;
     u32 pct;
@@ -340,7 +340,7 @@ u32 func_802C4E58(void *outp, u8 level) {
     return w.out - (u8 *) outp;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C4E58.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/create_status.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -369,7 +369,7 @@ extern u8 D_803F7C4B;
 
 /* Load vehicle 9 (the 5CB60 dispatcher func_802A350C, record type 9): model
  * `model` (D_803F7C04), save copies D_803F7C08 / D_803F7C0C taken 0x1000
- * bytes each from D_80358070 (func_802A1388(9, 0, copies, model)), record
+ * bytes each from gHeapPtr (func_802A1388(9, 0, copies, model)), record
  * reset (func_802A754C), wheel table +0x52..0x68, position (x, y, z),
  * heading `heading` at +0x4C/+0x4E/+0x74, ground heights (func_802A992C,
  * key 9, fp), the model's animation channels (func_8029F85C, channel 0 set
@@ -393,9 +393,9 @@ void func_802C5120(s32 x, s32 y, s32 z, s32 heading, u8 *model, s32 fp) {
     u8 *m;
 
     D_803F7C04 = model;
-    D_803F7C08 = (u64 *) D_80358070;
-    D_803F7C0C = (u64 *) (D_80358070 + 0x1000);
-    D_80358070 += 0x2000;
+    D_803F7C08 = (u64 *) gHeapPtr;
+    D_803F7C0C = (u64 *) (gHeapPtr + 0x1000);
+    gHeapPtr += 0x2000;
     func_802A1388(9, 0, (s32) D_803F7C08, (s32) D_803F7C0C, model);
     func_802A754C(D_803F7B50);
     VEH_S16(0x52) = 0;

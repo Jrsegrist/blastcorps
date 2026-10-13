@@ -60,8 +60,8 @@ void func_80288220(void) {
     }
     D_80370B8C = 0;
     D_80370B8D = 0;
-    D_80370B90 = D_80358070;
-    D_80358070 += 0x1400;
+    D_80370B90 = gHeapPtr;
+    gHeapPtr += 0x1400;
 }
 
 s32 func_80288284(u8 type, s32 x, s32 y, s32 z, s32 floor) {

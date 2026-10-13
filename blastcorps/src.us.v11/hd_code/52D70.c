@@ -3,7 +3,7 @@
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_802E8F38 ((D_802E8F38_s *) D_802E8F38)
-#define D_80364AF0 ((Player *) D_80364AF0)
+#define players ((Player *) players)
 /* end of views */
 
 /* Per-player state, 0x100 bytes */
@@ -39,12 +39,12 @@ void func_80297530(arg0)
     u8 idx;
 
     found = 0;
-    if (D_80364A98 == 0x2000) {
+    if (gNextGameMode == 0x2000) {
         found = func_8029766C(arg0, &idx);
     } else {
         found = 0;
     }
-    D_8039CAC8 = D_80364AF0[D_80364AE8].unk90;
+    D_8039CAC8 = players[playerNumber].unk90;
     if (found) {
         D_8039CAB7 = 1;
         D_8039CAB0 = D_802E8F38[idx].x;
@@ -52,8 +52,8 @@ void func_80297530(arg0)
         D_8039CAB4 = D_802E8F38[idx].z;
         D_8039CAB6 = idx;
         D_8039CAB8 = 0;
-        D_8039CAC4 = (Mtx *) D_80358070;
-        D_80358070 = (u8 *) D_80358070 + 0x80;
+        D_8039CAC4 = (Mtx *) gHeapPtr;
+        gHeapPtr = (u8 *) gHeapPtr + 0x80;
         guTranslate(D_8039CAC4, 0, 0, 0);
         guTranslate(D_8039CAC4 + 1, 0, 0, 0);
     } else {
@@ -94,7 +94,7 @@ void func_802976E8(Gfx **arg0) {
 }
 
 void func_80297804(s32 x, s32 y, s32 z) {
-    if (D_8039CAB7 && D_80364AF0[D_80364AE8].unk91 < 5) {
+    if (D_8039CAB7 && players[playerNumber].unk91 < 5) {
         if (D_8039CAB8) {
             if (func_8026A6F0(x >> 5, y >> 5, z >> 5, D_8039CAB0, D_8039CAB2, D_8039CAB4) >= 0x8D) {
                 D_8039CAB8 = 0;
@@ -102,14 +102,14 @@ void func_80297804(s32 x, s32 y, s32 z) {
         } else if (func_8026A6F0(x >> 5, y >> 5, z >> 5, D_8039CAB0, D_8039CAB2, D_8039CAB4) < 0x50) {
             D_8039CAB8 = 1;
             D_8039CAC8 |= 1 << D_8039CAB6;
-            D_80364A98 = 0x1000000000LL;
+            gNextGameMode = 0x1000000000LL;
         }
     }
 }
 
 void func_80297960(void) {
-    if (D_802FA268 && (D_80370C28 & 0x2000) && D_8039CAB7) {
+    if (gDebugCheats && (D_80370C28 & 0x2000) && D_8039CAB7) {
         D_8039CAC8 |= 1 << D_8039CAB6;
     }
-    D_80364AF0[D_80364AE8].unk90 = D_8039CAC8;
+    players[playerNumber].unk90 = D_8039CAC8;
 }

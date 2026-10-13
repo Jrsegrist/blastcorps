@@ -2,9 +2,9 @@
 #include <ultra64.h>
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_803153D8 ((u8 *) &D_803153D8)
-#define D_803156D8 ((u8 *) &D_803156D8)
-#define D_8036AFB0 ((u8 *) D_8036AFB0)
+#define gTaskDoneQueue ((u8 *) &gTaskDoneQueue)
+#define gMainSchedClient ((u8 *) &gMainSchedClient)
+#define gYieldBuffer ((u8 *) gYieldBuffer)
 /* end of views */
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
@@ -308,7 +308,7 @@ extern u8 D_803C2B80[];   /* output buffer end */
  * fills the task D_803BE740 (an M_GFXTASK OSTask at +0x10 with data_ptr /
  * data_size from the arguments), writes back `wb` (0x80 bytes) and the task,
  * invalidates the first 0x20 bytes of the output buffer, sends the task to
- * D_80315440, calls func_80285110(0x4D3), and returns 0 if the output
+ * gScheduler, calls rsp_wait_task(0x4D3), and returns 0 if the output
  * buffer's first word is 0xE8000000 (else 1).
  * asm: dataPtr/wb/dataSize in a1/a2/a3, result in t6; it saves a1-a3, t1, t3,
  * s4, s5, t8 and fp. Asm callers rely on preserved: func_802A484C keeps t3. */
@@ -330,21 +330,21 @@ s32 func_802A4B0C(void *dataPtr, void *wb, s32 dataSize) {
     t[13] = 0x400;
     t[14] = (u32) D_803BEB80;
     t[15] = (u32) D_803C2B80;
-    t[18] = (u32) D_8036AFB0;
+    t[18] = (u32) gYieldBuffer;
     t[19] = 0x900;
     t[2] = 1;
-    t[21] = (u32) D_803153D8;
+    t[21] = (u32) gTaskDoneQueue;
     t[22] = 0x4D3;
     t[3] = 0;
     t[16] = (u32) dataPtr;
     t[7] = D_802E68F0 - D_802E6820;
     t[17] = dataSize;
-    t[20] = (u32) D_803156D8;
+    t[20] = (u32) gMainSchedClient;
     osWritebackDCache(wb, 0x80);
     osWritebackDCache(t, 0x40);
     osInvalDCache(D_803BEB80, 0x20);
-    osSendMesg(&D_80315440, (OSMesg) t, OS_MESG_BLOCK);
-    func_80285110(0x4D3);
+    osSendMesg(&gScheduler, (OSMesg) t, OS_MESG_BLOCK);
+    rsp_wait_task(0x4D3);
     if (*(u32 *) D_803BEB80 == 0xE8000000) {
         return 0;
     }

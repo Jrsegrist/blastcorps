@@ -106,7 +106,7 @@ typedef struct Vehicle {
     u8 pad1024[0x1C];
 } Vehicle; /* 0x1040 bytes */
 
-/* A level result (D_8036EA60 best, D_8036EA70 this run, D_8036EA80/90). */
+/* A level result (D_8036EA60 best, nss this run, D_8036EA80/90). */
 typedef struct Score {
     s32 ip;
     u32 tc; /* time */

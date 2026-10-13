@@ -9,7 +9,7 @@
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_802E8F94 ((LevelInfo *) D_802E8F94)
-#define D_80364AF0 ((Player *) D_80364AF0)
+#define players ((Player *) players)
 #ifdef NON_MATCHING
 #define D_8036BB24 (*(MenuItem * N64P *) &D_8036BB24)
 #endif
@@ -24,7 +24,7 @@ int sprintf(char *, const char *, ...);
 void bcopy(const void *, void *, int);
 
 #define BT_ASSERT(EX, line) \
-    if (!(EX)) func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "bestTimes.c", line)
+    if (!(EX)) debug_printf("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "bestTimes.c", line)
 
 /* pfsHandler.c's message to the save thread: command, argument, player, reply wanted */
 #define PAK_MSG(cmd, arg, pn, reply) ((cmd) | ((arg) << 8) | ((pn) << 16) | ((reply) << 24))
@@ -79,8 +79,6 @@ extern MenuItem *D_8036BB24;
 extern char D_80219FD0[][0x20];
 extern char D_8020D800[][4];
 
-#define playerNumberAtStart D_80364AEA
-#define frontEndPresent D_80370C50
 
 s32 func_801F7F74(u8 lvl);
 s32 func_801F7FF4(MenuItem *a, MenuItem *b);
@@ -97,15 +95,15 @@ void func_801F7850(void) {
     char timeStr[0x20];
     char buf[0x20];
 
-    p = &D_80364AF0[D_80364AE8];
+    p = &players[playerNumber];
     hdr = (MenuHeader *) (D_802F8BDC + 0x268);
-    D_8036BB24 = (MenuItem *) D_80358070;
-    D_80358070 += 0x71C;
+    D_8036BB24 = (MenuItem *) gHeapPtr;
+    gHeapPtr += 0x71C;
     for (i = 0; i < 4; i++) {
-        if (D_80365060[i] == 1 && D_8039C53C[i] == 0
-            && ((D_80364AF0[i].rank[D_802E8BDC] > 0 && D_80364AF0[i].rank[D_802E8BDC] < 6) ? 1 : 0)) {
-            osSendMesg(&D_80219EF8, (OSMesg) PAK_MSG(8, D_802E8BDC, i, 1), OS_MESG_BLOCK);
-            osRecvMesg(&D_80219F50, NULL, OS_MESG_BLOCK);
+        if (D_80365060[i] == 1 && saveIt[i] == 0
+            && ((players[i].rank[levelno] > 0 && players[i].rank[levelno] < 6) ? 1 : 0)) {
+            osSendMesg(&D_80219EF8, (OSMesg) PAK_MSG(8, levelno, i, 1), OS_MESG_BLOCK);
+            osRecvMesg(&pakToGameMessageQ, NULL, OS_MESG_BLOCK);
         } else {
             func_801F8354(i);
         }
@@ -116,14 +114,14 @@ void func_801F7850(void) {
         if (func_801F7F74(lvl) && D_80364EF0[playerNumberAtStart][D_802E8C44[lvl]] > 0) {
             for (i = 0; i < 4; i++) {
                 item = &D_8036BB24[n * 4 + i];
-                p = &D_80364AF0[i];
+                p = &players[i];
                 if (D_80365060[i] == 1 && D_80364EF0[i][D_802E8C44[lvl]] > 0
-                    && (D_802E8F94[D_802E8BDC].type != 0x80 || p->unk91 >= 11)) {
+                    && (D_802E8F94[levelno].type != 0x80 || p->unk91 >= 11)) {
                     func_80264A34(timeStr, D_80364EF0[i][D_802E8C44[lvl]], 0);
                     sprintf(D_80219FD0[n * 4 + i], "%-7.7s %s", p, timeStr);
                     item->text = D_80219FD0[n * 4 + i];
                     item->unk10 = 0;
-                    item->unk14 = func_801EF2BC(D_80364EF0[i][D_802E8C44[lvl]], D_802E8BDC, D_80364AF0[i].unk91) % 5 + 0x12;
+                    item->unk14 = func_801EF2BC(D_80364EF0[i][D_802E8C44[lvl]], levelno, players[i].unk91) % 5 + 0x12;
                     item->unk18 = i;
                 } else {
                     item->text = 0;
@@ -163,7 +161,7 @@ void func_801F7850(void) {
         item->unk16 = 0x1E;
         item->unk4 += lvl / 4 * 100;
     }
-    if (D_802E8F94[D_802E8BDC].type == 0x80) {
+    if (D_802E8F94[levelno].type == 0x80) {
         item = &D_8036BB24[lvl];
         item->text = 0;
         item->unk10 = 0;
@@ -184,10 +182,10 @@ void func_801F7850(void) {
 
 /* whether best-time slot `lvl` is shown (special levels: only slot 0) */
 s32 func_801F7F74(u8 lvl) {
-    if (D_802E8F94[D_802E8BDC].type == 0x80) {
+    if (D_802E8F94[levelno].type == 0x80) {
         return lvl == 0;
     }
-    return (D_80364AF0[playerNumberAtStart].unk10 & (1 << lvl)) ? 1 : 0;
+    return (players[playerNumberAtStart].unk10 & (1 << lvl)) ? 1 : 0;
 }
 
 /* qsort comparator: items with text first, then by time */
@@ -207,14 +205,14 @@ void func_801F803C(void) {
     s32 i;
 
     if ((D_80370C28 & 0x2010) && !(D_80370C2A & 0x2010)) {
-        next = (D_80364AE8 + 1) % 4;
+        next = (playerNumber + 1) % 4;
         i = 0;
         for (; i < 4 && (D_80365060[next % 4] != 1 || func_801F81B4(next % 4) == 0); i++, next = (next + 1) % 4) {
         }
-        if (D_80364AE8 != next) {
+        if (playerNumber != next) {
             func_80260650(D_80367738, 0x1D, 0);
-            D_80364AE8 = next;
-            func_801E8EB8(D_80364AE8, 1);
+            playerNumber = next;
+            func_801E8EB8(playerNumber, 1);
             func_801F8228();
         } else {
             func_80260650(D_80367738, 0xD0, 0);
@@ -241,14 +239,14 @@ void func_801F8228(void) {
 
     for (i = 0; i < D_8021A828; i++) {
         p = &D_8036BB24[i];
-        if (D_8021A7E8[i] == D_80364AE8) {
+        if (D_8021A7E8[i] == playerNumber) {
             p->flags |= 4;
         } else {
             p->flags &= ~4;
         }
         if (D_8021A7E8[i] == playerNumberAtStart) {
             p->unk18 = p->unk19 = 6;
-        } else if (D_8021A7E8[i] == D_80364AE8) {
+        } else if (D_8021A7E8[i] == playerNumber) {
             p->unk18 = p->unk19 = 2;
         } else {
             p->unk18 = p->unk19 = 7;
@@ -261,7 +259,7 @@ void func_801F8354(u8 pn) {
     s32 i;
 
     BT_ASSERT(frontEndPresent, 279);
-    if (!((D_80364AF0[pn].rank[D_802E8BDC] > 0 && D_80364AF0[pn].rank[D_802E8BDC] < 6) ? 1 : 0)) {
+    if (!((players[pn].rank[levelno] > 0 && players[pn].rank[levelno] < 6) ? 1 : 0)) {
         for (i = 0; i < 16; i++) {
             D_80364EF0[pn][D_802E8C44[i]] = 0;
         }
@@ -275,7 +273,7 @@ Gfx *func_801F8440(s32 arg0, Gfx *gfx) {
 
     off = 0;
     g = gfx;
-    if (D_802E8F94[D_802E8BDC].type != 0x80) {
+    if (D_802E8F94[levelno].type != 0x80) {
         g = func_80274868(g);
         g = func_80272ED8(g, D_8021A7D0[((u16 *) D_802F8BDC)[0x280 / 2] / 4] + D_8021A8F0, 0x18 - off, 100, 0xFF - off * 2, 1, 1.0f);
         g = func_80274AA4(g);

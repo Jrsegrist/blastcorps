@@ -325,7 +325,7 @@ Platform model (`src/platform/`):
 | RSP/RDP | os_hw.c | gfx tasks dropped and counted (SP done, plus DP done for frame tasks; bc.exe draws them with RT64, same completion times); func_802A4B0C's cull test answered by a CPU model of its ucode (below); audio tasks run at once on the microcode interpreter (src/audio/, "Audio" below), SP done. |
 | AI | os_hw.c | a two-buffer DMA FIFO playing at the programmed rate in virtual time, so osAiGetLength (which sizes each audio frame) behaves; each accepted buffer goes to the output (`--wav FILE`; bc.exe's speakers), which never feeds back into the timing. |
 | front end | plat_core.c | data+bss snapshot at boot, restored after every reload. |
-| debug output | headless_main.c | `--print`: the game's debug printf (func_8029A7E4, empty on the N64) to stderr with the frame number; `--cmdline "-c"` turns on the game's debug cheats (C-right + Z completes the level). |
+| debug output | headless_main.c | `--print`: the game's debug printf (debug_printf, empty on the N64) to stderr with the frame number; `--cmdline "-c"` turns on the game's debug cheats (C-right + Z completes the level). |
 
 Host-order rules the game C follows under `PORT_HOST` (include/game/port.h):
 `PORT_HALF(i)` for u16 views of 32-bit words (the N64 Mtx's elements; the
@@ -498,9 +498,9 @@ Example (bc_headless --crash-test av:5):
       #0   00004000A350  bc_headless.exe+00A350  host_crash_test_frame+0x100 (crash.c:1120)
       #1   0000400AECB8  bc_headless.exe+0AECB8  plat_on_frame+0x128 (plat_core.c:112)
       #2   0000400A9376  bc_headless.exe+0A9376  osSendMesg+0x46 (os_thread.c:295)
-      #3   00004004B40F  bc_headless.exe+04B40F  func_80284E54+0x17F (405F0.c:97)
+      #3   00004004B40F  bc_headless.exe+04B40F  rsp_send_task+0x17F (405F0.c:97)
       #4   00004008ECE9  bc_headless.exe+08ECE9  func_801EF4AC+0x79 (07800.c:380)
-      #5   000040024270  bc_headless.exe+024270  func_80244930+0x1930 (00000.c:977)
+      #5   000040024270  bc_headless.exe+024270  hd_main_thread+0x1930 (00000.c:977)
       #6 ? 0000400A8DEE  bc_headless.exe+0A8DEE  fiber_main+0xE (os_thread.c:138)
       ...
     minidump: ...\bc-crash-20261007-212029.dmp
@@ -920,7 +920,7 @@ then per compared frame "match" or the differing runs with symbols and the
 asset an address was loaded from.
 
 A frame is the main thread handing the scheduler its frame task (osSendMesg
-to D_80315440 with flag 0x40): the same program point on both machines; the
+to gScheduler with flag 0x40): the same program point on both machines; the
 exe dumps there (`--dump`, `--dump-every`). Subcommands (`compare.py -h`):
 `emu`, `inject`, `native`, `diff`, `frames`, `hex` (one region side by side),
 `calls` (with `emu --calls F,G` and the exe's `--calls F,G`: the calls of
@@ -963,7 +963,7 @@ under some other layout is reported. C objects' .data/.rodata, textures
 and a few buffers whose declared type isn't their readers' (`Layout.UNTYPED`)
 stay lenient. More emulator inputs: `Q` lines (the game retrace counter
 where `PORT_GVI` marks a mid-frame read, `cmp_spec.py GVI_FUNCS`/`GVI_SITES`;
-and, once per retrace, the display-freeze flag D_802E8BD0 as the scheduler's
+and, once per retrace, the display-freeze flag gPaused as the scheduler's
 retrace handler read it, `PORT_EMU`, `EMU_SITES`), and
 `calls --args` compares the first argument words (`emu --calls` logs a0-a3,
 the exe its argument registers' home area, which may be stale). Never-written
@@ -1045,7 +1045,7 @@ hash names) and removes them with `--delete`.
 
 ### Every level: `make -C port verify-levels`
 
-The attract demos load 9 of the game's 60 levels (`D_802E8BDC` 0-59; the
+The attract demos load 9 of the game's 60 levels (`levelno` 0-59; the
 type byte of each `D_802E8F94` record is in `data/levels.txt`).  To reach any
 level with the same input on both sides, `tools/compare.py level --level L`
 plays `data/levels_input.txt` (made by `tools/levels_input.py`): START / A
@@ -1053,7 +1053,7 @@ from controller read 400 (title, new game, player A, the opening sequence),
 A on the globe at read 985, A taps for the intro pages, then from read 1220 a
 driving pattern (accelerate, turn both ways, brake and reverse, stop, Z out,
 walk, A, Z in, ...).  At frame 930, before the globe first opens, both sides
-write L to player 0's "last level" byte (`D_80364AF0[0].pad0[8]`, 0x80364AF8:
+write L to player 0's "last level" byte (`players[0].pad0[8]`, 0x80364AF8:
 00000.c reads it once, on the first entry to the globe, 0x4000), so the globe
 opens centred on L and A selects it; the game loads it its own way (mission
 intro, bonus-level page, sequence).  The poke is `CMP_POKE` / `compare.py emu
@@ -1094,8 +1094,8 @@ and the never-written vertex fields of several builders (sprites, boxes,
 globe icons, water) get the N64's old bytes.  When the matched globe display
 list (hd_front_end func_801F1568) changed the NM ROM's CPU timing, three
 more such races showed up (lvfix agent): the mode-0x40 start time
-(func_80244930:4A54), the ghost recorder's sample time (func_80294F00) and
-the retrace handler's freeze test (func_80271358:8BD0, PORT_EMU).
+(hd_main_thread:4A54), the ghost recorder's sample time (func_80294F00) and
+the retrace handler's freeze test (__scHandleRetrace:8BD0, PORT_EMU).
 
 Debugging what native code wrote: `--watch F:ADDR[:N]` logs the first N
 writes to ADDR's 4 KB page from frame F on (rip and the stack's code

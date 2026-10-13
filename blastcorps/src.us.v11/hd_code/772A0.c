@@ -85,10 +85,10 @@ void func_802BBA60(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp) {
     TriSideOut tri;
 
     D_803EFEA4 = data;
-    heap = D_80358070;
+    heap = gHeapPtr;
     D_803EFEA8 = (u64 *) heap;
     D_803EFEAC = (u64 *) (heap + 0x800);
-    D_80358070 = heap + 0x1000;
+    gHeapPtr = heap + 0x1000;
     func_802A1388(7, 0, (s32) D_803EFEA8, (s32) D_803EFEAC, data);
     func_802A754C(veh);
     VEH_S16(veh, 0x52) = 0x50;

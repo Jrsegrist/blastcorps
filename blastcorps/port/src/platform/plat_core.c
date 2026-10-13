@@ -13,7 +13,7 @@ PlatStats plat_stats;
 #define G_VICOUNT (*(u32 *) 0x803156C4)   /* the game's retrace counter */
 
 /* the boot entry in hd_code (00000.c); init.us.v11's job is done natively */
-extern void func_802447C0(void);
+extern void hd_boot(void);
 
 /* ---- front-end overlay ------------------------------------------------------ */
 /* The front end (0x801E7000-0x8021ED00) is inflated from the ROM whenever the
@@ -186,6 +186,6 @@ void plat_start(const HostOpts *o) {
         plat_sync_load(o->sync_path);
     }
 
-    func_802447C0();   /* osInitialize, debug command line, idle thread */
+    hd_boot();   /* osInitialize, debug command line, idle thread */
     plat_run();
 }

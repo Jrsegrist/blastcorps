@@ -74,7 +74,7 @@ s32 func_802D22F4(s32 a3, s32 s0, s32 s1, VehMtxOut *out);
 #ifdef NON_MATCHING
 /* Spawn vehicle type 15 (called from the level-object dispatcher
  * func_802A350C with a spawn record decoded into registers): model `model`
- * (D_803FC5B4), two 0x100-byte matrix buffers taken from D_80358070 (into
+ * (D_803FC5B4), two 0x100-byte matrix buffers taken from gHeapPtr (into
  * D_803FC5B8/BC), func_802A1388(0xF, 0, ...), the record reset
  * (func_802A754C), the wheel offsets at +0x52..+0x68 and speed bands at
  * +0x78..+0x94, position (x, y, z) and heading, the ground slots
@@ -101,10 +101,10 @@ void func_802CF6A0(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s32 t6
     s32 t7;
 
     D_803FC5B4 = model;
-    buf = D_80358070;
+    buf = gHeapPtr;
     D_803FC5B8 = (u64 *) buf;
     D_803FC5BC = (u64 *) (buf + 0x100);
-    D_80358070 = buf + 0x200;
+    gHeapPtr = buf + 0x200;
     func_802A1388(0xF, 0, (s32) D_803FC5B8, (s32) D_803FC5BC, model);
     func_802A754C(v);
     *(s16 *) (v + 0x52) = 0xAF;
@@ -718,10 +718,10 @@ void func_802D07E0(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s32 t6
     s32 t7;
 
     D_803FC984 = model;
-    buf = D_80358070;
+    buf = gHeapPtr;
     D_803FC988 = (u64 *) buf;
     D_803FC98C = (u64 *) (buf + 0x1400);
-    D_80358070 = buf + 0x2800;
+    gHeapPtr = buf + 0x2800;
     func_802A1388(0x10, 1, (s32) D_803FC988, (s32) D_803FC98C, model);
     func_802A754C(v);
     *(s16 *) (v + 0x52) = 0;

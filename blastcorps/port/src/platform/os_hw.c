@@ -245,7 +245,7 @@ static void cull_log(const u32 *dl, u32 size, u32 v) {
 }
 
 /* One 32-bit PI read.  Inside the ROM: the big-endian word, as lw gives it.
- * The game's only use (func_802447C0) reads 16 words at 0xFFB000, past the
+ * The game's only use (hd_boot) reads 16 words at 0xFFB000, past the
  * ROM, as a debug command-line *string*: there the words are returned so
  * that their bytes in host memory spell plat_cfg.cmdline (empty: zeros). */
 s32 osPiRawReadIo(u32 devAddr, u32 *data) {

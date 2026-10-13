@@ -112,19 +112,19 @@ func_802BBEB8: -n 200 --seed 2 \
 
 # Spawn (x t7, y s3, z s0, heading s1, data s2, ground byte fp; saves t0-t5). func_802A992C's FP inputs start at 0
 # in C (fidelity note): its *stack6 slots aren't compared.
-func_802BBA60: -n 200 --heap 0x400=words:0x20,0x40,0x60,0x100 --heap 0x2000 --mem D_80358070=rel:heap1+0x10*int:0:16 \
+func_802BBA60: -n 200 --heap 0x400=words:0x20,0x40,0x60,0x100 --heap 0x2000 --mem gHeapPtr=rel:heap1+0x10*int:0:16 \
     --arg t7=int --arg s3=int --arg s0=int --arg s1=int --arg s2=rel:heap0 --arg fp=int --mem D_803EFDF0:0xA8=rand \
     --mem D_803EFE98:24=rand --mem D_803EFEC0:12=rand --sig func_802BBEB8= \
     --sig func_802A992C=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5
 func_802BBA60: -n 100 --seed 1 \
     --follow func_802A754C,func_802A039C,func_802A03D4,func_802A040C,func_802A0480,func_802A0290,func_802A0320,func_802AA838 \
-    --heap 0x400=words:0x20,0x40,0x60,0x100 --heap 0x2000 --mem D_80358070=rel:heap1 --arg t7=int --arg s3=int --arg s0=int \
+    --heap 0x400=words:0x20,0x40,0x60,0x100 --heap 0x2000 --mem gHeapPtr=rel:heap1 --arg t7=int --arg s3=int --arg s0=int \
     --arg s1=choice:0,0x7FF,0xFFF,0x1000,-1 --arg s2=rel:heap0 --arg fp=int --mem D_803EFDF0:0xA8=rand \
     --mem D_803EFE98:24=rand --mem D_803EFEC0:12=rand --mem D_803EFAF0:0x60=rand --sig func_802BBEB8= \
     --sig func_802A992C=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5
 # the spawn's first frame runs for real (byte +0x9A set: no dust, no collisions)
 func_802BBA60: -n 100 --seed 2 --follow func_802BBEB8,func_802BC3D0 --heap 0x400=words:0x20,0x40,0x60,0x100 --heap 0x2000 \
-    --mem D_80358070=rel:heap1 --arg t7=int --arg s3=int --arg s0=int:-2000:2000 --arg s1=int --arg s2=rel:heap0+0x20 --arg fp=int \
+    --mem gHeapPtr=rel:heap1 --arg t7=int --arg s3=int --arg s0=int:-2000:2000 --arg s1=int --arg s2=rel:heap0+0x20 --arg fp=int \
     --mem D_803EFDF0:0xA8=rand --mem D_803EFE98:24=rand --mem D_803EFEC0:12=rand --mem D_803EFEC8:1=choice:0,1 \
     --mem D_803EFEB4=int:-1000:-1 --mem D_803EFEBC=int:1:1000 --mem D_803EFEB0=int:-100000:100000 \
     --mem D_803EFEB8=int:-100000:100000 --mem D_8035805C:1=choice:0,1 --mem D_803643E0:12=rand --mem D_8036443C:6=rand \

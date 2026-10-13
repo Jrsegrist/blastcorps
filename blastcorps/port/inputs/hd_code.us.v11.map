@@ -56,20 +56,20 @@ Discarded input sections
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/00000.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/00000.c.o
  .gptab.bss     0x00000000       0x28 build_nm/src.us.v11/hd_code/00000.c.o
- .mdebug        0x00000000     0xa1d0 build_nm/src.us.v11/hd_code/00000.c.o
+ .mdebug        0x00000000     0xa224 build_nm/src.us.v11/hd_code/00000.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/22EE0.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/22EE0.c.o
  .gptab.data    0x00000000       0x20 build_nm/src.us.v11/hd_code/22EE0.c.o
  .gptab.bss     0x00000000       0x20 build_nm/src.us.v11/hd_code/22EE0.c.o
- .mdebug        0x00000000     0x12d0 build_nm/src.us.v11/hd_code/22EE0.c.o
+ .mdebug        0x00000000     0x12d8 build_nm/src.us.v11/hd_code/22EE0.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/2C560.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/2C560.c.o
  .gptab.bss     0x00000000       0x28 build_nm/src.us.v11/hd_code/2C560.c.o
- .mdebug        0x00000000     0x17fc build_nm/src.us.v11/hd_code/2C560.c.o
+ .mdebug        0x00000000     0x1844 build_nm/src.us.v11/hd_code/2C560.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/2D810.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/2D810.c.o
  .gptab.bss     0x00000000       0x20 build_nm/src.us.v11/hd_code/2D810.c.o
- .mdebug        0x00000000      0x7d4 build_nm/src.us.v11/hd_code/2D810.c.o
+ .mdebug        0x00000000      0x7d0 build_nm/src.us.v11/hd_code/2D810.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/30430.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/30430.c.o
  .gptab.bss     0x00000000       0x30 build_nm/src.us.v11/hd_code/30430.c.o
@@ -92,10 +92,10 @@ Discarded input sections
  .mdebug        0x00000000      0xba8 build_nm/src.us.v11/hd_code/168B0.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/17210.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/17210.c.o
- .mdebug        0x00000000      0xf44 build_nm/src.us.v11/hd_code/17210.c.o
+ .mdebug        0x00000000      0xf3c build_nm/src.us.v11/hd_code/17210.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/17A70.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/17A70.c.o
- .mdebug        0x00000000      0x730 build_nm/src.us.v11/hd_code/17A70.c.o
+ .mdebug        0x00000000      0x72c build_nm/src.us.v11/hd_code/17A70.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/17E10.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/17E10.c.o
  .mdebug        0x00000000     0x1580 build_nm/src.us.v11/hd_code/17E10.c.o
@@ -105,13 +105,13 @@ Discarded input sections
  .mdebug        0x00000000     0x1780 build_nm/src.us.v11/hd_code/1A630.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/1C460.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/1C460.c.o
- .mdebug        0x00000000     0x1e54 build_nm/src.us.v11/hd_code/1C460.c.o
+ .mdebug        0x00000000     0x1e50 build_nm/src.us.v11/hd_code/1C460.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/1D990.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/1D990.c.o
- .mdebug        0x00000000     0x240c build_nm/src.us.v11/hd_code/1D990.c.o
+ .mdebug        0x00000000     0x2400 build_nm/src.us.v11/hd_code/1D990.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/20460.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/20460.c.o
- .mdebug        0x00000000     0x1878 build_nm/src.us.v11/hd_code/20460.c.o
+ .mdebug        0x00000000     0x1874 build_nm/src.us.v11/hd_code/20460.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/23C20.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/23C20.c.o
  .mdebug        0x00000000     0x2000 build_nm/src.us.v11/hd_code/23C20.c.o
@@ -120,31 +120,31 @@ Discarded input sections
  .mdebug        0x00000000     0x2af4 build_nm/src.us.v11/hd_code/26570.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/2E490.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/2E490.c.o
- .mdebug        0x00000000      0xcc0 build_nm/src.us.v11/hd_code/2E490.c.o
+ .mdebug        0x00000000      0xcb8 build_nm/src.us.v11/hd_code/2E490.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/30C70.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/30C70.c.o
- .mdebug        0x00000000     0x10e8 build_nm/src.us.v11/hd_code/30C70.c.o
+ .mdebug        0x00000000     0x10e4 build_nm/src.us.v11/hd_code/30C70.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/32E00.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/32E00.c.o
- .mdebug        0x00000000     0x11d0 build_nm/src.us.v11/hd_code/32E00.c.o
+ .mdebug        0x00000000     0x11cc build_nm/src.us.v11/hd_code/32E00.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/34430.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/34430.c.o
- .mdebug        0x00000000     0x1580 build_nm/src.us.v11/hd_code/34430.c.o
+ .mdebug        0x00000000     0x1578 build_nm/src.us.v11/hd_code/34430.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/37530.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/37530.c.o
  .mdebug        0x00000000      0xb28 build_nm/src.us.v11/hd_code/37530.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/39050.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/39050.c.o
- .mdebug        0x00000000     0x2350 build_nm/src.us.v11/hd_code/39050.c.o
+ .mdebug        0x00000000     0x2348 build_nm/src.us.v11/hd_code/39050.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/3E4C0.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/3E4C0.c.o
  .mdebug        0x00000000      0xdf4 build_nm/src.us.v11/hd_code/3E4C0.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/405F0.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/405F0.c.o
- .mdebug        0x00000000      0x8ec build_nm/src.us.v11/hd_code/405F0.c.o
+ .mdebug        0x00000000      0x90c build_nm/src.us.v11/hd_code/405F0.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/409D0.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/409D0.c.o
- .mdebug        0x00000000     0x14e4 build_nm/src.us.v11/hd_code/409D0.c.o
+ .mdebug        0x00000000     0x14f0 build_nm/src.us.v11/hd_code/409D0.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/41930.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/41930.c.o
  .mdebug        0x00000000      0xb28 build_nm/src.us.v11/hd_code/41930.c.o
@@ -153,14 +153,14 @@ Discarded input sections
  .mdebug        0x00000000      0xcd8 build_nm/src.us.v11/hd_code/42240.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/43A60.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/43A60.c.o
- .mdebug        0x00000000      0xf14 build_nm/src.us.v11/hd_code/43A60.c.o
+ .mdebug        0x00000000      0xf10 build_nm/src.us.v11/hd_code/43A60.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/45BB0.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/45BB0.c.o
  .gptab.data    0x00000000       0x28 build_nm/src.us.v11/hd_code/45BB0.c.o
- .mdebug        0x00000000     0x1558 build_nm/src.us.v11/hd_code/45BB0.c.o
+ .mdebug        0x00000000     0x1550 build_nm/src.us.v11/hd_code/45BB0.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/46C20.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/46C20.c.o
- .mdebug        0x00000000      0x700 build_nm/src.us.v11/hd_code/46C20.c.o
+ .mdebug        0x00000000      0x708 build_nm/src.us.v11/hd_code/46C20.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/46F60.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/46F60.c.o
  .mdebug        0x00000000      0xa30 build_nm/src.us.v11/hd_code/46F60.c.o
@@ -169,31 +169,31 @@ Discarded input sections
  .mdebug        0x00000000      0x9b0 build_nm/src.us.v11/hd_code/479D0.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/48D00.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/48D00.c.o
- .mdebug        0x00000000     0x192c build_nm/src.us.v11/hd_code/48D00.c.o
+ .mdebug        0x00000000     0x1930 build_nm/src.us.v11/hd_code/48D00.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/4B5E0.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/4B5E0.c.o
  .mdebug        0x00000000     0x14ac build_nm/src.us.v11/hd_code/4B5E0.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/4DA80.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/4DA80.c.o
- .mdebug        0x00000000      0xcd4 build_nm/src.us.v11/hd_code/4DA80.c.o
+ .mdebug        0x00000000      0xcd8 build_nm/src.us.v11/hd_code/4DA80.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/4EBE0.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/4EBE0.c.o
- .mdebug        0x00000000      0xe7c build_nm/src.us.v11/hd_code/4EBE0.c.o
+ .mdebug        0x00000000      0xe74 build_nm/src.us.v11/hd_code/4EBE0.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/50670.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/50670.c.o
- .mdebug        0x00000000      0xf48 build_nm/src.us.v11/hd_code/50670.c.o
+ .mdebug        0x00000000      0xf44 build_nm/src.us.v11/hd_code/50670.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/51690.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/51690.c.o
  .mdebug        0x00000000      0x750 build_nm/src.us.v11/hd_code/51690.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/52D70.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/52D70.c.o
- .mdebug        0x00000000      0xa28 build_nm/src.us.v11/hd_code/52D70.c.o
+ .mdebug        0x00000000      0xa2c build_nm/src.us.v11/hd_code/52D70.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/53220.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/53220.c.o
- .mdebug        0x00000000     0x10e8 build_nm/src.us.v11/hd_code/53220.c.o
+ .mdebug        0x00000000     0x10e4 build_nm/src.us.v11/hd_code/53220.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/55970.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/55970.c.o
- .mdebug        0x00000000      0x4f0 build_nm/src.us.v11/hd_code/55970.c.o
+ .mdebug        0x00000000      0x4ec build_nm/src.us.v11/hd_code/55970.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/55D40.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/55D40.c.o
  .mdebug        0x00000000      0x5c0 build_nm/src.us.v11/hd_code/55D40.c.o
@@ -975,7 +975,7 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x8036bf6c                D_8036BF6C
                 0x8036bf70                D_8036BF70
                 0x8036bf74                D_8036BF74
-                0x8036bf78                D_8036BF78
+                0x8036bf78                gAudioFrameTimer
                 0x8036bf98                D_8036BF98
 
 .bss_2D810      0x8036bfc0       0x20
@@ -998,10 +998,10 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x80800000                        hd_code_TEXT_START = .
  build_nm/src.us.v11/hd_code/00000.c.o(.text)
  .text          0x80800000    0x12ff0 build_nm/src.us.v11/hd_code/00000.c.o
-                0x80800000                func_802447C0
-                0x808000b0                func_80244870
-                0x80800170                func_80244930
-                0x80802e18                func_802475D8
+                0x80800000                hd_boot
+                0x808000b0                hd_idle_thread
+                0x80800170                hd_main_thread
+                0x80802e18                hd_game_frame
                 0x80805b88                func_8024A348
                 0x8080616c                func_8024A92C
                 0x80806618                func_8024ADD8
@@ -1028,13 +1028,13 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x80811028                func_80255628
                 0x808112c8                func_802558C8
                 0x808113f8                func_802559F8
-                0x808114d0                func_80255AD0
-                0x80811734                func_80255D34
-                0x808117c8                func_80255DC8
+                0x808114d0                hd_init
+                0x80811734                hd_check_stack
+                0x808117c8                hd_mode_setup
                 0x80811b7c                func_8025615C
                 0x80812454                func_80256A34
                 0x80812c6c                func_80257234
-                0x80812f48                func_80257490
+                0x80812f48                align_up
                 0x80812fa8                func_802574F0
                 0x80812fcc                func_80257514
  build_nm/src.us.v11/hd_code/12D80.c.o(.text)
@@ -1231,7 +1231,7 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x8082b268                func_8026F644
                 0x8082b450                func_8026F82C
                 0x8082b4cc                func_8026F8A8
-                0x8082b550                func_8026F92C
+                0x8082b550                lowest_set_bit
                 0x8082b65c                func_8026FA38
                 0x8082b774                func_8026FB50
                 0x8082b7d8                func_8026FBB0
@@ -1240,24 +1240,24 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x8082bb14                func_8026FEC4
                 0x8082be04                func_802701A8
                 0x8082c6cc                func_80270A54
-                0x8082c758                func_80270AE0
+                0x8082c758                parse_cmdline
  build_nm/src.us.v11/hd_code/2C560.c.o(.text)
  .text          0x8082c9a0     0x12b0 build_nm/src.us.v11/hd_code/2C560.c.o
-                0x8082c9a0                func_80270D20
-                0x8082cad0                func_80270E50
-                0x8082cb4c                func_80270ECC
-                0x8082cbf4                func_80270F74
-                0x8082cbfc                func_80270F7C
-                0x8082cf34                func_802712B4
-                0x8082cf7c                func_802712FC
-                0x8082cfd8                func_80271358
-                0x8082d25c                func_802715DC
-                0x8082d584                func_80271904
-                0x8082d704                func_80271A84
-                0x8082d8a4                func_80271C24
-                0x8082d964                func_80271CE4
-                0x8082db08                func_80271E88
-                0x8082dbc8                func_80271F48
+                0x8082c9a0                sched_create
+                0x8082cad0                sched_add_client
+                0x8082cb4c                sched_remove_client
+                0x8082cbf4                sched_get_cmd_queue
+                0x8082cbfc                __scMain
+                0x8082cf34                sched_add_task
+                0x8082cf7c                sched_audio_request
+                0x8082cfd8                __scHandleRetrace
+                0x8082d25c                __scHandleRSP
+                0x8082d584                __scHandleRDP
+                0x8082d704                __scTaskComplete
+                0x8082d8a4                __scAppendList
+                0x8082d964                sched_start_next_task
+                0x8082db08                __scYield
+                0x8082dbc8                sched_send_mesg
  build_nm/src.us.v11/hd_code/2D810.c.o(.text)
  .text          0x8082dc50      0xc80 build_nm/src.us.v11/hd_code/2D810.c.o
                 0x8082dc50                func_80271FD0
@@ -1279,7 +1279,7 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x80830870                func_80274BF0
                 0x80830ef0                func_80275270
                 0x80831010                func_80275390
-                0x80831040                func_802753C0
+                0x80831040                areWeFading
                 0x80831078                func_802753F8
  build_nm/src.us.v11/hd_code/30C70.c.o(.text)
  .text          0x808310b0     0x2190 build_nm/src.us.v11/hd_code/30C70.c.o
@@ -1364,9 +1364,9 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x808407f0                func_80284ADC
  build_nm/src.us.v11/hd_code/405F0.c.o(.text)
  .text          0x80840ad0      0x3e0 build_nm/src.us.v11/hd_code/405F0.c.o
-                0x80840ad0                func_80284DB0
-                0x80840b74                func_80284E54
-                0x80840e30                func_80285110
+                0x80840ad0                rsp_init_ucode_table
+                0x80840b74                rsp_send_task
+                0x80840e30                rsp_wait_task
  build_nm/src.us.v11/hd_code/409D0.c.o(.text)
  .text          0x80840eb0      0xf70 build_nm/src.us.v11/hd_code/409D0.c.o
                 0x80840eb0                func_80285190
@@ -1534,7 +1534,7 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
  build_nm/src.us.v11/hd_code/56010.c.o(.text)
  .text          0x808565b0       0x30 build_nm/src.us.v11/hd_code/56010.c.o
                 0x808565b0                func_8029A7D0
-                0x808565c4                func_8029A7E4
+                0x808565c4                debug_printf
  build_nm/src.us.v11/hd_code/56040.c.o(.text)
  .text          0x808565e0     0x73a0 build_nm/src.us.v11/hd_code/56040.c.o
                 0x80856758                func_8029A800
@@ -2127,9 +2127,9 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x808857f0                _binary_assets_hd_code_800E0_data_bin_end
  build_nm/src.us.v11/hd_code/7FB50.c.o(.text)
  .text          0x808857f0     0x43d0 build_nm/src.us.v11/hd_code/7FB50.c.o
-                0x808857f0                func_802C4A40
+                0x808857f0                record_status
                 0x808859c8                func_802C4BF0
-                0x80885cd4                func_802C4E58
+                0x80885cd4                create_status
                 0x8088604c                func_802C5120
                 0x80886504                func_802C5508
                 0x808866b4                func_802C5688
@@ -3259,27 +3259,67 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x8036bb1c                        yoshiState = 0x8036bb1c
                 0x8036bb14                        yoshiDemandV = 0x8036bb14
                 0x8036c778                        postFadeLoop_done = 0x8036c778
-                0x803109d0                        D_803109D0 = 0x803109d0
-                0x80310820                        D_80310820 = 0x80310820
+                0x80310820                        gIdleThread = 0x80310820
+                0x803109d0                        gIdleThreadStack = 0x803109d0
+                0x80310bd0                        gMainThread = 0x80310bd0
+                0x80310d80                        gMainThreadStack = 0x80310d80
+                0x80364a90                        gGameMode = 0x80364a90
+                0x80364a98                        gNextGameMode = 0x80364a98
+                0x80364a88                        gPrevGameMode = 0x80364a88
+                0x80364aa0                        gGameModeAfterNext = 0x80364aa0
+                0x80364ad0                        gFrameStartTime = 0x80364ad0
+                0x80364ac8                        gFrameCpuTime = 0x80364ac8
+                0x80364acc                        gFrameStartLag = 0x80364acc
+                0x802e8bd0                        gPaused = 0x802e8bd0
+                0x802e8bd4                        gUnpauseRequest = 0x802e8bd4
+                0x802e8bd8                        gPauseRequest = 0x802e8bd8
+                0x80358060                        gFramesInMode = 0x80358060
+                0x80358068                        gUnpausedFrames = 0x80358068
+                0x80358070                        gHeapPtr = 0x80358070
+                0x8035806c                        gStaticSegment = 0x8035806c
+                0x802fa268                        gDebugCheats = 0x802fa268
+                0x803150a0                        gDmaMesgQueue = 0x803150a0
+                0x80370c58                        gDmaIoMesg = 0x80370c58
+                0x8039c53c                        saveIt = 0x8039c53c
+                0x80364ae8                        playerNumber = 0x80364ae8
+                0x80364aea                        playerNumberAtStart = 0x80364aea
+                0x802e8bdc                        levelno = 0x802e8bdc
+                0x8039c4b8                        pakBuffer = 0x8039c4b8
+                0x8039c540                        saveLevel = 0x8039c540
+                0x8036ea70                        nss = 0x8036ea70
+                0x8039c4b0                        pakBusy = 0x8039c4b0
+                0x80364af0                        players = 0x80364af0
+                0x80370c50                        frontEndPresent = 0x80370c50
+                0x80315180                        textureDmaMessageQ = 0x80315180
+                0x80358080                        nextdma = 0x80358080
+                0x80358084                        no_palette_dmas = 0x80358084
+                0x803643d9                        cmo_hit_request = 0x803643d9
+                0x80315440                        gScheduler = 0x80315440
+                0x80312d80                        gSchedStack = 0x80312d80
+                0x803156d8                        gMainSchedClient = 0x803156d8
+                0x803153d8                        gTaskDoneQueue = 0x803153d8
+                0x8036bf38                        gLastRetraceTime = 0x8036bf38
+                0x8036bf10                        gPreNmi = 0x8036bf10
+                0x8036bf1c                        gDeferredSwapTask = 0x8036bf1c
+                0x8036e68c                        gRspSlotBusy = 0x8036e68c
+                0x8036e660                        gUcodeText = 0x8036e660
+                0x8036e678                        gUcodeData = 0x8036e678
+                0x8036e698                        gRspTasks = 0x8036e698
+                0x80367750                        gDramStack = 0x80367750
+                0x8036e694                        gRdpOutputBuffer = 0x8036e694
+                0x8036afb0                        gYieldBuffer = 0x8036afb0
+                0x80219f50                        pakToGameMessageQ = 0x80219f50
                 0x80314d80                        D_80314D80 = 0x80314d80
                 0x80314d98                        D_80314D98 = 0x80314d98
-                0x80310d80                        D_80310D80 = 0x80310d80
-                0x80310bd0                        D_80310BD0 = 0x80310bd0
                 0x802fa254                        D_802FA254 = 0x802fa254
                 0x80364a70                        D_80364A70 = 0x80364a70
-                0x80364a90                        D_80364A90 = 0x80364a90
                 0x80364a94                        D_80364A94 = 0x80364a94
-                0x80364a98                        D_80364A98 = 0x80364a98
                 0x80364a9c                        D_80364A9C = 0x80364a9c
-                0x80364aa0                        D_80364AA0 = 0x80364aa0
                 0x803156c4                        D_803156C4 = 0x803156c4
                 0x80219ef8                        D_80219EF8 = 0x80219ef8
-                0x80364ae8                        D_80364AE8 = 0x80364ae8
-                0x80219f50                        D_80219F50 = 0x80219f50
                 0x8039c541                        D_8039C541 = 0x8039c541
                 0x802e8bf8                        D_802E8BF8 = 0x802e8bf8
                 0x80364ae9                        D_80364AE9 = 0x80364ae9
-                0x80364aea                        D_80364AEA = 0x80364aea
                 0x8039c4b4                        D_8039C4B4 = 0x8039c4b4
                 0x80365060                        D_80365060 = 0x80365060
                 0x80364aa4                        D_80364AA4 = 0x80364aa4
@@ -3288,20 +3328,14 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x80365065                        D_80365065 = 0x80365065
                 0x80364ac4                        D_80364AC4 = 0x80364ac4
                 0x8039caa0                        D_8039CAA0 = 0x8039caa0
-                0x802e8bdc                        D_802E8BDC = 0x802e8bdc
                 0x80364a87                        D_80364A87 = 0x80364a87
                 0x803643d5                        D_803643D5 = 0x803643d5
                 0x80364af8                        D_80364AF8 = 0x80364af8
-                0x80364af0                        D_80364AF0 = 0x80364af0
                 0x8039ca60                        D_8039CA60 = 0x8039ca60
                 0x8021a830                        D_8021A830 = 0x8021a830
                 0x8021a834                        D_8021A834 = 0x8021a834
-                0x8036ea70                        D_8036EA70 = 0x8036ea70
                 0x8036ea60                        D_8036EA60 = 0x8036ea60
                 0x8036ea80                        D_8036EA80 = 0x8036ea80
-                0x802e8bd8                        D_802E8BD8 = 0x802e8bd8
-                0x8039c4b8                        D_8039C4B8 = 0x8039c4b8
-                0x802e8bd4                        D_802E8BD4 = 0x802e8bd4
                 0x80364412                        D_80364412 = 0x80364412
                 0x803156c0                        D_803156C0 = 0x803156c0
                 0x80364a58                        D_80364A58 = 0x80364a58
@@ -3334,11 +3368,9 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x80364a60                        D_80364A60 = 0x80364a60
                 0x80315438                        D_80315438 = 0x80315438
                 0x80364a71                        D_80364A71 = 0x80364a71
-                0x8039c53c                        D_8039C53C = 0x8039c53c
                 0x803643d7                        D_803643D7 = 0x803643d7
                 0x802e8f94                        D_802E8F94 = 0x802e8f94
                 0x8039c4f8                        D_8039C4F8 = 0x8039c4f8
-                0x8039c540                        D_8039C540 = 0x8039c540
                 0x80364a5c                        D_80364A5C = 0x80364a5c
                 0x80365066                        D_80365066 = 0x80365066
                 0x8036eb92                        D_8036EB92 = 0x8036eb92
@@ -3351,28 +3383,16 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x803047b4                        D_803047B4 = 0x803047b4
                 0x803047dc                        D_803047DC = 0x803047dc
                 0x80364a8c                        D_80364A8C = 0x80364a8c
-                0x80364ad0                        D_80364AD0 = 0x80364ad0
-                0x8036bf38                        D_8036BF38 = 0x8036bf38
                 0x8036bf3c                        D_8036BF3C = 0x8036bf3c
-                0x80364acc                        D_80364ACC = 0x80364acc
                 0x80364ad4                        D_80364AD4 = 0x80364ad4
-                0x80364ac8                        D_80364AC8 = 0x80364ac8
-                0x8036e68c                        D_8036E68C = 0x8036e68c
-                0x80358060                        D_80358060 = 0x80358060
-                0x802e8bd0                        D_802E8BD0 = 0x802e8bd0
-                0x80358068                        D_80358068 = 0x80358068
                 0x803643d6                        D_803643D6 = 0x803643d6
-                0x802fa268                        D_802FA268 = 0x802fa268
                 0x80370c28                        D_80370C28 = 0x80370c28
                 0x80370c2a                        D_80370C2A = 0x80370c2a
                 0x803643da                        D_803643DA = 0x803643da
-                0x803643d9                        D_803643D9 = 0x803643d9
                 0x8036eb90                        D_8036EB90 = 0x8036eb90
                 0x803f7688                        D_803F7688 = 0x803f7688
                 0x8036eb93                        D_8036EB93 = 0x8036eb93
                 0x8036ea79                        D_8036EA79 = 0x8036ea79
-                0x80358080                        D_80358080 = 0x80358080
-                0x80358084                        D_80358084 = 0x80358084
                 0x803a7426                        D_803A7426 = 0x803a7426
                 0x8035805c                        D_8035805C = 0x8035805c
                 0x803156f8                        D_803156F8 = 0x803156f8
@@ -3404,7 +3424,6 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x8036bb34                        D_8036BB34 = 0x8036bb34
                 0x80370c22                        D_80370C22 = 0x80370c22
                 0x8036443c                        D_8036443C = 0x8036443c
-                0x80364a88                        D_80364A88 = 0x80364a88
                 0x80364a84                        D_80364A84 = 0x80364a84
                 0x8039ca62                        D_8039CA62 = 0x8039ca62
                 0x803ed40c                        D_803ED40C = 0x803ed40c
@@ -3432,7 +3451,6 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x80367bc8                        D_80367BC8 = 0x80367bc8
                 0x802f8be4                        D_802F8BE4 = 0x802f8be4
                 0x80367bd6                        D_80367BD6 = 0x80367bd6
-                0x80315180                        D_80315180 = 0x80315180
                 0x80315188                        D_80315188 = 0x80315188
                 0x803649dc                        D_803649DC = 0x803649dc
                 0x803649e0                        D_803649E0 = 0x803649e0
@@ -3571,20 +3589,13 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x80364418                        D_80364418 = 0x80364418
                 0x803150b8                        D_803150B8 = 0x803150b8
                 0x80315198                        D_80315198 = 0x80315198
-                0x80312d80                        D_80312D80 = 0x80312d80
-                0x80315440                        D_80315440 = 0x80315440
-                0x803153d8                        D_803153D8 = 0x803153d8
                 0x803153f8                        D_803153F8 = 0x803153f8
-                0x803156d8                        D_803156D8 = 0x803156d8
                 0x80000400                        D_80000400 = 0x80000400
                 0x8021ed00                        D_8021ED00 = 0x8021ed00
                 0x80358058                        D_80358058 = 0x80358058
                 0x802fdbd0                        D_802FDBD0 = 0x802fdbd0
                 0x802fdbd4                        D_802FDBD4 = 0x802fdbd4
                 0x803ff600                        D_803FF600 = 0x803ff600
-                0x8035806c                        D_8035806C = 0x8035806c
-                0x80358070                        D_80358070 = 0x80358070
-                0x8036e694                        D_8036E694 = 0x8036e694
                 0x803b9888                        D_803B9888 = 0x803b9888
                 0x80358088                        D_80358088 = 0x80358088
                 0x803669b4                        D_803669B4 = 0x803669b4
@@ -3592,8 +3603,6 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x80364a6b                        D_80364A6B = 0x80364a6b
                 0x80364a6d                        D_80364A6D = 0x80364a6d
                 0x803a7430                        D_803A7430 = 0x803a7430
-                0x80370c50                        D_80370C50 = 0x80370c50
-                0x8039c4b0                        D_8039C4B0 = 0x8039c4b0
                 0x80219f58                        D_80219F58 = 0x80219f58
                 0x80218ee0                        D_80218EE0 = 0x80218ee0
                 0x80218d30                        D_80218D30 = 0x80218d30
@@ -3950,8 +3959,6 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x802fa260                        D_802FA260 = 0x802fa260
                 0x802fa264                        D_802FA264 = 0x802fa264
                 0x802fa26c                        D_802FA26C = 0x802fa26c
-                0x8036bf10                        D_8036BF10 = 0x8036bf10
-                0x8036bf1c                        D_8036BF1C = 0x8036bf1c
                 0x80306e70                        D_80306E70 = 0x80306e70
                 0xa4100008                        D_A4100008 = 0xa4100008
                 0xa4100004                        D_A4100004 = 0xa4100004
@@ -4183,15 +4190,10 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x802fd9b0                        D_802FD9B0 = 0x802fd9b0
                 0x802fd7f0                        D_802FD7F0 = 0x802fd7f0
                 0x80207090                        D_80207090 = 0x80207090
-                0x8036e660                        D_8036E660 = 0x8036e660
                 0x80210690                        D_80210690 = 0x80210690
-                0x8036e678                        D_8036E678 = 0x8036e678
                 0x802e53f0                        D_802E53F0 = 0x802e53f0
                 0x8030e390                        D_8030E390 = 0x8030e390
-                0x8036e698                        D_8036E698 = 0x8036e698
                 0x802e6820                        D_802E6820 = 0x802e6820
-                0x80367750                        D_80367750 = 0x80367750
-                0x8036afb0                        D_8036AFB0 = 0x8036afb0
                 0x802e8c44                        D_802E8C44 = 0x802e8c44
                 0x80364ef0                        D_80364EF0 = 0x80364ef0
                 0x80364b08                        D_80364B08 = 0x80364b08
@@ -4272,8 +4274,6 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x80370bc0                        D_80370BC0 = 0x80370bc0
                 0x802fdb34                        D_802FDB34 = 0x802fdb34
                 0x802fdb30                        D_802FDB30 = 0x802fdb30
-                0x803150a0                        D_803150A0 = 0x803150a0
-                0x80370c58                        D_80370C58 = 0x80370c58
                 0x80370c70                        D_80370C70 = 0x80370c70
                 0x80370c76                        D_80370C76 = 0x80370c76
                 0x80370c72                        D_80370C72 = 0x80370c72
@@ -5273,8 +5273,8 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 [!provide]                        PROVIDE (func_802D4560 = osCreatePiManager)
                 0x00787f40                        D_00787F40 = 0x787f40
                 0x00788000                        D_00788000 = 0x788000
-                0x80364a90                        D_80364A90 = 0x80364a90
-                0x80364a98                        D_80364A98 = 0x80364a98
+                0x80364a90                        gGameMode = 0x80364a90
+                0x80364a98                        gNextGameMode = 0x80364a98
                 0x01000010                        D_01000010 = 0x1000010
                 0x004a5660                        D_004A5660 = 0x4a5660
                 0x004acc10                        D_004ACC10 = 0x4acc10

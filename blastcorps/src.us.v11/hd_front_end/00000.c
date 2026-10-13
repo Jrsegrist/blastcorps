@@ -12,7 +12,7 @@
 #define D_802E8F94 ((LevelInfo *) D_802E8F94)
 #define D_802F47B0 ((u8 *) D_802F47B0)
 #define D_803156F8 ((FeDyn *) D_803156F8)
-#define D_80364AF0 ((Player *) D_80364AF0)
+#define players ((Player *) players)
 /* end of views */
 
 /* digger_loop.c: the vehicle ("digger") select screen. */
@@ -100,7 +100,7 @@ void func_802025D0(u8, u32);
 /* Rare's assert; line numbers are the original digger_loop.c's */
 #define DIGGER_ASSERT(EX, line) \
     if (!(EX)) \
-    func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "digger_loop.c", line)
+    debug_printf("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "digger_loop.c", line)
 
 #define ABS(x) ((x) > 0.0f ? (x) : -(x))
 
@@ -119,15 +119,15 @@ s32 func_801E7000(void) {
 
     D_80211A68 = 0;
     x = 0;
-    level = &D_802E8F94[D_802E8BDC];
+    level = &D_802E8F94[levelno];
     D_80211A6A = 0;
     unused = 0xE73C;
     D_802153E8 = D_803643D4;
     func_8029DEA0();
     for (i = 0; i < 19; i++) {
         slot[i] = -1;
-        if ((D_80364AF0[D_80364AEA].unk10 & (1 << i) & level->unk2C) &&
-            (D_80364AE8 == D_80364AEA || D_80364EF0[D_80364AEA][D_802E8C44[i]] != 0)) {
+        if ((players[playerNumberAtStart].unk10 & (1 << i) & level->unk2C) &&
+            (playerNumber == playerNumberAtStart || D_80364EF0[playerNumberAtStart][D_802E8C44[i]] != 0)) {
             func_80202100(i, (u8 * N64P *) &D_80210E90[D_80211A6A], (u8 * N64P *) D_80210EE0[D_80211A6A], (u8 * N64P *) D_80210F78[D_80211A6A]);
             D_80211A70[i] = x;
             x += 380.0;
@@ -145,9 +145,9 @@ s32 func_801E7000(void) {
     guRotate(&D_80211A28, 20.0f, 1.0f, 0.0f, 0.0f);
     mid = (D_80211A6A - 1) / 2;
     sel = -1;
-    switch (D_80364A90) {
+    switch (gGameMode) {
         case 0x80:
-            sel = slot[D_80364AF0[D_80364AE8].unk92[D_802E8BDC]];
+            sel = slot[players[playerNumber].unk92[levelno]];
             break;
         case 4:
         case 0x100:
@@ -160,7 +160,7 @@ s32 func_801E7000(void) {
             DIGGER_ASSERT(1==0, 139);
             break;
     }
-    func_8029A7E4("default %d auto %d\n", mid, sel);
+    debug_printf("default %d auto %d\n", mid, sel);
     func_801E74E8(sel == -1 ? mid : sel);
     D_802153D8 = D_802153D4;
     D_802153E0 = D_802153DC * 4.0;
@@ -195,8 +195,8 @@ void func_801E7598(void) {
     Gfx *gdl = dyn->dl;
 
     func_8028A3E4();
-    D_80358080 = 0;
-    D_80358084 = 0;
+    nextdma = 0;
+    no_palette_dmas = 0;
     func_802A5720();
 #ifdef NON_MATCHING
     /* The asm takes its param (the texture decoder's type-4/5 table) in $fp,
@@ -207,25 +207,25 @@ void func_801E7598(void) {
     func_8029E0AC();
 #endif
     func_8028A470();
-    if (D_80358060 >= 11 && !func_802753C0()) {
+    if (gFramesInMode >= 11 && !areWeFading()) {
         if ((D_80370C28 & 0x9000) && !(D_80370C2A & 0x9000)) {
             func_80275390(0x2000);
             func_80260650(D_80367738, 0x1E, 0);
         } else if ((D_80370C28 & 0x4000) && !(D_80370C2A & 0x4000)) {
             func_80260650(D_80367738, 0xDE, 0);
             D_803643D4 = D_802153E8;
-            switch (D_80364A88) {
+            switch (gPrevGameMode) {
                 case 0x80:
                 case 0x8000000:
-                    D_80364A98 = D_80364A88;
+                    gNextGameMode = gPrevGameMode;
                     break;
                 default:
-                    D_80364A98 = 0x4000;
+                    gNextGameMode = 0x4000;
                     break;
             }
         }
     }
-    if (D_80370C2C < -10 && !func_802753C0()) {
+    if (D_80370C2C < -10 && !areWeFading()) {
         if (D_80370C2E < -10) {
             if (D_80211A68 > 0) {
                 D_802153E4 -= D_80370C2C;
@@ -234,10 +234,10 @@ void func_801E7598(void) {
             D_802153E4 = 750;
         }
     }
-    if ((D_80370C28 & 0x200) && !(D_80370C2A & 0x200) && !func_802753C0()) {
+    if ((D_80370C28 & 0x200) && !(D_80370C2A & 0x200) && !areWeFading()) {
         D_802153E4 = 750;
     }
-    if (D_80370C2C > 10 && !func_802753C0()) {
+    if (D_80370C2C > 10 && !areWeFading()) {
         if (D_80370C2E > 10) {
             if (D_80211A68 < D_80211A6A - 1) {
                 D_802153E6 += D_80370C2C;
@@ -246,7 +246,7 @@ void func_801E7598(void) {
             D_802153E6 = 750;
         }
     }
-    if ((D_80370C28 & 0x100) && !(D_80370C2A & 0x100) && !func_802753C0()) {
+    if ((D_80370C28 & 0x100) && !(D_80370C2A & 0x100) && !areWeFading()) {
         D_802153E6 = 750;
     }
     if (D_8035805C == 0 && D_802153E4 >= 750) {
@@ -263,11 +263,11 @@ void func_801E7598(void) {
         }
         D_802153E6 -= 750;
     }
-    func_80284E54((u64 *) (D_803156F8[D_8035805C].dl), D_80358078, 1, 1, 0x4D2, 0);
+    rsp_send_task((u64 *) (D_803156F8[D_8035805C].dl), D_80358078, 1, 1, 0x4D2, 0);
     D_8035805C ^= 1;
     gSPSegment(gdl++, 0, 0);
     gSPSegment(gdl++, 2, osVirtualToPhysical(dyn));
-    gSPSegment(gdl++, 1, osVirtualToPhysical(D_8035806C));
+    gSPSegment(gdl++, 1, osVirtualToPhysical(gStaticSegment));
     gSPDisplayList(gdl++, D_01000038);
     gSPDisplayList(gdl++, D_01000010);
     gDPSetCycleType(gdl++, G_CYC_FILL);
@@ -295,7 +295,7 @@ void func_801E7598(void) {
                       0xFF, 0xFF, D_802081B0, 0, 0xFF);
     }
     func_80259C24(&gdl, (Mtx *) dyn);
-    if (D_80358060 < 2) {
+    if (gFramesInMode < 2) {
         guPerspective(&dyn->unk1240, &D_8035807C, 45.0f, 1.3333334f, 40.0f, 4000.0f, 1.0f);
     }
     D_802153D8 = D_802153D8 + (D_802153D4 - D_802153D8) * 0.1 * 60.0 / 60.0;
@@ -376,10 +376,10 @@ void func_801E7598(void) {
     gDPFullSync(gdl++);
     gSPEndDisplayList(gdl++);
     D_80358078 = gdl - dyn->dl;
-    for (i = 0; i < D_80358080; i++) {
-        osRecvMesg(&D_80315180, NULL, 1);
+    for (i = 0; i < nextdma; i++) {
+        osRecvMesg(&textureDmaMessageQ, NULL, 1);
     }
-    for (i = 0; i < D_80358080 - D_80358084; i++) {
+    for (i = 0; i < nextdma - no_palette_dmas; i++) {
         func_802A57AC();
     }
 }

@@ -32,9 +32,9 @@ struct VtxBuf;
 /* hd_code/00000.c */
 Gfx *func_8024C404(Gfx *arg0, DynamicBuf *arg1, s32 *arg2);
 void func_8024FC2C(Gfx **gfx, u8 lod);
-void func_80255DC8(void);
+void hd_mode_setup(void);
 void func_80256A34(s32 arg0);
-void func_80257490(s32 *arg0, s32 arg1);
+void align_up(s32 *arg0, s32 arg1);
 f32 func_802574F0(f32 arg0);
 f32 func_80257514(f32 arg0);
 
@@ -175,20 +175,20 @@ void func_8026B8F8(void);
 #ifndef LEGACY_func_8026BBD0
 Gfx *func_8026BBD0(Gfx *gfx, s32 arg1, s32 *count);
 #endif
-s32 func_8026F92C(u64 in);
+s32 lowest_set_bit(u64 in);
 u8 func_8026FA38(char * N64P *name, s32 *arg1);
 void func_8026FBB0(s16 *pos, s16 *end);
 u8 func_8026FE6C(s32 arg0);
 void func_8026FE8C(s32 arg0);
 void func_8026FEC4(void);
 void func_802701A8(Gfx **gfx, s32 arg1);
-void func_80270AE0(u8 *cmdline);
+void parse_cmdline(u8 *cmdline);
 
 /* hd_code/2C560.c */
-void func_80270D20(struct BcSched *sc, void *stack, OSPri priority, u8 mode, u8 numFields);
-void func_80270E50(struct BcSched *sc, struct BcScClient *c, OSMesgQueue *msgQ, s32 arg3, s32 arg4);
-void func_80270ECC(struct BcSched *sc, struct BcScClient *c);
-void *func_80270F74(void *arg0);
+void sched_create(struct BcSched *sc, void *stack, OSPri priority, u8 mode, u8 numFields);
+void sched_add_client(struct BcSched *sc, struct BcScClient *c, OSMesgQueue *msgQ, s32 arg3, s32 arg4);
+void sched_remove_client(struct BcSched *sc, struct BcScClient *c);
+void *sched_get_cmd_queue(void *arg0);
 
 /* hd_code/2D810.c */
 Gfx *func_80271FD0(Gfx *gfx, u32 arg1, u16 level, s16 arg3, s16 arg4, s32 *height);
@@ -208,7 +208,7 @@ void func_80274B40(Gfx **gfx, s32 arg1, u8 arg2, s16 arg3, s16 arg4);
 Gfx *func_80274BF0(s32 arg0, Gfx *gfx);
 void func_80275270(u64 next, f32 speed);
 void func_80275390(u64 next);
-s32 func_802753C0(void);
+s32 areWeFading(void);
 s32 func_802753F8(void);
 
 /* hd_code/30C70.c */
@@ -268,9 +268,9 @@ void func_80282C80(Gfx **gfxp, Mtx *mtx, s32 x, s32 y, s32 z, s32 x2, s32 y2, s3
 void func_8028376C(Gfx **gfxp, Mtx *mtx, u8 idx, s32 x, s32 z, s32 x2, s32 z2);
 
 /* hd_code/405F0.c */
-void func_80284DB0(void);
-void func_80284E54(u64 *data, s32 count, u8 slot, u8 yield, s32 id, u8 writebackAll);
-void func_80285110(s32 id);
+void rsp_init_ucode_table(void);
+void rsp_send_task(u64 *data, s32 count, u8 slot, u8 yield, s32 id, u8 writebackAll);
+void rsp_wait_task(s32 id);
 
 /* hd_code/409D0.c */
 void func_80285190(void);
@@ -410,7 +410,7 @@ void func_8029A500(void);
 Gfx *func_8029A518(Gfx * N64P *gfxp, Gfx *gfx);
 
 /* hd_code/56010.c */
-void func_8029A7E4(const char *fmt, ...);
+void debug_printf(const char *fmt, ...);
 
 /* hd_code/56040.c */
 void func_8029A800(s32 z, s32 a1, s32 b2, s32 b3, s32 x, s32 y, s32 b0, s32 h1, s32 h2, s32 b4, s32 b8, u8 *veh);
@@ -749,9 +749,9 @@ void func_802C4584(s32 level);
 void func_802C4724(s32 sfx);
 
 /* hd_code/7FB50.c */
-s32 func_802C4A40(u8 *out);
+s32 record_status(u8 *out);
 void func_802C4BF0(void *in);
-u32 func_802C4E58(void *outp, u8 level);
+u32 create_status(void *outp, u8 level);
 void func_802C5120(s32 x, s32 y, s32 z, s32 heading, u8 *model, s32 fp);
 s32 func_802C5508(void);
 void func_802C5688(void);

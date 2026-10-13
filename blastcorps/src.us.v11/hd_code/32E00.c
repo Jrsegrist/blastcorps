@@ -80,9 +80,9 @@ void func_80277B84(void);
 
 void func_802775C0(void) {
     D_8036CB34 = 0;
-    D_8036CB48[0] = D_80358070;
-    D_8036CB48[1] = D_80358070 = (u8 *) D_80358070 + 0xC80;
-    D_80358070 = (u8 *) D_80358070 + 0xC80;
+    D_8036CB48[0] = gHeapPtr;
+    D_8036CB48[1] = gHeapPtr = (u8 *) gHeapPtr + 0xC80;
+    gHeapPtr = (u8 *) gHeapPtr + 0xC80;
     D_8036CB28 = 0;
     D_8036CB29 = 0;
 }
@@ -141,7 +141,7 @@ void func_802778FC(void) {
                 func_80277EDC(3, 1, 1, 0x63);
                 D_8036CB28 = 0;
                 D_8036CB29 = 0;
-                func_8029A7E4("DOING REALLY WELL\n");
+                debug_printf("DOING REALLY WELL\n");
             }
             break;
         case 4:
@@ -149,7 +149,7 @@ void func_802778FC(void) {
                 func_80277EDC(4, 1, 1, func_8026205C(4));
                 D_8036CB28 = 0;
                 D_8036CB29 = 0;
-                func_8029A7E4("DOING REALLY WELL\n");
+                debug_printf("DOING REALLY WELL\n");
             }
             break;
         case 3:
@@ -157,7 +157,7 @@ void func_802778FC(void) {
                 func_80277EDC(0, 1, 3, 0xB2);
                 D_8036CB28 = 0;
                 D_8036CB29 = 0;
-                func_8029A7E4("DOING REALLY WELL\n");
+                debug_printf("DOING REALLY WELL\n");
             }
             break;
         case 9:
@@ -165,7 +165,7 @@ void func_802778FC(void) {
                 func_80277EDC(4, 1, 1, func_8026205C(4));
                 D_8036CB28 = 0;
                 D_8036CB29 = 0;
-                func_8029A7E4("DOING REALLY WELL\n");
+                debug_printf("DOING REALLY WELL\n");
             }
             break;
     }
@@ -181,7 +181,7 @@ void func_80277AE0(void) {
                 func_80277EDC(1, 1, 3, 0xB3);
                 D_8036CB28 = 0;
                 D_8036CB29 = 0;
-                func_8029A7E4("USING WRONG DIGGER\n");
+                debug_printf("USING WRONG DIGGER\n");
             }
             break;
     }
@@ -196,7 +196,7 @@ void func_80277B84(void) {
                 func_80277EDC(2, 1, 2, 0x58);
                 D_8036CB28 = 0;
                 D_8036CB29 = 0;
-                func_8029A7E4("USING DIGGER INCORRECTLY\n");
+                debug_printf("USING DIGGER INCORRECTLY\n");
             }
             break;
     }
@@ -297,7 +297,7 @@ void func_80277EDC(type, arg1, arg2, sound)
     u8 pos;
 #endif
 
-    if ((D_80364A90 & 0x200000000400220C) && !D_8036CB34) {
+    if ((gGameMode & 0x200000000400220C) && !D_8036CB34) {
         if (sound) {
             func_80260650(D_80367738, sound, NULL);
         }

@@ -63,6 +63,11 @@ def new(name):
     return _maps()[0].get(name, name)
 
 
+def game_functions():
+    """the new names of renamed game functions (old name func_XXXXXXXX), sorted"""
+    return sorted(n for o, n in _maps()[0].items() if o.startswith("func_"))
+
+
 def addr_of(name):
     """the N64 address an address name (or a renamed one) stands for, or None"""
     m = ADDR_NAME.match(orig(name))

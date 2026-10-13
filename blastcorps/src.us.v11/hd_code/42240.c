@@ -4,12 +4,12 @@
 /* Matching build: IDO compiled the matched code here against older
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
-#define LEGACY_D_80358070
+#define LEGACY_gHeapPtr
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #ifdef NON_MATCHING
-#define D_80358070 (*(u32 *) &D_80358070)
+#define gHeapPtr (*(u32 *) &gHeapPtr)
 #endif
 /* end of views */
 
@@ -31,7 +31,7 @@ void port_vtx_stale(void *v, u32 n);
 #endif
 
 #ifndef NON_MATCHING
-extern u32 D_80358070; /* heap pointer */
+extern u32 gHeapPtr; /* heap pointer */
 #endif
 
 /* dial */
@@ -53,12 +53,12 @@ extern s16 D_8036EC28;
 /* Load the dial texture (0x760) and build its vertices */
 void func_80286A00(void) {
     D_80364A68 = 1;
-    D_8036EC00 = D_80358070;
+    D_8036EC00 = gHeapPtr;
     func_802A0CC8(0x760, 0);
-    D_8036EC08 = (Mtx *) D_80358070;
-    D_8036EC0C = (Mtx *) (D_80358070 += 0x80);
-    D_8036EC04 = (Vtx *) (D_80358070 += 0x80);
-    D_80358070 += 0x80;
+    D_8036EC08 = (Mtx *) gHeapPtr;
+    D_8036EC0C = (Mtx *) (gHeapPtr += 0x80);
+    D_8036EC04 = (Vtx *) (gHeapPtr += 0x80);
+    gHeapPtr += 0x80;
 #ifdef PORT_HOST
     port_vtx_stale(D_8036EC04, 8);
 #endif
@@ -150,10 +150,10 @@ void func_80286C60(Gfx **gfxp, s32 arg1, u8 frame, u8 arg3) {
 /* Load icon 1 (0x996) and build its quad */
 void func_802873AC(void) {
     D_80364A6A = 1;
-    D_8036EC14 = D_80358070;
+    D_8036EC14 = gHeapPtr;
     func_802A0CC8(0x996, 0);
-    D_8036EC18 = (Vtx *) D_80358070;
-    D_80358070 += 0x40;
+    D_8036EC18 = (Vtx *) gHeapPtr;
+    gHeapPtr += 0x40;
 #ifdef PORT_HOST
     port_vtx_stale(D_8036EC18, 4);
 #endif
@@ -226,10 +226,10 @@ void func_80287530(Gfx **gfxp, Gfx * N64P *gfxp2, u8 frame, u8 arg3) {
 /* Load icon 2 (0x998) and build its quad */
 void func_80287AE4(void) {
     D_80364A6C = 1;
-    D_8036EC20 = D_80358070;
+    D_8036EC20 = gHeapPtr;
     func_802A0CC8(0x998, 0);
-    D_8036EC24 = (Vtx *) D_80358070;
-    D_80358070 += 0x40;
+    D_8036EC24 = (Vtx *) gHeapPtr;
+    gHeapPtr += 0x40;
 #ifdef PORT_HOST
     port_vtx_stale(D_8036EC24, 4);
 #endif

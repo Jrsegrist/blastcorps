@@ -27,7 +27,7 @@ extern RecEntry D_80365588[];
 extern u16 D_802E8CB0[]; /* sprite ids (func_80272C5C) */
 
 
-#define ASSERT(EX, line) if (!(EX)) func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "recording.c", line)
+#define ASSERT(EX, line) if (!(EX)) debug_printf("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "recording.c", line)
 
 void func_8025B9D0(s32 arg0, s32 *arg1) {
     s32 i;
@@ -40,10 +40,10 @@ void func_8025B9D0(s32 arg0, s32 *arg1) {
 
     rom = D_006A9F10;
     size = D_006AD3F0 - rom;
-    p = D_80358070;
+    p = gHeapPtr;
     func_8028B4C4((u32) rom, (u32) p, (u32 *) &size, 9, 0, 1);
-    D_80358070 = (u8 *) D_80358070 + size;
-    func_80257490((s32 *) &D_80358070, 0x10);
+    gHeapPtr = (u8 *) gHeapPtr + size;
+    align_up((s32 *) &gHeapPtr, 0x10);
     for (i = 0; i < arg0; i++) {
         len = *(s16 *) (p + 0x140C);
         p = p + len + 0x140E;
@@ -56,7 +56,7 @@ void func_8025B9D0(s32 arg0, s32 *arg1) {
     D_803669AC = (RecEntry *) (p + 0xC);
     len = *(s16 *) (p + 0x140C);
     p = p + 0x140E;
-    func_80257490((s32 *) ((void **) &p), 2);
+    align_up((s32 *) ((void **) &p), 2);
     D_803669B0 = p;
     D_80366994 = 0;
     D_803669A0 = D_803669AC->count;
@@ -78,7 +78,7 @@ void func_8025BB50(void) {
 
 void func_8025BBE8(u16 buttons, s8 x, s8 y) {
     if (D_803669A8 == 0) {
-        if (buttons != D_803669A4 || x != D_803669A6 || y != D_803669A7 || D_8036699C == 0xFF || D_80364A98 != 0) {
+        if (buttons != D_803669A4 || x != D_803669A6 || y != D_803669A7 || D_8036699C == 0xFF || gNextGameMode != 0) {
             if (D_80366990 < 0x400) {
                 D_80365588[D_80366990].btnHi = D_803669A4 >> 8;
                 D_80365588[D_80366990].btnLo = D_803669A4 & 0xFF;
@@ -148,24 +148,24 @@ void func_8025BD98(void) {
 void func_8025BEF8(void) {
     s32 pad[2];
 
-    if (D_80366994 > D_80366998 || (D_803643DB && D_803643D6 && (D_80364A90 & 0x440))) {
-        if (yoshiState != 1 || ((D_80364A90 & 0x440) && !D_80364A50)) {
-            if (!D_802E8BD0) {
-                D_802E8BD8 = 1;
+    if (D_80366994 > D_80366998 || (D_803643DB && D_803643D6 && (gGameMode & 0x440))) {
+        if (yoshiState != 1 || ((gGameMode & 0x440) && !D_80364A50)) {
+            if (!gPaused) {
+                gPauseRequest = 1;
             }
-        } else if (!func_802753C0()) {
-            switch (D_80364A90) {
+        } else if (!areWeFading()) {
+            switch (gGameMode) {
                 case 2:
                     func_80275270(2, 0.25f);
                     break;
                 case 0x100000000000:
-                    func_8029A7E4("sequence playback over\n");
+                    debug_printf("sequence playback over\n");
                     func_80275390(0x200000000000);
                     break;
                 case 0x40:
                 case 0x400:
-                    D_802E8BD8 = 1;
-                    if (D_80364A90 == 0x400) {
+                    gPauseRequest = 1;
+                    if (gGameMode == 0x400) {
                         func_80275270(0x40, 1.25f);
                     } else {
                         func_80275270(0x40, 0.5f);
@@ -184,7 +184,7 @@ void func_8025BEF8(void) {
             D_80366994++;
             D_803669A0 = D_803669AC[D_80366994].count;
         }
-        if ((D_80364A90 & 0x100000000002) && D_8036698C != 9) {
+        if ((gGameMode & 0x100000000002) && D_8036698C != 9) {
             if ((D_80370C30 & 0xC000) == 0x8000) {
                 D_80370C30 &= ~0x8000;
                 D_80370C30 |= 0x4000;

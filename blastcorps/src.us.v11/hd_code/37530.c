@@ -66,7 +66,7 @@ s32 func_8027BCF0(x, y, z)
     Zone *end;
 
     do {
-        if (D_802FC360[i].level == D_802E8BDC) {
+        if (D_802FC360[i].level == levelno) {
             found = 1;
         } else {
             i++;
@@ -132,7 +132,7 @@ void func_8027BE7C(u8 period, s32 y, s16 x1, s16 z1, s16 x2, s16 z2, s32 x, s32 
     c2z = (s32) ((f32) z + p2z) >> 5;
     y >>= 5;
     guMtxXFMF(mf, halfw, 0.0f, 0.0f, &hx, &py, &hz);
-    if (D_8036DC94 + 1 != ((s32) D_80358060) || D_8036DC94 == -1) {
+    if (D_8036DC94 + 1 != ((s32) gFramesInMode) || D_8036DC94 == -1) {
         D_8036D3D0[D_8036DC91].c = 1;
         D_8036DC91++;
         if (D_8036DC91 == 80) {
@@ -175,7 +175,7 @@ void func_8027BE7C(u8 period, s32 y, s16 x1, s16 z1, s16 x2, s16 z2, s32 x, s32 
             }
         }
     }
-    D_8036DC94 = ((s32) D_80358060);
+    D_8036DC94 = ((s32) gFramesInMode);
 }
 
 /* Draws the trail: each run of open segments becomes triangle strips in a sub display list, with a cull box for long runs */

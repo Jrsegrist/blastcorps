@@ -42,15 +42,15 @@ u8 func_80272C5C(u16 *ids, u16 *palIds, u8 count, u8 frames, u8 flags, f32 scale
     k = 0;
     for (slot = start; slot < count + start; slot++, k += palIds ? 0 : 1) {
         if (palIds) {
-            func_80257490((s32 *) &D_80358070, 16);
-            func_802A0EE0(palIds[slot - start], pal = D_80358070);
-            D_80358070 = (u8 *) D_80358070 + 0x80;
+            align_up((s32 *) &gHeapPtr, 16);
+            func_802A0EE0(palIds[slot - start], pal = gHeapPtr);
+            gHeapPtr = (u8 *) gHeapPtr + 0x80;
         } else {
-            func_80257490((s32 *) &D_80358070, 16);
+            align_up((s32 *) &gHeapPtr, 16);
             pal = NULL;
         }
         for (j = 0; j < frames; j++) {
-            D_8036BFE0[slot][j] = D_80358070;
+            D_8036BFE0[slot][j] = gHeapPtr;
             func_802A0B00(ids[frames * k + j], pal);
         }
         D_8036C1E0[slot] = frames;
@@ -58,8 +58,8 @@ u8 func_80272C5C(u16 *ids, u16 *palIds, u8 count, u8 frames, u8 flags, f32 scale
         if (flags & 4) {
             for (j = 0; j < 2; j++) {
                 for (m = 0; m < 2; m++) {
-                    D_8036C368[j][slot][m] = (Vtx *) D_80358070;
-                    D_80358070 = (u8 *) D_80358070 + 0x80;
+                    D_8036C368[j][slot][m] = (Vtx *) gHeapPtr;
+                    gHeapPtr = (u8 *) gHeapPtr + 0x80;
                 }
             }
         }
@@ -159,7 +159,7 @@ Gfx *func_80272ED8(Gfx *arg0, u8 slot, s16 x, s16 y, u8 alpha, u8 mode, f32 scal
             }
             gDPPipeSync(gdl++);
             gDPSetPrimColor(gdl++, 0, 0, 0xFF, 0, 0, a);
-            if ((D_8036C220[slot] & 2) || a != 0xFF || !(D_80364A90 & 0xC9FD0FE79BFF80B0LL)) {
+            if ((D_8036C220[slot] & 2) || a != 0xFF || !(gGameMode & 0xC9FD0FE79BFF80B0LL)) {
                 gDPSetRenderMode(gdl++, 0x00504240, 0);
             } else {
                 gDPSetRenderMode(gdl++, 0x0F0A7008, 0);

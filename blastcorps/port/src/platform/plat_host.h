@@ -120,7 +120,7 @@ typedef struct HostOpts {
     const char *frame_sp_path; /* when each frame task leaves the RSP (os_time.c) */
     const char *calls;         /* function names whose calls are logged (os_thread.c) */
     int quiet;
-    int game_print;            /* print the game's debug messages (func_8029A7E4) */
+    int game_print;            /* print the game's debug messages (debug_printf) */
     const char *mpk_path;      /* Controller Pak image (.mpk), or NULL: no pak */
     const char *wav_path;      /* --wav: the AI stream (what the game plays) as a WAV file */
     int wav_all;               /* --wav-all: also the buffers a full AI FIFO drops (every task's output) */

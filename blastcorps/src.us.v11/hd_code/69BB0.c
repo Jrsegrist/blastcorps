@@ -2,9 +2,9 @@
 #include <ultra64.h>
 #include "game/game.h"
 #ifdef NON_MATCHING
-/* The asm reads the level D_802E8BDC (an s32) with lbu: its most significant
+/* The asm reads the level levelno (an s32) with lbu: its most significant
  * byte, 0 for every level. The word, shifted, gives that on either byte order. */
-#define LEVEL_MSB ((u8) ((u32) D_802E8BDC >> 24))
+#define LEVEL_MSB ((u8) ((u32) levelno >> 24))
 #endif
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
@@ -46,7 +46,7 @@ extern u8 * N64P D_803ED818; /* vehicle 0's model header */
 
 /* Sets up vehicle 0 (object 0) from the model header `hdr` at (x, y, z) with
  * heading `heading` (called by the object dispatcher func_802A350C):
- * D_803ED818 = hdr, two 0xC80-byte buffers from the heap D_80358070
+ * D_803ED818 = hdr, two 0xC80-byte buffers from the heap gHeapPtr
  * (D_803ED82C, D_803ED830; the cursor moves 0x1900), the object record
  * (func_802A1388(0, 0, buf1, buf2, hdr)), the state block D_803ED760 reset
  * (func_802A754C) with its wheel table +0x52..+0x68 = (+-30, 30) / (+-35, 35)
@@ -73,10 +73,10 @@ void func_802AE370(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut
     s16 *h;
 
     D_803ED818 = hdr;
-    buf = D_80358070;
+    buf = gHeapPtr;
     D_803ED82C = buf;
     D_803ED830 = buf + 0xC80;
-    D_80358070 = buf + 0x1900;
+    gHeapPtr = buf + 0x1900;
     func_802A1388(0, 0, (s32) D_803ED82C, (s32) D_803ED830, hdr);
     func_802A754C(D_803ED760);
     h = (s16 *) (D_803ED760 + 0x52);
@@ -184,7 +184,7 @@ void func_802AE860(void) {
  * (the C caller declares u8; the asm returns the full v0).
  * Unless D_803ED825 is clear (then 0 at once), the first drive-in record of
  * D_80305CB1 (5 bytes: level (s8, -1 ends; compared with the whole word
- * D_802E8BDC), vehicle type, direction, multiplier, zone mode) for this level
+ * levelno), vehicle type, direction, multiplier, zone mode) for this level
  * and D_80364456 - with zone mode 0 or func_802AEB9C(zone mode) true - gives
  * the direction (default 0) and multiplier (default 1). The path from the
  * player along that direction is checked every 100 units up to dist * mul
@@ -222,7 +222,7 @@ s32 func_802AE888(s32 dist) {
     D_803F7812 = 1;
     if (D_803ED825 != 0) {
         for (rec = D_80305CB1; (s8) rec[0] != -1; rec += 5) {
-            if ((s8) rec[0] != D_802E8BDC || rec[1] != D_80364456) {
+            if ((s8) rec[0] != levelno || rec[1] != D_80364456) {
                 continue;
             }
             if (rec[4] != 0) {
@@ -450,13 +450,13 @@ static void port_aeec8_ring(void) {
     func_802A6FE4(D_803ED760, 0);
 }
 
-/* Per-frame update of vehicle 0 (hd.c's func_802475D8 / func_8024B7AC, and
+/* Per-frame update of vehicle 0 (hd.c's hd_game_frame / func_8024B7AC, and
  * func_802AE370; state block D_803ED760, the asm's $gp). Zone lookup
  * (func_802AEE84). Unless byte +0x9A is set: animation update
  * (func_802AF4BC) and, while the drive-in D_803ED826 runs, the drive-in step
  * (func_802AF340) instead of driving. Driving: func_802AFBA0; outside game
- * modes 0x800 / 1 / 0x1000 (the next mode D_80364A98 if set, else
- * D_80364A90; 64-bit compares): steering and throttle (func_802A7834: rate
+ * modes 0x800 / 1 / 0x1000 (the next mode gNextGameMode if set, else
+ * gGameMode; 64-bit compares): steering and throttle (func_802A7834: rate
  * func_802AFB84() = 0x8C, mode 3, delta 6), braking when +0xA1 == 1
  * (func_802A77D0), heading (func_802A7FD8: rate 9000, no sound), slope
  * (func_802A83B8 into the f32 at +0, func_802A843C: kind 0, clamp, div
@@ -477,7 +477,7 @@ static void port_aeec8_ring(void) {
  * triangle-skip key and fp / f12-f26 leftovers (0 and zeros here; fp becomes
  * D_803ED3F2[0..2] and +0x50). Traced in the original (Oct 2026, gameplay,
  * level 0): fp 0 always (the game thread's); t8 = 0x13 from func_8024B7AC
- * (left by func_8026510C's callees), 0 from func_802475D8's mode-0x1801 path,
+ * (left by func_8026510C's callees), 0 from hd_game_frame's mode-0x1801 path,
  * heap pointers during the level intro, and func_8026A8E0's seed
  * (0x47FF37D3) on frames where func_802AF4BC took its random-idle path. The
  * key only makes func_802A9F24 skip D_803EBDB0 triangles whose u16 id equals
@@ -510,9 +510,9 @@ void func_802AEEC8(void) {
     }
     func_802AFBA0();
     rate = func_802AFB84();
-    mode = D_80364A98;
+    mode = gNextGameMode;
     if (mode == 0) {
-        mode = D_80364A90;
+        mode = gGameMode;
     }
     if (mode != 0x800 && mode != 1 && mode != 0x1000) {
         func_802A7834(rate, (u16 *) (D_803ED760 + 0x4C), D_803ED760, (s16 *) (D_803ED760 + 0x76), 3,
@@ -545,9 +545,9 @@ animate:
     }
     end = func_802AFA64();
     if (D_803ED826 == 0) {
-        mode = D_80364A98;
+        mode = gNextGameMode;
         if (mode == 0) {
-            mode = D_80364A90;
+            mode = gGameMode;
         }
         if (mode & 0x1801) {
             D_803ED824 = 0;

@@ -160,14 +160,14 @@ func_802CBDE8: -n 200 --seed 1 --arg a3=int:0:40 --arg f24=float --mem D_803F8E8
 # func_802CB720: vehicle setup (dispatcher case 0xD)
 func_802CB720: -n 300 --heap 0x100 --arg s2=rel:heap0 --mem @heap0+4=int:0:0x80 --mem @heap0+8=int:0:0x80 --mem @heap0+0x18=0x40 --mem @heap0+0x44=int \
     --arg t7=int --arg s3=int --arg s0=int --arg s1=int:0:0xFFF --arg fp=int --arg f12=float --arg f14=float --arg f20=float --arg f22=float \
-    --arg f24=float --arg f26=float --mem D_80358070=int:0x80100000:0x80200000 --mem D_803F8E80:0xA0=rand --mem D_803F8F28:0x1E=rand \
+    --arg f24=float --arg f26=float --mem gHeapPtr=int:0x80100000:0x80200000 --mem D_803F8E80:0xA0=rand --mem D_803F8F28:0x1E=rand \
     --sig func_802A0290=a0,a1,a2 --sig func_802A039C=a0,a1,a2 --sig func_802A03D4=a0,a1,a2 --sig func_802A040C=a0,a1,a2 \
     --sig func_802A0320=a0,a1 --sig func_8029E558=a0,a1,a2 --sig func_802A754C=a0 --sig func_802CBEF0= --sig func_802AA838=a0,a1,a2 \
     --sig func_80258230=a0:1,a1,a2:2,a3:2
 # followed: the record reset, channel setters, matrix copy and the whole update func_802CBEF0 (its callees stubbed as in its own line)
 func_802CB720: -n 200 --seed 1 --heap 0x100 --heap 0x200 --arg s2=rel:heap0 --mem @heap0+4=int:0:0x80 --mem @heap0+8=int:0:0x80 --mem @heap0+0x18=0x40 --mem @heap0+0x44=choice:0,0x40,0x80 \
     --arg t7=int --arg s3=int --arg s0=int --arg s1=int:0:0xFFF --arg fp=int --arg f12=float --arg f14=float --arg f20=float --arg f22=float \
-    --arg f24=float --arg f26=float --mem D_80358070=rel:heap1 --mem D_803F8E80:0xA0=rand --mem D_803F8F28:0x1E=rand --mem D_803F8B80:0x100=rand \
+    --arg f24=float --arg f26=float --mem gHeapPtr=rel:heap1 --mem D_803F8E80:0xA0=rand --mem D_803F8F28:0x1E=rand --mem D_803F8B80:0x100=rand \
     --mem D_8035805C:1=choice:0,1 --mem D_80367BFF:1=choice:0,1 --mem D_803A7425:1=choice:0,1 --mem D_803A7424:1=rand \
     --follow func_802A754C,func_802A0290,func_802A0320,func_802A039C,func_802A03D4,func_802A040C,func_802A0480,func_802AA838,func_802CBEF0 \
     --model func_802BE77C=hit_flag_803A7424.py \

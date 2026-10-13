@@ -8,7 +8,7 @@
 #define D_802E8F38 ((Entry8 *) D_802E8F38)
 #define D_802E8F94 ((LevelFlags *) D_802E8F94)
 #define D_803156F8 ((u8 *) D_803156F8)
-#define D_80364AF0 ((Player *) D_80364AF0)
+#define players ((Player *) players)
 /* end of views */
 
 /* front-end level select: level availability, the level icon display list
@@ -213,18 +213,18 @@ Gfx *func_801F1568(void) {
     Gfx *gfx;
     Gfx *dl;
 
-    base = D_80358070;
+    base = gHeapPtr;
     size = D_0068B550 - D_0066C900;
-    func_8028B4C4((u32) D_0066C900, (u32) D_80358070, (u32 *) &size, 0xD, 0, 1);
-    D_80358070 += size;
-    D_8021728C = (u16 *) (D_80358070 - 0x6600);
+    func_8028B4C4((u32) D_0066C900, (u32) gHeapPtr, (u32 *) &size, 0xD, 0, 1);
+    gHeapPtr += size;
+    D_8021728C = (u16 *) (gHeapPtr - 0x6600);
     for (i = 0; i < 3; i++) {
-        D_80215A70[i] = (u16 *) D_80358070 - (3 - i) * 0x800 - 0x1800;
+        D_80215A70[i] = (u16 *) gHeapPtr - (3 - i) * 0x800 - 0x1800;
     }
-    D_80215A7C = D_80358070 - 0x3000;
-    D_80215A80 = D_80358070 - 0x2000;
-    D_80215A84 = D_80358070 - 0x1000;
-    gfx = (Gfx *) D_80358070;
+    D_80215A7C = gHeapPtr - 0x3000;
+    D_80215A80 = gHeapPtr - 0x2000;
+    D_80215A84 = gHeapPtr - 0x1000;
+    gfx = (Gfx *) gHeapPtr;
     dl = gfx;
     func_801F0570();
     gSPTexture(gfx++, 0x8000, 0x8000, 4, G_TX_RENDERTILE, G_ON);
@@ -269,12 +269,12 @@ Gfx *func_801F1568(void) {
         }
     }
     gSPEndDisplayList(gfx++);
-    D_80358070 += (gfx - dl) * sizeof(Gfx);
+    gHeapPtr += (gfx - dl) * sizeof(Gfx);
     return dl;
 }
 
 /* hd.c's LEVEL_DONE */
-#define LEVEL_DONE(l) (D_80364AF0[D_80364AE8].unk18[l] > 0 && D_80364AF0[D_80364AE8].unk18[l] < 6) ? 1 : 0
+#define LEVEL_DONE(l) (players[playerNumber].unk18[l] > 0 && players[playerNumber].unk18[l] < 6) ? 1 : 0
 
 /* is the level available: done, level 0, or unlocked by a done level */
 s32 func_801F1DA8(s32 level) {
@@ -300,7 +300,7 @@ s32 func_801F1DA8(s32 level) {
                 }
             }
             for (j = 0; j < 4 && info->unk18[j] != -1; j++) {
-                if (info->unk18[j] == level && (D_80364AF0[D_80364AE8].unk54[i] & (1 << j))) {
+                if (info->unk18[j] == level && (players[playerNumber].unk54[i] & (1 << j))) {
                     return 1;
                 }
             }
@@ -319,10 +319,10 @@ Gfx *func_801F2000(void) {
     s32 i;
     s32 pass;
 
-    vtx = (Vtx *) D_80358070;
-    heap = D_80358070;
-    D_80358070 += 0x300;
-    gfx = (Gfx *) D_80358070;
+    vtx = (Vtx *) gHeapPtr;
+    heap = gHeapPtr;
+    gHeapPtr += 0x300;
+    gfx = (Gfx *) gHeapPtr;
     dl = gfx;
     gSPClearGeometryMode(gfx++, 0xFFFFFFFF);
     gSPSetGeometryMode(gfx++, G_SHADE | G_SHADING_SMOOTH | G_CULL_BACK);
@@ -348,7 +348,7 @@ Gfx *func_801F2000(void) {
                 }
             }
             /* j is one past the match here, so bit (j + 31) & 31 = j - 1 */
-            if (found && (D_80364AF0[D_80364AE8].unk90 & (1 << PORT_SHAMT(j + 31)))) {
+            if (found && (players[playerNumber].unk90 & (1 << PORT_SHAMT(j + 31)))) {
                 func_801FCE74(vtx, i, pass * 1.5 + 2.5, pass * 1.5 + 4.0, 32, 32, 2.25f, 1);
                 gSPVertex(gfx++, vtx, 4, 0);
                 gSP1Triangle(gfx++, 0, 1, 2, 0);
@@ -359,7 +359,7 @@ Gfx *func_801F2000(void) {
     }
     gDPPipeSync(gfx++);
     gSPEndDisplayList(gfx++);
-    D_80358070 = (u8 *) gfx;
+    gHeapPtr = (u8 *) gfx;
     osWritebackDCache(heap, 0x300);
     return dl;
 }
@@ -390,11 +390,11 @@ Gfx *func_801F2428(void) {
 
     n = 0;
     flushed = 0;
-    vtx = (Vtx *) D_80358070;
+    vtx = (Vtx *) gHeapPtr;
     dls = D_8020BD08;
     prev = NULL;
-    D_80358070 += 0x1E00;
-    gfx = (Gfx *) D_80358070;
+    gHeapPtr += 0x1E00;
+    gfx = (Gfx *) gHeapPtr;
     dl = gfx;
     gDPPipeSync(gfx++);
     gDPSetTextureLOD(gfx++, G_TL_LOD);
@@ -435,13 +435,13 @@ Gfx *func_801F2428(void) {
                 break;
         }
         for (lvl = 0; lvl < 60; lvl++) {
-            avail = (cat == 6 || cat == 7) && (LEVEL_DONE(lvl)) && D_80364AF0[D_80364AE8].unk18[lvl] != 4;
-            if (D_80364AF0[D_80364AE8].unk18[lvl] == cat || avail) {
+            avail = (cat == 6 || cat == 7) && (LEVEL_DONE(lvl)) && players[playerNumber].unk18[lvl] != 4;
+            if (players[playerNumber].unk18[lvl] == cat || avail) {
                 info = &D_8020D810[lvl];
                 if (func_801F1DA8(lvl)) {
                     if (avail) {
                         for (j = 0, found = 0; j < 4 && info->unk18[j] != -1 && !found; j++) {
-                            if (!(D_80364AF0[D_80364AE8].unk54[lvl] & (1 << j))) {
+                            if (!(players[playerNumber].unk54[lvl] & (1 << j))) {
                                 found = 1;
                             }
                         }
@@ -492,7 +492,7 @@ Gfx *func_801F2428(void) {
     }
     gDPPipeSync(gfx++);
     gSPEndDisplayList(gfx++);
-    D_80358070 = (u8 *) gfx;
+    gHeapPtr = (u8 *) gfx;
     osWritebackDCache(vtx, 0x1E00);
     return dl;
 }
@@ -513,9 +513,9 @@ Gfx *func_801F2E20(void) {
 
     verts = (Vtx *) (D_803156F8 + 0x15C0);
     copy = D_803156F8 + 0x22A58;
-    mtx = (Mtx *) D_80358070;
-    D_80358070 += 0x80;
-    gfx = (Gfx *) D_80358070;
+    mtx = (Mtx *) gHeapPtr;
+    gHeapPtr += 0x80;
+    gfx = (Gfx *) gHeapPtr;
     dl = gfx;
     guPerspective(mtx, &D_80217288, 45.0f, 4.0f / 3.0f, 100.0f, 25000.0f, 1.0f);
     guLookAt(mtx + 1, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f);
@@ -551,7 +551,7 @@ Gfx *func_801F2E20(void) {
     }
     gDPPipeSync(gfx++);
     gSPEndDisplayList(gfx++);
-    D_80358070 += (gfx - dl) * sizeof(Gfx);
+    gHeapPtr += (gfx - dl) * sizeof(Gfx);
     osWritebackDCache(verts, 0x200 * sizeof(Vtx));
     return dl;
 }

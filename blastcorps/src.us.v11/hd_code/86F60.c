@@ -3,7 +3,7 @@
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #ifdef NON_MATCHING
-#define D_80358070 (*(u32 *) &D_80358070)
+#define gHeapPtr (*(u32 *) &gHeapPtr)
 #endif
 /* end of views */
 
@@ -38,7 +38,7 @@ extern u8 D_803F8F45;
 
 /* Set up vehicle 13 (the level-object dispatcher func_802A350C's case 0xD):
  * model header hdr -> D_803F8F34; two 0x100-byte save copies from the
- * D_80358070 bump pointer (D_803F8F38, D_803F8F3C; trapping adds);
+ * gHeapPtr bump pointer (D_803F8F38, D_803F8F3C; trapping adds);
  * func_802A1388(0xD, 0, copies, hdr); reset the record (func_802A754C) and
  * set its wheel offsets (+0x52..+0x68), position (D_803F8F28..30) and heading
  * (+0x4C, +0x4E, +0x74); ground heights for the three wheels
@@ -65,10 +65,10 @@ void func_802CB720(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut
     u8 *copyB;
 
     D_803F8F34 = hdr;
-    p = D_80358070;
+    p = gHeapPtr;
     D_803F8F38 = (u64 *) p;
     D_803F8F3C = (u64 *) (p + 0x100);
-    D_80358070 = p + 0x200;
+    gHeapPtr = p + 0x200;
     func_802A1388(0xD, 0, (s32) D_803F8F38, (s32) D_803F8F3C, hdr);
     func_802A754C(D_803F8E80);
     VEH13_S16(0x52) = 200;

@@ -206,7 +206,7 @@ typedef struct {
 
 /* If D_803F7805 is set, clears it and, unless D_803643DB or D_80364AC1 is set
  * and the level isn't finished yet, marks it finished (D_803643DA and
- * D_802E8BD8 = 1). "Finished" means D_803F7806 is set, every D_8039C800 entry
+ * gPauseRequest = 1). "Finished" means D_803F7806 is set, every D_8039C800 entry
  * has unk26 set (func_802BC7DC) and no D_80306480 entry of the current level
  * at or beyond the player's z has an id whose D_803B9890 unk51 is set
  * (func_802BC714). Then, if D_803643DB is clear: in game mode 0x40 it calls
@@ -229,18 +229,18 @@ void func_802BC5E0(void) {
         }
     }
     D_803643DA = 1;
-    D_802E8BD8 = 1;
+    gPauseRequest = 1;
     if (D_803643DB != 0) {
         return;
     }
-    if (D_80364A90 == 0x40) {
+    if (gGameMode == 0x40) {
         func_80275390(0x40);
     } else {
         /* The asm stores 1 with sb into the s32 D_803649E8, i.e. into its
          * most significant byte (readers only test it against 0). Done on
          * the word so either byte order gets the same value. */
         D_803649E8 = (D_803649E8 & 0x00FFFFFF) | 0x01000000;
-        D_80364A98 = 8;
+        gNextGameMode = 8;
     }
 }
 #else
@@ -261,7 +261,7 @@ s32 func_802BC714(void) {
     s8 *id;
 
     for (e = D_80306480; e->level != -1; e++) {
-        if (e->level != D_802E8BDC || e->pos[2] < z) {
+        if (e->level != levelno || e->pos[2] < z) {
             continue;
         }
         for (id = e->ids; *id != -1; id++) {
@@ -377,7 +377,7 @@ void func_802BC888(s32 kind, s32 id, s32 amount) {
  * entry is spent (timer 0), the screen shakes (10, min(amount, 500)) and the
  * part's percentage += amount, capped at 100. A part reaching 100 collapses:
  * func_802C1438, func_802C09B8 unless D_803643D6 or D_803643D7 is set,
- * func_802C0E8C, func_802BF384 unless the game mode D_80364A90 is 0x200 or
+ * func_802C0E8C, func_802BF384 unless the game mode gGameMode is 0x200 or
  * 0x400, and the part's triangles off. Then func_802BF668, func_802BF534 and
  * func_802BF898(e, part, percentage).
  * ABI (00000.c calls it as void(void)); the asm saves s0-s7, gp, fp; the s1
@@ -427,7 +427,7 @@ void func_802BCA2C(void) {
                 func_802C09B8(part, e);
             }
             func_802C0E8C(part, e);
-            if (D_80364A90 != 0x200 && D_80364A90 != 0x400) {
+            if (gGameMode != 0x200 && gGameMode != 0x400) {
                 func_802BF384(e);
             }
             end = e->unk8;
@@ -481,7 +481,7 @@ void func_802BCC10(void) {
 /* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-/* If D_80358060 is set, copies buffer A (D_803F77D8 up to its write pointer)
+/* If gFramesInMode is set, copies buffer A (D_803F77D8 up to its write pointer)
  * into buffer B byte by byte, front to back; then sets B's write pointer to
  * just past the copied bytes (to B's start when nothing was copied). The asm
  * loops with `!=`, so A's write pointer must not be below D_803F77D8.
@@ -490,7 +490,7 @@ void func_802BCC10(void) {
 void func_802BCC48(void) {
     u8 *dst = D_803F77E8;
 
-    if (((s32) D_80358060) != 0) {
+    if (((s32) gFramesInMode) != 0) {
         u8 *src = D_803F77D8;
         u8 *end = D_803F77D4;
 
@@ -640,7 +640,7 @@ s32 func_802BCE40(void) {
         }
     }
     for (p = D_80306480; p->level != -1; p++) {
-        if (p->level != D_802E8BDC) {
+        if (p->level != levelno) {
             continue;
         }
         dist = func_802ABCDC(p->pos[0], p->pos[1], p->pos[2], D_803643E0, D_803643E4, D_803643E8);
@@ -1037,7 +1037,7 @@ void func_802BD85C(Unk802BD99CModel *model, s32 id) {
  * callers keep many registers live across the call (func_8029AB88 and
  * func_8029B02C: a0-a3, t3-t6, t8, t9, f12, f14). */
 s32 func_802BD8C8(void) {
-    if (D_802E8BDC == 0x32 && func_80286090(D_802E8BDC) == 0) {
+    if (levelno == 0x32 && func_80286090(levelno) == 0) {
         return 1;
     }
     return 0;
@@ -1583,7 +1583,7 @@ typedef struct {
  * keeps a0, a1, t3, t4, t6, t8, f12 and f14 live across the call. */
 s32 func_802BE944(Unk802C1DD0Entry *e, s32 bit) {
     s32 key = e->unk30;
-    s32 level = D_802E8BDC;
+    s32 level = levelno;
     Unk803059F0 *p;
 
     if (key == 0x38) {
@@ -1743,7 +1743,7 @@ void func_802BEBB0(s32 id, Unk802C1DD0Entry *e, Unk803B9890 *tri) {
     }
 
     if (id != 0xFF) {
-        D_803F77F8 = D_80358068;
+        D_803F77F8 = gUnpausedFrames;
     }
     if (id != 0xFF && e->info->type != 1 && e->unkEB == 0 && e->unk30 != 0x38 && D_8036B974 != e) {
         D_8036B971 = 1;
@@ -1844,7 +1844,7 @@ tail:
  * takes e in t9 and saves v0; asm caller func_802BEBB0 keeps a0, a1, t8, t9,
  * f12 and f14 live. */
 void func_802BEF9C(Unk802C1DD0Entry *e) {
-    if (D_802E8BDC == 0x2D && e->unk30 >= 0xE7 && e->unk30 < 0xEA) {
+    if (levelno == 0x2D && e->unk30 >= 0xE7 && e->unk30 < 0xEA) {
         D_803BE738 = 1;
     }
 }
@@ -1854,14 +1854,14 @@ void func_802BEF9C(Unk802C1DD0Entry *e) {
 
 /* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_803F77F4;  /* frame stamp: run counting only if it is D_80358068 - 1 */
+extern s32 D_803F77F4;  /* frame stamp: run counting only if it is gUnpausedFrames - 1 */
 extern u8 D_803F780D;   /* "the flag changed during this run" */
 extern u8 D_803F780E;   /* flag value at the start of the run */
 extern u8 D_803F780F;   /* once-per-frame latch, set here */
 
 /* Once-per-frame run detector. Unless the mode excludes it or it already ran
  * (latch D_803F780F), it counts consecutive frames (D_803F77F4 + 1 ==
- * D_80358068) in which D_803F77FC's sign doesn't repeat a nonzero previous
+ * gUnpausedFrames) in which D_803F77FC's sign doesn't repeat a nonzero previous
  * sign, recording whether D_80370C2C's truth value changed since the run
  * started. After 0x14 such frames the count restarts and D_803F780C is set if
  * a change was seen. Any other frame resets the run. The asm's `addi` on
@@ -1890,7 +1890,7 @@ void func_802BEFF4(void) {
     }
     D_803F780F = 1;
 
-    if (D_803F77F4 + 1 == D_80358068 && (sign == 0 || ((s8) D_803F780A) != sign)) {
+    if (D_803F77F4 + 1 == gUnpausedFrames && (sign == 0 || ((s8) D_803F780A) != sign)) {
         count = D_803F780B;
         flag = (((u8) D_80370C2C) != 0) ? 1 : 0;
         if (count == 0) {
@@ -2566,7 +2566,7 @@ extern Unk80305E10 D_80305E10[];
 
 /* Returns 1, and sets *out = 100, when any of these holds (else returns 0 and
  * leaves *out alone): D_803F780C is set (it is cleared, and nothing else is
- * checked); in the frame after D_803A740C (D_803A740C + 1 == D_80358068), a
+ * checked); in the frame after D_803A740C (D_803A740C + 1 == gUnpausedFrames), a
  * D_80305E10 entry of the current level has bit `bit` (mod 32) in its mask;
  * or flag is 1 and bit is 1, 10 or 16. The asm takes bit in t8 and flag in gp
  * (a value here), returns in t2 and t7 (100, written only with a 1) and saves
@@ -2581,9 +2581,9 @@ s32 func_802C0284(s32 bit, s32 flag, s32 *out) {
         D_803F780C = 0;
         return 1;
     }
-    if (D_803A740C + 1 == D_80358068) {
+    if (D_803A740C + 1 == gUnpausedFrames) {
         for (p = D_80305E10; p->mask != 0; p++) {
-            if ((p->mask & (1 << (bit & 0x1F))) && p->level == D_802E8BDC) {
+            if ((p->mask & (1 << (bit & 0x1F))) && p->level == levelno) {
                 ret = 1;
                 *out = 100;
                 break;
@@ -2709,7 +2709,7 @@ extern u8 * N64P D_80306270[];  /* per kind: {u8 n; u8 defIndex[n]} */
  * would trap) and spawned with func_802A6274 (type 0, the record's words as
  * position/data/fields, tag 1 for kind 0x15 or when D_803F7810 is set or
  * D_8036DCD4 is set with D_8036DCD7 == 1, else 0). If that succeeded and
- * neither the u64 D_80364A98 nor D_803643D6 is set, func_802619D0(kind)
+ * neither the u64 gNextGameMode nor D_803643D6 is set, func_802619D0(kind)
  * (the asm saves every register around that call). The record is then
  * freed, and a nonzero u16 radius at 0x2E applies func_802C18D4 blast
  * damage at its position with amount r[0x30] << 4. Saves s0-s7. */
@@ -2743,7 +2743,7 @@ void func_802C0574(void) {
         if (func_802A6274(&io, def, *(s32 *) (r + 0x0C), 0, *(s32 *) (r + 0x00), *(s32 *) (r + 0x04),
                           *(s32 *) (r + 0x08), *(s32 *) (r + 0x14), *(s32 *) (r + 0x18), *(s32 *) (r + 0x20),
                           *(s32 *) (r + 0x24), *(s32 *) (r + 0x28), r[0x35]) != 0
-            && D_80364A98 == 0 && D_803643D6 == 0) {
+            && gNextGameMode == 0 && D_803643D6 == 0) {
             func_802619D0(r[0x31]);
         }
         r[0x34] = 1;
@@ -3034,7 +3034,7 @@ extern s16 D_80305E38[]; /* unk30 values that get a rising piece; ends at the fi
 extern u64 D_802F4780[6]; /* fixed render-state commands */
 
 /* Starts the rising piece of debris for part `id` of e: unless the game mode
- * D_80364A90 has 0x440 set, e->unk30 is in the list D_80305E38 (an equal
+ * gGameMode has 0x440 set, e->unk30 is in the list D_80305E38 (an equal
  * value is found before the negative terminator) and the D_803EFED0 entry is
  * idle (unkA2A and unkA2B zero). Then func_802C1214 sets its 4 vertices, and
  * its display list is built in place: segment 9 (0xBC002406) = info + 0x50,
@@ -3055,7 +3055,7 @@ void func_802C0E8C(s32 id, Unk802C1DD0Entry *e) {
     s32 budget = 0x121;
     s32 i;
 
-    if ((u32) D_80364A90 & 0x440) {
+    if ((u32) gGameMode & 0x440) {
         return;
     }
     for (k = D_80305E38; *k != e->unk30; k++) {
@@ -3542,7 +3542,7 @@ u32 func_802C1B9C(void) {
         }
     }
     for (p = D_80306480; p->level != -1; p++) {
-        if (p->level != D_802E8BDC) {
+        if (p->level != levelno) {
             continue;
         }
         dist = func_802ABCDC(p->pos[0], p->pos[1], p->pos[2], D_803EF6DC, D_803EF6E0, D_803EF6E4);
@@ -3574,8 +3574,8 @@ u32 func_802C1B9C(void) {
  * those stores its unk30 into D_803F7684 (so the last one wins). Of the
  * counted entries whose info->type isn't 0xFF: those with type != 1 are
  * counted into D_8036EB92; if the entry's unkEA or D_803F7688 is nonzero,
- * type != 1 entries are also counted into D_8036EA70.bd (Score) and every such
- * entry's info->value is summed into D_8036EA70.ip. Clears D_803F7688.
+ * type != 1 entries are also counted into nss.bd (Score) and every such
+ * entry's info->value is summed into nss.ip. Clears D_803F7688.
  * The asm loops with `!=`, so D_803F7654 must be D_803F4030 + n entries.
  * The asm keeps its counters in s0-s2 but saves and restores s0-s7. */
 void func_802C1DD0(s32 onlyFlagged) {
@@ -3609,8 +3609,8 @@ void func_802C1DD0(s32 onlyFlagged) {
         total += info->value;
     }
     D_8036EB92 = counted;
-    D_8036EA70.bd = active; /* the active count */
-    D_8036EA70.ip = total; /* the total */
+    nss.bd = active; /* the active count */
+    nss.ip = total; /* the total */
     D_803F7688 = 0;
 }
 #else

@@ -10,7 +10,7 @@
  * per-button edge flags. */
 
 #define CONTROLLER_ASSERT(EX, line) \
-    if (!(EX)) func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "controller.c", line)
+    if (!(EX)) debug_printf("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "controller.c", line)
 
 /* Pathfinding node, 0x1C bytes (see 26570.c) */
 typedef struct {
@@ -86,7 +86,7 @@ u8 func_8028A370(void) {
 
 /* Start a controller read */
 void func_8028A3E4(void) {
-    if (D_8039C4B0 == 0) {
+    if (pakBusy == 0) {
         func_8028A42C();
         func_802DB4D0(&D_80370BF8);
         D_80370C10 = 1;
@@ -108,11 +108,11 @@ void func_8028A470(void) {
     s32 mode;
 
     if (((u32) D_80358064) != 0) {
-        if (D_8039C4B0 == 0 && D_80370C10 != 0) {
+        if (pakBusy == 0 && D_80370C10 != 0) {
             osRecvMesg(&D_80370BF8, NULL, 1);
             func_802DB594(pad);
             if (pad->errno) {
-                func_8029A7E4("pad read error - zeroing data\n");
+                debug_printf("pad read error - zeroing data\n");
                 pad->stick_x = pad->stick_y = pad->button = 0;
             }
             D_80370C10 = 0;
@@ -126,8 +126,8 @@ void func_8028A470(void) {
                 D_80370C38 = 0;
             }
         }
-        if (D_80358060 < 6) {
-            if (D_80358060 == 5) {
+        if (gFramesInMode < 6) {
+            if (gFramesInMode == 5) {
                 D_80370C2A |= A_BUTTON | B_BUTTON | START_BUTTON;
             } else {
                 D_80370C28 &= ~(A_BUTTON | B_BUTTON | START_BUTTON);
@@ -141,12 +141,12 @@ void func_8028A470(void) {
         D_80370C25 = D_80370C1F;
         D_80370C26 = D_80370C20;
         D_80370C27 = D_80370C21;
-        switch (D_80364A90) {
+        switch (gGameMode) {
             case 2:
             case 0x40:
             case 0x400:
             case 0x100000000000:
-                if (D_802E8BDC != 0x26 && D_802E8BDC != 0x31) {
+                if (levelno != 0x26 && levelno != 0x31) {
                     do {
                         func_8025BEF8();
                         if (D_80370C30 & 0x40) {
@@ -163,7 +163,7 @@ void func_8028A470(void) {
                 break;
             case 4:
             case 0x100:
-                if (!D_802E8BD0 || D_80364A90 == 0x2000) {
+                if (!gPaused || gGameMode == 0x2000) {
                     func_8025BBE8(pad->button & ~START_BUTTON, pad->stick_x, pad->stick_y);
                 }
                 break;
@@ -179,21 +179,21 @@ void func_8028A470(void) {
                 break;
         }
         D_80370C34 = 0;
-        if (D_80364A90 & 0x2000100000002546) {
+        if (gGameMode & 0x2000100000002546) {
             D_803ED40A = 0;
             D_803F7C34 = 0;
-            if (D_80364A90 & 0x440) {
+            if (gGameMode & 0x440) {
                 mode = D_80370C40;
-            } else if (D_80364BE0[D_80364AE8].flags & (1 << D_80364456)) {
+            } else if (D_80364BE0[playerNumber].flags & (1 << D_80364456)) {
                 mode = 1;
             } else {
                 mode = 0;
             }
-            if (D_80364A90 == 2 || D_80364A90 == 0x100000000000) {
+            if (gGameMode == 2 || gGameMode == 0x100000000000) {
                 mode = 0;
             }
             D_80370C35 = mode;
-            if (D_802E8BD0) {
+            if (gPaused) {
                 func_8028ADF0(1, 0, &pad->button, &pad->stick_x, &pad->stick_y);
             } else {
                 switch (mode) {
@@ -312,7 +312,7 @@ void func_8028A470(void) {
 /* Post-process a pad: digital stick (from the D-pad and A/B) unless arg1,
  * dead zone and clamp, then stick back to buttons */
 void func_8028ADF0(u8 arg0, u8 arg1, u16 *btn, s8 *x, s8 *y) {
-    if (!arg0 && !D_802E8BD0) {
+    if (!arg0 && !gPaused) {
         *y = 0;
     }
     if (!arg1) {
@@ -453,7 +453,7 @@ void func_8028B240(void) {
     D_802F5804[421].jtext = NULL;
     D_802F5804[422].text = tbl[i];
     D_802F5804[422].unk6 = 0x13;
-    if ((D_80364BE0[D_80364AE8].flags ^ 0x10205) & (1 << D_80364456)) {
+    if ((D_80364BE0[playerNumber].flags ^ 0x10205) & (1 << D_80364456)) {
         D_802F8BDC[88].unk18 = 0x1A8;
     } else {
         D_802F8BDC[88].unk18 = 0x1A7;

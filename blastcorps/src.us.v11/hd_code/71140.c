@@ -3,7 +3,7 @@
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #ifdef NON_MATCHING
-#define D_80358070 (*(s32 *) &D_80358070)
+#define gHeapPtr (*(s32 *) &gHeapPtr)
 #endif
 /* end of views */
 
@@ -54,7 +54,7 @@ extern s16 D_803EEB5C;
 
 /* Level setup of vehicle 5 (asm caller func_802A350C, the level's object
  * list), the shape of func_802BAD80 (75490): model header -> D_803EEB44,
- * two 0x800-byte matrix buffers from D_80358070 (D_803EEB48 / D_803EEB4C;
+ * two 0x800-byte matrix buffers from gHeapPtr (D_803EEB48 / D_803EEB4C;
  * the allocator advances by 0x1000), func_802A1388(5, 1, buffers, model),
  * func_802A754C on D_803EEA90, wheel-slot offsets (+-0x168, +-0x17C) at
  * +0x52..+0x68, position D_803EEB38 = (x, y, z), heading +0x4C/+0x4E/+0x74,
@@ -84,10 +84,10 @@ void func_802B5900(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp) {
     s32 a;
 
     D_803EEB44 = model;
-    buf = D_80358070;
+    buf = gHeapPtr;
     D_803EEB48 = (u64 *) N64_IPTR(buf);
     D_803EEB4C = (u64 *) N64_IPTR((buf + 0x800));
-    D_80358070 = buf + 0x1000;
+    gHeapPtr = buf + 0x1000;
     func_802A1388(5, 1, (s32) D_803EEB48, (s32) D_803EEB4C, model);
     func_802A754C(D_803EEA90);
     /* wheel slot offsets */

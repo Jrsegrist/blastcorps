@@ -3,7 +3,7 @@
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #ifdef NON_MATCHING
-#define D_80358070 (*(s32 *) &D_80358070)
+#define gHeapPtr (*(s32 *) &gHeapPtr)
 #define D_803ED390 (*(s16 *) D_803ED390)
 #endif
 /* end of views */
@@ -38,7 +38,7 @@ void func_802BA074(void);
 s32 func_802BABEC(MtxChainRegs *regs);
 
 /* Level setup of the type-0xFF object (asm caller func_802A303C): model
- * header -> D_803EF70C, two 0xC00-byte matrix buffers from D_80358070
+ * header -> D_803EF70C, two 0xC00-byte matrix buffers from gHeapPtr
  * (D_803EF704 / D_803EF708; the allocator advances by 0x1800),
  * func_802A1388(0xFF, 0, buffers, model); position x/z (and the start point
  * D_803EF6F4/F8), target speed D_803EF6FC, D_803EF6F0 = limit, D_803EF6D6 =
@@ -68,10 +68,10 @@ void func_802B9C50(u8 *model, s32 x, s32 z, s32 speed, s32 limit, s32 heading, s
     u8 *hdr;
 
     D_803EF70C = model;
-    buf = D_80358070;
+    buf = gHeapPtr;
     D_803EF704 = (u8 *) N64_IPTR(buf);
     D_803EF708 = (u8 *) N64_IPTR((buf + 0xC00));
-    D_80358070 = buf + 0x1800;
+    gHeapPtr = buf + 0x1800;
     func_802A1388(0xFF, 0, (s32) D_803EF704, (s32) D_803EF708, model);
     D_803EF6DC = x;
     D_803EF6F4 = x;
@@ -175,7 +175,7 @@ void func_802BA074(void) {
     D_803EF710 = 0;
     D_803EF6EC = 0;
     D_803EF711 = 0;
-    level = D_802E8BDC;
+    level = levelno;
     for (e = D_80305D74; e->level >= 0; e++) {
         if (e->level == level) {
             D_803EF6E8 = e->x << 5;
@@ -268,10 +268,10 @@ void func_802BA91C(void);
 #define VEH_BA354(off, T) (*(T *) (D_803EF630 + (off)))
 
 /* Per-frame update of the type-0xFF object D_803EF630 (called from hd.c's
- * func_802475D8 and from func_802B9C50): zone lookup (func_802BA104), the
+ * hd_game_frame and from func_802B9C50): zone lookup (func_802BA104), the
  * distance flags (func_802BA5A4); then, while byte +0x9A is clear, the engine
  * sound/animation (func_802BA6AC), skipping the movement when D_803643D6 or
- * D_802E8BD0 is set. Movement: the zone value scan (func_802BA638, which may
+ * gPaused is set. Movement: the zone value scan (func_802BA638, which may
  * set the target speed D_803EF6FC); the speed (s16 +0x76) rises by 8 towards
  * D_803EF6FC (never above it) when below it; func_802BAD24; the drive step
  * f = func_802A83B8, func_802A843C(kind 0xFF, divisor 2400.0); the new
@@ -315,7 +315,7 @@ void func_802BA354(void) {
     func_802BA5A4();
     if ((s8) D_803EF630[0x9A] == 0) {
         func_802BA6AC();
-        if ((s8) D_803643D6 != 0 || (s8) D_802E8BD0 != 0) {
+        if ((s8) D_803643D6 != 0 || (s8) gPaused != 0) {
             goto animate;
         }
     }
@@ -401,7 +401,7 @@ typedef struct {
 extern ZoneEntry D_80305D62[];
 
 /* Scans D_80305D62 (terminated by a negative z) for entries of the current
- * level (D_802E8BDC) whose z <= player z / 32 (D_803EF6E4 >> 5); the last
+ * level (levelno) whose z <= player z / 32 (D_803EF6E4 >> 5); the last
  * one's value wins (0 if none). A nonzero result is stored in D_803EF6FC.
  * The asm leaves its scan registers behind and asm caller func_802BA354
  * doesn't overwrite them before func_802A860C reads a0-a3, so they are all
@@ -410,7 +410,7 @@ extern ZoneEntry D_80305D62[];
  * the current level (a3). */
 s32 func_802BA638(s32 *termZ, s32 *lastLevel, s32 *level) {
     s32 pz = D_803EF6E4 >> 5;
-    s32 lv = D_802E8BDC;
+    s32 lv = levelno;
     s32 result = 0;
     ZoneEntry *e;
     s32 z;
@@ -463,7 +463,7 @@ extern u8 D_803EF330[];  /* animation channel table (Unk8029DEA0Entry, 56040.c) 
  * 1.5 + speed * D_8030D920 (passed as raw bits). Then a = (D_80364452 +
  * 0x800) wrapped by -0xFFF at 0x1000; channel 2 gets value a / 0x555
  * (0, 1, else 2) and fraction (a % 0x555) / D_8030D924 (func_802A0360);
- * channel 1 gets round(speed * D_8030D928) (0 while D_802E8BD0 is set,
+ * channel 1 gets round(speed * D_8030D928) (0 while gPaused is set,
  * func_802A039C). Returns a / 0x555 (the asm's s4; conventions.txt). The asm
  * also clobbers s5; asm caller func_802BA354 keeps a2, a3, t7, f12, f14 live
  * (a mixed N64 build would need a thunk; the native port won't). The asm's
@@ -495,7 +495,7 @@ s32 func_802BA6AC(void) {
     } else {
         func_802A0360(frac, (Unk8029DEA0Entry *) D_803EF330, 2, 2);
     }
-    v = D_802E8BD0 != 0 ? 0 : *(s16 *) (D_803EF630 + 0x76);
+    v = gPaused != 0 ? 0 : *(s16 *) (D_803EF630 + 0x76);
     CVT_W_S(v, (f32) v * D_8030D928);
     func_802A039C((Unk8029DEA0Entry *) D_803EF330, 1, v);
     return q;
@@ -509,7 +509,7 @@ s32 func_802BA6AC(void) {
 
 /* Distance (func_802ABCDC, y = 0) from (D_803EF6DC, D_803EF6E4) to
  * (D_803EF6F4, D_803EF6F8); when it is >= D_803EF6F0 (signed) sets
- * D_803643DA and D_802E8BD8 to 1. The asm leaves the distance in s1 and
+ * D_803643DA and gPauseRequest to 1. The asm leaves the distance in s1 and
  * D_803EF6F8 in s0 (conventions.txt: clobbers s0, s1); asm caller
  * func_802BA354 keeps a2, a3, f12, f14 live (a mixed N64 build would need a
  * thunk; the native port won't). */
@@ -518,7 +518,7 @@ void func_802BA91C(void) {
 
     if (dist >= D_803EF6F0) {
         D_803643DA = 1;
-        D_802E8BD8 = 1;
+        gPauseRequest = 1;
     }
 }
 #else
@@ -542,7 +542,7 @@ extern u8 D_803EF701;   /* effect started */
  * D_803EF710 is set and func_802BE77C(0xFF, veh) (with D_803F77D0 =
  * &D_803EF330) when D_803EF711 is set; if D_803A7424 is then still 0 and the
  * three height pairs at +4/+8, +0x10/+0x14, +0x1C/+0x20 each differ by at most
- * 10000, it returns. Otherwise D_803643D9 = D_802E8BD8 = 1. Then, unless
+ * 10000, it returns. Otherwise cmo_hit_request = gPauseRequest = 1. Then, unless
  * D_803643D8 is set: func_80278318, func_802A02E4(1, &D_803EF330),
  * func_802A5E60, func_802C049C. Finally the effect: D_803EF6FE counts down
  * first; then, until D_803EF6FF is set, the first frame sets up a
@@ -581,8 +581,8 @@ void func_802BA9A0(s32 h2) {
                 return;
             }
         }
-        D_803643D9 = 1;
-        D_802E8BD8 = 1;
+        cmo_hit_request = 1;
+        gPauseRequest = 1;
     }
     if (D_803643D8 == 0) {
         func_80278318();
@@ -687,7 +687,7 @@ extern u8 D_803EF720[];
 
 /* Level setup of vehicle 6 (asm caller func_802A350C, the level's object
  * list): model header `model` -> D_803EFAD4; two 0x800-byte matrix buffers
- * from the allocator D_80358070 (D_803EFAE4, D_803EFAE8; the allocator
+ * from the allocator gHeapPtr (D_803EFAE4, D_803EFAE8; the allocator
  * advances by 0x1000); func_802A1388(6, 0, buffers, model); $gp record
  * D_803EFA20 reset (func_802A754C); wheel-slot offsets (+-0x50, +-0x5A) at
  * +0x52..+0x68; position D_803EFAC8 = (x, y, z), heading +0x4C/+0x4E/+0x74
@@ -711,10 +711,10 @@ void func_802BAD80(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp) {
     u8 *hdr;
 
     D_803EFAD4 = model;
-    buf = D_80358070;
+    buf = gHeapPtr;
     D_803EFAE4 = (u64 *) N64_IPTR(buf);
     D_803EFAE8 = (u64 *) N64_IPTR((buf + 0x800));
-    D_80358070 = buf + 0x1000;
+    gHeapPtr = buf + 0x1000;
     func_802A1388(6, 0, (s32) D_803EFAE4, (s32) D_803EFAE8, model);
     func_802A754C(D_803EFA20);
     /* wheel slot offsets (x, z pairs and heights) */
@@ -1080,7 +1080,7 @@ s32 func_802BB868(void) {
     TriSideOut f;
     TriScanRegs r;
 
-    if (D_802E8BDC != 0x11) {
+    if (levelno != 0x11) {
         return 0;
     }
     o.s0 = 0;

@@ -19,11 +19,11 @@ func_802A5F30: -n 50 --ret void --mem D_803C4B70:0x3C0=rand --mem D_803EB770:16=
 # D_8021DD00; start a multiple of 4 below, at, or above the end (negative span -> 0 blocks).
 # Only a0 of the printf calls is compared: the asm's first call passes the caller's a1 through.
 # The count passed in a1 to the second call is checked via D_803EB790.
-func_802A5FA8: -n 300 --ret void --sig func_8029A7E4=a0 --mem D_80364AA8=choice:0,0x20,0x21,-1,0xDF,0x20000 --mem D_80358070=rel:D_8020ED00+-0x1010*int:0:20+choice:0,-4,4,-0x100C,0x1010,0x1000
+func_802A5FA8: -n 300 --ret void --sig debug_printf=a0 --mem D_80364AA8=choice:0,0x20,0x21,-1,0xDF,0x20000 --mem gHeapPtr=rel:D_8020ED00+-0x1010*int:0:20+choice:0,-4,4,-0x100C,0x1010,0x1000
 # exact multiples (span = k * 0x1010), and starts relative to the higher end D_8021DD00
-func_802A5FA8: -n 200 --seed 1 --ret void --sig func_8029A7E4=a0 --mem D_80364AA8=choice:0,0x20 --mem D_80358070=rel:D_8021DD00+-0x1010*int:0:30
+func_802A5FA8: -n 200 --seed 1 --ret void --sig debug_printf=a0 --mem D_80364AA8=choice:0,0x20 --mem gHeapPtr=rel:D_8021DD00+-0x1010*int:0:30
 # start above the end: count 0
-func_802A5FA8: -n 100 --seed 2 --ret void --sig func_8029A7E4=a0 --mem D_80364AA8=choice:0,0x20 --mem D_80358070=rel:D_8021DD00+choice:0,4,0x1010,0x10000
+func_802A5FA8: -n 100 --seed 2 --ret void --sig debug_printf=a0 --mem D_80364AA8=choice:0,0x20 --mem gHeapPtr=rel:D_8021DD00+choice:0,4,0x1010,0x10000
 
 # func_802A6748: age the in-use blocks of [D_803EB788, D_803EB78C); 4 blocks of 0x1010 at heap,
 # end = 0..4 blocks; inUse / age (0x3C -> freed at 0x3D) per block; count with 0x7FFF / 0xFFFF
@@ -199,7 +199,7 @@ func_802A67C4: -n 200 --seed 1 --heap 0x5050 --heap 0x40 --heap 0x10 --heap 0x10
     --arg a0=rel:heap2 --arg t3=int --arg t9=rel:heap3 --arg fp=int
 # followed loader (func_802A1074) on the table set-up of its own checks
 func_802A67C4: -n 200 --seed 2 --follow func_802A1074 --heap 0x5050 --heap 0x40 --heap 0x10 --heap 0x10 --heap 0x200=words:0,0x10,0x100,0x1000,0x7FF0 \
-    --mem D_803B8D44=rel:heap4 --mem D_80358080=int:0:10 \
+    --mem D_803B8D44=rel:heap4 --mem nextdma=int:0:10 \
     --mem @heap0+0x1000*0x1010:5=words:0,0x100,0x200 --mem @heap0+0x1006*0x1010:5/1=choice:0,1 --mem @heap0+0x5040=0 \
     --mem D_803EB788=rel:heap0 --mem D_803EB78C=rel:heap0+0x1010*int:0:4 --mem D_803EB790:2=choice:0,1,2 \
     --mem D_80305C10:16=words:0x100,0x200,0 --mem D_80305C10+16=0 \

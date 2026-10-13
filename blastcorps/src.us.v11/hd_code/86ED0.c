@@ -23,7 +23,7 @@
 void func_802CB690(u8 *state) {
     s32 v;
 
-    if (D_80364A98 != 0x40) {
+    if (gNextGameMode != 0x40) {
         func_80260650(D_80367738, 0x55, NULL);
     }
     v = D_80364A72;

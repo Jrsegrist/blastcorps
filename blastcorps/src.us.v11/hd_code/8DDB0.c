@@ -3,7 +3,7 @@
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #ifdef NON_MATCHING
-#define D_80358070 (*(u32 *) &D_80358070)
+#define gHeapPtr (*(u32 *) &gHeapPtr)
 #endif
 /* end of views */
 
@@ -32,7 +32,7 @@ extern u8 D_803FCD79;
 extern u8 D_803FCD7A;
 
 /* Set up vehicle 0xFD (the level-object dispatcher func_802A30DC): model
- * header hdr -> D_803FCD54; two 0x800-byte save copies from the D_80358070
+ * header hdr -> D_803FCD54; two 0x800-byte save copies from the gHeapPtr
  * bump pointer (D_803FCD58/5C; trapping adds); func_802A1388(0xFD, 0,
  * copies, hdr); heading/target/speed of D_803FCCA0 and the event flags
  * D_803FCD72..7A (but 75) cleared; model channels D_803FC9A0 (func_8029F85C,
@@ -57,10 +57,10 @@ void func_802D2570(u8 *hdr) {
     void *snd;
 
     D_803FCD54 = hdr;
-    p = D_80358070;
+    p = gHeapPtr;
     D_803FCD58 = (u8 *) p;
     D_803FCD5C = (u8 *) (p + 0x800);
-    D_80358070 = p + 0x1000;
+    gHeapPtr = p + 0x1000;
     func_802A1388(0xFD, 0, (s32) D_803FCD58, (s32) D_803FCD5C, hdr);
     *(s16 *) (D_803FCCA0 + 0x4C) = 0;
     *(s16 *) (D_803FCCA0 + 0x4E) = 0;

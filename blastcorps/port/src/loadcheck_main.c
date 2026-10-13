@@ -67,7 +67,7 @@ void port_fe_loaded(void) {}
 void port_spin(void) {}
 void port_itag(const void *gdl, int kind, int index) { (void) gdl; (void) kind; (void) index; }
 unsigned int port_gvi_read(const char *fn, unsigned int v) { (void) fn; return v; }
-void func_8029A7E4(const char *fmt, ...) { (void) fmt; }
+void debug_printf(const char *fmt, ...) { (void) fmt; }
 /* the SDK's block copy/clear (bc_headless: os_hw.c); gcc turns the game's
  * calls into memset/memmove, clang (the x86_64 build) calls them */
 void bzero(void *p, int n) { memset(p, 0, (size_t) n); }
@@ -105,7 +105,7 @@ static uint32_t rnd(void) {
 
 #define HEAP     0x80100000u   /* texture / level loads go here */
 #define PARAM    0x801F0000u   /* synthetic u16 table for texture types 4 and 5 */
-#define HEAPPTR  0x80358070u   /* D_80358070 */
+#define HEAPPTR  0x80358070u   /* gHeapPtr */
 
 static void t5(void) {
     int flag, i;

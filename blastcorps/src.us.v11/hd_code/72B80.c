@@ -69,7 +69,7 @@ extern u8 D_803EEF32; /* effect cooldown */
 
 /* Sets up vehicle 8 (object 8) from the model header `hdr` at (x, y, z) with
  * heading `heading` (called by the object dispatcher func_802A350C):
- * D_803EEF24 = hdr, two 0x100-byte buffers from the heap D_80358070
+ * D_803EEF24 = hdr, two 0x100-byte buffers from the heap gHeapPtr
  * (D_803EEF28, D_803EEF2C; the cursor moves 0x200), the object record
  * (func_802A1388(8, 0, buf1, buf2, hdr)), the state block D_803EEE70 reset
  * (func_802A754C) with its wheel table +0x52..+0x68 = (+-200, 350) /
@@ -93,10 +93,10 @@ void func_802B7340(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut
     s16 *h;
 
     D_803EEF24 = hdr;
-    buf = D_80358070;
+    buf = gHeapPtr;
     D_803EEF28 = (u64 *) buf;
     D_803EEF2C = (u64 *) (buf + 0x100);
-    D_80358070 = buf + 0x200;
+    gHeapPtr = buf + 0x200;
     func_802A1388(8, 0, (s32) D_803EEF28, (s32) D_803EEF2C, hdr);
     func_802A754C(D_803EEE70);
     h = (s16 *) (D_803EEE70 + 0x52);
@@ -680,7 +680,7 @@ void func_802B8424(void) {
 #ifdef NON_MATCHING
 /* Sets up the flying vehicle (object 0xFE) from the model header `hdr`
  * (called by the object dispatcher func_802A3134): D_803EF2F8 = hdr, two
- * 0x800-byte buffers from the heap D_80358070 (D_803EF2FC, D_803EF300; the
+ * 0x800-byte buffers from the heap gHeapPtr (D_803EF2FC, D_803EF300; the
  * cursor moves 0x1000), the object record (func_802A1388(0xFE, a1Val, buf1,
  * buf2, hdr)), state block D_803EF240: heading +0x4C/+0x4E = 0, speed +0x76 =
  * 20, D_803EF32A / D_803EF2E6 / D_803EF328 = 0; the animated model
@@ -700,10 +700,10 @@ void func_802B8480(s32 a1Val, u8 *hdr) {
     u8 *buf;
 
     D_803EF2F8 = hdr;
-    buf = D_80358070;
+    buf = gHeapPtr;
     D_803EF2FC = buf;
     D_803EF300 = buf + 0x800;
-    D_80358070 = buf + 0x1000;
+    gHeapPtr = buf + 0x1000;
     func_802A1388(0xFE, a1Val, (s32) D_803EF2FC, (s32) D_803EF300, hdr);
     *(s16 *) (D_803EF240 + 0x4C) = 0;
     *(s16 *) (D_803EF240 + 0x4E) = 0;
@@ -794,7 +794,7 @@ void func_802B8794(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Per-frame update of the flying vehicle (hd.c's func_802475D8, and
+/* Per-frame update of the flying vehicle (hd.c's hd_game_frame, and
  * func_802B8480): state machine (func_802B8D04), sound/animation channels
  * (func_802B98E0), animate the model into the current buffer
  * (func_8029E558; D_8035805C picks D_803EF2FC or D_803EF300), place it
@@ -848,12 +848,12 @@ void func_802B8AE4(void) {
     D_803ED80C = D_803EF314;
     D_803ED810 = D_803EF318;
     D_80368030 = D_803EF31C;
-    if (D_80364A90 == 0x1000) {
+    if (gGameMode == 0x1000) {
         if (D_803EF32C == 5 || !(D_803EF31C < D_803EF314)) {
             func_80275390(0x2000);
         }
     } else if (D_803EF32C == 4) {
-        D_80364A98 = 0x1000;
+        gNextGameMode = 0x1000;
     }
 }
 #else
@@ -872,7 +872,7 @@ void func_802B8AE4(void) {
  * 0, (s16) +0x4C) and D_803EF326 = +0x4C.
  * Register convention (conventions.txt): t3 and fp (func_802A9B1C's fp input)
  * come in from the asm callers, f12-f26 pass through func_802A9B1C (here
- * through f). The asm's v1 (read by func_802475D8 via func_802B899C) is just
+ * through f). The asm's v1 (read by hd_game_frame via func_802B899C) is just
  * func_802582C4's leftover; f12/f14 too after that C call. */
 void func_802B8C18(s32 t3, s32 fp, TriSideOut *f) {
     s32 x = D_803EF2EC;
@@ -953,17 +953,17 @@ static s32 port_state1(void) {
     s32 t3;
     s32 t2;
 
-    if (D_80364A90 == 0x800) {
-        if (D_802E8BDC == 0x1A || D_802E8BDC == 4) {
+    if (gGameMode == 0x800) {
+        if (levelno == 0x1A || levelno == 4) {
             limit = 48000;
-        } else if (D_802E8BDC == 0x1D || D_802E8BDC == 0x3A || D_802E8BDC == 0xD) {
+        } else if (levelno == 0x1D || levelno == 0x3A || levelno == 0xD) {
             limit = 70000;
         } else {
             limit = 30000;
         }
         if (!(limit < dist)) {
-            D_80364A98 = 1;
-            func_8029A7E4(D_80305D40);
+            gNextGameMode = 1;
+            debug_printf(D_80305D40);
             D_803EF308 = (&D_80368048)[-1];
             bx = D_80368048;
             D_803EF30C = bx;
@@ -1070,7 +1070,7 @@ static void port_state4(void) {
         return;
     }
     D_803EF32D = 1;
-    if (D_80364A90 != 0x1000) {
+    if (gGameMode != 0x1000) {
         v = func_8026A610(D_803643E0, D_803643E0, D_803EF2EC, D_803EF2F4);
         v = 0x88B8 - (v << 1);
         if (v >= 0xFA1) {

@@ -5,7 +5,7 @@
 #define D_8020C070 ((MenuItem *) D_8020C070)
 #define D_802E8F38 ((Entry8 *) D_802E8F38)
 #define D_802E8F94 ((LevelInfo *) D_802E8F94)
-#define D_80364AF0 ((Player *) D_80364AF0)
+#define players ((Player *) players)
 /* end of views */
 
 /* academy.c: each player's progress state machine (players[].gameState):
@@ -53,14 +53,11 @@ extern Entry30 D_8020D7E4[];
 extern char D_8036EBA0[];
 
 
-#define players D_80364AF0
-#define playerNumber D_80364AE8
-#define frontEndPresent D_80370C50
 #define LEVEL_DONE(l) ((players[playerNumber].rank[l] > 0 && players[playerNumber].rank[l] < 6) ? 1 : 0)
 #define ACADEMY_ASSERT_S(EX, text, line) \
-    if (!(EX)) { func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", text, "academy.c", line); }
+    if (!(EX)) { debug_printf("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", text, "academy.c", line); }
 #define ACADEMY_ASSERT(EX, line) \
-    if (!(EX)) { func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "academy.c", line); }
+    if (!(EX)) { debug_printf("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "academy.c", line); }
 
 /* Announce the current game state (menu, message, sound); state 4 names the
  * first level of the next uncompleted academy group */
@@ -72,8 +69,8 @@ void func_802860F0(void) {
 
     if (players[playerNumber].gameState != 13 && players[playerNumber].gameState != 8 &&
         players[playerNumber].gameState != 1) {
-        D_80364A98 = 0x800000000000;
-        func_80255DC8();
+        gNextGameMode = 0x800000000000;
+        hd_mode_setup();
         func_80200714(D_802FDA60[players[playerNumber].gameState]);
         switch (players[playerNumber].gameState) {
             case 4:
@@ -101,47 +98,47 @@ void func_802860F0(void) {
 
 /* Play the current game state's sound */
 void func_802862DC(void) {
-    if (((s32) D_80358060) == 0) {
+    if (((s32) gFramesInMode) == 0) {
         func_80260C20(D_802FDA70[players[playerNumber].gameState], 1.0f);
     }
 }
 
-/* Pick the next top-level mode (D_80364A98) for the current game state */
+/* Pick the next top-level mode (gNextGameMode) for the current game state */
 void func_80286330(void) {
     switch (players[playerNumber].gameState) {
         case 2:
         case 3:
         case 4:
-            D_80364A98 = 0x4000;
+            gNextGameMode = 0x4000;
             break;
         case 5:
             func_802995F0(0);
-            D_80364A98 = 0x100000000000;
+            gNextGameMode = 0x100000000000;
             break;
         case 6:
-            ACADEMY_ASSERT_S(D_802E8BDC == 50, "levelno==50", 140);
+            ACADEMY_ASSERT_S(levelno == 50, "levelno==50", 140);
             ACADEMY_ASSERT(players[playerNumber].levelno==50, 141);
             ACADEMY_ASSERT(frontEndPresent, 142);
-            D_80364A98 = 0x800;
+            gNextGameMode = 0x800;
             D_803643D5 = 0;
             func_801F8354(playerNumber);
             break;
         case 7:
             func_802995F0(1);
-            D_80364A98 = 0x100000000000;
+            gNextGameMode = 0x100000000000;
             break;
         case 9:
             func_802995F0(3);
-            D_80364A98 = 0x100000000000;
+            gNextGameMode = 0x100000000000;
             break;
         case 10:
-            D_80364A98 = 0x4000000000000;
+            gNextGameMode = 0x4000000000000;
             break;
         case 11:
-            D_80364A98 = 0x4000;
+            gNextGameMode = 0x4000;
             break;
         case 12:
-            D_80364A98 = 0x4000;
+            gNextGameMode = 0x4000;
             break;
     }
 }
@@ -165,7 +162,7 @@ u8 func_8028653C(void) {
         advance = 1;
         switch (players[playerNumber].gameState) {
             case 0:
-                if (D_80364A90 == 0x100000000000) {
+                if (gGameMode == 0x100000000000) {
                     advance = 0;
                 }
                 break;
@@ -229,7 +226,7 @@ u8 func_8028653C(void) {
                 if (p->f0A >= 0x162 || D_802FA26C) {
                     p->f0A = 0x168;
                     p->f0C = 0x1E;
-                    func_8029A7E4(" ***** YOU CAN STOP NOW!! ***** \n");
+                    debug_printf(" ***** YOU CAN STOP NOW!! ***** \n");
                 } else {
                     advance = 0;
                 }
@@ -238,21 +235,21 @@ u8 func_8028653C(void) {
                 advance = 0;
                 break;
             default:
-                func_8029A7E4("Undefined gameState case !!!!\n");
+                debug_printf("Undefined gameState case !!!!\n");
                 break;
         }
         if (D_802FA26C && players[playerNumber].gameState != 13) {
-            if (D_8039C53C[playerNumber]) {
+            if (saveIt[playerNumber]) {
                 players[playerNumber].gameState++;
             }
         } else {
             if (advance) {
                 players[playerNumber].gameState++;
             }
-            func_8029A7E4("going to game state %d\n", players[playerNumber].gameState);
+            debug_printf("going to game state %d\n", players[playerNumber].gameState);
         }
     } while (advance && !stop && !D_802FA26C);
     changed = players[playerNumber].gameState != oldState;
-    func_8029A7E4("game state %d to %d\n", oldState, players[playerNumber].gameState);
+    debug_printf("game state %d to %d\n", oldState, players[playerNumber].gameState);
     return changed;
 }

@@ -6,18 +6,18 @@
  * uses game/game.h's. */
 #define LEGACY_D_80217B70
 #define LEGACY_D_80358058
-#define LEGACY_D_80358070
+#define LEGACY_gHeapPtr
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_802E8F94 ((LevelInfo *) D_802E8F94)
 #define D_803156F8 ((Dynamic *) D_803156F8)
 #define D_80358050 ((u16 * N64P *) D_80358050)
-#define D_80364AF0 ((Player *) D_80364AF0)
+#define players ((Player *) players)
 #ifdef NON_MATCHING
 #define D_80217B70 ((Mtx *) D_80217B70)
 #define D_80358058 (*(u16 * N64P *) &D_80358058)
-#define D_80358070 (*(s32 *) &D_80358070)
+#define gHeapPtr (*(s32 *) &gHeapPtr)
 #endif
 /* end of views */
 
@@ -112,7 +112,7 @@ typedef struct {
     /* 0x30 */ u8 pad30[0x14];
 } LevelInfo;
 
-/* hd_code: save/player records (D_80364AF0, 0x100 bytes), as in hd_code 1D990.c */
+/* hd_code: save/player records (players, 0x100 bytes), as in hd_code 1D990.c */
 typedef struct {
     /* 0x00 */ u8 pad0[0x10];
     /* 0x10 */ u32 unk10; /* collectables found */
@@ -172,7 +172,7 @@ extern f32 D_8021AB40;
 extern f32 D_8021AB44;
 extern f32 D_8021AB48;
 #ifndef NON_MATCHING
-extern s32 D_80358070;
+extern s32 gHeapPtr;
 #endif
 void func_801F885C(s32 arg0);
 f32 func_801FD6B8(f32 a, f32 b, f32 range);
@@ -229,7 +229,7 @@ void func_801F8530(s32 level) {
     f32 lat;
     f32 lon;
 
-    D_8021AB30 = &D_80364AF0[D_80364AE8];
+    D_8021AB30 = &players[playerNumber];
     D_8021AB34 = &D_802E8F94[level];
     D_8021A91C = func_801FD6B8(90.0f, D_8020D810[level].unk14, 180.0f);
     D_8021A920 = func_801FD6B8(90.0f, D_8020D810[level].unk10, 180.0f);
@@ -237,8 +237,8 @@ void func_801F8530(s32 level) {
     D_8021A8FC = func_801F2428();
     D_8021A900 = func_801F2000();
     for (i = 0; i < 2; i++) {
-        D_8021A928[i] = D_80358070;
-        D_80358070 += 0x17000;
+        D_8021A928[i] = gHeapPtr;
+        gHeapPtr += 0x17000;
     }
     D_8021A8F8 = func_801F2E20();
     for (i = 0; i < 2; i++) {
@@ -307,38 +307,38 @@ void func_801F8980(void) {
     u32 dist;
     Dynamic *dyn;
 
-    D_80358080 = 0;
-    D_80358084 = 0;
+    nextdma = 0;
+    no_palette_dmas = 0;
     func_802A5720();
     func_8028A3E4();
-    if (((s32) D_80358060)) {
-        func_80284E54((u64 *) (D_803156F8[D_8035805C].gfx), D_80358078, 2, 0, 1234, 0);
-        func_80284E54((u64 *) D_8021AB68, D_8021AB58, 0, 0, 1234, 0);
-        func_80284E54((u64 *) D_8021AB6C, D_8021AB5C, 1, 1, 1234, 0);
+    if (((s32) gFramesInMode)) {
+        rsp_send_task((u64 *) (D_803156F8[D_8035805C].gfx), D_80358078, 2, 0, 1234, 0);
+        rsp_send_task((u64 *) D_8021AB68, D_8021AB58, 0, 0, 1234, 0);
+        rsp_send_task((u64 *) D_8021AB6C, D_8021AB5C, 1, 1, 1234, 0);
     } else {
-        func_80284E54((u64 *) (D_803156F8[D_8035805C].gfx), D_80358078, 1, 1, 1234, 0);
+        rsp_send_task((u64 *) (D_803156F8[D_8035805C].gfx), D_80358078, 1, 1, 1234, 0);
     }
     D_8035805C ^= 1;
     dyn = &D_803156F8[D_8035805C];
     func_8028A470();
-    if (D_8021AB2E || (!func_802753C0() && D_8021A924 == 1 && (D_80370C28 & 0x9000) && !(D_80370C2A & 0x9000))) {
+    if (D_8021AB2E || (!areWeFading() && D_8021A924 == 1 && (D_80370C28 & 0x9000) && !(D_80370C2A & 0x9000))) {
         if (D_8021A926 == 0) {
             func_80260A10();
             func_80260650(D_80367738, 0x1E, 0);
             D_8021A924 = 2;
-            func_8029A7E4("selected level %d\n", D_8021A905);
-            D_802E8BDC = D_8021A905;
+            debug_printf("selected level %d\n", D_8021A905);
+            levelno = D_8021A905;
             func_801ECB18();
             D_8021AB2E = 0;
         } else {
             D_8021AB2E = 1;
         }
     }
-    if ((D_80370C28 & 0x4000) && !(D_80370C2A & 0x4000) && !func_802753C0() && D_8021A924 == 1) {
+    if ((D_80370C28 & 0x4000) && !(D_80370C2A & 0x4000) && !areWeFading() && D_8021A924 == 1) {
         D_80364A87 = 0;
         func_80260650(D_80367738, 0xDE, 0);
         func_80275390(0x4000000000000000);
-        D_802E8BDC = D_8021A905;
+        levelno = D_8021A905;
     }
     dist = D_80370C2C * D_80370C2C + D_80370C2D * D_80370C2D;
     if (dist < 1500) {
@@ -384,7 +384,7 @@ void func_801F8980(void) {
                 D_8021AB2C -= 64;
             }
             if (D_8021A918 <= 300.0) {
-                D_80364A98 = func_80299FE8(D_802E8BDC);
+                gNextGameMode = func_80299FE8(levelno);
             }
             break;
         default:
@@ -416,10 +416,10 @@ void func_801F8980(void) {
     D_8021AB6C = func_801F9820(D_8021AB68, dyn, &D_8021AB58);
     func_801F9B84(D_8021AB6C, dyn, &D_8021AB5C);
     func_801FD748();
-    for (i = 0; i < D_80358080; i++) {
-        osRecvMesg(&D_80315180, NULL, OS_MESG_BLOCK);
+    for (i = 0; i < nextdma; i++) {
+        osRecvMesg(&textureDmaMessageQ, NULL, OS_MESG_BLOCK);
     }
-    for (i = 0; i < D_80358080 - D_80358084; i++) {
+    for (i = 0; i < nextdma - no_palette_dmas; i++) {
         func_802A57AC();
     }
 }
@@ -436,7 +436,7 @@ Gfx *func_801F9258(Gfx *arg0, Dynamic *dyn, s32 *count) {
 
     gSPSegment(gdl++, 0, 0);
     gSPSegment(gdl++, 2, osVirtualToPhysical(dyn));
-    gSPSegment(gdl++, 1, osVirtualToPhysical(D_8035806C));
+    gSPSegment(gdl++, 1, osVirtualToPhysical(gStaticSegment));
     gSPDisplayList(gdl++, D_01000038);
     gSPDisplayList(gdl++, D_01000010);
     gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, D_80358050[D_8035805C]);
@@ -492,7 +492,7 @@ Gfx *func_801F9820(Gfx *arg0, Dynamic *dyn, s32 *count) {
 
     gSPSegment(gdl++, 0, 0);
     gSPSegment(gdl++, 2, osVirtualToPhysical(dyn));
-    gSPSegment(gdl++, 1, osVirtualToPhysical(D_8035806C));
+    gSPSegment(gdl++, 1, osVirtualToPhysical(gStaticSegment));
     gSPDisplayList(gdl++, D_01000010);
     gSPDisplayList(gdl++, D_01000038);
     gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, D_80358050[D_8035805C]);
@@ -517,7 +517,7 @@ Gfx *func_801F9B84(Gfx *arg0, Dynamic *dyn, s32 *count) {
 
     gSPSegment(gdl++, 0, 0);
     gSPSegment(gdl++, 2, osVirtualToPhysical(dyn));
-    gSPSegment(gdl++, 1, osVirtualToPhysical(D_8035806C));
+    gSPSegment(gdl++, 1, osVirtualToPhysical(gStaticSegment));
     gSPDisplayList(gdl++, D_01000010);
     gSPDisplayList(gdl++, D_01000038);
     gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, D_80358050[D_8035805C]);
@@ -545,7 +545,7 @@ Gfx *func_801F9B84(Gfx *arg0, Dynamic *dyn, s32 *count) {
             D_8021AB40 -= 0.01;
         }
         if (D_80370C28 & 0xC00) {
-            func_8029A7E4("angd %f\n", D_8021AB40);
+            debug_printf("angd %f\n", D_8021AB40);
         }
         if (D_80370C28 & 0x100) {
             D_8021AB44 += 0.001;
@@ -554,7 +554,7 @@ Gfx *func_801F9B84(Gfx *arg0, Dynamic *dyn, s32 *count) {
             D_8021AB44 -= 0.001;
         }
         if (D_80370C28 & 0x300) {
-            func_8029A7E4("dmm %f\n", D_8021AB44);
+            debug_printf("dmm %f\n", D_8021AB44);
         }
         if (D_80370C28 & 0x10) {
             D_8021AB48 += 100.0f;
@@ -563,7 +563,7 @@ Gfx *func_801F9B84(Gfx *arg0, Dynamic *dyn, s32 *count) {
             D_8021AB48 -= 100.0f;
         }
         if (D_80370C28 & 0x30) {
-            func_8029A7E4("mmm %f\n", D_8021AB48);
+            debug_printf("mmm %f\n", D_8021AB48);
         }
     }
     *count = gdl - arg0;
@@ -593,7 +593,7 @@ Gfx *func_801FA180(Gfx *arg0, Dynamic *dyn, f32 lon0, s8 *selected) {
     }
     for (i = 0; i < 60; i++) {
         e = &D_8020D810[i];
-        if ((D_80364AF0[D_80364AE8].rank[i] > 0 && D_80364AF0[D_80364AE8].rank[i] < 6) ? 1 : 0) {
+        if ((players[playerNumber].rank[i] > 0 && players[playerNumber].rank[i] < 6) ? 1 : 0) {
             for (j = 0; j < 8 && e->unk1C[j] != -1; j++) {
                 gdl = func_801FA74C(dyn, gdl, i, e->unk1C[j], &out, &lon, 0, 0, 0, 0, 0, 0, 0);
             }
@@ -604,9 +604,9 @@ Gfx *func_801FA180(Gfx *arg0, Dynamic *dyn, f32 lon0, s8 *selected) {
     }
     for (i = 0; i < 60; i++) {
         e = &D_8020D810[i];
-        if ((D_80364AF0[D_80364AE8].rank[i] > 0 && D_80364AF0[D_80364AE8].rank[i] < 6) ? 1 : 0) {
+        if ((players[playerNumber].rank[i] > 0 && players[playerNumber].rank[i] < 6) ? 1 : 0) {
             for (j = 0; j < 4 && e->unk18[j] != -1; j++) {
-                if (D_80364AF0[D_80364AE8].unk54[i] & (1 << j)) {
+                if (players[playerNumber].unk54[i] & (1 << j)) {
                     gdl = func_801FA74C(dyn, gdl, i, e->unk18[j], &out, &lon, 1, 0, 0xFF, 0, 0xFF, 0xFF, 0);
                     if (out != -1) {
                         f32 d;
@@ -624,7 +624,7 @@ Gfx *func_801FA180(Gfx *arg0, Dynamic *dyn, f32 lon0, s8 *selected) {
     }
     for (i = 0; i < 60; i++) {
         e = &D_8020D810[i];
-        if ((D_80364AF0[D_80364AE8].rank[i] > 0 && D_80364AF0[D_80364AE8].rank[i] < 6) ? 1 : 0) {
+        if ((players[playerNumber].rank[i] > 0 && players[playerNumber].rank[i] < 6) ? 1 : 0) {
             for (j = 0; j < 8 && e->unk1C[j] != -1; j++) {
                 gdl = func_801FA74C(dyn, gdl, i, e->unk1C[j], &out, &lon, 1, 0xFF, 0, 0, 0xFF, 0x80, 0x80);
                 if (out != -1) {
@@ -726,7 +726,7 @@ Gfx *func_801FA74C(Dynamic *dyn, Gfx *arg1, u8 from, u8 to, s8 *out, f32 *lon, u
     lit = 0;
     gdl = arg1;
     scale = 1.0f;
-    if (to == D_8021A905 || D_80364AF0[D_80364AE8].rank[from] == 0) {
+    if (to == D_8021A905 || players[playerNumber].rank[from] == 0) {
         u8 tmp;
 
         tmp = to;
@@ -752,9 +752,9 @@ Gfx *func_801FA74C(Dynamic *dyn, Gfx *arg1, u8 from, u8 to, s8 *out, f32 *lon, u
     }
     if (func_80264BA4(from) == 3 && func_80264BA4(to) == 3) {
         if (D_80364A87 &&
-            (D_80364AF0[D_80364AE8].rank[to] == 0 ||
+            (players[playerNumber].rank[to] == 0 ||
              ((D_80364A87 & 1) && from == D_8021A905 &&
-              !((D_80364AF0[D_80364AE8].rank[to] > 0 && D_80364AF0[D_80364AE8].rank[to] < 6) ? 1 : 0)))) {
+              !((players[playerNumber].rank[to] > 0 && players[playerNumber].rank[to] < 6) ? 1 : 0)))) {
             if (D_8021A924) {
                 progress = MIN2(1.0, (D_8021AB28 > (f32) (D_803156C4 - D_8021AB24) * 60.0 / 60.0 / 90.0) ? D_8021AB28 : (f32) (D_803156C4 - D_8021AB24) * 60.0 / 60.0 / 90.0);
                 if (progress == 1.0 && D_8021AB38) {
@@ -1181,9 +1181,9 @@ void func_801FE018(u8 rank) {
     GlobeLevel *e;
     LevelInfo *info;
 
-    D_8021AB30 = &D_80364AF0[D_80364AE8];
+    D_8021AB30 = &players[playerNumber];
     for (i = 0; i < 60; i++) {
-        if ((D_80364AF0[D_80364AE8].rank[i] > 0 && D_80364AF0[D_80364AE8].rank[i] < 6) ? 1 : 0) {
+        if ((players[playerNumber].rank[i] > 0 && players[playerNumber].rank[i] < 6) ? 1 : 0) {
             e = &D_8020D810[i];
             info = &D_802E8F94[i];
             for (j = 0; j < 8 && e->unk1C[j] != -1; j++) {
@@ -1257,36 +1257,36 @@ s32 func_801FE760(level, arg1)
     u8 locked = 0;
 #endif
 
-    if (D_802E8F94[level].unk1 > D_80364AF0[D_80364AE8].unk91 &&
+    if (D_802E8F94[level].unk1 > players[playerNumber].unk91 &&
         ((D_802E8F94[level].type & 0x81) || (level >= 0x2B && level < 0x2F))) {
         locked = 1;
     }
     if (level == 0xA) {
-        arg1 = (D_80364AF0[D_80364AE8].rank[0x37] > 0 && D_80364AF0[D_80364AE8].rank[0x37] < 6) ? 1 : 0;
+        arg1 = (players[playerNumber].rank[0x37] > 0 && players[playerNumber].rank[0x37] < 6) ? 1 : 0;
         if (!arg1) {
             locked = 1;
         }
     }
     if (level == 0xF) {
-        arg1 = (D_80364AF0[D_80364AE8].rank[0x1C] > 0 && D_80364AF0[D_80364AE8].rank[0x1C] < 6) ? 1 : 0;
+        arg1 = (players[playerNumber].rank[0x1C] > 0 && players[playerNumber].rank[0x1C] < 6) ? 1 : 0;
         if (!arg1) {
             locked = 1;
         }
     }
     if (level == 0x3A) {
-        arg1 = (D_80364AF0[D_80364AE8].rank[0x35] > 0 && D_80364AF0[D_80364AE8].rank[0x35] < 6) ? 1 : 0;
+        arg1 = (players[playerNumber].rank[0x35] > 0 && players[playerNumber].rank[0x35] < 6) ? 1 : 0;
         if (!arg1) {
             locked = 1;
         }
     }
     if (level == 5) {
-        arg1 = (D_80364AF0[D_80364AE8].rank[0x07] > 0 && D_80364AF0[D_80364AE8].rank[0x07] < 6) ? 1 : 0;
+        arg1 = (players[playerNumber].rank[0x07] > 0 && players[playerNumber].rank[0x07] < 6) ? 1 : 0;
         if (!arg1) {
             locked = 1;
         }
     }
     if (level == 0x10) {
-        arg1 = (D_80364AF0[D_80364AE8].rank[0x13] > 0 && D_80364AF0[D_80364AE8].rank[0x13] < 6) ? 1 : 0;
+        arg1 = (players[playerNumber].rank[0x13] > 0 && players[playerNumber].rank[0x13] < 6) ? 1 : 0;
         if (!arg1) {
             locked = 1;
         }

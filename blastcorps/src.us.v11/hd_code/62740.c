@@ -621,7 +621,7 @@ s32 func_802A7D68(s32 mode, u8 *f);
 
 /* Throttle/brake step for the speed *speed (s16). With D_80370C22 set: if
  * D_803ED400 is nonzero, brake by `delta` toward 0 (by the speed's sign).
- * Otherwise: with D_803ED40C set (and D_802E8BDC != 0x22, D_80364456 not
+ * Otherwise: with D_803ED40C set (and levelno != 0x22, D_80364456 not
  * 0xB/0x11/0x12) clamp the speed to half the top band bound (bands[13]) or,
  * in reverse, half bands[0]; then with steer input D_80370C2D > 0 accelerate
  * (or brake by `delta` when rolling backward) and with < 0 the mirror image:
@@ -655,7 +655,7 @@ void func_802A785C(u8 *veh, s16 *speed, s32 mode, u8 *flags, s16 *bands, s32 del
             *speed = s;
         }
     } else {
-        if (((s8) D_803ED40C) != 0 && D_802E8BDC != 0x22 && D_80364456 != 0xB && D_80364456 != 0x11 &&
+        if (((s8) D_803ED40C) != 0 && levelno != 0x22 && D_80364456 != 0xB && D_80364456 != 0x11 &&
             D_80364456 != 0x12) {
             s = *speed;
             if (s >= 0) {
@@ -1049,23 +1049,23 @@ void func_802A7FD8(u8 *veh, u16 *heading, s32 rate, s16 *speedp, u16 *target, u1
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Unless D_803A740C + 10 < D_80358068, walk the {key, value, threshold}
+/* Unless D_803A740C + 10 < gUnpausedFrames, walk the {key, value, threshold}
  * table D_80305C58 (ended by value 0) for the first entry with key ==
- * D_802E8BDC and threshold + D_803A740C >= D_80358068, and return its value;
+ * levelno and threshold + D_803A740C >= gUnpausedFrames, and return its value;
  * otherwise return `cur` unchanged.
  * Register convention: the asm returns the value in t5 and leaves t5 alone
  * otherwise, so the C takes the caller's t5 as `cur` (the asm saves every
  * other register it uses). Asm callers keep t1 and t6 live. */
 s32 func_802A8314(s32 cur) {
     s32 base = D_803A740C;
-    s32 limit = D_80358068;
+    s32 limit = gUnpausedFrames;
     s32 *e;
 
     if (base + 10 < limit) {
         return cur;
     }
     for (e = D_80305C58; e[1] != 0; e += 3) {
-        if (e[0] != D_802E8BDC) {
+        if (e[0] != levelno) {
             continue;
         }
         if (e[2] + base < limit) {
@@ -1447,11 +1447,11 @@ void func_802A8CCC(u8 *veh, s32 id, s32 *px, s32 *py, s32 *pz, Pos802A8CCC *pos)
     s32 i;
 
     if (id == 7) {
-        if (D_802E8BDC == 0) {
+        if (levelno == 0) {
             out = gx < 1000;
-        } else if (D_802E8BDC == 0x12) {
+        } else if (levelno == 0x12) {
             out = gz < 900;
-        } else if (D_802E8BDC == 0xD) {
+        } else if (levelno == 0xD) {
             out = gz < 0x44C;
         }
     }
@@ -1501,11 +1501,11 @@ void func_802A8FB4(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* If the vehicle's mode byte (veh+0x9F) is 0x67 and D_802E8BDC == 12, set
+/* If the vehicle's mode byte (veh+0x9F) is 0x67 and levelno == 12, set
  * D_803ED3F7 = 8. (The asm clobbers v0.) Asm callers keep a1-a3, t0, t1,
  * t7-t9, f12 and f14 live. */
 void func_802A8FF4(u8 *veh) {
-    if (VEH_U8(veh, 0x9F) == 0x67 && D_802E8BDC == 12) {
+    if (VEH_U8(veh, 0x9F) == 0x67 && levelno == 12) {
         D_803ED3F7 = 8;
     }
 }

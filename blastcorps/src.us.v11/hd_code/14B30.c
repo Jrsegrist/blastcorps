@@ -45,20 +45,20 @@ s32 func_80259814(u16 *arg0, u16 *arg1);
 void func_802592F0(void) {
     s32 i;
 
-    if ((D_80364A98 & 0xC9FD8FE7DBFF8080) || D_80364A98 == 0x100000000000 || D_80364A98 == 2 ||
-        D_802E8BDC == 0x28 || D_802E8BDC == 0x32) {
+    if ((gNextGameMode & 0xC9FD8FE7DBFF8080) || gNextGameMode == 0x100000000000 || gNextGameMode == 2 ||
+        levelno == 0x28 || levelno == 0x32) {
         D_80365350 = 0x200;
-    } else if (D_80364A98 == 0x40) {
+    } else if (gNextGameMode == 0x40) {
         D_80365350 = 0x9C;
     } else {
         D_80365350 = 0xAC;
     }
     for (i = 0; i < 2; i++) {
-        D_80365348[i] = (Vtx *) D_80358070;
-        D_80358070 += D_80365350 * 16 * 4;
+        D_80365348[i] = (Vtx *) gHeapPtr;
+        gHeapPtr += D_80365350 * 16 * 4;
     }
-    D_80365340 = (TextQuad *) D_80358070;
-    D_80358070 += D_80365350 * 12;
+    D_80365340 = (TextQuad *) gHeapPtr;
+    gHeapPtr += D_80365350 * 12;
 #ifdef PORT_HOST
     for (i = 0; i < D_80365350; i++) {
         port_garbage((u8 *) &D_80365340[i].key + 2, 2);
@@ -499,10 +499,10 @@ void func_80259EC4(Gfx * N64P *gfxp, u8 *str, u16 *wstr, u8 align, s32 fit, f32 
 #endif
             D_802E8C74++;
             if (!(D_802E8C74 < D_80365350)) {
-                func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", "index<maxCharacters", "drawtext.c", 435);
+                debug_printf("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", "index<maxCharacters", "drawtext.c", 435);
             }
             if (D_802E8C74 >= D_80365350) {
-                func_8029A7E4("%d %d\n", D_802E8C74, D_80365350);
+                debug_printf("%d %d\n", D_802E8C74, D_80365350);
             }
         }
         if (align == 1) {

@@ -17,7 +17,8 @@ renamed is left alone, so another branch applies the same map before a merge
 What it rewrites, whole-word (so func_80244930_fp or D_80364A94 are other
 names), in every tracked text file of the repository except tools/, lib/,
 blastcorps/asm/ (generated: `make extract` regenerates it), port/inputs/
-(generated: `make -C port inputs`) and names.txt itself:
+(generated: `make -C port inputs`), names.txt and the files that spell out
+example names on purpose (this file, names.py, tests/test_rename.py):
   * C sources and headers, symbol_addrs*.txt, undefined_syms*.txt, the yaml
     and linker scripts, the Makefiles;
   * tools_port (checks/*.txt, conventions.txt, hand_asm.txt, models, the
@@ -47,7 +48,9 @@ import names as namesmod                    # noqa: E402
 
 EXCLUDE_PREFIXES = ("tools/", "lib/", "blastcorps/asm/", "blastcorps/port/inputs/", "blastcorps/expected/",
                     "blastcorps/port/rt64/", "blastcorps/nonmatchings/")
-EXCLUDE_FILES = ("blastcorps/tools_port/names.txt",)
+# (the map itself, and the tools and tests that spell out example names)
+EXCLUDE_FILES = ("blastcorps/tools_port/names.txt", "blastcorps/tools_port/rename.py",
+                 "blastcorps/tools_port/names.py", "blastcorps/tools_port/tests/test_rename.py")
 BINARY_EXT = (".png", ".bin", ".z64", ".n64", ".v64", ".ico", ".o", ".obj", ".zip", ".rtz", ".jpg", ".gif",
               ".pdf", ".exe", ".dll", ".lib", ".pdb")
 # which symbol_addrs file names an address
@@ -135,17 +138,19 @@ def segment_file(addr):
 
 
 def update_symbol_addrs(pairs, dry):
-    """every renamed symbol named at its address in its segment's symbol_addrs file"""
+    """every renamed symbol named at its address in hd_code's symbol_addrs file (hd_code's asm
+    refers to the front end's and init's addresses too) and in its own segment's, if another
+    (tools_port/segsyms.py hands hd_code's names on to the front end, except the front end's own)"""
     added = {}
     for old, new in pairs:
         addr = int(old.split("_")[1], 16)
-        fn = segment_file(addr)
-        path = os.path.join(BC, fn)
-        text = open(path).read()
-        if re.search(r"^\s*%s\s*=" % re.escape(new), text, re.M):
-            continue
         kind = "func" if old.startswith("func_") else "data"
-        added.setdefault(fn, []).append("%s = 0x%08X; // type:%s" % (new, addr, kind))
+        for fn in sorted({DEFAULT_SEGMENT, segment_file(addr)}):
+            path = os.path.join(BC, fn)
+            text = open(path).read()
+            if re.search(r"^\s*%s\s*=" % re.escape(new), text, re.M):
+                continue
+            added.setdefault(fn, []).append("%s = 0x%08X; // type:%s" % (new, addr, kind))
     for fn, lines in added.items():
         path = os.path.join(BC, fn)
         text = open(path).read()

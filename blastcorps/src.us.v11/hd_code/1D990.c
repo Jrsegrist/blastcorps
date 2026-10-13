@@ -4,7 +4,7 @@
 /* Matching build: IDO compiled the matched code here against older
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
-#define LEGACY_D_8036EA70
+#define LEGACY_nss
 #define LEGACY_func_802C1B1C
 #endif /* legacy declarations */
 #include "game/game.h"
@@ -12,9 +12,9 @@
 #define D_802E8F94 ((LevelInfo *) D_802E8F94)
 #define D_802F49F4 ((Anim30 *) D_802F49F4)
 #define D_802F5804 ((void * N64P *) D_802F5804)
-#define D_80364AF0 ((Player *) D_80364AF0)
+#define players ((Player *) players)
 #ifdef NON_MATCHING
-#define D_8036EA70 (*(u32 *) &D_8036EA70)
+#define nss (*(u32 *) &nss)
 #endif
 /* end of views */
 
@@ -83,7 +83,7 @@ extern LevelInfo * N64P D_80367C04;
 extern u8 D_802E8F30[];
 extern Entry0A D_802E8F68[];
 #ifndef NON_MATCHING
-extern u32 D_8036EA70;
+extern u32 nss;
 #endif
 extern char D_80367B60[][20]; /* HUD text lines (progress, lap times) */
 extern u8 D_80367BFE;
@@ -271,14 +271,14 @@ void func_80262320(u8 arg0) {
     }
     if (D_80364AA8 != 1) {
         size = D_006A8DA0 - D_006A32B0;
-        if (D_80364AA8 != 0x80 && D_80364A98 == 0x2000) {
-            func_8028B4C4((u32) D_006A32B0, (u32) D_80358070, (u32 *) &size, 10, 0, 1);
+        if (D_80364AA8 != 0x80 && gNextGameMode == 0x2000) {
+            func_8028B4C4((u32) D_006A32B0, (u32) gHeapPtr, (u32 *) &size, 10, 0, 1);
             for (i = 0; i < 5; i++) {
-                D_80367BE0[i] = (i << 15) + (u8 *) D_80358070;
+                D_80367BE0[i] = (i << 15) + (u8 *) gHeapPtr;
             }
-            D_80358070 = (u8 *) D_80358070 + size;
+            gHeapPtr = (u8 *) gHeapPtr + size;
         }
-        if (D_80364A98 == 0x40) {
+        if (gNextGameMode == 0x40) {
             D_80367BC8 = 0;
         } else {
             D_80367BC8 = 1;
@@ -288,7 +288,7 @@ void func_80262320(u8 arg0) {
     }
     D_80367C01 = 0;
     D_80367C00 = 0;
-    if (D_80364A98 == 0x40) {
+    if (gNextGameMode == 0x40) {
         D_80367BFF = 0;
     } else {
         D_80367BFF = 0;
@@ -308,7 +308,7 @@ void func_80262320(u8 arg0) {
             D_80367BCC = NULL;
         }
     }
-    if (D_80364A98 & 0x440) {
+    if (gNextGameMode & 0x440) {
         func_80264A34(D_80367BB0, D_80367C04->time - D_80367BF6, 0);
     } else {
         D_80367B54 = 0;
@@ -334,14 +334,14 @@ void func_80262840(void) {
                         break;
                     case 4:
                     case 0x20:
-                        if (D_802E8BDC == 0x34) {
+                        if (levelno == 0x34) {
                             func_802D6A60(D_80367C18, "DESTROY TARGETS IN");
                         } else {
                             func_802D6A60(D_80367C18, "DESTROY %s IN", D_80367C08);
                         }
                         break;
                     case 0x80:
-                        if (D_802E8BDC == 0x32) {
+                        if (levelno == 0x32) {
                             func_802D6A60(D_80367C18, "CLEAR SHUTTLE PATH");
                         } else {
                             func_802D6A60(D_80367C18, "CLEAR CARRIER PATH");
@@ -381,7 +381,7 @@ void func_80262840(void) {
     }
     D_80367BC4 = secs;
     if (secs == 4 && D_8035805C == D_803156F4) {
-        D_80364A98 = 4;
+        gNextGameMode = 4;
     }
 }
 
@@ -392,13 +392,13 @@ void func_80262BF4(void) {
         D_80367BF6 = D_80367C04->time - MIN(D_80367C04->time, func_8028604C(D_803156C0 - D_80364A58));
     }
     func_80264A34(D_80367BB0, D_80367BF6, 1);
-    switch (D_80364A90) {
+    switch (gGameMode) {
         case 0x2000:
             func_80262840();
             break;
         case 0x04000000:
-            if (D_803643D6 && func_802753C0() == 0 && yoshiState == 1) {
-                if ((D_80364AF0[D_80364AE8].rank[D_802E8BDC] > 0 && D_80364AF0[D_80364AE8].rank[D_802E8BDC] < 6) ? 1
+            if (D_803643D6 && areWeFading() == 0 && yoshiState == 1) {
+                if ((players[playerNumber].rank[levelno] > 0 && players[playerNumber].rank[levelno] < 6) ? 1
                                                                                                                  : 0) {
                     func_80275270(0x08000000, 0.25f);
                 } else {
@@ -408,7 +408,7 @@ void func_80262BF4(void) {
             break;
         default:
             if (D_80367BF6 == 0) {
-                D_803643D9 = 1;
+                cmo_hit_request = 1;
             } else {
                 D_80367BF4 = D_80367BF6 / 10;
                 if (D_80367BF4 < 10 && D_80367BF4 != D_80367D08) {
@@ -420,16 +420,16 @@ void func_80262BF4(void) {
                 func_80260650(D_80367738, 0x3C, 0);
             }
             if (D_803BE738) {
-                D_803643D9 = 1;
+                cmo_hit_request = 1;
             }
             if (D_803643D6) {
                 func_80260A10();
                 func_802609F0();
                 func_8026AF6C(0xA00E);
                 D_8036BB1A = -1;
-                D_80364A98 = 0x04000000;
+                gNextGameMode = 0x04000000;
             } else if (D_803643D7) {
-                D_80364A98 = 0x04000000;
+                gNextGameMode = 0x04000000;
             } else {
                 switch (D_80364AA8) {
                     case 2:
@@ -474,10 +474,10 @@ void func_8026303C(void) {
     if (D_8036DCD4) {
         func_8027EED8(D_803643E0 >> 5, D_803643E8 >> 5, &h);
         if (h > (D_803643E4 >> 5)) {
-            D_803643D9 = 1;
+            cmo_hit_request = 1;
         }
     } else if (D_80367C04->unk24 > (D_803643E4 >> 5)) {
-        D_803643D9 = 1;
+        cmo_hit_request = 1;
     }
     func_802D6A60(D_80367B60[0], "%d/%d", D_8036EA78, D_8036EB92);
 }
@@ -494,7 +494,7 @@ void func_80263140(void) {
             }
             break;
         case 0x80:
-            if (D_803F7806 || (D_802E8BDC == 0x32 && D_8036EA78 >= D_8036EB92)) {
+            if (D_803F7806 || (levelno == 0x32 && D_8036EA78 >= D_8036EB92)) {
                 D_803643DA = 1;
             }
             break;
@@ -502,17 +502,17 @@ void func_80263140(void) {
     if (D_8036DCD4) {
         func_8027EED8(D_803643E0 >> 5, D_803643E8 >> 5, &h);
         if (h > (D_803643E4 >> 5)) {
-            D_803643D9 = 1;
+            cmo_hit_request = 1;
         }
     } else if (D_80367C04->unk24 > (D_803643E4 >> 5)) {
-        D_803643D9 = 1;
+        cmo_hit_request = 1;
     }
     switch (D_80364AA8) {
         case 0x20:
             func_802D6A60(D_80367B60[0], "%d/%d", D_8036EA78, D_8036EB92);
             break;
         case 0x80:
-            if (D_802E8BDC == 0x32) {
+            if (levelno == 0x32) {
                 func_802D6A60(D_80367B60[0], "%d/%d", D_8036EA78, D_8036EB92);
             } else {
                 func_802D6A60(D_80367B60[0], "%d/%d", func_802C1B1C(), D_8036EB92);
@@ -526,10 +526,10 @@ void func_80263358(void) {
     s32 left;
 
     func_802C1DD0(0);
-    if (D_8036EA70 >= D_80367C04->target) {
+    if (nss >= D_80367C04->target) {
         D_803643DA = 1;
     }
-    left = D_80367C04->target - D_8036EA70;
+    left = D_80367C04->target - nss;
     if (left < 0) {
         left = 0;
     }
@@ -560,13 +560,13 @@ void func_802633E0(void) {
             D_80367B58[D_80367B54 - 1] -= D_80367B58[i];
         }
         if (D_80370C28 & 0x2000) {
-            func_8029A7E4("box number=%d\n", D_80367BFA);
+            debug_printf("box number=%d\n", D_80367BFA);
         }
         if (D_80367BF8 == 4) {
             if (func_8026394C(D_803643E0 >> 5, D_803643E8 >> 5, D_80367C04->startBox[0], D_80367C04->startBox[1],
                               D_80367C04->startBox[2], D_80367C04->startBox[3])) {
                 if (D_80367B58[D_80367B54 - 1] < D_80367BFC) {
-                    func_8029A7E4("new best lap %d %d\n", D_80367BFC, D_80367B58[D_80367B54 - 1]);
+                    debug_printf("new best lap %d %d\n", D_80367BFC, D_80367B58[D_80367B54 - 1]);
                     D_80367BFB = D_80367B54;
                     D_80367BFC = D_80367B58[D_80367B54 - 1];
                 }
@@ -574,7 +574,7 @@ void func_802633E0(void) {
                     D_803643DA = 1;
                 } else {
                     left = D_80367C04->target - D_80367B54;
-                    if (!D_802E8BD0) {
+                    if (!gPaused) {
                         func_8026AF6C(0x8008);
                     }
                     if (left == 1) {
@@ -590,7 +590,7 @@ void func_802633E0(void) {
                 D_80367BF8 = 0;
             }
         } else if (D_80367C04->quad[D_80367BF8] == D_80367BF9 && D_80367C04->quad[(D_80367BF8 + 1) % 4] == D_80367BFA) {
-            func_8029A7E4("box cross: %d to %d\n", D_80367BF9, D_80367BFA);
+            debug_printf("box cross: %d to %d\n", D_80367BF9, D_80367BFA);
             D_80367BF8++;
         }
         D_80367BF9 = D_80367BFA;
@@ -625,14 +625,14 @@ Gfx *func_802639B4(Gfx *gdl, Gfx * N64P *arg1, u32 *arg2) {
 #endif
 
     g = gdl;
-    if ((D_80364A90 & 0x04000200) && currentYoshiWindow != 0x1E) {
+    if ((gGameMode & 0x04000200) && currentYoshiWindow != 0x1E) {
         alpha = 0xFF;
     } else {
         alpha = D_80367BD6;
     }
     switch (D_80364AA8) {
         case 2:
-            for (i = 0; i < D_80367B54 - ((D_80364A90 & 0x440) ? 1 : 0) && i < D_80367C04->target; i++) {
+            for (i = 0; i < D_80367B54 - ((gGameMode & 0x440) ? 1 : 0) && i < D_80367C04->target; i++) {
                 if (i + 1 == D_80367BFB && i + 1 != D_80367B54) {
                     /* best lap */
                     func_80259CCC(arg1, (u8 *) D_80367B60[i], 0, 1, 0, 0x18, i * 18 + 0x12, 0x14, 0x14, 1, 0xFF, 0, 0,
@@ -662,7 +662,7 @@ Gfx *func_802639B4(Gfx *gdl, Gfx * N64P *arg1, u32 *arg2) {
     }
     red = 0xFF;
     grn = 0;
-    if (D_80364A90 & 0x04000104) {
+    if (gGameMode & 0x04000104) {
         flash = D_80367BF4 < 10;
         if (!flash) {
             grn = 0xFF;
@@ -682,7 +682,7 @@ Gfx *func_802639B4(Gfx *gdl, Gfx * N64P *arg1, u32 *arg2) {
             func_80259CCC(arg1, (u8 *) D_80367BB0, 0, 1, 0, 0x1C, D_80367BD8 + 0x2A, 0x10, 0x10, 1, red, grn, 0, alpha);
         }
     }
-    if (D_803643D7 && D_80364A90 == 0x04000000) {
+    if (D_803643D7 && gGameMode == 0x04000000) {
         func_8025E2CC(&g, (s32) arg1, D_8035805C);
     }
     if (D_80367BC8) {
@@ -704,7 +704,7 @@ Gfx *func_802639B4(Gfx *gdl, Gfx * N64P *arg1, u32 *arg2) {
 
 void func_8026420C(void) {
     if (D_80367BFE && D_80358064 == D_80367B50) {
-        func_8029A7E4("Replay turbo ....\n");
+        debug_printf("Replay turbo ....\n");
         D_80367BFF = 1;
     }
 }
@@ -733,7 +733,7 @@ Gfx *func_80264264(Gfx * N64P *arg0, Gfx *gdl) {
             }
             break;
         case 3:
-            if (!D_802E8BD0) {
+            if (!gPaused) {
                 D_80367BC8 = 4;
             }
             if (D_80370C1C) {
@@ -763,7 +763,7 @@ Gfx *func_80264264(Gfx * N64P *arg0, Gfx *gdl) {
             D_80367D50 = 10 - ((D_803156C0 - D_80364A58) * 2 * 60 - 2400) / 60;
             if (D_80367D50 < -0x3F) {
                 /* comma (or both on one line) needed for the store to land in the jal delay slot */
-                D_80367BC8 = 0, func_8029A7E4("turbo %d\n", D_80367BFE);
+                D_80367BC8 = 0, debug_printf("turbo %d\n", D_80367BFE);
             }
             break;
     }

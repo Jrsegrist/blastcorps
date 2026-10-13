@@ -54,7 +54,7 @@ func_802B11B8: -n 200 --seed 1 --mem D_803EDFC8=int --mem D_803EDFCC=int --mem D
 # callees followed (copy direction both ways, NULL and non-NULL sound handle); alEvtqPostEvent's a1 is a stack address (frames differ)
 func_802B11B8: -n 100 --seed 2 --heap 0x1400 --heap 0x1400 --heap 0x100 --mem D_803EDC10:0x300=rand --mem D_803EDFC8=rel:heap0 \
     --mem D_803EDFCC=rel:heap1 --mem D_803EDFD0=choice:0,0x80B02820 --mem D_803EDF10+0x76:2=0xFFFF --mem D_8035805C:1=choice:0,1 \
-    --follow func_802A7764,func_802A02E4,func_802608C8 --sig func_802C444C= --sig func_8029A7E4=a0 --sig alEvtqPostEvent=a0,a2
+    --follow func_802A7764,func_802A02E4,func_802608C8 --sig func_802C444C= --sig debug_printf=a0 --sig alEvtqPostEvent=a0,a2
 # func_802B18F4 (vehicle 2 state machine on +0xA1; t6, t7, s0-s4 through to func_802A6274; gp = D_803EDF10): all states, callees stubbed
 func_802B18F4: -n 400 --seed 0 --arg gp=sym:D_803EDF10 --arg t6=int --arg t7=int --arg s0=int --arg s1=int --arg s2=int --arg s3=int --arg s4=int \
     --mem D_803EDF10+0xA1:1=choice:0*4,1,2,3,4 --mem D_803EDF10+0xA2:1=choice:0,1 --mem D_803EDF10+0xA3:1=choice:0,1,2 \
@@ -127,10 +127,10 @@ func_802B152C: -n 200 --seed 1 --mem D_803EDF10:0xA6=rand --mem D_803EDF10+0x9A:
 
 # func_802B0DA0: spawn vehicle 2 (model in s2); then with the per-frame chain followed
 func_802B0DA0: -n 300 --heap 0x200 --arg s2=rel:heap0 --mem @heap0+4=int:0:0x100 --mem @heap0+8=int:0:0x100 --mem @heap0+0x18=choice:0x40,0x80 \
-    --mem @heap0+0x44=int:0:0x100 --mem @heap0+0x84=int:0:0x100 --mem D_80358070=rand --mem D_803EDF10:0xA6=rand --mem D_803EDFB8:0x24=rand \
+    --mem @heap0+0x44=int:0:0x100 --mem @heap0+0x84=int:0:0x100 --mem gHeapPtr=rand --mem D_803EDF10:0xA6=rand --mem D_803EDFB8:0x24=rand \
     --mem D_803F7844=rand --sig func_80258230=a0:1,a1,a2:2,a3:2 --sig func_802A7764=a0,a1,a2
 func_802B0DA0: -n 200 --seed 1 --heap 0x200 --heap 0x2800 --arg s2=rel:heap0 --mem @heap0+0=int:0:0x100 --mem @heap0+4=int:0:0x100 --mem @heap0+8=int:0:0x100 \
-    --mem @heap0+0x18=choice:0x40,0x80 --mem @heap0+0x44=int:0:0x100 --mem @heap0+0x84=int:0:0x100 --mem D_80358070=rel:heap1 --mem D_803EDF10:0xA6=rand \
+    --mem @heap0+0x18=choice:0x40,0x80 --mem @heap0+0x44=int:0:0x100 --mem @heap0+0x84=int:0:0x100 --mem gHeapPtr=rel:heap1 --mem D_803EDF10:0xA6=rand \
     --mem D_803EDFB8:0x24=rand --mem D_803F7844=rand --mem D_8035805C:1=choice:0,1 --mem D_803A7425:1=choice:0,1 --stub-ret func_802A6F6C=int:0:0xFFF \
     --sig func_8029A914=a0 --sig func_802A6F6C= --sig func_802B2900= --sig func_802B28B8= --sig func_80258230=a0:1,a1,a2:2,a3:2 \
     --sig func_802A7764=a0,a1,a2 --sig 'func_8029C454=a0,a1,a2,a3,stack0,stack1,stack2,*stack3+8,*stack3+0xC,*stack3+0x14' \

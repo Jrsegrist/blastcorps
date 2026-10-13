@@ -110,7 +110,7 @@ def main():
         # own definition (a function that moved with the relocated text) wins
         # over the absolute one.  Data: kept as a hard assignment, exactly as in
         # the matching link.  Several data symbols are pinned here although a C
-        # file also defines them (e.g. hd.c's u64 D_80364A88/90/98 sit outside
+        # file also defines them (e.g. hd.c's u64 gPrevGameMode, gGameMode, gNextGameMode sit outside
         # its modelled .bss); a PROVIDE would let the C definition win and move
         # the variable, while the hand asm still uses the raw original address.
         funcs_file = "undefined_funcs" in os.path.basename(args.inp)

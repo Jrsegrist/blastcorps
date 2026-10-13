@@ -37,12 +37,12 @@ void func_80202100(s32 type, u8 * N64P *model, u8 * N64P *heap, u8 * N64P *dl) {
     func_802A396C(type, &o);
     data = o.s2;
     *model = data;
-    h = D_80358070;
+    h = gHeapPtr;
     heap[0] = h;
     h += 0x1770;
     heap[1] = h;
     h += 0x1770;
-    D_80358070 = h;
+    gHeapPtr = h;
     off1C = *(s32 *) (data + 0x1C);
     dl[0] = data + off1C;
     dl[1] = h;

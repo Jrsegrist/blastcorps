@@ -17,7 +17,7 @@ usage: mapsyms.py EXE.map OUT.syms
 import re
 import sys
 
-# " 0001:00000000       func_80244930              0000000040001000 f   00000.obj"
+# " 0001:00000000       hd_main_thread              0000000040001000 f   00000.obj"
 SYM = re.compile(r"^\s*([0-9a-fA-F]{4}):([0-9a-fA-F]{8})\s+(\S+)\s+([0-9a-fA-F]{16})\s+(f\s+)?(i\s+)?(.*)$")
 # " 0001:00000000 000c1f08H .text$mn                CODE"
 SEC = re.compile(r"^\s*([0-9a-fA-F]{4}):([0-9a-fA-F]{8})\s+([0-9a-fA-F]{8})H\s+(\S+)\s+(\S+)\s*$")

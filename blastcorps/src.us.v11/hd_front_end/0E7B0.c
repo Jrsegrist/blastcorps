@@ -11,10 +11,10 @@
 #define D_8020C070 ((MenuItem *) D_8020C070)
 #define D_802E8F94 ((LevelInfo *) D_802E8F94)
 #define D_802F8BDC ((s16 *) D_802F8BDC)
-#define D_80310BD0 ((u8 *) &D_80310BD0)
-#define D_80315440 ((u8 *) &D_80315440)
-#define D_80364AF0 ((Player *) D_80364AF0)
-#define D_8039C4B8 ((u8 *) D_8039C4B8)
+#define gMainThread ((u8 *) &gMainThread)
+#define gScheduler ((u8 *) &gScheduler)
+#define players ((Player *) players)
+#define pakBuffer ((u8 *) pakBuffer)
 #ifdef NON_MATCHING
 #define D_8039C4B4 (*(s32 *) &D_8039C4B4)
 #endif
@@ -30,7 +30,7 @@ u8 __osContDataCrc(u8 *data);
 s32 osPfsInitPak(OSMesgQueue *, OSPfs *, int);
 
 #define PFS_ASSERT(EX, line) \
-    if (!(EX)) func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "pfsHandler.c", line)
+    if (!(EX)) debug_printf("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "pfsHandler.c", line)
 #define PFS_FILE_SIZE 0xE00
 
 /*
@@ -103,8 +103,7 @@ extern u8 D_8020BEE0[];
 int sprintf(char *, const char *, ...);
 void bcopy(const void *, void *, int);
 
-#define playerInfo (D_80364AF0[0])
-#define playerNumberAtStart D_80364AEA
+#define playerInfo (players[0])
 
 void func_801F58E8(void *);
 void func_801F7410(u8 *str);
@@ -120,12 +119,12 @@ void func_801F57B0(void) {
     osCreateThread(&D_80218D30, 2, func_801F58E8, NULL, D_80218EF8 + 0x1000, 0xB);
     osCreateMesgQueue(&D_80219EF8, D_80219F10, 8);
     osCreateMesgQueue(&D_80219F30, D_80219F48, 1);
-    osCreateMesgQueue(&D_80219F50, D_80219F68, 8);
+    osCreateMesgQueue(&pakToGameMessageQ, D_80219F68, 8);
     func_801F74B0(D_8020C000);
     func_801F74B0(D_8020C014);
-    func_8029A7E4("current pak file size is %d bytes\n", filesize);
-    func_8029A7E4("current playerInfo size is %d bytes\n", 0x100);
-    func_80270E50((struct BcSched *) D_80315440, (struct BcScClient *) D_80218EE0, &D_80219F30, 1, 3);
+    debug_printf("current pak file size is %d bytes\n", filesize);
+    debug_printf("current playerInfo size is %d bytes\n", 0x100);
+    sched_add_client((struct BcSched *) gScheduler, (struct BcScClient *) D_80218EE0, &D_80219F30, 1, 3);
     PFS_ASSERT(filesize<PFS_FILE_SIZE, 104);
     osStartThread(&D_80218D30);
 }
@@ -167,19 +166,19 @@ void func_801F57B0(void) {
  *     u32 tries;
  *
  *     while (1) {
- *         D_8039C4B0 = 0;
+ *         pakBusy = 0;
  *         tries = 0;
  *         osSetEventMesg(OS_EVENT_SI, &D_80370BF8, 0);
  *         osRecvMesg(&D_80219EF8, &msg, OS_MESG_BLOCK);
  *         osSetEventMesg(OS_EVENT_SI, &D_80370BF8, 0);
- *         while (D_8036BF10 != 0) {
+ *         while (gPreNmi != 0) {
  *         }
  *         cmd = (u32) msg & 0xFF;
  *         arg1 = ((u32) msg >> 8) & 0xFF;
  *         player = ((u32) msg >> 16) & 0xFF;
  *         reply = ((u32) msg >> 24) & 0xFF;
  *         D_8020C014[0] = player + 0x11;
- *         D_8039C4B0 = 1;
+ *         pakBusy = 1;
  *         func_8028A42C();
  *         func_801EE390();
  *         D_80218D24 = 0;
@@ -255,13 +254,13 @@ void func_801F57B0(void) {
  *                     ret = 0;
  *                     break;
  *                 default:
- *                     func_8029A7E4("Nonsense pak message\n");
+ *                     debug_printf("Nonsense pak message\n");
  *                     break;
  *             }
- *             func_8029A7E4("pak command %d returned %d\n", cmd, ret);
+ *             debug_printf("pak command %d returned %d\n", cmd, ret);
  *             switch (ret) {
  *                 case 0x6E382:
- *                     if ((D_80364A90 & 0x10E18000) || (D_80364A98 & 0x20000000000000)) {
+ *                     if ((gGameMode & 0x10E18000) || (gNextGameMode & 0x20000000000000)) {
  *                         done = 1;
  *                         break;
  *                     }
@@ -291,7 +290,7 @@ void func_801F57B0(void) {
  *                     done = 1;
  *                     break;
  *                 case 8:
- *                     if (!(D_80364A90 & 0x10E18000) || func_801F5FE4() != 0) {
+ *                     if (!(gGameMode & 0x10E18000) || func_801F5FE4() != 0) {
  *                         break;
  *                     }
  *                     // fallthrough
@@ -307,7 +306,7 @@ void func_801F57B0(void) {
  *                         }
  *                         yoshi = 0x5C;
  *                     } else {
- *                         func_8029A7E4("trying to fix pak ...\n");
+ *                         debug_printf("trying to fix pak ...\n");
  *                         if (cmd != 0x12) {
  *                             osSendMesg(&D_80219EF8, (OSMesg) (cmd | (arg1 << 8) | (player << 16) | (reply << 24)), OS_MESG_NOBLOCK);
  *                         }
@@ -317,19 +316,19 @@ void func_801F57B0(void) {
  *                     }
  *                     break;
  *                 case 2:
- *                     if (lastRet == 8 && !(D_80364A90 & 0x10E18000)) {
+ *                     if (lastRet == 8 && !(gGameMode & 0x10E18000)) {
  *                         PFS_ASSERT(1==0, 342);
  *                         done = 1;
  *                     }
  *                     break;
  *                 case 1:
- *                     if (D_80364A98 & 0x20000000000000) {
+ *                     if (gNextGameMode & 0x20000000000000) {
  *                         done = 1;
  *                     }
  *                     break;
  *             }
  *             lastRet = ret;
- *             if (D_8036BF10 == 0 && yoshi != 0 && !done && !next && D_80219F50.mtqueue == &D_80310BD0) {
+ *             if (gPreNmi == 0 && yoshi != 0 && !done && !next && pakToGameMessageQ.mtqueue == &gMainThread) {
  *                 func_801EE398(yoshi);
  *                 D_80218D24 = 1;
  *             }
@@ -344,7 +343,7 @@ void func_801F57B0(void) {
  *             currentYoshiWindow = -1;
  *         }
  *         if (reply) {
- *             osSendMesg(&D_80219F50, (OSMesg) ret, OS_MESG_BLOCK);
+ *             osSendMesg(&pakToGameMessageQ, (OSMesg) ret, OS_MESG_BLOCK);
  *         }
  *     }
  * }
@@ -366,7 +365,7 @@ s32 func_801F6ED4(u8 arg0);
 
 /* The save thread: one pak/EEPROM command per message (cmd | arg1 << 8 |
  * player << 16 | reply << 24), retried until it settles, the result sent
- * back on D_80219F50 when `reply` is set. */
+ * back on pakToGameMessageQ when `reply` is set. */
 void func_801F58E8(void *arg) {
     OSMesg msg;
 #ifdef NON_MATCHING
@@ -386,19 +385,19 @@ void func_801F58E8(void *arg) {
     u32 tries;
 
     while (1) {
-        D_8039C4B0 = 0;
+        pakBusy = 0;
         tries = 0;
         osSetEventMesg(OS_EVENT_SI, &D_80370BF8, 0);
         osRecvMesg(&D_80219EF8, &msg, OS_MESG_BLOCK);
         osSetEventMesg(OS_EVENT_SI, &D_80370BF8, 0);
-        while (D_8036BF10 != 0) {
+        while (gPreNmi != 0) {
         }
         cmd = (u32) msg & 0xFF;
         arg1 = ((u32) msg >> 8) & 0xFF;
         player = ((u32) msg >> 16) & 0xFF;
         reply = ((u32) msg >> 24) & 0xFF;
         D_8020C014[0] = player + 0x11;
-        D_8039C4B0 = 1;
+        pakBusy = 1;
         func_8028A42C();
         func_801EE390();
         D_80218D24 = 0;
@@ -475,13 +474,13 @@ void func_801F58E8(void *arg) {
                     break;
                 default:
                     /* ret keeps its previous value (unset on the first pass) */
-                    func_8029A7E4("Nonsense pak message\n");
+                    debug_printf("Nonsense pak message\n");
                     break;
             }
-            func_8029A7E4("pak command %d returned %d\n", cmd, ret);
+            debug_printf("pak command %d returned %d\n", cmd, ret);
             switch (ret) {
                 case 0x6E382:
-                    if ((D_80364A90 & 0x10E18000) || (D_80364A98 & 0x20000000000000)) {
+                    if ((gGameMode & 0x10E18000) || (gNextGameMode & 0x20000000000000)) {
                         done = 1;
                         break;
                     }
@@ -511,7 +510,7 @@ void func_801F58E8(void *arg) {
                     done = 1;
                     break;
                 case 8:
-                    if (!(D_80364A90 & 0x10E18000) || func_801F5FE4() != 0) {
+                    if (!(gGameMode & 0x10E18000) || func_801F5FE4() != 0) {
                         break;
                     }
                     // fallthrough
@@ -527,7 +526,7 @@ void func_801F58E8(void *arg) {
                         }
                         yoshi = 0x5C;
                     } else {
-                        func_8029A7E4("trying to fix pak ...\n");
+                        debug_printf("trying to fix pak ...\n");
                         if (cmd != 0x12) {
                             osSendMesg(&D_80219EF8, (OSMesg) (cmd | (arg1 << 8) | (player << 16) | (reply << 24)),
                                        OS_MESG_NOBLOCK);
@@ -539,19 +538,19 @@ void func_801F58E8(void *arg) {
                     break;
                 case 2:
                     /* never true: lastRet is reset at the top of every pass */
-                    if (lastRet == 8 && !(D_80364A90 & 0x10E18000)) {
+                    if (lastRet == 8 && !(gGameMode & 0x10E18000)) {
                         PFS_ASSERT(1==0, 342);
                         done = 1;
                     }
                     break;
                 case 1:
-                    if (D_80364A98 & 0x20000000000000) {
+                    if (gNextGameMode & 0x20000000000000) {
                         done = 1;
                     }
                     break;
             }
             lastRet = ret;
-            if (D_8036BF10 == 0 && yoshi != 0 && !done && !next && D_80219F50.mtqueue == (OSThread *) D_80310BD0) {
+            if (gPreNmi == 0 && yoshi != 0 && !done && !next && pakToGameMessageQ.mtqueue == (OSThread *) gMainThread) {
                 func_801EE398(yoshi);
                 D_80218D24 = 1;
             }
@@ -566,7 +565,7 @@ void func_801F58E8(void *arg) {
             currentYoshiWindow = -1;
         }
         if (reply) {
-            osSendMesg(&D_80219F50, (OSMesg) ret, OS_MESG_BLOCK);
+            osSendMesg(&pakToGameMessageQ, (OSMesg) ret, OS_MESG_BLOCK);
         }
     }
 }
@@ -645,17 +644,17 @@ s32 func_801F6264(u8 player, u8 rw) {
     u64 sem;
 
     ret = 0;
-    p = (u8 *) &D_80364AF0[player];
+    p = (u8 *) &players[player];
     PORT_SAVE_BEGIN(p, PORT_SAVE_PLAYER, 0x100);
     for (i = 0; i < 0x100 && rw == 1; i++) {
-        func_8029A7E4("0x%x, ", p[i]);
+        debug_printf("0x%x, ", p[i]);
     }
-    func_8029A7E4("\n");
+    debug_printf("\n");
     PFS_ASSERT(sizeof(playerInfo)<=512, 0);
     if (rw == 1) {
         func_801F75A4(p, 0x100);
     }
-    if (D_802E8BF8 != 0 || D_80364A90 == 0x40000000000000) {
+    if (D_802E8BF8 != 0 || gGameMode == 0x40000000000000) {
         if (D_8039C4B4 == 0 || D_802FA264 != 0) {
             for (i = 0; i < 0x100; i++) {
                 if (rw == 1) {
@@ -727,7 +726,7 @@ s32 func_801F65C4(u8 player, u8 slot, u8 rw) {
             ret = osPfsReadWriteFile(&D_8039B630, D_8039B698[player], rw, start, 0x20, p);
         }
         for (i = 0; i < 14; i++) {
-            func_8029A7E4("%d TIME %d = %d\n", rw, i, D_80364EF0[player][D_802E8C44[i]]);
+            debug_printf("%d TIME %d = %d\n", rw, i, D_80364EF0[player][D_802E8C44[i]]);
         }
     }
     if (ret == 0 && rw == 0) {
@@ -750,9 +749,9 @@ s32 func_801F67E4(u8 pn, u8 level, u8 rw) {
     if (D_802E8BF8 != 0) {
         PFS_ASSERT(pn==playerNumberAtStart, 604);
         if (rw == 1) {
-            D_80364F70[idx] = D_80364EF0[pn][D_802E8C44[D_80364AF0[pn].timeSlot[level]]];
+            D_80364F70[idx] = D_80364EF0[pn][D_802E8C44[players[pn].timeSlot[level]]];
             D_80364F70[idx + 1] = D_80364F70[idx] ^ 0x55AA;
-            func_8029A7E4("%d %d EEWRITE %x %x\n", level, D_80364F70[idx], (u32) (idx * 2 + 0x100) >> 3, p);
+            debug_printf("%d %d EEWRITE %x %x\n", level, D_80364F70[idx], (u32) (idx * 2 + 0x100) >> 3, p);
             PORT_SAVE_BEGIN(p, PORT_SAVE_EETIMES, 8);
             osEepromWrite(&D_80370BF8, (u32) (idx * 2 + 0x100) >> 3, (u8 *) p);
             PORT_SAVE_END(p, PORT_SAVE_EETIMES, 8);
@@ -761,10 +760,10 @@ s32 func_801F67E4(u8 pn, u8 level, u8 rw) {
             osEepromRead(&D_80370BF8, (u32) (idx * 2 + 0x100) >> 3, (u8 *) p);
             PORT_SAVE_END(p, PORT_SAVE_EETIMES, 8);
             for (i = 0; i < 2; i++, level++) {
-                if (((D_80364AF0[pn].rank[level] > 0 && D_80364AF0[pn].rank[level] < 6) ? 1 : 0)
+                if (((players[pn].rank[level] > 0 && players[pn].rank[level] < 6) ? 1 : 0)
                     && level != 0x31 && level != 0x2F && level != 0x26) {
-                    D_80364EF0[pn][D_802E8C44[D_80364AF0[pn].timeSlot[level]]] = D_80364F70[level * 2];
-                    func_8029A7E4("%d EETIMES: %d %d\n", level, D_80364F70[level * 2], D_80364F70[level * 2 + 1] ^ 0x55AA);
+                    D_80364EF0[pn][D_802E8C44[players[pn].timeSlot[level]]] = D_80364F70[level * 2];
+                    debug_printf("%d EETIMES: %d %d\n", level, D_80364F70[level * 2], D_80364F70[level * 2 + 1] ^ 0x55AA);
                     if (D_80364F70[level * 2] != (D_80364F70[level * 2 + 1] ^ 0x55AA)) {
                         ret = 0x6E382;
                     }
@@ -780,12 +779,12 @@ s32 func_801F6AF4(u8 player, u64 sem) {
     u8 *p;
 
     ret = 0;
-    p = (u8 *) &D_80364AF0[player];
+    p = (u8 *) &players[player];
     PORT_SAVE_BE64(sem);
-    if (D_802E8BF8 != 0 || D_80364A90 == 0x40000000000000) {
+    if (D_802E8BF8 != 0 || gGameMode == 0x40000000000000) {
         osEepromWrite(&D_80370BF8, 0x3F, (u8 *) &sem);
     } else {
-        func_8029A7E4("PUTTING SEMAPHORE %llu\n", sem);
+        debug_printf("PUTTING SEMAPHORE %llu\n", sem);
         /* 0x20 bytes from &sem: the semaphore and 24 bytes of stack */
         ret = osPfsReadWriteFile(&D_8039B630, D_8039B698[player], PFS_WRITE, 0xDE0, 0x20,
                                  PORT_SAVE_SEMBLOCK((u8 *) &sem));
@@ -799,7 +798,7 @@ s32 func_801F6BD0(u8 player, u64 *sem) {
     u8 buf[0x20];
 
     ret = 0;
-    p = (u8 *) &D_80364AF0[player];
+    p = (u8 *) &players[player];
     if (D_802E8BF8 != 0) {
         osEepromRead(&D_80370BF8, 0x3F, (u8 *) sem);
         PORT_SAVE_BE64(*sem);
@@ -807,12 +806,12 @@ s32 func_801F6BD0(u8 player, u64 *sem) {
         ret = osPfsReadWriteFile(&D_8039B630, D_8039B698[player], PFS_READ, 0xDE0, 0x20, buf);
         *sem = *(u64 *) buf;
         PORT_SAVE_BE64(*sem);
-        func_8029A7E4("Getting SEMAPHORE %llu\n", *sem);
+        debug_printf("Getting SEMAPHORE %llu\n", *sem);
     }
     return ret;
 }
 
-/* read/write the 0x40-byte block D_8039C4B8 stored after the records of the first `nlevels` levels */
+/* read/write the 0x40-byte block pakBuffer stored after the records of the first `nlevels` levels */
 s32 func_801F6CA4(u8 player, u8 nlevels, u8 rw) {
     s32 ret;
     s32 tmp;
@@ -828,28 +827,28 @@ s32 func_801F6CA4(u8 player, u8 nlevels, u8 rw) {
         }
     }
     start = count * 0x40 + 0x880;
-    PORT_SAVE_SWAP(D_8039C4B8, PORT_SAVE_STATUS, 0x40);
+    PORT_SAVE_SWAP(pakBuffer, PORT_SAVE_STATUS, 0x40);
     if (rw == 1) {
-        func_801F75A4(D_8039C4B8, 0x40);
+        func_801F75A4(pakBuffer, 0x40);
     }
     if (D_802E8BF8 != 0) {
         for (i = start; i < start + 0x40; i++) {
             if (rw == 1) {
-                D_8039B6B0[i] = D_8039C4B8[i - start];
+                D_8039B6B0[i] = pakBuffer[i - start];
             } else {
-                D_8039C4B8[i - start] = D_8039B6B0[i];
+                pakBuffer[i - start] = D_8039B6B0[i];
             }
         }
     } else {
         ret = tmp = osPfsFindFile(&D_8039B630, 0x3031, 0x4E424345, D_8020C000, D_8020C014, &D_8039B698[player]);
         if (tmp == 0) {
-            ret = osPfsReadWriteFile(&D_8039B630, D_8039B698[player], rw, start, 0x40, D_8039C4B8);
+            ret = osPfsReadWriteFile(&D_8039B630, D_8039B698[player], rw, start, 0x40, pakBuffer);
         }
     }
     if (ret == 0 && rw == 0) {
-        ret = func_801F76E4(D_8039C4B8, 0x40);
+        ret = func_801F76E4(pakBuffer, 0x40);
     }
-    PORT_SAVE_SWAP(D_8039C4B8, PORT_SAVE_STATUS, 0x40);
+    PORT_SAVE_SWAP(pakBuffer, PORT_SAVE_STATUS, 0x40);
     return ret;
 }
 
@@ -871,7 +870,7 @@ s32 func_801F6F18(void) {
     for (i = 0; i < 16; i++) {
         do {
             osSendMesg(&D_80219EF8, (OSMesg) ((i << 16) | 0x11 | 0x1000000), OS_MESG_BLOCK);
-            osRecvMesg(&D_80219F50, &msg, OS_MESG_BLOCK);
+            osRecvMesg(&pakToGameMessageQ, &msg, OS_MESG_BLOCK);
             if (msg != 0) {
                 i++;
             }
@@ -887,7 +886,7 @@ s32 func_801F6F18(void) {
             func_801F7410(D_80218AD0[D_80218D28]);
             sprintf(D_80218740[i], "%16s%c%-4s (%d)", D_802189C0[D_80218D28], flag ? '.' : ' ',
                     D_80218AD0[D_80218D28], pages);
-            func_8029A7E4("%s\n", D_80218740[i]);
+            debug_printf("%s\n", D_80218740[i]);
             if (pages < 99) {
                 sprintf(D_80218740[i], "%s ", D_80218740[i]);
             }
@@ -908,7 +907,7 @@ s32 func_801F6F18(void) {
     D_802F8BDC[0x210 / 2] = (D_80218D28 + empty + 1) / 2 + 0x24;
     D_802F8BDC[0x208 / 2] = D_80218D28 + empty + 4;
     osSendMesg(&D_80219EF8, (OSMesg) 0x100000E, OS_MESG_BLOCK);
-    osRecvMesg(&D_80219F50, NULL, OS_MESG_BLOCK);
+    osRecvMesg(&pakToGameMessageQ, NULL, OS_MESG_BLOCK);
     sprintf(D_80219F90, "%d PAGES FREE", D_80218EF0 / 32 / 8);
     D_8020C070[35].text = D_80219F90;
     sprintf(D_80219FB0, "%d NEEDED PER PLAYER", 14);

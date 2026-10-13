@@ -92,12 +92,12 @@ static void port_veh_init_head(u8 *veh, PortVehPos *p, s32 id, u8 *model, const 
     s32 i;
 
     p->model = model;
-    heap = D_80358070;
+    heap = gHeapPtr;
     p->bufA = (u64 *) heap;
     heap += 0x800;
     p->bufB = (u64 *) heap;
     heap += 0x800;
-    D_80358070 = heap;
+    gHeapPtr = heap;
     func_802A1388(id, 0, (s32) p->bufA, (s32) p->bufB, model);
     func_802A754C(veh);
     for (i = 0; i < 12; i++) {

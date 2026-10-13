@@ -84,17 +84,17 @@ func_802AC6FC: -n 200 --seed 2 --ret void --follow func_802A6274 --arg a0=int --
 
 # func_802AC3B8 (px v0, py v1, pz a0): level 0x17 position wrap into the box, flag D_80364412, spawn kind 0x13
 func_802AC3B8: -n 400 --seed 0 --heap 0x10 --arg v0=rel:heap0 --arg v1=rel:heap0+4 --arg a0=rel:heap0+8 \
-    --mem D_802E8BDC=choice:0x17*4,0x16,0x18,0 --mem D_80364412:1=bytes:0*3,1,0x80 \
+    --mem levelno=choice:0x17*4,0x16,0x18,0 --mem D_80364412:1=bytes:0*3,1,0x80 \
     --mem @heap0=choice:0x15180,0x15181,0x15182,0x2580,0x2581,0x2582,0,-1,0x7FFFFFFF,0x80000000,0x10000 \
     --mem @heap0+8=choice:0x13880,0x13881,0x13882,0x3E80,0x3E81,0x3E82,0,-1,0x7FFFFFFF,0x80000000,0x10000 \
     --mem @heap0+4=int --sig func_802AC6FC=a0,a1,a2,a3,stack0
 # in-range positions (only the flag decides the spawn)
 func_802AC3B8: -n 200 --seed 1 --heap 0x10 --arg v0=rel:heap0 --arg v1=rel:heap0+4 --arg a0=rel:heap0+8 \
-    --mem D_802E8BDC=0x17 --mem D_80364412:1=bytes:0,1 --mem @heap0=int:0x2581:0x15180 --mem @heap0+8=int:0x3E81:0x13880 \
+    --mem levelno=0x17 --mem D_80364412:1=bytes:0,1 --mem @heap0=int:0x2581:0x15180 --mem @heap0+8=int:0x3E81:0x13880 \
     --mem @heap0+4=int --sig func_802AC6FC=a0,a1,a2,a3,stack0
 # spawn run for real (func_802AC6FC -> func_802A6274 stubbed)
 func_802AC3B8: -n 100 --seed 2 --heap 0x10 --arg v0=rel:heap0 --arg v1=rel:heap0+4 --arg a0=rel:heap0+8 \
-    --mem D_802E8BDC=0x17 --mem D_80364412:1=bytes:0,1 --mem @heap0=int:0:0x20000 --mem @heap0+8=int:0:0x20000 \
+    --mem levelno=0x17 --mem D_80364412:1=bytes:0,1 --mem @heap0=int:0:0x20000 --mem @heap0+8=int:0:0x20000 \
     --mem @heap0+4=int --follow func_802AC6FC
 
 # func_802ACAC4 / func_802ACB50 / func_802ACBDC (angle t0, m t3): rotation matrices about y / z / x
@@ -145,7 +145,7 @@ func_802ACEB8: -n 200 --seed 3 --arg a0=choice:0,1,-1,0xFFF,0x1000,-0x1000,0x400
 # func_802AC284 (px v0, py v1, pz a0): trampoline to func_802AC3B8; stubbed, then followed with the wrap boundaries
 func_802AC284: -n 200 --seed 0 --arg v0=int --arg v1=int --arg a0=int
 func_802AC284: -n 200 --seed 1 --heap 0x10 --arg v0=rel:heap0 --arg v1=rel:heap0+4 --arg a0=rel:heap0+8 \
-    --mem @heap0:12=words:0,0x2580,0x2581,0x3E80,0x3E81,0x13880,0x13881,0x15180,0x15181,-1 --mem D_802E8BDC=choice:0x17,0x17,0x16 \
+    --mem @heap0:12=words:0,0x2580,0x2581,0x3E80,0x3E81,0x13880,0x13881,0x15180,0x15181,-1 --mem levelno=choice:0x17,0x17,0x16 \
     --mem D_80364412:1=bytes:0,0,1 --follow func_802AC3B8
 
 # func_802AC2A4 (a0, a1, v0, v1, t0, vehicle t8, record gp): game mode 0x40 only; reset, collision pass, then the
@@ -168,6 +168,6 @@ func_802AC2A4: -n 200 --seed 2 --heap 0x50 --heap 0x50 --heap 0x50 --heap 0x50 -
     --mem D_80364AA8=0x40 --mem D_803F3910=rel:heap0 --mem D_803F3910+8=rel:heap1 \
     --mem D_803F3910+0x10=rel:heap2 --mem D_803F3910+0x18=rel:heap3 --mem D_803F3960=rel:D_803F3910+8*int:0:4 \
     --mem D_8036E4C8:2=choice:0,1 --mem D_803BE738:1=rand --mem D_80367738=int --sig func_80260650=a0,a1,a2 \
-    --mem D_803A7300:0xF0=onehot:0x14@0x10/1:5:rand --mem D_803A7300+0x11*0x14:12/1=0 --mem D_80358060=choice:0,1 \
+    --mem D_803A7300:0xF0=onehot:0x14@0x10/1:5:rand --mem D_803A7300+0x11*0x14:12/1=0 --mem gFramesInMode=choice:0,1 \
     --mem D_803F7802:1=rand --mem D_803F7803:1=rand --mem D_803F7807:1=rand --mem D_803F780F:1=rand \
     --sig func_802BCC10= --sig func_802BCBD8= --sig func_802BCC48= --follow func_8029A800,func_802BE77C,func_802BE9F8

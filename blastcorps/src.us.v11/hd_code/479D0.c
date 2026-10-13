@@ -4,13 +4,13 @@
 /* Matching build: IDO compiled the matched code here against older
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
-#define LEGACY_D_80358070
+#define LEGACY_gHeapPtr
 #define LEGACY_D_80367738
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #ifdef NON_MATCHING
-#define D_80358070 (*(Vtx * N64P *) &D_80358070)
+#define gHeapPtr (*(Vtx * N64P *) &gHeapPtr)
 #endif
 /* end of views */
 
@@ -61,7 +61,7 @@ typedef struct {
 
 extern BoxType D_802FDB40[];
 #ifndef NON_MATCHING
-extern Vtx *D_80358070;
+extern Vtx *gHeapPtr;
 #ifndef NON_MATCHING
 extern s32 D_80367738;
 #endif
@@ -91,8 +91,8 @@ void func_8028C190(BoxSpawn *arg0, BoxSpawn *arg1) {
         D_8039AF00[D_8039B068].alpha = 0xFF;
         D_8039AF00[D_8039B068].tex0 = func_802A0CC8(D_802FDB40[D_8039AF00[D_8039B068].type].tex0Id, 0);
         D_8039AF00[D_8039B068].tex1 = func_802A0CC8(D_802FDB40[D_8039AF00[D_8039B068].type].tex1Id, 0);
-        D_8039AF00[D_8039B068].vtx = D_80358070;
-        D_80358070 += 8;
+        D_8039AF00[D_8039B068].vtx = gHeapPtr;
+        gHeapPtr += 8;
 #ifdef PORT_HOST
         port_vtx_stale(D_8039AF00[D_8039B068].vtx, 8);
 #endif

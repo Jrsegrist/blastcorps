@@ -208,7 +208,7 @@ void func_80258544(void *cimg, s32 x, s32 y, s32 z, f32 dist, Gfx *dl, void *seg
     gSPDisplayList(gdl++, PHYS(dl));
     gSPEndDisplayList(gdl++);
     osWritebackDCache(&D_803651F0, 0x140);
-    func_80284E54((u64 *) D_803650B0, gdl - D_803650B0, 1, 0, 0x61F, 0);
+    rsp_send_task((u64 *) D_803650B0, gdl - D_803650B0, 1, 0, 0x61F, 0);
 }
 
 void func_80258B78(Gfx **gdlp, VtxBuf *buf) {
@@ -272,7 +272,7 @@ void func_80258B78(Gfx **gdlp, VtxBuf *buf) {
                     }
                     PORT_ITAG(gdl, PORT_ITAG_GSHADOW, i);
                     gDPPipeSync(gdl++);
-                    if (D_802E8BDC == 0x10 && x == 0x19B7 && z == 0xF99) {
+                    if (levelno == 0x10 && x == 0x19B7 && z == 0xF99) {
                         gSPSetGeometryMode(gdl++, G_ZBUFFER);
                         gDPSetRenderMode(gdl++, RM_ZB_XLU_SAVE(1), RM_ZB_XLU_SAVE(2));
                     } else {

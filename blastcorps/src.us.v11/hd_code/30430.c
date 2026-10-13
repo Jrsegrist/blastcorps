@@ -12,7 +12,7 @@ u32 D_8036C780;            /* frame the fade started */
 u8 D_8036C784;             /* fade alpha */
 
 #define FADE_ASSERT(EX, line) \
-    if (!(EX)) func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "fade.c", line)
+    if (!(EX)) debug_printf("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "fade.c", line)
 
 extern f32 D_802FA930;     /* fade-in step per frame */
 
@@ -20,10 +20,10 @@ extern f32 D_802FA930;     /* fade-in step per frame */
 Gfx *func_80274BF0(s32 arg0, Gfx *gfx) {
     Gfx *gdl = gfx;
 
-    if (!((s32) D_80358060)) {
-        if ((D_80364A90 & 0x4055800100040000) || ((D_80364A90 & 0x1801) && D_802E8BDC == 50)) {
+    if (!((s32) gFramesInMode)) {
+        if ((gGameMode & 0x4055800100040000) || ((gGameMode & 0x1801) && levelno == 50)) {
             D_8036C784 = 0xFF;
-            if (D_80364A90 & 0x0051800100040000) {
+            if (gGameMode & 0x0051800100040000) {
                 D_8036C770 = func_8026B10C();
                 func_8026AF6C(0);
             }
@@ -36,7 +36,7 @@ Gfx *func_80274BF0(s32 arg0, Gfx *gfx) {
         D_8036C784 = (255.0f < (D_803156C4 - D_8036C780) * D_8036C774) ? 255.0f
                                                                       : (D_803156C4 - D_8036C780) * D_8036C774;
         if (D_8036C784 == 0xFF) {
-            D_80364A98 = postFadeLoop_done;
+            gNextGameMode = postFadeLoop_done;
             postFadeLoop_done = 0;
         }
     } else if (D_8036C784) {
@@ -68,7 +68,7 @@ void func_80275270(u64 next, f32 speed) {
         postFadeLoop_done = next;
         D_8036C774 = 4.25 / speed;
         D_8036C780 = D_803156C4;
-        if (!(next & 0x40000000080004C2) && !(D_80364A90 & 0x4000000000040000)) {
+        if (!(next & 0x40000000080004C2) && !(gGameMode & 0x4000000000040000)) {
             func_80261570(0.0f);
         }
     }
@@ -78,7 +78,7 @@ void func_80275390(u64 next) {
     func_80275270(next, 0.25f);
 }
 
-s32 func_802753C0(void) {
+s32 areWeFading(void) {
     return postFadeLoop_done ? 1 : 0;
 }
 

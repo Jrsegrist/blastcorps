@@ -158,7 +158,7 @@ void func_802936AC(mf, x, z, ox, oz, px, py, pz, state, speed)
     if (D_8036E4C8 == 0 && D_8036DCD8 != 0) {
         func_802608C8((void *) N64_IPTR(D_8036DCD8));
     }
-    if (D_802E8BD0 == 0) {
+    if (gPaused == 0) {
         if (((u8) D_8036E4CA)) {
             state->last = -1;
             switch (state->dir) {
@@ -177,7 +177,7 @@ void func_802936AC(mf, x, z, ox, oz, px, py, pz, state, speed)
             }
         }
         while (i < 102 && !found) {
-            if (D_802FEDA0[i].level == D_802E8BDC && D_802FEDA0[i].x - 5 <= ox && D_802FEDA0[i].z - 5 <= oz &&
+            if (D_802FEDA0[i].level == levelno && D_802FEDA0[i].x - 5 <= ox && D_802FEDA0[i].z - 5 <= oz &&
                 ox < D_802FEDA0[i].x + 5 && oz < D_802FEDA0[i].z + 5 && state->last != i) {
                 found = 1;
             } else {
@@ -353,7 +353,7 @@ void func_80293F84(mf, x, z, px, py, pz, state, idx)
     f32 p3;
 
     func_802949B0(idx);
-    if (D_802E8BD0 == 0) {
+    if (gPaused == 0) {
         state->t += D_802FE980[idx].speed;
         if (state->t >= 1000) {
             state->t = 0;
@@ -467,7 +467,7 @@ void func_80294B64(f32 mf[4][4], s32 limit, s16 *x, s16 *y, s16 *z, SwingState *
     if (state->time == 0) {
         state->time = delay + D_803156C4;
     }
-    if (D_803156C4 > state->time && D_802E8BD0 == 0) {
+    if (D_803156C4 > state->time && gPaused == 0) {
         state->angle++;
         if (state->angle > limit) {
             state->angle = limit;
@@ -482,7 +482,7 @@ void func_80294B64(f32 mf[4][4], s32 limit, s16 *x, s16 *y, s16 *z, SwingState *
 void func_80294C50(f32 mf[4][4], s16 *x, s16 *y, s16 *z, s32 *counter, s32 amp) {
     f32 s;
 
-    if (D_802E8BD0 == 0) {
+    if (gPaused == 0) {
         (*counter)++;
     }
     s = sinf(*counter / 5.0f);
@@ -498,7 +498,7 @@ void func_80294D24(f32 mf[4][4], s16 *x, s16 *y, s16 *z, s32 *angle, s32 speed) 
     f32 oy;
     f32 oz;
 
-    if (D_802E8BD0 == 0) {
+    if (gPaused == 0) {
         *angle += speed;
     }
     guRotateF(m, *angle, 0.2f, 0.7f, 0.1f);

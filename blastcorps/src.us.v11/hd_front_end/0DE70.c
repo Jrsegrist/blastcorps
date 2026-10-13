@@ -4,13 +4,13 @@
 /* Matching build: IDO compiled the matched code here against older
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
-#define LEGACY_D_80358070
+#define LEGACY_gHeapPtr
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_803156F8 ((FeDyn *) D_803156F8)
 #ifdef NON_MATCHING
-#define D_80358070 (*(s32 *) &D_80358070)
+#define gHeapPtr (*(s32 *) &gHeapPtr)
 #endif
 /* end of views */
 
@@ -32,7 +32,7 @@ typedef struct {
 } FeHdr;
 
 #ifndef NON_MATCHING
-extern s32 D_80358070; /* heap pointer */
+extern s32 gHeapPtr; /* heap pointer */
 #endif
 
 /* ROM addresses of the compressed scene blobs */
@@ -75,9 +75,9 @@ void func_801F4E70(u8 arg0) {
             D_802182C0 = D_006EC4C0 - D_006EAB90;
             break;
     }
-    func_8028B4C4((u32) D_802182C4, (u32) ((void *) N64_IPTR(D_80358070)), &D_802182C0, 12, 10, 1);
-    hdr = (FeHdr *) N64_IPTR(D_80358070);
-    D_80358070 += D_802182C0;
+    func_8028B4C4((u32) D_802182C4, (u32) ((void *) N64_IPTR(gHeapPtr)), &D_802182C0, 12, 10, 1);
+    hdr = (FeHdr *) N64_IPTR(gHeapPtr);
+    gHeapPtr += D_802182C0;
     D_802182C8 = (Gfx *) (hdr->unk1C + (u32) hdr);
     p = (void *) (hdr->unk20 + (u32) hdr);
     D_802182CC = (void *) (hdr->unk14 + (u32) hdr);

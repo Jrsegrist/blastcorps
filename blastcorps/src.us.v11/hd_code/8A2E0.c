@@ -5,7 +5,7 @@
 #define D_803F3FF8 (*(Debris8A2E0 *) D_803F3FF8)
 #define D_803FBBB0 ((UnkEntry8A2E0 *) D_803FBBB0)
 #ifdef NON_MATCHING
-#define D_80358070 (*(u32 *) &D_80358070)
+#define gHeapPtr (*(u32 *) &gHeapPtr)
 #endif
 /* end of views */
 
@@ -65,7 +65,7 @@ void func_802CEE14(s32 x, s32 y, s32 z);
  * into D_803FBBD8, then for each record: entry pos = (x, y, z) << 5, the
  * box vertices (func_802CEE14(x, y, z), unshifted), unkC = 0x280, flag 0,
  * unk12 = w, D_803FC1F0++. If any box exists: four 0x300-byte copies from
- * the D_80358070 bump pointer (D_803FC1E0..EC; trapping adds), model
+ * the gHeapPtr bump pointer (D_803FC1E0..EC; trapping adds), model
  * channels D_803FBBE0 (copies 1E0/1E4) with channels 1 and 2 set to (2, 0,
  * 0, -1), and D_803FBEE0 (copies 1E8/1EC).
  * Register convention: obj in t0 (conventions.txt); the asm saves t0 (asm
@@ -104,12 +104,12 @@ void func_802CEAA0(u8 *obj) {
     if (D_803FC1F0 == 0) {
         return;
     }
-    h = D_80358070;
+    h = gHeapPtr;
     D_803FC1E0 = (u8 *) h;
     D_803FC1E4 = (u8 *) (h + 0x300);
     D_803FC1E8 = (u8 *) (h + 0x600);
     D_803FC1EC = (u8 *) (h + 0x900);
-    D_80358070 = h + 0xC00;
+    gHeapPtr = h + 0xC00;
     BOX_MODEL_CHANNELS(D_803FBBE0, D_803FC1E0, D_803FC1E4);
     func_802A039C((Unk8029DEA0Entry *) D_803FBBE0, 1, 2);
     func_802A03D4((Unk8029DEA0Entry *) D_803FBBE0, 1, 0);
@@ -265,7 +265,7 @@ static s32 port_cvt_w_s(f32 x) {
  * func_802CF3E0 burst at the entry. The player position is read once. The
  * asm saves every register (k1, gp, sp, fp included) around the two C calls
  * only because it keeps its loop state in t0-t4 across them; its only
- * caller is C (func_802475D8), so no asm caller relies on anything. */
+ * caller is C (hd_game_frame), so no asm caller relies on anything. */
 void func_802CF1A4(void) {
     s32 px = D_803643E0 >> 5;
     s32 py = D_803643E4 >> 5;

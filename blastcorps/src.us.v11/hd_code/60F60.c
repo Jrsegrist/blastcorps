@@ -476,7 +476,7 @@ extern u8 D_8021DD00[]; /* heap end otherwise */
  * in D_803EB790, advances the heap pointer past them, prints two debug
  * messages and clears each block's inUse word. */
 void func_802A5FA8(void) {
-    u8 *start = D_80358070;
+    u8 *start = gHeapPtr;
     s32 span = ((D_80364AA8 & 0x20) ? D_8020ED00 : D_8021DD00) - start;
     u32 n;
     HeapBlock *b;
@@ -488,11 +488,11 @@ void func_802A5FA8(void) {
     n = (u32) span / sizeof(HeapBlock);
     D_803EB788 = (HeapBlock *) start;
     D_803EB790 = n;
-    func_8029A7E4(D_80305C34);
-    func_8029A7E4(D_80305C48, n);
+    debug_printf(D_80305C34);
+    debug_printf(D_80305C48, n);
     end = (HeapBlock *) (start + n * sizeof(HeapBlock));
     D_803EB78C = end;
-    D_80358070 = (u8 *) end;
+    gHeapPtr = (u8 *) end;
     for (b = (HeapBlock *) start; b != end; b++) {
         b->inUse = 0;
 #ifdef PORT_HOST

@@ -693,14 +693,25 @@ it without a fault.  The x64-asan preset is the tool for this now.
       respawn, a teleport) starts a new generation (no blend across the
       jump); people and the ground shadows (world-space quads rebuilt every
       frame) get a transform each with vertex interpolation; the HUD and 2D
-      get `G_EX_ID_IGNORE` (never blended, exactly as drawn); untagged
+      get `G_EX_ID_IGNORE` (never blended, exactly as drawn: text, the dial,
+      the radar's blips), except the radar's sweep and heading arrow
+      (`PORT_ITAG_RADAR`, blended) and the attract mode's bobbing logo
+      (left to RT64's matching); untagged
       drawing (terrain, water, the backdrop, tyre trails, front end) keeps
       `G_EX_ID_AUTO`;
     - the game's camera snap counts as a cut when the camera really jumped
       (over 60 units or 15 degrees: the snap is also set every frame of the
       shuttle and map views, which move smoothly).
-    - cost: the same time in `processDisplayLists` as `auto` (level 0, 1900
-      frames: 5.95 vs 6.00 ms per task, noise).
+    - cost: the same time in `processDisplayLists` as `auto` (level 0: 2.36
+      vs 2.38 ms per task paced at 60, 2.33 vs 2.31 at 144) and the same
+      presents (60.00/s at 60 with vsync; 143.7 vs 143.9/s at 144 without,
+      interval sd 0.34 vs 0.37 ms). At 60 on a 60 Hz display with vsync the
+      present intervals of some runs alternate ~8 / ~25 ms (sd up to 9 ms)
+      in both modes: RT64's present timer beating against vsync, not the
+      tags (`--tag-test` switches parts of the tagging off to check).
+    - checked: per-frame traces at 60 (tagged) and 144 (tagged, counter
+      detailed) identical to options off and to the branch's base bc.exe in
+      all 60 levels (1900 frames), no crash.
   - `fps_counter` (`--fps-counter`): `off` (default), `on` (pictures
     presented a second, counted on RT64's present thread, and the game's own
     frames a second), `detailed` (also the mean and longest present interval

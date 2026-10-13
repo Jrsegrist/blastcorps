@@ -3072,7 +3072,6 @@ void func_802C0E8C(s32 id, Unk802C1DD0Entry *e) {
         }
     }
     info = e->info;
-    PORT_ISPAWN(PORT_ITAG_RISE, p - D_803EFED0);
     func_802C1214((u8 *) p, e);
     gfx = (u32 *) p->dl;
     gfx[0] = 0xBC002406;

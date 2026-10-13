@@ -426,7 +426,7 @@ u32 *func_802A5334(u8 *base, u32 *dst, s16 *exclEnd, u8 *rec, u8 *end);
 /* Is `v` in the sorted, -1-terminated visible-cell list D_803C30A8? (Scans
  * to the first entry >= v, as the asm.) */
 static s32 port_cell_listed(s32 v) {
-    s16 *p = (s16 *) D_803C30A8;
+    s16 *p = PORT_DRAW_CELLS(D_803C30A8);
     s32 t;
 
     for (;;) {
@@ -444,7 +444,7 @@ static s32 port_cell_listed(s32 v) {
  * listed value (to the -1) the cells are scanned from the start up to the
  * first one greater than it, as the asm does. */
 static s32 port_cells_listed(s32 *cells, s32 n) {
-    s16 *p = (s16 *) D_803C30A8;
+    s16 *p = PORT_DRAW_CELLS(D_803C30A8);
     s32 *c;
     s32 v;
     s32 k;
@@ -702,7 +702,7 @@ u32 *func_802A5334(u8 *base, u32 *dst, s16 *exclEnd, u8 *rec, u8 *end) {
     while (rec != end) {
         s32 n = *(s32 *) (rec + 0x10);
         s32 *words = (s32 *) (rec + 0x14);
-        s16 *l = (s16 *) D_803C30A8;
+        s16 *l = PORT_DRAW_CELLS(D_803C30A8);
         s32 id;
         s16 *e;
         u32 *s;

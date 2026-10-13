@@ -15,8 +15,11 @@ namespace live {
  * the four analog-stick directions, quitting and the settings menu */
 enum Action {
     A_A, A_B, A_Z, A_START, A_DUP, A_DDOWN, A_DLEFT, A_DRIGHT, A_L, A_R, A_CUP, A_CDOWN, A_CLEFT, A_CRIGHT,
-    A_STICK_UP, A_STICK_DOWN, A_STICK_LEFT, A_STICK_RIGHT, A_QUIT, A_MENU, A_FPS, A_COUNT
+    A_STICK_UP, A_STICK_DOWN, A_STICK_LEFT, A_STICK_RIGHT, A_QUIT, A_MENU, A_FPS,
+    /* the orbit camera ([camera] mode = orbit; live_orbit.cpp) */
+    A_CAM_LEFT, A_CAM_RIGHT, A_CAM_UP, A_CAM_DOWN, A_CAM_ZOOM_IN, A_CAM_ZOOM_OUT, A_CAM_RESET, A_COUNT
 };
+constexpr int kCameraActions = A_CAM_LEFT;      /* actions from this one on drive the orbit camera */
 constexpr int kButtons = A_STICK_UP;           /* actions before this are N64 buttons */
 extern const unsigned short kButtonBits[kButtons];
 extern const char *const kActionNames[A_COUNT];  /* the config keys */
@@ -69,6 +72,16 @@ struct Config {
     int deadzone = 7000;
     int sensitivity = 100;          /* analog stick, percent of the full N64 range */
     int padIndex = 0;               /* which game controller: 0 the first, N the N+1th, -1 all */
+    /* [camera]: the optional free orbit camera (live_orbit.cpp; off by default) */
+    int cameraMode = 0;             /* 0 original (the game's camera), 1 orbit */
+    int camSensX = 100, camSensY = 100;   /* percent */
+    bool camInvertX = false, camInvertY = false;
+    bool camRecentre = true;        /* ease back behind the player after the input is idle */
+    bool camRecentreOnFoot = true;  /* ... on foot even with camRecentre off */
+    double camRecentreDelay = 1.5;  /* seconds */
+    double camZoomMin = 0.5, camZoomMax = 2.5;      /* times the game's own distance */
+    double camPitchMin = -10, camPitchMax = 80;     /* degrees above the horizontal */
+    bool camMouse = true;           /* mouse look: drag with a mouse button held, wheel zooms */
     std::vector<std::string> warnings;  /* problems found in the file (shown once) */
 };
 

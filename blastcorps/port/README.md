@@ -799,20 +799,32 @@ it without a fault.  The x64-asan preset is the tool for this now.
     statistics), so the phase of the game's retraces against the display's
     doesn't matter.  Drift between the two clocks changes a hold only when the
     timeline is 3/4 of a refresh off.  Latency is kept low: an in-between
-    picture that would queue behind another and show more than 2.5 refreshes
-    after it was queued is dropped once; a wait that stayed over a refresh
+    picture that would queue behind another and show a refresh later (after
+    it was queued) than the lowest such latency of the last seconds (what
+    windowed or fullscreen gives) is dropped once; a wait that stayed over a refresh
     too long for 30 pictures is shortened once.  When the PC can't keep up
-    (six pictures dropped or presented over four refreshes after they were
+    (six pictures dropped or presented over five refreshes after they were
     queued, within 2 s: a busy GPU or CPU; a game thread that was late
     itself, e.g. loading, doesn't count) RT64's own pacing takes over for
     5 s.  RT64's workload queue renders fewer in-between pictures
     (`frameReduction`) only after waiting over half a display frame for the
     present thread to let go of a target: with vsync pacing that happens on
     a refresh, and any wait used to make every third game frame one picture
-    short.  Vulkan (FIFO swap chain) has
-    no frame statistics: longer holds count from when the frame-latency wait
-    returned, and there is no catch-up drop.  Vsync off,
+    short.  D3D12 only: Vulkan's FIFO swap chain never drops a picture, and
+    RT64's timer feeding it measured regular (present intervals sd 0.03-0.09
+    ms at 60 on the 60 Hz display; the vsync pacing there made them bursty,
+    with no frame statistics to check the display), so it keeps RT64's
+    pacing.  Vsync off,
     `--no-pace` or `--present-pacing timer`: RT64's own pacing, as before.
+  - Measured (this PC: 60 Hz display, AMD integrated GPU, D3D12, level 0
+    frames 1150-1450, runs whose game hand-overs were regular): windowed
+    `original` 0-0.3 % of the shown intervals off their due length (was
+    0-40 %, run to run), `60` / `display` 594 of 594 pictures one refresh
+    each in 4 of 5 runs, 593/594 in the fifth (was 2-8 % two-refresh holds);
+    fullscreen `original` 0-3 % (was 15-29 %); fullscreen `60` is limited by
+    this GPU at the screen's resolution in both pacings (5-12 % two-refresh
+    holds).  The latency from a retrace's due time to the display is about a
+    refresh higher (orig 25-28 ms vs 13-21; `60` 45-55 vs 37-47).
   - `--flip-log FILE` (testing): every present RT64 made (submission, call,
     hold) and, with D3D12, every refresh and the present on screen (DXGI
     frame statistics, polled every millisecond), as CSV.

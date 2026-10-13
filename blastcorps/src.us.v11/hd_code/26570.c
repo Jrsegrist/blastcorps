@@ -1226,7 +1226,7 @@ void rdu_init(s16 *pos, s16 *end) {
         gRdus[gRduCount].y = pos[1];
         gRdus[gRduCount].z = pos[2];
         gRdus[gRduCount].visited = 0;
-        gRdus[gRduCount].cell = pos[0] / (D_803BE70C >> 5) + pos[2] / (D_803BE710 >> 5) * D_803BE714;
+        gRdus[gRduCount].cell = pos[0] / (gLevelCellW >> 5) + pos[2] / (gLevelCellD >> 5) * gLevelCols;
         func_8026A5CC((u64 *) (gRdus[gRduCount].vtx[0]), (u64 *) gRduQuad, sizeof(gRdus->vtx[0]));
         func_8026A5CC((u64 *) (gRdus[gRduCount].vtx[1]), (u64 *) gRduQuad, sizeof(gRdus->vtx[1]));
         gRduCount++, pos += 3;
@@ -1254,7 +1254,7 @@ void rdu_update(void) {
     u8 flag;
 
     flag = 0;
-    cell = gPlayerZ / D_803BE710 * D_803BE714 + gPlayerX / D_803BE70C;
+    cell = gPlayerZ / gLevelCellD * gLevelCols + gPlayerX / gLevelCellW;
     for (i = 0; i < gRduCount; i++) {
         if (gRdus[i].cell == cell && !gRdus[i].visited) {
             dist = func_8026A6F0(gPlayerX >> 5, gPlayerY >> 5, gPlayerZ >> 5,

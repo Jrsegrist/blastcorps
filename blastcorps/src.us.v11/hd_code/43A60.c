@@ -342,7 +342,7 @@ void ptcl_draw(Gfx **gdl, u8 buf) {
             } else {
                 absRatio = ratio;
             }
-            ang = func_802AD7D4(absRatio);
+            ang = math_asin_c(absRatio);
             if (ratio > 0) {
                 ang = -ang;
             }

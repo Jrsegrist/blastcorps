@@ -421,8 +421,8 @@ u8 *tex_decode_type0(u64 *src, u32 len, u8 *dst) {
 /* Every active effect jumps to its last frame (0x802A5E60).
  * For each active record of gEffects, sets `last` to the definition's
  * count (u16 at +0xE) minus 1, truncated to a byte.
- * Asm callers rely on preserved: func_802BA9A0 keeps a0, a2, a3, t6, t7,
- * f12, f14; func_802CF3E0 keeps t1. */
+ * Asm callers rely on preserved: carrier_check_crash keeps a0, a2, a3, t6, t7,
+ * f12, f14; commpt_burst keeps t1. */
 void fx_finish_all(void) {
     s32 i;
 
@@ -440,8 +440,8 @@ void fx_finish_all(void) {
 #ifdef NON_MATCHING
 /* The number of active effect records (0x802A5ED0).
  * Returns the number of active records of gEffects (t0 in the asm).
- * Asm callers (func_802B37B0, func_802B4EF8, func_802B6294, func_802B7F98,
- * func_802CAAFC, func_802CC400, func_802CD578, func_802D02F8) keep a0-a3,
+ * Asm callers (skyfall_update_anims, ramdozer_update_anims, backlash_update, amdream_update_effects,
+ * ballista_update_actions, police_update_effects, ateam_update_effects, starski_update_effects) keep a0-a3,
  * t6, t7, f12 and f14 live across the call (a mixed N64 build would need a
  * thunk, the native port doesn't). */
 s32 fx_count_active(void) {
@@ -539,7 +539,7 @@ extern u8 D_803EB792;
  * type, +0x32 = 0, +0x35 = b35, +0x3B = D_803EB792. Type != 1: words
  * +8/+0xC/+0x10 = x/y/z, +0x20/+0x24/+0x28 = io->t6/w24/w28, +0x14/+0x18/
  * +0x1C = io->s1/w18/w1C, +0x2C = w2C, +0x36 = 0. Type 1 with z != 0: the
- * position comes from record (x, y) of func_802ABC88 (three words << 11),
+ * position comes from record (x, y) of veh_find_point (three words << 11),
  * type becomes 0, the other words 0 and +0x2C = 0xFC180000. Type 1 with
  * z == 0: bytes +0x30/+0x31 = x/y. Finally io->t6 = (s16) def[0] and, when
  * that isn't -1, io->s1 = the record's buffer (gFxTileSlots - 0x1000 +
@@ -611,7 +611,7 @@ s32 fx_spawn(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32 z, s
     } else if (z != 0) {
         u8 *src;
 
-        func_802ABC88(x, y, &src);
+        veh_find_point(x, y, &src);
         rec[0x34] = 0;
         *(s32 *) (rec + 0x08) = ((s32 *) src)[0] << 11;
         *(s32 *) (rec + 0x0C) = ((s32 *) src)[1] << 11;
@@ -879,18 +879,18 @@ extern s32 D_803C4F30[]; /* scratch 16.16 matrix */
  * Billboard matrix of record rec into the 16.16 matrix m: emits a matrix
  * load of m (gSPMatrix word 0x01040040, physical address) into the record's
  * display list (fx_get_dl_cursor), sets m to the uniform scale rec+4
- * (func_802ACC68), then the position: type 1 (+0x34) records use the words of
- * func_802ABC88(+0x30, +0x31)'s record; others move by velocity (+0x14..+0x1C)
+ * (mtx_scale), then the position: type 1 (+0x34) records use the words of
+ * veh_find_point(+0x30, +0x31)'s record; others move by velocity (+0x14..+0x1C)
  * times the step byte +0x36 plus +0x20..+0x28 (stored back into +8..+0x10),
  * and once y (+0xC) drops to the floor +0x2C the y speed +0x24 becomes
  * |+0x24 + +0x18 * step| * 3/4 (v - (v >> 2)) and the step restarts (it is
  * stored back + 1); the position is >> 11. The pitch is the arcsine of
- * (player y - y) / distance (func_802ABCDC on the player position >> 11,
+ * (player y - y) / distance (math_dist3 on the player position >> 11,
  * logical shifts; 64-bit division of dy << 27 by distance << 11, distance 0
  * taken as 1), >> 4 and mirrored (0xFFF - angle) unless the quotient is
- * negative: m *= rotation about x by that (func_802ACBDC, func_802ACCCC),
+ * negative: m *= rotation about x by that (mtx_rotate_x, mtx_mul),
  * m *= rotation about y by gCamYaw, m *= translation (position << 11),
- * then m is converted to the Mtx layout (func_802AC8CC).
+ * then m is converted to the Mtx layout (mtx_to_n64).
  * Register convention: m in t0, rec in t4; the asm saves every integer
  * register (asm caller fx_draw_all keeps a1, t0, t1, t3, t4, t5 live). The
  * f12/f14 the survey lists as read by fx_draw_all are dead there. The asm's
@@ -911,11 +911,11 @@ void fx_build_matrix(s32 *m, u8 *rec) {
     g->words.w0 = 0x01040040;
     *cur = g + 1;
     scale = *(s32 *) (rec + 4);
-    func_802ACC68(scale, scale, scale, m);
+    mtx_scale(scale, scale, scale, m);
     if (rec[0x34] == 1) {
         u8 *src;
 
-        func_802ABC88(rec[0x30], rec[0x31], &src);
+        veh_find_point(rec[0x30], rec[0x31], &src);
         x = ((s32 *) src)[0];
         y = ((s32 *) src)[1];
         z = ((s32 *) src)[2];
@@ -944,22 +944,22 @@ void fx_build_matrix(s32 *m, u8 *rec) {
         z >>= 11;
     }
     py = (u32) gCamEyeY >> 11;
-    dist = func_802ABCDC((u32) gCamEyeX >> 11, py, (u32) gCamEyeZ >> 11, x, y, z);
+    dist = math_dist3((u32) gCamEyeX >> 11, py, (u32) gCamEyeZ >> 11, x, y, z);
     if (dist == 0) {
         dist = 1;
     }
     q = ((s64) (py - y) << 27) / (s32) ((u32) dist << 11);
-    angle = func_802AD7FC((q >= 0) ? (s32) q : -(s32) q) >> 4;
+    angle = math_asin((q >= 0) ? (s32) q : -(s32) q) >> 4;
     if (q >= 0) {
         angle = 0xFFF - angle;
     }
-    func_802ACBDC(angle, D_803C4F30);
-    func_802ACCCC(D_803C4F30, m);
-    func_802ACAC4(((u16) gCamYaw), D_803C4F30);
-    func_802ACCCC(D_803C4F30, m);
-    func_802ACA60(x << 11, y << 11, z << 11, D_803C4F30);
-    func_802ACCCC(D_803C4F30, m);
-    func_802AC8CC((u16 *) m);
+    mtx_rotate_x(angle, D_803C4F30);
+    mtx_mul(D_803C4F30, m);
+    mtx_rotate_y(((u16) gCamYaw), D_803C4F30);
+    mtx_mul(D_803C4F30, m);
+    mtx_translate(x << 11, y << 11, z << 11, D_803C4F30);
+    mtx_mul(D_803C4F30, m);
+    mtx_to_n64((u16 *) m);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/60F60/fx_build_matrix.s")

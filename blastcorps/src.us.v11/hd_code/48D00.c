@@ -86,10 +86,10 @@ void func_8028D4C0(u8 *arg0, u8 *arg1) {
         D_8039B070_entries[D_8039B610].unk0 = *(s16 *) (arg0 + 0) << 5;
         D_8039B070_entries[D_8039B610].unk4 = *(s16 *) (arg0 + 2) << 5;
         D_8039B070_entries[D_8039B610].unk8 = *(s16 *) (arg0 + 4) << 5;
-        D_8039B070_entries[D_8039B610].unk4 = func_802CE6F8(D_8039B070_entries[D_8039B610].unk0,
+        D_8039B070_entries[D_8039B610].unk4 = coll_ground_height(D_8039B070_entries[D_8039B610].unk0,
                                                             D_8039B070_entries[D_8039B610].unk8,
                                                             D_8039B070_entries[D_8039B610].unk4);
-        D_8039B070_entries[D_8039B610].unk23 = D_803F932C;
+        D_8039B070_entries[D_8039B610].unk23 = gGroundTriId;
         D_8039B070_entries[D_8039B610].unk0E = arg0[6];
         D_8039B070_entries[D_8039B610].unk10 = arg0[7] * 60;
         D_8039B070_entries[D_8039B610].unk12 = D_8039B070_entries[D_8039B610].unk10;
@@ -185,7 +185,7 @@ Entry48D00 *func_8028DE94(void);
 void func_8028DD64(u8 arg0) {
     Entry48D00 *match;
 
-    func_802CDA10(D_8039B070_entries[arg0].unk0, D_8039B070_entries[arg0].unk4, D_8039B070_entries[arg0].unk8);
+    coll_spawn_blast_fx(D_8039B070_entries[arg0].unk0, D_8039B070_entries[arg0].unk4, D_8039B070_entries[arg0].unk8);
     *(&D_8039B089 + arg0 * 0x48) = 5;
     D_8039B070_entries[arg0].unk18 = 0;
     gShakeTime = 10;
@@ -224,7 +224,7 @@ extern s16 D_802FDB70[]; /* speed cap per mode */
 /* Per-frame update of the boxes (arg0 = current mode; the box sibling of
  * 4B5E0's func_802906C0). Counts down unk19 (then fires the box's
  * trigger), runs the unk10 fuse and the unk20 throb, pushes moving boxes
- * along (func_802CE65C), resets their speed (unk1E) from the player's
+ * along (coll_step_xz), resets their speed (unk1E) from the player's
  * movement when hit, handles collision, heading and slow-down, and keeps
  * the box's looping sound (unk44) alive while it moves. The two-in-one
  * assignments are deliberate: separate statements schedule differently. */
@@ -245,11 +245,11 @@ void func_8028DF14(u8 arg0) {
         if (D_8039B070_entries[i].unk19 != 0) {
             D_8039B070_entries[i].unk19--;
             if (D_8039B070_entries[i].unk19 == 0) {
-                D_803A73F0 = D_8039B070_entries[i].unk0;
-                D_803A73F4 = D_8039B070_entries[i].unk4;
-                D_803A73F8 = D_8039B070_entries[i].unk8;
+                gCollX = D_8039B070_entries[i].unk0;
+                gCollY = D_8039B070_entries[i].unk4;
+                gCollZ = D_8039B070_entries[i].unk8;
                 if (D_8039B070_entries[i].unk1A != 0) {
-                    func_802CDAE8(D_8039B070_entries[i].unk1C, D_8039B070_entries[i].unk1A);
+                    coll_blast_at_probe(D_8039B070_entries[i].unk1C, D_8039B070_entries[i].unk1A);
                 }
             }
         }
@@ -281,24 +281,24 @@ void func_8028DF14(u8 arg0) {
             if (arg0 == 0) {
                 D_8039B070_entries[i].unk1E = 0;
             }
-            if (D_8039B070_entries[i].unk1E != 0 && func_802CE958(i + 0x100) == 0) {
-                func_802CE65C(D_8039B070_entries[i].unk0, D_8039B070_entries[i].unk8, D_8039B070_entries[i].unk1E,
+            if (D_8039B070_entries[i].unk1E != 0 && radar_has_marker(i + 0x100) == 0) {
+                coll_step_xz(D_8039B070_entries[i].unk0, D_8039B070_entries[i].unk8, D_8039B070_entries[i].unk1E,
                               D_8039B070_entries[i].unk0C);
                 D_8039B070_entries[i].unk0 = D_803F9320;
                 D_8039B070_entries[i].unk8 = D_803F9324;
-                D_8039B070_entries[i].unk4 = func_802CE6F8(D_8039B070_entries[i].unk0, D_8039B070_entries[i].unk8,
+                D_8039B070_entries[i].unk4 = coll_ground_height(D_8039B070_entries[i].unk0, D_8039B070_entries[i].unk8,
                                                            D_8039B070_entries[i].unk4);
-                D_8039B070_entries[i].unk23 = D_803F932C;
+                D_8039B070_entries[i].unk23 = gGroundTriId;
             }
-            func_802CE4F0(D_8039B070_entries[i].unk0, D_8039B070_entries[i].unk4, D_8039B070_entries[i].unk8);
-            hit = func_802CDF94(D_802FDB98_boxes[D_8039B070_entries[i].unk0E].radius);
+            coll_begin_probe(D_8039B070_entries[i].unk0, D_8039B070_entries[i].unk4, D_8039B070_entries[i].unk8);
+            hit = coll_probe_vehicles(D_802FDB98_boxes[D_8039B070_entries[i].unk0E].radius);
             if (hit != 0) {
-                if (D_803F932D != 0) {
+                if (gProbeHitCarrier != 0) {
                     cmo_hit_request = 1;
                     func_8028DD64(i);
                 }
-                if (D_803F932E != 0) {
-                    D_803ED40C = 1;
+                if (gProbeHitPlayer != 0) {
+                    gVehSlowed = 1;
                 }
                 if (D_8039B070_entries[i].unk14 == 0 && arg0 != 0) {
                     if (func_8028DE94() == NULL) {
@@ -318,11 +318,11 @@ void func_8028DF14(u8 arg0) {
                 }
             }
             if (D_8039B070_entries[i].unk1E != 0) {
-                old10 = D_803A7410, old12 = D_803A7412;
+                old10 = gFreeArcStart, old12 = gFreeArcEnd;
                 moved = 0;
-                func_802CE5BC(D_8039B070_entries[i].unk0, D_8039B070_entries[i].unk4, D_8039B070_entries[i].unk8,
+                coll_probe_tris(D_8039B070_entries[i].unk0, D_8039B070_entries[i].unk4, D_8039B070_entries[i].unk8,
                               D_802FDB98_boxes[D_8039B070_entries[i].unk0E].radius, 201, 0);
-                if (old10 != D_803A7410 || old12 != D_803A7412) {
+                if (old10 != gFreeArcStart || old12 != gFreeArcEnd) {
                     moved = 1;
                 }
                 if (D_8039B070_entries[i].unk1A != 0) {
@@ -330,28 +330,28 @@ void func_8028DF14(u8 arg0) {
                 } else {
                     local = D_8039B070_entries[i].unk1C;
                 }
-                if (func_802CDB70(D_802FDB98_boxes[D_8039B070_entries[i].unk0E].unk16, local) != 0) {
+                if (coll_probe_objects(D_802FDB98_boxes[D_8039B070_entries[i].unk0E].unk16, local) != 0) {
                     func_8028DD64(i);
                 }
             } else {
                 moved = 0;
             }
             drop = 0;
-            if (D_803A7410 != 0 || D_803A7412 != 0xFFF) {
-                if (func_8029B930() < 100) {
+            if (gFreeArcStart != 0 || gFreeArcEnd != 0xFFF) {
+                if (veh_free_arc_length() < 100) {
                     drop = 1;
                 } else if (moved) {
-                    D_8039B070_entries[i].unk0C = func_802CE3B8(D_8039B070_entries[i].unk0C);
+                    D_8039B070_entries[i].unk0C = coll_heading_in_ring(D_8039B070_entries[i].unk0C);
                 } else {
-                    D_8039B070_entries[i].unk0C = func_802A6F6C();
+                    D_8039B070_entries[i].unk0C = veh_free_arc_mid();
                 }
             }
             if ((drop || arg0 == 0) && D_8039B070_entries[i].unk18 != 0) {
-                func_802CE880(i + 0x100, D_8039B070_entries[i].unk0, D_8039B070_entries[i].unk4,
+                radar_set_marker(i + 0x100, D_8039B070_entries[i].unk0, D_8039B070_entries[i].unk4,
                               D_8039B070_entries[i].unk8, D_802FDB98_boxes[D_8039B070_entries[i].unk0E].radius);
                 D_8039B070_entries[i].unk1E = 0;
             } else {
-                func_802CE90C(i + 0x100);
+                radar_remove_marker(i + 0x100);
             }
             if (D_8039B070_entries[i].unk1E > 0) {
                 D_8039B070_entries[i].unk1E -= (levelno != 0x2B) ? 8 : 4;
@@ -473,7 +473,7 @@ void func_8028F6B4(u8 arg0) {
         if (D_8039B070_entries[i].unk18 != 0 && D_8039B070_entries[i].unk23 == arg0) {
             D_8039B070_entries[i].unk1E = 0;
             *(&D_8039B094 + i * 0x48) = 1;
-            func_802AACD4(arg0, D_8039B070_entries[i].unk0, D_8039B070_entries[i].unk8,
+            veh_deck_to_local_c(arg0, D_8039B070_entries[i].unk0, D_8039B070_entries[i].unk8,
                           &D_8039B070_entries[i].unk26, &D_8039B070_entries[i].unk28);
         }
     }
@@ -490,14 +490,14 @@ void func_8028F794(u8 arg0) {
 
     for (i = 0; i < D_8039B610; i++) {
         if (*(&D_8039B070 + i * 0x48 + 0x18) != 0 && *(&D_8039B070 + i * 0x48 + 0x24) != 0) {
-            func_802AAE1C(
+            veh_deck_to_world_c(
                 arg0,
                 *(s16 *) (&D_8039B070 + i * 0x48 + 0x26),
                 *(s16 *) (&D_8039B070 + i * 0x48 + 0x28),
                 (void *) (&D_8039B070 + i * 0x48),
                 (void *) (&D_8039B070 + i * 0x48 + 8));
 
-            *(s32 *) (&D_8039B070 + i * 0x48 + 4) = func_802CE6F8(
+            *(s32 *) (&D_8039B070 + i * 0x48 + 4) = coll_ground_height(
                 *(s32 *) (&D_8039B070 + i * 0x48),
                 *(s32 *) (&D_8039B070 + i * 0x48 + 8),
                 *(s32 *) (&D_8039B070 + i * 0x48 + 4));
@@ -508,11 +508,11 @@ void func_8028F794(u8 arg0) {
                 local = *(s16 *) (&D_8039B070 + i * 0x48 + 0x1C);
             }
 
-            func_802CE4F0(*(s32 *) (&D_8039B070 + i * 0x48),
+            coll_begin_probe(*(s32 *) (&D_8039B070 + i * 0x48),
                           *(s32 *) (&D_8039B070 + i * 0x48 + 4),
                           *(s32 *) (&D_8039B070 + i * 0x48 + 8));
 
-            if (func_802CDB70(*(s16 *) (0x802FDBAC + *(&D_8039B070 + i * 0x48 + 0xE) * 0x18), local) != 0) {
+            if (coll_probe_objects(*(s16 *) (0x802FDBAC + *(&D_8039B070 + i * 0x48 + 0xE) * 0x18), local) != 0) {
                 func_8028DD64((u8) i);
             }
         }
@@ -530,7 +530,7 @@ void func_8028F93C(void) {
 }
 
 
-/* Set D_803A7424 if the point (arg0, arg1, arg2) is within any active
+/* Set gCollHit if the point (arg0, arg1, arg2) is within any active
  * entry's category radius (all in 1/32 units). */
 void func_8028F994(s32 arg0, s32 arg1, s32 arg2) {
     s32 i;
@@ -544,7 +544,7 @@ void func_8028F994(s32 arg0, s32 arg1, s32 arg2) {
             dist = func_8026A6F0(arg0, arg1, arg2, D_8039B070_entries[i].unk0 >> 5,
                                  D_8039B070_entries[i].unk4 >> 5, D_8039B070_entries[i].unk8 >> 5);
             if (dist <= (*(s16 *) (0x802FDBAC + D_8039B070_entries[i].unk0E * 0x18) >> 5)) {
-                D_803A7424 = 1;
+                gCollHit = 1;
             }
         }
     }
@@ -561,7 +561,7 @@ void func_8028FAC0(s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
             dist = func_8026A6F0(arg0, arg1, arg2, D_8039B070_entries[i].unk0 >> 5,
                                  D_8039B070_entries[i].unk4 >> 5, D_8039B070_entries[i].unk8 >> 5);
             if (dist <= (*(s16 *) ((u8 *) D_802FDB98 + 0x14 + D_8039B070_entries[i].unk0E * 0x18) >> 5) + arg3) {
-                D_803A7424 = 1;
+                gCollHit = 1;
             }
         }
     }

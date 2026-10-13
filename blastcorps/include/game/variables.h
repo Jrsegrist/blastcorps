@@ -18,7 +18,7 @@ extern u16 gFrameBuffers[][320*240];
 extern u8 D_802C2190[]; /* keys of its three sound entries */
 extern u8 D_802C21A4[];
 extern u8 D_802C21B8[];
-extern u8 D_802C2208[]; /* keys of this vehicle's func_802A06B4 entries */
+extern u8 D_802C2208[]; /* keys of this vehicle's anim_tex_find entries */
 extern u8 D_802C226C[];
 extern u8 D_802C28E4[]; /* effect definitions in the 7D9D0 text blob */
 extern u8 D_802C2954[]; /* definition handed to fx_spawn (7D9D0 text blob) */
@@ -195,12 +195,12 @@ extern u8 D_80364A50;
 extern s32 D_80364A58;
 extern s32 D_80364A64;
 extern u8 D_80364A68; /* dial loaded */
-extern u8 D_80364A69;
+extern u8 gHaveSkyfall;
 extern u8 D_80364A6A; /* icon 1 loaded */
 extern u8 D_80364A6B;
 extern u8 D_80364A6C; /* icon 2 loaded */
-extern u8 D_80364A6D;
-extern u8 D_80364A6E; /* default level */
+extern u8 gHaveSideswipe;
+extern u8 gDefaultVehAlpha; /* default level */
 extern s8 D_80364A71;
 extern s16 gCamTiltMax; /* tilt limits */
 extern u8 D_80364A84;
@@ -236,10 +236,10 @@ extern u8 D_8036772A;
 extern s32 D_8036772C;
 extern u8 D_80367730;
 #ifndef LEGACY_D_80367734
-extern ALCSPlayer * N64P D_80367734; /* race: quadrants crossed this lap */
+extern ALCSPlayer * N64P D_80367734; /* the music ALCSPlayer */
 #endif
 #ifndef LEGACY_D_80367738
-extern void * N64P D_80367738; /* "turning back to the ring" flag */
+extern void * N64P D_80367738; /* the sound-effects bank (ALBank *), snd_play's first argument */
 #endif
 extern u32 D_80367740;
 extern u16 D_80367BC8;
@@ -372,46 +372,46 @@ extern u8 * N64P D_8039CABC;
 extern u8 * N64P D_8039CAC0;
 extern s32 D_8039CAE0; /* huft arena */
 extern u8 D_803A6B04;
-extern u8 D_803A6B30[]; /* size 0x14 */
-extern u8 D_803A7300[]; /* 0x14-byte vehicle spheres: x, y, z, r words, byte 0x10 = kind, 0x11 = state (0xFF = end) */
-extern s32 D_803A73F0; /* a point x, z (16.16-ish; the part position is << 5) */
-extern s32 D_803A73F4;
-extern s32 D_803A73F8;
-extern s8 * N64P D_803A7408; /* size 0x14 */
-extern s32 D_803A740C; /* frame stamp */
-extern s16 D_803A7410; /* ring index A (12-bit, see func_8029B930) */
-extern s16 D_803A7412; /* ring index B */
-extern u8 D_803A7424;
-extern u8 D_803A7425;
-extern s8 D_803A7426;
-extern u8 D_803A7427;
+extern u8 gVehPartSpheres[]; /* size 0x14 */
+extern u8 gVehBoundSpheres[]; /* 0x14-byte vehicle spheres: x, y, z, r words, byte 0x10 = kind, 0x11 = state (0xFF = end) */
+extern s32 gCollX; /* a point x, z (16.16-ish; the part position is << 5) */
+extern s32 gCollY;
+extern s32 gCollZ;
+extern s8 * N64P gNonBlockingParts; /* size 0x14 */
+extern s32 gBlockedFrame; /* frame stamp */
+extern s16 gFreeArcStart; /* the free heading arc: start (12-bit; 0 / 0xFFF = no wall) */
+extern s16 gFreeArcEnd; /* the free heading arc: end */
+extern u8 gCollHit;
+extern u8 gCollBlocked;
+extern s8 gCarrierContact;
+extern u8 gImpactEffectOn;
 extern u8 D_803A742A;
-extern u8 D_803A742B;
-extern u8 D_803A742F;
-extern u8 D_803A7430;
+extern u8 gTrainContact;
+extern u8 gFreeArcCollapsed;
+extern u8 gTrainContactFrames;
 extern u8 gTexTableLoaded; /* the table below is loaded */
-extern u8 D_803B9890[]; /* size 0x60 */
+extern u8 gCollTris[]; /* size 0x60 */
 extern u8 D_803BC1D0[]; /* 0xDC-byte groups */
-extern u8 * N64P D_803BD300; /* end of the D_803B9890 records */
+extern u8 * N64P gCollTrisEnd; /* end of the gCollTris records */
 extern u8 * N64P D_803BD304; /* end of the groups in use */
 extern u8 * N64P D_803BD308; /* triangle range */
 extern u8 * N64P D_803BD30C;
 extern u8 D_803BD310[]; /* 0xFC-byte switch groups: kind count at 0, kinds from 1, tri pointers from 8 (count at 0xF8), flag 0xF9 */
-extern u8 * N64P D_803BDAF4; /* 0x14-byte triangles (as func_802AA094's) */
+extern u8 * N64P D_803BDAF4; /* 0x14-byte triangles (as ground_scan_grid's) */
 extern u8 * N64P D_803BDAF8; /* their end */
 extern u8 * N64P D_803BDB00;
 extern u8 * N64P D_803BDB04;
 extern Gfx * N64P D_803BDB08;
-extern u8 * N64P D_803BDB10[]; /* per-cell triangle lists (cell i spans [i] .. [i + 1] - 4) */
-extern u8 * N64P D_803BDCA8[];
-extern u8 * N64P D_803BDE40[]; /* per-cell triangle lists (cell c spans [c] .. [c + 1]) */
-extern u8 * N64P D_803BDFD4; /* end of the zone list that starts at D_803BDFD8 */
-extern u8 D_803BDFD8[]; /* 0x24-byte zones: s32 x, y, z, radius; u8 flags at +0x10.. */
+extern u8 * N64P gGroundCells[]; /* per-cell triangle lists (cell i spans [i] .. [i + 1] - 4) */
+extern u8 * N64P gCollCellsA[];
+extern u8 * N64P gCollCellsB[]; /* per-cell triangle lists (cell c spans [c] .. [c + 1]) */
+extern u8 * N64P gAlphaZonesEnd; /* end of the zone list that starts at gAlphaZones */
+extern u8 gAlphaZones[]; /* 0x24-byte zones: s32 x, y, z, radius; u8 flags at +0x10.. */
 extern Gfx * N64P D_803BE6E0; /* level36 */
 extern Gfx * N64P D_803BE6E4; /* level37 */
 extern Gfx * N64P D_803BE6E8; /* level38 */
 extern Gfx * N64P D_803BE6EC; /* level39 */
-extern u8 * N64P D_803BE6F8; /* 9-byte respawn records: u8 key, s16 x, y, z (big-endian) */
+extern u8 * N64P gRespawnPoints; /* 9-byte respawn records: u8 key, s16 x, y, z (big-endian) */
 #ifndef LEGACY_D_803BE6FC
 extern u8 * N64P D_803BE6FC; /* first */
 #endif
@@ -419,86 +419,86 @@ extern u8 * N64P D_803BE6FC; /* first */
 extern u8 * N64P D_803BE700; /* end */
 #endif
 extern u8 * N64P D_803BE708;
-extern s32 D_803BE70C;
-extern s32 D_803BE710;
-extern s16 D_803BE714;
-extern u16 D_803BE716;
-extern u32 D_803BE718; /* grid cell width */
-extern u32 D_803BE71C; /* grid cell depth */
-extern u16 D_803BE720; /* grid columns */
-extern u16 D_803BE722;
-extern s32 D_803BE724;
-extern s32 D_803BE728;
-extern s16 D_803BE72C;
-extern s16 D_803BE730; /* level box: x min, x max, z min, z max (>> 5 units) */
-extern s16 D_803BE732; /* level extent x, z (>> 5) */
-extern s16 D_803BE734;
-extern s16 D_803BE736;
-extern u8 D_803BE738;
+extern s32 gLevelCellW;
+extern s32 gLevelCellD;
+extern s16 gLevelCols;
+extern u16 gLevelRows;
+extern u32 gGroundCellW; /* grid cell width */
+extern u32 gGroundCellD; /* grid cell depth */
+extern u16 gGroundCols; /* grid columns */
+extern u16 gGroundRows;
+extern s32 gCollCellW;
+extern s32 gCollCellD;
+extern s16 gCollCols;
+extern s16 gBoundsMinX; /* level box: x min, x max, z min, z max (>> 5 units) */
+extern s16 gBoundsMaxX; /* level extent x, z (>> 5) */
+extern s16 gBoundsMinZ;
+extern s16 gBoundsMaxZ;
+extern u8 gFailTrigger;
 extern u8 D_803BE739;
-extern u8 D_803BE73A; /* current level index */
+extern u8 gStartVehicle; /* current level index */
 extern u16 gVisibleCells[]; /* visible object ids, ended by -1 */
 extern Gfx gFxDlA0[]; /* display lists A / B, frame 0 */
 extern Gfx gFxDlA1[]; /* display lists A / B, frame 1 */
 extern Gfx gFxDlB0[];
 extern Gfx gFxDlB1[];
-extern u8 * N64P D_803EBBEC; /* end of the used D_803EBDB0 records */
-extern f32 D_803EBBF0;
-extern f32 D_803EBBF4;
-extern s32 D_803EBBF8;
+extern u8 * N64P gMoveableTrisEnd; /* end of the used gMoveableTris records */
+extern f32 gLevelGravity;
+extern f32 gGravity;
+extern s32 gObjectFloorY;
 extern s32 D_803EBBFC; /* height of func_802AC0BC's best triangle */
-extern u8 D_803EBC10[]; /* 0x10-byte records, id byte at +0xC */
-extern u8 D_803EBDB0[]; /* 0x38-byte triangle records, u16 id at +0x36 */
-extern s16 D_803ED390[]; /* this vehicle's model: +0 / +4 / +8 offsets of the point lists, +0x18 the matrix */
-extern s16 D_803ED392; /* rotation angle y (x and z: D_803ED390, D_803ED394_) */
-extern s32 D_803ED3A8[]; /* ground heights of the three wheel slots */
-extern u8 D_803ED3B8[]; /* 4-byte records {u8 key, u8 kinds[3]}, word -1 ends */
-extern u8 D_803ED3F5;
-extern u8 D_803ED3F6;
-extern u8 D_803ED3F7;
-extern s16 D_803ED400;
+extern u8 gVehPoints[]; /* 0x10-byte records, id byte at +0xC */
+extern u8 gMoveableTris[]; /* 0x38-byte triangle records, u16 id at +0x36 */
+extern s16 gModelRot[]; /* this vehicle's model: +0 / +4 / +8 offsets of the point lists, +0x18 the matrix */
+extern s16 D_803ED392; /* rotation angle y (x and z: gModelRot, D_803ED394_) */
+extern s32 gSlotGroundY[]; /* ground heights of the three wheel slots */
+extern u8 gStandOn[]; /* 4-byte records {u8 key, u8 kinds[3]}, word -1 ends */
+extern u8 gRiderPass;
+extern u8 gBounceThreshold;
+extern u8 gBounceDamping;
+extern s16 gLastSpeed;
 extern s16 D_803ED408;
 extern u8 D_803ED40A;
-extern u8 D_803ED40B;
-extern u8 D_803ED40C;
-extern u8 D_803ED40D;
-extern u8 D_803ED40F;
-#ifndef LEGACY_D_803ED808
-extern u32 D_803ED808[]; /* 0xC bytes */
+extern u8 gBounceSound;
+extern u8 gVehSlowed;
+extern u8 gSurfaceMax;
+extern u8 gHaveRideables;
+#ifndef LEGACY_gDriverPos
+extern u32 gDriverPos[]; /* 0xC bytes */
 #endif
 extern s32 D_803ED80C;
 extern s32 D_803ED810;
-extern u8 D_803ED825; /* drive-in enabled */
-extern u8 D_803ED826; /* drive-in active */
-extern s16 D_803EDC00; /* horn uses left */
-extern u8 D_803EE3B1; /* dial value, 0..100 */
-extern s32 D_803EF2EC; /* sound source x, y, z */
-extern s32 D_803EF2F0;
-extern s32 D_803EF2F4; /* z */
-extern s32 D_803EF304; /* result height (world units) */
-extern s32 D_803EF308; /* marker x, z (y = 0) */
-extern s32 D_803EF30C;
+extern u8 gDriverCanExit; /* the walk-out after leaving a vehicle is allowed (switch planes flip it) */
+extern u8 gDriverExitWalk; /* the exit walk is running */
+extern s16 gSideswipeRamCharges; /* side-ram uses left (crates add 10; HUD icon) */
+extern u8 gSkyfallBoostMeter; /* dial value, 0..100 */
+extern s32 gChopperX; /* the BCT chopper's position x, y, z */
+extern s32 gChopperY;
+extern s32 gChopperZ; /* z */
+extern s32 gChopperCruiseY; /* result height (world units) */
+extern s32 gChopperTargetX; /* marker x, z (y = 0) */
+extern s32 gChopperTargetZ;
 extern s32 D_803EF310; /* marker position x, y, z, w */
 extern s32 D_803EF314;
 extern s32 D_803EF318;
 extern s16 D_803EF326;
 extern s16 D_803EF328;
 extern s16 D_803EF32A;
-extern u8 D_803EF32C;
-extern u8 D_803EF32D;
+extern u8 gChopperMode;
+extern u8 gChopperTouchdown;
 extern u8 D_803EF32E;
-extern s32 D_803EF6DC; /* sound source x, y, z */
-extern s32 D_803EF6E0;
-extern s32 D_803EF6E4;
-extern s32 D_803EF6F0;
-extern s32 D_803EF6F8;
-extern s16 D_803EF6FC; /* divisor, 0 = none */
-extern u8 D_803EF6FF; /* effect finished */
-extern s32 D_803EFEB0; /* x interpolation: x0, x1 */
-extern s32 D_803EFEB4; /* z interpolation: z0, z1 */
-extern s32 D_803EFEB8;
-extern s32 D_803EFEBC;
-extern u8 D_803EFEC8; /* x follows z along the line (D_803EFEB0..) */
+extern s32 gCarrierX; /* the missile carrier's position x, y, z */
+extern s32 gCarrierY;
+extern s32 gCarrierZ;
+extern s32 gCarrierRouteLen;
+extern s32 gCarrierStartZ;
+extern s16 gCarrierTargetSpeed; /* divisor, 0 = none */
+extern u8 gCarrierExplodeDone; /* effect finished */
+extern s32 gTrainLineX0; /* x interpolation: x0, x1 */
+extern s32 gTrainLineZ0; /* z interpolation: z0, z1 */
+extern s32 gTrainLineX1;
+extern s32 gTrainLineZ1;
+extern u8 gTrainOnLine; /* x follows z along the line (gTrainLineX0..) */
 extern u8 D_803EFECB;
 extern u8 gSinkingPart[]; /* size 0xA30 */
 extern u8 gFadingParts[]; /* 4 entries of 0x4B8 bytes */
@@ -522,7 +522,7 @@ extern s16 gEndObjectY;
 extern s16 gEndObjectZ;
 extern s32 gPathBuilding;
 extern s32 gCheatAllDestroyed;
-extern u8 * N64P D_803F77D0; /* drive-in direction: 0 +z, 1 -z, 2 +x, else -x */
+extern u8 * N64P D_803F77D0; /* the colliding vehicle's animation channel table (set before obj_collide_vehicle) */
 extern s32 gObjHitFrame;
 extern s16 gHitSpeed; /* signed input whose sign is tracked */
 extern u8 D_803F7801;
@@ -540,27 +540,27 @@ extern u8 * N64P D_803F7820; /* level41 */
 extern u8 * N64P D_803F7824; /* level42 */
 extern u8 * N64P gGroupTris; /* triangle list: 0x28-byte records, 9 s32 coords + u8 at +0x24 */
 extern u8 * N64P gGroupTrisEnd; /* its end */
-extern s16 D_803F7840; /* last |level| set by func_802C4584 (-1 = none yet) */
-extern void * N64P D_803F7844; /* second looping sound handle */
-extern s32 D_803F7C10;
-extern s32 D_803F7C14;
+extern s16 gEngineSoundLevel; /* last |level| set by veh_set_engine_level (-1 = none yet) */
+extern void * N64P gEngineSound; /* the engine loop's handle */
+extern s32 gJbombLiftFadeY;
+extern s32 gJbombMaxY;
 extern s16 D_803F7C34;
-extern u8 D_803F7C3F;
+extern u8 gJbombAirborne;
 extern u8 D_803F7C49;
-extern s16 D_803F8B72; /* horn presses left */
+extern s16 gBallistaMissiles; /* missiles left (crates add 10; HUD icon) */
 extern s32 D_803F9320;
 extern s32 D_803F9324;
-extern u8 D_803F932C;
-extern u8 D_803F932D;
-extern u8 D_803F932E;
+extern u8 gGroundTriId;
+extern u8 gProbeHitCarrier;
+extern u8 gProbeHitPlayer;
 extern u8 D_803F9330[]; /* 0x60-byte triangles */
 #ifndef LEGACY_D_803FB8B0
-extern u8 * N64P D_803FB8B0; /* cells from func_8029C284, ended by -1 */
+extern u8 * N64P D_803FB8B0; /* cells from veh_grid_cells_at, ended by -1 */
 #endif
-extern u8 D_803FB8B8[]; /* the 25 0x14-byte radar markers of 8A080.c: word 0 = id (-1 = free), x, y, z, r */
-extern u8 D_803FBBB0[]; /* size 0x14 */
-extern u8 D_803FC1F0; /* current box index */
-extern s32 D_803FCD48; /* sound source x, y, z */
+extern u8 gRadarMarkers[]; /* the 25 0x14-byte radar markers of 8A080.c: word 0 = id (-1 = free), x, y, z, r */
+extern u8 gCommPts[]; /* size 0x14 */
+extern u8 gCommPtCount; /* the level's communication points */
+extern s32 gShuttlePos; /* the shuttle's position x, y, z */
 extern s32 D_803FCD4C;
 extern s32 D_803FCD50;
 extern s32 D_803FCD60;
@@ -568,7 +568,7 @@ extern s16 D_803FCD68;
 extern s16 D_803FCD6A; /* angles x, y, z */
 extern s16 D_803FCD6C;
 extern s16 D_803FCD6E;
-extern u8 D_803FCD70; /* event this frame */
+extern u8 gShuttlePathEvent; /* event this frame */
 extern u8 D_803FCD75; /* sound mode: 0 or 1 */
 
 /* ROM addresses (DMA sources) */

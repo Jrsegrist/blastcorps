@@ -784,9 +784,9 @@ it without a fault.  The x64-asan preset is the tool for this now.
       just for RT64's read and are put back at once, and the fill rectangle's
       top is changed in a copy of the command.
     - Collision: read-only copies of the game's height tests keep the eye 1
-      unit above the level's ground triangles (62740.c func_802AA094's
-      collision grid, D_803BDB10) and the buildings' collision triangles
-      (D_803B9890, the 0x60-byte records); a blocked eye is pulled in along
+      unit above the level's ground triangles (62740.c ground_scan_grid's
+      collision grid, gGroundCells) and the buildings' collision triangles
+      (gCollTris, the 0x60-byte records); a blocked eye is pulled in along
       the line to the target at once and let out slowly. No game function is
       called.
     - Controls: `[controller] camera_left/right/up/down` (default the right

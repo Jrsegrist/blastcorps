@@ -1,6 +1,6 @@
 # Drive-in trials from spec_drivein.py's save state (level 0, vehicle 4, standing), original ROM:
 # each trial loads the state, drives (A + steering STEER[k % 5]) for 1..8 s, brakes until stopped
-# and presses Z. Some trials stop beside buildings, where func_8029AA10's world hit leaves fp = 2
+# and presses Z. Some trials stop beside buildings, where veh_collide_world's world hit leaves fp = 2
 # (vehicle 0's part count) for the next drive-in check. D3N trials (default 40), ~12 min game time.
 import os
 SAVE = os.path.expanduser("~/drivein_lvl0.st")
@@ -12,7 +12,7 @@ BPS = {
     0x802AE888: ("ae888_entry", ["a0", "t8", "fp", "ra"], []),
     0x802AED58: ("aec3c_call9a60", G, []),
     0x802AEE38: ("aec3c_exit", ["a3", "fp"], []),
-    0x8029AAA8: ("aa10_hit", ["t8", "ra"], []),          # func_8029AA10: sphere hit, fp = 0
+    0x8029AAA8: ("aa10_hit", ["t8", "ra"], []),          # veh_collide_world: sphere hit, fp = 0
     0x8029AB04: ("aa10_done", ["t8", "fp", "ra"], []),   # after its part loop
     0x802AF3C4: ("af340_call9a60", G, []),
 }
@@ -23,7 +23,7 @@ DEDUPE = False
 
 def ONHIT(pc, g, rd):
     if pc in (0x8029AAA8, 0x8029AB04) and rd(0x803ED827, 1) == 0:
-        return None  # func_8029AA10 only inside func_802AE888 (D_803ED827 set)
+        return None  # veh_collide_world only inside driver_try_exit (gDriverExitChecking set)
     return ""
 
 

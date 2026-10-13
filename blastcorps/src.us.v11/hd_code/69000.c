@@ -7,26 +7,26 @@
  * Like the 56040..8DDB0 block, these stay GLOBAL_ASM permanently in the
  * matching build.
  *
- * Layout of ROM 0x68810-0x690C0: u16 table D_802ACFD0 (read by
- * func_802ACF64), then this code at 0x802AD7D4. Code units must start on a
+ * Layout of ROM 0x68810-0x690C0: u16 table gAtanTable (read by
+ * math_atan), then this code at 0x802AD7D4. Code units must start on a
  * 16-byte boundary, so this file begins 0x14 bytes early, at 0x802AD7C0, and
  * carries the table's last five words as data below. */
 
 #ifndef NON_MATCHING
-/* Last 5 words of the u16 table D_802ACFD0 (data, not code): the matching
+/* Last 5 words of the u16 table gAtanTable (data, not code): the matching
  * build has to assemble them into this file's .text. */
 GLOBAL_ASM(
 glabel D_802AD7C0
 .word 0x35EF35F1, 0x35F335F6, 0x35F835FB, 0x35FD35FF, 0x36020000
 )
 #else
-/* The whole table D_802ACFD0 (the 68810 bin plus the five words above).
+/* The whole table gAtanTable (the 68810 bin plus the five words above).
  * The NON_MATCHING build defines it in C and links this file's .data (it has
  * nothing else) back at the table's original address (Makefile NM_PIN_HD_CODE,
  * nm_ldscript.py --pin-object); nm_symaudit.py checks the bytes against the
  * bin. Code reaches it through the absolute D_ symbols. */
-/* u16 table D_802ACFD0 (0x401 entries, read by func_802ACF64), ROM 0x68810-0x69012 */
-u16 D_802ACFD0[0x401] = {
+/* u16 table gAtanTable (0x401 entries, read by math_atan), ROM 0x68810-0x69012 */
+u16 gAtanTable[0x401] = {
     0x0000, 0x0028, 0x0051, 0x007A, 0x00A2, 0x00CB, 0x00F4, 0x011C,
     0x0145, 0x016E, 0x0196, 0x01BF, 0x01E8, 0x0210, 0x0239, 0x0261,
     0x028A, 0x02B2, 0x02DB, 0x0303, 0x032C, 0x0354, 0x037D, 0x03A5,
@@ -161,44 +161,46 @@ u16 D_802ACFD0[0x401] = {
 
 #ifdef NON_MATCHING
 /* Arcsine tables in the 690C0 text bin (read in place). */
-extern u16 D_802AD880[]; /* 1025 entries, sin -> angle every 64 steps */
-extern u16 D_802AE084[]; /* 64 entries, the last (steep) segment */
+extern u16 gAsinTable[]; /* 1025 entries, sin -> angle every 64 steps */
+extern u16 gAsinSteepTable[]; /* 64 entries, the last (steep) segment */
 
-s32 func_802AD7FC(u32 sine);
+s32 math_asin(u32 sine);
 #endif
 
-/* C-callable wrapper: return func_802AD7FC(a0) in v0 (00000.c camera code,
+/* C-callable wrapper: return math_asin(a0) in v0 (00000.c camera code,
  * 3E4C0.c). */
 #ifdef NON_MATCHING
-/* The asm also leaves v1 = a0 and preserves fp; no caller (all C) uses that. */
-s32 func_802AD7D4(s32 sine) {
-    return func_802AD7FC(sine);
+/* C entry of math_asin (0x802AD7D4).
+ * The asm also leaves v1 = a0 and preserves fp; no caller (all C) uses that. */
+s32 math_asin_c(s32 sine) {
+    return math_asin(sine);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/69000/func_802AD7D4.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/69000/math_asin_c.s")
 #endif
 
 /* Arcsine lookup: in v1 = sine in 0..0xFFFF, out s8 = angle (0x4000 = 90
- * degrees). Linear interpolation in D_802AD880[v1 >> 6] (1025 entries); the
- * last segment uses the finer table D_802AE084[v1 & 0x3F]. Preserves v1/a0/a1. */
+ * degrees). Linear interpolation in gAsinTable[v1 >> 6] (1025 entries); the
+ * last segment uses the finer table gAsinSteepTable[v1 & 0x3F]. Preserves v1/a0/a1. */
 #ifdef NON_MATCHING
-/* Convention: in v1=a0 ; out fp=ret. Asm callers rely on it preserving v1, a0,
+/* A sine 0..0xFFFF to an angle (0x4000 = 90 degrees) (0x802AD7FC).
+ * Convention: in v1=a0 ; out fp=ret. Asm callers rely on it preserving v1, a0,
  * a1 (it saves them) and t1/t2/t3/t6/t7 (untouched); a mixed build needs a
  * thunk. Any 32-bit input is accepted: index = sine >> 6 (logical), anything
  * from 0x3FF up (i.e. sine >= 0xFFC0, or "negative" values) takes the fine
  * table by the low 6 bits. The product and shift are unsigned as in the asm
  * (mult, then srl). */
-s32 func_802AD7FC(u32 sine) {
+s32 math_asin(u32 sine) {
     u32 idx = sine >> 6;
     u32 frac = sine & 0x3F;
     s32 lo;
 
     if ((s32) idx < 0x3FF) {
-        lo = D_802AD880[idx];
-        return lo + ((u32) ((D_802AD880[idx + 1] - lo) * (s32) frac) >> 6);
+        lo = gAsinTable[idx];
+        return lo + ((u32) ((gAsinTable[idx + 1] - lo) * (s32) frac) >> 6);
     }
-    return D_802AE084[frac];
+    return gAsinSteepTable[frac];
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/69000/func_802AD7FC.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/69000/math_asin.s")
 #endif

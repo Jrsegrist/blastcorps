@@ -45,8 +45,8 @@ IR64_DEPS := tools/llalign64.py $(H64)/addrs.txt
 # -fno-optimize-sibling-calls: a call's return address names its real caller
 # (the keys of --clock and --sync, see os_time.c / os_thread.c; crash reports).
 # -fno-inline-functions: only `inline` functions are inlined: clang inlines far
-# more than the N64's compiler (func_802A2BB0's PI wait came out inside
-# func_802A1D54: 8627 sync mismatches in verify), so game functions keep their
+# more than the N64's compiler (lvl_load_object_table's PI wait came out inside
+# lvl_spawn_objects: 8627 sync mismatches in verify), so game functions keep their
 # own bodies.  HL_EXTRA: extra flags for debugging.
 HL64_CFLAGS := -std=gnu89 -nostdinc -I$(ROOT) -I$(ROOT)/include -I$(ROOT)/include/2.0I \
 	-I$(ROOT)/include/2.0I/PR -include include/port_ultratypes.h \

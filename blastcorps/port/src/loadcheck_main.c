@@ -10,7 +10,7 @@
  *
  *   T5  port_802E8BF8_word: the D_802E8BF8 flag/word-table alias (00000.c)
  *   T6  texture entries: DMA + tex_decode decode, output bytes (BE) CRC
- *   T7  every level: lvl_load_file load + func_802A2C54 object-stream unpack
+ *   T7  every level: lvl_load_file load + lvl_read_alpha_zones object-stream unpack
  *   T8  every level: cam_apply_height_zone height zones at random positions
  *   T9  (needs a trace) every read the N64 code made of each traced asset
  *
@@ -39,7 +39,7 @@ s32 port_802E8BF8_word(s32 i);
 void tex_load_table(void);
 void tex_load_to_heap_impl(s32 id, u8 *param);
 void lvl_load_file(s32 level, s32 dest, s32 *size);
-void func_802A2C54(u8 *obj);
+void lvl_read_alpha_zones(u8 *obj);
 void cam_apply_height_zone(u8 *level);
 
 /* ---- the platform surface these need (as port/src/platform does it) ---- */
@@ -159,7 +159,7 @@ static void t7(void) {
             continue;
         }
         crash_armed = 1;
-        func_802A2C54((u8 *) (uintptr_t) HEAP);
+        lvl_read_alpha_zones((u8 *) (uintptr_t) HEAP);
         crash_armed = 0;
         end = V32(0x803BDFD4);
         printf("T7 %02d.size %05X first %02X n %u\n", lvl, (unsigned) size, V8(0x80364A6E),
@@ -208,7 +208,7 @@ static void t8(void) {
  * ran, a native read of WIDTH bytes at OFF must give the big-endian value the
  * N64 read there; bytes read only bytewise must be unchanged. */
 void func_802C4108(u8 **src, u8 **dst, s32 work);
-void func_802C4070(u32 *src, u32 *dst, u32 work, u8 type);
+void lzss_decompress(u32 *src, u32 *dst, u32 work, u8 type);
 
 #define T9_DST   0x80100000u
 #define T9_STAGE 0x8021ED00u
@@ -239,7 +239,7 @@ static int t9_load(uint32_t rom, uint32_t size, const char *how, uint8_t **raw) 
             for (m = 0; m < 4 && dst - T9_DST < size; m++)
                 func_802C4108((u8 **) &src, (u8 **) &dst, 0x8004B400);
         } else {
-            func_802C4070(&src, &dst, 0x8004B400u, (u8) lzss_bits(rom));
+            lzss_decompress(&src, &dst, 0x8004B400u, (u8) lzss_bits(rom));
         }
         if (dst - T9_DST < size) return 0;
     }

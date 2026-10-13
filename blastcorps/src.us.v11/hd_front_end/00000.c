@@ -123,7 +123,7 @@ s32 func_801E7000(void) {
     D_80211A6A = 0;
     unused = 0xE73C;
     D_802153E8 = D_803643D4;
-    func_8029DEA0();
+    anim_tex_init();
     for (i = 0; i < 19; i++) {
         slot[i] = -1;
         if ((players[playerNumberAtStart].unk10 & (1 << i) & level->unk2C) &&
@@ -202,9 +202,9 @@ void func_801E7598(void) {
     /* The asm takes its param (the texture decoder's type-4/5 table) in $fp,
      * which the game thread's C code never sets: 0 (traced in hd.c's call;
      * this screen needs input, so the demos don't reach it). */
-    func_8029E0AC(LEAKED(s8));
+    anim_tex_update_all(LEAKED(s8));
 #else
-    func_8029E0AC();
+    anim_tex_update_all();
 #endif
     cont_update();
     if (gFramesInMode >= 11 && !areWeFading()) {

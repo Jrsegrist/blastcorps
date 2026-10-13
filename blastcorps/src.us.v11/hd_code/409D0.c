@@ -198,7 +198,7 @@ u8 func_80285814(void) {
                     coin = 4;
                 }
                 STATS_ASSERT(create_status(pakBuffer,coin)<=LEVEL_SAVE_SIZE-4, 161);
-                func_802C4BF0(pakBuffer);
+                apply_status(pakBuffer);
                 obj_tally(0);
                 people_init((s32) pakBuffer);
                 saved = 1;
@@ -248,7 +248,7 @@ void func_80285B68(s32 arg0) {
     if (gGameMode & 0x104) {
         if (LEVEL_DONE(levelno)) {
             if (gLevelInfo[levelno].type != 1 && playerNumber == playerNumberAtStart) {
-                func_802CF5B0();
+                commpt_save_flags();
                 gPauseRequest = 1;
                 func_80275270(0x4000, 1.25f);
                 saveIt[playerNumber] = levelno + 1;

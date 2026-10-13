@@ -122,7 +122,7 @@ void func_80277620(s32 now) {
         func_80277EDC(2, 1, 2, func_8026205C(1));
     }
     if (gHaveCarrier) {
-        limit = D_803EF6E4 >> 5;
+        limit = gCarrierZ >> 5;
         while (p < D_803BE700) {
             if (!p->done && limit > p->time) {
                 func_80277EDC(p->a, p->b, p->c, p->d);

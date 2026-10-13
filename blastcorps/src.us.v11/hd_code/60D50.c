@@ -62,16 +62,16 @@ void cam_apply_height_zone(u8 *level) {
 #ifdef NON_MATCHING
 
 /* The chopper's cruise height from the zones under it (0x802A5604).
- * Like cam_apply_height_zone, for the point (D_803EF2EC, D_803EF2F4) and the
- * HeightZone list at level+0x44 / +0x48: D_803EF304 = (highest containing
+ * Like cam_apply_height_zone, for the point (gChopperX, gChopperZ) and the
+ * HeightZone list at level+0x44 / +0x48: gChopperCruiseY = (highest containing
  * zone's height, or -1) << 5. The end offset must be start + n * 10.
- * Asm callers rely on preserved: func_802B8D04 keeps a2, a3, t7, f12, f14. */
+ * Asm callers rely on preserved: chopper_fly keeps a2, a3, t7, f12, f14. */
 void chopper_find_cruise_height(u8 *level) {
     HeightZone *zone = (HeightZone *) (level + *(s32 *) (level + 0x44));
     HeightZone *end = (HeightZone *) (level + *(s32 *) (level + 0x48));
     /* logical shifts (srl) in the asm, then signed compares */
-    s32 px = (u32) D_803EF2EC >> 5;
-    s32 pz = (u32) D_803EF2F4 >> 5;
+    s32 px = (u32) gChopperX >> 5;
+    s32 pz = (u32) gChopperZ >> 5;
     s32 best = -1;
 
     for (; zone != end; zone++) {
@@ -82,7 +82,7 @@ void chopper_find_cruise_height(u8 *level) {
             best = zone->height;
         }
     }
-    D_803EF304 = best << 5;
+    gChopperCruiseY = best << 5;
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/60D50/chopper_find_cruise_height.s")
@@ -93,10 +93,10 @@ void chopper_find_cruise_height(u8 *level) {
 extern s16 gLevelCamDefaults[][3]; /* per-level {gCamDistance, gCamHeightBase, return value} */
 
 /* The level's camera distance and height base; returns the at-height (0x802A56C4).
- * Loads the per-level triple for level D_803BE73A: stores the first two
+ * Loads the per-level triple for level gStartVehicle: stores the first two
  * entries in gCamDistance / gCamHeightBase and returns the third (sign-extended). */
 s32 cam_load_level_defaults(void) {
-    s16 *entry = gLevelCamDefaults[D_803BE73A];
+    s16 *entry = gLevelCamDefaults[gStartVehicle];
 
     gCamDistance = entry[0];
     gCamHeightBase = entry[1];

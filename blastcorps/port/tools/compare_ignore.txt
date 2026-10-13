@@ -13,8 +13,8 @@
 80000000 80000400 exception vectors and the OS's low-memory globals (IPL3/osInitialize)
 801E7000 80208040 front-end text + RSP ucode (emulator: the NM ROM's trampolined image; exe: native code)
 80244000 802E8BD0 hd_code text (not loaded natively; the NM ROM has the original text + trampolines)
-802AD7C0 802AD7E0 NM ROM trampolines on the functions after the pinned table D_802ACFD0 (its C size, 0x802, overlaps them)
-802AE0F0 802AE110 NM ROM trampolines on the functions after the pinned table D_802AE084
+802AD7C0 802AD7E0 NM ROM trampolines on the functions after the pinned table gAtanTable (its C size, 0x802, overlaps them)
+802AE0F0 802AE110 NM ROM trampolines on the functions after the pinned table gAsinSteepTable
 
 # --- audio
 # The audio heap D_80370C80 (0x2A280 bytes, 1C460.c func_80261588) holds the

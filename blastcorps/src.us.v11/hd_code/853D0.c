@@ -11,13 +11,13 @@
  * more specific non-ABI explanation where one was already worked out. */
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803F8AA0[];  /* this vehicle's state block (the asm's $gp) */
-extern u8 D_803F87A0[];  /* its animation channel table */
-extern u32 D_803F8B48[]; /* x, y, z */
-extern u8 * N64P D_803F8B54;   /* its model */
-extern u64 * N64P D_803F8B58;  /* save copy pair */
-extern u64 * N64P D_803F8B5C;
-extern f32 D_803F8B60;
+extern u8 gBallistaState[];  /* this vehicle's state block (the asm's $gp) */
+extern u8 gBallistaAnim[];  /* its animation channel table */
+extern u32 gBallistaPos[]; /* x, y, z */
+extern u8 * N64P gBallistaModel;   /* its model */
+extern u64 * N64P gBallistaMtxA;  /* save copy pair */
+extern u64 * N64P gBallistaMtxB;
+extern f32 gBallistaLean;
 extern u8 D_803F8B76;
 extern u8 D_803F8B77;
 extern s8 D_803F8B78;
@@ -27,147 +27,149 @@ extern u8 D_803F8B7C;
 extern u8 D_803F8B7D;
 extern u8 D_803F8B7E;
 
-/* Load vehicle 10 (the 5CB60 dispatcher lvl_spawn_vehicles, record type 10):
- * model `model` (D_803F8B54), save copies D_803F8B58 / D_803F8B5C taken
+/* Sets up Ballista (type 10) (0x802C9B90).
+ * Load vehicle 10 (the 5CB60 dispatcher lvl_spawn_vehicles, record type 10):
+ * model `model` (gBallistaModel), save copies gBallistaMtxA / gBallistaMtxB taken
  * 0x700 bytes each from gHeapPtr (veh_add_record(10, 0, copies, model)),
- * record reset (func_802A754C), wheel table +0x52..0x68, position (x, y,
- * z), heading `heading` at +0x4C/+0x4E/+0x74, D_803F8B60 = 0.5, ground
- * heights (func_802A992C, key 10, fp), the model's animation channels
- * (func_8029F85C, channel 0 set to 100 / 0 / 0 / 0.0 / restart, run on both
- * copies with func_8029E558 and func_802A0320 between), tuning values
- * +0x78..0x94, its flags and counters, parts (func_8029C354, scale 0x3E80),
- * func_80258230(10, 100, 45, 45), one update with +0x9A set
- * (func_802CA4E0), copy the model matrix from the second copy to the first
- * (func_802AA838) and D_80364A6B = 1.
+ * record reset (veh_reset_state), wheel table +0x52..0x68, position (x, y,
+ * z), heading `heading` at +0x4C/+0x4E/+0x74, gBallistaLean = 0.5, ground
+ * heights (veh_init_ground, key 10, fp), the model's animation channels
+ * (anim_init_model, channel 0 set to 100 / 0 / 0 / 0.0 / restart, run on both
+ * copies with anim_update_model and anim_rewind between), tuning values
+ * +0x78..0x94, its flags and counters, parts (veh_register_parts, scale 0x3E80),
+ * veh_add_shadow(10, 100, 45, 45), one update with +0x9A set
+ * (ballista_update), copy the model matrix from the second copy to the first
+ * (mtx_copy_at) and D_80364A6B = 1.
  * Register convention (conventions.txt): x t7, y s3, z s0, heading s1,
- * model s2, fp (handed to func_802A992C, which stores it into D_803ED3F2:
- * the dispatcher's leftover $fp in the game). The FP block func_802A992C
+ * model s2, fp (handed to veh_init_ground, which stores it into gSlotSurface:
+ * the dispatcher's leftover $fp in the game). The FP block veh_init_ground
  * passes through starts at 0 here (not read first). The asm saves t0-t5
  * (asm caller lvl_spawn_vehicles keeps t1, t2 live: a mixed N64 build would need
  * a thunk) and leaves s2-s4, fp and f12-f26 as its callees leave them
  * (survey: read by lvl_spawn_vehicles's next records; not modelled) and $gp =
  * the block. Adds are trapping in the asm. */
-void func_802C9B90(s32 x, s32 y, s32 z, s32 heading, u8 *model, s32 fp) {
+void ballista_spawn(s32 x, s32 y, s32 z, s32 heading, u8 *model, s32 fp) {
     TriSideOut f;
     u8 *m;
 
-    D_803F8B54 = model;
-    D_803F8B58 = (u64 *) gHeapPtr;
-    D_803F8B5C = (u64 *) (gHeapPtr + 0x700);
+    gBallistaModel = model;
+    gBallistaMtxA = (u64 *) gHeapPtr;
+    gBallistaMtxB = (u64 *) (gHeapPtr + 0x700);
     gHeapPtr += 0xE00;
-    veh_add_record(10, 0, (s32) D_803F8B58, (s32) D_803F8B5C, model);
-    func_802A754C(D_803F8AA0);
-    *(s16 *) (D_803F8AA0 + 0x52) = 0x104;
-    *(s16 *) (D_803F8AA0 + 0x54) = 0x140;
-    *(s16 *) (D_803F8AA0 + 0x56) = -0x104;
-    *(s16 *) (D_803F8AA0 + 0x58) = 0x140;
-    *(s16 *) (D_803F8AA0 + 0x5A) = 0x104;
-    *(s16 *) (D_803F8AA0 + 0x5C) = -0x140;
-    *(s16 *) (D_803F8AA0 + 0x5E) = 0x12C;
-    *(s16 *) (D_803F8AA0 + 0x60) = 0x154;
-    *(s16 *) (D_803F8AA0 + 0x62) = -0x12C;
-    *(s16 *) (D_803F8AA0 + 0x64) = 0x154;
-    *(s16 *) (D_803F8AA0 + 0x66) = 0x12C;
-    *(s16 *) (D_803F8AA0 + 0x68) = -0x154;
-    D_803F8B48[0] = x;
-    D_803F8B48[1] = y;
-    D_803F8B48[2] = z;
+    veh_add_record(10, 0, (s32) gBallistaMtxA, (s32) gBallistaMtxB, model);
+    veh_reset_state(gBallistaState);
+    *(s16 *) (gBallistaState + 0x52) = 0x104;
+    *(s16 *) (gBallistaState + 0x54) = 0x140;
+    *(s16 *) (gBallistaState + 0x56) = -0x104;
+    *(s16 *) (gBallistaState + 0x58) = 0x140;
+    *(s16 *) (gBallistaState + 0x5A) = 0x104;
+    *(s16 *) (gBallistaState + 0x5C) = -0x140;
+    *(s16 *) (gBallistaState + 0x5E) = 0x12C;
+    *(s16 *) (gBallistaState + 0x60) = 0x154;
+    *(s16 *) (gBallistaState + 0x62) = -0x12C;
+    *(s16 *) (gBallistaState + 0x64) = 0x154;
+    *(s16 *) (gBallistaState + 0x66) = 0x12C;
+    *(s16 *) (gBallistaState + 0x68) = -0x154;
+    gBallistaPos[0] = x;
+    gBallistaPos[1] = y;
+    gBallistaPos[2] = z;
     D_803F8B7C = 0;
     D_803F8B7E = 0;
-    D_803F8B60 = 0.5f;
-    *(s16 *) (D_803F8AA0 + 0x4C) = heading;
-    *(s16 *) (D_803F8AA0 + 0x4E) = heading;
-    *(s16 *) (D_803F8AA0 + 0x74) = heading;
+    gBallistaLean = 0.5f;
+    *(s16 *) (gBallistaState + 0x4C) = heading;
+    *(s16 *) (gBallistaState + 0x4E) = heading;
+    *(s16 *) (gBallistaState + 0x74) = heading;
     f.pz = f.cross = f.cz = f.side = f.sideZ = f.dz = 0.0f;
-    func_802A992C((s16 *) (D_803F8AA0 + 0x52), D_803F8B48[1], x, z, (s32 *) (D_803F8AA0 + 4),
-                  (s32 *) &D_803F8B48[1], (s16 *) (D_803F8AA0 + 0x4C), 10, fp, D_803F8AA0, &f);
-    func_8029F85C((u32 *) D_803F8B5C, (u32 *) D_803F8B58, (Unk8029DEA0Entry *) D_803F87A0, D_803F8B54);
-    func_802A039C((Unk8029DEA0Entry *) D_803F87A0, 0, 100);
-    func_802A03D4((Unk8029DEA0Entry *) D_803F87A0, 0, 0);
-    func_802A040C((Unk8029DEA0Entry *) D_803F87A0, 0, 0);
-    func_802A0480(0.0f, (Unk8029DEA0Entry *) D_803F87A0, 0, 0);
-    func_802A0290((Unk8029DEA0Entry *) D_803F87A0, 0, 1);
-    func_8029E558((u8 *) D_803F8B58, (u8 *) D_803F8B5C, (Unk8029DEA0Entry *) D_803F87A0);
-    func_802A0320(0, (Unk8029DEA0Entry *) D_803F87A0);
-    func_802A0290((Unk8029DEA0Entry *) D_803F87A0, 0, 1);
-    func_8029E558((u8 *) D_803F8B5C, (u8 *) D_803F8B58, (Unk8029DEA0Entry *) D_803F87A0);
-    *(s16 *) (D_803F8AA0 + 0x78) = -0x96;
-    *(s16 *) (D_803F8AA0 + 0x7A) = 0;
-    *(s16 *) (D_803F8AA0 + 0x7C) = 2;
-    *(s16 *) (D_803F8AA0 + 0x7E) = 0;
-    *(s16 *) (D_803F8AA0 + 0x80) = 0xB4;
-    *(s16 *) (D_803F8AA0 + 0x82) = 8;
-    *(s16 *) (D_803F8AA0 + 0x84) = 0xB4;
-    *(s16 *) (D_803F8AA0 + 0x86) = 0xC8;
-    *(s16 *) (D_803F8AA0 + 0x88) = 4;
-    *(s16 *) (D_803F8AA0 + 0x8A) = 0xC8;
-    *(s16 *) (D_803F8AA0 + 0x8C) = 0xFA;
-    *(s16 *) (D_803F8AA0 + 0x8E) = 2;
-    *(s16 *) (D_803F8AA0 + 0x90) = 0xFA;
-    *(s16 *) (D_803F8AA0 + 0x92) = 0x104;
-    *(s16 *) (D_803F8AA0 + 0x94) = 2;
+    veh_init_ground((s16 *) (gBallistaState + 0x52), gBallistaPos[1], x, z, (s32 *) (gBallistaState + 4),
+                  (s32 *) &gBallistaPos[1], (s16 *) (gBallistaState + 0x4C), 10, fp, gBallistaState, &f);
+    anim_init_model((u32 *) gBallistaMtxB, (u32 *) gBallistaMtxA, (Unk8029DEA0Entry *) gBallistaAnim, gBallistaModel);
+    anim_set_speed((Unk8029DEA0Entry *) gBallistaAnim, 0, 100);
+    anim_set_reverse((Unk8029DEA0Entry *) gBallistaAnim, 0, 0);
+    anim_set_loop_mode((Unk8029DEA0Entry *) gBallistaAnim, 0, 0);
+    anim_set_interp(0.0f, (Unk8029DEA0Entry *) gBallistaAnim, 0, 0);
+    anim_play((Unk8029DEA0Entry *) gBallistaAnim, 0, 1);
+    anim_update_model((u8 *) gBallistaMtxA, (u8 *) gBallistaMtxB, (Unk8029DEA0Entry *) gBallistaAnim);
+    anim_rewind(0, (Unk8029DEA0Entry *) gBallistaAnim);
+    anim_play((Unk8029DEA0Entry *) gBallistaAnim, 0, 1);
+    anim_update_model((u8 *) gBallistaMtxB, (u8 *) gBallistaMtxA, (Unk8029DEA0Entry *) gBallistaAnim);
+    *(s16 *) (gBallistaState + 0x78) = -0x96;
+    *(s16 *) (gBallistaState + 0x7A) = 0;
+    *(s16 *) (gBallistaState + 0x7C) = 2;
+    *(s16 *) (gBallistaState + 0x7E) = 0;
+    *(s16 *) (gBallistaState + 0x80) = 0xB4;
+    *(s16 *) (gBallistaState + 0x82) = 8;
+    *(s16 *) (gBallistaState + 0x84) = 0xB4;
+    *(s16 *) (gBallistaState + 0x86) = 0xC8;
+    *(s16 *) (gBallistaState + 0x88) = 4;
+    *(s16 *) (gBallistaState + 0x8A) = 0xC8;
+    *(s16 *) (gBallistaState + 0x8C) = 0xFA;
+    *(s16 *) (gBallistaState + 0x8E) = 2;
+    *(s16 *) (gBallistaState + 0x90) = 0xFA;
+    *(s16 *) (gBallistaState + 0x92) = 0x104;
+    *(s16 *) (gBallistaState + 0x94) = 2;
     D_803F8B78 = 0;
     D_803F8B7B = 0;
     D_803F8B7A = 0;
     D_803F8B76 = 0;
     D_803F8B77 = 0x32;
     D_803F8B7D = 0;
-    D_803F8B72 = 0;
-    m = D_803F8B54;
-    func_8029C354(10, m + *(s32 *) (m + 4), m + *(s32 *) (m + 8), 0x3E80);
-    func_80258230(10, 0x64, 0x2D, 0x2D);
-    D_803F8AA0[0x9A] = 1;
-    func_802CA4E0();
-    D_803F8AA0[0x9A] = 0;
-    m = D_803F8B54;
-    func_802AA838((u8 *) D_803F8B5C, (u8 *) D_803F8B58, *(s32 *) (m + *(s32 *) (m + 0x18) + 4));
+    gBallistaMissiles = 0;
+    m = gBallistaModel;
+    veh_register_parts(10, m + *(s32 *) (m + 4), m + *(s32 *) (m + 8), 0x3E80);
+    veh_add_shadow(10, 0x64, 0x2D, 0x2D);
+    gBallistaState[0x9A] = 1;
+    ballista_update();
+    gBallistaState[0x9A] = 0;
+    m = gBallistaModel;
+    mtx_copy_at((u8 *) gBallistaMtxB, (u8 *) gBallistaMtxA, *(s32 *) (m + *(s32 *) (m + 0x18) + 4));
     D_80364A6B = 1;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/func_802C9B90.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/ballista_spawn.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803F8AA0[]; /* this vehicle's state block (the asm's $gp) */
-extern u8 D_803F87A0[]; /* its animation channel table (Unk8029DEA0Entry, 56040.c) */
+extern u8 gBallistaState[]; /* this vehicle's state block (the asm's $gp) */
+extern u8 gBallistaAnim[]; /* its animation channel table (Unk8029DEA0Entry, 56040.c) */
 
-/* Enter this vehicle (vehicle type 10; called from hd.c and 17210.c): clears
+/* Getting into Ballista (0x802C9F54).
+ * Enter this vehicle (vehicle type 10; called from hd.c and 17210.c): clears
  * the byte at +0x99, sets the pair gCamDistance / gCamHeightBase to (0xD48, 1000),
- * starts sound 0x94 (func_802C4310; the asm passes its caller's a0 through
+ * starts sound 0x94 (veh_start_engine_sound; the asm passes its caller's a0 through
  * as the ignored first argument) and sets up channels 1-3 (0 / 0 / 0|1,
  * restart with -1) and 4-5 (8|8 / 0 / 0, 1.0 with 1).
- * The asm points $gp at D_803F8AA0 and leaves it there (conventions.txt:
- * clobbers gp) and leaves v1 = 1 (func_802A0480 preserves it); the C callers
- * declare it void and use neither. Same shape as func_802C5714 (7FB50). */
-void func_802C9F54(void) {
-    D_803F8AA0[0x99] = 0;
+ * The asm points $gp at gBallistaState and leaves it there (conventions.txt:
+ * clobbers gp) and leaves v1 = 1 (anim_set_interp preserves it); the C callers
+ * declare it void and use neither. Same shape as jbomb_enter (7FB50). */
+void ballista_enter(void) {
+    gBallistaState[0x99] = 0;
     gCamDistance = 0xD48;
     gCamHeightBase = 1000;
-    func_802C4310(0, 0x94);
-    func_802A039C((Unk8029DEA0Entry *) D_803F87A0, 1, 0);
-    func_802A03D4((Unk8029DEA0Entry *) D_803F87A0, 1, 0);
-    func_802A040C((Unk8029DEA0Entry *) D_803F87A0, 1, 0);
-    func_802A0290((Unk8029DEA0Entry *) D_803F87A0, 1, -1);
-    func_802A039C((Unk8029DEA0Entry *) D_803F87A0, 2, 0);
-    func_802A03D4((Unk8029DEA0Entry *) D_803F87A0, 2, 0);
-    func_802A040C((Unk8029DEA0Entry *) D_803F87A0, 2, 1);
-    func_802A0290((Unk8029DEA0Entry *) D_803F87A0, 2, -1);
-    func_802A039C((Unk8029DEA0Entry *) D_803F87A0, 3, 0);
-    func_802A03D4((Unk8029DEA0Entry *) D_803F87A0, 3, 0);
-    func_802A040C((Unk8029DEA0Entry *) D_803F87A0, 3, 1);
-    func_802A0290((Unk8029DEA0Entry *) D_803F87A0, 3, -1);
-    func_802A039C((Unk8029DEA0Entry *) D_803F87A0, 4, 8);
-    func_802A03D4((Unk8029DEA0Entry *) D_803F87A0, 4, 0);
-    func_802A040C((Unk8029DEA0Entry *) D_803F87A0, 4, 0);
-    func_802A0480(1.0f, (Unk8029DEA0Entry *) D_803F87A0, 4, 1);
-    func_802A039C((Unk8029DEA0Entry *) D_803F87A0, 5, 8);
-    func_802A03D4((Unk8029DEA0Entry *) D_803F87A0, 5, 0);
-    func_802A040C((Unk8029DEA0Entry *) D_803F87A0, 5, 0);
-    func_802A0480(1.0f, (Unk8029DEA0Entry *) D_803F87A0, 5, 1);
+    veh_start_engine_sound(0, 0x94);
+    anim_set_speed((Unk8029DEA0Entry *) gBallistaAnim, 1, 0);
+    anim_set_reverse((Unk8029DEA0Entry *) gBallistaAnim, 1, 0);
+    anim_set_loop_mode((Unk8029DEA0Entry *) gBallistaAnim, 1, 0);
+    anim_play((Unk8029DEA0Entry *) gBallistaAnim, 1, -1);
+    anim_set_speed((Unk8029DEA0Entry *) gBallistaAnim, 2, 0);
+    anim_set_reverse((Unk8029DEA0Entry *) gBallistaAnim, 2, 0);
+    anim_set_loop_mode((Unk8029DEA0Entry *) gBallistaAnim, 2, 1);
+    anim_play((Unk8029DEA0Entry *) gBallistaAnim, 2, -1);
+    anim_set_speed((Unk8029DEA0Entry *) gBallistaAnim, 3, 0);
+    anim_set_reverse((Unk8029DEA0Entry *) gBallistaAnim, 3, 0);
+    anim_set_loop_mode((Unk8029DEA0Entry *) gBallistaAnim, 3, 1);
+    anim_play((Unk8029DEA0Entry *) gBallistaAnim, 3, -1);
+    anim_set_speed((Unk8029DEA0Entry *) gBallistaAnim, 4, 8);
+    anim_set_reverse((Unk8029DEA0Entry *) gBallistaAnim, 4, 0);
+    anim_set_loop_mode((Unk8029DEA0Entry *) gBallistaAnim, 4, 0);
+    anim_set_interp(1.0f, (Unk8029DEA0Entry *) gBallistaAnim, 4, 1);
+    anim_set_speed((Unk8029DEA0Entry *) gBallistaAnim, 5, 8);
+    anim_set_reverse((Unk8029DEA0Entry *) gBallistaAnim, 5, 0);
+    anim_set_loop_mode((Unk8029DEA0Entry *) gBallistaAnim, 5, 0);
+    anim_set_interp(1.0f, (Unk8029DEA0Entry *) gBallistaAnim, 5, 1);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/func_802C9F54.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/ballista_enter.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -175,173 +177,179 @@ void func_802C9F54(void) {
 /* Functional rewrite (tools_port/eqcheck.py verified). Vehicle-type 10
  * "can exit" check: 0 if any of the vehicle's bytes 0x96..0x98 equals 1 or
  * D_803F8B7C (= its byte 0xDC) is nonzero, else 1. Same shape as
- * func_802CBB60, func_802CCCD8, func_802CFA58, func_802D0B90. 00000.c
+ * police_exit_check, ateam_exit_check, starski_exit_check, cyclone_exit_check. 00000.c
  * declares it void and ignores the result, but the asm returns 0/1 in v0. */
-extern u8 D_803F8AA0[];
+extern u8 gBallistaState[];
 extern u8 D_803F8B7C;
 
-s32 func_802CA140(void) {
-    if (D_803F8AA0[0x96] == 1 || D_803F8AA0[0x97] == 1 || D_803F8AA0[0x98] == 1 || D_803F8B7C != 0) {
+/* Ballista's exit check (not during a wheelie) (0x802CA140). */
+s32 ballista_exit_check(void) {
+    if (gBallistaState[0x96] == 1 || gBallistaState[0x97] == 1 || gBallistaState[0x98] == 1 || D_803F8B7C != 0) {
         return 0;
     }
     return 1;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/func_802CA140.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/ballista_exit_check.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u64 * N64P D_803F8B58; /* save copy pair (func_802A7764) */
-extern u64 * N64P D_803F8B5C;
+extern u64 * N64P gBallistaMtxA; /* save copy pair (veh_sync_buffers) */
+extern u64 * N64P gBallistaMtxB;
 
-/* Teardown for this vehicle (called from veh_leave in hd.c): clears the
- * s16 at +0x76, func_802A7764(D_803F8B58, D_803F8B5C, 0x700) and stops its
- * sounds (func_802C444C). The asm saves and restores $gp. Same shape as
- * func_802C5688 (7FB50). */
-void func_802CA1AC(void) {
-    *(s16 *) (D_803F8AA0 + 0x76) = 0;
-    func_802A7764(D_803F8B58, D_803F8B5C, 0x700);
-    func_802C444C();
+/* Getting out of Ballista (0x802CA1AC).
+ * Teardown for this vehicle (called from veh_leave in hd.c): clears the
+ * s16 at +0x76, veh_sync_buffers(gBallistaMtxA, gBallistaMtxB, 0x700) and stops its
+ * sounds (veh_stop_engine_sounds). The asm saves and restores $gp. Same shape as
+ * jbomb_leave (7FB50). */
+void ballista_leave(void) {
+    *(s16 *) (gBallistaState + 0x76) = 0;
+    veh_sync_buffers(gBallistaMtxA, gBallistaMtxB, 0x700);
+    veh_stop_engine_sounds();
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/func_802CA1AC.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/ballista_leave.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u32 D_803F8B48[]; /* x, y, z */
-void func_802CB42C(MtxChainRegs *regs);
+extern u32 gBallistaPos[]; /* x, y, z */
+void ballista_build_model(MtxChainRegs *regs);
 
-/* Move this vehicle while it isn't the player's (vehicle 10's counterpart
- * of func_802C5860; no caller references it: veh_update_others has no case
- * 10): ground heights for its three slots (func_802A9A60 with table +0x52,
+/* The reground body of the others; never called (no type-10 case) (0x802CA1F8).
+ * Move this vehicle while it isn't the player's (vehicle 10's counterpart
+ * of jbomb_reground; no caller references it: veh_update_others has no case
+ * 10): ground heights for its three slots (veh_reground with table +0x52,
  * angle +0x4C, heights to +4.., the middle y to D_803F8B4C, key 10), place
- * the model (func_802CB42C), then veh_set_record(z, 10, x, y, block).
+ * the model (ballista_build_model), then veh_set_record(z, 10, x, y, block).
  * Register convention (conventions.txt): `fp` is the asm's $fp, which goes
- * on to func_802A9A60 (stored into D_803ED3F2[0..2], so the block's +0x50
+ * on to veh_reground (stored into gSlotSurface[0..2], so the block's +0x50
  * becomes (u8) fp): a leaked register in the game (FIDELITY), an explicit
- * parameter here. f12-f26 only pass through func_802A9A60 (not read first;
- * the asm restores f20-f30), so the C starts them at 0. func_802CB42C gets
- * s0 = z and s1 = func_802A9A60's s1. The asm saves every s-register, gp,
+ * parameter here. f12-f26 only pass through veh_reground (not read first;
+ * the asm restores f20-f30), so the C starts them at 0. ballista_build_model gets
+ * s0 = z and s1 = veh_reground's s1. The asm saves every s-register, gp,
  * fp and f20-f30. */
-void func_802CA1F8(s32 fp) {
+void ballista_reground(s32 fp) {
     TriSideOut f;
     Out802A9A60 out;
     MtxChainRegs regs;
-    s32 z = D_803F8B48[2];
+    s32 z = gBallistaPos[2];
 
     f.pz = f.cross = f.cz = f.side = f.sideZ = f.dz = 0.0f;
-    func_802A9A60((s16 *) (D_803F8AA0 + 0x52), D_803F8B48[1], D_803F8B48[0], z, (s32 *) (D_803F8AA0 + 4),
-                  (s32 *) &D_803F8B48[1], (s16 *) (D_803F8AA0 + 0x4C), 10, fp, D_803F8AA0, &f, &out);
+    veh_reground((s16 *) (gBallistaState + 0x52), gBallistaPos[1], gBallistaPos[0], z, (s32 *) (gBallistaState + 4),
+                  (s32 *) &gBallistaPos[1], (s16 *) (gBallistaState + 0x4C), 10, fp, gBallistaState, &f, &out);
     regs.s0 = z;
     regs.s1 = (s32) out.s1;
-    func_802CB42C(&regs);
-    veh_set_record(D_803F8B48[2], 10, D_803F8B48[0], D_803F8B48[1], D_803F8AA0);
+    ballista_build_model(&regs);
+    veh_set_record(gBallistaPos[2], 10, gBallistaPos[0], gBallistaPos[1], gBallistaState);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/func_802CA1F8.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/ballista_reground.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u32 D_803F8B48[]; /* x, y, z */
-/* Zone level lookup (func_802ABD54) for vehicle id 0xA at its position
- * D_803F8B48..+8; returns func_802ABD54's v1 (the zone list end).
- * Register convention: the asm passes func_802ABD54's scan registers t6, t7,
+extern u32 gBallistaPos[]; /* x, y, z */
+/* Veh_zone_alpha at Ballista's position (0x802CA308).
+ * Zone level lookup (veh_zone_alpha) for vehicle id 0xA at its position
+ * gBallistaPos..+8; returns veh_zone_alpha's v1 (the zone list end).
+ * Register convention: the asm passes veh_zone_alpha's scan registers t6, t7,
  * s0-s4 through (in and out; here through r), leaves a3 = id and clobbers
- * s5, s6 (conventions.txt). Asm caller func_802CA4E0 keeps f12 and f14 live
+ * s5, s6 (conventions.txt). Asm caller ballista_update keeps f12 and f14 live
  * (a mixed N64 build would need a thunk; the native port won't). */
-s32 func_802CA308(ZoneScanRegs *r) {
-    return func_802ABD54(0xA, D_803F8B48[0], D_803F8B48[1], D_803F8B48[2], r);
+s32 ballista_zone_alpha(ZoneScanRegs *r) {
+    return veh_zone_alpha(0xA, gBallistaPos[0], gBallistaPos[1], gBallistaPos[2], r);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/func_802CA308.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/ballista_zone_alpha.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-/* Value pairs on triangle `id` (func_802AAD0C) at this vehicle's x/z
- * (D_803F8B48[0], [2]) -> s16s +0x6A/+0x6C of D_803F8AA0, and at that point
- * moved by ground slot 0 (func_802A94A4(0, +0x52 table, +0x4C angle)) ->
+/* Records Ballista's position on the deck it stands on (0x802CA34C).
+ * Value pairs on triangle `id` (veh_deck_to_local) at this vehicle's x/z
+ * (gBallistaPos[0], [2]) -> s16s +0x6A/+0x6C of gBallistaState, and at that point
+ * moved by ground slot 0 (veh_wheel_offset(0, +0x52 table, +0x4C angle)) ->
  * +0x70/+0x72; +0x6E gets a copy of the angle at +0x4C.
- * Register convention (conventions.txt): id in a3; func_802AAD0C's FP
+ * Register convention (conventions.txt): id in a3; veh_deck_to_local's FP
  * results pass through to the caller (r; f24 also an input, chained through
  * both calls). The asm saves and restores t0, t1, t3, t4 (asm caller
- * func_802AB50C keeps t0 and t1 live: a mixed N64 build would need a thunk),
- * points $gp at D_803F8AA0 without restoring it, leaves s4 = &+0x4C and
- * v1 = &+0x52 (dead in its caller). Same shape as func_802C59B4 (7FB50) plus
+ * veh_attach_riders_walk keeps t0 and t1 live: a mixed N64 build would need a thunk),
+ * points $gp at gBallistaState without restoring it, leaves s4 = &+0x4C and
+ * v1 = &+0x52 (dead in its caller). Same shape as jbomb_ride_attach (7FB50) plus
  * the second point. The x + dx / z + dz sums are trapping in the asm. */
-void func_802CA34C(s32 id, InterpRegs *r) {
+void ballista_ride_attach(s32 id, InterpRegs *r) {
     s32 dx;
     s32 dz;
 
-    func_802AAD0C(id, ((s32 *) D_803F8B48)[0], ((s32 *) D_803F8B48)[2], r);
-    *(s16 *) (D_803F8AA0 + 0x6A) = r->t3;
-    *(s16 *) (D_803F8AA0 + 0x6C) = r->t4;
-    *(u16 *) (D_803F8AA0 + 0x6E) = *(u16 *) (D_803F8AA0 + 0x4C);
-    dx = func_802A94A4(0, (s16 *) (D_803F8AA0 + 0x52), (s16 *) (D_803F8AA0 + 0x4C), &dz);
-    func_802AAD0C(id, ((s32 *) D_803F8B48)[0] + dx, ((s32 *) D_803F8B48)[2] + dz, r);
-    *(s16 *) (D_803F8AA0 + 0x70) = r->t3;
-    *(s16 *) (D_803F8AA0 + 0x72) = r->t4;
+    veh_deck_to_local(id, ((s32 *) gBallistaPos)[0], ((s32 *) gBallistaPos)[2], r);
+    *(s16 *) (gBallistaState + 0x6A) = r->t3;
+    *(s16 *) (gBallistaState + 0x6C) = r->t4;
+    *(u16 *) (gBallistaState + 0x6E) = *(u16 *) (gBallistaState + 0x4C);
+    dx = veh_wheel_offset(0, (s16 *) (gBallistaState + 0x52), (s16 *) (gBallistaState + 0x4C), &dz);
+    veh_deck_to_local(id, ((s32 *) gBallistaPos)[0] + dx, ((s32 *) gBallistaPos)[2] + dz, r);
+    *(s16 *) (gBallistaState + 0x70) = r->t3;
+    *(s16 *) (gBallistaState + 0x72) = r->t4;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/func_802CA34C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/ballista_ride_attach.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-void func_802CB5D8(void);
+void ballista_set_physics(void);
 
-/* Set this vehicle down on triangle `id` between the two value pairs at
- * +0x6A/+0x6C and +0x70/+0x72 (func_802CA34C's): heading = func_802AB9A4(
+/* Moves Ballista with the deck under it (0x802CA3D8).
+ * Set this vehicle down on triangle `id` between the two value pairs at
+ * +0x6A/+0x6C and +0x70/+0x72 (ballista_ride_attach's): heading = veh_follow_heading(
  * table +0x52, pair 1, angle +0x6E, id, pair 2) into +0x4E and +0x4C, the
- * point at pair 1 (func_802AAE54), timers (func_802CB5D8), D_803ED40B = 1,
- * ground contact (func_802A8768: id 10, position D_803F8B48..+8, divisors
+ * point at pair 1 (veh_deck_to_world), timers (ballista_set_physics), gBounceSound = 1,
+ * ground contact (veh_ground_contact: id 10, position gBallistaPos..+8, divisors
  * 0x280 / 0x208, angle +0x4C, flags +0x96, table +0x52, records
- * +0x28/+0x40/+0x34, heights +4), place the model (func_802CB42C) and
+ * +0x28/+0x40/+0x34, heights +4), place the model (ballista_build_model) and
  * veh_set_record(z, 10, x, y, block).
- * Register convention (conventions.txt): id in a3; s3 out (func_802AB9A4's
- * distance, on through func_802A8768's in/out slot result: *s3); the FP
- * state chains through func_802AB9A4, func_802AAE54 and func_802A8768 (r:
- * f24 in; f20-f26 out, f12/f14 left as func_802AA764's cos/sin
- * temporaries, not modelled). func_802CB42C gets s0 = &+0x96 and s1 =
- * &D_803F8B50, the flags/pz pointers func_802A8768 leaves. The asm saves and
- * restores a3, t0, t1, t2 (asm caller func_802AB714 keeps a3, t0, t1 live: a
- * mixed N64 build would need a thunk) and points $gp at D_803F8AA0 without
+ * Register convention (conventions.txt): id in a3; s3 out (veh_follow_heading's
+ * distance, on through veh_ground_contact's in/out slot result: *s3); the FP
+ * state chains through veh_follow_heading, veh_deck_to_world and veh_ground_contact (r:
+ * f24 in; f20-f26 out, f12/f14 left as mtx_build_model's cos/sin
+ * temporaries, not modelled). ballista_build_model gets s0 = &+0x96 and s1 =
+ * &D_803F8B50, the flags/pz pointers veh_ground_contact leaves. The asm saves and
+ * restores a3, t0, t1, t2 (asm caller veh_move_riders_walk keeps a3, t0, t1 live: a
+ * mixed N64 build would need a thunk) and points $gp at gBallistaState without
  * restoring it. */
-void func_802CA3D8(s32 id, s32 *s3, InterpRegs *r) {
+void ballista_ride_follow(s32 id, s32 *s3, InterpRegs *r) {
     Regs802A8768 r8768;
     MtxChainRegs regs;
     s32 heading;
 
-    heading = func_802AB9A4((s16 *) (D_803F8AA0 + 0x52), *(s16 *) (D_803F8AA0 + 0x6A), (u16 *) (D_803F8AA0 + 0x6E),
-                            id, *(s16 *) (D_803F8AA0 + 0x6C), *(s16 *) (D_803F8AA0 + 0x70),
-                            *(s16 *) (D_803F8AA0 + 0x72), &r8768.s3, r);
-    *(s16 *) (D_803F8AA0 + 0x4E) = heading;
-    *(s16 *) (D_803F8AA0 + 0x4C) = heading;
-    func_802AAE54(id, *(s16 *) (D_803F8AA0 + 0x6A), *(s16 *) (D_803F8AA0 + 0x6C), r);
-    func_802CB5D8();
-    D_803ED40B = 1;
-    func_802A8768(D_803F8AA0, 10, (s32 *) &D_803F8B48[0], (s32 *) &D_803F8B48[1], (s32 *) &D_803F8B48[2], r->t3,
-                  r->t4, 0x280, 0x208, (s16 *) (D_803F8AA0 + 0x4C), D_803F8AA0 + 0x96, (s16 *) (D_803F8AA0 + 0x52),
-                  (s32 *) (D_803F8AA0 + 0x28), (s32 *) (D_803F8AA0 + 0x40), (s32 *) (D_803F8AA0 + 0x34),
-                  (s32 *) (D_803F8AA0 + 4), &r8768, (TriSideOut *) &r->f12);
+    heading = veh_follow_heading((s16 *) (gBallistaState + 0x52), *(s16 *) (gBallistaState + 0x6A), (u16 *) (gBallistaState + 0x6E),
+                            id, *(s16 *) (gBallistaState + 0x6C), *(s16 *) (gBallistaState + 0x70),
+                            *(s16 *) (gBallistaState + 0x72), &r8768.s3, r);
+    *(s16 *) (gBallistaState + 0x4E) = heading;
+    *(s16 *) (gBallistaState + 0x4C) = heading;
+    veh_deck_to_world(id, *(s16 *) (gBallistaState + 0x6A), *(s16 *) (gBallistaState + 0x6C), r);
+    ballista_set_physics();
+    gBounceSound = 1;
+    veh_ground_contact(gBallistaState, 10, (s32 *) &gBallistaPos[0], (s32 *) &gBallistaPos[1], (s32 *) &gBallistaPos[2], r->t3,
+                  r->t4, 0x280, 0x208, (s16 *) (gBallistaState + 0x4C), gBallistaState + 0x96, (s16 *) (gBallistaState + 0x52),
+                  (s32 *) (gBallistaState + 0x28), (s32 *) (gBallistaState + 0x40), (s32 *) (gBallistaState + 0x34),
+                  (s32 *) (gBallistaState + 4), &r8768, (TriSideOut *) &r->f12);
     *s3 = r8768.s3;
-    regs.s0 = (s32) (D_803F8AA0 + 0x96);
-    regs.s1 = (s32) &D_803F8B48[2];
-    func_802CB42C(&regs);
-    veh_set_record(D_803F8B48[2], 10, D_803F8B48[0], D_803F8B48[1], D_803F8AA0);
+    regs.s0 = (s32) (gBallistaState + 0x96);
+    regs.s1 = (s32) &gBallistaPos[2];
+    ballista_build_model(&regs);
+    veh_set_record(gBallistaPos[2], 10, gBallistaPos[0], gBallistaPos[1], gBallistaState);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/func_802CA3D8.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/ballista_ride_follow.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u64 * N64P D_803F8B58;
-extern u64 * N64P D_803F8B5C;
+extern u64 * N64P gBallistaMtxA;
+extern u64 * N64P gBallistaMtxB;
 extern u8 D_803F8B7A;  /* throttle hold-off countdown */
 extern s8 D_803F8B78;  /* "turning back to the ring" flag */
 extern s16 D_803F8B74; /* ring target heading */
@@ -349,44 +357,45 @@ extern s8 D_803F8B79;  /* sound to start this frame (-1 = none) */
 extern u8 D_803F8B7B;  /* bounced off the ring end */
 extern f32 D_8030D990;
 extern u8 D_80306420[];
-void func_802CAAFC(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4);
-s32 func_802CB564(void);
+void ballista_update_actions(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4);
+s32 ballista_steer_rate(void);
 
-#define V853_U8(off) (D_803F8AA0[off])
-#define V853_S16(off) (*(s16 *) (D_803F8AA0 + (off)))
-#define V853_U16(off) (*(u16 *) (D_803F8AA0 + (off)))
+#define V853_U8(off) (gBallistaState[off])
+#define V853_S16(off) (*(s16 *) (gBallistaState + (off)))
+#define V853_U16(off) (*(u16 *) (gBallistaState + (off)))
 
-/* Per-frame update of vehicle 10 when it is the player's (veh_update_player and
- * its init func_802C9B90): zone lookup (func_802CA308), save copy
- * (func_802A75DC), effects (func_802CAAFC, unless +0x9A is set), the shared
- * func_802CB690 (when D_80367BFF), timers, steering (func_802A7E70 at rate
- * func_802CB564()), throttle (func_802A785C, held off while D_803F8B7A
- * counts down), heading (func_802A7FD8), slope and drag (func_802A83B8 /
- * func_802A843C), ring turn-back (func_802A7070 when D_803F8B78), the
- * forward step (func_802A860C) and ground contact (func_802A8768), the
- * model's animation (func_8029E558 on the current copy pair) and placement
- * (func_802CB42C), collision (func_8029A800 / func_8029C52C /
- * func_8029AA10). Then either (no ring hit, D_803A7425 == 0) obj_collide_vehicle
- * and, if that set D_803A7424, a bounce off the ring end (speed reversed
+/* Ballista driven by the player, per frame (0x802CA4E0).
+ * Per-frame update of vehicle 10 when it is the player's (veh_update_player and
+ * its init ballista_spawn): zone lookup (ballista_zone_alpha), save copy
+ * (veh_snapshot), effects (ballista_update_actions, unless +0x9A is set), the shared
+ * func_802CB690 (when D_80367BFF), timers, steering (veh_steer at rate
+ * ballista_steer_rate()), throttle (veh_throttle, held off while D_803F8B7A
+ * counts down), heading (veh_turn_heading), slope and drag (veh_slope /
+ * veh_apply_slope), ring turn-back (veh_set_target_heading when D_803F8B78), the
+ * forward step (veh_move_along_heading) and ground contact (veh_ground_contact), the
+ * model's animation (anim_update_model on the current copy pair) and placement
+ * (ballista_build_model), collision (veh_collision_setup / veh_collide_spheres /
+ * veh_collide_world). Then either (no ring hit, gCollBlocked == 0) obj_collide_vehicle
+ * and, if that set gCollHit, a bounce off the ring end (speed reversed
  * into 0x41..0x82 or -0x25..-0x4B, D_803F8B7A = 5) unless one is already
- * running; or (ring hit) func_8029A914, D_803F8B78 = 1, and the turn back
- * toward the ring midpoint (func_802A70D8, func_802A71DC, func_802A746C,
- * func_802A6FE4(0), obj_collide_vehicle). Finally the position, speed and angles
+ * running; or (ring hit) veh_prepare_escape, D_803F8B78 = 1, and the turn back
+ * toward the ring midpoint (veh_reverse_if_behind, veh_turn_into_free_arc, veh_step_heading,
+ * veh_hit_slowdown(0), obj_collide_vehicle). Finally the position, speed and angles
  * go to gPlayerX.. / D_8036443C.., veh_set_record(z, 10, x, y, block), and
  * sound D_803F8B79 (12, or -1 after obj_collide_vehicle) is started if >= 0.
  * Register notes (FIDELITY, see tools_port/port_followups.md): the asm
- * hands func_802CA308 (and so func_802CAAFC -> fx_spawn) the caller's
- * t6, t7, s0-s4 on the paths where func_802ABD54 doesn't set them, and
- * func_802A8768 the caller's f20-f26 (f12 = the constant func_802AE104
+ * hands ballista_zone_alpha (and so ballista_update_actions -> fx_spawn) the caller's
+ * t6, t7, s0-s4 on the paths where veh_zone_alpha doesn't set them, and
+ * veh_ground_contact the caller's f20-f26 (f12 = the constant math_cos
  * leaves, f14 its sine temporary): the C starts them at 0 (nothing reads
- * the FP ones first). func_802CB42C gets s0 = &+0x96 and s1 = &D_803F8B50
- * (what is left after func_802A8768; func_8029E558's own s0/s1 leftovers in
- * the game) - they only matter for a count-0 point record. func_8029A914 /
- * func_8029C52C take the block in $gp: passed explicitly (D_803F8AA0). The
+ * the FP ones first). ballista_build_model gets s0 = &+0x96 and s1 = &D_803F8B50
+ * (what is left after veh_ground_contact; anim_update_model's own s0/s1 leftovers in
+ * the game) - they only matter for a count-0 point record. veh_prepare_escape /
+ * veh_collide_spheres take the block in $gp: passed explicitly (gBallistaState). The
  * asm leaves v1 and f12/f14 as its callees leave
- * them (survey: read by veh_update_player / func_802C9B90; not real uses).
+ * them (survey: read by veh_update_player / ballista_spawn; not real uses).
  * Integer sums are trapping in the asm (game range). */
-void func_802CA4E0(void) {
+void ballista_update(void) {
     ZoneScanRegs zr;
     Out802A860C o860c;
     Regs802A8768 r8768;
@@ -401,56 +410,56 @@ void func_802CA4E0(void) {
     s32 tgt;
 
     zr.t6 = zr.t7 = zr.s0 = zr.s1 = zr.s2 = zr.s3 = zr.s4 = 0;
-    func_802CA308(&zr);
-    func_802A75DC(D_803F8AA0, D_803F87A0, (s32 *) &D_803F8B48[0], (s32 *) &D_803F8B48[1], (s32 *) &D_803F8B48[2]);
+    ballista_zone_alpha(&zr);
+    veh_snapshot(gBallistaState, gBallistaAnim, (s32 *) &gBallistaPos[0], (s32 *) &gBallistaPos[1], (s32 *) &gBallistaPos[2]);
     if ((s8) V853_U8(0x9A) == 0) {
-        func_802CAAFC(zr.t6, zr.t7, zr.s0, zr.s1, zr.s2, zr.s3, zr.s4);
+        ballista_update_actions(zr.t6, zr.t7, zr.s0, zr.s1, zr.s2, zr.s3, zr.s4);
     }
     if (D_80367BFF != 0) {
-        func_802CB690(D_803F8AA0);
+        func_802CB690(gBallistaState);
     }
-    func_802CB5D8();
-    func_802A7E70(func_802CB564(), &V853_U16(0x4C));
+    ballista_set_physics();
+    veh_steer(ballista_steer_rate(), &V853_U16(0x4C));
     if (D_803F8B7A == 0) {
-        func_802A785C(D_803F8AA0, &V853_S16(0x76), 3, &V853_U8(0x96), &V853_S16(0x78), 0x10);
+        veh_throttle(gBallistaState, &V853_S16(0x76), 3, &V853_U8(0x96), &V853_S16(0x78), 0x10);
     } else {
         D_803F8B7A--;
     }
-    func_802A7FD8(D_803F8AA0, &V853_U16(0x74), 0x3E80, &V853_S16(0x76), &V853_U16(0x4C), &V853_U16(0x4E),
+    veh_turn_heading(gBallistaState, &V853_U16(0x74), 0x3E80, &V853_S16(0x76), &V853_U16(0x4C), &V853_U16(0x4E),
                   (s8 *) &V853_U8(0x99), 1);
-    f.pz = func_802A83B8(&V853_S16(0x76), &V853_U8(0x96), (s32 *) (D_803F8AA0 + 4), (f32 *) (D_803F8AA0 + 0));
-    func_802A843C(D_803F8AA0, &V853_S16(0x76), 10, (s8 *) &V853_U8(0x96), (s32 *) (D_803F8AA0 + 4), 1, 640.0f);
+    f.pz = veh_slope(&V853_S16(0x76), &V853_U8(0x96), (s32 *) (gBallistaState + 4), (f32 *) (gBallistaState + 0));
+    veh_apply_slope(gBallistaState, &V853_S16(0x76), 10, (s8 *) &V853_U8(0x96), (s32 *) (gBallistaState + 4), 1, 640.0f);
     if (D_803F8B78 != 0) {
-        func_802A7070(D_803F8AA0, &D_803F8B74);
+        veh_set_target_heading(gBallistaState, &D_803F8B74);
     }
-    x = func_802A860C(f.pz, V853_U16(0x4E), &V853_S16(0x76), (s32 *) &D_803F8B48[0], (s32 *) &D_803F8B48[2],
+    x = veh_move_along_heading(f.pz, V853_U16(0x4E), &V853_S16(0x76), (s32 *) &gBallistaPos[0], (s32 *) &gBallistaPos[2],
                       &o860c);
     z = o860c.t1;
-    D_803ED40B = 1;
+    gBounceSound = 1;
     f.pz = f.cross = f.cz = f.side = f.sideZ = f.dz = 0.0f;
     r8768.s3 = o860c.s3;
-    func_802A8768(D_803F8AA0, 10, (s32 *) &D_803F8B48[0], (s32 *) &D_803F8B48[1], (s32 *) &D_803F8B48[2], x, z,
-                  0x280, 0x208, &V853_S16(0x4C), &V853_U8(0x96), &V853_S16(0x52), (s32 *) (D_803F8AA0 + 0x28),
-                  (s32 *) (D_803F8AA0 + 0x40), (s32 *) (D_803F8AA0 + 0x34), (s32 *) (D_803F8AA0 + 4), &r8768, &f);
+    veh_ground_contact(gBallistaState, 10, (s32 *) &gBallistaPos[0], (s32 *) &gBallistaPos[1], (s32 *) &gBallistaPos[2], x, z,
+                  0x280, 0x208, &V853_S16(0x4C), &V853_U8(0x96), &V853_S16(0x52), (s32 *) (gBallistaState + 0x28),
+                  (s32 *) (gBallistaState + 0x40), (s32 *) (gBallistaState + 0x34), (s32 *) (gBallistaState + 4), &r8768, &f);
     if (gBufferIndex != 0) {
-        func_8029E558((u8 *) D_803F8B58, (u8 *) D_803F8B5C, (Unk8029DEA0Entry *) D_803F87A0);
+        anim_update_model((u8 *) gBallistaMtxA, (u8 *) gBallistaMtxB, (Unk8029DEA0Entry *) gBallistaAnim);
     } else {
-        func_8029E558((u8 *) D_803F8B5C, (u8 *) D_803F8B58, (Unk8029DEA0Entry *) D_803F87A0);
+        anim_update_model((u8 *) gBallistaMtxB, (u8 *) gBallistaMtxA, (Unk8029DEA0Entry *) gBallistaAnim);
     }
     regs.s0 = (s32) &V853_U8(0x96);
-    regs.s1 = (s32) &D_803F8B48[2];
-    func_802CB42C(&regs);
-    func_8029A800(D_803F8B48[2], (s32) D_80306420, 1, 1, D_803F8B48[0], D_803F8B48[1], 8, V853_S16(0x76), 0x64, 0, 10,
-                  D_803F8AA0);
-    func_8029C52C(10, D_803F8AA0);
-    func_8029AA10(10);
+    regs.s1 = (s32) &gBallistaPos[2];
+    ballista_build_model(&regs);
+    veh_collision_setup(gBallistaPos[2], (s32) D_80306420, 1, 1, gBallistaPos[0], gBallistaPos[1], 8, V853_S16(0x76), 0x64, 0, 10,
+                  gBallistaState);
+    veh_collide_spheres(10, gBallistaState);
+    veh_collide_world(10);
     D_803F8B79 = 12;
-    if (D_803A7425 == 0) {
-        D_803A7424 = 0;
-        D_803F77D0 = D_803F87A0;
-        obj_collide_vehicle(10, D_803F8AA0);
+    if (gCollBlocked == 0) {
+        gCollHit = 0;
+        D_803F77D0 = gBallistaAnim;
+        obj_collide_vehicle(10, gBallistaState);
         D_803F8B79 = -1;
-        if (D_803A7424 == 0) {
+        if (gCollHit == 0) {
             D_803F8B78 = 0;
             D_803F8B7B = 0;
         } else {
@@ -476,9 +485,9 @@ void func_802CA4E0(void) {
         }
     } else {
         /* turn back toward the ring */
-        func_8029A914(D_803F8AA0);
+        veh_prepare_escape(gBallistaState);
         D_803F8B78 = 1;
-        mid = func_802A6F6C();
+        mid = veh_free_arc_mid();
         v = V853_U16(0x4E) - 0x800;
         if (v < 0) {
             v += 0xFFF;
@@ -490,29 +499,29 @@ void func_802CA4E0(void) {
         if (!(v < 0x801)) {
             v = 0xFFF - v;
         }
-        func_802A70D8(D_803F8AA0);
-        turn = func_802A71DC(D_803F8AA0, V853_U16(0x4E), V853_U16(0x4C), &cur, D_8030D990);
+        veh_reverse_if_behind(gBallistaState);
+        turn = veh_turn_into_free_arc(gBallistaState, V853_U16(0x4E), V853_U16(0x4C), &cur, D_8030D990);
         D_803F8B74 = cur;
         V853_S16(0x4E) = cur;
         V853_S16(0x74) = cur;
-        func_802A746C(D_803F8AA0, turn, v, &tgt);
-        func_802A6FE4(D_803F8AA0, 0);
-        D_803F77D0 = D_803F87A0;
-        obj_collide_vehicle(10, D_803F8AA0);
+        veh_step_heading(gBallistaState, turn, v, &tgt);
+        veh_hit_slowdown(gBallistaState, 0);
+        D_803F77D0 = gBallistaAnim;
+        obj_collide_vehicle(10, gBallistaState);
     }
-    gPlayerX = D_803F8B48[0];
-    gPlayerY = D_803F8B48[1];
-    gPlayerZ = D_803F8B48[2];
+    gPlayerX = gBallistaPos[0];
+    gPlayerY = gBallistaPos[1];
+    gPlayerZ = gBallistaPos[2];
     D_8036443C = V853_S16(0x76);
     D_8036443E = V853_U16(0x4E);
     D_80364440 = V853_U16(0x4C);
-    veh_set_record(D_803F8B48[2], 10, D_803F8B48[0], D_803F8B48[1], D_803F8AA0);
+    veh_set_record(gBallistaPos[2], 10, gBallistaPos[0], gBallistaPos[1], gBallistaState);
     if (D_803F8B79 >= 0) {
         func_80260650(D_80367738, D_803F8B79, NULL);
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/func_802CA4E0.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/ballista_update.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -534,7 +543,7 @@ void func_802CA4E0(void) {
         (out) = _r;                                                     \
     } while (0)
 #endif
-extern f32 D_803F8B60; /* engine/tilt animation value (0.5 = centred) */
+extern f32 gBallistaLean; /* engine/tilt animation value (0.5 = centred) */
 extern s32 D_803F8B64; /* jump: a (initial speed) */
 extern s32 D_803F8B68; /* jump: n (frame) */
 extern s32 D_803F8B6C; /* jump: base height */
@@ -546,8 +555,8 @@ extern f32 D_8030D994;
 extern f32 D_8030D998;
 extern f32 D_8030D99C;
 extern f32 D_8030D9A0;
-void func_802CB224(void);
-f32 func_802CB3C8(s32 side);
+void ballista_add_tyre_trail(void);
+f32 ballista_lean_limit(s32 side);
 
 /* a * n + round(-16 * n * n): the jump height after n frames at initial
  * speed a (32-bit products, cvt.w.s rounding; the asm's sum is a trapping
@@ -561,26 +570,27 @@ f32 func_802CB3C8(s32 side);
         (out) = (a) * _n + _q;                    \
     } while (0)
 
-/* Per-frame effects of vehicle type 10 ($gp = D_803F8AA0, read as the
+/* Dust, lean, missiles (L/R), wheelie, engine (0x802CAAFC).
+ * Per-frame effects of vehicle type 10 ($gp = gBallistaState, read as the
  * global): with +0x99 set and no cooldown (D_803F8B76), and fewer than 4
  * active gEffects records (fx_count_active), sets up a fx_spawn record
  * (def D_802C2954, data 0x30D40, type 1 at (10, 1, 1), the caller's t6, t7,
  * s0-s4 passed through); channel 1 gets the speed sign and |speed| / 6, the
- * engine sound |speed| >> 3 (func_802C4584), then the trail (func_802CB224).
- * D_803F8B60 steers towards func_802CB3C8's limit while gHeldLeft /
+ * engine sound |speed| >> 3 (veh_set_engine_level), then the trail (ballista_add_tyre_trail).
+ * gBallistaLean steers towards ballista_lean_limit's limit while gHeldLeft /
  * gHeldRight is held (else back to 0.5) and drives channel 3. The horn
- * (gHeldL/gHeldR, D_803F8B72 presses, cooldown D_803F8B7D = 5) alternates
+ * (gHeldL/gHeldR, gBallistaMissiles presses, cooldown D_803F8B7D = 5) alternates
  * channels 4 / 5 and fires func_80292288 from record (10, 3|1) to (10, 4|2)
  * at speed |speed| * 320 / 260 + 640. A jump (gPadStickY >= 60, not near a
- * band bound per func_802A7CB0) starts or boosts the parabola D_803F8B64 /
+ * band bound per veh_near_top_speed) starts or boosts the parabola D_803F8B64 /
  * 68 / 6C; while it is active channel 2 gets height / D_8030D9A0 (at most
  * 1.0), and on landing it bounces (when the impact is >= 61 and no flag
  * +0x96..0x98 is 1) or ends.
  * Register convention (conventions.txt): t6, t7, s0-s4 come in (from the
- * caller's func_802CA308 zone lookup) and only pass through to
+ * caller's ballista_zone_alpha zone lookup) and only pass through to
  * fx_spawn; the asm changes s1-s7. Integer counters/sums use trapping
  * `addi`/`add`/`sub` in the asm: keep inputs in game range. */
-void func_802CAAFC(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
+void ballista_update_actions(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
     Io802A6274 io;
     s32 speed;
     s32 cur;
@@ -595,7 +605,7 @@ void func_802CAAFC(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
 
     if (D_803F8B76 != 0) {
         D_803F8B76--;
-    } else if (D_803F8AA0[0x99] != 0) {
+    } else if (gBallistaState[0x99] != 0) {
         D_803F8B76 = 1;
         if (fx_count_active() < 4) {
             io.a3 = 0;
@@ -605,29 +615,29 @@ void func_802CAAFC(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
         }
     }
 
-    speed = *(s16 *) (D_803F8AA0 + 0x76);
-    func_802A03D4((Unk8029DEA0Entry *) D_803F87A0, 1, (speed < 0) ? 1 : 0);
+    speed = *(s16 *) (gBallistaState + 0x76);
+    anim_set_reverse((Unk8029DEA0Entry *) gBallistaAnim, 1, (speed < 0) ? 1 : 0);
     if (speed < 0) {
         speed = -speed;
     }
-    func_802A039C((Unk8029DEA0Entry *) D_803F87A0, 1, (u32) speed / 6);
-    speed = *(s16 *) (D_803F8AA0 + 0x76);
+    anim_set_speed((Unk8029DEA0Entry *) gBallistaAnim, 1, (u32) speed / 6);
+    speed = *(s16 *) (gBallistaState + 0x76);
     if (speed < 0) {
         speed = -speed;
     }
-    func_802C4584((u32) speed >> 3);
-    func_802CB224();
+    veh_set_engine_level((u32) speed >> 3);
+    ballista_add_tyre_trail();
 
-    f = D_803F8B60;
+    f = gBallistaLean;
     if (gHeldLeft != 0) {
         f -= D_8030D994;
-        lim = func_802CB3C8(0);
+        lim = ballista_lean_limit(0);
         if (f < lim) {
             f = lim;
         }
     } else if (gHeldRight != 0) {
         f += D_8030D998;
-        lim = func_802CB3C8(1);
+        lim = ballista_lean_limit(1);
         if (!(f <= lim)) {
             f = lim;
         }
@@ -642,33 +652,33 @@ void func_802CAAFC(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
             f = 0.5f;
         }
     }
-    D_803F8B60 = f;
-    func_802A0360(f, (Unk8029DEA0Entry *) D_803F87A0, 3, 0);
+    gBallistaLean = f;
+    anim_set_frame(f, (Unk8029DEA0Entry *) gBallistaAnim, 3, 0);
 
     if (D_803F8B7D != 0) {
         D_803F8B7D--;
-    } else if ((gHeldL != 0 || gHeldR != 0) && ((u16) D_803F8B72) != 0) {
-        D_803F8B72--;
+    } else if ((gHeldL != 0 || gHeldR != 0) && ((u16) gBallistaMissiles) != 0) {
+        gBallistaMissiles--;
         func_80260650(D_80367738, 3, NULL);
         D_803F8B7E ^= 1;
         if (D_803F8B7E != 0) {
-            func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803F87A0, 4, 0);
-            func_802A0290((Unk8029DEA0Entry *) D_803F87A0, 4, 1);
-            func_802ABC88(10, 3, (u8 **) &rec);
+            anim_set_frame(0.0f, (Unk8029DEA0Entry *) gBallistaAnim, 4, 0);
+            anim_play((Unk8029DEA0Entry *) gBallistaAnim, 4, 1);
+            veh_find_point(10, 3, (u8 **) &rec);
             x1 = rec[0];
             y1 = rec[1];
             z1 = rec[2];
-            func_802ABC88(10, 4, (u8 **) &rec);
+            veh_find_point(10, 4, (u8 **) &rec);
         } else {
-            func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803F87A0, 5, 0);
-            func_802A0290((Unk8029DEA0Entry *) D_803F87A0, 5, 1);
-            func_802ABC88(10, 1, (u8 **) &rec);
+            anim_set_frame(0.0f, (Unk8029DEA0Entry *) gBallistaAnim, 5, 0);
+            anim_play((Unk8029DEA0Entry *) gBallistaAnim, 5, 1);
+            veh_find_point(10, 1, (u8 **) &rec);
             x1 = rec[0];
             y1 = rec[1];
             z1 = rec[2];
-            func_802ABC88(10, 2, (u8 **) &rec);
+            veh_find_point(10, 2, (u8 **) &rec);
         }
-        speed = *(s16 *) (D_803F8AA0 + 0x76);
+        speed = *(s16 *) (gBallistaState + 0x76);
         if (speed < 0) {
             speed = -speed;
         }
@@ -677,7 +687,7 @@ void func_802CAAFC(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
         D_803F8B7D = 5;
     }
 
-    if (func_802A7CB0(D_803F8AA0, 10) == 0 && gPadStickY >= 0x3C) {
+    if (veh_near_top_speed(gBallistaState, 10) == 0 && gPadStickY >= 0x3C) {
         if (D_803F8B7C == 0) {
             /* take off */
             D_803F8B7C = 1;
@@ -706,7 +716,7 @@ void func_802CAAFC(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
             if (prev < 0) {
                 prev = -prev;
             }
-            if (prev < 0x3D || D_803F8AA0[0x96] == 1 || D_803F8AA0[0x97] == 1 || D_803F8AA0[0x98] == 1) {
+            if (prev < 0x3D || gBallistaState[0x96] == 1 || gBallistaState[0x97] == 1 || gBallistaState[0x98] == 1) {
                 goto stop;
             }
             D_803F8B6C = 0;
@@ -718,49 +728,51 @@ void func_802CAAFC(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
         if (!(f <= 1.0f)) {
             f = 1.0f;
         }
-        func_802A0360(f, (Unk8029DEA0Entry *) D_803F87A0, 2, 0);
+        anim_set_frame(f, (Unk8029DEA0Entry *) gBallistaAnim, 2, 0);
         D_803F8B68++;
         return;
     }
 stop:
     D_803F8B7C = 0;
-    func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803F87A0, 2, 0);
+    anim_set_frame(0.0f, (Unk8029DEA0Entry *) gBallistaAnim, 2, 0);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/func_802CAAFC.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/ballista_update_actions.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u32 D_803F8B48[]; /* [0], [2]: trail x, z */
+extern u32 gBallistaPos[]; /* [0], [2]: trail x, z */
 
-/* Trail (shape of func_802B3C68 in 6E200; $gp = D_803F8AA0): if the byte at
+/* Tyre tracks while skidding (0x802CB224).
+ * Trail (shape of skyfall_add_tyre_trail in 6E200; $gp = gBallistaState): if the byte at
  * +0x99 is set, +0x98 isn't 1, +0x50 < 3 and +0x9B is clear,
- * func_8027BE7C(3, y, 0, -800, 0, -800, D_803F8B48[0], D_803F8B48[2], yaw,
+ * func_8027BE7C(3, y, 0, -800, 0, -800, gBallistaPos[0], gBallistaPos[2], yaw,
  * 5, 40, 0, 1): a single centred track.
  * Register note: the asm saves and restores every integer register; asm
- * caller func_802CAAFC keeps a1-a3 live (a mixed N64 build would need a
+ * caller ballista_update_actions keeps a1-a3 live (a mixed N64 build would need a
  * thunk). */
-void func_802CB224(void) {
-    if (D_803F8AA0[0x99] != 0 && D_803F8AA0[0x98] != 1 && D_803F8AA0[0x50] < 3 && D_803F8AA0[0x9B] == 0) {
-        func_8027BE7C(3, *(s32 *) (D_803F8AA0 + 0x1C), 0, -800, 0, -800, D_803F8B48[0], D_803F8B48[2],
-                      *(u16 *) (D_803F8AA0 + 0x4E), 5, 40, 0, 1);
+void ballista_add_tyre_trail(void) {
+    if (gBallistaState[0x99] != 0 && gBallistaState[0x98] != 1 && gBallistaState[0x50] < 3 && gBallistaState[0x9B] == 0) {
+        func_8027BE7C(3, *(s32 *) (gBallistaState + 0x1C), 0, -800, 0, -800, gBallistaPos[0], gBallistaPos[2],
+                      *(u16 *) (gBallistaState + 0x4E), 5, 40, 0, 1);
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/func_802CB224.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/ballista_add_tyre_trail.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* 0.5 +- |speed| / 280 * 0.5 (plus when side != 0, minus otherwise), speed
- * being the s16 at +0x76 of D_803F8AA0 (the asm's $gp). The asm takes side
+/* The lean animation's bound by speed (0x802CB3C8).
+ * 0.5 +- |speed| / 280 * 0.5 (plus when side != 0, minus otherwise), speed
+ * being the s16 at +0x76 of gBallistaState (the asm's $gp). The asm takes side
  * in s2, returns the value in f2 and leaves s3 = 280 (see
- * tools_port/conventions.txt). Its asm caller func_802CAAFC keeps a1-a3
- * live (a mixed N64 build would need a thunk). Same shape as func_802B71DC
+ * tools_port/conventions.txt). Its asm caller ballista_update_actions keeps a1-a3
+ * live (a mixed N64 build would need a thunk). Same shape as backlash_lean_limit
  * (71140). */
-f32 func_802CB3C8(s32 side) {
-    s32 speed = *(s16 *) (D_803F8AA0 + 0x76);
+f32 ballista_lean_limit(s32 side) {
+    s32 speed = *(s16 *) (gBallistaState + 0x76);
     f32 v;
 
     if (speed < 0) {
@@ -773,32 +785,33 @@ f32 func_802CB3C8(s32 side) {
     return 0.5f - v;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/func_802CB3C8.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/ballista_lean_limit.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 * N64P D_803F8B54; /* this vehicle's model: +0 / +4 / +8 offsets of the point lists, +0x18 the matrix */
+extern u8 * N64P gBallistaModel; /* this vehicle's model: +0 / +4 / +8 offsets of the point lists, +0x18 the matrix */
 
-/* Place this vehicle's model (vehicle 10): builds its matrix (scale 0x3E80,
- * yaw = +0x4C of D_803F8AA0, the other two angles as they are) at the
- * model's +0x18 entry inside the current copy (gBufferIndex ? D_803F8B58 :
- * D_803F8B5C) with func_802AA764, then places the parts
- * (func_8029C454(x, y, z, 10, model + [4], model + [8], copy)) and the
- * points (func_802ABBEC(10, model + [0], model + [4], copy)).
+/* Ballista's model matrix, parts and points (0x802CB42C).
+ * Place this vehicle's model (vehicle 10): builds its matrix (scale 0x3E80,
+ * yaw = +0x4C of gBallistaState, the other two angles as they are) at the
+ * model's +0x18 entry inside the current copy (gBufferIndex ? gBallistaMtxA :
+ * gBallistaMtxB) with mtx_build_model, then places the parts
+ * (veh_place_parts(x, y, z, 10, model + [4], model + [8], copy)) and the
+ * points (veh_points_transform(10, model + [0], model + [4], copy)).
  * Register convention (conventions.txt): s0 and s1 come in for the
- * func_802AA890 chain, whose registers (v1, a0, a3, s1, s2) go out; regs
- * carries them. func_802AA764 leaves a3 = 0 (func_802ACCCC's loop counter)
- * and s2 = the matrix, which the asm then hands func_8029C454: modelled
- * explicitly. func_8029C454 restores v1/a0, so func_802ABBEC gets y and z
- * there. The asm reads the block through $gp (= D_803F8AA0, set by every
+ * mtx_chain_transform chain, whose registers (v1, a0, a3, s1, s2) go out; regs
+ * carries them. mtx_build_model leaves a3 = 0 (mtx_mul's loop counter)
+ * and s2 = the matrix, which the asm then hands veh_place_parts: modelled
+ * explicitly. veh_place_parts restores v1/a0, so veh_points_transform gets y and z
+ * there. The asm reads the block through $gp (= gBallistaState, set by every
  * caller) and leaves t0 = 10. Its cos/sin f12/f14 temporaries, which the
- * survey lists as read by func_802CA4E0, are not modelled (see
- * func_802AA764). Asm caller func_802CA4E0 keeps t6, t7 live (a mixed N64
+ * survey lists as read by ballista_update, are not modelled (see
+ * mtx_build_model). Asm caller ballista_update keeps t6, t7 live (a mixed N64
  * build would need a thunk; the native port won't). Adds are trapping in
  * the asm (pointer sums, in range). */
-void func_802CB42C(MtxChainRegs *regs) {
-    u8 *mdl = D_803F8B54;
+void ballista_build_model(MtxChainRegs *regs) {
+    u8 *mdl = gBallistaModel;
     u8 *base;
     s32 *m;
     s32 x;
@@ -806,24 +819,24 @@ void func_802CB42C(MtxChainRegs *regs) {
     s32 z;
 
     m = (s32 *) (*(u32 *) (mdl + *(s32 *) (mdl + 0x18) + 4) +
-                 (u32) (gBufferIndex != 0 ? (u8 *) D_803F8B58 : (u8 *) D_803F8B5C));
-    D_803ED390[1] = *(u16 *) (D_803F8AA0 + 0x4C);
-    func_802AA764(D_803F8B48[0], D_803F8B48[1], D_803F8B48[2], 0x3E80, m);
-    base = gBufferIndex != 0 ? (u8 *) D_803F8B58 : (u8 *) D_803F8B5C;
-    mdl = D_803F8B54;
-    x = D_803F8B48[0];
-    y = D_803F8B48[1];
-    z = D_803F8B48[2];
+                 (u32) (gBufferIndex != 0 ? (u8 *) gBallistaMtxA : (u8 *) gBallistaMtxB));
+    gModelRot[1] = *(u16 *) (gBallistaState + 0x4C);
+    mtx_build_model(gBallistaPos[0], gBallistaPos[1], gBallistaPos[2], 0x3E80, m);
+    base = gBufferIndex != 0 ? (u8 *) gBallistaMtxA : (u8 *) gBallistaMtxB;
+    mdl = gBallistaModel;
+    x = gBallistaPos[0];
+    y = gBallistaPos[1];
+    z = gBallistaPos[2];
     regs->a3 = 0;
     regs->s2 = (s32) m;
-    func_8029C454(x, y, z, 10, mdl + *(s32 *) (mdl + 4), mdl + *(s32 *) (mdl + 8), base, regs);
+    veh_place_parts(x, y, z, 10, mdl + *(s32 *) (mdl + 4), mdl + *(s32 *) (mdl + 8), base, regs);
     regs->v1 = y;
     regs->a0 = z;
-    mdl = D_803F8B54;
-    func_802ABBEC(10, (s16 *) (mdl + *(s32 *) (mdl + 0)), (s16 *) (mdl + *(s32 *) (mdl + 4)), base, regs);
+    mdl = gBallistaModel;
+    veh_points_transform(10, (s16 *) (mdl + *(s32 *) (mdl + 0)), (s16 *) (mdl + *(s32 *) (mdl + 4)), base, regs);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/func_802CB42C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/ballista_build_model.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -848,67 +861,71 @@ void func_802CB42C(MtxChainRegs *regs) {
 
 extern f32 D_8030D9A4;
 
-/* Speed (s16 at +0x76 of D_803F8AA0, the asm's $gp) / 6.0 when any of the
+/* Ballista's steering rate (0x802CB564).
+ * Speed (s16 at +0x76 of gBallistaState, the asm's $gp) / 6.0 when any of the
  * bytes at +0x96/+0x97/+0x98 is 1, else / D_8030D9A4, rounded to nearest.
  * The asm returns it in s3 (see tools_port/conventions.txt). Its asm caller
- * func_802CA4E0 keeps a0-a3 live (a mixed N64 build would need a thunk).
- * Same shape as func_802B0C74 (6B4A0). */
-s32 func_802CB564(void) {
+ * ballista_update keeps a0-a3 live (a mixed N64 build would need a thunk).
+ * Same shape as sideswipe_steer_rate (6B4A0). */
+s32 ballista_steer_rate(void) {
     f32 div;
     s32 r;
 
-    if (D_803F8AA0[0x96] == 1 || D_803F8AA0[0x97] == 1 || D_803F8AA0[0x98] == 1) {
+    if (gBallistaState[0x96] == 1 || gBallistaState[0x97] == 1 || gBallistaState[0x98] == 1) {
         div = 6.0f;
     } else {
         div = D_8030D9A4;
     }
-    CVT_W_S(r, *(s16 *) (D_803F8AA0 + 0x76) / div);
+    CVT_W_S(r, *(s16 *) (gBallistaState + 0x76) / div);
     return r;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/func_802CB564.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/ballista_steer_rate.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 /* Functional rewrite (tools_port/eqcheck.py verified). Same "set timers"
- * shape as func_802BAD24 (75490.c). Asm callers rely on preserved registers:
- * func_802CA3D8 on t3, t4, f12, f14; func_802CA4E0 on a0-a3 (mixed N64 build
+ * shape as carrier_set_physics (75490.c). Asm callers rely on preserved registers:
+ * ballista_ride_follow on t3, t4, f12, f14; ballista_update on a0-a3 (mixed N64 build
  * would need a thunk). */
 
-void func_802CB5D8(void) {
-    D_803EBBF4 = D_803EBBF0 * 4.0f;
-    D_803ED3F6 = 60;
-    D_803ED3F7 = 2;
+/* Ballista's gravity and bounce (0x802CB5D8). */
+void ballista_set_physics(void) {
+    gGravity = gLevelGravity * 4.0f;
+    gBounceThreshold = 60;
+    gBounceDamping = 2;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/func_802CB5D8.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/ballista_set_physics.s")
 #endif
 
-/* func_802CB634: two-address trampoline into func_802AC7DC, same
- * confirmed-unreachable-from-C 8-byte sd-$ra frame as func_802AC284
+/* ballista_save_state: two-address trampoline into veh_serialize_state, same
+ * confirmed-unreachable-from-C 8-byte sd-$ra frame as veh_check_wrap
  * (hd_code/679E0.c). Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803F8AA0[];  /* this vehicle's state block: 0xA6 bytes are (de)serialized */
-extern u32 D_803F8B48[]; /* plus these three words */
+extern u8 gBallistaState[];  /* this vehicle's state block: 0xA6 bytes are (de)serialized */
+extern u32 gBallistaPos[]; /* plus these three words */
 
-/* Serialize this vehicle's state (D_803F8AA0[0..0xA5] plus the three words
- * D_803F8B48[0..2]) into `dst` via func_802AC7DC. Returns the callee's result
+/* Ballista's state into a buffer (0x802CB634).
+ * Serialize this vehicle's state (gBallistaState[0..0xA5] plus the three words
+ * gBallistaPos[0..2]) into `dst` via veh_serialize_state. Returns the callee's result
  * (0xB2, the byte count): the asm leaves the callee's v0 untouched. */
-s32 func_802CB634(u8 *dst) {
-    return func_802AC7DC(dst, D_803F8AA0, D_803F8B48);
+s32 ballista_save_state(u8 *dst) {
+    return veh_serialize_state(dst, gBallistaState, gBallistaPos);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/func_802CB634.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/ballista_save_state.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Inverse of func_802CB634: restore this vehicle's state from `src` via
- * func_802AC85C. Called from 17210.c as `void func_802CB660(void *)`. */
-void func_802CB660(void *src) {
-    func_802AC85C(src, D_803F8AA0, D_803F8B48);
+/* Ballista's state from a buffer (recording start) (0x802CB660).
+ * Inverse of ballista_save_state: restore this vehicle's state from `src` via
+ * veh_deserialize_state. Called from 17210.c as `void ballista_load_state(void *)`. */
+void ballista_load_state(void *src) {
+    veh_deserialize_state(src, gBallistaState, gBallistaPos);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/func_802CB660.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/853D0/ballista_load_state.s")
 #endif

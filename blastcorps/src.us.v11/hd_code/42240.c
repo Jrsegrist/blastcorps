@@ -14,7 +14,7 @@
 /* end of views */
 
 /* HUD panels drawn over the game: a 40x40 textured dial with a needle
- * (rotated by D_803EE3B1, 0..100 -> 270..450 degrees), and two 32x32 icons
+ * (rotated by gSkyfallBoostMeter, 0..100 -> 270..450 degrees), and two 32x32 icons
  * with a number printed beside them. Each panel fades in (+10 per frame up
  * to 0xFF) while its mode argument matches and fades out otherwise; the
  * alpha is also capped by D_80367BD6. */
@@ -137,7 +137,7 @@ void func_80286C60(Gfx **gfxp, s32 arg1, u8 frame, u8 arg3) {
     gDPSetCombineMode(gdl++, G_CC_PRIMITIVE, G_CC_PRIMITIVE);
     guTranslate(&D_8036EC0C[frame], 56.0f, 151.0f, 0.0f);
     gSPMatrix(gdl++, OS_K0_TO_PHYSICAL(&D_8036EC0C[frame]), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
-    guRotate(&D_8036EC08[frame], (u32) D_803EE3B1 / 100.0f * 180.0 + 270.0, 0.0f, 0.0f, 1.0f);
+    guRotate(&D_8036EC08[frame], (u32) gSkyfallBoostMeter / 100.0f * 180.0 + 270.0, 0.0f, 0.0f, 1.0f);
     gSPMatrix(gdl++, OS_K0_TO_PHYSICAL(&D_8036EC08[frame]), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
     gSPVertex(gdl++, OS_K0_TO_PHYSICAL(&D_8036EC04[4]), 4, 0);
     gSP1Triangle(gdl++, 0, 1, 2, 0);
@@ -180,7 +180,7 @@ void func_802873AC(void) {
     D_8036EC1C = 0;
 }
 
-/* Draw icon 1 and its number (D_803F8B72) while arg3 == 10 or still fading out */
+/* Draw icon 1 and its number (gBallistaMissiles) while arg3 == 10 or still fading out */
 void func_80287530(Gfx **gfxp, Gfx * N64P *gfxp2, u8 frame, u8 arg3) {
     Gfx *gdl = *gfxp;
     char buf[20];
@@ -216,7 +216,7 @@ void func_80287530(Gfx **gfxp, Gfx * N64P *gfxp2, u8 frame, u8 arg3) {
     gSP1Triangle(gdl++, 0, 1, 2, 0);
     gSP1Triangle(gdl++, 0, 2, 3, 0);
     gDPPipeSync(gdl++);
-    func_8026A378(D_803F8B72, (u8 *) buf);
+    func_8026A378(gBallistaMissiles, (u8 *) buf);
     func_80259DC8(gfxp2, (u8 *) buf, 0, 1, 0, 0x40, 0x91, 15, 15, 1, 0xFF, 0xFF, 0, MIN(D_8036EC1C, D_80367BD6), 0xFF, 0, 0,
                   MIN(D_8036EC1C, D_80367BD6));
     gDPPipeSync(gdl++);
@@ -256,7 +256,7 @@ void func_80287AE4(void) {
     D_8036EC28 = 0;
 }
 
-/* Draw icon 2 and its number (D_803EDC00) while arg3 == 1 or still fading out */
+/* Draw icon 2 and its number (gSideswipeRamCharges) while arg3 == 1 or still fading out */
 void func_80287C68(Gfx **gfxp, Gfx * N64P *gfxp2, u8 frame, u8 arg3) {
     Gfx *gdl = *gfxp;
     char buf[20];
@@ -292,7 +292,7 @@ void func_80287C68(Gfx **gfxp, Gfx * N64P *gfxp2, u8 frame, u8 arg3) {
     gSP1Triangle(gdl++, 0, 1, 2, 0);
     gSP1Triangle(gdl++, 0, 2, 3, 0);
     gDPPipeSync(gdl++);
-    func_8026A378(D_803EDC00, (u8 *) buf);
+    func_8026A378(gSideswipeRamCharges, (u8 *) buf);
     func_80259DC8(gfxp2, (u8 *) buf, 0, 1, 0, 0x44, 0x97, 15, 15, 1, 0xFF, 0xFF, 0, MIN(D_8036EC28, D_80367BD6), 0xFF, 0, 0,
                   MIN(D_8036EC28, D_80367BD6));
     gDPPipeSync(gdl++);

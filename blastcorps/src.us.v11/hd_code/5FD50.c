@@ -25,7 +25,7 @@ extern s16 D_803C3178[];
 
 /* Body shared by cull_restart_now / cull_restart: gCullDelay = value, reset
  * the D_803C2B88 cursor, fill both index lists with 0..n-1 for n =
- * D_803BE714 * D_803BE716, point D_803C3170 past the D_803C3178 list and
+ * gLevelCols * gLevelRows, point D_803C3170 past the D_803C3178 list and
  * terminate the gVisibleCells list with -1. The asm loops with `!=` on the
  * 32-bit product. The -1 is stored after D_803C3170, so with n == 100 it
  * overwrites D_803C3170's high half, as in the asm. */
@@ -36,7 +36,7 @@ extern s16 D_803C3178[];
                                                 \
         gCullDelay = (value);                   \
         D_803C2B88 = D_803C2B90;                \
-        n_ = (u32) ((u16) D_803BE714) * D_803BE716;     \
+        n_ = (u32) ((u16) gLevelCols) * gLevelRows;     \
         for (i_ = 0; i_ != n_; i_++) {          \
             D_803C3178[i_] = i_;                \
             gVisibleCells[i_] = i_;                \
@@ -304,7 +304,7 @@ extern u8 D_803BE780[];   /* dram stack (0x400) */
 extern u8 D_803BEB80[];   /* output buffer */
 extern u8 D_803C2B80[];   /* output buffer end */
 
-/* Unless the level grid is 1 x 1 (D_803BE714 == D_803BE716 == 1, returns 1),
+/* Unless the level grid is 1 x 1 (gLevelCols == gLevelRows == 1, returns 1),
  * fills the task D_803BE740 (an M_GFXTASK OSTask at +0x10 with data_ptr /
  * data_size from the arguments), writes back `wb` (0x80 bytes) and the task,
  * invalidates the first 0x20 bytes of the output buffer, sends the task to
@@ -315,7 +315,7 @@ extern u8 D_803C2B80[];   /* output buffer end */
 s32 cull_rsp_test(void *dataPtr, void *wb, s32 dataSize) {
     u32 *t;
 
-    if (((u16) D_803BE714) == 1 && D_803BE716 == 1) {
+    if (((u16) gLevelCols) == 1 && gLevelRows == 1) {
         return 1;
     }
     t = D_803BE740;

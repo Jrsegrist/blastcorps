@@ -784,7 +784,7 @@ Gfx *func_801FA74C(Dynamic *dyn, Gfx *arg1, u8 from, u8 to, s8 *out, f32 *lon, u
     n = steps + 1;
     v = vbase = (Vtx *) N64_IPTR(D_8021A928[gBufferIndex]) + D_8021A909 * 16;
     cosang = (x0 * x1 + y0 * y1 + z0 * z1) / 250.0 / 250.0;
-    angle = 90.0 - ((cosang >= 0.0f) ? 1 : -1) * func_802AD7D4(((cosang > 0.0f) ? cosang : -cosang) * 65535.0) /
+    angle = 90.0 - ((cosang >= 0.0f) ? 1 : -1) * math_asin_c(((cosang > 0.0f) ? cosang : -cosang) * 65535.0) /
                        16.0 / 11.377777;
     if (angle >= 180.0) {
         angle -= 180.0;
@@ -880,7 +880,7 @@ Gfx *func_801FC5B8(Dynamic *dyn, Gfx *arg1, u8 from, u8 to) {
             }
             D_8021A8E8 = 0.0f;
             D_8021A8E0 = (D_8021A8C4 * D_8021A8C8 + D_8021A8CC * D_8021A8D0 + D_8021A8D4 * D_8021A8D8) / 250.0 / 250.0;
-            D_8021A8E4 = 90.0 - ((D_8021A8E0 >= 0.0f) ? 1 : -1) * func_802AD7D4(((D_8021A8E0 > 0.0f) ? D_8021A8E0 : -D_8021A8E0) * 65535.0) / 16.0 / 11.377777;
+            D_8021A8E4 = 90.0 - ((D_8021A8E0 >= 0.0f) ? 1 : -1) * math_asin_c(((D_8021A8E0 > 0.0f) ? D_8021A8E0 : -D_8021A8E0) * 65535.0) / 16.0 / 11.377777;
             if (D_8021A8E4 >= 180.0) {
                 D_8021A8E4 -= 180.0;
             }

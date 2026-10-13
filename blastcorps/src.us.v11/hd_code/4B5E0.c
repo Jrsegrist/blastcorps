@@ -121,14 +121,14 @@ void func_80291724(s32);
 
 /* Load this file's objects from level data: reset the counters, then
  * read D_8039C710 0x38-byte entries (s16 x, y, z, model; positions are
- * stored scaled by 32, height snapped by func_802CE6F8, texture looked
+ * stored scaled by 32, height snapped by coll_ground_height, texture looked
  * up by tex_get), then D_8039C7F8 0x1C-byte records (s16 x, y, z,
- * u8 model, u8 n, s16 flag, then n 22-byte items for func_802CE9C8).
+ * u8 model, u8 n, s16 flag, then n 22-byte items for coll_add_dyn_tris).
  * Flagged records also get a D_8039C800 box (+-40 units).
- * NON_MATCHING: the hand-written func_802CE9C8 reads registers this function
+ * NON_MATCHING: the hand-written coll_add_dyn_tris reads registers this function
  * never sets for it; the NM build passes what they hold here: v0 = the last
- * call's result (func_802CE9A4 leaves &D_803F9330, tex_get its result;
- * func_802CE9C8 leaves v0 alone), t6 = &D_8039C718[i], t9 = the old
+ * call's result (coll_reset_dyn_tris leaves &D_803F9330, tex_get its result;
+ * coll_add_dyn_tris leaves v0 alone), t6 = &D_8039C718[i], t9 = the old
  * D_803FB8B0, and s1 = the caller's s1 (this function never touches the
  * s-registers), which the NM build takes as an extra parameter from
  * initlevel (5CB60.c). */
@@ -150,8 +150,8 @@ void func_8028FDA0(u8 *arg0, u8 *arg1) {
     D_8039C958 = 0;
     D_8039C95C = 0;
     D_8039C950 = 0;
-    D_803ED40C = 0;
-    func_802CE9A4();
+    gVehSlowed = 0;
+    coll_reset_dyn_tris();
     if (arg0 != arg1) {
         D_8039C710 = *(s16 *) arg0;
         arg0 += 2;
@@ -161,7 +161,7 @@ void func_8028FDA0(u8 *arg0, u8 *arg1) {
             D_8039C550[i].unk8 = *(s16 *) (arg0 + 4) << 5;
             D_8039C550[i].unk10 = *(s16 *) (arg0 + 6);
             arg0 += 8;
-            D_8039C550[i].unk4 = func_802CE6F8(D_8039C550[i].unk0, D_8039C550[i].unk8, D_8039C550[i].unk4);
+            D_8039C550[i].unk4 = coll_ground_height(D_8039C550[i].unk0, D_8039C550[i].unk8, D_8039C550[i].unk4);
             D_8039C550[i].unk0E = 0;
             D_8039C550[i].unk0C = 0;
             D_8039C550[i].unk11 = 0;
@@ -186,10 +186,10 @@ void func_8028FDA0(u8 *arg0, u8 *arg1) {
             D_8039C718[i].unk11 = 0;
             D_8039C718[i].unk14 = D_803FB8B0;
 #ifdef NON_MATCHING
-            func_802CE9C8(arg0 + 10, arg0[7], D_8039C718[i].unk10, v0, (s32) &D_8039C718[i],
+            coll_add_dyn_tris(arg0 + 10, arg0[7], D_8039C718[i].unk10, v0, (s32) &D_8039C718[i],
                           (s32) D_8039C718[i].unk14, s1);
 #else
-            func_802CE9C8(arg0 + 10, arg0[7], D_8039C718[i].unk10);
+            coll_add_dyn_tris(arg0 + 10, arg0[7], D_8039C718[i].unk10);
 #endif
             D_8039C718[i].unk18 = D_803FB8B0;
             if (*(s16 *) (arg0 + 8) != 0) {
@@ -218,9 +218,9 @@ void func_8028FDA0(u8 *arg0, u8 *arg1) {
 }
 
 /* Per-frame update of the D_8039C550 entries (arg0 = current mode).
- * Free entries with speed (unk0C) are pushed along by func_802CE65C and
+ * Free entries with speed (unk0C) are pushed along by coll_step_xz and
  * may latch onto a matching D_8039C718 lift within range; hitting one
- * (func_802CDF94) resets the speed from the player's movement since last
+ * (coll_probe_vehicles) resets the speed from the player's movement since last
  * frame (capped by D_802FDBE0[arg0]); then collision, a heading update
  * and a slow-down. Latched entries glide toward their lift, then bounce
  * on it (h = v*t - 4t^2) until the bounce dies out. Also keeps a looping
@@ -253,12 +253,12 @@ void func_802906C0(u8 arg0) {
             if (arg0 == 0) {
                 D_8039C550[i].unk0C = 0;
             }
-            if (D_8039C550[i].unk0C != 0 && func_802CE958(i) == 0) {
-                func_802CE65C(D_8039C550[i].unk0, D_8039C550[i].unk8, D_8039C550[i].unk0C, D_8039C550[i].unk0E);
+            if (D_8039C550[i].unk0C != 0 && radar_has_marker(i) == 0) {
+                coll_step_xz(D_8039C550[i].unk0, D_8039C550[i].unk8, D_8039C550[i].unk0C, D_8039C550[i].unk0E);
                 D_8039C550[i].unk0 = D_803F9320;
                 D_8039C550[i].unk8 = D_803F9324;
-                D_8039C550[i].unk4 = func_802CE6F8(D_8039C550[i].unk0, D_8039C550[i].unk8, D_8039C550[i].unk4);
-                D_8039C550[i].unk28 = D_803F932C;
+                D_8039C550[i].unk4 = coll_ground_height(D_8039C550[i].unk0, D_8039C550[i].unk8, D_8039C550[i].unk4);
+                D_8039C550[i].unk28 = gGroundTriId;
                 found = 0;
                 j = 0;
                 while (j < D_8039C7F8 && !found) {
@@ -281,22 +281,22 @@ void func_802906C0(u8 arg0) {
                     j++;
                 }
             }
-            func_802CE4F0(D_8039C550[i].unk0, D_8039C550[i].unk4, D_8039C550[i].unk8);
-            hit = func_802CDF94(D_802FDC08[D_8039C550[i].unk10].radius);
+            coll_begin_probe(D_8039C550[i].unk0, D_8039C550[i].unk4, D_8039C550[i].unk8);
+            hit = coll_probe_vehicles(D_802FDC08[D_8039C550[i].unk10].radius);
             if (hit != 0) {
-                if (D_803F932D == 0 && D_803F932E != 0) {
-                    D_803ED40C = 1;
+                if (gProbeHitCarrier == 0 && gProbeHitPlayer != 0) {
+                    gVehSlowed = 1;
                 }
                 near = D_8036443C != 0 || arg0 == 9;
-                if ((D_8039C950 == arg0 && near) || D_803F932D != 0) {
-                    if (D_803F932D == 0) {
+                if ((D_8039C950 == arg0 && near) || gProbeHitCarrier != 0) {
+                    if (gProbeHitCarrier == 0) {
                         dx = gPlayerX - D_8039C944,
                         dy = gPlayerY - D_8039C948,
                         dz = gPlayerZ - D_8039C94C;
                     } else {
-                        dx = D_803EF6DC - D_8039C954,
-                        dy = D_803EF6E0 - D_8039C958,
-                        dz = D_803EF6E4 - D_8039C95C;
+                        dx = gCarrierX - D_8039C954,
+                        dy = gCarrierY - D_8039C958,
+                        dz = gCarrierZ - D_8039C95C;
                     }
                     D_8039C550[i].unk0C = sqrtf(dx * dx + dy * dy + dz * dz) + 10.0f;
                     if (D_8039C550[i].unk0C > D_802FDBE0[arg0]) {
@@ -307,33 +307,33 @@ void func_802906C0(u8 arg0) {
                 }
             }
             if (D_8039C550[i].unk0C != 0) {
-                old10 = D_803A7410, old12 = D_803A7412;
+                old10 = gFreeArcStart, old12 = gFreeArcEnd;
                 moved = 0;
-                func_802CE5BC(D_8039C550[i].unk0, D_8039C550[i].unk4, D_8039C550[i].unk8,
+                coll_probe_tris(D_8039C550[i].unk0, D_8039C550[i].unk4, D_8039C550[i].unk8,
                               D_802FDC08[D_8039C550[i].unk10].radius, 200, D_8039C550[i].unk10);
-                func_802CDB70(D_802FDC08[D_8039C550[i].unk10].radius, 0);
-                if (old10 != D_803A7410 || old12 != D_803A7412) {
+                coll_probe_objects(D_802FDC08[D_8039C550[i].unk10].radius, 0);
+                if (old10 != gFreeArcStart || old12 != gFreeArcEnd) {
                     moved = 1;
                 }
             } else {
                 moved = 0;
             }
             drop = 0;
-            if (D_803A7410 != 0 || D_803A7412 != 0xFFF) {
-                if (func_8029B930() < 300) {
+            if (gFreeArcStart != 0 || gFreeArcEnd != 0xFFF) {
+                if (veh_free_arc_length() < 300) {
                     drop = 1;
                 } else if (moved) {
-                    D_8039C550[i].unk0E = func_802CE3B8(D_8039C550[i].unk0E);
+                    D_8039C550[i].unk0E = coll_heading_in_ring(D_8039C550[i].unk0E);
                 } else {
-                    D_8039C550[i].unk0E = func_802A6F6C();
+                    D_8039C550[i].unk0E = veh_free_arc_mid();
                 }
             }
             if ((drop || arg0 == 0) && D_8039C550[i].unk12 == 0) {
-                func_802CE880(i, D_8039C550[i].unk0, D_8039C550[i].unk4, D_8039C550[i].unk8,
+                radar_set_marker(i, D_8039C550[i].unk0, D_8039C550[i].unk4, D_8039C550[i].unk8,
                               D_802FDC08[D_8039C550[i].unk10].radius);
                 D_8039C550[i].unk0C = 0;
             } else {
-                func_802CE90C(i);
+                radar_remove_marker(i);
             }
             if (D_8039C550[i].unk0C > 0) {
                 D_8039C550[i].unk0C -= 8;
@@ -400,7 +400,7 @@ void func_802906C0(u8 arg0) {
                     if (diff < 20) {
                         D_8039C550[i].unk12 = 0;
                         D_8039C550[i].unk11 = 1;
-                        func_802CEA68((u8 *) N64_IPTR((D_8039C718[D_8039C550[i].unk13].unk14)), (u8 *) N64_IPTR((D_8039C718[D_8039C550[i].unk13].unk18)));
+                        coll_disable_tris((u8 *) N64_IPTR((D_8039C718[D_8039C550[i].unk13].unk14)), (u8 *) N64_IPTR((D_8039C718[D_8039C550[i].unk13].unk18)));
                         func_80291724(D_8039C550[i].unk13);
                     } else {
                         D_8039C550[i].unk14 = diff >> 1;
@@ -426,9 +426,9 @@ void func_802906C0(u8 arg0) {
     D_8039C948 = gPlayerY;
     D_8039C94C = gPlayerZ;
     D_8039C950 = arg0;
-    D_8039C954 = D_803EF6DC;
-    D_8039C958 = D_803EF6E0;
-    D_8039C95C = D_803EF6E4;
+    D_8039C954 = gCarrierX;
+    D_8039C958 = gCarrierY;
+    D_8039C95C = gCarrierZ;
 }
 
 /* Flag (unk26) the first D_8039C800 entry whose unk27 is arg0. */
@@ -481,7 +481,7 @@ void func_802917B0(Gfx **gdl, Dyn4B5E0 *dyn) {
 }
 
 /* For entries tagged arg0 (unk28): clear unk0C, set unk29 and call
- * func_802AACD4 on their position. */
+ * veh_deck_to_local_c on their position. */
 void func_80291ED8(u8 arg0) {
     s32 i;
 
@@ -489,22 +489,22 @@ void func_80291ED8(u8 arg0) {
         if (D_8039C550[i].unk28 == arg0) {
             D_8039C550[i].unk0C = 0;
             *(&D_8039C579 + i * 0x38) = 1;
-            func_802AACD4(arg0, D_8039C550[i].unk0, D_8039C550[i].unk8, &D_8039C550[i].unk2A,
+            veh_deck_to_local_c(arg0, D_8039C550[i].unk0, D_8039C550[i].unk8, &D_8039C550[i].unk2A,
                           &D_8039C550[i].unk2C);
         }
     }
 }
 
-/* Update entries with unk29 set: move them (func_802AAE1C), then snap
- * their height with func_802CE6F8. */
+/* Update entries with unk29 set: move them (veh_deck_to_world_c), then snap
+ * their height with coll_ground_height. */
 void func_80291FAC(u8 arg0) {
     s32 i;
 
     for (i = 0; i < D_8039C710; i++) {
         if (D_8039C550[i].unk29 != 0) {
-            func_802AAE1C(arg0, D_8039C550[i].unk2A, D_8039C550[i].unk2C, (s32 *) &D_8039C550[i],
+            veh_deck_to_world_c(arg0, D_8039C550[i].unk2A, D_8039C550[i].unk2C, (s32 *) &D_8039C550[i],
                           &D_8039C550[i].unk8);
-            D_8039C550[i].unk4 = func_802CE6F8(D_8039C550[i].unk0, D_8039C550[i].unk8, D_8039C550[i].unk4);
+            D_8039C550[i].unk4 = coll_ground_height(D_8039C550[i].unk0, D_8039C550[i].unk8, D_8039C550[i].unk4);
         }
     }
 }
@@ -518,7 +518,7 @@ void func_80292084(void) {
     }
 }
 
-/* Set D_803A7424 if the point (arg0, arg1, arg2) is within arg3 of any
+/* Set gCollHit if the point (arg0, arg1, arg2) is within arg3 of any
  * idle entry's model radius (all in 1/32 units). */
 void func_802920DC(s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
     s32 i;
@@ -530,7 +530,7 @@ void func_802920DC(s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
             dist = func_8026A6F0(arg0, arg1, arg2, D_8039C550[i].unk0 >> 5, D_8039C550[i].unk4 >> 5,
                                  D_8039C550[i].unk8 >> 5);
             if (dist <= (D_802FDC08[D_8039C550[i].unk10].radius >> 5) + arg3) {
-                D_803A7424 = 1;
+                gCollHit = 1;
             }
         }
     }

@@ -5,7 +5,7 @@
 #define D_02000000 ((u8 *) D_02000000)
 /* end of views */
 
-/* A zone: an x/z shape (six values for func_802AC4C4) spanning ymin..ymax */
+/* A zone: an x/z shape (six values for ground_in_triangle) spanning ymin..ymax */
 typedef struct {
     s16 a;
     s16 b;
@@ -49,7 +49,7 @@ typedef struct TrailBuf {
 void func_8027D5AC(void);
 void func_8027D350(s16 x0, s16 y0, s16 z0, s16 x1, s16 y1, s16 z1, Vtx *v, s32 i);
 
-/* Is (x, y, z) inside one of the current level's zones? (zones span ymin..ymax; the x/z test is func_802AC4C4) */
+/* Is (x, y, z) inside one of the current level's zones? (zones span ymin..ymax; the x/z test is ground_in_triangle) */
 /* K&R: the caller passes unconverted ints */
 #ifdef NON_MATCHING
 s32 func_8027BCF0(s16 x, s16 y, s16 z)
@@ -79,7 +79,7 @@ s32 func_8027BCF0(x, y, z)
     end = D_802FC360[i].end;
     while (p != end) {
         if (y >= p->ymin && y <= p->ymax) {
-            if (func_802AC4C4(x, z, p->a, p->b, p->c, p->d, p->e, p->f)) {
+            if (ground_in_triangle(x, z, p->a, p->b, p->c, p->d, p->e, p->f)) {
                 return 1;
             }
         }

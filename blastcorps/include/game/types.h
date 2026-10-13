@@ -59,8 +59,8 @@ typedef struct FeDyn {
     u8 unkA3A0[0x21498 - 0xA3A0];
 } FeDyn;
 
-/* 0x18-byte animation-channel entry (the -1-terminated table D_803B35F8 and
- * the 0x20-entry blocks built by func_8029F85C; 56040.c). */
+/* 0x18-byte animation-channel entry (the -1-terminated table gTexAnims and
+ * the 0x20-entry blocks built by anim_init_model; 56040.c). */
 typedef struct Unk8029DEA0Entry {
     /* 0x00 */ s32 id;
     /* 0x04 */ f32 unk4;
@@ -187,9 +187,9 @@ typedef struct ParticleDef {
     /* 0x22 */ u8 siz; /* G_IM_SIZ_* */
 } ParticleDef; /* size 0x24 */
 
-/* One record of a level's part list (func_802A1EC8 picks the list by level:
+/* One record of a level's part list (lvl_pick_object_list picks the list by level:
  * s32 count, then count of these). `entry` is filled in at level load
- * (func_802A21AC); obj_parts_destroyed checks the listed parts. */
+ * (lvl_add_object); obj_parts_destroyed checks the listed parts. */
 typedef struct LevelPart {
     /* 0x00 */ void * N64P entry; /* the level object's 0xFC-byte record */
     /* 0x04 */ s32 n;       /* number of part indices used */

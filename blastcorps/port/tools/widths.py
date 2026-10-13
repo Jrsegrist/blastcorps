@@ -24,9 +24,9 @@ COPIERS = {"func_8026A5CC",   # 23C20: copy in 8-byte units
            "tex_decode_type0",   # 60F60: type-0 (stored) texture copy
            "func_80285A78",   # 409D0: 16-byte record copy
            "obj_queue_effect",   # 77E20: 0x38-byte debris record copy (words)
-           "func_802AC85C",   # 679E0: vehicle state restore (byte copy)
-           "func_802AC7DC",   # 679E0: vehicle state save (byte copy)
-           "func_802A75DC",   # vehicle block byte loop
+           "veh_deserialize_state",   # 679E0: vehicle state restore (byte copy)
+           "veh_serialize_state",   # 679E0: vehicle state save (byte copy)
+           "veh_snapshot",   # vehicle block byte loop
            "memcpy", "bcopy", "bzero", "alCopy"}
 
 # Level-time code: in a level the front end's memory (0x801E7000-0x8021ED00)
@@ -35,9 +35,9 @@ COPIERS = {"func_8026A5CC",   # 23C20: copy in 8-byte units
 # the texture decoder's u16 accesses swapped e.g. the pak file name strings
 # D_8020C000 and character set D_8020C01C as halfwords.)
 LEVEL_HEAP_USERS = {"tex_decode_type1", "tex_decode_type2",   # 60F60: texture decode
-                    "func_8029F85C", "func_8029E5AC", "func_8029EF80",   # 56040: models
+                    "anim_init_model", "anim_update_channel", "anim_apply_linear_key",   # 56040: models
                     "veh_add_record", "tex_resolve_dl_impl", "lvl_load_model",   # 5CB60: level/object load
-                    "func_802AC8CC", "func_802ACCCC"}  # 679E0: vehicle blocks
+                    "mtx_to_n64", "mtx_mul"}  # 679E0: vehicle blocks
 
 
 # WIDTHS_NO_DECODERS=1 (compare.py's strict facts, port/Makefile strict-data):

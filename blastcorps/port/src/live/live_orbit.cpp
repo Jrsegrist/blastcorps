@@ -29,8 +29,8 @@
  *    back right after it: RDRAM is as the game left it);
  *  - collision: the eye is kept above the level's ground triangles and the
  *    buildings' collision triangles (read-only copies of the game's height
- *    tests: 62740.c func_802AA094's grid, the 0x60-byte triangles at
- *    D_803B9890), pulled in along the line to the target.
+ *    tests: 62740.c ground_scan_grid's grid, the 0x60-byte triangles at
+ *    gCollTris), pulled in along the line to the target.
  * The controls: in play, the camera bindings (default: the right stick) drive
  * the camera and not the N64 buttons bound to the same inputs (the C buttons'
  * right stick); outside play the right stick is the C buttons as before. */
@@ -257,9 +257,9 @@ double groundHeight(double x, double y, double z) {
         double &l = obstacle ? g_lastObstacle : g_lastTerrain;
         if (v <= y + kReach) l = std::max(l, v);
     };
-    /* the level's ground: the collision grid (62740.c func_802AA094): cells of
-     * D_803BE718 x D_803BE71C world units, D_803BE720 columns, lists in
-     * D_803BDB10[] of 0x14-byte triangles (9 s16 in 1/32 world units) */
+    /* the level's ground: the collision grid (62740.c ground_scan_grid): cells of
+     * gGroundCellW x gGroundCellD world units, gGroundCols columns, lists in
+     * gGroundCells[] of 0x14-byte triangles (9 s16 in 1/32 world units) */
     const uint32_t cw = rd<uint32_t>(0x803BE718u), cd = rd<uint32_t>(0x803BE71Cu);
     const int cols = rd<uint16_t>(0x803BE720u), rows = rd<uint16_t>(0x803BE722u);
     if (cw != 0 && cd != 0 && cols > 0 && rows > 0 && cols * rows < 0x10000) {

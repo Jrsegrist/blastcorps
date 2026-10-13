@@ -18,5 +18,5 @@ $E func_80276D1C -n 100 --follow guMtxL2F --arg a0=ptr:0x40 \
    --arg sp+0x14=ptrz:4 --arg sp+0x18=ptrz:4 --arg sp+0x1C=ptrz:4 --arg sp+0x20=ptrz:4 --ret void
 
 echo "== hand-written asm vs its NON_MATCHING C rewrite"
-$E func_802CE840 -n 50 --ret void
-$E func_802C8AB0 -n 200 --arg a0=int --ret void
+$E radar_clear_markers -n 50 --ret void
+$E barge_enter -n 200 --arg a0=int --ret void

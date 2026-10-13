@@ -28,7 +28,7 @@ typedef struct {
     s16 z1;
     s16 tex0Id;
     s16 tex1Id;
-    s16 radarSize; /* passed to func_802CE880 */
+    s16 radarSize; /* passed to radar_set_marker */
     s16 radius;    /* collect distance */
     u8 trigger;    /* compared with func_8028C874's argument */
     u8 pad15;
@@ -148,7 +148,7 @@ void func_8028C874(u8 arg0) {
     for (sp34 = 0; sp34 < D_8039B068; sp34++) {
         if (D_8039AF00[sp34].collected == 0) {
             if (D_802FDB40[D_8039AF00[sp34].type].trigger == arg0) {
-                func_802CE90C(sp34 + 0x10000);
+                radar_remove_marker(sp34 + 0x10000);
                 sp30 = func_8026A6F0(gPlayerX >> 5, gPlayerY >> 5, gPlayerZ >> 5, D_8039AF00[sp34].x,
                                      D_8039AF00[sp34].y, D_8039AF00[sp34].z);
                 if (sp30 <= D_802FDB40[D_8039AF00[sp34].type].radius) {
@@ -156,15 +156,15 @@ void func_8028C874(u8 arg0) {
                     func_80260650(D_80367738, 0x70, 0);
                     switch (D_8039AF00[sp34].type) {
                         case 0:
-                            D_803F8B72 += 10;
+                            gBallistaMissiles += 10;
                             break;
                         case 1:
-                            D_803EDC00 += 10;
+                            gSideswipeRamCharges += 10;
                             break;
                     }
                 }
             } else {
-                func_802CE880(sp34 + 0x10000, D_8039AF00[sp34].x << 5, D_8039AF00[sp34].y << 5,
+                radar_set_marker(sp34 + 0x10000, D_8039AF00[sp34].x << 5, D_8039AF00[sp34].y << 5,
                               D_8039AF00[sp34].z << 5, D_802FDB40[D_8039AF00[sp34].type].radarSize);
             }
         } else {

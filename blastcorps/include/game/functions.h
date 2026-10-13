@@ -43,12 +43,12 @@ Gfx *func_80257540(Gfx *gfx);
 Gfx *func_802575F4(Gfx *gfx, Vtx *vtx, void *timg, s16 fmtsiz, s32 width, s32 height, s32 zbuf);
 
 /* hd_code/13A70.c */
-void func_80258230(u8 id, s32 arg1, s16 arg2, s16 arg3);
-void func_802582C4(u8 id, s32 x, s32 y, s32 z, s32 arg4, s32 arg5, s32 arg6, s32 arg7);
-s32 func_802584BC(u8 id);
-s32 func_80258500(u8 id);
-void func_80258544(void *cimg, s32 x, s32 y, s32 z, f32 dist, Gfx *dl, void *seg6, void *seg7);
-void func_80258B78(Gfx **gdlp, struct VtxBuf *buf);
+void veh_add_shadow(u8 id, s32 arg1, s16 arg2, s16 arg3);
+void veh_update_shadow(u8 id, s32 x, s32 y, s32 z, s32 arg4, s32 arg5, s32 arg6, s32 arg7);
+s32 veh_shadow_floor_y(u8 id);
+s32 veh_shadow_src_y(u8 id);
+void veh_render_shadow_tex(void *cimg, s32 x, s32 y, s32 z, f32 dist, Gfx *dl, void *seg6, void *seg7);
+void obj_draw_ground_shadows(Gfx **gdlp, struct VtxBuf *buf);
 
 /* hd_code/14B30.c */
 void func_802592F0(void);
@@ -413,54 +413,54 @@ Gfx *func_8029A518(Gfx * N64P *gfxp, Gfx *gfx);
 void debug_printf(const char *fmt, ...);
 
 /* hd_code/56040.c */
-void func_8029A800(s32 z, s32 a1, s32 b2, s32 b3, s32 x, s32 y, s32 b0, s32 h1, s32 h2, s32 b4, s32 b8, u8 *veh);
-void func_8029A914(u8 *veh);
-void func_8029AA10(s32 kind);
-void func_8029B02C(s32 x, s32 y, s32 z, s32 r, s32 kind, s32 id);
-void func_8029B7CC(s32 a, s32 b);
-s32 func_8029B930(void);
-s32 func_8029BD0C(s32 x, s32 y, s32 z, s32 r, u8 *tri);
-s32 func_8029BEE4(s32 x, s32 y, s32 z, s32 r, u8 *tri);
-s32 func_8029BF64(s32 bu, s32 bv, s32 cu, s32 cv, s32 au, s32 av, s32 pu, s32 pv);
-void func_8029C0DC(u8 *tri, s32 px, s32 py, s32 pz, s32 *out);
-s32 func_8029C160(s32 x, s32 y, s32 z, s32 r, u8 *tri, s32 *hit);
-void func_8029C354(s32 tag, u8 *p, u8 *end, u32 scale);
-void func_8029C454(s32 x, s32 y, s32 z, s32 tag, u8 *p, u8 *end, u8 *base, MtxChainRegs *regs);
-void func_8029C52C(s32 tag, u8 *veh);
-s32 func_8029C5EC(s32 s0, s32 s1, s32 s2, s32 s3);
-void func_8029C6E4(Unk8029C6E4Out *o);
-s32 func_8029CFA4(s32 pz, s32 r1, s32 qx, s32 qy, s32 px, s32 py, s32 qz, s32 r2);
-void func_8029D040(s32 val, Unk8029DEA0Entry *tbl, s32 x, s32 z, s32 id, u8 *model, u8 *mtxBase);
-s32 func_8029D210(s32 sub);
-s32 func_8029DBF0(s32 id);
-s32 func_8029DC14(s32 id);
-void func_8029DC80(void);
-void func_8029DDC8(void);
-void func_8029DEA0(void);
-void func_8029DF78(u8 *dl, u8 *dlEnd, s32 key);
+void veh_collision_setup(s32 z, s32 a1, s32 b2, s32 b3, s32 x, s32 y, s32 b0, s32 h1, s32 h2, s32 b4, s32 b8, u8 *veh);
+void veh_prepare_escape(u8 *veh);
+void veh_collide_world(s32 kind);
+void veh_report_world_hits(s32 x, s32 y, s32 z, s32 r, s32 kind, s32 id);
+void veh_clip_free_arc(s32 a, s32 b);
+s32 veh_free_arc_length(void);
+s32 math_sphere_hits_tri_edges(s32 x, s32 y, s32 z, s32 r, u8 *tri);
+s32 math_sphere_hits_tri_vertex0(s32 x, s32 y, s32 z, s32 r, u8 *tri);
+s32 math_point_in_tri_2d(s32 bu, s32 bv, s32 cu, s32 cv, s32 au, s32 av, s32 pu, s32 pv);
+void math_tri_project_2d(u8 *tri, s32 px, s32 py, s32 pz, s32 *out);
+s32 math_sphere_tri_plane(s32 x, s32 y, s32 z, s32 r, u8 *tri, s32 *hit);
+void veh_register_parts(s32 tag, u8 *p, u8 *end, u32 scale);
+void veh_place_parts(s32 x, s32 y, s32 z, s32 tag, u8 *p, u8 *end, u8 *base, MtxChainRegs *regs);
+void veh_collide_spheres(s32 tag, u8 *veh);
+s32 crane_check_part_hits(s32 s0, s32 s1, s32 s2, s32 s3);
+void crane_find_test_part(Unk8029C6E4Out *o);
+s32 math_spheres_overlap(s32 pz, s32 r1, s32 qx, s32 qy, s32 px, s32 py, s32 qz, s32 r2);
+void veh_update_tris(s32 val, Unk8029DEA0Entry *tbl, s32 x, s32 z, s32 id, u8 *model, u8 *mtxBase);
+s32 veh_tri_is_solid(s32 sub);
+s32 veh_tris_all_solid(s32 id);
+s32 veh_tris_all_solid_impl(s32 id);
+void anim_clear_copy_queue(void);
+void anim_run_mtx_copies(void);
+void anim_tex_init(void);
+void anim_tex_find_patches(u8 *dl, u8 *dlEnd, s32 key);
 #ifdef NON_MATCHING
-void func_8029E0AC(u8 *param);
+void anim_tex_update_all(u8 *param);
 #else
-void func_8029E0AC(); /* hd.c passes nothing: the asm reads leaked registers */
+void anim_tex_update_all(); /* hd.c passes nothing: the asm reads leaked registers */
 #endif
-void func_8029E558(u8 *base, u8 *other, Unk8029DEA0Entry *ch);
-s32 func_8029F85C(u32 *bufA, u32 *bufB, Unk8029DEA0Entry *ch, u8 *hdr);
-void func_8029F9D4(s32 a, s32 b, Unk8029DEA0Entry *base);
-void func_8029FC74(s32 a, s32 b, Unk8029DEA0Entry *base);
-void func_802A0290(Unk8029DEA0Entry *base, s32 idx, s32 val);
-void func_802A02E4(s32 idx, Unk8029DEA0Entry *base);
-void func_802A0320(s32 idx, Unk8029DEA0Entry *base);
-void func_802A0360(f32 f, Unk8029DEA0Entry *base, s32 idx, s32 val);
-void func_802A039C(Unk8029DEA0Entry *base, s32 idx, s32 val);
-void func_802A03D4(Unk8029DEA0Entry *base, s32 idx, s32 val);
-void func_802A040C(Unk8029DEA0Entry *base, s32 idx, s32 val);
-void func_802A0480(f32 f, Unk8029DEA0Entry *base, s32 idx, s32 val);
-void func_802A04BC(s32 idx, Unk8029DEA0Entry *base, s32 *out);
-void func_802A0508(s32 key, s32 val);
-void func_802A05A4(f32 f, s32 key, s32 val);
-void func_802A05D0(s32 key, s32 val);
-void func_802A05F8(s32 key, s32 val);
-void func_802A0620(s32 key, s32 val);
+void anim_update_model(u8 *base, u8 *other, Unk8029DEA0Entry *ch);
+s32 anim_init_model(u32 *bufA, u32 *bufB, Unk8029DEA0Entry *ch, u8 *hdr);
+void anim_blend_channels(s32 a, s32 b, Unk8029DEA0Entry *base);
+void anim_merge_poses(s32 a, s32 b, Unk8029DEA0Entry *base);
+void anim_play(Unk8029DEA0Entry *base, s32 idx, s32 val);
+void anim_stop(s32 idx, Unk8029DEA0Entry *base);
+void anim_rewind(s32 idx, Unk8029DEA0Entry *base);
+void anim_set_frame(f32 f, Unk8029DEA0Entry *base, s32 idx, s32 val);
+void anim_set_speed(Unk8029DEA0Entry *base, s32 idx, s32 val);
+void anim_set_reverse(Unk8029DEA0Entry *base, s32 idx, s32 val);
+void anim_set_loop_mode(Unk8029DEA0Entry *base, s32 idx, s32 val);
+void anim_set_interp(f32 f, Unk8029DEA0Entry *base, s32 idx, s32 val);
+void anim_get_state(s32 idx, Unk8029DEA0Entry *base, s32 *out);
+void anim_tex_play(s32 key, s32 val);
+void anim_tex_set_frame(f32 f, s32 key, s32 val);
+void anim_tex_set_speed(s32 key, s32 val);
+void anim_tex_set_reverse(s32 key, s32 val);
+void anim_tex_set_loop_mode(s32 key, s32 val);
 
 /* hd_code/5BF40.c */
 void tex_load_table(void);
@@ -475,12 +475,12 @@ void tex_queue_load_impl(s32 id, u8 *dest, u8 *param);
 void tex_queue_palette(s32 id, void *dest);
 
 /* hd_code/5CB60.c */
-u32 func_802A1320(void);
+u32 get_cop0_status(void);
 void veh_set_record(s32 a0Val, s32 id, s32 v0Val, s32 v1Val, u8 *obj);
 void veh_add_record(s32 a0Val, s32 a1Val, s32 v0Val, s32 v1Val, u8 *hdr);
 void initlevel(u8 *obj, s32 arg1);
 void lvl_load_model(s32 type, Out802A396C *out);
-u8 *func_802A41B0(u8 *rec, u8 *v, s32 id, s32 h52, s32 b57, s32 b56, s32 *s1io, s32 b4F, s32 b55);
+u8 *lvl_build_coll_tri(u8 *rec, u8 *v, s32 id, s32 h52, s32 b57, s32 b56, s32 *s1io, s32 b4F, s32 b55);
 
 /* hd_code/5FD50.c */
 void cull_restart_now(void);
@@ -506,202 +506,202 @@ s32 fx_spawn(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32 z, s
 void fx_draw_all(void);
 
 /* hd_code/62740.c */
-void func_802A6F00(u8 *veh);
-s32 func_802A6F6C(void);
-void func_802A6FE4(u8 *veh, s32 limit);
-void func_802A7070(u8 *veh, s16 *angle);
-void func_802A70D8(u8 *veh);
-s32 func_802A71DC(u8 *veh, s32 cur, s32 target, s32 *curOut, f32 scale);
-s32 func_802A746C(u8 *veh, s32 delta, s32 v1, s32 *targetOut);
-void func_802A754C(u8 *veh);
-void func_802A75DC(u8 *veh, u8 *src, s32 *w0, s32 *w1, s32 *w2);
-u64 *func_802A768C(u8 *veh, u8 *dst, s32 *w0, s32 *w1, s32 *w2, u64 *src, u64 *dst2, s32 size, u64 **dst2End);
-void func_802A7764(u64 *a, u64 *b, s32 size);
-void func_802A77D0(u8 *veh);
-void func_802A7834(s32 rate, u16 *angle, u8 *veh, s16 *speed, s32 mode, u8 *flags, s16 *bands, s32 delta);
-void func_802A785C(u8 *veh, s16 *speed, s32 mode, u8 *flags, s16 *bands, s32 delta);
-s32 func_802A7CB0(u8 *veh, s32 range);
-void func_802A7E70(s32 rate, u16 *angle);
-void func_802A7FD8(u8 *veh, u16 *heading, s32 rate, s16 *speedp, u16 *target, u16 *out, s8 *flag, s32 sound);
-f32 func_802A83B8(s16 *div, u8 *f, s32 *p, f32 *out);
-void func_802A843C(u8 *veh, s16 *speed, s32 kind, s8 *f, s32 *p, s32 clamp, f32 div);
-s32 func_802A860C(f32 f, s32 angle, s16 *len, s32 *px, s32 *pz, Out802A860C *out);
-void func_802A8768(u8 *veh, s32 id, s32 *px, s32 *py, s32 *pz, s32 x, s32 z, s32 divB, s32 divA, s16 *angle, u8 *flags, s16 *tbl, s32 *a, s32 *b, s32 *c, s32 *ys, Regs802A8768 *r, TriSideOut *f);
-s32 func_802A92C8(s32 x, s32 z, s16 *tbl, s16 *angle, s32 *ys, s32 key, u8 *veh, s32 fpIn, TriSideOut *f);
-s32 func_802A94A4(s32 index, s16 *tbl, s16 *angle, s32 *dz);
-s32 *func_802A992C(s16 *tbl, s32 y, s32 x, s32 z, s32 *dst, s32 *mid, s16 *angle, s32 key, s32 fpIn, u8 *veh, TriSideOut *f);
-s32 func_802A9A60(s16 *tbl, s32 y, s32 x, s32 z, s32 *dst, s32 *mid, s16 *angle, s32 key, s32 fp, u8 *veh, TriSideOut *f, Out802A9A60 *out);
-s32 func_802A9B1C(s32 index, s32 x, s32 z, s32 y, s32 skip, u8 *veh, s32 fpIn, TriSideOut *f);
-s32 func_802A9DC0(s32 x, s32 z, s32 y, TriSideOut *f, s32 *fpOut);
-s32 func_802A9F24(s32 x, s32 z, s32 y, s32 skip, TriSideOut *f, s32 *idOut, s32 *a2Out);
-s32 func_802AA094(s32 x, s32 z, s32 y, TriSideOut *f, s32 *t3io, s32 *fpio);
-s32 func_802AA460(s32 x, s32 z, s32 x0, s32 z0, s32 x1, s32 z1, s32 x2, s32 z2, TriSideOut *out);
-s32 func_802AA5E0(s32 x, s32 z, s32 x0, s32 z0, s32 x1, s32 z1, s32 x2, s32 z2);
-void func_802AA6D0(s32 x, s32 y, s32 z, s16 rx, s16 ry, s16 rz, s32 scale, Mtx *m);
-void func_802AA764(s32 x, s32 y, s32 z, s32 scale, s32 *m);
-void func_802AA838(u8 *src, u8 *dst, s32 off);
-s32 func_802AA890(s32 count, s32 *offsets, u8 *base, s32 x, s32 y, s32 z, MtxChainRegs *regs);
-s32 func_802AABE4(s32 id, u16 *desc, u8 *base, MtxChainRegs *regs, s16 **vertsOut);
-void func_802AACD4(s32 id, s32 x, s32 z, s16 *uOut, s16 *wOut);
-void func_802AAD0C(s32 id, s32 x, s32 z, InterpRegs *r);
-void func_802AAE1C(s32 id, s32 x, s32 z, s32 *uOut, s32 *wOut);
-void func_802AAE54(s32 id, s32 x, s32 z, InterpRegs *r);
-s32 func_802AB3C0(s32 id);
-s32 func_802AB41C(s32 key0, s32 key1);
-void func_802AB478(s32 id);
-void func_802AB670(s32 id);
-s32 func_802AB878(s32 id);
-s32 func_802AB9A4(s16 *tbl, s32 x1, u16 *angle, s32 id, s32 z1, s32 x2, s32 z2, s32 *s3Out, InterpRegs *r);
-s32 func_802ABB1C(s32 ax, s32 az, s32 dx, s32 dz, s32 bx, s32 bz);
-void func_802ABBEC(s32 id, s16 *p, s16 *end, u8 *base, MtxChainRegs *regs);
-s32 func_802ABC88(s32 id, s32 n, u8 **recOut);
-s32 func_802ABCDC(s32 ax, s32 ay, s32 az, s32 bx, s32 by, s32 bz);
-s32 func_802ABD54(s32 id, s32 x, s32 y, s32 z, ZoneScanRegs *r);
-s32 func_802ABEDC(s32 x, s32 y, s32 z);
+void veh_widen_bands(u8 *veh);
+s32 veh_free_arc_mid(void);
+void veh_hit_slowdown(u8 *veh, s32 limit);
+void veh_set_target_heading(u8 *veh, s16 *angle);
+void veh_reverse_if_behind(u8 *veh);
+s32 veh_turn_into_free_arc(u8 *veh, s32 cur, s32 target, s32 *curOut, f32 scale);
+s32 veh_step_heading(u8 *veh, s32 delta, s32 v1, s32 *targetOut);
+void veh_reset_state(u8 *veh);
+void veh_snapshot(u8 *veh, u8 *src, s32 *w0, s32 *w1, s32 *w2);
+u64 *veh_rollback(u8 *veh, u8 *dst, s32 *w0, s32 *w1, s32 *w2, u64 *src, u64 *dst2, s32 size, u64 **dst2End);
+void veh_sync_buffers(u64 *a, u64 *b, s32 size);
+void veh_coast(u8 *veh);
+void veh_steer_throttle(s32 rate, u16 *angle, u8 *veh, s16 *speed, s32 mode, u8 *flags, s16 *bands, s32 delta);
+void veh_throttle(u8 *veh, s16 *speed, s32 mode, u8 *flags, s16 *bands, s32 delta);
+s32 veh_near_top_speed(u8 *veh, s32 range);
+void veh_steer(s32 rate, u16 *angle);
+void veh_turn_heading(u8 *veh, u16 *heading, s32 rate, s16 *speedp, u16 *target, u16 *out, s8 *flag, s32 sound);
+f32 veh_slope(s16 *div, u8 *f, s32 *p, f32 *out);
+void veh_apply_slope(u8 *veh, s16 *speed, s32 kind, s8 *f, s32 *p, s32 clamp, f32 div);
+s32 veh_move_along_heading(f32 f, s32 angle, s16 *len, s32 *px, s32 *pz, Out802A860C *out);
+void veh_ground_contact(u8 *veh, s32 id, s32 *px, s32 *py, s32 *pz, s32 x, s32 z, s32 divB, s32 divA, s16 *angle, u8 *flags, s16 *tbl, s32 *a, s32 *b, s32 *c, s32 *ys, Regs802A8768 *r, TriSideOut *f);
+s32 veh_update_stand_on(s32 x, s32 z, s16 *tbl, s16 *angle, s32 *ys, s32 key, u8 *veh, s32 fpIn, TriSideOut *f);
+s32 veh_wheel_offset(s32 index, s16 *tbl, s16 *angle, s32 *dz);
+s32 *veh_init_ground(s16 *tbl, s32 y, s32 x, s32 z, s32 *dst, s32 *mid, s16 *angle, s32 key, s32 fpIn, u8 *veh, TriSideOut *f);
+s32 veh_reground(s16 *tbl, s32 y, s32 x, s32 z, s32 *dst, s32 *mid, s16 *angle, s32 key, s32 fp, u8 *veh, TriSideOut *f, Out802A9A60 *out);
+s32 ground_slot_height(s32 index, s32 x, s32 z, s32 y, s32 skip, u8 *veh, s32 fpIn, TriSideOut *f);
+s32 ground_scan_part_tris(s32 x, s32 z, s32 y, TriSideOut *f, s32 *fpOut);
+s32 ground_scan_moveable(s32 x, s32 z, s32 y, s32 skip, TriSideOut *f, s32 *idOut, s32 *a2Out);
+s32 ground_scan_grid(s32 x, s32 z, s32 y, TriSideOut *f, s32 *t3io, s32 *fpio);
+s32 ground_tri_contains(s32 x, s32 z, s32 x0, s32 z0, s32 x1, s32 z1, s32 x2, s32 z2, TriSideOut *out);
+s32 ground_tri_box_contains(s32 x, s32 z, s32 x0, s32 z0, s32 x1, s32 z1, s32 x2, s32 z2);
+void mtx_build_model_rot(s32 x, s32 y, s32 z, s16 rx, s16 ry, s16 rz, s32 scale, Mtx *m);
+void mtx_build_model(s32 x, s32 y, s32 z, s32 scale, s32 *m);
+void mtx_copy_at(u8 *src, u8 *dst, s32 off);
+s32 mtx_chain_transform(s32 count, s32 *offsets, u8 *base, s32 x, s32 y, s32 z, MtxChainRegs *regs);
+s32 veh_deck_transform(s32 id, u16 *desc, u8 *base, MtxChainRegs *regs, s16 **vertsOut);
+void veh_deck_to_local_c(s32 id, s32 x, s32 z, s16 *uOut, s16 *wOut);
+void veh_deck_to_local(s32 id, s32 x, s32 z, InterpRegs *r);
+void veh_deck_to_world_c(s32 id, s32 x, s32 z, s32 *uOut, s32 *wOut);
+void veh_deck_to_world(s32 id, s32 x, s32 z, InterpRegs *r);
+s32 veh_is_riding(s32 id);
+s32 veh_rides_on(s32 key0, s32 key1);
+void veh_attach_riders(s32 id);
+void veh_move_riders(s32 id);
+s32 veh_has_partial_rider(s32 id);
+s32 veh_follow_heading(s16 *tbl, s32 x1, u16 *angle, s32 id, s32 z1, s32 x2, s32 z2, s32 *s3Out, InterpRegs *r);
+s32 veh_follow_angle(s32 ax, s32 az, s32 dx, s32 dz, s32 bx, s32 bz);
+void veh_points_transform(s32 id, s16 *p, s16 *end, u8 *base, MtxChainRegs *regs);
+s32 veh_find_point(s32 id, s32 n, u8 **recOut);
+s32 math_dist3(s32 ax, s32 ay, s32 az, s32 bx, s32 by, s32 bz);
+s32 veh_zone_alpha(s32 id, s32 x, s32 y, s32 z, ZoneScanRegs *r);
+s32 ground_over_object(s32 x, s32 y, s32 z);
 s32 func_802AC0BC(s32 x, s32 z, s32 y, TriSideOut *f, TriScanRegs *r);
 
 /* hd_code/679E0.c */
 void obj_blast_around_carrier(s32 radius);
-void func_802AC284(s32 *px, s32 *py, s32 *pz);
+void veh_check_wrap(s32 *px, s32 *py, s32 *pz);
 void func_802AC2A4(s32 z, s32 a1, s32 x, s32 y, s32 b0, s32 id, u8 *vehicle);
-s32 func_802AC4C4(s32 px, s32 pz, s32 x0, s32 z0, s32 x1, s32 z1, s32 x2, s32 z2);
+s32 ground_in_triangle(s32 px, s32 pz, s32 x0, s32 z0, s32 x1, s32 z1, s32 x2, s32 z2);
 void fx_spawn_node_hit(s32 x, s32 y, s32 z);
 void fx_spawn_at(s32 x, s32 y, s32 z, s32 kind, s32 data);
 void fx_spawn_at_late(s32 x, s32 y, s32 z, s32 kind, s32 data);
-s32 func_802AC7DC(u8 *dst, u8 *src, u32 *words);
-void func_802AC85C(u8 *src, u8 *dst, u32 *words);
-void func_802AC8CC(u16 *m);
-void func_802ACA60(s32 x, s32 y, s32 z, s32 *m);
-void func_802ACAC4(s32 angle, s32 *m);
-void func_802ACB50(s32 angle, s32 *m);
-void func_802ACBDC(s32 angle, s32 *m);
-void func_802ACC68(s32 x, s32 y, s32 z, s32 *m);
-void func_802ACCCC(s32 *b, s32 *m);
-s32 func_802ACE38(s32 x, s32 z, s32 angle, s32 *t1out);
-s32 func_802ACF3C(s32 x);
-s32 func_802ACF64(u32 x);
+s32 veh_serialize_state(u8 *dst, u8 *src, u32 *words);
+void veh_deserialize_state(u8 *src, u8 *dst, u32 *words);
+void mtx_to_n64(u16 *m);
+void mtx_translate(s32 x, s32 y, s32 z, s32 *m);
+void mtx_rotate_y(s32 angle, s32 *m);
+void mtx_rotate_z(s32 angle, s32 *m);
+void mtx_rotate_x(s32 angle, s32 *m);
+void mtx_scale(s32 x, s32 y, s32 z, s32 *m);
+void mtx_mul(s32 *b, s32 *m);
+s32 math_rotate_xz_inv(s32 x, s32 z, s32 angle, s32 *t1out);
+s32 math_atan_c(s32 x);
+s32 math_atan(u32 x);
 
 /* hd_code/69BB0.c */
-void func_802AE370(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut *f);
-void func_802AE860(void);
-s32 func_802AE888(s32 dist);
-void func_802AEEC8(void);
-void func_802AFC28(void *src);
+void driver_spawn(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut *f);
+void driver_stop_blend_anim(void);
+s32 driver_try_exit(s32 dist);
+void driver_update(void);
+void driver_load_state(void *src);
 
 /* hd_code/6B4A0.c */
-void func_802AFC60(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp);
-void func_802AFFD4(void);
-s32 func_802B01DC(void);
-void func_802B0254(void);
+void sideswipe_spawn(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp);
+void sideswipe_enter(void);
+s32 sideswipe_exit_check(void);
+void sideswipe_leave(void);
 #ifdef NON_MATCHING
-void func_802B02A0(s32 fp);
+void sideswipe_reground(s32 fp);
 #else
-void func_802B02A0(); /* hd.c passes nothing: the asm reads leaked registers */
+void sideswipe_reground(); /* hd.c passes nothing: the asm reads leaked registers */
 #endif
 #ifdef NON_MATCHING
-void func_802B03F4(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4);
+void sideswipe_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4);
 #else
-void func_802B03F4(); /* hd.c passes nothing: the asm reads leaked registers */
+void sideswipe_update(); /* hd.c passes nothing: the asm reads leaked registers */
 #endif
-void func_802B0D70(void *src);
+void sideswipe_load_state(void *src);
 
 /* hd_code/6C5E0.c */
-void func_802B0DA0(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s32 t6, TriSideOut *f);
-s32 func_802B1150(void);
-void func_802B11B8(void);
-void func_802B1228(void);
+void thunderfist_spawn(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s32 t6, TriSideOut *f);
+s32 thunderfist_exit_check(void);
+void thunderfist_leave(void);
+void thunderfist_enter(void);
 #ifdef NON_MATCHING
-void func_802B152C(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 f14, f32 f20, f32 f22, f32 f24, f32 f26);
+void thunderfist_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 f14, f32 f20, f32 f22, f32 f24, f32 f26);
 #else
-void func_802B152C(); /* hd.c passes nothing: the asm reads leaked registers */
+void thunderfist_update(); /* hd.c passes nothing: the asm reads leaked registers */
 #endif
-void func_802B2988(void *src);
+void thunderfist_load_state(void *src);
 
 /* hd_code/6E200.c */
-void func_802B29C0(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp);
-void func_802B2D7C(void);
-s32 func_802B2EF8(void);
-void func_802B2F54(void);
+void skyfall_spawn(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp);
+void skyfall_enter(void);
+s32 skyfall_exit_check(void);
+void skyfall_leave(void);
 #ifdef NON_MATCHING
-void func_802B2FA0(s32 fp);
+void skyfall_reground(s32 fp);
 #else
-void func_802B2FA0(); /* hd.c passes nothing: the asm reads leaked registers */
+void skyfall_reground(); /* hd.c passes nothing: the asm reads leaked registers */
 #endif
-s32 func_802B30F4(s32 id, InterpRegs *r);
-s32 func_802B3180(s32 id, InterpRegs *r);
+s32 skyfall_ride_attach(s32 id, InterpRegs *r);
+s32 skyfall_ride_follow(s32 id, InterpRegs *r);
 #ifdef NON_MATCHING
-void func_802B327C(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4);
+void skyfall_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4);
 #else
-void func_802B327C(); /* hd.c passes nothing: the asm reads leaked registers */
+void skyfall_update(); /* hd.c passes nothing: the asm reads leaked registers */
 #endif
-void func_802B40D4(void *src);
-void func_802B4100(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp);
-void func_802B448C(void);
-s32 func_802B45FC(void);
-void func_802B4658(void);
+void skyfall_load_state(void *src);
+void ramdozer_spawn(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp);
+void ramdozer_enter(void);
+s32 ramdozer_exit_check(void);
+void ramdozer_leave(void);
 #ifdef NON_MATCHING
-void func_802B46C4(s32 fp);
+void ramdozer_reground(s32 fp);
 #else
-void func_802B46C4(); /* hd.c passes nothing: the asm reads leaked registers */
+void ramdozer_reground(); /* hd.c passes nothing: the asm reads leaked registers */
 #endif
-s32 func_802B4818(s32 id, InterpRegs *r);
-s32 func_802B48A4(s32 id, InterpRegs *r);
+s32 ramdozer_ride_attach(s32 id, InterpRegs *r);
+s32 ramdozer_ride_follow(s32 id, InterpRegs *r);
 #ifdef NON_MATCHING
-void func_802B49AC(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4);
+void ramdozer_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4);
 #else
-void func_802B49AC(); /* hd.c passes nothing: the asm reads leaked registers */
+void ramdozer_update(); /* hd.c passes nothing: the asm reads leaked registers */
 #endif
-void func_802B58C8(void *src);
+void ramdozer_load_state(void *src);
 
 /* hd_code/71140.c */
-void func_802B5900(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp);
-void func_802B5CD8(void);
-s32 func_802B5F04(void);
-void func_802B5F60(void);
-void func_802B5FAC(void);
-void func_802B6100(s32 id, InterpRegs *r);
-s32 func_802B618C(s32 id, TriSideOut *f);
-void func_802B6294(void);
-void func_802B7308(void *src);
+void backlash_spawn(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp);
+void backlash_enter(void);
+s32 backlash_exit_check(void);
+void backlash_leave(void);
+void backlash_reground(void);
+void backlash_ride_attach(s32 id, InterpRegs *r);
+s32 backlash_ride_follow(s32 id, TriSideOut *f);
+void backlash_update(void);
+void backlash_load_state(void *src);
 
 /* hd_code/72B80.c */
-void func_802B7340(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut *f);
+void amdream_spawn(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut *f);
 #ifdef NON_MATCHING
-void func_802B76AC(s32 arg0);
+void amdream_enter(s32 arg0);
 #else
-void func_802B76AC(); /* hd.c passes nothing: the asm reads leaked registers */
+void amdream_enter(); /* hd.c passes nothing: the asm reads leaked registers */
 #endif
-s32 func_802B76F8(void);
-void func_802B7754(void);
-void func_802B77A0(void);
-void func_802B78F4(s32 id, InterpRegs *r);
-void func_802B7980(s32 id, f32 *f24);
-void func_802B7A88(void);
-void func_802B8480(s32 a1Val, u8 *hdr);
-void func_802B8794(void);
-void func_802B899C(void);
-void func_802B8AE4(void);
+s32 amdream_exit_check(void);
+void amdream_leave(void);
+void amdream_reground(void);
+void amdream_ride_attach(s32 id, InterpRegs *r);
+void amdream_ride_follow(s32 id, f32 *f24);
+void amdream_update(void);
+void chopper_spawn(s32 a1Val, u8 *hdr);
+void chopper_update_sound(void);
+void chopper_update(void);
+void chopper_update_mode(void);
 
 /* hd_code/75490.c */
-void func_802B9C50(u8 *model, s32 x, s32 z, s32 speed, s32 limit, s32 heading, s32 fp);
-void func_802BA148(void);
-void func_802BA354(void);
-void func_802BAD80(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp);
-void func_802BB054(void);
-s32 func_802BB170(void);
-void func_802BB1A0(void);
-void func_802BB274(void);
+void carrier_spawn(u8 *model, s32 x, s32 z, s32 speed, s32 limit, s32 heading, s32 fp);
+void carrier_update_sound(void);
+void carrier_update(void);
+void crane_spawn(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp);
+void crane_enter(void);
+s32 crane_exit_check(void);
+void crane_leave(void);
+void crane_update(void);
 
 /* hd_code/772A0.c */
-void func_802BBA60(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp);
+void train_spawn(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp);
 #ifdef NON_MATCHING
-void func_802BBDC8(s32 arg0);
+void train_enter(s32 arg0);
 #else
-void func_802BBDC8(); /* hd.c passes nothing: the asm reads leaked registers */
+void train_enter(); /* hd.c passes nothing: the asm reads leaked registers */
 #endif
-s32 func_802BBE10(void);
-void func_802BBE2C(void);
-void func_802BBEB8(void);
+s32 train_exit_check(void);
+void train_leave(void);
+void train_update(void);
 
 /* hd_code/77E20.c */
 void obj_check_level_end(void);
@@ -741,150 +741,150 @@ void lvl_group_move_part(s32 group, s32 part, s32 x, s32 y, s32 z);
 void lvl_groups_update_tris(void);
 
 /* hd_code/7F8B0.c */
-void func_802C4070(u32 *src, u32 *dst, u32 work, u8 type);
+void lzss_decompress(u32 *src, u32 *dst, u32 work, u8 type);
 void func_802C4108(u8 **src, u8 **dst, s32 work);
-void func_802C4310(s32 arg0, s32 arg1);
-void func_802C444C(void);
-void func_802C4584(s32 level);
-void func_802C4724(s32 sfx);
+void veh_start_engine_sound(s32 arg0, s32 arg1);
+void veh_stop_engine_sounds(void);
+void veh_set_engine_level(s32 level);
+void veh_update_horn(s32 sfx);
 
 /* hd_code/7FB50.c */
 s32 record_status(u8 *out);
-void func_802C4BF0(void *in);
+void apply_status(void *in);
 u32 create_status(void *outp, u8 level);
-void func_802C5120(s32 x, s32 y, s32 z, s32 heading, u8 *model, s32 fp);
-s32 func_802C5508(void);
-void func_802C5688(void);
-void func_802C5714(void);
+void jbomb_spawn(s32 x, s32 y, s32 z, s32 heading, u8 *model, s32 fp);
+s32 jbomb_exit_check(void);
+void jbomb_leave(void);
+void jbomb_enter(void);
 #ifdef NON_MATCHING
-void func_802C5860(s32 fp);
+void jbomb_reground(s32 fp);
 #else
-void func_802C5860(); /* hd.c passes nothing: the asm reads leaked registers */
+void jbomb_reground(); /* hd.c passes nothing: the asm reads leaked registers */
 #endif
-void func_802C59B4(s32 id, InterpRegs *r);
-void func_802C5A14(s32 id, s32 *s3, InterpRegs *r);
-void func_802C5AFC(void);
-void func_802C80A0(void *src);
+void jbomb_ride_attach(s32 id, InterpRegs *r);
+void jbomb_ride_follow(s32 id, s32 *s3, InterpRegs *r);
+void jbomb_update(void);
+void jbomb_load_state(void *src);
 
 /* hd_code/83910.c */
-void func_802C80D0(s32 type, s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp);
+void barge_spawn(s32 type, s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp);
 #ifdef NON_MATCHING
-void func_802C8AB0(s32 arg0);
+void barge_enter(s32 arg0);
 #else
-void func_802C8AB0(); /* hd.c passes nothing: the asm reads leaked registers */
+void barge_enter(); /* hd.c passes nothing: the asm reads leaked registers */
 #endif
-s32 func_802C8AF0(void);
-void func_802C8B0C(s32 type);
-void func_802C8BB8(s32 type);
+s32 barge_exit_check(void);
+void barge_leave(s32 type);
+void barge_update(s32 type);
 
 /* hd_code/853D0.c */
-void func_802C9B90(s32 x, s32 y, s32 z, s32 heading, u8 *model, s32 fp);
-void func_802C9F54(void);
-s32 func_802CA140(void);
-void func_802CA1AC(void);
-void func_802CA34C(s32 id, InterpRegs *r);
-void func_802CA3D8(s32 id, s32 *s3, InterpRegs *r);
-void func_802CA4E0(void);
-void func_802CB660(void *src);
+void ballista_spawn(s32 x, s32 y, s32 z, s32 heading, u8 *model, s32 fp);
+void ballista_enter(void);
+s32 ballista_exit_check(void);
+void ballista_leave(void);
+void ballista_ride_attach(s32 id, InterpRegs *r);
+void ballista_ride_follow(s32 id, s32 *s3, InterpRegs *r);
+void ballista_update(void);
+void ballista_load_state(void *src);
 
 /* hd_code/86ED0.c */
 void func_802CB690(u8 *state);
 
 /* hd_code/86F60.c */
-void func_802CB720(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut *f);
+void police_spawn(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut *f);
 #ifdef NON_MATCHING
-void func_802CBA94(s32 arg0);
+void police_enter(s32 arg0);
 #else
-void func_802CBA94(); /* hd.c passes nothing: the asm reads leaked registers */
+void police_enter(); /* hd.c passes nothing: the asm reads leaked registers */
 #endif
-s32 func_802CBB60(void);
-void func_802CBBBC(void);
-void func_802CBC08(void);
-s32 func_802CBD5C(s32 id, InterpRegs *r);
-s32 func_802CBDE8(s32 id, TriSideOut *f);
-void func_802CBEF0(void);
+s32 police_exit_check(void);
+void police_leave(void);
+void police_reground(void);
+s32 police_ride_attach(s32 id, InterpRegs *r);
+s32 police_ride_follow(s32 id, TriSideOut *f);
+void police_update(void);
 
 /* hd_code/88160.c */
-void func_802CC920(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut *f);
+void ateam_spawn(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut *f);
 #ifdef NON_MATCHING
-void func_802CCC8C(s32 arg0);
+void ateam_enter(s32 arg0);
 #else
-void func_802CCC8C(); /* hd.c passes nothing: the asm reads leaked registers */
+void ateam_enter(); /* hd.c passes nothing: the asm reads leaked registers */
 #endif
-s32 func_802CCCD8(void);
-void func_802CCD34(void);
-void func_802CCD80(void);
-s32 func_802CCED4(s32 id, InterpRegs *r);
-s32 func_802CCF60(s32 id, TriSideOut *f);
-void func_802CD068(void);
+s32 ateam_exit_check(void);
+void ateam_leave(void);
+void ateam_reground(void);
+s32 ateam_ride_attach(s32 id, InterpRegs *r);
+s32 ateam_ride_follow(s32 id, TriSideOut *f);
+void ateam_update(void);
 
 /* hd_code/89250.c */
-void func_802CDA10(s32 x, s32 y, s32 z);
-void func_802CDAE8(s32 amount, s32 radius);
-s32 func_802CDB70(s32 r, s32 amount);
-s32 func_802CDF94(s32 r);
-void func_802CE204(s32 x1, s32 z1, s32 x2, s32 z2);
-s32 func_802CE3B8(s32 idx);
-void func_802CE4F0(s32 x, s32 y, s32 z);
-void func_802CE5BC(s32 x, s32 y, s32 z, s32 r, s32 kind, s32 tag);
-void func_802CE65C(s32 x, s32 z, s32 len, s32 angle);
-s32 func_802CE6F8(s32 x, s32 z, s32 y);
+void coll_spawn_blast_fx(s32 x, s32 y, s32 z);
+void coll_blast_at_probe(s32 amount, s32 radius);
+s32 coll_probe_objects(s32 r, s32 amount);
+s32 coll_probe_vehicles(s32 r);
+void coll_block_toward(s32 x1, s32 z1, s32 x2, s32 z2);
+s32 coll_heading_in_ring(s32 idx);
+void coll_begin_probe(s32 x, s32 y, s32 z);
+void coll_probe_tris(s32 x, s32 y, s32 z, s32 r, s32 kind, s32 tag);
+void coll_step_xz(s32 x, s32 z, s32 len, s32 angle);
+s32 coll_ground_height(s32 x, s32 z, s32 y);
 
 /* hd_code/8A080.c */
-void func_802CE840(void);
-void func_802CE880(s32 id, s32 x, s32 y, s32 z, s32 size);
-void func_802CE90C(s32 id);
-s32 func_802CE958(s32 id);
-void func_802CE9A4(void);
+void radar_clear_markers(void);
+void radar_set_marker(s32 id, s32 x, s32 y, s32 z, s32 size);
+void radar_remove_marker(s32 id);
+s32 radar_has_marker(s32 id);
+void coll_reset_dyn_tris(void);
 #ifdef NON_MATCHING
-void func_802CE9C8(u8 *items, s32 n, s32 h52, s32 id, s32 b57, s32 b4F, s32 s1);
+void coll_add_dyn_tris(u8 *items, s32 n, s32 h52, s32 id, s32 b57, s32 b4F, s32 s1);
 #else
-void func_802CE9C8(); /* hd.c passes nothing: the asm reads leaked registers */
+void coll_add_dyn_tris(); /* hd.c passes nothing: the asm reads leaked registers */
 #endif
-void func_802CEA68(u8 *start, u8 *end);
+void coll_disable_tris(u8 *start, u8 *end);
 
 /* hd_code/8A2E0.c */
-void func_802CEAA0(u8 *obj);
-Gfx *func_802CEEFC(Gfx *gdl, s32 cur, Gfx *dl2, Mtx *mtx);
-void func_802CF1A4(void);
-void func_802CF5B0(void);
-void func_802CF628(void);
+void commpt_setup(u8 *obj);
+Gfx *commpt_draw(Gfx *gdl, s32 cur, Gfx *dl2, Mtx *mtx);
+void commpt_update(void);
+void commpt_save_flags(void);
+void commpt_load_flags(void);
 
 /* hd_code/8AEE0.c */
-void func_802CF6A0(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s32 t6, TriSideOut *f);
+void starski_spawn(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s32 t6, TriSideOut *f);
 #ifdef NON_MATCHING
-void func_802CFA0C(s32 arg0);
+void starski_enter(s32 arg0);
 #else
-void func_802CFA0C(); /* hd.c passes nothing: the asm reads leaked registers */
+void starski_enter(); /* hd.c passes nothing: the asm reads leaked registers */
 #endif
-s32 func_802CFA58(void);
-void func_802CFAB4(void);
+s32 starski_exit_check(void);
+void starski_leave(void);
 #ifdef NON_MATCHING
-void func_802CFB00(s32 fpIn, s32 a3, f32 f12, f32 f14, f32 f20, f32 f22, f32 f24, f32 f26);
+void starski_reground(s32 fpIn, s32 a3, f32 f12, f32 f14, f32 f20, f32 f22, f32 f24, f32 f26);
 #else
-void func_802CFB00(); /* hd.c passes nothing: the asm reads leaked registers */
+void starski_reground(); /* hd.c passes nothing: the asm reads leaked registers */
 #endif
-s32 func_802CFC54(s32 id, InterpRegs *r);
-s32 func_802CFCE0(s32 id, InterpRegs *r);
+s32 starski_ride_attach(s32 id, InterpRegs *r);
+s32 starski_ride_follow(s32 id, InterpRegs *r);
 #ifdef NON_MATCHING
-void func_802CFDE8(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 f14, f32 f20, f32 f22, f32 f24, f32 f26);
+void starski_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 f14, f32 f20, f32 f22, f32 f24, f32 f26);
 #else
-void func_802CFDE8(); /* hd.c passes nothing: the asm reads leaked registers */
+void starski_update(); /* hd.c passes nothing: the asm reads leaked registers */
 #endif
-void func_802D07E0(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s32 t6, TriSideOut *f);
-s32 func_802D0B90(void);
-void func_802D0BF8(void);
-void func_802D0C68(void);
+void cyclone_spawn(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s32 t6, TriSideOut *f);
+s32 cyclone_exit_check(void);
+void cyclone_leave(void);
+void cyclone_enter(void);
 #ifdef NON_MATCHING
-void func_802D0F98(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 f14, f32 f20, f32 f22, f32 f24, f32 f26);
+void cyclone_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 f14, f32 f20, f32 f22, f32 f24, f32 f26);
 #else
-void func_802D0F98(); /* hd.c passes nothing: the asm reads leaked registers */
+void cyclone_update(); /* hd.c passes nothing: the asm reads leaked registers */
 #endif
-void func_802D2524(void *src);
+void cyclone_load_state(void *src);
 
 /* hd_code/8DDB0.c */
-void func_802D2570(u8 *hdr);
-void func_802D291C(void);
+void shuttle_spawn(u8 *hdr);
+void shuttle_update(void);
 
 /* hd_code/8FD90.c */
 void func_802D4550(u32 arg0);
@@ -1007,10 +1007,10 @@ void func_802025D0(s32 kind, s32 val);
 #endif
 
 /* (hd_code/69000.c, 69930.c: fixed-point trig in the asm blobs) */
-s32 func_802AD7D4(s32 sine);
-s32 func_802AD7FC(u32 sine);
-s32 func_802AE104(s32 angle);
-s32 func_802AE160(s32 angle);
+s32 math_asin_c(s32 sine);
+s32 math_asin(u32 sine);
+s32 math_cos(s32 angle);
+s32 math_sin(s32 angle);
 
 /* (libultra functions the game calls by address names; aliased in undefined_syms.hd_code.us.v11.txt) */
 #define func_802D4020 osInitialize

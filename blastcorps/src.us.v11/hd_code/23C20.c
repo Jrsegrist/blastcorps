@@ -168,7 +168,7 @@ void func_802683E0(void) {
 
     i = 0;
     found = 0;
-    if (gCurVehicle || D_803ED826) {
+    if (gCurVehicle || gDriverExitWalk) {
         return;
     }
     while (!found && i < 1) {
@@ -183,9 +183,9 @@ void func_802683E0(void) {
                 }
             }
             if (hit) {
-                if (func_802AC4C4(p->unk64 >> 5, p->unk6C >> 5, D_802F3C10[i].unk2, D_802F3C10[i].unk4,
+                if (ground_in_triangle(p->unk64 >> 5, p->unk6C >> 5, D_802F3C10[i].unk2, D_802F3C10[i].unk4,
                                   D_802F3C10[i].unk6, D_802F3C10[i].unk8, D_802F3C10[i].unkA, D_802F3C10[i].unkC)
-                    || func_802AC4C4(p->unk64 >> 5, p->unk6C >> 5, D_802F3C10[i].unk2, D_802F3C10[i].unk4,
+                    || ground_in_triangle(p->unk64 >> 5, p->unk6C >> 5, D_802F3C10[i].unk2, D_802F3C10[i].unk4,
                                      D_802F3C10[i].unkA, D_802F3C10[i].unkC, D_802F3C10[i].unkE, D_802F3C10[i].unk10)) {
                     if (func_8026A6F0(p->unk64, p->unk68, p->unk6C, gPlayerX, gPlayerY, gPlayerZ) < D_802F3C10[i].unk12) {
                         gNextVehicle = D_802F3C10[i].unk1;
@@ -442,7 +442,7 @@ void func_80269258(void) {
     r2 = func_8026A184(a0, a1, a2, a3, t, t2, t3);
     D_803FCD6E = r2 / 360.0 * 4095.0;
 
-    D_803FCD48 = func_8026A184(D_802F4224[pts[0]].x << 5, D_802F4224[pts[1]].x << 5, D_802F4224[pts[2]].x << 5,
+    gShuttlePos = func_8026A184(D_802F4224[pts[0]].x << 5, D_802F4224[pts[1]].x << 5, D_802F4224[pts[2]].x << 5,
                                D_802F4224[pts[3]].x << 5, t, t2, t3);
     D_803FCD4C = func_8026A184(D_802F4224[pts[0]].y << 5, D_802F4224[pts[1]].y << 5, D_802F4224[pts[2]].y << 5,
                                D_802F4224[pts[3]].y << 5, t, t2, t3);
@@ -451,7 +451,7 @@ void func_80269258(void) {
     if (D_802F41E8[D_8036B955].unkE != -1 && D_803FCD4C < D_802F41E8[D_8036B955].unkE << 5) {
         D_803FCD4C = D_802F41E8[D_8036B955].unkE << 5;
     }
-    D_803FCD70 = 0;
+    gShuttlePathEvent = 0;
     if (!gLevelDone && !gCarrierHit && !areWeFading()) {
         D_8036B950 += D_802F41E8[D_8036B955].unk10 *
                       ((D_802F4224[pts[2]].speed - D_802F4224[pts[1]].speed) * t + D_802F4224[pts[1]].speed);
@@ -507,7 +507,7 @@ void func_80269258(void) {
             case 11:
             case 12:
             case 13:
-                D_803FCD70 = D_802F4224[pts[2]].event;
+                gShuttlePathEvent = D_802F4224[pts[2]].event;
                 break;
             case 5:
                 gYoshiGameItems[42].text = "LANDING ABORTED!";
@@ -713,7 +713,7 @@ void func_8026A9B4(void) {
     s32 d;
 
     minDist = 999999;
-    if (D_803A7430 == 15) {
+    if (gTrainContactFrames == 15) {
         yoshi_show_hint(0x50);
     }
     if (levelno == 0x12 && (gPlayerX >> 5) < 0x578
@@ -736,7 +736,7 @@ void func_8026A9B4(void) {
             if (d < minDist) {
                 minDist = d;
             }
-            if (d < 100 && !D_8036B970 && (!func_802AB3C0(p->unk5C) || !D_803EFECB)) {
+            if (d < 100 && !D_8036B970 && (!veh_is_riding(p->unk5C) || !D_803EFECB)) {
                 yoshi_show_hint(0x4C);
                 D_8036B970 = 1;
                 done = 1;

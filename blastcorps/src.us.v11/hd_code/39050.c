@@ -294,12 +294,12 @@ f32 func_8027DD88(s32 arg0, s32 arg1, s32 *p, s32 *q) {
 
 
 s32 func_8027E164(s32 arg0, s32 arg1, void *arg2, void *arg3) {
-    if (func_802AC4C4(arg0, arg1, *(s32 *)((u8 *) arg2 + 0x0), *(s32 *)((u8 *) arg3 + 0x0),
+    if (ground_in_triangle(arg0, arg1, *(s32 *)((u8 *) arg2 + 0x0), *(s32 *)((u8 *) arg3 + 0x0),
                        *(s32 *)((u8 *) arg2 + 0x4), *(s32 *)((u8 *) arg3 + 0x4),
                        *(s32 *)((u8 *) arg2 + 0x8), *(s32 *)((u8 *) arg3 + 0x8)) != 0) {
         return 1;
     }
-    if (func_802AC4C4(arg0, arg1, *(s32 *)((u8 *) arg2 + 0x0), *(s32 *)((u8 *) arg3 + 0x0),
+    if (ground_in_triangle(arg0, arg1, *(s32 *)((u8 *) arg2 + 0x0), *(s32 *)((u8 *) arg3 + 0x0),
                        *(s32 *)((u8 *) arg2 + 0x8), *(s32 *)((u8 *) arg3 + 0x8),
                        *(s32 *)((u8 *) arg2 + 0xC), *(s32 *)((u8 *) arg3 + 0xC)) != 0) {
         return 1;
@@ -839,7 +839,7 @@ void func_802807D8(u8 id) {
     }
 }
 
-/* Move the random quads (func_802CE65C steps each one; the result comes back in D_803F9320/4),
+/* Move the random quads (coll_step_xz steps each one; the result comes back in D_803F9320/4),
  * wrap them around the spawn area, rebuild their corners in vertex buffer buf and draw them. */
 void func_80280F34(Gfx **gfx, u8 buf) {
     Gfx *gdl;
@@ -861,7 +861,7 @@ void func_80280F34(Gfx **gfx, u8 buf) {
                             D_802FC494[D_8036E370].tu, D_802FC494[D_8036E370].tv, 0, G_TX_CLAMP, G_TX_CLAMP,
                             G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
         for (i = 0; i < D_8036E374; i++) {
-            func_802CE65C(D_8036DCE0[i].x << 5, D_8036DCE0[i].z << 5, D_8036DCE0[i].unk0, D_8036DCE0[i].angle);
+            coll_step_xz(D_8036DCE0[i].x << 5, D_8036DCE0[i].z << 5, D_8036DCE0[i].unk0, D_8036DCE0[i].angle);
             dx = (D_803F9320 >> 5) - D_8036DCE0[i].x;
             dz = (D_803F9324 >> 5) - D_8036DCE0[i].z;
             D_8036DCE0[i].x = D_803F9320 >> 5;
@@ -994,7 +994,7 @@ void func_802821D0(void) {
     D_8036E4D2 = 0;
 }
 
-/* Fade a textured quad (D_802FC568) in when arg1 is 7, 11, 17 or 18 and func_8029DBF0(arg1) is 0;
+/* Fade a textured quad (D_802FC568) in when arg1 is 7, 11, 17 or 18 and veh_tris_all_solid(arg1) is 0;
  * otherwise fade it out by 10 per frame. */
 void func_80282224(Gfx **gfx, u8 arg1) {
     Gfx *gdl;
@@ -1009,7 +1009,7 @@ void func_80282224(Gfx **gfx, u8 arg1) {
         }
     } else {
         if (flag) {
-            flag2 = !func_8029DBF0(arg1);
+            flag2 = !veh_tris_all_solid(arg1);
         }
         if (flag && flag2) {
             D_8036E4D0 = 0xFF;
@@ -1057,7 +1057,7 @@ void func_80282728(void) {
 }
 
 /* Expanding-ring effect: tint the screen, then draw up to two growing copies of display list
- * D_80300A68 at (D_803EF6DC, D_803EF6E0, D_803EF6E4) / 32, a new one 10 frames after the last. */
+ * D_80300A68 at (gCarrierX, gCarrierY, gCarrierZ) / 32, a new one 10 frames after the last. */
 void func_8028273C(Gfx **gfx, u8 arg1) {
     Gfx *gdl;
     f32 mf[4][4];
@@ -1066,7 +1066,7 @@ void func_8028273C(Gfx **gfx, u8 arg1) {
 
     gdl = *gfx;
     if (gCarrierHit != 0) {
-        if (D_803EF6FF != 0 && D_8036E4D3 == 0) {
+        if (gCarrierExplodeDone != 0 && D_8036E4D3 == 0) {
             D_8036E4D3 = 1;
             D_8036E5D8[0] = 0.001f;
             D_8036E4D4 = D_803156C4;
@@ -1081,7 +1081,7 @@ void func_8028273C(Gfx **gfx, u8 arg1) {
             gDPFillRectangle(gdl++, 0, 0, 319, 239);
         }
         for (i = 0; i < D_8036E4D3; i++) {
-            guTranslateF(mf, D_803EF6DC / 32.0f, D_803EF6E0 / 32.0f, D_803EF6E4 / 32.0f);
+            guTranslateF(mf, gCarrierX / 32.0f, gCarrierY / 32.0f, gCarrierZ / 32.0f);
             guScaleF(scale, D_8036E5D8[i], D_8036E5D8[i], D_8036E5D8[i]);
             D_8036E5D8[i] += 0.06;
             guMtxCatF(scale, mf, mf);

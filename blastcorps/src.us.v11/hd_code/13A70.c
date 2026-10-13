@@ -72,8 +72,8 @@ extern Struct13A70 *gVehicleShadows;
 extern Struct13A70 *gVehicleShadowsEnd;
 #endif
 #endif
-extern Gfx D_803650B0[];
-extern Vp D_802E8C60;
+extern Gfx gShadowRenderDl[];
+extern Vp gShadowViewport;
 extern Mtx D_803651F0;
 extern Mtx D_80365230;
 extern Mtx D_80365270;
@@ -84,7 +84,8 @@ extern Object *gObjectsEnd;
 #endif
 
 
-void func_80258230(u8 id, s32 arg1, s16 arg2, s16 arg3) {
+/* Appends a gVehicleShadows record for a vehicle type (0x80258230). */
+void veh_add_shadow(u8 id, s32 arg1, s16 arg2, s16 arg3) {
     gVehicleShadowsEnd->unk1022 = id;
     gVehicleShadowsEnd->unk1023 = 0;
     gVehicleShadowsEnd->unk1000 = arg1;
@@ -96,7 +97,8 @@ void func_80258230(u8 id, s32 arg1, s16 arg2, s16 arg3) {
     gVehicleShadowsEnd++;
 }
 
-void func_802582C4(u8 id, s32 x, s32 y, s32 z, s32 arg4, s32 arg5, s32 arg6, s32 arg7) {
+/* Sets the type's shadow position (J-Bomb's: the floor below) (0x802582C4). */
+void veh_update_shadow(u8 id, s32 x, s32 y, s32 z, s32 arg4, s32 arg5, s32 arg6, s32 arg7) {
     u8 found = 0;
     Struct13A70 *p;
     u8 hit = 0;
@@ -108,7 +110,7 @@ void func_802582C4(u8 id, s32 x, s32 y, s32 z, s32 arg4, s32 arg5, s32 arg6, s32
     s32 d3;
 
     if (id == 9) {
-        hit = func_802ABEDC(x, arg4, z);
+        hit = ground_over_object(x, arg4, z);
         if (hit) {
             mode = 1;
         }
@@ -117,12 +119,12 @@ void func_802582C4(u8 id, s32 x, s32 y, s32 z, s32 arg4, s32 arg5, s32 arg6, s32
             d1 = arg4 - (h << 5);
             d3 = arg4 - y;
             if (hit) {
-                d2 = arg4 - D_803EBBF8;
+                d2 = arg4 - gObjectFloorY;
             } else {
                 d2 = 9999999;
             }
             if (d1 > 0 && d1 < d2 && d1 < d3) {
-                D_803EBBF8 = h << 5;
+                gObjectFloorY = h << 5;
                 mode = 2;
             }
         }
@@ -131,7 +133,7 @@ void func_802582C4(u8 id, s32 x, s32 y, s32 z, s32 arg4, s32 arg5, s32 arg6, s32
         if (p->unk1022 == id) {
             p->unk1004 = x;
             if (mode) {
-                p->unk1008 = D_803EBBF8;
+                p->unk1008 = gObjectFloorY;
             } else {
                 p->unk1008 = y;
             }
@@ -149,7 +151,8 @@ void func_802582C4(u8 id, s32 x, s32 y, s32 z, s32 arg4, s32 arg5, s32 arg6, s32
     }
 }
 
-s32 func_802584BC(u8 id) {
+/* The type's shadow y (0x802584BC). */
+s32 veh_shadow_floor_y(u8 id) {
     Struct13A70 *p = gVehicleShadows;
 
     while (TRUE) {
@@ -160,7 +163,8 @@ s32 func_802584BC(u8 id) {
     }
 }
 
-s32 func_80258500(u8 id) {
+/* The type's y as last given to veh_update_shadow (0x80258500). */
+s32 veh_shadow_src_y(u8 id) {
     Struct13A70 *p = gVehicleShadows;
 
     while (TRUE) {
@@ -171,12 +175,13 @@ s32 func_80258500(u8 id) {
     }
 }
 
-void func_80258544(void *cimg, s32 x, s32 y, s32 z, f32 dist, Gfx *dl, void *seg6, void *seg7) {
-    Gfx *gdl = D_803650B0;
+/* Renders a vehicle top-down into its 64x64 shadow texture (0x80258544). */
+void veh_render_shadow_tex(void *cimg, s32 x, s32 y, s32 z, f32 dist, Gfx *dl, void *seg6, void *seg7) {
+    Gfx *gdl = gShadowRenderDl;
     u16 perspNorm;
     s32 pad;
 
-    gSPViewport(gdl++, PHYS(&D_802E8C60));
+    gSPViewport(gdl++, PHYS(&gShadowViewport));
     gSPClearGeometryMode(gdl++, 0xFFFFFFFF);
     gSPTexture(gdl++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_OFF);
     gSPSegment(gdl++, 0, 0);
@@ -208,10 +213,11 @@ void func_80258544(void *cimg, s32 x, s32 y, s32 z, f32 dist, Gfx *dl, void *seg
     gSPDisplayList(gdl++, PHYS(dl));
     gSPEndDisplayList(gdl++);
     osWritebackDCache(&D_803651F0, 0x140);
-    rsp_send_task((u64 *) D_803650B0, gdl - D_803650B0, 1, 0, 0x61F, 0);
+    rsp_send_task((u64 *) gShadowRenderDl, gdl - gShadowRenderDl, 1, 0, 0x61F, 0);
 }
 
-void func_80258B78(Gfx **gdlp, VtxBuf *buf) {
+/* Blob shadows under objects of type 0xBA..0xBC (0x80258B78). */
+void obj_draw_ground_shadows(Gfx **gdlp, VtxBuf *buf) {
     Gfx *gdl = *gdlp;
     s32 i = 0;
     s32 n = 0;

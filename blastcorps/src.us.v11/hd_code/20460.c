@@ -263,7 +263,7 @@ void people_flee(void) {
                 func_80260650(D_80367738, 0x24, 0);
             }
             if (gPeople[i].unk15 == 2) {
-                D_803EF32C = 6;
+                gChopperMode = 6;
             }
             gPeople[i].unk15 = 4;
         } else if (gPeople[i].unk15 == 4) {
@@ -348,10 +348,10 @@ void people_step(s32 arg0) {
 }
 
 /* Chopper pickup: boarding, and the next person to fetch (0x80265E48).
- * When the chopper has landed (D_803EF32D) the chosen person boards; when it
- * is free (D_803EF32C == 0) it is sent to the idle person nearest it, with a
+ * When the chopper has landed (gChopperTouchdown) the chosen person boards; when it
+ * is free (gChopperMode == 0) it is sent to the idle person nearest it, with a
  * sound. Rare's slip: the "farthest person" choice for `forced` is dead code,
- * since the timeout that sets forced also sets D_803EF32C = 6 in the same call.
+ * since the timeout that sets forced also sets gChopperMode = 6 in the same call.
  * The first three initialisers share a line (as1 schedules by source line). */
 void people_dispatch_chopper(void) {
     s32 i;
@@ -367,7 +367,7 @@ void people_dispatch_chopper(void) {
     minIdx = -1; minDist = 99999999; maxIdx = -1;
     maxDist = 0;
     forced = 0;
-    if (D_803EF32D) {
+    if (gChopperTouchdown) {
         i = 0;
         found = 0;
         while (!found) {
@@ -379,17 +379,17 @@ void people_dispatch_chopper(void) {
                 i++;
             }
         }
-        D_803EF32D = 0;
+        gChopperTouchdown = 0;
         gChopperPickupTimer = 99999999;
     } else {
         gChopperPickupTimer--;
         if (gChopperPickupTimer == 0) {
-            D_803EF32C = 6;
+            gChopperMode = 6;
             gPeople[gChopperPickupIndex].unk15 = 1;
             forced = 1;
         }
     }
-    if (D_803EF32C == 0) {
+    if (gChopperMode == 0) {
         for (i = 0; i < 20; i++) {
             if (gPeople[i].unk15 == 3) {
                 gPeople[i].unk15 = 0;
@@ -397,7 +397,7 @@ void people_dispatch_chopper(void) {
         }
         for (i = 0; i < 20; i++) {
             if (gPeople[i].unk15 == 1) {
-                d = func_8026A610(D_803EF2EC, D_803EF2F4, gPeople[i].x << 5, gPeople[i].z << 5);
+                d = func_8026A610(gChopperX, gChopperZ, gPeople[i].x << 5, gPeople[i].z << 5);
                 if (d < minDist) {
                     minIdx = i;
                     minDist = d;
@@ -414,17 +414,17 @@ void people_dispatch_chopper(void) {
             } else {
                 i = minIdx;
             }
-            D_803EF308 = gPeople[i].x << 5;
-            D_803EF30C = gPeople[i].z << 5;
+            gChopperTargetX = gPeople[i].x << 5;
+            gChopperTargetZ = gPeople[i].z << 5;
             gChopperLandY = gPeople[i].y << 5;
             gPeople[i].unk15 = 2;
             gChopperPickupTimer = 600;
-            D_803EF32C = 1;
+            gChopperMode = 1;
             gChopperPickupIndex = i;
-            if (35000 - func_8026A610(gPlayerX, gPlayerZ, D_803EF308, D_803EF30C) * 2 >= 0x8000) {
+            if (35000 - func_8026A610(gPlayerX, gPlayerZ, gChopperTargetX, gChopperTargetZ) * 2 >= 0x8000) {
                 vol = 0x7FFF;
             } else {
-                vol = 35000 - func_8026A610(gPlayerX, gPlayerZ, D_803EF308, D_803EF30C) * 2;
+                vol = 35000 - func_8026A610(gPlayerX, gPlayerZ, gChopperTargetX, gChopperTargetZ) * 2;
             }
             if (vol > 4000) {
                 func_80260AB8(func_80260650(D_80367738, 0x25, 0), 8, vol);
@@ -437,11 +437,11 @@ void people_dispatch_chopper(void) {
  * The chopper's target becomes the carrier's x/z; the player's x/z are kept
  * for the retarget (72B80.c). */
 void chopper_fly_to_carrier(void) {
-    D_803EF308 = D_803EF6DC;
-    D_803EF30C = D_803EF6E4;
+    gChopperTargetX = gCarrierX;
+    gChopperTargetZ = gCarrierZ;
     gChopperRetargetX = gPlayerX;
     gChopperRetargetZ = gPlayerZ;
-    D_803EF32C = 1;
+    gChopperMode = 1;
     gChopperPickupTimer = 2000;
 }
 

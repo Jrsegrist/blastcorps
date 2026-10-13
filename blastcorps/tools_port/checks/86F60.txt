@@ -1,180 +1,180 @@
-# func_802CBB60: return 0 if D_803F8E80[0x96..0x98] has a 1, else 1
-func_802CBB60: -n 300 --mem D_803F8E80+0x96:3=bytes:0,1*2,2,0xFF
+# police_exit_check: return 0 if gPoliceState[0x96..0x98] has a 1, else 1
+police_exit_check: -n 300 --mem gPoliceState+0x96:3=bytes:0,1*2,2,0xFF
 # exactly one of 0x96..0x98 equals 1 (first/last/middle)
-func_802CBB60: -n 100 --seed 1 --mem D_803F8E80+0x96:3=onehot:1/1:1:bytes:0,2,0x81,0xFF
+police_exit_check: -n 100 --seed 1 --mem gPoliceState+0x96:3=onehot:1/1:1:bytes:0,2,0x81,0xFF
 # none equals 1 (values 0 / 0xFF / 0x101 low byte) -> depends on the extra flag only
-func_802CBB60: -n 100 --seed 2 --mem D_803F8E80+0x96:3=bytes:0,0xFF,2
+police_exit_check: -n 100 --seed 2 --mem gPoliceState+0x96:3=bytes:0,0xFF,2
 
-# func_802CC8B8: D_803EBBF4 = D_803EBBF0 * 4.0f; D_803ED3F6 = 150; D_803ED3F7 = 6
-func_802CC8B8: -n 200 --ret void --mem D_803EBBF0:4=floats --mem D_803EBBF4=int --mem D_803ED3F6:2=rand
-func_802CC8B8: -n 60 --seed 1 --ret void --mem D_803EBBF0=choice:0,0x80000000,0x3F800000,0xBF800000,0x7F7FFFFF,0xFF7FFFFF,0x7F800000,0xFF800000,0x7FC00000,0x00000001 \
-    --mem D_803EBBF4=choice:0,-1 --mem D_803ED3F6:2=bytes:0,0xFF
+# police_set_physics: gGravity = gLevelGravity * 4.0f; gBounceThreshold = 150; gBounceDamping = 6
+police_set_physics: -n 200 --ret void --mem gLevelGravity:4=floats --mem gGravity=int --mem gBounceThreshold:2=rand
+police_set_physics: -n 60 --seed 1 --ret void --mem gLevelGravity=choice:0,0x80000000,0x3F800000,0xBF800000,0x7F7FFFFF,0xFF7FFFFF,0x7F800000,0xFF800000,0x7FC00000,0x00000001 \
+    --mem gGravity=choice:0,-1 --mem gBounceThreshold:2=bytes:0,0xFF
 
-# func_802CC56C: tyre trail ($gp = D_803F8E80); func_8027BE7C's args at their declared widths (--conv)
-func_802CC56C: -n 400 --seed 0 --ret void --arg gp=sym:D_803F8E80 \
+# police_add_tyre_trail: tyre trail ($gp = gPoliceState); func_8027BE7C's args at their declared widths (--conv)
+police_add_tyre_trail: -n 400 --seed 0 --ret void --arg gp=sym:gPoliceState \
     --conv 'func_8027BE7C: in a0=a0:1,a1=a1,a2=a2:2,a3=a3:2,stack0=stack0:2,stack1=stack1:2,stack2=stack2,stack3=stack3,stack4=stack4:2,stack5=stack5:1,stack6=stack6:1,stack7=stack7:1,stack8=stack8:1' \
-    --mem D_803F8E80+0x99:1=bytes:0,1,0x80 \
-    --mem D_803F8E80+0x98:1=bytes:0*3,1,2 --mem D_803F8E80+0x50:1=bytes:0,1,2*2,3,4,0x80,0xFF --mem D_803F8E80+0x9B:1=bytes:0*4,1,0x80 \
-    --mem D_803F8E80+0x1C=int --mem D_803F8E80+0x4E:2=int:0:0xFFFF --mem D_803F8F28=int --mem D_803F8F30=int
-func_802CC56C: -n 100 --seed 1 --ret void --arg gp=sym:D_803F8E80 \
+    --mem gPoliceState+0x99:1=bytes:0,1,0x80 \
+    --mem gPoliceState+0x98:1=bytes:0*3,1,2 --mem gPoliceState+0x50:1=bytes:0,1,2*2,3,4,0x80,0xFF --mem gPoliceState+0x9B:1=bytes:0*4,1,0x80 \
+    --mem gPoliceState+0x1C=int --mem gPoliceState+0x4E:2=int:0:0xFFFF --mem gPolicePos=int --mem D_803F8F30=int
+police_add_tyre_trail: -n 100 --seed 1 --ret void --arg gp=sym:gPoliceState \
     --conv 'func_8027BE7C: in a0=a0:1,a1=a1,a2=a2:2,a3=a3:2,stack0=stack0:2,stack1=stack1:2,stack2=stack2,stack3=stack3,stack4=stack4:2,stack5=stack5:1,stack6=stack6:1,stack7=stack7:1,stack8=stack8:1' \
-    --mem D_803F8E80+0x99:1=1 --mem D_803F8E80+0x98:1=0 --mem D_803F8E80+0x50:1=bytes:0,2 --mem D_803F8E80+0x9B:1=0 \
-    --mem D_803F8E80+0x1C=choice:0,-1,0x7FFFFFFF,0x80000000 --mem D_803F8E80+0x4E:2=halves:0,0x7FFF,0x8000,0xFFFF \
-    --mem D_803F8F28=choice:0,-1,0x80000000,0x123456 --mem D_803F8F30=choice:0,-1,0x7FFFFFFF,0x123456
-# func_802CC844: s3 (-> v0) = round_nearest(speed(+0x76) / (bytes +0x96/7/8 any == 1 ? 11.0 : D_8030D9B4)); $gp = D_803F8E80
-func_802CC844: -n 300 --seed 0 --arg gp=sym:D_803F8E80 --mem D_803F8E80+0x96:3=bytes:0,1,2,0xFF*3 \
-    --mem D_803F8E80+0x76:2=int:0:0xFFFF
-func_802CC844: -n 300 --seed 1 --arg gp=sym:D_803F8E80 --mem D_803F8E80+0x96:3=bytes:0*3,1,2*3 \
+    --mem gPoliceState+0x99:1=1 --mem gPoliceState+0x98:1=0 --mem gPoliceState+0x50:1=bytes:0,2 --mem gPoliceState+0x9B:1=0 \
+    --mem gPoliceState+0x1C=choice:0,-1,0x7FFFFFFF,0x80000000 --mem gPoliceState+0x4E:2=halves:0,0x7FFF,0x8000,0xFFFF \
+    --mem gPolicePos=choice:0,-1,0x80000000,0x123456 --mem D_803F8F30=choice:0,-1,0x7FFFFFFF,0x123456
+# police_steer_rate: s3 (-> v0) = round_nearest(speed(+0x76) / (bytes +0x96/7/8 any == 1 ? 11.0 : D_8030D9B4)); $gp = gPoliceState
+police_steer_rate: -n 300 --seed 0 --arg gp=sym:gPoliceState --mem gPoliceState+0x96:3=bytes:0,1,2,0xFF*3 \
+    --mem gPoliceState+0x76:2=int:0:0xFFFF
+police_steer_rate: -n 300 --seed 1 --arg gp=sym:gPoliceState --mem gPoliceState+0x96:3=bytes:0*3,1,2*3 \
     --mem D_8030D9B4=words:0x40000000,0x40800000,0x3F000000,0x40C00000 \
-    --mem D_803F8E80+0x76:2=halves:0,1,2,3,5,6,9,15,0x7FFF,0x8000,0xFFFD,0xFFF7,0xFFFF,0xFFFE
-func_802CC844: -n 300 --seed 2 --arg gp=sym:D_803F8E80 --mem D_803F8E80+0x96:3=bytes:0,1,2 \
-    --mem D_8030D9B4:4=floats:0.25:40 --mem D_803F8E80+0x76:2=int:0:0xFFFF
+    --mem gPoliceState+0x76:2=halves:0,1,2,3,5,6,9,15,0x7FFF,0x8000,0xFFFD,0xFFF7,0xFFFF,0xFFFE
+police_steer_rate: -n 300 --seed 2 --arg gp=sym:gPoliceState --mem gPoliceState+0x96:3=bytes:0,1,2 \
+    --mem D_8030D9B4:4=floats:0.25:40 --mem gPoliceState+0x76:2=int:0:0xFFFF
 
-# zone lookup wrapper (id 0xD at D_803F8F28): func_802ABD54 stubbed (scan registers mapped through r)
-func_802CBD18: -n 200 --mem D_803F8F28:12=rand
-func_802CBD18: -n 300 --seed 1 --follow func_802ABD54,func_802ABCDC --mem D_803F8F28=int:-100:100 --mem D_803F8F28+4=int:-100:100 \
-    --mem D_803F8F28+8=int:-100:100 --mem D_803BDFD4=rel:D_803BDFD8+0x24*int:0:4 --mem D_803BDFD8:0x90=rand \
-    --mem D_803BDFD8*0x24:4=int:-100:100 --mem D_803BDFD8+4*0x24:4=int:-100:100 --mem D_803BDFD8+8*0x24:4=int:-100:100 \
-    --mem D_803BDFD8+0xC*0x24:4=choice:1,10,50,100,200,1000 --mem D_803BDFD8+0x10*0x24:4/1=choice:0,1,1,2 \
-    --mem D_803BDFD8+0x12*0x24:4/1=choice:0,1,1,1 --mem D_803BDFD8+0x13*0x24:4/1=choice:0,1,2,3 \
-    --mem D_803BDFD8+0x14*0x24:4/1=choice:0,0,5,0xFF --mem D_803BDFD8+0x15*0x24:4/1=choice:0xD,0xD,0x30 \
-    --mem D_803BDFD8+0x16*0x24:4/1=choice:0xD,0x31 --mem D_803BDFD8+0x17*0x24:4/1=choice:0xD,0x32 \
-    --mem D_80364A6E:1=choice:0,1,0x80,0xFF,0x40 --mem gVehicles+0x5C*0x74:3=choice:0x100,0x200 \
+# zone lookup wrapper (id 0xD at gPolicePos): veh_zone_alpha stubbed (scan registers mapped through r)
+police_zone_alpha: -n 200 --mem gPolicePos:12=rand
+police_zone_alpha: -n 300 --seed 1 --follow veh_zone_alpha,math_dist3 --mem gPolicePos=int:-100:100 --mem gPolicePos+4=int:-100:100 \
+    --mem gPolicePos+8=int:-100:100 --mem gAlphaZonesEnd=rel:gAlphaZones+0x24*int:0:4 --mem gAlphaZones:0x90=rand \
+    --mem gAlphaZones*0x24:4=int:-100:100 --mem gAlphaZones+4*0x24:4=int:-100:100 --mem gAlphaZones+8*0x24:4=int:-100:100 \
+    --mem gAlphaZones+0xC*0x24:4=choice:1,10,50,100,200,1000 --mem gAlphaZones+0x10*0x24:4/1=choice:0,1,1,2 \
+    --mem gAlphaZones+0x12*0x24:4/1=choice:0,1,1,1 --mem gAlphaZones+0x13*0x24:4/1=choice:0,1,2,3 \
+    --mem gAlphaZones+0x14*0x24:4/1=choice:0,0,5,0xFF --mem gAlphaZones+0x15*0x24:4/1=choice:0xD,0xD,0x30 \
+    --mem gAlphaZones+0x16*0x24:4/1=choice:0xD,0x31 --mem gAlphaZones+0x17*0x24:4/1=choice:0xD,0x32 \
+    --mem gDefaultVehAlpha:1=choice:0,1,0x80,0xFF,0x40 --mem gVehicles+0x5C*0x74:3=choice:0x100,0x200 \
     --mem gVehicles+0x1B8=0xD --mem gVehicles+0x60*0x74:4=int
 
-# func_802CBA94: enter vehicle 13: +0x99 = 0, gCamDistance / gCamHeightBase = 3000, 1000, channel resets for D_802C2324 / D_802C2348,
-# func_802C4310(a0, 0xCE) (the asm's $gp change is declared `clobbers gp` in conventions.txt)
-func_802CBA94: -n 200 --seed 0 --ret void --sig func_802C4310=a0,a1 --arg a0=int \
-    --mem D_803F8E80+0x99:1=bytes:1,0xFF --mem gCamDistance:2=rand --mem gCamHeightBase:2=rand
-# channel setters and the looping-sound start run for real (func_802A06B4 finds both keys in D_803B35F8)
-func_802CBA94: -n 40 --seed 1 --ret void --arg a0=int --follow func_802A05D0,func_802A05F8,func_802A0620,func_802A0508,func_802A06B4 \
-    --sig func_802C4310=a0,a1 --mem D_803B35F8:0x180=rand --mem D_803B35F8+0x30=sym:D_802C2324 --mem D_803B35F8+0x78=sym:D_802C2348 --mem gCamDistance:2=rand --mem gCamHeightBase:2=rand
+# police_enter: enter vehicle 13: +0x99 = 0, gCamDistance / gCamHeightBase = 3000, 1000, channel resets for D_802C2324 / D_802C2348,
+# veh_start_engine_sound(a0, 0xCE) (the asm's $gp change is declared `clobbers gp` in conventions.txt)
+police_enter: -n 200 --seed 0 --ret void --sig veh_start_engine_sound=a0,a1 --arg a0=int \
+    --mem gPoliceState+0x99:1=bytes:1,0xFF --mem gCamDistance:2=rand --mem gCamHeightBase:2=rand
+# channel setters and the looping-sound start run for real (anim_tex_find finds both keys in gTexAnims)
+police_enter: -n 40 --seed 1 --ret void --arg a0=int --follow anim_tex_set_speed,anim_tex_set_reverse,anim_tex_set_loop_mode,anim_tex_play,anim_tex_find \
+    --sig veh_start_engine_sound=a0,a1 --mem gTexAnims:0x180=rand --mem gTexAnims+0x30=sym:D_802C2324 --mem gTexAnims+0x78=sym:D_802C2348 --mem gCamDistance:2=rand --mem gCamHeightBase:2=rand
 
-# func_802CBBBC: leave vehicle 13: speed (+0x76) = 0, func_802A7764(D_803F8F38, D_803F8F3C, 0x100), func_802C444C()
-func_802CBBBC: -n 50 --seed 0 --ret void --sig func_802A7764=a0,a1,a2 --sig func_802C444C= --mem D_803F8F38:8=rand \
-    --mem D_803F8E80+0x76:2=rand
-func_802CBBBC: -n 40 --seed 1 --ret void --follow func_802A7764,func_802C444C --sig func_802608C8=a0 --heap 0x100 --heap 0x100 \
-    --mem D_803F8F38=rel:heap0 --mem D_803F8F3C=rel:heap1 --mem gBufferIndex:1=bytes:0,1 --mem D_803F7844:8=words:0,0x80123450 \
-    --mem D_803F8E80+0x76:2=rand
+# police_leave: leave vehicle 13: speed (+0x76) = 0, veh_sync_buffers(gPoliceMtxA, gPoliceMtxB, 0x100), veh_stop_engine_sounds()
+police_leave: -n 50 --seed 0 --ret void --sig veh_sync_buffers=a0,a1,a2 --sig veh_stop_engine_sounds= --mem gPoliceMtxA:8=rand \
+    --mem gPoliceState+0x76:2=rand
+police_leave: -n 40 --seed 1 --ret void --follow veh_sync_buffers,veh_stop_engine_sounds --sig func_802608C8=a0 --heap 0x100 --heap 0x100 \
+    --mem gPoliceMtxA=rel:heap0 --mem gPoliceMtxB=rel:heap1 --mem gBufferIndex:1=bytes:0,1 --mem gEngineSound:8=words:0,0x80123450 \
+    --mem gPoliceState+0x76:2=rand
 
-# func_802CC400 (t6, t7, s0-s3 through to fx_spawn; gp = D_803F8E80): animation phase (wraps 14 -> 2),
-# channel unk13 / unk4, trail, countdown / +0x99 / record count < 15 spawn, func_802C4584(|speed| >> 5)
-func_802CC400: -n 400 --seed 0 --arg gp=sym:D_803F8E80 --arg t6=int --arg t7=int --arg s0=int --arg s1=int --arg s2=int \
-    --arg s3=int --mem gHeldL:2=bytes:0*2,1,0x80 --mem D_803F8F45:1=bytes:0,1,2,12,13,14,0xFE,0xFF \
-    --mem D_803F8F42:1=bytes:0*3,1,2,0xFF --mem D_803F8E80+0x99:1=bytes:0,1,0x80 \
-    --mem D_803F8E80+0x76:2=halves:0,1,0x1F,0x20,0x21,0x7FFF,0x8000,0xFFFF,0xFFE0,0xFFDF,0xFFE1,0x1234 \
-    --stub-ret fx_count_active=choice:0,14,15,16,-1,0x7FFFFFFF --sig func_802CC56C=
+# police_update_effects (t6, t7, s0-s3 through to fx_spawn; gp = gPoliceState): animation phase (wraps 14 -> 2),
+# channel unk13 / unk4, trail, countdown / +0x99 / record count < 15 spawn, veh_set_engine_level(|speed| >> 5)
+police_update_effects: -n 400 --seed 0 --arg gp=sym:gPoliceState --arg t6=int --arg t7=int --arg s0=int --arg s1=int --arg s2=int \
+    --arg s3=int --mem gHeldL:2=bytes:0*2,1,0x80 --mem gPoliceLightPhase:1=bytes:0,1,2,12,13,14,0xFE,0xFF \
+    --mem D_803F8F42:1=bytes:0*3,1,2,0xFF --mem gPoliceState+0x99:1=bytes:0,1,0x80 \
+    --mem gPoliceState+0x76:2=halves:0,1,0x1F,0x20,0x21,0x7FFF,0x8000,0xFFFF,0xFFE0,0xFFDF,0xFFE1,0x1234 \
+    --stub-ret fx_count_active=choice:0,14,15,16,-1,0x7FFFFFFF --sig police_add_tyre_trail=
 # phase wrap and flag combinations; countdown 0 with +0x99 set at the < 15 boundary
-func_802CC400: -n 150 --seed 1 --arg gp=sym:D_803F8E80 --arg t6=int --arg t7=int --arg s0=int --arg s1=int --arg s2=int \
-    --arg s3=int --mem gHeldL:1=bytes:0,1 --mem gHeldR:1=bytes:0,1 --mem D_803F8F45:1=bytes:0,12,13,0xFF \
-    --mem D_803F8F42:1=0 --mem D_803F8E80+0x99:1=bytes:1,0xFF --mem D_803F8E80+0x76:2=halves:0,0x8000,0xFFFF \
-    --stub-ret fx_count_active=choice:14,15,-1,0x80000000 --sig func_802CC56C=
-# callees run for real (channel setter, trail, record count, record setup through func_802ABC88 for id 0xD, sound level)
-func_802CC400: -n 200 --seed 2 --arg gp=sym:D_803F8E80 --arg t6=int --arg t7=int --arg s0=int --arg s1=int --arg s2=int \
-    --arg s3=int --mem gHeldL:2=bytes:0*2,1 --mem D_803F8F45:1=int:0:13 --mem D_803F8F42:1=bytes:0*3,1 \
-    --mem D_803F8E80+0x98:4=rand --mem D_803F8E80+0x99:1=bytes:0,1*3 --mem D_803F8E80+0x76:2=int:0:0xFFFF \
-    --mem D_803F8E80+0x50:1=bytes:0,1,2,3 \
-    --follow func_802A05A4,func_802A06B4,func_802CC56C,fx_count_active,fx_spawn,func_802ABC88,func_802C4584 \
-    --mem D_803B35F8:0x180=rand --mem D_803B35F8+0x30=sym:D_802C2324 --mem D_803B35F8+0x78=sym:D_802C2348 \
-    --mem D_803EBC10:0x100=onehot:0x10@0xC/1:0xD:bytes:1,2,3 --mem gEffects:0x3C0=rand --mem gEffects+0x33*0x3C:16/1=bytes:0,1 \
+police_update_effects: -n 150 --seed 1 --arg gp=sym:gPoliceState --arg t6=int --arg t7=int --arg s0=int --arg s1=int --arg s2=int \
+    --arg s3=int --mem gHeldL:1=bytes:0,1 --mem gHeldR:1=bytes:0,1 --mem gPoliceLightPhase:1=bytes:0,12,13,0xFF \
+    --mem D_803F8F42:1=0 --mem gPoliceState+0x99:1=bytes:1,0xFF --mem gPoliceState+0x76:2=halves:0,0x8000,0xFFFF \
+    --stub-ret fx_count_active=choice:14,15,-1,0x80000000 --sig police_add_tyre_trail=
+# callees run for real (channel setter, trail, record count, record setup through veh_find_point for id 0xD, sound level)
+police_update_effects: -n 200 --seed 2 --arg gp=sym:gPoliceState --arg t6=int --arg t7=int --arg s0=int --arg s1=int --arg s2=int \
+    --arg s3=int --mem gHeldL:2=bytes:0*2,1 --mem gPoliceLightPhase:1=int:0:13 --mem D_803F8F42:1=bytes:0*3,1 \
+    --mem gPoliceState+0x98:4=rand --mem gPoliceState+0x99:1=bytes:0,1*3 --mem gPoliceState+0x76:2=int:0:0xFFFF \
+    --mem gPoliceState+0x50:1=bytes:0,1,2,3 \
+    --follow anim_tex_set_frame,anim_tex_find,police_add_tyre_trail,fx_count_active,fx_spawn,veh_find_point,veh_set_engine_level \
+    --mem gTexAnims:0x180=rand --mem gTexAnims+0x30=sym:D_802C2324 --mem gTexAnims+0x78=sym:D_802C2348 \
+    --mem gVehPoints:0x100=onehot:0x10@0xC/1:0xD:bytes:1,2,3 --mem gEffects:0x3C0=rand --mem gEffects+0x33*0x3C:16/1=bytes:0,1 \
     --mem gFxTileSlots:16=bytes:0,1 --mem D_803EB792:1=rand --sig tex_queue_palette=a0,a1 --sig func_80260AB8=a0,a1,a2 \
-    --mem D_803F7840:2=rand --mem D_80364AB0:1=bytes:0,1 \
+    --mem gEngineSoundLevel:2=rand --mem D_80364AB0:1=bytes:0,1 \
     --conv 'func_8027BE7C: in a0=a0:1,a1=a1,a2=a2:2,a3=a3:2,stack0=stack0:2,stack1=stack1:2,stack2=stack2,stack3=stack3,stack4=stack4:2,stack5=stack5:1,stack6=stack6:1,stack7=stack7:1,stack8=stack8:1'
-# func_802CC70C: model placement (func_802AA764, func_8029C454 / func_802ABBEC id 0xD); regs pointers not compared
-func_802CC70C: -n 300 --arg gp=sym:D_803F8E80 --heap 0x200 --heap 0x100 --mem D_803F8F34=rel:heap0 \
+# police_build_model: model placement (mtx_build_model, veh_place_parts / veh_points_transform id 0xD); regs pointers not compared
+police_build_model: -n 300 --arg gp=sym:gPoliceState --heap 0x200 --heap 0x100 --mem gPoliceModel=rel:heap0 \
     --mem @heap0=int:0:0x100 --mem @heap0+4=int:0:0x100 --mem @heap0+8=int:0:0x100 --mem @heap0+0x18=choice:0x80,0x40,0x100 \
-    --mem D_803F8F38=int --mem D_803F8F3C=int --mem gBufferIndex:1=choice:0,1,0xFF \
-    --mem D_803F8E80:0xA0=rand --mem D_803F8F28:12=rand --mem D_803ED390:6=rand \
-    --sig func_8029C454=a0,a1,a2,a3,stack0,stack1,stack2 --sig func_802ABBEC=a0,a1,a2,a3
-# followed: one part and one point entry with one matrix each, the D_803A7300 / D_803A6B30 / D_803EBC10 slots for 0xD first
-func_802CC70C: -n 200 --seed 1 --arg gp=sym:D_803F8E80 --heap 0x200 --heap 0x100 --mem D_803F8F34=rel:heap0 \
+    --mem gPoliceMtxA=int --mem gPoliceMtxB=int --mem gBufferIndex:1=choice:0,1,0xFF \
+    --mem gPoliceState:0xA0=rand --mem gPolicePos:12=rand --mem gModelRot:6=rand \
+    --sig veh_place_parts=a0,a1,a2,a3,stack0,stack1,stack2 --sig veh_points_transform=a0,a1,a2,a3
+# followed: one part and one point entry with one matrix each, the gVehBoundSpheres / gVehPartSpheres / gVehPoints slots for 0xD first
+police_build_model: -n 200 --seed 1 --arg gp=sym:gPoliceState --heap 0x200 --heap 0x100 --mem gPoliceModel=rel:heap0 \
     --mem @heap0=0x40 --mem @heap0+4=0x4C --mem @heap0+8=0x60 --mem @heap0+0x18=0x80 --mem @heap0+0x84=int \
     --mem @heap0+0x40:6=rand --mem @heap0+0x46:2=1 --mem @heap0+0x48=choice:0,0x40 \
     --mem @heap0+0x50:0xA=rand --mem @heap0+0x5A:2=1 --mem @heap0+0x5C=choice:0,0x40 \
-    --mem D_803F8F38=rel:heap1 --mem D_803F8F3C=rel:heap1+0x80 --mem gBufferIndex:1=choice:0,1 \
-    --mem D_803F8E80:0xA0=rand --mem D_803F8F28:12=int:-0x10000:0x10000 --mem D_803ED390:6=rand \
-    --mem D_803A7300:0x28=rand --mem D_803A7300+0x10:1=0xD --mem D_803A6B30:0x28=rand --mem D_803A6B30+0x12:1=0xD \
-    --mem D_803EBC10:0x20=rand --mem D_803EBC10=1 --mem D_803EBC10+0xC:1=0xD \
-    --follow func_802AA764,func_8029C454,func_802ABBEC,func_802AA890
-# func_802CBD5C: value pairs at the position and at the rotated offset (tbl[0] at +0x52); offsets kept in range (trapping add)
-func_802CBD5C: -n 300 --arg a3=int:0:40 --arg f24=float --mem D_803F8E80:0xA0=rand --mem D_803F8F28:12=int:-0x1000000:0x1000000 \
-    --stub-ret func_802A94A4=int:-0x1000:0x1000 --stub-ret func_802A94A4.t6=int:-0x1000:0x1000
-func_802CBD5C: -n 200 --seed 1 --arg a3=int:0:40 --arg f24=float --mem D_803F8E80:0xA0=rand --mem D_803F8F28:12=int:-0x1000000:0x1000000 \
-    --follow func_802A94A4,func_802ACE38
-# func_802CBEF0: per-frame update. obj_collide_vehicle runs as a model that sets the hit flag D_803A7424 from heap0 byte 0
-# (drives the hit / no-hit paths); the FP-state pointer of func_802A8768 isn't compared (leaked registers, see 86F60.c)
-func_802CBEF0: -n 300 --heap 0x10 --mem @heap0:1=choice:0,1 --model obj_collide_vehicle=hit_flag_803A7424.py \
-    --mem D_803F8E80:0xA0=rand --mem D_803F8E80+0x9A:1=choice:0,1 --mem D_803F8E80+0x76:2=halves:0,1,49,50,51,0xFFCF,0xFFCE,0xFFCD,0x7FFF,0x8000,100,0xFF9C \
-    --mem D_803F8F28:12=rand --mem D_803F8F38=int --mem D_803F8F3C=int --mem gBufferIndex:1=choice:0,1 \
-    --mem D_80367BFF:1=choice:0,1 --mem D_803F8F44:1=choice:0,1,5 --mem D_803F8F43:1=choice:0,1,0x80 --mem D_803A7425:1=choice:0,1 \
-    --mem gPlayerX:12=rand --mem D_8036443C:6=rand --mem D_803F8F40:2=rand --mem D_803F77D0=rand --mem D_803ED40B:1=rand --mem D_803A7424:1=rand \
-    --stub-ret func_802CC844=int --stub-ret func_802A83B8=float --stub-ret func_802A860C=int --stub-ret func_802A6F6C=int:0:0xFFF \
-    --stub-ret func_802A71DC=int:-100:100 --stub-ret func_802A71DC.a0=int:0:0xFFF \
-    --sig func_802CBD18= --sig func_802CC8B8= --sig func_802CC844= --sig func_802CC70C= --sig func_8029A914=a0 --sig func_802A6F6C= \
-    --sig func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12 \
-    --sig func_802C4724=a0 --sig func_802A7E70=a0,a1 --sig func_8029C52C=a0,a1 --sig func_8029AA10=a0 --sig func_8029E558=a0,a1,a2 \
-    --sig func_802A746C=a0,a1,a2 --sig func_802A6FE4=a0,a1 --sig func_802A70D8=a0 --sig func_802A7070=a0,a1 --sig func_802CB690=a0
+    --mem gPoliceMtxA=rel:heap1 --mem gPoliceMtxB=rel:heap1+0x80 --mem gBufferIndex:1=choice:0,1 \
+    --mem gPoliceState:0xA0=rand --mem gPolicePos:12=int:-0x10000:0x10000 --mem gModelRot:6=rand \
+    --mem gVehBoundSpheres:0x28=rand --mem gVehBoundSpheres+0x10:1=0xD --mem gVehPartSpheres:0x28=rand --mem gVehPartSpheres+0x12:1=0xD \
+    --mem gVehPoints:0x20=rand --mem gVehPoints=1 --mem gVehPoints+0xC:1=0xD \
+    --follow mtx_build_model,veh_place_parts,veh_points_transform,mtx_chain_transform
+# police_ride_attach: value pairs at the position and at the rotated offset (tbl[0] at +0x52); offsets kept in range (trapping add)
+police_ride_attach: -n 300 --arg a3=int:0:40 --arg f24=float --mem gPoliceState:0xA0=rand --mem gPolicePos:12=int:-0x1000000:0x1000000 \
+    --stub-ret veh_wheel_offset=int:-0x1000:0x1000 --stub-ret veh_wheel_offset.t6=int:-0x1000:0x1000
+police_ride_attach: -n 200 --seed 1 --arg a3=int:0:40 --arg f24=float --mem gPoliceState:0xA0=rand --mem gPolicePos:12=int:-0x1000000:0x1000000 \
+    --follow veh_wheel_offset,math_rotate_xz_inv
+# police_update: per-frame update. obj_collide_vehicle runs as a model that sets the hit flag gCollHit from heap0 byte 0
+# (drives the hit / no-hit paths); the FP-state pointer of veh_ground_contact isn't compared (leaked registers, see 86F60.c)
+police_update: -n 300 --heap 0x10 --mem @heap0:1=choice:0,1 --model obj_collide_vehicle=hit_flag_803A7424.py \
+    --mem gPoliceState:0xA0=rand --mem gPoliceState+0x9A:1=choice:0,1 --mem gPoliceState+0x76:2=halves:0,1,49,50,51,0xFFCF,0xFFCE,0xFFCD,0x7FFF,0x8000,100,0xFF9C \
+    --mem gPolicePos:12=rand --mem gPoliceMtxA=int --mem gPoliceMtxB=int --mem gBufferIndex:1=choice:0,1 \
+    --mem D_80367BFF:1=choice:0,1 --mem D_803F8F44:1=choice:0,1,5 --mem D_803F8F43:1=choice:0,1,0x80 --mem gCollBlocked:1=choice:0,1 \
+    --mem gPlayerX:12=rand --mem D_8036443C:6=rand --mem D_803F8F40:2=rand --mem D_803F77D0=rand --mem gBounceSound:1=rand --mem gCollHit:1=rand \
+    --stub-ret police_steer_rate=int --stub-ret veh_slope=float --stub-ret veh_move_along_heading=int --stub-ret veh_free_arc_mid=int:0:0xFFF \
+    --stub-ret veh_turn_into_free_arc=int:-100:100 --stub-ret veh_turn_into_free_arc.a0=int:0:0xFFF \
+    --sig police_zone_alpha= --sig police_set_physics= --sig police_steer_rate= --sig police_build_model= --sig veh_prepare_escape=a0 --sig veh_free_arc_mid= \
+    --sig veh_ground_contact=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12 \
+    --sig veh_update_horn=a0 --sig veh_steer=a0,a1 --sig veh_collide_spheres=a0,a1 --sig veh_collide_world=a0 --sig anim_update_model=a0,a1,a2 \
+    --sig veh_step_heading=a0,a1,a2 --sig veh_hit_slowdown=a0,a1 --sig veh_reverse_if_behind=a0 --sig veh_set_target_heading=a0,a1 --sig func_802CB690=a0
 # followed: the vehicle physics leaves, the zone scan (no zones) and the effects; record words kept in range (trapping sub)
-func_802CBEF0: -n 300 --seed 1 --heap 0x10 --mem @heap0:1=choice:0,1 --model obj_collide_vehicle=hit_flag_803A7424.py \
-    --follow func_802A7E70,func_802A785C,func_802A7FD8,func_802A83B8,func_802A843C,func_802A7070,func_802A860C,func_802A70D8,func_802A71DC,func_802A746C,func_802A6FE4,func_802A6F6C,func_802A75DC,func_802A768C,func_802CC844,func_802CC8B8,func_802CBD18,func_802ABD54,func_802CC400 \
-    --mem D_803BDFD4=sym:D_803BDFD8 --mem gVehicles:0x74=rand --mem gVehicles+0x5C=0xD \
-    --mem D_803F8E80:0xA0=rand --mem D_803F8E80+0x9A:1=choice:0,1 --mem D_803F8E80+0x76:2=halves:0,1,49,50,51,0xFFCF,0xFFCE,0xFFCD,200,0xFF38,100,0xFF9C \
-    --mem D_803F8E80+4*4:16=int:-0x100000:0x100000 --mem D_803F8E80+0x4C:2=int:0:0xFFF --mem D_803F8E80+0x4E:2=int:0:0xFFF --mem D_803F8E80+0x74:2=int:0:0xFFF \
-    --mem D_803F8F28:12=int:-0x1000000:0x1000000 --heap 0x200 --mem D_803F8F38=rel:heap1 --mem D_803F8F3C=rel:heap1+0x100 --mem gBufferIndex:1=choice:0,1 \
-    --mem D_80367BFF:1=choice:0,1 --mem D_803F8F44:1=choice:0,1,5 --mem D_803F8F43:1=choice:0,1,0x80 --mem D_803A7425:1=choice:0,1 \
-    --mem D_803A7410:2=int:0:0xFFF --mem D_803A7412:2=int:0:0xFFF --mem D_803F8F42:4=rand \
-    --mem gPlayerX:12=rand --mem D_8036443C:6=rand --mem D_803F8F40:2=int:0:0xFFF --mem D_803F77D0=rand --mem D_803ED40B:1=rand --mem D_803A7424:1=rand \
-    --sig func_802CBD18= --sig func_802CC70C= --sig func_8029A914=a0 \
-    --sig func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12 \
-    --sig func_802C4724=a0 --sig func_8029C52C=a0,a1 --sig func_8029AA10=a0 --sig func_8029E558=a0,a1,a2 --sig func_802CB690=a0 \
-    --sig func_802CC56C= --sig fx_count_active= --sig func_802C4584=a0 --sig func_802A05A4=f12,a1,a2
-# func_802CBC08: re-seat (func_802A9A60, fp = 0: the C passes 0 for the caller's leaked fp; FP-state pointer not compared)
-func_802CBC08: -n 300 --arg fp=0 --mem D_803F8E80:0xA0=rand --mem D_803F8F28:12=rand \
-    --sig func_802A9A60=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5 --sig func_802CC70C=
-func_802CBC08: -n 200 --seed 1 --arg fp=0 --mem D_803F8E80:0xA0=rand \
-    --sig func_802A9A60=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5 \
-    --heap 0x200 --heap 0x100 --mem D_803F8F34=rel:heap0 \
+police_update: -n 300 --seed 1 --heap 0x10 --mem @heap0:1=choice:0,1 --model obj_collide_vehicle=hit_flag_803A7424.py \
+    --follow veh_steer,veh_throttle,veh_turn_heading,veh_slope,veh_apply_slope,veh_set_target_heading,veh_move_along_heading,veh_reverse_if_behind,veh_turn_into_free_arc,veh_step_heading,veh_hit_slowdown,veh_free_arc_mid,veh_snapshot,veh_rollback,police_steer_rate,police_set_physics,police_zone_alpha,veh_zone_alpha,police_update_effects \
+    --mem gAlphaZonesEnd=sym:gAlphaZones --mem gVehicles:0x74=rand --mem gVehicles+0x5C=0xD \
+    --mem gPoliceState:0xA0=rand --mem gPoliceState+0x9A:1=choice:0,1 --mem gPoliceState+0x76:2=halves:0,1,49,50,51,0xFFCF,0xFFCE,0xFFCD,200,0xFF38,100,0xFF9C \
+    --mem gPoliceState+4*4:16=int:-0x100000:0x100000 --mem gPoliceState+0x4C:2=int:0:0xFFF --mem gPoliceState+0x4E:2=int:0:0xFFF --mem gPoliceState+0x74:2=int:0:0xFFF \
+    --mem gPolicePos:12=int:-0x1000000:0x1000000 --heap 0x200 --mem gPoliceMtxA=rel:heap1 --mem gPoliceMtxB=rel:heap1+0x100 --mem gBufferIndex:1=choice:0,1 \
+    --mem D_80367BFF:1=choice:0,1 --mem D_803F8F44:1=choice:0,1,5 --mem D_803F8F43:1=choice:0,1,0x80 --mem gCollBlocked:1=choice:0,1 \
+    --mem gFreeArcStart:2=int:0:0xFFF --mem gFreeArcEnd:2=int:0:0xFFF --mem D_803F8F42:4=rand \
+    --mem gPlayerX:12=rand --mem D_8036443C:6=rand --mem D_803F8F40:2=int:0:0xFFF --mem D_803F77D0=rand --mem gBounceSound:1=rand --mem gCollHit:1=rand \
+    --sig police_zone_alpha= --sig police_build_model= --sig veh_prepare_escape=a0 \
+    --sig veh_ground_contact=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12 \
+    --sig veh_update_horn=a0 --sig veh_collide_spheres=a0,a1 --sig veh_collide_world=a0 --sig anim_update_model=a0,a1,a2 --sig func_802CB690=a0 \
+    --sig police_add_tyre_trail= --sig fx_count_active= --sig veh_set_engine_level=a0 --sig anim_tex_set_frame=f12,a1,a2
+# police_reground: re-seat (veh_reground, fp = 0: the C passes 0 for the caller's leaked fp; FP-state pointer not compared)
+police_reground: -n 300 --arg fp=0 --mem gPoliceState:0xA0=rand --mem gPolicePos:12=rand \
+    --sig veh_reground=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5 --sig police_build_model=
+police_reground: -n 200 --seed 1 --arg fp=0 --mem gPoliceState:0xA0=rand \
+    --sig veh_reground=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5 \
+    --heap 0x200 --heap 0x100 --mem gPoliceModel=rel:heap0 \
     --mem @heap0=0x40 --mem @heap0+4=0x4C --mem @heap0+8=0x60 --mem @heap0+0x18=0x80 --mem @heap0+0x84=int \
     --mem @heap0+0x40:6=rand --mem @heap0+0x46:2=1 --mem @heap0+0x48=choice:0,0x40 \
     --mem @heap0+0x50:0xA=rand --mem @heap0+0x5A:2=1 --mem @heap0+0x5C=choice:0,0x40 \
-    --mem D_803F8F38=rel:heap1 --mem D_803F8F3C=rel:heap1+0x80 --mem gBufferIndex:1=choice:0,1 \
-    --mem D_803F8F28:12=int:-0x10000:0x10000 --mem D_803ED390:6=rand \
-    --mem D_803A7300:0x28=rand --mem D_803A7300+0x10:1=0xD --mem D_803A6B30:0x28=rand --mem D_803A6B30+0x12:1=0xD \
-    --mem D_803EBC10:0x20=rand --mem D_803EBC10=1 --mem D_803EBC10+0xC:1=0xD \
-    --follow func_802CC70C,func_802AA764,func_802ABBEC,func_8029C454,func_802AA890
-# func_802CBDE8: steering along a triangle + ground contact
-func_802CBDE8: -n 300 --arg a3=int:0:40 --arg f24=float --mem D_803F8E80:0xA0=rand --mem D_803F8F28:12=rand --mem D_803ED40B:1=rand \
-    --stub-ret func_802AB9A4=int:0:0xFFF --stub-ret func_802AB9A4.s3=int \
-    --sig func_802CC8B8= --sig func_802CC70C=
-func_802CBDE8: -n 200 --seed 1 --arg a3=int:0:40 --arg f24=float --mem D_803F8E80:0xA0=rand --mem D_803ED40B:1=rand \
-    --stub-ret func_802AB9A4=int:0:0xFFF --stub-ret func_802AB9A4.s3=int \
-    --heap 0x200 --heap 0x100 --mem D_803F8F34=rel:heap0 \
+    --mem gPoliceMtxA=rel:heap1 --mem gPoliceMtxB=rel:heap1+0x80 --mem gBufferIndex:1=choice:0,1 \
+    --mem gPolicePos:12=int:-0x10000:0x10000 --mem gModelRot:6=rand \
+    --mem gVehBoundSpheres:0x28=rand --mem gVehBoundSpheres+0x10:1=0xD --mem gVehPartSpheres:0x28=rand --mem gVehPartSpheres+0x12:1=0xD \
+    --mem gVehPoints:0x20=rand --mem gVehPoints=1 --mem gVehPoints+0xC:1=0xD \
+    --follow police_build_model,mtx_build_model,veh_points_transform,veh_place_parts,mtx_chain_transform
+# police_ride_follow: steering along a triangle + ground contact
+police_ride_follow: -n 300 --arg a3=int:0:40 --arg f24=float --mem gPoliceState:0xA0=rand --mem gPolicePos:12=rand --mem gBounceSound:1=rand \
+    --stub-ret veh_follow_heading=int:0:0xFFF --stub-ret veh_follow_heading.s3=int \
+    --sig police_set_physics= --sig police_build_model=
+police_ride_follow: -n 200 --seed 1 --arg a3=int:0:40 --arg f24=float --mem gPoliceState:0xA0=rand --mem gBounceSound:1=rand \
+    --stub-ret veh_follow_heading=int:0:0xFFF --stub-ret veh_follow_heading.s3=int \
+    --heap 0x200 --heap 0x100 --mem gPoliceModel=rel:heap0 \
     --mem @heap0=0x40 --mem @heap0+4=0x4C --mem @heap0+8=0x60 --mem @heap0+0x18=0x80 --mem @heap0+0x84=int \
     --mem @heap0+0x40:6=rand --mem @heap0+0x46:2=1 --mem @heap0+0x48=choice:0,0x40 \
     --mem @heap0+0x50:0xA=rand --mem @heap0+0x5A:2=1 --mem @heap0+0x5C=choice:0,0x40 \
-    --mem D_803F8F38=rel:heap1 --mem D_803F8F3C=rel:heap1+0x80 --mem gBufferIndex:1=choice:0,1 \
-    --mem D_803F8F28:12=int:-0x10000:0x10000 --mem D_803ED390:6=rand \
-    --mem D_803A7300:0x28=rand --mem D_803A7300+0x10:1=0xD --mem D_803A6B30:0x28=rand --mem D_803A6B30+0x12:1=0xD \
-    --mem D_803EBC10:0x20=rand --mem D_803EBC10=1 --mem D_803EBC10+0xC:1=0xD \
-    --follow func_802CC8B8,func_802CC70C,func_802AA764,func_802ABBEC,func_8029C454,func_802AA890
-# func_802CB720: vehicle setup (dispatcher case 0xD)
-func_802CB720: -n 300 --heap 0x100 --arg s2=rel:heap0 --mem @heap0+4=int:0:0x80 --mem @heap0+8=int:0:0x80 --mem @heap0+0x18=0x40 --mem @heap0+0x44=int \
+    --mem gPoliceMtxA=rel:heap1 --mem gPoliceMtxB=rel:heap1+0x80 --mem gBufferIndex:1=choice:0,1 \
+    --mem gPolicePos:12=int:-0x10000:0x10000 --mem gModelRot:6=rand \
+    --mem gVehBoundSpheres:0x28=rand --mem gVehBoundSpheres+0x10:1=0xD --mem gVehPartSpheres:0x28=rand --mem gVehPartSpheres+0x12:1=0xD \
+    --mem gVehPoints:0x20=rand --mem gVehPoints=1 --mem gVehPoints+0xC:1=0xD \
+    --follow police_set_physics,police_build_model,mtx_build_model,veh_points_transform,veh_place_parts,mtx_chain_transform
+# police_spawn: vehicle setup (dispatcher case 0xD)
+police_spawn: -n 300 --heap 0x100 --arg s2=rel:heap0 --mem @heap0+4=int:0:0x80 --mem @heap0+8=int:0:0x80 --mem @heap0+0x18=0x40 --mem @heap0+0x44=int \
     --arg t7=int --arg s3=int --arg s0=int --arg s1=int:0:0xFFF --arg fp=int --arg f12=float --arg f14=float --arg f20=float --arg f22=float \
-    --arg f24=float --arg f26=float --mem gHeapPtr=int:0x80100000:0x80200000 --mem D_803F8E80:0xA0=rand --mem D_803F8F28:0x1E=rand \
-    --sig func_802A0290=a0,a1,a2 --sig func_802A039C=a0,a1,a2 --sig func_802A03D4=a0,a1,a2 --sig func_802A040C=a0,a1,a2 \
-    --sig func_802A0320=a0,a1 --sig func_8029E558=a0,a1,a2 --sig func_802A754C=a0 --sig func_802CBEF0= --sig func_802AA838=a0,a1,a2 \
-    --sig func_80258230=a0:1,a1,a2:2,a3:2
-# followed: the record reset, channel setters, matrix copy and the whole update func_802CBEF0 (its callees stubbed as in its own line)
-func_802CB720: -n 200 --seed 1 --heap 0x100 --heap 0x200 --arg s2=rel:heap0 --mem @heap0+4=int:0:0x80 --mem @heap0+8=int:0:0x80 --mem @heap0+0x18=0x40 --mem @heap0+0x44=choice:0,0x40,0x80 \
+    --arg f24=float --arg f26=float --mem gHeapPtr=int:0x80100000:0x80200000 --mem gPoliceState:0xA0=rand --mem gPolicePos:0x1E=rand \
+    --sig anim_play=a0,a1,a2 --sig anim_set_speed=a0,a1,a2 --sig anim_set_reverse=a0,a1,a2 --sig anim_set_loop_mode=a0,a1,a2 \
+    --sig anim_rewind=a0,a1 --sig anim_update_model=a0,a1,a2 --sig veh_reset_state=a0 --sig police_update= --sig mtx_copy_at=a0,a1,a2 \
+    --sig veh_add_shadow=a0:1,a1,a2:2,a3:2
+# followed: the record reset, channel setters, matrix copy and the whole update police_update (its callees stubbed as in its own line)
+police_spawn: -n 200 --seed 1 --heap 0x100 --heap 0x200 --arg s2=rel:heap0 --mem @heap0+4=int:0:0x80 --mem @heap0+8=int:0:0x80 --mem @heap0+0x18=0x40 --mem @heap0+0x44=choice:0,0x40,0x80 \
     --arg t7=int --arg s3=int --arg s0=int --arg s1=int:0:0xFFF --arg fp=int --arg f12=float --arg f14=float --arg f20=float --arg f22=float \
-    --arg f24=float --arg f26=float --mem gHeapPtr=rel:heap1 --mem D_803F8E80:0xA0=rand --mem D_803F8F28:0x1E=rand --mem D_803F8B80:0x100=rand \
-    --mem gBufferIndex:1=choice:0,1 --mem D_80367BFF:1=choice:0,1 --mem D_803A7425:1=choice:0,1 --mem D_803A7424:1=rand \
-    --follow func_802A754C,func_802A0290,func_802A0320,func_802A039C,func_802A03D4,func_802A040C,func_802A0480,func_802AA838,func_802CBEF0 \
+    --arg f24=float --arg f26=float --mem gHeapPtr=rel:heap1 --mem gPoliceState:0xA0=rand --mem gPolicePos:0x1E=rand --mem gPoliceAnim:0x100=rand \
+    --mem gBufferIndex:1=choice:0,1 --mem D_80367BFF:1=choice:0,1 --mem gCollBlocked:1=choice:0,1 --mem gCollHit:1=rand \
+    --follow veh_reset_state,anim_play,anim_rewind,anim_set_speed,anim_set_reverse,anim_set_loop_mode,anim_set_interp,mtx_copy_at,police_update \
     --model obj_collide_vehicle=hit_flag_803A7424.py \
-    --stub-ret func_802CC844=int --stub-ret func_802A83B8=float --stub-ret func_802A860C=int --stub-ret func_802A6F6C=int:0:0xFFF \
-    --stub-ret func_802A71DC=int:-100:100 --stub-ret func_802A71DC.a0=int:0:0xFFF \
-    --sig func_8029E558=a0,a1,a2 --sig func_80258230=a0:1,a1,a2:2,a3:2 \
-    --sig func_802CBD18= --sig func_802CC8B8= --sig func_802CC844= --sig func_802CC70C= --sig func_8029A914=a0 --sig func_802A6F6C= \
-    --sig func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12 \
-    --sig func_802C4724=a0 --sig func_802A7E70=a0,a1 --sig func_8029C52C=a0,a1 --sig func_8029AA10=a0 \
-    --sig func_802A746C=a0,a1,a2 --sig func_802A6FE4=a0,a1 --sig func_802A70D8=a0 --sig func_802A7070=a0,a1 --sig func_802CB690=a0
+    --stub-ret police_steer_rate=int --stub-ret veh_slope=float --stub-ret veh_move_along_heading=int --stub-ret veh_free_arc_mid=int:0:0xFFF \
+    --stub-ret veh_turn_into_free_arc=int:-100:100 --stub-ret veh_turn_into_free_arc.a0=int:0:0xFFF \
+    --sig anim_update_model=a0,a1,a2 --sig veh_add_shadow=a0:1,a1,a2:2,a3:2 \
+    --sig police_zone_alpha= --sig police_set_physics= --sig police_steer_rate= --sig police_build_model= --sig veh_prepare_escape=a0 --sig veh_free_arc_mid= \
+    --sig veh_ground_contact=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12 \
+    --sig veh_update_horn=a0 --sig veh_steer=a0,a1 --sig veh_collide_spheres=a0,a1 --sig veh_collide_world=a0 \
+    --sig veh_step_heading=a0,a1,a2 --sig veh_hit_slowdown=a0,a1 --sig veh_reverse_if_behind=a0 --sig veh_set_target_heading=a0,a1 --sig func_802CB690=a0

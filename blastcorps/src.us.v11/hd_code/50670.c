@@ -83,9 +83,9 @@ void func_80294F00(void) {
             D_8039CA68[1][D_8039CA70[0].recCount].x = gPlayerX;
             D_8039CA68[1][D_8039CA70[0].recCount].y = gPlayerY;
             D_8039CA68[1][D_8039CA70[0].recCount].z = gPlayerZ;
-            D_8039CA68[1][D_8039CA70[0].recCount].rx = D_803ED390[0];
-            D_8039CA68[1][D_8039CA70[0].recCount].ry = D_803ED390[1];
-            D_8039CA68[1][D_8039CA70[0].recCount].rz = D_803ED390[2];
+            D_8039CA68[1][D_8039CA70[0].recCount].rx = gModelRot[0];
+            D_8039CA68[1][D_8039CA70[0].recCount].ry = gModelRot[1];
+            D_8039CA68[1][D_8039CA70[0].recCount].rz = gModelRot[2];
             D_8039CA68[1][D_8039CA70[0].recCount].time = ((s32) PORT_GVI("func_80294F00", D_803156C0)) - D_8039CA80;
             D_8039CA70[0].recCount++;
         } else {
@@ -106,7 +106,7 @@ void func_80295120(Gfx **gfxp, Mtx *mtx) {
 
     if (D_8039CA61) {
         func_80295394(&x, &y, &z, &rx, &ry, &rz);
-        func_802AA6D0(x, y, z, rx, ry, rz, D_802FF0D0[D_8039CA7C], &mtx[83]);
+        mtx_build_model_rot(x, y, z, rx, ry, rz, D_802FF0D0[D_8039CA7C], &mtx[83]);
         gSPSegment(gdl++, 6, osVirtualToPhysical(D_803BDB04));
         gSPSegment(gdl++, 7, osVirtualToPhysical(D_803BDB00));
         gSPMatrix(gdl++, &D_02000000[83], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
@@ -265,9 +265,9 @@ void func_80295C70(u8 id, s32 px, s32 pz) {
 
     for (i = 0; i < 1; i++) {
         if (D_802FF150[i].id == id) {
-            if (func_802AC4C4(px, pz, D_802FF150[i].x[0], D_802FF150[i].z[0], D_802FF150[i].x[1],
+            if (ground_in_triangle(px, pz, D_802FF150[i].x[0], D_802FF150[i].z[0], D_802FF150[i].x[1],
                               D_802FF150[i].z[1], D_802FF150[i].x[2], D_802FF150[i].z[2]) ||
-                func_802AC4C4(px, pz, D_802FF150[i].x[0], D_802FF150[i].z[0], D_802FF150[i].x[2],
+                ground_in_triangle(px, pz, D_802FF150[i].x[0], D_802FF150[i].z[0], D_802FF150[i].x[2],
                               D_802FF150[i].z[2], D_802FF150[i].x[3], D_802FF150[i].z[3])) {
                 j = 0;
                 while (D_802FF150[i].list[j] != -1) {

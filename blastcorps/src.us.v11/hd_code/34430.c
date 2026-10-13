@@ -179,7 +179,7 @@ void func_80278EB0(s32 n, f32 scale, s32 arg2) {
         if (r < 1.0) {
             r = 1;
         }
-        v = func_802ACF3C((arg2 <<= 16) / r);
+        v = math_atan_c((arg2 <<= 16) / r);
         D_8036D174 = (f32) v / 65536.0 * 360.0;
     } else {
         D_8036D174 = 25.0f;

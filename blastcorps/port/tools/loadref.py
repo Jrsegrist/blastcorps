@@ -132,7 +132,7 @@ if "7" in TESTS:
         blob = level_blob(lvl)
         wr(HEAP, blob)
         try:
-            call("func_802A2C54", t0=HEAP)
+            call("lvl_read_alpha_zones", t0=HEAP)
         except UcError:
             out.append("T7 %02d.size CRASH" % lvl)
             continue

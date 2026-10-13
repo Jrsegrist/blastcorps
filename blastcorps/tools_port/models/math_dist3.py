@@ -1,13 +1,13 @@
-"""Python model of func_802ABCDC for eqcheck --model (example; the harness can
+"""Python model of math_dist3 for eqcheck --model (example; the harness can
 also run the asm itself since FPU long ops are emulated).
 
-func_802ABCDC(ax, ay, az, bx, by, bz) (convention: in t3,t4,t5,t6,t7,s0;
+math_dist3(ax, ay, az, bx, by, bz) (convention: in t3,t4,t5,t6,t7,s0;
 out s1): the rounded 3-D distance.  Each difference is a 32-bit subtraction
 (subu, sign-extended), the squares and their sum are 64-bit (dmult/daddu,
 wrapping), then cvt.d.l, sqrt.d and cvt.l.d (round to nearest even, the FCSR
 default); s1 gets the low 32 bits.
 
-    eqcheck.py obj_calc_target_time --model func_802ABCDC=func_802ABCDC.py ...
+    eqcheck.py obj_calc_target_time --model math_dist3=math_dist3.py ...
 """
 import math
 

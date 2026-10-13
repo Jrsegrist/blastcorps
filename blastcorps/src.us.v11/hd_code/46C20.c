@@ -33,7 +33,7 @@ void func_8028B3E0(void) {
 
 /* DMA *size bytes from ROM devAddr to dest (to a staging buffer at 0x8021ED00
  * when compressed), then decompress with method arg5 (1: func_8025C230,
- * 2: func_802C4070); *size becomes the decompressed length. */
+ * 2: lzss_decompress); *size becomes the decompressed length. */
 void func_8028B4C4(u32 devAddr, u32 dest, u32 *size, u8 arg3, u8 arg4, u8 arg5) {
     u32 i;
     u32 rem;
@@ -74,10 +74,10 @@ void func_8028B4C4(u32 devAddr, u32 dest, u32 *size, u8 arg3, u8 arg4, u8 arg5) 
             break;
         case 2:
             if (arg3) {
-                func_802C4070(&buf, &dest, 0x8004B400, arg3);
+                lzss_decompress(&buf, &dest, 0x8004B400, arg3);
             }
             if (arg4) {
-                func_802C4070(&buf, &dest, 0x8004B400, arg4);
+                lzss_decompress(&buf, &dest, 0x8004B400, arg4);
             }
             break;
     }

@@ -360,7 +360,7 @@ OSIntMask osSetIntMask(OSIntMask im) {
 }
 
 /* COP0 Status as a thread sees it: CU1, all interrupts unmasked, IE.  The
- * scheduler (func_802A1320 & 0x1000, the pre-NMI line) treats a clear IM4
+ * scheduler (get_cop0_status & 0x1000, the pre-NMI line) treats a clear IM4
  * as a reset in progress. */
 u32 __osGetSR(void) {
     return 0x2000FF01;

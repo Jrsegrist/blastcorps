@@ -200,7 +200,7 @@ void cont_update(void) {
                     case 0:
                         switch (gCurVehicle) {
                             case 9:
-                                if (D_803F7C3F) {
+                                if (gJbombAirborne) {
                                     D_80370C34 = 1;
                                 }
                             case 0:

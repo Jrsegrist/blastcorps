@@ -96,16 +96,16 @@ s32 func_80292288(s16 speed, s32 x0, s32 y0, s32 z0, s32 x1, s32 y1, s32 z1, u8 
         dist = 1.0f;
     }
     if (x1 >= x0 && z1 >= z0) {
-        D_8039C960[i].yaw = func_802AD7D4((x1 - x0) * 65535.0 / dist) >> 4;
+        D_8039C960[i].yaw = math_asin_c((x1 - x0) * 65535.0 / dist) >> 4;
     }
     if (x1 >= x0 && z1 < z0) {
-        D_8039C960[i].yaw = (func_802AD7D4((z0 - z1) * 65535.0 / dist) >> 4) + 0x400;
+        D_8039C960[i].yaw = (math_asin_c((z0 - z1) * 65535.0 / dist) >> 4) + 0x400;
     }
     if (x1 < x0 && z1 < z0) {
-        D_8039C960[i].yaw = (func_802AD7D4((x0 - x1) * 65535.0 / dist) >> 4) + 0x800;
+        D_8039C960[i].yaw = (math_asin_c((x0 - x1) * 65535.0 / dist) >> 4) + 0x800;
     }
     if (x1 < x0 && z1 >= z0) {
-        D_8039C960[i].yaw = (func_802AD7D4((z1 - z0) * 65535.0 / dist) >> 4) + 0xC00;
+        D_8039C960[i].yaw = (math_asin_c((z1 - z0) * 65535.0 / dist) >> 4) + 0xC00;
     }
     return 1;
 }
@@ -118,8 +118,8 @@ void func_80292830(void) {
     s32 limX;
     s32 limZ;
 
-    limX = ((u16) D_803BE714) * D_803BE70C;
-    limZ = D_803BE716 * D_803BE710;
+    limX = ((u16) gLevelCols) * gLevelCellW;
+    limZ = gLevelRows * gLevelCellD;
     for (i = 0; i < 4; i++) {
         if (D_8039C960[i].active) {
             D_8039C960[i].x += D_8039C960[i].vx;
@@ -138,19 +138,19 @@ void func_80292830(void) {
                 D_8039C960[i].z < 0 || D_8039C960[i].y < 0) {
                 func_80292DDC(i);
             } else {
-                func_802CE4F0(D_8039C960[i].x, D_8039C960[i].y, D_8039C960[i].z);
-                func_802CDF94(D_802FE3C0[D_8039C960[i].type].unk5A0);
-                if (D_803F932D) {
+                coll_begin_probe(D_8039C960[i].x, D_8039C960[i].y, D_8039C960[i].z);
+                coll_probe_vehicles(D_802FE3C0[D_8039C960[i].type].unk5A0);
+                if (gProbeHitCarrier) {
                     cmo_hit_request = 1;
                 }
-                savedA = D_803A7410, savedB = D_803A7412;
-                func_802CE5BC(D_8039C960[i].x, D_8039C960[i].y, D_8039C960[i].z,
+                savedA = gFreeArcStart, savedB = gFreeArcEnd;
+                coll_probe_tris(D_8039C960[i].x, D_8039C960[i].y, D_8039C960[i].z,
                               D_802FE3C0[D_8039C960[i].type].unk5A0, 0xCA, 0);
-                func_802CDB70(D_802FE3C0[D_8039C960[i].type].unk5A0, D_8039C960[i].unk1A);
-                if (savedA != D_803A7410 || savedB != D_803A7412) {
+                coll_probe_objects(D_802FE3C0[D_8039C960[i].type].unk5A0, D_8039C960[i].unk1A);
+                if (savedA != gFreeArcStart || savedB != gFreeArcEnd) {
                     func_80292DDC(i);
                 }
-                if (D_8039C960[i].y < func_802CE6F8(D_8039C960[i].x, D_8039C960[i].z, D_8039C960[i].y)) {
+                if (D_8039C960[i].y < coll_ground_height(D_8039C960[i].x, D_8039C960[i].z, D_8039C960[i].y)) {
                     func_80292DDC(i);
                 }
                 if (D_802FE3C0[D_8039C960[i].type].unk5A9) {

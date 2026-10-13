@@ -42,16 +42,16 @@ void func_80282C80(Gfx **gfxp, Mtx *mtx, s32 x, s32 y, s32 z, s32 x2, s32 y2, s3
         dist = 1.0f;
     }
     if (px >= x && pz >= z) {
-        angle = func_802AD7D4((f32) (px - x) / dist * 65536.0) >> 4;
+        angle = math_asin_c((f32) (px - x) / dist * 65536.0) >> 4;
     }
     if (px >= x && pz < z) {
-        angle = (func_802AD7D4((f32) (z - pz) / dist * 65536.0) >> 4) + 0x400;
+        angle = (math_asin_c((f32) (z - pz) / dist * 65536.0) >> 4) + 0x400;
     }
     if (px < x && pz < z) {
-        angle = (func_802AD7D4((f32) (x - px) / dist * 65536.0) >> 4) + 0x800;
+        angle = (math_asin_c((f32) (x - px) / dist * 65536.0) >> 4) + 0x800;
     }
     if (px < x && pz >= z) {
-        angle = (func_802AD7D4((f32) (pz - z) / dist * 65536.0) >> 4) + 0xC00;
+        angle = (math_asin_c((f32) (pz - z) / dist * 65536.0) >> 4) + 0xC00;
     }
     angle = angle * 0.08791208791208792;
     angle = 360.0 - angle - 45.0;
@@ -278,7 +278,7 @@ void func_8028376C(Gfx **gfxp, Mtx *mtx, u8 idx, s32 x, s32 z, s32 x2, s32 z2) {
 
 /*
  * Heading in degrees (0..360) from (x1, z1) to (x2, z2), one quadrant at a time.
- * func_802AD7D4 maps a 0..65535 sine to a 0..0x3FFF binary angle. No return if
+ * math_asin_c maps a 0..65535 sine to a 0..0x3FFF binary angle. No return if
  * no quadrant test passes (original falls off the end).
  */
 f32 func_80284ADC(s16 x1, s16 z1, s16 x2, s16 z2) {
@@ -289,16 +289,16 @@ f32 func_80284ADC(s16 x1, s16 z1, s16 x2, s16 z2) {
         return 0.0f;
     }
     if (x2 >= x1 && z2 >= z1) {
-        return func_802AD7D4((x2 - x1) * 65535.9 / dist) / 65536.0 * 360.0;
+        return math_asin_c((x2 - x1) * 65535.9 / dist) / 65536.0 * 360.0;
     }
     if (x2 >= x1 && z2 < z1) {
-        return (func_802AD7D4((z1 - z2) * 65535.9 / dist) + 0x4000) / 65536.0 * 360.0;
+        return (math_asin_c((z1 - z2) * 65535.9 / dist) + 0x4000) / 65536.0 * 360.0;
     }
     if (x2 < x1 && z2 < z1) {
-        return (func_802AD7D4((x1 - x2) * 65535.9 / dist) + 0x8000) / 65536.0 * 360.0;
+        return (math_asin_c((x1 - x2) * 65535.9 / dist) + 0x8000) / 65536.0 * 360.0;
     }
     if (x2 < x1 && z2 >= z1) {
-        return (func_802AD7D4((z2 - z1) * 65535.9 / dist) + 0xC000) / 65536.0 * 360.0;
+        return (math_asin_c((z2 - z1) * 65535.9 / dist) + 0xC000) / 65536.0 * 360.0;
     }
 #ifdef NON_MATCHING
     return 0.0f; /* not reached: the four tests cover every case */

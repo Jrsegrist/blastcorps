@@ -4,7 +4,7 @@
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #ifdef NON_MATCHING
 #define gHeapPtr (*(s32 *) &gHeapPtr)
-#define D_803ED390 (*(s16 *) D_803ED390)
+#define gModelRot (*(s16 *) gModelRot)
 #endif
 /* end of views */
 
@@ -23,129 +23,130 @@
  * more specific non-ABI explanation where one was already worked out. */
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 * N64P D_803EF704;   /* the 0xFF object's two 0xC00-byte matrix buffers */
-extern u8 * N64P D_803EF708;
-extern u8 * N64P D_803EF70C;   /* its model header */
-extern u8 D_803EF630[];  /* its state block */
-extern u8 D_803EF330[];  /* its animation channels */
-extern s32 D_803EF6F4;   /* start point x, z */
+extern u8 * N64P gCarrierMtxA;   /* the 0xFF object's two 0xC00-byte matrix buffers */
+extern u8 * N64P gCarrierMtxB;
+extern u8 * N64P gCarrierModel;   /* its model header */
+extern u8 gCarrierState[];  /* its state block */
+extern u8 gCarrierAnim[];  /* its animation channels */
+extern s32 gCarrierStartX;   /* start point x, z */
 extern s16 D_803EF6D6;
-extern u8 D_803EF6FE;
+extern u8 gCarrierExplodeDelay;
 extern u8 D_803EF700;
 extern u8 D_803EF701;
-extern u8 D_802C236C[];  /* its func_802A06B4 entry key */
-void func_802BA074(void);
-s32 func_802BABEC(MtxChainRegs *regs);
+extern u8 D_802C236C[];  /* its anim_tex_find entry key */
+void carrier_load_collide_dists(void);
+s32 carrier_build_model(MtxChainRegs *regs);
 
-/* Level setup of the type-0xFF object (asm caller lvl_spawn_carrier): model
- * header -> D_803EF70C, two 0xC00-byte matrix buffers from gHeapPtr
- * (D_803EF704 / D_803EF708; the allocator advances by 0x1800),
+/* Sets up the missile carrier (type 0xFF, lvl_spawn_carrier) (0x802B9C50).
+ * Level setup of the type-0xFF object (asm caller lvl_spawn_carrier): model
+ * header -> gCarrierModel, two 0xC00-byte matrix buffers from gHeapPtr
+ * (gCarrierMtxA / gCarrierMtxB; the allocator advances by 0x1800),
  * veh_add_record(0xFF, 0, buffers, model); position x/z (and the start point
- * D_803EF6F4/F8), target speed D_803EF6FC, D_803EF6F0 = limit, D_803EF6D6 =
- * 0; func_802A754C on D_803EF630, heading +0x4E/+0x4C; effect counters
- * D_803EF6FE = 5, D_803EF700 = D_803EF701 = 0; func_802BA074 (level spawn
+ * gCarrierStartX/Z), target speed gCarrierTargetSpeed, gCarrierRouteLen = limit, D_803EF6D6 =
+ * 0; veh_reset_state on gCarrierState, heading +0x4E/+0x4C; effect counters
+ * gCarrierExplodeDelay = 5, D_803EF700 = D_803EF701 = 0; carrier_load_collide_dists (level spawn
  * point); wheel-slot offsets (+-0x190 / 0x4B0, +-0x1A4 / 0x4D8) at
- * +0x52..+0x68; the ground slots (func_802A992C at y 0x7FFF, writing y to
- * D_803EF6E0, key 0xFF); the model channels (func_8029F85C on D_803EF330,
- * channel 0 set up, both buffers animated); parts (func_8029C354, tag 0xFF,
- * scale 0x59D8); func_80258230(0xFF, 0x96, 0x3C, 0x3C); the model rebuild
- * func_802BABEC; one update with +0x9A set (func_802BA354); the root matrix
- * copied from buffer B to A (func_802AA838); channels 1 and 2 reset and
+ * +0x52..+0x68; the ground slots (veh_init_ground at y 0x7FFF, writing y to
+ * gCarrierY, key 0xFF); the model channels (anim_init_model on gCarrierAnim,
+ * channel 0 set up, both buffers animated); parts (veh_register_parts, tag 0xFF,
+ * scale 0x59D8); veh_add_shadow(0xFF, 0x96, 0x3C, 0x3C); the model rebuild
+ * carrier_build_model; one update with +0x9A set (carrier_update); the root matrix
+ * copied from buffer B to A (mtx_copy_at); channels 1 and 2 reset and
  * restarted with -1; the D_802C236C entry set (0x64, 0, 1) and restarted.
  * The asm's addi/add trap on overflow.
  * Register convention (conventions.txt): model s2, x t4, z t5, target speed
- * s1, limit t7, heading t6, and fp, which the asm hands to func_802A992C
- * (reaching D_803ED3F2 when a slot's grid scan finds no triangle: the
- * dispatcher's leftover fp, FIDELITY AUDIT). func_802A992C's FP inputs (the
- * dispatcher's, passed through) and func_802BABEC's chain inputs (a3 left by
- * the C func_80258230, s1 / s0 = 0 from func_8029F85C; only read for a
+ * s1, limit t7, heading t6, and fp, which the asm hands to veh_init_ground
+ * (reaching gSlotSurface when a slot's grid scan finds no triangle: the
+ * dispatcher's leftover fp, FIDELITY AUDIT). veh_init_ground's FP inputs (the
+ * dispatcher's, passed through) and carrier_build_model's chain inputs (a3 left by
+ * the C veh_add_shadow, s1 / s0 = 0 from anim_init_model; only read for a
  * zero-matrix point) are 0 here. The asm restores t0-t5 and points $gp at
- * D_803EF630 (clobbers). */
-void func_802B9C50(u8 *model, s32 x, s32 z, s32 speed, s32 limit, s32 heading, s32 fp) {
+ * gCarrierState (clobbers). */
+void carrier_spawn(u8 *model, s32 x, s32 z, s32 speed, s32 limit, s32 heading, s32 fp) {
     TriSideOut f;
     MtxChainRegs regs;
     s32 buf;
     u8 *hdr;
 
-    D_803EF70C = model;
+    gCarrierModel = model;
     buf = gHeapPtr;
-    D_803EF704 = (u8 *) N64_IPTR(buf);
-    D_803EF708 = (u8 *) N64_IPTR((buf + 0xC00));
+    gCarrierMtxA = (u8 *) N64_IPTR(buf);
+    gCarrierMtxB = (u8 *) N64_IPTR((buf + 0xC00));
     gHeapPtr = buf + 0x1800;
-    veh_add_record(0xFF, 0, (s32) D_803EF704, (s32) D_803EF708, model);
-    D_803EF6DC = x;
-    D_803EF6F4 = x;
-    D_803EF6E4 = z;
-    D_803EF6F8 = z;
-    D_803EF6FC = speed;
+    veh_add_record(0xFF, 0, (s32) gCarrierMtxA, (s32) gCarrierMtxB, model);
+    gCarrierX = x;
+    gCarrierStartX = x;
+    gCarrierZ = z;
+    gCarrierStartZ = z;
+    gCarrierTargetSpeed = speed;
     D_803EF6D6 = 0;
-    D_803EF6F0 = limit;
-    func_802A754C(D_803EF630);
-    *(s16 *) (D_803EF630 + 0x4E) = heading;
-    *(s16 *) (D_803EF630 + 0x4C) = heading;
-    D_803EF6FE = 5;
+    gCarrierRouteLen = limit;
+    veh_reset_state(gCarrierState);
+    *(s16 *) (gCarrierState + 0x4E) = heading;
+    *(s16 *) (gCarrierState + 0x4C) = heading;
+    gCarrierExplodeDelay = 5;
     D_803EF700 = 0;
     D_803EF701 = 0;
-    func_802BA074();
+    carrier_load_collide_dists();
     /* wheel slot offsets */
-    *(s16 *) (D_803EF630 + 0x52) = 0x190;
-    *(s16 *) (D_803EF630 + 0x54) = 0x4B0;
-    *(s16 *) (D_803EF630 + 0x56) = -0x190;
-    *(s16 *) (D_803EF630 + 0x58) = 0x4B0;
-    *(s16 *) (D_803EF630 + 0x5A) = 0x190;
-    *(s16 *) (D_803EF630 + 0x5C) = -0x4B0;
-    *(s16 *) (D_803EF630 + 0x5E) = 0x1A4;
-    *(s16 *) (D_803EF630 + 0x60) = 0x4D8;
-    *(s16 *) (D_803EF630 + 0x62) = -0x1A4;
-    *(s16 *) (D_803EF630 + 0x64) = 0x4D8;
-    *(s16 *) (D_803EF630 + 0x66) = 0x1A4;
-    *(s16 *) (D_803EF630 + 0x68) = -0x4D8;
+    *(s16 *) (gCarrierState + 0x52) = 0x190;
+    *(s16 *) (gCarrierState + 0x54) = 0x4B0;
+    *(s16 *) (gCarrierState + 0x56) = -0x190;
+    *(s16 *) (gCarrierState + 0x58) = 0x4B0;
+    *(s16 *) (gCarrierState + 0x5A) = 0x190;
+    *(s16 *) (gCarrierState + 0x5C) = -0x4B0;
+    *(s16 *) (gCarrierState + 0x5E) = 0x1A4;
+    *(s16 *) (gCarrierState + 0x60) = 0x4D8;
+    *(s16 *) (gCarrierState + 0x62) = -0x1A4;
+    *(s16 *) (gCarrierState + 0x64) = 0x4D8;
+    *(s16 *) (gCarrierState + 0x66) = 0x1A4;
+    *(s16 *) (gCarrierState + 0x68) = -0x4D8;
     f.pz = 0.0f;
     f.cross = 0.0f;
     f.cz = 0.0f;
     f.side = 0.0f;
     f.sideZ = 0.0f;
     f.dz = 0.0f;
-    func_802A992C((s16 *) (D_803EF630 + 0x52), 0x7FFF, D_803EF6DC, D_803EF6E4, (s32 *) (D_803EF630 + 4),
-                  &D_803EF6E0, (s16 *) (D_803EF630 + 0x4C), 0xFF, fp, D_803EF630, &f);
-    hdr = D_803EF70C;
-    func_8029F85C((u32 *) D_803EF708, (u32 *) D_803EF704, (Unk8029DEA0Entry *) D_803EF330, hdr);
-    func_802A039C((Unk8029DEA0Entry *) D_803EF330, 0, 0x64);
-    func_802A03D4((Unk8029DEA0Entry *) D_803EF330, 0, 0);
-    func_802A040C((Unk8029DEA0Entry *) D_803EF330, 0, 0);
-    func_802A0480(0.0f, (Unk8029DEA0Entry *) D_803EF330, 0, 0);
-    func_802A0290((Unk8029DEA0Entry *) D_803EF330, 0, 1);
-    func_8029E558(D_803EF704, D_803EF708, (Unk8029DEA0Entry *) D_803EF330);
-    func_802A0320(0, (Unk8029DEA0Entry *) D_803EF330);
-    func_802A0290((Unk8029DEA0Entry *) D_803EF330, 0, 1);
-    func_8029E558(D_803EF708, D_803EF704, (Unk8029DEA0Entry *) D_803EF330);
-    hdr = D_803EF70C;
-    func_8029C354(0xFF, hdr + *(s32 *) (hdr + 4), hdr + *(s32 *) (hdr + 8), 0x59D8);
-    func_80258230(0xFF, 0x96, 0x3C, 0x3C);
+    veh_init_ground((s16 *) (gCarrierState + 0x52), 0x7FFF, gCarrierX, gCarrierZ, (s32 *) (gCarrierState + 4),
+                  &gCarrierY, (s16 *) (gCarrierState + 0x4C), 0xFF, fp, gCarrierState, &f);
+    hdr = gCarrierModel;
+    anim_init_model((u32 *) gCarrierMtxB, (u32 *) gCarrierMtxA, (Unk8029DEA0Entry *) gCarrierAnim, hdr);
+    anim_set_speed((Unk8029DEA0Entry *) gCarrierAnim, 0, 0x64);
+    anim_set_reverse((Unk8029DEA0Entry *) gCarrierAnim, 0, 0);
+    anim_set_loop_mode((Unk8029DEA0Entry *) gCarrierAnim, 0, 0);
+    anim_set_interp(0.0f, (Unk8029DEA0Entry *) gCarrierAnim, 0, 0);
+    anim_play((Unk8029DEA0Entry *) gCarrierAnim, 0, 1);
+    anim_update_model(gCarrierMtxA, gCarrierMtxB, (Unk8029DEA0Entry *) gCarrierAnim);
+    anim_rewind(0, (Unk8029DEA0Entry *) gCarrierAnim);
+    anim_play((Unk8029DEA0Entry *) gCarrierAnim, 0, 1);
+    anim_update_model(gCarrierMtxB, gCarrierMtxA, (Unk8029DEA0Entry *) gCarrierAnim);
+    hdr = gCarrierModel;
+    veh_register_parts(0xFF, hdr + *(s32 *) (hdr + 4), hdr + *(s32 *) (hdr + 8), 0x59D8);
+    veh_add_shadow(0xFF, 0x96, 0x3C, 0x3C);
     regs.a3 = 0;
     regs.s1 = 0;
     regs.s0 = 0;
-    func_802BABEC(&regs);
-    D_803EF630[0x9A] = 1;
-    func_802BA354();
-    D_803EF630[0x9A] = 0;
-    hdr = D_803EF70C;
-    func_802AA838(D_803EF708, D_803EF704, *(s32 *) (hdr + *(s32 *) (hdr + 0x18) + 4));
-    func_802A039C((Unk8029DEA0Entry *) D_803EF330, 1, 0);
-    func_802A03D4((Unk8029DEA0Entry *) D_803EF330, 1, 0);
-    func_802A040C((Unk8029DEA0Entry *) D_803EF330, 1, 0);
-    func_802A0290((Unk8029DEA0Entry *) D_803EF330, 1, -1);
-    func_802A039C((Unk8029DEA0Entry *) D_803EF330, 2, 0);
-    func_802A03D4((Unk8029DEA0Entry *) D_803EF330, 2, 0);
-    func_802A040C((Unk8029DEA0Entry *) D_803EF330, 2, 1);
-    func_802A0290((Unk8029DEA0Entry *) D_803EF330, 2, -1);
-    func_802A05D0((s32) D_802C236C, 0x64);
-    func_802A05F8((s32) D_802C236C, 0);
-    func_802A0620((s32) D_802C236C, 1);
-    func_802A0508((s32) D_802C236C, -1);
+    carrier_build_model(&regs);
+    gCarrierState[0x9A] = 1;
+    carrier_update();
+    gCarrierState[0x9A] = 0;
+    hdr = gCarrierModel;
+    mtx_copy_at(gCarrierMtxB, gCarrierMtxA, *(s32 *) (hdr + *(s32 *) (hdr + 0x18) + 4));
+    anim_set_speed((Unk8029DEA0Entry *) gCarrierAnim, 1, 0);
+    anim_set_reverse((Unk8029DEA0Entry *) gCarrierAnim, 1, 0);
+    anim_set_loop_mode((Unk8029DEA0Entry *) gCarrierAnim, 1, 0);
+    anim_play((Unk8029DEA0Entry *) gCarrierAnim, 1, -1);
+    anim_set_speed((Unk8029DEA0Entry *) gCarrierAnim, 2, 0);
+    anim_set_reverse((Unk8029DEA0Entry *) gCarrierAnim, 2, 0);
+    anim_set_loop_mode((Unk8029DEA0Entry *) gCarrierAnim, 2, 1);
+    anim_play((Unk8029DEA0Entry *) gCarrierAnim, 2, -1);
+    anim_tex_set_speed((s32) D_802C236C, 0x64);
+    anim_tex_set_reverse((s32) D_802C236C, 0);
+    anim_tex_set_loop_mode((s32) D_802C236C, 1);
+    anim_tex_play((s32) D_802C236C, -1);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/func_802B9C50.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/carrier_spawn.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -154,7 +155,7 @@ void func_802B9C50(u8 *model, s32 x, s32 z, s32 speed, s32 limit, s32 heading, s
  * level in a table of {level, x, z} records terminated by a negative level
  * and sets the spawn position (x, z in 1/32 units) from the matching record;
  * position stays 0 if the level isn't listed. The asm also saves/restores
- * v0, v1, a0; its asm caller func_802B9C50 relies on a1, a3, f12, f14 being
+ * v0, v1, a0; its asm caller carrier_spawn relies on a1, a3, f12, f14 being
  * preserved (a mixed N64 build would need a thunk; the native port won't). */
 typedef struct {
     s16 level;
@@ -162,45 +163,47 @@ typedef struct {
     u16 z;
 } LevelPos;
 extern LevelPos D_80305D74[];
-extern s32 D_803EF6E8;
-extern s32 D_803EF6EC;
-extern u8 D_803EF710;
-extern u8 D_803EF711;
+extern s32 gCarrierWorldHitDist;
+extern s32 gCarrierObjHitDist;
+extern u8 gCarrierWorldHitOn;
+extern u8 gCarrierObjHitOn;
 
-void func_802BA074(void) {
+/* Per-level distances after which it collides with world / objects (0x802BA074). */
+void carrier_load_collide_dists(void) {
     LevelPos *e;
     s32 level;
 
-    D_803EF6E8 = 0;
-    D_803EF710 = 0;
-    D_803EF6EC = 0;
-    D_803EF711 = 0;
+    gCarrierWorldHitDist = 0;
+    gCarrierWorldHitOn = 0;
+    gCarrierObjHitDist = 0;
+    gCarrierObjHitOn = 0;
     level = levelno;
     for (e = D_80305D74; e->level >= 0; e++) {
         if (e->level == level) {
-            D_803EF6E8 = e->x << 5;
-            D_803EF6EC = e->z << 5;
+            gCarrierWorldHitDist = e->x << 5;
+            gCarrierObjHitDist = e->z << 5;
             return;
         }
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/func_802BA074.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/carrier_load_collide_dists.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Zone level lookup (func_802ABD54) for vehicle id 0xFF at its position
- * D_803EF6DC..+8; returns func_802ABD54's v1 (the zone list end).
- * Register convention: the asm passes func_802ABD54's scan registers t6, t7,
+/* Veh_zone_alpha at its position (0x802BA104).
+ * Zone level lookup (veh_zone_alpha) for vehicle id 0xFF at its position
+ * gCarrierX..+8; returns veh_zone_alpha's v1 (the zone list end).
+ * Register convention: the asm passes veh_zone_alpha's scan registers t6, t7,
  * s0-s4 through (in and out; here through r), leaves a3 = id and clobbers
- * s5, s6 (conventions.txt). Asm caller func_802BA354 keeps f12 and f14 live
+ * s5, s6 (conventions.txt). Asm caller carrier_update keeps f12 and f14 live
  * (a mixed N64 build would need a thunk; the native port won't). */
-s32 func_802BA104(ZoneScanRegs *r) {
-    return func_802ABD54(0xFF, D_803EF6DC, D_803EF6E0, D_803EF6E4, r);
+s32 carrier_zone_alpha(ZoneScanRegs *r) {
+    return veh_zone_alpha(0xFF, gCarrierX, gCarrierY, gCarrierZ, r);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/func_802BA104.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/carrier_zone_alpha.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -208,89 +211,91 @@ s32 func_802BA104(ZoneScanRegs *r) {
 /* Rounded 3-D distance from (ax, ay, az) to (bx, by, bz) (62740.c; asm
  * convention in tools_port/conventions.txt: t3-t5, t6, t7, s0 -> s1). */
 
-extern void * N64P D_803EF6D8;  /* this sound's handle, NULL = none */
+extern void * N64P gCarrierSound;  /* this sound's handle, NULL = none */
 
-/* Positional sound 0x75 at D_803EF6DC/E0/E4 (called from hd.c); shape of
- * func_802B8794 (72B80). d is the rounded distance from the player
+/* Its loop sound 0x75 (0x802BA148).
+ * Positional sound 0x75 at gCarrierX/Y/Z (called from hd.c); shape of
+ * chopper_update_sound (72B80). d is the rounded distance from the player
  * gPlayerX/Y/Z. Beyond 16000 the sound is stopped (func_802608C8) and
  * its handle cleared. Otherwise it is started if it isn't playing, its
  * volume (parameter 8) set to 0x7FFF - 2 * max(d - 4000, 0) and its pan
  * (parameter 4) to 64 + (player x - source x) / 32, clamped to 0..127. The
  * asm's `sub`/`add` trap on overflow; C doesn't. Register note: the asm
  * saves and restores every register. */
-void func_802BA148(void) {
-    s32 dx = gPlayerX - D_803EF6DC;
+void carrier_update_sound(void) {
+    s32 dx = gPlayerX - gCarrierX;
     s32 dist;
     s32 pan;
 
-    dist = func_802ABCDC(gPlayerX, gPlayerY, gPlayerZ, D_803EF6DC, D_803EF6E0, D_803EF6E4);
+    dist = math_dist3(gPlayerX, gPlayerY, gPlayerZ, gCarrierX, gCarrierY, gCarrierZ);
     if (dist > 16000) {
-        if (D_803EF6D8 != NULL) {
-            func_802608C8(D_803EF6D8);
-            D_803EF6D8 = NULL;
+        if (gCarrierSound != NULL) {
+            func_802608C8(gCarrierSound);
+            gCarrierSound = NULL;
         }
         return;
     }
-    if (D_803EF6D8 == NULL) {
-        func_80260650(D_80367738, 0x75, &D_803EF6D8);
+    if (gCarrierSound == NULL) {
+        func_80260650(D_80367738, 0x75, &gCarrierSound);
     }
     dist -= 4000;
     if (dist < 0) {
         dist = 0;
     }
-    func_80260AB8(D_803EF6D8, 8, 0x7FFF - (dist << 1));
+    func_80260AB8(gCarrierSound, 8, 0x7FFF - (dist << 1));
     pan = 0x40 + (dx >> 5);
     if (pan < 0) {
         pan = 0;
     } else if (pan >= 0x80) {
         pan = 0x7F;
     }
-    func_80260AB8(D_803EF6D8, 4, pan);
+    func_80260AB8(gCarrierSound, 4, pan);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/func_802BA148.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/carrier_update_sound.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803EF630[];
-extern u8 D_803EF330[];
-extern u8 * N64P D_803EF704;
-extern u8 * N64P D_803EF708;
-s32 func_802BA5A4(void);
-s32 func_802BA6AC(void);
-s32 func_802BA638(s32 *termZ, s32 *lastLevel, s32 *level);
-void func_802BAD24(void);
-s32 func_802BABEC(MtxChainRegs *regs);
-void func_802BA9A0(s32 h2);
-void func_802BA91C(void);
+extern u8 gCarrierState[];
+extern u8 gCarrierAnim[];
+extern u8 * N64P gCarrierMtxA;
+extern u8 * N64P gCarrierMtxB;
+s32 carrier_check_collide_dists(void);
+s32 carrier_update_anims(void);
+s32 carrier_scan_speed_zones(s32 *termZ, s32 *lastLevel, s32 *level);
+void carrier_set_physics(void);
+s32 carrier_build_model(MtxChainRegs *regs);
+void carrier_check_crash(s32 h2);
+void carrier_check_arrival(void);
 
-#define VEH_BA354(off, T) (*(T *) (D_803EF630 + (off)))
+#define VEH_BA354(off, T) (*(T *) (gCarrierState + (off)))
 
-/* Per-frame update of the type-0xFF object D_803EF630 (called from hd.c's
- * hd_game_frame and from func_802B9C50): zone lookup (func_802BA104), the
- * distance flags (func_802BA5A4); then, while byte +0x9A is clear, the engine
- * sound/animation (func_802BA6AC), skipping the movement when gCarrierHit or
- * gPaused is set. Movement: the zone value scan (func_802BA638, which may
- * set the target speed D_803EF6FC); the speed (s16 +0x76) rises by 8 towards
- * D_803EF6FC (never above it) when below it; func_802BAD24; the drive step
- * f = func_802A83B8, func_802A843C(kind 0xFF, divisor 2400.0); the new
- * position func_802A860C(f, heading u16 +0x4E, speed, x, z); D_803ED40B = 1;
- * ground contact func_802A8768 (id 0xFF, divisors 0x960 / 0x320). Always:
- * animate the model (func_8029E558 on the current buffer pair), rebuild it
- * (func_802BABEC), the collision/effect step func_802BA9A0 while +0x9A is
- * clear, func_802BA91C and veh_set_record(z, 0xFF, x, y, veh).
+/* The carrier, per frame: drive along the route, collide, finish (0x802BA354).
+ * Per-frame update of the type-0xFF object gCarrierState (called from hd.c's
+ * hd_game_frame and from carrier_spawn): zone lookup (carrier_zone_alpha), the
+ * distance flags (carrier_check_collide_dists); then, while byte +0x9A is clear, the engine
+ * sound/animation (carrier_update_anims), skipping the movement when gCarrierHit or
+ * gPaused is set. Movement: the zone value scan (carrier_scan_speed_zones, which may
+ * set the target speed gCarrierTargetSpeed); the speed (s16 +0x76) rises by 8 towards
+ * gCarrierTargetSpeed (never above it) when below it; carrier_set_physics; the drive step
+ * f = veh_slope, veh_apply_slope(kind 0xFF, divisor 2400.0); the new
+ * position veh_move_along_heading(f, heading u16 +0x4E, speed, x, z); gBounceSound = 1;
+ * ground contact veh_ground_contact (id 0xFF, divisors 0x960 / 0x320). Always:
+ * animate the model (anim_update_model on the current buffer pair), rebuild it
+ * (carrier_build_model), the collision/effect step carrier_check_crash while +0x9A is
+ * clear, carrier_check_arrival and veh_set_record(z, 0xFF, x, y, veh).
  * Leaked registers (FIDELITY AUDIT, see port_followups): the zone scan's
  * t6/t7/s0-s4 inputs (the caller's registers; only passed through when no
- * zone is looked at, and dead afterwards), func_802BA638's a2 input and its
- * a0-a3 results (dead: func_802A860C doesn't read a0-a3), the chain
- * registers a3/s1/s0 going into func_802BABEC (only read for a zero-matrix
- * point, which the model data doesn't have) and func_802A8768's FP inputs
+ * zone is looked at, and dead afterwards), carrier_scan_speed_zones's a2 input and its
+ * a0-a3 results (dead: veh_move_along_heading doesn't read a0-a3), the chain
+ * registers a3/s1/s0 going into carrier_build_model (only read for a zero-matrix
+ * point, which the model data doesn't have) and veh_ground_contact's FP inputs
  * other than f12 (f14, f20-f26: the caller's or earlier callees' leftovers,
  * passed through) are 0 here. The asm's `addi` traps on overflow. The asm
  * saves every s- and FP register it changes; it returns with f12/f14/v1 as
- * its last callees leave them (read by func_802B9C50; not modelled). */
-void func_802BA354(void) {
+ * its last callees leave them (read by carrier_spawn; not modelled). */
+void carrier_update(void) {
     ZoneScanRegs zr;
     MtxChainRegs regs;
     Regs802A8768 r;
@@ -311,30 +316,30 @@ void func_802BA354(void) {
     zr.s2 = 0;
     zr.s3 = 0;
     zr.s4 = 0;
-    func_802BA104(&zr);
-    func_802BA5A4();
-    if ((s8) D_803EF630[0x9A] == 0) {
-        func_802BA6AC();
+    carrier_zone_alpha(&zr);
+    carrier_check_collide_dists();
+    if ((s8) gCarrierState[0x9A] == 0) {
+        carrier_update_anims();
         if ((s8) gCarrierHit != 0 || (s8) gPaused != 0) {
             goto animate;
         }
     }
     lastLevel = 0;
-    func_802BA638(&termZ, &lastLevel, &level);
+    carrier_scan_speed_zones(&termZ, &lastLevel, &level);
     speed = VEH_BA354(0x76, s16);
-    if (speed < D_803EF6FC) {
+    if (speed < gCarrierTargetSpeed) {
         speed += 8;
-        if (D_803EF6FC < speed) {
-            speed = D_803EF6FC;
+        if (gCarrierTargetSpeed < speed) {
+            speed = gCarrierTargetSpeed;
         }
     }
     VEH_BA354(0x76, s16) = speed;
-    func_802BAD24();
-    step = func_802A83B8(&VEH_BA354(0x76, s16), D_803EF630 + 0x96, &VEH_BA354(4, s32), (f32 *) D_803EF630);
-    func_802A843C(D_803EF630, &VEH_BA354(0x76, s16), 0xFF, (s8 *) (D_803EF630 + 0x96), &VEH_BA354(4, s32), 0,
+    carrier_set_physics();
+    step = veh_slope(&VEH_BA354(0x76, s16), gCarrierState + 0x96, &VEH_BA354(4, s32), (f32 *) gCarrierState);
+    veh_apply_slope(gCarrierState, &VEH_BA354(0x76, s16), 0xFF, (s8 *) (gCarrierState + 0x96), &VEH_BA354(4, s32), 0,
                   2400.0f);
-    x = func_802A860C(step, VEH_BA354(0x4E, u16), &VEH_BA354(0x76, s16), &D_803EF6DC, &D_803EF6E4, &out);
-    D_803ED40B = 1;
+    x = veh_move_along_heading(step, VEH_BA354(0x4E, u16), &VEH_BA354(0x76, s16), &gCarrierX, &gCarrierZ, &out);
+    gBounceSound = 1;
     r.s3 = out.s3;
     f.pz = step;
     f.cross = 0.0f;
@@ -342,53 +347,54 @@ void func_802BA354(void) {
     f.side = 0.0f;
     f.sideZ = 0.0f;
     f.dz = 0.0f;
-    func_802A8768(D_803EF630, 0xFF, &D_803EF6DC, &D_803EF6E0, &D_803EF6E4, x, out.t1, 0x960, 0x320,
-                  &VEH_BA354(0x4C, s16), D_803EF630 + 0x96, &VEH_BA354(0x52, s16), &VEH_BA354(0x28, s32),
+    veh_ground_contact(gCarrierState, 0xFF, &gCarrierX, &gCarrierY, &gCarrierZ, x, out.t1, 0x960, 0x320,
+                  &VEH_BA354(0x4C, s16), gCarrierState + 0x96, &VEH_BA354(0x52, s16), &VEH_BA354(0x28, s32),
                   &VEH_BA354(0x40, s32), &VEH_BA354(0x34, s32), &VEH_BA354(4, s32), &r, &f);
 
 animate:
     if (gBufferIndex != 0) {
-        func_8029E558(D_803EF704, D_803EF708, (Unk8029DEA0Entry *) D_803EF330);
+        anim_update_model(gCarrierMtxA, gCarrierMtxB, (Unk8029DEA0Entry *) gCarrierAnim);
     } else {
-        func_8029E558(D_803EF708, D_803EF704, (Unk8029DEA0Entry *) D_803EF330);
+        anim_update_model(gCarrierMtxB, gCarrierMtxA, (Unk8029DEA0Entry *) gCarrierAnim);
     }
     regs.a3 = 0;
     regs.s1 = 0;
     regs.s0 = 0;
-    end = func_802BABEC(&regs);
-    if ((s8) D_803EF630[0x9A] == 0) {
-        func_802BA9A0(end);
+    end = carrier_build_model(&regs);
+    if ((s8) gCarrierState[0x9A] == 0) {
+        carrier_check_crash(end);
     }
-    func_802BA91C();
-    veh_set_record(D_803EF6E4, 0xFF, D_803EF6DC, D_803EF6E0, D_803EF630);
+    carrier_check_arrival();
+    veh_set_record(gCarrierZ, 0xFF, gCarrierX, gCarrierY, gCarrierState);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/func_802BA354.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/carrier_update.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_803EF6F4; /* second point x, z (y = 0) */
+extern s32 gCarrierStartX; /* second point x, z (y = 0) */
 
-/* Distance (func_802ABCDC, y = 0) from (D_803EF6DC, D_803EF6E4) to
- * (D_803EF6F4, D_803EF6F8); sets D_803EF710 when it is >= D_803EF6E8 and
- * D_803EF711 when it is >= D_803EF6EC (signed). Returns the distance (the
+/* The distance from the start turns its collisions on (0x802BA5A4).
+ * Distance (math_dist3, y = 0) from (gCarrierX, gCarrierZ) to
+ * (gCarrierStartX, gCarrierStartZ); sets gCarrierWorldHitOn when it is >= gCarrierWorldHitDist and
+ * gCarrierObjHitOn when it is >= gCarrierObjHitDist (signed). Returns the distance (the
  * asm leaves it in s1; conventions.txt). The asm also leaves t7 = 0 and
- * s0 = D_803EF6F8; asm caller func_802BA354 keeps a2, a3, f12, f14 live
+ * s0 = gCarrierStartZ; asm caller carrier_update keeps a2, a3, f12, f14 live
  * (a mixed N64 build would need a thunk; the native port won't). */
-s32 func_802BA5A4(void) {
-    s32 dist = func_802ABCDC(D_803EF6DC, 0, D_803EF6E4, D_803EF6F4, 0, D_803EF6F8);
+s32 carrier_check_collide_dists(void) {
+    s32 dist = math_dist3(gCarrierX, 0, gCarrierZ, gCarrierStartX, 0, gCarrierStartZ);
 
-    if (dist >= D_803EF6E8) {
-        D_803EF710 = 1;
+    if (dist >= gCarrierWorldHitDist) {
+        gCarrierWorldHitOn = 1;
     }
-    if (dist >= D_803EF6EC) {
-        D_803EF711 = 1;
+    if (dist >= gCarrierObjHitDist) {
+        gCarrierObjHitOn = 1;
     }
     return dist;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/func_802BA5A4.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/carrier_check_collide_dists.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -400,16 +406,17 @@ typedef struct {
 } ZoneEntry;
 extern ZoneEntry D_80305D62[];
 
-/* Scans D_80305D62 (terminated by a negative z) for entries of the current
- * level (levelno) whose z <= player z / 32 (D_803EF6E4 >> 5); the last
- * one's value wins (0 if none). A nonzero result is stored in D_803EF6FC.
- * The asm leaves its scan registers behind and asm caller func_802BA354
- * doesn't overwrite them before func_802A860C reads a0-a3, so they are all
+/* Per-level z ranges set its target speed (0x802BA638).
+ * Scans D_80305D62 (terminated by a negative z) for entries of the current
+ * level (levelno) whose z <= player z / 32 (gCarrierZ >> 5); the last
+ * one's value wins (0 if none). A nonzero result is stored in gCarrierTargetSpeed.
+ * The asm leaves its scan registers behind and asm caller carrier_update
+ * doesn't overwrite them before veh_move_along_heading reads a0-a3, so they are all
  * outputs (see tools_port/conventions.txt): result (a0), the terminator z
  * (a1), the last level byte read (a2, unchanged if the table is empty) and
  * the current level (a3). */
-s32 func_802BA638(s32 *termZ, s32 *lastLevel, s32 *level) {
-    s32 pz = D_803EF6E4 >> 5;
+s32 carrier_scan_speed_zones(s32 *termZ, s32 *lastLevel, s32 *level) {
+    s32 pz = gCarrierZ >> 5;
     s32 lv = levelno;
     s32 result = 0;
     ZoneEntry *e;
@@ -422,14 +429,14 @@ s32 func_802BA638(s32 *termZ, s32 *lastLevel, s32 *level) {
         }
     }
     if (result != 0) {
-        D_803EF6FC = result;
+        gCarrierTargetSpeed = result;
     }
     *termZ = z;
     *level = lv;
     return result;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/func_802BA638.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/carrier_scan_speed_zones.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -450,26 +457,27 @@ s32 func_802BA638(s32 *termZ, s32 *lastLevel, s32 *level) {
         (out) = _r;                                                     \
     } while (0)
 
-extern u8 D_803EF630[];  /* this vehicle's state block (the asm's $gp) */
+extern u8 gCarrierState[];  /* this vehicle's state block (the asm's $gp) */
 extern s16 D_803EF6D6;   /* last speed sent to the engine sound */
 extern f32 D_8030D920;
 extern f32 D_8030D924;
 extern f32 D_8030D928;
-extern u8 D_803EF330[];  /* animation channel table (Unk8029DEA0Entry, 56040.c) */
+extern u8 gCarrierAnim[];  /* animation channel table (Unk8029DEA0Entry, 56040.c) */
 
-/* Engine sound and animation channels for vehicle D_803EF630 (speed = s16 at
+/* Engine pitch, wheel channel, the camera-angle channel (0x802BA6AC).
+ * Engine sound and animation channels for vehicle gCarrierState (speed = s16 at
  * +0x76). When the speed changed since the last call (D_803EF6D6) and the
- * sound D_803EF6D8 is playing, its parameter 0x10 is set to the float
+ * sound gCarrierSound is playing, its parameter 0x10 is set to the float
  * 1.5 + speed * D_8030D920 (passed as raw bits). Then a = (gCamYaw +
  * 0x800) wrapped by -0xFFF at 0x1000; channel 2 gets value a / 0x555
- * (0, 1, else 2) and fraction (a % 0x555) / D_8030D924 (func_802A0360);
+ * (0, 1, else 2) and fraction (a % 0x555) / D_8030D924 (anim_set_frame);
  * channel 1 gets round(speed * D_8030D928) (0 while gPaused is set,
- * func_802A039C). Returns a / 0x555 (the asm's s4; conventions.txt). The asm
- * also clobbers s5; asm caller func_802BA354 keeps a2, a3, t7, f12, f14 live
+ * anim_set_speed). Returns a / 0x555 (the asm's s4; conventions.txt). The asm
+ * also clobbers s5; asm caller carrier_update keeps a2, a3, t7, f12, f14 live
  * (a mixed N64 build would need a thunk; the native port won't). The asm's
  * `addi` traps on overflow, which can't happen for a u16. */
-s32 func_802BA6AC(void) {
-    s32 speed = *(s16 *) (D_803EF630 + 0x76);
+s32 carrier_update_anims(void) {
+    s32 speed = *(s16 *) (gCarrierState + 0x76);
     s16 last = D_803EF6D6;
     u32 a;
     u32 q;
@@ -477,10 +485,10 @@ s32 func_802BA6AC(void) {
     f32 frac;
 
     D_803EF6D6 = speed;
-    if (last != speed && D_803EF6D8 != NULL) {
+    if (last != speed && gCarrierSound != NULL) {
         f32 p = 1.5f + (f32) speed * D_8030D920;
 
-        func_80260AB8(D_803EF6D8, 0x10, *(s32 *) &p);
+        func_80260AB8(gCarrierSound, 0x10, *(s32 *) &p);
     }
     a = ((u16) gCamYaw) + 0x800;
     if ((s32) a >= 0x1000) {
@@ -489,94 +497,96 @@ s32 func_802BA6AC(void) {
     q = a / 0x555;
     frac = (f32) (s32) (a % 0x555) / D_8030D924;
     if (q == 0) {
-        func_802A0360(frac, (Unk8029DEA0Entry *) D_803EF330, 2, 0);
+        anim_set_frame(frac, (Unk8029DEA0Entry *) gCarrierAnim, 2, 0);
     } else if (q == 1) {
-        func_802A0360(frac, (Unk8029DEA0Entry *) D_803EF330, 2, 1);
+        anim_set_frame(frac, (Unk8029DEA0Entry *) gCarrierAnim, 2, 1);
     } else {
-        func_802A0360(frac, (Unk8029DEA0Entry *) D_803EF330, 2, 2);
+        anim_set_frame(frac, (Unk8029DEA0Entry *) gCarrierAnim, 2, 2);
     }
-    v = gPaused != 0 ? 0 : *(s16 *) (D_803EF630 + 0x76);
+    v = gPaused != 0 ? 0 : *(s16 *) (gCarrierState + 0x76);
     CVT_W_S(v, (f32) v * D_8030D928);
-    func_802A039C((Unk8029DEA0Entry *) D_803EF330, 1, v);
+    anim_set_speed((Unk8029DEA0Entry *) gCarrierAnim, 1, v);
     return q;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/func_802BA6AC.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/carrier_update_anims.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-/* Distance (func_802ABCDC, y = 0) from (D_803EF6DC, D_803EF6E4) to
- * (D_803EF6F4, D_803EF6F8); when it is >= D_803EF6F0 (signed) sets
+/* The route length reached: the level is done (0x802BA91C).
+ * Distance (math_dist3, y = 0) from (gCarrierX, gCarrierZ) to
+ * (gCarrierStartX, gCarrierStartZ); when it is >= gCarrierRouteLen (signed) sets
  * gLevelDoneRequest and gPauseRequest to 1. The asm leaves the distance in s1 and
- * D_803EF6F8 in s0 (conventions.txt: clobbers s0, s1); asm caller
- * func_802BA354 keeps a2, a3, f12, f14 live (a mixed N64 build would need a
+ * gCarrierStartZ in s0 (conventions.txt: clobbers s0, s1); asm caller
+ * carrier_update keeps a2, a3, f12, f14 live (a mixed N64 build would need a
  * thunk; the native port won't). */
-void func_802BA91C(void) {
-    s32 dist = func_802ABCDC(D_803EF6DC, 0, D_803EF6E4, D_803EF6F4, 0, D_803EF6F8);
+void carrier_check_arrival(void) {
+    s32 dist = math_dist3(gCarrierX, 0, gCarrierZ, gCarrierStartX, 0, gCarrierStartZ);
 
-    if (dist >= D_803EF6F0) {
+    if (dist >= gCarrierRouteLen) {
         gLevelDoneRequest = 1;
         gPauseRequest = 1;
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/func_802BA91C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/carrier_check_arrival.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 D_80305D60[];
 extern u8 D_802C3B44[]; /* fx_spawn definition */
-extern u8 D_803EF6FE;   /* countdown before the effect */
+extern u8 gCarrierExplodeDelay;   /* countdown before the effect */
 extern u8 D_803EF700;   /* effect frame count */
 extern u8 D_803EF701;   /* effect started */
 
 #define ABS_BA9A0(v) ((v) < 0 ? -(v) : (v))
 
-/* Collision/effect step of the type-0xFF object (D_803EF630, the asm's $gp).
- * Unless gCarrierHit is set: func_8029A800((x, y, z) = D_803EF6DC/E0/E4, table
- * D_80305D60, 0, 0, b0, speed (s16 +0x76), h2, 0, 0xFF), func_8029C52C(0xFF, D_803EF630);
- * then, unless D_803A7426 is set, D_803A7424 = 0, func_8029AA10(0xFF) when
- * D_803EF710 is set and obj_collide_vehicle(0xFF, veh) (with D_803F77D0 =
- * &D_803EF330) when D_803EF711 is set; if D_803A7424 is then still 0 and the
+/* Hit or tilted: cmo_hit_request; explosion effects (0x802BA9A0).
+ * Collision/effect step of the type-0xFF object (gCarrierState, the asm's $gp).
+ * Unless gCarrierHit is set: veh_collision_setup((x, y, z) = gCarrierX/Y/Z, table
+ * D_80305D60, 0, 0, b0, speed (s16 +0x76), h2, 0, 0xFF), veh_collide_spheres(0xFF, gCarrierState);
+ * then, unless gCarrierContact is set, gCollHit = 0, veh_collide_world(0xFF) when
+ * gCarrierWorldHitOn is set and obj_collide_vehicle(0xFF, veh) (with D_803F77D0 =
+ * &gCarrierAnim) when gCarrierObjHitOn is set; if gCollHit is then still 0 and the
  * three height pairs at +4/+8, +0x10/+0x14, +0x1C/+0x20 each differ by at most
  * 10000, it returns. Otherwise cmo_hit_request = gPauseRequest = 1. Then, unless
- * D_803643D8 is set: func_80278318, func_802A02E4(1, &D_803EF330),
- * fx_finish_all, obj_clear_effect_queue. Finally the effect: D_803EF6FE counts down
- * first; then, until D_803EF6FF is set, the first frame sets up a
+ * D_803643D8 is set: func_80278318, anim_stop(1, &gCarrierAnim),
+ * fx_finish_all, obj_clear_effect_queue. Finally the effect: gCarrierExplodeDelay counts down
+ * first; then, until gCarrierExplodeDone is set, the first frame sets up a
  * fx_spawn record (def D_802C3B44, data 0x7A120, type 1 at (0xFF, 2, 0))
  * and sets D_803EF701, and later frames count D_803EF700 up to 0x12, which
- * sets D_803EF6FF.
- * Leaked registers (kept): b0 is the asm's t0 = &gCarrierHit (so D_803A7428
- * gets 0xD6) and h2 its t2, func_802BABEC's leftover point-list end pointer
- * (its low half goes to D_803A7422), passed in here as `h2`. The
+ * sets gCarrierExplodeDone.
+ * Leaked registers (kept): b0 is the asm's t0 = &gCarrierHit (so gImpactEffectScale
+ * gets 0xD6) and h2 its t2, carrier_build_model's leftover point-list end pointer
+ * (its low half goes to gImpactMinSpeed), passed in here as `h2`. The
  * fx_spawn call (type 1, z = 0) ignores the asm's other leftover
  * registers (t6, t7, s0-s4, the a3 tag aside), so they are 0 here. The asm's
  * `sub`/`addi` trap on overflow.
  * Register convention: h2 in t2 (conventions.txt); the asm reads the height
- * records through s7 = veh + 4 (always, from its one caller func_802BA354)
+ * records through s7 = veh + 4 (always, from its one caller carrier_update)
  * and leaves its callees' registers behind (clobbers). */
-void func_802BA9A0(s32 h2) {
-    s32 *ys = (s32 *) (D_803EF630 + 4);
+void carrier_check_crash(s32 h2) {
+    s32 *ys = (s32 *) (gCarrierState + 4);
     Io802A6274 io;
     s32 n;
 
     if (gCarrierHit == 0) {
-        func_8029A800(D_803EF6E4, (s32) D_80305D60, 0, 0, D_803EF6DC, D_803EF6E0, (s32) &gCarrierHit,
-                      *(s16 *) (D_803EF630 + 0x76), h2, 0, 0xFF, D_803EF630);
-        func_8029C52C(0xFF, D_803EF630);
-        if (((u8) D_803A7426) == 0) {
-            D_803A7424 = 0;
-            if (D_803EF710 != 0) {
-                func_8029AA10(0xFF);
+        veh_collision_setup(gCarrierZ, (s32) D_80305D60, 0, 0, gCarrierX, gCarrierY, (s32) &gCarrierHit,
+                      *(s16 *) (gCarrierState + 0x76), h2, 0, 0xFF, gCarrierState);
+        veh_collide_spheres(0xFF, gCarrierState);
+        if (((u8) gCarrierContact) == 0) {
+            gCollHit = 0;
+            if (gCarrierWorldHitOn != 0) {
+                veh_collide_world(0xFF);
             }
-            if (D_803EF711 != 0) {
-                D_803F77D0 = D_803EF330;
-                obj_collide_vehicle(0xFF, D_803EF630);
+            if (gCarrierObjHitOn != 0) {
+                D_803F77D0 = gCarrierAnim;
+                obj_collide_vehicle(0xFF, gCarrierState);
             }
-            if (D_803A7424 == 0 && ABS_BA9A0(ys[1] - ys[0]) < 0x2711 && ABS_BA9A0(ys[4] - ys[3]) < 0x2711 &&
+            if (gCollHit == 0 && ABS_BA9A0(ys[1] - ys[0]) < 0x2711 && ABS_BA9A0(ys[4] - ys[3]) < 0x2711 &&
                 ABS_BA9A0(ys[7] - ys[6]) < 0x2711) {
                 return;
             }
@@ -586,15 +596,15 @@ void func_802BA9A0(s32 h2) {
     }
     if (D_803643D8 == 0) {
         func_80278318();
-        func_802A02E4(1, (Unk8029DEA0Entry *) D_803EF330);
+        anim_stop(1, (Unk8029DEA0Entry *) gCarrierAnim);
         fx_finish_all();
         obj_clear_effect_queue();
     }
-    if (D_803EF6FE != 0) {
-        D_803EF6FE--;
+    if (gCarrierExplodeDelay != 0) {
+        gCarrierExplodeDelay--;
         return;
     }
-    if (D_803EF6FF != 0) {
+    if (gCarrierExplodeDone != 0) {
         return;
     }
     if (D_803EF701 == 0) {
@@ -608,287 +618,295 @@ void func_802BA9A0(s32 h2) {
     n = D_803EF700 + 1;
     D_803EF700 = n;
     if (n == 0x12) {
-        D_803EF6FF = 1;
+        gCarrierExplodeDone = 1;
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/func_802BA9A0.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/carrier_check_crash.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 * N64P D_803EF704; /* matrix buffer pair */
-extern u8 * N64P D_803EF708;
-extern u8 * N64P D_803EF70C; /* model header */
+extern u8 * N64P gCarrierMtxA; /* matrix buffer pair */
+extern u8 * N64P gCarrierMtxB;
+extern u8 * N64P gCarrierModel; /* model header */
 
-/* Rebuilds the type-0xFF object's model matrices and points, as
- * func_802B7030 (71140) does for vehicle 5: header D_803EF70C, buffers
- * D_803EF704 (gBufferIndex set) / D_803EF708, rotation y = u16 +0x4C of
- * D_803EF630 (the asm's $gp; both callers point it there) in D_803ED392, root
- * matrix at D_803EF6DC/E0/E4 with scale 0x59D8 (func_802AA764), parts tag
- * 0xFF (func_8029C454) and points id 0xFF (func_802ABBEC).
- * Register convention: func_802AA890's chain registers pass through regs
+/* Its model matrix, parts and points (0x802BABEC).
+ * Rebuilds the type-0xFF object's model matrices and points, as
+ * backlash_build_model (71140) does for vehicle 5: header gCarrierModel, buffers
+ * gCarrierMtxA (gBufferIndex set) / gCarrierMtxB, rotation y = u16 +0x4C of
+ * gCarrierState (the asm's $gp; both callers point it there) in D_803ED392, root
+ * matrix at gCarrierX/Y/Z with scale 0x59D8 (mtx_build_model), parts tag
+ * 0xFF (veh_place_parts) and points id 0xFF (veh_points_transform).
+ * Register convention: mtx_chain_transform's chain registers pass through regs
  * (a3, s1, s0 in; v1, a0, a3, s1, s2 out), s2 = the root matrix and v1/a0 =
- * position y/z going into func_802ABBEC as in the asm. Returns the asm's t2,
- * the point list's end (func_802ABBEC preserves it), which caller
- * func_802BA354 hands on to func_802BA9A0 (conventions.txt). The asm also
+ * position y/z going into veh_points_transform as in the asm. Returns the asm's t2,
+ * the point list's end (veh_points_transform preserves it), which caller
+ * carrier_update hands on to carrier_check_crash (conventions.txt). The asm also
  * leaves s4 = the buffer, s5/s6 = position y/z, s7 = 0x59D8 and
- * func_802AA764's f12/f14 scratch (clobbers; not read). Asm callers keep t6,
+ * mtx_build_model's f12/f14 scratch (clobbers; not read). Asm callers keep t6,
  * t7 live. */
-s32 func_802BABEC(MtxChainRegs *regs) {
-    u8 *hdr = D_803EF70C;
-    u8 *buf = gBufferIndex != 0 ? D_803EF704 : D_803EF708;
+s32 carrier_build_model(MtxChainRegs *regs) {
+    u8 *hdr = gCarrierModel;
+    u8 *buf = gBufferIndex != 0 ? gCarrierMtxA : gCarrierMtxB;
     s32 *m = (s32 *) (*(s32 *) (hdr + *(s32 *) (hdr + 0x18) + 4) + buf);
     u8 *end;
 
-    D_803ED392 = *(u16 *) (D_803EF630 + 0x4C);
-    func_802AA764(D_803EF6DC, D_803EF6E0, D_803EF6E4, 0x59D8, m);
+    D_803ED392 = *(u16 *) (gCarrierState + 0x4C);
+    mtx_build_model(gCarrierX, gCarrierY, gCarrierZ, 0x59D8, m);
     regs->s2 = (s32) m;
-    buf = gBufferIndex != 0 ? D_803EF704 : D_803EF708;
-    hdr = D_803EF70C;
-    func_8029C454(D_803EF6DC, D_803EF6E0, D_803EF6E4, 0xFF, hdr + *(s32 *) (hdr + 4), hdr + *(s32 *) (hdr + 8),
+    buf = gBufferIndex != 0 ? gCarrierMtxA : gCarrierMtxB;
+    hdr = gCarrierModel;
+    veh_place_parts(gCarrierX, gCarrierY, gCarrierZ, 0xFF, hdr + *(s32 *) (hdr + 4), hdr + *(s32 *) (hdr + 8),
                   buf, regs);
-    regs->v1 = D_803EF6E0;
-    regs->a0 = D_803EF6E4;
-    hdr = D_803EF70C;
+    regs->v1 = gCarrierY;
+    regs->a0 = gCarrierZ;
+    hdr = gCarrierModel;
     end = hdr + *(s32 *) (hdr + 4);
-    func_802ABBEC(0xFF, (s16 *) (hdr + *(s32 *) hdr), (s16 *) end, buf, regs);
+    veh_points_transform(0xFF, (s16 *) (hdr + *(s32 *) hdr), (s16 *) end, buf, regs);
     return (s32) end;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/func_802BABEC.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/carrier_build_model.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 /* Functional rewrite (tools_port/eqcheck.py verified). Vehicle "set timers"
- * leaf, the shape shared by func_802BC578, func_802C9B30, func_802CB5D8,
- * func_802CC8B8, func_802CD9AC, func_802D0784 and func_802D249C (only the
- * scale and the two byte values differ). Asm caller func_802BA354 relies on
+ * leaf, the shape shared by train_set_physics, barge_set_physics, ballista_set_physics,
+ * police_set_physics, ateam_set_physics, starski_set_physics and cyclone_set_physics (only the
+ * scale and the two byte values differ). Asm caller carrier_update relies on
  * a0-a3 being preserved (mixed N64 build would need a thunk). */
 
-void func_802BAD24(void) {
-    D_803EBBF4 = D_803EBBF0 * 2.0f;
-    D_803ED3F6 = 60;
-    D_803ED3F7 = 10;
+/* Gravity x2, bounce 60/10 (0x802BAD24). */
+void carrier_set_physics(void) {
+    gGravity = gLevelGravity * 2.0f;
+    gBounceThreshold = 60;
+    gBounceDamping = 10;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/func_802BAD24.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/carrier_set_physics.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 * N64P D_803EFAD4;    /* vehicle 6's model header */
-extern u64 * N64P D_803EFAE4;   /* its two 0x800-byte matrix buffers */
-extern u64 * N64P D_803EFAE8;
-extern u8 D_803EFA20[];
-extern u32 D_803EFAC8[];
-extern u8 D_803EF720[];
+extern u8 * N64P gCraneModel;    /* vehicle 6's model header */
+extern u64 * N64P gCraneMtxA;   /* its two 0x800-byte matrix buffers */
+extern u64 * N64P gCraneMtxB;
+extern u8 gCraneState[];
+extern u32 gCranePos[];
+extern u8 gCraneAnim[];
 
-/* Level setup of vehicle 6 (asm caller lvl_spawn_vehicles, the level's object
- * list): model header `model` -> D_803EFAD4; two 0x800-byte matrix buffers
- * from the allocator gHeapPtr (D_803EFAE4, D_803EFAE8; the allocator
+/* Sets up the crane (type 6) (0x802BAD80).
+ * Level setup of vehicle 6 (asm caller lvl_spawn_vehicles, the level's object
+ * list): model header `model` -> gCraneModel; two 0x800-byte matrix buffers
+ * from the allocator gHeapPtr (gCraneMtxA, gCraneMtxB; the allocator
  * advances by 0x1000); veh_add_record(6, 0, buffers, model); $gp record
- * D_803EFA20 reset (func_802A754C); wheel-slot offsets (+-0x50, +-0x5A) at
- * +0x52..+0x68; position D_803EFAC8 = (x, y, z), heading +0x4C/+0x4E/+0x74
- * = `heading`; the three ground slots (func_802A992C, height records +4, y
- * written back to D_803EFACC, key 6); the model channels (func_8029F85C,
- * channel 0 of D_803EF720 set up and both buffers animated); +0xA1 = +0xA2 =
- * 0; parts registered (func_8029C354, tag 6, scale 0x1B58);
- * func_80258230(6, 0x96, 0x2D, 0x2D); one update with +0x9A set
- * (func_802BB274); and the root matrix copied from buffer B to A
- * (func_802AA838). The asm's add/addi trap on overflow.
+ * gCraneState reset (veh_reset_state); wheel-slot offsets (+-0x50, +-0x5A) at
+ * +0x52..+0x68; position gCranePos = (x, y, z), heading +0x4C/+0x4E/+0x74
+ * = `heading`; the three ground slots (veh_init_ground, height records +4, y
+ * written back to D_803EFACC, key 6); the model channels (anim_init_model,
+ * channel 0 of gCraneAnim set up and both buffers animated); +0xA1 = +0xA2 =
+ * 0; parts registered (veh_register_parts, tag 6, scale 0x1B58);
+ * veh_add_shadow(6, 0x96, 0x2D, 0x2D); one update with +0x9A set
+ * (crane_update); and the root matrix copied from buffer B to A
+ * (mtx_copy_at). The asm's add/addi trap on overflow.
  * Register convention (conventions.txt): model s2, x t7, y s3, z s0,
- * heading s1, and fp, which the asm hands to func_802A992C (its value
- * reaches D_803ED3F2 when a slot's grid scan finds no triangle: the
- * dispatcher's leftover fp, FIDELITY AUDIT). func_802A992C's FP inputs
+ * heading s1, and fp, which the asm hands to veh_init_ground (its value
+ * reaches gSlotSurface when a slot's grid scan finds no triangle: the
+ * dispatcher's leftover fp, FIDELITY AUDIT). veh_init_ground's FP inputs
  * (the dispatcher's f12-f26, passed through) are 0 here. The asm restores
- * t0-t5 (lvl_spawn_vehicles keeps t1/t2 live), points $gp at D_803EFA20 and
+ * t0-t5 (lvl_spawn_vehicles keeps t1/t2 live), points $gp at gCraneState and
  * leaves s0-s7, fp and f20-f28 as its callees leave them (clobbers). */
-void func_802BAD80(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp) {
+void crane_spawn(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp) {
     TriSideOut f;
     s32 buf;
     u8 *hdr;
 
-    D_803EFAD4 = model;
+    gCraneModel = model;
     buf = gHeapPtr;
-    D_803EFAE4 = (u64 *) N64_IPTR(buf);
-    D_803EFAE8 = (u64 *) N64_IPTR((buf + 0x800));
+    gCraneMtxA = (u64 *) N64_IPTR(buf);
+    gCraneMtxB = (u64 *) N64_IPTR((buf + 0x800));
     gHeapPtr = buf + 0x1000;
-    veh_add_record(6, 0, (s32) D_803EFAE4, (s32) D_803EFAE8, model);
-    func_802A754C(D_803EFA20);
+    veh_add_record(6, 0, (s32) gCraneMtxA, (s32) gCraneMtxB, model);
+    veh_reset_state(gCraneState);
     /* wheel slot offsets (x, z pairs and heights) */
-    *(s16 *) (D_803EFA20 + 0x52) = 0x50;
-    *(s16 *) (D_803EFA20 + 0x54) = 0x50;
-    *(s16 *) (D_803EFA20 + 0x56) = -0x50;
-    *(s16 *) (D_803EFA20 + 0x58) = 0x50;
-    *(s16 *) (D_803EFA20 + 0x5A) = 0x50;
-    *(s16 *) (D_803EFA20 + 0x5C) = -0x50;
-    *(s16 *) (D_803EFA20 + 0x5E) = 0x5A;
-    *(s16 *) (D_803EFA20 + 0x60) = 0x5A;
-    *(s16 *) (D_803EFA20 + 0x62) = -0x5A;
-    *(s16 *) (D_803EFA20 + 0x64) = 0x5A;
-    *(s16 *) (D_803EFA20 + 0x66) = 0x5A;
-    *(s16 *) (D_803EFA20 + 0x68) = -0x5A;
-    D_803EFAC8[0] = x;
-    D_803EFAC8[1] = y;
-    D_803EFAC8[2] = z;
-    *(s16 *) (D_803EFA20 + 0x4C) = heading;
-    *(s16 *) (D_803EFA20 + 0x4E) = heading;
-    *(s16 *) (D_803EFA20 + 0x74) = heading;
+    *(s16 *) (gCraneState + 0x52) = 0x50;
+    *(s16 *) (gCraneState + 0x54) = 0x50;
+    *(s16 *) (gCraneState + 0x56) = -0x50;
+    *(s16 *) (gCraneState + 0x58) = 0x50;
+    *(s16 *) (gCraneState + 0x5A) = 0x50;
+    *(s16 *) (gCraneState + 0x5C) = -0x50;
+    *(s16 *) (gCraneState + 0x5E) = 0x5A;
+    *(s16 *) (gCraneState + 0x60) = 0x5A;
+    *(s16 *) (gCraneState + 0x62) = -0x5A;
+    *(s16 *) (gCraneState + 0x64) = 0x5A;
+    *(s16 *) (gCraneState + 0x66) = 0x5A;
+    *(s16 *) (gCraneState + 0x68) = -0x5A;
+    gCranePos[0] = x;
+    gCranePos[1] = y;
+    gCranePos[2] = z;
+    *(s16 *) (gCraneState + 0x4C) = heading;
+    *(s16 *) (gCraneState + 0x4E) = heading;
+    *(s16 *) (gCraneState + 0x74) = heading;
     f.pz = 0.0f;
     f.cross = 0.0f;
     f.cz = 0.0f;
     f.side = 0.0f;
     f.sideZ = 0.0f;
     f.dz = 0.0f;
-    func_802A992C((s16 *) (D_803EFA20 + 0x52), D_803EFAC8[1], x, z, (s32 *) (D_803EFA20 + 4),
-                  (s32 *) &D_803EFAC8[1], (s16 *) (D_803EFA20 + 0x4C), 6, fp, D_803EFA20, &f);
-    hdr = D_803EFAD4;
-    func_8029F85C((u32 *) D_803EFAE8, (u32 *) D_803EFAE4, (Unk8029DEA0Entry *) D_803EF720, hdr);
-    func_802A039C((Unk8029DEA0Entry *) D_803EF720, 0, 0x64);
-    func_802A03D4((Unk8029DEA0Entry *) D_803EF720, 0, 0);
-    func_802A040C((Unk8029DEA0Entry *) D_803EF720, 0, 0);
-    func_802A0480(0.0f, (Unk8029DEA0Entry *) D_803EF720, 0, 0);
-    func_802A0290((Unk8029DEA0Entry *) D_803EF720, 0, 1);
-    func_8029E558((u8 *) D_803EFAE4, (u8 *) D_803EFAE8, (Unk8029DEA0Entry *) D_803EF720);
-    func_802A0320(0, (Unk8029DEA0Entry *) D_803EF720);
-    func_802A0290((Unk8029DEA0Entry *) D_803EF720, 0, 1);
-    func_8029E558((u8 *) D_803EFAE8, (u8 *) D_803EFAE4, (Unk8029DEA0Entry *) D_803EF720);
-    D_803EFA20[0xA1] = 0;
-    D_803EFA20[0xA2] = 0;
-    hdr = D_803EFAD4;
-    func_8029C354(6, hdr + *(s32 *) (hdr + 4), hdr + *(s32 *) (hdr + 8), 0x1B58);
-    func_80258230(6, 0x96, 0x2D, 0x2D);
-    D_803EFA20[0x9A] = 1;
-    func_802BB274();
-    D_803EFA20[0x9A] = 0;
-    hdr = D_803EFAD4;
-    func_802AA838((u8 *) D_803EFAE8, (u8 *) D_803EFAE4, *(s32 *) (hdr + *(s32 *) (hdr + 0x18) + 4));
+    veh_init_ground((s16 *) (gCraneState + 0x52), gCranePos[1], x, z, (s32 *) (gCraneState + 4),
+                  (s32 *) &gCranePos[1], (s16 *) (gCraneState + 0x4C), 6, fp, gCraneState, &f);
+    hdr = gCraneModel;
+    anim_init_model((u32 *) gCraneMtxB, (u32 *) gCraneMtxA, (Unk8029DEA0Entry *) gCraneAnim, hdr);
+    anim_set_speed((Unk8029DEA0Entry *) gCraneAnim, 0, 0x64);
+    anim_set_reverse((Unk8029DEA0Entry *) gCraneAnim, 0, 0);
+    anim_set_loop_mode((Unk8029DEA0Entry *) gCraneAnim, 0, 0);
+    anim_set_interp(0.0f, (Unk8029DEA0Entry *) gCraneAnim, 0, 0);
+    anim_play((Unk8029DEA0Entry *) gCraneAnim, 0, 1);
+    anim_update_model((u8 *) gCraneMtxA, (u8 *) gCraneMtxB, (Unk8029DEA0Entry *) gCraneAnim);
+    anim_rewind(0, (Unk8029DEA0Entry *) gCraneAnim);
+    anim_play((Unk8029DEA0Entry *) gCraneAnim, 0, 1);
+    anim_update_model((u8 *) gCraneMtxB, (u8 *) gCraneMtxA, (Unk8029DEA0Entry *) gCraneAnim);
+    gCraneState[0xA1] = 0;
+    gCraneState[0xA2] = 0;
+    hdr = gCraneModel;
+    veh_register_parts(6, hdr + *(s32 *) (hdr + 4), hdr + *(s32 *) (hdr + 8), 0x1B58);
+    veh_add_shadow(6, 0x96, 0x2D, 0x2D);
+    gCraneState[0x9A] = 1;
+    crane_update();
+    gCraneState[0x9A] = 0;
+    hdr = gCraneModel;
+    mtx_copy_at((u8 *) gCraneMtxB, (u8 *) gCraneMtxA, *(s32 *) (hdr + *(s32 *) (hdr + 0x18) + 4));
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/func_802BAD80.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/crane_spawn.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803EF720[];  /* animation channel table (Unk8029DEA0Entry, 56040.c) */
+extern u8 gCraneAnim[];  /* animation channel table (Unk8029DEA0Entry, 56040.c) */
 
-/* Enter vehicle type 6 (called from hd.c): gCamDistance / gCamHeightBase = 6000, 9000, then
- * sets fields 0x14/0x11/0x12 of channels 2, 4, 5 of D_803EF720 and starts
- * channels 4 and 5 with value -1 (func_802A0290). The asm also points $gp at
- * D_803EFA20 and leaves it there (conventions.txt: clobbers gp) and leaves
+/* Getting into the crane (0x802BB054).
+ * Enter vehicle type 6 (called from hd.c): gCamDistance / gCamHeightBase = 6000, 9000, then
+ * sets fields 0x14/0x11/0x12 of channels 2, 4, 5 of gCraneAnim and starts
+ * channels 4 and 5 with value -1 (anim_play). The asm also points $gp at
+ * gCraneState and leaves it there (conventions.txt: clobbers gp) and leaves
  * v1 = -1; the C caller uses neither. */
-void func_802BB054(void) {
+void crane_enter(void) {
     gCamDistance = 6000;
     gCamHeightBase = 9000;
-    func_802A039C((Unk8029DEA0Entry *) D_803EF720, 2, 1);
-    func_802A03D4((Unk8029DEA0Entry *) D_803EF720, 2, 0);
-    func_802A040C((Unk8029DEA0Entry *) D_803EF720, 2, 1);
-    func_802A039C((Unk8029DEA0Entry *) D_803EF720, 4, 0);
-    func_802A03D4((Unk8029DEA0Entry *) D_803EF720, 4, 0);
-    func_802A040C((Unk8029DEA0Entry *) D_803EF720, 4, 0);
-    func_802A0290((Unk8029DEA0Entry *) D_803EF720, 4, -1);
-    func_802A039C((Unk8029DEA0Entry *) D_803EF720, 5, 0);
-    func_802A03D4((Unk8029DEA0Entry *) D_803EF720, 5, 0);
-    func_802A040C((Unk8029DEA0Entry *) D_803EF720, 5, 1);
-    func_802A0290((Unk8029DEA0Entry *) D_803EF720, 5, -1);
+    anim_set_speed((Unk8029DEA0Entry *) gCraneAnim, 2, 1);
+    anim_set_reverse((Unk8029DEA0Entry *) gCraneAnim, 2, 0);
+    anim_set_loop_mode((Unk8029DEA0Entry *) gCraneAnim, 2, 1);
+    anim_set_speed((Unk8029DEA0Entry *) gCraneAnim, 4, 0);
+    anim_set_reverse((Unk8029DEA0Entry *) gCraneAnim, 4, 0);
+    anim_set_loop_mode((Unk8029DEA0Entry *) gCraneAnim, 4, 0);
+    anim_play((Unk8029DEA0Entry *) gCraneAnim, 4, -1);
+    anim_set_speed((Unk8029DEA0Entry *) gCraneAnim, 5, 0);
+    anim_set_reverse((Unk8029DEA0Entry *) gCraneAnim, 5, 0);
+    anim_set_loop_mode((Unk8029DEA0Entry *) gCraneAnim, 5, 1);
+    anim_play((Unk8029DEA0Entry *) gCraneAnim, 5, -1);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/func_802BB054.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/crane_enter.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803EFA20[]; /* this vehicle's state block */
+extern u8 gCraneState[]; /* this vehicle's state block */
 
-/* Exit check for vehicle type 6 (called from func_8024B4B8 in hd.c, which
+/* 1 unless the L/R action is running (0x802BB170).
+ * Exit check for vehicle type 6 (called from veh_exit_check in hd.c, which
  * declares it void and returns the leftover v0): 1 when the byte at +0xA1 is
  * 0, else 0. Returns s32 (the asm's v0). The asm also points $gp at
- * D_803EFA20 and leaves it there (conventions.txt: clobbers gp), and leaves
+ * gCraneState and leaves it there (conventions.txt: clobbers gp), and leaves
  * the byte in v1; C callers use neither. */
-s32 func_802BB170(void) {
-    return D_803EFA20[0xA1] == 0;
+s32 crane_exit_check(void) {
+    return gCraneState[0xA1] == 0;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/func_802BB170.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/crane_exit_check.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u64 * N64P D_803EFAE4;  /* save copy pair (func_802A7764) */
-extern u64 * N64P D_803EFAE8;
-extern void * N64P D_803EFAD8; /* sound handles, NULL = none */
-extern void * N64P D_803EFADC;
-extern void * N64P D_803EFAE0;
+extern u64 * N64P gCraneMtxA;  /* save copy pair (veh_sync_buffers) */
+extern u64 * N64P gCraneMtxB;
+extern void * N64P gCraneArmSound; /* sound handles, NULL = none */
+extern void * N64P gCraneSwingSound;
+extern void * N64P gCraneActionSound;
 
-/* Leave vehicle type 6 (called from hd.c): func_802A7764(D_803EFAE4,
- * D_803EFAE8, 0x800), then stops the sounds D_803EFADC, D_803EFAD8 and
- * D_803EFAE0 that are playing (func_802608C8); the handles are left as they
+/* Getting out of the crane; stops its three sounds (0x802BB1A0).
+ * Leave vehicle type 6 (called from hd.c): veh_sync_buffers(gCraneMtxA,
+ * gCraneMtxB, 0x800), then stops the sounds gCraneSwingSound, gCraneArmSound and
+ * gCraneActionSound that are playing (func_802608C8); the handles are left as they
  * are. The asm saves and restores $gp. */
-void func_802BB1A0(void) {
-    func_802A7764(D_803EFAE4, D_803EFAE8, 0x800);
-    if (D_803EFADC != NULL) {
-        func_802608C8(D_803EFADC);
+void crane_leave(void) {
+    veh_sync_buffers(gCraneMtxA, gCraneMtxB, 0x800);
+    if (gCraneSwingSound != NULL) {
+        func_802608C8(gCraneSwingSound);
     }
-    if (D_803EFAD8 != NULL) {
-        func_802608C8(D_803EFAD8);
+    if (gCraneArmSound != NULL) {
+        func_802608C8(gCraneArmSound);
     }
-    if (D_803EFAE0 != NULL) {
-        func_802608C8(D_803EFAE0);
+    if (gCraneActionSound != NULL) {
+        func_802608C8(gCraneActionSound);
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/func_802BB1A0.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/crane_leave.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u32 D_803EFAC8[]; /* x, y, z */
-/* Zone level lookup (func_802ABD54) for vehicle id 6 at its position
- * D_803EFAC8..+8; returns func_802ABD54's v1 (the zone list end).
- * Register convention: the asm passes func_802ABD54's scan registers t6, t7,
+extern u32 gCranePos[]; /* x, y, z */
+/* Veh_zone_alpha at the crane's position (0x802BB230).
+ * Zone level lookup (veh_zone_alpha) for vehicle id 6 at its position
+ * gCranePos..+8; returns veh_zone_alpha's v1 (the zone list end).
+ * Register convention: the asm passes veh_zone_alpha's scan registers t6, t7,
  * s0-s4 through (in and out; here through r), leaves a3 = id and clobbers
- * s5, s6 (conventions.txt). Asm caller func_802BB274 keeps f12 and f14 live
+ * s5, s6 (conventions.txt). Asm caller crane_update keeps f12 and f14 live
  * (a mixed N64 build would need a thunk; the native port won't). */
-s32 func_802BB230(ZoneScanRegs *r) {
-    return func_802ABD54(6, D_803EFAC8[0], D_803EFAC8[1], D_803EFAC8[2], r);
+s32 crane_zone_alpha(ZoneScanRegs *r) {
+    return veh_zone_alpha(6, gCranePos[0], gCranePos[1], gCranePos[2], r);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/func_802BB230.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/crane_zone_alpha.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 D_80305DF0[];
-void func_802BB4C0(void);
-s32 func_802BB8B8(MtxChainRegs *regs, s32 *t2Out);
+void crane_update_controls(void);
+s32 crane_build_model(MtxChainRegs *regs, s32 *t2Out);
 
-/* Per-frame update of vehicle 6 (D_803EFA20; called from hd.c's vehicle
- * switch and from func_802BAD80): zone lookup (func_802BB230); the
- * channels/sounds func_802BB4C0 while byte +0x9A is clear; ground heights
- * of the three wheel slots (func_802A92C8 at D_803EFAC8[0]/[2], key 6);
- * animate the model (func_8029E558 on the current buffer pair, channels
- * D_803EF720); rebuild it (func_802BB8B8); clear +0xA2; vehicle-state reset
- * func_8029A800 (table D_80305DF0, kind 6), func_8029C52C(6), the part
- * lookup func_8029C5EC, the collision pass obj_collide_vehicle(6) (with
- * D_803F77D0 = D_803EF720) and func_8029AA10(6); +0xA2 = 1 if D_803A7424 got
+/* The crane driven by the player, per frame (0x802BB274).
+ * Per-frame update of vehicle 6 (gCraneState; called from hd.c's vehicle
+ * switch and from crane_spawn): zone lookup (crane_zone_alpha); the
+ * channels/sounds crane_update_controls while byte +0x9A is clear; ground heights
+ * of the three wheel slots (veh_update_stand_on at gCranePos[0]/[2], key 6);
+ * animate the model (anim_update_model on the current buffer pair, channels
+ * gCraneAnim); rebuild it (crane_build_model); clear +0xA2; vehicle-state reset
+ * veh_collision_setup (table D_80305DF0, kind 6), veh_collide_spheres(6), the part
+ * lookup crane_check_part_hits, the collision pass obj_collide_vehicle(6) (with
+ * D_803F77D0 = gCraneAnim) and veh_collide_world(6); +0xA2 = 1 if gCollHit got
  * set; finally the player globals gPlayerX/Y/Z = the position,
  * D_8036443C = 0, D_8036443E / D_80364440 = u16 +0x4E / +0x4C.
- * func_8029A800's b0 and h2 are what func_802BB8B8 leaves in t0 / t2 (x and
+ * veh_collision_setup's b0 and h2 are what crane_build_model leaves in t0 / t2 (x and
  * 6), kept here.
- * Leaked registers (FIDELITY AUDIT): func_802A92C8's fp and f12-f26 inputs
- * are what func_802BB4C0 / func_802BB868 (or, when +0x9A is set, the
- * caller) left behind. fp only reaches D_803ED3F2 when func_802A9DC0 finds
+ * Leaked registers (FIDELITY AUDIT): veh_update_stand_on's fp and f12-f26 inputs
+ * are what crane_update_controls / crane_part_on_ground (or, when +0x9A is set, the
+ * caller) left behind. fp only reaches gSlotSurface when ground_scan_part_tris finds
  * no triangle and the h1 path still wins (impossible for game heights: it
  * needs |h3 - y| > ~0x5F5E0FF) and f12-f26 only pass through, so this
  * passes 0. Likewise 0 for the zone scan's t6/t7/s0-s4 inputs (dead
- * afterwards), func_802BB8B8's chain inputs a3/s1/s0 (only read for a
- * zero-matrix point) and func_8029C5EC's s0-s3 (only used when its lookup
+ * afterwards), crane_build_model's chain inputs a3/s1/s0 (only read for a
+ * zero-matrix point) and crane_check_part_hits's s0-s3 (only used when its lookup
  * succeeds, which reloads them). The asm saves every s- and FP register it
  * changes; it returns with v1/f12/f14 as its callees leave them (read by
- * func_802BAD80; not modelled). */
-void func_802BB274(void) {
+ * crane_spawn; not modelled). */
+void crane_update(void) {
     ZoneScanRegs zr;
     TriSideOut f;
     MtxChainRegs regs;
@@ -902,9 +920,9 @@ void func_802BB274(void) {
     zr.s2 = 0;
     zr.s3 = 0;
     zr.s4 = 0;
-    func_802BB230(&zr);
-    if ((s8) D_803EFA20[0x9A] == 0) {
-        func_802BB4C0();
+    crane_zone_alpha(&zr);
+    if ((s8) gCraneState[0x9A] == 0) {
+        crane_update_controls();
     }
     f.pz = 0.0f;
     f.cross = 0.0f;
@@ -912,170 +930,172 @@ void func_802BB274(void) {
     f.side = 0.0f;
     f.sideZ = 0.0f;
     f.dz = 0.0f;
-    func_802A92C8(D_803EFAC8[0], D_803EFAC8[2], (s16 *) (D_803EFA20 + 0x5E), (s16 *) (D_803EFA20 + 0x4C),
-                  (s32 *) (D_803EFA20 + 4), 6, D_803EFA20, 0, &f);
+    veh_update_stand_on(gCranePos[0], gCranePos[2], (s16 *) (gCraneState + 0x5E), (s16 *) (gCraneState + 0x4C),
+                  (s32 *) (gCraneState + 4), 6, gCraneState, 0, &f);
     if (gBufferIndex != 0) {
-        func_8029E558((u8 *) D_803EFAE4, (u8 *) D_803EFAE8, (Unk8029DEA0Entry *) D_803EF720);
+        anim_update_model((u8 *) gCraneMtxA, (u8 *) gCraneMtxB, (Unk8029DEA0Entry *) gCraneAnim);
     } else {
-        func_8029E558((u8 *) D_803EFAE8, (u8 *) D_803EFAE4, (Unk8029DEA0Entry *) D_803EF720);
+        anim_update_model((u8 *) gCraneMtxB, (u8 *) gCraneMtxA, (Unk8029DEA0Entry *) gCraneAnim);
     }
     regs.a3 = 0;
     regs.s1 = 0;
     regs.s0 = 0;
-    x = func_802BB8B8(&regs, &h2);
-    D_803EFA20[0xA2] = 0;
-    func_8029A800(D_803EFAC8[2], (s32) D_80305DF0, 0, 0, D_803EFAC8[0], D_803EFAC8[1], x, 0, h2, 0, 6,
-                  D_803EFA20);
-    func_8029C52C(6, D_803EFA20);
-    func_8029C5EC(0, 0, 0, 0);
-    D_803F77D0 = D_803EF720;
-    obj_collide_vehicle(6, D_803EFA20);
-    func_8029AA10(6);
-    if (D_803A7424 != 0) {
-        D_803EFA20[0xA2] = 1;
+    x = crane_build_model(&regs, &h2);
+    gCraneState[0xA2] = 0;
+    veh_collision_setup(gCranePos[2], (s32) D_80305DF0, 0, 0, gCranePos[0], gCranePos[1], x, 0, h2, 0, 6,
+                  gCraneState);
+    veh_collide_spheres(6, gCraneState);
+    crane_check_part_hits(0, 0, 0, 0);
+    D_803F77D0 = gCraneAnim;
+    obj_collide_vehicle(6, gCraneState);
+    veh_collide_world(6);
+    if (gCollHit != 0) {
+        gCraneState[0xA2] = 1;
     }
-    gPlayerX = D_803EFAC8[0];
-    gPlayerY = D_803EFAC8[1];
-    gPlayerZ = D_803EFAC8[2];
+    gPlayerX = gCranePos[0];
+    gPlayerY = gCranePos[1];
+    gPlayerZ = gCranePos[2];
     D_8036443C = 0;
-    D_8036443E = *(u16 *) (D_803EFA20 + 0x4E);
-    D_80364440 = *(u16 *) (D_803EFA20 + 0x4C);
+    D_8036443E = *(u16 *) (gCraneState + 0x4E);
+    D_80364440 = *(u16 *) (gCraneState + 0x4C);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/func_802BB274.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/crane_update.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern f32 D_8030D930; /* channel 5 limits */
 extern f32 D_8030D934;
-s32 func_802BB868(void);
+s32 crane_part_on_ground(void);
 
-/* Animation channels and sounds of vehicle type 6 ($gp = D_803EFA20, read as
- * the global; channels in D_803EF720, an Unk8029DEA0Entry table).
+/* A/B, Left/Right and L/R drive channels 5, 4 and 2 with sounds (0x802BB4C0).
+ * Animation channels and sounds of vehicle type 6 ($gp = gCraneState, read as
+ * the global; channels in gCraneAnim, an Unk8029DEA0Entry table).
  * - Byte +0xA2 set: channels 5, 4 off (unk14 = 0), channel 2 unk11 = 0 and
- *   restarted (func_802A0290), +0xA1 = 1.
+ *   restarted (anim_play), +0xA1 = 1.
  * - Otherwise channel 5 follows input gHeldA while its unk4 <= D_8030D930
  *   (direction 0) or gHeldB while !(unk4 < D_8030D934) (direction 1),
- *   starting sound 0x6F (handle D_803EFAD8) if needed, else it is switched
+ *   starting sound 0x6F (handle gCraneArmSound) if needed, else it is switched
  *   off and that sound stopped; channel 4 likewise follows gHeldLeft /
- *   gHeldRight with sound 0x6E (D_803EFADC). Then, when func_802BB868 reports
+ *   gHeldRight with sound 0x6E (gCraneSwingSound). Then, when crane_part_on_ground reports
  *   ground under the level-0x11 part, channel 2 is restarted with
  *   direction 0 and +0xA1 = 1 unless it is already running in direction 1
  *   at unk4 * 100 == 100 (cvt.w.s, nearest); with no ground, if +0xA1 is 0
- *   and input gHeldL or gHeldR is set, sound 0x6D (D_803EFAE0) is
+ *   and input gHeldL or gHeldR is set, sound 0x6D (gCraneActionSound) is
  *   started if needed, channel 2 restarted and +0xA1 = 1, and nothing else
  *   happens.
  * - Finally (all other paths): when channel 2 isn't active (unk10 != 1),
- *   +0xA1 = 0 and sound D_803EFAE0 is stopped if playing (handle kept).
- * Register note: the asm leaves func_802BB868's registers behind (s0-s7, fp,
+ *   +0xA1 = 0 and sound gCraneActionSound is stopped if playing (handle kept).
+ * Register note: the asm leaves crane_part_on_ground's registers behind (s0-s7, fp,
  * f20-f28, t7 per the survey; conventions.txt: clobbers); the asm caller
- * func_802BB274 passes some of them on to func_802A92C8 unchanged, which the
- * C can't reproduce (they are func_802BB868's scratch). */
-void func_802BB4C0(void) {
+ * crane_update passes some of them on to veh_update_stand_on unchanged, which the
+ * C can't reproduce (they are crane_part_on_ground's scratch). */
+void crane_update_controls(void) {
     s32 e[8];
     s32 r;
 
-    if (D_803EFA20[0xA2] != 0) {
-        func_802A039C((Unk8029DEA0Entry *) D_803EF720, 5, 0);
-        func_802A039C((Unk8029DEA0Entry *) D_803EF720, 4, 0);
-        func_802A03D4((Unk8029DEA0Entry *) D_803EF720, 2, 0);
-        func_802A0290((Unk8029DEA0Entry *) D_803EF720, 2, 1);
-        D_803EFA20[0xA1] = 1;
+    if (gCraneState[0xA2] != 0) {
+        anim_set_speed((Unk8029DEA0Entry *) gCraneAnim, 5, 0);
+        anim_set_speed((Unk8029DEA0Entry *) gCraneAnim, 4, 0);
+        anim_set_reverse((Unk8029DEA0Entry *) gCraneAnim, 2, 0);
+        anim_play((Unk8029DEA0Entry *) gCraneAnim, 2, 1);
+        gCraneState[0xA1] = 1;
         goto check2;
     }
 
-    if (gHeldA != 0 && (func_802A04BC(5, (Unk8029DEA0Entry *) D_803EF720, e), ((f32 *) e)[7] <= D_8030D930)) {
-        func_802A03D4((Unk8029DEA0Entry *) D_803EF720, 5, 0);
-        func_802A039C((Unk8029DEA0Entry *) D_803EF720, 5, 1);
+    if (gHeldA != 0 && (anim_get_state(5, (Unk8029DEA0Entry *) gCraneAnim, e), ((f32 *) e)[7] <= D_8030D930)) {
+        anim_set_reverse((Unk8029DEA0Entry *) gCraneAnim, 5, 0);
+        anim_set_speed((Unk8029DEA0Entry *) gCraneAnim, 5, 1);
         goto start5;
     }
-    if (gHeldB != 0 && (func_802A04BC(5, (Unk8029DEA0Entry *) D_803EF720, e), !(((f32 *) e)[7] < D_8030D934))) {
-        func_802A03D4((Unk8029DEA0Entry *) D_803EF720, 5, 1);
-        func_802A039C((Unk8029DEA0Entry *) D_803EF720, 5, 1);
+    if (gHeldB != 0 && (anim_get_state(5, (Unk8029DEA0Entry *) gCraneAnim, e), !(((f32 *) e)[7] < D_8030D934))) {
+        anim_set_reverse((Unk8029DEA0Entry *) gCraneAnim, 5, 1);
+        anim_set_speed((Unk8029DEA0Entry *) gCraneAnim, 5, 1);
         goto start5;
     }
-    func_802A039C((Unk8029DEA0Entry *) D_803EF720, 5, 0);
-    if (D_803EFAD8 != NULL) {
-        func_802608C8(D_803EFAD8);
+    anim_set_speed((Unk8029DEA0Entry *) gCraneAnim, 5, 0);
+    if (gCraneArmSound != NULL) {
+        func_802608C8(gCraneArmSound);
     }
     goto chan4;
 start5:
-    if (D_803EFAD8 == NULL) {
-        func_80260650(D_80367738, 0x6F, &D_803EFAD8);
+    if (gCraneArmSound == NULL) {
+        func_80260650(D_80367738, 0x6F, &gCraneArmSound);
     }
 
 chan4:
     if (gHeldLeft != 0) {
-        func_802A03D4((Unk8029DEA0Entry *) D_803EF720, 4, 0);
-        func_802A039C((Unk8029DEA0Entry *) D_803EF720, 4, 1);
+        anim_set_reverse((Unk8029DEA0Entry *) gCraneAnim, 4, 0);
+        anim_set_speed((Unk8029DEA0Entry *) gCraneAnim, 4, 1);
     } else if (gHeldRight != 0) {
-        func_802A03D4((Unk8029DEA0Entry *) D_803EF720, 4, 1);
-        func_802A039C((Unk8029DEA0Entry *) D_803EF720, 4, 1);
+        anim_set_reverse((Unk8029DEA0Entry *) gCraneAnim, 4, 1);
+        anim_set_speed((Unk8029DEA0Entry *) gCraneAnim, 4, 1);
     } else {
-        func_802A039C((Unk8029DEA0Entry *) D_803EF720, 4, 0);
-        if (D_803EFADC != NULL) {
-            func_802608C8(D_803EFADC);
+        anim_set_speed((Unk8029DEA0Entry *) gCraneAnim, 4, 0);
+        if (gCraneSwingSound != NULL) {
+            func_802608C8(gCraneSwingSound);
         }
         goto ground;
     }
-    if (D_803EFADC == NULL) {
-        func_80260650(D_80367738, 0x6E, &D_803EFADC);
+    if (gCraneSwingSound == NULL) {
+        func_80260650(D_80367738, 0x6E, &gCraneSwingSound);
     }
 
 ground:
-    if (func_802BB868() != 0) {
-        func_802A04BC(2, (Unk8029DEA0Entry *) D_803EF720, e);
+    if (crane_part_on_ground() != 0) {
+        anim_get_state(2, (Unk8029DEA0Entry *) gCraneAnim, e);
         if (e[6] == 1) {
             CVT_W_S(r, ((f32 *) e)[7] * 100.0f);
             if (r == 100) {
                 goto check2;
             }
         }
-        func_802A03D4((Unk8029DEA0Entry *) D_803EF720, 2, 0);
-        func_802A0290((Unk8029DEA0Entry *) D_803EF720, 2, 1);
-        D_803EFA20[0xA1] = 1;
+        anim_set_reverse((Unk8029DEA0Entry *) gCraneAnim, 2, 0);
+        anim_play((Unk8029DEA0Entry *) gCraneAnim, 2, 1);
+        gCraneState[0xA1] = 1;
     } else {
-        if (D_803EFA20[0xA1] != 0) {
+        if (gCraneState[0xA1] != 0) {
             goto check2;
         }
         if (gHeldL == 0 && gHeldR == 0) {
             goto check2;
         }
-        if (D_803EFAE0 == NULL) {
-            func_80260650(D_80367738, 0x6D, &D_803EFAE0);
+        if (gCraneActionSound == NULL) {
+            func_80260650(D_80367738, 0x6D, &gCraneActionSound);
         }
-        func_802A0290((Unk8029DEA0Entry *) D_803EF720, 2, 1);
-        D_803EFA20[0xA1] = 1;
+        anim_play((Unk8029DEA0Entry *) gCraneAnim, 2, 1);
+        gCraneState[0xA1] = 1;
         return;
     }
 
 check2:
-    func_802A04BC(2, (Unk8029DEA0Entry *) D_803EF720, e);
+    anim_get_state(2, (Unk8029DEA0Entry *) gCraneAnim, e);
     if (e[0] != 1) {
-        D_803EFA20[0xA1] = 0;
-        if (D_803EFAE0 != NULL) {
-            func_802608C8(D_803EFAE0);
+        gCraneState[0xA1] = 0;
+        if (gCraneActionSound != NULL) {
+            func_802608C8(gCraneActionSound);
         }
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/func_802BB4C0.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/crane_update_controls.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-/* On level 0x11 only: finds the kind-6 / id-0x3BD part (func_8029C6E4) and
+/* Level 0x11: the crane's test part has ground under it (0x802BB868).
+ * On level 0x11 only: finds the kind-6 / id-0x3BD part (crane_find_test_part) and
  * returns whether func_802AC0BC finds ground under its position (words 0, 8
  * as x, z; word 4 as y); 0 otherwise.
  * Register convention: result in v0 (ABI). The asm leaves both callees'
  * registers behind (s0-s4, t6, t7, fp, f12-f26) and its caller
- * func_802BB4C0 only tests v0, so they're not modelled (conventions.txt:
- * clobbers). Its s0-s3 inputs only pass through func_8029C6E4 when nothing is
+ * crane_update_controls only tests v0, so they're not modelled (conventions.txt:
+ * clobbers). Its s0-s3 inputs only pass through crane_find_test_part when nothing is
  * found, and func_802AC0BC's pass-through inputs a3 / f12-f26 don't affect
  * the found flag, so the C starts them at 0. */
-s32 func_802BB868(void) {
+s32 crane_part_on_ground(void) {
     Unk8029C6E4Out o;
     TriSideOut f;
     TriScanRegs r;
@@ -1087,7 +1107,7 @@ s32 func_802BB868(void) {
     o.s1 = 0;
     o.s2 = 0;
     o.s3 = 0;
-    func_8029C6E4(&o);
+    crane_find_test_part(&o);
     if (o.s4 == 0) {
         return 0;
     }
@@ -1110,54 +1130,55 @@ s32 func_802BB868(void) {
     return r.a1;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/func_802BB868.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/crane_part_on_ground.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 * N64P D_803EFAD4; /* model header */
+extern u8 * N64P gCraneModel; /* model header */
 
-/* Rebuilds vehicle 6's model (D_803EFA20, the asm's $gp; header
- * D_803EFAD4, buffers D_803EFAE4 (gBufferIndex set) / D_803EFAE8): rotation
- * D_803ED390 = 0, y = heading (u16 +0x4C), z = 0; root matrix at
- * D_803EFAC8[0..2] with scale 0x1B58 (func_802AA764); parts tag 6
- * (func_8029C454, header +4 .. +8), points id 6 (func_802ABBEC, +0 .. +4),
- * triangles id 6 (func_802AABE4, header +8) and the collision setup
- * func_8029D040(heading, D_803EF720, x, z, 6, header + [+0xC], buffer).
- * Register convention: func_802AA890's chain registers pass through regs
- * (a3, s1, s0 in) as in func_802B7030 (71140). The asm returns with t0 = x
- * (D_803EFAC8[0]) and t2 = 6, which asm caller func_802BB274 passes on to
- * func_8029A800: the return value and *t2Out here (conventions.txt).
- * func_8029D040 leaves s0-s7, fp, f20-f28 (and the chain outputs) changed
- * (clobbers; func_802BB274 only hands s0-s3 to func_8029C5EC, which reads
+/* Matrices, parts, points and its deck triangles (0x802BB8B8).
+ * Rebuilds vehicle 6's model (gCraneState, the asm's $gp; header
+ * gCraneModel, buffers gCraneMtxA (gBufferIndex set) / gCraneMtxB): rotation
+ * gModelRot = 0, y = heading (u16 +0x4C), z = 0; root matrix at
+ * gCranePos[0..2] with scale 0x1B58 (mtx_build_model); parts tag 6
+ * (veh_place_parts, header +4 .. +8), points id 6 (veh_points_transform, +0 .. +4),
+ * triangles id 6 (veh_deck_transform, header +8) and the collision setup
+ * veh_update_tris(heading, gCraneAnim, x, z, 6, header + [+0xC], buffer).
+ * Register convention: mtx_chain_transform's chain registers pass through regs
+ * (a3, s1, s0 in) as in backlash_build_model (71140). The asm returns with t0 = x
+ * (gCranePos[0]) and t2 = 6, which asm caller crane_update passes on to
+ * veh_collision_setup: the return value and *t2Out here (conventions.txt).
+ * veh_update_tris leaves s0-s7, fp, f20-f28 (and the chain outputs) changed
+ * (clobbers; crane_update only hands s0-s3 to crane_check_part_hits, which reads
  * them only when its lookup fails and then doesn't use them). */
-s32 func_802BB8B8(MtxChainRegs *regs, s32 *t2Out) {
-    u8 *hdr = D_803EFAD4;
-    u8 *buf = gBufferIndex != 0 ? (u8 *) D_803EFAE4 : (u8 *) D_803EFAE8;
+s32 crane_build_model(MtxChainRegs *regs, s32 *t2Out) {
+    u8 *hdr = gCraneModel;
+    u8 *buf = gBufferIndex != 0 ? (u8 *) gCraneMtxA : (u8 *) gCraneMtxB;
     s32 *m = (s32 *) (*(s32 *) (hdr + *(s32 *) (hdr + 0x18) + 4) + buf);
     s16 *verts;
 
-    D_803ED390 = 0;
-    (&D_803ED390)[2] = 0;
-    D_803ED392 = *(u16 *) (D_803EFA20 + 0x4C);
-    func_802AA764(D_803EFAC8[0], D_803EFAC8[1], D_803EFAC8[2], 0x1B58, m);
+    gModelRot = 0;
+    (&gModelRot)[2] = 0;
+    D_803ED392 = *(u16 *) (gCraneState + 0x4C);
+    mtx_build_model(gCranePos[0], gCranePos[1], gCranePos[2], 0x1B58, m);
     regs->s2 = (s32) m;
-    buf = gBufferIndex != 0 ? (u8 *) D_803EFAE4 : (u8 *) D_803EFAE8;
-    hdr = D_803EFAD4;
-    func_8029C454(D_803EFAC8[0], D_803EFAC8[1], D_803EFAC8[2], 6, hdr + *(s32 *) (hdr + 4), hdr + *(s32 *) (hdr + 8),
+    buf = gBufferIndex != 0 ? (u8 *) gCraneMtxA : (u8 *) gCraneMtxB;
+    hdr = gCraneModel;
+    veh_place_parts(gCranePos[0], gCranePos[1], gCranePos[2], 6, hdr + *(s32 *) (hdr + 4), hdr + *(s32 *) (hdr + 8),
                   buf, regs);
-    regs->v1 = D_803EFAC8[1];
-    regs->a0 = D_803EFAC8[2];
-    hdr = D_803EFAD4;
-    func_802ABBEC(6, (s16 *) (hdr + *(s32 *) hdr), (s16 *) (hdr + *(s32 *) (hdr + 4)), buf, regs);
-    hdr = D_803EFAD4;
-    func_802AABE4(6, (u16 *) (hdr + *(s32 *) (hdr + 8)), buf, regs, &verts);
-    hdr = D_803EFAD4;
-    func_8029D040(*(u16 *) (D_803EFA20 + 0x4C), (Unk8029DEA0Entry *) D_803EF720, D_803EFAC8[0], D_803EFAC8[2], 6,
+    regs->v1 = gCranePos[1];
+    regs->a0 = gCranePos[2];
+    hdr = gCraneModel;
+    veh_points_transform(6, (s16 *) (hdr + *(s32 *) hdr), (s16 *) (hdr + *(s32 *) (hdr + 4)), buf, regs);
+    hdr = gCraneModel;
+    veh_deck_transform(6, (u16 *) (hdr + *(s32 *) (hdr + 8)), buf, regs, &verts);
+    hdr = gCraneModel;
+    veh_update_tris(*(u16 *) (gCraneState + 0x4C), (Unk8029DEA0Entry *) gCraneAnim, gCranePos[0], gCranePos[2], 6,
                   hdr + *(s32 *) (hdr + 0xC), buf);
     *t2Out = 6;
-    return D_803EFAC8[0];
+    return gCranePos[0];
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/func_802BB8B8.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/crane_build_model.s")
 #endif

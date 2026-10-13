@@ -111,8 +111,8 @@ void func_802729F0(u16 type, u16 level) {
     f32 area;
     u16 id;
 
-    area = D_803BE720 * D_803BE718;
-    area = (D_803BE722 * D_803BE71C + area) / 32.0f;
+    area = gGroundCols * gGroundCellW;
+    area = (gGroundRows * gGroundCellD + area) / 32.0f;
     D_8036BFC4 = 1;
     switch (type) {
         case 0:

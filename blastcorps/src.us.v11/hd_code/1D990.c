@@ -178,9 +178,9 @@ void func_802621DC(u8 arg0) {
     LevelInfo *p;
 
     p = &gLevelInfo[arg0];
-    D_803EF2EC = p->unk26[0] << 5;
-    D_803EF2F0 = p->unk26[1] << 5;
-    D_803EF2F4 = p->unk26[2] << 5;
+    gChopperX = p->unk26[0] << 5;
+    gChopperY = p->unk26[1] << 5;
+    gChopperZ = p->unk26[2] << 5;
 }
 
 void func_80262238(u8 arg0) {
@@ -189,7 +189,7 @@ void func_80262238(u8 arg0) {
 
     i = 0;
     found = 0;
-    D_803EFEC8 = 0;
+    gTrainOnLine = 0;
     do {
         if (D_802E8F68[i].id == arg0) {
             found = 1;
@@ -198,11 +198,11 @@ void func_80262238(u8 arg0) {
         }
     } while (!found && i < 1);
     if (found) {
-        D_803EFEC8 = 1;
-        D_803EFEB0 = D_802E8F68[i].pos[0] << 5;
-        D_803EFEB4 = D_802E8F68[i].pos[1] << 5;
-        D_803EFEB8 = D_802E8F68[i].pos[2] << 5;
-        D_803EFEBC = D_802E8F68[i].pos[3] << 5;
+        gTrainOnLine = 1;
+        gTrainLineX0 = D_802E8F68[i].pos[0] << 5;
+        gTrainLineZ0 = D_802E8F68[i].pos[1] << 5;
+        gTrainLineX1 = D_802E8F68[i].pos[2] << 5;
+        gTrainLineZ1 = D_802E8F68[i].pos[3] << 5;
     }
 }
 
@@ -235,8 +235,8 @@ void func_80262320(u8 arg0) {
         gCamFixedEye = 0;
     }
     D_80367C04 = &gLevelInfo[arg0];
-    D_803F7C10 = D_80367C04->unk1C << 5;
-    D_803F7C14 = D_80367C04->unk1E << 5;
+    gJbombLiftFadeY = D_80367C04->unk1C << 5;
+    gJbombMaxY = D_80367C04->unk1E << 5;
     D_80364424 = D_80367C04->unk38;
     D_80364428 = D_80367C04->unk3C << 5;
     D_8036442C = D_80367C04->unk40;
@@ -416,10 +416,10 @@ void func_80262BF4(void) {
                 }
                 D_80367D08 = D_80367BF4;
             }
-            if (D_803BE738 && gLevelKind == 0x40) {
+            if (gFailTrigger && gLevelKind == 0x40) {
                 func_80260650(D_80367738, 0x3C, 0);
             }
-            if (D_803BE738) {
+            if (gFailTrigger) {
                 cmo_hit_request = 1;
             }
             if (gCarrierHit) {

@@ -1,8 +1,8 @@
 # Vehicle 0's drive-in (getting out of a vehicle), original ROM (baserom.us.v11) addresses.
 # Boot -> new game -> level 0 in vehicle 4 (START / A pulses until game mode 4), wait 2 s,
 # save ~/drivein_lvl0.st (used by spec_drivein_trials.py), press Z, run 10 s more.
-# Logs the leftover key (t8) and fp that func_802AE888 / func_802AEC3C / func_802AF340 hand to
-# func_802A9A60, and what that stores (D_803ED3F2[0..2] at 0x803ED3F2, vehicle 0's +0x50).
+# Logs the leftover key (t8) and fp that driver_try_exit / driver_check_exit_point / driver_exit_walk_step hand to
+# veh_reground, and what that stores (gSlotSurface[0..2] at 0x803ED3F2, vehicle 0's +0x50).
 import os
 VIS = 60 * 80
 SAVE = os.path.expanduser("~/drivein_lvl0.st")
@@ -12,12 +12,12 @@ FL = [12, 14, 16, 18, 20, 22, 24, 26]
 G = ["a0", "a2", "t2", "t8", "fp", "gp", "sp", "ra", "s0", "s1", "s2", "s3", "s4"]
 BPS = {
     0x802AE888: ("ae888_entry", G, FL),
-    0x802AED58: ("aec3c_call9a60", G, FL),        # func_802AEC3C's jal func_802A9A60
+    0x802AED58: ("aec3c_call9a60", G, FL),        # driver_check_exit_point's jal veh_reground
     0x802AED60: ("aec3c_ret9a60", ["fp", "t8"], []),
     0x802AEE38: ("aec3c_exit", ["a3", "fp", "t8"], FL),
     0x802AEEC8: ("aeec8_entry", ["t8", "fp", "ra"], []),
     0x802AF340: ("af340_entry", ["t8", "fp", "ra"], []),
-    0x802AF3C4: ("af340_call9a60", G, FL),        # func_802AF340's jal func_802A9A60
+    0x802AF3C4: ("af340_call9a60", G, FL),        # driver_exit_walk_step's jal veh_reground
     0x802AF3CC: ("af340_ret9a60", ["fp", "t8"], []),
 }
 MEM = [(0x80364456, 1), (0x803ED826, 1), (0x803ED828, 1), (0x803ED808, 4), (0x803ED80C, 4), (0x803ED810, 4),

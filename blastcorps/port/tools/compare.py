@@ -773,7 +773,7 @@ class Cmp:
         # whatever the memory held before, in that data's own byte order
         o = a - BASE
         if nat is not None:
-            # sound handles (sndPlaySfx's out parameter, e.g. D_803F7C18 or in
+            # sound handles (sndPlaySfx's out parameter, e.g. gJbombThrustSound or in
             # heap objects): which slot of the sound player's state array
             # (0x40-byte entries from 0x80399FF0) a sound gets, and when it
             # ends (the handle goes NULL), follow the audio thread's timing,
@@ -938,7 +938,7 @@ class Layout:
     FE = (0x801E7000, 0x8021ED00)   # the front end's text, data and bss
     # assets whose traced widths are polluted (the tracer charges an access to
     # the last load at the address; heap reused by other code afterwards)
-    UNTYPED_ROM = {0x6EC4C0: "packed-object table (u32 offsets, read by func_802A2A98 only): its 0x800 "
+    UNTYPED_ROM = {0x6EC4C0: "packed-object table (u32 offsets, read by lvl_load_object only): its 0x800 "
                              "bytes of heap are reused by the collision/level loaders in the trace"}
     UNTYPED = [("gTexDecodeScratch", "60F60.c texture decode scratch: declared u64 (the copy loop's unit), "
                               "holds the packed s16 tokens"),

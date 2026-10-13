@@ -13,7 +13,7 @@
 #define LEGACY_gRdus
 #define LEGACY_D_8036C794
 #define LEGACY_gRdpOutputBuffer
-#define LEGACY_D_803ED808
+#define LEGACY_gDriverPos
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
@@ -34,7 +34,7 @@
 #define gRdus (*(Node88 * N64P *) &gRdus)
 #define D_8036C794 (*(Box * N64P *) &D_8036C794)
 #define gRdpOutputBuffer (*(s32 *) &gRdpOutputBuffer)
-#define D_803ED808 (*(s32 *) D_803ED808)
+#define gDriverPos (*(s32 *) gDriverPos)
 #endif
 /* end of views */
 
@@ -198,7 +198,7 @@ extern s32 D_80364A5C;
 extern u8 D_80364A6F;
 extern u8 D_80364A86;
 #ifndef NON_MATCHING
-extern s32 D_803ED808;
+extern s32 gDriverPos;
 #endif
 void lvl_load_file(s32, s32, s32 *);
 void lvl_alloc_dl_buffers(void);
@@ -209,8 +209,8 @@ extern s32 gLevelDl1[2];
 extern s32 gLevelDl2[2];
 extern s32 gLevelDl3[2];
 extern s32 D_803156EC;
-u8 func_8024B4B8(void);
-s32 func_8024B418(u8);
+u8 veh_exit_check(void);
+s32 veh_is_loaded(u8);
 
 extern u8 D_803153F0;
 extern s32 D_803156E8;
@@ -359,7 +359,7 @@ void veh_leave(void);
 void veh_update_others(void);
 void veh_update_player(void);
 void func_8024A92C(u32);
-void func_8024B5E8(void);
+void veh_update_riders(void);
 void func_8024A348(void);
 void func_8024ADD8(void);
 Gfx *hd_build_frame_dl(DynamicBuf *, s32 *);
@@ -788,7 +788,7 @@ void hd_main_thread(void *arg) {
                                     D_8039C4F8[i] = pakBuffer[i];
                                 }
                             }
-                            func_802CF5B0();
+                            commpt_save_flags();
                             func_80297960();
                             if (gLevelKind == 1) {
                                 MS_ASSERT(record_status(pakBuffer)<=LEVEL_SAVE_SIZE-4, 513);
@@ -1062,7 +1062,7 @@ void hd_game_frame(void) {
     }
     nextdma = 0;
     no_palette_dmas = 0;
-    D_803A7426 = 0;
+    gCarrierContact = 0;
     if (gFramesInMode) {
         if (gBufferIndex == 0) {
             if (gFramesInMode >= 6) {
@@ -1087,7 +1087,7 @@ void hd_game_frame(void) {
                     j++;
                 }
             }
-            func_80258544(gVehicleShadows[j].unk0, gVehicleShadows[j].unk1004, gVehicleShadows[j].unk1010, gVehicleShadows[j].unk100C,
+            veh_render_shadow_tex(gVehicleShadows[j].unk0, gVehicleShadows[j].unk1004, gVehicleShadows[j].unk1010, gVehicleShadows[j].unk100C,
                           gVehicleShadows[j].unk1000, (Gfx *) N64_IPTR(((gVehicles + i)->unk54)), (gVehicles + i)->unk0, (gVehicles + i)->unk4);
         }
     }
@@ -1161,10 +1161,10 @@ void hd_game_frame(void) {
         D_803156F5 = gBufferIndex;
     }
     if (gHaveCarrier && (gGameMode & 0x104)) {
-        func_802BA148();
+        carrier_update_sound();
     }
     if (gHaveChopper && (gGameMode & 0x1905)) {
-        func_802B8794();
+        chopper_update_sound();
     }
     func_802683E0();
     D_803649EE = 0;
@@ -1246,14 +1246,14 @@ void hd_game_frame(void) {
                 D_80364A78 -= D_80364A80;
             }
         }
-        pos = D_803EF6E4 + D_80364A78;
-        lo = D_803EF6F8 - 400;
-        hi = D_803EF6F8 + D_803EF6F0;
+        pos = gCarrierZ + D_80364A78;
+        lo = gCarrierStartZ - 400;
+        hi = gCarrierStartZ + gCarrierRouteLen;
         if (pos > hi) {
-            D_80364A78 = hi - D_803EF6E4;
+            D_80364A78 = hi - gCarrierZ;
         }
         if (pos < lo) {
-            D_80364A78 = lo - D_803EF6E4;
+            D_80364A78 = lo - gCarrierZ;
         }
         if (gContButtons & 0x2010) {
             gYoshiWindows[0].unk4 = (gYoshiWindows[0].unk4 - 0x18 < -0x100) ? -0x100 : gYoshiWindows[0].unk4 - 0x18;
@@ -1305,13 +1305,13 @@ void hd_game_frame(void) {
         }
     }
     if (gHaveChopper && (!gPaused || (gGameMode & 0x1801))) {
-        func_802B899C();
+        chopper_update();
         if (gGameMode & 0x1801) {
             if (!areWeFading()) {
                 if (gNextGameMode == 0 || (gNextGameMode & 0x1801)) {
-                    func_802AEEC8();
+                    driver_update();
                 }
-                func_802B8AE4();
+                chopper_update_mode();
             }
         } else {
             people_update();
@@ -1325,24 +1325,24 @@ void hd_game_frame(void) {
     }
     if (gHaveCarrier && (gLevelKind & 0x81)) {
         if (!(gGameMode & 0x1801)) {
-            func_802BA354();
+            carrier_update();
         }
         if ((gGameMode & 0x104) && !yoshi_get_demand() && !gPaused && !gLevelDone && !gCarrierHit) {
             func_8024A92C(vis = obj_find_carrier_target());
         }
     }
     if (gHaveShuttle && !gPaused) {
-        func_802D291C();
+        shuttle_update();
         if (levelno == 0x32 && yoshiState == 1 && gFramesInMode > 50 && (gGameMode & 0x1801) && !areWeFading()) {
             func_80275390(0x2000);
         }
     }
-    func_8029DDC8();
+    anim_run_mtx_copies();
     if (!gPaused) {
-        D_803ED40C = 0;
+        gVehSlowed = 0;
         gPathBuildingsDestroyed = obj_path_buildings_destroyed();
         obj_check_level_end();
-        func_8024B5E8();
+        veh_update_riders();
         func_8028F794(gCurVehicle);
         func_80291FAC(gCurVehicle);
         func_802688C4(levelno);
@@ -1356,9 +1356,9 @@ void hd_game_frame(void) {
 #ifdef NON_MATCHING
         /* The asm takes its param (the texture decoder's type-4/5 table) in
          * $fp: 0 here in every level (traced). */
-        func_8029E0AC(LEAKED(s8));
+        anim_tex_update_all(LEAKED(s8));
 #else
-        func_8029E0AC();
+        anim_tex_update_all();
 #endif
         if ((gGameMode & 0x104) && (gLevelKind & 1)) {
             func_8024A348();
@@ -1410,7 +1410,7 @@ void hd_game_frame(void) {
         if (gGameMode & 0x04002104) {
             func_80262BF4();
         }
-    } else if (D_803BE738) {
+    } else if (gFailTrigger) {
         if (!(LEVEL_DONE(levelno))) {
             cmo_hit_request = 1;
         } else if (!areWeFading()) {
@@ -1426,7 +1426,7 @@ void hd_game_frame(void) {
     fx_draw_all();
     ptcl_update();
     if (!gPaused) {
-        func_802CF1A4();
+        commpt_update();
     }
     func_80279514(gPlayerX, gPlayerY, gPlayerZ, gCamEyeX, gCamEyeY, gCamEyeZ);
     func_80277620(gFramesInMode);
@@ -1707,10 +1707,10 @@ void func_8024A92C(u32 dist) {
             near = 35000;
             break;
         case 14:
-            if (D_803EF6E4 > 177600) {
+            if (gCarrierZ > 177600) {
                 far = 25000;
                 near = 20000;
-            } else if (D_803EF6E4 > 80000) {
+            } else if (gCarrierZ > 80000) {
                 far = 22000;
                 near = 17500;
             } else {
@@ -1719,7 +1719,7 @@ void func_8024A92C(u32 dist) {
             }
             break;
         case 9:
-            if (D_803EF6E4 > 100320) {
+            if (gCarrierZ > 100320) {
                 far = 36000;
                 near = 18000;
             } else {
@@ -1743,7 +1743,7 @@ void func_8024A92C(u32 dist) {
         D_80364A6F = 0;
     }
     if (D_80364A6F != D_803153F0) {
-        if (D_803153F0 == 0 && func_8026A610(D_803EF6DC, D_803EF6E4, gPlayerX, gPlayerZ) > 20000) {
+        if (D_803153F0 == 0 && func_8026A610(gCarrierX, gCarrierZ, gPlayerX, gPlayerZ) > 20000) {
             func_80277EDC(1, 1, 7, 0x6C);
             debug_printf("TOO FAR AWAY FROM CMO\n");
         }
@@ -1818,15 +1818,15 @@ void veh_apply_switch(void) {
     s32 pad;
 
     if (gNextVehicle != 0 && gNextVehicle != 0xFF) {
-        if (func_802AB878(gNextVehicle) == 0) {
-            func_802AB478(gNextVehicle);
+        if (veh_has_partial_rider(gNextVehicle) == 0) {
+            veh_attach_riders(gNextVehicle);
             func_8028F6B4(gNextVehicle);
             func_80291ED8(gNextVehicle);
             func_8028B720();
             func_802794E4();
             if (veh_enter(gNextVehicle)) {
                 gCurVehicle = gNextVehicle;
-                func_802AE860();
+                driver_stop_blend_anim();
                 if (!gPaused && gFramesInMode >= 11 &&
                     (gCurVehicle == 8 || gCurVehicle == 15 || gCurVehicle == 13 || gCurVehicle == 14)) {
                     yoshi_show_hint(0x4A);
@@ -1849,75 +1849,75 @@ s32 veh_enter(s32 id) {
 
     switch (id) {
         case 1:
-            func_802AFFD4();
+            sideswipe_enter();
             break;
         case 2:
-            func_802B1228();
+            thunderfist_enter();
             break;
         case 3:
-            func_802B2D7C();
+            skyfall_enter();
             break;
         case 4:
-            func_802B448C();
+            ramdozer_enter();
             break;
         case 5:
-            func_802B5CD8();
+            backlash_enter();
             break;
         case 6:
-            func_802BB054();
+            crane_enter();
             break;
         case 7:
 #ifdef NON_MATCHING
-            func_802BBDC8(LEAKED(a0));
+            train_enter(LEAKED(a0));
 #else
-            func_802BBDC8();
+            train_enter();
 #endif
             break;
         case 8:
 #ifdef NON_MATCHING
-            func_802B76AC(LEAKED(a0));
+            amdream_enter(LEAKED(a0));
 #else
-            func_802B76AC();
+            amdream_enter();
 #endif
             break;
         case 9:
-            func_802C5714();
+            jbomb_enter();
             break;
         case 10:
-            func_802C9F54();
+            ballista_enter();
             break;
         case 11:
         case 17:
         case 18:
 #ifdef NON_MATCHING
-            func_802C8AB0(LEAKED(a0));
+            barge_enter(LEAKED(a0));
 #else
-            func_802C8AB0();
+            barge_enter();
 #endif
             break;
         case 13:
 #ifdef NON_MATCHING
-            func_802CBA94(LEAKED(a0));
+            police_enter(LEAKED(a0));
 #else
-            func_802CBA94();
+            police_enter();
 #endif
             break;
         case 14:
 #ifdef NON_MATCHING
-            func_802CCC8C(LEAKED(a0));
+            ateam_enter(LEAKED(a0));
 #else
-            func_802CCC8C();
+            ateam_enter();
 #endif
             break;
         case 15:
 #ifdef NON_MATCHING
-            func_802CFA0C(LEAKED(a0));
+            starski_enter(LEAKED(a0));
 #else
-            func_802CFA0C();
+            starski_enter();
 #endif
             break;
         case 16:
-            func_802D0C68();
+            cyclone_enter();
             break;
         default:
             ok = 0;
@@ -1953,12 +1953,12 @@ void veh_leave(void) {
     u8 res = 0;
     u8 ok = 0;
 
-    res = func_8024B4B8();
+    res = veh_exit_check();
     if (res == 1) {
 #if defined(NON_MATCHING) && defined(PORT_HOST)
-        ok = func_802AE888(port_802E8BF8_word(gCurVehicle));
+        ok = driver_try_exit(port_802E8BF8_word(gCurVehicle));
 #else
-        ok = func_802AE888(((s32 *) &D_802E8BF8)[gCurVehicle]);
+        ok = driver_try_exit(((s32 *) &D_802E8BF8)[gCurVehicle]);
 #endif
     }
     if (ok) {
@@ -1969,57 +1969,57 @@ void veh_leave(void) {
         func_8028B720();
         switch (gCurVehicle) {
             case 4:
-                func_802B4658();
+                ramdozer_leave();
                 break;
             case 3:
-                func_802B2F54();
+                skyfall_leave();
                 break;
             case 5:
-                func_802B5F60();
+                backlash_leave();
                 break;
             case 2:
-                func_802B11B8();
+                thunderfist_leave();
                 break;
             case 1:
-                func_802B0254();
+                sideswipe_leave();
                 break;
             case 7:
-                func_802BBE2C();
+                train_leave();
                 break;
             case 8:
-                func_802B7754();
+                amdream_leave();
                 break;
             case 9:
-                func_802C5688();
+                jbomb_leave();
                 break;
             case 10:
-                func_802CA1AC();
+                ballista_leave();
                 break;
             case 11:
             case 17:
             case 18:
-                func_802C8B0C(gCurVehicle);
+                barge_leave(gCurVehicle);
                 break;
             case 13:
-                func_802CBBBC();
+                police_leave();
                 break;
             case 14:
-                func_802CCD34();
+                ateam_leave();
                 break;
             case 6:
-                func_802BB1A0();
-                if (func_8024B418(4)) {
-                    func_802B4658();
+                crane_leave();
+                if (veh_is_loaded(4)) {
+                    ramdozer_leave();
                 }
-                if (func_8024B418(13)) {
-                    func_802CBBBC();
+                if (veh_is_loaded(13)) {
+                    police_leave();
                 }
                 break;
             case 15:
-                func_802CFAB4();
+                starski_leave();
                 break;
             case 16:
-                func_802D0BF8();
+                cyclone_leave();
                 break;
         }
         gCurVehicle = 0;
@@ -2034,8 +2034,9 @@ void veh_leave(void) {
     }
 }
 
-/* Is any entry of gVehicles (up to gVehiclesEnd) tagged with id? */
-s32 func_8024B418(u8 id) {
+/* 1 if some gVehicles record has type id (0x8024B418).
+ * Is any entry of gVehicles (up to gVehiclesEnd) tagged with id? */
+s32 veh_is_loaded(u8 id) {
     s32 i;
 
     i = 0;
@@ -2051,147 +2052,149 @@ s32 func_8024B418(u8 id) {
 /* Per-vehicle exit check for the current vehicle (gCurVehicle). Declared u8
  * but has no return statement: callers read the handler's leftover v0. */
 #ifdef NON_MATCHING
-u8 func_8024B4B8(void) {
+/* The current type's exit check (0 no, 1 yes, 2 silently no) (0x8024B4B8). */
+u8 veh_exit_check(void) {
     /* An id without a handler returns whatever v0 held in the original
      * (indeterminate; only vehicle ids reach this). */
     s32 ret = 0;
 
     switch (gCurVehicle) {
         case 4:
-            ret = func_802B45FC();
+            ret = ramdozer_exit_check();
             break;
         case 3:
-            ret = func_802B2EF8();
+            ret = skyfall_exit_check();
             break;
         case 5:
-            ret = func_802B5F04();
+            ret = backlash_exit_check();
             break;
         case 2:
-            ret = func_802B1150();
+            ret = thunderfist_exit_check();
             break;
         case 1:
-            ret = func_802B01DC();
+            ret = sideswipe_exit_check();
             break;
         case 6:
-            ret = func_802BB170();
+            ret = crane_exit_check();
             break;
         case 7:
-            ret = func_802BBE10();
+            ret = train_exit_check();
             break;
         case 8:
-            ret = func_802B76F8();
+            ret = amdream_exit_check();
             break;
         case 9:
-            ret = func_802C5508();
+            ret = jbomb_exit_check();
             break;
         case 10:
-            ret = func_802CA140();
+            ret = ballista_exit_check();
             break;
         case 11:
         case 17:
         case 18:
-            ret = func_802C8AF0();
+            ret = barge_exit_check();
             break;
         case 13:
-            ret = func_802CBB60();
+            ret = police_exit_check();
             break;
         case 14:
-            ret = func_802CCCD8();
+            ret = ateam_exit_check();
             break;
         case 15:
-            ret = func_802CFA58();
+            ret = starski_exit_check();
             break;
         case 16:
-            ret = func_802D0B90();
+            ret = cyclone_exit_check();
             break;
     }
     return ret;
 }
 #else
-u8 func_8024B4B8(void) {
+u8 veh_exit_check(void) {
     switch (gCurVehicle) {
         case 4:
-            func_802B45FC();
+            ramdozer_exit_check();
             break;
         case 3:
-            func_802B2EF8();
+            skyfall_exit_check();
             break;
         case 5:
-            func_802B5F04();
+            backlash_exit_check();
             break;
         case 2:
-            func_802B1150();
+            thunderfist_exit_check();
             break;
         case 1:
-            func_802B01DC();
+            sideswipe_exit_check();
             break;
         case 6:
-            func_802BB170();
+            crane_exit_check();
             break;
         case 7:
-            func_802BBE10();
+            train_exit_check();
             break;
         case 8:
-            func_802B76F8();
+            amdream_exit_check();
             break;
         case 9:
-            func_802C5508();
+            jbomb_exit_check();
             break;
         case 10:
-            func_802CA140();
+            ballista_exit_check();
             break;
         case 11:
         case 17:
         case 18:
-            func_802C8AF0();
+            barge_exit_check();
             break;
         case 13:
-            func_802CBB60();
+            police_exit_check();
             break;
         case 14:
-            func_802CCCD8();
+            ateam_exit_check();
             break;
         case 15:
-            func_802CFA58();
+            starski_exit_check();
             break;
         case 16:
-            func_802D0B90();
+            cyclone_exit_check();
             break;
     }
 }
 #endif
 
 
-void func_8024B5E8(void) {
-    D_803ED3F5 = 1;
-    func_802AB670(gCurVehicle);
+/* Vehicles standing on the player's vehicle follow it (0x8024B5E8). */
+void veh_update_riders(void) {
+    gRiderPass = 1;
+    veh_move_riders(gCurVehicle);
 }
 
 #ifdef NON_MATCHING
 /* Leaked-register inputs of the hand-asm vehicle functions called below (and
- * func_8029E0AC in hd_game_frame), which this file declares `void (void)`
+ * anim_tex_update_all in hd_game_frame), which this file declares `void (void)`
  * (traced in the original ROM with mupen64plus breakpoints over attract demos
  * 0-8, nine levels; see the port notes, trace_values.md):
- *  - $fp ($s8): 0 at veh_update_others, veh_update_player and func_8029E0AC in every
+ *  - $fp ($s8): 0 at veh_update_others, veh_update_player and anim_tex_update_all in every
  *    level (hd_game_frame and the IDO code above it never set $s8, and the
  *    hand asm they call before these points restores it). The re-ground
  *    functions of veh_update_others save and restore fp themselves, so every one
- *    of them gets 0. It reaches state: func_802A9A60 stores it into
- *    D_803ED3F2[0..2] and veh+0x50 = their average (the ground byte), and
- *    func_8029E0AC hands it to the texture decoder as the type-4/5 table.
- *  - func_802CFB00's a3 (the previous loop iteration's leftover; only read by
- *    func_802D05D8 for a zero-matrix point) and its FP pass-through state
+ *    of them gets 0. It reaches state: veh_reground stores it into
+ *    gSlotSurface[0..2] and veh+0x50 = their average (the ground byte), and
+ *    anim_tex_update_all hands it to the texture decoder as the type-4/5 table.
+ *  - starski_reground's a3 (the previous loop iteration's leftover; only read by
+ *    starski_build_model for a zero-matrix point) and its FP pass-through state
  *    f12-f26 (only FP side results of the triangle scans): 0. Not reached in
  *    the demos.
  *  - the per-frame updates' zone registers t6, t7, s0-s4 (and f14-f26 for
- *    func_802B152C / func_802CFDE8 / func_802D0F98). Measured: t6 = this
+ *    thunderfist_update / starski_update / cyclone_update). Measured: t6 = this
  *    switch's case label (the jump-table target, e.g. 0x8024B7F8), t7 = the
  *    level's leftover small integer (2..7, also in t8), s0 = 0, s1 = 1 / 0x30
  *    / 0x3A, s2/s3/s4 = 0x803B8D40 / 0x803B8578 / 0x803B8570. They only pass
- *    through func_802ABD54 (unchanged when the level has no zones, as in 8 of
+ *    through veh_zone_alpha (unchanged when the level has no zones, as in 8 of
  *    the 9 demo levels) into the type-1 fx_spawn effect records, which
  *    never store them (and the FP state only feeds FP side results): dead.
- *    0, as the other updates (func_802AEEC8, func_802B6294, ...) use. */
+ *    0, as the other updates (driver_update, backlash_update, ...) use. */
 #endif
 
 /* The per-frame routine of every placed vehicle but the player's (by type)
@@ -2207,51 +2210,51 @@ void veh_update_others(void) {
             if (id != gCurVehicle && id != 0xFF && id != 0xFE && id != 0) {
                 switch (id) {
                     case 5:
-                        func_802B5FAC();
+                        backlash_reground();
                         break;
                     case 1:
 #ifdef NON_MATCHING
-                        func_802B02A0(LEAKED(fp));
+                        sideswipe_reground(LEAKED(fp));
 #else
-                        func_802B02A0();
+                        sideswipe_reground();
 #endif
                         break;
                     case 4:
 #ifdef NON_MATCHING
-                        func_802B46C4(LEAKED(fp));
+                        ramdozer_reground(LEAKED(fp));
 #else
-                        func_802B46C4();
+                        ramdozer_reground();
 #endif
                         break;
                     case 8:
-                        func_802B77A0();
+                        amdream_reground();
                         break;
                     case 13:
-                        func_802CBC08();
+                        police_reground();
                         break;
                     case 14:
-                        func_802CCD80();
+                        ateam_reground();
                         break;
                     case 15:
 #ifdef NON_MATCHING
-                        func_802CFB00(LEAKED(fp), LEAKED(a3), LEAKED(f12), LEAKED(f14), LEAKED(f20), LEAKED(f22), LEAKED(f24),
+                        starski_reground(LEAKED(fp), LEAKED(a3), LEAKED(f12), LEAKED(f14), LEAKED(f20), LEAKED(f22), LEAKED(f24),
                                       LEAKED(f26));
 #else
-                        func_802CFB00();
+                        starski_reground();
 #endif
                         break;
                     case 9:
 #ifdef NON_MATCHING
-                        func_802C5860(LEAKED(fp));
+                        jbomb_reground(LEAKED(fp));
 #else
-                        func_802C5860();
+                        jbomb_reground();
 #endif
                         break;
                     case 3:
 #ifdef NON_MATCHING
-                        func_802B2FA0(LEAKED(fp));
+                        skyfall_reground(LEAKED(fp));
 #else
-                        func_802B2FA0();
+                        skyfall_reground();
 #endif
                         break;
                     default:
@@ -2267,84 +2270,84 @@ void veh_update_others(void) {
 /* The per-frame routine of the player's vehicle (by gCurVehicle; 0: on
  * foot) (0x8024B7AC). */
 void veh_update_player(void) {
-    D_803ED3F5 = 0;
+    gRiderPass = 0;
     switch (gCurVehicle) {
         case 0:
             gNextVehicle = 0;
-            func_802AEEC8();
+            driver_update();
             break;
         case 1:
 #ifdef NON_MATCHING
-            func_802B03F4(LEAKED(t6), LEAKED(t7), LEAKED(s0), LEAKED(s1), LEAKED(s2), LEAKED(s3), LEAKED(s4));
+            sideswipe_update(LEAKED(t6), LEAKED(t7), LEAKED(s0), LEAKED(s1), LEAKED(s2), LEAKED(s3), LEAKED(s4));
 #else
-            func_802B03F4();
+            sideswipe_update();
 #endif
             break;
         case 2:
 #ifdef NON_MATCHING
-            func_802B152C(LEAKED(t6), LEAKED(t7), LEAKED(s0), LEAKED(s1), LEAKED(s2), LEAKED(s3), LEAKED(s4),
+            thunderfist_update(LEAKED(t6), LEAKED(t7), LEAKED(s0), LEAKED(s1), LEAKED(s2), LEAKED(s3), LEAKED(s4),
                           LEAKED(f14), LEAKED(f20), LEAKED(f22), LEAKED(f24), LEAKED(f26));
 #else
-            func_802B152C();
+            thunderfist_update();
 #endif
             break;
         case 3:
 #ifdef NON_MATCHING
-            func_802B327C(LEAKED(t6), LEAKED(t7), LEAKED(s0), LEAKED(s1), LEAKED(s2), LEAKED(s3), LEAKED(s4));
+            skyfall_update(LEAKED(t6), LEAKED(t7), LEAKED(s0), LEAKED(s1), LEAKED(s2), LEAKED(s3), LEAKED(s4));
 #else
-            func_802B327C();
+            skyfall_update();
 #endif
             break;
         case 4:
 #ifdef NON_MATCHING
-            func_802B49AC(LEAKED(t6), LEAKED(t7), LEAKED(s0), LEAKED(s1), LEAKED(s2), LEAKED(s3), LEAKED(s4));
+            ramdozer_update(LEAKED(t6), LEAKED(t7), LEAKED(s0), LEAKED(s1), LEAKED(s2), LEAKED(s3), LEAKED(s4));
 #else
-            func_802B49AC();
+            ramdozer_update();
 #endif
             break;
         case 5:
-            func_802B6294();
+            backlash_update();
             break;
         case 6:
-            func_802BB274();
+            crane_update();
             break;
         case 7:
-            func_802BBEB8();
+            train_update();
             break;
         case 8:
-            func_802B7A88();
+            amdream_update();
             break;
         case 9:
-            func_802C5AFC();
+            jbomb_update();
             break;
         case 10:
-            func_802CA4E0();
+            ballista_update();
             break;
         case 11:
         case 17:
         case 18:
-            func_802C8BB8(gCurVehicle);
+            barge_update(gCurVehicle);
             break;
         case 13:
-            func_802CBEF0();
+            police_update();
             break;
         case 14:
-            func_802CD068();
+            ateam_update();
             break;
         case 15:
 #ifdef NON_MATCHING
-            func_802CFDE8(LEAKED(t6), LEAKED(t7), LEAKED(s0), LEAKED(s1), LEAKED(s2), LEAKED(s3), LEAKED(s4),
+            starski_update(LEAKED(t6), LEAKED(t7), LEAKED(s0), LEAKED(s1), LEAKED(s2), LEAKED(s3), LEAKED(s4),
                           LEAKED(f14), LEAKED(f20), LEAKED(f22), LEAKED(f24), LEAKED(f26));
 #else
-            func_802CFDE8();
+            starski_update();
 #endif
             break;
         case 16:
 #ifdef NON_MATCHING
-            func_802D0F98(LEAKED(t6), LEAKED(t7), LEAKED(s0), LEAKED(s1), LEAKED(s2), LEAKED(s3), LEAKED(s4),
+            cyclone_update(LEAKED(t6), LEAKED(t7), LEAKED(s0), LEAKED(s1), LEAKED(s2), LEAKED(s3), LEAKED(s4),
                           LEAKED(f14), LEAKED(f20), LEAKED(f22), LEAKED(f24), LEAKED(f26));
 #else
-            func_802D0F98();
+            cyclone_update();
 #endif
             break;
     }
@@ -2624,7 +2627,7 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
     }
     func_802502EC();
     veh_draw_shadows(&gdl, dyn, 0);
-    func_80258B78(&gdl, (struct VtxBuf *) dyn);
+    obj_draw_ground_shadows(&gdl, (struct VtxBuf *) dyn);
     if (!gPaused && gLevelKind != 0x40 && !(gGameMode & 0x440) && !D_80364A84) {
         func_80279EE8(&gdl, (s32) dyn, gBufferIndex);
     }
@@ -2632,7 +2635,7 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
     gSPSetGeometryMode(gdl++, G_ZBUFFER | G_SHADE | G_SHADING_SMOOTH | G_CULL_BACK | G_LOD);
     gSPDisplayList(gdl++, SEG2(0x0A580));
     gDPPipeSync(gdl++);
-    gdl = func_802CEEFC(gdl, gBufferIndex, (Gfx *) dyn->unkA3A0, &dyn->unk2C0[0x3C]);
+    gdl = commpt_draw(gdl, gBufferIndex, (Gfx *) dyn->unkA3A0, &dyn->unk2C0[0x3C]);
     veh_draw_shadows(&gdl, dyn, 1);
     if (gHaveChopper) {
         veh_draw_chopper_shadow(&gdl, dyn);
@@ -2776,12 +2779,12 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
         func_80285CC0();
     }
     if (gHaveCarrier && gGameMode == 4) {
-        func_80282C80(&gdl, (Mtx *) dyn, gPlayerX, gPlayerY, gPlayerZ, D_803EF6DC, D_803EF6E0, D_803EF6E4);
+        func_80282C80(&gdl, (Mtx *) dyn, gPlayerX, gPlayerY, gPlayerZ, gCarrierX, gCarrierY, gCarrierZ);
     }
     if ((gLevelInfo[levelno].unk0 & 0x81) && gGameMode == 4) {
         if (levelno != 0x32 ||
             ((players[playerNumber].unk18[0x32] > 0 && players[playerNumber].unk18[0x32] < 6) ? 1 : 0)) {
-            func_8028376C(&gdl, (Mtx *) dyn, gBufferIndex, gPlayerX, gPlayerZ, D_803EF6DC, D_803EF6E4);
+            func_8028376C(&gdl, (Mtx *) dyn, gBufferIndex, gPlayerX, gPlayerZ, gCarrierX, gCarrierZ);
         }
     }
     if (gHaveCarrier || gHaveShuttle) {
@@ -2843,14 +2846,14 @@ void veh_draw_shadows(Gfx **gfx, DynamicBuf *dyn, u8 layer) {
     i = 0;
     while (&gVehicleShadows[i] != gVehicleShadowsEnd) {
         if ((gVehicleShadows[i].type != 0 || all) && gVehicleShadows[i].type != 0xFE &&
-            (gVehicleShadows[i].type != 0xFF || !D_803EF6FF) &&
+            (gVehicleShadows[i].type != 0xFF || !gCarrierExplodeDone) &&
             (gVehicleShadows[i].type == 0xFD || !D_80364A84 || !gHaveShuttle) && gVehicleShadows[i].layer == layer) {
             x = gVehicleShadows[i].unk1004 >> 5;
             y = gVehicleShadows[i].unk1008 >> 5;
             z = gVehicleShadows[i].unk100C >> 5;
             w = gVehicleShadows[i].halfWidth;
             d = gVehicleShadows[i].halfDepth;
-            spin = gVehicleShadows[i].type == gCurVehicle && D_803ED40D == 0x65;
+            spin = gVehicleShadows[i].type == gCurVehicle && gSurfaceMax == 0x65;
             if (spin) {
                 guRotateF(tmp, (f32) D_80364440 * 360.0 / 4096.0, 0.0f, 1.0f, 0.0f);
             }
@@ -3042,7 +3045,7 @@ void veh_draw_layer(Gfx **gfx, u8 lod) {
     all = !D_803649E8 && (D_803649EC || (gGameMode & 0x1801));
     i = 0;
     while (&gVehicles[i] != gVehiclesEnd) {
-        if ((gVehicles[i].type != 0 || all) && (gVehicles[i].type != 0xFF || !D_803EF6FF) &&
+        if ((gVehicles[i].type != 0 || all) && (gVehicles[i].type != 0xFF || !gCarrierExplodeDone) &&
             (gVehicles[i].type == 0xFD || !D_80364A84 || !gHaveShuttle)) {
             PORT_ITAG(gdl, PORT_ITAG_OBJ, i | (lod << 8));
             gSPSegment(gdl++, 6, osVirtualToPhysical(gVehicles[i].unk0));
@@ -3637,13 +3640,13 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                 } else {
                     gCamEasedHeading = (s16) ((u16) D_803FCD68 * 16 - gCamEasedHeading) / 10 + (s16) gCamEasedHeading;
                 }
-                gCamEyeGoalX = (s32) (D_803FCD48 - SINE(gCamEasedHeading) * 8000.0f + offX) << 11;
+                gCamEyeGoalX = (s32) (gShuttlePos - SINE(gCamEasedHeading) * 8000.0f + offX) << 11;
                 gCamEyeGoalY = (D_803FCD4C + 0xDAC) << 11;
                 gCamEyeGoalZ = (s32) (D_803FCD50 - COSINE(gCamEasedHeading) * 8000.0f + offZ) << 11;
             } else {
-                gCamEyeGoalX = (D_803EF6DC + 4000) << 11;
-                gCamEyeGoalY = (D_803EF6E0 + 25000) << 11;
-                gCamEyeGoalZ = (D_803EF6E4 + D_80364A78 + 7000) << 11;
+                gCamEyeGoalX = (gCarrierX + 4000) << 11;
+                gCamEyeGoalY = (gCarrierY + 25000) << 11;
+                gCamEyeGoalZ = (gCarrierZ + D_80364A78 + 7000) << 11;
             }
             break;
         case 0x40:
@@ -3651,9 +3654,9 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                 case 1:
                 case 0x80:
                     if (gHaveCarrier) {
-                        gCamEyeGoalX = (D_803EF6DC + offX) << 11;
-                        gCamEyeGoalY = (D_803EF6E0 + 2000) << 11;
-                        gCamEyeGoalZ = (D_803EF6E4 + offZ) << 11;
+                        gCamEyeGoalX = (gCarrierX + offX) << 11;
+                        gCamEyeGoalY = (gCarrierY + 2000) << 11;
+                        gCamEyeGoalZ = (gCarrierZ + offZ) << 11;
                     }
                     if (gHaveShuttle) {
                         if (gFramesInMode < 2) {
@@ -3661,7 +3664,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                         } else {
                             gCamEasedHeading = (s16) ((u16) D_803FCD68 * 16 - gCamEasedHeading) / 10 + (s16) gCamEasedHeading;
                         }
-                        gCamEyeGoalX = (s32) (D_803FCD48 - SINE(gCamEasedHeading) * 8000.0f + offX) << 11;
+                        gCamEyeGoalX = (s32) (gShuttlePos - SINE(gCamEasedHeading) * 8000.0f + offX) << 11;
                         gCamEyeGoalY = (D_803FCD4C + 0xDAC) << 11;
                         gCamEyeGoalZ = (s32) (D_803FCD50 - COSINE(gCamEasedHeading) * 8000.0f + offZ) << 11;
                     }
@@ -3700,38 +3703,38 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
             break;
         case 0x200:
             if (gHaveShuttle) {
-                gCamEyeGoalX = (D_803FCD48 + offX - 6000) << 11;
+                gCamEyeGoalX = (gShuttlePos + offX - 6000) << 11;
                 gCamEyeGoalY = (D_803FCD4C + 0xD48) << 11;
                 gCamEyeGoalZ = (D_803FCD50 + offZ + 6000) << 11;
             } else if (gCarrierHit) {
-                gCamEyeGoalX = (D_803EF6DC + offX + 16000) << 11;
-                gCamEyeGoalY = (D_803EF6E0 + 15000) << 11;
-                gCamEyeGoalZ = (D_803EF6E4 + offZ - 3000) << 11;
+                gCamEyeGoalX = (gCarrierX + offX + 16000) << 11;
+                gCamEyeGoalY = (gCarrierY + 15000) << 11;
+                gCamEyeGoalZ = (gCarrierZ + offZ - 3000) << 11;
             } else {
-                gCamEyeGoalX = (D_803EF6DC + offX + 4000) << 11;
-                gCamEyeGoalY = (D_803EF6E0 + 2400) << 11;
+                gCamEyeGoalX = (gCarrierX + offX + 4000) << 11;
+                gCamEyeGoalY = (gCarrierY + 2400) << 11;
                 if (levelno == 0) {
                     gCamEyeGoalY += 0x5DC000;
                 }
-                gCamEyeGoalZ = (D_803EF6E4 + offZ - 4000) << 11;
+                gCamEyeGoalZ = (gCarrierZ + offZ - 4000) << 11;
             }
             break;
         case 0x400:
             if (gHaveShuttle) {
-                gCamEyeGoalX = (D_803FCD48 + offX + 6000) << 11;
+                gCamEyeGoalX = (gShuttlePos + offX + 6000) << 11;
                 gCamEyeGoalY = (D_803FCD4C + 0xD48) << 11;
                 gCamEyeGoalZ = (D_803FCD50 + offZ - 6000) << 11;
             } else if (gCarrierHit) {
-                gCamEyeGoalX = (D_803EF6DC + offX - 16000) << 11;
-                gCamEyeGoalY = (D_803EF6E0 + 15000) << 11;
-                gCamEyeGoalZ = (D_803EF6E4 - offZ + 3000) << 11;
+                gCamEyeGoalX = (gCarrierX + offX - 16000) << 11;
+                gCamEyeGoalY = (gCarrierY + 15000) << 11;
+                gCamEyeGoalZ = (gCarrierZ - offZ + 3000) << 11;
             } else {
-                gCamEyeGoalX = (D_803EF6DC + offX - 4000) << 11;
-                gCamEyeGoalY = (D_803EF6E0 + 2400) << 11;
+                gCamEyeGoalX = (gCarrierX + offX - 4000) << 11;
+                gCamEyeGoalY = (gCarrierY + 2400) << 11;
                 if (levelno == 0) {
                     gCamEyeGoalY += 0x5DC000;
                 }
-                gCamEyeGoalZ = (D_803EF6E4 + offZ + 4000) << 11;
+                gCamEyeGoalZ = (gCarrierZ + offZ + 4000) << 11;
             }
             break;
         case 1:
@@ -3742,7 +3745,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                 } else {
                     gCamEasedHeading = (s16) ((u16) D_803FCD68 * 16 - gCamEasedHeading) / 10 + (s16) gCamEasedHeading;
                 }
-                gCamEyeGoalX = (s32) (D_803FCD48 - SINE(gCamEasedHeading) * 8000.0f + offX) << 11;
+                gCamEyeGoalX = (s32) (gShuttlePos - SINE(gCamEasedHeading) * 8000.0f + offX) << 11;
                 gCamEyeGoalY = (D_803FCD4C + 0xDAC) << 11;
                 gCamEyeGoalZ = (s32) (D_803FCD50 - COSINE(gCamEasedHeading) * 8000.0f + offZ) << 11;
             } else {
@@ -3768,13 +3771,13 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                     gCamEyeHeight = 11000;
                 }
                 if (gHaveShuttle && D_8036B8B0) {
-                    gCamEyeGoalX = (D_803FCD48 + D_8036B8B4) << 11;
+                    gCamEyeGoalX = (gShuttlePos + D_8036B8B4) << 11;
                     gCamEyeGoalY = (D_803FCD4C + D_8036B8B8) << 11;
                     gCamEyeGoalZ = (D_803FCD50 + D_8036B8BC) << 11;
                 } else if (gHaveCarrier && D_8036B8B0) {
-                    gCamEyeGoalX = (D_803EF6DC + D_8036B8B4) << 11;
-                    gCamEyeGoalY = (D_803EF6E0 + D_8036B8B8) << 11;
-                    gCamEyeGoalZ = (D_803EF6E4 + D_8036B8BC) << 11;
+                    gCamEyeGoalX = (gCarrierX + D_8036B8B4) << 11;
+                    gCamEyeGoalY = (gCarrierY + D_8036B8B8) << 11;
+                    gCamEyeGoalZ = (gCarrierZ + D_8036B8BC) << 11;
                 } else if (D_8030F668) {
                     cam_polar_offset(2500, gCamHeading, &px, &pz);
                     gCamEyeGoalX = ((gEndObjectX << 5) + px) << 11;
@@ -3826,56 +3829,56 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
     switch (gGameMode) {
         case 0x100:
             if (gHaveShuttle) {
-                gCamAtGoalX = D_803FCD48 / 32.0f;
+                gCamAtGoalX = gShuttlePos / 32.0f;
                 gCamAtGoalY = (D_803FCD4C + 2000) / 32.0f;
                 gCamAtGoalZ = D_803FCD50 / 32.0f;
             } else {
-                gCamAtGoalX = D_803EF6DC / 32.0f;
-                gCamAtGoalY = D_803EF6E0 / 32.0f;
-                gCamAtGoalZ = (D_803EF6E4 + D_80364A78 + 11000) / 32.0f;
+                gCamAtGoalX = gCarrierX / 32.0f;
+                gCamAtGoalY = gCarrierY / 32.0f;
+                gCamAtGoalZ = (gCarrierZ + D_80364A78 + 11000) / 32.0f;
             }
             break;
         case 0x200:
         case 0x400:
             if (gHaveShuttle) {
-                gCamAtGoalX = (D_803FCD48 + offX) / 32.0f;
+                gCamAtGoalX = (gShuttlePos + offX) / 32.0f;
                 gCamAtGoalY = (D_803FCD4C + 2000) / 32.0f;
                 gCamAtGoalZ = (D_803FCD50 + offZ) / 32.0f;
             } else {
-                gCamAtGoalX = (D_803EF6DC + offX) / 32.0f;
-                gCamAtGoalY = D_803EF6E0 / 32.0f;
-                gCamAtGoalZ = (D_803EF6E4 + offZ) / 32.0f;
+                gCamAtGoalX = (gCarrierX + offX) / 32.0f;
+                gCamAtGoalY = gCarrierY / 32.0f;
+                gCamAtGoalZ = (gCarrierZ + offZ) / 32.0f;
             }
             break;
         case 1:
         case 0x800:
         case 0x1000:
             if (gHaveShuttle) {
-                gCamAtGoalX = D_803FCD48 / 32.0f;
+                gCamAtGoalX = gShuttlePos / 32.0f;
                 gCamAtGoalY = (D_803FCD4C + 2000) / 32.0f;
                 gCamAtGoalZ = D_803FCD50 / 32.0f;
             } else {
-                gCamAtGoalX = (D_803EF2EC + offX) / 32.0f;
+                gCamAtGoalX = (gChopperX + offX) / 32.0f;
                 gCamAtGoalY = D_803EF314 / 32.0f;
-                gCamAtGoalZ = (D_803EF2F4 + offZ) / 32.0f;
+                gCamAtGoalZ = (gChopperZ + offZ) / 32.0f;
             }
             break;
         case 0x40:
             if (gHaveShuttle) {
-                gCamAtGoalX = D_803FCD48 / 32.0f;
+                gCamAtGoalX = gShuttlePos / 32.0f;
                 gCamAtGoalY = (D_803FCD4C + 2000) / 32.0f;
                 gCamAtGoalZ = D_803FCD50 / 32.0f;
                 break;
             }
         default:
             if (gHaveShuttle && D_8036B8B0) {
-                gCamAtGoalX = D_803FCD48 / 32.0f;
+                gCamAtGoalX = gShuttlePos / 32.0f;
                 gCamAtGoalY = (D_803FCD4C + 6000) / 32.0f;
                 gCamAtGoalZ = D_803FCD50 / 32.0f;
             } else if (gHaveCarrier && D_8036B8B0) {
-                gCamAtGoalX = D_803EF6DC / 32.0f;
-                gCamAtGoalY = D_803EF6E0 / 32.0f;
-                gCamAtGoalZ = D_803EF6E4 / 32.0f;
+                gCamAtGoalX = gCarrierX / 32.0f;
+                gCamAtGoalY = gCarrierY / 32.0f;
+                gCamAtGoalZ = gCarrierZ / 32.0f;
             } else if (D_8030F668) {
                 gCamAtGoalX = gEndObjectX;
                 gCamAtGoalY = gEndObjectY;
@@ -3898,9 +3901,9 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
             break;
     }
     if (gCarrierHit && levelno == 0x31) {
-        gCamEyeGoalX = (D_803EF6DC + offX + 16000) << 11;
-        gCamEyeGoalY = (D_803EF6E0 + 15000) << 11;
-        gCamEyeGoalZ = (D_803EF6E4 + offZ - 3000) << 11;
+        gCamEyeGoalX = (gCarrierX + offX + 16000) << 11;
+        gCamEyeGoalY = (gCarrierY + 15000) << 11;
+        gCamEyeGoalZ = (gCarrierZ + offZ - 3000) << 11;
     }
     if (gHaveShuttle && D_8036B965) {
         if (gCamSnap) {
@@ -3908,10 +3911,10 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
         } else {
             gCamEasedHeading = (s16) ((u16) D_803FCD68 * 16 - gCamEasedHeading) / 10 + (s16) gCamEasedHeading;
         }
-        gCamEyeGoalX = (s32) (D_803FCD48 - SINE(gCamEasedHeading) * 8000.0f + offX) << 11;
+        gCamEyeGoalX = (s32) (gShuttlePos - SINE(gCamEasedHeading) * 8000.0f + offX) << 11;
         gCamEyeGoalY = (D_803FCD4C + 0xDAC) << 11;
         gCamEyeGoalZ = (s32) (D_803FCD50 - COSINE(gCamEasedHeading) * 8000.0f + offZ) << 11;
-        gCamAtGoalX = D_803FCD48 / 32.0f;
+        gCamAtGoalX = gShuttlePos / 32.0f;
         gCamAtGoalY = (D_803FCD4C + 2000) / 32.0f;
         gCamAtGoalZ = D_803FCD50 / 32.0f;
     }
@@ -3948,11 +3951,11 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
         gCamPrevType = !gCamType;
     }
     if (D_80364424 && (gCamHeading < 134.0 || gCamHeading > 136.0)) {
-        func_802CE4F0(gCamEyeX >> 11, gCamEyeY >> 11, gCamEyeZ >> 11);
-        func_802CE5BC(gCamEyeX >> 11, gCamEyeY >> 11, gCamEyeZ >> 11,
+        coll_begin_probe(gCamEyeX >> 11, gCamEyeY >> 11, gCamEyeZ >> 11);
+        coll_probe_tris(gCamEyeX >> 11, gCamEyeY >> 11, gCamEyeZ >> 11,
                       D_80364434 ? D_80364430 : D_80364430 + 1600, 0xBE, 0);
         if (D_80364434) {
-            if (D_803A7424) {
+            if (gCollHit) {
                 gCamEyeHeight += D_8036442C;
                 if (gCamEyeHeight > D_80364428) {
                     gCamEyeHeight = D_80364428;
@@ -3961,7 +3964,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
             } else {
                 D_80364434 = 0;
             }
-        } else if (D_803A7424) {
+        } else if (gCollHit) {
             D_80364434 = 1;
         } else {
             gCamEyeHeight -= D_8036442C;
@@ -4053,29 +4056,29 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
         dist = 1.0f;
     }
     if (eyeX >= gCamAtX && eyeZ >= gCamAtZ) {
-        gCamYaw = func_802AD7D4((eyeX - gCamAtX) * 65535.9 / dist) >> 4;
+        gCamYaw = math_asin_c((eyeX - gCamAtX) * 65535.9 / dist) >> 4;
         quadrant = 0;
     }
     if (eyeX >= gCamAtX && eyeZ < gCamAtZ) {
-        gCamYaw = (func_802AD7D4((gCamAtZ - eyeZ) * 65535.9 / dist) >> 4) + 0x400; quadrant = 1;
+        gCamYaw = (math_asin_c((gCamAtZ - eyeZ) * 65535.9 / dist) >> 4) + 0x400; quadrant = 1;
     }
     if (eyeX < gCamAtX && eyeZ < gCamAtZ) {
-        gCamYaw = (func_802AD7D4((gCamAtX - eyeX) * 65535.9 / dist) >> 4) + 0x800; quadrant = 2;
+        gCamYaw = (math_asin_c((gCamAtX - eyeX) * 65535.9 / dist) >> 4) + 0x800; quadrant = 2;
     }
     if (eyeX < gCamAtX && eyeZ >= gCamAtZ) {
-        gCamYaw = (func_802AD7D4((eyeZ - gCamAtZ) * 65535.9 / dist) >> 4) + 0xC00; quadrant = 3;
+        gCamYaw = (math_asin_c((eyeZ - gCamAtZ) * 65535.9 / dist) >> 4) + 0xC00; quadrant = 3;
     }
     dist = sqrtf((eyeX - gCamAtX) * (eyeX - gCamAtX) + (eyeZ - gCamAtZ) * (eyeZ - gCamAtZ) +
                  (eyeY - gCamAtY) * (eyeY - gCamAtY));
     if (eyeY >= gCamAtY) {
-        pitch1 = func_802AD7D4((eyeY - gCamAtY) * 65535.9 / dist) >> 3;
+        pitch1 = math_asin_c((eyeY - gCamAtY) * 65535.9 / dist) >> 3;
     } else {
-        pitch1 = 0x1000 - (func_802AD7D4((gCamAtY - eyeY) * 65535.9 / dist) >> 3);
+        pitch1 = 0x1000 - (math_asin_c((gCamAtY - eyeY) * 65535.9 / dist) >> 3);
     }
     if (eyeY >= gCamAtY) {
-        pitch2 = func_802AD7D4((65535.0 < (eyeY - gCamAtY) * 65535.9 / 20000.0) ? 65535.0 : (eyeY - gCamAtY) * 65535.9 / 20000.0) >> 3;
+        pitch2 = math_asin_c((65535.0 < (eyeY - gCamAtY) * 65535.9 / 20000.0) ? 65535.0 : (eyeY - gCamAtY) * 65535.9 / 20000.0) >> 3;
     } else {
-        pitch2 = 0x1000 - (func_802AD7D4((65535.0 < (gCamAtY - eyeY) * 65535.9 / 20000.0) ? 65535.0 : (gCamAtY - eyeY) * 65535.9 / 20000.0) >> 3);
+        pitch2 = 0x1000 - (math_asin_c((65535.0 < (gCamAtY - eyeY) * 65535.9 / 20000.0) ? 65535.0 : (gCamAtY - eyeY) * 65535.9 / 20000.0) >> 3);
     }
     gCamPitch = pitch1 - pitch2;
     scale = cam_eye_scale(eyeX, eyeY, eyeZ, gCamAtX, gCamAtY, gCamAtZ);
@@ -4279,8 +4282,8 @@ u8 cam_fixed_heading_area(void) {
     } else {
         switch (levelno) {
             case 4:
-                if (func_802AC4C4(gPlayerX >> 5, gPlayerZ >> 5, 0xE56, 0x8EC, 0xBB8, 0x6A4, 0x1068, 0x1F4) ||
-                    func_802AC4C4(gPlayerX >> 5, gPlayerZ >> 5, 0xE56, 0x8EC, 0x1068, 0x1F4, 0x1324, 0x4B0)) {
+                if (ground_in_triangle(gPlayerX >> 5, gPlayerZ >> 5, 0xE56, 0x8EC, 0xBB8, 0x6A4, 0x1068, 0x1F4) ||
+                    ground_in_triangle(gPlayerX >> 5, gPlayerZ >> 5, 0xE56, 0x8EC, 0x1068, 0x1F4, 0x1324, 0x4B0)) {
                     ok = 1;
                 }
                 break;
@@ -4731,11 +4734,11 @@ void hd_setup_level(s32 arg0) {
     s32 old;
 
     D_80364A68 = 0;
-    D_80364A69 = 0;
+    gHaveSkyfall = 0;
     D_80364A6A = 0;
     D_80364A6B = 0;
     D_80364A6C = 0;
-    D_80364A6D = 0;
+    gHaveSideswipe = 0;
     D_803649E8 = 0;
     D_803649EC = 0;
     gVehicleShadowsEnd = gVehicleShadows;
@@ -4752,7 +4755,7 @@ void hd_setup_level(s32 arg0) {
     gCamTurnNeg = 0;
     gCamEyeHeight = 3000;
     D_80364434 = 1;
-    D_803A7430 = 0;
+    gTrainContactFrames = 0;
     D_803649EE = 0;
     D_80364A84 = 0;
     gCurVehicle = 0;
@@ -4781,7 +4784,7 @@ void hd_setup_level(s32 arg0) {
     func_80262238(levelno);
     cam_set_level_fovy(levelno);
     D_80367BFF = 0;
-    func_802CE840();
+    radar_clear_markers();
     debug_printf("enter initlevel game_mode=%d loop_done=%d\n", lowest_set_bit(gGameMode), lowest_set_bit(gNextGameMode));
     old = gHeapPtr;
     initlevel(gLevelData, arg0);
@@ -4789,7 +4792,7 @@ void hd_setup_level(s32 arg0) {
     lvl_alloc_dl_buffers();
     if (gNextGameMode != 2) {
         if ((players[playerNumber].unk18[levelno] > 0 && players[playerNumber].unk18[levelno] < 6) ? 1 : 0) {
-            func_802CF628();
+            commpt_load_flags();
         }
     }
     obj_tally(gLevelKind == 0x20 || gLevelKind == 0x80);
@@ -4798,13 +4801,13 @@ void hd_setup_level(s32 arg0) {
         D_80364A86 = func_80272C5C((u16 *) D_802E8BF4, 0, 1, 1, 1, 1.0f);
     }
     func_802775C0();
-    if (D_80364A69) {
+    if (gHaveSkyfall) {
         func_80286A00();
     }
     if (D_80364A6B) {
         func_802873AC();
     }
-    if (D_80364A6D) {
+    if (gHaveSideswipe) {
         func_80287AE4();
     }
     func_802821D0();
@@ -4831,7 +4834,7 @@ void hd_setup_level(s32 arg0) {
                 i++;
             }
         }
-        func_80258544(v, v->unk1004, v->unk1010, v->unk100C, v->unk1000, (Gfx *) N64_IPTR((gVehicles[i].unk54)), gVehicles[i].unk0,
+        veh_render_shadow_tex(v, v->unk1004, v->unk1010, v->unk100C, v->unk1000, (Gfx *) N64_IPTR((gVehicles[i].unk54)), gVehicles[i].unk0,
                       gVehicles[i].unk4);
         rsp_wait_task(0x61F);
         v++;
@@ -4856,7 +4859,7 @@ void hd_setup_level(s32 arg0) {
     D_80364AB8 = 1.0f;
     D_80364ABC = 1.0f;
     D_80364AC0 = 0;
-    gPlayerX = D_803ED808;
+    gPlayerX = gDriverPos;
     gPlayerY = D_803ED80C;
     gPlayerZ = D_803ED810;
     D_802FDB14 = 0;

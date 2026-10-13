@@ -16,12 +16,12 @@
  * more specific non-ABI explanation where one was already worked out. */
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 * N64P D_803FCD54;  /* model header */
-extern u8 * N64P D_803FCD58;  /* the two 0x800-byte save copies */
-extern u8 * N64P D_803FCD5C;
-extern u8 D_803FCCA0[]; /* this vehicle's state block */
-extern u8 D_803FC9A0[]; /* channel table */
-extern void * N64P D_803FCD64; /* sound state */
+extern u8 * N64P gShuttleModel;  /* model header */
+extern u8 * N64P gShuttleMtxA;  /* the two 0x800-byte save copies */
+extern u8 * N64P gShuttleMtxB;
+extern u8 gShuttleState[]; /* this vehicle's state block */
+extern u8 gShuttleAnim[]; /* channel table */
+extern void * N64P gShuttleSound; /* sound state */
 extern u8 D_803FCD72;
 extern u8 D_803FCD73;
 extern u8 D_803FCD74;
@@ -31,40 +31,41 @@ extern u8 D_803FCD78;
 extern u8 D_803FCD79;
 extern u8 D_803FCD7A;
 
-/* Set up vehicle 0xFD (the level-object dispatcher lvl_spawn_shuttle): model
- * header hdr -> D_803FCD54; two 0x800-byte save copies from the gHeapPtr
- * bump pointer (D_803FCD58/5C; trapping adds); veh_add_record(0xFD, 0,
- * copies, hdr); heading/target/speed of D_803FCCA0 and the event flags
- * D_803FCD72..7A (but 75) cleared; model channels D_803FC9A0 (func_8029F85C,
+/* Sets up the shuttle (type 0xFD, lvl_spawn_shuttle) (0x802D2570).
+ * Set up vehicle 0xFD (the level-object dispatcher lvl_spawn_shuttle): model
+ * header hdr -> gShuttleModel; two 0x800-byte save copies from the gHeapPtr
+ * bump pointer (gShuttleMtxA/B; trapping adds); veh_add_record(0xFD, 0,
+ * copies, hdr); heading/target/speed of gShuttleState and the event flags
+ * D_803FCD72..7A (but 75) cleared; model channels gShuttleAnim (anim_init_model,
  * channel 0 = (100, 0, 0, 0.0, 1), run into both copies); channel 2's sound
- * part: mode D_803FCD75 1 -> func_802A0360(0.0, 2, 0), 0 -> start sound 0x6A
- * into D_803FCD64 at volume 0 (func_80260650, func_80260AB8(.., 8, 0)) and
- * func_802A0360(f0, 2, 1); then channels 2 = (0, 0, 1, -1) and 1 = (0, 0,
- * 0360 0.0, 1, -1); func_80258230(0xFD, 120, 45, 45), func_80268F54, one
- * update with +0x9A set (func_802D291C), and the model matrix copy (word +4
- * of the entry at hdr + hdr[6], D_803FCD5C -> D_803FCD58, func_802AA838).
+ * part: mode D_803FCD75 1 -> anim_set_frame(0.0, 2, 0), 0 -> start sound 0x6A
+ * into gShuttleSound at volume 0 (func_80260650, func_80260AB8(.., 8, 0)) and
+ * anim_set_frame(f0, 2, 1); then channels 2 = (0, 0, 1, -1) and 1 = (0, 0,
+ * 0360 0.0, 1, -1); veh_add_shadow(0xFD, 120, 45, 45), func_80268F54, one
+ * update with +0x9A set (shuttle_update), and the model matrix copy (word +4
+ * of the entry at hdr + hdr[6], gShuttleMtxB -> gShuttleMtxA, mtx_copy_at).
  * Register notes: hdr comes in s2 (conventions.txt); the asm saves t0-t5
- * (asm caller lvl_spawn_shuttle keeps t2), points $gp at D_803FCCA0 and leaves
- * it, and leaves the channel routines' s0-s5, fp, f20 and func_802D291C's
+ * (asm caller lvl_spawn_shuttle keeps t2), points $gp at gShuttleState and leaves
+ * it, and leaves the channel routines' s0-s5, fp, f20 and shuttle_update's
  * f12/f14 (survey: read by lvl_spawn_shuttle; not modelled). In mode 0 the asm
- * hands func_802A0360 whatever f0 func_80260AB8 left (the mtc1 zero before
+ * hands anim_set_frame whatever f0 func_80260AB8 left (the mtc1 zero before
  * the sound calls; those IDO sound routines do no FP work): 0.0 here. Any
  * other mode hits the asm's `syscall` debug trap and then runs mode 1, as
  * here. */
-void func_802D2570(u8 *hdr) {
+void shuttle_spawn(u8 *hdr) {
     u32 p;
     u8 *h;
     void *snd;
 
-    D_803FCD54 = hdr;
+    gShuttleModel = hdr;
     p = gHeapPtr;
-    D_803FCD58 = (u8 *) p;
-    D_803FCD5C = (u8 *) (p + 0x800);
+    gShuttleMtxA = (u8 *) p;
+    gShuttleMtxB = (u8 *) (p + 0x800);
     gHeapPtr = p + 0x1000;
-    veh_add_record(0xFD, 0, (s32) D_803FCD58, (s32) D_803FCD5C, hdr);
-    *(s16 *) (D_803FCCA0 + 0x4C) = 0;
-    *(s16 *) (D_803FCCA0 + 0x4E) = 0;
-    *(s16 *) (D_803FCCA0 + 0x76) = 0;
+    veh_add_record(0xFD, 0, (s32) gShuttleMtxA, (s32) gShuttleMtxB, hdr);
+    *(s16 *) (gShuttleState + 0x4C) = 0;
+    *(s16 *) (gShuttleState + 0x4E) = 0;
+    *(s16 *) (gShuttleState + 0x76) = 0;
     D_803FCD72 = 0;
     D_803FCD73 = 0;
     D_803FCD74 = 0;
@@ -73,93 +74,95 @@ void func_802D2570(u8 *hdr) {
     D_803FCD7A = 0;
     D_803FCD78 = 0;
     D_803FCD79 = 0;
-    func_8029F85C((u32 *) D_803FCD5C, (u32 *) D_803FCD58, (Unk8029DEA0Entry *) D_803FC9A0, D_803FCD54);
-    func_802A039C((Unk8029DEA0Entry *) D_803FC9A0, 0, 100);
-    func_802A03D4((Unk8029DEA0Entry *) D_803FC9A0, 0, 0);
-    func_802A040C((Unk8029DEA0Entry *) D_803FC9A0, 0, 0);
-    func_802A0480(0.0f, (Unk8029DEA0Entry *) D_803FC9A0, 0, 0);
-    func_802A0290((Unk8029DEA0Entry *) D_803FC9A0, 0, 1);
-    func_8029E558(D_803FCD58, D_803FCD5C, (Unk8029DEA0Entry *) D_803FC9A0);
-    func_802A0320(0, (Unk8029DEA0Entry *) D_803FC9A0);
-    func_802A0290((Unk8029DEA0Entry *) D_803FC9A0, 0, 1);
-    func_8029E558(D_803FCD5C, D_803FCD58, (Unk8029DEA0Entry *) D_803FC9A0);
+    anim_init_model((u32 *) gShuttleMtxB, (u32 *) gShuttleMtxA, (Unk8029DEA0Entry *) gShuttleAnim, gShuttleModel);
+    anim_set_speed((Unk8029DEA0Entry *) gShuttleAnim, 0, 100);
+    anim_set_reverse((Unk8029DEA0Entry *) gShuttleAnim, 0, 0);
+    anim_set_loop_mode((Unk8029DEA0Entry *) gShuttleAnim, 0, 0);
+    anim_set_interp(0.0f, (Unk8029DEA0Entry *) gShuttleAnim, 0, 0);
+    anim_play((Unk8029DEA0Entry *) gShuttleAnim, 0, 1);
+    anim_update_model(gShuttleMtxA, gShuttleMtxB, (Unk8029DEA0Entry *) gShuttleAnim);
+    anim_rewind(0, (Unk8029DEA0Entry *) gShuttleAnim);
+    anim_play((Unk8029DEA0Entry *) gShuttleAnim, 0, 1);
+    anim_update_model(gShuttleMtxB, gShuttleMtxA, (Unk8029DEA0Entry *) gShuttleAnim);
     if (D_803FCD75 == 0) {
-        snd = func_80260650(D_80367738, 0x6A, &D_803FCD64);
+        snd = func_80260650(D_80367738, 0x6A, &gShuttleSound);
         func_80260AB8(snd, 8, 0);
-        func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803FC9A0, 2, 1);
+        anim_set_frame(0.0f, (Unk8029DEA0Entry *) gShuttleAnim, 2, 1);
     } else {
-        func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803FC9A0, 2, 0);
+        anim_set_frame(0.0f, (Unk8029DEA0Entry *) gShuttleAnim, 2, 0);
     }
-    func_802A039C((Unk8029DEA0Entry *) D_803FC9A0, 2, 0);
-    func_802A03D4((Unk8029DEA0Entry *) D_803FC9A0, 2, 0);
-    func_802A040C((Unk8029DEA0Entry *) D_803FC9A0, 2, 1);
-    func_802A0290((Unk8029DEA0Entry *) D_803FC9A0, 2, -1);
-    func_802A039C((Unk8029DEA0Entry *) D_803FC9A0, 1, 0);
-    func_802A03D4((Unk8029DEA0Entry *) D_803FC9A0, 1, 0);
-    func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803FC9A0, 1, 0);
-    func_802A040C((Unk8029DEA0Entry *) D_803FC9A0, 1, 1);
-    func_802A0290((Unk8029DEA0Entry *) D_803FC9A0, 1, -1);
-    func_80258230(0xFD, 120, 45, 45);
+    anim_set_speed((Unk8029DEA0Entry *) gShuttleAnim, 2, 0);
+    anim_set_reverse((Unk8029DEA0Entry *) gShuttleAnim, 2, 0);
+    anim_set_loop_mode((Unk8029DEA0Entry *) gShuttleAnim, 2, 1);
+    anim_play((Unk8029DEA0Entry *) gShuttleAnim, 2, -1);
+    anim_set_speed((Unk8029DEA0Entry *) gShuttleAnim, 1, 0);
+    anim_set_reverse((Unk8029DEA0Entry *) gShuttleAnim, 1, 0);
+    anim_set_frame(0.0f, (Unk8029DEA0Entry *) gShuttleAnim, 1, 0);
+    anim_set_loop_mode((Unk8029DEA0Entry *) gShuttleAnim, 1, 1);
+    anim_play((Unk8029DEA0Entry *) gShuttleAnim, 1, -1);
+    veh_add_shadow(0xFD, 120, 45, 45);
     func_80268F54();
-    D_803FCCA0[0x9A] = 1;
-    func_802D291C();
-    D_803FCCA0[0x9A] = 0;
-    h = D_803FCD54;
+    gShuttleState[0x9A] = 1;
+    shuttle_update();
+    gShuttleState[0x9A] = 0;
+    h = gShuttleModel;
     h += *(s32 *) (h + 0x18);
-    func_802AA838(D_803FCD5C, D_803FCD58, *(s32 *) (h + 4));
+    mtx_copy_at(gShuttleMtxB, gShuttleMtxA, *(s32 *) (h + 4));
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8DDB0/func_802D2570.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8DDB0/shuttle_spawn.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-void func_802D2A40(void);
-void func_802D2A74(void);
-void func_802D2C20(void);
-void func_802D2FA4(void);
-extern u8 * N64P D_803FCD58; /* the two save copies */
-extern u8 * N64P D_803FCD5C;
-extern u8 D_803FC9A0[]; /* channel table */
-extern u8 D_803FCCA0[]; /* this vehicle's state block */
+void shuttle_follow_path(void);
+void shuttle_update_volume(void);
+void shuttle_update_events(void);
+void shuttle_build_model(void);
+extern u8 * N64P gShuttleMtxA; /* the two save copies */
+extern u8 * N64P gShuttleMtxB;
+extern u8 gShuttleAnim[]; /* channel table */
+extern u8 gShuttleState[]; /* this vehicle's state block */
 
-/* Per-frame update of this vehicle (D_803FCCA0, the asm's $gp): func_802D2A40;
- * unless byte +0x9A is set, the sound distance (func_802D2A74) and the events
- * (func_802D2C20); then the channels D_803FC9A0 (func_8029E558 with the
- * current save copy first: D_803FCD58 when gBufferIndex is set, else
- * D_803FCD5C) and the model placement (func_802D2FA4). The asm saves every
- * callee-saved register. It leaves func_802D2FA4's f12/f14 (func_802AA764's
+/* The shuttle, per frame (0x802D291C).
+ * Per-frame update of this vehicle (gShuttleState, the asm's $gp): shuttle_follow_path;
+ * unless byte +0x9A is set, the sound distance (shuttle_update_volume) and the events
+ * (shuttle_update_events); then the channels gShuttleAnim (anim_update_model with the
+ * current save copy first: gShuttleMtxA when gBufferIndex is set, else
+ * gShuttleMtxB) and the model placement (shuttle_build_model). The asm saves every
+ * callee-saved register. It leaves shuttle_build_model's f12/f14 (mtx_build_model's
  * trig temporaries), which the survey lists as read by asm caller
- * func_802D2570 (not modelled; its C rewrite doesn't read them). */
-void func_802D291C(void) {
-    func_802D2A40();
-    if (D_803FCCA0[0x9A] == 0) {
-        func_802D2A74();
-        func_802D2C20();
+ * shuttle_spawn (not modelled; its C rewrite doesn't read them). */
+void shuttle_update(void) {
+    shuttle_follow_path();
+    if (gShuttleState[0x9A] == 0) {
+        shuttle_update_volume();
+        shuttle_update_events();
     }
     if (gBufferIndex != 0) {
-        func_8029E558(D_803FCD58, D_803FCD5C, (Unk8029DEA0Entry *) D_803FC9A0);
+        anim_update_model(gShuttleMtxA, gShuttleMtxB, (Unk8029DEA0Entry *) gShuttleAnim);
     } else {
-        func_8029E558(D_803FCD5C, D_803FCD58, (Unk8029DEA0Entry *) D_803FC9A0);
+        anim_update_model(gShuttleMtxB, gShuttleMtxA, (Unk8029DEA0Entry *) gShuttleAnim);
     }
-    func_802D2FA4();
+    shuttle_build_model();
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8DDB0/func_802D291C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8DDB0/shuttle_update.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-/* Calls func_80269258, saving gp around it (the asm caller func_802D291C
+/* Util_shuttle_path_step with gp saved (0x802D2A40).
+ * Calls func_80269258, saving gp around it (the asm caller shuttle_update
  * uses gp as its base pointer). The survey lists a0, a2, a3, t6, t7, f12 and
  * f14 as read by that caller afterwards; they're whatever func_80269258
  * leaves, nothing this function sets. */
-void func_802D2A40(void) {
+void shuttle_follow_path(void) {
     func_80269258();
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8DDB0/func_802D2A40.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8DDB0/shuttle_follow_path.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -167,7 +170,7 @@ void func_802D2A40(void) {
 double sqrt(double);
 #pragma intrinsic(sqrt)
 
-/* func_802ABCDC (62740; points in t3-t5 and t6,t7,s0, result in s1) can't be
+/* math_dist3 (62740; points in t3-t5 and t6,t7,s0, result in s1) can't be
  * called from C: this is its logic (same macro as in 77E20.c). The distance
  * between two points, rounded to nearest (ties to even) as cvt.l.d does; the
  * squares are summed as s64 and converted as hi * 2^32 + lo (one rounding,
@@ -188,24 +191,25 @@ double sqrt(double);
         (out) = _r;                                                     \
     } while (0)
 
-extern void * N64P D_803FCD64; /* sound state, NULL = none */
+extern void * N64P gShuttleSound; /* sound state, NULL = none */
 
-/* Distance attenuation: if D_803FCD64 is set, sets its volume (parameter 8)
+/* Its engine volume by distance from the camera (0x802D2A74).
+ * Distance attenuation: if gShuttleSound is set, sets its volume (parameter 8)
  * to 0x7FFF - max(d - 0x3200, 0) / 4, clamped at 0, where d is the distance
- * from (gCamEyeX, gCamEyeY, gCamEyeZ) >> 11 to D_803FCD48/4C/50.
- * The asm's dead `sub` (x - D_803FCD48) and its `addi` trap on overflow; C
+ * from (gCamEyeX, gCamEyeY, gCamEyeZ) >> 11 to gShuttlePos/D_803FCD4C/D_803FCD50.
+ * The asm's dead `sub` (x - gShuttlePos) and its `addi` trap on overflow; C
  * doesn't. Register note: the asm saves and restores every register; asm
- * caller func_802D291C keeps a0, a2, a3, t6, t7, f12 and f14 live across the
+ * caller shuttle_update keeps a0, a2, a3, t6, t7, f12 and f14 live across the
  * call (a mixed N64 build would need a thunk; the native port doesn't). */
-void func_802D2A74(void) {
+void shuttle_update_volume(void) {
     s32 dist;
     s32 vol;
 
-    if (D_803FCD64 == NULL) {
+    if (gShuttleSound == NULL) {
         return;
     }
     DIST3_802ABCDC(dist, gCamEyeX >> 11, gCamEyeY >> 11, gCamEyeZ >> 11,
-                   D_803FCD48, D_803FCD4C, D_803FCD50);
+                   gShuttlePos, D_803FCD4C, D_803FCD50);
     dist -= 0x3200;
     if (dist < 0) {
         dist = 0;
@@ -214,17 +218,17 @@ void func_802D2A74(void) {
     if (vol < 0) {
         vol = 0;
     }
-    func_80260AB8(D_803FCD64, 8, vol);
+    func_80260AB8(gShuttleSound, 8, vol);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8DDB0/func_802D2A74.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8DDB0/shuttle_update_volume.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
 
-extern u8 D_803FC9A0[];
+extern u8 gShuttleAnim[];
 extern u8 D_803FCD72;
 extern u8 D_803FCD73;
 extern u8 D_803FCD74;
@@ -234,7 +238,7 @@ extern u8 D_803FCD78;
 extern u8 D_803FCD79;
 extern u8 D_803FCD7A;
 
-/* Spawns effect def at D_803EBC10 record (0xFD, n) (fx_spawn type 1 with
+/* Spawns effect def at gVehPoints record (0xFD, n) (fx_spawn type 1 with
  * z = 1, tag 0, b35 0). For that type fx_spawn ignores its other fields;
  * the asm passes whatever its caller left in t6, t7, s0-s4 there, the C 0. */
 #define SPAWN_AT_FD(def, data, n)                                         \
@@ -247,27 +251,28 @@ extern u8 D_803FCD7A;
         fx_spawn(&_io, (def), (data), 1, 0xFD, (n), 1, 0, 0, 0, 0, 0, 0); \
     }
 
-/* Per-frame event handling for this vehicle (id 0xFD in D_803EBC10): event
- * D_803FCD70 2 sets D_803FC9A0 entry 1's fields (func_802A039C/03D4/0290)
+/* Path events: sounds, shake, flame effects (0x802D2C20).
+ * Per-frame event handling for this vehicle (id 0xFD in gVehPoints): event
+ * gShuttlePathEvent 2 sets gShuttleAnim entry 1's fields (anim_set_speed/03D4/0290)
  * and plays sound 0x66; 3 plays 0x78; 0xB sets D_803FCD77/7A/78 and plays
- * 0x83; 0xC plays 0x7F into D_803FCD64 and clears D_803FCD7A; 0xD clears
+ * 0x83; 0xC plays 0x7F into gShuttleSound and clears D_803FCD7A; 0xD clears
  * D_803FCD78. Unless D_8036B964, each of the three one-shot flags
  * D_803FCD72..74 still clear plays sound 6, 6, 8 (and gets set) once
- * D_803FCD60 (read once) reaches word +4 of D_803EBC10 record (0xFD, 1..3).
+ * D_803FCD60 (read once) reaches word +4 of gVehPoints record (0xFD, 1..3).
  * D_803FCD7A forces gShakeTime = 20 and gShakeSize = 400. D_803FCD78 and
  * D_803FCD77 each run a 5-frame countdown (D_803FCD79 / D_803FCD76) that
  * spawns effects at the vehicle's points 4 (D_802C28E4) or 4, 5, 6
- * (D_802C3804). Only caller func_802D291C (asm); the survey's t6/t7/s0/s1
- * "outputs" are what func_8029E558 sets after it, not read from here. */
-void func_802D2C20(void) {
+ * (D_802C3804). Only caller shuttle_update (asm); the survey's t6/t7/s0/s1
+ * "outputs" are what anim_update_model sets after it, not read from here. */
+void shuttle_update_events(void) {
     u8 *rec;
     s32 level;
 
-    switch (D_803FCD70) {
+    switch (gShuttlePathEvent) {
         case 2:
-            func_802A039C((Unk8029DEA0Entry *) D_803FC9A0, 1, 1);
-            func_802A03D4((Unk8029DEA0Entry *) D_803FC9A0, 1, 0);
-            func_802A0290((Unk8029DEA0Entry *) D_803FC9A0, 1, 1);
+            anim_set_speed((Unk8029DEA0Entry *) gShuttleAnim, 1, 1);
+            anim_set_reverse((Unk8029DEA0Entry *) gShuttleAnim, 1, 0);
+            anim_play((Unk8029DEA0Entry *) gShuttleAnim, 1, 1);
             func_80260650(D_80367738, 0x66, NULL);
             break;
         case 3:
@@ -280,7 +285,7 @@ void func_802D2C20(void) {
             func_80260650(D_80367738, 0x83, NULL);
             break;
         case 0xC:
-            func_80260650(D_80367738, 0x7F, &D_803FCD64);
+            func_80260650(D_80367738, 0x7F, &gShuttleSound);
             D_803FCD7A = 0;
             break;
         case 0xD:
@@ -291,21 +296,21 @@ void func_802D2C20(void) {
     if (D_8036B964 == 0) {
         level = D_803FCD60;
         if (D_803FCD72 == 0) {
-            func_802ABC88(0xFD, 1, &rec);
+            veh_find_point(0xFD, 1, &rec);
             if (!(level < ((s32 *) rec)[1])) {
                 func_80260650(D_80367738, 6, NULL);
                 D_803FCD72 = 1;
             }
         }
         if (D_803FCD73 == 0) {
-            func_802ABC88(0xFD, 2, &rec);
+            veh_find_point(0xFD, 2, &rec);
             if (!(level < ((s32 *) rec)[1])) {
                 func_80260650(D_80367738, 6, NULL);
                 D_803FCD73 = 1;
             }
         }
         if (D_803FCD74 == 0) {
-            func_802ABC88(0xFD, 3, &rec);
+            veh_find_point(0xFD, 3, &rec);
             if (!(level < ((s32 *) rec)[1])) {
                 func_80260650(D_80367738, 8, NULL);
                 D_803FCD74 = 1;
@@ -337,62 +342,63 @@ void func_802D2C20(void) {
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8DDB0/func_802D2C20.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8DDB0/shuttle_update_events.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 * N64P D_803FCD54;    /* model header: word offsets to the part lists */
-extern u8 * N64P D_803FCD58;    /* the two save copies */
-extern u8 * N64P D_803FCD5C;
-extern u8 D_803FCCA0[];   /* this vehicle's state block (the asm caller's $gp) */
+extern u8 * N64P gShuttleModel;    /* model header: word offsets to the part lists */
+extern u8 * N64P gShuttleMtxA;    /* the two save copies */
+extern u8 * N64P gShuttleMtxB;
+extern u8 gShuttleState[];   /* this vehicle's state block (the asm caller's $gp) */
 
-/* Place this vehicle's model: m = the word at +4 of the header entry at
- * hdr + hdr[6] (hdr = D_803FCD54), plus the current save copy (D_803FCD58
- * when gBufferIndex is set, else D_803FCD5C); rotation D_803ED390/92/94 =
- * D_803FCD6A/6C/6E (6C also to the heading at +0x4C of D_803FCCA0 and to
- * D_803FCD68); func_802AA764(position D_803FCD48..50, scale 0x11558, m).
- * Then the points (func_802ABBEC, id 0xFD, hdr + hdr[0] .. hdr + hdr[1])
+/* Its model matrix and points (0x802D2FA4).
+ * Place this vehicle's model: m = the word at +4 of the header entry at
+ * hdr + hdr[6] (hdr = gShuttleModel), plus the current save copy (gShuttleMtxA
+ * when gBufferIndex is set, else gShuttleMtxB); rotation gModelRot/D_803ED392/D_803ED394 =
+ * D_803FCD6A/6C/6E (6C also to the heading at +0x4C of gShuttleState and to
+ * D_803FCD68); mtx_build_model(position gShuttlePos..50, scale 0x11558, m).
+ * Then the points (veh_points_transform, id 0xFD, hdr + hdr[0] .. hdr + hdr[1])
  * relative to the current save copy. The header offsets are added with
  * trapping adds.
- * Register notes: the asm's $gp (= D_803FCCA0, set by its only caller
- * func_802D291C) is read as the global. It hands func_802ABBEC whatever v1,
+ * Register notes: the asm's $gp (= gShuttleState, set by its only caller
+ * shuttle_update) is read as the global. It hands veh_points_transform whatever v1,
  * a0, a3, s0, s1 held (they only matter for a point entry with no matrices;
- * 0 here) and s2 = m, and leaves func_802AA764's f12/f14, which the survey
- * lists as read by func_802D291C's callers (not modelled). Clobbers s1, s2,
+ * 0 here) and s2 = m, and leaves mtx_build_model's f12/f14, which the survey
+ * lists as read by shuttle_update's callers (not modelled). Clobbers s1, s2,
  * s4-s7 (conventions.txt). */
-void func_802D2FA4(void) {
+void shuttle_build_model(void) {
     MtxChainRegs regs;
-    u8 *hdr = D_803FCD54;
+    u8 *hdr = gShuttleModel;
     u8 *base;
     s32 *m;
 
-    m = (s32 *) N64_IPTR((*(s32 *) (hdr + *(s32 *) (hdr + 0x18) + 4) + (s32) (gBufferIndex ? D_803FCD58 : D_803FCD5C)));
-    D_803ED390[0] = ((u16) D_803FCD6A);
-    *(u16 *) (D_803FCCA0 + 0x4C) = ((u16) D_803FCD6C);
+    m = (s32 *) N64_IPTR((*(s32 *) (hdr + *(s32 *) (hdr + 0x18) + 4) + (s32) (gBufferIndex ? gShuttleMtxA : gShuttleMtxB)));
+    gModelRot[0] = ((u16) D_803FCD6A);
+    *(u16 *) (gShuttleState + 0x4C) = ((u16) D_803FCD6C);
     D_803FCD68 = ((u16) D_803FCD6C);
-    D_803ED390[1] = ((u16) D_803FCD6C);
-    D_803ED390[2] = ((u16) D_803FCD6E);
-    func_802AA764(D_803FCD48, D_803FCD4C, D_803FCD50, 0x11558, m);
-    base = gBufferIndex ? D_803FCD58 : D_803FCD5C;
-    hdr = D_803FCD54;
+    gModelRot[1] = ((u16) D_803FCD6C);
+    gModelRot[2] = ((u16) D_803FCD6E);
+    mtx_build_model(gShuttlePos, D_803FCD4C, D_803FCD50, 0x11558, m);
+    base = gBufferIndex ? gShuttleMtxA : gShuttleMtxB;
+    hdr = gShuttleModel;
     regs.v1 = 0;
     regs.a0 = 0;
     regs.a3 = 0;
     regs.s1 = 0;
     regs.s2 = (s32) m;
     regs.s0 = 0;
-    func_802ABBEC(0xFD, (s16 *) (hdr + *(s32 *) hdr), (s16 *) (hdr + *(s32 *) (hdr + 4)), base, &regs);
+    veh_points_transform(0xFD, (s16 *) (hdr + *(s32 *) hdr), (s16 *) (hdr + *(s32 *) (hdr + 4)), base, &regs);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8DDB0/func_802D2FA4.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8DDB0/shuttle_build_model.s")
 #endif
 
 #ifdef NON_MATCHING
 /* The tables of the 8E910 bin (ROM 0x8E910-0x8F860, 0x802D30D0-0x802D4020),
  * right after this file's code: the per-level part lists picked by
- * func_802A1EC8 (5CB60.c) for 20 levels (s32 count + LevelPart records; the
- * entry words are filled in at level load by func_802A21AC).
+ * lvl_pick_object_list (5CB60.c) for 20 levels (s32 count + LevelPart records; the
+ * entry words are filled in at level load by lvl_add_object).
  * The NON_MATCHING build defines it in C and links this file's .data (it has
  * nothing else) back at the table's original address (Makefile NM_PIN_HD_CODE,
  * nm_ldscript.py --pin-object); nm_symaudit.py checks the bytes against the

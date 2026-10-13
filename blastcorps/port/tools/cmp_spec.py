@@ -26,7 +26,7 @@
 #   Z ra=RA th=ID v=N              alAudioFrame asked for N samples (the audio frame size)
 #   Q ra=FUNC th=ID v=VALUE        the game retrace counter D_803156C4 as a GVI_FUNCS
 #                                  function reads it (port.h PORT_GVI)
-#   U ra=RA th=ID v=WORD           func_802A4B0C's RSP visibility test: the output word it
+#   U ra=RA th=ID v=WORD           cull_rsp_test's RSP visibility test: the output word it
 #                                  tests (0xE8000000 = not visible)
 #   M ra=RA th=ID c=COUNT f=FUNC q=A0 gvi=G   a message call (queue A0) / osStartThread
 #                                  (thread A0) from RA (running thread ID) at COUNT, the game's
@@ -118,9 +118,9 @@ def call_site(func, callee):
     raise KeyError((func, callee))
 
 
-# func_802A4B0C (5FD50.c): the RSP visibility test; its answer is the first
+# cull_rsp_test (5FD50.c): the RSP visibility test; its answer is the first
 # word of the output buffer D_803BEB80 once rsp_wait_task has waited for it
-A_CULL = call_site("func_802A4B0C", "rsp_wait_task")
+A_CULL = call_site("cull_rsp_test", "rsp_wait_task")
 A_CULLBUF = syms.get("D_803BEB80", 0x803BEB80)
 # thread switch points: the native clock catches up with the emulator's here
 SYNC = {syms[n]: n for n in ("osSendMesg", "osRecvMesg", "osJamMesg", "osStartThread")}
@@ -181,12 +181,12 @@ A_AFRAME = syms.get("alAudioFrame", syms.get("func_802D9D68"))
 
 # Retrace-counter reads the exe takes from the emulator (port.h PORT_GVI):
 # where the game reads D_803156C4 mid-function, after CPU time the native
-# code doesn't take (00000.c func_8024C414: the blinking "PRESS START").
+# code doesn't take (00000.c hd_build_frame_dl: the blinking "PRESS START").
 # Also D_803156C0 (the scheduler's retrace count): hd_front_end 00000.c
 # func_801E7598 (the vehicle select screen's title pulse).  And 50670.c
 # func_80294F00 (the ghost recorder's sample time, D_803156C0 - start): a
 # retrace can land between its entry (a switch point) and the read.
-GVI_FUNCS = ["func_8024C414", "func_801E7598", "func_80294F00"]
+GVI_FUNCS = ["hd_build_frame_dl", "func_801E7598", "func_80294F00"]
 GVI = {}
 for name in GVI_FUNCS:
     a, size = func_sizes[name]
@@ -401,7 +401,7 @@ def ONHIT(pc, g, rd):
             return None
         return "C ra=%x th=%d v=%x" % (g["ra"], thread_id(rd), g["v0"])
     if pc == A_CULL:
-        return "U ra=%x th=%d v=%x frame=%d" % (syms["func_802A4B0C"], thread_id(rd), rd(A_CULLBUF, 4), st["frame"])
+        return "U ra=%x th=%d v=%x frame=%d" % (syms["cull_rsp_test"], thread_id(rd), rd(A_CULLBUF, 4), st["frame"])
     if pc in AILEN_RET:
         # (ra: this return site, in the caller)
         return "A ra=%x th=%d v=%x" % (pc, thread_id(rd), g["v0"])

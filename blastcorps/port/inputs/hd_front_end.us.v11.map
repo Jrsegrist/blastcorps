@@ -14,7 +14,7 @@ Discarded input sections
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/00000.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/00000.c.o
  .gptab.data    0x00000000       0x48 build_nm/src.us.v11/hd_front_end/00000.c.o
- .mdebug        0x00000000     0x16a8 build_nm/src.us.v11/hd_front_end/00000.c.o
+ .mdebug        0x00000000     0x16b8 build_nm/src.us.v11/hd_front_end/00000.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/01C40.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/01C40.c.o
  .gptab.data    0x00000000       0x70 build_nm/src.us.v11/hd_front_end/01C40.c.o
@@ -25,20 +25,20 @@ Discarded input sections
  .mdebug        0x00000000      0xb20 build_nm/src.us.v11/hd_front_end/06790.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/07390.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/07390.c.o
- .mdebug        0x00000000      0x880 build_nm/src.us.v11/hd_front_end/07390.c.o
+ .mdebug        0x00000000      0x888 build_nm/src.us.v11/hd_front_end/07390.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/07800.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/07800.c.o
  .gptab.data    0x00000000       0x18 build_nm/src.us.v11/hd_front_end/07800.c.o
- .mdebug        0x00000000     0x1460 build_nm/src.us.v11/hd_front_end/07800.c.o
+ .mdebug        0x00000000     0x1470 build_nm/src.us.v11/hd_front_end/07800.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/09570.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/09570.c.o
  .mdebug        0x00000000     0x11e0 build_nm/src.us.v11/hd_front_end/09570.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/0C450.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/0C450.c.o
- .mdebug        0x00000000      0xfe8 build_nm/src.us.v11/hd_front_end/0C450.c.o
+ .mdebug        0x00000000      0xfec build_nm/src.us.v11/hd_front_end/0C450.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/0DE70.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/0DE70.c.o
- .mdebug        0x00000000      0xc5c build_nm/src.us.v11/hd_front_end/0DE70.c.o
+ .mdebug        0x00000000      0xc60 build_nm/src.us.v11/hd_front_end/0DE70.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/0E7B0.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/0E7B0.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/10850.c.o
@@ -46,7 +46,7 @@ Discarded input sections
  .mdebug        0x00000000      0xeac build_nm/src.us.v11/hd_front_end/10850.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/17990.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/17990.c.o
- .mdebug        0x00000000     0x12d0 build_nm/src.us.v11/hd_front_end/17990.c.o
+ .mdebug        0x00000000     0x12e0 build_nm/src.us.v11/hd_front_end/17990.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/196F0.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/196F0.c.o
  .mdebug        0x00000000      0x6fc build_nm/src.us.v11/hd_front_end/196F0.c.o
@@ -558,6 +558,11 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x80358080                        nextdma = 0x80358080
                 0x80358084                        no_palette_dmas = 0x80358084
                 0x8036bf10                        gPreNmi = 0x8036bf10
+                0x803156f8                        gDynamicBufs = 0x803156f8
+                0x8035805c                        gBufferIndex = 0x8035805c
+                0x80358050                        gFrameBufferPhys = 0x80358050
+                0x80358078                        gFrameDlLen = 0x80358078
+                0x8035807c                        gPerspNorm = 0x8035807c
                 0x80211a68                        D_80211A68 = 0x80211a68
                 0x803643d4                        D_803643D4 = 0x803643d4
                 0x80364b00                        D_80364B00 = 0x80364b00
@@ -582,8 +587,6 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x802153e6                        D_802153E6 = 0x802153e6
                 0x802153e4                        D_802153E4 = 0x802153e4
                 0x80367738                        D_80367738 = 0x80367738
-                0x8035805c                        D_8035805C = 0x8035805c
-                0x803156f8                        D_803156F8 = 0x803156f8
                 0x80370c28                        D_80370C28 = 0x80370c28
                 0x80370c2a                        D_80370C2A = 0x80370c2a
                 0x802153e8                        D_802153E8 = 0x802153e8
@@ -591,9 +594,7 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x80364a9c                        D_80364A9C = 0x80364a9c
                 0x80370c2c                        D_80370C2C = 0x80370c2c
                 0x80370c2e                        D_80370C2E = 0x80370c2e
-                0x80358078                        D_80358078 = 0x80358078
                 0x803156c0                        D_803156C0 = 0x803156c0
-                0x8035807c                        D_8035807C = 0x8035807c
                 0x802153e0                        D_802153E0 = 0x802153e0
                 0x802153f0                        D_802153F0 = 0x802153f0
                 0x802153ec                        D_802153EC = 0x802153ec
@@ -896,7 +897,6 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x8021a830                        D_8021A830 = 0x8021a830
                 0x8021a834                        D_8021A834 = 0x8021a834
                 0x8021ab76                        D_8021AB76 = 0x8021ab76
-                0x80358050                        D_80358050 = 0x80358050
                 0x8036bb1e                        D_8036BB1E = 0x8036bb1e
                 0x80364a71                        D_80364A71 = 0x80364a71
                 0x80364a64                        D_80364A64 = 0x80364a64
@@ -967,6 +967,8 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x8082cad0                        PROVIDE (sched_add_client = 0x8082cad0)
                 0x80840b74                        PROVIDE (rsp_send_task = 0x80840b74)
                 0x80840e30                        PROVIDE (rsp_wait_task = 0x80840e30)
+                0x80812fa8                        PROVIDE (hd_sinf = 0x80812fa8)
+                0x80812fcc                        PROVIDE (hd_cosf = 0x80812fcc)
                 0x8085ac3c                        PROVIDE (func_8029DEA0 = 0x8085ac3c)
                 0x8081c5c4                        PROVIDE (func_80260A10 = 0x8081c5c4)
                 0x8081c160                        PROVIDE (func_80260650 = 0x8081c160)
@@ -1018,8 +1020,6 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x80855dc8                        PROVIDE (func_80299FE8 = 0x80855dc8)
                 0x80807d94                        PROVIDE (func_8024C404 = 0x80807d94)
                 0x80816f78                        PROVIDE (func_8025B498 = 0x80816f78)
-                0x80812fa8                        PROVIDE (func_802574F0 = 0x80812fa8)
-                0x80812fcc                        PROVIDE (func_80257514 = 0x80812fcc)
                 0x8081dbf8                        PROVIDE (func_80262008 = 0x8081dbf8)
                 0x8081cad0                        PROVIDE (func_80260EE0 = 0x8081cad0)
                 0x80818358                        PROVIDE (func_8025C878 = 0x80818358)
@@ -1450,11 +1450,82 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x80367750                        gDramStack = 0x80367750
                 0x8036e694                        gRdpOutputBuffer = 0x8036e694
                 0x8036afb0                        gYieldBuffer = 0x8036afb0
+                [!provide]                        PROVIDE (hd_build_frame_dl = 0x80807da4)
+                [!provide]                        PROVIDE (hd_clear_framebuffer = 0x808112c8)
+                [!provide]                        PROVIDE (hd_close_display_list = 0x808113f8)
+                [!provide]                        PROVIDE (cam_update = 0x8080c168)
+                [!provide]                        PROVIDE (cam_eye_scale = 0x8081084c)
+                [!provide]                        PROVIDE (cam_polar_offset = 0x80810a34)
+                [!provide]                        PROVIDE (cam_turn_heading = 0x80810b90)
+                [!provide]                        PROVIDE (cam_fixed_heading_area = 0x80811028)
+                [!provide]                        PROVIDE (cam_set_level_fovy = 0x8081dd40)
+                [!provide]                        PROVIDE (hd_sinf = 0x80812fa8)
+                [!provide]                        PROVIDE (hd_cosf = 0x80812fcc)
+                0x803156f8                        gDynamicBufs = 0x803156f8
+                0x8035805c                        gBufferIndex = 0x8035805c
+                0x80000400                        gFrameBuffers = 0x80000400
+                0x80358050                        gFrameBufferPhys = 0x80358050
+                0x80358058                        gDepthBufferPhys = 0x80358058
+                0x80358078                        gFrameDlLen = 0x80358078
+                0x80364438                        gCamFovy = 0x80364438
+                0x8035807c                        gPerspNorm = 0x8035807c
+                0x802e8be0                        gCamZoom = 0x802e8be0
+                0x802e8be4                        gShakeTime = 0x802e8be4
+                0x802e8be8                        gShakeSize = 0x802e8be8
+                0x80364412                        gCamSnap = 0x80364412
+                0x80364414                        gCamHeading = 0x80364414
+                0x80364418                        gCamHeadingGoal = 0x80364418
+                0x8036441c                        gCamTurnPos = 0x8036441c
+                0x8036441d                        gCamTurnNeg = 0x8036441d
+                0x803643ec                        gCamEyeGoalX = 0x803643ec
+                0x803643f0                        gCamEyeGoalY = 0x803643f0
+                0x803643f4                        gCamEyeGoalZ = 0x803643f4
+                0x803643f8                        gCamEyeX = 0x803643f8
+                0x803643fc                        gCamEyeY = 0x803643fc
+                0x80364400                        gCamEyeZ = 0x80364400
+                0x80364404                        gCamFixedEyeX = 0x80364404
+                0x80364408                        gCamFixedEyeY = 0x80364408
+                0x8036440c                        gCamFixedEyeZ = 0x8036440c
+                0x80364410                        gCamFixedEye = 0x80364410
+                0x80365078                        gCamAtGoalX = 0x80365078
+                0x8036507c                        gCamAtGoalY = 0x8036507c
+                0x80365080                        gCamAtGoalZ = 0x80365080
+                0x80365084                        gCamAtX = 0x80365084
+                0x80365088                        gCamAtY = 0x80365088
+                0x8036508c                        gCamAtZ = 0x8036508c
+                0x80365090                        gCamAtEaseX = 0x80365090
+                0x80365094                        gCamAtEaseY = 0x80365094
+                0x80365098                        gCamAtEaseZ = 0x80365098
+                0x8030f660                        gCamAtSettled = 0x8030f660
+                0x8030f664                        gCamAtHeight = 0x8030f664
+                0x8036509c                        gCamEasedHeading = 0x8036509c
+                0x8036509e                        gCamType = 0x8036509e
+                0x803650a0                        gCamPrevType = 0x803650a0
+                0x80364444                        gCamTilt = 0x80364444
+                0x80364448                        gCamTurn = 0x80364448
+                0x80364a72                        gCamTiltMax = 0x80364a72
+                0x80364a74                        gCamTiltMin = 0x80364a74
+                0x80364452                        gCamYaw = 0x80364452
+                0x80364454                        gCamPitch = 0x80364454
+                0x8036444c                        gCamDistance = 0x8036444c
+                0x8036444e                        gCamHeight = 0x8036444e
+                0x80364420                        gCamEyeHeight = 0x80364420
+                [!provide]                        PROVIDE (cull_start = 0x80807284)
+                [!provide]                        PROVIDE (cull_step_delayed = 0x80862798)
+                [!provide]                        PROVIDE (cull_walk_grid = 0x808627d8)
+                [!provide]                        PROVIDE (cull_test_cells = 0x808629a0)
+                [!provide]                        PROVIDE (cull_grid_height_range = 0x80862b38)
+                [!provide]                        PROVIDE (cull_box_corners = 0x80862c9c)
+                [!provide]                        PROVIDE (cull_rsp_test = 0x80862d64)
+                [!provide]                        PROVIDE (cull_restart_now = 0x80862590)
+                [!provide]                        PROVIDE (cull_restart = 0x80862694)
+                0x803c3248                        gCullDelay = 0x803c3248
+                0x803c30a8                        gVisibleCells = 0x803c30a8
                 0x803ff288                        __osEepromTimer = 0x803ff288
                 0x803ff2a8                        __osEepromTimerQ = 0x803ff2a8
                 0x803ff2c0                        __osEepromTimerMsg = 0x803ff2c0
                 0x80304954                        D_80304954 = 0x80304954
-                0x80358058                        D_80358058 = 0x80358058
+                0x80358058                        gDepthBufferPhys = 0x80358058
                 0x8035806c                        gStaticSegment = 0x8035806c
                 0x01000010                        D_01000010 = 0x1000010
                 0x006e8980                        D_006E8980 = 0x6e8980

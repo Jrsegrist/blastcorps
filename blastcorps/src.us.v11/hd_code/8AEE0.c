@@ -175,14 +175,14 @@ void func_802CF6A0(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s32 t6
 #ifdef NON_MATCHING
 extern u8 D_803FC500[]; /* this vehicle's state block */
 
-/* Enter vehicle type 15: clears the byte at +0x99, D_8036444C/50 = 3000,
+/* Enter vehicle type 15: clears the byte at +0x99, gCamDistance / D_80364450 = 3000,
  * 1000, then func_802C4310(arg0, 0xCE) (arg0 passes straight through; hd.c
  * calls this with no arguments and func_802C4310 ignores it). The asm also
  * points $gp at D_803FC500 and leaves it there (conventions.txt: clobbers
  * gp); C code doesn't use $gp. Same shape as func_802B76AC (72B80). */
 void func_802CFA0C(s32 arg0) {
     D_803FC500[0x99] = 0;
-    D_8036444C = 3000;
+    gCamDistance = 3000;
     D_80364450 = 1000;
     func_802C4310(arg0, 0xCE);
 }
@@ -453,7 +453,7 @@ void func_802CFDE8(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 f
     func_802A8768(v, 0xF, (s32 *) &D_803FC5A8[0], (s32 *) &D_803FC5A8[1], (s32 *) &D_803FC5A8[2], x, o.t1, 0x1F4,
                   0x15E, (s16 *) (v + 0x4C), v + 0x96, (s16 *) (v + 0x52), (s32 *) (v + 0x28), (s32 *) (v + 0x40),
                   (s32 *) (v + 0x34), (s32 *) (v + 4), &r8, &f);
-    if (D_8035805C != 0) {
+    if (gBufferIndex != 0) {
         func_8029E558((u8 *) D_803FC5B8, (u8 *) D_803FC5BC, (Unk8029DEA0Entry *) D_803FC200);
     } else {
         func_8029E558((u8 *) D_803FC5BC, (u8 *) D_803FC5B8, (Unk8029DEA0Entry *) D_803FC200);
@@ -469,7 +469,7 @@ void func_802CFDE8(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 f
         func_802BE77C(0xF, v);
         if (D_803A7424 != 0) {
             D_803FC5C3 = 0;
-            if (D_8035805C != 0) {
+            if (gBufferIndex != 0) {
                 src = D_803FC5BC;
                 dst2 = D_803FC5B8;
             } else {
@@ -593,7 +593,7 @@ void func_802D0438(void) {
 #ifdef NON_MATCHING
 /* Model matrices of vehicle type 15: the root matrix (func_802AA764 at its
  * position, scale 0x32C8, rotation y = heading +0x4C only - D_803ED390[0]/[2]
- * are left as they are) into the current matrix buffer (D_8035805C picks
+ * are left as they are) into the current matrix buffer (gBufferIndex picks
  * D_803FC5B8 or D_803FC5BC) at the offset the model's +0x18 table gives;
  * then the model's part list (+4..+8, func_8029C454, tag 0xF) and point list
  * (+0..+4, func_802ABBEC) through the matrix chain.
@@ -614,10 +614,10 @@ s32 func_802D05D8(s32 a3, s32 s0, s32 s1, VehMtxOut *out) {
     s32 z;
 
     m = (s32 *) N64_IPTR(*(s32 *) (model + *(s32 *) (model + 0x18) + 4) +
-                 (s32) (D_8035805C != 0 ? D_803FC5B8 : D_803FC5BC));
+                 (s32) (gBufferIndex != 0 ? D_803FC5B8 : D_803FC5BC));
     D_803ED390[1] = *(u16 *) (D_803FC500 + 0x4C);
     func_802AA764(D_803FC5A8[0], D_803FC5A8[1], D_803FC5A8[2], 0x32C8, m);
-    base = (u8 *) (D_8035805C != 0 ? D_803FC5B8 : D_803FC5BC);
+    base = (u8 *) (gBufferIndex != 0 ? D_803FC5B8 : D_803FC5BC);
     model = D_803FC5B4;
     x = D_803FC5A8[0];
     y = D_803FC5A8[1];
@@ -847,7 +847,7 @@ extern u8 D_802C22D0[]; /* key of this vehicle's func_802A06B4 entry */
 extern u8 D_803FC5D0[]; /* this vehicle's animation channel table */
 
 /* Vehicle-type 16 setup (called from 00000.c / 17210.c), the shape of
- * func_802B1228: clears byte 0x99 of the state block, D_8036444C/50 = 2000,
+ * func_802B1228: clears byte 0x99 of the state block, gCamDistance / D_80364450 = 2000,
  * -1000, starts the engine sound 0x50 (handle in D_803FC990), sets the
  * D_802C22D0 entry's fields (100, 0, 0, -1) and the animation channels 7, 8,
  * 9 (and 1, 5, 6, 3) of D_803FC5D0.
@@ -856,7 +856,7 @@ extern u8 D_803FC5D0[]; /* this vehicle's animation channel table */
  * ignore both. */
 void func_802D0C68(void) {
     D_803FC8D0[0x99] = 0;
-    D_8036444C = 0x7D0;
+    gCamDistance = 0x7D0;
     D_80364450 = -0x3E8;
     func_80260650(D_80367738, 0x50, &D_803FC990);
     func_802A05D0((s32) D_802C22D0, 0x64);
@@ -1002,7 +1002,7 @@ void func_802D0F98(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 f
     func_802A8768(v, 0x10, (s32 *) &D_803FC978[0], (s32 *) &D_803FC978[1], (s32 *) &D_803FC978[2], x, o.t1, 0x78,
                   0x78, (s16 *) (v + 0x4C), v + 0x96, (s16 *) (v + 0x52), (s32 *) (v + 0x28), (s32 *) (v + 0x40),
                   (s32 *) (v + 0x34), (s32 *) (v + 4), &r8, &f);
-    if (D_8035805C != 0) {
+    if (gBufferIndex != 0) {
         func_8029E558((u8 *) D_803FC988, (u8 *) D_803FC98C, (Unk8029DEA0Entry *) D_803FC5D0);
     } else {
         func_8029E558((u8 *) D_803FC98C, (u8 *) D_803FC988, (Unk8029DEA0Entry *) D_803FC5D0);
@@ -1387,7 +1387,7 @@ s32 func_802D22F4(s32 a3, s32 s0, s32 s1, VehMtxOut *out) {
     s32 z;
 
     m = (s32 *) N64_IPTR(*(s32 *) (model + *(s32 *) (model + 0x18) + 4) +
-                 (s32) (D_8035805C != 0 ? D_803FC988 : D_803FC98C));
+                 (s32) (gBufferIndex != 0 ? D_803FC988 : D_803FC98C));
     a = *(u16 *) (D_803FC8D0 + 0x4C) + 0x400;
     if (a >= 0x1000) {
         a -= 0xFFF;
@@ -1396,7 +1396,7 @@ s32 func_802D22F4(s32 a3, s32 s0, s32 s1, VehMtxOut *out) {
     D_803ED390[0] = 0;
     D_803ED390[2] = 0;
     func_802AA764(D_803FC978[0], D_803FC978[1], D_803FC978[2], 0x2134, m);
-    base = (u8 *) (D_8035805C != 0 ? D_803FC988 : D_803FC98C);
+    base = (u8 *) (gBufferIndex != 0 ? D_803FC988 : D_803FC98C);
     model = D_803FC984;
     x = D_803FC978[0];
     y = D_803FC978[1];

@@ -8,7 +8,7 @@
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_803156F8 ((FeDyn *) D_803156F8)
+#define gDynamicBufs ((FeDyn *) gDynamicBufs)
 #ifdef NON_MATCHING
 #define gHeapPtr (*(s32 *) &gHeapPtr)
 #endif
@@ -89,8 +89,8 @@ Gfx *func_801F4FBC(FeDyn *dyn, Gfx *arg1) {
     Gfx *gdl = arg1;
 
     gSPSegment(gdl++, 6, D_802182CC);
-    gSPSegment(gdl++, 7, &D_802182D0[D_8035805C]);
-    gImmp1(gdl++, G_RDPHALF_1, D_8035807C);
+    gSPSegment(gdl++, 7, &D_802182D0[gBufferIndex]);
+    gImmp1(gdl++, G_RDPHALF_1, gPerspNorm);
     gSPLookAtX(gdl++, &dyn->unk3C00);
     gSPLookAtY(gdl++, (u8 *) &dyn->unk3C00 + 0x10);
     gSPMatrix(gdl++, &dyn->unk1240, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
@@ -118,23 +118,23 @@ Gfx *func_801F51C8(FeDyn *dyn, Gfx *arg1) {
         Mtx *m;
 
         base = ((FeHdr *) (((FeHdr *) D_80218350)->unk18 + D_80218350))->unk4;
-        m = (Mtx *) ((u32) D_80218358[D_8035805C] + base);
-        func_802021FC(D_80218430, D_80218358[D_8035805C], D_80218358[D_8035805C ^ 1]);
+        m = (Mtx *) ((u32) D_80218358[gBufferIndex] + base);
+        func_802021FC(D_80218430, D_80218358[gBufferIndex], D_80218358[gBufferIndex ^ 1]);
         D_80218730 += 3;
         guRotate(m, D_80218730 % 360, 0.0f, 1.0f, 0.0f);
         osWritebackDCache(m, sizeof(Mtx));
     }
     seg = (void *) (((FeHdr *) D_80218350)->unk14 + D_80218350);
     gSPSegment(gdl++, 6, seg);
-    gSPSegment(gdl++, 7, D_80218358[D_8035805C]);
+    gSPSegment(gdl++, 7, D_80218358[gBufferIndex]);
     gSPMatrix(gdl++, &D_802183F0, G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
     gSPMatrix(gdl++, &D_80218370, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
     gSPMatrix(gdl++, &D_802183B0, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
-    gSPDisplayList(gdl++, D_80218360[0][D_8035805C]);
+    gSPDisplayList(gdl++, D_80218360[0][gBufferIndex]);
     gSPMatrix(gdl++, &D_802183F0, G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
     gSPMatrix(gdl++, &D_80218370, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
     gSPMatrix(gdl++, &D_802183B0, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
-    gSPDisplayList(gdl++, D_80218360[1][D_8035805C]);
+    gSPDisplayList(gdl++, D_80218360[1][gBufferIndex]);
     return gdl;
 }
 
@@ -151,7 +151,7 @@ void func_801F55D8(void) {
     func_802022EC(D_80218430, 2, 0, 0, 0.0f, 1, 1);
     guRotate(&D_802183F0, 20.0f, 1.0f, 0.0f, 0.0f);
     for (i = 0; i < 2; i++) {
-        dyn = &D_803156F8[i];
+        dyn = &gDynamicBufs[i];
         guPerspective(&dyn->unk240, &D_80218734, 45.0f, 1.3333334f, 40.0f, 4000.0f, 1.0f);
         guLookAtReflect(&dyn->unk140, &dyn->unk3C00, 0.0f, 1.0f, 400.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
     }

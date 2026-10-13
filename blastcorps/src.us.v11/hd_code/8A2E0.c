@@ -160,7 +160,7 @@ void func_802CEE14(s32 x, s32 y, s32 z) {
 
 #define K0_PHYS(p) ((u32) (p) - 0x80000000)
 
-/* Draw the boxes (00000.c: gdl = func_802CEEFC(gdl, D_8035805C, dl2, mtx)):
+/* Draw the boxes (00000.c: gdl = func_802CEEFC(gdl, gBufferIndex, dl2, mtx)):
  * if there are any, gdl gets segment 6 = the model data's part at
  * D_803FBBD8 + [5] (G_MOVEWORD 0xBC001806); then per box i: segment 7 = the
  * box's save copy (taken: D_803FC1E4 / D_803FC1E0, else D_803FC1EC /

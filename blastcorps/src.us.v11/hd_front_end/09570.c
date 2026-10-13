@@ -7,7 +7,7 @@
 #define D_80215A70 ((u16 * N64P *) D_80215A70)
 #define D_802E8F38 ((Entry8 *) D_802E8F38)
 #define D_802E8F94 ((LevelFlags *) D_802E8F94)
-#define D_803156F8 ((u8 *) D_803156F8)
+#define gDynamicBufs ((u8 *) gDynamicBufs)
 #define players ((Player *) players)
 /* end of views */
 
@@ -511,8 +511,8 @@ Gfx *func_801F2E20(void) {
     s32 k;
     s32 unused2[7];
 
-    verts = (Vtx *) (D_803156F8 + 0x15C0);
-    copy = D_803156F8 + 0x22A58;
+    verts = (Vtx *) (gDynamicBufs + 0x15C0);
+    copy = gDynamicBufs + 0x22A58;
     mtx = (Mtx *) gHeapPtr;
     gHeapPtr += 0x80;
     gfx = (Gfx *) gHeapPtr;

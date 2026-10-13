@@ -133,7 +133,7 @@ extern u8 D_803F8AA0[]; /* this vehicle's state block (the asm's $gp) */
 extern u8 D_803F87A0[]; /* its animation channel table (Unk8029DEA0Entry, 56040.c) */
 
 /* Enter this vehicle (vehicle type 10; called from hd.c and 17210.c): clears
- * the byte at +0x99, sets the pair D_8036444C / D_80364450 to (0xD48, 1000),
+ * the byte at +0x99, sets the pair gCamDistance / D_80364450 to (0xD48, 1000),
  * starts sound 0x94 (func_802C4310; the asm passes its caller's a0 through
  * as the ignored first argument) and sets up channels 1-3 (0 / 0 / 0|1,
  * restart with -1) and 4-5 (8|8 / 0 / 0, 1.0 with 1).
@@ -142,7 +142,7 @@ extern u8 D_803F87A0[]; /* its animation channel table (Unk8029DEA0Entry, 56040.
  * declare it void and use neither. Same shape as func_802C5714 (7FB50). */
 void func_802C9F54(void) {
     D_803F8AA0[0x99] = 0;
-    D_8036444C = 0xD48;
+    gCamDistance = 0xD48;
     D_80364450 = 1000;
     func_802C4310(0, 0x94);
     func_802A039C((Unk8029DEA0Entry *) D_803F87A0, 1, 0);
@@ -432,7 +432,7 @@ void func_802CA4E0(void) {
     func_802A8768(D_803F8AA0, 10, (s32 *) &D_803F8B48[0], (s32 *) &D_803F8B48[1], (s32 *) &D_803F8B48[2], x, z,
                   0x280, 0x208, &V853_S16(0x4C), &V853_U8(0x96), &V853_S16(0x52), (s32 *) (D_803F8AA0 + 0x28),
                   (s32 *) (D_803F8AA0 + 0x40), (s32 *) (D_803F8AA0 + 0x34), (s32 *) (D_803F8AA0 + 4), &r8768, &f);
-    if (D_8035805C != 0) {
+    if (gBufferIndex != 0) {
         func_8029E558((u8 *) D_803F8B58, (u8 *) D_803F8B5C, (Unk8029DEA0Entry *) D_803F87A0);
     } else {
         func_8029E558((u8 *) D_803F8B5C, (u8 *) D_803F8B58, (Unk8029DEA0Entry *) D_803F87A0);
@@ -782,7 +782,7 @@ extern u8 * N64P D_803F8B54; /* this vehicle's model: +0 / +4 / +8 offsets of th
 
 /* Place this vehicle's model (vehicle 10): builds its matrix (scale 0x3E80,
  * yaw = +0x4C of D_803F8AA0, the other two angles as they are) at the
- * model's +0x18 entry inside the current copy (D_8035805C ? D_803F8B58 :
+ * model's +0x18 entry inside the current copy (gBufferIndex ? D_803F8B58 :
  * D_803F8B5C) with func_802AA764, then places the parts
  * (func_8029C454(x, y, z, 10, model + [4], model + [8], copy)) and the
  * points (func_802ABBEC(10, model + [0], model + [4], copy)).
@@ -806,10 +806,10 @@ void func_802CB42C(MtxChainRegs *regs) {
     s32 z;
 
     m = (s32 *) (*(u32 *) (mdl + *(s32 *) (mdl + 0x18) + 4) +
-                 (u32) (D_8035805C != 0 ? (u8 *) D_803F8B58 : (u8 *) D_803F8B5C));
+                 (u32) (gBufferIndex != 0 ? (u8 *) D_803F8B58 : (u8 *) D_803F8B5C));
     D_803ED390[1] = *(u16 *) (D_803F8AA0 + 0x4C);
     func_802AA764(D_803F8B48[0], D_803F8B48[1], D_803F8B48[2], 0x3E80, m);
-    base = D_8035805C != 0 ? (u8 *) D_803F8B58 : (u8 *) D_803F8B5C;
+    base = gBufferIndex != 0 ? (u8 *) D_803F8B58 : (u8 *) D_803F8B5C;
     mdl = D_803F8B54;
     x = D_803F8B48[0];
     y = D_803F8B48[1];

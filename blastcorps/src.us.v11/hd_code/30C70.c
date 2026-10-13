@@ -401,9 +401,9 @@ void func_8027690C(void *arg0, f32 x, f32 y, f32 z, s16 *sx, s16 *sy, Mtx *arg6,
         return;
     }
     func_80276D1C((Mtx *) ((u8 *) arg0 + 0x80), x, y, z, w, &x, &y, &z, &w);
-    x = x * (D_8035807C / 65535.0);
-    y = y * (D_8035807C / 65535.0);
-    w = w * (D_8035807C / 65535.0);
+    x = x * (gPerspNorm / 65535.0);
+    y = y * (gPerspNorm / 65535.0);
+    w = w * (gPerspNorm / 65535.0);
     x = x / w;
     y = y / w;
     x = ((320.0f * arg9) / 2.0f) * x;

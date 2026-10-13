@@ -5,7 +5,7 @@ __osEepromTimerQ = 0x803FF2A8;
 __osEepromTimerMsg = 0x803FF2C0;
 /* 00000 (digger_loop.c) */
 D_80304954 = 0x80304954; /* .data initializer: hd_code u16 text */
-D_80358058 = 0x80358058; /* hd_code: depth buffer address */
+gDepthBufferPhys = 0x80358058; /* hd_code: depth buffer address */
 gStaticSegment = 0x8035806C; /* hd_code: segment 1 base */
 D_01000010 = 0x01000010; /* segment 1 display lists */
 /* 0DE70: ROM addresses of the front-end scene blobs */

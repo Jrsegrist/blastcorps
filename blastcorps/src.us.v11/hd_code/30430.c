@@ -56,7 +56,7 @@ Gfx *func_80274BF0(s32 arg0, Gfx *gfx) {
         gDPSetCycleType(gdl++, G_CYC_1CYCLE);
         gDPSetCombineMode(gdl++, G_CC_PRIMITIVE, G_CC_PRIMITIVE);
         gDPFillRectangle(gdl++, 0, 0, 319, 239);
-        osWritebackDCache(D_802FA8B0[D_8035805C], sizeof(D_802FA8B0[0]));
+        osWritebackDCache(D_802FA8B0[gBufferIndex], sizeof(D_802FA8B0[0]));
     }
     return gdl;
 }

@@ -154,14 +154,14 @@ func_802CDD74: -n 300 --seed 0 --arg fp=choice:0,1,2,50,99,100,101,0x7FFF,0xFFFF
     --mem @heap0=rel:heap1 --mem @heap0+4=rel:heap2 --mem @heap0+8=rel:heap2+0x300 --mem @heap0+0x30=choice:5*3,0x38 \
     --mem @heap0+0xEB:17=bytes:0,50,99,100 --mem @heap1+4:1=bytes:1,2,3,0x80,0xFF \
     --mem @heap2+0x51*0x60:8/1=bytes:0,1 --mem @heap2+0x52*0x60:8/2=choice:0,1,2,3,4 --mem @heap2+0x57*0x60:8/1=bytes:1,2,3,4,9 \
-    --mem D_802E8BE4:1=rand --mem D_802E8BE8=int
+    --mem gShakeTime:1=rand --mem gShakeSize=int
 # divisor 1, percentages 0/99/100 around the cap: mostly collapses
 func_802CDD74: -n 200 --seed 1 --arg fp=choice:1,99,100 \
     --heap 0x100 --heap 0x40 --heap 0x300 --arg t9=rel:heap0 --arg s0=rel:heap2+0x60*int:0:7 \
     --mem @heap0=rel:heap1 --mem @heap0+4=rel:heap2 --mem @heap0+8=rel:heap2+0x300 --mem @heap0+0x30=5 \
     --mem @heap0+0xEB:17=bytes:0,99,100 --mem @heap1+4:1=1 \
     --mem @heap2+0x51*0x60:8/1=bytes:0,1 --mem @heap2+0x52*0x60:8/2=choice:1,2 --mem @heap2+0x57*0x60:8/1=bytes:0,1,2 \
-    --mem D_802E8BE4:1=rand --mem D_802E8BE8=int
+    --mem gShakeTime:1=rand --mem gShakeSize=int
 
 # func_802CDC7C (sphere v0, v1, a0, radius a1, object t3, hit flag fp in/out): 0..8 triangles at heap1
 func_802CDC7C: -n 300 --seed 0 --heap 0x40 --heap 0x300 --arg t3=rel:heap0 --arg fp=choice:0*3,1,5 \
@@ -178,7 +178,7 @@ func_802CDC7C: -n 300 --seed 1 --heap 0x100 --heap 0x300 --heap 0x40 --arg t3=re
     --mem @heap1+0x28*0x60:8/4=int:0:100 --mem @heap1+0x2C*0x60:8/4=int:0:100 --mem @heap1+0x30*0x60:8/4=int:0:100 \
     --mem @heap1+0x34*0x60:8/4=int:0:100 --mem @heap1+0x38*0x60:8/4=int:0:100 --mem @heap1+0x3C*0x60:8/4=int:0:100 \
     --mem @heap1+0x40*0x60:8/4=int:0:100 --mem @heap1+0x44*0x60:8/4=int:0:100 --mem @heap1+0x48*0x60:8/4=int:0:100 \
-    --mem @heap1+0x4E*0x60:8/1=bytes:0,1,2 --mem D_803F932A:2=choice:0,1,100 --mem D_802E8BE4:1=rand --mem D_802E8BE8=int \
+    --mem @heap1+0x4E*0x60:8/1=bytes:0,1,2 --mem D_803F932A:2=choice:0,1,100 --mem gShakeTime:1=rand --mem gShakeSize=int \
     --sig func_8029C160=a0,a1,a2,a3,stack0 --stub-ret func_8029C160=choice:0,1*3 \
     --follow func_8029C0DC,func_8029BF64,func_8029BD0C,func_8029BEE4,sqrtf,func_802CDD74
 

@@ -66,7 +66,7 @@ u64 D_803649D8; /* osGetTime() at the frame's draw (seeds the screen shake and p
 u64 gPrevGameMode; /* 0x80364A88 */
 u64 gGameModeAfterNext; /* 0x80364AA0: set during a switch; becomes gNextGameMode after it */
 u64 gFrameStartTime; /* 0x80364AD0: osGetTime() at the start of the frame */
-u8 D_80364412; /* camera: snap to the new position this frame */
+u8 gCamSnap; /* 0x80364412: the camera jumps to the wanted eye and target this frame */
 
 void hd_idle_thread(void *);
 void hd_main_thread(void *);
@@ -120,8 +120,8 @@ typedef struct {
 } LevelInfo;
 extern u8 D_80358088[];
 
-void func_802558C8(Gfx *, s32 *);
-void func_802559F8(Gfx *, s32 *);
+void hd_clear_framebuffer(Gfx *, s32 *);
+void hd_close_display_list(Gfx *, s32 *);
 
 #define TOPLEVEL_DL_SIZE 0xB5E
 
@@ -152,12 +152,12 @@ extern OSMesg D_80315198[];
 extern u64 gSchedStack[];
 extern OSMesg D_803153F8[];
 extern u8 D_8021ED00[];
-extern f32 D_80364418;
-extern u8 D_8036441C;
-extern u8 D_8036441D;
+extern f32 gCamHeadingGoal;
+extern u8 gCamTurnPos;
+extern u8 gCamTurnNeg;
 #define PHYS(x) ((u32)(x) & 0x1FFFFFFF)
 
-u8 func_80255628(void);
+u8 cam_fixed_heading_area(void);
 
 #ifndef NON_MATCHING
 extern s32 D_80358074;
@@ -188,11 +188,11 @@ extern u8 D_803156F5;
 
 
 extern u16 D_802E8BF4[]; /* sprite ids (func_80272C5C) */
-extern s32 D_80364420;
+extern s32 gCamEyeHeight;
 extern u8 D_80364434;
-extern f32 D_80364444;
-extern f32 D_80364448;
-extern s16 D_80364454;
+extern f32 gCamTilt;
+extern f32 gCamTurn;
+extern s16 gCamPitch;
 extern f32 D_803649F8;
 extern s32 D_80364A5C;
 extern u8 D_80364A6F;
@@ -318,7 +318,7 @@ extern u16 D_80304938[];
 void func_8024E4F4(Gfx **, DynamicBuf *, u8);
 void func_8024F520(Gfx **, DynamicBuf *);
 void func_802502EC(void);
-void func_802507C8(Mtx *, LookAt *, Mtx *);
+void cam_update(Mtx *, LookAt *, Mtx *);
 #define SEG2(off) ((u8 *) D_02000000 + (off))
 
 #define MS_ASSERT(EX, line) \
@@ -347,13 +347,13 @@ void hd_check_stack(void);
 extern s32 D_80364A78;
 extern u8 D_80364A7C;
 extern s32 D_80364A80;
-extern f32 D_802E8BE0;
+extern f32 gCamZoom;
 extern u8 D_80364A85;
 #ifndef NON_MATCHING
 extern s32 D_80367734;
 #endif
 #define NUM_TEXTURE_DMAS 0x90
-void func_8024B8F4(Mtx *, Mtx *);
+void cull_start(Mtx *, Mtx *);
 void func_8024AE2C(void);
 void func_8024B188(void);
 void func_8024B618(void);
@@ -362,7 +362,7 @@ void func_8024A92C(u32);
 void func_8024B5E8(void);
 void func_8024A348(void);
 void func_8024ADD8(void);
-Gfx *func_8024C414(DynamicBuf *, s32 *);
+Gfx *hd_build_frame_dl(DynamicBuf *, s32 *);
 void func_8024BDA4(u16 *);
 #define LEVEL_DONE(l) (players[playerNumber].unk18[l] > 0 && players[playerNumber].unk18[l] < 6) ? 1 : 0
 
@@ -630,7 +630,7 @@ void hd_main_thread(void *arg) {
                             gUnpauseRequest = 1;
                             break;
                         case 0x100:
-                            D_80364412 = 1;
+                            gCamSnap = 1;
                             break;
                         case 0x2000:
                             if (D_802E8F94[levelno].unk0 != 1) {
@@ -666,7 +666,7 @@ void hd_main_thread(void *arg) {
                     }
                     break;
                 case 0x100:
-                    D_80364412 = 1;
+                    gCamSnap = 1;
                     break;
                 case 0x80:
                     newPlayer = 0;
@@ -1024,7 +1024,7 @@ void hd_main_thread(void *arg) {
 
 /* One frame of the in-game modes: hands the frame built last time to the RSP
  * (rsp_send_task), pause handling, the updates (camera zoom, vehicles,
- * objects, mission state), then this frame's display list (func_8024C414
+ * objects, mission state), then this frame's display list (hd_build_frame_dl
  * and the overlays) (0x802475D8). */
 void hd_game_frame(void) {
     u32 vis;
@@ -1064,9 +1064,9 @@ void hd_game_frame(void) {
     no_palette_dmas = 0;
     D_803A7426 = 0;
     if (gFramesInMode) {
-        if (D_8035805C == 0) {
+        if (gBufferIndex == 0) {
             if (gFramesInMode >= 6) {
-                func_8024B8F4(&D_803156F8[D_8035805C].unk80, &D_803156F8[D_8035805C].unk180);
+                cull_start(&gDynamicBufs[gBufferIndex].persp, &gDynamicBufs[gBufferIndex].cullView);
             }
         } else {
             i = 0;
@@ -1100,25 +1100,25 @@ void hd_game_frame(void) {
             i++;
         }
     }
-    if (D_8035805C == 0) {
-        func_80279778(D_803643E0, D_803643E4, D_803643E8, D_803643F8, D_803643FC, D_80364400, (void *) N64_IPTR((D_80364460[i].unk58)),
+    if (gBufferIndex == 0) {
+        func_80279778(D_803643E0, D_803643E4, D_803643E8, gCamEyeX, gCamEyeY, gCamEyeZ, (void *) N64_IPTR((D_80364460[i].unk58)),
                       D_80364460[i].unk0, D_80364460[i].unk8, D_80364460[i].unk60);
     } else {
-        func_80279778(D_803643E0, D_803643E4, D_803643E8, D_803643F8, D_803643FC, D_80364400, (void *) N64_IPTR((D_80364460[i].unk58)),
+        func_80279778(D_803643E0, D_803643E4, D_803643E8, gCamEyeX, gCamEyeY, gCamEyeZ, (void *) N64_IPTR((D_80364460[i].unk58)),
                       D_80364460[i].unk0, D_80364460[i].unk4, D_80364460[i].unk60);
     }
     D_803649D8 = osGetTime();
     func_8028A3E4();
-    rsp_send_task((u64 *) (D_803156F8[D_8035805C].dl), D_80358078, 3, 1, 0x4D2, 1);
+    rsp_send_task((u64 *) (gDynamicBufs[gBufferIndex].dl), gFrameDlLen, 3, 1, 0x4D2, 1);
     func_802A5720();
-    D_8035805C ^= 1;
+    gBufferIndex ^= 1;
     switch (gPaused) {
         case 0:
             if (gPauseRequest) {
                 gPaused = 1;
                 gUnpauseRequest = 0;
                 gPauseRequest = 0;
-                D_803156F4 = D_8035805C ^ 1;
+                D_803156F4 = gBufferIndex ^ 1;
                 if (gGameMode & 0x104) {
                     if (!D_8036EB99) {
                         func_80260B40(0, 0);
@@ -1126,14 +1126,14 @@ void hd_game_frame(void) {
                     func_80261570(0.5f);
                     if (gGameMode == 4 && (D_803643DB || D_80364AC1) && currentYoshiWindow == 0) {
                         gNextGameMode = 0x100;
-                        func_802A45D4(10);
+                        cull_restart(10);
                         D_80364A78 = 0;
                     }
                 }
             }
             break;
         case 1:
-            if (gUnpauseRequest && D_8035805C != D_803156F4) {
+            if (gUnpauseRequest && gBufferIndex != D_803156F4) {
                 gPauseRequest = 0;
                 gUnpauseRequest = 0;
                 gPaused = 0;
@@ -1146,7 +1146,7 @@ void hd_game_frame(void) {
                     func_80261570(1.0f);
                     if (gGameMode == 0x100 && (D_803643DB || D_80364AC1)) {
                         gNextGameMode = 4;
-                        func_802A45D4(10);
+                        cull_restart(10);
                     }
                     if (gUnpausedFrames == 0) {
                         D_80358064 = 0;
@@ -1158,7 +1158,7 @@ void hd_game_frame(void) {
     if (gPaused) {
         D_803156F5 = D_803156F4;
     } else {
-        D_803156F5 = D_8035805C;
+        D_803156F5 = gBufferIndex;
     }
     if (D_803643DB && (gGameMode & 0x104)) {
         func_802BA148();
@@ -1175,7 +1175,7 @@ void hd_game_frame(void) {
     if (gGameMode & 0x104) {
         zoom = 0;
         if ((D_80370C28 & 4) && !(D_80370C28 & 8)) {
-            if (D_802E8BE0 < 1.5 && gGameMode == 4) {
+            if (gCamZoom < 1.5 && gGameMode == 4) {
                 zoom = 2;
                 if (!(D_80370C2A & 4)) {
                     func_80260650(D_80367738, 0xDC, NULL);
@@ -1186,7 +1186,7 @@ void hd_game_frame(void) {
         }
         if (zoom == 0) {
             if ((D_80370C28 & 8) && !(D_80370C28 & 4)) {
-                if (D_802E8BE0 > 1.0 && gGameMode == 4 && D_80364A7C == 0) {
+                if (gCamZoom > 1.0 && gGameMode == 4 && D_80364A7C == 0) {
                     zoom = 1;
                     if (!(D_80370C2A & 8)) {
                         func_80260650(D_80367738, 0xDD, NULL);
@@ -1202,20 +1202,20 @@ void hd_game_frame(void) {
             case 0:
                 break;
             case 2:
-                D_802E8BE0 = D_802E8BE0 + 0.05;
-                if (D_802E8BE0 > 1.5) {
-                    D_802E8BE0 = 1.5f;
+                gCamZoom = gCamZoom + 0.05;
+                if (gCamZoom > 1.5) {
+                    gCamZoom = 1.5f;
                 }
                 break;
             case 1:
-                D_802E8BE0 = D_802E8BE0 - 0.05;
-                if (D_802E8BE0 < 1.0) {
-                    D_802E8BE0 = 1.0f;
+                gCamZoom = gCamZoom - 0.05;
+                if (gCamZoom < 1.0) {
+                    gCamZoom = 1.0f;
                 }
                 break;
             case 3:
                 if (D_803643DB || D_80364AC1) {
-                    func_802A45D4(10);
+                    cull_restart(10);
                     gNextGameMode = 0x100;
                     D_80364A78 = 0;
                     func_80260650(D_80367738, 0xDF, NULL);
@@ -1224,7 +1224,7 @@ void hd_game_frame(void) {
             case 4:
                 D_80364A7C = 1;
                 if (D_803643DB || D_80364AC1) {
-                    func_802A45D4(10);
+                    cull_restart(10);
                     gNextGameMode = 4;
                     func_80260650(D_80367738, 0xDF, NULL);
                 }
@@ -1374,25 +1374,25 @@ void hd_game_frame(void) {
     }
     func_802A5510(D_80358074);
     if (gGameMode & 0x1801) {
-        func_802A45D4(2);
+        cull_restart(2);
     }
-    if (currentYoshiWindow == 0x58 && yoshiState != 8 && !D_80364410) {
+    if (currentYoshiWindow == 0x58 && yoshiState != 8 && !gCamFixedEye) {
         if (!D_80364A85) {
-            func_802A45D4(10);
+            cull_restart(10);
         }
     } else if (D_80364A85) {
-        func_802A45D4(10);
+        cull_restart(10);
     }
-    func_802BD1F8((u32 *) (&D_803156F8[D_8035805C].unkA3A0[0x1E0]), (u32 *) (&D_803156F8[D_8035805C].unkA3A0[0x578]),
-                  (u32 *) (&D_803156F8[D_8035805C].unkA3A0[0x910]), (u32 *) (&D_803156F8[D_8035805C].unkA3A0[0x112B0]),
-                  (s32) &D_803156F8[D_8035805C], (s32) (&D_803156F8[D_8035805C].unk2C0[0x2D]), (u32 *) (&D_803156F8[D_8035805C].unkA3A0[0x17070]),
-                  (u32 *) (&D_803156F8[D_8035805C].unkA3A0[0x170D8]));
+    func_802BD1F8((u32 *) (&gDynamicBufs[gBufferIndex].unkA3A0[0x1E0]), (u32 *) (&gDynamicBufs[gBufferIndex].unkA3A0[0x578]),
+                  (u32 *) (&gDynamicBufs[gBufferIndex].unkA3A0[0x910]), (u32 *) (&gDynamicBufs[gBufferIndex].unkA3A0[0x112B0]),
+                  (s32) &gDynamicBufs[gBufferIndex], (s32) (&gDynamicBufs[gBufferIndex].unk2C0[0x2D]), (u32 *) (&gDynamicBufs[gBufferIndex].unkA3A0[0x17070]),
+                  (u32 *) (&gDynamicBufs[gBufferIndex].unkA3A0[0x170D8]));
     if (gGameMode == 4) {
         func_80295C70(levelno, D_803643E0, D_803643E8);
     }
-    func_802A4CDC((u32 *) N64_IPTR(D_80358030[D_8035805C]), (u32 *) N64_IPTR(D_80358038[D_8035805C]), (u32 *) N64_IPTR(D_80358040[D_8035805C]), (u32 *) N64_IPTR(D_80358048[D_8035805C]),
-                  (u32 *) (&D_803156F8[D_8035805C].unkA3A0[0x140]));
-    func_8027E9B8(D_8035805C);
+    func_802A4CDC((u32 *) N64_IPTR(D_80358030[gBufferIndex]), (u32 *) N64_IPTR(D_80358038[gBufferIndex]), (u32 *) N64_IPTR(D_80358040[gBufferIndex]), (u32 *) N64_IPTR(D_80358048[gBufferIndex]),
+                  (u32 *) (&gDynamicBufs[gBufferIndex].unkA3A0[0x140]));
+    func_8027E9B8(gBufferIndex);
     if (!gPaused || (D_803643DB && D_803643D6) || D_8036EB99) {
         func_802C0574();
         func_802BCA2C();
@@ -1428,21 +1428,21 @@ void hd_game_frame(void) {
     if (!gPaused) {
         func_802CF1A4();
     }
-    func_80279514(D_803643E0, D_803643E4, D_803643E8, D_803643F8, D_803643FC, D_80364400);
+    func_80279514(D_803643E0, D_803643E4, D_803643E8, gCamEyeX, gCamEyeY, gCamEyeZ);
     func_80277620(gFramesInMode);
     func_8027D810(levelno);
     func_802C2054();
     if (!gPaused) {
         func_8026A9B4();
     }
-    gdl = func_8024C414(&D_803156F8[D_8035805C], &D_80358078);
+    gdl = hd_build_frame_dl(&gDynamicBufs[gBufferIndex], &gFrameDlLen);
     if ((gGameMode & 0x04002444) && D_80364AA8 != 1) {
-        gdl = func_802639B4(gdl, (Gfx * N64P *) &D_803156F8[D_8035805C], (u32 *) &D_80358078);
+        gdl = func_802639B4(gdl, (Gfx * N64P *) &gDynamicBufs[gBufferIndex], (u32 *) &gFrameDlLen);
     }
     if (gGameMode & 0x100000000002) {
         if (gGameMode == 2) {
             PORT_ITAG(gdl, PORT_ITAG_NONE, 0); /* the attract mode's bobbing logo: blended */
-            gdl = func_8025C878(gdl, (s32) &D_803156F8[D_8035805C], D_8035805C, &D_80358078);
+            gdl = func_8025C878(gdl, (s32) &gDynamicBufs[gBufferIndex], gBufferIndex, &gFrameDlLen);
             PORT_ITAG(gdl, PORT_ITAG_HUD, 0);
         }
         if (D_802E8BF0 || D_80366A12 == 3 || D_802E8BEC >= 9) {
@@ -1459,11 +1459,11 @@ void hd_game_frame(void) {
             }
         }
         if (D_8039CAA0 && D_802E8BEC && D_8039CAA2) {
-            gdl = func_80295EFC((s32) &D_803156F8[D_8035805C], gdl, D_8039CAA0 / 2 - 103,
+            gdl = func_80295EFC((s32) &gDynamicBufs[gBufferIndex], gdl, D_8039CAA0 / 2 - 103,
                                 0x55 - ((gGameMode == 0x100000000000) << 5), D_8039CAA0);
         }
         if (D_802E8BEC == 0 && D_80366A12 == 3 && gGameMode == 2) {
-            gdl = func_8029A1A8((s32) D_803156F8, gdl);
+            gdl = func_8029A1A8((s32) gDynamicBufs, gdl);
         }
         if (gGameMode == 2 || levelno == 0x2F) {
             func_8025C5D0();
@@ -1477,7 +1477,7 @@ void hd_game_frame(void) {
             func_8026AF6C(0x803F);
         }
     }
-    gdl = func_8024C404(gdl, &D_803156F8[D_8035805C], &D_80358078);
+    gdl = func_8024C404(gdl, &gDynamicBufs[gBufferIndex], &gFrameDlLen);
     if ((gGameMode & 0x440) && D_803156C4 - D_80364A54 > 160 && !D_80364A50) {
         D_80364A50 = 1;
         if (yoshiState == 1) {
@@ -1490,11 +1490,11 @@ void hd_game_frame(void) {
         func_80275390(0x08000000);
     }
     if (levelno == 0x31 && yoshiState == 1) {
-        gdl = func_8029A518((Gfx * N64P *) &D_803156F8[D_8035805C], gdl);
+        gdl = func_8029A518((Gfx * N64P *) &gDynamicBufs[gBufferIndex], gdl);
     }
-    func_80259C24(&gdl, (Mtx *) &D_803156F8[D_8035805C]);
+    func_80259C24(&gdl, (Mtx *) &gDynamicBufs[gBufferIndex]);
     if (gGameMode != 2) {
-        gdl = func_80274BF0((s32) &D_803156F8[D_8035805C], gdl);
+        gdl = func_80274BF0((s32) &gDynamicBufs[gBufferIndex], gdl);
     }
     if (gGameMode == 0x2000000000000000) {
         if ((D_80370C28 & 0x10) && !(D_80370C2A & 0x10)) {
@@ -1565,7 +1565,7 @@ void hd_game_frame(void) {
                 break;
         }
     }
-    gdl = func_8026BBD0(gdl, (s32) &D_803156F8[D_8035805C], &D_80358078);
+    gdl = func_8026BBD0(gdl, (s32) &gDynamicBufs[gBufferIndex], &gFrameDlLen);
     if (D_8036BB16 && !cmo_hit_request && !D_803643DA) {
         func_8024BDA4(&D_8036BB16);
     }
@@ -1583,9 +1583,9 @@ void hd_game_frame(void) {
         D_80367BD6 = 0;
     }
     if (gGameMode == 2) {
-        gdl = func_80274BF0((s32) &D_803156F8[D_8035805C], gdl);
+        gdl = func_80274BF0((s32) &gDynamicBufs[gBufferIndex], gdl);
     }
-    func_802559F8(gdl, &D_80358078);
+    hd_close_display_list(gdl, &gFrameDlLen);
     for (i = 0; i < nextdma; i++) {
         osRecvMesg(&textureDmaMessageQ, NULL, 1);
     }
@@ -2346,8 +2346,10 @@ void func_8024B7AC(void) {
     }
 }
 
-/* Builds and runs a small task drawing an 8-vertex box (12 triangles) */
-void func_8024B8F4(Mtx *proj, Mtx *view) {
+/* Each frame (hd_game_frame): the visibility test's display list, a box of 8
+ * vertices (12 triangles) under this frame's projection and culling view;
+ * cull_step_delayed fills in the box per block of level cells (0x8024B8F4). */
+void cull_start(Mtx *proj, Mtx *view) {
     Gfx dl[50];
     Gfx *gdl = dl;
     Vtx v[8];
@@ -2366,7 +2368,7 @@ void func_8024B8F4(Mtx *proj, Mtx *view) {
     gSPSegment(gdl++, 1, osVirtualToPhysical(gStaticSegment));
     gSPDisplayList(gdl++, D_01000010);
     gSPMatrix(gdl++, PHYS(proj), G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
-    gImmp1(gdl++, G_RDPHALF_1, D_8035807C);
+    gImmp1(gdl++, G_RDPHALF_1, gPerspNorm);
     gSPMatrix(gdl++, PHYS(view), G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
     gSPVertex(gdl++, PHYS(v), 8, 0);
     gSP1Triangle(gdl++, 0, 1, 4, 0);
@@ -2386,7 +2388,7 @@ void func_8024B8F4(Mtx *proj, Mtx *view) {
     osWritebackDCache(dl, (s32) (gdl - dl) * sizeof(Gfx));
     osWritebackDCache(proj, 0x40);
     osWritebackDCache(view, 0x40);
-    func_802A467C((s32) D_80358074, dl, v, (s32) (gdl - dl) * sizeof(Gfx));
+    cull_step_delayed((s32) D_80358074, dl, v, (s32) (gdl - dl) * sizeof(Gfx));
 }
 
 /* Handles a Yoshi (menu) selection *sel for the current game mode */
@@ -2422,7 +2424,7 @@ void func_8024BDA4(u16 *sel) {
                 case 8:
                     gNextGameMode = 0x2000000000000000;
                     func_8026AF6C(0x805E);
-                    D_80364412 = 1;
+                    gCamSnap = 1;
                     break;
                 case 4:
                     func_80275270(0x4000, 0.5f);
@@ -2458,7 +2460,7 @@ void func_8024BDA4(u16 *sel) {
                             func_8026AF6C(0x8000);
                             if (D_803643DB || D_80364AC1) {
                                 gNextGameMode = 0x100;
-                                func_802A45D4(10);
+                                cull_restart(10);
                             }
                             break;
                         case 13:
@@ -2509,13 +2511,18 @@ void func_8024BDA4(u16 *sel) {
     *sel = 0;
 }
 
+/* An empty hook after the frame's list (probably a compiled-out debug
+ * overlay): zeroes *arg2 (gFrameDlLen; hd_close_display_list sets it again). */
 Gfx *func_8024C404(Gfx *arg0, DynamicBuf *arg1, s32 *arg2) {
     *arg2 = 0;
     return arg0;
 }
 
-/* Builds the frame's top-level display list */
-Gfx *func_8024C414(DynamicBuf *dyn, s32 *len) {
+/* Builds the level frame's top-level display list in dyn: segments, depth
+ * clear, the matrices (ortho, cam_update's views, guPerspective with
+ * gCamFovy), the sky, the level's display lists, vehicles, objects, effects
+ * and the HUD; *len = its length (0x8024C414). */
+Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
     Gfx *gdl = dyn->dl;
     char money[16];
     char bonus[16];
@@ -2529,16 +2536,16 @@ Gfx *func_8024C414(DynamicBuf *dyn, s32 *len) {
     gDPPipeSync(gdl++);
     gDPSetCycleType(gdl++, G_CYC_FILL);
     gSPClearGeometryMode(gdl++, G_ZBUFFER);
-    gDPSetDepthImage(gdl++, D_80358058);
-    gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, D_80358058);
+    gDPSetDepthImage(gdl++, gDepthBufferPhys);
+    gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, gDepthBufferPhys);
     gDPSetFillColor(gdl++, 0xFFFCFFFC);
     gDPFillRectangle(gdl++, 0, 0, 319, 239);
-    guTranslate(&dyn->unk1C0, 0.0f, 0.0f, 0.0f);
-    guOrtho(&dyn->unkC0, 0.0f, 319.0f, 239.0f, 0.0f, -20000.0f, 20000.0f, 1.0f);
-    guOrtho(&dyn->unk100, 0.0f, 1279.0f, 959.0f, 0.0f, -20000.0f, 20000.0f, 1.0f);
-    func_802507C8(&dyn->unk140, &dyn->unk3C00, &dyn->unk180);
-    gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, D_80358050[D_8035805C]);
-    gdl = func_80271FD0(gdl, (u32) dyn, levelno, D_80364452, D_80364454, &height);
+    guTranslate(&dyn->identity, 0.0f, 0.0f, 0.0f);
+    guOrtho(&dyn->ortho, 0.0f, 319.0f, 239.0f, 0.0f, -20000.0f, 20000.0f, 1.0f);
+    guOrtho(&dyn->orthoHi, 0.0f, 1279.0f, 959.0f, 0.0f, -20000.0f, 20000.0f, 1.0f);
+    cam_update(&dyn->view, &dyn->lookAt, &dyn->cullView);
+    gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, gFrameBufferPhys[gBufferIndex]);
+    gdl = func_80271FD0(gdl, (u32) dyn, levelno, gCamYaw, gCamPitch, &height);
     gDPPipeSync(gdl++);
     gDPSetCycleType(gdl++, G_CYC_FILL);
     switch (levelno) {
@@ -2563,31 +2570,31 @@ Gfx *func_8024C414(DynamicBuf *dyn, s32 *len) {
     gSPMatrix(gdl++, &D_02000000[2], G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
     gSPMatrix(gdl++, &D_02000000[5], G_MTX_PROJECTION | G_MTX_MUL | G_MTX_NOPUSH);
     gSPMatrix(gdl++, &D_02000000[7], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
-    gImmp1(gdl++, G_RDPHALF_1, D_8035807C);
+    gImmp1(gdl++, G_RDPHALF_1, gPerspNorm);
     switch (gGameMode) {
         case 0x40:
         case 0x400:
-            guPerspective(&dyn->unk80, &D_8035807C, D_80364438, 1.3333334f, 10.0f, 20000.0f, 1.0f);
+            guPerspective(&dyn->persp, &gPerspNorm, gCamFovy, 1.3333334f, 10.0f, 20000.0f, 1.0f);
             break;
         case 1:
         case 0x800:
         case 0x1000:
-            guPerspective(&dyn->unk80, &D_8035807C, D_80364438, 1.3333334f, 10.0f, 10000.0f, 1.0f);
+            guPerspective(&dyn->persp, &gPerspNorm, gCamFovy, 1.3333334f, 10.0f, 10000.0f, 1.0f);
             break;
         default:
-            guPerspective(&dyn->unk80, &D_8035807C, D_80364438, 1.3333334f, 10.0f, 10000.0f, 1.0f);
+            guPerspective(&dyn->persp, &gPerspNorm, gCamFovy, 1.3333334f, 10.0f, 10000.0f, 1.0f);
             break;
     }
     gSPSetOtherMode(gdl++, G_SETOTHERMODE_H, 6, 2, 0);
     gSPClipRatio(gdl++, FRUSTRATIO_3);
-    func_8027F1F8(&gdl, D_8035805C, 0);
+    func_8027F1F8(&gdl, gBufferIndex, 0);
     gSPSegment(gdl++, 8, PHYS(D_80364458));
     gSPClearGeometryMode(gdl++, -1);
-    gSPDisplayList(gdl++, osVirtualToPhysical((void *) N64_IPTR(D_80358030[D_8035805C])));
+    gSPDisplayList(gdl++, osVirtualToPhysical((void *) N64_IPTR(D_80358030[gBufferIndex])));
     gSPDisplayList(gdl++, D_803BE6E0);
     gSPClearGeometryMode(gdl++, -1);
     gSPSetGeometryMode(gdl++, G_ZBUFFER);
-    gSPDisplayList(gdl++, osVirtualToPhysical((void *) N64_IPTR(D_80358038[D_8035805C])));
+    gSPDisplayList(gdl++, osVirtualToPhysical((void *) N64_IPTR(D_80358038[gBufferIndex])));
     gSPDisplayList(gdl++, D_803BE6E4);
     if (!D_803643D6 && !D_803643D7) {
         gSPClearGeometryMode(gdl++, -1);
@@ -2595,7 +2602,7 @@ Gfx *func_8024C414(DynamicBuf *dyn, s32 *len) {
         gSPDisplayList(gdl++, SEG2(0x21410));
         gDPPipeSync(gdl++);
     }
-    switch (D_8035805C) {
+    switch (gBufferIndex) {
         case 0:
             gSPSegment(gdl++, 10, osVirtualToPhysical(D_803F7820));
             break;
@@ -2615,13 +2622,13 @@ Gfx *func_8024C414(DynamicBuf *dyn, s32 *len) {
     func_8024E4F4(&gdl, dyn, 0);
     func_80258B78(&gdl, (struct VtxBuf *) dyn);
     if (!gPaused && D_80364AA8 != 0x40 && !(gGameMode & 0x440) && !D_80364A84) {
-        func_80279EE8(&gdl, (s32) dyn, D_8035805C);
+        func_80279EE8(&gdl, (s32) dyn, gBufferIndex);
     }
     gSPClearGeometryMode(gdl++, -1);
     gSPSetGeometryMode(gdl++, G_ZBUFFER | G_SHADE | G_SHADING_SMOOTH | G_CULL_BACK | G_LOD);
     gSPDisplayList(gdl++, SEG2(0x0A580));
     gDPPipeSync(gdl++);
-    gdl = func_802CEEFC(gdl, D_8035805C, (Gfx *) dyn->unkA3A0, &dyn->unk2C0[0x3C]);
+    gdl = func_802CEEFC(gdl, gBufferIndex, (Gfx *) dyn->unkA3A0, &dyn->unk2C0[0x3C]);
     func_8024E4F4(&gdl, dyn, 1);
     if (D_803643DC) {
         func_8024F520(&gdl, dyn);
@@ -2632,7 +2639,7 @@ Gfx *func_8024C414(DynamicBuf *dyn, s32 *len) {
     func_802917B0(&gdl, (struct Dyn4B5E0 *) dyn);
     func_80292EB8(&gdl, (struct Dyn *) dyn);
     func_8028CB30(&gdl, (s32) dyn);
-    switch (D_8035805C) {
+    switch (gBufferIndex) {
         case 0:
             gSPDisplayList(gdl++, osVirtualToPhysical(D_803C5770));
             break;
@@ -2640,21 +2647,21 @@ Gfx *func_8024C414(DynamicBuf *dyn, s32 *len) {
             gSPDisplayList(gdl++, osVirtualToPhysical(D_803C6370));
             break;
     }
-    func_80288DF0(&gdl, D_8035805C);
+    func_80288DF0(&gdl, gBufferIndex);
     if (!(gGameMode & 2) || !D_802E8BF0) {
         func_8024FC2C(&gdl, 0);
     }
     func_802976E8(&gdl);
     gSPClearGeometryMode(gdl++, -1);
     gSPSetGeometryMode(gdl++, G_ZBUFFER);
-    gSPDisplayList(gdl++, osVirtualToPhysical((void *) N64_IPTR(D_80358040[D_8035805C])));
+    gSPDisplayList(gdl++, osVirtualToPhysical((void *) N64_IPTR(D_80358040[gBufferIndex])));
     gSPDisplayList(gdl++, D_803BE6E8);
     if (!(gGameMode & 2) || !D_802E8BF0) {
         func_8024FC2C(&gdl, 1);
     }
     gSPClearGeometryMode(gdl++, -1);
     gSPSetGeometryMode(gdl++, G_ZBUFFER);
-    gSPDisplayList(gdl++, osVirtualToPhysical((void *) N64_IPTR(D_80358048[D_8035805C])));
+    gSPDisplayList(gdl++, osVirtualToPhysical((void *) N64_IPTR(D_80358048[gBufferIndex])));
     gSPDisplayList(gdl++, D_803BE6EC);
     gSPClearGeometryMode(gdl++, -1);
     gSPSetGeometryMode(gdl++, G_ZBUFFER | G_SHADE | G_SHADING_SMOOTH | G_CULL_BACK | G_LOD);
@@ -2671,14 +2678,14 @@ Gfx *func_8024C414(DynamicBuf *dyn, s32 *len) {
     }
     func_80295120(&gdl, (Mtx *) dyn);
     if (gGameMode & 0x2000001000003905) {
-        func_80280F34(&gdl, D_8035805C);
+        func_80280F34(&gdl, gBufferIndex);
     }
-    func_8027F1F8(&gdl, D_8035805C, 1);
+    func_8027F1F8(&gdl, gBufferIndex, 1);
     func_8024E4F4(&gdl, dyn, 2);
     if (D_803643DC) {
         func_80266248(&gdl, (struct DynBuf *) dyn);
     }
-    switch (D_8035805C) {
+    switch (gBufferIndex) {
         case 0:
             gSPDisplayList(gdl++, osVirtualToPhysical(D_803C6F70));
             break;
@@ -2687,24 +2694,24 @@ Gfx *func_8024C414(DynamicBuf *dyn, s32 *len) {
             break;
     }
     if (D_803643DB) {
-        func_8028273C(&gdl, D_8035805C);
+        func_8028273C(&gdl, gBufferIndex);
     }
     PORT_ITAG(gdl, PORT_ITAG_HUD, 0);
     if (D_80364A68 && (gGameMode & 0x104)) {
-        func_80286C60(&gdl, (s32) dyn, D_8035805C, D_80364456);
+        func_80286C60(&gdl, (s32) dyn, gBufferIndex, D_80364456);
     }
     if (gGameMode & 0x200000000400220C) {
-        func_80278324(&gdl, (s32) dyn, D_8035805C);
+        func_80278324(&gdl, (s32) dyn, gBufferIndex);
     }
     if (gGameMode == 0x100 && D_803643DB) {
-        func_80276E50(&gdl, dyn, D_8035805C, D_803643E0, D_803643E4, D_803643E8);
+        func_80276E50(&gdl, dyn, gBufferIndex, D_803643E0, D_803643E4, D_803643E8);
     }
     func_80259450();
     if (D_80364A6A && (gGameMode & 0x104)) {
-        func_80287530(&gdl, (Gfx * N64P *) dyn, D_8035805C, D_80364456);
+        func_80287530(&gdl, (Gfx * N64P *) dyn, gBufferIndex, D_80364456);
     }
     if (D_80364A6C && (gGameMode & 0x104)) {
-        func_80287C68(&gdl, (Gfx * N64P *) dyn, D_8035805C, D_80364456);
+        func_80287C68(&gdl, (Gfx * N64P *) dyn, gBufferIndex, D_80364456);
     }
     if (gGameMode & 0x104) {
         func_80282224(&gdl, D_80364456);
@@ -2724,13 +2731,13 @@ Gfx *func_8024C414(DynamicBuf *dyn, s32 *len) {
         func_80275478((struct SpriteVtxBuf *) dyn, &gdl, (gGameMode & 0x100) || currentYoshiWindow == 0x4D || currentYoshiWindow == 0x49);
     }
     if (gNextGameMode == 0 && !areWeFading()) {
-        if (!(gGameMode & 0x200000100400230C) && PORT_GVI("func_8024C414", D_803156C4) % 50 * 60 / 60 >= 21 && yoshiState == 1 &&
+        if (!(gGameMode & 0x200000100400230C) && PORT_GVI("hd_build_frame_dl", D_803156C4) % 50 * 60 / 60 >= 21 && yoshiState == 1 &&
             (!(gGameMode & 2) || (D_802E8BEC && (D_80366A12 == 3 || D_802E8BEC == 1))) &&
             (gGameMode != 0x100000000000 || D_803A6B04) &&
             (!(gGameMode & 0x1801) || players[playerNumber].unk91) && levelno != 0x2F) {
             func_80259CCC((Gfx * N64P *) dyn, (u8 *) ("PRESS START"), 0, 1, 0, 0x5C, 0xC4, 0x1A, 0x1A, 1, 0xFF, 0xFF, 0xFF, 0xFF);
         }
-        if (PORT_GVI("func_8024C414", D_803156C4) % 40 * 60 / 60 >= 16) {
+        if (PORT_GVI("hd_build_frame_dl", D_803156C4) % 40 * 60 / 60 >= 16) {
             if (gPaused) {
                 if (gGameMode == 0x2000000000000000 && yoshiState == 2) {
                     func_80259CCC((Gfx * N64P *) dyn, (u8 *) ("USE Z/R TO TURN PAGES"), D_8030491C, 0, 0, 0x18, 0x14, 0xF, 0xF, 1, 0xFF, 0xFF,
@@ -2758,7 +2765,7 @@ Gfx *func_8024C414(DynamicBuf *dyn, s32 *len) {
             func_80274B40(&gdl, (s32) dyn, D_80365580, 0x18, 0x12);
         }
     }
-    if ((gGameMode & 0x104) && D_80364410) {
+    if ((gGameMode & 0x104) && gCamFixedEye) {
         func_80274B40(&gdl, (s32) dyn, D_80364A86, 0x108, 0xBE);
     }
     if ((gGameMode & 0x104) && D_80364AA8 == 1 && !gPaused) {
@@ -2770,7 +2777,7 @@ Gfx *func_8024C414(DynamicBuf *dyn, s32 *len) {
     if ((D_802E8F94[levelno].unk0 & 0x81) && gGameMode == 4) {
         if (levelno != 0x32 ||
             ((players[playerNumber].unk18[0x32] > 0 && players[playerNumber].unk18[0x32] < 6) ? 1 : 0)) {
-            func_8028376C(&gdl, (Mtx *) dyn, D_8035805C, D_803643E0, D_803643E8, D_803EF6DC, D_803EF6E4);
+            func_8028376C(&gdl, (Mtx *) dyn, gBufferIndex, D_803643E0, D_803643E8, D_803EF6DC, D_803EF6E4);
         }
     }
     if (D_803643DB || D_80364AC1) {
@@ -2779,12 +2786,12 @@ Gfx *func_8024C414(DynamicBuf *dyn, s32 *len) {
             case 0x100:
             case 0x200:
             case 0x100000000000:
-                func_8025E2CC(&gdl, (s32) dyn, D_8035805C);
-                func_8025E67C(&gdl, (s32) dyn, D_8035805C);
+                func_8025E2CC(&gdl, (s32) dyn, gBufferIndex);
+                func_8025E67C(&gdl, (s32) dyn, gBufferIndex);
             case 0x40:
             case 0x400:
                 if ((D_803643D6 || D_803643D7 || cmo_hit_request || D_803643DA) && (gGameMode & 0x144)) {
-                    func_802A45D4(0x32);
+                    cull_restart(0x32);
                     if (gGameMode == 0x40) {
                         gNextGameMode = 0x400;
                     } else {
@@ -3035,7 +3042,7 @@ void func_8024FC2C(Gfx **gfx, u8 lod) {
             PORT_ITAG(gdl, PORT_ITAG_OBJ, i | (lod << 8));
             gSPSegment(gdl++, 6, osVirtualToPhysical(D_80364460[i].unk0));
             if ((gGameMode & 0x1801) && (D_80364460[i].unk5C == 0xFE || D_80364460[i].unk5C == 0)) {
-                alt = D_8035805C;
+                alt = gBufferIndex;
             } else {
                 alt = D_803156F5;
             }
@@ -3100,7 +3107,7 @@ void func_802502EC(void) {
         guMtxCatF(mf, tmp, mf);
         guTranslateF(tmp, (f32) D_803643E0 / 32.0, (f32) D_803643E4 / 32.0, (f32) D_803643E8 / 32.0);
         guMtxCatF(mf, tmp, mf);
-        guMtxF2L(mf, &D_803156F8[D_8035805C].unk1500);
+        guMtxF2L(mf, &gDynamicBufs[gBufferIndex].unk1500);
         i = 0;
         while (D_803643C8[i].unk1022 != D_80364456) {
             i++;
@@ -3115,7 +3122,7 @@ void func_802502EC(void) {
         guMtxCatF(mf, tmp, mf);
         guTranslateF(tmp, x, y, z);
         guMtxCatF(mf, tmp, mf);
-        guMtxF2L(mf, &D_803156F8[D_8035805C].unk1540);
+        guMtxF2L(mf, &gDynamicBufs[gBufferIndex].unk1540);
         if (D_80364AC0 == 0) {
             D_80364ABC = D_80364ABC - 0.04;
             if (D_80364ABC < 0.0) {
@@ -3150,39 +3157,42 @@ typedef struct {
 #ifndef NON_MATCHING
 extern Node88 *D_8036BED8;
 #endif
-extern u8 D_8030F660; /* target easing settled */
-extern s32 D_8030F664; /* target height offset */
+extern u8 gCamAtSettled; /* target easing settled */
+extern s32 gCamAtHeight; /* target height offset */
 extern u8 D_8030F668;
 extern u8 D_8030F669;
 extern u8 D_8030F66A;
-extern s32 D_803643EC; /* wanted eye x, y, z (<< 11) */
-extern s32 D_803643F0;
-extern s32 D_803643F4;
-extern s16 D_80364A74;
-extern f32 D_80365078; /* wanted target x, y, z */
-extern f32 D_8036507C;
-extern f32 D_80365080;
-extern f32 D_80365084; /* target x, y, z */
-extern f32 D_80365088;
-extern f32 D_8036508C;
-extern f32 D_80365090; /* target easing deltas */
-extern f32 D_80365094;
-extern f32 D_80365098;
-extern u16 D_8036509C; /* eased heading */
-extern s16 D_8036509E; /* camera type */
-extern s16 D_803650A0; /* previous camera type */
+extern s32 gCamEyeGoalX; /* wanted eye x, y, z (<< 11) */
+extern s32 gCamEyeGoalY;
+extern s32 gCamEyeGoalZ;
+extern s16 gCamTiltMin;
+extern f32 gCamAtGoalX; /* wanted target x, y, z */
+extern f32 gCamAtGoalY;
+extern f32 gCamAtGoalZ;
+extern f32 gCamAtX; /* target x, y, z */
+extern f32 gCamAtY;
+extern f32 gCamAtZ;
+extern f32 gCamAtEaseX; /* target easing deltas */
+extern f32 gCamAtEaseY;
+extern f32 gCamAtEaseZ;
+extern u16 gCamEasedHeading; /* eased heading */
+extern s16 gCamType; /* camera type */
+extern s16 gCamPrevType; /* previous camera type */
 #ifndef NON_MATCHING
 extern Box *D_8036C794;
 #endif
-f32 func_80254E54(f32, f32, f32, f32, f32, f32);
-void func_80255034(s32, f32, s32 *, s32 *);
-void func_80255190(void);
+f32 cam_eye_scale(f32, f32, f32, f32, f32, f32);
+void cam_polar_offset(s32, f32, s32 *, s32 *);
+void cam_turn_heading(void);
 
-#define SINE(a) func_802574F0((f32) (s16) (a) / 16384.0f * 1.5708)
-#define COSINE(a) func_80257514((f32) (s16) (a) / 16384.0f * 1.5708)
+#define SINE(a) hd_sinf((f32) (s16) (a) / 16384.0f * 1.5708)
+#define COSINE(a) hd_cosf((f32) (s16) (a) / 16384.0f * 1.5708)
 
-/* Camera: chooses the eye and target for the current mode and builds the view matrices */
-void func_802507C8(Mtx *mtx, LookAt *lookAt, Mtx *view) {
+/* The camera: chooses the wanted eye and target for the mode and the
+ * vehicle (gCamType), eases toward them (or snaps, gCamSnap), adds the screen
+ * shake, and builds the drawing view (mtx, lookAt: guLookAtReflect) and the
+ * culling view (view: the eye pulled in by cam_eye_scale) (0x802507C8). */
+void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
     f32 rateX;
     f32 rateY;
     f32 rateZ;
@@ -3248,7 +3258,7 @@ void func_802507C8(Mtx *mtx, LookAt *lookAt, Mtx *view) {
     s16 pitch1;
 
     changed = 0;
-    func_80255190();
+    cam_turn_heading();
     if (D_8036B965 && (gGameMode & 0x600)) {
         D_8036B965 = 0;
     }
@@ -3286,19 +3296,19 @@ void func_802507C8(Mtx *mtx, LookAt *lookAt, Mtx *view) {
         }
         D_8030F669 = 0;
     }
-    if (currentYoshiWindow == 0x58 && yoshiState != 8 && !D_80364410) {
+    if (currentYoshiWindow == 0x58 && yoshiState != 8 && !gCamFixedEye) {
         if (!D_80364A85) {
-            D_80364412 = changed = 1;
+            gCamSnap = changed = 1;
         }
         D_80364A85 = 1;
     } else {
         if (D_80364A85) {
-            D_80364412 = changed = 1;
+            gCamSnap = changed = 1;
         }
         D_80364A85 = 0;
     }
-    D_80364412 |= inShuttle || gGameMode == 0x100;
-    D_80364412 |= gFramesInMode < 2;
+    gCamSnap |= inShuttle || gGameMode == 0x100;
+    gCamSnap |= gFramesInMode < 2;
     if (D_803643D6 && (gGameMode & 0x100000000600)) {
         rateX = 0.2f;
         rateY = 0.1f;
@@ -3341,49 +3351,49 @@ void func_802507C8(Mtx *mtx, LookAt *lookAt, Mtx *view) {
         case 0x200:
         case 0x400:
             if (D_80364AC1) {
-                D_8036509E = 0xFD;
+                gCamType = 0xFD;
             } else {
-                D_8036509E = 0xFF;
+                gCamType = 0xFF;
             }
             break;
         case 1:
         case 0x800:
         case 0x1000:
             if (D_80364AC1) {
-                D_8036509E = 0xFD;
+                gCamType = 0xFD;
             } else {
-                D_8036509E = 0xFE;
+                gCamType = 0xFE;
             }
             break;
         default:
-            D_8036509E = D_80364456;
+            gCamType = D_80364456;
             break;
     }
     tilt = D_8036443C;
     if (!D_803649EC) {
-        D_8030F664 = func_802A56C4();
+        gCamAtHeight = func_802A56C4();
     }
     if (((gGameMode & 2) && D_802E8BF0) || !D_803649EC) {
         radius = 0;
         tiltRate = 0.0f;
         turnRate = 0.0f;
     } else {
-        switch (D_8036509E) {
+        switch (gCamType) {
             case 7:
                 radius = 11;
                 tiltRate = 0.75f;
                 turnRate = 30.0f;
-                D_8030F664 = 0;
-                D_80364A72 = 0xEB;
-                D_80364A74 = -0xA5;
+                gCamAtHeight = 0;
+                gCamTiltMax = 0xEB;
+                gCamTiltMin = -0xA5;
                 break;
             case 10:
                 radius = 9;
                 tiltRate = 0.75f;
                 turnRate = 30.0f;
-                D_8030F664 = 0;
-                D_80364A72 = 0xF5;
-                D_80364A74 = -0x87;
+                gCamAtHeight = 0;
+                gCamTiltMax = 0xF5;
+                gCamTiltMin = -0x87;
                 break;
             case 11:
             case 17:
@@ -3391,244 +3401,244 @@ void func_802507C8(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                 radius = 11;
                 tiltRate = 0.75f;
                 turnRate = 30.0f;
-                D_8030F664 = 0;
-                D_80364A72 = 0xEB;
-                D_80364A74 = -0xA5;
+                gCamAtHeight = 0;
+                gCamTiltMax = 0xEB;
+                gCamTiltMin = -0xA5;
                 break;
             case 8:
                 radius = 7;
                 tiltRate = 3.0f;
                 turnRate = 30.0f;
-                D_8030F664 = 0;
-                D_80364A72 = 0x14F;
-                D_80364A74 = -0xA5;
+                gCamAtHeight = 0;
+                gCamTiltMax = 0x14F;
+                gCamTiltMin = -0xA5;
                 break;
             case 15:
                 radius = 7;
                 tiltRate = 3.0f;
                 turnRate = 30.0f;
-                D_8030F664 = 0;
-                D_80364A72 = 0x131;
-                D_80364A74 = -0xA5;
+                gCamAtHeight = 0;
+                gCamTiltMax = 0x131;
+                gCamTiltMin = -0xA5;
                 break;
             case 13:
                 radius = 7;
                 tiltRate = 3.0f;
                 turnRate = 30.0f;
-                D_8030F664 = 0;
-                D_80364A72 = 0x145;
-                D_80364A74 = -0xA5;
+                gCamAtHeight = 0;
+                gCamTiltMax = 0x145;
+                gCamTiltMin = -0xA5;
                 break;
             case 14:
                 radius = 7;
                 tiltRate = 3.0f;
                 turnRate = 30.0f;
-                D_8030F664 = 0;
-                D_80364A72 = 0x13B;
-                D_80364A74 = -0xA5;
+                gCamAtHeight = 0;
+                gCamTiltMax = 0x13B;
+                gCamTiltMin = -0xA5;
                 break;
             case 9:
                 radius = 11;
                 tiltRate = 0.75f;
                 turnRate = 30.0f;
-                D_8030F664 = 1000;
-                D_80364A72 = 0x87;
-                D_80364A74 = -0x55;
+                gCamAtHeight = 1000;
+                gCamTiltMax = 0x87;
+                gCamTiltMin = -0x55;
                 break;
             case 6:
                 radius = 11;
                 tiltRate = 0.75f;
                 turnRate = 30.0f;
-                D_8030F664 = 5000;
-                D_80364A72 = 0;
-                D_80364A74 = 0;
+                gCamAtHeight = 5000;
+                gCamTiltMax = 0;
+                gCamTiltMin = 0;
                 break;
             case 5:
                 radius = 9;
                 tiltRate = 0.75f;
                 turnRate = 30.0f;
-                D_8030F664 = 0;
-                D_80364A72 = 0xCD;
-                D_80364A74 = -0x69;
+                gCamAtHeight = 0;
+                gCamTiltMax = 0xCD;
+                gCamTiltMin = -0x69;
                 break;
             case 4:
                 radius = 9;
                 tiltRate = 0.75f;
                 turnRate = 30.0f;
-                D_8030F664 = 0;
-                D_80364A72 = 0xEB;
-                D_80364A74 = -0xA5;
+                gCamAtHeight = 0;
+                gCamTiltMax = 0xEB;
+                gCamTiltMin = -0xA5;
                 break;
             case 3:
                 radius = 7;
                 tiltRate = 3.0f;
                 turnRate = 30.0f;
-                D_8030F664 = 0;
-                D_80364A72 = 0xEB;
-                D_80364A74 = -0xA5;
+                gCamAtHeight = 0;
+                gCamTiltMax = 0xEB;
+                gCamTiltMin = -0xA5;
                 break;
             case 2:
                 radius = 11;
                 tiltRate = 0.75f;
                 turnRate = 30.0f;
-                D_8030F664 = 2000;
-                D_80364A72 = 0x91;
-                D_80364A74 = -0x55;
+                gCamAtHeight = 2000;
+                gCamTiltMax = 0x91;
+                gCamTiltMin = -0x55;
                 break;
             case 16:
                 radius = 2;
                 tiltRate = 0.75f;
                 turnRate = 30.0f;
-                D_8030F664 = 600;
-                D_80364A72 = 0x91;
-                D_80364A74 = -0x55;
+                gCamAtHeight = 600;
+                gCamTiltMax = 0x91;
+                gCamTiltMin = -0x55;
                 break;
             case 1:
                 radius = 11;
                 tiltRate = 0.75f;
                 turnRate = 30.0f;
-                D_8030F664 = 0;
-                D_80364A72 = 0xCD;
-                D_80364A74 = -0xA5;
+                gCamAtHeight = 0;
+                gCamTiltMax = 0xCD;
+                gCamTiltMin = -0xA5;
                 break;
             case 0:
                 radius = 20;
                 tiltRate = 0.25f;
                 turnRate = 15.0f;
-                D_8030F664 = 0;
-                D_80364A72 = 0x55;
-                D_80364A74 = -0x19;
+                gCamAtHeight = 0;
+                gCamTiltMax = 0x55;
+                gCamTiltMin = -0x19;
                 break;
             case 0xFF:
                 radius = 11;
                 tiltRate = 0.75f;
                 turnRate = 30.0f;
                 tilt = tilt / 2;
-                D_80364A72 = 0;
-                D_80364A74 = 0;
+                gCamTiltMax = 0;
+                gCamTiltMin = 0;
                 break;
             case 0xFE:
                 radius = 11;
                 tiltRate = 0.75f;
                 turnRate = 30.0f;
                 tilt = D_803EF328;
-                D_8030F664 = 0;
+                gCamAtHeight = 0;
                 D_8036443E = D_803EF32A;
-                D_80364A72 = 0;
-                D_80364A74 = 0;
+                gCamTiltMax = 0;
+                gCamTiltMin = 0;
                 break;
             case 0xFD:
                 radius = 11;
                 tiltRate = 0.75f;
                 turnRate = 30.0f;
-                D_8030F664 = 0;
+                gCamAtHeight = 0;
                 tilt = tilt / 2;
                 D_8036443E = D_8036443E / 2;
-                D_80364A72 = 0;
-                D_80364A74 = 0;
+                gCamTiltMax = 0;
+                gCamTiltMin = 0;
                 break;
         }
     }
     if (gGameMode == 0x40) {
         radius = radius / 2;
     }
-    if (tilt > D_80364A72) {
-        tilt = D_80364A72;
+    if (tilt > gCamTiltMax) {
+        tilt = gCamTiltMax;
     }
-    if (tilt < D_80364A74) {
-        tilt = D_80364A74;
+    if (tilt < gCamTiltMin) {
+        tilt = gCamTiltMin;
     }
     if ((tilt > 0 && D_80370C1C && !gPaused && (gGameMode & 0x106)) ||
         (tilt < 0 && D_80370C1D && !gPaused && (gGameMode & 0x106))) {
-        if (D_80364444 < tilt) {
-            D_80364444 += tiltRate;
+        if (gCamTilt < tilt) {
+            gCamTilt += tiltRate;
         }
-        if (D_80364444 > tilt) {
-            D_80364444 -= tiltRate;
+        if (gCamTilt > tilt) {
+            gCamTilt -= tiltRate;
         }
     } else {
-        if (D_80364444 < tilt && tilt <= 0) {
-            D_80364444 += tiltRate * 10.0f;
-            if (tilt < D_80364444) {
-                D_80364444 = tilt;
+        if (gCamTilt < tilt && tilt <= 0) {
+            gCamTilt += tiltRate * 10.0f;
+            if (tilt < gCamTilt) {
+                gCamTilt = tilt;
             }
         }
-        if (D_80364444 > tilt && tilt >= 0) {
-            D_80364444 = D_80364444 - tiltRate * 10.0f;
-            if (D_80364444 < tilt) {
-                D_80364444 = tilt;
+        if (gCamTilt > tilt && tilt >= 0) {
+            gCamTilt = gCamTilt - tiltRate * 10.0f;
+            if (gCamTilt < tilt) {
+                gCamTilt = tilt;
             }
         }
     }
-    diff = D_8036443E - D_80364448;
+    diff = D_8036443E - gCamTurn;
     if (diff < 0.0) {
         diff = 0.0 - diff;
     }
     if (diff > 2048.0) {
-        if (D_80364448 > D_8036443E) {
-            D_80364448 = D_80364448 + turnRate;
-            if (D_80364448 > 4095.0) {
-                D_80364448 = D_80364448 - 4095.0;
-                if (D_8036443E < D_80364448) {
-                    D_80364448 = D_8036443E;
+        if (gCamTurn > D_8036443E) {
+            gCamTurn = gCamTurn + turnRate;
+            if (gCamTurn > 4095.0) {
+                gCamTurn = gCamTurn - 4095.0;
+                if (D_8036443E < gCamTurn) {
+                    gCamTurn = D_8036443E;
                 }
             }
         } else {
-            D_80364448 = D_80364448 - turnRate;
-            if (D_80364448 < 0.0) {
-                D_80364448 = D_80364448 + 4095.0;
-                if (D_80364448 < D_8036443E) {
-                    D_80364448 = D_8036443E;
+            gCamTurn = gCamTurn - turnRate;
+            if (gCamTurn < 0.0) {
+                gCamTurn = gCamTurn + 4095.0;
+                if (gCamTurn < D_8036443E) {
+                    gCamTurn = D_8036443E;
                 }
             }
         }
     } else {
-        if (D_80364448 > D_8036443E) {
-            D_80364448 = D_80364448 - turnRate;
-            if (D_80364448 < D_8036443E) {
-                D_80364448 = D_8036443E;
+        if (gCamTurn > D_8036443E) {
+            gCamTurn = gCamTurn - turnRate;
+            if (gCamTurn < D_8036443E) {
+                gCamTurn = D_8036443E;
             }
         }
-        if (D_80364448 < D_8036443E) {
-            D_80364448 = D_80364448 + turnRate;
-            if (D_8036443E < D_80364448) {
-                D_80364448 = D_8036443E;
+        if (gCamTurn < D_8036443E) {
+            gCamTurn = gCamTurn + turnRate;
+            if (D_8036443E < gCamTurn) {
+                gCamTurn = D_8036443E;
             }
         }
     }
-    ang = (s16) D_80364448 % 1024;
-    cs = func_80257514((f32) ang / 1024.0f * 1.5708) * ((f32) radius * D_80364444);
-    sn = func_802574F0((f32) ang / 1024.0f * 1.5708) * ((f32) radius * D_80364444);
-    if (D_80364448 >= 0.0f && D_80364448 < 1024.0f) {
+    ang = (s16) gCamTurn % 1024;
+    cs = hd_cosf((f32) ang / 1024.0f * 1.5708) * ((f32) radius * gCamTilt);
+    sn = hd_sinf((f32) ang / 1024.0f * 1.5708) * ((f32) radius * gCamTilt);
+    if (gCamTurn >= 0.0f && gCamTurn < 1024.0f) {
         offX = sn;
         offZ = cs;
     }
-    if (D_80364448 >= 1024.0f && D_80364448 < 2048.0f) {
+    if (gCamTurn >= 1024.0f && gCamTurn < 2048.0f) {
         offX = cs;
         offZ = -sn;
     }
-    if (D_80364448 >= 2048.0f && D_80364448 < 3072.0f) {
+    if (gCamTurn >= 2048.0f && gCamTurn < 3072.0f) {
         offX = -sn, offZ = -cs;
     }
-    if (D_80364448 >= 3072.0f && D_80364448 < 4096.0f) {
+    if (gCamTurn >= 3072.0f && gCamTurn < 4096.0f) {
         offX = -cs;
         offZ = sn;
     }
     switch (gGameMode) {
         case 0x100:
             if (D_80364AC1) {
-                if (D_80364412) {
-                    D_8036509C = D_803FCD68 * 16;
+                if (gCamSnap) {
+                    gCamEasedHeading = D_803FCD68 * 16;
                 } else {
-                    D_8036509C = (s16) ((u16) D_803FCD68 * 16 - D_8036509C) / 10 + (s16) D_8036509C;
+                    gCamEasedHeading = (s16) ((u16) D_803FCD68 * 16 - gCamEasedHeading) / 10 + (s16) gCamEasedHeading;
                 }
-                D_803643EC = (s32) (D_803FCD48 - SINE(D_8036509C) * 8000.0f + offX) << 11;
-                D_803643F0 = (D_803FCD4C + 0xDAC) << 11;
-                D_803643F4 = (s32) (D_803FCD50 - COSINE(D_8036509C) * 8000.0f + offZ) << 11;
+                gCamEyeGoalX = (s32) (D_803FCD48 - SINE(gCamEasedHeading) * 8000.0f + offX) << 11;
+                gCamEyeGoalY = (D_803FCD4C + 0xDAC) << 11;
+                gCamEyeGoalZ = (s32) (D_803FCD50 - COSINE(gCamEasedHeading) * 8000.0f + offZ) << 11;
             } else {
-                D_803643EC = (D_803EF6DC + 4000) << 11;
-                D_803643F0 = (D_803EF6E0 + 25000) << 11;
-                D_803643F4 = (D_803EF6E4 + D_80364A78 + 7000) << 11;
+                gCamEyeGoalX = (D_803EF6DC + 4000) << 11;
+                gCamEyeGoalY = (D_803EF6E0 + 25000) << 11;
+                gCamEyeGoalZ = (D_803EF6E4 + D_80364A78 + 7000) << 11;
             }
             break;
         case 0x40:
@@ -3636,150 +3646,150 @@ void func_802507C8(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                 case 1:
                 case 0x80:
                     if (D_803643DB) {
-                        D_803643EC = (D_803EF6DC + offX) << 11;
-                        D_803643F0 = (D_803EF6E0 + 2000) << 11;
-                        D_803643F4 = (D_803EF6E4 + offZ) << 11;
+                        gCamEyeGoalX = (D_803EF6DC + offX) << 11;
+                        gCamEyeGoalY = (D_803EF6E0 + 2000) << 11;
+                        gCamEyeGoalZ = (D_803EF6E4 + offZ) << 11;
                     }
                     if (D_80364AC1) {
                         if (gFramesInMode < 2) {
-                            D_8036509C = D_803FCD68 * 16;
+                            gCamEasedHeading = D_803FCD68 * 16;
                         } else {
-                            D_8036509C = (s16) ((u16) D_803FCD68 * 16 - D_8036509C) / 10 + (s16) D_8036509C;
+                            gCamEasedHeading = (s16) ((u16) D_803FCD68 * 16 - gCamEasedHeading) / 10 + (s16) gCamEasedHeading;
                         }
-                        D_803643EC = (s32) (D_803FCD48 - SINE(D_8036509C) * 8000.0f + offX) << 11;
-                        D_803643F0 = (D_803FCD4C + 0xDAC) << 11;
-                        D_803643F4 = (s32) (D_803FCD50 - COSINE(D_8036509C) * 8000.0f + offZ) << 11;
+                        gCamEyeGoalX = (s32) (D_803FCD48 - SINE(gCamEasedHeading) * 8000.0f + offX) << 11;
+                        gCamEyeGoalY = (D_803FCD4C + 0xDAC) << 11;
+                        gCamEyeGoalZ = (s32) (D_803FCD50 - COSINE(gCamEasedHeading) * 8000.0f + offZ) << 11;
                     }
                     if (D_803643DB || D_80364AC1) {
                         break;
                     }
                 case 4:
                 case 8:
-                    if (!D_80364412) {
-                        D_8036509C = (s16) ((u16) D_8036443E * 16 - D_8036509C) / 10 + (s16) D_8036509C;
+                    if (!gCamSnap) {
+                        gCamEasedHeading = (s16) ((u16) D_8036443E * 16 - gCamEasedHeading) / 10 + (s16) gCamEasedHeading;
                     } else {
-                        D_8036509C = D_8036443E * 16;
+                        gCamEasedHeading = D_8036443E * 16;
                     }
-                    D_803643EC = (s32) (D_803643E0 - SINE(D_8036509C) * (D_8036444C * 2.0f) + offX) << 11;
-                    D_803643F0 = (D_8036444E + D_803643E4) << 11;
-                    D_803643F4 = (s32) (D_803643E8 - COSINE(D_8036509C) * (D_8036444C * 2.0f) + offZ) << 11;
+                    gCamEyeGoalX = (s32) (D_803643E0 - SINE(gCamEasedHeading) * (gCamDistance * 2.0f) + offX) << 11;
+                    gCamEyeGoalY = (gCamHeight + D_803643E4) << 11;
+                    gCamEyeGoalZ = (s32) (D_803643E8 - COSINE(gCamEasedHeading) * (gCamDistance * 2.0f) + offZ) << 11;
                     break;
                 case 2:
                 case 0x20:
-                    if (!D_80364412) {
-                        D_8036509C = (s16) ((u16) D_8036443E * 16 - D_8036509C) / 10 + (s16) D_8036509C;
+                    if (!gCamSnap) {
+                        gCamEasedHeading = (s16) ((u16) D_8036443E * 16 - gCamEasedHeading) / 10 + (s16) gCamEasedHeading;
                     } else {
-                        D_8036509C = D_8036443E * 16;
+                        gCamEasedHeading = D_8036443E * 16;
                     }
-                    D_803643EC = (s32) (SINE(D_8036509C) * (D_8036444C * 2.0f) + D_803643E0 + offX) << 11;
-                    D_803643F0 = (D_8036444E + D_803643E4 + D_80370C2D * 50) << 11;
-                    D_803643F4 = (s32) (COSINE(D_8036509C) * (D_8036444C * 2.0f) + D_803643E8 + offZ) << 11;
+                    gCamEyeGoalX = (s32) (SINE(gCamEasedHeading) * (gCamDistance * 2.0f) + D_803643E0 + offX) << 11;
+                    gCamEyeGoalY = (gCamHeight + D_803643E4 + D_80370C2D * 50) << 11;
+                    gCamEyeGoalZ = (s32) (COSINE(gCamEasedHeading) * (gCamDistance * 2.0f) + D_803643E8 + offZ) << 11;
                     break;
                 case 0x10:
                 case 0x40:
-                    D_803643EC = ((D_8036BED8[D_8036BBB0[D_8036EA7C]].unk0 << 5) + offX) << 11;
-                    D_803643F0 = ((D_8036BED8[D_8036BBB0[D_8036EA7C]].unk2 << 5) + 2000) << 11;
-                    D_803643F4 = ((D_8036BED8[D_8036BBB0[D_8036EA7C]].unk4 << 5) + offZ) << 11;
+                    gCamEyeGoalX = ((D_8036BED8[D_8036BBB0[D_8036EA7C]].unk0 << 5) + offX) << 11;
+                    gCamEyeGoalY = ((D_8036BED8[D_8036BBB0[D_8036EA7C]].unk2 << 5) + 2000) << 11;
+                    gCamEyeGoalZ = ((D_8036BED8[D_8036BBB0[D_8036EA7C]].unk4 << 5) + offZ) << 11;
                     break;
             }
             break;
         case 0x200:
             if (D_80364AC1) {
-                D_803643EC = (D_803FCD48 + offX - 6000) << 11;
-                D_803643F0 = (D_803FCD4C + 0xD48) << 11;
-                D_803643F4 = (D_803FCD50 + offZ + 6000) << 11;
+                gCamEyeGoalX = (D_803FCD48 + offX - 6000) << 11;
+                gCamEyeGoalY = (D_803FCD4C + 0xD48) << 11;
+                gCamEyeGoalZ = (D_803FCD50 + offZ + 6000) << 11;
             } else if (D_803643D6) {
-                D_803643EC = (D_803EF6DC + offX + 16000) << 11;
-                D_803643F0 = (D_803EF6E0 + 15000) << 11;
-                D_803643F4 = (D_803EF6E4 + offZ - 3000) << 11;
+                gCamEyeGoalX = (D_803EF6DC + offX + 16000) << 11;
+                gCamEyeGoalY = (D_803EF6E0 + 15000) << 11;
+                gCamEyeGoalZ = (D_803EF6E4 + offZ - 3000) << 11;
             } else {
-                D_803643EC = (D_803EF6DC + offX + 4000) << 11;
-                D_803643F0 = (D_803EF6E0 + 2400) << 11;
+                gCamEyeGoalX = (D_803EF6DC + offX + 4000) << 11;
+                gCamEyeGoalY = (D_803EF6E0 + 2400) << 11;
                 if (levelno == 0) {
-                    D_803643F0 += 0x5DC000;
+                    gCamEyeGoalY += 0x5DC000;
                 }
-                D_803643F4 = (D_803EF6E4 + offZ - 4000) << 11;
+                gCamEyeGoalZ = (D_803EF6E4 + offZ - 4000) << 11;
             }
             break;
         case 0x400:
             if (D_80364AC1) {
-                D_803643EC = (D_803FCD48 + offX + 6000) << 11;
-                D_803643F0 = (D_803FCD4C + 0xD48) << 11;
-                D_803643F4 = (D_803FCD50 + offZ - 6000) << 11;
+                gCamEyeGoalX = (D_803FCD48 + offX + 6000) << 11;
+                gCamEyeGoalY = (D_803FCD4C + 0xD48) << 11;
+                gCamEyeGoalZ = (D_803FCD50 + offZ - 6000) << 11;
             } else if (D_803643D6) {
-                D_803643EC = (D_803EF6DC + offX - 16000) << 11;
-                D_803643F0 = (D_803EF6E0 + 15000) << 11;
-                D_803643F4 = (D_803EF6E4 - offZ + 3000) << 11;
+                gCamEyeGoalX = (D_803EF6DC + offX - 16000) << 11;
+                gCamEyeGoalY = (D_803EF6E0 + 15000) << 11;
+                gCamEyeGoalZ = (D_803EF6E4 - offZ + 3000) << 11;
             } else {
-                D_803643EC = (D_803EF6DC + offX - 4000) << 11;
-                D_803643F0 = (D_803EF6E0 + 2400) << 11;
+                gCamEyeGoalX = (D_803EF6DC + offX - 4000) << 11;
+                gCamEyeGoalY = (D_803EF6E0 + 2400) << 11;
                 if (levelno == 0) {
-                    D_803643F0 += 0x5DC000;
+                    gCamEyeGoalY += 0x5DC000;
                 }
-                D_803643F4 = (D_803EF6E4 + offZ + 4000) << 11;
+                gCamEyeGoalZ = (D_803EF6E4 + offZ + 4000) << 11;
             }
             break;
         case 1:
         case 0x800:
             if (D_80364AC1) {
                 if (gFramesInMode < 2) {
-                    D_8036509C = D_803FCD68 * 16;
+                    gCamEasedHeading = D_803FCD68 * 16;
                 } else {
-                    D_8036509C = (s16) ((u16) D_803FCD68 * 16 - D_8036509C) / 10 + (s16) D_8036509C;
+                    gCamEasedHeading = (s16) ((u16) D_803FCD68 * 16 - gCamEasedHeading) / 10 + (s16) gCamEasedHeading;
                 }
-                D_803643EC = (s32) (D_803FCD48 - SINE(D_8036509C) * 8000.0f + offX) << 11;
-                D_803643F0 = (D_803FCD4C + 0xDAC) << 11;
-                D_803643F4 = (s32) (D_803FCD50 - COSINE(D_8036509C) * 8000.0f + offZ) << 11;
+                gCamEyeGoalX = (s32) (D_803FCD48 - SINE(gCamEasedHeading) * 8000.0f + offX) << 11;
+                gCamEyeGoalY = (D_803FCD4C + 0xDAC) << 11;
+                gCamEyeGoalZ = (s32) (D_803FCD50 - COSINE(gCamEasedHeading) * 8000.0f + offZ) << 11;
             } else {
-                D_803643EC = (D_803643E0 + offX - 500) << 11;
-                D_803643F0 = (D_803643E4 + 6000) << 11;
-                D_803643F4 = (D_803643E8 + offZ + 500) << 11;
+                gCamEyeGoalX = (D_803643E0 + offX - 500) << 11;
+                gCamEyeGoalY = (D_803643E4 + 6000) << 11;
+                gCamEyeGoalZ = (D_803643E8 + offZ + 500) << 11;
             }
             break;
         case 0x1000:
-            D_803643EC = (D_803643E0 + offX - 4000) << 11;
-            D_803643F0 = (D_803643E4 + 5000) << 11;
-            D_803643F4 = (D_803643E8 + offZ + 4000) << 11;
+            gCamEyeGoalX = (D_803643E0 + offX - 4000) << 11;
+            gCamEyeGoalY = (D_803643E4 + 5000) << 11;
+            gCamEyeGoalZ = (D_803643E8 + offZ + 4000) << 11;
             break;
         default:
-            if (D_80364410) {
-                D_803643EC = D_80364404;
-                D_803643F0 = D_80364408;
-                D_803643F4 = D_8036440C;
+            if (gCamFixedEye) {
+                gCamEyeGoalX = gCamFixedEyeX;
+                gCamEyeGoalY = gCamFixedEyeY;
+                gCamEyeGoalZ = gCamFixedEyeZ;
             } else {
                 if (D_80364AA8 == 0x40) {
-                    D_8036444C = 9000;
-                    D_8036444E = 11000;
-                    D_80364420 = 11000;
+                    gCamDistance = 9000;
+                    gCamHeight = 11000;
+                    gCamEyeHeight = 11000;
                 }
                 if (D_80364AC1 && D_8036B8B0) {
-                    D_803643EC = (D_803FCD48 + D_8036B8B4) << 11;
-                    D_803643F0 = (D_803FCD4C + D_8036B8B8) << 11;
-                    D_803643F4 = (D_803FCD50 + D_8036B8BC) << 11;
+                    gCamEyeGoalX = (D_803FCD48 + D_8036B8B4) << 11;
+                    gCamEyeGoalY = (D_803FCD4C + D_8036B8B8) << 11;
+                    gCamEyeGoalZ = (D_803FCD50 + D_8036B8BC) << 11;
                 } else if (D_803643DB && D_8036B8B0) {
-                    D_803643EC = (D_803EF6DC + D_8036B8B4) << 11;
-                    D_803643F0 = (D_803EF6E0 + D_8036B8B8) << 11;
-                    D_803643F4 = (D_803EF6E4 + D_8036B8BC) << 11;
+                    gCamEyeGoalX = (D_803EF6DC + D_8036B8B4) << 11;
+                    gCamEyeGoalY = (D_803EF6E0 + D_8036B8B8) << 11;
+                    gCamEyeGoalZ = (D_803EF6E4 + D_8036B8BC) << 11;
                 } else if (D_8030F668) {
-                    func_80255034(2500, D_80364414, &px, &pz);
-                    D_803643EC = ((D_803F767C << 5) + px) << 11;
-                    D_803643F0 = ((D_803F767E << 5) + 5000) << 11;
-                    D_803643F4 = ((D_803F7680 << 5) + pz) << 11;
+                    cam_polar_offset(2500, gCamHeading, &px, &pz);
+                    gCamEyeGoalX = ((D_803F767C << 5) + px) << 11;
+                    gCamEyeGoalY = ((D_803F767E << 5) + 5000) << 11;
+                    gCamEyeGoalZ = ((D_803F7680 << 5) + pz) << 11;
                 } else if (D_8030F66A) {
-                    func_80255034(2500, D_80364414, &px, &pz);
-                    D_803643EC = (px + D_803F7670) << 11;
-                    D_803643F0 = (D_803F7674 + 5000) << 11;
-                    D_803643F4 = (pz + D_803F7678) << 11;
+                    cam_polar_offset(2500, gCamHeading, &px, &pz);
+                    gCamEyeGoalX = (px + D_803F7670) << 11;
+                    gCamEyeGoalY = (D_803F7674 + 5000) << 11;
+                    gCamEyeGoalZ = (pz + D_803F7678) << 11;
                 } else if (D_8030F669) {
                     if (D_8036C794 != NULL) {
-                        func_80255034(2500, D_80364414, &px, &pz);
-                        D_803643EC = ((D_8036C794->unk12 + D_8036C794->unk0) / 2 << 16) + (px << 11);
-                        D_803643F0 = ((D_8036C794->unk14 + D_8036C794->unk2) / 2 << 16) + 0x9C4000;
-                        D_803643F4 = ((D_8036C794->unk16 + D_8036C794->unk4) / 2 << 16) + (pz << 11);
+                        cam_polar_offset(2500, gCamHeading, &px, &pz);
+                        gCamEyeGoalX = ((D_8036C794->unk12 + D_8036C794->unk0) / 2 << 16) + (px << 11);
+                        gCamEyeGoalY = ((D_8036C794->unk14 + D_8036C794->unk2) / 2 << 16) + 0x9C4000;
+                        gCamEyeGoalZ = ((D_8036C794->unk16 + D_8036C794->unk4) / 2 << 16) + (pz << 11);
                     }
                 } else {
                     if (D_80364A85) {
-                        angle = (f32) (D_8036443E * 360 / 4096) - D_80364414 + 180.0f;
+                        angle = (f32) (D_8036443E * 360 / 4096) - gCamHeading + 180.0f;
                         if (angle < 0) {
                             angle += 360;
                         }
@@ -3787,23 +3797,23 @@ void func_802507C8(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                             angle %= 360;
                         }
                         if (D_80364456 == 2 || D_80364456 == 9) {
-                            func_80255034(D_8036444C, angle, &px, &pz);
+                            cam_polar_offset(gCamDistance, angle, &px, &pz);
                         } else {
-                            func_80255034(D_8036444C / 2, angle, &px, &pz);
+                            cam_polar_offset(gCamDistance / 2, angle, &px, &pz);
                         }
-                        D_803643F0 = (D_80364420 * 3 / 5 + D_803643E4) << 11;
+                        gCamEyeGoalY = (gCamEyeHeight * 3 / 5 + D_803643E4) << 11;
                         offX = 0;
                         offZ = 0;
                     } else {
-                        func_80255034(D_8036444C, D_80364414, &px, &pz);
-                        if (D_80364411 && D_80364414 >= 134.0 && D_80364414 <= 136.0) {
-                            D_803643F0 = (D_803643E4 + 0x3908) << 11;
+                        cam_polar_offset(gCamDistance, gCamHeading, &px, &pz);
+                        if (D_80364411 && gCamHeading >= 134.0 && gCamHeading <= 136.0) {
+                            gCamEyeGoalY = (D_803643E4 + 0x3908) << 11;
                         } else {
-                            D_803643F0 = (D_803643E4 + D_80364420) << 11;
+                            gCamEyeGoalY = (D_803643E4 + gCamEyeHeight) << 11;
                         }
                     }
-                    D_803643EC = (D_803643E0 + px + offX) << 11;
-                    D_803643F4 = (D_803643E8 + pz + offZ) << 11;
+                    gCamEyeGoalX = (D_803643E0 + px + offX) << 11;
+                    gCamEyeGoalZ = (D_803643E8 + pz + offZ) << 11;
                 }
             }
             break;
@@ -3811,136 +3821,136 @@ void func_802507C8(Mtx *mtx, LookAt *lookAt, Mtx *view) {
     switch (gGameMode) {
         case 0x100:
             if (D_80364AC1) {
-                D_80365078 = D_803FCD48 / 32.0f;
-                D_8036507C = (D_803FCD4C + 2000) / 32.0f;
-                D_80365080 = D_803FCD50 / 32.0f;
+                gCamAtGoalX = D_803FCD48 / 32.0f;
+                gCamAtGoalY = (D_803FCD4C + 2000) / 32.0f;
+                gCamAtGoalZ = D_803FCD50 / 32.0f;
             } else {
-                D_80365078 = D_803EF6DC / 32.0f;
-                D_8036507C = D_803EF6E0 / 32.0f;
-                D_80365080 = (D_803EF6E4 + D_80364A78 + 11000) / 32.0f;
+                gCamAtGoalX = D_803EF6DC / 32.0f;
+                gCamAtGoalY = D_803EF6E0 / 32.0f;
+                gCamAtGoalZ = (D_803EF6E4 + D_80364A78 + 11000) / 32.0f;
             }
             break;
         case 0x200:
         case 0x400:
             if (D_80364AC1) {
-                D_80365078 = (D_803FCD48 + offX) / 32.0f;
-                D_8036507C = (D_803FCD4C + 2000) / 32.0f;
-                D_80365080 = (D_803FCD50 + offZ) / 32.0f;
+                gCamAtGoalX = (D_803FCD48 + offX) / 32.0f;
+                gCamAtGoalY = (D_803FCD4C + 2000) / 32.0f;
+                gCamAtGoalZ = (D_803FCD50 + offZ) / 32.0f;
             } else {
-                D_80365078 = (D_803EF6DC + offX) / 32.0f;
-                D_8036507C = D_803EF6E0 / 32.0f;
-                D_80365080 = (D_803EF6E4 + offZ) / 32.0f;
+                gCamAtGoalX = (D_803EF6DC + offX) / 32.0f;
+                gCamAtGoalY = D_803EF6E0 / 32.0f;
+                gCamAtGoalZ = (D_803EF6E4 + offZ) / 32.0f;
             }
             break;
         case 1:
         case 0x800:
         case 0x1000:
             if (D_80364AC1) {
-                D_80365078 = D_803FCD48 / 32.0f;
-                D_8036507C = (D_803FCD4C + 2000) / 32.0f;
-                D_80365080 = D_803FCD50 / 32.0f;
+                gCamAtGoalX = D_803FCD48 / 32.0f;
+                gCamAtGoalY = (D_803FCD4C + 2000) / 32.0f;
+                gCamAtGoalZ = D_803FCD50 / 32.0f;
             } else {
-                D_80365078 = (D_803EF2EC + offX) / 32.0f;
-                D_8036507C = D_803EF314 / 32.0f;
-                D_80365080 = (D_803EF2F4 + offZ) / 32.0f;
+                gCamAtGoalX = (D_803EF2EC + offX) / 32.0f;
+                gCamAtGoalY = D_803EF314 / 32.0f;
+                gCamAtGoalZ = (D_803EF2F4 + offZ) / 32.0f;
             }
             break;
         case 0x40:
             if (D_80364AC1) {
-                D_80365078 = D_803FCD48 / 32.0f;
-                D_8036507C = (D_803FCD4C + 2000) / 32.0f;
-                D_80365080 = D_803FCD50 / 32.0f;
+                gCamAtGoalX = D_803FCD48 / 32.0f;
+                gCamAtGoalY = (D_803FCD4C + 2000) / 32.0f;
+                gCamAtGoalZ = D_803FCD50 / 32.0f;
                 break;
             }
         default:
             if (D_80364AC1 && D_8036B8B0) {
-                D_80365078 = D_803FCD48 / 32.0f;
-                D_8036507C = (D_803FCD4C + 6000) / 32.0f;
-                D_80365080 = D_803FCD50 / 32.0f;
+                gCamAtGoalX = D_803FCD48 / 32.0f;
+                gCamAtGoalY = (D_803FCD4C + 6000) / 32.0f;
+                gCamAtGoalZ = D_803FCD50 / 32.0f;
             } else if (D_803643DB && D_8036B8B0) {
-                D_80365078 = D_803EF6DC / 32.0f;
-                D_8036507C = D_803EF6E0 / 32.0f;
-                D_80365080 = D_803EF6E4 / 32.0f;
+                gCamAtGoalX = D_803EF6DC / 32.0f;
+                gCamAtGoalY = D_803EF6E0 / 32.0f;
+                gCamAtGoalZ = D_803EF6E4 / 32.0f;
             } else if (D_8030F668) {
-                D_80365078 = D_803F767C;
-                D_8036507C = D_803F767E;
-                D_80365080 = D_803F7680;
+                gCamAtGoalX = D_803F767C;
+                gCamAtGoalY = D_803F767E;
+                gCamAtGoalZ = D_803F7680;
             } else if (D_8030F66A) {
-                D_80365078 = D_803F7670 / 32.0f;
-                D_8036507C = D_803F7674 / 32.0f;
-                D_80365080 = D_803F7678 / 32.0f;
+                gCamAtGoalX = D_803F7670 / 32.0f;
+                gCamAtGoalY = D_803F7674 / 32.0f;
+                gCamAtGoalZ = D_803F7678 / 32.0f;
             } else if (D_8030F669) {
                 if (D_8036C794 != NULL) {
-                    D_80365078 = (f32) (D_8036C794->unk12 + D_8036C794->unk0) / 2.0;
-                    D_8036507C = (f32) (D_8036C794->unk14 + D_8036C794->unk2) / 2.0;
-                    D_80365080 = (f32) (D_8036C794->unk16 + D_8036C794->unk4) / 2.0;
+                    gCamAtGoalX = (f32) (D_8036C794->unk12 + D_8036C794->unk0) / 2.0;
+                    gCamAtGoalY = (f32) (D_8036C794->unk14 + D_8036C794->unk2) / 2.0;
+                    gCamAtGoalZ = (f32) (D_8036C794->unk16 + D_8036C794->unk4) / 2.0;
                 }
             } else {
-                D_80365078 = (D_803643E0 + offX) / 32.0f;
-                D_8036507C = (D_803643E4 + D_8030F664) / 32.0f;
-                D_80365080 = (D_803643E8 + offZ) / 32.0f;
+                gCamAtGoalX = (D_803643E0 + offX) / 32.0f;
+                gCamAtGoalY = (D_803643E4 + gCamAtHeight) / 32.0f;
+                gCamAtGoalZ = (D_803643E8 + offZ) / 32.0f;
             }
             break;
     }
     if (D_803643D6 && levelno == 0x31) {
-        D_803643EC = (D_803EF6DC + offX + 16000) << 11;
-        D_803643F0 = (D_803EF6E0 + 15000) << 11;
-        D_803643F4 = (D_803EF6E4 + offZ - 3000) << 11;
+        gCamEyeGoalX = (D_803EF6DC + offX + 16000) << 11;
+        gCamEyeGoalY = (D_803EF6E0 + 15000) << 11;
+        gCamEyeGoalZ = (D_803EF6E4 + offZ - 3000) << 11;
     }
     if (D_80364AC1 && D_8036B965) {
-        if (D_80364412) {
-            D_8036509C = D_803FCD68 * 16;
+        if (gCamSnap) {
+            gCamEasedHeading = D_803FCD68 * 16;
         } else {
-            D_8036509C = (s16) ((u16) D_803FCD68 * 16 - D_8036509C) / 10 + (s16) D_8036509C;
+            gCamEasedHeading = (s16) ((u16) D_803FCD68 * 16 - gCamEasedHeading) / 10 + (s16) gCamEasedHeading;
         }
-        D_803643EC = (s32) (D_803FCD48 - SINE(D_8036509C) * 8000.0f + offX) << 11;
-        D_803643F0 = (D_803FCD4C + 0xDAC) << 11;
-        D_803643F4 = (s32) (D_803FCD50 - COSINE(D_8036509C) * 8000.0f + offZ) << 11;
-        D_80365078 = D_803FCD48 / 32.0f;
-        D_8036507C = (D_803FCD4C + 2000) / 32.0f;
-        D_80365080 = D_803FCD50 / 32.0f;
+        gCamEyeGoalX = (s32) (D_803FCD48 - SINE(gCamEasedHeading) * 8000.0f + offX) << 11;
+        gCamEyeGoalY = (D_803FCD4C + 0xDAC) << 11;
+        gCamEyeGoalZ = (s32) (D_803FCD50 - COSINE(gCamEasedHeading) * 8000.0f + offZ) << 11;
+        gCamAtGoalX = D_803FCD48 / 32.0f;
+        gCamAtGoalY = (D_803FCD4C + 2000) / 32.0f;
+        gCamAtGoalZ = D_803FCD50 / 32.0f;
     }
     if (gGameMode == 0x40 && levelno == 0x3B) {
-        D_803643EC = (D_803643E0 + 0x1900) << 11;
-        D_803643F0 = (D_803643E4 + 0x3070) << 11;
-        D_803643F4 = (D_803643E8 - 0x1900) << 11;
-        D_80365078 = D_803643E0 / 32.0f;
-        D_8036507C = D_803643E4 / 32.0f;
-        D_80365080 = D_803643E8 / 32.0f;
+        gCamEyeGoalX = (D_803643E0 + 0x1900) << 11;
+        gCamEyeGoalY = (D_803643E4 + 0x3070) << 11;
+        gCamEyeGoalZ = (D_803643E8 - 0x1900) << 11;
+        gCamAtGoalX = D_803643E0 / 32.0f;
+        gCamAtGoalY = D_803643E4 / 32.0f;
+        gCamAtGoalZ = D_803643E8 / 32.0f;
     }
     if ((gGameMode & 0x2000000000002104) && !D_8036B8B0 && !inShuttle && gGameMode != 0x100 && levelno != 0x23 &&
         !D_80364A85) {
-        tx = D_80365078 * 65536.0;
-        ty = D_8036507C * 65536.0;
-        tz = D_80365080 * 65536.0;
-        if (levelno == 0x10 && D_80365078 > 8718.0f && D_80365078 < 8919.0f && D_80365080 > 9051.0f &&
-            D_80365080 < 9251.0f) {
-            D_802E8BE0 = 1.5f;
+        tx = gCamAtGoalX * 65536.0;
+        ty = gCamAtGoalY * 65536.0;
+        tz = gCamAtGoalZ * 65536.0;
+        if (levelno == 0x10 && gCamAtGoalX > 8718.0f && gCamAtGoalX < 8919.0f && gCamAtGoalZ > 9051.0f &&
+            gCamAtGoalZ < 9251.0f) {
+            gCamZoom = 1.5f;
             rateY = 0.1f;
         }
-        D_803643EC = (D_803643EC - tx) * D_802E8BE0 + tx;
-        D_803643F0 = (D_803643F0 - ty) * D_802E8BE0 + ty;
-        D_803643F4 = (D_803643F4 - tz) * D_802E8BE0 + tz;
+        gCamEyeGoalX = (gCamEyeGoalX - tx) * gCamZoom + tx;
+        gCamEyeGoalY = (gCamEyeGoalY - ty) * gCamZoom + ty;
+        gCamEyeGoalZ = (gCamEyeGoalZ - tz) * gCamZoom + tz;
     }
-    if (!D_80364412) {
-        D_803643F8 = (D_803643EC - D_803643F8) * rateX + D_803643F8;
-        D_803643FC = (D_803643F0 - D_803643FC) * rateY + D_803643FC;
-        D_80364400 = (D_803643F4 - D_80364400) * rateZ + D_80364400;
+    if (!gCamSnap) {
+        gCamEyeX = (gCamEyeGoalX - gCamEyeX) * rateX + gCamEyeX;
+        gCamEyeY = (gCamEyeGoalY - gCamEyeY) * rateY + gCamEyeY;
+        gCamEyeZ = (gCamEyeGoalZ - gCamEyeZ) * rateZ + gCamEyeZ;
     } else {
-        D_803643F8 = D_803643EC;
-        D_803643FC = D_803643F0;
-        D_80364400 = D_803643F4;
-        D_803650A0 = !D_8036509E;
+        gCamEyeX = gCamEyeGoalX;
+        gCamEyeY = gCamEyeGoalY;
+        gCamEyeZ = gCamEyeGoalZ;
+        gCamPrevType = !gCamType;
     }
-    if (D_80364424 && (D_80364414 < 134.0 || D_80364414 > 136.0)) {
-        func_802CE4F0(D_803643F8 >> 11, D_803643FC >> 11, D_80364400 >> 11);
-        func_802CE5BC(D_803643F8 >> 11, D_803643FC >> 11, D_80364400 >> 11,
+    if (D_80364424 && (gCamHeading < 134.0 || gCamHeading > 136.0)) {
+        func_802CE4F0(gCamEyeX >> 11, gCamEyeY >> 11, gCamEyeZ >> 11);
+        func_802CE5BC(gCamEyeX >> 11, gCamEyeY >> 11, gCamEyeZ >> 11,
                       D_80364434 ? D_80364430 : D_80364430 + 1600, 0xBE, 0);
         if (D_80364434) {
             if (D_803A7424) {
-                D_80364420 += D_8036442C;
-                if (D_80364420 > D_80364428) {
-                    D_80364420 = D_80364428;
+                gCamEyeHeight += D_8036442C;
+                if (gCamEyeHeight > D_80364428) {
+                    gCamEyeHeight = D_80364428;
                 }
                 D_80364434 = 1;
             } else {
@@ -3949,75 +3959,75 @@ void func_802507C8(Mtx *mtx, LookAt *lookAt, Mtx *view) {
         } else if (D_803A7424) {
             D_80364434 = 1;
         } else {
-            D_80364420 -= D_8036442C;
-            if (D_80364420 < D_8036444E) {
-                D_80364420 = D_8036444E;
+            gCamEyeHeight -= D_8036442C;
+            if (gCamEyeHeight < gCamHeight) {
+                gCamEyeHeight = gCamHeight;
             }
             D_80364434 = 0;
         }
     }
     if (!D_80364424) {
-        D_80364420 = D_8036444E;
-    } else if (D_80364414 >= 134.0 && D_80364414 <= 136.0) {
-        D_80364420 -= D_8036442C;
-        if (D_80364420 < D_8036444E) {
-            D_80364420 = D_8036444E;
+        gCamEyeHeight = gCamHeight;
+    } else if (gCamHeading >= 134.0 && gCamHeading <= 136.0) {
+        gCamEyeHeight -= D_8036442C;
+        if (gCamEyeHeight < gCamHeight) {
+            gCamEyeHeight = gCamHeight;
         }
     }
-    if (D_8036509E != D_803650A0 || changed) {
-        D_80365090 = D_80365084 - D_80365078;
-        D_80365094 = D_80365088 - D_8036507C;
-        D_80365098 = D_8036508C - D_80365080;
-        D_803650A0 = D_8036509E;
-        D_8030F660 = 0;
+    if (gCamType != gCamPrevType || changed) {
+        gCamAtEaseX = gCamAtX - gCamAtGoalX;
+        gCamAtEaseY = gCamAtY - gCamAtGoalY;
+        gCamAtEaseZ = gCamAtZ - gCamAtGoalZ;
+        gCamPrevType = gCamType;
+        gCamAtSettled = 0;
     }
-    if (!D_8030F660 && !D_80364412) {
-        D_80365090 = D_80365090 * 0.95;
-        D_80365084 = D_80365090 + D_80365078;
-        D_80365094 = D_80365094 * 0.97;
-        D_80365088 = D_80365094 + D_8036507C;
-        D_80365098 = D_80365098 * 0.95;
-        D_8036508C = D_80365098 + D_80365080;
-        if (D_80365090 < 0.1 && D_80365090 > -0.1 && D_80365098 < 0.1 && D_80365098 > -0.1 && D_80365094 < 0.1 &&
-            D_80365094 > -0.1) {
-            D_8030F660 = 1;
+    if (!gCamAtSettled && !gCamSnap) {
+        gCamAtEaseX = gCamAtEaseX * 0.95;
+        gCamAtX = gCamAtEaseX + gCamAtGoalX;
+        gCamAtEaseY = gCamAtEaseY * 0.97;
+        gCamAtY = gCamAtEaseY + gCamAtGoalY;
+        gCamAtEaseZ = gCamAtEaseZ * 0.95;
+        gCamAtZ = gCamAtEaseZ + gCamAtGoalZ;
+        if (gCamAtEaseX < 0.1 && gCamAtEaseX > -0.1 && gCamAtEaseZ < 0.1 && gCamAtEaseZ > -0.1 && gCamAtEaseY < 0.1 &&
+            gCamAtEaseY > -0.1) {
+            gCamAtSettled = 1;
         }
     } else {
-        D_80365084 = D_80365078;
-        D_80365088 = D_8036507C;
-        D_8036508C = D_80365080;
-        D_8030F660 = 1;
+        gCamAtX = gCamAtGoalX;
+        gCamAtY = gCamAtGoalY;
+        gCamAtZ = gCamAtGoalZ;
+        gCamAtSettled = 1;
     }
-    if (D_802E8BE8 == 0) {
-        D_802E8BE8 = 1;
+    if (gShakeSize == 0) {
+        gShakeSize = 1;
     }
-    if (D_802E8BE4 && (gGameMode & 0x2000100000000206)) {
-        shakeX = D_803649D8 % D_802E8BE8 - (D_802E8BE8 >> 1);
-        shakeY = D_803649D8 / 100 % D_802E8BE8 - (D_802E8BE8 >> 1);
-        shakeZ = D_803649D8 / 10000 % D_802E8BE8 - (D_802E8BE8 >> 1);
+    if (gShakeTime && (gGameMode & 0x2000100000000206)) {
+        shakeX = D_803649D8 % gShakeSize - (gShakeSize >> 1);
+        shakeY = D_803649D8 / 100 % gShakeSize - (gShakeSize >> 1);
+        shakeZ = D_803649D8 / 10000 % gShakeSize - (gShakeSize >> 1);
     } else {
         shakeX = 0;
         shakeY = 0;
         shakeZ = 0;
     }
-    if (D_802E8BE4) {
-        D_802E8BE4--;
-        D_802E8BE8 = D_802E8BE8 - D_802E8BE8 / 6;
-        D_802E8BE8 = D_802E8BE8 + 1;
+    if (gShakeTime) {
+        gShakeTime--;
+        gShakeSize = gShakeSize - gShakeSize / 6;
+        gShakeSize = gShakeSize + 1;
     }
-    eyeX = (f32) D_803643F8 / 65536.0;
-    eyeY = (f32) D_803643FC / 65536.0;
-    eyeZ = (f32) D_80364400 / 65536.0;
+    eyeX = (f32) gCamEyeX / 65536.0;
+    eyeY = (f32) gCamEyeY / 65536.0;
+    eyeZ = (f32) gCamEyeZ / 65536.0;
     if ((gGameMode & 2) && D_802E8BF0 && gFramesInMode > D_80366A04) {
-        eyeX = (eyeX - D_80365084) * D_803649F8 + D_80365084;
-        eyeY = (eyeY - D_80365088) * D_803649F8 + D_80365088;
-        eyeZ = (eyeZ - D_8036508C) * D_803649F8 + D_8036508C;
+        eyeX = (eyeX - gCamAtX) * D_803649F8 + gCamAtX;
+        eyeY = (eyeY - gCamAtY) * D_803649F8 + gCamAtY;
+        eyeZ = (eyeZ - gCamAtZ) * D_803649F8 + gCamAtZ;
         if (D_803649F8 > 0.4) {
             D_803649F8 = D_803649F8 - 0.01;
         }
     }
-    atX = (D_80365084 * 32.0f + shakeX) / 32.0f;
-    atZ = (D_8036508C * 32.0f + shakeZ) / 32.0f;
+    atX = (gCamAtX * 32.0f + shakeX) / 32.0f;
+    atZ = (gCamAtZ * 32.0f + shakeZ) / 32.0f;
     adx = eyeX - atX;
     if (adx < 0.0) {
         adx = 0.0 - adx;
@@ -4027,57 +4037,59 @@ void func_802507C8(Mtx *mtx, LookAt *lookAt, Mtx *view) {
         adz = 0.0 - adz;
     }
     if (adx > 0.5 || adz > 0.5) {
-        guLookAtReflect(mtx, lookAt, eyeX, eyeY, eyeZ, (D_80365084 * 32.0f + shakeX) / 32.0f,
-                        (D_80365088 * 32.0f + shakeY) / 32.0f, (D_8036508C * 32.0f + shakeZ) / 32.0f, 0.0f, 1.0f, 0.0f);
+        guLookAtReflect(mtx, lookAt, eyeX, eyeY, eyeZ, (gCamAtX * 32.0f + shakeX) / 32.0f,
+                        (gCamAtY * 32.0f + shakeY) / 32.0f, (gCamAtZ * 32.0f + shakeZ) / 32.0f, 0.0f, 1.0f, 0.0f);
     } else {
-        guLookAtReflect(mtx, lookAt, eyeX + 2.0, eyeY, eyeZ + 2.0, (D_80365084 * 32.0f + shakeX) / 32.0f,
-                        (D_80365088 * 32.0f + shakeY) / 32.0f, (D_8036508C * 32.0f + shakeZ) / 32.0f, 0.0f, 1.0f, 0.0f);
+        guLookAtReflect(mtx, lookAt, eyeX + 2.0, eyeY, eyeZ + 2.0, (gCamAtX * 32.0f + shakeX) / 32.0f,
+                        (gCamAtY * 32.0f + shakeY) / 32.0f, (gCamAtZ * 32.0f + shakeZ) / 32.0f, 0.0f, 1.0f, 0.0f);
     }
-    dist = sqrtf((eyeX - D_80365084) * (eyeX - D_80365084) + (eyeZ - D_8036508C) * (eyeZ - D_8036508C));
+    dist = sqrtf((eyeX - gCamAtX) * (eyeX - gCamAtX) + (eyeZ - gCamAtZ) * (eyeZ - gCamAtZ));
     if (dist < 1.0) {
         dist = 1.0f;
     }
-    if (eyeX >= D_80365084 && eyeZ >= D_8036508C) {
-        D_80364452 = func_802AD7D4((eyeX - D_80365084) * 65535.9 / dist) >> 4;
+    if (eyeX >= gCamAtX && eyeZ >= gCamAtZ) {
+        gCamYaw = func_802AD7D4((eyeX - gCamAtX) * 65535.9 / dist) >> 4;
         quadrant = 0;
     }
-    if (eyeX >= D_80365084 && eyeZ < D_8036508C) {
-        D_80364452 = (func_802AD7D4((D_8036508C - eyeZ) * 65535.9 / dist) >> 4) + 0x400; quadrant = 1;
+    if (eyeX >= gCamAtX && eyeZ < gCamAtZ) {
+        gCamYaw = (func_802AD7D4((gCamAtZ - eyeZ) * 65535.9 / dist) >> 4) + 0x400; quadrant = 1;
     }
-    if (eyeX < D_80365084 && eyeZ < D_8036508C) {
-        D_80364452 = (func_802AD7D4((D_80365084 - eyeX) * 65535.9 / dist) >> 4) + 0x800; quadrant = 2;
+    if (eyeX < gCamAtX && eyeZ < gCamAtZ) {
+        gCamYaw = (func_802AD7D4((gCamAtX - eyeX) * 65535.9 / dist) >> 4) + 0x800; quadrant = 2;
     }
-    if (eyeX < D_80365084 && eyeZ >= D_8036508C) {
-        D_80364452 = (func_802AD7D4((eyeZ - D_8036508C) * 65535.9 / dist) >> 4) + 0xC00; quadrant = 3;
+    if (eyeX < gCamAtX && eyeZ >= gCamAtZ) {
+        gCamYaw = (func_802AD7D4((eyeZ - gCamAtZ) * 65535.9 / dist) >> 4) + 0xC00; quadrant = 3;
     }
-    dist = sqrtf((eyeX - D_80365084) * (eyeX - D_80365084) + (eyeZ - D_8036508C) * (eyeZ - D_8036508C) +
-                 (eyeY - D_80365088) * (eyeY - D_80365088));
-    if (eyeY >= D_80365088) {
-        pitch1 = func_802AD7D4((eyeY - D_80365088) * 65535.9 / dist) >> 3;
+    dist = sqrtf((eyeX - gCamAtX) * (eyeX - gCamAtX) + (eyeZ - gCamAtZ) * (eyeZ - gCamAtZ) +
+                 (eyeY - gCamAtY) * (eyeY - gCamAtY));
+    if (eyeY >= gCamAtY) {
+        pitch1 = func_802AD7D4((eyeY - gCamAtY) * 65535.9 / dist) >> 3;
     } else {
-        pitch1 = 0x1000 - (func_802AD7D4((D_80365088 - eyeY) * 65535.9 / dist) >> 3);
+        pitch1 = 0x1000 - (func_802AD7D4((gCamAtY - eyeY) * 65535.9 / dist) >> 3);
     }
-    if (eyeY >= D_80365088) {
-        pitch2 = func_802AD7D4((65535.0 < (eyeY - D_80365088) * 65535.9 / 20000.0) ? 65535.0 : (eyeY - D_80365088) * 65535.9 / 20000.0) >> 3;
+    if (eyeY >= gCamAtY) {
+        pitch2 = func_802AD7D4((65535.0 < (eyeY - gCamAtY) * 65535.9 / 20000.0) ? 65535.0 : (eyeY - gCamAtY) * 65535.9 / 20000.0) >> 3;
     } else {
-        pitch2 = 0x1000 - (func_802AD7D4((65535.0 < (D_80365088 - eyeY) * 65535.9 / 20000.0) ? 65535.0 : (D_80365088 - eyeY) * 65535.9 / 20000.0) >> 3);
+        pitch2 = 0x1000 - (func_802AD7D4((65535.0 < (gCamAtY - eyeY) * 65535.9 / 20000.0) ? 65535.0 : (gCamAtY - eyeY) * 65535.9 / 20000.0) >> 3);
     }
-    D_80364454 = pitch1 - pitch2;
-    scale = func_80254E54(eyeX, eyeY, eyeZ, D_80365084, D_80365088, D_8036508C);
-    posX = (eyeX - D_80365084) * scale + D_80365084;
-    posY = (eyeY - D_80365088) * scale + D_80365088;
-    posZ = (eyeZ - D_8036508C) * scale + D_8036508C;
+    gCamPitch = pitch1 - pitch2;
+    scale = cam_eye_scale(eyeX, eyeY, eyeZ, gCamAtX, gCamAtY, gCamAtZ);
+    posX = (eyeX - gCamAtX) * scale + gCamAtX;
+    posY = (eyeY - gCamAtY) * scale + gCamAtY;
+    posZ = (eyeZ - gCamAtZ) * scale + gCamAtZ;
     if (adx > 0.5 || adz > 0.5) {
-        guLookAt(view, posX, posY, posZ, D_80365084, D_80365088, D_8036508C, 0.0f, 1.0f, 0.0f);
+        guLookAt(view, posX, posY, posZ, gCamAtX, gCamAtY, gCamAtZ, 0.0f, 1.0f, 0.0f);
     } else {
-        guLookAt(view, posX + 2.0, posY, posZ + 2.0, D_80365084, D_80365088, D_8036508C, 0.0f, 1.0f, 0.0f);
+        guLookAt(view, posX + 2.0, posY, posZ + 2.0, gCamAtX, gCamAtY, gCamAtZ, 0.0f, 1.0f, 0.0f);
     }
-    PORT_ICUT_IF(D_80364412);
-    D_80364412 = 0;
+    PORT_ICUT_IF(gCamSnap);
+    gCamSnap = 0;
 }
 
-/* Speed limit for the current vehicle, scaled down past 10000 units of travel */
-f32 func_80254E54(f32 x0, f32 y0, f32 z0, f32 x1, f32 y1, f32 z1) {
+/* The culling view's eye factor for the current vehicle type: the eye is
+ * moved to target + (eye - target) * factor, the factor reduced so that the
+ * distance stays within 10000 (0x80254E54). */
+f32 cam_eye_scale(f32 x0, f32 y0, f32 z0, f32 x1, f32 y1, f32 z1) {
 #ifdef NON_MATCHING
     f32 speed = 0.0f; /* ids without a case leave the original's stack slot as it was (indeterminate) */
 #else
@@ -4153,8 +4165,9 @@ f32 func_80254E54(f32 x0, f32 y0, f32 z0, f32 x1, f32 y1, f32 z1) {
     return speed;
 }
 
-/* Polar to cartesian: point at angle (degrees) on a circle of radius r*sqrt(2) */
-void func_80255034(s32 r, f32 angle, s32 *outX, s32 *outY) {
+/* Polar to cartesian: point at angle (degrees) on a circle of radius r*sqrt(2)
+ * (0x80255034). */
+void cam_polar_offset(s32 r, f32 angle, s32 *outX, s32 *outY) {
     f32 len;
     f32 r2;
     s32 x;
@@ -4178,78 +4191,82 @@ void func_80255034(s32 r, f32 angle, s32 *outX, s32 *outY) {
     *outY = y;
 }
 
-/* Map screen: Z/R rotate the map 45 degrees at 3 degrees a frame */
-void func_80255190(void) {
+/* C-right / C-left turn gCamHeading 45 degrees, 3 degrees a frame (with a
+ * sound); not where cam_fixed_heading_area holds it (0x80255190). */
+void cam_turn_heading(void) {
     u8 ok;
 
     if (gPaused == 0) {
-        ok = func_80255628();
+        ok = cam_fixed_heading_area();
         if (ok && ((D_80370C21 && !D_80370C27) || (D_80370C1E && !D_80370C24)) && (gGameMode & 0x104)) {
             func_80260650(D_80367738, 0xD0, NULL);
         }
-        if (D_80370C21 && !D_80370C27 && !D_8036441C && !D_8036441D && !ok && gGameMode != 0x2000) {
-            D_80364418 = D_80364414 + 45.0;
-            if (D_80364418 >= 360.0) {
-                D_80364418 = D_80364418 - 360.0;
+        if (D_80370C21 && !D_80370C27 && !gCamTurnPos && !gCamTurnNeg && !ok && gGameMode != 0x2000) {
+            gCamHeadingGoal = gCamHeading + 45.0;
+            if (gCamHeadingGoal >= 360.0) {
+                gCamHeadingGoal = gCamHeadingGoal - 360.0;
             }
-            D_8036441C = 1;
+            gCamTurnPos = 1;
             if (gGameMode != 0x40) {
                 func_80260650(D_80367738, 0xDD, NULL);
             }
         }
-        if (D_8036441C) {
-            if (D_80364414 < D_80364418) {
-                D_80364414 = D_80364414 + 3.0;
-                if (D_80364414 >= D_80364418) {
-                    D_8036441C = 0;
-                    D_80364414 = D_80364418;
+        if (gCamTurnPos) {
+            if (gCamHeading < gCamHeadingGoal) {
+                gCamHeading = gCamHeading + 3.0;
+                if (gCamHeading >= gCamHeadingGoal) {
+                    gCamTurnPos = 0;
+                    gCamHeading = gCamHeadingGoal;
                 }
             } else {
-                D_80364414 = D_80364414 + 3.0;
-                if (D_80364414 >= 360.0) {
-                    D_80364414 = D_80364414 - 360.0;
-                    if (D_80364414 >= D_80364418) {
-                        D_8036441C = 0;
-                        D_80364414 = D_80364418;
+                gCamHeading = gCamHeading + 3.0;
+                if (gCamHeading >= 360.0) {
+                    gCamHeading = gCamHeading - 360.0;
+                    if (gCamHeading >= gCamHeadingGoal) {
+                        gCamTurnPos = 0;
+                        gCamHeading = gCamHeadingGoal;
                     }
                 }
             }
         }
-        if (D_80370C1E && !D_80370C24 && !D_8036441C && !D_8036441D && !ok && gGameMode != 0x2000) {
-            D_80364418 = D_80364414 - 45.0;
-            if (D_80364418 < 0.0) {
-                D_80364418 = D_80364418 + 360.0;
+        if (D_80370C1E && !D_80370C24 && !gCamTurnPos && !gCamTurnNeg && !ok && gGameMode != 0x2000) {
+            gCamHeadingGoal = gCamHeading - 45.0;
+            if (gCamHeadingGoal < 0.0) {
+                gCamHeadingGoal = gCamHeadingGoal + 360.0;
             }
-            D_8036441D = 1;
+            gCamTurnNeg = 1;
             if (gGameMode != 0x40) {
                 func_80260650(D_80367738, 0xDC, NULL);
             }
         }
-        if (D_8036441D) {
-            if (D_80364414 > D_80364418) {
-                D_80364414 = D_80364414 - 3.0;
-                if (D_80364414 <= D_80364418) {
-                    D_8036441D = 0;
-                    D_80364414 = D_80364418;
+        if (gCamTurnNeg) {
+            if (gCamHeading > gCamHeadingGoal) {
+                gCamHeading = gCamHeading - 3.0;
+                if (gCamHeading <= gCamHeadingGoal) {
+                    gCamTurnNeg = 0;
+                    gCamHeading = gCamHeadingGoal;
                 }
             } else {
-                D_80364414 = D_80364414 - 3.0;
-                if (D_80364414 < 0.0) {
-                    D_80364414 = D_80364414 + 360.0;
-                    if (D_80364414 <= D_80364418) {
-                        D_8036441D = 0;
-                        D_80364414 = D_80364418;
+                gCamHeading = gCamHeading - 3.0;
+                if (gCamHeading < 0.0) {
+                    gCamHeading = gCamHeading + 360.0;
+                    if (gCamHeading <= gCamHeadingGoal) {
+                        gCamTurnNeg = 0;
+                        gCamHeading = gCamHeadingGoal;
                     }
                 }
             }
         }
-        if (D_8036441D || D_8036441C) {
-            func_802A45D4(2);
+        if (gCamTurnNeg || gCamTurnPos) {
+            cull_restart(2);
         }
     }
 }
 
-u8 func_80255628(void) {
+/* 1 where the heading is held at 135 degrees (and turned back to it): the
+ * attract mode, the sequences and some areas of levels 4, 13, 16 and 59
+ * (0x80255628). */
+u8 cam_fixed_heading_area(void) {
     u8 ok = 0;
 
     if (gGameMode == 0x100000000000 || gGameMode == 2) {
@@ -4278,44 +4295,45 @@ u8 func_80255628(void) {
         }
     }
     if (ok) {
-        if (D_80364418 < 134.0 || D_80364418 > 136.0) {
-            D_8036441D = 0;
-            D_8036441C = 0;
-            D_80364418 = 135.0f;
-            if (D_80364418 < D_80364414) {
-                if (D_80364414 - D_80364418 > 180.0) {
-                    D_8036441C = 1;
+        if (gCamHeadingGoal < 134.0 || gCamHeadingGoal > 136.0) {
+            gCamTurnNeg = 0;
+            gCamTurnPos = 0;
+            gCamHeadingGoal = 135.0f;
+            if (gCamHeadingGoal < gCamHeading) {
+                if (gCamHeading - gCamHeadingGoal > 180.0) {
+                    gCamTurnPos = 1;
                 } else {
-                    D_8036441D = 1;
+                    gCamTurnNeg = 1;
                 }
             } else {
-                D_8036441C = 1;
+                gCamTurnPos = 1;
             }
         }
     }
     return ok;
 }
 
-/* Clears the current frame buffer with a fill rectangle */
-void func_802558C8(Gfx *arg0, s32 *len) {
+/* Clears the current frame buffer with a fill rectangle (0x802558C8). */
+void hd_clear_framebuffer(Gfx *arg0, s32 *len) {
     Gfx *gdl = arg0;
 
     gDPPipeSync(gdl++);
     gDPSetCycleType(gdl++, G_CYC_FILL);
-    gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, D_80358050[D_8035805C]);
+    gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, gFrameBufferPhys[gBufferIndex]);
     gDPSetFillColor(gdl++, 0x00010001);
     gDPPipeSync(gdl++);
     gDPFillRectangle(gdl++, 0, 0, 319, 239);
     *len += gdl - arg0;
 }
 
-/* Closes the top-level display list and returns its length in *length */
-void func_802559F8(Gfx *arg0, s32 *length) {
+/* Closes the top-level display list and returns its length in *length
+ * (0x802559F8). */
+void hd_close_display_list(Gfx *arg0, s32 *length) {
     Gfx *gdl = arg0;
 
     gDPFullSync(gdl++);
     gSPEndDisplayList(gdl++);
-    *length = gdl - D_803156F8[D_8035805C].dl;
+    *length = gdl - gDynamicBufs[gBufferIndex].dl;
     HD_ASSERT(*length<TOPLEVEL_DL_SIZE, 3665);
 }
 
@@ -4341,9 +4359,9 @@ void hd_init(void) {
     debug_printf("audio inited\n");
     osViSetSpecialFeatures(OS_VI_GAMMA_OFF);
     osViSetSpecialFeatures(OS_VI_DITHER_FILTER_ON);
-    D_80358050[0] = PHYS(D_80000400[0]);
-    D_80358050[1] = PHYS(D_80000400[1]);
-    D_80358058 = PHYS(D_8021ED00);
+    gFrameBufferPhys[0] = PHYS(gFrameBuffers[0]);
+    gFrameBufferPhys[1] = PHYS(gFrameBuffers[1]);
+    gDepthBufferPhys = PHYS(D_8021ED00);
     rsp_init_ucode_table();
     func_802D6710();
     func_8028FC10();
@@ -4395,7 +4413,7 @@ void hd_mode_setup(void) {
     gUnpausedFrames = 0;
     D_80358064 = 0;
     gFramesInMode = 0;
-    D_8035805C = 0;
+    gBufferIndex = 0;
     D_80367BD6 = 0;
     func_8026A8BC();
     func_8026A974();
@@ -4405,9 +4423,9 @@ void hd_mode_setup(void) {
     func_8028B4C4((u32) D_00787F40, (u32) D_803FF600, &size, 10, 0, 2);
     end = (u32) (D_00788000 - D_00787F40) + (u32) D_803FF600;
     debug_printf("Static end = 0x%x, space=0x%x (%d) bytes\n", end, 0x80400000 - end, 0x80400000 - end);
-    D_80358078 = 0;
-    func_802558C8(D_803156F8[D_8035805C].dl, &D_80358078);
-    func_802559F8(D_803156F8[D_8035805C].dl, &D_80358078);
+    gFrameDlLen = 0;
+    hd_clear_framebuffer(gDynamicBufs[gBufferIndex].dl, &gFrameDlLen);
+    hd_close_display_list(gDynamicBufs[gBufferIndex].dl, &gFrameDlLen);
     gHeapPtr = 0x8004B400;
     align_up(&gHeapPtr, 0x10);
     gRdpOutputBuffer = gHeapPtr;
@@ -4714,17 +4732,17 @@ void func_80256A34(s32 arg0) {
     D_803649EC = 0;
     D_803643CC = D_803643C8;
     D_80364AA8 = D_802E8F94[levelno].unk0;
-    D_802E8BE4 = 0;
-    D_802E8BE8 = 0;
+    gShakeTime = 0;
+    gShakeSize = 0;
     D_803643E0 = 0;
     D_803643E4 = 0;
     D_803643E8 = 0;
     D_8036443C = 0;
-    D_80364414 = 135.0f;
-    D_80364418 = 135.0f;
-    D_8036441C = 0;
-    D_8036441D = 0;
-    D_80364420 = 3000;
+    gCamHeading = 135.0f;
+    gCamHeadingGoal = 135.0f;
+    gCamTurnPos = 0;
+    gCamTurnNeg = 0;
+    gCamEyeHeight = 3000;
     D_80364434 = 1;
     D_803A7430 = 0;
     D_803649EE = 0;
@@ -4753,7 +4771,7 @@ void func_80256A34(s32 arg0) {
     func_80275430();
     func_802621DC(levelno);
     func_80262238(levelno);
-    func_80262150(levelno);
+    cam_set_level_fovy(levelno);
     D_80367BFF = 0;
     func_802CE840();
     debug_printf("enter initlevel game_mode=%d loop_done=%d\n", lowest_set_bit(gGameMode), lowest_set_bit(gNextGameMode));
@@ -4768,7 +4786,7 @@ void func_80256A34(s32 arg0) {
     }
     func_802C1DD0(D_80364AA8 == 0x20 || D_80364AA8 == 0x80);
     func_80262320(levelno);
-    if (D_80364410) {
+    if (gCamFixedEye) {
         D_80364A86 = func_80272C5C((u16 *) D_802E8BF4, 0, 1, 1, 1, 1.0f);
     }
     func_802775C0();
@@ -4811,15 +4829,15 @@ void func_80256A34(s32 arg0) {
         v++;
     }
     func_802729F0(gNextGameMode, levelno);
-    D_80364452 = 0x2000;
-    D_80364454 = 0x2000;
+    gCamYaw = 0x2000;
+    gCamPitch = 0x2000;
     D_80364456 = 0;
     D_803649ED = 0;
-    D_803643F8 = 0;
-    D_803643FC = 0;
-    D_80364400 = 0;
-    D_80364444 = 0.0f;
-    D_80364448 = 0.0f;
+    gCamEyeX = 0;
+    gCamEyeY = 0;
+    gCamEyeZ = 0;
+    gCamTilt = 0.0f;
+    gCamTurn = 0.0f;
     D_803649F8 = 1.0f;
     D_80364A3C = 0;
     D_80364A3D = 0;
@@ -4949,11 +4967,13 @@ void align_up(s32 *arg0, s32 arg1) {
 }
 
 
-f32 func_802574F0(f32 arg0) {
+/* sinf (0x802574F0); the camera's SINE() */
+f32 hd_sinf(f32 arg0) {
     return sinf(arg0);
 }
 
 
-f32 func_80257514(f32 arg0) {
+/* cosf (0x80257514); the camera's COSINE() */
+f32 hd_cosf(f32 arg0) {
     return cosf(arg0);
 }

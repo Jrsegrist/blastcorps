@@ -158,15 +158,15 @@ Gfx *func_80264264(Gfx * N64P *, Gfx *);
         gImmp1(pkt, OLD_RDPHALF_CONT, (_SHIFTL(dsdx, 16, 16) | _SHIFTL(dtdy, 0, 16)));       \
     }
 
-void func_80262150(u8 arg0) {
+void cam_set_level_fovy(u8 arg0) {
     s32 i;
 
-    D_80364438 = 45.0f;
+    gCamFovy = 45.0f;
     i = 0;
     D_80367C10 = 0;
     do {
         if (D_802E8F30[i] == arg0) {
-            D_80364438 = 80.0f;
+            gCamFovy = 80.0f;
             D_80367C10 = 1;
         } else {
             i++;
@@ -227,12 +227,12 @@ void func_80262320(u8 arg0) {
         }
     } while (!found && i < 4);
     if (found) {
-        D_80364410 = 1;
-        D_80364404 = D_802E8F74[i].pos[0] << 16;
-        D_80364408 = D_802E8F74[i].pos[1] << 16;
-        D_8036440C = D_802E8F74[i].pos[2] << 16;
+        gCamFixedEye = 1;
+        gCamFixedEyeX = D_802E8F74[i].pos[0] << 16;
+        gCamFixedEyeY = D_802E8F74[i].pos[1] << 16;
+        gCamFixedEyeZ = D_802E8F74[i].pos[2] << 16;
     } else {
-        D_80364410 = 0;
+        gCamFixedEye = 0;
     }
     D_80367C04 = &D_802E8F94[arg0];
     D_803F7C10 = D_80367C04->unk1C << 5;
@@ -380,7 +380,7 @@ void func_80262840(void) {
         }
     }
     D_80367BC4 = secs;
-    if (secs == 4 && D_8035805C == D_803156F4) {
+    if (secs == 4 && gBufferIndex == D_803156F4) {
         gNextGameMode = 4;
     }
 }
@@ -683,7 +683,7 @@ Gfx *func_802639B4(Gfx *gdl, Gfx * N64P *arg1, u32 *arg2) {
         }
     }
     if (D_803643D7 && gGameMode == 0x04000000) {
-        func_8025E2CC(&g, (s32) arg1, D_8035805C);
+        func_8025E2CC(&g, (s32) arg1, gBufferIndex);
     }
     if (D_80367BC8) {
         g = func_80264264(arg1, g);

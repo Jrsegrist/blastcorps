@@ -200,8 +200,8 @@ void func_802CDD74(Obj89250 *e, Tri89250 *tri, s32 amount) {
     s32 part;
     s32 level;
 
-    D_802E8BE4 = 10;
-    D_802E8BE8 = 200;
+    gShakeTime = 10;
+    gShakeSize = 200;
     if (e->kind == 0x38) {
         return;
     }

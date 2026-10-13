@@ -2,8 +2,8 @@
 #include <ultra64.h>
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_803156F8 ((FeDyn *) D_803156F8)
-#define D_80358050 ((void * N64P *) D_80358050)
+#define gDynamicBufs ((FeDyn *) gDynamicBufs)
+#define gFrameBufferPhys ((void * N64P *) gFrameBufferPhys)
 /* end of views */
 
 
@@ -19,7 +19,7 @@ void func_801EE398(s32 arg0) {
     Gfx *gdl;
     s32 i;
 
-    buf = &D_803156F8[D_8035805C ^ 1];
+    buf = &gDynamicBufs[gBufferIndex ^ 1];
     nextdma = 0;
     no_palette_dmas = 0;
     gdl = buf->dl;
@@ -34,23 +34,23 @@ void func_801EE398(s32 arg0) {
         osViBlack(0);
     }
     func_80259450();
-    rsp_send_task((u64 *) (D_803156F8[D_8035805C].dl), D_80358078, 1, 1, 0x4D2, 0);
-    D_8035805C ^= 1;
+    rsp_send_task((u64 *) (gDynamicBufs[gBufferIndex].dl), gFrameDlLen, 1, 1, 0x4D2, 0);
+    gBufferIndex ^= 1;
     gSPSegment(gdl++, 0, 0);
     gSPSegment(gdl++, 2, osVirtualToPhysical(buf));
     gSPSegment(gdl++, 1, osVirtualToPhysical(gStaticSegment));
     gSPDisplayList(gdl++, D_01000038);
     gSPDisplayList(gdl++, D_01000010);
     gDPSetCycleType(gdl++, G_CYC_FILL);
-    gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, D_80358050[D_8035805C]);
+    gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, gFrameBufferPhys[gBufferIndex]);
     gDPPipeSync(gdl++);
     gDPSetFillColor(gdl++, 0x00010001);
     gDPFillRectangle(gdl++, 0, 0, 319, 239);
     gDPSetCycleType(gdl++, G_CYC_1CYCLE);
-    gdl = func_8026BBD0(gdl, (s32) &D_803156F8[D_8035805C], &D_80358078);
+    gdl = func_8026BBD0(gdl, (s32) &gDynamicBufs[gBufferIndex], &gFrameDlLen);
     gDPFullSync(gdl++);
     gSPEndDisplayList(gdl++);
-    D_80358078 = gdl - buf->dl;
+    gFrameDlLen = gdl - buf->dl;
     for (i = 0; i < nextdma; i++) {
         osRecvMesg(&textureDmaMessageQ, NULL, OS_MESG_BLOCK);
     }

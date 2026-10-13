@@ -102,14 +102,14 @@ static void veh83910_model(const VehDesc83910 *d) {
     s16 *verts;
     MtxChainRegs regs;
 
-    base = (u8 *) (D_8035805C != 0 ? *d->bufA : *d->bufB);
+    base = (u8 *) (gBufferIndex != 0 ? *d->bufA : *d->bufB);
     base += *(s32 *) (OBJ_PTR(data, 0x18) + 4);
     D_803ED390[0] = 0;
     D_803ED390[2] = 0;
     D_803ED390[1] = VEH_U16(veh, 0x4C);
     func_802AA764(pos[0], pos[1], pos[2], 0x88B8, (s32 *) base);
 
-    base = (u8 *) (D_8035805C != 0 ? *d->bufA : *d->bufB);
+    base = (u8 *) (gBufferIndex != 0 ? *d->bufA : *d->bufB);
     regs.v1 = pos[1];
     regs.a0 = pos[2];
     regs.a3 = 0;
@@ -182,7 +182,7 @@ static void veh83910_frame(const VehDesc83910 *d) {
     func_802A8768(veh, d->type, &pos[0], &pos[1], &pos[2], x, o.t1, 0xA0, 0xA0, &VEH_S16(veh, 0x4C),
                   &VEH_U8(veh, 0x96), &VEH_S16(veh, 0x52), &VEH_S32(veh, 0x28), &VEH_S32(veh, 0x40),
                   &VEH_S32(veh, 0x34), &VEH_S32(veh, 4), &r, &tri);
-    if (D_8035805C != 0) {
+    if (gBufferIndex != 0) {
         func_8029E558((u8 *) *d->bufA, (u8 *) *d->bufB, (Unk8029DEA0Entry *) d->chan);
     } else {
         func_8029E558((u8 *) *d->bufB, (u8 *) *d->bufA, (Unk8029DEA0Entry *) d->chan);
@@ -197,7 +197,7 @@ static void veh83910_frame(const VehDesc83910 *d) {
     func_802BE77C(d->type, veh);
     if (D_803A7424 != 0) {
         if (*d->flag == 0) {
-            if (D_8035805C != 0) {
+            if (gBufferIndex != 0) {
                 src = *d->bufB;
                 dst = *d->bufA;
             } else {
@@ -372,7 +372,7 @@ void func_802C8790(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp) {
  * through to func_802C4310 with a1 = 0x72. */
 
 void func_802C8AB0(s32 arg0) {
-    D_8036444C = 3000;
+    gCamDistance = 3000;
     D_80364450 = 0;
     func_802C4310(arg0, 0x72);
 }

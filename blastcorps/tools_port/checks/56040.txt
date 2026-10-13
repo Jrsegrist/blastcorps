@@ -80,10 +80,10 @@ func_8029D534: -n 300 --arg t2=choice:7*3,6,8,0,-1,0x107,0x7FFFFFFF --arg s0=ptr
 # func_8029DCD4 (t5 = dst, s2 = src): queue a copy in the first free slot of D_803B7FC8; raise D_803B8568
 func_8029DCD4: -n 300 --arg t5=int --arg s2=choice:0x80B00000,0x12345678,-1 --mem D_803B7FC8:0x5A0=rand \
     --mem D_803B7FC8*0xC:120=choice:0,0x80B00000*6 --mem D_803B8568=rel:D_803B7FC8+0xC*int:-2:121 \
-    --mem D_8035805C:1=bytes:0,1,0xFE
+    --mem gBufferIndex:1=bytes:0,1,0xFE
 # exactly one free slot (first, last or middle); pool full
 func_8029DCD4: -n 200 --seed 1 --arg t5=int --arg s2=int --mem D_803B7FC8:0x5A0=onehot:0xC:0:words:1,0x80B00000 \
-    --mem D_803B8568=rel:D_803B7FC8+0xC*choice:0,60,119,-1 --mem D_8035805C:1=bytes:0,1
+    --mem D_803B8568=rel:D_803B7FC8+0xC*choice:0,60,119,-1 --mem gBufferIndex:1=bytes:0,1
 func_8029DCD4: -n 50 --seed 2 --arg t5=int --arg s2=int --mem D_803B7FC8:0x5A0=words:1,-1 --mem D_803B8568=int
 
 # func_8029DD54 (s2 = dst): cancel queued copies with that dst; the scan also covers the pseudo-slot at &D_803B8568
@@ -91,13 +91,13 @@ func_8029DD54: -n 300 --arg s2=choice:0x80B00100,0x80B00140 --mem D_803B7FC8:0x5
     --mem D_803B7FC8+4*0xC:120=choice:0x80B00100,0x80B00140,0,-1 --mem D_803B8568=int --mem D_803B8568+4=choice:0x80B00100,0x80B00140,7
 func_8029DD54: -n 100 --seed 1 --arg s2=0 --mem D_803B7FC8:0x5A0=onehot:0xC@4:0:words:-1 --mem D_803B8568=int --mem D_803B8568+4=choice:0,1
 
-# func_8029DDC8 (ABI): run the queued copies whose parity == D_8035805C (func_8029DE50 stubbed, then followed)
+# func_8029DDC8 (ABI): run the queued copies whose parity == gBufferIndex (func_8029DE50 stubbed, then followed)
 func_8029DDC8: -n 300 --ret void --sig func_8029DE50=a0,a1 --mem D_803B7FC8:0x5A0=rand \
     --mem D_803B7FC8*0xC:120=choice:0*2,0x80B00000,0x80B00040 --mem D_803B7FC8+4*0xC:120=choice:0x80B00100,0x80B00140 \
-    --mem D_803B7FC8+8*0xC:120=choice:0,1,2,0x100 --mem D_803B8568=rel:D_803B7FC8+0xC*int:-1:119 --mem D_8035805C:1=bytes:0,1
+    --mem D_803B7FC8+8*0xC:120=choice:0,1,2,0x100 --mem D_803B8568=rel:D_803B7FC8+0xC*int:-1:119 --mem gBufferIndex:1=bytes:0,1
 func_8029DDC8: -n 200 --seed 1 --ret void --follow func_8029DE50 --heap 0x200 --mem D_803B7FC8:0x5A0=rand \
     --mem D_803B7FC8*0xC:120=choice:0*2,0x80B00000,0x80B00040 --mem D_803B7FC8+4*0xC:120=choice:0x80B00100,0x80B00140 \
-    --mem D_803B7FC8+8*0xC:120=choice:0,1 --mem D_803B8568=rel:D_803B7FC8+0xC*choice:0,1,60,118,119 --mem D_8035805C:1=bytes:0,1
+    --mem D_803B7FC8+8*0xC:120=choice:0,1 --mem D_803B8568=rel:D_803B7FC8+0xC*choice:0,1,60,118,119 --mem gBufferIndex:1=bytes:0,1
 # nothing in use / pointer below the pool start
 func_8029DDC8: -n 50 --seed 2 --ret void --sig func_8029DE50=a0,a1 --mem D_803B7FC8:0x5A0=zero --mem D_803B8568=rel:D_803B7FC8+0xC*choice:-1,0,119
 # func_8029DE50 (t5 = dst, s2 = src): copy 64 bytes (also overlapping forward by 8)
@@ -739,7 +739,7 @@ func_8029E21C: -n 300 --heap 0x100 --heap 0x200=words:0xFA000000,0x06000000,0xE7
     --stub-ret func_8029F1BC.t2=choice:0,1,2 --stub-ret func_8029F1BC.f30=float:0:1 \
     --stub-ret func_8029E4E4=choice:0,0x123450,0x234560 --stub-ret func_8029E47C=int \
     --mem D_80364460+0x5C*0x74:2=choice:0,2 --mem D_80364460+0x144=1 \
-    --mem D_80364460+0xC*0x74:3=rel:heap1 --mem D_80364460+0x30*0x74:3=rel:heap1+0x80 --mem D_8035805C:1=bytes:0,1 \
+    --mem D_80364460+0xC*0x74:3=rel:heap1 --mem D_80364460+0x30*0x74:3=rel:heap1+0x80 --mem gBufferIndex:1=bytes:0,1 \
     --mem D_803B3500*0x18:4=rel:heap0 --mem D_803B3500+0xC*0x18:4=0x12345678 --mem D_803B3500+0x30=0x12345678 \
     --mem D_803B3500+4*0xC:8=choice:0,8,0x10,0x18,0x20,0x28,0x30,0x38,0x40,0x44 --mem D_803B3500+8*0xC:8=choice:0,1,2 \
     --mem D_803B35F0=rel:D_803B3500+0x18*int:0:4 \
@@ -751,7 +751,7 @@ func_8029E21C: -n 300 --seed 1 --heap 0x100 --heap 0x200=words:0xFA000000,0x0600
     --mem @heap0:1=1 --mem @heap0+1:1=4 --mem @heap0+2:1=2 --mem @heap0+3:1=bytes:0,1 \
     --follow func_8029F1BC,func_8029E4E4,func_8029E47C --sig func_802A1074=a0,a1,a2 \
     --mem D_80364460+0x5C*0x74:2=choice:0,2 --mem D_80364460+0x144=1 \
-    --mem D_80364460+0xC*0x74:3=rel:heap1 --mem D_80364460+0x30*0x74:3=rel:heap1+0x80 --mem D_8035805C:1=bytes:0,1 \
+    --mem D_80364460+0xC*0x74:3=rel:heap1 --mem D_80364460+0x30*0x74:3=rel:heap1+0x80 --mem gBufferIndex:1=bytes:0,1 \
     --mem D_803B3500*0x18:4=rel:heap0 --mem D_803B3500+0xC*0x18:4=0x12345678 --mem D_803B3500+0x18=0x12345678 \
     --mem D_803B3500+4*0xC:8=choice:0,8,0x10,0x18,0x20,0x28,0x30,0x38,0x40,0x44 --mem D_803B3500+8*0xC:8=choice:0,1,2 \
     --mem D_803B35F0=rel:D_803B3500+0x18*int:0:4 \
@@ -764,7 +764,7 @@ func_8029E21C: -n 100 --seed 2 --heap 0x100 --heap 0x200=words:0xFA000000 --arg 
     --mem @heap0+2:1=bytes:0,1 --mem @heap0+3:1=bytes:0,1 \
     --stub-ret func_8029F1BC.t2=choice:0,1,2 --stub-ret func_8029F1BC.f30=choice:0,0x3F800000,0x3F000000,0x3B808081 \
     --stub-ret func_8029E4E4=choice:0,0x123450 --stub-ret func_8029E47C=int \
-    --mem D_80364460+0x5C=1 --mem D_80364460+0xC=rel:heap1 --mem D_80364460+0x30=rel:heap1+0x80 --mem D_8035805C:1=bytes:0,1 \
+    --mem D_80364460+0x5C=1 --mem D_80364460+0xC=rel:heap1 --mem D_80364460+0x30=rel:heap1+0x80 --mem gBufferIndex:1=bytes:0,1 \
     --mem D_803B3500*0x18:2=rel:heap0 --mem D_803B3500+0xC*0x18:2=0x12345678 --mem D_803B3500+4*0xC:4=choice:0,8,0x40 --mem D_803B3500+8*0xC:4=choice:0,1 \
     --mem D_803B35F0=rel:D_803B3500+0x18*int:0:2 \
     --mem D_803A7440*0x1010:12=choice:0,0x80100000 --mem D_803A7440+6*0x1010:12/1=choice:0,1
@@ -1123,7 +1123,7 @@ func_8029E5AC: -n 200 --seed 1 --follow func_8029F1BC,func_8029F110,func_8029F06
     --mem @heap0+5:1=bytes:0,1,2 \
     --mem @heap0+8*0x44:2=choice:0,0x40,0x80 --mem @heap0+0xC*0x44:2=choice:0x100,0x180 \
     --mem @heap0+0x60=choice:0,0x40,0x80 --mem @heap0+0x64=choice:0x100,0x180 \
-    --mem D_8035805C:1=bytes:0,1 --mem D_803B7FC8:0x5A0=rand --mem D_803B7FC8*0xC:120=choice:0,0,1 \
+    --mem gBufferIndex:1=bytes:0,1 --mem D_803B7FC8:0x5A0=rand --mem D_803B7FC8*0xC:120=choice:0,0,1 \
     --mem D_803B8568=rel:D_803B7FC8+0xC*int:0:119 --mem D_803B3778:0x40=rand --mem D_803B37B8:8=rand \
     --mem D_803B7FC0:4=rand
 # func_8029E558 (base v0, other v1, channels t0): D_803B3770 = other, func_8029E5AC for each of the 32 channels

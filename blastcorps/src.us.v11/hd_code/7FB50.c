@@ -702,7 +702,7 @@ s32 func_802C7DFC(void);
 /* Per-frame update of vehicle 9 when it is the player's (func_8024B7AC and
  * its init func_802C5120): zone lookup (func_802C5970), D_803EBBF4
  * (func_802C7ECC), unless +0x9A is set the mode machine (func_802C61F0) and
- * the D_8036444C pair (func_802C7410), the tuning values (func_802C7F28),
+ * the gCamDistance pair (func_802C7410), the tuning values (func_802C7F28),
  * steering (func_802A7E70 at rate func_802C7DFC()), throttle (func_802A785C
  * with delta D_803F7C48, unless D_803F7C37; held off while D_803F7C38 counts
  * down), braking (func_802A77D0 in mode 0, else func_802C617C), heading
@@ -818,7 +818,7 @@ void func_802C5AFC(void) {
     func_802A8768(D_803F7B50, 9, (s32 *) &D_803F7BF8[0], (s32 *) &D_803F7BF8[1], (s32 *) &D_803F7BF8[2], x, z,
                   0x78, 0x78, &VEH_S16(0x4C), &VEH_U8(0x96), &VEH_S16(0x52), &VEH_S32(0x28), &VEH_S32(0x40),
                   &VEH_S32(0x34), &VEH_S32(4), &r8768, &f);
-    if (D_8035805C != 0) {
+    if (gBufferIndex != 0) {
         func_8029E558((u8 *) D_803F7C08, (u8 *) D_803F7C0C, (Unk8029DEA0Entry *) D_803F7850);
     } else {
         func_8029E558((u8 *) D_803F7C0C, (u8 *) D_803F7C08, (Unk8029DEA0Entry *) D_803F7850);
@@ -1116,8 +1116,8 @@ void func_802C61F0(s32 s0, TriSideOut *f, TriScanRegs *r) {
 
     if (VEH_U8(0xA2) == 4 && VEH_U8(0xA1) == 0) {
         func_80260650(D_80367738, 0x7D, NULL);
-        D_802E8BE4 = 0x14;
-        D_802E8BE8 = 0x320;
+        gShakeTime = 0x14;
+        gShakeSize = 0x320;
         io.a3 = 0;
         io.t6 = 0;
         io.s1 = 0;
@@ -1509,7 +1509,7 @@ void func_802C7354(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Sets the pair D_8036444C / D_80364450 from where D_803F7BFC lies in
+/* Sets the pair gCamDistance / D_80364450 from where D_803F7BFC lies in
  * [D_803F7C10, D_803F7C14): (0xD48, 0x258) below it, (1000, 3000) at or
  * past the end, else interpolated (0xD48 - 2400*t, 0x258 + 2400*t with
  * t = (cur - lo) / (hi - lo), signed division). The survey lists a0-a3 as
@@ -1520,16 +1520,16 @@ void func_802C7410(void) {
     s32 hi = D_803F7C14;
 
     if (cur < lo) {
-        D_8036444C = 0xD48;
+        gCamDistance = 0xD48;
         D_80364450 = 0x258;
     } else if (cur >= hi) {
-        D_8036444C = 1000;
+        gCamDistance = 1000;
         D_80364450 = 3000;
     } else {
         s32 num = cur - lo;
         s32 den = hi - lo;
 
-        D_8036444C = num * -0x960 / den + 0xD48;
+        gCamDistance = num * -0x960 / den + 0xD48;
         D_80364450 = num * 0x960 / den + 0x258;
     }
 }
@@ -1817,7 +1817,7 @@ extern u8 * N64P D_803F7C04; /* this vehicle's model: +0 / +4 / +8 offsets of th
 
 /* Place this vehicle's model (vehicle 9): builds its matrix (scale 0x4268,
  * angles (0, +0x4C of the block, 0)) at the model's +0x18 entry inside the
- * current copy (D_8035805C ? D_803F7C08 : D_803F7C0C) with func_802AA764,
+ * current copy (gBufferIndex ? D_803F7C08 : D_803F7C0C) with func_802AA764,
  * then, except in mode 5 (+0xA1), places the parts (func_8029C454(x, y, z,
  * 9, model + [4], model + [8], copy)), and always the points
  * (func_802ABBEC(9, model + [0], model + [4], copy)).
@@ -1840,12 +1840,12 @@ void func_802C7CB0(MtxChainRegs *regs) {
     s32 z;
 
     m = (s32 *) (*(u32 *) (mdl + *(s32 *) (mdl + 0x18) + 4) +
-                 (u32) (D_8035805C != 0 ? (u8 *) D_803F7C08 : (u8 *) D_803F7C0C));
+                 (u32) (gBufferIndex != 0 ? (u8 *) D_803F7C08 : (u8 *) D_803F7C0C));
     D_803ED390[0] = 0;
     D_803ED390[2] = 0;
     D_803ED390[1] = *(u16 *) (D_803F7B50 + 0x4C);
     func_802AA764(D_803F7BF8[0], D_803F7BF8[1], D_803F7BF8[2], 0x4268, m);
-    base = D_8035805C != 0 ? (u8 *) D_803F7C08 : (u8 *) D_803F7C0C;
+    base = gBufferIndex != 0 ? (u8 *) D_803F7C08 : (u8 *) D_803F7C0C;
     x = D_803F7BF8[0];
     y = D_803F7BF8[1];
     z = D_803F7BF8[2];

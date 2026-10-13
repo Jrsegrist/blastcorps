@@ -177,7 +177,7 @@ Gfx *func_801ED800(Gfx *arg0, FeDyn *dyn, u8 arg2, s32 *arg3) {
         D_80215968 -= 360.0;
     }
     if (gFramesInMode < 2) {
-        guPerspective(&dyn->unk1240, &D_8035807C, 45.0f, 1.3333334f, 40.0f, 4000.0f, 1.0f);
+        guPerspective(&dyn->unk1240, &gPerspNorm, 45.0f, 1.3333334f, 40.0f, 4000.0f, 1.0f);
         guLookAtReflect(&dyn->unk140, &dyn->unk3C00, 5.0f, 7.0f, 400.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
         guMtxIdent(&dyn->unk1280);
         guMtxIdent(&dyn->unk12C0);

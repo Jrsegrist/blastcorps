@@ -1706,7 +1706,7 @@ def gen_value(spec, rng, plan, what):
         a = plan.alloc(size)
         # (byte by byte even when big: switching ptr blocks to randbytes changed
         # the inputs of existing check lines, and the new ones hit an asm
-        # overflow trap in func_802A484C and a heap diff in func_802A57AC that
+        # overflow trap in cull_test_cells and a heap diff in func_802A57AC that
         # the checks don't yet account for; --mem rand fills use rand_bytes)
         data = bytes(size) if kind == "ptrz" else bytes(rng.getrandbits(8) for _ in range(size))
         plan.mem.append((lambda b, a=a: a, data))

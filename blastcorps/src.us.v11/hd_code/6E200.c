@@ -36,7 +36,7 @@ extern f32 D_8030D8D0;
 
 
 /* Shared body of func_802B3E40 / func_802B568C: place the vehicle model's
- * parts. The current matrix buffer (D_8035805C ? bufA : bufB) plus the word
+ * parts. The current matrix buffer (gBufferIndex ? bufA : bufB) plus the word
  * at model + model[0x18] + 4 is the model matrix m; D_803ED392 = heading
  * (u16 +0x4C), func_802AA764(x, y, z, scale, m); then func_8029C454(x, y, z,
  * id, model + model[4], model + model[8], buffer) and func_802ABBEC(id,
@@ -52,12 +52,12 @@ static u8 *port_veh_parts(u8 *veh, PortVehPos *p, s32 id, s32 scale, MtxChainReg
     s32 *mtx;
     u8 *base;
 
-    mtx = (s32 *) ((D_8035805C != 0 ? (u8 *) p->bufA : (u8 *) p->bufB) + off);
+    mtx = (s32 *) ((gBufferIndex != 0 ? (u8 *) p->bufA : (u8 *) p->bufB) + off);
     D_803ED392 = VEH_U16(veh, 0x4C);
     func_802AA764(p->x, p->y, p->z, scale, mtx);
     r->a3 = 0;
     r->s2 = (s32) mtx;
-    base = (D_8035805C != 0) ? (u8 *) p->bufA : (u8 *) p->bufB;
+    base = (gBufferIndex != 0) ? (u8 *) p->bufA : (u8 *) p->bufB;
     m = p->model;
     func_8029C454(p->x, p->y, p->z, id, m + *(s32 *) (m + 4), m + *(s32 *) (m + 8), base, r);
     r->v1 = p->y;
@@ -253,7 +253,7 @@ static void port_veh_init_tail(u8 *veh, PortVehPos *p, s32 id, s32 scale, s32 a1
  * (func_802A83B8, func_802A843C kind/div), func_802A7070 when `drift` is
  * set, move along the heading (func_802A860C), D_803ED40B = 1, ground
  * contact (func_802A8768 id/divB/divA; s3 in = func_802A860C's s3), the
- * per-frame animation (func_8029E558 on the buffers by D_8035805C), parts
+ * per-frame animation (func_8029E558 on the buffers by gBufferIndex), parts
  * (`parts`), func_8029A800 (a1, b2, b0, h2), func_8029C52C, func_8029AA10. */
 static void port_veh_move(u8 *veh, PortVehPos *p, s32 id, u8 *ch, s32 rate, s32 kind, f32 div, s32 drift,
                           s16 *driftAngle, s32 divB, s32 divA, u8 *(*parts)(MtxChainRegs *), u8 *a1, s32 b2,
@@ -282,7 +282,7 @@ static void port_veh_move(u8 *veh, PortVehPos *p, s32 id, u8 *ch, s32 rate, s32 
     func_802A8768(veh, id, &p->x, &p->y, &p->z, x, o.t1, divB, divA, (s16 *) (veh + 0x4C), veh + 0x96,
                   (s16 *) (veh + 0x52), (s32 *) (veh + 0x28), (s32 *) (veh + 0x40), (s32 *) (veh + 0x34),
                   (s32 *) (veh + 4), &r8, &f);
-    if (D_8035805C != 0) {
+    if (gBufferIndex != 0) {
         func_8029E558((u8 *) p->bufA, (u8 *) p->bufB, (Unk8029DEA0Entry *) ch);
     } else {
         func_8029E558((u8 *) p->bufB, (u8 *) p->bufA, (Unk8029DEA0Entry *) ch);
@@ -335,7 +335,7 @@ static void port_veh_turn(u8 *veh, f32 scale, s16 *target) {
 static void port_veh_restore(u8 *veh, PortVehPos *p, u8 *ch) {
     u64 *end;
 
-    if (D_8035805C != 0) {
+    if (gBufferIndex != 0) {
         func_802A768C(veh, ch, &p->x, &p->y, &p->z, p->bufB, p->bufA, 0x800, &end);
     } else {
         func_802A768C(veh, ch, &p->x, &p->y, &p->z, p->bufA, p->bufB, 0x800, &end);
@@ -420,7 +420,7 @@ extern u8 D_802C2314[]; /* key of its func_802A05D0.. sound entry */
 
 /* Vehicle-type 3 setup (called from hd.c / 17210.c): clears byte 0x99 of the
  * state block, resets animation channels 1-3 of D_803EDFE0, resets the
- * D_802C2314 entry (0, 0, 0, -1), D_8036444C/50 = 3400, 1000, then
+ * D_802C2314 entry (0, 0, 0, -1), gCamDistance / D_80364450 = 3400, 1000, then
  * func_802C4310(&D_803EDFE0, 0x8C) (the asm's a0 is still the table).
  * The asm points $gp at D_803EE2E0 and leaves it there (conventions.txt:
  * clobbers gp) and returns with v1 = -1; the C callers use neither. */
@@ -438,7 +438,7 @@ void func_802B2D7C(void) {
     func_802A05F8((s32) D_802C2314, 0);
     func_802A0620((s32) D_802C2314, 0);
     func_802A0508((s32) D_802C2314, -1);
-    D_8036444C = 0xD48;
+    gCamDistance = 0xD48;
     D_80364450 = 0x3E8;
     func_802C4310((s32) D_803EDFE0, 0x8C);
 }
@@ -1001,7 +1001,7 @@ extern u8 D_803EE3C0[]; /* its animation channel table */
 /* Vehicle-type 4 setup (called from hd.c / 17210.c), shape of func_802B2D7C:
  * clears byte 0x99 of the state block, resets channel 1 (03D4 only) and
  * channel 2 of D_803EE3C0, resets the sound entries D_802C2190/A4/B8
- * (0, 0, 0, -1 each), D_8036444C/50 = 3000, 1000, then
+ * (0, 0, 0, -1 each), gCamDistance / D_80364450 = 3000, 1000, then
  * func_802C4310(&D_803EE3C0, 0x0B). Leaves $gp = D_803EE6C0 (clobbers gp)
  * and v1 = -1, unused by the C callers. */
 void func_802B448C(void) {
@@ -1023,7 +1023,7 @@ void func_802B448C(void) {
     func_802A03D4((Unk8029DEA0Entry *) D_803EE3C0, 2, 0);
     func_802A040C((Unk8029DEA0Entry *) D_803EE3C0, 2, 1);
     func_802A0290((Unk8029DEA0Entry *) D_803EE3C0, 2, -1);
-    D_8036444C = 0xBB8;
+    gCamDistance = 0xBB8;
     D_80364450 = 0x3E8;
     func_802C4310((s32) D_803EE3C0, 0x0B);
 }

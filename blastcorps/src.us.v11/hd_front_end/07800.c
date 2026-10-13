@@ -12,7 +12,7 @@
 #define D_8020D810 ((FeLevelEntry *) D_8020D810)
 #define D_802E8F94 ((LevelInfo *) D_802E8F94)
 #define D_802F49F4 ((IconInfo *) D_802F49F4)
-#define D_803156F8 ((FeDyn *) D_803156F8)
+#define gDynamicBufs ((FeDyn *) gDynamicBufs)
 #define players ((FePlayer *) players)
 #ifdef NON_MATCHING
 #define gHeapPtr (*(s32 *) &gHeapPtr)
@@ -373,22 +373,22 @@ void func_801EF4AC(void) {
     s32 yo;
     s16 c;
 
-    dyn = &D_803156F8[D_8035805C ^ 1];
+    dyn = &gDynamicBufs[gBufferIndex ^ 1];
     gdl = dyn->dl;
     func_8028A470();
-    rsp_send_task((u64 *) (D_803156F8[D_8035805C].dl), D_80358078, 1, 1, 0x4D2, 0);
-    D_8035805C ^= 1;
+    rsp_send_task((u64 *) (gDynamicBufs[gBufferIndex].dl), gFrameDlLen, 1, 1, 0x4D2, 0);
+    gBufferIndex ^= 1;
     gSPSegment(gdl++, 0, 0);
     gSPSegment(gdl++, 2, osVirtualToPhysical(dyn));
     gSPSegment(gdl++, 1, osVirtualToPhysical(gStaticSegment));
     gSPDisplayList(gdl++, D_01000038);
     gSPDisplayList(gdl++, D_01000010);
     gDPSetCycleType(gdl++, G_CYC_FILL);
-    gDPSetDepthImage(gdl++, D_80358058);
-    gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, D_80358058);
+    gDPSetDepthImage(gdl++, gDepthBufferPhys);
+    gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, gDepthBufferPhys);
     gDPSetFillColor(gdl++, 0xFFFCFFFC);
     gDPFillRectangle(gdl++, 0, 0, 319, 239);
-    gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, D_80358050[D_8035805C]);
+    gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, gFrameBufferPhys[gBufferIndex]);
     gDPPipeSync(gdl++);
     if (D_802159DC == 1) {
         if (gFramesInMode * 185 / 20 > 185) {
@@ -414,7 +414,7 @@ void func_801EF4AC(void) {
         }
     }
     if (gFramesInMode < 2) {
-        guPerspective(&dyn->unk1240, &D_8035807C, 45.0f, 1.3333334f, 40.0f, 8000.0f, 0.25f);
+        guPerspective(&dyn->unk1240, &gPerspNorm, 45.0f, 1.3333334f, 40.0f, 8000.0f, 0.25f);
         if (D_802159DC == 1) {
             guTranslate(&dyn->unk1280, 0.0f, -130.0f, 0.0f);
             guRotate(&dyn->unk12C0, 35.0f, 0.1f, 0.0f, 0.0f);
@@ -439,7 +439,7 @@ void func_801EF4AC(void) {
         }
         guLookAtReflect(&dyn->unk140, &dyn->unk3C00, 1.0f, 0.0f, D_802159E0, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
         D_802159D0 += D_802159E4;
-        guRotate(&D_802182D0[D_8035805C], D_802159D0 % 360, 0.0f, 1.0f, 0.0f);
+        guRotate(&D_802182D0[gBufferIndex], D_802159D0 % 360, 0.0f, 1.0f, 0.0f);
         guScale(&dyn->unk1300, 1.5f, 1.5f, 1.5f);
         gDPSetRenderMode(gdl++, G_RM_AA_ZB_OPA_INTER, G_RM_NOOP2);
         gdl = func_801F4FBC(dyn, gdl);
@@ -477,5 +477,5 @@ void func_801EF4AC(void) {
     }
     gDPFullSync(gdl++);
     gSPEndDisplayList(gdl++);
-    D_80358078 = gdl - dyn->dl;
+    gFrameDlLen = gdl - dyn->dl;
 }

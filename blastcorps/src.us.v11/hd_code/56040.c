@@ -2229,7 +2229,7 @@ void func_8029DC80(void) {
 #ifdef NON_MATCHING
 
 /* Queues a 64-byte copy src -> dst in the first free slot (src == 0) of the
- * 120-entry pool D_803B7FC8, tagged with !D_8035805C (low bit flipped), and
+ * 120-entry pool D_803B7FC8, tagged with !gBufferIndex (low bit flipped), and
  * raises the last-used pointer D_803B8568 to that slot if it is below it
  * (signed compare). Does nothing if the pool is full.
  * Register convention: asm takes dst in t5 and src in s2 (conventions.txt).
@@ -2244,7 +2244,7 @@ void func_8029DCD4(u8 *dst, u8 *src) {
         if (slot->src == NULL) {
             slot->src = src;
             slot->dst = dst;
-            slot->parity = D_8035805C ^ 1;
+            slot->parity = gBufferIndex ^ 1;
             if ((s32) D_803B8568 < (s32) slot) {
                 D_803B8568 = slot;
             }
@@ -2291,14 +2291,14 @@ void func_8029DD54(u8 *dst) {
 void func_8029DE50(u64 *dst, u64 *src);
 
 /* Runs the queued copies: for each used slot of D_803B7FC8 up to D_803B8568
- * (signed compare) whose parity equals D_8035805C, copies 64 bytes src -> dst
+ * (signed compare) whose parity equals gBufferIndex, copies 64 bytes src -> dst
  * (func_8029DE50) and frees the slot. Slots with the other parity stay; the
  * last of those becomes the new D_803B8568 (or the pool start if none). */
 void func_8029DDC8(void) {
     Unk8029DCD4Slot *slot = D_803B7FC8;
     Unk8029DCD4Slot *last = D_803B7FC8;
     Unk8029DCD4Slot *end = D_803B8568;
-    s32 parity = D_8035805C;
+    s32 parity = gBufferIndex;
 
     while ((s32) slot <= (s32) end) {
         if (slot->src != NULL) {
@@ -2479,7 +2479,7 @@ u32 func_8029E47C(s32 key, s32 id, u8 *param);
  * (and of frame f' + 1 when blending) the block is found or loaded
  * (TEX_BLOCK), and every 0xC-byte patch {a, off, i} in [D_803B3500,
  * D_803B35F0) stores it at base + off (base = the level's D_80364460
- * record with id a[0]: +0xC if D_8035805C else +0x30; unbounded scan);
+ * record with id a[0]: +0xC if gBufferIndex else +0x30; unbounded scan);
  * when blending, the second block goes to base + the next patch's off and
  * the first command after it with opcode 0xFA gets its low byte(s) =
  * round(frac' * 255) (the patch after is skipped). Finally blocks tagged
@@ -2529,7 +2529,7 @@ void func_8029E21C(Unk8029DEA0Entry *ch, u8 *param) {
         }
         for (rec = D_80364460; *(s32 *) (rec + 0x5C) != a[0]; rec += 0x74) {
         }
-        base = (D_8035805C != 0) ? *(s32 *) (rec + 0xC) : *(s32 *) (rec + 0x30);
+        base = (gBufferIndex != 0) ? *(s32 *) (rec + 0xC) : *(s32 *) (rec + 0x30);
         for (e = D_803B3500; e != (u8 *) D_803B35F0; e += 0xC) {
             u32 *p;
             u32 w;

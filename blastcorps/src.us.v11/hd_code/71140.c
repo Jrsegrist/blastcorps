@@ -158,7 +158,7 @@ void func_802B5900(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp) {
     D_803EEA90[0x9A] = 0;
     hdr = D_803EEB44;
     func_802AA838((u8 *) D_803EEB4C, (u8 *) D_803EEB48, *(s32 *) (hdr + *(s32 *) (hdr + 0x18) + 4));
-    CVT_W_S_5900(yaw, D_80364414 * 4096.0f / 360.0f);
+    CVT_W_S_5900(yaw, gCamHeading * 4096.0f / 360.0f);
     a = *(u16 *) (D_803EEA90 + 0x4C) + yaw;
     if (a >= 0x1000) {
         a -= 0xFFF;
@@ -178,7 +178,7 @@ extern u8 D_803EE790[]; /* animation channel table (Unk8029DEA0Entry, 56040.c) *
  * the state block, sets fields 0x14 / 0x11 / 0x12 of animation channels 1, 2,
  * 4, 5 of D_803EE790 (channel 2 also gets 0.5f / 0 via func_802A0360) and
  * restarts each with -1, sets the D_802C2208 and D_802C226C entries' fields to
- * 0 and restarts them, D_8036444C/50 = 3400, 300, then func_802C4310(a0, 5)
+ * 0 and restarts them, gCamDistance / D_80364450 = 3400, 300, then func_802C4310(a0, 5)
  * with a0 = D_803EE790 left over from the setters (func_802C4310 ignores it).
  * The asm points $gp at D_803EEA90 and leaves it there (conventions.txt:
  * clobbers gp) and returns with v1 = -1 (the last setter's v1); C callers
@@ -210,7 +210,7 @@ void func_802B5CD8(void) {
     func_802A05F8((s32) D_802C226C, 0);
     func_802A0620((s32) D_802C226C, 0);
     func_802A0508((s32) D_802C226C, -1);
-    D_8036444C = 0xD48;
+    gCamDistance = 0xD48;
     D_80364450 = 0x12C;
     func_802C4310((s32) D_803EE790, 5);
 }
@@ -518,7 +518,7 @@ void func_802B6294(void) {
                   &VEH5(0x40, s32), &VEH5(0x34, s32), &VEH5(4, s32), &r, &f);
 
     /* 3. */
-    if (D_8035805C != 0) {
+    if (gBufferIndex != 0) {
         func_8029E558((u8 *) D_803EEB48, (u8 *) D_803EEB4C, (Unk8029DEA0Entry *) D_803EE790);
     } else {
         func_8029E558((u8 *) D_803EEB4C, (u8 *) D_803EEB48, (Unk8029DEA0Entry *) D_803EE790);
@@ -566,7 +566,7 @@ void func_802B6294(void) {
             goto no_hit;
         }
         D_803EEB60 = 0;
-        if (D_8035805C != 0) {
+        if (gBufferIndex != 0) {
             func_802A768C(D_803EEA90, D_803EE790, (s32 *) &D_803EEB38[0], (s32 *) &D_803EEB38[1],
                           (s32 *) &D_803EEB38[2], D_803EEB4C, D_803EEB48, 0x800, &end);
         } else {
@@ -740,7 +740,7 @@ void func_802B6C28(void) {
     s32 level;
     s32 near;
 
-    CVT_W_S(yaw, D_80364414 * 4096.0f / 360.0f);
+    CVT_W_S(yaw, gCamHeading * 4096.0f / 360.0f);
     a = *(u16 *) (D_803EEA90 + 0x4C) + yaw;
     if (a >= 0x1000) {
         a -= 0xFFF;
@@ -843,7 +843,7 @@ extern u8 * N64P D_803EEB44;  /* this vehicle's model header */
  * header D_803EEB44 holds offsets (from the header) to: the part records at
  * +4 .. +8, the point list at +0 .. +4 and, at +0x18, a word whose +4 is the
  * root matrix's offset into the current matrix buffer (D_803EEB48 when
- * D_8035805C is set, else D_803EEB4C). With rotation y = the heading (u16
+ * gBufferIndex is set, else D_803EEB4C). With rotation y = the heading (u16
  * +0x4C of D_803EEA90, the asm's $gp) in D_803ED392, the root matrix is built
  * at position D_803EEB38[0..2] with scale 0x4268 (func_802AA764); then the
  * parts are placed (func_8029C454, tag 5) and the points transformed
@@ -858,13 +858,13 @@ extern u8 * N64P D_803EEB44;  /* this vehicle's model header */
  * Asm callers keep t6, t7 live. */
 void func_802B7030(MtxChainRegs *regs) {
     u8 *hdr = D_803EEB44;
-    u8 *buf = D_8035805C != 0 ? (u8 *) D_803EEB48 : (u8 *) D_803EEB4C;
+    u8 *buf = gBufferIndex != 0 ? (u8 *) D_803EEB48 : (u8 *) D_803EEB4C;
     s32 *m = (s32 *) (*(s32 *) (hdr + *(s32 *) (hdr + 0x18) + 4) + buf);
 
     D_803ED392 = *(u16 *) (D_803EEA90 + 0x4C);
     func_802AA764(D_803EEB38[0], D_803EEB38[1], D_803EEB38[2], 0x4268, m);
     regs->s2 = (s32) m;
-    buf = D_8035805C != 0 ? (u8 *) D_803EEB48 : (u8 *) D_803EEB4C;
+    buf = gBufferIndex != 0 ? (u8 *) D_803EEB48 : (u8 *) D_803EEB4C;
     hdr = D_803EEB44;
     func_8029C454(D_803EEB38[0], D_803EEB38[1], D_803EEB38[2], 5, hdr + *(s32 *) (hdr + 4),
                   hdr + *(s32 *) (hdr + 8), buf, regs);

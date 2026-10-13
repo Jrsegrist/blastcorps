@@ -188,8 +188,8 @@ void func_8028DD64(u8 arg0) {
     func_802CDA10(D_8039B070_entries[arg0].unk0, D_8039B070_entries[arg0].unk4, D_8039B070_entries[arg0].unk8);
     *(&D_8039B089 + arg0 * 0x48) = 5;
     D_8039B070_entries[arg0].unk18 = 0;
-    D_802E8BE4 = 10;
-    D_802E8BE8 = 0x190;
+    gShakeTime = 10;
+    gShakeSize = 0x190;
     if (D_8039B070_entries[arg0].unk40 != 0) {
         func_802608C8((void *) N64_IPTR((D_8039B070_entries[arg0].unk40)));
         match = func_8028DE94();

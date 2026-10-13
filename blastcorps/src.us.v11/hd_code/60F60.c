@@ -644,7 +644,7 @@ void func_802A6DE8(u8 *obj, Vtx *vtx, void *timg, s32 fmtsiz, s32 width, s32 hei
 Gfx * N64P *func_802A6EB8(u8 *obj);
 
 /* Draws the 16 D_803C4B70 billboard records into the display lists of this
- * frame's buffer set (D_8035805C picks lists, matrices, vertices and texture
+ * frame's buffer set (gBufferIndex picks lists, matrices, vertices and texture
  * buffers): resets both list cursors (D_803EB780/784, then func_802A6D34).
  * For each active record: its matrix (func_802A68D4, matrices advance by
  * 0x40 per drawn record), then def[3] rows of def[2] quads of size w x h
@@ -667,7 +667,7 @@ void func_802A64A4(void) {
     u8 *param = D_803EA770;
     s32 n;
 
-    if (D_8035805C != 0) {
+    if (gBufferIndex != 0) {
         D_803EB780 = D_803C6370;
         D_803EB784 = D_803C7B70;
         mtx = D_803C5370;
@@ -869,7 +869,7 @@ extern s32 D_803C4F30[]; /* scratch 16.16 matrix */
  * logical shifts; 64-bit division of dy << 27 by distance << 11, distance 0
  * taken as 1), >> 4 and mirrored (0xFFF - angle) unless the quotient is
  * negative: m *= rotation about x by that (func_802ACBDC, func_802ACCCC),
- * m *= rotation about y by D_80364452, m *= translation (position << 11),
+ * m *= rotation about y by gCamYaw, m *= translation (position << 11),
  * then m is converted to the Mtx layout (func_802AC8CC).
  * Register convention: m in t0, rec in t4; the asm saves every integer
  * register (asm caller func_802A64A4 keeps a1, t0, t1, t3, t4, t5 live). The
@@ -923,8 +923,8 @@ void func_802A68D4(s32 *m, u8 *rec) {
         *(s32 *) (rec + 0x10) = z;
         z >>= 11;
     }
-    py = (u32) D_803643FC >> 11;
-    dist = func_802ABCDC((u32) D_803643F8 >> 11, py, (u32) D_80364400 >> 11, x, y, z);
+    py = (u32) gCamEyeY >> 11;
+    dist = func_802ABCDC((u32) gCamEyeX >> 11, py, (u32) gCamEyeZ >> 11, x, y, z);
     if (dist == 0) {
         dist = 1;
     }
@@ -935,7 +935,7 @@ void func_802A68D4(s32 *m, u8 *rec) {
     }
     func_802ACBDC(angle, D_803C4F30);
     func_802ACCCC(D_803C4F30, m);
-    func_802ACAC4(((u16) D_80364452), D_803C4F30);
+    func_802ACAC4(((u16) gCamYaw), D_803C4F30);
     func_802ACCCC(D_803C4F30, m);
     func_802ACA60(x << 11, y << 11, z << 11, D_803C4F30);
     func_802ACCCC(D_803C4F30, m);

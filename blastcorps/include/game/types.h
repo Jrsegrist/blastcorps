@@ -9,19 +9,19 @@
  * (documented where it is defined).
  */
 
-/* One per frame buffer, 0x21498 bytes (D_803156F8[2]): the in-game layout
+/* One per frame buffer, 0x21498 bytes (gDynamicBufs[2]): the in-game layout
  * that hd.c builds each frame. The area below the display list is scratch
  * space that other subsystems lay out their own way (their views: VtxBuf
  * 13A70.c, DynBuf 20460.c, SpriteVtxBuf 30C70.c, TrailBuf 37530.c,
  * Dyn48D00, Dyn4B5E0, Dyn 4DA80.c), and the front end uses FeDyn. */
 typedef struct DynamicBuf {
     u8 pad0[0x80];
-    Mtx unk80;  /* perspective */
-    Mtx unkC0;  /* 320x240 ortho */
-    Mtx unk100; /* 1280x960 ortho */
-    Mtx unk140;
-    Mtx unk180;
-    Mtx unk1C0; /* identity */
+    Mtx persp;    /* 0x80: guPerspective (gCamFovy, 4:3) */
+    Mtx ortho;    /* 0xC0: 320x240 ortho */
+    Mtx orthoHi;  /* 0x100: 1280x960 ortho */
+    Mtx view;     /* 0x140: the camera (guLookAtReflect; the projection is persp * view) */
+    Mtx cullView; /* 0x180: the visibility test's view (guLookAt, the eye pulled in) */
+    Mtx identity; /* 0x1C0: the modelview */
     Mtx unk200;
     Mtx unk240;
     Mtx unk280;
@@ -32,7 +32,7 @@ typedef struct DynamicBuf {
     Vtx unk15C0[0x30]; /* vehicle shadow quads */
     Vtx unk18C0[4]; /* shadow quad */
     u8 pad1900[0x3C00 - 0x1900];
-    LookAt unk3C00;
+    LookAt lookAt; /* 0x3C00: the camera's (reflection mapping) */
     u8 pad3C20[0x48B0 - 0x3C20];
     Gfx dl[0xB5E]; /* TOPLEVEL_DL_SIZE */
     u8 unkA3A0[0x21498 - 0xA3A0];

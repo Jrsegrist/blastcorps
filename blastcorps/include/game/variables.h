@@ -12,7 +12,7 @@
 
 /* low memory and others */
 extern s32 D_80000300; /* osTvType */
-extern u16 D_80000400[][320*240];
+extern u16 gFrameBuffers[][320*240];
 
 /* hd_code .text (tables inside the code) */
 extern u8 D_802C2190[]; /* keys of its three sound entries */
@@ -65,8 +65,8 @@ extern u8 gPaused;         /* updates stop, the last picture is held (pause, loa
 extern u8 gUnpauseRequest;
 extern u8 gPauseRequest;
 extern s32 levelno;        /* the current level, 0-59 */
-extern u8 D_802E8BE4; /* screen shake time */
-extern s32 D_802E8BE8; /* screen shake size */
+extern u8 gShakeTime; /* screen shake time */
+extern s32 gShakeSize; /* screen shake size */
 extern s32 D_802E8BEC;
 extern u8 D_802E8BF0;
 extern u8 D_802E8BF8;
@@ -112,14 +112,14 @@ extern u32 D_803156C0; /* frame counter */
 extern u32 D_803156C4;
 extern OSMesgQueue gMainSchedClient; /* the main thread's scheduler client (sched.c's BcScClient) */
 extern u8 D_803156F4;
-#ifndef LEGACY_D_803156F8
-extern DynamicBuf D_803156F8[]; /* timer start */
+#ifndef LEGACY_gDynamicBufs
+extern DynamicBuf gDynamicBufs[]; /* timer start */
 #endif
-extern u32 D_80358050[]; /* scene angle */
-#ifndef LEGACY_D_80358058
-extern u32 D_80358058; /* 0x100 bytes */
+extern u32 gFrameBufferPhys[]; /* scene angle */
+#ifndef LEGACY_gDepthBufferPhys
+extern u32 gDepthBufferPhys; /* 0x100 bytes */
 #endif
-extern u8 D_8035805C; /* selects which of the two matrix buffers is current */
+extern u8 gBufferIndex; /* selects which of the two matrix buffers is current */
 extern u32 gFramesInMode; /* frames since the mode's setup (hd_mode_setup) */
 extern s32 D_80358064;
 extern s32 gUnpausedFrames;
@@ -130,8 +130,8 @@ extern u8 * N64P gHeapPtr; /* the heap's next free byte (a bump allocator from 0
 #ifndef LEGACY_D_80358074
 extern u8 * N64P D_80358074; /* animation channel table (Unk8029DEA0Entry, 56040.c) */
 #endif
-extern s32 D_80358078; /* top-level display list length */
-extern u16 D_8035807C; /* projection scale, 65535 = 1.0 */
+extern s32 gFrameDlLen; /* top-level display list length */
+extern u16 gPerspNorm; /* projection scale, 65535 = 1.0 */
 extern s32 nextdma; /* queued-DMA counter (next OSIoMesg slot) */
 extern s32 no_palette_dmas; /* no_palette_dmas */
 #ifndef LEGACY_D_803643C8
@@ -152,28 +152,28 @@ extern u8 D_803643DC;
 extern s32 D_803643E0; /* player position, speed, heading, angle */
 extern s32 D_803643E4;
 extern s32 D_803643E8; /* player z */
-extern s32 D_803643F8; /* listener x, y, z (<< 11) */
-extern s32 D_803643FC;
-extern s32 D_80364400;
-extern s32 D_80364404; /* fixed eye x, y, z */
-extern s32 D_80364408;
-extern s32 D_8036440C;
-extern u8 D_80364410;
+extern s32 gCamEyeX; /* listener x, y, z (<< 11) */
+extern s32 gCamEyeY;
+extern s32 gCamEyeZ;
+extern s32 gCamFixedEyeX; /* fixed eye x, y, z */
+extern s32 gCamFixedEyeY;
+extern s32 gCamFixedEyeZ;
+extern u8 gCamFixedEye;
 extern u8 D_80364411;
-extern u8 D_80364412; /* camera: snap to the new position this frame */
-extern f32 D_80364414; /* camera heading, degrees */
+extern u8 gCamSnap; /* camera: snap to the new position this frame */
+extern f32 gCamHeading; /* camera heading, degrees */
 extern u8 D_80364424;
 extern u32 D_80364428;
 extern u16 D_8036442C;
 extern s32 D_80364430;
-extern f32 D_80364438;
+extern f32 gCamFovy;
 extern s16 D_8036443C; /* player speed, heading, angle */
 extern s16 D_8036443E; /* camera yaw, 4095 = 360 degrees */
 extern s16 D_80364440;
-extern s16 D_8036444C;
-extern s16 D_8036444E;
+extern s16 gCamDistance;
+extern s16 gCamHeight;
 extern s16 D_80364450;
-extern s16 D_80364452; /* camera / player angle (0..0xFFF) */
+extern s16 gCamYaw; /* camera / player angle (0..0xFFF) */
 extern u8 D_80364456; /* mode: the update is skipped in modes 0,1,2,6,7,9,0xB,0x10..0x12 */
 #ifndef LEGACY_D_80364458
 extern u8 * N64P D_80364458; /* level40 */
@@ -202,7 +202,7 @@ extern u8 D_80364A6C; /* icon 2 loaded */
 extern u8 D_80364A6D;
 extern u8 D_80364A6E; /* default level */
 extern s8 D_80364A71;
-extern s16 D_80364A72; /* tilt limits */
+extern s16 gCamTiltMax; /* tilt limits */
 extern u8 D_80364A84;
 extern u8 D_80364A87;
 extern u64 gPrevGameMode; /* previous game mode */
@@ -437,7 +437,7 @@ extern s16 D_803BE736;
 extern u8 D_803BE738;
 extern u8 D_803BE739;
 extern u8 D_803BE73A; /* current level index */
-extern u16 D_803C30A8[]; /* visible object ids, ended by -1 */
+extern u16 gVisibleCells[]; /* visible object ids, ended by -1 */
 extern Gfx D_803C5770[]; /* display lists A / B, frame 0 */
 extern Gfx D_803C6370[]; /* display lists A / B, frame 1 */
 extern Gfx D_803C6F70[];

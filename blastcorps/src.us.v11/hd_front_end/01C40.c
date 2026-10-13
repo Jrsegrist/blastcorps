@@ -8,7 +8,7 @@
 #define LEGACY_D_802E8F94
 #define LEGACY_D_802F47B0
 #define LEGACY_D_802F8BDC
-#define LEGACY_D_803156F8
+#define LEGACY_gDynamicBufs
 #define LEGACY_players
 #endif /* legacy declarations */
 #include "game/game.h"
@@ -18,7 +18,7 @@
 #define D_802E8F94 ((LevelInfo *) D_802E8F94)
 #define D_802F47B0 ((u8 *) D_802F47B0)
 #define D_802F8BDC ((MenuPage *) D_802F8BDC)
-#define D_803156F8 ((PlayerSelDyn *) D_803156F8)
+#define gDynamicBufs ((PlayerSelDyn *) gDynamicBufs)
 #define players ((Player *) players)
 #endif
 /* end of views */
@@ -82,7 +82,7 @@ typedef struct {
     u8 pad1A[2];
 } MenuPage;
 
-/* Per-frame dynamic buffer (D_803156F8, two of 0x21498 bytes); only the
+/* Per-frame dynamic buffer (gDynamicBufs, two of 0x21498 bytes); only the
  * player select matrices are named here */
 typedef struct PlayerSelDyn {
     /* 0x000 */ u8 pad0[0x80];
@@ -107,7 +107,7 @@ extern MenuEntry D_8020C070[];
 #ifndef NON_MATCHING
 extern MenuPage D_802F8BDC[];
 #ifndef NON_MATCHING
-extern PlayerSelDyn D_803156F8[];
+extern PlayerSelDyn gDynamicBufs[];
 #endif
 #endif
 #endif
@@ -259,7 +259,7 @@ void func_801E8C40(u8 arg0) {
     D_80215915 = func_80272C5C(D_802082F8, NULL, 1, 1, 1, 1.0f);
     D_80215916 = func_80272C5C(D_802082EC, NULL, 5, 1, 0, 1.0f);
     for (i = 0; i < 2; i++) {
-        dyn = &D_803156F8[i];
+        dyn = &gDynamicBufs[i];
         guPerspective(&dyn->persp, &D_8021591C, 45.0f, 4.0f / 3.0f, 10.0f, 10000.0f, 1.0f);
         guLookAt(&dyn->lookAt, 0.0f, 277.0f, 480.0f, 0.0f, 189.0f, 200.0f, 0.0f, 0.0f, 1.0f);
         guTranslate(&dyn->trans, 0.0f, 88.0f, 0.0f);

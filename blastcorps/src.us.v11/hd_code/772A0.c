@@ -164,13 +164,13 @@ void func_802BBA60(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-/* Enter vehicle type 7: D_8036444C/50 = 3000, 0, then func_802C4310(arg0,
+/* Enter vehicle type 7: gCamDistance / D_80364450 = 3000, 0, then func_802C4310(arg0,
  * 0x20) (arg0 passes straight through; hd.c calls this with no arguments
  * and func_802C4310 ignores it). The asm also points $gp at D_803EFDF0 and
  * leaves it there (conventions.txt: clobbers gp); C code doesn't use $gp.
  * Same shape as func_802C8AB0 (83910) and func_802B76AC (72B80). */
 void func_802BBDC8(s32 arg0) {
-    D_8036444C = 3000;
+    gCamDistance = 3000;
     D_80364450 = 0;
     func_802C4310(arg0, 0x20);
 }
@@ -310,7 +310,7 @@ void func_802BBEB8(void) {
     func_802A8768(veh, 7, &D_803EFE98, &D_803EFE9C, &D_803EFEA0, x, o.t1, 0xA0, 0xA0, &VEH_S16(veh, 0x4C),
                   &VEH_U8(veh, 0x96), &VEH_S16(veh, 0x52), &VEH_S32(veh, 0x28), &VEH_S32(veh, 0x40),
                   &VEH_S32(veh, 0x34), &VEH_S32(veh, 4), &r, &tri);
-    if (D_8035805C != 0) {
+    if (gBufferIndex != 0) {
         func_8029E558((u8 *) D_803EFEA8, (u8 *) D_803EFEAC, (Unk8029DEA0Entry *) D_803EFAF0);
     } else {
         func_8029E558((u8 *) D_803EFEAC, (u8 *) D_803EFEA8, (Unk8029DEA0Entry *) D_803EFAF0);
@@ -413,14 +413,14 @@ void func_802BC3D0(void) {
     s16 *verts;
     MtxChainRegs regs;
 
-    base = (u8 *) (D_8035805C != 0 ? D_803EFEA8 : D_803EFEAC);
+    base = (u8 *) (gBufferIndex != 0 ? D_803EFEA8 : D_803EFEAC);
     base += *(s32 *) (OBJ_PTR(data, 0x18) + 4);
     D_803ED390[0] = 0;
     D_803ED390[2] = 0;
     D_803ED390[1] = VEH_U16(veh, 0x4C);
     func_802AA764(D_803EFE98, D_803EFE9C, D_803EFEA0, 0x3A98, (s32 *) base);
 
-    base = (u8 *) (D_8035805C != 0 ? D_803EFEA8 : D_803EFEAC);
+    base = (u8 *) (gBufferIndex != 0 ? D_803EFEA8 : D_803EFEAC);
     regs.v1 = D_803EFE9C;
     regs.a0 = D_803EFEA0;
     regs.a3 = 0;

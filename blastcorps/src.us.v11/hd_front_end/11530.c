@@ -5,18 +5,18 @@
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
 #define LEGACY_D_80217B70
-#define LEGACY_D_80358058
+#define LEGACY_gDepthBufferPhys
 #define LEGACY_gHeapPtr
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_802E8F94 ((LevelInfo *) D_802E8F94)
-#define D_803156F8 ((Dynamic *) D_803156F8)
-#define D_80358050 ((u16 * N64P *) D_80358050)
+#define gDynamicBufs ((Dynamic *) gDynamicBufs)
+#define gFrameBufferPhys ((u16 * N64P *) gFrameBufferPhys)
 #define players ((Player *) players)
 #ifdef NON_MATCHING
 #define D_80217B70 ((Mtx *) D_80217B70)
-#define D_80358058 (*(u16 * N64P *) &D_80358058)
+#define gDepthBufferPhys (*(u16 * N64P *) &gDepthBufferPhys)
 #define gHeapPtr (*(s32 *) &gHeapPtr)
 #endif
 /* end of views */
@@ -95,7 +95,7 @@ u16 D_8020E350[38] = {
 
 u16 D_8020E39C[4] = { 0x0A98, 0x0A99, 0x0A9A, 0x0A9B };
 
-/* one per frame buffer (D_8035805C) */
+/* one per frame buffer (gBufferIndex) */
 Lights1 D_8020E3A8[2] = {
     gdSPDefLights1(0x10, 0x10, 0x10, 0xFF, 0xFF, 0xFF, 0, 0, 1),
     gdSPDefLights1(0x10, 0x10, 0x10, 0xFF, 0xFF, 0xFF, 0, 0, 1),
@@ -124,7 +124,7 @@ typedef struct {
     /* 0x92 */ u8 pad92[0x100 - 0x92];
 } Player;
 
-/* hd_code D_803156F8: per-frame-buffer dynamic data (0x21498 bytes each) */
+/* hd_code gDynamicBufs: per-frame-buffer dynamic data (0x21498 bytes each) */
 typedef struct {
     /* 0x0000 */ u8 pad0[0x80];
     /* 0x0080 */ Mtx persp;
@@ -140,7 +140,7 @@ typedef struct {
 } Dynamic;
 
 #ifndef NON_MATCHING
-extern u16 *D_80358058;
+extern u16 *gDepthBufferPhys;
 #endif
 f32 sqrtf(f32);
 
@@ -242,8 +242,8 @@ void func_801F8530(s32 level) {
     }
     D_8021A8F8 = func_801F2E20();
     for (i = 0; i < 2; i++) {
-        d = &D_803156F8[i];
-        guPerspective(&d->persp, &D_8035807C, 45.0f, 4.0f / 3.0f, 100.0f, 20000.0f, 1.0f);
+        d = &gDynamicBufs[i];
+        guPerspective(&d->persp, &gPerspNorm, 45.0f, 4.0f / 3.0f, 100.0f, 20000.0f, 1.0f);
         guTranslate(&d->translate, 0.0f, -50.0f, 0.0f);
     }
     D_80217B6C = 6;
@@ -312,14 +312,14 @@ void func_801F8980(void) {
     func_802A5720();
     func_8028A3E4();
     if (((s32) gFramesInMode)) {
-        rsp_send_task((u64 *) (D_803156F8[D_8035805C].gfx), D_80358078, 2, 0, 1234, 0);
+        rsp_send_task((u64 *) (gDynamicBufs[gBufferIndex].gfx), gFrameDlLen, 2, 0, 1234, 0);
         rsp_send_task((u64 *) D_8021AB68, D_8021AB58, 0, 0, 1234, 0);
         rsp_send_task((u64 *) D_8021AB6C, D_8021AB5C, 1, 1, 1234, 0);
     } else {
-        rsp_send_task((u64 *) (D_803156F8[D_8035805C].gfx), D_80358078, 1, 1, 1234, 0);
+        rsp_send_task((u64 *) (gDynamicBufs[gBufferIndex].gfx), gFrameDlLen, 1, 1, 1234, 0);
     }
-    D_8035805C ^= 1;
-    dyn = &D_803156F8[D_8035805C];
+    gBufferIndex ^= 1;
+    dyn = &gDynamicBufs[gBufferIndex];
     func_8028A470();
     if (D_8021AB2E || (!areWeFading() && D_8021A924 == 1 && (D_80370C28 & 0x9000) && !(D_80370C2A & 0x9000))) {
         if (D_8021A926 == 0) {
@@ -412,7 +412,7 @@ void func_801F8980(void) {
     D_8021A938 = func_801FD6B8(D_8021AB64, D_8021A920, 180.0f) * MAX2(dist >> 2, 500) / 10000.0f;
     D_8021A91C -= D_8021A934;
     D_8021A920 -= D_8021A938;
-    D_8021AB68 = func_801F9258(dyn->gfx, dyn, &D_80358078);
+    D_8021AB68 = func_801F9258(dyn->gfx, dyn, &gFrameDlLen);
     D_8021AB6C = func_801F9820(D_8021AB68, dyn, &D_8021AB58);
     func_801F9B84(D_8021AB6C, dyn, &D_8021AB5C);
     func_801FD748();
@@ -439,7 +439,7 @@ Gfx *func_801F9258(Gfx *arg0, Dynamic *dyn, s32 *count) {
     gSPSegment(gdl++, 1, osVirtualToPhysical(gStaticSegment));
     gSPDisplayList(gdl++, D_01000038);
     gSPDisplayList(gdl++, D_01000010);
-    gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, D_80358050[D_8035805C]);
+    gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, gFrameBufferPhys[gBufferIndex]);
     gDPSetCycleType(gdl++, G_CYC_FILL);
     gDPSetFillColor(gdl++, 0x10001);
     gDPFillRectangle(gdl++, 0, 0, 319, 239);
@@ -495,15 +495,15 @@ Gfx *func_801F9820(Gfx *arg0, Dynamic *dyn, s32 *count) {
     gSPSegment(gdl++, 1, osVirtualToPhysical(gStaticSegment));
     gSPDisplayList(gdl++, D_01000010);
     gSPDisplayList(gdl++, D_01000038);
-    gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, D_80358050[D_8035805C]);
-    gDPSetDepthImage(gdl++, D_80358058);
+    gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, gFrameBufferPhys[gBufferIndex]);
+    gDPSetDepthImage(gdl++, gDepthBufferPhys);
     gDPPipeSync(gdl++);
     gDPSetRenderMode(gdl++, 0x00507048, 0);
-    gImmp1(gdl++, G_RDPHALF_1, D_8035807C);
+    gImmp1(gdl++, G_RDPHALF_1, gPerspNorm);
     gSPMatrix(gdl++, &dyn->persp, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
     gSPMatrix(gdl++, &dyn->unk140, G_MTX_PROJECTION | G_MTX_MUL | G_MTX_NOPUSH);
-    gSPMatrix(gdl++, &D_80217B70[D_8035805C + 12], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
-    gSPMatrix(gdl++, &D_80217B70[D_8035805C + 14], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
+    gSPMatrix(gdl++, &D_80217B70[gBufferIndex + 12], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+    gSPMatrix(gdl++, &D_80217B70[gBufferIndex + 14], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
     gSPMatrix(gdl++, &dyn->translate, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
     gdl = func_801FA180(gdl, dyn, D_8020E3D8, &D_8021A907);
     gSPEndDisplayList(gdl++);
@@ -520,21 +520,21 @@ Gfx *func_801F9B84(Gfx *arg0, Dynamic *dyn, s32 *count) {
     gSPSegment(gdl++, 1, osVirtualToPhysical(gStaticSegment));
     gSPDisplayList(gdl++, D_01000010);
     gSPDisplayList(gdl++, D_01000038);
-    gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, D_80358050[D_8035805C]);
-    gDPSetDepthImage(gdl++, D_80358058);
+    gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, gFrameBufferPhys[gBufferIndex]);
+    gDPSetDepthImage(gdl++, gDepthBufferPhys);
     gDPSetRenderMode(gdl++, 0x00504240, 0);
     gSPTexture(gdl++, 0x8000, 0x8000, 0, G_TX_RENDERTILE, G_ON);
     gDPSetPrimColor(gdl++, 0, 0, 0, 0, 0, D_8021AB21);
     gDPSetCombine(gdl++, 0xFF97FF, 0xFF2CFE7F);
-    gImmp1(gdl++, G_RDPHALF_1, D_8035807C);
+    gImmp1(gdl++, G_RDPHALF_1, gPerspNorm);
     gSPMatrix(gdl++, &dyn->persp, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
     gSPMatrix(gdl++, &dyn->unk140, G_MTX_PROJECTION | G_MTX_MUL | G_MTX_NOPUSH);
-    gSPMatrix(gdl++, &D_80217B70[D_8035805C + 12], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
-    gSPMatrix(gdl++, &D_80217B70[D_8035805C + 14], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
+    gSPMatrix(gdl++, &D_80217B70[gBufferIndex + 12], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+    gSPMatrix(gdl++, &D_80217B70[gBufferIndex + 14], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
     gSPMatrix(gdl++, &dyn->translate, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
     gdl = func_801FC5B8(dyn, gdl, D_8021A904, D_8021A905);
     func_801FDE98();
-    gdl = func_80274BF0((s32) &dyn[D_8035805C], gdl);
+    gdl = func_80274BF0((s32) &dyn[gBufferIndex], gdl);
     gDPFullSync(gdl++);
     gSPEndDisplayList(gdl++);
     if (D_802FA264) {
@@ -640,7 +640,7 @@ Gfx *func_801FA180(Gfx *arg0, Dynamic *dyn, f32 lon0, s8 *selected) {
             }
         }
     }
-    osWritebackDCache((void *) N64_IPTR(D_8021A928[D_8035805C]), 0x17000);
+    osWritebackDCache((void *) N64_IPTR(D_8021A928[gBufferIndex]), 0x17000);
     if (best < 45.0f) {
         *selected = sel;
     } else {
@@ -782,7 +782,7 @@ Gfx *func_801FA74C(Dynamic *dyn, Gfx *arg1, u8 from, u8 to, s8 *out, f32 *lon, u
     dist = sqrtf((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0) + (z1 - z0) * (z1 - z0));
     steps = MAX2(MIN2(dist / 32.0, 15.0), 3.0);
     n = steps + 1;
-    v = vbase = (Vtx *) N64_IPTR(D_8021A928[D_8035805C]) + D_8021A909 * 16;
+    v = vbase = (Vtx *) N64_IPTR(D_8021A928[gBufferIndex]) + D_8021A909 * 16;
     cosang = (x0 * x1 + y0 * y1 + z0 * z1) / 250.0 / 250.0;
     angle = 90.0 - ((cosang >= 0.0f) ? 1 : -1) * func_802AD7D4(((cosang > 0.0f) ? cosang : -cosang) * 65535.0) /
                        16.0 / 11.377777;
@@ -796,10 +796,10 @@ Gfx *func_801FA74C(Dynamic *dyn, Gfx *arg1, u8 from, u8 to, s8 *out, f32 *lon, u
     loaded = 0;
     for (i = 0; i < n; i++, v++) {
         t = MIN2(progress, 1.0 / (n - 1) * (f32) i);
-        a = func_802574F0((1.0 - t) * angle) / func_802574F0(angle);
-        b = func_802574F0(t * angle) / func_802574F0(angle);
+        a = hd_sinf((1.0 - t) * angle) / hd_sinf(angle);
+        b = hd_sinf(t * angle) / hd_sinf(angle);
         if (curved) {
-            scale = func_802574F0(t * 3.141592653) * steps / 64.0 + 1.0;
+            scale = hd_sinf(t * 3.141592653) * steps / 64.0 + 1.0;
         }
         x = (a * x0 + b * x1) * scale;
         y = (a * y0 + b * y1) * scale;
@@ -807,12 +807,12 @@ Gfx *func_801FA74C(Dynamic *dyn, Gfx *arg1, u8 from, u8 to, s8 *out, f32 *lon, u
         if (*out != -1 && i < 2) {
             if (D_80217B6C == 3) {
                 if (i != 0) {
-                    func_8027690C(dyn, x, y, z, &sx1, &sy1, &D_80217B70x.view[D_8035805C],
-                                  &D_80217B70x.rot[D_8035805C], &dyn->translate, 1.0f);
+                    func_8027690C(dyn, x, y, z, &sx1, &sy1, &D_80217B70x.view[gBufferIndex],
+                                  &D_80217B70x.rot[gBufferIndex], &dyn->translate, 1.0f);
                     *lon = func_8028BBF4(sx0, sy0, sx1, sy1);
                 } else {
-                    func_8027690C(dyn, x, y, z, &sx0, &sy0, &D_80217B70x.view[D_8035805C],
-                                  &D_80217B70x.rot[D_8035805C], &dyn->translate, 1.0f);
+                    func_8027690C(dyn, x, y, z, &sx0, &sy0, &D_80217B70x.view[gBufferIndex],
+                                  &D_80217B70x.rot[gBufferIndex], &dyn->translate, 1.0f);
                 }
             } else if (i != 0) {
                 *lon = (from < to) ? 0 : 180;
@@ -856,7 +856,7 @@ Gfx *func_801FC5B8(Dynamic *dyn, Gfx *arg1, u8 from, u8 to) {
     GlobeLevel *e2;
 
     gdl = arg1;
-    v = D_8021A840[D_8035805C];
+    v = D_8021A840[gBufferIndex];
     switch (D_8021A926) {
         case 0:
             break;
@@ -901,9 +901,9 @@ Gfx *func_801FC5B8(Dynamic *dyn, Gfx *arg1, u8 from, u8 to) {
             }
             break;
     }
-    a = func_802574F0((1.0 - D_8021A8E8) * D_8021A8E4) / func_802574F0(D_8021A8E4);
-    b = func_802574F0(D_8021A8E8 * D_8021A8E4) / func_802574F0(D_8021A8E4);
-    D_8021A8EC = func_802574F0(D_8021A8E8 * 3.141592653) * D_8021A8C0 / 64.0 + 1.0;
+    a = hd_sinf((1.0 - D_8021A8E8) * D_8021A8E4) / hd_sinf(D_8021A8E4);
+    b = hd_sinf(D_8021A8E8 * D_8021A8E4) / hd_sinf(D_8021A8E4);
+    D_8021A8EC = hd_sinf(D_8021A8E8 * 3.141592653) * D_8021A8C0 / 64.0 + 1.0;
     D_8021AB4C = (a * D_8021A8C4 + b * D_8021A8C8) * D_8021A8EC;
     D_8021AB50 = (a * D_8021A8CC + b * D_8021A8D0) * D_8021A8EC;
     D_8021AB54 = (a * D_8021A8D4 + b * D_8021A8D8) * D_8021A8EC;
@@ -1039,9 +1039,9 @@ void func_801FD484(f32 *lat, f32 *lon, f32 *x, f32 *y, f32 *z, f32 r) {
     } else if (*lon < -180.0) {
         *lon = *lon + 360.0;
     }
-    *x = func_80257514(-*lon * 0.017453292519943295) * func_80257514(*lat * 0.017453292519943295) * r;
-    *y = func_802574F0(*lat * 0.017453292519943295) * r;
-    *z = func_802574F0(-*lon * 0.017453292519943295) * func_80257514(*lat * 0.017453292519943295) * r;
+    *x = hd_cosf(-*lon * 0.017453292519943295) * hd_cosf(*lat * 0.017453292519943295) * r;
+    *y = hd_sinf(*lat * 0.017453292519943295) * r;
+    *z = hd_sinf(-*lon * 0.017453292519943295) * hd_cosf(*lat * 0.017453292519943295) * r;
 }
 
 /* Wrap the difference b - a into [-range, range). */
@@ -1079,8 +1079,8 @@ void func_801FD748(void) {
     Vtx *cur;
     Vtx *prev;
 
-    cur = D_803156F8[D_8035805C].stars;
-    prev = D_803156F8[D_8035805C ^ 1].stars;
+    cur = gDynamicBufs[gBufferIndex].stars;
+    prev = gDynamicBufs[gBufferIndex ^ 1].stars;
     for (i = 0; i < 0x80; i++) {
         minx = miny = 0x40000000;
         for (k = 0, bigx = bigy = 0; k < 4; k++) {
@@ -1168,10 +1168,10 @@ void func_801FDE98(void) {
     x = D_8021AB4C / len * 120.0f;
     y = D_8021AB50 / len * 120.0f;
     z = D_8021AB54 / len * 120.0f;
-    D_8020E3A8[D_8035805C].l[0].l.dir[0] = x;
-    D_8020E3A8[D_8035805C].l[0].l.dir[1] = y;
-    D_8020E3A8[D_8035805C].l[0].l.dir[2] = z;
-    osWritebackDCache(&D_8020E3A8[D_8035805C], sizeof(D_8020E3A8));
+    D_8020E3A8[gBufferIndex].l[0].l.dir[0] = x;
+    D_8020E3A8[gBufferIndex].l[0].l.dir[1] = y;
+    D_8020E3A8[gBufferIndex].l[0].l.dir[2] = z;
+    osWritebackDCache(&D_8020E3A8[gBufferIndex], sizeof(D_8020E3A8));
 }
 
 /* Open every level reachable from a completed one (no prototype in scope for func_801FE760). */
@@ -1209,7 +1209,7 @@ Gfx *func_801FE238(Gfx *arg0, s32 arg1) {
     gDPSetCycleType(gdl++, G_CYC_2CYCLE);
     gDPSetRenderMode(gdl++, 0x0C182048, 0);
     if (D_80217B6C == 3) {
-        gSPSetLights1(gdl++, D_8020E3A8[D_8035805C]);
+        gSPSetLights1(gdl++, D_8020E3A8[gBufferIndex]);
         gSPSetGeometryMode(gdl++, G_LIGHTING | G_CULL_BACK | G_SHADING_SMOOTH | G_SHADE);
         gDPSetCombine(gdl++, 0x26A024, 0x1FFC93FC);
     } else {

@@ -322,7 +322,7 @@ Platform model (`src/platform/`):
 | SI | os_si.c, input.c | controller 1 from `--input` (or idle), osContInit's 0.5 s wait; EEPROM 4 Kbit in a file (`--eeprom`, mupen64plus's 512-byte .eep format). |
 | Controller Pak | pif.c | `--mpk FILE` (mupen64plus .mpk: four 32 KB paks, controller 1's first; created formatted if missing): the front end's own SDK Pfs objects run natively over a PIF emulation (status, pak read/write); the system blocks (ID, inode, directory) are converted by layout at the pak boundary. |
 | saves | save.c | the save thread's routines (0E7B0.c, `PORT_SAVE_*` hooks) work on a big-endian copy of each record, so CRCs and files are the N64's: EEPROM files are byte-identical to mupen64plus's for the same play (checked: new game, level completion with best time), and load either way. |
-| RSP/RDP | os_hw.c | gfx tasks dropped and counted (SP done, plus DP done for frame tasks; bc.exe draws them with RT64, same completion times); func_802A4B0C's cull test answered by a CPU model of its ucode (below); audio tasks run at once on the microcode interpreter (src/audio/, "Audio" below), SP done. |
+| RSP/RDP | os_hw.c | gfx tasks dropped and counted (SP done, plus DP done for frame tasks; bc.exe draws them with RT64, same completion times); cull_rsp_test's cull test answered by a CPU model of its ucode (below); audio tasks run at once on the microcode interpreter (src/audio/, "Audio" below), SP done. |
 | AI | os_hw.c | a two-buffer DMA FIFO playing at the programmed rate in virtual time, so osAiGetLength (which sizes each audio frame) behaves; each accepted buffer goes to the output (`--wav FILE`; bc.exe's speakers), which never feeds back into the timing. |
 | front end | plat_core.c | data+bss snapshot at boot, restored after every reload. |
 | debug output | headless_main.c | `--print`: the game's debug printf (debug_printf, empty on the N64) to stderr with the frame number; `--cmdline "-c"` turns on the game's debug cheats (C-right + Z completes the level). |
@@ -385,7 +385,7 @@ bc_headless):
   D_80210690) are put back at their addresses as ROM bytes (hd_code's text
   isn't loaded natively; nothing native reads them).
 - `osSpTaskStartGo`: a gfx task goes to RT64 (`loadUCodeGBI` +
-  `processDisplayLists`, after `port_gfx_fix_task`). func_802A4B0C's
+  `processDisplayLists`, after `port_gfx_fix_task`). cull_rsp_test's
   visibility test (ucode D_802E77B0, whose RDP output the CPU reads) stays
   with the platform: os_hw.c `cull_visible` evaluates its list (projection
   and modelview, 8 box corners, 12 triangles): visible iff a triangle is not
@@ -608,9 +608,9 @@ it without a fault.  The x64-asan preset is the tool for this now.
     keep their 4:3 shape in the middle (the HUD, text, the radar, the
     front end's pictures: pillarboxed); full-width fill rectangles stretch.
     No game code changes: the game still builds its 4:3 perspective
-    (00000.c func_8024C414 `guPerspective(..., D_80364438, 4/3, ...)`, the
+    (00000.c hd_build_frame_dl `guPerspective(..., gCamFovy, 4/3, ...)`, the
     front-end screens likewise).  The game's CPU-side visibility test
-    (func_802A4B0C via 00000.c func_8024B8F4, which uses that projection)
+    (cull_rsp_test via 00000.c cull_start, which uses that projection)
     decides which level cells, and the buildings and objects on them, are
     drawn, so it must widen with the view: `host_cull_wide` (os_hw.c) makes
     `cull_visible` accept |x| <= k w with k = the aspect / (4/3) (from the
@@ -649,7 +649,7 @@ it without a fault.  The x64-asan preset is the tool for this now.
     frame-buffer swaps, `State::setRefreshRate`: RT64's own guess from the VI
     history turns interpolation off whenever the cadence wavers); cuts
     (`interpTask`: a frame of a new game mode or level, or whose camera,
-    read from the frame's own `DynamicBuf.unk140` view matrix, jumped more
+    read from the frame's own `DynamicBuf.view` view matrix, jumped more
     than 400 units and 4 times as far as the frame before, or turned more
     than 40 degrees, gets rate 0: RT64 shows it as it is, with no in-between
     pictures into it; in play the camera moves at most ~7 units and turns
@@ -929,7 +929,7 @@ chosen functions per frame, to find where execution forks), `demos`, `run`.
 What the emulator log gives the exe:
 - `--clock`: every osGetTime / osGetCount / osAiGetLength result, keyed by the
   calling function and the retrace it was read in, and the visibility test's
-  answer (func_802A4B0C's RDP output word) keyed by frame; other osGetTime
+  answer (cull_rsp_test's RDP output word) keyed by frame; other osGetTime
   calls get the emulator's clock (mupen64plus counts 811092 per VI; the
   mapping is in the file). Timers run in emulator counts.
 - `--sync`: the CPU time model. Game code takes no time natively; every
@@ -977,7 +977,7 @@ bytes, which the RSP reads).
 emulator runs the RSP tasks whose results the game reads on cxd4 (an LLE
 RSP, CC0, from `~/thirdparty/ref`, loaded at run time as an oracle) through
 `tools/audio/rsp_tap.so`: every audio task (each also checked against
-the port's interpreter) and func_802A4B0C's visibility test
+the port's interpreter) and cull_rsp_test's visibility test
 (`TAP_LLE_UCODE`); graphics stay on the HLE plugin; `ai_dump.so` writes the
 emulator's sound to `EMUDIR/emu.wav`.  The emulator log also has
 osAiGetLength's real values (logged in the caller after the call returns:

@@ -699,7 +699,7 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
             break;
     }
     if (yoshiState != 1) {
-        D_8036BB20 = (func_802574F0(D_8036BB38 * D_8036BB34 / one * 1.57 + 4.71) + 1.0) * 255.0;
+        D_8036BB20 = (hd_sinf(D_8036BB38 * D_8036BB34 / one * 1.57 + 4.71) + 1.0) * 255.0;
     }
     if (yoshiState != 1 && D_8036BB38 * D_8036BB34 > 0.1) {
         halfW = arg->w / 2;
@@ -824,7 +824,7 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
                 } else {
                     off = 0x1C;
                 }
-                if (!(gGameMode & 0xC9FD0FE79BFF80B0) || D_8035805C) {
+                if (!(gGameMode & 0xC9FD0FE79BFF80B0) || gBufferIndex) {
                     D_8036BB44 += D_802F9930;
                 }
                 if (D_802F9930 < 0) {
@@ -1281,9 +1281,9 @@ void func_802701A8(Gfx **gfx, s32 arg1) {
     gDPSetRenderMode(gdl++, G_RM_ZB_XLU_SURF, G_RM_ZB_XLU_SURF2);
     gDPSetCombineMode(gdl++, G_CC_MODULATERGBA, G_CC_MODULATERGBA);
     gSPTexture(gdl++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
-    if (D_80364414 != D_8036BEDC) {
+    if (gCamHeading != D_8036BEDC) {
         D_8036BEE0 ^= 1;
-        guRotateF(mtx, D_80364414 - 135.0, 0.0f, 1.0f, 0.0f);
+        guRotateF(mtx, gCamHeading - 135.0, 0.0f, 1.0f, 0.0f);
         for (i = 0; i < 4; i++) {
             guMtxXFMF(mtx, D_802F99C0[i].v.ob[0], D_802F99C0[i].v.ob[1], D_802F99C0[i].v.ob[2], &ox[i], &oy[i],
                       &oz[i]);
@@ -1317,7 +1317,7 @@ void func_802701A8(Gfx **gfx, s32 arg1) {
     }
     gDPPipeSync(gdl++);
     *gfx = gdl;
-    D_8036BEDC = D_80364414;
+    D_8036BEDC = gCamHeading;
 }
 
 s32 func_80270A54(YoshiNode *node, s32 arg1) {
@@ -1327,8 +1327,8 @@ s32 func_80270A54(YoshiNode *node, s32 arg1) {
 
     i = 0;
     v = node->cell;
-    for (; D_803C30A8[i] != 0xFFFF; ) {
-        arg1 = D_803C30A8[i++] == v;
+    for (; gVisibleCells[i] != 0xFFFF; ) {
+        arg1 = gVisibleCells[i++] == v;
         if (arg1) {
             return 1;
         }

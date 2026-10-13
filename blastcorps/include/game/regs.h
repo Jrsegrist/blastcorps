@@ -133,7 +133,7 @@ typedef struct {
 } VehMtxOut;
 
 /* A vehicle's position, model and its two 0x800-byte matrix buffers taken
- * from the heap gHeapPtr (swapped every frame by D_8035805C); the shared
+ * from the heap gHeapPtr (swapped every frame by gBufferIndex); the shared
  * spawn helpers of 6B4A0.c and 6E200.c.  (N64 memory: a view of the vehicle
  * blocks D_803EE38C / D_803EE768.) */
 typedef struct {

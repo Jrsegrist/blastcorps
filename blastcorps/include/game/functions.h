@@ -35,8 +35,8 @@ void func_8024FC2C(Gfx **gfx, u8 lod);
 void hd_mode_setup(void);
 void func_80256A34(s32 arg0);
 void align_up(s32 *arg0, s32 arg1);
-f32 func_802574F0(f32 arg0);
-f32 func_80257514(f32 arg0);
+f32 hd_sinf(f32 arg0);
+f32 hd_cosf(f32 arg0);
 
 /* hd_code/12D80.c */
 Gfx *func_80257540(Gfx *gfx);
@@ -124,7 +124,7 @@ void func_80262008(u8 tune, f32 vol);
 s32 func_8026205C(s32 arg0);
 
 /* hd_code/1D990.c */
-void func_80262150(u8 arg0);
+void cam_set_level_fovy(u8 arg0);
 void func_802621DC(u8 arg0);
 void func_80262238(u8 arg0);
 void func_80262320(u8 arg0);
@@ -483,9 +483,9 @@ void func_802A396C(s32 type, Out802A396C *out);
 u8 *func_802A41B0(u8 *rec, u8 *v, s32 id, s32 h52, s32 b57, s32 b56, s32 *s1io, s32 b4F, s32 b55);
 
 /* hd_code/5FD50.c */
-void func_802A4510(void);
-void func_802A45D4(s32 arg0);
-void func_802A467C(s32 arg0, Gfx *arg1, Vtx *arg2, s32 arg3);
+void cull_restart_now(void);
+void cull_restart(s32 arg0);
+void cull_step_delayed(s32 arg0, Gfx *arg1, Vtx *arg2, s32 arg3);
 void func_802A4CDC(u32 *dl0, u32 *dl1, u32 *dl2, u32 *dl3, u32 *gfx);
 
 /* hd_code/60D50.c */

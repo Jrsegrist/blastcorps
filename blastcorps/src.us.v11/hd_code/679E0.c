@@ -124,8 +124,8 @@ void func_802AC2A4(s32 z, s32 a1, s32 x, s32 y, s32 b0, s32 id, u8 *vehicle) {
 
 /* Level 0x17 only: wraps the position x (*px) and z (*pz) into the level's
  * box (x >= 0x15181 -> 0x2BC0, then x < 0x2581 -> 0x14B40; z >= 0x13881 ->
- * 0x44C0, then z < 0x3E81 -> 0x13240), setting D_80364412 on each wrap.
- * When D_80364412 is set (now or before), spawns effect kind 0x13 with
+ * 0x44C0, then z < 0x3E81 -> 0x13240), setting gCamSnap on each wrap.
+ * When gCamSnap is set (now or before), spawns effect kind 0x13 with
  * data 1000000 at (*px, *py, *pz) (func_802AC6FC). The second test of each
  * axis uses the value after the first wrap, but a wrapped value isn't
  * written again.
@@ -141,22 +141,22 @@ void func_802AC3B8(s32 *px, s32 *py, s32 *pz) {
     v = *px;
     if (v >= 0x15181) {
         *px = v = 0x2BC0;
-        D_80364412 = 1;
+        gCamSnap = 1;
     }
     if (v < 0x2581) {
         *px = 0x14B40;
-        D_80364412 = 1;
+        gCamSnap = 1;
     }
     v = *pz;
     if (v >= 0x13881) {
         *pz = v = 0x44C0;
-        D_80364412 = 1;
+        gCamSnap = 1;
     }
     if (v < 0x3E81) {
         *pz = 0x13240;
-        D_80364412 = 1;
+        gCamSnap = 1;
     }
-    if (D_80364412 != 0) {
+    if (gCamSnap != 0) {
         func_802AC6FC(*px, *py, *pz, 0x13, 1000000);
     }
 }

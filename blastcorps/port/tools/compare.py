@@ -372,7 +372,7 @@ def lle_env(emudir):
     """emu --lle: the RSP tasks whose results the game reads run on an LLE RSP
     (cxd4 from ~/thirdparty/ref, a CC0 test oracle loaded at run time) through
     port/tools/audio's rsp_tap.so: every audio task (checked against the
-    port's interpreter as well) and func_802A4B0C's visibility test (ucode
+    port's interpreter as well) and cull_rsp_test's visibility test (ucode
     D_802E77B0; mupen64plus's HLE RSP never runs it, so its answer would
     always be "visible").  Graphics go to the HLE RSP as before.  ai_dump.so
     records the emulator's AI stream to EMUDIR/emu.wav (+ ai_log.txt)."""
@@ -786,7 +786,7 @@ class Cmp:
             if (snd(ev) or ev == 0) and (snd(nv) or nv == 0) and (ev or nv):
                 return True
         # 34430.c func_80279778: the RDP renders a 120x90 RGBA16 view into
-        # the buffer D_8036D170 points at (its depth image: D_80358058's);
+        # the buffer D_8036D170 points at (its depth image: gDepthBufferPhys's);
         # nothing renders natively, and the CPU doesn't read the pixels
         for ptr in (0x8036D170, 0x80358058):
             p = int.from_bytes(e[ptr - BASE:ptr - BASE + 4], "big") | 0x80000000
@@ -1608,7 +1608,7 @@ def cmd_level(args):
     kind = opt(args, "--kind", "nm")
     shots = opt(args, "--shots", "")
     # (--strict: also the typed comparison; in a level, heap data lands on
-    # declared arrays like the frame buffers D_80000400, so it reports noise)
+    # declared arrays like the frame buffers gFrameBuffers, so it reports noise)
     res = run_level(level, cache, frames, every, inp, kind, shots, flag(args, "--force"), flag(args, "--keep"),
                     flag(args, "--strict"))
     print("level: results")

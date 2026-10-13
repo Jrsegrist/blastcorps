@@ -278,7 +278,7 @@ void func_802A1674(u8 *obj, s32 arg1) {
     func_802A1A9C(obj, &s1);
     func_802A1934();
     func_8029DC80();
-    func_802A4510();
+    cull_restart_now();
     func_802A2C54(obj);
     func_802A5F30();
     func_802BC840();

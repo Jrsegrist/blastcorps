@@ -347,7 +347,7 @@ void func_802BA354(void) {
                   &VEH_BA354(0x40, s32), &VEH_BA354(0x34, s32), &VEH_BA354(4, s32), &r, &f);
 
 animate:
-    if (D_8035805C != 0) {
+    if (gBufferIndex != 0) {
         func_8029E558(D_803EF704, D_803EF708, (Unk8029DEA0Entry *) D_803EF330);
     } else {
         func_8029E558(D_803EF708, D_803EF704, (Unk8029DEA0Entry *) D_803EF330);
@@ -460,7 +460,7 @@ extern u8 D_803EF330[];  /* animation channel table (Unk8029DEA0Entry, 56040.c) 
 /* Engine sound and animation channels for vehicle D_803EF630 (speed = s16 at
  * +0x76). When the speed changed since the last call (D_803EF6D6) and the
  * sound D_803EF6D8 is playing, its parameter 0x10 is set to the float
- * 1.5 + speed * D_8030D920 (passed as raw bits). Then a = (D_80364452 +
+ * 1.5 + speed * D_8030D920 (passed as raw bits). Then a = (gCamYaw +
  * 0x800) wrapped by -0xFFF at 0x1000; channel 2 gets value a / 0x555
  * (0, 1, else 2) and fraction (a % 0x555) / D_8030D924 (func_802A0360);
  * channel 1 gets round(speed * D_8030D928) (0 while gPaused is set,
@@ -482,7 +482,7 @@ s32 func_802BA6AC(void) {
 
         func_80260AB8(D_803EF6D8, 0x10, *(s32 *) &p);
     }
-    a = ((u16) D_80364452) + 0x800;
+    a = ((u16) gCamYaw) + 0x800;
     if ((s32) a >= 0x1000) {
         a -= 0xFFF;
     }
@@ -623,7 +623,7 @@ extern u8 * N64P D_803EF70C; /* model header */
 
 /* Rebuilds the type-0xFF object's model matrices and points, as
  * func_802B7030 (71140) does for vehicle 5: header D_803EF70C, buffers
- * D_803EF704 (D_8035805C set) / D_803EF708, rotation y = u16 +0x4C of
+ * D_803EF704 (gBufferIndex set) / D_803EF708, rotation y = u16 +0x4C of
  * D_803EF630 (the asm's $gp; both callers point it there) in D_803ED392, root
  * matrix at D_803EF6DC/E0/E4 with scale 0x59D8 (func_802AA764), parts tag
  * 0xFF (func_8029C454) and points id 0xFF (func_802ABBEC).
@@ -637,14 +637,14 @@ extern u8 * N64P D_803EF70C; /* model header */
  * t7 live. */
 s32 func_802BABEC(MtxChainRegs *regs) {
     u8 *hdr = D_803EF70C;
-    u8 *buf = D_8035805C != 0 ? D_803EF704 : D_803EF708;
+    u8 *buf = gBufferIndex != 0 ? D_803EF704 : D_803EF708;
     s32 *m = (s32 *) (*(s32 *) (hdr + *(s32 *) (hdr + 0x18) + 4) + buf);
     u8 *end;
 
     D_803ED392 = *(u16 *) (D_803EF630 + 0x4C);
     func_802AA764(D_803EF6DC, D_803EF6E0, D_803EF6E4, 0x59D8, m);
     regs->s2 = (s32) m;
-    buf = D_8035805C != 0 ? D_803EF704 : D_803EF708;
+    buf = gBufferIndex != 0 ? D_803EF704 : D_803EF708;
     hdr = D_803EF70C;
     func_8029C454(D_803EF6DC, D_803EF6E0, D_803EF6E4, 0xFF, hdr + *(s32 *) (hdr + 4), hdr + *(s32 *) (hdr + 8),
                   buf, regs);
@@ -774,13 +774,13 @@ void func_802BAD80(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp) {
 #ifdef NON_MATCHING
 extern u8 D_803EF720[];  /* animation channel table (Unk8029DEA0Entry, 56040.c) */
 
-/* Enter vehicle type 6 (called from hd.c): D_8036444C/50 = 6000, 9000, then
+/* Enter vehicle type 6 (called from hd.c): gCamDistance / D_80364450 = 6000, 9000, then
  * sets fields 0x14/0x11/0x12 of channels 2, 4, 5 of D_803EF720 and starts
  * channels 4 and 5 with value -1 (func_802A0290). The asm also points $gp at
  * D_803EFA20 and leaves it there (conventions.txt: clobbers gp) and leaves
  * v1 = -1; the C caller uses neither. */
 void func_802BB054(void) {
-    D_8036444C = 6000;
+    gCamDistance = 6000;
     D_80364450 = 9000;
     func_802A039C((Unk8029DEA0Entry *) D_803EF720, 2, 1);
     func_802A03D4((Unk8029DEA0Entry *) D_803EF720, 2, 0);
@@ -914,7 +914,7 @@ void func_802BB274(void) {
     f.dz = 0.0f;
     func_802A92C8(D_803EFAC8[0], D_803EFAC8[2], (s16 *) (D_803EFA20 + 0x5E), (s16 *) (D_803EFA20 + 0x4C),
                   (s32 *) (D_803EFA20 + 4), 6, D_803EFA20, 0, &f);
-    if (D_8035805C != 0) {
+    if (gBufferIndex != 0) {
         func_8029E558((u8 *) D_803EFAE4, (u8 *) D_803EFAE8, (Unk8029DEA0Entry *) D_803EF720);
     } else {
         func_8029E558((u8 *) D_803EFAE8, (u8 *) D_803EFAE4, (Unk8029DEA0Entry *) D_803EF720);
@@ -1118,7 +1118,7 @@ s32 func_802BB868(void) {
 extern u8 * N64P D_803EFAD4; /* model header */
 
 /* Rebuilds vehicle 6's model (D_803EFA20, the asm's $gp; header
- * D_803EFAD4, buffers D_803EFAE4 (D_8035805C set) / D_803EFAE8): rotation
+ * D_803EFAD4, buffers D_803EFAE4 (gBufferIndex set) / D_803EFAE8): rotation
  * D_803ED390 = 0, y = heading (u16 +0x4C), z = 0; root matrix at
  * D_803EFAC8[0..2] with scale 0x1B58 (func_802AA764); parts tag 6
  * (func_8029C454, header +4 .. +8), points id 6 (func_802ABBEC, +0 .. +4),
@@ -1133,7 +1133,7 @@ extern u8 * N64P D_803EFAD4; /* model header */
  * them only when its lookup fails and then doesn't use them). */
 s32 func_802BB8B8(MtxChainRegs *regs, s32 *t2Out) {
     u8 *hdr = D_803EFAD4;
-    u8 *buf = D_8035805C != 0 ? (u8 *) D_803EFAE4 : (u8 *) D_803EFAE8;
+    u8 *buf = gBufferIndex != 0 ? (u8 *) D_803EFAE4 : (u8 *) D_803EFAE8;
     s32 *m = (s32 *) (*(s32 *) (hdr + *(s32 *) (hdr + 0x18) + 4) + buf);
     s16 *verts;
 
@@ -1142,7 +1142,7 @@ s32 func_802BB8B8(MtxChainRegs *regs, s32 *t2Out) {
     D_803ED392 = *(u16 *) (D_803EFA20 + 0x4C);
     func_802AA764(D_803EFAC8[0], D_803EFAC8[1], D_803EFAC8[2], 0x1B58, m);
     regs->s2 = (s32) m;
-    buf = D_8035805C != 0 ? (u8 *) D_803EFAE4 : (u8 *) D_803EFAE8;
+    buf = gBufferIndex != 0 ? (u8 *) D_803EFAE4 : (u8 *) D_803EFAE8;
     hdr = D_803EFAD4;
     func_8029C454(D_803EFAC8[0], D_803EFAC8[1], D_803EFAC8[2], 6, hdr + *(s32 *) (hdr + 4), hdr + *(s32 *) (hdr + 8),
                   buf, regs);

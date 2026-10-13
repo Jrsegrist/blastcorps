@@ -59,7 +59,7 @@ extern u8 * N64P D_803ED818; /* vehicle 0's model header */
  * (func_80258230(0, 0x28, 15, 15)); one frame of func_802AEEC8 with byte
  * +0x9A set (no driving); the model matrix copied from the second buffer to
  * the first (func_802AA838); channels 1-4 set up (1: 0, 0, 0 / 0.5, 1; 2-4: 2,
- * 0, 1 / 0.5, 1) and D_8036444C/50 = 0xD48, 0.
+ * 0, 1 / 0.5, 1) and gCamDistance / D_80364450 = 0xD48, 0.
  * Register convention (conventions.txt): hdr s2, x t7, y s3, z s0, heading
  * s1; func_802A992C's fp and f12-f26 inputs are the dispatcher's leftovers
  * (here fp, f). The asm saves t0-t5 (asm caller func_802A350C keeps t1, t2
@@ -155,7 +155,7 @@ void func_802AE370(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut
     func_802A03D4((Unk8029DEA0Entry *) D_803ED460, 4, 0);
     func_802A040C((Unk8029DEA0Entry *) D_803ED460, 4, 1);
     func_802A0480(0.5f, (Unk8029DEA0Entry *) D_803ED460, 4, 1);
-    D_8036444C = 0xD48;
+    gCamDistance = 0xD48;
     D_80364450 = 0;
 }
 #else
@@ -194,7 +194,7 @@ void func_802AE860(void) {
  * = 0, 0x800, 0x400 or 0xC00 for direction 0, 1, 2, else), D_803ED814 = the
  * last checked z (directions 0/1) or x, the position = the player's (y + 500
  * for vehicle types 0xB, 0x11, 0x12), D_803ED826 = 1, channel 1 restarted
- * looping, D_8036444C/50 = 0xD48, 0. D_803ED827 is 1 while this runs and
+ * looping, gCamDistance / D_80364450 = 0xD48, 0. D_803ED827 is 1 while this runs and
  * D_803F7812 is 1 during the call.
  * Fidelity note: func_802AEC3C's func_802A9A60 inputs come from leftover
  * registers in the asm: key t8 = D_80364456 << 2 (what the C caller
@@ -288,7 +288,7 @@ s32 func_802AE888(s32 dist) {
         func_802A03D4((Unk8029DEA0Entry *) D_803ED460, 1, 0);
         func_802A040C((Unk8029DEA0Entry *) D_803ED460, 1, 0);
         func_802A0290((Unk8029DEA0Entry *) D_803ED460, 1, -1);
-        D_8036444C = 0xD48;
+        gCamDistance = 0xD48;
         D_80364450 = 0;
         ret = 1;
     }
@@ -538,7 +538,7 @@ void func_802AEEC8(void) {
                       (s32 *) (D_803ED760 + 0x40), (s32 *) (D_803ED760 + 0x34), (s32 *) (D_803ED760 + 4), &rr, &f);
     }
 animate:
-    if (D_8035805C != 0) {
+    if (gBufferIndex != 0) {
         func_8029E558(D_803ED82C, D_803ED830, (Unk8029DEA0Entry *) D_803ED460);
     } else {
         func_8029E558(D_803ED830, D_803ED82C, (Unk8029DEA0Entry *) D_803ED460);
@@ -803,7 +803,7 @@ u8 *func_802AFA64(void) {
     u8 *m = *(u8 * N64P *) (hdr + *(s32 *) (hdr + 0x18) + 4);
     MtxChainRegs regs;
 
-    m += (N64_A32) (D_8035805C != 0 ? D_803ED82C : D_803ED830);
+    m += (N64_A32) (gBufferIndex != 0 ? D_803ED82C : D_803ED830);
     D_803ED390[0] = 0;
     D_803ED390[2] = 0;
     D_803ED390[1] = *(u16 *) (D_803ED760 + 0x4C);
@@ -813,7 +813,7 @@ u8 *func_802AFA64(void) {
     regs.s2 = (s32) m;
     regs.s0 = 0;
     func_8029C454(pos[0], pos[1], pos[2], 0, hdr + *(s32 *) (hdr + 4), hdr + *(s32 *) (hdr + 8),
-                  D_8035805C != 0 ? D_803ED82C : D_803ED830, &regs);
+                  gBufferIndex != 0 ? D_803ED82C : D_803ED830, &regs);
     return hdr + *(s32 *) (hdr + 8);
 }
 #else

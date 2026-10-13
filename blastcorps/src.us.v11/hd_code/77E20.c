@@ -406,11 +406,11 @@ void func_802BCA2C(void) {
         p[7] = 0;
         e = *(Unk802C1DD0Entry * N64P *) p;
         part = p[6];
-        D_802E8BE4 = 10;
+        gShakeTime = 10;
         if (amount < 0x1F5) {
-            D_802E8BE8 = amount;
+            gShakeSize = amount;
         } else {
-            D_802E8BE8 = 500;
+            gShakeSize = 500;
         }
         pct = (u8 *) e + 0xEC + part - 1;
         level = *pct + amount;
@@ -775,8 +775,8 @@ void func_802C12E0(u32 **gfxA, u32 **gfxB);
  * `!=`) into four display lists: gA / gB (the two halves of the scene list),
  * gC / gD (per-object lists the scene calls). D_803F7658/765C = mtxA/mtxB,
  * func_802C08C4(gE) and func_802C0CBC(gF) (their new ends are dropped), the
- * matrix pool is this frame's (D_803F24D0 or D_803F2ED0 by D_8035805C).
- * Per object whose unkE8 is in the D_803C30A8 list (-1 ends it) and that
+ * matrix pool is this frame's (D_803F24D0 or D_803F2ED0 by gBufferIndex).
+ * Per object whose unkE8 is in the gVisibleCells list (-1 ends it) and that
  * isn't a 0x38 object while func_802BD8C8 is set:
  * - with a pose (info u16 +0xE != 0): func_802933A0 builds its matrix
  *   (words +0x1C..+0x24, the pose count, the next D_803F765C Mtx (advanced by
@@ -812,7 +812,7 @@ void func_802BD1F8(u32 *gA, u32 *gB, u32 *gC, u32 *gD, s32 mtxA, s32 mtxB, u32 *
     D_803F765C = mtxB;
     func_802C08C4(gE);
     func_802C0CBC(gF);
-    if (D_8035805C != 0) {
+    if (gBufferIndex != 0) {
         D_803F3964 = D_803F24D0;
     } else {
         D_803F3964 = D_803F2ED0;
@@ -829,7 +829,7 @@ void func_802BD1F8(u32 *gA, u32 *gB, u32 *gC, u32 *gD, s32 mtxA, s32 mtxB, u32 *
         s32 count;
         s32 first;
 
-        for (s = (s16 *) D_803C30A8;; s++) {
+        for (s = (s16 *) gVisibleCells;; s++) {
             if (*s == -1) {
                 goto tail;
             }
@@ -932,8 +932,8 @@ void func_802BD1F8(u32 *gA, u32 *gB, u32 *gC, u32 *gD, s32 mtxA, s32 mtxB, u32 *
 
                     *(u16 *) (ob + 0x48 + off) = 0;
                     func_802BFD1C(o, idx);
-                    D_802E8BE4 = 10;
-                    D_802E8BE8 = 300;
+                    gShakeTime = 10;
+                    gShakeSize = 300;
                     ob[idx + 0xEC] = 100;
                     func_802BD85C((Unk802BD99CModel *) o, idx);
                 }
@@ -1191,7 +1191,7 @@ static s32 heading_802BDDB4(s32 num, f32 d) {
  * n); the blend word (+8) = tick * 255 / period. Type 1: when (low word of
  * D_803649D8) >> 4 is a multiple of the period, frame = (that >> 8) % n.
  * Other types: the heading from the object (pos[0], pos[2]) to the player
- * (D_803643F8 / D_80364400 >> 11, logical), 0..0xFFF by quadrant, selects
+ * (gCamEyeX / gCamEyeZ >> 11, logical), 0..0xFFF by quadrant, selects
  * the frame within the u16 range lo (+0xC) .. hi (+0xE), wrapping through
  * 0xFFF when hi < lo (the wrap uses 0xFFF - lo, one short of a full turn,
  * as the asm): frame = v / 255, blend = v % 255 with v = offset * (n - 1) *
@@ -1230,8 +1230,8 @@ void func_802BDDB4(Unk802C1DD0Entry *obj, u8 *rec, u8 *end) {
                 ANIM_FRAME(rec) = (t >> 8) % ANIM_N(rec);
             }
         } else {
-            s32 px = (u32) D_803643F8 >> 11;
-            s32 pz = (u32) D_80364400 >> 11;
+            s32 px = (u32) gCamEyeX >> 11;
+            s32 pz = (u32) gCamEyeZ >> 11;
             s32 ox = obj->pos[0];
             s32 oz = obj->pos[2];
             f32 dx = (f32) (s32) (px - ox);
@@ -1779,11 +1779,11 @@ add:
     } else {
         value = func_802BFF6C(part, p->value, id, e, e->info->type, count);
     }
-    D_802E8BE4 = 10;
+    gShakeTime = 10;
     if (value < 0x1F5) {
-        D_802E8BE8 = value;
+        gShakeSize = value;
     } else {
-        D_802E8BE8 = 500;
+        gShakeSize = 500;
     }
     level = pcts[part - 1] + value;
     if (level >= 100) {
@@ -1801,8 +1801,8 @@ add:
         func_802C09B8(part, e);
         func_802C0E8C(part, e);
         func_802BF384(e);
-        D_802E8BE4 = 15;
-        D_802E8BE8 = 400;
+        gShakeTime = 15;
+        gShakeSize = 400;
         end = e->unk8;
         for (t = e->unk4; t != end; t++) {
             if (t->unk52 == part) {
@@ -2959,7 +2959,7 @@ u64 func_802C0C64(u64 cmd) {
  * and draws it). The display list func_802C0E8C builds sits at the start. */
 typedef struct {
     /* 0x000 */ u8 dl[0x960];
-    /* 0x960 */ s32 mtx[2][16]; /* 16.16 translation, then Mtx layout; one per D_8035805C buffer */
+    /* 0x960 */ s32 mtx[2][16]; /* 16.16 translation, then Mtx layout; one per gBufferIndex buffer */
     /* 0x9E0 */ s16 vtx[4][8];  /* 4 Vtx (func_802C1214) */
     /* 0xA20 */ s32 unkA20;     /* height limit */
     /* 0xA24 */ s32 unkA24;     /* height */
@@ -2973,7 +2973,7 @@ typedef struct {
 /* Moves the D_803EFED0 entry (one) and draws it into gfx: an inactive entry
  * counts unkA2B down to 0. An active one speeds up by 16 and rises by its
  * speed; once that reaches unkA20 it deactivates (unkA2A = 0, unkA2B = 3).
- * Otherwise D_803F7810 = 1, its matrix (mtx[D_8035805C != 0]) becomes a
+ * Otherwise D_803F7810 = 1, its matrix (mtx[gBufferIndex != 0]) becomes a
  * translation by (r1 << 12, -(height << 11), r2 << 12) with r1, r2 rolls in
  * -32..32 (func_802BFB50), converted by func_802AC8CC, and gfx gets
  * G_RDPPIPESYNC, a segment-0xC command (0xBC003006) to that matrix and a
@@ -3009,13 +3009,13 @@ u32 *func_802C0CBC(u32 *gfx) {
         D_803F7810 = 1;
         x = func_802BFB50(-32, 32) << 12;
         z = func_802BFB50(-32, 32) << 12;
-        func_802ACA60(x, -(h << 11), z, p->mtx[(D_8035805C != 0) ? 1 : 0]);
-        func_802AC8CC((u16 *) p->mtx[(D_8035805C != 0) ? 1 : 0]);
+        func_802ACA60(x, -(h << 11), z, p->mtx[(gBufferIndex != 0) ? 1 : 0]);
+        func_802AC8CC((u16 *) p->mtx[(gBufferIndex != 0) ? 1 : 0]);
         PORT_ITAG(gfx, PORT_ITAG_RISE, 1 - i);
         gfx[0] = 0xE7000000;
         gfx[1] = 0;
         gfx[2] = 0xBC003006;
-        gfx[3] = (u32) p->mtx[(D_8035805C != 0) ? 1 : 0] - 0x80000000;
+        gfx[3] = (u32) p->mtx[(gBufferIndex != 0) ? 1 : 0] - 0x80000000;
         gfx[4] = 0x06000000;
         gfx[5] = (u32) p - 0x80000000;
         gfx += 6;
@@ -3653,7 +3653,7 @@ s16 *func_802C1EE0(s32 index) {
 
 /* Moves part `part` (1-based) of group `group` (1-based) of the level's group
  * chain (see func_802C2054) to (x, y, z). The group's mtxOffset[part - 1]
- * locates a matrix in D_803F7824 (if D_8035805C) or D_803F7820; it becomes a
+ * locates a matrix in D_803F7824 (if gBufferIndex) or D_803F7820; it becomes a
  * translation by (x, y, z) in s15.16 (as func_802ACA60 builds it), stored in
  * the N64 Mtx layout (func_802AC8CC splits the words into integer and
  * fraction halves). Every part of the group's records that follows the same
@@ -3673,7 +3673,7 @@ void func_802C1F30(s32 group, s32 part, s32 x, s32 y, s32 z) {
         g = (Unk802C2054Group *) (chain + (u16) g->next);
     }
     off = *(u16 *) ((u8 *) g + 0x14 + (part - 1) * 2); /* g->mtxOffset[part - 1] */
-    mtx = (u16 *) (((D_8035805C != 0) ? D_803F7824 : D_803F7820) + off);
+    mtx = (u16 *) (((gBufferIndex != 0) ? D_803F7824 : D_803F7820) + off);
     func_802ACA60(x, y, z, (s32 *) mtx);
     func_802AC8CC(mtx);
 

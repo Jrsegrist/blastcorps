@@ -166,7 +166,7 @@ void func_802B7340(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut
 #ifdef NON_MATCHING
 extern u8 D_803EEE70[]; /* this vehicle's state block */
 
-/* Enter vehicle type 8: clears the byte at +0x99, D_8036444C/50 = 3000,
+/* Enter vehicle type 8: clears the byte at +0x99, gCamDistance / D_80364450 = 3000,
  * 1000, then func_802C4310(arg0, 0xCE) (arg0 passes straight through; hd.c
  * calls this with no arguments and func_802C4310 ignores it). The asm also
  * points $gp at D_803EEE70 and leaves it there (conventions.txt: clobbers
@@ -174,7 +174,7 @@ extern u8 D_803EEE70[]; /* this vehicle's state block */
  * func_802CCC8C (88160), func_802CFA0C (8AEE0). */
 void func_802B76AC(s32 arg0) {
     D_803EEE70[0x99] = 0;
-    D_8036444C = 3000;
+    gCamDistance = 3000;
     D_80364450 = 1000;
     func_802C4310(arg0, 0xCE);
 }
@@ -386,7 +386,7 @@ static void port_b7a88_crash(void) {
     s32 v;
 
     D_803EEF33 = 0;
-    if (D_8035805C != 0) {
+    if (gBufferIndex != 0) {
         func_802A768C(D_803EEE70, D_803EEB70, (s32 *) &D_803EEF18[0], (s32 *) &D_803EEF18[1],
                       (s32 *) &D_803EEF18[2], D_803EEF2C, D_803EEF28, 0x100, &end);
     } else {
@@ -475,7 +475,7 @@ void func_802B7A88(void) {
                   0x2BC, 0x190, (s16 *) (D_803EEE70 + 0x4C), D_803EEE70 + 0x96, (s16 *) (D_803EEE70 + 0x52),
                   (s32 *) (D_803EEE70 + 0x28), (s32 *) (D_803EEE70 + 0x40), (s32 *) (D_803EEE70 + 0x34),
                   (s32 *) (D_803EEE70 + 4), &rr, &f);
-    if (D_8035805C != 0) {
+    if (gBufferIndex != 0) {
         func_8029E558((u8 *) D_803EEF28, (u8 *) D_803EEF2C, (Unk8029DEA0Entry *) D_803EEB70);
     } else {
         func_8029E558((u8 *) D_803EEF2C, (u8 *) D_803EEF28, (Unk8029DEA0Entry *) D_803EEB70);
@@ -598,10 +598,10 @@ void func_802B8278(void) {
     MtxChainRegs regs;
     u8 *base;
 
-    m += (N64_A32) (D_8035805C != 0 ? D_803EEF28 : D_803EEF2C);
+    m += (N64_A32) (gBufferIndex != 0 ? D_803EEF28 : D_803EEF2C);
     D_803ED390[1] = VEH8_U16(0x4C);
     func_802AA764(D_803EEF18[0], D_803EEF18[1], D_803EEF18[2], 0x32C8, (s32 *) m);
-    base = (u8 *) (D_8035805C != 0 ? D_803EEF28 : D_803EEF2C);
+    base = (u8 *) (gBufferIndex != 0 ? D_803EEF28 : D_803EEF2C);
     regs.a3 = 0;
     regs.s1 = 0;
     regs.s2 = (s32) m;
@@ -797,7 +797,7 @@ void func_802B8794(void) {
 /* Per-frame update of the flying vehicle (hd.c's hd_game_frame, and
  * func_802B8480): state machine (func_802B8D04), sound/animation channels
  * (func_802B98E0), animate the model into the current buffer
- * (func_8029E558; D_8035805C picks D_803EF2FC or D_803EF300), place it
+ * (func_8029E558; gBufferIndex picks D_803EF2FC or D_803EF300), place it
  * (func_802B9B4C), copy point record 1 of object 0xFE (func_802ABC88) to the
  * marker position D_803EF310/14/18, and drop the marker on the ground
  * (func_802B8C18).
@@ -813,7 +813,7 @@ void func_802B899C(void) {
 
     func_802B8D04();
     func_802B98E0();
-    if (D_8035805C != 0) {
+    if (gBufferIndex != 0) {
         func_8029E558(D_803EF2FC, D_803EF300, (Unk8029DEA0Entry *) D_803EEF40);
     } else {
         func_8029E558(D_803EF300, D_803EF2FC, (Unk8029DEA0Entry *) D_803EEF40);
@@ -1281,7 +1281,7 @@ void func_802B9B4C(void) {
     u8 *m = *(u8 * N64P *) (hdr + *(s32 *) (hdr + 0x18) + 4);
     MtxChainRegs regs;
 
-    m += (N64_A32) (D_8035805C != 0 ? D_803EF2FC : D_803EF300);
+    m += (N64_A32) (gBufferIndex != 0 ? D_803EF2FC : D_803EF300);
     D_803ED390[0] = 0;
     D_803ED390[2] = 0;
     D_803ED390[1] = *(u16 *) (D_803EF240 + 0x4C);
@@ -1294,7 +1294,7 @@ void func_802B9B4C(void) {
     regs.s0 = 0;
     hdr = D_803EF2F8;
     func_802ABBEC(0xFE, (s16 *) (hdr + *(s32 *) hdr), (s16 *) (hdr + *(s32 *) (hdr + 4)),
-                  D_8035805C != 0 ? D_803EF2FC : D_803EF300, &regs);
+                  gBufferIndex != 0 ? D_803EF2FC : D_803EF300, &regs);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/72B80/func_802B9B4C.s")

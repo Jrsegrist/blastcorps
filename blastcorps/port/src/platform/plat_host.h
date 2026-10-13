@@ -162,7 +162,7 @@ typedef struct HostLive {
 } HostLive;
 
 /* Widescreen (bc.exe's optional enhancement; os_hw.c): the width of
- * func_802A4B0C's visibility test as a multiple of the game's 4:3 view, so
+ * cull_rsp_test's visibility test as a multiple of the game's 4:3 view, so
  * level cells (and the objects on them) at the edges of a wider picture are
  * drawn.  1.0 (the default) is the exact model of the N64's ucode; another
  * value changes what the game sees (which cells are visible), so the game

@@ -11,7 +11,7 @@
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_802E8F94 ((LevelInfo *) D_802E8F94)
 #define D_802F47B0 ((u8 *) D_802F47B0)
-#define D_803156F8 ((FeDyn *) D_803156F8)
+#define gDynamicBufs ((FeDyn *) gDynamicBufs)
 #define players ((Player *) players)
 /* end of views */
 
@@ -191,7 +191,7 @@ void func_801E7598(void) {
     static s8 D_802081B4 = 1;   /* title pulse direction */
     s32 i;
     s32 vtx = 0;
-    FeDyn *dyn = &D_803156F8[D_8035805C ^ 1];
+    FeDyn *dyn = &gDynamicBufs[gBufferIndex ^ 1];
     Gfx *gdl = dyn->dl;
 
     func_8028A3E4();
@@ -249,35 +249,35 @@ void func_801E7598(void) {
     if ((D_80370C28 & 0x100) && !(D_80370C2A & 0x100) && !areWeFading()) {
         D_802153E6 = 750;
     }
-    if (D_8035805C == 0 && D_802153E4 >= 750) {
+    if (gBufferIndex == 0 && D_802153E4 >= 750) {
         func_80260650(D_80367738, sfx[D_80211A68 == 0], 0);
         if (D_80211A68 != 0) {
             func_801E74E8(D_80211A68 - 1);
         }
         D_802153E4 -= 750;
     }
-    if (D_8035805C == 0 && D_802153E6 >= 750) {
+    if (gBufferIndex == 0 && D_802153E6 >= 750) {
         func_80260650(D_80367738, sfx[D_80211A68 + 1 == D_80211A6A], 0);
         if (D_80211A68 + 1 != D_80211A6A) {
             func_801E74E8(D_80211A68 + 1);
         }
         D_802153E6 -= 750;
     }
-    rsp_send_task((u64 *) (D_803156F8[D_8035805C].dl), D_80358078, 1, 1, 0x4D2, 0);
-    D_8035805C ^= 1;
+    rsp_send_task((u64 *) (gDynamicBufs[gBufferIndex].dl), gFrameDlLen, 1, 1, 0x4D2, 0);
+    gBufferIndex ^= 1;
     gSPSegment(gdl++, 0, 0);
     gSPSegment(gdl++, 2, osVirtualToPhysical(dyn));
     gSPSegment(gdl++, 1, osVirtualToPhysical(gStaticSegment));
     gSPDisplayList(gdl++, D_01000038);
     gSPDisplayList(gdl++, D_01000010);
     gDPSetCycleType(gdl++, G_CYC_FILL);
-    gDPSetDepthImage(gdl++, D_80358058);
-    gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, D_80358058);
+    gDPSetDepthImage(gdl++, gDepthBufferPhys);
+    gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, gDepthBufferPhys);
     gDPSetFillColor(gdl++, 0xFFFCFFFC);
     gDPFillRectangle(gdl++, 0, 0, 319, 239);
-    gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, D_80358050[D_8035805C]);
+    gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, gFrameBufferPhys[gBufferIndex]);
     func_80259450();
-    gdl = func_80200BE0(gdl, (s32) dyn, &D_80358078);
+    gdl = func_80200BE0(gdl, (s32) dyn, &gFrameDlLen);
     gDPPipeSync(gdl++);
     gDPSetCycleType(gdl++, G_CYC_1CYCLE);
     func_80259CCC((Gfx * N64P *) dyn, (u8 *) D_80208040, D_80208044, 0, 0xA0, 0x50, 0x18, 0x15, 0x15, 1, 0, 0, 0, 0xA0);
@@ -296,13 +296,13 @@ void func_801E7598(void) {
     }
     func_80259C24(&gdl, (Mtx *) dyn);
     if (gFramesInMode < 2) {
-        guPerspective(&dyn->unk1240, &D_8035807C, 45.0f, 1.3333334f, 40.0f, 4000.0f, 1.0f);
+        guPerspective(&dyn->unk1240, &gPerspNorm, 45.0f, 1.3333334f, 40.0f, 4000.0f, 1.0f);
     }
     D_802153D8 = D_802153D8 + (D_802153D4 - D_802153D8) * 0.1 * 60.0 / 60.0;
     D_802153E0 = D_802153E0 + (D_802153DC - D_802153E0) * 0.1 * 60.0 / 60.0;
     guLookAtReflect(&dyn->unk140, &dyn->unk3C00, D_802153D8, 1.0f, D_802153E0, D_802153D8, 0.0f, 0.0f, 0.0f, 1.0f,
                     0.0f);
-    gImmp1(gdl++, G_RDPHALF_1, D_8035807C);
+    gImmp1(gdl++, G_RDPHALF_1, gPerspNorm);
     gSPLookAtX(gdl++, &dyn->unk3C00);
     gSPLookAtY(gdl++, &dyn->unk3C00.l[1]);
     gSPMatrix(gdl++, &dyn->unk1240, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
@@ -314,13 +314,13 @@ void func_801E7598(void) {
         s32 off;
         Mtx *mtx;
 
-        flag = D_8035805C & (i == D_80211A68);
+        flag = gBufferIndex & (i == D_80211A68);
         if (ABS(D_802153D8 - D_80211A70[D_802153C0[i]]) < 570.0) {
             seg = D_80210E90[i]->unk14 + (u8 *) D_80210E90[i];
             if (D_80211A68 == i) {
                 off = *(s32 *) (D_80210E90[i]->unk18 + (u8 *) D_80210E90[i] + 4);
                 mtx = (Mtx *) ((u8 *) D_80210EE0[i][flag] + off);
-                func_802021FC(D_80211AC0[i], D_80210EE0[i][D_8035805C], D_80210EE0[i][D_8035805C ^ 1]);
+                func_802021FC(D_80211AC0[i], D_80210EE0[i][gBufferIndex], D_80210EE0[i][gBufferIndex ^ 1]);
                 guRotate(mtx, (D_802153F0[i] += 4) % 360, 0.0f, 1.0f, 0.0f);
                 osWritebackDCache(mtx, sizeof(Mtx));
                 func_802025D0(D_802153C0[i], (f32) ((D_802153F0[i] + 180) % 360) * 11.37778);
@@ -330,11 +330,11 @@ void func_801E7598(void) {
             gSPMatrix(gdl++, &D_80211A28, G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
             gSPMatrix(gdl++, &D_802110A8[i], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
             gSPMatrix(gdl++, &D_80211568[i], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
-            gSPDisplayList(gdl++, D_80210F78[i][D_8035805C]);
+            gSPDisplayList(gdl++, D_80210F78[i][gBufferIndex]);
             gSPMatrix(gdl++, &D_80211A28, G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
             gSPMatrix(gdl++, &D_802110A8[i], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
             gSPMatrix(gdl++, &D_80211568[i], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
-            gSPDisplayList(gdl++, D_80210F78[i][D_8035805C + 2]);
+            gSPDisplayList(gdl++, D_80210F78[i][gBufferIndex + 2]);
         }
     }
     D_802153EC += D_802081AC;
@@ -371,11 +371,11 @@ void func_801E7598(void) {
         gSP1Triangle(gdl++, 0, 1, 2, 0);
         gSP1Triangle(gdl++, 0, 2, 3, 0);
     }
-    gdl = func_8026BBD0(gdl, (s32) &D_803156F8[D_8035805C], &D_80358078);
+    gdl = func_8026BBD0(gdl, (s32) &gDynamicBufs[gBufferIndex], &gFrameDlLen);
     gdl = func_80274BF0((s32) dyn, gdl);
     gDPFullSync(gdl++);
     gSPEndDisplayList(gdl++);
-    D_80358078 = gdl - dyn->dl;
+    gFrameDlLen = gdl - dyn->dl;
     for (i = 0; i < nextdma; i++) {
         osRecvMesg(&textureDmaMessageQ, NULL, 1);
     }

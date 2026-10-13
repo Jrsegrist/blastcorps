@@ -271,10 +271,10 @@ void func_80295C70(u8 id, s32 px, s32 pz) {
                               D_802FF150[i].z[2], D_802FF150[i].x[3], D_802FF150[i].z[3])) {
                 j = 0;
                 while (D_802FF150[i].list[j] != -1) {
-                    D_803C30A8[j] = D_802FF150[i].list[j];
+                    gVisibleCells[j] = D_802FF150[i].list[j];
                     j++;
                 }
-                D_803C30A8[j] = 0xFFFF;
+                gVisibleCells[j] = 0xFFFF;
             }
         }
     }

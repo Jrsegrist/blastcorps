@@ -2,8 +2,8 @@
 #include <ultra64.h>
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_80000400 ((FrameBuffer *) D_80000400)
-#define D_803156F8 ((FrameData *) D_803156F8)
+#define gFrameBuffers ((FrameBuffer *) gFrameBuffers)
+#define gDynamicBufs ((FrameData *) gDynamicBufs)
 /* end of views */
 #include <PR/sched.h>
 
@@ -59,7 +59,7 @@ void rsp_send_task(u64 *data, s32 count, u8 slot, u8 yield, s32 id, u8 writeback
     s32 size;
 
     size = count * 8;
-    task = &gRspTasks[slot][D_8035805C];
+    task = &gRspTasks[slot][gBufferIndex];
     gRspSlotBusy[slot] = 1;
     task->t.list.t.type = M_GFXTASK;
     if (slot == 4) {
@@ -88,14 +88,14 @@ void rsp_send_task(u64 *data, s32 count, u8 slot, u8 yield, s32 id, u8 writeback
     if (yield) {
         task->t.flags |= 0x40;
     }
-    task->t.framebuffer = &D_80000400[D_8035805C];
+    task->t.framebuffer = &gFrameBuffers[gBufferIndex];
     task->t.msgQ = &gMainSchedClient;
     if (writebackAll) {
         func_802D6710();
     } else {
         osWritebackDCache(task, sizeof(RspTask));
         osWritebackDCache(data, size);
-        osWritebackDCache(&D_803156F8[D_8035805C], sizeof(FrameData));
+        osWritebackDCache(&gDynamicBufs[gBufferIndex], sizeof(FrameData));
     }
     osSendMesg(&gScheduler, task, OS_MESG_BLOCK);
 }

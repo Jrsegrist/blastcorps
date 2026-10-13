@@ -10,7 +10,7 @@
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_8020C070 ((MenuEntry *) D_8020C070)
 #define D_802F8BDC ((MenuPage *) D_802F8BDC)
-#define D_803156F8 ((FeDyn *) D_803156F8)
+#define gDynamicBufs ((FeDyn *) gDynamicBufs)
 /* end of views */
 
 /* back_loop.c: the front end's per-frame loop (menus behind the yoshi windows) */
@@ -204,34 +204,34 @@ void func_801FE990(void) {
     nextdma = 0;
     no_palette_dmas = 0;
     func_802A5720();
-    rsp_send_task((u64 *) (D_803156F8[D_8035805C].dl), D_80358078, 1, 1, 0x4D2, 0);
-    D_8035805C ^= 1;
-    gdl = D_803156F8[D_8035805C].dl;
+    rsp_send_task((u64 *) (gDynamicBufs[gBufferIndex].dl), gFrameDlLen, 1, 1, 0x4D2, 0);
+    gBufferIndex ^= 1;
+    gdl = gDynamicBufs[gBufferIndex].dl;
     gSPSegment(gdl++, 0, 0);
-    gSPSegment(gdl++, 2, osVirtualToPhysical(&D_803156F8[D_8035805C]));
+    gSPSegment(gdl++, 2, osVirtualToPhysical(&gDynamicBufs[gBufferIndex]));
     gSPSegment(gdl++, 1, osVirtualToPhysical(gStaticSegment));
     gSPDisplayList(gdl++, D_01000038);
     gSPDisplayList(gdl++, D_01000010);
     gSPClipRatio(gdl++, FRUSTRATIO_3);
     gDPSetCycleType(gdl++, G_CYC_FILL);
     if (gGameMode & 0x88000080) {
-        gDPSetDepthImage(gdl++, D_80358058);
-        gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, D_80358058);
+        gDPSetDepthImage(gdl++, gDepthBufferPhys);
+        gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, gDepthBufferPhys);
         gDPSetFillColor(gdl++, 0xFFFCFFFC);
         gDPFillRectangle(gdl++, 220, 110, 300, 160);
     } else if (gGameMode & 0x40000000) {
-        gDPSetDepthImage(gdl++, D_80358058);
-        gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, D_80358058);
+        gDPSetDepthImage(gdl++, gDepthBufferPhys);
+        gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, gDepthBufferPhys);
         gDPSetFillColor(gdl++, 0xFFFCFFFC);
         gDPFillRectangle(gdl++, 0, 0, 319, 239);
     }
-    gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, D_80358050[D_8035805C]);
+    gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, gFrameBufferPhys[gBufferIndex]);
     func_80259450();
-    gdl = func_80200BE0(gdl, (s32) &D_803156F8[D_8035805C], &D_80358078);
+    gdl = func_80200BE0(gdl, (s32) &gDynamicBufs[gBufferIndex], &gFrameDlLen);
     gDPPipeSync(gdl++);
     gDPSetCycleType(gdl++, G_CYC_1CYCLE);
     if (gGameMode & 0xC000000000000) {
-        gdl = func_8026BBD0(gdl, (s32) &D_803156F8[D_8035805C], &D_80358078);
+        gdl = func_8026BBD0(gdl, (s32) &gDynamicBufs[gBufferIndex], &gFrameDlLen);
     }
     if (gGameMode == 0x4000000000000) {
         if (gFramesInMode == 0) {
@@ -245,10 +245,10 @@ void func_801FE990(void) {
         }
     }
     if (gGameMode & 0x818D04001AFB8080) {
-        gdl = func_801E9718(gdl, (struct PlayerSelDyn *) &D_803156F8[D_8035805C], 0xC2);
+        gdl = func_801E9718(gdl, (struct PlayerSelDyn *) &gDynamicBufs[gBufferIndex], 0xC2);
     }
     if (gGameMode & 0x898C0FE313F78002) {
-        gdl = func_8025C878(gdl, (s32) &D_803156F8[D_8035805C], D_8035805C, &D_80358078);
+        gdl = func_8025C878(gdl, (s32) &gDynamicBufs[gBufferIndex], gBufferIndex, &gFrameDlLen);
     }
     if (gGameMode & 0x410000) {
         u8 old = playerNumber;
@@ -264,16 +264,16 @@ void func_801FE990(void) {
     }
     func_8028A3E4();
     if (gGameMode & 0x40000000) {
-        gdl = func_801ED800(gdl, &D_803156F8[D_8035805C], D_8035805C, &D_80358078);
+        gdl = func_801ED800(gdl, &gDynamicBufs[gBufferIndex], gBufferIndex, &gFrameDlLen);
     }
     if (gGameMode == 0x1000000000000) {
-        gdl = func_80201364((s32) D_803156F8, gdl);
+        gdl = func_80201364((s32) gDynamicBufs, gdl);
     }
-    gdl = func_8024C404(gdl, (DynamicBuf *) &D_803156F8[D_8035805C], &D_80358078);
+    gdl = func_8024C404(gdl, (DynamicBuf *) &gDynamicBufs[gBufferIndex], &gFrameDlLen);
     if (gGameMode & 0x88000080) {
-        gdl = func_801EC770(gdl, &D_803156F8[D_8035805C], &D_80358078);
+        gdl = func_801EC770(gdl, &gDynamicBufs[gBufferIndex], &gFrameDlLen);
         if (D_80364A71 != -1 && yoshiState == 2) {
-            gdl = func_801F51C8(&D_803156F8[D_8035805C], gdl);
+            gdl = func_801F51C8(&gDynamicBufs[gBufferIndex], gdl);
             gSPClearGeometryMode(gdl++, G_ZBUFFER);
         }
     }
@@ -295,25 +295,25 @@ void func_801FE990(void) {
 
         x = 0x118, y = 0x8C;
         sprintf(D_8021AB72, "%d", D_80364A71);
-        func_80259CCC((Gfx * N64P *) &D_803156F8[D_8035805C], (u8 *) D_8021AB72, 0, 1, 0, x, y, 0x1A, 0x16, 1, 0, 0, 0, D_8036BB20);
-        func_80259DC8((Gfx * N64P *) &D_803156F8[D_8035805C], (u8 *) D_8021AB72, 0, 1, 0, x + 2, y + 2, 0x12, 0x12, 1, 0xFF, 0xFF, 0,
+        func_80259CCC((Gfx * N64P *) &gDynamicBufs[gBufferIndex], (u8 *) D_8021AB72, 0, 1, 0, x, y, 0x1A, 0x16, 1, 0, 0, 0, D_8036BB20);
+        func_80259DC8((Gfx * N64P *) &gDynamicBufs[gBufferIndex], (u8 *) D_8021AB72, 0, 1, 0, x + 2, y + 2, 0x12, 0x12, 1, 0xFF, 0xFF, 0,
                       D_8036BB20, 0xFF, 0, 0, D_8036BB20);
     }
     if (gGameMode & 0x40000000000) {
         func_801F803C();
-        gdl = func_801F8440((s32) &D_803156F8[D_8035805C], gdl);
+        gdl = func_801F8440((s32) &gDynamicBufs[gBufferIndex], gdl);
     }
-    func_80259C24(&gdl, (Mtx *) &D_803156F8[D_8035805C]);
-    gdl = func_80274BF0((s32) &D_803156F8[D_8035805C], gdl);
+    func_80259C24(&gdl, (Mtx *) &gDynamicBufs[gBufferIndex]);
+    gdl = func_80274BF0((s32) &gDynamicBufs[gBufferIndex], gdl);
     if (!(gGameMode & 0xC000000000000)) {
-        gdl = func_8026BBD0(gdl, (s32) &D_803156F8[D_8035805C], &D_80358078);
+        gdl = func_8026BBD0(gdl, (s32) &gDynamicBufs[gBufferIndex], &gFrameDlLen);
     }
     if (yoshiState != 1 && currentYoshiWindow == 0xB) {
-        gdl = func_801EAA7C(gdl, (struct PlayerSelDyn *) &D_803156F8[D_8035805C], &D_80358078);
+        gdl = func_801EAA7C(gdl, (struct PlayerSelDyn *) &gDynamicBufs[gBufferIndex], &gFrameDlLen);
     }
     gDPFullSync(gdl++);
     gSPEndDisplayList(gdl++);
-    D_80358078 = gdl - D_803156F8[D_8035805C].dl;
+    gFrameDlLen = gdl - gDynamicBufs[gBufferIndex].dl;
     for (i = 0; i < nextdma; i++) {
         osRecvMesg(&textureDmaMessageQ, NULL, 1);
     }

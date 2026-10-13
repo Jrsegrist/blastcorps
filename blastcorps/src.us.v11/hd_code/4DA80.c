@@ -172,8 +172,8 @@ void func_80292DDC(s32 i) {
     D_8039C960[i].active = 0;
     func_802AC61C(D_8039C960[i].x, D_8039C960[i].y, D_8039C960[i].z, D_802FE3C0[D_8039C960[i].type].unk5A8,
                   D_802FE3C0[D_8039C960[i].type].unk5A4);
-    D_802E8BE4 = 10;
-    D_802E8BE8 = 400;
+    gShakeTime = 10;
+    gShakeSize = 400;
     func_80260650(D_80367738, 16, 0);
 }
 

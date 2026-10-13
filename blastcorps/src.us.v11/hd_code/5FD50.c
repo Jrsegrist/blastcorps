@@ -17,16 +17,16 @@
 
 #ifdef NON_MATCHING
 /* Shared declarations for the NON_MATCHING (port) rewrites below. */
-extern s16 D_803C3248;
+extern s16 gCullDelay;
 extern u8 D_803C2B90[];
 extern u8 * N64P D_803C2B88;
 extern s16 * N64P D_803C3170;
 extern s16 D_803C3178[];
 
-/* Body shared by func_802A4510 / func_802A45D4: D_803C3248 = value, reset
+/* Body shared by cull_restart_now / cull_restart: gCullDelay = value, reset
  * the D_803C2B88 cursor, fill both index lists with 0..n-1 for n =
  * D_803BE714 * D_803BE716, point D_803C3170 past the D_803C3178 list and
- * terminate the D_803C30A8 list with -1. The asm loops with `!=` on the
+ * terminate the gVisibleCells list with -1. The asm loops with `!=` on the
  * 32-bit product. The -1 is stored after D_803C3170, so with n == 100 it
  * overwrites D_803C3170's high half, as in the asm. */
 #define RESET_INDEX_LISTS(value)                \
@@ -34,82 +34,82 @@ extern s16 D_803C3178[];
         u32 n_;                                 \
         u32 i_;                                 \
                                                 \
-        D_803C3248 = (value);                   \
+        gCullDelay = (value);                   \
         D_803C2B88 = D_803C2B90;                \
         n_ = (u32) ((u16) D_803BE714) * D_803BE716;     \
         for (i_ = 0; i_ != n_; i_++) {          \
             D_803C3178[i_] = i_;                \
-            D_803C30A8[i_] = i_;                \
+            gVisibleCells[i_] = i_;                \
         }                                       \
         D_803C3170 = &D_803C3178[n_];           \
-        D_803C30A8[n_] = -1;                    \
+        gVisibleCells[n_] = -1;                    \
     }
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* func_802A45D4(0).
+/* cull_restart(0).
  * Asm callers rely on preserved: func_802A1674 keeps t0, f12, f14 (the asm
  * saves t0-t3). */
-void func_802A4510(void) {
+void cull_restart_now(void) {
     RESET_INDEX_LISTS(0);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5FD50/func_802A4510.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5FD50/cull_restart_now.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Sets D_803C3248 and resets the index lists (see RESET_INDEX_LISTS). */
-void func_802A45D4(s32 arg0) {
+/* Sets gCullDelay and resets the index lists (see RESET_INDEX_LISTS). */
+void cull_restart(s32 arg0) {
     RESET_INDEX_LISTS(arg0);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5FD50/func_802A45D4.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5FD50/cull_restart.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-void func_802A470C(s32, Gfx *, Vtx *, s32);
+void cull_walk_grid(s32, Gfx *, Vtx *, s32);
 
-/* Skips D_803C3248 frames: while the counter is nonzero it just counts
- * down; at zero it calls func_802A470C with the same four arguments.
- * Register note: func_802A470C clobbers s0-s7 (the asm here saves s0-s7,
+/* Skips gCullDelay frames: while the counter is nonzero it just counts
+ * down; at zero it calls cull_walk_grid with the same four arguments.
+ * Register note: cull_walk_grid clobbers s0-s7 (the asm here saves s0-s7,
  * gp and fp around it), and the asm passes f12/f14 through untouched. A
  * mixed N64 build would need a thunk saving the s-registers around the
  * asm callee; the native port (callee in C) doesn't. */
-void func_802A467C(s32 arg0, Gfx *arg1, Vtx *arg2, s32 arg3) {
-    if (D_803C3248 == 0) {
-        func_802A470C(arg0, arg1, arg2, arg3);
+void cull_step_delayed(s32 arg0, Gfx *arg1, Vtx *arg2, s32 arg3) {
+    if (gCullDelay == 0) {
+        cull_walk_grid(arg0, arg1, arg2, arg3);
     } else {
-        D_803C3248--;
+        gCullDelay--;
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5FD50/func_802A467C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5FD50/cull_step_delayed.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* The two list cursors func_802A484C advances (the asm's t3 and s5). */
+/* The two list cursors cull_test_cells advances (the asm's t3 and s5). */
 typedef struct {
     /* 0x0 */ s16 * N64P quads; /* {x, z, w, h} halfword quads still to test */
     /* 0x4 */ s16 * N64P cells; /* visible single cells (z * stride + x) */
 } Io802A484C;
-void func_802A484C(Io802A484C *io, void *dataPtr, Vtx *v, s32 dataSize, s32 x, s32 z, u32 w, u32 h,
+void cull_test_cells(Io802A484C *io, void *dataPtr, Vtx *v, s32 dataSize, s32 x, s32 z, u32 w, u32 h,
                    s32 stride, u8 *grid, u32 xs, u32 zs);
 
 /* One step of the visibility walk over the level grid (header `lvl`: s16
  * columns/stride at +0, rows at +2, scales at +4/+6, grid offset at +0x48).
  * When the quad stack D_803C2B88 is empty (at D_803C2B90): pushes the whole
  * grid {0, 0, columns, rows}, insertion-sorts the cells found visible so far
- * ([D_803C3178, D_803C3170)) into D_803C30A8 (ascending s16, an equal value
+ * ([D_803C3178, D_803C3170)) into gVisibleCells (ascending s16, an equal value
  * goes after the existing ones), ends it with -1 and empties the cell list.
- * Then pops a quad and tests it with func_802A484C (task data a1-a3), which
+ * Then pops a quad and tests it with cull_test_cells (task data a1-a3), which
  * may push sub-quads or add a cell; the cursors are stored back.
- * Register convention: ABI inputs (lvl is an s32 as func_802A467C passes it);
+ * Register convention: ABI inputs (lvl is an s32 as cull_step_delayed passes it);
  * the asm leaves s0-s7 changed (conventions.txt); its add/addi trap. */
-void func_802A470C(s32 arg0, Gfx *dataPtr, Vtx *v, s32 dataSize) {
+void cull_walk_grid(s32 arg0, Gfx *dataPtr, Vtx *v, s32 dataSize) {
     u8 *lvl = (u8 *) N64_IPTR(arg0);
     s16 *q = (s16 *) D_803C2B88;
     Io802A484C io;
@@ -126,12 +126,12 @@ void func_802A470C(s32 arg0, Gfx *dataPtr, Vtx *v, s32 dataSize) {
         q[3] = *(s16 *) (lvl + 2);
         q += 4;
         end = D_803C3170;
-        top = (s16 *) D_803C30A8;
+        top = (s16 *) gVisibleCells;
         for (src = D_803C3178; src != end; src++, top++) {
             s16 val = *src;
             s16 cur;
 
-            for (p = (s16 *) D_803C30A8; p != top; p++) {
+            for (p = (s16 *) gVisibleCells; p != top; p++) {
                 if (val < *p) {
                     break;
                 }
@@ -156,22 +156,22 @@ void func_802A470C(s32 arg0, Gfx *dataPtr, Vtx *v, s32 dataSize) {
     q -= 4;
     io.quads = q;
     io.cells = D_803C3170;
-    func_802A484C(&io, dataPtr, v, dataSize, q[0], q[1], q[2], q[3], *(s16 *) (lvl + 0),
+    cull_test_cells(&io, dataPtr, v, dataSize, q[0], q[1], q[2], q[3], *(s16 *) (lvl + 0),
                   lvl + *(s32 *) (lvl + 0x48), *(s16 *) (lvl + 4), *(s16 *) (lvl + 6));
     D_803C3170 = io.cells;
     D_803C2B88 = (u8 *) io.quads;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5FD50/func_802A470C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5FD50/cull_walk_grid.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* (Io802A484C is declared above func_802A470C.) */
+/* (Io802A484C is declared above cull_walk_grid.) */
 
-s32 func_802A49A8(s32 x, s32 z, s32 w, s32 h, s32 stride, u8 *grid, s32 *maxOut);
-void func_802A4A50(Vtx *v, u32 x, u32 z, u32 w, u32 d, u32 xs, u32 zs, s32 y0, s32 y1);
-s32 func_802A4B0C(void *dataPtr, void *wb, s32 dataSize);
+s32 cull_grid_height_range(s32 x, s32 z, s32 w, s32 h, s32 stride, u8 *grid, s32 *maxOut);
+void cull_box_corners(Vtx *v, u32 x, u32 z, u32 w, u32 d, u32 xs, u32 zs, s32 y0, s32 y1);
+s32 cull_rsp_test(void *dataPtr, void *wb, s32 dataSize);
 
 #define EMIT_QUAD(q, qx, qz, qw, qh)   \
     do {                               \
@@ -185,9 +185,9 @@ s32 func_802A4B0C(void *dataPtr, void *wb, s32 dataSize);
     } while (0)
 
 /* Visibility test of the w x h block of level-grid cells at (x, z): builds
- * its bounding box (height range from func_802A49A8 over the s16-pair grid,
- * corners from func_802A4A50 into v at scales xs, zs) and runs the RSP test
- * task (func_802A4B0C with dataPtr / v / dataSize). If it reports visible: a
+ * its bounding box (height range from cull_grid_height_range over the s16-pair grid,
+ * corners from cull_box_corners into v at scales xs, zs) and runs the RSP test
+ * task (cull_rsp_test with dataPtr / v / dataSize). If it reports visible: a
  * single cell is appended to io->cells as z * stride + x; a bigger block is
  * split into quadrants (w >> 1, w - (w >> 1)) x (h >> 1, h - (h >> 1)),
  * each non-empty one appended to io->quads as {x, z, w, h}.
@@ -197,16 +197,16 @@ s32 func_802A4B0C(void *dataPtr, void *wb, s32 dataSize);
  * overflow, C doesn't; that can't happen in game: the caller passes s16
  * x/z/w/h/stride with w, h >= 1, where z * stride + x, x + (w >> 1) and
  * w - (w >> 1) all stay in range (only 32-bit or negative w/h inputs trap). */
-void func_802A484C(Io802A484C *io, void *dataPtr, Vtx *v, s32 dataSize, s32 x, s32 z, u32 w, u32 h,
+void cull_test_cells(Io802A484C *io, void *dataPtr, Vtx *v, s32 dataSize, s32 x, s32 z, u32 w, u32 h,
                    s32 stride, u8 *grid, u32 xs, u32 zs) {
     s32 max;
-    s32 min = func_802A49A8(x, z, w, h, stride, grid, &max);
+    s32 min = cull_grid_height_range(x, z, w, h, stride, grid, &max);
     s16 *q;
     u32 w1;
     u32 h1;
 
-    func_802A4A50(v, x, z, w, h, xs, zs, min, max);
-    if (func_802A4B0C(dataPtr, v, dataSize) == 0) {
+    cull_box_corners(v, x, z, w, h, xs, zs, min, max);
+    if (cull_rsp_test(dataPtr, v, dataSize) == 0) {
         return;
     }
     if (w == 1 && h == 1) {
@@ -223,7 +223,7 @@ void func_802A484C(Io802A484C *io, void *dataPtr, Vtx *v, s32 dataSize, s32 x, s
     io->quads = q;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5FD50/func_802A484C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5FD50/cull_test_cells.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -234,8 +234,8 @@ void func_802A484C(Io802A484C *io, void *dataPtr, Vtx *v, s32 dataSize, s32 x, s
  * (starting from -0x8000) in *maxOut. The asm counts w and h down with
  * `!= 0` (both must be >= 1).
  * asm: x/z/w/h/stride/grid in s0/s1/s2/s3/s4/s6, min in v1, max in a0.
- * Asm callers rely on preserved: func_802A484C keeps a1-a3, t3, t8, f12, f14. */
-s32 func_802A49A8(s32 x, s32 z, s32 w, s32 h, s32 stride, u8 *grid, s32 *maxOut) {
+ * Asm callers rely on preserved: cull_test_cells keeps a1-a3, t3, t8, f12, f14. */
+s32 cull_grid_height_range(s32 x, s32 z, s32 w, s32 h, s32 stride, u8 *grid, s32 *maxOut) {
     u8 *row = grid + ((z * stride + x) << 2);
     u8 *p;
     s32 lo = 0x7FFF;
@@ -263,7 +263,7 @@ s32 func_802A49A8(s32 x, s32 z, s32 w, s32 h, s32 stride, u8 *grid, s32 *maxOut)
     return lo;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5FD50/func_802A49A8.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5FD50/cull_grid_height_range.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -275,8 +275,8 @@ s32 func_802A49A8(s32 x, s32 z, s32 w, s32 h, s32 stride, u8 *grid, s32 *maxOut)
  * Only the position halves are written.
  * asm: v in a2, x/z/w/d in s0/s1/s2/s3, xs/zs in s7/t8, y0/y1 in v1/a0; it
  * clobbers t6 and hi/lo.
- * Asm callers rely on preserved: func_802A484C keeps a1-a3, t3, f12, f14. */
-void func_802A4A50(Vtx *v, u32 x, u32 z, u32 w, u32 d, u32 xs, u32 zs, s32 y0, s32 y1) {
+ * Asm callers rely on preserved: cull_test_cells keeps a1-a3, t3, f12, f14. */
+void cull_box_corners(Vtx *v, u32 x, u32 z, u32 w, u32 d, u32 xs, u32 zs, s32 y0, s32 y1) {
     s32 x0 = x * xs;
     s32 x1 = (x + w) * xs;
     s32 z0 = z * zs;
@@ -292,7 +292,7 @@ void func_802A4A50(Vtx *v, u32 x, u32 z, u32 w, u32 d, u32 xs, u32 zs, s32 y0, s
     v[7].v.ob[0] = x0, v[7].v.ob[1] = y1, v[7].v.ob[2] = z1;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5FD50/func_802A4A50.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5FD50/cull_box_corners.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -311,8 +311,8 @@ extern u8 D_803C2B80[];   /* output buffer end */
  * gScheduler, calls rsp_wait_task(0x4D3), and returns 0 if the output
  * buffer's first word is 0xE8000000 (else 1).
  * asm: dataPtr/wb/dataSize in a1/a2/a3, result in t6; it saves a1-a3, t1, t3,
- * s4, s5, t8 and fp. Asm callers rely on preserved: func_802A484C keeps t3. */
-s32 func_802A4B0C(void *dataPtr, void *wb, s32 dataSize) {
+ * s4, s5, t8 and fp. Asm callers rely on preserved: cull_test_cells keeps t3. */
+s32 cull_rsp_test(void *dataPtr, void *wb, s32 dataSize) {
     u32 *t;
 
     if (((u16) D_803BE714) == 1 && D_803BE716 == 1) {
@@ -351,7 +351,7 @@ s32 func_802A4B0C(void *dataPtr, void *wb, s32 dataSize) {
     return 1;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5FD50/func_802A4B0C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5FD50/cull_rsp_test.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -423,10 +423,10 @@ s32 func_802A50DC(u8 *base, s32 id);
 u32 *func_802A51FC(u8 *base, u32 *dst, s32 start, s32 end, s32 patch);
 u32 *func_802A5334(u8 *base, u32 *dst, s16 *exclEnd, u8 *rec, u8 *end);
 
-/* Is `v` in the sorted, -1-terminated visible-cell list D_803C30A8? (Scans
+/* Is `v` in the sorted, -1-terminated visible-cell list gVisibleCells? (Scans
  * to the first entry >= v, as the asm.) */
 static s32 port_cell_listed(s32 v) {
-    s16 *p = (s16 *) D_803C30A8;
+    s16 *p = (s16 *) gVisibleCells;
     s32 t;
 
     for (;;) {
@@ -440,11 +440,11 @@ static s32 port_cell_listed(s32 v) {
     }
 }
 
-/* Does the n-word cell list `cells` share a value with D_803C30A8? For each
+/* Does the n-word cell list `cells` share a value with gVisibleCells? For each
  * listed value (to the -1) the cells are scanned from the start up to the
  * first one greater than it, as the asm does. */
 static s32 port_cells_listed(s32 *cells, s32 n) {
-    s16 *p = (s16 *) D_803C30A8;
+    s16 *p = (s16 *) gVisibleCells;
     s32 *c;
     s32 v;
     s32 k;
@@ -466,7 +466,7 @@ static s32 port_cells_listed(s32 *cells, s32 n) {
  * fixed list [lvl + *(lvl + 0x88), lvl + *(lvl + 0x8C)) to dl (8 bytes at a
  * time), then walks the 0x14-byte records [rec, recEnd) (+0 / +4 / +8: DL
  * start, alternate start, end offsets; +0xC: id; +0x10: cell). A record whose
- * cell is listed in D_803C30A8 starts a group: its id is appended to the s16
+ * cell is listed in gVisibleCells starts a group: its id is appended to the s16
  * list D_803C2EB0, its DL copied with func_802A51FC patched by
  * func_802A50DC(lvl, id); the following records with the same id whose cell
  * is listed are copied from their alternate start, unpatched. After each
@@ -685,7 +685,7 @@ extern s16 D_803C2EB0[]; /* sorted ids to leave out, up to the caller's end poin
 /* Walks the variable-size records [rec, end) (+0 / +4 / +8: display-list
  * start, alternate start and end offsets from base; +0xC: id; +0x10: count
  * n; +0x14: n sorted words) and, for each record whose word list shares a
- * value with the sorted, -1-terminated s16 list D_803C30A8 and whose id
+ * value with the sorted, -1-terminated s16 list gVisibleCells and whose id
  * isn't in the sorted list [D_803C2EB0, exclEnd): copies its display list
  * (from the alternate start when the id equals the previous copied record's)
  * to dst, 8 bytes at a time. Unless it used the alternate start, the copy is
@@ -702,7 +702,7 @@ u32 *func_802A5334(u8 *base, u32 *dst, s16 *exclEnd, u8 *rec, u8 *end) {
     while (rec != end) {
         s32 n = *(s32 *) (rec + 0x10);
         s32 *words = (s32 *) (rec + 0x14);
-        s16 *l = (s16 *) D_803C30A8;
+        s16 *l = (s16 *) gVisibleCells;
         s32 id;
         s16 *e;
         u32 *s;

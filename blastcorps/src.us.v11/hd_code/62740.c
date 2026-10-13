@@ -538,7 +538,7 @@ u64 *func_802A768C(u8 *veh, u8 *dst, s32 *w0, s32 *w1, s32 *w2, u64 *src, u64 *d
 #ifdef NON_MATCHING
 
 /* Copy `size` bytes in 8-byte units from a to b, or from b to a when
- * D_8035805C (the frame buffer index) is nonzero. Both pointers must be
+ * gBufferIndex (the frame buffer index) is nonzero. Both pointers must be
  * 8-aligned and size a multiple of 8 (the asm loops on `size != 0`).
  * Register note: the asm saves/restores a0-a3, and its asm callers
  * (func_802B0254, func_802C5120, func_802D07E0, ...) keep a0-a3, f12 and f14
@@ -548,7 +548,7 @@ void func_802A7764(u64 *a, u64 *b, s32 size) {
     u64 *src = a;
     u64 *dst = b;
 
-    if (D_8035805C != 0) {
+    if (gBufferIndex != 0) {
         src = b;
         dst = a;
     }
@@ -1427,7 +1427,7 @@ s32 func_802A8B10(s32 *a3Out) {
  * when (gx, gz) leaves the box D_803BE730..36. When out: the respawn record
  * with key `id` (key 1 unless D_80364AA8 is 1 or 0x80; the scan has no end
  * check, the key must exist) gives x, y, z (each s16 << 5), stored to *px,
- * *py, *pz and handed back in pos; D_80364412 = 1; func_802A754C(veh);
+ * *py, *pz and handed back in pos; gCamSnap = 1; func_802A754C(veh);
  * words 1..9 of veh = y; effect kind 0x13 (data 1000000) at the new position
  * (func_802AC6FC) and func_80277EDC(1, 1, 4, 0x6C).
  * Register convention: veh in gp, id t8, px t7, py s2, pz s1, x/z in t0/t1
@@ -1463,7 +1463,7 @@ void func_802A8CCC(u8 *veh, s32 id, s32 *px, s32 *py, s32 *pz, Pos802A8CCC *pos)
     while (rec[0] != key) {
         rec += 9;
     }
-    D_80364412 = 1;
+    gCamSnap = 1;
     x = (s16) ((rec[1] << 8) | rec[2]) << 5;
     *px = x;
     y = (s16) ((rec[3] << 8) | rec[4]) << 5;

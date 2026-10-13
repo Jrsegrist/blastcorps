@@ -142,7 +142,7 @@ extern u8 D_803F8E80[]; /* this vehicle's state block */
 extern u8 D_802C2324[]; /* channel keys (7D9D0 text blob) */
 extern u8 D_802C2348[];
 
-/* Enter vehicle type 13: clears the byte at +0x99, D_8036444C/50 = 3000,
+/* Enter vehicle type 13: clears the byte at +0x99, gCamDistance / D_80364450 = 3000,
  * 1000, resets the two channels keyed D_802C2324 and D_802C2348 (unk14,
  * unk11, unk12 = 0, then func_802A0508 with -1), then func_802C4310(arg0,
  * 0xCE) (arg0 passes straight through; hd.c calls this with no arguments
@@ -151,7 +151,7 @@ extern u8 D_802C2348[];
  * uses neither. */
 void func_802CBA94(s32 arg0) {
     D_803F8E80[0x99] = 0;
-    D_8036444C = 3000;
+    gCamDistance = 3000;
     D_80364450 = 1000;
     func_802A05D0((s32) D_802C2324, 0);
     func_802A05F8((s32) D_802C2324, 0);
@@ -432,7 +432,7 @@ void func_802CBEF0(void) {
                   700, 400, (s16 *) (D_803F8E80 + 0x4C), D_803F8E80 + 0x96, (s16 *) (D_803F8E80 + 0x52),
                   (s32 *) (D_803F8E80 + 0x28), (s32 *) (D_803F8E80 + 0x40), (s32 *) (D_803F8E80 + 0x34),
                   (s32 *) (D_803F8E80 + 4), &rr, &f);
-    if (D_8035805C != 0) {
+    if (gBufferIndex != 0) {
         func_8029E558((u8 *) D_803F8F38, (u8 *) D_803F8F3C, (Unk8029DEA0Entry *) D_803F8B80);
     } else {
         func_8029E558((u8 *) D_803F8F3C, (u8 *) D_803F8F38, (Unk8029DEA0Entry *) D_803F8B80);
@@ -451,7 +451,7 @@ void func_802CBEF0(void) {
             goto publish;
         }
         D_803F8F43 = 0;
-        if (D_8035805C != 0) {
+        if (gBufferIndex != 0) {
             func_802A768C(D_803F8E80, D_803F8B80, (s32 *) &D_803F8F28[0], (s32 *) &D_803F8F28[1],
                           (s32 *) &D_803F8F28[2], D_803F8F3C, D_803F8F38, 0x100, &end);
         } else {
@@ -596,7 +596,7 @@ void func_802CC56C(void) {
 extern u8 * N64P D_803F8F34;    /* model header: word offsets to the part lists */
 
 /* Place vehicle 13's model: m = the word at +4 of the header entry at
- * hdr + hdr[6], plus the current save copy (D_803F8F38 when D_8035805C is
+ * hdr + hdr[6], plus the current save copy (D_803F8F38 when gBufferIndex is
  * set, else D_803F8F3C); y rotation D_803ED392 = the heading (u16 at +0x4C);
  * func_802AA764(position D_803F8F28..30, scale 0x4268, m). Then the
  * vehicle's parts (func_8029C454, tag 0xD, list hdr + hdr[1] .. hdr +
@@ -618,10 +618,10 @@ void func_802CC70C(void) {
     s32 *m;
 
     m = (s32 *) N64_IPTR(*(s32 *) (hdr + *(s32 *) (hdr + 0x18) + 4) +
-                 (s32) (D_8035805C ? (u8 *) D_803F8F38 : (u8 *) D_803F8F3C));
+                 (s32) (gBufferIndex ? (u8 *) D_803F8F38 : (u8 *) D_803F8F3C));
     D_803ED390[1] = *(u16 *) (D_803F8E80 + 0x4C);
     func_802AA764(D_803F8F28[0], D_803F8F28[1], D_803F8F28[2], 0x4268, m);
-    base = D_8035805C ? (u8 *) D_803F8F38 : (u8 *) D_803F8F3C;
+    base = gBufferIndex ? (u8 *) D_803F8F38 : (u8 *) D_803F8F3C;
     hdr = D_803F8F34;
     regs.v1 = 0;
     regs.a0 = 0;

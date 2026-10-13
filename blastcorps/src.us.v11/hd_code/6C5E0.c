@@ -197,7 +197,7 @@ extern u8 D_802C2308[]; /* key of this vehicle's func_802A06B4 entry */
 extern u8 D_803EDC10[]; /* this vehicle's animation channel table */
 
 /* Vehicle-type 2 setup (called from 00000.c / 17210.c): clears byte 0x99 of
- * the state block, D_8036444C/50 = 4200, 3000, starts the engine sound 0x50
+ * the state block, gCamDistance / D_80364450 = 4200, 3000, starts the engine sound 0x50
  * (handle in D_803EDFD0), sets the D_802C2308 entry's fields (25, 0, 0) and
  * the animation channels 7, 8, 9 (and 1, 5, 3) of D_803EDC10.
  * The asm also points $gp at D_803EDF10 and leaves it there (conventions.txt:
@@ -205,7 +205,7 @@ extern u8 D_803EDC10[]; /* this vehicle's animation channel table */
  * ignore both. */
 void func_802B1228(void) {
     D_803EDF10[0x99] = 0;
-    D_8036444C = 0x1068;
+    gCamDistance = 0x1068;
     D_80364450 = 0xBB8;
     func_80260650(D_80367738, 0x50, &D_803EDFD0);
     func_802A05D0((s32) D_802C2308, 0x19);
@@ -355,7 +355,7 @@ void func_802B152C(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 f
     func_802A8768(v, 2, (s32 *) &D_803EDFB8[0], (s32 *) &D_803EDFB8[1], (s32 *) &D_803EDFB8[2], x, o.t1, 0x78,
                   0x78, (s16 *) (v + 0x4C), v + 0x96, (s16 *) (v + 0x52), (s32 *) (v + 0x28), (s32 *) (v + 0x40),
                   (s32 *) (v + 0x34), (s32 *) (v + 4), &r8, &f);
-    if (D_8035805C != 0) {
+    if (gBufferIndex != 0) {
         func_8029E558((u8 *) D_803EDFC8, (u8 *) D_803EDFCC, (Unk8029DEA0Entry *) D_803EDC10);
     } else {
         func_8029E558((u8 *) D_803EDFCC, (u8 *) D_803EDFC8, (Unk8029DEA0Entry *) D_803EDC10);
@@ -729,7 +729,7 @@ void func_802B18F4(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
 #ifdef NON_MATCHING
 /* Model matrices of vehicle type 2: the root matrix (func_802AA764 at its
  * position, scale 0x6590, rotation (0, heading + 0x400 wrapped by 0xFFF when
- * >= 0x1000, 0)) into the current matrix buffer (D_8035805C picks
+ * >= 0x1000, 0)) into the current matrix buffer (gBufferIndex picks
  * D_803EDFC8 or D_803EDFCC) at the offset the model's +0x18 table gives; then
  * the model's part list (+4..+8, func_8029C454, tag 2) and point list
  * (+0..+4, func_802ABBEC) through the matrix chain. Same as func_802D22F4
@@ -752,7 +752,7 @@ s32 func_802B2768(s32 a3, s32 s0, s32 s1, VehMtxOut *out) {
     s32 z;
 
     m = (s32 *) N64_IPTR(*(s32 *) (model + *(s32 *) (model + 0x18) + 4) +
-                 (s32) (D_8035805C != 0 ? D_803EDFC8 : D_803EDFCC));
+                 (s32) (gBufferIndex != 0 ? D_803EDFC8 : D_803EDFCC));
     a = *(u16 *) (D_803EDF10 + 0x4C) + 0x400;
     if (a >= 0x1000) {
         a -= 0xFFF;
@@ -761,7 +761,7 @@ s32 func_802B2768(s32 a3, s32 s0, s32 s1, VehMtxOut *out) {
     D_803ED390[0] = 0;
     D_803ED390[2] = 0;
     func_802AA764(D_803EDFB8[0], D_803EDFB8[1], D_803EDFB8[2], 0x6590, m);
-    base = (u8 *) (D_8035805C != 0 ? D_803EDFC8 : D_803EDFCC);
+    base = (u8 *) (gBufferIndex != 0 ? D_803EDFC8 : D_803EDFCC);
     model = D_803EDFC4;
     x = D_803EDFB8[0];
     y = D_803EDFB8[1];

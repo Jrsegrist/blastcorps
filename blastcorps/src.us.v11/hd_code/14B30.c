@@ -35,7 +35,7 @@ static void port_textquad(TextQuad *q) {
 }
 #endif
 
-#define VTX(n) D_80365348[D_8035805C][n].v
+#define VTX(n) D_80365348[gBufferIndex][n].v
 
 void func_8025946C(Gfx **gdlp, s32 arg1);
 void func_80259824(Gfx **gdlp, s32 arg1);
@@ -141,11 +141,11 @@ void func_80259824(Gfx **gdlp, s32 arg1) {
                 gDPLoadBlock(gdl++, G_TX_LOADTILE, 0, 0, 0xFF, 0x400);
             }
         }
-        gSPVertex(gdl++, &D_80365348[D_8035805C][D_80365340[i].vtx * 4], 4, 0);
+        gSPVertex(gdl++, &D_80365348[gBufferIndex][D_80365340[i].vtx * 4], 4, 0);
         gSP1Triangle(gdl++, 0, 1, 2, 0);
         gSP1Triangle(gdl++, 0, 2, 3, 0);
     }
-    osWritebackDCache(&D_80365348[D_8035805C][D_802E8C70 * 4], (D_802E8C74 - D_802E8C70) * 64);
+    osWritebackDCache(&D_80365348[gBufferIndex][D_802E8C70 * 4], (D_802E8C74 - D_802E8C70) * 64);
     D_802E8C70 = D_802E8C74;
     *gdlp = gdl;
 }

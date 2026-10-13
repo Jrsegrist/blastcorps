@@ -472,7 +472,7 @@ void func_80266248(Gfx **gdlp, DynBuf *buf) {
 
     gdl = *gdlp;
     n = 0;
-    guRotateF(mf, D_80364414 - 135.0, 0.0f, 1.0f, 0.0f);
+    guRotateF(mf, gCamHeading - 135.0, 0.0f, 1.0f, 0.0f);
     for (k = 0; k < 4; k++) {
         guMtxXFMF(mf, D_802E9FB0[k].v.ob[0], D_802E9FB0[k].v.ob[1], D_802E9FB0[k].v.ob[2], &fx[k], &fy[k], &fz[k]);
     }
@@ -530,7 +530,7 @@ void func_80266248(Gfx **gdlp, DynBuf *buf) {
             }
             frame = D_80367D60[i].unk13;
             flip = 0;
-            ang = D_80367D60[i].unk18 - (D_80364414 - 135.0) / 360.0 * 4095.0;
+            ang = D_80367D60[i].unk18 - (gCamHeading - 135.0) / 360.0 * 4095.0;
             if (ang < 0) {
                 ang += 0xFFF;
             }
@@ -640,7 +640,7 @@ typedef struct {
     u8 cell;
 } Node12;
 
-/* Is the node's cell in the 0xFFFF-terminated list D_803C30A8? (same as
+/* Is the node's cell in the 0xFFFF-terminated list gVisibleCells? (same as
  * 26570's func_80270A54 with the cell at 0x12) */
 s32 func_80267614(Node12 *node, s32 arg1) {
     s32 i;
@@ -649,8 +649,8 @@ s32 func_80267614(Node12 *node, s32 arg1) {
 
     i = 0;
     v = node->cell;
-    for (; D_803C30A8[i] != 0xFFFF; ) {
-        arg1 = D_803C30A8[i++] == v;
+    for (; gVisibleCells[i] != 0xFFFF; ) {
+        arg1 = gVisibleCells[i++] == v;
         if (arg1) {
             return 1;
         }

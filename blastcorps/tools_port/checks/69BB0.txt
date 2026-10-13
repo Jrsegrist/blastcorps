@@ -75,12 +75,12 @@ func_802AF4BC: -n 300 --seed 2 --ret void --arg gp=sym:D_803ED760 \
 # func_802AA764 stubbed the asm's s2 isn't the matrix, so that slot is only compared with it followed.
 func_802AFA64: -n 300 --seed 0 --arg gp=sym:D_803ED760 --arg a3=0 --arg s0=0 --arg s1=0 --heap 0x100 \
     --mem D_803ED818=rel:heap0 --mem @heap0+4=int:0:0x10000 --mem @heap0+8=int:0:0x10000 \
-    --mem @heap0+0x18=choice:0x40,0x48,0x80 --mem D_8035805C:1=bytes:0,1,0xFF --mem D_803ED82C=int --mem D_803ED830=int \
+    --mem @heap0+0x18=choice:0x40,0x48,0x80 --mem gBufferIndex:1=bytes:0,1,0xFF --mem D_803ED82C=int --mem D_803ED830=int \
     --mem D_803ED808:12=rand --mem D_803ED760+0x4C:2=rand --mem D_803ED390:6=rand --sig func_802AA764=a0,a1,a2,a3,stack0 \
     --sig func_8029C454=a0,a1,a2,a3,stack0,stack1,stack2,*stack3+0x8,*stack3+0xC,*stack3+0x14
 func_802AFA64: -n 100 --seed 1 --follow func_802AA764 --arg gp=sym:D_803ED760 --arg a3=0 --arg s0=0 --arg s1=0 \
     --heap 0x100 --heap 0x100 --mem D_803ED818=rel:heap0 --mem @heap0+4=int:0:0x10000 --mem @heap0+8=int:0:0x10000 \
-    --mem @heap0+0x18=0x40 --mem @heap0+0x44=0 --mem D_8035805C:1=bytes:0,1 --mem D_803ED82C=rel:heap1 \
+    --mem @heap0+0x18=0x40 --mem @heap0+0x44=0 --mem gBufferIndex:1=bytes:0,1 --mem D_803ED82C=rel:heap1 \
     --mem D_803ED830=rel:heap1+0x40 --mem D_803ED808:12=rand --mem D_803ED760+0x4C:2=rand --mem D_803ED390:6=rand
 
 # func_802AF340: drive-in step (key t8, fp, f12-f26 in for func_802A9A60). Stop tests: x/z = 1000 +- 100 against
@@ -124,7 +124,7 @@ func_802AEEC8: -n 400 --seed 0 --arg t6=0 --arg t7=0 --arg s0=0 --arg s1=0 --arg
     --mem D_803ED760+0x9A:1=bytes:0*3,1,0x80 --mem D_803ED760+0xA1:1=bytes:0,1,2 --mem D_803ED826:1=bytes:0*3,1 \
     --mem gNextGameMode=0 --mem gNextGameMode+4=choice:0*4,0x800,1,0x1000,0x20,0x1801 --mem gGameMode=0 \
     --mem gGameMode+4=choice:0x800,1,0x1000,0x20,0x40,0x801,0x1000 --mem D_803ED824:1=bytes:0,1,0x80 \
-    --mem D_803ED822:2=rand --mem D_8035805C:1=bytes:0,1 --mem D_803ED82C=int --mem D_803ED830=int \
+    --mem D_803ED822:2=rand --mem gBufferIndex:1=bytes:0,1 --mem D_803ED82C=int --mem D_803ED830=int \
     --mem D_803A7425:1=bytes:0,1 --mem D_803F77D0=int --mem D_803ED808:12=rand --mem D_803643E0:12=rand \
     --mem D_8036443C:6=rand --mem D_803ED40B:1=bytes:5 --sig func_802AF4BC= --sig func_802AFBA0= --sig func_802AFB84= \
     --sig func_802AFA64= --sig func_802A6F6C= --sig func_8029A914=a0 \
@@ -133,7 +133,7 @@ func_802AEEC8: -n 200 --seed 1 --arg t6=0 --arg t7=0 --arg s0=0 --arg s1=0 --arg
     --arg fp=0 --arg f12=0 --arg f14=0 --arg f20=0 --arg f22=0 --arg f24=0 --arg f26=0 --mem D_803ED760:0xA6=rand \
     --mem D_803ED760+0x9A:1=bytes:0 --mem D_803ED826:1=bytes:0 --mem gNextGameMode=choice:0,1 \
     --mem gNextGameMode+4=choice:0,0x800 --mem gGameMode=choice:0,1,0x80000000 --mem gGameMode+4=choice:0x800,1,0x1000,0 \
-    --mem D_803ED824:1=bytes:0,1 --mem D_8035805C:1=bytes:0,1 --mem D_803A7425:1=bytes:0,1 --mem D_803ED808:12=rand \
+    --mem D_803ED824:1=bytes:0,1 --mem gBufferIndex:1=bytes:0,1 --mem D_803A7425:1=bytes:0,1 --mem D_803ED808:12=rand \
     --sig func_802AF4BC= --sig func_802AFBA0= --sig func_802AFB84= --sig func_802AFA64= --sig func_802A6F6C= \
     --sig func_8029A914=a0 \
     --sig func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12,*stack13+0x8,*stack13+0xC,*stack13+0x10,*stack13+0x14
@@ -142,7 +142,7 @@ func_802AE370: -n 300 --seed 0 --arg s2=ptr:0x100 --mem @s2+4=int:0:0x1000 --mem
     --mem @s2+0x18=choice:0x40,0x80 --mem @s2+0x44=int --mem @s2+0x84=int --arg t7=int --arg s3=int --arg s0=int \
     --arg s1=int --arg fp=int --arg f12=float --arg f14=float --arg f20=float --arg f22=float --arg f24=float \
     --arg f26=float --mem gHeapPtr=int:0:0x70000000 --mem D_803ED818:24=rand --mem D_803ED760:0xA6=rand \
-    --mem D_803ED808:12=rand --mem D_803ED824:4=rand --mem D_8036444C:2=rand --mem D_80364450:2=rand \
+    --mem D_803ED808:12=rand --mem D_803ED824:4=rand --mem gCamDistance:2=rand --mem D_80364450:2=rand \
     --sig func_802AEEC8= --sig func_80258230=a0:1,a1,a2:2,a3:2
 # channel setters, the record reset and the marker record run for real; extreme positions and headings
 func_802AE370: -n 100 --seed 1 \
@@ -164,7 +164,7 @@ func_802AEEC8: -n 200 --seed 2 \
     --mem D_803ED760+0x76:2=int:-200:200 --mem D_803ED826:1=bytes:0,1 --mem D_803ED828:1=bytes:0,1,2,3 \
     --mem D_803ED814=int:-5000:5000 --mem gNextGameMode=0 --mem gNextGameMode+4=choice:0*4,0x800,0x20 --mem gGameMode=0 \
     --mem gGameMode+4=choice:0x20,0x40,0x801 --mem D_803ED824:1=bytes:0,1 --mem D_803ED822:2=int:0:0xFFF \
-    --mem D_8035805C:1=bytes:0,1 --mem D_803ED82C=int --mem D_803ED830=int --mem D_803A7425:1=bytes:0,1 \
+    --mem gBufferIndex:1=bytes:0,1 --mem D_803ED82C=int --mem D_803ED830=int --mem D_803A7425:1=bytes:0,1 \
     --mem D_803A7410:2=int:0:0xFFF --mem D_803A7412:2=int:0:0xFFF --mem D_80358064=choice:0,1 --mem D_803F77D0=int \
     --mem D_803ED808=int:-5000:5000 --mem D_803ED80C=int:-5000:5000 --mem D_803ED810=int:-5000:5000 \
     --mem D_803ED3A8:12=rand --mem D_803EBBF0=int --sig func_802AF4BC= --sig func_8029A914=a0 \
@@ -173,10 +173,10 @@ func_802AEEC8: -n 200 --seed 2 \
     --sig func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12,*stack13+0x8,*stack13+0xC,*stack13+0x10,*stack13+0x14
 # (gpfix) vehicle 0's block (D_803ED760) through func_8029A914 and the whole func_8029C52C collision chain
 # (D_803EEA90+0xA0 is a decoy)
-func_802AEEC8: -n 200 --seed 5 --follow func_802AFA64,func_802AFB84,func_802AFBA0,func_802A6F6C,func_802A70D8,func_802A71DC,func_802A746C,func_802A6FE4,func_802A7070,func_802AF340,func_8029A914,func_8029C52C,func_8029C9D4,func_8029C828,func_8029C748,func_8029CB04,func_8029CD54,func_8029CF04,func_8029CFA4,func_802AB41C --arg t6=0 --arg t7=0 --arg s0=0 --arg s1=0 --arg s2=0 --arg s3=0 --arg s4=0 --arg t8=0 --arg fp=0 --arg f12=0 --arg f14=0 --arg f20=0 --arg f22=0 --arg f24=0 --arg f26=0 --arg a3=0 --heap 0x100 --mem D_803ED818=rel:heap0 --mem @heap0+4=int:0:0x1000 --mem @heap0+8=int:0:0x1000 --mem @heap0+0x18=0x40 --mem D_803ED760:0xA6=rand --mem D_803ED760+0x9A:1=bytes:0,1 --mem D_803ED760+0x4C:2=int:0:0xFFF --mem D_803ED760+0x4E:2=int:0:0xFFF --mem D_803ED760+0x76:2=int:-200:200 --mem D_803ED826:1=bytes:0,1 --mem D_803ED828:1=bytes:0,1,2,3 --mem D_803ED814=int:-5000:5000 --mem gNextGameMode=0 --mem gNextGameMode+4=choice:0*4,0x800,0x20 --mem gGameMode=0 --mem gGameMode+4=choice:0x20,0x40,0x801 --mem D_803ED824:1=bytes:0,1 --mem D_803ED822:2=int:0:0xFFF --mem D_8035805C:1=bytes:0,1 --mem D_803ED82C=int --mem D_803ED830=int --mem D_803A7425:1=bytes:0,1 --mem D_803A7410:2=int:0:0xFFF --mem D_803A7412:2=int:0:0xFFF --mem D_80358064=choice:0,1 --mem D_803F77D0=int --mem D_803ED808=int:-5000:5000 --mem D_803ED80C=int:-5000:5000 --mem D_803ED810=int:-5000:5000 --mem D_803ED3A8:12=rand --mem D_803EBBF0=int --sig func_802AF4BC= --sig func_802582C4=a0:1,a1,a2,a3,stack0 --sig func_802AA764=a0,a1,a2,a3,stack0 --sig func_8029C454=a0,a1,a2,a3,stack0,stack1,stack2 --sig func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12,*stack13+0x8,*stack13+0xC,*stack13+0x10,*stack13+0x14 --mem D_803A7300:0xA0=words:0,10,-10,50,100,300 --mem D_803A7300+0xC*0x14:8=choice:0,10,50,300 --mem D_803A7300+0x10*0x14:8/1=choice:0,1,2,6,7 --mem D_803A7300+0x11*0x14:8/1=choice:1,1,0 --mem D_803A7300+0x10:1=0 --mem D_803A7300+0x11:1=choice:1,1,0 --mem D_803A7300+0x9D:1=0xFF --mem D_803649E8=choice:0,1 --mem D_803A6B30:0xA0=words:0,10,-10,50,100,300 --mem D_803A6B30+0xC*0x14:8=choice:0,10,50,300 --mem D_803A6B30+0x12*0x14:8/1=choice:0,7,0,2 --mem D_803A6B30+0x13*0x14:8/1=choice:0,1 --mem D_803A6B30+0x9F:1=0xFF --mem D_803FC1F0:1=0 --mem D_803FB8B8*0x14:25=-1 --mem D_803ED3B8:0x40=words:0x000A0700,0x0A070000,0x07060000,0 --mem D_803ED3B8+0x40=0xFFFFFFFF --mem D_803EEA90+0xA0:1=choice:1,3 --mem D_803ED760+0xA0:1=choice:1,2,4
+func_802AEEC8: -n 200 --seed 5 --follow func_802AFA64,func_802AFB84,func_802AFBA0,func_802A6F6C,func_802A70D8,func_802A71DC,func_802A746C,func_802A6FE4,func_802A7070,func_802AF340,func_8029A914,func_8029C52C,func_8029C9D4,func_8029C828,func_8029C748,func_8029CB04,func_8029CD54,func_8029CF04,func_8029CFA4,func_802AB41C --arg t6=0 --arg t7=0 --arg s0=0 --arg s1=0 --arg s2=0 --arg s3=0 --arg s4=0 --arg t8=0 --arg fp=0 --arg f12=0 --arg f14=0 --arg f20=0 --arg f22=0 --arg f24=0 --arg f26=0 --arg a3=0 --heap 0x100 --mem D_803ED818=rel:heap0 --mem @heap0+4=int:0:0x1000 --mem @heap0+8=int:0:0x1000 --mem @heap0+0x18=0x40 --mem D_803ED760:0xA6=rand --mem D_803ED760+0x9A:1=bytes:0,1 --mem D_803ED760+0x4C:2=int:0:0xFFF --mem D_803ED760+0x4E:2=int:0:0xFFF --mem D_803ED760+0x76:2=int:-200:200 --mem D_803ED826:1=bytes:0,1 --mem D_803ED828:1=bytes:0,1,2,3 --mem D_803ED814=int:-5000:5000 --mem gNextGameMode=0 --mem gNextGameMode+4=choice:0*4,0x800,0x20 --mem gGameMode=0 --mem gGameMode+4=choice:0x20,0x40,0x801 --mem D_803ED824:1=bytes:0,1 --mem D_803ED822:2=int:0:0xFFF --mem gBufferIndex:1=bytes:0,1 --mem D_803ED82C=int --mem D_803ED830=int --mem D_803A7425:1=bytes:0,1 --mem D_803A7410:2=int:0:0xFFF --mem D_803A7412:2=int:0:0xFFF --mem D_80358064=choice:0,1 --mem D_803F77D0=int --mem D_803ED808=int:-5000:5000 --mem D_803ED80C=int:-5000:5000 --mem D_803ED810=int:-5000:5000 --mem D_803ED3A8:12=rand --mem D_803EBBF0=int --sig func_802AF4BC= --sig func_802582C4=a0:1,a1,a2,a3,stack0 --sig func_802AA764=a0,a1,a2,a3,stack0 --sig func_8029C454=a0,a1,a2,a3,stack0,stack1,stack2 --sig func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12,*stack13+0x8,*stack13+0xC,*stack13+0x10,*stack13+0x14 --mem D_803A7300:0xA0=words:0,10,-10,50,100,300 --mem D_803A7300+0xC*0x14:8=choice:0,10,50,300 --mem D_803A7300+0x10*0x14:8/1=choice:0,1,2,6,7 --mem D_803A7300+0x11*0x14:8/1=choice:1,1,0 --mem D_803A7300+0x10:1=0 --mem D_803A7300+0x11:1=choice:1,1,0 --mem D_803A7300+0x9D:1=0xFF --mem D_803649E8=choice:0,1 --mem D_803A6B30:0xA0=words:0,10,-10,50,100,300 --mem D_803A6B30+0xC*0x14:8=choice:0,10,50,300 --mem D_803A6B30+0x12*0x14:8/1=choice:0,7,0,2 --mem D_803A6B30+0x13*0x14:8/1=choice:0,1 --mem D_803A6B30+0x9F:1=0xFF --mem D_803FC1F0:1=0 --mem D_803FB8B8*0x14:25=-1 --mem D_803ED3B8:0x40=words:0x000A0700,0x0A070000,0x07060000,0 --mem D_803ED3B8+0x40=0xFFFFFFFF --mem D_803EEA90+0xA0:1=choice:1,3 --mem D_803ED760+0xA0:1=choice:1,2,4
 func_802AEC3C: -n 200 --seed 1 --follow func_802AFA64 --arg gp=sym:D_803ED760 --arg a2=int:-5000:5000 --heap 0x100 \
     --mem D_803ED818=rel:heap0 --mem @heap0+4=int:0:0x10000 --mem @heap0+8=int:0:0x10000 --mem @heap0+0x18=0x40 \
-    --mem D_8035805C:1=bytes:0,1 --mem D_803ED82C=int --mem D_803ED830=int --mem D_803ED828:1=bytes:0,1,2,3 \
+    --mem gBufferIndex:1=bytes:0,1 --mem D_803ED82C=int --mem D_803ED830=int --mem D_803ED828:1=bytes:0,1,2,3 \
     --mem D_803643E0=int:-0x1000000:0x1000000 --mem D_803643E8=int:-0x1000000:0x1000000 --mem D_803ED81C=int \
     --mem D_803ED760:0xA6=rand --mem D_803ED760+0x10=int:-0x10000000:0x10000000 \
     --mem D_803ED760+0x1C=int:-0x10000000:0x10000000 --mem D_803ED808:12=rand --mem D_80364456:1=bytes:0,0xB \
@@ -196,7 +196,7 @@ func_802AE888: -n 300 --seed 0 --ret int --arg a0=int:0:1000 --mem D_803ED825:1=
     --mem levelno=choice:5,6,7,8,0x105 --mem D_80364456:1=bytes:3,4,0xB,0x11,0x12,0 \
     --stub-ret func_802AEB9C=choice:0,1 --stub-ret func_802AEC3C=choice:1*8,0 --mem D_803ED760:0xA6=rand \
     --mem D_803ED808:12=rand --mem D_803ED814=int --mem D_803ED81C=int --mem D_803ED826:1=bytes:0 \
-    --mem D_803ED827:1=bytes:5 --mem D_803ED828:1=bytes:9 --mem D_803F7812:1=bytes:7 --mem D_8036444C:2=rand \
+    --mem D_803ED827:1=bytes:5 --mem D_803ED828:1=bytes:9 --mem D_803F7812:1=bytes:7 --mem gCamDistance:2=rand \
     --mem D_80364450:2=rand --sig func_802AEC3C=a0
 func_802AE888: -n 200 --seed 1 --ret int --arg a0=int:0:600 --arg t8=12 --arg fp=0 --arg f12=0 --arg f14=0 --arg f20=0 \
     --arg f22=0 --arg f24=0 --arg f26=0 --mem D_803ED825:1=bytes:1 \

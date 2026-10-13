@@ -4,7 +4,7 @@
  *  - a window (SDL2) and the RT64 renderer (port/rt64/: RT64 built with
  *    RT64_NATIVE_HOST_LAYOUT, RDRAM = this process's memory at 0x80000000);
  *  - every graphics task the game starts goes to RT64 (loadUCodeGBI +
- *    processDisplayLists); func_802A4B0C's visibility test stays with the
+ *    processDisplayLists); cull_rsp_test's visibility test stays with the
  *    platform (answered "visible");
  *  - every retrace: the VI registers of the frame on screen, RT64's
  *    updateScreen, and real-time pacing (60 retraces per second of virtual
@@ -825,7 +825,7 @@ struct Interp {
 /* the game state the cut test reads (fixed addresses, as plat_core.c's trace) */
 #define BC_MODE (*(volatile unsigned long long *) uintptr_t(0x80364A90u))
 #define BC_LEVEL (*(volatile int *) uintptr_t(0x802E8BDCu))
-constexpr uint32_t kDynBase = 0x003156F8u;   /* D_803156F8[2] (DynamicBuf, types.h), physical */
+constexpr uint32_t kDynBase = 0x003156F8u;   /* gDynamicBufs[2] (DynamicBuf, types.h), physical */
 constexpr uint32_t kDynSize = 0x21498u, kDynDl = 0x48B0u, kDynDlEnd = 0xA3A0u, kDynView = 0x140u;
 constexpr double kCutMove = 400.0;           /* world units the camera may move in a frame ... */
 constexpr double kCutMoveFactor = 4.0;       /* ... or this many times as far as the frame before */

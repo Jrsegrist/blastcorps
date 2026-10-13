@@ -32,7 +32,7 @@ extern f32 D_8030D8A0;
 
 
 /* Place the vehicle model's parts (as 6E200.c's port_veh_parts): the current
- * matrix buffer (D_8035805C ? bufA : bufB) plus the word at model +
+ * matrix buffer (gBufferIndex ? bufA : bufB) plus the word at model +
  * model[0x18] + 4 is the model matrix m; D_803ED392 = heading (u16 +0x4C),
  * func_802AA764(x, y, z, scale, m); then func_8029C454(x, y, z, id, model +
  * model[4], model + model[8], buffer) and func_802ABBEC(id, model +
@@ -47,12 +47,12 @@ static u8 *port_veh_parts(u8 *veh, PortVehPos *p, s32 id, s32 scale, MtxChainReg
     s32 *mtx;
     u8 *base;
 
-    mtx = (s32 *) ((D_8035805C != 0 ? (u8 *) p->bufA : (u8 *) p->bufB) + off);
+    mtx = (s32 *) ((gBufferIndex != 0 ? (u8 *) p->bufA : (u8 *) p->bufB) + off);
     D_803ED392 = VEH_U16(veh, 0x4C);
     func_802AA764(p->x, p->y, p->z, scale, mtx);
     r->a3 = 0;
     r->s2 = (s32) mtx;
-    base = (D_8035805C != 0) ? (u8 *) p->bufA : (u8 *) p->bufB;
+    base = (gBufferIndex != 0) ? (u8 *) p->bufA : (u8 *) p->bufB;
     m = p->model;
     func_8029C454(p->x, p->y, p->z, id, m + *(s32 *) (m + 4), m + *(s32 *) (m + 8), base, r);
     r->v1 = p->y;
@@ -191,7 +191,7 @@ static void port_veh_move(u8 *veh, PortVehPos *p, s32 id, u8 *ch, s32 rate, s32 
     func_802A8768(veh, id, &p->x, &p->y, &p->z, x, o.t1, divB, divA, (s16 *) (veh + 0x4C), veh + 0x96,
                   (s16 *) (veh + 0x52), (s32 *) (veh + 0x28), (s32 *) (veh + 0x40), (s32 *) (veh + 0x34),
                   (s32 *) (veh + 4), &r8, &f);
-    if (D_8035805C != 0) {
+    if (gBufferIndex != 0) {
         func_8029E558((u8 *) p->bufA, (u8 *) p->bufB, (Unk8029DEA0Entry *) ch);
     } else {
         func_8029E558((u8 *) p->bufB, (u8 *) p->bufA, (Unk8029DEA0Entry *) ch);
@@ -297,7 +297,7 @@ extern u8 D_802C2390[]; /* key of this vehicle's func_802A06B4 entry */
 /* Enter vehicle type 1 (called from 00000.c / 17210.c): clears byte 0x99 of
  * the state block, sets fields 0x14 / 0x11 / 0x12 of animation channels 1, 2,
  * 5, 3, 2 of D_803ED840 and restarts all but 5 with -1 (func_802A0290), sets
- * the D_802C2390 entry's fields (100, 0, 1) and restarts it, D_8036444C/50 =
+ * the D_802C2390 entry's fields (100, 0, 1) and restarts it, gCamDistance / D_80364450 =
  * 3400, 300, then func_802C4310(a0, 0x36) with a0 = D_803ED840 left over from
  * the setters (func_802C4310 ignores it). The asm points $gp at D_803EDB40 and
  * leaves it there (conventions.txt: clobbers gp) and returns with v1 = -1
@@ -327,7 +327,7 @@ void func_802AFFD4(void) {
     func_802A05F8((s32) D_802C2390, 0);
     func_802A0620((s32) D_802C2390, 1);
     func_802A0508((s32) D_802C2390, -1);
-    D_8036444C = 0xD48;
+    gCamDistance = 0xD48;
     D_80364450 = 0x12C;
     func_802C4310((s32) D_803ED840, 0x36);
 }
@@ -489,7 +489,7 @@ extern u8 D_803EDC05;    /* level 0..100 */
 /* Per-frame animation/sound update of vehicle 1 (asm caller func_802B03F4;
  * the asm reads the state block through $gp = D_803EDB40, read directly
  * here). Channel 2 of D_803ED840 gets the position within one of three
- * 0x555-wide thirds of the angle D_80364452 + 0x800 (wrapped by 0xFFF) and
+ * 0x555-wide thirds of the angle gCamYaw + 0x800 (wrapped by 0xFFF) and
  * the third (0, 1, else 2). When the cooldown D_803EDC06 is 0, channel 5 isn't
  * running (field 0x10 != 1), D_80370C1A or D_80370C1B is set and D_803EDC00 is
  * nonzero: one use is taken, channel 5 restarts with 2, the cooldown is set
@@ -499,7 +499,7 @@ extern u8 D_803EDC05;    /* level 0..100 */
  * 1 gets direction (speed < 0) and |speed| / 14, which also goes to
  * func_802C4584. The asm clobbers s4 and s5 (conventions.txt). */
 void func_802B07DC(void) {
-    s32 a = ((u16) D_80364452) + 0x800;
+    s32 a = ((u16) gCamYaw) + 0x800;
     s32 third;
     f32 pos;
     s32 ch[8];
@@ -578,8 +578,8 @@ void func_802B07DC(void) {
 
 /* When channel 5 of D_803ED840 is active (field 0x10 != 0) and
  * func_802BCD80(4) or func_802BCD80(5) is nonzero: sets its field 0x11 to 1,
- * restarts it with value 1 (func_802A0290) and sets D_802E8BE4 = 10,
- * D_802E8BE8 = 600. Returns channel 5's (u16) field 0xC as read at the start
+ * restarts it with value 1 (func_802A0290) and sets gShakeTime = 10,
+ * gShakeSize = 600. Returns channel 5's (u16) field 0xC as read at the start
  * (the asm leaves it in a3, which asm caller func_802B03F4 reads;
  * conventions.txt). The asm also clobbers s5 (10 / 600 scratch); its caller
  * keeps f12, f14 live (a mixed N64 build would need a thunk; the native port
@@ -591,8 +591,8 @@ s32 func_802B0AAC(void) {
     if (ch[0] != 0 && (func_802BCD80(4) != 0 || func_802BCD80(5) != 0)) {
         func_802A03D4((Unk8029DEA0Entry *) D_803ED840, 5, 1);
         func_802A0290((Unk8029DEA0Entry *) D_803ED840, 5, 1);
-        D_802E8BE4 = 10;
-        D_802E8BE8 = 600;
+        gShakeTime = 10;
+        gShakeSize = 600;
     }
     return ch[4];
 }

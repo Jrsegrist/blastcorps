@@ -4,12 +4,12 @@
 /* Matching build: IDO compiled the matched code here against older
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
-#define LEGACY_D_80358058
+#define LEGACY_gDepthBufferPhys
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #ifdef NON_MATCHING
-#define D_80358058 (*(void * N64P *) &D_80358058)
+#define gDepthBufferPhys (*(void * N64P *) &gDepthBufferPhys)
 #endif
 /* end of views */
 
@@ -57,7 +57,7 @@ extern Mtx D_8036D2C8;         /* its projection */
 extern Mtx D_8036D388;         /* its look-at */
 extern Vp D_802FBED0;
 #ifndef NON_MATCHING
-extern void *D_80358058; /* depth buffer */
+extern void *gDepthBufferPhys; /* depth buffer */
 #endif
 
 s32 func_802796D8(s32 n, s32 *a, s32 *b);
@@ -308,8 +308,8 @@ void func_80279778(s32 x, s32 y, s32 z, s32 a, s32 b, s32 c, void *dl, void *seg
         gDPSetColorDither(gdl++, G_CD_DISABLE);
         gDPSetCycleType(gdl++, G_CYC_FILL);
         gSPClearGeometryMode(gdl++, G_ZBUFFER);
-        gDPSetDepthImage(gdl++, D_80358058);
-        gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 120, D_80358058);
+        gDPSetDepthImage(gdl++, gDepthBufferPhys);
+        gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 120, gDepthBufferPhys);
         gDPSetFillColor(gdl++, 0xFFFCFFFC);
         gDPFillRectangle(gdl++, 0, 0, 119, 89);
         gDPPipeSync(gdl++);

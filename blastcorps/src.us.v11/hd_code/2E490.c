@@ -182,7 +182,7 @@ Gfx *func_80272ED8(Gfx *arg0, u8 slot, s16 x, s16 y, u8 alpha, u8 mode, f32 scal
 }
 
 Gfx *func_802742D8(Gfx *gdl, u8 slot, s16 x, s16 y, s32 flip, s32 size, s32 half, f32 scale, u8 frame) {
-    Vtx *vtx = D_8036C368[D_8035805C][slot][frame];
+    Vtx *vtx = D_8036C368[gBufferIndex][slot][frame];
     s32 x0 = x - half;
     s32 y0 = y + half;
     s32 t;

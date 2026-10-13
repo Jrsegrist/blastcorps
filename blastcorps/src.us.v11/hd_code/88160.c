@@ -129,14 +129,14 @@ void func_802CC920(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut
 #ifdef NON_MATCHING
 extern u8 D_803F9250[]; /* this vehicle's state block */
 
-/* Enter vehicle type 14: clears the byte at +0x99, D_8036444C/50 = 3000,
+/* Enter vehicle type 14: clears the byte at +0x99, gCamDistance / D_80364450 = 3000,
  * 1000, then func_802C4310(arg0, 0x7B) (arg0 passes straight through; hd.c
  * calls this with no arguments and func_802C4310 ignores it). The asm also
  * points $gp at D_803F9250 and leaves it there (conventions.txt: clobbers
  * gp); C code doesn't use $gp. Same shape as func_802B76AC (72B80). */
 void func_802CCC8C(s32 arg0) {
     D_803F9250[0x99] = 0;
-    D_8036444C = 3000;
+    gCamDistance = 3000;
     D_80364450 = 1000;
     func_802C4310(arg0, 0x7B);
 }
@@ -381,7 +381,7 @@ void func_802CD068(void) {
                   800, 500, (s16 *) (D_803F9250 + 0x4C), D_803F9250 + 0x96, (s16 *) (D_803F9250 + 0x52),
                   (s32 *) (D_803F9250 + 0x28), (s32 *) (D_803F9250 + 0x40), (s32 *) (D_803F9250 + 0x34),
                   (s32 *) (D_803F9250 + 4), &rr, &f);
-    if (D_8035805C != 0) {
+    if (gBufferIndex != 0) {
         func_8029E558((u8 *) D_803F9308, (u8 *) D_803F930C, (Unk8029DEA0Entry *) D_803F8F50);
     } else {
         func_8029E558((u8 *) D_803F930C, (u8 *) D_803F9308, (Unk8029DEA0Entry *) D_803F8F50);
@@ -400,7 +400,7 @@ void func_802CD068(void) {
             goto publish;
         }
         D_803F9313 = 0;
-        if (D_8035805C != 0) {
+        if (gBufferIndex != 0) {
             func_802A768C(D_803F9250, D_803F8F50, (s32 *) &D_803F92F8[0], (s32 *) &D_803F92F8[1],
                           (s32 *) &D_803F92F8[2], D_803F930C, D_803F9308, 0x100, &end);
         } else {
@@ -539,10 +539,10 @@ void func_802CD800(void) {
     s32 *m;
 
     m = (s32 *) N64_IPTR(*(s32 *) (hdr + *(s32 *) (hdr + 0x18) + 4) +
-                 (s32) (D_8035805C ? (u8 *) D_803F9308 : (u8 *) D_803F930C));
+                 (s32) (gBufferIndex ? (u8 *) D_803F9308 : (u8 *) D_803F930C));
     D_803ED390[1] = *(u16 *) (D_803F9250 + 0x4C);
     func_802AA764(D_803F92F8[0], D_803F92F8[1], D_803F92F8[2], 0x55F0, m);
-    base = D_8035805C ? (u8 *) D_803F9308 : (u8 *) D_803F930C;
+    base = gBufferIndex ? (u8 *) D_803F9308 : (u8 *) D_803F930C;
     hdr = D_803F9304;
     regs.v1 = 0;
     regs.a0 = 0;

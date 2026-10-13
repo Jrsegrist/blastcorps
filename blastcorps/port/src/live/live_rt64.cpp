@@ -51,6 +51,11 @@
  *     --interpolation M tagged (default: objects paired by the game's tags, live_interp.cpp)
  *                       or auto (RT64 pairs them itself); only with --framerate above original
  *     --fps-counter M   the frame-rate counter: off (default), on, detailed (F2 switches it)
+ *     --camera M        original (default) or orbit: the free orbit camera (live_orbit.cpp;
+ *                       render only, the game runs as with its own camera)
+ *     --orbit-test Y[:P[:Z]]  (testing) the orbit camera turns by itself: Y degrees a second,
+ *                       pitch P degrees, zoom Z
+ *     --orbit-log       log both cameras every 30 frames (and the collision's heights)
  *     --interp-log      log every frame's camera motion (the interpolation cut test) and
  *                       tagged objects that jumped
  *     --tag-test MASK   (testing) tagged interpolation experiments: 1 no vertex blending, 2 HUD

@@ -36,7 +36,7 @@ Controls (default; change them in the settings menu or bc.ini)
   Z              Z or Space          Left or right trigger
   Start          Enter               Start
   L / R          A / S               Shoulder buttons
-  C buttons      I J K L             Right stick
+  C buttons      I J K L             Right stick (the orbit camera's, if it is on)
   D-pad          T F G H             D-pad
 
   F1            settings menu (also Back+Start on a game controller)
@@ -75,6 +75,9 @@ game is closed. It holds:
                texture_pack (an RT64 texture pack folder or .rtz) and
                texture_pack_enabled (0/1)
   [audio]      volume, mute
+  [camera]     mode (original, the default, or orbit: the free camera, below),
+               sensitivity_x/y, invert_x/y, recentre (0/1) and recentre_delay
+               (seconds), recentre_on_foot, zoom_min/max, tilt_min/max, mouse (0/1)
   [keyboard]   one line per N64 button: SDL key names, several separated by commas
   [controller] the same for a game controller, plus which stick is the analog stick,
                its dead zone and sensitivity, which controller plays (pad = 1, 2 ...
@@ -98,6 +101,21 @@ vehicle, building part, piece of debris, smoke puff and person is matched with
 itself from one game frame to the next, new ones appear without smearing, and the
 HUD is never blended; auto lets the renderer guess the pairs instead (to compare).
 
+The orbit camera (camera mode = orbit, in the settings menu's Camera tab, or
+bc.exe --camera orbit) lets you turn the view around your vehicle, or the driver on
+foot, at any angle, tilt it and zoom it, while you play: the right stick (or keypad
+4 6 8 2, + and -; or hold a mouse button and move the mouse, the wheel zooms), Y and
+the left stick's click zoom, the right stick's click (keypad 5, the middle mouse
+button) resets it. By default it eases back behind you a moment after you let go
+(recentre); with recentre off it stays where you left it. It only changes what you
+see: the game itself still uses its own camera, so everything plays out exactly as
+before. While it is on, the right stick turns the camera instead of being the C
+buttons (C left/right, the game's own 45-degree camera turns, stay on J and L); in
+menus the right stick is the C buttons as before. The view rises over low walls and
+moves in when buildings or hills are in the way. Smoke, explosions and people still
+face the game's own camera, the radar keeps the game's heading, and the screen
+doesn't shake in the orbit view.
+
 The frame-rate counter (F2, or fps_counter in the settings menu) shows in a corner
 how many pictures a second reach the display and how many frames a second the game
 itself makes (30 in play); F2 again adds frame times and a graph, a third time hides
@@ -113,6 +131,7 @@ Command-line options (for shortcuts or a .bat file) override bc.ini, for example
   bc.exe --aspect 16:9         bc.exe --texture-pack D:\packs\mypack
   bc.exe --framerate 60        bc.exe --framerate display
   bc.exe --interpolation auto  bc.exe --fps-counter on
+  bc.exe --camera orbit
 
 
 Saves

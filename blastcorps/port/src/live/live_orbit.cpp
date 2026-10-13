@@ -557,13 +557,16 @@ void orbitVi(const PadSet &pads, const Uint8 *keys) {
         return;
     }
     if (!was) {
-        unsigned tris = 0, flagged = 0;
-        forEachObstacle([&](const int32_t *v) {
-            tris++;
-            flagged += reinterpret_cast<const uint8_t *>(v)[0x51 - 0x28] != 0;
-        });
-        host_log("live: orbit camera active (level %d, frame %u; %u obstacle triangles, %u with +0x51 set)\n", c.level,
-                 plat_frames(), tris, flagged);
+        unsigned tris = 0;
+        forEachObstacle([&](const int32_t *) { tris++; });
+        host_log("live: orbit camera active (level %d, frame %u, vehicle %u; %u obstacle triangles)\n", c.level,
+                 plat_frames(), unsigned(rd<uint8_t>(0x80364456u)), tris);
+    }
+    static bool lastFoot;
+    if (c.onFoot != lastFoot) {
+        lastFoot = c.onFoot;
+        if (g_log) host_log("live: orbit camera: the player is %s (frame %u)\n", c.onFoot ? "on foot" : "in a vehicle",
+                            plat_frames());
     }
     /* input: rates from the sticks and keys, steps from the mouse */
     const Config &cf = *g_cfg;
@@ -639,10 +642,10 @@ void orbitBeforeTask(uint32_t dl, bool frameDl) {
             headingPitch(c.eye, c.target, gh, gp);
             const double ge = groundHeight(eye.x, eye.y, eye.z), te = g_lastTerrain, ob = g_lastObstacle;
             const double gt = groundHeight(c.target.x, c.target.y, c.target.z);
-            host_log("live: orbit frame %u: target %.0f %.0f %.0f, game eye %.0f %.0f %.0f (heading %X pitch %d), "
+            host_log("live: orbit frame %u%s: target %.0f %.0f %.0f, game eye %.0f %.0f %.0f (heading %X pitch %d), "
                      "orbit eye %.0f %.0f %.0f (heading %X pitch %d), yaw %.1f pitch %.1f zoom %.2f pull-in %.2f lift %.0f, "
                      "ground under eye %.0f (terrain %.0f, obstacles %.0f), under the target %.0f\n",
-                     plat_frames(), c.target.x, c.target.y, c.target.z, c.eye.x, c.eye.y, c.eye.z, gh, gp, eye.x,
+                     plat_frames(), c.onFoot ? " (on foot)" : "", c.target.x, c.target.y, c.target.z, c.eye.x, c.eye.y, c.eye.z, gh, gp, eye.x,
                      eye.y, eye.z, g_bd.heading, g_bd.pitch, g_orbit.yaw(), g_orbit.pitch(), g_orbit.zoom(),
                      g_orbit.distanceRatio(), g_orbit.lift(), ge, te, ob, gt);
         }

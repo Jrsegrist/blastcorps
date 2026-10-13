@@ -15,8 +15,14 @@ correct; it only costs aligned-load forms the game code hardly uses.
 usage: llalign64.py IN.ll OUT.ll [ADDRS]
   ADDRS: the pinned symbols (gensyms.py addrs), whose definitions are lowered too
 """
+import os
 import re
 import sys
+
+# renamed symbols (tools_port/names.txt) count as the address names they had
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+                                "tools_port"))
+from names import orig  # noqa: E402
 
 ALIGN = re.compile(r"\balign (\d+)\b")
 
@@ -49,7 +55,7 @@ def main():
         # codegen infers an access's alignment from its global too)
         g = re.match(r"^@([\w.$]+) = ", line)
         if g and " external " not in line.split("=", 1)[-1][:40] and not (
-                g.group(1) in pinned or re.search(r"(^|\.)D_[0-9A-F]{8}($|\.)", g.group(1))):
+                g.group(1) in pinned or re.search(r"(^|\.)D_[0-9A-F]{8}($|\.)", orig(g.group(1)))):
             out.append(line)
             continue
         new, k = ALIGN.subn(lambda m: clamp(m), line)

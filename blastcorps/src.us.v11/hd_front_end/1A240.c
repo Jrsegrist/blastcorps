@@ -4,13 +4,13 @@
 /* Matching build: IDO compiled the matched code here against older
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
-#define LEGACY_D_80358070
+#define LEGACY_gHeapPtr
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_8020C070 ((MenuEntry *) D_8020C070)
 #ifdef NON_MATCHING
-#define D_80358070 (*(s32 *) &D_80358070)
+#define gHeapPtr (*(s32 *) &gHeapPtr)
 #endif
 /* end of views */
 
@@ -48,7 +48,7 @@ extern s16 D_8020E3E0[];      /* sound per picture */
 extern char D_8020E3E8[][18]; /* picture titles */
 extern void * N64P D_8020E430[];
 #ifndef NON_MATCHING
-extern s32 D_80358070; /* heap pointer */
+extern s32 gHeapPtr; /* heap pointer */
 #endif
 extern s16 D_8036BB1C;
 
@@ -66,11 +66,11 @@ void func_80201240(s32 arg0) {
     s32 i;
 
     size = D_006A32B0 - D_0068B550;
-    func_8028B4C4((u32) D_0068B550, (u32) ((void *) N64_IPTR(D_80358070)), (u32 *) &size, 13, 0, 1);
+    func_8028B4C4((u32) D_0068B550, (u32) ((void *) N64_IPTR(gHeapPtr)), (u32 *) &size, 13, 0, 1);
     for (i = 0; i < 4; i++) {
-        D_8021AB90[i] = (u8 *) N64_IPTR((i * 160 * 120 * 2 + D_80358070));
+        D_8021AB90[i] = (u8 *) N64_IPTR((i * 160 * 120 * 2 + gHeapPtr));
     }
-    D_80358070 += size;
+    gHeapPtr += size;
     D_8021ABA0 = arg0;
     D_8021ABA2 = 0;
     D_8021ABA1 = 0;

@@ -44,3 +44,6 @@ __osPackEepReadData = 0x802052E0; // type:func (old SDK; named from its PIF comm
 __osPackRamReadData = 0x80206804; // type:func (old SDK, named from its calls; no ultralib match)
 __osPackRamWriteData = 0x80206BA0; // type:func (old SDK, named from its calls; no ultralib match)
 __osEepPifRam = 0x8021ABB0; // type:data (eeprom read/write PIF buffer, from its uses)
+
+// tools_port/names.txt (tools_port/rename.py): renamed symbols at their addresses
+pakToGameMessageQ = 0x80219F50; // type:data

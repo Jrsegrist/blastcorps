@@ -4,14 +4,14 @@
 /* Matching build: IDO compiled the matched code here against older
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
-#define LEGACY_D_80358070
+#define LEGACY_gHeapPtr
 #define LEGACY_D_80367738
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_02000000 ((u8 *) D_02000000)
 #ifdef NON_MATCHING
-#define D_80358070 (*(Vtx * N64P *) &D_80358070)
+#define gHeapPtr (*(Vtx * N64P *) &gHeapPtr)
 #endif
 /* end of views */
 
@@ -62,7 +62,7 @@ extern s32 D_8039B618;
 extern s32 D_8039B61C;
 extern u8 D_8039B620;
 #ifndef NON_MATCHING
-extern Vtx *D_80358070; /* vertex allocator */
+extern Vtx *gHeapPtr; /* vertex allocator */
 #endif
 
 void func_8028DA5C(Vtx *v, u8 arg1);
@@ -114,8 +114,8 @@ void func_8028D4C0(u8 *arg0, u8 *arg1) {
         D_8039B070_entries[D_8039B610].unk28 = 0;
         D_8039B070_entries[D_8039B610].unk2A = 0;
         D_8039B070_entries[D_8039B610].unk18 = 1;
-        D_8039B070_entries[D_8039B610].unk3C = D_80358070;
-        D_80358070 += 8;
+        D_8039B070_entries[D_8039B610].unk3C = gHeapPtr;
+        gHeapPtr += 8;
 #ifdef PORT_HOST
         port_vtx_stale(D_8039B070_entries[D_8039B610].unk3C, 8);
 #endif
@@ -188,8 +188,8 @@ void func_8028DD64(u8 arg0) {
     func_802CDA10(D_8039B070_entries[arg0].unk0, D_8039B070_entries[arg0].unk4, D_8039B070_entries[arg0].unk8);
     *(&D_8039B089 + arg0 * 0x48) = 5;
     D_8039B070_entries[arg0].unk18 = 0;
-    D_802E8BE4 = 10;
-    D_802E8BE8 = 0x190;
+    gShakeTime = 10;
+    gShakeSize = 0x190;
     if (D_8039B070_entries[arg0].unk40 != 0) {
         func_802608C8((void *) N64_IPTR((D_8039B070_entries[arg0].unk40)));
         match = func_8028DE94();
@@ -294,7 +294,7 @@ void func_8028DF14(u8 arg0) {
             hit = func_802CDF94(D_802FDB98_boxes[D_8039B070_entries[i].unk0E].radius);
             if (hit != 0) {
                 if (D_803F932D != 0) {
-                    D_803643D9 = 1;
+                    cmo_hit_request = 1;
                     func_8028DD64(i);
                 }
                 if (D_803F932E != 0) {
@@ -304,13 +304,13 @@ void func_8028DF14(u8 arg0) {
                     if (func_8028DE94() == NULL) {
                         func_80260650(D_80367738, 0x73, (void *) N64_IPTR(((s32) &D_8039B070_entries[i].unk40)));
                     }
-                    D_8039B070_entries[i].unk14 = ((s32) D_80358060);
+                    D_8039B070_entries[i].unk14 = ((s32) gFramesInMode);
                 }
                 if (D_8039B620 == arg0) {
-                    dx = D_803643E0 - D_8039B614, dy = D_803643E4 - D_8039B618;
-                    dz = D_803643E8 - D_8039B61C;
+                    dx = gPlayerX - D_8039B614, dy = gPlayerY - D_8039B618;
+                    dz = gPlayerZ - D_8039B61C;
                     D_8039B070_entries[i].unk1E = sqrtf(dx * dx + dy * dy + dz * dz) + 8.0f;
-                    if (D_8039B070_entries[i].unk1E > D_802FDB70[arg0] && D_802E8BDC != 0x22) {
+                    if (D_8039B070_entries[i].unk1E > D_802FDB70[arg0] && levelno != 0x22) {
                         D_8039B070_entries[i].unk1E = D_802FDB70[arg0];
                     }
                 } else {
@@ -354,14 +354,14 @@ void func_8028DF14(u8 arg0) {
                 func_802CE90C(i + 0x100);
             }
             if (D_8039B070_entries[i].unk1E > 0) {
-                D_8039B070_entries[i].unk1E -= (D_802E8BDC != 0x2B) ? 8 : 4;
+                D_8039B070_entries[i].unk1E -= (levelno != 0x2B) ? 8 : 4;
             } else {
                 D_8039B070_entries[i].unk1E = 0;
             }
             if (D_8039B070_entries[i].unk1E > 0 && D_8039B070_entries[i].unk44 == 0 &&
                 D_8039B070_entries[i].unk18 != 0) {
                 func_80260650(D_80367738, 7, (void *) N64_IPTR(((s32) &D_8039B070_entries[i].unk44)));
-                if (D_80364456 == 4) {
+                if (gCurVehicle == 4) {
                     func_8026AD30(0x54);
                 }
             }
@@ -370,9 +370,9 @@ void func_8028DF14(u8 arg0) {
             }
         }
     }
-    D_8039B614 = D_803643E0;
-    D_8039B618 = D_803643E4;
-    D_8039B61C = D_803643E8;
+    D_8039B614 = gPlayerX;
+    D_8039B618 = gPlayerY;
+    D_8039B61C = gPlayerZ;
     D_8039B620 = arg0;
 }
 
@@ -578,13 +578,13 @@ void func_8028FC10(void) {
     OSContPad pads[4];
 
     start = 0;
-    func_802DB4D0(&D_80370BF8);
-    osRecvMesg(&D_80370BF8, 0, 1);
+    func_802DB4D0(&gSiMesgQueue);
+    osRecvMesg(&gSiMesgQueue, 0, 1);
     func_802DB594(pads);
     if (pads[0].button & 0x1000) {
         start = 1;
     }
-    if (func_8028FCD4(&D_80370BF8, &mask) == 0 && (mask & 1)) {
+    if (func_8028FCD4(&gSiMesgQueue, &mask) == 0 && (mask & 1)) {
         D_802FDBD0 = start;
     }
     D_802FDBD4 = start && !D_802FDBD0;

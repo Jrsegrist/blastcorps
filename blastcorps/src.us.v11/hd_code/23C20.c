@@ -4,17 +4,17 @@
 /* Matching build: IDO compiled the matched code here against older
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
-#define LEGACY_D_803649D0
+#define LEGACY_gVehiclesEnd
 #define LEGACY_D_8036B974
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_802F5804 ((PathNode *) D_802F5804)
 #define D_802F8BDC ((TextArg *) D_802F8BDC)
-#define D_80364460 ((Struct80364460 *) D_80364460)
-#define D_80364AF0 ((Struct80364AF0 *) D_80364AF0)
+#define gVehicles ((Struct80364460 *) gVehicles)
+#define players ((Struct80364AF0 *) players)
 #ifdef NON_MATCHING
-#define D_803649D0 (*(Struct80364460 * N64P *) &D_803649D0)
+#define gVehiclesEnd (*(Struct80364460 * N64P *) &gVehiclesEnd)
 #define D_8036B974 (*(s32 *) &D_8036B974)
 #endif
 /* end of views */
@@ -26,7 +26,7 @@ f32 func_8026A184(f32 x, f32 y, f32 z, f32 w, f32 a, f32 b, f32 c);
 f32 func_80268D84(f32 x, f32 y, f32 z, f32 w, f32 a, f32 b, f32 c);
 
 #define ASSERT(EX, line) \
-    if (!(EX)) func_8029A7E4("\n --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "utils2.c", line)
+    if (!(EX)) debug_printf("\n --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "utils2.c", line)
 
 /* 20-byte trigger zones, tested against the player position */
 typedef struct {
@@ -137,7 +137,7 @@ extern u16 D_80303B00[];
 extern u16 D_80303B10[];
 extern u16 D_80303B24[];
 #ifndef NON_MATCHING
-extern Struct80364460 *D_803649D0;
+extern Struct80364460 *gVehiclesEnd;
 #endif
 extern u8 D_8036B8C0;
 extern f32 D_8036B8C8[4][4];
@@ -159,7 +159,7 @@ extern s32 D_8036B974;
 extern u8 D_8036B978;
 extern u8 D_8036B979;
 
-/* Checks the trigger zones for the current level; sets D_803649ED on a hit. */
+/* Checks the trigger zones for the current level; sets gNextVehicle on a hit. */
 void func_802683E0(void) {
     s32 i;
     u8 found;
@@ -168,14 +168,14 @@ void func_802683E0(void) {
 
     i = 0;
     found = 0;
-    if (D_80364456 || D_803ED826) {
+    if (gCurVehicle || D_803ED826) {
         return;
     }
     while (!found && i < 1) {
-        if (D_802F3C10[i].id == D_802E8BDC) {
-            p = D_80364460;
+        if (D_802F3C10[i].id == levelno) {
+            p = gVehicles;
             hit = 0;
-            while (!hit && D_803649D0 != p) {
+            while (!hit && gVehiclesEnd != p) {
                 if (D_802F3C10[i].unk1 == p->unk5C) {
                     hit = 1;
                 } else {
@@ -187,8 +187,8 @@ void func_802683E0(void) {
                                   D_802F3C10[i].unk6, D_802F3C10[i].unk8, D_802F3C10[i].unkA, D_802F3C10[i].unkC)
                     || func_802AC4C4(p->unk64 >> 5, p->unk6C >> 5, D_802F3C10[i].unk2, D_802F3C10[i].unk4,
                                      D_802F3C10[i].unkA, D_802F3C10[i].unkC, D_802F3C10[i].unkE, D_802F3C10[i].unk10)) {
-                    if (func_8026A6F0(p->unk64, p->unk68, p->unk6C, D_803643E0, D_803643E4, D_803643E8) < D_802F3C10[i].unk12) {
-                        D_803649ED = D_802F3C10[i].unk1;
+                    if (func_8026A6F0(p->unk64, p->unk68, p->unk6C, gPlayerX, gPlayerY, gPlayerZ) < D_802F3C10[i].unk12) {
+                        gNextVehicle = D_802F3C10[i].unk1;
                         found = 1;
                     }
                 }
@@ -273,7 +273,7 @@ void func_802688C4(s32 path) {
                                    D_802F3C48[pts[3]].y << 5, t, t2, t3);
         D_8036B8BC = func_80268D84(D_802F3C48[pts[0]].z << 5, D_802F3C48[pts[1]].z << 5, D_802F3C48[pts[2]].z << 5,
                                    D_802F3C48[pts[3]].z << 5, t, t2, t3);
-        if (!D_803643D7 && !D_803643D6 && !func_802753C0()) {
+        if (!gLevelDone && !gCarrierHit && !areWeFading()) {
             D_8036B908 += D_802F3C24[D_8036B8C0].unk8 *
                           ((D_802F3C48[pts[2]].speed - D_802F3C48[pts[1]].speed) * t + D_802F3C48[pts[1]].speed);
         }
@@ -319,14 +319,14 @@ void func_80268F54(void) {
     f32 s;
 
     found = 0;
-    if (D_80364A98 == 0x800) {
+    if (gNextGameMode == 0x800) {
         D_8036B966 = 0;
     } else {
         D_8036B966 = 1;
     }
     D_8036B955 = 0;
     while (!found) {
-        if (D_802F41E8[D_8036B955].id == D_802E8BDC && D_802F41E8[D_8036B955].unk4 == D_8036B966) {
+        if (D_802F41E8[D_8036B955].id == levelno && D_802F41E8[D_8036B955].unk4 == D_8036B966) {
             found = 1;
         } else {
             D_8036B955++;
@@ -387,7 +387,7 @@ void func_80269258(void) {
         i = 0;
         found = 0;
         while (i < 49 && !found) {
-            if (D_802F4224[i].id == D_802E8BDC && D_802F4224[i].unk4 == D_8036B966
+            if (D_802F4224[i].id == levelno && D_802F4224[i].unk4 == D_8036B966
                 && D_802F4224[i].idx == D_8036B960[j] && D_802F4224[i].unk13 == D_8036B95C) {
                 found = 1;
             } else {
@@ -397,7 +397,7 @@ void func_80269258(void) {
         if (!found) {
             i = 0;
             while (i < 49 && !found) {
-                if (D_802F4224[i].id == D_802E8BDC && D_802F4224[i].unk4 == D_8036B966
+                if (D_802F4224[i].id == levelno && D_802F4224[i].unk4 == D_8036B966
                     && D_802F4224[i].idx == D_8036B960[j] && D_802F4224[i].unk13 == D_8036B958[j]) {
                     found = 1;
                 } else {
@@ -452,7 +452,7 @@ void func_80269258(void) {
         D_803FCD4C = D_802F41E8[D_8036B955].unkE << 5;
     }
     D_803FCD70 = 0;
-    if (!D_803643D7 && !D_803643D6 && !func_802753C0()) {
+    if (!gLevelDone && !gCarrierHit && !areWeFading()) {
         D_8036B950 += D_802F41E8[D_8036B955].unk10 *
                       ((D_802F4224[pts[2]].speed - D_802F4224[pts[1]].speed) * t + D_802F4224[pts[1]].speed);
     }
@@ -476,13 +476,13 @@ void func_80269258(void) {
                     if (D_803FCD75 == 1) {
                         func_80275270(0x200000000000, 0.5f);
                     } else {
-                        D_803643DA = 1;
-                        D_802E8BD8 = 1;
+                        gLevelDoneRequest = 1;
+                        gPauseRequest = 1;
                     }
                     break;
                 case 1:
-                    D_803643D9 = 1;
-                    D_802E8BD8 = 1;
+                    cmo_hit_request = 1;
+                    gPauseRequest = 1;
                     break;
             }
         }
@@ -490,7 +490,7 @@ void func_80269258(void) {
             case 0:
                 break;
             case 1:
-                if (((s32) D_80364AA8) == 0x80) {
+                if (((s32) gLevelKind) == 0x80) {
                     D_8036B95C = 1;
                 } else {
                     func_802C1DD0(0);
@@ -513,7 +513,7 @@ void func_80269258(void) {
                 D_802F5804[42].text = "LANDING ABORTED!";
                 D_802F5804[42].jtext = D_80303AF4;
                 D_802F8BDC[23].unk12 = 0xDA;
-                if (D_80364A90 & 0x104) {
+                if (gGameMode & 0x104) {
                     func_8026AF6C(0x8017);
                 }
                 break;
@@ -521,7 +521,7 @@ void func_80269258(void) {
                 D_802F5804[42].text = "DITCHING IN SEA!";
                 D_802F5804[42].jtext = D_80303B00;
                 D_802F8BDC[23].unk12 = 0x77;
-                if (D_80364A90 & 0x104) {
+                if (gGameMode & 0x104) {
                     func_8026AF6C(0x8017);
                 }
                 break;
@@ -529,7 +529,7 @@ void func_80269258(void) {
                 D_802F5804[42].text = "ON FINAL APPROACH!";
                 D_802F5804[42].jtext = D_80303B10;
                 D_802F8BDC[23].unk12 = 0xD7;
-                if (D_80364A90 & 0x104) {
+                if (gGameMode & 0x104) {
                     func_8026AF6C(0x8017);
                 }
                 break;
@@ -537,7 +537,7 @@ void func_80269258(void) {
                 D_802F5804[42].text = "SUCCESSFUL LANDING!";
                 D_802F5804[42].jtext = D_80303B24;
                 D_802F8BDC[23].unk12 = 0x82;
-                if (D_80364A90 & 0x104) {
+                if (gGameMode & 0x104) {
                     func_8026AF6C(0x8017);
                 }
                 break;
@@ -545,7 +545,7 @@ void func_80269258(void) {
                 D_802F5804[42].text = "3000 FT!";
                 D_802F5804[42].jtext = NULL;
                 D_802F8BDC[23].unk12 = 0xD5;
-                if (D_80364A90 & 0x104) {
+                if (gGameMode & 0x104) {
                     func_8026AF6C(0x8017);
                 }
                 break;
@@ -553,7 +553,7 @@ void func_80269258(void) {
                 D_802F5804[42].text = "2000 FT!";
                 D_802F5804[42].jtext = NULL;
                 D_802F8BDC[23].unk12 = 0xD3;
-                if (D_80364A90 & 0x104) {
+                if (gGameMode & 0x104) {
                     func_8026AF6C(0x8017);
                 }
                 break;
@@ -561,7 +561,7 @@ void func_80269258(void) {
                 D_802F5804[42].text = "1000 FT!";
                 D_802F5804[42].jtext = NULL;
                 D_802F8BDC[23].unk12 = 0xD1;
-                if (D_80364A90 & 0x104) {
+                if (gGameMode & 0x104) {
                     func_8026AF6C(0x8017);
                     func_80260DFC();
                 }
@@ -716,22 +716,22 @@ void func_8026A9B4(void) {
     if (D_803A7430 == 15) {
         func_8026AD30(0x50);
     }
-    if (D_802E8BDC == 0x12 && (D_803643E0 >> 5) < 0x578
-        && func_8026A610(D_803643E0 >> 5, D_803643E8 >> 5, 0x531, 0x1061) < 0x82) {
+    if (levelno == 0x12 && (gPlayerX >> 5) < 0x578
+        && func_8026A610(gPlayerX >> 5, gPlayerZ >> 5, 0x531, 0x1061) < 0x82) {
         func_8026AD30(0x51);
     }
-    if (D_80364456 != D_8036B979) {
+    if (gCurVehicle != D_8036B979) {
         D_8036B978 = D_8036B979;
     }
-    if (D_80364456) {
-        D_8036B979 = D_80364456;
+    if (gCurVehicle) {
+        D_8036B979 = gCurVehicle;
     }
-    p = D_80364460;
+    p = gVehicles;
     done = 0;
-    while (!done && D_803649D0 != p) {
-        if (p->unk5C != D_8036B978 && p->unk5C != D_80364456 && D_80364456 != 0 && p->unk5C != 0
+    while (!done && gVehiclesEnd != p) {
+        if (p->unk5C != D_8036B978 && p->unk5C != gCurVehicle && gCurVehicle != 0 && p->unk5C != 0
             && p->unk5C != 0xFE && p->unk5C != 0xFF && p->unk5C != 7 && p->unk5C != 6) {
-            d = func_8026A6F0(D_803643E0 >> 5, D_803643E4 >> 5, D_803643E8 >> 5, p->unk64 >> 5, p->unk68 >> 5,
+            d = func_8026A6F0(gPlayerX >> 5, gPlayerY >> 5, gPlayerZ >> 5, p->unk64 >> 5, p->unk68 >> 5,
                               p->unk6C >> 5);
             if (d < minDist) {
                 minDist = d;
@@ -747,14 +747,14 @@ void func_8026A9B4(void) {
     if (D_8036B970 && minDist > 400) {
         D_8036B970 = 0;
     }
-    if (D_802E8BDC == 0 && D_8036C7CC >= 2) {
+    if (levelno == 0 && D_8036C7CC >= 2) {
         func_8026AD30(0x4D);
     }
-    if (D_802E8BDC == 0 && D_80364456 == 7 && (D_803643E0 >> 5) >= 0x899) {
+    if (levelno == 0 && gCurVehicle == 7 && (gPlayerX >> 5) >= 0x899) {
         func_8026AD30(0x53);
     }
     if (D_8036B971) {
-        if (!((D_80364AF0[D_80364AE8].unk18[D_802E8BDC] > 0 && D_80364AF0[D_80364AE8].unk18[D_802E8BDC] < 6) ? 1 : 0)
+        if (!((players[playerNumber].unk18[levelno] > 0 && players[playerNumber].unk18[levelno] < 6) ? 1 : 0)
             && !D_8036EB98) {
             if (!func_8026AD30(0x4E)) {
                 func_8026AD30(0x4F);

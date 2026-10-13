@@ -68,10 +68,10 @@ s32 func_802B83B0(void);
 extern u8 D_803EEF32; /* effect cooldown */
 
 /* Sets up vehicle 8 (object 8) from the model header `hdr` at (x, y, z) with
- * heading `heading` (called by the object dispatcher func_802A350C):
- * D_803EEF24 = hdr, two 0x100-byte buffers from the heap D_80358070
+ * heading `heading` (called by the object dispatcher lvl_spawn_vehicles):
+ * D_803EEF24 = hdr, two 0x100-byte buffers from the heap gHeapPtr
  * (D_803EEF28, D_803EEF2C; the cursor moves 0x200), the object record
- * (func_802A1388(8, 0, buf1, buf2, hdr)), the state block D_803EEE70 reset
+ * (veh_add_record(8, 0, buf1, buf2, hdr)), the state block D_803EEE70 reset
  * (func_802A754C) with its wheel table +0x52..+0x68 = (+-200, 350) /
  * (+-320, 500) pairs, position D_803EEF18..20, headings +0x4C/+0x4E/+0x74;
  * the initial ground under the wheels (func_802A992C, key 8); the animated
@@ -83,7 +83,7 @@ extern u8 D_803EEF32; /* effect cooldown */
  * from the second buffer to the first (func_802AA838).
  * Register convention (conventions.txt): hdr s2, x t7, y s3, z s0, heading
  * s1; func_802A992C's fp and f12-f26 inputs are the dispatcher's leftovers
- * (here fp, f). The asm saves t0-t5 (asm caller func_802A350C keeps t1, t2
+ * (here fp, f). The asm saves t0-t5 (asm caller lvl_spawn_vehicles keeps t1, t2
  * live), points $gp at D_803EEE70 and leaves s0-s7, fp and the FP registers
  * as its callees leave them. Its addi traps on overflow. Fidelity note: the
  * func_802B7A88 call inherits leftover registers in the asm (its zone scan
@@ -93,11 +93,11 @@ void func_802B7340(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut
     s16 *h;
 
     D_803EEF24 = hdr;
-    buf = D_80358070;
+    buf = gHeapPtr;
     D_803EEF28 = (u64 *) buf;
     D_803EEF2C = (u64 *) (buf + 0x100);
-    D_80358070 = buf + 0x200;
-    func_802A1388(8, 0, (s32) D_803EEF28, (s32) D_803EEF2C, hdr);
+    gHeapPtr = buf + 0x200;
+    veh_add_record(8, 0, (s32) D_803EEF28, (s32) D_803EEF2C, hdr);
     func_802A754C(D_803EEE70);
     h = (s16 *) (D_803EEE70 + 0x52);
     h[0] = 0xC8;
@@ -166,7 +166,7 @@ void func_802B7340(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut
 #ifdef NON_MATCHING
 extern u8 D_803EEE70[]; /* this vehicle's state block */
 
-/* Enter vehicle type 8: clears the byte at +0x99, D_8036444C/50 = 3000,
+/* Enter vehicle type 8: clears the byte at +0x99, gCamDistance / D_80364450 = 3000,
  * 1000, then func_802C4310(arg0, 0xCE) (arg0 passes straight through; hd.c
  * calls this with no arguments and func_802C4310 ignores it). The asm also
  * points $gp at D_803EEE70 and leaves it there (conventions.txt: clobbers
@@ -174,7 +174,7 @@ extern u8 D_803EEE70[]; /* this vehicle's state block */
  * func_802CCC8C (88160), func_802CFA0C (8AEE0). */
 void func_802B76AC(s32 arg0) {
     D_803EEE70[0x99] = 0;
-    D_8036444C = 3000;
+    gCamDistance = 3000;
     D_80364450 = 1000;
     func_802C4310(arg0, 0xCE);
 }
@@ -218,10 +218,10 @@ void func_802B7754(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Vehicle 8 while not driven (hd.c, func_8024B618): follow the ground under
+/* Vehicle 8 while not driven (hd.c, veh_update_others): follow the ground under
  * its wheels (func_802A9A60 at D_803EEF18 x/y/z, key 8; heights into +4,
  * middle height into D_803EEF1C), place the model (func_802B8278) and report
- * the position (func_802A133C(z, 8, x, y, D_803EEE70)).
+ * the position (veh_set_record(z, 8, x, y, D_803EEE70)).
  * Fidelity note: the asm passes func_802A9A60 whatever its C caller left in
  * fp (it ends up as D_803ED3F2[0..2] and the byte +0x50) and in f12-f26 (the
  * triangle scans' FP pass-through); the C passes 0 and zeros. */
@@ -234,7 +234,7 @@ void func_802B77A0(void) {
                   (s32 *) (D_803EEE70 + 4), (s32 *) &D_803EEF18[1], (s16 *) (D_803EEE70 + 0x4C), 8, 0,
                   D_803EEE70, &f, &o);
     func_802B8278();
-    func_802A133C(D_803EEF18[2], 8, D_803EEF18[0], D_803EEF18[1], D_803EEE70);
+    veh_set_record(D_803EEF18[2], 8, D_803EEF18[0], D_803EEF18[1], D_803EEE70);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/72B80/func_802B77A0.s")
@@ -297,7 +297,7 @@ void func_802B78F4(s32 id, InterpRegs *r) {
  * func_802A8768 (ground contact; id 8, divisors 0x2BC/0x190, slot result s3
  * from func_802AB9A4, FP state from func_802AAE54), after func_802B8424 and
  * D_803ED40B = 1. Then the model is placed (func_802B8278) and the position
- * reported (func_802A133C(z, 8, x, y)).
+ * reported (veh_set_record(z, 8, x, y)).
  * Register convention (conventions.txt): id a3; f24 comes in from the
  * dispatcher (whatever the previous vehicle function left) and the f24
  * func_802A8768 leaves goes back out (here through *f24). The asm points $gp
@@ -327,7 +327,7 @@ void func_802B7980(s32 id, f32 *f24) {
                   (s32 *) (D_803EEE70 + 4), &rr, &f);
     *f24 = f.sideZ;
     func_802B8278();
-    func_802A133C(D_803EEF18[2], 8, D_803EEF18[0], D_803EEF18[1], D_803EEE70);
+    veh_set_record(D_803EEF18[2], 8, D_803EEF18[0], D_803EEF18[1], D_803EEE70);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/72B80/func_802B7980.s")
@@ -386,7 +386,7 @@ static void port_b7a88_crash(void) {
     s32 v;
 
     D_803EEF33 = 0;
-    if (D_8035805C != 0) {
+    if (gBufferIndex != 0) {
         func_802A768C(D_803EEE70, D_803EEB70, (s32 *) &D_803EEF18[0], (s32 *) &D_803EEF18[1],
                       (s32 *) &D_803EEF18[2], D_803EEF2C, D_803EEF28, 0x100, &end);
     } else {
@@ -406,7 +406,7 @@ static void port_b7a88_crash(void) {
     func_802B8278();
 }
 
-/* Per-frame update of vehicle 8 while driven (hd.c's func_8024B7AC, and
+/* Per-frame update of vehicle 8 while driven (hd.c's veh_update_player, and
  * func_802B7340). Zone lookup (func_802B78B0), save the state for a crash
  * rollback (func_802A75DC), engine sound 0xA4 (func_802C4724); unless byte
  * +0x9A is set, trail and effects (func_802B7F98, fed the zone scan
@@ -424,8 +424,8 @@ static void port_b7a88_crash(void) {
  * Without a ring hit (D_803A7425 clear): D_803A7424 = 0 and the object pass
  * (func_802BE77C) - a hit there takes the crash branch, else D_803EEF33 = 0;
  * with one: the ring-steering branch. Finally the player position/speed/
- * headings D_803643E0..E8 / D_8036443C..40 are copied from the vehicle and
- * the position reported (func_802A133C(z, 8, x, y)).
+ * headings gPlayerX..Z / D_8036443C..40 are copied from the vehicle and
+ * the position reported (veh_set_record(z, 8, x, y)).
  * Fidelity notes: the asm feeds func_802B78B0 its C caller's t6, t7, s0-s4
  * (scan registers, 0 here) and func_802A8768 the FP registers left by
  * func_802A860C's sine routines and earlier code (zeros here). The asm's
@@ -475,7 +475,7 @@ void func_802B7A88(void) {
                   0x2BC, 0x190, (s16 *) (D_803EEE70 + 0x4C), D_803EEE70 + 0x96, (s16 *) (D_803EEE70 + 0x52),
                   (s32 *) (D_803EEE70 + 0x28), (s32 *) (D_803EEE70 + 0x40), (s32 *) (D_803EEE70 + 0x34),
                   (s32 *) (D_803EEE70 + 4), &rr, &f);
-    if (D_8035805C != 0) {
+    if (gBufferIndex != 0) {
         func_8029E558((u8 *) D_803EEF28, (u8 *) D_803EEF2C, (Unk8029DEA0Entry *) D_803EEB70);
     } else {
         func_8029E558((u8 *) D_803EEF2C, (u8 *) D_803EEF28, (Unk8029DEA0Entry *) D_803EEB70);
@@ -497,13 +497,13 @@ void func_802B7A88(void) {
     } else {
         port_b7a88_ring();
     }
-    D_803643E0 = D_803EEF18[0];
-    D_803643E4 = D_803EEF18[1];
-    D_803643E8 = D_803EEF18[2];
+    gPlayerX = D_803EEF18[0];
+    gPlayerY = D_803EEF18[1];
+    gPlayerZ = D_803EEF18[2];
     D_8036443C = VEH8_S16(0x76);
     D_8036443E = VEH8_U16(0x4E);
     D_80364440 = VEH8_U16(0x4C);
-    func_802A133C(D_803EEF18[2], 8, D_803EEF18[0], D_803EEF18[1], D_803EEE70);
+    veh_set_record(D_803EEF18[2], 8, D_803EEF18[0], D_803EEF18[1], D_803EEE70);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/72B80/func_802B7A88.s")
@@ -598,10 +598,10 @@ void func_802B8278(void) {
     MtxChainRegs regs;
     u8 *base;
 
-    m += (N64_A32) (D_8035805C != 0 ? D_803EEF28 : D_803EEF2C);
+    m += (N64_A32) (gBufferIndex != 0 ? D_803EEF28 : D_803EEF2C);
     D_803ED390[1] = VEH8_U16(0x4C);
     func_802AA764(D_803EEF18[0], D_803EEF18[1], D_803EEF18[2], 0x32C8, (s32 *) m);
-    base = (u8 *) (D_8035805C != 0 ? D_803EEF28 : D_803EEF2C);
+    base = (u8 *) (gBufferIndex != 0 ? D_803EEF28 : D_803EEF2C);
     regs.a3 = 0;
     regs.s1 = 0;
     regs.s2 = (s32) m;
@@ -679,9 +679,9 @@ void func_802B8424(void) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 /* Sets up the flying vehicle (object 0xFE) from the model header `hdr`
- * (called by the object dispatcher func_802A3134): D_803EF2F8 = hdr, two
- * 0x800-byte buffers from the heap D_80358070 (D_803EF2FC, D_803EF300; the
- * cursor moves 0x1000), the object record (func_802A1388(0xFE, a1Val, buf1,
+ * (called by the object dispatcher lvl_spawn_chopper): D_803EF2F8 = hdr, two
+ * 0x800-byte buffers from the heap gHeapPtr (D_803EF2FC, D_803EF300; the
+ * cursor moves 0x1000), the object record (veh_add_record(0xFE, a1Val, buf1,
  * buf2, hdr)), state block D_803EF240: heading +0x4C/+0x4E = 0, speed +0x76 =
  * 20, D_803EF32A / D_803EF2E6 / D_803EF328 = 0; the animated model
  * (func_8029F85C(buf2, buf1, D_803EEF40, hdr)) and its channels (0: 100, 0,
@@ -692,7 +692,7 @@ void func_802B8424(void) {
  * the model matrix copied from the second buffer to the first
  * (func_802AA838 at header word [header word 0x18 + 4]).
  * Register convention (conventions.txt): a1Val a1, hdr s2. The asm saves
- * t0-t5 (asm caller func_802A3134 keeps t1 live), points $gp at D_803EF240
+ * t0-t5 (asm caller lvl_spawn_chopper keeps t1 live), points $gp at D_803EF240
  * and leaves s0-s7, fp, f20, f30 as its callees leave them. Its addi traps on
  * overflow. Fidelity note: the asm caller's fp, f24 and f26 reach
  * func_802B899C's callees as leftovers (not modelled, see func_802B899C). */
@@ -700,11 +700,11 @@ void func_802B8480(s32 a1Val, u8 *hdr) {
     u8 *buf;
 
     D_803EF2F8 = hdr;
-    buf = D_80358070;
+    buf = gHeapPtr;
     D_803EF2FC = buf;
     D_803EF300 = buf + 0x800;
-    D_80358070 = buf + 0x1000;
-    func_802A1388(0xFE, a1Val, (s32) D_803EF2FC, (s32) D_803EF300, hdr);
+    gHeapPtr = buf + 0x1000;
+    veh_add_record(0xFE, a1Val, (s32) D_803EF2FC, (s32) D_803EF300, hdr);
     *(s16 *) (D_803EF240 + 0x4C) = 0;
     *(s16 *) (D_803EF240 + 0x4E) = 0;
     D_803EF32A = 0;
@@ -752,7 +752,7 @@ void func_802B8480(s32 a1Val, u8 *hdr) {
 extern void * N64P D_803EF2E8;  /* this sound's handle, NULL = none */
 
 /* Positional sound 0x13 at D_803EF2EC/F0/F4 (called from hd.c). d is the
- * rounded distance from the player D_803643E0/E4/E8. Beyond 16000 the sound
+ * rounded distance from the player gPlayerX/Y/Z. Beyond 16000 the sound
  * is stopped (func_802608C8) and its handle cleared. Otherwise it is
  * started if it isn't playing, its volume (parameter 8) set to 0x7FFF -
  * max(d - 500, 0) and its pan (parameter 4) to 64 + (player x - source
@@ -760,11 +760,11 @@ extern void * N64P D_803EF2E8;  /* this sound's handle, NULL = none */
  * doesn't. Register note: the asm saves and restores every register. Same
  * shape as func_802BA148 (75490). */
 void func_802B8794(void) {
-    s32 dx = D_803643E0 - D_803EF2EC;
+    s32 dx = gPlayerX - D_803EF2EC;
     s32 dist;
     s32 pan;
 
-    dist = func_802ABCDC(D_803643E0, D_803643E4, D_803643E8, D_803EF2EC, D_803EF2F0, D_803EF2F4);
+    dist = func_802ABCDC(gPlayerX, gPlayerY, gPlayerZ, D_803EF2EC, D_803EF2F0, D_803EF2F4);
     if (dist > 16000) {
         if (D_803EF2E8 != NULL) {
             func_802608C8(D_803EF2E8);
@@ -794,10 +794,10 @@ void func_802B8794(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Per-frame update of the flying vehicle (hd.c's func_802475D8, and
+/* Per-frame update of the flying vehicle (hd.c's hd_game_frame, and
  * func_802B8480): state machine (func_802B8D04), sound/animation channels
  * (func_802B98E0), animate the model into the current buffer
- * (func_8029E558; D_8035805C picks D_803EF2FC or D_803EF300), place it
+ * (func_8029E558; gBufferIndex picks D_803EF2FC or D_803EF300), place it
  * (func_802B9B4C), copy point record 1 of object 0xFE (func_802ABC88) to the
  * marker position D_803EF310/14/18, and drop the marker on the ground
  * (func_802B8C18).
@@ -813,7 +813,7 @@ void func_802B899C(void) {
 
     func_802B8D04();
     func_802B98E0();
-    if (D_8035805C != 0) {
+    if (gBufferIndex != 0) {
         func_8029E558(D_803EF2FC, D_803EF300, (Unk8029DEA0Entry *) D_803EEF40);
     } else {
         func_8029E558(D_803EF300, D_803EF2FC, (Unk8029DEA0Entry *) D_803EEF40);
@@ -848,12 +848,12 @@ void func_802B8AE4(void) {
     D_803ED80C = D_803EF314;
     D_803ED810 = D_803EF318;
     D_80368030 = D_803EF31C;
-    if (D_80364A90 == 0x1000) {
+    if (gGameMode == 0x1000) {
         if (D_803EF32C == 5 || !(D_803EF31C < D_803EF314)) {
             func_80275390(0x2000);
         }
     } else if (D_803EF32C == 4) {
-        D_80364A98 = 0x1000;
+        gNextGameMode = 0x1000;
     }
 }
 #else
@@ -872,7 +872,7 @@ void func_802B8AE4(void) {
  * 0, (s16) +0x4C) and D_803EF326 = +0x4C.
  * Register convention (conventions.txt): t3 and fp (func_802A9B1C's fp input)
  * come in from the asm callers, f12-f26 pass through func_802A9B1C (here
- * through f). The asm's v1 (read by func_802475D8 via func_802B899C) is just
+ * through f). The asm's v1 (read by hd_game_frame via func_802B899C) is just
  * func_802582C4's leftover; f12/f14 too after that C call. */
 void func_802B8C18(s32 t3, s32 fp, TriSideOut *f) {
     s32 x = D_803EF2EC;
@@ -953,17 +953,17 @@ static s32 port_state1(void) {
     s32 t3;
     s32 t2;
 
-    if (D_80364A90 == 0x800) {
-        if (D_802E8BDC == 0x1A || D_802E8BDC == 4) {
+    if (gGameMode == 0x800) {
+        if (levelno == 0x1A || levelno == 4) {
             limit = 48000;
-        } else if (D_802E8BDC == 0x1D || D_802E8BDC == 0x3A || D_802E8BDC == 0xD) {
+        } else if (levelno == 0x1D || levelno == 0x3A || levelno == 0xD) {
             limit = 70000;
         } else {
             limit = 30000;
         }
         if (!(limit < dist)) {
-            D_80364A98 = 1;
-            func_8029A7E4(D_80305D40);
+            gNextGameMode = 1;
+            debug_printf(D_80305D40);
             D_803EF308 = (&D_80368048)[-1];
             bx = D_80368048;
             D_803EF30C = bx;
@@ -1070,8 +1070,8 @@ static void port_state4(void) {
         return;
     }
     D_803EF32D = 1;
-    if (D_80364A90 != 0x1000) {
-        v = func_8026A610(D_803643E0, D_803643E0, D_803EF2EC, D_803EF2F4);
+    if (gGameMode != 0x1000) {
+        v = func_8026A610(gPlayerX, gPlayerX, D_803EF2EC, D_803EF2F4);
         v = 0x88B8 - (v << 1);
         if (v >= 0xFA1) {
             if (v >= 0x8000) {
@@ -1104,7 +1104,7 @@ static void port_state4(void) {
  *      D_803EF304, then state 0 once both.
  * Heading update: heading +0x4E (and +0x4C) += D_803EF324 (wrapped by 0xFFF)
  * and the position D_803EF2EC/F4 advanced by the speed +0x76 along it
- * (func_802A860C). Finally, outside states 4/5: func_802A5604(D_80358074)
+ * (func_802A860C). Finally, outside states 4/5: func_802A5604(gLevelData)
  * and D_803EF2F0 0x14 a frame toward D_803EF304. The asm's add/sub/neg trap
  * on overflow; the state-3 divides trap on a zero distance (not reached).
  * Register convention: no inputs. The asm leaves gp = D_803EF240 and its
@@ -1192,7 +1192,7 @@ heading:
     D_803EF2F4 = o.t1;
 tail:
     if (D_803EF32C != 4 && D_803EF32C != 5) {
-        func_802A5604(D_80358074);
+        func_802A5604(gLevelData);
         D_803EF2F0 = port_approach_14(D_803EF2F0, D_803EF304);
     }
 }
@@ -1281,7 +1281,7 @@ void func_802B9B4C(void) {
     u8 *m = *(u8 * N64P *) (hdr + *(s32 *) (hdr + 0x18) + 4);
     MtxChainRegs regs;
 
-    m += (N64_A32) (D_8035805C != 0 ? D_803EF2FC : D_803EF300);
+    m += (N64_A32) (gBufferIndex != 0 ? D_803EF2FC : D_803EF300);
     D_803ED390[0] = 0;
     D_803ED390[2] = 0;
     D_803ED390[1] = *(u16 *) (D_803EF240 + 0x4C);
@@ -1294,7 +1294,7 @@ void func_802B9B4C(void) {
     regs.s0 = 0;
     hdr = D_803EF2F8;
     func_802ABBEC(0xFE, (s16 *) (hdr + *(s32 *) hdr), (s16 *) (hdr + *(s32 *) (hdr + 4)),
-                  D_8035805C != 0 ? D_803EF2FC : D_803EF300, &regs);
+                  gBufferIndex != 0 ? D_803EF2FC : D_803EF300, &regs);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/72B80/func_802B9B4C.s")

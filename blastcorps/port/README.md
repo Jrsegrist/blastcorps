@@ -322,10 +322,10 @@ Platform model (`src/platform/`):
 | SI | os_si.c, input.c | controller 1 from `--input` (or idle), osContInit's 0.5 s wait; EEPROM 4 Kbit in a file (`--eeprom`, mupen64plus's 512-byte .eep format). |
 | Controller Pak | pif.c | `--mpk FILE` (mupen64plus .mpk: four 32 KB paks, controller 1's first; created formatted if missing): the front end's own SDK Pfs objects run natively over a PIF emulation (status, pak read/write); the system blocks (ID, inode, directory) are converted by layout at the pak boundary. |
 | saves | save.c | the save thread's routines (0E7B0.c, `PORT_SAVE_*` hooks) work on a big-endian copy of each record, so CRCs and files are the N64's: EEPROM files are byte-identical to mupen64plus's for the same play (checked: new game, level completion with best time), and load either way. |
-| RSP/RDP | os_hw.c | gfx tasks dropped and counted (SP done, plus DP done for frame tasks; bc.exe draws them with RT64, same completion times); func_802A4B0C's cull test answered by a CPU model of its ucode (below); audio tasks run at once on the microcode interpreter (src/audio/, "Audio" below), SP done. |
+| RSP/RDP | os_hw.c | gfx tasks dropped and counted (SP done, plus DP done for frame tasks; bc.exe draws them with RT64, same completion times); cull_rsp_test's cull test answered by a CPU model of its ucode (below); audio tasks run at once on the microcode interpreter (src/audio/, "Audio" below), SP done. |
 | AI | os_hw.c | a two-buffer DMA FIFO playing at the programmed rate in virtual time, so osAiGetLength (which sizes each audio frame) behaves; each accepted buffer goes to the output (`--wav FILE`; bc.exe's speakers), which never feeds back into the timing. |
 | front end | plat_core.c | data+bss snapshot at boot, restored after every reload. |
-| debug output | headless_main.c | `--print`: the game's debug printf (func_8029A7E4, empty on the N64) to stderr with the frame number; `--cmdline "-c"` turns on the game's debug cheats (C-right + Z completes the level). |
+| debug output | headless_main.c | `--print`: the game's debug printf (debug_printf, empty on the N64) to stderr with the frame number; `--cmdline "-c"` turns on the game's debug cheats (C-right + Z completes the level). |
 
 Host-order rules the game C follows under `PORT_HOST` (include/game/port.h):
 `PORT_HALF(i)` for u16 views of 32-bit words (the N64 Mtx's elements; the
@@ -387,7 +387,7 @@ bc_headless):
   D_80210690) are put back at their addresses as ROM bytes (hd_code's text
   isn't loaded natively; nothing native reads them).
 - `osSpTaskStartGo`: a gfx task goes to RT64 (`loadUCodeGBI` +
-  `processDisplayLists`, after `port_gfx_fix_task`). func_802A4B0C's
+  `processDisplayLists`, after `port_gfx_fix_task`). cull_rsp_test's
   visibility test (ucode D_802E77B0, whose RDP output the CPU reads) stays
   with the platform: os_hw.c `cull_visible` evaluates its list (projection
   and modelview, 8 box corners, 12 triangles): visible iff a triangle is not
@@ -500,9 +500,9 @@ Example (bc_headless --crash-test av:5):
       #0   00004000A350  bc_headless.exe+00A350  host_crash_test_frame+0x100 (crash.c:1120)
       #1   0000400AECB8  bc_headless.exe+0AECB8  plat_on_frame+0x128 (plat_core.c:112)
       #2   0000400A9376  bc_headless.exe+0A9376  osSendMesg+0x46 (os_thread.c:295)
-      #3   00004004B40F  bc_headless.exe+04B40F  func_80284E54+0x17F (405F0.c:97)
+      #3   00004004B40F  bc_headless.exe+04B40F  rsp_send_task+0x17F (405F0.c:97)
       #4   00004008ECE9  bc_headless.exe+08ECE9  func_801EF4AC+0x79 (07800.c:380)
-      #5   000040024270  bc_headless.exe+024270  func_80244930+0x1930 (00000.c:977)
+      #5   000040024270  bc_headless.exe+024270  hd_main_thread+0x1930 (00000.c:977)
       #6 ? 0000400A8DEE  bc_headless.exe+0A8DEE  fiber_main+0xE (os_thread.c:138)
       ...
     minidump: ...\bc-crash-20261007-212029.dmp
@@ -610,9 +610,9 @@ it without a fault.  The x64-asan preset is the tool for this now.
     keep their 4:3 shape in the middle (the HUD, text, the radar, the
     front end's pictures: pillarboxed); full-width fill rectangles stretch.
     No game code changes: the game still builds its 4:3 perspective
-    (00000.c func_8024C414 `guPerspective(..., D_80364438, 4/3, ...)`, the
+    (00000.c hd_build_frame_dl `guPerspective(..., gCamFovy, 4/3, ...)`, the
     front-end screens likewise).  The game's CPU-side visibility test
-    (func_802A4B0C via 00000.c func_8024B8F4, which uses that projection)
+    (cull_rsp_test via 00000.c cull_start, which uses that projection)
     decides which level cells, and the buildings and objects on them, are
     drawn, so it must widen with the view: `host_cull_wide` (os_hw.c) makes
     `cull_visible` accept |x| <= k w with k = the aspect / (4/3) (from the
@@ -651,7 +651,7 @@ it without a fault.  The x64-asan preset is the tool for this now.
     frame-buffer swaps, `State::setRefreshRate`: RT64's own guess from the VI
     history turns interpolation off whenever the cadence wavers); cuts
     (`interpTask`: a frame of a new game mode or level, or whose camera,
-    read from the frame's own `DynamicBuf.unk140` view matrix, jumped more
+    read from the frame's own `DynamicBuf.view` view matrix, jumped more
     than 400 units and 4 times as far as the frame before, or turned more
     than 40 degrees, gets rate 0: RT64 shows it as it is, with no in-between
     pictures into it; in play the camera moves at most ~7 units and turns
@@ -675,7 +675,7 @@ it without a fault.  The x64-asan preset is the tool for this now.
       (NULL unless tagged interpolation is on). Nothing is written to the
       display lists or to RDRAM and nothing goes back to the game, so its
       per-frame trace is the same with the option on (checked: all 60
-      levels). Tagged: the `D_80364460` records (vehicles, the carrier; per
+      levels). Tagged: the `gVehicles` records (vehicles, the carrier; per
       LOD), vehicle shadows, building objects and their moving parts, falling
       parts, the rising piece, explosion/smoke billboards, particles, people,
       ground shadows and, from the dial on, the HUD;
@@ -747,10 +747,10 @@ it without a fault.  The x64-asan preset is the tool for this now.
     the orbit view, so the game's per-frame trace is the same as with the
     option off (checked: all 60 levels with the camera turning by itself,
     `--orbit-test`).
-    - The game's camera: at the end of 00000.c func_802507C8 (`PORT_ICUT_IF`,
+    - The game's camera: at the end of 00000.c cam_update (`PORT_ICUT_IF`,
       now every frame, `host_camera_hook`) the eye (from the view matrix the
       game just built, `DynamicBuf.unk140`) and the point it looks at
-      (D_80365084/88/8C) are copied, read-only, for that DynamicBuf.
+      (gCamAtX/88/8C) are copied, read-only, for that DynamicBuf.
     - The view: RT64 patch `0006-view-hook.patch` adds `RT64::ViewHook`,
       called for every perspective projection of every rendered picture
       (in-between pictures of a higher frame rate too) after RT64's own
@@ -764,14 +764,14 @@ it without a fault.  The x64-asan preset is the tool for this now.
       and missile views, mission intros and the ending keep the game's camera.
     - Culling: the game's visibility walk (5FD50.c, one box test every other
       frame) only lists cells its own camera sees, and the list gates game
-      logic too: 77E20.c func_802BD1F8 runs buildings' moving parts, falling
+      logic too: 77E20.c obj_draw_all runs buildings' moving parts, falling
       parts (debris, random numbers, screen shake) and chasing objects only
       for listed objects. So the list is left alone: the pure drawing paths
-      read `PORT_DRAW_CELLS(D_803C30A8)` instead (5FD50.c's level geometry
+      read `PORT_DRAW_CELLS(gVisibleCells)` instead (5FD50.c's level geometry
       and group lists; 77E20.c draws an unlisted building as it is, without
       any per-object work and without its moving parts), which with the orbit
       camera on in play is every cell of the level (as the game itself does
-      while its camera turns, func_802A45D4). The game logic reads the real
+      while its camera turns, cull_restart). The game logic reads the real
       list. The display lists then hold more (RDRAM differs only there).
       People and markers on unlisted cells stay hidden.
     - The backdrop (2D2D810.c: a 2D quad scrolled by the camera's heading and
@@ -793,14 +793,14 @@ it without a fault.  The x64-asan preset is the tool for this now.
       to turn, the wheel zooms, the middle button resets. In play the camera's
       inputs don't reach the N64 pad (by default the right stick was the C
       buttons: C-left/C-right are the game's own 45-degree camera turns,
-      00000.c func_80255190, and C-up/C-down do nothing in play; they stay on
+      00000.c cam_turn_heading, and C-up/C-down do nothing in play; they stay on
       the keyboard's J/L/I/K, and the right stick is the C buttons again in
       menus).
     - Settings: `sensitivity_x/y` (percent), `invert_x/y`, `recentre` (ease
       back behind the player after `recentre_delay` seconds without camera
       input; 0: the camera keeps its world direction until reset),
       `recentre_on_foot` (on foot the game steers the driver relative to its
-      own camera heading, 46F60.c func_8028B734 with D_80364414: a turned
+      own camera heading, 46F60.c func_8028B734 with gCamHeading: a turned
       view would make the stick feel rotated, so by default it eases back on
       foot anyway; camera-relative on-foot input would change the game's
       input, so it isn't offered), `zoom_min/max` (times the game's
@@ -1007,7 +1007,7 @@ then per compared frame "match" or the differing runs with symbols and the
 asset an address was loaded from.
 
 A frame is the main thread handing the scheduler its frame task (osSendMesg
-to D_80315440 with flag 0x40): the same program point on both machines; the
+to gScheduler with flag 0x40): the same program point on both machines; the
 exe dumps there (`--dump`, `--dump-every`). Subcommands (`compare.py -h`):
 `emu`, `inject`, `native`, `diff`, `frames`, `hex` (one region side by side),
 `calls` (with `emu --calls F,G` and the exe's `--calls F,G`: the calls of
@@ -1016,7 +1016,7 @@ chosen functions per frame, to find where execution forks), `demos`, `run`.
 What the emulator log gives the exe:
 - `--clock`: every osGetTime / osGetCount / osAiGetLength result, keyed by the
   calling function and the retrace it was read in, and the visibility test's
-  answer (func_802A4B0C's RDP output word) keyed by frame; other osGetTime
+  answer (cull_rsp_test's RDP output word) keyed by frame; other osGetTime
   calls get the emulator's clock (mupen64plus counts 811092 per VI; the
   mapping is in the file). Timers run in emulator counts.
 - `--sync`: the CPU time model. Game code takes no time natively; every
@@ -1050,7 +1050,7 @@ under some other layout is reported. C objects' .data/.rodata, textures
 and a few buffers whose declared type isn't their readers' (`Layout.UNTYPED`)
 stay lenient. More emulator inputs: `Q` lines (the game retrace counter
 where `PORT_GVI` marks a mid-frame read, `cmp_spec.py GVI_FUNCS`/`GVI_SITES`;
-and, once per retrace, the display-freeze flag D_802E8BD0 as the scheduler's
+and, once per retrace, the display-freeze flag gPaused as the scheduler's
 retrace handler read it, `PORT_EMU`, `EMU_SITES`), and
 `calls --args` compares the first argument words (`emu --calls` logs a0-a3,
 the exe its argument registers' home area, which may be stale). Never-written
@@ -1064,7 +1064,7 @@ bytes, which the RSP reads).
 emulator runs the RSP tasks whose results the game reads on cxd4 (an LLE
 RSP, CC0, from `~/thirdparty/ref`, loaded at run time as an oracle) through
 `tools/audio/rsp_tap.so`: every audio task (each also checked against
-the port's interpreter) and func_802A4B0C's visibility test
+the port's interpreter) and cull_rsp_test's visibility test
 (`TAP_LLE_UCODE`); graphics stay on the HLE plugin; `ai_dump.so` writes the
 emulator's sound to `EMUDIR/emu.wav`.  The emulator log also has
 osAiGetLength's real values (logged in the caller after the call returns:
@@ -1132,15 +1132,15 @@ hash names) and removes them with `--delete`.
 
 ### Every level: `make -C port verify-levels`
 
-The attract demos load 9 of the game's 60 levels (`D_802E8BDC` 0-59; the
-type byte of each `D_802E8F94` record is in `data/levels.txt`).  To reach any
+The attract demos load 9 of the game's 60 levels (`levelno` 0-59; the
+type byte of each `gLevelInfo` record is in `data/levels.txt`).  To reach any
 level with the same input on both sides, `tools/compare.py level --level L`
 plays `data/levels_input.txt` (made by `tools/levels_input.py`): START / A
 from controller read 400 (title, new game, player A, the opening sequence),
 A on the globe at read 985, A taps for the intro pages, then from read 1220 a
 driving pattern (accelerate, turn both ways, brake and reverse, stop, Z out,
 walk, A, Z in, ...).  At frame 930, before the globe first opens, both sides
-write L to player 0's "last level" byte (`D_80364AF0[0].pad0[8]`, 0x80364AF8:
+write L to player 0's "last level" byte (`players[0].pad0[8]`, 0x80364AF8:
 00000.c reads it once, on the first entry to the globe, 0x4000), so the globe
 opens centred on L and A selects it; the game loads it its own way (mission
 intro, bonus-level page, sequence).  The poke is `CMP_POKE` / `compare.py emu
@@ -1181,8 +1181,8 @@ and the never-written vertex fields of several builders (sprites, boxes,
 globe icons, water) get the N64's old bytes.  When the matched globe display
 list (hd_front_end func_801F1568) changed the NM ROM's CPU timing, three
 more such races showed up (lvfix agent): the mode-0x40 start time
-(func_80244930:4A54), the ghost recorder's sample time (func_80294F00) and
-the retrace handler's freeze test (func_80271358:8BD0, PORT_EMU).
+(hd_main_thread:4A54), the ghost recorder's sample time (func_80294F00) and
+the retrace handler's freeze test (__scHandleRetrace:8BD0, PORT_EMU).
 
 Debugging what native code wrote: `--watch F:ADDR[:N]` logs the first N
 writes to ADDR's 4 KB page from frame F on (rip and the stack's code

@@ -94,7 +94,7 @@ void func_80267CDC(AudioInfo *info, AudioInfo *lastInfo);
 void func_80267F88(AudioInfo *info);
 
 #define AUDIO_ASSERT(EX, line) \
-    if (!(EX)) func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "audio.c", line)
+    if (!(EX)) debug_printf("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "audio.c", line)
 
 #define MAX_RSP_CMDS 0xABE
 
@@ -171,7 +171,7 @@ void func_80267A9C(void *arg) {
     done = 0;
     lastInfo = NULL;
     firstTime = 1;
-    func_80270E50((struct BcSched *) &D_80315440, (struct BcScClient *) D_803682F8, &D_80368070.audioFrameMsgQ, 2, 2);
+    sched_add_client((struct BcSched *) &gScheduler, (struct BcScClient *) D_803682F8, &D_80368070.audioFrameMsgQ, 2, 2);
     osSendMesg(&D_80368070.audioFrameMsgQ, (OSMesg) 5, OS_MESG_NOBLOCK);
     while (!done) {
         osRecvMesg(&D_80368070.audioFrameMsgQ, (OSMesg *) &msg, OS_MESG_BLOCK);
@@ -180,7 +180,7 @@ void func_80267A9C(void *arg) {
                 break;
             case 5:
                 if (D_803156A4) {
-                    osSendMesg(&D_80315440, (OSMesg) 0x29E, OS_MESG_BLOCK);
+                    osSendMesg(&gScheduler, (OSMesg) 0x29E, OS_MESG_BLOCK);
                 }
                 D_80368060 = osGetTime();
                 func_80267CDC(D_80368070.audioInfo[D_802F3AF0 % 3], lastInfo);
@@ -211,15 +211,15 @@ void func_80267A9C(void *arg) {
                 done = 1;
                 break;
             case 6:
-                func_8029A7E4("No samples left\n");
+                debug_printf("No samples left\n");
                 break;
         }
     }
     alClose(&D_80368070.g);
 }
 
-#define osScGetCmdQ func_80270F74
-#define sc D_80315440
+#define osScGetCmdQ sched_get_cmd_queue
+#define sc gScheduler
 #define cmdLen D_8036A8C4
 
 void func_80267CDC(AudioInfo *info, AudioInfo *lastInfo) {
@@ -274,7 +274,7 @@ void func_80267F88(AudioInfo *info) {
 
     samplesLeft = func_802D9C10() >> 2;
     if (samplesLeft == 0 && !D_802F3C04) {
-        func_8029A7E4("audio: ai out of samples\n");
+        debug_printf("audio: ai out of samples\n");
         D_802F3C04 = 0;
     }
 }
@@ -314,7 +314,7 @@ s32 func_80267FE0(s32 addr, s32 len, void *state) {
     }
     dmaPtr = D_8036A308.firstFree;
     if (!dmaPtr) {
-        func_8029A7E4("OH DEAR - No audio DMA buffers left\n");
+        debug_printf("OH DEAR - No audio DMA buffers left\n");
     }
     if (!dmaPtr) {
         return osVirtualToPhysical(D_8036A308.firstUsed);
@@ -364,7 +364,7 @@ void func_802682A4(void) {
 
     for (i = 0; i < D_802F3AF4; i++) {
         if (osRecvMesg(&D_8036AE68, (OSMesg *) &iomsg, OS_MESG_NOBLOCK) == -1) {
-            func_8029A7E4("Dma not done\n");
+            debug_printf("Dma not done\n");
         }
     }
     dmaPtr = D_8036A308.firstUsed;

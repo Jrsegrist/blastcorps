@@ -148,8 +148,14 @@ def flatten(lv, size):
 
 
 import re
-VIEW_ARR = re.compile(r"^\s*#\s*define\s+(D_[0-9A-F]{8})\s+\(\(\s*(?:struct\s+)?([A-Za-z_]\w*)\s*(\*?)\s*\*\s*\)\s*&?\s*\1\s*\)")
-VIEW_SCAL = re.compile(r"^\s*#\s*define\s+(D_[0-9A-F]{8})\s+\(\*\s*\(\s*(?:struct\s+)?([A-Za-z_]\w*)\s*(\*?)\s*\*\s*\)\s*&\s*\1\s*\)")
+VIEW_ARR = re.compile(r"^\s*#\s*define\s+([A-Za-z_]\w*)\s+\(\(\s*(?:struct\s+)?([A-Za-z_]\w*)\s*(\*?)\s*\*\s*\)\s*&?\s*\1\s*\)")
+VIEW_SCAL = re.compile(r"^\s*#\s*define\s+([A-Za-z_]\w*)\s+\(\*\s*\(\s*(?:struct\s+)?([A-Za-z_]\w*)\s*(\*?)\s*\*\s*\)\s*&\s*\1\s*\)")
+# views of N64 data symbols: address names D_XXXXXXXX, or names they were given
+# (tools_port/names.txt)
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+                                "tools_port"))
+from names import orig  # noqa: E402
+VIEW_NAME = re.compile(r"^D_[0-9A-F]{8}$")
 
 
 def file_views(path):
@@ -157,11 +163,13 @@ def file_views(path):
     out = {}
     for line in open(path, errors="replace"):
         m = VIEW_ARR.match(line)
+        if m and not VIEW_NAME.match(orig(m.group(1))):
+            m = None
         if m:
             out[m.group(1)] = (m.group(2), m.group(3) == "*" or m.group(2) == "void", False)
             continue
         m = VIEW_SCAL.match(line)
-        if m:
+        if m and VIEW_NAME.match(orig(m.group(1))):
             out[m.group(1)] = (m.group(2), m.group(3) == "*", True)
     return out
 

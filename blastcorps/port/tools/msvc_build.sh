@@ -24,6 +24,9 @@ mkdir -p "$dir/src/blastcorps/port" "$dir/src/lib"
 rsync -a --delete --exclude build --exclude __pycache__ "$root/src.us.v11" "$root/include" "$dir/src/blastcorps/"
 # (port/inputs, the committed inputs folder, comes along)
 rsync -a --delete --exclude /build --exclude /out --exclude __pycache__ "$port/" "$dir/src/blastcorps/port/"
+# the rename map: the port's tools classify renamed symbols by their old names (tools_port/names.py)
+mkdir -p "$dir/src/blastcorps/tools_port"
+rsync -a "$root/tools_port/names.py" "$root/tools_port/names.txt" "$dir/src/blastcorps/tools_port/"
 rsync -aL --delete --exclude .git "$root/../lib/ultralib/" "$dir/src/lib/ultralib/"
 
 vswhere="/mnt/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe"

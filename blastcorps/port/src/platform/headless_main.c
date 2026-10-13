@@ -30,7 +30,7 @@
  *     --cmdline STR      the debug command line at PI 0xFFB000 (default none)
  *     --mpk FILE         Controller Pak 1 image (mupen64plus .mpk format: four
  *                        32 KB paks, controller 1's first; created if missing)
- *     --print            print the game's debug messages (func_8029A7E4)
+ *     --print            print the game's debug messages (debug_printf)
  *     --wav FILE         write what the game plays (the AI buffers) to FILE
  *                        (and FILE.frames: game frame -> sample offset)
  *     --wav-all          ... including buffers a full AI FIFO drops
@@ -90,7 +90,7 @@ static unsigned num(const char *s) {
 static int g_game_print;
 unsigned plat_frames(void); /* save.c */
 
-/* the game's debug printf (hd_code 56010.c func_8029A7E4), with --print:
+/* the game's debug printf (hd_code 56010.c debug_printf), with --print:
  * to stderr like the platform's own log, prefixed with the frame number */
 void port_game_print(const char *fmt, va_list ap) {
     if (g_game_print) {

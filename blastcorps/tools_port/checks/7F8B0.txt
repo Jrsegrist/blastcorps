@@ -35,28 +35,28 @@ func_802C4108: -n 200 --arg a0=int --arg a1=int --arg a2=int --mem D_803F7830=ra
 func_802C4310: --ret void -n 200 --arg a1=int:-0x8000:0x7FFF --mem D_803F7840:2=rand --mem D_803F784C:2=rand --mem D_80367738=int \
     --sig func_80260650=a0,a1,a2 --sig func_802C4584=a0
 func_802C4310: --ret void -n 200 --seed 1 --follow func_802C4584 --arg a1=int:0:0x200 --mem D_803F7840:2=rand \
-    --mem D_803F784C:2=rand --mem D_80367738=int --mem D_80364AB0=choice:0,1 --mem D_80364456:1=choice:0,1 \
+    --mem D_803F784C:2=rand --mem D_80367738=int --mem D_80364AB0=choice:0,1 --mem gCurVehicle:1=choice:0,1 \
     --mem D_8030D940=floats:0:1 --mem D_8030D944=floats:0:1 --mem D_803F7844=int --sig func_80260650=a0,a1,a2 \
     --sig func_80260AB8=a0,a1,a2
 
 # stop both loops (null handles skipped)
 func_802C444C: --ret void -n 200 --mem D_803F7844=choice:0,0x80300000,1 --mem D_803F7848=choice:0,0x80300010,-1 --sig func_802608C8=a0
 
-# level s5: |s5| vs the old halfword, forced by D_80364AB0, factor by D_80364456
+# level s5: |s5| vs the old halfword, forced by D_80364AB0, factor by gCurVehicle
 func_802C4584: -n 400 --arg s5=choice:0,1,-1,5,-5,100,-100,0x7FFF,-0x7FFF,0x8000,-0x8000,0x12345 \
     --mem D_803F7840:2=halves:0,1,5,100,0x7FFF,0x8000,0xFFFF,0x2345 --mem D_80364AB0=choice:0,0,1,-1 \
-    --mem D_80364456:1=choice:0,1,2,0xFF --mem D_8030D940=floats:0:2 --mem D_8030D944=floats:0:2 --mem D_803F7844=int \
+    --mem gCurVehicle:1=choice:0,1,2,0xFF --mem D_8030D940=floats:0:2 --mem D_8030D944=floats:0:2 --mem D_803F7844=int \
     --sig func_80260AB8=a0,a1,a2
 # unchanged level (no update) vs the halfword sign-extension boundary
 func_802C4584: -n 200 --seed 1 --arg s5=choice:5,-5,0x8000,-0x8000,0xFFFF --mem D_803F7840:2=halves:5,0x8000,0xFFFF \
-    --mem D_80364AB0=0 --mem D_80364456:1=choice:0,1 --mem D_8030D940=floats:0:2 --mem D_8030D944=floats:0:2 \
+    --mem D_80364AB0=0 --mem gCurVehicle:1=choice:0,1 --mem D_8030D940=floats:0:2 --mem D_8030D944=floats:0:2 \
     --mem D_803F7844=int --sig func_80260AB8=a0,a1,a2
 
 # second loop on/off from the two input bytes; id in a1
-func_802C4724: -n 300 --arg a1=int:-0x8000:0x7FFF --mem D_80370C1A:1=choice:0,0,1,0x80 --mem D_80370C1B:1=choice:0,0,1,2 \
+func_802C4724: -n 300 --arg a1=int:-0x8000:0x7FFF --mem gHeldL:1=choice:0,0,1,0x80 --mem gHeldR:1=choice:0,0,1,2 \
     --mem D_803F784C:2=halves:0,0x100,0x8100,0x200,0x300,0x8000,0xFF --mem D_803F7848=choice:0,0x80300000 \
     --mem D_80367738=int --sig func_80260650=a0,a1,a2 --sig func_802608C8=a0
 # [data] the flag halfword's low byte random too (only its high byte is compared and replaced)
-func_802C4724: -n 300 --seed 1 --arg a1=int:-0x8000:0x7FFF --mem D_80370C1A:1=choice:0,0,1,0x80 --mem D_80370C1B:1=choice:0,0,1,2 \
+func_802C4724: -n 300 --seed 1 --arg a1=int:-0x8000:0x7FFF --mem gHeldL:1=choice:0,0,1,0x80 --mem gHeldR:1=choice:0,0,1,2 \
     --mem D_803F784C:2=rand --mem D_803F7848=choice:0,0x80300000 \
     --mem D_80367738=int --sig func_80260650=a0,a1,a2 --sig func_802608C8=a0

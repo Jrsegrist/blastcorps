@@ -102,14 +102,14 @@ static void veh83910_model(const VehDesc83910 *d) {
     s16 *verts;
     MtxChainRegs regs;
 
-    base = (u8 *) (D_8035805C != 0 ? *d->bufA : *d->bufB);
+    base = (u8 *) (gBufferIndex != 0 ? *d->bufA : *d->bufB);
     base += *(s32 *) (OBJ_PTR(data, 0x18) + 4);
     D_803ED390[0] = 0;
     D_803ED390[2] = 0;
     D_803ED390[1] = VEH_U16(veh, 0x4C);
     func_802AA764(pos[0], pos[1], pos[2], 0x88B8, (s32 *) base);
 
-    base = (u8 *) (D_8035805C != 0 ? *d->bufA : *d->bufB);
+    base = (u8 *) (gBufferIndex != 0 ? *d->bufA : *d->bufB);
     regs.v1 = pos[1];
     regs.a0 = pos[2];
     regs.a3 = 0;
@@ -140,7 +140,7 @@ static void veh83910_model(const VehDesc83910 *d) {
  * reported a hit (D_803A7424): the first time (flag clear) restore the saved
  * state (func_802A768C), bounce (func_802C95D8), set the flag, update the
  * model again and stop; otherwise (or with no hit, which clears the flag)
- * publish position / speed / headings to D_803643E0.. and func_802A133C.
+ * publish position / speed / headings to gPlayerX.. and veh_set_record.
  * Fidelity: func_802A8768's FP inputs (the asm's f12-f26 at that point:
  * func_802A860C's sine leftovers and the caller's f20-f26) start at 0 here;
  * they only pass through to its FP outputs, which nothing here reads. */
@@ -182,7 +182,7 @@ static void veh83910_frame(const VehDesc83910 *d) {
     func_802A8768(veh, d->type, &pos[0], &pos[1], &pos[2], x, o.t1, 0xA0, 0xA0, &VEH_S16(veh, 0x4C),
                   &VEH_U8(veh, 0x96), &VEH_S16(veh, 0x52), &VEH_S32(veh, 0x28), &VEH_S32(veh, 0x40),
                   &VEH_S32(veh, 0x34), &VEH_S32(veh, 4), &r, &tri);
-    if (D_8035805C != 0) {
+    if (gBufferIndex != 0) {
         func_8029E558((u8 *) *d->bufA, (u8 *) *d->bufB, (Unk8029DEA0Entry *) d->chan);
     } else {
         func_8029E558((u8 *) *d->bufB, (u8 *) *d->bufA, (Unk8029DEA0Entry *) d->chan);
@@ -197,7 +197,7 @@ static void veh83910_frame(const VehDesc83910 *d) {
     func_802BE77C(d->type, veh);
     if (D_803A7424 != 0) {
         if (*d->flag == 0) {
-            if (D_8035805C != 0) {
+            if (gBufferIndex != 0) {
                 src = *d->bufB;
                 dst = *d->bufA;
             } else {
@@ -213,18 +213,18 @@ static void veh83910_frame(const VehDesc83910 *d) {
     } else {
         *d->flag = 0;
     }
-    D_803643E0 = pos[0];
-    D_803643E4 = pos[1];
-    D_803643E8 = pos[2];
+    gPlayerX = pos[0];
+    gPlayerY = pos[1];
+    gPlayerZ = pos[2];
     D_8036443C = VEH_S16(veh, 0x76);
     D_8036443E = VEH_U16(veh, 0x4E);
     D_80364440 = VEH_U16(veh, 0x4C);
-    func_802A133C(pos[2], d->type, pos[0], pos[1], veh);
+    veh_set_record(pos[2], d->type, pos[0], pos[1], veh);
 }
 
 /* Spawn (func_802C8150 / 8470 / 8790, through func_802C80D0): model data
- * `data`, two 0x800-byte save buffers from the heap D_80358070, model record
- * (func_802A1388), reset the block (func_802A754C) and its wheel offsets
+ * `data`, two 0x800-byte save buffers from the heap gHeapPtr, model record
+ * (veh_add_record), reset the block (func_802A754C) and its wheel offsets
  * (+0x52..+0x68) and gear bands (+0x78..+0x94), position and headings,
  * ground (func_802A992C), animation channel 0 (func_8029F85C, the setters,
  * func_8029E558 both ways), parts (func_8029C354), func_80258230, then one
@@ -241,11 +241,11 @@ static void veh83910_init(const VehDesc83910 *d, s32 x, s32 y, s32 z, s32 angle,
     TriSideOut tri;
 
     *d->data = data;
-    heap = D_80358070;
+    heap = gHeapPtr;
     *d->bufA = (u64 *) heap;
     *d->bufB = (u64 *) (heap + 0x800);
-    D_80358070 = heap + 0x1000;
-    func_802A1388(d->type, 0, (s32) *d->bufA, (s32) *d->bufB, data);
+    gHeapPtr = heap + 0x1000;
+    veh_add_record(d->type, 0, (s32) *d->bufA, (s32) *d->bufB, data);
     *d->flag = 0;
     func_802A754C(veh);
     VEH_S16(veh, 0x52) = 0x50;
@@ -315,12 +315,12 @@ static void veh83910_init(const VehDesc83910 *d, s32 x, s32 y, s32 z, s32 angle,
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 /* Spawn dispatcher for vehicle types 0x0B / 0x11 / other (0x12), called
- * from func_802A350C's object loop with the type in t3 and the spawn record
+ * from lvl_spawn_vehicles's object loop with the type in t3 and the spawn record
  * in t7 (x), s3 (y), s0 (z), s1 (heading), s2 (model data) and fp (the
  * ground-scan byte the previous object left; see func_802A992C). The asm
- * saves t0-t5: asm caller func_802A350C keeps t1 and t2 live (a mixed N64
+ * saves t0-t5: asm caller lvl_spawn_vehicles keeps t1 and t2 live (a mixed N64
  * build would need a thunk). It leaves s2-s4, fp and f12-f26 as the spawn
- * leaves them, and func_802A350C hands fp and f12-f26 on to the next
+ * leaves them, and lvl_spawn_vehicles hands fp and f12-f26 on to the next
  * object's spawn (not modelled; see the fidelity notes). */
 void func_802C80D0(s32 type, s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp) {
     if (type == 0x0B) {
@@ -372,7 +372,7 @@ void func_802C8790(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp) {
  * through to func_802C4310 with a1 = 0x72. */
 
 void func_802C8AB0(s32 arg0) {
-    D_8036444C = 3000;
+    gCamDistance = 3000;
     D_80364450 = 0;
     func_802C4310(arg0, 0x72);
 }

@@ -3,7 +3,7 @@
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #ifdef NON_MATCHING
-#define D_80358070 (*(s32 *) &D_80358070)
+#define gHeapPtr (*(s32 *) &gHeapPtr)
 #define D_803ED390 (*(s16 *) D_803ED390)
 #endif
 /* end of views */
@@ -37,10 +37,10 @@ extern u8 D_802C236C[];  /* its func_802A06B4 entry key */
 void func_802BA074(void);
 s32 func_802BABEC(MtxChainRegs *regs);
 
-/* Level setup of the type-0xFF object (asm caller func_802A303C): model
- * header -> D_803EF70C, two 0xC00-byte matrix buffers from D_80358070
+/* Level setup of the type-0xFF object (asm caller lvl_spawn_carrier): model
+ * header -> D_803EF70C, two 0xC00-byte matrix buffers from gHeapPtr
  * (D_803EF704 / D_803EF708; the allocator advances by 0x1800),
- * func_802A1388(0xFF, 0, buffers, model); position x/z (and the start point
+ * veh_add_record(0xFF, 0, buffers, model); position x/z (and the start point
  * D_803EF6F4/F8), target speed D_803EF6FC, D_803EF6F0 = limit, D_803EF6D6 =
  * 0; func_802A754C on D_803EF630, heading +0x4E/+0x4C; effect counters
  * D_803EF6FE = 5, D_803EF700 = D_803EF701 = 0; func_802BA074 (level spawn
@@ -68,11 +68,11 @@ void func_802B9C50(u8 *model, s32 x, s32 z, s32 speed, s32 limit, s32 heading, s
     u8 *hdr;
 
     D_803EF70C = model;
-    buf = D_80358070;
+    buf = gHeapPtr;
     D_803EF704 = (u8 *) N64_IPTR(buf);
     D_803EF708 = (u8 *) N64_IPTR((buf + 0xC00));
-    D_80358070 = buf + 0x1800;
-    func_802A1388(0xFF, 0, (s32) D_803EF704, (s32) D_803EF708, model);
+    gHeapPtr = buf + 0x1800;
+    veh_add_record(0xFF, 0, (s32) D_803EF704, (s32) D_803EF708, model);
     D_803EF6DC = x;
     D_803EF6F4 = x;
     D_803EF6E4 = z;
@@ -175,7 +175,7 @@ void func_802BA074(void) {
     D_803EF710 = 0;
     D_803EF6EC = 0;
     D_803EF711 = 0;
-    level = D_802E8BDC;
+    level = levelno;
     for (e = D_80305D74; e->level >= 0; e++) {
         if (e->level == level) {
             D_803EF6E8 = e->x << 5;
@@ -212,18 +212,18 @@ extern void * N64P D_803EF6D8;  /* this sound's handle, NULL = none */
 
 /* Positional sound 0x75 at D_803EF6DC/E0/E4 (called from hd.c); shape of
  * func_802B8794 (72B80). d is the rounded distance from the player
- * D_803643E0/E4/E8. Beyond 16000 the sound is stopped (func_802608C8) and
+ * gPlayerX/Y/Z. Beyond 16000 the sound is stopped (func_802608C8) and
  * its handle cleared. Otherwise it is started if it isn't playing, its
  * volume (parameter 8) set to 0x7FFF - 2 * max(d - 4000, 0) and its pan
  * (parameter 4) to 64 + (player x - source x) / 32, clamped to 0..127. The
  * asm's `sub`/`add` trap on overflow; C doesn't. Register note: the asm
  * saves and restores every register. */
 void func_802BA148(void) {
-    s32 dx = D_803643E0 - D_803EF6DC;
+    s32 dx = gPlayerX - D_803EF6DC;
     s32 dist;
     s32 pan;
 
-    dist = func_802ABCDC(D_803643E0, D_803643E4, D_803643E8, D_803EF6DC, D_803EF6E0, D_803EF6E4);
+    dist = func_802ABCDC(gPlayerX, gPlayerY, gPlayerZ, D_803EF6DC, D_803EF6E0, D_803EF6E4);
     if (dist > 16000) {
         if (D_803EF6D8 != NULL) {
             func_802608C8(D_803EF6D8);
@@ -268,10 +268,10 @@ void func_802BA91C(void);
 #define VEH_BA354(off, T) (*(T *) (D_803EF630 + (off)))
 
 /* Per-frame update of the type-0xFF object D_803EF630 (called from hd.c's
- * func_802475D8 and from func_802B9C50): zone lookup (func_802BA104), the
+ * hd_game_frame and from func_802B9C50): zone lookup (func_802BA104), the
  * distance flags (func_802BA5A4); then, while byte +0x9A is clear, the engine
- * sound/animation (func_802BA6AC), skipping the movement when D_803643D6 or
- * D_802E8BD0 is set. Movement: the zone value scan (func_802BA638, which may
+ * sound/animation (func_802BA6AC), skipping the movement when gCarrierHit or
+ * gPaused is set. Movement: the zone value scan (func_802BA638, which may
  * set the target speed D_803EF6FC); the speed (s16 +0x76) rises by 8 towards
  * D_803EF6FC (never above it) when below it; func_802BAD24; the drive step
  * f = func_802A83B8, func_802A843C(kind 0xFF, divisor 2400.0); the new
@@ -279,7 +279,7 @@ void func_802BA91C(void);
  * ground contact func_802A8768 (id 0xFF, divisors 0x960 / 0x320). Always:
  * animate the model (func_8029E558 on the current buffer pair), rebuild it
  * (func_802BABEC), the collision/effect step func_802BA9A0 while +0x9A is
- * clear, func_802BA91C and func_802A133C(z, 0xFF, x, y, veh).
+ * clear, func_802BA91C and veh_set_record(z, 0xFF, x, y, veh).
  * Leaked registers (FIDELITY AUDIT, see port_followups): the zone scan's
  * t6/t7/s0-s4 inputs (the caller's registers; only passed through when no
  * zone is looked at, and dead afterwards), func_802BA638's a2 input and its
@@ -315,7 +315,7 @@ void func_802BA354(void) {
     func_802BA5A4();
     if ((s8) D_803EF630[0x9A] == 0) {
         func_802BA6AC();
-        if ((s8) D_803643D6 != 0 || (s8) D_802E8BD0 != 0) {
+        if ((s8) gCarrierHit != 0 || (s8) gPaused != 0) {
             goto animate;
         }
     }
@@ -347,7 +347,7 @@ void func_802BA354(void) {
                   &VEH_BA354(0x40, s32), &VEH_BA354(0x34, s32), &VEH_BA354(4, s32), &r, &f);
 
 animate:
-    if (D_8035805C != 0) {
+    if (gBufferIndex != 0) {
         func_8029E558(D_803EF704, D_803EF708, (Unk8029DEA0Entry *) D_803EF330);
     } else {
         func_8029E558(D_803EF708, D_803EF704, (Unk8029DEA0Entry *) D_803EF330);
@@ -360,7 +360,7 @@ animate:
         func_802BA9A0(end);
     }
     func_802BA91C();
-    func_802A133C(D_803EF6E4, 0xFF, D_803EF6DC, D_803EF6E0, D_803EF630);
+    veh_set_record(D_803EF6E4, 0xFF, D_803EF6DC, D_803EF6E0, D_803EF630);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/func_802BA354.s")
@@ -401,7 +401,7 @@ typedef struct {
 extern ZoneEntry D_80305D62[];
 
 /* Scans D_80305D62 (terminated by a negative z) for entries of the current
- * level (D_802E8BDC) whose z <= player z / 32 (D_803EF6E4 >> 5); the last
+ * level (levelno) whose z <= player z / 32 (D_803EF6E4 >> 5); the last
  * one's value wins (0 if none). A nonzero result is stored in D_803EF6FC.
  * The asm leaves its scan registers behind and asm caller func_802BA354
  * doesn't overwrite them before func_802A860C reads a0-a3, so they are all
@@ -410,7 +410,7 @@ extern ZoneEntry D_80305D62[];
  * the current level (a3). */
 s32 func_802BA638(s32 *termZ, s32 *lastLevel, s32 *level) {
     s32 pz = D_803EF6E4 >> 5;
-    s32 lv = D_802E8BDC;
+    s32 lv = levelno;
     s32 result = 0;
     ZoneEntry *e;
     s32 z;
@@ -460,10 +460,10 @@ extern u8 D_803EF330[];  /* animation channel table (Unk8029DEA0Entry, 56040.c) 
 /* Engine sound and animation channels for vehicle D_803EF630 (speed = s16 at
  * +0x76). When the speed changed since the last call (D_803EF6D6) and the
  * sound D_803EF6D8 is playing, its parameter 0x10 is set to the float
- * 1.5 + speed * D_8030D920 (passed as raw bits). Then a = (D_80364452 +
+ * 1.5 + speed * D_8030D920 (passed as raw bits). Then a = (gCamYaw +
  * 0x800) wrapped by -0xFFF at 0x1000; channel 2 gets value a / 0x555
  * (0, 1, else 2) and fraction (a % 0x555) / D_8030D924 (func_802A0360);
- * channel 1 gets round(speed * D_8030D928) (0 while D_802E8BD0 is set,
+ * channel 1 gets round(speed * D_8030D928) (0 while gPaused is set,
  * func_802A039C). Returns a / 0x555 (the asm's s4; conventions.txt). The asm
  * also clobbers s5; asm caller func_802BA354 keeps a2, a3, t7, f12, f14 live
  * (a mixed N64 build would need a thunk; the native port won't). The asm's
@@ -482,7 +482,7 @@ s32 func_802BA6AC(void) {
 
         func_80260AB8(D_803EF6D8, 0x10, *(s32 *) &p);
     }
-    a = ((u16) D_80364452) + 0x800;
+    a = ((u16) gCamYaw) + 0x800;
     if ((s32) a >= 0x1000) {
         a -= 0xFFF;
     }
@@ -495,7 +495,7 @@ s32 func_802BA6AC(void) {
     } else {
         func_802A0360(frac, (Unk8029DEA0Entry *) D_803EF330, 2, 2);
     }
-    v = D_802E8BD0 != 0 ? 0 : *(s16 *) (D_803EF630 + 0x76);
+    v = gPaused != 0 ? 0 : *(s16 *) (D_803EF630 + 0x76);
     CVT_W_S(v, (f32) v * D_8030D928);
     func_802A039C((Unk8029DEA0Entry *) D_803EF330, 1, v);
     return q;
@@ -509,7 +509,7 @@ s32 func_802BA6AC(void) {
 
 /* Distance (func_802ABCDC, y = 0) from (D_803EF6DC, D_803EF6E4) to
  * (D_803EF6F4, D_803EF6F8); when it is >= D_803EF6F0 (signed) sets
- * D_803643DA and D_802E8BD8 to 1. The asm leaves the distance in s1 and
+ * gLevelDoneRequest and gPauseRequest to 1. The asm leaves the distance in s1 and
  * D_803EF6F8 in s0 (conventions.txt: clobbers s0, s1); asm caller
  * func_802BA354 keeps a2, a3, f12, f14 live (a mixed N64 build would need a
  * thunk; the native port won't). */
@@ -517,8 +517,8 @@ void func_802BA91C(void) {
     s32 dist = func_802ABCDC(D_803EF6DC, 0, D_803EF6E4, D_803EF6F4, 0, D_803EF6F8);
 
     if (dist >= D_803EF6F0) {
-        D_803643DA = 1;
-        D_802E8BD8 = 1;
+        gLevelDoneRequest = 1;
+        gPauseRequest = 1;
     }
 }
 #else
@@ -536,20 +536,20 @@ extern u8 D_803EF701;   /* effect started */
 #define ABS_BA9A0(v) ((v) < 0 ? -(v) : (v))
 
 /* Collision/effect step of the type-0xFF object (D_803EF630, the asm's $gp).
- * Unless D_803643D6 is set: func_8029A800((x, y, z) = D_803EF6DC/E0/E4, table
+ * Unless gCarrierHit is set: func_8029A800((x, y, z) = D_803EF6DC/E0/E4, table
  * D_80305D60, 0, 0, b0, speed (s16 +0x76), h2, 0, 0xFF), func_8029C52C(0xFF, D_803EF630);
  * then, unless D_803A7426 is set, D_803A7424 = 0, func_8029AA10(0xFF) when
  * D_803EF710 is set and func_802BE77C(0xFF, veh) (with D_803F77D0 =
  * &D_803EF330) when D_803EF711 is set; if D_803A7424 is then still 0 and the
  * three height pairs at +4/+8, +0x10/+0x14, +0x1C/+0x20 each differ by at most
- * 10000, it returns. Otherwise D_803643D9 = D_802E8BD8 = 1. Then, unless
+ * 10000, it returns. Otherwise cmo_hit_request = gPauseRequest = 1. Then, unless
  * D_803643D8 is set: func_80278318, func_802A02E4(1, &D_803EF330),
  * func_802A5E60, func_802C049C. Finally the effect: D_803EF6FE counts down
  * first; then, until D_803EF6FF is set, the first frame sets up a
  * func_802A6274 record (def D_802C3B44, data 0x7A120, type 1 at (0xFF, 2, 0))
  * and sets D_803EF701, and later frames count D_803EF700 up to 0x12, which
  * sets D_803EF6FF.
- * Leaked registers (kept): b0 is the asm's t0 = &D_803643D6 (so D_803A7428
+ * Leaked registers (kept): b0 is the asm's t0 = &gCarrierHit (so D_803A7428
  * gets 0xD6) and h2 its t2, func_802BABEC's leftover point-list end pointer
  * (its low half goes to D_803A7422), passed in here as `h2`. The
  * func_802A6274 call (type 1, z = 0) ignores the asm's other leftover
@@ -563,8 +563,8 @@ void func_802BA9A0(s32 h2) {
     Io802A6274 io;
     s32 n;
 
-    if (D_803643D6 == 0) {
-        func_8029A800(D_803EF6E4, (s32) D_80305D60, 0, 0, D_803EF6DC, D_803EF6E0, (s32) &D_803643D6,
+    if (gCarrierHit == 0) {
+        func_8029A800(D_803EF6E4, (s32) D_80305D60, 0, 0, D_803EF6DC, D_803EF6E0, (s32) &gCarrierHit,
                       *(s16 *) (D_803EF630 + 0x76), h2, 0, 0xFF, D_803EF630);
         func_8029C52C(0xFF, D_803EF630);
         if (((u8) D_803A7426) == 0) {
@@ -581,8 +581,8 @@ void func_802BA9A0(s32 h2) {
                 return;
             }
         }
-        D_803643D9 = 1;
-        D_802E8BD8 = 1;
+        cmo_hit_request = 1;
+        gPauseRequest = 1;
     }
     if (D_803643D8 == 0) {
         func_80278318();
@@ -623,7 +623,7 @@ extern u8 * N64P D_803EF70C; /* model header */
 
 /* Rebuilds the type-0xFF object's model matrices and points, as
  * func_802B7030 (71140) does for vehicle 5: header D_803EF70C, buffers
- * D_803EF704 (D_8035805C set) / D_803EF708, rotation y = u16 +0x4C of
+ * D_803EF704 (gBufferIndex set) / D_803EF708, rotation y = u16 +0x4C of
  * D_803EF630 (the asm's $gp; both callers point it there) in D_803ED392, root
  * matrix at D_803EF6DC/E0/E4 with scale 0x59D8 (func_802AA764), parts tag
  * 0xFF (func_8029C454) and points id 0xFF (func_802ABBEC).
@@ -637,14 +637,14 @@ extern u8 * N64P D_803EF70C; /* model header */
  * t7 live. */
 s32 func_802BABEC(MtxChainRegs *regs) {
     u8 *hdr = D_803EF70C;
-    u8 *buf = D_8035805C != 0 ? D_803EF704 : D_803EF708;
+    u8 *buf = gBufferIndex != 0 ? D_803EF704 : D_803EF708;
     s32 *m = (s32 *) (*(s32 *) (hdr + *(s32 *) (hdr + 0x18) + 4) + buf);
     u8 *end;
 
     D_803ED392 = *(u16 *) (D_803EF630 + 0x4C);
     func_802AA764(D_803EF6DC, D_803EF6E0, D_803EF6E4, 0x59D8, m);
     regs->s2 = (s32) m;
-    buf = D_8035805C != 0 ? D_803EF704 : D_803EF708;
+    buf = gBufferIndex != 0 ? D_803EF704 : D_803EF708;
     hdr = D_803EF70C;
     func_8029C454(D_803EF6DC, D_803EF6E0, D_803EF6E4, 0xFF, hdr + *(s32 *) (hdr + 4), hdr + *(s32 *) (hdr + 8),
                   buf, regs);
@@ -685,10 +685,10 @@ extern u8 D_803EFA20[];
 extern u32 D_803EFAC8[];
 extern u8 D_803EF720[];
 
-/* Level setup of vehicle 6 (asm caller func_802A350C, the level's object
+/* Level setup of vehicle 6 (asm caller lvl_spawn_vehicles, the level's object
  * list): model header `model` -> D_803EFAD4; two 0x800-byte matrix buffers
- * from the allocator D_80358070 (D_803EFAE4, D_803EFAE8; the allocator
- * advances by 0x1000); func_802A1388(6, 0, buffers, model); $gp record
+ * from the allocator gHeapPtr (D_803EFAE4, D_803EFAE8; the allocator
+ * advances by 0x1000); veh_add_record(6, 0, buffers, model); $gp record
  * D_803EFA20 reset (func_802A754C); wheel-slot offsets (+-0x50, +-0x5A) at
  * +0x52..+0x68; position D_803EFAC8 = (x, y, z), heading +0x4C/+0x4E/+0x74
  * = `heading`; the three ground slots (func_802A992C, height records +4, y
@@ -703,7 +703,7 @@ extern u8 D_803EF720[];
  * reaches D_803ED3F2 when a slot's grid scan finds no triangle: the
  * dispatcher's leftover fp, FIDELITY AUDIT). func_802A992C's FP inputs
  * (the dispatcher's f12-f26, passed through) are 0 here. The asm restores
- * t0-t5 (func_802A350C keeps t1/t2 live), points $gp at D_803EFA20 and
+ * t0-t5 (lvl_spawn_vehicles keeps t1/t2 live), points $gp at D_803EFA20 and
  * leaves s0-s7, fp and f20-f28 as its callees leave them (clobbers). */
 void func_802BAD80(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp) {
     TriSideOut f;
@@ -711,11 +711,11 @@ void func_802BAD80(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp) {
     u8 *hdr;
 
     D_803EFAD4 = model;
-    buf = D_80358070;
+    buf = gHeapPtr;
     D_803EFAE4 = (u64 *) N64_IPTR(buf);
     D_803EFAE8 = (u64 *) N64_IPTR((buf + 0x800));
-    D_80358070 = buf + 0x1000;
-    func_802A1388(6, 0, (s32) D_803EFAE4, (s32) D_803EFAE8, model);
+    gHeapPtr = buf + 0x1000;
+    veh_add_record(6, 0, (s32) D_803EFAE4, (s32) D_803EFAE8, model);
     func_802A754C(D_803EFA20);
     /* wheel slot offsets (x, z pairs and heights) */
     *(s16 *) (D_803EFA20 + 0x52) = 0x50;
@@ -774,13 +774,13 @@ void func_802BAD80(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp) {
 #ifdef NON_MATCHING
 extern u8 D_803EF720[];  /* animation channel table (Unk8029DEA0Entry, 56040.c) */
 
-/* Enter vehicle type 6 (called from hd.c): D_8036444C/50 = 6000, 9000, then
+/* Enter vehicle type 6 (called from hd.c): gCamDistance / D_80364450 = 6000, 9000, then
  * sets fields 0x14/0x11/0x12 of channels 2, 4, 5 of D_803EF720 and starts
  * channels 4 and 5 with value -1 (func_802A0290). The asm also points $gp at
  * D_803EFA20 and leaves it there (conventions.txt: clobbers gp) and leaves
  * v1 = -1; the C caller uses neither. */
 void func_802BB054(void) {
-    D_8036444C = 6000;
+    gCamDistance = 6000;
     D_80364450 = 9000;
     func_802A039C((Unk8029DEA0Entry *) D_803EF720, 2, 1);
     func_802A03D4((Unk8029DEA0Entry *) D_803EF720, 2, 0);
@@ -873,7 +873,7 @@ s32 func_802BB8B8(MtxChainRegs *regs, s32 *t2Out);
  * func_8029A800 (table D_80305DF0, kind 6), func_8029C52C(6), the part
  * lookup func_8029C5EC, the collision pass func_802BE77C(6) (with
  * D_803F77D0 = D_803EF720) and func_8029AA10(6); +0xA2 = 1 if D_803A7424 got
- * set; finally the player globals D_803643E0/E4/E8 = the position,
+ * set; finally the player globals gPlayerX/Y/Z = the position,
  * D_8036443C = 0, D_8036443E / D_80364440 = u16 +0x4E / +0x4C.
  * func_8029A800's b0 and h2 are what func_802BB8B8 leaves in t0 / t2 (x and
  * 6), kept here.
@@ -914,7 +914,7 @@ void func_802BB274(void) {
     f.dz = 0.0f;
     func_802A92C8(D_803EFAC8[0], D_803EFAC8[2], (s16 *) (D_803EFA20 + 0x5E), (s16 *) (D_803EFA20 + 0x4C),
                   (s32 *) (D_803EFA20 + 4), 6, D_803EFA20, 0, &f);
-    if (D_8035805C != 0) {
+    if (gBufferIndex != 0) {
         func_8029E558((u8 *) D_803EFAE4, (u8 *) D_803EFAE8, (Unk8029DEA0Entry *) D_803EF720);
     } else {
         func_8029E558((u8 *) D_803EFAE8, (u8 *) D_803EFAE4, (Unk8029DEA0Entry *) D_803EF720);
@@ -934,9 +934,9 @@ void func_802BB274(void) {
     if (D_803A7424 != 0) {
         D_803EFA20[0xA2] = 1;
     }
-    D_803643E0 = D_803EFAC8[0];
-    D_803643E4 = D_803EFAC8[1];
-    D_803643E8 = D_803EFAC8[2];
+    gPlayerX = D_803EFAC8[0];
+    gPlayerY = D_803EFAC8[1];
+    gPlayerZ = D_803EFAC8[2];
     D_8036443C = 0;
     D_8036443E = *(u16 *) (D_803EFA20 + 0x4E);
     D_80364440 = *(u16 *) (D_803EFA20 + 0x4C);
@@ -955,15 +955,15 @@ s32 func_802BB868(void);
  * the global; channels in D_803EF720, an Unk8029DEA0Entry table).
  * - Byte +0xA2 set: channels 5, 4 off (unk14 = 0), channel 2 unk11 = 0 and
  *   restarted (func_802A0290), +0xA1 = 1.
- * - Otherwise channel 5 follows input D_80370C1C while its unk4 <= D_8030D930
- *   (direction 0) or D_80370C1D while !(unk4 < D_8030D934) (direction 1),
+ * - Otherwise channel 5 follows input gHeldA while its unk4 <= D_8030D930
+ *   (direction 0) or gHeldB while !(unk4 < D_8030D934) (direction 1),
  *   starting sound 0x6F (handle D_803EFAD8) if needed, else it is switched
- *   off and that sound stopped; channel 4 likewise follows D_80370C15 /
- *   D_80370C16 with sound 0x6E (D_803EFADC). Then, when func_802BB868 reports
+ *   off and that sound stopped; channel 4 likewise follows gHeldLeft /
+ *   gHeldRight with sound 0x6E (D_803EFADC). Then, when func_802BB868 reports
  *   ground under the level-0x11 part, channel 2 is restarted with
  *   direction 0 and +0xA1 = 1 unless it is already running in direction 1
  *   at unk4 * 100 == 100 (cvt.w.s, nearest); with no ground, if +0xA1 is 0
- *   and input D_80370C1A or D_80370C1B is set, sound 0x6D (D_803EFAE0) is
+ *   and input gHeldL or gHeldR is set, sound 0x6D (D_803EFAE0) is
  *   started if needed, channel 2 restarted and +0xA1 = 1, and nothing else
  *   happens.
  * - Finally (all other paths): when channel 2 isn't active (unk10 != 1),
@@ -985,12 +985,12 @@ void func_802BB4C0(void) {
         goto check2;
     }
 
-    if (D_80370C1C != 0 && (func_802A04BC(5, (Unk8029DEA0Entry *) D_803EF720, e), ((f32 *) e)[7] <= D_8030D930)) {
+    if (gHeldA != 0 && (func_802A04BC(5, (Unk8029DEA0Entry *) D_803EF720, e), ((f32 *) e)[7] <= D_8030D930)) {
         func_802A03D4((Unk8029DEA0Entry *) D_803EF720, 5, 0);
         func_802A039C((Unk8029DEA0Entry *) D_803EF720, 5, 1);
         goto start5;
     }
-    if (D_80370C1D != 0 && (func_802A04BC(5, (Unk8029DEA0Entry *) D_803EF720, e), !(((f32 *) e)[7] < D_8030D934))) {
+    if (gHeldB != 0 && (func_802A04BC(5, (Unk8029DEA0Entry *) D_803EF720, e), !(((f32 *) e)[7] < D_8030D934))) {
         func_802A03D4((Unk8029DEA0Entry *) D_803EF720, 5, 1);
         func_802A039C((Unk8029DEA0Entry *) D_803EF720, 5, 1);
         goto start5;
@@ -1006,10 +1006,10 @@ start5:
     }
 
 chan4:
-    if (D_80370C15 != 0) {
+    if (gHeldLeft != 0) {
         func_802A03D4((Unk8029DEA0Entry *) D_803EF720, 4, 0);
         func_802A039C((Unk8029DEA0Entry *) D_803EF720, 4, 1);
-    } else if (D_80370C16 != 0) {
+    } else if (gHeldRight != 0) {
         func_802A03D4((Unk8029DEA0Entry *) D_803EF720, 4, 1);
         func_802A039C((Unk8029DEA0Entry *) D_803EF720, 4, 1);
     } else {
@@ -1039,7 +1039,7 @@ ground:
         if (D_803EFA20[0xA1] != 0) {
             goto check2;
         }
-        if (D_80370C1A == 0 && D_80370C1B == 0) {
+        if (gHeldL == 0 && gHeldR == 0) {
             goto check2;
         }
         if (D_803EFAE0 == NULL) {
@@ -1080,7 +1080,7 @@ s32 func_802BB868(void) {
     TriSideOut f;
     TriScanRegs r;
 
-    if (D_802E8BDC != 0x11) {
+    if (levelno != 0x11) {
         return 0;
     }
     o.s0 = 0;
@@ -1118,7 +1118,7 @@ s32 func_802BB868(void) {
 extern u8 * N64P D_803EFAD4; /* model header */
 
 /* Rebuilds vehicle 6's model (D_803EFA20, the asm's $gp; header
- * D_803EFAD4, buffers D_803EFAE4 (D_8035805C set) / D_803EFAE8): rotation
+ * D_803EFAD4, buffers D_803EFAE4 (gBufferIndex set) / D_803EFAE8): rotation
  * D_803ED390 = 0, y = heading (u16 +0x4C), z = 0; root matrix at
  * D_803EFAC8[0..2] with scale 0x1B58 (func_802AA764); parts tag 6
  * (func_8029C454, header +4 .. +8), points id 6 (func_802ABBEC, +0 .. +4),
@@ -1133,7 +1133,7 @@ extern u8 * N64P D_803EFAD4; /* model header */
  * them only when its lookup fails and then doesn't use them). */
 s32 func_802BB8B8(MtxChainRegs *regs, s32 *t2Out) {
     u8 *hdr = D_803EFAD4;
-    u8 *buf = D_8035805C != 0 ? (u8 *) D_803EFAE4 : (u8 *) D_803EFAE8;
+    u8 *buf = gBufferIndex != 0 ? (u8 *) D_803EFAE4 : (u8 *) D_803EFAE8;
     s32 *m = (s32 *) (*(s32 *) (hdr + *(s32 *) (hdr + 0x18) + 4) + buf);
     s16 *verts;
 
@@ -1142,7 +1142,7 @@ s32 func_802BB8B8(MtxChainRegs *regs, s32 *t2Out) {
     D_803ED392 = *(u16 *) (D_803EFA20 + 0x4C);
     func_802AA764(D_803EFAC8[0], D_803EFAC8[1], D_803EFAC8[2], 0x1B58, m);
     regs->s2 = (s32) m;
-    buf = D_8035805C != 0 ? (u8 *) D_803EFAE4 : (u8 *) D_803EFAE8;
+    buf = gBufferIndex != 0 ? (u8 *) D_803EFAE4 : (u8 *) D_803EFAE8;
     hdr = D_803EFAD4;
     func_8029C454(D_803EFAC8[0], D_803EFAC8[1], D_803EFAC8[2], 6, hdr + *(s32 *) (hdr + 4), hdr + *(s32 *) (hdr + 8),
                   buf, regs);

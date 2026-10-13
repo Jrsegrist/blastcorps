@@ -9,7 +9,7 @@ writes with --eeprom).
                                            write OUT
 
 Layout (front end pfsHandler.c, 0E7B0.c):
-  0x000-0x0FF  player record (D_80364AF0[n]); 4-byte CRC at 0xFC, one byte per
+  0x000-0x0FF  player record (players[n]); 4-byte CRC at 0xFC, one byte per
                0x20-byte lane j: sum of __osContDataCrc(record + i*0x80 + j*0x20)
                over i (computed with the CRC bytes zeroed)
                fields: name 0-7, level 8, rank points u16 0x0A, title 0x0C,

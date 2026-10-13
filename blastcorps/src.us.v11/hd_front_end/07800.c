@@ -4,18 +4,18 @@
 /* Matching build: IDO compiled the matched code here against older
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
-#define LEGACY_D_80358070
+#define LEGACY_gHeapPtr
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_8020C070 ((MenuEntry *) D_8020C070)
 #define D_8020D810 ((FeLevelEntry *) D_8020D810)
-#define D_802E8F94 ((LevelInfo *) D_802E8F94)
+#define gLevelInfo ((LevelInfo *) gLevelInfo)
 #define D_802F49F4 ((IconInfo *) D_802F49F4)
-#define D_803156F8 ((FeDyn *) D_803156F8)
-#define D_80364AF0 ((FePlayer *) D_80364AF0)
+#define gDynamicBufs ((FeDyn *) gDynamicBufs)
+#define players ((FePlayer *) players)
 #ifdef NON_MATCHING
-#define D_80358070 (*(s32 *) &D_80358070)
+#define gHeapPtr (*(s32 *) &gHeapPtr)
 #endif
 /* end of views */
 
@@ -39,7 +39,7 @@
     }
 
 
-/* front-end view of hd_code's Player record (0x100 bytes, D_80364AF0) */
+/* front-end view of hd_code's Player record (0x100 bytes, players) */
 typedef struct {
     u8 pad0[0xA];
     u16 unkA; /* units */
@@ -108,7 +108,7 @@ extern u16 D_80303B48[];
 extern u16 D_80303B58[];
 extern u16 D_80303B68[];
 #ifndef NON_MATCHING
-extern s32 D_80358070; /* heap pointer */
+extern s32 gHeapPtr; /* heap pointer */
 #endif
 extern u16 D_802159D0; /* scene angle */
 extern u8 * N64P D_802159D4; /* 256x32 IA8 banner */
@@ -129,14 +129,13 @@ u8 func_801EEDB4(u8 arg0, u8 arg1, u8 arg2);
 u8 func_801EEDB4(); /* K&R */
 #endif
 
-#define levelno D_802E8BDC
 #define DUMMY_LEVELS(l) ((l) == 49 || (l) == 47 || (l) == 38)
 #define STATS_ASSERT(EX, line) \
     if (!(EX))                 \
-    func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "stats.c", line)
+    debug_printf("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "stats.c", line)
 
 #define PRINT_SCORE(name, s)                                                                                       \
-    func_8029A7E4(name " ip=%8d : tc=%5d : bd=%2d : cr=%2d : rt=%3d : coin=%1d : bdn=%1d\n", (s).ip, (s).tc, (s).bd, \
+    debug_printf(name " ip=%8d : tc=%5d : bd=%2d : cr=%2d : rt=%3d : coin=%1d : bdn=%1d\n", (s).ip, (s).tc, (s).bd, \
                   (s).cr, (s).rt, (s).coin, (s).bdn)
 
 /* Finish a level: grade it, update units and best times. *arg0 = 1 if a rank was gained. */
@@ -147,36 +146,36 @@ u8 func_801EE800(u8 *arg0, u8 arg1, u8 arg2) {
     u8 ret;
     s32 pad[2];
 
-    p = &D_80364AF0[D_80364AE8];
-    l = &D_802E8F94[levelno];
-    PRINT_SCORE("new", D_8036EA70);
+    p = &players[playerNumber];
+    l = &gLevelInfo[levelno];
+    PRINT_SCORE("new", nss);
     PRINT_SCORE("old", D_8036EA60);
     PRINT_SCORE("res", D_8036EA80);
     PRINT_SCORE("rs2", D_8036EA90);
-    func_8029A7E4("units %d\n", p->unkA);
-    if (D_802E8F94[levelno].unk0 == 1) {
+    debug_printf("units %d\n", p->unkA);
+    if (gLevelInfo[levelno].unk0 == 1) {
         t = func_802852EC();
         if (arg2) {
             if (arg1) {
                 if (t >= 100) {
-                    D_8036EA70.coin = 3;
+                    nss.coin = 3;
                 } else if (t >= 90) {
-                    D_8036EA70.coin = 2;
+                    nss.coin = 2;
                 } else if (t >= 70) {
-                    D_8036EA70.coin = 1;
+                    nss.coin = 1;
                 } else {
-                    D_8036EA70.coin = 5;
+                    nss.coin = 5;
                 }
                 if (D_803643D5) {
-                    func_8029A7E4("Units up 3\n");
+                    debug_printf("Units up 3\n");
                     p->unkA += 3;
                 }
-                D_8036EA70.bdn = 1;
+                nss.bdn = 1;
             } else {
-                D_8036EA70.coin = 0;
+                nss.coin = 0;
             }
         }
-        ret = D_8036EA70.coin;
+        ret = nss.coin;
     } else {
         ret = func_801EEDB4(levelno, arg1, arg2);
     }
@@ -184,12 +183,12 @@ u8 func_801EE800(u8 *arg0, u8 arg1, u8 arg2) {
     *arg0 = 0;
     if (arg1 && arg2) {
         STATS_ASSERT(!DUMMY_LEVELS(levelno), 94);
-        if (D_802E8F94[levelno].unk0 == 1) {
+        if (gLevelInfo[levelno].unk0 == 1) {
             p->unk14 = ((s32) D_803649F0);
         }
         if (p->unkA < 360) {
-            func_8029A7E4("UNITS UP %d\n", D_8036EA70.coin % 5 - D_8036EA60.coin % 5);
-            p->unkA += D_8036EA70.coin % 5 - D_8036EA60.coin % 5;
+            debug_printf("UNITS UP %d\n", nss.coin % 5 - D_8036EA60.coin % 5);
+            p->unkA += nss.coin % 5 - D_8036EA60.coin % 5;
         }
         if (p->unkA == 354) {
             p->unkA += 6;
@@ -198,15 +197,15 @@ u8 func_801EE800(u8 *arg0, u8 arg1, u8 arg2) {
             *arg0 = 1;
             p->unkC++;
         }
-        if (!(D_802E8F94[levelno].unk0 & 0x81)) {
-            p->unk92[levelno] = D_8036EA70.bdn;
+        if (!(gLevelInfo[levelno].unk0 & 0x81)) {
+            p->unk92[levelno] = nss.bdn;
         }
-        D_80364EF0[D_80364AE8][D_802E8C44[D_8036EA70.bdn]] = D_8036EA70.tc;
-        if (D_803643D5 && D_802E8F94[levelno].unk0 == 1) {
-            D_80364EF0[D_80364AE8][D_802E8C44[0]] = D_8036EA70.tc;
+        D_80364EF0[playerNumber][D_802E8C44[nss.bdn]] = nss.tc;
+        if (D_803643D5 && gLevelInfo[levelno].unk0 == 1) {
+            D_80364EF0[playerNumber][D_802E8C44[0]] = nss.tc;
         }
         p->unk18[levelno] = ret;
-        func_801E8DCC(D_80364AE8);
+        func_801E8DCC(playerNumber);
     }
     return ret;
 }
@@ -238,27 +237,27 @@ u8 func_801EEDB4(arg0, arg1, arg2)
     char buf[32];
     u16 old;
 
-    p = &D_80364AF0[D_80364AE8];
-    l = &D_802E8F94[arg0];
-    if (D_80364A98 == 0x08000000 && arg1 && l->unk0 == 2) {
-        func_80295A20(func_80286038(D_8036EA70.tc));
+    p = &players[playerNumber];
+    l = &gLevelInfo[arg0];
+    if (gNextGameMode == 0x08000000 && arg1 && l->unk0 == 2) {
+        func_80295A20(func_80286038(nss.tc));
     }
     if (arg2 && arg1) {
-        if (D_802E8F94[arg0].unk0 == 0x80) {
-            D_8036EA70.bdn = 0;
-        } else if (D_8036EA70.tc <= D_8036EA60.tc) {
-            D_8036EA70.bdn = D_803643D4;
-        } else if (D_8036EA70.tc != 0xFFFF &&
-                   ((old = D_80364EF0[D_80364AE8][D_802E8C44[D_803643D4]]) == 0 || D_8036EA70.tc < old)) {
-            D_80364EF0[D_80364AE8][D_802E8C44[D_803643D4]] = D_8036EA70.tc;
+        if (gLevelInfo[arg0].unk0 == 0x80) {
+            nss.bdn = 0;
+        } else if (nss.tc <= D_8036EA60.tc) {
+            nss.bdn = D_803643D4;
+        } else if (nss.tc != 0xFFFF &&
+                   ((old = D_80364EF0[playerNumber][D_802E8C44[D_803643D4]]) == 0 || nss.tc < old)) {
+            D_80364EF0[playerNumber][D_802E8C44[D_803643D4]] = nss.tc;
         }
     }
-    if (D_8036EA70.tc <= D_8036EA60.tc && arg1) {
-        D_8036EA70.coin = func_801EF2BC(D_8036EA70.tc, arg0, D_80364AF0[D_80364AE8].unk91);
+    if (nss.tc <= D_8036EA60.tc && arg1) {
+        nss.coin = func_801EF2BC(nss.tc, arg0, players[playerNumber].unk91);
     } else {
-        D_8036EA70.tc = D_8036EA60.tc;
+        nss.tc = D_8036EA60.tc;
     }
-    if (D_8036EA70.tc < D_8036EA60.tc && !D_803643D5) {
+    if (nss.tc < D_8036EA60.tc && !D_803643D5) {
         x = 0x484;
         if (arg2) {
             x = 0x584;
@@ -266,20 +265,20 @@ u8 func_801EEDB4(arg0, arg1, arg2)
     } else {
         x = 0x480;
     }
-    func_80264A34(buf, D_8036EA70.tc, 0);
+    func_80264A34(buf, nss.tc, 0);
     sprintf(&D_8036B9A8[0x80], "****%s*", buf);
     if (arg1) {
         m = &D_8020C070[25];
         D_8020C070[25].unk0 = x;
-        func_8029A7E4("getting icon %d\n", D_8036EA70.bdn);
-        m->unk14 = D_8036EA70.bdn + 0x22;
+        debug_printf("getting icon %d\n", nss.bdn);
+        m->unk14 = nss.bdn + 0x22;
         e = &D_802F49F4[m->unk14];
         m->unk1A = func_80272C5C(e->unk6, 0, e->unk4, e->unk2C, e->unk2D | 4, 1.0f);
-        if (D_80364AE8 != D_80364AEA) {
+        if (playerNumber != playerNumberAtStart) {
             idx = 3;
-        } else if (D_80364A98 == 0x80 || D_803643D5) {
+        } else if (gNextGameMode == 0x80 || D_803643D5) {
             idx = 1;
-        } else if (D_8036EA70.tc < D_8036EA60.tc) {
+        } else if (nss.tc < D_8036EA60.tc) {
             idx = 0;
         } else {
             idx = 2;
@@ -287,7 +286,7 @@ u8 func_801EEDB4(arg0, arg1, arg2)
         D_8020C070[24].unkC = D_802084D0[idx];
         D_8020C070[24].unk10 = D_802084E0[idx];
     }
-    return D_8036EA70.coin;
+    return nss.coin;
 }
 
 /* Count the current level's entries (at most 2) whose bit is set for the player. */
@@ -296,12 +295,12 @@ s8 func_801EF1E0(void) {
     s32 i;
     s32 count;
 
-    e = &D_8020D810[D_802E8BDC];
+    e = &D_8020D810[levelno];
     if (e->unk18[0] == -1) {
         return -1;
     }
     for (i = 0, count = 0; e->unk18[i] != -1 && i < 2; i++) {
-        if (D_80364AF0[D_80364AE8].unk54[D_802E8BDC] & (1 << i)) {
+        if (players[playerNumber].unk54[levelno] & (1 << i)) {
             count++;
         }
     }
@@ -321,7 +320,7 @@ u8 func_801EF2BC(arg0, arg1, arg2)
     u8 ret;
     LevelInfo *l;
 
-    l = &D_802E8F94[arg1];
+    l = &gLevelInfo[arg1];
     if (l->unk30 >= arg0 && arg2 >= 12) {
         ret = 4;
     } else if (l->unk32 >= arg0) {
@@ -349,12 +348,12 @@ void func_801EF380(s32 arg0) {
     } else {
         D_802159D0 = 0;
     }
-    func_8028B4C4((u32) D_0048F5A0, (u32) ((void *) N64_IPTR(D_80358070)), (u32 *) &size1, 12, 0, 1);
-    D_802159D4 = (u8 *) N64_IPTR(D_80358070);
-    D_80358070 += size1;
-    func_8028B4C4((u32) D_0048F970, (u32) ((void *) N64_IPTR(D_80358070)), (u32 *) &size2, 12, 0, 1);
-    D_802159D8 = (u8 *) N64_IPTR(D_80358070);
-    D_80358070 += size2;
+    func_8028B4C4((u32) D_0048F5A0, (u32) ((void *) N64_IPTR(gHeapPtr)), (u32 *) &size1, 12, 0, 1);
+    D_802159D4 = (u8 *) N64_IPTR(gHeapPtr);
+    gHeapPtr += size1;
+    func_8028B4C4((u32) D_0048F970, (u32) ((void *) N64_IPTR(gHeapPtr)), (u32 *) &size2, 12, 0, 1);
+    D_802159D8 = (u8 *) N64_IPTR(gHeapPtr);
+    gHeapPtr += size2;
     D_802159DC = arg0;
     D_802159E0 = 0.0f;
     D_802159E4 = 3.0f;
@@ -374,28 +373,28 @@ void func_801EF4AC(void) {
     s32 yo;
     s16 c;
 
-    dyn = &D_803156F8[D_8035805C ^ 1];
+    dyn = &gDynamicBufs[gBufferIndex ^ 1];
     gdl = dyn->dl;
-    func_8028A470();
-    func_80284E54((u64 *) (D_803156F8[D_8035805C].dl), D_80358078, 1, 1, 0x4D2, 0);
-    D_8035805C ^= 1;
+    cont_update();
+    rsp_send_task((u64 *) (gDynamicBufs[gBufferIndex].dl), gFrameDlLen, 1, 1, 0x4D2, 0);
+    gBufferIndex ^= 1;
     gSPSegment(gdl++, 0, 0);
     gSPSegment(gdl++, 2, osVirtualToPhysical(dyn));
-    gSPSegment(gdl++, 1, osVirtualToPhysical(D_8035806C));
+    gSPSegment(gdl++, 1, osVirtualToPhysical(gStaticSegment));
     gSPDisplayList(gdl++, D_01000038);
     gSPDisplayList(gdl++, D_01000010);
     gDPSetCycleType(gdl++, G_CYC_FILL);
-    gDPSetDepthImage(gdl++, D_80358058);
-    gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, D_80358058);
+    gDPSetDepthImage(gdl++, gDepthBufferPhys);
+    gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, gDepthBufferPhys);
     gDPSetFillColor(gdl++, 0xFFFCFFFC);
     gDPFillRectangle(gdl++, 0, 0, 319, 239);
-    gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, D_80358050[D_8035805C]);
+    gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, gFrameBufferPhys[gBufferIndex]);
     gDPPipeSync(gdl++);
     if (D_802159DC == 1) {
-        if (D_80358060 * 185 / 20 > 185) {
+        if (gFramesInMode * 185 / 20 > 185) {
             c = 185;
         } else {
-            c = D_80358060 * 185 / 20;
+            c = gFramesInMode * 185 / 20;
         }
     } else {
         c = 0;
@@ -403,19 +402,19 @@ void func_801EF4AC(void) {
     gDPSetFillColor(gdl++, (GPACK_RGBA5551(c, c, c, 1) << 16) | GPACK_RGBA5551(c, c, c, 1));
     gDPFillRectangle(gdl++, 0, 0, 319, 239);
     gDPSetCycleType(gdl++, G_CYC_1CYCLE);
-    func_8028A3E4();
-    if (D_80358060 == 250) {
-        if (D_80364A90 == 0x10) {
-            D_80364A98 = 0x20;
+    cont_start_read();
+    if (gFramesInMode == 250) {
+        if (gGameMode == 0x10) {
+            gNextGameMode = 0x20;
         } else {
-            D_80364A98 = 0x0400000000000000;
-            if (D_802FA268) {
+            gNextGameMode = 0x0400000000000000;
+            if (gDebugCheats) {
                 func_80260650(D_80367738, 0x68, NULL);
             }
         }
     }
-    if (D_80358060 < 2) {
-        guPerspective(&dyn->unk1240, &D_8035807C, 45.0f, 1.3333334f, 40.0f, 8000.0f, 0.25f);
+    if (gFramesInMode < 2) {
+        guPerspective(&dyn->unk1240, &gPerspNorm, 45.0f, 1.3333334f, 40.0f, 8000.0f, 0.25f);
         if (D_802159DC == 1) {
             guTranslate(&dyn->unk1280, 0.0f, -130.0f, 0.0f);
             guRotate(&dyn->unk12C0, 35.0f, 0.1f, 0.0f, 0.0f);
@@ -424,34 +423,34 @@ void func_801EF4AC(void) {
             guRotate(&dyn->unk12C0, -10.0f, 0.1f, 0.0f, 0.0f);
         }
     }
-    if (D_80358060 >= 20) {
-        if (D_80358060 == 20 && D_802159DC == 1) {
+    if (gFramesInMode >= 20) {
+        if (gFramesInMode == 20 && D_802159DC == 1) {
             func_80260650(D_80367738, 0xBA, NULL);
-        } else if (D_80358060 == 20 && D_802159DC == 2) {
+        } else if (gFramesInMode == 20 && D_802159DC == 2) {
             func_80260650(D_80367738, 0xBD, NULL);
         }
-        if (D_80358060 < 80) {
-            D_802159E0 = (80 - D_80358060) * 7600.0 / 60.0 + 400.0;
+        if (gFramesInMode < 80) {
+            D_802159E0 = (80 - gFramesInMode) * 7600.0 / 60.0 + 400.0;
         }
-        if (D_80358060 == 75 && D_802159DC == 2) {
+        if (gFramesInMode == 75 && D_802159DC == 2) {
             func_80260650(D_80367738, 0xB8, NULL);
-        } else if (D_80358060 == 75 && D_802159DC == 1) {
+        } else if (gFramesInMode == 75 && D_802159DC == 1) {
             func_80260650(D_80367738, 0xBB, NULL);
         }
         guLookAtReflect(&dyn->unk140, &dyn->unk3C00, 1.0f, 0.0f, D_802159E0, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
         D_802159D0 += D_802159E4;
-        guRotate(&D_802182D0[D_8035805C], D_802159D0 % 360, 0.0f, 1.0f, 0.0f);
+        guRotate(&D_802182D0[gBufferIndex], D_802159D0 % 360, 0.0f, 1.0f, 0.0f);
         guScale(&dyn->unk1300, 1.5f, 1.5f, 1.5f);
         gDPSetRenderMode(gdl++, G_RM_AA_ZB_OPA_INTER, G_RM_NOOP2);
         gdl = func_801F4FBC(dyn, gdl);
     }
-    if (D_80358060 > 80 && D_802159DC == 1) {
+    if (gFramesInMode > 80 && D_802159DC == 1) {
         gDPPipeSync(gdl++);
         gSPTexture(gdl++, 0, 0, 0, 0, G_OFF);
         gDPSetTexturePersp(gdl++, G_TP_NONE);
         gDPSetRenderMode(gdl++, G_RM_XLU_SURF, G_RM_XLU_SURF2);
         gDPSetCombine(gdl++, 0x119623, 0xFF2FFFFF);
-        gDPSetPrimColor(gdl++, 0, 0, 0x28, 0, 0xFF, (D_80358060 * 6 - 480 < 255) ? D_80358060 * 6 - 480 : 255);
+        gDPSetPrimColor(gdl++, 0, 0, 0x28, 0, 0xFF, (gFramesInMode * 6 - 480 < 255) ? gFramesInMode * 6 - 480 : 255);
         /* the banner, in 32-texel-wide strips */
         xo = 26, yo = 42;
         for (i = 0; i < 256; i += 32) {
@@ -461,22 +460,22 @@ void func_801EF4AC(void) {
                                    G_TX_RENDERTILE, i << 5, 0, 1 << 10, 1 << 10);
         }
         gDPPipeSync(gdl++);
-        gDPSetPrimColor(gdl++, 0, 0, 0xFF, 0, 0x28, (D_80358060 * 4 - 320 < 255) ? D_80358060 * 4 - 320 : 255);
+        gDPSetPrimColor(gdl++, 0, 0, 0xFF, 0, 0x28, (gFramesInMode * 4 - 320 < 255) ? gFramesInMode * 4 - 320 : 255);
         gDPLoadTextureBlock(gdl++, D_802159D8, G_IM_FMT_IA, G_IM_SIZ_8b, 40, 24, 0, G_TX_CLAMP, G_TX_CLAMP,
                             G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
         gSPTextureRectangleOld(gdl++, 256 << 2, 20 << 2, (256 + 40) << 2, (20 + 24) << 2, G_TX_RENDERTILE, 0, 0,
                                1 << 10, 1 << 10);
         gDPSetTexturePersp(gdl++, G_TP_PERSP);
     }
-    if (D_80358060 >= 221) {
+    if (gFramesInMode >= 221) {
         gDPPipeSync(gdl++);
         gDPSetCycleType(gdl++, G_CYC_1CYCLE);
         gDPSetRenderMode(gdl++, G_RM_XLU_SURF, G_RM_XLU_SURF2);
         gDPSetCombineMode(gdl++, G_CC_PRIMITIVE, G_CC_PRIMITIVE);
-        gDPSetPrimColor(gdl++, 0, 0, 0, 0, 0, (D_80358060 - 220) * 255 / 30);
+        gDPSetPrimColor(gdl++, 0, 0, 0, 0, 0, (gFramesInMode - 220) * 255 / 30);
         gDPFillRectangle(gdl++, 0, 0, 319, 239);
     }
     gDPFullSync(gdl++);
     gSPEndDisplayList(gdl++);
-    D_80358078 = gdl - dyn->dl;
+    gFrameDlLen = gdl - dyn->dl;
 }

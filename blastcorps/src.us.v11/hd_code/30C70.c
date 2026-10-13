@@ -54,10 +54,10 @@ void func_80275478(SpriteVtxBuf *arg0, Gfx **gfxp, u8 arg2) {
     s32 ret;
 
     minX = 0x7FFF, maxX = -0x8000, minY = 0x7FFF, maxY = -0x8000;
-    ret = func_802BCE40();
+    ret = obj_find_nearest_target();
     pts = D_8036C790;
     D_8036C7CC = 0;
-    if (!D_8036EB98 && !ret && D_80364AA8 == 1 && !D_802E8BD0) {
+    if (!D_8036EB98 && !ret && gLevelKind == 1 && !gPaused) {
         if (!func_8026AD30(0x4B)) {
             func_8026AF6C(0x803D);
             func_80277EDC(3, 1, 2, 0x82);
@@ -111,7 +111,7 @@ void func_80275478(SpriteVtxBuf *arg0, Gfx **gfxp, u8 arg2) {
     }
     if (D_8036C794 != NULL) {
         func_802BD10C(D_8036C798);
-        if (D_8036C7C8 >= 1501 || !D_803643DB) {
+        if (D_8036C7C8 >= 1501 || !gHaveCarrier) {
             g = 0xFF;
             r = 0;
         } else if (D_8036C7C8 < 500) {
@@ -401,9 +401,9 @@ void func_8027690C(void *arg0, f32 x, f32 y, f32 z, s16 *sx, s16 *sy, Mtx *arg6,
         return;
     }
     func_80276D1C((Mtx *) ((u8 *) arg0 + 0x80), x, y, z, w, &x, &y, &z, &w);
-    x = x * (D_8035807C / 65535.0);
-    y = y * (D_8035807C / 65535.0);
-    w = w * (D_8035807C / 65535.0);
+    x = x * (gPerspNorm / 65535.0);
+    y = y * (gPerspNorm / 65535.0);
+    w = w * (gPerspNorm / 65535.0);
     x = x / w;
     y = y / w;
     x = ((320.0f * arg9) / 2.0f) * x;

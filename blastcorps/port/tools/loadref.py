@@ -103,9 +103,9 @@ if "6" in TESTS:
 
 
 def level_starts():
-    """[(start, end)] of the 60 levels, from func_8025615C's switch (00000.c)"""
+    """[(start, end)] of the 60 levels, from lvl_load_file's switch (00000.c)"""
     src = open("src.us.v11/hd_code/00000.c").read()
-    body = src[src.index("void func_8025615C(s32 level"):]
+    body = src[src.index("void lvl_load_file(s32 level"):]
     body = body[:body.index("\n}\n")]
     res = {}
     for m in re.finditer(r"case (\d+):\s*start = D_00([0-9A-F]{6});\s*\*size = D_00([0-9A-F]{6})", body):

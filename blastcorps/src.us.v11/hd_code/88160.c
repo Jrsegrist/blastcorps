@@ -3,7 +3,7 @@
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #ifdef NON_MATCHING
-#define D_80358070 (*(u32 *) &D_80358070)
+#define gHeapPtr (*(u32 *) &gHeapPtr)
 #endif
 /* end of views */
 
@@ -35,9 +35,9 @@ extern u8 D_803F9312;
 extern u8 D_803F9313;
 extern u8 D_803F9314;
 
-/* Set up vehicle 14 (the level-object dispatcher func_802A350C's case 0xE):
+/* Set up vehicle 14 (the level-object dispatcher lvl_spawn_vehicles's case 0xE):
  * as func_802CB720 (86F60) with this vehicle's data (header D_803F9304, save
- * copies D_803F9308/930C from D_80358070, block D_803F9250, channels
+ * copies D_803F9308/930C from gHeapPtr, block D_803F9250, channels
  * D_803F8F50, position D_803F92F8..9300), id 0xE, wheel offsets
  * +-250/400 and +-320/500, its speed bands, scale 0x55F0, and only
  * D_803F9312..14 cleared (there is no phase byte). One update with +0x9A set
@@ -47,7 +47,7 @@ extern u8 D_803F9314;
  * asm saves t0-t5 and leaves $gp = D_803F9250; fp/f20 (as func_8029E558
  * leaves them) and f12/f14 (as func_802CD068 leaves them), which its caller
  * hands to the next object's setup, aren't modelled. Asm caller
- * func_802A350C keeps t1, t2 live (a mixed N64 build would need a thunk). */
+ * lvl_spawn_vehicles keeps t1, t2 live (a mixed N64 build would need a thunk). */
 void func_802CC920(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut *f) {
     u32 p;
     u8 *h;
@@ -55,11 +55,11 @@ void func_802CC920(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut
     u8 *copyB;
 
     D_803F9304 = hdr;
-    p = D_80358070;
+    p = gHeapPtr;
     D_803F9308 = (u64 *) p;
     D_803F930C = (u64 *) (p + 0x100);
-    D_80358070 = p + 0x200;
-    func_802A1388(0xE, 0, (s32) D_803F9308, (s32) D_803F930C, hdr);
+    gHeapPtr = p + 0x200;
+    veh_add_record(0xE, 0, (s32) D_803F9308, (s32) D_803F930C, hdr);
     func_802A754C(D_803F9250);
     VEH14_S16(0x52) = 250;
     VEH14_S16(0x54) = 400;
@@ -129,14 +129,14 @@ void func_802CC920(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut
 #ifdef NON_MATCHING
 extern u8 D_803F9250[]; /* this vehicle's state block */
 
-/* Enter vehicle type 14: clears the byte at +0x99, D_8036444C/50 = 3000,
+/* Enter vehicle type 14: clears the byte at +0x99, gCamDistance / D_80364450 = 3000,
  * 1000, then func_802C4310(arg0, 0x7B) (arg0 passes straight through; hd.c
  * calls this with no arguments and func_802C4310 ignores it). The asm also
  * points $gp at D_803F9250 and leaves it there (conventions.txt: clobbers
  * gp); C code doesn't use $gp. Same shape as func_802B76AC (72B80). */
 void func_802CCC8C(s32 arg0) {
     D_803F9250[0x99] = 0;
-    D_8036444C = 3000;
+    gCamDistance = 3000;
     D_80364450 = 1000;
     func_802C4310(arg0, 0x7B);
 }
@@ -186,7 +186,7 @@ void func_802CCD34(void) {
 
 /* Re-seat vehicle 14 on the ground (hd.c calls it): as func_802CBC08
  * (86F60): wheel heights (func_802A9A60, key 0xE), model placement
- * (func_802CD800), func_802A133C(z, 0xE, x, y, block). The asm hands
+ * (func_802CD800), veh_set_record(z, 0xE, x, y, block). The asm hands
  * func_802A9A60 its caller's fp (which reaches D_803ED3F2[0..2] and +0x50)
  * and FP registers; the C passes 0 (see the port notes: fidelity). */
 void func_802CCD80(void) {
@@ -203,7 +203,7 @@ void func_802CCD80(void) {
                   (s32 *) (D_803F9250 + 4), (s32 *) &D_803F92F8[1], (s16 *) (D_803F9250 + 0x4C), 0xE, 0,
                   D_803F9250, &f, &out);
     func_802CD800();
-    func_802A133C(D_803F92F8[2], 0xE, D_803F92F8[0], D_803F92F8[1], D_803F9250);
+    veh_set_record(D_803F92F8[2], 0xE, D_803F92F8[0], D_803F92F8[1], D_803F9250);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/88160/func_802CCD80.s")
@@ -293,7 +293,7 @@ s32 func_802CCF60(s32 id, TriSideOut *f) {
                   (s32 *) (D_803F9250 + 0x28), (s32 *) (D_803F9250 + 0x40), (s32 *) (D_803F9250 + 0x34),
                   (s32 *) (D_803F9250 + 4), &rr, f);
     func_802CD800();
-    func_802A133C(D_803F92F8[2], 0xE, D_803F92F8[0], D_803F92F8[1], D_803F9250);
+    veh_set_record(D_803F92F8[2], 0xE, D_803F92F8[0], D_803F92F8[1], D_803F9250);
     return rr.s3;
 }
 #else
@@ -381,7 +381,7 @@ void func_802CD068(void) {
                   800, 500, (s16 *) (D_803F9250 + 0x4C), D_803F9250 + 0x96, (s16 *) (D_803F9250 + 0x52),
                   (s32 *) (D_803F9250 + 0x28), (s32 *) (D_803F9250 + 0x40), (s32 *) (D_803F9250 + 0x34),
                   (s32 *) (D_803F9250 + 4), &rr, &f);
-    if (D_8035805C != 0) {
+    if (gBufferIndex != 0) {
         func_8029E558((u8 *) D_803F9308, (u8 *) D_803F930C, (Unk8029DEA0Entry *) D_803F8F50);
     } else {
         func_8029E558((u8 *) D_803F930C, (u8 *) D_803F9308, (Unk8029DEA0Entry *) D_803F8F50);
@@ -400,7 +400,7 @@ void func_802CD068(void) {
             goto publish;
         }
         D_803F9313 = 0;
-        if (D_8035805C != 0) {
+        if (gBufferIndex != 0) {
             func_802A768C(D_803F9250, D_803F8F50, (s32 *) &D_803F92F8[0], (s32 *) &D_803F92F8[1],
                           (s32 *) &D_803F92F8[2], D_803F930C, D_803F9308, 0x100, &end);
         } else {
@@ -443,13 +443,13 @@ void func_802CD068(void) {
     D_803F77D0 = D_803F8F50;
     func_802BE77C(0xE, D_803F9250);
 publish:
-    D_803643E0 = D_803F92F8[0];
-    D_803643E4 = D_803F92F8[1];
-    D_803643E8 = D_803F92F8[2];
+    gPlayerX = D_803F92F8[0];
+    gPlayerY = D_803F92F8[1];
+    gPlayerZ = D_803F92F8[2];
     D_8036443C = VEH14_S16(0x76);
     D_8036443E = *(u16 *) (D_803F9250 + 0x4E);
     D_80364440 = *(u16 *) (D_803F9250 + 0x4C);
-    func_802A133C(D_803F92F8[2], 0xE, D_803F92F8[0], D_803F92F8[1], D_803F9250);
+    veh_set_record(D_803F92F8[2], 0xE, D_803F92F8[0], D_803F92F8[1], D_803F9250);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/88160/func_802CD068.s")
@@ -539,10 +539,10 @@ void func_802CD800(void) {
     s32 *m;
 
     m = (s32 *) N64_IPTR(*(s32 *) (hdr + *(s32 *) (hdr + 0x18) + 4) +
-                 (s32) (D_8035805C ? (u8 *) D_803F9308 : (u8 *) D_803F930C));
+                 (s32) (gBufferIndex ? (u8 *) D_803F9308 : (u8 *) D_803F930C));
     D_803ED390[1] = *(u16 *) (D_803F9250 + 0x4C);
     func_802AA764(D_803F92F8[0], D_803F92F8[1], D_803F92F8[2], 0x55F0, m);
-    base = D_8035805C ? (u8 *) D_803F9308 : (u8 *) D_803F930C;
+    base = gBufferIndex ? (u8 *) D_803F9308 : (u8 *) D_803F930C;
     hdr = D_803F9304;
     regs.v1 = 0;
     regs.a0 = 0;

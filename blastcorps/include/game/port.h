@@ -119,26 +119,26 @@ void *port_save_semblock(const void *sem);
  *   PORT_ISPAWN(kind, index)  slot `index` of `kind` starts a new object (not
  *                     blended with what the slot showed before).
  *   PORT_ICUT_IF(c)   the game's camera of this frame is set (the end of
- *                     00000.c func_802507C8; bc.exe's orbit camera reads it
+ *                     00000.c cam_update; bc.exe's orbit camera reads it
  *                     there, read-only); if c: the game snapped it (no
  *                     in-between pictures into this frame).
- *   PORT_DRAW_CELLS(list)  the visible-cell list (D_803C30A8) a pure drawing
+ *   PORT_DRAW_CELLS(list)  the visible-cell list (gVisibleCells) a pure drawing
  *                     path uses: the game's own, unless bc.exe's orbit camera
  *                     asks for more (live_orbit.cpp; the game logic keeps
- *                     reading D_803C30A8 itself). */
+ *                     reading gVisibleCells itself). */
 #define PORT_ITAG_NONE 0
 #define PORT_ITAG_HUD 1       /* 2D and HUD: shown exactly as drawn */
-#define PORT_ITAG_OBJ 2       /* D_80364460[] record (vehicles, the carrier): index | lod << 8 */
-#define PORT_ITAG_SHADOW 3    /* vehicle shadow quad, D_803643C8[] index */
+#define PORT_ITAG_OBJ 2       /* gVehicles[] record (vehicles, the carrier): index | lod << 8 */
+#define PORT_ITAG_SHADOW 3    /* vehicle shadow quad, gVehicleShadows[] index */
 #define PORT_ITAG_SHADOWFE 4  /* the flying vehicle's shadow */
-#define PORT_ITAG_BUILDING 5  /* D_803F4030[] building object (posed or not) */
+#define PORT_ITAG_BUILDING 5  /* gObjects[] building object (posed or not) */
 #define PORT_ITAG_BPART 6     /* a building's moving part: object << 8 | part */
 #define PORT_ITAG_FALL 7      /* falling part slot D_803F1BE0[] */
 #define PORT_ITAG_RISE 8      /* rising piece D_803EFED0 */
 #define PORT_ITAG_BILLBOARD 9 /* explosion / smoke record D_803C4B70[] */
 #define PORT_ITAG_PARTICLE 10 /* particle D_8036EC38[] */
 #define PORT_ITAG_PEOPLE 11   /* person sprite D_80367D60[] (world-space quad) */
-#define PORT_ITAG_GSHADOW 12  /* ground shadow of a D_803F4030[] object (world-space quad) */
+#define PORT_ITAG_GSHADOW 12  /* ground shadow of a gObjects[] object (world-space quad) */
 #define PORT_ITAG_MARKER 13   /* people's marker */
 #define PORT_ITAG_RADAR 14    /* the radar's sweep and heading arrow (blended; then back to HUD) */
 #define PORT_ITAG_CUT 30

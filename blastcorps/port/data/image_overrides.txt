@@ -4,7 +4,7 @@
 #                     vtx = F3D Vtx records: six halfwords, colour bytes kept;
 #                     STRIDE COUNT: the same range in COUNT records STRIDE apart)
 #
-# D_802E8F94 (60 level records, 0x44 bytes): +0x2C is a u32 bit mask, which
+# gLevelInfo (60 level records, 0x44 bytes): +0x2C is a u32 bit mask, which
 # collectables/vehicles the level has (11530.c func_801F9258's lw: the globe's
 # vehicle pictures).  01C40.c's view calls it times[0] (u16 at +0x2E), but
 # reads only times[1..4] (+0x30..+0x36, the rank times and the time limit,
@@ -21,7 +21,7 @@
 802F4780 30 w4
 #
 # D_802E8BF8: u8 EEPROM-present flag (written at boot, read as a byte by the
-# front end) that is also word 0 of a 19-word table func_8024B188 indexes by
+# front end) that is also word 0 of a 19-word table veh_leave indexes by
 # vehicle (00000.c port_802E8BF8_word).  On the N64 the flag is word 0's most
 # significant byte, so word 0 stays big-endian and is read bytewise; words
 # 1-18 (the exit distances) are host-order s32.

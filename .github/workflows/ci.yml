@@ -208,6 +208,12 @@ jobs:
         working-directory: blastcorps
         run: python tools_port/tests/test_eqcheck.py
 
+      - name: rename map (tools_port/tests/test_rename.py, rename.py --check)
+        working-directory: blastcorps
+        run: |
+          python tools_port/tests/test_rename.py
+          python tools_port/rename.py --check
+
       - name: make -C port norom-check
         working-directory: blastcorps
         run: make -C port -j"$(nproc)" norom-check PYTHON=python

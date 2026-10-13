@@ -13,11 +13,11 @@
  * itself never holds big-endian fields while other threads can run.
  *
  * Layouts (every other byte is a u8):
- *   PLAYER   D_80364AF0[n], 0x100: u16 0x0A (rank points), u32 0x10 (vehicle
+ *   PLAYER   players[n], 0x100: u16 0x0A (rank points), u32 0x10 (vehicle
  *            unlocks), u32 0x14 (money), u32 0xF0 (vehicle flags); CRC 0xFC.
  *   TIMES    D_80364EF0[n], 0x20: u16[14] best times; CRC 0x1C.
  *   EETIMES  D_80364F70 block, 8: u16[4] (time, time ^ 0x55AA pairs).
- *   STATUS   D_8039C4B8, 0x40: a bit stream (bytes), or the u64 marker
+ *   STATUS   pakBuffer, 0x40: a bit stream (bytes), or the u64 marker
  *            0x1234567887654321 at 0 ("no status"); CRC 0x3C.  Swapped in
  *            place (a macro array; the marker is the only multi-byte value).
  * The semaphore (u64 at EEPROM block 0x3F / pak offset 0xDE0) goes through

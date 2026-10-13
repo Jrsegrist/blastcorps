@@ -2,7 +2,7 @@
 #include <ultra64.h>
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_80364460 ((u8 *) D_80364460)
+#define gVehicles ((u8 *) gVehicles)
 #ifdef NON_MATCHING
 #define D_803ED390 (*(s16 *) D_803ED390)
 #define D_803ED3A8 (*(s32 *) D_803ED3A8)
@@ -538,7 +538,7 @@ u64 *func_802A768C(u8 *veh, u8 *dst, s32 *w0, s32 *w1, s32 *w2, u64 *src, u64 *d
 #ifdef NON_MATCHING
 
 /* Copy `size` bytes in 8-byte units from a to b, or from b to a when
- * D_8035805C (the frame buffer index) is nonzero. Both pointers must be
+ * gBufferIndex (the frame buffer index) is nonzero. Both pointers must be
  * 8-aligned and size a multiple of 8 (the asm loops on `size != 0`).
  * Register note: the asm saves/restores a0-a3, and its asm callers
  * (func_802B0254, func_802C5120, func_802D07E0, ...) keep a0-a3, f12 and f14
@@ -548,7 +548,7 @@ void func_802A7764(u64 *a, u64 *b, s32 size) {
     u64 *src = a;
     u64 *dst = b;
 
-    if (D_8035805C != 0) {
+    if (gBufferIndex != 0) {
         src = b;
         dst = a;
     }
@@ -563,13 +563,13 @@ void func_802A7764(u64 *a, u64 *b, s32 size) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* With no steering input (D_80370C2D == 0), brake the speed (veh+0x76) by 8
+/* With no steering input (gPadStickY == 0), brake the speed (veh+0x76) by 8
  * toward zero, stopping at zero. Asm callers keep a0-a3 and t6 live (the asm
  * saves s7). */
 void func_802A77D0(u8 *veh) {
     s32 speed;
 
-    if (D_80370C2D == 0) {
+    if (gPadStickY == 0) {
         speed = VEH_S16(veh, 0x76);
         if (speed >= 0) {
             speed -= 8;
@@ -619,11 +619,11 @@ s32 func_802A7AAC(s32 x, s16 *p);
 s32 func_802A7C28(u8 *veh, s32 x, s16 *band);
 s32 func_802A7D68(s32 mode, u8 *f);
 
-/* Throttle/brake step for the speed *speed (s16). With D_80370C22 set: if
+/* Throttle/brake step for the speed *speed (s16). With gHeldZ set: if
  * D_803ED400 is nonzero, brake by `delta` toward 0 (by the speed's sign).
- * Otherwise: with D_803ED40C set (and D_802E8BDC != 0x22, D_80364456 not
+ * Otherwise: with D_803ED40C set (and levelno != 0x22, gCurVehicle not
  * 0xB/0x11/0x12) clamp the speed to half the top band bound (bands[13]) or,
- * in reverse, half bands[0]; then with steer input D_80370C2D > 0 accelerate
+ * in reverse, half bands[0]; then with steer input gPadStickY > 0 accelerate
  * (or brake by `delta` when rolling backward) and with < 0 the mirror image:
  * the step is the band value func_802A7C28 finds times
  * func_802A7D68(mode, flags), or -6 going forward with no band; nothing when
@@ -638,7 +638,7 @@ void func_802A785C(u8 *veh, s16 *speed, s32 mode, u8 *flags, s16 *bands, s32 del
     s32 mult;
     s32 r;
 
-    if (D_80370C22 != 0) {
+    if (gHeldZ != 0) {
         if (D_803ED400 != 0) {
             s = *speed;
             if (s > 0) {
@@ -655,8 +655,8 @@ void func_802A785C(u8 *veh, s16 *speed, s32 mode, u8 *flags, s16 *bands, s32 del
             *speed = s;
         }
     } else {
-        if (((s8) D_803ED40C) != 0 && D_802E8BDC != 0x22 && D_80364456 != 0xB && D_80364456 != 0x11 &&
-            D_80364456 != 0x12) {
+        if (((s8) D_803ED40C) != 0 && levelno != 0x22 && gCurVehicle != 0xB && gCurVehicle != 0x11 &&
+            gCurVehicle != 0x12) {
             s = *speed;
             if (s >= 0) {
                 lim = bands[13] >> 1;
@@ -671,9 +671,9 @@ void func_802A785C(u8 *veh, s16 *speed, s32 mode, u8 *flags, s16 *bands, s32 del
             }
         }
         mult = func_802A7D68(mode, flags);
-        if (D_80370C2D != 0) {
+        if (gPadStickY != 0) {
             s = *speed;
-            if (D_80370C2D > 0) {
+            if (gPadStickY > 0) {
                 if (s < 0) {
                     *speed = s + delta;
                 } else if (func_802A7AAC(s, bands) == 0) {
@@ -702,11 +702,11 @@ void func_802A785C(u8 *veh, s16 *speed, s32 mode, u8 *flags, s16 *bands, s32 del
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* 1 if x < (p[0] * steer) / -80 (steer = D_80370C2D), else 0.
+/* 1 if x < (p[0] * steer) / -80 (steer = gPadStickY), else 0.
  * Register convention: x in t2, p in s1, result in t4 (asm saves v0, v1, a0).
  * Asm callers keep t2, t3 and t6 live. */
 s32 func_802A7A1C(s32 x, s16 *p) {
-    return x < (p[0] * D_80370C2D) / -80;
+    return x < (p[0] * gPadStickY) / -80;
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802A7A1C.s")
@@ -718,7 +718,7 @@ s32 func_802A7A1C(s32 x, s16 *p) {
  * Register convention: x in t2, p in s1, result in t4 (asm saves v0, v1, a0).
  * Asm callers keep t2, t3 and t6 live. */
 s32 func_802A7AAC(s32 x, s16 *p) {
-    return (p[13] * D_80370C2D) / 80 < x;
+    return (p[13] * gPadStickY) / 80 < x;
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802A7AAC.s")
@@ -726,9 +726,9 @@ s32 func_802A7AAC(s32 x, s16 *p) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Variant of func_802A785C's speed step (no callers found): with D_80370C22
+/* Variant of func_802A785C's speed step (no callers found): with gHeldZ
  * set and D_803ED400 nonzero, brake *speed by `delta` toward 0 by the sign of
- * D_803ED400; otherwise, if D_80370C1A or D_80370C1B is set, accelerate: a
+ * D_803ED400; otherwise, if gHeldL or gHeldR is set, accelerate: a
  * negative speed by `delta`, else by 4 * the band value func_802A7C28 finds
  * (or -6 with none). The result is copied to D_803ED400.
  * Register convention: gp, speed in t6, bands in s1 (clobbered by
@@ -738,7 +738,7 @@ void func_802A7B3C(u8 *veh, s16 *speed, s16 *bands, s32 delta) {
     s32 d;
     s32 r;
 
-    if (D_80370C22 != 0) {
+    if (gHeldZ != 0) {
         d = D_803ED400;
         if (d != 0) {
             s = *speed;
@@ -755,7 +755,7 @@ void func_802A7B3C(u8 *veh, s16 *speed, s16 *bands, s32 delta) {
             }
             *speed = s;
         }
-    } else if (D_80370C1A != 0 || D_80370C1B != 0) {
+    } else if (gHeldL != 0 || gHeldR != 0) {
         s = *speed;
         if (s < 0) {
             *speed = s + delta;
@@ -893,7 +893,7 @@ s32 func_802A7D68(s32 mode, u8 *f) {
 #ifdef NON_MATCHING
 /* Steering: turn rate = s3 (minus a third when D_80367C10; forced to 100/200
  * when D_80370C75, by D_80370C34), saved to D_80370C72; then turn *angle by
- * |steer| * rate / 80 against the sign of steer (D_80370C2C), wrapped to
+ * |steer| * rate / 80 against the sign of steer (gPadStickX), wrapped to
  * 0..0xFFF. When D_803ED40A is set and D_803649EE isn't, *angle is overridden
  * by D_803ED408. The result also goes to D_80370C70.
  * Register convention: rate in s3 (clobbered), angle in s4 (the asm saves s5;
@@ -910,7 +910,7 @@ void func_802A7E70(s32 rate, u16 *angle) {
         rate = (D_80370C34 != 0) ? 100 : 200;
     }
     D_80370C72 = rate;
-    steer = D_80370C2C;
+    steer = gPadStickX;
     a = *angle;
     mag = (steer < 0) ? -steer : steer;
     rate = (mag * rate) / 80;
@@ -1049,23 +1049,23 @@ void func_802A7FD8(u8 *veh, u16 *heading, s32 rate, s16 *speedp, u16 *target, u1
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Unless D_803A740C + 10 < D_80358068, walk the {key, value, threshold}
+/* Unless D_803A740C + 10 < gUnpausedFrames, walk the {key, value, threshold}
  * table D_80305C58 (ended by value 0) for the first entry with key ==
- * D_802E8BDC and threshold + D_803A740C >= D_80358068, and return its value;
+ * levelno and threshold + D_803A740C >= gUnpausedFrames, and return its value;
  * otherwise return `cur` unchanged.
  * Register convention: the asm returns the value in t5 and leaves t5 alone
  * otherwise, so the C takes the caller's t5 as `cur` (the asm saves every
  * other register it uses). Asm callers keep t1 and t6 live. */
 s32 func_802A8314(s32 cur) {
     s32 base = D_803A740C;
-    s32 limit = D_80358068;
+    s32 limit = gUnpausedFrames;
     s32 *e;
 
     if (base + 10 < limit) {
         return cur;
     }
     for (e = D_80305C58; e[1] != 0; e += 3) {
-        if (e[0] != D_802E8BDC) {
+        if (e[0] != levelno) {
             continue;
         }
         if (e[2] + base < limit) {
@@ -1110,7 +1110,7 @@ f32 func_802A83B8(s16 *div, u8 *f, s32 *p, f32 *out) {
 #ifdef NON_MATCHING
 s32 func_802A8590(s32 *p);
 
-/* Slope/drag step for *speed. Nothing if D_80370C22 is set and the speed is
+/* Slope/drag step for *speed. Nothing if gHeldZ is set and the speed is
  * 0. With `clamp`, cap the speed at 1.5 * veh+0x92 (forward) or 1.5 *
  * veh+0x78 (reverse). Then, unless a flag byte f[0..2] is 1, add
  * round(func_802A8590(p) / div * -4) and drag the result toward 0 by 3 (kind
@@ -1123,7 +1123,7 @@ void func_802A843C(u8 *veh, s16 *speed, s32 kind, s8 *f, s32 *p, s32 clamp, f32 
     s32 lim;
     s32 step;
 
-    if (D_80370C22 != 0 && *speed == 0) {
+    if (gHeldZ != 0 && *speed == 0) {
         return;
     }
     if (clamp != 0) {
@@ -1425,9 +1425,9 @@ s32 func_802A8B10(s32 *a3Out) {
  * gz = z >> 5, vehicle 7 counts as out on level 0 when gx < 1000, on level
  * 0x12 when gz < 900 and on level 0xD when gz < 0x44C; any vehicle is out
  * when (gx, gz) leaves the box D_803BE730..36. When out: the respawn record
- * with key `id` (key 1 unless D_80364AA8 is 1 or 0x80; the scan has no end
+ * with key `id` (key 1 unless gLevelKind is 1 or 0x80; the scan has no end
  * check, the key must exist) gives x, y, z (each s16 << 5), stored to *px,
- * *py, *pz and handed back in pos; D_80364412 = 1; func_802A754C(veh);
+ * *py, *pz and handed back in pos; gCamSnap = 1; func_802A754C(veh);
  * words 1..9 of veh = y; effect kind 0x13 (data 1000000) at the new position
  * (func_802AC6FC) and func_80277EDC(1, 1, 4, 0x6C).
  * Register convention: veh in gp, id t8, px t7, py s2, pz s1, x/z in t0/t1
@@ -1447,23 +1447,23 @@ void func_802A8CCC(u8 *veh, s32 id, s32 *px, s32 *py, s32 *pz, Pos802A8CCC *pos)
     s32 i;
 
     if (id == 7) {
-        if (D_802E8BDC == 0) {
+        if (levelno == 0) {
             out = gx < 1000;
-        } else if (D_802E8BDC == 0x12) {
+        } else if (levelno == 0x12) {
             out = gz < 900;
-        } else if (D_802E8BDC == 0xD) {
+        } else if (levelno == 0xD) {
             out = gz < 0x44C;
         }
     }
     if (!out && gx >= D_803BE730 && gx <= D_803BE732 && gz >= D_803BE734 && gz <= D_803BE736) {
         return;
     }
-    key = (((s32) D_80364AA8) == 1 || ((s32) D_80364AA8) == 0x80) ? id : 1;
+    key = (((s32) gLevelKind) == 1 || ((s32) gLevelKind) == 0x80) ? id : 1;
     rec = D_803BE6F8;
     while (rec[0] != key) {
         rec += 9;
     }
-    D_80364412 = 1;
+    gCamSnap = 1;
     x = (s16) ((rec[1] << 8) | rec[2]) << 5;
     *px = x;
     y = (s16) ((rec[3] << 8) | rec[4]) << 5;
@@ -1501,11 +1501,11 @@ void func_802A8FB4(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* If the vehicle's mode byte (veh+0x9F) is 0x67 and D_802E8BDC == 12, set
+/* If the vehicle's mode byte (veh+0x9F) is 0x67 and levelno == 12, set
  * D_803ED3F7 = 8. (The asm clobbers v0.) Asm callers keep a1-a3, t0, t1,
  * t7-t9, f12 and f14 live. */
 void func_802A8FF4(u8 *veh) {
-    if (VEH_U8(veh, 0x9F) == 0x67 && D_802E8BDC == 12) {
+    if (VEH_U8(veh, 0x9F) == 0x67 && levelno == 12) {
         D_803ED3F7 = 8;
     }
 }
@@ -2953,7 +2953,7 @@ void func_802AB714(s32 id, s32 *s3, InterpRegs *r);
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Entry from C (00000.c func_8024AE2C, which declares a u8 parameter; the asm
+/* Entry from C (00000.c veh_apply_switch, which declares a u8 parameter; the asm
  * moves all of a0 to s2): func_802AB50C(id). The asm saves every callee-saved
  * register around the call, so the walk's register results are dropped; its
  * FP state starts as whatever the C caller left in f20-f26 (f24 is an input
@@ -3378,7 +3378,7 @@ s32 func_802ABCDC(s32 ax, s32 ay, s32 az, s32 bx, s32 by, s32 bz) {
  * contains `id`. Its level: with byte +0x14 == 0, 0xFF if byte +0x10 == 1, else
  * fading from 0xFF at the centre to D_80364A6E at the radius; with byte +0x14
  * = L != 0, L if byte +0x10 == 1, else fading from L to D_80364A6E. No zone:
- * D_80364A6E. The level goes to +0x60 of the D_80364460 record whose word
+ * D_80364A6E. The level goes to +0x60 of the gVehicles record whose word
  * +0x5C is `id` (one must exist). Returns *D_803BDFD4.
  * Register convention: id a3, point t3/t4/t5; outputs v1 (return value) and
  * t6, t7, s0-s4 (through `r`, unchanged if no zone is looked at). The asm
@@ -3447,7 +3447,7 @@ s32 func_802ABD54(s32 id, s32 x, s32 y, s32 z, ZoneScanRegs *r) {
     }
     level = D_80364A6E;
 found:
-    rec = D_80364460;
+    rec = gVehicles;
     while (*(s32 *) (rec + 0x5C) != id) {
         rec += 0x74;
     }
@@ -3470,7 +3470,7 @@ found:
 s32 func_802ABFC8(s32 x, s32 z, s32 y, u8 *obj, s32 *found, TriSideOut *f);
 
 /* 1 if (x, z) at height y is over some object's own ground: for each object
- * record D_803F4030 .. D_803F7654 (read once, walked with `!=`), its info's
+ * record gObjects .. gObjectsEnd (read once, walked with `!=`), its info's
  * s16 box at info + info->unk20 (x0, z0, x1, z1, << 5) is tested with
  * func_802AA5E0 as the triangle (x0, z0), (x1, z1), (x1, z0) and, failing
  * that, (x0, z0), (x1, z1), (x0, z1); on a hit func_802ABFC8(x, z, y, info)
@@ -3480,13 +3480,13 @@ s32 func_802ABFC8(s32 x, s32 z, s32 y, u8 *obj, s32 *found, TriSideOut *f);
  * scans, passing the caller's f24 in) although its only caller is C; the C
  * keeps them. Its v1 is func_802ABFC8's last result (unused by the caller). */
 s32 func_802ABEDC(s32 x, s32 y, s32 z) {
-    u8 *end = D_803F7654;
+    u8 *end = gObjectsEnd;
     u8 *e;
     s32 found = 0;
     TriSideOut f;
 
     f.sideZ = 0.0f;
-    for (e = D_803F4030; e != end; e += 0xFC) {
+    for (e = gObjects; e != end; e += 0xFC) {
         u8 *info = *(u8 * N64P *) e;
         s16 *box = (s16 *) (info + *(s32 *) (info + 0x20));
         s32 x0 = box[0] << 5;

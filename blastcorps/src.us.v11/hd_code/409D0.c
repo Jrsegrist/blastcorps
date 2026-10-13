@@ -6,20 +6,20 @@
  * uses game/game.h's. */
 #define LEGACY_D_80367738
 #define LEGACY_D_8036EA60
-#define LEGACY_D_8036EA70
+#define LEGACY_nss
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_8020C070 ((MenuItem *) D_8020C070)
-#define D_802E8F94 ((LevelInfo *) D_802E8F94)
+#define gLevelInfo ((LevelInfo *) gLevelInfo)
 #define D_802F5804 ((MenuItem *) D_802F5804)
 #define D_802F8BDC ((MenuItem *) D_802F8BDC)
-#define D_80364AF0 ((PlayerRec *) D_80364AF0)
+#define players ((PlayerRec *) players)
 #define D_8036EA80 ((u32 *) &D_8036EA80)
 #define D_8036EA90 ((u32 *) &D_8036EA90)
 #ifdef NON_MATCHING
 #define D_8036EA60 (*(u32 *) &D_8036EA60)
-#define D_8036EA70 (*(u32 *) &D_8036EA70)
+#define nss (*(u32 *) &nss)
 #endif
 /* end of views */
 
@@ -49,10 +49,10 @@ typedef struct {
     u8 pad3[2];
 } MenuItem; /* 0x1C */
 
-extern u8 D_80364B08[][0x100]; /* = D_80364AF0[p].rank */
-extern u8 D_80364B44[][0x100]; /* = D_80364AF0[p].flags */
+extern u8 D_80364B08[][0x100]; /* = players[p].rank */
+extern u8 D_80364B44[][0x100]; /* = players[p].flags */
 
-/* This level's results (D_8036EA70) and the best (D_8036EA60), 16 bytes each:
+/* This level's results (nss) and the best (D_8036EA60), 16 bytes each:
  * money, time, then three counts with their targets in D_8036EB90..93 */
 #ifndef NON_MATCHING
 extern u32 D_8036EA60;
@@ -61,7 +61,7 @@ extern u8 D_8036EA68;
 extern u8 D_8036EA69;
 extern u16 D_8036EA6C;
 #ifndef NON_MATCHING
-extern u32 D_8036EA70;
+extern u32 nss;
 #endif
 extern s32 D_8036EA74;
 extern u8 D_8036EA7A;
@@ -73,27 +73,24 @@ extern u8 D_8036EB9C[];
 extern s32 D_80367738;
 #endif
 
-#define CUR (D_80364AF0[D_80364AE8])
+#define CUR (players[playerNumber])
 #define LEVEL_DONE(l) ((CUR.rank[l] > 0 && CUR.rank[l] < 6) ? 1 : 0)
 
-#define frontEndPresent D_80370C50
-#define pakBuffer D_8039C4B8
-#define create_status func_802C4E58
 #define LEVEL_SAVE_SIZE 64
 #define STATS_ASSERT(EX, line) \
-    if (!(EX)) { func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "stats_perm.c", line); }
+    if (!(EX)) { debug_printf("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "stats_perm.c", line); }
 
 /* Start-of-level: load this level's previous counts and reset the bonuses */
 void func_80285190(void) {
     s32 i;
 
-    D_8036EA7B = D_80364AF0[D_80364AE8].flags[D_802E8BDC + 0x3E];
-    D_8036EA74 = D_80364EF0[D_80364AE8][D_802E8C44[(D_802E8F94[D_802E8BDC].type == 1) ? 1 : D_8036EA7B]];
-    D_8036EA7A = D_80364B08[D_80364AE8][D_802E8BDC] % 8;
+    D_8036EA7B = players[playerNumber].flags[levelno + 0x3E];
+    D_8036EA74 = D_80364EF0[playerNumber][D_802E8C44[(gLevelInfo[levelno].type == 1) ? 1 : D_8036EA7B]];
+    D_8036EA7A = D_80364B08[playerNumber][levelno] % 8;
     for (i = 0; i < 4; i++) {
         D_8036EB94[i] = 0;
     }
-    D_8036EB98 = LEVEL_DONE(D_802E8BDC);
+    D_8036EB98 = LEVEL_DONE(levelno);
 }
 
 /* Print the status screen lines, highlight improved results, return the
@@ -126,7 +123,7 @@ u32 func_802852EC(void) {
         pctC = 100;
     }
     func_802D6A60(D_8036B9A8, "***%2d (%d%c)*", D_8036EA78, pctA, '%');
-    func_802D6A60(D_8036B9A8 + 0x20, "***$%d*", D_8036EA70);
+    func_802D6A60(D_8036B9A8 + 0x20, "***$%d*", nss);
     func_802D6A60(D_8036B9A8 + 0x40, "***%2d (%d%c)*", D_8036EA79, pctB, '%');
     func_802D6A60(D_8036B9A8 + 0x60, "***%2d (%d%c)*", D_8036EA7C, pctC, '%');
     func_80264A34(buf, D_8036EA74, 0);
@@ -137,10 +134,10 @@ u32 func_802852EC(void) {
     for (i = 14; i < 18; i++) {
         D_8020C070[i].flags = 0x400;
     }
-    if (D_80364A98 == 0x40) {
+    if (gNextGameMode == 0x40) {
         f2 = 0x100;
     }
-    if (D_80364A90 & 0x30C) {
+    if (gGameMode & 0x30C) {
         f1 = 0x100;
     }
     if (D_8036EA78 > D_8036EA68) {
@@ -150,7 +147,7 @@ u32 func_802852EC(void) {
     }
     D_8020C070[14].flags |= f | 0x80;
     D_802F5804[18].flags |= f | f2 | 0x80;
-    if (D_8036EA70 > D_8036EA60) {
+    if (nss > D_8036EA60) {
         f = f1 | 4;
     } else {
         f = 0;
@@ -187,16 +184,16 @@ u8 func_80285814(void) {
 
     STATS_ASSERT(frontEndPresent, 140);
     frontEndPresent = 1;
-    func_80255DC8();
-    if (D_80364A90 == 0x4000) {
-        osRecvMesg(&D_80219F50, NULL, OS_MESG_BLOCK);
+    hd_mode_setup();
+    if (gGameMode == 0x4000) {
+        osRecvMesg(&pakToGameMessageQ, NULL, OS_MESG_BLOCK);
     }
-    if (LEVEL_DONE(D_802E8BDC)) {
-        if (D_802E8F94[D_802E8BDC].type == 1) {
+    if (LEVEL_DONE(levelno)) {
+        if (gLevelInfo[levelno].type == 1) {
             if (pakBuffer[0] == 0x1234567887654321) {
-                func_80256A34(NULL);
-                func_8029A7E4("Creating status ...\n");
-                coin = D_80364B08[D_80364AE8][D_802E8BDC];
+                hd_setup_level(NULL);
+                debug_printf("Creating status ...\n");
+                coin = D_80364B08[playerNumber][levelno];
                 if (coin == 5) {
                     coin = 4;
                 }
@@ -206,17 +203,17 @@ u8 func_80285814(void) {
                 func_80264C20((s32) pakBuffer);
                 saved = 1;
             } else {
-                func_80256A34((s32) pakBuffer);
+                hd_setup_level((s32) pakBuffer);
             }
         } else {
-            func_80256A34(NULL);
+            hd_setup_level(NULL);
         }
     } else {
-        func_80256A34(NULL);
+        hd_setup_level(NULL);
     }
-    func_80285A78((u8 *) &D_8036EA70, (u8 *) &D_8036EA60);
-    func_80285A78((u8 *) &D_8036EA70, (u8 *) D_8036EA80);
-    func_80285A78((u8 *) &D_8036EA70, (u8 *) D_8036EA90);
+    func_80285A78((u8 *) &nss, (u8 *) &D_8036EA60);
+    func_80285A78((u8 *) &nss, (u8 *) D_8036EA80);
+    func_80285A78((u8 *) &nss, (u8 *) D_8036EA90);
     return saved;
 }
 
@@ -234,27 +231,27 @@ void func_80285A78(u8 *src, u8 *dst) {
  * so the port masks it (PORT_SHAMT). */
 void func_80285AB0(u8 bit) {
     D_80364A87 |= 2;
-    CUR.flags[D_802E8BDC] |= 1 << PORT_SHAMT(bit + 0x1F);
+    CUR.flags[levelno] |= 1 << PORT_SHAMT(bit + 0x1F);
 }
 
 /* Test flag `bit` (1-based) for the current level */
 s32 func_80285B10(u8 bit) {
     s32 unused;
 
-    return (D_80364B44[D_80364AE8][D_802E8BDC] & (1 << PORT_SHAMT(bit + 0x1F))) ? 1 : 0;
+    return (D_80364B44[playerNumber][levelno] & (1 << PORT_SHAMT(bit + 0x1F))) ? 1 : 0;
 }
 
 /* Level just completed by the active player: mark it and fade out */
 void func_80285B68(s32 arg0) {
     s32 unused;
 
-    if (D_80364A90 & 0x104) {
-        if (LEVEL_DONE(D_802E8BDC)) {
-            if (D_802E8F94[D_802E8BDC].type != 1 && D_80364AE8 == D_80364AEA) {
+    if (gGameMode & 0x104) {
+        if (LEVEL_DONE(levelno)) {
+            if (gLevelInfo[levelno].type != 1 && playerNumber == playerNumberAtStart) {
                 func_802CF5B0();
-                D_802E8BD8 = 1;
+                gPauseRequest = 1;
                 func_80275270(0x4000, 1.25f);
-                D_8039C53C[D_80364AE8] = D_802E8BDC + 1;
+                saveIt[playerNumber] = levelno + 1;
                 D_8036EB99 = 1;
             }
         }
@@ -320,7 +317,7 @@ void func_80285EF4(s32 start) {
     D_8036EA74 += t;
     func_802852EC();
     D_8036EA74 -= t;
-    func_80285A78((u8 *) &D_8036EA70, (u8 *) &D_8036EA60);
+    func_80285A78((u8 *) &nss, (u8 *) &D_8036EA60);
     D_802F5804[24].flags &= ~1;
     D_802F5804[24].flags |= 0x800;
     D_802F5804[23].flags &= ~1;
@@ -331,7 +328,7 @@ void func_80285EF4(s32 start) {
     D_802F8BDC[6].f8 |= 0x80;
     func_8026AF6C(0x8006);
     D_802F8BDC[6].fC = 0;
-    D_802E8BD8 = 1;
+    gPauseRequest = 1;
 }
 
 /* Time units (1/10 s) to frames */

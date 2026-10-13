@@ -450,7 +450,7 @@ s32 func_802A5ED0(void) {
 #ifdef NON_MATCHING
 /* Clears the heap-block range and count, deactivates all 16 records of
  * D_803C4B70 and clears the 16 bytes of D_803EB770.
- * Asm callers rely on preserved: func_802A1674 keeps t0, f12, f14. */
+ * Asm callers rely on preserved: initlevel keeps t0, f12, f14. */
 void func_802A5F30(void) {
     s32 i;
 
@@ -468,7 +468,7 @@ void func_802A5F30(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_8020ED00[]; /* heap end when (D_80364AA8 & 0x20) */
+extern u8 D_8020ED00[]; /* heap end when (gLevelKind & 0x20) */
 extern u8 D_8021DD00[]; /* heap end otherwise */
 
 /* Carves as many 0x1010-byte HeapBlocks as fit between the heap pointer and
@@ -476,8 +476,8 @@ extern u8 D_8021DD00[]; /* heap end otherwise */
  * in D_803EB790, advances the heap pointer past them, prints two debug
  * messages and clears each block's inUse word. */
 void func_802A5FA8(void) {
-    u8 *start = D_80358070;
-    s32 span = ((D_80364AA8 & 0x20) ? D_8020ED00 : D_8021DD00) - start;
+    u8 *start = gHeapPtr;
+    s32 span = ((gLevelKind & 0x20) ? D_8020ED00 : D_8021DD00) - start;
     u32 n;
     HeapBlock *b;
     HeapBlock *end;
@@ -488,11 +488,11 @@ void func_802A5FA8(void) {
     n = (u32) span / sizeof(HeapBlock);
     D_803EB788 = (HeapBlock *) start;
     D_803EB790 = n;
-    func_8029A7E4(D_80305C34);
-    func_8029A7E4(D_80305C48, n);
+    debug_printf(D_80305C34);
+    debug_printf(D_80305C48, n);
     end = (HeapBlock *) (start + n * sizeof(HeapBlock));
     D_803EB78C = end;
-    D_80358070 = (u8 *) end;
+    gHeapPtr = (u8 *) end;
     for (b = (HeapBlock *) start; b != end; b++) {
         b->inUse = 0;
 #ifdef PORT_HOST
@@ -644,7 +644,7 @@ void func_802A6DE8(u8 *obj, Vtx *vtx, void *timg, s32 fmtsiz, s32 width, s32 hei
 Gfx * N64P *func_802A6EB8(u8 *obj);
 
 /* Draws the 16 D_803C4B70 billboard records into the display lists of this
- * frame's buffer set (D_8035805C picks lists, matrices, vertices and texture
+ * frame's buffer set (gBufferIndex picks lists, matrices, vertices and texture
  * buffers): resets both list cursors (D_803EB780/784, then func_802A6D34).
  * For each active record: its matrix (func_802A68D4, matrices advance by
  * 0x40 per drawn record), then def[3] rows of def[2] quads of size w x h
@@ -667,7 +667,7 @@ void func_802A64A4(void) {
     u8 *param = D_803EA770;
     s32 n;
 
-    if (D_8035805C != 0) {
+    if (gBufferIndex != 0) {
         D_803EB780 = D_803C6370;
         D_803EB784 = D_803C7B70;
         mtx = D_803C5370;
@@ -869,7 +869,7 @@ extern s32 D_803C4F30[]; /* scratch 16.16 matrix */
  * logical shifts; 64-bit division of dy << 27 by distance << 11, distance 0
  * taken as 1), >> 4 and mirrored (0xFFF - angle) unless the quotient is
  * negative: m *= rotation about x by that (func_802ACBDC, func_802ACCCC),
- * m *= rotation about y by D_80364452, m *= translation (position << 11),
+ * m *= rotation about y by gCamYaw, m *= translation (position << 11),
  * then m is converted to the Mtx layout (func_802AC8CC).
  * Register convention: m in t0, rec in t4; the asm saves every integer
  * register (asm caller func_802A64A4 keeps a1, t0, t1, t3, t4, t5 live). The
@@ -923,8 +923,8 @@ void func_802A68D4(s32 *m, u8 *rec) {
         *(s32 *) (rec + 0x10) = z;
         z >>= 11;
     }
-    py = (u32) D_803643FC >> 11;
-    dist = func_802ABCDC((u32) D_803643F8 >> 11, py, (u32) D_80364400 >> 11, x, y, z);
+    py = (u32) gCamEyeY >> 11;
+    dist = func_802ABCDC((u32) gCamEyeX >> 11, py, (u32) gCamEyeZ >> 11, x, y, z);
     if (dist == 0) {
         dist = 1;
     }
@@ -935,7 +935,7 @@ void func_802A68D4(s32 *m, u8 *rec) {
     }
     func_802ACBDC(angle, D_803C4F30);
     func_802ACCCC(D_803C4F30, m);
-    func_802ACAC4(((u16) D_80364452), D_803C4F30);
+    func_802ACAC4(((u16) gCamYaw), D_803C4F30);
     func_802ACCCC(D_803C4F30, m);
     func_802ACA60(x << 11, y << 11, z << 11, D_803C4F30);
     func_802ACCCC(D_803C4F30, m);

@@ -457,6 +457,50 @@ bool commandHook(RT64::State *state, RT64::DisplayList **dl, const GbiOriginal *
     return false;
 }
 
+/* ---- billboards ---------------------------------------------------------------
+ * Smoke, explosions and particles (60F60.c func_802A68D4, 43A60.c) are quads
+ * the game turns to face its own camera (a rotation by the camera's pitch
+ * and heading in their model matrix).  In the orbit view they are turned to
+ * face the orbit camera instead: a model matrix whose rotation is (up to its
+ * uniform scale) about the inverse of the game view's rotation gets
+ * A' = A Rg Ro^T (row vectors: world = local A, camera = world R; for a
+ * billboard A = s Rg^T, so A' = s Ro^T).  Only RT64's copy of the matrix
+ * changes. */
+struct Billboards {
+    bool on = false;          /* this frame's task */
+    double rg[3][3] = {}, x[3][3] = {};   /* the game view's rotation; Rg Ro^T */
+    unsigned turned = 0;
+} g_bb;
+
+void matrixHook(RT64::State *state, uint8_t params) {
+    if (!g_bb.on) return;
+    RT64::RSP &rsp = *state->rsp;
+    if (params & rsp.projMask) return;
+    hlslpp::float4x4 &m = rsp.modelMatrixStack[rsp.modelMatrixStackSize - 1];
+    double a[3][3], b[3][3];
+    for (int r = 0; r < 3; r++)
+        for (int c = 0; c < 3; c++) a[r][c] = float(m[r][c]);
+    double s = 0;
+    for (int r = 0; r < 3; r++)
+        for (int c = 0; c < 3; c++) {
+            b[r][c] = a[r][0] * g_bb.rg[0][c] + a[r][1] * g_bb.rg[1][c] + a[r][2] * g_bb.rg[2][c];
+            if (r == c) s += b[r][c] / 3.0;
+        }
+    if (s <= 1e-6) return;
+    for (int r = 0; r < 3; r++)
+        for (int c = 0; c < 3; c++)
+            if (std::fabs(b[r][c] - (r == c ? s : 0.0)) > 0.12 * s) return;   /* not facing the game camera */
+    float f[4][4];
+    for (int r = 0; r < 4; r++)
+        for (int c = 0; c < 4; c++)
+            f[r][c] = (r < 3 && c < 3) ? float(a[r][0] * g_bb.x[0][c] + a[r][1] * g_bb.x[1][c] + a[r][2] * g_bb.x[2][c])
+                                       : float(m[r][c]);
+    m = hlslpp::float4x4(f[0][0], f[0][1], f[0][2], f[0][3], f[1][0], f[1][1], f[1][2], f[1][3], f[2][0], f[2][1],
+                         f[2][2], f[2][3], f[3][0], f[3][1], f[3][2], f[3][3]);
+    rsp.modelViewProjChanged = true;
+    g_bb.turned++;
+}
+
 }  // namespace
 
 /* ---- the interface ---------------------------------------------------------- */
@@ -473,7 +517,7 @@ void orbitApply() {
     host_camera_hook = on ? cameraHook : nullptr;
     host_draw_cells_hook = on ? drawCells : nullptr;
     RT64::ViewHook = on ? viewHook : nullptr;
-    interpSetCommandHook(on ? commandHook : nullptr);
+    interpSetCommandHook(on ? commandHook : nullptr, on ? matrixHook : nullptr);
     if (!on) {
         g_active = false;
         g_orbit.reset(true);
@@ -611,6 +655,7 @@ void orbitVi(const PadSet &pads, const Uint8 *keys) {
 
 void orbitBeforeTask(uint32_t dl, bool frameDl) {
     g_bd = Backdrop();
+    g_bb.on = false;
     if (g_cfg->cameraMode != 1 || !frameDl) return;
     dl &= 0x3FFFFFF;
     const unsigned dyn = (dl - (kDyn & 0x3FFFFFF)) / kDynSize;
@@ -634,6 +679,15 @@ void orbitBeforeTask(uint32_t dl, bool frameDl) {
         g_bd.on = true;
         const double scroll = 120.0 - double(int16_t(g_bd.pitch)) * 0.22 + rd<float>(0x8036BFC0u);
         g_bd.height = int(std::max(0.0, scroll));
+        /* billboards: Rg (the game view's rotation) and Rg Ro^T */
+        double ro[4][4];
+        orbit::lookAt(eye, c.target, ro);
+        g_bb.on = true;
+        for (int r = 0; r < 3; r++)
+            for (int k = 0; k < 3; k++) {
+                g_bb.rg[r][k] = c.view[r][k];
+                g_bb.x[r][k] = c.view[r][0] * ro[k][0] + c.view[r][1] * ro[k][1] + c.view[r][2] * ro[k][2];
+            }
         static_assert(sizeof(RT64::DisplayList) == 8, "a Gfx command");
         g_bd.count = port_backdrop_gfx(g_bd.gfx, 64, kDyn + dyn * kDynSize, c.level, g_bd.heading, g_bd.pitch,
                                        g_bd.vtx);
@@ -685,8 +739,9 @@ void orbitSetLog(bool on) {
 
 void orbitSummary() {
     if (g_cfg == nullptr || g_cfg->cameraMode != 1) return;
-    host_log("live: orbit camera: %u pictures drawn with its view, %u cuts, backdrop turned with it in %u frames\n",
-             g_hooked.load(), g_cuts, g_bdFrames);
+    host_log("live: orbit camera: %u pictures drawn with its view, %u cuts, backdrop turned with it in %u frames, "
+             "%u billboards turned to it\n",
+             g_hooked.load(), g_cuts, g_bdFrames, g_bb.turned);
 }
 
 }  // namespace live

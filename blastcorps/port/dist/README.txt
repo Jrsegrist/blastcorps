@@ -112,9 +112,9 @@ see: the game itself still uses its own camera, so everything plays out exactly 
 before. While it is on, the right stick turns the camera instead of being the C
 buttons (C left/right, the game's own 45-degree camera turns, stay on J and L); in
 menus the right stick is the C buttons as before. The view rises over low walls and
-moves in when buildings or hills are in the way. Smoke, explosions and people still
-face the game's own camera, the radar keeps the game's heading, and the screen
-doesn't shake in the orbit view.
+moves in when buildings or hills are in the way. People still face the game's own
+camera, the radar keeps the game's heading, and the screen doesn't shake in the
+orbit view.
 
 The frame-rate counter (F2, or fps_counter in the settings menu) shows in a corner
 how many pictures a second reach the display and how many frames a second the game

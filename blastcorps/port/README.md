@@ -803,8 +803,13 @@ it without a fault.  The x64-asan preset is the tool for this now.
       foot anyway; camera-relative on-foot input would change the game's
       input, so it isn't offered), `zoom_min/max` (times the game's
       distance), `tilt_min/max` (degrees), `mouse`.
+    - Billboards: smoke, explosions and particles (60F60.c, 43A60.c) are
+      quads the game turns toward its camera; after each G_MTX RT64 runs
+      (the matrix hook of `interpSetCommandHook`), a model matrix whose
+      rotation is about the inverse of the game view's rotation (up to its
+      scale) is turned by Rg Ro^T to face the orbit camera, in RT64's copy.
     - Known limits: the screen shake isn't applied to the orbit view;
-      billboards (smoke, explosions) and people sprites face the game's
+      people sprites (world-space quads built on the CPU) face the game's
       camera; the radar keeps the game's heading; the backdrop updates with
       the game's frames (it can't be added where the game didn't draw one);
       environment-mapped reflections use the game's view.

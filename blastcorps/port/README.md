@@ -819,8 +819,8 @@ it without a fault.  The x64-asan preset is the tool for this now.
   - Measured (this PC: 60 Hz display, AMD integrated GPU, D3D12, level 0
     frames 1150-1450, runs whose game hand-overs were regular): windowed
     `original` 0-0.3 % of the shown intervals off their due length (was
-    0-40 %, run to run), `60` / `display` 594 of 594 pictures one refresh
-    each in 4 of 5 runs, 593/594 in the fifth (was 2-8 % two-refresh holds);
+    0-40 %, run to run), `60` 594 of 594 pictures one refresh each in all 5
+    runs, `display` 593/594 (was 1-8 % two-refresh holds);
     fullscreen `original` 0-3 % (was 15-29 %); fullscreen `60` is limited by
     this GPU at the screen's resolution in both pacings (5-12 % two-refresh
     holds).  The latency from a retrace's due time to the display is about a

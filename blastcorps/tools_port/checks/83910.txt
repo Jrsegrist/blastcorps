@@ -64,7 +64,7 @@ func_802C9624: -n 100 --seed 3 --follow func_802AA764,func_802AABE4 --arg gp=sym
 func_802C8C90: -n 300 --follow func_802C9624 --heap 0x400=words:0x20,0x40,0x60,0x100 \
     --mem D_803F876C=rel:heap0+0x20 --mem D_803F8778=rel:heap0+0x200 --mem D_803F877C=rel:heap0+0x300 \
     --mem gBufferIndex:1=choice:0,1 --mem D_803A7424:1=choice:0,1,0x80 --mem D_803F8790:1=choice:0,1 \
-    --mem D_803F8550:0xA8=rand --mem D_803F8748:12=rand --mem D_803643E0:12=rand --mem D_8036443C:6=rand \
+    --mem D_803F8550:0xA8=rand --mem D_803F8748:12=rand --mem gPlayerX:12=rand --mem D_8036443C:6=rand \
     --mem D_803ED40B:1=rand --mem D_803F77D0=rand --mem D_803ED390:6=rand --sig func_802C9B30= \
     --sig func_8029C454=a0,a1,a2,a3,stack0,stack1,stack2 \
     --sig func_802ABBEC=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10 \
@@ -74,7 +74,7 @@ func_802C8C90: -n 200 --seed 1 --follow func_802C9624 --heap 0x400=words:0x20,0x
     --mem D_803F876C=rel:heap0+0x20 --mem D_803F8778=rel:heap0+0x200 --mem D_803F877C=rel:heap0+0x300 \
     --mem gBufferIndex:1=choice:0,1 --mem D_803A7424:1=choice:0,1 --mem D_803F8790:1=choice:0,1 --mem D_803F8550:0xA8=rand \
     --mem D_803F8550+0x76:2=choice:0,1,-1,0x1F,0x20,-0x20,-0x21,0x7FFF,-0x8000 --mem D_803F8748:12=rand \
-    --mem D_803643E0:12=rand --mem D_8036443C:6=rand --mem D_803ED40B:1=rand --mem D_803F77D0=rand --mem D_803ED390:6=rand \
+    --mem gPlayerX:12=rand --mem D_8036443C:6=rand --mem D_803ED40B:1=rand --mem D_803F77D0=rand --mem D_803ED390:6=rand \
     --sig func_802C9B30= --sig func_8029C454=a0,a1,a2,a3,stack0,stack1,stack2 \
     --sig func_802ABBEC=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10 \
     --sig func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12
@@ -86,7 +86,7 @@ func_802C8C90: -n 200 --seed 2 \
     --mem D_803F877C=rel:heap0+0x300 --mem gBufferIndex:1=choice:0,1 --mem D_803A7424:1=choice:0,1 \
     --mem D_803F8790:1=choice:0,1 --mem D_803F8550:0xA8=rand --mem D_803F8550+4*4:18=int:-20000:20000 \
     --mem D_803F8550+0x76:2=int:-300:300 --mem D_803F8550+0x96:3=bytes:0,1,2 --mem D_803F8550+0x50:1=int:1:5 \
-    --mem D_803F8748:12=int:-100000:100000 --mem D_803643E0:12=rand --mem D_8036443C:6=rand --mem D_803ED40B:1=rand \
+    --mem D_803F8748:12=int:-100000:100000 --mem gPlayerX:12=rand --mem D_8036443C:6=rand --mem D_803ED40B:1=rand \
     --mem D_803F77D0=rand --mem D_803ED390:6=rand --sig func_80260AB8=a0,a1,a2 --sig func_80260650=a0,a1,a2 \
     --sig func_8029C454=a0,a1,a2,a3,stack0,stack1,stack2 \
     --sig func_802ABBEC=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10 \
@@ -94,7 +94,7 @@ func_802C8C90: -n 200 --seed 2 \
 func_802C8FA8: -n 300 --seed 3 --follow func_802C97C0 --heap 0x400=words:0x20,0x40,0x60,0x100 \
     --mem D_803F8770=rel:heap0+0x20 --mem D_803F8780=rel:heap0+0x200 --mem D_803F8784=rel:heap0+0x300 \
     --mem gBufferIndex:1=choice:0,1 --mem D_803A7424:1=choice:0,1,0x80 --mem D_803F8791:1=choice:0,1 \
-    --mem D_803F85F8:0xA8=rand --mem D_803F8754:12=rand --mem D_803643E0:12=rand --mem D_8036443C:6=rand \
+    --mem D_803F85F8:0xA8=rand --mem D_803F8754:12=rand --mem gPlayerX:12=rand --mem D_8036443C:6=rand \
     --mem D_803ED40B:1=rand --mem D_803F77D0=rand --mem D_803ED390:6=rand --sig func_802C9B30= \
     --sig func_8029C454=a0,a1,a2,a3,stack0,stack1,stack2 \
     --sig func_802ABBEC=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10 \
@@ -105,7 +105,7 @@ func_802C8FA8: -n 100 --seed 4 \
     --mem D_803F8784=rel:heap0+0x300 --mem gBufferIndex:1=choice:0,1 --mem D_803A7424:1=choice:0,1 \
     --mem D_803F8791:1=choice:0,1 --mem D_803F85F8:0xA8=rand --mem D_803F85F8+4*4:18=int:-20000:20000 \
     --mem D_803F85F8+0x76:2=int:-300:300 --mem D_803F85F8+0x96:3=bytes:0,1,2 --mem D_803F85F8+0x50:1=int:1:5 \
-    --mem D_803F8754:12=int:-100000:100000 --mem D_803643E0:12=rand --mem D_8036443C:6=rand --mem D_803ED40B:1=rand \
+    --mem D_803F8754:12=int:-100000:100000 --mem gPlayerX:12=rand --mem D_8036443C:6=rand --mem D_803ED40B:1=rand \
     --mem D_803F77D0=rand --mem D_803ED390:6=rand --sig func_80260AB8=a0,a1,a2 --sig func_80260650=a0,a1,a2 \
     --sig func_8029C454=a0,a1,a2,a3,stack0,stack1,stack2 \
     --sig func_802ABBEC=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10 \
@@ -113,7 +113,7 @@ func_802C8FA8: -n 100 --seed 4 \
 func_802C92C0: -n 300 --seed 5 --follow func_802C995C --heap 0x400=words:0x20,0x40,0x60,0x100 \
     --mem D_803F8774=rel:heap0+0x20 --mem D_803F8788=rel:heap0+0x200 --mem D_803F878C=rel:heap0+0x300 \
     --mem gBufferIndex:1=choice:0,1 --mem D_803A7424:1=choice:0,1,0x80 --mem D_803F8792:1=choice:0,1 \
-    --mem D_803F86A0:0xA8=rand --mem D_803F8760:12=rand --mem D_803643E0:12=rand --mem D_8036443C:6=rand \
+    --mem D_803F86A0:0xA8=rand --mem D_803F8760:12=rand --mem gPlayerX:12=rand --mem D_8036443C:6=rand \
     --mem D_803ED40B:1=rand --mem D_803F77D0=rand --mem D_803ED390:6=rand --sig func_802C9B30= \
     --sig func_8029C454=a0,a1,a2,a3,stack0,stack1,stack2 \
     --sig func_802ABBEC=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10 \
@@ -124,7 +124,7 @@ func_802C92C0: -n 100 --seed 6 \
     --mem D_803F878C=rel:heap0+0x300 --mem gBufferIndex:1=choice:0,1 --mem D_803A7424:1=choice:0,1 \
     --mem D_803F8792:1=choice:0,1 --mem D_803F86A0:0xA8=rand --mem D_803F86A0+4*4:18=int:-20000:20000 \
     --mem D_803F86A0+0x76:2=int:-300:300 --mem D_803F86A0+0x96:3=bytes:0,1,2 --mem D_803F86A0+0x50:1=int:1:5 \
-    --mem D_803F8760:12=int:-100000:100000 --mem D_803643E0:12=rand --mem D_8036443C:6=rand --mem D_803ED40B:1=rand \
+    --mem D_803F8760:12=int:-100000:100000 --mem gPlayerX:12=rand --mem D_8036443C:6=rand --mem D_803ED40B:1=rand \
     --mem D_803F77D0=rand --mem D_803ED390:6=rand --sig func_80260AB8=a0,a1,a2 --sig func_80260650=a0,a1,a2 \
     --sig func_8029C454=a0,a1,a2,a3,stack0,stack1,stack2 \
     --sig func_802ABBEC=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10 \
@@ -150,7 +150,7 @@ func_802C8150: -n 100 --seed 1 \
 func_802C8150: -n 100 --seed 2 --follow func_802C8BB8,func_802C8C90,func_802C9624 \
     --heap 0x400=words:0x20,0x40,0x60,0x100 --heap 0x2000 --mem gHeapPtr=rel:heap1 --arg t7=int --arg s3=int --arg s0=int \
     --arg s1=int --arg s2=rel:heap0+0x20 --arg fp=int --mem D_803F8550:0xA8=rand --mem D_803F8748:12=rand \
-    --mem D_803F8790:1=rand --mem D_803A7424:1=choice:0,1 --mem gBufferIndex:1=choice:0,1 --mem D_803643E0:12=rand \
+    --mem D_803F8790:1=rand --mem D_803A7424:1=choice:0,1 --mem gBufferIndex:1=choice:0,1 --mem gPlayerX:12=rand \
     --mem D_8036443C:6=rand --mem D_803ED40B:1=rand --mem D_803F77D0=rand --mem D_803ED390:6=rand --sig func_802C9B30= \
     --sig func_802A992C=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5 \
     --sig func_8029C454=a0,a1,a2,a3,stack0,stack1,stack2 \

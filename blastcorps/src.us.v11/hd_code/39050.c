@@ -5,21 +5,21 @@
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
 #define LEGACY_gHeapPtr
-#define LEGACY_D_803649D0
+#define LEGACY_gVehiclesEnd
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_80364460 ((Digger *) D_80364460)
+#define gVehicles ((Digger *) gVehicles)
 #ifdef NON_MATCHING
 #define gHeapPtr (*(s32 *) &gHeapPtr)
-#define D_803649D0 (*(Digger * N64P *) &D_803649D0)
+#define gVehiclesEnd (*(Digger * N64P *) &gVehiclesEnd)
 #endif
 /* end of views */
 
 #define ABS(x) ((x) >= 0.0f ? (x) : -(x))
 
-/* One entry of the digger/object table at D_80364460 (0x74 bytes each);
- * D_803649D0 points one past the last live entry. */
+/* One entry of the digger/object table at gVehicles (0x74 bytes each);
+ * gVehiclesEnd points one past the last live entry. */
 typedef struct {
     u8 pad0[0x5C];
     s32 type;  /* 0x5C: digger weight class, see func_8027E228 */
@@ -31,7 +31,7 @@ typedef struct {
 } Digger;
 
 #ifndef NON_MATCHING
-extern Digger *D_803649D0;
+extern Digger *gVehiclesEnd;
 #endif
 extern s32 D_802FC51C;
 
@@ -222,17 +222,17 @@ f32 func_8027DB5C(s32 *a, s32 *b, s32 arg2) {
 
     i = 0;
     max = 0.0f;
-    while (&D_80364460[i] != D_803649D0) {
-        if ((type = D_80364460[i].type) != 0xFE && (type != 0 || D_803649E8 == 0)) {
-            if (func_8027E164(D_80364460[i].unk64, D_80364460[i].unk6C, a, b) != 0) {
-                if (D_80364460[i].unk70 != 0) {
-                    t = func_8027DD88(D_80364460[i].unk64, D_80364460[i].unk6C, a, b);
+    while (&gVehicles[i] != gVehiclesEnd) {
+        if ((type = gVehicles[i].type) != 0xFE && (type != 0 || D_803649E8 == 0)) {
+            if (func_8027E164(gVehicles[i].unk64, gVehicles[i].unk6C, a, b) != 0) {
+                if (gVehicles[i].unk70 != 0) {
+                    t = func_8027DD88(gVehicles[i].unk64, gVehicles[i].unk6C, a, b);
                     if (t <= 0.5) {
                         t = t * 2.0;
                     } else {
                         t = (1.0 - t) * 2.0;
                     }
-                    w = func_8027E228(D_80364460[i].type);
+                    w = func_8027E228(gVehicles[i].type);
                     v = t * w;
                     if (max < v) {
                         max = v;
@@ -937,7 +937,7 @@ void func_80281CE4(void) {
     }
     for (i = 0; i < D_8036E4C0; i++) {
         if (D_8036E380[i].active != 0) {
-            dist = func_8026A6F0(D_803643E0 >> 5, D_803643E4 >> 5, D_803643E8 >> 5,
+            dist = func_8026A6F0(gPlayerX >> 5, gPlayerY >> 5, gPlayerZ >> 5,
                                  D_8036E380[i].x, D_8036E380[i].y, D_8036E380[i].z);
             if (dist < 40) {
                 D_8036E4C8 = 400;

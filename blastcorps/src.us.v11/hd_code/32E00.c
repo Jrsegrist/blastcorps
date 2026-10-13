@@ -135,7 +135,7 @@ void func_80277620(s32 now) {
 }
 
 void func_802778FC(void) {
-    switch (D_80364456) {
+    switch (gCurVehicle) {
         case 5:
             if (D_8036CB31 >= 16 && D_8036CB30 >= 16) {
                 func_80277EDC(3, 1, 1, 0x63);
@@ -172,7 +172,7 @@ void func_802778FC(void) {
 }
 
 void func_80277AE0(void) {
-    switch (D_80364456) {
+    switch (gCurVehicle) {
         case 3:
         case 4:
         case 5:
@@ -188,7 +188,7 @@ void func_80277AE0(void) {
 }
 
 void func_80277B84(void) {
-    switch (D_80364456) {
+    switch (gCurVehicle) {
         case 3:
         case 4:
         case 5:

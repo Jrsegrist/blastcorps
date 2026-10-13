@@ -140,7 +140,7 @@ static void veh83910_model(const VehDesc83910 *d) {
  * reported a hit (D_803A7424): the first time (flag clear) restore the saved
  * state (func_802A768C), bounce (func_802C95D8), set the flag, update the
  * model again and stop; otherwise (or with no hit, which clears the flag)
- * publish position / speed / headings to D_803643E0.. and func_802A133C.
+ * publish position / speed / headings to gPlayerX.. and veh_set_record.
  * Fidelity: func_802A8768's FP inputs (the asm's f12-f26 at that point:
  * func_802A860C's sine leftovers and the caller's f20-f26) start at 0 here;
  * they only pass through to its FP outputs, which nothing here reads. */
@@ -213,18 +213,18 @@ static void veh83910_frame(const VehDesc83910 *d) {
     } else {
         *d->flag = 0;
     }
-    D_803643E0 = pos[0];
-    D_803643E4 = pos[1];
-    D_803643E8 = pos[2];
+    gPlayerX = pos[0];
+    gPlayerY = pos[1];
+    gPlayerZ = pos[2];
     D_8036443C = VEH_S16(veh, 0x76);
     D_8036443E = VEH_U16(veh, 0x4E);
     D_80364440 = VEH_U16(veh, 0x4C);
-    func_802A133C(pos[2], d->type, pos[0], pos[1], veh);
+    veh_set_record(pos[2], d->type, pos[0], pos[1], veh);
 }
 
 /* Spawn (func_802C8150 / 8470 / 8790, through func_802C80D0): model data
  * `data`, two 0x800-byte save buffers from the heap gHeapPtr, model record
- * (func_802A1388), reset the block (func_802A754C) and its wheel offsets
+ * (veh_add_record), reset the block (func_802A754C) and its wheel offsets
  * (+0x52..+0x68) and gear bands (+0x78..+0x94), position and headings,
  * ground (func_802A992C), animation channel 0 (func_8029F85C, the setters,
  * func_8029E558 both ways), parts (func_8029C354), func_80258230, then one
@@ -245,7 +245,7 @@ static void veh83910_init(const VehDesc83910 *d, s32 x, s32 y, s32 z, s32 angle,
     *d->bufA = (u64 *) heap;
     *d->bufB = (u64 *) (heap + 0x800);
     gHeapPtr = heap + 0x1000;
-    func_802A1388(d->type, 0, (s32) *d->bufA, (s32) *d->bufB, data);
+    veh_add_record(d->type, 0, (s32) *d->bufA, (s32) *d->bufB, data);
     *d->flag = 0;
     func_802A754C(veh);
     VEH_S16(veh, 0x52) = 0x50;

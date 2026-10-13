@@ -451,7 +451,7 @@ void func_8026BBD0(Gfx *gfx, s32 arg1, s32 *count) {
 #endif
 }
 
-#define PRESSED(m) ((D_80370C28 & (m)) && !(D_80370C2A & (m)))
+#define PRESSED(m) ((gContButtons & (m)) && !(gContPrevButtons & (m)))
 #define FRAMES(t) ((t) * 60 / 60)
 
 /* Runs and draws the current Yoshi window: handles open/close demands, menu
@@ -745,23 +745,23 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
             up = 0;
             down = 0;
             if (D_8036BB3C == 0x800) {
-                if (D_80370C12 >= 31 && D_80370C14 < 31) {
+                if (gContStickY >= 31 && gContPrevStickY < 31) {
                     up = 1;
                 } else {
                     up = 0;
                 }
-            } else if (D_80370C11 < -30 && D_80370C13 >= -30) {
+            } else if (gContStickX < -30 && gContPrevStickX >= -30) {
                 up = 1;
             } else {
                 up = 0;
             }
             if (D_8036BB3E == 0x400) {
-                if (D_80370C12 < -30 && D_80370C14 >= -30) {
+                if (gContStickY < -30 && gContPrevStickY >= -30) {
                     down = 1;
                 } else {
                     down = 0;
                 }
-            } else if (D_80370C11 >= 31 && D_80370C13 < 31) {
+            } else if (gContStickX >= 31 && gContPrevStickX < 31) {
                 down = 1;
             } else {
                 down = 0;
@@ -780,8 +780,8 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
                 }
                 D_8036BB28 += D_8036BB10[arg->sel].y - D_8036BB10[prev].y;
                 arg->sel = prev;
-            } else if (((((arg->atEnd ? 0 : 0x8000) | D_8036BB3E) & D_80370C28) &&
-                        !(((arg->atEnd ? 0 : 0x8000) | D_8036BB3E) & D_80370C2A)) ||
+            } else if (((((arg->atEnd ? 0 : 0x8000) | D_8036BB3E) & gContButtons) &&
+                        !(((arg->atEnd ? 0 : 0x8000) | D_8036BB3E) & gContPrevButtons)) ||
                        down) {
                 u16 next;
 
@@ -1235,12 +1235,12 @@ void func_8026FEC4(void) {
     u8 flag;
 
     flag = 0;
-    cell = D_803643E8 / D_803BE710 * D_803BE714 + D_803643E0 / D_803BE70C;
+    cell = gPlayerZ / D_803BE710 * D_803BE714 + gPlayerX / D_803BE70C;
     for (i = 0; i < D_8036EB90; i++) {
         if (D_8036BED8[i].cell == cell && !D_8036BED8[i].visited) {
-            dist = func_8026A6F0(D_803643E0 >> 5, D_803643E4 >> 5, D_803643E8 >> 5,
+            dist = func_8026A6F0(gPlayerX >> 5, gPlayerY >> 5, gPlayerZ >> 5,
                                  D_8036BED8[i].x, D_8036BED8[i].y, D_8036BED8[i].z);
-            if (dist < D_802FA200[D_80364456]) {
+            if (dist < D_802FA200[gCurVehicle]) {
                 if (++D_8036EA7C >= 4 && !gPaused) {
                     func_8026AD30(0x46);
                 }

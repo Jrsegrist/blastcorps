@@ -186,7 +186,7 @@ void func_802936AC(mf, x, z, ox, oz, px, py, pz, state, speed)
         }
         if (found) {
             state->last = i;
-            cx = D_803643E0 >> 5, cz = D_803643E8 >> 5;
+            cx = gPlayerX >> 5, cz = gPlayerZ >> 5;
             if (D_8036E4C8 == 0) {
                 dx = cx - ox, dz = cz - oz;
             } else {

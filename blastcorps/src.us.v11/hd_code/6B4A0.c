@@ -64,7 +64,7 @@ static u8 *port_veh_parts(u8 *veh, PortVehPos *p, s32 id, s32 scale, MtxChainReg
 
 /* Put the vehicle on the ground (as 6E200.c's port_veh_ground):
  * func_802A9A60 (key vid) at the position with the caller's fp, parts (s0 =
- * z, s1 = func_802A9A60's s1 in the asm), func_802A133C. The asm also hands
+ * z, s1 = func_802A9A60's s1 in the asm), veh_set_record. The asm also hands
  * func_802A9A60 the caller's f12-f26 (register leak; FP side results only,
  * zero here). */
 static void port_veh_ground(u8 *veh, PortVehPos *p, s32 vid, s32 fp, u8 *(*parts)(MtxChainRegs *)) {
@@ -79,11 +79,11 @@ static void port_veh_ground(u8 *veh, PortVehPos *p, s32 vid, s32 fp, u8 *(*parts
     mc.s0 = z;
     mc.s1 = (s32) o.s1;
     parts(&mc);
-    func_802A133C(p->z, vid, p->x, p->y, veh);
+    veh_set_record(p->z, vid, p->x, p->y, veh);
 }
 
 /* Vehicle setup, first part (as 6E200.c): model header, two 0x800-byte
- * matrix buffers from the heap, func_802A1388(id, 0, bufA, bufB, model),
+ * matrix buffers from the heap, veh_add_record(id, 0, bufA, bufB, model),
  * func_802A754C, wheel offset table (+0x52, 12 halves), position, heading
  * (+0x4C, +0x4E, +0x74). */
 static void port_veh_init_head(u8 *veh, PortVehPos *p, s32 id, u8 *model, const s16 *wheels, s32 x, s32 y,
@@ -98,7 +98,7 @@ static void port_veh_init_head(u8 *veh, PortVehPos *p, s32 id, u8 *model, const 
     p->bufB = (u64 *) heap;
     heap += 0x800;
     gHeapPtr = heap;
-    func_802A1388(id, 0, (s32) p->bufA, (s32) p->bufB, model);
+    veh_add_record(id, 0, (s32) p->bufA, (s32) p->bufB, model);
     func_802A754C(veh);
     for (i = 0; i < 12; i++) {
         VEH_S16(veh, 0x52 + i * 2) = wheels[i];
@@ -232,15 +232,15 @@ static void port_veh_turn(u8 *veh, f32 scale, s16 *target) {
     func_802A6FE4(veh, 0);
 }
 
-/* Publish position, speed, headings, then the func_802A133C record. */
+/* Publish position, speed, headings, then the veh_set_record record. */
 static void port_veh_publish(u8 *veh, PortVehPos *p, s32 id) {
-    D_803643E0 = p->x;
-    D_803643E4 = p->y;
-    D_803643E8 = p->z;
+    gPlayerX = p->x;
+    gPlayerY = p->y;
+    gPlayerZ = p->z;
     D_8036443C = VEH_S16(veh, 0x76);
     D_8036443E = VEH_U16(veh, 0x4E);
     D_80364440 = VEH_U16(veh, 0x4C);
-    func_802A133C(p->z, id, p->x, p->y, veh);
+    veh_set_record(p->z, id, p->x, p->y, veh);
 }
 
 u8 *func_802B0B3C(MtxChainRegs *r);
@@ -385,7 +385,7 @@ void func_802B0254(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Put vehicle 1 on the ground (called from C func_8024B618 in 00000.c as
+/* Put vehicle 1 on the ground (called from C veh_update_others in 00000.c as
  * `void (void)`): port_veh_ground with key 1, then func_802B0B3C.
  * Register convention: fp in (conventions.txt). The C caller doesn't set fp:
  * the asm passes on whatever an outer function left in $fp/$s8 (register
@@ -423,7 +423,7 @@ s32 func_802B0AAC(void);
 extern s8 D_803EDC04;
 extern s16 D_803EDC02;
 
-/* Vehicle 1 per-frame update (called from C func_8024B7AC in 00000.c as
+/* Vehicle 1 per-frame update (called from C veh_update_player in 00000.c as
  * `void (void)`, and from func_802AFC60):
  * 1. zone level (func_802B03B0) with the incoming scan registers; the
  *    animation/sound update func_802B07DC unless +0x9A is set;
@@ -491,11 +491,11 @@ extern u8 D_803EDC05;    /* level 0..100 */
  * here). Channel 2 of D_803ED840 gets the position within one of three
  * 0x555-wide thirds of the angle gCamYaw + 0x800 (wrapped by 0xFFF) and
  * the third (0, 1, else 2). When the cooldown D_803EDC06 is 0, channel 5 isn't
- * running (field 0x10 != 1), D_80370C1A or D_80370C1B is set and D_803EDC00 is
+ * running (field 0x10 != 1), gHeldL or gHeldR is set and D_803EDC00 is
  * nonzero: one use is taken, channel 5 restarts with 2, the cooldown is set
  * to 10 and sound 0x37 starts; otherwise a nonzero cooldown counts down. The
- * level D_803EDC05 moves by 5 (down to 0 with D_80370C15, up to 100 with
- * D_80370C16, else towards 50) and goes to channel 3 as level / 100. Channel
+ * level D_803EDC05 moves by 5 (down to 0 with gHeldLeft, up to 100 with
+ * gHeldRight, else towards 50) and goes to channel 3 as level / 100. Channel
  * 1 gets direction (speed < 0) and |speed| / 14, which also goes to
  * func_802C4584. The asm clobbers s4 and s5 (conventions.txt). */
 void func_802B07DC(void) {
@@ -523,7 +523,7 @@ void func_802B07DC(void) {
         D_803EDC06--;
     } else {
         func_802A04BC(5, (Unk8029DEA0Entry *) D_803ED840, ch);
-        if (ch[0] != 1 && (D_80370C1A != 0 || D_80370C1B != 0) && D_803EDC00 != 0) {
+        if (ch[0] != 1 && (gHeldL != 0 || gHeldR != 0) && D_803EDC00 != 0) {
             D_803EDC00--;
             func_802A0290((Unk8029DEA0Entry *) D_803ED840, 5, 2);
             D_803EDC06 = 10;
@@ -532,12 +532,12 @@ void func_802B07DC(void) {
     }
 
     level = D_803EDC05;
-    if (D_80370C15 != 0) {
+    if (gHeldLeft != 0) {
         level -= 5;
         if (level < 0) {
             level = 0;
         }
-    } else if (D_80370C16 != 0) {
+    } else if (gHeldRight != 0) {
         level += 5;
         if (level >= 0x65) {
             level = 0x64;

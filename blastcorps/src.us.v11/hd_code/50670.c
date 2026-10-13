@@ -80,9 +80,9 @@ void func_80294F00(void) {
             D_8039CA80 = ((s32) PORT_GVI("func_80294F00", D_803156C0));
         }
         if (D_8039CA70[0].recCount < 0xCCC) {
-            D_8039CA68[1][D_8039CA70[0].recCount].x = D_803643E0;
-            D_8039CA68[1][D_8039CA70[0].recCount].y = D_803643E4;
-            D_8039CA68[1][D_8039CA70[0].recCount].z = D_803643E8;
+            D_8039CA68[1][D_8039CA70[0].recCount].x = gPlayerX;
+            D_8039CA68[1][D_8039CA70[0].recCount].y = gPlayerY;
+            D_8039CA68[1][D_8039CA70[0].recCount].z = gPlayerZ;
             D_8039CA68[1][D_8039CA70[0].recCount].rx = D_803ED390[0];
             D_8039CA68[1][D_8039CA70[0].recCount].ry = D_803ED390[1];
             D_8039CA68[1][D_8039CA70[0].recCount].rz = D_803ED390[2];

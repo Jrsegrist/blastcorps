@@ -21,7 +21,7 @@
 802F4780 30 w4
 #
 # D_802E8BF8: u8 EEPROM-present flag (written at boot, read as a byte by the
-# front end) that is also word 0 of a 19-word table func_8024B188 indexes by
+# front end) that is also word 0 of a 19-word table veh_leave indexes by
 # vehicle (00000.c port_802E8BF8_word).  On the N64 the flag is word 0's most
 # significant byte, so word 0 stays big-endian and is read bytewise; words
 # 1-18 (the exit distances) are host-order s32.

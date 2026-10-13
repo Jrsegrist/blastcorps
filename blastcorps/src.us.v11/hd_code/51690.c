@@ -65,19 +65,19 @@ Gfx *func_80295EFC(s32 arg0, Gfx *arg1, s16 x, s16 y, u8 alpha) {
     gDPSetCombine(gfx++, 0xFF97FF, 0xFF2CFE7F);
     gDPSetPrimColor(gfx++, 0, 0, 0, 0, 0, alpha);
     gfx = func_8029700C(gfx, x, y);
-    if (D_80370C30 & 0x30) {
+    if (gRecButtons & 0x30) {
         gDPLoadTextureBlock(gfx++, D_8039CA98, G_IM_FMT_RGBA, G_IM_SIZ_16b, 32, 6, 0, G_TX_MIRROR,
                             G_TX_CLAMP, 5, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
-        if (D_80370C30 & 0x10) {
+        if (gRecButtons & 0x10) {
             gSPScisTextureRectangleOld(gfx++, (x + 0x30) << 2, (y + 8) << 2, (x + 0x4F) << 2,
                                        (y + 0xD) << 2, 0, 0, 0, 1 << 10, 1 << 10);
         }
-        if (D_80370C30 & 0x20) {
+        if (gRecButtons & 0x20) {
             gSPScisTextureRectangleOld(gfx++, x << 2, (y + 8) << 2, (x + 0x1F) << 2, (y + 0xD) << 2, 0,
                                        32 << 5, 0, 1 << 10, 1 << 10);
         }
     }
-    if (D_80370C30 & 0x2000) {
+    if (gRecButtons & 0x2000) {
         gDPLoadTextureBlock(gfx++, D_8039CA9C, G_IM_FMT_RGBA, G_IM_SIZ_16b, 24, 24, 0, G_TX_CLAMP,
                             G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
         gSPScisTextureRectangleOld(gfx++, (x + 9) << 2, (y + 0x33) << 2, (x + 0x20) << 2,
@@ -93,7 +93,7 @@ Gfx *func_80295EFC(s32 arg0, Gfx *arg1, s16 x, s16 y, u8 alpha) {
         u16 oy;
 
         draw = 1;
-        if (D_80370C30 & (1 << i)) {
+        if (gRecButtons & (1 << i)) {
             gDPPipeSync(gfx++);
             switch (1 << i) {
                 case 0x8000:
@@ -128,8 +128,8 @@ Gfx *func_80295EFC(s32 arg0, Gfx *arg1, s16 x, s16 y, u8 alpha) {
     }
     gDPPipeSync(gfx++);
     gDPSetPrimColor(gfx++, 0, 0, 0xDC, 0xDC, 0xDC, alpha);
-    gSPScisTextureRectangleOld(gfx++, (x + D_80370C32 / 18 + 0x23) << 2, (y - D_80370C33 / 18 + 0x28) << 2,
-                               (x + D_80370C32 / 18 + 0x2E) << 2, (y - D_80370C33 / 18 + 0x31) << 2, 0, 0,
+    gSPScisTextureRectangleOld(gfx++, (x + gRecStickX / 18 + 0x23) << 2, (y - gRecStickY / 18 + 0x28) << 2,
+                               (x + gRecStickX / 18 + 0x2E) << 2, (y - gRecStickY / 18 + 0x31) << 2, 0, 0,
                                0, 1 << 10, 1 << 10);
     gDPPipeSync(gfx++);
     gDPSetTexturePersp(gfx++, G_TP_PERSP);

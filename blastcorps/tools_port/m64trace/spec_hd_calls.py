@@ -1,4 +1,4 @@
-# Pass 1: integer registers at the hd.c -> asm calls (func_8024B618 / func_8024B7AC callees), func_8029E0AC, zone scans
+# Pass 1: integer registers at the hd.c -> asm calls (veh_update_others / veh_update_player callees), func_8029E0AC, zone scans
 R = ["t6", "t7", "s0", "s1", "s2", "s3", "s4", "fp", "a3", "t8"]
 B618 = {0x802B5FAC: "B5FAC", 0x802B02A0: "B02A0", 0x802B46C4: "B46C4", 0x802B77A0: "B77A0", 0x802CBC08: "CBC08",
         0x802CCD80: "CCD80", 0x802CFB00: "CFB00", 0x802C5860: "C5860", 0x802B2FA0: "B2FA0"}

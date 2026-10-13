@@ -282,7 +282,7 @@ static void swap_object(uint32_t base, uint32_t len) {
 
 /* Vehicle models (ROM 0x48FE90.., func_802A396C): s32 offsets 0x00..0x44;
  * Vtx [hdr[0x14], hdr[0x18]); display lists and their tables from hdr[0x18]
- * to the end (u32 words: func_802A08E4, func_802A1388, func_8029DF78) */
+ * to the end (u32 words: func_802A08E4, veh_add_record, func_8029DF78) */
 /* vehicle animation block [hdr[0x10], hdr[0x14]): s16 offsets (count = the
  * first / 2, func_8029F85C), each to {u8 k; k + 1 bytes; pad to a word}
  * then groups {s32; s32; k x ten s16} up to the next animation

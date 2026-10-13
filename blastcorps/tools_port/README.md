@@ -598,7 +598,7 @@ instead of input-sdl. That is a small mupen64plus input plugin
 (`m64input.c`, written from the public plugin API, built with gcc into
 `~/.cache/m64input-<md5 of the source>.so` on first use) whose controller-1 state is a global the
 front end sets through ctypes. The game reads it through its normal path
-(PIF -> `osContGetReadData` -> `func_8028A470`), so the front end, gameplay and
+(PIF -> `osContGetReadData` -> `cont_update`), so the front end, gameplay and
 the recording code all see it.
 
 ```python
@@ -621,7 +621,7 @@ return None to drop a hit (e.g. log a shared function only inside one caller).
 Reaching gameplay: from boot, pulse START and A alternately (6 frames out of
 every 90) until `gGameMode == 4` (mode 4 = playing; front end/menus are other
 modes, 0x100 is the pause menu, 0x800 the level intro) with `gPaused == 0`
-and a vehicle in `D_80364456`: that is a new game on level 0 (Simian Acres,
+and a vehicle in `gCurVehicle`: that is a new game on level 0 (Simian Acres,
 vehicle 4), about 1500 VIs (~25 s of game time, under a minute of wall time).
 Save a state there and later runs start from it in a second. Controls in game:
 A accelerate, B brake/reverse, stick steers, Z gets out of the vehicle (when
@@ -636,10 +636,10 @@ count and RAM, so a run replays exactly (same ROM, same emulator settings).
 
 For stage 3 (headless game logic vs the emulator) the same plugin gives
 recorded input: log the per-VI `(buttons, x, y)` an INPUT script returns (or a
-human's input-sdl session, by reading `D_80370BD8`, the game's copy of the
+human's input-sdl session, by reading `gContPad`, the game's copy of the
 pad, at each frame) and play it back as a table; feed the headless build the
 same pad words per game frame. Note the game itself reads the pad once per
-game frame (`func_8028A470`), not per VI, so compare by game frame
+game frame (`cont_update`), not per VI, so compare by game frame
 (`gFramesInMode` counts them per mode) rather than by VI when timing differs
 (the NM build runs slower and drops VIs differently).
 

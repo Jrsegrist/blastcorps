@@ -134,11 +134,11 @@ extern s32 gFrameDlLen; /* top-level display list length */
 extern u16 gPerspNorm; /* projection scale, 65535 = 1.0 */
 extern s32 nextdma; /* queued-DMA counter (next OSIoMesg slot) */
 extern s32 no_palette_dmas; /* no_palette_dmas */
-#ifndef LEGACY_D_803643C8
-extern Vehicle * N64P D_803643C8; /* size 0xFC */
+#ifndef LEGACY_gVehicleShadows
+extern Vehicle * N64P gVehicleShadows; /* size 0xFC */
 #endif
-#ifndef LEGACY_D_803643CC
-extern Vehicle * N64P D_803643CC; /* size 0xFC */
+#ifndef LEGACY_gVehicleShadowsEnd
+extern Vehicle * N64P gVehicleShadowsEnd; /* size 0xFC */
 #endif
 extern u8 D_803643D4;
 extern u8 D_803643D5;
@@ -149,9 +149,9 @@ extern u8 cmo_hit_request;
 extern u8 D_803643DA;
 extern u8 D_803643DB;
 extern u8 D_803643DC;
-extern s32 D_803643E0; /* player position, speed, heading, angle */
-extern s32 D_803643E4;
-extern s32 D_803643E8; /* player z */
+extern s32 gPlayerX; /* the player's position (the camera's subject), 1/32 units */
+extern s32 gPlayerY;
+extern s32 gPlayerZ;
 extern s32 gCamEyeX; /* listener x, y, z (<< 11) */
 extern s32 gCamEyeY;
 extern s32 gCamEyeZ;
@@ -174,20 +174,20 @@ extern s16 gCamDistance;
 extern s16 gCamHeight;
 extern s16 D_80364450;
 extern s16 gCamYaw; /* camera / player angle (0..0xFFF) */
-extern u8 D_80364456; /* mode: the update is skipped in modes 0,1,2,6,7,9,0xB,0x10..0x12 */
+extern u8 gCurVehicle; /* the type of the vehicle the player drives (0: on foot) */
 #ifndef LEGACY_D_80364458
 extern u8 * N64P D_80364458; /* level40 */
 #endif
-extern u8 D_80364460[][0x74]; /* frame time */
-#ifndef LEGACY_D_803649D0
-extern u8 * N64P D_803649D0; /* previous game mode */
+extern u8 gVehicles[][0x74]; /* one record per loaded vehicle model (00000.c's Unk74) */
+#ifndef LEGACY_gVehiclesEnd
+extern u8 * N64P gVehiclesEnd; /* one past the last record in use */
 #endif
 extern u64 D_803649D8; /* frame counter */
 extern s16 D_803649E0; /* x, y, z stored for a part that falls */
 extern s16 D_803649E2;
 extern s16 D_803649E4;
 extern s32 D_803649E8; /* heap pointer */
-extern u8 D_803649ED;
+extern u8 gNextVehicle;
 extern u8 D_803649EE;
 extern u32 D_803649F0; /* score */
 extern s32 D_80364A40; /* message to post */
@@ -313,34 +313,34 @@ extern u8 D_8036EB92;
 extern u8 D_8036EB93;
 extern u8 D_8036EB98;
 extern u8 D_8036EB99;
-extern OSMesgQueue D_80370BF8; /* hd_code: SI message queue */
-extern s8 D_80370C11;
-extern s8 D_80370C12;
-extern s8 D_80370C13;
-extern s8 D_80370C14;
-extern u8 D_80370C15; /* button bytes */
-extern u8 D_80370C16; /* R_JPAD */
-extern u8 D_80370C1A; /* flags (either one set animates) */
-extern u8 D_80370C1B; /* input 1 */
-extern u8 D_80370C1C; /* flag tested when the speed is <= 0 */
-extern u8 D_80370C1D; /* B */
-extern u8 D_80370C1E; /* L_CBUTTONS */
-extern u8 D_80370C21; /* R_CBUTTONS */
-extern u8 D_80370C22; /* Z */
-extern u8 D_80370C23; /* flag tested when the speed is > 0 */
-extern u8 D_80370C24;
-extern u8 D_80370C27;
-extern u16 D_80370C28; /* controller buttons held */
-extern u16 D_80370C2A; /* controller buttons, previous frame */
-extern s8 D_80370C2C; /* flag sampled each counted frame */
-extern s8 D_80370C2D; /* stick y */
-extern s8 D_80370C2E; /* stick x last frame */
-extern u16 D_80370C30; /* controller 1 buttons */
-extern s8 D_80370C32; /* controller 1 stick x */
-extern s8 D_80370C33; /* controller 1 stick y */
+extern OSMesgQueue gSiMesgQueue; /* hd_code: SI message queue */
+extern s8 gContStickX;
+extern s8 gContStickY;
+extern s8 gContPrevStickX;
+extern s8 gContPrevStickY;
+extern u8 gHeldLeft; /* 1 while the button is held (this frame's processed pad) */
+extern u8 gHeldRight;
+extern u8 gHeldL;
+extern u8 gHeldR;
+extern u8 gHeldA;
+extern u8 gHeldB;
+extern u8 gHeldCLeft;
+extern u8 gHeldCRight;
+extern u8 gHeldZ;
+extern u8 gHeldBOrZ;
+extern u8 gPrevHeldCLeft;
+extern u8 gPrevHeldCRight;
+extern u16 gContButtons; /* controller buttons held */
+extern u16 gContPrevButtons; /* controller buttons, previous frame */
+extern s8 gPadStickX; /* the processed stick */
+extern s8 gPadStickY;
+extern s8 gPrevPadStickX; /* stick x last frame */
+extern u16 gRecButtons; /* the pad played back from a recording */
+extern s8 gRecStickX;
+extern s8 gRecStickY;
 extern u8 D_80370C34;
-extern u8 D_80370C35; /* stick mode */
-extern s32 D_80370C38; /* swallow a held B */
+extern u8 gControlMethod; /* 0 or 1: the player's control method for the vehicle */
+extern s32 gSwallowB; /* swallow a held B */
 extern u8 frontEndPresent; /* front end loaded */
 extern OSIoMesg gDmaIoMesg;
 extern u16 D_80370C70;

@@ -4,8 +4,8 @@
 /* Matching build: IDO compiled the matched code here against older
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
-#define LEGACY_D_803643C8
-#define LEGACY_D_803643CC
+#define LEGACY_gVehicleShadows
+#define LEGACY_gVehicleShadowsEnd
 #define LEGACY_D_803F7654
 #endif /* legacy declarations */
 #include "game/game.h"
@@ -13,8 +13,8 @@
 #define D_02000000 (*(VtxBuf *) D_02000000)
 #define D_803F4030 ((Object *) D_803F4030)
 #ifdef NON_MATCHING
-#define D_803643C8 (*(Struct13A70 * N64P *) &D_803643C8)
-#define D_803643CC (*(Struct13A70 * N64P *) &D_803643CC)
+#define gVehicleShadows (*(Struct13A70 * N64P *) &gVehicleShadows)
+#define gVehicleShadowsEnd (*(Struct13A70 * N64P *) &gVehicleShadowsEnd)
 #define D_803F7654 (*(Object * N64P *) &D_803F7654)
 #endif
 /* end of views */
@@ -67,9 +67,9 @@ typedef struct VtxBuf {
 } VtxBuf;
 
 #ifndef NON_MATCHING
-extern Struct13A70 *D_803643C8;
+extern Struct13A70 *gVehicleShadows;
 #ifndef NON_MATCHING
-extern Struct13A70 *D_803643CC;
+extern Struct13A70 *gVehicleShadowsEnd;
 #endif
 #endif
 extern Gfx D_803650B0[];
@@ -85,15 +85,15 @@ extern Object *D_803F7654;
 
 
 void func_80258230(u8 id, s32 arg1, s16 arg2, s16 arg3) {
-    D_803643CC->unk1022 = id;
-    D_803643CC->unk1023 = 0;
-    D_803643CC->unk1000 = arg1;
-    D_803643CC->unk1018 = arg2;
-    D_803643CC->unk101A = arg3;
-    D_803643CC->unk101C = 0;
-    D_803643CC->unk101E = 0;
-    D_803643CC->unk1020 = 0;
-    D_803643CC++;
+    gVehicleShadowsEnd->unk1022 = id;
+    gVehicleShadowsEnd->unk1023 = 0;
+    gVehicleShadowsEnd->unk1000 = arg1;
+    gVehicleShadowsEnd->unk1018 = arg2;
+    gVehicleShadowsEnd->unk101A = arg3;
+    gVehicleShadowsEnd->unk101C = 0;
+    gVehicleShadowsEnd->unk101E = 0;
+    gVehicleShadowsEnd->unk1020 = 0;
+    gVehicleShadowsEnd++;
 }
 
 void func_802582C4(u8 id, s32 x, s32 y, s32 z, s32 arg4, s32 arg5, s32 arg6, s32 arg7) {
@@ -127,7 +127,7 @@ void func_802582C4(u8 id, s32 x, s32 y, s32 z, s32 arg4, s32 arg5, s32 arg6, s32
             }
         }
     }
-    for (p = D_803643C8; !found;) {
+    for (p = gVehicleShadows; !found;) {
         if (p->unk1022 == id) {
             p->unk1004 = x;
             if (mode) {
@@ -150,7 +150,7 @@ void func_802582C4(u8 id, s32 x, s32 y, s32 z, s32 arg4, s32 arg5, s32 arg6, s32
 }
 
 s32 func_802584BC(u8 id) {
-    Struct13A70 *p = D_803643C8;
+    Struct13A70 *p = gVehicleShadows;
 
     while (TRUE) {
         if (p->unk1022 == id) {
@@ -161,7 +161,7 @@ s32 func_802584BC(u8 id) {
 }
 
 s32 func_80258500(u8 id) {
-    Struct13A70 *p = D_803643C8;
+    Struct13A70 *p = gVehicleShadows;
 
     while (TRUE) {
         if (p->unk1022 == id) {

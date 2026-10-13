@@ -673,7 +673,7 @@ it without a fault.  The x64-asan preset is the tool for this now.
       (NULL unless tagged interpolation is on). Nothing is written to the
       display lists or to RDRAM and nothing goes back to the game, so its
       per-frame trace is the same with the option on (checked: all 60
-      levels). Tagged: the `D_80364460` records (vehicles, the carrier; per
+      levels). Tagged: the `gVehicles` records (vehicles, the carrier; per
       LOD), vehicle shadows, building objects and their moving parts, falling
       parts, the rising piece, explosion/smoke billboards, particles, people,
       ground shadows and, from the dial on, the HUD;

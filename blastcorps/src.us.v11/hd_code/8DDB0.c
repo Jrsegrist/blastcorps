@@ -33,7 +33,7 @@ extern u8 D_803FCD7A;
 
 /* Set up vehicle 0xFD (the level-object dispatcher func_802A30DC): model
  * header hdr -> D_803FCD54; two 0x800-byte save copies from the gHeapPtr
- * bump pointer (D_803FCD58/5C; trapping adds); func_802A1388(0xFD, 0,
+ * bump pointer (D_803FCD58/5C; trapping adds); veh_add_record(0xFD, 0,
  * copies, hdr); heading/target/speed of D_803FCCA0 and the event flags
  * D_803FCD72..7A (but 75) cleared; model channels D_803FC9A0 (func_8029F85C,
  * channel 0 = (100, 0, 0, 0.0, 1), run into both copies); channel 2's sound
@@ -61,7 +61,7 @@ void func_802D2570(u8 *hdr) {
     D_803FCD58 = (u8 *) p;
     D_803FCD5C = (u8 *) (p + 0x800);
     gHeapPtr = p + 0x1000;
-    func_802A1388(0xFD, 0, (s32) D_803FCD58, (s32) D_803FCD5C, hdr);
+    veh_add_record(0xFD, 0, (s32) D_803FCD58, (s32) D_803FCD5C, hdr);
     *(s16 *) (D_803FCCA0 + 0x4C) = 0;
     *(s16 *) (D_803FCCA0 + 0x4E) = 0;
     *(s16 *) (D_803FCCA0 + 0x76) = 0;

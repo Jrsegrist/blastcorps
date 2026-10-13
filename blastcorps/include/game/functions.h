@@ -31,7 +31,7 @@ struct VtxBuf;
 
 /* hd_code/00000.c */
 Gfx *func_8024C404(Gfx *arg0, DynamicBuf *arg1, s32 *arg2);
-void func_8024FC2C(Gfx **gfx, u8 lod);
+void veh_draw_layer(Gfx **gfx, u8 lod);
 void hd_mode_setup(void);
 void func_80256A34(s32 arg0);
 void align_up(s32 *arg0, s32 arg1);
@@ -308,12 +308,12 @@ void func_802886A0(void);
 void func_80288DF0(Gfx **gdl, u8 buf);
 
 /* hd_code/45BB0.c */
-u8 func_8028A370(void);
-void func_8028A3E4(void);
-void func_8028A42C(void);
-void func_8028A470(void);
-void func_8028AE88(void);
-void func_8028B240(void);
+u8 cont_init(void);
+void cont_start_read(void);
+void cont_wait_read(void);
+void cont_update(void);
+void cont_clear(void);
+void cont_show_method_option(void);
 
 /* hd_code/46C20.c */
 void func_8028B3E0(void);
@@ -476,8 +476,8 @@ void func_802A11C4(s32 id, void *dest);
 
 /* hd_code/5CB60.c */
 u32 func_802A1320(void);
-void func_802A133C(s32 a0Val, s32 id, s32 v0Val, s32 v1Val, u8 *obj);
-void func_802A1388(s32 a0Val, s32 a1Val, s32 v0Val, s32 v1Val, u8 *hdr);
+void veh_set_record(s32 a0Val, s32 id, s32 v0Val, s32 v1Val, u8 *obj);
+void veh_add_record(s32 a0Val, s32 a1Val, s32 v0Val, s32 v1Val, u8 *hdr);
 void func_802A1674(u8 *obj, s32 arg1);
 void func_802A396C(s32 type, Out802A396C *out);
 u8 *func_802A41B0(u8 *rec, u8 *v, s32 id, s32 h52, s32 b57, s32 b56, s32 *s1io, s32 b4F, s32 b55);

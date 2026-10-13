@@ -59,7 +59,7 @@ void func_802CC920(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut
     D_803F9308 = (u64 *) p;
     D_803F930C = (u64 *) (p + 0x100);
     gHeapPtr = p + 0x200;
-    func_802A1388(0xE, 0, (s32) D_803F9308, (s32) D_803F930C, hdr);
+    veh_add_record(0xE, 0, (s32) D_803F9308, (s32) D_803F930C, hdr);
     func_802A754C(D_803F9250);
     VEH14_S16(0x52) = 250;
     VEH14_S16(0x54) = 400;
@@ -186,7 +186,7 @@ void func_802CCD34(void) {
 
 /* Re-seat vehicle 14 on the ground (hd.c calls it): as func_802CBC08
  * (86F60): wheel heights (func_802A9A60, key 0xE), model placement
- * (func_802CD800), func_802A133C(z, 0xE, x, y, block). The asm hands
+ * (func_802CD800), veh_set_record(z, 0xE, x, y, block). The asm hands
  * func_802A9A60 its caller's fp (which reaches D_803ED3F2[0..2] and +0x50)
  * and FP registers; the C passes 0 (see the port notes: fidelity). */
 void func_802CCD80(void) {
@@ -203,7 +203,7 @@ void func_802CCD80(void) {
                   (s32 *) (D_803F9250 + 4), (s32 *) &D_803F92F8[1], (s16 *) (D_803F9250 + 0x4C), 0xE, 0,
                   D_803F9250, &f, &out);
     func_802CD800();
-    func_802A133C(D_803F92F8[2], 0xE, D_803F92F8[0], D_803F92F8[1], D_803F9250);
+    veh_set_record(D_803F92F8[2], 0xE, D_803F92F8[0], D_803F92F8[1], D_803F9250);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/88160/func_802CCD80.s")
@@ -293,7 +293,7 @@ s32 func_802CCF60(s32 id, TriSideOut *f) {
                   (s32 *) (D_803F9250 + 0x28), (s32 *) (D_803F9250 + 0x40), (s32 *) (D_803F9250 + 0x34),
                   (s32 *) (D_803F9250 + 4), &rr, f);
     func_802CD800();
-    func_802A133C(D_803F92F8[2], 0xE, D_803F92F8[0], D_803F92F8[1], D_803F9250);
+    veh_set_record(D_803F92F8[2], 0xE, D_803F92F8[0], D_803F92F8[1], D_803F9250);
     return rr.s3;
 }
 #else
@@ -443,13 +443,13 @@ void func_802CD068(void) {
     D_803F77D0 = D_803F8F50;
     func_802BE77C(0xE, D_803F9250);
 publish:
-    D_803643E0 = D_803F92F8[0];
-    D_803643E4 = D_803F92F8[1];
-    D_803643E8 = D_803F92F8[2];
+    gPlayerX = D_803F92F8[0];
+    gPlayerY = D_803F92F8[1];
+    gPlayerZ = D_803F92F8[2];
     D_8036443C = VEH14_S16(0x76);
     D_8036443E = *(u16 *) (D_803F9250 + 0x4E);
     D_80364440 = *(u16 *) (D_803F9250 + 0x4C);
-    func_802A133C(D_803F92F8[2], 0xE, D_803F92F8[0], D_803F92F8[1], D_803F9250);
+    veh_set_record(D_803F92F8[2], 0xE, D_803F92F8[0], D_803F92F8[1], D_803F9250);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/88160/func_802CD068.s")

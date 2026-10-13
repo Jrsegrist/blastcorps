@@ -75,7 +75,7 @@ s32 func_802D22F4(s32 a3, s32 s0, s32 s1, VehMtxOut *out);
 /* Spawn vehicle type 15 (called from the level-object dispatcher
  * func_802A350C with a spawn record decoded into registers): model `model`
  * (D_803FC5B4), two 0x100-byte matrix buffers taken from gHeapPtr (into
- * D_803FC5B8/BC), func_802A1388(0xF, 0, ...), the record reset
+ * D_803FC5B8/BC), veh_add_record(0xF, 0, ...), the record reset
  * (func_802A754C), the wheel offsets at +0x52..+0x68 and speed bands at
  * +0x78..+0x94, position (x, y, z) and heading, the ground slots
  * (func_802A992C), the model's animation channels (func_8029F85C, channel 0
@@ -105,7 +105,7 @@ void func_802CF6A0(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s32 t6
     D_803FC5B8 = (u64 *) buf;
     D_803FC5BC = (u64 *) (buf + 0x100);
     gHeapPtr = buf + 0x200;
-    func_802A1388(0xF, 0, (s32) D_803FC5B8, (s32) D_803FC5BC, model);
+    veh_add_record(0xF, 0, (s32) D_803FC5B8, (s32) D_803FC5BC, model);
     func_802A754C(v);
     *(s16 *) (v + 0x52) = 0xAF;
     *(s16 *) (v + 0x54) = 0xFA;
@@ -228,14 +228,14 @@ void func_802CFAB4(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Re-ground vehicle type 15 (called from 00000.c's func_8024B618): the
+/* Re-ground vehicle type 15 (called from 00000.c's veh_update_others): the
  * ground slots (func_802A9A60, key 0xF) at its position, the model matrices
- * (func_802D05D8), then the D_80364460 record (func_802A133C).
+ * (func_802D05D8), then the gVehicles record (veh_set_record).
  * Register convention: fp and a3 (passed through to func_802A9A60 and
  * func_802D05D8) and the FP pass-through state f12-f26; the C caller declares
  * it `void (void)`, so in the game these are whatever that C code left (the
  * port's caller passes garbage too; update 00000.c's prototype in the port
- * headers). The survey's v1 output (left = y by func_802A133C) isn't used by
+ * headers). The survey's v1 output (left = y by veh_set_record) isn't used by
  * the C caller. */
 void func_802CFB00(s32 fpIn, s32 a3, f32 f12, f32 f14, f32 f20, f32 f22, f32 f24, f32 f26) {
     u8 *v = D_803FC500;
@@ -254,7 +254,7 @@ void func_802CFB00(s32 fpIn, s32 a3, f32 f12, f32 f14, f32 f20, f32 f22, f32 f24
     func_802A9A60((s16 *) (v + 0x52), D_803FC5A8[1], x, z, (s32 *) (v + 4), (s32 *) &D_803FC5A8[1],
                   (s16 *) (v + 0x4C), 0xF, fpIn, v, &f, &o9);
     func_802D05D8(a3, z, (s32) o9.s1, &mo);
-    func_802A133C(D_803FC5A8[2], 0xF, D_803FC5A8[0], D_803FC5A8[1], v);
+    veh_set_record(D_803FC5A8[2], 0xF, D_803FC5A8[0], D_803FC5A8[1], v);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8AEE0/func_802CFB00.s")
@@ -315,7 +315,7 @@ s32 func_802CFC54(s32 id, InterpRegs *r) {
  * func_802CFC54 stored) into +0x4E and +0x4C, the new position pair
  * (func_802AAE54 at +0x6A/+0x6C), func_802D0784, then ground contact
  * (func_802A8768 with D_803ED40B = 1, divisors 0x1F4/0x15E) at that point,
- * the model matrices (func_802D05D8) and the D_80364460 record.
+ * the model matrices (func_802D05D8) and the gVehicles record.
  * Returns func_802A8768's s3.
  * Register convention (conventions.txt): id a3, f24 in through r; outputs
  * s3 and f24/f26 (func_802A8768's, through r). The asm restores a3, t0-t2
@@ -349,7 +349,7 @@ s32 func_802CFCE0(s32 id, InterpRegs *r) {
                   0x1F4, 0x15E, (s16 *) (v + 0x4C), v + 0x96, (s16 *) (v + 0x52), (s32 *) (v + 0x28),
                   (s32 *) (v + 0x40), (s32 *) (v + 0x34), (s32 *) (v + 4), &r8, &f);
     func_802D05D8((s32) (v + 0x34), (s32) (v + 0x96), (s32) &D_803FC5A8[2], &mo);
-    func_802A133C(D_803FC5A8[2], 0xF, D_803FC5A8[0], D_803FC5A8[1], v);
+    veh_set_record(D_803FC5A8[2], 0xF, D_803FC5A8[0], D_803FC5A8[1], v);
     r->f24 = f.sideZ;
     r->f26 = f.dz;
     return r8.s3;
@@ -360,7 +360,7 @@ s32 func_802CFCE0(s32 id, InterpRegs *r) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Per-frame update of vehicle type 15 (called from 00000.c's func_8024B7AC
+/* Per-frame update of vehicle type 15 (called from 00000.c's veh_update_player
  * and once from func_802CF6A0): zone level (func_802CFC10), state save
  * (func_802A75DC), sound 0x76, effects (func_802D02F8 unless +0x9A), the
  * D_80367BFF hook (func_802CB690), timers (func_802D0784), steering
@@ -376,8 +376,8 @@ s32 func_802CFCE0(s32 id, InterpRegs *r) {
  * collide (func_802BE77C); else collide and, if that hit something
  * (D_803A7424), restore the saved state (func_802A768C), start a 5-frame
  * countdown, bounce back at half of at least 50 the other way and redo the
- * matrices. Finally the position/speed/headings go to D_803643E0.. and the
- * D_80364460 record (func_802A133C).
+ * matrices. Finally the position/speed/headings go to gPlayerX.. and the
+ * gVehicles record (veh_set_record).
  * Register convention (conventions.txt): the zone registers t6, t7, s0-s4
  * (func_802CFC10 in/out, then func_802D02F8) and the FP pass-through state
  * f14-f26 (func_802A8768; f12 is func_802A83B8's result by then). The C
@@ -508,13 +508,13 @@ void func_802CFDE8(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 f
         D_803F77D0 = D_803FC200;
         func_802BE77C(0xF, v);
     }
-    D_803643E0 = D_803FC5A8[0];
-    D_803643E4 = D_803FC5A8[1];
-    D_803643E8 = D_803FC5A8[2];
+    gPlayerX = D_803FC5A8[0];
+    gPlayerY = D_803FC5A8[1];
+    gPlayerZ = D_803FC5A8[2];
     D_8036443C = *(s16 *) (v + 0x76);
     D_8036443E = *(u16 *) (v + 0x4E);
     D_80364440 = *(u16 *) (v + 0x4C);
-    func_802A133C(D_803FC5A8[2], 0xF, D_803FC5A8[0], D_803FC5A8[1], v);
+    veh_set_record(D_803FC5A8[2], 0xF, D_803FC5A8[0], D_803FC5A8[1], v);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8AEE0/func_802CFDE8.s")
@@ -701,7 +701,7 @@ void func_802D0784(void) {
 #ifdef NON_MATCHING
 /* Spawn vehicle type 16 (from the dispatcher func_802A350C), the shape of
  * func_802CF6A0: model D_803FC984, 0x1400-byte matrix buffers D_803FC988/98C,
- * func_802A1388(0x10, 1, ...), wheel offsets and speed bands, state bytes
+ * veh_add_record(0x10, 1, ...), wheel offsets and speed bands, state bytes
  * +0xA1/A2 = 0 and +0xA3 = 1, the ground slots, the animation channels of
  * D_803FC5D0 (channel 0, then channel 1 also started), the parts (scale
  * 0x2134), func_80258230; one frame of func_802D0F98 with +0x9A set; then
@@ -722,7 +722,7 @@ void func_802D07E0(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s32 t6
     D_803FC988 = (u64 *) buf;
     D_803FC98C = (u64 *) (buf + 0x1400);
     gHeapPtr = buf + 0x2800;
-    func_802A1388(0x10, 1, (s32) D_803FC988, (s32) D_803FC98C, model);
+    veh_add_record(0x10, 1, (s32) D_803FC988, (s32) D_803FC98C, model);
     func_802A754C(v);
     *(s16 *) (v + 0x52) = 0;
     *(s16 *) (v + 0x54) = 0;
@@ -826,7 +826,7 @@ extern u8 D_803FC5D0[];  /* this vehicle's animation channel table */
  * between the D_803FC988/D_803FC98C buffers, clear animation channel 0x1F's
  * active flag (func_802A02E4), func_802C444C, then stop the engine sound
  * (func_802608C8(D_803FC990)). The survey lists v1 as an output read by
- * func_8024B188, but that caller is C and v1 is just func_802608C8's
+ * veh_leave, but that caller is C and v1 is just func_802608C8's
  * leftover. */
 void func_802D0BF8(void) {
     *(s16 *) (D_803FC8D0 + 0x76) = 0;
@@ -902,7 +902,7 @@ void func_802D0E44(s32 fpIn, s32 a3, f32 f12, f32 f14, f32 f20, f32 f22, f32 f24
     func_802A9A60((s16 *) (v + 0x52), D_803FC978[1], x, z, (s32 *) (v + 4), (s32 *) &D_803FC978[1],
                   (s16 *) (v + 0x4C), 0x10, fpIn, v, &f, &o9);
     func_802D22F4(a3, z, (s32) o9.s1, &mo);
-    func_802A133C(D_803FC978[2], 0x10, D_803FC978[0], D_803FC978[1], v);
+    veh_set_record(D_803FC978[2], 0x10, D_803FC978[0], D_803FC978[1], v);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8AEE0/func_802D0E44.s")
@@ -926,7 +926,7 @@ s32 func_802D0F54(ZoneScanRegs *r) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Per-frame update of vehicle type 16 (from 00000.c's func_8024B7AC and once
+/* Per-frame update of vehicle type 16 (from 00000.c's veh_update_player and once
  * from func_802D07E0), the shape of func_802CFDE8: zone level
  * (func_802D0F54), the animation state machine (func_802D1360 unless +0x9A),
  * timers (func_802D249C), steering with the rate from func_802D2444,
@@ -939,7 +939,7 @@ s32 func_802D0F54(ZoneScanRegs *r) {
  * D_803FC998 = 1, D_803FC99A = 1 if the ring distance is under 0x190 (which
  * also makes the v1 handed to func_802A746C 1), and the ring steering with
  * scale 0.25 (the new heading also to D_803FC994); else D_803FC998 and
- * D_803FC99A are cleared. Finally D_803643E0.. and the D_80364460 record.
+ * D_803FC99A are cleared. Finally gPlayerX.. and the gVehicles record.
  * Register convention: as func_802CFDE8 (zone registers t6, t7, s0-s4 into
  * func_802D0F54, whose results are dead here; f14-f26 into func_802A8768).
  * func_8029A800 gets b0 = func_802D22F4's t0 (0x10) and h2 = its t2 (the
@@ -1035,13 +1035,13 @@ void func_802D0F98(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 f
         D_803FC998 = 0;
         D_803FC99A = 0;
     }
-    D_803643E0 = D_803FC978[0];
-    D_803643E4 = D_803FC978[1];
-    D_803643E8 = D_803FC978[2];
+    gPlayerX = D_803FC978[0];
+    gPlayerY = D_803FC978[1];
+    gPlayerZ = D_803FC978[2];
     D_8036443C = *(s16 *) (v + 0x76);
     D_8036443E = *(u16 *) (v + 0x4E);
     D_80364440 = *(u16 *) (v + 0x4C);
-    func_802A133C(D_803FC978[2], 0x10, D_803FC978[0], D_803FC978[1], v);
+    veh_set_record(D_803FC978[2], 0x10, D_803FC978[0], D_803FC978[1], v);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8AEE0/func_802D0F98.s")
@@ -1217,7 +1217,7 @@ static void port_802D1360_state0(void) {
         return;
     }
     D_803F7804 = 0;
-    if (((D_80370C35 == 0 && (D_80370C1C != 0 || D_80370C1D != 0)) || D_80370C1A != 0 || D_80370C1B != 0) &&
+    if (((gControlMethod == 0 && (gHeldA != 0 || gHeldB != 0)) || gHeldL != 0 || gHeldR != 0) &&
         VEH16_SPEED >= 0x96) {
         /* start the special move (state 1) from the current gear channel */
         VEH16_U8(0xA1) = 1;

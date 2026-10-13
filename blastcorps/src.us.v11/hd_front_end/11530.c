@@ -310,7 +310,7 @@ void func_801F8980(void) {
     nextdma = 0;
     no_palette_dmas = 0;
     func_802A5720();
-    func_8028A3E4();
+    cont_start_read();
     if (((s32) gFramesInMode)) {
         rsp_send_task((u64 *) (gDynamicBufs[gBufferIndex].gfx), gFrameDlLen, 2, 0, 1234, 0);
         rsp_send_task((u64 *) D_8021AB68, D_8021AB58, 0, 0, 1234, 0);
@@ -320,8 +320,8 @@ void func_801F8980(void) {
     }
     gBufferIndex ^= 1;
     dyn = &gDynamicBufs[gBufferIndex];
-    func_8028A470();
-    if (D_8021AB2E || (!areWeFading() && D_8021A924 == 1 && (D_80370C28 & 0x9000) && !(D_80370C2A & 0x9000))) {
+    cont_update();
+    if (D_8021AB2E || (!areWeFading() && D_8021A924 == 1 && (gContButtons & 0x9000) && !(gContPrevButtons & 0x9000))) {
         if (D_8021A926 == 0) {
             func_80260A10();
             func_80260650(D_80367738, 0x1E, 0);
@@ -334,18 +334,18 @@ void func_801F8980(void) {
             D_8021AB2E = 1;
         }
     }
-    if ((D_80370C28 & 0x4000) && !(D_80370C2A & 0x4000) && !areWeFading() && D_8021A924 == 1) {
+    if ((gContButtons & 0x4000) && !(gContPrevButtons & 0x4000) && !areWeFading() && D_8021A924 == 1) {
         D_80364A87 = 0;
         func_80260650(D_80367738, 0xDE, 0);
         func_80275390(0x4000000000000000);
         levelno = D_8021A905;
     }
-    dist = D_80370C2C * D_80370C2C + D_80370C2D * D_80370C2D;
+    dist = gPadStickX * gPadStickX + gPadStickY * gPadStickY;
     if (dist < 1500) {
         D_8021A930 = 1;
     }
     if (dist != 0) {
-        D_8020E3D8 = func_8028BBF4(0, 0, D_80370C2C, -D_80370C2D);
+        D_8020E3D8 = func_8028BBF4(0, 0, gPadStickX, -gPadStickY);
     }
     if (dist > 1500 && D_8021A930 && D_8021A907 >= 0 && D_8021AB2C == 0xFF && D_8021A924 == 1 && yoshiState == 1) {
         D_8021A930 = 0;
@@ -538,31 +538,31 @@ Gfx *func_801F9B84(Gfx *arg0, Dynamic *dyn, s32 *count) {
     gDPFullSync(gdl++);
     gSPEndDisplayList(gdl++);
     if (D_802FA264) {
-        if (D_80370C28 & 0x800) {
+        if (gContButtons & 0x800) {
             D_8021AB40 += 0.01;
         }
-        if (D_80370C28 & 0x400) {
+        if (gContButtons & 0x400) {
             D_8021AB40 -= 0.01;
         }
-        if (D_80370C28 & 0xC00) {
+        if (gContButtons & 0xC00) {
             debug_printf("angd %f\n", D_8021AB40);
         }
-        if (D_80370C28 & 0x100) {
+        if (gContButtons & 0x100) {
             D_8021AB44 += 0.001;
         }
-        if (D_80370C28 & 0x200) {
+        if (gContButtons & 0x200) {
             D_8021AB44 -= 0.001;
         }
-        if (D_80370C28 & 0x300) {
+        if (gContButtons & 0x300) {
             debug_printf("dmm %f\n", D_8021AB44);
         }
-        if (D_80370C28 & 0x10) {
+        if (gContButtons & 0x10) {
             D_8021AB48 += 100.0f;
         }
-        if (D_80370C28 & 0x20) {
+        if (gContButtons & 0x20) {
             D_8021AB48 -= 100.0f;
         }
-        if (D_80370C28 & 0x30) {
+        if (gContButtons & 0x30) {
             debug_printf("mmm %f\n", D_8021AB48);
         }
     }

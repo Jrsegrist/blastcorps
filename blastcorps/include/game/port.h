@@ -122,8 +122,8 @@ void *port_save_semblock(const void *sem);
  *                     into this frame). */
 #define PORT_ITAG_NONE 0
 #define PORT_ITAG_HUD 1       /* 2D and HUD: shown exactly as drawn */
-#define PORT_ITAG_OBJ 2       /* D_80364460[] record (vehicles, the carrier): index | lod << 8 */
-#define PORT_ITAG_SHADOW 3    /* vehicle shadow quad, D_803643C8[] index */
+#define PORT_ITAG_OBJ 2       /* gVehicles[] record (vehicles, the carrier): index | lod << 8 */
+#define PORT_ITAG_SHADOW 3    /* vehicle shadow quad, gVehicleShadows[] index */
 #define PORT_ITAG_SHADOWFE 4  /* the flying vehicle's shadow */
 #define PORT_ITAG_BUILDING 5  /* D_803F4030[] building object (posed or not) */
 #define PORT_ITAG_BPART 6     /* a building's moving part: object << 8 | part */

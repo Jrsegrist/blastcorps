@@ -168,9 +168,9 @@ void func_801F57B0(void) {
  *     while (1) {
  *         pakBusy = 0;
  *         tries = 0;
- *         osSetEventMesg(OS_EVENT_SI, &D_80370BF8, 0);
+ *         osSetEventMesg(OS_EVENT_SI, &gSiMesgQueue, 0);
  *         osRecvMesg(&D_80219EF8, &msg, OS_MESG_BLOCK);
- *         osSetEventMesg(OS_EVENT_SI, &D_80370BF8, 0);
+ *         osSetEventMesg(OS_EVENT_SI, &gSiMesgQueue, 0);
  *         while (gPreNmi != 0) {
  *         }
  *         cmd = (u32) msg & 0xFF;
@@ -179,7 +179,7 @@ void func_801F57B0(void) {
  *         reply = ((u32) msg >> 24) & 0xFF;
  *         D_8020C014[0] = player + 0x11;
  *         pakBusy = 1;
- *         func_8028A42C();
+ *         cont_wait_read();
  *         func_801EE390();
  *         D_80218D24 = 0;
  *         do {
@@ -233,7 +233,7 @@ void func_801F57B0(void) {
  *                     break;
  *                 case 16:
  *                     done = 1;
- *                     ret = osEepromProbe(&D_80370BF8);
+ *                     ret = osEepromProbe(&gSiMesgQueue);
  *                     break;
  *                 case 17:
  *                     ret = func_801F6ED4(player);
@@ -387,9 +387,9 @@ void func_801F58E8(void *arg) {
     while (1) {
         pakBusy = 0;
         tries = 0;
-        osSetEventMesg(OS_EVENT_SI, &D_80370BF8, 0);
+        osSetEventMesg(OS_EVENT_SI, &gSiMesgQueue, 0);
         osRecvMesg(&D_80219EF8, &msg, OS_MESG_BLOCK);
-        osSetEventMesg(OS_EVENT_SI, &D_80370BF8, 0);
+        osSetEventMesg(OS_EVENT_SI, &gSiMesgQueue, 0);
         while (gPreNmi != 0) {
         }
         cmd = (u32) msg & 0xFF;
@@ -398,7 +398,7 @@ void func_801F58E8(void *arg) {
         reply = ((u32) msg >> 24) & 0xFF;
         D_8020C014[0] = player + 0x11;
         pakBusy = 1;
-        func_8028A42C();
+        cont_wait_read();
         func_801EE390();
         D_80218D24 = 0;
         do {
@@ -452,7 +452,7 @@ void func_801F58E8(void *arg) {
                     break;
                 case 16:
                     done = 1;
-                    ret = osEepromProbe(&D_80370BF8);
+                    ret = osEepromProbe(&gSiMesgQueue);
                     break;
                 case 17:
                     ret = func_801F6ED4(player);
@@ -579,11 +579,11 @@ s32 func_801F5FE4(void) {
     OSMesg msg;
 
     msg = 0;
-    if (D_80370BF8.validCount != 0) {
+    if (gSiMesgQueue.validCount != 0) {
         PFS_ASSERT(1==0, 400);
-        osRecvMesg(&D_80370BF8, &msg, OS_MESG_NOBLOCK);
+        osRecvMesg(&gSiMesgQueue, &msg, OS_MESG_NOBLOCK);
     }
-    if (func_8028FCD4(&D_80370BF8, &status)) {
+    if (func_8028FCD4(&gSiMesgQueue, &status)) {
         ret = 1;
     } else if (!(status & 1)) {
         ret = 1;
@@ -592,7 +592,7 @@ s32 func_801F5FE4(void) {
     }
     if (msg != 0) {
         PFS_ASSERT(1==0, 414);
-        osSendMesg(&D_80370BF8, msg, OS_MESG_NOBLOCK);
+        osSendMesg(&gSiMesgQueue, msg, OS_MESG_NOBLOCK);
     }
     return ret;
 }
@@ -603,15 +603,15 @@ s32 func_801F60C8(void) {
 
     ret = 0;
     D_8039C538 = 4;
-    if (func_8028FCD4(&D_80370BF8, &status)) {
+    if (func_8028FCD4(&gSiMesgQueue, &status)) {
         ret = 1;
     } else if (!(status & 1)) {
         ret = 1;
     }
     if (ret == 0) {
-        ret = osPfsInitPak(&D_80370BF8, &D_8039B630, 0);
+        ret = osPfsInitPak(&gSiMesgQueue, &D_8039B630, 0);
     }
-    func_8028A370();
+    cont_init();
     return ret;
 }
 
@@ -666,9 +666,9 @@ s32 func_801F6264(u8 player, u8 rw) {
                 }
             }
         } else if (rw == 1) {
-            osEepromLongWrite(&D_80370BF8, 0, p, 0x100);
+            osEepromLongWrite(&gSiMesgQueue, 0, p, 0x100);
         } else {
-            osEepromLongRead(&D_80370BF8, 0, p, 0x100);
+            osEepromLongRead(&gSiMesgQueue, 0, p, 0x100);
         }
     } else {
         tries = 0;
@@ -753,11 +753,11 @@ s32 func_801F67E4(u8 pn, u8 level, u8 rw) {
             D_80364F70[idx + 1] = D_80364F70[idx] ^ 0x55AA;
             debug_printf("%d %d EEWRITE %x %x\n", level, D_80364F70[idx], (u32) (idx * 2 + 0x100) >> 3, p);
             PORT_SAVE_BEGIN(p, PORT_SAVE_EETIMES, 8);
-            osEepromWrite(&D_80370BF8, (u32) (idx * 2 + 0x100) >> 3, (u8 *) p);
+            osEepromWrite(&gSiMesgQueue, (u32) (idx * 2 + 0x100) >> 3, (u8 *) p);
             PORT_SAVE_END(p, PORT_SAVE_EETIMES, 8);
         } else {
             PORT_SAVE_BEGIN(p, PORT_SAVE_EETIMES, 8);
-            osEepromRead(&D_80370BF8, (u32) (idx * 2 + 0x100) >> 3, (u8 *) p);
+            osEepromRead(&gSiMesgQueue, (u32) (idx * 2 + 0x100) >> 3, (u8 *) p);
             PORT_SAVE_END(p, PORT_SAVE_EETIMES, 8);
             for (i = 0; i < 2; i++, level++) {
                 if (((players[pn].rank[level] > 0 && players[pn].rank[level] < 6) ? 1 : 0)
@@ -782,7 +782,7 @@ s32 func_801F6AF4(u8 player, u64 sem) {
     p = (u8 *) &players[player];
     PORT_SAVE_BE64(sem);
     if (D_802E8BF8 != 0 || gGameMode == 0x40000000000000) {
-        osEepromWrite(&D_80370BF8, 0x3F, (u8 *) &sem);
+        osEepromWrite(&gSiMesgQueue, 0x3F, (u8 *) &sem);
     } else {
         debug_printf("PUTTING SEMAPHORE %llu\n", sem);
         /* 0x20 bytes from &sem: the semaphore and 24 bytes of stack */
@@ -800,7 +800,7 @@ s32 func_801F6BD0(u8 player, u64 *sem) {
     ret = 0;
     p = (u8 *) &players[player];
     if (D_802E8BF8 != 0) {
-        osEepromRead(&D_80370BF8, 0x3F, (u8 *) sem);
+        osEepromRead(&gSiMesgQueue, 0x3F, (u8 *) sem);
         PORT_SAVE_BE64(*sem);
     } else {
         ret = osPfsReadWriteFile(&D_8039B630, D_8039B698[player], PFS_READ, 0xDE0, 0x20, buf);

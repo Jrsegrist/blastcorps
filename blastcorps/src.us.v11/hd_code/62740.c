@@ -2,7 +2,7 @@
 #include <ultra64.h>
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_80364460 ((u8 *) D_80364460)
+#define gVehicles ((u8 *) gVehicles)
 #ifdef NON_MATCHING
 #define D_803ED390 (*(s16 *) D_803ED390)
 #define D_803ED3A8 (*(s32 *) D_803ED3A8)
@@ -563,13 +563,13 @@ void func_802A7764(u64 *a, u64 *b, s32 size) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* With no steering input (D_80370C2D == 0), brake the speed (veh+0x76) by 8
+/* With no steering input (gPadStickY == 0), brake the speed (veh+0x76) by 8
  * toward zero, stopping at zero. Asm callers keep a0-a3 and t6 live (the asm
  * saves s7). */
 void func_802A77D0(u8 *veh) {
     s32 speed;
 
-    if (D_80370C2D == 0) {
+    if (gPadStickY == 0) {
         speed = VEH_S16(veh, 0x76);
         if (speed >= 0) {
             speed -= 8;
@@ -619,11 +619,11 @@ s32 func_802A7AAC(s32 x, s16 *p);
 s32 func_802A7C28(u8 *veh, s32 x, s16 *band);
 s32 func_802A7D68(s32 mode, u8 *f);
 
-/* Throttle/brake step for the speed *speed (s16). With D_80370C22 set: if
+/* Throttle/brake step for the speed *speed (s16). With gHeldZ set: if
  * D_803ED400 is nonzero, brake by `delta` toward 0 (by the speed's sign).
- * Otherwise: with D_803ED40C set (and levelno != 0x22, D_80364456 not
+ * Otherwise: with D_803ED40C set (and levelno != 0x22, gCurVehicle not
  * 0xB/0x11/0x12) clamp the speed to half the top band bound (bands[13]) or,
- * in reverse, half bands[0]; then with steer input D_80370C2D > 0 accelerate
+ * in reverse, half bands[0]; then with steer input gPadStickY > 0 accelerate
  * (or brake by `delta` when rolling backward) and with < 0 the mirror image:
  * the step is the band value func_802A7C28 finds times
  * func_802A7D68(mode, flags), or -6 going forward with no band; nothing when
@@ -638,7 +638,7 @@ void func_802A785C(u8 *veh, s16 *speed, s32 mode, u8 *flags, s16 *bands, s32 del
     s32 mult;
     s32 r;
 
-    if (D_80370C22 != 0) {
+    if (gHeldZ != 0) {
         if (D_803ED400 != 0) {
             s = *speed;
             if (s > 0) {
@@ -655,8 +655,8 @@ void func_802A785C(u8 *veh, s16 *speed, s32 mode, u8 *flags, s16 *bands, s32 del
             *speed = s;
         }
     } else {
-        if (((s8) D_803ED40C) != 0 && levelno != 0x22 && D_80364456 != 0xB && D_80364456 != 0x11 &&
-            D_80364456 != 0x12) {
+        if (((s8) D_803ED40C) != 0 && levelno != 0x22 && gCurVehicle != 0xB && gCurVehicle != 0x11 &&
+            gCurVehicle != 0x12) {
             s = *speed;
             if (s >= 0) {
                 lim = bands[13] >> 1;
@@ -671,9 +671,9 @@ void func_802A785C(u8 *veh, s16 *speed, s32 mode, u8 *flags, s16 *bands, s32 del
             }
         }
         mult = func_802A7D68(mode, flags);
-        if (D_80370C2D != 0) {
+        if (gPadStickY != 0) {
             s = *speed;
-            if (D_80370C2D > 0) {
+            if (gPadStickY > 0) {
                 if (s < 0) {
                     *speed = s + delta;
                 } else if (func_802A7AAC(s, bands) == 0) {
@@ -702,11 +702,11 @@ void func_802A785C(u8 *veh, s16 *speed, s32 mode, u8 *flags, s16 *bands, s32 del
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* 1 if x < (p[0] * steer) / -80 (steer = D_80370C2D), else 0.
+/* 1 if x < (p[0] * steer) / -80 (steer = gPadStickY), else 0.
  * Register convention: x in t2, p in s1, result in t4 (asm saves v0, v1, a0).
  * Asm callers keep t2, t3 and t6 live. */
 s32 func_802A7A1C(s32 x, s16 *p) {
-    return x < (p[0] * D_80370C2D) / -80;
+    return x < (p[0] * gPadStickY) / -80;
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802A7A1C.s")
@@ -718,7 +718,7 @@ s32 func_802A7A1C(s32 x, s16 *p) {
  * Register convention: x in t2, p in s1, result in t4 (asm saves v0, v1, a0).
  * Asm callers keep t2, t3 and t6 live. */
 s32 func_802A7AAC(s32 x, s16 *p) {
-    return (p[13] * D_80370C2D) / 80 < x;
+    return (p[13] * gPadStickY) / 80 < x;
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802A7AAC.s")
@@ -726,9 +726,9 @@ s32 func_802A7AAC(s32 x, s16 *p) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Variant of func_802A785C's speed step (no callers found): with D_80370C22
+/* Variant of func_802A785C's speed step (no callers found): with gHeldZ
  * set and D_803ED400 nonzero, brake *speed by `delta` toward 0 by the sign of
- * D_803ED400; otherwise, if D_80370C1A or D_80370C1B is set, accelerate: a
+ * D_803ED400; otherwise, if gHeldL or gHeldR is set, accelerate: a
  * negative speed by `delta`, else by 4 * the band value func_802A7C28 finds
  * (or -6 with none). The result is copied to D_803ED400.
  * Register convention: gp, speed in t6, bands in s1 (clobbered by
@@ -738,7 +738,7 @@ void func_802A7B3C(u8 *veh, s16 *speed, s16 *bands, s32 delta) {
     s32 d;
     s32 r;
 
-    if (D_80370C22 != 0) {
+    if (gHeldZ != 0) {
         d = D_803ED400;
         if (d != 0) {
             s = *speed;
@@ -755,7 +755,7 @@ void func_802A7B3C(u8 *veh, s16 *speed, s16 *bands, s32 delta) {
             }
             *speed = s;
         }
-    } else if (D_80370C1A != 0 || D_80370C1B != 0) {
+    } else if (gHeldL != 0 || gHeldR != 0) {
         s = *speed;
         if (s < 0) {
             *speed = s + delta;
@@ -893,7 +893,7 @@ s32 func_802A7D68(s32 mode, u8 *f) {
 #ifdef NON_MATCHING
 /* Steering: turn rate = s3 (minus a third when D_80367C10; forced to 100/200
  * when D_80370C75, by D_80370C34), saved to D_80370C72; then turn *angle by
- * |steer| * rate / 80 against the sign of steer (D_80370C2C), wrapped to
+ * |steer| * rate / 80 against the sign of steer (gPadStickX), wrapped to
  * 0..0xFFF. When D_803ED40A is set and D_803649EE isn't, *angle is overridden
  * by D_803ED408. The result also goes to D_80370C70.
  * Register convention: rate in s3 (clobbered), angle in s4 (the asm saves s5;
@@ -910,7 +910,7 @@ void func_802A7E70(s32 rate, u16 *angle) {
         rate = (D_80370C34 != 0) ? 100 : 200;
     }
     D_80370C72 = rate;
-    steer = D_80370C2C;
+    steer = gPadStickX;
     a = *angle;
     mag = (steer < 0) ? -steer : steer;
     rate = (mag * rate) / 80;
@@ -1110,7 +1110,7 @@ f32 func_802A83B8(s16 *div, u8 *f, s32 *p, f32 *out) {
 #ifdef NON_MATCHING
 s32 func_802A8590(s32 *p);
 
-/* Slope/drag step for *speed. Nothing if D_80370C22 is set and the speed is
+/* Slope/drag step for *speed. Nothing if gHeldZ is set and the speed is
  * 0. With `clamp`, cap the speed at 1.5 * veh+0x92 (forward) or 1.5 *
  * veh+0x78 (reverse). Then, unless a flag byte f[0..2] is 1, add
  * round(func_802A8590(p) / div * -4) and drag the result toward 0 by 3 (kind
@@ -1123,7 +1123,7 @@ void func_802A843C(u8 *veh, s16 *speed, s32 kind, s8 *f, s32 *p, s32 clamp, f32 
     s32 lim;
     s32 step;
 
-    if (D_80370C22 != 0 && *speed == 0) {
+    if (gHeldZ != 0 && *speed == 0) {
         return;
     }
     if (clamp != 0) {
@@ -2953,7 +2953,7 @@ void func_802AB714(s32 id, s32 *s3, InterpRegs *r);
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Entry from C (00000.c func_8024AE2C, which declares a u8 parameter; the asm
+/* Entry from C (00000.c veh_apply_switch, which declares a u8 parameter; the asm
  * moves all of a0 to s2): func_802AB50C(id). The asm saves every callee-saved
  * register around the call, so the walk's register results are dropped; its
  * FP state starts as whatever the C caller left in f20-f26 (f24 is an input
@@ -3378,7 +3378,7 @@ s32 func_802ABCDC(s32 ax, s32 ay, s32 az, s32 bx, s32 by, s32 bz) {
  * contains `id`. Its level: with byte +0x14 == 0, 0xFF if byte +0x10 == 1, else
  * fading from 0xFF at the centre to D_80364A6E at the radius; with byte +0x14
  * = L != 0, L if byte +0x10 == 1, else fading from L to D_80364A6E. No zone:
- * D_80364A6E. The level goes to +0x60 of the D_80364460 record whose word
+ * D_80364A6E. The level goes to +0x60 of the gVehicles record whose word
  * +0x5C is `id` (one must exist). Returns *D_803BDFD4.
  * Register convention: id a3, point t3/t4/t5; outputs v1 (return value) and
  * t6, t7, s0-s4 (through `r`, unchanged if no zone is looked at). The asm
@@ -3447,7 +3447,7 @@ s32 func_802ABD54(s32 id, s32 x, s32 y, s32 z, ZoneScanRegs *r) {
     }
     level = D_80364A6E;
 found:
-    rec = D_80364460;
+    rec = gVehicles;
     while (*(s32 *) (rec + 0x5C) != id) {
         rec += 0x74;
     }

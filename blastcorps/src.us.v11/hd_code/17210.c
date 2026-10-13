@@ -141,7 +141,7 @@ void func_8025BD98(void) {
     if (D_8036698C) {
         D_803649E8 = 1;
     }
-    D_80364456 = D_8036698C;
+    gCurVehicle = D_8036698C;
     D_803669B4 = 0;
 }
 
@@ -177,21 +177,21 @@ void func_8025BEF8(void) {
             }
         }
     } else {
-        D_80370C30 = (D_803669AC[D_80366994].btnHi << 8) + D_803669AC[D_80366994].btnLo;
-        D_80370C32 = D_803669AC[D_80366994].stickX;
-        D_80370C33 = D_803669AC[D_80366994].stickY;
+        gRecButtons = (D_803669AC[D_80366994].btnHi << 8) + D_803669AC[D_80366994].btnLo;
+        gRecStickX = D_803669AC[D_80366994].stickX;
+        gRecStickY = D_803669AC[D_80366994].stickY;
         if (--D_803669A0 < 0) {
             D_80366994++;
             D_803669A0 = D_803669AC[D_80366994].count;
         }
         if ((gGameMode & 0x100000000002) && D_8036698C != 9) {
-            if ((D_80370C30 & 0xC000) == 0x8000) {
-                D_80370C30 &= ~0x8000;
-                D_80370C30 |= 0x4000;
+            if ((gRecButtons & 0xC000) == 0x8000) {
+                gRecButtons &= ~0x8000;
+                gRecButtons |= 0x4000;
             }
-            if ((D_80370C30 & 0xC000) == 0x4000) {
-                D_80370C30 &= ~0x4000;
-                D_80370C30 |= 0x8000;
+            if ((gRecButtons & 0xC000) == 0x4000) {
+                gRecButtons &= ~0x4000;
+                gRecButtons |= 0x8000;
             }
         }
     }

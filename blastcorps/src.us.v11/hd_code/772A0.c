@@ -89,7 +89,7 @@ void func_802BBA60(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp) {
     D_803EFEA8 = (u64 *) heap;
     D_803EFEAC = (u64 *) (heap + 0x800);
     gHeapPtr = heap + 0x1000;
-    func_802A1388(7, 0, (s32) D_803EFEA8, (s32) D_803EFEAC, data);
+    veh_add_record(7, 0, (s32) D_803EFEA8, (s32) D_803EFEAC, data);
     func_802A754C(veh);
     VEH_S16(veh, 0x52) = 0x50;
     VEH_S16(veh, 0x54) = 0x50;
@@ -250,7 +250,7 @@ s32 func_802BBE74(ZoneScanRegs *r) {
  * check: with contact 3 (func_802BCD80) the speed becomes 0 if contact 2 is
  * also set, else D_803EFEC0 = 0 and -40 once D_803EFEC4 >= 6 (else 0); with
  * only contact 2, D_803EFEC4 = 0 and +40 once D_803EFEC0 >= 6 (else 0).
- * Finally position / speed / headings go to D_803643E0.. and func_802A133C.
+ * Finally position / speed / headings go to gPlayerX.. and veh_set_record.
  * The asm saves s0-s7, gp, fp and f20-f30. The asm's adds/subs trap on
  * overflow (game range).
  * Fidelity: func_802BBE74's scan registers are passed through from the
@@ -342,13 +342,13 @@ void func_802BBEB8(void) {
             }
         }
     }
-    D_803643E0 = D_803EFE98;
-    D_803643E4 = D_803EFE9C;
-    D_803643E8 = D_803EFEA0;
+    gPlayerX = D_803EFE98;
+    gPlayerY = D_803EFE9C;
+    gPlayerZ = D_803EFEA0;
     D_8036443C = VEH_S16(veh, 0x76);
     D_8036443E = VEH_U16(veh, 0x4E);
     D_80364440 = VEH_U16(veh, 0x4C);
-    func_802A133C(D_803EFEA0, 7, D_803EFE98, D_803EFE9C, veh);
+    veh_set_record(D_803EFEA0, 7, D_803EFE98, D_803EFE9C, veh);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/772A0/func_802BBEB8.s")
@@ -360,8 +360,8 @@ extern u8 D_803EFDF0[];  /* this vehicle's state block (the asm's $gp) */
 extern u8 D_803EFEC9;    /* countdown */
 
 /* Countdown D_803EFEC9: when nonzero it just counts down. At zero, if the
- * flag for the speed's sign (s16 at +0x76: > 0 -> D_80370C23, else
- * D_80370C1C) is set, two func_802A6274 records are set up (def D_802C2984,
+ * flag for the speed's sign (s16 at +0x76: > 0 -> gHeldBOrZ, else
+ * gHeldA) is set, two func_802A6274 records are set up (def D_802C2984,
  * data 0x9C40, tag 0, type 1 at (7, 2, 1) and (7, 3, 1)), sound 0x29 is
  * played (func_80260650) and the countdown restarts at 1. Then always
  * func_802C4584(|speed >> 4|) and func_802C4724(0x21).
@@ -375,7 +375,7 @@ void func_802BC2C8(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
 
     if (D_803EFEC9 != 0) {
         D_803EFEC9--;
-    } else if ((*(s16 *) (D_803EFDF0 + 0x76) > 0) ? (D_80370C23 != 0) : (D_80370C1C != 0)) {
+    } else if ((*(s16 *) (D_803EFDF0 + 0x76) > 0) ? (gHeldBOrZ != 0) : (gHeldA != 0)) {
         io.a3 = 0;
         io.t6 = t6;
         io.s1 = s1;

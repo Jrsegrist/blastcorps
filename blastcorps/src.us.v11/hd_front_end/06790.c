@@ -64,7 +64,7 @@ Gfx *func_801ED800(Gfx *arg0, FeDyn *dyn, u8 arg2, s32 *arg3) {
     FePlayer *p;
     s32 size;
 
-    if ((D_80370C28 & 0x8000) && !(D_80370C2A & 0x8000) && gDebugCheats) {
+    if ((gContButtons & 0x8000) && !(gContPrevButtons & 0x8000) && gDebugCheats) {
         D_80215960 = 2;
         D_80215964 = 3;
     }

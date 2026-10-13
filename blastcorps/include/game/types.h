@@ -86,7 +86,7 @@ typedef struct SndConfig {
     u16 slotCount;
 } SndConfig;
 
-/* A vehicle's shadow record, 0x1040 bytes (D_803643C8 / D_803643CC; hd.c;
+/* A vehicle's shadow record, 0x1040 bytes (gVehicleShadows / gVehicleShadowsEnd; hd.c;
  * 13A70.c reads it as its Struct13A70). */
 typedef struct Vehicle {
     u8 unk0[0x1000]; /* shadow texture, 64x64 IA8 */
@@ -96,13 +96,13 @@ typedef struct Vehicle {
     s32 unk100C;
     s32 unk1010;
     u8 pad1014[4];
-    s16 unk1018; /* shadow half-width */
-    s16 unk101A; /* shadow half-depth */
+    s16 halfWidth; /* shadow half-width */
+    s16 halfDepth; /* shadow half-depth */
     s16 unk101C; /* rotation x */
     s16 unk101E; /* rotation y */
     s16 unk1020; /* rotation z */
-    u8 unk1022; /* id */
-    u8 unk1023; /* draw layer */
+    u8 type; /* the vehicle type */
+    u8 layer; /* draw layer (veh_draw_shadows) */
     u8 pad1024[0x1C];
 } Vehicle; /* 0x1040 bytes */
 

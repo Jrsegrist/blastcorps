@@ -149,7 +149,7 @@ void func_8028C874(u8 arg0) {
         if (D_8039AF00[sp34].collected == 0) {
             if (D_802FDB40[D_8039AF00[sp34].type].trigger == arg0) {
                 func_802CE90C(sp34 + 0x10000);
-                sp30 = func_8026A6F0(D_803643E0 >> 5, D_803643E4 >> 5, D_803643E8 >> 5, D_8039AF00[sp34].x,
+                sp30 = func_8026A6F0(gPlayerX >> 5, gPlayerY >> 5, gPlayerZ >> 5, D_8039AF00[sp34].x,
                                      D_8039AF00[sp34].y, D_8039AF00[sp34].z);
                 if (sp30 <= D_802FDB40[D_8039AF00[sp34].type].radius) {
                     D_8039AF00[sp34].collected = 1;

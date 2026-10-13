@@ -21,11 +21,11 @@ func_802AFC28: -n 100 --seed 1 --ret void --follow func_802AC85C --arg a0=choice
 # func_802AEB9C: zone test (mode a3 -> *a0, result a1 -> v0; conventions.txt). Mode 1: z/32 in [0xCCD,0xDB5);
 # mode 2: x/32 in [0x834,0x961) and z/32 in [0x4B0,0x5DD); a3 keeps the last value compared
 func_802AEB9C: -n 400 --seed 0 --arg a3=choice:1*3,2*4,0,3,-1,0x101 \
-    --mem D_803643E0=int:0x9000:0x1C000 --mem D_803643E8=int:0x9000:0x1C000
+    --mem gPlayerX=int:0x9000:0x1C000 --mem gPlayerZ=int:0x9000:0x1C000
 # boundaries (x 0x10680/0x12C20, z 0x199A0/0x1B6A0 and 0x9600/0xBBA0, each +-1), negatives, extremes
 func_802AEB9C: -n 400 --seed 1 --arg a3=choice:1,2 \
-    --mem D_803643E0=choice:0x1067F,0x10680,0x10681,0x12C1F,0x12C20,0x11000*2,-1,-0x10680,0x80000000,0x7FFFFFFF \
-    --mem D_803643E8=choice:0x1999F,0x199A0,0x1B69F,0x1B6A0,0x95FF,0x9600,0xBB9F,0xBBA0,0xA000,0x1A000,-1,-0x9600,0x80000000,0x7FFFFFFF
+    --mem gPlayerX=choice:0x1067F,0x10680,0x10681,0x12C1F,0x12C20,0x11000*2,-1,-0x10680,0x80000000,0x7FFFFFFF \
+    --mem gPlayerZ=choice:0x1999F,0x199A0,0x1B69F,0x1B6A0,0x95FF,0x9600,0xBB9F,0xBBA0,0xA000,0x1A000,-1,-0x9600,0x80000000,0x7FFFFFFF
 # func_802AFB84: returns 0x8C (s3 -> v0)
 func_802AFB84: -n 50 --seed 0
 
@@ -43,8 +43,8 @@ func_802AEE84: -n 300 --seed 1 --follow func_802ABD54,func_802ABCDC --mem D_803E
     --mem D_803BDFD8+0x12*0x24:4/1=choice:0,1,1,1 --mem D_803BDFD8+0x13*0x24:4/1=choice:0,1,2,3 \
     --mem D_803BDFD8+0x14*0x24:4/1=choice:0,0,5,0xFF --mem D_803BDFD8+0x15*0x24:4/1=choice:0,0,0x30 \
     --mem D_803BDFD8+0x16*0x24:4/1=choice:0,0x31 --mem D_803BDFD8+0x17*0x24:4/1=choice:0,0x32 \
-    --mem D_80364A6E:1=choice:0,1,0x80,0xFF,0x40 --mem D_80364460+0x5C*0x74:3=choice:0x100,0x200 \
-    --mem D_80364460+0x1B8=0 --mem D_80364460+0x60*0x74:4=int
+    --mem D_80364A6E:1=choice:0,1,0x80,0xFF,0x40 --mem gVehicles+0x5C*0x74:3=choice:0x100,0x200 \
+    --mem gVehicles+0x1B8=0 --mem gVehicles+0x60*0x74:4=int
 
 # ---- phase D (wave 3, wt-f6) ----
 # func_802AF4BC: vehicle 0 per-frame animation update ($gp = D_803ED760; +0x76 speed, +0xA1 moving last frame).
@@ -103,9 +103,9 @@ func_802AF340: -n 100 --seed 2 --follow func_802A9A60 --stub-ret func_802A94A4=i
 # func_8029AA10_fp): fp in (random) and out (its part count on a world hit, else unchanged; vehicle-0 sphere
 # entries tagged 0 among others, the last one forced; parts of kinds 0-2, end marker in entry 7).
 func_802AEC3C: -n 300 --seed 0 --arg gp=sym:D_803ED760 --arg a2=int:-5000:5000 --mem D_803ED828:1=bytes:0,1,2,3,0xFF \
-    --mem D_803643E0=int:-0x1000000:0x1000000 --mem D_803643E8=int:-0x1000000:0x1000000 --mem D_803643E4=int \
+    --mem gPlayerX=int:-0x1000000:0x1000000 --mem gPlayerZ=int:-0x1000000:0x1000000 --mem gPlayerY=int \
     --mem D_803ED81C=int --mem D_803ED760:0xA6=rand --mem D_803ED760+0x10=int:-0x10000000:0x10000000 \
-    --mem D_803ED760+0x1C=int:-0x10000000:0x10000000 --mem D_803ED808:12=rand --mem D_80364456:1=bytes:0,0xB,3 \
+    --mem D_803ED760+0x1C=int:-0x10000000:0x10000000 --mem D_803ED808:12=rand --mem gCurVehicle:1=bytes:0,0xB,3 \
     --mem D_803A7424:1=bytes:0,1,2 --mem D_803F77D0=int \
     --sig func_8029A800=a0,a1,a2,a3,stack0,stack1,stack3,stack4,stack5,stack6,stack7 --sig func_8028F994=a0,a1,a2 \
     --sig func_802AFA64= \
@@ -125,7 +125,7 @@ func_802AEEC8: -n 400 --seed 0 --arg t6=0 --arg t7=0 --arg s0=0 --arg s1=0 --arg
     --mem gNextGameMode=0 --mem gNextGameMode+4=choice:0*4,0x800,1,0x1000,0x20,0x1801 --mem gGameMode=0 \
     --mem gGameMode+4=choice:0x800,1,0x1000,0x20,0x40,0x801,0x1000 --mem D_803ED824:1=bytes:0,1,0x80 \
     --mem D_803ED822:2=rand --mem gBufferIndex:1=bytes:0,1 --mem D_803ED82C=int --mem D_803ED830=int \
-    --mem D_803A7425:1=bytes:0,1 --mem D_803F77D0=int --mem D_803ED808:12=rand --mem D_803643E0:12=rand \
+    --mem D_803A7425:1=bytes:0,1 --mem D_803F77D0=int --mem D_803ED808:12=rand --mem gPlayerX:12=rand \
     --mem D_8036443C:6=rand --mem D_803ED40B:1=bytes:5 --sig func_802AF4BC= --sig func_802AFBA0= --sig func_802AFB84= \
     --sig func_802AFA64= --sig func_802A6F6C= --sig func_8029A914=a0 \
     --sig func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12,*stack13+0x8,*stack13+0xC,*stack13+0x10,*stack13+0x14
@@ -152,7 +152,7 @@ func_802AE370: -n 100 --seed 1 \
     --arg s0=choice:0,-1,0x7FFFFFFF,0x80000000 --arg s1=choice:0,0xFFF,0x7FFF,0x8000,0xFFFF,0x12345 --arg fp=int \
     --arg f12=float --arg f14=float --arg f20=float --arg f22=float --arg f24=float --arg f26=float \
     --mem gHeapPtr=int:0:0x70000000 --mem D_803ED818:24=rand --mem D_803ED760:0xA6=rand --mem D_803ED460:0x300=rand \
-    --mem D_803643CC=rel:heap0+-0x1000 --mem D_803ED808:12=rand --mem D_803ED824:4=rand --sig func_802AEEC8=
+    --mem gVehicleShadowsEnd=rel:heap0+-0x1000 --mem D_803ED808:12=rand --mem D_803ED824:4=rand --sig func_802AEEC8=
 # own helpers and the steering helpers run for real (func_8029A914 stubbed; followed in the gpfix run below); this also
 # checks func_8029A800's b0/h2 (func_802AFA64's t0/t2 leftovers in the asm)
 func_802AEEC8: -n 200 --seed 2 \
@@ -177,9 +177,9 @@ func_802AEEC8: -n 200 --seed 5 --follow func_802AFA64,func_802AFB84,func_802AFBA
 func_802AEC3C: -n 200 --seed 1 --follow func_802AFA64 --arg gp=sym:D_803ED760 --arg a2=int:-5000:5000 --heap 0x100 \
     --mem D_803ED818=rel:heap0 --mem @heap0+4=int:0:0x10000 --mem @heap0+8=int:0:0x10000 --mem @heap0+0x18=0x40 \
     --mem gBufferIndex:1=bytes:0,1 --mem D_803ED82C=int --mem D_803ED830=int --mem D_803ED828:1=bytes:0,1,2,3 \
-    --mem D_803643E0=int:-0x1000000:0x1000000 --mem D_803643E8=int:-0x1000000:0x1000000 --mem D_803ED81C=int \
+    --mem gPlayerX=int:-0x1000000:0x1000000 --mem gPlayerZ=int:-0x1000000:0x1000000 --mem D_803ED81C=int \
     --mem D_803ED760:0xA6=rand --mem D_803ED760+0x10=int:-0x10000000:0x10000000 \
-    --mem D_803ED760+0x1C=int:-0x10000000:0x10000000 --mem D_803ED808:12=rand --mem D_80364456:1=bytes:0,0xB \
+    --mem D_803ED760+0x1C=int:-0x10000000:0x10000000 --mem D_803ED808:12=rand --mem gCurVehicle:1=bytes:0,0xB \
     --mem D_803A7424:1=bytes:0,1 --mem D_803F77D0=int --sig func_8028F994=a0,a1,a2 \
     --sig func_802AA764=a0,a1,a2,a3,stack0 --sig func_8029C454=a0,a1,a2,a3,stack0,stack1,stack2 \
     --arg fp=choice:0,2,-1 --follow func_8029AA10 --stub-ret func_8029AB88=choice:0,1 --mem D_803A742B:1=rand \
@@ -190,10 +190,10 @@ func_802AEC3C: -n 200 --seed 1 --follow func_802AFA64 --arg gp=sym:D_803ED760 --
     --mem D_803A7425:1=rand --mem D_803A740C=rand --mem gUnpausedFrames=int
 
 # func_802AE888: drive-in setup (dist a0 -> v0 0/1). Table: two records per level 5/6 (zone modes 0 and 2), level 7.
-# The asm's key t8 is its caller's (D_80364456 << 2 in the real game): compared only where t8 is set to match.
+# The asm's key t8 is its caller's (gCurVehicle << 2 in the real game): compared only where t8 is set to match.
 func_802AE888: -n 300 --seed 0 --ret int --arg a0=int:0:1000 --mem D_803ED825:1=bytes:0,1*4 \
     --mem D_80305CB1:26=hex:0503020200_0504010300_0603030202_0604000101_0703020200_FF \
-    --mem levelno=choice:5,6,7,8,0x105 --mem D_80364456:1=bytes:3,4,0xB,0x11,0x12,0 \
+    --mem levelno=choice:5,6,7,8,0x105 --mem gCurVehicle:1=bytes:3,4,0xB,0x11,0x12,0 \
     --stub-ret func_802AEB9C=choice:0,1 --stub-ret func_802AEC3C=choice:1*8,0 --mem D_803ED760:0xA6=rand \
     --mem D_803ED808:12=rand --mem D_803ED814=int --mem D_803ED81C=int --mem D_803ED826:1=bytes:0 \
     --mem D_803ED827:1=bytes:5 --mem D_803ED828:1=bytes:9 --mem D_803F7812:1=bytes:7 --mem gCamDistance:2=rand \
@@ -201,20 +201,20 @@ func_802AE888: -n 300 --seed 0 --ret int --arg a0=int:0:1000 --mem D_803ED825:1=
 func_802AE888: -n 200 --seed 1 --ret int --arg a0=int:0:600 --arg t8=12 --arg fp=0 --arg f12=0 --arg f14=0 --arg f20=0 \
     --arg f22=0 --arg f24=0 --arg f26=0 --mem D_803ED825:1=bytes:1 \
     --mem D_80305CB1:26=hex:0503020200_0503010300_0603030202_0603000101_0703020200_FF --mem levelno=choice:5,6,7,8 \
-    --mem D_80364456:1=3 --stub-ret func_802AEB9C=choice:0,1 --stub-ret func_802AEC3C=choice:1*15,0 \
+    --mem gCurVehicle:1=3 --stub-ret func_802AEB9C=choice:0,1 --stub-ret func_802AEC3C=choice:1*15,0 \
     --mem D_803ED760:0xA6=rand --mem D_803ED808:12=rand --mem D_803ED814=int --mem D_803ED81C=int \
     --mem D_803ED826:1=bytes:0 --mem D_803ED827:1=bytes:5 --mem D_803ED828:1=bytes:9 --mem D_803F7812:1=bytes:7
 # boundaries: dist 0 / multiples of 100 (the last loop step lands exactly on dist), every check passing
 func_802AE888: -n 100 --seed 2 --ret int --arg a0=choice:0,1,99,100,101,200,300 --arg t8=12 --arg fp=0 --arg f12=0 \
     --arg f14=0 --arg f20=0 --arg f22=0 --arg f24=0 --arg f26=0 --mem D_803ED825:1=bytes:1 \
-    --mem D_80305CB1:6=hex:0503020100_FF --mem levelno=choice:5,6 --mem D_80364456:1=3 --stub-ret func_802AEC3C=1 \
+    --mem D_80305CB1:6=hex:0503020100_FF --mem levelno=choice:5,6 --mem gCurVehicle:1=3 --stub-ret func_802AEC3C=1 \
     --mem D_803ED760:0xA6=rand --mem D_803ED808:12=rand --mem D_803ED814=int --mem D_803ED827:1=bytes:5
 # zone checks and the path checks run for real (func_802AEC3C's own callees stubbed, except func_8029AA10:
 # its fp, the part count on a world hit, goes to the next check's func_802A9A60; 0 or 2 vehicle-0 parts)
 func_802AE888: -n 100 --seed 3 --ret int --follow func_802AEB9C,func_802AEC3C --arg a0=int:0:400 --arg t8=12 --arg fp=0 \
     --arg f12=0 --arg f14=0 --arg f20=0 --arg f22=0 --arg f24=0 --arg f26=0 --mem D_803ED825:1=bytes:1 \
-    --mem D_80305CB1:16=hex:0503020202_0503010300_0703020200_FF --mem levelno=choice:5,7 --mem D_80364456:1=3 \
-    --mem D_803643E0=int:-0x100000:0x100000 --mem D_803643E4=int --mem D_803643E8=int:-0x100000:0x100000 \
+    --mem D_80305CB1:16=hex:0503020202_0503010300_0703020200_FF --mem levelno=choice:5,7 --mem gCurVehicle:1=3 \
+    --mem gPlayerX=int:-0x100000:0x100000 --mem gPlayerY=int --mem gPlayerZ=int:-0x100000:0x100000 \
     --mem D_803A7424:1=bytes:0*6,1 --mem D_803ED760:0xA6=rand --mem D_803ED760+0x10=int:-0x10000000:0x10000000 \
     --mem D_803ED760+0x1C=int:-0x10000000:0x10000000 --mem D_803ED808:12=rand --mem D_803ED814=int \
     --sig func_8029A800=a0,a1,a2,a3,stack0,stack1,stack3,stack4,stack5,stack6,stack7 --sig func_8028F994=a0,a1,a2 \

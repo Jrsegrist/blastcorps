@@ -4,17 +4,17 @@
 /* Matching build: IDO compiled the matched code here against older
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
-#define LEGACY_D_803649D0
+#define LEGACY_gVehiclesEnd
 #define LEGACY_D_8036B974
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_802F5804 ((PathNode *) D_802F5804)
 #define D_802F8BDC ((TextArg *) D_802F8BDC)
-#define D_80364460 ((Struct80364460 *) D_80364460)
+#define gVehicles ((Struct80364460 *) gVehicles)
 #define players ((Struct80364AF0 *) players)
 #ifdef NON_MATCHING
-#define D_803649D0 (*(Struct80364460 * N64P *) &D_803649D0)
+#define gVehiclesEnd (*(Struct80364460 * N64P *) &gVehiclesEnd)
 #define D_8036B974 (*(s32 *) &D_8036B974)
 #endif
 /* end of views */
@@ -137,7 +137,7 @@ extern u16 D_80303B00[];
 extern u16 D_80303B10[];
 extern u16 D_80303B24[];
 #ifndef NON_MATCHING
-extern Struct80364460 *D_803649D0;
+extern Struct80364460 *gVehiclesEnd;
 #endif
 extern u8 D_8036B8C0;
 extern f32 D_8036B8C8[4][4];
@@ -159,7 +159,7 @@ extern s32 D_8036B974;
 extern u8 D_8036B978;
 extern u8 D_8036B979;
 
-/* Checks the trigger zones for the current level; sets D_803649ED on a hit. */
+/* Checks the trigger zones for the current level; sets gNextVehicle on a hit. */
 void func_802683E0(void) {
     s32 i;
     u8 found;
@@ -168,14 +168,14 @@ void func_802683E0(void) {
 
     i = 0;
     found = 0;
-    if (D_80364456 || D_803ED826) {
+    if (gCurVehicle || D_803ED826) {
         return;
     }
     while (!found && i < 1) {
         if (D_802F3C10[i].id == levelno) {
-            p = D_80364460;
+            p = gVehicles;
             hit = 0;
-            while (!hit && D_803649D0 != p) {
+            while (!hit && gVehiclesEnd != p) {
                 if (D_802F3C10[i].unk1 == p->unk5C) {
                     hit = 1;
                 } else {
@@ -187,8 +187,8 @@ void func_802683E0(void) {
                                   D_802F3C10[i].unk6, D_802F3C10[i].unk8, D_802F3C10[i].unkA, D_802F3C10[i].unkC)
                     || func_802AC4C4(p->unk64 >> 5, p->unk6C >> 5, D_802F3C10[i].unk2, D_802F3C10[i].unk4,
                                      D_802F3C10[i].unkA, D_802F3C10[i].unkC, D_802F3C10[i].unkE, D_802F3C10[i].unk10)) {
-                    if (func_8026A6F0(p->unk64, p->unk68, p->unk6C, D_803643E0, D_803643E4, D_803643E8) < D_802F3C10[i].unk12) {
-                        D_803649ED = D_802F3C10[i].unk1;
+                    if (func_8026A6F0(p->unk64, p->unk68, p->unk6C, gPlayerX, gPlayerY, gPlayerZ) < D_802F3C10[i].unk12) {
+                        gNextVehicle = D_802F3C10[i].unk1;
                         found = 1;
                     }
                 }
@@ -716,22 +716,22 @@ void func_8026A9B4(void) {
     if (D_803A7430 == 15) {
         func_8026AD30(0x50);
     }
-    if (levelno == 0x12 && (D_803643E0 >> 5) < 0x578
-        && func_8026A610(D_803643E0 >> 5, D_803643E8 >> 5, 0x531, 0x1061) < 0x82) {
+    if (levelno == 0x12 && (gPlayerX >> 5) < 0x578
+        && func_8026A610(gPlayerX >> 5, gPlayerZ >> 5, 0x531, 0x1061) < 0x82) {
         func_8026AD30(0x51);
     }
-    if (D_80364456 != D_8036B979) {
+    if (gCurVehicle != D_8036B979) {
         D_8036B978 = D_8036B979;
     }
-    if (D_80364456) {
-        D_8036B979 = D_80364456;
+    if (gCurVehicle) {
+        D_8036B979 = gCurVehicle;
     }
-    p = D_80364460;
+    p = gVehicles;
     done = 0;
-    while (!done && D_803649D0 != p) {
-        if (p->unk5C != D_8036B978 && p->unk5C != D_80364456 && D_80364456 != 0 && p->unk5C != 0
+    while (!done && gVehiclesEnd != p) {
+        if (p->unk5C != D_8036B978 && p->unk5C != gCurVehicle && gCurVehicle != 0 && p->unk5C != 0
             && p->unk5C != 0xFE && p->unk5C != 0xFF && p->unk5C != 7 && p->unk5C != 6) {
-            d = func_8026A6F0(D_803643E0 >> 5, D_803643E4 >> 5, D_803643E8 >> 5, p->unk64 >> 5, p->unk68 >> 5,
+            d = func_8026A6F0(gPlayerX >> 5, gPlayerY >> 5, gPlayerZ >> 5, p->unk64 >> 5, p->unk68 >> 5,
                               p->unk6C >> 5);
             if (d < minDist) {
                 minDist = d;
@@ -750,7 +750,7 @@ void func_8026A9B4(void) {
     if (levelno == 0 && D_8036C7CC >= 2) {
         func_8026AD30(0x4D);
     }
-    if (levelno == 0 && D_80364456 == 7 && (D_803643E0 >> 5) >= 0x899) {
+    if (levelno == 0 && gCurVehicle == 7 && (gPlayerX >> 5) >= 0x899) {
         func_8026AD30(0x53);
     }
     if (D_8036B971) {

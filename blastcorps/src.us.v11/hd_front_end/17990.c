@@ -262,7 +262,7 @@ void func_801FE990(void) {
             }
         }
     }
-    func_8028A3E4();
+    cont_start_read();
     if (gGameMode & 0x40000000) {
         gdl = func_801ED800(gdl, &gDynamicBufs[gBufferIndex], gBufferIndex, &gFrameDlLen);
     }
@@ -285,7 +285,7 @@ void func_801FE990(void) {
             func_80260650(D_80367738, 0x1C, NULL);
         }
     }
-    func_8028A470();
+    cont_update();
     if (gGameMode == 0x800000000000) {
         func_802862DC();
     }

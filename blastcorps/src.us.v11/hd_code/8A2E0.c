@@ -267,9 +267,9 @@ static s32 port_cvt_w_s(f32 x) {
  * only because it keeps its loop state in t0-t4 across them; its only
  * caller is C (hd_game_frame), so no asm caller relies on anything. */
 void func_802CF1A4(void) {
-    s32 px = D_803643E0 >> 5;
-    s32 py = D_803643E4 >> 5;
-    s32 pz = D_803643E8 >> 5;
+    s32 px = gPlayerX >> 5;
+    s32 py = gPlayerY >> 5;
+    s32 pz = gPlayerZ >> 5;
     UnkEntry8A2E0 *e = D_803FBBB0;
     s32 n;
 

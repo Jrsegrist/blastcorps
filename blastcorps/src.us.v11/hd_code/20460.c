@@ -223,8 +223,8 @@ void func_80265428(void) {
             if (z2 >= D_80367D60[i].unkC + D_80367D60[i].unkE) {
                 z2 = D_80367D60[i].unkC + D_80367D60[i].unkE - 1;
             }
-            d1 = func_8026A610(D_803643E0 >> 5, D_803643E8 >> 5, x, z);
-            d2 = func_8026A610(D_803643E0 >> 5, D_803643E8 >> 5, x2, z2);
+            d1 = func_8026A610(gPlayerX >> 5, gPlayerZ >> 5, x, z);
+            d2 = func_8026A610(gPlayerX >> 5, gPlayerZ >> 5, x2, z2);
             if (D_80367D60[i].unk1B) {
                 if (D_80367D60[i].unk1A) {
                     d2 = 0;
@@ -265,7 +265,7 @@ void func_80265428(void) {
     }
 }
 
-/* Is the player (D_803643E0/E8, >> 5) inside piece arg0's area? */
+/* Is the player (gPlayerX/Z, >> 5) inside piece arg0's area? */
 s32 func_80265A0C(s32 arg0) {
     s16 b3;
     s16 b2;
@@ -274,7 +274,7 @@ s32 func_80265A0C(s32 arg0) {
 
     b1 = D_80367D60[arg0].unkA - D_80367D60[arg0].unk10;
     b0 = D_80367D60[arg0].unkC - D_80367D60[arg0].unk10;
-    b3 = D_803643E0 >> 5, b2 = D_803643E8 >> 5;
+    b3 = gPlayerX >> 5, b2 = gPlayerZ >> 5;
     if (b3 < b1 || b2 < b0) {
         return 0;
     }
@@ -409,10 +409,10 @@ void func_80265E48(void) {
             D_80368038 = 600;
             D_803EF32C = 1;
             D_8036803C = i;
-            if (35000 - func_8026A610(D_803643E0, D_803643E8, D_803EF308, D_803EF30C) * 2 >= 0x8000) {
+            if (35000 - func_8026A610(gPlayerX, gPlayerZ, D_803EF308, D_803EF30C) * 2 >= 0x8000) {
                 vol = 0x7FFF;
             } else {
-                vol = 35000 - func_8026A610(D_803643E0, D_803643E8, D_803EF308, D_803EF30C) * 2;
+                vol = 35000 - func_8026A610(gPlayerX, gPlayerZ, D_803EF308, D_803EF30C) * 2;
             }
             if (vol > 4000) {
                 func_80260AB8(func_80260650(D_80367738, 0x25, 0), 8, vol);
@@ -425,8 +425,8 @@ void func_80265E48(void) {
 void func_802661EC(void) {
     D_803EF308 = D_803EF6DC;
     D_803EF30C = D_803EF6E4;
-    D_80368044 = D_803643E0;
-    D_80368048 = D_803643E8;
+    D_80368044 = gPlayerX;
+    D_80368048 = gPlayerZ;
     D_803EF32C = 1;
     D_80368038 = 2000;
 }

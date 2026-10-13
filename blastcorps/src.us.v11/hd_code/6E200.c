@@ -117,7 +117,7 @@ static void port_tri_to_interp(TriSideOut *f, InterpRegs *r) {
  * distance and whose FP inputs are func_802AAE54's results; `setup` (the
  * vehicle's setup leaf) runs before it, and D_803ED40B = 1 when `flag40B`.
  * Then parts (`parts`; s0 = flags pointer, s1 = &z in the asm) and the
- * func_802A133C record. Returns func_802A8768's s3. */
+ * veh_set_record record. Returns func_802A8768's s3. */
 static s32 port_veh_follow(u8 *veh, PortVehPos *p, s32 vid, s32 id, InterpRegs *r, void (*setup)(void),
                            s32 flag40B, s32 divB, s32 divA, u8 *(*parts)(MtxChainRegs *)) {
     Regs802A8768 r8;
@@ -144,13 +144,13 @@ static s32 port_veh_follow(u8 *veh, PortVehPos *p, s32 vid, s32 id, InterpRegs *
     mc.s0 = (s32) (veh + 0x96);
     mc.s1 = (s32) &p->z;
     parts(&mc);
-    func_802A133C(p->z, vid, p->x, p->y, veh);
+    veh_set_record(p->z, vid, p->x, p->y, veh);
     return r8.s3;
 }
 
 /* Shared body of func_802B2FA0 / func_802B46C4 (put the vehicle on the
  * ground): func_802A9A60 (key vid) at the position, with the caller's fp;
- * parts (s0 = z, s1 = func_802A9A60's s1 in the asm); func_802A133C. The
+ * parts (s0 = z, s1 = func_802A9A60's s1 in the asm); veh_set_record. The
  * asm also hands func_802A9A60 the caller's f12-f26 (a register leak of the
  * C caller that only feeds the FP side results; zero here). */
 static void port_veh_ground(u8 *veh, PortVehPos *p, s32 vid, s32 fp, u8 *(*parts)(MtxChainRegs *)) {
@@ -165,11 +165,11 @@ static void port_veh_ground(u8 *veh, PortVehPos *p, s32 vid, s32 fp, u8 *(*parts
     mc.s0 = z;
     mc.s1 = (s32) o.s1;
     parts(&mc);
-    func_802A133C(p->z, vid, p->x, p->y, veh);
+    veh_set_record(p->z, vid, p->x, p->y, veh);
 }
 
 /* First part of the vehicle setup (func_802B29C0 / func_802B4100): model
- * header, two 0x800-byte matrix buffers from the heap, func_802A1388(id, 0,
+ * header, two 0x800-byte matrix buffers from the heap, veh_add_record(id, 0,
  * bufA, bufB, model), func_802A754C, the wheel offset table (+0x52, 12
  * halves), position, heading (+0x4C, +0x4E, +0x74). */
 static void port_veh_init_head(u8 *veh, PortVehPos *p, s32 id, u8 *model, const s16 *wheels, s32 x, s32 y,
@@ -184,7 +184,7 @@ static void port_veh_init_head(u8 *veh, PortVehPos *p, s32 id, u8 *model, const 
     p->bufB = (u64 *) heap;
     heap += 0x800;
     gHeapPtr = heap;
-    func_802A1388(id, 0, (s32) p->bufA, (s32) p->bufB, model);
+    veh_add_record(id, 0, (s32) p->bufA, (s32) p->bufB, model);
     func_802A754C(veh);
     for (i = 0; i < 12; i++) {
         VEH_S16(veh, 0x52 + i * 2) = wheels[i];
@@ -342,16 +342,16 @@ static void port_veh_restore(u8 *veh, PortVehPos *p, u8 *ch) {
     }
 }
 
-/* Publish the vehicle's position, speed and headings, then its func_802A133C
+/* Publish the vehicle's position, speed and headings, then its veh_set_record
  * record. */
 static void port_veh_publish(u8 *veh, PortVehPos *p, s32 id) {
-    D_803643E0 = p->x;
-    D_803643E4 = p->y;
-    D_803643E8 = p->z;
+    gPlayerX = p->x;
+    gPlayerY = p->y;
+    gPlayerZ = p->z;
     D_8036443C = VEH_S16(veh, 0x76);
     D_8036443E = VEH_U16(veh, 0x4E);
     D_80364440 = VEH_U16(veh, 0x4C);
-    func_802A133C(p->z, id, p->x, p->y, veh);
+    veh_set_record(p->z, id, p->x, p->y, veh);
 }
 
 u8 *func_802B3E40(MtxChainRegs *r);
@@ -471,7 +471,7 @@ s32 func_802B2EF8(void) {
 extern u64 * N64P D_803EE39C;
 extern u64 * N64P D_803EE3A0;
 
-/* Vehicle-type 3 shutdown (called from hd.c's func_8024B188): zeroes the
+/* Vehicle-type 3 shutdown (called from hd.c's veh_leave): zeroes the
  * speed (s16 at +0x76), func_802A7764(D_803EE39C, D_803EE3A0, 0x800), then
  * func_802C444C(). */
 void func_802B2F54(void) {
@@ -485,7 +485,7 @@ void func_802B2F54(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Put vehicle 3 on the ground (called from C func_8024B618 in 00000.c as
+/* Put vehicle 3 on the ground (called from C veh_update_others in 00000.c as
  * `void (void)`): port_veh_ground with key 3, then func_802B3E40.
  * Register convention: fp in (conventions.txt). The C caller doesn't set fp:
  * the asm passes on whatever an outer function left in $fp/$s8 (register
@@ -551,7 +551,7 @@ s32 func_802B3F78(void);
 extern s16 D_803EE3AA;
 extern s16 D_803EE3A8;
 
-/* Vehicle 3 per-frame update (called from C func_8024B7AC in 00000.c as
+/* Vehicle 3 per-frame update (called from C veh_update_player in 00000.c as
  * `void (void)`, and from func_802B29C0):
  * 1. zone level (func_802B30B0) with the incoming scan registers, save state
  *    (func_802A75DC), effects func_802B37B0 (with the scan registers as the
@@ -663,13 +663,13 @@ void func_802B3C68(void);
  *    1 and, while fewer than 15 func_802A6274 records are active, sets up two
  *    (def D_802C2954, data 0x29810, type 1 at (3, 2, 1) and (3, 3, 1)).
  * 2. Level D_803EE3A4 (channel 3 of D_803EDFE0): unless func_802A7CB0(10),
- *    falls by D_8030D8C4 to 0 with D_80370C23 held, or rises by D_8030D8C8 to
- *    1 with D_80370C1C held; otherwise it moves by D_8030D8CC toward 0.5.
- * 3. D_803EE3AF steps by -5 (D_80370C15) / +5 (D_80370C16) within 0..100, or
+ *    falls by D_8030D8C4 to 0 with gHeldBOrZ held, or rises by D_8030D8C8 to
+ *    1 with gHeldA held; otherwise it moves by D_8030D8CC toward 0.5.
+ * 3. D_803EE3AF steps by -5 (gHeldLeft) / +5 (gHeldRight) within 0..100, or
  *    by 10 toward 50; channel 2 gets it / 100.
  * 4. Channel 1: field 03D4 = (speed < 0), 039C = |speed| / 30 (also passed to
  *    func_802C4584).
- * 5. Boost: D_803EE3B2 counts down; at 0 with D_80370C1A or D_80370C1B held
+ * 5. Boost: D_803EE3B2 counts down; at 0 with gHeldL or gHeldR held
  *    and the meter D_803EE3B1 >= 4: meter -= 4, start sound 0x8D once
  *    (D_803EE3B3), sound entry D_802C2314 on, one more func_802A6274 record
  *    (def D_802C37C0, data 0x186A0, type 1 at (3, 1, 1)) and speed += 40 up
@@ -705,12 +705,12 @@ void func_802B37B0(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
     /* 2. channel 3 level */
     f = D_803EE3A4;
     near = func_802A7CB0(D_803EE2E0, 10);
-    if (near == 0 && D_80370C23 != 0) {
+    if (near == 0 && gHeldBOrZ != 0) {
         f -= D_8030D8C4;
         if (f < 0.0f) {
             f = 0.0f;
         }
-    } else if (near == 0 && D_80370C1C != 0) {
+    } else if (near == 0 && gHeldA != 0) {
         f += D_8030D8C8;
         if (!(f <= 1.0f)) {
             f = 1.0f;
@@ -731,12 +731,12 @@ void func_802B37B0(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
 
     /* 3. channel 2 level */
     v = D_803EE3AF;
-    if (D_80370C15 != 0) {
+    if (gHeldLeft != 0) {
         v -= 5;
         if (v < 0) {
             v = 0;
         }
-    } else if (D_80370C16 != 0) {
+    } else if (gHeldRight != 0) {
         v += 5;
         if (v > 100) {
             v = 100;
@@ -768,7 +768,7 @@ void func_802B37B0(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
     /* 5. boost */
     if (D_803EE3B2 != 0) {
         D_803EE3B2--;
-    } else if ((D_80370C1A != 0 || D_80370C1B != 0) && ((s8) D_803EE3B1) >= 4) {
+    } else if ((gHeldL != 0 || gHeldR != 0) && ((s8) D_803EE3B1) >= 4) {
         D_803EE3B1 -= 4;
         if (D_803EE3B3 == 0) {
             D_803EE3B3 = 1;
@@ -915,7 +915,7 @@ extern s16 D_803EE3A8;
 
 /* Vehicle-module setup leaf (shape of func_802B5814, below): D_803EBBF4 =
  * D_803EBBF0 * 4, D_803ED3F6/7 = 60, 3, then D_803EE3A8 = 2000 if the button
- * byte D_80370C1C (speed <= 0) or D_80370C23 (speed > 0) is set, else 15000.
+ * byte gHeldA (speed <= 0) or gHeldBOrZ (speed > 0) is set, else 15000.
  * Speed is the s16 at +0x76 of D_803EE2E0 (the asm's $gp).
  * Register note: the asm touches only at/v0/v1/f0/f2. Its asm callers keep
  * registers live across the call (func_802B3180: t3, t4, f12, f14;
@@ -925,9 +925,9 @@ void func_802B3FF0(void) {
     D_803ED3F6 = 60;
     D_803ED3F7 = 3;
     if (*(s16 *) (D_803EE2E0 + 0x76) <= 0) {
-        D_803EE3A8 = (D_80370C1C == 0) ? 15000 : 2000;
+        D_803EE3A8 = (gHeldA == 0) ? 15000 : 2000;
     } else {
-        D_803EE3A8 = (D_80370C23 == 0) ? 15000 : 2000;
+        D_803EE3A8 = (gHeldBOrZ == 0) ? 15000 : 2000;
     }
 }
 #else
@@ -1053,7 +1053,7 @@ s32 func_802B45FC(void) {
 extern u64 * N64P D_803EE778;
 extern u64 * N64P D_803EE77C;
 
-/* Vehicle-type 4 shutdown (called from hd.c's func_8024B188): zeroes the
+/* Vehicle-type 4 shutdown (called from hd.c's veh_leave): zeroes the
  * speed (s16 at +0x76), func_802A7764(D_803EE778, D_803EE77C, 0x800),
  * func_802C444C(), then func_802A05D0(key, 0) for D_802C2190 and D_802C21A4.
  * The asm returns with v1 = 0; the C caller ignores it. */
@@ -1124,7 +1124,7 @@ s32 func_802B57C4(void);
 extern s16 D_803EE784;
 extern s16 D_803EE786;
 
-/* Vehicle 4 per-frame update (called from C func_8024B7AC as `void (void)`,
+/* Vehicle 4 per-frame update (called from C veh_update_player as `void (void)`,
  * and from func_802B4100); as func_802B327C with:
  * - after the save, the second looping sound func_802C4724(0x8F);
  *   effects func_802B4EF8;
@@ -1232,12 +1232,12 @@ void func_802B54EC(void);
  *    (func_80260650, the asm saving every register around it) and another
  *    record (data 0x1D4C0 at (4, 2, 1)).
  * 4. Level D_803EE780 (channel 2 of D_803EE3C0): unless func_802A7CB0(30),
- *    falls by D_8030D8D4 to 0 with D_80370C23 held, or rises by D_8030D8D8
- *    to 1 with D_80370C1C held; otherwise it moves by D_8030D8DC toward 0.5.
+ *    falls by D_8030D8D4 to 0 with gHeldBOrZ held, or rises by D_8030D8D8
+ *    to 1 with gHeldA held; otherwise it moves by D_8030D8DC toward 0.5.
  * 5. Sound entries D_802C2190/D_802C21A4: moving, unk11 = (speed < 0) on
  *    both, unk14 = |speed| / 2 on both and func_802C4584(|speed| / 8);
  *    standing, unk11 = (stick < 0) / (stick >= 0) and unk14 = |stick|
- *    (D_80370C2C).
+ *    (gPadStickX).
  * 6. Entry D_802C21B8: unk13 = (u16 +0x4C in [0x355, 0x8AB) ? it - 0x355 :
  *    0) / 76, unk4 = 0.
  * 7. With D_803EE789 set and channel 1's field 0x10 != 1: channel 1 gets
@@ -1275,12 +1275,12 @@ void func_802B4EF8(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
 
     f = D_803EE780;
     near = func_802A7CB0(D_803EE6C0, 30);
-    if (near == 0 && D_80370C23 != 0) {
+    if (near == 0 && gHeldBOrZ != 0) {
         f -= D_8030D8D4;
         if (f < 0.0f) {
             f = 0.0f;
         }
-    } else if (near == 0 && D_80370C1C != 0) {
+    } else if (near == 0 && gHeldA != 0) {
         f += D_8030D8D8;
         if (!(f <= 1.0f)) {
             f = 1.0f;
@@ -1308,7 +1308,7 @@ void func_802B4EF8(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
         func_802A05D0((s32) D_802C21A4, v);
         func_802C4584((u32) v >> 2);
     } else {
-        v = D_80370C2C;
+        v = gPadStickX;
         func_802A05F8((s32) D_802C2190, v < 0);
         func_802A05F8((s32) D_802C21A4, v >= 0);
         if (v < 0) {
@@ -1403,7 +1403,7 @@ void func_802B5814(void) {
     D_803EBBF4 = D_803EBBF0 * 2.0f;
     D_803ED3F6 = 110;
     D_803ED3F7 = 4;
-    D_803EE784 = (D_80370C23 == 0) ? 9000 : 2000;
+    D_803EE784 = (gHeldBOrZ == 0) ? 9000 : 2000;
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6E200/func_802B5814.s")

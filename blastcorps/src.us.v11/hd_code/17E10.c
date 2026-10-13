@@ -440,9 +440,9 @@ void func_8025E1E0(Gfx **arg0) {
     gSPMatrix(gfx++, &D_02000000[2], G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
     gSPMatrix(gfx++, &D_02000000[5], G_MTX_PROJECTION | G_MTX_MUL | G_MTX_NOPUSH);
     gSPMatrix(gfx++, &D_02000000[7], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
-    func_8024FC2C(&gfx, 0);
-    func_8024FC2C(&gfx, 1);
-    func_8024FC2C(&gfx, 2);
+    veh_draw_layer(&gfx, 0);
+    veh_draw_layer(&gfx, 1);
+    veh_draw_layer(&gfx, 2);
     *arg0 = gfx;
 }
 

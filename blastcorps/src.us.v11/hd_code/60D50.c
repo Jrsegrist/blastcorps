@@ -33,8 +33,8 @@ void func_802A5510(u8 *level) {
     HeightZone *zone = (HeightZone *) (level + *(s32 *) (level + 0x40));
     HeightZone *end = (HeightZone *) (level + *(s32 *) (level + 0x44));
     /* logical shifts (srl) in the asm, then signed compares */
-    s32 px = (u32) D_803643E0 >> 5;
-    s32 pz = (u32) D_803643E8 >> 5;
+    s32 px = (u32) gPlayerX >> 5;
+    s32 pz = (u32) gPlayerZ >> 5;
     s32 best = -1;
 
     for (; zone != end; zone++) {

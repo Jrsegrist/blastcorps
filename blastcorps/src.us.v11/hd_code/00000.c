@@ -7,7 +7,7 @@
 #define LEGACY_gHeapPtr
 #define LEGACY_D_80358074
 #define LEGACY_D_80364458
-#define LEGACY_D_803649D0
+#define LEGACY_gVehiclesEnd
 #define LEGACY_D_80367734
 #define LEGACY_D_80367738
 #define LEGACY_D_8036BED8
@@ -24,13 +24,13 @@
 #define D_802F8BDC ((MenuPage *) D_802F8BDC)
 #define gScheduler ((u8 *) &gScheduler)
 #define gMainSchedClient ((u8 *) &gMainSchedClient)
-#define D_80364460 ((Unk74 *) D_80364460)
+#define gVehicles ((Unk74 *) gVehicles)
 #define players ((Player *) players)
 #define pakBuffer ((u8 *) pakBuffer)
 #ifdef NON_MATCHING
 #define gHeapPtr (*(s32 *) &gHeapPtr)
 #define D_80364458 (*(u32 *) &D_80364458)
-#define D_803649D0 (*(Unk74 * N64P *) &D_803649D0)
+#define gVehiclesEnd (*(Unk74 * N64P *) &gVehiclesEnd)
 #define D_8036BED8 (*(Node88 * N64P *) &D_8036BED8)
 #define D_8036C794 (*(Box * N64P *) &D_8036C794)
 #define gRdpOutputBuffer (*(s32 *) &gRdpOutputBuffer)
@@ -92,13 +92,13 @@ typedef struct {
     u8 pad3C[0x18];
     s32 unk54;
     s32 unk58;
-    s32 unk5C; /* id */
-    u32 unk60; /* alpha */
+    s32 type; /* the vehicle type (docs/blast_corps_vehicles.txt) */
+    u32 alpha; /* env alpha */
     u8 pad64[0xC];
-    s32 unk70; /* active */
+    s32 active;
 } Unk74;
 #ifndef NON_MATCHING
-extern Unk74 *D_803649D0;
+extern Unk74 *gVehiclesEnd;
 #endif
 
 
@@ -145,7 +145,7 @@ extern s32 D_803156F0;
 #ifndef NON_MATCHING
 extern s32 D_80367738;
 #endif
-s32 func_8024AFA8(s32);
+s32 veh_enter(s32);
 
 extern OSMesg D_803150B8[];
 extern OSMesg D_80315198[];
@@ -315,8 +315,8 @@ extern u16 D_80304904[]; /* glyph lists */
 extern u16 D_80304910[];
 extern u16 D_8030491C[];
 extern u16 D_80304938[];
-void func_8024E4F4(Gfx **, DynamicBuf *, u8);
-void func_8024F520(Gfx **, DynamicBuf *);
+void veh_draw_shadows(Gfx **, DynamicBuf *, u8);
+void veh_draw_chopper_shadow(Gfx **, DynamicBuf *);
 void func_802502EC(void);
 void cam_update(Mtx *, LookAt *, Mtx *);
 #define SEG2(off) ((u8 *) D_02000000 + (off))
@@ -354,10 +354,10 @@ extern s32 D_80367734;
 #endif
 #define NUM_TEXTURE_DMAS 0x90
 void cull_start(Mtx *, Mtx *);
-void func_8024AE2C(void);
-void func_8024B188(void);
-void func_8024B618(void);
-void func_8024B7AC(void);
+void veh_apply_switch(void);
+void veh_leave(void);
+void veh_update_others(void);
+void veh_update_player(void);
 void func_8024A92C(u32);
 void func_8024B5E8(void);
 void func_8024A348(void);
@@ -1038,16 +1038,16 @@ void hd_game_frame(void) {
     s32 hi;
     s16 alpha;
 
-    if (gDebugCheats && (D_80370C28 & 1) && !(D_80370C2A & 1) && (gGameMode & 0x104)) {
+    if (gDebugCheats && (gContButtons & 1) && !(gContPrevButtons & 1) && (gGameMode & 0x104)) {
         D_803643DA = 1;
         cmo_hit_request = 0;
-        if (D_80370C28 & 8) {
+        if (gContButtons & 8) {
             if (D_80364AA8 != 1 || !(LEVEL_DONE(levelno))) {
                 D_803643DA = 0;
                 cmo_hit_request = 1;
             }
         }
-        if ((D_80370C28 & 0x2000) && D_803643DA) {
+        if ((gContButtons & 0x2000) && D_803643DA) {
             D_803F7688 = 1;
             D_8036EA7C = D_8036EB90;
             D_8036EA79 = D_8036EB93;
@@ -1072,7 +1072,7 @@ void hd_game_frame(void) {
             i = 0;
             found = 0;
             while (!found) {
-                if (D_80364460[i].unk5C == D_80364456) {
+                if (gVehicles[i].type == gCurVehicle) {
                     found = 1;
                 } else {
                     i++;
@@ -1081,34 +1081,34 @@ void hd_game_frame(void) {
             j = 0;
             found = 0;
             while (!found) {
-                if (D_803643C8[j].unk1022 == D_80364456) {
+                if (gVehicleShadows[j].type == gCurVehicle) {
                     found = 1;
                 } else {
                     j++;
                 }
             }
-            func_80258544(D_803643C8[j].unk0, D_803643C8[j].unk1004, D_803643C8[j].unk1010, D_803643C8[j].unk100C,
-                          D_803643C8[j].unk1000, (Gfx *) N64_IPTR(((D_80364460 + i)->unk54)), (D_80364460 + i)->unk0, (D_80364460 + i)->unk4);
+            func_80258544(gVehicleShadows[j].unk0, gVehicleShadows[j].unk1004, gVehicleShadows[j].unk1010, gVehicleShadows[j].unk100C,
+                          gVehicleShadows[j].unk1000, (Gfx *) N64_IPTR(((gVehicles + i)->unk54)), (gVehicles + i)->unk0, (gVehicles + i)->unk4);
         }
     }
     i = 0;
     found = 0;
     while (!found) {
-        if (D_80364460[i].unk5C == D_80364456) {
+        if (gVehicles[i].type == gCurVehicle) {
             found = 1;
         } else {
             i++;
         }
     }
     if (gBufferIndex == 0) {
-        func_80279778(D_803643E0, D_803643E4, D_803643E8, gCamEyeX, gCamEyeY, gCamEyeZ, (void *) N64_IPTR((D_80364460[i].unk58)),
-                      D_80364460[i].unk0, D_80364460[i].unk8, D_80364460[i].unk60);
+        func_80279778(gPlayerX, gPlayerY, gPlayerZ, gCamEyeX, gCamEyeY, gCamEyeZ, (void *) N64_IPTR((gVehicles[i].unk58)),
+                      gVehicles[i].unk0, gVehicles[i].unk8, gVehicles[i].alpha);
     } else {
-        func_80279778(D_803643E0, D_803643E4, D_803643E8, gCamEyeX, gCamEyeY, gCamEyeZ, (void *) N64_IPTR((D_80364460[i].unk58)),
-                      D_80364460[i].unk0, D_80364460[i].unk4, D_80364460[i].unk60);
+        func_80279778(gPlayerX, gPlayerY, gPlayerZ, gCamEyeX, gCamEyeY, gCamEyeZ, (void *) N64_IPTR((gVehicles[i].unk58)),
+                      gVehicles[i].unk0, gVehicles[i].unk4, gVehicles[i].alpha);
     }
     D_803649D8 = osGetTime();
-    func_8028A3E4();
+    cont_start_read();
     rsp_send_task((u64 *) (gDynamicBufs[gBufferIndex].dl), gFrameDlLen, 3, 1, 0x4D2, 1);
     func_802A5720();
     gBufferIndex ^= 1;
@@ -1140,7 +1140,7 @@ void hd_game_frame(void) {
                 if (gGameMode & 0x104) {
                     if (D_80358064) {
                         debug_printf("LOCKING KEYS!\n");
-                        D_80370C38 = 1;
+                        gSwallowB = 1;
                     }
                     func_80261E9C(gGameMode);
                     func_80261570(1.0f);
@@ -1168,30 +1168,30 @@ void hd_game_frame(void) {
     }
     func_802683E0();
     D_803649EE = 0;
-    if (D_80364456 == 0 && !(gGameMode & 0x1801)) {
-        func_8024AE2C();
+    if (gCurVehicle == 0 && !(gGameMode & 0x1801)) {
+        veh_apply_switch();
     }
-    func_8028A470();
+    cont_update();
     if (gGameMode & 0x104) {
         zoom = 0;
-        if ((D_80370C28 & 4) && !(D_80370C28 & 8)) {
+        if ((gContButtons & 4) && !(gContButtons & 8)) {
             if (gCamZoom < 1.5 && gGameMode == 4) {
                 zoom = 2;
-                if (!(D_80370C2A & 4)) {
+                if (!(gContPrevButtons & 4)) {
                     func_80260650(D_80367738, 0xDC, NULL);
                 }
-            } else if (!(D_80370C2A & 4) && gGameMode != 0x100) {
+            } else if (!(gContPrevButtons & 4) && gGameMode != 0x100) {
                 zoom = 3;
             }
         }
         if (zoom == 0) {
-            if ((D_80370C28 & 8) && !(D_80370C28 & 4)) {
+            if ((gContButtons & 8) && !(gContButtons & 4)) {
                 if (gCamZoom > 1.0 && gGameMode == 4 && D_80364A7C == 0) {
                     zoom = 1;
-                    if (!(D_80370C2A & 8)) {
+                    if (!(gContPrevButtons & 8)) {
                         func_80260650(D_80367738, 0xDD, NULL);
                     }
-                } else if (!(D_80370C2A & 8) && gGameMode == 0x100) {
+                } else if (!(gContPrevButtons & 8) && gGameMode == 0x100) {
                     zoom = 4;
                 }
             } else {
@@ -1232,17 +1232,17 @@ void hd_game_frame(void) {
         }
     }
     if (gGameMode == 0x100 && gPaused && yoshiState == 2 && D_803643DB && currentYoshiWindow == 0) {
-        if (!(D_80370C28 & 0x2000) && !(D_80370C28 & 0x10)) {
+        if (!(gContButtons & 0x2000) && !(gContButtons & 0x10)) {
             D_80364A80 = 0;
         } else {
             D_80364A80 += 100;
             if (D_80364A80 > 800) {
                 D_80364A80 = 800;
             }
-            if (D_80370C28 & 0x2000) {
+            if (gContButtons & 0x2000) {
                 D_80364A78 += D_80364A80;
             }
-            if (D_80370C28 & 0x10) {
+            if (gContButtons & 0x10) {
                 D_80364A78 -= D_80364A80;
             }
         }
@@ -1255,7 +1255,7 @@ void hd_game_frame(void) {
         if (pos < lo) {
             D_80364A78 = lo - D_803EF6E4;
         }
-        if (D_80370C28 & 0x2010) {
+        if (gContButtons & 0x2010) {
             D_802F8BDC[0].unk4 = (D_802F8BDC[0].unk4 - 0x18 < -0x100) ? -0x100 : D_802F8BDC[0].unk4 - 0x18;
             D_8036BB34 = (D_8036BB34 * 0.8 > 0.1) ? D_8036BB34 * 0.8 : 0.1;
             D_802F8BDC[0].unk8 &= ~0x20;
@@ -1274,11 +1274,11 @@ void hd_game_frame(void) {
             D_802F8BDC[0].unk8 |= 0x20;
         }
     }
-    if (D_80370C22 && !gPaused && D_80364456 && !D_8036443C && (D_80364AA8 == 1 || D_80364AA8 == 0x80)) {
-        func_8024B188();
+    if (gHeldZ && !gPaused && gCurVehicle && !D_8036443C && (D_80364AA8 == 1 || D_80364AA8 == 0x80)) {
+        veh_leave();
     }
-    func_8024B618();
-    if ((D_80370C28 & 0x4000) && !(D_80370C2A & 0x4000) && !areWeFading() && gNextGameMode == 0) {
+    veh_update_others();
+    if ((gContButtons & 0x4000) && !(gContPrevButtons & 0x4000) && !areWeFading() && gNextGameMode == 0) {
         switch (gGameMode) {
             case 0x100000000000:
                 if (levelno != 0x2F && levelno != 0x31 && (levelno != 0x26 || gPrevGameMode == 0x4000)) {
@@ -1318,7 +1318,7 @@ void hd_game_frame(void) {
         }
     }
     if (!gPaused && !D_80364A84) {
-        func_8024B7AC();
+        veh_update_player();
     }
     if (D_8039CA62 && !gPaused) {
         func_80294F00();
@@ -1343,15 +1343,15 @@ void hd_game_frame(void) {
         D_803F7806 = func_802C1AA0();
         func_802BC5E0();
         func_8024B5E8();
-        func_8028F794(D_80364456);
-        func_80291FAC(D_80364456);
+        func_8028F794(gCurVehicle);
+        func_80291FAC(gCurVehicle);
         func_802688C4(levelno);
         if (!(gGameMode & 0x1801)) {
             func_8026FEC4();
         }
         func_80281CE4();
         if (gGameMode & 0x104) {
-            func_80297804(D_803643E0, D_803643E4, D_803643E8);
+            func_80297804(gPlayerX, gPlayerY, gPlayerZ);
         }
 #ifdef NON_MATCHING
         /* The asm takes its param (the texture decoder's type-4/5 table) in
@@ -1388,7 +1388,7 @@ void hd_game_frame(void) {
                   (s32) &gDynamicBufs[gBufferIndex], (s32) (&gDynamicBufs[gBufferIndex].unk2C0[0x2D]), (u32 *) (&gDynamicBufs[gBufferIndex].unkA3A0[0x17070]),
                   (u32 *) (&gDynamicBufs[gBufferIndex].unkA3A0[0x170D8]));
     if (gGameMode == 4) {
-        func_80295C70(levelno, D_803643E0, D_803643E8);
+        func_80295C70(levelno, gPlayerX, gPlayerZ);
     }
     func_802A4CDC((u32 *) N64_IPTR(D_80358030[gBufferIndex]), (u32 *) N64_IPTR(D_80358038[gBufferIndex]), (u32 *) N64_IPTR(D_80358040[gBufferIndex]), (u32 *) N64_IPTR(D_80358048[gBufferIndex]),
                   (u32 *) (&gDynamicBufs[gBufferIndex].unkA3A0[0x140]));
@@ -1398,10 +1398,10 @@ void hd_game_frame(void) {
         func_802BCA2C();
     }
     if (!gPaused) {
-        func_8028DF14(D_80364456);
-        func_802906C0(D_80364456);
+        func_8028DF14(gCurVehicle);
+        func_802906C0(gCurVehicle);
         func_80292830();
-        func_8028C874(D_80364456);
+        func_8028C874(gCurVehicle);
     }
     if (D_80364AA8 != 1) {
         if (gGameMode & 0x40) {
@@ -1428,7 +1428,7 @@ void hd_game_frame(void) {
     if (!gPaused) {
         func_802CF1A4();
     }
-    func_80279514(D_803643E0, D_803643E4, D_803643E8, gCamEyeX, gCamEyeY, gCamEyeZ);
+    func_80279514(gPlayerX, gPlayerY, gPlayerZ, gCamEyeX, gCamEyeY, gCamEyeZ);
     func_80277620(gFramesInMode);
     func_8027D810(levelno);
     func_802C2054();
@@ -1497,7 +1497,7 @@ void hd_game_frame(void) {
         gdl = func_80274BF0((s32) &gDynamicBufs[gBufferIndex], gdl);
     }
     if (gGameMode == 0x2000000000000000) {
-        if ((D_80370C28 & 0x10) && !(D_80370C2A & 0x10)) {
+        if ((gContButtons & 0x10) && !(gContPrevButtons & 0x10)) {
             if (currentYoshiWindow < 0x6B && yoshiState != 8 && yoshiState != 1) {
                 func_8026AF6C((currentYoshiWindow + 1) | 0x8000);
                 func_80260650(D_80367738, 0x1D, NULL);
@@ -1505,7 +1505,7 @@ void hd_game_frame(void) {
                 func_80260650(D_80367738, 0xD0, NULL);
             }
         }
-        if ((D_80370C28 & 0x2000) && !(D_80370C2A & 0x2000)) {
+        if ((gContButtons & 0x2000) && !(gContPrevButtons & 0x2000)) {
             if (currentYoshiWindow >= 0x5F && yoshiState != 8 && yoshiState != 1) {
                 func_8026AF6C((currentYoshiWindow - 1) | 0x8000);
                 func_80260650(D_80367738, 0x1D, NULL);
@@ -1514,7 +1514,7 @@ void hd_game_frame(void) {
             }
         }
     }
-    if ((((D_80370C28 & 0x1000) && !(D_80370C2A & 0x1000)) || ((D_80370C28 & 0x8000) && !(D_80370C2A & 0x8000))) &&
+    if ((((gContButtons & 0x1000) && !(gContPrevButtons & 0x1000)) || ((gContButtons & 0x8000) && !(gContPrevButtons & 0x8000))) &&
         !areWeFading() && D_8036BB1A == -1 && gNextGameMode == 0 && !cmo_hit_request && !D_803643DA && currentYoshiWindow != 0) {
         if ((func_8026B10C() & 0x8000) && (func_8026B10C() & 1)) {
             func_8026B10C();
@@ -1552,7 +1552,7 @@ void hd_game_frame(void) {
                 break;
             case 4:
             case 0x100:
-                if ((D_80370C28 & 0x1000) && !gPaused) {
+                if ((gContButtons & 0x1000) && !gPaused) {
                     if ((LEVEL_DONE(levelno)) && D_80364AA8 == 1) {
                         D_802F5804[2].unk0 |= 1;
                         D_802F5804[2].unk18 = 7;
@@ -1743,7 +1743,7 @@ void func_8024A92C(u32 dist) {
         D_80364A6F = 0;
     }
     if (D_80364A6F != D_803153F0) {
-        if (D_803153F0 == 0 && func_8026A610(D_803EF6DC, D_803EF6E4, D_803643E0, D_803643E8) > 20000) {
+        if (D_803153F0 == 0 && func_8026A610(D_803EF6DC, D_803EF6E4, gPlayerX, gPlayerZ) > 20000) {
             func_80277EDC(1, 1, 7, 0x6C);
             debug_printf("TOO FAR AWAY FROM CMO\n");
         }
@@ -1812,26 +1812,27 @@ void func_8024ADD8(void) {
     }
 }
 
-/* Applies a pending vehicle switch (D_803649ED) */
-void func_8024AE2C(void) {
+/* Applies a pending vehicle switch (gNextVehicle): the type's enter routine
+ * (veh_enter), the player's flag for the type (0x8024AE2C). */
+void veh_apply_switch(void) {
     s32 pad;
 
-    if (D_803649ED != 0 && D_803649ED != 0xFF) {
-        if (func_802AB878(D_803649ED) == 0) {
-            func_802AB478(D_803649ED);
-            func_8028F6B4(D_803649ED);
-            func_80291ED8(D_803649ED);
+    if (gNextVehicle != 0 && gNextVehicle != 0xFF) {
+        if (func_802AB878(gNextVehicle) == 0) {
+            func_802AB478(gNextVehicle);
+            func_8028F6B4(gNextVehicle);
+            func_80291ED8(gNextVehicle);
             func_8028B720();
             func_802794E4();
-            if (func_8024AFA8(D_803649ED)) {
-                D_80364456 = D_803649ED;
+            if (veh_enter(gNextVehicle)) {
+                gCurVehicle = gNextVehicle;
                 func_802AE860();
                 if (!gPaused && gFramesInMode >= 11 &&
-                    (D_80364456 == 8 || D_80364456 == 15 || D_80364456 == 13 || D_80364456 == 14)) {
+                    (gCurVehicle == 8 || gCurVehicle == 15 || gCurVehicle == 13 || gCurVehicle == 14)) {
                     func_8026AD30(0x4A);
                 }
             }
-            players[playerNumber].unk10 |= 1 << D_80364456;
+            players[playerNumber].unk10 |= 1 << gCurVehicle;
             D_803649E8 = 1;
             D_803649EC = 1;
             D_803649EE = 1;
@@ -1841,8 +1842,9 @@ void func_8024AE2C(void) {
     }
 }
 
-/* Vehicle enter handler; returns whether the id is a vehicle */
-s32 func_8024AFA8(s32 id) {
+/* Calls the type's enter routine ("changing to digger %d": the game's word
+ * for its vehicles); returns 0 if id is not a vehicle (0x8024AFA8). */
+s32 veh_enter(s32 id) {
     u8 ok = 1;
 
     switch (id) {
@@ -1931,7 +1933,7 @@ s32 func_8024AFA8(s32 id) {
 }
 
 #if defined(NON_MATCHING) && defined(PORT_HOST)
-/* Windows port, byte order: func_8024B188 reads the word table that starts
+/* Windows port, byte order: veh_leave reads the word table that starts
  * at the u8 EEPROM flag D_802E8BF8 (set at boot), and on the N64 that flag is
  * word 0's most significant byte.  The image keeps word 0 big-endian
  * (port/data/image_overrides.txt), so word 0 is assembled from its bytes;
@@ -1946,17 +1948,17 @@ s32 port_802E8BF8_word(s32 i) {
 }
 #endif
 
-/* Leaves the current vehicle */
-void func_8024B188(void) {
+/* Leaves the current vehicle (0x8024B188). */
+void veh_leave(void) {
     u8 res = 0;
     u8 ok = 0;
 
     res = func_8024B4B8();
     if (res == 1) {
 #if defined(NON_MATCHING) && defined(PORT_HOST)
-        ok = func_802AE888(port_802E8BF8_word(D_80364456));
+        ok = func_802AE888(port_802E8BF8_word(gCurVehicle));
 #else
-        ok = func_802AE888(((s32 *) &D_802E8BF8)[D_80364456]);
+        ok = func_802AE888(((s32 *) &D_802E8BF8)[gCurVehicle]);
 #endif
     }
     if (ok) {
@@ -1965,7 +1967,7 @@ void func_8024B188(void) {
         func_8028F93C();
         func_80292084();
         func_8028B720();
-        switch (D_80364456) {
+        switch (gCurVehicle) {
             case 4:
                 func_802B4658();
                 break;
@@ -1996,7 +1998,7 @@ void func_8024B188(void) {
             case 11:
             case 17:
             case 18:
-                func_802C8B0C(D_80364456);
+                func_802C8B0C(gCurVehicle);
                 break;
             case 13:
                 func_802CBBBC();
@@ -2020,7 +2022,7 @@ void func_8024B188(void) {
                 func_802D0BF8();
                 break;
         }
-        D_80364456 = 0;
+        gCurVehicle = 0;
         if (gGameMode & 0x104) {
             func_8025BBE8((players[playerNumber].unkF0 & 1) ? 0x80 : 0x40, 0, 0);
         }
@@ -2032,13 +2034,13 @@ void func_8024B188(void) {
     }
 }
 
-/* Is any entry of D_80364460 (up to D_803649D0) tagged with id? */
+/* Is any entry of gVehicles (up to gVehiclesEnd) tagged with id? */
 s32 func_8024B418(u8 id) {
     s32 i;
 
     i = 0;
-    while (&D_80364460[i] != D_803649D0) {
-        if (D_80364460[i].unk5C == id) {
+    while (&gVehicles[i] != gVehiclesEnd) {
+        if (gVehicles[i].type == id) {
             return 1;
         }
         i++;
@@ -2046,7 +2048,7 @@ s32 func_8024B418(u8 id) {
     return 0;
 }
 
-/* Per-vehicle exit check for the current vehicle (D_80364456). Declared u8
+/* Per-vehicle exit check for the current vehicle (gCurVehicle). Declared u8
  * but has no return statement: callers read the handler's leftover v0. */
 #ifdef NON_MATCHING
 u8 func_8024B4B8(void) {
@@ -2054,7 +2056,7 @@ u8 func_8024B4B8(void) {
      * (indeterminate; only vehicle ids reach this). */
     s32 ret = 0;
 
-    switch (D_80364456) {
+    switch (gCurVehicle) {
         case 4:
             ret = func_802B45FC();
             break;
@@ -2107,7 +2109,7 @@ u8 func_8024B4B8(void) {
 }
 #else
 u8 func_8024B4B8(void) {
-    switch (D_80364456) {
+    switch (gCurVehicle) {
         case 4:
             func_802B45FC();
             break;
@@ -2162,7 +2164,7 @@ u8 func_8024B4B8(void) {
 
 void func_8024B5E8(void) {
     D_803ED3F5 = 1;
-    func_802AB670(D_80364456);
+    func_802AB670(gCurVehicle);
 }
 
 #ifdef NON_MATCHING
@@ -2170,10 +2172,10 @@ void func_8024B5E8(void) {
  * func_8029E0AC in hd_game_frame), which this file declares `void (void)`
  * (traced in the original ROM with mupen64plus breakpoints over attract demos
  * 0-8, nine levels; see the port notes, trace_values.md):
- *  - $fp ($s8): 0 at func_8024B618, func_8024B7AC and func_8029E0AC in every
+ *  - $fp ($s8): 0 at veh_update_others, veh_update_player and func_8029E0AC in every
  *    level (hd_game_frame and the IDO code above it never set $s8, and the
  *    hand asm they call before these points restores it). The re-ground
- *    functions of func_8024B618 save and restore fp themselves, so every one
+ *    functions of veh_update_others save and restore fp themselves, so every one
  *    of them gets 0. It reaches state: func_802A9A60 stores it into
  *    D_803ED3F2[0..2] and veh+0x50 = their average (the ground byte), and
  *    func_8029E0AC hands it to the texture decoder as the type-4/5 table.
@@ -2192,16 +2194,17 @@ void func_8024B5E8(void) {
  *    0, as the other updates (func_802AEEC8, func_802B6294, ...) use. */
 #endif
 
-/* Moves every placed vehicle other than the current one */
-void func_8024B618(void) {
+/* The per-frame routine of every placed vehicle but the player's (by type)
+ * (0x8024B618). */
+void veh_update_others(void) {
     s32 i;
     s32 id;
 
     i = 0;
-    while (&D_80364460[i] != D_803649D0) {
-        if (D_80364460[i].unk70 != 0) {
-            id = D_80364460[i].unk5C;
-            if (id != D_80364456 && id != 0xFF && id != 0xFE && id != 0) {
+    while (&gVehicles[i] != gVehiclesEnd) {
+        if (gVehicles[i].active != 0) {
+            id = gVehicles[i].type;
+            if (id != gCurVehicle && id != 0xFF && id != 0xFE && id != 0) {
                 switch (id) {
                     case 5:
                         func_802B5FAC();
@@ -2261,12 +2264,13 @@ void func_8024B618(void) {
     }
 }
 
-/* Vehicle exit handler for the current vehicle */
-void func_8024B7AC(void) {
+/* The per-frame routine of the player's vehicle (by gCurVehicle; 0: on
+ * foot) (0x8024B7AC). */
+void veh_update_player(void) {
     D_803ED3F5 = 0;
-    switch (D_80364456) {
+    switch (gCurVehicle) {
         case 0:
-            D_803649ED = 0;
+            gNextVehicle = 0;
             func_802AEEC8();
             break;
         case 1:
@@ -2319,7 +2323,7 @@ void func_8024B7AC(void) {
         case 11:
         case 17:
         case 18:
-            func_802C8BB8(D_80364456);
+            func_802C8BB8(gCurVehicle);
             break;
         case 13:
             func_802CBEF0();
@@ -2398,7 +2402,7 @@ void func_8024BDA4(u16 *sel) {
         case 0x100:
             switch (*sel) {
                 case 1:
-                    if (D_80364456 == 6 || D_80364456 == 11 || D_80364456 == 17 || D_80364456 == 18) {
+                    if (gCurVehicle == 6 || gCurVehicle == 11 || gCurVehicle == 17 || gCurVehicle == 18) {
                         D_802F5804[7].unk0 &= ~1;
                         D_802F5804[7].unk18 = 8;
                     } else {
@@ -2412,7 +2416,7 @@ void func_8024BDA4(u16 *sel) {
                     func_80285EF4(D_80364A58);
                     break;
                 case 7:
-                    func_8028B240();
+                    cont_show_method_option();
                     break;
                 case 3:
                     if (D_802E8F94[levelno].unk0 & 0x81) {
@@ -2439,13 +2443,13 @@ void func_8024BDA4(u16 *sel) {
                     break;
                 case 0x1A7:
                 case 0x1A8:
-                    if (((*sel - 0x1A7) << D_80364456) ^ ((1 << D_80364456) & 0x10205)) {
+                    if (((*sel - 0x1A7) << gCurVehicle) ^ ((1 << gCurVehicle) & 0x10205)) {
                         debug_printf("selected controller mode yes\n");
-                        players[playerNumber].unkF0 |= 1 << D_80364456;
+                        players[playerNumber].unkF0 |= 1 << gCurVehicle;
                         func_8025BBE8(0x80, 0, 0);
                     } else {
                         debug_printf("selected controller mode no\n");
-                        players[playerNumber].unkF0 &= ~(1 << D_80364456);
+                        players[playerNumber].unkF0 &= ~(1 << gCurVehicle);
                         func_8025BBE8(0x40, 0, 0);
                     }
                     break;
@@ -2619,7 +2623,7 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
         func_8027C4C8(&gdl, (struct TrailBuf *) dyn);
     }
     func_802502EC();
-    func_8024E4F4(&gdl, dyn, 0);
+    veh_draw_shadows(&gdl, dyn, 0);
     func_80258B78(&gdl, (struct VtxBuf *) dyn);
     if (!gPaused && D_80364AA8 != 0x40 && !(gGameMode & 0x440) && !D_80364A84) {
         func_80279EE8(&gdl, (s32) dyn, gBufferIndex);
@@ -2629,9 +2633,9 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
     gSPDisplayList(gdl++, SEG2(0x0A580));
     gDPPipeSync(gdl++);
     gdl = func_802CEEFC(gdl, gBufferIndex, (Gfx *) dyn->unkA3A0, &dyn->unk2C0[0x3C]);
-    func_8024E4F4(&gdl, dyn, 1);
+    veh_draw_shadows(&gdl, dyn, 1);
     if (D_803643DC) {
-        func_8024F520(&gdl, dyn);
+        veh_draw_chopper_shadow(&gdl, dyn);
     }
     func_802701A8(&gdl, (s32) dyn);
     func_80281E44(&gdl);
@@ -2649,7 +2653,7 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
     }
     func_80288DF0(&gdl, gBufferIndex);
     if (!(gGameMode & 2) || !D_802E8BF0) {
-        func_8024FC2C(&gdl, 0);
+        veh_draw_layer(&gdl, 0);
     }
     func_802976E8(&gdl);
     gSPClearGeometryMode(gdl++, -1);
@@ -2657,7 +2661,7 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
     gSPDisplayList(gdl++, osVirtualToPhysical((void *) N64_IPTR(D_80358040[gBufferIndex])));
     gSPDisplayList(gdl++, D_803BE6E8);
     if (!(gGameMode & 2) || !D_802E8BF0) {
-        func_8024FC2C(&gdl, 1);
+        veh_draw_layer(&gdl, 1);
     }
     gSPClearGeometryMode(gdl++, -1);
     gSPSetGeometryMode(gdl++, G_ZBUFFER);
@@ -2674,14 +2678,14 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
         gDPPipeSync(gdl++);
     }
     if (!(gGameMode & 2) || !D_802E8BF0) {
-        func_8024FC2C(&gdl, 2);
+        veh_draw_layer(&gdl, 2);
     }
     func_80295120(&gdl, (Mtx *) dyn);
     if (gGameMode & 0x2000001000003905) {
         func_80280F34(&gdl, gBufferIndex);
     }
     func_8027F1F8(&gdl, gBufferIndex, 1);
-    func_8024E4F4(&gdl, dyn, 2);
+    veh_draw_shadows(&gdl, dyn, 2);
     if (D_803643DC) {
         func_80266248(&gdl, (struct DynBuf *) dyn);
     }
@@ -2698,23 +2702,23 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
     }
     PORT_ITAG(gdl, PORT_ITAG_HUD, 0);
     if (D_80364A68 && (gGameMode & 0x104)) {
-        func_80286C60(&gdl, (s32) dyn, gBufferIndex, D_80364456);
+        func_80286C60(&gdl, (s32) dyn, gBufferIndex, gCurVehicle);
     }
     if (gGameMode & 0x200000000400220C) {
         func_80278324(&gdl, (s32) dyn, gBufferIndex);
     }
     if (gGameMode == 0x100 && D_803643DB) {
-        func_80276E50(&gdl, dyn, gBufferIndex, D_803643E0, D_803643E4, D_803643E8);
+        func_80276E50(&gdl, dyn, gBufferIndex, gPlayerX, gPlayerY, gPlayerZ);
     }
     func_80259450();
     if (D_80364A6A && (gGameMode & 0x104)) {
-        func_80287530(&gdl, (Gfx * N64P *) dyn, gBufferIndex, D_80364456);
+        func_80287530(&gdl, (Gfx * N64P *) dyn, gBufferIndex, gCurVehicle);
     }
     if (D_80364A6C && (gGameMode & 0x104)) {
-        func_80287C68(&gdl, (Gfx * N64P *) dyn, gBufferIndex, D_80364456);
+        func_80287C68(&gdl, (Gfx * N64P *) dyn, gBufferIndex, gCurVehicle);
     }
     if (gGameMode & 0x104) {
-        func_80282224(&gdl, D_80364456);
+        func_80282224(&gdl, gCurVehicle);
     }
     if ((D_80364AA8 & 1) && (gGameMode & 0x0400030C)) {
         func_8026A378(D_803649F4, (u8 *) &money[1]);
@@ -2743,7 +2747,7 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
                     func_80259CCC((Gfx * N64P *) dyn, (u8 *) ("USE Z/R TO TURN PAGES"), D_8030491C, 0, 0, 0x18, 0x14, 0xF, 0xF, 1, 0xFF, 0xFF,
                                   0xFF, 0xFF);
                 } else if (gGameMode == 0x100 && currentYoshiWindow == 0 && yoshiState == 2 && D_803643DB &&
-                           !(D_80370C28 & 0x2010)) {
+                           !(gContButtons & 0x2010)) {
                     func_80259CCC((Gfx * N64P *) dyn, (u8 *) ("USE Z/R TO MOVE MAP"), D_80304938, 0, 0, 0x18, 0x14, 0xF, 0xF, 1, 0xFF, 0xFF,
                                   0xFF, 0xFF);
                 }
@@ -2772,12 +2776,12 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
         func_80285CC0();
     }
     if (D_803643DB && gGameMode == 4) {
-        func_80282C80(&gdl, (Mtx *) dyn, D_803643E0, D_803643E4, D_803643E8, D_803EF6DC, D_803EF6E0, D_803EF6E4);
+        func_80282C80(&gdl, (Mtx *) dyn, gPlayerX, gPlayerY, gPlayerZ, D_803EF6DC, D_803EF6E0, D_803EF6E4);
     }
     if ((D_802E8F94[levelno].unk0 & 0x81) && gGameMode == 4) {
         if (levelno != 0x32 ||
             ((players[playerNumber].unk18[0x32] > 0 && players[playerNumber].unk18[0x32] < 6) ? 1 : 0)) {
-            func_8028376C(&gdl, (Mtx *) dyn, gBufferIndex, D_803643E0, D_803643E8, D_803EF6DC, D_803EF6E4);
+            func_8028376C(&gdl, (Mtx *) dyn, gBufferIndex, gPlayerX, gPlayerZ, D_803EF6DC, D_803EF6E4);
         }
     }
     if (D_803643DB || D_80364AC1) {
@@ -2806,8 +2810,8 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
     return gdl;
 }
 
-/* Draws the shadow quads of every vehicle on the given layer */
-void func_8024E4F4(Gfx **gfx, DynamicBuf *dyn, u8 layer) {
+/* Draws the shadow quads of every vehicle on the given layer (0x8024E4F4). */
+void veh_draw_shadows(Gfx **gfx, DynamicBuf *dyn, u8 layer) {
     Gfx *gdl = *gfx;
     s32 i;
     s16 unused;
@@ -2837,28 +2841,28 @@ void func_8024E4F4(Gfx **gfx, DynamicBuf *dyn, u8 layer) {
     gDPSetRenderMode(gdl++, 0x504340, 0);
     all = !D_803649E8 && (D_803649EC || (gGameMode & 0x1801));
     i = 0;
-    while (&D_803643C8[i] != D_803643CC) {
-        if ((D_803643C8[i].unk1022 != 0 || all) && D_803643C8[i].unk1022 != 0xFE &&
-            (D_803643C8[i].unk1022 != 0xFF || !D_803EF6FF) &&
-            (D_803643C8[i].unk1022 == 0xFD || !D_80364A84 || !D_80364AC1) && D_803643C8[i].unk1023 == layer) {
-            x = D_803643C8[i].unk1004 >> 5;
-            y = D_803643C8[i].unk1008 >> 5;
-            z = D_803643C8[i].unk100C >> 5;
-            w = D_803643C8[i].unk1018;
-            d = D_803643C8[i].unk101A;
-            spin = D_803643C8[i].unk1022 == D_80364456 && D_803ED40D == 0x65;
+    while (&gVehicleShadows[i] != gVehicleShadowsEnd) {
+        if ((gVehicleShadows[i].type != 0 || all) && gVehicleShadows[i].type != 0xFE &&
+            (gVehicleShadows[i].type != 0xFF || !D_803EF6FF) &&
+            (gVehicleShadows[i].type == 0xFD || !D_80364A84 || !D_80364AC1) && gVehicleShadows[i].layer == layer) {
+            x = gVehicleShadows[i].unk1004 >> 5;
+            y = gVehicleShadows[i].unk1008 >> 5;
+            z = gVehicleShadows[i].unk100C >> 5;
+            w = gVehicleShadows[i].halfWidth;
+            d = gVehicleShadows[i].halfDepth;
+            spin = gVehicleShadows[i].type == gCurVehicle && D_803ED40D == 0x65;
             if (spin) {
                 guRotateF(tmp, (f32) D_80364440 * 360.0 / 4096.0, 0.0f, 1.0f, 0.0f);
             }
-            guRotateF(mf, (f32) -D_803643C8[i].unk101E * 360.0 / 4096.0, 0.0f, 1.0f, 0.0f);
+            guRotateF(mf, (f32) -gVehicleShadows[i].unk101E * 360.0 / 4096.0, 0.0f, 1.0f, 0.0f);
             if (spin) {
                 guMtxCatF(tmp, mf, mf);
             }
-            guRotateF(tmp, (f32) D_803643C8[i].unk101C * 360.0 / 4096.0, 1.0f, 0.0f, 0.0f);
+            guRotateF(tmp, (f32) gVehicleShadows[i].unk101C * 360.0 / 4096.0, 1.0f, 0.0f, 0.0f);
             guMtxCatF(mf, tmp, tmp);
-            guRotateF(mf, (f32) D_803643C8[i].unk1020 * 360.0 / 4096.0, 0.0f, 0.0f, 1.0f);
+            guRotateF(mf, (f32) gVehicleShadows[i].unk1020 * 360.0 / 4096.0, 0.0f, 0.0f, 1.0f);
             guMtxCatF(tmp, mf, mf);
-            guRotateF(tmp, (f32) D_803643C8[i].unk101E * 360.0 / 4096.0, 0.0f, 1.0f, 0.0f);
+            guRotateF(tmp, (f32) gVehicleShadows[i].unk101E * 360.0 / 4096.0, 0.0f, 1.0f, 0.0f);
             guMtxCatF(mf, tmp, mf);
             guTranslateF(tmp, x, y, z);
             guMtxCatF(mf, tmp, mf);
@@ -2868,7 +2872,7 @@ void func_8024E4F4(Gfx **gfx, DynamicBuf *dyn, u8 layer) {
                                     G_TX_CLAMP, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
                 th = 32, tw = 32;
             } else {
-                gDPLoadTextureBlock(gdl++, PHYS((u32) D_803643C8 + i * sizeof(Vehicle)), G_IM_FMT_IA, G_IM_SIZ_8b,
+                gDPLoadTextureBlock(gdl++, PHYS((u32) gVehicleShadows + i * sizeof(Vehicle)), G_IM_FMT_IA, G_IM_SIZ_8b,
                                     64, 64, 0, G_TX_CLAMP, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD,
                                     G_TX_NOLOD);
                 th = 64, tw = 64;
@@ -2918,7 +2922,7 @@ void func_8024E4F4(Gfx **gfx, DynamicBuf *dyn, u8 layer) {
             dyn->unk15C0[D_8036506C].v.cn[3] = 0x8C;
             D_8036506C++;
             PORT_ITAG(gdl, PORT_ITAG_SHADOW, i);
-            if (D_803643D6 && !(D_80364AA8 & 0x81) && D_803643C8[i].unk1022 == D_80364456) {
+            if (D_803643D6 && !(D_80364AA8 & 0x81) && gVehicleShadows[i].type == gCurVehicle) {
                 gSPMatrix(gdl++, &D_02000000[0x55], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
             }
             gSPMatrix(gdl++, &D_02000000[i + 11], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
@@ -2926,7 +2930,7 @@ void func_8024E4F4(Gfx **gfx, DynamicBuf *dyn, u8 layer) {
             gSP1Triangle(gdl++, 0, 1, 2, 0);
             gSP1Triangle(gdl++, 0, 2, 3, 0);
             gSPPopMatrix(gdl++, G_MTX_MODELVIEW);
-            if (D_803643D6 && !(D_80364AA8 & 0x81) && D_803643C8[i].unk1022 == D_80364456) {
+            if (D_803643D6 && !(D_80364AA8 & 0x81) && gVehicleShadows[i].type == gCurVehicle) {
                 gSPPopMatrix(gdl++, G_MTX_MODELVIEW);
             }
             gDPPipeSync(gdl++);
@@ -2937,8 +2941,8 @@ void func_8024E4F4(Gfx **gfx, DynamicBuf *dyn, u8 layer) {
     *gfx = gdl;
 }
 
-/* Draws the shadow quad under vehicle 0xFE */
-void func_8024F520(Gfx **gfx, DynamicBuf *dyn) {
+/* Draws the shadow quad under vehicle 0xFE, the BCT chopper (0x8024F520). */
+void veh_draw_chopper_shadow(Gfx **gfx, DynamicBuf *dyn) {
     Gfx *gdl = *gfx;
     s32 i;
     u8 found;
@@ -2960,19 +2964,19 @@ void func_8024F520(Gfx **gfx, DynamicBuf *dyn) {
     found = 0;
     i = 0;
     while (!found) {
-        if (D_803643C8[i].unk1022 == 0xFE) {
+        if (gVehicleShadows[i].type == 0xFE) {
             found = 1;
         } else {
             i++;
         }
     }
-    gDPLoadTextureBlock(gdl++, PHYS((u32) D_803643C8 + i * sizeof(Vehicle)), G_IM_FMT_IA, G_IM_SIZ_8b, 64, 64, 0, G_TX_CLAMP, G_TX_CLAMP,
+    gDPLoadTextureBlock(gdl++, PHYS((u32) gVehicleShadows + i * sizeof(Vehicle)), G_IM_FMT_IA, G_IM_SIZ_8b, 64, 64, 0, G_TX_CLAMP, G_TX_CLAMP,
                         G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
-    x = D_803643C8[i].unk1004 >> 5;
-    y = D_803643C8[i].unk1008 >> 5;
-    z = D_803643C8[i].unk100C >> 5;
-    w = D_803643C8[i].unk1018;
-    d = D_803643C8[i].unk101A;
+    x = gVehicleShadows[i].unk1004 >> 5;
+    y = gVehicleShadows[i].unk1008 >> 5;
+    z = gVehicleShadows[i].unk100C >> 5;
+    w = gVehicleShadows[i].halfWidth;
+    d = gVehicleShadows[i].halfDepth;
     dyn->unk18C0[0].v.ob[0] = -w;
     dyn->unk18C0[0].v.ob[1] = 0;
     dyn->unk18C0[0].v.ob[2] = d;
@@ -3026,8 +3030,9 @@ void func_8024F520(Gfx **gfx, DynamicBuf *dyn) {
     *gfx = gdl;
 }
 
-/* Emits the display lists of every object in D_80364460 */
-void func_8024FC2C(Gfx **gfx, u8 lod) {
+/* Emits the display lists of every vehicle record (gVehicles) for one of the
+ * frame's three layers (0x8024FC2C). */
+void veh_draw_layer(Gfx **gfx, u8 lod) {
     Gfx *gdl = *gfx;
     s32 i;
     u8 unused;
@@ -3036,49 +3041,49 @@ void func_8024FC2C(Gfx **gfx, u8 lod) {
 
     all = !D_803649E8 && (D_803649EC || (gGameMode & 0x1801));
     i = 0;
-    while (&D_80364460[i] != D_803649D0) {
-        if ((D_80364460[i].unk5C != 0 || all) && (D_80364460[i].unk5C != 0xFF || !D_803EF6FF) &&
-            (D_80364460[i].unk5C == 0xFD || !D_80364A84 || !D_80364AC1)) {
+    while (&gVehicles[i] != gVehiclesEnd) {
+        if ((gVehicles[i].type != 0 || all) && (gVehicles[i].type != 0xFF || !D_803EF6FF) &&
+            (gVehicles[i].type == 0xFD || !D_80364A84 || !D_80364AC1)) {
             PORT_ITAG(gdl, PORT_ITAG_OBJ, i | (lod << 8));
-            gSPSegment(gdl++, 6, osVirtualToPhysical(D_80364460[i].unk0));
-            if ((gGameMode & 0x1801) && (D_80364460[i].unk5C == 0xFE || D_80364460[i].unk5C == 0)) {
+            gSPSegment(gdl++, 6, osVirtualToPhysical(gVehicles[i].unk0));
+            if ((gGameMode & 0x1801) && (gVehicles[i].type == 0xFE || gVehicles[i].type == 0)) {
                 alt = gBufferIndex;
             } else {
                 alt = D_803156F5;
             }
             if (alt) {
-                gSPSegment(gdl++, 7, osVirtualToPhysical(D_80364460[i].unk4));
+                gSPSegment(gdl++, 7, osVirtualToPhysical(gVehicles[i].unk4));
             } else {
-                gSPSegment(gdl++, 7, osVirtualToPhysical(D_80364460[i].unk8));
+                gSPSegment(gdl++, 7, osVirtualToPhysical(gVehicles[i].unk8));
             }
             gDPPipeSync(gdl++);
-            gDPSetEnvColor(gdl++, 0, 0, 0, D_80364460[i].unk60);
+            gDPSetEnvColor(gdl++, 0, 0, 0, gVehicles[i].alpha);
             gSPClearGeometryMode(gdl++, -1);
-            if (D_803643D6 && !(D_80364AA8 & 0x81) && D_80364460[i].unk5C == D_80364456) {
+            if (D_803643D6 && !(D_80364AA8 & 0x81) && gVehicles[i].type == gCurVehicle) {
                 gSPMatrix(gdl++, &D_02000000[0x54], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
             }
             if (alt) {
                 switch (lod) {
                     case 0:
-                        gSPDisplayList(gdl++, osVirtualToPhysical(D_80364460[i].unkC));
+                        gSPDisplayList(gdl++, osVirtualToPhysical(gVehicles[i].unkC));
                         break;
                     case 1:
-                        gSPDisplayList(gdl++, osVirtualToPhysical(D_80364460[i].unk10));
+                        gSPDisplayList(gdl++, osVirtualToPhysical(gVehicles[i].unk10));
                         break;
                     case 2:
-                        gSPDisplayList(gdl++, osVirtualToPhysical(D_80364460[i].unk14));
+                        gSPDisplayList(gdl++, osVirtualToPhysical(gVehicles[i].unk14));
                         break;
                 }
             } else {
                 switch (lod) {
                     case 0:
-                        gSPDisplayList(gdl++, osVirtualToPhysical(D_80364460[i].unk30));
+                        gSPDisplayList(gdl++, osVirtualToPhysical(gVehicles[i].unk30));
                         break;
                     case 1:
-                        gSPDisplayList(gdl++, osVirtualToPhysical(D_80364460[i].unk34));
+                        gSPDisplayList(gdl++, osVirtualToPhysical(gVehicles[i].unk34));
                         break;
                     case 2:
-                        gSPDisplayList(gdl++, osVirtualToPhysical(D_80364460[i].unk38));
+                        gSPDisplayList(gdl++, osVirtualToPhysical(gVehicles[i].unk38));
                         break;
                 }
             }
@@ -3100,21 +3105,21 @@ void func_802502EC(void) {
     s16 z;
 
     if (D_803643D6 != 0 && !(D_80364AA8 & 0x81)) {
-        guTranslateF(mf, -(f32) D_803643E0 / 32.0, -(f32) D_803643E4 / 32.0, -(f32) D_803643E8 / 32.0);
+        guTranslateF(mf, -(f32) gPlayerX / 32.0, -(f32) gPlayerY / 32.0, -(f32) gPlayerZ / 32.0);
         guScaleF(tmp, D_80364ABC, D_80364ABC, D_80364ABC);
         guMtxCatF(mf, tmp, mf);
         guRotateF(tmp, D_80364AB4, 0.0f, 1.0f, 0.0f);
         guMtxCatF(mf, tmp, mf);
-        guTranslateF(tmp, (f32) D_803643E0 / 32.0, (f32) D_803643E4 / 32.0, (f32) D_803643E8 / 32.0);
+        guTranslateF(tmp, (f32) gPlayerX / 32.0, (f32) gPlayerY / 32.0, (f32) gPlayerZ / 32.0);
         guMtxCatF(mf, tmp, mf);
         guMtxF2L(mf, &gDynamicBufs[gBufferIndex].unk1500);
         i = 0;
-        while (D_803643C8[i].unk1022 != D_80364456) {
+        while (gVehicleShadows[i].type != gCurVehicle) {
             i++;
         }
-        x = D_803643C8[i].unk1004 >> 5;
-        y = D_803643C8[i].unk1008 >> 5;
-        z = D_803643C8[i].unk100C >> 5;
+        x = gVehicleShadows[i].unk1004 >> 5;
+        y = gVehicleShadows[i].unk1008 >> 5;
+        z = gVehicleShadows[i].unk100C >> 5;
         guTranslateF(mf, -x, -y, -z);
         guScaleF(tmp, D_80364ABC, D_80364ABC, D_80364ABC);
         guMtxCatF(mf, tmp, mf);
@@ -3130,7 +3135,7 @@ void func_802502EC(void) {
             }
         }
         if (D_80364ABC == 0.0 && D_80364AC0 == 0) {
-            func_802AC61C(D_803643E0, D_803643E4, D_803643E8, 0x13, 400000);
+            func_802AC61C(gPlayerX, gPlayerY, gPlayerZ, 0x13, 400000);
             D_80364AC0 = 1;
         }
         D_80364AB4 += D_80364AB8;
@@ -3326,7 +3331,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
         rateX = 0.1f;
         rateY = 0.03f;
         rateZ = 0.1f;
-    } else if (D_80364456 == 9) {
+    } else if (gCurVehicle == 9) {
         rateX = 0.5f;
         rateY = 0.06f;
         rateZ = 0.5f;
@@ -3366,7 +3371,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
             }
             break;
         default:
-            gCamType = D_80364456;
+            gCamType = gCurVehicle;
             break;
     }
     tilt = D_8036443C;
@@ -3548,8 +3553,8 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
     if (tilt < gCamTiltMin) {
         tilt = gCamTiltMin;
     }
-    if ((tilt > 0 && D_80370C1C && !gPaused && (gGameMode & 0x106)) ||
-        (tilt < 0 && D_80370C1D && !gPaused && (gGameMode & 0x106))) {
+    if ((tilt > 0 && gHeldA && !gPaused && (gGameMode & 0x106)) ||
+        (tilt < 0 && gHeldB && !gPaused && (gGameMode & 0x106))) {
         if (gCamTilt < tilt) {
             gCamTilt += tiltRate;
         }
@@ -3670,9 +3675,9 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                     } else {
                         gCamEasedHeading = D_8036443E * 16;
                     }
-                    gCamEyeGoalX = (s32) (D_803643E0 - SINE(gCamEasedHeading) * (gCamDistance * 2.0f) + offX) << 11;
-                    gCamEyeGoalY = (gCamHeight + D_803643E4) << 11;
-                    gCamEyeGoalZ = (s32) (D_803643E8 - COSINE(gCamEasedHeading) * (gCamDistance * 2.0f) + offZ) << 11;
+                    gCamEyeGoalX = (s32) (gPlayerX - SINE(gCamEasedHeading) * (gCamDistance * 2.0f) + offX) << 11;
+                    gCamEyeGoalY = (gCamHeight + gPlayerY) << 11;
+                    gCamEyeGoalZ = (s32) (gPlayerZ - COSINE(gCamEasedHeading) * (gCamDistance * 2.0f) + offZ) << 11;
                     break;
                 case 2:
                 case 0x20:
@@ -3681,9 +3686,9 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                     } else {
                         gCamEasedHeading = D_8036443E * 16;
                     }
-                    gCamEyeGoalX = (s32) (SINE(gCamEasedHeading) * (gCamDistance * 2.0f) + D_803643E0 + offX) << 11;
-                    gCamEyeGoalY = (gCamHeight + D_803643E4 + D_80370C2D * 50) << 11;
-                    gCamEyeGoalZ = (s32) (COSINE(gCamEasedHeading) * (gCamDistance * 2.0f) + D_803643E8 + offZ) << 11;
+                    gCamEyeGoalX = (s32) (SINE(gCamEasedHeading) * (gCamDistance * 2.0f) + gPlayerX + offX) << 11;
+                    gCamEyeGoalY = (gCamHeight + gPlayerY + gPadStickY * 50) << 11;
+                    gCamEyeGoalZ = (s32) (COSINE(gCamEasedHeading) * (gCamDistance * 2.0f) + gPlayerZ + offZ) << 11;
                     break;
                 case 0x10:
                 case 0x40:
@@ -3741,15 +3746,15 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                 gCamEyeGoalY = (D_803FCD4C + 0xDAC) << 11;
                 gCamEyeGoalZ = (s32) (D_803FCD50 - COSINE(gCamEasedHeading) * 8000.0f + offZ) << 11;
             } else {
-                gCamEyeGoalX = (D_803643E0 + offX - 500) << 11;
-                gCamEyeGoalY = (D_803643E4 + 6000) << 11;
-                gCamEyeGoalZ = (D_803643E8 + offZ + 500) << 11;
+                gCamEyeGoalX = (gPlayerX + offX - 500) << 11;
+                gCamEyeGoalY = (gPlayerY + 6000) << 11;
+                gCamEyeGoalZ = (gPlayerZ + offZ + 500) << 11;
             }
             break;
         case 0x1000:
-            gCamEyeGoalX = (D_803643E0 + offX - 4000) << 11;
-            gCamEyeGoalY = (D_803643E4 + 5000) << 11;
-            gCamEyeGoalZ = (D_803643E8 + offZ + 4000) << 11;
+            gCamEyeGoalX = (gPlayerX + offX - 4000) << 11;
+            gCamEyeGoalY = (gPlayerY + 5000) << 11;
+            gCamEyeGoalZ = (gPlayerZ + offZ + 4000) << 11;
             break;
         default:
             if (gCamFixedEye) {
@@ -3796,24 +3801,24 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                         if (angle >= 360) {
                             angle %= 360;
                         }
-                        if (D_80364456 == 2 || D_80364456 == 9) {
+                        if (gCurVehicle == 2 || gCurVehicle == 9) {
                             cam_polar_offset(gCamDistance, angle, &px, &pz);
                         } else {
                             cam_polar_offset(gCamDistance / 2, angle, &px, &pz);
                         }
-                        gCamEyeGoalY = (gCamEyeHeight * 3 / 5 + D_803643E4) << 11;
+                        gCamEyeGoalY = (gCamEyeHeight * 3 / 5 + gPlayerY) << 11;
                         offX = 0;
                         offZ = 0;
                     } else {
                         cam_polar_offset(gCamDistance, gCamHeading, &px, &pz);
                         if (D_80364411 && gCamHeading >= 134.0 && gCamHeading <= 136.0) {
-                            gCamEyeGoalY = (D_803643E4 + 0x3908) << 11;
+                            gCamEyeGoalY = (gPlayerY + 0x3908) << 11;
                         } else {
-                            gCamEyeGoalY = (D_803643E4 + gCamEyeHeight) << 11;
+                            gCamEyeGoalY = (gPlayerY + gCamEyeHeight) << 11;
                         }
                     }
-                    gCamEyeGoalX = (D_803643E0 + px + offX) << 11;
-                    gCamEyeGoalZ = (D_803643E8 + pz + offZ) << 11;
+                    gCamEyeGoalX = (gPlayerX + px + offX) << 11;
+                    gCamEyeGoalZ = (gPlayerZ + pz + offZ) << 11;
                 }
             }
             break;
@@ -3886,9 +3891,9 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                     gCamAtGoalZ = (f32) (D_8036C794->unk16 + D_8036C794->unk4) / 2.0;
                 }
             } else {
-                gCamAtGoalX = (D_803643E0 + offX) / 32.0f;
-                gCamAtGoalY = (D_803643E4 + gCamAtHeight) / 32.0f;
-                gCamAtGoalZ = (D_803643E8 + offZ) / 32.0f;
+                gCamAtGoalX = (gPlayerX + offX) / 32.0f;
+                gCamAtGoalY = (gPlayerY + gCamAtHeight) / 32.0f;
+                gCamAtGoalZ = (gPlayerZ + offZ) / 32.0f;
             }
             break;
     }
@@ -3911,12 +3916,12 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
         gCamAtGoalZ = D_803FCD50 / 32.0f;
     }
     if (gGameMode == 0x40 && levelno == 0x3B) {
-        gCamEyeGoalX = (D_803643E0 + 0x1900) << 11;
-        gCamEyeGoalY = (D_803643E4 + 0x3070) << 11;
-        gCamEyeGoalZ = (D_803643E8 - 0x1900) << 11;
-        gCamAtGoalX = D_803643E0 / 32.0f;
-        gCamAtGoalY = D_803643E4 / 32.0f;
-        gCamAtGoalZ = D_803643E8 / 32.0f;
+        gCamEyeGoalX = (gPlayerX + 0x1900) << 11;
+        gCamEyeGoalY = (gPlayerY + 0x3070) << 11;
+        gCamEyeGoalZ = (gPlayerZ - 0x1900) << 11;
+        gCamAtGoalX = gPlayerX / 32.0f;
+        gCamAtGoalY = gPlayerY / 32.0f;
+        gCamAtGoalZ = gPlayerZ / 32.0f;
     }
     if ((gGameMode & 0x2000000000002104) && !D_8036B8B0 && !inShuttle && gGameMode != 0x100 && levelno != 0x23 &&
         !D_80364A85) {
@@ -4100,7 +4105,7 @@ f32 cam_eye_scale(f32 x0, f32 y0, f32 z0, f32 x1, f32 y1, f32 z1) {
     f32 dz;
     f32 dist;
 
-    switch (D_80364456) {
+    switch (gCurVehicle) {
         case 0:
             speed = 3.5f;
             break;
@@ -4198,10 +4203,10 @@ void cam_turn_heading(void) {
 
     if (gPaused == 0) {
         ok = cam_fixed_heading_area();
-        if (ok && ((D_80370C21 && !D_80370C27) || (D_80370C1E && !D_80370C24)) && (gGameMode & 0x104)) {
+        if (ok && ((gHeldCRight && !gPrevHeldCRight) || (gHeldCLeft && !gPrevHeldCLeft)) && (gGameMode & 0x104)) {
             func_80260650(D_80367738, 0xD0, NULL);
         }
-        if (D_80370C21 && !D_80370C27 && !gCamTurnPos && !gCamTurnNeg && !ok && gGameMode != 0x2000) {
+        if (gHeldCRight && !gPrevHeldCRight && !gCamTurnPos && !gCamTurnNeg && !ok && gGameMode != 0x2000) {
             gCamHeadingGoal = gCamHeading + 45.0;
             if (gCamHeadingGoal >= 360.0) {
                 gCamHeadingGoal = gCamHeadingGoal - 360.0;
@@ -4229,7 +4234,7 @@ void cam_turn_heading(void) {
                 }
             }
         }
-        if (D_80370C1E && !D_80370C24 && !gCamTurnPos && !gCamTurnNeg && !ok && gGameMode != 0x2000) {
+        if (gHeldCLeft && !gPrevHeldCLeft && !gCamTurnPos && !gCamTurnNeg && !ok && gGameMode != 0x2000) {
             gCamHeadingGoal = gCamHeading - 45.0;
             if (gCamHeadingGoal < 0.0) {
                 gCamHeadingGoal = gCamHeadingGoal + 360.0;
@@ -4274,18 +4279,18 @@ u8 cam_fixed_heading_area(void) {
     } else {
         switch (levelno) {
             case 4:
-                if (func_802AC4C4(D_803643E0 >> 5, D_803643E8 >> 5, 0xE56, 0x8EC, 0xBB8, 0x6A4, 0x1068, 0x1F4) ||
-                    func_802AC4C4(D_803643E0 >> 5, D_803643E8 >> 5, 0xE56, 0x8EC, 0x1068, 0x1F4, 0x1324, 0x4B0)) {
+                if (func_802AC4C4(gPlayerX >> 5, gPlayerZ >> 5, 0xE56, 0x8EC, 0xBB8, 0x6A4, 0x1068, 0x1F4) ||
+                    func_802AC4C4(gPlayerX >> 5, gPlayerZ >> 5, 0xE56, 0x8EC, 0x1068, 0x1F4, 0x1324, 0x4B0)) {
                     ok = 1;
                 }
                 break;
             case 16:
-                if (D_803643E0 > 0x46500 && D_803643E8 > 0x3E800) {
+                if (gPlayerX > 0x46500 && gPlayerZ > 0x3E800) {
                     ok = 1;
                 }
                 break;
             case 13:
-                if (D_803643E0 > 0x42680 && D_803643E8 > 0x46500) {
+                if (gPlayerX > 0x42680 && gPlayerZ > 0x46500) {
                     ok = 1;
                 }
                 break;
@@ -4354,7 +4359,7 @@ void hd_init(void) {
     sched_create((struct BcSched *) gScheduler, gSchedStack + 0x400, 13, (D_80000300 != 1) ? 0x10 : 2, 1);
     osCreateMesgQueue(&gTaskDoneQueue, D_803153F8, 16);
     sched_add_client((struct BcSched *) gScheduler, (struct BcScClient *) gMainSchedClient, &gTaskDoneQueue, 1, 1);
-    status = func_8028A370();
+    status = cont_init();
     func_80261588();
     debug_printf("audio inited\n");
     osViSetSpecialFeatures(OS_VI_GAMMA_OFF);
@@ -4417,7 +4422,7 @@ void hd_mode_setup(void) {
     D_80367BD6 = 0;
     func_8026A8BC();
     func_8026A974();
-    func_8028AE88();
+    cont_clear();
     func_8028B720();
     gStaticSegment = D_803FF600;
     func_8028B4C4((u32) D_00787F40, (u32) D_803FF600, &size, 10, 0, 2);
@@ -4436,7 +4441,7 @@ void hd_mode_setup(void) {
     }
     D_803B9888 = 0;
     func_802A0700();
-    D_803643C8 = (Vehicle *) (((u32) D_80358088 + 0x40) & ~0x3F);
+    gVehicleShadows = (Vehicle *) (((u32) D_80358088 + 0x40) & ~0x3F);
     func_80278E3C();
     cmo_hit_request = 0;
     D_803643DA = 0;
@@ -4459,8 +4464,8 @@ void hd_mode_setup(void) {
     old = gHeapPtr;
     func_8026B118(0);
     debug_printf("Yoshi windows allocated %d bytes, %x\n", gHeapPtr - old, gHeapPtr);
-    D_803649D0 = D_80364460;
-    func_8028A42C();
+    gVehiclesEnd = gVehicles;
+    cont_wait_read();
     func_802592F0();
     D_8039CAA2 = 0;
 }
@@ -4730,13 +4735,13 @@ void func_80256A34(s32 arg0) {
     D_80364A6D = 0;
     D_803649E8 = 0;
     D_803649EC = 0;
-    D_803643CC = D_803643C8;
+    gVehicleShadowsEnd = gVehicleShadows;
     D_80364AA8 = D_802E8F94[levelno].unk0;
     gShakeTime = 0;
     gShakeSize = 0;
-    D_803643E0 = 0;
-    D_803643E4 = 0;
-    D_803643E8 = 0;
+    gPlayerX = 0;
+    gPlayerY = 0;
+    gPlayerZ = 0;
     D_8036443C = 0;
     gCamHeading = 135.0f;
     gCamHeadingGoal = 135.0f;
@@ -4747,7 +4752,7 @@ void func_80256A34(s32 arg0) {
     D_803A7430 = 0;
     D_803649EE = 0;
     D_80364A84 = 0;
-    D_80364456 = 0;
+    gCurVehicle = 0;
     if (frontEndPresent) {
         HD_ASSERT(!pakBusy, 4162);
         HD_ASSERT(MQ_IS_EMPTY(&pakToGameMessageQ), 4163);
@@ -4812,27 +4817,27 @@ void func_80256A34(s32 arg0) {
     func_802807D8(levelno);
     func_80268664(levelno);
     func_8026A988();
-    v = D_803643C8;
-    while (v != D_803643CC) {
+    v = gVehicleShadows;
+    while (v != gVehicleShadowsEnd) {
         i = 0;
         found = 0;
         while (!found) {
-            if (D_80364460[i].unk5C == v->unk1022) {
+            if (gVehicles[i].type == v->type) {
                 found = 1;
             } else {
                 i++;
             }
         }
-        func_80258544(v, v->unk1004, v->unk1010, v->unk100C, v->unk1000, (Gfx *) N64_IPTR((D_80364460[i].unk54)), D_80364460[i].unk0,
-                      D_80364460[i].unk4);
+        func_80258544(v, v->unk1004, v->unk1010, v->unk100C, v->unk1000, (Gfx *) N64_IPTR((gVehicles[i].unk54)), gVehicles[i].unk0,
+                      gVehicles[i].unk4);
         rsp_wait_task(0x61F);
         v++;
     }
     func_802729F0(gNextGameMode, levelno);
     gCamYaw = 0x2000;
     gCamPitch = 0x2000;
-    D_80364456 = 0;
-    D_803649ED = 0;
+    gCurVehicle = 0;
+    gNextVehicle = 0;
     gCamEyeX = 0;
     gCamEyeY = 0;
     gCamEyeZ = 0;
@@ -4848,9 +4853,9 @@ void func_80256A34(s32 arg0) {
     D_80364AB8 = 1.0f;
     D_80364ABC = 1.0f;
     D_80364AC0 = 0;
-    D_803643E0 = D_803ED808;
-    D_803643E4 = D_803ED80C;
-    D_803643E8 = D_803ED810;
+    gPlayerX = D_803ED808;
+    gPlayerY = D_803ED80C;
+    gPlayerZ = D_803ED810;
     D_802FDB14 = 0;
     if (D_802E8BF8) {
         D_803649F0 = nss.ip;

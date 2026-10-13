@@ -40,7 +40,7 @@ s32 func_802BABEC(MtxChainRegs *regs);
 /* Level setup of the type-0xFF object (asm caller func_802A303C): model
  * header -> D_803EF70C, two 0xC00-byte matrix buffers from gHeapPtr
  * (D_803EF704 / D_803EF708; the allocator advances by 0x1800),
- * func_802A1388(0xFF, 0, buffers, model); position x/z (and the start point
+ * veh_add_record(0xFF, 0, buffers, model); position x/z (and the start point
  * D_803EF6F4/F8), target speed D_803EF6FC, D_803EF6F0 = limit, D_803EF6D6 =
  * 0; func_802A754C on D_803EF630, heading +0x4E/+0x4C; effect counters
  * D_803EF6FE = 5, D_803EF700 = D_803EF701 = 0; func_802BA074 (level spawn
@@ -72,7 +72,7 @@ void func_802B9C50(u8 *model, s32 x, s32 z, s32 speed, s32 limit, s32 heading, s
     D_803EF704 = (u8 *) N64_IPTR(buf);
     D_803EF708 = (u8 *) N64_IPTR((buf + 0xC00));
     gHeapPtr = buf + 0x1800;
-    func_802A1388(0xFF, 0, (s32) D_803EF704, (s32) D_803EF708, model);
+    veh_add_record(0xFF, 0, (s32) D_803EF704, (s32) D_803EF708, model);
     D_803EF6DC = x;
     D_803EF6F4 = x;
     D_803EF6E4 = z;
@@ -212,18 +212,18 @@ extern void * N64P D_803EF6D8;  /* this sound's handle, NULL = none */
 
 /* Positional sound 0x75 at D_803EF6DC/E0/E4 (called from hd.c); shape of
  * func_802B8794 (72B80). d is the rounded distance from the player
- * D_803643E0/E4/E8. Beyond 16000 the sound is stopped (func_802608C8) and
+ * gPlayerX/Y/Z. Beyond 16000 the sound is stopped (func_802608C8) and
  * its handle cleared. Otherwise it is started if it isn't playing, its
  * volume (parameter 8) set to 0x7FFF - 2 * max(d - 4000, 0) and its pan
  * (parameter 4) to 64 + (player x - source x) / 32, clamped to 0..127. The
  * asm's `sub`/`add` trap on overflow; C doesn't. Register note: the asm
  * saves and restores every register. */
 void func_802BA148(void) {
-    s32 dx = D_803643E0 - D_803EF6DC;
+    s32 dx = gPlayerX - D_803EF6DC;
     s32 dist;
     s32 pan;
 
-    dist = func_802ABCDC(D_803643E0, D_803643E4, D_803643E8, D_803EF6DC, D_803EF6E0, D_803EF6E4);
+    dist = func_802ABCDC(gPlayerX, gPlayerY, gPlayerZ, D_803EF6DC, D_803EF6E0, D_803EF6E4);
     if (dist > 16000) {
         if (D_803EF6D8 != NULL) {
             func_802608C8(D_803EF6D8);
@@ -279,7 +279,7 @@ void func_802BA91C(void);
  * ground contact func_802A8768 (id 0xFF, divisors 0x960 / 0x320). Always:
  * animate the model (func_8029E558 on the current buffer pair), rebuild it
  * (func_802BABEC), the collision/effect step func_802BA9A0 while +0x9A is
- * clear, func_802BA91C and func_802A133C(z, 0xFF, x, y, veh).
+ * clear, func_802BA91C and veh_set_record(z, 0xFF, x, y, veh).
  * Leaked registers (FIDELITY AUDIT, see port_followups): the zone scan's
  * t6/t7/s0-s4 inputs (the caller's registers; only passed through when no
  * zone is looked at, and dead afterwards), func_802BA638's a2 input and its
@@ -360,7 +360,7 @@ animate:
         func_802BA9A0(end);
     }
     func_802BA91C();
-    func_802A133C(D_803EF6E4, 0xFF, D_803EF6DC, D_803EF6E0, D_803EF630);
+    veh_set_record(D_803EF6E4, 0xFF, D_803EF6DC, D_803EF6E0, D_803EF630);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/func_802BA354.s")
@@ -688,7 +688,7 @@ extern u8 D_803EF720[];
 /* Level setup of vehicle 6 (asm caller func_802A350C, the level's object
  * list): model header `model` -> D_803EFAD4; two 0x800-byte matrix buffers
  * from the allocator gHeapPtr (D_803EFAE4, D_803EFAE8; the allocator
- * advances by 0x1000); func_802A1388(6, 0, buffers, model); $gp record
+ * advances by 0x1000); veh_add_record(6, 0, buffers, model); $gp record
  * D_803EFA20 reset (func_802A754C); wheel-slot offsets (+-0x50, +-0x5A) at
  * +0x52..+0x68; position D_803EFAC8 = (x, y, z), heading +0x4C/+0x4E/+0x74
  * = `heading`; the three ground slots (func_802A992C, height records +4, y
@@ -715,7 +715,7 @@ void func_802BAD80(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp) {
     D_803EFAE4 = (u64 *) N64_IPTR(buf);
     D_803EFAE8 = (u64 *) N64_IPTR((buf + 0x800));
     gHeapPtr = buf + 0x1000;
-    func_802A1388(6, 0, (s32) D_803EFAE4, (s32) D_803EFAE8, model);
+    veh_add_record(6, 0, (s32) D_803EFAE4, (s32) D_803EFAE8, model);
     func_802A754C(D_803EFA20);
     /* wheel slot offsets (x, z pairs and heights) */
     *(s16 *) (D_803EFA20 + 0x52) = 0x50;
@@ -873,7 +873,7 @@ s32 func_802BB8B8(MtxChainRegs *regs, s32 *t2Out);
  * func_8029A800 (table D_80305DF0, kind 6), func_8029C52C(6), the part
  * lookup func_8029C5EC, the collision pass func_802BE77C(6) (with
  * D_803F77D0 = D_803EF720) and func_8029AA10(6); +0xA2 = 1 if D_803A7424 got
- * set; finally the player globals D_803643E0/E4/E8 = the position,
+ * set; finally the player globals gPlayerX/Y/Z = the position,
  * D_8036443C = 0, D_8036443E / D_80364440 = u16 +0x4E / +0x4C.
  * func_8029A800's b0 and h2 are what func_802BB8B8 leaves in t0 / t2 (x and
  * 6), kept here.
@@ -934,9 +934,9 @@ void func_802BB274(void) {
     if (D_803A7424 != 0) {
         D_803EFA20[0xA2] = 1;
     }
-    D_803643E0 = D_803EFAC8[0];
-    D_803643E4 = D_803EFAC8[1];
-    D_803643E8 = D_803EFAC8[2];
+    gPlayerX = D_803EFAC8[0];
+    gPlayerY = D_803EFAC8[1];
+    gPlayerZ = D_803EFAC8[2];
     D_8036443C = 0;
     D_8036443E = *(u16 *) (D_803EFA20 + 0x4E);
     D_80364440 = *(u16 *) (D_803EFA20 + 0x4C);
@@ -955,15 +955,15 @@ s32 func_802BB868(void);
  * the global; channels in D_803EF720, an Unk8029DEA0Entry table).
  * - Byte +0xA2 set: channels 5, 4 off (unk14 = 0), channel 2 unk11 = 0 and
  *   restarted (func_802A0290), +0xA1 = 1.
- * - Otherwise channel 5 follows input D_80370C1C while its unk4 <= D_8030D930
- *   (direction 0) or D_80370C1D while !(unk4 < D_8030D934) (direction 1),
+ * - Otherwise channel 5 follows input gHeldA while its unk4 <= D_8030D930
+ *   (direction 0) or gHeldB while !(unk4 < D_8030D934) (direction 1),
  *   starting sound 0x6F (handle D_803EFAD8) if needed, else it is switched
- *   off and that sound stopped; channel 4 likewise follows D_80370C15 /
- *   D_80370C16 with sound 0x6E (D_803EFADC). Then, when func_802BB868 reports
+ *   off and that sound stopped; channel 4 likewise follows gHeldLeft /
+ *   gHeldRight with sound 0x6E (D_803EFADC). Then, when func_802BB868 reports
  *   ground under the level-0x11 part, channel 2 is restarted with
  *   direction 0 and +0xA1 = 1 unless it is already running in direction 1
  *   at unk4 * 100 == 100 (cvt.w.s, nearest); with no ground, if +0xA1 is 0
- *   and input D_80370C1A or D_80370C1B is set, sound 0x6D (D_803EFAE0) is
+ *   and input gHeldL or gHeldR is set, sound 0x6D (D_803EFAE0) is
  *   started if needed, channel 2 restarted and +0xA1 = 1, and nothing else
  *   happens.
  * - Finally (all other paths): when channel 2 isn't active (unk10 != 1),
@@ -985,12 +985,12 @@ void func_802BB4C0(void) {
         goto check2;
     }
 
-    if (D_80370C1C != 0 && (func_802A04BC(5, (Unk8029DEA0Entry *) D_803EF720, e), ((f32 *) e)[7] <= D_8030D930)) {
+    if (gHeldA != 0 && (func_802A04BC(5, (Unk8029DEA0Entry *) D_803EF720, e), ((f32 *) e)[7] <= D_8030D930)) {
         func_802A03D4((Unk8029DEA0Entry *) D_803EF720, 5, 0);
         func_802A039C((Unk8029DEA0Entry *) D_803EF720, 5, 1);
         goto start5;
     }
-    if (D_80370C1D != 0 && (func_802A04BC(5, (Unk8029DEA0Entry *) D_803EF720, e), !(((f32 *) e)[7] < D_8030D934))) {
+    if (gHeldB != 0 && (func_802A04BC(5, (Unk8029DEA0Entry *) D_803EF720, e), !(((f32 *) e)[7] < D_8030D934))) {
         func_802A03D4((Unk8029DEA0Entry *) D_803EF720, 5, 1);
         func_802A039C((Unk8029DEA0Entry *) D_803EF720, 5, 1);
         goto start5;
@@ -1006,10 +1006,10 @@ start5:
     }
 
 chan4:
-    if (D_80370C15 != 0) {
+    if (gHeldLeft != 0) {
         func_802A03D4((Unk8029DEA0Entry *) D_803EF720, 4, 0);
         func_802A039C((Unk8029DEA0Entry *) D_803EF720, 4, 1);
-    } else if (D_80370C16 != 0) {
+    } else if (gHeldRight != 0) {
         func_802A03D4((Unk8029DEA0Entry *) D_803EF720, 4, 1);
         func_802A039C((Unk8029DEA0Entry *) D_803EF720, 4, 1);
     } else {
@@ -1039,7 +1039,7 @@ ground:
         if (D_803EFA20[0xA1] != 0) {
             goto check2;
         }
-        if (D_80370C1A == 0 && D_80370C1B == 0) {
+        if (gHeldL == 0 && gHeldR == 0) {
             goto check2;
         }
         if (D_803EFAE0 == NULL) {

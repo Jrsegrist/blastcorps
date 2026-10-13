@@ -194,7 +194,7 @@ void func_801E7598(void) {
     FeDyn *dyn = &gDynamicBufs[gBufferIndex ^ 1];
     Gfx *gdl = dyn->dl;
 
-    func_8028A3E4();
+    cont_start_read();
     nextdma = 0;
     no_palette_dmas = 0;
     func_802A5720();
@@ -206,12 +206,12 @@ void func_801E7598(void) {
 #else
     func_8029E0AC();
 #endif
-    func_8028A470();
+    cont_update();
     if (gFramesInMode >= 11 && !areWeFading()) {
-        if ((D_80370C28 & 0x9000) && !(D_80370C2A & 0x9000)) {
+        if ((gContButtons & 0x9000) && !(gContPrevButtons & 0x9000)) {
             func_80275390(0x2000);
             func_80260650(D_80367738, 0x1E, 0);
-        } else if ((D_80370C28 & 0x4000) && !(D_80370C2A & 0x4000)) {
+        } else if ((gContButtons & 0x4000) && !(gContPrevButtons & 0x4000)) {
             func_80260650(D_80367738, 0xDE, 0);
             D_803643D4 = D_802153E8;
             switch (gPrevGameMode) {
@@ -225,28 +225,28 @@ void func_801E7598(void) {
             }
         }
     }
-    if (D_80370C2C < -10 && !areWeFading()) {
-        if (D_80370C2E < -10) {
+    if (gPadStickX < -10 && !areWeFading()) {
+        if (gPrevPadStickX < -10) {
             if (D_80211A68 > 0) {
-                D_802153E4 -= D_80370C2C;
+                D_802153E4 -= gPadStickX;
             }
         } else {
             D_802153E4 = 750;
         }
     }
-    if ((D_80370C28 & 0x200) && !(D_80370C2A & 0x200) && !areWeFading()) {
+    if ((gContButtons & 0x200) && !(gContPrevButtons & 0x200) && !areWeFading()) {
         D_802153E4 = 750;
     }
-    if (D_80370C2C > 10 && !areWeFading()) {
-        if (D_80370C2E > 10) {
+    if (gPadStickX > 10 && !areWeFading()) {
+        if (gPrevPadStickX > 10) {
             if (D_80211A68 < D_80211A6A - 1) {
-                D_802153E6 += D_80370C2C;
+                D_802153E6 += gPadStickX;
             }
         } else {
             D_802153E6 = 750;
         }
     }
-    if ((D_80370C28 & 0x100) && !(D_80370C2A & 0x100) && !areWeFading()) {
+    if ((gContButtons & 0x100) && !(gContPrevButtons & 0x100) && !areWeFading()) {
         D_802153E6 = 750;
     }
     if (gBufferIndex == 0 && D_802153E4 >= 750) {

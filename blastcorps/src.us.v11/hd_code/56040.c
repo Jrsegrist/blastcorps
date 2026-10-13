@@ -2,7 +2,7 @@
 #include <ultra64.h>
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_80364460 ((u8 *) D_80364460)
+#define gVehicles ((u8 *) gVehicles)
 #define D_803FB8B8 ((s32 *) D_803FB8B8)
 #ifdef NON_MATCHING
 #define D_803A7408 (*(s32 *) &D_803A7408)
@@ -1621,14 +1621,14 @@ u32 func_8029CF04(u32 v, s32 key, u8 *veh) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-/* D_803649ED = v, unless D_803EFECB is set and the D_803ED3B8 list has the
+/* gNextVehicle = v, unless D_803EFECB is set and the D_803ED3B8 list has the
  * pair (v, 7) (func_802AB41C).
  * Register convention: asm takes v in s1 (conventions.txt); it saves t4/t8
  * and leaves a2 changed. Its asm caller func_8029CD54 keeps a0, a1, t3-t8,
  * f12, f14 live. */
 void func_8029CF54(s32 v) {
     if (D_803EFECB == 0 || func_802AB41C(v, 7) == 0) {
-        D_803649ED = v;
+        gNextVehicle = v;
     }
 }
 #else
@@ -2478,7 +2478,7 @@ u32 func_8029E47C(s32 key, s32 id, u8 *param);
  * which gives the new frame f' and frac'. For each texture i of frame f'
  * (and of frame f' + 1 when blending) the block is found or loaded
  * (TEX_BLOCK), and every 0xC-byte patch {a, off, i} in [D_803B3500,
- * D_803B35F0) stores it at base + off (base = the level's D_80364460
+ * D_803B35F0) stores it at base + off (base = the level's gVehicles
  * record with id a[0]: +0xC if gBufferIndex else +0x30; unbounded scan);
  * when blending, the second block goes to base + the next patch's off and
  * the first command after it with opcode 0xFA gets its low byte(s) =
@@ -2527,7 +2527,7 @@ void func_8029E21C(Unk8029DEA0Entry *ch, u8 *param) {
             sub = *ids2++;
             second = TEX_BLOCK(key, sub, param);
         }
-        for (rec = D_80364460; *(s32 *) (rec + 0x5C) != a[0]; rec += 0x74) {
+        for (rec = gVehicles; *(s32 *) (rec + 0x5C) != a[0]; rec += 0x74) {
         }
         base = (gBufferIndex != 0) ? *(s32 *) (rec + 0xC) : *(s32 *) (rec + 0x30);
         for (e = D_803B3500; e != (u8 *) D_803B35F0; e += 0xC) {

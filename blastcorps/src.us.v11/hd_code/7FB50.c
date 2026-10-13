@@ -369,7 +369,7 @@ extern u8 D_803F7C4B;
 
 /* Load vehicle 9 (the 5CB60 dispatcher func_802A350C, record type 9): model
  * `model` (D_803F7C04), save copies D_803F7C08 / D_803F7C0C taken 0x1000
- * bytes each from gHeapPtr (func_802A1388(9, 0, copies, model)), record
+ * bytes each from gHeapPtr (veh_add_record(9, 0, copies, model)), record
  * reset (func_802A754C), wheel table +0x52..0x68, position (x, y, z),
  * heading `heading` at +0x4C/+0x4E/+0x74, ground heights (func_802A992C,
  * key 9, fp), the model's animation channels (func_8029F85C, channel 0 set
@@ -396,7 +396,7 @@ void func_802C5120(s32 x, s32 y, s32 z, s32 heading, u8 *model, s32 fp) {
     D_803F7C08 = (u64 *) gHeapPtr;
     D_803F7C0C = (u64 *) (gHeapPtr + 0x1000);
     gHeapPtr += 0x2000;
-    func_802A1388(9, 0, (s32) D_803F7C08, (s32) D_803F7C0C, model);
+    veh_add_record(9, 0, (s32) D_803F7C08, (s32) D_803F7C0C, model);
     func_802A754C(D_803F7B50);
     VEH_S16(0x52) = 0;
     VEH_S16(0x54) = 0;
@@ -520,7 +520,7 @@ s32 func_802C5508(void) {
 extern u64 * N64P D_803F7C08; /* save copy pair (func_802A7764) */
 extern u64 * N64P D_803F7C0C;
 
-/* Teardown for this vehicle (called from func_8024B188 in hd.c): clears the
+/* Teardown for this vehicle (called from veh_leave in hd.c): clears the
  * s16 at +0x76, func_802A7764(D_803F7C08, D_803F7C0C, 0x1000), stops
  * channel 31 and the sounds D_803F7C18 / D_803F7C1C that are playing (the
  * handles are left as they are). The asm saves and restores $gp and leaves
@@ -573,20 +573,20 @@ void func_802C5714(void) {
 extern u32 D_803F7BF8[]; /* x, y, z */
 void func_802C7CB0(MtxChainRegs *regs);
 
-/* Move this vehicle while it isn't the player's (func_8024B618, case 9):
+/* Move this vehicle while it isn't the player's (veh_update_others, case 9):
  * ground heights for its three slots (func_802A9A60 with table +0x52, angle
  * +0x4C, heights to +4.., the middle y to D_803F7BFC, key 9), place the
- * model (func_802C7CB0), then func_802A133C(z, 9, x, y, block).
+ * model (func_802C7CB0), then veh_set_record(z, 9, x, y, block).
  * Register convention (conventions.txt): `fp` is the asm's $fp, which goes
  * on to func_802A9A60 (which stores it into D_803ED3F2[0..2], so the
- * block's +0x50 becomes (u8) fp). The only caller, C func_8024B618, passes
+ * block's +0x50 becomes (u8) fp). The only caller, C veh_update_others, passes
  * nothing: in the game this is whatever $fp its callers left (FIDELITY:
  * see tools_port port_followups), so the native port must pass it
  * explicitly. f12-f26 only pass through func_802A9A60 (not read first; the
  * asm restores f20-f30), so the C starts them at 0. func_802C7CB0 gets s0 =
  * z and s1 = func_802A9A60's s1. The asm saves every s-register, gp, fp and
- * f20-f30; it leaves v1 = y (func_802A133C preserves it), which the survey
- * lists as read by func_8024B618 (C: not a real use). */
+ * f20-f30; it leaves v1 = y (veh_set_record preserves it), which the survey
+ * lists as read by veh_update_others (C: not a real use). */
 void func_802C5860(s32 fp) {
     TriSideOut f;
     Out802A9A60 out;
@@ -599,7 +599,7 @@ void func_802C5860(s32 fp) {
     regs.s0 = z;
     regs.s1 = (s32) out.s1;
     func_802C7CB0(&regs);
-    func_802A133C(D_803F7BF8[2], 9, D_803F7BF8[0], D_803F7BF8[1], D_803F7B50);
+    veh_set_record(D_803F7BF8[2], 9, D_803F7BF8[0], D_803F7BF8[1], D_803F7B50);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C5860.s")
@@ -650,7 +650,7 @@ void func_802C7F28(void);
  * tuning values (func_802C7F28) for its mode, D_803ED40B = 0, ground
  * contact (func_802A8768: id 9, position D_803F7BF8..+8, divisors 0x78 /
  * 0x78, angle +0x4C, flags +0x96, table +0x52, records +0x28/+0x40/+0x34,
- * heights +4), place the model (func_802C7CB0) and func_802A133C(z, 9, x,
+ * heights +4), place the model (func_802C7CB0) and veh_set_record(z, 9, x,
  * y, block).
  * Register convention (conventions.txt): id in a3; s3 in/out (func_802A8768's
  * slot result, through *s3); the FP state chains through func_802AAE54 and
@@ -676,7 +676,7 @@ void func_802C5A14(s32 id, s32 *s3, InterpRegs *r) {
     regs.s0 = (s32) &VEH_U8(0x96);
     regs.s1 = (s32) &D_803F7BF8[2];
     func_802C7CB0(&regs);
-    func_802A133C(D_803F7BF8[2], 9, D_803F7BF8[0], D_803F7BF8[1], D_803F7B50);
+    veh_set_record(D_803F7BF8[2], 9, D_803F7BF8[0], D_803F7BF8[1], D_803F7B50);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C5A14.s")
@@ -699,7 +699,7 @@ void func_802C71FC(s32 x, s32 z, TriSideOut *f);
 void func_802C7410(void);
 s32 func_802C7DFC(void);
 
-/* Per-frame update of vehicle 9 when it is the player's (func_8024B7AC and
+/* Per-frame update of vehicle 9 when it is the player's (veh_update_player and
  * its init func_802C5120): zone lookup (func_802C5970), D_803EBBF4
  * (func_802C7ECC), unless +0x9A is set the mode machine (func_802C61F0) and
  * the gCamDistance pair (func_802C7410), the tuning values (func_802C7F28),
@@ -720,8 +720,8 @@ s32 func_802C7DFC(void);
  * falls into the turn back, or (ring hit) the turn back toward the ring
  * midpoint (func_8029A914, D_803F7C36 = 1, func_802A70D8, func_802A71DC,
  * func_802A746C, func_802A6FE4(0)). Mode 4 and the quiet paths clear
- * D_803F7C36/37. Finally the position, speed and angles go to D_803643E0.. /
- * D_8036443C.., func_802A133C(z, 9, x, y, block), and D_803F7C3F = mode in
+ * D_803F7C36/37. Finally the position, speed and angles go to gPlayerX.. /
+ * D_8036443C.., veh_set_record(z, 9, x, y, block), and D_803F7C3F = mode in
  * 1..4. (The asm also holds a bounce-off-the-ring-end block like
  * func_802CA4E0's, but nothing branches to it.)
  * Register notes (FIDELITY, see tools_port/port_followups.md): func_802C5970's
@@ -734,7 +734,7 @@ s32 func_802C7DFC(void);
  * func_802A8768; func_8029E558's own leftovers in the game; only used for a
  * count-0 point record). func_8029A914 / func_8029C52C take the block in
  * $gp: passed explicitly (D_803F7B50). The asm leaves
- * v1, f12, f14 as its callees leave them (survey: read by func_8024B7AC /
+ * v1, f12, f14 as its callees leave them (survey: read by veh_update_player /
  * func_802C5120; not real uses). Integer sums trap in the asm. */
 void func_802C5AFC(void) {
     ZoneScanRegs zr;
@@ -896,13 +896,13 @@ quiet:
     D_803F7C36 = 0;
     D_803F7C37 = 0;
 done:
-    D_803643E0 = D_803F7BF8[0];
-    D_803643E4 = D_803F7BF8[1];
-    D_803643E8 = D_803F7BF8[2];
+    gPlayerX = D_803F7BF8[0];
+    gPlayerY = D_803F7BF8[1];
+    gPlayerZ = D_803F7BF8[2];
     D_8036443C = VEH_S16(0x76);
     D_8036443E = *(u16 *) &VEH_S16(0x4E);
     D_80364440 = *(u16 *) &VEH_S16(0x4C);
-    func_802A133C(D_803F7BF8[2], 9, D_803F7BF8[0], D_803F7BF8[1], D_803F7B50);
+    veh_set_record(D_803F7BF8[2], 9, D_803F7BF8[0], D_803F7BF8[1], D_803F7B50);
     mode = VEH_U8(0xA1);
     D_803F7C3F = (mode != 0 && mode != 5) ? 1 : 0;
 }
@@ -912,14 +912,14 @@ done:
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Unless D_80370C35 or D_80370C2D is set, moves the s16 at +0x76 of the
+/* Unless gControlMethod or gPadStickY is set, moves the s16 at +0x76 of the
  * vehicle block 8 towards 0 (stopping at 0). The asm saves s7, the only
  * register it uses; asm caller func_802C5AFC keeps a0-a3 and t6 live (a
  * mixed N64 build would need a thunk, the native port doesn't). */
 void func_802C617C(void) {
     s32 v;
 
-    if (D_80370C35 != 0 || D_80370C2D != 0) {
+    if (gControlMethod != 0 || gPadStickY != 0) {
         return;
     }
     v = VEH_S16(0x76);
@@ -949,7 +949,7 @@ extern u8 D_803F7C39;
 extern u8 D_803F7C3D; /* countdown */
 extern u8 D_803F7C40; /* countdown */
 extern u8 D_803F7C41; /* countdown (reloaded with 9 outside modes 1-3) */
-extern u8 D_803F7C42; /* previous frame's D_80370C1D */
+extern u8 D_803F7C42; /* previous frame's gHeldB */
 extern u8 D_803F7C43; /* previous frame's +0x96 */
 extern u8 D_803F7C44;
 extern u8 D_803F7C45;
@@ -1027,7 +1027,7 @@ void func_802C61F0(s32 s0, TriSideOut *f, TriScanRegs *r) {
     if (!(D_803F7C14 < D_803F7BFC) && VEH_U8(0xA1) != 4 && VEH_U8(0xA1) != 2) {
         if (D_803F7C3D != 0) {
             D_803F7C3D--;
-        } else if (D_80370C1C != 0 || D_80370C1A != 0 || D_80370C1B != 0) {
+        } else if (gHeldA != 0 || gHeldL != 0 || gHeldR != 0) {
             if (VEH_U8(0x96) != 1) {
                 VEH_TRIPLE(0x34, D_803F7BFC);
                 VEH_TRIPLE(0x40, 1);
@@ -1197,7 +1197,7 @@ void func_802C61F0(s32 s0, TriSideOut *f, TriScanRegs *r) {
 
         case 2:
             D_803F7C3D = 10;
-            if (D_80370C1C != 0 || D_80370C1A != 0 || D_80370C1B != 0) {
+            if (gHeldA != 0 || gHeldL != 0 || gHeldR != 0) {
                 v = func_802C6FD8();
                 VEH_TRIPLE(0x40, 1);
                 VEH_TRIPLE(0x28, v);
@@ -1236,10 +1236,10 @@ void func_802C61F0(s32 s0, TriSideOut *f, TriScanRegs *r) {
                 break;
             }
             func_802C770C();
-            if (D_803F7C44 != 3 && (D_803F7C42 != 0 || D_80370C1D == 0)) {
+            if (D_803F7C44 != 3 && (D_803F7C42 != 0 || gHeldB == 0)) {
                 break;
             }
-            /* both press/release trackers done, or a new D_80370C1D press: mode 4 */
+            /* both press/release trackers done, or a new gHeldB press: mode 4 */
             D_803F7C45 = 0;
             D_803F7C44 = 0;
             D_803F7C47 = 0;
@@ -1269,7 +1269,7 @@ void func_802C61F0(s32 s0, TriSideOut *f, TriScanRegs *r) {
     func_802C6DAC();
     func_802C6ECC();
     D_803F7C43 = VEH_U8(0x96);
-    D_803F7C42 = D_80370C1D;
+    D_803F7C42 = gHeldB;
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C61F0.s")
@@ -1627,14 +1627,14 @@ extern u8 D_803F7C47; /* timer 1 */
         }                                                           \
     }
 
-/* Update the two press/release trackers (D_803F7C44/45 on D_80370C1A and
- * D_803F7C46/47 on D_80370C1B).
+/* Update the two press/release trackers (D_803F7C44/45 on gHeldL and
+ * D_803F7C46/47 on gHeldR).
  * Register note: the asm touches only at/v0/v1/a0; its caller func_802C61F0
  * keeps a1-a3, t6, t7, f12 and f14 live across the call (a mixed N64 build
  * would need a thunk, the native port does not). */
 void func_802C770C(void) {
-    PRESS_TRACKER_STEP(D_803F7C44, D_803F7C45, D_80370C1A);
-    PRESS_TRACKER_STEP(D_803F7C46, D_803F7C47, D_80370C1B);
+    PRESS_TRACKER_STEP(D_803F7C44, D_803F7C45, gHeldL);
+    PRESS_TRACKER_STEP(D_803F7C46, D_803F7C47, gHeldR);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C770C.s")
@@ -1668,13 +1668,13 @@ f32 func_802C7C1C(s32 up);
     }
 
 /* Steering / tilt animation (0.5 = centred). D_803F7C2C: while steering
- * (D_80370C35 set or |D_803F7C34| large: >= 4000 or < -3999) with
- * D_80370C2C >= 31 it rises by D_8030D958 up to func_802C7C1C(1), with
- * D_80370C2C < -30 it falls by D_8030D954 down to func_802C7C1C(0) (the up
+ * (gControlMethod set or |D_803F7C34| large: >= 4000 or < -3999) with
+ * gPadStickX >= 31 it rises by D_8030D958 up to func_802C7C1C(1), with
+ * gPadStickX < -30 it falls by D_8030D954 down to func_802C7C1C(0) (the up
  * flag is left in *up, the asm's s2); otherwise it steps back to 0.5 by
  * D_8030D95C. Channel 4 of D_803F7850 then gets 1 - it as (2x, 1) below
  * 0.5 or (2(x - 0.5), 2) above. D_803F7C28 likewise with step
- * D_8030D960 * (1 - 2|x - 0.5|): D_80370C2D > 0 raises it up to
+ * D_8030D960 * (1 - 2|x - 0.5|): gPadStickY > 0 raises it up to
  * 1 - func_802C7BC0() (if not already above), < 0 lowers it down to
  * func_802C7BC0() (if not already below), else (or when outside) it centres
  * by D_8030D964; channel 3 gets it in the same two-range form.
@@ -1689,8 +1689,8 @@ void func_802C7864(s32 *up) {
     f32 w;
     s32 s;
 
-    if (D_80370C35 != 0 || D_803F7C34 >= 0xFA0 || D_803F7C34 < -0xF9F) {
-        s = D_80370C2C;
+    if (gControlMethod != 0 || D_803F7C34 >= 0xFA0 || D_803F7C34 < -0xF9F) {
+        s = gPadStickX;
         if (s >= 0x1F) {
             *up = 1;
             f += D_8030D958;
@@ -1728,7 +1728,7 @@ store1:
         w = 0.5f - (f - 0.5f);
     }
     step = D_8030D960 * (w * 2.0f);
-    s = D_80370C2D;
+    s = gPadStickY;
     if (s > 0) {
         lim = 1.0f - func_802C7BC0();
         if (f <= lim) {
@@ -1764,11 +1764,11 @@ store2:
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* (1 - |D_80370C2D| / 80) / 2. The asm returns it in f4 (and changes f6);
+/* (1 - |gPadStickY| / 80) / 2. The asm returns it in f4 (and changes f6);
  * asm caller func_802C7864 keeps f2 live (a mixed N64 build would need a
  * thunk, the native port doesn't). */
 f32 func_802C7BC0(void) {
-    s32 v = D_80370C2D;
+    s32 v = gPadStickY;
 
     if (v < 0) {
         v = -v;
@@ -1867,7 +1867,7 @@ void func_802C7CB0(MtxChainRegs *regs) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 /* Modes 0 and 5 (+0xA1): returns round(+0x76 / 1.5) (cvt.w.s, nearest).
- * Modes 1-4: if |D_80370C2C| is large (>= 51 or < -50) D_803F7C3C climbs by
+ * Modes 1-4: if |gPadStickX| is large (>= 51 or < -50) D_803F7C3C climbs by
  * 2 up to 100, else it is reset to 20; returns the new D_803F7C3C. Any other
  * mode hits a `syscall` in the asm (a deliberate crash) and, if that
  * returned, would continue as modes 1-4, which is what this does.
@@ -1882,7 +1882,7 @@ s32 func_802C7DFC(void) {
         CVT_W_S(r, (f32) VEH_S16(0x76) / 1.5f);
         return r;
     }
-    v = D_80370C2C;
+    v = gPadStickX;
     if (v >= 0x33 || v < -0x32) {
         r = D_803F7C3C + 2;
         if (r >= 0x65) {

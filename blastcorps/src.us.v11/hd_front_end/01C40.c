@@ -730,11 +730,11 @@ Gfx *func_801EAA7C(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
     s16 ang2;
     u8 alpha;
 
-    if ((D_80370C28 & 0x300) && !(D_80370C2A & 0x300)) {
+    if ((gContButtons & 0x300) && !(gContPrevButtons & 0x300)) {
         func_80260650(D_80367738, 0xC, 0);
     }
     D_8021546C = D_8021591A;
-    D_8021591A = D_80370C2C;
+    D_8021591A = gPadStickX;
     if (ABS(D_8021591A) < 10) {
         D_8021591A = 0;
     } else {
@@ -815,7 +815,7 @@ Gfx *func_801EAA7C(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
         func_80259DC8((Gfx * N64P *) dyn, D_80208498, 0, 1, 0, selX - 5, selY - 5, selW * 2, selH * 2, 1, col[0], col[1], col[2],
                       alpha, col[4], col[5], col[6], alpha);
     }
-    if (yoshiState == 2 && (D_80370C28 & 0x1000) && !(D_80370C2A & 0x1000) && areWeFading() == 0) {
+    if (yoshiState == 2 && (gContButtons & 0x1000) && !(gContPrevButtons & 0x1000) && areWeFading() == 0) {
         if (D_802154BC != 0) {
             gNextGameMode = 0x1000000;
             D_80365060[playerNumber] = 1;
@@ -826,13 +826,13 @@ Gfx *func_801EAA7C(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
     }
     switch (D_802154BE) {
         case 0:
-            if (yoshiState == 2 && (D_80370C28 & 0xC000) && !(D_80370C2A & 0xC000) && areWeFading() == 0) {
-                if (D_80370C28 & 0x4000) {
+            if (yoshiState == 2 && (gContButtons & 0xC000) && !(gContPrevButtons & 0xC000) && areWeFading() == 0) {
+                if (gContButtons & 0x4000) {
                     ch = 0x7F;
                 }
                 if (ch == 0x7F) {
                     if (D_802154BC == 0) {
-                        if (D_80370C28 & 0x4000) {
+                        if (gContButtons & 0x4000) {
                             if (D_802E8BF8 != 0) {
                                 func_80275270(0x0400000000000000, 0.5f);
                             } else {

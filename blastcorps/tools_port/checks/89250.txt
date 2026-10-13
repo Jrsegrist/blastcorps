@@ -114,16 +114,16 @@ func_802CE204: -n 300 --seed 4 --follow func_802AD7FC,func_8029B7CC --sig func_8
 func_802CE0E4: -n 300 --seed 0 --arg t4=choice:0,1,5,6,0xFF \
     --mem D_803A6B30:0x104=rand --mem D_803A6B30+0x12*0x14:12/1=bytes:0,1,5,6,0xFF --mem D_803A6B30+0x13*0x14:12/1=bytes:0,1,0x80 \
     --mem D_803A6B30+0xC*0x14:12=choice:0x3BD,0x3BC,100 --mem D_803A6B30+0x103:1=0xFF \
-    --mem D_80364456:1=bytes:0,1,5,6 --mem D_803F932D:1=rand --mem D_803F932E:1=rand --stub-ret func_8029CFA4=choice:0,1
+    --mem gCurVehicle:1=bytes:0,1,5,6 --mem D_803F932D:1=rand --mem D_803F932E:1=rand --stub-ret func_8029CFA4=choice:0,1
 # the -1 marker in one random slot (first / last / middle)
 func_802CE0E4: -n 200 --seed 1 --arg t4=choice:0,6,0xFF --mem D_803A6B30:0x104=onehot:0x14@0x13/1:0xFF:rand \
     --mem D_803A6B30+0x12*0x14:12/1=bytes:0,6,0xFF --mem D_803A6B30+0x103:1=0xFF --mem D_803A6B30+0xC*0x14:12=choice:0x3BD,0x3BC,100 \
-    --mem D_80364456:1=bytes:0,6,0xFF --mem D_803F932D:1=rand --mem D_803F932E:1=rand --stub-ret func_8029CFA4=choice:0,1
+    --mem gCurVehicle:1=bytes:0,6,0xFF --mem D_803F932D:1=rand --mem D_803F932E:1=rand --stub-ret func_8029CFA4=choice:0,1
 # range test and the plane-side update run for real
 func_802CE0E4: -n 300 --seed 2 --arg t4=choice:0,1,5,6,0xFF \
     --mem D_803A6B30:0x104=rand --mem D_803A6B30+0x12*0x14:12/1=bytes:0,1,5,6,0xFF --mem D_803A6B30+0x13*0x14:12/1=bytes:0,1,0x80 \
     --mem D_803A6B30+0xC*0x14:12=choice:0x3BD,0x3BC,100 --mem D_803A6B30+0x103:1=0xFF \
-    --mem D_80364456:1=bytes:0,1,5,6 --mem D_803F932D:1=rand --mem D_803F932E:1=rand \
+    --mem gCurVehicle:1=bytes:0,1,5,6 --mem D_803F932D:1=rand --mem D_803F932E:1=rand \
     --arg v0=int:-3000:3000 --arg v1=int:-3000:3000 --arg a0=int:-3000:3000 --arg a1=int:0:2000 \
     --mem D_803A6B30*0x14:12=int:-3000:3000 --mem D_803A6B30+4*0x14:12=int:-3000:3000 --mem D_803A6B30+8*0x14:12=int:-3000:3000 \
     --follow func_8029CFA4,func_802CE204,func_802AD7FC,func_8029B7CC,func_8029B930
@@ -143,7 +143,7 @@ func_802CDF94: -n 300 --seed 1 --arg a0=int:0:2000 \
     --mem D_803A7300+0xC*0x14:11=int:0:2000 \
     --mem D_803A6B30:0x104=rand --mem D_803A6B30+0x12*0x14:12/1=bytes:0,1,5,0xFF --mem D_803A6B30+0x13*0x14:12/1=bytes:0,1,0x80 \
     --mem D_803A6B30*0x14:12=int:-3000:3000 --mem D_803A6B30+4*0x14:12=int:-3000:3000 --mem D_803A6B30+8*0x14:12=int:-3000:3000 \
-    --mem D_803A6B30+0xC*0x14:12=int:0:2000 --mem D_803A6B30+0x103:1=0xFF --mem D_80364456:1=bytes:0,1,5 \
+    --mem D_803A6B30+0xC*0x14:12=int:0:2000 --mem D_803A6B30+0x103:1=0xFF --mem gCurVehicle:1=bytes:0,1,5 \
     --mem D_803A73F0=int:-3000:3000 --mem D_803A73F4=int:-3000:3000 --mem D_803A73F8=int:-3000:3000 \
     --mem D_803A7410:2=choice:0,1,0xFFF --mem D_803A7412:2=choice:0xFFF,0xFFE,0 --mem D_803A7424:1=rand --mem D_803A7425:1=rand \
     --mem D_803A742F:1=bytes:0,1 --follow func_8029CFA4,func_802CE0E4

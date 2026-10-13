@@ -375,7 +375,7 @@ void func_801EF4AC(void) {
 
     dyn = &gDynamicBufs[gBufferIndex ^ 1];
     gdl = dyn->dl;
-    func_8028A470();
+    cont_update();
     rsp_send_task((u64 *) (gDynamicBufs[gBufferIndex].dl), gFrameDlLen, 1, 1, 0x4D2, 0);
     gBufferIndex ^= 1;
     gSPSegment(gdl++, 0, 0);
@@ -402,7 +402,7 @@ void func_801EF4AC(void) {
     gDPSetFillColor(gdl++, (GPACK_RGBA5551(c, c, c, 1) << 16) | GPACK_RGBA5551(c, c, c, 1));
     gDPFillRectangle(gdl++, 0, 0, 319, 239);
     gDPSetCycleType(gdl++, G_CYC_1CYCLE);
-    func_8028A3E4();
+    cont_start_read();
     if (gFramesInMode == 250) {
         if (gGameMode == 0x10) {
             gNextGameMode = 0x20;

@@ -204,7 +204,7 @@ void func_801F803C(void) {
     s32 next;
     s32 i;
 
-    if ((D_80370C28 & 0x2010) && !(D_80370C2A & 0x2010)) {
+    if ((gContButtons & 0x2010) && !(gContPrevButtons & 0x2010)) {
         next = (playerNumber + 1) % 4;
         i = 0;
         for (; i < 4 && (D_80365060[next % 4] != 1 || func_801F81B4(next % 4) == 0); i++, next = (next + 1) % 4) {

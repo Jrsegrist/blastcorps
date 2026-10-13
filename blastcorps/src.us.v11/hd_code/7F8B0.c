@@ -193,7 +193,7 @@ void func_802C444C(void) {
 /* Save-everything sound wrapper: non-ABI input s5 (a signed level). Stores
  * |s5| in D_803F7840 and, when it changed (or D_80364AB0 was set, which it
  * clears), sets the D_803F7844 sound's parameter 0x10 (likely pitch) to
- * 0.5 + |s5| * (D_8030D940, or D_8030D944 when D_80364456 == 1) via
+ * 0.5 + |s5| * (D_8030D940, or D_8030D944 when gCurVehicle == 1) via
  * func_80260AB8. */
 #ifdef NON_MATCHING
 /* The change test compares the old halfword (sign-extended) with the full
@@ -220,14 +220,14 @@ void func_802C4584(s32 level) {
     } else if (old == level) {
         return;
     }
-    u.f = 0.5f + (f32) level * ((D_80364456 == 1) ? D_8030D944 : D_8030D940);
+    u.f = 0.5f + (f32) level * ((gCurVehicle == 1) ? D_8030D944 : D_8030D940);
     func_80260AB8(D_803F7844, 0x10, u.i);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7F8B0/func_802C4584.s")
 #endif
 
-/* Save-everything sound wrapper: flag = D_80370C1A | D_80370C1B. When it
+/* Save-everything sound wrapper: flag = gHeldL | gHeldR. When it
  * differs from D_803F784C, stores it; on starts the second loop
  * (func_80260650(D_80367738, a1, &D_803F7848)) if not already playing, off
  * stops it (func_802608C8) and clears D_803F7848. */
@@ -238,7 +238,7 @@ void func_802C4584(s32 level) {
  * func_802CBEF0, func_802CD068, func_802CFDE8) keep a0, t6, t7, f12 and f14
  * live (a mixed N64 build would need a thunk; the native port won't). */
 void func_802C4724(s32 sfx) {
-    u8 flag = D_80370C1A | D_80370C1B;
+    u8 flag = gHeldL | gHeldR;
     void *h = D_803F7848;
 
     /* The asm reads and stores the halfword's first byte (lbu/sb), i.e. its

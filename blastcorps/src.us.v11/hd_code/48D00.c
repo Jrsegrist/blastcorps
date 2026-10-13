@@ -307,8 +307,8 @@ void func_8028DF14(u8 arg0) {
                     D_8039B070_entries[i].unk14 = ((s32) gFramesInMode);
                 }
                 if (D_8039B620 == arg0) {
-                    dx = D_803643E0 - D_8039B614, dy = D_803643E4 - D_8039B618;
-                    dz = D_803643E8 - D_8039B61C;
+                    dx = gPlayerX - D_8039B614, dy = gPlayerY - D_8039B618;
+                    dz = gPlayerZ - D_8039B61C;
                     D_8039B070_entries[i].unk1E = sqrtf(dx * dx + dy * dy + dz * dz) + 8.0f;
                     if (D_8039B070_entries[i].unk1E > D_802FDB70[arg0] && levelno != 0x22) {
                         D_8039B070_entries[i].unk1E = D_802FDB70[arg0];
@@ -361,7 +361,7 @@ void func_8028DF14(u8 arg0) {
             if (D_8039B070_entries[i].unk1E > 0 && D_8039B070_entries[i].unk44 == 0 &&
                 D_8039B070_entries[i].unk18 != 0) {
                 func_80260650(D_80367738, 7, (void *) N64_IPTR(((s32) &D_8039B070_entries[i].unk44)));
-                if (D_80364456 == 4) {
+                if (gCurVehicle == 4) {
                     func_8026AD30(0x54);
                 }
             }
@@ -370,9 +370,9 @@ void func_8028DF14(u8 arg0) {
             }
         }
     }
-    D_8039B614 = D_803643E0;
-    D_8039B618 = D_803643E4;
-    D_8039B61C = D_803643E8;
+    D_8039B614 = gPlayerX;
+    D_8039B618 = gPlayerY;
+    D_8039B61C = gPlayerZ;
     D_8039B620 = arg0;
 }
 
@@ -578,13 +578,13 @@ void func_8028FC10(void) {
     OSContPad pads[4];
 
     start = 0;
-    func_802DB4D0(&D_80370BF8);
-    osRecvMesg(&D_80370BF8, 0, 1);
+    func_802DB4D0(&gSiMesgQueue);
+    osRecvMesg(&gSiMesgQueue, 0, 1);
     func_802DB594(pads);
     if (pads[0].button & 0x1000) {
         start = 1;
     }
-    if (func_8028FCD4(&D_80370BF8, &mask) == 0 && (mask & 1)) {
+    if (func_8028FCD4(&gSiMesgQueue, &mask) == 0 && (mask & 1)) {
         D_802FDBD0 = start;
     }
     D_802FDBD4 = start && !D_802FDBD0;

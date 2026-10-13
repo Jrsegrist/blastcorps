@@ -14,15 +14,15 @@ Discarded input sections
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/00000.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/00000.c.o
  .gptab.data    0x00000000       0x48 build_nm/src.us.v11/hd_front_end/00000.c.o
- .mdebug        0x00000000     0x16b8 build_nm/src.us.v11/hd_front_end/00000.c.o
+ .mdebug        0x00000000     0x16c4 build_nm/src.us.v11/hd_front_end/00000.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/01C40.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/01C40.c.o
  .gptab.data    0x00000000       0x70 build_nm/src.us.v11/hd_front_end/01C40.c.o
- .mdebug        0x00000000     0x2fd8 build_nm/src.us.v11/hd_front_end/01C40.c.o
+ .mdebug        0x00000000     0x2fe0 build_nm/src.us.v11/hd_front_end/01C40.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/06790.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/06790.c.o
  .gptab.data    0x00000000       0x20 build_nm/src.us.v11/hd_front_end/06790.c.o
- .mdebug        0x00000000      0xb20 build_nm/src.us.v11/hd_front_end/06790.c.o
+ .mdebug        0x00000000      0xb28 build_nm/src.us.v11/hd_front_end/06790.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/07390.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/07390.c.o
  .mdebug        0x00000000      0x888 build_nm/src.us.v11/hd_front_end/07390.c.o
@@ -43,7 +43,7 @@ Discarded input sections
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/0E7B0.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/10850.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/10850.c.o
- .mdebug        0x00000000      0xeac build_nm/src.us.v11/hd_front_end/10850.c.o
+ .mdebug        0x00000000      0xeb4 build_nm/src.us.v11/hd_front_end/10850.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/17990.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/17990.c.o
  .mdebug        0x00000000     0x12e0 build_nm/src.us.v11/hd_front_end/17990.c.o
@@ -563,6 +563,12 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x80358050                        gFrameBufferPhys = 0x80358050
                 0x80358078                        gFrameDlLen = 0x80358078
                 0x8035807c                        gPerspNorm = 0x8035807c
+                0x80370bf8                        gSiMesgQueue = 0x80370bf8
+                0x80370c28                        gContButtons = 0x80370c28
+                0x80370c2a                        gContPrevButtons = 0x80370c2a
+                0x80370c2c                        gPadStickX = 0x80370c2c
+                0x80370c2d                        gPadStickY = 0x80370c2d
+                0x80370c2e                        gPrevPadStickX = 0x80370c2e
                 0x80211a68                        D_80211A68 = 0x80211a68
                 0x803643d4                        D_803643D4 = 0x803643d4
                 0x80364b00                        D_80364B00 = 0x80364b00
@@ -587,13 +593,9 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x802153e6                        D_802153E6 = 0x802153e6
                 0x802153e4                        D_802153E4 = 0x802153e4
                 0x80367738                        D_80367738 = 0x80367738
-                0x80370c28                        D_80370C28 = 0x80370c28
-                0x80370c2a                        D_80370C2A = 0x80370c2a
                 0x802153e8                        D_802153E8 = 0x802153e8
                 0x80364a8c                        D_80364A8C = 0x80364a8c
                 0x80364a9c                        D_80364A9C = 0x80364a9c
-                0x80370c2c                        D_80370C2C = 0x80370c2c
-                0x80370c2e                        D_80370C2E = 0x80370c2e
                 0x803156c0                        D_803156C0 = 0x803156c0
                 0x802153e0                        D_802153E0 = 0x802153e0
                 0x802153f0                        D_802153F0 = 0x802153f0
@@ -793,7 +795,6 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x8020c014                        D_8020C014 = 0x8020c014
                 0x80218ee0                        D_80218EE0 = 0x80218ee0
                 0x80218d30                        D_80218D30 = 0x80218d30
-                0x80370bf8                        D_80370BF8 = 0x80370bf8
                 0x80218d24                        D_80218D24 = 0x80218d24
                 0x8039b630                        D_8039B630 = 0x8039b630
                 0x80218ef0                        D_80218EF0 = 0x80218ef0
@@ -852,7 +853,6 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x8021ab58                        D_8021AB58 = 0x8021ab58
                 0x8021ab6c                        D_8021AB6C = 0x8021ab6c
                 0x8021ab5c                        D_8021AB5C = 0x8021ab5c
-                0x80370c2d                        D_80370C2D = 0x80370c2d
                 0x8021ab24                        D_8021AB24 = 0x8021ab24
                 0x8021a90c                        D_8021A90C = 0x8021a90c
                 0x8021a910                        D_8021A910 = 0x8021a910
@@ -969,13 +969,16 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x80840e30                        PROVIDE (rsp_wait_task = 0x80840e30)
                 0x80812fa8                        PROVIDE (hd_sinf = 0x80812fa8)
                 0x80812fcc                        PROVIDE (hd_cosf = 0x80812fcc)
+                0x8085e220                        PROVIDE (veh_add_record = 0x8085e220)
+                0x808460d0                        PROVIDE (cont_init = 0x808460d0)
+                0x80846144                        PROVIDE (cont_start_read = 0x80846144)
+                0x8084618c                        PROVIDE (cont_wait_read = 0x8084618c)
+                0x808461d0                        PROVIDE (cont_update = 0x808461d0)
                 0x8085ac3c                        PROVIDE (func_8029DEA0 = 0x8085ac3c)
                 0x8081c5c4                        PROVIDE (func_80260A10 = 0x8081c5c4)
                 0x8081c160                        PROVIDE (func_80260650 = 0x8081c160)
-                0x80846144                        PROVIDE (func_8028A3E4 = 0x80846144)
                 0x80863ac0                        PROVIDE (func_802A5720 = 0x80863ac0)
                 0x8085aea4                        PROVIDE (func_8029E0AC = 0x8085aea4)
-                0x808461d0                        PROVIDE (func_8028A470 = 0x808461d0)
                 0x80831010                        PROVIDE (func_80275390 = 0x80831010)
                 0x80814f30                        PROVIDE (func_80259450 = 0x80814f30)
                 0x808157ac                        PROVIDE (func_80259CCC = 0x808157ac)
@@ -1011,9 +1014,7 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x8083258c                        PROVIDE (func_8027690C = 0x8083258c)
                 0x8085d980                        PROVIDE (func_802A0700 = 0x8085d980)
                 0x8085da3c                        PROVIDE (func_802A08B4 = 0x8085da3c)
-                0x8084618c                        PROVIDE (func_8028A42C = 0x8084618c)
                 0x8084ba38                        PROVIDE (func_8028FCD4 = 0x8084ba38)
-                0x808460d0                        PROVIDE (func_8028A370 = 0x808460d0)
                 0x8081dba0                        PROVIDE (func_80261FB0 = 0x8081dba0)
                 0x80847954                        PROVIDE (func_8028BBF4 = 0x80847954)
                 0x8081c434                        PROVIDE (func_802608C8 = 0x8081c434)
@@ -1027,7 +1028,6 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x80831078                        PROVIDE (func_802753F8 = 0x80831078)
                 0x808553d0                        PROVIDE (func_802995F0 = 0x808553d0)
                 0x80861424                        PROVIDE (func_802A396C = 0x80861424)
-                0x8085e220                        PROVIDE (func_802A1388 = 0x8085e220)
                 0x8085b484                        PROVIDE (func_8029E558 = 0x8085b484)
                 0x8085cc10                        PROVIDE (func_8029F85C = 0x8085cc10)
                 0x8085d6b0                        PROVIDE (func_802A039C = 0x8085d6b0)
@@ -1521,6 +1521,75 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 [!provide]                        PROVIDE (cull_restart = 0x80862694)
                 0x803c3248                        gCullDelay = 0x803c3248
                 0x803c30a8                        gVisibleCells = 0x803c30a8
+                0x80364460                        gVehicles = 0x80364460
+                0x803649d0                        gVehiclesEnd = 0x803649d0
+                0x80364456                        gCurVehicle = 0x80364456
+                0x803643c8                        gVehicleShadows = 0x803643c8
+                0x803643cc                        gVehicleShadowsEnd = 0x803643cc
+                0x803643e0                        gPlayerX = 0x803643e0
+                0x803643e4                        gPlayerY = 0x803643e4
+                0x803643e8                        gPlayerZ = 0x803643e8
+                [!provide]                        PROVIDE (veh_update_others = 0x80806e68)
+                [!provide]                        PROVIDE (veh_update_player = 0x80807034)
+                [!provide]                        PROVIDE (veh_draw_layer = 0x8080b5c0)
+                [!provide]                        PROVIDE (veh_draw_shadows = 0x80809e88)
+                [!provide]                        PROVIDE (veh_draw_chopper_shadow = 0x8080aeb4)
+                [!provide]                        PROVIDE (veh_add_record = 0x8085e220)
+                [!provide]                        PROVIDE (veh_set_record = 0x8085e1e0)
+                [!provide]                        PROVIDE (cont_init = 0x808460d0)
+                [!provide]                        PROVIDE (cont_start_read = 0x80846144)
+                [!provide]                        PROVIDE (cont_wait_read = 0x8084618c)
+                [!provide]                        PROVIDE (cont_update = 0x808461d0)
+                [!provide]                        PROVIDE (cont_process_stick = 0x80846b50)
+                [!provide]                        PROVIDE (cont_clear = 0x80846be8)
+                [!provide]                        PROVIDE (cont_buttons_to_stick = 0x80846d04)
+                [!provide]                        PROVIDE (cont_snap_stick = 0x80846d60)
+                [!provide]                        PROVIDE (cont_stick_to_buttons = 0x80846e48)
+                [!provide]                        PROVIDE (cont_dead_zone = 0x80846ef0)
+                [!provide]                        PROVIDE (cont_show_method_option = 0x80846fa0)
+                0x80370bd8                        gContPad = 0x80370bd8
+                0x80370bc8                        gContStatus = 0x80370bc8
+                0x80370bf0                        gSiMesgBuf = 0x80370bf0
+                0x80370bf8                        gSiMesgQueue = 0x80370bf8
+                0x80370c10                        gContReadPending = 0x80370c10
+                0x80370c28                        gContButtons = 0x80370c28
+                0x80370c2a                        gContPrevButtons = 0x80370c2a
+                0x80370c11                        gContStickX = 0x80370c11
+                0x80370c12                        gContStickY = 0x80370c12
+                0x80370c13                        gContPrevStickX = 0x80370c13
+                0x80370c14                        gContPrevStickY = 0x80370c14
+                0x80370c15                        gHeldLeft = 0x80370c15
+                0x80370c16                        gHeldRight = 0x80370c16
+                0x80370c17                        gHeldUp = 0x80370c17
+                0x80370c18                        gHeldDown = 0x80370c18
+                0x80370c19                        gHeldStart = 0x80370c19
+                0x80370c1a                        gHeldL = 0x80370c1a
+                0x80370c1b                        gHeldR = 0x80370c1b
+                0x80370c1c                        gHeldA = 0x80370c1c
+                0x80370c1d                        gHeldB = 0x80370c1d
+                0x80370c1e                        gHeldCLeft = 0x80370c1e
+                0x80370c1f                        gHeldCDown = 0x80370c1f
+                0x80370c20                        gHeldCUp = 0x80370c20
+                0x80370c21                        gHeldCRight = 0x80370c21
+                0x80370c22                        gHeldZ = 0x80370c22
+                0x80370c23                        gHeldBOrZ = 0x80370c23
+                0x80370c24                        gPrevHeldCLeft = 0x80370c24
+                0x80370c25                        gPrevHeldCDown = 0x80370c25
+                0x80370c26                        gPrevHeldCUp = 0x80370c26
+                0x80370c27                        gPrevHeldCRight = 0x80370c27
+                0x80370c2c                        gPadStickX = 0x80370c2c
+                0x80370c2d                        gPadStickY = 0x80370c2d
+                0x80370c2e                        gPrevPadStickX = 0x80370c2e
+                0x80370c2f                        gPrevPadStickY = 0x80370c2f
+                0x80370c30                        gRecButtons = 0x80370c30
+                0x80370c32                        gRecStickX = 0x80370c32
+                0x80370c33                        gRecStickY = 0x80370c33
+                0x80370c35                        gControlMethod = 0x80370c35
+                0x80370c38                        gSwallowB = 0x80370c38
+                [!provide]                        PROVIDE (veh_apply_switch = 0x8080666c)
+                [!provide]                        PROVIDE (veh_enter = 0x808067e8)
+                [!provide]                        PROVIDE (veh_leave = 0x808069c8)
+                0x803649ed                        gNextVehicle = 0x803649ed
                 0x803ff288                        __osEepromTimer = 0x803ff288
                 0x803ff2a8                        __osEepromTimerQ = 0x803ff2a8
                 0x803ff2c0                        __osEepromTimerMsg = 0x803ff2c0

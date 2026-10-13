@@ -288,7 +288,7 @@ s32 func_802CDF94(s32 r) {
 /* Vehicle id's hit spheres vs the point (x, y, z) radius r: finds id's first
  * D_803A6B30 sphere (until flag -1), then walks that run of consecutive
  * spheres of id (vehicle 6 skips spheres of radius 0x3BD); for each within
- * range (func_8029CFA4): D_803F932E = 1 if id is the mode D_80364456,
+ * range (func_8029CFA4): D_803F932E = 1 if id is the mode gCurVehicle,
  * D_803F932D = 1 for vehicle 0xFF, and the plane-side update
  * func_802CE204(x, z, sphere x, sphere z). Returns 1 if any sphere was in
  * range, else 0.
@@ -321,7 +321,7 @@ s32 func_802CE0E4(s32 x, s32 y, s32 z, s32 r, s32 id) {
         if (func_8029CFA4(z, r, ex, ey, x, y, ez, er) == 0) {
             continue;
         }
-        if (D_80364456 == id) {
+        if (gCurVehicle == id) {
             D_803F932E = 1;
         }
         if (id == 0xFF) {

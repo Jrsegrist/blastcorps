@@ -108,7 +108,7 @@ void func_80297804(s32 x, s32 y, s32 z) {
 }
 
 void func_80297960(void) {
-    if (gDebugCheats && (D_80370C28 & 0x2000) && D_8039CAB7) {
+    if (gDebugCheats && (gContButtons & 0x2000) && D_8039CAB7) {
         D_8039CAC8 |= 1 << D_8039CAB6;
     }
     players[playerNumber].unk90 = D_8039CAC8;

@@ -588,7 +588,7 @@ s32 func_802BCDE0(s32 value) {
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-/* Finds the closest target to the point D_803643E0/E4/E8, starting from a
+/* Finds the closest target to the point gPlayerX/Y/Z, starting from a
  * distance limit of 9999999, over three tables (a later one wins only when
  * strictly closer):
  *   1: D_803F4030 entries with unkEB set, unkEA clear and not yet done
@@ -617,7 +617,7 @@ s32 func_802BCE40(void) {
         if (e->unkEB == 0 || e->unkEA != 0) {
             continue;
         }
-        dist = func_802ABCDC(e->pos[0], e->pos[1], e->pos[2], D_803643E0, D_803643E4, D_803643E8);
+        dist = func_802ABCDC(e->pos[0], e->pos[1], e->pos[2], gPlayerX, gPlayerY, gPlayerZ);
         if (dist >= bestDist) {
             continue;
         }
@@ -632,7 +632,7 @@ s32 func_802BCE40(void) {
         if (t->unk26 != 0) {
             continue;
         }
-        dist = func_802ABCDC(t->pos[0], t->pos[1], t->pos[2], D_803643E0, D_803643E4, D_803643E8);
+        dist = func_802ABCDC(t->pos[0], t->pos[1], t->pos[2], gPlayerX, gPlayerY, gPlayerZ);
         if (dist < bestDist) {
             kind = 2;
             best = t;
@@ -643,7 +643,7 @@ s32 func_802BCE40(void) {
         if (p->level != levelno) {
             continue;
         }
-        dist = func_802ABCDC(p->pos[0], p->pos[1], p->pos[2], D_803643E0, D_803643E4, D_803643E8);
+        dist = func_802ABCDC(p->pos[0], p->pos[1], p->pos[2], gPlayerX, gPlayerY, gPlayerZ);
         if (dist >= bestDist) {
             continue;
         }
@@ -1862,14 +1862,14 @@ extern u8 D_803F780F;   /* once-per-frame latch, set here */
 /* Once-per-frame run detector. Unless the mode excludes it or it already ran
  * (latch D_803F780F), it counts consecutive frames (D_803F77F4 + 1 ==
  * gUnpausedFrames) in which D_803F77FC's sign doesn't repeat a nonzero previous
- * sign, recording whether D_80370C2C's truth value changed since the run
+ * sign, recording whether gPadStickX's truth value changed since the run
  * started. After 0x14 such frames the count restarts and D_803F780C is set if
  * a change was seen. Any other frame resets the run. The asm's `addi` on
  * D_803F77F4 traps on 0x7FFFFFFF; the C wraps instead.
  * Register note: the asm saves/restores v0, v1, a0 and a1 (and clobbers at);
  * asm caller func_802BEBB0 keeps a0, a1, t3, t8, t9, f12 and f14 live. */
 void func_802BEFF4(void) {
-    u8 mode = D_80364456;
+    u8 mode = gCurVehicle;
     s32 sign;
     s32 flag;
     s32 count;
@@ -1892,7 +1892,7 @@ void func_802BEFF4(void) {
 
     if (D_803F77F4 + 1 == gUnpausedFrames && (sign == 0 || ((s8) D_803F780A) != sign)) {
         count = D_803F780B;
-        flag = (((u8) D_80370C2C) != 0) ? 1 : 0;
+        flag = (((u8) gPadStickX) != 0) ? 1 : 0;
         if (count == 0) {
             D_803F780E = flag;
             D_803F780D = 0;

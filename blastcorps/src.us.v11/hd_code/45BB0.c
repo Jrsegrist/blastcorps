@@ -41,106 +41,106 @@ typedef struct {
     /* 0x04 */ u8 unk4[0xFC];
 } Player;
 
-extern OSContPad D_80370BD8; /* this frame's pad */
-extern OSMesg D_80370BF0;
-extern OSContStatus D_80370BC8;
-extern u8 D_80370C10; /* a read is in flight */
+extern OSContPad gContPad; /* this frame's pad */
+extern OSMesg gSiMesgBuf;
+extern OSContStatus gContStatus;
+extern u8 gContReadPending; /* a read is in flight */
 extern Player D_80364BE0[];
 
 /* stick x/y: this frame and last frame */
 /* one flag per button, set while held */
-extern u8 D_80370C17; /* U_JPAD */
-extern u8 D_80370C18; /* D_JPAD */
-extern u8 D_80370C19; /* START */
-extern u8 D_80370C1F; /* D_CBUTTONS */
-extern u8 D_80370C20; /* U_CBUTTONS */
+extern u8 gHeldUp; /* U_JPAD */
+extern u8 gHeldDown; /* D_JPAD */
+extern u8 gHeldStart; /* START */
+extern u8 gHeldCDown; /* D_CBUTTONS */
+extern u8 gHeldCUp; /* U_CBUTTONS */
 /* last frame's C buttons */
-extern u8 D_80370C25;
-extern u8 D_80370C26;
-extern s8 D_80370C2F;
+extern u8 gPrevHeldCDown;
+extern u8 gPrevHeldCUp;
+extern s8 gPrevPadStickY;
 /* the alternative pad source */
 extern s32 D_80370BC0;
 extern s32 D_80370C40;
 
-void func_8028ADF0(u8 arg0, u8 arg1, u16 *btn, s8 *x, s8 *y);
-void func_8028AFA4(u16 btn, s8 *x, s8 *y);
-void func_8028B0E8(u16 *btn, s8 x, s8 y);
-void func_8028B190(s8 *x, s8 *y);
+void cont_process_stick(u8 arg0, u8 arg1, u16 *btn, s8 *x, s8 *y);
+void cont_buttons_to_stick(u16 btn, s8 *x, s8 *y);
+void cont_stick_to_buttons(u16 *btn, s8 x, s8 y);
+void cont_dead_zone(s8 *x, s8 *y);
 
 s32 D_802FDB10 = 0;
 u8 D_802FDB14 = 0;
 
 /* Set up the SI queue and the controllers; returns the controller bit pattern */
-u8 func_8028A370(void) {
+u8 cont_init(void) {
     s32 pad;
     u8 pattern;
 
-    osCreateMesgQueue(&D_80370BF8, &D_80370BF0, 1);
-    osSetEventMesg(OS_EVENT_SI, &D_80370BF8, 0);
-    func_802DB0A0(&D_80370BF8, &pattern, &D_80370BC8);
+    osCreateMesgQueue(&gSiMesgQueue, &gSiMesgBuf, 1);
+    osSetEventMesg(OS_EVENT_SI, &gSiMesgQueue, 0);
+    func_802DB0A0(&gSiMesgQueue, &pattern, &gContStatus);
     osContSetCh(1);
-    D_80370C10 = 0;
-    D_80370C35 = 0;
+    gContReadPending = 0;
+    gControlMethod = 0;
     return pattern;
 }
 
 /* Start a controller read */
-void func_8028A3E4(void) {
+void cont_start_read(void) {
     if (pakBusy == 0) {
-        func_8028A42C();
-        func_802DB4D0(&D_80370BF8);
-        D_80370C10 = 1;
+        cont_wait_read();
+        func_802DB4D0(&gSiMesgQueue);
+        gContReadPending = 1;
     }
 }
 
 /* Wait for an in-flight controller read */
-void func_8028A42C(void) {
-    if (D_80370C10) {
-        osRecvMesg(&D_80370BF8, NULL, 1);
-        D_80370C10 = 0;
+void cont_wait_read(void) {
+    if (gContReadPending) {
+        osRecvMesg(&gSiMesgQueue, NULL, 1);
+        gContReadPending = 0;
     }
 }
 
 /* Read this frame's pad and update the button/stick state */
-void func_8028A470(void) {
-    OSContPad *pad = &D_80370BD8;
+void cont_update(void) {
+    OSContPad *pad = &gContPad;
     s32 unused;
     s32 mode;
 
     if (((u32) D_80358064) != 0) {
-        if (pakBusy == 0 && D_80370C10 != 0) {
-            osRecvMesg(&D_80370BF8, NULL, 1);
+        if (pakBusy == 0 && gContReadPending != 0) {
+            osRecvMesg(&gSiMesgQueue, NULL, 1);
             func_802DB594(pad);
             if (pad->errno) {
                 debug_printf("pad read error - zeroing data\n");
                 pad->stick_x = pad->stick_y = pad->button = 0;
             }
-            D_80370C10 = 0;
+            gContReadPending = 0;
         }
-        D_80370C2A = D_80370C28;
-        D_80370C28 = pad->button;
-        if (D_80370C38) {
+        gContPrevButtons = gContButtons;
+        gContButtons = pad->button;
+        if (gSwallowB) {
             if (pad->button & B_BUTTON) {
                 pad->button &= ~B_BUTTON;
             } else {
-                D_80370C38 = 0;
+                gSwallowB = 0;
             }
         }
         if (gFramesInMode < 6) {
             if (gFramesInMode == 5) {
-                D_80370C2A |= A_BUTTON | B_BUTTON | START_BUTTON;
+                gContPrevButtons |= A_BUTTON | B_BUTTON | START_BUTTON;
             } else {
-                D_80370C28 &= ~(A_BUTTON | B_BUTTON | START_BUTTON);
+                gContButtons &= ~(A_BUTTON | B_BUTTON | START_BUTTON);
             }
         }
-        D_80370C13 = D_80370C11;
-        D_80370C14 = D_80370C12;
-        D_80370C11 = pad->stick_x;
-        D_80370C12 = pad->stick_y;
-        D_80370C24 = D_80370C1E;
-        D_80370C25 = D_80370C1F;
-        D_80370C26 = D_80370C20;
-        D_80370C27 = D_80370C21;
+        gContPrevStickX = gContStickX;
+        gContPrevStickY = gContStickY;
+        gContStickX = pad->stick_x;
+        gContStickY = pad->stick_y;
+        gPrevHeldCLeft = gHeldCLeft;
+        gPrevHeldCDown = gHeldCDown;
+        gPrevHeldCUp = gHeldCUp;
+        gPrevHeldCRight = gHeldCRight;
         switch (gGameMode) {
             case 2:
             case 0x40:
@@ -149,16 +149,16 @@ void func_8028A470(void) {
                 if (levelno != 0x26 && levelno != 0x31) {
                     do {
                         func_8025BEF8();
-                        if (D_80370C30 & 0x40) {
+                        if (gRecButtons & 0x40) {
                             D_80370C40 = 0;
-                        } else if (D_80370C30 & 0x80) {
+                        } else if (gRecButtons & 0x80) {
                             D_80370C40 = 1;
                         }
-                    } while (D_80370C30 & 0xC0);
+                    } while (gRecButtons & 0xC0);
                 }
-                pad->button = D_80370C30;
-                pad->stick_x = D_80370C32;
-                pad->stick_y = D_80370C33;
+                pad->button = gRecButtons;
+                pad->stick_x = gRecStickX;
+                pad->stick_y = gRecStickY;
                 pad->button &= ~U_CBUTTONS;
                 break;
             case 4:
@@ -184,7 +184,7 @@ void func_8028A470(void) {
             D_803F7C34 = 0;
             if (gGameMode & 0x440) {
                 mode = D_80370C40;
-            } else if (D_80364BE0[playerNumber].flags & (1 << D_80364456)) {
+            } else if (D_80364BE0[playerNumber].flags & (1 << gCurVehicle)) {
                 mode = 1;
             } else {
                 mode = 0;
@@ -192,13 +192,13 @@ void func_8028A470(void) {
             if (gGameMode == 2 || gGameMode == 0x100000000000) {
                 mode = 0;
             }
-            D_80370C35 = mode;
+            gControlMethod = mode;
             if (gPaused) {
-                func_8028ADF0(1, 0, &pad->button, &pad->stick_x, &pad->stick_y);
+                cont_process_stick(1, 0, &pad->button, &pad->stick_x, &pad->stick_y);
             } else {
                 switch (mode) {
                     case 0:
-                        switch (D_80364456) {
+                        switch (gCurVehicle) {
                             case 9:
                                 if (D_803F7C3F) {
                                     D_80370C34 = 1;
@@ -206,22 +206,22 @@ void func_8028A470(void) {
                             case 0:
                             case 2:
                             case 16:
-                                func_8028B734(&pad->stick_x, &pad->stick_y, D_80364456);
-                                func_8028B190(&pad->stick_x, &pad->stick_y);
+                                func_8028B734(&pad->stick_x, &pad->stick_y, gCurVehicle);
+                                cont_dead_zone(&pad->stick_x, &pad->stick_y);
                                 break;
                             default:
                                 D_80370C75 = 0;
-                                func_8028ADF0(0, 0, &pad->button, &pad->stick_x, &pad->stick_y);
+                                cont_process_stick(0, 0, &pad->button, &pad->stick_x, &pad->stick_y);
                                 break;
                         }
                         break;
                     case 1:
-                        if (D_80364456 == 9) {
+                        if (gCurVehicle == 9) {
                             D_80370C75 = 0;
-                            func_8028ADF0(1, 1, &pad->button, &pad->stick_x, &pad->stick_y);
+                            cont_process_stick(1, 1, &pad->button, &pad->stick_x, &pad->stick_y);
                         } else {
                             D_80370C75 = 0;
-                            func_8028ADF0(1, 0, &pad->button, &pad->stick_x, &pad->stick_y);
+                            cont_process_stick(1, 0, &pad->button, &pad->stick_x, &pad->stick_y);
                         }
                         break;
                 }
@@ -233,119 +233,119 @@ void func_8028A470(void) {
         pad->stick_y = 0;
     }
     if (pad->button & L_JPAD) {
-        D_80370C15 = 1;
+        gHeldLeft = 1;
     } else {
-        D_80370C15 = 0;
+        gHeldLeft = 0;
     }
     if (pad->button & R_JPAD) {
-        D_80370C16 = 1;
+        gHeldRight = 1;
     } else {
-        D_80370C16 = 0;
+        gHeldRight = 0;
     }
     if (pad->button & U_JPAD) {
-        D_80370C17 = 1;
+        gHeldUp = 1;
     } else {
-        D_80370C17 = 0;
+        gHeldUp = 0;
     }
     if (pad->button & D_JPAD) {
-        D_80370C18 = 1;
+        gHeldDown = 1;
     } else {
-        D_80370C18 = 0;
+        gHeldDown = 0;
     }
     if (pad->button & START_BUTTON) {
-        D_80370C19 = 1;
+        gHeldStart = 1;
     } else {
-        D_80370C19 = 0;
+        gHeldStart = 0;
     }
     if (pad->button & L_TRIG) {
-        D_80370C1A = 1;
+        gHeldL = 1;
     } else {
-        D_80370C1A = 0;
+        gHeldL = 0;
     }
     if (pad->button & R_TRIG) {
-        D_80370C1B = 1;
+        gHeldR = 1;
     } else {
-        D_80370C1B = 0;
+        gHeldR = 0;
     }
     if (pad->button & A_BUTTON) {
-        D_80370C1C = 1;
+        gHeldA = 1;
     } else {
-        D_80370C1C = 0;
+        gHeldA = 0;
     }
     if (pad->button & B_BUTTON) {
-        D_80370C1D = 1;
+        gHeldB = 1;
     } else {
-        D_80370C1D = 0;
+        gHeldB = 0;
     }
     if (pad->button & L_CBUTTONS) {
-        D_80370C1E = 1;
+        gHeldCLeft = 1;
     } else {
-        D_80370C1E = 0;
+        gHeldCLeft = 0;
     }
     if (pad->button & D_CBUTTONS) {
-        D_80370C1F = 1;
+        gHeldCDown = 1;
     } else {
-        D_80370C1F = 0;
+        gHeldCDown = 0;
     }
     if (pad->button & U_CBUTTONS) {
-        D_80370C20 = 1;
+        gHeldCUp = 1;
     } else {
-        D_80370C20 = 0;
+        gHeldCUp = 0;
     }
     if (pad->button & R_CBUTTONS) {
-        D_80370C21 = 1;
+        gHeldCRight = 1;
     } else {
-        D_80370C21 = 0;
+        gHeldCRight = 0;
     }
     if (pad->button & Z_TRIG) {
-        D_80370C22 = 1;
+        gHeldZ = 1;
     } else {
-        D_80370C22 = 0;
+        gHeldZ = 0;
     }
-    D_80370C23 = D_80370C1D || D_80370C22;
-    D_80370C2E = D_80370C2C;
-    D_80370C2F = D_80370C2D;
-    D_80370C2C = pad->stick_x;
-    D_80370C2D = pad->stick_y;
+    gHeldBOrZ = gHeldB || gHeldZ;
+    gPrevPadStickX = gPadStickX;
+    gPrevPadStickY = gPadStickY;
+    gPadStickX = pad->stick_x;
+    gPadStickY = pad->stick_y;
 }
 
 /* Post-process a pad: digital stick (from the D-pad and A/B) unless arg1,
  * dead zone and clamp, then stick back to buttons */
-void func_8028ADF0(u8 arg0, u8 arg1, u16 *btn, s8 *x, s8 *y) {
+void cont_process_stick(u8 arg0, u8 arg1, u16 *btn, s8 *x, s8 *y) {
     if (!arg0 && !gPaused) {
         *y = 0;
     }
     if (!arg1) {
-        func_8028AFA4(*btn, x, y);
+        cont_buttons_to_stick(*btn, x, y);
     }
-    func_8028B190(x, y);
+    cont_dead_zone(x, y);
     if (!arg1) {
-        func_8028B0E8(btn, *x, *y);
+        cont_stick_to_buttons(btn, *x, *y);
     }
 }
 
 /* Clear the controller state */
-void func_8028AE88(void) {
-    D_80370C27 = 0;
-    D_80370C26 = 0;
-    D_80370C25 = 0;
-    D_80370C24 = 0;
-    D_80370C2D = 0;
-    D_80370C2C = 0;
-    D_80370C23 = 0;
-    D_80370C22 = 0;
-    D_80370C21 = 0;
-    D_80370C20 = 0;
-    D_80370C15 = D_80370C16 = D_80370C17 = D_80370C18 = D_80370C19 = D_80370C1A = D_80370C1B = D_80370C1C =
-        D_80370C1D = D_80370C1E = D_80370C1F = 0;
-    D_80370C2A = 0;
-    D_80370C28 = 0;
+void cont_clear(void) {
+    gPrevHeldCRight = 0;
+    gPrevHeldCUp = 0;
+    gPrevHeldCDown = 0;
+    gPrevHeldCLeft = 0;
+    gPadStickY = 0;
+    gPadStickX = 0;
+    gHeldBOrZ = 0;
+    gHeldZ = 0;
+    gHeldCRight = 0;
+    gHeldCUp = 0;
+    gHeldLeft = gHeldRight = gHeldUp = gHeldDown = gHeldStart = gHeldL = gHeldR = gHeldA =
+        gHeldB = gHeldCLeft = gHeldCDown = 0;
+    gContPrevButtons = 0;
+    gContButtons = 0;
     D_80370BC0 = 0;
-    D_80370C38 = 0;
+    gSwallowB = 0;
 }
 
 /* D-pad left/right and A/B as a full-scale stick */
-void func_8028AFA4(u16 btn, s8 *x, s8 *y) {
+void cont_buttons_to_stick(u16 btn, s8 *x, s8 *y) {
     if (btn & L_JPAD) {
         *x = -80;
     }
@@ -361,8 +361,8 @@ void func_8028AFA4(u16 btn, s8 *x, s8 *y) {
 }
 
 /* Snap the stick to -80/0/80 for the digital control methods */
-void func_8028B000(s8 *x, s8 *y) {
-    switch (D_80364456) {
+void cont_snap_stick(s8 *x, s8 *y) {
+    switch (gCurVehicle) {
         case 1:
         case 3:
         case 4:
@@ -393,7 +393,7 @@ void func_8028B000(s8 *x, s8 *y) {
 }
 
 /* A pushed stick also presses the matching buttons */
-void func_8028B0E8(u16 *btn, s8 x, s8 y) {
+void cont_stick_to_buttons(u16 *btn, s8 x, s8 y) {
     if (!(*btn & L_JPAD) && x < -50) {
         *btn |= L_JPAD;
     }
@@ -409,7 +409,7 @@ void func_8028B0E8(u16 *btn, s8 x, s8 y) {
 }
 
 /* Stick dead zone (|v| < 10) and clamp to +-80 */
-void func_8028B190(s8 *x, s8 *y) {
+void cont_dead_zone(s8 *x, s8 *y) {
     if (*x < 10 && *x > -10) {
         *x = 0;
     }
@@ -431,7 +431,7 @@ void func_8028B190(s8 *x, s8 *y) {
 }
 
 /* Show the control method's option text */
-void func_8028B240(void) {
+void cont_show_method_option(void) {
     char *tbl[3] = { "SPEED ON 3D STICK?", "360 DEGREE MODE?", "AIRBORNE 360' MODE?" };
     char *str;
     s32 found;
@@ -442,7 +442,7 @@ void func_8028B240(void) {
     found = 0;
     i = 0;
     do {
-        if (masks[i] & (1 << D_80364456)) {
+        if (masks[i] & (1 << gCurVehicle)) {
             found = 1;
         } else {
             i++;
@@ -453,7 +453,7 @@ void func_8028B240(void) {
     D_802F5804[421].jtext = NULL;
     D_802F5804[422].text = tbl[i];
     D_802F5804[422].unk6 = 0x13;
-    if ((D_80364BE0[playerNumber].flags ^ 0x10205) & (1 << D_80364456)) {
+    if ((D_80364BE0[playerNumber].flags ^ 0x10205) & (1 << gCurVehicle)) {
         D_802F8BDC[88].unk18 = 0x1A8;
     } else {
         D_802F8BDC[88].unk18 = 0x1A7;

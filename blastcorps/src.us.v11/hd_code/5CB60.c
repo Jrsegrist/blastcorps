@@ -2,7 +2,7 @@
 #include <ultra64.h>
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_80364460 ((u8 *) D_80364460)
+#define gVehicles ((u8 *) gVehicles)
 #ifdef NON_MATCHING
 #define D_80365330 (*(s32 *) &D_80365330)
 #define D_803BDB08 (*(u8 * N64P *) &D_803BDB08)
@@ -61,15 +61,15 @@ u32 func_802A1320(void) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-/* Finds the 0x74-byte record of D_80364460 whose word at 0x5C is `id` (no
+/* Finds the 0x74-byte record of gVehicles whose word at 0x5C is `id` (no
  * bound: it must exist) and stores v0Val, v1Val, a0Val and obj[0x9B] in its
  * words at 0x64/0x68/0x6C/0x70.
  * asm: a0Val in a0, id in a1, v0Val in v0, v1Val in v1, obj in gp (each
  * caller points gp at its own vehicle object). It changes no register.
  * Asm callers rely on preserved: a0, a1 (func_802B3180 & co), a1-a3, f12,
  * f14 (func_802AEEC8 & co), a3, t0, t6 (func_802B6294). */
-void func_802A133C(s32 a0Val, s32 id, s32 v0Val, s32 v1Val, u8 *obj) {
-    u8 *rec = D_80364460;
+void veh_set_record(s32 a0Val, s32 id, s32 v0Val, s32 v1Val, u8 *obj) {
+    u8 *rec = gVehicles;
 
     while (*(s32 *) (rec + 0x5C) != id) {
         rec += 0x74;
@@ -80,14 +80,14 @@ void func_802A133C(s32 a0Val, s32 id, s32 v0Val, s32 v1Val, u8 *obj) {
     *(s32 *) (rec + 0x70) = obj[0x9B];
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A133C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/veh_set_record.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 void func_802A1558(Gfx *src, Gfx *end, Gfx * N64P *dstp);
 
-/* Appends a 0x74-byte record to D_80364460 (cursor D_803649D0) for the model
+/* Appends a 0x74-byte record to gVehicles (cursor gVehiclesEnd) for the model
  * whose header is `hdr` (offsets in it are relative to hdr): word 0x70 = 0,
  * 4 = v0Val, 8 = v1Val, 0x5C = a0Val; word 0 and 0xC..0x2C = hdr + header
  * words 0x14 and 0x24..0x44, 0x54 = hdr + word 0x48. Copies the 8-byte units
@@ -98,15 +98,15 @@ void func_802A1558(Gfx *src, Gfx *end, Gfx * N64P *dstp);
  * Register convention: a0Val/a1Val in a0/a1, v0Val/v1Val in v0/v1, hdr in s2
  * (conventions.txt); the asm saves t0-t6. Asm callers keep a1, a3, t7, f12,
  * f14 (some a2, t4-t6) live (a mixed build would need a thunk). */
-void func_802A1388(s32 a0Val, s32 a1Val, s32 v0Val, s32 v1Val, u8 *hdr) {
-    u8 *rec = D_803649D0;
+void veh_add_record(s32 a0Val, s32 a1Val, s32 v0Val, s32 v1Val, u8 *hdr) {
+    u8 *rec = gVehiclesEnd;
     u64 *src;
     u64 *end;
     u64 *dst;
     s32 delta;
     s32 i;
 
-    D_803649D0 = rec + 0x74;
+    gVehiclesEnd = rec + 0x74;
     *(s32 *) (rec + 0x70) = 0;
     *(s32 *) (rec + 0x4) = v0Val;
     *(s32 *) (rec + 0x8) = v1Val;
@@ -141,7 +141,7 @@ void func_802A1388(s32 a0Val, s32 a1Val, s32 v0Val, s32 v1Val, u8 *hdr) {
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A1388.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/veh_add_record.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */

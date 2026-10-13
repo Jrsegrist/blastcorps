@@ -23,7 +23,7 @@
  * Load model `type` (func_802A396C), reserve two 6000-byte heap buffers
  * (heap[0], heap[1]) and set up the two display-list ranges in dl[0..3]
  * (start in the model data at its header offsets 0x1C / 0x2C, write position
- * in the second buffer), then func_802A1388(type, 0, heap[0], heap[1], model).
+ * in the second buffer), then veh_add_record(type, 0, heap[0], heap[1], model).
  * The loads and stores keep the asm's order (the last call's arguments are
  * read back from memory).
  */
@@ -49,7 +49,7 @@ void func_80202100(s32 type, u8 * N64P *model, u8 * N64P *heap, u8 * N64P *dl) {
     off2C = *(s32 *) (data + 0x2C);
     dl[2] = data + off2C;
     dl[3] = h + off2C - off1C;
-    func_802A1388(type, 0, (s32) heap[0], (s32) heap[1], *model);
+    veh_add_record(type, 0, (s32) heap[0], (s32) heap[1], *model);
 }
 
 /* func_8029E558 with the arguments rotated (asm: v0 = a1, v1 = a2, t0 = a0).

@@ -36,7 +36,7 @@ COPIERS = {"func_8026A5CC",   # 23C20: copy in 8-byte units
 # D_8020C000 and character set D_8020C01C as halfwords.)
 LEVEL_HEAP_USERS = {"func_802A5AE0", "func_802A5B90",   # 60F60: texture decode
                     "func_8029F85C", "func_8029E5AC", "func_8029EF80",   # 56040: models
-                    "func_802A1388", "func_802A08E4", "func_802A396C",   # 5CB60: level/object load
+                    "veh_add_record", "func_802A08E4", "func_802A396C",   # 5CB60: level/object load
                     "func_802AC8CC", "func_802ACCCC"}  # 679E0: vehicle blocks
 
 

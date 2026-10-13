@@ -750,7 +750,7 @@ it without a fault.  The x64-asan preset is the tool for this now.
     - The game's camera: at the end of 00000.c cam_update (`PORT_ICUT_IF`,
       now every frame, `host_camera_hook`) the eye (from the view matrix the
       game just built, `DynamicBuf.unk140`) and the point it looks at
-      (gCamAtX/88/8C) are copied, read-only, for that DynamicBuf.
+      (gCamAtX/Y/Z) are copied, read-only, for that DynamicBuf.
     - The view: RT64 patch `0006-view-hook.patch` adds `RT64::ViewHook`,
       called for every perspective projection of every rendered picture
       (in-between pictures of a higher frame rate too) after RT64's own

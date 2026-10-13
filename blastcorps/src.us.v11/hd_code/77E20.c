@@ -812,7 +812,7 @@ void func_802C12E0(u32 **gfxA, u32 **gfxB);
  * per-object work above (no pose step, texture animation or falling-part
  * counter: the game leaves unlisted objects alone, so they stay as they
  * are), and without its moving parts.  Only objects without a pose. */
-static void port_draw_only_802BD1F8(Unk802C1DD0Entry *o, u32 **pA, u32 **pB, u32 **pC, u32 **pD) {
+static void port_obj_draw_only(Unk802C1DD0Entry *o, u32 **pA, u32 **pB, u32 **pC, u32 **pD) {
     u8 *ob = (u8 *) o;
     u8 *info = (u8 *) o->info;
     u8 *tbl = info + *(s32 *) (info + 0x28);
@@ -933,7 +933,7 @@ void obj_draw_all(u32 *gA, u32 *gB, u32 *gC, u32 *gD, s32 mtxA, s32 mtxB, u32 *g
         for (s = (s16 *) gVisibleCells;; s++) {
             if (*s == -1) {
 #ifdef PORT_HOST
-                port_draw_only_802BD1F8(o, &gA, &gB, &gC, &gD);
+                port_obj_draw_only(o, &gA, &gB, &gC, &gD);
 #endif
                 goto tail;
             }

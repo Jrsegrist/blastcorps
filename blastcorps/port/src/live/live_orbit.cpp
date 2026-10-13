@@ -3,9 +3,9 @@
  *
  * How it stays render-only:
  *  - the game's camera: at the end of the game's camera function (00000.c
- *    func_802507C8, PORT_ICUT_IF -> host_camera_hook) the eye (from the view
+ *    cam_update, PORT_ICUT_IF -> host_camera_hook) the eye (from the view
  *    matrix the game just built, DynamicBuf.unk140) and the point it looks at
- *    (D_80365084/88/8C) are copied for the DynamicBuf being built; read only;
+ *    (gCamAtX/Y/Z) are copied for the DynamicBuf being built; read only;
  *  - the pictures: RT64 patch 0006 calls ViewHook for every perspective
  *    projection of every picture it renders (in-between pictures of a higher
  *    frame rate too).  A projection whose view is the frame's game view gets
@@ -17,7 +17,7 @@
  *    the game's visibility walk didn't list would be missing from an orbit
  *    view.  The drawing paths (PORT_DRAW_CELLS, 5FD50.c, 77E20.c) get every
  *    cell of the level instead (as the game itself does while its own camera
- *    turns: func_802A45D4), unlisted buildings drawn as they are, without
+ *    turns: cull_restart), unlisted buildings drawn as they are, without
  *    their per-object updates (the game leaves those alone: they stay as
  *    they are).  The game's logic keeps reading its own list (77E20.c's
  *    per-object updates run only for listed objects, so the list must not
@@ -68,12 +68,14 @@ namespace {
 
 using orbit::Vec3;
 
-/* game state (fixed N64 addresses, host order) */
+/* game state (fixed N64 addresses, host order; the game's names, where it has
+ * one, in the comments: tools_port/names.txt) */
 template <typename T> T rd(uint32_t a) {
     return *reinterpret_cast<volatile T *>(uintptr_t(a));
 }
-#define BC_MODE rd<unsigned long long>(0x80364A90u)
-#define BC_LEVEL rd<int>(0x802E8BDCu)
+#define BC_MODE rd<unsigned long long>(0x80364A90u)   /* gGameMode */
+#define BC_LEVEL rd<int>(0x802E8BDCu)                 /* levelno */
+/* gDynamicBufs[2] */
 constexpr uint32_t kDyn = 0x803156F8u, kDynSize = 0x21498u, kDynDl = 0x48B0u, kDynDlEnd = 0xA3A0u, kDynView = 0x140u;
 
 RT64::Application *g_app;
@@ -113,17 +115,18 @@ bool playMode(unsigned long long mode) {
 }
 
 void cameraHook(int snap) {
-    const unsigned dyn = rd<uint8_t>(0x8035805Cu) & 1;
+    const unsigned dyn = rd<uint8_t>(0x8035805Cu) & 1;   /* gBufferIndex */
     Cam &c = g_built[dyn];
     c.valid = false;
     mtxToDouble(kDyn + dyn * kDynSize + kDynView, c.view);
     Vec3 fwd;
     if (!orbit::viewEye(c.view, c.eye, fwd)) return;
+    /* gCamAtX/Y/Z */
     c.target = {rd<float>(0x80365084u), rd<float>(0x80365088u), rd<float>(0x8036508Cu)};
     c.snap = snap != 0;
     c.mode = BC_MODE;
     c.level = BC_LEVEL;
-    c.onFoot = rd<uint8_t>(0x80364456u) == 0;
+    c.onFoot = rd<uint8_t>(0x80364456u) == 0;   /* gCurVehicle */
     c.play = playMode(c.mode);
     c.frame = plat_frames();
     c.valid = std::isfinite(c.target.x) && std::isfinite(c.target.y) && std::isfinite(c.target.z);
@@ -227,8 +230,8 @@ bool triHeight(const Vec3 p[3], double x, double z, double &h) {
     return true;
 }
 
-/* every building's collision triangles: the D_803F4030 objects (0xFC bytes, up
- * to D_803F7654) hold the range [+4, +8) of 0x60-byte triangles (77E20.c
+/* every building's collision triangles: the gObjects records (0x803F4030,
+ * 0xFC bytes each, up to gObjectsEnd at 0x803F7654) hold the range [+4, +8) of 0x60-byte triangles (77E20.c
  * Unk803B9890: s32 vertices at +0x28 in world / 4 units, kept where the
  * building is) */
 template <typename F> void forEachObstacle(F f) {
@@ -368,7 +371,7 @@ struct Backdrop {
 } g_bd;
 
 /* the game's heading (0..0xFFF) and pitch values of a camera (00000.c
- * func_802507C8: D_80364452, D_80364454) */
+ * cam_update: gCamYaw, gCamPitch) */
 void headingPitch(const Vec3 &eye, const Vec3 &at, int &heading, int &pitch) {
     const Vec3 d = eye - at;
     double yaw, pd;

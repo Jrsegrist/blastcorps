@@ -1035,7 +1035,11 @@ worktrees with the same ROM share the emulator run, and each run holds an
 flock on `FOLDER.lock` from the staleness check to its last comparison (a
 second run of the same folder prints "in use ... waiting"). A folder is
 reused only when its `rom.sha1` (the full hash) and `spec.sha1` (cmp_spec.py +
-the tracer, by content) match. `tools/cmp_cache_clean.py` lists folders of
+the tracer, by content) match. Nothing in a folder points into the worktree
+that recorded it: `elfs.txt` names the ELFs relative to the checkout
+(`build_nm/hd_code.rom.us.v11.elf`; older absolute entries are mapped by that
+tail), read from the checkout using the run, whose `build_nm` ROM must be the
+folder's (`rom.sha1`; else "rebuild build_nm"). `tools/cmp_cache_clean.py` lists folders of
 ROMs no worktree has any more (`--old`: also the folders from before the
 hash names) and removes them with `--delete`.
 

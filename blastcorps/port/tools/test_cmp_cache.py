@@ -5,6 +5,7 @@ tools/cmp_cache_clean.py): no emulator, no exe; temporary folders only.
 usage: python3 tools/test_cmp_cache.py
 """
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -58,6 +59,40 @@ def main():
     check(compare.emu_stale(ea, rom_b), "folder whose rom.sha1 differs is not reused")
     open(os.path.join(ea, "spec.sha1"), "w").write("0" * 40 + "\n")
     check(compare.emu_stale(ea, rom_a), "folder whose spec.sha1 differs is redone")
+
+    # elfs.txt: a run recorded by another (since removed) worktree is used with
+    # THIS checkout's ELFs; new runs store paths relative to ROOT
+    root2 = os.path.join(tmp, "wt_other", "blastcorps")
+    os.makedirs(os.path.join(root2, "build_nm"))
+    nm_elfs = ["build_nm/hd_code.rom.us.v11.elf", "build_nm/hd_front_end.rom.us.v11.elf"]
+    for p in nm_elfs:
+        open(os.path.join(root2, p), "wb").write(b"\x7fELF")
+    nm_rom = os.path.join(root2, "build_nm/blastcorps.nm.us.v11.z64")
+    shutil.copy(rom_a, nm_rom)
+    saved = compare.ROOT, compare.default_rom
+    compare.ROOT = root2
+    compare.default_rom = lambda kind: nm_rom
+    open(os.path.join(ea, "elfs.txt"), "w").write(
+        "".join("/home/x/wt/gone/blastcorps/%s\n" % p for p in nm_elfs))
+    want = [os.path.join(root2, p) for p in nm_elfs]
+    check(compare.cached_elfs(ea) == want, "old absolute elfs.txt of a removed worktree -> this ROOT's ELFs")
+    check("build_nm" in compare.cached_elfs(ea)[0], "NM run still recognised (build_nm in the path)")
+    open(os.path.join(ea, "elfs.txt"), "w").write("\n".join(compare.rom_elfs("nm")) + "\n")
+    check(not any(os.path.isabs(p) for p in open(os.path.join(ea, "elfs.txt")).read().split()),
+          "new elfs.txt entries are relative")
+    check(compare.cached_elfs(ea) == want, "relative elfs.txt -> this ROOT's ELFs")
+    # this checkout's NM ROM is not the folder's: a clear error, not wrong symbols
+    shutil.copy(rom_b, nm_rom)
+    os.utime(nm_rom, (1, 1))
+    err = subprocess.run([sys.executable, "-c",
+                          "import sys; sys.path.insert(0,%r); import compare\n"
+                          "compare.ROOT=%r; compare.default_rom=lambda k: %r\n"
+                          "compare.cached_elfs(%r)" % (HERE, root2, nm_rom, ea)],
+                         capture_output=True, text=True)
+    check(err.returncode == 1 and "rebuild build_nm" in err.stderr and "nmrom" in err.stderr,
+          "ROM hash mismatch -> 'rebuild build_nm' error (%s)" % err.stderr.strip()[:90])
+    compare.ROOT, compare.default_rom = saved
+    os.remove(os.path.join(ea, "elfs.txt"))
 
     # the lock: a second user of the same folder waits for the first
     t0 = time.time()
@@ -116,7 +151,6 @@ def main():
     check("level-nm-07" in listed and "level-07.log" in listed, "clean --old: old names listed")
     check(os.path.isdir(old) and os.path.isdir(written[rom_b][0][1]), "clean dry run removed nothing")
 
-    import shutil
     shutil.rmtree(tmp)
     print("%d failed" % len(fails) if fails else "all passed")
     sys.exit(1 if fails else 0)

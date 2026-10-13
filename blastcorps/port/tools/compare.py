@@ -125,10 +125,41 @@ def nm_syms(path):
 
 
 def rom_elfs(rom_kind):
+    """the ELFs giving the ROM's addresses, relative to ROOT (as elfs.txt stores them)"""
     if rom_kind == "nm":
-        return [os.path.join(ROOT, "build_nm/hd_code.rom.us.v11.elf"),
-                os.path.join(ROOT, "build_nm/hd_front_end.rom.us.v11.elf")]
-    return [os.path.join(ROOT, "build/hd_code.us.v11.elf"), os.path.join(ROOT, "build/hd_front_end.us.v11.elf")]
+        return ["build_nm/hd_code.rom.us.v11.elf", "build_nm/hd_front_end.rom.us.v11.elf"]
+    return ["build/hd_code.us.v11.elf", "build/hd_front_end.us.v11.elf"]
+
+
+def cached_elfs(emudir):
+    """a cached emulator run's ELFs (elfs.txt), in THIS checkout.  The cache is
+    shared by worktrees, so elfs.txt names them relative to ROOT; runs recorded
+    before that hold absolute paths into the worktree that recorded them (gone
+    once it is removed), mapped here by their build_nm/... or build/... tail.
+    That is sound because the folder is keyed by the ROM's hash: an NM run
+    (build_nm) is used only when its rom.sha1 is this checkout's NM ROM's."""
+    elfs = []
+    for p in open(os.path.join(emudir, "elfs.txt")).read().split():
+        if os.path.isabs(p):
+            m = re.search(r"(?:^|/)(build(?:_nm)?/[^/]+\.elf)$", p)
+            if not m:
+                die("%s/elfs.txt: %s is not a build/ or build_nm/ ELF" % (emudir, p))
+            p = m.group(1)
+        elfs.append(os.path.join(ROOT, p))
+    sp = os.path.join(emudir, "rom.sha1")
+    if elfs and "/build_nm/" in elfs[0] and os.path.exists(sp):
+        rom = default_rom("nm")
+        have = rom_sha1(rom) if os.path.exists(rom) else "missing"
+        want = open(sp).read().strip()
+        if have != want:
+            die("%s was recorded from the NM ROM %s, but this checkout's %s is %s: rebuild build_nm "
+                "(make VERSION=us.v11 NON_MATCHING=1 nmrom at %s) "
+                "so its ELFs describe that ROM" % (emudir, want[:8], rom, have[:8], ROOT))
+    for p in elfs:
+        if not os.path.exists(p):
+            die("%s (named by %s/elfs.txt) is missing: build it (make VERSION=us.v11%s at %s)"
+                % (p, emudir, " NON_MATCHING=1 nmrom" if "/build_nm/" in p else "", ROOT))
+    return elfs
 
 
 def data_syms():
@@ -232,8 +263,7 @@ def cmd_inject(args):
     emudir = args[0]
     ev = parse_emu(emudir)
     period, boot, off = emu_timing(ev)
-    elfs = open(os.path.join(emudir, "elfs.txt")).read().split()
-    fs = elf_syms(elfs, ("STT_FUNC", "STT_NOTYPE"))
+    fs = elf_syms(cached_elfs(emudir), ("STT_FUNC", "STT_NOTYPE"))
     fs.items = [it for it in fs.items if it[0] >= 0x80000000]
     fs.done()
     with open(os.path.join(emudir, "clock.txt"), "w") as f:
@@ -358,9 +388,10 @@ def cmd_emu(args):
     kind = opt(args, "--kind", "nm")
     rom = opt(args, "--rom", None) or default_rom(kind)
     os.makedirs(emudir, exist_ok=True)
-    elfs = rom_elfs(kind)
+    # (stored relative to ROOT: other worktrees reuse the run, cached_elfs)
     with open(os.path.join(emudir, "elfs.txt"), "w") as f:
-        f.write("\n".join(elfs) + "\n")
+        f.write("\n".join(rom_elfs(kind)) + "\n")
+    elfs = [os.path.join(ROOT, p) for p in rom_elfs(kind)]
     for f in os.listdir(emudir):
         if f.startswith("frame_"):
             os.remove(os.path.join(emudir, f))
@@ -430,7 +461,8 @@ def native_tag():
 # its emulator folder (FOLDER.lock, flock) from the staleness check to the
 # last comparison, so a second user of the same folder waits instead of
 # rewriting it mid-check.  A folder is reused only when its rom.sha1 (the full
-# hash) matches.  Folders from before this scheme (no hash in the name) are
+# hash) matches.  Nothing in a folder names the worktree that recorded it
+# (elfs.txt is relative to ROOT, cached_elfs).  Folders from before this scheme (no hash in the name) are
 # never touched; tools/cmp_cache_clean.py lists (and with --delete removes)
 # folders no ROM given to it still needs.
 
@@ -642,7 +674,7 @@ class Cmp:
         self.garb_n = 0
         self.dsyms = data_syms()
         self.mask, self.reasons = load_ignore(self.dsyms, audio)
-        elfs = open(os.path.join(emudir, "elfs.txt")).read().split()
+        elfs = cached_elfs(emudir)
         self.efun = elf_syms(elfs, ("STT_FUNC", "STT_NOTYPE", "STT_OBJECT"))
         tails = [a for a, n, _ in self.efun.items if n == "__osThreadTail"]
         self.thread_tail = tails[0] if tails else -1
@@ -1207,8 +1239,7 @@ def cmd_calls(args):
     nargs = dict((x.split("=")[0], int(x.split("=")[1])) for x in opt(args, "--nargs", "").split(",") if x)
     show_all = flag(args, "--all")
     ev = parse_emu(emudir)
-    elfs = open(os.path.join(emudir, "elfs.txt")).read().split()
-    fs = elf_syms(elfs, ("STT_FUNC",))
+    fs = elf_syms(cached_elfs(emudir), ("STT_FUNC",))
     emu = {}
     for f, ra, fr, a in ev.get("K", []):
         it = fs.find(ra)

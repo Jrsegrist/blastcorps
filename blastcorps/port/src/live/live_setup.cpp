@@ -62,6 +62,10 @@ static const char kDefaultIni[] =
     "fullscreen = 0\r\n"
     "; Wait for the display's refresh (no tearing): 1 = yes, 0 = no.\r\n"
     "vsync = 1\r\n"
+    "; Frame pacing with vsync: timer (the default: the renderer's own timer, the lowest\r\n"
+    "; latency, even on a PC that isn't busy) or vsync (pictures handed to the display on its\r\n"
+    "; refreshes: stays even while the PC is busy with other work, about 5-10 ms more latency).\r\n"
+    "present_pacing = timer\r\n"
     "; The settings below are optional enhancements; their defaults show the game as before.\r\n"
     "; The settings menu (F1) changes them too.\r\n"
     "; Internal resolution: window = from the window's size (the default), 1 = the N64's own\r\n"
@@ -352,7 +356,12 @@ static void parseText(Config &c, const std::string &text, const std::string &nam
             } else if (key == "scale") ok = parseInt(v, 1, 16, n) && (c.scale = unsigned(n), true);
             else if (key == "fullscreen") ok = parseBool(v, c.fullscreen);
             else if (key == "vsync") ok = parseBool(v, c.vsync);
-            else if (key == "resolution") {
+            else if (key == "present_pacing") {
+                std::string l = lower(v);
+                if (l == "timer" || l == "default" || l == "low-latency") c.vsyncPacing = false;
+                else if (l == "vsync" || l == "smooth") c.vsyncPacing = true;
+                else ok = false;
+            } else if (key == "resolution") {
                 std::string l = lower(v);
                 if (l == "window" || l == "auto") c.resolution = 0;
                 else if (l == "original" || l == "native" || l == "n64") c.resolution = 1;
@@ -541,7 +550,8 @@ bool configLoad(Config &c, const std::string &file) {
 /* Rewrite the lines of `values` ({section, key} -> value) in the file's
  * text: an existing "key = value" line of the section gets the new value
  * (the first one; the key keeps its spelling), a missing one is added at
- * the end of its section (before the next section's header), a missing
+ * the end of its section (after its last line, before the blank lines and
+ * the next section's header), a missing
  * section at the end of the file.  Everything else stays as it was. */
 static std::string rewriteText(const std::string &text, const std::vector<std::pair<Setting, std::string>> &values) {
     std::vector<bool> done(values.size(), false);
@@ -561,7 +571,16 @@ static std::string rewriteText(const std::string &text, const std::vector<std::p
         pos = eol == std::string::npos ? text.size() : eol + 1;
         std::string line = trim(raw);
         if (!line.empty() && line[0] == '[') {
-            if (inSection) flush(section);
+            if (inSection) {
+                /* the missing keys after the section's last line, before the blank lines that end it */
+                const size_t last = out.find_last_not_of(" \t\r\n");
+                size_t cut = last == std::string::npos ? 0 : out.find('\n', last);
+                cut = cut == std::string::npos ? out.size() : cut + 1;
+                const std::string blank = out.substr(cut);
+                out.resize(cut);
+                flush(section);
+                out += blank;
+            }
             size_t close = line.find(']');
             section = lower(trim(line.substr(1, close == std::string::npos ? std::string::npos : close - 1)));
             inSection = true;
@@ -695,6 +714,7 @@ std::string configValue(const Config &c, const Setting &s) {
         if (k == "scale") return std::to_string(c.scale);
         if (k == "fullscreen") return c.fullscreen ? "1" : "0";
         if (k == "vsync") return c.vsync ? "1" : "0";
+        if (k == "present_pacing") return c.vsyncPacing ? "vsync" : "timer";
         if (k == "resolution") return c.resolution == 0 ? "window" : std::to_string(c.resolution);
         if (k == "msaa") return std::to_string(c.msaa);
         if (k == "filtering") return c.filtering == 1 ? "linear" : c.filtering == 2 ? "nearest" : "aa";

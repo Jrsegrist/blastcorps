@@ -724,6 +724,9 @@ it without a fault.  The x64-asan preset is the tool for this now.
     combination (default none). Drawn with the menu's ImGui overlay (a frame
     built once a retrace, drawn at every present); off, none of it runs, and
     it only reads clocks.
+  - `present_pacing` (`--present-pacing`; menu "Frame pacing"): `timer`
+    (default, "Low latency") or `vsync` ("Smooth under load"); see "Present
+    pacing" under Pacing below.  Applies at once.
   - `texture_pack` (`--texture-pack`, which also enables it) and
     `texture_pack_enabled` (default 0): an RT64 texture pack (a folder with
     `rt64.json`, or an `.rtz`; RT64's TEXTURE-PACKS.md) through RT64's
@@ -856,7 +859,21 @@ it without a fault.  The x64-asan preset is the tool for this now.
   0 (level start: up to 50-77 ms behind with D3D12 while shaders compile,
   ~14 ms with Vulkan), then a catch-up.  Same per-frame trace with vsync
   on/off, windowed/fullscreen, D3D12/Vulkan.
-- **Vsync pacing** (RT64 patch `rt64/patches/0005-vsync-pacing.patch`,
+- **Present pacing** (`[video] present_pacing = timer | vsync` in bc.ini,
+  the settings menu's Video tab "Frame pacing", `--present-pacing timer|vsync`
+  for one run; `live_rt64.cpp` `applyPresentPacing`): how pictures are handed
+  to the display.  **`timer` is the default**: RT64's own present timer, the
+  lowest latency, and on an idle PC as even as the other (numbers below).
+  `vsync` ("Smooth under load") is the vsync pacing below: even while the PC
+  is busy, for about 5-10 ms more latency.  The menu switches it at once
+  (the present thread reads `PresentQueue::vsyncPacing`, an atomic, at every
+  picture; switching is the same as the patch's own fallback to RT64's timer
+  and back).  It needs vsync on and D3D12 (the menu greys it out otherwise);
+  `--no-pace` always uses RT64's own pacing.  A bc.ini from before the key
+  existed reads as `timer` (`bc_inputtest` checks that, and the menu's change
+  saved and read back).
+- **Vsync pacing** (`present_pacing = vsync`; RT64 patch
+  `rt64/patches/0005-vsync-pacing.patch`,
   `PresentQueue::holdFor` / `waitForHold` / `dropToCatchUp` / `noteStruggle`):
   only how pictures reach the display changes; the game, its virtual clock
   and the hand-overs above are untouched.
@@ -870,7 +887,7 @@ it without a fault.  The x64-asan preset is the tool for this now.
     some game frames: measured with DXGI frame statistics (`--flip-log`), at
     `framerate = 60` on a 60 Hz display 10-18 % of the shown intervals were
     33 ms instead of 16.7.
-  - Now, with vsync on: every picture is presented with a sync interval of 1
+  - With vsync pacing (and vsync on): every picture is presented with a sync interval of 1
     (never dropped by the display) and held for the refreshes the game's
     timeline gives it: an in-between picture one refresh at the display's
     rate (N at 1/N of it; other target rates keep RT64's timer); a game
@@ -898,7 +915,7 @@ it without a fault.  The x64-asan preset is the tool for this now.
     ms at 60 on the 60 Hz display; the vsync pacing there made them bursty,
     with no frame statistics to check the display), so it keeps RT64's
     pacing.  Vsync off,
-    `--no-pace` or `--present-pacing timer`: RT64's own pacing, as before.
+    `--no-pace` or `present_pacing = timer` (the default): RT64's own pacing.
   - Measured (this PC: 60 Hz display, AMD integrated GPU, D3D12, level 0
     frames 1150-1450, runs whose game hand-overs were regular): windowed
     `original` 0-0.3 % of the shown intervals off their due length (was
@@ -912,6 +929,11 @@ it without a fault.  The x64-asan preset is the tool for this now.
     keeps it so when the PC is busy.  Its cost is latency from a retrace's
     due time to the display: about half to one refresh more (idle: `original`
     17-18 ms vs 7, `60` 34-44 vs 30-37; fullscreen `60` 40-46 vs 32-43).
+    That trade-off is why `timer` became the default: on an idle PC timer
+    pacing is as even (`original` 298/298, `60` 596/596, fullscreen `60`
+    592-598/598) with 5-10 ms less latency; vsync pacing (`original`
+    297/297, `60` 595/595, fullscreen `60` 573-595/595) is the choice for a
+    PC that is busy with other work while the game runs.
   - `--flip-log FILE` (testing): every present RT64 made (submission, call,
     hold) and, with D3D12, every refresh and the present on screen (DXGI
     frame statistics, polled every millisecond), as CSV.

@@ -138,6 +138,25 @@ void videoTab(Config &c) {
         c.vsync = b;
         markChanged("video", "vsync");
     }
+    {
+        /* video.present_pacing: applies at once (live_rt64.cpp applyPresentPacing) */
+        int p = c.vsyncPacing ? 1 : 0;
+        const bool d3d12 = g_env.app == nullptr ||
+                           g_env.app->chosenGraphicsAPI != RT64::UserConfiguration::GraphicsAPI::Vulkan;
+        ImGui::BeginDisabled(!c.vsync || !d3d12);
+        if (combo("Frame pacing", &p, {"Low latency (default)", "Smooth under load (vsync)"})) {
+            c.vsyncPacing = p == 1;
+            markChanged("video", "present_pacing");
+        }
+        ImGui::EndDisabled();
+        help("Low latency: the renderer's own timer hands pictures to the display, the quickest response; on a PC "
+             "that isn't busy with other work it is as even as the other choice. Smooth under load: each picture "
+             "waits for its own display refresh, so motion stays even while other programs load the PC, for "
+             "about 5-10 ms more delay. Needs vertical sync and Direct3D 12.");
+        ImGui::TextDisabled("%s", !c.vsync || !d3d12 ?"Frame pacing needs vertical sync and Direct3D 12."
+                            : c.vsyncPacing ? "Even under load, about 5-10 ms more delay."
+                                            : "Lowest delay; even unless the PC is busy.");
+    }
     ImGui::SeparatorText("Picture (optional enhancements)");
     {
         /* internal resolution: 0 window, 1 the N64's, 2..8 */

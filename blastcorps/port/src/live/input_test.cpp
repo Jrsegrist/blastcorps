@@ -7,18 +7,27 @@
  *     only until it is let go, new inputs pass at once, and nothing held
  *     (a stuck key, a drifting stick, a resting trigger) keeps it closed
  *     longer than InputGate::kMaxPolls reads;
- *   - the keyboard bindings, the menu's button combination.
+ *   - the keyboard bindings, the menu's button combination;
+ *   - bc.ini settings (live_setup.cpp): parsing, defaults, and saving a
+ *     menu change and reading it back (files kept in memory).
  * Exit status 0 if every check passes. */
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <map>
 #include <string>
 
 #include <SDL.h>
 
 #include "live_input.h"
 #include "live_setup.h"
+
+/* files in memory (the bc.ini tests: configLoad / configSave) */
+static std::map<std::string, std::string> &files() {
+    static std::map<std::string, std::string> m;
+    return m;
+}
 
 /* the platform services live_input.cpp / live_setup.cpp use */
 extern "C" {
@@ -31,8 +40,18 @@ void host_log(const char *fmt, ...) {
     vprintf(fmt, ap);
     va_end(ap);
 }
-void *host_read_file(const char *, unsigned *) { return nullptr; }
-int host_write_file(const char *, const void *, unsigned) { return -1; }
+void *host_read_file(const char *path, unsigned *size) {
+    auto it = files().find(path);
+    if (it == files().end()) return nullptr;
+    char *p = static_cast<char *>(malloc(it->second.size() + 1));
+    memcpy(p, it->second.data(), it->second.size());
+    *size = unsigned(it->second.size());
+    return p;
+}
+int host_write_file(const char *path, const void *data, unsigned size) {
+    files()[path].assign(static_cast<const char *>(data), size);
+    return 0;
+}
 int rom_normalise(unsigned char *, size_t) { return -1; }
 }
 
@@ -134,6 +153,48 @@ int main(int, char **) {
         check(f.fpsPad.empty() && live::configSet(f, "controller.fps_counter=back+y") && f.fpsPad.size() == 2 &&
                   live::configValue(f, {"controller", "fps_counter"}) == "back+y", "fps counter buttons back+y");
         check(f.menuPad.size() == 2, "menu buttons untouched");
+    }
+    /* video.present_pacing: timer (the default) or vsync; bc.ini without the key
+     * (one from before it existed) gives timer; the menu's change is saved and
+     * read back */
+    {
+        live::Config f;
+        live::configDefaults(f);
+        check(!f.vsyncPacing && live::configValue(f, {"video", "present_pacing"}) == "timer",
+              "present pacing default: timer");
+        check(live::configSet(f, "video.present_pacing=vsync") && f.vsyncPacing &&
+                  live::configValue(f, {"video", "present_pacing"}) == "vsync", "present pacing vsync");
+        check(live::configSet(f, "video.present_pacing=Timer") && !f.vsyncPacing, "present pacing timer");
+        check(!live::configSet(f, "video.present_pacing=fast") && !f.vsyncPacing, "present pacing 'fast' rejected");
+
+        const std::string old = "old.ini";   /* no present_pacing line */
+        files()[old] = "[game]\r\nrom = x.z64\r\n\r\n[video]\r\napi = d3d12\r\nvsync = 1\r\n"
+                       "framerate = 60\r\n\r\n[audio]\r\nvolume = 80\r\n";
+        live::Config g;
+        check(live::configLoad(g, old) && g.warnings.empty() && !g.vsyncPacing && g.framerate == 60,
+              "bc.ini without present_pacing: timer, no warnings");
+        g.vsyncPacing = true;   /* the menu's choice */
+        check(live::configSave(g, {{"video", "present_pacing"}}), "menu change saved");
+        const std::string &t = files()[old];
+        check(t == "[game]\r\nrom = x.z64\r\n\r\n[video]\r\napi = d3d12\r\nvsync = 1\r\n"
+                   "framerate = 60\r\npresent_pacing = vsync\r\n\r\n[audio]\r\nvolume = 80\r\n",
+              "saved at the end of [video] (before its blank line), the rest kept");
+        live::Config h;
+        check(live::configLoad(h, old) && h.warnings.empty() && h.vsyncPacing && h.framerate == 60,
+              "read back: vsync");
+        h.vsyncPacing = false;
+        live::configSave(h, {{"video", "present_pacing"}});
+        live::Config k;
+        check(live::configLoad(k, old) && !k.vsyncPacing &&
+                  files()[old].find("present_pacing = timer\r\n") != std::string::npos &&
+                  files()[old].find("present_pacing = vsync") == std::string::npos,
+              "changed back to timer: the same line rewritten");
+
+        const std::string fresh = "new.ini";   /* no file: created with the defaults */
+        live::Config n;
+        check(live::configLoad(n, fresh) && !n.vsyncPacing &&
+                  files()[fresh].find("present_pacing = timer\r\n") != std::string::npos,
+              "new bc.ini: present_pacing = timer");
     }
     live::PadSet pads;
     const unsigned short A = live::kButtonBits[live::A_A], START = live::kButtonBits[live::A_START],

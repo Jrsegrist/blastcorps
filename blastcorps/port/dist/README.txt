@@ -63,7 +63,9 @@ it. The settings menu writes it too; you can also edit it with Notepad while the
 game is closed. It holds:
   [game]       rom (the ROM's path), saves (the saves folder), controller_pak (0/1)
   [video]      api (d3d12 or vulkan), scale (window size 320x240 times this),
-               fullscreen, vsync; optional enhancements (off by default):
+               fullscreen, vsync, present_pacing (timer, the default, or vsync:
+               see "Frame rate and smoothness"); optional enhancements (off by
+               default):
                resolution (internal resolution: window, 1 = the N64's, 2, 3, 4 ...),
                msaa (0, 2, 4, 8), filtering (aa, linear, nearest),
                aspect (original = 4:3, 16:9, 16:10, 21:9, window: widescreen),
@@ -131,7 +133,7 @@ Command-line options (for shortcuts or a .bat file) override bc.ini, for example
   bc.exe --aspect 16:9         bc.exe --texture-pack D:\packs\mypack
   bc.exe --framerate 60        bc.exe --framerate display
   bc.exe --interpolation auto  bc.exe --fps-counter on
-  bc.exe --camera orbit
+  bc.exe --camera orbit        bc.exe --present-pacing vsync
 
 
 Saves
@@ -152,12 +154,25 @@ Frame rate and smoothness
 The game runs at its original speed on any monitor: its logic is tied to a virtual
 60 Hz video clock, not to your display. It draws a new picture 20-30 times a second
 like on the N64 (with framerate = original, the default; see above). Each
-1/60 s field is handed to the display on a steady 60 Hz timer, and with vsync on
-(the default) each picture stays on screen for exactly the refreshes it is due
-(in-between pictures of a higher framerate: one refresh each when the framerate
-is the display's), without tearing. On 60 Hz
-displays that is one refresh per N64 field. On 120/144 Hz and other high-refresh
-displays the speed is the same; a field then stays up for a whole number of
+1/60 s field is handed to the renderer on a steady 60 Hz timer and, with vsync on
+(the default), shown without tearing. On 60 Hz displays that is one refresh per
+N64 field.
+
+Frame pacing (present_pacing in bc.ini, "Frame pacing" in the settings menu's Video
+tab; it applies at once) decides how the pictures are handed to the display (the
+choice matters only with vsync on and the Direct3D 12 graphics API):
+  timer  "Low latency", the default: the renderer's own timer. The quickest
+         response, and on a PC that isn't busy with other work just as even:
+         measured on a 60 Hz display, every picture one refresh at framerate 60
+         (596 of 596) and every N64 field on time at framerate original.
+  vsync  "Smooth under load": each picture waits for the display refresh it is
+         due at, so motion stays even while other programs keep the PC busy, at
+         the cost of about 5-10 ms more delay (half to one refresh at 60 Hz).
+         The game falls back to the timer for a few seconds if the PC can't
+         keep up at all.
+Try vsync if motion looks uneven while something else runs in the background.
+
+On 120/144 Hz and other high-refresh displays the speed is the same; a field then stays up for a whole number of
 refreshes (2 or 3 in turn at 144 Hz), a slight unevenness the eye barely sees.
 When a level starts, the first second can stutter briefly while the graphics
 driver prepares new shaders; the game then catches up and runs smoothly.

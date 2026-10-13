@@ -42,8 +42,10 @@
  *                       summary in the log at exit
  *     --flip-log FILE   (testing) every present RT64 made and, with D3D12, every display
  *                       refresh and the present it showed (DXGI frame statistics), CSV
- *     --present-pacing P  vsync (default: with vsync on, pictures go to the display on its
- *                       refreshes, port patch 0005) or timer (RT64's own present timer)
+ *     --present-pacing P  timer (default: RT64's own present timer, the lowest latency) or
+ *                       vsync (with vsync on, pictures go to the display on its refreshes,
+ *                       port patch 0005: even under load, about 5-10 ms more latency);
+ *                       short for --set video.present_pacing=P (bc.ini, the settings menu)
  *     --set S.K=V       a bc.ini setting for this run ([S] K = V; not saved), e.g.
  *                       --set audio.volume=50
  *     --resolution R    internal resolution: window (default), 1 (320x240), 2, 3, 4 ...
@@ -161,7 +163,6 @@ struct LiveOpts {
     int volume = 100;                /* percent */
     bool romCheck = true;
     const char *paceLog = nullptr;
-    bool vsyncPacing = true;             /* --present-pacing: vsync (default) or timer (RT64's own) */
     unsigned windowW = 0, windowH = 0;   /* --window WxH: the window's size in desktop points */
     std::vector<unsigned> wshots;        /* --wshot: frames whose window picture is saved */
     unsigned menuShot = ~0u;             /* --menu-shot F: open the menu at frame F, save its picture, close it */
@@ -1561,6 +1562,17 @@ void logTextureHashes(unsigned frame) {
     host_log("live: %u textures loaded at frame %u\n", n, frame);
 }
 
+/* video.present_pacing (bc.ini, the menu, --present-pacing): timer (the
+ * default) leaves the pacing to RT64's own present timer, the lowest latency
+ * (measured on an idle PC: as even as vsync pacing); vsync hands the pictures
+ * to the display on its refreshes (port patch 0005, PresentQueue::holdFor),
+ * which stays even when the PC is busy, for about half a refresh more
+ * latency.  Vsync pacing applies only with vsync on and D3D12 (the patch
+ * checks), and not with --no-pace (no real time to keep). */
+void applyPresentPacing() {
+    g_app->presentQueue->vsyncPacing = g_cfg.vsyncPacing && g_opt.pace;
+}
+
 /* the menu changed g_cfg: apply it now where that is possible */
 void settingChanged(const live::Setting &s) {
     if (s.section == "video" && (s.key == "texture_pack" || s.key == "texture_pack_enabled")) {
@@ -1595,6 +1607,10 @@ void settingChanged(const live::Setting &s) {
         } else if (s.key == "vsync") {
             g_opt.vsync = g_cfg.vsync;
             g_app->swapChain->setVsyncEnabled(g_opt.vsync);
+        } else if (s.key == "present_pacing") {
+            /* at once: the present thread reads the flag at every picture (an atomic; the
+             * same switch the patch's own fallback to RT64's timer makes) */
+            applyPresentPacing();
         }
         /* api: the next start */
     } else if (s.section == "audio") {
@@ -1639,6 +1655,7 @@ const std::pair<const char *, const char *> kSetAliases[] = {
     {"--fps-counter", "video.fps_counter"},
     {"--texture-pack", "video.texture_pack"},   /* (and turns it on) */
     {"--camera", "camera.mode"},
+    {"--present-pacing", "video.present_pacing"},
 };
 
 int extraArg(int argc, char **argv, int *i, HostOpts *o) {
@@ -1660,12 +1677,6 @@ int extraArg(int argc, char **argv, int *i, HostOpts *o) {
     else if (!strcmp(a, "--no-rom-check")) g_opt.romCheck = false;
     else if (!strcmp(a, "--pace-log")) g_opt.paceLog = next();
     else if (!strcmp(a, "--flip-log")) g_flip.path = next();
-    else if (!strcmp(a, "--present-pacing")) {
-        const char *s = next();
-        if (!strcmp(s, "vsync")) g_opt.vsyncPacing = true;
-        else if (!strcmp(s, "timer")) g_opt.vsyncPacing = false;
-        else host_fatal("--present-pacing %s: vsync or timer", s);
-    }
     else if (!strcmp(a, "--config") || !strcmp(a, "--no-config")) {
         if (a[2] == 'c') next();   /* read before host_main (main) */
     } else if (!strcmp(a, "--saves")) {
@@ -1856,10 +1867,7 @@ void prestart(HostOpts *o) {
                    g_opt.vulkan ? "Vulkan" : "Direct3D 12", int(res), g_opt.vulkan ? "d3d12" : "vulkan",
                    g_opt.vulkan ? "d3d12" : "vulkan");
     g_app->swapChain->setVsyncEnabled(g_opt.vsync);
-    /* pictures to the display on its refreshes with vsync (port patch 0005,
-     * PresentQueue::holdFor), unless --present-pacing timer; not with
-     * --no-pace (no real time to keep: RT64 shows what it can, as before) */
-    g_app->presentQueue->vsyncPacing = g_opt.vsyncPacing && g_opt.pace;
+    applyPresentPacing();
     flipStart();
     live::MenuEnv menu;
     menu.app = g_app;
@@ -1881,9 +1889,10 @@ void prestart(HostOpts *o) {
     int ww, wh, pw, ph;
     SDL_GetWindowSize(g_window, &ww, &wh);
     SDL_GetWindowSizeInPixels(g_window, &pw, &ph);
-    host_log("live: RT64 up (%s), window %dx%d (%dx%d pixels)%s, vsync %s, display %u Hz\n",
+    host_log("live: RT64 up (%s), window %dx%d (%dx%d pixels)%s, vsync %s, display %u Hz, present pacing %s\n",
              g_opt.vulkan ? "Vulkan" : "D3D12", ww, wh, pw, ph, g_opt.fullscreen ? " fullscreen" : "",
-             g_opt.vsync ? "on" : "off", displayHz());
+             g_opt.vsync ? "on" : "off", displayHz(),
+             !g_cfg.vsyncPacing ? "timer" : g_opt.pace ? "vsync" : "timer (--no-pace)");
     if (g_cfg.resolution != 0 || g_cfg.msaa != 0 || g_cfg.filtering != 0 || g_cfg.aspect != 0 ||
         g_cfg.framerate != 0 || g_app->userConfig.msaaSampleCount() > 1)
         host_log("live: video: resolution %s, MSAA %ux%s, filtering %s, aspect %s, frame rate %s\n",

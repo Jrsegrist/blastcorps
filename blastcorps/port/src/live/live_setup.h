@@ -42,6 +42,10 @@ struct Config {
     unsigned scale = 3;
     bool fullscreen = false;
     bool vsync = true;
+    bool vsyncPacing = false;       /* present_pacing: false = timer (RT64's own present timer: the
+                                       lowest latency; the default), true = vsync (port patch 0005:
+                                       pictures handed to the display on its refreshes, even when
+                                       the PC is busy, about half a refresh more latency) */
     int volume = 100;
     bool mute = false;
     /* optional enhancements (all off by default: the defaults are what the

@@ -7,6 +7,8 @@
 
 namespace RT64 {
 struct Application;
+struct State;
+struct DisplayList;
 }
 
 namespace live {
@@ -28,6 +30,17 @@ void interpTagsSetLog(bool on);
 void interpTagsSetTest(unsigned mask);
 /* one line for the log at exit (tag counts, time spent) */
 void interpTagsSummary();
+
+/* Another host feature's look at each GBI command while RT64 reads a task
+ * (the orbit camera's backdrop, live_orbit.cpp): the GBI table is wrapped
+ * while a hook is set, tags or not.  The hook runs before the command
+ * (except G_MTX / G_POPMTX, which it doesn't see); it returns true if it
+ * ran the command itself (with RT64's own functions, `originals[op]`, also
+ * for commands of its own), false to let it run as usual.  It must leave
+ * RDRAM as it found it. */
+typedef void (*GbiOriginal)(RT64::State *state, RT64::DisplayList **dl);
+typedef bool (*GbiCommandHook)(RT64::State *state, RT64::DisplayList **dl, const GbiOriginal *originals);
+void interpSetCommandHook(GbiCommandHook hook);
 
 }  // namespace live
 

@@ -119,6 +119,7 @@
 #include "live_input.h"
 #include "live_interp.h"
 #include "live_menu.h"
+#include "live_orbit.h"
 #include "live_setup.h"
 
 extern "C" {
@@ -464,7 +465,9 @@ std::vector<std::string> padNames() {
  *   START: Enter / Start                       L, R: A, S / shoulders
  *   C buttons: I J K L / right stick           D-pad: T F G H / D-pad */
 void pollInput() {
-    live::N64Pad p = live::readPad(g_cfg, g_pads, SDL_GetKeyboardState(nullptr), (SDL_GetModState() & KMOD_ALT) != 0);
+    /* (the orbit camera, in play: without the inputs it uses) */
+    live::N64Pad p = live::readPad(live::orbitPadConfig(), g_pads, SDL_GetKeyboardState(nullptr),
+                                   (SDL_GetModState() & KMOD_ALT) != 0);
     g_gate.apply(p);
     g_button = p.button;
     g_stickX = (signed char) p.x;
@@ -1015,6 +1018,7 @@ void pumpEvents() {
             live::menuEvent(e);
             continue;
         }
+        if (live::orbitEvent(e)) continue;   /* mouse look */
         if (e.type == SDL_KEYDOWN && isKey(live::A_QUIT, e.key.keysym.scancode)) shutdown(0);
         if (e.type == SDL_CONTROLLERBUTTONDOWN && g_pads.isActive(g_cfg, e.cbutton.which)) {
             for (const live::PadInput &in : g_cfg.pad[live::A_QUIT])
@@ -1181,6 +1185,7 @@ void liveGfxTask(unsigned ucode, unsigned ucodeData, unsigned dataPtr, unsigned 
     if (g_skipHi != 0 && g_app->interpreter->hleGBI->ucode == RT64::GBIUCode::F3D) skipWalk(dataPtr);
     if (g_cfg.framerate != 0) interpTask(dataPtr);
     const bool frameDl = isFrameDl(dataPtr);
+    live::orbitBeforeTask(dataPtr, frameDl);
     live::interpTagsBeforeTask(dataPtr, frameDl);
     LARGE_INTEGER t0, t1;
     if (g_cfg.framerate != 0) QueryPerformanceCounter(&t0);
@@ -1191,6 +1196,7 @@ void liveGfxTask(unsigned ucode, unsigned ucodeData, unsigned dataPtr, unsigned 
         g_dlTasks++;
     }
     live::interpTagsAfterTask(frameDl);
+    live::orbitAfterTask(frameDl);
     for (auto &s : g_skipped) *s.first = s.second;
     g_skipped.clear();
 }
@@ -1323,6 +1329,7 @@ void liveVi(const HostViRegs *r, unsigned viCount, unsigned long long when, unsi
         runMenu(frames);
     }
     pumpEvents();
+    live::orbitVi(g_pads, g_focused ? SDL_GetKeyboardState(nullptr) : nullptr);
     if (live::menuIsOpen()) runMenu(0);
 }
 
@@ -1474,6 +1481,8 @@ void settingChanged(const live::Setting &s) {
     } else if (s.section == "audio") {
         g_opt.volume = g_cfg.volume;
         g_opt.mute = g_cfg.mute;
+    } else if (s.section == "camera" || s.section == "controller" || s.section == "keyboard") {
+        live::orbitApply();   /* the camera's settings, or the bindings it leaves the N64 pad */
     }
     host_log("live: setting %s.%s = %s\n", s.section.c_str(), s.key.c_str(), live::configValue(g_cfg, s).c_str());
 }
@@ -1510,6 +1519,7 @@ const std::pair<const char *, const char *> kSetAliases[] = {
     {"--interpolation", "video.interpolation"},
     {"--fps-counter", "video.fps_counter"},
     {"--texture-pack", "video.texture_pack"},   /* (and turns it on) */
+    {"--camera", "camera.mode"},
 };
 
 int extraArg(int argc, char **argv, int *i, HostOpts *o) {
@@ -1562,6 +1572,11 @@ int extraArg(int argc, char **argv, int *i, HostOpts *o) {
     else if (!strcmp(a, "--texture-hashes")) g_hashFrame = num(next());
     else if (!strcmp(a, "--display-hz")) g_interp.displayHz = std::max(1u, num(next()));
     else if (!strcmp(a, "--interp-log")) g_interp.log = true;
+    else if (!strcmp(a, "--orbit-log")) live::orbitSetLog(true);
+    else if (!strcmp(a, "--orbit-test")) {
+        const char *s = next();
+        if (!live::orbitSetTest(s)) host_fatal("--orbit-test %s: YAWSPEED[:PITCH[:ZOOM]], e.g. 60:25:1.5", s);
+    }
     else if (!strcmp(a, "--tag-test")) live::interpTagsSetTest(num(next()));
     else if (!strcmp(a, "--wseq")) {
         const char *s = next();
@@ -1729,6 +1744,7 @@ void prestart(HostOpts *o) {
     live::interpTagsSetup(g_app);
     live::interpTagsSetLog(g_interp.log);
     live::interpTagsEnable(g_cfg.framerate != 0 && g_cfg.interpolation == 1);
+    live::orbitSetup(g_app, &g_cfg, g_window);
     if (g_cfg.fpsCounter != 0) counterApply();
     host_crash_rearm();   /* in case the renderer or a driver installed its own filter */
     int ww, wh, pw, ph;
@@ -1922,6 +1938,7 @@ int main(int, char **) {
             host_log("live: frame rate option: %.3f ms per task in processDisplayLists (%u tasks, interpolation %s)\n",
                      g_dlSeconds * 1e3 / g_dlTasks, g_dlTasks, live::interpTagsOn() ? "tagged" : "auto");
         live::interpTagsSummary();
+        live::orbitSummary();
     };
     host_opts_hook = optsHook;
     host_rom_hook = romHook;

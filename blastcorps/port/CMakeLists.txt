@@ -384,11 +384,12 @@ set_target_properties(bc_loadcheck PROPERTIES EXCLUDE_FROM_ALL TRUE)
 # ---- bc.exe: the game in a window (SDL2, RT64) ---------------------------------------
 if(BC_GAME)
     # RT64 at the pinned commit with the port's patches: 0003 (RDRAM in the port's
-    # own layout) and 0004 (the L3D line microcode).  (0001/0002 served the
-    # retired mingw cross build.)
+    # own layout), 0004 (the L3D line microcode) and 0006 (a host view hook per
+    # rendered picture: the orbit camera, src/live/live_orbit.cpp).  (0001/0002
+    # served the retired mingw cross build.)
     set(BC_RT64_COMMIT 43373749dac9bbc1b653e6a02aed40a9e1783bed)
     set(BC_RT64_PATCHES ${BC_PORT}/rt64/patches/0003-native-host-layout.patch
-        ${BC_PORT}/rt64/patches/0004-l3d-and-fixes.patch)
+        ${BC_PORT}/rt64/patches/0004-l3d-and-fixes.patch ${BC_PORT}/rt64/patches/0006-view-hook.patch)
     set(BC_RT64_SOURCE "${BC_THIRDPARTY}/rt64" CACHE PATH "RT64 sources (fetched with git when missing)")
     execute_process(COMMAND ${CMAKE_COMMAND} -DDEST=${BC_RT64_SOURCE} -DCOMMIT=${BC_RT64_COMMIT}
         "-DPATCHES=${BC_RT64_PATCHES}" -P ${BC_PORT}/cmake/fetch_rt64.cmake RESULT_VARIABLE r)
@@ -447,7 +448,8 @@ if(BC_GAME)
     target_compile_definitions(bc_game_main PRIVATE PORT_LIVE)
     # src/live: SDL2 window and input, the RT64 renderer, bc.ini
     add_library(bc_live OBJECT ${BC_PORT}/src/live/live_rt64.cpp ${BC_PORT}/src/live/live_setup.cpp
-        ${BC_PORT}/src/live/live_menu.cpp ${BC_PORT}/src/live/live_input.cpp ${BC_PORT}/src/live/live_interp.cpp)
+        ${BC_PORT}/src/live/live_menu.cpp ${BC_PORT}/src/live/live_input.cpp ${BC_PORT}/src/live/live_interp.cpp
+        ${BC_PORT}/src/live/live_orbit.cpp ${BC_PORT}/src/live/orbit_math.cpp)
     add_dependencies(bc_live bc_version rt64)
     target_compile_features(bc_live PRIVATE cxx_std_17)
     target_compile_definitions(bc_live PRIVATE RT64_NATIVE_HOST_LAYOUT SDL_MAIN_HANDLED HLSL_CPU FFX_GCC
@@ -469,6 +471,14 @@ if(BC_GAME)
     target_include_directories(bc_inputtest PRIVATE ${BC_PORT}/src ${BC_PORT}/src/platform ${BC_SDL2}/include)
     target_link_libraries(bc_inputtest PRIVATE ${BC_SDL2}/lib/x64/SDL2.lib comdlg32)
     target_link_options(bc_inputtest PRIVATE /SUBSYSTEM:CONSOLE)
+
+    # bc_cameratest.exe: tests of the orbit camera's math (orbit_math.cpp: limits,
+    # recentring, zoom, collision pull-in); no window, ROM or renderer (exit 0: all pass)
+    add_executable(bc_cameratest ${BC_PORT}/src/live/orbit_test.cpp ${BC_PORT}/src/live/orbit_math.cpp)
+    target_compile_features(bc_cameratest PRIVATE cxx_std_17)
+    target_compile_definitions(bc_cameratest PRIVATE NOMINMAX _CRT_SECURE_NO_WARNINGS)
+    target_compile_options(bc_cameratest PRIVATE /EHsc /W3)
+    target_link_options(bc_cameratest PRIVATE /SUBSYSTEM:CONSOLE)
 
     link_tables(bc LIBS ${HL_LIBS} HOST bc_core bc_host bc_game_main bc_live)
     bc_exe(bc REPORT ${bc_REPORT} OPTS /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup

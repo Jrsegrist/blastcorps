@@ -736,6 +736,81 @@ it without a fault.  The x64-asan preset is the tool for this now.
     as big-endian bytes and RT64_NATIVE_HOST_LAYOUT loads TMEM without the
     XOR, so TMEM (and the hashes) should be the emulator's, but that is not
     checked against a pack made under an emulator.
+  - **The orbit camera** (`[camera] mode`, `--camera orbit`, the menu's
+    Camera tab; `original` by default): a free camera that turns around the
+    player's vehicle (or the driver on foot) at any angle, tilts and zooms,
+    `src/live/live_orbit.cpp` with its math in `orbit_math.cpp` (tested by
+    `bc_cameratest.exe`). **Render-only**: the game computes its own camera
+    as always and uses it for everything it does; only what RT64 draws uses
+    the orbit view, so the game's per-frame trace is the same as with the
+    option off (checked: all 60 levels with the camera turning by itself,
+    `--orbit-test`).
+    - The game's camera: at the end of 00000.c func_802507C8 (`PORT_ICUT_IF`,
+      now every frame, `host_camera_hook`) the eye (from the view matrix the
+      game just built, `DynamicBuf.unk140`) and the point it looks at
+      (D_80365084/88/8C) are copied, read-only, for that DynamicBuf.
+    - The view: RT64 patch `0006-view-hook.patch` adds `RT64::ViewHook`,
+      called for every perspective projection of every rendered picture
+      (in-between pictures of a higher frame rate too) after RT64's own
+      interpolation; a projection whose view is the frame's game view gets the
+      orbit view: the target and the game's eye interpolated with the
+      picture's weight (so it moves smoothly at any frame rate), the orbit's
+      direction and distance and the input since the last step (stepped every
+      retrace). The projection (field of view, widescreen) is the game's.
+      Cuts (the game's camera snap, a new mode or level) reset the orbit.
+    - Only in normal play (game mode 4); the front end, the globe, the map
+      and missile views, mission intros and the ending keep the game's camera.
+    - Culling: the game's visibility walk (5FD50.c, one box test every other
+      frame) only lists cells its own camera sees, and the list gates game
+      logic too: 77E20.c func_802BD1F8 runs buildings' moving parts, falling
+      parts (debris, random numbers, screen shake) and chasing objects only
+      for listed objects. So the list is left alone: the pure drawing paths
+      read `PORT_DRAW_CELLS(D_803C30A8)` instead (5FD50.c's level geometry
+      and group lists; 77E20.c draws an unlisted building as it is, without
+      any per-object work and without its moving parts), which with the orbit
+      camera on in play is every cell of the level (as the game itself does
+      while its camera turns, func_802A45D4). The game logic reads the real
+      list. The display lists then hold more (RDRAM differs only there).
+      People and markers on unlisted cells stay hidden.
+    - The backdrop (2D2D810.c: a 2D quad scrolled by the camera's heading and
+      pitch, the ground colour filled below its horizon) follows the orbit's
+      heading and pitch: while RT64 reads the frame (`interpSetCommandHook`,
+      live_interp.cpp's GBI wrapping), its 4 vertices get the orbit's values
+      just for RT64's read and are put back at once, and the fill rectangle's
+      top is changed in a copy of the command.
+    - Collision: read-only copies of the game's height tests keep the eye 1
+      unit above the level's ground triangles (62740.c func_802AA094's
+      collision grid, D_803BDB10) and the buildings' collision triangles
+      (D_803B9890, the 0x60-byte records); a blocked eye is pulled in along
+      the line to the target at once and let out slowly. No game function is
+      called.
+    - Controls: `[controller] camera_left/right/up/down` (default the right
+      stick), `camera_zoom_in` (Y), `camera_zoom_out` (left stick click),
+      `camera_reset` (right stick click); `[keyboard]` keypad 4/6/8/2, + and -,
+      5; the mouse (`[camera] mouse`): hold the left or right button and move
+      to turn, the wheel zooms, the middle button resets. In play the camera's
+      inputs don't reach the N64 pad (by default the right stick was the C
+      buttons: C-left/C-right are the game's own 45-degree camera turns,
+      00000.c func_80255190, and C-up/C-down do nothing in play; they stay on
+      the keyboard's J/L/I/K, and the right stick is the C buttons again in
+      menus).
+    - Settings: `sensitivity_x/y` (percent), `invert_x/y`, `recentre` (ease
+      back behind the player after `recentre_delay` seconds without camera
+      input; 0: the camera keeps its world direction until reset),
+      `recentre_on_foot` (on foot the game steers the driver relative to its
+      own camera heading, 46F60.c func_8028B734 with D_80364414: a turned
+      view would make the stick feel rotated, so by default it eases back on
+      foot anyway; camera-relative on-foot input would change the game's
+      input, so it isn't offered), `zoom_min/max` (times the game's
+      distance), `tilt_min/max` (degrees), `mouse`.
+    - Known limits: the screen shake isn't applied to the orbit view;
+      billboards (smoke, explosions) and people sprites face the game's
+      camera; the radar keeps the game's heading; the backdrop updates with
+      the game's frames (it can't be added where the game didn't draw one);
+      environment-mapped reflections use the game's view.
+    - Testing: `--orbit-test YAWSPEED[:PITCH[:ZOOM]]` turns the camera by
+      itself (degrees a second, an absolute pitch, a zoom), `--orbit-log` logs
+      both cameras every 30 frames.
   - Controls (`[keyboard]`, `[controller]`): the menu's Controls tab remaps
     every binding (click it, press the key, controller button, stick or
     trigger; Backspace clears; the menu's own controller buttons are a

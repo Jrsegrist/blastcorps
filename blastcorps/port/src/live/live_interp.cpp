@@ -81,6 +81,7 @@ bool vertexKind(uint32_t k) {
 RT64::Application *g_app;
 bool g_on;
 bool g_log;
+GbiCommandHook g_hook;   /* interpSetCommandHook (the orbit camera) */
 
 /* the tags of the display lists being built (physical address -> kind, index) */
 struct Tag {
@@ -257,6 +258,10 @@ bool jumped(RT64::State *state, uint32_t ordinal) {
 void dispatch(RT64::State *state, RT64::DisplayList **dl) {
     const uint32_t w0 = (*dl)->w0;
     const uint8_t op = uint8_t(w0 >> 24);
+    if (!g_on) {   /* only the command hook wants the commands */
+        if (op == 0x01 || op == 0xBD || !g_hook(state, dl, g_cur)) g_cur[op](state, dl);
+        return;
+    }
     g_cmds++;
     /* follow RT64's display-list levels: a called list inherits the owner */
     const size_t level = state->returnAddressStack.size();
@@ -314,6 +319,7 @@ void dispatch(RT64::State *state, RT64::DisplayList **dl) {
         }
         return;
     }
+    if (g_hook != nullptr && g_hook(state, dl, g_cur)) return;
     g_cur[op](state, dl);
 }
 
@@ -367,9 +373,14 @@ void interpTagsEnable(bool on) {
         host_itag_hook = itagHook;
     } else {
         host_itag_hook = nullptr;
-        unwrapAll();
+        if (g_hook == nullptr) unwrapAll();
     }
     host_log("live: tagged interpolation %s\n", on ? "on" : "off");
+}
+
+void interpSetCommandHook(GbiCommandHook hook) {
+    g_hook = hook;
+    if (hook == nullptr && !g_on) unwrapAll();
 }
 
 bool interpTagsOn() {
@@ -386,9 +397,10 @@ void interpTagsSetTest(unsigned mask) {
 
 void interpTagsBeforeTask(unsigned dl, bool mainFrame) {
     (void) dl;
-    if (!g_on || g_app->interpreter->hleGBI == nullptr) return;
+    if ((!g_on && g_hook == nullptr) || g_app->interpreter->hleGBI == nullptr) return;
     wrap(g_app->interpreter->hleGBI);
     resetTask();
+    if (!g_on) return;
     g_mainTask = mainFrame;
     if (mainFrame) g_frame++;
     g_tasks++;

@@ -293,6 +293,88 @@ void audioTab(Config &c) {
     }
 }
 
+void cameraTab(Config &c) {
+    int m = c.cameraMode;
+    if (combo("Camera", &m, {"Original (default)", "Orbit (free camera)"})) {
+        c.cameraMode = m;
+        markChanged("camera", "mode");
+    }
+    help("Orbit: turn the camera around your vehicle (or the driver on foot) with the right stick, the camera "
+         "keys or the mouse (hold a mouse button and move; the wheel zooms), tilt and zoom it. Only the picture "
+         "changes: the game itself runs exactly as with its own camera. While you play, the right stick drives "
+         "the camera instead of the C buttons. Rebind it in Controls (\"Orbit camera\" rows).");
+    ImGui::BeginDisabled(c.cameraMode == 0);
+    int v = c.camSensX;
+    if (ImGui::SliderInt("Turning speed", &v, 10, 300, "%d %%")) {
+        c.camSensX = v;
+        markChanged("camera", "sensitivity_x");
+    }
+    v = c.camSensY;
+    if (ImGui::SliderInt("Tilting speed", &v, 10, 300, "%d %%")) {
+        c.camSensY = v;
+        markChanged("camera", "sensitivity_y");
+    }
+    bool b = c.camInvertX;
+    if (ImGui::Checkbox("Invert turning", &b)) {
+        c.camInvertX = b;
+        markChanged("camera", "invert_x");
+    }
+    ImGui::SameLine();
+    b = c.camInvertY;
+    if (ImGui::Checkbox("Invert tilting", &b)) {
+        c.camInvertY = b;
+        markChanged("camera", "invert_y");
+    }
+    b = c.camRecentre;
+    if (ImGui::Checkbox("Ease back behind the player", &b)) {
+        c.camRecentre = b;
+        markChanged("camera", "recentre");
+    }
+    help("On: after you let go of the camera controls for the delay below, the camera eases back to the game's "
+         "own view behind you. Off: it stays where you left it until you reset it (Controls: \"Orbit camera: "
+         "reset\", the right stick's click or the middle mouse button).");
+    float f = float(c.camRecentreDelay);
+    ImGui::BeginDisabled(!c.camRecentre && !c.camRecentreOnFoot);
+    if (ImGui::SliderFloat("Delay", &f, 0.0f, 10.0f, "%.1f s")) {
+        c.camRecentreDelay = f;
+        markChanged("camera", "recentre_delay");
+    }
+    ImGui::EndDisabled();
+    b = c.camRecentreOnFoot;
+    if (ImGui::Checkbox("Always ease back on foot", &b)) {
+        c.camRecentreOnFoot = b;
+        markChanged("camera", "recentre_on_foot");
+    }
+    help("On foot the game steers the driver relative to its own camera, so a turned view makes the stick feel "
+         "rotated; this eases the view back on foot even with the option above off.");
+    float lo = float(c.camZoomMin), hi = float(c.camZoomMax);
+    if (ImGui::SliderFloat("Closest zoom", &lo, 0.2f, 1.0f, "%.2fx")) {
+        c.camZoomMin = lo;
+        markChanged("camera", "zoom_min");
+    }
+    if (ImGui::SliderFloat("Farthest zoom", &hi, 1.0f, 5.0f, "%.2fx")) {
+        c.camZoomMax = hi;
+        markChanged("camera", "zoom_max");
+    }
+    lo = float(c.camPitchMin);
+    hi = float(c.camPitchMax);
+    if (ImGui::SliderFloat("Lowest tilt", &lo, -60.0f, 60.0f, "%.0f deg")) {
+        c.camPitchMin = std::min(lo, float(c.camPitchMax));
+        markChanged("camera", "tilt_min");
+    }
+    if (ImGui::SliderFloat("Highest tilt", &hi, 0.0f, 89.0f, "%.0f deg")) {
+        c.camPitchMax = std::max(hi, float(c.camPitchMin));
+        markChanged("camera", "tilt_max");
+    }
+    b = c.camMouse;
+    if (ImGui::Checkbox("Mouse look", &b)) {
+        c.camMouse = b;
+        markChanged("camera", "mouse");
+    }
+    help("Hold the left or right mouse button and move the mouse to turn; the wheel zooms, the middle button resets.");
+    ImGui::EndDisabled();
+}
+
 /* binding capture: the next key (keyboard column) or controller button /
  * axis (controller column) becomes the action's binding */
 struct Capture {
@@ -528,6 +610,10 @@ void build() {
             }
             if (ImGui::BeginTabItem("Controls", nullptr, flags(2))) {
                 controlsTab(c);
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem("Camera", nullptr, flags(3))) {
+                cameraTab(c);
                 ImGui::EndTabItem();
             }
             g_selectTab = -1;

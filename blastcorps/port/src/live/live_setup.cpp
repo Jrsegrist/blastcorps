@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <cstring>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "live_setup.h"
@@ -25,11 +26,13 @@ const unsigned short kButtonBits[kButtons] = {
 const char *const kActionNames[A_COUNT] = {
     "a", "b", "z", "start", "d_up", "d_down", "d_left", "d_right", "l", "r", "c_up", "c_down", "c_left", "c_right",
     "stick_up", "stick_down", "stick_left", "stick_right", "quit", "menu", "fps_counter",
+    "camera_left", "camera_right", "camera_up", "camera_down", "camera_zoom_in", "camera_zoom_out", "camera_reset",
 };
 const char *const kActionLabels[A_COUNT] = {
     "A", "B", "Z", "Start", "D-pad up", "D-pad down", "D-pad left", "D-pad right", "L", "R", "C up", "C down",
     "C left", "C right", "Stick up", "Stick down", "Stick left", "Stick right", "Quit the game", "Settings menu",
-    "Frame-rate counter",
+    "Frame-rate counter", "Orbit camera: turn left", "Orbit camera: turn right", "Orbit camera: look up",
+    "Orbit camera: look down", "Orbit camera: zoom in", "Orbit camera: zoom out", "Orbit camera: reset",
 };
 
 /* The defaults ARE this text: configDefaults parses it, and a missing
@@ -97,6 +100,35 @@ static const char kDefaultIni[] =
     "; Start with the sound off: 1 = yes.\r\n"
     "mute = 0\r\n"
     "\r\n"
+    "[camera]\r\n"
+    "; The camera: original (the game's own, the default) or orbit (an optional free camera:\r\n"
+    "; the right stick, the camera keys or the mouse turn it around the player's vehicle, or\r\n"
+    "; the driver on foot, tilt it and zoom it). Only what is shown changes: the game itself\r\n"
+    "; still uses its own camera. In orbit mode the right stick drives the camera while you\r\n"
+    "; play, not the C buttons (the keyboard's C buttons still work).\r\n"
+    "mode = original\r\n"
+    "; Turning speed in percent (100 = default), across (x) and up and down (y).\r\n"
+    "sensitivity_x = 100\r\n"
+    "sensitivity_y = 100\r\n"
+    "; Invert the turning: 1 = yes.\r\n"
+    "invert_x = 0\r\n"
+    "invert_y = 0\r\n"
+    "; Ease back behind the player when the camera input has been idle for recentre_delay\r\n"
+    "; seconds: 1 = yes (default), 0 = the camera stays where you left it (until reset).\r\n"
+    "recentre = 1\r\n"
+    "recentre_delay = 1.5\r\n"
+    "; On foot the game steers the driver relative to its own camera: 1 = recentre on foot\r\n"
+    "; even with recentre = 0 (default), 0 = no.\r\n"
+    "recentre_on_foot = 1\r\n"
+    "; Zoom limits, in times the game's own camera distance.\r\n"
+    "zoom_min = 0.5\r\n"
+    "zoom_max = 2.5\r\n"
+    "; Tilt limits, in degrees above the horizontal (negative: from below).\r\n"
+    "tilt_min = -10\r\n"
+    "tilt_max = 80\r\n"
+    "; Mouse look: hold a mouse button and move the mouse to turn, the wheel zooms. 1 = on.\r\n"
+    "mouse = 1\r\n"
+    "\r\n"
     "[keyboard]\r\n"
     "; The N64 controller from the keyboard. Values are SDL key names, for example X, Space,\r\n"
     "; Return, Left Shift, Right Ctrl, Keypad 8, Up, F5. Several keys: separate them with\r\n"
@@ -124,6 +156,14 @@ static const char kDefaultIni[] =
     "menu = F1\r\n"
     "; fps_counter switches the frame-rate counter (off, on, detailed).\r\n"
     "fps_counter = F2\r\n"
+    "; The orbit camera ([camera] mode = orbit).\r\n"
+    "camera_left = Keypad 4\r\n"
+    "camera_right = Keypad 6\r\n"
+    "camera_up = Keypad 8\r\n"
+    "camera_down = Keypad 2\r\n"
+    "camera_zoom_in = Keypad +\r\n"
+    "camera_zoom_out = Keypad -\r\n"
+    "camera_reset = Keypad 5\r\n"
     "\r\n"
     "[controller]\r\n"
     "; The N64 controller from the first game controller (Xbox/XInput and others SDL knows).\r\n"
@@ -157,7 +197,16 @@ static const char kDefaultIni[] =
     "; Buttons that, held together, open the settings menu (joined with +).\r\n"
     "menu = back+start\r\n"
     "; Buttons that, held together, switch the frame-rate counter (e.g. back+y; empty: none).\r\n"
-    "fps_counter =\r\n";
+    "fps_counter =\r\n"
+    "; The orbit camera ([camera] mode = orbit). While it is on in play, these inputs drive\r\n"
+    "; the camera and not the N64 buttons bound to the same inputs (the C buttons above).\r\n"
+    "camera_left = rightx-\r\n"
+    "camera_right = rightx+\r\n"
+    "camera_up = righty-\r\n"
+    "camera_down = righty+\r\n"
+    "camera_zoom_in = y\r\n"
+    "camera_zoom_out = leftstick\r\n"
+    "camera_reset = rightstick\r\n";
 
 /* ---- strings and paths ----------------------------------------------------- */
 std::string utf8(const std::wstring &w) {
@@ -371,6 +420,33 @@ static void parseText(Config &c, const std::string &text, const std::string &nam
                 else if (l == "nearest" || l == "sharp" || l == "point") c.filtering = 2;
                 else ok = false;
             } else ok = false;
+        } else if (section == "camera") {
+            auto num = [&](double lo, double hi, double &out) {
+                char *end;
+                const double d = strtod(v.c_str(), &end);
+                if (v.empty() || *end != 0 || !(d >= lo && d <= hi)) return false;
+                out = d;
+                return true;
+            };
+            if (key == "mode") {
+                std::string l = lower(v);
+                if (l == "original" || l == "off" || l == "game" || l == "0") c.cameraMode = 0;
+                else if (l == "orbit" || l == "free" || l == "on" || l == "1") c.cameraMode = 1;
+                else ok = false;
+            } else if (key == "sensitivity_x") ok = parseInt(v, 10, 500, c.camSensX);
+            else if (key == "sensitivity_y") ok = parseInt(v, 10, 500, c.camSensY);
+            else if (key == "invert_x") ok = parseBool(v, c.camInvertX);
+            else if (key == "invert_y") ok = parseBool(v, c.camInvertY);
+            else if (key == "recentre" || key == "recenter") ok = parseBool(v, c.camRecentre);
+            else if (key == "recentre_on_foot" || key == "recenter_on_foot") ok = parseBool(v, c.camRecentreOnFoot);
+            else if (key == "recentre_delay" || key == "recenter_delay") ok = num(0.0, 30.0, c.camRecentreDelay);
+            else if (key == "zoom_min") ok = num(0.2, 1.0, c.camZoomMin);
+            else if (key == "zoom_max") ok = num(1.0, 5.0, c.camZoomMax);
+            else if (key == "tilt_min") ok = num(-60.0, 60.0, c.camPitchMin);
+            else if (key == "tilt_max") ok = num(0.0, 89.0, c.camPitchMax);
+            else if (key == "mouse") ok = parseBool(v, c.camMouse);
+            else ok = false;
+            if (c.camPitchMin > c.camPitchMax) std::swap(c.camPitchMin, c.camPitchMax);
         } else if (section == "audio") {
             if (key == "volume") ok = parseInt(v, 0, 100, c.volume);
             else if (key == "mute") ok = parseBool(v, c.mute);
@@ -629,6 +705,25 @@ std::string configValue(const Config &c, const Setting &s) {
         if (k == "fps_counter_corner") return cornerName(c.fpsCorner);
         if (k == "texture_pack") return c.texturePack;
         if (k == "texture_pack_enabled") return c.texturePackOn ? "1" : "0";
+    } else if (s.section == "camera") {
+        auto d = [](double x) {
+            char buf[32];
+            snprintf(buf, sizeof buf, "%g", x);
+            return std::string(buf);
+        };
+        if (k == "mode") return c.cameraMode == 1 ? "orbit" : "original";
+        if (k == "sensitivity_x") return std::to_string(c.camSensX);
+        if (k == "sensitivity_y") return std::to_string(c.camSensY);
+        if (k == "invert_x") return c.camInvertX ? "1" : "0";
+        if (k == "invert_y") return c.camInvertY ? "1" : "0";
+        if (k == "recentre") return c.camRecentre ? "1" : "0";
+        if (k == "recentre_on_foot") return c.camRecentreOnFoot ? "1" : "0";
+        if (k == "recentre_delay") return d(c.camRecentreDelay);
+        if (k == "zoom_min") return d(c.camZoomMin);
+        if (k == "zoom_max") return d(c.camZoomMax);
+        if (k == "tilt_min") return d(c.camPitchMin);
+        if (k == "tilt_max") return d(c.camPitchMax);
+        if (k == "mouse") return c.camMouse ? "1" : "0";
     } else if (s.section == "audio") {
         if (k == "volume") return std::to_string(c.volume);
         if (k == "mute") return c.mute ? "1" : "0";

@@ -191,7 +191,7 @@ void func_8025F0F0(void *sndp, SndEvent *event) {
             u16 numAlloc;
 
             func_80260210(&numFree, &numAlloc);
-            func_8029A7E4("Bad soundState: voices =%d, states free =%d, states busy =%d, type %d data %x\n",
+            debug_printf("Bad soundState: voices =%d, states free =%d, states busy =%d, type %d data %x\n",
                           D_802E8CF0, numFree, numAlloc, event->type, event->u.data);
             return;
         }
@@ -205,7 +205,7 @@ void func_8025F0F0(void *sndp, SndEvent *event) {
                     return;
                 }
                 if (soundState->playingState == 1) {
-                    func_8029A7E4("playing a playing sound\n");
+                    debug_printf("playing a playing sound\n");
                 }
 
                 config.fxBus = 0;
@@ -393,7 +393,7 @@ void func_8025F0F0(void *sndp, SndEvent *event) {
                 break;
 
             default:
-                func_8029A7E4("Nonsense sndp event\n");
+                debug_printf("Nonsense sndp event\n");
                 break;
         }
 
@@ -651,11 +651,11 @@ void *func_80260650(void *arg0, s16 arg1, void *arg2) {
     result = NULL;
     flag1 = 0;
     totalSomething = 0;
-    if (arg1 == 0 || (((s32) D_80358060) == 0 && arg1 == 0xc)) {
+    if (arg1 == 0 || (((s32) gFramesInMode) == 0 && arg1 == 0xc)) {
         goto retNull;
     }
     if (arg1 == 0x14 || arg1 == 0x15) {
-        if (D_802E8BDC == 0x26 || D_802E8BDC == 0x31) {
+        if (levelno == 0x26 || levelno == 0x31) {
             goto retNull;
         }
     }
@@ -688,7 +688,7 @@ mainLogic:
             }
             result = node;
         } else {
-            func_8029A7E4("Sound state allocate failed - sndId %d\n", arg1);
+            debug_printf("Sound state allocate failed - sndId %d\n", arg1);
         }
 
         totalSomething = totalSomething + scaled;
@@ -741,7 +741,7 @@ void func_802608C8(void *arg0) {
         *((u8 *) arg0 + 0x3e) &= ~0x10;
         alEvtqPostEvent((ALEventQueue *) ((u8 *) D_802E8CEC + 0x14), SND_EVT(eventCode, eventParam, 0, 0), 0);
     } else {
-        func_8029A7E4("WARNING: Attempt to stop NULL sound aborted\n");
+        debug_printf("WARNING: Attempt to stop NULL sound aborted\n");
     }
 }
 
@@ -821,7 +821,7 @@ void func_80260AB8(void *arg0, s16 arg1, s32 arg2) {
         alEvtqPostEvent((ALEventQueue *) ((u8 *) D_802E8CEC + 0x14), SND_EVT(eventCode, eventParam, eventExtra, 0),
                         0);
     } else {
-        func_8029A7E4("WARNING: Attempt to modify NULL sound aborted\n");
+        debug_printf("WARNING: Attempt to modify NULL sound aborted\n");
     }
 }
 

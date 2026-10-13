@@ -17,18 +17,18 @@ extern u8 D_802C2A5C[];  /* definition in the 7D9D0 text blob */
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* For every D_803F4030 record (up to D_803F7654, read once; walked with `!=`,
- * so it must be D_803F4030 + n records) whose byte 0xEA is 0 and whose
+/* For every gObjects record (up to gObjectsEnd, read once; walked with `!=`,
+ * so it must be gObjects + n records) whose byte 0xEA is 0 and whose
  * position (words +0x10/+0x14/+0x18) is closer than radius << 5 to the
  * player (func_802ABCDC, signed compare), apply func_802C18D4 blast damage
  * at the position << 11 with radius 10 and amount 100000. The player
  * position is reloaded for every record. Saves every s-register, gp and fp. */
 void func_802AC1A0(s32 radius) {
-    u8 *end = D_803F7654;
+    u8 *end = gObjectsEnd;
     u8 *e;
     s32 limit = radius << 5;
 
-    for (e = D_803F4030; e != end; e += 0xFC) {
+    for (e = gObjects; e != end; e += 0xFC) {
         if (e[0xEA] == 0) {
             s32 x = *(s32 *) (e + 0x10);
             s32 y = *(s32 *) (e + 0x14);
@@ -87,7 +87,7 @@ void func_802AC2A4(s32 z, s32 a1, s32 x, s32 y, s32 b0, s32 id, u8 *vehicle) {
     u8 *p;
     u8 *end;
 
-    if (((s32) D_80364AA8) != 0x40) {
+    if (((s32) gLevelKind) != 0x40) {
         return;
     }
     func_8029A800(z, a1, 1, 0, x, y, b0, 0, 0x40, 0, id, vehicle);
@@ -124,8 +124,8 @@ void func_802AC2A4(s32 z, s32 a1, s32 x, s32 y, s32 b0, s32 id, u8 *vehicle) {
 
 /* Level 0x17 only: wraps the position x (*px) and z (*pz) into the level's
  * box (x >= 0x15181 -> 0x2BC0, then x < 0x2581 -> 0x14B40; z >= 0x13881 ->
- * 0x44C0, then z < 0x3E81 -> 0x13240), setting D_80364412 on each wrap.
- * When D_80364412 is set (now or before), spawns effect kind 0x13 with
+ * 0x44C0, then z < 0x3E81 -> 0x13240), setting gCamSnap on each wrap.
+ * When gCamSnap is set (now or before), spawns effect kind 0x13 with
  * data 1000000 at (*px, *py, *pz) (func_802AC6FC). The second test of each
  * axis uses the value after the first wrap, but a wrapped value isn't
  * written again.
@@ -135,28 +135,28 @@ void func_802AC2A4(s32 z, s32 a1, s32 x, s32 y, s32 b0, s32 id, u8 *vehicle) {
 void func_802AC3B8(s32 *px, s32 *py, s32 *pz) {
     s32 v;
 
-    if (D_802E8BDC != 0x17) {
+    if (levelno != 0x17) {
         return;
     }
     v = *px;
     if (v >= 0x15181) {
         *px = v = 0x2BC0;
-        D_80364412 = 1;
+        gCamSnap = 1;
     }
     if (v < 0x2581) {
         *px = 0x14B40;
-        D_80364412 = 1;
+        gCamSnap = 1;
     }
     v = *pz;
     if (v >= 0x13881) {
         *pz = v = 0x44C0;
-        D_80364412 = 1;
+        gCamSnap = 1;
     }
     if (v < 0x3E81) {
         *pz = 0x13240;
-        D_80364412 = 1;
+        gCamSnap = 1;
     }
-    if (D_80364412 != 0) {
+    if (gCamSnap != 0) {
         func_802AC6FC(*px, *py, *pz, 0x13, 1000000);
     }
 }

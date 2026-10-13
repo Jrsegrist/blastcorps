@@ -2,7 +2,7 @@
 #include <ultra64.h>
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_80364460 ((u8 *) D_80364460)
+#define gVehicles ((u8 *) gVehicles)
 #define D_803FB8B8 ((s32 *) D_803FB8B8)
 #ifdef NON_MATCHING
 #define D_803A7408 (*(s32 *) &D_803A7408)
@@ -119,11 +119,11 @@ extern u8 D_803F7811;
  * 0/0xFFF, the position D_803A73F0..F8 = (x, y, z), the various mode bytes and
  * halves from the arguments, D_803A742D = veh[0xA0] (the vehicle record the
  * asm has in gp), and the flag bytes cleared. Then resets buffer B
- * (func_802BCC10) if D_80358060 is 0, again if b2 != 0 and b8 != 0xFF (b2 is
+ * (func_802BCC10) if gFramesInMode is 0, again if b2 != 0 and b8 != 0xFF (b2 is
  * compared as the full register), and always buffer A (func_802BCBD8).
  * Register convention (conventions.txt): z, a1, b2, b3 in a0-a3 as in the asm;
  * x, y, b0, h1, h2, b4, b8, veh in v0, v1, t0, t1, t2, t3, t8, gp. The
- * asm saves t7/s0 and leaves v0 = D_80358060. Asm callers keep a0-a3,
+ * asm saves t7/s0 and leaves v0 = gFramesInMode. Asm callers keep a0-a3,
  * t0, t1, t4, t6, t7, t8, f12, f14 live (a mixed build would need a thunk). */
 void func_8029A800(s32 z, s32 a1, s32 b2, s32 b3, s32 x, s32 y, s32 b0, s32 h1, s32 h2, s32 b4, s32 b8,
                    u8 *veh) {
@@ -146,7 +146,7 @@ void func_8029A800(s32 z, s32 a1, s32 b2, s32 b3, s32 x, s32 y, s32 b0, s32 h1, 
     D_803A7408 = a1;
     D_803A7424 = 0;
     D_803A7425 = 0;
-    if (((s32) D_80358060) == 0) {
+    if (((s32) gFramesInMode) == 0) {
         func_802BCC10();
     }
     if (b2 != 0 && b8 != 0xFF) {
@@ -219,7 +219,7 @@ s32 func_8029AB88(s32 x, s32 y, s32 z, s32 r, s32 kind);
  * nonzero and byte 0x12 == kind is numbered id = 1, 2, ... and its sphere
  * (>> 2) goes to func_8029B02C(x, y, z, r, kind, id). Finally, if the ring
  * span D_803A7410/D_803A7412 is no longer the empty 0/0xFFF pair, sets
- * D_803A7425 and copies D_80358068 to D_803A740C.
+ * D_803A7425 and copies gUnpausedFrames to D_803A740C.
  * The asm's register interface, as a struct would hold it: in t8 = kind;
  * out (survey) a0, a3, s3, f12, f14, f20-f26 = whatever the triangle tests
  * last left there, and fp = the part count (0 before the loop, +1 per part)
@@ -257,7 +257,7 @@ s32 func_8029AA10_fp(s32 kind, s32 fp) {
     }
     if (((u16) D_803A7410) != 0 || ((u16) D_803A7412) != 0xFFF) {
         D_803A7425 = 1;
-        D_803A740C = D_80358068;
+        D_803A740C = gUnpausedFrames;
     }
     return fp;
 }
@@ -298,8 +298,8 @@ static s32 port_sphere_hits_tri(s32 x, s32 y, s32 z, s32 r, u8 *tri) {
 /* Does the sphere (x, y, z) radius r hit the world for vehicle `kind`? In
  * order (each list walked with `!=`, 0x60-byte triangles):
  * 1. for each D_803059F0 entry whose mask has bit (kind & 31) and whose level
- *    is 0xFFFF or D_802E8BDC (object kind 0x38 only while func_802BD8C8()
- *    is 0): every D_803F4030 object of that kind that func_8029B514 says the
+ *    is 0xFFFF or levelno (object kind 0x38 only while func_802BD8C8()
+ *    is 0): every gObjects object of that kind that func_8029B514 says the
  *    sphere touches, its triangles with byte 0x51 set;
  * 2. D_803F9330 .. D_803FB8B0 with byte 0x51 set, except (kind 0xC8) those
  *    whose u16 at +0x52 equals D_803A742A;
@@ -326,14 +326,14 @@ s32 func_8029AB88(s32 x, s32 y, s32 z, s32 r, s32 kind) {
         if ((e[2] & (1 << (kind & 31))) == 0) {
             continue;
         }
-        if (e[0] != 0xFFFF && e[0] != (u32) D_802E8BDC) {
+        if (e[0] != 0xFFFF && e[0] != (u32) levelno) {
             continue;
         }
         if (e[1] == 0x38 && func_802BD8C8() != 0) {
             continue;
         }
-        objEnd = D_803F7654;
-        for (obj = D_803F4030; obj != objEnd; obj += 0xFC) {
+        objEnd = gObjectsEnd;
+        for (obj = gObjects; obj != objEnd; obj += 0xFC) {
             if (*(u32 *) (obj + 0x30) != e[1]) {
                 continue;
             }
@@ -436,14 +436,14 @@ void func_8029B02C(s32 x, s32 y, s32 z, s32 r, s32 kind, s32 id) {
         if ((e[2] & (1 << (kind & 31))) == 0) {
             continue;
         }
-        if (e[0] != 0xFFFF && e[0] != (u32) D_802E8BDC) {
+        if (e[0] != 0xFFFF && e[0] != (u32) levelno) {
             continue;
         }
         if (e[1] == 0x38 && func_802BD8C8() != 0) {
             continue;
         }
-        objEnd = D_803F7654;
-        for (obj = D_803F4030; obj != objEnd; obj += 0xFC) {
+        objEnd = gObjectsEnd;
+        for (obj = gObjects; obj != objEnd; obj += 0xFC) {
             if (*(u32 *) (obj + 0x30) != e[1]) {
                 continue;
             }
@@ -788,7 +788,7 @@ found:
             return 1;
         }
     }
-    if (D_802E8BDC != 9 && kind >= 0x13) {
+    if (levelno != 9 && kind >= 0x13) {
         return 0;
     }
     if (g[0xF9] == 0) {
@@ -1621,14 +1621,14 @@ u32 func_8029CF04(u32 v, s32 key, u8 *veh) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-/* D_803649ED = v, unless D_803EFECB is set and the D_803ED3B8 list has the
+/* gNextVehicle = v, unless D_803EFECB is set and the D_803ED3B8 list has the
  * pair (v, 7) (func_802AB41C).
  * Register convention: asm takes v in s1 (conventions.txt); it saves t4/t8
  * and leaves a2 changed. Its asm caller func_8029CD54 keeps a0, a1, t3-t8,
  * f12, f14 live. */
 void func_8029CF54(s32 v) {
     if (D_803EFECB == 0 || func_802AB41C(v, 7) == 0) {
-        D_803649ED = v;
+        gNextVehicle = v;
     }
 }
 #else
@@ -2210,7 +2210,7 @@ extern Unk8029DCD4Slot * N64P D_803B8568; /* last slot in use (sits right after 
 /* Resets the 120-entry pool D_803B7FC8: the next-free pointer goes back to
  * the start and words 0 and 4 of every 12-byte entry are cleared.
  * Register note: the asm saves/restores v0 and v1 (clobbers at); asm caller
- * func_802A1674 keeps t0, f12 and f14 live across the call (a mixed N64
+ * initlevel keeps t0, f12 and f14 live across the call (a mixed N64
  * build would need a thunk; the native port doesn't). */
 void func_8029DC80(void) {
     s32 i;
@@ -2229,7 +2229,7 @@ void func_8029DC80(void) {
 #ifdef NON_MATCHING
 
 /* Queues a 64-byte copy src -> dst in the first free slot (src == 0) of the
- * 120-entry pool D_803B7FC8, tagged with !D_8035805C (low bit flipped), and
+ * 120-entry pool D_803B7FC8, tagged with !gBufferIndex (low bit flipped), and
  * raises the last-used pointer D_803B8568 to that slot if it is below it
  * (signed compare). Does nothing if the pool is full.
  * Register convention: asm takes dst in t5 and src in s2 (conventions.txt).
@@ -2244,7 +2244,7 @@ void func_8029DCD4(u8 *dst, u8 *src) {
         if (slot->src == NULL) {
             slot->src = src;
             slot->dst = dst;
-            slot->parity = D_8035805C ^ 1;
+            slot->parity = gBufferIndex ^ 1;
             if ((s32) D_803B8568 < (s32) slot) {
                 D_803B8568 = slot;
             }
@@ -2291,14 +2291,14 @@ void func_8029DD54(u8 *dst) {
 void func_8029DE50(u64 *dst, u64 *src);
 
 /* Runs the queued copies: for each used slot of D_803B7FC8 up to D_803B8568
- * (signed compare) whose parity equals D_8035805C, copies 64 bytes src -> dst
+ * (signed compare) whose parity equals gBufferIndex, copies 64 bytes src -> dst
  * (func_8029DE50) and frees the slot. Slots with the other parity stay; the
  * last of those becomes the new D_803B8568 (or the pool start if none). */
 void func_8029DDC8(void) {
     Unk8029DCD4Slot *slot = D_803B7FC8;
     Unk8029DCD4Slot *last = D_803B7FC8;
     Unk8029DCD4Slot *end = D_803B8568;
-    s32 parity = D_8035805C;
+    s32 parity = gBufferIndex;
 
     while ((s32) slot <= (s32) end) {
         if (slot->src != NULL) {
@@ -2352,7 +2352,7 @@ extern s32 D_802C23B4[];
  * unk8) zeroed. The terminating -1 is also stored, as the id of the entry
  * after the last.
  * Register note: the asm saves/restores v0, v1 and a0-a3 (clobbers at and
- * f0); asm caller func_802A1674 keeps t0, t6, t9, f12 and f14 live. */
+ * f0); asm caller initlevel keeps t0, t6, t9, f12 and f14 live. */
 void func_8029DEA0(void) {
     s32 i;
     s32 *src;
@@ -2439,7 +2439,7 @@ void func_8029E21C(Unk8029DEA0Entry *ch, u8 *param);
  * nonzero.
  * Register convention: param in fp (conventions.txt): the asm passes its
  * caller's fp through to func_8029E21C, whose texture loads hand it to the
- * decoder (func_802A1074). Its only caller, func_802475D8 in 00000.c, is C
+ * decoder (func_802A1074). Its only caller, hd_game_frame in 00000.c, is C
  * and declares `void func_8029E0AC(void)`, so what it passes is whatever its
  * fp (and here a0) happens to hold: a port must decide what that should be.
  * The asm saves and restores every register (f20-f30 included). */
@@ -2478,8 +2478,8 @@ u32 func_8029E47C(s32 key, s32 id, u8 *param);
  * which gives the new frame f' and frac'. For each texture i of frame f'
  * (and of frame f' + 1 when blending) the block is found or loaded
  * (TEX_BLOCK), and every 0xC-byte patch {a, off, i} in [D_803B3500,
- * D_803B35F0) stores it at base + off (base = the level's D_80364460
- * record with id a[0]: +0xC if D_8035805C else +0x30; unbounded scan);
+ * D_803B35F0) stores it at base + off (base = the level's gVehicles
+ * record with id a[0]: +0xC if gBufferIndex else +0x30; unbounded scan);
  * when blending, the second block goes to base + the next patch's off and
  * the first command after it with opcode 0xFA gets its low byte(s) =
  * round(frac' * 255) (the patch after is skipped). Finally blocks tagged
@@ -2527,9 +2527,9 @@ void func_8029E21C(Unk8029DEA0Entry *ch, u8 *param) {
             sub = *ids2++;
             second = TEX_BLOCK(key, sub, param);
         }
-        for (rec = D_80364460; *(s32 *) (rec + 0x5C) != a[0]; rec += 0x74) {
+        for (rec = gVehicles; *(s32 *) (rec + 0x5C) != a[0]; rec += 0x74) {
         }
-        base = (D_8035805C != 0) ? *(s32 *) (rec + 0xC) : *(s32 *) (rec + 0x30);
+        base = (gBufferIndex != 0) ? *(s32 *) (rec + 0xC) : *(s32 *) (rec + 0x30);
         for (e = D_803B3500; e != (u8 *) D_803B35F0; e += 0xC) {
             u32 *p;
             u32 w;

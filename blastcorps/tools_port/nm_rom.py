@@ -20,7 +20,7 @@ Layout (see tools_port/README.md, "Test ROM"):
     save/restore around the no-op debug stub func_80220714) is replaced by an
     inline loader: write back + invalidate the D-cache, PI-DMA image A and
     image B, invalidate the I-cache, `a0 = gp`, jump to the NM entry
-    (func_802447C0) with init's stack, exactly like the original `j`.
+    (hd_boot) with init's stack, exactly like the original `j`.
   * With --fe-elf: the NM front end (hd_front_end.rom.*.elf, text at
     0x80500000) joins image A, and image D, appended after B, is the
     front end hd_code inflates to 0x801E7000 (func_8028B3E0): the original
@@ -28,7 +28,7 @@ Layout (see tools_port/README.md, "Test ROM"):
     .hd_front_end_data, both gzipped again with tools/rarezip.py.  The loader
     stores image D's ROM range at 0x803FFFF8/C, where init has just put the
     original front end's range.
-  * The ROM is padded to 12 MB (it must stay below 0xFFB000: func_802447C0
+  * The ROM is padded to 12 MB (it must stay below 0xFFB000: hd_boot
     reads a debug command line from ROM 0xFFB000, which is past the end of the
     original 8 MB ROM) and the header CRCs (CIC-6102) are recomputed.
 
@@ -59,7 +59,7 @@ from elftools.elf.elffile import ELFFile
 CROSS = "mips-linux-gnu-"
 ROM_SIZE = 0xC00000
 APPEND_AT = 0x800000
-CMDLINE_ROM = 0xFFB000          # func_802447C0 reads 64 bytes there
+CMDLINE_ROM = 0xFFB000          # hd_boot reads 64 bytes there
 
 INIT_ROM = 0x1000
 INIT_VRAM = 0x8021ED00
@@ -728,9 +728,9 @@ def main():
     rom += b"\xff" * (ROM_SIZE - len(rom))
     assert ROM_SIZE <= CMDLINE_ROM
 
-    entry = nm.funcs["func_802447C0"]
+    entry = nm.funcs["hd_boot"]
     if entry != n_ta:
-        say("note: NM entry func_802447C0 at %#x (not the text start)" % entry)
+        say("note: NM entry hd_boot at %#x (not the text start)" % entry)
     params = dict(rom_a=rom_a, vram_a=n_ta, size_a=len(img_a), rom_b=rom_b, vram_b=o_ta,
                   size_b=len(img_b), entry=entry,
                   fe_start=rom_d if img_d else FE_GZ_ROM, fe_end=rom_d + len(img_d) if img_d else FE_GZ_END)

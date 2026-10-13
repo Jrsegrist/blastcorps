@@ -37,7 +37,7 @@ extern DecodeReq D_803C4B58;
 /* D_803B8570..D_803B8D40: the loaded-texture cache, 8-byte {id, physical
  * address} pairs; D_803B8D40 is the first free pair. */
 
-/* Loads table entry `id` at the heap pointer D_80358070 (into `buf`):
+/* Loads table entry `id` at the heap pointer gHeapPtr (into `buf`):
  * invalidates 0x1000 bytes there, DMAs the packed entry in and waits, decodes
  * it in place through D_803C4B58 (func_802A57DC; the caller sets .param where
  * the asm does) and advances the heap by the decoded size. */
@@ -46,16 +46,16 @@ extern DecodeReq D_803C4B58;
         TexTableEntry *e_ = (TexTableEntry *) ((u8 *) D_803B8D44 + (id) * 8);                     \
         s32 n_;                                                                                   \
                                                                                                   \
-        (buf) = D_80358070;                                                                       \
+        (buf) = gHeapPtr;                                                                       \
         osInvalDCache(buf, 0x1000);                                                               \
         D_803C4B58.size = e_->size;                                                               \
         D_803C4B58.type = e_->type;                                                               \
         D_803C4B58.data = (buf);                                                                  \
-        osPiStartDma(&D_80370C58, OS_MESG_PRI_NORMAL, OS_READ, TABLE_ROM_BASE + e_->rom, buf,     \
-                     ((TexTableEntry *) ((u8 *) e_ + 8))->rom - e_->rom, &D_80315180);            \
-        osRecvMesg(&D_80315180, NULL, OS_MESG_BLOCK);                                             \
+        osPiStartDma(&gDmaIoMesg, OS_MESG_PRI_NORMAL, OS_READ, TABLE_ROM_BASE + e_->rom, buf,     \
+                     ((TexTableEntry *) ((u8 *) e_ + 8))->rom - e_->rom, &textureDmaMessageQ);            \
+        osRecvMesg(&textureDmaMessageQ, NULL, OS_MESG_BLOCK);                                             \
         n_ = func_802A57DC((u8 *) &D_803C4B58);                                                   \
-        D_80358070 += n_;                                                                         \
+        gHeapPtr += n_;                                                                         \
     }
 #endif
 
@@ -64,18 +64,18 @@ extern DecodeReq D_803C4B58;
 /* Once (until D_803B9888 is set): takes 0x8000 heap bytes for the table
  * D_803B8D44, DMAs ROM 0x4CE0..+0x8000 into it and waits, then points
  * D_803B8D40 at D_803B8570.
- * The asm saves and restores every register; func_802A1674 keeps t0, t6, t9
+ * The asm saves and restores every register; initlevel keeps t0, t6, t9
  * across it. (Its survey outputs f12/f14 are what the libultra calls leave.) */
 void func_802A0700(void) {
     u8 *buf;
 
     if (D_803B9888 == 0) {
-        buf = D_80358070;
+        buf = gHeapPtr;
         D_803B8D44 = (u32 *) buf;
-        D_80358070 = buf + 0x8000;
+        gHeapPtr = buf + 0x8000;
         osInvalDCache(buf, 0x8000);
-        osPiStartDma(&D_80370C58, OS_MESG_PRI_NORMAL, OS_READ, TABLE_ROM_BASE, buf, 0x8000, &D_80315180);
-        osRecvMesg(&D_80315180, NULL, OS_MESG_BLOCK);
+        osPiStartDma(&gDmaIoMesg, OS_MESG_PRI_NORMAL, OS_READ, TABLE_ROM_BASE, buf, 0x8000, &textureDmaMessageQ);
+        osRecvMesg(&textureDmaMessageQ, NULL, OS_MESG_BLOCK);
         D_803B8D40 = D_803B8570;
         D_803B9888 = 1;
     }
@@ -243,9 +243,9 @@ void func_802A0F0C(s32 id, void *dest) {
 
     osInvalDCache(dest, 0x100);
     e = D_803B8D44 + id * 2;
-    osPiStartDma(&D_80370C58, OS_MESG_PRI_NORMAL, OS_READ, TABLE_ROM_BASE + e[0], dest, e[2] - e[0],
-                 &D_80315180);
-    osRecvMesg(&D_80315180, NULL, OS_MESG_BLOCK);
+    osPiStartDma(&gDmaIoMesg, OS_MESG_PRI_NORMAL, OS_READ, TABLE_ROM_BASE + e[0], dest, e[2] - e[0],
+                 &textureDmaMessageQ);
+    osRecvMesg(&textureDmaMessageQ, NULL, OS_MESG_BLOCK);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5BF40/func_802A0F0C.s")
@@ -269,7 +269,7 @@ extern u8 D_803B8D48[];
 
 /* Queued load of table entry `id` into `dest`: invalidates 0x1000 bytes,
  * starts the DMA with the next 0x14-byte OSIoMesg slot of D_803B8D48
- * (D_80358080++) without waiting, and queues the decode request
+ * (nextdma++) without waiting, and queues the decode request
  * (dest, size, type, param) with func_802A5764.
  * Register convention: id in t6, dest in s1, param in fp (conventions.txt);
  * the asm saves every register it uses. Asm caller func_802A67C4 keeps t9. */
@@ -278,10 +278,10 @@ void func_802A1074(s32 id, u8 *dest, u8 *param) {
     s32 slot;
 
     osInvalDCache(dest, 0x1000);
-    slot = D_80358080++;
+    slot = nextdma++;
     e = (TexTableEntry *) ((u8 *) D_803B8D44 + id * 8);
     osPiStartDma((OSIoMesg *) (D_803B8D48 + slot * 0x14), OS_MESG_PRI_NORMAL, OS_READ, TABLE_ROM_BASE + e->rom,
-                 dest, e[1].rom - e->rom, &D_80315180);
+                 dest, e[1].rom - e->rom, &textureDmaMessageQ);
     func_802A5764((s32) dest, e->size, e->type, (s32) param);
 }
 #else
@@ -292,8 +292,8 @@ void func_802A1074(s32 id, u8 *dest, u8 *param) {
 #ifdef NON_MATCHING
 extern u8 D_803B8D48[]; /* OSIoMesg slots, 0x14 bytes each */
 
-/* Like func_802A0F0C but doesn't wait: counts D_80358084 up and issues the
- * DMA with the next 0x14-byte OSIoMesg slot of D_803B8D48 (D_80358080++).
+/* Like func_802A0F0C but doesn't wait: counts no_palette_dmas up and issues the
+ * DMA with the next 0x14-byte OSIoMesg slot of D_803B8D48 (nextdma++).
  * asm: id in t6, dest in s1; it saves every register but s0/s1 (unchanged).
  * Asm callers rely on preserved: func_802A6274 keeps a3, t6. (Its survey
  * outputs f12/f14 are what the libultra calls leave.) */
@@ -302,11 +302,11 @@ void func_802A11C4(s32 id, void *dest) {
     s32 slot;
 
     osInvalDCache(dest, 0x100);
-    D_80358084++;
-    slot = D_80358080++;
+    no_palette_dmas++;
+    slot = nextdma++;
     e = D_803B8D44 + id * 2;
     osPiStartDma((OSIoMesg *) (D_803B8D48 + slot * 0x14), OS_MESG_PRI_NORMAL, OS_READ,
-                 TABLE_ROM_BASE + e[0], dest, e[2] - e[0], &D_80315180);
+                 TABLE_ROM_BASE + e[0], dest, e[2] - e[0], &textureDmaMessageQ);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5BF40/func_802A11C4.s")

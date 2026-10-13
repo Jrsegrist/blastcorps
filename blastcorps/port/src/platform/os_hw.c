@@ -245,7 +245,7 @@ static void cull_log(const u32 *dl, u32 size, u32 v) {
 }
 
 /* One 32-bit PI read.  Inside the ROM: the big-endian word, as lw gives it.
- * The game's only use (func_802447C0) reads 16 words at 0xFFB000, past the
+ * The game's only use (hd_boot) reads 16 words at 0xFFB000, past the
  * ROM, as a debug command-line *string*: there the words are returned so
  * that their bytes in host memory spell plat_cfg.cmdline (empty: zeros). */
 s32 osPiRawReadIo(u32 devAddr, u32 *data) {
@@ -283,8 +283,8 @@ void osSpTaskLoad(OSTask *t) {
 
 #define UCODE_CULL 0x802E77B0u  /* D_802E77B0: the RDP-output-to-DRAM F3D (5FD50) */
 
-/* func_802A4B0C's visibility test on the CPU.  The task's list (00000.c
- * func_8024B8F4) loads a projection and a modelview matrix, 8 box corners
+/* cull_rsp_test's visibility test on the CPU.  The task's list (00000.c
+ * cull_start) loads a projection and a modelview matrix, 8 box corners
  * and 12 triangles; the RSP writes RDP commands to output_buff, and the game
  * treats a lone sync (0xE8000000) as "not visible".  Model, checked against
  * the real ucode on an LLE RSP (mupen64plus + cxd4 + angrylion, 3921 tests
@@ -411,7 +411,7 @@ static void complete(u32 delay, int dp) {
  *    record (BcScTask, flags at +0x08).  Flag 0x40 marks the frame's last
  *    task, the one that ends in a full sync: it gets SP and DP done, the
  *    others (shadow passes, the cull test) SP done only, like the hardware.
- *  - func_802A4B0C's visibility test (ucode D_802E77B0, which writes RDP
+ *  - cull_rsp_test's visibility test (ucode D_802E77B0, which writes RDP
  *    commands to output_buff for the CPU to read): answered by cull_visible
  *    (a CPU model of that ucode) through the first output word (a lone
  *    sync, 0xE8000000, means not visible), or with --clock by the
@@ -449,7 +449,7 @@ void osSpTaskStartGo(OSTask *t) {
          * RSP's with compare.py emu --lle; mupen64plus's HLE RSP doesn't run
          * this ucode and always says "visible"), checked against the model;
          * else the CPU model of the real ucode (cull_visible) */
-        if (plat_clock_key_take_name(3, "func_802A4B0C", &v)) {
+        if (plat_clock_key_take_name(3, "cull_rsp_test", &v)) {
             plat_stats.cull_keyed++;
             if (((u32) v == 0xE8000000u) != ((u32) m == 0xE8000000u)) {
                 plat_stats.cull_disagree++;

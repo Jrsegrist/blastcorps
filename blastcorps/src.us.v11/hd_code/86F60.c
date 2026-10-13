@@ -3,7 +3,7 @@
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #ifdef NON_MATCHING
-#define D_80358070 (*(u32 *) &D_80358070)
+#define gHeapPtr (*(u32 *) &gHeapPtr)
 #endif
 /* end of views */
 
@@ -36,10 +36,10 @@ extern u8 D_803F8F45;
 
 #define VEH13_S16(off) (*(s16 *) (D_803F8E80 + (off)))
 
-/* Set up vehicle 13 (the level-object dispatcher func_802A350C's case 0xD):
+/* Set up vehicle 13 (the level-object dispatcher lvl_spawn_vehicles's case 0xD):
  * model header hdr -> D_803F8F34; two 0x100-byte save copies from the
- * D_80358070 bump pointer (D_803F8F38, D_803F8F3C; trapping adds);
- * func_802A1388(0xD, 0, copies, hdr); reset the record (func_802A754C) and
+ * gHeapPtr bump pointer (D_803F8F38, D_803F8F3C; trapping adds);
+ * veh_add_record(0xD, 0, copies, hdr); reset the record (func_802A754C) and
  * set its wheel offsets (+0x52..+0x68), position (D_803F8F28..30) and heading
  * (+0x4C, +0x4E, +0x74); ground heights for the three wheels
  * (func_802A992C(+0x52, y, x, z, +4, &D_803F8F2C, +0x4C, 0xD, fp, block, f));
@@ -56,7 +56,7 @@ extern u8 D_803F8F45;
  * leaves it there. It also leaves fp, f20 (as func_8029E558 leaves them) and
  * f12/f14 (as func_802CBEF0 leaves them), which its caller hands to the next
  * object's setup (func_802A992C's fp feeds D_803ED3F2 / +0x50 there): not
- * modelled (see the port notes). Asm caller func_802A350C keeps t1, t2 live
+ * modelled (see the port notes). Asm caller lvl_spawn_vehicles keeps t1, t2 live
  * (a mixed N64 build would need a thunk; the native port won't). */
 void func_802CB720(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut *f) {
     u32 p;
@@ -65,11 +65,11 @@ void func_802CB720(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut
     u8 *copyB;
 
     D_803F8F34 = hdr;
-    p = D_80358070;
+    p = gHeapPtr;
     D_803F8F38 = (u64 *) p;
     D_803F8F3C = (u64 *) (p + 0x100);
-    D_80358070 = p + 0x200;
-    func_802A1388(0xD, 0, (s32) D_803F8F38, (s32) D_803F8F3C, hdr);
+    gHeapPtr = p + 0x200;
+    veh_add_record(0xD, 0, (s32) D_803F8F38, (s32) D_803F8F3C, hdr);
     func_802A754C(D_803F8E80);
     VEH13_S16(0x52) = 200;
     VEH13_S16(0x54) = 350;
@@ -142,7 +142,7 @@ extern u8 D_803F8E80[]; /* this vehicle's state block */
 extern u8 D_802C2324[]; /* channel keys (7D9D0 text blob) */
 extern u8 D_802C2348[];
 
-/* Enter vehicle type 13: clears the byte at +0x99, D_8036444C/50 = 3000,
+/* Enter vehicle type 13: clears the byte at +0x99, gCamDistance / D_80364450 = 3000,
  * 1000, resets the two channels keyed D_802C2324 and D_802C2348 (unk14,
  * unk11, unk12 = 0, then func_802A0508 with -1), then func_802C4310(arg0,
  * 0xCE) (arg0 passes straight through; hd.c calls this with no arguments
@@ -151,7 +151,7 @@ extern u8 D_802C2348[];
  * uses neither. */
 void func_802CBA94(s32 arg0) {
     D_803F8E80[0x99] = 0;
-    D_8036444C = 3000;
+    gCamDistance = 3000;
     D_80364450 = 1000;
     func_802A05D0((s32) D_802C2324, 0);
     func_802A05F8((s32) D_802C2324, 0);
@@ -209,7 +209,7 @@ void func_802CBBBC(void) {
 
 /* Re-seat vehicle 13 on the ground (hd.c calls it): wheel heights through
  * func_802A9A60(+0x52, y, x, z, +4, &D_803F8F2C, +0x4C, 0xD, fp, block, f),
- * then the model placement (func_802CC70C) and func_802A133C(z, 0xD, x, y,
+ * then the model placement (func_802CC70C) and veh_set_record(z, 0xD, x, y,
  * block).
  * Register notes: the asm hands func_802A9A60 its caller's fp and FP
  * registers; fp ends up in D_803ED3F2[0..2] and the block's +0x50 (ground
@@ -231,7 +231,7 @@ void func_802CBC08(void) {
                   (s32 *) (D_803F8E80 + 4), (s32 *) &D_803F8F28[1], (s16 *) (D_803F8E80 + 0x4C), 0xD, 0,
                   D_803F8E80, &f, &out);
     func_802CC70C();
-    func_802A133C(D_803F8F28[2], 0xD, D_803F8F28[0], D_803F8F28[1], D_803F8E80);
+    veh_set_record(D_803F8F28[2], 0xD, D_803F8F28[0], D_803F8F28[1], D_803F8E80);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/86F60/func_802CBC08.s")
@@ -296,7 +296,7 @@ void func_802CC8B8(void);
  * first point (func_802AAE54) is the new x/z for the ground contact
  * (func_802A8768: id 0xD, divisors 700/400, its s3 input = func_802AB9A4's
  * distance, FP state from func_802AAE54); then func_802CC8B8 timers,
- * D_803ED40B = 1, func_802CC70C and func_802A133C(z, 0xD, x, y, block).
+ * D_803ED40B = 1, func_802CC70C and veh_set_record(z, 0xD, x, y, block).
  * Register convention: id a3, f24 in; func_802A8768's s3 (return value)
  * and FP results (f) out (conventions.txt). The asm saves a3, t0-t2, points
  * $gp at D_803F8E80 and leaves it, and leaves s0-s2, s4-s7, fp as its
@@ -328,7 +328,7 @@ s32 func_802CBDE8(s32 id, TriSideOut *f) {
                   (s32 *) (D_803F8E80 + 0x28), (s32 *) (D_803F8E80 + 0x40), (s32 *) (D_803F8E80 + 0x34),
                   (s32 *) (D_803F8E80 + 4), &rr, f);
     func_802CC70C();
-    func_802A133C(D_803F8F28[2], 0xD, D_803F8F28[0], D_803F8F28[1], D_803F8E80);
+    veh_set_record(D_803F8F28[2], 0xD, D_803F8F28[0], D_803F8F28[1], D_803F8E80);
     return rr.s3;
 }
 #else
@@ -361,8 +361,8 @@ s32 func_802CC844(void);
  * D_803F8F43. If D_803A7425 is set: func_8029A914, D_803F8F43 = 1, then the
  * ring steering (func_802A70D8, func_802A71DC -> D_803F8F40 / +0x4E / +0x74,
  * func_802A746C, func_802A6FE4(0)) and the object hits. Finally the
- * position, speed and headings are published to D_803643E0.. and
- * func_802A133C(z, 0xD, x, y, block).
+ * position, speed and headings are published to gPlayerX.. and
+ * veh_set_record(z, 0xD, x, y, block).
  * Register notes: the asm saves every callee-saved register. It hands
  * func_802CBD18 its caller's t6, t7, s0-s4 (kept by func_802ABD54 when no
  * zone is looked at; they then reach func_802CC400's func_802A6274 records,
@@ -432,7 +432,7 @@ void func_802CBEF0(void) {
                   700, 400, (s16 *) (D_803F8E80 + 0x4C), D_803F8E80 + 0x96, (s16 *) (D_803F8E80 + 0x52),
                   (s32 *) (D_803F8E80 + 0x28), (s32 *) (D_803F8E80 + 0x40), (s32 *) (D_803F8E80 + 0x34),
                   (s32 *) (D_803F8E80 + 4), &rr, &f);
-    if (D_8035805C != 0) {
+    if (gBufferIndex != 0) {
         func_8029E558((u8 *) D_803F8F38, (u8 *) D_803F8F3C, (Unk8029DEA0Entry *) D_803F8B80);
     } else {
         func_8029E558((u8 *) D_803F8F3C, (u8 *) D_803F8F38, (Unk8029DEA0Entry *) D_803F8B80);
@@ -451,7 +451,7 @@ void func_802CBEF0(void) {
             goto publish;
         }
         D_803F8F43 = 0;
-        if (D_8035805C != 0) {
+        if (gBufferIndex != 0) {
             func_802A768C(D_803F8E80, D_803F8B80, (s32 *) &D_803F8F28[0], (s32 *) &D_803F8F28[1],
                           (s32 *) &D_803F8F28[2], D_803F8F3C, D_803F8F38, 0x100, &end);
         } else {
@@ -494,13 +494,13 @@ void func_802CBEF0(void) {
     D_803F77D0 = D_803F8B80;
     func_802BE77C(0xD, D_803F8E80);
 publish:
-    D_803643E0 = D_803F8F28[0];
-    D_803643E4 = D_803F8F28[1];
-    D_803643E8 = D_803F8F28[2];
+    gPlayerX = D_803F8F28[0];
+    gPlayerY = D_803F8F28[1];
+    gPlayerZ = D_803F8F28[2];
     D_8036443C = VEH13_S16(0x76);
     D_8036443E = *(u16 *) (D_803F8E80 + 0x4E);
     D_80364440 = *(u16 *) (D_803F8E80 + 0x4C);
-    func_802A133C(D_803F8F28[2], 0xD, D_803F8F28[0], D_803F8F28[1], D_803F8E80);
+    veh_set_record(D_803F8F28[2], 0xD, D_803F8F28[0], D_803F8F28[1], D_803F8E80);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/86F60/func_802CBEF0.s")
@@ -514,7 +514,7 @@ extern u8 D_802C2324[]; /* channel keys (7D9D0 text blob) */
 extern u8 D_802C2348[];
 void func_802CC56C(void);
 
-/* When D_80370C1A or D_80370C1B is set, the phase D_803F8F45 steps by one,
+/* When gHeldL or gHeldR is set, the phase D_803F8F45 steps by one,
  * wrapping 14 to 2, else it is reset to 0; both channels keyed D_802C2324 /
  * D_802C2348 get unk13 = phase / 2 and unk4 = 0.0f (func_802A05A4). Then
  * the tyre trail (func_802CC56C) and the countdown D_803F8F42: when nonzero
@@ -532,7 +532,7 @@ void func_802CC400(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3) {
     s32 s4;
     s32 v;
 
-    if (D_80370C1A != 0 || D_80370C1B != 0) {
+    if (gHeldL != 0 || gHeldR != 0) {
         s4 = D_803F8F45 + 1;
         if (s4 == 14) {
             s4 = 2;
@@ -596,7 +596,7 @@ void func_802CC56C(void) {
 extern u8 * N64P D_803F8F34;    /* model header: word offsets to the part lists */
 
 /* Place vehicle 13's model: m = the word at +4 of the header entry at
- * hdr + hdr[6], plus the current save copy (D_803F8F38 when D_8035805C is
+ * hdr + hdr[6], plus the current save copy (D_803F8F38 when gBufferIndex is
  * set, else D_803F8F3C); y rotation D_803ED392 = the heading (u16 at +0x4C);
  * func_802AA764(position D_803F8F28..30, scale 0x4268, m). Then the
  * vehicle's parts (func_8029C454, tag 0xD, list hdr + hdr[1] .. hdr +
@@ -618,10 +618,10 @@ void func_802CC70C(void) {
     s32 *m;
 
     m = (s32 *) N64_IPTR(*(s32 *) (hdr + *(s32 *) (hdr + 0x18) + 4) +
-                 (s32) (D_8035805C ? (u8 *) D_803F8F38 : (u8 *) D_803F8F3C));
+                 (s32) (gBufferIndex ? (u8 *) D_803F8F38 : (u8 *) D_803F8F3C));
     D_803ED390[1] = *(u16 *) (D_803F8E80 + 0x4C);
     func_802AA764(D_803F8F28[0], D_803F8F28[1], D_803F8F28[2], 0x4268, m);
-    base = D_8035805C ? (u8 *) D_803F8F38 : (u8 *) D_803F8F3C;
+    base = gBufferIndex ? (u8 *) D_803F8F38 : (u8 *) D_803F8F3C;
     hdr = D_803F8F34;
     regs.v1 = 0;
     regs.a0 = 0;

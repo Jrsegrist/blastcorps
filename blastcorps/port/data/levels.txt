@@ -1,5 +1,5 @@
-# The game's 60 levels (D_802E8BDC 0-59) for compare.py verify-levels: number, then
-# the level record's type byte (D_802E8F94[L].unk0) and notes. No ROM data beyond that.
+# The game's 60 levels (levelno 0-59) for compare.py verify-levels: number, then
+# the level record's type byte (gLevelInfo[L].unk0) and notes. No ROM data beyond that.
 # type 01: main missions; 02/04/08/10/20/40: the other kinds (bonus, races, sequences ...).
 # Sequences (globe -> mode 0x100000000000, demo records 9-13): 7 19 28 53 55; 38 too.
 0   01

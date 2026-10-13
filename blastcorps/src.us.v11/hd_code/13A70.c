@@ -4,18 +4,18 @@
 /* Matching build: IDO compiled the matched code here against older
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
-#define LEGACY_D_803643C8
-#define LEGACY_D_803643CC
-#define LEGACY_D_803F7654
+#define LEGACY_gVehicleShadows
+#define LEGACY_gVehicleShadowsEnd
+#define LEGACY_gObjectsEnd
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_02000000 (*(VtxBuf *) D_02000000)
-#define D_803F4030 ((Object *) D_803F4030)
+#define gObjects ((Object *) gObjects)
 #ifdef NON_MATCHING
-#define D_803643C8 (*(Struct13A70 * N64P *) &D_803643C8)
-#define D_803643CC (*(Struct13A70 * N64P *) &D_803643CC)
-#define D_803F7654 (*(Object * N64P *) &D_803F7654)
+#define gVehicleShadows (*(Struct13A70 * N64P *) &gVehicleShadows)
+#define gVehicleShadowsEnd (*(Struct13A70 * N64P *) &gVehicleShadowsEnd)
+#define gObjectsEnd (*(Object * N64P *) &gObjectsEnd)
 #endif
 /* end of views */
 
@@ -67,9 +67,9 @@ typedef struct VtxBuf {
 } VtxBuf;
 
 #ifndef NON_MATCHING
-extern Struct13A70 *D_803643C8;
+extern Struct13A70 *gVehicleShadows;
 #ifndef NON_MATCHING
-extern Struct13A70 *D_803643CC;
+extern Struct13A70 *gVehicleShadowsEnd;
 #endif
 #endif
 extern Gfx D_803650B0[];
@@ -80,20 +80,20 @@ extern Mtx D_80365270;
 extern Mtx D_803652B0;
 extern Mtx D_803652F0;
 #ifndef NON_MATCHING
-extern Object *D_803F7654;
+extern Object *gObjectsEnd;
 #endif
 
 
 void func_80258230(u8 id, s32 arg1, s16 arg2, s16 arg3) {
-    D_803643CC->unk1022 = id;
-    D_803643CC->unk1023 = 0;
-    D_803643CC->unk1000 = arg1;
-    D_803643CC->unk1018 = arg2;
-    D_803643CC->unk101A = arg3;
-    D_803643CC->unk101C = 0;
-    D_803643CC->unk101E = 0;
-    D_803643CC->unk1020 = 0;
-    D_803643CC++;
+    gVehicleShadowsEnd->unk1022 = id;
+    gVehicleShadowsEnd->unk1023 = 0;
+    gVehicleShadowsEnd->unk1000 = arg1;
+    gVehicleShadowsEnd->unk1018 = arg2;
+    gVehicleShadowsEnd->unk101A = arg3;
+    gVehicleShadowsEnd->unk101C = 0;
+    gVehicleShadowsEnd->unk101E = 0;
+    gVehicleShadowsEnd->unk1020 = 0;
+    gVehicleShadowsEnd++;
 }
 
 void func_802582C4(u8 id, s32 x, s32 y, s32 z, s32 arg4, s32 arg5, s32 arg6, s32 arg7) {
@@ -127,7 +127,7 @@ void func_802582C4(u8 id, s32 x, s32 y, s32 z, s32 arg4, s32 arg5, s32 arg6, s32
             }
         }
     }
-    for (p = D_803643C8; !found;) {
+    for (p = gVehicleShadows; !found;) {
         if (p->unk1022 == id) {
             p->unk1004 = x;
             if (mode) {
@@ -150,7 +150,7 @@ void func_802582C4(u8 id, s32 x, s32 y, s32 z, s32 arg4, s32 arg5, s32 arg6, s32
 }
 
 s32 func_802584BC(u8 id) {
-    Struct13A70 *p = D_803643C8;
+    Struct13A70 *p = gVehicleShadows;
 
     while (TRUE) {
         if (p->unk1022 == id) {
@@ -161,7 +161,7 @@ s32 func_802584BC(u8 id) {
 }
 
 s32 func_80258500(u8 id) {
-    Struct13A70 *p = D_803643C8;
+    Struct13A70 *p = gVehicleShadows;
 
     while (TRUE) {
         if (p->unk1022 == id) {
@@ -208,7 +208,7 @@ void func_80258544(void *cimg, s32 x, s32 y, s32 z, f32 dist, Gfx *dl, void *seg
     gSPDisplayList(gdl++, PHYS(dl));
     gSPEndDisplayList(gdl++);
     osWritebackDCache(&D_803651F0, 0x140);
-    func_80284E54((u64 *) D_803650B0, gdl - D_803650B0, 1, 0, 0x61F, 0);
+    rsp_send_task((u64 *) D_803650B0, gdl - D_803650B0, 1, 0, 0x61F, 0);
 }
 
 void func_80258B78(Gfx **gdlp, VtxBuf *buf) {
@@ -228,19 +228,19 @@ void func_80258B78(Gfx **gdlp, VtxBuf *buf) {
     gSPTexture(gdl++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
     gDPSetCombineMode(gdl++, G_CC_MODULATEIA_PRIM, G_CC_MODULATEIA_PRIM);
     gDPSetPrimColor(gdl++, 0, 0, 200, 200, 200, 200);
-    while (&D_803F4030[i] != D_803F7654) {
-        if (D_803F4030[i].unkEA == 0) {
-            switch (D_803F4030[i].type) {
+    while (&gObjects[i] != gObjectsEnd) {
+        if (gObjects[i].unkEA == 0) {
+            switch (gObjects[i].type) {
                 case 0xBA:
                 case 0xBB:
                 case 0xBC:
-                    h = 60 - (D_803F4030[i].y - D_803F4030[i].unk44) / 800;
+                    h = 60 - (gObjects[i].y - gObjects[i].unk44) / 800;
                     if (h < 0) {
                         h = 0;
                     }
-                    x = D_803F4030[i].x >> 5;
-                    y = D_803F4030[i].unk44 >> 5;
-                    z = D_803F4030[i].z >> 5;
+                    x = gObjects[i].x >> 5;
+                    y = gObjects[i].unk44 >> 5;
+                    z = gObjects[i].z >> 5;
                     buf->vtx[n].v.ob[0] = x - h;
                     buf->vtx[n].v.ob[1] = y;
                     buf->vtx[n].v.ob[2] = z - h;
@@ -272,7 +272,7 @@ void func_80258B78(Gfx **gdlp, VtxBuf *buf) {
                     }
                     PORT_ITAG(gdl, PORT_ITAG_GSHADOW, i);
                     gDPPipeSync(gdl++);
-                    if (D_802E8BDC == 0x10 && x == 0x19B7 && z == 0xF99) {
+                    if (levelno == 0x10 && x == 0x19B7 && z == 0xF99) {
                         gSPSetGeometryMode(gdl++, G_ZBUFFER);
                         gDPSetRenderMode(gdl++, RM_ZB_XLU_SAVE(1), RM_ZB_XLU_SAVE(2));
                     } else {

@@ -60,8 +60,8 @@ void func_80288220(void) {
     }
     D_80370B8C = 0;
     D_80370B8D = 0;
-    D_80370B90 = D_80358070;
-    D_80358070 += 0x1400;
+    D_80370B90 = gHeapPtr;
+    gHeapPtr += 0x1400;
 }
 
 s32 func_80288284(u8 type, s32 x, s32 y, s32 z, s32 floor) {
@@ -325,12 +325,12 @@ void func_80288DF0(Gfx **gdl, u8 buf) {
                 }
             }
             /* tilt the billboard toward the camera's height, then face its yaw */
-            dist = func_8026A6F0(D_803643F8 >> 11, D_803643FC >> 11, D_80364400 >> 11, D_8036EC38[n].pos[0],
+            dist = func_8026A6F0(gCamEyeX >> 11, gCamEyeY >> 11, gCamEyeZ >> 11, D_8036EC38[n].pos[0],
                                  D_8036EC38[n].pos[1], D_8036EC38[n].pos[2]);
             if (dist == 0) {
                 dist = 1;
             }
-            dy = (D_803643FC >> 11) - D_8036EC38[n].pos[1];
+            dy = (gCamEyeY >> 11) - D_8036EC38[n].pos[1];
             dy <<= 16;
             ratio = dy / dist;
             if (ratio < 0) {
@@ -343,7 +343,7 @@ void func_80288DF0(Gfx **gdl, u8 buf) {
                 ang = -ang;
             }
             guRotateF(mf1, (f32) ang / 65536.0 * 360.0, 1.0f, 0.0f, 0.0f);
-            guRotateF(mf2, (f32) D_80364452 / 4095.0 * 360.0, 0.0f, 1.0f, 0.0f);
+            guRotateF(mf2, (f32) gCamYaw / 4095.0 * 360.0, 0.0f, 1.0f, 0.0f);
             guMtxCatF(mf1, mf2, mf1);
             guTranslateF(mf2, D_8036EC38[n].pos[0] / 32.0f, D_8036EC38[n].pos[1] / 32.0f,
                          D_8036EC38[n].pos[2] / 32.0f);

@@ -175,6 +175,10 @@ STAGE = 0x8021ED00
 # the project root): build/ for the original, build_nm/*.rom.* for the NM ROM.
 import bisect
 import re
+# renamed symbols (tools_port/names.txt) are classified by the address names they had
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+                                "tools_port"))
+from names import orig  # noqa: E402
 from elftools.elf.elffile import ELFFile
 from elftools.elf.sections import SymbolTableSection
 BASE = os.environ.get("MODE", "nm") == "base"
@@ -249,7 +253,7 @@ for _p in _ELFS:
             if isinstance(_s, SymbolTableSection):
                 for _y in _s.iter_symbols():
                     if (_y["st_info"]["type"] in ("STT_FUNC", "STT_NOTYPE") and _y.name
-                            and not _y.name.startswith((".", "$", "L8", "jtbl", "D_", "_"))
+                            and not orig(_y.name).startswith((".", "$", "L8", "jtbl", "D_", "_"))
                             and any(a <= _y["st_value"] < b for a, b in CODE)):
                         if _y["st_info"]["type"] == "STT_FUNC" or _y["st_value"] not in _fsyms:
                             _fsyms[_y["st_value"]] = _y.name

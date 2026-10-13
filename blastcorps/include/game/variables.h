@@ -12,7 +12,7 @@
 
 /* low memory and others */
 extern s32 D_80000300; /* osTvType */
-extern u16 D_80000400[][320*240];
+extern u16 gFrameBuffers[][320*240];
 
 /* hd_code .text (tables inside the code) */
 extern u8 D_802C2190[]; /* keys of its three sound entries */
@@ -37,7 +37,7 @@ extern u8 D_802E68F0[];
 extern RankTitle D_802081C0[31]; /* rank name, first line */
 extern u8 D_802082B8[0x20]; /* number of words on the rank name's first line */
 #ifndef LEGACY_D_8020C070
-extern u8 D_8020C070[]; /* = D_80364AF0[p].flags */
+extern u8 D_8020C070[]; /* = players[p].flags */
 #endif
 extern GlobeLevel D_8020D810[60]; /* 0x44 */
 extern u8 D_802154B0;
@@ -53,7 +53,7 @@ extern Mtx D_802182D0[];
 extern OSThread D_80218D30; /* hd_code .bss: the Controller Pak file system */
 extern u8 D_80218EE0[];
 extern OSMesgQueue D_80219EF8; /* requests to the pak/EEPROM thread */
-extern OSMesgQueue D_80219F50; /* pakToGameMessageQ */
+extern OSMesgQueue pakToGameMessageQ; /* replies of the pak/EEPROM thread */
 extern u64 D_8021A830;
 extern u8 D_8021A8F0;
 extern f32 D_8021A918;
@@ -61,12 +61,12 @@ extern f32 D_8021A91C;
 extern f32 D_8021A920;
 
 /* hd_code .data / .rodata (0x802E8BD0-0x8030F660) */
-extern u8 D_802E8BD0;
-extern u8 D_802E8BD4;
-extern u8 D_802E8BD8;
-extern s32 D_802E8BDC; /* fade-in step per frame */
-extern u8 D_802E8BE4; /* screen shake time */
-extern s32 D_802E8BE8; /* screen shake size */
+extern u8 gPaused;         /* updates stop, the last picture is held (pause, loading) */
+extern u8 gUnpauseRequest;
+extern u8 gPauseRequest;
+extern s32 levelno;        /* the current level, 0-59 */
+extern u8 gShakeTime; /* screen shake time */
+extern s32 gShakeSize; /* screen shake size */
 extern s32 D_802E8BEC;
 extern u8 D_802E8BF0;
 extern u8 D_802E8BF8;
@@ -77,8 +77,8 @@ extern u16 D_802E8C90[];
 extern u16 D_802E8C94[];
 extern u16 D_802E8C98[]; /* string terminator */
 extern u8 D_802E8F38[][8];
-#ifndef LEGACY_D_802E8F94
-extern u8 D_802E8F94[][0x44]; /* 0x44 bytes */
+#ifndef LEGACY_gLevelInfo
+extern u8 gLevelInfo[][0x44]; /* one 0x44-byte record per level; +0 its kind */
 #endif
 #ifndef LEGACY_D_802F47B0
 extern u8 D_802F47B0[][8]; /* 0x100 bytes */
@@ -92,7 +92,7 @@ extern u8 D_802F8BDC[]; /* a read is in flight */
 #endif
 extern s32 D_802FA254; /* -d */
 extern s32 D_802FA264; /* debug mode */
-extern s32 D_802FA268; /* -c, -C */
+extern s32 gDebugCheats; /* -c, -C */
 extern s32 D_802FA26C; /* -C */
 extern Vtx D_802FA8B0[][4];
 extern u8 D_802FA940[]; /* 32x32 IA8 texture */
@@ -103,91 +103,91 @@ extern u8 D_802FDBD4;
 extern u32 D_803059F0[]; /* size 0xC */
 
 /* hd_code .bss (0x8030F660-0x80400000) */
-extern OSThread D_80310BD0; /* hd_code: the thread D_80219F50's receiver must be */
-extern OSMesgQueue D_803150A0;
-extern OSMesgQueue D_80315180; /* texture DMA queue */
-extern OSMesgQueue D_803153D8; /* gfx ucode data */
-extern OSMesgQueue D_80315440; /* file game names */
+extern OSThread gMainThread; /* hd_code: the thread pakToGameMessageQ's receiver must be */
+extern OSMesgQueue gDmaMesgQueue;
+extern OSMesgQueue textureDmaMessageQ; /* texture DMA queue */
+extern OSMesgQueue gTaskDoneQueue; /* the main thread's RSP task done messages (rsp_wait_task) */
+extern OSMesgQueue gScheduler; /* the scheduler (sched.c's BcSched; its interrupt queue comes first) */
 extern u32 D_803156C0; /* frame counter */
 extern u32 D_803156C4;
-extern OSMesgQueue D_803156D8; /* dram stack (0x400) */
+extern OSMesgQueue gMainSchedClient; /* the main thread's scheduler client (sched.c's BcScClient) */
 extern u8 D_803156F4;
-#ifndef LEGACY_D_803156F8
-extern DynamicBuf D_803156F8[]; /* timer start */
+#ifndef LEGACY_gDynamicBufs
+extern DynamicBuf gDynamicBufs[]; /* timer start */
 #endif
-extern u32 D_80358050[]; /* scene angle */
-#ifndef LEGACY_D_80358058
-extern u32 D_80358058; /* 0x100 bytes */
+extern u32 gFrameBufferPhys[]; /* scene angle */
+#ifndef LEGACY_gDepthBufferPhys
+extern u32 gDepthBufferPhys; /* 0x100 bytes */
 #endif
-extern u8 D_8035805C; /* selects which of the two matrix buffers is current */
-extern u32 D_80358060; /* frame counter */
+extern u8 gBufferIndex; /* selects which of the two matrix buffers is current */
+extern u32 gFramesInMode; /* frames since the mode's setup (hd_mode_setup) */
 extern s32 D_80358064;
-extern s32 D_80358068;
-extern u8 * N64P D_8035806C; /* heap pointer */
-#ifndef LEGACY_D_80358070
-extern u8 * N64P D_80358070; /* ROM offsets (from 0x4CE0) of the entries, 8 bytes apart */
+extern s32 gUnpausedFrames;
+extern u8 * N64P gStaticSegment; /* the static segment (segment 1), loaded at 0x803FF600 */
+#ifndef LEGACY_gHeapPtr
+extern u8 * N64P gHeapPtr; /* the heap's next free byte (a bump allocator from 0x8004B400) */
 #endif
-#ifndef LEGACY_D_80358074
-extern u8 * N64P D_80358074; /* animation channel table (Unk8029DEA0Entry, 56040.c) */
+#ifndef LEGACY_gLevelData
+extern u8 * N64P gLevelData; /* the level's inflated file, on the heap */
 #endif
-extern s32 D_80358078; /* top-level display list length */
-extern u16 D_8035807C; /* projection scale, 65535 = 1.0 */
-extern s32 D_80358080; /* queued-DMA counter (next OSIoMesg slot) */
-extern s32 D_80358084; /* no_palette_dmas */
-#ifndef LEGACY_D_803643C8
-extern Vehicle * N64P D_803643C8; /* size 0xFC */
+extern s32 gFrameDlLen; /* top-level display list length */
+extern u16 gPerspNorm; /* projection scale, 65535 = 1.0 */
+extern s32 nextdma; /* queued-DMA counter (next OSIoMesg slot) */
+extern s32 no_palette_dmas; /* no_palette_dmas */
+#ifndef LEGACY_gVehicleShadows
+extern Vehicle * N64P gVehicleShadows; /* size 0xFC */
 #endif
-#ifndef LEGACY_D_803643CC
-extern Vehicle * N64P D_803643CC; /* size 0xFC */
+#ifndef LEGACY_gVehicleShadowsEnd
+extern Vehicle * N64P gVehicleShadowsEnd; /* size 0xFC */
 #endif
 extern u8 D_803643D4;
 extern u8 D_803643D5;
-extern u8 D_803643D6;
-extern u8 D_803643D7;
+extern u8 gCarrierHit;        /* the mission failed: the carrier hit something */
+extern u8 gLevelDone;         /* the mission is complete */
 extern u8 D_803643D8;
-extern u8 D_803643D9;
-extern u8 D_803643DA;
-extern u8 D_803643DB;
-extern u8 D_803643DC;
-extern s32 D_803643E0; /* player position, speed, heading, angle */
-extern s32 D_803643E4;
-extern s32 D_803643E8; /* player z */
-extern s32 D_803643F8; /* listener x, y, z (<< 11) */
-extern s32 D_803643FC;
-extern s32 D_80364400;
-extern s32 D_80364404; /* fixed eye x, y, z */
-extern s32 D_80364408;
-extern s32 D_8036440C;
-extern u8 D_80364410;
+extern u8 cmo_hit_request;
+extern u8 gLevelDoneRequest;
+extern u8 gHaveCarrier;       /* the level has the missile carrier (type 0xFF) */
+extern u8 gHaveChopper;       /* ... the BCT chopper (0xFE) */
+extern s32 gPlayerX; /* the player's position (the camera's subject), 1/32 units */
+extern s32 gPlayerY;
+extern s32 gPlayerZ;
+extern s32 gCamEyeX; /* listener x, y, z (<< 11) */
+extern s32 gCamEyeY;
+extern s32 gCamEyeZ;
+extern s32 gCamFixedEyeX; /* fixed eye x, y, z */
+extern s32 gCamFixedEyeY;
+extern s32 gCamFixedEyeZ;
+extern u8 gCamFixedEye;
 extern u8 D_80364411;
-extern u8 D_80364412; /* camera: snap to the new position this frame */
-extern f32 D_80364414; /* camera heading, degrees */
+extern u8 gCamSnap; /* camera: snap to the new position this frame */
+extern f32 gCamHeading; /* camera heading, degrees */
 extern u8 D_80364424;
 extern u32 D_80364428;
 extern u16 D_8036442C;
 extern s32 D_80364430;
-extern f32 D_80364438;
+extern f32 gCamFovy;
 extern s16 D_8036443C; /* player speed, heading, angle */
 extern s16 D_8036443E; /* camera yaw, 4095 = 360 degrees */
 extern s16 D_80364440;
-extern s16 D_8036444C;
-extern s16 D_8036444E;
+extern s16 gCamDistance;
+extern s16 gCamHeight;
 extern s16 D_80364450;
-extern s16 D_80364452; /* camera / player angle (0..0xFFF) */
-extern u8 D_80364456; /* mode: the update is skipped in modes 0,1,2,6,7,9,0xB,0x10..0x12 */
-#ifndef LEGACY_D_80364458
-extern u8 * N64P D_80364458; /* level40 */
+extern s16 gCamYaw; /* camera / player angle (0..0xFFF) */
+extern u8 gCurVehicle; /* the type of the vehicle the player drives (0: on foot) */
+#ifndef LEGACY_gLevelSegment8
+extern u8 * N64P gLevelSegment8; /* the level file's display data (segment 8) */
 #endif
-extern u8 D_80364460[][0x74]; /* frame time */
-#ifndef LEGACY_D_803649D0
-extern u8 * N64P D_803649D0; /* previous game mode */
+extern u8 gVehicles[][0x74]; /* one record per loaded vehicle model (00000.c's Unk74) */
+#ifndef LEGACY_gVehiclesEnd
+extern u8 * N64P gVehiclesEnd; /* one past the last record in use */
 #endif
 extern u64 D_803649D8; /* frame counter */
 extern s16 D_803649E0; /* x, y, z stored for a part that falls */
 extern s16 D_803649E2;
 extern s16 D_803649E4;
 extern s32 D_803649E8; /* heap pointer */
-extern u8 D_803649ED;
+extern u8 gNextVehicle;
 extern u8 D_803649EE;
 extern u32 D_803649F0; /* score */
 extern s32 D_80364A40; /* message to post */
@@ -202,19 +202,19 @@ extern u8 D_80364A6C; /* icon 2 loaded */
 extern u8 D_80364A6D;
 extern u8 D_80364A6E; /* default level */
 extern s8 D_80364A71;
-extern s16 D_80364A72; /* tilt limits */
+extern s16 gCamTiltMax; /* tilt limits */
 extern u8 D_80364A84;
 extern u8 D_80364A87;
-extern u64 D_80364A88; /* previous game mode */
-extern u64 D_80364A90; /* game mode flags */
-extern u64 D_80364A98; /* next game mode */
-extern u32 D_80364AA8; /* game mode flags */
-extern u8 D_80364AC1;
-extern u8 D_80364AE8; /* current player */
+extern u64 gPrevGameMode; /* previous game mode */
+extern u64 gGameMode; /* game mode flags */
+extern u64 gNextGameMode; /* next game mode */
+extern u32 gLevelKind; /* gLevelInfo[levelno]'s kind: 1 = main mission */
+extern u8 gHaveShuttle;       /* ... the shuttle (0xFD) */
+extern u8 playerNumber; /* current player */
 extern u8 D_80364AE9;
-extern u8 D_80364AEA;
-#ifndef LEGACY_D_80364AF0
-extern u8 D_80364AF0[][0x100]; /* file menu lines */
+extern u8 playerNumberAtStart;
+#ifndef LEGACY_players
+extern u8 players[][0x100]; /* per-player progress, 0x100 bytes each */
 #endif
 extern u16 D_80364EF0[][16]; /* per player: saved level times */
 extern u16 D_80364F70[]; /* EEPROM best-time words (time, time ^ 0x55AA) */
@@ -251,7 +251,7 @@ extern u8 D_80367C10;
 extern s32 D_80368030;
 extern s32 D_80368040;
 extern s32 D_80368048;
-extern u64 D_8036AFB0[]; /* ucode data per slot */
+extern u64 gYieldBuffer[]; /* the RSP tasks' yield data (0x900 bytes) */
 extern u8 D_8036B8B0;
 extern s32 D_8036B8B4;
 extern s32 D_8036B8B8;
@@ -276,8 +276,8 @@ extern u16 D_8036BBB0[];
 #ifndef LEGACY_D_8036BED8
 extern u8 * N64P D_8036BED8;
 #endif
-extern s32 D_8036BF10;
-extern OSTime D_8036BF38;
+extern s32 gPreNmi;
+extern OSTime gLastRetraceTime;
 extern s16 * N64P D_8036C790;
 #ifndef LEGACY_D_8036C794
 extern s16 * N64P D_8036C794;
@@ -293,15 +293,15 @@ extern u8 D_8036DCD7;
 extern s32 D_8036DCD8;
 extern s16 D_8036E4C8;
 extern s8 D_8036E4CA;
-extern u8 D_8036E68C[]; /* slot busy flags */
-#ifndef LEGACY_D_8036E694
-extern u64 * N64P D_8036E694; /* RDP output buffer (0xA000 bytes) */
+extern u8 gRspSlotBusy[]; /* slot busy flags */
+#ifndef LEGACY_gRdpOutputBuffer
+extern u64 * N64P gRdpOutputBuffer; /* RDP output buffer (0xA000 bytes) */
 #endif
 #ifndef LEGACY_D_8036EA60
 extern Score D_8036EA60; /* level56 */
 #endif
-#ifndef LEGACY_D_8036EA70
-extern Score D_8036EA70; /* level57 */
+#ifndef LEGACY_nss
+extern Score nss; /* this run's level result (master_switch.c) */
 #endif
 extern u8 D_8036EA78;
 extern u8 D_8036EA79;
@@ -313,47 +313,47 @@ extern u8 D_8036EB92;
 extern u8 D_8036EB93;
 extern u8 D_8036EB98;
 extern u8 D_8036EB99;
-extern OSMesgQueue D_80370BF8; /* hd_code: SI message queue */
-extern s8 D_80370C11;
-extern s8 D_80370C12;
-extern s8 D_80370C13;
-extern s8 D_80370C14;
-extern u8 D_80370C15; /* button bytes */
-extern u8 D_80370C16; /* R_JPAD */
-extern u8 D_80370C1A; /* flags (either one set animates) */
-extern u8 D_80370C1B; /* input 1 */
-extern u8 D_80370C1C; /* flag tested when the speed is <= 0 */
-extern u8 D_80370C1D; /* B */
-extern u8 D_80370C1E; /* L_CBUTTONS */
-extern u8 D_80370C21; /* R_CBUTTONS */
-extern u8 D_80370C22; /* Z */
-extern u8 D_80370C23; /* flag tested when the speed is > 0 */
-extern u8 D_80370C24;
-extern u8 D_80370C27;
-extern u16 D_80370C28; /* controller buttons held */
-extern u16 D_80370C2A; /* controller buttons, previous frame */
-extern s8 D_80370C2C; /* flag sampled each counted frame */
-extern s8 D_80370C2D; /* stick y */
-extern s8 D_80370C2E; /* stick x last frame */
-extern u16 D_80370C30; /* controller 1 buttons */
-extern s8 D_80370C32; /* controller 1 stick x */
-extern s8 D_80370C33; /* controller 1 stick y */
+extern OSMesgQueue gSiMesgQueue; /* hd_code: SI message queue */
+extern s8 gContStickX;
+extern s8 gContStickY;
+extern s8 gContPrevStickX;
+extern s8 gContPrevStickY;
+extern u8 gHeldLeft; /* 1 while the button is held (this frame's processed pad) */
+extern u8 gHeldRight;
+extern u8 gHeldL;
+extern u8 gHeldR;
+extern u8 gHeldA;
+extern u8 gHeldB;
+extern u8 gHeldCLeft;
+extern u8 gHeldCRight;
+extern u8 gHeldZ;
+extern u8 gHeldBOrZ;
+extern u8 gPrevHeldCLeft;
+extern u8 gPrevHeldCRight;
+extern u16 gContButtons; /* controller buttons held */
+extern u16 gContPrevButtons; /* controller buttons, previous frame */
+extern s8 gPadStickX; /* the processed stick */
+extern s8 gPadStickY;
+extern s8 gPrevPadStickX; /* stick x last frame */
+extern u16 gRecButtons; /* the pad played back from a recording */
+extern s8 gRecStickX;
+extern s8 gRecStickY;
 extern u8 D_80370C34;
-extern u8 D_80370C35; /* stick mode */
-extern s32 D_80370C38; /* swallow a held B */
-extern u8 D_80370C50; /* front end loaded */
-extern OSIoMesg D_80370C58;
+extern u8 gControlMethod; /* 0 or 1: the player's control method for the vehicle */
+extern s32 gSwallowB; /* swallow a held B */
+extern u8 frontEndPresent; /* front end loaded */
+extern OSIoMesg gDmaIoMesg;
 extern u16 D_80370C70;
 extern s16 D_80370C72;
 extern u8 D_80370C75;
-extern u8 D_8039C4B0; /* pak thread busy */
+extern u8 pakBusy; /* pak thread busy */
 #ifndef LEGACY_D_8039C4B4
 extern void * N64P D_8039C4B4; /* file extensions */
 #endif
-extern u64 D_8039C4B8[]; /* 0x100 bytes */
+extern u64 pakBuffer[]; /* 0x100 bytes */
 extern u8 D_8039C538;
-extern u8 D_8039C53C[]; /* per slot: 1 + level to save, 0 = nothing pending */
-extern u8 D_8039C540;
+extern u8 saveIt[]; /* per slot: 1 + level to save, 0 = nothing pending */
+extern u8 saveLevel;
 extern u8 D_8039C541;
 extern u8 D_8039C800[]; /* size 0xFC */
 extern u8 D_8039C940; /* number of D_8039C800 entries */
@@ -437,7 +437,7 @@ extern s16 D_803BE736;
 extern u8 D_803BE738;
 extern u8 D_803BE739;
 extern u8 D_803BE73A; /* current level index */
-extern u16 D_803C30A8[]; /* visible object ids, ended by -1 */
+extern u16 gVisibleCells[]; /* visible object ids, ended by -1 */
 extern Gfx D_803C5770[]; /* display lists A / B, frame 0 */
 extern Gfx D_803C6370[]; /* display lists A / B, frame 1 */
 extern Gfx D_803C6F70[];
@@ -506,9 +506,9 @@ extern u8 D_803F1BE0[]; /* 2 entries of 0x478 bytes */
 extern u8 D_803F3910[];
 extern u8 * N64P D_803F3960; /* end of the (object, part) hit list */
 extern u8 D_803F3FF8[];
-extern u8 D_803F4030[]; /* definition in the 7D9D0 text blob */
-#ifndef LEGACY_D_803F7654
-extern u8 * N64P D_803F7654; /* size 0xFC */
+extern u8 gObjects[]; /* the level's objects (buildings ...), 0xFC-byte records (77E20.c) */
+#ifndef LEGACY_gObjectsEnd
+extern u8 * N64P gObjectsEnd; /* one past the last object record */
 #endif
 extern s32 D_803F7660;
 extern s32 D_803F7664; /* position objects with a pose are moved to */

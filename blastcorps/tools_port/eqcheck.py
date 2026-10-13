@@ -82,7 +82,19 @@ SAVED_REGS = ["s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7", "fp", "sp", "gp"] 
 RET_KINDS = {"int": ["v0"], "void": [], "u64": ["v0", "v1"], "float": ["f0"],
              "double": ["f0", "f1"], "ptr": ["v0"]}
 
-SKIP_SYM = re.compile(r"^(\.|L[0-9A-F]{8}|jtbl_|D_|_asmpp_|_binary_|.*_(START|END|VRAM|bin|SIZE)$|__)")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from names import orig  # noqa: E402  (renamed symbols are classified by their address names)
+
+
+class _SkipSym:
+    """local labels, data and markers (not functions); a renamed symbol is matched by its address name"""
+    RE = re.compile(r"^(\.|L[0-9A-F]{8}|jtbl_|D_|_asmpp_|_binary_|.*_(START|END|VRAM|bin|SIZE)$|__)")
+
+    def match(self, n):
+        return self.RE.match(orig(n))
+
+
+SKIP_SYM = _SkipSym()
 
 
 def sext32(v):
@@ -549,7 +561,7 @@ class Build:
                         continue
                     shndx = sy["st_shndx"]
                     if shndx == "SHN_ABS":
-                        if n.startswith("func_") or (not n.startswith("D_") and 0x80000000 <= v < 0x80800000
+                        if orig(n).startswith("func_") or (not orig(n).startswith("D_") and 0x80000000 <= v < 0x80800000
                                                      and not SKIP_SYM.match(n)):
                             self.abs_funcs.setdefault(v, n)
                         if n not in self.sym:
@@ -573,7 +585,7 @@ class Build:
                     if sec["sh_flags"] & 4 and not SKIP_SYM.match(n):
                         typ = sy["st_info"]["type"]
                         if typ == "STT_FUNC" or bind == "STB_GLOBAL":
-                            if v not in self.funcs or n.startswith("func_") is False:
+                            if v not in self.funcs or orig(n).startswith("func_") is False:
                                 self.funcs.setdefault(v, n)
 
     def in_text(self, a):
@@ -603,7 +615,7 @@ class Build:
         j = i
         while j > 0 and self.addr_syms[j - 1][0] == base:
             j -= 1
-            if not SKIP_SYM.match(self.addr_syms[j][1]) or self.addr_syms[j][1].startswith("D_"):
+            if not SKIP_SYM.match(self.addr_syms[j][1]) or orig(self.addr_syms[j][1]).startswith("D_"):
                 n = self.addr_syms[j][1]
         off = a - base
         if off > 0x10000:
@@ -619,7 +631,7 @@ class Build:
             j = i
             while j >= 0 and i - j < 256:
                 n = self.addr_syms[j][1]
-                if n.startswith("D_") or not SKIP_SYM.match(n):
+                if orig(n).startswith("D_") or not SKIP_SYM.match(n):
                     i = j
                     break
                 j -= 1
@@ -1694,7 +1706,7 @@ def gen_value(spec, rng, plan, what):
         a = plan.alloc(size)
         # (byte by byte even when big: switching ptr blocks to randbytes changed
         # the inputs of existing check lines, and the new ones hit an asm
-        # overflow trap in func_802A484C and a heap diff in func_802A57AC that
+        # overflow trap in cull_test_cells and a heap diff in func_802A57AC that
         # the checks don't yet account for; --mem rand fills use rand_bytes)
         data = bytes(size) if kind == "ptrz" else bytes(rng.getrandbits(8) for _ in range(size))
         plan.mem.append((lambda b, a=a: a, data))

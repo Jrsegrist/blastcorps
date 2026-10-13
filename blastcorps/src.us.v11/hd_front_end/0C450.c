@@ -65,7 +65,7 @@ Gfx *func_801F3450(Gfx *gdl, u8 *dyn) {
     gfx = gdl;
     nodes = D_8020BD30;
     cam = &nodes[&nodes[D_80217B6C] - nodes];
-    gImmp1(gfx++, G_RDPHALF_1, D_8035807C);
+    gImmp1(gfx++, G_RDPHALF_1, gPerspNorm);
     D_80217B50 = 4;
     guMtxIdentF(D_80217A10[4]);
     func_801F374C(&D_8020BE98);
@@ -123,10 +123,10 @@ void func_801F374C(Node *node) {
         }
         func_801FD484(&rot, &node->unk1C, &x, &y, &z, node->unkC);
         guTranslateF(mf, -x, -y, -z);
-        guScale(&m[D_8035805C + 2], scale, scale, scale);
+        guScale(&m[gBufferIndex + 2], scale, scale, scale);
         guMtxCatF(D_80217A10[D_80217B50], mf, D_80217A10[D_80217B50 - 1]);
         D_80217B50--;
-        guMtxF2L(D_80217A10[D_80217B50], &m[D_8035805C]);
+        guMtxF2L(D_80217A10[D_80217B50], &m[gBufferIndex]);
         osWritebackDCache(m, 0x100);
         func_801F4C3C(node, scale);
         func_801F374C(node->unk14);
@@ -150,7 +150,7 @@ Gfx *func_801F3964(Gfx *gdl, u8 *dyn, Node *node, f32 scale) {
 
     gfx = gdl;
     size = node->unk0 * 64.0 / D_8020BDE4;
-    vtx = D_80217690[node - D_8020BD30][D_8035805C];
+    vtx = D_80217690[node - D_8020BD30][gBufferIndex];
     gDPPipeSync(gfx++);
     gDPSetPrimColor(gfx++, 0xFF, 0xFF, node->unk18[0], node->unk18[1], node->unk18[2], 0xFF);
     gDPSetRenderMode(gfx++, G_RM_XLU_SURF, G_RM_XLU_SURF2);
@@ -172,8 +172,8 @@ Gfx *func_801F3964(Gfx *gdl, u8 *dyn, Node *node, f32 scale) {
         size = size * 10000.0 / node->unk38;
     }
     isize = size;
-    func_8027690C(dyn, 0.0f, 0.0f, 0.0f, &sx, &sy, &D_80217B70[node - D_8020BD30][D_8035805C],
-                  &D_80217B70[node - D_8020BD30][D_8035805C] + 2, (Mtx *) (dyn + 0x1280), 4.0f);
+    func_8027690C(dyn, 0.0f, 0.0f, 0.0f, &sx, &sy, &D_80217B70[node - D_8020BD30][gBufferIndex],
+                  &D_80217B70[node - D_8020BD30][gBufferIndex] + 2, (Mtx *) (dyn + 0x1280), 4.0f);
     if (ABS(sx) + size / 2.0 < 4096.0 && ABS(sy) + size / 2.0 < 4096.0) {
         gDPLoadTextureBlock(gfx++, tex, G_IM_FMT_IA, G_IM_SIZ_8b, 64, 64, 0, G_TX_CLAMP, G_TX_MIRROR, G_TX_NOMASK,
                             6, G_TX_NOLOD, G_TX_NOLOD);
@@ -218,7 +218,7 @@ Gfx *func_801F4110(Gfx *gdl, u8 *dyn, Node *node, f32 scale) {
 
     gfx = gdl;
     size = node->unk0 * 64.0 / D_8020BDE4;
-    vtx = D_80217690[node - D_8020BD30][D_8035805C];
+    vtx = D_80217690[node - D_8020BD30][gBufferIndex];
     gDPPipeSync(gfx++);
     gDPSetPrimColor(gfx++, 0xFF, 0xFF, node->unk18[0], node->unk18[1], node->unk18[2], 0xFF);
     gDPSetRenderMode(gfx++, G_RM_XLU_SURF, G_RM_XLU_SURF2);
@@ -231,8 +231,8 @@ Gfx *func_801F4110(Gfx *gdl, u8 *dyn, Node *node, f32 scale) {
         size = size * 10000.0 / node->unk38;
     }
     isize = size;
-    func_8027690C(dyn, 0.0f, 0.0f, 0.0f, &sx, &sy, &D_80217B70[node - D_8020BD30][D_8035805C],
-                  &D_80217B70[node - D_8020BD30][D_8035805C] + 2, (Mtx *) (dyn + 0x1280), 4.0f);
+    func_8027690C(dyn, 0.0f, 0.0f, 0.0f, &sx, &sy, &D_80217B70[node - D_8020BD30][gBufferIndex],
+                  &D_80217B70[node - D_8020BD30][gBufferIndex] + 2, (Mtx *) (dyn + 0x1280), 4.0f);
     if (ABS(sx) + size / 2.0 < 4096.0 && ABS(sy) + size / 2.0 < 4096.0) {
         gDPLoadTextureBlock(gfx++, D_80215A84, G_IM_FMT_RGBA, G_IM_SIZ_32b, 32, 32, 0, G_TX_CLAMP, G_TX_CLAMP,
                             G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
@@ -294,8 +294,8 @@ void func_801F4878(Gfx *gdl, u8 *dyn) {
             case 3:
                 gSPMatrix(gfx++, dyn + 0x80, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
                 gSPMatrix(gfx++, dyn + 0x140, G_MTX_PROJECTION | G_MTX_MUL | G_MTX_NOPUSH);
-                gSPMatrix(gfx++, &m[D_8035805C], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
-                gSPMatrix(gfx++, &m[D_8035805C + 2], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
+                gSPMatrix(gfx++, &m[gBufferIndex], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+                gSPMatrix(gfx++, &m[gBufferIndex + 2], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
                 gSPMatrix(gfx++, dyn + 0x1280, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
                 gfx = func_801FE238(gfx, (s32) dyn);
                 break;

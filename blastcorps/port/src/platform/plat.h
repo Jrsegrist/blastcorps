@@ -53,7 +53,7 @@ extern u32 plat_rom_size;
 typedef struct {
     u32 frames;            /* frame (swap-buffer) gfx tasks */
     u32 gfx_tasks;         /* all gfx tasks dropped */
-    u32 cull_tasks;        /* func_802A4B0C visibility tests */
+    u32 cull_tasks;        /* cull_rsp_test visibility tests */
     u32 cull_hidden;       /* ... answered "not visible" */
     u32 cull_keyed, cull_disagree;   /* --clock: the emulator's answers; how many the model differs from */
     u32 aud_tasks;
@@ -82,7 +82,7 @@ void plat_clock_keyed_load(const char *path);
 /* kind 0 osGetTime, 1 osGetCount, 2 osAiGetLength: the injected value for
  * the caller at RA in this retrace (or the emulator's clock for 0/1) */
 int plat_clock_key_take(int kind, void *ra, u64 *v);
-/* the same by caller name; kind 3: func_802A4B0C's visibility test word */
+/* the same by caller name; kind 3: cull_rsp_test's visibility test word */
 int plat_clock_key_take_name(int kind, const char *name, u64 *v);
 /* N emulator counts as native counts (the emulator's VI period differs) */
 u64 plat_emu_counts(u64 n);

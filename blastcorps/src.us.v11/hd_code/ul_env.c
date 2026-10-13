@@ -4,7 +4,7 @@
  * (no logtab/pow approximation), _getVol a linear step; _pullSubFrame does
  * not check the motion state or advance delta, so alEnvmixerPull advances
  * delta itself and only pulls the trailing subframe while playing. The
- * asserts are Rare's (printing through func_8029A7E4, with the original
+ * asserts are Rare's (printing through debug_printf, with the original
  * line numbers). The rest is ultralib's source. */
 /*====================================================================
  * envmixer.c
@@ -34,9 +34,9 @@
 
 /* Rare built this file with their own assert, which prints through the
  * game's debug printf. */
-void func_8029A7E4(const char *fmt, ...);
+void debug_printf(const char *fmt, ...);
 #define ENV_ASSERT(EX, line) \
-    if (!(EX)) func_8029A7E4("\n--- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "env.c", line)
+    if (!(EX)) debug_printf("\n--- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "env.c", line)
 // TODO: these come from headers
 #ident "$Revision: 1.49 $"
 #ident "$Revision: 1.17 $"

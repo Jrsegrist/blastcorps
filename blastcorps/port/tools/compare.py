@@ -44,6 +44,9 @@ ROOT = os.path.dirname(PORT)  # blastcorps/
 SIZE = 0x400000  # the game only uses the first 4 MB
 BASE = 0x80000000
 NATIVE_PERIOD = 781250
+# renamed symbols (tools_port/names.txt) count as the address names they had
+sys.path.insert(0, os.path.join(ROOT, "tools_port"))
+from names import orig, game_functions  # noqa: E402
 
 
 def die(msg):
@@ -275,7 +278,7 @@ def cmd_inject(args):
                 it = fs.find(ra)
                 name = names.get(i) or (it[1] if it else "?")
                 f.write("%s %s %d %x\n" % (kind, name, vi if kind == "U" else vi + off, v))
-    # The scheduler's retrace handler (func_80271358) reads osGetTime once per
+    # The scheduler's retrace handler (__scHandleRetrace) reads osGetTime once per
     # retrace: where an RDP-done handler ran before the retrace handler of
     # its own retrace (the DP interrupt's message reached the scheduler
     # before the VI manager's retrace message, which comes ~2000 counts
@@ -285,7 +288,7 @@ def cmd_inject(args):
     retr = {}
     for s, (ra, th, v, vi) in zip(ev.get("seqT", []), ev["T"]):
         it = fs.find(ra)
-        if it and it[1] == "func_80271358":
+        if it and it[1] == "__scHandleRetrace":
             retr.setdefault(vi, s)
     nflip = 0
     with open(os.path.join(emudir, "framedone.txt"), "w") as f:
@@ -334,9 +337,13 @@ def cmd_inject(args):
         # native audio timer still fires a little before the game thread's
         # frame send there.)
         pts = [p for p in pts if p[2] not in (4, 5)]
+        # game functions that no longer have a func_ name (tools_port/names.txt):
+        # the exe's switch points only count game functions' calls
+        for n in game_functions():
+            f.write("G %s\n" % n)
         for s, c, th, ra, kind, q, gv in pts:
             it = fs.find(ra)
-            if it and re.match(r"^func_[0-9A-F]{8}$", it[1]):
+            if it and re.match(r"^func_[0-9A-F]{8}$", orig(it[1])):
                 f.write("S %d %s %s %X %d %d\n" % (th, it[1], kind, q, ev["to_native"](c), gv))
                 nsync += 1
     with open(os.path.join(emudir, "boot.txt"), "w") as f:
@@ -365,7 +372,7 @@ def lle_env(emudir):
     """emu --lle: the RSP tasks whose results the game reads run on an LLE RSP
     (cxd4 from ~/thirdparty/ref, a CC0 test oracle loaded at run time) through
     port/tools/audio's rsp_tap.so: every audio task (checked against the
-    port's interpreter as well) and func_802A4B0C's visibility test (ucode
+    port's interpreter as well) and cull_rsp_test's visibility test (ucode
     D_802E77B0; mupen64plus's HLE RSP never runs it, so its answer would
     always be "visible").  Graphics go to the HLE RSP as before.  ai_dump.so
     records the emulator's AI stream to EMUDIR/emu.wav (+ ai_log.txt)."""
@@ -779,14 +786,14 @@ class Cmp:
             if (snd(ev) or ev == 0) and (snd(nv) or nv == 0) and (ev or nv):
                 return True
         # 34430.c func_80279778: the RDP renders a 120x90 RGBA16 view into
-        # the buffer D_8036D170 points at (its depth image: D_80358058's);
+        # the buffer D_8036D170 points at (its depth image: gDepthBufferPhys's);
         # nothing renders natively, and the CPU doesn't read the pixels
         for ptr in (0x8036D170, 0x80358058):
             p = int.from_bytes(e[ptr - BASE:ptr - BASE + 4], "big") | 0x80000000
             if p <= a < p + 120 * 90 * 2:
                 return True
-        # 34430.c func_80278E3C passes the heap pointer D_80358070's value,
-        # not its address, to the round-up helper func_80257490 (an original
+        # 34430.c func_80278E3C passes the heap pointer gHeapPtr's value,
+        # not its address, to the round-up helper align_up (an original
         # bug, kept): it "rounds" the stale s32 just past that buffer (the
         # emulator's text Vtx x/y pair there gets y += 15; natively the same
         # bytes are a host-order word, already a multiple of 8).  Nothing reads it.
@@ -1494,7 +1501,7 @@ def cmd_verify(args):
 # How a run reaches level L (both sides, same input): data/levels_input.txt
 # drives the menus (START/A from read 400: new game, player A) to the globe
 # and presses A at read 985; at frame 930, before the globe first opens, the
-# player's "last level" byte (D_80364AF0[0].pad0[8], 00000.c case 0x4000) is
+# player's "last level" byte (players[0].pad0[8], 00000.c case 0x4000) is
 # set to L, so the globe opens centred on L and A selects it.  The game then
 # loads L its own way (intro page / sequence / bonus info, A taps), and the
 # input drives the vehicle from read 1220.
@@ -1601,7 +1608,7 @@ def cmd_level(args):
     kind = opt(args, "--kind", "nm")
     shots = opt(args, "--shots", "")
     # (--strict: also the typed comparison; in a level, heap data lands on
-    # declared arrays like the frame buffers D_80000400, so it reports noise)
+    # declared arrays like the frame buffers gFrameBuffers, so it reports noise)
     res = run_level(level, cache, frames, every, inp, kind, shots, flag(args, "--force"), flag(args, "--keep"),
                     flag(args, "--strict"))
     print("level: results")

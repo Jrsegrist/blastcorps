@@ -38,7 +38,7 @@ s32 func_802B2768(s32 a3, s32 s0, s32 s1, VehMtxOut *out);
  * more specific non-ABI explanation where one was already worked out. */
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Spawn vehicle type 2 (from the dispatcher func_802A350C). Same code as
+/* Spawn vehicle type 2 (from the dispatcher lvl_spawn_vehicles). Same code as
  * func_802D07E0 (8AEE0.c, vehicle 16) with id 2, scale 0x6590 and this
  * vehicle's globals: model D_803EDFC4, 0x1400-byte matrix buffers
  * D_803EDFC8/CC, wheel offsets and speed bands, state bytes +0xA1/A2 = 0 and
@@ -48,9 +48,9 @@ s32 func_802B2768(s32 a3, s32 s0, s32 s1, VehMtxOut *out);
  * C8, the matrix copy, and D_803F7844 is cleared.
  * Register convention (conventions.txt): model s2, x t7, y s3, z s0, heading
  * s1, fp; t6 and func_802A992C's FP state pass through to func_802B152C. The
- * asm restores t0-t5 (func_802A350C keeps t1, t2 live) and leaves s0-s7, fp,
+ * asm restores t0-t5 (lvl_spawn_vehicles keeps t1, t2 live) and leaves s0-s7, fp,
  * gp, f20-f30 changed (the survey's s2-s4, fp, f12-f26 "outputs" are
- * rewritten by func_802A350C before use).
+ * rewritten by lvl_spawn_vehicles before use).
  * Leaked registers (FIDELITY): func_802B152C's zone registers here are the
  * stub-model values - t6 the caller's, t7 func_8029F85C's result (the asm
  * expects the C func_80258230 to keep t6/t7), s0 = z, s1 = +4, which in the
@@ -66,11 +66,11 @@ void func_802B0DA0(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s32 t6
     s32 t7;
 
     D_803EDFC4 = model;
-    buf = D_80358070;
+    buf = gHeapPtr;
     D_803EDFC8 = (u64 *) buf;
     D_803EDFCC = (u64 *) (buf + 0x1400);
-    D_80358070 = buf + 0x2800;
-    func_802A1388(2, 1, (s32) D_803EDFC8, (s32) D_803EDFCC, model);
+    gHeapPtr = buf + 0x2800;
+    veh_add_record(2, 1, (s32) D_803EDFC8, (s32) D_803EDFCC, model);
     func_802A754C(v);
     *(s16 *) (v + 0x52) = 0;
     *(s16 *) (v + 0x54) = 0;
@@ -173,7 +173,7 @@ extern u64 * N64P D_803EDFCC;
 extern void * N64P D_803EDFD0; /* engine sound handle */
 extern u8 D_803EDC10[];  /* this vehicle's animation channel table */
 
-/* Vehicle-type 2 shutdown (called from hd.c's func_8024B188): zeroes the
+/* Vehicle-type 2 shutdown (called from hd.c's veh_leave): zeroes the
  * speed (s16 at +0x76), func_802A7764(D_803EDFC8, D_803EDFCC, 0x1400), stops
  * channel 31 of D_803EDC10, func_802C444C(), then stops the engine sound
  * D_803EDFD0 (func_802608C8). The asm leaves v1 = &D_803EDC10 only if
@@ -197,7 +197,7 @@ extern u8 D_802C2308[]; /* key of this vehicle's func_802A06B4 entry */
 extern u8 D_803EDC10[]; /* this vehicle's animation channel table */
 
 /* Vehicle-type 2 setup (called from 00000.c / 17210.c): clears byte 0x99 of
- * the state block, D_8036444C/50 = 4200, 3000, starts the engine sound 0x50
+ * the state block, gCamDistance / D_80364450 = 4200, 3000, starts the engine sound 0x50
  * (handle in D_803EDFD0), sets the D_802C2308 entry's fields (25, 0, 0) and
  * the animation channels 7, 8, 9 (and 1, 5, 3) of D_803EDC10.
  * The asm also points $gp at D_803EDF10 and leaves it there (conventions.txt:
@@ -205,7 +205,7 @@ extern u8 D_803EDC10[]; /* this vehicle's animation channel table */
  * ignore both. */
 void func_802B1228(void) {
     D_803EDF10[0x99] = 0;
-    D_8036444C = 0x1068;
+    gCamDistance = 0x1068;
     D_80364450 = 0xBB8;
     func_80260650(D_80367738, 0x50, &D_803EDFD0);
     func_802A05D0((s32) D_802C2308, 0x19);
@@ -231,8 +231,8 @@ void func_802B1228(void) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 /* Re-ground vehicle type 2: the ground slots (func_802A9A60, key 2) at its
- * position, the model matrices (func_802B2768), then the D_80364460 record
- * (func_802A133C). No callers are known. Same as func_802D0E44 (8AEE0.c).
+ * position, the model matrices (func_802B2768), then the gVehicles record
+ * (veh_set_record). No callers are known. Same as func_802D0E44 (8AEE0.c).
  * Register convention (conventions.txt): fp and a3 (passed through to
  * func_802A9A60 and func_802B2768) and the FP pass-through state f12-f26. */
 void func_802B13D8(s32 fpIn, s32 a3, f32 f12, f32 f14, f32 f20, f32 f22, f32 f24, f32 f26) {
@@ -252,7 +252,7 @@ void func_802B13D8(s32 fpIn, s32 a3, f32 f12, f32 f14, f32 f20, f32 f22, f32 f24
     func_802A9A60((s16 *) (v + 0x52), D_803EDFB8[1], x, z, (s32 *) (v + 4), (s32 *) &D_803EDFB8[1],
                   (s16 *) (v + 0x4C), 2, fpIn, v, &f, &o9);
     func_802B2768(a3, z, (s32) o9.s1, &mo);
-    func_802A133C(D_803EDFB8[2], 2, D_803EDFB8[0], D_803EDFB8[1], v);
+    veh_set_record(D_803EDFB8[2], 2, D_803EDFB8[0], D_803EDFB8[1], v);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6C5E0/func_802B13D8.s")
@@ -276,7 +276,7 @@ s32 func_802B14E8(ZoneScanRegs *r) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Per-frame update of vehicle type 2 (from 00000.c's func_8024B7AC and once
+/* Per-frame update of vehicle type 2 (from 00000.c's veh_update_player and once
  * from func_802B0DA0); the same code as func_802D0F98 (8AEE0.c) with id 2:
  * zone level (func_802B14E8), the animation state machine (func_802B18F4,
  * which takes the zone registers func_802B14E8 leaves, unless +0x9A), timers
@@ -289,7 +289,7 @@ s32 func_802B14E8(ZoneScanRegs *r) {
  * (D_803A7425): D_803EDFD8 = 1, D_803EDFDA = 1 if the ring distance is under
  * 0x190 (which also makes the v1 handed to func_802A746C 1), the ring
  * steering with scale 0.25 (new heading also to D_803EDFD4); else D_803EDFD8
- * and D_803EDFDA are cleared. Finally D_803643E0.. and the D_80364460 record.
+ * and D_803EDFDA are cleared. Finally gPlayerX.. and the gVehicles record.
  * Register convention (conventions.txt): zone registers t6, t7, s0-s4 and the
  * FP pass-through state f14-f26 (func_802A8768). The C caller declares it
  * `void (void)` (garbage in the game as in the port; update 00000.c's
@@ -355,7 +355,7 @@ void func_802B152C(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 f
     func_802A8768(v, 2, (s32 *) &D_803EDFB8[0], (s32 *) &D_803EDFB8[1], (s32 *) &D_803EDFB8[2], x, o.t1, 0x78,
                   0x78, (s16 *) (v + 0x4C), v + 0x96, (s16 *) (v + 0x52), (s32 *) (v + 0x28), (s32 *) (v + 0x40),
                   (s32 *) (v + 0x34), (s32 *) (v + 4), &r8, &f);
-    if (D_8035805C != 0) {
+    if (gBufferIndex != 0) {
         func_8029E558((u8 *) D_803EDFC8, (u8 *) D_803EDFCC, (Unk8029DEA0Entry *) D_803EDC10);
     } else {
         func_8029E558((u8 *) D_803EDFCC, (u8 *) D_803EDFC8, (Unk8029DEA0Entry *) D_803EDC10);
@@ -398,13 +398,13 @@ void func_802B152C(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 f
         D_803EDFD8 = 0;
         D_803EDFDA = 0;
     }
-    D_803643E0 = D_803EDFB8[0];
-    D_803643E4 = D_803EDFB8[1];
-    D_803643E8 = D_803EDFB8[2];
+    gPlayerX = D_803EDFB8[0];
+    gPlayerY = D_803EDFB8[1];
+    gPlayerZ = D_803EDFB8[2];
     D_8036443C = *(s16 *) (v + 0x76);
     D_8036443E = *(u16 *) (v + 0x4E);
     D_80364440 = *(u16 *) (v + 0x4C);
-    func_802A133C(D_803EDFB8[2], 2, D_803EDFB8[0], D_803EDFB8[1], v);
+    veh_set_record(D_803EDFB8[2], 2, D_803EDFB8[0], D_803EDFB8[1], v);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6C5E0/func_802B152C.s")
@@ -520,7 +520,7 @@ static void veh2_state0(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) 
         return;
     }
     D_803F7804 = 0;
-    if ((D_80370C35 == 0 && (D_80370C1C != 0 || D_80370C1D != 0)) || D_80370C1A != 0 || D_80370C1B != 0) {
+    if ((gControlMethod == 0 && (gHeldA != 0 || gHeldB != 0)) || gHeldL != 0 || gHeldR != 0) {
         if (VEH2_SPEED >= 0x96) {
             /* fast with a button held: switch to state 1 */
             D_803EDF10[0xA1] = 1;
@@ -729,7 +729,7 @@ void func_802B18F4(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
 #ifdef NON_MATCHING
 /* Model matrices of vehicle type 2: the root matrix (func_802AA764 at its
  * position, scale 0x6590, rotation (0, heading + 0x400 wrapped by 0xFFF when
- * >= 0x1000, 0)) into the current matrix buffer (D_8035805C picks
+ * >= 0x1000, 0)) into the current matrix buffer (gBufferIndex picks
  * D_803EDFC8 or D_803EDFCC) at the offset the model's +0x18 table gives; then
  * the model's part list (+4..+8, func_8029C454, tag 2) and point list
  * (+0..+4, func_802ABBEC) through the matrix chain. Same as func_802D22F4
@@ -752,7 +752,7 @@ s32 func_802B2768(s32 a3, s32 s0, s32 s1, VehMtxOut *out) {
     s32 z;
 
     m = (s32 *) N64_IPTR(*(s32 *) (model + *(s32 *) (model + 0x18) + 4) +
-                 (s32) (D_8035805C != 0 ? D_803EDFC8 : D_803EDFCC));
+                 (s32) (gBufferIndex != 0 ? D_803EDFC8 : D_803EDFCC));
     a = *(u16 *) (D_803EDF10 + 0x4C) + 0x400;
     if (a >= 0x1000) {
         a -= 0xFFF;
@@ -761,7 +761,7 @@ s32 func_802B2768(s32 a3, s32 s0, s32 s1, VehMtxOut *out) {
     D_803ED390[0] = 0;
     D_803ED390[2] = 0;
     func_802AA764(D_803EDFB8[0], D_803EDFB8[1], D_803EDFB8[2], 0x6590, m);
-    base = (u8 *) (D_8035805C != 0 ? D_803EDFC8 : D_803EDFCC);
+    base = (u8 *) (gBufferIndex != 0 ? D_803EDFC8 : D_803EDFCC);
     model = D_803EDFC4;
     x = D_803EDFB8[0];
     y = D_803EDFB8[1];

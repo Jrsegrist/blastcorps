@@ -8,20 +8,20 @@
  * variable defined in the same file share one %hi. Unreferenced holes are
  * placeholders. */
 u64 D_8036BEF0;   /* time of the last RSP yield */
-u64 D_8036BEF8;
-u64 D_8036BF00;
+u64 D_8036BEF8;   /* the longest yield (statistics, reset every 480 retraces) */
+u64 D_8036BF00;   /* how long the last yield took */
 s32 D_8036BF08;
 s32 D_8036BF0C;
-s32 D_8036BF10;
-s32 D_8036BF14;
+s32 gPreNmi;      /* 0x8036BF10: the reset button was pressed (pre-NMI): everything stops */
+s32 D_8036BF14;   /* the retrace after the last buffer swap: a frame done before it waits (gDeferredSwapTask) */
 s32 D_8036BF18;
-s32 D_8036BF1C;
-s32 D_8036BF20;
-s32 D_8036BF24;
+s32 gDeferredSwapTask; /* 0x8036BF1C: a finished frame task whose swap waits for the next retrace */
+s32 D_8036BF20;   /* the last frame's RDP time, 1/100 of a retrace */
+s32 D_8036BF24;   /* the last frame's RSP time, 1/100 of a retrace */
 s32 D_8036BF28;
-s32 D_8036BF2C;
+s32 D_8036BF2C;   /* retrace to the frame task's start, 1/100 of a retrace */
 u8 D_8036BF30[8];
-OSTime D_8036BF38;
+OSTime gLastRetraceTime; /* 0x8036BF38: osGetTime() at the last retrace */
 u64 D_8036BF40;   /* last audio frame time */
 u64 D_8036BF48;   /* audio task start time */
 u64 D_8036BF50;   /* audio task end time */
@@ -34,7 +34,7 @@ s32 D_8036BF68;
 s32 D_8036BF6C;
 s32 D_8036BF70;
 s32 D_8036BF74;
-OSTimer D_8036BF78; /* audio-frame timer (mq/msg at 0x8036BF90/94) */
+OSTimer gAudioFrameTimer; /* 0x8036BF78: starts the audio frame between retraces (mq/msg at 0x8036BF90/94) */
 u8 D_8036BF98[0x20];
 u32 D_8036BFB8;   /* frame counter (wraps statistics every 480 frames) */
 s32 D_8036BFBC;
@@ -45,7 +45,7 @@ s32 D_8036BFBC;
 
 /* Rare's assert, with the original sched.c line numbers passed explicitly. */
 #define SCHED_ASSERT(EX, line) \
-    if (!(EX)) func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "sched.c", line)
+    if (!(EX)) debug_printf("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "sched.c", line)
 
 #define M_GFXTASK 1
 #define M_AUDTASK 2
@@ -57,7 +57,7 @@ typedef struct BcScTask {
     /* 0x08 */ u32 flags;
     /* 0x0C */ void * N64P framebuffer;
     /* 0x10 */ OSTask list;
-    /* 0x50 */ u32 unk50;
+    /* 0x50 */ u32 client; /* the BcScClient the task belongs to */
     /* 0x54 */ OSMesgQueue * N64P msgQ;
     /* 0x58 */ OSMesg msg;
 } BcScTask;
@@ -65,8 +65,8 @@ typedef struct BcScTask {
 typedef struct BcScClient {
     /* 0x00 */ struct BcScClient * N64P next;
     /* 0x04 */ OSMesgQueue * N64P msgQ;
-    /* 0x08 */ s32 unk8;
-    /* 0x0C */ s32 unkC;
+    /* 0x08 */ s32 period; /* its queued tasks run on retraces that are multiples of this */
+    /* 0x0C */ s32 unkC;   /* 3: the client gets every retrace message */
 } BcScClient;
 
 typedef struct BcSched {
@@ -90,14 +90,16 @@ typedef struct BcSched {
 } BcSched;
 
 extern OSViMode D_80306E70[];
-void func_80270F7C(void *arg);
+void __scMain(void *arg);
 
-/* osCreateScheduler */
-void func_80270D20(BcSched *sc, void *stack, OSPri priority, u8 mode, u8 numFields) {
+/* The SDK's osCreateScheduler (PR/sched.h declares that name with the SDK's
+ * OSSched): the VI manager, the mode, the interrupt messages and the
+ * scheduler thread (0x80270D20). */
+void sched_create(BcSched *sc, void *stack, OSPri priority, u8 mode, u8 numFields) {
     sc->audioListTail = (BcScTask *) &sc->audioListHead;
     sc->gfxListTail = (BcScTask *) &sc->gfxListHead;
-    D_8036BF10 = 0;
-    D_8036BF1C = 0;
+    gPreNmi = 0;
+    gDeferredSwapTask = 0;
     osCreateMesgQueue(&sc->interruptQ, sc->intBuf, 16);
     osCreateMesgQueue(&sc->cmdQ, sc->cmdMsgBuf, 16);
     func_802DA610(0xFE);
@@ -108,25 +110,25 @@ void func_80270D20(BcSched *sc, void *stack, OSPri priority, u8 mode, u8 numFiel
     osSetEventMesg(OS_EVENT_PRENMI, &sc->interruptQ, (OSMesg) 0x29D);
     osSetEventMesg(OS_EVENT_FAULT, &sc->interruptQ, (OSMesg) 0x2A0);
     osViSetEvent(&sc->interruptQ, (OSMesg) 0x29A, numFields);
-    osCreateThread(&sc->thread, 5, func_80270F7C, sc, stack, priority);
+    osCreateThread(&sc->thread, 5, __scMain, sc, stack, priority);
     osStartThread(&sc->thread);
 }
 
-/* osScAddClient, with two extra client fields. */
-void func_80270E50(BcSched *sc, BcScClient *c, OSMesgQueue *msgQ, s32 arg3, s32 arg4) {
+/* osScAddClient, with two extra client fields (period, unkC) (0x80270E50). */
+void sched_add_client(BcSched *sc, BcScClient *c, OSMesgQueue *msgQ, s32 arg3, s32 arg4) {
     OSIntMask mask;
 
     mask = osSetIntMask(OS_IM_NONE);
     c->msgQ = msgQ;
     c->next = sc->clientList;
     sc->clientList = c;
-    c->unk8 = arg3;
+    c->period = arg3;
     c->unkC = arg4;
     osSetIntMask(mask);
 }
 
-/* osScRemoveClient */
-void func_80270ECC(BcSched *sc, BcScClient *c) {
+/* osScRemoveClient (0x80270ECC). */
+void sched_remove_client(BcSched *sc, BcScClient *c) {
     BcScClient *client = sc->clientList;
     BcScClient *prev = NULL;
     OSIntMask mask;
@@ -147,18 +149,21 @@ void func_80270ECC(BcSched *sc, BcScClient *c) {
     osSetIntMask(mask);
 }
 
-void *func_80270F74(void *arg0) {
+/* osScGetCmdQ: &sc->cmdQ (0x80270F74). */
+void *sched_get_cmd_queue(void *arg0) {
     return (u8 *) arg0 + 0x58;
 }
 
-void func_80271358(BcSched *sc);
-void func_802712FC(BcSched *sc);
-void func_802715DC(BcSched *sc);
-void func_80271904(BcSched *sc);
-void func_802712B4(BcSched *sc, BcScTask *t);
+void __scHandleRetrace(BcSched *sc);
+void sched_audio_request(BcSched *sc);
+void __scHandleRSP(BcSched *sc);
+void __scHandleRDP(BcSched *sc);
+void sched_add_task(BcSched *sc, BcScTask *t);
 
-/* __scMain */
-void func_80270F7C(void *arg) {
+/* The scheduler thread (the SDK's __scMain): dispatches the retrace, RSP and
+ * RDP done, audio timer and pre-NMI messages; anything else is a task to queue
+ * (0x80270F7C). */
+void __scMain(void *arg) {
     OSMesg msg;
     BcSched *sc = (BcSched *) arg;
     BcScClient *client;
@@ -169,13 +174,13 @@ void func_80270F7C(void *arg) {
             for (client = sc->clientList; client != NULL; client = client->next) {
                 osSendMesg(client->msgQ, (OSMesg) 0x29D, OS_MESG_NOBLOCK);
             }
-            D_8036BF10 = 1;
+            gPreNmi = 1;
             osViBlack(TRUE);
-            func_8029A7E4("GO %x\n", func_802DAAC0());
+            debug_printf("GO %x\n", func_802DAAC0());
             func_802D4550(4);
-            func_8029A7E4("current=%x start=%x end=%x dpstat=%x spstat=%x\n", IO_READ(DPC_CURRENT_REG),
+            debug_printf("current=%x start=%x end=%x dpstat=%x spstat=%x\n", IO_READ(DPC_CURRENT_REG),
                           IO_READ(DPC_START_REG), IO_READ(DPC_END_REG), IO_READ(DPC_STATUS_REG), IO_READ(SP_STATUS_REG));
-            func_8029A7E4("GO %x\n", func_802DAAC0());
+            debug_printf("GO %x\n", func_802DAAC0());
             while (TRUE) {
             }
         }
@@ -185,98 +190,101 @@ void func_80270F7C(void *arg) {
                     D_8036BEF8 = D_8036BF00;
                     D_8036BF08 = D_8036BF0C;
                 }
-                func_80271358(sc);
+                __scHandleRetrace(sc);
                 break;
             case 0x29E:
-                func_802712FC(sc);
+                sched_audio_request(sc);
                 break;
             case 0x29B:
-                func_802715DC(sc);
+                __scHandleRSP(sc);
                 break;
             case 0x29C:
-                func_80271904(sc);
+                __scHandleRDP(sc);
                 break;
             case 0x29F:
-                osSendMesg(D_8036BF78.mq, D_8036BF78.msg, OS_MESG_BLOCK);
+                osSendMesg(gAudioFrameTimer.mq, gAudioFrameTimer.msg, OS_MESG_BLOCK);
                 break;
             case 0x29D:
                 for (client = sc->clientList; client != NULL; client = client->next) {
                     osSendMesg(client->msgQ, (OSMesg) 0x29D, OS_MESG_NOBLOCK);
                 }
-                D_8036BF10 = 1;
+                gPreNmi = 1;
                 osViBlack(TRUE);
-                func_8029A7E4("%x\n", func_802DAAC0());
+                debug_printf("%x\n", func_802DAAC0());
                 func_802D4550(4);
-                func_8029A7E4("current=%x start=%x end=%x dpstat=%x spstat=%x\n", IO_READ(DPC_CURRENT_REG),
+                debug_printf("current=%x start=%x end=%x dpstat=%x spstat=%x\n", IO_READ(DPC_CURRENT_REG),
                               IO_READ(DPC_START_REG), IO_READ(DPC_END_REG), IO_READ(DPC_STATUS_REG), IO_READ(SP_STATUS_REG));
-                func_8029A7E4("%x\n", func_802DAAC0());
+                debug_printf("%x\n", func_802DAAC0());
                 while (TRUE) {
                 }
             case 0x2A0:
-                func_8029A7E4(" *** CPU FAULT *** - UNFREEZING RDP?\n");
+                debug_printf(" *** CPU FAULT *** - UNFREEZING RDP?\n");
                 while (osViGetCurrentFramebuffer() != osViGetNextFramebuffer()) {
                 }
                 func_802D4550(4);
                 while (TRUE) {
                 }
             default:
-                func_802712B4(sc, (BcScTask *) msg);
+                sched_add_task(sc, (BcScTask *) msg);
                 break;
         }
     }
 }
 
-void func_80271C24(BcSched *sc, BcScTask *t);
-s32 func_80271F48(OSMesgQueue *mq, OSMesg msg, s32 flag);
-s32 func_80271A84(BcSched *sc, BcScTask *t);
+void __scAppendList(BcSched *sc, BcScTask *t);
+s32 sched_send_mesg(OSMesgQueue *mq, OSMesg msg, s32 flag);
+s32 __scTaskComplete(BcSched *sc, BcScTask *t);
 extern u8 D_802FA270;
-void func_80271CE4(BcSched *sc, s32 availRCP);
-void func_80271E88(BcSched *sc);
+void sched_start_next_task(BcSched *sc, s32 availRCP);
+void __scYield(BcSched *sc);
 
-/* Queue a task, then run the scheduler if the RSP is idle. */
-void func_802712B4(BcSched *sc, BcScTask *t) {
-    func_80271C24(sc, t);
+/* Queue a task, then run the scheduler if the RSP is idle (0x802712B4). */
+void sched_add_task(BcSched *sc, BcScTask *t) {
+    __scAppendList(sc, t);
     if (sc->curRSPTask == NULL) {
-        func_80271CE4(sc, 1);
+        sched_start_next_task(sc, 1);
     }
 }
 
 
-/* Retrace-side scheduling: yield the running RSP task, or reset and
- * schedule when idle. */
-void func_802712FC(BcSched *sc) {
+/* Message 0x29E, the audio thread's frame (audio.c): yield the running RSP
+ * task for it, or start the audio task when the RSP is idle (0x802712FC). */
+void sched_audio_request(BcSched *sc) {
     if (sc->curRSPTask != NULL) {
-        func_80271E88(sc);
+        __scYield(sc);
     } else {
         D_8036BF00 = 0;
-        func_80271CE4(sc, 0);
+        sched_start_next_task(sc, 0);
     }
 }
 
 
-/* __scHandleRetrace */
-void func_80271358(BcSched *sc) {
+/* The SDK's __scHandleRetrace: counts the retrace (not while paused),
+ * swaps in a deferred frame, queues the command-queue tasks due this retrace,
+ * arms the audio timer every other retrace and tells the retrace clients
+ * (0x80271358). */
+void __scHandleRetrace(BcSched *sc) {
     BcScTask *rspTask;
     BcScClient *client;
     s32 i;
     s32 count;
 
     sc->frameCount++;
-    /* (PORT_EMU: the main thread sets/clears D_802E8BD0 after its frame's
+    /* (PORT_EMU: the main thread sets/clears gPaused after its frame's
      * CPU time; a retrace inside that time sees the old value) */
-    if (!PORT_EMU("func_80271358:8BD0", D_802E8BD0)) {
+    if (!PORT_EMU("__scHandleRetrace:8BD0", gPaused)) {
         sc->retraceCount++;
     }
-    D_8036BF38 = osGetTime();
-    if (D_8036BF1C) {
-        osViSwapBuffer(((BcScTask *) N64_IPTR(D_8036BF1C))->framebuffer);
+    gLastRetraceTime = osGetTime();
+    if (gDeferredSwapTask) {
+        osViSwapBuffer(((BcScTask *) N64_IPTR(gDeferredSwapTask))->framebuffer);
         D_8036BF18 = D_8036BF14;
         D_8036BF14 = sc->frameCount + 1;
         func_802D4550(8);
-        if (((BcScTask *) N64_IPTR(D_8036BF1C))->msgQ != NULL) {
-            func_80271F48(((BcScTask *) N64_IPTR(D_8036BF1C))->msgQ, ((BcScTask *) N64_IPTR(D_8036BF1C))->msg, OS_MESG_NOBLOCK);
+        if (((BcScTask *) N64_IPTR(gDeferredSwapTask))->msgQ != NULL) {
+            sched_send_mesg(((BcScTask *) N64_IPTR(gDeferredSwapTask))->msgQ, ((BcScTask *) N64_IPTR(gDeferredSwapTask))->msg, OS_MESG_NOBLOCK);
         }
-        D_8036BF1C = 0;
+        gDeferredSwapTask = 0;
     } else if (osViGetCurrentFramebuffer() == osViGetNextFramebuffer()) {
         if (func_802DAAC0() & 2) {
             sc->rdpStartTime = osGetTime();
@@ -287,15 +295,15 @@ void func_80271358(BcSched *sc) {
     count = sc->cmdQ.validCount;
     for (i = 0; i < count; i++) {
         SCHED_ASSERT(osRecvMesg(&sc->cmdQ, (OSMesg *)&rspTask, OS_MESG_NOBLOCK) != -1, 445);
-        if (sc->frameCount % ((u32 *) rspTask->unk50)[2] == 0) {
-            func_80271C24(sc, rspTask);
+        if (sc->frameCount % ((u32 *) rspTask->client)[2] == 0) {
+            __scAppendList(sc, rspTask);
         } else {
             osSendMesg(&sc->cmdQ, (OSMesg) rspTask, OS_MESG_NOBLOCK);
         }
     }
 
     if (sc->audioListHead != NULL && !(sc->frameCount & 1)) {
-        osSetTimer(&D_8036BF78, 280000, 0, ((OSMesgQueue * N64P *) sc->audioListHead->unk50)[1], (OSMesg) 5);
+        osSetTimer(&gAudioFrameTimer, 280000, 0, ((OSMesgQueue * N64P *) sc->audioListHead->client)[1], (OSMesg) 5);
     }
 
     for (client = sc->clientList; client != NULL; client = client->next) {
@@ -305,8 +313,9 @@ void func_80271358(BcSched *sc) {
     }
 }
 
-/* __scHandleRSP */
-void func_802715DC(BcSched *sc) {
+/* The SDK's __scHandleRSP: the running RSP task finished or yielded; a
+ * yielded graphics task lets the audio task run (0x802715DC). */
+void __scHandleRSP(BcSched *sc) {
     BcScTask *t;
     OSTime now;
 
@@ -316,7 +325,7 @@ void func_802715DC(BcSched *sc) {
     if (t->state == RSP_STATE_SUSPENDED) {
         D_8036BF00 = osGetTime() - D_8036BEF0;
         if (D_8036BF00 > 550000) {
-            func_8029A7E4("Silly yield time of %llu ticks\n", D_8036BF00);
+            debug_printf("Silly yield time of %llu ticks\n", D_8036BF00);
         }
         if (D_8036BF00 > D_8036BEF8) {
             D_8036BEF8 = D_8036BF00;
@@ -324,13 +333,13 @@ void func_802715DC(BcSched *sc) {
         if (!osSpTaskYielded(&t->list)) {
             t->state = 2;
             t->flags |= 4;
-            func_80271A84(sc, t);
+            __scTaskComplete(sc, t);
         }
         SCHED_ASSERT(sc->audioListHead, 538);
         if (sc->audioListHead == NULL) {
-            func_8029A7E4("Yield took %llu, max %llu\n", D_8036BF00, D_8036BEF8);
+            debug_printf("Yield took %llu, max %llu\n", D_8036BF00, D_8036BEF8);
         }
-        func_80271CE4(sc, 0);
+        sched_start_next_task(sc, 0);
     } else {
         if (t->flags & 0x40) {
             now = osGetTime();
@@ -343,15 +352,17 @@ void func_802715DC(BcSched *sc) {
         t->state = 2;
         t->flags |= 4;
         SCHED_ASSERT(sc->curRSPTask==0, 560);
-        if (func_80271A84(sc, t) && sc->gfxListHead != NULL && sc->gfxListHead->flags != 0x47) {
-            func_80271CE4(sc, 1);
+        if (__scTaskComplete(sc, t) && sc->gfxListHead != NULL && sc->gfxListHead->flags != 0x47) {
+            sched_start_next_task(sc, 1);
         }
     }
 }
 
 
-/* __scHandleRDP */
-void func_80271904(BcSched *sc) {
+/* The SDK's __scHandleRDP: a frame task's RDP part is done: swap its buffer
+ * (or defer the swap to the next retrace), turn the screen on at the third
+ * frame of a mode (0x80271904). */
+void __scHandleRDP(BcSched *sc) {
     BcScTask *t;
     OSTime now;
 
@@ -359,27 +370,28 @@ void func_80271904(BcSched *sc) {
     t = sc->curRDPTask;
     sc->curRDPTask = NULL;
     t->flags |= 8;
-    if (sc->frameCount != D_8036BF14 || (D_80364A90 & 0xC9FD0FE79BFF80B0ULL)) {
-        D_8036BF1C = 0;
+    if (sc->frameCount != D_8036BF14 || (gGameMode & 0xC9FD0FE79BFF80B0ULL)) {
+        gDeferredSwapTask = 0;
         osViSwapBuffer(t->framebuffer);
         D_8036BF18 = D_8036BF14;
         D_8036BF14 = sc->frameCount + 1;
         func_802D4550(8);
     } else {
-        D_8036BF1C = (s32) t;
+        gDeferredSwapTask = (s32) t;
     }
     now = osGetTime();
     D_8036BF20 = (now - sc->rdpStartTime) / 7825;
-    if (((s32) D_80358060) == 3) {
+    if (((s32) gFramesInMode) == 3) {
         osViBlack(FALSE);
     }
-    func_80271A84(sc, t);
+    __scTaskComplete(sc, t);
 }
 
-s32 func_80271F48(OSMesgQueue *mq, OSMesg msg, s32 flag);
+s32 sched_send_mesg(OSMesgQueue *mq, OSMesg msg, s32 flag);
 
-/* __scTaskComplete */
-s32 func_80271A84(BcSched *sc, BcScTask *t) {
+/* The SDK's __scTaskComplete: once a task has every part it needs done,
+ * unlinks it and posts its done message (0x80271A84). */
+s32 __scTaskComplete(BcSched *sc, BcScTask *t) {
     s32 rv;
     s32 needs;
     s32 done;
@@ -401,9 +413,9 @@ s32 func_80271A84(BcSched *sc, BcScTask *t) {
             }
         }
         if (t->msgQ != NULL) {
-            if (!D_8036BF1C || type != M_GFXTASK) {
+            if (!gDeferredSwapTask || type != M_GFXTASK) {
                 if (t->flags & 0x40) {
-                    rv = func_80271F48(t->msgQ, t->msg, OS_MESG_NOBLOCK);
+                    rv = sched_send_mesg(t->msgQ, t->msg, OS_MESG_NOBLOCK);
                 } else {
                     rv = osSendMesg(t->msgQ, t->msg, OS_MESG_NOBLOCK);
                 }
@@ -417,8 +429,8 @@ s32 func_80271A84(BcSched *sc, BcScTask *t) {
     return D_8036BFBC;
 }
 
-/* __scAppendList */
-void func_80271C24(BcSched *sc, BcScTask *t) {
+/* The SDK's __scAppendList: a task onto the audio or graphics list (0x80271C24). */
+void __scAppendList(BcSched *sc, BcScTask *t) {
     long type = t->list.t.type;
 
     SCHED_ASSERT((type == M_AUDTASK) || (type == M_GFXTASK), 668);
@@ -434,8 +446,9 @@ void func_80271C24(BcSched *sc, BcScTask *t) {
 }
 
 
-/* Start the next RSP task: audio when availRCP is 0, else graphics. */
-void func_80271CE4(BcSched *sc, s32 availRCP) {
+/* Start the next RSP task: audio when availRCP is 0, else graphics (the
+ * SDK's __scSchedule and __scExec in one) (0x80271CE4). */
+void sched_start_next_task(BcSched *sc, s32 availRCP) {
     BcScTask *t;
     OSTime now;
 
@@ -456,7 +469,7 @@ void func_80271CE4(BcSched *sc, s32 availRCP) {
         if (D_802FA270) {
             sc->gfxStartTime = osGetTime();
             now = osGetTime();
-            D_8036BF2C = (now - D_8036BF38) / 7825;
+            D_8036BF2C = (now - gLastRetraceTime) / 7825;
             D_802FA270 = 0;
         }
     }
@@ -469,8 +482,8 @@ void func_80271CE4(BcSched *sc, s32 availRCP) {
     }
 }
 
-/* __scYield */
-void func_80271E88(BcSched *sc) {
+/* The SDK's __scYield: asks the running graphics task to yield (0x80271E88). */
+void __scYield(BcSched *sc) {
     SCHED_ASSERT(sc->curRSPTask->list.t.type != M_AUDTASK, 735);
     if (sc->curRSPTask->list.t.type == M_GFXTASK) {
         SCHED_ASSERT(sc->curRSPTask->state != RSP_STATE_SUSPENDED, 739);
@@ -481,14 +494,14 @@ void func_80271E88(BcSched *sc) {
 }
 
 
-/* osSendMesg wrapper; the timing values are computed but never used
- * (leftover debug code). */
-s32 func_80271F48(OSMesgQueue *mq, OSMesg msg, s32 flag) {
+/* osSendMesg wrapper for frame tasks' done messages; the timing values are
+ * computed but never used (leftover debug code) (0x80271F48). */
+s32 sched_send_mesg(OSMesgQueue *mq, OSMesg msg, s32 flag) {
     OSTime remaining;
     OSTime now;
     s32 unused;
 
-    remaining = D_8036BF38 + 391250 - osGetTime();
+    remaining = gLastRetraceTime + 391250 - osGetTime();
     now = osGetTime();
     unused = 0;
     return osSendMesg(mq, msg, flag);

@@ -9,10 +9,10 @@
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_802E8F94 ((LevelInfo *) D_802E8F94)
+#define gLevelInfo ((LevelInfo *) gLevelInfo)
 #define D_802F47B0 ((u8 *) D_802F47B0)
-#define D_803156F8 ((FeDyn *) D_803156F8)
-#define D_80364AF0 ((Player *) D_80364AF0)
+#define gDynamicBufs ((FeDyn *) gDynamicBufs)
+#define players ((Player *) players)
 /* end of views */
 
 /* digger_loop.c: the vehicle ("digger") select screen. */
@@ -100,7 +100,7 @@ void func_802025D0(u8, u32);
 /* Rare's assert; line numbers are the original digger_loop.c's */
 #define DIGGER_ASSERT(EX, line) \
     if (!(EX)) \
-    func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "digger_loop.c", line)
+    debug_printf("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "digger_loop.c", line)
 
 #define ABS(x) ((x) > 0.0f ? (x) : -(x))
 
@@ -119,15 +119,15 @@ s32 func_801E7000(void) {
 
     D_80211A68 = 0;
     x = 0;
-    level = &D_802E8F94[D_802E8BDC];
+    level = &gLevelInfo[levelno];
     D_80211A6A = 0;
     unused = 0xE73C;
     D_802153E8 = D_803643D4;
     func_8029DEA0();
     for (i = 0; i < 19; i++) {
         slot[i] = -1;
-        if ((D_80364AF0[D_80364AEA].unk10 & (1 << i) & level->unk2C) &&
-            (D_80364AE8 == D_80364AEA || D_80364EF0[D_80364AEA][D_802E8C44[i]] != 0)) {
+        if ((players[playerNumberAtStart].unk10 & (1 << i) & level->unk2C) &&
+            (playerNumber == playerNumberAtStart || D_80364EF0[playerNumberAtStart][D_802E8C44[i]] != 0)) {
             func_80202100(i, (u8 * N64P *) &D_80210E90[D_80211A6A], (u8 * N64P *) D_80210EE0[D_80211A6A], (u8 * N64P *) D_80210F78[D_80211A6A]);
             D_80211A70[i] = x;
             x += 380.0;
@@ -145,9 +145,9 @@ s32 func_801E7000(void) {
     guRotate(&D_80211A28, 20.0f, 1.0f, 0.0f, 0.0f);
     mid = (D_80211A6A - 1) / 2;
     sel = -1;
-    switch (D_80364A90) {
+    switch (gGameMode) {
         case 0x80:
-            sel = slot[D_80364AF0[D_80364AE8].unk92[D_802E8BDC]];
+            sel = slot[players[playerNumber].unk92[levelno]];
             break;
         case 4:
         case 0x100:
@@ -160,7 +160,7 @@ s32 func_801E7000(void) {
             DIGGER_ASSERT(1==0, 139);
             break;
     }
-    func_8029A7E4("default %d auto %d\n", mid, sel);
+    debug_printf("default %d auto %d\n", mid, sel);
     func_801E74E8(sel == -1 ? mid : sel);
     D_802153D8 = D_802153D4;
     D_802153E0 = D_802153DC * 4.0;
@@ -191,12 +191,12 @@ void func_801E7598(void) {
     static s8 D_802081B4 = 1;   /* title pulse direction */
     s32 i;
     s32 vtx = 0;
-    FeDyn *dyn = &D_803156F8[D_8035805C ^ 1];
+    FeDyn *dyn = &gDynamicBufs[gBufferIndex ^ 1];
     Gfx *gdl = dyn->dl;
 
-    func_8028A3E4();
-    D_80358080 = 0;
-    D_80358084 = 0;
+    cont_start_read();
+    nextdma = 0;
+    no_palette_dmas = 0;
     func_802A5720();
 #ifdef NON_MATCHING
     /* The asm takes its param (the texture decoder's type-4/5 table) in $fp,
@@ -206,78 +206,78 @@ void func_801E7598(void) {
 #else
     func_8029E0AC();
 #endif
-    func_8028A470();
-    if (D_80358060 >= 11 && !func_802753C0()) {
-        if ((D_80370C28 & 0x9000) && !(D_80370C2A & 0x9000)) {
+    cont_update();
+    if (gFramesInMode >= 11 && !areWeFading()) {
+        if ((gContButtons & 0x9000) && !(gContPrevButtons & 0x9000)) {
             func_80275390(0x2000);
             func_80260650(D_80367738, 0x1E, 0);
-        } else if ((D_80370C28 & 0x4000) && !(D_80370C2A & 0x4000)) {
+        } else if ((gContButtons & 0x4000) && !(gContPrevButtons & 0x4000)) {
             func_80260650(D_80367738, 0xDE, 0);
             D_803643D4 = D_802153E8;
-            switch (D_80364A88) {
+            switch (gPrevGameMode) {
                 case 0x80:
                 case 0x8000000:
-                    D_80364A98 = D_80364A88;
+                    gNextGameMode = gPrevGameMode;
                     break;
                 default:
-                    D_80364A98 = 0x4000;
+                    gNextGameMode = 0x4000;
                     break;
             }
         }
     }
-    if (D_80370C2C < -10 && !func_802753C0()) {
-        if (D_80370C2E < -10) {
+    if (gPadStickX < -10 && !areWeFading()) {
+        if (gPrevPadStickX < -10) {
             if (D_80211A68 > 0) {
-                D_802153E4 -= D_80370C2C;
+                D_802153E4 -= gPadStickX;
             }
         } else {
             D_802153E4 = 750;
         }
     }
-    if ((D_80370C28 & 0x200) && !(D_80370C2A & 0x200) && !func_802753C0()) {
+    if ((gContButtons & 0x200) && !(gContPrevButtons & 0x200) && !areWeFading()) {
         D_802153E4 = 750;
     }
-    if (D_80370C2C > 10 && !func_802753C0()) {
-        if (D_80370C2E > 10) {
+    if (gPadStickX > 10 && !areWeFading()) {
+        if (gPrevPadStickX > 10) {
             if (D_80211A68 < D_80211A6A - 1) {
-                D_802153E6 += D_80370C2C;
+                D_802153E6 += gPadStickX;
             }
         } else {
             D_802153E6 = 750;
         }
     }
-    if ((D_80370C28 & 0x100) && !(D_80370C2A & 0x100) && !func_802753C0()) {
+    if ((gContButtons & 0x100) && !(gContPrevButtons & 0x100) && !areWeFading()) {
         D_802153E6 = 750;
     }
-    if (D_8035805C == 0 && D_802153E4 >= 750) {
+    if (gBufferIndex == 0 && D_802153E4 >= 750) {
         func_80260650(D_80367738, sfx[D_80211A68 == 0], 0);
         if (D_80211A68 != 0) {
             func_801E74E8(D_80211A68 - 1);
         }
         D_802153E4 -= 750;
     }
-    if (D_8035805C == 0 && D_802153E6 >= 750) {
+    if (gBufferIndex == 0 && D_802153E6 >= 750) {
         func_80260650(D_80367738, sfx[D_80211A68 + 1 == D_80211A6A], 0);
         if (D_80211A68 + 1 != D_80211A6A) {
             func_801E74E8(D_80211A68 + 1);
         }
         D_802153E6 -= 750;
     }
-    func_80284E54((u64 *) (D_803156F8[D_8035805C].dl), D_80358078, 1, 1, 0x4D2, 0);
-    D_8035805C ^= 1;
+    rsp_send_task((u64 *) (gDynamicBufs[gBufferIndex].dl), gFrameDlLen, 1, 1, 0x4D2, 0);
+    gBufferIndex ^= 1;
     gSPSegment(gdl++, 0, 0);
     gSPSegment(gdl++, 2, osVirtualToPhysical(dyn));
-    gSPSegment(gdl++, 1, osVirtualToPhysical(D_8035806C));
+    gSPSegment(gdl++, 1, osVirtualToPhysical(gStaticSegment));
     gSPDisplayList(gdl++, D_01000038);
     gSPDisplayList(gdl++, D_01000010);
     gDPSetCycleType(gdl++, G_CYC_FILL);
-    gDPSetDepthImage(gdl++, D_80358058);
-    gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, D_80358058);
+    gDPSetDepthImage(gdl++, gDepthBufferPhys);
+    gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, gDepthBufferPhys);
     gDPSetFillColor(gdl++, 0xFFFCFFFC);
     gDPFillRectangle(gdl++, 0, 0, 319, 239);
-    gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, D_80358050[D_8035805C]);
+    gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, gFrameBufferPhys[gBufferIndex]);
     func_80259450();
-    gdl = func_80200BE0(gdl, (s32) dyn, &D_80358078);
+    gdl = func_80200BE0(gdl, (s32) dyn, &gFrameDlLen);
     gDPPipeSync(gdl++);
     gDPSetCycleType(gdl++, G_CYC_1CYCLE);
     func_80259CCC((Gfx * N64P *) dyn, (u8 *) D_80208040, D_80208044, 0, 0xA0, 0x50, 0x18, 0x15, 0x15, 1, 0, 0, 0, 0xA0);
@@ -295,14 +295,14 @@ void func_801E7598(void) {
                       0xFF, 0xFF, D_802081B0, 0, 0xFF);
     }
     func_80259C24(&gdl, (Mtx *) dyn);
-    if (D_80358060 < 2) {
-        guPerspective(&dyn->unk1240, &D_8035807C, 45.0f, 1.3333334f, 40.0f, 4000.0f, 1.0f);
+    if (gFramesInMode < 2) {
+        guPerspective(&dyn->unk1240, &gPerspNorm, 45.0f, 1.3333334f, 40.0f, 4000.0f, 1.0f);
     }
     D_802153D8 = D_802153D8 + (D_802153D4 - D_802153D8) * 0.1 * 60.0 / 60.0;
     D_802153E0 = D_802153E0 + (D_802153DC - D_802153E0) * 0.1 * 60.0 / 60.0;
     guLookAtReflect(&dyn->unk140, &dyn->unk3C00, D_802153D8, 1.0f, D_802153E0, D_802153D8, 0.0f, 0.0f, 0.0f, 1.0f,
                     0.0f);
-    gImmp1(gdl++, G_RDPHALF_1, D_8035807C);
+    gImmp1(gdl++, G_RDPHALF_1, gPerspNorm);
     gSPLookAtX(gdl++, &dyn->unk3C00);
     gSPLookAtY(gdl++, &dyn->unk3C00.l[1]);
     gSPMatrix(gdl++, &dyn->unk1240, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
@@ -314,13 +314,13 @@ void func_801E7598(void) {
         s32 off;
         Mtx *mtx;
 
-        flag = D_8035805C & (i == D_80211A68);
+        flag = gBufferIndex & (i == D_80211A68);
         if (ABS(D_802153D8 - D_80211A70[D_802153C0[i]]) < 570.0) {
             seg = D_80210E90[i]->unk14 + (u8 *) D_80210E90[i];
             if (D_80211A68 == i) {
                 off = *(s32 *) (D_80210E90[i]->unk18 + (u8 *) D_80210E90[i] + 4);
                 mtx = (Mtx *) ((u8 *) D_80210EE0[i][flag] + off);
-                func_802021FC(D_80211AC0[i], D_80210EE0[i][D_8035805C], D_80210EE0[i][D_8035805C ^ 1]);
+                func_802021FC(D_80211AC0[i], D_80210EE0[i][gBufferIndex], D_80210EE0[i][gBufferIndex ^ 1]);
                 guRotate(mtx, (D_802153F0[i] += 4) % 360, 0.0f, 1.0f, 0.0f);
                 osWritebackDCache(mtx, sizeof(Mtx));
                 func_802025D0(D_802153C0[i], (f32) ((D_802153F0[i] + 180) % 360) * 11.37778);
@@ -330,11 +330,11 @@ void func_801E7598(void) {
             gSPMatrix(gdl++, &D_80211A28, G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
             gSPMatrix(gdl++, &D_802110A8[i], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
             gSPMatrix(gdl++, &D_80211568[i], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
-            gSPDisplayList(gdl++, D_80210F78[i][D_8035805C]);
+            gSPDisplayList(gdl++, D_80210F78[i][gBufferIndex]);
             gSPMatrix(gdl++, &D_80211A28, G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
             gSPMatrix(gdl++, &D_802110A8[i], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
             gSPMatrix(gdl++, &D_80211568[i], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
-            gSPDisplayList(gdl++, D_80210F78[i][D_8035805C + 2]);
+            gSPDisplayList(gdl++, D_80210F78[i][gBufferIndex + 2]);
         }
     }
     D_802153EC += D_802081AC;
@@ -371,15 +371,15 @@ void func_801E7598(void) {
         gSP1Triangle(gdl++, 0, 1, 2, 0);
         gSP1Triangle(gdl++, 0, 2, 3, 0);
     }
-    gdl = func_8026BBD0(gdl, (s32) &D_803156F8[D_8035805C], &D_80358078);
+    gdl = func_8026BBD0(gdl, (s32) &gDynamicBufs[gBufferIndex], &gFrameDlLen);
     gdl = func_80274BF0((s32) dyn, gdl);
     gDPFullSync(gdl++);
     gSPEndDisplayList(gdl++);
-    D_80358078 = gdl - dyn->dl;
-    for (i = 0; i < D_80358080; i++) {
-        osRecvMesg(&D_80315180, NULL, 1);
+    gFrameDlLen = gdl - dyn->dl;
+    for (i = 0; i < nextdma; i++) {
+        osRecvMesg(&textureDmaMessageQ, NULL, 1);
     }
-    for (i = 0; i < D_80358080 - D_80358084; i++) {
+    for (i = 0; i < nextdma - no_palette_dmas; i++) {
         func_802A57AC();
     }
 }

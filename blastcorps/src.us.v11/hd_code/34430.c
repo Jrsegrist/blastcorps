@@ -4,12 +4,12 @@
 /* Matching build: IDO compiled the matched code here against older
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
-#define LEGACY_D_80358058
+#define LEGACY_gDepthBufferPhys
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #ifdef NON_MATCHING
-#define D_80358058 (*(void * N64P *) &D_80358058)
+#define gDepthBufferPhys (*(void * N64P *) &gDepthBufferPhys)
 #endif
 /* end of views */
 
@@ -19,10 +19,10 @@
 #define PHYS(x) ((u32) (x) & 0x1FFFFFFF)
 
 #define MB_ASSERT(EX, line) \
-    if (!(EX)) func_8029A7E4("\n --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "mb.c", line)
+    if (!(EX)) debug_printf("\n --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "mb.c", line)
 /* The file's second assert string has a bell */
 #define MB_ASSERT_BELL(EX, line) \
-    if (!(EX)) func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "mb.c", line)
+    if (!(EX)) debug_printf("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "mb.c", line)
 
 /* One recorded sample: three 16.16 values and a position in 1/32 units */
 typedef struct {
@@ -57,7 +57,7 @@ extern Mtx D_8036D2C8;         /* its projection */
 extern Mtx D_8036D388;         /* its look-at */
 extern Vp D_802FBED0;
 #ifndef NON_MATCHING
-extern void *D_80358058; /* depth buffer */
+extern void *gDepthBufferPhys; /* depth buffer */
 #endif
 
 s32 func_802796D8(s32 n, s32 *a, s32 *b);
@@ -73,9 +73,9 @@ void func_80278BF0(Gfx *src, Gfx *end, Gfx * N64P *dstp) {
     s32 i;
     u32 w1;
 
-    *dstp = (Gfx *) D_80358070;
+    *dstp = (Gfx *) gHeapPtr;
     dst = *dstp;
-    D_80358070 += (end - src) * sizeof(Gfx) - 16;
+    gHeapPtr += (end - src) * sizeof(Gfx) - 16;
     while (src != end) {
         switch (c = src->words.w0 >> 24) {
             case (s8) G_ENDDL:
@@ -122,21 +122,21 @@ static void port_round_stale(u8 *p, s32 align) {
     s32 v = (port_n64_byte(p) << 24) | (port_n64_byte(p + 1) << 16) | (port_n64_byte(p + 2) << 8) | port_n64_byte(p + 3);
     s32 k;
 
-    func_80257490(&v, align);
+    align_up(&v, align);
     for (k = 0; k < 4; k++) {
         port_n64_store_byte(p + k, (u8) (v >> (24 - 8 * k)));
     }
 }
 #define ROUND_HEAP_WORD(p, align) port_round_stale((u8 *) (p), align)
 #else
-#define ROUND_HEAP_WORD(p, align) func_80257490((s32 *) (p), align)
+#define ROUND_HEAP_WORD(p, align) align_up((s32 *) (p), align)
 #endif
 
 /* Allocates the buffers and resets the state */
 void func_80278E3C(void) {
-    ROUND_HEAP_WORD(D_80358070, 0x40);
-    D_8036D170 = D_80358070;
-    ROUND_HEAP_WORD(D_80358070 = D_80358070 + 0x5460, 8);
+    ROUND_HEAP_WORD(gHeapPtr, 0x40);
+    D_8036D170 = gHeapPtr;
+    ROUND_HEAP_WORD(gHeapPtr = gHeapPtr + 0x5460, 8);
     D_8036D178 = 0;
     D_8036CC68 = 0;
     D_8036CC6C = 0;
@@ -308,8 +308,8 @@ void func_80279778(s32 x, s32 y, s32 z, s32 a, s32 b, s32 c, void *dl, void *seg
         gDPSetColorDither(gdl++, G_CD_DISABLE);
         gDPSetCycleType(gdl++, G_CYC_FILL);
         gSPClearGeometryMode(gdl++, G_ZBUFFER);
-        gDPSetDepthImage(gdl++, D_80358058);
-        gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 120, D_80358058);
+        gDPSetDepthImage(gdl++, gDepthBufferPhys);
+        gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 120, gDepthBufferPhys);
         gDPSetFillColor(gdl++, 0xFFFCFFFC);
         gDPFillRectangle(gdl++, 0, 0, 119, 89);
         gDPPipeSync(gdl++);
@@ -343,7 +343,7 @@ void func_80279778(s32 x, s32 y, s32 z, s32 a, s32 b, s32 c, void *dl, void *seg
         gDPSetEnvColor(gdl++, 0, 0, 0, alpha);
         gSPDisplayList(gdl++, PHYS(dl));
         gSPEndDisplayList(gdl++);
-        func_80284E54((u64 *) D_8036D188, gdl - D_8036D188, 2, 0, 0x54D, 0);
+        rsp_send_task((u64 *) D_8036D188, gdl - D_8036D188, 2, 0, 0x54D, 0);
     }
 }
 

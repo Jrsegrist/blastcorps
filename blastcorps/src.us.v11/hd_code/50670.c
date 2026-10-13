@@ -75,14 +75,14 @@ void func_80294EB8(void) {
 }
 
 void func_80294F00(void) {
-    if (D_80364A90 & 0x104) {
+    if (gGameMode & 0x104) {
         if (D_8039CA80 == -1) {
             D_8039CA80 = ((s32) PORT_GVI("func_80294F00", D_803156C0));
         }
         if (D_8039CA70[0].recCount < 0xCCC) {
-            D_8039CA68[1][D_8039CA70[0].recCount].x = D_803643E0;
-            D_8039CA68[1][D_8039CA70[0].recCount].y = D_803643E4;
-            D_8039CA68[1][D_8039CA70[0].recCount].z = D_803643E8;
+            D_8039CA68[1][D_8039CA70[0].recCount].x = gPlayerX;
+            D_8039CA68[1][D_8039CA70[0].recCount].y = gPlayerY;
+            D_8039CA68[1][D_8039CA70[0].recCount].z = gPlayerZ;
             D_8039CA68[1][D_8039CA70[0].recCount].rx = D_803ED390[0];
             D_8039CA68[1][D_8039CA70[0].recCount].ry = D_803ED390[1];
             D_8039CA68[1][D_8039CA70[0].recCount].rz = D_803ED390[2];
@@ -90,7 +90,7 @@ void func_80294F00(void) {
             D_8039CA70[0].recCount++;
         } else {
             D_8039CA8C = 1;
-            func_8029A7E4("OVERRUN GHOST DIGGER ARRAY\n");
+            debug_printf("OVERRUN GHOST DIGGER ARRAY\n");
         }
     }
 }
@@ -130,7 +130,7 @@ void func_80295394(s32 *x, s32 *y, s32 *z, s16 *rx, s16 *ry, s16 *rz) {
     f32 frac;
 
     t = ((s32) D_803156C0) - D_8039CA84;
-    if (D_80364A90 == 0x2000) {
+    if (gGameMode == 0x2000) {
         *x = D_8039CA68[0][0].x;
         *y = D_8039CA68[0][0].y;
         *z = D_8039CA68[0][0].z;
@@ -246,7 +246,7 @@ void func_80295AE0(Gfx *gdl, Gfx *end) {
                         }
                     } while (!found && i < 6);
                     if (!found) {
-                        func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", "found", "ghostdigger.c", 338);
+                        debug_printf("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", "found", "ghostdigger.c", 338);
                     }
                     gdl->words.w1 = D_802FF11C[i].to;
                 }
@@ -271,10 +271,10 @@ void func_80295C70(u8 id, s32 px, s32 pz) {
                               D_802FF150[i].z[2], D_802FF150[i].x[3], D_802FF150[i].z[3])) {
                 j = 0;
                 while (D_802FF150[i].list[j] != -1) {
-                    D_803C30A8[j] = D_802FF150[i].list[j];
+                    gVisibleCells[j] = D_802FF150[i].list[j];
                     j++;
                 }
-                D_803C30A8[j] = 0xFFFF;
+                gVisibleCells[j] = 0xFFFF;
             }
         }
     }

@@ -49,15 +49,17 @@ jobs:
           python-version: "3.12"
 
       # The downloads (RT64 at its pinned commit with its submodules, DXC, SDL2),
-      # keyed by what selects them: the RT64 commit, the URLs and SHA-256s in
-      # CMakeLists.txt, fetch_rt64.cmake and the RT64 patches.
+      # keyed by what selects them: the URLs and SHA-256s in CMakeLists.txt,
+      # rt64_pin.cmake (the RT64 commit and patch list), fetch_rt64.cmake and
+      # the RT64 patches.
       - name: Third-party cache key
         id: tpkey
         run: |
           $p = "blastcorps/port"
           $lines = Select-String -Path "$p/CMakeLists.txt" -Pattern 'BC_RT64_COMMIT|https://|^\s+[0-9a-f]{64}\)' |
             ForEach-Object { $_.Line.Trim() }
-          $text = ($lines -join "`n") + "`n" + (Get-Content -Raw "$p/cmake/fetch_rt64.cmake")
+          $text = ($lines -join "`n") + "`n" + (Get-Content -Raw "$p/cmake/rt64_pin.cmake") +
+            "`n" + (Get-Content -Raw "$p/cmake/fetch_rt64.cmake")
           foreach ($f in Get-ChildItem "$p/rt64/patches" -Filter *.patch | Sort-Object Name) {
             $text += "`n" + $f.Name + " " + (Get-FileHash $f.FullName -Algorithm SHA256).Hash
           }
@@ -205,6 +207,12 @@ jobs:
       - name: eqcheck self-tests (tools_port/tests/test_eqcheck.py)
         working-directory: blastcorps
         run: python tools_port/tests/test_eqcheck.py
+
+      - name: rename map (tools_port/tests/test_rename.py, rename.py --check)
+        working-directory: blastcorps
+        run: |
+          python tools_port/tests/test_rename.py
+          python tools_port/rename.py --check
 
       - name: make -C port norom-check
         working-directory: blastcorps

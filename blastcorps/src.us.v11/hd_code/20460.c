@@ -78,7 +78,7 @@ void func_80264CB4(s16 arg0, s16 arg1, s16 arg2, s16 arg3, u8 arg4, s32 arg5) {
     i = 0;
     n = 0;
     D_8036EA79 += arg5;
-    if (arg5 != 0 && D_802E8BD0 == 0) {
+    if (arg5 != 0 && gPaused == 0) {
         func_8026AD30(0x48);
     }
     if (arg3 > 200) {
@@ -223,8 +223,8 @@ void func_80265428(void) {
             if (z2 >= D_80367D60[i].unkC + D_80367D60[i].unkE) {
                 z2 = D_80367D60[i].unkC + D_80367D60[i].unkE - 1;
             }
-            d1 = func_8026A610(D_803643E0 >> 5, D_803643E8 >> 5, x, z);
-            d2 = func_8026A610(D_803643E0 >> 5, D_803643E8 >> 5, x2, z2);
+            d1 = func_8026A610(gPlayerX >> 5, gPlayerZ >> 5, x, z);
+            d2 = func_8026A610(gPlayerX >> 5, gPlayerZ >> 5, x2, z2);
             if (D_80367D60[i].unk1B) {
                 if (D_80367D60[i].unk1A) {
                     d2 = 0;
@@ -265,7 +265,7 @@ void func_80265428(void) {
     }
 }
 
-/* Is the player (D_803643E0/E8, >> 5) inside piece arg0's area? */
+/* Is the player (gPlayerX/Z, >> 5) inside piece arg0's area? */
 s32 func_80265A0C(s32 arg0) {
     s16 b3;
     s16 b2;
@@ -274,7 +274,7 @@ s32 func_80265A0C(s32 arg0) {
 
     b1 = D_80367D60[arg0].unkA - D_80367D60[arg0].unk10;
     b0 = D_80367D60[arg0].unkC - D_80367D60[arg0].unk10;
-    b3 = D_803643E0 >> 5, b2 = D_803643E8 >> 5;
+    b3 = gPlayerX >> 5, b2 = gPlayerZ >> 5;
     if (b3 < b1 || b2 < b0) {
         return 0;
     }
@@ -409,10 +409,10 @@ void func_80265E48(void) {
             D_80368038 = 600;
             D_803EF32C = 1;
             D_8036803C = i;
-            if (35000 - func_8026A610(D_803643E0, D_803643E8, D_803EF308, D_803EF30C) * 2 >= 0x8000) {
+            if (35000 - func_8026A610(gPlayerX, gPlayerZ, D_803EF308, D_803EF30C) * 2 >= 0x8000) {
                 vol = 0x7FFF;
             } else {
-                vol = 35000 - func_8026A610(D_803643E0, D_803643E8, D_803EF308, D_803EF30C) * 2;
+                vol = 35000 - func_8026A610(gPlayerX, gPlayerZ, D_803EF308, D_803EF30C) * 2;
             }
             if (vol > 4000) {
                 func_80260AB8(func_80260650(D_80367738, 0x25, 0), 8, vol);
@@ -425,8 +425,8 @@ void func_80265E48(void) {
 void func_802661EC(void) {
     D_803EF308 = D_803EF6DC;
     D_803EF30C = D_803EF6E4;
-    D_80368044 = D_803643E0;
-    D_80368048 = D_803643E8;
+    D_80368044 = gPlayerX;
+    D_80368048 = gPlayerZ;
     D_803EF32C = 1;
     D_80368038 = 2000;
 }
@@ -472,7 +472,7 @@ void func_80266248(Gfx **gdlp, DynBuf *buf) {
 
     gdl = *gdlp;
     n = 0;
-    guRotateF(mf, D_80364414 - 135.0, 0.0f, 1.0f, 0.0f);
+    guRotateF(mf, gCamHeading - 135.0, 0.0f, 1.0f, 0.0f);
     for (k = 0; k < 4; k++) {
         guMtxXFMF(mf, D_802E9FB0[k].v.ob[0], D_802E9FB0[k].v.ob[1], D_802E9FB0[k].v.ob[2], &fx[k], &fy[k], &fz[k]);
     }
@@ -530,7 +530,7 @@ void func_80266248(Gfx **gdlp, DynBuf *buf) {
             }
             frame = D_80367D60[i].unk13;
             flip = 0;
-            ang = D_80367D60[i].unk18 - (D_80364414 - 135.0) / 360.0 * 4095.0;
+            ang = D_80367D60[i].unk18 - (gCamHeading - 135.0) / 360.0 * 4095.0;
             if (ang < 0) {
                 ang += 0xFFF;
             }
@@ -640,7 +640,7 @@ typedef struct {
     u8 cell;
 } Node12;
 
-/* Is the node's cell in the 0xFFFF-terminated list D_803C30A8? (same as
+/* Is the node's cell in the 0xFFFF-terminated list gVisibleCells? (same as
  * 26570's func_80270A54 with the cell at 0x12) */
 s32 func_80267614(Node12 *node, s32 arg1) {
     s32 i;
@@ -649,8 +649,8 @@ s32 func_80267614(Node12 *node, s32 arg1) {
 
     i = 0;
     v = node->cell;
-    for (; D_803C30A8[i] != 0xFFFF; ) {
-        arg1 = D_803C30A8[i++] == v;
+    for (; gVisibleCells[i] != 0xFFFF; ) {
+        arg1 = gVisibleCells[i++] == v;
         if (arg1) {
             return 1;
         }

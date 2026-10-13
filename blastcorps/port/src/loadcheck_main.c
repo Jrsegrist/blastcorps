@@ -1,7 +1,7 @@
 /* loadcheck: the byte-order layer (port/src/load/) against the original code.
  *
  * Real game C (NON_MATCHING, native) loads real assets from the user's ROM
- * through the game's own loaders (func_8028B4C4, func_8025615C, 5BF40's
+ * through the game's own loaders (func_8028B4C4, lvl_load_file, 5BF40's
  * texture loads), with osPiStartDma emulated here the way the platform layer
  * does it (copy from the ROM, then port_on_dma).  The same cases run through
  * the ORIGINAL MIPS code in unicorn on big-endian memory
@@ -10,7 +10,7 @@
  *
  *   T5  port_802E8BF8_word: the D_802E8BF8 flag/word-table alias (00000.c)
  *   T6  texture entries: DMA + func_802A57DC decode, output bytes (BE) CRC
- *   T7  every level: func_8025615C load + func_802A2C54 object-stream unpack
+ *   T7  every level: lvl_load_file load + func_802A2C54 object-stream unpack
  *   T8  every level: func_802A5510 height zones at random positions
  *   T9  (needs a trace) every read the N64 code made of each traced asset
  *
@@ -38,7 +38,7 @@ typedef uint32_t u32;
 s32 port_802E8BF8_word(s32 i);
 void func_802A0700(void);
 void func_802A0B34(s32 id, u8 *param);
-void func_8025615C(s32 level, s32 dest, s32 *size);
+void lvl_load_file(s32 level, s32 dest, s32 *size);
 void func_802A2C54(u8 *obj);
 void func_802A5510(u8 *level);
 
@@ -66,8 +66,9 @@ void osWritebackDCache(void *p, s32 n) { (void) p; (void) n; }
 void port_fe_loaded(void) {}
 void port_spin(void) {}
 void port_itag(const void *gdl, int kind, int index) { (void) gdl; (void) kind; (void) index; }
+short *port_draw_cells(short *game) { return game; }
 unsigned int port_gvi_read(const char *fn, unsigned int v) { (void) fn; return v; }
-void func_8029A7E4(const char *fmt, ...) { (void) fmt; }
+void debug_printf(const char *fmt, ...) { (void) fmt; }
 /* the SDK's block copy/clear (bc_headless: os_hw.c); gcc turns the game's
  * calls into memset/memmove, clang (the x86_64 build) calls them */
 void bzero(void *p, int n) { memset(p, 0, (size_t) n); }
@@ -105,7 +106,7 @@ static uint32_t rnd(void) {
 
 #define HEAP     0x80100000u   /* texture / level loads go here */
 #define PARAM    0x801F0000u   /* synthetic u16 table for texture types 4 and 5 */
-#define HEAPPTR  0x80358070u   /* D_80358070 */
+#define HEAPPTR  0x80358070u   /* gHeapPtr */
 
 static void t5(void) {
     int flag, i;
@@ -144,7 +145,7 @@ static void t6(void) {
 /* level loads: returns the decompressed size or 0 */
 static s32 load_level(int lvl) {
     s32 size = 0;
-    func_8025615C(lvl, (s32) HEAP, &size);
+    lvl_load_file(lvl, (s32) HEAP, &size);
     return size;
 }
 

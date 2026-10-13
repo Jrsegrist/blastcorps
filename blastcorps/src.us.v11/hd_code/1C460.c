@@ -92,18 +92,18 @@ f32 func_80260DF0(void) {
 }
 
 void func_80260DFC(void) {
-    func_80260EE0(D_802E8DC8[D_802E8BDC]);
+    func_80260EE0(D_802E8DC8[levelno]);
 }
 
 void func_80260E2C(void) {
     D_80367740 = ((s32) D_803156C4);
     D_8036772C = alCSPGetTempo(D_80367734);
-    func_80261FB0(D_802E8E04[D_802E8BDC]);
+    func_80261FB0(D_802E8E04[levelno]);
 }
 
 void func_80260E80(void) {
     D_80367740 = ((s32) D_803156C4);
-    func_80261FB0(D_802E8E40[D_802E8BDC]);
+    func_80261FB0(D_802E8E40[levelno]);
 }
 
 void func_80260EC0(void) {
@@ -112,9 +112,9 @@ void func_80260EC0(void) {
 
 void func_80260EE0(u8 tune) {
     if (D_80367728) {
-        func_8029A7E4("OH DEAR - pushing tune but we're still popping!\n");
+        debug_printf("OH DEAR - pushing tune but we're still popping!\n");
     } else {
-        func_8029A7E4("push tune %d\n", tune);
+        debug_printf("push tune %d\n", tune);
         D_80367400->tune = D_80367708;
         D_80367708 = tune;
         D_80367730 = 0;
@@ -123,7 +123,7 @@ void func_80260EE0(u8 tune) {
 }
 
 void func_80260F60(f32 vol) {
-    func_8029A7E4("1 pop tune");
+    debug_printf("1 pop tune");
     if (D_80367400 == D_80366C30) {
         return;
     }
@@ -131,7 +131,7 @@ void func_80260F60(f32 vol) {
     if (D_80367400 == D_80366C30) {
         D_80367730 = 1;
     }
-    func_8029A7E4("2 pop tune %d\n", D_80367400->tune);
+    debug_printf("2 pop tune %d\n", D_80367400->tune);
     D_80367708 = D_80367400->tune;
     alCSPStop(D_80367734);
     D_80367728 = 2;
@@ -179,7 +179,7 @@ void func_802611F0(void) {
 
     alCSeqGetLoc(&D_80367518[D_802E8D84], &marker);
     if (!D_80367729 && !D_80367728 && func_802D4E10(D_80367734) == 0 && marker.lastTicks != 0) {
-        func_8029A7E4("auto popping\n");
+        debug_printf("auto popping\n");
         func_8026101C();
     }
 }
@@ -303,7 +303,7 @@ void func_80261588(void) {
     sndc.slotCount = 8;
     sndc.heap = &D_80367718;
     func_8025EDF0(&sndc);
-    func_8029A7E4("%d bytes audio heap left over\n", D_80367718.len - (D_80367718.cur - D_80367718.base));
+    debug_printf("%d bytes audio heap left over\n", D_80367718.len - (D_80367718.cur - D_80367718.base));
     D_8036772A = 0;
     D_80367728 = 0;
     D_80367710 = D_8036770C = 1.0f;
@@ -314,7 +314,7 @@ void func_80261588(void) {
 
 void func_802619D0(u32 id) {
     if (id >= 28) {
-        func_8029A7E4("effect id %d out of range!\n", id);
+        debug_printf("effect id %d out of range!\n", id);
     } else if (D_802E8E7C[id] != 0) {
         func_80260650(D_80367738, D_802E8E7C[id], NULL);
     }
@@ -331,7 +331,7 @@ u8 func_80261A44(u64 event) {
     }
     func_802609F0();
     func_80261E9C(event);
-    if (D_80364A90 & 0xC9FD8FE7FBFFC0B0) {
+    if (gGameMode & 0xC9FD8FE7FBFFC0B0) {
         func_80260A30(0);
         func_80260A30(5);
     }
@@ -365,7 +365,7 @@ u8 func_80261A44(u64 event) {
             break;
         case 0x4000:
         case 0x80:
-            if (func_80264BA4(D_802E8BDC) == 3) {
+            if (func_80264BA4(levelno) == 3) {
                 tune = 0xC;
             } else {
                 tune = 0x13;
@@ -375,21 +375,21 @@ u8 func_80261A44(u64 event) {
             tune = 0xF;
             break;
         case 0x2000:
-            if (D_802E8F94[D_802E8BDC][0] != 1) {
+            if (gLevelInfo[levelno][0] != 1) {
                 func_80261570(0.0f);
                 break;
             }
         case 4:
-            tune = D_802E8D8C[D_802E8BDC];
+            tune = D_802E8D8C[levelno];
             force = 1;
             break;
         case 0x20000000:
             tune = 0x1D;
             break;
         case 0x100000000000:
-            tune = D_802E8D8C[D_802E8BDC];
+            tune = D_802E8D8C[levelno];
             force = 1;
-            if (D_802E8BDC == 0x26) {
+            if (levelno == 0x26) {
                 D_80367710 = 0.7f;
             }
             break;

@@ -13,7 +13,7 @@ PlatStats plat_stats;
 #define G_VICOUNT (*(u32 *) 0x803156C4)   /* the game's retrace counter */
 
 /* the boot entry in hd_code (00000.c); init.us.v11's job is done natively */
-extern void func_802447C0(void);
+extern void hd_boot(void);
 
 /* ---- front-end overlay ------------------------------------------------------ */
 /* The front end (0x801E7000-0x8021ED00) is inflated from the ROM whenever the
@@ -51,9 +51,88 @@ void port_fe_loaded(void) {
 /* bc.exe's tagged interpolation records them (live_interp.cpp); nothing else
  * does, and nothing goes back to the game. */
 void (*host_itag_hook)(unsigned addr, int kind, int index);
+void (*host_camera_hook)(int snap);
+short *(*host_draw_cells_hook)(short *game);
 
 void port_itag(const void *gdl, int kind, int index) {
-    if (host_itag_hook != NULL) host_itag_hook((unsigned) (size_t) gdl, kind, index);
+    /* PORT_ICUT_IF: every frame, at the end of the game's camera (index: the snap flag) */
+    if (kind == 30 && host_camera_hook != NULL) host_camera_hook(index);
+    if (host_itag_hook != NULL && (kind != 30 || index != 0)) host_itag_hook((unsigned) (size_t) gdl, kind, index);
+}
+
+/* PORT_DRAW_CELLS: the visible-cell list the drawing paths use */
+short *port_draw_cells(short *game) {
+    return host_draw_cells_hook != NULL ? host_draw_cells_hook(game) : game;
+}
+
+/* bc.exe's orbit camera: the commands and vertex values 2D2D810.c
+ * func_80271FD0 would write for the backdrop with the camera heading and
+ * pitch given (the game's gCamYaw / gCamPitch units), into host memory:
+ * `out` (at most `max` Gfx), and `vtx[i]` = {ob[1], tc[0], tc[1]} of the 4
+ * vertices of D_802FA820[0].  Nothing in RDRAM is written; the game's own
+ * state (D_8036BFC8 ..., the vertex buffer index) isn't touched.  Returns the
+ * number of commands, 0 when the backdrop would not be drawn. */
+typedef struct {
+    s16 id;
+    u32 ptr;
+    u8 sShift, tShift, cms, cmt;
+} PortFadeEntry; /* 2D810.c FadeEntry */
+int port_backdrop_gfx(void *outv, int max, unsigned dyn, int level, int heading, int pitch, short vtx[4][3]) {
+    Gfx *gdl = (Gfx *) outv;
+    Gfx *start = gdl;
+    const u16 *fmts = (const u16 *) (size_t) 0x802FA8A0u;
+    const PortFadeEntry *tab = (const PortFadeEntry *) (size_t) (0x802FA280u + (u32) level * 0x18u);
+    const PortFadeEntry *entry;
+    const f32 speed = *(const f32 *) (size_t) 0x8036BFC0u;
+    f32 scroll, cc, d0, c8, s0, s1, t0, t1;
+    s32 i;
+
+    if (*(const u8 *) (size_t) 0x8036BFC4u == 0 || max < 32 || level < 0 || level > 0x3F) return 0;
+    scroll = 120.0 - (f32) (s16) pitch * 0.22 + speed;
+    cc = (0.0 > scroll) ? 0.0 : scroll;
+    d0 = (0.0 > -scroll) ? 0.0 : -scroll;
+    if ((s32) cc <= 0) return 0;
+    c8 = ((s16) heading - 2048.0) * 0.5;
+    gSPClearGeometryMode(gdl++, 0xFFFFFFFF);
+    gSPSetGeometryMode(gdl++, G_SHADE | G_SHADING_SMOOTH);
+    gSPTexture(gdl++, 0x8000, 0x8000, 0, G_TX_RENDERTILE, G_ON);
+    gDPPipeSync(gdl++);
+    gDPSetCombine(gdl++, 0xFC24A3FF, 0x1FFC9238);
+    gDPSetCycleType(gdl++, G_CYC_2CYCLE);
+    gDPSetRenderMode(gdl++, G_RM_PASS, G_RM_OPA_SURF2);
+    gDPSetTextureFilter(gdl++, G_TF_BILERP);
+    for (i = 0; i < 2; i++) {
+        entry = &tab[i];
+        gDPSetTextureImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, (void *) (size_t) entry->ptr);
+        gDPTileSync(gdl++);
+        gDPSetTile(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 0, i * 256, G_TX_LOADTILE, 0, 0, 0, 0, 0, 0, 0);
+        gDPLoadSync(gdl++);
+        gDPLoadBlock(gdl++, G_TX_LOADTILE, 0, 0, 1023, 256);
+    }
+    gSPMatrix(gdl++, (Mtx *) (size_t) (u32) (dyn + 0x80000100u), G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
+    gSPMatrix(gdl++, (Mtx *) (size_t) (u32) (dyn + 0x800001C0u), G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+    gDPTileSync(gdl++);
+    gDPSetTextureLOD(gdl++, G_TL_TILE);
+    for (i = 0; i < 2; i++) {
+        entry = &tab[i];
+        gDPSetTile(gdl++, fmts[i], G_IM_SIZ_16b, 8, i * 256, i, 0, entry->cmt & 3, 5, i, entry->cms & 3, 5, i);
+        gDPSetTileSize(gdl++, i, 0, 0, 31 << G_TEXTURE_IMAGE_FRAC, 31 << G_TEXTURE_IMAGE_FRAC);
+    }
+    entry = &tab[1];
+    s0 = (c8 + 16.0f) / (f32) (1 << entry->sShift);
+    s1 = 319.0 / (f32) (1 << entry->sShift);
+    t0 = (cc - speed - d0) / (f32) (1 << entry->tShift);
+    t1 = (cc - 1.0) / (f32) (1 << entry->tShift);
+    for (i = 0; i < 4; i++) {
+        vtx[i][0] = (i >= 2) ? (s16) (cc * 4.0 - 1.0) : 0x7FFF;   /* 0x7FFF: keep the vertex's own */
+        vtx[i][1] = (s16) (((i & 1) ? s0 + s1 : s0) * 32.0);
+        vtx[i][2] = (s16) ((i < 2 ? t0 : t0 - t1) * 32.0);
+    }
+    gSPVertex(gdl++, (Vtx *) (size_t) 0x802FA820u, 4, 0);
+    gDPPipeSync(gdl++);
+    gSP1Triangle(gdl++, 0, 1, 2, 0);
+    gSP1Triangle(gdl++, 1, 2, 3, 0);
+    return (int) (gdl - start);
 }
 
 /* ---- frames ---------------------------------------------------------------- */
@@ -186,6 +265,6 @@ void plat_start(const HostOpts *o) {
         plat_sync_load(o->sync_path);
     }
 
-    func_802447C0();   /* osInitialize, debug command line, idle thread */
+    hd_boot();   /* osInitialize, debug command line, idle thread */
     plat_run();
 }

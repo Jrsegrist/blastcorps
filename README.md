@@ -125,6 +125,48 @@ function of the three code segments by category. Permanent hand-written assembly
 - **near-miss**: IDO-compiled functions still `GLOBAL_ASM` in the matching build, with
   `NON_MATCHING` C that the port uses (front end func_801F58E8 and func_801FA74C).
 
+## Naming conventions
+
+Symbols start with splat's address names, `func_XXXXXXXX` (code) and `D_XXXXXXXX` (data), and keep them
+until there is evidence for a real one: what the code does, read together with its callers and the data it
+touches. A guess is not a name: when unsure, keep the address name and add a one-line comment saying what is
+known.
+
+| what | style | examples |
+|---|---|---|
+| a name the game or the SDK itself gives (assert and debug strings, file names, libultra, the SDK demos' scheduler and audio manager) | exactly that name | `levelno`, `playerNumber`, `yoshiState`, `__scMain`, `osSendMesg` |
+| functions | `module_verb_object`, lower snake case; the module is the subsystem or the original file (`hd_` hd.c, `cam_` camera, `veh_` vehicles, `lvl_` levels, `obj_` objects and buildings, `mode_` game modes) | `hd_main_thread`, `cam_build_projection` |
+| global variables | `g` + CamelCase | `gGameMode`, `gNextGameMode` |
+| file-scope and function-local `static` data | keep `D_XXXXXXXX`: the port's `coffpin.py` pins statics at the address their name carries | |
+| types | CamelCase | `DynamicBuf`, `LevelInfo` |
+| struct fields | lowerCamelCase; unidentified ones stay `unkXX` / `padXX` (XX = the offset) | `modelId`, `unk5C` |
+| constants and macros | UPPER_SNAKE_CASE | `MODE_LEVEL`, `TOPLEVEL_DL_SIZE` |
+
+Each named function gets a one- or two-line comment on what it does, ending with its address, e.g.
+`/* The main game thread: game mode switches, then the frame loop (0x80244930). */`.
+
+**The rename map.** `blastcorps/tools_port/names.txt` holds every rename as `old = new` (fields as
+`field Type.old = new`, renamed by hand: the compiler reports a use that was missed). It is also the alias
+table for old names in notes and reports: `python3 tools_port/rename.py --which func_80244930`.
+`tools_port/rename.py` applies the map to the whole tree (C, headers, symbol_addrs and undefined_syms, the
+check files, conventions.txt, hand_asm.txt, the port's tools and data files, READMEs), adds each new name to
+its segment's `symbol_addrs` file at its address, and is safe to re-run. Tools that classify symbols by their
+address-name prefix (`func_` = game function, `D_` = N64 data) ask `tools_port/names.py` for the old name
+first, so a rename changes nothing they do. Names never change code: after a rename the matching ROMs,
+the NON_MATCHING ROM and every check must come out the same.
+
+**Applying the map on another branch** (before merging it with one that renamed):
+```
+cd blastcorps
+python3 tools_port/rename.py                     # rewrite the branch's files
+python3 tools_port/rename.py --check             # no old name left (also run by the CI)
+make VERSION=us.v11 extract                      # the asm under the new names
+make VERSION=us.v11 && make VERSION=us.v11 NON_MATCHING=1 nmrom
+make -C port inputs                              # port/inputs: the new names
+```
+Then merge; a conflict is then a real one, not a rename. A file the branch adds is covered by the first step
+(or `rename.py FILE...`).
+
 ## C tools
 
 C tools from queueRAM's `blast_corps_docs`, `sm64tools` and other places.

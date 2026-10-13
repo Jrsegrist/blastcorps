@@ -49,6 +49,11 @@ import re
 import struct
 import sys
 
+# renamed symbols (tools_port/names.txt) count as the address names they had
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+                                "tools_port"))
+from names import orig  # noqa: E402
+
 SCN_CNT_CODE = 0x20
 SCN_CNT_INIT = 0x40
 SCN_CNT_UNINIT = 0x80
@@ -165,7 +170,7 @@ def n64_addr(name, n64data):
     """the N64 address of data symbol NAME (None if it isn't one)"""
     if name in n64data:
         return n64data[name]
-    m = re.match(r"D_([0-9A-F]{8})$", name)
+    m = re.match(r"D_([0-9A-F]{8})$", orig(name))
     if m and 0x80000000 <= int(m.group(1), 16) < PIN_LIMIT:
         return int(m.group(1), 16)
     return None

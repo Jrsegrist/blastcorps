@@ -53,8 +53,10 @@ import os
 import re
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from names import orig  # noqa: E402  (renamed symbols are classified by their address names)
 
-SKIP_NAME = re.compile(r"^(\.|L[0-9A-F]{8}|jtbl_|D_|_asmpp_|_binary_|.*_(START|END|VRAM|bin|SIZE)$)")
+SKIP_NAME =re.compile(r"^(\.|L[0-9A-F]{8}|jtbl_|D_|_asmpp_|_binary_|.*_(START|END|VRAM|bin|SIZE)$)")
 
 
 def code_symbols(path):
@@ -72,7 +74,7 @@ def code_symbols(path):
                 continue
             for sy in st.iter_symbols():
                 shndx = sy["st_shndx"]
-                if not sy.name or not isinstance(shndx, int) or SKIP_NAME.match(sy.name):
+                if not sy.name or not isinstance(shndx, int) or SKIP_NAME.match(orig(sy.name)):
                     continue
                 if sy["st_info"]["type"] in ("STT_SECTION", "STT_FILE", "STT_OBJECT"):
                     continue
@@ -118,7 +120,7 @@ def main():
             name, val = m.group(2), m.group(3).strip()
             if name in code:
                 val = "0x%08X" % code[name]
-            is_func = funcs_file or name in code or name.startswith("func_") or \
+            is_func = funcs_file or name in code or orig(name).startswith("func_") or \
                 re.match(r"^[A-Za-z_.$][\w.$]*$", val) is not None   # alias of another symbol
             if not is_func:
                 return "%s%s = %s;" % (m.group(1), name, val)

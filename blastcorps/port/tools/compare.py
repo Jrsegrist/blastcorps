@@ -44,6 +44,9 @@ ROOT = os.path.dirname(PORT)  # blastcorps/
 SIZE = 0x400000  # the game only uses the first 4 MB
 BASE = 0x80000000
 NATIVE_PERIOD = 781250
+# renamed symbols (tools_port/names.txt) count as the address names they had
+sys.path.insert(0, os.path.join(ROOT, "tools_port"))
+from names import orig  # noqa: E402
 
 
 def die(msg):
@@ -336,7 +339,7 @@ def cmd_inject(args):
         pts = [p for p in pts if p[2] not in (4, 5)]
         for s, c, th, ra, kind, q, gv in pts:
             it = fs.find(ra)
-            if it and re.match(r"^func_[0-9A-F]{8}$", it[1]):
+            if it and re.match(r"^func_[0-9A-F]{8}$", orig(it[1])):
                 f.write("S %d %s %s %X %d %d\n" % (th, it[1], kind, q, ev["to_native"](c), gv))
                 nsync += 1
     with open(os.path.join(emudir, "boot.txt"), "w") as f:

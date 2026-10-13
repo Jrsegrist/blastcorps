@@ -1,0 +1,13 @@
+# The rename map: `old = new`, one symbol per line (`#` starts a comment).
+#
+# old is the symbol's address name (func_XXXXXXXX for code, D_XXXXXXXX for
+# data); this file is also the alias table that resolves those old names in
+# notes and reports (`python3 tools_port/rename.py --which NAME`).
+# tools_port/rename.py applies it to the tree; tools that classify symbols by
+# their address-name prefix ask tools_port/names.py (orig) first.
+# Conventions: the README, "Naming conventions".  Every name needs evidence
+# (what the code does, its callers, the data it touches); keep the address
+# name when unsure.
+#
+# Struct fields are renamed by hand in the headers; they are listed as
+# `field Type.old = new` lines (rename.py skips them).

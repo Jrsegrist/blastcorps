@@ -41,6 +41,9 @@ import subprocess
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# renamed symbols (tools_port/names.txt) are classified by the address names they had
+sys.path.insert(0, os.path.join(ROOT, "tools_port"))
+from names import orig, addr_of  # noqa: E402
 VERSION = "us.v11"
 ELFS = ["build_nm/hd_code.%s.elf" % VERSION, "build_nm/hd_front_end.%s.elf" % VERSION]
 NM = os.environ.get("NM", "x86_64-w64-mingw32-nm")
@@ -88,7 +91,7 @@ def elf_symbols():
                         continue
                     v = sy["st_value"]
                     if shndx == "SHN_ABS":
-                        is_func = n.startswith("func_") or n in ufuncs
+                        is_func = orig(n).startswith("func_") or n in ufuncs
                     else:
                         is_func = typ == "STT_FUNC" or bool(secs[shndx]["sh_flags"] & 4)
                     if n in syms and syms[n][1] == is_func:
@@ -141,9 +144,9 @@ def cmd_link64(outdir, objs):
                 stubs.append(c)
             else:
                 data.append((c, v))      # an N64 address, or a ROM offset (D_00xxxxxx)
-        elif re.match(r"D_[0-9A-F]{8}$", c) and 0x80000000 <= int(c[2:], 16) < PIN_LIMIT:
-            data.append((c, int(c[2:], 16)))
-        elif c.startswith("func_") or c.startswith("os") or c.startswith("__os") or c.startswith("gu") \
+        elif orig(c).startswith("D_") and addr_of(c) is not None and 0x80000000 <= addr_of(c) < PIN_LIMIT:
+            data.append((c, addr_of(c)))
+        elif orig(c).startswith("func_") or c.startswith("os") or c.startswith("__os") or c.startswith("gu") \
                 or c.startswith("al") or c in ("bzero", "bcopy", "bcmp", "sprintf", "sqrtf", "sinf", "cosf"):
             stubs.append(c)
         else:
@@ -382,9 +385,9 @@ def cmd_linkcoff(outdir, elfsyms_path, base, game_lists, host_lists):
                 stubs.append(c)
             else:
                 data.append((c, v))      # an N64 address, or a ROM offset (D_00xxxxxx)
-        elif re.match(r"D_[0-9A-F]{8}$", c) and 0x80000000 <= int(c[2:], 16) < PIN_LIMIT:
-            data.append((c, int(c[2:], 16)))
-        elif c.startswith("func_") or c.startswith("os") or c.startswith("__os") or c.startswith("gu") \
+        elif orig(c).startswith("D_") and addr_of(c) is not None and 0x80000000 <= addr_of(c) < PIN_LIMIT:
+            data.append((c, addr_of(c)))
+        elif orig(c).startswith("func_") or c.startswith("os") or c.startswith("__os") or c.startswith("gu") \
                 or c.startswith("al") or c in ("bzero", "bcopy", "bcmp", "sprintf", "sqrtf", "sinf", "cosf"):
             stubs.append(c)
         else:

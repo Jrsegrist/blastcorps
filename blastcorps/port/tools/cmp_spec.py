@@ -34,9 +34,14 @@
 #                                  function that reads that counter
 #   V (as "#in" lines)             the count register at some VIs (period, wrap-around)
 # Dumps: RDRAM 0x80000000-0x80400000 as N64 big-endian bytes.
-import ctypes as C, os, struct
+import ctypes as C, os, struct, sys
 
 from elftools.elf.elffile import ELFFile
+
+# renamed symbols (tools_port/names.txt) count as the address names they had
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+                                "tools_port"))
+from names import orig  # noqa: E402
 
 OUT = os.environ["CMP_DIR"]
 ELFS = os.environ["CMP_ELFS"].split(",")
@@ -129,7 +134,7 @@ for path in ELFS:
         for sec in ELFFile(f).iter_sections():
             if sec.name == ".symtab":
                 for s in sec.iter_symbols():
-                    if s["st_info"]["type"] == "STT_FUNC" and s.name.startswith("func_") and s["st_size"]:
+                    if s["st_info"]["type"] == "STT_FUNC" and orig(s.name).startswith("func_") and s["st_size"]:
                         func_sizes[s.name] = (s["st_value"], s["st_size"])
 ENTRY = {}
 for name, (a, size) in func_sizes.items():

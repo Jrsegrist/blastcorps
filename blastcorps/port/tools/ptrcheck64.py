@@ -28,9 +28,15 @@ usage: ptrcheck64.py ADDRS ALLOW OUT -- CLANG_CMD... -- FILE.c...
   Exit status 1 if anything not allowed is found.
 """
 import fnmatch
+import os
 import re
 import subprocess
 import sys
+
+# renamed symbols (tools_port/names.txt) count as the address names they had
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+                                "tools_port"))
+from names import orig  # noqa: E402
 
 ANY = re.compile(r"^([ |`-]*)\w+ 0x[0-9a-f]+ ")
 # a signed integer of at most 32 bits: sign-extends when cast to a 64-bit pointer
@@ -190,7 +196,7 @@ def main():
             elif kind == "VarDecl":
                 vm = re.search(r"\b(\w+) '", rest)
                 vname = vm.group(1) if vm else "?"
-                if vname not in pinned and not re.match(r"D_[0-9A-F]{8}$", vname):
+                if vname not in pinned and not re.match(r"D_[0-9A-F]{8}$", orig(vname)):
                     continue
                 if host_ptr(t):
                     found.setdefault("VAR %s" % vname, (t, src))

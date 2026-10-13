@@ -804,6 +804,105 @@ void func_802C12E0(u32 **gfxA, u32 **gfxB);
  * G_ENDDL in both (not advanced).
  * ABI (00000.c passes eight pointers); the asm saves s0-s7, gp, fp and uses
  * gp as scratch. Its trapping add/sub stay in game range. */
+#ifdef PORT_HOST
+/* bc.exe's orbit camera (PORT_DRAW_CELLS): an object whose cell the game
+ * didn't list but the drawing list has is drawn as it is, with none of the
+ * per-object work above (no pose step, texture animation or falling-part
+ * counter: the game leaves unlisted objects alone, so they stay as they
+ * are), and without its moving parts.  Only objects without a pose. */
+static void port_draw_only_802BD1F8(Unk802C1DD0Entry *o, u32 **pA, u32 **pB, u32 **pC, u32 **pD) {
+    u8 *ob = (u8 *) o;
+    u8 *info = (u8 *) o->info;
+    u8 *tbl = info + *(s32 *) (info + 0x28);
+    u8 *tblEnd = info + *(s32 *) (info + 0x2C);
+    u8 *rec = info + *(s32 *) (info + 0x38);
+    u8 *recEnd = info + *(s32 *) (info + 0x3C);
+    u32 *gA = *pA, *gB = *pB, *gC = *pC, *gD = *pD;
+    s16 *s = PORT_DRAW_CELLS(D_803C30A8);
+    s32 first;
+
+    if (s == (s16 *) D_803C30A8 || *(u16 *) (info + 0xE) != 0) return;
+    for (;; s++) {
+        if (*s == -1) return;
+        if (*s == o->unkE8) break;
+    }
+    if (o->unk30 == 0x38 && func_802BD8C8() != 0) return;
+    PORT_ITAG(gA, PORT_ITAG_BUILDING, o - D_803F4030);
+    PORT_ITAG(gB, PORT_ITAG_BUILDING, o - D_803F4030);
+    gA[0] = gB[0] = 0xBC002406;
+    gA[1] = gB[1] = (u32) (info + 0x50) - 0x80000000;
+    gA[2] = gB[2] = 0x06000000;
+    gA[3] = (u32) gC - 0x80000000;
+    gB[3] = (u32) gD - 0x80000000;
+    gA += 4;
+    gB += 4;
+    {
+        u64 *p = (u64 *) (info + *(s32 *) (info + 0x10));
+        u64 *pe = (u64 *) (info + *(s32 *) (info + 0x18));
+
+        while (p != pe) {
+            u64 w = *p++;
+
+            *(u64 *) gC = w;
+            gC += 2;
+            *(u64 *) gD = w;
+            gD += 2;
+        }
+    }
+    first = 1;
+    while (rec != recEnd) {
+        s32 n = *(s32 *) rec;
+        s32 off = (*(u16 *) (rec + 4) - 1) * 2;
+        s32 ok = 1;
+        u32 *src;
+        u32 *srcEnd;
+
+        rec += 4;
+        while (n != 0) {
+            s32 part = *(u16 *) rec;
+            s32 mode = rec[2];
+            s32 limit = rec[3];
+            s32 pct = ob[0xEC + part - 1];
+
+            n--;
+            rec += 4;
+            if (mode != 0 ? (pct < limit) : (limit < pct)) {
+                rec += n * 4;
+                ok = 0;
+                break;
+            }
+        }
+        if (!ok) {
+            rec += 0x10;
+            first = 0;
+            continue;
+        }
+        if (*(u16 *) (ob + 0x48 + off) == 0) {
+            src = (u32 *) (info + ((s32 *) rec)[0]);
+            srcEnd = (u32 *) (info + ((s32 *) rec)[1]);
+            if (tbl != tblEnd) {
+                gC = func_802BE228(src, srcEnd, gC, tbl, tblEnd);
+            } else {
+                COPY_DL_802BD1F8(gC, src, srcEnd);
+            }
+            src = (u32 *) (info + ((s32 *) rec)[2]);
+            srcEnd = (u32 *) (info + ((s32 *) rec)[3]);
+            if (tbl != tblEnd) {
+                gD = func_802BE3C8(src, srcEnd, gD, tbl, tblEnd);
+            } else {
+                COPY_DL_802BD1F8(gD, src, srcEnd);
+            }
+        }
+        rec += 0x10;
+        if (first) break;
+    }
+    *pA = gA;
+    *pB = gB;
+    *pC = gC;
+    *pD = gD;
+}
+#endif
+
 void func_802BD1F8(u32 *gA, u32 *gB, u32 *gC, u32 *gD, s32 mtxA, s32 mtxB, u32 *gE, u32 *gF) {
     Unk802C1DD0Entry *end;
     Unk802C1DD0Entry *o;
@@ -831,6 +930,9 @@ void func_802BD1F8(u32 *gA, u32 *gB, u32 *gC, u32 *gD, s32 mtxA, s32 mtxB, u32 *
 
         for (s = (s16 *) D_803C30A8;; s++) {
             if (*s == -1) {
+#ifdef PORT_HOST
+                port_draw_only_802BD1F8(o, &gA, &gB, &gC, &gD);
+#endif
                 goto tail;
             }
             if (*s == o->unkE8) {

@@ -118,8 +118,14 @@ void *port_save_semblock(const void *sem);
  *                     list (PORT_ITAG_NONE: nobody's).
  *   PORT_ISPAWN(kind, index)  slot `index` of `kind` starts a new object (not
  *                     blended with what the slot showed before).
- *   PORT_ICUT_IF(c)   if c: the game snaps its camera (no in-between pictures
- *                     into this frame). */
+ *   PORT_ICUT_IF(c)   the game's camera of this frame is set (the end of
+ *                     00000.c func_802507C8; bc.exe's orbit camera reads it
+ *                     there, read-only); if c: the game snapped it (no
+ *                     in-between pictures into this frame).
+ *   PORT_DRAW_CELLS(list)  the visible-cell list (D_803C30A8) a pure drawing
+ *                     path uses: the game's own, unless bc.exe's orbit camera
+ *                     asks for more (live_orbit.cpp; the game logic keeps
+ *                     reading D_803C30A8 itself). */
 #define PORT_ITAG_NONE 0
 #define PORT_ITAG_HUD 1       /* 2D and HUD: shown exactly as drawn */
 #define PORT_ITAG_OBJ 2       /* D_80364460[] record (vehicles, the carrier): index | lod << 8 */
@@ -141,11 +147,14 @@ void *port_save_semblock(const void *sem);
 void port_itag(const void *gdl, int kind, int index);
 #define PORT_ITAG(gdl, kind, index) port_itag((const void *) (gdl), (kind), (int) (index))
 #define PORT_ISPAWN(kind, index) port_itag(0, PORT_ITAG_SPAWN, ((kind) << 16) | (int) (index))
-#define PORT_ICUT_IF(c) ((c) ? port_itag(0, PORT_ITAG_CUT, 0) : (void) 0)
+#define PORT_ICUT_IF(c) port_itag(0, PORT_ITAG_CUT, (c) ? 1 : 0)
+short *port_draw_cells(short *game);
+#define PORT_DRAW_CELLS(list) port_draw_cells((short *) (list))
 #else
 #define PORT_ITAG(gdl, kind, index)
 #define PORT_ISPAWN(kind, index)
 #define PORT_ICUT_IF(c)
+#define PORT_DRAW_CELLS(list) ((short *) (list))
 #endif
 
 #endif

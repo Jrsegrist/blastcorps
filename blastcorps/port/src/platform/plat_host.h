@@ -175,6 +175,16 @@ extern double host_cull_wide;
  * PORT_ISPAWN and PORT_ICUT).  It must not change anything the game sees. */
 extern void (*host_itag_hook)(unsigned addr, int kind, int index);
 
+/* bc.exe's orbit camera (live_orbit.cpp; NULL otherwise).  host_camera_hook:
+ * once a frame, at the end of the game's camera function (00000.c
+ * func_802507C8, PORT_ICUT_IF), `snap` = its snap flag; it may only read.
+ * host_draw_cells_hook: the visible-cell list for the pure drawing paths
+ * (PORT_DRAW_CELLS: the level's geometry, unlisted buildings drawn as they
+ * are); `game` is the game's own D_803C30A8, which its logic keeps using.
+ * Returns `game` or a sorted, -1-terminated list containing it. */
+extern void (*host_camera_hook)(int snap);
+extern short *(*host_draw_cells_hook)(short *game);
+
 /* platform entry (plat_core.c): boots the game and never returns */
 PORT_NORETURN void plat_start(const HostOpts *o);
 

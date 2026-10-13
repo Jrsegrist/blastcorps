@@ -13,7 +13,7 @@ PlatStats plat_stats;
 #define G_VICOUNT (*(u32 *) 0x803156C4)   /* the game's retrace counter */
 
 /* the boot entry in hd_code (00000.c); init.us.v11's job is done natively */
-extern void func_802447C0(void);
+extern void hd_boot(void);
 
 /* ---- front-end overlay ------------------------------------------------------ */
 /* The front end (0x801E7000-0x8021ED00) is inflated from the ROM whenever the
@@ -67,7 +67,7 @@ short *port_draw_cells(short *game) {
 
 /* bc.exe's orbit camera: the commands and vertex values 2D2D810.c
  * func_80271FD0 would write for the backdrop with the camera heading and
- * pitch given (the game's D_80364452 / D_80364454 units), into host memory:
+ * pitch given (the game's gCamYaw / gCamPitch units), into host memory:
  * `out` (at most `max` Gfx), and `vtx[i]` = {ob[1], tc[0], tc[1]} of the 4
  * vertices of D_802FA820[0].  Nothing in RDRAM is written; the game's own
  * state (D_8036BFC8 ..., the vertex buffer index) isn't touched.  Returns the
@@ -265,6 +265,6 @@ void plat_start(const HostOpts *o) {
         plat_sync_load(o->sync_path);
     }
 
-    func_802447C0();   /* osInitialize, debug command line, idle thread */
+    hd_boot();   /* osInitialize, debug command line, idle thread */
     plat_run();
 }

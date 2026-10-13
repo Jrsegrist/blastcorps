@@ -4,30 +4,30 @@
 # --follow-all lines stub (--no-follow) only what can't run here or what the callee's own checks stub:
 # OS calls that block or DMA, the ROM decompressor func_802C4108, func_80278BF0, func_8029E5AC.
 
-# load model a0: heap0 = model data (func_802A396C's s2), heap1 = the heap D_80358070 points at.
+# load model a0: heap0 = model data (lvl_load_model's s2), heap1 = the heap gHeapPtr points at.
 # Header offsets stay small: the asm's `sub` traps on overflow (game data never gets near that)
-func_80202100: -n 300 --heap 0x100 --heap 0x100 --stub-ret func_802A396C.s2=0x80B00000 \
-    --mem @heap0+0x1C=int:0:0x8000 --mem @heap0+0x2C=int:0:0x8000 --mem D_80358070=rel:heap1 \
+func_80202100: -n 300 --heap 0x100 --heap 0x100 --stub-ret lvl_load_model.s2=0x80B00000 \
+    --mem @heap0+0x1C=int:0:0x8000 --mem @heap0+0x2C=int:0:0x8000 --mem gHeapPtr=rel:heap1 \
     --arg a0=choice:0,1,9,0x96,0xFF,-1 --arg a1=ptr:0x10 --arg a2=ptr:0x10 --arg a3=ptr:0x20
 # aliasing: dl overlapping the model header (+0x2C is read after dl[0..1] are stored), heap[] over *model
-func_80202100: -n 200 --seed 1 --heap 0x100 --heap 0x100 --stub-ret func_802A396C.s2=0x80B00000 \
-    --mem @heap0+0x1C=int:0:0x40 --mem @heap0+0x2C=int:0:0x40 --mem D_80358070=rel:heap1 \
+func_80202100: -n 200 --seed 1 --heap 0x100 --heap 0x100 --stub-ret lvl_load_model.s2=0x80B00000 \
+    --mem @heap0+0x1C=int:0:0x40 --mem @heap0+0x2C=int:0:0x40 --mem gHeapPtr=rel:heap1 \
     --arg a0=int --arg a1=ptr:0x20 --arg a2=rel:a1+choice:0,4,8 --arg a3=rel:heap0+choice:0x24,0x28,0x2C,0x80
-# *model / heap[] / dl[] pointing at D_80358070 itself
-func_80202100: -n 100 --seed 2 --heap 0x100 --heap 0x100 --stub-ret func_802A396C.s2=0x80B00000 \
-    --mem @heap0+0x1C=int:0:0x8000 --mem @heap0+0x2C=int:0:0x8000 --mem D_80358070=rel:heap1 \
-    --arg a0=int --arg a1=sym:D_80358070 --arg a2=ptr:0x10 --arg a3=ptr:0x20
-func_80202100: -n 100 --seed 3 --heap 0x100 --heap 0x100 --stub-ret func_802A396C.s2=0x80B00000 \
-    --mem @heap0+0x1C=int:0:0x8000 --mem @heap0+0x2C=int:0:0x8000 --mem D_80358070=rel:heap1 \
-    --arg a0=int --arg a1=ptr:0x10 --arg a2=rel:D_80358070+-4 --arg a3=rel:D_80358070+choice:-4,-0xC
-# the whole tree (model loader with the decompressor stubbed, func_802A1388 and its callees)
+# *model / heap[] / dl[] pointing at gHeapPtr itself
+func_80202100: -n 100 --seed 2 --heap 0x100 --heap 0x100 --stub-ret lvl_load_model.s2=0x80B00000 \
+    --mem @heap0+0x1C=int:0:0x8000 --mem @heap0+0x2C=int:0:0x8000 --mem gHeapPtr=rel:heap1 \
+    --arg a0=int --arg a1=sym:gHeapPtr --arg a2=ptr:0x10 --arg a3=ptr:0x20
+func_80202100: -n 100 --seed 3 --heap 0x100 --heap 0x100 --stub-ret lvl_load_model.s2=0x80B00000 \
+    --mem @heap0+0x1C=int:0:0x8000 --mem @heap0+0x2C=int:0:0x8000 --mem gHeapPtr=rel:heap1 \
+    --arg a0=int --arg a1=ptr:0x10 --arg a2=rel:gHeapPtr+-4 --arg a3=rel:gHeapPtr+choice:-4,-0xC
+# the whole tree (model loader with the decompressor stubbed, veh_add_record and its callees)
 func_80202100: -n 200 --seed 4 --follow-all --no-follow osInvalDCache,osPiStartDma,osRecvMesg,func_802C4108,func_80278BF0 \
-    --arg a0=choice:0,1,3,0xB,0x11,0x96,0x98,0xFD,0xFE,0xFF --heap 0x100 --mem D_80358070=rel:heap0 \
+    --arg a0=choice:0,1,3,0xB,0x11,0x96,0x98,0xFD,0xFE,0xFF --heap 0x100 --mem gHeapPtr=rel:heap0 \
     --mem @heap0+0x1C=0x40 --mem @heap0+0x20=rel:0x40+8*int:0:8 --mem @heap0+0x2C=0x60 \
     --mem @heap0+0x40:0x40=words:0x06000000,0xE7000000,0x12345678 \
     --stub-ret func_802C4108.a1=choice:0x80400000,0x80400003 --stub-ret func_802C4108.a0=int \
     --mem D_803B8D44=int --mem D_803B8D40=sym:D_803B8570 --mem D_803B35F0=sym:D_803B3500 \
-    --mem D_80364460:0x200=rand --mem D_803649D0=rel:D_80364460+0x74*int:0:3 --mem D_80364AA8=choice:0,1,2 \
+    --mem gVehicles:0x200=rand --mem gVehiclesEnd=rel:gVehicles+0x74*int:0:3 --mem gLevelKind=choice:0,1,2 \
     --arg a1=ptr:0x10 --arg a2=ptr:0x10 --arg a3=ptr:0x20 \
     --sig osInvalDCache=a0,a1 --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 --sig osRecvMesg=a0,a1,a2 \
     --sig func_80278BF0=a0,a1,a2

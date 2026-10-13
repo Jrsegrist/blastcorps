@@ -5,7 +5,7 @@
 #define D_803F3FF8 (*(Debris8A2E0 *) D_803F3FF8)
 #define D_803FBBB0 ((UnkEntry8A2E0 *) D_803FBBB0)
 #ifdef NON_MATCHING
-#define D_80358070 (*(u32 *) &D_80358070)
+#define gHeapPtr (*(u32 *) &gHeapPtr)
 #endif
 /* end of views */
 
@@ -61,18 +61,18 @@ void func_802CEE14(s32 x, s32 y, s32 z);
 
 /* Level setup of the boxes (pickups, level object in obj; its list at
  * obj + obj[0x28] .. obj + obj[0x2C], 8-byte records {s16 x, y, z; u16 w}):
- * D_803FC1F0 = 0; if the list isn't empty, load model 0x96 (func_802A396C)
+ * D_803FC1F0 = 0; if the list isn't empty, load model 0x96 (lvl_load_model)
  * into D_803FBBD8, then for each record: entry pos = (x, y, z) << 5, the
  * box vertices (func_802CEE14(x, y, z), unshifted), unkC = 0x280, flag 0,
  * unk12 = w, D_803FC1F0++. If any box exists: four 0x300-byte copies from
- * the D_80358070 bump pointer (D_803FC1E0..EC; trapping adds), model
+ * the gHeapPtr bump pointer (D_803FC1E0..EC; trapping adds), model
  * channels D_803FBBE0 (copies 1E0/1E4) with channels 1 and 2 set to (2, 0,
  * 0, -1), and D_803FBEE0 (copies 1E8/1EC).
  * Register convention: obj in t0 (conventions.txt); the asm saves t0 (asm
- * caller func_802A1674 keeps it) and leaves t1/t2 (list end, the model
- * pointer), func_802A396C's s2/s4 and the channel routines' s0-s5, fp,
+ * caller initlevel keeps it) and leaves t1/t2 (list end, the model
+ * pointer), lvl_load_model's s2/s4 and the channel routines' s0-s5, fp,
  * f20, f30 changed; the survey lists t1, t2, s3, f12, f14 as read by
- * func_802A1674 (dead there, not modelled). Its loop uses `!=` (the list
+ * initlevel (dead there, not modelled). Its loop uses `!=` (the list
  * must end on a record boundary). */
 void func_802CEAA0(u8 *obj) {
     Out802A396C o;
@@ -85,7 +85,7 @@ void func_802CEAA0(u8 *obj) {
     p = (s16 *) (obj + *(s32 *) (obj + 0x28));
     end = (s16 *) (obj + *(s32 *) (obj + 0x2C));
     if (p != end) {
-        func_802A396C(0x96, &o);
+        lvl_load_model(0x96, &o);
         D_803FBBD8 = o.s2;
         e = D_803FBBB0;
         while (p != end) {
@@ -104,12 +104,12 @@ void func_802CEAA0(u8 *obj) {
     if (D_803FC1F0 == 0) {
         return;
     }
-    h = D_80358070;
+    h = gHeapPtr;
     D_803FC1E0 = (u8 *) h;
     D_803FC1E4 = (u8 *) (h + 0x300);
     D_803FC1E8 = (u8 *) (h + 0x600);
     D_803FC1EC = (u8 *) (h + 0x900);
-    D_80358070 = h + 0xC00;
+    gHeapPtr = h + 0xC00;
     BOX_MODEL_CHANNELS(D_803FBBE0, D_803FC1E0, D_803FC1E4);
     func_802A039C((Unk8029DEA0Entry *) D_803FBBE0, 1, 2);
     func_802A03D4((Unk8029DEA0Entry *) D_803FBBE0, 1, 0);
@@ -160,7 +160,7 @@ void func_802CEE14(s32 x, s32 y, s32 z) {
 
 #define K0_PHYS(p) ((u32) (p) - 0x80000000)
 
-/* Draw the boxes (00000.c: gdl = func_802CEEFC(gdl, D_8035805C, dl2, mtx)):
+/* Draw the boxes (00000.c: gdl = func_802CEEFC(gdl, gBufferIndex, dl2, mtx)):
  * if there are any, gdl gets segment 6 = the model data's part at
  * D_803FBBD8 + [5] (G_MOVEWORD 0xBC001806); then per box i: segment 7 = the
  * box's save copy (taken: D_803FC1E4 / D_803FC1E0, else D_803FC1EC /
@@ -265,11 +265,11 @@ static s32 port_cvt_w_s(f32 x) {
  * func_802CF3E0 burst at the entry. The player position is read once. The
  * asm saves every register (k1, gp, sp, fp included) around the two C calls
  * only because it keeps its loop state in t0-t4 across them; its only
- * caller is C (func_802475D8), so no asm caller relies on anything. */
+ * caller is C (hd_game_frame), so no asm caller relies on anything. */
 void func_802CF1A4(void) {
-    s32 px = D_803643E0 >> 5;
-    s32 py = D_803643E4 >> 5;
-    s32 pz = D_803643E8 >> 5;
+    s32 px = gPlayerX >> 5;
+    s32 py = gPlayerY >> 5;
+    s32 pz = gPlayerZ >> 5;
     UnkEntry8A2E0 *e = D_803FBBB0;
     s32 n;
 

@@ -63,7 +63,7 @@ void func_802BC578(void);
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Spawn vehicle type 7, called from func_802A350C's object loop with the
+/* Spawn vehicle type 7, called from lvl_spawn_vehicles's object loop with the
  * spawn record in t7 (x), s3 (y), s0 (z), s1 (heading), s2 (model data) and
  * fp (the ground-scan byte the previous object left; see func_802A992C):
  * as 83910.c's veh83910_init (save buffers from the heap, model record,
@@ -71,9 +71,9 @@ void func_802BC578(void);
  * with scale 0x3A98, func_80258230, one frame (func_802BBEB8) with byte
  * +0x9A set, buffer copy), and in addition D_803EFEC9 = D_803EFECA = 0 and
  * both frame counters D_803EFEC0 / D_803EFEC4 = 999999.
- * The asm saves t0-t5: asm caller func_802A350C keeps t1 and t2 live (a
+ * The asm saves t0-t5: asm caller lvl_spawn_vehicles keeps t1 and t2 live (a
  * mixed N64 build would need a thunk). It leaves s2-s4, fp and f12-f26 as
- * its callees leave them, and func_802A350C hands fp and f12-f26 on to the
+ * its callees leave them, and lvl_spawn_vehicles hands fp and f12-f26 on to the
  * next object's spawn (not modelled; see the fidelity notes).
  * Fidelity: func_802A992C's FP inputs (the dispatcher's f12-f26) start at 0;
  * they only pass through to its FP outputs. */
@@ -85,11 +85,11 @@ void func_802BBA60(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp) {
     TriSideOut tri;
 
     D_803EFEA4 = data;
-    heap = D_80358070;
+    heap = gHeapPtr;
     D_803EFEA8 = (u64 *) heap;
     D_803EFEAC = (u64 *) (heap + 0x800);
-    D_80358070 = heap + 0x1000;
-    func_802A1388(7, 0, (s32) D_803EFEA8, (s32) D_803EFEAC, data);
+    gHeapPtr = heap + 0x1000;
+    veh_add_record(7, 0, (s32) D_803EFEA8, (s32) D_803EFEAC, data);
     func_802A754C(veh);
     VEH_S16(veh, 0x52) = 0x50;
     VEH_S16(veh, 0x54) = 0x50;
@@ -164,13 +164,13 @@ void func_802BBA60(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-/* Enter vehicle type 7: D_8036444C/50 = 3000, 0, then func_802C4310(arg0,
+/* Enter vehicle type 7: gCamDistance / D_80364450 = 3000, 0, then func_802C4310(arg0,
  * 0x20) (arg0 passes straight through; hd.c calls this with no arguments
  * and func_802C4310 ignores it). The asm also points $gp at D_803EFDF0 and
  * leaves it there (conventions.txt: clobbers gp); C code doesn't use $gp.
  * Same shape as func_802C8AB0 (83910) and func_802B76AC (72B80). */
 void func_802BBDC8(s32 arg0) {
-    D_8036444C = 3000;
+    gCamDistance = 3000;
     D_80364450 = 0;
     func_802C4310(arg0, 0x20);
 }
@@ -250,7 +250,7 @@ s32 func_802BBE74(ZoneScanRegs *r) {
  * check: with contact 3 (func_802BCD80) the speed becomes 0 if contact 2 is
  * also set, else D_803EFEC0 = 0 and -40 once D_803EFEC4 >= 6 (else 0); with
  * only contact 2, D_803EFEC4 = 0 and +40 once D_803EFEC0 >= 6 (else 0).
- * Finally position / speed / headings go to D_803643E0.. and func_802A133C.
+ * Finally position / speed / headings go to gPlayerX.. and veh_set_record.
  * The asm saves s0-s7, gp, fp and f20-f30. The asm's adds/subs trap on
  * overflow (game range).
  * Fidelity: func_802BBE74's scan registers are passed through from the
@@ -310,7 +310,7 @@ void func_802BBEB8(void) {
     func_802A8768(veh, 7, &D_803EFE98, &D_803EFE9C, &D_803EFEA0, x, o.t1, 0xA0, 0xA0, &VEH_S16(veh, 0x4C),
                   &VEH_U8(veh, 0x96), &VEH_S16(veh, 0x52), &VEH_S32(veh, 0x28), &VEH_S32(veh, 0x40),
                   &VEH_S32(veh, 0x34), &VEH_S32(veh, 4), &r, &tri);
-    if (D_8035805C != 0) {
+    if (gBufferIndex != 0) {
         func_8029E558((u8 *) D_803EFEA8, (u8 *) D_803EFEAC, (Unk8029DEA0Entry *) D_803EFAF0);
     } else {
         func_8029E558((u8 *) D_803EFEAC, (u8 *) D_803EFEA8, (Unk8029DEA0Entry *) D_803EFAF0);
@@ -342,13 +342,13 @@ void func_802BBEB8(void) {
             }
         }
     }
-    D_803643E0 = D_803EFE98;
-    D_803643E4 = D_803EFE9C;
-    D_803643E8 = D_803EFEA0;
+    gPlayerX = D_803EFE98;
+    gPlayerY = D_803EFE9C;
+    gPlayerZ = D_803EFEA0;
     D_8036443C = VEH_S16(veh, 0x76);
     D_8036443E = VEH_U16(veh, 0x4E);
     D_80364440 = VEH_U16(veh, 0x4C);
-    func_802A133C(D_803EFEA0, 7, D_803EFE98, D_803EFE9C, veh);
+    veh_set_record(D_803EFEA0, 7, D_803EFE98, D_803EFE9C, veh);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/772A0/func_802BBEB8.s")
@@ -360,8 +360,8 @@ extern u8 D_803EFDF0[];  /* this vehicle's state block (the asm's $gp) */
 extern u8 D_803EFEC9;    /* countdown */
 
 /* Countdown D_803EFEC9: when nonzero it just counts down. At zero, if the
- * flag for the speed's sign (s16 at +0x76: > 0 -> D_80370C23, else
- * D_80370C1C) is set, two func_802A6274 records are set up (def D_802C2984,
+ * flag for the speed's sign (s16 at +0x76: > 0 -> gHeldBOrZ, else
+ * gHeldA) is set, two func_802A6274 records are set up (def D_802C2984,
  * data 0x9C40, tag 0, type 1 at (7, 2, 1) and (7, 3, 1)), sound 0x29 is
  * played (func_80260650) and the countdown restarts at 1. Then always
  * func_802C4584(|speed >> 4|) and func_802C4724(0x21).
@@ -375,7 +375,7 @@ void func_802BC2C8(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
 
     if (D_803EFEC9 != 0) {
         D_803EFEC9--;
-    } else if ((*(s16 *) (D_803EFDF0 + 0x76) > 0) ? (D_80370C23 != 0) : (D_80370C1C != 0)) {
+    } else if ((*(s16 *) (D_803EFDF0 + 0x76) > 0) ? (gHeldBOrZ != 0) : (gHeldA != 0)) {
         io.a3 = 0;
         io.t6 = t6;
         io.s1 = s1;
@@ -413,14 +413,14 @@ void func_802BC3D0(void) {
     s16 *verts;
     MtxChainRegs regs;
 
-    base = (u8 *) (D_8035805C != 0 ? D_803EFEA8 : D_803EFEAC);
+    base = (u8 *) (gBufferIndex != 0 ? D_803EFEA8 : D_803EFEAC);
     base += *(s32 *) (OBJ_PTR(data, 0x18) + 4);
     D_803ED390[0] = 0;
     D_803ED390[2] = 0;
     D_803ED390[1] = VEH_U16(veh, 0x4C);
     func_802AA764(D_803EFE98, D_803EFE9C, D_803EFEA0, 0x3A98, (s32 *) base);
 
-    base = (u8 *) (D_8035805C != 0 ? D_803EFEA8 : D_803EFEAC);
+    base = (u8 *) (gBufferIndex != 0 ? D_803EFEA8 : D_803EFEAC);
     regs.v1 = D_803EFE9C;
     regs.a0 = D_803EFEA0;
     regs.a3 = 0;

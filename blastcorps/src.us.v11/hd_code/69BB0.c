@@ -2,9 +2,9 @@
 #include <ultra64.h>
 #include "game/game.h"
 #ifdef NON_MATCHING
-/* The asm reads the level D_802E8BDC (an s32) with lbu: its most significant
+/* The asm reads the level levelno (an s32) with lbu: its most significant
  * byte, 0 for every level. The word, shifted, gives that on either byte order. */
-#define LEVEL_MSB ((u8) ((u32) D_802E8BDC >> 24))
+#define LEVEL_MSB ((u8) ((u32) levelno >> 24))
 #endif
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
@@ -45,10 +45,10 @@ s32 func_802AFB84(void);
 extern u8 * N64P D_803ED818; /* vehicle 0's model header */
 
 /* Sets up vehicle 0 (object 0) from the model header `hdr` at (x, y, z) with
- * heading `heading` (called by the object dispatcher func_802A350C):
- * D_803ED818 = hdr, two 0xC80-byte buffers from the heap D_80358070
+ * heading `heading` (called by the object dispatcher lvl_spawn_vehicles):
+ * D_803ED818 = hdr, two 0xC80-byte buffers from the heap gHeapPtr
  * (D_803ED82C, D_803ED830; the cursor moves 0x1900), the object record
- * (func_802A1388(0, 0, buf1, buf2, hdr)), the state block D_803ED760 reset
+ * (veh_add_record(0, 0, buf1, buf2, hdr)), the state block D_803ED760 reset
  * (func_802A754C) with its wheel table +0x52..+0x68 = (+-30, 30) / (+-35, 35)
  * pairs, position D_803ED808..810, headings +0x4C/+0x4E/+0x74, drive-in flags
  * D_803ED825 = 1, D_803ED826/827 = 0, D_803ED824 = 0, +0xA1 = 0; the initial
@@ -59,10 +59,10 @@ extern u8 * N64P D_803ED818; /* vehicle 0's model header */
  * (func_80258230(0, 0x28, 15, 15)); one frame of func_802AEEC8 with byte
  * +0x9A set (no driving); the model matrix copied from the second buffer to
  * the first (func_802AA838); channels 1-4 set up (1: 0, 0, 0 / 0.5, 1; 2-4: 2,
- * 0, 1 / 0.5, 1) and D_8036444C/50 = 0xD48, 0.
+ * 0, 1 / 0.5, 1) and gCamDistance / D_80364450 = 0xD48, 0.
  * Register convention (conventions.txt): hdr s2, x t7, y s3, z s0, heading
  * s1; func_802A992C's fp and f12-f26 inputs are the dispatcher's leftovers
- * (here fp, f). The asm saves t0-t5 (asm caller func_802A350C keeps t1, t2
+ * (here fp, f). The asm saves t0-t5 (asm caller lvl_spawn_vehicles keeps t1, t2
  * live), points $gp at D_803ED760 and leaves s0-s7, fp and the FP registers
  * as its callees leave them. Its addi traps on overflow. Fidelity note: the
  * func_802AEEC8 call inherits leftovers in the asm (fp from func_8029E558's
@@ -73,11 +73,11 @@ void func_802AE370(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut
     s16 *h;
 
     D_803ED818 = hdr;
-    buf = D_80358070;
+    buf = gHeapPtr;
     D_803ED82C = buf;
     D_803ED830 = buf + 0xC80;
-    D_80358070 = buf + 0x1900;
-    func_802A1388(0, 0, (s32) D_803ED82C, (s32) D_803ED830, hdr);
+    gHeapPtr = buf + 0x1900;
+    veh_add_record(0, 0, (s32) D_803ED82C, (s32) D_803ED830, hdr);
     func_802A754C(D_803ED760);
     h = (s16 *) (D_803ED760 + 0x52);
     h[0] = 30;
@@ -155,7 +155,7 @@ void func_802AE370(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut
     func_802A03D4((Unk8029DEA0Entry *) D_803ED460, 4, 0);
     func_802A040C((Unk8029DEA0Entry *) D_803ED460, 4, 1);
     func_802A0480(0.5f, (Unk8029DEA0Entry *) D_803ED460, 4, 1);
-    D_8036444C = 0xD48;
+    gCamDistance = 0xD48;
     D_80364450 = 0;
 }
 #else
@@ -179,13 +179,13 @@ void func_802AE860(void) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-/* Drive-in setup check for vehicle 0, called from hd.c (func_8024B188) with
+/* Drive-in setup check for vehicle 0, called from hd.c (veh_leave) with
  * the vehicle's distance `dist`; returns 1 when the drive-in starts, else 0
  * (the C caller declares u8; the asm returns the full v0).
  * Unless D_803ED825 is clear (then 0 at once), the first drive-in record of
  * D_80305CB1 (5 bytes: level (s8, -1 ends; compared with the whole word
- * D_802E8BDC), vehicle type, direction, multiplier, zone mode) for this level
- * and D_80364456 - with zone mode 0 or func_802AEB9C(zone mode) true - gives
+ * levelno), vehicle type, direction, multiplier, zone mode) for this level
+ * and gCurVehicle - with zone mode 0 or func_802AEB9C(zone mode) true - gives
  * the direction (default 0) and multiplier (default 1). The path from the
  * player along that direction is checked every 100 units up to dist * mul
  * and at dist * mul itself (func_802AEC3C, which also positions the vehicle
@@ -194,11 +194,11 @@ void func_802AE860(void) {
  * = 0, 0x800, 0x400 or 0xC00 for direction 0, 1, 2, else), D_803ED814 = the
  * last checked z (directions 0/1) or x, the position = the player's (y + 500
  * for vehicle types 0xB, 0x11, 0x12), D_803ED826 = 1, channel 1 restarted
- * looping, D_8036444C/50 = 0xD48, 0. D_803ED827 is 1 while this runs and
+ * looping, gCamDistance / D_80364450 = 0xD48, 0. D_803ED827 is 1 while this runs and
  * D_803F7812 is 1 during the call.
  * Fidelity note: func_802AEC3C's func_802A9A60 inputs come from leftover
- * registers in the asm: key t8 = D_80364456 << 2 (what the C caller
- * func_8024B188 leaves in t8 at the call), reproduced here; fp is the C
+ * registers in the asm: key t8 = gCurVehicle << 2 (what the C caller
+ * veh_leave leaves in t8 at the call), reproduced here; fp is the C
  * caller's (0: the game thread's fp) on the first check and then what the
  * previous check's func_8029AA10 left (its part count when vehicle 0's sphere
  * touched the world, else unchanged), threaded through `fp` here; it ends up
@@ -222,7 +222,7 @@ s32 func_802AE888(s32 dist) {
     D_803F7812 = 1;
     if (D_803ED825 != 0) {
         for (rec = D_80305CB1; (s8) rec[0] != -1; rec += 5) {
-            if ((s8) rec[0] != D_802E8BDC || rec[1] != D_80364456) {
+            if ((s8) rec[0] != levelno || rec[1] != gCurVehicle) {
                 continue;
             }
             if (rec[4] != 0) {
@@ -238,8 +238,8 @@ s32 func_802AE888(s32 dist) {
         dist = (u32) dist * (u32) mul;
         D_803ED828 = dir;
         D_803ED827 = 1;
-        D_803ED81C = D_803643E4;
-        key = D_80364456 << 2;
+        D_803ED81C = gPlayerY;
+        key = gCurVehicle << 2;
         f.pz = f.cross = f.cz = f.side = f.sideZ = f.dz = 0.0f;
         for (off = 0; !(dist < off); off += 100) {
             if (func_802AEC3C(off, key, &fp, &f) == 0) {
@@ -276,19 +276,19 @@ s32 func_802AE888(s32 dist) {
         } else {
             D_803ED814 = pos[0];
         }
-        pos[0] = D_803643E0;
-        t = D_803643E4;
-        if (D_80364456 == 0xB || D_80364456 == 0x11 || D_80364456 == 0x12) {
+        pos[0] = gPlayerX;
+        t = gPlayerY;
+        if (gCurVehicle == 0xB || gCurVehicle == 0x11 || gCurVehicle == 0x12) {
             t += 500;
         }
         pos[1] = t;
-        pos[2] = D_803643E8;
+        pos[2] = gPlayerZ;
         D_803ED826 = 1;
         func_802A039C((Unk8029DEA0Entry *) D_803ED460, 1, 0);
         func_802A03D4((Unk8029DEA0Entry *) D_803ED460, 1, 0);
         func_802A040C((Unk8029DEA0Entry *) D_803ED460, 1, 0);
         func_802A0290((Unk8029DEA0Entry *) D_803ED460, 1, -1);
-        D_8036444C = 0xD48;
+        gCamDistance = 0xD48;
         D_80364450 = 0;
         ret = 1;
     }
@@ -315,15 +315,15 @@ s32 func_802AEB9C(s32 *mode) {
     s32 v;
 
     if (*mode == 1) {
-        *mode = v = D_803643E8 >> 5;
+        *mode = v = gPlayerZ >> 5;
         return v >= 0xCCD && v < 0xDB5;
     }
     if (*mode == 2) {
-        *mode = v = D_803643E0 >> 5;
+        *mode = v = gPlayerX >> 5;
         if (v < 0x834 || v >= 0x961) {
             return 0;
         }
-        *mode = v = D_803643E8 >> 5;
+        *mode = v = gPlayerZ >> 5;
         return v >= 0x4B0 && v < 0x5DD;
     }
     return 0;
@@ -361,20 +361,20 @@ s32 func_802AEC3C(s32 dist, s32 key, s32 *fp, TriSideOut *f) {
 
     switch (D_803ED828) {
         case 0:
-            x = D_803643E0;
-            z = D_803643E8 + dist;
+            x = gPlayerX;
+            z = gPlayerZ + dist;
             break;
         case 1:
-            x = D_803643E0;
-            z = D_803643E8 - dist;
+            x = gPlayerX;
+            z = gPlayerZ - dist;
             break;
         case 2:
-            x = D_803643E0 + dist;
-            z = D_803643E8;
+            x = gPlayerX + dist;
+            z = gPlayerZ;
             break;
         default:
-            x = D_803643E0 - dist;
-            z = D_803643E8;
+            x = gPlayerX - dist;
+            z = gPlayerZ;
             break;
     }
     pos[0] = x;
@@ -387,7 +387,7 @@ s32 func_802AEC3C(s32 dist, s32 key, s32 *fp, TriSideOut *f) {
     *fp = func_8029AA10_fp(0, *fp);
     D_803F77D0 = D_803ED460;
     func_802BE77C(0, D_803ED760);
-    if (D_80364456 != 0xB) {
+    if (gCurVehicle != 0xB) {
         func_8028F994(pos[0], pos[1], pos[2]);
     }
     return D_803A7424 == 0;
@@ -450,13 +450,13 @@ static void port_aeec8_ring(void) {
     func_802A6FE4(D_803ED760, 0);
 }
 
-/* Per-frame update of vehicle 0 (hd.c's func_802475D8 / func_8024B7AC, and
+/* Per-frame update of vehicle 0 (hd.c's hd_game_frame / veh_update_player, and
  * func_802AE370; state block D_803ED760, the asm's $gp). Zone lookup
  * (func_802AEE84). Unless byte +0x9A is set: animation update
  * (func_802AF4BC) and, while the drive-in D_803ED826 runs, the drive-in step
  * (func_802AF340) instead of driving. Driving: func_802AFBA0; outside game
- * modes 0x800 / 1 / 0x1000 (the next mode D_80364A98 if set, else
- * D_80364A90; 64-bit compares): steering and throttle (func_802A7834: rate
+ * modes 0x800 / 1 / 0x1000 (the next mode gNextGameMode if set, else
+ * gGameMode; 64-bit compares): steering and throttle (func_802A7834: rate
  * func_802AFB84() = 0x8C, mode 3, delta 6), braking when +0xA1 == 1
  * (func_802A77D0), heading (func_802A7FD8: rate 9000, no sound), slope
  * (func_802A83B8 into the f32 at +0, func_802A843C: kind 0, clamp, div
@@ -470,14 +470,14 @@ static void port_aeec8_ring(void) {
  * (func_8029C52C(0)), world collision (func_8029AA10(0)), the object pass
  * (func_802BE77C(0)), and then the ring-steering branch when D_803A7425 is
  * set, else D_803ED824 = 0. Finally the player position/speed/headings
- * D_803643E0..E8 / D_8036443C..40 are copied from the vehicle and the
- * position reported (func_802A133C(z, 0, x, y)).
+ * gPlayerX..Z / D_8036443C..40 are copied from the vehicle and the
+ * position reported (veh_set_record(z, 0, x, y)).
  * Fidelity notes: the asm feeds func_802AEE84 its C caller's t6, t7, s0-s4
  * (0 here; the results are unused), func_802AF340 its C caller's t8 as the
  * triangle-skip key and fp / f12-f26 leftovers (0 and zeros here; fp becomes
  * D_803ED3F2[0..2] and +0x50). Traced in the original (Oct 2026, gameplay,
- * level 0): fp 0 always (the game thread's); t8 = 0x13 from func_8024B7AC
- * (left by func_8026510C's callees), 0 from func_802475D8's mode-0x1801 path,
+ * level 0): fp 0 always (the game thread's); t8 = 0x13 from veh_update_player
+ * (left by func_8026510C's callees), 0 from hd_game_frame's mode-0x1801 path,
  * heap pointers during the level intro, and func_8026A8E0's seed
  * (0x47FF37D3) on frames where func_802AF4BC took its random-idle path. The
  * key only makes func_802A9F24 skip D_803EBDB0 triangles whose u16 id equals
@@ -510,9 +510,9 @@ void func_802AEEC8(void) {
     }
     func_802AFBA0();
     rate = func_802AFB84();
-    mode = D_80364A98;
+    mode = gNextGameMode;
     if (mode == 0) {
-        mode = D_80364A90;
+        mode = gGameMode;
     }
     if (mode != 0x800 && mode != 1 && mode != 0x1000) {
         func_802A7834(rate, (u16 *) (D_803ED760 + 0x4C), D_803ED760, (s16 *) (D_803ED760 + 0x76), 3,
@@ -538,16 +538,16 @@ void func_802AEEC8(void) {
                       (s32 *) (D_803ED760 + 0x40), (s32 *) (D_803ED760 + 0x34), (s32 *) (D_803ED760 + 4), &rr, &f);
     }
 animate:
-    if (D_8035805C != 0) {
+    if (gBufferIndex != 0) {
         func_8029E558(D_803ED82C, D_803ED830, (Unk8029DEA0Entry *) D_803ED460);
     } else {
         func_8029E558(D_803ED830, D_803ED82C, (Unk8029DEA0Entry *) D_803ED460);
     }
     end = func_802AFA64();
     if (D_803ED826 == 0) {
-        mode = D_80364A98;
+        mode = gNextGameMode;
         if (mode == 0) {
-            mode = D_80364A90;
+            mode = gGameMode;
         }
         if (mode & 0x1801) {
             D_803ED824 = 0;
@@ -565,13 +565,13 @@ animate:
             }
         }
     }
-    D_803643E0 = pos[0];
-    D_803643E4 = pos[1];
-    D_803643E8 = pos[2];
+    gPlayerX = pos[0];
+    gPlayerY = pos[1];
+    gPlayerZ = pos[2];
     D_8036443C = *(s16 *) (D_803ED760 + 0x76);
     D_8036443E = *(u16 *) (D_803ED760 + 0x4E);
     D_80364440 = *(u16 *) (D_803ED760 + 0x4C);
-    func_802A133C(pos[2], 0, pos[0], pos[1], D_803ED760);
+    veh_set_record(pos[2], 0, pos[0], pos[1], D_803ED760);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/69BB0/func_802AEEC8.s")
@@ -803,7 +803,7 @@ u8 *func_802AFA64(void) {
     u8 *m = *(u8 * N64P *) (hdr + *(s32 *) (hdr + 0x18) + 4);
     MtxChainRegs regs;
 
-    m += (N64_A32) (D_8035805C != 0 ? D_803ED82C : D_803ED830);
+    m += (N64_A32) (gBufferIndex != 0 ? D_803ED82C : D_803ED830);
     D_803ED390[0] = 0;
     D_803ED390[2] = 0;
     D_803ED390[1] = *(u16 *) (D_803ED760 + 0x4C);
@@ -813,7 +813,7 @@ u8 *func_802AFA64(void) {
     regs.s2 = (s32) m;
     regs.s0 = 0;
     func_8029C454(pos[0], pos[1], pos[2], 0, hdr + *(s32 *) (hdr + 4), hdr + *(s32 *) (hdr + 8),
-                  D_8035805C != 0 ? D_803ED82C : D_803ED830, &regs);
+                  gBufferIndex != 0 ? D_803ED82C : D_803ED830, &regs);
     return hdr + *(s32 *) (hdr + 8);
 }
 #else

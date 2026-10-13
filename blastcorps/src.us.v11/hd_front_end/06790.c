@@ -3,7 +3,7 @@
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_802081C0 ((RankName *) D_802081C0)
-#define D_80364AF0 ((FePlayer *) D_80364AF0)
+#define players ((FePlayer *) players)
 /* end of views */
 
 /*
@@ -12,7 +12,7 @@
  */
 
 
-/* front-end view of hd_code's Player record (0x100 bytes, D_80364AF0) */
+/* front-end view of hd_code's Player record (0x100 bytes, players) */
 typedef struct {
     u8 pad0[0xC];
     u8 unkC; /* rank */
@@ -53,7 +53,7 @@ void func_801ED790(void) {
     D_80215964 = 0;
     D_80215968 = D_8021596C = 0.0f;
     D_80215974 = D_80215976 = 0;
-    D_80215978 = D_80364AF0[D_80364AE8].unkC;
+    D_80215978 = players[playerNumber].unkC;
 }
 
 /* Promotion screen frame: animate, draw the text and the scene; *arg3 += commands written. */
@@ -64,13 +64,13 @@ Gfx *func_801ED800(Gfx *arg0, FeDyn *dyn, u8 arg2, s32 *arg3) {
     FePlayer *p;
     s32 size;
 
-    if ((D_80370C28 & 0x8000) && !(D_80370C2A & 0x8000) && D_802FA268) {
+    if ((gContButtons & 0x8000) && !(gContPrevButtons & 0x8000) && gDebugCheats) {
         D_80215960 = 2;
         D_80215964 = 3;
     }
     switch (D_80215960) {
         case 0:
-            D_8021596C = sins(D_80358060 * 0x4000 * 60 / 60 / 90) * 2.85 / 32767.0;
+            D_8021596C = sins(gFramesInMode * 0x4000 * 60 / 60 / 90) * 2.85 / 32767.0;
             if (D_8021596C >= 2.84) {
                 D_8021596C = 2.84f;
                 D_80215960 = 1;
@@ -90,7 +90,7 @@ Gfx *func_801ED800(Gfx *arg0, FeDyn *dyn, u8 arg2, s32 *arg3) {
     }
     switch (D_80215964) {
         case 0:
-            if (D_80358060 == 50) {
+            if (gFramesInMode == 50) {
                 D_80215964 = 1;
                 D_80215974 = 0;
                 D_80215976 = 0;
@@ -102,7 +102,7 @@ Gfx *func_801ED800(Gfx *arg0, FeDyn *dyn, u8 arg2, s32 *arg3) {
             } else {
                 D_80215974 += 16;
             }
-            if (D_80358060 == 200) {
+            if (gFramesInMode == 200) {
                 D_80215964 = 2;
             }
             break;
@@ -117,7 +117,7 @@ Gfx *func_801ED800(Gfx *arg0, FeDyn *dyn, u8 arg2, s32 *arg3) {
             } else {
                 D_80215976 += 16;
             }
-            if (D_80358060 == 290) {
+            if (gFramesInMode == 290) {
                 D_80215964 = 3;
             }
             break;
@@ -128,12 +128,12 @@ Gfx *func_801ED800(Gfx *arg0, FeDyn *dyn, u8 arg2, s32 *arg3) {
                 D_80215976 -= 32;
             }
             if (D_80215976 == 0) {
-                D_80364A98 = 0x08000000;
+                gNextGameMode = 0x08000000;
             }
             break;
     }
     if (D_80215974 > 0 || D_80215976 > 0) {
-        p = &D_80364AF0[D_80364AE8];
+        p = &players[playerNumber];
         func_80259CCC((Gfx * N64P *) dyn, D_802084B0, D_802084B8, 0, 0x9C, 0, 0x18, 0x1A, 0x1A, 1, 0, 0, 0, D_80215974 / 2);
         func_80259CCC((Gfx * N64P *) dyn, D_802084B4, D_802084BC, 0, 0x9D, 0, 0xCB, 0x16, 0x16, 1, 0, 0, 0, D_80215974 / 2);
         /* split the rank name into two lines */
@@ -176,8 +176,8 @@ Gfx *func_801ED800(Gfx *arg0, FeDyn *dyn, u8 arg2, s32 *arg3) {
     if (D_80215968 > 360.0) {
         D_80215968 -= 360.0;
     }
-    if (D_80358060 < 2) {
-        guPerspective(&dyn->unk1240, &D_8035807C, 45.0f, 1.3333334f, 40.0f, 4000.0f, 1.0f);
+    if (gFramesInMode < 2) {
+        guPerspective(&dyn->unk1240, &gPerspNorm, 45.0f, 1.3333334f, 40.0f, 4000.0f, 1.0f);
         guLookAtReflect(&dyn->unk140, &dyn->unk3C00, 5.0f, 7.0f, 400.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
         guMtxIdent(&dyn->unk1280);
         guMtxIdent(&dyn->unk12C0);

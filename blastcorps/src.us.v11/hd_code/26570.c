@@ -11,11 +11,11 @@
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_8020C070 ((PathNode *) D_8020C070)
-#define D_802E8F94 ((LevelInfo *) D_802E8F94)
+#define gLevelInfo ((LevelInfo *) gLevelInfo)
 #define D_802F49F4 ((YoshiSnd *) D_802F49F4)
 #define D_802F5804 ((PathNode *) D_802F5804)
 #define D_802F8BDC ((YoshiArg *) D_802F8BDC)
-#define D_80364AF0 ((Player *) D_80364AF0)
+#define players ((Player *) players)
 #ifdef NON_MATCHING
 #define D_8036BB24 (*(PathNode * N64P *) &D_8036BB24)
 #define D_8036BED8 (*(YoshiNode * N64P *) &D_8036BED8)
@@ -23,7 +23,7 @@
 /* end of views */
 
 #define YOSHI_ASSERT(EX, line) \
-    if (!(EX)) func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "yoshi.c", line)
+    if (!(EX)) debug_printf("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "yoshi.c", line)
 
 /* One entry of the path table, 0x14 bytes */
 typedef struct {
@@ -106,7 +106,7 @@ typedef struct {
 #define MAX0(x) ((x) < 0 ? 0 : (x))
 
 #define VIDI_ASSERT(EX, line) \
-    if (!(EX)) func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "./vidiPrint.h", line)
+    if (!(EX)) debug_printf("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "./vidiPrint.h", line)
 
 #define YOSHI_OFF 1
 #define NO_YOSHI_WINDOW -1
@@ -202,22 +202,22 @@ u8 func_8026AD30(s16 arg0) {
     s32 c1;
     s32 c2;
 
-    if (!(D_80364A90 & 0x2104)) {
+    if (!(gGameMode & 0x2104)) {
         return 0;
     }
-    if (D_80364AF0[D_80364AE8].unk91 >= 11) {
+    if (players[playerNumber].unk91 >= 11) {
         return 0;
     }
     for (i = 0; i < 8 && !found; i++) {
         trig = &D_802F48D0[i];
-        if (trig->id == D_802E8BDC) {
+        if (trig->id == levelno) {
             for (j = 0; j < 16 && !found && trig->ids[j] != -1; j++) {
                 if (trig->ids[j] == arg0) {
-                    c1 = D_80364AF0[D_80364AE8].unk88[arg0] < D_802F499A[arg0];
-                    c2 = D_802E8BDC == 0;
+                    c1 = players[playerNumber].unk88[arg0] < D_802F499A[arg0];
+                    c2 = levelno == 0;
                     if (!D_8036BAA2[arg0] && (c2 || c1)) {
                         if (c1 && !c2) {
-                            D_80364AF0[D_80364AE8].unk88[arg0]++;
+                            players[playerNumber].unk88[arg0]++;
                         }
                         D_8036BAA2[arg0] = 1;
                         func_8026AF6C(arg0 | 0x8000 | 0x2000);
@@ -236,7 +236,7 @@ void func_8026AF6C(u16 yd) {
 
     if (yoshiDemandV) {
         YOSHI_ASSERT(!yoshiDemandV, 1312);
-        func_8029A7E4("NEW: %x OLD:%x\n", yd, yoshiDemandV);
+        debug_printf("NEW: %x OLD:%x\n", yd, yoshiDemandV);
     }
     if (yd & 0x4000) {
         YOSHI_ASSERT(yd==YOSHI_DEMAND_OFF, 1317);
@@ -246,12 +246,12 @@ void func_8026AF6C(u16 yd) {
     }
     if (oldWindow == 0x1E || oldWindow == 0x23 || oldWindow == 5 || oldWindow == 0xE) {
         YOSHI_ASSERT(1==0, 1324);
-        func_8029A7E4("OH MY GOD!\n");
+        debug_printf("OH MY GOD!\n");
         return;
     }
     if (yoshiDemandV) {
         YOSHI_ASSERT(!yoshiDemandV, 1331);
-        func_8029A7E4("GOING FOR NEW: %x OLD:%x\n", yd, yoshiDemandV);
+        debug_printf("GOING FOR NEW: %x OLD:%x\n", yd, yoshiDemandV);
     }
     yoshiDemandV = yd;
 }
@@ -291,31 +291,31 @@ void func_8026B118(u8 arg0) {
     for (i = 0; i < 75; i++) {
         D_802F49F4[i].unk2E = -1;
     }
-    switch (D_80364A98) {
+    switch (gNextGameMode) {
         case 0x80:
         case 0x8000000:
             D_8020C070[25].unk14 = 0;
             /* fallthrough */
         case 0x40000000:
-            arg = &D_802F8BDC[D_802F4868[func_8026F92C(D_802E8F94[D_802E8BDC].unk0)]];
+            arg = &D_802F8BDC[D_802F4868[lowest_set_bit(gLevelInfo[levelno].unk0)]];
             if (D_802E8BF8) {
                 D_8020C070[29].flags &= ~1;
                 D_8020C070[29].unk14 = 11;
             }
-            if (D_802E8F94[D_802E8BDC].unk0 == 1) {
-                if (func_80297EF8(D_802E8BDC)) {
+            if (gLevelInfo[levelno].unk0 == 1) {
+                if (func_80297EF8(levelno)) {
                     D_8020C070[18].unk14 = 24;
                 } else {
                     D_8020C070[18].unk14 = 0;
                 }
-            } else if (D_802E8F94[D_802E8BDC].unk0 == 0x20) {
+            } else if (gLevelInfo[levelno].unk0 == 0x20) {
                 D_8020C070[23].flags &= ~0x400;
                 D_8020C070[26].flags &= ~0x400;
                 D_8020C070[27].unk14 = 0;
                 D_8020C070[28].unk14 = 0;
             } else {
-                D_8020C070[23].unk14 = D_802F4878[func_8026F92C(D_802E8F94[D_802E8BDC].unk0)];
-                D_8020C070[26].unk14 = D_802F4878[func_8026F92C(D_802E8F94[D_802E8BDC].unk0)];
+                D_8020C070[23].unk14 = D_802F4878[lowest_set_bit(gLevelInfo[levelno].unk0)];
+                D_8020C070[26].unk14 = D_802F4878[lowest_set_bit(gLevelInfo[levelno].unk0)];
                 D_8020C070[27].unk14 = 0;
                 D_8020C070[28].unk14 = 0;
             }
@@ -327,29 +327,29 @@ void func_8026B118(u8 arg0) {
             arg = &D_802F8BDC[56];
             break;
         case 0x40:
-            arg = &D_802F8BDC[D_802F4870[func_8026F92C(D_802E8F94[D_802E8BDC].unk0)]];
-            if (D_802E8F94[D_802E8BDC].unk0 == 0x20) {
+            arg = &D_802F8BDC[D_802F4870[lowest_set_bit(gLevelInfo[levelno].unk0)]];
+            if (gLevelInfo[levelno].unk0 == 0x20) {
                 D_802F5804[27].flags &= ~0x400;
                 D_802F5804[28].flags &= ~0x400;
                 D_802F5804[29].unk14 = 0;
                 D_802F5804[30].unk14 = 0;
             } else {
-                D_802F5804[27].unk14 = D_802F4878[func_8026F92C(D_802E8F94[D_802E8BDC].unk0)];
-                D_802F5804[28].unk14 = D_802F4878[func_8026F92C(D_802E8F94[D_802E8BDC].unk0)];
+                D_802F5804[27].unk14 = D_802F4878[lowest_set_bit(gLevelInfo[levelno].unk0)];
+                D_802F5804[28].unk14 = D_802F4878[lowest_set_bit(gLevelInfo[levelno].unk0)];
                 D_802F5804[29].unk14 = 0;
                 D_802F5804[30].unk14 = 0;
             }
             break;
         case 0x2000:
-            if (((D_80364AF0[D_80364AE8].unk18[D_802E8BDC] > 0 && D_80364AF0[D_80364AE8].unk18[D_802E8BDC] < 6) ? 1 : 0) &&
-                D_802E8F94[D_802E8BDC].unk0 == 1) {
+            if (((players[playerNumber].unk18[levelno] > 0 && players[playerNumber].unk18[levelno] < 6) ? 1 : 0) &&
+                gLevelInfo[levelno].unk0 == 1) {
                 arg = &D_802F8BDC[6];
             } else {
                 arg = NULL;
             }
             break;
         case 0x100000000000:
-            switch (D_802E8BDC) {
+            switch (levelno) {
                 case 55:
                     arg = &D_802F8BDC[65];
                     break;
@@ -377,10 +377,10 @@ void func_8026B118(u8 arg0) {
     if (arg) {
         func_8026BA7C(arg);
     }
-    if (D_80364A98 & 0x2004) {
+    if (gNextGameMode & 0x2004) {
         for (i = 0, found = 0; i < 8 && !found; i++) {
             trig = &D_802F48D0[i];
-            if (trig->id == D_802E8BDC) {
+            if (trig->id == levelno) {
                 for (j = 0; j < 16 && trig->ids[j] != -1; j++) {
                     func_8026BA7C(&D_802F8BDC[trig->ids[j]]);
                 }
@@ -390,17 +390,17 @@ void func_8026B118(u8 arg0) {
 }
 
 void func_8026B8F8(void) {
-    if (D_80364AA8 & 0x20) {
+    if (gLevelKind & 0x20) {
         D_8020C070[23].flags |= 0x400;
         D_8020C070[26].flags |= 0x400;
         D_802F5804[27].flags |= 0x400;
         D_802F5804[28].flags |= 0x400;
         D_8020C070[23].unk14 = D_8020C070[26].unk14 = D_802F5804[27].unk14 = D_802F5804[28].unk14 =
             func_8026FA38(NULL, NULL);
-        if (D_80364A98 == 0x40) {
-            func_8026BA7C(&D_802F8BDC[D_802F4870[func_8026F92C(D_80364AA8)]]);
+        if (gNextGameMode == 0x40) {
+            func_8026BA7C(&D_802F8BDC[D_802F4870[lowest_set_bit(gLevelKind)]]);
         } else {
-            func_8026BA7C(&D_802F8BDC[D_802F4868[func_8026F92C(D_80364AA8)]]);
+            func_8026BA7C(&D_802F8BDC[D_802F4868[lowest_set_bit(gLevelKind)]]);
         }
     }
 }
@@ -451,7 +451,7 @@ void func_8026BBD0(Gfx *gfx, s32 arg1, s32 *count) {
 #endif
 }
 
-#define PRESSED(m) ((D_80370C28 & (m)) && !(D_80370C2A & (m)))
+#define PRESSED(m) ((gContButtons & (m)) && !(gContPrevButtons & (m)))
 #define FRAMES(t) ((t) * 60 / 60)
 
 /* Runs and draws the current Yoshi window: handles open/close demands, menu
@@ -504,10 +504,10 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
     c = D_802F47B0[20];
     c[2] = 255 - D_8036BB0C;
     c[6] = D_8036BB0C;
-    if (D_80364A90 == 0x200 && D_803643DB && D_803643D6) {
+    if (gGameMode == 0x200 && gHaveCarrier && gCarrierHit) {
         D_8036BB1A = -1;
         if (yoshiState == 4 || yoshiState == 2) {
-            func_8029A7E4("putting off!\n");
+            debug_printf("putting off!\n");
             func_8026AF6C(YOSHI_DEMAND_OFF);
         }
     }
@@ -520,7 +520,7 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
         window = yoshiDemandV & 0xFF;
         force = yoshiDemandV & 0x2000;
         keep = 0;
-        func_8029A7E4("yoshiDemand=%x\n", yoshiDemandV);
+        debug_printf("yoshiDemand=%x\n", yoshiDemandV);
         if (yoshiDemandV & 0x8000) {
             D_8036BB1A = -1;
             if (currentYoshiWindow != NO_YOSHI_WINDOW) {
@@ -555,7 +555,7 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
                 func_80260650(D_80367738, sound, NULL);
             }
             if (D_8036BB10[arg->sel].flags & 0x10) {
-                D_802E8BD4 = 1;
+                gUnpauseRequest = 1;
             }
             D_8036BB16 = arg->sel;
             redraw = 1;
@@ -566,7 +566,7 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
                 D_8036BB16 = 0xFFFF;
                 redraw = 1;
                 if (arg->flags & 0x40000000) {
-                    D_802E8BD4 = 1;
+                    gUnpauseRequest = 1;
                 }
             } else {
                 func_80260650(D_80367738, 0xD0, NULL);
@@ -607,7 +607,7 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
                     }
                 }
                 if (arg->flags & 1) {
-                    D_802E8BD8 = 1;
+                    gPauseRequest = 1;
                 }
                 if (arg->flags & 2) {
                     func_80261570(0.0f);
@@ -631,7 +631,7 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
                     func_80260650(D_80367738, sound, NULL);
                 }
                 if (arg->flags & 0x200000) {
-                    D_802E8BD4 = 1;
+                    gUnpauseRequest = 1;
                 }
                 if (arg->flags & 4) {
                     func_80261570(1.0f);
@@ -688,7 +688,7 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
                 D_8036BB38 = 0.0f;
                 yoshiState = 1;
                 if (arg->flags & 0x2000000) {
-                    D_802E8BD4 = 1;
+                    gUnpauseRequest = 1;
                 }
                 if (arg->flags & 0x100) {
                     arg->flags &= ~0x80;
@@ -699,7 +699,7 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
             break;
     }
     if (yoshiState != 1) {
-        D_8036BB20 = (func_802574F0(D_8036BB38 * D_8036BB34 / one * 1.57 + 4.71) + 1.0) * 255.0;
+        D_8036BB20 = (hd_sinf(D_8036BB38 * D_8036BB34 / one * 1.57 + 4.71) + 1.0) * 255.0;
     }
     if (yoshiState != 1 && D_8036BB38 * D_8036BB34 > 0.1) {
         halfW = arg->w / 2;
@@ -745,23 +745,23 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
             up = 0;
             down = 0;
             if (D_8036BB3C == 0x800) {
-                if (D_80370C12 >= 31 && D_80370C14 < 31) {
+                if (gContStickY >= 31 && gContPrevStickY < 31) {
                     up = 1;
                 } else {
                     up = 0;
                 }
-            } else if (D_80370C11 < -30 && D_80370C13 >= -30) {
+            } else if (gContStickX < -30 && gContPrevStickX >= -30) {
                 up = 1;
             } else {
                 up = 0;
             }
             if (D_8036BB3E == 0x400) {
-                if (D_80370C12 < -30 && D_80370C14 >= -30) {
+                if (gContStickY < -30 && gContPrevStickY >= -30) {
                     down = 1;
                 } else {
                     down = 0;
                 }
-            } else if (D_80370C11 >= 31 && D_80370C13 < 31) {
+            } else if (gContStickX >= 31 && gContPrevStickX < 31) {
                 down = 1;
             } else {
                 down = 0;
@@ -780,8 +780,8 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
                 }
                 D_8036BB28 += D_8036BB10[arg->sel].y - D_8036BB10[prev].y;
                 arg->sel = prev;
-            } else if (((((arg->atEnd ? 0 : 0x8000) | D_8036BB3E) & D_80370C28) &&
-                        !(((arg->atEnd ? 0 : 0x8000) | D_8036BB3E) & D_80370C2A)) ||
+            } else if (((((arg->atEnd ? 0 : 0x8000) | D_8036BB3E) & gContButtons) &&
+                        !(((arg->atEnd ? 0 : 0x8000) | D_8036BB3E) & gContPrevButtons)) ||
                        down) {
                 u16 next;
 
@@ -824,7 +824,7 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
                 } else {
                     off = 0x1C;
                 }
-                if (!(D_80364A90 & 0xC9FD0FE79BFF80B0) || D_8035805C) {
+                if (!(gGameMode & 0xC9FD0FE79BFF80B0) || gBufferIndex) {
                     D_8036BB44 += D_802F9930;
                 }
                 if (D_802F9930 < 0) {
@@ -940,7 +940,7 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
                 gdl = func_80274B08(gdl);
             }
         }
-        if (currentYoshiWindow < 0x62 || currentYoshiWindow >= 0x6C || D_80364A90 == 2) {
+        if (currentYoshiWindow < 0x62 || currentYoshiWindow >= 0x6C || gGameMode == 2) {
             for (i = arg->unkE; i < arg->unkE + arg->unk10; i++) {
                 node = &D_8036BB10[i];
                 wtext = NULL;
@@ -1148,8 +1148,8 @@ u16 func_8026F8A8(u16 arg0, u16 arg1, u16 start, u16 mask) {
     return start;
 }
 
-/* Index of the lowest set bit */
-s32 func_8026F92C(u64 in) {
+/* Index of the lowest set bit (a game mode's number) (0x8026F92C). */
+s32 lowest_set_bit(u64 in) {
     u64 i;
 
     YOSHI_ASSERT(in, 2270);
@@ -1165,7 +1165,7 @@ u8 func_8026FA38(char * N64P *name, s32 *arg1) {
     s32 i;
     s32 result = 0;
 
-    func_8029A7E4("path builing=%d\n", D_803F7684);
+    debug_printf("path builing=%d\n", D_803F7684);
     for (i = 0; i < 7 && result == 0; i++) {
         if (D_802F9934[i].id == D_803F7684) {
             result = i + 26;
@@ -1199,10 +1199,10 @@ void func_8026FBB0(s16 *pos, s16 *end) {
 
     D_8036EB90 = 0;
     D_8036EA7C = 0;
-    if (D_80364A90 != 0x40) {
+    if (gGameMode != 0x40) {
         D_8036BED4 = *D_8036BBB0 = 0;
     }
-    D_8036BED8 = (YoshiNode *) D_80358070;
+    D_8036BED8 = (YoshiNode *) gHeapPtr;
     D_8036BEE0 = 0;
     D_8036BEDC = 999999.0f;
     while (pos != end) {
@@ -1215,7 +1215,7 @@ void func_8026FBB0(s16 *pos, s16 *end) {
         func_8026A5CC((u64 *) (D_8036BED8[D_8036EB90].vtx[1]), (u64 *) D_802F99C0, sizeof(D_8036BED8->vtx[1]));
         D_8036EB90++, pos += 3;
     }
-    D_80358070 = (u8 *) ((YoshiNode *) D_80358070 + D_8036EB90);
+    gHeapPtr = (u8 *) ((YoshiNode *) gHeapPtr + D_8036EB90);
 }
 
 u8 func_8026FE6C(s32 arg0) {
@@ -1235,16 +1235,16 @@ void func_8026FEC4(void) {
     u8 flag;
 
     flag = 0;
-    cell = D_803643E8 / D_803BE710 * D_803BE714 + D_803643E0 / D_803BE70C;
+    cell = gPlayerZ / D_803BE710 * D_803BE714 + gPlayerX / D_803BE70C;
     for (i = 0; i < D_8036EB90; i++) {
         if (D_8036BED8[i].cell == cell && !D_8036BED8[i].visited) {
-            dist = func_8026A6F0(D_803643E0 >> 5, D_803643E4 >> 5, D_803643E8 >> 5,
+            dist = func_8026A6F0(gPlayerX >> 5, gPlayerY >> 5, gPlayerZ >> 5,
                                  D_8036BED8[i].x, D_8036BED8[i].y, D_8036BED8[i].z);
-            if (dist < D_802FA200[D_80364456]) {
-                if (++D_8036EA7C >= 4 && !D_802E8BD0) {
+            if (dist < D_802FA200[gCurVehicle]) {
+                if (++D_8036EA7C >= 4 && !gPaused) {
                     func_8026AD30(0x46);
                 }
-                if (D_80364A90 != 0x40) {
+                if (gGameMode != 0x40) {
                     D_8036BBB0[D_8036BED4] = D_8036BBB2[D_8036BED4] = i;
                     D_8036BED4++;
                 }
@@ -1252,7 +1252,7 @@ void func_8026FEC4(void) {
                 D_8036BED8[i].visited = 1;
                 if (!flag) {
                     flag = 1;
-                    if (D_80364AA8 == 0x40) {
+                    if (gLevelKind == 0x40) {
                         func_80260650(D_80367738, 0x3B, NULL);
                     } else {
                         func_80260650(D_80367738, 0x27, NULL);
@@ -1281,9 +1281,9 @@ void func_802701A8(Gfx **gfx, s32 arg1) {
     gDPSetRenderMode(gdl++, G_RM_ZB_XLU_SURF, G_RM_ZB_XLU_SURF2);
     gDPSetCombineMode(gdl++, G_CC_MODULATERGBA, G_CC_MODULATERGBA);
     gSPTexture(gdl++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
-    if (D_80364414 != D_8036BEDC) {
+    if (gCamHeading != D_8036BEDC) {
         D_8036BEE0 ^= 1;
-        guRotateF(mtx, D_80364414 - 135.0, 0.0f, 1.0f, 0.0f);
+        guRotateF(mtx, gCamHeading - 135.0, 0.0f, 1.0f, 0.0f);
         for (i = 0; i < 4; i++) {
             guMtxXFMF(mtx, D_802F99C0[i].v.ob[0], D_802F99C0[i].v.ob[1], D_802F99C0[i].v.ob[2], &ox[i], &oy[i],
                       &oz[i]);
@@ -1317,7 +1317,7 @@ void func_802701A8(Gfx **gfx, s32 arg1) {
     }
     gDPPipeSync(gdl++);
     *gfx = gdl;
-    D_8036BEDC = D_80364414;
+    D_8036BEDC = gCamHeading;
 }
 
 s32 func_80270A54(YoshiNode *node, s32 arg1) {
@@ -1327,8 +1327,8 @@ s32 func_80270A54(YoshiNode *node, s32 arg1) {
 
     i = 0;
     v = node->cell;
-    for (; D_803C30A8[i] != 0xFFFF; ) {
-        arg1 = D_803C30A8[i++] == v;
+    for (; gVisibleCells[i] != 0xFFFF; ) {
+        arg1 = gVisibleCells[i++] == v;
         if (arg1) {
             return 1;
         }
@@ -1336,9 +1336,10 @@ s32 func_80270A54(YoshiNode *node, s32 arg1) {
     return 0;
 }
 
-/* Splits a command line into words and sets a debug switch for each
- * leading "-x" argument */
-void func_80270AE0(u8 *cmdline) {
+/* Splits the debug command line (hd_boot) into words and sets a debug switch
+ * for each leading "-x" argument: -d -v -s -j -m -l -c (gDebugCheats), -C
+ * (0x80270AE0). */
+void parse_cmdline(u8 *cmdline) {
     s32 argc;
     u8 *args[33];
     u8 **argv;
@@ -1383,11 +1384,11 @@ void func_80270AE0(u8 *cmdline) {
                     D_802FA264 = 1;
                     break;
                 case 'c':
-                    D_802FA268 = 1;
+                    gDebugCheats = 1;
                     break;
                 case 'C':
                     D_802FA26C = 1;
-                    D_802FA268 = 1;
+                    gDebugCheats = 1;
                     break;
             }
             argc--;

@@ -55,7 +55,7 @@ void func_80282C80(Gfx **gfxp, Mtx *mtx, s32 x, s32 y, s32 z, s32 x2, s32 y2, s3
     }
     angle = angle * 0.08791208791208792;
     angle = 360.0 - angle - 45.0;
-    angle = angle + (D_80364452 * 360.0 / 4095.0 - 135.0);
+    angle = angle + (gCamYaw * 360.0 / 4095.0 - 135.0);
     dist = sqrtf((x2 - px) * (x2 - px) + (z2 - pz) * (z2 - pz));
     if (dist > 1500.0f) {
         g = 0xFF;
@@ -84,7 +84,7 @@ void func_80282C80(Gfx **gfxp, Mtx *mtx, s32 x, s32 y, s32 z, s32 x2, s32 y2, s3
         guMtxCatF(mf, mf2, mf);
         guMtxF2L(mf, &mtx[0x56]);
         gSPMatrix(gfx++, &D_02000000[2], G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
-        gImmp1(gfx++, G_RDPHALF_1, D_8035807C);
+        gImmp1(gfx++, G_RDPHALF_1, gPerspNorm);
         gSPMatrix(gfx++, &D_02000000[0x56], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
         gSPClearGeometryMode(gfx++, 0xFFFFFFFF);
         gSPSetGeometryMode(gfx++, 0x61204);
@@ -162,11 +162,11 @@ void func_8028376C(Gfx **gfxp, Mtx *mtx, u8 idx, s32 x, s32 z, s32 x2, s32 z2) {
         shift = 15;
         scale = 4800;
     }
-    if (D_803643DB == 0) {
+    if (gHaveCarrier == 0) {
         shift = 10;
         scale = 1200;
     }
-    guRotateF(mf, 360.0 - (D_80364414 - 180.0), 0.0f, 1.0f, 0.0f);
+    guRotateF(mf, 360.0 - (gCamHeading - 180.0), 0.0f, 1.0f, 0.0f);
     guMtxXFMF(mf, (x - x2) / scale, 0.0f, (z - z2) / scale, &ox, &oy, &oz);
     sx = 58.0f + ox;
     sy = 195.0f + oz;
@@ -224,7 +224,7 @@ void func_8028376C(Gfx **gfxp, Mtx *mtx, u8 idx, s32 x, s32 z, s32 x2, s32 z2) {
     gDPSetCycleType(gfx++, G_CYC_1CYCLE);
     gDPSetCombine(gfx++, 0xFFFFFF, 0xFFFE773B);
     gDPSetPrimColor(gfx++, 0, 0, 0, 0, 0, D_80367BD6);
-    if (D_803643DB != 0) {
+    if (gHaveCarrier != 0) {
         gDPSetRenderMode(gfx++, 0x005041C8, 0);
         if ((D_803156C4 % 40 > 20 || shift != 10) && sx >= 0x22 && sx < 0x53 && sy >= 0xAB && sy < 0xDC) {
             gSPVertex(gfx++, osVirtualToPhysical(D_802FD830[idx]), 4, 0);
@@ -238,7 +238,7 @@ void func_8028376C(Gfx **gfxp, Mtx *mtx, u8 idx, s32 x, s32 z, s32 x2, s32 z2) {
         }
     }
     heading = func_80284ADC(x >> 5, z >> 5, D_803F767C, D_803F7680);
-    guRotateF(mf, -((360.0 - (D_80364414 - 180.0)) + (heading + 180.0)), 0.0f, 0.0f, 1.0f);
+    guRotateF(mf, -((360.0 - (gCamHeading - 180.0)) + (heading + 180.0)), 0.0f, 0.0f, 1.0f);
     guTranslateF(mf2, 58.0f, 195.0f, 0.0f);
     guMtxCatF(mf, mf2, mf);
     guMtxF2L(mf, &D_8036E5E0[idx]);
@@ -253,7 +253,7 @@ void func_8028376C(Gfx **gfxp, Mtx *mtx, u8 idx, s32 x, s32 z, s32 x2, s32 z2) {
     gSP1Triangle(gfx++, 0, 1, 2, 0);
     gSP1Triangle(gfx++, 0, 2, 3, 0);
     gSPPopMatrix(gfx++, G_MTX_MODELVIEW);
-    if (D_803643DB != 0) {
+    if (gHaveCarrier != 0) {
         gSPTexture(gfx++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
         gDPPipeSync(gfx++);
         gDPSetCycleType(gfx++, G_CYC_1CYCLE);

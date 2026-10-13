@@ -136,7 +136,7 @@ void func_802729F0(u16 type, u16 level) {
         D_8036BFC0 += 32.0f;
     }
     for (i = 0; i < 2; i++) {
-        D_802FA280[level][i].ptr = D_80358070;
+        D_802FA280[level][i].ptr = gHeapPtr;
         id = D_802FA280[level][i].id;
         if (id) {
             func_802A0B00(id, 0);

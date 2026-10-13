@@ -120,7 +120,7 @@ typedef struct HostOpts {
     const char *frame_sp_path; /* when each frame task leaves the RSP (os_time.c) */
     const char *calls;         /* function names whose calls are logged (os_thread.c) */
     int quiet;
-    int game_print;            /* print the game's debug messages (func_8029A7E4) */
+    int game_print;            /* print the game's debug messages (debug_printf) */
     const char *mpk_path;      /* Controller Pak image (.mpk), or NULL: no pak */
     const char *wav_path;      /* --wav: the AI stream (what the game plays) as a WAV file */
     int wav_all;               /* --wav-all: also the buffers a full AI FIFO drops (every task's output) */
@@ -162,7 +162,7 @@ typedef struct HostLive {
 } HostLive;
 
 /* Widescreen (bc.exe's optional enhancement; os_hw.c): the width of
- * func_802A4B0C's visibility test as a multiple of the game's 4:3 view, so
+ * cull_rsp_test's visibility test as a multiple of the game's 4:3 view, so
  * level cells (and the objects on them) at the edges of a wider picture are
  * drawn.  1.0 (the default) is the exact model of the N64's ucode; another
  * value changes what the game sees (which cells are visible), so the game
@@ -177,10 +177,10 @@ extern void (*host_itag_hook)(unsigned addr, int kind, int index);
 
 /* bc.exe's orbit camera (live_orbit.cpp; NULL otherwise).  host_camera_hook:
  * once a frame, at the end of the game's camera function (00000.c
- * func_802507C8, PORT_ICUT_IF), `snap` = its snap flag; it may only read.
+ * cam_update, PORT_ICUT_IF), `snap` = its snap flag; it may only read.
  * host_draw_cells_hook: the visible-cell list for the pure drawing paths
  * (PORT_DRAW_CELLS: the level's geometry, unlisted buildings drawn as they
- * are); `game` is the game's own D_803C30A8, which its logic keeps using.
+ * are); `game` is the game's own gVisibleCells, which its logic keeps using.
  * Returns `game` or a sorted, -1-terminated list containing it. */
 extern void (*host_camera_hook)(int snap);
 extern short *(*host_draw_cells_hook)(short *game);

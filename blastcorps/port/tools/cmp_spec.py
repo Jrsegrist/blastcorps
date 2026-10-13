@@ -11,13 +11,13 @@
 #   CMP_STOP   stop after this many frames (0: no limit)
 #
 # Logged (one line per event, parsed by compare.py):
-#   B vi=V count=C                 hd_code's entry (func_802447C0): boot offset
+#   B vi=V count=C                 hd_code's entry (hd_boot): boot offset
 #   F n vi=V d=D mode=..           frame n: the main thread sends the scheduler the
 #                                  frame's gfx task (flag 0x40) -- the point bc_headless dumps
 #                                  at (D: counts since VI V); after an M line, " || "
 #   G vi=V d=D                     a frame task reaches osSpTaskStartGo
-#   R vi=V d=D                     __scHandleRDP (func_80271904): a frame's RDP work done
-#   P vi=V d=D y=Y                 __scHandleRSP (func_802715DC) for a frame task: its RSP
+#   R vi=V d=D                     __scHandleRDP (__scHandleRDP): a frame's RDP work done
+#   P vi=V d=D y=Y                 __scHandleRSP (__scHandleRSP) for a frame task: its RSP
 #                                  part done (y=1: it yielded to an audio task)
 #   T ra=RA th=ID v=VALUE          osGetTime returns VALUE to RA (thread ID)
 #   C ra=RA th=ID v=VALUE          osGetCount (callers other than osGetTime)
@@ -26,7 +26,7 @@
 #   Z ra=RA th=ID v=N              alAudioFrame asked for N samples (the audio frame size)
 #   Q ra=FUNC th=ID v=VALUE        the game retrace counter D_803156C4 as a GVI_FUNCS
 #                                  function reads it (port.h PORT_GVI)
-#   U ra=RA th=ID v=WORD           func_802A4B0C's RSP visibility test: the output word it
+#   U ra=RA th=ID v=WORD           cull_rsp_test's RSP visibility test: the output word it
 #                                  tests (0xE8000000 = not visible)
 #   M ra=RA th=ID c=COUNT f=FUNC q=A0 gvi=G   a message call (queue A0) / osStartThread
 #                                  (thread A0) from RA (running thread ID) at COUNT, the game's
@@ -34,9 +34,14 @@
 #                                  function that reads that counter
 #   V (as "#in" lines)             the count register at some VIs (period, wrap-around)
 # Dumps: RDRAM 0x80000000-0x80400000 as N64 big-endian bytes.
-import ctypes as C, os, struct
+import ctypes as C, os, struct, sys
 
 from elftools.elf.elffile import ELFFile
+
+# renamed symbols (tools_port/names.txt) count as the address names they had
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+                                "tools_port"))
+from names import orig  # noqa: E402
 
 OUT = os.environ["CMP_DIR"]
 ELFS = os.environ["CMP_ELFS"].split(",")
@@ -95,10 +100,10 @@ def ret_of(name):
 
 REGS = ["r0", "at", "v0", "v1", "a0", "a1", "a2", "a3", "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",
         "s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7", "t8", "t9", "k0", "k1", "gp", "sp", "fp", "ra"]
-A_BOOT = syms["func_802447C0"]
+A_BOOT = syms["hd_boot"]
 A_TASK = syms["osSpTaskStartGo"]
-A_RDP = syms["func_80271904"]
-A_RSP = syms["func_802715DC"]  # __scHandleRSP: an RSP task finished (or yielded)
+A_RDP = syms["__scHandleRDP"]
+A_RSP = syms["__scHandleRSP"]  # __scHandleRSP: an RSP task finished (or yielded)
 A_TIME = ret_of("osGetTime")
 A_COUNT = ret_of("osGetCount")
 A_RUNNING = syms["__osRunningThread"]
@@ -113,9 +118,9 @@ def call_site(func, callee):
     raise KeyError((func, callee))
 
 
-# func_802A4B0C (5FD50.c): the RSP visibility test; its answer is the first
-# word of the output buffer D_803BEB80 once func_80285110 has waited for it
-A_CULL = call_site("func_802A4B0C", "func_80285110")
+# cull_rsp_test (5FD50.c): the RSP visibility test; its answer is the first
+# word of the output buffer D_803BEB80 once rsp_wait_task has waited for it
+A_CULL = call_site("cull_rsp_test", "rsp_wait_task")
 A_CULLBUF = syms.get("D_803BEB80", 0x803BEB80)
 # thread switch points: the native clock catches up with the emulator's here
 SYNC = {syms[n]: n for n in ("osSendMesg", "osRecvMesg", "osJamMesg", "osStartThread")}
@@ -129,7 +134,7 @@ for path in ELFS:
         for sec in ELFFile(f).iter_sections():
             if sec.name == ".symtab":
                 for s in sec.iter_symbols():
-                    if s["st_info"]["type"] == "STT_FUNC" and s.name.startswith("func_") and s["st_size"]:
+                    if s["st_info"]["type"] == "STT_FUNC" and orig(s.name).startswith("func_") and s["st_size"]:
                         func_sizes[s.name] = (s["st_value"], s["st_size"])
 ENTRY = {}
 for name, (a, size) in func_sizes.items():
@@ -176,12 +181,12 @@ A_AFRAME = syms.get("alAudioFrame", syms.get("func_802D9D68"))
 
 # Retrace-counter reads the exe takes from the emulator (port.h PORT_GVI):
 # where the game reads D_803156C4 mid-function, after CPU time the native
-# code doesn't take (00000.c func_8024C414: the blinking "PRESS START").
+# code doesn't take (00000.c hd_build_frame_dl: the blinking "PRESS START").
 # Also D_803156C0 (the scheduler's retrace count): hd_front_end 00000.c
 # func_801E7598 (the vehicle select screen's title pulse).  And 50670.c
 # func_80294F00 (the ghost recorder's sample time, D_803156C0 - start): a
 # retrace can land between its entry (a switch point) and the read.
-GVI_FUNCS = ["func_8024C414", "func_801E7598", "func_80294F00"]
+GVI_FUNCS = ["hd_build_frame_dl", "func_801E7598", "func_80294F00"]
 GVI = {}
 for name in GVI_FUNCS:
     a, size = func_sizes[name]
@@ -191,12 +196,12 @@ for name in GVI_FUNCS:
             GVI[a + i] = (name, 0x80310000 + (w & 0xFFFF))
 # Single reads in big functions, keyed by their own name "FUNC:STORE": the
 # D_803156C0 (or D_803156C4) load whose value the next few instructions store
-# to %lo STORE.  00000.c func_80244930:
+# to %lo STORE.  00000.c hd_main_thread:
 #   D_80364A58 = D_803156C0: the level's start time, read after the level's
 #     loading CPU time the native code doesn't take;
 #   D_80364A54 = D_803156C4: when mode 0x40 starts (after a completed level's
 #     mode 0x200), read after that mode's setup calls on a loading frame.
-GVI_SITES = [("func_80244930", 0x4A58, 0x56C0), ("func_80244930", 0x4A54, 0x56C4)]
+GVI_SITES = [("hd_main_thread", 0x4A58, 0x56C0), ("hd_main_thread", 0x4A54, 0x56C4)]
 for name, store, src in GVI_SITES:
     a, size = func_sizes[name]
     for i in range(0, size, 4):
@@ -210,12 +215,12 @@ for name, store, src in GVI_SITES:
                     break
 # Other words the exe takes from the emulator, once per retrace (port.h
 # PORT_EMU, key "FUNC:LO"): the load of ADDR (SIZE bytes) in FUNC.
-#   2C560.c func_80271358 (__scHandleRetrace) counts the retrace in
-#   D_803156C0 unless D_802E8BD0 (the main thread's display freeze around
+#   2C560.c __scHandleRetrace (__scHandleRetrace) counts the retrace in
+#   D_803156C0 unless gPaused (the main thread's display freeze around
 #   loads) is set; the main thread clears it after its frame's CPU time
-#   (00000.c func_802475D8, after func_802A5720), so a retrace there sees it
+#   (00000.c hd_game_frame, after func_802A5720), so a retrace there sees it
 #   still set in the emulator and already clear natively.
-EMU_SITES = [("func_80271358", 0x802E8BD0, 1)]
+EMU_SITES = [("__scHandleRetrace", 0x802E8BD0, 1)]
 for name, addr, size in EMU_SITES:
     a, fsize = func_sizes[name]
     lo = addr & 0xFFFF
@@ -396,7 +401,7 @@ def ONHIT(pc, g, rd):
             return None
         return "C ra=%x th=%d v=%x" % (g["ra"], thread_id(rd), g["v0"])
     if pc == A_CULL:
-        return "U ra=%x th=%d v=%x frame=%d" % (syms["func_802A4B0C"], thread_id(rd), rd(A_CULLBUF, 4), st["frame"])
+        return "U ra=%x th=%d v=%x frame=%d" % (syms["cull_rsp_test"], thread_id(rd), rd(A_CULLBUF, 4), st["frame"])
     if pc in AILEN_RET:
         # (ra: this return site, in the caller)
         return "A ra=%x th=%d v=%x" % (pc, thread_id(rd), g["v0"])
@@ -418,8 +423,8 @@ def ONHIT(pc, g, rd):
     if pc in SYNC:
         m = "M ra=%x th=%d c=%d f=%s q=%x gvi=%x" % (g["ra"], thread_id(rd), count(), SYNC[pc], g["a0"],
                                                     rd(0x803156C4, 4))
-        # a frame: the main thread sends the scheduler (D_80315440) a task with
-        # the frame flag 0x40 (405F0.c func_80284E54) -- the exe dumps here too
+        # a frame: the main thread sends the scheduler (gScheduler) a task with
+        # the frame flag 0x40 (405F0.c rsp_send_task) -- the exe dumps here too
         a1 = g["a1"]
         if (SYNC[pc] == "osSendMesg" and g["a0"] == 0x80315440 and 0x80000000 <= a1 < 0x80800000
                 and rd(a1 + 8, 4) & 0x40):

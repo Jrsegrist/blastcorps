@@ -61,10 +61,10 @@ pre-filled with, and are translated to the NM function by name (the same
 mechanism as pointers in the data blobs); in the test ROM they hit trampolines.
 
 Data assignments must stay hard because some data symbols are pinned in
-`undefined_syms` *and* defined in C (hd.c's u64 `D_80364A88/90/98` sit outside
+`undefined_syms` *and* defined in C (hd.c's u64 `gPrevGameMode`, `gGameMode`, `gNextGameMode` sit outside
 its modelled `.bss`). With a `PROVIDE()` the C definition would win in
-`build_nm` and the variable would move (D_80364A98 landed at 0x80312D88, on
-top of D_80312D80), while the hand asm still used 0x80364A98: two homes for one
+`build_nm` and the variable would move (gNextGameMode landed at 0x80312D88, on
+top of gSchedStack), while the hand asm still used 0x80364A98: two homes for one
 variable. `python3 tools_port/nm_symaudit.py` compares the symbol tables of
 `build/` and `build_nm/` (init, hd_code and the front end) and lists every
 non-text symbol whose address differs; `runchecks -b`/`-B` runs it after
@@ -102,7 +102,7 @@ init:
   init+0x1AE0..0x1BF8) is replaced in place by a loader: write back +
   invalidate the D-cache, PI-DMA image A (NM text) to 0x80400000 and image B
   (original text with trampolines + NM `.hd_code_data`) over 0x802447C0,
-  invalidate the I-cache, `a0 = gp`, jump to the NM `func_802447C0`.
+  invalidate the I-cache, `a0 = gp`, jump to the NM `hd_boot`.
 * Trampolines (`j NM; nop`) on the original function entries send original-
   address callers (the front end, which is loaded once to 0x801E7000 and calls
   hd_code at fixed addresses; pointer tables in the bins) into the NM code.
@@ -128,7 +128,7 @@ init:
   the NM front-end functions run (breakpoints in 0x805xxxxx hit, the
   original entries hold `j 0x805xxxxx`), and the ROM goes front end -> attract
   demos 0..8 like the base ROM (the NM build runs a little slower).
-* The ROM is padded to 12 MB: `func_802447C0` reads a debug command line from
+* The ROM is padded to 12 MB: `hd_boot` reads a debug command line from
   ROM 0xFFB000, past the end of the original ROM, so the ROM must stay below
   that. Header CRCs are recomputed (CIC-6102). Emulators won't find the ROM in
   their database: set the save type to EEPROM 4 Kbit and enable 8 MB RAM.
@@ -179,7 +179,7 @@ is a sentinel. On top of that you can set:
 * `--mem TARGET[:SIZE]=FILL` sets memory contents. TARGET is `SYM`, `SYM+0x10`, a raw address, or relative to an argument or heap block: `@a0`, `@a0+0x40`, `@heap1+0x10` (see below). Symbols resolve separately in each build. An unknown symbol is an error naming the symbol and the build.
 * **Sizing.** Without `:SIZE` a value fill writes a word (4 bytes). For `--mem SYM=...` (no offset) whose ELF symbol has a size of 1 or 2 (C-defined `u8`/`s16` globals) the write is sized from the symbol, with a `note:`. Absolute `D_` symbols from `undefined_syms*.txt` have no size; then, if the next symbol starts less than 4 bytes after the target, you get a `warning:` and should write `SYM:1=` or `SYM:2=` yourself. A word written over a byte global silently clobbers its neighbours.
 * `--mem TARGET*STRIDE:COUNT[/W]=FILL` fills the same W-byte field (default 4) in COUNT records STRIDE bytes apart, each record drawn separately: `--mem D_803FB8B8+8*0x14:25/2=choice:0,0x7FFF` sets the halfword at +8 of all 25 entries of a 0x14-byte table.
-* `--heap SIZE[=FILL]` allocates a scratch-heap block without putting its address in any register (FILL defaults to `rand`; `zero`, `words:..` etc. work). Use it for memory reached only through a global or a field: `--heap 0x300 --mem D_80358074=rel:heap0`. `--heap` blocks are numbered first (`heap0`, `heap1`, ...), before `--arg ptr` blocks.
+* `--heap SIZE[=FILL]` allocates a scratch-heap block without putting its address in any register (FILL defaults to `rand`; `zero`, `words:..` etc. work). Use it for memory reached only through a global or a field: `--heap 0x300 --mem gLevelData=rel:heap0`. `--heap` blocks are numbered first (`heap0`, `heap1`, ...), before `--arg ptr` blocks.
 
 | SPEC / FILL | meaning |
 |---|---|
@@ -221,7 +221,7 @@ Scratch-heap blocks are numbered in allocation order: `heap0`, `heap1`, ...
   BASE is an `--arg` register, `heap`/`heapN`, a symbol (`NAME` or `sym:NAME`), or a number. Each
   `+TERM` is a constant (`+0x10`, `+-4`), any value spec (`+choice:0,0x60,0x5A0`),
   or `K*SPEC`, K times a random value (`+0x60*int:0:16`, `+0x14*choice:0,24`).
-  The same works as a `--mem` fill, which stores a pointer: `--mem D_80358074=rel:heap0+0x20`.
+  The same works as a `--mem` fill, which stores a pointer: `--mem gLevelData=rel:heap0+0x20`.
 
 > **`rel:SYM+k` is SYM's ADDRESS plus k, never the value stored at SYM.**
 > `--mem D_X=rel:D_Y+1` stores `&D_Y + 1` (a pointer), not `D_Y + 1`. A
@@ -234,7 +234,7 @@ Scratch-heap blocks are numbered in allocation order: `heap0`, `heap1`, ...
 # a1 = a0 + 0..16 records of 0x60 bytes, inside a 0x600-byte block
 eqcheck.py func_802CEA68 --arg a0=ptr:0x600 --arg a1=rel:a0+0x60*int:0:16 --ret void
 # a global pointing at a heap block, and fields inside that block
-eqcheck.py func_802C1EE0 --arg a0=int:1:20 --mem D_80358074=ptr:0x300 \
+eqcheck.py func_802C1EE0 --arg a0=int:1:20 --mem gLevelData=ptr:0x300 \
     --mem @heap0+0x74=choice:0x100*2,0x102,0 --mem @heap0+0x100:0x200=halves:4,6,8,0x10
 ```
 
@@ -598,7 +598,7 @@ instead of input-sdl. That is a small mupen64plus input plugin
 (`m64input.c`, written from the public plugin API, built with gcc into
 `~/.cache/m64input-<md5 of the source>.so` on first use) whose controller-1 state is a global the
 front end sets through ctypes. The game reads it through its normal path
-(PIF -> `osContGetReadData` -> `func_8028A470`), so the front end, gameplay and
+(PIF -> `osContGetReadData` -> `cont_update`), so the front end, gameplay and
 the recording code all see it.
 
 ```python
@@ -619,9 +619,9 @@ scripts find out where they are (the screenshots are black). `ONHIT` may
 return None to drop a hit (e.g. log a shared function only inside one caller).
 
 Reaching gameplay: from boot, pulse START and A alternately (6 frames out of
-every 90) until `D_80364A90 == 4` (mode 4 = playing; front end/menus are other
-modes, 0x100 is the pause menu, 0x800 the level intro) with `D_802E8BD0 == 0`
-and a vehicle in `D_80364456`: that is a new game on level 0 (Simian Acres,
+every 90) until `gGameMode == 4` (mode 4 = playing; front end/menus are other
+modes, 0x100 is the pause menu, 0x800 the level intro) with `gPaused == 0`
+and a vehicle in `gCurVehicle`: that is a new game on level 0 (Simian Acres,
 vehicle 4), about 1500 VIs (~25 s of game time, under a minute of wall time).
 Save a state there and later runs start from it in a second. Controls in game:
 A accelerate, B brake/reverse, stick steers, Z gets out of the vehicle (when
@@ -636,18 +636,18 @@ count and RAM, so a run replays exactly (same ROM, same emulator settings).
 
 For stage 3 (headless game logic vs the emulator) the same plugin gives
 recorded input: log the per-VI `(buttons, x, y)` an INPUT script returns (or a
-human's input-sdl session, by reading `D_80370BD8`, the game's copy of the
+human's input-sdl session, by reading `gContPad`, the game's copy of the
 pad, at each frame) and play it back as a table; feed the headless build the
 same pad words per game frame. Note the game itself reads the pad once per
-game frame (`func_8028A470`), not per VI, so compare by game frame
-(`D_80358060` counts them per mode) rather than by VI when timing differs
+game frame (`cont_update`), not per VI, so compare by game frame
+(`gFramesInMode` counts them per mode) rather than by VI when timing differs
 (the NM build runs slower and drops VIs differently).
 
 `spec_input.py` does that: `M64INPUT=file` replays a bc_headless `--input`
 file keyed by the game's controller reads; `M64DUMP=addr:len,...` logs
 memory at every game-mode change (and `M64DUMPMODE`/`M64DUMPEVERY` every n
 reads in one mode); `M64PRINT=1` logs the game's debug messages
-(func_8029A7E4, like bc_headless `--print`); `M64WRITE=vi:addr:size:val`
+(debug_printf, like bc_headless `--print`); `M64WRITE=vi:addr:size:val`
 pokes RAM (`100:802FA268:4:1` = the `-c` debug cheats). Saves:
 `M64SAVEDIR=dir` keeps the .eep/.mpk files there instead of the user's
 mupen64plus save dir, `M64PAK=1` plugs a Controller Pak into controller 1.

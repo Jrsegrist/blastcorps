@@ -8,7 +8,7 @@
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_80364AF0 ((Player *) D_80364AF0)
+#define players ((Player *) players)
 /* end of views */
 
 typedef struct {
@@ -32,8 +32,6 @@ u8 D_803A6B03;  /* current sequence number */
 u8 D_803A6B04;
 
 
-#define players D_80364AF0
-#define playerNumber D_80364AE8
 #define LEVEL_DONE(l) ((players[playerNumber].rank[l] > 0 && players[playerNumber].rank[l] < 6) ? 1 : 0)
 
 /* Set up level sequence seq: its start level, exit levels and loop masks.
@@ -41,7 +39,7 @@ u8 D_803A6B04;
  * index is not folded into the address. */
 void func_802995F0(s32 seq) {
     D_803A6B03 = seq;
-    func_8029A7E4("prepare sequence %d\n", seq);
+    debug_printf("prepare sequence %d\n", seq);
     switch (D_803A6B03) {
         case 1:
             D_803A6B02 = 0x26;
@@ -141,28 +139,28 @@ void func_802995F0(s32 seq) {
             D_803A6B04 = 1;
             break;
         default:
-            func_8029A7E4("unknown sequence number %d\n", D_803A6B03);
+            debug_printf("unknown sequence number %d\n", D_803A6B03);
             break;
     }
 }
 
 /* Enter the sequence's first level */
 void func_80299C0C(void) {
-    D_802E8BDC = D_803A6B02;
+    levelno = D_803A6B02;
 }
 
 /* Per-level sequence start actions (cutscenes, jingles) */
 void func_80299C20(void) {
-    switch (D_802E8BDC) {
+    switch (levelno) {
         case 47:
             D_802E8BEC = 0;
             D_802E8BF0 = 0;
-            func_8025B9D0(0, &D_802E8BDC);
+            rec_start_playback(0, &levelno);
             break;
         case 55:
             D_802E8BEC = 9;
             D_802E8BF0 = 0;
-            func_8025B9D0(9, &D_802E8BDC);
+            rec_start_playback(9, &levelno);
             D_803643D4 = 5;
             func_8026AF6C(0x8041);
             func_80295E50();
@@ -170,7 +168,7 @@ void func_80299C20(void) {
         case 28:
             D_802E8BEC = 10;
             D_802E8BF0 = 0;
-            func_8025B9D0(10, &D_802E8BDC);
+            rec_start_playback(10, &levelno);
             D_803643D4 = 1;
             func_8026AF6C(0x8042);
             func_80295E50();
@@ -178,7 +176,7 @@ void func_80299C20(void) {
         case 53:
             D_802E8BEC = 11;
             D_802E8BF0 = 0;
-            func_8025B9D0(11, &D_802E8BDC);
+            rec_start_playback(11, &levelno);
             D_803643D4 = 2;
             func_8026AF6C(0x8043);
             func_80295E50();
@@ -186,7 +184,7 @@ void func_80299C20(void) {
         case 7:
             D_802E8BEC = 12;
             D_802E8BF0 = 0;
-            func_8025B9D0(12, &D_802E8BDC);
+            rec_start_playback(12, &levelno);
             D_803643D4 = 3;
             func_8026AF6C(0x8044);
             func_80295E50();
@@ -194,7 +192,7 @@ void func_80299C20(void) {
         case 19:
             D_802E8BEC = 13;
             D_802E8BF0 = 0;
-            func_8025B9D0(13, &D_802E8BDC);
+            rec_start_playback(13, &levelno);
             D_803643D4 = 9;
             func_8026AF6C(0x8045);
             func_80295E50();
@@ -211,11 +209,11 @@ void func_80299C20(void) {
 /* Finish the current sequence level: record completion, pick the next level */
 void func_80299E10(s32 arg0) {
     func_802609D0();
-    switch (D_802E8BDC) {
+    switch (levelno) {
         case 38:
         case 47:
         case 49:
-            players[playerNumber].rank[D_802E8BDC] = 5;
+            players[playerNumber].rank[levelno] = 5;
             break;
         case 55:
             players[playerNumber].f0EE |= 1;
@@ -235,13 +233,13 @@ void func_80299E10(s32 arg0) {
     }
     if (arg0) {
         func_80260650(D_80367738, 0x1E, 0);
-        D_80364A98 = D_803A6AF0;
-        D_802E8BDC = D_803A6B00;
+        gNextGameMode = D_803A6AF0;
+        levelno = D_803A6B00;
     } else {
-        D_80364A98 = D_803A6AF8;
-        D_802E8BDC = D_803A6B01;
+        gNextGameMode = D_803A6AF8;
+        levelno = D_803A6B01;
     }
-    func_8029A7E4("finishing sequence and going to level %d\n", D_802E8BDC);
+    debug_printf("finishing sequence and going to level %d\n", levelno);
 }
 
 /* Return the loop mask for a level, starting its sequence where it has one */
@@ -277,6 +275,6 @@ u64 func_80299FE8(u8 level) {
             mask = func_801ECA50(level);
             break;
     }
-    func_8029A7E4("get loop done for world %d\n", func_8026F92C(mask));
+    debug_printf("get loop done for world %d\n", lowest_set_bit(mask));
     return mask;
 }

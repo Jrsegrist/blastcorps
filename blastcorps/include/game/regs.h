@@ -117,7 +117,7 @@ typedef struct {
     /* 0x8 */ u8 *s4;  /* in/out: last cache pair looked at (only set when a G_SETTIMG was seen) */
 } Unk802A08E4Regs;
 
-/* Register results of func_802A396C its asm callers read (5CB60.c). */
+/* Register results of lvl_load_model its asm callers read (5CB60.c). */
 typedef struct {
     /* 0x0 */ u8 *s2; /* the loaded data (old heap pointer) */
     /* 0x4 */ u8 *s4; /* func_802A08E4's s4 (in: the ROM start) */
@@ -133,7 +133,7 @@ typedef struct {
 } VehMtxOut;
 
 /* A vehicle's position, model and its two 0x800-byte matrix buffers taken
- * from the heap D_80358070 (swapped every frame by D_8035805C); the shared
+ * from the heap gHeapPtr (swapped every frame by gBufferIndex); the shared
  * spawn helpers of 6B4A0.c and 6E200.c.  (N64 memory: a view of the vehicle
  * blocks D_803EE38C / D_803EE768.) */
 typedef struct {

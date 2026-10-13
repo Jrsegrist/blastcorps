@@ -4,22 +4,22 @@
 /* Matching build: IDO compiled the matched code here against older
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
-#define LEGACY_D_80358070
-#define LEGACY_D_803649D0
+#define LEGACY_gHeapPtr
+#define LEGACY_gVehiclesEnd
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_80364460 ((Digger *) D_80364460)
+#define gVehicles ((Digger *) gVehicles)
 #ifdef NON_MATCHING
-#define D_80358070 (*(s32 *) &D_80358070)
-#define D_803649D0 (*(Digger * N64P *) &D_803649D0)
+#define gHeapPtr (*(s32 *) &gHeapPtr)
+#define gVehiclesEnd (*(Digger * N64P *) &gVehiclesEnd)
 #endif
 /* end of views */
 
 #define ABS(x) ((x) >= 0.0f ? (x) : -(x))
 
-/* One entry of the digger/object table at D_80364460 (0x74 bytes each);
- * D_803649D0 points one past the last live entry. */
+/* One entry of the digger/object table at gVehicles (0x74 bytes each);
+ * gVehiclesEnd points one past the last live entry. */
 typedef struct {
     u8 pad0[0x5C];
     s32 type;  /* 0x5C: digger weight class, see func_8027E228 */
@@ -31,7 +31,7 @@ typedef struct {
 } Digger;
 
 #ifndef NON_MATCHING
-extern Digger *D_803649D0;
+extern Digger *gVehiclesEnd;
 #endif
 extern s32 D_802FC51C;
 
@@ -78,7 +78,7 @@ typedef struct {
 extern Water D_802FC3F0[];
 extern s16 D_802FC48C[];
 #ifndef NON_MATCHING
-extern s32 D_80358070; /* bump allocator for display memory */
+extern s32 gHeapPtr; /* bump allocator for display memory */
 #endif
 extern Vtx * N64P D_8036DCA0[2]; /* double-buffered water grid */
 extern s32 D_8036DCA8[2];
@@ -222,17 +222,17 @@ f32 func_8027DB5C(s32 *a, s32 *b, s32 arg2) {
 
     i = 0;
     max = 0.0f;
-    while (&D_80364460[i] != D_803649D0) {
-        if ((type = D_80364460[i].type) != 0xFE && (type != 0 || D_803649E8 == 0)) {
-            if (func_8027E164(D_80364460[i].unk64, D_80364460[i].unk6C, a, b) != 0) {
-                if (D_80364460[i].unk70 != 0) {
-                    t = func_8027DD88(D_80364460[i].unk64, D_80364460[i].unk6C, a, b);
+    while (&gVehicles[i] != gVehiclesEnd) {
+        if ((type = gVehicles[i].type) != 0xFE && (type != 0 || D_803649E8 == 0)) {
+            if (func_8027E164(gVehicles[i].unk64, gVehicles[i].unk6C, a, b) != 0) {
+                if (gVehicles[i].unk70 != 0) {
+                    t = func_8027DD88(gVehicles[i].unk64, gVehicles[i].unk6C, a, b);
                     if (t <= 0.5) {
                         t = t * 2.0;
                     } else {
                         t = (1.0 - t) * 2.0;
                     }
-                    w = func_8027E228(D_80364460[i].type);
+                    w = func_8027E228(gVehicles[i].type);
                     v = t * w;
                     if (max < v) {
                         max = v;
@@ -344,7 +344,7 @@ f32 func_8027E228(type)
     case 0xFF:
         return 0.8f;
     default:
-        func_8029A7E4("DIGGER WEIGHT NOT SET\n");
+        debug_printf("DIGGER WEIGHT NOT SET\n");
     }
 #ifdef NON_MATCHING
     /* The original falls off the end here: f0 is whatever the caller left
@@ -385,10 +385,10 @@ void func_8027E344(s32 id) {
         return;
     }
     D_8036DCD4 = 1;
-    D_8036DCA0[0] = (Vtx *) N64_IPTR(D_80358070);
-    D_80358070 += (D_802FC3F0[D_8036DCD6].nx + 1) * (D_802FC3F0[D_8036DCD6].nz + 1) * sizeof(Vtx);
-    D_8036DCA0[1] = (Vtx *) N64_IPTR(D_80358070);
-    D_80358070 += (D_802FC3F0[D_8036DCD6].nx + 1) * (D_802FC3F0[D_8036DCD6].nz + 1) * sizeof(Vtx);
+    D_8036DCA0[0] = (Vtx *) N64_IPTR(gHeapPtr);
+    gHeapPtr += (D_802FC3F0[D_8036DCD6].nx + 1) * (D_802FC3F0[D_8036DCD6].nz + 1) * sizeof(Vtx);
+    D_8036DCA0[1] = (Vtx *) N64_IPTR(gHeapPtr);
+    gHeapPtr += (D_802FC3F0[D_8036DCD6].nx + 1) * (D_802FC3F0[D_8036DCD6].nz + 1) * sizeof(Vtx);
 #ifdef PORT_HOST
     {
         /* every vertex gets x, z, s, t here and y every frame; the flag and
@@ -400,24 +400,24 @@ void func_8027E344(s32 id) {
         port_vtx_stale(D_8036DCA0[1], nv);
     }
 #endif
-    D_8036DCA8[0] = D_80358070;
-    D_80358070 += 0x12C0;
-    D_8036DCA8[1] = D_80358070;
-    D_80358070 += 0x12C0;
+    D_8036DCA8[0] = gHeapPtr;
+    gHeapPtr += 0x12C0;
+    D_8036DCA8[1] = gHeapPtr;
+    gHeapPtr += 0x12C0;
     size = D_802FC3F0[D_8036DCD6].nx * D_802FC3F0[D_8036DCD6].nz * 2 * 8;
     size += (D_802FC3F0[D_8036DCD6].nx / 8 + 1) * D_802FC3F0[D_8036DCD6].nz * 8;
     size += 0x1C20;
-    D_8036DCC8[0] = D_80358070;
-    D_80358070 += size;
-    D_8036DCC8[1] = D_80358070;
-    D_80358070 += size;
+    D_8036DCC8[0] = gHeapPtr;
+    gHeapPtr += size;
+    D_8036DCC8[1] = gHeapPtr;
+    gHeapPtr += size;
     D_8036DCD7 = D_802FC3F0[D_8036DCD6].unk31;
     if ((D_8036DCD5 = D_802FC3F0[D_8036DCD6].unk24) != 0) {
-        D_8036DCB8[0] = D_80358070;
+        D_8036DCB8[0] = gHeapPtr;
         func_802A0CC8(D_802FC3F0[D_8036DCD6].tex, 0);
     } else {
         for (i = 0; i < 3; i++) {
-            D_8036DCB8[i] = D_80358070;
+            D_8036DCB8[i] = gHeapPtr;
             func_802A0CC8(D_802FC48C[i], 0);
         }
     }
@@ -457,7 +457,7 @@ void func_8027E9B8(u8 buf) {
     s32 stepZ;
     register f32 s;
 
-    if (D_8036DCD4 != 0 && D_802E8BD0 == 0) {
+    if (D_8036DCD4 != 0 && gPaused == 0) {
         D_8036DCB0++;
         D_8036DCD2 += 15;
         if (D_8036DCD2 >= 255) {
@@ -798,7 +798,7 @@ void func_802807D8(u8 id) {
     } while (!found && D_8036E370 < 4);
     if (found) {
         D_8036E374 = D_802FC494[D_8036E370].count;
-        D_8036E378 = D_80358070;
+        D_8036E378 = gHeapPtr;
         func_802A0CC8(D_802FC494[D_8036E370].tex, 0);
         for (i = 0; i < D_8036E374; i++) {
             x = func_8026A828(D_802FC494[D_8036E370].x0, D_802FC494[D_8036E370].x1);
@@ -937,7 +937,7 @@ void func_80281CE4(void) {
     }
     for (i = 0; i < D_8036E4C0; i++) {
         if (D_8036E380[i].active != 0) {
-            dist = func_8026A6F0(D_803643E0 >> 5, D_803643E4 >> 5, D_803643E8 >> 5,
+            dist = func_8026A6F0(gPlayerX >> 5, gPlayerY >> 5, gPlayerZ >> 5,
                                  D_8036E380[i].x, D_8036E380[i].y, D_8036E380[i].z);
             if (dist < 40) {
                 D_8036E4C8 = 400;
@@ -987,9 +987,9 @@ extern Vtx D_802FC568[];
 
 
 void func_802821D0(void) {
-    D_8036E4CC = D_80358070;
+    D_8036E4CC = gHeapPtr;
     func_802A0B00(0xA98, 0);
-    D_80358070 += 0x800;
+    gHeapPtr += 0x800;
     D_8036E4D0 = 0;
     D_8036E4D2 = 0;
 }
@@ -1065,7 +1065,7 @@ void func_8028273C(Gfx **gfx, u8 arg1) {
     s32 i;
 
     gdl = *gfx;
-    if (D_803643D6 != 0) {
+    if (gCarrierHit != 0) {
         if (D_803EF6FF != 0 && D_8036E4D3 == 0) {
             D_8036E4D3 = 1;
             D_8036E5D8[0] = 0.001f;

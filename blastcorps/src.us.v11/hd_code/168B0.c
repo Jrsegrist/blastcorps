@@ -11,7 +11,7 @@ extern u8 D_80365458[];
 extern u16 D_80365558[];
 
 
-#define ASSERT(EX, line) if (!(EX)) func_8029A7E4("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "font.c", line)
+#define ASSERT(EX, line) if (!(EX)) debug_printf("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "font.c", line)
 
 void func_8025B070(void) {
     s32 i;

@@ -53,7 +53,7 @@ s32 func_8025C30C(void) {
     D_803669EC += 1;
 
     if (D_802E8CC0 != 8) {
-        func_8029A7E4("kiunzip: unknown method %d -- get newer version of gzip\n", D_802E8CC0);
+        debug_printf("kiunzip: unknown method %d -- get newer version of gzip\n", D_802E8CC0);
         D_802E8CC4 = 1;
         return -1;
     }

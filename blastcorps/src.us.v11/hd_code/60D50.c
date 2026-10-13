@@ -23,18 +23,18 @@ typedef struct {
 #define HEIGHT_ZONE_NONE 3000 /* sentinel height value */
 
 
-/* `level` is the loaded level header (D_80358074). Its words at 0x40/0x44 are
+/* `level` is the loaded level header (gLevelData). Its words at 0x40/0x44 are
  * the start/end offsets of a HeightZone list. Finds the highest zone that
  * contains the player (inclusive bounds, starting from -1). A result of
- * HEIGHT_ZONE_NONE sets D_80364411; otherwise D_8036444E = height * 32 +
+ * HEIGHT_ZONE_NONE sets D_80364411; otherwise gCamHeight = height * 32 +
  * D_80364450 and D_80364411 is cleared. The asm loops with `!=`, so the end
  * offset must be start + n * 10. */
 void func_802A5510(u8 *level) {
     HeightZone *zone = (HeightZone *) (level + *(s32 *) (level + 0x40));
     HeightZone *end = (HeightZone *) (level + *(s32 *) (level + 0x44));
     /* logical shifts (srl) in the asm, then signed compares */
-    s32 px = (u32) D_803643E0 >> 5;
-    s32 pz = (u32) D_803643E8 >> 5;
+    s32 px = (u32) gPlayerX >> 5;
+    s32 pz = (u32) gPlayerZ >> 5;
     s32 best = -1;
 
     for (; zone != end; zone++) {
@@ -49,7 +49,7 @@ void func_802A5510(u8 *level) {
     if (best == HEIGHT_ZONE_NONE) {
         D_80364411 = 1;
     } else {
-        D_8036444E = (best << 5) + ((u16) D_80364450);
+        gCamHeight = (best << 5) + ((u16) D_80364450);
         D_80364411 = 0;
     }
 }
@@ -88,14 +88,14 @@ void func_802A5604(u8 *level) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s16 D_80305B90[][3]; /* per-level {D_8036444C, D_80364450, return value} */
+extern s16 D_80305B90[][3]; /* per-level {gCamDistance, D_80364450, return value} */
 
 /* Loads the per-level triple for level D_803BE73A: stores the first two
- * entries in D_8036444C / D_80364450 and returns the third (sign-extended). */
+ * entries in gCamDistance / D_80364450 and returns the third (sign-extended). */
 s32 func_802A56C4(void) {
     s16 *entry = D_80305B90[D_803BE73A];
 
-    D_8036444C = entry[0];
+    gCamDistance = entry[0];
     D_80364450 = entry[1];
     return entry[2];
 }

@@ -9,19 +9,19 @@
  * (documented where it is defined).
  */
 
-/* One per frame buffer, 0x21498 bytes (D_803156F8[2]): the in-game layout
+/* One per frame buffer, 0x21498 bytes (gDynamicBufs[2]): the in-game layout
  * that hd.c builds each frame. The area below the display list is scratch
  * space that other subsystems lay out their own way (their views: VtxBuf
  * 13A70.c, DynBuf 20460.c, SpriteVtxBuf 30C70.c, TrailBuf 37530.c,
  * Dyn48D00, Dyn4B5E0, Dyn 4DA80.c), and the front end uses FeDyn. */
 typedef struct DynamicBuf {
     u8 pad0[0x80];
-    Mtx unk80;  /* perspective */
-    Mtx unkC0;  /* 320x240 ortho */
-    Mtx unk100; /* 1280x960 ortho */
-    Mtx unk140;
-    Mtx unk180;
-    Mtx unk1C0; /* identity */
+    Mtx persp;    /* 0x80: guPerspective (gCamFovy, 4:3) */
+    Mtx ortho;    /* 0xC0: 320x240 ortho */
+    Mtx orthoHi;  /* 0x100: 1280x960 ortho */
+    Mtx view;     /* 0x140: the camera (guLookAtReflect; the projection is persp * view) */
+    Mtx cullView; /* 0x180: the visibility test's view (guLookAt, the eye pulled in) */
+    Mtx identity; /* 0x1C0: the modelview */
     Mtx unk200;
     Mtx unk240;
     Mtx unk280;
@@ -32,7 +32,7 @@ typedef struct DynamicBuf {
     Vtx unk15C0[0x30]; /* vehicle shadow quads */
     Vtx unk18C0[4]; /* shadow quad */
     u8 pad1900[0x3C00 - 0x1900];
-    LookAt unk3C00;
+    LookAt lookAt; /* 0x3C00: the camera's (reflection mapping) */
     u8 pad3C20[0x48B0 - 0x3C20];
     Gfx dl[0xB5E]; /* TOPLEVEL_DL_SIZE */
     u8 unkA3A0[0x21498 - 0xA3A0];
@@ -86,7 +86,7 @@ typedef struct SndConfig {
     u16 slotCount;
 } SndConfig;
 
-/* A vehicle's shadow record, 0x1040 bytes (D_803643C8 / D_803643CC; hd.c;
+/* A vehicle's shadow record, 0x1040 bytes (gVehicleShadows / gVehicleShadowsEnd; hd.c;
  * 13A70.c reads it as its Struct13A70). */
 typedef struct Vehicle {
     u8 unk0[0x1000]; /* shadow texture, 64x64 IA8 */
@@ -96,17 +96,17 @@ typedef struct Vehicle {
     s32 unk100C;
     s32 unk1010;
     u8 pad1014[4];
-    s16 unk1018; /* shadow half-width */
-    s16 unk101A; /* shadow half-depth */
+    s16 halfWidth; /* shadow half-width */
+    s16 halfDepth; /* shadow half-depth */
     s16 unk101C; /* rotation x */
     s16 unk101E; /* rotation y */
     s16 unk1020; /* rotation z */
-    u8 unk1022; /* id */
-    u8 unk1023; /* draw layer */
+    u8 type; /* the vehicle type */
+    u8 layer; /* draw layer (veh_draw_shadows) */
     u8 pad1024[0x1C];
 } Vehicle; /* 0x1040 bytes */
 
-/* A level result (D_8036EA60 best, D_8036EA70 this run, D_8036EA80/90). */
+/* A level result (D_8036EA60 best, nss this run, D_8036EA80/90). */
 typedef struct Score {
     s32 ip;
     u32 tc; /* time */
@@ -189,7 +189,7 @@ typedef struct ParticleDef {
 
 /* One record of a level's part list (func_802A1EC8 picks the list by level:
  * s32 count, then count of these). `entry` is filled in at level load
- * (func_802A21AC); func_802BD064 checks the listed parts. */
+ * (func_802A21AC); obj_parts_destroyed checks the listed parts. */
 typedef struct LevelPart {
     /* 0x00 */ void * N64P entry; /* the level object's 0xFC-byte record */
     /* 0x04 */ s32 n;       /* number of part indices used */

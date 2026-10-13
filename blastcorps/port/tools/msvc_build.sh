@@ -33,6 +33,33 @@ vs=$("$vswhere" -latest -products '*' -requires Microsoft.VisualStudio.Component
 [ -n "$vs" ] || { echo "msvc_build: no Visual Studio with the x64 C++ tools" >&2; exit 1; }
 wdir=$(wslpath -w "$dir")
 b=$cfg
+
+# RT64 (bc.exe): prepared here with WSL's git, by the same fetch_rt64.cmake
+# that CMake runs at configure time (commit and patches from rt64_pin.cmake),
+# so CMake then finds the tree's stamp up to date and needs no git for
+# Windows.  The folder: the build's cached BC_RT64_SOURCE, else
+# MSVC_THIRDPARTY\rt64, else CMake's default (port/build/thirdparty/rt64).
+rt64_dest() {
+  local cache="$dir/$b/CMakeCache.txt" w=""
+  if [ -f "$cache" ]; then
+    grep -q '^BC_GAME:BOOL=OFF' "$cache" && return 0
+    w=$(sed -n 's/^BC_RT64_SOURCE:PATH=//p' "$cache" | tr -d '\r')
+  fi
+  [ -z "$w" ] && [ -n "$MSVC_THIRDPARTY" ] && w="$MSVC_THIRDPARTY\\rt64"
+  if [ -n "$w" ]; then wslpath -u "${w//\//\\}"; else echo "$dir/src/blastcorps/port/build/thirdparty/rt64"; fi
+}
+if [ "$cfg" != Asan ]; then
+  rt64=$(rt64_dest)
+  if [ -n "$rt64" ]; then
+    if command -v cmake > /dev/null && command -v git > /dev/null; then
+      mkdir -p "$(dirname "$rt64")"
+      cmake -DDEST="$rt64" -P "$dir/src/blastcorps/port/cmake/fetch_rt64.cmake" ||
+        { echo "msvc_build: RT64 could not be prepared in $rt64" >&2; exit 1; }
+    else
+      echo "msvc_build: no cmake or git in WSL; CMake will prepare RT64 (needs git for Windows)" >&2
+    fi
+  fi
+fi
 # (BC_INPUTS given each time: build folders configured before port/inputs was
 # committed have the old default, port/build/inputs, in their cache)
 defs="-DCMAKE_BUILD_TYPE=$cfg -DBC_INPUTS=$wdir\\src\\blastcorps\\port\\inputs"

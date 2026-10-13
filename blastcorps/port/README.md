@@ -69,7 +69,7 @@ which is part of the repository (made in WSL by `make -C port inputs`; see
    "x64 Release + AddressSanitizer" (below).
 2. The first configure downloads into `port/build/thirdparty` (shared by all
    presets): RT64 at the pinned commit with its submodules (git, ~500 MB) plus
-   the port's patches 0003 and 0004 (`cmake/fetch_rt64.cmake`), the official
+   the port's patches (`cmake/rt64_pin.cmake`, `cmake/fetch_rt64.cmake`), the official
    DXC v1.9.2609 and SDL2 2.26.3 releases (SHA-256 checked).
 3. Build > Build All: `out/build/<preset>/bc.exe` (with SDL2.dll,
    dxcompiler.dll, dxil.dll next to it) and `bc_headless.exe`.  The target
@@ -353,9 +353,11 @@ Start, shoulders, right stick = C buttons, D-pad). `--input FILE` replays a
 recording instead.
 
 **RT64** (github.com/rt64/rt64, MIT) at the pinned commit 43373749, with
-`rt64/patches/0003` (`RT64_NATIVE_HOST_LAYOUT`) and `0004` (the L3D
-handler), is fetched by `cmake/fetch_rt64.cmake` and built with MSVC as a
-static subproject.  To change RT64, edit the fetched tree
+`rt64/patches/0003` (`RT64_NATIVE_HOST_LAYOUT`), `0004` (the L3D
+handler) and `0006` (the view hook), is fetched by `cmake/fetch_rt64.cmake`
+and built with MSVC as a static subproject.  The commit and the patches, in
+the order they apply, are listed once, in `cmake/rt64_pin.cmake`: a new
+patch is a file in `rt64/patches` plus a line there.  To change RT64, edit the fetched tree
 (`port/build/thirdparty/rt64`, each patch a local commit there), rebuild,
 and regenerate the patch with `git diff`.
 
@@ -976,7 +978,12 @@ side, default `%LOCALAPPDATA%\blastcorps-msvc`, because MSVC compiling over
 in its x64 environment; `MSVC_CONFIG` Release (default), Debug or Asan;
 `MSVC_PYTHON`, `MSVC_THIRDPARTY` if needed) -> `MSVC_DIR/<config>/`.  Every
 target below builds what it needs this way.  (The old `-msvc` names,
-`verify-msvc` etc., still work.)
+`verify-msvc` etc., still work.)  It needs no git for Windows: before CMake
+runs, `msvc_build.sh` prepares RT64 in the Windows-side thirdparty folder
+with WSL's git, by running the same `cmake/fetch_rt64.cmake` with WSL's
+cmake (commit and patch list from `cmake/rt64_pin.cmake`); CMake then finds
+the tree's stamp up to date.  Either git gives the same tree byte for byte
+(the fetch pins `core.autocrlf=false` and `core.symlinks=false`).
 
 Other generated files live in `port/build/gen/`: `addrs.txt`,
 `typemap.txt`, `typemap_all.txt` (every symbol, for strict mode),
@@ -1247,9 +1254,9 @@ uses nothing derived from one, and no secrets.
   dialog).  `dist/check_dist.py` checks that each zip holds exactly the files
   `make_dist.py` puts in it and nothing that starts like a ROM image; the two
   zips are the run's artifacts.  RT64 (with its submodules), DXC and SDL2 are
-  cached (`BC_THIRDPARTY` in `RUNNER_TEMP`), keyed by the RT64 commit, the
-  download URLs and SHA-256s in CMakeLists.txt, `fetch_rt64.cmake` and the
-  patches; a miss fetches them again (a few minutes).
+  cached (`BC_THIRDPARTY` in `RUNNER_TEMP`), keyed by the download URLs and
+  SHA-256s in CMakeLists.txt, `rt64_pin.cmake` (the RT64 commit and patch
+  list), `fetch_rt64.cmake` and the patches; a miss fetches them again (a few minutes).
 - **Linux** (`ubuntu-24.04`, the WSL distribution's release: the same gcc 13
   and clang 18): `compileall` over the Python tools, the synthetic
   `tools_port/tests/test_eqcheck.py`, and **`make -C port norom-check`**:

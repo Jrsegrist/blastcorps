@@ -383,13 +383,15 @@ set_target_properties(bc_loadcheck PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
 # ---- bc.exe: the game in a window (SDL2, RT64) ---------------------------------------
 if(BC_GAME)
-    # RT64 at the pinned commit with the port's patches: 0003 (RDRAM in the port's
-    # own layout), 0004 (the L3D line microcode) and 0006 (a host view hook per
-    # rendered picture: the orbit camera, src/live/live_orbit.cpp).  (0001/0002
-    # served the retired mingw cross build.)
-    set(BC_RT64_COMMIT 43373749dac9bbc1b653e6a02aed40a9e1783bed)
-    set(BC_RT64_PATCHES ${BC_PORT}/rt64/patches/0003-native-host-layout.patch
-        ${BC_PORT}/rt64/patches/0004-l3d-and-fixes.patch ${BC_PORT}/rt64/patches/0006-view-hook.patch)
+    # RT64 at the pinned commit with the port's patches (both listed in
+    # cmake/rt64_pin.cmake).  A tree already prepared with the same commit and
+    # patches (its .bc_stamp; tools/msvc_build.sh prepares it from WSL) is used
+    # as it is, without git.
+    include(${BC_PORT}/cmake/rt64_pin.cmake)
+    set(BC_RT64_PATCHES)
+    foreach(n ${BC_RT64_PATCH_NAMES})
+        list(APPEND BC_RT64_PATCHES ${BC_PORT}/rt64/patches/${n})
+    endforeach()
     set(BC_RT64_SOURCE "${BC_THIRDPARTY}/rt64" CACHE PATH "RT64 sources (fetched with git when missing)")
     execute_process(COMMAND ${CMAKE_COMMAND} -DDEST=${BC_RT64_SOURCE} -DCOMMIT=${BC_RT64_COMMIT}
         "-DPATCHES=${BC_RT64_PATCHES}" -P ${BC_PORT}/cmake/fetch_rt64.cmake RESULT_VARIABLE r)

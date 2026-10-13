@@ -23,10 +23,10 @@ void func_801EE398(s32 arg0) {
     nextdma = 0;
     no_palette_dmas = 0;
     gdl = buf->dl;
-    func_802A5720();
+    tex_reset_decode_queue();
     func_8025B2B8();
     if (currentYoshiWindow != arg0) {
-        func_8026AF6C(arg0 | 0x8000 | 0x2000);
+        yoshi_demand(arg0 | 0x8000 | 0x2000);
         func_80260A10();
         D_802159C0 = 0;
     }
@@ -47,7 +47,7 @@ void func_801EE398(s32 arg0) {
     gDPSetFillColor(gdl++, 0x00010001);
     gDPFillRectangle(gdl++, 0, 0, 319, 239);
     gDPSetCycleType(gdl++, G_CYC_1CYCLE);
-    gdl = func_8026BBD0(gdl, (s32) &gDynamicBufs[gBufferIndex], &gFrameDlLen);
+    gdl = yoshi_draw(gdl, (s32) &gDynamicBufs[gBufferIndex], &gFrameDlLen);
     gDPFullSync(gdl++);
     gSPEndDisplayList(gdl++);
     gFrameDlLen = gdl - buf->dl;
@@ -55,7 +55,7 @@ void func_801EE398(s32 arg0) {
         osRecvMesg(&textureDmaMessageQ, NULL, OS_MESG_BLOCK);
     }
     for (i = 0; i < nextdma - no_palette_dmas; i++) {
-        func_802A57AC();
+        tex_decode_next();
     }
     rsp_wait_task(0x4D2);
     D_802159C0++;

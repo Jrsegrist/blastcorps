@@ -183,7 +183,7 @@ void func_8027D8F4(s32 arg0, s32 arg1, s32 arg2) {
     angle = D_802FC51C / 20.0;
     for (i = D_802FC51C; i < arg1 + D_802FC51C; i++) {
         s = sinf(angle);
-        func_802C1F30(arg0, j++, 0, -s * arg2, 0);
+        lvl_group_move_part(arg0, j++, 0, -s * arg2, 0);
         angle += step;
     }
     D_802FC51C++;
@@ -199,7 +199,7 @@ void func_8027DA10(s32 arg0, s32 arg1, s32 arg2) {
     s32 x[4];
     s32 z[4];
 
-    p = func_802C1EE0(arg0);
+    p = lvl_group_get(arg0);
     for (i = 0; i < 4; i++) {
         x[i] = p[i * 2] << 5;
         z[i] = p[i * 2 + 1] << 5;
@@ -208,7 +208,7 @@ void func_8027DA10(s32 arg0, s32 arg1, s32 arg2) {
     step = 3.14159 / (arg1 + 1);
     for (i = 0; i < arg1; i++) {
         s = sinf((i + 1) * step);
-        func_802C1F30(arg0, i + 1, 0, -s * r, 0);
+        lvl_group_move_part(arg0, i + 1, 0, -s * r, 0);
     }
 }
 
@@ -414,11 +414,11 @@ void func_8027E344(s32 id) {
     D_8036DCD7 = D_802FC3F0[D_8036DCD6].unk31;
     if ((D_8036DCD5 = D_802FC3F0[D_8036DCD6].unk24) != 0) {
         D_8036DCB8[0] = gHeapPtr;
-        func_802A0CC8(D_802FC3F0[D_8036DCD6].tex, 0);
+        tex_get(D_802FC3F0[D_8036DCD6].tex, 0);
     } else {
         for (i = 0; i < 3; i++) {
             D_8036DCB8[i] = gHeapPtr;
-            func_802A0CC8(D_802FC48C[i], 0);
+            tex_get(D_802FC48C[i], 0);
         }
     }
     D_8036DCD0 = 0;
@@ -799,7 +799,7 @@ void func_802807D8(u8 id) {
     if (found) {
         D_8036E374 = D_802FC494[D_8036E370].count;
         D_8036E378 = gHeapPtr;
-        func_802A0CC8(D_802FC494[D_8036E370].tex, 0);
+        tex_get(D_802FC494[D_8036E370].tex, 0);
         for (i = 0; i < D_8036E374; i++) {
             x = func_8026A828(D_802FC494[D_8036E370].x0, D_802FC494[D_8036E370].x1);
             y = func_8026A828(D_802FC494[D_8036E370].y0, D_802FC494[D_8036E370].y1);
@@ -921,7 +921,7 @@ void func_80281A70(s32 arg0) {
         }
     }
     if (D_8036E4C0 != 0) {
-        D_8036E4C4 = func_802A0CC8(0x546, 0);
+        D_8036E4C4 = tex_get(0x546, 0);
     }
     D_8036E4C8 = 0;
     D_8036E4CA = 0;
@@ -988,7 +988,7 @@ extern Vtx D_802FC568[];
 
 void func_802821D0(void) {
     D_8036E4CC = gHeapPtr;
-    func_802A0B00(0xA98, 0);
+    tex_load_to_heap(0xA98, 0);
     gHeapPtr += 0x800;
     D_8036E4D0 = 0;
     D_8036E4D2 = 0;
@@ -1102,7 +1102,7 @@ void func_8028273C(Gfx **gfx, u8 arg1) {
         gDPSetColorDither(gdl++, G_CD_MAGICSQ);
         gDPPipeSync(gdl++);
         if (D_8036E4D3 != 0) {
-            func_802AC1A0(D_8036E5D8[0] * 283.0f);
+            obj_blast_around_carrier(D_8036E5D8[0] * 283.0f);
         }
     }
     *gfx = gdl;

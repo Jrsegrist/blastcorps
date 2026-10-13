@@ -129,7 +129,7 @@ void func_802CC920(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut
 #ifdef NON_MATCHING
 extern u8 D_803F9250[]; /* this vehicle's state block */
 
-/* Enter vehicle type 14: clears the byte at +0x99, gCamDistance / D_80364450 = 3000,
+/* Enter vehicle type 14: clears the byte at +0x99, gCamDistance / gCamHeightBase = 3000,
  * 1000, then func_802C4310(arg0, 0x7B) (arg0 passes straight through; hd.c
  * calls this with no arguments and func_802C4310 ignores it). The asm also
  * points $gp at D_803F9250 and leaves it there (conventions.txt: clobbers
@@ -137,7 +137,7 @@ extern u8 D_803F9250[]; /* this vehicle's state block */
 void func_802CCC8C(s32 arg0) {
     D_803F9250[0x99] = 0;
     gCamDistance = 3000;
-    D_80364450 = 1000;
+    gCamHeightBase = 1000;
     func_802C4310(arg0, 0x7B);
 }
 #else
@@ -394,7 +394,7 @@ void func_802CD068(void) {
     if (D_803A7425 == 0) {
         D_803A7424 = 0;
         D_803F77D0 = D_803F8F50;
-        func_802BE77C(0xE, D_803F9250);
+        obj_collide_vehicle(0xE, D_803F9250);
         if (D_803A7424 == 0) {
             D_803F9313 = 0;
             goto publish;
@@ -441,7 +441,7 @@ void func_802CD068(void) {
     func_802A746C(D_803F9250, turn, d, &target);
     func_802A6FE4(D_803F9250, 0);
     D_803F77D0 = D_803F8F50;
-    func_802BE77C(0xE, D_803F9250);
+    obj_collide_vehicle(0xE, D_803F9250);
 publish:
     gPlayerX = D_803F92F8[0];
     gPlayerY = D_803F92F8[1];
@@ -462,13 +462,13 @@ void func_802CD660(void);
 
 /* Tyre trail (func_802CD660), then the countdown D_803F9312: when nonzero
  * it just counts down; at zero, if the byte at +0x99 is set, it restarts at
- * 1 and, when fewer than 15 D_803C4B70 records are active (func_802A5ED0),
- * two func_802A6274 records are set up (def D_802C2954, data 0x29810, tag 1,
+ * 1 and, when fewer than 15 gEffects records are active (fx_count_active),
+ * two fx_spawn records are set up (def D_802C2954, data 0x29810, tag 1,
  * type 1 at (0xE, 1, 1) and (0xE, 2, 1)). Then always func_802C4584(|speed|
  * >> 5) (speed = s16 at +0x76).
  * Register convention: the asm passes t6, t7, s0-s4 through to
- * func_802A6274 (t6 and s1 in its in/out block); $gp (= D_803F9250) is read
- * as the global. It leaves func_802A6274's s1 and changes s5-s7
+ * fx_spawn (t6 and s1 in its in/out block); $gp (= D_803F9250) is read
+ * as the global. It leaves fx_spawn's s1 and changes s5-s7
  * (conventions.txt: clobbers). */
 void func_802CD578(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
     Io802A6274 io;
@@ -479,13 +479,13 @@ void func_802CD578(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
         D_803F9312--;
     } else if (D_803F9250[0x99] != 0) {
         D_803F9312 = 1;
-        if (func_802A5ED0() < 15) {
+        if (fx_count_active() < 15) {
             io.a3 = 1;
             io.t6 = t6;
             io.s1 = s1;
-            func_802A6274(&io, D_802C2954, 0x29810, 1, 0xE, 1, 1, t7, s0, s2, s3, s4, 1);
+            fx_spawn(&io, D_802C2954, 0x29810, 1, 0xE, 1, 1, t7, s0, s2, s3, s4, 1);
             io.a3 = 1;
-            func_802A6274(&io, D_802C2954, 0x29810, 1, 0xE, 2, 1, t7, s0, s2, s3, s4, 1);
+            fx_spawn(&io, D_802C2954, 0x29810, 1, 0xE, 2, 1, t7, s0, s2, s3, s4, 1);
         }
     }
     v = *(s16 *) (D_803F9250 + 0x76);

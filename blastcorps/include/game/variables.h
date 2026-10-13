@@ -21,15 +21,15 @@ extern u8 D_802C21B8[];
 extern u8 D_802C2208[]; /* keys of this vehicle's func_802A06B4 entries */
 extern u8 D_802C226C[];
 extern u8 D_802C28E4[]; /* effect definitions in the 7D9D0 text blob */
-extern u8 D_802C2954[]; /* definition handed to func_802A6274 (7D9D0 text blob) */
-extern u8 D_802C2984[]; /* definition handed to func_802A6274 (7D9D0 text blob) */
-extern u8 D_802C3804[]; /* definition handed to func_802A6274 */
-extern u8 D_802C2A5C[]; /* effect definitions also listed in D_80305C10 */
+extern u8 D_802C2954[]; /* definition handed to fx_spawn (7D9D0 text blob) */
+extern u8 D_802C2984[]; /* definition handed to fx_spawn (7D9D0 text blob) */
+extern u8 D_802C3804[]; /* definition handed to fx_spawn */
+extern u8 D_802C2A5C[]; /* effect definitions also listed in gFxCachedDefs */
 extern u8 D_802C37C0[];
 extern u8 D_802C382C[];
 extern u8 D_802C3848[];
 extern u8 D_802C386C[];
-extern u8 * N64P D_802C3FFC[]; /* definition pointers, in the 7D9D0 text blob */
+extern u8 * N64P gFxDefsByKind[]; /* definition pointers, in the 7D9D0 text blob */
 extern u8 D_802E6820[]; /* RSP boot ucode, ends at D_802E68F0 */
 extern u8 D_802E68F0[];
 
@@ -86,9 +86,9 @@ extern u8 D_802F47B0[][8]; /* 0x100 bytes */
 extern u8 D_802F4868[];
 extern u8 D_802F4870[];
 extern u8 D_802F49F4[]; /* "BUILDINGS" */
-extern u8 D_802F5804[]; /* turbo-start banner y offset */
-#ifndef LEGACY_D_802F8BDC
-extern u8 D_802F8BDC[]; /* a read is in flight */
+extern u8 gYoshiGameItems[]; /* turbo-start banner y offset */
+#ifndef LEGACY_gYoshiWindows
+extern u8 gYoshiWindows[]; /* a read is in flight */
 #endif
 extern s32 D_802FA254; /* -d */
 extern s32 D_802FA264; /* debug mode */
@@ -172,7 +172,7 @@ extern s16 D_8036443E; /* camera yaw, 4095 = 360 degrees */
 extern s16 D_80364440;
 extern s16 gCamDistance;
 extern s16 gCamHeight;
-extern s16 D_80364450;
+extern s16 gCamHeightBase;
 extern s16 gCamYaw; /* camera / player angle (0..0xFFF) */
 extern u8 gCurVehicle; /* the type of the vehicle the player drives (0: on foot) */
 #ifndef LEGACY_gLevelSegment8
@@ -248,9 +248,9 @@ extern u16 D_80367BF6;
 extern u8 D_80367BFF;
 extern u8 D_80367C00;
 extern u8 D_80367C10;
-extern s32 D_80368030;
-extern s32 D_80368040;
-extern s32 D_80368048;
+extern s32 gChopperLandY;
+extern s32 gPeopleRestored;
+extern s32 gChopperRetargetZ;
 extern u64 gYieldBuffer[]; /* the RSP tasks' yield data (0x900 bytes) */
 extern u8 D_8036B8B0;
 extern s32 D_8036B8B4;
@@ -264,25 +264,25 @@ extern u8 D_8036B971;
 extern struct Unk802C1DD0Entry * N64P D_8036B974; /* size 0x14 */
 #endif
 extern char D_8036B9A8[]; /* status screen lines, 0x20 each */
-extern u16 D_8036BB16;
-extern s16 D_8036BB1A;
-extern s16 D_8036BB1E;
-extern s16 D_8036BB20;
-#ifndef LEGACY_D_8036BB24
-extern u8 * N64P D_8036BB24; /* 16x16 RGBA32 textures */
+extern u16 yoshiSelection;
+extern s16 gYoshiPendingWindow;
+extern s16 gYoshiTypeState;
+extern s16 gYoshiAlpha;
+#ifndef LEGACY_gYoshiHeapItems
+extern u8 * N64P gYoshiHeapItems; /* 16x16 RGBA32 textures */
 #endif
-extern f32 D_8036BB34;
-extern u16 D_8036BBB0[];
-#ifndef LEGACY_D_8036BED8
-extern u8 * N64P D_8036BED8;
+extern f32 gYoshiScale;
+extern u16 gRduLitOrder[];
+#ifndef LEGACY_gRdus
+extern u8 * N64P gRdus;
 #endif
 extern s32 gPreNmi;
 extern OSTime gLastRetraceTime;
-extern s16 * N64P D_8036C790;
+extern s16 * N64P gNearestTargetPts;
 #ifndef LEGACY_D_8036C794
 extern s16 * N64P D_8036C794;
 #endif
-extern s32 D_8036C7C8; /* time left; under 500 the target turns red */
+extern s32 gCarrierEta; /* time left; under 500 the target turns red */
 extern u8 D_8036C7CC;
 extern s16 D_8036CB2A;
 extern s16 D_8036CB2C;
@@ -308,7 +308,7 @@ extern u8 D_8036EA79;
 extern u16 D_8036EA7C;
 extern Score D_8036EA80; /* level58 */
 extern Score D_8036EA90; /* level59 */
-extern u16 D_8036EB90;
+extern u16 gRduCount;
 extern u8 D_8036EB92;
 extern u8 D_8036EB93;
 extern u8 D_8036EB98;
@@ -389,7 +389,7 @@ extern u8 D_803A742A;
 extern u8 D_803A742B;
 extern u8 D_803A742F;
 extern u8 D_803A7430;
-extern u8 D_803B9888; /* the table below is loaded */
+extern u8 gTexTableLoaded; /* the table below is loaded */
 extern u8 D_803B9890[]; /* size 0x60 */
 extern u8 D_803BC1D0[]; /* 0xDC-byte groups */
 extern u8 * N64P D_803BD300; /* end of the D_803B9890 records */
@@ -438,10 +438,10 @@ extern u8 D_803BE738;
 extern u8 D_803BE739;
 extern u8 D_803BE73A; /* current level index */
 extern u16 gVisibleCells[]; /* visible object ids, ended by -1 */
-extern Gfx D_803C5770[]; /* display lists A / B, frame 0 */
-extern Gfx D_803C6370[]; /* display lists A / B, frame 1 */
-extern Gfx D_803C6F70[];
-extern Gfx D_803C7B70[];
+extern Gfx gFxDlA0[]; /* display lists A / B, frame 0 */
+extern Gfx gFxDlA1[]; /* display lists A / B, frame 1 */
+extern Gfx gFxDlB0[];
+extern Gfx gFxDlB1[];
 extern u8 * N64P D_803EBBEC; /* end of the used D_803EBDB0 records */
 extern f32 D_803EBBF0;
 extern f32 D_803EBBF4;
@@ -500,46 +500,46 @@ extern s32 D_803EFEB8;
 extern s32 D_803EFEBC;
 extern u8 D_803EFEC8; /* x follows z along the line (D_803EFEB0..) */
 extern u8 D_803EFECB;
-extern u8 D_803EFED0[]; /* size 0xA30 */
-extern u8 D_803F0900[]; /* 4 entries of 0x4B8 bytes */
-extern u8 D_803F1BE0[]; /* 2 entries of 0x478 bytes */
-extern u8 D_803F3910[];
-extern u8 * N64P D_803F3960; /* end of the (object, part) hit list */
-extern u8 D_803F3FF8[];
+extern u8 gSinkingPart[]; /* size 0xA30 */
+extern u8 gFadingParts[]; /* 4 entries of 0x4B8 bytes */
+extern u8 gTopplingParts[]; /* 2 entries of 0x478 bytes */
+extern u8 gObjHits[];
+extern u8 * N64P gObjHitsEnd; /* end of the (object, part) hit list */
+extern u8 gEffectScratch[];
 extern u8 gObjects[]; /* the level's objects (buildings ...), 0xFC-byte records (77E20.c) */
 #ifndef LEGACY_gObjectsEnd
 extern u8 * N64P gObjectsEnd; /* one past the last object record */
 #endif
-extern s32 D_803F7660;
+extern s32 gCarrierTargetDist;
 extern s32 D_803F7664; /* position objects with a pose are moved to */
 extern s32 D_803F7668;
 extern s32 D_803F766C;
-extern s32 D_803F7670; /* player x */
-extern s32 D_803F7674;
-extern s32 D_803F7678; /* player z */
-extern s16 D_803F767C;
-extern s16 D_803F767E;
-extern s16 D_803F7680;
-extern s32 D_803F7684;
-extern s32 D_803F7688;
+extern s32 gCarrierTargetX; /* player x */
+extern s32 gCarrierTargetY;
+extern s32 gCarrierTargetZ; /* player z */
+extern s16 gEndObjectX;
+extern s16 gEndObjectY;
+extern s16 gEndObjectZ;
+extern s32 gPathBuilding;
+extern s32 gCheatAllDestroyed;
 extern u8 * N64P D_803F77D0; /* drive-in direction: 0 +z, 1 -z, 2 +x, else -x */
-extern s32 D_803F77F8;
-extern s16 D_803F77FC; /* signed input whose sign is tracked */
+extern s32 gObjHitFrame;
+extern s16 gHitSpeed; /* signed input whose sign is tracked */
 extern u8 D_803F7801;
-extern u8 D_803F7804;
-extern u8 D_803F7805; /* request flag, consumed here */
-extern u8 D_803F7806;
-extern u8 D_803F7808;
-extern u8 D_803F7809; /* kind of the target (as D_803F7808: 2 and 3 have pos at +0) */
-extern u8 D_803F780A; /* last sign of D_803F77FC (-1, 0, 1) */
+extern u8 gVehAttacking;
+extern u8 gEndObjectTouched; /* request flag, consumed here */
+extern u8 gPathBuildingsDestroyed;
+extern u8 gNearestTargetKind;
+extern u8 gMarkedTargetKind; /* kind of the target (as gNearestTargetKind: 2 and 3 have pos at +0) */
+extern u8 D_803F780A; /* last sign of gHitSpeed (-1, 0, 1) */
 extern u8 D_803F780B; /* run length, 0..0x14 */
 extern u8 D_803F780C; /* result: set for one call when a run of 0x14 completes with a change */
-extern u8 D_803F7810;
+extern u8 gPartSinking;
 extern u8 D_803F7812;
 extern u8 * N64P D_803F7820; /* level41 */
 extern u8 * N64P D_803F7824; /* level42 */
-extern u8 * N64P D_803F7828; /* triangle list: 0x28-byte records, 9 s32 coords + u8 at +0x24 */
-extern u8 * N64P D_803F782C; /* its end */
+extern u8 * N64P gGroupTris; /* triangle list: 0x28-byte records, 9 s32 coords + u8 at +0x24 */
+extern u8 * N64P gGroupTrisEnd; /* its end */
 extern s16 D_803F7840; /* last |level| set by func_802C4584 (-1 = none yet) */
 extern void * N64P D_803F7844; /* second looping sound handle */
 extern s32 D_803F7C10;

@@ -81,7 +81,7 @@ typedef struct {
  * a radius. */
 typedef struct {
     /* 0x000 */ Gfx dl[0x50];
-    /* 0x280 */ s16 unk280; /* texture id for func_802A0CC8 */
+    /* 0x280 */ s16 unk280; /* texture id for tex_get */
     /* 0x282 */ u8 width;
     /* 0x283 */ u8 height;
     /* 0x284 */ s16 radius;
@@ -122,12 +122,12 @@ void func_80291724(s32);
 /* Load this file's objects from level data: reset the counters, then
  * read D_8039C710 0x38-byte entries (s16 x, y, z, model; positions are
  * stored scaled by 32, height snapped by func_802CE6F8, texture looked
- * up by func_802A0CC8), then D_8039C7F8 0x1C-byte records (s16 x, y, z,
+ * up by tex_get), then D_8039C7F8 0x1C-byte records (s16 x, y, z,
  * u8 model, u8 n, s16 flag, then n 22-byte items for func_802CE9C8).
  * Flagged records also get a D_8039C800 box (+-40 units).
  * NON_MATCHING: the hand-written func_802CE9C8 reads registers this function
  * never sets for it; the NM build passes what they hold here: v0 = the last
- * call's result (func_802CE9A4 leaves &D_803F9330, func_802A0CC8 its result;
+ * call's result (func_802CE9A4 leaves &D_803F9330, tex_get its result;
  * func_802CE9C8 leaves v0 alone), t6 = &D_8039C718[i], t9 = the old
  * D_803FB8B0, and s1 = the caller's s1 (this function never touches the
  * s-registers), which the NM build takes as an extra parameter from
@@ -170,7 +170,7 @@ void func_8028FDA0(u8 *arg0, u8 *arg1) {
             D_8039C550[i].unk14 = 0;
             D_8039C550[i].unk18 = 0;
             D_8039C550[i].unk29 = 0;
-            D_8039C550[i].unk30 = func_802A0CC8(D_802FDC08[D_8039C550[i].unk10].unk280, 0);
+            D_8039C550[i].unk30 = tex_get(D_802FDC08[D_8039C550[i].unk10].unk280, 0);
 #ifdef NON_MATCHING
             v0 = (s32) D_8039C550[i].unk30;
 #endif

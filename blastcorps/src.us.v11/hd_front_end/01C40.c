@@ -7,7 +7,7 @@
 #define LEGACY_D_8020C070
 #define LEGACY_gLevelInfo
 #define LEGACY_D_802F47B0
-#define LEGACY_D_802F8BDC
+#define LEGACY_gYoshiWindows
 #define LEGACY_gDynamicBufs
 #define LEGACY_players
 #endif /* legacy declarations */
@@ -17,7 +17,7 @@
 #define D_8020C070 ((MenuEntry *) D_8020C070)
 #define gLevelInfo ((LevelInfo *) gLevelInfo)
 #define D_802F47B0 ((u8 *) D_802F47B0)
-#define D_802F8BDC ((MenuPage *) D_802F8BDC)
+#define gYoshiWindows ((MenuPage *) gYoshiWindows)
 #define gDynamicBufs ((PlayerSelDyn *) gDynamicBufs)
 #define players ((Player *) players)
 #endif
@@ -68,7 +68,7 @@ typedef struct {
     /* 0x1A */ u8 pad1A[2];
 } MenuEntry;
 
-/* Menu pages (D_802F8BDC, 0x1C bytes), as in hd_code 00000.c */
+/* Menu pages (gYoshiWindows, 0x1C bytes), as in hd_code 00000.c */
 typedef struct {
     u8 pad0[4];
     s16 unk4;
@@ -105,7 +105,7 @@ extern LevelInfo gLevelInfo[];
 #ifndef NON_MATCHING
 extern MenuEntry D_8020C070[];
 #ifndef NON_MATCHING
-extern MenuPage D_802F8BDC[];
+extern MenuPage gYoshiWindows[];
 #ifndef NON_MATCHING
 extern PlayerSelDyn gDynamicBufs[];
 #endif
@@ -629,7 +629,7 @@ void func_801EA4B8(void) {
         D_8020C070[6].unk10 = D_80304710;
     }
     D_8020C070[6].unk19 = 2;
-    D_802F8BDC[10].unk8 &= ~0x400;
+    gYoshiWindows[10].unk8 &= ~0x400;
 }
 
 /* Build the "erase game" slot menu */
@@ -659,8 +659,8 @@ void func_801EA6E8(void) {
     D_8020C070[6].unkC = "GO BACK";
     D_8020C070[6].unk10 = D_80304730;
     D_8020C070[6].unk19 = 2;
-    D_802F8BDC[10].unk8 |= 0x400;
-    D_802F8BDC[10].unk18 = 6;
+    gYoshiWindows[10].unk8 |= 0x400;
+    gYoshiWindows[10].unk18 = 6;
 }
 
 /* Open the name entry screen (menu entries 7 and 8) on buf */
@@ -793,22 +793,22 @@ Gfx *func_801EAA7C(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
                     if (D_802154B6 == i) {
                         ch = D_80208498[0], selX = x, selY = y, selW = 0x18, selH = 0x14;
                     } else {
-                        func_80259DC8((Gfx * N64P *) dyn, D_80208498, 0, 1, 0, x, y, 0x18, 0x14, 1, 0xC8, 0xC8, 0xC8, D_8036BB20, 0xFF,
-                                      0xFF, 0xFF, D_8036BB20);
+                        func_80259DC8((Gfx * N64P *) dyn, D_80208498, 0, 1, 0, x, y, 0x18, 0x14, 1, 0xC8, 0xC8, 0xC8, gYoshiAlpha, 0xFF,
+                                      0xFF, 0xFF, gYoshiAlpha);
                     }
                 } else if (D_802154B6 == i) {
-                    func_80259CCC((Gfx * N64P *) dyn, D_80208498, 0, 1, 0, x - 0xB, y, 0x30, 0x28, 1, 0, 0, 0, D_8036BB20 / 2);
+                    func_80259CCC((Gfx * N64P *) dyn, D_80208498, 0, 1, 0, x - 0xB, y, 0x30, 0x28, 1, 0, 0, 0, gYoshiAlpha / 2);
                 } else {
-                    func_80259CCC((Gfx * N64P *) dyn, D_80208498, 0, 1, 0, x - 4, y + 3, 0x18, 0x14, 1, 0, 0, 0, D_8036BB20 / 2);
+                    func_80259CCC((Gfx * N64P *) dyn, D_80208498, 0, 1, 0, x - 4, y + 3, 0x18, 0x14, 1, 0, 0, 0, gYoshiAlpha / 2);
                 }
             }
         }
     }
     if (ch != D_802154BA && D_802154BA == -1) {
         if (D_803156C4 % 20 < 15) {
-            alpha = D_8036BB20;
+            alpha = gYoshiAlpha;
         } else {
-            alpha = D_8036BB20 / 3;
+            alpha = gYoshiAlpha / 3;
         }
         D_80208498[0] = ch;
         func_80259BD4(&gdl, (s32) dyn);
@@ -819,7 +819,7 @@ Gfx *func_801EAA7C(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
         if (D_802154BC != 0) {
             gNextGameMode = 0x1000000;
             D_80365060[playerNumber] = 1;
-            func_8026AF6C(0x4000);
+            yoshi_demand(0x4000);
         } else {
             func_80260650(D_80367738, 0x2B, 0);
         }
@@ -839,7 +839,7 @@ Gfx *func_801EAA7C(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
                                 gNextGameMode = 0x200000;
                             }
                             func_80260650(D_80367738, 0xDE, 0);
-                            func_8026AF6C(0x4000);
+                            yoshi_demand(0x4000);
                         } else {
                             func_80260650(D_80367738, 0x2B, 0);
                         }
@@ -888,9 +888,9 @@ Gfx *func_801EAA7C(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
             D_80215444 += (D_8021544C - D_80215444) * 0.2;
             D_80208498[0] = D_802154BA;
             func_80259CCC((Gfx * N64P *) dyn, D_80208498, 0, 0, 0, D_80215944 - 4.0f, D_80215948 + 4.0f, D_80215440, D_80215444, 1, 0,
-                          0, 0, D_8036BB20 / 2);
+                          0, 0, gYoshiAlpha / 2);
             func_80259DC8((Gfx * N64P *) dyn, D_80208498, 0, 0, 0, D_80215944, D_80215948, D_80215440, D_80215444, 1, col[0], col[1],
-                          col[2], D_8036BB20, col[4], col[5], col[6], D_8036BB20);
+                          col[2], gYoshiAlpha, col[4], col[5], col[6], gYoshiAlpha);
             if (FABS(D_80215944 - D_8021594C) < 0.15 && FABS(D_80215948 - D_80215950) < 0.15) {
                 func_80260650(D_80367738, 1, 0);
                 D_802154BE = 0;

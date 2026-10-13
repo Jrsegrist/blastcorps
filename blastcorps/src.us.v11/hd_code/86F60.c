@@ -142,7 +142,7 @@ extern u8 D_803F8E80[]; /* this vehicle's state block */
 extern u8 D_802C2324[]; /* channel keys (7D9D0 text blob) */
 extern u8 D_802C2348[];
 
-/* Enter vehicle type 13: clears the byte at +0x99, gCamDistance / D_80364450 = 3000,
+/* Enter vehicle type 13: clears the byte at +0x99, gCamDistance / gCamHeightBase = 3000,
  * 1000, resets the two channels keyed D_802C2324 and D_802C2348 (unk14,
  * unk11, unk12 = 0, then func_802A0508 with -1), then func_802C4310(arg0,
  * 0xCE) (arg0 passes straight through; hd.c calls this with no arguments
@@ -152,7 +152,7 @@ extern u8 D_802C2348[];
 void func_802CBA94(s32 arg0) {
     D_803F8E80[0x99] = 0;
     gCamDistance = 3000;
-    D_80364450 = 1000;
+    gCamHeightBase = 1000;
     func_802A05D0((s32) D_802C2324, 0);
     func_802A05F8((s32) D_802C2324, 0);
     func_802A0620((s32) D_802C2324, 0);
@@ -354,7 +354,7 @@ s32 func_802CC844(void);
  * and ground contact (func_802A8768, D_803ED40B = 1); channels
  * (func_8029E558, current copy first); model (func_802CC70C); collision
  * (func_8029A800, func_8029C52C, func_8029AA10). Then: if D_803A7425 is
- * clear, D_803A7424 = 0 and the object hits (func_802BE77C); a hit
+ * clear, D_803A7424 = 0 and the object hits (obj_collide_vehicle); a hit
  * (D_803A7424 set) clears D_803F8F43, restores the saved record
  * (func_802A768C), sets D_803F8F44 = 5, bounces the speed (-(clamped to at
  * least 50 away from 0) >> 1) and re-places the model; no hit just clears
@@ -365,7 +365,7 @@ s32 func_802CC844(void);
  * veh_set_record(z, 0xD, x, y, block).
  * Register notes: the asm saves every callee-saved register. It hands
  * func_802CBD18 its caller's t6, t7, s0-s4 (kept by func_802ABD54 when no
- * zone is looked at; they then reach func_802CC400's func_802A6274 records,
+ * zone is looked at; they then reach func_802CC400's fx_spawn records,
  * whose type 1 ignores them) and func_802A8768 its caller's FP registers: 0
  * here. func_802A746C's v1 is the angle difference the asm leaves in v1 on
  * the steering path (its value is only returned, unused). It leaves f12/f14
@@ -445,7 +445,7 @@ void func_802CBEF0(void) {
     if (D_803A7425 == 0) {
         D_803A7424 = 0;
         D_803F77D0 = D_803F8B80;
-        func_802BE77C(0xD, D_803F8E80);
+        obj_collide_vehicle(0xD, D_803F8E80);
         if (D_803A7424 == 0) {
             D_803F8F43 = 0;
             goto publish;
@@ -492,7 +492,7 @@ void func_802CBEF0(void) {
     func_802A746C(D_803F8E80, turn, d, &target);
     func_802A6FE4(D_803F8E80, 0);
     D_803F77D0 = D_803F8B80;
-    func_802BE77C(0xD, D_803F8E80);
+    obj_collide_vehicle(0xD, D_803F8E80);
 publish:
     gPlayerX = D_803F8F28[0];
     gPlayerY = D_803F8F28[1];
@@ -519,14 +519,14 @@ void func_802CC56C(void);
  * D_802C2348 get unk13 = phase / 2 and unk4 = 0.0f (func_802A05A4). Then
  * the tyre trail (func_802CC56C) and the countdown D_803F8F42: when nonzero
  * it just counts down; at zero, if the byte at +0x99 is set, it restarts at
- * 1 and, when fewer than 15 D_803C4B70 records are active (func_802A5ED0),
- * two func_802A6274 records are set up (def D_802C2954, data 0x29810, tag 1,
+ * 1 and, when fewer than 15 gEffects records are active (fx_count_active),
+ * two fx_spawn records are set up (def D_802C2954, data 0x29810, tag 1,
  * type 1 at (0xD, 1, 1) and (0xD, 2, 1)). Then always
  * func_802C4584(|speed| >> 5) (speed = s16 at +0x76).
  * Register convention: the asm passes t6, t7, s0-s3 through to
- * func_802A6274 (t6 and s1 in its in/out block; its s4 input is the phase /
+ * fx_spawn (t6 and s1 in its in/out block; its s4 input is the phase /
  * 2 computed here); $gp (= D_803F8E80) is read as the global. It leaves
- * func_802A6274's s1 and changes s4-s7 (conventions.txt: clobbers). */
+ * fx_spawn's s1 and changes s4-s7 (conventions.txt: clobbers). */
 void func_802CC400(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3) {
     Io802A6274 io;
     s32 s4;
@@ -550,13 +550,13 @@ void func_802CC400(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3) {
         D_803F8F42--;
     } else if (D_803F8E80[0x99] != 0) {
         D_803F8F42 = 1;
-        if (func_802A5ED0() < 15) {
+        if (fx_count_active() < 15) {
             io.a3 = 1;
             io.t6 = t6;
             io.s1 = s1;
-            func_802A6274(&io, D_802C2954, 0x29810, 1, 0xD, 1, 1, t7, s0, s2, s3, s4, 1);
+            fx_spawn(&io, D_802C2954, 0x29810, 1, 0xD, 1, 1, t7, s0, s2, s3, s4, 1);
             io.a3 = 1;
-            func_802A6274(&io, D_802C2954, 0x29810, 1, 0xD, 2, 1, t7, s0, s2, s3, s4, 1);
+            fx_spawn(&io, D_802C2954, 0x29810, 1, 0xD, 2, 1, t7, s0, s2, s3, s4, 1);
         }
     }
     v = *(s16 *) (D_803F8E80 + 0x76);

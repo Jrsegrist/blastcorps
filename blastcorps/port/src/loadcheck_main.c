@@ -9,9 +9,9 @@
  * line by line.
  *
  *   T5  port_802E8BF8_word: the D_802E8BF8 flag/word-table alias (00000.c)
- *   T6  texture entries: DMA + func_802A57DC decode, output bytes (BE) CRC
+ *   T6  texture entries: DMA + tex_decode decode, output bytes (BE) CRC
  *   T7  every level: lvl_load_file load + func_802A2C54 object-stream unpack
- *   T8  every level: func_802A5510 height zones at random positions
+ *   T8  every level: cam_apply_height_zone height zones at random positions
  *   T9  (needs a trace) every read the N64 code made of each traced asset
  *
  * usage: loadcheck.exe ROM [TESTS [FACTS]]   (TESTS: digits, default 5678)
@@ -36,11 +36,11 @@ typedef uint32_t u32;
 
 /* game functions under test */
 s32 port_802E8BF8_word(s32 i);
-void func_802A0700(void);
-void func_802A0B34(s32 id, u8 *param);
+void tex_load_table(void);
+void tex_load_to_heap_impl(s32 id, u8 *param);
 void lvl_load_file(s32 level, s32 dest, s32 *size);
 void func_802A2C54(u8 *obj);
-void func_802A5510(u8 *level);
+void cam_apply_height_zone(u8 *level);
 
 /* ---- the platform surface these need (as port/src/platform does it) ---- */
 static uint8_t *g_rom;
@@ -128,7 +128,7 @@ static void t6(void) {
     }
     V32(HEAPPTR) = HEAP;
     V8(0x803B9888) = 0;
-    func_802A0700();                 /* DMAs the 0x8000-byte table to the heap */
+    tex_load_table();                 /* DMAs the 0x8000-byte table to the heap */
     tab = V32(0x803B8D44);
     for (id = 0; id < 0xFFF; id += 7) {
         uint32_t rom = V32(tab + id * 8), next = V32(tab + id * 8 + 8);
@@ -136,7 +136,7 @@ static void t6(void) {
         uint32_t buf = 0x80180000u, n;
         if (next <= rom || next - rom > 0x8000 || type > 6) continue;
         V32(HEAPPTR) = buf;
-        func_802A0B34((s32) id, (type == 4 || type == 5) ? (u8 *) (uintptr_t) PARAM : NULL);
+        tex_load_to_heap_impl((s32) id, (type == 4 || type == 5) ? (u8 *) (uintptr_t) PARAM : NULL);
         n = V32(HEAPPTR) - buf;
         printf("T6 %03X %d %05X %08X\n", id, type, n, crc32((const uint8_t *) (uintptr_t) buf, n));
     }
@@ -195,7 +195,7 @@ static void t8(void) {
                 continue;
             }
             crash_armed = 1;
-            func_802A5510((u8 *) (uintptr_t) HEAP);
+            cam_apply_height_zone((u8 *) (uintptr_t) HEAP);
             crash_armed = 0;
             printf("T8 %02d.%02d %04X %02X\n", lvl, i, V16(0x8036444E), V8(0x80364411));
         }

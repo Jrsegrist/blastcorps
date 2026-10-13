@@ -2,8 +2,8 @@
 #include <ultra64.h>
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_802F5804 ((PathNode *) D_802F5804)
-#define D_802F8BDC ((YoshiArg *) D_802F8BDC)
+#define gYoshiGameItems ((PathNode *) gYoshiGameItems)
+#define gYoshiWindows ((YoshiArg *) gYoshiWindows)
 /* end of views */
 
 /* controller.c: controller init, reading, the demo/replay pad source and
@@ -449,14 +449,14 @@ void cont_show_method_option(void) {
         }
     } while (i < 3 && !found);
     CONTROLLER_ASSERT(found, 515);
-    D_802F5804[421].text = str;
-    D_802F5804[421].jtext = NULL;
-    D_802F5804[422].text = tbl[i];
-    D_802F5804[422].unk6 = 0x13;
+    gYoshiGameItems[421].text = str;
+    gYoshiGameItems[421].jtext = NULL;
+    gYoshiGameItems[422].text = tbl[i];
+    gYoshiGameItems[422].unk6 = 0x13;
     if ((D_80364BE0[playerNumber].flags ^ 0x10205) & (1 << gCurVehicle)) {
-        D_802F8BDC[88].unk18 = 0x1A8;
+        gYoshiWindows[88].unk18 = 0x1A8;
     } else {
-        D_802F8BDC[88].unk18 = 0x1A7;
+        gYoshiWindows[88].unk18 = 0x1A7;
     }
-    func_8026AF6C(0x8058);
+    yoshi_demand(0x8058);
 }

@@ -133,7 +133,7 @@ extern u8 D_803F8AA0[]; /* this vehicle's state block (the asm's $gp) */
 extern u8 D_803F87A0[]; /* its animation channel table (Unk8029DEA0Entry, 56040.c) */
 
 /* Enter this vehicle (vehicle type 10; called from hd.c and 17210.c): clears
- * the byte at +0x99, sets the pair gCamDistance / D_80364450 to (0xD48, 1000),
+ * the byte at +0x99, sets the pair gCamDistance / gCamHeightBase to (0xD48, 1000),
  * starts sound 0x94 (func_802C4310; the asm passes its caller's a0 through
  * as the ignored first argument) and sets up channels 1-3 (0 / 0 / 0|1,
  * restart with -1) and 4-5 (8|8 / 0 / 0, 1.0 with 1).
@@ -143,7 +143,7 @@ extern u8 D_803F87A0[]; /* its animation channel table (Unk8029DEA0Entry, 56040.
 void func_802C9F54(void) {
     D_803F8AA0[0x99] = 0;
     gCamDistance = 0xD48;
-    D_80364450 = 1000;
+    gCamHeightBase = 1000;
     func_802C4310(0, 0x94);
     func_802A039C((Unk8029DEA0Entry *) D_803F87A0, 1, 0);
     func_802A03D4((Unk8029DEA0Entry *) D_803F87A0, 1, 0);
@@ -366,16 +366,16 @@ s32 func_802CB564(void);
  * forward step (func_802A860C) and ground contact (func_802A8768), the
  * model's animation (func_8029E558 on the current copy pair) and placement
  * (func_802CB42C), collision (func_8029A800 / func_8029C52C /
- * func_8029AA10). Then either (no ring hit, D_803A7425 == 0) func_802BE77C
+ * func_8029AA10). Then either (no ring hit, D_803A7425 == 0) obj_collide_vehicle
  * and, if that set D_803A7424, a bounce off the ring end (speed reversed
  * into 0x41..0x82 or -0x25..-0x4B, D_803F8B7A = 5) unless one is already
  * running; or (ring hit) func_8029A914, D_803F8B78 = 1, and the turn back
  * toward the ring midpoint (func_802A70D8, func_802A71DC, func_802A746C,
- * func_802A6FE4(0), func_802BE77C). Finally the position, speed and angles
+ * func_802A6FE4(0), obj_collide_vehicle). Finally the position, speed and angles
  * go to gPlayerX.. / D_8036443C.., veh_set_record(z, 10, x, y, block), and
- * sound D_803F8B79 (12, or -1 after func_802BE77C) is started if >= 0.
+ * sound D_803F8B79 (12, or -1 after obj_collide_vehicle) is started if >= 0.
  * Register notes (FIDELITY, see tools_port/port_followups.md): the asm
- * hands func_802CA308 (and so func_802CAAFC -> func_802A6274) the caller's
+ * hands func_802CA308 (and so func_802CAAFC -> fx_spawn) the caller's
  * t6, t7, s0-s4 on the paths where func_802ABD54 doesn't set them, and
  * func_802A8768 the caller's f20-f26 (f12 = the constant func_802AE104
  * leaves, f14 its sine temporary): the C starts them at 0 (nothing reads
@@ -448,7 +448,7 @@ void func_802CA4E0(void) {
     if (D_803A7425 == 0) {
         D_803A7424 = 0;
         D_803F77D0 = D_803F87A0;
-        func_802BE77C(10, D_803F8AA0);
+        obj_collide_vehicle(10, D_803F8AA0);
         D_803F8B79 = -1;
         if (D_803A7424 == 0) {
             D_803F8B78 = 0;
@@ -498,7 +498,7 @@ void func_802CA4E0(void) {
         func_802A746C(D_803F8AA0, turn, v, &tgt);
         func_802A6FE4(D_803F8AA0, 0);
         D_803F77D0 = D_803F87A0;
-        func_802BE77C(10, D_803F8AA0);
+        obj_collide_vehicle(10, D_803F8AA0);
     }
     gPlayerX = D_803F8B48[0];
     gPlayerY = D_803F8B48[1];
@@ -563,7 +563,7 @@ f32 func_802CB3C8(s32 side);
 
 /* Per-frame effects of vehicle type 10 ($gp = D_803F8AA0, read as the
  * global): with +0x99 set and no cooldown (D_803F8B76), and fewer than 4
- * active D_803C4B70 records (func_802A5ED0), sets up a func_802A6274 record
+ * active gEffects records (fx_count_active), sets up a fx_spawn record
  * (def D_802C2954, data 0x30D40, type 1 at (10, 1, 1), the caller's t6, t7,
  * s0-s4 passed through); channel 1 gets the speed sign and |speed| / 6, the
  * engine sound |speed| >> 3 (func_802C4584), then the trail (func_802CB224).
@@ -578,7 +578,7 @@ f32 func_802CB3C8(s32 side);
  * +0x96..0x98 is 1) or ends.
  * Register convention (conventions.txt): t6, t7, s0-s4 come in (from the
  * caller's func_802CA308 zone lookup) and only pass through to
- * func_802A6274; the asm changes s1-s7. Integer counters/sums use trapping
+ * fx_spawn; the asm changes s1-s7. Integer counters/sums use trapping
  * `addi`/`add`/`sub` in the asm: keep inputs in game range. */
 void func_802CAAFC(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
     Io802A6274 io;
@@ -597,11 +597,11 @@ void func_802CAAFC(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
         D_803F8B76--;
     } else if (D_803F8AA0[0x99] != 0) {
         D_803F8B76 = 1;
-        if (func_802A5ED0() < 4) {
+        if (fx_count_active() < 4) {
             io.a3 = 0;
             io.t6 = t6;
             io.s1 = s1;
-            func_802A6274(&io, D_802C2954, 0x30D40, 1, 10, 1, 1, t7, s0, s2, s3, s4, 1);
+            fx_spawn(&io, D_802C2954, 0x30D40, 1, 10, 1, 1, t7, s0, s2, s3, s4, 1);
         }
     }
 

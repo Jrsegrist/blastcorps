@@ -19,7 +19,7 @@
 #ifdef NON_MATCHING
 extern u8 D_802C382C[]; /* a definition inside the 7D9D0 blob */
 
-/* Sets up a D_803C4B70 record (func_802A6274) for the definition D_802C382C
+/* Sets up a gEffects record (fx_spawn) for the definition D_802C382C
  * with data 0x591C8, type 0, position (x, y, z) << 11 and every other input
  * (tag, words, b35) 0. The asm saves s0-s7 and fp; 48D00.c calls it. */
 void func_802CDA10(s32 x, s32 y, s32 z) {
@@ -28,7 +28,7 @@ void func_802CDA10(s32 x, s32 y, s32 z) {
     io.a3 = 0;
     io.t6 = 0;
     io.s1 = 0;
-    func_802A6274(&io, D_802C382C, 0x591C8, 0, x << 11, y << 11, z << 11, 0, 0, 0, 0, 0, 0);
+    fx_spawn(&io, D_802C382C, 0x591C8, 0, x << 11, y << 11, z << 11, 0, 0, 0, 0, 0, 0);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/89250/func_802CDA10.s")
@@ -37,11 +37,11 @@ void func_802CDA10(s32 x, s32 y, s32 z) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-/* Blast damage (func_802C18D4) at the position D_803A73F0/F4/F8 << 11 with
+/* Blast damage (obj_blast_damage) at the position D_803A73F0/F4/F8 << 11 with
  * the given radius and amount. The asm uses the whole registers (48D00.c
  * declares both s16) and saves s0-s7, fp. */
 void func_802CDAE8(s32 amount, s32 radius) {
-    func_802C18D4(D_803A73F0 << 11, D_803A73F4 << 11, D_803A73F8 << 11, radius, amount);
+    obj_blast_damage(D_803A73F0 << 11, D_803A73F4 << 11, D_803A73F8 << 11, radius, amount);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/89250/func_802CDAE8.s")
@@ -107,7 +107,7 @@ static s32 sphere_hits_tri_89250(s32 x, s32 y, s32 z, s32 r, Tri89250 *tri) {
 /* Impact of the point D_803A73F0/F4/F8 with radius r against the objects:
  * stores amount (low 16 bits) to D_803F932A, then every object (gObjects
  * up to gObjectsEnd, read once, walked with `!=`) within range (func_8029CFA4)
- * and not a 0x38 object while func_802BD8C8 is set gets the triangle pass
+ * and not a 0x38 object while obj_end_object_hidden is set gets the triangle pass
  * func_802CDC7C, which carries a "hit" flag from object to object (the first
  * hit applies the damage). Clears the ring span D_803A7410/7412 when
  * D_803A742F is set. Returns the flag (0/1).
@@ -127,7 +127,7 @@ s32 func_802CDB70(s32 r, s32 amount) {
         if (func_8029CFA4(z, r, o->pos[0], o->pos[1], x, y, o->pos[2], o->radius) == 0) {
             continue;
         }
-        if (o->kind == 0x38 && func_802BD8C8() != 0) {
+        if (o->kind == 0x38 && obj_end_object_hidden() != 0) {
             continue;
         }
         hit = func_802CDC7C(x, y, z, r, o, hit);
@@ -189,10 +189,10 @@ s32 func_802CDC7C(s32 x, s32 y, s32 z, s32 r, Obj89250 *e, s32 hit) {
 /* Impact damage to the part of triangle tri of object e: screen shake 10/200;
  * unless e is a 0x38 object, the part's percentage += amount / e->info->type
  * (unsigned; the asm traps (break 7) on type 0), capped at 100, and
- * func_802BF898 updates the part. A part reaching 100 collapses
- * (func_802BF1F0, func_802C1438, func_802C09B8, func_802C0E8C,
- * func_802BF384; its triangles off and the triangles whose unk57 is the part
- * on unless their own part is done; func_802BF668, func_802BF534).
+ * obj_spawn_break_effects updates the part. A part reaching 100 collapses
+ * (obj_mark_part_gone, obj_start_topple, obj_start_part_fade, obj_start_sinking_part,
+ * obj_spawn_people; its triangles off and the triangles whose unk57 is the part
+ * on unless their own part is done; obj_drop_unsupported_parts, obj_check_destroyed).
  * Register convention: e in t9, tri in s0, amount in fp; the asm saves every
  * register (asm caller func_802CDC7C keeps a1, t3-t6 and t9 live). */
 void func_802CDD74(Obj89250 *e, Tri89250 *tri, s32 amount) {
@@ -211,16 +211,16 @@ void func_802CDD74(Obj89250 *e, Tri89250 *tri, s32 amount) {
         level = 100;
     }
     pcts[part - 1] = level;
-    func_802BF898((struct Unk802C1DD0Entry *) e, part, level);
+    obj_spawn_break_effects((struct Unk802C1DD0Entry *) e, part, level);
     if (level == 100) {
         Tri89250 *t;
         Tri89250 *end;
 
-        func_802BF1F0((struct Unk802C1DD0Entry *) e, part);
-        func_802C1438((struct Unk802C1DD0Entry *) e, part);
-        func_802C09B8(part, (struct Unk802C1DD0Entry *) e);
-        func_802C0E8C(part, (struct Unk802C1DD0Entry *) e);
-        func_802BF384((struct Unk802C1DD0Entry *) e);
+        obj_mark_part_gone((struct Unk802C1DD0Entry *) e, part);
+        obj_start_topple((struct Unk802C1DD0Entry *) e, part);
+        obj_start_part_fade(part, (struct Unk802C1DD0Entry *) e);
+        obj_start_sinking_part(part, (struct Unk802C1DD0Entry *) e);
+        obj_spawn_people((struct Unk802C1DD0Entry *) e);
         end = e->end;
         for (t = e->start; t != end; t++) {
             if (t->unk52 == part) {
@@ -230,8 +230,8 @@ void func_802CDD74(Obj89250 *e, Tri89250 *tri, s32 amount) {
                 t->unk51 = 1;
             }
         }
-        func_802BF668((struct Unk802C1DD0Entry *) e);
-        func_802BF534((struct Unk802C1DD0Entry *) e);
+        obj_drop_unsupported_parts((struct Unk802C1DD0Entry *) e);
+        obj_check_destroyed((struct Unk802C1DD0Entry *) e);
     }
 }
 #else
@@ -457,7 +457,7 @@ s32 func_802CE3B8(s32 idx) {
 /* Starts a new span at position (x, y, z): the ring span becomes the empty
  * 0/0xFFF pair, the position goes to D_803A73F0/F4/F8, the flags
  * D_803A742F/7427/7424/7425 are cleared, D_803A7408 points at D_80306450,
- * then func_802BCBD8 is called. */
+ * then veh_contacts_clear is called. */
 void func_802CE4F0(s32 x, s32 y, s32 z) {
     D_803A7410 = 0;
     D_803A7412 = 0xFFF;
@@ -469,7 +469,7 @@ void func_802CE4F0(s32 x, s32 y, s32 z) {
     D_803A7408 = (s8 *) D_80306450;
     D_803A7424 = 0;
     D_803A7425 = 0;
-    func_802BCBD8();
+    veh_contacts_clear();
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/89250/func_802CE4F0.s")
@@ -523,7 +523,7 @@ void func_802CE65C(s32 x, s32 z, s32 len, s32 angle) {
 #define PORT_ABS(d) ((d) < 0 ? -(d) : (d))
 
 /* Ground height under (x, z) for an object at height y: with y' = y + 0x78,
- * takes the nearest-to-y' heights of the D_803F7828 triangles (h1,
+ * takes the nearest-to-y' heights of the gGroupTris triangles (h1,
  * func_802A9DC0), of the transformed triangles (h2, func_802A9F24, no id
  * skipped) and of the level grid (h3, func_802AA094, which leaves h3 = h2
  * when it finds nothing). With a grid hit, h3 wins unless h2 or h1 is

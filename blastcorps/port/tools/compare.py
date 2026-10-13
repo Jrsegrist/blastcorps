@@ -766,7 +766,7 @@ class Cmp:
 
     def rule_ignored(self, a, e, nat=None):
         """Conditional ignores (state-dependent, so not in compare_ignore.txt)."""
-        # 60F60.c's 0x1010-byte texture HeapBlocks (D_803EB788 .. D_803EB78C,
+        # 60F60.c's 0x1010-byte texture HeapBlocks (gFxTexCaches .. gFxTexCachesEnd,
         # carved from heap that held other data before): the trailer's only
         # fields are the s32 at 0x1000, the u16 age at 0x1004 and the byte key
         # at 0x1006; bytes 0x1007-0x100F are never written, so they keep
@@ -806,7 +806,7 @@ class Cmp:
             return True   # (a trailer of an earlier level's blocks, unchanged since)
         if lo <= a < hi and nat is not None:
             r = (a - lo) % 0x1010
-            # a free block (inUse at 0x1000 is 0 on both sides: func_802A5FA8
+            # a free block (inUse at 0x1000 is 0 on both sides: fx_alloc_texture_caches
             # clears it, the age and key at 0x1004 are only written once the
             # block is used): its trailer is all stale bytes
             u = o - r + 0x1000
@@ -940,7 +940,7 @@ class Layout:
     # the last load at the address; heap reused by other code afterwards)
     UNTYPED_ROM = {0x6EC4C0: "packed-object table (u32 offsets, read by func_802A2A98 only): its 0x800 "
                              "bytes of heap are reused by the collision/level loaders in the trace"}
-    UNTYPED = [("D_803C3250", "60F60.c texture decode scratch: declared u64 (the copy loop's unit), "
+    UNTYPED = [("gTexDecodeScratch", "60F60.c texture decode scratch: declared u64 (the copy loop's unit), "
                               "holds the packed s16 tokens"),
                ("D_803EBB58", "62740.c accumulated Mtx: declared u16[], used as Mtx words (PORT_HALF)"),
                ("D_803EBB98", "62740.c product Mtx: declared u16[], used as Mtx words (PORT_HALF)"),

@@ -146,8 +146,8 @@ typedef struct RankTitle {
  * 8DDB0.c). Each field has the width its readers use, so the tables read
  * the same on either byte order. */
 
-/* Header of a billboard effect definition (func_802A6274 / func_802A64A4,
- * listed at D_802C3FFC), followed by cols * rows * frames u16 texture ids. */
+/* Header of a billboard effect definition (fx_spawn / fx_draw_all,
+ * listed at gFxDefsByKind), followed by cols * rows * frames u16 texture ids. */
 typedef struct EffectDef {
     /* 0x0 */ s16 id;     /* texture-group id, -1 = none */
     /* 0x2 */ u8 cols;
@@ -162,7 +162,7 @@ typedef struct EffectDef {
     /* 0xE */ u16 frames;
 } EffectDef; /* size 0x10 */
 
-/* A particle emitter definition (43A60.c, list D_802C4A20). */
+/* A particle emitter definition (43A60.c, list gParticleDefs). */
 typedef struct ParticleDef {
     /* 0x00 */ s16 * N64P seqBirth; /* texture ids; [0] doubles as the frame count */
     /* 0x04 */ s16 * N64P seqLoop;

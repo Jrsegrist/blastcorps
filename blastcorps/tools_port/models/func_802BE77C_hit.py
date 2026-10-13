@@ -1,9 +1,9 @@
-"""Stand-in for func_802BE77C (the collision pass) that reports a hit: it only
+"""Stand-in for obj_collide_vehicle (the collision pass) that reports a hit: it only
 sets the byte D_803A7424 to 1, as the real pass does when the vehicle touches
 something. Lets a caller's "hit" branch run without building a collision scene
 (wt-v5: func_802B6294 / func_802B5900 bounce path).
 
-    eqcheck.py func_802B6294 --model func_802BE77C=func_802BE77C_hit.py ...
+    eqcheck.py func_802B6294 --model obj_collide_vehicle=func_802BE77C_hit.py ...
 """
 
 

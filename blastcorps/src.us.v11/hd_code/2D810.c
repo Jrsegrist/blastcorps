@@ -139,7 +139,7 @@ void func_802729F0(u16 type, u16 level) {
         D_802FA280[level][i].ptr = gHeapPtr;
         id = D_802FA280[level][i].id;
         if (id) {
-            func_802A0B00(id, 0);
+            tex_load_to_heap(id, 0);
         } else {
             D_8036BFC4 = 0;
         }

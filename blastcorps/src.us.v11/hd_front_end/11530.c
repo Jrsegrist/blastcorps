@@ -309,7 +309,7 @@ void func_801F8980(void) {
 
     nextdma = 0;
     no_palette_dmas = 0;
-    func_802A5720();
+    tex_reset_decode_queue();
     cont_start_read();
     if (((s32) gFramesInMode)) {
         rsp_send_task((u64 *) (gDynamicBufs[gBufferIndex].gfx), gFrameDlLen, 2, 0, 1234, 0);
@@ -420,7 +420,7 @@ void func_801F8980(void) {
         osRecvMesg(&textureDmaMessageQ, NULL, OS_MESG_BLOCK);
     }
     for (i = 0; i < nextdma - no_palette_dmas; i++) {
-        func_802A57AC();
+        tex_decode_next();
     }
 }
 

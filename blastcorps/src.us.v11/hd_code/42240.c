@@ -54,7 +54,7 @@ extern s16 D_8036EC28;
 void func_80286A00(void) {
     D_80364A68 = 1;
     D_8036EC00 = gHeapPtr;
-    func_802A0CC8(0x760, 0);
+    tex_get(0x760, 0);
     D_8036EC08 = (Mtx *) gHeapPtr;
     D_8036EC0C = (Mtx *) (gHeapPtr += 0x80);
     D_8036EC04 = (Vtx *) (gHeapPtr += 0x80);
@@ -151,7 +151,7 @@ void func_80286C60(Gfx **gfxp, s32 arg1, u8 frame, u8 arg3) {
 void func_802873AC(void) {
     D_80364A6A = 1;
     D_8036EC14 = gHeapPtr;
-    func_802A0CC8(0x996, 0);
+    tex_get(0x996, 0);
     D_8036EC18 = (Vtx *) gHeapPtr;
     gHeapPtr += 0x40;
 #ifdef PORT_HOST
@@ -227,7 +227,7 @@ void func_80287530(Gfx **gfxp, Gfx * N64P *gfxp2, u8 frame, u8 arg3) {
 void func_80287AE4(void) {
     D_80364A6C = 1;
     D_8036EC20 = gHeapPtr;
-    func_802A0CC8(0x998, 0);
+    tex_get(0x998, 0);
     D_8036EC24 = (Vtx *) gHeapPtr;
     gHeapPtr += 0x40;
 #ifdef PORT_HOST

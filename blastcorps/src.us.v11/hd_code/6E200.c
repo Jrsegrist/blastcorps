@@ -420,7 +420,7 @@ extern u8 D_802C2314[]; /* key of its func_802A05D0.. sound entry */
 
 /* Vehicle-type 3 setup (called from hd.c / 17210.c): clears byte 0x99 of the
  * state block, resets animation channels 1-3 of D_803EDFE0, resets the
- * D_802C2314 entry (0, 0, 0, -1), gCamDistance / D_80364450 = 3400, 1000, then
+ * D_802C2314 entry (0, 0, 0, -1), gCamDistance / gCamHeightBase = 3400, 1000, then
  * func_802C4310(&D_803EDFE0, 0x8C) (the asm's a0 is still the table).
  * The asm points $gp at D_803EE2E0 and leaves it there (conventions.txt:
  * clobbers gp) and returns with v1 = -1; the C callers use neither. */
@@ -439,7 +439,7 @@ void func_802B2D7C(void) {
     func_802A0620((s32) D_802C2314, 0);
     func_802A0508((s32) D_802C2314, -1);
     gCamDistance = 0xD48;
-    D_80364450 = 0x3E8;
+    gCamHeightBase = 0x3E8;
     func_802C4310((s32) D_803EDFE0, 0x8C);
 }
 #else
@@ -563,7 +563,7 @@ extern s16 D_803EE3A8;
  *    D_803EE3AA, divisors 0x2D4 / 0x260, parts func_802B3E40, func_8029A800
  *    with D_80305D00, 1, 6, 100);
  * 4. no collision report (D_803A7425 == 0): D_803A7424 = 0, collision pass
- *    func_802BE77C (D_803F77D0 = the channel table); if it sets D_803A7424,
+ *    obj_collide_vehicle (D_803F77D0 = the channel table); if it sets D_803A7424,
  *    restore (port_veh_restore), countdown 5, speed bounced to -max(|v|,
  *    80) / 2 (sign kept, sra) and parts again; else D_803EE3B0 = 0.
  *    Report: func_8029A914, D_803EE3B0 = 1, port_veh_turn (D_8030D8C0,
@@ -609,7 +609,7 @@ void func_802B327C(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
     if (D_803A7425 == 0) {
         D_803A7424 = 0;
         D_803F77D0 = D_803EDFE0;
-        func_802BE77C(3, veh);
+        obj_collide_vehicle(3, veh);
         if (D_803A7424 != 0) {
             D_803EE3B0 = 0;
             port_veh_restore(veh, p, D_803EDFE0);
@@ -623,7 +623,7 @@ void func_802B327C(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
                 v = -0x50;
             }
             VEH_S16(veh, 0x76) = -v >> 1;
-            /* s0/s1: leftovers of func_802BE77C / func_8029E558 (leak). */
+            /* s0/s1: leftovers of obj_collide_vehicle / func_8029E558 (leak). */
             mc.s0 = 0;
             mc.s1 = 0;
             func_802B3E40(&mc);
@@ -635,7 +635,7 @@ void func_802B327C(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
         D_803EE3B0 = 1;
         port_veh_turn(veh, D_8030D8C0, &D_803EE3AA);
         D_803F77D0 = D_803EDFE0;
-        func_802BE77C(3, veh);
+        obj_collide_vehicle(3, veh);
     }
     port_veh_publish(veh, p, 3);
 }
@@ -645,7 +645,7 @@ void func_802B327C(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803EE3AE;  /* func_802A6274 spawn cooldown */
+extern u8 D_803EE3AE;  /* fx_spawn spawn cooldown */
 extern u8 D_803EE3AF;  /* 0..100 level for channel 2 */
 extern u8 D_803EE3B2;  /* boost countdown */
 extern u8 D_803EE3B3;  /* boost sound playing */
@@ -660,7 +660,7 @@ void func_802B3C68(void);
 
 /* Vehicle type 3 per-frame update ($gp = D_803EE2E0, read as the global):
  * 1. Cooldown D_803EE3AE counts down; at 0 with byte +0x99 set it restarts at
- *    1 and, while fewer than 15 func_802A6274 records are active, sets up two
+ *    1 and, while fewer than 15 fx_spawn records are active, sets up two
  *    (def D_802C2954, data 0x29810, type 1 at (3, 2, 1) and (3, 3, 1)).
  * 2. Level D_803EE3A4 (channel 3 of D_803EDFE0): unless func_802A7CB0(10),
  *    falls by D_8030D8C4 to 0 with gHeldBOrZ held, or rises by D_8030D8C8 to
@@ -671,13 +671,13 @@ void func_802B3C68(void);
  *    func_802C4584).
  * 5. Boost: D_803EE3B2 counts down; at 0 with gHeldL or gHeldR held
  *    and the meter D_803EE3B1 >= 4: meter -= 4, start sound 0x8D once
- *    (D_803EE3B3), sound entry D_802C2314 on, one more func_802A6274 record
+ *    (D_803EE3B3), sound entry D_802C2314 on, one more fx_spawn record
  *    (def D_802C37C0, data 0x186A0, type 1 at (3, 1, 1)) and speed += 40 up
  *    to 400. Otherwise stop the sound, D_803EE3AC = 120, entry off, speed
  *    above 250 drops by 25 (not below 250) and the meter refills by 1 to 100.
  * 6. func_802B3C68 (tyre trail).
  * Register convention: the asm passes t6, t7, s0-s4 through to
- * func_802A6274 (t6 and s1 in its in/out block, carried from one call to the
+ * fx_spawn (t6 and s1 in its in/out block, carried from one call to the
  * next) and changes s5-s7 (conventions.txt: clobbers). Same shape as
  * func_802B4EF8 (below). */
 void func_802B37B0(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
@@ -694,11 +694,11 @@ void func_802B37B0(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
         D_803EE3AE--;
     } else if (D_803EE2E0[0x99] != 0) {
         D_803EE3AE = 1;
-        if (func_802A5ED0() < 15) {
+        if (fx_count_active() < 15) {
             io.a3 = 1;
-            func_802A6274(&io, D_802C2954, 0x29810, 1, 3, 2, 1, t7, s0, s2, s3, s4, 1);
+            fx_spawn(&io, D_802C2954, 0x29810, 1, 3, 2, 1, t7, s0, s2, s3, s4, 1);
             io.a3 = 1;
-            func_802A6274(&io, D_802C2954, 0x29810, 1, 3, 3, 1, t7, s0, s2, s3, s4, 1);
+            fx_spawn(&io, D_802C2954, 0x29810, 1, 3, 3, 1, t7, s0, s2, s3, s4, 1);
         }
     }
 
@@ -776,7 +776,7 @@ void func_802B37B0(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
         }
         func_802A05A4(0.0f, (s32) D_802C2314, 1);
         io.a3 = 0;
-        func_802A6274(&io, D_802C37C0, 0x186A0, 1, 3, 1, 1, t7, s0, s2, s3, s4, 1);
+        fx_spawn(&io, D_802C37C0, 0x186A0, 1, 3, 1, 1, t7, s0, s2, s3, s4, 1);
         speed = *(s16 *) (D_803EE2E0 + 0x76);
         *(s16 *) (D_803EE2E0 + 0x76) = (speed < 400) ? speed + 40 : 400;
         func_802B3C68();
@@ -1001,7 +1001,7 @@ extern u8 D_803EE3C0[]; /* its animation channel table */
 /* Vehicle-type 4 setup (called from hd.c / 17210.c), shape of func_802B2D7C:
  * clears byte 0x99 of the state block, resets channel 1 (03D4 only) and
  * channel 2 of D_803EE3C0, resets the sound entries D_802C2190/A4/B8
- * (0, 0, 0, -1 each), gCamDistance / D_80364450 = 3000, 1000, then
+ * (0, 0, 0, -1 each), gCamDistance / gCamHeightBase = 3000, 1000, then
  * func_802C4310(&D_803EE3C0, 0x0B). Leaves $gp = D_803EE6C0 (clobbers gp)
  * and v1 = -1, unused by the C callers. */
 void func_802B448C(void) {
@@ -1024,7 +1024,7 @@ void func_802B448C(void) {
     func_802A040C((Unk8029DEA0Entry *) D_803EE3C0, 2, 1);
     func_802A0290((Unk8029DEA0Entry *) D_803EE3C0, 2, -1);
     gCamDistance = 0xBB8;
-    D_80364450 = 0x3E8;
+    gCamHeightBase = 0x3E8;
     func_802C4310((s32) D_803EE3C0, 0x0B);
 }
 #else
@@ -1135,7 +1135,7 @@ extern s16 D_803EE786;
  *   with D_80305D10, 0, 8, 120;
  * - bounce speed: |v| clamped to 62..125 (positive) / 45..90 (negative:
  *   v >= -44 gives -45, v < -90 gives -90), negated (no halving);
- * - func_802BCC10 before the collision pass on the report path.
+ * - veh_prev_contacts_clear before the collision pass on the report path.
  * Same register convention and leaks as func_802B327C. */
 void func_802B49AC(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
     u8 *veh = D_803EE6C0;
@@ -1173,7 +1173,7 @@ void func_802B49AC(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
     if (D_803A7425 == 0) {
         D_803A7424 = 0;
         D_803F77D0 = D_803EE3C0;
-        func_802BE77C(4, veh);
+        obj_collide_vehicle(4, veh);
         if (D_803A7424 != 0) {
             D_803EE789 = 0;
             port_veh_restore(veh, p, D_803EE3C0);
@@ -1191,7 +1191,7 @@ void func_802B49AC(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
                 v = -0x5A;
             }
             VEH_S16(veh, 0x76) = -v;
-            /* s0/s1: leftovers of func_802BE77C / func_8029E558 (leak). */
+            /* s0/s1: leftovers of obj_collide_vehicle / func_8029E558 (leak). */
             mc.s0 = 0;
             mc.s1 = 0;
             func_802B568C(&mc);
@@ -1202,9 +1202,9 @@ void func_802B49AC(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
         func_8029A914(veh);
         D_803EE789 = 1;
         port_veh_turn(veh, D_8030D8D0, &D_803EE786);
-        func_802BCC10();
+        veh_prev_contacts_clear();
         D_803F77D0 = D_803EE3C0;
-        func_802BE77C(4, veh);
+        obj_collide_vehicle(4, veh);
     }
     port_veh_publish(veh, p, 4);
 }
@@ -1214,7 +1214,7 @@ void func_802B49AC(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803EE788;  /* func_802A6274 spawn cooldown */
+extern u8 D_803EE788;  /* fx_spawn spawn cooldown */
 extern u8 D_803EE789;  /* channel 1 restart request */
 extern f32 D_803EE780; /* 0..1 level for channel 2 */
 extern f32 D_8030D8D4;
@@ -1226,7 +1226,7 @@ void func_802B54EC(void);
  * shape of func_802B37B0 (above):
  * 1. func_802B54EC (tyre trail).
  * 2. Cooldown D_803EE788 counts down; at 0 with byte +0x99 set it restarts
- *    at 1 and, while fewer than 14 func_802A6274 records are active, sets up
+ *    at 1 and, while fewer than 14 fx_spawn records are active, sets up
  *    one (def D_802C2954, data 0x30D40, type 1 at (4, 1, 1)).
  * 3. With D_803F7840 == 0 and the speed (s16 +0x76) nonzero: sound 10
  *    (func_80260650, the asm saving every register around it) and another
@@ -1243,7 +1243,7 @@ void func_802B54EC(void);
  * 7. With D_803EE789 set and channel 1's field 0x10 != 1: channel 1 gets
  *    (9, 1, 2) and sound 1 plays.
  * Register convention: as func_802B37B0, t6, t7, s0-s4 pass through to
- * func_802A6274 (conventions.txt); s5-s7 change. */
+ * fx_spawn (conventions.txt); s5-s7 change. */
 void func_802B4EF8(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
     Io802A6274 io;
     s32 ch[8];
@@ -1261,16 +1261,16 @@ void func_802B4EF8(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
         D_803EE788--;
     } else if (D_803EE6C0[0x99] != 0) {
         D_803EE788 = 1;
-        if (func_802A5ED0() < 14) {
+        if (fx_count_active() < 14) {
             io.a3 = 1;
-            func_802A6274(&io, D_802C2954, 0x30D40, 1, 4, 1, 1, t7, s0, s2, s3, s4, 1);
+            fx_spawn(&io, D_802C2954, 0x30D40, 1, 4, 1, 1, t7, s0, s2, s3, s4, 1);
         }
     }
 
     if (D_803F7840 == 0 && *(s16 *) (D_803EE6C0 + 0x76) != 0) {
         func_80260650(D_80367738, 10, NULL);
         io.a3 = 1;
-        func_802A6274(&io, D_802C2954, 0x1D4C0, 1, 4, 2, 1, t7, s0, s2, s3, s4, 1);
+        fx_spawn(&io, D_802C2954, 0x1D4C0, 1, 4, 2, 1, t7, s0, s2, s3, s4, 1);
     }
 
     f = D_803EE780;

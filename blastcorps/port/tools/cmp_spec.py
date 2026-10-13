@@ -218,7 +218,7 @@ for name, store, src in GVI_SITES:
 #   2C560.c __scHandleRetrace (__scHandleRetrace) counts the retrace in
 #   D_803156C0 unless gPaused (the main thread's display freeze around
 #   loads) is set; the main thread clears it after its frame's CPU time
-#   (00000.c hd_game_frame, after func_802A5720), so a retrace there sees it
+#   (00000.c hd_game_frame, after tex_reset_decode_queue), so a retrace there sees it
 #   still set in the emulator and already clear natively.
 EMU_SITES = [("__scHandleRetrace", 0x802E8BD0, 1)]
 for name, addr, size in EMU_SITES:

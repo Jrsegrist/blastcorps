@@ -148,7 +148,7 @@ Gfx *func_80201364(s32 arg0, Gfx *arg1) {
                     break;
             }
             if (func_801E96F8()) {
-                func_8026AF6C(0x4000);
+                yoshi_demand(0x4000);
             }
             break;
         case 8:

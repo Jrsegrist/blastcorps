@@ -234,8 +234,8 @@ extern u8 D_803FCD78;
 extern u8 D_803FCD79;
 extern u8 D_803FCD7A;
 
-/* Spawns effect def at D_803EBC10 record (0xFD, n) (func_802A6274 type 1 with
- * z = 1, tag 0, b35 0). For that type func_802A6274 ignores its other fields;
+/* Spawns effect def at D_803EBC10 record (0xFD, n) (fx_spawn type 1 with
+ * z = 1, tag 0, b35 0). For that type fx_spawn ignores its other fields;
  * the asm passes whatever its caller left in t6, t7, s0-s4 there, the C 0. */
 #define SPAWN_AT_FD(def, data, n)                                         \
     {                                                                     \
@@ -244,7 +244,7 @@ extern u8 D_803FCD7A;
         _io.a3 = 0;                                                       \
         _io.t6 = 0;                                                       \
         _io.s1 = 0;                                                       \
-        func_802A6274(&_io, (def), (data), 1, 0xFD, (n), 1, 0, 0, 0, 0, 0, 0); \
+        fx_spawn(&_io, (def), (data), 1, 0xFD, (n), 1, 0, 0, 0, 0, 0, 0); \
     }
 
 /* Per-frame event handling for this vehicle (id 0xFD in D_803EBC10): event

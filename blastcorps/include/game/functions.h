@@ -136,11 +136,11 @@ void func_80264AEC(void);
 u8 func_80264BA4(u8 arg0);
 
 /* hd_code/20460.c */
-void func_80264C20(s32 arg0);
-void func_80264CB4(s16 arg0, s16 arg1, s16 arg2, s16 arg3, u8 arg4, s32 arg5);
-void func_8026510C(void);
-void func_802661EC(void);
-void func_80266248(Gfx **gdlp, struct DynBuf *buf);
+void people_init(s32 arg0);
+void people_spawn(s16 arg0, s16 arg1, s16 arg2, s16 arg3, u8 arg4, s32 arg5);
+void people_update(void);
+void chopper_fly_to_carrier(void);
+void people_draw(Gfx **gdlp, struct DynBuf *buf);
 
 /* hd_code/22EE0.c */
 void func_802676A0(ALSynConfig *c, OSPri pri);
@@ -167,21 +167,21 @@ void func_8026A988(void);
 void func_8026A9B4(void);
 
 /* hd_code/26570.c */
-u8 func_8026AD30(s16 arg0);
-void func_8026AF6C(u16 yd);
-u16 func_8026B10C(void);
-void func_8026B118(u8 arg0);
-void func_8026B8F8(void);
-#ifndef LEGACY_func_8026BBD0
-Gfx *func_8026BBD0(Gfx *gfx, s32 arg1, s32 *count);
+u8 yoshi_show_hint(s16 arg0);
+void yoshi_demand(u16 yd);
+u16 yoshi_get_demand(void);
+void yoshi_init(u8 arg0);
+void yoshi_set_target_icons(void);
+#ifndef LEGACY_yoshi_draw
+Gfx *yoshi_draw(Gfx *gfx, s32 arg1, s32 *count);
 #endif
 s32 lowest_set_bit(u64 in);
-u8 func_8026FA38(char * N64P *name, s32 *arg1);
-void func_8026FBB0(s16 *pos, s16 *end);
-u8 func_8026FE6C(s32 arg0);
-void func_8026FE8C(s32 arg0);
-void func_8026FEC4(void);
-void func_802701A8(Gfx **gfx, s32 arg1);
+u8 yoshi_get_target_building(char * N64P *name, s32 *arg1);
+void rdu_init(s16 *pos, s16 *end);
+u8 rdu_is_lit(s32 arg0);
+void rdu_set_lit(s32 arg0);
+void rdu_update(void);
+void rdu_draw(Gfx **gfx, s32 arg1);
 void parse_cmdline(u8 *cmdline);
 
 /* hd_code/2C560.c */
@@ -302,10 +302,10 @@ void func_80287AE4(void);
 void func_80287C68(Gfx **gfxp, Gfx * N64P *gfxp2, u8 frame, u8 arg3);
 
 /* hd_code/43A60.c */
-void func_80288220(void);
-s32 func_80288284(u8 type, s32 x, s32 y, s32 z, s32 floor);
-void func_802886A0(void);
-void func_80288DF0(Gfx **gdl, u8 buf);
+void ptcl_init(void);
+s32 ptcl_start(u8 type, s32 x, s32 y, s32 z, s32 floor);
+void ptcl_update(void);
+void ptcl_draw(Gfx **gdl, u8 buf);
 
 /* hd_code/45BB0.c */
 u8 cont_init(void);
@@ -463,16 +463,16 @@ void func_802A05F8(s32 key, s32 val);
 void func_802A0620(s32 key, s32 val);
 
 /* hd_code/5BF40.c */
-void func_802A0700(void);
-void func_802A08B4(u32 *dl, u32 *end);
-void func_802A08E4(u32 *dl, u32 *end, Unk802A08E4Regs *r);
-void func_802A0B00(s32 id, u8 *param);
-u32 func_802A0CC8(s32 id, u8 *param);
-u32 func_802A0CFC(s32 id, u8 *param);
-void func_802A0EE0(s32 id, void *dest);
-void func_802A1040(s32 id, u8 *dest, u8 *param);
-void func_802A1074(s32 id, u8 *dest, u8 *param);
-void func_802A11C4(s32 id, void *dest);
+void tex_load_table(void);
+void tex_resolve_dl(u32 *dl, u32 *end);
+void tex_resolve_dl_impl(u32 *dl, u32 *end, Unk802A08E4Regs *r);
+void tex_load_to_heap(s32 id, u8 *param);
+u32 tex_get(s32 id, u8 *param);
+u32 tex_get_impl(s32 id, u8 *param);
+void tex_load_palette(s32 id, void *dest);
+void tex_queue_load(s32 id, u8 *dest, u8 *param);
+void tex_queue_load_impl(s32 id, u8 *dest, u8 *param);
+void tex_queue_palette(s32 id, void *dest);
 
 /* hd_code/5CB60.c */
 u32 func_802A1320(void);
@@ -489,21 +489,21 @@ void cull_step_delayed(s32 arg0, Gfx *arg1, Vtx *arg2, s32 arg3);
 void lvl_build_visible_dls(u32 *dl0, u32 *dl1, u32 *dl2, u32 *dl3, u32 *gfx);
 
 /* hd_code/60D50.c */
-void func_802A5510(u8 *level);
-void func_802A5604(u8 *level);
-s32 func_802A56C4(void);
+void cam_apply_height_zone(u8 *level);
+void chopper_find_cruise_height(u8 *level);
+s32 cam_load_level_defaults(void);
 
 /* hd_code/60F60.c */
-void func_802A5720(void);
-void func_802A5764(s32 a, s32 b, s32 c, s32 d);
-void func_802A57AC(void);
-s32 func_802A57DC(u8 *rec);
-void func_802A5E60(void);
-s32 func_802A5ED0(void);
-void func_802A5F30(void);
-void func_802A5FA8(void);
-s32 func_802A6274(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32 z, s32 w24, s32 w28, s32 w18, s32 w1C, s32 w2C, s32 b35);
-void func_802A64A4(void);
+void tex_reset_decode_queue(void);
+void tex_queue_decode(s32 a, s32 b, s32 c, s32 d);
+void tex_decode_next(void);
+s32 tex_decode(u8 *rec);
+void fx_finish_all(void);
+s32 fx_count_active(void);
+void fx_reset(void);
+void fx_alloc_texture_caches(void);
+s32 fx_spawn(Io802A6274 *io, u8 *def, s32 data, s32 type, s32 x, s32 y, s32 z, s32 w24, s32 w28, s32 w18, s32 w1C, s32 w2C, s32 b35);
+void fx_draw_all(void);
 
 /* hd_code/62740.c */
 void func_802A6F00(u8 *veh);
@@ -561,13 +561,13 @@ s32 func_802ABEDC(s32 x, s32 y, s32 z);
 s32 func_802AC0BC(s32 x, s32 z, s32 y, TriSideOut *f, TriScanRegs *r);
 
 /* hd_code/679E0.c */
-void func_802AC1A0(s32 radius);
+void obj_blast_around_carrier(s32 radius);
 void func_802AC284(s32 *px, s32 *py, s32 *pz);
 void func_802AC2A4(s32 z, s32 a1, s32 x, s32 y, s32 b0, s32 id, u8 *vehicle);
 s32 func_802AC4C4(s32 px, s32 pz, s32 x0, s32 z0, s32 x1, s32 z1, s32 x2, s32 z2);
-void func_802AC544(s32 x, s32 y, s32 z);
-void func_802AC61C(s32 x, s32 y, s32 z, s32 kind, s32 data);
-void func_802AC6FC(s32 x, s32 y, s32 z, s32 kind, s32 data);
+void fx_spawn_node_hit(s32 x, s32 y, s32 z);
+void fx_spawn_at(s32 x, s32 y, s32 z, s32 kind, s32 data);
+void fx_spawn_at_late(s32 x, s32 y, s32 z, s32 kind, s32 data);
 s32 func_802AC7DC(u8 *dst, u8 *src, u32 *words);
 void func_802AC85C(u8 *src, u8 *dst, u32 *words);
 void func_802AC8CC(u16 *m);
@@ -704,41 +704,41 @@ void func_802BBE2C(void);
 void func_802BBEB8(void);
 
 /* hd_code/77E20.c */
-void func_802BC5E0(void);
-void func_802BC840(void);
-void func_802BCA2C(void);
-void func_802BCBD8(void);
-void func_802BCC10(void);
-void func_802BCCD4(s32 value);
-s32 func_802BCD80(s32 value);
+void obj_check_level_end(void);
+void obj_clear_delayed_damage(void);
+void obj_update_delayed_damage(void);
+void veh_contacts_clear(void);
+void veh_prev_contacts_clear(void);
+void veh_contacts_add(s32 value);
+s32 veh_contacts_has(s32 value);
 s32 obj_find_nearest_target(void);
-void func_802BD10C(s32 arg0);
+void obj_calc_target_time(s32 arg0);
 void obj_draw_all(u32 *gA, u32 *gB, u32 *gC, u32 *gD, s32 mtxA, s32 mtxB, u32 *gE, u32 *gF);
-s32 func_802BD8C8(void);
-void func_802BD99C(struct Unk802BD99CModel *model, s32 dx, s32 dy, s32 dz);
-void func_802BE77C(s32 id, u8 *vehicle);
-void func_802BF1F0(struct Unk802C1DD0Entry *e, s32 id);
+s32 obj_end_object_hidden(void);
+void obj_move_model(struct Unk802BD99CModel *model, s32 dx, s32 dy, s32 dz);
+void obj_collide_vehicle(s32 id, u8 *vehicle);
+void obj_mark_part_gone(struct Unk802C1DD0Entry *e, s32 id);
 void func_802BF264(struct Unk803B9890 *t);
-void func_802BF384(struct Unk802C1DD0Entry *e);
-void func_802BF534(struct Unk802C1DD0Entry *e);
-void func_802BF668(struct Unk802C1DD0Entry *e);
-void func_802BF898(struct Unk802C1DD0Entry *e, s32 part, s32 level);
-void func_802C049C(void);
-void func_802C04F0(u32 *src);
-void func_802C0574(void);
-void func_802C09B8(s32 id, struct Unk802C1DD0Entry *e);
-void func_802C0E8C(s32 id, struct Unk802C1DD0Entry *e);
-void func_802C1438(struct Unk802C1DD0Entry *e, s32 index);
-void func_802C18D4(s32 x, s32 y, s32 z, s32 radius, s32 amount);
-s32 func_802C1AA0(void);
-#ifndef LEGACY_func_802C1B1C
-s32 func_802C1B1C(void);
+void obj_spawn_people(struct Unk802C1DD0Entry *e);
+void obj_check_destroyed(struct Unk802C1DD0Entry *e);
+void obj_drop_unsupported_parts(struct Unk802C1DD0Entry *e);
+void obj_spawn_break_effects(struct Unk802C1DD0Entry *e, s32 part, s32 level);
+void obj_clear_effect_queue(void);
+void obj_queue_effect(u32 *src);
+void obj_run_effect_queue(void);
+void obj_start_part_fade(s32 id, struct Unk802C1DD0Entry *e);
+void obj_start_sinking_part(s32 id, struct Unk802C1DD0Entry *e);
+void obj_start_topple(struct Unk802C1DD0Entry *e, s32 index);
+void obj_blast_damage(s32 x, s32 y, s32 z, s32 radius, s32 amount);
+s32 obj_path_buildings_destroyed(void);
+#ifndef LEGACY_obj_count_destroyed_path_buildings
+s32 obj_count_destroyed_path_buildings(void);
 #endif
-u32 func_802C1B9C(void);
-void func_802C1DD0(s32 onlyFlagged);
-s16 *func_802C1EE0(s32 index);
-void func_802C1F30(s32 group, s32 part, s32 x, s32 y, s32 z);
-void func_802C2054(void);
+u32 obj_find_carrier_target(void);
+void obj_tally(s32 onlyFlagged);
+s16 *lvl_group_get(s32 index);
+void lvl_group_move_part(s32 group, s32 part, s32 x, s32 y, s32 z);
+void lvl_groups_update_tris(void);
 
 /* hd_code/7F8B0.c */
 void func_802C4070(u32 *src, u32 *dst, u32 work, u8 type);

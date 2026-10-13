@@ -4,14 +4,14 @@
 /* Matching build: IDO compiled the matched code here against older
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
-#define LEGACY_D_8036BB24
+#define LEGACY_gYoshiHeapItems
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define gLevelInfo ((LevelInfo *) gLevelInfo)
 #define players ((Player *) players)
 #ifdef NON_MATCHING
-#define D_8036BB24 (*(MenuItem * N64P *) &D_8036BB24)
+#define gYoshiHeapItems (*(MenuItem * N64P *) &gYoshiHeapItems)
 #endif
 /* end of views */
 
@@ -74,7 +74,7 @@ extern u32 D_8021A828;        /* number of best-time menu items */
 extern u8 D_8021A7E8[];       /* player of each item */
 extern u8 D_8021A7D0[];       /* level of each row */
 #ifndef NON_MATCHING
-extern MenuItem *D_8036BB24;
+extern MenuItem *gYoshiHeapItems;
 #endif
 extern char D_80219FD0[][0x20];
 extern char D_8020D800[][4];
@@ -96,8 +96,8 @@ void func_801F7850(void) {
     char buf[0x20];
 
     p = &players[playerNumber];
-    hdr = (MenuHeader *) (D_802F8BDC + 0x268);
-    D_8036BB24 = (MenuItem *) gHeapPtr;
+    hdr = (MenuHeader *) (gYoshiWindows + 0x268);
+    gYoshiHeapItems = (MenuItem *) gHeapPtr;
     gHeapPtr += 0x71C;
     for (i = 0; i < 4; i++) {
         if (D_80365060[i] == 1 && saveIt[i] == 0
@@ -113,7 +113,7 @@ void func_801F7850(void) {
     for (; lvl < 16; lvl++) {
         if (func_801F7F74(lvl) && D_80364EF0[playerNumberAtStart][D_802E8C44[lvl]] > 0) {
             for (i = 0; i < 4; i++) {
-                item = &D_8036BB24[n * 4 + i];
+                item = &gYoshiHeapItems[n * 4 + i];
                 p = &players[i];
                 if (D_80365060[i] == 1 && D_80364EF0[i][D_802E8C44[lvl]] > 0
                     && (gLevelInfo[levelno].type != 0x80 || p->unk91 >= 11)) {
@@ -136,9 +136,9 @@ void func_801F7850(void) {
                 item->unk16 = D_80364EF0[i][D_802E8C44[lvl]];
                 item->unk1A = lvl;
             }
-            func_802595E0((u8 *) &D_8036BB24[n * 4], 4, 0x1C, (s32 (*)(void *, void *)) func_801F7FF4);
+            func_802595E0((u8 *) &gYoshiHeapItems[n * 4], 4, 0x1C, (s32 (*)(void *, void *)) func_801F7FF4);
             for (i = 0; i < 4; i++) {
-                item = &D_8036BB24[n * 4 + i];
+                item = &gYoshiHeapItems[n * 4 + i];
                 item->unk4 = i * 17;
                 if (i == 2) {
                     item->flags |= 1;
@@ -151,9 +151,9 @@ void func_801F7850(void) {
             n++;
         }
     }
-    func_802595E0((u8 *) D_8036BB24, n, 0x70, (s32 (*)(void *, void *)) func_801F7FF4);
+    func_802595E0((u8 *) gYoshiHeapItems, n, 0x70, (s32 (*)(void *, void *)) func_801F7FF4);
     for (lvl = 0; lvl < n * 4; lvl++) {
-        item = &D_8036BB24[lvl];
+        item = &gYoshiHeapItems[lvl];
         D_8021A7E8[lvl] = item->unk18;
         if (!(lvl & 3)) {
             D_8021A7D0[lvl / 4] = item->unk1A;
@@ -162,7 +162,7 @@ void func_801F7850(void) {
         item->unk4 += lvl / 4 * 100;
     }
     if (gLevelInfo[levelno].type == 0x80) {
-        item = &D_8036BB24[lvl];
+        item = &gYoshiHeapItems[lvl];
         item->text = 0;
         item->unk10 = 0;
         item->flags = 0x400;
@@ -238,7 +238,7 @@ void func_801F8228(void) {
     u32 i;
 
     for (i = 0; i < D_8021A828; i++) {
-        p = &D_8036BB24[i];
+        p = &gYoshiHeapItems[i];
         if (D_8021A7E8[i] == playerNumber) {
             p->flags |= 4;
         } else {
@@ -275,7 +275,7 @@ Gfx *func_801F8440(s32 arg0, Gfx *gfx) {
     g = gfx;
     if (gLevelInfo[levelno].type != 0x80) {
         g = func_80274868(g);
-        g = func_80272ED8(g, D_8021A7D0[((u16 *) D_802F8BDC)[0x280 / 2] / 4] + D_8021A8F0, 0x18 - off, 100, 0xFF - off * 2, 1, 1.0f);
+        g = func_80272ED8(g, D_8021A7D0[((u16 *) gYoshiWindows)[0x280 / 2] / 4] + D_8021A8F0, 0x18 - off, 100, 0xFF - off * 2, 1, 1.0f);
         g = func_80274AA4(g);
     }
     return g;

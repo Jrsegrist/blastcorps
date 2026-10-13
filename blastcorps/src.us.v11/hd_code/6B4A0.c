@@ -297,7 +297,7 @@ extern u8 D_802C2390[]; /* key of this vehicle's func_802A06B4 entry */
 /* Enter vehicle type 1 (called from 00000.c / 17210.c): clears byte 0x99 of
  * the state block, sets fields 0x14 / 0x11 / 0x12 of animation channels 1, 2,
  * 5, 3, 2 of D_803ED840 and restarts all but 5 with -1 (func_802A0290), sets
- * the D_802C2390 entry's fields (100, 0, 1) and restarts it, gCamDistance / D_80364450 =
+ * the D_802C2390 entry's fields (100, 0, 1) and restarts it, gCamDistance / gCamHeightBase =
  * 3400, 300, then func_802C4310(a0, 0x36) with a0 = D_803ED840 left over from
  * the setters (func_802C4310 ignores it). The asm points $gp at D_803EDB40 and
  * leaves it there (conventions.txt: clobbers gp) and returns with v1 = -1
@@ -328,7 +328,7 @@ void func_802AFFD4(void) {
     func_802A0620((s32) D_802C2390, 1);
     func_802A0508((s32) D_802C2390, -1);
     gCamDistance = 0xD48;
-    D_80364450 = 0x12C;
+    gCamHeightBase = 0x12C;
     func_802C4310((s32) D_803ED840, 0x36);
 }
 #else
@@ -433,7 +433,7 @@ extern s16 D_803EDC02;
  * 3. port_veh_move (rate 0x4650, kind 1 / 720.0, drift D_803EDC04 via
  *    D_803EDC02, divisors 0x2D0 / 0x2D0, parts func_802B0B3C, func_8029A800
  *    with D_80305CE0, 0, 7, 100);
- * 4. collision pass func_802BE77C (D_803F77D0 = the channel table), the
+ * 4. collision pass obj_collide_vehicle (D_803F77D0 = the channel table), the
  *    horn channel check func_802B0AAC; with a collision report
  *    (D_803A7425): func_8029A914, D_803EDC04 = 1 and port_veh_turn
  *    (D_8030D8A0, D_803EDC02); else D_803EDC04 = 0. (A bounce of the speed
@@ -465,7 +465,7 @@ void func_802B03F4(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
     port_veh_move(veh, p, 1, D_803ED840, 0x4650, 1, 720.0f, D_803EDC04, &D_803EDC02, 0x2D0, 0x2D0,
                   func_802B0B3C, D_80305CE0, 0, 7, 100);
     D_803F77D0 = D_803ED840;
-    func_802BE77C(1, veh);
+    obj_collide_vehicle(1, veh);
     func_802B0AAC();
     if (D_803A7425 == 0) {
         D_803EDC04 = 0;
@@ -577,7 +577,7 @@ void func_802B07DC(void) {
 #ifdef NON_MATCHING
 
 /* When channel 5 of D_803ED840 is active (field 0x10 != 0) and
- * func_802BCD80(4) or func_802BCD80(5) is nonzero: sets its field 0x11 to 1,
+ * veh_contacts_has(4) or veh_contacts_has(5) is nonzero: sets its field 0x11 to 1,
  * restarts it with value 1 (func_802A0290) and sets gShakeTime = 10,
  * gShakeSize = 600. Returns channel 5's (u16) field 0xC as read at the start
  * (the asm leaves it in a3, which asm caller func_802B03F4 reads;
@@ -588,7 +588,7 @@ s32 func_802B0AAC(void) {
     s32 ch[8];
 
     func_802A04BC(5, (Unk8029DEA0Entry *) D_803ED840, ch);
-    if (ch[0] != 0 && (func_802BCD80(4) != 0 || func_802BCD80(5) != 0)) {
+    if (ch[0] != 0 && (veh_contacts_has(4) != 0 || veh_contacts_has(5) != 0)) {
         func_802A03D4((Unk8029DEA0Entry *) D_803ED840, 5, 1);
         func_802A0290((Unk8029DEA0Entry *) D_803ED840, 5, 1);
         gShakeTime = 10;

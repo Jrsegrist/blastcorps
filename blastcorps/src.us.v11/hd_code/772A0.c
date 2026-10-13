@@ -164,14 +164,14 @@ void func_802BBA60(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-/* Enter vehicle type 7: gCamDistance / D_80364450 = 3000, 0, then func_802C4310(arg0,
+/* Enter vehicle type 7: gCamDistance / gCamHeightBase = 3000, 0, then func_802C4310(arg0,
  * 0x20) (arg0 passes straight through; hd.c calls this with no arguments
  * and func_802C4310 ignores it). The asm also points $gp at D_803EFDF0 and
  * leaves it there (conventions.txt: clobbers gp); C code doesn't use $gp.
  * Same shape as func_802C8AB0 (83910) and func_802B76AC (72B80). */
 void func_802BBDC8(s32 arg0) {
     gCamDistance = 3000;
-    D_80364450 = 0;
+    gCamHeightBase = 0;
     func_802C4310(arg0, 0x20);
 }
 #else
@@ -246,8 +246,8 @@ s32 func_802BBE74(ZoneScanRegs *r) {
  * that cvt.w.s fault). Ground contact (func_802A8768), animation channels
  * (func_8029E558), model update (func_802BC3D0), both frame counters + 1.
  * While byte +0x9A is clear: collisions (func_8029A800, func_8029C52C,
- * func_8029AA10, func_802BE77C) and, if they flagged D_803A7425, the bumper
- * check: with contact 3 (func_802BCD80) the speed becomes 0 if contact 2 is
+ * func_8029AA10, obj_collide_vehicle) and, if they flagged D_803A7425, the bumper
+ * check: with contact 3 (veh_contacts_has) the speed becomes 0 if contact 2 is
  * also set, else D_803EFEC0 = 0 and -40 once D_803EFEC4 >= 6 (else 0); with
  * only contact 2, D_803EFEC4 = 0 and +40 once D_803EFEC0 >= 6 (else 0).
  * Finally position / speed / headings go to gPlayerX.. and veh_set_record.
@@ -255,7 +255,7 @@ s32 func_802BBE74(ZoneScanRegs *r) {
  * overflow (game range).
  * Fidelity: func_802BBE74's scan registers are passed through from the
  * caller (t6, t7, s0-s4 as hd.c's compiled caller or the spawn leave them)
- * and reach func_802BC2C8's func_802A6274 records only when no zone is looked
+ * and reach func_802BC2C8's fx_spawn records only when no zone is looked
  * at (empty zone list); the C starts them at 0. func_802A8768's FP inputs
  * (f12/f14 as func_802A860C's sine leaves them, the caller's f20-f26) start
  * at 0; they only reach its FP outputs, which nothing here reads. */
@@ -325,10 +325,10 @@ void func_802BBEB8(void) {
         func_8029C52C(7, veh);
         func_8029AA10(7);
         D_803F77D0 = D_803EFAF0;
-        func_802BE77C(7, veh);
+        obj_collide_vehicle(7, veh);
         if (D_803A7425 != 0) {
-            c2 = func_802BCD80(2);
-            c3 = func_802BCD80(3);
+            c2 = veh_contacts_has(2);
+            c3 = veh_contacts_has(3);
             if (c3 != 0) {
                 if (c2 != 0) {
                     VEH_S16(veh, 0x76) = 0;
@@ -361,13 +361,13 @@ extern u8 D_803EFEC9;    /* countdown */
 
 /* Countdown D_803EFEC9: when nonzero it just counts down. At zero, if the
  * flag for the speed's sign (s16 at +0x76: > 0 -> gHeldBOrZ, else
- * gHeldA) is set, two func_802A6274 records are set up (def D_802C2984,
+ * gHeldA) is set, two fx_spawn records are set up (def D_802C2984,
  * data 0x9C40, tag 0, type 1 at (7, 2, 1) and (7, 3, 1)), sound 0x29 is
  * played (func_80260650) and the countdown restarts at 1. Then always
  * func_802C4584(|speed >> 4|) and func_802C4724(0x21).
  * Register convention: the asm passes t6, t7, s0-s4 through to
- * func_802A6274 (t6 and s1 in its in/out block); $gp (= D_803EFDF0) is read
- * as the global. It leaves func_802A6274's s1 and changes s5
+ * fx_spawn (t6 and s1 in its in/out block); $gp (= D_803EFDF0) is read
+ * as the global. It leaves fx_spawn's s1 and changes s5
  * (conventions.txt: clobbers). */
 void func_802BC2C8(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
     Io802A6274 io;
@@ -379,9 +379,9 @@ void func_802BC2C8(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
         io.a3 = 0;
         io.t6 = t6;
         io.s1 = s1;
-        func_802A6274(&io, D_802C2984, 0x9C40, 1, 7, 2, 1, t7, s0, s2, s3, s4, 0);
+        fx_spawn(&io, D_802C2984, 0x9C40, 1, 7, 2, 1, t7, s0, s2, s3, s4, 0);
         io.a3 = 0;
-        func_802A6274(&io, D_802C2984, 0x9C40, 1, 7, 3, 1, t7, s0, s2, s3, s4, 0);
+        fx_spawn(&io, D_802C2984, 0x9C40, 1, 7, 3, 1, t7, s0, s2, s3, s4, 0);
         func_80260650(D_80367738, 0x29, NULL);
         D_803EFEC9 = 1;
     }

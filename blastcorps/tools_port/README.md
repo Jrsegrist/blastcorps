@@ -234,7 +234,7 @@ Scratch-heap blocks are numbered in allocation order: `heap0`, `heap1`, ...
 # a1 = a0 + 0..16 records of 0x60 bytes, inside a 0x600-byte block
 eqcheck.py func_802CEA68 --arg a0=ptr:0x600 --arg a1=rel:a0+0x60*int:0:16 --ret void
 # a global pointing at a heap block, and fields inside that block
-eqcheck.py func_802C1EE0 --arg a0=int:1:20 --mem gLevelData=ptr:0x300 \
+eqcheck.py lvl_group_get --arg a0=int:1:20 --mem gLevelData=ptr:0x300 \
     --mem @heap0+0x74=choice:0x100*2,0x102,0 --mem @heap0+0x100:0x200=halves:4,6,8,0x10
 ```
 
@@ -256,7 +256,7 @@ for a 25 x 0x14 table whose word 0 is an id (-1 = free):
 
 Choose pools that reach every branch. In the demo, a broken
 `func_802768A8` (with its NULL check dropped) **passes** when
-`D_8036C790=choice:1,2` and fails at once with `choice:0,1,2`. The harness
+`gNearestTargetPts=choice:1,2` and fails at once with `choice:0,1,2`. The harness
 only proves equivalence on the inputs you give it.
 
 ### Calls
@@ -273,7 +273,7 @@ compared between the builds.
 * **Static helpers are followed automatically.** A callee that exists only in the new build (no symbol of that name in the reference build, typically a `static` helper a rewrite introduced) is part of the rewrite, so it always runs for real instead of showing up as an extra call. The run prints `note: following NAME, which exists only in build_nm`.
 * `--sig NAME=a0,a1` sets which registers count as NAME's arguments. Use it when a callee takes fewer than 4 arguments and the two versions leave different garbage in the unused ones. **`--sig NAME=` (empty list) compares no arguments at all**, just that the call happened, for a callee that takes none (otherwise leftover a0-a3 garbage is compared). `--sig '*=a0'` changes the default. Stack arguments can be listed as `stack0` (= `sp+0x10`), `stack1`, ... For a callee in `conventions.txt` (section 3a) the arguments are already mapped, and `--sig` then selects C slots (`--sig func_802ABCDC=a0,a1,a2`). **Widths:** an entry `REG:W` (W = 1, 2, 4, 8) compares only the low W bytes: `--sig func_8027BE7C=a0:1,a1,a2:2,stack4:2` compares a `u8`/`s16` argument at its declared width, so leftover upper bits (asm passes the whole register, C a truncated value) don't count. This works with and without a convention (no more per-line `--conv` just for widths).
 * `--stub-ret NAME=SPEC` sets what a stubbed callee returns (its first convention output, if it has one; `--stub-ret NAME.REG=SPEC` sets the output in asm register REG). SPEC is `rand` (default), a constant, `ptr:SIZE` (deterministic heap blocks, useful for allocators), `seq:1,0,5` (the k-th call in a trial returns the k-th value, cycling: one run drives several branches), or any value spec from the `--arg` table (`choice:0,1*3`, `int:LO:HI`, `int64`, `float`, `fbits`, `sym:NAME`, `val:NAME`), drawn per trial and call, identically in both builds. A constant wider than 32 bits returns `v0:v1` (o32 `u64`); for a convention output declared 64-bit (`ret64`, below) the whole value is delivered.
-* `--stub-preserve NAME=v1,a0` keeps a stub from writing those registers. The default stub writes v0, v1 and f0; asm callers that rely on the callee preserving one of them (func_802A57AC keeps &D_803C4B54 in v1 across func_802A57DC) fault in the reference otherwise. `NAME=*` applies to every stub. Put permanent cases in `conventions.txt` as `preserve`.
+* `--stub-preserve NAME=v1,a0` keeps a stub from writing those registers. The default stub writes v0, v1 and f0; asm callers that rely on the callee preserving one of them (tex_decode_next keeps &gTexDecodeQueueHead in v1 across tex_decode) fault in the reference otherwise. `NAME=*` applies to every stub. Put permanent cases in `conventions.txt` as `preserve`.
 * `--model NAME=FILE.py[:FUNC]` runs a Python function in place of NAME in both builds (like `--follow`, so no call is recorded). It is called as `FUNC(args, mem)`: `args` are NAME's inputs in C argument order (its convention's `in` list, else a0-a3), `mem` reads and writes guest memory (`mem.u32(a)`, `mem.s16(a)`, `mem.w32(a, v)`, `mem.read(a, n)`, `mem.sym("D_8036...")`). It returns the outputs in `out` order (an int for one), delivered on the caller's side like a stub's. FILE is also looked up in `tools_port/models/` (example: `func_802ABCDC.py`). Use it for a callee that can't run in the emulator, or to cross-check a model.
 
 Calls are recognized by control reaching a function's entry address, so
@@ -294,7 +294,7 @@ func_8029DC14: in v0=a0 ; out v1=ret
 func_802ACF64: in v1=a0 ; out fp=ret ; preserve a0,a1,v1
 func_802AB8D8: in s2=a0 ; out t0=ret ; preserve t1,t2,t3,t4,s3 ; clobbers s2
 func_802ABCDC: in t3=a0,t4=a1,t5=a2,t6=a3,t7=stack0,s0=stack1 ; out s1=ret ; preserve t6,t7,s0 ; clobbers s1
-func_802A57DC: preserve a0,v1
+tex_decode: preserve a0,v1
 ```
 
 | clause | meaning |
@@ -308,7 +308,7 @@ func_802A57DC: preserve a0,v1
 64-bit register; on the C side an o32 pair: `a0:8` = a0 (high word) : a1
 (low), `a2:8` = a2:a3, `stackN:8` (N even) = two stack words, `ret64` (or
 `ret:8`, `v0:8`) = v0:v1, `*a2:8` = 8 bytes through a pointer. So
-`func_802C0C64: in ... ; out t4=ret64` gives a C caller of the stub v0:v1 and
+`obj_fade_substitute_cmd: in ... ; out t4=ret64` gives a C caller of the stub v0:v1 and
 compares all 64 bits, and `in t4=a0:8` passes a whole 64-bit t4 to the asm
 and the a0/a1 pair to the C. Generated inputs are 64-bit random (or
 `--arg t4=int64:..`; a 32-bit `--arg` value is sign-extended). `a1:8`,
@@ -416,7 +416,7 @@ of using `$VARS`. A trailing `\` continues a line.
 bash tools_port/runchecks.sh            # everything, plus the coverage check
 bash tools_port/runchecks.sh -b         # make NON_MATCHING=1 first
 bash tools_port/runchecks.sh -B         # matching build (checks both OK lines) + NON_MATCHING first
-bash tools_port/runchecks.sh 8A080 func_802A5510   # filter: check file, function, or substring
+bash tools_port/runchecks.sh 8A080 cam_apply_height_zone   # filter: check file, function, or substring
 bash tools_port/runchecks.sh -q 20      # quick: cap every run at 20 trials
 bash tools_port/runchecks.sh --list 60D50          # show the selected command lines
 bash tools_port/runchecks.sh --coverage-only
@@ -534,7 +534,7 @@ lines. Run it after changing eqcheck.
 | func_8029DC14 (id in v0, result in v1), func_802ACF64 (v1 -> fp), func_802AB8D8 (s2 -> t0, recursive) | non-ABI asm, C rewrite via conventions.txt | vs build_nm | PASS 300 each |
 | func_8029DBF0 / func_802ACF3C / func_802AB878 (wrappers of the above) | callee stubbed under the mapping / `--follow` | vs build_nm | PASS 200 / 300 |
 | func_8029DC14 without the byte-0x51 test; func_802AB878 passing id+1 | broken | vs build_nm | FAIL: `output v1=v0` 1 vs 0; `event #0 differs: func_802AB8D8(a0=0x9) vs (a0=0xA)` |
-| func_802BD10C (calls func_802ABCDC: cvt.d.l/sqrt.d/cvt.l.d) | FPU long ops emulated; also `--model` | vs build_nm | PASS 300; z read from the wrong word: FAIL |
+| obj_calc_target_time (calls func_802ABCDC: cvt.d.l/sqrt.d/cvt.l.d) | FPU long ops emulated; also `--model` | vs build_nm | PASS 300; z read from the wrong word: FAIL |
 
 A trial (both builds) takes about 2 ms for a small function (5-10 ms before
 Oct 2026), and a fresh process starts in about 0.4-0.6 s (paid once per
@@ -572,7 +572,7 @@ under `-j4`; the 148-run suite went from 637 s to 69 s at `-j4`.)
 * **Non-ABI functions** are mapped through `conventions.txt` (section 3a). What it can't express: gp or fp used as a global base pointer rather than an argument (draftconv flags `gp_offsets`; the C reads the globals directly, so don't map them); outputs whose *register* depends on the path (not just whether it is written); values passed in hi/lo or the FPU condition flag; 64-bit FPU (double) values; and asm callers that rely on registers a C callee doesn't preserve (`asm_callers_rely_on_preserved`: a mixed N64 build would need a thunk; the harness's C side doesn't model it). Pointer-slot outputs/inputs (`*aN`) are new and so far exercised only by asm-vs-asm runs and the parser; the three demo rewrites use register/`ret` mappings.
 * **Call detection is entry-address based.** Asm that falls through into the next function, or jumps into the middle of another function, isn't seen as a call. The fall-through target becomes a recorded call only in the rewrite, which looks like a spurious difference. Fix it with `--follow` on that target.
 * **Data blobs keep original code addresses.** A word in a raw `.bin` blob that points into the text points at the original text. The NM machine is pre-filled with the original text at its old address, so such paths still execute (the original code). Function entries reached that way are translated by name, and other blocks print a `note:`. (An Oct 2026 scan found no function pointers in the hd_code or front-end data at all, only compiler jump tables and libultra's `__osException` table; the text-range words outside those were pointers to the data tables inside the text bins, now C, see below.)
-* **The data tables inside the hd_code text bins** (68810, 690C0, 7D9D0_data, 800E0_data, 8E910: D_802ACFD0, the arcsine tables, the texture-animation entries and effect definitions with their lists D_802C23B4/D_802C3FFC, the particle definitions and D_802C4A20, the per-level part lists) are defined in C in the NON_MATCHING build (69000.c, 69930.c, 7F8B0.c, 7FB50.c, 8DDB0.c, typed so they read the same on either byte order) and linked back at their original addresses (Makefile `NM_PIN_HD_CODE`, `nm_ldscript.py --pin-object`, sections `.nm_pin_<ADDR>_<SIZE>`), so the absolute `D_` symbols, pointer words elsewhere, the front end and the harness see them where the original has them. `nm_symaudit.py` (run by `runchecks -b/-B`) fails if their bytes differ from the bins; `AddrMap` treats those sections as unmoved; `nm_rom.py` copies them into image B. Only the RSP microcode (A0C30) is still read from the original text.
+* **The data tables inside the hd_code text bins** (68810, 690C0, 7D9D0_data, 800E0_data, 8E910: D_802ACFD0, the arcsine tables, the texture-animation entries and effect definitions with their lists D_802C23B4/gFxDefsByKind, the particle definitions and gParticleDefs, the per-level part lists) are defined in C in the NON_MATCHING build (69000.c, 69930.c, 7F8B0.c, 7FB50.c, 8DDB0.c, typed so they read the same on either byte order) and linked back at their original addresses (Makefile `NM_PIN_HD_CODE`, `nm_ldscript.py --pin-object`, sections `.nm_pin_<ADDR>_<SIZE>`), so the absolute `D_` symbols, pointer words elsewhere, the front end and the harness see them where the original has them. `nm_symaudit.py` (run by `runchecks -b/-B`) fails if their bytes differ from the bins; `AddrMap` treats those sections as unmoved; `nm_rom.py` copies them into image B. Only the RSP microcode (A0C30) is still read from the original text.
 * **Infinite loops.** These are caught by `--max-insns` and `--timeout`. They are reported as a failure if only one build loops, and as "can't compare" if both do.
 * **unicorn delay-slot bugs (worked around).** (1) In unicorn 2.1, any hook that fires for a load or store in a branch delay slot (`UC_HOOK_MEM_READ`/`WRITE`, and `UC_HOOK_TLB_FILL`) corrupts MIPS execution: before calling the hook unicorn rolls the CPU back to the instruction (`cpu_restore_state`), which ORs the branch bits into `env->hflags`; the code after the delay slot never clears them, so the next block runs as if it were in a delay slot (an RI exception or a wild jump). eqcheck's TLB-fill hook repairs this (`Machine._delay_slot_fix`: when the instruction before the faulting pc is a branch, it clears the bits in a saved context and restores it; `calibrate_hflags()` finds hflags' offset in the context once per process by faulting in a beq/bne delay slot; if that fails, write tracking falls back to a full memcmp). `--explore` and `--mmio-log` still decode loads and stores in a per-instruction code hook; don't add `UC_HOOK_MEM_READ`/`UC_HOOK_MEM_WRITE` hooks. (2) A run that *ends* with a fault in a delay slot leaves the same branch state (hflags, btarget) behind, so the next `emu_start` used to execute one instruction at the new entry and then jump to the old branch target (seen as a 4-byte block followed by the previous trial's faulting code). Every run now starts from a clean CPU context saved when the machine was created.
 * `init`, `hd_code` and the front end are loaded (the front end at its 0x801E7000 overlay address). Calls into other code (level overlays, NULL pointers) are stubbed as `sub_XXXXXXXX`, and reading their data faults or returns 0. Since Oct 2026 an hd_code check with `--follow-all` that reaches a front-end function runs it for real (before, nothing was loaded there).

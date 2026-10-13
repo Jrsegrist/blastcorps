@@ -379,7 +379,7 @@ void func_80278324(Gfx **gfx, s32 arg1, u8 buf) {
     Gfx *gdl = *gfx;
 
     if (D_8036CB34) {
-        func_802A1040(D_8036CB40[D_8036CB39], D_8036CB48[buf], 0);
+        tex_queue_load(D_8036CB40[D_8036CB39], D_8036CB48[buf], 0);
         switch (D_8036CB38) {
             case 1:
                 if (!D_8036CB37) {

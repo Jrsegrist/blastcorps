@@ -2,7 +2,7 @@
 #include <ultra64.h>
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_803F3FF8 (*(Debris8A2E0 *) D_803F3FF8)
+#define gEffectScratch (*(Debris8A2E0 *) gEffectScratch)
 #define D_803FBBB0 ((UnkEntry8A2E0 *) D_803FBBB0)
 #ifdef NON_MATCHING
 #define gHeapPtr (*(u32 *) &gHeapPtr)
@@ -300,7 +300,7 @@ void func_802CF1A4(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* The 0x38-byte debris record handed to func_802C04F0 (77E20.c's Unk803F3FF8). */
+/* The 0x38-byte debris record handed to obj_queue_effect (77E20.c's Unk803F3FF8). */
 typedef struct {
     /* 0x00 */ s32 pos[3];
     /* 0x0C */ s32 unkC;
@@ -318,24 +318,24 @@ typedef struct {
 } Debris8A2E0;
 
 
-/* Burst at pos (s32 x, y, z): func_802A5E60(), frees every D_803F3968 slot
- * (func_802C049C), then 24 debris records (D_803F3FF8, through
- * func_802C04F0) at (x, y, z) << 11, the i-th one 0xA0000 * i higher, with
+/* Burst at pos (s32 x, y, z): fx_finish_all(), frees every gEffectQueue slot
+ * (obj_clear_effect_queue), then 24 debris records (gEffectScratch, through
+ * obj_queue_effect) at (x, y, z) << 11, the i-th one 0xA0000 * i higher, with
  * unkC = 50000 + 0x36B0 * i, unk2C = i and kind (byte 0x31) 0x15; finally
  * plays sound 0x5E (func_80260650(D_80367738, 0x5E, NULL)). The asm takes pos
  * in t1 and preserves every register (all of them saved); asm caller
  * func_802CF1A4 keeps t0-t4 live across the call. The asm's trapping `add`s
  * on the height and unkC can't overflow for game coordinates. */
 void func_802CF3E0(s32 *pos) {
-    Debris8A2E0 *d = &D_803F3FF8;
+    Debris8A2E0 *d = &gEffectScratch;
     s32 x;
     s32 y;
     s32 z;
     s32 w;
     s32 i;
 
-    func_802A5E60();
-    func_802C049C();
+    fx_finish_all();
+    obj_clear_effect_queue();
     x = pos[0] << 11;
     y = pos[1] << 11;
     z = pos[2] << 11;
@@ -359,7 +359,7 @@ void func_802CF3E0(s32 *pos) {
         d->unk31 = 0x15;
         d->unk34 = 0;
         d->unk35 = 0;
-        func_802C04F0((u32 *) d);
+        obj_queue_effect((u32 *) d);
     }
     func_80260650(D_80367738, 0x5E, NULL);
 }

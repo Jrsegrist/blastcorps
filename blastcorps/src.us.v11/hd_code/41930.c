@@ -92,7 +92,7 @@ void func_802860F0(void) {
                 func_801ECC8C();
                 break;
         }
-        func_8026AF6C((players[playerNumber].gameState + 0x16) | 0x8000);
+        yoshi_demand((players[playerNumber].gameState + 0x16) | 0x8000);
     }
 }
 

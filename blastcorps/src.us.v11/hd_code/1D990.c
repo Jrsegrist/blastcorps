@@ -5,13 +5,13 @@
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
 #define LEGACY_nss
-#define LEGACY_func_802C1B1C
+#define LEGACY_obj_count_destroyed_path_buildings
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define gLevelInfo ((LevelInfo *) gLevelInfo)
 #define D_802F49F4 ((Anim30 *) D_802F49F4)
-#define D_802F5804 ((void * N64P *) D_802F5804)
+#define gYoshiGameItems ((void * N64P *) gYoshiGameItems)
 #define players ((Player *) players)
 #ifdef NON_MATCHING
 #define nss (*(u32 *) &nss)
@@ -125,7 +125,7 @@ extern u16 D_80367BF4;
 extern u16 D_80367D08;
 
 #ifndef NON_MATCHING
-u8 func_802C1B1C(void);
+u8 obj_count_destroyed_path_buildings(void);
 #endif
 void func_80262840(void);
 void func_80262FD0(void);
@@ -250,7 +250,7 @@ void func_80262320(u8 arg0) {
             anim = 6;
             break;
         case 0x20:
-            anim = func_8026FA38(&D_80367C08, &D_80367C0C);
+            anim = yoshi_get_target_building(&D_80367C08, &D_80367C0C);
             D_80367BD8 = 2;
             break;
         case 0x10:
@@ -358,11 +358,11 @@ void func_80262840(void) {
                 mins = D_80367C04->time / 600;
                 rem = (D_80367C04->time / 10) % 60;
                 func_802D6A60(D_80367C40, "%d MINUTE%c %d SECONDS", mins, D_802E9FA0[mins != 1], rem);
-                D_802F5804[255] = D_80367C18;
-                D_802F5804[262] = D_80367C40;
-                D_802F5804[256] = D_80367C68;
-                D_802F5804[263] = D_80367CB8;
-                func_8026AF6C(0x8009);
+                gYoshiGameItems[255] = D_80367C18;
+                gYoshiGameItems[262] = D_80367C40;
+                gYoshiGameItems[256] = D_80367C68;
+                gYoshiGameItems[263] = D_80367CB8;
+                yoshi_demand(0x8009);
                 func_80260650(D_80367738, func_8026205C(0), 0);
                 break;
             case 1:
@@ -425,8 +425,8 @@ void func_80262BF4(void) {
             if (gCarrierHit) {
                 func_80260A10();
                 func_802609F0();
-                func_8026AF6C(0xA00E);
-                D_8036BB1A = -1;
+                yoshi_demand(0xA00E);
+                gYoshiPendingWindow = -1;
                 gNextGameMode = 0x04000000;
             } else if (gLevelDone) {
                 gNextGameMode = 0x04000000;
@@ -467,7 +467,7 @@ void func_80262FD0(void) {
 void func_8026303C(void) {
     s16 h;
 
-    func_802C1DD0(0);
+    obj_tally(0);
     if (D_8036EA78 >= D_80367C04->target) {
         gLevelDoneRequest = 1;
     }
@@ -486,7 +486,7 @@ void func_8026303C(void) {
 void func_80263140(void) {
     s16 h;
 
-    func_802C1DD0(1);
+    obj_tally(1);
     switch (gLevelKind) {
         case 0x20:
             if (D_8036EA78 >= D_8036EB92) {
@@ -494,7 +494,7 @@ void func_80263140(void) {
             }
             break;
         case 0x80:
-            if (D_803F7806 || (levelno == 0x32 && D_8036EA78 >= D_8036EB92)) {
+            if (gPathBuildingsDestroyed || (levelno == 0x32 && D_8036EA78 >= D_8036EB92)) {
                 gLevelDoneRequest = 1;
             }
             break;
@@ -515,7 +515,7 @@ void func_80263140(void) {
             if (levelno == 0x32) {
                 func_802D6A60(D_80367B60[0], "%d/%d", D_8036EA78, D_8036EB92);
             } else {
-                func_802D6A60(D_80367B60[0], "%d/%d", func_802C1B1C(), D_8036EB92);
+                func_802D6A60(D_80367B60[0], "%d/%d", obj_count_destroyed_path_buildings(), D_8036EB92);
             }
             break;
     }
@@ -525,7 +525,7 @@ void func_80263140(void) {
 void func_80263358(void) {
     s32 left;
 
-    func_802C1DD0(0);
+    obj_tally(0);
     if (nss >= D_80367C04->target) {
         gLevelDoneRequest = 1;
     }
@@ -575,15 +575,15 @@ void func_802633E0(void) {
                 } else {
                     left = D_80367C04->target - D_80367B54;
                     if (!gPaused) {
-                        func_8026AF6C(0x8008);
+                        yoshi_demand(0x8008);
                     }
                     if (left == 1) {
                         func_802D6A60(D_80367D10, "1 LAP LEFT!");
                     } else {
                         func_802D6A60(D_80367D10, "%d LAPS LEFT!", left);
                     }
-                    D_802F5804[248] = D_80367D10;
-                    D_802F5804[249] = D_80367D28;
+                    gYoshiGameItems[248] = D_80367D10;
+                    gYoshiGameItems[249] = D_80367D28;
                     alCSPSetTempo(D_80367734, alCSPGetTempo(D_80367734) * 0.95);
                 }
                 D_80367B54++;

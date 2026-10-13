@@ -60,7 +60,7 @@ Gfx *func_8029A518(Gfx * N64P *gfxp, Gfx *gfx) {
         }
     }
     if (((s32) gFramesInMode) == 100) {
-        func_8026AF6C(0x8036);
+        yoshi_demand(0x8036);
     }
     if ((u32) ((s32) gFramesInMode) >= 0x18C) {
         D_803A6B20++;
@@ -69,7 +69,7 @@ Gfx *func_8029A518(Gfx * N64P *gfxp, Gfx *gfx) {
         D_803A6B24++;
     }
     if (D_803A6B24 == 0x7D) {
-        func_8026AF6C(0x8037);
+        yoshi_demand(0x8037);
         func_80260EE0(0x25);
     }
     if (D_803A6B24 >= 0x7E && yoshiState == 1 && areWeFading() == 0) {

@@ -528,7 +528,7 @@ void func_802BA91C(void) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern u8 D_80305D60[];
-extern u8 D_802C3B44[]; /* func_802A6274 definition */
+extern u8 D_802C3B44[]; /* fx_spawn definition */
 extern u8 D_803EF6FE;   /* countdown before the effect */
 extern u8 D_803EF700;   /* effect frame count */
 extern u8 D_803EF701;   /* effect started */
@@ -539,20 +539,20 @@ extern u8 D_803EF701;   /* effect started */
  * Unless gCarrierHit is set: func_8029A800((x, y, z) = D_803EF6DC/E0/E4, table
  * D_80305D60, 0, 0, b0, speed (s16 +0x76), h2, 0, 0xFF), func_8029C52C(0xFF, D_803EF630);
  * then, unless D_803A7426 is set, D_803A7424 = 0, func_8029AA10(0xFF) when
- * D_803EF710 is set and func_802BE77C(0xFF, veh) (with D_803F77D0 =
+ * D_803EF710 is set and obj_collide_vehicle(0xFF, veh) (with D_803F77D0 =
  * &D_803EF330) when D_803EF711 is set; if D_803A7424 is then still 0 and the
  * three height pairs at +4/+8, +0x10/+0x14, +0x1C/+0x20 each differ by at most
  * 10000, it returns. Otherwise cmo_hit_request = gPauseRequest = 1. Then, unless
  * D_803643D8 is set: func_80278318, func_802A02E4(1, &D_803EF330),
- * func_802A5E60, func_802C049C. Finally the effect: D_803EF6FE counts down
+ * fx_finish_all, obj_clear_effect_queue. Finally the effect: D_803EF6FE counts down
  * first; then, until D_803EF6FF is set, the first frame sets up a
- * func_802A6274 record (def D_802C3B44, data 0x7A120, type 1 at (0xFF, 2, 0))
+ * fx_spawn record (def D_802C3B44, data 0x7A120, type 1 at (0xFF, 2, 0))
  * and sets D_803EF701, and later frames count D_803EF700 up to 0x12, which
  * sets D_803EF6FF.
  * Leaked registers (kept): b0 is the asm's t0 = &gCarrierHit (so D_803A7428
  * gets 0xD6) and h2 its t2, func_802BABEC's leftover point-list end pointer
  * (its low half goes to D_803A7422), passed in here as `h2`. The
- * func_802A6274 call (type 1, z = 0) ignores the asm's other leftover
+ * fx_spawn call (type 1, z = 0) ignores the asm's other leftover
  * registers (t6, t7, s0-s4, the a3 tag aside), so they are 0 here. The asm's
  * `sub`/`addi` trap on overflow.
  * Register convention: h2 in t2 (conventions.txt); the asm reads the height
@@ -574,7 +574,7 @@ void func_802BA9A0(s32 h2) {
             }
             if (D_803EF711 != 0) {
                 D_803F77D0 = D_803EF330;
-                func_802BE77C(0xFF, D_803EF630);
+                obj_collide_vehicle(0xFF, D_803EF630);
             }
             if (D_803A7424 == 0 && ABS_BA9A0(ys[1] - ys[0]) < 0x2711 && ABS_BA9A0(ys[4] - ys[3]) < 0x2711 &&
                 ABS_BA9A0(ys[7] - ys[6]) < 0x2711) {
@@ -587,8 +587,8 @@ void func_802BA9A0(s32 h2) {
     if (D_803643D8 == 0) {
         func_80278318();
         func_802A02E4(1, (Unk8029DEA0Entry *) D_803EF330);
-        func_802A5E60();
-        func_802C049C();
+        fx_finish_all();
+        obj_clear_effect_queue();
     }
     if (D_803EF6FE != 0) {
         D_803EF6FE--;
@@ -601,7 +601,7 @@ void func_802BA9A0(s32 h2) {
         io.a3 = 1;
         io.t6 = 0;
         io.s1 = 0;
-        func_802A6274(&io, D_802C3B44, 0x7A120, 1, 0xFF, 2, 0, 0, 0, 0, 0, 0, 0);
+        fx_spawn(&io, D_802C3B44, 0x7A120, 1, 0xFF, 2, 0, 0, 0, 0, 0, 0, 0);
         D_803EF701 = 1;
         return;
     }
@@ -774,14 +774,14 @@ void func_802BAD80(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fp) {
 #ifdef NON_MATCHING
 extern u8 D_803EF720[];  /* animation channel table (Unk8029DEA0Entry, 56040.c) */
 
-/* Enter vehicle type 6 (called from hd.c): gCamDistance / D_80364450 = 6000, 9000, then
+/* Enter vehicle type 6 (called from hd.c): gCamDistance / gCamHeightBase = 6000, 9000, then
  * sets fields 0x14/0x11/0x12 of channels 2, 4, 5 of D_803EF720 and starts
  * channels 4 and 5 with value -1 (func_802A0290). The asm also points $gp at
  * D_803EFA20 and leaves it there (conventions.txt: clobbers gp) and leaves
  * v1 = -1; the C caller uses neither. */
 void func_802BB054(void) {
     gCamDistance = 6000;
-    D_80364450 = 9000;
+    gCamHeightBase = 9000;
     func_802A039C((Unk8029DEA0Entry *) D_803EF720, 2, 1);
     func_802A03D4((Unk8029DEA0Entry *) D_803EF720, 2, 0);
     func_802A040C((Unk8029DEA0Entry *) D_803EF720, 2, 1);
@@ -871,7 +871,7 @@ s32 func_802BB8B8(MtxChainRegs *regs, s32 *t2Out);
  * animate the model (func_8029E558 on the current buffer pair, channels
  * D_803EF720); rebuild it (func_802BB8B8); clear +0xA2; vehicle-state reset
  * func_8029A800 (table D_80305DF0, kind 6), func_8029C52C(6), the part
- * lookup func_8029C5EC, the collision pass func_802BE77C(6) (with
+ * lookup func_8029C5EC, the collision pass obj_collide_vehicle(6) (with
  * D_803F77D0 = D_803EF720) and func_8029AA10(6); +0xA2 = 1 if D_803A7424 got
  * set; finally the player globals gPlayerX/Y/Z = the position,
  * D_8036443C = 0, D_8036443E / D_80364440 = u16 +0x4E / +0x4C.
@@ -929,7 +929,7 @@ void func_802BB274(void) {
     func_8029C52C(6, D_803EFA20);
     func_8029C5EC(0, 0, 0, 0);
     D_803F77D0 = D_803EF720;
-    func_802BE77C(6, D_803EFA20);
+    obj_collide_vehicle(6, D_803EFA20);
     func_8029AA10(6);
     if (D_803A7424 != 0) {
         D_803EFA20[0xA2] = 1;

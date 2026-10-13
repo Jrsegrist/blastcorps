@@ -1429,7 +1429,7 @@ s32 func_802A8B10(s32 *a3Out) {
  * check, the key must exist) gives x, y, z (each s16 << 5), stored to *px,
  * *py, *pz and handed back in pos; gCamSnap = 1; func_802A754C(veh);
  * words 1..9 of veh = y; effect kind 0x13 (data 1000000) at the new position
- * (func_802AC6FC) and func_80277EDC(1, 1, 4, 0x6C).
+ * (fx_spawn_at_late) and func_80277EDC(1, 1, 4, 0x6C).
  * Register convention: veh in gp, id t8, px t7, py s2, pz s1, x/z in t0/t1
  * (in/out through pos; conventions.txt). The asm saves every other register
  * (around the two calls all of them); its asm caller func_802A8768 keeps
@@ -1474,7 +1474,7 @@ void func_802A8CCC(u8 *veh, s32 id, s32 *px, s32 *py, s32 *pz, Pos802A8CCC *pos)
     for (i = 1; i <= 9; i++) {
         VEH_S32(veh, i * 4) = y;
     }
-    func_802AC6FC(x, y, z, 0x13, 1000000);
+    fx_spawn_at_late(x, y, z, 0x13, 1000000);
     func_80277EDC(1, 1, 4, 0x6C);
     pos->t0 = x;
     pos->t1 = z;
@@ -2062,7 +2062,7 @@ static s32 port_tri_height(s32 x, s32 z, s32 *v, TriSideOut *f, s32 *h, s32 *a3,
         }                                          \
     }
 
-/* Of the triangles in D_803F7828 .. D_803F782C containing (x, z), the one
+/* Of the triangles in gGroupTris .. gGroupTrisEnd containing (x, z), the one
  * whose plane height is nearest y (the later one on a tie, |y - h| compared
  * unsigned): returns its height (0x5F5E0FF if none) and puts its byte +0x24
  * in *fpOut (unchanged if none).
@@ -2071,8 +2071,8 @@ static s32 port_tri_height(s32 x, s32 z, s32 *v, TriSideOut *f, s32 *h, s32 *a3,
  * The asm saves every other register it touches and clobbers f28; `y - h` is a
  * trapping `sub`. Asm callers keep t0, t1, t2 and t8 live. */
 s32 func_802A9DC0(s32 x, s32 z, s32 y, TriSideOut *f, s32 *fpOut) {
-    u8 *rec = D_803F7828;
-    u8 *end = D_803F782C;
+    u8 *rec = gGroupTris;
+    u8 *end = gGroupTrisEnd;
     s32 best = 0x5F5E0FF;
     u32 bestD = 0x5F5E0FF;
     s32 h;

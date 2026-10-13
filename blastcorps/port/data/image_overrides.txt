@@ -16,7 +16,7 @@
 # words (w0, w1), so these are too (a u64 swap would exchange w0 and w1).
 802F46C0 C0 w4
 #
-# D_802F4780 (77E20.c func_802C0E8C, u64[6]): six display-list commands copied
+# D_802F4780 (77E20.c obj_start_sinking_part, u64[6]): six display-list commands copied
 # into a DL as doublewords; same reason.
 802F4780 30 w4
 #
@@ -28,12 +28,12 @@
 802E8BF8 4 be
 802E8BFC 48 w4
 #
-# D_802F48D0 (26570.c YoshiTrigger[8], 0x22 bytes: u8 level, s16 window ids[16]):
-# 26570.c func_8026AD30 also reads D_802F499A[id] (u8) with ids 70..107, i.e. a
+# gYoshiHints (26570.c YoshiTrigger[8], 0x22 bytes: u8 level, s16 window ids[16]):
+# 26570.c yoshi_show_hint also reads gYoshiHintMaxShows[id] (u8) with ids 70..107, i.e. a
 # byte table from 0x802F49E0 that IDO addresses from base - 70; that u8[]
 # declaration's extent typed triggers 5-7 (levels 33, 13, 10) as bytes: their
 # ids stayed big-endian (86 -> 22016) and level 13's mission intro crashed
-# (func_8026BA7C on window 22016).
+# (yoshi_load_window_sprites on window 22016).
 802F48D2 20 w2 22 8
 #
 # The trail-free zones (37530.c Zone {s16 a..f, ymin, ymax}, 46 of them at
@@ -46,7 +46,7 @@
 # (`FmtPair fmts = D_802FA8A0;`, one lw in the trace), then read as u16s.
 802FA8A0 4 w2
 #
-# D_80306270 (77E20.c func_802C0574): 28 pointers to per-kind debris lists
+# D_80306270 (77E20.c obj_run_effect_queue): 28 pointers to per-kind debris lists
 # {u8 n; u8 defIndex[n]}, which follow the table without a symbol of their own;
 # the declared pointer array's extent ran over them and swapped them as words
 # (list n read as 0: divide by zero once debris spawns).
@@ -55,7 +55,7 @@
 # Vertices only the RSP reads (G_VTX), which other typing rules had made u32
 # words (found by checking every display list's Vtx against the ROM bytes,
 # stage 4; the renderer reads host-order halfwords and N64-order colour bytes):
-# - D_802F97B0 (16 Vtx, 26570.c's list D_802F98B0): undeclared;
+# - D_802F97B0 (16 Vtx, 26570.c's list gYoshiWindowDl): undeclared;
 # - D_802FA820 (2D810.c Vtx[2][4]): some words fell under another symbol's
 #   extent and became u32 words (z and flag exchanged);
 # - D_802FDD48 (8 Vtx): inside the extent of the display list D_802FDC08,

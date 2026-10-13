@@ -10,7 +10,7 @@
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_8020C070 ((MenuItem *) D_8020C070)
 #define gLevelInfo ((LevelInfo *) gLevelInfo)
-#define D_802F8BDC ((s16 *) D_802F8BDC)
+#define gYoshiWindows ((s16 *) gYoshiWindows)
 #define gMainThread ((u8 *) &gMainThread)
 #define gScheduler ((u8 *) &gScheduler)
 #define players ((Player *) players)
@@ -904,8 +904,8 @@ s32 func_801F6F18(void) {
     } else {
         empty = 0;
     }
-    D_802F8BDC[0x210 / 2] = (D_80218D28 + empty + 1) / 2 + 0x24;
-    D_802F8BDC[0x208 / 2] = D_80218D28 + empty + 4;
+    gYoshiWindows[0x210 / 2] = (D_80218D28 + empty + 1) / 2 + 0x24;
+    gYoshiWindows[0x208 / 2] = D_80218D28 + empty + 4;
     osSendMesg(&D_80219EF8, (OSMesg) 0x100000E, OS_MESG_BLOCK);
     osRecvMesg(&pakToGameMessageQ, NULL, OS_MESG_BLOCK);
     sprintf(D_80219F90, "%d PAGES FREE", D_80218EF0 / 32 / 8);

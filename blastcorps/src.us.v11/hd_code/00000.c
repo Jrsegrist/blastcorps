@@ -10,7 +10,7 @@
 #define LEGACY_gVehiclesEnd
 #define LEGACY_D_80367734
 #define LEGACY_D_80367738
-#define LEGACY_D_8036BED8
+#define LEGACY_gRdus
 #define LEGACY_D_8036C794
 #define LEGACY_gRdpOutputBuffer
 #define LEGACY_D_803ED808
@@ -20,8 +20,8 @@
 #define D_8020C070 ((MenuEntry *) D_8020C070)
 #define D_80218D30 ((u8 *) &D_80218D30)
 #define gLevelInfo ((LevelInfo *) gLevelInfo)
-#define D_802F5804 ((MenuItem *) D_802F5804)
-#define D_802F8BDC ((MenuPage *) D_802F8BDC)
+#define gYoshiGameItems ((MenuItem *) gYoshiGameItems)
+#define gYoshiWindows ((MenuPage *) gYoshiWindows)
 #define gScheduler ((u8 *) &gScheduler)
 #define gMainSchedClient ((u8 *) &gMainSchedClient)
 #define gVehicles ((Unk74 *) gVehicles)
@@ -31,7 +31,7 @@
 #define gHeapPtr (*(s32 *) &gHeapPtr)
 #define gLevelSegment8 (*(u32 *) &gLevelSegment8)
 #define gVehiclesEnd (*(Unk74 * N64P *) &gVehiclesEnd)
-#define D_8036BED8 (*(Node88 * N64P *) &D_8036BED8)
+#define gRdus (*(Node88 * N64P *) &gRdus)
 #define D_8036C794 (*(Box * N64P *) &D_8036C794)
 #define gRdpOutputBuffer (*(s32 *) &gRdpOutputBuffer)
 #define D_803ED808 (*(s32 *) D_803ED808)
@@ -341,7 +341,7 @@ extern u8 D_8039C4F8[];
 void hd_game_frame(void);
 void hd_init(void);
 void hd_check_stack(void);
-#define MODE_PAGE(m) D_802F8BDC[D_802F4868[lowest_set_bit(m)]]
+#define MODE_PAGE(m) gYoshiWindows[D_802F4868[lowest_set_bit(m)]]
 #define MODE_ENTRY(m) D_8020C070[MODE_PAGE(m).unkE + MODE_PAGE(m).unk10 - 2]
 
 extern s32 D_80364A78;
@@ -436,7 +436,7 @@ void hd_main_thread(void *arg) {
                     break;
                 case 0x100000000:
                     func_801F6F18();
-                    func_8026AF6C(0x8012);
+                    yoshi_demand(0x8012);
                     D_80364A70 = func_80261A44(gNextGameMode);
                     break;
                 case 0x80000000000:
@@ -444,24 +444,24 @@ void hd_main_thread(void *arg) {
                     func_8025D184();
                     func_80200714(1);
                     osSendMesg(&D_80219EF8, (OSMesg) 0x01000001, 1);
-                    func_8026AF6C(0x8011);
+                    yoshi_demand(0x8011);
                     break;
                 case 0x10000:
                     D_80364A70 = func_80261A44(gNextGameMode);
                     func_8025D184();
                     func_801EA4B8();
                     func_801E8DCC(playerNumber);
-                    func_8026AF6C(0x800A);
+                    yoshi_demand(0x800A);
                     break;
                 case 0x10000000:
                     osSendMesg(&D_80219EF8, (OSMesg) 0x01000001, 1);
                     func_801E8DCC(4);
-                    func_8026AF6C(0x8011);
+                    yoshi_demand(0x8011);
                     break;
                 case 0x20000000000000:
                     func_802609D0();
                     hd_mode_setup();
-                    func_802A0700();
+                    tex_load_table();
                     func_8025D184();
                     func_80200714(1);
                     osSendMesg(&D_80219EF8, (OSMesg) 0x0100000F, 1);
@@ -499,11 +499,11 @@ void hd_main_thread(void *arg) {
                     break;
                 case 0x4000000000000:
                     hd_mode_setup();
-                    func_802A0700();
+                    tex_load_table();
                     func_8025D184();
                     func_80200714(4);
                     func_801E8C40(4);
-                    func_8026AF6C(0x8038);
+                    yoshi_demand(0x8038);
                     break;
                 case 0x400000000000000:
                     D_802E8BEC = -1;
@@ -524,7 +524,7 @@ void hd_main_thread(void *arg) {
                                 hd_mode_setup();
                                 func_80200714(7);
                                 func_80201240(D_80364AC4 & 3);
-                                func_8026AF6C(0x8035);
+                                yoshi_demand(0x8035);
                                 func_801E8C40(D_80364AC4 & 3);
                                 D_80364AC4++;
                                 break;
@@ -575,20 +575,20 @@ void hd_main_thread(void *arg) {
                     hd_mode_setup();
                     func_801ECC8C();
                     osViBlack(1);
-                    func_802A0700();
+                    tex_load_table();
                     func_801F8530(levelno);
                     break;
                 case 0x800000000000:
                     D_80364A70 = func_80261A44(gNextGameMode);
                     break;
                 case 0x400000000:
-                    func_8026AF6C(0x8013);
+                    yoshi_demand(0x8013);
                     break;
                 case 0x800000000000000:
                     hd_mode_setup();
                     func_80200714(1);
                     func_8025D184();
-                    func_8026AF6C(0x8059);
+                    yoshi_demand(0x8059);
                     break;
                 case 0x40000000000:
                     hd_mode_setup();
@@ -596,12 +596,12 @@ void hd_main_thread(void *arg) {
                     func_801E8C40(playerNumber);
                     func_8025D184();
                     D_8021A830 = gGameMode;
-                    func_8026AF6C(0x8016);
+                    yoshi_demand(0x8016);
                     break;
                 case 0x200000000000000:
                     func_801E8EB8(playerNumber, 1);
                     func_801F8228();
-                    func_8026AF6C(0x8016);
+                    yoshi_demand(0x8016);
                     gNextGameMode = 0x40000000000;
                     break;
                 case 0x2000:
@@ -637,13 +637,13 @@ void hd_main_thread(void *arg) {
                                 D_80364A70 = func_80261A44(gNextGameMode);
                             }
                             gUnpauseRequest = 1;
-                            gUnpauseRequest &= !func_8026AD30(0x52);
+                            gUnpauseRequest &= !yoshi_show_hint(0x52);
                             /* one line: the line break changes as1's schedule */
-                            gUnpauseRequest &= !func_8026AD30(0x56); if ((((players[playerNumber].unk18[levelno] > 0 && players[playerNumber].unk18[levelno] < 6) ? 1 : 0)) &&
+                            gUnpauseRequest &= !yoshi_show_hint(0x56); if ((((players[playerNumber].unk18[levelno] > 0 && players[playerNumber].unk18[levelno] < 6) ? 1 : 0)) &&
                                 gLevelInfo[levelno].unk0 == 1) {
-                                gUnpauseRequest &= !func_8026AD30(0x55);
+                                gUnpauseRequest &= !yoshi_show_hint(0x55);
                             } else {
-                                gUnpauseRequest &= !func_8026AD30(0x57);
+                                gUnpauseRequest &= !yoshi_show_hint(0x57);
                             }
                             gPauseRequest = !gUnpauseRequest;
                             debug_printf("Unpause at start = %d\n", gUnpauseRequest);
@@ -692,8 +692,8 @@ void hd_main_thread(void *arg) {
                     }
                     MODE_ENTRY(gLevelKind).unk0 &= ~1;
                     MODE_ENTRY(gLevelKind).unk0 |= 0x800;
-                    func_8026B8F8();
-                    func_8026AF6C(D_802F4868[lowest_set_bit(gLevelKind)] | 0x8000);
+                    yoshi_set_target_icons();
+                    yoshi_demand(D_802F4868[lowest_set_bit(gLevelKind)] | 0x8000);
                     MODE_PAGE(gLevelKind).unk18 = MODE_PAGE(gLevelKind).unkE + MODE_PAGE(gLevelKind).unk10 - 3;
                     MODE_PAGE(gLevelKind).unk8 &= ~8;
                     func_80285A78((u8 *) &nss, (u8 *) &D_8036EA60);
@@ -713,9 +713,9 @@ void hd_main_thread(void *arg) {
                     }
                     osViBlack(1);
                     hd_setup_level(0);
-                    func_802661EC();
+                    chopper_fly_to_carrier();
                     if (levelno == 0x32) {
-                        func_8026AF6C(0x8024);
+                        yoshi_demand(0x8024);
                     }
                     break;
                 case 0x40000000:
@@ -777,7 +777,7 @@ void hd_main_thread(void *arg) {
                             MS_ASSERT(!saveIt[playerNumber] || saveIt[playerNumber]==levelno+1, 488);
                             saveIt[playerNumber] = levelno + 1;
                             if (gLevelDone) {
-                                func_802C1DD0(gLevelInfo[levelno].unk0 == 0x20 || gLevelInfo[levelno].unk0 == 0x80);
+                                obj_tally(gLevelInfo[levelno].unk0 == 0x20 || gLevelInfo[levelno].unk0 == 0x80);
                             }
                             D_803643D5 = !((players[playerNumber].unk18[levelno] > 0 && players[playerNumber].unk18[levelno] < 6) ? 1 : 0);
                             if (playerNumber == playerNumberAtStart) {
@@ -843,11 +843,11 @@ void hd_main_thread(void *arg) {
                         MODE_PAGE(gLevelKind).unk18 = MODE_PAGE(gLevelKind).unkE + MODE_PAGE(gLevelKind).unk10 - 3;
                     }
                     MODE_PAGE(gLevelKind).unk8 |= 8;
-                    func_8026B8F8();
+                    yoshi_set_target_icons();
                     if (D_802E8BF8) {
                         D_8020C070[29].unk0 &= ~1;
                     }
-                    func_8026AF6C(D_802F4868[lowest_set_bit(gLevelKind)] | 0x8000);
+                    yoshi_demand(D_802F4868[lowest_set_bit(gLevelKind)] | 0x8000);
                     break;
                 case 0x40:
                     if (gGameMode & 0x04000200) {
@@ -855,16 +855,16 @@ void hd_main_thread(void *arg) {
                         nss.tc = func_8028604C(D_80364A5C), func_80285A78((u8 *) &nss, (u8 *) &D_8036EA60);
                         func_801EE800(&D_80364A60, 0, 1);
                     }
-                    D_802F5804[24].unk0 |= 1;
-                    D_802F5804[24].unk0 &= ~0x800;
-                    D_802F5804[23].unk0 |= 1;
-                    D_802F5804[23].unk0 &= ~0x800;
-                    D_802F5804[17].unk0 &= ~1;
-                    D_802F5804[17].unk0 |= 0x800;
+                    gYoshiGameItems[24].unk0 |= 1;
+                    gYoshiGameItems[24].unk0 &= ~0x800;
+                    gYoshiGameItems[23].unk0 |= 1;
+                    gYoshiGameItems[23].unk0 &= ~0x800;
+                    gYoshiGameItems[17].unk0 &= ~1;
+                    gYoshiGameItems[17].unk0 |= 0x800;
                     if ((players[playerNumber].unk18[levelno] > 0 && players[playerNumber].unk18[levelno] < 6) ? 1 : 0) {
-                        D_802F8BDC[6].unk18 = 0x18, D_802F8BDC[7].unk18 = 0x22;
+                        gYoshiWindows[6].unk18 = 0x18, gYoshiWindows[7].unk18 = 0x22;
                     } else {
-                        D_802F8BDC[6].unk18 = 0x17, D_802F8BDC[7].unk18 = 0x21;
+                        gYoshiWindows[6].unk18 = 0x17, gYoshiWindows[7].unk18 = 0x21;
                     }
                     D_80364A50 = 0;
                     D_80364A54 = PORT_GVI("hd_main_thread:4A54", D_803156C4);
@@ -876,7 +876,7 @@ void hd_main_thread(void *arg) {
                     } else {
                         hd_setup_level(0);
                     }
-                    func_8026B8F8();
+                    yoshi_set_target_icons();
                     func_8025BB50();
                     break;
                 case 0x20000000:
@@ -885,7 +885,7 @@ void hd_main_thread(void *arg) {
                         osRecvMesg(&pakToGameMessageQ, NULL, 1);
                     }
                     osViBlack(1);
-                    func_802A0700();
+                    tex_load_table();
                     if (func_801E7000()) {
                         func_80200714(2);
                     } else {
@@ -896,7 +896,7 @@ void hd_main_thread(void *arg) {
                     osSendMesg(&D_80219EF8, (OSMesg) ((playerNumber << 16) | 0x14 | 0x01000000), 1);
                     osRecvMesg(&pakToGameMessageQ, NULL, 1);
                     func_801EA93C("ENTER NAME!", D_803047A0, 7, 0x1E, (char *) &players[playerNumber]);
-                    func_8026AF6C(0x800B);
+                    yoshi_demand(0x800B);
                     func_8025D184();
                     D_80364A70 = func_80261A44(gNextGameMode);
                     break;
@@ -904,13 +904,13 @@ void hd_main_thread(void *arg) {
                     hd_mode_setup();
                     func_80200714(1);
                     D_8020C070[9].unkC = "QUIT GAME!", D_8020C070[9].unk10 = D_803047CC, D_8020C070[9].unk6 = D_8020C070[9].unk8 = 22;
-                    func_8026AF6C(0x800C);
+                    yoshi_demand(0x800C);
                     break;
                 case 0x1000000000:
                     func_80260EE0(0x18);
                     func_80260B40(0, 0);
                     func_80297ECC();
-                    func_8026AF6C(0x8015);
+                    yoshi_demand(0x8015);
                     gPauseRequest = 1;
                     break;
                 case 0x100000000000:
@@ -932,18 +932,18 @@ void hd_main_thread(void *arg) {
                         func_8025D184();
                         func_80200714(1);
                         D_8020C070[9].unkC = "ERASE SAVED GAME!", D_8020C070[9].unk10 = D_803047B4, D_8020C070[9].unk6 = D_8020C070[9].unk8 = 20;
-                        func_8026AF6C(0x800C);
+                        yoshi_demand(0x800C);
                     } else {
                         gGameModeAfterNext = 0x10;
                     }
                     break;
                 case 0x100000000000000:
                     D_8020C070[9].unkC = "BECOME GUEST PLAYER:", D_8020C070[9].unk10 = D_803047DC, D_8020C070[9].unk6 = D_8020C070[9].unk8 = 20;
-                    func_8026AF6C(0x800C);
+                    yoshi_demand(0x800C);
                     break;
                 case 0x400000:
                     func_801EA6E8();
-                    func_8026AF6C(0x800A);
+                    yoshi_demand(0x800A);
                     break;
                 case 8:
                     gPauseRequest = 1;
@@ -1048,8 +1048,8 @@ void hd_game_frame(void) {
             }
         }
         if ((gContButtons & 0x2000) && gLevelDoneRequest) {
-            D_803F7688 = 1;
-            D_8036EA7C = D_8036EB90;
+            gCheatAllDestroyed = 1;
+            D_8036EA7C = gRduCount;
             D_8036EA79 = D_8036EB93;
             D_80365066 = 1;
             func_80285AB0(2);
@@ -1110,7 +1110,7 @@ void hd_game_frame(void) {
     D_803649D8 = osGetTime();
     cont_start_read();
     rsp_send_task((u64 *) (gDynamicBufs[gBufferIndex].dl), gFrameDlLen, 3, 1, 0x4D2, 1);
-    func_802A5720();
+    tex_reset_decode_queue();
     gBufferIndex ^= 1;
     switch (gPaused) {
         case 0:
@@ -1256,22 +1256,22 @@ void hd_game_frame(void) {
             D_80364A78 = lo - D_803EF6E4;
         }
         if (gContButtons & 0x2010) {
-            D_802F8BDC[0].unk4 = (D_802F8BDC[0].unk4 - 0x18 < -0x100) ? -0x100 : D_802F8BDC[0].unk4 - 0x18;
-            D_8036BB34 = (D_8036BB34 * 0.8 > 0.1) ? D_8036BB34 * 0.8 : 0.1;
-            D_802F8BDC[0].unk8 &= ~0x20;
+            gYoshiWindows[0].unk4 = (gYoshiWindows[0].unk4 - 0x18 < -0x100) ? -0x100 : gYoshiWindows[0].unk4 - 0x18;
+            gYoshiScale = (gYoshiScale * 0.8 > 0.1) ? gYoshiScale * 0.8 : 0.1;
+            gYoshiWindows[0].unk8 &= ~0x20;
         } else {
-            D_802F8BDC[0].unk4 = (D_802F8BDC[0].unk4 + 0x20 > 0x20) ? 0x20 : D_802F8BDC[0].unk4 + 0x20;
-            D_8036BB34 = (D_8036BB34 / 0.8 < 1.0) ? D_8036BB34 / 0.8 : 1.0;
-            if (D_8036BB34 == 1.0) {
-                D_802F8BDC[0].unk8 |= 0x20;
+            gYoshiWindows[0].unk4 = (gYoshiWindows[0].unk4 + 0x20 > 0x20) ? 0x20 : gYoshiWindows[0].unk4 + 0x20;
+            gYoshiScale = (gYoshiScale / 0.8 < 1.0) ? gYoshiScale / 0.8 : 1.0;
+            if (gYoshiScale == 1.0) {
+                gYoshiWindows[0].unk8 |= 0x20;
             }
         }
     } else {
         D_80364A80 = 0;
-        D_802F8BDC[0].unk4 = (D_802F8BDC[0].unk4 + 0x20 > 0x20) ? 0x20 : D_802F8BDC[0].unk4 + 0x20;
-        D_8036BB34 = (D_8036BB34 / 0.8 < 1.0) ? D_8036BB34 / 0.8 : 1.0;
-        if (D_8036BB34 == 1.0) {
-            D_802F8BDC[0].unk8 |= 0x20;
+        gYoshiWindows[0].unk4 = (gYoshiWindows[0].unk4 + 0x20 > 0x20) ? 0x20 : gYoshiWindows[0].unk4 + 0x20;
+        gYoshiScale = (gYoshiScale / 0.8 < 1.0) ? gYoshiScale / 0.8 : 1.0;
+        if (gYoshiScale == 1.0) {
+            gYoshiWindows[0].unk8 |= 0x20;
         }
     }
     if (gHeldZ && !gPaused && gCurVehicle && !D_8036443C && (gLevelKind == 1 || gLevelKind == 0x80)) {
@@ -1314,7 +1314,7 @@ void hd_game_frame(void) {
                 func_802B8AE4();
             }
         } else {
-            func_8026510C();
+            people_update();
         }
     }
     if (!gPaused && !D_80364A84) {
@@ -1327,8 +1327,8 @@ void hd_game_frame(void) {
         if (!(gGameMode & 0x1801)) {
             func_802BA354();
         }
-        if ((gGameMode & 0x104) && !func_8026B10C() && !gPaused && !gLevelDone && !gCarrierHit) {
-            func_8024A92C(vis = func_802C1B9C());
+        if ((gGameMode & 0x104) && !yoshi_get_demand() && !gPaused && !gLevelDone && !gCarrierHit) {
+            func_8024A92C(vis = obj_find_carrier_target());
         }
     }
     if (gHaveShuttle && !gPaused) {
@@ -1340,14 +1340,14 @@ void hd_game_frame(void) {
     func_8029DDC8();
     if (!gPaused) {
         D_803ED40C = 0;
-        D_803F7806 = func_802C1AA0();
-        func_802BC5E0();
+        gPathBuildingsDestroyed = obj_path_buildings_destroyed();
+        obj_check_level_end();
         func_8024B5E8();
         func_8028F794(gCurVehicle);
         func_80291FAC(gCurVehicle);
         func_802688C4(levelno);
         if (!(gGameMode & 0x1801)) {
-            func_8026FEC4();
+            rdu_update();
         }
         func_80281CE4();
         if (gGameMode & 0x104) {
@@ -1372,7 +1372,7 @@ void hd_game_frame(void) {
     if ((gCarrierHit || gLevelDone || (levelno == 0x32 && D_8036EB98 && !(LEVEL_DONE(0x32)))) && gLevelKind == 1 && D_80364A5C == 0) {
         debug_printf("TIME IN LEVEL=%d\n", D_80364A5C = ((s32) D_803156C0) - D_80364A58);
     }
-    func_802A5510(gLevelData);
+    cam_apply_height_zone(gLevelData);
     if (gGameMode & 0x1801) {
         cull_restart(2);
     }
@@ -1394,8 +1394,8 @@ void hd_game_frame(void) {
                   (u32 *) (&gDynamicBufs[gBufferIndex].unkA3A0[0x140]));
     func_8027E9B8(gBufferIndex);
     if (!gPaused || (gHaveCarrier && gCarrierHit) || D_8036EB99) {
-        func_802C0574();
-        func_802BCA2C();
+        obj_run_effect_queue();
+        obj_update_delayed_damage();
     }
     if (!gPaused) {
         func_8028DF14(gCurVehicle);
@@ -1423,15 +1423,15 @@ void hd_game_frame(void) {
             }
         }
     }
-    func_802A64A4();
-    func_802886A0();
+    fx_draw_all();
+    ptcl_update();
     if (!gPaused) {
         func_802CF1A4();
     }
     func_80279514(gPlayerX, gPlayerY, gPlayerZ, gCamEyeX, gCamEyeY, gCamEyeZ);
     func_80277620(gFramesInMode);
     func_8027D810(levelno);
-    func_802C2054();
+    lvl_groups_update_tris();
     if (!gPaused) {
         func_8026A9B4();
     }
@@ -1471,10 +1471,10 @@ void hd_game_frame(void) {
     }
     if (gGameMode & 0x1801) {
         if (gFramesInMode == 150 && levelno != 0x32) {
-            func_8026AF6C(0x8040);
+            yoshi_demand(0x8040);
         }
         if (!players[playerNumber].unk91 && gFramesInMode == 10) {
-            func_8026AF6C(0x803F);
+            yoshi_demand(0x803F);
         }
     }
     gdl = func_8024C404(gdl, &gDynamicBufs[gBufferIndex], &gFrameDlLen);
@@ -1482,7 +1482,7 @@ void hd_game_frame(void) {
         D_80364A50 = 1;
         if (yoshiState == 1) {
             if (!(LEVEL_DONE(levelno)) || gLevelKind == 1) {
-                func_8026AF6C(D_802F4870[lowest_set_bit(gLevelKind)] | 0x8000);
+                yoshi_demand(D_802F4870[lowest_set_bit(gLevelKind)] | 0x8000);
             }
         }
     }
@@ -1499,7 +1499,7 @@ void hd_game_frame(void) {
     if (gGameMode == 0x2000000000000000) {
         if ((gContButtons & 0x10) && !(gContPrevButtons & 0x10)) {
             if (currentYoshiWindow < 0x6B && yoshiState != 8 && yoshiState != 1) {
-                func_8026AF6C((currentYoshiWindow + 1) | 0x8000);
+                yoshi_demand((currentYoshiWindow + 1) | 0x8000);
                 func_80260650(D_80367738, 0x1D, NULL);
             } else {
                 func_80260650(D_80367738, 0xD0, NULL);
@@ -1507,7 +1507,7 @@ void hd_game_frame(void) {
         }
         if ((gContButtons & 0x2000) && !(gContPrevButtons & 0x2000)) {
             if (currentYoshiWindow >= 0x5F && yoshiState != 8 && yoshiState != 1) {
-                func_8026AF6C((currentYoshiWindow - 1) | 0x8000);
+                yoshi_demand((currentYoshiWindow - 1) | 0x8000);
                 func_80260650(D_80367738, 0x1D, NULL);
             } else {
                 func_80260650(D_80367738, 0xD0, NULL);
@@ -1515,9 +1515,9 @@ void hd_game_frame(void) {
         }
     }
     if ((((gContButtons & 0x1000) && !(gContPrevButtons & 0x1000)) || ((gContButtons & 0x8000) && !(gContPrevButtons & 0x8000))) &&
-        !areWeFading() && D_8036BB1A == -1 && gNextGameMode == 0 && !cmo_hit_request && !gLevelDoneRequest && currentYoshiWindow != 0) {
-        if ((func_8026B10C() & 0x8000) && (func_8026B10C() & 1)) {
-            func_8026B10C();
+        !areWeFading() && gYoshiPendingWindow == -1 && gNextGameMode == 0 && !cmo_hit_request && !gLevelDoneRequest && currentYoshiWindow != 0) {
+        if ((yoshi_get_demand() & 0x8000) && (yoshi_get_demand() & 1)) {
+            yoshi_get_demand();
         }
         switch (gGameMode) {
             case 1:
@@ -1534,7 +1534,7 @@ void hd_game_frame(void) {
                     gNextGameMode = 0x08000000;
                     func_80260650(D_80367738, 0x1E, NULL);
                 } else if (yoshiState == 1) {
-                    func_8026AF6C(D_802F4870[lowest_set_bit(gLevelKind)] | 0x8000);
+                    yoshi_demand(D_802F4870[lowest_set_bit(gLevelKind)] | 0x8000);
                 }
                 break;
             case 2:
@@ -1554,23 +1554,23 @@ void hd_game_frame(void) {
             case 0x100:
                 if ((gContButtons & 0x1000) && !gPaused) {
                     if ((LEVEL_DONE(levelno)) && gLevelKind == 1) {
-                        D_802F5804[2].unk0 |= 1;
-                        D_802F5804[2].unk18 = 7;
+                        gYoshiGameItems[2].unk0 |= 1;
+                        gYoshiGameItems[2].unk18 = 7;
                     } else {
-                        D_802F5804[2].unk0 &= ~1;
-                        D_802F5804[2].unk18 = 8;
+                        gYoshiGameItems[2].unk0 &= ~1;
+                        gYoshiGameItems[2].unk18 = 8;
                     }
-                    func_8026AF6C(0x8000);
+                    yoshi_demand(0x8000);
                 }
                 break;
         }
     }
-    gdl = func_8026BBD0(gdl, (s32) &gDynamicBufs[gBufferIndex], &gFrameDlLen);
-    if (D_8036BB16 && !cmo_hit_request && !gLevelDoneRequest) {
-        func_8024BDA4(&D_8036BB16);
+    gdl = yoshi_draw(gdl, (s32) &gDynamicBufs[gBufferIndex], &gFrameDlLen);
+    if (yoshiSelection && !cmo_hit_request && !gLevelDoneRequest) {
+        func_8024BDA4(&yoshiSelection);
     }
-    if ((gGameMode & 0x444) && D_8036BB1A == -1 && D_80367BC8 == 0 &&
-        !((currentYoshiWindow != -1) ? D_802F8BDC[currentYoshiWindow].unk8 & 0x01000000 : 0)) {
+    if ((gGameMode & 0x444) && gYoshiPendingWindow == -1 && D_80367BC8 == 0 &&
+        !((currentYoshiWindow != -1) ? gYoshiWindows[currentYoshiWindow].unk8 & 0x01000000 : 0)) {
         alpha = (gGameMode & 0x440) ? 0xB4 : 0xFF;
         if (D_80367BD6 < alpha) {
             D_80367BD6 = (s32) ((alpha < D_80367BD6 + 16) ? alpha : D_80367BD6 + 16);
@@ -1592,7 +1592,7 @@ void hd_game_frame(void) {
     HD_ASSERT(MQ_IS_EMPTY(&textureDmaMessageQ), 1509);
     HD_ASSERT(nextdma-no_palette_dmas<NUM_TEXTURE_DMAS, 1510);
     for (i = 0; i < nextdma - no_palette_dmas; i++) {
-        func_802A57AC();
+        tex_decode_next();
     }
     D_803649E0 = D_803649D8 % 40 - 20;
     D_803649E2 = D_803649D8 / 100 % 40 - 20;
@@ -1768,7 +1768,7 @@ void func_8024A92C(u32 dist) {
                 break;
             case 0:
                 func_802608C8((void *) N64_IPTR(D_803156E8));
-                if (gLevelInfo[levelno].unk0 != 0x80 || !func_802C1AA0()) {
+                if (gLevelInfo[levelno].unk0 != 0x80 || !obj_path_buildings_destroyed()) {
                     debug_printf("popTuneImmediate();\n");
                     func_80261040();
                 } else {
@@ -1782,19 +1782,19 @@ void func_8024A92C(u32 dist) {
     }
     switch (D_80364A6F) {
         case 1:
-            if (!func_8026AD30(0x49) && currentYoshiWindow != 3) {
-                func_8026AF6C(0x8003);
+            if (!yoshi_show_hint(0x49) && currentYoshiWindow != 3) {
+                yoshi_demand(0x8003);
             }
             break;
         case 2:
             if (currentYoshiWindow != 2) {
-                func_8026AF6C(0x8002);
+                yoshi_demand(0x8002);
             }
             break;
         case 0:
-            if ((yoshiState == 2 || yoshiState == 4) && !func_8026B10C() &&
+            if ((yoshiState == 2 || yoshiState == 4) && !yoshi_get_demand() &&
                 (currentYoshiWindow == 3 || currentYoshiWindow == 2 || currentYoshiWindow == 0x49)) {
-                func_8026AF6C(0x4000);
+                yoshi_demand(0x4000);
             }
             break;
     }
@@ -1829,7 +1829,7 @@ void veh_apply_switch(void) {
                 func_802AE860();
                 if (!gPaused && gFramesInMode >= 11 &&
                     (gCurVehicle == 8 || gCurVehicle == 15 || gCurVehicle == 13 || gCurVehicle == 14)) {
-                    func_8026AD30(0x4A);
+                    yoshi_show_hint(0x4A);
                 }
             }
             players[playerNumber].unk10 |= 1 << gCurVehicle;
@@ -2189,7 +2189,7 @@ void func_8024B5E8(void) {
  *    level's leftover small integer (2..7, also in t8), s0 = 0, s1 = 1 / 0x30
  *    / 0x3A, s2/s3/s4 = 0x803B8D40 / 0x803B8578 / 0x803B8570. They only pass
  *    through func_802ABD54 (unchanged when the level has no zones, as in 8 of
- *    the 9 demo levels) into the type-1 func_802A6274 effect records, which
+ *    the 9 demo levels) into the type-1 fx_spawn effect records, which
  *    never store them (and the FP state only feeds FP side results): dead.
  *    0, as the other updates (func_802AEEC8, func_802B6294, ...) use. */
 #endif
@@ -2403,13 +2403,13 @@ void func_8024BDA4(u16 *sel) {
             switch (*sel) {
                 case 1:
                     if (gCurVehicle == 6 || gCurVehicle == 11 || gCurVehicle == 17 || gCurVehicle == 18) {
-                        D_802F5804[7].unk0 &= ~1;
-                        D_802F5804[7].unk18 = 8;
+                        gYoshiGameItems[7].unk0 &= ~1;
+                        gYoshiGameItems[7].unk18 = 8;
                     } else {
-                        D_802F5804[7].unk0 |= 1;
-                        D_802F5804[7].unk18 = 7;
+                        gYoshiGameItems[7].unk0 |= 1;
+                        gYoshiGameItems[7].unk18 = 7;
                     }
-                    func_8026AF6C(0x8001);
+                    yoshi_demand(0x8001);
                     gNextGameMode = 4;
                     break;
                 case 2:
@@ -2427,7 +2427,7 @@ void func_8024BDA4(u16 *sel) {
                     break;
                 case 8:
                     gNextGameMode = 0x2000000000000000;
-                    func_8026AF6C(0x805E);
+                    yoshi_demand(0x805E);
                     gCamSnap = 1;
                     break;
                 case 4:
@@ -2435,11 +2435,11 @@ void func_8024BDA4(u16 *sel) {
                     break;
                 case 9:
                     if (func_80260DF0() == 1.0) {
-                        D_802F8BDC[13].unk18 = 40;
+                        gYoshiWindows[13].unk18 = 40;
                     } else {
-                        D_802F8BDC[13].unk18 = 39;
+                        gYoshiWindows[13].unk18 = 39;
                     }
-                    func_8026AF6C(0x800D);
+                    yoshi_demand(0x800D);
                     break;
                 case 0x1A7:
                 case 0x1A8:
@@ -2454,14 +2454,14 @@ void func_8024BDA4(u16 *sel) {
                     }
                     break;
                 case 17:
-                    D_802F8BDC[6].unk8 |= 0x80;
+                    gYoshiWindows[6].unk8 |= 0x80;
                     break;
                 case 0xFFFF:
                     switch (currentYoshiWindow) {
                         case 1:
                         case 6:
                             debug_printf("TESTING PAUSE2 %d %d %d\n", gPaused, gPauseRequest, gUnpauseRequest);
-                            func_8026AF6C(0x8000);
+                            yoshi_demand(0x8000);
                             if (gHaveCarrier || gHaveShuttle) {
                                 gNextGameMode = 0x100;
                                 cull_restart(10);
@@ -2470,7 +2470,7 @@ void func_8024BDA4(u16 *sel) {
                         case 13:
                         case 0x58:
                             debug_printf("TESTING PAUSE3 %d %d %d\n", gPaused, gPauseRequest, gUnpauseRequest);
-                            func_8026AF6C(0x8001);
+                            yoshi_demand(0x8001);
                             break;
                     }
                     break;
@@ -2504,7 +2504,7 @@ void func_8024BDA4(u16 *sel) {
         case 0x2000000000000000:
             if (*sel == 0xFFFF) {
                 debug_printf("TESTING PAUSE %d %d %d\n", gPaused, gPauseRequest, gUnpauseRequest);
-                func_8026AF6C(0x8001);
+                yoshi_demand(0x8001);
             }
             gNextGameMode = 4;
             break;
@@ -2637,7 +2637,7 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
     if (gHaveChopper) {
         veh_draw_chopper_shadow(&gdl, dyn);
     }
-    func_802701A8(&gdl, (s32) dyn);
+    rdu_draw(&gdl, (s32) dyn);
     func_80281E44(&gdl);
     func_8028E9E4(&gdl, (struct Dyn48D00 *) dyn);
     func_802917B0(&gdl, (struct Dyn4B5E0 *) dyn);
@@ -2645,13 +2645,13 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
     func_8028CB30(&gdl, (s32) dyn);
     switch (gBufferIndex) {
         case 0:
-            gSPDisplayList(gdl++, osVirtualToPhysical(D_803C5770));
+            gSPDisplayList(gdl++, osVirtualToPhysical(gFxDlA0));
             break;
         case 1:
-            gSPDisplayList(gdl++, osVirtualToPhysical(D_803C6370));
+            gSPDisplayList(gdl++, osVirtualToPhysical(gFxDlA1));
             break;
     }
-    func_80288DF0(&gdl, gBufferIndex);
+    ptcl_draw(&gdl, gBufferIndex);
     if (!(gGameMode & 2) || !D_802E8BF0) {
         veh_draw_layer(&gdl, 0);
     }
@@ -2687,14 +2687,14 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
     func_8027F1F8(&gdl, gBufferIndex, 1);
     veh_draw_shadows(&gdl, dyn, 2);
     if (gHaveChopper) {
-        func_80266248(&gdl, (struct DynBuf *) dyn);
+        people_draw(&gdl, (struct DynBuf *) dyn);
     }
     switch (gBufferIndex) {
         case 0:
-            gSPDisplayList(gdl++, osVirtualToPhysical(D_803C6F70));
+            gSPDisplayList(gdl++, osVirtualToPhysical(gFxDlB0));
             break;
         case 1:
-            gSPDisplayList(gdl++, osVirtualToPhysical(D_803C7B70));
+            gSPDisplayList(gdl++, osVirtualToPhysical(gFxDlB1));
             break;
     }
     if (gHaveCarrier) {
@@ -3135,7 +3135,7 @@ void func_802502EC(void) {
             }
         }
         if (D_80364ABC == 0.0 && D_80364AC0 == 0) {
-            func_802AC61C(gPlayerX, gPlayerY, gPlayerZ, 0x13, 400000);
+            fx_spawn_at(gPlayerX, gPlayerY, gPlayerZ, 0x13, 400000);
             D_80364AC0 = 1;
         }
         D_80364AB4 += D_80364AB8;
@@ -3160,7 +3160,7 @@ typedef struct {
     u8 pad6[0x82];
 } Node88; /* 0x88 bytes */
 #ifndef NON_MATCHING
-extern Node88 *D_8036BED8;
+extern Node88 *gRdus;
 #endif
 extern u8 gCamAtSettled; /* target easing settled */
 extern s32 gCamAtHeight; /* target height offset */
@@ -3268,7 +3268,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
         D_8036B965 = 0;
     }
     inShuttle = gHaveShuttle && ((gGameMode & 0x940) || D_8036B965);
-    if (gGameMode == 8 || (currentYoshiWindow == 0x4B && yoshiState == 2 && (u16) D_802F8BDC[currentYoshiWindow].unk18 == 0x14D)) {
+    if (gGameMode == 8 || (currentYoshiWindow == 0x4B && yoshiState == 2 && (u16) gYoshiWindows[currentYoshiWindow].unk18 == 0x14D)) {
         if (!D_8030F668) {
             changed = 1;
         }
@@ -3279,7 +3279,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
         }
         D_8030F668 = 0;
     }
-    if (currentYoshiWindow == 0x49 && yoshiState == 2 && (u16) D_802F8BDC[currentYoshiWindow].unk18 == 0x130) {
+    if (currentYoshiWindow == 0x49 && yoshiState == 2 && (u16) gYoshiWindows[currentYoshiWindow].unk18 == 0x130) {
         if (!D_8030F66A) {
             changed = 1;
         }
@@ -3290,7 +3290,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
         }
         D_8030F66A = 0;
     }
-    if (currentYoshiWindow == 0x4D && yoshiState == 2 && (u16) D_802F8BDC[currentYoshiWindow].unk18 != 0x164) {
+    if (currentYoshiWindow == 0x4D && yoshiState == 2 && (u16) gYoshiWindows[currentYoshiWindow].unk18 != 0x164) {
         if (!D_8030F669) {
             changed = 1;
         }
@@ -3376,7 +3376,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
     }
     tilt = D_8036443C;
     if (!D_803649EC) {
-        gCamAtHeight = func_802A56C4();
+        gCamAtHeight = cam_load_level_defaults();
     }
     if (((gGameMode & 2) && D_802E8BF0) || !D_803649EC) {
         radius = 0;
@@ -3692,9 +3692,9 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                     break;
                 case 0x10:
                 case 0x40:
-                    gCamEyeGoalX = ((D_8036BED8[D_8036BBB0[D_8036EA7C]].unk0 << 5) + offX) << 11;
-                    gCamEyeGoalY = ((D_8036BED8[D_8036BBB0[D_8036EA7C]].unk2 << 5) + 2000) << 11;
-                    gCamEyeGoalZ = ((D_8036BED8[D_8036BBB0[D_8036EA7C]].unk4 << 5) + offZ) << 11;
+                    gCamEyeGoalX = ((gRdus[gRduLitOrder[D_8036EA7C]].unk0 << 5) + offX) << 11;
+                    gCamEyeGoalY = ((gRdus[gRduLitOrder[D_8036EA7C]].unk2 << 5) + 2000) << 11;
+                    gCamEyeGoalZ = ((gRdus[gRduLitOrder[D_8036EA7C]].unk4 << 5) + offZ) << 11;
                     break;
             }
             break;
@@ -3777,14 +3777,14 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                     gCamEyeGoalZ = (D_803EF6E4 + D_8036B8BC) << 11;
                 } else if (D_8030F668) {
                     cam_polar_offset(2500, gCamHeading, &px, &pz);
-                    gCamEyeGoalX = ((D_803F767C << 5) + px) << 11;
-                    gCamEyeGoalY = ((D_803F767E << 5) + 5000) << 11;
-                    gCamEyeGoalZ = ((D_803F7680 << 5) + pz) << 11;
+                    gCamEyeGoalX = ((gEndObjectX << 5) + px) << 11;
+                    gCamEyeGoalY = ((gEndObjectY << 5) + 5000) << 11;
+                    gCamEyeGoalZ = ((gEndObjectZ << 5) + pz) << 11;
                 } else if (D_8030F66A) {
                     cam_polar_offset(2500, gCamHeading, &px, &pz);
-                    gCamEyeGoalX = (px + D_803F7670) << 11;
-                    gCamEyeGoalY = (D_803F7674 + 5000) << 11;
-                    gCamEyeGoalZ = (pz + D_803F7678) << 11;
+                    gCamEyeGoalX = (px + gCarrierTargetX) << 11;
+                    gCamEyeGoalY = (gCarrierTargetY + 5000) << 11;
+                    gCamEyeGoalZ = (pz + gCarrierTargetZ) << 11;
                 } else if (D_8030F669) {
                     if (D_8036C794 != NULL) {
                         cam_polar_offset(2500, gCamHeading, &px, &pz);
@@ -3877,13 +3877,13 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                 gCamAtGoalY = D_803EF6E0 / 32.0f;
                 gCamAtGoalZ = D_803EF6E4 / 32.0f;
             } else if (D_8030F668) {
-                gCamAtGoalX = D_803F767C;
-                gCamAtGoalY = D_803F767E;
-                gCamAtGoalZ = D_803F7680;
+                gCamAtGoalX = gEndObjectX;
+                gCamAtGoalY = gEndObjectY;
+                gCamAtGoalZ = gEndObjectZ;
             } else if (D_8030F66A) {
-                gCamAtGoalX = D_803F7670 / 32.0f;
-                gCamAtGoalY = D_803F7674 / 32.0f;
-                gCamAtGoalZ = D_803F7678 / 32.0f;
+                gCamAtGoalX = gCarrierTargetX / 32.0f;
+                gCamAtGoalY = gCarrierTargetY / 32.0f;
+                gCamAtGoalZ = gCarrierTargetZ / 32.0f;
             } else if (D_8030F669) {
                 if (D_8036C794 != NULL) {
                     gCamAtGoalX = (f32) (D_8036C794->unk12 + D_8036C794->unk0) / 2.0;
@@ -4439,8 +4439,8 @@ void hd_mode_setup(void) {
         debug_printf("Allocating ghost buffer memory\n");
         gHeapPtr += 0x20000;
     }
-    D_803B9888 = 0;
-    func_802A0700();
+    gTexTableLoaded = 0;
+    tex_load_table();
     gVehicleShadows = (Vehicle *) (((u32) D_80358088 + 0x40) & ~0x3F);
     func_80278E3C();
     cmo_hit_request = 0;
@@ -4462,7 +4462,7 @@ void hd_mode_setup(void) {
         func_801F7850();
     }
     old = gHeapPtr;
-    func_8026B118(0);
+    yoshi_init(0);
     debug_printf("Yoshi windows allocated %d bytes, %x\n", gHeapPtr - old, gHeapPtr);
     gVehiclesEnd = gVehicles;
     cont_wait_read();
@@ -4792,7 +4792,7 @@ void hd_setup_level(s32 arg0) {
             func_802CF628();
         }
     }
-    func_802C1DD0(gLevelKind == 0x20 || gLevelKind == 0x80);
+    obj_tally(gLevelKind == 0x20 || gLevelKind == 0x80);
     func_80262320(levelno);
     if (gCamFixedEye) {
         D_80364A86 = func_80272C5C((u16 *) D_802E8BF4, 0, 1, 1, 1, 1.0f);
@@ -4811,9 +4811,9 @@ void hd_setup_level(s32 arg0) {
     func_80282728();
     func_80281A70(levelno);
     if (gLevelInfo[levelno].unk0 == 1) {
-        func_80264C20(arg0);
+        people_init(arg0);
     }
-    func_80288220();
+    ptcl_init();
     func_8027BE4C();
     func_80292240();
     func_8027E344(levelno);
@@ -4875,8 +4875,8 @@ void hd_setup_level(s32 arg0) {
     if (D_8039CAB7) {
         func_802979E0(levelno);
     }
-    func_802A56C4();
-    func_802A5FA8();
+    cam_load_level_defaults();
+    fx_alloc_texture_caches();
 }
 
 /* Allocates the per-level display list buffers (two of each) from the heap

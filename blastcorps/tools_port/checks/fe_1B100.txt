@@ -26,7 +26,7 @@ func_80202100: -n 200 --seed 4 --follow-all --no-follow osInvalDCache,osPiStartD
     --mem @heap0+0x1C=0x40 --mem @heap0+0x20=rel:0x40+8*int:0:8 --mem @heap0+0x2C=0x60 \
     --mem @heap0+0x40:0x40=words:0x06000000,0xE7000000,0x12345678 \
     --stub-ret func_802C4108.a1=choice:0x80400000,0x80400003 --stub-ret func_802C4108.a0=int \
-    --mem D_803B8D44=int --mem D_803B8D40=sym:D_803B8570 --mem D_803B35F0=sym:D_803B3500 \
+    --mem gTexTable=int --mem gTexCacheEnd=sym:gTexCache --mem D_803B35F0=sym:D_803B3500 \
     --mem gVehicles:0x200=rand --mem gVehiclesEnd=rel:gVehicles+0x74*int:0:3 --mem gLevelKind=choice:0,1,2 \
     --arg a1=ptr:0x10 --arg a2=ptr:0x10 --arg a3=ptr:0x20 \
     --sig osInvalDCache=a0,a1 --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 --sig osRecvMesg=a0,a1,a2 \

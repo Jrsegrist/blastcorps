@@ -89,8 +89,8 @@ void func_8028C190(BoxSpawn *arg0, BoxSpawn *arg1) {
         D_8039AF00[D_8039B068].type = arg0->type;
         D_8039AF00[D_8039B068].collected = 0;
         D_8039AF00[D_8039B068].alpha = 0xFF;
-        D_8039AF00[D_8039B068].tex0 = func_802A0CC8(D_802FDB40[D_8039AF00[D_8039B068].type].tex0Id, 0);
-        D_8039AF00[D_8039B068].tex1 = func_802A0CC8(D_802FDB40[D_8039AF00[D_8039B068].type].tex1Id, 0);
+        D_8039AF00[D_8039B068].tex0 = tex_get(D_802FDB40[D_8039AF00[D_8039B068].type].tex0Id, 0);
+        D_8039AF00[D_8039B068].tex1 = tex_get(D_802FDB40[D_8039AF00[D_8039B068].type].tex1Id, 0);
         D_8039AF00[D_8039B068].vtx = gHeapPtr;
         gHeapPtr += 8;
 #ifdef PORT_HOST

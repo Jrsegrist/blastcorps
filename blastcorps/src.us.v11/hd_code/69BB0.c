@@ -59,7 +59,7 @@ extern u8 * N64P D_803ED818; /* vehicle 0's model header */
  * (func_80258230(0, 0x28, 15, 15)); one frame of func_802AEEC8 with byte
  * +0x9A set (no driving); the model matrix copied from the second buffer to
  * the first (func_802AA838); channels 1-4 set up (1: 0, 0, 0 / 0.5, 1; 2-4: 2,
- * 0, 1 / 0.5, 1) and gCamDistance / D_80364450 = 0xD48, 0.
+ * 0, 1 / 0.5, 1) and gCamDistance / gCamHeightBase = 0xD48, 0.
  * Register convention (conventions.txt): hdr s2, x t7, y s3, z s0, heading
  * s1; func_802A992C's fp and f12-f26 inputs are the dispatcher's leftovers
  * (here fp, f). The asm saves t0-t5 (asm caller lvl_spawn_vehicles keeps t1, t2
@@ -156,7 +156,7 @@ void func_802AE370(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut
     func_802A040C((Unk8029DEA0Entry *) D_803ED460, 4, 1);
     func_802A0480(0.5f, (Unk8029DEA0Entry *) D_803ED460, 4, 1);
     gCamDistance = 0xD48;
-    D_80364450 = 0;
+    gCamHeightBase = 0;
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/69BB0/func_802AE370.s")
@@ -194,7 +194,7 @@ void func_802AE860(void) {
  * = 0, 0x800, 0x400 or 0xC00 for direction 0, 1, 2, else), D_803ED814 = the
  * last checked z (directions 0/1) or x, the position = the player's (y + 500
  * for vehicle types 0xB, 0x11, 0x12), D_803ED826 = 1, channel 1 restarted
- * looping, gCamDistance / D_80364450 = 0xD48, 0. D_803ED827 is 1 while this runs and
+ * looping, gCamDistance / gCamHeightBase = 0xD48, 0. D_803ED827 is 1 while this runs and
  * D_803F7812 is 1 during the call.
  * Fidelity note: func_802AEC3C's func_802A9A60 inputs come from leftover
  * registers in the asm: key t8 = gCurVehicle << 2 (what the C caller
@@ -289,7 +289,7 @@ s32 func_802AE888(s32 dist) {
         func_802A040C((Unk8029DEA0Entry *) D_803ED460, 1, 0);
         func_802A0290((Unk8029DEA0Entry *) D_803ED460, 1, -1);
         gCamDistance = 0xD48;
-        D_80364450 = 0;
+        gCamHeightBase = 0;
         ret = 1;
     }
 done:
@@ -342,13 +342,13 @@ s32 func_802AEB9C(s32 *mode) {
  * of the wheel heights +0x10/+0x1C (logical >> 1), resets the collision state
  * (func_8029A800 with b0 = 0 and h2 = the part-list end, as func_802AFA64
  * leaves them in t0/t2), runs the world and object collision passes
- * (func_8029AA10(0), D_803F77D0 = D_803ED460, func_802BE77C(0)) and, outside
+ * (func_8029AA10(0), D_803F77D0 = D_803ED460, obj_collide_vehicle(0)) and, outside
  * vehicle type 0xB, func_8028F994 at the position. Returns 1 when the spot is
  * free (D_803A7424 clear), else 0.
  * Register convention (conventions.txt): dist a2, result a3; func_802A9A60's
  * leftover inputs key t8, fp, f12-f26 come in from the asm caller (here key,
  * *fp, f). The asm doesn't save fp: it leaves what func_8029AA10 left there
- * (the part count on a world hit, else unchanged; func_802BE77C's chain
+ * (the part count on a world hit, else unchanged; obj_collide_vehicle's chain
  * restores it), which the caller's next check reads, so *fp is in/out. The
  * asm saves v0-a0, a2, t0-t9 and gp, and also leaves a1 = D_803A7424
  * (unread). The asm's add/sub trap on overflow. */
@@ -386,7 +386,7 @@ s32 func_802AEC3C(s32 dist, s32 key, s32 *fp, TriSideOut *f) {
     func_8029A800(pos[2], (s32) D_80305CB0, 0, 0, pos[0], pos[1], 0, 0, (s32) end, 0, 0, D_803ED760);
     *fp = func_8029AA10_fp(0, *fp);
     D_803F77D0 = D_803ED460;
-    func_802BE77C(0, D_803ED760);
+    obj_collide_vehicle(0, D_803ED760);
     if (gCurVehicle != 0xB) {
         func_8028F994(pos[0], pos[1], pos[2]);
     }
@@ -468,7 +468,7 @@ static void port_aeec8_ring(void) {
  * state reset (func_8029A800: b0 = 0 and h2 = the part-list end as
  * func_802AFA64 leaves them in t0/t2, h1 = speed), part contacts
  * (func_8029C52C(0)), world collision (func_8029AA10(0)), the object pass
- * (func_802BE77C(0)), and then the ring-steering branch when D_803A7425 is
+ * (obj_collide_vehicle(0)), and then the ring-steering branch when D_803A7425 is
  * set, else D_803ED824 = 0. Finally the player position/speed/headings
  * gPlayerX..Z / D_8036443C..40 are copied from the vehicle and the
  * position reported (veh_set_record(z, 0, x, y)).
@@ -477,7 +477,7 @@ static void port_aeec8_ring(void) {
  * triangle-skip key and fp / f12-f26 leftovers (0 and zeros here; fp becomes
  * D_803ED3F2[0..2] and +0x50). Traced in the original (Oct 2026, gameplay,
  * level 0): fp 0 always (the game thread's); t8 = 0x13 from veh_update_player
- * (left by func_8026510C's callees), 0 from hd_game_frame's mode-0x1801 path,
+ * (left by people_update's callees), 0 from hd_game_frame's mode-0x1801 path,
  * heap pointers during the level intro, and func_8026A8E0's seed
  * (0x47FF37D3) on frames where func_802AF4BC took its random-idle path. The
  * key only makes func_802A9F24 skip D_803EBDB0 triangles whose u16 id equals
@@ -557,7 +557,7 @@ animate:
             func_8029C52C(0, D_803ED760);
             func_8029AA10(0);
             D_803F77D0 = D_803ED460;
-            func_802BE77C(0, D_803ED760);
+            obj_collide_vehicle(0, D_803ED760);
             if (D_803A7425 != 0) {
                 port_aeec8_ring();
             } else {

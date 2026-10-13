@@ -60,7 +60,7 @@ void func_801F4E70(u8 arg0) {
     FeHdr *hdr;
     void *p;
 
-    func_802A0700();
+    tex_load_table();
     switch (arg0) {
         case 0:
             D_802182C4 = D_006E8980;
@@ -81,7 +81,7 @@ void func_801F4E70(u8 arg0) {
     D_802182C8 = (Gfx *) (hdr->unk1C + (u32) hdr);
     p = (void *) (hdr->unk20 + (u32) hdr);
     D_802182CC = (void *) (hdr->unk14 + (u32) hdr);
-    func_802A08B4((u32 *) D_802182C8, p);
+    tex_resolve_dl((u32 *) D_802182C8, p);
 }
 
 /* Draw the scene loaded by func_801F4E70. */
@@ -112,7 +112,7 @@ Gfx *func_801F51C8(FeDyn *dyn, Gfx *arg1) {
     gSPLookAtY(gdl++, (u8 *) &dyn->unk3C00 + 0x10);
     gSPMatrix(gdl++, &dyn->unk240, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
     gSPMatrix(gdl++, &dyn->unk140, G_MTX_PROJECTION | G_MTX_MUL | G_MTX_NOPUSH);
-    gDPSetEnvColor(gdl++, 0, 0, 0, D_8036BB20);
+    gDPSetEnvColor(gdl++, 0, 0, 0, gYoshiAlpha);
     {
         s32 base;
         Mtx *m;

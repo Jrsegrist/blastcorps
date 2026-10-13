@@ -12,73 +12,73 @@ void func_8025C5D0(void) {
         case 0:
             if (gGameMode == 2) {
                 if (((s32) gFramesInMode) == 0x96) {
-                    func_8026AF6C(0x803E);
+                    yoshi_demand(0x803E);
                 }
                 if (((s32) gFramesInMode) == 0x190) {
-                    func_8026AF6C(0x8025);
+                    yoshi_demand(0x8025);
                 }
                 if (((s32) gFramesInMode) == 0x2BC) {
-                    func_8026AF6C(0x8026);
+                    yoshi_demand(0x8026);
                 }
             } else {
                 if (((s32) gFramesInMode) == 0x64) {
-                    func_8026AF6C(0x8027);
+                    yoshi_demand(0x8027);
                 }
                 if (((s32) gFramesInMode) == 0x12C) {
-                    func_8026AF6C(0x8028);
+                    yoshi_demand(0x8028);
                 }
                 if (((s32) gFramesInMode) == 0x1F4) {
-                    func_8026AF6C(0x8029);
+                    yoshi_demand(0x8029);
                 }
                 if (((s32) gFramesInMode) == 0x2BC) {
-                    func_8026AF6C(0x802A);
+                    yoshi_demand(0x802A);
                 }
             }
             break;
         case 1:
             if (((s32) gFramesInMode) == 0xB4) {
-                func_8026AF6C(0x802B);
+                yoshi_demand(0x802B);
             }
             if (((s32) gFramesInMode) == 0x1D6) {
-                func_8026AF6C(0x802C);
+                yoshi_demand(0x802C);
             }
             break;
         case 2:
             if (((s32) gFramesInMode) == 0xB4) {
-                func_8026AF6C(0x802D);
+                yoshi_demand(0x802D);
             }
             break;
         case 3:
             if (((s32) gFramesInMode) == 0xB4) {
-                func_8026AF6C(0x802E);
+                yoshi_demand(0x802E);
             }
             break;
         case 4:
             if (((s32) gFramesInMode) == 0xB4) {
-                func_8026AF6C(0x802F);
+                yoshi_demand(0x802F);
             }
             break;
         case 5:
             if (((s32) gFramesInMode) == 0xB4) {
-                func_8026AF6C(0x8030);
+                yoshi_demand(0x8030);
             }
             break;
         case 6:
             if (((s32) gFramesInMode) == 0xB4) {
-                func_8026AF6C(0x8031);
+                yoshi_demand(0x8031);
             }
             if (((s32) gFramesInMode) == 0x1D6) {
-                func_8026AF6C(0x8032);
+                yoshi_demand(0x8032);
             }
             break;
         case 7:
             if (((s32) gFramesInMode) == 0xB4) {
-                func_8026AF6C(0x8033);
+                yoshi_demand(0x8033);
             }
             break;
         case 8:
             if (((s32) gFramesInMode) == 0xB4) {
-                func_8026AF6C(0x8034);
+                yoshi_demand(0x8034);
             }
             break;
     }
@@ -458,7 +458,7 @@ void func_8025E2CC(Gfx **arg0, s32 arg1, s32 arg2) {
     gfx = *arg0;
     if (gLevelDone != 0 && areWeFading() == 0) {
         if (D_80366BC0 == 0) {
-            func_802C1DD0(gLevelInfo[levelno * 68] == 0x20 || gLevelInfo[levelno * 68] == 0x80);
+            obj_tally(gLevelInfo[levelno * 68] == 0x20 || gLevelInfo[levelno * 68] == 0x80);
             D_80366BB8 = 0;
             if ((players[playerNumber][levelno + 0x18] > 0 &&
                  players[playerNumber][levelno + 0x18] < 6) ? 1 : 0) {
@@ -492,8 +492,8 @@ void func_8025E2CC(Gfx **arg0, s32 arg1, s32 arg2) {
                         break;
                 }
             }
-            func_8026AF6C(D_80366BC2 | 0x8000 | 0x2000);
-            D_8036BB1A = -1;
+            yoshi_demand(D_80366BC2 | 0x8000 | 0x2000);
+            gYoshiPendingWindow = -1;
             if (D_80366BC2 == 5) {
                 func_80260650(D_80367738, func_8026205C(2), NULL);
             }
@@ -532,24 +532,24 @@ void func_8025E67C(Gfx **arg0, s32 arg1, u8 arg2) {
     if (gCarrierHit != 0) {
         if (D_803643D8 == 0) {
             func_802609D0();
-            func_802C1DD0(gLevelInfo[levelno * 68] == 0x20 || gLevelInfo[levelno * 68] == 0x80);
+            obj_tally(gLevelInfo[levelno * 68] == 0x20 || gLevelInfo[levelno * 68] == 0x80);
             switch (levelno) {
                 case 0x31:
                     func_80260650(D_80367738, 0x31, NULL);
                     func_80261570(0.0f);
                     break;
                 case 0x32:
-                    D_8036BB1A = -1;
-                    func_8026AF6C(0xA00E);
+                    gYoshiPendingWindow = -1;
+                    yoshi_demand(0xA00E);
                     func_80261570(0.0f);
                     break;
                 default:
                     func_80260650(D_80367738, 0x31, NULL);
                     gPauseRequest = 1;
-                    if (currentYoshiWindow != -1 || func_8026B10C() != 0) {
-                        func_8026AF6C(0x4000);
+                    if (currentYoshiWindow != -1 || yoshi_get_demand() != 0) {
+                        yoshi_demand(0x4000);
                     }
-                    D_8036BB1A = -1;
+                    gYoshiPendingWindow = -1;
                     func_80261570(0.0f);
                     break;
             }

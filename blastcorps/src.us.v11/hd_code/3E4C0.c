@@ -35,8 +35,8 @@ void func_80282C80(Gfx **gfxp, Mtx *mtx, s32 x, s32 y, s32 z, s32 x2, s32 y2, s3
     x2 >>= 5;
     y2 >>= 5;
     z2 >>= 5;
-    px = D_803F7670 >> 5;
-    pz = D_803F7678 >> 5;
+    px = gCarrierTargetX >> 5;
+    pz = gCarrierTargetZ >> 5;
     dist = sqrtf((px - x) * (px - x) + (pz - z) * (pz - z));
     if (dist < 1.0) {
         dist = 1.0f;
@@ -76,7 +76,7 @@ void func_80282C80(Gfx **gfxp, Mtx *mtx, s32 x, s32 y, s32 z, s32 x2, s32 y2, s3
     } else {
         close = 0;
     }
-    if ((D_803156C4 % 30 >= 16 || !close) && D_803F7660 != 9999999) {
+    if ((D_803156C4 % 30 >= 16 || !close) && gCarrierTargetDist != 9999999) {
         guRotateF(mf, 20.0f, 1.0f, 0.0f, 0.0f);
         guRotateF(mf2, -angle, 0.0f, 0.0f, 1.0f);
         guMtxCatF(mf, mf2, mf);
@@ -129,7 +129,7 @@ extern Mtx D_8036E5E0[];
  * Draws radar `idx`, centred on (x, z) and rotated with the camera: zoom
  * (scale) and texture shift depend on the distance to (x2, z2); blips for
  * (x2, z2) (blinking when zoomed in) and the player; an arrow pointing toward
- * (D_803F767C, D_803F7680); and a spinning sweep overlay.
+ * (gEndObjectX, gEndObjectZ); and a spinning sweep overlay.
  */
 void func_8028376C(Gfx **gfxp, Mtx *mtx, u8 idx, s32 x, s32 z, s32 x2, s32 z2) {
     Gfx *gfx;
@@ -178,8 +178,8 @@ void func_8028376C(Gfx **gfxp, Mtx *mtx, u8 idx, s32 x, s32 z, s32 x2, s32 z2) {
     D_802FD830[idx][2].v.ob[1] = sy + 1;
     D_802FD830[idx][3].v.ob[0] = sx + 1;
     D_802FD830[idx][3].v.ob[1] = sy - 2;
-    func_802C1B9C();
-    guMtxXFMF(mf, (x - D_803F7670) / scale, 0.0f, (z - D_803F7678) / scale, &ox, &oy, &oz);
+    obj_find_carrier_target();
+    guMtxXFMF(mf, (x - gCarrierTargetX) / scale, 0.0f, (z - gCarrierTargetZ) / scale, &ox, &oy, &oz);
     px = 58.0f + ox;
     py = 195.0f + oz;
     D_802FD830[idx][4].v.ob[0] = px - 2;
@@ -231,13 +231,13 @@ void func_8028376C(Gfx **gfxp, Mtx *mtx, u8 idx, s32 x, s32 z, s32 x2, s32 z2) {
             gSP1Triangle(gfx++, 0, 1, 2, 0);
             gSP1Triangle(gfx++, 0, 2, 3, 0);
         }
-        if (px >= 0x22 && px < 0x53 && py >= 0xB0 && py < 0xD7 && D_803F7660 != 9999999) {
+        if (px >= 0x22 && px < 0x53 && py >= 0xB0 && py < 0xD7 && gCarrierTargetDist != 9999999) {
             gSPVertex(gfx++, osVirtualToPhysical(&D_802FD830[idx][4]), 4, 0);
             gSP1Triangle(gfx++, 0, 1, 2, 0);
             gSP1Triangle(gfx++, 0, 2, 3, 0);
         }
     }
-    heading = func_80284ADC(x >> 5, z >> 5, D_803F767C, D_803F7680);
+    heading = func_80284ADC(x >> 5, z >> 5, gEndObjectX, gEndObjectZ);
     guRotateF(mf, -((360.0 - (gCamHeading - 180.0)) + (heading + 180.0)), 0.0f, 0.0f, 1.0f);
     guTranslateF(mf2, 58.0f, 195.0f, 0.0f);
     guMtxCatF(mf, mf2, mf);

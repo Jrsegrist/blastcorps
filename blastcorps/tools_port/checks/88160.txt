@@ -10,10 +10,10 @@ func_802CD9AC: -n 200 --ret void --mem D_803EBBF0:4=floats --mem D_803EBBF4=int 
 func_802CD9AC: -n 60 --seed 1 --ret void --mem D_803EBBF0=choice:0,0x80000000,0x3F800000,0xBF800000,0x7F7FFFFF,0xFF7FFFFF,0x7F800000,0xFF800000,0x7FC00000,0x00000001 \
     --mem D_803EBBF4=choice:0,-1 --mem D_803ED3F6:2=bytes:0,0xFF
 
-# func_802CCC8C: enter vehicle 14: D_803F9250[0x99] = 0; gCamDistance / D_80364450 = 3000, 1000; func_802C4310(a0, 0x7B)
+# func_802CCC8C: enter vehicle 14: D_803F9250[0x99] = 0; gCamDistance / gCamHeightBase = 3000, 1000; func_802C4310(a0, 0x7B)
 # (the asm's $gp change is declared `clobbers gp` in conventions.txt)
 func_802CCC8C: -n 200 --seed 0 --ret void --sig func_802C4310=a0,a1 --arg a0=int \
-    --mem D_803F9250+0x99:1=bytes:1,0xFF --mem gCamDistance:2=rand --mem D_80364450:2=rand
+    --mem D_803F9250+0x99:1=bytes:1,0xFF --mem gCamDistance:2=rand --mem gCamHeightBase:2=rand
 # func_802CD660: tyre trail ($gp = D_803F9250); func_8027BE7C's args at their declared widths (--conv)
 func_802CD660: -n 400 --seed 0 --ret void --arg gp=sym:D_803F9250 \
     --conv 'func_8027BE7C: in a0=a0:1,a1=a1,a2=a2:2,a3=a3:2,stack0=stack0:2,stack1=stack1:2,stack2=stack2,stack3=stack3,stack4=stack4:2,stack5=stack5:1,stack6=stack6:1,stack7=stack7:1,stack8=stack8:1' \
@@ -53,23 +53,23 @@ func_802CCD34: -n 40 --seed 1 --ret void --follow func_802A7764,func_802C444C --
     --mem D_803F9308=rel:heap0 --mem D_803F930C=rel:heap1 --mem gBufferIndex:1=bytes:0,1 --mem D_803F7844:8=words:0,0x80123450 \
     --mem D_803F9250+0x76:2=rand
 
-# func_802CD578 (t6, t7, s0-s4 through to func_802A6274; gp = D_803F9250): trail, countdown / +0x99 /
+# func_802CD578 (t6, t7, s0-s4 through to fx_spawn; gp = D_803F9250): trail, countdown / +0x99 /
 # record count < 15 spawn, then func_802C4584(|speed| >> 5)
 func_802CD578: -n 400 --seed 0 --arg gp=sym:D_803F9250 --arg t6=int --arg t7=int --arg s0=int --arg s1=int --arg s2=int \
     --arg s3=int --arg s4=int --mem D_803F9312:1=bytes:0*3,1,2,0xFF --mem D_803F9250+0x99:1=bytes:0,1,0x80 \
     --mem D_803F9250+0x76:2=halves:0,1,0x1F,0x20,0x21,0x7FFF,0x8000,0xFFFF,0xFFE0,0xFFDF,0xFFE1,0x1234 \
-    --stub-ret func_802A5ED0=choice:0,14,15,16,-1,0x7FFFFFFF --sig func_802CD660=
+    --stub-ret fx_count_active=choice:0,14,15,16,-1,0x7FFFFFFF --sig func_802CD660=
 # countdown 0 and +0x99 set: the < 15 boundary (signed)
 func_802CD578: -n 100 --seed 1 --arg gp=sym:D_803F9250 --arg t6=int --arg t7=int --arg s0=int --arg s1=int --arg s2=int \
     --arg s3=int --arg s4=int --mem D_803F9312:1=0 --mem D_803F9250+0x99:1=bytes:1,0xFF \
-    --mem D_803F9250+0x76:2=halves:0,0x8000,0xFFFF --stub-ret func_802A5ED0=choice:14,15,-1,0x80000000 --sig func_802CD660=
+    --mem D_803F9250+0x76:2=halves:0,0x8000,0xFFFF --stub-ret fx_count_active=choice:14,15,-1,0x80000000 --sig func_802CD660=
 # callees run for real (record setup through func_802ABC88 for id 0xE; record count; sound level; trail stubbed inside)
 func_802CD578: -n 200 --seed 2 --arg gp=sym:D_803F9250 --arg t6=int --arg t7=int --arg s0=int --arg s1=int --arg s2=int \
     --arg s3=int --arg s4=int --mem D_803F9312:1=bytes:0*3,1 --mem D_803F9250+0x98:4=rand --mem D_803F9250+0x99:1=bytes:0,1*3 \
     --mem D_803F9250+0x76:2=int:0:0xFFFF \
-    --follow func_802A6274,func_802ABC88,func_802C4584,func_802A5ED0,func_802CD660 \
-    --mem D_803EBC10:0x100=onehot:0x10@0xC/1:0xE:bytes:1,2,3 --mem D_803C4B70:0x3C0=rand --mem D_803C4B70+0x33*0x3C:16/1=bytes:0,1 \
-    --mem D_803EB770:16=bytes:0,1 --mem D_803EB792:1=rand --sig func_802A11C4=a0,a1 --sig func_80260AB8=a0,a1,a2 \
+    --follow fx_spawn,func_802ABC88,func_802C4584,fx_count_active,func_802CD660 \
+    --mem D_803EBC10:0x100=onehot:0x10@0xC/1:0xE:bytes:1,2,3 --mem gEffects:0x3C0=rand --mem gEffects+0x33*0x3C:16/1=bytes:0,1 \
+    --mem gFxTileSlots:16=bytes:0,1 --mem D_803EB792:1=rand --sig tex_queue_palette=a0,a1 --sig func_80260AB8=a0,a1,a2 \
     --mem D_803F7840:2=rand --mem D_80364AB0:1=bytes:0,1 --mem D_803F9250+0x50:1=bytes:0,1,2,3 \
     --conv 'func_8027BE7C: in a0=a0:1,a1=a1,a2=a2:2,a3=a3:2,stack0=stack0:2,stack1=stack1:2,stack2=stack2,stack3=stack3,stack4=stack4:2,stack5=stack5:1,stack6=stack6:1,stack7=stack7:1,stack8=stack8:1'
 # --- 88160: vehicle 14, generated from the 86F60 lines (same code, this vehicle's data) ---
@@ -94,9 +94,9 @@ func_802CCED4: -n 300 --arg a3=int:0:40 --arg f24=float --mem D_803F9250:0xA0=ra
     --stub-ret func_802A94A4=int:-0x1000:0x1000 --stub-ret func_802A94A4.t6=int:-0x1000:0x1000
 func_802CCED4: -n 200 --seed 1 --arg a3=int:0:40 --arg f24=float --mem D_803F9250:0xA0=rand --mem D_803F92F8:12=int:-0x1000000:0x1000000 \
     --follow func_802A94A4,func_802ACE38
-# func_802CD068: per-frame update. func_802BE77C runs as a model that sets the hit flag D_803A7424 from heap0 byte 0
+# func_802CD068: per-frame update. obj_collide_vehicle runs as a model that sets the hit flag D_803A7424 from heap0 byte 0
 # (drives the hit / no-hit paths); the FP-state pointer of func_802A8768 isn't compared (leaked registers, see 86F60.c)
-func_802CD068: -n 300 --heap 0x10 --mem @heap0:1=choice:0,1 --model func_802BE77C=hit_flag_803A7424.py \
+func_802CD068: -n 300 --heap 0x10 --mem @heap0:1=choice:0,1 --model obj_collide_vehicle=hit_flag_803A7424.py \
     --mem D_803F9250:0xA0=rand --mem D_803F9250+0x9A:1=choice:0,1 --mem D_803F9250+0x76:2=halves:0,1,49,50,51,0xFFCF,0xFFCE,0xFFCD,0x7FFF,0x8000,100,0xFF9C \
     --mem D_803F92F8:12=rand --mem D_803F9308=int --mem D_803F930C=int --mem gBufferIndex:1=choice:0,1 \
     --mem D_80367BFF:1=choice:0,1 --mem D_803F9314:1=choice:0,1,5 --mem D_803F9313:1=choice:0,1,0x80 --mem D_803A7425:1=choice:0,1 \
@@ -108,7 +108,7 @@ func_802CD068: -n 300 --heap 0x10 --mem @heap0:1=choice:0,1 --model func_802BE77
     --sig func_802C4724=a0 --sig func_802A7E70=a0,a1 --sig func_8029C52C=a0,a1 --sig func_8029AA10=a0 --sig func_8029E558=a0,a1,a2 \
     --sig func_802A746C=a0,a1,a2 --sig func_802A6FE4=a0,a1 --sig func_802A70D8=a0 --sig func_802A7070=a0,a1 --sig func_802CB690=a0
 # followed: the vehicle physics leaves, the zone scan (no zones) and the effects; record words kept in range (trapping sub)
-func_802CD068: -n 300 --seed 1 --heap 0x10 --mem @heap0:1=choice:0,1 --model func_802BE77C=hit_flag_803A7424.py \
+func_802CD068: -n 300 --seed 1 --heap 0x10 --mem @heap0:1=choice:0,1 --model obj_collide_vehicle=hit_flag_803A7424.py \
     --follow func_802A7E70,func_802A785C,func_802A7FD8,func_802A83B8,func_802A843C,func_802A7070,func_802A860C,func_802A70D8,func_802A71DC,func_802A746C,func_802A6FE4,func_802A6F6C,func_802A75DC,func_802A768C,func_802CD938,func_802CD9AC,func_802CCE90,func_802ABD54,func_802CD578 \
     --mem D_803BDFD4=sym:D_803BDFD8 --mem gVehicles:0x74=rand --mem gVehicles+0x5C=0xE \
     --mem D_803F9250:0xA0=rand --mem D_803F9250+0x9A:1=choice:0,1 --mem D_803F9250+0x76:2=halves:0,1,49,50,51,0xFFCF,0xFFCE,0xFFCD,200,0xFF38,100,0xFF9C \
@@ -120,7 +120,7 @@ func_802CD068: -n 300 --seed 1 --heap 0x10 --mem @heap0:1=choice:0,1 --model fun
     --sig func_802CCE90= --sig func_802CD800= --sig func_8029A914=a0 \
     --sig func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12 \
     --sig func_802C4724=a0 --sig func_8029C52C=a0,a1 --sig func_8029AA10=a0 --sig func_8029E558=a0,a1,a2 --sig func_802CB690=a0 \
-    --sig func_802CD660= --sig func_802A5ED0= --sig func_802C4584=a0 --sig func_802A05A4=f12,a1,a2
+    --sig func_802CD660= --sig fx_count_active= --sig func_802C4584=a0 --sig func_802A05A4=f12,a1,a2
 # func_802CCD80: re-seat (func_802A9A60, fp = 0: the C passes 0 for the caller's leaked fp; FP-state pointer not compared)
 func_802CCD80: -n 300 --arg fp=0 --mem D_803F9250:0xA0=rand --mem D_803F92F8:12=rand \
     --sig func_802A9A60=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5 --sig func_802CD800=
@@ -163,7 +163,7 @@ func_802CC920: -n 200 --seed 1 --heap 0x100 --heap 0x200 --arg s2=rel:heap0 --me
     --arg f24=float --arg f26=float --mem gHeapPtr=rel:heap1 --mem D_803F9250:0xA0=rand --mem D_803F92F8:0x1E=rand --mem D_803F8F50:0x100=rand \
     --mem gBufferIndex:1=choice:0,1 --mem D_80367BFF:1=choice:0,1 --mem D_803A7425:1=choice:0,1 --mem D_803A7424:1=rand \
     --follow func_802A754C,func_802A0290,func_802A0320,func_802A039C,func_802A03D4,func_802A040C,func_802A0480,func_802AA838,func_802CD068 \
-    --model func_802BE77C=hit_flag_803A7424.py \
+    --model obj_collide_vehicle=hit_flag_803A7424.py \
     --stub-ret func_802CD938=int --stub-ret func_802A83B8=float --stub-ret func_802A860C=int --stub-ret func_802A6F6C=int:0:0xFFF \
     --stub-ret func_802A71DC=int:-100:100 --stub-ret func_802A71DC.a0=int:0:0xFFF \
     --sig func_8029E558=a0,a1,a2 --sig func_80258230=a0:1,a1,a2:2,a3:2 \

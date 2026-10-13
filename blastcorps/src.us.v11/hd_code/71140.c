@@ -178,7 +178,7 @@ extern u8 D_803EE790[]; /* animation channel table (Unk8029DEA0Entry, 56040.c) *
  * the state block, sets fields 0x14 / 0x11 / 0x12 of animation channels 1, 2,
  * 4, 5 of D_803EE790 (channel 2 also gets 0.5f / 0 via func_802A0360) and
  * restarts each with -1, sets the D_802C2208 and D_802C226C entries' fields to
- * 0 and restarts them, gCamDistance / D_80364450 = 3400, 300, then func_802C4310(a0, 5)
+ * 0 and restarts them, gCamDistance / gCamHeightBase = 3400, 300, then func_802C4310(a0, 5)
  * with a0 = D_803EE790 left over from the setters (func_802C4310 ignores it).
  * The asm points $gp at D_803EEA90 and leaves it there (conventions.txt:
  * clobbers gp) and returns with v1 = -1 (the last setter's v1); C callers
@@ -211,7 +211,7 @@ void func_802B5CD8(void) {
     func_802A0620((s32) D_802C226C, 0);
     func_802A0508((s32) D_802C226C, -1);
     gCamDistance = 0xD48;
-    D_80364450 = 0x12C;
+    gCamHeightBase = 0x12C;
     func_802C4310((s32) D_803EE790, 5);
 }
 #else
@@ -429,13 +429,13 @@ void func_802B69F8(void);
  * 3. Model: func_8029E558 on the current buffer pair; while +0x99 is set
  *    func_80278EB0(6, 0.25, 100) unless func_802794F0, else func_802794A4;
  *    the tyre trail func_802B69F8; the spawn cooldown D_803EEB5E (at 0 with
- *    +0x99 set: restart at 1 and, with fewer than 4 func_802A6274 records,
+ *    +0x99 set: restart at 1 and, with fewer than 4 fx_spawn records,
  *    one more: def D_802C2954, data 0x30D40, type 1 at (5, 1, 1));
  *    func_802AC284, the rebuild func_802B7030.
  * 4. Collision: func_8029A800 (table D_80305D20, 1, 1, b0 8, speed, 100, 0,
  *    kind 5), func_8029C52C(5), func_8029AA10(5); D_803EEB61 = 12. Without a
  *    hit (D_803A7425 == 0): D_803A7424 = 0, D_803EEB61 = -1 and, unless
- *    gLevelKind == 0x40, func_802BE77C(5) (D_803F77D0 = D_803EE790); if that
+ *    gLevelKind == 0x40, obj_collide_vehicle(5) (D_803F77D0 = D_803EE790); if that
  *    set D_803A7424 the vehicle bounces: D_803EEB60 = 0, func_802A768C
  *    (restore the saved state, 0x800 bytes), speed = -max(|v|, 80) / 2 with
  *    v's sign (0 counts as positive) and the model rebuilt; else D_803EEB60
@@ -444,7 +444,7 @@ void func_802B69F8(void);
  *    folded to <= 0x800, func_802A70D8, func_802A71DC(+0x4E -> +0x4C,
  *    D_8030D8E0) whose new heading goes to D_803EEB5A, +0x4E and +0x74,
  *    func_802A746C(its turn, d), func_802A6FE4(0) and, unless gLevelKind ==
- *    0x40, func_802BE77C(5).
+ *    0x40, obj_collide_vehicle(5).
  * 5. Player globals gPlayerX/Y/Z = the position, D_8036443C/3E/40 =
  *    speed, +0x4E, +0x4C; veh_set_record(z, 5, x, y, veh); func_802AC2A4(z,
  *    D_80305D20, x, y, b0, 5, veh) with D_803F77D0 = D_803EE790; sound
@@ -453,7 +453,7 @@ void func_802B69F8(void);
  * &gPlayerZ (kept). Passed as 0 here: the zone scan's t6/t7/s0-s4 inputs
  * (the caller's registers, dead afterwards); func_802A8768's f14-f26 inputs
  * (pass-through); func_802B7030's chain inputs (only read for a
- * zero-matrix point); func_802A6274's t6/s1/w24/w28/w18/w1C/w2C (the asm
+ * zero-matrix point); fx_spawn's t6/s1/w24/w28/w18/w1C/w2C (the asm
  * hands over t7 = &D_803EEB38 and func_8029E558's leftover s0/s2-s4 - after
  * the C callees func_802794F0 / func_80278EB0 / func_802794A4, which may
  * change t7; a type-1 record with z != 0 ignores them all). The asm's
@@ -535,11 +535,11 @@ void func_802B6294(void) {
         D_803EEB5E--;
     } else if (D_803EEA90[0x99] != 0) {
         D_803EEB5E = 1;
-        if (func_802A5ED0() < 4) {
+        if (fx_count_active() < 4) {
             io.a3 = 1;
             io.t6 = 0;
             io.s1 = 0;
-            func_802A6274(&io, D_802C2954, 0x30D40, 1, 5, 1, 1, 0, 0, 0, 0, 0, 1);
+            fx_spawn(&io, D_802C2954, 0x30D40, 1, 5, 1, 1, 0, 0, 0, 0, 0, 1);
         }
     }
     func_802AC284((s32 *) &D_803EEB38[0], (s32 *) &D_803EEB38[1], (s32 *) &D_803EEB38[2]);
@@ -561,7 +561,7 @@ void func_802B6294(void) {
             goto no_hit;
         }
         D_803F77D0 = D_803EE790;
-        func_802BE77C(5, D_803EEA90);
+        obj_collide_vehicle(5, D_803EEA90);
         if (D_803A7424 == 0) {
             goto no_hit;
         }
@@ -607,7 +607,7 @@ void func_802B6294(void) {
     func_802A6FE4(D_803EEA90, 0);
     if (((s32) gLevelKind) != 0x40) {
         D_803F77D0 = D_803EE790;
-        func_802BE77C(5, D_803EEA90);
+        obj_collide_vehicle(5, D_803EEA90);
     }
     goto globals;
 no_hit:

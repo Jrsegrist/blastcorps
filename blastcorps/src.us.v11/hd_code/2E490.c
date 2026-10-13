@@ -36,14 +36,14 @@ u8 func_80272C5C(u16 *ids, u16 *palIds, u8 count, u8 frames, u8 flags, f32 scale
     s32 k;
     s32 start = D_8036C360;
 
-    if (!D_803B9888) {
-        func_802A0700();
+    if (!gTexTableLoaded) {
+        tex_load_table();
     }
     k = 0;
     for (slot = start; slot < count + start; slot++, k += palIds ? 0 : 1) {
         if (palIds) {
             align_up((s32 *) &gHeapPtr, 16);
-            func_802A0EE0(palIds[slot - start], pal = gHeapPtr);
+            tex_load_palette(palIds[slot - start], pal = gHeapPtr);
             gHeapPtr = (u8 *) gHeapPtr + 0x80;
         } else {
             align_up((s32 *) &gHeapPtr, 16);
@@ -51,7 +51,7 @@ u8 func_80272C5C(u16 *ids, u16 *palIds, u8 count, u8 frames, u8 flags, f32 scale
         }
         for (j = 0; j < frames; j++) {
             D_8036BFE0[slot][j] = gHeapPtr;
-            func_802A0B00(ids[frames * k + j], pal);
+            tex_load_to_heap(ids[frames * k + j], pal);
         }
         D_8036C1E0[slot] = frames;
         D_8036C220[slot] = flags;

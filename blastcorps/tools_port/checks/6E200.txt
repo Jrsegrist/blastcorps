@@ -115,34 +115,34 @@ func_802B2F54: -n 50 --seed 2 --heap 0x800 --heap 0x800 --mem D_803EE39C=rel:hea
 func_802B4658: -n 200 --seed 1 --mem D_803EE778=int --mem D_803EE77C=int --mem D_803EE6C0+0x76:2=rand --sig func_802A7764=a0,a1,a2 --sig func_802C444C=
 func_802B4658: -n 100 --seed 3 --heap 0x800 --heap 0x800 --mem D_803EE778=rel:heap0 --mem D_803EE77C=rel:heap1 --mem gBufferIndex:1=choice:0,1 \
     --mem D_803EE6C0+0x76:2=0x7FFF --mem D_803B35F8:0x180=rand --mem D_803B35F8+0x30=sym:D_802C2190 --mem D_803B35F8+0x120=sym:D_802C21A4 --follow-all
-# func_802B2D7C (vehicle-type 3 setup): channel 1-3 resets, D_802C2314 sound entry reset, gCamDistance / D_80364450, func_802C4310(&D_803EDFE0, 0x8C)
-func_802B2D7C: -n 200 --seed 1 --mem D_803EE2E0+0x99:1=rand --mem gCamDistance:2=rand --mem D_80364450:2=rand --sig func_802C4310=a0,a1
-func_802B2D7C: -n 100 --seed 3 --mem D_803EE2E0+0x99:1=rand --mem gCamDistance:2=rand --mem D_80364450:2=rand --mem D_803EDFE0:0x300=rand \
+# func_802B2D7C (vehicle-type 3 setup): channel 1-3 resets, D_802C2314 sound entry reset, gCamDistance / gCamHeightBase, func_802C4310(&D_803EDFE0, 0x8C)
+func_802B2D7C: -n 200 --seed 1 --mem D_803EE2E0+0x99:1=rand --mem gCamDistance:2=rand --mem gCamHeightBase:2=rand --sig func_802C4310=a0,a1
+func_802B2D7C: -n 100 --seed 3 --mem D_803EE2E0+0x99:1=rand --mem gCamDistance:2=rand --mem gCamHeightBase:2=rand --mem D_803EDFE0:0x300=rand \
     --mem D_803B35F8:0x180=onehot:0x18:0x802C2314:rand \
     --follow func_802A039C,func_802A03D4,func_802A040C,func_802A0290,func_802A05D0,func_802A05F8,func_802A0620,func_802A0508,func_802A06B4 --sig func_802C4310=a0,a1
 # func_802B448C (vehicle-type 4 setup): same shape, three sound entries, func_802C4310(&D_803EE3C0, 0x0B)
-func_802B448C: -n 200 --seed 1 --mem D_803EE6C0+0x99:1=rand --mem gCamDistance:2=rand --mem D_80364450:2=rand --sig func_802C4310=a0,a1
-func_802B448C: -n 100 --seed 3 --mem D_803EE6C0+0x99:1=rand --mem gCamDistance:2=rand --mem D_80364450:2=rand --mem D_803EE3C0:0x300=rand \
+func_802B448C: -n 200 --seed 1 --mem D_803EE6C0+0x99:1=rand --mem gCamDistance:2=rand --mem gCamHeightBase:2=rand --sig func_802C4310=a0,a1
+func_802B448C: -n 100 --seed 3 --mem D_803EE6C0+0x99:1=rand --mem gCamDistance:2=rand --mem gCamHeightBase:2=rand --mem D_803EE3C0:0x300=rand \
     --mem D_803B35F8:0x180=rand --mem D_803B35F8=sym:D_802C21A4 --mem D_803B35F8+0x48=sym:D_802C2190 --mem D_803B35F8+0x168=sym:D_802C21B8 \
     --follow func_802A039C,func_802A03D4,func_802A040C,func_802A0290,func_802A05D0,func_802A05F8,func_802A0620,func_802A0508,func_802A06B4 --sig func_802C4310=a0,a1
-# func_802B37B0 (vehicle 3 update; t6, t7, s0-s4 through to func_802A6274; gp = D_803EE2E0): every branch, callees stubbed
+# func_802B37B0 (vehicle 3 update; t6, t7, s0-s4 through to fx_spawn; gp = D_803EE2E0): every branch, callees stubbed
 func_802B37B0: -n 400 --seed 0 --arg gp=sym:D_803EE2E0 --arg t6=int --arg t7=int --arg s0=int --arg s1=int --arg s2=int --arg s3=int --arg s4=int \
-    --mem D_803EE3AE:1=choice:0,0,1,5,0xFF --mem D_803EE2E0+0x99:1=choice:0,1,0x80 --stub-ret func_802A5ED0=choice:0,14,15,16 \
+    --mem D_803EE3AE:1=choice:0,0,1,5,0xFF --mem D_803EE2E0+0x99:1=choice:0,1,0x80 --stub-ret fx_count_active=choice:0,14,15,16 \
     --stub-ret func_802A7CB0=choice:0,0,1 --mem gHeldBOrZ:1=choice:0,1 --mem gHeldA:1=choice:0,1 --mem gHeldLeft:1=choice:0,0,1 \
     --mem gHeldRight:1=choice:0,0,1 --mem gHeldL:1=choice:0,1 --mem gHeldR:1=choice:0,1 --mem D_803EE3A4=floats:-0.2:1.2 \
     --mem D_803EE3AF:1=choice:0,4,5,6,45,49,50,51,55,59,60,61,95,96,100,0xFF \
     --mem D_803EE2E0+0x76:2=halves:0,1,0xFFFF,29,30,0xFFE2,0x8000,0x7FFF,249,250,251,274,275,276,399,400,401,0x1234 \
     --mem D_803EE3B2:1=choice:0,0,1,0xFF --mem D_803EE3B1:1=choice:0,3,4,5,99,100,0x7F,0x80,0xFF --mem D_803EE3B3:1=choice:0,1 \
-    --mem D_803EE388=words:0,0x80B00000 --mem D_803EE3AC:2=rand --sig func_802B3C68= --sig func_802A5ED0= --sig func_80260650=a0,a1:2,a2 --sig func_802608C8=a0
+    --mem D_803EE388=words:0,0x80B00000 --mem D_803EE3AC:2=rand --sig func_802B3C68= --sig fx_count_active= --sig func_80260650=a0,a1:2,a2 --sig func_802608C8=a0
 # level clamps at 0 / 0.5 / 1 (exact, one ulp off, NaN), step constants 0 and large
 func_802B37B0: -n 300 --seed 1 --arg gp=sym:D_803EE2E0 --arg t6=int --arg t7=int --arg s0=int --arg s1=int --arg s2=int --arg s3=int --arg s4=int \
-    --mem D_803EE3AE:1=choice:0,1 --mem D_803EE2E0+0x99:1=choice:0,1 --stub-ret func_802A5ED0=choice:14,15 --stub-ret func_802A7CB0=choice:0,1 \
+    --mem D_803EE3AE:1=choice:0,1 --mem D_803EE2E0+0x99:1=choice:0,1 --stub-ret fx_count_active=choice:14,15 --stub-ret func_802A7CB0=choice:0,1 \
     --mem gHeldBOrZ:1=choice:0,1 --mem gHeldA:1=choice:0,1 \
     --mem D_803EE3A4=words:0,0x80000000,0x3F000000,0x3F000001,0x3EFFFFFF,0x3F800000,0x3F7FFFFF,0x3F800001,0xBF800000,0x7FC00000,0x3E800000 \
     --mem D_8030D8C4=words:0,0x3D000000,0x3F800000 --mem D_8030D8C8=words:0,0x3D000000,0x3F800000 --mem D_8030D8CC=words:0,0x3C000000,0x3F000000 \
     --mem D_803EE2E0+0x76:2=int:0:0xFFFF --mem D_803EE3B2:1=choice:0,1 --mem D_803EE3B1:1=int:0:0xFF --mem D_803EE3B3:1=choice:0,1 \
-    --mem D_803EE388=words:0,0x80B00000 --sig func_802B3C68= --sig func_802A5ED0= --sig func_80260650=a0,a1:2,a2 --sig func_802608C8=a0
-# callees followed (func_802A6274 with free/used records and map slots, func_802ABC88 record id 3, sound entry D_802C2314)
+    --mem D_803EE388=words:0,0x80B00000 --sig func_802B3C68= --sig fx_count_active= --sig func_80260650=a0,a1:2,a2 --sig func_802608C8=a0
+# callees followed (fx_spawn with free/used records and map slots, func_802ABC88 record id 3, sound entry D_802C2314)
 func_802B37B0: -n 300 --seed 2 --arg gp=sym:D_803EE2E0 --arg t6=int --arg t7=int --arg s0=int --arg s1=int --arg s2=int --arg s3=int --arg s4=int \
     --mem D_803EE2E0:0xA6=rand --mem D_803EE3AE:1=choice:0,1 --mem D_803EE2E0+0x99:1=choice:0,1 --mem gHeldBOrZ:1=choice:0,1 \
     --mem gHeldA:1=choice:0,1 --mem gHeldLeft:1=choice:0,0,1 --mem gHeldRight:1=choice:0,0,1 --mem gHeldL:1=choice:0,1 \
@@ -150,32 +150,32 @@ func_802B37B0: -n 300 --seed 2 --arg gp=sym:D_803EE2E0 --arg t6=int --arg t7=int
     --mem D_803EE2E0+0x76:2=halves:0,30,0xFFE2,250,275,400,0x1234,0x9000,0x123 --mem D_803EE2E0+0x50:1=choice:0,1,2,3 \
     --mem D_803EE3B2:1=choice:0,0,1 --mem D_803EE3B1:1=int:0:100 --mem D_803EE3B3:1=choice:0,1 --mem D_803EE388=words:0,0x80B00000 \
     --mem D_803EE3AC:2=rand --mem D_803EDFE0:0x300=rand --mem D_803B35F8:0x180=onehot:0x18:0x802C2314:rand \
-    --mem D_803EBC10:0x100=onehot:0x10@0xC/1:3:bytes:1,2,4 --mem D_803C4B70:0x3C0=rand --mem D_803C4B70+0x33*0x3C:16/1=bytes:0,1,1 \
-    --mem D_803EB770:16=bytes:0,1 --mem D_803EB792:1=rand \
-    --follow func_802ABC88,func_802A6274,func_802A5ED0,func_802A7CB0,func_802A0360,func_802A03D4,func_802A039C,func_802A05A4,func_802A06B4,func_802B3C68 \
-    --sig func_80260650=a0,a1:2,a2 --sig func_802608C8=a0 --sig func_802A11C4=a0,a1
+    --mem D_803EBC10:0x100=onehot:0x10@0xC/1:3:bytes:1,2,4 --mem gEffects:0x3C0=rand --mem gEffects+0x33*0x3C:16/1=bytes:0,1,1 \
+    --mem gFxTileSlots:16=bytes:0,1 --mem D_803EB792:1=rand \
+    --follow func_802ABC88,fx_spawn,fx_count_active,func_802A7CB0,func_802A0360,func_802A03D4,func_802A039C,func_802A05A4,func_802A06B4,func_802B3C68 \
+    --sig func_80260650=a0,a1:2,a2 --sig func_802608C8=a0 --sig tex_queue_palette=a0,a1
 # channel 2 level steps at every clamp edge (±5 within 0..100, ±10 toward 50)
 func_802B37B0: -n 300 --seed 3 --arg gp=sym:D_803EE2E0 --arg t6=int --arg t7=int --arg s0=int --arg s1=int --arg s2=int --arg s3=int --arg s4=int \
     --mem gHeldLeft:1=choice:0*2,1 --mem gHeldRight:1=choice:0*2,1 \
     --mem D_803EE3AF:1=choice:0,1,4,5,6,39,40,41,45,49,50,51,59,60,61,94,95,96,99,100 --mem D_803EE3A4=floats:0:1 \
     --mem D_803EE3B2:1=choice:0,1 --mem D_803EE3B1:1=int:0:100 --mem D_803EE388=words:0,0x80B00000 \
-    --sig func_802B3C68= --sig func_802A5ED0= --sig func_80260650=a0,a1:2,a2 --sig func_802608C8=a0
-# func_802B4EF8 (vehicle 4 update; t6, t7, s0-s4 through to func_802A6274; gp = D_803EE6C0): every branch, callees stubbed;
+    --sig func_802B3C68= --sig fx_count_active= --sig func_80260650=a0,a1:2,a2 --sig func_802608C8=a0
+# func_802B4EF8 (vehicle 4 update; t6, t7, s0-s4 through to fx_spawn; gp = D_803EE6C0): every branch, callees stubbed;
 # speed 0 / +-1 / +-8 / 0x8000, stick x signs, +0x4C around 0x355 and 0x8AB, channel 1 field 0x10 == 1 or not
 func_802B4EF8: -n 400 --seed 0 --arg gp=sym:D_803EE6C0 --arg t6=int --arg t7=int --arg s0=int --arg s1=int --arg s2=int --arg s3=int --arg s4=int \
-    --mem D_803EE788:1=choice:0,0,1,5,0xFF --mem D_803EE6C0+0x99:1=choice:0,1,0x80 --stub-ret func_802A5ED0=choice:0,13,14,15 \
+    --mem D_803EE788:1=choice:0,0,1,5,0xFF --mem D_803EE6C0+0x99:1=choice:0,1,0x80 --stub-ret fx_count_active=choice:0,13,14,15 \
     --stub-ret func_802A7CB0=choice:0,0,1 --mem D_803F7840:2=halves:0,0,1,0x8000 --mem gHeldBOrZ:1=choice:0,1 --mem gHeldA:1=choice:0,1 \
     --mem D_803EE780=floats:-0.2:1.2 --mem D_803EE6C0+0x76:2=halves:0,0,1,2,3,7,8,9,0xFFFF,0xFFFE,0xFFF8,0x8000,0x7FFF,0x1234,0xF234 \
     --mem gPadStickX:1=choice:0,1,0x7F,0x80,0xFF,0x40,0xC0 --mem D_803EE6C0+0x4C:2=halves:0,0x354,0x355,0x356,0x3A0,0x3A1,0x8AA,0x8AB,0xFFFF,0x500 \
-    --mem D_803EE789:1=choice:0,1 --stub-ret func_802A04BC.v1=choice:0,1,2,0xFFFFFFFF --sig func_802B54EC= --sig func_802A5ED0= --sig func_80260650=a0,a1:2,a2
+    --mem D_803EE789:1=choice:0,1 --stub-ret func_802A04BC.v1=choice:0,1,2,0xFFFFFFFF --sig func_802B54EC= --sig fx_count_active= --sig func_80260650=a0,a1:2,a2
 # level clamps at 0 / 0.5 / 1 (exact, one ulp off, NaN), step constants 0 and large
 func_802B4EF8: -n 300 --seed 2 --arg gp=sym:D_803EE6C0 --arg t6=int --arg t7=int --arg s0=int --arg s1=int --arg s2=int --arg s3=int --arg s4=int \
     --mem D_803EE788:1=choice:0,1 --mem D_803F7840:2=halves:0,1 --stub-ret func_802A7CB0=choice:0,1 --mem gHeldBOrZ:1=choice:0,1 --mem gHeldA:1=choice:0,1 \
     --mem D_803EE780=words:0,0x80000000,0x3F000000,0x3F000001,0x3EFFFFFF,0x3F800000,0x3F7FFFFF,0x3F800001,0xBF800000,0x7FC00000,0x3E800000 \
     --mem D_8030D8D4=words:0,0x3D000000,0x3F800000 --mem D_8030D8D8=words:0,0x3D000000,0x3F800000 --mem D_8030D8DC=words:0,0x3C000000,0x3F000000 \
     --mem D_803EE6C0+0x76:2=int:0:0xFFFF --mem gPadStickX:1=int:0:0xFF --mem D_803EE6C0+0x4C:2=int:0:0xFFFF --mem D_803EE789:1=choice:0,1 \
-    --sig func_802B54EC= --sig func_802A5ED0= --sig func_80260650=a0,a1:2,a2
-# callees followed (func_802A6274 records/map, func_802ABC88 record id 4, sound entries in D_803B35F8, channel table D_803EE3C0)
+    --sig func_802B54EC= --sig fx_count_active= --sig func_80260650=a0,a1:2,a2
+# callees followed (fx_spawn records/map, func_802ABC88 record id 4, sound entries in D_803B35F8, channel table D_803EE3C0)
 func_802B4EF8: -n 300 --seed 1 --arg gp=sym:D_803EE6C0 --arg t6=int --arg t7=int --arg s0=int --arg s1=int --arg s2=int --arg s3=int --arg s4=int \
     --mem D_803EE6C0:0xA6=rand --mem D_803EE788:1=choice:0,1 --mem D_803EE6C0+0x99:1=choice:0,1 --mem D_803F7840:2=halves:0,1 \
     --mem gHeldBOrZ:1=choice:0,1 --mem gHeldA:1=choice:0,1 --mem D_803EE780=floats:-0.2:1.2 \
@@ -183,9 +183,9 @@ func_802B4EF8: -n 300 --seed 1 --arg gp=sym:D_803EE6C0 --arg t6=int --arg t7=int
     --mem D_803EE6C0+0x98:1=choice:0,1 --mem D_803EE6C0+0x9B:1=choice:0,0,1 --mem gPadStickX:1=int:0:0xFF --mem D_803EE789:1=choice:0,1 \
     --mem D_803EE3C0:0x300=rand --mem D_803EE3C0+0x28:1=choice:1,1,0,2 --mem D_803B35F8:0x180=rand --mem D_803B35F8+0x18=sym:D_802C21A4 \
     --mem D_803B35F8+0x60=sym:D_802C2190 --mem D_803B35F8+0x150=sym:D_802C21B8 --mem D_803EBC10:0x100=onehot:0x10@0xC/1:4:bytes:1,2,3 \
-    --mem D_803C4B70:0x3C0=rand --mem D_803C4B70+0x33*0x3C:16/1=bytes:0,1,1 --mem D_803EB770:16=bytes:0,1 --mem D_803EB792:1=rand \
-    --follow func_802B54EC,func_802A5ED0,func_802A6274,func_802ABC88,func_802A7CB0,func_802A0360,func_802A05F8,func_802A05D0,func_802A05A4,func_802A06B4,func_802A04BC,func_802A039C,func_802A040C,func_802A0290 \
-    --sig func_80260650=a0,a1:2,a2 --sig func_802A11C4=a0,a1
+    --mem gEffects:0x3C0=rand --mem gEffects+0x33*0x3C:16/1=bytes:0,1,1 --mem gFxTileSlots:16=bytes:0,1 --mem D_803EB792:1=rand \
+    --follow func_802B54EC,fx_count_active,fx_spawn,func_802ABC88,func_802A7CB0,func_802A0360,func_802A05F8,func_802A05D0,func_802A05A4,func_802A06B4,func_802A04BC,func_802A039C,func_802A040C,func_802A0290 \
+    --sig func_80260650=a0,a1:2,a2 --sig tex_queue_palette=a0,a1
 # --- (wt-v1) vehicle 3 / 4 drivers ---
 # model parts: stubbed (func_802AA764's leftover a3/s2 not compared) and with the whole tree run
 # (one zero-count part, so func_802AA890's s0/s1/s2 pass-through reaches memory)
@@ -241,7 +241,7 @@ func_802B327C: -n 300 --mem D_803EE38C:24=rand --mem D_803EE2E0:0xA6=rand --mem 
     --mem D_803EE3AA:2=rand --mem D_803A7424:1=rand --mem D_803F77D0=rand --mem gPlayerX:12=rand --mem D_8036443C:6=rand --mem D_803ED40B:1=rand \
     --sig func_802B3E40= --sig func_802B3FF0= --sig func_8029A914=a0 --sig func_802A6F6C= \
     --sig 'func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12'
-func_802B327C: -n 200 --seed 1 --model func_802BE77C=set_D_803A7424.py --mem D_803EE38C:24=rand --mem D_803EE2E0:0xA6=rand \
+func_802B327C: -n 200 --seed 1 --model obj_collide_vehicle=set_D_803A7424.py --mem D_803EE38C:24=rand --mem D_803EE2E0:0xA6=rand \
     --mem D_803EE2E0+0x76:2=halves:0,1,0x4F,0x50,0x51,0x7FFF,0x8000,0xFFFF,0xFFB1,0xFFB0,0xFFAF,0xFF00 --mem D_803EE3B2:1=choice:0,1,5 --mem D_80367BFF:1=choice:0,1 \
     --mem D_803EE3B0:1=choice:0,1 --mem gBufferIndex:1=choice:0,1 --mem D_803A7425:1=0 --mem D_803A7424:1=rand --mem D_803F77D0=rand --mem gPlayerX:12=rand \
     --mem D_8036443C:6=rand --mem D_803ED40B:1=rand --sig func_802B3E40= --sig func_802B3FF0= --sig func_8029A914=a0 --sig func_802A6F6C= \
@@ -260,17 +260,17 @@ func_802B327C: -n 200 --seed 3 --heap 0x400 --heap 0x800 --heap 0x800 --mem D_80
 func_802B49AC: -n 300 --mem D_803EE768:24=rand --mem D_803EE6C0:0xA6=rand --mem D_803EE6C0+0x9A:1=choice:0,1,0x80 --mem D_803EE78A:1=choice:0,0,1,5 \
     --mem D_80367BFF:1=choice:0,1 --mem D_803EE789:1=choice:0,1,0xFF --mem gBufferIndex:1=choice:0,1 --mem D_803A7425:1=choice:0,1 --mem D_803EE784:2=int:0:0xFFFF \
     --mem D_803EE786:2=rand --mem D_803A7424:1=rand --mem D_803F77D0=rand --mem gPlayerX:12=rand --mem D_8036443C:6=rand --mem D_803ED40B:1=rand --mem D_803F7840:2=rand \
-    --sig func_802B568C= --sig func_802B5814= --sig func_8029A914=a0 --sig func_802A6F6C= --sig func_802BCC10= \
+    --sig func_802B568C= --sig func_802B5814= --sig func_8029A914=a0 --sig func_802A6F6C= --sig veh_prev_contacts_clear= \
     --sig 'func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12'
-func_802B49AC: -n 300 --seed 1 --model func_802BE77C=set_D_803A7424.py --mem D_803EE768:24=rand --mem D_803EE6C0:0xA6=rand \
+func_802B49AC: -n 300 --seed 1 --model obj_collide_vehicle=set_D_803A7424.py --mem D_803EE768:24=rand --mem D_803EE6C0:0xA6=rand \
     --mem D_803EE6C0+0x76:2=halves:0,1,0x3D,0x3E,0x3F,0x7D,0x7E,0x7F,0x7FFF,0x8000,0xFFFF,0xFFD4,0xFFD3,0xFFD5,0xFFA6,0xFFA5,0xFFA7,0xFF00 \
     --mem D_803EE78A:1=choice:0,1,5 --mem D_80367BFF:1=choice:0,1 --mem D_803EE789:1=choice:0,1 --mem gBufferIndex:1=choice:0,1 --mem D_803A7425:1=0 \
     --mem D_803A7424:1=rand --mem D_803F77D0=rand --mem gPlayerX:12=rand --mem D_8036443C:6=rand --mem D_803ED40B:1=rand \
-    --sig func_802B568C= --sig func_802B5814= --sig func_8029A914=a0 --sig func_802A6F6C= --sig func_802BCC10= \
+    --sig func_802B568C= --sig func_802B5814= --sig func_8029A914=a0 --sig func_802A6F6C= --sig veh_prev_contacts_clear= \
     --sig 'func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12'
 func_802B49AC: -n 200 --seed 2 --mem D_803EE768:24=rand --mem D_803EE6C0:0xA6=rand --mem D_803EE6C0+0x4E:2=halves:0,0x7FF,0x800,0x801,0xFFF,0x1000,0xFFFF \
     --mem D_803A7425:1=1 --mem D_803EE789:1=choice:0,1 --mem gBufferIndex:1=choice:0,1 --stub-ret func_802A6F6C=choice:0,0x7FF,0x800,0xFFF,0x1000 \
-    --mem D_803EE786:2=rand --mem D_803F77D0=rand --sig func_802B568C= --sig func_802B5814= --sig func_8029A914=a0 --sig func_802A6F6C= --sig func_802BCC10= \
+    --mem D_803EE786:2=rand --mem D_803F77D0=rand --sig func_802B568C= --sig func_802B5814= --sig func_8029A914=a0 --sig func_802A6F6C= --sig veh_prev_contacts_clear= \
     --sig 'func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12'
 func_802B49AC: -n 200 --seed 3 --heap 0x400 --heap 0x800 --heap 0x800 --mem D_803EE768:12=rand --mem D_803EE6C0:0xA6=rand --mem D_803EE6C0+0x9A:1=choice:0,1 \
     --mem D_803EE774=rel:heap0 --mem D_803EE778=rel:heap1 --mem D_803EE77C=rel:heap2 --mem @heap0=0x100 --mem @heap0+4=0x140 --mem @heap0+8=0x180 \
@@ -278,7 +278,7 @@ func_802B49AC: -n 200 --seed 3 --heap 0x400 --heap 0x800 --heap 0x800 --mem D_80
     --mem D_803EE789:1=choice:0,1 --mem D_803EBBF0=rand --mem D_803ED3F6:2=rand --mem D_803EE784:2=rand --mem gHeldBOrZ:1=choice:0,1 --mem D_803F77D0=rand \
     --mem gPlayerX:12=rand --mem D_8036443C:6=rand --mem D_803F7840:2=rand --follow func_802B568C,func_802B5814,func_802B57C4,func_802B47D4 \
     --sig 'func_8029C454=a0,a1,a2,a3,stack0,stack1,stack2' --sig 'func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12' \
-    --sig func_8029A914=a0 --sig func_802A6F6C= --sig func_802BCC10= --sig func_802ABD54=a0,a1,a2,a3 --sig 'func_802ABBEC=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10'
+    --sig func_8029A914=a0 --sig func_802A6F6C= --sig veh_prev_contacts_clear= --sig func_802ABD54=a0,a1,a2,a3 --sig 'func_802ABBEC=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10'
 # setups (the update's zone registers and func_802A992C's FP inputs are register leaks: not compared)
 func_802B29C0: -n 200 --heap 0x400 --heap 0x1000 --arg s2=rel:heap0 --mem @heap0+4=choice:0x100,0x140 --mem @heap0+8=0x180 --mem @heap0+0x18=0x200 \
     --mem @heap0+0x204=choice:0,0x40,0x7C0 --mem gHeapPtr=rel:heap1 --mem D_803EE2E0:0xA6=rand --mem D_803EE388:0x2C=rand --mem D_803F7840:2=rand \
@@ -299,4 +299,4 @@ func_802B4100: -n 200 --seed 1 --heap 0x400 --heap 0x1000 --arg s2=rel:heap0 --m
     --mem D_803F77D0=rand --mem gPlayerX:12=rand --mem D_8036443C:6=rand --follow func_802B49AC,func_802B568C,func_802B5814,func_802B57C4,func_802B47D4 \
     --sig 'func_802A992C=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5' --sig 'func_8029C454=a0,a1,a2,a3,stack0,stack1,stack2' \
     --sig 'func_802A8768=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12' \
-    --sig func_8029A914=a0 --sig func_802A6F6C= --sig func_802BCC10= --sig func_802ABD54=a0,a1,a2,a3 --sig 'func_802ABBEC=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10'
+    --sig func_8029A914=a0 --sig func_802A6F6C= --sig veh_prev_contacts_clear= --sig func_802ABD54=a0,a1,a2,a3 --sig 'func_802ABBEC=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10'

@@ -289,7 +289,7 @@ static int apply(int kind, uint32_t dst, uint32_t rom, uint32_t len, int at_load
             if (!at_load) return 0;
             port_load_image_fe();
             return 1;
-        case K_TEXTAB:          /* func_802A0700: one raw DMA */
+        case K_TEXTAB:          /* tex_load_table: one raw DMA */
             if (at_load) return 0;
             swap_records(dst, len, 8, "4@0 2@4 2@6");
             return 1;

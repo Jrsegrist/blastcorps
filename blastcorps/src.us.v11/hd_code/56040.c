@@ -119,8 +119,8 @@ extern u8 D_803F7811;
  * 0/0xFFF, the position D_803A73F0..F8 = (x, y, z), the various mode bytes and
  * halves from the arguments, D_803A742D = veh[0xA0] (the vehicle record the
  * asm has in gp), and the flag bytes cleared. Then resets buffer B
- * (func_802BCC10) if gFramesInMode is 0, again if b2 != 0 and b8 != 0xFF (b2 is
- * compared as the full register), and always buffer A (func_802BCBD8).
+ * (veh_prev_contacts_clear) if gFramesInMode is 0, again if b2 != 0 and b8 != 0xFF (b2 is
+ * compared as the full register), and always buffer A (veh_contacts_clear).
  * Register convention (conventions.txt): z, a1, b2, b3 in a0-a3 as in the asm;
  * x, y, b0, h1, h2, b4, b8, veh in v0, v1, t0, t1, t2, t3, t8, gp. The
  * asm saves t7/s0 and leaves v0 = gFramesInMode. Asm callers keep a0-a3,
@@ -142,17 +142,17 @@ void func_8029A800(s32 z, s32 a1, s32 b2, s32 b3, s32 x, s32 y, s32 b0, s32 h1, 
     D_803A7428 = b0;
     D_803A7429 = 0;
     D_803A7422 = h2;
-    D_803F77FC = h1;
+    gHitSpeed = h1;
     D_803A7408 = a1;
     D_803A7424 = 0;
     D_803A7425 = 0;
     if (((s32) gFramesInMode) == 0) {
-        func_802BCC10();
+        veh_prev_contacts_clear();
     }
     if (b2 != 0 && b8 != 0xFF) {
-        func_802BCC10();
+        veh_prev_contacts_clear();
     }
-    func_802BCBD8();
+    veh_contacts_clear();
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/56040/func_8029A800.s")
@@ -298,7 +298,7 @@ static s32 port_sphere_hits_tri(s32 x, s32 y, s32 z, s32 r, u8 *tri) {
 /* Does the sphere (x, y, z) radius r hit the world for vehicle `kind`? In
  * order (each list walked with `!=`, 0x60-byte triangles):
  * 1. for each D_803059F0 entry whose mask has bit (kind & 31) and whose level
- *    is 0xFFFF or levelno (object kind 0x38 only while func_802BD8C8()
+ *    is 0xFFFF or levelno (object kind 0x38 only while obj_end_object_hidden()
  *    is 0): every gObjects object of that kind that func_8029B514 says the
  *    sphere touches, its triangles with byte 0x51 set;
  * 2. D_803F9330 .. D_803FB8B0 with byte 0x51 set, except (kind 0xC8) those
@@ -329,7 +329,7 @@ s32 func_8029AB88(s32 x, s32 y, s32 z, s32 r, s32 kind) {
         if (e[0] != 0xFFFF && e[0] != (u32) levelno) {
             continue;
         }
-        if (e[1] == 0x38 && func_802BD8C8() != 0) {
+        if (e[1] == 0x38 && obj_end_object_hidden() != 0) {
             continue;
         }
         objEnd = gObjectsEnd;
@@ -439,7 +439,7 @@ void func_8029B02C(s32 x, s32 y, s32 z, s32 r, s32 kind, s32 id) {
         if (e[0] != 0xFFFF && e[0] != (u32) levelno) {
             continue;
         }
-        if (e[1] == 0x38 && func_802BD8C8() != 0) {
+        if (e[1] == 0x38 && obj_end_object_hidden() != 0) {
             continue;
         }
         objEnd = gObjectsEnd;
@@ -554,7 +554,7 @@ void func_8029B5B8(u8 *rec) {
 void func_8029B994(void);
 
 /* Collision hit on triangle `tri` (id `id`): appends id to buffer A
- * (func_802BCCD4). Unless id is already in the byte list at D_803A7408
+ * (veh_contacts_add). Unless id is already in the byte list at D_803A7408
  * (signed bytes, scanned up to the first negative one, which is compared
  * too): sets D_803A7424, takes the plane function s = normal . (D_803A73F0/
  * F4/F8 >> 2) + d (s64 fields at 0/8/0x10, d at 0x18; 64-bit, wrapping
@@ -563,7 +563,7 @@ void func_8029B994(void);
  * h + 0x400) when byte 0x55 is 1 or byte 0x56 is set, else func_8029B7CC(
  * h + 0x400, h - 0x400) when byte 0x55 is 1 or byte 0x56 is clear (h = u16
  * at 0x4C); after a call a nonzero byte 0x59 goes to D_803BE738. Then, if
- * D_803A7429 is clear, |D_803F77FC| >= |D_803A7422| and D_803A7427 is set:
+ * D_803A7429 is clear, |gHitSpeed| >= |D_803A7422| and D_803A7427 is set:
  * D_803A7429 = D_803A7427 and func_8029B994().
  * Register convention: tri in s0, id in fp (conventions.txt); the asm saves
  * v0-a3 and t0. Asm callers rely on preserved: func_8029B02C / func_8029BB28
@@ -576,7 +576,7 @@ void func_8029B614(u8 *tri, s32 id) {
     s64 d;
     s32 h;
 
-    func_802BCCD4(id);
+    veh_contacts_add(id);
     for (p = (s8 *) N64_IPTR(D_803A7408);; p++) {
         c = *p;
         if (c == id) {
@@ -607,7 +607,7 @@ void func_8029B614(u8 *tri, s32 id) {
     }
 tail:
     if (D_803A7429 == 0) {
-        s32 a = D_803F77FC;
+        s32 a = gHitSpeed;
         s32 b = D_803A7422;
 
         if (a < 0) {
@@ -726,7 +726,7 @@ extern s32 D_803A7400;
 extern s32 D_803A7404;
 extern u8 D_80370C3C;
 
-/* Sets up a D_803C4B70 record (func_802A6274) for the definition D_802C2984
+/* Sets up a gEffects record (fx_spawn) for the definition D_802C2984
  * with data D_803A7428 * 7000, type 0, position D_803A73FC/7400/7404 << 13,
  * b35 = 1 and every other input 0; then D_80370C3C = 1.
  * The asm saves and restores every register (f12/f14 are left as the callee
@@ -737,7 +737,7 @@ void func_8029B994(void) {
     io.a3 = 0;
     io.t6 = 0;
     io.s1 = 0;
-    func_802A6274(&io, D_802C2984, D_803A7428 * 0x1B58, 0, D_803A73FC << 13, D_803A7400 << 13, D_803A7404 << 13,
+    fx_spawn(&io, D_802C2984, D_803A7428 * 0x1B58, 0, D_803A73FC << 13, D_803A7400 << 13, D_803A7404 << 13,
                   0, 0, 0, 0, 0, 1);
     D_80370C3C = 1;
 }
@@ -1344,7 +1344,7 @@ void func_8029C828(s32 tag) {
  * starts at the first such entry and ends at the next entry with another tag
  * or the 0xFF end marker at byte 0x13) is numbered n = 1, 2, ...; for each
  * part whose sphere (words 0..0xC) overlaps the sphere q (func_8029CFA4)
- * calls func_802CE204(part x, part z, qx, qz) and func_802BCCD4(n).
+ * calls func_802CE204(part x, part z, qx, qz) and veh_contacts_add(n).
  * Register convention: tag in t8, q in a2, a3, t0, t1 (conventions.txt);
  * the asm saves v0-a1, t3, t5 and leaves t7, s0, s1, fp changed (dead in its
  * callers func_8029C748 / func_8029C828, which keep a0, a1, t3, t5, t8
@@ -1370,7 +1370,7 @@ void func_8029C914(s32 tag, s32 qx, s32 qy, s32 qz, s32 qr) {
         pz = *(s32 *) (e + 8);
         if (func_8029CFA4(pz, *(s32 *) (e + 0xC), qx, qy, px, *(s32 *) (e + 4), qz, qr)) {
             func_802CE204(px, pz, qx, qz);
-            func_802BCCD4(n);
+            veh_contacts_add(n);
         }
     }
 }
@@ -1459,7 +1459,7 @@ extern u8 D_803A742C;
 #pragma intrinsic(sqrtf) /* sqrt.s, as the asm (applies to the rest of the file) */
 
 /* Heading from point 1 (x1, z1) to point 2 (x2, z2) of a pair of linked
- * entries: appends n to buffer A (func_802BCCD4); sets D_803A7426 when
+ * entries: appends n to buffer A (veh_contacts_add); sets D_803A7426 when
  * kind == 0xFF and the byte next[-2] is non-zero, or when kind is neither 0
  * nor 0xFF and next[-2] == 0xFF (next[-2] is byte 0x12 of the entry before
  * `next`). The angle (0..0xFFF, 0x400 per quadrant) is
@@ -1478,7 +1478,7 @@ void func_8029CB54(s32 n, s32 kind, u8 *next, s32 x1, s32 z1, s32 x2, s32 z2) {
     f32 dist;
     u32 angle = 0;
 
-    func_802BCCD4(n);
+    veh_contacts_add(n);
     if (kind == 0xFF) {
         if (next[-2] != 0) {
             D_803A7426 = 1;
@@ -2439,7 +2439,7 @@ void func_8029E21C(Unk8029DEA0Entry *ch, u8 *param);
  * nonzero.
  * Register convention: param in fp (conventions.txt): the asm passes its
  * caller's fp through to func_8029E21C, whose texture loads hand it to the
- * decoder (func_802A1074). Its only caller, hd_game_frame in 00000.c, is C
+ * decoder (tex_queue_load_impl). Its only caller, hd_game_frame in 00000.c, is C
  * and declares `void func_8029E0AC(void)`, so what it passes is whatever its
  * fp (and here a0) happens to hold: a port must decide what that should be.
  * The asm saves and restores every register (f20-f30 included). */
@@ -2569,7 +2569,7 @@ void func_8029E21C(Unk8029DEA0Entry *ch, u8 *param) {
  * clear (when all 12 are in use, the asm runs on to the block just past the
  * table; kept), tags it (word 0 = key, u16 +4 = id, byte 6 = 1, byte 7 = 0),
  * queues the load of table entry `id` into its data at +0x10 with decode
- * param `param` (func_802A1074) and returns the physical address of that
+ * param `param` (tex_queue_load_impl) and returns the physical address of that
  * data (block + 0x10 - 0x80000000): the counterpart of func_8029E4E4.
  * Register convention: asm takes key, id, param in t3, t6, fp and returns in
  * s1 (conventions.txt); it changes a0-a2. Its asm caller func_8029E21C keeps
@@ -2589,7 +2589,7 @@ u32 func_8029E47C(s32 key, s32 id, u8 *param) {
     *(s16 *) (b + 4) = id;
     b[6] = 1;
     b[7] = 0;
-    func_802A1074(id, b + 0x10, param);
+    tex_queue_load_impl(id, b + 0x10, param);
     return (u32) (b + 0x10) - 0x80000000;
 }
 #else

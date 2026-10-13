@@ -136,7 +136,7 @@ static void veh83910_model(const VehDesc83910 *d) {
  * (func_802A83B8) and drag (func_802A843C), move along the heading
  * (func_802A860C), ground contact (func_802A8768); animation channels
  * (func_8029E558 between the two save buffers), model update, collisions
- * (func_8029A800, func_8029C52C, func_8029AA10, func_802BE77C). If those
+ * (func_8029A800, func_8029C52C, func_8029AA10, obj_collide_vehicle). If those
  * reported a hit (D_803A7424): the first time (flag clear) restore the saved
  * state (func_802A768C), bounce (func_802C95D8), set the flag, update the
  * model again and stop; otherwise (or with no hit, which clears the flag)
@@ -194,7 +194,7 @@ static void veh83910_frame(const VehDesc83910 *d) {
     func_8029C52C(d->type, veh);
     func_8029AA10(d->type);
     D_803F77D0 = d->chan;
-    func_802BE77C(d->type, veh);
+    obj_collide_vehicle(d->type, veh);
     if (D_803A7424 != 0) {
         if (*d->flag == 0) {
             if (gBufferIndex != 0) {
@@ -373,7 +373,7 @@ void func_802C8790(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp) {
 
 void func_802C8AB0(s32 arg0) {
     gCamDistance = 3000;
-    D_80364450 = 0;
+    gCamHeightBase = 0;
     func_802C4310(arg0, 0x72);
 }
 #else

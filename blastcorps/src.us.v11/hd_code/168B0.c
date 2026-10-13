@@ -37,7 +37,7 @@ u8 *func_8025B0B8(u16 arg0) {
     if (!found) {
         for (i = 0; i < 80 && !found;) {
             if (D_803653B0[i] == 0) {
-                func_802A1040(arg0, D_8039CAF0[i], 0);
+                tex_queue_load(arg0, D_8039CAF0[i], 0);
                 D_803653B0[i] = arg0;
                 found = 1;
             } else {
@@ -48,7 +48,7 @@ u8 *func_8025B0B8(u16 arg0) {
     if (!found) {
         for (i = 0; i < 80 && !found;) {
             if (D_80365360[i] == 0) {
-                func_802A1040(arg0, D_8039CAF0[i], 0);
+                tex_queue_load(arg0, D_8039CAF0[i], 0);
                 D_803653B0[i] = arg0;
                 found = 1;
             } else {

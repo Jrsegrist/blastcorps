@@ -84,6 +84,7 @@ RET_KINDS = {"int": ["v0"], "void": [], "u64": ["v0", "v1"], "float": ["f0"],
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from names import orig  # noqa: E402  (renamed symbols are classified by their address names)
+from names import new as new_name  # noqa: E402
 
 
 class _SkipSym:
@@ -1706,7 +1707,7 @@ def gen_value(spec, rng, plan, what):
         a = plan.alloc(size)
         # (byte by byte even when big: switching ptr blocks to randbytes changed
         # the inputs of existing check lines, and the new ones hit an asm
-        # overflow trap in cull_test_cells and a heap diff in func_802A57AC that
+        # overflow trap in cull_test_cells and a heap diff in tex_decode_next that
         # the checks don't yet account for; --mem rand fills use rand_bytes)
         data = bytes(size) if kind == "ptrz" else bytes(rng.getrandbits(8) for _ in range(size))
         plan.mem.append((lambda b, a=a: a, data))
@@ -2360,8 +2361,13 @@ def parse_args(argv):
     opts = Options()
     for k, v in vars(o).items():
         setattr(opts, k, v)
-    opts.follow_set = set(x for f in o.follow for x in f.split(","))
-    opts.no_follow_set = set(x for f in o.no_follow for x in f.split(","))
+    # a callee is named by its old or new name (tools_port/names.txt): the two builds can label
+    # one address differently (an absolute func_ symbol in one, the new name in the other)
+    def both_names(names):
+        names = list(names)
+        return set(names) | set(orig(x) for x in names) | set(new_name(x) for x in names)
+    opts.follow_set = both_names(x for f in o.follow for x in f.split(","))
+    opts.no_follow_set = both_names(x for f in o.no_follow for x in f.split(","))
     opts.stop_at = {}
     for s in o.stop_at:
         n, _, k = s.partition(":")
@@ -2378,6 +2384,9 @@ def parse_args(argv):
             raise SystemExit("eqcheck: %s" % e)
         opts.convs[c.name] = c
     opts.models = dict(load_model(s) for s in o.model)
+    for k in list(opts.models):
+        for alias in (orig(k), new_name(k)):
+            opts.models.setdefault(alias, opts.models[k])
     tc = opts.convs.get(o.func)
     opts.tconv =tc if tc is not None and tc.full else None
     # registers the function under test may legitimately change although the

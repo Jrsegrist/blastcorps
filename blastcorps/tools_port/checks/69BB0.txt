@@ -142,7 +142,7 @@ func_802AE370: -n 300 --seed 0 --arg s2=ptr:0x100 --mem @s2+4=int:0:0x1000 --mem
     --mem @s2+0x18=choice:0x40,0x80 --mem @s2+0x44=int --mem @s2+0x84=int --arg t7=int --arg s3=int --arg s0=int \
     --arg s1=int --arg fp=int --arg f12=float --arg f14=float --arg f20=float --arg f22=float --arg f24=float \
     --arg f26=float --mem gHeapPtr=int:0:0x70000000 --mem D_803ED818:24=rand --mem D_803ED760:0xA6=rand \
-    --mem D_803ED808:12=rand --mem D_803ED824:4=rand --mem gCamDistance:2=rand --mem D_80364450:2=rand \
+    --mem D_803ED808:12=rand --mem D_803ED824:4=rand --mem gCamDistance:2=rand --mem gCamHeightBase:2=rand \
     --sig func_802AEEC8= --sig func_80258230=a0:1,a1,a2:2,a3:2
 # channel setters, the record reset and the marker record run for real; extreme positions and headings
 func_802AE370: -n 100 --seed 1 \
@@ -197,7 +197,7 @@ func_802AE888: -n 300 --seed 0 --ret int --arg a0=int:0:1000 --mem D_803ED825:1=
     --stub-ret func_802AEB9C=choice:0,1 --stub-ret func_802AEC3C=choice:1*8,0 --mem D_803ED760:0xA6=rand \
     --mem D_803ED808:12=rand --mem D_803ED814=int --mem D_803ED81C=int --mem D_803ED826:1=bytes:0 \
     --mem D_803ED827:1=bytes:5 --mem D_803ED828:1=bytes:9 --mem D_803F7812:1=bytes:7 --mem gCamDistance:2=rand \
-    --mem D_80364450:2=rand --sig func_802AEC3C=a0
+    --mem gCamHeightBase:2=rand --sig func_802AEC3C=a0
 func_802AE888: -n 200 --seed 1 --ret int --arg a0=int:0:600 --arg t8=12 --arg fp=0 --arg f12=0 --arg f14=0 --arg f20=0 \
     --arg f22=0 --arg f24=0 --arg f26=0 --mem D_803ED825:1=bytes:1 \
     --mem D_80305CB1:26=hex:0503020200_0503010300_0603030202_0603000101_0703020200_FF --mem levelno=choice:5,6,7,8 \

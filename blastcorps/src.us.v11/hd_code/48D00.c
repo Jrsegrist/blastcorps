@@ -94,13 +94,13 @@ void func_8028D4C0(u8 *arg0, u8 *arg1) {
         D_8039B070_entries[D_8039B610].unk10 = arg0[7] * 60;
         D_8039B070_entries[D_8039B610].unk12 = D_8039B070_entries[D_8039B610].unk10;
         D_8039B070_entries[D_8039B610].unk2C[0] =
-            func_802A0CC8(D_802FDB98_boxes[D_8039B070_entries[D_8039B610].unk0E].tex[0], 0);
+            tex_get(D_802FDB98_boxes[D_8039B070_entries[D_8039B610].unk0E].tex[0], 0);
         D_8039B070_entries[D_8039B610].unk2C[1] =
-            func_802A0CC8(D_802FDB98_boxes[D_8039B070_entries[D_8039B610].unk0E].tex[1], 0);
+            tex_get(D_802FDB98_boxes[D_8039B070_entries[D_8039B610].unk0E].tex[1], 0);
         D_8039B070_entries[D_8039B610].unk2C[2] =
-            func_802A0CC8(D_802FDB98_boxes[D_8039B070_entries[D_8039B610].unk0E].tex[2], 0);
+            tex_get(D_802FDB98_boxes[D_8039B070_entries[D_8039B610].unk0E].tex[2], 0);
         D_8039B070_entries[D_8039B610].unk2C[3] =
-            func_802A0CC8(D_802FDB98_boxes[D_8039B070_entries[D_8039B610].unk0E].tex[3], 0);
+            tex_get(D_802FDB98_boxes[D_8039B070_entries[D_8039B610].unk0E].tex[3], 0);
         D_8039B070_entries[D_8039B610].unk0C = 0;
         D_8039B070_entries[D_8039B610].unk14 = 0;
         D_8039B070_entries[D_8039B610].unk1E = 0;
@@ -362,7 +362,7 @@ void func_8028DF14(u8 arg0) {
                 D_8039B070_entries[i].unk18 != 0) {
                 func_80260650(D_80367738, 7, (void *) N64_IPTR(((s32) &D_8039B070_entries[i].unk44)));
                 if (gCurVehicle == 4) {
-                    func_8026AD30(0x54);
+                    yoshi_show_hint(0x54);
                 }
             }
             if (D_8039B070_entries[i].unk44 != 0 && D_8039B070_entries[i].unk1E == 0) {

@@ -55,19 +55,19 @@ void func_80275478(SpriteVtxBuf *arg0, Gfx **gfxp, u8 arg2) {
 
     minX = 0x7FFF, maxX = -0x8000, minY = 0x7FFF, maxY = -0x8000;
     ret = obj_find_nearest_target();
-    pts = D_8036C790;
+    pts = gNearestTargetPts;
     D_8036C7CC = 0;
     if (!D_8036EB98 && !ret && gLevelKind == 1 && !gPaused) {
-        if (!func_8026AD30(0x4B)) {
-            func_8026AF6C(0x803D);
+        if (!yoshi_show_hint(0x4B)) {
+            yoshi_demand(0x803D);
             func_80277EDC(3, 1, 2, 0x82);
         }
         D_8036EB98 = 1;
     }
-    if (D_8036C790 != NULL && (!func_802768A8() || arg2) && D_8036C794 == NULL) {
+    if (gNearestTargetPts != NULL && (!func_802768A8() || arg2) && D_8036C794 == NULL) {
         for (i = 0; i < 4; i++) {
-            func_8027690C(arg0, D_8036C790[0], D_8036C790[1], D_8036C790[2], &sx, &sy, NULL, NULL, NULL, 1.0f);
-            D_8036C790 += 3;
+            func_8027690C(arg0, gNearestTargetPts[0], gNearestTargetPts[1], gNearestTargetPts[2], &sx, &sy, NULL, NULL, NULL, 1.0f);
+            gNearestTargetPts += 3;
             if (sx < minX) {
                 minX = sx;
             }
@@ -104,21 +104,21 @@ void func_80275478(SpriteVtxBuf *arg0, Gfx **gfxp, u8 arg2) {
             if (px < 310 && px >= 11 && py < 230 && py >= 11) {
                 D_8036C794 = pts;
                 D_8036C798 = ret;
-                D_803F7809 = D_803F7808;
+                gMarkedTargetKind = gNearestTargetKind;
                 D_802FAD44 = 0;
             }
         }
     }
     if (D_8036C794 != NULL) {
-        func_802BD10C(D_8036C798);
-        if (D_8036C7C8 >= 1501 || !gHaveCarrier) {
+        obj_calc_target_time(D_8036C798);
+        if (gCarrierEta >= 1501 || !gHaveCarrier) {
             g = 0xFF;
             r = 0;
-        } else if (D_8036C7C8 < 500) {
+        } else if (gCarrierEta < 500) {
             r = 0xFF;
             g = 0;
         } else {
-            t = (D_8036C7C8 - 500) / 1000.0f * 511.0f;
+            t = (gCarrierEta - 500) / 1000.0f * 511.0f;
             if (t < 256) {
                 g = t, r = 0xFF;
             } else {
@@ -373,7 +373,7 @@ s32 func_802768A8(void) {
 
     i = 0;
     while (i < 10) {
-        if (D_8036C7A0[i] && D_8036C7A0[i] == D_8036C790) {
+        if (D_8036C7A0[i] && D_8036C7A0[i] == gNearestTargetPts) {
             return 1;
         }
         i++;

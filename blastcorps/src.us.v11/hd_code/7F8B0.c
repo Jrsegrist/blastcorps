@@ -265,7 +265,7 @@ void func_802C4724(s32 sfx) {
  * just before this file's code: twelve texture-animation entries
  * (D_802C2190.., list D_802C23B4; 56040.c func_8029DEA0/func_8029E21C, the
  * vehicle files' channel keys) and the 28 billboard effect definitions
- * (EffectDef + texture ids, list D_802C3FFC; func_802A6274, func_802A64A4).
+ * (EffectDef + texture ids, list gFxDefsByKind; fx_spawn, fx_draw_all).
  * The NON_MATCHING build defines it in C and links this file's .data (it has
  * nothing else) back at the table's original address (Makefile NM_PIN_HD_CODE,
  * nm_ldscript.py --pin-object); nm_symaudit.py checks the bytes against the
@@ -373,7 +373,7 @@ typedef struct {
     /* 802C3DE4 */ u16 ed802C3DD4_ids[104];
     /* 802C3EB4 */ EffectDef ed802C3EB4; /* D_802C3EB4 */
     /* 802C3EC4 */ u16 ed802C3EB4_ids[156];
-    /* 802C3FFC */ u8 * N64P effectDefs[28]; /* D_802C3FFC */
+    /* 802C3FFC */ u8 * N64P effectDefs[28]; /* gFxDefsByKind */
     /* 802C406C */ u32 pad802C406C;
 } TextData7D9D0; /* size 0x1EE0 */
 /* the members must sit at their ROM offsets (with 4-byte pointers) */

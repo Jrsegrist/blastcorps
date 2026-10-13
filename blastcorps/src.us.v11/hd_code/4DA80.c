@@ -154,7 +154,7 @@ void func_80292830(void) {
                     func_80292DDC(i);
                 }
                 if (D_802FE3C0[D_8039C960[i].type].unk5A9) {
-                    func_802AC61C(D_8039C960[i].x, D_8039C960[i].y, D_8039C960[i].z,
+                    fx_spawn_at(D_8039C960[i].x, D_8039C960[i].y, D_8039C960[i].z,
                                   D_802FE3C0[D_8039C960[i].type].unk5B0, D_802FE3C0[D_8039C960[i].type].unk5AC);
                 }
                 D_8039C960[i].prevY = D_8039C960[i].y;
@@ -170,7 +170,7 @@ void func_80292830(void) {
 
 void func_80292DDC(s32 i) {
     D_8039C960[i].active = 0;
-    func_802AC61C(D_8039C960[i].x, D_8039C960[i].y, D_8039C960[i].z, D_802FE3C0[D_8039C960[i].type].unk5A8,
+    fx_spawn_at(D_8039C960[i].x, D_8039C960[i].y, D_8039C960[i].z, D_802FE3C0[D_8039C960[i].type].unk5A8,
                   D_802FE3C0[D_8039C960[i].type].unk5A4);
     gShakeTime = 10;
     gShakeSize = 400;

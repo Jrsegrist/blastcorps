@@ -14,18 +14,18 @@ Discarded input sections
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/00000.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/00000.c.o
  .gptab.data    0x00000000       0x48 build_nm/src.us.v11/hd_front_end/00000.c.o
- .mdebug        0x00000000     0x16c4 build_nm/src.us.v11/hd_front_end/00000.c.o
+ .mdebug        0x00000000     0x16cc build_nm/src.us.v11/hd_front_end/00000.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/01C40.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/01C40.c.o
  .gptab.data    0x00000000       0x70 build_nm/src.us.v11/hd_front_end/01C40.c.o
- .mdebug        0x00000000     0x2fe0 build_nm/src.us.v11/hd_front_end/01C40.c.o
+ .mdebug        0x00000000     0x2fe4 build_nm/src.us.v11/hd_front_end/01C40.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/06790.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/06790.c.o
  .gptab.data    0x00000000       0x20 build_nm/src.us.v11/hd_front_end/06790.c.o
  .mdebug        0x00000000      0xb28 build_nm/src.us.v11/hd_front_end/06790.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/07390.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/07390.c.o
- .mdebug        0x00000000      0x888 build_nm/src.us.v11/hd_front_end/07390.c.o
+ .mdebug        0x00000000      0x890 build_nm/src.us.v11/hd_front_end/07390.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/07800.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/07800.c.o
  .gptab.data    0x00000000       0x18 build_nm/src.us.v11/hd_front_end/07800.c.o
@@ -38,15 +38,15 @@ Discarded input sections
  .mdebug        0x00000000      0xfec build_nm/src.us.v11/hd_front_end/0C450.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/0DE70.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/0DE70.c.o
- .mdebug        0x00000000      0xc60 build_nm/src.us.v11/hd_front_end/0DE70.c.o
+ .mdebug        0x00000000      0xc64 build_nm/src.us.v11/hd_front_end/0DE70.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/0E7B0.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/0E7B0.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/10850.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/10850.c.o
- .mdebug        0x00000000      0xeb4 build_nm/src.us.v11/hd_front_end/10850.c.o
+ .mdebug        0x00000000      0xebc build_nm/src.us.v11/hd_front_end/10850.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/17990.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/17990.c.o
- .mdebug        0x00000000     0x12e0 build_nm/src.us.v11/hd_front_end/17990.c.o
+ .mdebug        0x00000000     0x12fc build_nm/src.us.v11/hd_front_end/17990.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/196F0.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/196F0.c.o
  .mdebug        0x00000000      0x6fc build_nm/src.us.v11/hd_front_end/196F0.c.o
@@ -571,6 +571,12 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x80370c2e                        gPrevPadStickX = 0x80370c2e
                 0x802e8f94                        gLevelInfo = 0x802e8f94
                 0x80364aa8                        gLevelKind = 0x80364aa8
+                0x802f8bdc                        gYoshiWindows = 0x802f8bdc
+                0x8036bb16                        yoshiSelection = 0x8036bb16
+                0x8036bb1a                        gYoshiPendingWindow = 0x8036bb1a
+                0x8036bb1e                        gYoshiTypeState = 0x8036bb1e
+                0x8036bb20                        gYoshiAlpha = 0x8036bb20
+                0x8036bb24                        gYoshiHeapItems = 0x8036bb24
                 0x80211a68                        D_80211A68 = 0x80211a68
                 0x803643d4                        D_803643D4 = 0x803643d4
                 0x80364b00                        D_80364B00 = 0x80364b00
@@ -636,7 +642,6 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x8020c0aa                        D_8020C0AA = 0x8020c0aa
                 0x803046f8                        D_803046F8 = 0x803046f8
                 0x80304710                        D_80304710 = 0x80304710
-                0x802f8bdc                        D_802F8BDC = 0x802f8bdc
                 0x8020c0c1                        D_8020C0C1 = 0x8020c0c1
                 0x8020c0c0                        D_8020C0C0 = 0x8020c0c0
                 0x80304730                        D_80304730 = 0x80304730
@@ -659,7 +664,6 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x80215920                        D_80215920 = 0x80215920
                 0x8021592c                        D_8021592C = 0x8021592c
                 0x8021546c                        D_8021546C = 0x8021546c
-                0x8036bb20                        D_8036BB20 = 0x8036bb20
                 0x803156c4                        D_803156C4 = 0x803156c4
                 0x80215464                        D_80215464 = 0x80215464
                 0x80215468                        D_80215468 = 0x80215468
@@ -817,7 +821,6 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x80219fb0                        D_80219FB0 = 0x80219fb0
                 0x80301080                        D_80301080 = 0x80301080
                 0x8020c01c                        D_8020C01C = 0x8020c01c
-                0x8036bb24                        D_8036BB24 = 0x8036bb24
                 0x80219fd0                        D_80219FD0 = 0x80219fd0
                 0x8020d800                        D_8020D800 = 0x8020d800
                 0x8021a7e8                        D_8021A7E8 = 0x8021a7e8
@@ -889,7 +892,6 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x8021ab7c                        D_8021AB7C = 0x8021ab7c
                 0x80219f58                        D_80219F58 = 0x80219f58
                 0x8021ab70                        D_8021AB70 = 0x8021ab70
-                0x8036bb16                        D_8036BB16 = 0x8036bb16
                 0x8039c541                        D_8039C541 = 0x8039c541
                 0x8021ab74                        D_8021AB74 = 0x8021ab74
                 0x8039ca60                        D_8039CA60 = 0x8039ca60
@@ -897,11 +899,9 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x8021a830                        D_8021A830 = 0x8021a830
                 0x8021a834                        D_8021A834 = 0x8021a834
                 0x8021ab76                        D_8021AB76 = 0x8021ab76
-                0x8036bb1e                        D_8036BB1E = 0x8036bb1e
                 0x80364a71                        D_80364A71 = 0x80364a71
                 0x80364a64                        D_80364A64 = 0x80364a64
                 0x8021ab72                        D_8021AB72 = 0x8021ab72
-                0x8036bb1a                        D_8036BB1A = 0x8036bb1a
                 0x8021ab84                        D_8021AB84 = 0x8021ab84
                 0x8021ab80                        D_8021AB80 = 0x8021ab80
                 0x8021ab90                        D_8021AB90 = 0x8021ab90
@@ -975,10 +975,15 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x8084618c                        PROVIDE (cont_wait_read = 0x8084618c)
                 0x808461d0                        PROVIDE (cont_update = 0x808461d0)
                 0x80861424                        PROVIDE (lvl_load_model = 0x80861424)
+                0x80826b8c                        PROVIDE (yoshi_demand = 0x80826b8c)
+                0x808277f0                        PROVIDE (yoshi_draw = 0x808277f0)
+                0x8085d980                        PROVIDE (tex_load_table = 0x8085d980)
+                0x8085da3c                        PROVIDE (tex_resolve_dl = 0x8085da3c)
+                0x80863ac0                        PROVIDE (tex_reset_decode_queue = 0x80863ac0)
+                0x80863b04                        PROVIDE (tex_decode_next = 0x80863b04)
                 0x8085ac3c                        PROVIDE (func_8029DEA0 = 0x8085ac3c)
                 0x8081c5c4                        PROVIDE (func_80260A10 = 0x8081c5c4)
                 0x8081c160                        PROVIDE (func_80260650 = 0x8081c160)
-                0x80863ac0                        PROVIDE (func_802A5720 = 0x80863ac0)
                 0x8085aea4                        PROVIDE (func_8029E0AC = 0x8085aea4)
                 0x80831010                        PROVIDE (func_80275390 = 0x80831010)
                 0x80814f30                        PROVIDE (func_80259450 = 0x80814f30)
@@ -988,9 +993,7 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x80831db0                        PROVIDE (func_80276130 = 0x80831db0)
                 0x80831d00                        PROVIDE (func_80276080 = 0x80831d00)
                 0x80831a24                        PROVIDE (func_80275DA4 = 0x80831a24)
-                0x808277f0                        PROVIDE (func_8026BBD0 = 0x808277f0)
                 0x80830870                        PROVIDE (func_80274BF0 = 0x80830870)
-                0x80863b04                        PROVIDE (func_802A57AC = 0x80863b04)
                 0x8082e8dc                        PROVIDE (func_80272C5C = 0x8082e8dc)
                 0x80816de0                        PROVIDE (func_8025B300 = 0x80816de0)
                 0x80816e50                        PROVIDE (func_8025B370 = 0x80816e50)
@@ -1000,7 +1003,6 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x80817038                        PROVIDE (func_8025B558 = 0x80817038)
                 0x80816ed0                        PROVIDE (func_8025B3F0 = 0x80816ed0)
                 0x808156b4                        PROVIDE (func_80259BD4 = 0x808156b4)
-                0x80826b8c                        PROVIDE (func_8026AF6C = 0x80826b8c)
                 0x80830ef0                        PROVIDE (func_80275270 = 0x80830ef0)
                 0x8082062c                        PROVIDE (func_80264A34 = 0x8082062c)
                 0x8081d160                        PROVIDE (func_80261570 = 0x8081d160)
@@ -1013,8 +1015,6 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x80826434                        PROVIDE (func_8026A828 = 0x80826434)
                 0x808150c0                        PROVIDE (func_802595E0 = 0x808150c0)
                 0x8083258c                        PROVIDE (func_8027690C = 0x8083258c)
-                0x8085d980                        PROVIDE (func_802A0700 = 0x8085d980)
-                0x8085da3c                        PROVIDE (func_802A08B4 = 0x8085da3c)
                 0x8084ba38                        PROVIDE (func_8028FCD4 = 0x8084ba38)
                 0x8081dba0                        PROVIDE (func_80261FB0 = 0x8081dba0)
                 0x80847954                        PROVIDE (func_8028BBF4 = 0x80847954)
@@ -1624,6 +1624,283 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 [!provide]                        PROVIDE (obj_draw_all = 0x8087d7cc)
                 [!provide]                        PROVIDE (obj_find_nearest_target = 0x8087d350)
                 [!provide]                        PROVIDE (obj_parts_destroyed = 0x8087d5fc)
+                [!provide]                        PROVIDE (obj_check_level_end = 0x8087ca80)
+                [!provide]                        PROVIDE (obj_tri_targets_ahead_done = 0x8087cb84)
+                [!provide]                        PROVIDE (obj_box_targets_done = 0x8087cc5c)
+                [!provide]                        PROVIDE (obj_clear_delayed_damage = 0x8087cd1c)
+                [!provide]                        PROVIDE (obj_add_delayed_damage = 0x8087cd4c)
+                [!provide]                        PROVIDE (obj_update_delayed_damage = 0x8087ce0c)
+                [!provide]                        PROVIDE (veh_contacts_clear = 0x8087d020)
+                [!provide]                        PROVIDE (veh_prev_contacts_clear = 0x8087d034)
+                [!provide]                        PROVIDE (veh_contacts_save = 0x8087d048)
+                [!provide]                        PROVIDE (veh_contacts_add = 0x8087d0d8)
+                [!provide]                        PROVIDE (veh_contacts_has = 0x8087d1d8)
+                [!provide]                        PROVIDE (veh_prev_contacts_has = 0x8087d294)
+                [!provide]                        PROVIDE (obj_calc_target_time = 0x8087d72c)
+                [!provide]                        PROVIDE (obj_disable_landed_part_tris = 0x8087df90)
+                [!provide]                        PROVIDE (obj_end_object_hidden = 0x8087e070)
+                [!provide]                        PROVIDE (obj_move_model = 0x8087e0b4)
+                [!provide]                        PROVIDE (obj_step_tex_anims = 0x8087ebb4)
+                [!provide]                        PROVIDE (obj_copy_dl_tex_anim = 0x8087f0d0)
+                [!provide]                        PROVIDE (obj_copy_dl_tex_anim2 = 0x8087f0f4)
+                [!provide]                        PROVIDE (obj_falling_part_mtx = 0x8087f118)
+                [!provide]                        PROVIDE (obj_collide_vehicle = 0x8087f3a4)
+                [!provide]                        PROVIDE (obj_is_solid_for_vehicle = 0x8087f57c)
+                [!provide]                        PROVIDE (obj_hits_clear = 0x8087f614)
+                [!provide]                        PROVIDE (obj_hits_add = 0x8087f628)
+                [!provide]                        PROVIDE (obj_hits_has = 0x8087f648)
+                [!provide]                        PROVIDE (obj_collide_sphere = 0x8087f73c)
+                [!provide]                        PROVIDE (obj_hit_tri = 0x8087f7f4)
+                [!provide]                        PROVIDE (obj_mark_part_gone = 0x8087feb4)
+                [!provide]                        PROVIDE (obj_spawn_people = 0x80880100)
+                [!provide]                        PROVIDE (obj_check_destroyed = 0x80880230)
+                [!provide]                        PROVIDE (obj_drop_unsupported_parts = 0x80880444)
+                [!provide]                        PROVIDE (obj_spawn_break_effects = 0x8088080c)
+                [!provide]                        PROVIDE (obj_spawn_random_effects = 0x8088091c)
+                [!provide]                        PROVIDE (obj_rand_range = 0x80880b90)
+                [!provide]                        PROVIDE (obj_start_emitter = 0x80880bb0)
+                [!provide]                        PROVIDE (obj_spawn_landing_effects = 0x80880c74)
+                [!provide]                        PROVIDE (obj_spawn_random_landing_effect = 0x80880cfc)
+                [!provide]                        PROVIDE (obj_set_full_damage = 0x80880e70)
+                [!provide]                        PROVIDE (obj_calc_damage = 0x80880edc)
+                [!provide]                        PROVIDE (obj_full_damage_rule = 0x80881274)
+                [!provide]                        PROVIDE (obj_part_exposed = 0x80881390)
+                [!provide]                        PROVIDE (obj_clear_effect_queue = 0x80881458)
+                [!provide]                        PROVIDE (obj_queue_effect = 0x808814a4)
+                [!provide]                        PROVIDE (obj_run_effect_queue = 0x8088152c)
+                [!provide]                        PROVIDE (obj_draw_fading_parts = 0x8088174c)
+                [!provide]                        PROVIDE (obj_start_part_fade = 0x808819f8)
+                [!provide]                        PROVIDE (obj_fade_substitute_cmd = 0x80881acc)
+                [!provide]                        PROVIDE (obj_draw_sinking_part = 0x80881ba4)
+                [!provide]                        PROVIDE (obj_start_sinking_part = 0x80881d6c)
+                [!provide]                        PROVIDE (obj_set_sink_quad = 0x80881fe4)
+                [!provide]                        PROVIDE (obj_draw_toppling_parts = 0x8088204c)
+                [!provide]                        PROVIDE (obj_start_topple = 0x80882290)
+                [!provide]                        PROVIDE (obj_blast_damage = 0x808826f8)
+                [!provide]                        PROVIDE (obj_path_buildings_destroyed = 0x80882888)
+                [!provide]                        PROVIDE (obj_count_destroyed_path_buildings = 0x808828fc)
+                [!provide]                        PROVIDE (obj_find_carrier_target = 0x80882978)
+                [!provide]                        PROVIDE (obj_tally = 0x80882c40)
+                [!provide]                        PROVIDE (lvl_group_get = 0x80882dfc)
+                [!provide]                        PROVIDE (lvl_group_move_part = 0x80882e70)
+                [!provide]                        PROVIDE (lvl_groups_update_tris = 0x80882fd0)
+                0x8036c790                        gNearestTargetPts = 0x8036c790
+                0x8036c7c8                        gCarrierEta = 0x8036c7c8
+                0x803efed0                        gSinkingPart = 0x803efed0
+                0x803f0900                        gFadingParts = 0x803f0900
+                0x803f1be0                        gTopplingParts = 0x803f1be0
+                0x803f24d0                        gPartMtxPool1 = 0x803f24d0
+                0x803f2ed0                        gPartMtxPool0 = 0x803f2ed0
+                0x803f38d0                        gObjScratchMtx = 0x803f38d0
+                0x803f3910                        gObjHits = 0x803f3910
+                0x803f3960                        gObjHitsEnd = 0x803f3960
+                0x803f3964                        gPartMtxCursor = 0x803f3964
+                0x803f3968                        gEffectQueue = 0x803f3968
+                0x803f3ff8                        gEffectScratch = 0x803f3ff8
+                0x803f7658                        gToppleMtx = 0x803f7658
+                0x803f765c                        gPoseMtxCursor = 0x803f765c
+                0x803f7660                        gCarrierTargetDist = 0x803f7660
+                0x803f7670                        gCarrierTargetX = 0x803f7670
+                0x803f7674                        gCarrierTargetY = 0x803f7674
+                0x803f7678                        gCarrierTargetZ = 0x803f7678
+                0x803f767c                        gEndObjectX = 0x803f767c
+                0x803f767e                        gEndObjectY = 0x803f767e
+                0x803f7680                        gEndObjectZ = 0x803f7680
+                0x803f7684                        gPathBuilding = 0x803f7684
+                0x803f7688                        gCheatAllDestroyed = 0x803f7688
+                0x803f7690                        gDelayedDamage = 0x803f7690
+                0x803f77d4                        gContactsEnd = 0x803f77d4
+                0x803f77d8                        gContacts = 0x803f77d8
+                0x803f77e4                        gPrevContactsEnd = 0x803f77e4
+                0x803f77e8                        gPrevContacts = 0x803f77e8
+                0x803f77f4                        gObjPrevHitFrame = 0x803f77f4
+                0x803f77f8                        gObjHitFrame = 0x803f77f8
+                0x803f77fc                        gHitSpeed = 0x803f77fc
+                0x803f77fe                        gLastHitDamage = 0x803f77fe
+                0x803f7800                        gFullDamage = 0x803f7800
+                0x803f7802                        gObjHitPartDown = 0x803f7802
+                0x803f7803                        gObjHit = 0x803f7803
+                0x803f7804                        gVehAttacking = 0x803f7804
+                0x803f7805                        gEndObjectTouched = 0x803f7805
+                0x803f7806                        gPathBuildingsDestroyed = 0x803f7806
+                0x803f7807                        gObjHitImmunePart = 0x803f7807
+                0x803f7808                        gNearestTargetKind = 0x803f7808
+                0x803f7809                        gMarkedTargetKind = 0x803f7809
+                0x803f7810                        gPartSinking = 0x803f7810
+                0x803f7828                        gGroupTris = 0x803f7828
+                0x803f782c                        gGroupTrisEnd = 0x803f782c
+                [!provide]                        PROVIDE (obj_blast_around_carrier = 0x8086b190)
+                [!provide]                        PROVIDE (yoshi_show_hint = 0x80826950)
+                [!provide]                        PROVIDE (yoshi_demand = 0x80826b8c)
+                [!provide]                        PROVIDE (yoshi_get_demand = 0x80826d2c)
+                [!provide]                        PROVIDE (yoshi_init = 0x80826d38)
+                [!provide]                        PROVIDE (yoshi_set_target_icons = 0x80827518)
+                [!provide]                        PROVIDE (yoshi_load_window_sprites = 0x8082769c)
+                [!provide]                        PROVIDE (yoshi_draw = 0x808277f0)
+                [!provide]                        PROVIDE (yoshi_run_window = 0x80827904)
+                [!provide]                        PROVIDE (yoshi_start_typing = 0x8082ab94)
+                [!provide]                        PROVIDE (yoshi_get_item_text = 0x8082ac28)
+                [!provide]                        PROVIDE (yoshi_scroll_fade = 0x8082b268)
+                [!provide]                        PROVIDE (yoshi_prev_item = 0x8082b450)
+                [!provide]                        PROVIDE (yoshi_next_item = 0x8082b4cc)
+                [!provide]                        PROVIDE (yoshi_get_target_building = 0x8082b65c)
+                [!provide]                        PROVIDE (yoshi_select_items = 0x8082b774)
+                [!provide]                        PROVIDE (rdu_init = 0x8082b7d8)
+                [!provide]                        PROVIDE (rdu_is_lit = 0x8082bab4)
+                [!provide]                        PROVIDE (rdu_set_lit = 0x8082bad8)
+                [!provide]                        PROVIDE (rdu_update = 0x8082bb14)
+                [!provide]                        PROVIDE (rdu_draw = 0x8082be04)
+                [!provide]                        PROVIDE (rdu_is_visible = 0x8082c6cc)
+                0x802f48d0                        gYoshiHints = 0x802f48d0
+                0x802f499a                        gYoshiHintMaxShows = 0x802f499a
+                0x802f5804                        gYoshiGameItems = 0x802f5804
+                0x802f8bdc                        gYoshiWindows = 0x802f8bdc
+                0x802f98b0                        gYoshiWindowDl = 0x802f98b0
+                0x802f9930                        gYoshiArrowDir = 0x802f9930
+                0x802f9934                        gTargetBuildings = 0x802f9934
+                0x802f99c0                        gRduQuad = 0x802f99c0
+                0x802f9a00                        gRduTexUnlit = 0x802f9a00
+                0x802f9e00                        gRduTexLit = 0x802f9e00
+                0x802fa200                        gRduPickupRadius = 0x802fa200
+                0x8036baa2                        gYoshiHintShown = 0x8036baa2
+                0x8036bafc                        gYoshiStateTime = 0x8036bafc
+                0x8036bb00                        gYoshiTypeTime = 0x8036bb00
+                0x8036bb04                        gYoshiTypeItem = 0x8036bb04
+                0x8036bb06                        gYoshiTypeChar = 0x8036bb06
+                0x8036bb08                        gYoshiOpenTime = 0x8036bb08
+                0x8036bb0c                        gYoshiPulse = 0x8036bb0c
+                0x8036bb0e                        gYoshiPulseDir = 0x8036bb0e
+                0x8036bb10                        gYoshiItems = 0x8036bb10
+                0x8036bb16                        yoshiSelection = 0x8036bb16
+                0x8036bb1a                        gYoshiPendingWindow = 0x8036bb1a
+                0x8036bb1e                        gYoshiTypeState = 0x8036bb1e
+                0x8036bb20                        gYoshiAlpha = 0x8036bb20
+                0x8036bb24                        gYoshiHeapItems = 0x8036bb24
+                0x8036bb28                        gYoshiScrollGoal = 0x8036bb28
+                0x8036bb2c                        gYoshiScroll = 0x8036bb2c
+                0x8036bb34                        gYoshiScale = 0x8036bb34
+                0x8036bb38                        gYoshiOpen = 0x8036bb38
+                0x8036bb3c                        gYoshiPrevButton = 0x8036bb3c
+                0x8036bb3e                        gYoshiNextButton = 0x8036bb3e
+                0x8036bb40                        gYoshiLastTime = 0x8036bb40
+                0x8036bb44                        gYoshiArrowBob = 0x8036bb44
+                0x8036bb48                        gYoshiTypeBuf = 0x8036bb48
+                0x8036bbb0                        gRduLitOrder = 0x8036bbb0
+                0x8036bed4                        gRduLitOrderLen = 0x8036bed4
+                0x8036bed8                        gRdus = 0x8036bed8
+                0x8036bedc                        gRduLastHeading = 0x8036bedc
+                0x8036bee0                        gRduVtxSet = 0x8036bee0
+                0x8036eb90                        gRduCount = 0x8036eb90
+                [!provide]                        PROVIDE (people_init = 0x80820820)
+                [!provide]                        PROVIDE (people_spawn = 0x808208b4)
+                [!provide]                        PROVIDE (people_update = 0x80820d0c)
+                [!provide]                        PROVIDE (people_run_out = 0x80820d3c)
+                [!provide]                        PROVIDE (people_flee = 0x80821028)
+                [!provide]                        PROVIDE (people_player_near = 0x8082160c)
+                [!provide]                        PROVIDE (people_step = 0x8082177c)
+                [!provide]                        PROVIDE (people_dispatch_chopper = 0x80821a48)
+                [!provide]                        PROVIDE (chopper_fly_to_carrier = 0x80821dec)
+                [!provide]                        PROVIDE (people_draw = 0x80821e48)
+                [!provide]                        PROVIDE (people_is_visible = 0x80823214)
+                0x80367d60                        gPeople = 0x80367d60
+                0x80368030                        gChopperLandY = 0x80368030
+                0x80368034                        gPeopleStepX = 0x80368034
+                0x80368036                        gPeopleStepZ = 0x80368036
+                0x80368038                        gChopperPickupTimer = 0x80368038
+                0x8036803c                        gChopperPickupIndex = 0x8036803c
+                0x80368040                        gPeopleRestored = 0x80368040
+                0x80368044                        gChopperRetargetX = 0x80368044
+                0x80368048                        gChopperRetargetZ = 0x80368048
+                [!provide]                        PROVIDE (ptcl_init = 0x80843f80)
+                [!provide]                        PROVIDE (ptcl_start = 0x80843fe4)
+                [!provide]                        PROVIDE (ptcl_update = 0x80844400)
+                [!provide]                        PROVIDE (ptcl_draw = 0x80844b50)
+                [!provide]                        PROVIDE (ptcl_set_render_state = 0x80845c58)
+                [!provide]                        PROVIDE (ptcl_get_texture = 0x80845e04)
+                [!provide]                        PROVIDE (ptcl_sort_by_texture = 0x80845f34)
+                0x802c4a20                        gParticleDefs = 0x802c4a20
+                0x802fda80                        gParticleQuad = 0x802fda80
+                0x8036ec30                        gParticleDef = 0x8036ec30
+                0x8036ec38                        gParticles = 0x8036ec38
+                0x8036f278                        gParticleMtx = 0x8036f278
+                0x80370b78                        gEmitterX = 0x80370b78
+                0x80370b7c                        gEmitterY = 0x80370b7c
+                0x80370b80                        gEmitterZ = 0x80370b80
+                0x80370b84                        gEmitterBursts = 0x80370b84
+                0x80370b88                        gEmitterFloorY = 0x80370b88
+                0x80370b8c                        gEmitterActive = 0x80370b8c
+                0x80370b8d                        gEmitterCooldown = 0x80370b8d
+                0x80370b90                        gParticleTexCache = 0x80370b90
+                0x80370b98                        gParticleTexIds = 0x80370b98
+                0x80370bb0                        gParticleTexCount = 0x80370bb0
+                0x80370bb4                        gParticleTexSize = 0x80370bb4
+                [!provide]                        PROVIDE (cam_apply_height_zone = 0x80863880)
+                [!provide]                        PROVIDE (chopper_find_cruise_height = 0x80863990)
+                [!provide]                        PROVIDE (cam_load_level_defaults = 0x80863a6c)
+                0x80305b90                        gLevelCamDefaults = 0x80305b90
+                0x80364450                        gCamHeightBase = 0x80364450
+                [!provide]                        PROVIDE (tex_load_table = 0x8085d980)
+                [!provide]                        PROVIDE (tex_resolve_dl = 0x8085da3c)
+                [!provide]                        PROVIDE (tex_resolve_dl_impl = 0x8085da6c)
+                [!provide]                        PROVIDE (tex_load_to_heap = 0x8085dc70)
+                [!provide]                        PROVIDE (tex_load_to_heap_impl = 0x8085dc9c)
+                [!provide]                        PROVIDE (tex_get = 0x8085dd90)
+                [!provide]                        PROVIDE (tex_get_impl = 0x8085ddbc)
+                [!provide]                        PROVIDE (tex_load_palette = 0x8085df38)
+                [!provide]                        PROVIDE (tex_load_palette_impl = 0x8085df64)
+                [!provide]                        PROVIDE (tex_queue_load = 0x8085dffc)
+                [!provide]                        PROVIDE (tex_queue_load_impl = 0x8085e030)
+                [!provide]                        PROVIDE (tex_queue_palette = 0x8085e0f8)
+                0x803b8d44                        gTexTable = 0x803b8d44
+                0x803b8570                        gTexCache = 0x803b8570
+                0x803b8d40                        gTexCacheEnd = 0x803b8d40
+                0x803b8d48                        gTexDmaMesgs = 0x803b8d48
+                0x803b9888                        gTexTableLoaded = 0x803b9888
+                0x803c4b58                        gTexDecodeReq = 0x803c4b58
+                [!provide]                        PROVIDE (tex_reset_decode_queue = 0x80863ac0)
+                [!provide]                        PROVIDE (tex_queue_decode = 0x80863adc)
+                [!provide]                        PROVIDE (tex_decode_next = 0x80863b04)
+                [!provide]                        PROVIDE (tex_decode = 0x80863b38)
+                [!provide]                        PROVIDE (tex_decode_type6 = 0x80863d88)
+                [!provide]                        PROVIDE (tex_decode_type3 = 0x80863e68)
+                [!provide]                        PROVIDE (tex_decode_type1 = 0x80863f28)
+                [!provide]                        PROVIDE (tex_decode_type2 = 0x80863fe8)
+                [!provide]                        PROVIDE (tex_decode_type4 = 0x808640c4)
+                [!provide]                        PROVIDE (tex_decode_type5 = 0x808641ac)
+                [!provide]                        PROVIDE (tex_decode_type0 = 0x80864298)
+                0x803c3250                        gTexDecodeScratch = 0x803c3250
+                0x803c4250                        gTexDecodeQueue = 0x803c4250
+                0x803c4b50                        gTexDecodeQueueTail = 0x803c4b50
+                0x803c4b54                        gTexDecodeQueueHead = 0x803c4b54
+                [!provide]                        PROVIDE (fx_finish_all = 0x80864334)
+                [!provide]                        PROVIDE (fx_count_active = 0x808643c8)
+                [!provide]                        PROVIDE (fx_reset = 0x80864430)
+                [!provide]                        PROVIDE (fx_alloc_texture_caches = 0x80864494)
+                [!provide]                        PROVIDE (fx_spawn = 0x8086459c)
+                [!provide]                        PROVIDE (fx_draw_all = 0x80864874)
+                [!provide]                        PROVIDE (fx_age_texture_caches = 0x80864bf8)
+                [!provide]                        PROVIDE (fx_get_texture = 0x80864c68)
+                [!provide]                        PROVIDE (fx_build_matrix = 0x80864e6c)
+                [!provide]                        PROVIDE (fx_fill_quad = 0x80865114)
+                [!provide]                        PROVIDE (fx_begin_dls = 0x8086522c)
+                [!provide]                        PROVIDE (fx_draw_quad = 0x80865268)
+                [!provide]                        PROVIDE (fx_get_dl_cursor = 0x808652d4)
+                [!provide]                        PROVIDE (fx_spawn_node_hit = 0x8086b5d8)
+                [!provide]                        PROVIDE (fx_spawn_at = 0x8086b660)
+                [!provide]                        PROVIDE (fx_spawn_at_late = 0x8086b6f4)
+                0x80305c10                        gFxCachedDefs = 0x80305c10
+                0x803c4b70                        gEffects = 0x803c4b70
+                0x803c5770                        gFxDlA0 = 0x803c5770
+                0x803c6370                        gFxDlA1 = 0x803c6370
+                0x803c6f70                        gFxDlB0 = 0x803c6f70
+                0x803c7b70                        gFxDlB1 = 0x803c7b70
+                0x803eb770                        gFxTileSlots = 0x803eb770
+                0x803eb780                        gFxDlCursorA = 0x803eb780
+                0x803eb784                        gFxDlCursorB = 0x803eb784
+                0x803eb788                        gFxTexCaches = 0x803eb788
+                0x803eb78c                        gFxTexCachesEnd = 0x803eb78c
+                0x803eb790                        gFxTexCachesFree = 0x803eb790
+                0x802c3ffc                        gFxDefsByKind = 0x802c3ffc
                 0x803ff288                        __osEepromTimer = 0x803ff288
                 0x803ff2a8                        __osEepromTimerQ = 0x803ff2a8
                 0x803ff2c0                        __osEepromTimerMsg = 0x803ff2c0

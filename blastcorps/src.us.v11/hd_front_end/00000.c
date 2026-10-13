@@ -197,7 +197,7 @@ void func_801E7598(void) {
     cont_start_read();
     nextdma = 0;
     no_palette_dmas = 0;
-    func_802A5720();
+    tex_reset_decode_queue();
 #ifdef NON_MATCHING
     /* The asm takes its param (the texture decoder's type-4/5 table) in $fp,
      * which the game thread's C code never sets: 0 (traced in hd.c's call;
@@ -371,7 +371,7 @@ void func_801E7598(void) {
         gSP1Triangle(gdl++, 0, 1, 2, 0);
         gSP1Triangle(gdl++, 0, 2, 3, 0);
     }
-    gdl = func_8026BBD0(gdl, (s32) &gDynamicBufs[gBufferIndex], &gFrameDlLen);
+    gdl = yoshi_draw(gdl, (s32) &gDynamicBufs[gBufferIndex], &gFrameDlLen);
     gdl = func_80274BF0((s32) dyn, gdl);
     gDPFullSync(gdl++);
     gSPEndDisplayList(gdl++);
@@ -380,6 +380,6 @@ void func_801E7598(void) {
         osRecvMesg(&textureDmaMessageQ, NULL, 1);
     }
     for (i = 0; i < nextdma - no_palette_dmas; i++) {
-        func_802A57AC();
+        tex_decode_next();
     }
 }

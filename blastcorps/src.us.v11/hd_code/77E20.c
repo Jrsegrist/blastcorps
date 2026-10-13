@@ -6,12 +6,12 @@
 #define D_8039C800 ((Unk8039C800 *) D_8039C800)
 #define D_803A6B30 ((Unk803A6B30 *) D_803A6B30)
 #define D_803B9890 ((Unk803B9890 *) D_803B9890)
-#define D_803EFED0 ((Unk803EFED0 *) D_803EFED0)
-#define D_803F3FF8 (*(Unk803F3FF8 *) D_803F3FF8)
+#define gSinkingPart ((Unk803EFED0 *) gSinkingPart)
+#define gEffectScratch (*(Unk803F3FF8 *) gEffectScratch)
 #define gObjects ((Unk802C1DD0Entry *) gObjects)
 #ifdef NON_MATCHING
 #define gObjectsEnd (*(Unk802C1DD0Entry * N64P *) &gObjectsEnd)
-#define D_803F7828 (*(s32 * N64P *) &D_803F7828)
+#define gGroupTris (*(s32 * N64P *) &gGroupTris)
 #endif
 /* end of views */
 
@@ -29,31 +29,31 @@
 typedef struct {
     /* 0x00 */ u16 unk0;  /* number of s16 entries at unk3C (func_802C1A28) */
     /* 0x02 */ u8 pad2[2];
-    /* 0x04 */ u8 type;   /* 0xFF = ignored, 1 = not counted; divisor in func_802C18D4 */
-    /* 0x05 */ u8 unk5;   /* scale of the debris records (func_802BF978, func_802BFDAC) */
-    /* 0x06 */ u8 unk6;   /* passed to func_80264CB4 (func_802BF384) */
-    /* 0x07 */ u8 unk7;   /* nonzero: no display list (func_802C09B8) */
+    /* 0x04 */ u8 type;   /* 0xFF = ignored, 1 = not counted; divisor in obj_blast_damage */
+    /* 0x05 */ u8 unk5;   /* scale of the debris records (obj_spawn_random_effects, obj_spawn_random_landing_effect) */
+    /* 0x06 */ u8 unk6;   /* passed to people_spawn (obj_spawn_people) */
+    /* 0x07 */ u8 unk7;   /* nonzero: no display list (obj_start_part_fade) */
     /* 0x08 */ s32 value; /* summed */
     /* 0x0C */ u8 padC;
-    /* 0x0D */ u8 unkD;   /* 1-based index of the part func_802BF534 ignores */
+    /* 0x0D */ u8 unkD;   /* 1-based index of the part obj_check_destroyed ignores */
     /* 0x0E */ u8 padE[0xE];
     /* 0x1C */ s32 unk1C; /* byte offset from this record (obj_find_nearest_target) */
-    /* 0x20 */ s32 unk20; /* offset of an s16[4] box x0, z0, x1, z1 (func_802C1214) */
-    /* 0x24 */ s32 unk24; /* offsets of a table of 0x14-byte records (func_802BF1F0) */
+    /* 0x20 */ s32 unk20; /* offset of an s16[4] box x0, z0, x1, z1 (obj_set_sink_quad) */
+    /* 0x24 */ s32 unk24; /* offsets of a table of 0x14-byte records (obj_mark_part_gone) */
     /* 0x28 */ s32 unk28; /*   and its end */
-    /* 0x2C */ s32 unk2C; /* offset of 8-byte s16 x, y, z points (func_802BF978) */
-    /* 0x30 */ s32 unk30; /* offsets of 0x38-byte records (func_802BF898) */
-    /* 0x34 */ s32 unk34; /*   their end = start of more (func_802BFD1C) */
-    /* 0x38 */ s32 unk38; /*   their end = start of the conditional DL records (func_802C09B8) */
+    /* 0x2C */ s32 unk2C; /* offset of 8-byte s16 x, y, z points (obj_spawn_random_effects) */
+    /* 0x30 */ s32 unk30; /* offsets of 0x38-byte records (obj_spawn_break_effects) */
+    /* 0x34 */ s32 unk34; /*   their end = start of more (obj_spawn_landing_effects) */
+    /* 0x38 */ s32 unk38; /*   their end = start of the conditional DL records (obj_start_part_fade) */
     /* 0x3C */ s32 unk3C; /* offset of an s16 table (func_802C1A28); end of the DL records */
-    /* 0x40 */ s32 unk40; /* offset of an s16 table indexed 1-based (func_802C038C) */
-    /* 0x44 */ s32 unk44; /* offsets of variable-length records (func_802C038C) */
+    /* 0x40 */ s32 unk40; /* offset of an s16 table indexed 1-based (obj_part_exposed) */
+    /* 0x44 */ s32 unk44; /* offsets of variable-length records (obj_part_exposed) */
     /* 0x48 */ s32 unk48; /*   and their end */
 } Unk802C1DD0Info;
 
 typedef struct Unk802C1DD0Entry {
     /* 0x00 */ Unk802C1DD0Info * N64P info;
-    /* 0x04 */ void * N64P unk4;  /* its collision triangles (Unk803B9890), func_802BF668 */
+    /* 0x04 */ void * N64P unk4;  /* its collision triangles (Unk803B9890), obj_drop_unsupported_parts */
     /* 0x08 */ void * N64P unk8;  /*   and their end */
     /* 0x0C */ s32 unkC;
     /* 0x10 */ s32 pos[3];
@@ -62,7 +62,7 @@ typedef struct Unk802C1DD0Entry {
     /* 0x2C */ s32 unk2C;
     /* 0x30 */ s32 unk30;
     /* 0x34 */ u8 pad34[0x14];
-    /* 0x48 */ u16 unk48[0x50]; /* one per part (func_802BF534) */
+    /* 0x48 */ u16 unk48[0x50]; /* one per part (obj_check_destroyed) */
     /* 0xE8 */ u8 unkE8;
     /* 0xE9 */ u8 unkE9;        /* number of parts */
     /* 0xEA */ u8 unkEA;
@@ -88,7 +88,7 @@ typedef struct {
 
 extern Unk80306480 D_80306480[];
 
-/* A collision triangle (func_802BD99C keeps its plane up to date). */
+/* A collision triangle (obj_move_model keeps its plane up to date). */
 typedef struct Unk803B9890 {
     /* 0x00 */ s64 normal[3]; /* unnormalised: cross product of two edges */
     /* 0x18 */ s64 d;         /* -(normal . vertex 1) */
@@ -109,7 +109,7 @@ typedef struct Unk803B9890 {
     /* 0x59 */ u8 pad59[7];
 } Unk803B9890; /* size 0x60 */
 
-/* What func_802BD85C/func_802BD99C get in v0: a model header and a range of
+/* What obj_disable_landed_part_tris/obj_move_model get in v0: a model header and a range of
  * its triangles. */
 typedef struct Unk802BD99CModel {
     /* 0x00 */ u8 * N64P data;
@@ -121,15 +121,15 @@ typedef struct Unk802BD99CModel {
 /* Callees in other files (C rewrites; see conventions.txt for their asm registers). */
 
 /* Rewritten in this file (see conventions.txt for their asm registers). */
-s32 func_802BC714(void);
-s32 func_802BC7DC(void);
+s32 obj_tri_targets_ahead_done(void);
+s32 obj_box_targets_done(void);
 s32 obj_parts_destroyed(Unk802C1DD0Entry *next);
-s32 func_802BFB50(s32 lo, s32 hi);
-void func_802BFBF4(Unk802C1DD0Entry *e, s32 *obj);
-void func_802C1214(u8 *base, Unk802C1DD0Entry *e);
+s32 obj_rand_range(s32 lo, s32 hi);
+void obj_start_emitter(Unk802C1DD0Entry *e, s32 *obj);
+void obj_set_sink_quad(u8 *base, Unk802C1DD0Entry *e);
 
-/* The 0x38-byte debris record that func_802BF978, func_802BFDAC (and 8A2E0's
- * func_802CF3E0) fill in and hand to func_802C04F0. */
+/* The 0x38-byte debris record that obj_spawn_random_effects, obj_spawn_random_landing_effect (and 8A2E0's
+ * func_802CF3E0) fill in and hand to obj_queue_effect. */
 typedef struct {
     /* 0x00 */ s32 pos[3];
     /* 0x0C */ s32 unkC;
@@ -196,7 +196,7 @@ typedef struct {
  * pointer-chain walk with a real call inside that still uses `sd $ra`) -
  * all confirm the same convention regardless of internal complexity. 33 of
  * the 68 additionally follow a "preserve caller registers across scratch
- * reuse" sub-convention (see the block comment above func_802BC840 below);
+ * reuse" sub-convention (see the block comment above obj_clear_delayed_damage below);
  * the rest don't need that extra layer to already be unreachable from C on
  * frame-shape grounds alone. Every pragma in this file is permanently
  * GLOBAL_ASM; don't attempt a C translation for any of them. */
@@ -204,27 +204,28 @@ typedef struct {
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-/* If D_803F7805 is set, clears it and, unless gHaveCarrier or gHaveShuttle is set
+/* The end object touched and the objectives met: the level is done (0x802BC5E0).
+ * If gEndObjectTouched is set, clears it and, unless gHaveCarrier or gHaveShuttle is set
  * and the level isn't finished yet, marks it finished (gLevelDoneRequest and
- * gPauseRequest = 1). "Finished" means D_803F7806 is set, every D_8039C800 entry
- * has unk26 set (func_802BC7DC) and no D_80306480 entry of the current level
+ * gPauseRequest = 1). "Finished" means gPathBuildingsDestroyed is set, every D_8039C800 entry
+ * has unk26 set (obj_box_targets_done) and no D_80306480 entry of the current level
  * at or beyond the player's z has an id whose D_803B9890 unk51 is set
- * (func_802BC714). Then, if gHaveCarrier is clear: in game mode 0x40 it calls
+ * (obj_tri_targets_ahead_done). Then, if gHaveCarrier is clear: in game mode 0x40 it calls
  * func_80275390(0x40), otherwise it sets D_803649E8 = 1 and the next mode 8.
  * Declared void in hd.c; the asm leaves garbage in v0. */
-void func_802BC5E0(void) {
-    if (D_803F7805 == 0) {
+void obj_check_level_end(void) {
+    if (gEndObjectTouched == 0) {
         return;
     }
-    D_803F7805 = 0;
+    gEndObjectTouched = 0;
     if (gHaveCarrier != 0 || gHaveShuttle != 0) {
-        if (D_803F7806 == 0) {
+        if (gPathBuildingsDestroyed == 0) {
             return;
         }
-        if (func_802BC7DC() == 0) {
+        if (obj_box_targets_done() == 0) {
             return;
         }
-        if (func_802BC714() == 0) {
+        if (obj_tri_targets_ahead_done() == 0) {
             return;
         }
     }
@@ -244,18 +245,19 @@ void func_802BC5E0(void) {
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BC5E0.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_check_level_end.s")
 #endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Returns 0 if some D_80306480 entry of the current level whose z is at or
+/* 0 if a D_80306480 target at or past the carrier's z still stands (0x802BC714).
+ * Returns 0 if some D_80306480 entry of the current level whose z is at or
  * beyond the player's (D_803EF6E4, read once) lists an id (s8, sign-extended;
  * the list ends at -1) whose D_803B9890 unk51 is set (func_8029D210), else 1.
  * The table ends at a level of -1. The asm returns in t4 and saves t0, t1, t3,
- * t5, s0 and s6; asm caller func_802BDDB4 keeps a0-a3, t0-t2, f12 and f14
+ * t5, s0 and s6; asm caller obj_step_tex_anims keeps a0-a3, t0-t2, f12 and f14
  * live across the call. */
-s32 func_802BC714(void) {
+s32 obj_tri_targets_ahead_done(void) {
     s32 z = D_803EF6E4;
     Unk80306480 *e;
     s8 *id;
@@ -273,15 +275,16 @@ s32 func_802BC714(void) {
     return 1;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BC714.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_tri_targets_ahead_done.s")
 #endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Returns 1 if every D_8039C800 entry has unk26 set, else 0. The asm returns
- * it in t4 and saves t0, t1 and t3. Asm caller func_802BDDB4 keeps a0-a3,
+/* 1 if every D_8039C800 box target is done (unk26) (0x802BC7DC).
+ * Returns 1 if every D_8039C800 entry has unk26 set, else 0. The asm returns
+ * it in t4 and saves t0, t1 and t3. Asm caller obj_step_tex_anims keeps a0-a3,
  * t0-t2, f12 and f14 live across the call. */
-s32 func_802BC7DC(void) {
+s32 obj_box_targets_done(void) {
     s32 i;
     Unk8039C800 *t;
 
@@ -293,14 +296,14 @@ s32 func_802BC7DC(void) {
     return 1;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BC7DC.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_box_targets_done.s")
 #endif
 
 /* Confirmed hand-written assembly: a "preserve caller registers via explicit
  * stack save/restore" convention, distinct from every other hand-written-asm
  * family documented elsewhere in this project. Each function in this family
  * (33 of this file's 68) opens by `sd`-saving some subset of registers
- * (always including $v0/$v1; the largest, func_802BC888, saves literally
+ * (always including $v0/$v1; the largest, obj_add_delayed_damage, saves literally
  * every register in the file including $at/$gp/$sp/$fp/$k0/$k1 as raw data)
  * to its own stack frame, is then free to clobber those same register
  * numbers as ordinary scratch for its real body, and `ld`-restores every
@@ -308,7 +311,7 @@ s32 func_802BC7DC(void) {
  * exactly what was saved, never read or influenced by the body in between.
  * No compiler emits this: IDO never saves/restores a register it doesn't
  * believe is a live local, and no C semantics could want $sp itself
- * round-tripped through memory as inert data (seen in func_802BC888). This
+ * round-tripped through memory as inert data (seen in obj_add_delayed_damage). This
  * is a deliberate low-level convention - likely a shared boilerplate/macro
  * the original engine used for a family of dispatch-table callback/handler
  * functions that must leave the caller's register state untouched regardless
@@ -317,45 +320,47 @@ s32 func_802BC7DC(void) {
  * (Port phase: functions of this family with an `#ifdef NON_MATCHING` C
  * rewrite below are functional, non-matching equivalents for the native port.) */
 #ifdef NON_MATCHING
-extern u8 D_803F7690[40][8];
+extern u8 gDelayedDamage[40][8];
 
-/* Clears byte 7 of each of the 40 8-byte entries of D_803F7690.
+/* The 40 gDelayedDamage slots' timers to 0 (0x802BC840).
+ * Clears byte 7 of each of the 40 8-byte entries of gDelayedDamage.
  * Register note: the asm saves/restores v0 and v1; asm caller initlevel
  * keeps t0, f12 and f14 live across the call (a mixed N64 build would need a
  * thunk; the native port doesn't). */
-void func_802BC840(void) {
+void obj_clear_delayed_damage(void) {
     s32 i;
 
     for (i = 0; i < 40; i++) {
-        D_803F7690[i][7] = 0;
+        gDelayedDamage[i][7] = 0;
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BC840.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_clear_delayed_damage.s")
 #endif
 
-/* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
+/* Same preserve-caller-registers convention as obj_clear_delayed_damage above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-/* D_803F7690 holds 40 8-byte counters {s32 id; u16 amount; u8 kind; u8 timer},
+/* (part, object, amount) into a slot with a random 1..20 frame delay (0x802BC888).
+ * gDelayedDamage holds 40 8-byte counters {s32 id; u16 amount; u8 kind; u8 timer},
  * a nonzero timer marking a slot in use. Adds `amount` to the used slot with
  * this id and kind; if there is none, fills the first free slot with id, kind
  * and amount and a timer of func_8026A8E0(1, 20). Does nothing when all 40 are
  * in use. kind is compared with the byte as a full word.
  * The asm takes kind in t3, id in t9 and amount in a2 and preserves every
- * register (it saves all of them, $sp included); asm caller func_802C18D4
+ * register (it saves all of them, $sp included); asm caller obj_blast_damage
  * keeps a0, a1, t3, t4, t6, t7 and t9 live across the call. */
-void func_802BC888(s32 kind, s32 id, s32 amount) {
+void obj_add_delayed_damage(s32 kind, s32 id, s32 amount) {
     u8 *e;
     s32 i;
 
-    for (i = 40, e = D_803F7690[0]; i != 0; i--, e += 8) {
+    for (i = 40, e = gDelayedDamage[0]; i != 0; i--, e += 8) {
         if (e[7] != 0 && *(s32 *) e == id && e[6] == kind) {
             *(u16 *) (e + 4) += amount;
             return;
         }
     }
-    for (i = 40, e = D_803F7690[0]; i != 0; i--, e += 8) {
+    for (i = 40, e = gDelayedDamage[0]; i != 0; i--, e += 8) {
         if (e[7] == 0) {
             e[6] = kind;
             *(u16 *) (e + 4) = amount;
@@ -366,24 +371,25 @@ void func_802BC888(s32 kind, s32 id, s32 amount) {
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BC888.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_add_delayed_damage.s")
 #endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-/* Delayed damage: for each of the 40 D_803F7690 entries {object, u16 amount,
+/* Counts the delayed-damage slots down; applies them, collapses parts (0x802BCA2C).
+ * Delayed damage: for each of the 40 gDelayedDamage entries {object, u16 amount,
  * u8 part, u8 timer} with a running timer, counts it down; on reaching 0 the
  * entry is spent (timer 0), the screen shakes (10, min(amount, 500)) and the
  * part's percentage += amount, capped at 100. A part reaching 100 collapses:
- * func_802C1438, func_802C09B8 unless gCarrierHit or gLevelDone is set,
- * func_802C0E8C, func_802BF384 unless the game mode gGameMode is 0x200 or
- * 0x400, and the part's triangles off. Then func_802BF668, func_802BF534 and
- * func_802BF898(e, part, percentage).
+ * obj_start_topple, obj_start_part_fade unless gCarrierHit or gLevelDone is set,
+ * obj_start_sinking_part, obj_spawn_people unless the game mode gGameMode is 0x200 or
+ * 0x400, and the part's triangles off. Then obj_drop_unsupported_parts, obj_check_destroyed and
+ * obj_spawn_break_effects(e, part, percentage).
  * ABI (00000.c calls it as void(void)); the asm saves s0-s7, gp, fp; the s1
  * the survey lists as an input is only saved. */
-void func_802BCA2C(void) {
-    u8 *p = D_803F7690[0];
+void obj_update_delayed_damage(void) {
+    u8 *p = gDelayedDamage[0];
     s32 n;
 
     for (n = 0x28; n != 0; n--, p += 8) {
@@ -422,13 +428,13 @@ void func_802BCA2C(void) {
             Unk803B9890 *t;
             Unk803B9890 *end;
 
-            func_802C1438(e, part);
+            obj_start_topple(e, part);
             if (gCarrierHit == 0 && gLevelDone == 0) {
-                func_802C09B8(part, e);
+                obj_start_part_fade(part, e);
             }
-            func_802C0E8C(part, e);
+            obj_start_sinking_part(part, e);
             if (gGameMode != 0x200 && gGameMode != 0x400) {
-                func_802BF384(e);
+                obj_spawn_people(e);
             }
             end = e->unk8;
             for (t = e->unk4; t != end; t++) {
@@ -437,100 +443,104 @@ void func_802BCA2C(void) {
                 }
             }
         }
-        func_802BF668(e);
-        func_802BF534(e);
-        func_802BF898(e, part, level);
+        obj_drop_unsupported_parts(e);
+        obj_check_destroyed(e);
+        obj_spawn_break_effects(e, part, level);
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BCA2C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_update_delayed_damage.s")
 #endif
 
-/* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
+/* Same preserve-caller-registers convention as obj_clear_delayed_damage above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 /* Two small byte buffers, each with a write pointer stored just before it:
- * buffer A is D_803F77D8 (write pointer D_803F77D4), buffer B is D_803F77E8
- * (write pointer D_803F77E4). Used by func_802BCBD8/802BCC10/802BCC48. */
-extern u8 * N64P D_803F77D4;
-extern u8 D_803F77D8[];
-extern u8 * N64P D_803F77E4;
-extern u8 D_803F77E8[];
+ * buffer A is gContacts (write pointer gContactsEnd), buffer B is gPrevContacts
+ * (write pointer gPrevContactsEnd). Used by veh_contacts_clear/802BCC10/802BCC48. */
+extern u8 * N64P gContactsEnd;
+extern u8 gContacts[];
+extern u8 * N64P gPrevContactsEnd;
+extern u8 gPrevContacts[];
 
-/* Resets buffer A: its write pointer goes back to the buffer start.
+/* Empties gContacts (the vehicle's hit spheres touching this frame) (0x802BCBD8).
+ * Resets buffer A: its write pointer goes back to the buffer start.
  * Register note: the asm saves/restores v0 and v1 and touches nothing else. */
-void func_802BCBD8(void) {
-    D_803F77D4 = D_803F77D8;
+void veh_contacts_clear(void) {
+    gContactsEnd = gContacts;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BCBD8.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/veh_contacts_clear.s")
 #endif
 
-/* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
+/* Same preserve-caller-registers convention as obj_clear_delayed_damage above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Resets buffer B: its write pointer goes back to the buffer start.
+/* Empties gPrevContacts (0x802BCC10).
+ * Resets buffer B: its write pointer goes back to the buffer start.
  * Register note: the asm saves/restores v0 and v1; asm callers keep
  * registers live across the call (func_8029A800: a2, t8; func_802B49AC: a0,
  * a3, t6, f12, f14), so a mixed N64 build would need a thunk. */
-void func_802BCC10(void) {
-    D_803F77E4 = D_803F77E8;
+void veh_prev_contacts_clear(void) {
+    gPrevContactsEnd = gPrevContacts;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BCC10.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/veh_prev_contacts_clear.s")
 #endif
 
-/* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
+/* Same preserve-caller-registers convention as obj_clear_delayed_damage above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-/* If gFramesInMode is set, copies buffer A (D_803F77D8 up to its write pointer)
+/* GContacts into gPrevContacts (empty on a mode's first frame) (0x802BCC48).
+ * If gFramesInMode is set, copies buffer A (gContacts up to its write pointer)
  * into buffer B byte by byte, front to back; then sets B's write pointer to
  * just past the copied bytes (to B's start when nothing was copied). The asm
- * loops with `!=`, so A's write pointer must not be below D_803F77D8.
+ * loops with `!=`, so A's write pointer must not be below gContacts.
  * Register note: the asm saves/restores v0, v1, a0 and a1; asm caller
- * func_802BE77C keeps a0, a1, t6, f12 and f14 live across the call. */
-void func_802BCC48(void) {
-    u8 *dst = D_803F77E8;
+ * obj_collide_vehicle keeps a0, a1, t6, f12 and f14 live across the call. */
+void veh_contacts_save(void) {
+    u8 *dst = gPrevContacts;
 
     if (((s32) gFramesInMode) != 0) {
-        u8 *src = D_803F77D8;
-        u8 *end = D_803F77D4;
+        u8 *src = gContacts;
+        u8 *end = gContactsEnd;
 
         while (src != end) {
             *dst++ = *src++;
         }
     }
-    D_803F77E4 = dst;
+    gPrevContactsEnd = dst;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BCC48.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/veh_contacts_save.s")
 #endif
 
-/* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
+/* Same preserve-caller-registers convention as obj_clear_delayed_damage above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Appends value (its low byte) to buffer A unless buffer A already contains
- * it (func_802BCD80). The asm takes value in fp (a value, not a base pointer)
+/* Appends a hit-sphere number to gContacts unless listed (0x802BCCD4).
+ * Appends value (its low byte) to buffer A unless buffer A already contains
+ * it (veh_contacts_has). The asm takes value in fp (a value, not a base pointer)
  * and saves v0 and v1, so it changes nothing; asm callers keep many registers
  * live across the call (func_8029C914: a2-t1, t3-t8, f12, f14; func_8029CB04:
- * a0-t1, t8, f12, f14; func_802BEBB0: a0, a1, t3, t8, t9, f12, f14). The
+ * a0-t1, t8, f12, f14; obj_hit_tri: a0, a1, t3, t8, t9, f12, f14). The
  * asm's `addi` on the write pointer can't trap for a RAM address. */
-void func_802BCCD4(s32 value) {
-    if (func_802BCD80(value) == 0) {
-        *D_803F77D4++ = value;
+void veh_contacts_add(s32 value) {
+    if (veh_contacts_has(value) == 0) {
+        *gContactsEnd++ = value;
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BCCD4.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/veh_contacts_add.s")
 #endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Returns 1 if some byte of buffer A (D_803F77D8 up to its write pointer)
+/* Returns 1 if some byte of buffer A (gContacts up to its write pointer)
  * differs from value (compared as a full word), else 0. The asm takes value
  * in v0 and returns in v1 (it has no callers); it saves a0, a1 and a2. The
  * scan stops at the write pointer with `!=`, which must not be below the
  * buffer start. */
 s32 func_802BCD20(s32 value) {
-    u8 *p = D_803F77D8;
-    u8 *end = D_803F77D4;
+    u8 *p = gContacts;
+    u8 *end = gContactsEnd;
 
     while (p != end) {
         if (*p++ != value) {
@@ -545,13 +555,14 @@ s32 func_802BCD20(s32 value) {
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Returns 1 if buffer A (D_803F77D8 up to its write pointer) contains value
+/* 1 if gContacts lists the hit-sphere number (0x802BCD80).
+ * Returns 1 if buffer A (gContacts up to its write pointer) contains value
  * (compared as a full word), else 0. The asm takes value in v0, returns in v1
  * and saves a0, a1 and a2; asm callers keep a3 (func_802B0AAC) or a0, a3,
  * f12 and f14 (func_802BBEB8) live across the call. */
-s32 func_802BCD80(s32 value) {
-    u8 *p = D_803F77D8;
-    u8 *end = D_803F77D4;
+s32 veh_contacts_has(s32 value) {
+    u8 *p = gContacts;
+    u8 *end = gContactsEnd;
 
     while (p != end) {
         if (*p++ == value) {
@@ -561,18 +572,19 @@ s32 func_802BCD80(s32 value) {
     return 0;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BCD80.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/veh_contacts_has.s")
 #endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* func_802BCD80 for buffer B (D_803F77E8 up to its write pointer D_803F77E4).
+/* 1 if gPrevContacts lists the hit-sphere number (0x802BCDE0).
+ * veh_contacts_has for buffer B (gPrevContacts up to its write pointer gPrevContactsEnd).
  * The asm takes value in fp (as a value, not a base pointer), returns in v1
- * and saves a0, a1 and a2; asm caller func_802BEBB0 keeps a0, a1, t3, t8, t9,
+ * and saves a0, a1 and a2; asm caller obj_hit_tri keeps a0, a1, t3, t8, t9,
  * f12 and f14 live across the call. */
-s32 func_802BCDE0(s32 value) {
-    u8 *p = D_803F77E8;
-    u8 *end = D_803F77E4;
+s32 veh_prev_contacts_has(s32 value) {
+    u8 *p = gPrevContacts;
+    u8 *end = gPrevContactsEnd;
 
     while (p != end) {
         if (*p++ == value) {
@@ -582,7 +594,7 @@ s32 func_802BCDE0(s32 value) {
     return 0;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BCDE0.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/veh_prev_contacts_has.s")
 #endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
@@ -596,7 +608,7 @@ s32 func_802BCDE0(s32 value) {
  *   2: D_8039C800 entries with unk26 clear;
  *   3: D_80306480 entries of the current level with an id whose D_803B9890
  *      unk51 is set.
- * Stores the kind (0 = none) in D_803F7808 and a pointer for it in D_8036C790
+ * Stores the kind (0 = none) in gNearestTargetKind and a pointer for it in gNearestTargetPts
  * (NULL; info + info->unk1C; &entry + 0xC; &entry + 0x16), and returns the
  * entry (0 if none). The asm loops over gObjects with `!=`, so gObjectsEnd
  * must be gObjects + n entries. */
@@ -667,8 +679,8 @@ s32 obj_find_nearest_target(void) {
     } else {
         ptr = (u8 *) best + 0xC;
     }
-    D_8036C790 = (s16 *) ptr;
-    D_803F7808 = kind;
+    gNearestTargetPts = (s16 *) ptr;
+    gNearestTargetKind = kind;
     return (s32) best;
 }
 #else
@@ -714,17 +726,18 @@ s32 obj_parts_destroyed(Unk802C1DD0Entry *next) {
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-/* D_8036C7C8 = the x/z distance from the player (D_803EF6DC, D_803EF6E4) to
+/* GCarrierEta: the carrier's x/z distance to the marked target / its speed (0x802BD10C).
+ * gCarrierEta = the x/z distance from the player (D_803EF6DC, D_803EF6E4) to
  * the target, divided (unsigned) by D_803EF6FC when that is nonzero. The
  * target's x/z words are at +0x0/+0x8 for kinds 2 and 3, else +0x10/+0x18 (a
  * gObjects entry). The C callers pass the target pointer as an s32. */
-void func_802BD10C(s32 arg0) {
+void obj_calc_target_time(s32 arg0) {
     s32 *target = (s32 *) N64_IPTR(arg0);
     s32 x;
     s32 z;
     s32 dist;
 
-    if (D_803F7809 == 2 || D_803F7809 == 3) {
+    if (gMarkedTargetKind == 2 || gMarkedTargetKind == 3) {
         x = target[0];
         z = target[2];
     } else {
@@ -735,28 +748,28 @@ void func_802BD10C(s32 arg0) {
     if (((u16) D_803EF6FC) != 0) {
         dist = (u32) dist / ((u16) D_803EF6FC);
     }
-    D_8036C7C8 = dist;
+    gCarrierEta = dist;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BD10C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_calc_target_time.s")
 #endif
 
-/* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
+/* Same preserve-caller-registers convention as obj_clear_delayed_damage above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern Mtx * N64P D_803F7658; /* 2 matrices (func_802C1F30's falling parts) */
-extern s32 D_803F765C;  /* Mtx pool cursor for func_802933A0 */
-extern s32 D_803F24D0[]; /* matrix pools of the two frames */
-extern s32 D_803F2ED0[];
-extern s32 * N64P D_803F3964;
-void func_802BD85C(Unk802BD99CModel *model, s32 id);
-void func_802BDDB4(Unk802C1DD0Entry *obj, u8 *rec, u8 *end);
-u32 *func_802BE228(u32 *src, u32 *srcEnd, u32 *dst, u8 *tbl, u8 *tblEnd);
-u32 *func_802BE3C8(u32 *src, u32 *srcEnd, u32 *dst, u8 *tbl, u8 *tblEnd);
-s32 func_802BE574(Unk802C1DD0Entry *e, s32 off, s32 dy);
-void func_802BFD1C(Unk802C1DD0Entry *e, s32 index);
-u32 *func_802C08C4(u32 *gfx);
-u32 *func_802C0CBC(u32 *gfx);
-void func_802C12E0(u32 **gfxA, u32 **gfxB);
+extern Mtx * N64P gToppleMtx; /* 2 matrices (lvl_group_move_part's falling parts) */
+extern s32 gPoseMtxCursor;  /* Mtx pool cursor for func_802933A0 */
+extern s32 gPartMtxPool1[]; /* matrix pools of the two frames */
+extern s32 gPartMtxPool0[];
+extern s32 * N64P gPartMtxCursor;
+void obj_disable_landed_part_tris(Unk802BD99CModel *model, s32 id);
+void obj_step_tex_anims(Unk802C1DD0Entry *obj, u8 *rec, u8 *end);
+u32 *obj_copy_dl_tex_anim(u32 *src, u32 *srcEnd, u32 *dst, u8 *tbl, u8 *tblEnd);
+u32 *obj_copy_dl_tex_anim2(u32 *src, u32 *srcEnd, u32 *dst, u8 *tbl, u8 *tblEnd);
+s32 obj_falling_part_mtx(Unk802C1DD0Entry *e, s32 off, s32 dy);
+void obj_spawn_landing_effects(Unk802C1DD0Entry *e, s32 index);
+u32 *obj_draw_fading_parts(u32 *gfx);
+u32 *obj_draw_sinking_part(u32 *gfx);
+void obj_draw_toppling_parts(u32 **gfxA, u32 **gfxB);
 
 /* Copies the 8-byte display-list commands [src, end) to dst; returns the new dst. */
 #define COPY_DL_802BD1F8(dst, src, end)      \
@@ -775,18 +788,18 @@ void func_802C12E0(u32 **gfxA, u32 **gfxB);
  * destructible objects, whose parts break (percentages at +0xEC) and fall.
  * Draws the gObjects objects (up to gObjectsEnd, read once, walked with
  * `!=`) into four display lists: gA / gB (the two halves of the scene list),
- * gC / gD (per-object lists the scene calls). D_803F7658/765C = mtxA/mtxB,
- * func_802C08C4(gE) and func_802C0CBC(gF) (their new ends are dropped), the
- * matrix pool is this frame's (D_803F24D0 or D_803F2ED0 by gBufferIndex).
+ * gC / gD (per-object lists the scene calls). gToppleMtx/765C = mtxA/mtxB,
+ * obj_draw_fading_parts(gE) and obj_draw_sinking_part(gF) (their new ends are dropped), the
+ * matrix pool is this frame's (gPartMtxPool1 or gPartMtxPool0 by gBufferIndex).
  * Per object whose unkE8 is in the gVisibleCells list (-1 ends it) and that
- * isn't a 0x38 object while func_802BD8C8 is set:
+ * isn't a 0x38 object while obj_end_object_hidden is set:
  * - with a pose (info u16 +0xE != 0): func_802933A0 builds its matrix
- *   (words +0x1C..+0x24, the pose count, the next D_803F765C Mtx (advanced by
+ *   (words +0x1C..+0x24, the pose count, the next gPoseMtxCursor Mtx (advanced by
  *   0x40), state at +0x38, gA, gB, word +0x34, the position) and both scene
- *   lists step 8; the object moves to D_803F7664/68/6C (func_802BD99C by the
+ *   lists step 8; the object moves to D_803F7664/68/6C (obj_move_model by the
  *   difference);
- * - animated textures (func_802BDDB4 with info's table unk28..unk2C), then
- *   gA/gB get a segment-6 command for info + 0x50 and a G_DL to gC/gD
+ * - animated textures (obj_step_tex_anims with info's table unk28..unk2C), then
+ *   gA/gB get a segment-9 command (0xBC002406: moveword offset 0x24) for info + 0x50 and a G_DL to gC/gD
  *   (physical), and the commands info+unk10..unk18 are copied to gC and gD;
  * - the part records info+unk38..unk3C: {word n, n x {u16 part, u8 mode, u8
  *   limit}, 4 words}, the u16 at +4 being the record's (1-based) part p too.
@@ -794,15 +807,15 @@ void func_802C12E0(u32 **gfxA, u32 **gfxB);
  *   mode != 0, > limit for mode 0) is drawn: with a moving part
  *   (e->unk48[p - 1]), its counter unk68[p - 1] advances, dy = c * c * -30000;
  *   if dy <= -(table u16 at unk3C + 2(p - 1) << 16) the part drops
- *   (unk48 = 0, func_802BFD1C, shake 10/300, percentage 100,
- *   func_802BD85C); its matrix (func_802BE574) is pushed in gC; the
+ *   (unk48 = 0, obj_spawn_landing_effects, shake 10/300, percentage 100,
+ *   obj_disable_landed_part_tris); its matrix (obj_falling_part_mtx) is pushed in gC; the
  *   record's gC and gD command ranges (words 0-1 / 2-3, offsets from info)
- *   are copied (through func_802BE228 / func_802BE3C8 when the texture table
+ *   are copied (through obj_copy_dl_tex_anim / obj_copy_dl_tex_anim2 when the texture table
  *   is non-empty), with G_POPMTX in gC and the matrix push / G_POPMTX in gD
  *   for a moving part. If the first record holds, it is the only one drawn;
  *   otherwise every holding record is.
  * Every object (listed or not) then ends gC and gD (G_ENDDL) and, with a
- * pose, pops the matrix in gA and gB. Finally func_802C12E0(&gA, &gB) and
+ * pose, pops the matrix in gA and gB. Finally obj_draw_toppling_parts(&gA, &gB) and
  * G_ENDDL in both (not advanced).
  * ABI (00000.c passes eight pointers); the asm saves s0-s7, gp, fp and uses
  * gp as scratch. Its trapping add/sub stay in game range. */
@@ -828,7 +841,7 @@ static void port_obj_draw_only(Unk802C1DD0Entry *o, u32 **pA, u32 **pB, u32 **pC
         if (*s == -1) return;
         if (*s == o->unkE8) break;
     }
-    if (o->unk30 == 0x38 && func_802BD8C8() != 0) return;
+    if (o->unk30 == 0x38 && obj_end_object_hidden() != 0) return;
     PORT_ITAG(gA, PORT_ITAG_BUILDING, o - gObjects);
     PORT_ITAG(gB, PORT_ITAG_BUILDING, o - gObjects);
     gA[0] = gB[0] = 0xBC002406;
@@ -883,14 +896,14 @@ static void port_obj_draw_only(Unk802C1DD0Entry *o, u32 **pA, u32 **pB, u32 **pC
             src = (u32 *) (info + ((s32 *) rec)[0]);
             srcEnd = (u32 *) (info + ((s32 *) rec)[1]);
             if (tbl != tblEnd) {
-                gC = func_802BE228(src, srcEnd, gC, tbl, tblEnd);
+                gC = obj_copy_dl_tex_anim(src, srcEnd, gC, tbl, tblEnd);
             } else {
                 COPY_DL_802BD1F8(gC, src, srcEnd);
             }
             src = (u32 *) (info + ((s32 *) rec)[2]);
             srcEnd = (u32 *) (info + ((s32 *) rec)[3]);
             if (tbl != tblEnd) {
-                gD = func_802BE3C8(src, srcEnd, gD, tbl, tblEnd);
+                gD = obj_copy_dl_tex_anim2(src, srcEnd, gD, tbl, tblEnd);
             } else {
                 COPY_DL_802BD1F8(gD, src, srcEnd);
             }
@@ -909,14 +922,14 @@ void obj_draw_all(u32 *gA, u32 *gB, u32 *gC, u32 *gD, s32 mtxA, s32 mtxB, u32 *g
     Unk802C1DD0Entry *end;
     Unk802C1DD0Entry *o;
 
-    D_803F7658 = (Mtx *) N64_IPTR(mtxA);
-    D_803F765C = mtxB;
-    func_802C08C4(gE);
-    func_802C0CBC(gF);
+    gToppleMtx = (Mtx *) N64_IPTR(mtxA);
+    gPoseMtxCursor = mtxB;
+    obj_draw_fading_parts(gE);
+    obj_draw_sinking_part(gF);
     if (gBufferIndex != 0) {
-        D_803F3964 = D_803F24D0;
+        gPartMtxCursor = gPartMtxPool1;
     } else {
-        D_803F3964 = D_803F2ED0;
+        gPartMtxCursor = gPartMtxPool0;
     }
     end = gObjectsEnd;
     for (o = gObjects; o != end; o++) {
@@ -941,7 +954,7 @@ void obj_draw_all(u32 *gA, u32 *gB, u32 *gC, u32 *gD, s32 mtxA, s32 mtxB, u32 *g
                 break;
             }
         }
-        if (o->unk30 == 0x38 && func_802BD8C8() != 0) {
+        if (o->unk30 == 0x38 && obj_end_object_hidden() != 0) {
             goto tail;
         }
         PORT_ITAG(gA, PORT_ITAG_BUILDING, o - gObjects);
@@ -949,12 +962,12 @@ void obj_draw_all(u32 *gA, u32 *gB, u32 *gC, u32 *gD, s32 mtxA, s32 mtxB, u32 *g
         info = (u8 *) o->info;
         count = *(u16 *) (info + 0xE);
         if (count != 0) {
-            s32 mtx = D_803F765C;
+            s32 mtx = gPoseMtxCursor;
             s32 ox;
             s32 oy;
             s32 oz;
 
-            D_803F765C = mtx + 0x40;
+            gPoseMtxCursor = mtx + 0x40;
             func_802933A0(*(s32 *) (ob + 0x1C), *(s32 *) (ob + 0x20), *(s32 *) (ob + 0x24), count, (Mtx *) N64_IPTR(mtx),
                           ob + 0x38, (Gfx *) gA, (Gfx *) gB, *(s32 *) (ob + 0x34), o->pos[0], o->pos[1],
                           o->pos[2]);
@@ -966,14 +979,14 @@ void obj_draw_all(u32 *gA, u32 *gB, u32 *gC, u32 *gD, s32 mtxA, s32 mtxB, u32 *g
             o->pos[0] = D_803F7664;
             o->pos[1] = D_803F7668;
             o->pos[2] = D_803F766C;
-            func_802BD99C((Unk802BD99CModel *) o, o->pos[0] - ox, o->pos[1] - oy, o->pos[2] - oz);
+            obj_move_model((Unk802BD99CModel *) o, o->pos[0] - ox, o->pos[1] - oy, o->pos[2] - oz);
         }
         info = (u8 *) o->info;
         tbl = info + *(s32 *) (info + 0x28);
         tblEnd = info + *(s32 *) (info + 0x2C);
         rec = info + *(s32 *) (info + 0x38);
         recEnd = info + *(s32 *) (info + 0x3C);
-        func_802BDDB4(o, tbl, tblEnd);
+        obj_step_tex_anims(o, tbl, tblEnd);
         gA[0] = gB[0] = 0xBC002406;
         gA[1] = gB[1] = (u32) (info + 0x50) - 0x80000000;
         gA[2] = gB[2] = 0x06000000;
@@ -1035,13 +1048,13 @@ void obj_draw_all(u32 *gA, u32 *gB, u32 *gC, u32 *gD, s32 mtxA, s32 mtxB, u32 *g
                     u32 idx = (u32) off >> 1;
 
                     *(u16 *) (ob + 0x48 + off) = 0;
-                    func_802BFD1C(o, idx);
+                    obj_spawn_landing_effects(o, idx);
                     gShakeTime = 10;
                     gShakeSize = 300;
                     ob[idx + 0xEC] = 100;
-                    func_802BD85C((Unk802BD99CModel *) o, idx);
+                    obj_disable_landed_part_tris((Unk802BD99CModel *) o, idx);
                 }
-                mtxAddr = func_802BE574(o, off, dy);
+                mtxAddr = obj_falling_part_mtx(o, off, dy);
                 PORT_ITAG(gC, PORT_ITAG_BPART, ((o - gObjects) << 8) | ((u32) off >> 1));
                 gC[0] = 0x01040040;
                 gC[1] = mtxAddr;
@@ -1050,7 +1063,7 @@ void obj_draw_all(u32 *gA, u32 *gB, u32 *gC, u32 *gD, s32 mtxA, s32 mtxB, u32 *g
             src = (u32 *) (info + ((s32 *) rec)[0]);
             srcEnd = (u32 *) (info + ((s32 *) rec)[1]);
             if (tbl != tblEnd) {
-                gC = func_802BE228(src, srcEnd, gC, tbl, tblEnd);
+                gC = obj_copy_dl_tex_anim(src, srcEnd, gC, tbl, tblEnd);
             } else {
                 COPY_DL_802BD1F8(gC, src, srcEnd);
             }
@@ -1066,7 +1079,7 @@ void obj_draw_all(u32 *gA, u32 *gB, u32 *gC, u32 *gD, s32 mtxA, s32 mtxB, u32 *g
             src = (u32 *) (info + ((s32 *) rec)[2]);
             srcEnd = (u32 *) (info + ((s32 *) rec)[3]);
             if (tbl != tblEnd) {
-                gD = func_802BE3C8(src, srcEnd, gD, tbl, tblEnd);
+                gD = obj_copy_dl_tex_anim2(src, srcEnd, gD, tbl, tblEnd);
             } else {
                 COPY_DL_802BD1F8(gD, src, srcEnd);
             }
@@ -1098,7 +1111,7 @@ void obj_draw_all(u32 *gA, u32 *gB, u32 *gC, u32 *gD, s32 mtxA, s32 mtxB, u32 *g
             gB += 2;
         }
     }
-    func_802C12E0(&gA, &gB);
+    obj_draw_toppling_parts(&gA, &gB);
     gA[0] = 0xB8000000;
     gA[1] = 0;
     gB[0] = 0xB8000000;
@@ -1110,13 +1123,14 @@ void obj_draw_all(u32 *gA, u32 *gB, u32 *gC, u32 *gD, s32 mtxA, s32 mtxB, u32 *g
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Clears unk51 of every triangle in [model->start, model->end) whose unk52
+/* A landed part's triangles with unk57 set stop being solid (0x802BD85C).
+ * Clears unk51 of every triangle in [model->start, model->end) whose unk52
  * equals id + 1 and whose unk57 is set. The end is read once and the walk
  * stops with `!=`. The asm takes model in v0 and id in a3, and saves v1, a0,
  * a1 and a3 (so it changes nothing); asm caller obj_draw_all keeps a0-a3,
  * t0-t5, f12 and f14 live across the call. The asm's `addi` on id traps on
  * 0x7FFFFFFF; the C wraps instead. */
-void func_802BD85C(Unk802BD99CModel *model, s32 id) {
+void obj_disable_landed_part_tris(Unk802BD99CModel *model, s32 id) {
     Unk803B9890 *r = model->start;
     Unk803B9890 *end = model->end;
 
@@ -1128,26 +1142,27 @@ void func_802BD85C(Unk802BD99CModel *model, s32 id) {
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BD85C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_disable_landed_part_tris.s")
 #endif
 
-/* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
+/* Same preserve-caller-registers convention as obj_clear_delayed_damage above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 /* 409D0.c defines it as u8; declared s32 here because the asm tests the whole
  * of v0 (the u8 callee leaves the upper bits clear anyway). */
 
-/* Returns 1 on level 0x32 when func_80286090(level) returns 0, else 0. The
+/* Level 0x32 not completed yet: its kind-0x38 end object is ignored (0x802BD8C8).
+ * Returns 1 on level 0x32 when func_80286090(level) returns 0, else 0. The
  * asm returns in t1 and preserves every other register it touches; asm
  * callers keep many registers live across the call (func_8029AB88 and
  * func_8029B02C: a0-a3, t3-t6, t8, t9, f12, f14). */
-s32 func_802BD8C8(void) {
+s32 obj_end_object_hidden(void) {
     if (levelno == 0x32 && func_80286090(levelno) == 0) {
         return 1;
     }
     return 0;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BD8C8.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_end_object_hidden.s")
 #endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
@@ -1155,7 +1170,8 @@ s32 func_802BD8C8(void) {
 float sqrtf(float);
 #pragma intrinsic(sqrtf)
 
-/* Moves a model by (dx, dy, dz) world units and refreshes its triangles. The
+/* Moves an object's model tables and triangles; new planes (0x802BD99C).
+ * Moves a model by (dx, dy, dz) world units and refreshes its triangles. The
  * model header's tables (offsets from the header) hold coordinates at two
  * scales: s16 tables at >> 5 (unk40..unk44: y only; the box at unk20: x, z,
  * x, z; 0x14-byte records unk24..unk28: three x, y, z points; 4 points at
@@ -1170,7 +1186,7 @@ float sqrtf(float);
  * The asm takes model in v0 and (dx, dy, dz) in a2, a3, t0; it changes s0-s7
  * and fp (its callers save them) and leaves junk in a1-a3; asm callers keep
  * f12 and f14 live across the call. */
-void func_802BD99C(Unk802BD99CModel *model, s32 dx, s32 dy, s32 dz) {
+void obj_move_model(Unk802BD99CModel *model, s32 dx, s32 dy, s32 dz) {
     u8 *d = model->data;
     s32 hx = dx >> 5, hy = dy >> 5, hz = dz >> 5;
     s32 wx = dx << 11, wy = dy << 11, wz = dz << 11;
@@ -1265,7 +1281,7 @@ void func_802BD99C(Unk802BD99CModel *model, s32 dx, s32 dy, s32 dz) {
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BD99C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_move_model.s")
 #endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
@@ -1287,9 +1303,10 @@ static s32 heading_802BDDB4(s32 num, f32 d) {
     return (u32) func_802AD7FC(sine) >> 4;
 }
 
-/* Steps the animation channel records rec..end (each 0xC + n * 4 bytes) of
+/* Steps the objects' texture animation records (timed, clock, heading) (0x802BDDB4).
+ * Steps the animation channel records rec..end (each 0xC + n * 4 bytes) of
  * object `obj`. Objects with unk30 == 0x38 are skipped while gHaveCarrier or
- * gHaveShuttle is set unless D_803F7806, func_802BC7DC() and func_802BC714()
+ * gHaveShuttle is set unless gPathBuildingsDestroyed, obj_box_targets_done() and obj_tri_targets_ahead_done()
  * all say otherwise. Type 0: the u16 tick counter (+0xE) counts up to the
  * period (+0xC), then restarts at 0 and the frame (+5) advances (wrapping at
  * n); the blend word (+8) = tick * 255 / period. Type 1: when (low word of
@@ -1305,9 +1322,9 @@ static s32 heading_802BDDB4(s32 num, f32 d) {
  * t0-t5 live (a mixed N64 build would need a thunk; the native port won't).
  * Divisors (period, n, the spans) of 0 trap (break 7); the object can't sit
  * exactly at the player (0 / 0). */
-void func_802BDDB4(Unk802C1DD0Entry *obj, u8 *rec, u8 *end) {
+void obj_step_tex_anims(Unk802C1DD0Entry *obj, u8 *rec, u8 *end) {
     if (obj->unk30 == 0x38 && (gHaveCarrier != 0 || gHaveShuttle != 0)) {
-        if (D_803F7806 == 0 || func_802BC7DC() == 0 || func_802BC714() == 0) {
+        if (gPathBuildingsDestroyed == 0 || obj_box_targets_done() == 0 || obj_tri_targets_ahead_done() == 0) {
             return;
         }
     }
@@ -1379,10 +1396,10 @@ void func_802BDDB4(Unk802C1DD0Entry *obj, u8 *rec, u8 *end) {
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BDDB4.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_step_tex_anims.s")
 #endif
 
-/* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
+/* Same preserve-caller-registers convention as obj_clear_delayed_damage above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 /* Copies the display list [src, srcEnd) (8-byte commands) to dst and returns
  * the new end of dst, animating textures on the way: a G_SETTIMG (0xFD) whose
@@ -1395,7 +1412,7 @@ void func_802BDDB4(Unk802C1DD0Entry *obj, u8 *rec, u8 *end) {
  * to the next G_SETPRIMCOLOR (0xFA) are copied with primOr ORed into its first
  * word. Without animate, the SETTIMG gets image[cur]. Those two inner scans
  * aren't bounded by srcEnd: the list must contain the markers. The record's
- * cur is never written here. Shared by func_802BE228 and func_802BE3C8, which
+ * cur is never written here. Shared by obj_copy_dl_tex_anim and obj_copy_dl_tex_anim2, which
  * differ only in the register that holds dst. */
 static u32 *dl_anim_copy_802BE228(u32 *src, u32 *srcEnd, u32 *dst, u8 *tbl, u8 *tblEnd) {
     u32 w0;
@@ -1472,48 +1489,51 @@ static u32 *dl_anim_copy_802BE228(u32 *src, u32 *srcEnd, u32 *dst, u8 *tbl, u8 *
     return dst;
 }
 
-/* See dl_anim_copy_802BE228. The asm takes src in t7, srcEnd in s0, dst in a2
+/* Copies a display list, swapping the animated SETTIMG images (0x802BE228).
+ * See dl_anim_copy_802BE228. The asm takes src in t7, srcEnd in s0, dst in a2
  * and the table in t1..t2, returns the new dst in a2 (and leaves t7 at
  * srcEnd); it saves v0, v1, a0, a3, t3 and t4. Asm caller obj_draw_all keeps
  * a0, a1, t0-t6, f12 and f14 live across the call. */
-u32 *func_802BE228(u32 *src, u32 *srcEnd, u32 *dst, u8 *tbl, u8 *tblEnd) {
+u32 *obj_copy_dl_tex_anim(u32 *src, u32 *srcEnd, u32 *dst, u8 *tbl, u8 *tblEnd) {
     return dl_anim_copy_802BE228(src, srcEnd, dst, tbl, tblEnd);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BE228.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_copy_dl_tex_anim.s")
 #endif
 
-/* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
+/* Same preserve-caller-registers convention as obj_clear_delayed_damage above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* func_802BE228 with dst in t0 (in and out) instead of a2. The asm saves v0,
+/* The same for obj_draw_all's second list (destination in t0) (0x802BE3C8).
+ * obj_copy_dl_tex_anim with dst in t0 (in and out) instead of a2. The asm saves v0,
  * v1, a0, a2, a3, t3 and t4; asm caller obj_draw_all keeps a0-a2, t1-t6, f12
  * and f14 live across the call. */
-u32 *func_802BE3C8(u32 *src, u32 *srcEnd, u32 *dst, u8 *tbl, u8 *tblEnd) {
+u32 *obj_copy_dl_tex_anim2(u32 *src, u32 *srcEnd, u32 *dst, u8 *tbl, u8 *tblEnd) {
     return dl_anim_copy_802BE228(src, srcEnd, dst, tbl, tblEnd);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BE3C8.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_copy_dl_tex_anim2.s")
 #endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 * N64P D_803F3964; /* matrix pool cursor (0x40-byte 16.16 matrices) */
-extern s32 D_803F38D0[]; /* scratch 16.16 matrix */
+extern s32 * N64P gPartMtxCursor; /* matrix pool cursor (0x40-byte 16.16 matrices) */
+extern s32 gObjScratchMtx[]; /* scratch 16.16 matrix */
 
-/* Builds the matrix of one moving part of object e in the next pool slot
- * (D_803F3964, advanced by 0x40) and returns its address - 0x80000000. off
+/* A falling part's matrix: spin about its pivot, drop dy (0x802BE574).
+ * Builds the matrix of one moving part of object e in the next pool slot
+ * (gPartMtxCursor, advanced by 0x40) and returns its address - 0x80000000. off
  * is twice the part index: the halfwords at e + 0x68 + off (scale, u16) and
  * +0x88 (s16) / +0xA8 / +0xC8 (u16) give the angles scale * value (32-bit
  * product, + 0xFFF when negative) about x, y and z; the pivot is the u16
  * x, y, z (<< 16) at info + info->unk2C + off * 4. m = translate(-pivot),
  * then m *= rotation x, y, z, translate(pivot), translate(0, dy, 0) (each
- * built in D_803F38D0, func_802ACCCC), converted to the Mtx layout
+ * built in gObjScratchMtx, func_802ACCCC), converted to the Mtx layout
  * (func_802AC8CC).
  * Register convention: e in v0, off in a3, dy in s6, result in s5. The asm
  * saves a0-t5, t7, t8, s0-s2, s4, s7 (t6 is untouched); asm caller
  * obj_draw_all keeps a0-a2 and t0-t6 live across the call. */
-s32 func_802BE574(Unk802C1DD0Entry *e, s32 off, s32 dy) {
-    s32 *m = D_803F3964;
+s32 obj_falling_part_mtx(Unk802C1DD0Entry *e, s32 off, s32 dy) {
+    s32 *m = gPartMtxCursor;
     u8 *b = (u8 *) e + off;
     u32 scale;
     s32 ax;
@@ -1524,7 +1544,7 @@ s32 func_802BE574(Unk802C1DD0Entry *e, s32 off, s32 dy) {
     s32 py;
     s32 pz;
 
-    D_803F3964 = m + 0x10;
+    gPartMtxCursor = m + 0x10;
     scale = *(u16 *) (b + 0x68);
     ax = scale * *(s16 *) (b + 0x88);
     if (ax < 0) {
@@ -1543,40 +1563,40 @@ s32 func_802BE574(Unk802C1DD0Entry *e, s32 off, s32 dy) {
     py = pivot[1] << 16;
     pz = pivot[2] << 16;
     func_802ACA60(-px, -py, -pz, m);
-    func_802ACBDC(ax, D_803F38D0);
-    func_802ACCCC(D_803F38D0, m);
-    func_802ACAC4(ay, D_803F38D0);
-    func_802ACCCC(D_803F38D0, m);
-    func_802ACB50(az, D_803F38D0);
-    func_802ACCCC(D_803F38D0, m);
-    func_802ACA60(px, py, pz, D_803F38D0);
-    func_802ACCCC(D_803F38D0, m);
-    func_802ACA60(0, dy, 0, D_803F38D0);
-    func_802ACCCC(D_803F38D0, m);
+    func_802ACBDC(ax, gObjScratchMtx);
+    func_802ACCCC(gObjScratchMtx, m);
+    func_802ACAC4(ay, gObjScratchMtx);
+    func_802ACCCC(gObjScratchMtx, m);
+    func_802ACB50(az, gObjScratchMtx);
+    func_802ACCCC(gObjScratchMtx, m);
+    func_802ACA60(px, py, pz, gObjScratchMtx);
+    func_802ACCCC(gObjScratchMtx, m);
+    func_802ACA60(0, dy, 0, gObjScratchMtx);
+    func_802ACCCC(gObjScratchMtx, m);
     func_802AC8CC((u16 *) m);
     return (u32) m - 0x80000000;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BE574.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_falling_part_mtx.s")
 #endif
 
 #ifdef NON_MATCHING
-/* Callees of func_802BE77C / func_802BEADC / func_802BEBB0 (C rewrites; see
+/* Callees of obj_collide_vehicle / obj_collide_sphere / obj_hit_tri (C rewrites; see
  * conventions.txt for their asm registers). */
-void func_802BCC48(void);
-s32 func_802BCDE0(s32 value);
-s32 func_802BE944(Unk802C1DD0Entry *e, s32 bit);
-void func_802BE9F8(void);
-void func_802BEA30(s32 a, s32 b);
-s32 func_802BEA70(s32 a, s32 b);
-void func_802BEADC(s32 x, s32 y, s32 z, s32 r, Unk802C1DD0Entry *e, s32 id);
-void func_802BEBB0(s32 id, Unk802C1DD0Entry *e, Unk803B9890 *tri);
+void veh_contacts_save(void);
+s32 veh_prev_contacts_has(s32 value);
+s32 obj_is_solid_for_vehicle(Unk802C1DD0Entry *e, s32 bit);
+void obj_hits_clear(void);
+void obj_hits_add(s32 a, s32 b);
+s32 obj_hits_has(s32 a, s32 b);
+void obj_collide_sphere(s32 x, s32 y, s32 z, s32 r, Unk802C1DD0Entry *e, s32 id);
+void obj_hit_tri(s32 id, Unk802C1DD0Entry *e, Unk803B9890 *tri);
 void func_802BEF9C(Unk802C1DD0Entry *e);
 void func_802BEFF4(void);
-void func_802BFEE4(u8 *vehicle);
-s32 func_802BFF6C(s32 id, s32 value, s32 bit, Unk802C1DD0Entry *e, s32 flag, s32 key);
-extern u8 D_803F7802;
-extern u8 D_803F7803;
+void obj_set_full_damage(u8 *vehicle);
+s32 obj_calc_damage(s32 id, s32 value, s32 bit, Unk802C1DD0Entry *e, s32 flag, s32 key);
+extern u8 gObjHitPartDown;
+extern u8 gObjHit;
 
 /* The sphere-vs-triangle test the asm inlines as a call chain (see 56040.c,
  * func_8029BD0C): plane distance (func_8029C160), the projected
@@ -1601,39 +1621,40 @@ static s32 sphere_hits_tri_77E20(s32 x, s32 y, s32 z, s32 r, Unk803B9890 *tri) {
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_803F77F4;
-extern u8 D_803F7807;
+extern s32 gObjPrevHitFrame;
+extern u8 gObjHitImmunePart;
 extern u8 D_803F780F;
 
-/* Collision pass of vehicle id (record `vehicle`): clears D_803F7802/7803/7807
- * and the once-per-frame latch D_803F780F, copies D_803F77F8 to D_803F77F4,
- * func_802BFEE4(vehicle), resets the hit list (func_802BE9F8), then finds the
+/* One vehicle's (type id) collision and damage pass against the objects (0x802BE77C).
+ * Collision pass of vehicle id (record `vehicle`): clears gObjHitPartDown/7803/7807
+ * and the once-per-frame latch D_803F780F, copies gObjHitFrame to gObjPrevHitFrame,
+ * obj_set_full_damage(vehicle), resets the hit list (obj_hits_clear), then finds the
  * vehicle's D_803A7300 sphere (first entry whose byte 0x10 is id; the scan
  * isn't bounded). If its flag byte 0x11 is set, every object (gObjects up
  * to gObjectsEnd, read once, walked with `!=`) within range of the sphere
- * (func_8029CFA4), not a 0x38 object while func_802BD8C8 is set, and not
- * excluded for this vehicle (func_802BE944), gets the triangle pass
- * func_802BEADC. Then buffer A is copied to B (func_802BCC48) unless id is
+ * (func_8029CFA4), not a 0x38 object while obj_end_object_hidden is set, and not
+ * excluded for this vehicle (obj_is_solid_for_vehicle), gets the triangle pass
+ * obj_collide_sphere. Then buffer A is copied to B (veh_contacts_save) unless id is
  * 0xFF, D_803A7425 is set unless the ring span is 0/0xFFF, and vehicle[0x9C],
- * [0x9D], [0x9E] = D_803F7802, D_803F7803, D_803F7807.
+ * [0x9D], [0x9E] = gObjHitPartDown, gObjHit, gObjHitImmunePart.
  * Register convention: id in t8, vehicle in gp (an argument here: callers pass
  * different records). The asm saves a2-t5, t7, s0, s2 and t8 and leaves v0-a1
- * changed, s1/s3/s4 and f20-f28 changed by func_802BEADC's helpers. Asm callers
+ * changed, s1/s3/s4 and f20-f28 changed by obj_collide_sphere's helpers. Asm callers
  * keep a3 (func_802B327C, func_802B49AC, func_802B6294, func_802B7A88,
  * func_802CBEF0, func_802CD068, func_802CFDE8), t7 (func_802BA9A0) or a3, t0,
  * t1 and t8 (func_802BB274) live across the call. The other leftovers the
  * survey lists as read by callers (v1, a0, t6, s1, s3, s4, f12-f26) are dead
  * there (overwritten, or saved and restored around the call). */
-void func_802BE77C(s32 id, u8 *vehicle) {
+void obj_collide_vehicle(s32 id, u8 *vehicle) {
     u8 *s;
 
-    D_803F7802 = 0;
-    D_803F7803 = 0;
-    D_803F7807 = 0;
-    D_803F77F4 = D_803F77F8;
+    gObjHitPartDown = 0;
+    gObjHit = 0;
+    gObjHitImmunePart = 0;
+    gObjPrevHitFrame = gObjHitFrame;
     D_803F780F = 0;
-    func_802BFEE4(vehicle);
-    func_802BE9F8();
+    obj_set_full_damage(vehicle);
+    obj_hits_clear();
     for (s = D_803A7300; s[0x10] != id; s += 0x14) {
     }
     if ((s8) s[0x11] != 0) {
@@ -1648,30 +1669,30 @@ void func_802BE77C(s32 id, u8 *vehicle) {
             if (func_8029CFA4(z, r, o->pos[0], o->pos[1], x, y, o->pos[2], o->unkC) == 0) {
                 continue;
             }
-            if (o->unk30 == 0x38 && func_802BD8C8() != 0) {
+            if (o->unk30 == 0x38 && obj_end_object_hidden() != 0) {
                 continue;
             }
-            if (func_802BE944(o, id) != 0) {
+            if (obj_is_solid_for_vehicle(o, id) != 0) {
                 continue;
             }
-            func_802BEADC(x, y, z, r, o, id);
+            obj_collide_sphere(x, y, z, r, o, id);
         }
     }
     if (id != 0xFF) {
-        func_802BCC48();
+        veh_contacts_save();
     }
     if (((u16) D_803A7410) != 0 || ((u16) D_803A7412) != 0xFFF) {
         D_803A7425 = 1;
     }
-    vehicle[0x9C] = D_803F7802;
-    vehicle[0x9D] = D_803F7803;
-    vehicle[0x9E] = D_803F7807;
+    vehicle[0x9C] = gObjHitPartDown;
+    vehicle[0x9D] = gObjHit;
+    vehicle[0x9E] = gObjHitImmunePart;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BE77C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_collide_vehicle.s")
 #endif
 
-/* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
+/* Same preserve-caller-registers convention as obj_clear_delayed_damage above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 typedef struct {
     /* 0x00 */ s32 level; /* 0xFFFF = any level */
@@ -1680,12 +1701,13 @@ typedef struct {
 } Unk803059F0;            /* size 0xC */
 
 
-/* Returns 1 if D_803059F0 has an entry for the current level (or any level)
+/* D_803059F0: this object kind is solid (no damage) for the vehicle (0x802BE944).
+ * Returns 1 if D_803059F0 has an entry for the current level (or any level)
  * whose key is e->unk30 and whose mask has bit `bit` (taken mod 32, as sllv
  * does), else 0; always 0 when unk30 is 0x38. The asm takes e in t3 and bit
- * in t8, returns in t9 and saves v0, v1 and a0-a2; asm caller func_802BE77C
+ * in t8, returns in t9 and saves v0, v1 and a0-a2; asm caller obj_collide_vehicle
  * keeps a0, a1, t3, t4, t6, t8, f12 and f14 live across the call. */
-s32 func_802BE944(Unk802C1DD0Entry *e, s32 bit) {
+s32 obj_is_solid_for_vehicle(Unk802C1DD0Entry *e, s32 bit) {
     s32 key = e->unk30;
     s32 level = levelno;
     Unk803059F0 *p;
@@ -1701,47 +1723,50 @@ s32 func_802BE944(Unk802C1DD0Entry *e, s32 bit) {
     return 0;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BE944.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_is_solid_for_vehicle.s")
 #endif
 
-/* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
+/* Same preserve-caller-registers convention as obj_clear_delayed_damage above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-/* Resets the pointer D_803F3960 to the start of D_803F3910.
- * Register note: the asm saves/restores v0 and v1; asm caller func_802BE77C
+/* Empties the (object, part) list of this collision pass (0x802BE9F8).
+ * Resets the pointer gObjHitsEnd to the start of gObjHits.
+ * Register note: the asm saves/restores v0 and v1; asm caller obj_collide_vehicle
  * keeps a0, a1, t6, t8, f12 and f14 live across the call. */
-void func_802BE9F8(void) {
-    D_803F3960 = D_803F3910;
+void obj_hits_clear(void) {
+    gObjHitsEnd = gObjHits;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BE9F8.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_hits_clear.s")
 #endif
 
-/* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
+/* Same preserve-caller-registers convention as obj_clear_delayed_damage above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Appends the pair (a, b) to the list at D_803F3910 (write pointer
- * D_803F3960). The asm takes a in t9 and b in t3 and saves v0 and v1; asm
- * caller func_802BEBB0 keeps a0, a1, t3, t8, t9, f12 and f14 live. */
-void func_802BEA30(s32 a, s32 b) {
-    s32 *p = (s32 *) D_803F3960;
+/* Appends (object, part) to this pass's list (0x802BEA30).
+ * Appends the pair (a, b) to the list at gObjHits (write pointer
+ * gObjHitsEnd). The asm takes a in t9 and b in t3 and saves v0 and v1; asm
+ * caller obj_hit_tri keeps a0, a1, t3, t8, t9, f12 and f14 live. */
+void obj_hits_add(s32 a, s32 b) {
+    s32 *p = (s32 *) gObjHitsEnd;
 
     p[0] = a;
     p[1] = b;
-    D_803F3960 = (u8 *) (p + 2);
+    gObjHitsEnd = (u8 *) (p + 2);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BEA30.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_hits_add.s")
 #endif
 
-/* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
+/* Same preserve-caller-registers convention as obj_clear_delayed_damage above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Returns 1 if the pair (a, b) is in the list D_803F3910..D_803F3960 (see
- * func_802BEA30), else 0. The asm takes a in t9 and b in t3, returns in t7 and
- * saves v0, v1 and a0; asm caller func_802BEBB0 keeps a0, a1, t3, t8, t9, f12
+/* 1 if (object, part) is in this pass's list (0x802BEA70).
+ * Returns 1 if the pair (a, b) is in the list gObjHits..gObjHitsEnd (see
+ * obj_hits_add), else 0. The asm takes a in t9 and b in t3, returns in t7 and
+ * saves v0, v1 and a0; asm caller obj_hit_tri keeps a0, a1, t3, t8, t9, f12
  * and f14 live. The walk stops at the write pointer with `!=`. */
-s32 func_802BEA70(s32 a, s32 b) {
-    s32 *p = (s32 *) D_803F3910;
-    s32 *end = (s32 *) D_803F3960;
+s32 obj_hits_has(s32 a, s32 b) {
+    s32 *p = (s32 *) gObjHits;
+    s32 *end = (s32 *) gObjHitsEnd;
 
     while (p != end) {
         p += 2;
@@ -1752,23 +1777,24 @@ s32 func_802BEA70(s32 a, s32 b) {
     return 0;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BEA70.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_hits_has.s")
 #endif
 
-/* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
+/* Same preserve-caller-registers convention as obj_clear_delayed_damage above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* For every collision triangle of e (e->unk4 up to e->unk8, read once; walked
+/* A vehicle sphere against the object's live triangles (0x802BEADC).
+ * For every collision triangle of e (e->unk4 up to e->unk8, read once; walked
  * with `!=`) whose unk51 is set, runs the sphere-vs-triangle test with the
- * sphere (x, y, z, r) >> 2 (arithmetic shifts) and, on a hit, func_802BEBB0
+ * sphere (x, y, z, r) >> 2 (arithmetic shifts) and, on a hit, obj_hit_tri
  * (id, e, triangle).
  * Register convention: x, y, z, r in v0, v1, a0, a1, e in t3, id in t8. The
  * asm saves v0-a2, t3 and t4 and leaves t5/t6 = z >> 2 / r >> 2, t9 = e, s0/s1
  * = the triangle range (and s2-s4 and f20-f28 changed by the test helpers);
- * asm caller func_802BE77C keeps a0, a1, t3, t4 and t8 live across the call.
- * The leftover registers the survey lists as read by func_802BE77C's callers
+ * asm caller obj_collide_vehicle keeps a0, a1, t3, t4 and t8 live across the call.
+ * The leftover registers the survey lists as read by obj_collide_vehicle's callers
  * (t6, s1, s3, s4, f12-f26) are dead there: overwritten or only saved and
  * restored. */
-void func_802BEADC(s32 x, s32 y, s32 z, s32 r, Unk802C1DD0Entry *e, s32 id) {
+void obj_collide_sphere(s32 x, s32 y, s32 z, s32 r, Unk802C1DD0Entry *e, s32 id) {
     Unk803B9890 *t = e->unk4;
     Unk803B9890 *end = e->unk8;
 
@@ -1781,12 +1807,12 @@ void func_802BEADC(s32 x, s32 y, s32 z, s32 r, Unk802C1DD0Entry *e, s32 id) {
             continue;
         }
         if (sphere_hits_tri_77E20(x, y, z, r, t)) {
-            func_802BEBB0(id, e, t);
+            obj_hit_tri(id, e, t);
         }
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BEADC.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_collide_sphere.s")
 #endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
@@ -1799,32 +1825,33 @@ typedef struct {
     /* 0x13 */ s8 flag; /* -1 ends the table, 0 = unused */
 } Unk803A6B30;           /* size 0x14 */
 
-extern u8 D_803F7800;
-extern u16 D_803F77FE;
+extern u8 gFullDamage;
+extern u16 gLastHitDamage;
 
-/* Damage from the vehicle's hit spheres to triangle tri of object e. Walks the
+/* Damage to a triangle's part from the vehicle's hit spheres (0x802BEBB0).
+ * Damage from the vehicle's hit spheres to triangle tri of object e. Walks the
  * D_803A6B30 spheres (until flag -1) that are in use and belong to vehicle id,
  * counting them; the first whose sphere ((x, y, z, r) >> 2) hits tri wins
- * (none: returns). Then: stamps D_803F77F8 and records e in D_8036B974 /
+ * (none: returns). Then: stamps gObjHitFrame and records e in D_8036B974 /
  * D_8036B971 (id != 0xFF; e countable, unkEB clear, unk30 != 0x38, new),
  * func_802BEF9C, and unless D_803BE738 is set: adds the count to buffer A
- * (func_802BCCD4); if (e, part = tri->unk52) isn't in the hit list yet (and,
- * for a vehicle with D_803F7800 clear, buffer B has the count or D_803F7812 is
+ * (veh_contacts_add); if (e, part = tri->unk52) isn't in the hit list yet (and,
+ * for a vehicle with gFullDamage clear, buffer B has the count or D_803F7812 is
  * clear and func_802BEFF4 didn't set D_803F780C), it is added, the damage
- * (0 for unk30 0x38, which also sets D_803F7805 for vehicle 0; else
- * func_802BFF6C) goes into the screen shake (10, min(damage, 500)), the part's
- * percentage (capped at 100) and D_803F77FE, func_802BF898 updates the part,
- * and a part reaching 100 collapses (func_802BF1F0, func_802C1438,
- * func_802C09B8, func_802C0E8C, func_802BF384, shake 15/400, the part's
+ * (0 for unk30 0x38, which also sets gEndObjectTouched for vehicle 0; else
+ * obj_calc_damage) goes into the screen shake (10, min(damage, 500)), the part's
+ * percentage (capped at 100) and gLastHitDamage, obj_spawn_break_effects updates the part,
+ * and a part reaching 100 collapses (obj_mark_part_gone, obj_start_topple,
+ * obj_start_part_fade, obj_start_sinking_part, obj_spawn_people, shake 15/400, the part's
  * triangles off and the triangles whose unk57 is the part on unless their own
- * part is done). Finally D_803F7803 = 1, and unless the count is in the
+ * part is done). Finally gObjHit = 1, and unless the count is in the
  * D_803A7408 list: D_803A7424 = 1 and func_802BF264(tri) while the part isn't
- * done, else D_803F7802 = 1; then func_802BF668 and func_802BF534.
+ * done, else gObjHitPartDown = 1; then obj_drop_unsupported_parts and obj_check_destroyed.
  * Register convention: id in t8, e in t9, tri in s0. The asm saves t3-t7,
  * s0-s4, gp and fp and leaves a1 = 0 when no sphere hits (dead: its only
- * caller func_802BEADC restores a1); f20-f28 are changed by the test helpers.
- * Asm caller func_802BEADC keeps t3-t6, t8 and t9 live across the call. */
-void func_802BEBB0(s32 id, Unk802C1DD0Entry *e, Unk803B9890 *tri) {
+ * caller obj_collide_sphere restores a1); f20-f28 are changed by the test helpers.
+ * Asm caller obj_collide_sphere keeps t3-t6, t8 and t9 live across the call. */
+void obj_hit_tri(s32 id, Unk802C1DD0Entry *e, Unk803B9890 *tri) {
     Unk803A6B30 *p;
     u8 *pcts = (u8 *) e + 0xEC;
     s32 count = 0;
@@ -1847,7 +1874,7 @@ void func_802BEBB0(s32 id, Unk802C1DD0Entry *e, Unk803B9890 *tri) {
     }
 
     if (id != 0xFF) {
-        D_803F77F8 = gUnpausedFrames;
+        gObjHitFrame = gUnpausedFrames;
     }
     if (id != 0xFF && e->info->type != 1 && e->unkEB == 0 && e->unk30 != 0x38 && D_8036B974 != e) {
         D_8036B971 = 1;
@@ -1858,30 +1885,30 @@ void func_802BEBB0(s32 id, Unk802C1DD0Entry *e, Unk803B9890 *tri) {
         return;
     }
     part = tri->unk52;
-    func_802BCCD4(count);
-    if (func_802BEA70((s32) e, part) != 0) {
+    veh_contacts_add(count);
+    if (obj_hits_has((s32) e, part) != 0) {
         goto done;
     }
-    if (D_803F7800 == 0 && id != 0xFF) {
+    if (gFullDamage == 0 && id != 0xFF) {
         if (D_803F7812 == 0) {
             func_802BEFF4();
             if (D_803F780C != 0) {
                 goto add;
             }
         }
-        if (func_802BCDE0(count) != 0) {
+        if (veh_prev_contacts_has(count) != 0) {
             goto done;
         }
     }
 add:
-    func_802BEA30((s32) e, part);
+    obj_hits_add((s32) e, part);
     if (e->unk30 == 0x38) {
         if (id == 0) {
-            D_803F7805 = 1;
+            gEndObjectTouched = 1;
         }
         value = 0;
     } else {
-        value = func_802BFF6C(part, p->value, id, e, e->info->type, count);
+        value = obj_calc_damage(part, p->value, id, e, e->info->type, count);
     }
     gShakeTime = 10;
     if (value < 0x1F5) {
@@ -1894,17 +1921,17 @@ add:
         level = 100;
     }
     pcts[part - 1] = level;
-    D_803F77FE = value;
-    func_802BF898(e, part, level);
+    gLastHitDamage = value;
+    obj_spawn_break_effects(e, part, level);
     if (level == 100) {
         Unk803B9890 *t;
         Unk803B9890 *end;
 
-        func_802BF1F0(e, part);
-        func_802C1438(e, part);
-        func_802C09B8(part, e);
-        func_802C0E8C(part, e);
-        func_802BF384(e);
+        obj_mark_part_gone(e, part);
+        obj_start_topple(e, part);
+        obj_start_part_fade(part, e);
+        obj_start_sinking_part(part, e);
+        obj_spawn_people(e);
         gShakeTime = 15;
         gShakeSize = 400;
         end = e->unk8;
@@ -1918,7 +1945,7 @@ add:
         }
     }
 done:
-    D_803F7803 = 1;
+    gObjHit = 1;
     for (s = D_803A7408;; s++) {
         if (*s == count) {
             goto tail;
@@ -1931,21 +1958,21 @@ done:
         D_803A7424 = 1;
         func_802BF264(tri);
     } else {
-        D_803F7802 = 1;
+        gObjHitPartDown = 1;
     }
 tail:
-    func_802BF668(e);
-    func_802BF534(e);
+    obj_drop_unsupported_parts(e);
+    obj_check_destroyed(e);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BEBB0.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_hit_tri.s")
 #endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
 /* On level 0x2D, sets D_803BE738 when e->unk30 is 0xE7..0xE9 (signed). The asm
- * takes e in t9 and saves v0; asm caller func_802BEBB0 keeps a0, a1, t8, t9,
+ * takes e in t9 and saves v0; asm caller obj_hit_tri keeps a0, a1, t8, t9,
  * f12 and f14 live. */
 void func_802BEF9C(Unk802C1DD0Entry *e) {
     if (levelno == 0x2D && e->unk30 >= 0xE7 && e->unk30 < 0xEA) {
@@ -1956,22 +1983,22 @@ void func_802BEF9C(Unk802C1DD0Entry *e) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BEF9C.s")
 #endif
 
-/* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
+/* Same preserve-caller-registers convention as obj_clear_delayed_damage above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern s32 D_803F77F4;  /* frame stamp: run counting only if it is gUnpausedFrames - 1 */
+extern s32 gObjPrevHitFrame;  /* frame stamp: run counting only if it is gUnpausedFrames - 1 */
 extern u8 D_803F780D;   /* "the flag changed during this run" */
 extern u8 D_803F780E;   /* flag value at the start of the run */
 extern u8 D_803F780F;   /* once-per-frame latch, set here */
 
 /* Once-per-frame run detector. Unless the mode excludes it or it already ran
- * (latch D_803F780F), it counts consecutive frames (D_803F77F4 + 1 ==
- * gUnpausedFrames) in which D_803F77FC's sign doesn't repeat a nonzero previous
+ * (latch D_803F780F), it counts consecutive frames (gObjPrevHitFrame + 1 ==
+ * gUnpausedFrames) in which gHitSpeed's sign doesn't repeat a nonzero previous
  * sign, recording whether gPadStickX's truth value changed since the run
  * started. After 0x14 such frames the count restarts and D_803F780C is set if
  * a change was seen. Any other frame resets the run. The asm's `addi` on
- * D_803F77F4 traps on 0x7FFFFFFF; the C wraps instead.
+ * gObjPrevHitFrame traps on 0x7FFFFFFF; the C wraps instead.
  * Register note: the asm saves/restores v0, v1, a0 and a1 (and clobbers at);
- * asm caller func_802BEBB0 keeps a0, a1, t3, t8, t9, f12 and f14 live. */
+ * asm caller obj_hit_tri keeps a0, a1, t3, t8, t9, f12 and f14 live. */
 void func_802BEFF4(void) {
     u8 mode = gCurVehicle;
     s32 sign;
@@ -1982,9 +2009,9 @@ void func_802BEFF4(void) {
         mode == 0x10 || mode == 0x11 || mode == 0x12) {
         return;
     }
-    if (D_803F77FC < 0) {
+    if (gHitSpeed < 0) {
         sign = -1;
-    } else if (D_803F77FC != 0) {
+    } else if (gHitSpeed != 0) {
         sign = 1;
     } else {
         sign = 0;
@@ -1994,7 +2021,7 @@ void func_802BEFF4(void) {
     }
     D_803F780F = 1;
 
-    if (D_803F77F4 + 1 == gUnpausedFrames && (sign == 0 || ((s8) D_803F780A) != sign)) {
+    if (gObjPrevHitFrame + 1 == gUnpausedFrames && (sign == 0 || ((s8) D_803F780A) != sign)) {
         count = D_803F780B;
         flag = (((u8) gPadStickX) != 0) ? 1 : 0;
         if (count == 0) {
@@ -2023,15 +2050,16 @@ void func_802BEFF4(void) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BEFF4.s")
 #endif
 
-/* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
+/* Same preserve-caller-registers convention as obj_clear_delayed_damage above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Sets byte 0x13 of every 0x14-byte record in e->info's unk24..unk28 table
+/* Marks the part's triangle records gone (byte 0x13) (0x802BF1F0).
+ * Sets byte 0x13 of every 0x14-byte record in e->info's unk24..unk28 table
  * whose byte 0x12 equals id (compared as a full word). The walk stops with
  * `!=`. The asm takes e in t9 and id in t3 and saves v0, v1 and a0-a2; asm
- * callers keep t3 and t9 (func_802BEBB0, func_802CDD74: also f12, f14),
- * t5-t7 and t9 (func_802BF668) or a1, t0-t2, t4, t5 and t7 (func_802C4BF0)
+ * callers keep t3 and t9 (obj_hit_tri, func_802CDD74: also f12, f14),
+ * t5-t7 and t9 (obj_drop_unsupported_parts) or a1, t0-t2, t4, t5 and t7 (func_802C4BF0)
  * live across the call. */
-void func_802BF1F0(Unk802C1DD0Entry *e, s32 id) {
+void obj_mark_part_gone(Unk802C1DD0Entry *e, s32 id) {
     Unk802C1DD0Info *info = e->info;
     u8 *p = (u8 *) info + info->unk24;
     u8 *end = (u8 *) info + info->unk28;
@@ -2043,10 +2071,10 @@ void func_802BF1F0(Unk802C1DD0Entry *e, s32 id) {
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BF1F0.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_mark_part_gone.s")
 #endif
 
-/* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
+/* Same preserve-caller-registers convention as obj_clear_delayed_damage above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
 /* For a collision triangle t with unk58 set: s = t's plane function at the
@@ -2055,7 +2083,7 @@ void func_802BF1F0(Unk802C1DD0Entry *e, s32 id) {
  * with d <= 0), func_8029B7CC(h - 0x400, h + 0x400) when t->unk55 is 1 or
  * t->unk56 is set; otherwise func_8029B7CC(h + 0x400, h - 0x400) when
  * t->unk55 is 1 or t->unk56 is clear (h = t->unk4C). The asm takes t in s0
- * and saves v0-a3 and t0; asm callers keep a1, t9, f12, f14 (func_802BEBB0)
+ * and saves v0-a3 and t0; asm callers keep a1, t9, f12, f14 (obj_hit_tri)
  * or a1, t3-t6, t9 (func_802CDC7C) live across the call. */
 void func_802BF264(Unk803B9890 *t) {
     s64 s;
@@ -2082,17 +2110,18 @@ void func_802BF264(Unk803B9890 *t) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BF264.s")
 #endif
 
-/* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
+/* Same preserve-caller-registers convention as obj_clear_delayed_damage above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 /* 20460.c defines it with s16 coordinates and a u8; the asm passes the
  * unsliced shifted words, so it is declared with full words here. */
 
-/* If exactly one of e's unkE9 parts is done (unkEC byte == 100), calls
- * func_80264CB4(x >> 5, y >> 5, z >> 5, unkC >> 5, unkE8, info->unk6), the
+/* First part destroyed: the people inside run out (people_spawn) (0x802BF384).
+ * If exactly one of e's unkE9 parts is done (unkEC byte == 100), calls
+ * people_spawn(x >> 5, y >> 5, z >> 5, unkC >> 5, unkE8, info->unk6), the
  * shifts logical. The asm takes e in t9 and preserves every register (all of
  * them saved around the call); asm callers keep a0, t3, t5, t9, f12 and f14
- * (func_802BCA2C), t3, t9, f12 and f14 (func_802BEBB0, func_802CDD74) live. */
-void func_802BF384(Unk802C1DD0Entry *e) {
+ * (obj_update_delayed_damage), t3, t9, f12 and f14 (obj_hit_tri, func_802CDD74) live. */
+void obj_spawn_people(Unk802C1DD0Entry *e) {
     s32 n;
     s32 count = 0;
     u8 *p = e->unkEC;
@@ -2103,26 +2132,27 @@ void func_802BF384(Unk802C1DD0Entry *e) {
         }
     }
     if (count == 1) {
-        func_80264CB4((u32) e->pos[0] >> 5, (u32) e->pos[1] >> 5, (u32) e->pos[2] >> 5, (u32) e->unkC >> 5,
+        people_spawn((u32) e->pos[0] >> 5, (u32) e->pos[1] >> 5, (u32) e->pos[2] >> 5, (u32) e->unkC >> 5,
                       e->unkE8, e->info->unk6);
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BF384.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_spawn_people.s")
 #endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-/* Unless e is already finished (unkEA), finishes it when every part other
+/* All parts down: destroyed, value message and score, zones off (0x802BF534).
+ * Unless e is already finished (unkEA), finishes it when every part other
  * than the 1-based part info->unkD is either done (unkEC byte == 100) or has
  * a nonzero unk48 halfword: sets unkEA, posts info->value as message
  * D_80364A40 and adds it to D_803649F0, and clears byte 0x12 of every 0x24-byte
  * record at D_803BDFD8 (up to D_803BDFD4, walked with `!=`) whose byte 0x11 is
  * e's 1-based index in gObjects. The asm takes e in t9 and saves t4-t7, s0
- * and s1; asm callers keep a0, t3, t5, t9, f12 and f14 (func_802BCA2C) or a1,
- * f12 and f14 (func_802BEBB0) live. */
-void func_802BF534(Unk802C1DD0Entry *e) {
+ * and s1; asm callers keep a0, t3, t5, t9, f12 and f14 (obj_update_delayed_damage) or a1,
+ * f12 and f14 (obj_hit_tri) live. */
+void obj_check_destroyed(Unk802C1DD0Entry *e) {
     s32 skip;
     s32 part;
     s32 n;
@@ -2158,7 +2188,7 @@ void func_802BF534(Unk802C1DD0Entry *e) {
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BF534.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_check_destroyed.s")
 #endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
@@ -2169,19 +2199,20 @@ void func_802BF534(Unk802C1DD0Entry *e) {
  * flag, 0x88/0xA8/0xC8 = x, y, z. */
 #define ENTRY_U16(e, off, i) (*(u16 *) ((u8 *) (e) + (off) + (i) * 2))
 
-/* Makes parts of e fall. Each record of info's unk44..unk48 list is
+/* Parts whose supports' weights fall below the threshold start falling (0x802BF668).
+ * Makes parts of e fall. Each record of info's unk44..unk48 list is
  * {u8 part; u8 threshold; u8 n; n x {u8 support; u8 weight}} (parts 1-based).
  * A part that hasn't fallen (u16 flag at 0x48 clear) and isn't done (unkEC
  * byte != 100) falls when the weights of its supports that are neither done
- * nor fallen sum to less than the threshold: func_802BF1F0(e, part), its flag
+ * nor fallen sum to less than the threshold: obj_mark_part_gone(e, part), its flag
  * is set to 1 and D_803649E0/E2/E4 are stored as its x, y, z; then each of
  * e's triangles (unk4..unk8) with unk52 == part has unk51 cleared, and one
  * with unk57 == part gets unk51 = 1 unless the part its unk52 names is done.
  * Repeats the whole pass until nothing falls. All walks stop with `!=`. The
  * asm takes e in t9 and saves t3-t7 and s0-s7; asm callers keep a0, t3, t5,
- * t9, f12, f14 (func_802BCA2C), a1, t9, f12, f14 (func_802BEBB0) or t9
+ * t9, f12, f14 (obj_update_delayed_damage), a1, t9, f12, f14 (obj_hit_tri) or t9
  * (func_802CDD74) live across the call. */
-void func_802BF668(Unk802C1DD0Entry *e) {
+void obj_drop_unsupported_parts(Unk802C1DD0Entry *e) {
     u8 *b = (u8 *) e;
     Unk802C1DD0Info *info;
     u8 *rec;
@@ -2213,7 +2244,7 @@ void func_802BF668(Unk802C1DD0Entry *e) {
             }
             if (sum < rec[1]) {
                 changed = 1;
-                func_802BF1F0(e, rec[0]);
+                obj_mark_part_gone(e, rec[0]);
                 part = rec[0] - 1;
                 ENTRY_U16(e, 0x48, part) = 1;
                 ENTRY_U16(e, 0x88, part) = ((u16) D_803649E0);
@@ -2234,32 +2265,33 @@ void func_802BF668(Unk802C1DD0Entry *e) {
     } while (changed);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BF668.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_drop_unsupported_parts.s")
 #endif
 
-/* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
+/* Same preserve-caller-registers convention as obj_clear_delayed_damage above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u16 D_803F77FE;
-void func_802BF978(Unk802C1DD0Entry *e, s32 index, s32 level, Unk802C1DD0Info *info, s32 *obj);
+extern u16 gLastHitDamage;
+void obj_spawn_random_effects(Unk802C1DD0Entry *e, s32 index, s32 level, Unk802C1DD0Info *info, s32 *obj);
 
-/* Breaks off part `part` (1-based) of e at damage level `level`. If e->info's
- * unk5 (debris scale) is nonzero, func_802BF978 makes generic debris; the asm
+/* The part's effect records reached by its damage level (0x802BF898).
+ * Breaks off part `part` (1-based) of e at damage level `level`. If e->info's
+ * unk5 (debris scale) is nonzero, obj_spawn_random_effects makes generic debris; the asm
  * passes it info and, as its obj (v1), the unk5 byte itself. Otherwise, for
  * each of info's 0x38-byte records unk30..unk34 (walked with `!=`) that isn't
  * done yet (byte 0x34 == 0) and belongs to the part (byte 0x32): with byte
- * 0x33 == 0xFF it is spawned (func_802C04F0) unless D_803F77FE < 20, and
+ * 0x33 == 0xFF it is spawned (obj_queue_effect) unless gLastHitDamage < 20, and
  * stays not done; otherwise, if byte 0x33 (the level needed) <= level
- * (signed), func_802BFBF4 + func_802C04F0 and it is marked done.
+ * (signed), obj_start_emitter + obj_queue_effect and it is marked done.
  * The asm takes e in t9, part in t3, level in t5 and preserves every
- * register; asm callers keep a1, t3, t5, t9, f12, f14 (func_802BEBB0) and
+ * register; asm callers keep a1, t3, t5, t9, f12, f14 (obj_hit_tri) and
  * t3, t5, t9 (func_802CDD74) live (a mixed N64 build would need a thunk). */
-void func_802BF898(Unk802C1DD0Entry *e, s32 part, s32 level) {
+void obj_spawn_break_effects(Unk802C1DD0Entry *e, s32 part, s32 level) {
     Unk802C1DD0Info *info = e->info;
     u8 *r;
     u8 *end;
 
     if (info->unk5 != 0) {
-        func_802BF978(e, part, level, info, (s32 *) (u32) info->unk5);
+        obj_spawn_random_effects(e, part, level, info, (s32 *) (u32) info->unk5);
         return;
     }
     r = (u8 *) info + info->unk30;
@@ -2269,18 +2301,18 @@ void func_802BF898(Unk802C1DD0Entry *e, s32 part, s32 level) {
             continue;
         }
         if (r[0x33] == 0xFF) {
-            if (D_803F77FE >= 20) {
-                func_802C04F0((u32 *) r);
+            if (gLastHitDamage >= 20) {
+                obj_queue_effect((u32 *) r);
             }
         } else if (!(level < r[0x33])) {
-            func_802BFBF4(e, (s32 *) r);
-            func_802C04F0((u32 *) r);
+            obj_start_emitter(e, (s32 *) r);
+            obj_queue_effect((u32 *) r);
             r[0x34] = 1;
         }
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BF898.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_spawn_break_effects.s")
 #endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
@@ -2298,7 +2330,7 @@ extern Unk80306344 D_80306344[];
 extern Unk80306344 D_80306350[];
 extern Unk80306344 D_803063D4[];
 extern u8 D_803063E0[]; /* {u8 threshold; u8 count} pairs */
-extern u16 D_803F77FE;
+extern u16 gLastHitDamage;
 
 #ifdef PORT_HOST
 /* The roll is 0..100 inclusive, and every kind table ends at threshold 100:
@@ -2325,25 +2357,26 @@ static s32 port_kind_field(Unk80306344 *t, s32 off, s32 size) {
 #define KT_HI(t) ((t)->hi)
 #endif
 
-/* Spawns debris for part `index` (1-based) of e: the part's s16 point in
+/* Random effects (model unk5 scale) at the part's point (0x802BF978).
+ * Spawns debris for part `index` (1-based) of e: the part's s16 point in
  * e->info's unk2C table (8-byte records) << 16 is the position. A 0..100 roll
- * (func_802BFB50) picks a count from D_803063E0 (first pair whose threshold
+ * (obj_rand_range) picks a count from D_803063E0 (first pair whose threshold
  * isn't below the roll); for each of them, with `level` >= 100 the kind table
  * is D_80306350, else D_80306344, but then nothing more happens (not even the
- * final call) if D_803F77FE < 20. Another roll picks the kind record, a third
+ * final call) if gLastHitDamage < 20. Another roll picks the kind record, a third
  * roll in [lo, hi] times info->unk5 (doubled if D_803EF6FF) becomes the
- * record's unkC, and the record (D_803F3FF8; u16 at 0x2C = 10 for all but the
- * first) goes to func_802C04F0. Finally func_802BFBF4(e, obj), where obj is
- * D_803F3FF8 once a record was made, else the caller's obj (the asm's v1).
+ * record's unkC, and the record (gEffectScratch; u16 at 0x2C = 10 for all but the
+ * first) goes to obj_queue_effect. Finally obj_start_emitter(e, obj), where obj is
+ * gEffectScratch once a record was made, else the caller's obj (the asm's v1).
  * The asm takes e in t9, index in t3, level in t5, info in v0 (the caller
  * passes e->info) and obj in v1; it preserves every register. */
-void func_802BF978(Unk802C1DD0Entry *e, s32 index, s32 level, Unk802C1DD0Info *info, s32 *obj) {
+void obj_spawn_random_effects(Unk802C1DD0Entry *e, s32 index, s32 level, Unk802C1DD0Info *info, s32 *obj) {
     Unk802C1DD0Info *ei = e->info;
     s16 *pt = (s16 *) ((u8 *) ei + ei->unk2C + (index - 1) * 8);
     s32 x = pt[0] << 16;
     s32 y = pt[1] << 16;
     s32 z = pt[2] << 16;
-    Unk803F3FF8 *d = &D_803F3FF8;
+    Unk803F3FF8 *d = &gEffectScratch;
     Unk80306344 *t;
     u8 *c = D_803063E0;
     s32 *last = obj; /* the asm's v1 (a local: don't write the stack argument) */
@@ -2352,7 +2385,7 @@ void func_802BF978(Unk802C1DD0Entry *e, s32 index, s32 level, Unk802C1DD0Info *i
     s32 i;
     u32 v;
 
-    roll = func_802BFB50(0, 100);
+    roll = obj_rand_range(0, 100);
     while (c[0] < roll) {
         c += 2;
     }
@@ -2362,18 +2395,18 @@ void func_802BF978(Unk802C1DD0Entry *e, s32 index, s32 level, Unk802C1DD0Info *i
             t = D_80306350;
         } else {
             t = D_80306344;
-            if (D_803F77FE < 20) {
+            if (gLastHitDamage < 20) {
                 return;
             }
         }
-        roll = func_802BFB50(0, 100);
+        roll = obj_rand_range(0, 100);
         while (!(roll < KT_THRESHOLD(t))) {
             t++;
         }
         d->pos[0] = x;
         d->pos[1] = y;
         d->pos[2] = z;
-        roll = func_802BFB50(KT_LO(t), KT_HI(t));
+        roll = obj_rand_range(KT_LO(t), KT_HI(t));
         v = PORT_WRAP_MUL(info->unk5, roll);
         if (D_803EF6FF != 0) {
             v <<= 1;
@@ -2392,39 +2425,41 @@ void func_802BF978(Unk802C1DD0Entry *e, s32 index, s32 level, Unk802C1DD0Info *i
         d->unk34 = 0;
         d->unk35 = 0;
         d->unk31 = KT_KIND(t);
-        func_802C04F0((u32 *) d);
+        obj_queue_effect((u32 *) d);
         last = (s32 *) d;
     }
-    func_802BFBF4(e, last);
+    obj_start_emitter(e, last);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BF978.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_spawn_random_effects.s")
 #endif
 
-/* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
+/* Same preserve-caller-registers convention as obj_clear_delayed_damage above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-/* func_8026A828(lo, hi) (a random number in a range) for asm callers: the asm
+/* Util_rand_range(lo, hi) for the asm callers (0x802BFB50).
+ * func_8026A828(lo, hi) (a random number in a range) for asm callers: the asm
  * passes a0/a1 through, returns the result in s4 and preserves every other
- * register; asm callers keep t5-t7 and t9 (func_802BF978), t7
- * (func_802BFDAC) or t0, t1 and t4 (func_802C0CBC) live. */
-s32 func_802BFB50(s32 lo, s32 hi) {
+ * register; asm callers keep t5-t7 and t9 (obj_spawn_random_effects), t7
+ * (obj_spawn_random_landing_effect) or t0, t1 and t4 (obj_draw_sinking_part) live. */
+s32 obj_rand_range(s32 lo, s32 hi) {
     return func_8026A828(lo, hi);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BFB50.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_rand_range.s")
 #endif
 
-/* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
+/* Same preserve-caller-registers convention as obj_clear_delayed_damage above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern s8 D_8030633C[]; /* -1 terminated */
 
-/* Unless e's info type is 1, and if obj's byte 0x31 is in the list
+/* Effect ids listed in D_8030633C start the particle emitter (0x802BFBF4).
+ * Unless e's info type is 1, and if obj's byte 0x31 is in the list
  * D_8030633C (s8 entries compared with the u8, so 0x80..0xFE never match),
- * calls func_80288284((low word of D_803649D8 >> 8) % 4, obj x, y, z >> 11
+ * calls ptcl_start((low word of D_803649D8 >> 8) % 4, obj x, y, z >> 11
  * (logical), e->pos[1]). The asm takes e in t9 and obj in v1 and preserves
- * every register; asm caller func_802BF898 keeps a0, t3, t5 and t9 live. */
-void func_802BFBF4(Unk802C1DD0Entry *e, s32 *obj) {
+ * every register; asm caller obj_spawn_break_effects keeps a0, t3, t5 and t9 live. */
+void obj_start_emitter(Unk802C1DD0Entry *e, s32 *obj) {
     s8 *p;
     s32 key;
 
@@ -2434,75 +2469,77 @@ void func_802BFBF4(Unk802C1DD0Entry *e, s32 *obj) {
     key = ((u8 *) obj)[0x31];
     for (p = D_8030633C; *p != -1; p++) {
         if (*p == key) {
-            func_80288284(((u32) D_803649D8 >> 8) % 4, (u32) obj[0] >> 11, (u32) obj[1] >> 11,
+            ptcl_start(((u32) D_803649D8 >> 8) % 4, (u32) obj[0] >> 11, (u32) obj[1] >> 11,
                           (u32) obj[2] >> 11, e->pos[1]);
             return;
         }
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BFBF4.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_start_emitter.s")
 #endif
 
-/* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
+/* Same preserve-caller-registers convention as obj_clear_delayed_damage above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-void func_802BFDAC(Unk802C1DD0Entry *e, s32 index);
+void obj_spawn_random_landing_effect(Unk802C1DD0Entry *e, s32 index);
 
-/* Spawns the debris of part index + 1 of e: with e->info's unk5 nonzero, one
- * generic record (func_802BFDAC); else every one of info's 0x38-byte records
+/* A fallen part hit the ground: its landing effects (0x802BFD1C).
+ * Spawns the debris of part index + 1 of e: with e->info's unk5 nonzero, one
+ * generic record (obj_spawn_random_landing_effect); else every one of info's 0x38-byte records
  * unk34..unk38 (walked with `!=`) whose byte 0x32 is the part goes to
- * func_802C04F0. The asm takes e in v0 and index in a3 (addi: index + 1 must
+ * obj_queue_effect. The asm takes e in v0 and index in a3 (addi: index + 1 must
  * not overflow) and saves v0, v1, a0, a1, a3; asm caller obj_draw_all keeps
  * a0-a3 and t0-t6 live (a mixed N64 build would need a thunk). */
-void func_802BFD1C(Unk802C1DD0Entry *e, s32 index) {
+void obj_spawn_landing_effects(Unk802C1DD0Entry *e, s32 index) {
     Unk802C1DD0Info *info = e->info;
     s32 part = index + 1;
     u8 *r;
     u8 *end;
 
     if (info->unk5 != 0) {
-        func_802BFDAC(e, part);
+        obj_spawn_random_landing_effect(e, part);
         return;
     }
     r = (u8 *) info + info->unk34;
     end = (u8 *) info + info->unk38;
     for (; r != end; r += 0x38) {
         if (r[0x32] == part) {
-            func_802C04F0((u32 *) r);
+            obj_queue_effect((u32 *) r);
         }
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BFD1C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_spawn_landing_effects.s")
 #endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* One debris record for part `index` (1-based) of e (see func_802BF978): x, z
+/* One random landing effect (D_803063D4) at the part's point (0x802BFDAC).
+ * One debris record for part `index` (1-based) of e (see obj_spawn_random_effects): x, z
  * from the part's s16 point in e->info's unk2C table (<< 16), y = e->pos[1]
  * << 11; the kind record is picked from D_803063D4 by a 0..100 roll
- * (func_802BFB50), and a roll in its [lo, hi] times info->unk5 is the unkC.
- * The record (D_803F3FF8) goes to func_802C04F0. The asm takes e in v0 and
+ * (obj_rand_range), and a roll in its [lo, hi] times info->unk5 is the unkC.
+ * The record (gEffectScratch) goes to obj_queue_effect. The asm takes e in v0 and
  * index in a3 (its caller passes the 0-based index + 1) and preserves every
  * register. */
-void func_802BFDAC(Unk802C1DD0Entry *e, s32 index) {
+void obj_spawn_random_landing_effect(Unk802C1DD0Entry *e, s32 index) {
     Unk802C1DD0Info *info = e->info;
     s16 *pt = (s16 *) ((u8 *) info + info->unk2C + (index - 1) * 8);
     s32 x = pt[0];
     s32 z = pt[2];
     s32 y = e->pos[1];
-    Unk803F3FF8 *d = &D_803F3FF8;
+    Unk803F3FF8 *d = &gEffectScratch;
     Unk80306344 *t = D_803063D4;
     s32 roll;
 
-    roll = func_802BFB50(0, 100);
+    roll = obj_rand_range(0, 100);
     while (!(roll < KT_THRESHOLD(t))) {
         t++;
     }
     d->pos[0] = x << 16;
     d->pos[1] = y << 11;
     d->pos[2] = z << 16;
-    roll = func_802BFB50(KT_LO(t), KT_HI(t));
+    roll = obj_rand_range(KT_LO(t), KT_HI(t));
     d->unk10[0] = 0;
     d->unk10[1] = 0;
     d->unk10[2] = 0;
@@ -2517,50 +2554,52 @@ void func_802BFDAC(Unk802C1DD0Entry *e, s32 index) {
     d->unk34 = 0;
     d->unk35 = 0;
     d->unk31 = KT_KIND(t);
-    func_802C04F0((u32 *) d);
+    obj_queue_effect((u32 *) d);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BFDAC.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_spawn_random_landing_effect.s")
 #endif
 
-/* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
+/* Same preserve-caller-registers convention as obj_clear_delayed_damage above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803F7800;
+extern u8 gFullDamage;
 
-/* D_803F7800 = 0 if D_803F7801 is 1; else 1 if D_803F7801 is 2 or any of the
+/* GFullDamage from the vehicle's damage mode and wheel-slot flags (0x802BFEE4).
+ * gFullDamage = 0 if D_803F7801 is 1; else 1 if D_803F7801 is 2 or any of the
  * vehicle's bytes 0x96..0x98 is 1; else 0. The asm takes the vehicle in gp
  * (the vehicle update functions point gp at their own D_803EE6C0 /
  * D_803EEA90 block, so it is an argument here, not a fixed base) and saves v0
- * and v1; asm caller func_802BE77C keeps a0, a1, t6, t8, f12 and f14 live. */
-void func_802BFEE4(u8 *vehicle) {
+ * and v1; asm caller obj_collide_vehicle keeps a0, a1, t6, t8, f12 and f14 live. */
+void obj_set_full_damage(u8 *vehicle) {
     if (D_803F7801 == 1) {
-        D_803F7800 = 0;
+        gFullDamage = 0;
     } else if (D_803F7801 == 2 || vehicle[0x96] == 1 || vehicle[0x97] == 1 || vehicle[0x98] == 1) {
-        D_803F7800 = 1;
+        gFullDamage = 1;
     } else {
-        D_803F7800 = 0;
+        gFullDamage = 0;
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BFEE4.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_set_full_damage.s")
 #endif
 
-/* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
+/* Same preserve-caller-registers convention as obj_clear_delayed_damage above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803F7807;
+extern u8 gObjHitImmunePart;
 extern u8 D_80305E50[];   /* records {u8 bit; u8 key; u8 kind; u8 n; ...}, see below */
-s32 func_802C0284(s32 bit, s32 flag, s32 *out);
-s32 func_802C038C(s32 id, Unk802C1DD0Entry *e);
+s32 obj_full_damage_rule(s32 bit, s32 flag, s32 *out);
+s32 obj_part_exposed(s32 id, Unk802C1DD0Entry *e);
 
-/* Damage amount for part `id` of e hit with `value` under rule (bit, key):
+/* A part's damage from the vehicle, its value and the toughness rules (0x802BFF6C).
+ * Damage amount for part `id` of e hit with `value` under rule (bit, key):
  *   bit 0xFF: 100 if flag is 1, else 0 (nothing stored);
  *   otherwise D_8036CB2F = 1, D_8036CB2E = bit, then: the part info->unkD is
- *   immune (D_803F7807 = 1, D_8036CB2F = 0, 0); func_802C0284(bit, flag)
- *   hit: 100; D_803F7800 set: 100 (D_8036CB2A = D_8036CB2C = 100);
+ *   immune (gObjHitImmunePart = 1, D_8036CB2F = 0, 0); obj_full_damage_rule(bit, flag)
+ *   hit: 100; gFullDamage set: 100 (D_8036CB2A = D_8036CB2C = 100);
  *   else the first D_80305E50 record for (bit, key) that applies gives r:
- *     0xFC (if D_803F7804) / 0xFB (if func_802C038C(id, e)): n * value;
- *     0xFF (if D_803F77FC >= 0) / 0xFE (if <= 0) / 0xFD (always):
- *       |D_803F77FC| * value * n >> 4 (logical);
+ *     0xFC (if gVehAttacking) / 0xFB (if obj_part_exposed(id, e)): n * value;
+ *     0xFF (if gHitSpeed >= 0) / 0xFE (if <= 0) / 0xFD (always):
+ *       |gHitSpeed| * value * n >> 4 (logical);
  *     any other kind k: func_802A04BC(k, D_803F77D0) record; if its first
  *       field is nonzero, with o = its 7th field (s8) and lo, hi the bytes at
  *       rec + o + 4 and + 5: (round(f * (hi - lo)) + lo) * value, f its float;
@@ -2570,14 +2609,14 @@ s32 func_802C038C(s32 id, Unk802C1DD0Entry *e);
  *   D_8036CB2A = r, D_8036CB2C = r / flag (unsigned; the asm traps on 0) and
  *   r / flag is returned. Products are 32-bit (multu low word).
  * The asm takes id in t3, value in t7, bit in t8, e in t9, flag in gp and key
- * in fp (all values), returns in t7 and saves v0-t4; asm caller func_802BEBB0
+ * in fp (all values), returns in t7 and saves v0-t4; asm caller obj_hit_tri
  * keeps a0, a1, t3, t9, f12 and f14 live across the call.
  * Register carry-over kept: a regular-kind record passes its kind to
  * func_802A04BC in v0, which the asm doesn't restore, so a later 0xFB record
- * of the same key gets that kind as its id. Not reproduced: func_802C038C
+ * of the same key gets that kind as its id. Not reproduced: obj_part_exposed
  * leaves v0 doubled when it reaches its height test, which only a second 0xFB
  * record of the same key would see (the ROM table has none). */
-s32 func_802BFF6C(s32 id, s32 value, s32 bit, Unk802C1DD0Entry *e, s32 flag, s32 key) {
+s32 obj_calc_damage(s32 id, s32 value, s32 bit, Unk802C1DD0Entry *e, s32 flag, s32 key) {
     s32 out = value;
     s32 v0 = id;
     u8 *rec;
@@ -2592,14 +2631,14 @@ s32 func_802BFF6C(s32 id, s32 value, s32 bit, Unk802C1DD0Entry *e, s32 flag, s32
     D_8036CB2F = 1;
     D_8036CB2E = bit;
     if (e->info->unkD == id) {
-        D_803F7807 = 1;
+        gObjHitImmunePart = 1;
         D_8036CB2F = 0;
         return 0;
     }
-    if (func_802C0284(bit, flag, &out) != 0) {
+    if (obj_full_damage_rule(bit, flag, &out) != 0) {
         return out;
     }
-    if (D_803F7800 != 0) {
+    if (gFullDamage != 0) {
         D_8036CB2A = 100;
         D_8036CB2C = 100;
         return 100;
@@ -2609,21 +2648,21 @@ s32 func_802BFF6C(s32 id, s32 value, s32 bit, Unk802C1DD0Entry *e, s32 flag, s32
         kind = rec[2];
         if (rec[0] == bit && rec[1] == key) {
             if (kind == 0xFC) {
-                if (D_803F7804 != 0) {
+                if (gVehAttacking != 0) {
                     r = (u32) rec[3] * out;
                     break;
                 }
             } else if (kind == 0xFB) {
-                if (func_802C038C(v0, e) != 0) {
+                if (obj_part_exposed(v0, e) != 0) {
                     r = (u32) rec[3] * out;
                     break;
                 }
             } else if (kind == 0xFF || kind == 0xFE || kind == 0xFD) {
-                if ((kind == 0xFF && D_803F77FC < 0) || (kind == 0xFE && D_803F77FC > 0)) {
+                if ((kind == 0xFF && gHitSpeed < 0) || (kind == 0xFE && gHitSpeed > 0)) {
                     rec += 4;
                     continue;
                 }
-                m = D_803F77FC;
+                m = gHitSpeed;
                 if (m < 0) {
                     m = -m;
                 }
@@ -2656,10 +2695,10 @@ s32 func_802BFF6C(s32 id, s32 value, s32 bit, Unk802C1DD0Entry *e, s32 flag, s32
     return r;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BFF6C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_calc_damage.s")
 #endif
 
-/* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
+/* Same preserve-caller-registers convention as obj_clear_delayed_damage above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 typedef struct {
     /* 0x00 */ s32 level;
@@ -2668,15 +2707,16 @@ typedef struct {
 
 extern Unk80305E10 D_80305E10[];
 
-/* Returns 1, and sets *out = 100, when any of these holds (else returns 0 and
+/* The cases worth 100: push run, level/vehicle mask, flimsy objects (0x802C0284).
+ * Returns 1, and sets *out = 100, when any of these holds (else returns 0 and
  * leaves *out alone): D_803F780C is set (it is cleared, and nothing else is
  * checked); in the frame after D_803A740C (D_803A740C + 1 == gUnpausedFrames), a
  * D_80305E10 entry of the current level has bit `bit` (mod 32) in its mask;
  * or flag is 1 and bit is 1, 10 or 16. The asm takes bit in t8 and flag in gp
  * (a value here), returns in t2 and t7 (100, written only with a 1) and saves
- * v0, v1 and a0; asm caller func_802BFF6C keeps t8 and t9 live. The asm's
+ * v0, v1 and a0; asm caller obj_calc_damage keeps t8 and t9 live. The asm's
  * `addi` on D_803A740C traps on 0x7FFFFFFF; the C wraps instead. */
-s32 func_802C0284(s32 bit, s32 flag, s32 *out) {
+s32 obj_full_damage_rule(s32 bit, s32 flag, s32 *out) {
     Unk80305E10 *p;
     s32 ret = 0;
 
@@ -2709,13 +2749,14 @@ s32 func_802C0284(s32 bit, s32 flag, s32 *out) {
     return ret;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802C0284.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_full_damage_rule.s")
 #endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-/* Returns 0 if part `id` of e is blocked, else 1. Blocked: a record in
+/* 0 if an intact support covers the part or it is too high (0x802C038C).
+ * Returns 0 if part `id` of e is blocked, else 1. Blocked: a record in
  * e->info's unk44..unk48 list ({u8 part; u8 pad; u8 n; n x {u8 id; u8 pad}})
  * lists id (compared as a full word) while e's unkEC byte for its 1-based
  * part isn't 100 (part 0 reads unkEB); or the s16 height
@@ -2723,9 +2764,9 @@ s32 func_802C0284(s32 bit, s32 flag, s32 *out) {
  * done skips the rest of its ids. The record walk stops with `!=`. The asm
  * takes id in v0 and e in t9, returns in t3 (and leaves v0 doubled when it
  * gets to the height test); it saves v1, a0-a3, t0-t2 and t4. Asm caller
- * func_802BFF6C keeps t2, t4, t7, t8 and t9 live. The asm's `addi` on
+ * obj_calc_damage keeps t2, t4, t7, t8 and t9 live. The asm's `addi` on
  * D_803A73F4 traps on overflow; the C wraps. */
-s32 func_802C038C(s32 id, Unk802C1DD0Entry *e) {
+s32 obj_part_exposed(s32 id, Unk802C1DD0Entry *e) {
     Unk802C1DD0Info *info = e->info;
     u8 *rec = (u8 *) info + info->unk44;
     u8 *end = (u8 *) info + info->unk48;
@@ -2751,38 +2792,40 @@ s32 func_802C038C(s32 id, Unk802C1DD0Entry *e) {
     return 1;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802C038C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_part_exposed.s")
 #endif
 
-/* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
+/* Same preserve-caller-registers convention as obj_clear_delayed_damage above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803F3968[30][0x38];
+extern u8 gEffectQueue[30][0x38];
 
-/* Sets byte 0x34 of each of the 30 0x38-byte entries of D_803F3968 to 1.
+/* Frees the 30 gEffectQueue slots (0x802C049C).
+ * Sets byte 0x34 of each of the 30 0x38-byte entries of gEffectQueue to 1.
  * Register note: the asm saves/restores v0, v1 and a0; asm callers keep
  * registers live across the call (initlevel: a2, a3, t0, t1, t2, f12,
  * f14; func_802BA9A0: a0, a2, a3, t6, t7, f12, f14; func_802CF3E0: t1). */
-void func_802C049C(void) {
+void obj_clear_effect_queue(void) {
     s32 i;
 
     for (i = 0; i < 30; i++) {
-        D_803F3968[i][0x34] = 1;
+        gEffectQueue[i][0x34] = 1;
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802C049C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_clear_effect_queue.s")
 #endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Copies the 0x38-byte record src (word by word) into the first of the 30
- * D_803F3968 entries whose byte 0x34 is set (see func_802C049C); does nothing
+/* Copies a 0x38-byte effect record into a free gEffectQueue slot (0x802C04F0).
+ * Copies the 0x38-byte record src (word by word) into the first of the 30
+ * gEffectQueue entries whose byte 0x34 is set (see obj_clear_effect_queue); does nothing
  * if there is none. The asm takes src in v1 and saves v1 and a0-a2; asm
- * callers keep registers live across the call (func_802BF898: a0, t3, t5,
- * t9; func_802BF978: t5-t7, t9; func_802BFD1C: a0, a3; func_802CF3E0:
+ * callers keep registers live across the call (obj_spawn_break_effects: a0, t3, t5,
+ * t9; obj_spawn_random_effects: t5-t7, t9; obj_spawn_landing_effects: a0, a3; func_802CF3E0:
  * a1-a3). */
-void func_802C04F0(u32 *src) {
-    u8 *e = D_803F3968[0];
+void obj_queue_effect(u32 *src) {
+    u8 *e = gEffectQueue[0];
     u32 *dst;
     s32 i;
     s32 k;
@@ -2797,28 +2840,29 @@ void func_802C04F0(u32 *src) {
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802C04F0.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_queue_effect.s")
 #endif
 
-/* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
+/* Same preserve-caller-registers convention as obj_clear_delayed_damage above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
 
 extern u8 * N64P D_80306270[];  /* per kind: {u8 n; u8 defIndex[n]} */
 
-/* Runs the 30 pending debris records of D_803F3968 (0x38 bytes each): a
+/* Counts the queued effects down; spawns them, sound, blast damage (0x802C0574).
+ * Runs the 30 pending debris records of gEffectQueue (0x38 bytes each): a
  * record with byte 0x34 set is free; one whose u16 delay at 0x2C is nonzero
  * just counts it down. Otherwise the effect definition is picked from kind
  * r[0x31]'s list in D_80306270 by (low word of D_803649D8 >> 4) % n (n == 0
- * would trap) and spawned with func_802A6274 (type 0, the record's words as
- * position/data/fields, tag 1 for kind 0x15 or when D_803F7810 is set or
+ * would trap) and spawned with fx_spawn (type 0, the record's words as
+ * position/data/fields, tag 1 for kind 0x15 or when gPartSinking is set or
  * D_8036DCD4 is set with D_8036DCD7 == 1, else 0). If that succeeded and
  * neither the u64 gNextGameMode nor gCarrierHit is set, func_802619D0(kind)
  * (the asm saves every register around that call). The record is then
- * freed, and a nonzero u16 radius at 0x2E applies func_802C18D4 blast
+ * freed, and a nonzero u16 radius at 0x2E applies obj_blast_damage blast
  * damage at its position with amount r[0x30] << 4. Saves s0-s7. */
-void func_802C0574(void) {
-    u8 *r = D_803F3968[0];
+void obj_run_effect_queue(void) {
+    u8 *r = gEffectQueue[0];
     s32 n;
 
     for (n = 30; n != 0; n--, r += 0x38) {
@@ -2835,8 +2879,8 @@ void func_802C0574(void) {
             continue;
         }
         list = D_80306270[r[0x31]];
-        def = D_802C3FFC[list[1 + ((u32) D_803649D8 >> 4) % list[0]]];
-        if (r[0x31] == 0x15 || D_803F7810 != 0 || (D_8036DCD4 != 0 && D_8036DCD7 == 1)) {
+        def = gFxDefsByKind[list[1 + ((u32) D_803649D8 >> 4) % list[0]]];
+        if (r[0x31] == 0x15 || gPartSinking != 0 || (D_8036DCD4 != 0 && D_8036DCD7 == 1)) {
             tag = 1;
         } else {
             tag = 0;
@@ -2844,7 +2888,7 @@ void func_802C0574(void) {
         io.a3 = tag;
         io.t6 = *(s32 *) (r + 0x10);
         io.s1 = *(s32 *) (r + 0x1C);
-        if (func_802A6274(&io, def, *(s32 *) (r + 0x0C), 0, *(s32 *) (r + 0x00), *(s32 *) (r + 0x04),
+        if (fx_spawn(&io, def, *(s32 *) (r + 0x0C), 0, *(s32 *) (r + 0x00), *(s32 *) (r + 0x04),
                           *(s32 *) (r + 0x08), *(s32 *) (r + 0x14), *(s32 *) (r + 0x18), *(s32 *) (r + 0x20),
                           *(s32 *) (r + 0x24), *(s32 *) (r + 0x28), r[0x35]) != 0
             && gNextGameMode == 0 && gCarrierHit == 0) {
@@ -2852,27 +2896,28 @@ void func_802C0574(void) {
         }
         r[0x34] = 1;
         if (*(u16 *) (r + 0x2E) != 0) {
-            func_802C18D4(*(s32 *) (r + 0x00), *(s32 *) (r + 0x04), *(s32 *) (r + 0x08), *(u16 *) (r + 0x2E),
+            obj_blast_damage(*(s32 *) (r + 0x00), *(s32 *) (r + 0x04), *(s32 *) (r + 0x08), *(u16 *) (r + 0x2E),
                           r[0x30] << 4);
         }
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802C0574.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_run_effect_queue.s")
 #endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-/* For each of the 4 D_803F0900 entries: with its s16 at 0x4B0 zero, counts
+/* GFadingParts: alpha -20 a frame, drawn while above 0 (0x802C08C4).
+ * For each of the 4 gFadingParts entries: with its s16 at 0x4B0 zero, counts
  * its byte at 0x4B2 down to 0; otherwise lowers the s16 by 20 and, if that
  * leaves it <= 0, clears it and sets the byte to 3, else draws the entry
  * (G_RDPPIPESYNC, G_SETENVCOLOR with the new value as its colour word, and a
  * G_DL call to the entry itself as a physical address). Ends the list with 0xB8 (end display list) and returns the new
  * end. The asm takes and returns gfx in v0 and saves v1 and a0-a3; asm caller
  * obj_draw_all keeps a0-a3, f12 and f14 live. */
-u32 *func_802C08C4(u32 *gfx) {
-    u8 *e = D_803F0900;
+u32 *obj_draw_fading_parts(u32 *gfx) {
+    u8 *e = gFadingParts;
     s32 i;
     s32 h;
 
@@ -2905,14 +2950,14 @@ u32 *func_802C08C4(u32 *gfx) {
     return gfx + 2;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802C08C4.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_draw_fading_parts.s")
 #endif
 
-/* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
+/* Same preserve-caller-registers convention as obj_clear_delayed_damage above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-u64 func_802C0C64(u64 cmd);
+u64 obj_fade_substitute_cmd(u64 cmd);
 
-/* Shared by func_802C09B8 and func_802C0E8C: appends to *gfxp the display
+/* Shared by obj_start_part_fade and obj_start_sinking_part: appends to *gfxp the display
  * lists of e->info's conditional records (unk38..unk3C, walked with `!=`):
  * {s32 n; n x {u16 part; u8 atLeast; u8 limit}; s32 a0, a1, b0, b1}. A record
  * counts only if its first condition's part (the u16 at +4, read even when
@@ -2920,7 +2965,7 @@ u64 func_802C0C64(u64 cmd);
  * itself, else e's unkEC byte for that (1-based) part: v >= limit when
  * atLeast is set, else v <= limit. A record that holds has its two ranges of
  * 8-byte commands [info + a0, info + a1) and [info + b0, info + b1) copied,
- * through func_802C0C64 when `substitute` is set. Each command uses up one of
+ * through obj_fade_substitute_cmd when `substitute` is set. Each command uses up one of
  * *budget; when it reaches 0 the copy stops and 0 is returned (the callers
  * then return at once). Returns 1 otherwise. */
 static s32 dl_cond_copy_802C09B8(u32 **gfxp, Unk802C1DD0Entry *e, s32 id, s32 *budget, s32 substitute) {
@@ -2974,7 +3019,7 @@ static s32 dl_cond_copy_802C09B8(u32 **gfxp, Unk802C1DD0Entry *e, s32 id, s32 *b
                         if (--*budget == 0) {
                             return 0;
                         }
-                        *gfx++ = substitute ? func_802C0C64(*src) : *src;
+                        *gfx++ = substitute ? obj_fade_substitute_cmd(*src) : *src;
                     }
                 }
             }
@@ -2985,19 +3030,20 @@ static s32 dl_cond_copy_802C09B8(u32 **gfxp, Unk802C1DD0Entry *e, s32 id, s32 *b
     return 1;
 }
 
-/* Builds entry `id`'s debris display list in the first free D_803F0900 slot
+/* Copies a collapsing part's display list into a fading slot (0x802C09B8).
+ * Builds entry `id`'s debris display list in the first free gFadingParts slot
  * (u16 at 0x4B0 and byte at 0x4B2 both zero; none free: nothing happens),
  * unless e->info->unk7 is set: a segment-9 command (0xBC002406) pointing at
  * info + 0x50 (physical), the conditional records' commands (see
- * dl_cond_copy_802C09B8, through func_802C0C64, at most 0x93), then
+ * dl_cond_copy_802C09B8, through obj_fade_substitute_cmd, at most 0x93), then
  * 0xB8000000 0 (end), and marks the slot used (u16 at 0x4B0 = 0xFF). If the
  * command budget runs out it returns right there, without the end command.
  * The asm takes id in t3 and e in t9 and preserves every register (all of
- * them saved); asm callers keep a0, t3, t5, t9, f12, f14 (func_802BCA2C) or
- * t3, t9, f12, f14 (func_802BEBB0, func_802CDD74) live across the call. */
-void func_802C09B8(s32 id, Unk802C1DD0Entry *e) {
+ * them saved); asm callers keep a0, t3, t5, t9, f12, f14 (obj_update_delayed_damage) or
+ * t3, t9, f12, f14 (obj_hit_tri, func_802CDD74) live across the call. */
+void obj_start_part_fade(s32 id, Unk802C1DD0Entry *e) {
     Unk802C1DD0Info *info = e->info;
-    u8 *slot = D_803F0900;
+    u8 *slot = gFadingParts;
     u32 *gfx;
     s32 budget = 0x94;
     s32 i;
@@ -3025,10 +3071,10 @@ void func_802C09B8(s32 id, Unk802C1DD0Entry *e) {
     gfx[1] = 0;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802C09B8.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_start_part_fade.s")
 #endif
 
-/* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
+/* Same preserve-caller-registers convention as obj_clear_delayed_damage above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 typedef struct {
     /* 0x00 */ u64 from;
@@ -3037,13 +3083,14 @@ typedef struct {
 
 extern Unk802F46C0 D_802F46C0[12]; /* display-list command substitutions */
 
-/* Returns the replacement for a 64-bit display-list command: the `to` of the
+/* The D_802F46C0 command substitutions for a fading copy (0x802C0C64).
+ * Returns the replacement for a 64-bit display-list command: the `to` of the
  * first of the 12 D_802F46C0 entries whose `from` equals cmd, else cmd
  * itself. The asm takes and returns cmd as one 64-bit value in t4 (ld/sd by
- * its caller func_802C09B8) and saves v0, v1 and a0; func_802C09B8 keeps
+ * its caller obj_start_part_fade) and saves v0, v1 and a0; obj_start_part_fade keeps
  * a0-a3, t1-t3 and t9 live. The harness only maps the low word (t4 <-> a1 /
  * v1), see conventions.txt. */
-u64 func_802C0C64(u64 cmd) {
+u64 obj_fade_substitute_cmd(u64 cmd) {
     s32 i;
 
     for (i = 0; i < 12; i++) {
@@ -3054,17 +3101,17 @@ u64 func_802C0C64(u64 cmd) {
     return cmd;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802C0C64.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_fade_substitute_cmd.s")
 #endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* One rising piece of debris (func_802C0E8C starts it, func_802C0CBC moves
- * and draws it). The display list func_802C0E8C builds sits at the start. */
+/* One rising piece of debris (obj_start_sinking_part starts it, obj_draw_sinking_part moves
+ * and draws it). The display list obj_start_sinking_part builds sits at the start. */
 typedef struct {
     /* 0x000 */ u8 dl[0x960];
     /* 0x960 */ s32 mtx[2][16]; /* 16.16 translation, then Mtx layout; one per gBufferIndex buffer */
-    /* 0x9E0 */ s16 vtx[4][8];  /* 4 Vtx (func_802C1214) */
+    /* 0x9E0 */ s16 vtx[4][8];  /* 4 Vtx (obj_set_sink_quad) */
     /* 0xA20 */ s32 unkA20;     /* height limit */
     /* 0xA24 */ s32 unkA24;     /* height */
     /* 0xA28 */ u16 unkA28;     /* speed */
@@ -3074,26 +3121,27 @@ typedef struct {
 } Unk803EFED0;                  /* size 0xA30 */
 
 
-/* Moves the D_803EFED0 entry (one) and draws it into gfx: an inactive entry
- * counts unkA2B down to 0. An active one speeds up by 16 and rises by its
- * speed; once that reaches unkA20 it deactivates (unkA2A = 0, unkA2B = 3).
- * Otherwise D_803F7810 = 1, its matrix (mtx[gBufferIndex != 0]) becomes a
+/* GSinkingPart: accelerates down with an x/z shake (0x802C0CBC).
+ * Moves the gSinkingPart entry (one) and draws it into gfx: an inactive entry
+ * counts unkA2B down to 0. An active one speeds up by 16 and sinks by its
+ * speed (the translation is -(h << 11): down); once that reaches unkA20 it deactivates (unkA2A = 0, unkA2B = 3).
+ * Otherwise gPartSinking = 1, its matrix (mtx[gBufferIndex != 0]) becomes a
  * translation by (r1 << 12, -(height << 11), r2 << 12) with r1, r2 rolls in
- * -32..32 (func_802BFB50), converted by func_802AC8CC, and gfx gets
+ * -32..32 (obj_rand_range), converted by func_802AC8CC, and gfx gets
  * G_RDPPIPESYNC, a segment-0xC command (0xBC003006) to that matrix and a
- * G_DL call to the entry (physical addresses). D_803F7810 is cleared first.
+ * G_DL call to the entry (physical addresses). gPartSinking is cleared first.
  * Ends the list with 0xB8000000 0 and returns the new end. The asm takes and
  * returns gfx in v0 (its caller ignores it) and saves v1, a0-t4, s2 and s4;
  * asm caller obj_draw_all keeps a0-a3, f12 and f14 live across the call. */
-u32 *func_802C0CBC(u32 *gfx) {
-    Unk803EFED0 *p = D_803EFED0;
+u32 *obj_draw_sinking_part(u32 *gfx) {
+    Unk803EFED0 *p = gSinkingPart;
     s32 i;
     s32 speed;
     s32 h;
     s32 x;
     s32 z;
 
-    D_803F7810 = 0;
+    gPartSinking = 0;
     for (i = 1; i != 0; i--, p++) {
         if (p->unkA2A == 0) {
             if (p->unkA2B != 0) {
@@ -3110,9 +3158,9 @@ u32 *func_802C0CBC(u32 *gfx) {
             continue;
         }
         p->unkA24 = h;
-        D_803F7810 = 1;
-        x = func_802BFB50(-32, 32) << 12;
-        z = func_802BFB50(-32, 32) << 12;
+        gPartSinking = 1;
+        x = obj_rand_range(-32, 32) << 12;
+        z = obj_rand_range(-32, 32) << 12;
         func_802ACA60(x, -(h << 11), z, p->mtx[(gBufferIndex != 0) ? 1 : 0]);
         func_802AC8CC((u16 *) p->mtx[(gBufferIndex != 0) ? 1 : 0]);
         PORT_ITAG(gfx, PORT_ITAG_RISE, 1 - i);
@@ -3129,18 +3177,19 @@ u32 *func_802C0CBC(u32 *gfx) {
     return gfx + 2;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802C0CBC.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_draw_sinking_part.s")
 #endif
 
-/* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
+/* Same preserve-caller-registers convention as obj_clear_delayed_damage above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern s16 D_80305E38[]; /* unk30 values that get a rising piece; ends at the first negative one */
 extern u64 D_802F4780[6]; /* fixed render-state commands */
 
-/* Starts the rising piece of debris for part `id` of e: unless the game mode
+/* Kinds in D_80305E38: the collapsing part sinks its own height (0x802C0E8C).
+ * Starts the rising piece of debris for part `id` of e: unless the game mode
  * gGameMode has 0x440 set, e->unk30 is in the list D_80305E38 (an equal
- * value is found before the negative terminator) and the D_803EFED0 entry is
- * idle (unkA2A and unkA2B zero). Then func_802C1214 sets its 4 vertices, and
+ * value is found before the negative terminator) and the gSinkingPart entry is
+ * idle (unkA2A and unkA2B zero). Then obj_set_sink_quad sets its 4 vertices, and
  * its display list is built in place: segment 9 (0xBC002406) = info + 0x50,
  * segment 0xB (0xBC002C06) = its vertices, the 6 commands of D_802F4780,
  * 0x01040040 0x0C000000, the conditional records' commands (see
@@ -3149,9 +3198,9 @@ extern u64 D_802F4780[6]; /* fixed render-state commands */
  * unkA24 = 0, unkA28 = 0, unkA2A = 1 and unkA20 = (info->unk40[id - 1] << 5)
  * - e->pos[1]. The asm takes id in t3 and e in t9 and preserves every
  * register (all of them saved); asm callers keep a0, t3, t5, t9, f12, f14
- * (func_802BCA2C) or t3, t9, f12, f14 (func_802BEBB0, func_802CDD74) live
+ * (obj_update_delayed_damage) or t3, t9, f12, f14 (obj_hit_tri, func_802CDD74) live
  * across the call. */
-void func_802C0E8C(s32 id, Unk802C1DD0Entry *e) {
+void obj_start_sinking_part(s32 id, Unk802C1DD0Entry *e) {
     s16 *k;
     Unk803EFED0 *p;
     Unk802C1DD0Info *info;
@@ -3167,7 +3216,7 @@ void func_802C0E8C(s32 id, Unk802C1DD0Entry *e) {
             return;
         }
     }
-    for (i = 1, p = D_803EFED0;; i--, p++) {
+    for (i = 1, p = gSinkingPart;; i--, p++) {
         if (i == 0) {
             return;
         }
@@ -3176,7 +3225,7 @@ void func_802C0E8C(s32 id, Unk802C1DD0Entry *e) {
         }
     }
     info = e->info;
-    func_802C1214((u8 *) p, e);
+    obj_set_sink_quad((u8 *) p, e);
     gfx = (u32 *) p->dl;
     gfx[0] = 0xBC002406;
     gfx[1] = (u32) info + 0x50 - 0x80000000;
@@ -3204,18 +3253,19 @@ void func_802C0E8C(s32 id, Unk802C1DD0Entry *e) {
     gfx[3] = 0;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802C0E8C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_start_sinking_part.s")
 #endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Writes the positions of 4 Vtx at base + 0x9E0: the corners of e's info box
+/* The sinking part's 4-vertex footprint box at the object's base (0x802C1214).
+ * Writes the positions of 4 Vtx at base + 0x9E0: the corners of e's info box
  * (s16 x0, z0, x1, z1 at info->unk20) grown by 100 on every side, at height
  * e->pos[1] >> 5 (arithmetic), in the order (x0, z0), (x1, z0), (x0, z1),
  * (x1, z1); each value is stored as its low 16 bits. The asm takes base in v1
- * and e in t9 and saves a0-a3 and t0-t3; asm caller func_802C0E8C keeps t3
+ * and e in t9 and saves a0-a3 and t0-t3; asm caller obj_start_sinking_part keeps t3
  * and t9 live. */
-void func_802C1214(u8 *base, Unk802C1DD0Entry *e) {
+void obj_set_sink_quad(u8 *base, Unk802C1DD0Entry *e) {
     Unk802C1DD0Info *info = e->info;
     s16 *box = (s16 *) ((u8 *) info + info->unk20);
     s32 y = e->pos[1] >> 5;
@@ -3231,31 +3281,32 @@ void func_802C1214(u8 *base, Unk802C1DD0Entry *e) {
     v[24] = x1, v[25] = y, v[26] = z1;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802C1214.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_set_sink_quad.s")
 #endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern Mtx * N64P D_803F7658; /* 2 matrices for them */
+extern Mtx * N64P gToppleMtx; /* 2 matrices for them */
 /* 23C20.c defines it with s16 parameters; the asm passes rx as a full
  * u16 + u16 sum and ry zero-extended, so it is declared with words here. */
 
-/* Updates and draws the 2 D_803F1BE0 entries into two display lists. An
+/* GTopplingParts: the tilt grows to about 79 degrees, then gone (0x802C12E0).
+ * Updates and draws the 2 gTopplingParts entries into two display lists. An
  * inactive entry (byte 0x470 clear) counts its byte 0x472 down to 0. An
  * active one advances its u16 angle 0x46C by its u16 speed 0x46E while the
  * sum stays below 0x385 (the speed then grows by 15); once it doesn't, it
  * counts byte 0x471 up and, at 6, deactivates (0x470 = 0, 0x472 = 3) without
  * drawing. A drawn entry gets func_8026A454(x, y, z at 0x464..0x468, the sum,
- * u16 0x46A, its matrix D_803F7658[i]), then both lists get gSPSegment(9,
+ * u16 0x46A, its matrix gToppleMtx[i]), then both lists get gSPSegment(9,
  * physical address in word 0x460), and a G_DL call to the entry (list A) or
  * to entry + 0x230 (list B), as physical addresses. The asm takes and returns
  * the two list pointers in a0/a1 (here through gfxA/gfxB) and changes s0-s5
  * (its caller obj_draw_all saves them). */
-void func_802C12E0(u32 **gfxA, u32 **gfxB) {
+void obj_draw_toppling_parts(u32 **gfxA, u32 **gfxB) {
     u32 *a = *gfxA;
     u32 *b = *gfxB;
-    u8 *e = D_803F1BE0;
-    Mtx *m = D_803F7658;
+    u8 *e = gTopplingParts;
+    Mtx *m = gToppleMtx;
     s32 i;
     s32 sum;
     s32 c;
@@ -3303,10 +3354,10 @@ void func_802C12E0(u32 **gfxA, u32 **gfxB) {
     *gfxB = b;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802C12E0.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_draw_toppling_parts.s")
 #endif
 
-/* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
+/* Same preserve-caller-registers convention as obj_clear_delayed_damage above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 s32 func_802C1A28(Unk802C1DD0Entry *e, s32 index);
 
@@ -3318,9 +3369,10 @@ static s32 heading_802C1438(s32 num, f32 d) {
     return (u32) func_802AD7FC(sine) >> 4;
 }
 
-/* Spawns a falling-part effect for part `index` (1-based) of e: only when
+/* Model unk7 set: the part topples away from the vehicle (0x802C1438).
+ * Starts the toppling of part `index` (1-based) of e: only when
  * e's info byte 7 is set and func_802C1A28(e, index) is 0. The first
- * D_803F1BE0 slot (2 of 0x478 bytes) whose bytes 0x470 and 0x472 are both
+ * gTopplingParts slot (2 of 0x478 bytes) whose bytes 0x470 and 0x472 are both
  * clear gets: word 0x460 = info + 0x50; two display lists, A at the slot and
  * B at slot + 0x230, each starting with {0x01040040, 0x02000000 + slot *
  * 0x40}. Then for every conditional record of info (unk38 .. unk3C: u32
@@ -3335,15 +3387,15 @@ static s32 heading_802C1438(s32 num, f32 d) {
  * (0x470 = 1, u16 0x46C = 0, u16 0x46E = 1, 0x471 = 0) at x, y, z
  * (s16 0x464..0x468: the part's point from info->unk2C, and e->pos[1] >> 5)
  * with s16 0x46A = (heading from the part (<< 5) to D_803A73F0/F8) - 0x400,
- * plus 0xFFF when negative (heading as func_802BDDB4's).
+ * plus 0xFFF when negative (heading as obj_step_tex_anims's).
  * Register convention: e in t9, index in t3 (conventions.txt); the asm
  * saves and restores every register except f0/f2. Asm callers keep a0, t3,
  * t5, t9, f12 and f14 live (a mixed N64 build would need a thunk; the native
  * port won't). The part can't sit exactly at the point (0 / 0). */
-void func_802C1438(Unk802C1DD0Entry *e, s32 index) {
+void obj_start_topple(Unk802C1DD0Entry *e, s32 index) {
     Unk802C1DD0Info *info = e->info;
     u8 *base = (u8 *) info;
-    u8 *slot = D_803F1BE0;
+    u8 *slot = gTopplingParts;
     u32 seg = 0x02000000;
     s32 i;
     u32 *a;
@@ -3475,22 +3527,23 @@ void func_802C1438(Unk802C1DD0Entry *e, s32 index) {
     *(s16 *) (slot + 0x46A) = ang;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802C1438.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_start_topple.s")
 #endif
 
-/* Same preserve-caller-registers convention as func_802BC840 above - permanently GLOBAL_ASM. */
+/* Same preserve-caller-registers convention as obj_clear_delayed_damage above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-void func_802BC888(s32 kind, s32 id, s32 amount);
+void obj_add_delayed_damage(s32 kind, s32 id, s32 amount);
 
-/* Blast damage: for every gObjects entry (up to gObjectsEnd, walked with
+/* Radius damage: every live part in range, delayed (0x802C18D4).
+ * Blast damage: for every gObjects entry (up to gObjectsEnd, walked with
  * `!=`) whose sphere (pos, unkC) overlaps the sphere at (x, y, z) >> 11
  * (logical shifts) with radius radius << 5 (func_8029CFA4), unless its unk30
  * is 0x38, every part that isn't done (unkEC byte != 100) gets
- * func_802BC888(part (1-based), e, amount / info->type (unsigned; the asm
+ * obj_add_delayed_damage(part (1-based), e, amount / info->type (unsigned; the asm
  * traps on a zero type)). The asm takes x, y, z in t3, t4, t5, radius in a1
  * and amount in t6, and preserves every register it touches; asm callers
- * keep a0 (func_802AC1A0) or f12, f14 (func_802C0574) live across the call. */
-void func_802C18D4(s32 x, s32 y, s32 z, s32 radius, s32 amount) {
+ * keep a0 (obj_blast_around_carrier) or f12, f14 (obj_run_effect_queue) live across the call. */
+void obj_blast_damage(s32 x, s32 y, s32 z, s32 radius, s32 amount) {
     Unk802C1DD0Entry *end = gObjectsEnd;
     Unk802C1DD0Entry *e;
     s32 px = (u32) x >> 11;
@@ -3510,13 +3563,13 @@ void func_802C18D4(s32 x, s32 y, s32 z, s32 radius, s32 amount) {
         }
         for (n = e->unkE9, p = e->unkEC, part = 1; n != 0; n--, p++, part++) {
             if (*p != 100) {
-                func_802BC888(part, (s32) e, (u32) amount / e->info->type);
+                obj_add_delayed_damage(part, (s32) e, (u32) amount / e->info->type);
             }
         }
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802C18D4.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_blast_damage.s")
 #endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
@@ -3524,7 +3577,7 @@ void func_802C18D4(s32 x, s32 y, s32 z, s32 radius, s32 amount) {
 /* With tbl the s16 table at e->info->unk3C and n = info->unk0 entries,
  * returns n minus the number of leading entries >= tbl[index - 1] (so 0 if
  * all n are). The asm takes e in t9 and index in t3, returns in a2 and saves
- * v0, a0, a1 and a3; asm caller func_802C1438 keeps t3, t9, f12 and f14
+ * v0, a0, a1 and a3; asm caller obj_start_topple keeps t3, t9, f12 and f14
  * live. */
 s32 func_802C1A28(Unk802C1DD0Entry *e, s32 index) {
     Unk802C1DD0Info *info = e->info;
@@ -3544,10 +3597,11 @@ s32 func_802C1A28(Unk802C1DD0Entry *e, s32 index) {
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Returns 1 if every gObjects entry with unkEB set is done (obj_parts_destroyed),
+/* 1 if every path building (unkEB) is destroyed (0x802C1AA0).
+ * Returns 1 if every gObjects entry with unkEB set is done (obj_parts_destroyed),
  * else 0. The asm loops with `!=`, so gObjectsEnd must be gObjects + n
  * entries. The asm saves and restores v1, t0, t1 and t3. */
-s32 func_802C1AA0(void) {
+s32 obj_path_buildings_destroyed(void) {
     Unk802C1DD0Entry *end = gObjectsEnd;
     Unk802C1DD0Entry *e;
 
@@ -3562,16 +3616,17 @@ s32 func_802C1AA0(void) {
     return 1;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802C1AA0.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_path_buildings_destroyed.s")
 #endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Counts the gObjects entries with unkEB set that are done (obj_parts_destroyed).
+/* Destroyed path buildings: the HUD's "%d/%d" (1D990.c) (0x802C1B1C).
+ * Counts the gObjects entries with unkEB set that are done (obj_parts_destroyed).
  * 1D990.c declares it u8, but the asm returns the full 32-bit count. The asm
  * loops with `!=`, so gObjectsEnd must be gObjects + n entries. The asm saves
  * and restores v1, t0, t1 and t3. */
-s32 func_802C1B1C(void) {
+s32 obj_count_destroyed_path_buildings(void) {
     Unk802C1DD0Entry *end = gObjectsEnd;
     Unk802C1DD0Entry *e;
     s32 count = 0;
@@ -3587,13 +3642,14 @@ s32 func_802C1B1C(void) {
     return count;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802C1B1C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_count_destroyed_path_buildings.s")
 #endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-/* Finds the distance from the player (D_803EF6DC/E0/E4) to the closest
+/* The nearest target ahead of the carrier: distance and x, y, z (0x802C1B9C).
+ * Finds the distance from the player (D_803EF6DC/E0/E4) to the closest
  * target, starting from a limit of 9999999, over the same three tables as
  * obj_find_nearest_target (a later candidate wins only when strictly closer):
  *   1: gObjects entries with unkEB set, unkEA clear and not yet done
@@ -3602,10 +3658,10 @@ s32 func_802C1B1C(void) {
  *   2: D_8039C800 entries with unk26 clear; records x, z;
  *   3: D_80306480 entries of the current level whose z isn't below the
  *      player's, with an id whose D_803B9890 unk51 is set; records x, z.
- * The recorded values go to D_803F7670/74/78 (74 only for kind 1), the
- * distance to D_803F7660 and the return value. The asm loops over gObjects
+ * The recorded values go to gCarrierTargetX/Y/Z (Y only for kind 1), the
+ * distance to gCarrierTargetDist and the return value. The asm loops over gObjects
  * with `!=`, so gObjectsEnd must be gObjects + n entries. */
-u32 func_802C1B9C(void) {
+u32 obj_find_carrier_target(void) {
     Unk802C1DD0Entry *end = gObjectsEnd;
     Unk802C1DD0Entry *e;
     Unk8039C800 *t;
@@ -3629,10 +3685,10 @@ u32 func_802C1B9C(void) {
         if (e->pos[2] < D_803EF6E4 && e->unkC < dist) {
             continue;
         }
-        D_803F7670 = e->unk28;
+        gCarrierTargetX = e->unk28;
         bestDist = dist;
-        D_803F7674 = e->pos[1];
-        D_803F7678 = e->unk2C;
+        gCarrierTargetY = e->pos[1];
+        gCarrierTargetZ = e->unk2C;
     }
     for (i = D_8039C940, t = D_8039C800; i != 0; i--, t++) {
         if (t->unk26 != 0) {
@@ -3640,8 +3696,8 @@ u32 func_802C1B9C(void) {
         }
         dist = func_802ABCDC(t->pos[0], t->pos[1], t->pos[2], D_803EF6DC, D_803EF6E0, D_803EF6E4);
         if (dist < bestDist) {
-            D_803F7670 = t->pos[0];
-            D_803F7678 = t->pos[2];
+            gCarrierTargetX = t->pos[0];
+            gCarrierTargetZ = t->pos[2];
             bestDist = dist;
         }
     }
@@ -3655,34 +3711,35 @@ u32 func_802C1B9C(void) {
         }
         for (id = p->ids; *id != -1; id++) {
             if (func_8029D210(*id) != 0) {
-                D_803F7670 = p->pos[0];
-                D_803F7678 = p->pos[2];
+                gCarrierTargetX = p->pos[0];
+                gCarrierTargetZ = p->pos[2];
                 bestDist = dist;
                 break;
             }
         }
     }
-    D_803F7660 = bestDist;
+    gCarrierTargetDist = bestDist;
     return bestDist;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802C1B9C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_find_carrier_target.s")
 #endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 /* Unk802C1DD0Info/Entry and gObjects/gObjectsEnd are declared at the top of the file. */
 
-/* Tallies the entries gObjects..gObjectsEnd (0xFC bytes each). With
+/* The level's totals: objects, nss.bd destroyed, nss.ip value (0x802C1DD0).
+ * Tallies the entries gObjects..gObjectsEnd (0xFC bytes each). With
  * onlyFlagged set, only entries whose unkEB is nonzero count, and each of
- * those stores its unk30 into D_803F7684 (so the last one wins). Of the
+ * those stores its unk30 into gPathBuilding (so the last one wins). Of the
  * counted entries whose info->type isn't 0xFF: those with type != 1 are
- * counted into D_8036EB92; if the entry's unkEA or D_803F7688 is nonzero,
+ * counted into D_8036EB92; if the entry's unkEA or gCheatAllDestroyed is nonzero,
  * type != 1 entries are also counted into nss.bd (Score) and every such
- * entry's info->value is summed into nss.ip. Clears D_803F7688.
+ * entry's info->value is summed into nss.ip. Clears gCheatAllDestroyed.
  * The asm loops with `!=`, so gObjectsEnd must be gObjects + n entries.
  * The asm keeps its counters in s0-s2 but saves and restores s0-s7. */
-void func_802C1DD0(s32 onlyFlagged) {
+void obj_tally(s32 onlyFlagged) {
     Unk802C1DD0Entry *e;
     Unk802C1DD0Entry *end = gObjectsEnd;
     s32 counted = 0;
@@ -3696,7 +3753,7 @@ void func_802C1DD0(s32 onlyFlagged) {
             if (e->unkEB == 0) {
                 continue;
             }
-            D_803F7684 = e->unk30;
+            gPathBuilding = e->unk30;
         }
         if (info->type == 0xFF) {
             continue;
@@ -3704,7 +3761,7 @@ void func_802C1DD0(s32 onlyFlagged) {
         if (info->type != 1) {
             counted++;
         }
-        if ((e->unkEA | D_803F7688) == 0) {
+        if ((e->unkEA | gCheatAllDestroyed) == 0) {
             continue;
         }
         if (info->type != 1) {
@@ -3715,13 +3772,13 @@ void func_802C1DD0(s32 onlyFlagged) {
     D_8036EB92 = counted;
     nss.bd = active; /* the active count */
     nss.ip = total; /* the total */
-    D_803F7688 = 0;
+    gCheatAllDestroyed = 0;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802C1DD0.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_tally.s")
 #endif
 
-/* TODO: func_802C1EE0 - walk a u16-offset chain rooted at
+/* TODO: lvl_group_get - walk a u16-offset chain rooted at
  * gLevelData + gLevelData->unk74: `u8 *t1 = (u8*)gLevelData + *(s32*)((u8*)gLevelData + 0x74);
  * u16 *t2 = (u16*)(t1 + 4); for (arg0--; arg0 != 0; arg0--) t2 = (u16*)(t1 + *t2);
  * return (u8*)t2 + 2;` (target: 11 instructions, a pure leaf with zero calls).
@@ -3733,13 +3790,14 @@ void func_802C1DD0(s32 onlyFlagged) {
  * locals) either adds extra spills on top or drops the frame to nothing -
  * never this exact shape. Logic confirmed correct via direct diff read. */
 #ifdef NON_MATCHING
-/* Returns record `index` (1-based) of a chain of variable-length records.
+/* Record n of the level's group chain (gLevelData + 0x74) (0x802C1EE0).
+ * Returns record `index` (1-based) of a chain of variable-length records.
  * The chain starts at level + *(s32 *)(level + 0x74), where level is
  * gLevelData. Each record is {u16 offsetOfNextRecord, s16 data[]}, with
  * offsets relative to the chain start, and the first record sits at chain + 4.
  * The result points at the record's data, just past its link. index 0 makes
  * the asm loop ~2^32 times, so callers must pass index >= 1. */
-s16 *func_802C1EE0(s32 index) {
+s16 *lvl_group_get(s32 index) {
     u8 *chain = (u8 *) gLevelData + *(s32 *) ((u8 *) gLevelData + 0x74);
     u16 *record = (u16 *) (chain + 4);
 
@@ -3749,21 +3807,22 @@ s16 *func_802C1EE0(s32 index) {
     return (s16 *) (record + 1);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802C1EE0.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/lvl_group_get.s")
 #endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-/* Moves part `part` (1-based) of group `group` (1-based) of the level's group
- * chain (see func_802C2054) to (x, y, z). The group's mtxOffset[part - 1]
+/* A group part's translation matrix and its triangles' base (0x802C1F30).
+ * Moves part `part` (1-based) of group `group` (1-based) of the level's group
+ * chain (see lvl_groups_update_tris) to (x, y, z). The group's mtxOffset[part - 1]
  * locates a matrix in D_803F7824 (if gBufferIndex) or D_803F7820; it becomes a
  * translation by (x, y, z) in s15.16 (as func_802ACA60 builds it), stored in
  * the N64 Mtx layout (func_802AC8CC splits the words into integer and
  * fraction halves). Every part of the group's records that follows the same
  * offset gets base = (x, y, z) >> 11. Groups are found through their `next`
  * offsets; group 0 makes the asm loop ~2^32 times, so callers pass >= 1. */
-void func_802C1F30(s32 group, s32 part, s32 x, s32 y, s32 z) {
+void lvl_group_move_part(s32 group, s32 part, s32 x, s32 y, s32 z) {
     u8 *level = gLevelData;
     u8 *chain = level + *(s32 *) (level + 0x74);
     Unk802C2054Group *g = (Unk802C2054Group *) (chain + 4);
@@ -3796,26 +3855,27 @@ void func_802C1F30(s32 group, s32 part, s32 x, s32 y, s32 z) {
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802C1F30.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/lvl_group_move_part.s")
 #endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 /* Unk802C2054Group/Record are declared at the top of the file. */
 
-/* Walks the level's group list (at gLevelData + *(s32 *)(gLevelData + 0x74);
+/* The group records into the triangle list gGroupTris (0x802C2054).
+ * Walks the level's group list (at gLevelData + *(s32 *)(gLevelData + 0x74);
  * an initial zero word means "empty") and, for each record, writes nine words
- * (index[k] << 5) + part[k / 3].base[k % 3] to the output array D_803F7828,
+ * (index[k] << 5) + part[k / 3].base[k % 3] to the output array gGroupTris,
  * 10 words (0x28 bytes) per record; word 9 of each output slot is left
  * untouched. Groups are stored back to back: a 0x2C-byte header, then
  * `count` 0x44-byte records, then the next header. The walk stops after a
  * group whose header's `next` is -1. The asm also computes chain + next but
  * never uses it (dead), so `next` acts only as an end marker here.
  * `count` is counted down with `!=` and must not be negative. */
-void func_802C2054(void) {
+void lvl_groups_update_tris(void) {
     u8 *level = gLevelData;
     u8 *chain = level + *(s32 *) (level + 0x74);
-    s32 *out = D_803F7828;
+    s32 *out = gGroupTris;
     u8 *p;
     s16 next;
     s32 n;
@@ -3842,5 +3902,5 @@ void func_802C2054(void) {
     } while (next != -1);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802C2054.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/lvl_groups_update_tris.s")
 #endif

@@ -112,8 +112,8 @@ extern u8 D_803F7850[];
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 /* record_status: pack into `out`, one bit each, MSB-first, (1) for every part
- * of every record in use whether it is 100, then (2) func_8026FE6C(i) for
- * i = 0 .. D_8036EB90-1. Each section is padded to a whole byte. Returns the
+ * of every record in use whether it is 100, then (2) rdu_is_lit(i) for
+ * i = 0 .. gRduCount-1. Each section is padded to a whole byte. Returns the
  * number of bytes written. */
 s32 record_status(u8 *out) {
     BitWriter7FB50 w;
@@ -136,9 +136,9 @@ s32 record_status(u8 *out) {
 
     w.bits = 0;
     w.count = 0;
-    count = D_8036EB90; /* read once, before any call */
+    count = gRduCount; /* read once, before any call */
     for (i = 0; i < count; i++) {
-        BITW_PUT(w,func_8026FE6C(i));
+        BITW_PUT(w,rdu_is_lit(i));
     }
     BITW_FLUSH(w);
 
@@ -154,15 +154,15 @@ s32 record_status(u8 *out) {
 /* apply_status: reads a bitstream in record_status's format (MSB-first; the
  * bit reader runs on across the records and restarts on a fresh byte for
  * section 2). Section 1, per record in use and per part i (1-based): a set
- * bit destroys the part (parts[i-1] = 100, func_802BF1F0(record, i)), a
+ * bit destroys the part (parts[i-1] = 100, obj_mark_part_gone(record, i)), a
  * clear bit restores it (0) and clears the record's "all intact" flag
  * (+0xEA) unless i equals byte +0xD of the record's +0 object; +0xEA is
- * written for every record. D_80368040 = the sum of byte +6 of the +0 object
+ * written for every record. gPeopleRestored = the sum of byte +6 of the +0 object
  * of every record that had a part destroyed. Then, per destroyed part i of
  * each record, every 0x60-byte entry of [+4, +8) whose u16 at +0x52 is i
  * gets byte +0x51 = 0, and one whose byte +0x57 is i gets byte +0x51 = 1
  * when the part named by its +0x52 (1-based; 0 reads the byte before the
- * parts) isn't destroyed. Section 2: D_8036EB90 bits, func_8026FE8C(i) for
+ * parts) isn't destroyed. Section 2: gRduCount bits, rdu_set_lit(i) for
  * each set bit i. The asm saves every register it uses; its loops use `!=`
  * (the entry walk must reach +8 exactly). */
 void func_802C4BF0(void *in) {
@@ -200,7 +200,7 @@ void func_802C4BF0(void *in) {
                 v = 0;
             } else {
                 v = 100;
-                func_802BF1F0((struct Unk802C1DD0Entry *) r, i);
+                obj_mark_part_gone((struct Unk802C1DD0Entry *) r, i);
                 anyDestroyed = 1;
             }
             *part++ = v;
@@ -210,7 +210,7 @@ void func_802C4BF0(void *in) {
             sum += r->unk0[6];
         }
     }
-    D_80368040 = sum;
+    gPeopleRestored = sum;
 
     end = gObjectsEnd;
     for (r = gObjects; r != end; r++) {
@@ -235,7 +235,7 @@ void func_802C4BF0(void *in) {
         }
     }
 
-    n = D_8036EB90;
+    n = gRduCount;
     mask = 1;
     for (i = 0; n != 0; i++) {
         n--;
@@ -245,7 +245,7 @@ void func_802C4BF0(void *in) {
         }
         mask >>= 1;
         if (byte & mask) {
-            func_8026FE8C(i);
+            rdu_set_lit(i);
         }
     }
 }
@@ -265,7 +265,7 @@ void func_802C4BF0(void *in) {
  * 1 for eligible records that are already done (unkEB), plus enough further
  * eligible records, in order, to make D_803063F0[level-1] percent of the
  * eligible ones, plus one (none at all when level == 5).
- * Section 2: D_8036EB90 bits, the first D_803063F0[level-1] percent of them 1.
+ * Section 2: gRduCount bits, the first D_803063F0[level-1] percent of them 1.
  * Each section is padded to a whole byte. Returns the number of bytes written. */
 u32 create_status(void *outp, u8 level) {
     BitWriter7FB50 w;
@@ -323,8 +323,8 @@ u32 create_status(void *outp, u8 level) {
     }
     BITW_FLUSH(w);
 
-    count = D_8036EB90;
-    ones = (pct * D_8036EB90) / 100;
+    count = gRduCount;
+    ones = (pct * gRduCount) / 100;
     w.bits = 0;
     w.count = 0;
     for (; count != 0; count--) {
@@ -714,7 +714,7 @@ s32 func_802C7DFC(void);
  * func_802C7CB0). Outside mode 5: collision (func_8029A800 with the mode
  * class 1 (modes 1-3) / 2 (mode 4, or modes 0/6+ while D_803F7C24 < 3) / 0,
  * func_8029C52C, func_8029AA10; a hit, D_803A742B, in modes 1-4 -> mode 2,
- * D_803F7C39 = 1), then either the collision pass func_802BE77C (no ring
+ * D_803F7C39 = 1), then either the collision pass obj_collide_vehicle (no ring
  * hit) whose ring-end hit (D_803A7424, or +0x9C) sends modes 1-3 (and modes
  * 0/5+ while D_803F7C20 < 3 or with +0x96 == 1) to mode 2 and otherwise
  * falls into the turn back, or (ring hit) the turn back toward the ring
@@ -726,7 +726,7 @@ s32 func_802C7DFC(void);
  * func_802CA4E0's, but nothing branches to it.)
  * Register notes (FIDELITY, see tools_port/port_followups.md): func_802C5970's
  * scan registers start as the caller's t6, t7, s0-s4 (passed on to
- * func_802C61F0 -> func_802C7544 -> func_802A6274 where func_802ABD54 leaves
+ * func_802C61F0 -> func_802C7544 -> fx_spawn where func_802ABD54 leaves
  * them) and the FP block f12-f26 as the caller's (only passed through):
  * the C starts them at 0. func_8029A800 gets b0 = t0 = 9 and h2 = t2 = the
  * model's point list end, which func_802C7CB0 (func_802ABBEC) leaves:
@@ -850,7 +850,7 @@ void func_802C5AFC(void) {
     if (D_803A7425 == 0) {
         D_803A7424 = 0;
         D_803F77D0 = D_803F7850;
-        func_802BE77C(9, D_803F7B50);
+        obj_collide_vehicle(9, D_803F7B50);
         if (D_803A7424 == 0 && VEH_U8(0x9C) == 0) {
             goto quiet;
         }
@@ -980,7 +980,7 @@ void func_802C7864(s32 *up);
  * func_802C7544; the FP registers f12-f26 and a3, t6, s1-s4 come in for
  * func_802C70E8 (here through f and r), and its f20-f26 are what the caller
  * func_802C5AFC reads back. t6, t7, s1-s4 after func_802C70E8 (or the
- * zeros/func_802A6274 results on the mode-4 exit path, s4 = |speed| / 16 in
+ * zeros/fx_spawn results on the mode-4 exit path, s4 = |speed| / 16 in
  * mode 0, s2 from func_802C7864) are what func_802C7544 gets. Where an asm
  * callee leaves an undocumented register behind (func_802C7864 leaves s3 =
  * 270 on its steering paths, func_80260650 is C and may change t6/t7) the
@@ -1121,7 +1121,7 @@ void func_802C61F0(s32 s0, TriSideOut *f, TriScanRegs *r) {
         io.a3 = 0;
         io.t6 = 0;
         io.s1 = 0;
-        func_802A6274(&io, D_802C28E4, 0x222E0, 0, ((s32 *) D_803F7BF8)[0] << 11, D_803F7BFC << 11,
+        fx_spawn(&io, D_802C28E4, 0x222E0, 0, ((s32 *) D_803F7BF8)[0] << 11, D_803F7BFC << 11,
                       ((s32 *) D_803F7BF8)[2] << 11, 0, 0, 0, 0, 0, 0);
         t6 = io.t6;
         s1 = io.s1;
@@ -1509,7 +1509,7 @@ void func_802C7354(void) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Sets the pair gCamDistance / D_80364450 from where D_803F7BFC lies in
+/* Sets the pair gCamDistance / gCamHeightBase from where D_803F7BFC lies in
  * [D_803F7C10, D_803F7C14): (0xD48, 0x258) below it, (1000, 3000) at or
  * past the end, else interpolated (0xD48 - 2400*t, 0x258 + 2400*t with
  * t = (cur - lo) / (hi - lo), signed division). The survey lists a0-a3 as
@@ -1521,16 +1521,16 @@ void func_802C7410(void) {
 
     if (cur < lo) {
         gCamDistance = 0xD48;
-        D_80364450 = 0x258;
+        gCamHeightBase = 0x258;
     } else if (cur >= hi) {
         gCamDistance = 1000;
-        D_80364450 = 3000;
+        gCamHeightBase = 3000;
     } else {
         s32 num = cur - lo;
         s32 den = hi - lo;
 
         gCamDistance = num * -0x960 / den + 0xD48;
-        D_80364450 = num * 0x960 / den + 0x258;
+        gCamHeightBase = num * 0x960 / den + 0x258;
     }
 }
 #else
@@ -1545,16 +1545,16 @@ extern s8 D_803F7C3B; /* 0..50 ramp */
 extern u8 D_803F7C3A; /* countdown */
 
 /* When +0x96 just became 1 (D_803F7C43 == 0) with D_803F7C3E set:
- * func_80288284(4, record (9, 1) of func_802ABC88, func_802584BC(9)). Then
+ * ptcl_start(4, record (9, 1) of func_802ABC88, func_802584BC(9)). Then
  * the ramp D_803F7C3B steps up (to 50) in mode 5 or with D_803F7C3E set,
  * else down (to 0), and channel 1 of D_803F7850 gets ramp / 4 (divu, as the
  * asm). The countdown D_803F7C3A, when nonzero, just counts down; at zero it
  * restarts at 4 in mode 5 (1 with D_803F7C3E set, else nothing more happens)
- * and two func_802A6274 records are set up (def D_802C3804, data 0x15F90,
+ * and two fx_spawn records are set up (def D_802C3804, data 0x15F90,
  * type 1 at (9, 1, 1) and (9, 2, 1)).
  * Register convention: the asm passes t6, t7, s0-s4 through to
- * func_802A6274 (t6 and s1 in its in/out block; s3 is func_802C7C1C's 270);
- * $gp (= D_803F7B50) is read as the global. It leaves func_802A6274's a3,
+ * fx_spawn (t6 and s1 in its in/out block; s3 is func_802C7C1C's 270);
+ * $gp (= D_803F7B50) is read as the global. It leaves fx_spawn's a3,
  * t6 and s1 and changes s5-s7 (conventions.txt: clobbers). */
 void func_802C7544(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
     Io802A6274 io;
@@ -1565,7 +1565,7 @@ void func_802C7544(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
     if (D_803F7C43 == 0 && VEH_U8(0x96) == 1 && D_803F7C3E != 0) {
         floor = func_802584BC(9);
         func_802ABC88(9, 1, &rec);
-        func_80288284(4, ((s32 *) rec)[0], ((s32 *) rec)[1], ((s32 *) rec)[2], floor);
+        ptcl_start(4, ((s32 *) rec)[0], ((s32 *) rec)[1], ((s32 *) rec)[2], floor);
     }
     if (VEH_U8(0xA1) == 5 || D_803F7C3E != 0) {
         v = D_803F7C3B + 1;
@@ -1594,9 +1594,9 @@ void func_802C7544(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
     io.a3 = 1;
     io.t6 = t6;
     io.s1 = s1;
-    func_802A6274(&io, D_802C3804, 0x15F90, 1, 9, 1, 1, t7, s0, s2, s3, s4, 1);
+    fx_spawn(&io, D_802C3804, 0x15F90, 1, 9, 1, 1, t7, s0, s2, s3, s4, 1);
     io.a3 = 1;
-    func_802A6274(&io, D_802C3804, 0x15F90, 1, 9, 2, 1, t7, s0, s2, s3, s4, 1);
+    fx_spawn(&io, D_802C3804, 0x15F90, 1, 9, 2, 1, t7, s0, s2, s3, s4, 1);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C7544.s")
@@ -1976,7 +1976,7 @@ void func_802C80A0(void *src) {
 #ifdef NON_MATCHING
 /* The tables of the 800E0 bin (ROM 0x800E0-0x80280, 0x802C48A0-0x802C4A40),
  * just before this file's code: the five particle emitter definitions
- * (ParticleDef + their texture sequences, list D_802C4A20; 43A60.c).
+ * (ParticleDef + their texture sequences, list gParticleDefs; 43A60.c).
  * The NON_MATCHING build defines it in C and links this file's .data (it has
  * nothing else) back at the table's original address (Makefile NM_PIN_HD_CODE,
  * nm_ldscript.py --pin-object); nm_symaudit.py checks the bytes against the
@@ -2009,7 +2009,7 @@ typedef struct {
     /* 802C4A08 */ s16 sq802C4A08[2];
     /* 802C4A0C */ s16 sq802C4A0C[9];
     /* 802C4A1E */ u16 sq802C4A0C_pad;
-    /* 802C4A20 */ ParticleDef * N64P particleDefs[5]; /* D_802C4A20 */
+    /* 802C4A20 */ ParticleDef * N64P particleDefs[5]; /* gParticleDefs */
     /* 802C4A34 */ s32 particleDefsEnd;
     /* 802C4A38 */ u32 pad802C4A38[2];
 } TextData800E0; /* size 0x1A0 */

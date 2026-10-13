@@ -166,7 +166,7 @@ void func_802B7340(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut
 #ifdef NON_MATCHING
 extern u8 D_803EEE70[]; /* this vehicle's state block */
 
-/* Enter vehicle type 8: clears the byte at +0x99, gCamDistance / D_80364450 = 3000,
+/* Enter vehicle type 8: clears the byte at +0x99, gCamDistance / gCamHeightBase = 3000,
  * 1000, then func_802C4310(arg0, 0xCE) (arg0 passes straight through; hd.c
  * calls this with no arguments and func_802C4310 ignores it). The asm also
  * points $gp at D_803EEE70 and leaves it there (conventions.txt: clobbers
@@ -175,7 +175,7 @@ extern u8 D_803EEE70[]; /* this vehicle's state block */
 void func_802B76AC(s32 arg0) {
     D_803EEE70[0x99] = 0;
     gCamDistance = 3000;
-    D_80364450 = 1000;
+    gCamHeightBase = 1000;
     func_802C4310(arg0, 0xCE);
 }
 #else
@@ -339,7 +339,7 @@ void func_802B7980(s32 id, f32 *f24) {
  * D_803EEF33 = 1, then steer along the ring: func_802A70D8, func_802A71DC
  * (heading +0x4E toward +0x4C, scale D_8030D900; the new index goes to
  * D_803EEF30, +0x4E and +0x74), func_802A746C with that turn, func_802A6FE4
- * (limit 0) and the object collision pass (func_802BE77C).
+ * (limit 0) and the object collision pass (obj_collide_vehicle).
  * The asm also computes |(+0x4E - 0x800, wrapped) - ring midpoint| (folded
  * to <= 0x800) and then always branches past its use (a `slti 0xC8` test
  * that is never reached); the value only survives in v1 as func_802A746C's
@@ -373,7 +373,7 @@ static void port_b7a88_ring(void) {
     func_802A746C(D_803EEE70, turn, d, &target);
     func_802A6FE4(D_803EEE70, 0);
     D_803F77D0 = D_803EEB70;
-    func_802BE77C(8, D_803EEE70);
+    obj_collide_vehicle(8, D_803EEE70);
 }
 
 /* Crash branch of func_802B7A88 (the object pass reported a hit): restore
@@ -422,7 +422,7 @@ static void port_b7a88_crash(void) {
  * (func_8029A800: b2 = b3 = 1, b0 = 7, h1 = speed, h2 = 0x96, b8 = 8),
  * part contacts (func_8029C52C(8)) and world collision (func_8029AA10(8)).
  * Without a ring hit (D_803A7425 clear): D_803A7424 = 0 and the object pass
- * (func_802BE77C) - a hit there takes the crash branch, else D_803EEF33 = 0;
+ * (obj_collide_vehicle) - a hit there takes the crash branch, else D_803EEF33 = 0;
  * with one: the ring-steering branch. Finally the player position/speed/
  * headings gPlayerX..Z / D_8036443C..40 are copied from the vehicle and
  * the position reported (veh_set_record(z, 8, x, y)).
@@ -488,7 +488,7 @@ void func_802B7A88(void) {
     if (D_803A7425 == 0) {
         D_803A7424 = 0;
         D_803F77D0 = D_803EEB70;
-        func_802BE77C(8, D_803EEE70);
+        obj_collide_vehicle(8, D_803EEE70);
         if (D_803A7424 != 0) {
             port_b7a88_crash();
         } else {
@@ -517,12 +517,12 @@ void func_802B80D8(void);
 /* Per-frame effects for vehicle type 8 ($gp = D_803EEE70, read as the
  * global): the tyre trail (func_802B80D8); then, if the cooldown
  * D_803EEF32 is nonzero it just counts down, else when byte +0x99 is set the
- * cooldown becomes 1 and, with fewer than 15 active func_802A6274 records,
+ * cooldown becomes 1 and, with fewer than 15 active fx_spawn records,
  * four are set up (def D_802C2954, type 1 at (8, 1..4, 1), data 0x29810
  * for the first two and 0x1D4C0 for the last two). Finally
  * func_802C4584(|speed| >> 5) with speed the s16 at +0x76.
  * Register convention (conventions.txt): t6, t7, s0-s4 pass through to
- * func_802A6274 (t6 and s1 in its in/out block, chained between the calls);
+ * fx_spawn (t6 and s1 in its in/out block, chained between the calls);
  * the asm changes s1 and s5-s7. Same shape as func_802D02F8 (8AEE0). */
 void func_802B7F98(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
     Io802A6274 io;
@@ -533,17 +533,17 @@ void func_802B7F98(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
         D_803EEF32--;
     } else if (D_803EEE70[0x99] != 0) {
         D_803EEF32 = 1;
-        if (func_802A5ED0() < 15) {
+        if (fx_count_active() < 15) {
             io.t6 = t6;
             io.s1 = s1;
             io.a3 = 1;
-            func_802A6274(&io, D_802C2954, 0x29810, 1, 8, 1, 1, t7, s0, s2, s3, s4, 1);
+            fx_spawn(&io, D_802C2954, 0x29810, 1, 8, 1, 1, t7, s0, s2, s3, s4, 1);
             io.a3 = 1;
-            func_802A6274(&io, D_802C2954, 0x29810, 1, 8, 2, 1, t7, s0, s2, s3, s4, 1);
+            fx_spawn(&io, D_802C2954, 0x29810, 1, 8, 2, 1, t7, s0, s2, s3, s4, 1);
             io.a3 = 1;
-            func_802A6274(&io, D_802C2954, 0x1D4C0, 1, 8, 3, 1, t7, s0, s2, s3, s4, 1);
+            fx_spawn(&io, D_802C2954, 0x1D4C0, 1, 8, 3, 1, t7, s0, s2, s3, s4, 1);
             io.a3 = 1;
-            func_802A6274(&io, D_802C2954, 0x1D4C0, 1, 8, 4, 1, t7, s0, s2, s3, s4, 1);
+            fx_spawn(&io, D_802C2954, 0x1D4C0, 1, 8, 4, 1, t7, s0, s2, s3, s4, 1);
         }
     }
     v = *(s16 *) (D_803EEE70 + 0x76);
@@ -837,7 +837,7 @@ extern s32 D_803EF31C;
 
 /* Copies two halfwords of the vehicle block (+0x4E, +0x76) to D_803EF32A /
  * D_803EF328, and the marker position D_803EF310..1C to D_803ED808..10 and
- * D_80368030. Then, in game mode 0x1000: if D_803EF32C == 5 or
+ * gChopperLandY. Then, in game mode 0x1000: if D_803EF32C == 5 or
  * D_803EF31C >= D_803EF314, calls func_80275390(0x2000). In any other mode:
  * if D_803EF32C == 4, sets the next game mode to 0x1000.
  * The game-mode compare is a full 64-bit compare in the asm (ld/beq). */
@@ -847,7 +847,7 @@ void func_802B8AE4(void) {
     D_803ED808 = D_803EF310;
     D_803ED80C = D_803EF314;
     D_803ED810 = D_803EF318;
-    D_80368030 = D_803EF31C;
+    gChopperLandY = D_803EF31C;
     if (gGameMode == 0x1000) {
         if (D_803EF32C == 5 || !(D_803EF31C < D_803EF314)) {
             func_80275390(0x2000);
@@ -935,7 +935,7 @@ static s32 port_step_axis(s32 pos, s32 target, s32 dist, s32 speed) {
 }
 
 /* State 1 (approaching the target D_803EF308/30C): bx/bz are the asm's
- * leftover registers from func_802B988C (D_803EF2EC/F4, or D_80368048 as bx
+ * leftover registers from func_802B988C (D_803EF2EC/F4, or gChopperRetargetZ as bx
  * after the debug warp). Returns 1 to go on to the heading update. */
 static s32 port_state1(void) {
     s32 ax = D_803EF308;
@@ -964,10 +964,10 @@ static s32 port_state1(void) {
         if (!(limit < dist)) {
             gNextGameMode = 1;
             debug_printf(D_80305D40);
-            D_803EF308 = (&D_80368048)[-1];
-            bx = D_80368048;
+            D_803EF308 = (&gChopperRetargetZ)[-1];
+            bx = gChopperRetargetZ;
             D_803EF30C = bx;
-            func_8026AF6C(0x4000);
+            yoshi_demand(0x4000);
         }
     }
     if (dist < 0x7D0) {
@@ -1054,9 +1054,9 @@ static s32 port_state3(void) {
     return 1;
 }
 
-/* State 4 (landing at D_80368030 + 0xFA0). */
+/* State 4 (landing at gChopperLandY + 0xFA0). */
 static void port_state4(void) {
-    s32 target = D_80368030 + 0xFA0;
+    s32 target = gChopperLandY + 0xFA0;
     s32 out[8];
     s32 v;
     void *h;
@@ -1097,14 +1097,14 @@ static void port_state4(void) {
  *   3: D_803EF324 one step toward 0, move straight at the target
  *      (port_state3); when reached: position = target, state 4 and channel 4
  *      restarted (func_802A0290).
- *   4: descend (D_803EF2F0 toward D_80368030 + 0xFA0, 0x14 a frame); there,
+ *   4: descend (D_803EF2F0 toward gChopperLandY + 0xFA0, 0x14 a frame); there,
  *      once channel 4 is done: D_803EF32D = 1, a landing sound outside game
  *      mode 0x1000, state 5, channel 4 restarted.
  *   5: wait for channel 4 (D_803EF32E = 1 when done), climb back to
  *      D_803EF304, then state 0 once both.
  * Heading update: heading +0x4E (and +0x4C) += D_803EF324 (wrapped by 0xFFF)
  * and the position D_803EF2EC/F4 advanced by the speed +0x76 along it
- * (func_802A860C). Finally, outside states 4/5: func_802A5604(gLevelData)
+ * (func_802A860C). Finally, outside states 4/5: chopper_find_cruise_height(gLevelData)
  * and D_803EF2F0 0x14 a frame toward D_803EF304. The asm's add/sub/neg trap
  * on overflow; the state-3 divides trap on a zero distance (not reached).
  * Register convention: no inputs. The asm leaves gp = D_803EF240 and its
@@ -1192,7 +1192,7 @@ heading:
     D_803EF2F4 = o.t1;
 tail:
     if (D_803EF32C != 4 && D_803EF32C != 5) {
-        func_802A5604(gLevelData);
+        chopper_find_cruise_height(gLevelData);
         D_803EF2F0 = port_approach_14(D_803EF2F0, D_803EF304);
     }
 }

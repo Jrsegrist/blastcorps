@@ -39,22 +39,22 @@ func_802B01DC: -n 50 --seed 2 --ret int --stub-ret func_802A04BC=1 --mem D_803ED
 func_802B01DC: -n 50 --seed 3 --ret int --stub-ret func_802A04BC=0 --mem D_803EDB40+0x96:3=bytes:0,2,0xFF*3,1
 func_802B01DC: -n 50 --seed 4 --ret int --stub-ret func_802A04BC=rand --mem D_803EDB40+0x96:3=bytes:0,2,0xFF
 
-# func_802B0AAC: channel 5 of D_803ED840 active and func_802BCD80(4) or (5) nonzero -> field 0x11 = 1,
+# func_802B0AAC: channel 5 of D_803ED840 active and veh_contacts_has(4) or (5) nonzero -> field 0x11 = 1,
 # restart (func_802A0290), gShakeTime = 10, gShakeSize = 600; a3 out = the channel's (u16) field 0xC
-func_802B0AAC: -n 300 --seed 0 --follow func_802A04BC --stub-ret func_802BCD80=rand \
+func_802B0AAC: -n 300 --seed 0 --follow func_802A04BC --stub-ret veh_contacts_has=rand \
     --mem D_803ED840+0x78:0x18=rand --mem D_803ED840+0x88:1=bytes:0*2,1,0xFF,0x80 \
     --mem gShakeTime:1=rand --mem gShakeSize=int
-func_802B0AAC: -n 100 --seed 1 --follow func_802A04BC --stub-ret func_802BCD80=0 \
+func_802B0AAC: -n 100 --seed 1 --follow func_802A04BC --stub-ret veh_contacts_has=0 \
     --mem D_803ED840+0x78:0x18=rand --mem D_803ED840+0x88:1=bytes:0,1 --mem gShakeTime:1=rand --mem gShakeSize=int
-func_802B0AAC: -n 100 --seed 2 --follow func_802A04BC --stub-ret func_802BCD80=1 \
+func_802B0AAC: -n 100 --seed 2 --follow func_802A04BC --stub-ret veh_contacts_has=1 \
     --mem D_803ED840+0x78:0x18=rand --mem D_803ED840+0x88:1=bytes:0,1 --mem gShakeTime:1=rand --mem gShakeSize=int
-# whole chain run for real: func_802BCD80 (77E20) looks for its value in the bytes D_803F77D8..*D_803F77D4
-func_802B0AAC: -n 200 --seed 3 --follow-all --mem D_803F77D8:12=bytes:0,3,4,5,6,0xFF \
-    --mem D_803F77D4=rel:D_803F77D8+int:0:12 \
+# whole chain run for real: veh_contacts_has (77E20) looks for its value in the bytes gContacts..*gContactsEnd
+func_802B0AAC: -n 200 --seed 3 --follow-all --mem gContacts:12=bytes:0,3,4,5,6,0xFF \
+    --mem gContactsEnd=rel:gContacts+int:0:12 \
     --mem D_803ED840+0x78:0x18=rand --mem D_803ED840+0x88:1=bytes:0,1 --mem gShakeTime:1=rand --mem gShakeSize=int
 # stubbed getter (first output = field 0x10)
-func_802B0AAC: -n 100 --seed 4 --stub-ret func_802A04BC=1 --stub-ret func_802BCD80=rand --mem gShakeTime:1=rand --mem gShakeSize=int
-func_802B0AAC: -n 50 --seed 5 --stub-ret func_802A04BC=0 --stub-ret func_802BCD80=rand --mem gShakeTime:1=rand --mem gShakeSize=int
+func_802B0AAC: -n 100 --seed 4 --stub-ret func_802A04BC=1 --stub-ret veh_contacts_has=rand --mem gShakeTime:1=rand --mem gShakeSize=int
+func_802B0AAC: -n 50 --seed 5 --stub-ret func_802A04BC=0 --stub-ret veh_contacts_has=rand --mem gShakeTime:1=rand --mem gShakeSize=int
 
 # zone lookup wrapper (id 1 at D_803EDBE8): func_802ABD54 stubbed (scan registers mapped through r)
 func_802B03B0: -n 200 --mem D_803EDBE8:12=rand
@@ -70,13 +70,13 @@ func_802B03B0: -n 300 --seed 1 --follow func_802ABD54,func_802ABCDC --mem D_803E
 
 # ---- phase D (wave 3, wt-f6) ----
 # func_802AFFD4: enter vehicle 1: D_803EDB40[0x99] = 0; channel setters on D_803ED840 (1, 2, 5, 3, 2), the D_802C2390
-# entry's setters, gCamDistance / D_80364450 = 3400, 300, func_802C4310(&D_803ED840, 0x36). $gp change: `clobbers gp`.
+# entry's setters, gCamDistance / gCamHeightBase = 3400, 300, func_802C4310(&D_803ED840, 0x36). $gp change: `clobbers gp`.
 func_802AFFD4: -n 100 --seed 0 --ret void --sig func_802C4310=a0,a1 \
-    --mem D_803EDB40+0x99:1=bytes:1,0xFF --mem gCamDistance:2=rand --mem D_80364450:2=rand
+    --mem D_803EDB40+0x99:1=bytes:1,0xFF --mem gCamDistance:2=rand --mem gCamHeightBase:2=rand
 # setters run for real (D_802C2390 key in exactly one D_803B35F8 entry); func_802C4310 stubbed
 func_802AFFD4: -n 200 --seed 1 --ret void --sig func_802C4310=a0,a1 \
     --follow func_802A0290,func_802A039C,func_802A03D4,func_802A040C,func_802A0508,func_802A05D0,func_802A05F8,func_802A0620,func_802A06B4 \
-    --mem D_803EDB40+0x99:1=rand --mem gCamDistance:2=rand --mem D_80364450:2=rand \
+    --mem D_803EDB40+0x99:1=rand --mem gCamDistance:2=rand --mem gCamHeightBase:2=rand \
     --mem D_803ED840:0x90=rand --mem D_803B35F8:0x180=onehot:0x18:0x802C2390:rand
 # func_802B0254: leave vehicle 1: speed (+0x76) = 0, func_802A7764(D_803EDBF8, D_803EDBFC, 0x800), func_802C444C()
 func_802B0254: -n 100 --seed 0 --ret void --sig func_802A7764=a0,a1,a2 --sig func_802C444C= \

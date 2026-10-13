@@ -20,10 +20,10 @@ import sys
 # copy loops: they move bytes at whatever width suits them, which says
 # nothing about the data's own layout (the copy is byte-order neutral)
 COPIERS = {"func_8026A5CC",   # 23C20: copy in 8-byte units
-           "func_802A57DC",   # 60F60: packed texture -> scratch copy (u64, u16)
-           "func_802A5E10",   # 60F60: type-0 (stored) texture copy
+           "tex_decode",   # 60F60: packed texture -> scratch copy (u64, u16)
+           "tex_decode_type0",   # 60F60: type-0 (stored) texture copy
            "func_80285A78",   # 409D0: 16-byte record copy
-           "func_802C04F0",   # 77E20: 0x38-byte debris record copy (words)
+           "obj_queue_effect",   # 77E20: 0x38-byte debris record copy (words)
            "func_802AC85C",   # 679E0: vehicle state restore (byte copy)
            "func_802AC7DC",   # 679E0: vehicle state save (byte copy)
            "func_802A75DC",   # vehicle block byte loop
@@ -34,9 +34,9 @@ COPIERS = {"func_8026A5CC",   # 23C20: copy in 8-byte units
 # there says nothing about the front end's data image.  (Before this filter,
 # the texture decoder's u16 accesses swapped e.g. the pak file name strings
 # D_8020C000 and character set D_8020C01C as halfwords.)
-LEVEL_HEAP_USERS = {"func_802A5AE0", "func_802A5B90",   # 60F60: texture decode
+LEVEL_HEAP_USERS = {"tex_decode_type1", "tex_decode_type2",   # 60F60: texture decode
                     "func_8029F85C", "func_8029E5AC", "func_8029EF80",   # 56040: models
-                    "veh_add_record", "func_802A08E4", "lvl_load_model",   # 5CB60: level/object load
+                    "veh_add_record", "tex_resolve_dl_impl", "lvl_load_model",   # 5CB60: level/object load
                     "func_802AC8CC", "func_802ACCCC"}  # 679E0: vehicle blocks
 
 
@@ -45,7 +45,7 @@ LEVEL_HEAP_USERS = {"func_802A5AE0", "func_802A5B90",   # 60F60: texture decode
 # load at that address, and the decoders work in heap that earlier assets
 # (e.g. the packed-object table) occupied; the strict comparison keeps
 # textures lenient anyway.
-SKIP = {"func_802A5AE0", "func_802A5B90", "func_802A57DC"} if os.environ.get("WIDTHS_NO_DECODERS") else set()
+SKIP = {"tex_decode_type1", "tex_decode_type2", "tex_decode"} if os.environ.get("WIDTHS_NO_DECODERS") else set()
 
 
 def parse(paths, keep_copiers=False):

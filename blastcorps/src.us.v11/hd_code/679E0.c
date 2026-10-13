@@ -17,13 +17,14 @@ extern u8 D_802C2A5C[];  /* definition in the 7D9D0 text blob */
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* For every gObjects record (up to gObjectsEnd, read once; walked with `!=`,
+/* The carrier's explosion sphere wrecks the objects in it (39050.c) (0x802AC1A0).
+ * For every gObjects record (up to gObjectsEnd, read once; walked with `!=`,
  * so it must be gObjects + n records) whose byte 0xEA is 0 and whose
  * position (words +0x10/+0x14/+0x18) is closer than radius << 5 to the
- * player (func_802ABCDC, signed compare), apply func_802C18D4 blast damage
+ * player (func_802ABCDC, signed compare), apply obj_blast_damage blast damage
  * at the position << 11 with radius 10 and amount 100000. The player
  * position is reloaded for every record. Saves every s-register, gp and fp. */
-void func_802AC1A0(s32 radius) {
+void obj_blast_around_carrier(s32 radius) {
     u8 *end = gObjectsEnd;
     u8 *e;
     s32 limit = radius << 5;
@@ -35,13 +36,13 @@ void func_802AC1A0(s32 radius) {
             s32 z = *(s32 *) (e + 0x18);
 
             if (func_802ABCDC(x, y, z, D_803EF6DC, D_803EF6E0, D_803EF6E4) < limit) {
-                func_802C18D4(x << 11, y << 11, z << 11, 10, 100000);
+                obj_blast_damage(x << 11, y << 11, z << 11, 10, 100000);
             }
         }
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/func_802AC1A0.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/obj_blast_around_carrier.s")
 #endif
 
 /* func_802AC284: trivial no-arg trampoline (`func_802AC3B8();`) using an
@@ -73,14 +74,14 @@ void func_802AC284(s32 *px, s32 *py, s32 *pz) {
 
 /* Only in game mode 0x40: vehicle-state reset (func_8029A800 with b2 = 1,
  * b3 = 0, h1 = 0, h2 = 0x40, b4 = 0), the collision pass of vehicle id
- * (func_802BE77C), then if anything was hit: with D_8036E4C8 zero sets
+ * (obj_collide_vehicle), then if anything was hit: with D_8036E4C8 zero sets
  * D_803BE738; else plays func_80260650(D_80367738, 0x3D, 0) and moves every
- * hit object (the list D_803F3910 .. D_803F3960, read once, walked by 8 with
- * `!=`) to x = z = 0xBB80 (func_802BD99C by the difference; words 0x38 = 1,
+ * hit object (the list gObjHits .. gObjHitsEnd, read once, walked by 8 with
+ * `!=`) to x = z = 0xBB80 (obj_move_model by the difference; words 0x38 = 1,
  * 0x40 = -1).
  * Register convention: z, a1 in a0, a1, x, y, b0 in v0, v1, t0, vehicle id in
  * t8 and the vehicle record in gp, as func_8029A800 takes them. The asm leaves
- * s0-s7, fp (func_802BD99C) and f20-f28 (func_802BE77C) changed; the v1, f12
+ * s0-s7, fp (obj_move_model) and f20-f28 (obj_collide_vehicle) changed; the v1, f12
  * and f14 the survey lists as read by asm caller func_802B6294 are dead there
  * (saved and restored around a call). */
 void func_802AC2A4(s32 z, s32 a1, s32 x, s32 y, s32 b0, s32 id, u8 *vehicle) {
@@ -91,8 +92,8 @@ void func_802AC2A4(s32 z, s32 a1, s32 x, s32 y, s32 b0, s32 id, u8 *vehicle) {
         return;
     }
     func_8029A800(z, a1, 1, 0, x, y, b0, 0, 0x40, 0, id, vehicle);
-    func_802BE77C(id, vehicle);
-    if (D_803F3910 == D_803F3960) {
+    obj_collide_vehicle(id, vehicle);
+    if (gObjHits == gObjHitsEnd) {
         return;
     }
     if (((u16) D_8036E4C8) == 0) {
@@ -100,8 +101,8 @@ void func_802AC2A4(s32 z, s32 a1, s32 x, s32 y, s32 b0, s32 id, u8 *vehicle) {
         return;
     }
     func_80260650(D_80367738, 0x3D, 0);
-    end = D_803F3960;
-    for (p = D_803F3910; p != end; p += 8) {
+    end = gObjHitsEnd;
+    for (p = gObjHits; p != end; p += 8) {
         u8 *obj = *(u8 * N64P *) p;
         s32 ox;
         s32 oz;
@@ -112,7 +113,7 @@ void func_802AC2A4(s32 z, s32 a1, s32 x, s32 y, s32 b0, s32 id, u8 *vehicle) {
         *(s32 *) (obj + 0x10) = 0xBB80;
         oz = *(s32 *) (obj + 0x18);
         *(s32 *) (obj + 0x18) = 0xBB80;
-        func_802BD99C((struct Unk802BD99CModel *) obj, 0xBB80 - ox, 0, 0xBB80 - oz);
+        obj_move_model((struct Unk802BD99CModel *) obj, 0xBB80 - ox, 0, 0xBB80 - oz);
     }
 }
 #else
@@ -126,7 +127,7 @@ void func_802AC2A4(s32 z, s32 a1, s32 x, s32 y, s32 b0, s32 id, u8 *vehicle) {
  * box (x >= 0x15181 -> 0x2BC0, then x < 0x2581 -> 0x14B40; z >= 0x13881 ->
  * 0x44C0, then z < 0x3E81 -> 0x13240), setting gCamSnap on each wrap.
  * When gCamSnap is set (now or before), spawns effect kind 0x13 with
- * data 1000000 at (*px, *py, *pz) (func_802AC6FC). The second test of each
+ * data 1000000 at (*px, *py, *pz) (fx_spawn_at_late). The second test of each
  * axis uses the value after the first wrap, but a wrapped value isn't
  * written again.
  * Register convention: px in v0, py in v1, pz in a0 (conventions.txt). The
@@ -157,7 +158,7 @@ void func_802AC3B8(s32 *px, s32 *py, s32 *pz) {
         gCamSnap = 1;
     }
     if (gCamSnap != 0) {
-        func_802AC6FC(*px, *py, *pz, 0x13, 1000000);
+        fx_spawn_at_late(*px, *py, *pz, 0x13, 1000000);
     }
 }
 #else
@@ -196,55 +197,58 @@ s32 func_802AC4C4(s32 px, s32 pz, s32 x0, s32 z0, s32 x1, s32 z1, s32 x2, s32 z2
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Spawns the D_802C2A5C effect (func_802A6274, type 0, data 0x28488) at the
+/* The sparkle effect at an RDU the player just lit (0x802AC544).
+ * Spawns the D_802C2A5C effect (fx_spawn, type 0, data 0x28488) at the
  * whole-unit position (x, y, z) << 16; every other field 0. Saves every
  * s-register and fp; the asm leaves the caller's v0 (C callers: void). */
-void func_802AC544(s32 x, s32 y, s32 z) {
+void fx_spawn_node_hit(s32 x, s32 y, s32 z) {
     Io802A6274 io;
 
     io.a3 = 0;
     io.t6 = 0;
     io.s1 = 0;
-    func_802A6274(&io, D_802C2A5C, 0x28488, 0, x << 16, y << 16, z << 16, 0, 0, 0, 0, 0, 0);
+    fx_spawn(&io, D_802C2A5C, 0x28488, 0, x << 16, y << 16, z << 16, 0, 0, 0, 0, 0, 0);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/func_802AC544.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/fx_spawn_node_hit.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Spawns effect definition D_802C3FFC[kind] (func_802A6274, type 0) with
+/* An effect of a kind (gFxDefsByKind) at x, y, z (0x802AC61C).
+ * Spawns effect definition gFxDefsByKind[kind] (fx_spawn, type 0) with
  * data `data` at (x, y, z) << 11, tag byte 0; every other field 0. kind is
  * used as a full word (4DA80.c declares it u8). */
-void func_802AC61C(s32 x, s32 y, s32 z, s32 kind, s32 data) {
+void fx_spawn_at(s32 x, s32 y, s32 z, s32 kind, s32 data) {
     Io802A6274 io;
 
     io.a3 = 0;
     io.t6 = 0;
     io.s1 = 0;
-    func_802A6274(&io, D_802C3FFC[kind], data, 0, x << 11, y << 11, z << 11, 0, 0, 0, 0, 0, 0);
+    fx_spawn(&io, gFxDefsByKind[kind], data, 0, x << 11, y << 11, z << 11, 0, 0, 0, 0, 0, 0);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/func_802AC61C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/fx_spawn_at.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* As func_802AC61C, but with tag byte 1 (func_802A6274's a3 input). The asm
- * leaves t6 = func_802A6274's t6 output and t7 = 0; the survey lists its asm
+/* As fx_spawn_at, drawn in the second list (after the vehicles) (0x802AC6FC).
+ * As fx_spawn_at, but with tag byte 1 (fx_spawn's a3 input). The asm
+ * leaves t6 = fx_spawn's t6 output and t7 = 0; the survey lists its asm
  * callers (func_802AC3B8, func_802A8CCC) as reading t6/t7/f12/f14, but they
  * don't read them after the call (only through their own callers'
  * conventions), so they are not modelled. */
-void func_802AC6FC(s32 x, s32 y, s32 z, s32 kind, s32 data) {
+void fx_spawn_at_late(s32 x, s32 y, s32 z, s32 kind, s32 data) {
     Io802A6274 io;
 
     io.a3 = 1;
     io.t6 = 0;
     io.s1 = 0;
-    func_802A6274(&io, D_802C3FFC[kind], data, 0, x << 11, y << 11, z << 11, 0, 0, 0, 0, 0, 0);
+    fx_spawn(&io, gFxDefsByKind[kind], data, 0, x << 11, y << 11, z << 11, 0, 0, 0, 0, 0, 0);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/func_802AC6FC.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/fx_spawn_at_late.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -300,7 +304,7 @@ void func_802AC85C(u8 *src, u8 *dst, u32 *words) {
  * The asm takes m in s2 (conventions.txt) and saves every register it uses.
  * Asm callers keep many registers live across the call (func_8029E5AC a0-a3,
  * t2, t4, t5, t7, f8, f12, f14; func_802AA764 a0-a3, t4, t6, t7, f12, f14;
- * func_802C1F30 t0-t2, t4, t6; func_802CEEFC a0-a3, t3, t7, f12, f14; ...):
+ * lvl_group_move_part t0-t2, t4, t6; func_802CEEFC a0-a3, t3, t7, f12, f14; ...):
  * a mixed N64 build would need a thunk, the native port doesn't. */
 void func_802AC8CC(u16 *m) {
     u16 tmp[32];
@@ -322,8 +326,8 @@ void func_802AC8CC(u16 *m) {
 #ifdef NON_MATCHING
 /* Writes a 16.16 translation matrix (identity plus x, y, z in the last row)
  * to m. The asm takes x, y, z, m in t0-t3 and saves a0; asm callers keep
- * many registers live (func_802AA764 t4, t6-t8, f12, f14; func_802BE574
- * a0-a3, t6, f12, f14; func_802C1F30 t0-t4, t6; ...): a mixed N64 build
+ * many registers live (func_802AA764 t4, t6-t8, f12, f14; obj_falling_part_mtx
+ * a0-a3, t6, f12, f14; lvl_group_move_part t0-t4, t6; ...): a mixed N64 build
  * would need a thunk, the native port doesn't. */
 void func_802ACA60(s32 x, s32 y, s32 z, s32 *m) {
     m[0] = 0x10000;
@@ -354,9 +358,9 @@ void func_802ACA60(s32 x, s32 y, s32 z, s32 *m) {
  * (about y, z and x) for `angle` (0x1000 = 360 degrees) to m. Each calls
  * func_802AE160 (sine) first, then func_802AE104 (cosine).
  * Register convention: angle in t0, m in t3 (conventions.txt); the asm saves
- * v1, a0, t5 and fp. Asm callers keep t6/t7 (func_802A68D4) or t8
- * (func_802AA764, func_802BE574) live across the call; the survey lists
- * f12/f14 (func_802AE104's leftovers) as read by func_802A68D4 and
+ * v1, a0, t5 and fp. Asm callers keep t6/t7 (fx_build_matrix) or t8
+ * (func_802AA764, obj_falling_part_mtx) live across the call; the survey lists
+ * f12/f14 (func_802AE104's leftovers) as read by fx_build_matrix and
  * func_802AA764, which a C version can't hand back (a mixed N64 build would
  * need a thunk; the native port won't). */
 void func_802ACAC4(s32 angle, s32 *m) {
@@ -443,7 +447,7 @@ void func_802ACBDC(s32 angle, s32 *m) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 /* Writes a 16.16 scale matrix diag(x, y, z, 1) to m. Same register
- * interface as func_802ACA60 (t0-t3); asm callers func_802A68D4 / func_802AA764
+ * interface as func_802ACA60 (t0-t3); asm callers fx_build_matrix / func_802AA764
  * keep a0-a3, t4, f12, f14 live (a mixed N64 build would need a thunk). */
 void func_802ACC68(s32 x, s32 y, s32 z, s32 *m) {
     m[0] = x;

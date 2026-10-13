@@ -11,9 +11,11 @@
 #define D_02000000 ((u8 *) D_02000000)
 /* end of views */
 
-/* Falling debris / bouncing objects: a pool of 20 that are spawned around a
- * point, home in on a target, wander inside a box and play sounds. The
- * audio manager that follows is a separate file, 22EE0.c (audio.c). */
+/* The people: a pool of 20 little people who run out of a destroyed object
+ * (people_spawn, from obj_spawn_people), wait inside a box, walk away from
+ * the player and are picked up by the BCT chopper (type 0xFE; drawn only
+ * while gHaveChopper). The old view type name Debris is a person. The audio
+ * manager that follows is a separate file, 22EE0.c (audio.c). */
 
 typedef struct {
     /* 0x00 */ s16 x;
@@ -38,37 +40,39 @@ typedef struct {
     /* 0x20 */ f32 unk20; /* last distance to target */
 } Debris; /* size 0x24 */
 
-extern Debris D_80367D60[20];
-extern s16 D_80368034;
-extern s16 D_80368036;
-extern s32 D_80368038;
-extern s32 D_8036803C;
-extern s32 D_80368044;
+extern Debris gPeople[20];
+extern s16 gPeopleStepX;
+extern s16 gPeopleStepZ;
+extern s32 gChopperPickupTimer;
+extern s32 gChopperPickupIndex;
+extern s32 gChopperRetargetX;
 #ifndef NON_MATCHING
 extern s32 D_80367738;
 #endif
 
-s32 func_80265A0C(s32 arg0);
-void func_80265B7C(s32 arg0);
+s32 people_player_near(s32 arg0);
+void people_step(s32 arg0);
 
-/* Clear the debris pool and reset the timers */
-void func_80264C20(s32 arg0) {
+/* Empties the people pool; the released count from the status or 0 (0x80264C20).
+ * Clear the pool and reset the timers */
+void people_init(s32 arg0) {
     s32 i;
 
     for (i = 0; i < 20; i++) {
-        D_80367D60[i].unk15 = 0;
+        gPeople[i].unk15 = 0;
     }
     D_8036B968 = osGetCount();
-    D_80368038 = 99999999;
+    gChopperPickupTimer = 99999999;
     if (arg0) {
-        D_8036EA79 = D_80368040;
+        D_8036EA79 = gPeopleRestored;
     } else {
         D_8036EA79 = 0;
     }
 }
 
-/* Spawn arg5 pieces around (arg0, arg2) inside a box of half size arg3 */
-void func_80264CB4(s16 arg0, s16 arg1, s16 arg2, s16 arg3, u8 arg4, s32 arg5) {
+/* N people run out of a destroyed object at (x, y, z) (0x80264CB4).
+ * Spawn arg5 people around (arg0, arg2) inside a box of half size arg3 */
+void people_spawn(s16 arg0, s16 arg1, s16 arg2, s16 arg3, u8 arg4, s32 arg5) {
     s32 pad;
     s32 n;
     s32 i;
@@ -79,7 +83,7 @@ void func_80264CB4(s16 arg0, s16 arg1, s16 arg2, s16 arg3, u8 arg4, s32 arg5) {
     n = 0;
     D_8036EA79 += arg5;
     if (arg5 != 0 && gPaused == 0) {
-        func_8026AD30(0x48);
+        yoshi_show_hint(0x48);
     }
     if (arg3 > 200) {
         arg3 = 200;
@@ -90,7 +94,7 @@ void func_80264CB4(s16 arg0, s16 arg1, s16 arg2, s16 arg3, u8 arg4, s32 arg5) {
         }
         found = 0;
         while (i < 20 && !found) {
-            if (D_80367D60[i].unk15 == 0) {
+            if (gPeople[i].unk15 == 0) {
                 found = 1;
             } else {
                 i++;
@@ -98,43 +102,45 @@ void func_80264CB4(s16 arg0, s16 arg1, s16 arg2, s16 arg3, u8 arg4, s32 arg5) {
         }
         if (found) {
             PORT_ISPAWN(PORT_ITAG_PEOPLE, i);
-            D_80367D60[i].x = arg0;
-            D_80367D60[i].z = arg2;
-            D_80367D60[i].y = arg1;
+            gPeople[i].x = arg0;
+            gPeople[i].z = arg2;
+            gPeople[i].y = arg1;
             r = arg3 / 5;
-            D_80367D60[i].unkA = func_8026A8E0(-r, r) + (arg0 - arg3);
-            D_80367D60[i].unkC = func_8026A8E0(-r, r) + (arg2 + arg3);
-            D_80367D60[i].unk10 = arg3 * 3 / 2;
-            D_80367D60[i].unkE = arg3;
-            D_80367D60[i].unk6 = D_80367D60[i].unkA + func_8026A8E0(-arg3, arg3);
-            D_80367D60[i].unk8 = D_80367D60[i].unkC + func_8026A8E0(-arg3, arg3);
-            D_80367D60[i].unk13 = 0;
-            D_80367D60[i].unk14 = 0;
-            D_80367D60[i].unk16 = func_8026A8E0(-500, 500);
-            D_80367D60[i].unk12 = arg4;
-            D_80367D60[i].unk1C = 0;
-            D_80367D60[i].unk15 = 5;
-            D_80367D60[i].unk18 = 4000;
-            D_80367D60[i].unk20 = 100000000.0f;
-            D_80367D60[i].unk1B = 0;
+            gPeople[i].unkA = func_8026A8E0(-r, r) + (arg0 - arg3);
+            gPeople[i].unkC = func_8026A8E0(-r, r) + (arg2 + arg3);
+            gPeople[i].unk10 = arg3 * 3 / 2;
+            gPeople[i].unkE = arg3;
+            gPeople[i].unk6 = gPeople[i].unkA + func_8026A8E0(-arg3, arg3);
+            gPeople[i].unk8 = gPeople[i].unkC + func_8026A8E0(-arg3, arg3);
+            gPeople[i].unk13 = 0;
+            gPeople[i].unk14 = 0;
+            gPeople[i].unk16 = func_8026A8E0(-500, 500);
+            gPeople[i].unk12 = arg4;
+            gPeople[i].unk1C = 0;
+            gPeople[i].unk15 = 5;
+            gPeople[i].unk18 = 4000;
+            gPeople[i].unk20 = 100000000.0f;
+            gPeople[i].unk1B = 0;
         }
         i++, n++;
     }
 }
 
-void func_80265428(void);
-void func_8026513C(void);
-void func_80265E48(void);
+void people_flee(void);
+void people_run_out(void);
+void people_dispatch_chopper(void);
 
-void func_8026510C(void) {
-    func_80265428();
-    func_8026513C();
-    func_80265E48();
+/* Per frame: flee, run out, chopper pickup (0x8026510C). */
+void people_update(void) {
+    people_flee();
+    people_run_out();
+    people_dispatch_chopper();
 }
 
-/* Move homing debris (state 5) 5 units a frame toward its target; it lands
+/* People running out (state 5) reach their spot, then idle (0x8026513C).
+ * Move homing debris (state 5) 5 units a frame toward its target; it lands
  * (state 1) once it arrives or starts moving away */
-void func_8026513C(void) {
+void people_run_out(void) {
     s16 dx;
     s16 dz;
     s16 adx;
@@ -145,44 +151,45 @@ void func_8026513C(void) {
     s32 i;
 
     for (i = 0; i < 20; i++) {
-        if (D_80367D60[i].unk15 == 5) {
-            dx = D_80367D60[i].unk6 - D_80367D60[i].x;
+        if (gPeople[i].unk15 == 5) {
+            dx = gPeople[i].unk6 - gPeople[i].x;
             if (dx >= 0) {
                 adx = dx;
             } else {
                 adx = -dx;
             }
-            dz = D_80367D60[i].unk8 - D_80367D60[i].z;
+            dz = gPeople[i].unk8 - gPeople[i].z;
             if (dz >= 0) {
                 adz = dz;
             } else {
                 adz = -dz;
             }
-            dist = func_8026A610(D_80367D60[i].unk6, D_80367D60[i].unk8, D_80367D60[i].x, D_80367D60[i].z);
-            if (dist < 1.0 || D_80367D60[i].unk20 < dist) {
-                D_80367D60[i].unk15 = 1;
+            dist = func_8026A610(gPeople[i].unk6, gPeople[i].unk8, gPeople[i].x, gPeople[i].z);
+            if (dist < 1.0 || gPeople[i].unk20 < dist) {
+                gPeople[i].unk15 = 1;
             } else {
-                D_80367D60[i].unk20 = dist;
+                gPeople[i].unk20 = dist;
                 sx = adx / dist * 5.0f;
                 sz = adz / dist * 5.0f;
                 if (dx >= 0) {
-                    D_80367D60[i].x = D_80367D60[i].x + sx;
+                    gPeople[i].x = gPeople[i].x + sx;
                 } else {
-                    D_80367D60[i].x -= sx;
+                    gPeople[i].x -= sx;
                 }
                 if (dz >= 0) {
-                    D_80367D60[i].z += sz;
+                    gPeople[i].z += sz;
                 } else {
-                    D_80367D60[i].z -= sz;
+                    gPeople[i].z -= sz;
                 }
             }
         }
     }
 }
 
-/* Wander: step each active piece along its heading, clamped to its box,
+/* While the player is near, a person walks away from the player (0x80265428).
+ * Wander: step each active piece along its heading, clamped to its box,
  * preferring the direction away from the player */
-void func_80265428(void) {
+void people_flee(void) {
     s32 i;
     s32 pad;
     s32 x;
@@ -193,102 +200,104 @@ void func_80265428(void) {
     s32 d2;
 
     for (i = 0; i < 20; i++) {
-        if ((D_80367D60[i].unk15 == 1 || D_80367D60[i].unk15 == 4 || D_80367D60[i].unk15 == 2) && func_80265A0C(i)) {
-            func_80265B7C(i);
-            x = D_80367D60[i].x + D_80368034;
-            z = D_80367D60[i].z + D_80368036;
-            x2 = D_80367D60[i].x - D_80368034;
-            z2 = D_80367D60[i].z - D_80368036;
-            if (x < D_80367D60[i].unkA - D_80367D60[i].unkE) {
-                x = D_80367D60[i].unkA - D_80367D60[i].unkE;
+        if ((gPeople[i].unk15 == 1 || gPeople[i].unk15 == 4 || gPeople[i].unk15 == 2) && people_player_near(i)) {
+            people_step(i);
+            x = gPeople[i].x + gPeopleStepX;
+            z = gPeople[i].z + gPeopleStepZ;
+            x2 = gPeople[i].x - gPeopleStepX;
+            z2 = gPeople[i].z - gPeopleStepZ;
+            if (x < gPeople[i].unkA - gPeople[i].unkE) {
+                x = gPeople[i].unkA - gPeople[i].unkE;
             }
-            if (z < D_80367D60[i].unkC - D_80367D60[i].unkE) {
-                z = D_80367D60[i].unkC - D_80367D60[i].unkE;
+            if (z < gPeople[i].unkC - gPeople[i].unkE) {
+                z = gPeople[i].unkC - gPeople[i].unkE;
             }
-            if (x >= D_80367D60[i].unkA + D_80367D60[i].unkE) {
-                x = D_80367D60[i].unkA + D_80367D60[i].unkE - 1;
+            if (x >= gPeople[i].unkA + gPeople[i].unkE) {
+                x = gPeople[i].unkA + gPeople[i].unkE - 1;
             }
-            if (z >= D_80367D60[i].unkC + D_80367D60[i].unkE) {
-                z = D_80367D60[i].unkC + D_80367D60[i].unkE - 1;
+            if (z >= gPeople[i].unkC + gPeople[i].unkE) {
+                z = gPeople[i].unkC + gPeople[i].unkE - 1;
             }
-            if (x2 < D_80367D60[i].unkA - D_80367D60[i].unkE) {
-                x2 = D_80367D60[i].unkA - D_80367D60[i].unkE;
+            if (x2 < gPeople[i].unkA - gPeople[i].unkE) {
+                x2 = gPeople[i].unkA - gPeople[i].unkE;
             }
-            if (z2 < D_80367D60[i].unkC - D_80367D60[i].unkE) {
-                z2 = D_80367D60[i].unkC - D_80367D60[i].unkE;
+            if (z2 < gPeople[i].unkC - gPeople[i].unkE) {
+                z2 = gPeople[i].unkC - gPeople[i].unkE;
             }
-            if (x2 >= D_80367D60[i].unkA + D_80367D60[i].unkE) {
-                x2 = D_80367D60[i].unkA + D_80367D60[i].unkE - 1;
+            if (x2 >= gPeople[i].unkA + gPeople[i].unkE) {
+                x2 = gPeople[i].unkA + gPeople[i].unkE - 1;
             }
-            if (z2 >= D_80367D60[i].unkC + D_80367D60[i].unkE) {
-                z2 = D_80367D60[i].unkC + D_80367D60[i].unkE - 1;
+            if (z2 >= gPeople[i].unkC + gPeople[i].unkE) {
+                z2 = gPeople[i].unkC + gPeople[i].unkE - 1;
             }
             d1 = func_8026A610(gPlayerX >> 5, gPlayerZ >> 5, x, z);
             d2 = func_8026A610(gPlayerX >> 5, gPlayerZ >> 5, x2, z2);
-            if (D_80367D60[i].unk1B) {
-                if (D_80367D60[i].unk1A) {
+            if (gPeople[i].unk1B) {
+                if (gPeople[i].unk1A) {
                     d2 = 0;
                 } else {
                     d1 = 0;
                 }
-                D_80367D60[i].unk1B--;
+                gPeople[i].unk1B--;
             }
             if (d1 < d2) {
-                D_80367D60[i].x = x2;
-                D_80367D60[i].z = z2;
-                D_80367D60[i].unk18 += 0x800;
-                if (D_80367D60[i].unk18 >= 0x1000) {
-                    D_80367D60[i].unk18 -= 0xFFF;
+                gPeople[i].x = x2;
+                gPeople[i].z = z2;
+                gPeople[i].unk18 += 0x800;
+                if (gPeople[i].unk18 >= 0x1000) {
+                    gPeople[i].unk18 -= 0xFFF;
                 }
-                if (D_80367D60[i].unk1A) {
-                    D_80367D60[i].unk1B = 5;
+                if (gPeople[i].unk1A) {
+                    gPeople[i].unk1B = 5;
                 }
-                D_80367D60[i].unk1A = 0;
+                gPeople[i].unk1A = 0;
             } else {
-                D_80367D60[i].x = x;
-                D_80367D60[i].z = z;
-                if (!D_80367D60[i].unk1A) {
-                    D_80367D60[i].unk1B = 5;
+                gPeople[i].x = x;
+                gPeople[i].z = z;
+                if (!gPeople[i].unk1A) {
+                    gPeople[i].unk1B = 5;
                 }
-                D_80367D60[i].unk1A = 1;
+                gPeople[i].unk1A = 1;
             }
-            if (i == 1 && D_80367D60[i].unk15 != 4) {
+            if (i == 1 && gPeople[i].unk15 != 4) {
                 func_80260650(D_80367738, 0x24, 0);
             }
-            if (D_80367D60[i].unk15 == 2) {
+            if (gPeople[i].unk15 == 2) {
                 D_803EF32C = 6;
             }
-            D_80367D60[i].unk15 = 4;
-        } else if (D_80367D60[i].unk15 == 4) {
-            D_80367D60[i].unk15 = 1;
+            gPeople[i].unk15 = 4;
+        } else if (gPeople[i].unk15 == 4) {
+            gPeople[i].unk15 = 1;
         }
     }
 }
 
-/* Is the player (gPlayerX/Z, >> 5) inside piece arg0's area? */
-s32 func_80265A0C(s32 arg0) {
+/* 1 if the player is inside person i's area (0x80265A0C).
+ * Is the player (gPlayerX/Z, >> 5) inside piece arg0's area? */
+s32 people_player_near(s32 arg0) {
     s16 b3;
     s16 b2;
     s16 b1;
     s16 b0;
 
-    b1 = D_80367D60[arg0].unkA - D_80367D60[arg0].unk10;
-    b0 = D_80367D60[arg0].unkC - D_80367D60[arg0].unk10;
+    b1 = gPeople[arg0].unkA - gPeople[arg0].unk10;
+    b0 = gPeople[arg0].unkC - gPeople[arg0].unk10;
     b3 = gPlayerX >> 5, b2 = gPlayerZ >> 5;
     if (b3 < b1 || b2 < b0) {
         return 0;
     }
-    b1 = D_80367D60[arg0].unkA + D_80367D60[arg0].unk10;
-    b0 = D_80367D60[arg0].unkC + D_80367D60[arg0].unk10;
+    b1 = gPeople[arg0].unkA + gPeople[arg0].unk10;
+    b0 = gPeople[arg0].unkC + gPeople[arg0].unk10;
     if (b3 >= b1 || b2 >= b0) {
         return 0;
     }
     return 1;
 }
 
-/* Turn piece arg0 and work out this frame's step (D_80368034/36) from its
+/* Person i's heading and this frame's step (0x80265B7C).
+ * Turn piece arg0 and work out this frame's step (gPeopleStepX/Z) from its
  * heading and a speed that ramps toward D_8036443C / 40 */
-void func_80265B7C(s32 arg0) {
+void people_step(s32 arg0) {
     s16 ang;
     s16 t;
     s16 s;
@@ -304,44 +313,47 @@ void func_80265B7C(s32 arg0) {
     if (D_8036443C != 0 && lim == 0) {
         lim = 2;
     }
-    ang = D_80367D60[arg0].unk16 + D_8036443E + 0x400;
+    ang = gPeople[arg0].unk16 + D_8036443E + 0x400;
     if (ang >= 0x1000) {
         ang -= 0xFFF;
     }
-    D_80367D60[arg0].unk18 = ang;
+    gPeople[arg0].unk18 = ang;
     t = ang % 0x400;
     s = sins(t * 0xFFFF / 0xFFF);
     c = coss(t * 0xFFFF / 0xFFF);
-    if (D_80367D60[arg0].unk1C < lim) {
-        D_80367D60[arg0].unk1C++;
+    if (gPeople[arg0].unk1C < lim) {
+        gPeople[arg0].unk1C++;
     }
-    if (D_80367D60[arg0].unk1C > lim) {
-        D_80367D60[arg0].unk1C--;
+    if (gPeople[arg0].unk1C > lim) {
+        gPeople[arg0].unk1C--;
     }
-    vx = D_80367D60[arg0].unk1C * s >> 15;
-    vz = D_80367D60[arg0].unk1C * c >> 15;
+    vx = gPeople[arg0].unk1C * s >> 15;
+    vz = gPeople[arg0].unk1C * c >> 15;
     if (ang < 0x400) {
-        D_80368034 = vx;
-        D_80368036 = vz;
+        gPeopleStepX = vx;
+        gPeopleStepZ = vz;
     }
     if (ang >= 0x400 && ang < 0x800) {
-        D_80368034 = vz;
-        D_80368036 = -vx;
+        gPeopleStepX = vz;
+        gPeopleStepZ = -vx;
     }
     if (ang >= 0x800 && ang < 0xC00) {
-        D_80368034 = -vx;
-        D_80368036 = -vz;
+        gPeopleStepX = -vx;
+        gPeopleStepZ = -vz;
     }
     if (ang >= 0xC00) {
-        D_80368034 = -vz;
-        D_80368036 = vx;
+        gPeopleStepX = -vz;
+        gPeopleStepZ = vx;
     }
 }
 
-/* Picks the next piece to drop on the player: the nearest landed one, or the
- * farthest when the timer forced the current one down, and plays its sound.
+/* Chopper pickup: boarding, and the next person to fetch (0x80265E48).
+ * When the chopper has landed (D_803EF32D) the chosen person boards; when it
+ * is free (D_803EF32C == 0) it is sent to the idle person nearest it, with a
+ * sound. Rare's slip: the "farthest person" choice for `forced` is dead code,
+ * since the timeout that sets forced also sets D_803EF32C = 6 in the same call.
  * The first three initialisers share a line (as1 schedules by source line). */
-void func_80265E48(void) {
+void people_dispatch_chopper(void) {
     s32 i;
     s32 minIdx;
     s32 minDist;
@@ -359,33 +371,33 @@ void func_80265E48(void) {
         i = 0;
         found = 0;
         while (!found) {
-            if (D_80367D60[i].unk15 == 2) {
-                D_80367D60[i].unk15 = 3;
-                D_80367D60[i].unk13 = 0;
+            if (gPeople[i].unk15 == 2) {
+                gPeople[i].unk15 = 3;
+                gPeople[i].unk13 = 0;
                 found = 1;
             } else {
                 i++;
             }
         }
         D_803EF32D = 0;
-        D_80368038 = 99999999;
+        gChopperPickupTimer = 99999999;
     } else {
-        D_80368038--;
-        if (D_80368038 == 0) {
+        gChopperPickupTimer--;
+        if (gChopperPickupTimer == 0) {
             D_803EF32C = 6;
-            D_80367D60[D_8036803C].unk15 = 1;
+            gPeople[gChopperPickupIndex].unk15 = 1;
             forced = 1;
         }
     }
     if (D_803EF32C == 0) {
         for (i = 0; i < 20; i++) {
-            if (D_80367D60[i].unk15 == 3) {
-                D_80367D60[i].unk15 = 0;
+            if (gPeople[i].unk15 == 3) {
+                gPeople[i].unk15 = 0;
             }
         }
         for (i = 0; i < 20; i++) {
-            if (D_80367D60[i].unk15 == 1) {
-                d = func_8026A610(D_803EF2EC, D_803EF2F4, D_80367D60[i].x << 5, D_80367D60[i].z << 5);
+            if (gPeople[i].unk15 == 1) {
+                d = func_8026A610(D_803EF2EC, D_803EF2F4, gPeople[i].x << 5, gPeople[i].z << 5);
                 if (d < minDist) {
                     minIdx = i;
                     minDist = d;
@@ -402,13 +414,13 @@ void func_80265E48(void) {
             } else {
                 i = minIdx;
             }
-            D_803EF308 = D_80367D60[i].x << 5;
-            D_803EF30C = D_80367D60[i].z << 5;
-            D_80368030 = D_80367D60[i].y << 5;
-            D_80367D60[i].unk15 = 2;
-            D_80368038 = 600;
+            D_803EF308 = gPeople[i].x << 5;
+            D_803EF30C = gPeople[i].z << 5;
+            gChopperLandY = gPeople[i].y << 5;
+            gPeople[i].unk15 = 2;
+            gChopperPickupTimer = 600;
             D_803EF32C = 1;
-            D_8036803C = i;
+            gChopperPickupIndex = i;
             if (35000 - func_8026A610(gPlayerX, gPlayerZ, D_803EF308, D_803EF30C) * 2 >= 0x8000) {
                 vol = 0x7FFF;
             } else {
@@ -421,24 +433,26 @@ void func_80265E48(void) {
     }
 }
 
-/* Point the camera target at the player */
-void func_802661EC(void) {
+/* Mode 0x800 start: the chopper heads for the carrier (0x802661EC).
+ * The chopper's target becomes the carrier's x/z; the player's x/z are kept
+ * for the retarget (72B80.c). */
+void chopper_fly_to_carrier(void) {
     D_803EF308 = D_803EF6DC;
     D_803EF30C = D_803EF6E4;
-    D_80368044 = gPlayerX;
-    D_80368048 = gPlayerZ;
+    gChopperRetargetX = gPlayerX;
+    gChopperRetargetZ = gPlayerZ;
     D_803EF32C = 1;
-    D_80368038 = 2000;
+    gChopperPickupTimer = 2000;
 }
 
-/* Draw the debris: billboarded 20x32 RGBA16 sprites, animated and picked by
+/* Draw the people: billboarded 20x32 RGBA16 sprites, animated and picked by
  * heading, plus one marker at D_803EF310 */
 typedef struct DynBuf {
     Mtx mtx[100];
     Vtx vtx[1];
 } DynBuf;
 
-extern Debris D_80367D60[20];
+extern Debris gPeople[20];
 extern Vtx D_802E9FB0[4];
 extern u16 D_802E9FF0[];
 extern u16 D_802EA4F0[], D_802EA9F0[], D_802EAEF0[], D_802EB3F0[], D_802EB8F0[], D_802EBDF0[];
@@ -446,14 +460,15 @@ extern u16 D_802EC2F0[], D_802EC7F0[], D_802ECCF0[], D_802ED1F0[], D_802ED6F0[],
 extern u16 D_802EEAF0[], D_802EEFF0[], D_802EF4F0[], D_802EF9F0[], D_802EFEF0[], D_802F03F0[], D_802F08F0[], D_802F0DF0[];
 extern u16 D_802F12F0[], D_802F17F0[], D_802F1CF0[], D_802F21F0[], D_802F26F0[], D_802F2BF0[], D_802F30F0[], D_802F35F0[];
 
-s32 func_80267614();
+s32 people_is_visible();
 
 #define LOAD_TEX(ptr) \
     gDPPipeSync(gdl++); \
     gDPLoadTextureBlock(gdl++, ptr, G_IM_FMT_RGBA, G_IM_SIZ_16b, 20, 32, 0, G_TX_CLAMP, G_TX_CLAMP, \
                         G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD)
 
-void func_80266248(Gfx **gdlp, DynBuf *buf) {
+/* The people as 20x32 billboards, and the one boarding (0x80266248). */
+void people_draw(Gfx **gdlp, DynBuf *buf) {
     Gfx *gdl;
     s32 n;
     s32 i;
@@ -484,17 +499,17 @@ void func_80266248(Gfx **gdlp, DynBuf *buf) {
     gDPSetCombineMode(gdl++, G_CC_MODULATERGBA, G_CC_MODULATERGBA);
     gSPTexture(gdl++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
     for (i = 0; i < 20; i++) {
-        if (func_80267614(&D_80367D60[i]) &&
-            (D_80367D60[i].unk15 == 1 || D_80367D60[i].unk15 == 2 || (D_80367D60[i].unk15 == 4 && D_80367D60[i].unk1C == 0))) {
-            D_80367D60[i].unk14++;
-            if (D_80367D60[i].unk14 >= 6) {
-                D_80367D60[i].unk13++;
-                D_80367D60[i].unk14 = 0;
+        if (people_is_visible(&gPeople[i]) &&
+            (gPeople[i].unk15 == 1 || gPeople[i].unk15 == 2 || (gPeople[i].unk15 == 4 && gPeople[i].unk1C == 0))) {
+            gPeople[i].unk14++;
+            if (gPeople[i].unk14 >= 6) {
+                gPeople[i].unk13++;
+                gPeople[i].unk14 = 0;
             }
-            if (D_80367D60[i].unk13 >= 6) {
-                D_80367D60[i].unk13 = 0;
+            if (gPeople[i].unk13 >= 6) {
+                gPeople[i].unk13 = 0;
             }
-            switch (D_80367D60[i].unk13) {
+            switch (gPeople[i].unk13) {
                 case 0: tex = D_802EA4F0; break;
                 case 1: tex = D_802EA9F0; break;
                 case 2: tex = D_802EAEF0; break;
@@ -507,9 +522,9 @@ void func_80266248(Gfx **gdlp, DynBuf *buf) {
             LOAD_TEX(phys);
             func_8026A5CC((u64 *) (&buf->vtx[n]), (u64 *) D_802E9FB0, sizeof(Vtx) * 4);
             for (j = 0; j < 4; j++) {
-                buf->vtx[n + j].v.ob[0] = fx[j] + D_80367D60[i].x;
-                buf->vtx[n + j].v.ob[1] = fy[j] + D_80367D60[i].y;
-                buf->vtx[n + j].v.ob[2] = fz[j] + D_80367D60[i].z;
+                buf->vtx[n + j].v.ob[0] = fx[j] + gPeople[i].x;
+                buf->vtx[n + j].v.ob[1] = fy[j] + gPeople[i].y;
+                buf->vtx[n + j].v.ob[2] = fz[j] + gPeople[i].z;
             }
             gSPVertex(gdl++, n * sizeof(Vtx) + 0x1900 + (u32) D_02000000, 4, 0);
             n += 4;
@@ -518,19 +533,19 @@ void func_80266248(Gfx **gdlp, DynBuf *buf) {
         }
     }
     for (i = 0; i < 20; i++) {
-        if (((D_80367D60[i].unk15 == 4 && D_80367D60[i].unk1C != 0) || D_80367D60[i].unk15 == 5) &&
-            func_80267614(&D_80367D60[i])) {
-            D_80367D60[i].unk14 += D_80367D60[i].unk1C;
-            if (D_80367D60[i].unk14 >= 11) {
-                D_80367D60[i].unk13++;
-                D_80367D60[i].unk14 = 0;
+        if (((gPeople[i].unk15 == 4 && gPeople[i].unk1C != 0) || gPeople[i].unk15 == 5) &&
+            people_is_visible(&gPeople[i])) {
+            gPeople[i].unk14 += gPeople[i].unk1C;
+            if (gPeople[i].unk14 >= 11) {
+                gPeople[i].unk13++;
+                gPeople[i].unk14 = 0;
             }
-            if (D_80367D60[i].unk13 >= 8) {
-                D_80367D60[i].unk13 = 0;
+            if (gPeople[i].unk13 >= 8) {
+                gPeople[i].unk13 = 0;
             }
-            frame = D_80367D60[i].unk13;
+            frame = gPeople[i].unk13;
             flip = 0;
-            ang = D_80367D60[i].unk18 - (gCamHeading - 135.0) / 360.0 * 4095.0;
+            ang = gPeople[i].unk18 - (gCamHeading - 135.0) / 360.0 * 4095.0;
             if (ang < 0) {
                 ang += 0xFFF;
             }
@@ -594,9 +609,9 @@ void func_80266248(Gfx **gdlp, DynBuf *buf) {
                 buf->vtx[n + 3].v.tc[0] = 0x260;
             }
             for (j = 0; j < 4; j++) {
-                buf->vtx[n + j].v.ob[0] = fx[j] + D_80367D60[i].x;
-                buf->vtx[n + j].v.ob[1] = fy[j] + D_80367D60[i].y;
-                buf->vtx[n + j].v.ob[2] = fz[j] + D_80367D60[i].z;
+                buf->vtx[n + j].v.ob[0] = fx[j] + gPeople[i].x;
+                buf->vtx[n + j].v.ob[1] = fy[j] + gPeople[i].y;
+                buf->vtx[n + j].v.ob[2] = fz[j] + gPeople[i].z;
             }
             gSPVertex(gdl++, n * sizeof(Vtx) + 0x1900 + (u32) D_02000000, 4, 0);
             n += 4;
@@ -608,7 +623,7 @@ void func_80266248(Gfx **gdlp, DynBuf *buf) {
         i = 0;
         found = 0;
         while (i < 20 && !found) {
-            if (D_80367D60[i].unk15 == 3) {
+            if (gPeople[i].unk15 == 3) {
                 found = 1;
                 PORT_ITAG(gdl, PORT_ITAG_MARKER, 0);
                 LOAD_TEX(osVirtualToPhysical(D_802E9FF0));
@@ -640,9 +655,10 @@ typedef struct {
     u8 cell;
 } Node12;
 
-/* Is the node's cell in the 0xFFFF-terminated list gVisibleCells? (same as
- * 26570's func_80270A54 with the cell at 0x12) */
-s32 func_80267614(Node12 *node, s32 arg1) {
+/* 1 if the person's grid cell is in gVisibleCells (0x80267614).
+ * Is the node's cell in the 0xFFFF-terminated list gVisibleCells? (same as
+ * 26570's rdu_is_visible with the cell at 0x12) */
+s32 people_is_visible(Node12 *node, s32 arg1) {
     s32 i;
     u8 v;
     s32 pad;

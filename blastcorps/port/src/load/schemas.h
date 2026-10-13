@@ -137,7 +137,7 @@ static void lvl_lifts(Block *b, uint32_t lo, uint32_t hi) {
     }
 }
 
-/* 0x74: group chain (func_802A1A9C, func_802C2054, func_802C1F30): s32 n (0 =
+/* 0x74: group chain (func_802A1A9C, lvl_groups_update_tris, lvl_group_move_part): s32 n (0 =
  * empty), then groups: {s16 next (-1 = last); s16 [9]; u16 mtxOffset[10] @0x14;
  * s32 count @0x28} + count x {s16 index[9]; u8 @0x12, @0x13; {s32 unk0;
  * s32 base[3]}[3] @0x14} */
@@ -193,7 +193,7 @@ static void swap_level(uint32_t base, uint32_t len) {
     if (blk_sect(&b, 0x60, 0x74, &lo, &hi)) blk_keep(&b, lo, hi - lo);
     if (blk_sect(&b, 0x74, 0x78, &lo, &hi)) lvl_groups(&b, lo, hi);
     /* display lists and the visibility records/groups (0xA0..0xC0): all u32
-     * words (func_802A08E4, func_802A1C88, lvl_build_visible_dl, func_802A51FC) */
+     * words (tex_resolve_dl_impl, func_802A1C88, lvl_build_visible_dl, func_802A51FC) */
     if (blk_sect(&b, 0xA0, 0xC0, &lo, &hi)) blk_words(&b, lo, hi);
     if (blk_sect(&b, 0x78, 0x84, &lo, &hi)) blk_words(&b, lo, hi);
     if (blk_sect(&b, 0x88, 0x9C, &lo, &hi)) blk_words(&b, lo, hi);
@@ -265,7 +265,7 @@ static void swap_object(uint32_t base, uint32_t len) {
     if (blk_sect(&b, 0x28, 0x2C, &lo, &hi)) obj_texrecs(&b, lo, hi);
     if (blk_sect(&b, 0x2C, 0x30, &lo, &hi)) blk_records(&b, lo, hi, 2, "2@0");
     /* 0x38-byte debris records (func_802A26A8 moves words 0-2 and 10;
-     * func_802C0574 reads the copy: u16 delay 0x2C, u16 radius 0x2E, bytes
+     * obj_run_effect_queue reads the copy: u16 delay 0x2C, u16 radius 0x2E, bytes
      * 0x30.. (kind at 0x31, func_802A23E0), flag byte 0x34) */
     if (blk_sect(&b, 0x30, 0x38, &lo, &hi))
         blk_records(&b, lo, hi, 0x38, "4@0 4@4 4@8 4@C 4@10 4@14 4@18 4@1C 4@20 4@24 4@28 2@2C 2@2E");
@@ -282,7 +282,7 @@ static void swap_object(uint32_t base, uint32_t len) {
 
 /* Vehicle models (ROM 0x48FE90.., lvl_load_model): s32 offsets 0x00..0x44;
  * Vtx [hdr[0x14], hdr[0x18]); display lists and their tables from hdr[0x18]
- * to the end (u32 words: func_802A08E4, veh_add_record, func_8029DF78) */
+ * to the end (u32 words: tex_resolve_dl_impl, veh_add_record, func_8029DF78) */
 /* vehicle animation block [hdr[0x10], hdr[0x14]): s16 offsets (count = the
  * first / 2, func_8029F85C), each to {u8 k; k + 1 bytes; pad to a word}
  * then groups {s32; s32; k x ten s16} up to the next animation

@@ -7,7 +7,7 @@ out s1): the rounded 3-D distance.  Each difference is a 32-bit subtraction
 wrapping), then cvt.d.l, sqrt.d and cvt.l.d (round to nearest even, the FCSR
 default); s1 gets the low 32 bits.
 
-    eqcheck.py func_802BD10C --model func_802ABCDC=func_802ABCDC.py ...
+    eqcheck.py obj_calc_target_time --model func_802ABCDC=func_802ABCDC.py ...
 """
 import math
 

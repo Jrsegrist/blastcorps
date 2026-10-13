@@ -27,8 +27,8 @@
 /* Register results of func_802A32CC its asm caller reads. */
 typedef struct {
     /* 0x0 */ u8 * N64P s2; /* the loaded data (old heap pointer) */
-    /* 0x4 */ u8 * N64P s3; /* func_802A08E4's s3 */
-    /* 0x8 */ u8 * N64P s4; /* func_802A08E4's s4 (in: the ROM start) */
+    /* 0x4 */ u8 * N64P s3; /* tex_resolve_dl_impl's s3 */
+    /* 0x8 */ u8 * N64P s4; /* tex_resolve_dl_impl's s4 (in: the ROM start) */
 } Out802A32CC;
 
 
@@ -222,11 +222,11 @@ static s32 port_initlevel_v0(s32 *t9) {
  * "exit initlevel" around the call): level setup from the level object obj
  * (heap data; offsets as OBJ_PTR):
  * D_803BE6F4 = arg1, then the level header (lvl_read_header), the texture
- * table (func_802A0700), display lists and textures (func_802A3008,
+ * table (tex_load_table), display lists and textures (func_802A3008,
  * func_802A1C20, func_802A1C88), the animation channels (func_8029DEA0), the
  * collision triangles (func_802A3D54, func_802A3DF8, func_802A3E9C,
- * func_802A3F80), grids and tables (func_802A4464 .. func_802BC840), the
- * placed objects (func_802A1D54), func_802C049C, func_8028FDA0(obj words
+ * func_802A3F80), grids and tables (func_802A4464 .. obj_clear_delayed_damage), the
+ * placed objects (func_802A1D54), obj_clear_effect_queue, func_8028FDA0(obj words
  * 0x3C/0x40). Unless the game mode gNextGameMode is 0x80 the level's vehicles
  * and objects are spawned (lvl_spawn_vehicles). gHaveShuttle = gHaveCarrier =
  * gHaveChopper = 0; then mode 2: the type-0xFF object (lvl_spawn_carrier) unless
@@ -234,7 +234,7 @@ static s32 port_initlevel_v0(s32 *t9) {
  * type-0xFF object and the 0xFD vehicle (lvl_spawn_shuttle), then always the
  * 0xFE vehicle (lvl_spawn_chopper). Then func_802A3198, func_802CEAA0,
  * func_802A19F4, D_803BE6FC / D_803BE700 = OBJ_PTR(obj, 0x58 / 0x5C),
- * func_8026FBB0 / func_8028D4C0 / func_8028C190 on the obj ranges
+ * rdu_init / func_8028D4C0 / func_8028C190 on the obj ranges
  * 0x34-0x38, 0x38-0x3C, 0x20-0x24, frontEndPresent = 0, and when the mode is
  * neither 2 nor D_8030D880 (0x100000000000) and arg1 is set,
  * func_802C4BF0(arg1) (arg1 is the saved-status stream it applies).
@@ -243,7 +243,7 @@ static s32 port_initlevel_v0(s32 *t9) {
  *    triangle builders (s1).
  *  - fp: func_802A1C20's param is the caller's fp (hd_setup_level and the
  *    IDO code above it never set $s8; its value comes from whatever hand asm
- *    last left it): NULL here (it only reaches D_803C4B58.param, read by the
+ *    last left it): NULL here (it only reaches gTexDecodeReq.param, read by the
  *    decoder for packed types 4/5). From func_802A3F80 on, fp is its result
  *    (the D_803B9890 record end), handed to func_802A1D54 and on to the
  *    spawns: lvl_spawn_vehicles returns the fp the next object would get, and
@@ -266,7 +266,7 @@ void initlevel(u8 *obj, s32 arg1) {
 
     D_803BE6F4 = arg1;
     lvl_read_header(obj);
-    func_802A0700();
+    tex_load_table();
     s1 = (s32) func_802A3008(obj);
     func_802A1C20(obj, NULL, &s1);
     func_802A1C88(obj);
@@ -282,10 +282,10 @@ void initlevel(u8 *obj, s32 arg1) {
     func_8029DC80();
     cull_restart_now();
     func_802A2C54(obj);
-    func_802A5F30();
-    func_802BC840();
+    fx_reset();
+    obj_clear_delayed_damage();
     func_802A1D54(obj, fp, &s1);
-    func_802C049C();
+    obj_clear_effect_queue();
     func_8028FDA0(OBJ_PTR(obj, 0x3C), OBJ_PTR(obj, 0x40), s1);
     if (gNextGameMode != 0x80) {
         fp = (u8 *) N64_IPTR(lvl_spawn_vehicles(obj, (s32) fp));
@@ -312,7 +312,7 @@ void initlevel(u8 *obj, s32 arg1) {
     func_802A19F4();
     D_803BE6FC = OBJ_PTR(obj, 0x58);
     D_803BE700 = OBJ_PTR(obj, 0x5C);
-    func_8026FBB0((s16 *) (OBJ_PTR(obj, 0x34)), (s16 *) (OBJ_PTR(obj, 0x38)));
+    rdu_init((s16 *) (OBJ_PTR(obj, 0x34)), (s16 *) (OBJ_PTR(obj, 0x38)));
     func_8028D4C0(OBJ_PTR(obj, 0x38), OBJ_PTR(obj, 0x3C));
     func_8028C190((struct BoxSpawn *) (OBJ_PTR(obj, 0x20)), (struct BoxSpawn *) (OBJ_PTR(obj, 0x24)));
     frontEndPresent = 0;
@@ -417,7 +417,7 @@ void func_802A19F4(void) {
  * unpacks the item blocks after the count word n at OBJ_PTR(obj, 0x74) into
  * 0x28-byte records (nine s16 << 5 as words, then a byte at 0x24). Each block
  * is a 0x2C-byte header (s16 tag at 0, -1 ending the list; s32 item count at
- * 0x28) followed by that many 0x44-byte items. D_803F7828 = record start, D_803F782C = gHeapPtr =
+ * 0x28) followed by that many 0x44-byte items. gGroupTris = record start, gGroupTrisEnd = gHeapPtr =
  * end. The asm loops with `!=`, so n must be a multiple of 0x20.
  * asm: obj in t0; it leaves scratch values in s0, s2, s3 (no caller reads
  * them) and counts the item loops down in s1, so s1 comes back 0 when n != 0
@@ -456,7 +456,7 @@ void func_802A1A9C(u8 *obj, s32 *s1io) {
         *(s32 *) (m + 0x3C) = 0;
         m += 0x40;
     }
-    D_803F7828 = m;
+    gGroupTris = m;
     if (n != 0) {
         u8 *src = hdr + 4;
         s32 tag;
@@ -506,7 +506,7 @@ void func_802A1A9C(u8 *obj, s32 *s1io) {
         } while (tag != -1);
         *s1io = 0;
     }
-    D_803F782C = m;
+    gGroupTrisEnd = m;
     gHeapPtr = m;
 }
 #else
@@ -519,7 +519,7 @@ void func_802A1A9C(u8 *obj, s32 *s1io) {
 /* Resolves the texture ids of the level object's records
  * [OBJ_PTR(obj, 0x2C), OBJ_PTR(obj, 0x30)): each record has a count byte
  * at +4 and count - 1 words from +0xC, each replaced by
- * func_802A0CFC(word, param) (its physical address); the next record follows
+ * tex_get_impl(word, param) (its physical address); the next record follows
  * the last word. The walk stops only at exactly the end, and a count byte of
  * 0 loops (about 2^32 times) in the asm too, so both are preconditions.
  * The asm also sets s1 = 0x80000000 for every record (a leftover that its
@@ -540,7 +540,7 @@ void func_802A1C20(u8 *obj, u8 *param, s32 *s1io) {
         n--;
         while (n != 0) {
             n--;
-            *w = func_802A0CFC(*w, param);
+            *w = tex_get_impl(*w, param);
             w++;
         }
         rec = (u8 *) w;
@@ -590,13 +590,13 @@ void func_802A20F4(u8 *obj, s32 flag);
 void func_802A21AC(s32 type, u8 *obj, s32 x, s32 y, s32 z, s32 flag, s32 tag, u8 *param, s32 *s1io);
 
 /* Level objects setup: D_8036EB93 = 0, func_802A1EC8 (per-level list), clear
- * a few flag bytes of the tables at D_803EFED0 (1 x 0xA30: bytes 0xA2A/B),
- * D_803F0900 (4 x 0x4B8: half 0x4B0, byte 0x4B2) and D_803F1BE0 (2 x 0x478:
+ * a few flag bytes of the tables at gSinkingPart (1 x 0xA30: bytes 0xA2A/B),
+ * gFadingParts (4 x 0x4B8: half 0x4B0, byte 0x4B2) and gTopplingParts (2 x 0x478:
  * bytes 0x470/0x472), gObjectsEnd = gObjects (record pool), func_802A2BB0
  * (offset table). Then for each 14-byte placement in [OBJ_PTR(obj, 0x5C),
  * OBJ_PTR(obj, 0x60)) {BE u16 x, y, z, type; u8 flag, count; u16 at 0xA,
  * 0xC}: data = func_802A2A98(type) (load), func_802A2164(type, data),
- * func_802A08E4 over data's display list [OBJ_PTR(data, 0x10),
+ * tex_resolve_dl_impl over data's display list [OBJ_PTR(data, 0x10),
  * OBJ_PTR(data, 0x14)), data's u16 at 0xE = the u16 at 0xA,
  * func_802A26A8(data, x, y, z), func_802A20F4(data, flag), data[6] = count
  * and D_8036EB93 += count, then func_802A21AC(type, data, x, y, z, flag, the
@@ -623,15 +623,15 @@ u8 *func_802A1D54(u8 *obj, u8 *param, s32 *s1io) {
 
     D_8036EB93 = 0;
     func_802A1EC8();
-    for (p = D_803EFED0, n = 1; n != 0; n--, p += 0xA30) {
+    for (p = gSinkingPart, n = 1; n != 0; n--, p += 0xA30) {
         p[0xA2A] = 0;
         p[0xA2B] = 0;
     }
-    for (p = D_803F0900, n = 4; n != 0; n--, p += 0x4B8) {
+    for (p = gFadingParts, n = 4; n != 0; n--, p += 0x4B8) {
         *(s16 *) (p + 0x4B0) = 0;
         p[0x4B2] = 0;
     }
-    for (p = D_803F1BE0, n = 2; n != 0; n--, p += 0x478) {
+    for (p = gTopplingParts, n = 2; n != 0; n--, p += 0x478) {
         p[0x470] = 0;
         p[0x472] = 0;
     }
@@ -643,7 +643,7 @@ u8 *func_802A1D54(u8 *obj, u8 *param, s32 *s1io) {
         type = BE16U(p + 6);
         data = func_802A2A98(type);
         func_802A2164(type, data);
-        func_802A08E4((u32 *) OBJ_PTR(data, 0x10), (u32 *) OBJ_PTR(data, 0x14), &r);
+        tex_resolve_dl_impl((u32 *) OBJ_PTR(data, 0x10), (u32 *) OBJ_PTR(data, 0x14), &r);
         *(u16 *) (data + 0xE) = *(u16 *) (p + 0xA);
         x = BE16U(p + 0);
         y = BE16U(p + 2);
@@ -760,7 +760,7 @@ void func_802A23E0(u8 *rec);
 
 /* Set up a placed level object of `type` from its loaded data obj at (x, y, z)
  * (map units, << 5 into the record): func_802A2608(obj, param) resolves its
- * ids; type 0x38 also stores x/y/z in D_803F767C/7E/80. Takes the next
+ * ids; type 0x38 also stores x/y/z in gEndObjectX/Y/Z. Takes the next
  * 0xFC-byte record from gObjectsEnd: func_802A2458 (centre), word 0 = obj, 0x30
  * = type, 0x34 = tag, 0xC = obj's u16 at 2 << 5, 0x10/0x1C = x, 0x14/0x20 =
  * y, 0x18/0x24 = z (<< 5), 0x38..0x40 = 0, bytes 0xEA = 0, 0xEB = flag, 0xE9 =
@@ -792,9 +792,9 @@ void func_802A21AC(s32 type, u8 *obj, s32 x, s32 y, s32 z, s32 flag, s32 tag, u8
 
     func_802A2608(obj, param, s1io);
     if (type == 0x38) {
-        D_803F767C = x;
-        D_803F767E = y;
-        D_803F7680 = z;
+        gEndObjectX = x;
+        gEndObjectY = y;
+        gEndObjectZ = z;
     }
     rec = gObjectsEnd;
     gObjectsEnd = rec + 0xFC;
@@ -893,7 +893,7 @@ void func_802A2458(u8 *rec, u8 *obj) {
 #ifdef NON_MATCHING
 
 /* For a record whose type (word 0x30) is 0xBA, 0xBB or 0xBC: D_80365330 =
- * func_802A0CFC(0xF81, param) and word 0x44 = the ground height
+ * tex_get_impl(0xF81, param) and word 0x44 = the ground height
  * func_802CE6F8(word 0x10, word 0x18, word 0x14).
  * Register convention: rec in v1, param in fp (conventions.txt); the asm
  * saves and restores every integer register (f20-f28 are left as
@@ -903,7 +903,7 @@ void func_802A24BC(u8 *rec, u8 *param) {
     s32 type = *(s32 *) (rec + 0x30);
 
     if (type == 0xBA || type == 0xBB || type == 0xBC) {
-        D_80365330 = func_802A0CFC(0xF81, param);
+        D_80365330 = tex_get_impl(0xF81, param);
         *(s32 *) (rec + 0x44) = func_802CE6F8(*(s32 *) (rec + 0x10), *(s32 *) (rec + 0x18), *(s32 *) (rec + 0x14));
     }
 }
@@ -915,7 +915,7 @@ void func_802A24BC(u8 *rec, u8 *param) {
 #ifdef NON_MATCHING
 
 /* Like func_802A1C20 for the records [OBJ_PTR(obj, 0x28), OBJ_PTR(obj, 0x2C)):
- * each record's word 0 is replaced by func_802A0CFC(word, param), then (the
+ * each record's word 0 is replaced by tex_get_impl(word, param), then (the
  * count byte at +4 read after that call) count - 1 words from +0x10 likewise;
  * the next record follows the last word. Same preconditions (exact end,
  * count >= 1).
@@ -931,14 +931,14 @@ void func_802A2608(u8 *obj, u8 *param, s32 *s1io) {
     s32 n;
 
     while (rec != end) {
-        *(u32 *) rec = func_802A0CFC(*(u32 *) rec, param);
+        *(u32 *) rec = tex_get_impl(*(u32 *) rec, param);
         *s1io = 0x80000000;
         n = rec[4];
         w = (u32 *) (rec + 0x10);
         n--;
         while (n != 0) {
             n--;
-            *w = func_802A0CFC(*w, param);
+            *w = tex_get_impl(*w, param);
             w++;
         }
         rec = (u8 *) w;
@@ -1218,20 +1218,20 @@ void lvl_read_header(u8 *obj) {
     D_803BE736 = v[3];
     D_803A7426 = 0;
     D_803ED400 = 0;
-    D_803F7805 = 0;
-    D_803F7806 = 0;
+    gEndObjectTouched = 0;
+    gPathBuildingsDestroyed = 0;
     D_803BE738 = 0;
     D_803BE739 = *(s32 *) (obj + 0x1C);
     D_803EFECB = 0;
     D_803EF6FF = 0;
     D_803ED40C = 0;
     D_803A740C = 0;
-    D_803F77F8 = 0;
+    gObjHitFrame = 0;
     D_803F780A = 0;
     D_803F780B = 0;
     D_803F780C = 0;
-    D_803F7810 = 0;
-    D_803F7804 = 0;
+    gPartSinking = 0;
+    gVehAttacking = 0;
     D_803F7812 = 0;
 }
 #else
@@ -1240,21 +1240,21 @@ void lvl_read_header(u8 *obj) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* (Unk802A08E4Regs and func_802A08E4 are declared at the top of the file.) */
+/* (Unk802A08E4Regs and tex_resolve_dl_impl are declared at the top of the file.) */
 
 /* Resolves the G_SETTIMG texture ids in the level object's display list
- * [OBJ_PTR(obj, 0x78), OBJ_PTR(obj, 0x84)) with func_802A08E4. Returns the
+ * [OBJ_PTR(obj, 0x78), OBJ_PTR(obj, 0x84)) with tex_resolve_dl_impl. Returns the
  * list end, which the asm leaves in s1 and its caller initlevel hands on
  * to func_802A3D54's in/out s1 when func_802A1C20 doesn't overwrite it.
  * Register convention: obj in t0, result in s1 (conventions.txt); the asm
- * saves t0 and passes its caller's s4 through as func_802A08E4's in/out s4
+ * saves t0 and passes its caller's s4 through as tex_resolve_dl_impl's in/out s4
  * (`r` is a local here); s0, s2-s6 are left changed (dead in the caller).
  * Asm caller initlevel keeps t0, t6, t9 live. */
 u8 *func_802A3008(u8 *obj) {
     Unk802A08E4Regs r;
     u8 *end = OBJ_PTR(obj, 0x84);
 
-    func_802A08E4((u32 *) OBJ_PTR(obj, 0x78), (u32 *) end, &r);
+    tex_resolve_dl_impl((u32 *) OBJ_PTR(obj, 0x78), (u32 *) end, &r);
     return end;
 }
 #else
@@ -1414,8 +1414,8 @@ void func_802A3198(Out802A32CC *out) {
 /* Loads the packed block of `type` (ROM ranges below; any other type hits
  * the asm's `syscall` debug trap and then runs as type 3, kept) with
  * port_load_packed and resolves the G_SETTIMG ids of its display list
- * [data + *(data + 0x1C), data + *(data + 0x20)) with func_802A08E4 (in/out
- * s4 = the ROM start). out: the data, func_802A08E4's s3 / s4.
+ * [data + *(data + 0x1C), data + *(data + 0x20)) with tex_resolve_dl_impl (in/out
+ * s4 = the ROM start). out: the data, tex_resolve_dl_impl's s3 / s4.
  * Register convention: type in t3; s2, s3, s4 through `out`
  * (conventions.txt). The asm saves t0-t7, s0, s1 and leaves s5-s7 changed
  * (and f12 / f14 as the callees leave them). */
@@ -1458,7 +1458,7 @@ void func_802A32CC(s32 type, Out802A32CC *out) {
     }
     data = port_load_packed(rom, romEnd - rom, &end);
     r.s4 = (u8 *) rom;
-    func_802A08E4((u32 *) OBJ_PTR(data, 0x1C), (u32 *) OBJ_PTR(data, 0x20), &r);
+    tex_resolve_dl_impl((u32 *) OBJ_PTR(data, 0x1C), (u32 *) OBJ_PTR(data, 0x20), &r);
     out->s2 = data;
     out->s3 = r.s3;
     out->s4 = r.s4;
@@ -1666,8 +1666,8 @@ void func_802A3824(u8 *obj) {
 
 /* As func_802A32CC for the object types below (any other type hits the
  * asm's `syscall` debug trap and then runs as type 0, kept), with
- * func_8029DF78(dl, dlEnd, type) on the display list before func_802A08E4.
- * out: the data, func_802A08E4's s4 and the new heap end.
+ * func_8029DF78(dl, dlEnd, type) on the display list before tex_resolve_dl_impl.
+ * out: the data, tex_resolve_dl_impl's s4 and the new heap end.
  * Register convention: type in t3; s2, s4, a1 through `out`
  * (conventions.txt). The asm saves t0-t7, s0, s1, s3 and leaves s5-s7
  * changed (and f12 / f14 as the callees leave them). Asm callers rely on
@@ -1752,7 +1752,7 @@ void lvl_load_model(s32 type, Out802A396C *out) {
     data = port_load_packed(rom, romEnd - rom, &end);
     func_8029DF78(OBJ_PTR(data, 0x1C), OBJ_PTR(data, 0x20), type);
     r.s4 = (u8 *) rom;
-    func_802A08E4((u32 *) OBJ_PTR(data, 0x1C), (u32 *) OBJ_PTR(data, 0x20), &r);
+    tex_resolve_dl_impl((u32 *) OBJ_PTR(data, 0x1C), (u32 *) OBJ_PTR(data, 0x20), &r);
     out->s2 = data;
     out->s4 = r.s4;
     out->a1 = end;

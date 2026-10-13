@@ -9,8 +9,8 @@
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_802F5804 ((PathNode *) D_802F5804)
-#define D_802F8BDC ((TextArg *) D_802F8BDC)
+#define gYoshiGameItems ((PathNode *) gYoshiGameItems)
+#define gYoshiWindows ((TextArg *) gYoshiWindows)
 #define gVehicles ((Struct80364460 *) gVehicles)
 #define players ((Struct80364AF0 *) players)
 #ifdef NON_MATCHING
@@ -493,7 +493,7 @@ void func_80269258(void) {
                 if (((s32) gLevelKind) == 0x80) {
                     D_8036B95C = 1;
                 } else {
-                    func_802C1DD0(0);
+                    obj_tally(0);
                     if (D_8036EA78 < D_8036EB92) {
                         D_8036B964 = 1;
                         D_8036B95C = 1;
@@ -510,59 +510,59 @@ void func_80269258(void) {
                 D_803FCD70 = D_802F4224[pts[2]].event;
                 break;
             case 5:
-                D_802F5804[42].text = "LANDING ABORTED!";
-                D_802F5804[42].jtext = D_80303AF4;
-                D_802F8BDC[23].unk12 = 0xDA;
+                gYoshiGameItems[42].text = "LANDING ABORTED!";
+                gYoshiGameItems[42].jtext = D_80303AF4;
+                gYoshiWindows[23].unk12 = 0xDA;
                 if (gGameMode & 0x104) {
-                    func_8026AF6C(0x8017);
+                    yoshi_demand(0x8017);
                 }
                 break;
             case 6:
-                D_802F5804[42].text = "DITCHING IN SEA!";
-                D_802F5804[42].jtext = D_80303B00;
-                D_802F8BDC[23].unk12 = 0x77;
+                gYoshiGameItems[42].text = "DITCHING IN SEA!";
+                gYoshiGameItems[42].jtext = D_80303B00;
+                gYoshiWindows[23].unk12 = 0x77;
                 if (gGameMode & 0x104) {
-                    func_8026AF6C(0x8017);
+                    yoshi_demand(0x8017);
                 }
                 break;
             case 4:
-                D_802F5804[42].text = "ON FINAL APPROACH!";
-                D_802F5804[42].jtext = D_80303B10;
-                D_802F8BDC[23].unk12 = 0xD7;
+                gYoshiGameItems[42].text = "ON FINAL APPROACH!";
+                gYoshiGameItems[42].jtext = D_80303B10;
+                gYoshiWindows[23].unk12 = 0xD7;
                 if (gGameMode & 0x104) {
-                    func_8026AF6C(0x8017);
+                    yoshi_demand(0x8017);
                 }
                 break;
             case 7:
-                D_802F5804[42].text = "SUCCESSFUL LANDING!";
-                D_802F5804[42].jtext = D_80303B24;
-                D_802F8BDC[23].unk12 = 0x82;
+                gYoshiGameItems[42].text = "SUCCESSFUL LANDING!";
+                gYoshiGameItems[42].jtext = D_80303B24;
+                gYoshiWindows[23].unk12 = 0x82;
                 if (gGameMode & 0x104) {
-                    func_8026AF6C(0x8017);
+                    yoshi_demand(0x8017);
                 }
                 break;
             case 8:
-                D_802F5804[42].text = "3000 FT!";
-                D_802F5804[42].jtext = NULL;
-                D_802F8BDC[23].unk12 = 0xD5;
+                gYoshiGameItems[42].text = "3000 FT!";
+                gYoshiGameItems[42].jtext = NULL;
+                gYoshiWindows[23].unk12 = 0xD5;
                 if (gGameMode & 0x104) {
-                    func_8026AF6C(0x8017);
+                    yoshi_demand(0x8017);
                 }
                 break;
             case 9:
-                D_802F5804[42].text = "2000 FT!";
-                D_802F5804[42].jtext = NULL;
-                D_802F8BDC[23].unk12 = 0xD3;
+                gYoshiGameItems[42].text = "2000 FT!";
+                gYoshiGameItems[42].jtext = NULL;
+                gYoshiWindows[23].unk12 = 0xD3;
                 if (gGameMode & 0x104) {
-                    func_8026AF6C(0x8017);
+                    yoshi_demand(0x8017);
                 }
                 break;
             case 10:
-                D_802F5804[42].text = "1000 FT!";
-                D_802F5804[42].jtext = NULL;
-                D_802F8BDC[23].unk12 = 0xD1;
+                gYoshiGameItems[42].text = "1000 FT!";
+                gYoshiGameItems[42].jtext = NULL;
+                gYoshiWindows[23].unk12 = 0xD1;
                 if (gGameMode & 0x104) {
-                    func_8026AF6C(0x8017);
+                    yoshi_demand(0x8017);
                     func_80260DFC();
                 }
                 break;
@@ -705,7 +705,7 @@ void func_8026A988(void) {
     D_8036B979 = 0;
 }
 
-/* Per-frame event checks: proximity to vehicles, level-specific triggers (func_8026AD30). */
+/* Per-frame event checks: proximity to vehicles, level-specific triggers (yoshi_show_hint). */
 void func_8026A9B4(void) {
     Struct80364460 *p;
     u8 done;
@@ -714,11 +714,11 @@ void func_8026A9B4(void) {
 
     minDist = 999999;
     if (D_803A7430 == 15) {
-        func_8026AD30(0x50);
+        yoshi_show_hint(0x50);
     }
     if (levelno == 0x12 && (gPlayerX >> 5) < 0x578
         && func_8026A610(gPlayerX >> 5, gPlayerZ >> 5, 0x531, 0x1061) < 0x82) {
-        func_8026AD30(0x51);
+        yoshi_show_hint(0x51);
     }
     if (gCurVehicle != D_8036B979) {
         D_8036B978 = D_8036B979;
@@ -737,7 +737,7 @@ void func_8026A9B4(void) {
                 minDist = d;
             }
             if (d < 100 && !D_8036B970 && (!func_802AB3C0(p->unk5C) || !D_803EFECB)) {
-                func_8026AD30(0x4C);
+                yoshi_show_hint(0x4C);
                 D_8036B970 = 1;
                 done = 1;
             }
@@ -748,16 +748,16 @@ void func_8026A9B4(void) {
         D_8036B970 = 0;
     }
     if (levelno == 0 && D_8036C7CC >= 2) {
-        func_8026AD30(0x4D);
+        yoshi_show_hint(0x4D);
     }
     if (levelno == 0 && gCurVehicle == 7 && (gPlayerX >> 5) >= 0x899) {
-        func_8026AD30(0x53);
+        yoshi_show_hint(0x53);
     }
     if (D_8036B971) {
         if (!((players[playerNumber].unk18[levelno] > 0 && players[playerNumber].unk18[levelno] < 6) ? 1 : 0)
             && !D_8036EB98) {
-            if (!func_8026AD30(0x4E)) {
-                func_8026AD30(0x4F);
+            if (!yoshi_show_hint(0x4E)) {
+                yoshi_show_hint(0x4F);
             }
             D_8036B971 = 0;
         }

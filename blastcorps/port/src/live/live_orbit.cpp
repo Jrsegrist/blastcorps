@@ -461,7 +461,7 @@ bool commandHook(RT64::State *state, RT64::DisplayList **dl, const GbiOriginal *
 }
 
 /* ---- billboards ---------------------------------------------------------------
- * Smoke, explosions and particles (60F60.c func_802A68D4, 43A60.c) are quads
+ * Smoke, explosions and particles (60F60.c fx_build_matrix, 43A60.c) are quads
  * the game turns to face its own camera (a rotation by the camera's pitch
  * and heading in their model matrix).  In the orbit view they are turned to
  * face the orbit camera instead: a model matrix whose rotation is (up to its

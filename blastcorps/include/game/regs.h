@@ -11,9 +11,9 @@
  * its asm register for eqcheck. Field names are the registers.
  */
 
-/* func_802A6274's three in/out registers (60F60.c). */
+/* fx_spawn's three in/out registers (60F60.c). */
 typedef struct {
-    /* 0x0 */ s32 a3; /* in: tag byte for D_803EB792; out: last D_803EB770 byte scanned */
+    /* 0x0 */ s32 a3; /* in: tag byte for D_803EB792; out: last gFxTileSlots byte scanned */
     /* 0x4 */ s32 t6; /* in: word for rec+0x20; out: (s16) def[0] (when a record was set up) */
     /* 0x8 */ s32 s1; /* in: word for rec+0x14; out: the record's 0x100-byte buffer (when def[0] != -1) */
 } Io802A6274;
@@ -110,17 +110,17 @@ typedef struct {
     /* 0x18 */ s32 t7; /* last byte compared */
 } Unk8029C6E4Out;
 
-/* Register results of func_802A08E4 its asm callers read (5BF40.c). */
+/* Register results of tex_resolve_dl_impl its asm callers read (5BF40.c). */
 typedef struct {
-    /* 0x0 */ u8 * N64P *s2; /* &D_803B8D40 */
-    /* 0x4 */ u8 *s3;  /* the new D_803B8D40 */
+    /* 0x0 */ u8 * N64P *s2; /* &gTexCacheEnd */
+    /* 0x4 */ u8 *s3;  /* the new gTexCacheEnd */
     /* 0x8 */ u8 *s4;  /* in/out: last cache pair looked at (only set when a G_SETTIMG was seen) */
 } Unk802A08E4Regs;
 
 /* Register results of lvl_load_model its asm callers read (5CB60.c). */
 typedef struct {
     /* 0x0 */ u8 *s2; /* the loaded data (old heap pointer) */
-    /* 0x4 */ u8 *s4; /* func_802A08E4's s4 (in: the ROM start) */
+    /* 0x4 */ u8 *s4; /* tex_resolve_dl_impl's s4 (in: the ROM start) */
     /* 0x8 */ u8 *a1; /* the new heap end */
 } Out802A396C;
 

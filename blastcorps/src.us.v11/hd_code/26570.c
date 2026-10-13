@@ -4,21 +4,21 @@
 /* Matching build: IDO compiled the matched code here against older
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
-#define LEGACY_D_8036BB24
-#define LEGACY_D_8036BED8
-#define LEGACY_func_8026BBD0
+#define LEGACY_gYoshiHeapItems
+#define LEGACY_gRdus
+#define LEGACY_yoshi_draw
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_8020C070 ((PathNode *) D_8020C070)
 #define gLevelInfo ((LevelInfo *) gLevelInfo)
 #define D_802F49F4 ((YoshiSnd *) D_802F49F4)
-#define D_802F5804 ((PathNode *) D_802F5804)
-#define D_802F8BDC ((YoshiArg *) D_802F8BDC)
+#define gYoshiGameItems ((PathNode *) gYoshiGameItems)
+#define gYoshiWindows ((YoshiArg *) gYoshiWindows)
 #define players ((Player *) players)
 #ifdef NON_MATCHING
-#define D_8036BB24 (*(PathNode * N64P *) &D_8036BB24)
-#define D_8036BED8 (*(YoshiNode * N64P *) &D_8036BED8)
+#define gYoshiHeapItems (*(PathNode * N64P *) &gYoshiHeapItems)
+#define gRdus (*(YoshiNode * N64P *) &gRdus)
 #endif
 /* end of views */
 
@@ -133,68 +133,69 @@ typedef struct YoshiArg {
 /* Frame buffers passed in as arg1 */
 #define YMTX(off) ((Mtx *) N64_IPTR(arg1 + (off)))
 
-u16 func_8026F8A8(u16 arg0, u16 arg1, u16 start, u16 mask);
-void func_8026FB50(struct YoshiArg *arg0);
-s32 func_80270A54();
-void func_8026BA7C(struct YoshiArg *arg0);
-Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count);
-void func_8026EF70(YoshiArg *arg0);
-void *func_8026F004(YoshiArg *arg0, u16 idx, u8 japanese);
-u8 func_8026F644(u16 *arg0, u16 *arg1, s16 arg2);
-u16 func_8026F82C(u16 lo, u16 hi, u16 mask);
+u16 yoshi_next_item(u16 arg0, u16 arg1, u16 start, u16 mask);
+void yoshi_select_items(struct YoshiArg *arg0);
+s32 rdu_is_visible();
+void yoshi_load_window_sprites(struct YoshiArg *arg0);
+Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count);
+void yoshi_start_typing(YoshiArg *arg0);
+void *yoshi_get_item_text(YoshiArg *arg0, u16 idx, u8 japanese);
+u8 yoshi_scroll_fade(u16 *arg0, u16 *arg1, s16 arg2);
+u16 yoshi_prev_item(u16 lo, u16 hi, u16 mask);
 
 extern u16 yoshiDemandV;
-extern s16 D_8036BB0C;
-extern s8 D_8036BB0E;
-extern u32 D_8036BB40;
-extern f32 D_8036BB08;
-extern f32 D_8036BB28;
-extern f32 D_8036BB2C;
+extern s16 gYoshiPulse;
+extern s8 gYoshiPulseDir;
+extern u32 gYoshiLastTime;
+extern f32 gYoshiOpenTime;
+extern f32 gYoshiScrollGoal;
+extern f32 gYoshiScroll;
 extern s32 D_8036BB30;
-extern f32 D_8036BB38;
-extern u16 D_8036BB3C;
-extern u16 D_8036BB3E;
-extern s32 D_8036BB44;
-extern s32 D_802F9930;
+extern f32 gYoshiOpen;
+extern u16 gYoshiPrevButton;
+extern u16 gYoshiNextButton;
+extern s32 gYoshiArrowBob;
+extern s32 gYoshiArrowDir;
 extern u8 D_8036BA48[];
-extern Gfx D_802F98B0[];
+extern Gfx gYoshiWindowDl[];
 extern u8 D_8036BAE8[];
 extern u8 D_802F4878[];
-extern u16 D_8036BB48[];
+extern u16 gYoshiTypeBuf[];
 extern u16 D_8036BB4A[];
 /* Per-language special characters: [0] for English, [1] for Japanese */
 extern u16 D_802E8C9C[];
-extern u32 D_8036BB00;
-extern u32 D_8036BAFC;
+extern u32 gYoshiTypeTime;
+extern u32 gYoshiStateTime;
 /* Debug switches set from the command line */
 extern s32 D_802FA250; /* -v */
 extern s32 D_802FA258; /* -s */
 extern s32 D_802FA25C; /* -j */
 extern s32 D_802FA260; /* -m */
 extern u16 D_8036BBB2[];
-extern s32 D_8036BED4;
+extern s32 gRduLitOrderLen;
 #ifndef NON_MATCHING
-extern YoshiNode *D_8036BED8;
+extern YoshiNode *gRdus;
 #endif
-extern f32 D_8036BEDC;
-extern u8 D_8036BEE0;
-extern Vtx D_802F99C0[]; /* quad template */
-extern u8 D_802F9A00[]; /* 16x16 RGBA32 textures */
-extern u8 D_802F9E00[];
-extern s32 D_802FA200[];
-extern YoshiTrigger D_802F48D0[];
-extern u8 D_802F499A[];
-extern u8 D_8036BAA2[];
-extern u16 D_8036BB04;
-extern u16 D_8036BB06;
-extern PathNode * N64P D_8036BB10;
+extern f32 gRduLastHeading;
+extern u8 gRduVtxSet;
+extern Vtx gRduQuad[]; /* quad template */
+extern u8 gRduTexUnlit[]; /* 16x16 RGBA32 textures */
+extern u8 gRduTexLit[];
+extern s32 gRduPickupRadius[];
+extern YoshiTrigger gYoshiHints[];
+extern u8 gYoshiHintMaxShows[];
+extern u8 gYoshiHintShown[];
+extern u16 gYoshiTypeItem;
+extern u16 gYoshiTypeChar;
+extern PathNode * N64P gYoshiItems;
 #ifndef NON_MATCHING
-extern PathNode *D_8036BB24;
+extern PathNode *gYoshiHeapItems;
 #endif
 extern u8 D_8036BA98[];
-extern PathInfo D_802F9934[];
+extern PathInfo gTargetBuildings[];
 
-u8 func_8026AD30(s16 arg0) {
+/* A level's hint window, once per level and up to its show limit (0x8026AD30). */
+u8 yoshi_show_hint(s16 arg0) {
     YoshiTrigger *trig;
     u8 found = 0;
     s32 i;
@@ -209,18 +210,18 @@ u8 func_8026AD30(s16 arg0) {
         return 0;
     }
     for (i = 0; i < 8 && !found; i++) {
-        trig = &D_802F48D0[i];
+        trig = &gYoshiHints[i];
         if (trig->id == levelno) {
             for (j = 0; j < 16 && !found && trig->ids[j] != -1; j++) {
                 if (trig->ids[j] == arg0) {
-                    c1 = players[playerNumber].unk88[arg0] < D_802F499A[arg0];
+                    c1 = players[playerNumber].unk88[arg0] < gYoshiHintMaxShows[arg0];
                     c2 = levelno == 0;
-                    if (!D_8036BAA2[arg0] && (c2 || c1)) {
+                    if (!gYoshiHintShown[arg0] && (c2 || c1)) {
                         if (c1 && !c2) {
                             players[playerNumber].unk88[arg0]++;
                         }
-                        D_8036BAA2[arg0] = 1;
-                        func_8026AF6C(arg0 | 0x8000 | 0x2000);
+                        gYoshiHintShown[arg0] = 1;
+                        yoshi_demand(arg0 | 0x8000 | 0x2000);
                         found = 1;
                     }
                 }
@@ -230,7 +231,8 @@ u8 func_8026AD30(s16 arg0) {
     return found;
 }
 
-void func_8026AF6C(u16 yd) {
+/* Requests a window open/close (yoshiDemandV) (0x8026AF6C). */
+void yoshi_demand(u16 yd) {
     u16 oldWindow = yoshiDemandV & 0xFF;
     u16 newWindow = yd & 0xFF;
 
@@ -242,7 +244,7 @@ void func_8026AF6C(u16 yd) {
         YOSHI_ASSERT(yd==YOSHI_DEMAND_OFF, 1317);
     }
     if (newWindow == 0x1E || newWindow == 0x23 || newWindow == 5 || newWindow == 0xE) {
-        D_8036BB1A = -1;
+        gYoshiPendingWindow = -1;
     }
     if (oldWindow == 0x1E || oldWindow == 0x23 || oldWindow == 5 || oldWindow == 0xE) {
         YOSHI_ASSERT(1==0, 1324);
@@ -256,12 +258,14 @@ void func_8026AF6C(u16 yd) {
     yoshiDemandV = yd;
 }
 
-u16 func_8026B10C(void) {
+/* The pending window demand, yoshiDemandV (0x8026B10C). */
+u16 yoshi_get_demand(void) {
     return yoshiDemandV;
 }
 
-/* Resets the Yoshi state and sets up the level's path nodes */
-void func_8026B118(u8 arg0) {
+/* Resets the window state; preloads this mode's window sprites (0x8026B118).
+ * Resets the Yoshi state and sets up the level's path nodes */
+void yoshi_init(u8 arg0) {
     YoshiArg *arg;
     YoshiTrigger *trig;
     u8 found;
@@ -269,22 +273,22 @@ void func_8026B118(u8 arg0) {
     s32 j;
 
     yoshiState = YOSHI_OFF;
-    D_8036BB16 = 0;
+    yoshiSelection = 0;
     yoshiDemandV = 0;
-    D_8036BB1A = -1;
+    gYoshiPendingWindow = -1;
     currentYoshiWindow = NO_YOSHI_WINDOW;
-    D_8036BB0C = 0;
+    gYoshiPulse = 0;
     arg = NULL;
-    D_8036BB0E = 1;
+    gYoshiPulseDir = 1;
     if (!arg0) {
         for (i = 0; i < 108; i++) {
-            arg = &D_802F8BDC[i];
+            arg = &gYoshiWindows[i];
             if (arg->flags & 0x100) {
                 arg->flags |= 0x80;
             }
         }
     }
-    D_802F8BDC[6].unkC = 3;
+    gYoshiWindows[6].unkC = 3;
     for (i = 0; i < 18; i++) {
         D_8036BAE8[i] = 0;
     }
@@ -297,7 +301,7 @@ void func_8026B118(u8 arg0) {
             D_8020C070[25].unk14 = 0;
             /* fallthrough */
         case 0x40000000:
-            arg = &D_802F8BDC[D_802F4868[lowest_set_bit(gLevelInfo[levelno].unk0)]];
+            arg = &gYoshiWindows[D_802F4868[lowest_set_bit(gLevelInfo[levelno].unk0)]];
             if (D_802E8BF8) {
                 D_8020C070[29].flags &= ~1;
                 D_8020C070[29].unk14 = 11;
@@ -321,29 +325,29 @@ void func_8026B118(u8 arg0) {
             }
             break;
         case 0x40000000000:
-            arg = &D_802F8BDC[22];
+            arg = &gYoshiWindows[22];
             break;
         case 0x4000000000000:
-            arg = &D_802F8BDC[56];
+            arg = &gYoshiWindows[56];
             break;
         case 0x40:
-            arg = &D_802F8BDC[D_802F4870[lowest_set_bit(gLevelInfo[levelno].unk0)]];
+            arg = &gYoshiWindows[D_802F4870[lowest_set_bit(gLevelInfo[levelno].unk0)]];
             if (gLevelInfo[levelno].unk0 == 0x20) {
-                D_802F5804[27].flags &= ~0x400;
-                D_802F5804[28].flags &= ~0x400;
-                D_802F5804[29].unk14 = 0;
-                D_802F5804[30].unk14 = 0;
+                gYoshiGameItems[27].flags &= ~0x400;
+                gYoshiGameItems[28].flags &= ~0x400;
+                gYoshiGameItems[29].unk14 = 0;
+                gYoshiGameItems[30].unk14 = 0;
             } else {
-                D_802F5804[27].unk14 = D_802F4878[lowest_set_bit(gLevelInfo[levelno].unk0)];
-                D_802F5804[28].unk14 = D_802F4878[lowest_set_bit(gLevelInfo[levelno].unk0)];
-                D_802F5804[29].unk14 = 0;
-                D_802F5804[30].unk14 = 0;
+                gYoshiGameItems[27].unk14 = D_802F4878[lowest_set_bit(gLevelInfo[levelno].unk0)];
+                gYoshiGameItems[28].unk14 = D_802F4878[lowest_set_bit(gLevelInfo[levelno].unk0)];
+                gYoshiGameItems[29].unk14 = 0;
+                gYoshiGameItems[30].unk14 = 0;
             }
             break;
         case 0x2000:
             if (((players[playerNumber].unk18[levelno] > 0 && players[playerNumber].unk18[levelno] < 6) ? 1 : 0) &&
                 gLevelInfo[levelno].unk0 == 1) {
-                arg = &D_802F8BDC[6];
+                arg = &gYoshiWindows[6];
             } else {
                 arg = NULL;
             }
@@ -351,19 +355,19 @@ void func_8026B118(u8 arg0) {
         case 0x100000000000:
             switch (levelno) {
                 case 55:
-                    arg = &D_802F8BDC[65];
+                    arg = &gYoshiWindows[65];
                     break;
                 case 28:
-                    arg = &D_802F8BDC[66];
+                    arg = &gYoshiWindows[66];
                     break;
                 case 53:
-                    arg = &D_802F8BDC[67];
+                    arg = &gYoshiWindows[67];
                     break;
                 case 7:
-                    arg = &D_802F8BDC[68];
+                    arg = &gYoshiWindows[68];
                     break;
                 case 19:
-                    arg = &D_802F8BDC[69];
+                    arg = &gYoshiWindows[69];
                     break;
                 default:
                     arg = NULL;
@@ -375,49 +379,51 @@ void func_8026B118(u8 arg0) {
             break;
     }
     if (arg) {
-        func_8026BA7C(arg);
+        yoshi_load_window_sprites(arg);
     }
     if (gNextGameMode & 0x2004) {
         for (i = 0, found = 0; i < 8 && !found; i++) {
-            trig = &D_802F48D0[i];
+            trig = &gYoshiHints[i];
             if (trig->id == levelno) {
                 for (j = 0; j < 16 && trig->ids[j] != -1; j++) {
-                    func_8026BA7C(&D_802F8BDC[trig->ids[j]]);
+                    yoshi_load_window_sprites(&gYoshiWindows[trig->ids[j]]);
                 }
             }
         }
     }
 }
 
-void func_8026B8F8(void) {
+/* Destroy-building levels: the target's icon in the briefing (0x8026B8F8). */
+void yoshi_set_target_icons(void) {
     if (gLevelKind & 0x20) {
         D_8020C070[23].flags |= 0x400;
         D_8020C070[26].flags |= 0x400;
-        D_802F5804[27].flags |= 0x400;
-        D_802F5804[28].flags |= 0x400;
-        D_8020C070[23].unk14 = D_8020C070[26].unk14 = D_802F5804[27].unk14 = D_802F5804[28].unk14 =
-            func_8026FA38(NULL, NULL);
+        gYoshiGameItems[27].flags |= 0x400;
+        gYoshiGameItems[28].flags |= 0x400;
+        D_8020C070[23].unk14 = D_8020C070[26].unk14 = gYoshiGameItems[27].unk14 = gYoshiGameItems[28].unk14 =
+            yoshi_get_target_building(NULL, NULL);
         if (gNextGameMode == 0x40) {
-            func_8026BA7C(&D_802F8BDC[D_802F4870[lowest_set_bit(gLevelKind)]]);
+            yoshi_load_window_sprites(&gYoshiWindows[D_802F4870[lowest_set_bit(gLevelKind)]]);
         } else {
-            func_8026BA7C(&D_802F8BDC[D_802F4868[lowest_set_bit(gLevelKind)]]);
+            yoshi_load_window_sprites(&gYoshiWindows[D_802F4868[lowest_set_bit(gLevelKind)]]);
         }
     }
 }
 
-void func_8026BA7C(YoshiArg *arg0) {
+/* Loads the animated sprites a window's items use (0x8026BA7C). */
+void yoshi_load_window_sprites(YoshiArg *arg0) {
     YoshiSnd *snd;
     s32 i;
     u8 v;
     PathNode *node;
 
     v = 4;
-    func_8026FB50(arg0);
+    yoshi_select_items(arg0);
     if (arg0->flags & 0x20000) {
         v = 0;
     }
     for (i = arg0->unkE; i < arg0->unkE + arg0->unk10; i++) {
-        node = &D_8036BB10[i];
+        node = &gYoshiItems[i];
         if (node->flags & 0x400) {
             snd = &D_802F49F4[node->unk14];
             if (snd->unk2E == -1) {
@@ -431,20 +437,21 @@ void func_8026BA7C(YoshiArg *arg0) {
 }
 
 #ifdef NON_MATCHING
-Gfx *func_8026BBD0(Gfx *gfx, s32 arg1, s32 *count) {
+/* Runs and draws the current window (0x8026BBD0). */
+Gfx *yoshi_draw(Gfx *gfx, s32 arg1, s32 *count) {
 #else
-void func_8026BBD0(Gfx *gfx, s32 arg1, s32 *count) {
+void yoshi_draw(Gfx *gfx, s32 arg1, s32 *count) {
 #endif
     Gfx *gdl = gfx;
 
     YOSHI_ASSERT(!(yoshiState==YOSHI_OFF && currentYoshiWindow!=NO_YOSHI_WINDOW), 1567);
-    gdl = func_8026BCE0(gdl, arg1, count);
+    gdl = yoshi_run_window(gdl, arg1, count);
     YOSHI_ASSERT(!(yoshiState==YOSHI_OFF && currentYoshiWindow!=NO_YOSHI_WINDOW), 1571);
     gDPPipeSync(gdl++);
     *count += gdl - gfx;
 #ifdef NON_MATCHING
     /* The original returns nothing (a void function in the matching build)
-     * but leaves func_8026BCE0's result in v0, and its callers (hd.c, the
+     * but leaves yoshi_run_window's result in v0, and its callers (hd.c, the
      * front end) take that as the new display-list end: the next command
      * they write replaces the pipesync above. */
     return gdl - 1;
@@ -454,9 +461,10 @@ void func_8026BBD0(Gfx *gfx, s32 arg1, s32 *count) {
 #define PRESSED(m) ((gContButtons & (m)) && !(gContPrevButtons & (m)))
 #define FRAMES(t) ((t) * 60 / 60)
 
-/* Runs and draws the current Yoshi window: handles open/close demands, menu
+/* Demands, input, open/close, arrows, sprites and text of the window (0x8026BCE0).
+ * Runs and draws the current Yoshi window: handles open/close demands, menu
  * input, the open/close animation, the scroll arrows, sprites and text */
-Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
+Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
     YoshiArg *arg;
     PathNode *node;
     u8 *text;
@@ -476,39 +484,39 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
     u8 done;
 
     gdl = gfx;
-    dt = (D_803156C4 - D_8036BB40) * 15;
+    dt = (D_803156C4 - gYoshiLastTime) * 15;
     one = 1.0f;
-    D_8036BB40 = D_803156C4;
-    D_8036BB0C += D_8036BB0E * dt;
+    gYoshiLastTime = D_803156C4;
+    gYoshiPulse += gYoshiPulseDir * dt;
     redraw = 0;
-    if (D_8036BB0C >= 256) {
-        D_8036BB0C = 255;
-        D_8036BB0E = -D_8036BB0E;
+    if (gYoshiPulse >= 256) {
+        gYoshiPulse = 255;
+        gYoshiPulseDir = -gYoshiPulseDir;
     }
-    if (D_8036BB0C < 0) {
-        D_8036BB0C = 0;
-        D_8036BB0E = -D_8036BB0E;
+    if (gYoshiPulse < 0) {
+        gYoshiPulse = 0;
+        gYoshiPulseDir = -gYoshiPulseDir;
     }
     c = D_802F47B0[16];
-    c[1] = 255 - D_8036BB0C;
-    c[5] = D_8036BB0C;
+    c[1] = 255 - gYoshiPulse;
+    c[5] = gYoshiPulse;
     c = D_802F47B0[17];
-    c[1] = 170 - D_8036BB0C * 2 / 3;
-    c[5] = D_8036BB0C * 2 / 3;
+    c[1] = 170 - gYoshiPulse * 2 / 3;
+    c[5] = gYoshiPulse * 2 / 3;
     c = D_802F47B0[18];
-    c[0] = c[1] = 255 - D_8036BB0C;
-    c[4] = c[5] = D_8036BB0C;
+    c[0] = c[1] = 255 - gYoshiPulse;
+    c[4] = c[5] = gYoshiPulse;
     c = D_802F47B0[19];
-    c[2] = c[1] = 255 - D_8036BB0C;
-    c[6] = c[5] = D_8036BB0C;
+    c[2] = c[1] = 255 - gYoshiPulse;
+    c[6] = c[5] = gYoshiPulse;
     c = D_802F47B0[20];
-    c[2] = 255 - D_8036BB0C;
-    c[6] = D_8036BB0C;
+    c[2] = 255 - gYoshiPulse;
+    c[6] = gYoshiPulse;
     if (gGameMode == 0x200 && gHaveCarrier && gCarrierHit) {
-        D_8036BB1A = -1;
+        gYoshiPendingWindow = -1;
         if (yoshiState == 4 || yoshiState == 2) {
             debug_printf("putting off!\n");
-            func_8026AF6C(YOSHI_DEMAND_OFF);
+            yoshi_demand(YOSHI_DEMAND_OFF);
         }
     }
     if (currentYoshiWindow == NO_YOSHI_WINDOW && (yoshiDemandV & YOSHI_DEMAND_OFF)) {
@@ -522,15 +530,15 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
         keep = 0;
         debug_printf("yoshiDemand=%x\n", yoshiDemandV);
         if (yoshiDemandV & 0x8000) {
-            D_8036BB1A = -1;
+            gYoshiPendingWindow = -1;
             if (currentYoshiWindow != NO_YOSHI_WINDOW) {
-                keep = D_802F8BDC[currentYoshiWindow].flags & 0x8000000;
+                keep = gYoshiWindows[currentYoshiWindow].flags & 0x8000000;
             }
             if (yoshiState == YOSHI_OFF || force || keep) {
                 currentYoshiWindow = window;
                 yoshiState = YOSHI_OFF;
             } else {
-                D_8036BB1A = window;
+                gYoshiPendingWindow = window;
             }
         }
         if (yoshiState != 8) {
@@ -539,31 +547,31 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
         yoshiDemandV = 0;
     }
     if (currentYoshiWindow == NO_YOSHI_WINDOW) {
-        currentYoshiWindow = D_8036BB1A;
-        D_8036BB1A = -1;
+        currentYoshiWindow = gYoshiPendingWindow;
+        gYoshiPendingWindow = -1;
         if (currentYoshiWindow == NO_YOSHI_WINDOW) {
             return gfx;
         }
         redraw = 1;
     }
-    arg = &D_802F8BDC[currentYoshiWindow];
-    func_8026FB50(arg);
+    arg = &gYoshiWindows[currentYoshiWindow];
+    yoshi_select_items(arg);
     if ((arg->flags & 0x20) && yoshiState == 2) {
         if ((PRESSED(0x8000) || ((arg->flags & 0x80000000) && PRESSED(0x1000))) && arg->atEnd) {
-            sound = D_8036BB10[arg->sel].sound;
+            sound = gYoshiItems[arg->sel].sound;
             if (sound) {
                 func_80260650(D_80367738, sound, NULL);
             }
-            if (D_8036BB10[arg->sel].flags & 0x10) {
+            if (gYoshiItems[arg->sel].flags & 0x10) {
                 gUnpauseRequest = 1;
             }
-            D_8036BB16 = arg->sel;
+            yoshiSelection = arg->sel;
             redraw = 1;
         }
         if (PRESSED(0x4000)) {
             if ((arg->flags & 0x20000000) && arg->atEnd) {
                 func_80260650(D_80367738, 0xDE, NULL);
-                D_8036BB16 = 0xFFFF;
+                yoshiSelection = 0xFFFF;
                 redraw = 1;
                 if (arg->flags & 0x40000000) {
                     gUnpauseRequest = 1;
@@ -574,30 +582,30 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
         }
     }
     if (redraw) {
-        D_8036BAFC = D_803156C4;
+        gYoshiStateTime = D_803156C4;
         switch (yoshiState) {
             case 8:
-                D_8036BAFC = D_803156C4 - D_8036BB08 * D_8036BB38 * D_8036BB34;
+                gYoshiStateTime = D_803156C4 - gYoshiOpenTime * gYoshiOpen * gYoshiScale;
             case 1:
                 yoshiState = 4;
-                D_8036BB34 = 1.0f;
+                gYoshiScale = 1.0f;
                 if (arg->flags & 0x18) {
-                    D_8036BB08 = 40.0f;
+                    gYoshiOpenTime = 40.0f;
                 } else {
-                    D_8036BB08 = 13.333333f;
+                    gYoshiOpenTime = 13.333333f;
                 }
-                func_8026EF70(arg);
+                yoshi_start_typing(arg);
                 sound = arg->openSound;
                 if (sound) {
                     func_80260650(D_80367738, sound, NULL);
                 }
                 if (!(arg->flags & 0x400)) {
-                    for (i = arg->unkE; !(D_8036BB10[i].flags & 1) && i < arg->unkE + arg->unk10; i++) {
+                    for (i = arg->unkE; !(gYoshiItems[i].flags & 1) && i < arg->unkE + arg->unk10; i++) {
                     }
                     arg->sel = i;
                 }
                 for (i = arg->unkE; i < arg->unkE + arg->unk10; i++) {
-                    node = &D_8036BB10[i];
+                    node = &gYoshiItems[i];
                     if (node->flags & 0x20) {
                         if (arg->flags & 0x80000) {
                             node->x = func_8025B498(arg->w / 2, node->w, node->text, (s32) node->jtext);
@@ -613,17 +621,17 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
                     func_80261570(0.0f);
                 }
                 if (arg->flags & 0x100000) {
-                    D_8036BB28 = arg->h;
+                    gYoshiScrollGoal = arg->h;
                 } else {
-                    D_8036BB28 = arg->h / 2 - D_8036BB10[arg->sel].y;
+                    gYoshiScrollGoal = arg->h / 2 - gYoshiItems[arg->sel].y;
                     if (arg->flags & 0x40000) {
-                        D_8036BB28 -= D_8036BB10[arg->sel].h / 2;
+                        gYoshiScrollGoal -= gYoshiItems[arg->sel].h / 2;
                     }
                 }
-                D_8036BB2C = D_8036BB28;
+                gYoshiScroll = gYoshiScrollGoal;
                 break;
             case 4:
-                D_8036BAFC = (D_8036BB38 - one) * D_8036BB08 + D_803156C4;
+                gYoshiStateTime = (gYoshiOpen - one) * gYoshiOpenTime + D_803156C4;
             case 2:
                 yoshiState = 8;
                 sound = arg->closeSound;
@@ -642,10 +650,10 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
     switch (yoshiState) {
         case 2:
             if (arg->flags & 0x100000) {
-                done = D_8036BB2C < (f32) (arg->h / 8 - D_8036BB10[arg->unkE + arg->unk10 - 1].y);
+                done = gYoshiScroll < (f32) (arg->h / 8 - gYoshiItems[arg->unkE + arg->unk10 - 1].y);
             } else {
-                done = arg->unkC != 0 && (D_803156C4 - D_8036BAFC) / 60.0f > arg->unkC &&
-                       (!(arg->flags & 0x400000) || !(D_8036BB1E != 0));
+                done = arg->unkC != 0 && (D_803156C4 - gYoshiStateTime) / 60.0f > arg->unkC &&
+                       (!(arg->flags & 0x400000) || !(gYoshiTypeState != 0));
             }
             if (done) {
                 sound = arg->closeSound;
@@ -656,36 +664,36 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
                     func_80261570(0.0f);
                 }
                 yoshiState = 8;
-                D_8036BAFC = D_803156C4;
+                gYoshiStateTime = D_803156C4;
             }
             break;
         case 4:
-            D_8036BB38 = (D_803156C4 - D_8036BAFC) / D_8036BB08;
-            if (D_8036BB38 > one) {
-                D_8036BAFC = D_803156C4;
+            gYoshiOpen = (D_803156C4 - gYoshiStateTime) / gYoshiOpenTime;
+            if (gYoshiOpen > one) {
+                gYoshiStateTime = D_803156C4;
                 yoshiState = 2;
-                D_8036BB38 = one;
+                gYoshiOpen = one;
                 if (arg->flags & 0x40) {
-                    D_8036BB3C = 0x200;
-                    D_8036BB3E = 0x100;
+                    gYoshiPrevButton = 0x200;
+                    gYoshiNextButton = 0x100;
                 } else {
-                    D_8036BB3C = 0x800;
-                    D_8036BB3E = 0x400;
+                    gYoshiPrevButton = 0x800;
+                    gYoshiNextButton = 0x400;
                 }
                 if (arg->flags & 0x10000000) {
                     arg->atEnd = 1;
                 } else {
                     arg->atEnd = 0;
                 }
-                if (func_8026F8A8(arg->unkE, arg->unk10, arg->sel, 1) == arg->sel) {
+                if (yoshi_next_item(arg->unkE, arg->unk10, arg->sel, 1) == arg->sel) {
                     arg->atEnd = 1;
                 }
             }
             break;
         case 8:
-            D_8036BB38 = one - (D_803156C4 - D_8036BAFC) / D_8036BB08;
-            if (D_8036BB38 < 0.001) {
-                D_8036BB38 = 0.0f;
+            gYoshiOpen = one - (D_803156C4 - gYoshiStateTime) / gYoshiOpenTime;
+            if (gYoshiOpen < 0.001) {
+                gYoshiOpen = 0.0f;
                 yoshiState = 1;
                 if (arg->flags & 0x2000000) {
                     gUnpauseRequest = 1;
@@ -699,16 +707,16 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
             break;
     }
     if (yoshiState != 1) {
-        D_8036BB20 = (hd_sinf(D_8036BB38 * D_8036BB34 / one * 1.57 + 4.71) + 1.0) * 255.0;
+        gYoshiAlpha = (hd_sinf(gYoshiOpen * gYoshiScale / one * 1.57 + 4.71) + 1.0) * 255.0;
     }
-    if (yoshiState != 1 && D_8036BB38 * D_8036BB34 > 0.1) {
+    if (yoshiState != 1 && gYoshiOpen * gYoshiScale > 0.1) {
         halfW = arg->w / 2;
         halfH = arg->h / 2;
         guOrtho(YMTX(0x1240), -arg->x - halfW, -arg->x - halfW + 319, -arg->y - halfH + 239, -arg->y - halfH,
                 -256.0f, 256.0f, 256.0f);
         gSPMatrix(gdl++, OS_K0_TO_PHYSICAL(YMTX(0x1240)), G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
         if (arg->flags & 0x10) {
-            guRotate(YMTX(0x12C0), 180.0 - D_8036BB38 * D_8036BB34 / one * 180.0, 2.0f, 0.0f, 1.0f);
+            guRotate(YMTX(0x12C0), 180.0 - gYoshiOpen * gYoshiScale / one * 180.0, 2.0f, 0.0f, 1.0f);
             gSPMatrix(gdl++, OS_K0_TO_PHYSICAL(YMTX(0x12C0)), G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
         } else {
             guTranslate(YMTX(0x12C0), 0.0f, 0.0f, 0.0f);
@@ -717,8 +725,8 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
         gSPMatrix(gdl++, OS_K0_TO_PHYSICAL(YMTX(0x1300)), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
         gSPPopMatrix(gdl++, G_MTX_MODELVIEW);
         if (arg->flags & 8) {
-            guScale(YMTX(0x1300), halfW * D_8036BB38 * D_8036BB34 / 1000.0f,
-                    halfH * D_8036BB38 * D_8036BB34 / 1000.0f, 1.0f);
+            guScale(YMTX(0x1300), halfW * gYoshiOpen * gYoshiScale / 1000.0f,
+                    halfH * gYoshiOpen * gYoshiScale / 1000.0f, 1.0f);
             gSPMatrix(gdl++, OS_K0_TO_PHYSICAL(YMTX(0x1300)), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
         } else {
             guScale(YMTX(0x1300), halfW / 1000.0f, halfH / 1000.0f, 1.0f);
@@ -731,11 +739,11 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
         gSPSetGeometryMode(gdl++, G_SHADE | G_SHADING_SMOOTH);
         gSPTexture(gdl++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_OFF);
         if (!(arg->flags & 0x200)) {
-            gSPDisplayList(gdl++, D_802F98B0);
+            gSPDisplayList(gdl++, gYoshiWindowDl);
         }
         gSPPopMatrix(gdl++, G_MTX_MODELVIEW);
         if (arg->flags & 8) {
-            guScale(YMTX(0x1280), D_8036BB38, D_8036BB38, 1.0f);
+            guScale(YMTX(0x1280), gYoshiOpen, gYoshiOpen, 1.0f);
             gSPMatrix(gdl++, OS_K0_TO_PHYSICAL(YMTX(0x1280)), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
         }
         if ((arg->flags & 0x20) && yoshiState == 2) {
@@ -744,7 +752,7 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
 
             up = 0;
             down = 0;
-            if (D_8036BB3C == 0x800) {
+            if (gYoshiPrevButton == 0x800) {
                 if (gContStickY >= 31 && gContPrevStickY < 31) {
                     up = 1;
                 } else {
@@ -755,7 +763,7 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
             } else {
                 up = 0;
             }
-            if (D_8036BB3E == 0x400) {
+            if (gYoshiNextButton == 0x400) {
                 if (gContStickY < -30 && gContPrevStickY >= -30) {
                     down = 1;
                 } else {
@@ -766,10 +774,10 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
             } else {
                 down = 0;
             }
-            if (PRESSED(D_8036BB3C) || up) {
+            if (PRESSED(gYoshiPrevButton) || up) {
                 u16 prev;
 
-                prev = func_8026F82C(arg->unkE, arg->sel, 1);
+                prev = yoshi_prev_item(arg->unkE, arg->sel, 1);
                 sound = arg->moveSound;
                 if (sound) {
                     if (prev != arg->sel) {
@@ -778,15 +786,15 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
                         func_80260650(D_80367738, 0xD0, NULL);
                     }
                 }
-                D_8036BB28 += D_8036BB10[arg->sel].y - D_8036BB10[prev].y;
+                gYoshiScrollGoal += gYoshiItems[arg->sel].y - gYoshiItems[prev].y;
                 arg->sel = prev;
-            } else if (((((arg->atEnd ? 0 : 0x8000) | D_8036BB3E) & gContButtons) &&
-                        !(((arg->atEnd ? 0 : 0x8000) | D_8036BB3E) & gContPrevButtons)) ||
+            } else if (((((arg->atEnd ? 0 : 0x8000) | gYoshiNextButton) & gContButtons) &&
+                        !(((arg->atEnd ? 0 : 0x8000) | gYoshiNextButton) & gContPrevButtons)) ||
                        down) {
                 u16 next;
 
-                next = func_8026F8A8(arg->unkE, arg->unk10, arg->sel, 1);
-                if (func_8026F8A8(arg->unkE, arg->unk10, next, 1) == next) {
+                next = yoshi_next_item(arg->unkE, arg->unk10, arg->sel, 1);
+                if (yoshi_next_item(arg->unkE, arg->unk10, next, 1) == next) {
                     arg->atEnd = 1;
                 }
                 sound = arg->moveSound;
@@ -797,22 +805,22 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
                         func_80260650(D_80367738, 0xD0, NULL);
                     }
                 }
-                D_8036BB28 += D_8036BB10[arg->sel].y - D_8036BB10[next].y;
+                gYoshiScrollGoal += gYoshiItems[arg->sel].y - gYoshiItems[next].y;
                 arg->sel = next;
-                D_8036BAFC = D_803156C4;
+                gYoshiStateTime = D_803156C4;
             }
         }
         if (arg->flags & 0x4000) {
             if (arg->flags & 0x100000) {
-                if (arg->unkC == 0 || !((D_803156C4 - D_8036BAFC) / 60.0f < arg->unkC)) {
+                if (arg->unkC == 0 || !((D_803156C4 - gYoshiStateTime) / 60.0f < arg->unkC)) {
                     if (arg->flags & 0x800000) {
-                        D_8036BB2C -= 0.5;
+                        gYoshiScroll -= 0.5;
                     } else {
-                        D_8036BB2C -= 1.0;
+                        gYoshiScroll -= 1.0;
                     }
                 }
             } else {
-                D_8036BB2C += (D_8036BB28 - D_8036BB2C) * 0.1;
+                gYoshiScroll += (gYoshiScrollGoal - gYoshiScroll) * 0.1;
             }
             if (arg->flags & 0x10000) {
                 s32 cc;
@@ -825,24 +833,24 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
                     off = 0x1C;
                 }
                 if (!(gGameMode & 0xC9FD0FE79BFF80B0) || gBufferIndex) {
-                    D_8036BB44 += D_802F9930;
+                    gYoshiArrowBob += gYoshiArrowDir;
                 }
-                if (D_802F9930 < 0) {
-                    D_8036BB44 += D_802F9930 * 2;
+                if (gYoshiArrowDir < 0) {
+                    gYoshiArrowBob += gYoshiArrowDir * 2;
                 }
-                if (D_8036BB44 < 0 || D_8036BB44 >= 8) {
-                    D_8036BB44 -= D_802F9930 * 2;
-                    D_802F9930 = -D_802F9930;
+                if (gYoshiArrowBob < 0 || gYoshiArrowBob >= 8) {
+                    gYoshiArrowBob -= gYoshiArrowDir * 2;
+                    gYoshiArrowDir = -gYoshiArrowDir;
                 }
-                if (func_8026F8A8(arg->unkE, arg->unk10, arg->sel, 1) != arg->sel) {
+                if (yoshi_next_item(arg->unkE, arg->unk10, arg->sel, 1) != arg->sel) {
                     u8 *c2;
 
                     c2 = D_802F47B0[18];
-                    cc = func_80276130((struct SpriteVtxBuf *) N64_IPTR(arg1), 0, cc, -halfW, halfH - D_8036BB44 - off, 16, D_8036BB44 / 2 + 10,
-                                       c2[0], c2[1], c2[2], D_8036BB20, c2[4], c2[5], c2[6], D_8036BB20,
-                                       c2[0], c2[1], c2[2], D_8036BB20, c2[4], c2[5], c2[6], D_8036BB20);
-                    cc = func_80276080((struct SpriteVtxBuf *) N64_IPTR(arg1), 0, cc, -3 - halfW, halfH - D_8036BB44 - off + 3, 16,
-                                       D_8036BB44 / 2 + 10, 0, 0, 0, D_8036BB20 / 2);
+                    cc = func_80276130((struct SpriteVtxBuf *) N64_IPTR(arg1), 0, cc, -halfW, halfH - gYoshiArrowBob - off, 16, gYoshiArrowBob / 2 + 10,
+                                       c2[0], c2[1], c2[2], gYoshiAlpha, c2[4], c2[5], c2[6], gYoshiAlpha,
+                                       c2[0], c2[1], c2[2], gYoshiAlpha, c2[4], c2[5], c2[6], gYoshiAlpha);
+                    cc = func_80276080((struct SpriteVtxBuf *) N64_IPTR(arg1), 0, cc, -3 - halfW, halfH - gYoshiArrowBob - off + 3, 16,
+                                       gYoshiArrowBob / 2 + 10, 0, 0, 0, gYoshiAlpha / 2);
                     gdl = func_80275DA4(gdl, 1);
                     gSPVertex(gdl++, arg1 + 0x1E00, 8, 0);
                     gSP1Triangle(gdl++, 4, 5, 6, 0);
@@ -850,18 +858,18 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
                     gSP1Triangle(gdl++, 0, 1, 2, 0);
                     gSP1Triangle(gdl++, 0, 2, 3, 0);
                 }
-                if (func_8026F82C(arg->unkE, arg->sel, 1) != arg->sel) {
+                if (yoshi_prev_item(arg->unkE, arg->sel, 1) != arg->sel) {
                     u8 *c3;
 
                     c3 = D_802F47B0[18];
                     /* The ROM reloads c3[0] for the second colour here (unlike the call above, where
                      * IDO reuses the first load). No plain spelling found that defeats ugen's load
                      * cache; the volatile cast reproduces it with identical code. */
-                    cc = func_80276130((struct SpriteVtxBuf *) N64_IPTR(arg1), 1, cc, -halfW, D_8036BB44 - halfH + off, 16, D_8036BB44 / 2 + 10,
-                                       c3[0], c3[1], c3[2], D_8036BB20, c3[4], c3[5], c3[6], D_8036BB20,
-                                       ((volatile u8 *) c3)[0], c3[1], c3[2], D_8036BB20, c3[4], c3[5], c3[6], D_8036BB20);
-                    cc = func_80276080((struct SpriteVtxBuf *) N64_IPTR(arg1), 1, cc, -3 - halfW, D_8036BB44 - halfH + off - 3, 16,
-                                       D_8036BB44 / 2 + 10, 0, 0, 0, D_8036BB20 / 2);
+                    cc = func_80276130((struct SpriteVtxBuf *) N64_IPTR(arg1), 1, cc, -halfW, gYoshiArrowBob - halfH + off, 16, gYoshiArrowBob / 2 + 10,
+                                       c3[0], c3[1], c3[2], gYoshiAlpha, c3[4], c3[5], c3[6], gYoshiAlpha,
+                                       ((volatile u8 *) c3)[0], c3[1], c3[2], gYoshiAlpha, c3[4], c3[5], c3[6], gYoshiAlpha);
+                    cc = func_80276080((struct SpriteVtxBuf *) N64_IPTR(arg1), 1, cc, -3 - halfW, gYoshiArrowBob - halfH + off - 3, 16,
+                                       gYoshiArrowBob / 2 + 10, 0, 0, 0, gYoshiAlpha / 2);
                     gdl = func_80275DA4(gdl, 1);
                     gSPVertex(gdl++, &((Vtx *) N64_IPTR((arg1 + 0x1D80)))[cc], 8, 0);
                     gSP1Triangle(gdl++, 4, 5, 6, 0);
@@ -871,9 +879,9 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
                 }
             }
         } else {
-            D_8036BB2C = 0.0f;
+            gYoshiScroll = 0.0f;
         }
-        D_8036BB30 = D_8036BB2C;
+        D_8036BB30 = gYoshiScroll;
         if (arg->flags & 0x1000) {
             if (arg->flags & 0x20000) {
                 gdl = func_80274868(gdl);
@@ -881,8 +889,8 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
                 gdl = func_80274998(gdl);
             }
             for (i = arg->unkE; i < arg->unkE + arg->unk10; i++) {
-                node = &D_8036BB10[i];
-                if (!(node->flags & 0x800) && (node->flags & 0x400) && (!(node->flags & 0x300) || i <= D_8036BB04)) {
+                node = &gYoshiItems[i];
+                if (!(node->flags & 0x800) && (node->flags & 0x400) && (!(node->flags & 0x300) || i <= gYoshiTypeItem)) {
                     YoshiSnd *snd;
                     s16 x;
                     s16 y;
@@ -921,14 +929,14 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
                             }
                             gdl = func_80272ED8(gdl, node->unk1A + frame - 1, snd->x + node->x + x,
                                                 ((node->flags & 0x1000) ? D_8036BB30 : 0) + (snd->y + node->y + y),
-                                                func_8026F644((u16 *) arg, (u16 *) node, node->y + snd->y - halfH + D_8036BB30 + 8) *
-                                                    D_8036BB38 * D_8036BB34,
+                                                yoshi_scroll_fade((u16 *) arg, (u16 *) node, node->y + snd->y - halfH + D_8036BB30 + 8) *
+                                                    gYoshiOpen * gYoshiScale,
                                                 mode, snd->scale);
                         } else {
                             gdl = func_80272ED8(gdl, node->unk1A + frame - 1, snd->x + node->x + x,
                                                 ((node->flags & 0x1000) ? D_8036BB30 : 0) + (snd->y + node->y + y),
-                                                func_8026F644((u16 *) arg, (u16 *) node, node->y + snd->y - halfH + D_8036BB30 + 8) *
-                                                    D_8036BB38 * D_8036BB34 * 0.7,
+                                                yoshi_scroll_fade((u16 *) arg, (u16 *) node, node->y + snd->y - halfH + D_8036BB30 + 8) *
+                                                    gYoshiOpen * gYoshiScale * 0.7,
                                                 mode & ~1, snd->scale);
                         }
                     }
@@ -942,32 +950,32 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
         }
         if (currentYoshiWindow < 0x62 || currentYoshiWindow >= 0x6C || gGameMode == 2) {
             for (i = arg->unkE; i < arg->unkE + arg->unk10; i++) {
-                node = &D_8036BB10[i];
+                node = &gYoshiItems[i];
                 wtext = NULL;
-                text = func_8026F004(arg, i, 0);
+                text = yoshi_get_item_text(arg, i, 0);
                 if ((node->flags & 0x80) && !(node->flags & 0x800)) {
                     if (i == arg->sel) {
                         func_80259DC8((Gfx * N64P *) N64_IPTR(arg1), text, wtext, node->flags & 8, 0, node->x - halfW - 3,
                                       ((node->flags & 0x1000) ? D_8036BB30 : 0) + (node->y - halfH) + 3, node->w,
                                       node->h, 1, 0, 0, 0,
-                                      D_8036BB20 * D_802F47B0[node->selColor][3] * func_8026F644((u16 *) arg, (u16 *) node, node->y - halfH + D_8036BB30) / 65025 / 2,
+                                      gYoshiAlpha * D_802F47B0[node->selColor][3] * yoshi_scroll_fade((u16 *) arg, (u16 *) node, node->y - halfH + D_8036BB30) / 65025 / 2,
                                       0, 0, 0,
-                                      D_8036BB20 * D_802F47B0[node->selColor][3] * func_8026F644((u16 *) arg, (u16 *) node, node->y - halfH + D_8036BB30 + node->h) / 65025 / 2);
+                                      gYoshiAlpha * D_802F47B0[node->selColor][3] * yoshi_scroll_fade((u16 *) arg, (u16 *) node, node->y - halfH + D_8036BB30 + node->h) / 65025 / 2);
                     } else if (!(node->flags & 4) || FRAMES(D_803156C4 % 23) < 16) {
                         func_80259DC8((Gfx * N64P *) N64_IPTR(arg1), text, wtext, node->flags & 8, 0, node->x - halfW - 3,
                                       ((node->flags & 0x1000) ? D_8036BB30 : 0) + (node->y - halfH) + 3, node->w,
                                       node->h, 1, 0, 0, 0,
-                                      D_8036BB20 * D_802F47B0[node->color][3] * func_8026F644((u16 *) arg, (u16 *) node, node->y - halfH + D_8036BB30) / 65025 / 2,
+                                      gYoshiAlpha * D_802F47B0[node->color][3] * yoshi_scroll_fade((u16 *) arg, (u16 *) node, node->y - halfH + D_8036BB30) / 65025 / 2,
                                       0, 0, 0,
-                                      D_8036BB20 * D_802F47B0[node->color][3] * func_8026F644((u16 *) arg, (u16 *) node, node->y - halfH + D_8036BB30 + node->h) / 65025 / 2);
+                                      gYoshiAlpha * D_802F47B0[node->color][3] * yoshi_scroll_fade((u16 *) arg, (u16 *) node, node->y - halfH + D_8036BB30 + node->h) / 65025 / 2);
                     }
                 }
             }
         }
         for (i = arg->unkE; i < arg->unkE + arg->unk10; i++) {
-            node = &D_8036BB10[i];
+            node = &gYoshiItems[i];
             wtext = NULL;
-            text = func_8026F004(arg, i, 0);
+            text = yoshi_get_item_text(arg, i, 0);
             if (!(node->flags & 0x800)) {
                 if (i == arg->sel) {
                     if ((!(node->flags & 4) || FRAMES(D_803156C4 % 23) < 16) &&
@@ -976,19 +984,19 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
                                       ((node->flags & 0x1000) ? D_8036BB30 : 0) + (node->y - halfH), node->w,
                                       node->h, 1, D_802F47B0[node->selColor][0], D_802F47B0[node->selColor][1],
                                       D_802F47B0[node->selColor][2],
-                                      D_8036BB20 * D_802F47B0[node->selColor][3] * func_8026F644((u16 *) arg, (u16 *) node, node->y - halfH + D_8036BB30) / 65025,
+                                      gYoshiAlpha * D_802F47B0[node->selColor][3] * yoshi_scroll_fade((u16 *) arg, (u16 *) node, node->y - halfH + D_8036BB30) / 65025,
                                       D_802F47B0[node->selColor][4], D_802F47B0[node->selColor][5],
                                       D_802F47B0[node->selColor][6],
-                                      D_8036BB20 * D_802F47B0[node->selColor][7] * func_8026F644((u16 *) arg, (u16 *) node, node->y - halfH + D_8036BB30 + node->h) / 65025);
+                                      gYoshiAlpha * D_802F47B0[node->selColor][7] * yoshi_scroll_fade((u16 *) arg, (u16 *) node, node->y - halfH + D_8036BB30 + node->h) / 65025);
                     }
                 } else if (!(node->flags & 4) || FRAMES(D_803156C4 % 23) < 16) {
                     func_80259DC8((Gfx * N64P *) N64_IPTR(arg1), text, wtext, node->flags & 8, 0, node->x - halfW,
                                   ((node->flags & 0x1000) ? D_8036BB30 : 0) + (node->y - halfH), node->w, node->h,
                                   1, D_802F47B0[node->color][0], D_802F47B0[node->color][1],
                                   D_802F47B0[node->color][2],
-                                  D_8036BB20 * D_802F47B0[node->color][3] * func_8026F644((u16 *) arg, (u16 *) node, node->y - halfH + D_8036BB30) / 65025,
+                                  gYoshiAlpha * D_802F47B0[node->color][3] * yoshi_scroll_fade((u16 *) arg, (u16 *) node, node->y - halfH + D_8036BB30) / 65025,
                                   D_802F47B0[node->color][4], D_802F47B0[node->color][5], D_802F47B0[node->color][6],
-                                  D_8036BB20 * D_802F47B0[node->color][7] * func_8026F644((u16 *) arg, (u16 *) node, node->y - halfH + D_8036BB30 + node->h) / 65025);
+                                  gYoshiAlpha * D_802F47B0[node->color][7] * yoshi_scroll_fade((u16 *) arg, (u16 *) node, node->y - halfH + D_8036BB30 + node->h) / 65025);
                 }
             }
         }
@@ -997,24 +1005,26 @@ Gfx *func_8026BCE0(Gfx *gfx, s32 arg1, s32 *count) {
     return gdl;
 }
 
-void func_8026EF70(YoshiArg *arg0) {
+/* Arms the typewriter reveal of a window's text items (0x8026EF70). */
+void yoshi_start_typing(YoshiArg *arg0) {
     if (arg0->flags & 0x80) {
-        D_8036BB04 = func_8026F8A8(arg0->unkE, arg0->unk10, arg0->unkE - 1, 0x100);
-        D_8036BB06 = 0;
-        if (D_8036BB04 + 1 == arg0->unkE) {
-            D_8036BB1E = 0;
+        gYoshiTypeItem = yoshi_next_item(arg0->unkE, arg0->unk10, arg0->unkE - 1, 0x100);
+        gYoshiTypeChar = 0;
+        if (gYoshiTypeItem + 1 == arg0->unkE) {
+            gYoshiTypeState = 0;
         } else {
-            D_8036BB1E = 1;
+            gYoshiTypeState = 1;
         }
     } else {
-        D_8036BB1E = 0;
+        gYoshiTypeState = 0;
     }
 }
 
-/* Returns the text of message node idx, revealing it one character at a
- * time while D_8036BB1E is 2 */
-void *func_8026F004(YoshiArg *arg0, u16 idx, u8 japanese) {
-    PathNode *node = &D_8036BB10[idx];
+/* An item's text (partial while typing) (0x8026F004).
+ * Returns the text of message node idx, revealing it one character at a
+ * time while gYoshiTypeState is 2 */
+void *yoshi_get_item_text(YoshiArg *arg0, u16 idx, u8 japanese) {
+    PathNode *node = &gYoshiItems[idx];
     u8 lang = japanese ? 1 : 0;
     u8 *text = node->text;
     u16 *jtext = node->jtext;
@@ -1022,8 +1032,8 @@ void *func_8026F004(YoshiArg *arg0, u16 idx, u8 japanese) {
     s32 i;
     u16 next;
 
-    D_8036BB48[0] = D_802E8C98[lang];
-    switch (D_8036BB1E) {
+    gYoshiTypeBuf[0] = D_802E8C98[lang];
+    switch (gYoshiTypeState) {
         case 0:
             if (japanese) {
                 return jtext;
@@ -1031,25 +1041,25 @@ void *func_8026F004(YoshiArg *arg0, u16 idx, u8 japanese) {
             return text;
         case 1:
             if (yoshiState == 2) {
-                D_8036BB1E = 2;
-                D_8036BB00 = D_803156C4;
+                gYoshiTypeState = 2;
+                gYoshiTypeTime = D_803156C4;
             }
             break;
         case 2:
-            if (idx < D_8036BB04) {
+            if (idx < gYoshiTypeItem) {
                 if (japanese) {
                     return jtext;
                 }
                 return text;
             }
-            if (idx <= D_8036BB04) {
-                if (D_803156C4 - D_8036BB00 >= 5) {
-                    D_8036BB00 = D_803156C4;
-                    D_8036BB06++;
+            if (idx <= gYoshiTypeItem) {
+                if (D_803156C4 - gYoshiTypeTime >= 5) {
+                    gYoshiTypeTime = D_803156C4;
+                    gYoshiTypeChar++;
                     if (japanese) {
-                        ch = jtext[D_8036BB06];
+                        ch = jtext[gYoshiTypeChar];
                     } else {
-                        ch = text[D_8036BB06];
+                        ch = text[gYoshiTypeChar];
                     }
                     if (ch == D_802E8C90[lang]) {
                         func_80260650(D_80367738, 0x91, NULL);
@@ -1068,50 +1078,50 @@ void *func_8026F004(YoshiArg *arg0, u16 idx, u8 japanese) {
 #ifdef NON_MATCHING
                         /* unsequenced in the original: IDO stores at the old i
                          * (see 168B0.c func_8025B558) */
-                        D_8036BB48[i] = jtext[i];
+                        gYoshiTypeBuf[i] = jtext[i];
                         i++;
 #else
-                        D_8036BB48[i] = jtext[i++];
+                        gYoshiTypeBuf[i] = jtext[i++];
 #endif
                     }
                 } else {
                     while (text[i] != D_802E8C98[lang]) {
-                        D_8036BB48[i] = text[i];
+                        gYoshiTypeBuf[i] = text[i];
                         i++;
                     }
                 }
-                D_8036BB48[i] = D_802E8C98[lang];
-                if (D_8036BB48[D_8036BB06] == D_802E8C98[lang]) {
-                    next = func_8026F8A8(arg0->unkE, arg0->unk10, D_8036BB04, 0x100);
-                    if (next == D_8036BB04) {
-                        D_8036BB1E = 0;
+                gYoshiTypeBuf[i] = D_802E8C98[lang];
+                if (gYoshiTypeBuf[gYoshiTypeChar] == D_802E8C98[lang]) {
+                    next = yoshi_next_item(arg0->unkE, arg0->unk10, gYoshiTypeItem, 0x100);
+                    if (next == gYoshiTypeItem) {
+                        gYoshiTypeState = 0;
                         if ((arg0->flags & 0x400000) && yoshiState == 2) {
-                            D_8036BAFC = D_803156C4;
+                            gYoshiStateTime = D_803156C4;
                         }
                     } else {
                         func_80260650(D_80367738, 0x23, NULL);
-                        D_8036BB04 = next;
+                        gYoshiTypeItem = next;
                     }
-                    D_8036BB06 = 0;
+                    gYoshiTypeChar = 0;
                 } else {
-                    D_8036BB48[D_8036BB06] = D_802E8C98[lang];
+                    gYoshiTypeBuf[gYoshiTypeChar] = D_802E8C98[lang];
                     if (!(node->flags & 0x4000) && D_803156C4 % 10 >= 6) {
-                        D_8036BB48[D_8036BB06] = D_802E8C9C[lang];
-                        D_8036BB4A[D_8036BB06] = D_802E8C98[lang];
+                        gYoshiTypeBuf[gYoshiTypeChar] = D_802E8C9C[lang];
+                        D_8036BB4A[gYoshiTypeChar] = D_802E8C98[lang];
                     }
                 }
                 if (japanese) {
-                    return D_8036BB48;
+                    return gYoshiTypeBuf;
                 }
-                return func_8025B558(D_8036BB48);
+                return func_8025B558(gYoshiTypeBuf);
             }
             break;
     }
     if ((node->flags & 0x100) || (node->flags & 0x200)) {
         if (japanese) {
-            return D_8036BB48;
+            return gYoshiTypeBuf;
         }
-        return func_8025B558(D_8036BB48);
+        return func_8025B558(gYoshiTypeBuf);
     }
     if (japanese) {
         return jtext;
@@ -1119,29 +1129,32 @@ void *func_8026F004(YoshiArg *arg0, u16 idx, u8 japanese) {
     return text;
 }
 
-u8 func_8026F644(u16 *arg0, u16 *arg1, s16 arg2) {
+/* The alpha of a scrolling item by its height (0x8026F644). */
+u8 yoshi_scroll_fade(u16 *arg0, u16 *arg1, s16 arg2) {
     if (*arg1 & 0x1000) {
         return MAX0(MIN255(512 - (ABS(arg2) * 512) / (arg0[1] / 3)));
     }
     return 255;
 }
 
-u16 func_8026F82C(u16 lo, u16 hi, u16 mask) {
+/* The previous item with a flag in mask (else hi) (0x8026F82C). */
+u16 yoshi_prev_item(u16 lo, u16 hi, u16 mask) {
     s32 i;
 
     for (i = hi - 1; i >= lo; i--) {
-        if (D_8036BB10[i].flags & mask) {
+        if (gYoshiItems[i].flags & mask) {
             return i;
         }
     }
     return hi;
 }
 
-u16 func_8026F8A8(u16 arg0, u16 arg1, u16 start, u16 mask) {
+/* The next item with a flag in mask (else start) (0x8026F8A8). */
+u16 yoshi_next_item(u16 arg0, u16 arg1, u16 start, u16 mask) {
     s32 i;
 
     for (i = start + 1; i < arg0 + arg1; i++) {
-        if (D_8036BB10[i].flags & mask) {
+        if (gYoshiItems[i].flags & mask) {
             return i;
         }
     }
@@ -1161,13 +1174,14 @@ s32 lowest_set_bit(u64 in) {
     return i;
 }
 
-u8 func_8026FA38(char * N64P *name, s32 *arg1) {
+/* The path building's icon id, name and word ("path builing") (0x8026FA38). */
+u8 yoshi_get_target_building(char * N64P *name, s32 *arg1) {
     s32 i;
     s32 result = 0;
 
-    debug_printf("path builing=%d\n", D_803F7684);
+    debug_printf("path builing=%d\n", gPathBuilding);
     for (i = 0; i < 7 && result == 0; i++) {
-        if (D_802F9934[i].id == D_803F7684) {
+        if (gTargetBuildings[i].id == gPathBuilding) {
             result = i + 26;
         }
     }
@@ -1176,58 +1190,63 @@ u8 func_8026FA38(char * N64P *name, s32 *arg1) {
         i = 1;
     }
     if (name) {
-        *name = D_802F9934[i - 1].name;
+        *name = gTargetBuildings[i - 1].name;
     }
     if (arg1) {
-        *arg1 = D_802F9934[i - 1].unk10;
+        *arg1 = gTargetBuildings[i - 1].unk10;
     }
     return result;
 }
 
-void func_8026FB50(YoshiArg *arg0) {
+/* Points gYoshiItems at the window's item table (0x8026FB50). */
+void yoshi_select_items(YoshiArg *arg0) {
     if (arg0->flags & 0x8000) {
-        D_8036BB10 = D_8036BB24;
+        gYoshiItems = gYoshiHeapItems;
     } else if (arg0->flags & 0x800) {
-        D_8036BB10 = D_8020C070;
+        gYoshiItems = D_8020C070;
     } else {
-        D_8036BB10 = D_802F5804;
+        gYoshiItems = gYoshiGameItems;
     }
 }
 
-void func_8026FBB0(s16 *pos, s16 *end) {
+/* The level's RDU records on the heap ("FIND %d RDUS IN") (0x8026FBB0). */
+void rdu_init(s16 *pos, s16 *end) {
     s32 pad;
 
-    D_8036EB90 = 0;
+    gRduCount = 0;
     D_8036EA7C = 0;
     if (gGameMode != 0x40) {
-        D_8036BED4 = *D_8036BBB0 = 0;
+        gRduLitOrderLen = *gRduLitOrder = 0;
     }
-    D_8036BED8 = (YoshiNode *) gHeapPtr;
-    D_8036BEE0 = 0;
-    D_8036BEDC = 999999.0f;
+    gRdus = (YoshiNode *) gHeapPtr;
+    gRduVtxSet = 0;
+    gRduLastHeading = 999999.0f;
     while (pos != end) {
-        D_8036BED8[D_8036EB90].x = pos[0];
-        D_8036BED8[D_8036EB90].y = pos[1];
-        D_8036BED8[D_8036EB90].z = pos[2];
-        D_8036BED8[D_8036EB90].visited = 0;
-        D_8036BED8[D_8036EB90].cell = pos[0] / (D_803BE70C >> 5) + pos[2] / (D_803BE710 >> 5) * D_803BE714;
-        func_8026A5CC((u64 *) (D_8036BED8[D_8036EB90].vtx[0]), (u64 *) D_802F99C0, sizeof(D_8036BED8->vtx[0]));
-        func_8026A5CC((u64 *) (D_8036BED8[D_8036EB90].vtx[1]), (u64 *) D_802F99C0, sizeof(D_8036BED8->vtx[1]));
-        D_8036EB90++, pos += 3;
+        gRdus[gRduCount].x = pos[0];
+        gRdus[gRduCount].y = pos[1];
+        gRdus[gRduCount].z = pos[2];
+        gRdus[gRduCount].visited = 0;
+        gRdus[gRduCount].cell = pos[0] / (D_803BE70C >> 5) + pos[2] / (D_803BE710 >> 5) * D_803BE714;
+        func_8026A5CC((u64 *) (gRdus[gRduCount].vtx[0]), (u64 *) gRduQuad, sizeof(gRdus->vtx[0]));
+        func_8026A5CC((u64 *) (gRdus[gRduCount].vtx[1]), (u64 *) gRduQuad, sizeof(gRdus->vtx[1]));
+        gRduCount++, pos += 3;
     }
-    gHeapPtr = (u8 *) ((YoshiNode *) gHeapPtr + D_8036EB90);
+    gHeapPtr = (u8 *) ((YoshiNode *) gHeapPtr + gRduCount);
 }
 
-u8 func_8026FE6C(s32 arg0) {
-    return D_8036BED8[arg0].visited;
+/* 1 if RDU i is lit (0x8026FE6C). */
+u8 rdu_is_lit(s32 arg0) {
+    return gRdus[arg0].visited;
 }
 
-void func_8026FE8C(s32 arg0) {
-    D_8036BED8[arg0].visited = 1;
+/* Lights RDU i and counts it (status restore) (0x8026FE8C). */
+void rdu_set_lit(s32 arg0) {
+    gRdus[arg0].visited = 1;
     D_8036EA7C++;
 }
 
-void func_8026FEC4(void) {
+/* Lights the RDUs the player passes over (0x8026FEC4). */
+void rdu_update(void) {
     s32 i;
     s32 pad;
     s32 dist;
@@ -1236,20 +1255,20 @@ void func_8026FEC4(void) {
 
     flag = 0;
     cell = gPlayerZ / D_803BE710 * D_803BE714 + gPlayerX / D_803BE70C;
-    for (i = 0; i < D_8036EB90; i++) {
-        if (D_8036BED8[i].cell == cell && !D_8036BED8[i].visited) {
+    for (i = 0; i < gRduCount; i++) {
+        if (gRdus[i].cell == cell && !gRdus[i].visited) {
             dist = func_8026A6F0(gPlayerX >> 5, gPlayerY >> 5, gPlayerZ >> 5,
-                                 D_8036BED8[i].x, D_8036BED8[i].y, D_8036BED8[i].z);
-            if (dist < D_802FA200[gCurVehicle]) {
+                                 gRdus[i].x, gRdus[i].y, gRdus[i].z);
+            if (dist < gRduPickupRadius[gCurVehicle]) {
                 if (++D_8036EA7C >= 4 && !gPaused) {
-                    func_8026AD30(0x46);
+                    yoshi_show_hint(0x46);
                 }
                 if (gGameMode != 0x40) {
-                    D_8036BBB0[D_8036BED4] = D_8036BBB2[D_8036BED4] = i;
-                    D_8036BED4++;
+                    gRduLitOrder[gRduLitOrderLen] = D_8036BBB2[gRduLitOrderLen] = i;
+                    gRduLitOrderLen++;
                 }
-                func_802AC544(D_8036BED8[i].x, D_8036BED8[i].y + 5, D_8036BED8[i].z);
-                D_8036BED8[i].visited = 1;
+                fx_spawn_node_hit(gRdus[i].x, gRdus[i].y + 5, gRdus[i].z);
+                gRdus[i].visited = 1;
                 if (!flag) {
                     flag = 1;
                     if (gLevelKind == 0x40) {
@@ -1263,8 +1282,9 @@ void func_8026FEC4(void) {
     }
 }
 
-/* Draws the Yoshi path nodes, rotating their quads to face the camera */
-void func_802701A8(Gfx **gfx, s32 arg1) {
+/* The visible RDUs as camera-facing quads (0x802701A8).
+ * Draws the Yoshi path nodes, rotating their quads to face the camera */
+void rdu_draw(Gfx **gfx, s32 arg1) {
     Gfx *gdl;
     s32 i;
     s32 j;
@@ -1281,46 +1301,47 @@ void func_802701A8(Gfx **gfx, s32 arg1) {
     gDPSetRenderMode(gdl++, G_RM_ZB_XLU_SURF, G_RM_ZB_XLU_SURF2);
     gDPSetCombineMode(gdl++, G_CC_MODULATERGBA, G_CC_MODULATERGBA);
     gSPTexture(gdl++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
-    if (gCamHeading != D_8036BEDC) {
-        D_8036BEE0 ^= 1;
+    if (gCamHeading != gRduLastHeading) {
+        gRduVtxSet ^= 1;
         guRotateF(mtx, gCamHeading - 135.0, 0.0f, 1.0f, 0.0f);
         for (i = 0; i < 4; i++) {
-            guMtxXFMF(mtx, D_802F99C0[i].v.ob[0], D_802F99C0[i].v.ob[1], D_802F99C0[i].v.ob[2], &ox[i], &oy[i],
+            guMtxXFMF(mtx, gRduQuad[i].v.ob[0], gRduQuad[i].v.ob[1], gRduQuad[i].v.ob[2], &ox[i], &oy[i],
                       &oz[i]);
         }
-        for (i = 0; i < D_8036EB90; i++) {
+        for (i = 0; i < gRduCount; i++) {
             for (j = 0; j < 4; j++) {
-                D_8036BED8[i].vtx[D_8036BEE0][j].v.ob[0] = (s16) ox[j] + D_8036BED8[i].x;
-                D_8036BED8[i].vtx[D_8036BEE0][j].v.ob[1] = (s16) oy[j] + D_8036BED8[i].y;
-                D_8036BED8[i].vtx[D_8036BEE0][j].v.ob[2] = (s16) oz[j] + D_8036BED8[i].z;
+                gRdus[i].vtx[gRduVtxSet][j].v.ob[0] = (s16) ox[j] + gRdus[i].x;
+                gRdus[i].vtx[gRduVtxSet][j].v.ob[1] = (s16) oy[j] + gRdus[i].y;
+                gRdus[i].vtx[gRduVtxSet][j].v.ob[2] = (s16) oz[j] + gRdus[i].z;
             }
         }
     }
-    gDPLoadTextureBlock(gdl++, osVirtualToPhysical(D_802F9A00), G_IM_FMT_RGBA, G_IM_SIZ_32b, 16, 16, 0,
+    gDPLoadTextureBlock(gdl++, osVirtualToPhysical(gRduTexUnlit), G_IM_FMT_RGBA, G_IM_SIZ_32b, 16, 16, 0,
                         G_TX_CLAMP, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
-    for (i = 0; i < D_8036EB90; i++) {
-        if (!D_8036BED8[i].visited && func_80270A54(&D_8036BED8[i])) {
-            gSPVertex(gdl++, D_8036BED8[i].vtx[D_8036BEE0], 4, 0);
+    for (i = 0; i < gRduCount; i++) {
+        if (!gRdus[i].visited && rdu_is_visible(&gRdus[i])) {
+            gSPVertex(gdl++, gRdus[i].vtx[gRduVtxSet], 4, 0);
             gSP1Triangle(gdl++, 0, 1, 2, 0);
             gSP1Triangle(gdl++, 0, 2, 3, 0);
         }
     }
     gDPPipeSync(gdl++);
-    gDPLoadTextureBlock(gdl++, osVirtualToPhysical(D_802F9E00), G_IM_FMT_RGBA, G_IM_SIZ_32b, 16, 16, 0,
+    gDPLoadTextureBlock(gdl++, osVirtualToPhysical(gRduTexLit), G_IM_FMT_RGBA, G_IM_SIZ_32b, 16, 16, 0,
                         G_TX_CLAMP, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
-    for (i = 0; i < D_8036EB90; i++) {
-        if (D_8036BED8[i].visited && func_80270A54(&D_8036BED8[i])) {
-            gSPVertex(gdl++, D_8036BED8[i].vtx[D_8036BEE0], 4, 0);
+    for (i = 0; i < gRduCount; i++) {
+        if (gRdus[i].visited && rdu_is_visible(&gRdus[i])) {
+            gSPVertex(gdl++, gRdus[i].vtx[gRduVtxSet], 4, 0);
             gSP1Triangle(gdl++, 0, 1, 2, 0);
             gSP1Triangle(gdl++, 0, 2, 3, 0);
         }
     }
     gDPPipeSync(gdl++);
     *gfx = gdl;
-    D_8036BEDC = gCamHeading;
+    gRduLastHeading = gCamHeading;
 }
 
-s32 func_80270A54(YoshiNode *node, s32 arg1) {
+/* 1 if the RDU's grid cell is in gVisibleCells (0x80270A54). */
+s32 rdu_is_visible(YoshiNode *node, s32 arg1) {
     s32 i;
     u8 v;
     s32 pad;

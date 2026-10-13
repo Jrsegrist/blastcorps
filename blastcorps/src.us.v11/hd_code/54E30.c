@@ -162,7 +162,7 @@ void func_80299C20(void) {
             D_802E8BF0 = 0;
             rec_start_playback(9, &levelno);
             D_803643D4 = 5;
-            func_8026AF6C(0x8041);
+            yoshi_demand(0x8041);
             func_80295E50();
             break;
         case 28:
@@ -170,7 +170,7 @@ void func_80299C20(void) {
             D_802E8BF0 = 0;
             rec_start_playback(10, &levelno);
             D_803643D4 = 1;
-            func_8026AF6C(0x8042);
+            yoshi_demand(0x8042);
             func_80295E50();
             break;
         case 53:
@@ -178,7 +178,7 @@ void func_80299C20(void) {
             D_802E8BF0 = 0;
             rec_start_playback(11, &levelno);
             D_803643D4 = 2;
-            func_8026AF6C(0x8043);
+            yoshi_demand(0x8043);
             func_80295E50();
             break;
         case 7:
@@ -186,7 +186,7 @@ void func_80299C20(void) {
             D_802E8BF0 = 0;
             rec_start_playback(12, &levelno);
             D_803643D4 = 3;
-            func_8026AF6C(0x8044);
+            yoshi_demand(0x8044);
             func_80295E50();
             break;
         case 19:
@@ -194,7 +194,7 @@ void func_80299C20(void) {
             D_802E8BF0 = 0;
             rec_start_playback(13, &levelno);
             D_803643D4 = 9;
-            func_8026AF6C(0x8045);
+            yoshi_demand(0x8045);
             func_80295E50();
             break;
         case 49:

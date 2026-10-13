@@ -12,8 +12,8 @@
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_8020C070 ((MenuItem *) D_8020C070)
 #define gLevelInfo ((LevelInfo *) gLevelInfo)
-#define D_802F5804 ((MenuItem *) D_802F5804)
-#define D_802F8BDC ((MenuItem *) D_802F8BDC)
+#define gYoshiGameItems ((MenuItem *) gYoshiGameItems)
+#define gYoshiWindows ((MenuItem *) gYoshiWindows)
 #define players ((PlayerRec *) players)
 #define D_8036EA80 ((u32 *) &D_8036EA80)
 #define D_8036EA90 ((u32 *) &D_8036EA90)
@@ -53,7 +53,7 @@ extern u8 D_80364B08[][0x100]; /* = players[p].rank */
 extern u8 D_80364B44[][0x100]; /* = players[p].flags */
 
 /* This level's results (nss) and the best (D_8036EA60), 16 bytes each:
- * money, time, then three counts with their targets in D_8036EB90..93 */
+ * money, time, then three counts with their targets in gRduCount..93 */
 #ifndef NON_MATCHING
 extern u32 D_8036EA60;
 #endif
@@ -117,8 +117,8 @@ u32 func_802852EC(void) {
     } else {
         pctB = 100;
     }
-    if (D_8036EB90) {
-        pctC = (D_8036EA7C * 100) / D_8036EB90;
+    if (gRduCount) {
+        pctC = (D_8036EA7C * 100) / gRduCount;
     } else {
         pctC = 100;
     }
@@ -129,7 +129,7 @@ u32 func_802852EC(void) {
     func_80264A34(buf, D_8036EA74, 0);
     func_802D6A60(D_8036B9A8 + 0x80, "***%s*", buf);
     for (i = 18; i < 23; i++) {
-        D_802F5804[i].flags = 0x400;
+        gYoshiGameItems[i].flags = 0x400;
     }
     for (i = 14; i < 18; i++) {
         D_8020C070[i].flags = 0x400;
@@ -146,29 +146,29 @@ u32 func_802852EC(void) {
         f = 0;
     }
     D_8020C070[14].flags |= f | 0x80;
-    D_802F5804[18].flags |= f | f2 | 0x80;
+    gYoshiGameItems[18].flags |= f | f2 | 0x80;
     if (nss > D_8036EA60) {
         f = f1 | 4;
     } else {
         f = 0;
     }
     D_8020C070[15].flags |= f | 0x80;
-    D_802F5804[19].flags |= f | f2 | 0x80;
+    gYoshiGameItems[19].flags |= f | f2 | 0x80;
     if (D_8036EA79 > D_8036EA69) {
         f = f1 | 4;
     } else {
         f = 0;
     }
     D_8020C070[16].flags |= f | 0x80;
-    D_802F5804[20].flags |= f | f2 | 0x80;
+    gYoshiGameItems[20].flags |= f | f2 | 0x80;
     if (D_8036EA7C > D_8036EA6C) {
         f = f1 | 4;
     } else {
         f = 0;
     }
     D_8020C070[17].flags |= f | 0x80;
-    D_802F5804[21].flags |= f | f2 | 0x80;
-    D_802F5804[22].flags |= f2 | 0x80;
+    gYoshiGameItems[21].flags |= f | f2 | 0x80;
+    gYoshiGameItems[22].flags |= f2 | 0x80;
     if (D_802E8BF8) {
         return (pctA + pctC) / 2;
     } else {
@@ -199,8 +199,8 @@ u8 func_80285814(void) {
                 }
                 STATS_ASSERT(create_status(pakBuffer,coin)<=LEVEL_SAVE_SIZE-4, 161);
                 func_802C4BF0(pakBuffer);
-                func_802C1DD0(0);
-                func_80264C20((s32) pakBuffer);
+                obj_tally(0);
+                people_init((s32) pakBuffer);
                 saved = 1;
             } else {
                 hd_setup_level((s32) pakBuffer);
@@ -259,7 +259,7 @@ void func_80285B68(s32 arg0) {
 }
 
 void func_80285CA0(void) {
-    func_8026AD30(0x47);
+    yoshi_show_hint(0x47);
 }
 
 /* Award each bonus once its count reaches the target, with a jingle */
@@ -273,7 +273,7 @@ void func_80285CC0(void) {
         if (D_8036EB94[i] == 0) {
             switch (i) {
                 case 0:
-                    if (D_8036EB94[i] = (D_8036EA7C == D_8036EB90)) {
+                    if (D_8036EB94[i] = (D_8036EA7C == gRduCount)) {
                         sfx = 0x39;
                     }
                     break;
@@ -283,7 +283,7 @@ void func_80285CC0(void) {
                     }
                     break;
                 case 2:
-                    func_802C1DD0(0);
+                    obj_tally(0);
                     if (D_8036EB94[i] = (D_8036EA78 == D_8036EB92)) {
                         sfx = 0x3B;
                     }
@@ -298,8 +298,8 @@ void func_80285CC0(void) {
         }
     }
     if (D_80358064) {
-        if (sfx != -1 && !(func_8026B10C() & 0x8000)) {
-            func_8026AF6C(sfx | 0x8000);
+        if (sfx != -1 && !(yoshi_get_demand() & 0x8000)) {
+            yoshi_demand(sfx | 0x8000);
         }
         if (snd) {
             func_80260650(D_80367738, snd, 0);
@@ -313,21 +313,21 @@ void func_80285EF4(s32 start) {
     s32 t;
 
     t = func_8028604C(((s32) D_803156C0) - start);
-    func_802C1DD0(0);
+    obj_tally(0);
     D_8036EA74 += t;
     func_802852EC();
     D_8036EA74 -= t;
     func_80285A78((u8 *) &nss, (u8 *) &D_8036EA60);
-    D_802F5804[24].flags &= ~1;
-    D_802F5804[24].flags |= 0x800;
-    D_802F5804[23].flags &= ~1;
-    D_802F5804[23].flags |= 0x800;
-    D_802F5804[17].flags |= 1;
-    D_802F5804[17].flags &= ~0x800;
-    D_802F8BDC[6].f18 = 0x11;
-    D_802F8BDC[6].f8 |= 0x80;
-    func_8026AF6C(0x8006);
-    D_802F8BDC[6].fC = 0;
+    gYoshiGameItems[24].flags &= ~1;
+    gYoshiGameItems[24].flags |= 0x800;
+    gYoshiGameItems[23].flags &= ~1;
+    gYoshiGameItems[23].flags |= 0x800;
+    gYoshiGameItems[17].flags |= 1;
+    gYoshiGameItems[17].flags &= ~0x800;
+    gYoshiWindows[6].f18 = 0x11;
+    gYoshiWindows[6].f8 |= 0x80;
+    yoshi_demand(0x8006);
+    gYoshiWindows[6].fC = 0;
     gPauseRequest = 1;
 }
 

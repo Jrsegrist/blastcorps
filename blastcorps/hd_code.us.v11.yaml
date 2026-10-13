@@ -82,9 +82,9 @@ segments:
     - [0x75490, c, hd_code/75490]
     - [0x772A0, c, hd_code/772A0]
     - [0x77E20, c, hd_code/77E20]
-    - [0x7D9D0, bin, hd_code/7D9D0_data] # data inside .text (tables used by the hand asm, D_802C2190..D_802C3FFC)
+    - [0x7D9D0, bin, hd_code/7D9D0_data] # data inside .text (tables used by the hand asm, D_802C2190..gFxDefsByKind)
     - [0x7F8B0, c, hd_code/7F8B0] # hand asm: decompressor + sound-effect wrappers (func_802C4070..func_802C4724)
-    - [0x800E0, bin, hd_code/800E0_data] # more data inside .text (pointer table at 0x802C48A0, D_802C4A20)
+    - [0x800E0, bin, hd_code/800E0_data] # more data inside .text (pointer table at 0x802C48A0, gParticleDefs)
     - [0x80280, c, hd_code/7FB50]
     - [0x83910, c, hd_code/83910]
     - [0x853D0, c, hd_code/853D0]
@@ -248,7 +248,7 @@ segments:
     - [0xAF450, bin, hd_code/hd_code_data_AF450]
     - [0xB9350, .data, hd_code/45BB0]
     - [0xB9370, bin, hd_code/hd_code_data_B9370]
-    - [0xC1450, .data, hd_code/60F60] # D_80305C10 (definition list into the 7D9D0 text tables) + 2 strings
+    - [0xC1450, .data, hd_code/60F60] # gFxCachedDefs (definition list into the 7D9D0 text tables) + 2 strings
     - [0xC1490, bin, hd_code/hd_code_data_C1490]
     - [0xC1DD0, .data, hd_code/ul_initialize]
     - [0xC1DE0, .data, hd_code/ul_pimgr]

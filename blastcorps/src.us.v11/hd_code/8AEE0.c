@@ -175,7 +175,7 @@ void func_802CF6A0(u8 *model, s32 x, s32 y, s32 z, s32 heading, s32 fpIn, s32 t6
 #ifdef NON_MATCHING
 extern u8 D_803FC500[]; /* this vehicle's state block */
 
-/* Enter vehicle type 15: clears the byte at +0x99, gCamDistance / D_80364450 = 3000,
+/* Enter vehicle type 15: clears the byte at +0x99, gCamDistance / gCamHeightBase = 3000,
  * 1000, then func_802C4310(arg0, 0xCE) (arg0 passes straight through; hd.c
  * calls this with no arguments and func_802C4310 ignores it). The asm also
  * points $gp at D_803FC500 and leaves it there (conventions.txt: clobbers
@@ -183,7 +183,7 @@ extern u8 D_803FC500[]; /* this vehicle's state block */
 void func_802CFA0C(s32 arg0) {
     D_803FC500[0x99] = 0;
     gCamDistance = 3000;
-    D_80364450 = 1000;
+    gCamHeightBase = 1000;
     func_802C4310(arg0, 0xCE);
 }
 #else
@@ -373,7 +373,7 @@ s32 func_802CFCE0(s32 id, InterpRegs *r) {
  * (func_8029A800, func_8029C52C, func_8029AA10). Then: on a ring hit
  * (D_803A7425) steer along the ring (func_8029A914, func_802A70D8,
  * func_802A71DC with scale D_8030D9D0, func_802A746C, func_802A6FE4) and
- * collide (func_802BE77C); else collide and, if that hit something
+ * collide (obj_collide_vehicle); else collide and, if that hit something
  * (D_803A7424), restore the saved state (func_802A768C), start a 5-frame
  * countdown, bounce back at half of at least 50 the other way and redo the
  * matrices. Finally the position/speed/headings go to gPlayerX.. and the
@@ -389,7 +389,7 @@ s32 func_802CFCE0(s32 id, InterpRegs *r) {
  * func_802AA890 for a matrix count of 0) are the stub-model values: a3 =
  * +0x34 (second call: func_802A768C's dst2End), s0 = +0x96, s1 = &z (second
  * call: the first call's s1); in the game func_8029E558, func_8029C52C and
- * func_802BE77C have changed s0/s1 by then. The v1 handed to func_802A746C is
+ * obj_collide_vehicle have changed s0/s1 by then. The v1 handed to func_802A746C is
  * the ring distance computed after func_802A6F6C (the asm's dead-looking
  * code feeds it). */
 void func_802CFDE8(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 f14, f32 f20, f32 f22, f32 f24,
@@ -466,7 +466,7 @@ void func_802CFDE8(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 f
     if (D_803A7425 == 0) {
         D_803A7424 = 0;
         D_803F77D0 = D_803FC200;
-        func_802BE77C(0xF, v);
+        obj_collide_vehicle(0xF, v);
         if (D_803A7424 != 0) {
             D_803FC5C3 = 0;
             if (gBufferIndex != 0) {
@@ -506,7 +506,7 @@ void func_802CFDE8(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 f
         func_802A746C(v, turn, d, &tgt);
         func_802A6FE4(v, 0);
         D_803F77D0 = D_803FC200;
-        func_802BE77C(0xF, v);
+        obj_collide_vehicle(0xF, v);
     }
     gPlayerX = D_803FC5A8[0];
     gPlayerY = D_803FC5A8[1];
@@ -528,12 +528,12 @@ void func_802D0438(void);
 /* Per-frame effects for vehicle type 15 ($gp = D_803FC500, read as the
  * global): the tyre trail (func_802D0438); then, if the cooldown
  * D_803FC5C2 is nonzero it just counts down, else when byte +0x99 is set the
- * cooldown becomes 1 and, with fewer than 15 active func_802A6274 records,
+ * cooldown becomes 1 and, with fewer than 15 active fx_spawn records,
  * four are set up (def D_802C2954, type 1 at (15, 1..4, 1), data 0x29810
  * for the first two and 0x1D4C0 for the last two). Finally
  * func_802C4584(|speed| >> 5) with speed the s16 at +0x76.
  * Register convention (conventions.txt): t6, t7, s0-s4 pass through to
- * func_802A6274 (t6 and s1 in its in/out block, chained between the calls);
+ * fx_spawn (t6 and s1 in its in/out block, chained between the calls);
  * the asm changes s1 and s5-s7. Same shape as func_802B7F98 (72B80). */
 void func_802D02F8(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
     Io802A6274 io;
@@ -544,17 +544,17 @@ void func_802D02F8(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
         D_803FC5C2--;
     } else if (D_803FC500[0x99] != 0) {
         D_803FC5C2 = 1;
-        if (func_802A5ED0() < 15) {
+        if (fx_count_active() < 15) {
             io.t6 = t6;
             io.s1 = s1;
             io.a3 = 1;
-            func_802A6274(&io, D_802C2954, 0x29810, 1, 15, 1, 1, t7, s0, s2, s3, s4, 1);
+            fx_spawn(&io, D_802C2954, 0x29810, 1, 15, 1, 1, t7, s0, s2, s3, s4, 1);
             io.a3 = 1;
-            func_802A6274(&io, D_802C2954, 0x29810, 1, 15, 2, 1, t7, s0, s2, s3, s4, 1);
+            fx_spawn(&io, D_802C2954, 0x29810, 1, 15, 2, 1, t7, s0, s2, s3, s4, 1);
             io.a3 = 1;
-            func_802A6274(&io, D_802C2954, 0x1D4C0, 1, 15, 3, 1, t7, s0, s2, s3, s4, 1);
+            fx_spawn(&io, D_802C2954, 0x1D4C0, 1, 15, 3, 1, t7, s0, s2, s3, s4, 1);
             io.a3 = 1;
-            func_802A6274(&io, D_802C2954, 0x1D4C0, 1, 15, 4, 1, t7, s0, s2, s3, s4, 1);
+            fx_spawn(&io, D_802C2954, 0x1D4C0, 1, 15, 4, 1, t7, s0, s2, s3, s4, 1);
         }
     }
     v = *(s16 *) (D_803FC500 + 0x76);
@@ -847,7 +847,7 @@ extern u8 D_802C22D0[]; /* key of this vehicle's func_802A06B4 entry */
 extern u8 D_803FC5D0[]; /* this vehicle's animation channel table */
 
 /* Vehicle-type 16 setup (called from 00000.c / 17210.c), the shape of
- * func_802B1228: clears byte 0x99 of the state block, gCamDistance / D_80364450 = 2000,
+ * func_802B1228: clears byte 0x99 of the state block, gCamDistance / gCamHeightBase = 2000,
  * -1000, starts the engine sound 0x50 (handle in D_803FC990), sets the
  * D_802C22D0 entry's fields (100, 0, 0, -1) and the animation channels 7, 8,
  * 9 (and 1, 5, 6, 3) of D_803FC5D0.
@@ -857,7 +857,7 @@ extern u8 D_803FC5D0[]; /* this vehicle's animation channel table */
 void func_802D0C68(void) {
     D_803FC8D0[0x99] = 0;
     gCamDistance = 0x7D0;
-    D_80364450 = -0x3E8;
+    gCamHeightBase = -0x3E8;
     func_80260650(D_80367738, 0x50, &D_803FC990);
     func_802A05D0((s32) D_802C22D0, 0x64);
     func_802A05F8((s32) D_802C22D0, 0);
@@ -935,7 +935,7 @@ s32 func_802D0F54(ZoneScanRegs *r) {
  * 0x10, no clamp, 120.0), func_802A7070 while D_803FC998, the move, ground
  * contact (D_803ED40B = 0, divisors 0x78), animation (func_8029E558 on
  * D_803FC5D0), model matrices (func_802D22F4), the vehicle-state reset, the
- * collision passes and func_802BE77C (always). On a ring hit (D_803A7425):
+ * collision passes and obj_collide_vehicle (always). On a ring hit (D_803A7425):
  * D_803FC998 = 1, D_803FC99A = 1 if the ring distance is under 0x190 (which
  * also makes the v1 handed to func_802A746C 1), and the ring steering with
  * scale 0.25 (the new heading also to D_803FC994); else D_803FC998 and
@@ -1013,7 +1013,7 @@ void func_802D0F98(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 f
     func_8029C52C(0x10, v);
     func_8029AA10(0x10);
     D_803F77D0 = D_803FC5D0;
-    func_802BE77C(0x10, v);
+    obj_collide_vehicle(0x10, v);
     if (D_803A7425 != 0) {
         func_8029A914(v);
         D_803FC998 = 1;
@@ -1216,7 +1216,7 @@ static void port_802D1360_state0(void) {
     if (CHAN_GET(0x1F, e), e[0] == 1) {
         return;
     }
-    D_803F7804 = 0;
+    gVehAttacking = 0;
     if (((gControlMethod == 0 && (gHeldA != 0 || gHeldB != 0)) || gHeldL != 0 || gHeldR != 0) &&
         VEH16_SPEED >= 0x96) {
         /* start the special move (state 1) from the current gear channel */
@@ -1265,7 +1265,7 @@ static void port_802D1360_state12(s32 state) {
             func_802A02E4(2, (Unk8029DEA0Entry *) D_803FC5D0);
         }
         port_802D1360_chan1F(0x21);
-        D_803F7804 = 1;
+        gVehAttacking = 1;
         return;
     }
     if (VEH16_U8(0x9D) == 0 && D_803FC99A == 0) {
@@ -1310,7 +1310,7 @@ static void port_802D1360_state12(s32 state) {
  * the global; channels in D_803FC5D0, an Unk8029DEA0Entry table), on the
  * state byte +0xA1: 0 driving (gears, idle anims, starting the special move
  * with the inputs at speed >= 150), 1 and 2 the special move, 3 the crash
- * (sound 0x4B, func_802BCC10, then channel 3 -> state 4), 4 recovering (back
+ * (sound 0x4B, veh_prev_contacts_clear, then channel 3 -> state 4), 4 recovering (back
  * to state 0 when channel 3 has finished). Sound 0x51 (handle D_803F7844) is
  * started on the special move. Out-of-range states/gears hit a `syscall` in
  * the asm; the C just returns (keep +0xA1 in 0..4 and +0xA2 in 0..2).
@@ -1338,11 +1338,11 @@ void func_802D1360(void) {
                 func_802C444C();
                 func_80260650(D_80367738, 0x4B, NULL);
             }
-            func_802BCC10();
+            veh_prev_contacts_clear();
             if (CHAN_GET(0x1F, e), e[0] == 1) {
                 break;
             }
-            D_803F7804 = 0;
+            gVehAttacking = 0;
             func_802794A4();
             func_802A039C((Unk8029DEA0Entry *) D_803FC5D0, 3, 5);
             func_802A03D4((Unk8029DEA0Entry *) D_803FC5D0, 3, 0);
@@ -1351,11 +1351,11 @@ void func_802D1360(void) {
             VEH16_U8(0xA1) = 4;
             break;
         case 4:
-            func_802BCC10();
+            veh_prev_contacts_clear();
             if (CHAN_GET(3, e), e[0] == 1) {
                 break;
             }
-            D_803F7804 = 1;
+            gVehAttacking = 1;
             func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803FC5D0, 1, 0);
             func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803FC5D0, 5, 0);
             func_802A0360(0.0f, (Unk8029DEA0Entry *) D_803FC5D0, 6, 0);

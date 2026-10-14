@@ -162,6 +162,8 @@ struct CellSet {
     std::vector<CellBox> boxes;
     std::vector<uint8_t> drawn;
     double tanX = 0, tanY = 0, farDist = 0;
+    Vec3 eye, target;             /* the view the list was made with ... */
+    double margin = 0, back = 0;  /* ... and its margins */
 };
 
 /* what each rendered frame (workload) needs */
@@ -252,13 +254,23 @@ void viewHook(const RT64::ViewHookParams &p, interop::float4x4 &view, interop::f
         const CellSet &cs = *e.cells;
         const orbit::ViewVolume exact(curEye, curTarget, cs.tanX, cs.tanY, 0.0, 0.0, cs.farDist);
         unsigned missed = 0;
+        size_t first = 0;
         for (size_t i = 0; i < cs.boxes.size(); i++)
-            if (!cs.drawn[i] && exact.boxVisible(cs.boxes[i].lo, cs.boxes[i].hi)) missed++;
+            if (!cs.drawn[i] && exact.boxVisibleExact(cs.boxes[i].lo, cs.boxes[i].hi)) {
+                if (missed++ == 0) first = i;
+            }
         g_checkPictures++;
         if (missed != 0) {
             g_checkMissCells += missed;
-            if (g_checkMissPictures++ < 10)
-                host_log("live: orbit drawing list: a picture of frame %u sees %u cells not drawn\n", e.cur.frame, missed);
+            if (g_checkMissPictures++ < 10) {
+                const CellBox &b = cs.boxes[first];
+                host_log("live: orbit drawing list: a picture of frame %u sees %u cells not drawn (cell %u box %.0f %.0f "
+                         "%.0f .. %.0f %.0f %.0f; picture eye %.1f %.1f %.1f at %.1f %.1f %.1f; list eye %.1f %.1f %.1f at "
+                         "%.1f %.1f %.1f, margin %.1f back %.1f)\n",
+                         e.cur.frame, missed, unsigned(first), b.lo.x, b.lo.y, b.lo.z, b.hi.x, b.hi.y, b.hi.z, curEye.x,
+                         curEye.y, curEye.z, curTarget.x, curTarget.y, curTarget.z, cs.eye.x, cs.eye.y, cs.eye.z,
+                         cs.target.x, cs.target.y, cs.target.z, cs.margin, cs.back);
+            }
         }
     }
 }
@@ -657,8 +669,11 @@ short *drawCells(short *game) {
         cs->tanX = host_cull_wide * s / std::fabs(c.proj[0][0]);
         cs->tanY = s / std::fabs(c.proj[1][1]);
         cs->farDist = farZ * 1.02;
-        const orbit::ViewVolume vol(eye, c.target, cs->tanX, cs->tanY, margin, 4.0 + 10.0 * g_motion.movePerStep(),
-                                    cs->farDist);
+        cs->eye = eye;
+        cs->target = c.target;
+        cs->margin = margin;
+        cs->back = 4.0 + 10.0 * g_motion.movePerStep();
+        const orbit::ViewVolume vol(eye, c.target, cs->tanX, cs->tanY, margin, cs->back, cs->farDist);
         for (unsigned i = 0; i < n; i++)
             if (!cs->drawn[i] && vol.boxVisible(cs->boxes[i].lo, cs->boxes[i].hi)) cs->drawn[i] = 1;
         Vec3 cullEye, cullFwd;

@@ -375,6 +375,59 @@ bool ViewVolume::boxVisible(const Vec3 &lo, const Vec3 &hi) const {
     return outR < 8 && outL < 8 && outT < 8 && outB < 8 && outBehind < 8 && outFar < 8;
 }
 
+bool ViewVolume::boxVisibleExact(const Vec3 &lo, const Vec3 &hi) const {
+    /* the corners in camera space (x, y, depth) */
+    double c[8][3];
+    for (int i = 0; i < 8; i++) {
+        const double x = (i & 1) ? hi.x : lo.x, y = (i & 2) ? hi.y : lo.y, z = (i & 4) ? hi.z : lo.z;
+        c[i][0] = x * m_[0][0] + y * m_[1][0] + z * m_[2][0] + m_[3][0];
+        c[i][1] = x * m_[0][1] + y * m_[1][1] + z * m_[2][1] + m_[3][1];
+        c[i][2] = -(x * m_[0][2] + y * m_[1][2] + z * m_[2][2] + m_[3][2]);
+    }
+    /* the planes as "inside >= 0" functions of (x, y, d) */
+    auto inside = [&](int plane, const double *p) {
+        switch (plane) {
+            case 0: return limX_ ? sx_ * p[2] - p[0] : 1.0;
+            case 1: return limX_ ? sx_ * p[2] + p[0] : 1.0;
+            case 2: return limY_ ? sy_ * p[2] - p[1] : 1.0;
+            case 3: return limY_ ? sy_ * p[2] + p[1] : 1.0;
+            case 4: return p[2] - 1e-6;   /* in front of the apex */
+            default: return far_ > 0 ? far_ - p[2] : 1.0;
+        }
+    };
+    static const int faces[6][4] = {{0, 1, 3, 2}, {4, 5, 7, 6}, {0, 1, 5, 4}, {2, 3, 7, 6}, {0, 2, 6, 4}, {1, 3, 7, 5}};
+    for (const auto &f : faces) {
+        double poly[2][16][3];
+        int n = 4, cur = 0;
+        for (int k = 0; k < 4; k++)
+            for (int j = 0; j < 3; j++) poly[0][k][j] = c[f[k]][j];
+        for (int plane = 0; plane < 6 && n > 0; plane++, cur ^= 1) {
+            int m = 0;
+            for (int k = 0; k < n && m < 15; k++) {
+                const double *a = poly[cur][k], *b = poly[cur][(k + 1) % n];
+                const double da = inside(plane, a), db = inside(plane, b);
+                if (da >= 0) {
+                    for (int j = 0; j < 3; j++) poly[cur ^ 1][m][j] = a[j];
+                    m++;
+                }
+                if ((da >= 0) != (db >= 0)) {
+                    const double t = da / (da - db);
+                    for (int j = 0; j < 3; j++) poly[cur ^ 1][m][j] = a[j] + (b[j] - a[j]) * t;
+                    m++;
+                }
+            }
+            n = m;
+        }
+        if (n > 0) return true;
+    }
+    /* no face reaches into the view: it is inside the box, or the box is out of it */
+    const double ax = -m_[3][0] * m_[0][0] - m_[3][1] * m_[0][1] - m_[3][2] * m_[0][2];   /* the apex (world) */
+    const double ay = -m_[3][0] * m_[1][0] - m_[3][1] * m_[1][1] - m_[3][2] * m_[1][2];
+    const double az = -m_[3][0] * m_[2][0] - m_[3][1] * m_[2][1] - m_[3][2] * m_[2][2];
+    const Vec3 p = {ax - m_[0][2], ay - m_[1][2], az - m_[2][2]};   /* one unit ahead on the axis */
+    return p.x >= lo.x && p.x <= hi.x && p.y >= lo.y && p.y <= hi.y && p.z >= lo.z && p.z <= hi.z;
+}
+
 bool perspectiveRange(const double p[4][4], double &nearZ, double &farZ) {
     /* guPerspective (times its scale): [2][2] = (f + n) / (n - f), [2][3] = -1,
      * [3][2] = 2 n f / (n - f), [3][3] = 0 */

@@ -185,6 +185,10 @@ public:
     /* false if an axis-aligned box is surely outside (all its corners
      * beyond one of the planes) */
     bool boxVisible(const Vec3 &lo, const Vec3 &hi) const;
+    /* exact: some part of the box is inside (its faces clipped against the
+     * planes; or the view's axis starts inside it) - for checks; the plane
+     * test above keeps some boxes that are outside (big ones beside the eye) */
+    bool boxVisibleExact(const Vec3 &lo, const Vec3 &hi) const;
 
 private:
     double m_[4][4];

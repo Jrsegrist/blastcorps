@@ -347,6 +347,35 @@ int main() {
             }
         }
         check(seen > 1000 && lost == 0, "margins never drop a box the exact view sees");
+        /* the exact test: a big flat box beside and behind the eye passes the plane test but isn't seen */
+        {
+            /* the game's projection: fovy 45, 4:3 (proj [0][0] 1.81065, [1][1] 2.4142) */
+            const Vec3 e = {2480.7, 252.8, 1524.2}, t = {2178.7, 0.7, 1328.2};
+            const ViewVolume ex(e, t, 1.0 / 1.81065, 1.0 / 2.4142, 0.0, 0.0, 10200);
+            check(ex.boxVisible({3000, 0, 0}, {4500, 1, 2500}) && !ex.boxVisibleExact({3000, 0, 0}, {4500, 1, 2500}),
+                  "exact test: a big box beside the eye (level 3) is out, the plane test keeps it");
+            check(ex.boxVisibleExact({2000, 0, 1000}, {2400, 1, 1600}), "exact test: the ground under the target is in");
+            check(ex.boxVisibleExact({2400, 200, 1500}, {2500, 300, 1550}), "exact test: a box around the eye is in");
+            check(ex.boxVisibleExact({-50000, -50000, -50000}, {50000, 50000, 50000}), "exact test: inside a huge box");
+        }
+        /* exact implies the plane test; and the margins keep every box the exact view sees */
+        int bad = 0, lost2 = 0, seen2 = 0;
+        for (int i = 0; i < 20000; i++) {
+            const Vec3 e = {rnd(-500, 500), rnd(0, 300), rnd(-500, 500)};
+            const Vec3 t = {rnd(-500, 500), rnd(0, 100), rnd(-500, 500)};
+            if (length(t - e) < 1) continue;
+            const ViewVolume ex(e, t, tx * 1.467, ty, 0.0, 0.0, 3000);
+            const ViewVolume wd(e, t, tx * 1.467, ty, rnd(0, 40), rnd(0, 80), 3000);
+            const Vec3 c = {rnd(-3000, 3000), rnd(-100, 400), rnd(-3000, 3000)};
+            const Vec3 r = {rnd(1, 1500), rnd(1, 200), rnd(1, 1500)};
+            if (ex.boxVisibleExact(c - r, c + r)) {
+                seen2++;
+                bad += !ex.boxVisible(c - r, c + r);
+                lost2 += !wd.boxVisible(c - r, c + r);
+            }
+        }
+        check(seen2 > 1000 && bad == 0, "the exact test only passes boxes the plane test passes");
+        check(lost2 == 0, "margins keep every box the exact view sees (big boxes too)");
     }
     printf("%d passed, %d failed\n", g_pass, g_fail);
     return g_fail == 0 ? 0 : 1;

@@ -4,7 +4,13 @@
 
 /* audio.c: Rare's copy of the SDK demos' audio manager (audiomgr.c). The
  * thread renders one audio frame per retrace message from the scheduler and
- * streams sample data through a small cache of 0x200-byte DMA buffers. */
+ * streams sample data through a small cache of 0x200-byte DMA buffers.
+ * Names follow the demo's (amCreateAudioMgr, audFrameCt, ...); its static
+ * functions __amMain, __amHandleFrameMsg, __amHandleDoneMsg, __amDMA,
+ * __amDmaNew and __clearAudioDMA are amMain .. amClearAudioDMA here: the
+ * port's symbol loaders (os_time.c plat_syms_load, compare.py nm_syms) drop
+ * one leading underscore from every exe symbol, so a game function whose
+ * name starts with "_" loses its keyed clock values in the comparisons. */
 
 typedef struct BcScTask {
     /* 0x00 */ struct BcScTask * N64P next;
@@ -51,7 +57,7 @@ typedef struct {
 extern AMAudioMgr __am;
 extern AMDMAState gAudDmaState;
 /* .data (0x802F3AF0); the reverb template in amCreateAudioMgr and
- * __amHandleDoneMsg's firstTime follow in source order */
+ * amHandleDoneMsg's firstTime follow in source order */
 u32 audFrameCt = 0; /* audFrameCt */
 u32 nextDMA = 0; /* nextDMA */
 s32 curAcmdList = 0; /* curAcmdList */
@@ -81,17 +87,17 @@ u64 gAudioPrevFrameStart; /* last audio frame start */
 u64 gAudioFrameStart; /* audio frame start */
 u64 gAudioFrameEnd; /* audio frame end */
 
-void __clearAudioDMA(void);
-ALDMAproc __amDmaNew(AMDMAState **state);
-void __amMain(void *arg);
+void amClearAudioDMA(void);
+ALDMAproc amDmaNew(AMDMAState **state);
+void amMain(void *arg);
 extern s32 osViClock;
 extern OSMesg audDMAMessageBuf[];
 extern u64 gAudioThreadStack[]; /* audio thread stack */
 extern AMDMABuffer dmaBuffs[72];
-s32 __amDMA(s32 addr, s32 len, void *state);
-/* __amHandleFrameMsg */
-void __amHandleFrameMsg(AudioInfo *info, AudioInfo *lastInfo);
-void __amHandleDoneMsg(AudioInfo *info);
+s32 amDMA(s32 addr, s32 len, void *state);
+/* amHandleFrameMsg */
+void amHandleFrameMsg(AudioInfo *info, AudioInfo *lastInfo);
+void amHandleDoneMsg(AudioInfo *info);
 
 #define AUDIO_ASSERT(EX, line) \
     if (!(EX)) debug_printf("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "audio.c", line)
@@ -104,7 +110,7 @@ void amCreateAudioMgr(ALSynConfig *c, OSPri pri) {
     s32 i;
     f32 fsize;
 
-    c->dmaproc = (ALDMANew) __amDmaNew;
+    c->dmaproc = (ALDMANew) amDmaNew;
     if (D_80000300 != 1) {
         osViClock = 0x02E6025C;
     }
@@ -154,7 +160,7 @@ void amCreateAudioMgr(ALSynConfig *c, OSPri pri) {
     osCreateMesgQueue(&__am.audioReplyMsgQ, __am.audioReplyMsgBuf, 8);
     osCreateMesgQueue(&__am.audioFrameMsgQ, __am.audioFrameMsgBuf, 8);
     osCreateMesgQueue(&audDMAMessageQ, audDMAMessageBuf, 0x48);
-    osCreateThread(&__am.thread, 4, __amMain, NULL, &gAudioThreadStack[0x400], pri);
+    osCreateThread(&__am.thread, 4, amMain, NULL, &gAudioThreadStack[0x400], pri);
 }
 
 /* Starts the audio thread (0x80267A74).
@@ -164,8 +170,8 @@ void amStartAudioMgr(void) {
 }
 
 /* The audio thread (0x80267A9C).
- * __amMain */
-void __amMain(void *arg) {
+ * amMain */
+void amMain(void *arg) {
     s32 done;
     s32 msg;
     AudioInfo *lastInfo;
@@ -186,12 +192,12 @@ void __amMain(void *arg) {
                     osSendMesg(&gScheduler, (OSMesg) 0x29E, OS_MESG_BLOCK);
                 }
                 gAudioFrameStart = osGetTime();
-                __amHandleFrameMsg(__am.audioInfo[audFrameCt % 3], lastInfo);
+                amHandleFrameMsg(__am.audioInfo[audFrameCt % 3], lastInfo);
                 gAudioFrameEnd = osGetTime();
                 gAudioPrevFrameStart = gAudioFrameStart;
                 if (!firstTime) {
                     osRecvMesg(&__am.audioReplyMsgQ, (OSMesg *) &lastInfo, OS_MESG_BLOCK);
-                    __amHandleDoneMsg(lastInfo);
+                    amHandleDoneMsg(lastInfo);
                 }
                 firstTime = 0;
                 if (gMusicFading) {
@@ -226,14 +232,14 @@ void __amMain(void *arg) {
 #define cmdLen gAudCmdLen
 
 /* One audio frame (0x80267CDC). */
-void __amHandleFrameMsg(AudioInfo *info, AudioInfo *lastInfo) {
+void amHandleFrameMsg(AudioInfo *info, AudioInfo *lastInfo) {
     s16 *audioPtr;
     Acmd *cmdp;
     s32 samplesLeft;
     BcScTask *t;
 
     samplesLeft = 0;
-    __clearAudioDMA();
+    amClearAudioDMA();
     audioPtr = (s16 *) osVirtualToPhysical(info->data);
     if (lastInfo) {
         func_802D9B60(lastInfo->data, lastInfo->frameSamples << 2);
@@ -272,8 +278,8 @@ void __amHandleFrameMsg(AudioInfo *info, AudioInfo *lastInfo) {
 #undef osScGetCmdQ
 
 /* Audio task done (0x80267F88).
- * __amHandleDoneMsg */
-void __amHandleDoneMsg(AudioInfo *info) {
+ * amHandleDoneMsg */
+void amHandleDoneMsg(AudioInfo *info) {
     static s32 D_802F3C04 N64_KEEP = 1; /* firstTime (never cleared: N64_KEEP) */
     u32 samplesLeft;
 
@@ -286,7 +292,7 @@ void __amHandleDoneMsg(AudioInfo *info) {
 
 /* The synthesizer's DMA callback (0x200-byte buffer cache) (0x80267FE0).
  * __amDma */
-s32 __amDMA(s32 addr, s32 len, void *state) {
+s32 amDMA(s32 addr, s32 len, void *state) {
     void *foundBuffer;
     s32 delta;
     s32 addrEnd;
@@ -349,8 +355,8 @@ s32 __amDMA(s32 addr, s32 len, void *state) {
 }
 
 /* The DMA callback factory (0x80268254).
- * __amDmaNew */
-ALDMAproc __amDmaNew(AMDMAState **state) {
+ * amDmaNew */
+ALDMAproc amDmaNew(AMDMAState **state) {
     s32 pad;
 
     if (!gAudDmaState.initialized) {
@@ -359,12 +365,12 @@ ALDMAproc __amDmaNew(AMDMAState **state) {
         gAudDmaState.initialized = 1;
     }
     *state = &gAudDmaState;
-    return (ALDMAproc) __amDMA;
+    return (ALDMAproc) amDMA;
 }
 
 /* Frees the old DMA buffers (0x802682A4).
- * __clearAudioDMA */
-void __clearAudioDMA(void) {
+ * amClearAudioDMA */
+void amClearAudioDMA(void) {
     u32 i;
     OSIoMesg *iomsg;
     AMDMABuffer *dmaPtr;

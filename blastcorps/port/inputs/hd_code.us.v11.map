@@ -61,7 +61,7 @@ Discarded input sections
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/22EE0.c.o
  .gptab.data    0x00000000       0x20 build_nm/src.us.v11/hd_code/22EE0.c.o
  .gptab.bss     0x00000000       0x20 build_nm/src.us.v11/hd_code/22EE0.c.o
- .mdebug        0x00000000     0x1340 build_nm/src.us.v11/hd_code/22EE0.c.o
+ .mdebug        0x00000000     0x132c build_nm/src.us.v11/hd_code/22EE0.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/2C560.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/2C560.c.o
  .gptab.bss     0x00000000       0x28 build_nm/src.us.v11/hd_code/2C560.c.o
@@ -1188,12 +1188,12 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
  .text          0x808232a0      0xd40 build_nm/src.us.v11/hd_code/22EE0.c.o
                 0x808232a0                amCreateAudioMgr
                 0x80823674                amStartAudioMgr
-                0x8082369c                __amMain
-                0x808238dc                __amHandleFrameMsg
-                0x80823b88                __amHandleDoneMsg
-                0x80823be0                __amDMA
-                0x80823e54                __amDmaNew
-                0x80823ea4                __clearAudioDMA
+                0x8082369c                amMain
+                0x808238dc                amHandleFrameMsg
+                0x80823b88                amHandleDoneMsg
+                0x80823be0                amDMA
+                0x80823e54                amDmaNew
+                0x80823ea4                amClearAudioDMA
  build_nm/src.us.v11/hd_code/23C20.c.o(.text)
  .text          0x80823fe0     0x2970 build_nm/src.us.v11/hd_code/23C20.c.o
                 0x80823fe0                util_check_board_zone

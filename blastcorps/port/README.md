@@ -251,7 +251,7 @@ streams the code reads bytewise (5CB60.c's BE16U/BE16S/BE32) stay big-endian.
   over the image. `make -C port typemap` prints the coverage.
 - **Assets**: `port_on_dma` (every PI copy, from the platform) and
   `port_on_load` (after the game decompressed a block: hooks in 46C20.c
-  func_8028B4C4 and 5CB60.c's packed loader) classify the ROM range
+  hd_rom_load and 5CB60.c's packed loader) classify the ROM range
   (port_assets.c) and apply the schema (schemas.h): the texture table, sound
   banks (walked like alBnkfNew), the sequence file and tunes, levels (header
   offsets, triangles, collision cells, lifts, group chain, display lists,
@@ -780,7 +780,51 @@ it without a fault.  The x64-asan preset is the tool for this now.
     off.  No Blast Corps pack exists to try; the port's RDRAM keeps textures
     as big-endian bytes and RT64_NATIVE_HOST_LAYOUT loads TMEM without the
     XOR, so TMEM (and the hashes) should be the emulator's, but that is not
-    checked against a pack made under an emulator.
+    checked against a pack made under an emulator.  The menu's Textures tab
+    lists the packs in `packs\` next to bc.exe (folders with an rt64.json,
+    `.rtz` files), reloads one ("Reload the pack": RT64's
+    `loadReplacementDirectory` again) and, with `texture_pack_reload = 1`,
+    reloads it by itself when its rt64.json (or .rtz) changes (checked once a
+    second, between frames).
+  - **Making texture packs** (dist/README.txt "Texture packs" has the
+    player's how-to).  The texture dump (`texture_dump_enabled`, a folder in
+    `texture_dump`; `--dump-textures DIR`; the Textures tab;
+    `src/live/live_texdump.cpp`): every texture RT64 decodes is written once
+    as `<where>/<hash>.png`, where = `frontend` or `level_NN` (the game mode
+    when the dump first saw it), hash = RT64's own (TMEMHasher version 5,
+    what rt64.json lists), plus `index.csv` (hash, file, format, TLUT, size,
+    alpha class, where, first frame, how many times RT64 loaded it).  RT64's
+    own dump facility (`State::dumpingTexturesDirectory`) writes raw TMEM and
+    RDRAM files for its texture_hasher tool, on the render path; instead the
+    main thread looks at RT64's `TextureCache::textureMap` each retrace
+    (under its mutex, only when `globalVersion` moved): a slot holding a
+    texture not seen there before is an upload, and a hash new to the session
+    has its 4 KB TMEM copy (`Texture::bytesTMEM`), tile and TLUT mode queued.
+    A worker thread decodes it to RGBA with `src/live/tmem_decode.cpp`, a
+    byte-for-byte port of RT64's TextureDecoder.hlsli/Formats.hlsli (every
+    value the shader writes is n/255 into R8G8B8A8_UNORM, so the bytes are
+    RT64's), encodes PNG with RT64's miniz and writes it (folder already
+    holding `<hash>.png` anywhere below: skipped).  Raw-TMEM textures
+    (`decodeTMEM` off) are only listed.  No RT64 patch; nothing is written to
+    N64 memory: traces equal with the dump on.  Checked: an identity pack made
+    from the dump (same pictures, shift none) draws level 0 within 0.01 % of
+    the pixels (mean difference 0.02-0.04 of 255: RT64 samples replaced
+    textures without the N64's 1/128 coordinate rounding).
+    `bc_packtool.exe` (`src/packtool/`, shipped in the package; RT64's
+    stb_image and miniz): a folder of `<hash>.png` (any subfolders, any size)
+    -> `packs\NAME\` with rt64.json (configuration version 3, hash version 5,
+    autoPath rt64, every texture listed by hash and path, defaultOperation
+    preload, defaultShift half; pictures at their original size get shift
+    none: half would move them half a texel) and the pictures, and/or
+    `packs\NAME.rtz` (stored zip).  Checks against the dump's index.csv:
+    unknown hashes, sizes that aren't a whole multiple or change the shape,
+    power-of-two originals made non-power-of-two, lost transparency (warnings);
+    pictures identical to the dump's are left out.  `--mipmaps` writes RGBA8
+    DDS with a full mipmap chain (2x2 box filter weighted by alpha);
+    `--watch` rebuilds when a picture changes (rt64.json last, for
+    `texture_pack_reload`).  `bc_texturetest.exe`: the decoder against
+    hand-worked TMEM (each format, TLUTs, odd-row word swap, RGBA32 halves)
+    and the packer on synthetic pictures (61 checks).
   - **The orbit camera** (`[camera] mode`, `--camera orbit`, the menu's
     Camera tab; `original` by default): a free camera that turns around the
     player's vehicle (or the driver on foot) at any angle, tilts and zooms,
@@ -862,7 +906,7 @@ it without a fault.  The x64-asan preset is the tool for this now.
       back behind the player after `recentre_delay` seconds without camera
       input; 0: the camera keeps its world direction until reset),
       `recentre_on_foot` (on foot the game steers the driver relative to its
-      own camera heading, 46F60.c func_8028B734 with gCamHeading: a turned
+      own camera heading, 46F60.c cont_stick_to_steer with gCamHeading: a turned
       view would make the stick feel rotated, so by default it eases back on
       foot anyway; camera-relative on-foot input would change the game's
       input, so it isn't offered), `zoom_min/max` (times the game's

@@ -45,3 +45,9 @@ cpdext = 0x802227F0;
 // referenced by raw address in src.us.v11/init/0050.c instead of as symbols
 // here, since splat doesn't expose individually-addressable symbols inside
 // a "bin" segment.
+
+// tools_port/names.txt (tools_port/rename.py): renamed symbols at their addresses
+gzip_unzip = 0x80220360; // type:func
+gzip_clear_bufs = 0x802206D0; // type:func
+init_debug_printf = 0x80220714; // type:func
+__osSetHWIntrRoutine = 0x80222400; // type:func

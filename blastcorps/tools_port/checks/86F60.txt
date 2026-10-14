@@ -113,7 +113,7 @@ police_update: -n 300 --heap 0x10 --mem @heap0:1=choice:0,1 --model obj_collide_
     --sig police_zone_alpha= --sig police_set_physics= --sig police_steer_rate= --sig police_build_model= --sig veh_prepare_escape=a0 --sig veh_free_arc_mid= \
     --sig veh_ground_contact=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12 \
     --sig veh_update_horn=a0 --sig veh_steer=a0,a1 --sig veh_collide_spheres=a0,a1 --sig veh_collide_world=a0 --sig anim_update_model=a0,a1,a2 \
-    --sig veh_step_heading=a0,a1,a2 --sig veh_hit_slowdown=a0,a1 --sig veh_reverse_if_behind=a0 --sig veh_set_target_heading=a0,a1 --sig func_802CB690=a0
+    --sig veh_step_heading=a0,a1,a2 --sig veh_hit_slowdown=a0,a1 --sig veh_reverse_if_behind=a0 --sig veh_set_target_heading=a0,a1 --sig veh_start_turbo=a0
 # followed: the vehicle physics leaves, the zone scan (no zones) and the effects; record words kept in range (trapping sub)
 police_update: -n 300 --seed 1 --heap 0x10 --mem @heap0:1=choice:0,1 --model obj_collide_vehicle=hit_flag_803A7424.py \
     --follow veh_steer,veh_throttle,veh_turn_heading,veh_slope,veh_apply_slope,veh_set_target_heading,veh_move_along_heading,veh_reverse_if_behind,veh_turn_into_free_arc,veh_step_heading,veh_hit_slowdown,veh_free_arc_mid,veh_snapshot,veh_rollback,police_steer_rate,police_set_physics,police_zone_alpha,veh_zone_alpha,police_update_effects \
@@ -126,7 +126,7 @@ police_update: -n 300 --seed 1 --heap 0x10 --mem @heap0:1=choice:0,1 --model obj
     --mem gPlayerX:12=rand --mem D_8036443C:6=rand --mem D_803F8F40:2=int:0:0xFFF --mem D_803F77D0=rand --mem gBounceSound:1=rand --mem gCollHit:1=rand \
     --sig police_zone_alpha= --sig police_build_model= --sig veh_prepare_escape=a0 \
     --sig veh_ground_contact=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12 \
-    --sig veh_update_horn=a0 --sig veh_collide_spheres=a0,a1 --sig veh_collide_world=a0 --sig anim_update_model=a0,a1,a2 --sig func_802CB690=a0 \
+    --sig veh_update_horn=a0 --sig veh_collide_spheres=a0,a1 --sig veh_collide_world=a0 --sig anim_update_model=a0,a1,a2 --sig veh_start_turbo=a0 \
     --sig police_add_tyre_trail= --sig fx_count_active= --sig veh_set_engine_level=a0 --sig anim_tex_set_frame=f12,a1,a2
 # police_reground: re-seat (veh_reground, fp = 0: the C passes 0 for the caller's leaked fp; FP-state pointer not compared)
 police_reground: -n 300 --arg fp=0 --mem gPoliceState:0xA0=rand --mem gPolicePos:12=rand \
@@ -177,4 +177,4 @@ police_spawn: -n 200 --seed 1 --heap 0x100 --heap 0x200 --arg s2=rel:heap0 --mem
     --sig police_zone_alpha= --sig police_set_physics= --sig police_steer_rate= --sig police_build_model= --sig veh_prepare_escape=a0 --sig veh_free_arc_mid= \
     --sig veh_ground_contact=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12 \
     --sig veh_update_horn=a0 --sig veh_steer=a0,a1 --sig veh_collide_spheres=a0,a1 --sig veh_collide_world=a0 \
-    --sig veh_step_heading=a0,a1,a2 --sig veh_hit_slowdown=a0,a1 --sig veh_reverse_if_behind=a0 --sig veh_set_target_heading=a0,a1 --sig func_802CB690=a0
+    --sig veh_step_heading=a0,a1,a2 --sig veh_hit_slowdown=a0,a1 --sig veh_reverse_if_behind=a0 --sig veh_set_target_heading=a0,a1 --sig veh_start_turbo=a0

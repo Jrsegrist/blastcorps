@@ -153,7 +153,9 @@ void plat_syms_load(const char *path) {
          * text symbols only */
         if ((n == 8 || n == 16) && a >> 32 == 0 && p[0] == ' ' && (p[1] == 'T' || p[1] == 't') && p[2] == ' ') {
             name = p + 3;
-            if (*name == '_') name++;          /* i686 C symbols have a leading _ */
+            /* i686 C symbols have a leading _ (8-digit addresses); x86_64
+             * names are the C names, so SDK names like __amMain keep both */
+            if (n == 8 && *name == '_') name++;
             dot = name;
             while (*dot && *dot != '.') dot++; /* func.constprop.0, .isra.0, .part.0 */
             *dot = 0;

@@ -41,7 +41,7 @@ void rec_start_playback(s32 arg0, s32 *arg1) {
     rom = D_006A9F10;
     size = D_006AD3F0 - rom;
     p = gHeapPtr;
-    func_8028B4C4((u32) rom, (u32) p, (u32 *) &size, 9, 0, 1);
+    hd_rom_load((u32) rom, (u32) p, (u32 *) &size, 9, 0, 1);
     gHeapPtr = (u8 *) gHeapPtr + size;
     align_up((s32 *) &gHeapPtr, 0x10);
     for (i = 0; i < arg0; i++) {
@@ -63,12 +63,16 @@ void rec_start_playback(s32 arg0, s32 *arg1) {
     D_803669B4 = 1;
 }
 
-void func_8025BB38(void) {
+/* Starts recording the player's pad: empties the RAM recording and skips the first rec_record call
+ * (0x8025BB38). */
+void rec_start_recording(void) {
     D_80366990 = 0;
     D_803669A8 = 1;
 }
 
-void func_8025BB50(void) {
+/* Starts playing back the RAM recording just made (the post-level replay) and loads the replay sprites
+ * (0x8025BB50). */
+void rec_start_replay(void) {
     D_80366998 = D_80366990;
     D_80366994 = 0;
     D_803669AC = D_80365588;
@@ -100,7 +104,9 @@ void rec_record(u16 buttons, s8 x, s8 y) {
     D_803669A8 = 0;
 }
 
-void func_8025BD98(void) {
+/* At level setup after rec_start_playback: loads the recording's saved vehicle state, enters that vehicle and
+ * makes it the current one (0x8025BD98). */
+void rec_restore_start_vehicle(void) {
     switch (D_8036698C) {
         case 3:
             skyfall_load_state(D_803669B0);
@@ -148,27 +154,27 @@ void func_8025BD98(void) {
 void rec_next(void) {
     s32 pad[2];
 
-    if (D_80366994 > D_80366998 || (gHaveCarrier && gCarrierHit && (gGameMode & 0x440))) {
-        if (yoshiState != 1 || ((gGameMode & 0x440) && !D_80364A50)) {
+    if (D_80366994 > D_80366998 || (gHaveCarrier && gCarrierHit && (gGameMode & (MODE_REPLAY | MODE_REPLAY_CARRIER_END)))) {
+        if (yoshiState != 1 || ((gGameMode & (MODE_REPLAY | MODE_REPLAY_CARRIER_END)) && !D_80364A50)) {
             if (!gPaused) {
                 gPauseRequest = 1;
             }
         } else if (!areWeFading()) {
             switch (gGameMode) {
-                case 2:
-                    func_80275270(2, 0.25f);
+                case MODE_ATTRACT:
+                    fade_to_mode_speed(MODE_ATTRACT, 0.25f);
                     break;
-                case 0x100000000000:
+                case MODE_GLOBE_SEQ:
                     debug_printf("sequence playback over\n");
-                    func_80275390(0x200000000000);
+                    fade_to_mode(MODE_SEQ_END);
                     break;
-                case 0x40:
-                case 0x400:
+                case MODE_REPLAY:
+                case MODE_REPLAY_CARRIER_END:
                     gPauseRequest = 1;
-                    if (gGameMode == 0x400) {
-                        func_80275270(0x40, 1.25f);
+                    if (gGameMode == MODE_REPLAY_CARRIER_END) {
+                        fade_to_mode_speed(MODE_REPLAY, 1.25f);
                     } else {
-                        func_80275270(0x40, 0.5f);
+                        fade_to_mode_speed(MODE_REPLAY, 0.5f);
                     }
                     break;
                 default:

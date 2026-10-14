@@ -100,6 +100,13 @@ static const char kDefaultIni[] =
     "; paths are relative to this folder) and whether it is used: 1 = yes, 0 = no (default).\r\n"
     "texture_pack =\r\n"
     "texture_pack_enabled = 0\r\n"
+    "; Reload the texture pack by itself when it changes (its rt64.json or .rtz file is\r\n"
+    "; rewritten, e.g. by bc_packtool --watch): 1 = yes, 0 = no (default).\r\n"
+    "texture_pack_reload = 0\r\n"
+    "; Texture dump, for making texture packs: 1 = write every texture the game shows into\r\n"
+    "; this folder as <hash>.png (once each; see README.txt), 0 = no (default).\r\n"
+    "texture_dump = texture_dump\r\n"
+    "texture_dump_enabled = 0\r\n"
     "\r\n"
     "[audio]\r\n"
     "; Volume in percent (0-100); - and = change it in the game, M switches the sound off and on.\r\n"
@@ -430,6 +437,12 @@ static void parseText(Config &c, const std::string &text, const std::string &nam
                 c.texturePack = v;
             } else if (key == "texture_pack_enabled") {
                 ok = parseBool(v, c.texturePackOn);
+            } else if (key == "texture_pack_reload") {
+                ok = parseBool(v, c.texturePackReload);
+            } else if (key == "texture_dump") {
+                c.textureDump = v.empty() ? "texture_dump" : v;
+            } else if (key == "texture_dump_enabled") {
+                ok = parseBool(v, c.textureDumpOn);
             } else if (key == "filtering") {
                 std::string l = lower(v);
                 if (l == "aa" || l == "pixel" || l == "default") c.filtering = 0;
@@ -734,6 +747,9 @@ std::string configValue(const Config &c, const Setting &s) {
         if (k == "fps_counter_corner") return cornerName(c.fpsCorner);
         if (k == "texture_pack") return c.texturePack;
         if (k == "texture_pack_enabled") return c.texturePackOn ? "1" : "0";
+        if (k == "texture_pack_reload") return c.texturePackReload ? "1" : "0";
+        if (k == "texture_dump") return c.textureDump;
+        if (k == "texture_dump_enabled") return c.textureDumpOn ? "1" : "0";
     } else if (s.section == "camera") {
         auto d = [](double x) {
             char buf[32];

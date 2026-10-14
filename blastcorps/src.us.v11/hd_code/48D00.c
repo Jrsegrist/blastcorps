@@ -197,13 +197,13 @@ void tnt_explode(u8 arg0) {
         snd_stop((void *) N64_IPTR((D_8039B070_entries[arg0].unk40)));
         match = tnt_find_lit();
         if (match != NULL) {
-            snd_play(gSfxBank, 0x73, (void *) N64_IPTR(((s32) &match->unk40)));
+            snd_play(gSfxBank, SFX_TICK_LOOP, (void *) N64_IPTR(((s32) &match->unk40)));
         }
     }
     if (*(s32 *) (&D_8039B0B4 + arg0 * 0x48) != 0) {
         snd_stop((void *) N64_IPTR((*(s32 *) (&D_8039B0B4 + arg0 * 0x48))));
     }
-    snd_play(gSfxBank, 0x10, 0);
+    snd_play(gSfxBank, SFX_EXPLOSION, 0);
 }
 
 extern u8 gTntCrates;
@@ -307,7 +307,7 @@ void tnt_update(u8 arg0) {
                 }
                 if (D_8039B070_entries[i].unk14 == 0 && arg0 != 0) {
                     if (tnt_find_lit() == NULL) {
-                        snd_play(gSfxBank, 0x73, (void *) N64_IPTR(((s32) &D_8039B070_entries[i].unk40)));
+                        snd_play(gSfxBank, SFX_TICK_LOOP, (void *) N64_IPTR(((s32) &D_8039B070_entries[i].unk40)));
                     }
                     D_8039B070_entries[i].unk14 = ((s32) gFramesInMode);
                 }
@@ -365,7 +365,7 @@ void tnt_update(u8 arg0) {
             }
             if (D_8039B070_entries[i].unk1E > 0 && D_8039B070_entries[i].unk44 == 0 &&
                 D_8039B070_entries[i].unk18 != 0) {
-                snd_play(gSfxBank, 7, (void *) N64_IPTR(((s32) &D_8039B070_entries[i].unk44)));
+                snd_play(gSfxBank, SFX_SCRAPE_LOOP, (void *) N64_IPTR(((s32) &D_8039B070_entries[i].unk44)));
                 if (gCurVehicle == 4) {
                     yoshi_show_hint(0x54);
                 }
@@ -590,9 +590,9 @@ void cont_boot_check_start(void) {
     OSContPad pads[4];
 
     start = 0;
-    func_802DB4D0(&gSiMesgQueue);
+    osContStartReadData(&gSiMesgQueue);
     osRecvMesg(&gSiMesgQueue, 0, 1);
-    func_802DB594(pads);
+    osContGetReadData(pads);
     if (pads[0].button & 0x1000) {
         start = 1;
     }

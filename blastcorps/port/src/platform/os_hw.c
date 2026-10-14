@@ -502,10 +502,10 @@ s32 __osSpSetPc(u32 pc) {
 }
 
 /* osDpSetStatus / osDpGetStatus (8FD90.c / 96300.c write the DPC register) */
-void func_802D4550(u32 v) {
+void osDpSetStatus(u32 v) {
     (void) v;
 }
-u32 func_802DAAC0(void) {
+u32 osDpGetStatus(void) {
     return 0;
 }
 

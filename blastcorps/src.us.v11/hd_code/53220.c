@@ -9,27 +9,23 @@
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_802F49F4 ((Font *) D_802F49F4)
-#define players ((Player *) players)
+#define players ((PlayerInfo *) players)
 #ifdef NON_MATCHING
 #define gYoshiHeapItems (*(MenuItem * N64P *) &gYoshiHeapItems)
 #endif
 /* end of views */
 
 /*
- * Two parts: the academy/level-select yoshi window builder (func_802979E0
+ * Two parts: the academy marker-found yoshi window builder (window 0x15) (academy_build_window
  * and helpers), then a second copy of the INFLATE decompressor that init/
  * carries (init/0050.c, init/0E30.c), compiled from the same source:
- *   func_80297FE0 huft_build, func_8029867C inflate_codes,
- *   func_80298A84 inflate_stored, func_80298C18 inflate_fixed,
- *   func_80298DC0 inflate_dynamic, func_802993AC inflate_block,
- *   func_802994F8 inflate.
+ *   hd_huft_build huft_build, hd_inflate_codes inflate_codes,
+ *   hd_inflate_stored inflate_stored, hd_inflate_fixed inflate_fixed,
+ *   hd_inflate_dynamic inflate_dynamic, hd_inflate_block inflate_block,
+ *   hd_inflate inflate.
  */
 
-typedef struct {
-    u8 pad0[0x90];
-    u8 academy; /* 0x90 */
-    u8 pad91[0x100 - 0x91];
-} Player;
+/* (players[]: PlayerInfo, game/types.h) */
 
 /* Yoshi window item, 0x1C bytes */
 typedef struct {
@@ -85,11 +81,13 @@ extern MenuItem *gYoshiHeapItems;
 
 
 
-u8 func_80297F74(void);
+u8 academy_count_left(void);
 
-/* Build the yoshi window that lists a group's levels, numbering the
+/* Builds the yoshi window shown when the academy marker is touched (window 0x15): the page hinting at the
+ * next unfound marker, or the all-found page, with the count of markers left (0x802979E0).
+ * Build the yoshi window that lists a group's levels, numbering the
  * "N left" text with how many levels remain */
-void func_802979E0(u8 level) {
+void academy_build_window(u8 level) {
     Window *win = (Window *) (gYoshiWindows + 0x24C);
     MenuItem *item;
     Font *font;
@@ -103,9 +101,9 @@ void func_802979E0(u8 level) {
     u8 *text;
     s32 jtext;
 
-    left = func_80297F74();
+    left = academy_count_left();
     done = 0;
-    if (left == 1 && !func_80297EF8(level)) {
+    if (left == 1 && !academy_marker_found(level)) {
         left--;
     }
     if (left == 0) {
@@ -113,7 +111,7 @@ void func_802979E0(u8 level) {
     } else {
         stop = 0;
         for (i = D_8039CAB6; i < D_8039CAB6 + 6 && !stop;) {
-            if (!func_80297EF8(D_802FF180[i % 6]) && D_802FF180[i % 6] != level) {
+            if (!academy_marker_found(D_802FF180[i % 6]) && D_802FF180[i % 6] != level) {
                 stop = 1;
             } else {
                 i++;
@@ -165,7 +163,7 @@ void func_802979E0(u8 level) {
     item->unk1A = spr_load((u16 *) font->ids, 0, font->unk4, font->unk2C, font->unk2D | 4, 1.0f);
     win->count = n + 1;
     win->cursor = D_802FF5E8[D_8039CAD0 * 5];
-    if (!func_80297EF8(level)) {
+    if (!academy_marker_found(level)) {
         left--;
     }
     for (i = 0; i < win->count && !done; i++) {
@@ -179,12 +177,14 @@ void func_802979E0(u8 level) {
     }
 }
 
-void func_80297ECC(void) {
+/* Puts window 0x15's cursor on the current academy page's first selectable item (0x80297ECC). */
+void academy_reset_window_cursor(void) {
     *(s16 *) (gYoshiWindows + 0x264) = D_802FF5E8[D_8039CAD0 * 5];
 }
 
-/* Is level completed in its academy group? */
-u8 func_80297EF8(u8 level) {
+/* Whether the level's academy marker is saved as found (a players[playerNumber].academy bit) (0x80297EF8).
+ * Is level completed in its academy group? */
+u8 academy_marker_found(u8 level) {
     u8 idx;
     u8 found;
 
@@ -192,8 +192,9 @@ u8 func_80297EF8(u8 level) {
     return (found && (players[playerNumber].academy & (1 << idx))) ? 1 : 0;
 }
 
-/* Number of academy groups not yet completed */
-u8 func_80297F74(void) {
+/* The number of academy markers not yet found (of 6), from the saved bits (0x80297F74).
+ * Number of academy groups not yet completed */
+u8 academy_count_left(void) {
     s32 i;
     s32 n = 6;
 
@@ -228,11 +229,11 @@ extern u16 D_802FF700[]; /* mask_bits */
 extern s32 D_802FF724;   /* lbits */
 extern s32 D_802FF728;   /* dbits */
 
-int func_80297FE0(s32 *b, u32 n, u32 s, u16 *d, u8 *e, Huft * N64P *t, s32 *m);
-s32 func_8029867C(Huft *tl, Huft *td, u32 bl, u32 bd);
-s32 func_80298DC0(void);
-s32 func_80298A84(void);
-s32 func_80298C18(void);
+int hd_huft_build(s32 *b, u32 n, u32 s, u16 *d, u8 *e, Huft * N64P *t, s32 *m);
+s32 hd_inflate_codes(Huft *tl, Huft *td, u32 bl, u32 bd);
+s32 hd_inflate_dynamic(void);
+s32 hd_inflate_stored(void);
+s32 hd_inflate_fixed(void);
 
 /* huft_build: build a Huffman decode table from code lengths b[0..n-1]
  * (classic inflate.c, bump-allocated from the D_8039CAE0 arena). It returns
@@ -241,7 +242,9 @@ s32 func_80298C18(void);
 #define BMAX 16
 #define N_MAX 288
 
-int func_80297FE0(s32 *b, u32 n, u32 s, u16 *d, u8 *e, Huft * N64P *t, s32 *m) {
+/* huft_build from gzip's inflate.c: a Huffman decode table from code lengths, bump-allocated from the huft
+ * arena; nonzero for an incomplete code (0x80297FE0). */
+int hd_huft_build(s32 *b, u32 n, u32 s, u16 *d, u8 *e, Huft * N64P *t, s32 *m) {
     u32 a;
     u32 c[BMAX + 1];
     u32 f;
@@ -262,7 +265,7 @@ int func_80297FE0(s32 *b, u32 n, u32 s, u16 *d, u8 *e, Huft * N64P *t, s32 *m) {
     s32 y;
     u32 z;
 
-    func_802DB7B0(c, sizeof(c));
+    bzero(c, sizeof(c));
     p = (u32 *) b;
     i = n;
     do {
@@ -392,7 +395,9 @@ int func_80297FE0(s32 *b, u32 n, u32 s, u16 *d, u8 *e, Huft * N64P *t, s32 *m) {
     return y != 0 && g != 1;
 }
 
-s32 func_8029867C(Huft *tl, Huft *td, u32 bl, u32 bd) {
+/* inflate_codes from gzip's inflate.c: decodes literal/length and distance codes into the output until the
+ * end of the block (0x8029867C). */
+s32 hd_inflate_codes(Huft *tl, Huft *td, u32 bl, u32 bd) {
     register u32 e;
     u32 n;
     u32 d;
@@ -492,7 +497,9 @@ s32 func_8029867C(Huft *tl, Huft *td, u32 bl, u32 bd) {
     return 0;
 }
 
-s32 func_80298A84(void) {
+/* inflate_stored from gzip's inflate.c: copies a stored block (the length's complement is not checked)
+ * (0x80298A84). */
+s32 hd_inflate_stored(void) {
     u32 n;
     u32 w;
     register u32 k;
@@ -537,7 +544,9 @@ s32 func_80298A84(void) {
     return 0;
 }
 
-s32 func_80298C18(void) {
+/* inflate_fixed from gzip's inflate.c: builds the fixed literal/length and distance tables and decodes the
+ * block (0x80298C18). */
+s32 hd_inflate_fixed(void) {
     s32 i;
     Huft * N64P tl;
     Huft * N64P td;
@@ -558,21 +567,23 @@ s32 func_80298C18(void) {
         l[i] = 8;
     }
     bl = 7;
-    func_80297FE0(l, 288, 257, D_802FF644, D_802FF684, &tl, &bl);
+    hd_huft_build(l, 288, 257, D_802FF644, D_802FF684, &tl, &bl);
 
     for (i = 0; i < 30; i++) {
         l[i] = 5;
     }
     bd = 5;
-    func_80297FE0(l, 30, 0, D_802FF6A4, D_802FF6E0, &td, &bd);
+    hd_huft_build(l, 30, 0, D_802FF6A4, D_802FF6E0, &td, &bd);
 
-    func_8029867C(tl, td, bl, bd);
+    hd_inflate_codes(tl, td, bl, bd);
     return 0;
 }
 
 #define LL_SIZE (286 + 30)
 
-s32 func_80298DC0(void) {
+/* inflate_dynamic from gzip's inflate.c: reads the dynamic code lengths, builds the tables and decodes the
+ * block (0x80298DC0). */
+s32 hd_inflate_dynamic(void) {
     s32 i;
     u32 j;
     u32 l;
@@ -630,7 +641,7 @@ s32 func_80298DC0(void) {
     }
 
     bl = 7;
-    func_80297FE0(ll, 19, 19, NULL, NULL, &tl, &bl);
+    hd_huft_build(ll, 19, 19, NULL, NULL, &tl, &bl);
 
     n = nl + nd;
     m = D_802FF700[bl];
@@ -689,14 +700,14 @@ s32 func_80298DC0(void) {
     D_8039CAE8 = k;
 
     bl = D_802FF724;
-    func_80297FE0(ll, nl, 257, D_802FF644, D_802FF684, &tl, &bl);
+    hd_huft_build(ll, nl, 257, D_802FF644, D_802FF684, &tl, &bl);
     bd = D_802FF728;
-    func_80297FE0(ll + nl, nd, 0, D_802FF6A4, D_802FF6E0, &td, &bd);
-    func_8029867C(tl, td, bl, bd);
+    hd_huft_build(ll + nl, nd, 0, D_802FF6A4, D_802FF6E0, &td, &bd);
+    hd_inflate_codes(tl, td, bl, bd);
     return 0;
 }
 
-s32 func_802993AC(s32 *arg0) {
+s32 hd_inflate_block(s32 *arg0) {
     s32 type;
     register u32 k;
     register u32 b;
@@ -724,18 +735,20 @@ s32 func_802993AC(s32 *arg0) {
     D_8039CAE8 = k;
 
     if (type == 2) {
-        return func_80298DC0();
+        return hd_inflate_dynamic();
     }
     if (type == 0) {
-        return func_80298A84();
+        return hd_inflate_stored();
     }
     if (type == 1) {
-        return func_80298C18();
+        return hd_inflate_fixed();
     }
     return 2;
 }
 
-s32 func_802994F8(void) {
+/* inflate from gzip's inflate.c: inflates blocks until the last one, gives back the unused lookahead bytes,
+ * then skips the 8-byte gzip trailer (0x802994F8). */
+s32 hd_inflate(void) {
     s32 sp24;
     s32 sp20;
     u32 sp1C;
@@ -746,7 +759,7 @@ s32 func_802994F8(void) {
     sp1C = 0;
     for (;;) {
         D_8039CAEC = 0;
-        sp20 = func_802993AC(&sp24);
+        sp20 = hd_inflate_block(&sp24);
         if (sp20 != 0) {
             return sp20;
         }

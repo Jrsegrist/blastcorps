@@ -67,7 +67,7 @@ void fe_attract_pic_load(s32 arg0) {
     s32 i;
 
     size = D_006A32B0 - D_0068B550;
-    func_8028B4C4((u32) D_0068B550, (u32) ((void *) N64_IPTR(gHeapPtr)), (u32 *) &size, 13, 0, 1);
+    hd_rom_load((u32) D_0068B550, (u32) ((void *) N64_IPTR(gHeapPtr)), (u32 *) &size, 13, 0, 1);
     for (i = 0; i < 4; i++) {
         gAttractPics[i] = (u8 *) N64_IPTR((i * 160 * 120 * 2 + gHeapPtr));
     }
@@ -167,7 +167,7 @@ Gfx *fe_attract_pic_draw(s32 arg0, Gfx *arg1) {
             break;
     }
     if (gAttractPicPrimAlpha > 60 && D_8021ABA8 == 0) {
-        snd_play(gSfxBank, 0x69, &D_8021ABA8);
+        snd_play(gSfxBank, SFX_STATIC, &D_8021ABA8);
     }
     gDPSetPrimColor(gdl++, 0, 0, 0, 0, 0, gAttractPicPrimAlpha);
     gDPSetEnvColor(gdl++, 0, 0, 0, gAttractPicEnvAlpha);

@@ -48,7 +48,7 @@ static u8 *port_veh_parts(u8 *veh, PortVehPos *p, s32 id, s32 scale, MtxChainReg
     u8 *base;
 
     mtx = (s32 *) ((gBufferIndex != 0 ? (u8 *) p->bufA : (u8 *) p->bufB) + off);
-    D_803ED392 = VEH_U16(veh, 0x4C);
+    D_803ED392 = VEH_U16(veh, VS_HEADING);
     mtx_build_model(p->x, p->y, p->z, scale, mtx);
     r->a3 = 0;
     r->s2 = (s32) mtx;
@@ -106,9 +106,9 @@ static void port_veh_init_head(u8 *veh, PortVehPos *p, s32 id, u8 *model, const 
     p->x = x;
     p->y = y;
     p->z = z;
-    VEH_S16(veh, 0x4C) = heading;
-    VEH_S16(veh, 0x4E) = heading;
-    VEH_S16(veh, 0x74) = heading;
+    VEH_S16(veh, VS_HEADING) = heading;
+    VEH_S16(veh, VS_MOVE_HEADING) = heading;
+    VEH_S16(veh, VS_MOMENTUM_HEADING) = heading;
 }
 
 /* Second part: ground slots (veh_init_ground, key id, with the incoming fp;
@@ -150,12 +150,12 @@ static void port_veh_init_tail(u8 *veh, PortVehPos *p, s32 id, s32 scale, s32 a1
 
     veh_register_parts(id, m + *(s32 *) (m + 4), m + *(s32 *) (m + 8), scale);
     veh_add_shadow(id, a1, a2, a2);
-    VEH_U8(veh, 0x9A) = 1;
+    VEH_U8(veh, VS_SPAWN_UPDATE) = 1;
     /* The asm enters the update with t6, t7, s0-s4 as veh_add_shadow (C) and
      * anim_update_model left them (register leak); they only pass through
      * veh_zone_alpha unused. */
     update(0, 0, 0, 0, 0, 0, 0);
-    VEH_U8(veh, 0x9A) = 0;
+    VEH_U8(veh, VS_SPAWN_UPDATE) = 0;
     m = p->model;
     mtx_copy_at((u8 *) p->bufB, (u8 *) p->bufA, *(s32 *) (m + *(s32 *) (m + 0x18) + 4));
 }
@@ -182,7 +182,7 @@ static void port_veh_move(u8 *veh, PortVehPos *p, s32 id, u8 *ch, s32 rate, s32 
     if (drift != 0) {
         veh_set_target_heading(veh, driftAngle);
     }
-    x = veh_move_along_heading(fl, VEH_U16(veh, 0x4E), (s16 *) (veh + 0x76), &p->x, &p->z, &o);
+    x = veh_move_along_heading(fl, VEH_U16(veh, VS_MOVE_HEADING), (s16 *) (veh + 0x76), &p->x, &p->z, &o);
     gBounceSound = 1;
     r8.s3 = o.s3;
     /* f12-f26 here: veh_move_along_heading's temporaries and the caller's registers
@@ -200,7 +200,7 @@ static void port_veh_move(u8 *veh, PortVehPos *p, s32 id, u8 *ch, s32 rate, s32 
     mc.s0 = 0;
     mc.s1 = 0;
     parts(&mc);
-    veh_collision_setup(p->z, (s32) a1, b2, 1, p->x, p->y, b0, VEH_S16(veh, 0x76), h2, 0, id, veh);
+    veh_collision_setup(p->z, (s32) a1, b2, 1, p->x, p->y, b0, VEH_S16(veh, VS_SPEED), h2, 0, id, veh);
     veh_collide_spheres(id, veh);
     veh_collide_world(id);
 }
@@ -212,7 +212,7 @@ static void port_veh_turn(u8 *veh, f32 scale, s16 *target) {
     s32 turn;
     s32 tmp;
 
-    d = VEH_U16(veh, 0x4E) - 0x800;
+    d = VEH_U16(veh, VS_MOVE_HEADING) - 0x800;
     if (d < 0) {
         d += 0xFFF;
     }
@@ -224,10 +224,10 @@ static void port_veh_turn(u8 *veh, f32 scale, s16 *target) {
         d = 0xFFF - d;
     }
     veh_reverse_if_behind(veh);
-    turn = veh_turn_into_free_arc(veh, VEH_U16(veh, 0x4E), VEH_U16(veh, 0x4C), &cur, scale);
+    turn = veh_turn_into_free_arc(veh, VEH_U16(veh, VS_MOVE_HEADING), VEH_U16(veh, VS_HEADING), &cur, scale);
     *target = cur;
-    VEH_S16(veh, 0x4E) = cur;
-    VEH_S16(veh, 0x74) = cur;
+    VEH_S16(veh, VS_MOVE_HEADING) = cur;
+    VEH_S16(veh, VS_MOMENTUM_HEADING) = cur;
     veh_step_heading(veh, turn, d, &tmp);
     veh_hit_slowdown(veh, 0);
 }
@@ -237,9 +237,9 @@ static void port_veh_publish(u8 *veh, PortVehPos *p, s32 id) {
     gPlayerX = p->x;
     gPlayerY = p->y;
     gPlayerZ = p->z;
-    D_8036443C = VEH_S16(veh, 0x76);
-    D_8036443E = VEH_U16(veh, 0x4E);
-    D_80364440 = VEH_U16(veh, 0x4C);
+    D_8036443C = VEH_S16(veh, VS_SPEED);
+    D_8036443E = VEH_U16(veh, VS_MOVE_HEADING);
+    D_80364440 = VEH_U16(veh, VS_HEADING);
     veh_set_record(p->z, id, p->x, p->y, veh);
 }
 
@@ -436,7 +436,7 @@ extern s16 gSideswipeDeflectHeading;
  *    animation/sound update sideswipe_update_anims unless +0x9A is set;
  * 2. setup leaf sideswipe_set_physics, steering + speed bands
  *    veh_steer_throttle(sideswipe_steer_rate(), ...) (no countdown, no state save, no
- *    func_802CB690, unlike vehicles 3 and 4);
+ *    veh_start_turbo, unlike vehicles 3 and 4);
  * 3. port_veh_move (rate 0x4650, kind 1 / 720.0, drift gSideswipeDeflecting via
  *    gSideswipeDeflectHeading, divisors 0x2D0 / 0x2D0, parts sideswipe_build_model, veh_collision_setup
  *    with D_80305CE0, 0, 7, 100);
@@ -463,7 +463,7 @@ void sideswipe_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
     zs.s3 = s3;
     zs.s4 = s4;
     sideswipe_zone_alpha(&zs);
-    if (VEH_S8(veh, 0x9A) == 0) {
+    if (VEH_S8(veh, VS_SPAWN_UPDATE) == 0) {
         sideswipe_update_anims();
     }
     sideswipe_set_physics();
@@ -535,7 +535,7 @@ void sideswipe_update_anims(void) {
             gSideswipeRamCharges--;
             anim_play((AnimChannel *) gSideswipeAnim, 5, 2);
             gSideswipeRamCooldown = 10;
-            snd_play(gSfxBank, 0x37, NULL);
+            snd_play(gSfxBank, SFX_SIDESWIPE_RAM, NULL);
         }
     }
 

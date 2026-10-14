@@ -23,7 +23,8 @@ Double-click bc.exe. The first time, a file dialog asks for your ROM; the game
 checks it and remembers where it is (in bc.ini). That's all.
 
 Needs: Windows 10 or 11, a graphics card with Direct3D 12 or Vulkan support, and
-the files of this folder kept together (bc.exe, SDL2.dll, dxcompiler.dll, dxil.dll).
+the files of this folder kept together (bc.exe, SDL2.dll, dxcompiler.dll, dxil.dll;
+bc_packtool.exe is only for making texture packs).
 The folder must be writable (settings, saves and the log are kept here).
 
 
@@ -76,8 +77,10 @@ game is closed. It holds:
                smoother motion from in-between pictures), interpolation (tagged,
                the default, or auto), fps_counter (off, on, detailed) and
                fps_counter_corner (top-left, top-right, bottom-left, bottom-right),
-               texture_pack (an RT64 texture pack folder or .rtz) and
-               texture_pack_enabled (0/1)
+               texture_pack (an RT64 texture pack folder or .rtz),
+               texture_pack_enabled (0/1) and texture_pack_reload (0/1: reload it
+               when it changes), texture_dump (a folder) and texture_dump_enabled
+               (0/1): see "Texture packs"
   [audio]      volume, mute
   [camera]     mode (original, the default, or orbit: the free camera, below),
                sensitivity_x/y, invert_x/y, recentre (0/1) and recentre_delay
@@ -141,6 +144,53 @@ Command-line options (for shortcuts or a .bat file) override bc.ini, for example
   bc.exe --framerate 60        bc.exe --framerate display
   bc.exe --interpolation auto  bc.exe --fps-counter on
   bc.exe --camera orbit        bc.exe --present-pacing vsync
+  bc.exe --dump-textures texture_dump
+
+
+Texture packs
+-------------
+A texture pack replaces the game's textures (the pictures on the ground, buildings,
+vehicles, menus ...) with your own, at any resolution. The game reads packs in RT64's
+format: a folder with an rt64.json file and pictures, or one .rtz file. Put them in
+the "packs" folder next to bc.exe and choose one in the settings menu (F1 > Textures
+> Texture pack); "None" goes back to the original textures. Packs only change what
+you see, never how the game plays.
+
+Making a texture pack (no other tools needed besides a picture editor):
+
+1. Dump the textures. F1 > Textures > tick "Dump textures" (or start bc.exe
+   --dump-textures texture_dump). Then play the parts of the game you want to
+   change: every texture the game shows is written once into the texture_dump folder
+   as <hash>.png, in a folder for where it was first seen (frontend, level_00,
+   level_01 ...). The hash in the name is how the renderer recognises the texture.
+   texture_dump\index.csv lists them all (format, size, transparency, where and when
+   it was first seen); open it in a spreadsheet to find things. Untick the box when
+   you have what you need (the dump never changes the game; textures already in the
+   folder are not written again).
+2. Edit copies. Copy the pictures you want to change into a new folder, for example
+   MyPack (keep their names; subfolders are fine), and edit them with any picture
+   editor that saves PNG. They can be bigger than the originals: 2x, 4x ... (keep
+   the same shape, and keep transparent parts transparent).
+3. Build the pack. Drop the MyPack folder onto bc_packtool.exe (or run
+   bc_packtool MyPack in a command prompt). It checks the pictures against the dump
+   (unknown names, odd sizes, lost transparency: warnings) and writes the pack to
+   packs\MyPack. Pictures you didn't change are left out. Options (bc_packtool
+   --help): --rtz also makes packs\MyPack.rtz, a single file to share; --mipmaps
+   makes big pictures look smoother in the distance; --name, --out, --dump.
+4. Use it. F1 > Textures > Texture pack: MyPack. After changing pictures, build again
+   and press "Reload the pack". Or run bc_packtool MyPack --watch (it rebuilds
+   whenever you save a picture) and tick "Reload the pack by itself when it
+   changes": the game shows each edit a moment after you save it.
+
+Good to know:
+- Some textures are made by the game while it runs (the globe's zoom, some effects,
+  animated screens): each frame of those gets a new name, so the dump writes many
+  of them and replacing one changes nothing. Real animations (explosions, the
+  mission portraits) are separate textures for each frame; replace every frame.
+- A texture used with different palettes (colour sets) has one name per palette.
+- A few textures the renderer can't replace (listed as "raw" in index.csv).
+- A replacement at the original size can look a little softer than the original in
+  menus (the renderer samples replacements more finely); 2x or 4x pictures look crisp.
 
 
 Saves

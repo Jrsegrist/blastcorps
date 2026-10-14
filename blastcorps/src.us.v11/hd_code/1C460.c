@@ -76,7 +76,7 @@ void music_play_tune(u8 tune, f32 vol) {
     gMusicVolume = vol;
     gMusicTune = tune;
     rom = gSeqFile->seqArray[tune].offset;
-    func_8028B4C4((u32) rom, (u32) gSeqBuffer, (u32 *) &gSeqSizes[tune], 0, 0, 0);
+    hd_rom_load((u32) rom, (u32) gSeqBuffer, (u32 *) &gSeqSizes[tune], 0, 0, 0);
     alCSeqNew(&gSeqs[gSeqIndex], gSeqBuffer);
     alCSPSetSeq(gMusicPlayer, &gSeqs[gSeqIndex]);
     alCSPPlay(gMusicPlayer);
@@ -112,7 +112,8 @@ void music_play_clear_tune(void) {
     music_start_tune(gLevelClearTunes[levelno]);
 }
 
-void func_80260EC0(void) {
+/* No callers: only calls music_push_danger_tune (0x80260EC0). */
+void music_push_danger_tune_stub(void) {
     music_push_danger_tune();
 }
 
@@ -163,14 +164,14 @@ void music_update_pop(void) {
 
     switch (gMusicPopState) {
         case 2:
-            if (func_802D4E10(gMusicPlayer) == 0) {
+            if (alCSPGetState(gMusicPlayer) == 0) {
                 music_play_tune(gMusicTune, gMusicPopVolume);
                 gMusicPopState = 1;
             }
             break;
         case 1:
             alCSeqGetLoc(&gSeqs[gSeqIndex], &marker);
-            if (func_802D4E10(gMusicPlayer) == 1 && marker.lastTicks != 0) {
+            if (alCSPGetState(gMusicPlayer) == 1 && marker.lastTicks != 0) {
                 alCSeqSetLoc(&gSeqs[gSeqIndex], &gTuneStackTop->marker);
                 alCSPSetTempo(gMusicPlayer, gTuneStackTop->tempo);
                 for (i = 0; i < 64; i++) {
@@ -190,7 +191,7 @@ void music_update_auto_pop(void) {
     ALCSeqMarker marker;
 
     alCSeqGetLoc(&gSeqs[gSeqIndex], &marker);
-    if (!gMusicPushState && !gMusicPopState && func_802D4E10(gMusicPlayer) == 0 && marker.lastTicks != 0) {
+    if (!gMusicPushState && !gMusicPopState && alCSPGetState(gMusicPlayer) == 0 && marker.lastTicks != 0) {
         debug_printf("auto popping\n");
         music_pop_tune();
     }
@@ -202,7 +203,7 @@ void music_update_push(void) {
 
     switch (gMusicPushState) {
         case 1:
-            if (func_802D4E10(gMusicPlayer) == 1) {
+            if (alCSPGetState(gMusicPlayer) == 1) {
                 alCSeqGetLoc(&gSeqs[gSeqIndex], &gTuneStackTop->marker);
                 gTuneStackTop->tempo = alCSPGetTempo(gMusicPlayer);
                 for (i = 0; i < 64; i++) {
@@ -214,7 +215,7 @@ void music_update_push(void) {
             }
             break;
         case 2:
-            if (func_802D4E10(gMusicPlayer) == 0) {
+            if (alCSPGetState(gMusicPlayer) == 0) {
                 music_play_tune(gMusicTune, 1.0f);
                 gMusicPushState = 0;
             }
@@ -230,7 +231,7 @@ void music_update_fade(void) {
     f32 target;
     s16 vol;
 
-    cur = func_802D8310(gMusicPlayer);
+    cur = alCSPGetVol(gMusicPlayer);
     target = gTuneVolumes[gMusicTune] * gMusicMasterVolume;
     vol = cur + (target * gMusicVolume - cur) * 0.075;
     if (ABSF(vol - target * gMusicVolume) < 10.0f) {
@@ -270,23 +271,23 @@ void music_init_audio(void) {
 
     alHeapInit(&gAudioHeap, gAudioHeapBuf, 0x2A280);
     size2 = size1 = D_003539A0 - D_00350950;
-    func_8028B4C4((u32) D_00350950, 0x8004B400, (u32 *) &size2, 0xD, 0, 2);
+    hd_rom_load((u32) D_00350950, 0x8004B400, (u32 *) &size2, 0xD, 0, 2);
     musBank = alHeapDBAlloc(0, 0, &gAudioHeap, 1, size2);
-    func_8028B4C4((u32) D_00350950, (u32) musBank, (u32 *) &size1, 0xD, 0, 2);
+    hd_rom_load((u32) D_00350950, (u32) musBank, (u32 *) &size1, 0xD, 0, 2);
     alBnkfNew(musBank, D_003539A0);
     gMusicBank = musBank->bankArray[0];
     size2 = size1 = D_003A48C0 - D_003A1920;
-    func_8028B4C4((u32) D_003A1920, 0x8004B400, (u32 *) &size2, 0xD, 0, 2);
+    hd_rom_load((u32) D_003A1920, 0x8004B400, (u32 *) &size2, 0xD, 0, 2);
     sfxBank = alHeapDBAlloc(0, 0, &gAudioHeap, 1, size2);
-    func_8028B4C4((u32) D_003A1920, (u32) sfxBank, (u32 *) &size1, 0xD, 0, 2);
+    hd_rom_load((u32) D_003A1920, (u32) sfxBank, (u32 *) &size1, 0xD, 0, 2);
     alBnkfNew(sfxBank, D_003A48C0);
     gSfxBank = sfxBank->bankArray[0];
     gSeqFile = alHeapDBAlloc(0, 0, &gAudioHeap, 1, 4);
     hdrSize = 4;
-    func_8028B4C4((u32) D_0044F5C0, (u32) gSeqFile, (u32 *) &hdrSize, 0, 0, 0);
+    hd_rom_load((u32) D_0044F5C0, (u32) gSeqFile, (u32 *) &hdrSize, 0, 0, 0);
     seqSize = gSeqFile->seqCount * 8 + 4;
     gSeqFile = alHeapDBAlloc(0, 0, &gAudioHeap, 1, 0x214);
-    func_8028B4C4((u32) D_0044F5C0, (u32) gSeqFile, (u32 *) &seqSize, 0, 0, 0);
+    hd_rom_load((u32) D_0044F5C0, (u32) gSeqFile, (u32 *) &seqSize, 0, 0, 0);
     alSeqFileNew(gSeqFile, D_0044F5C0);
     gSeqBuffer = alHeapDBAlloc(0, 0, &gAudioHeap, 1, 0x21AE);
     for (i = 0; i < 0x42; i++) {
@@ -350,7 +351,7 @@ u8 music_tune_for_mode(u64 event) {
     }
     snd_stop_all_repeating();
     snd_set_mode_slot_volumes(event);
-    if (gGameMode & 0xC9FD8FE7FBFFC0B0) {
+    if (gGameMode & (MODE_BOOT_SCREEN1 | MODE_BOOT_SCREEN2 | MODE_LEVEL_STATUS | MODE_WORLD | MODE_PAK_CHECKED | MODE_LOAD_GAME | MODE_NEW_PLAYER | MODE_NAME_ENTRY | MODE_ERASE_CONFIRM | MODE_ERASE_PLAYER_CHOSEN | MODE_LOAD_GAME_RETURN | MODE_ERASE_MENU | MODE_TO_ERASE_MENU | MODE_NAME_ENTERED | MODE_PLAYER_CHOSEN | MODE_RESULTS | MODE_PAK_CHECK | MODE_VEHICLE_SELECT | MODE_PROMOTION | MODE_PRE_PROMOTION | MODE_PAK_FILES | MODE_UNUSED_33 | MODE_UNUSED_WINDOW_13 | MODE_PAK_MANAGER_CHECKED | MODE_PAK_FILE_CHOSEN | MODE_PAK_DELETE_CONFIRM | MODE_PAK_FILE_DELETED | MODE_UNUSED_41 | MODE_BEST_TIMES | MODE_PAK_MANAGER | MODE_ACADEMY_MESSAGE | MODE_ATTRACT_PICTURE | MODE_REGRADE_NOTICE | MODE_REGRADE_NOTICE_END | MODE_UNUSED_52 | MODE_BOOT_CHECK | MODE_ERASE_SAVE | MODE_BEST_TIMES_UNUSED | MODE_GUEST_PLAYER | MODE_NO_CONTROLLER | MODE_QUIT_GAME | MODE_LOAD_GAME_EXIT)) {
         snd_stop_slot(0);
         snd_stop_slot(5);
     }

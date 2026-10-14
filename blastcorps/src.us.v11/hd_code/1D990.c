@@ -12,7 +12,7 @@
 #define gLevelInfo ((LevelInfo *) gLevelInfo)
 #define D_802F49F4 ((Anim30 *) D_802F49F4)
 #define gYoshiGameItems ((void * N64P *) gYoshiGameItems)
-#define players ((Player *) players)
+#define players ((PlayerInfo *) players)
 #ifdef NON_MATCHING
 #define nss (*(u32 *) &nss)
 #endif
@@ -21,28 +21,7 @@
 /* Level objectives and the HUD's objective/timer text: per-level setup,
  * the countdown intro, and the per-mission-type progress checks */
 
-/* One entry per level in gLevelInfo (0x44 bytes) */
-typedef struct {
-    /* 0x00 */ u8 type;
-    /* 0x01 */ u8 pad1;
-    /* 0x02 */ u16 area[4];     /* race track bounds: x0, z0, x1, z1 */
-    /* 0x0A */ u16 startBox[4]; /* race start/finish line box */
-    /* 0x12 */ u8 quad[4];      /* race: track quadrants in lap order */
-    /* 0x16 */ u8 pad16[2];
-    /* 0x18 */ u32 target; /* laps, targets, damage or RDUs to get */
-    /* 0x1C */ s16 unk1C;
-    /* 0x1E */ s16 unk1E;
-    /* 0x20 */ u8 pad20[4];
-    /* 0x24 */ s16 unk24;
-    /* 0x26 */ s16 unk26[3];
-    /* 0x2C */ u8 pad2C[0xA];
-    /* 0x36 */ u16 time; /* time limit, in tenths of a second */
-    /* 0x38 */ u8 unk38;
-    /* 0x39 */ u8 pad39[3];
-    /* 0x3C */ s32 unk3C;
-    /* 0x40 */ u16 unk40;
-    /* 0x42 */ u16 unk42;
-} LevelInfo;
+/* (gLevelInfo[]: LevelInfo, game/types.h) */
 
 typedef struct {
     u8 id;
@@ -73,11 +52,7 @@ typedef struct {
     /* 0x2F */ u8 unk2F;
 } Anim30;
 
-typedef struct {
-    u8 pad0[0x18];
-    u8 rank[0x3C];
-    u8 pad54[0x100 - 0x54];
-} Player;
+/* (players[]: PlayerInfo, game/types.h) */
 
 extern LevelInfo * N64P gCurLevelInfo;
 extern u8 gWideFovLevels[];
@@ -179,12 +154,14 @@ void lvl_init_chopper_pos(u8 arg0) {
     LevelInfo *p;
 
     p = &gLevelInfo[arg0];
-    gChopperX = p->unk26[0] << 5;
-    gChopperY = p->unk26[1] << 5;
-    gChopperZ = p->unk26[2] << 5;
+    gChopperX = p->chopperPos[0] << 5;
+    gChopperY = p->chopperPos[1] << 5;
+    gChopperZ = p->chopperPos[2] << 5;
 }
 
-void func_80262238(u8 arg0) {
+/* If the level has a rail line (table D_802E8F68), sets gTrainOnLine and the line's ends (x0, z0)-(x1, z1) in
+ * world units (0x80262238). */
+void lvl_init_train_line(u8 arg0) {
     s32 i;
     u8 found;
 
@@ -237,12 +214,12 @@ void hud_init_objective(u8 arg0) {
         gCamFixedEye = 0;
     }
     gCurLevelInfo = &gLevelInfo[arg0];
-    gJbombLiftFadeY = gCurLevelInfo->unk1C << 5;
-    gJbombMaxY = gCurLevelInfo->unk1E << 5;
-    D_80364424 = gCurLevelInfo->unk38;
-    D_80364428 = gCurLevelInfo->unk3C << 5;
-    D_8036442C = gCurLevelInfo->unk40;
-    D_80364430 = gCurLevelInfo->unk42 << 5;
+    gJbombLiftFadeY = gCurLevelInfo->jbombLiftFadeY << 5;
+    gJbombMaxY = gCurLevelInfo->jbombMaxY << 5;
+    D_80364424 = gCurLevelInfo->camLift;
+    D_80364428 = gCurLevelInfo->camLiftMax << 5;
+    D_8036442C = gCurLevelInfo->camLiftStep;
+    D_80364430 = gCurLevelInfo->camLiftRadius << 5;
     gIntroStartTime = D_803156C4;
     gIntroSecond = -1;
     gHudObjectiveY = 0;
@@ -274,13 +251,13 @@ void hud_init_objective(u8 arg0) {
     if (gLevelKind != 1) {
         size = D_006A8DA0 - D_006A32B0;
         if (gLevelKind != 0x80 && gNextGameMode == MODE_LEVEL_START) {
-            func_8028B4C4((u32) D_006A32B0, (u32) gHeapPtr, (u32 *) &size, 10, 0, 1);
+            hd_rom_load((u32) D_006A32B0, (u32) gHeapPtr, (u32 *) &size, 10, 0, 1);
             for (i = 0; i < 5; i++) {
                 gTurboStartImages[i] = (i << 15) + (u8 *) gHeapPtr;
             }
             gHeapPtr = (u8 *) gHeapPtr + size;
         }
-        if (gNextGameMode == 0x40) {
+        if (gNextGameMode == MODE_REPLAY) {
             gTurboStartState = 0;
         } else {
             gTurboStartState = 1;
@@ -290,14 +267,14 @@ void hud_init_objective(u8 arg0) {
     }
     gTurboFalseStart = 0;
     gTurboActive = 0;
-    if (gNextGameMode == 0x40) {
+    if (gNextGameMode == MODE_REPLAY) {
         gTurboPending = 0;
     } else {
         gTurboPending = 0;
         gTurboEarned = 0;
     }
     gObjectiveAnim = &D_802F49F4[anim];
-    if (gLevelInfo[arg0].type == 0x20) {
+    if (gLevelInfo[arg0].kind == 0x20) {
         D_80367BD0 = NULL;
         gObjectiveSprite = spr_load(gObjectiveAnim->ids, 0, gObjectiveAnim->count, gObjectiveAnim->unk2C, gObjectiveAnim->unk2D,
                                    gObjectiveAnim->scale * 0.5);
@@ -310,8 +287,8 @@ void hud_init_objective(u8 arg0) {
             gObjectiveAnim = NULL;
         }
     }
-    if (gNextGameMode & 0x440) {
-        hud_format_time(gHudTimeText, gCurLevelInfo->time - gTimeLeft, 0);
+    if (gNextGameMode & (MODE_REPLAY | MODE_REPLAY_CARRIER_END)) {
+        hud_format_time(gHudTimeText, gCurLevelInfo->medalTimes[3] - gTimeLeft, 0);
     } else {
         gRaceLap = 0;
     }
@@ -333,58 +310,58 @@ void hud_mission_intro(void) {
                 gIntroTimeJText[0] = 0xFFF;
                 switch (gLevelKind) {
                     case 2:
-                        func_802D6A60(gIntroObjectiveText, "FINISH %d LAPS IN", gCurLevelInfo->target);
+                        sprintf(gIntroObjectiveText, "FINISH %d LAPS IN", gCurLevelInfo->target);
                         break;
                     case 4:
                     case 0x20:
                         if (levelno == 0x34) {
-                            func_802D6A60(gIntroObjectiveText, "DESTROY TARGETS IN");
+                            sprintf(gIntroObjectiveText, "DESTROY TARGETS IN");
                         } else {
-                            func_802D6A60(gIntroObjectiveText, "DESTROY %s IN", gObjectiveName);
+                            sprintf(gIntroObjectiveText, "DESTROY %s IN", gObjectiveName);
                         }
                         break;
                     case 0x80:
                         if (levelno == 0x32) {
-                            func_802D6A60(gIntroObjectiveText, "CLEAR SHUTTLE PATH");
+                            sprintf(gIntroObjectiveText, "CLEAR SHUTTLE PATH");
                         } else {
-                            func_802D6A60(gIntroObjectiveText, "CLEAR CARRIER PATH");
+                            sprintf(gIntroObjectiveText, "CLEAR CARRIER PATH");
                         }
                         break;
                     case 8:
-                        func_802D6A60(gIntroObjectiveText, "CAUSE $%d DAMAGE", gCurLevelInfo->target);
+                        sprintf(gIntroObjectiveText, "CAUSE $%d DAMAGE", gCurLevelInfo->target);
                         break;
                     case 0x10:
                     case 0x40:
-                        func_802D6A60(gIntroObjectiveText, "FIND %d RDUS IN", gCurLevelInfo->target);
+                        sprintf(gIntroObjectiveText, "FIND %d RDUS IN", gCurLevelInfo->target);
                         break;
                 }
-                mins = gCurLevelInfo->time / 600;
-                rem = (gCurLevelInfo->time / 10) % 60;
-                func_802D6A60(gIntroTimeText, "%d MINUTE%c %d SECONDS", mins, D_802E9FA0[mins != 1], rem);
+                mins = gCurLevelInfo->medalTimes[3] / 600;
+                rem = (gCurLevelInfo->medalTimes[3] / 10) % 60;
+                sprintf(gIntroTimeText, "%d MINUTE%c %d SECONDS", mins, D_802E9FA0[mins != 1], rem);
                 gYoshiGameItems[255] = gIntroObjectiveText;
                 gYoshiGameItems[262] = gIntroTimeText;
                 gYoshiGameItems[256] = gIntroObjectiveJText;
                 gYoshiGameItems[263] = gIntroTimeJText;
                 yoshi_demand(0x8009);
-                snd_play(gSfxBank, snd_random_id(0), 0);
+                snd_play(gSfxBank, snd_random_id(SND_GROUP_MISSION_INTRO), 0);
                 break;
             case 1:
-                snd_play(gSfxBank, 0x96, 0);
+                snd_play(gSfxBank, SFX_COUNTDOWN_BEEP, 0);
                 break;
             case 2:
-                snd_play(gSfxBank, 0x96, 0);
+                snd_play(gSfxBank, SFX_COUNTDOWN_BEEP, 0);
                 break;
             case 3:
-                snd_play(gSfxBank, 0x96, 0);
+                snd_play(gSfxBank, SFX_COUNTDOWN_BEEP, 0);
                 break;
             case 4:
-                snd_play(gSfxBank, 0x99, 0);
+                snd_play(gSfxBank, SFX_COUNTDOWN_GO, 0);
                 break;
         }
     }
     gIntroSecond = secs;
     if (secs == 4 && gBufferIndex == D_803156F4) {
-        gNextGameMode = 4;
+        gNextGameMode = MODE_LEVEL;
     }
 }
 
@@ -393,20 +370,20 @@ void hud_mission_intro(void) {
  * progress check for the current mission type */
 void hud_update_objective(void) {
     if (!gLevelDone && !gCarrierHit) {
-        gTimeLeft = gCurLevelInfo->time - MIN(gCurLevelInfo->time, stats_frames_to_tenths(D_803156C0 - D_80364A58));
+        gTimeLeft = gCurLevelInfo->medalTimes[3] - MIN(gCurLevelInfo->medalTimes[3], stats_frames_to_tenths(D_803156C0 - D_80364A58));
     }
     hud_format_time(gHudTimeText, gTimeLeft, 1);
     switch (gGameMode) {
-        case 0x2000:
+        case MODE_LEVEL_START:
             hud_mission_intro();
             break;
-        case 0x04000000:
+        case MODE_TIMED_END:
             if (gCarrierHit && areWeFading() == 0 && yoshiState == 1) {
-                if ((players[playerNumber].rank[levelno] > 0 && players[playerNumber].rank[levelno] < 6) ? 1
+                if ((players[playerNumber].medal[levelno] > 0 && players[playerNumber].medal[levelno] < 6) ? 1
                                                                                                                  : 0) {
-                    func_80275270(0x08000000, 0.25f);
+                    fade_to_mode_speed(MODE_RESULTS, 0.25f);
                 } else {
-                    func_80275270(0x40, 0.25f);
+                    fade_to_mode_speed(MODE_REPLAY, 0.25f);
                 }
             }
             break;
@@ -416,12 +393,12 @@ void hud_update_objective(void) {
             } else {
                 gSecondsLeft = gTimeLeft / 10;
                 if (gSecondsLeft < 10 && gSecondsLeft != gPrevSecondsLeft) {
-                    snd_play(gSfxBank, 0xA3 - gSecondsLeft, 0);
+                    snd_play(gSfxBank, SFX_TIME_TICK_0 - gSecondsLeft, 0);
                 }
                 gPrevSecondsLeft = gSecondsLeft;
             }
             if (gFailTrigger && gLevelKind == 0x40) {
-                snd_play(gSfxBank, 0x3C, 0);
+                snd_play(gSfxBank, SFX_GHOST_CAUGHT, 0);
             }
             if (gFailTrigger) {
                 cmo_hit_request = 1;
@@ -431,9 +408,9 @@ void hud_update_objective(void) {
                 snd_stop_all_repeating();
                 yoshi_demand(0xA00E);
                 gYoshiPendingWindow = -1;
-                gNextGameMode = 0x04000000;
+                gNextGameMode = MODE_TIMED_END;
             } else if (gLevelDone) {
-                gNextGameMode = 0x04000000;
+                gNextGameMode = MODE_TIMED_END;
             } else {
                 switch (gLevelKind) {
                     case 2:
@@ -465,7 +442,7 @@ void hud_check_rdus(void) {
     if (D_8036EA7C >= gCurLevelInfo->target) {
         gLevelDoneRequest = 1;
     }
-    func_802D6A60(gHudLines[0], "%d/%d", D_8036EA7C, gCurLevelInfo->target);
+    sprintf(gHudLines[0], "%d/%d", D_8036EA7C, gCurLevelInfo->target);
 }
 
 /* Level kind 4: the targets destroyed (0x8026303C).
@@ -482,10 +459,10 @@ void hud_check_targets(void) {
         if (h > (gPlayerY >> 5)) {
             cmo_hit_request = 1;
         }
-    } else if (gCurLevelInfo->unk24 > (gPlayerY >> 5)) {
+    } else if (gCurLevelInfo->waterY > (gPlayerY >> 5)) {
         cmo_hit_request = 1;
     }
-    func_802D6A60(gHudLines[0], "%d/%d", D_8036EA78, D_8036EB92);
+    sprintf(gHudLines[0], "%d/%d", D_8036EA78, D_8036EB92);
 }
 
 /* Level kinds 0x20/0x80: the path cleared (0x80263140).
@@ -511,18 +488,18 @@ void hud_check_path(void) {
         if (h > (gPlayerY >> 5)) {
             cmo_hit_request = 1;
         }
-    } else if (gCurLevelInfo->unk24 > (gPlayerY >> 5)) {
+    } else if (gCurLevelInfo->waterY > (gPlayerY >> 5)) {
         cmo_hit_request = 1;
     }
     switch (gLevelKind) {
         case 0x20:
-            func_802D6A60(gHudLines[0], "%d/%d", D_8036EA78, D_8036EB92);
+            sprintf(gHudLines[0], "%d/%d", D_8036EA78, D_8036EB92);
             break;
         case 0x80:
             if (levelno == 0x32) {
-                func_802D6A60(gHudLines[0], "%d/%d", D_8036EA78, D_8036EB92);
+                sprintf(gHudLines[0], "%d/%d", D_8036EA78, D_8036EB92);
             } else {
-                func_802D6A60(gHudLines[0], "%d/%d", obj_count_destroyed_path_buildings(), D_8036EB92);
+                sprintf(gHudLines[0], "%d/%d", obj_count_destroyed_path_buildings(), D_8036EB92);
             }
             break;
     }
@@ -541,7 +518,7 @@ void hud_check_damage(void) {
     if (left < 0) {
         left = 0;
     }
-    func_802D6A60(gHudLines[0], "$%d LEFT", left);
+    sprintf(gHudLines[0], "$%d LEFT", left);
 }
 
 /* Level kind 2: start box, quadrants, lap times (0x802633E0).
@@ -551,19 +528,19 @@ void hud_update_race(void) {
     u8 left;
 
     if (gRaceLap == 0) {
-        if (hud_in_box(gPlayerX >> 5, gPlayerZ >> 5, gCurLevelInfo->startBox[0], gCurLevelInfo->startBox[1],
-                          gCurLevelInfo->startBox[2], gCurLevelInfo->startBox[3])) {
+        if (hud_in_box(gPlayerX >> 5, gPlayerZ >> 5, gCurLevelInfo->raceStartBox[0], gCurLevelInfo->raceStartBox[1],
+                          gCurLevelInfo->raceStartBox[2], gCurLevelInfo->raceStartBox[3])) {
             gRaceLap = 1;
             gRaceQuadsCrossed = 0;
-            gRacePrevQuad = gCurLevelInfo->quad[0];
+            gRacePrevQuad = gCurLevelInfo->raceQuads[0];
             gRaceStartTime = D_803156C0;
             gBestLap = 1;
             gBestLapTime = 0xFFFF;
         }
     } else {
-        gRaceQuad = ((gPlayerZ >> 5) - gCurLevelInfo->area[1]) / ((gCurLevelInfo->area[3] - gCurLevelInfo->area[1]) >> 1);
+        gRaceQuad = ((gPlayerZ >> 5) - gCurLevelInfo->raceArea[1]) / ((gCurLevelInfo->raceArea[3] - gCurLevelInfo->raceArea[1]) >> 1);
         gRaceQuad *= 2;
-        gRaceQuad += ((gPlayerX >> 5) - gCurLevelInfo->area[0]) / ((gCurLevelInfo->area[2] - gCurLevelInfo->area[0]) >> 1);
+        gRaceQuad += ((gPlayerX >> 5) - gCurLevelInfo->raceArea[0]) / ((gCurLevelInfo->raceArea[2] - gCurLevelInfo->raceArea[0]) >> 1);
         gLapTimes[gRaceLap - 1] = stats_frames_to_tenths(D_803156C0 - D_80364A58);
         for (i = gRaceLap - 2; i >= 0; i--) {
             gLapTimes[gRaceLap - 1] -= gLapTimes[i];
@@ -572,8 +549,8 @@ void hud_update_race(void) {
             debug_printf("box number=%d\n", gRaceQuad);
         }
         if (gRaceQuadsCrossed == 4) {
-            if (hud_in_box(gPlayerX >> 5, gPlayerZ >> 5, gCurLevelInfo->startBox[0], gCurLevelInfo->startBox[1],
-                              gCurLevelInfo->startBox[2], gCurLevelInfo->startBox[3])) {
+            if (hud_in_box(gPlayerX >> 5, gPlayerZ >> 5, gCurLevelInfo->raceStartBox[0], gCurLevelInfo->raceStartBox[1],
+                              gCurLevelInfo->raceStartBox[2], gCurLevelInfo->raceStartBox[3])) {
                 if (gLapTimes[gRaceLap - 1] < gBestLapTime) {
                     debug_printf("new best lap %d %d\n", gBestLapTime, gLapTimes[gRaceLap - 1]);
                     gBestLap = gRaceLap;
@@ -587,9 +564,9 @@ void hud_update_race(void) {
                         yoshi_demand(0x8008);
                     }
                     if (left == 1) {
-                        func_802D6A60(gLapsLeftText, "1 LAP LEFT!");
+                        sprintf(gLapsLeftText, "1 LAP LEFT!");
                     } else {
-                        func_802D6A60(gLapsLeftText, "%d LAPS LEFT!", left);
+                        sprintf(gLapsLeftText, "%d LAPS LEFT!", left);
                     }
                     gYoshiGameItems[248] = gLapsLeftText;
                     gYoshiGameItems[249] = D_80367D28;
@@ -598,7 +575,7 @@ void hud_update_race(void) {
                 gRaceLap++;
                 gRaceQuadsCrossed = 0;
             }
-        } else if (gCurLevelInfo->quad[gRaceQuadsCrossed] == gRacePrevQuad && gCurLevelInfo->quad[(gRaceQuadsCrossed + 1) % 4] == gRaceQuad) {
+        } else if (gCurLevelInfo->raceQuads[gRaceQuadsCrossed] == gRacePrevQuad && gCurLevelInfo->raceQuads[(gRaceQuadsCrossed + 1) % 4] == gRaceQuad) {
             debug_printf("box cross: %d to %d\n", gRacePrevQuad, gRaceQuad);
             gRaceQuadsCrossed++;
         }
@@ -636,14 +613,14 @@ Gfx *hud_draw_objective(Gfx *gdl, Gfx * N64P *arg1, u32 *arg2) {
 #endif
 
     g = gdl;
-    if ((gGameMode & 0x04000200) && currentYoshiWindow != 0x1E) {
+    if ((gGameMode & (MODE_CARRIER_END | MODE_TIMED_END)) && currentYoshiWindow != 0x1E) {
         alpha = 0xFF;
     } else {
         alpha = gHudAlpha;
     }
     switch (gLevelKind) {
         case 2:
-            for (i = 0; i < gRaceLap - ((gGameMode & 0x440) ? 1 : 0) && i < gCurLevelInfo->target; i++) {
+            for (i = 0; i < gRaceLap - ((gGameMode & (MODE_REPLAY | MODE_REPLAY_CARRIER_END)) ? 1 : 0) && i < gCurLevelInfo->target; i++) {
                 if (i + 1 == gBestLap && i + 1 != gRaceLap) {
                     /* best lap */
                     text_print(arg1, (u8 *) gHudLines[i], 0, 1, 0, 0x18, i * 18 + 0x12, 0x14, 0x14, 1, 0xFF, 0, 0,
@@ -673,7 +650,7 @@ Gfx *hud_draw_objective(Gfx *gdl, Gfx * N64P *arg1, u32 *arg2) {
     }
     red = 0xFF;
     grn = 0;
-    if (gGameMode & 0x04000104) {
+    if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW | MODE_TIMED_END)) {
         flash = gSecondsLeft < 10;
         if (!flash) {
             grn = 0xFF;
@@ -693,7 +670,7 @@ Gfx *hud_draw_objective(Gfx *gdl, Gfx * N64P *arg1, u32 *arg2) {
             text_print(arg1, (u8 *) gHudTimeText, 0, 1, 0, 0x1C, gHudObjectiveY + 0x2A, 0x10, 0x10, 1, red, grn, 0, alpha);
         }
     }
-    if (gLevelDone && gGameMode == 0x04000000) {
+    if (gLevelDone && gGameMode == MODE_TIMED_END) {
         hud_level_complete(&g, (s32) arg1, gBufferIndex);
     }
     if (gTurboStartState) {
@@ -831,7 +808,7 @@ void hud_race_time_left(void) {
         for (i = 0; i < gRaceLap - 1; i++) {
             sum += gLapTimes[i];
         }
-        gTimeLeft = gCurLevelInfo->time - sum;
+        gTimeLeft = gCurLevelInfo->medalTimes[3] - sum;
     }
     if (gTimeLeft >= 60000) {
         gTimeLeft = 0;

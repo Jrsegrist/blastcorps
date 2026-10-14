@@ -15,7 +15,7 @@ extern s32 D_80000300; /* osTvType */
 extern u16 gFrameBuffers[][320*240];
 
 /* hd_code .text (tables inside the code) */
-extern u8 D_802C2190[]; /* keys of its three sound entries */
+extern u8 D_802C2190[]; /* the first of its three texture animations (anim_tex_*) */
 extern u8 D_802C21A4[];
 extern u8 D_802C21B8[];
 extern u8 D_802C2208[]; /* keys of this vehicle's anim_tex_find entries */
@@ -135,10 +135,10 @@ extern u16 gPerspNorm; /* projection scale, 65535 = 1.0 */
 extern s32 nextdma; /* queued-DMA counter (next OSIoMesg slot) */
 extern s32 no_palette_dmas; /* no_palette_dmas */
 #ifndef LEGACY_gVehicleShadows
-extern VehShadow * N64P gVehicleShadows; /* size 0xFC */
+extern VehShadow * N64P gVehicleShadows; /* the vehicle shadow records */
 #endif
 #ifndef LEGACY_gVehicleShadowsEnd
-extern VehShadow * N64P gVehicleShadowsEnd; /* size 0xFC */
+extern VehShadow * N64P gVehicleShadowsEnd; /* one past the last */
 #endif
 extern u8 D_803643D4;
 extern u8 D_803643D5;
@@ -167,7 +167,7 @@ extern u32 D_80364428;
 extern u16 D_8036442C;
 extern s32 D_80364430;
 extern f32 gCamFovy;
-extern s16 D_8036443C; /* player speed, heading, angle */
+extern s16 D_8036443C; /* the player vehicle's speed (VehState.speed, published each frame) */
 extern s16 D_8036443E; /* camera yaw, 4095 = 360 degrees */
 extern s16 D_80364440;
 extern s16 gCamDistance;
@@ -189,7 +189,7 @@ extern s16 D_803649E4;
 extern s32 D_803649E8; /* heap pointer */
 extern u8 gNextVehicle;
 extern u8 D_803649EE;
-extern u32 D_803649F0; /* score */
+extern u32 D_803649F0; /* the level's money total ($; players[].money) */
 extern s32 D_80364A40; /* message to post */
 extern u8 D_80364A50;
 extern s32 D_80364A58;
@@ -446,7 +446,7 @@ extern u8 * N64P gMoveableTrisEnd; /* end of the used gMoveableTris records */
 extern f32 gLevelGravity;
 extern f32 gGravity;
 extern s32 gObjectFloorY;
-extern s32 D_803EBBFC; /* height of func_802AC0BC's best triangle */
+extern s32 D_803EBBFC; /* height of ground_scan_guard_tris's best triangle */
 extern u8 gVehPoints[]; /* 0x10-byte records, id byte at +0xC */
 extern u8 gMoveableTris[]; /* 0x38-byte triangle records, u16 id at +0x36 */
 extern s16 gModelRot[]; /* this vehicle's model: +0 / +4 / +8 offsets of the point lists, +0x18 the matrix */

@@ -2,9 +2,9 @@
 #include <ultra64.h>
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define gObjects ((Obj89250 *) gObjects)
+#define gObjects ((LevelObject *) gObjects)
 #ifdef NON_MATCHING
-#define gObjectsEnd (*(Obj89250 * N64P *) &gObjectsEnd)
+#define gObjectsEnd (*(LevelObject * N64P *) &gObjectsEnd)
 #endif
 /* end of views */
 
@@ -50,43 +50,17 @@ void coll_blast_at_probe(s32 amount, s32 radius) {
 #endif
 
 #ifdef NON_MATCHING
-/* The parts of 77E20.c's gObjects object (LevelObject) and collision
- * triangle (CollisionTri) that coll_probe_objects..coll_damage_object_part use. */
-typedef struct {
-    /* 0x00 */ u8 pad0[4];
-    /* 0x04 */ u8 type; /* damage divisor */
-} Obj89250Info;
-
-typedef struct {
-    /* 0x00 */ u8 pad0[0x51];
-    /* 0x51 */ u8 unk51; /* collidable */
-    /* 0x52 */ u16 unk52; /* part, 1-based */
-    /* 0x54 */ u8 pad54[3];
-    /* 0x57 */ u8 unk57; /* part this triangle hangs on */
-    /* 0x58 */ u8 pad58[8];
-} Tri89250; /* size 0x60 */
-
-typedef struct {
-    /* 0x00 */ Obj89250Info * N64P info;
-    /* 0x04 */ Tri89250 * N64P start; /* collision triangles */
-    /* 0x08 */ Tri89250 * N64P end;
-    /* 0x0C */ s32 radius;
-    /* 0x10 */ s32 pos[3];
-    /* 0x1C */ u8 pad1C[0x14];
-    /* 0x30 */ s32 kind;
-    /* 0x34 */ u8 pad34[0xB8];
-    /* 0xEC */ u8 pct[0x10]; /* per part; 100 = destroyed */
-} Obj89250; /* size 0xFC */
+/* (the level objects and their collision triangles: game/object.h) */
 
 extern u16 gImpactDamage; /* impact damage */
 
-s32 coll_probe_object_tris(s32 x, s32 y, s32 z, s32 r, Obj89250 *e, s32 hit);
-void coll_damage_object_part(Obj89250 *e, Tri89250 *tri, s32 amount);
+s32 coll_probe_object_tris(s32 x, s32 y, s32 z, s32 r, LevelObject *e, s32 hit);
+void coll_damage_object_part(LevelObject *e, CollisionTri *tri, s32 amount);
 s32 coll_probe_vehicle_spheres(s32 x, s32 y, s32 z, s32 r, s32 id);
 
 /* The sphere-vs-triangle test the asm runs as a call chain (see 56040.c,
  * math_sphere_hits_tri_edges): plane distance, projected point-in-triangle, edge, vertex. */
-static s32 sphere_hits_tri_89250(s32 x, s32 y, s32 z, s32 r, Tri89250 *tri) {
+static s32 sphere_hits_tri_89250(s32 x, s32 y, s32 z, s32 r, CollisionTri *tri) {
     s32 hit[3];
     s32 uv[8];
 
@@ -121,8 +95,8 @@ s32 coll_probe_objects(s32 r, s32 amount) {
     s32 x = gCollX;
     s32 y = gCollY;
     s32 z = gCollZ;
-    Obj89250 *end = gObjectsEnd;
-    Obj89250 *o;
+    LevelObject *end = gObjectsEnd;
+    LevelObject *o;
     s32 hit = 0;
 
     gImpactDamage = amount;
@@ -151,16 +125,16 @@ s32 coll_probe_objects(s32 r, s32 amount) {
  * Every collidable triangle of e (start up to end, read once, walked with
  * `!=`) that the sphere (x, y, z, r) >> 2 (arithmetic shifts) hits: on the
  * first hit overall (hit == 0) with a nonzero gImpactDamage, applies that damage
- * (coll_damage_object_part); then the plane-side update func_802BF264(triangle), and
+ * (coll_damage_object_part); then the plane-side update obj_tri_clip_free_arc(triangle), and
  * hit becomes 1. Returns hit.
  * Register convention: x, y, z, r in v0, v1, a0, a1, e in t3, hit in fp (in
  * and out). The asm saves v0-a2, t3 and t4 and leaves t5/t6 = z/r >> 2, t9 =
  * e, s0/s1 = the triangle range, s2-s4 and f20-f28 changed by the tests;
  * asm caller coll_probe_objects keeps a0, a1, t3 and t4 live across the call (the
  * s4/f24/f26 the survey lists as read there are dead: s4 is restored). */
-s32 coll_probe_object_tris(s32 x, s32 y, s32 z, s32 r, Obj89250 *e, s32 hit) {
-    Tri89250 *t = e->start;
-    Tri89250 *end = e->end;
+s32 coll_probe_object_tris(s32 x, s32 y, s32 z, s32 r, LevelObject *e, s32 hit) {
+    CollisionTri *t = e->tris;
+    CollisionTri *end = e->trisEnd;
 
     x >>= 2;
     y >>= 2;
@@ -179,7 +153,7 @@ s32 coll_probe_object_tris(s32 x, s32 y, s32 z, s32 r, Obj89250 *e, s32 hit) {
                 coll_damage_object_part(e, t, hit);
             }
         }
-        func_802BF264((struct CollisionTri *) t);
+        obj_tri_clip_free_arc(t);
         hit = 1;
     }
     return hit;
@@ -200,8 +174,8 @@ s32 coll_probe_object_tris(s32 x, s32 y, s32 z, s32 r, Obj89250 *e, s32 hit) {
  * on unless their own part is done; obj_drop_unsupported_parts, obj_check_destroyed).
  * Register convention: e in t9, tri in s0, amount in fp; the asm saves every
  * register (asm caller coll_probe_object_tris keeps a1, t3-t6 and t9 live). */
-void coll_damage_object_part(Obj89250 *e, Tri89250 *tri, s32 amount) {
-    u8 *pcts = e->pct;
+void coll_damage_object_part(LevelObject *e, CollisionTri *tri, s32 amount) {
+    u8 *pcts = e->partPct;
     s32 part;
     s32 level;
 
@@ -216,18 +190,18 @@ void coll_damage_object_part(Obj89250 *e, Tri89250 *tri, s32 amount) {
         level = 100;
     }
     pcts[part - 1] = level;
-    obj_spawn_break_effects((struct LevelObject *) e, part, level);
+    obj_spawn_break_effects(e, part, level);
     if (level == 100) {
-        Tri89250 *t;
-        Tri89250 *end;
+        CollisionTri *t;
+        CollisionTri *end;
 
-        obj_mark_part_gone((struct LevelObject *) e, part);
-        obj_start_topple((struct LevelObject *) e, part);
-        obj_start_part_fade(part, (struct LevelObject *) e);
-        obj_start_sinking_part(part, (struct LevelObject *) e);
-        obj_spawn_people((struct LevelObject *) e);
-        end = e->end;
-        for (t = e->start; t != end; t++) {
+        obj_mark_part_gone(e, part);
+        obj_start_topple(e, part);
+        obj_start_part_fade(part, e);
+        obj_start_sinking_part(part, e);
+        obj_spawn_people(e);
+        end = e->trisEnd;
+        for (t = e->tris; t != end; t++) {
             if (t->unk52 == part) {
                 t->unk51 = 0;
             }
@@ -235,8 +209,8 @@ void coll_damage_object_part(Obj89250 *e, Tri89250 *tri, s32 amount) {
                 t->unk51 = 1;
             }
         }
-        obj_drop_unsupported_parts((struct LevelObject *) e);
-        obj_check_destroyed((struct LevelObject *) e);
+        obj_drop_unsupported_parts(e);
+        obj_check_destroyed(e);
     }
 }
 #else
@@ -548,7 +522,7 @@ void coll_step_xz(s32 x, s32 z, s32 len, s32 angle) {
  * saves s0-s7 and fp, so the fp passed through to ground_scan_part_tris /
  * ground_scan_grid (*fpOut, only written) and the FP results they leave in
  * f12-f26 are dead here, but it does change f20-f28 (conventions.txt
- * `clobbers`). Called from C (4DA80, 48D00, 4B5E0) and asm func_802A24BC. */
+ * `clobbers`). Called from C (4DA80, 48D00, 4B5E0) and asm lvl_init_object_shadow. */
 s32 coll_ground_height(s32 x, s32 z, s32 y) {
     TriSideOut f;
     s32 fp;

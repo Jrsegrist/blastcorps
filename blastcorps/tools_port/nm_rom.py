@@ -17,13 +17,13 @@ Layout (see tools_port/README.md, "Test ROM"):
     followed by the NM .hd_code_data (same address and size as the original,
     its code pointers relocated to the NM text).  It is DMAed over 0x802447C0.
   * init's boot tail (func_80220730, init+0x1AE0..0x1BF8: a register
-    save/restore around the no-op debug stub func_80220714) is replaced by an
+    save/restore around the no-op debug stub init_debug_printf) is replaced by an
     inline loader: write back + invalidate the D-cache, PI-DMA image A and
     image B, invalidate the I-cache, `a0 = gp`, jump to the NM entry
     (hd_boot) with init's stack, exactly like the original `j`.
   * With --fe-elf: the NM front end (hd_front_end.rom.*.elf, text at
     0x80500000) joins image A, and image D, appended after B, is the
-    front end hd_code inflates to 0x801E7000 (func_8028B3E0): the original
+    front end hd_code inflates to 0x801E7000 (hd_load_front_end): the original
     front-end text with a trampoline on every safe function entry plus the NM
     .hd_front_end_data, both gzipped again with tools/rarezip.py.  The loader
     stores image D's ROM range at 0x803FFFF8/C, where init has just put the
@@ -69,7 +69,7 @@ HD_TEXT_VRAM = 0x802447C0
 HD_TEXT_ROM_GZ = 0x787FD0
 HD_DATA_ROM_GZ = 0x7D73B4
 HD_GZ_END = 0x7E3AC7
-FRONT_END_VRAM = 0x801E7000     # func_8028B3E0 (46C20.c)
+FRONT_END_VRAM = 0x801E7000     # hd_load_front_end (46C20.c)
 FRONT_END_TEXT_SIZE = 0x21040   # hd_front_end.us.v11.yaml
 FE_GZ_ROM, FE_GZ_END = 0x7E3AD0, 0x7F9BE0   # gzip'd front end (text, data); init stores the range
                                             # at 0x803FFFF8 / 0x803FFFFC (hd_code D_802FDB30/4)
@@ -256,7 +256,7 @@ nm_boot:
     bnez    $v0, 3b
     nop
     # the front end's ROM range, which init has just stored at 0x803FFFF8/C
-    # (hd_code func_8028B3E0 inflates it): image D, the patched front end
+    # (hd_code hd_load_front_end inflates it): image D, the patched front end
     lui     $t0, 0x8040
     li      $t1, {fe_start:#x}
     sw      $t1, -8($t0)
@@ -622,7 +622,7 @@ def main():
 
     # ---- the front end: trampolines into the NM front end, gzipped (image D) --
     # hd_code inflates the front end from ROM to 0x801E7000 when it is first
-    # needed (func_8028B3E0); everything else enters it at original addresses
+    # needed (hd_load_front_end); everything else enters it at original addresses
     # (hd_code calls, pointers in its data).  So the original front-end text
     # gets a trampoline on every function entry it is safe on, and the data
     # becomes the NM .hd_front_end_data (C .data with pointers into the NM
@@ -711,9 +711,9 @@ def main():
         if gunzip_members(img_d)[0] != [f_text2, g_data]:
             die("image D does not inflate back to the patched front end")
         if len(img_d) > 0x802447C0 - 0x8021ED00:
-            die("image D (%#x bytes) does not fit func_8028B4C4's staging buffer" % len(img_d))
+            die("image D (%#x bytes) does not fit hd_rom_load's staging buffer" % len(img_d))
         if f_ta + len(f_text2) + len(g_data) > f_ta + 0x37D00:
-            die("front end larger than func_8028B3E0's 0x37D00 bytes")
+            die("front end larger than hd_load_front_end's 0x37D00 bytes")
 
     # ---- ROM ---------------------------------------------------------------
     rom = bytearray(base)

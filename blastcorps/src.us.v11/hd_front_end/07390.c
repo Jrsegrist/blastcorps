@@ -10,7 +10,9 @@
 extern s32 gPakErrorFrames;
 
 
-void func_801EE390(void) {
+/* Empty; the save thread (fe_pak_thread) calls it once per request, after cont_wait_read(): a stripped debug
+ * or profiling hook (0x801EE390). */
+void fe_pak_request_hook(void) {
 }
 
 /* The save thread's error screen: a black frame and a window (0x801EE398).

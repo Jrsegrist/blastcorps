@@ -14,30 +14,30 @@ amdream_set_physics: -n 200 --seed 1 --ret void \
 #
 # random: mode hi word 0 or 1 (64-bit compare), lo word 0x1000 or neighbours; state byte 0,3,5,6
 # (state 4 in the seed-4 run below); marker y/w compared signed
-chopper_update_mode: -n 400 --seed 0 --ret void --sig func_80275390=a0,a1 \
+chopper_update_mode: -n 400 --seed 0 --ret void --sig fade_to_mode=a0,a1 \
     --mem gGameMode:4=words:0*4,1,0xFFFFFFFF --mem gGameMode+4=choice:0x1000*4,0xFFF,0x1001,0,0x2000 \
     --mem gChopperMode:1=bytes:3,5*2,6,0 \
     --mem D_803EF310:16=words:0,1,-1,0x7FFFFFFF,0x80000000,100,-100 \
     --mem gChopperState+0x4E:2=rand --mem gChopperState+0x76:2=rand
 # state 4 in mode 0x1000 (no write: state 4 only matters outside mode 0x1000)
-chopper_update_mode: -n 100 --seed 3 --ret void --sig func_80275390=a0,a1 \
+chopper_update_mode: -n 100 --seed 3 --ret void --sig fade_to_mode=a0,a1 \
     --mem gGameMode:4=0 --mem gGameMode+4=0x1000 --mem gChopperMode:1=bytes:4 \
     --mem D_803EF314=choice:0,1,-1 --mem gChopperGroundY=choice:0,1,-1
 # write path (next game mode into gNextGameMode), plus the full random run with state 4
-chopper_update_mode: -n 400 --seed 4 --ret void --sig func_80275390=a0,a1 \
+chopper_update_mode: -n 400 --seed 4 --ret void --sig fade_to_mode=a0,a1 \
     --mem gGameMode:4=words:0*4,1,0xFFFFFFFF --mem gGameMode+4=choice:0x1000*4,0xFFF,0x1001,0,0x2000 \
     --mem gNextGameMode:8=rand --mem gChopperMode:1=bytes:3,4*2,5*2,6,0 \
     --mem D_803EF310:16=words:0,1,-1,0x7FFFFFFF,0x80000000,100,-100
-chopper_update_mode: -n 100 --seed 5 --ret void --sig func_80275390=a0,a1 \
+chopper_update_mode: -n 100 --seed 5 --ret void --sig fade_to_mode=a0,a1 \
     --mem gGameMode:4=words:0,1,0x80000000 --mem gGameMode+4=choice:0x1000,0 --mem gChopperMode:1=bytes:4 \
     --mem gNextGameMode:8=rand
 # mode exactly 0x1000, state not 5: decided by gChopperGroundY vs D_803EF314 (equal, +-1, signed extremes)
-chopper_update_mode: -n 200 --seed 1 --ret void --sig func_80275390=a0,a1 \
+chopper_update_mode: -n 200 --seed 1 --ret void --sig fade_to_mode=a0,a1 \
     --mem gGameMode:4=0 --mem gGameMode+4=0x1000 --mem gChopperMode:1=bytes:0,3,4,6,0xFF \
     --mem D_803EF314=choice:0,1,-1,0x7FFFFFFF,0x80000000 --mem gChopperGroundY=choice:0,1,-1,0x7FFFFFFF,0x80000000
 # mode 0x1000 in the low word but nonzero high word: not mode 0x1000, so state 5 must NOT call
-# func_80275390 (catches a 32-bit compare)
-chopper_update_mode: -n 100 --seed 2 --ret void --sig func_80275390=a0,a1 \
+# fade_to_mode (catches a 32-bit compare)
+chopper_update_mode: -n 100 --seed 2 --ret void --sig fade_to_mode=a0,a1 \
     --mem gGameMode:4=words:1,0x80000000 --mem gGameMode+4=0x1000 --mem gChopperMode:1=bytes:5,0 \
     --mem D_803EF314=choice:0,1 --mem gChopperGroundY=choice:0,1
 

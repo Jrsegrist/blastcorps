@@ -70,6 +70,9 @@ struct Config {
     int fpsCorner = 0;              /* its corner: 0 top-left, 1 top-right, 2 bottom-left, 3 bottom-right */
     std::string texturePack;        /* RT64 texture pack folder or .rtz (relative to the exe's folder) */
     bool texturePackOn = false;
+    bool texturePackReload = false; /* reload the pack when its rt64.json (or .rtz) changes */
+    std::string textureDump = "texture_dump";   /* the texture dump's folder (live_texdump.cpp) */
+    bool textureDumpOn = false;     /* write every texture the game loads there as a PNG */
     std::vector<SDL_Scancode> keys[A_COUNT];
     std::vector<PadInput> pad[A_COUNT];
     std::vector<int> menuPad;       /* controller buttons that, held together, open the menu */

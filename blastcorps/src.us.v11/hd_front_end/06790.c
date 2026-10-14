@@ -3,7 +3,7 @@
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define gRankTitles ((RankName *) gRankTitles)
-#define players ((FePlayer *) players)
+#define players ((PlayerInfo *) players)
 /* end of views */
 
 /*
@@ -12,12 +12,7 @@
  */
 
 
-/* front-end view of hd_code's Player record (0x100 bytes, players) */
-typedef struct {
-    u8 pad0[0xC];
-    u8 unkC; /* rank */
-    u8 padD[0x100 - 0xD];
-} FePlayer;
+/* (players[]: PlayerInfo, game/types.h) */
 
 typedef struct {
     u8 * N64P unk0; /* rank name, words separated by spaces */
@@ -54,7 +49,7 @@ void fe_promo_init(void) {
     gPromoTextState = 0;
     gPromoAngle = gPromoScale = 0.0f;
     gPromoTitleAlpha = gPromoRankAlpha = 0;
-    gPromoRank = players[playerNumber].unkC;
+    gPromoRank = players[playerNumber].title;
 }
 
 /* "CONGRATULATIONS / ON YOUR PROMOTION!" and the rank (0x801ED800).
@@ -63,7 +58,7 @@ Gfx *fe_promo_draw(Gfx *arg0, FeDyn *dyn, u8 arg2, s32 *arg3) {
     Gfx *gdl = arg0;
     s32 i;
     s32 j;
-    FePlayer *p;
+    PlayerInfo *p;
     s32 size;
 
     if ((gContButtons & 0x8000) && !(gContPrevButtons & 0x8000) && gDebugCheats) {

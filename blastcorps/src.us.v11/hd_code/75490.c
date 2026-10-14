@@ -236,7 +236,7 @@ void carrier_update_sound(void) {
         return;
     }
     if (gCarrierSound == NULL) {
-        snd_play(gSfxBank, 0x75, &gCarrierSound);
+        snd_play(gSfxBank, SFX_CARRIER_LOOP, &gCarrierSound);
     }
     dist -= 4000;
     if (dist < 0) {
@@ -326,19 +326,19 @@ void carrier_update(void) {
     }
     lastLevel = 0;
     carrier_scan_speed_zones(&termZ, &lastLevel, &level);
-    speed = VEH_BA354(0x76, s16);
+    speed = VEH_BA354(VS_SPEED, s16);
     if (speed < gCarrierTargetSpeed) {
         speed += 8;
         if (gCarrierTargetSpeed < speed) {
             speed = gCarrierTargetSpeed;
         }
     }
-    VEH_BA354(0x76, s16) = speed;
+    VEH_BA354(VS_SPEED, s16) = speed;
     carrier_set_physics();
-    step = veh_slope(&VEH_BA354(0x76, s16), gCarrierState + 0x96, &VEH_BA354(4, s32), (f32 *) gCarrierState);
-    veh_apply_slope(gCarrierState, &VEH_BA354(0x76, s16), 0xFF, (s8 *) (gCarrierState + 0x96), &VEH_BA354(4, s32), 0,
+    step = veh_slope(&VEH_BA354(VS_SPEED, s16), gCarrierState + 0x96, &VEH_BA354(4, s32), (f32 *) gCarrierState);
+    veh_apply_slope(gCarrierState, &VEH_BA354(VS_SPEED, s16), 0xFF, (s8 *) (gCarrierState + 0x96), &VEH_BA354(4, s32), 0,
                   2400.0f);
-    x = veh_move_along_heading(step, VEH_BA354(0x4E, u16), &VEH_BA354(0x76, s16), &gCarrierX, &gCarrierZ, &out);
+    x = veh_move_along_heading(step, VEH_BA354(VS_MOVE_HEADING, u16), &VEH_BA354(VS_SPEED, s16), &gCarrierX, &gCarrierZ, &out);
     gBounceSound = 1;
     r.s3 = out.s3;
     f.pz = step;
@@ -348,8 +348,8 @@ void carrier_update(void) {
     f.sideZ = 0.0f;
     f.dz = 0.0f;
     veh_ground_contact(gCarrierState, 0xFF, &gCarrierX, &gCarrierY, &gCarrierZ, x, out.t1, 0x960, 0x320,
-                  &VEH_BA354(0x4C, s16), gCarrierState + 0x96, &VEH_BA354(0x52, s16), &VEH_BA354(0x28, s32),
-                  &VEH_BA354(0x40, s32), &VEH_BA354(0x34, s32), &VEH_BA354(4, s32), &r, &f);
+                  &VEH_BA354(VS_HEADING, s16), gCarrierState + 0x96, &VEH_BA354(VS_WHEEL_OFFSETS, s16), &VEH_BA354(VS_SLOT_LAUNCH_VEL, s32),
+                  &VEH_BA354(VS_SLOT_AIR_TIME, s32), &VEH_BA354(VS_SLOT_LAUNCH_Y, s32), &VEH_BA354(4, s32), &r, &f);
 
 animate:
     if (gBufferIndex != 0) {
@@ -1021,7 +1021,7 @@ void crane_update_controls(void) {
     goto chan4;
 start5:
     if (gCraneArmSound == NULL) {
-        snd_play(gSfxBank, 0x6F, &gCraneArmSound);
+        snd_play(gSfxBank, SFX_CRANE_ARM, &gCraneArmSound);
     }
 
 chan4:
@@ -1039,7 +1039,7 @@ chan4:
         goto ground;
     }
     if (gCraneSwingSound == NULL) {
-        snd_play(gSfxBank, 0x6E, &gCraneSwingSound);
+        snd_play(gSfxBank, SFX_CRANE_SWING, &gCraneSwingSound);
     }
 
 ground:
@@ -1062,7 +1062,7 @@ ground:
             goto check2;
         }
         if (gCraneActionSound == NULL) {
-            snd_play(gSfxBank, 0x6D, &gCraneActionSound);
+            snd_play(gSfxBank, SFX_CRANE_ACTION, &gCraneActionSound);
         }
         anim_play((AnimChannel *) gCraneAnim, 2, 1);
         gCraneState[0xA1] = 1;
@@ -1087,13 +1087,13 @@ check2:
 
 /* Level 0x11: the crane's test part has ground under it (0x802BB868).
  * On level 0x11 only: finds the kind-6 / id-0x3BD part (crane_find_test_part) and
- * returns whether func_802AC0BC finds ground under its position (words 0, 8
+ * returns whether ground_scan_guard_tris finds ground under its position (words 0, 8
  * as x, z; word 4 as y); 0 otherwise.
  * Register convention: result in v0 (ABI). The asm leaves both callees'
  * registers behind (s0-s4, t6, t7, fp, f12-f26) and its caller
  * crane_update_controls only tests v0, so they're not modelled (conventions.txt:
  * clobbers). Its s0-s3 inputs only pass through crane_find_test_part when nothing is
- * found, and func_802AC0BC's pass-through inputs a3 / f12-f26 don't affect
+ * found, and ground_scan_guard_tris's pass-through inputs a3 / f12-f26 don't affect
  * the found flag, so the C starts them at 0. */
 s32 crane_part_on_ground(void) {
     Unk8029C6E4Out o;
@@ -1126,7 +1126,7 @@ s32 crane_part_on_ground(void) {
     r.s2 = o.s2;
     r.s3 = o.s3;
     r.s4 = o.s4;
-    func_802AC0BC(o.s0, o.s2, o.s1, &f, &r);
+    ground_scan_guard_tris(o.s0, o.s2, o.s1, &f, &r);
     return r.a1;
 }
 #else

@@ -161,14 +161,14 @@ crane_zone_alpha: -n 300 --seed 1 --follow veh_zone_alpha,math_dist3 --mem gCran
     --mem gDefaultVehAlpha:1=choice:0,1,0x80,0xFF,0x40 --mem gVehicles+0x5C*0x74:3=choice:0x100,0x200 \
     --mem gVehicles+0x1B8=6 --mem gVehicles+0x60*0x74:4=int
 
-# crane_part_on_ground: level 0x11 part (crane_find_test_part) on ground (func_802AC0BC) -> v0. Callees stubbed (their
+# crane_part_on_ground: level 0x11 part (crane_find_test_part) on ground (ground_scan_guard_tris) -> v0. Callees stubbed (their
 # pass-through register inputs not compared: the C starts them at 0), lookup miss, then both followed
 crane_part_on_ground: -n 300 --mem levelno=choice:0x11,0x11,0x10,0,0x12 --stub-ret crane_find_test_part.s4=rand \
-    --stub-ret func_802AC0BC.a1=rand --sig crane_find_test_part= --sig func_802AC0BC=a0,a1,a2
+    --stub-ret ground_scan_guard_tris.a1=rand --sig crane_find_test_part= --sig ground_scan_guard_tris=a0,a1,a2
 crane_part_on_ground: -n 100 --seed 1 --mem levelno=0x11 --stub-ret crane_find_test_part.s4=0 --sig crane_find_test_part= \
-    --sig func_802AC0BC=a0,a1,a2
+    --sig ground_scan_guard_tris=a0,a1,a2
 crane_part_on_ground: -n 300 --seed 2 --mem levelno=0x11 \
-    --follow crane_find_test_part,func_802AC0BC,ground_tri_box_contains,ground_tri_contains,ground_tri_height,__ll_mul,__ll_to_d,__d_to_ll \
+    --follow crane_find_test_part,ground_scan_guard_tris,ground_tri_box_contains,ground_tri_contains,ground_tri_height,__ll_mul,__ll_to_d,__d_to_ll \
     --mem gVehPartSpheres:0x140=rand --mem gVehPartSpheres+0x13*0x14:16/1=bytes:0,0,1,0xFF \
     --mem gVehPartSpheres+0x12*0x14:16/1=bytes:6,6,5 --mem gVehPartSpheres+0xC*0x14:16=choice:0x3BD,0x3BC,0 \
     --mem gVehPartSpheres+0x13F:1=0xFF --mem gVehPartSpheres*0x14:16=int:-40:40 --mem gVehPartSpheres+4*0x14:16=int:-2000:500 \
@@ -198,7 +198,7 @@ crane_update_controls: -n 300 --seed 1 --arg gp=sym:gCraneState \
     --mem D_8030D930=choice:0x3F800000,0x3F000000,0,0x3F7FFFFF --mem D_8030D934=choice:0x3F800000,0x3F000000,0,0x3F800001 \
     --mem gCraneArmSound=choice:0,0x80B00000 --mem gCraneSwingSound=choice:0,0x80B00010 --mem gCraneActionSound=choice:0,0x80B00020 \
     --sig snd_stop=a0 --sig snd_play=a0,a1,a2 --stub-ret crane_find_test_part.s4=choice:0,1 \
-    --stub-ret func_802AC0BC.a1=choice:0,1 --sig crane_find_test_part= --sig func_802AC0BC=a0,a1,a2
+    --stub-ret ground_scan_guard_tris.a1=choice:0,1 --sig crane_find_test_part= --sig ground_scan_guard_tris=a0,a1,a2
 
 # ---- wt-v5 ----
 # carrier_build_model / crane_build_model: model matrices/points (as backlash_build_model in 71140): stubbed mtx_build_model doesn't leave

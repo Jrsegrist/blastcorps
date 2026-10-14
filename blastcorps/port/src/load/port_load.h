@@ -9,7 +9,7 @@
  *    (port/tools/swaptab.py: C declarations + traced read widths), right after
  *    they are inflated and before the native initialisers are copied in;
  *  - runtime assets: port_on_dma (every PI DMA, from the platform layer) and
- *    port_on_load (after the game decompresses a block: func_8028B4C4 and
+ *    port_on_load (after the game decompresses a block: hd_rom_load and
  *    5CB60's packed-object loader), which look the ROM range up in the asset
  *    table (port_assets.c) and apply that asset type's schema.
  *

@@ -85,7 +85,7 @@ typedef struct {
     s32 s4; /* scan pointer, then zone byte +0x10 (when +0x14 != 0) */
 } ZoneScanRegs;
 
-/* Registers func_802AC0BC leaves for its asm callers (62740.c). */
+/* Registers ground_scan_guard_tris leaves for its asm callers (62740.c). */
 typedef struct {
     s32 a1; /* found flag */
     s32 a3; /* ground_tri_height's a3 (in/out) */

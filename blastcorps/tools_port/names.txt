@@ -2399,12 +2399,12 @@ D_80364A70 = gPendingTune                    # music_tune_for_mode's pick, start
 # --- 10. audio.c (22EE0.c): the SDK demos' audio manager, with its names ---
 func_802676A0 = amCreateAudioMgr             # the audio manager (the SDK demo's amCreateAudioMgr)
 func_80267A74 = amStartAudioMgr              # starts the audio thread
-func_80267A9C = amMain                     # the audio thread
-func_80267CDC = amHandleFrameMsg           # one audio frame
-func_80267F88 = amHandleDoneMsg            # audio task done
-func_80267FE0 = amDMA                      # the synthesizer's DMA callback (0x200-byte buffer cache)
-func_80268254 = amDmaNew                   # the DMA callback factory
-func_802682A4 = amClearAudioDMA              # frees the old DMA buffers
+func_80267A9C = __amMain                     # the audio thread
+func_80267CDC = __amHandleFrameMsg           # one audio frame
+func_80267F88 = __amHandleDoneMsg            # audio task done
+func_80267FE0 = __amDMA                      # the synthesizer's DMA callback (0x200-byte buffer cache)
+func_80268254 = __amDmaNew                   # the DMA callback factory
+func_802682A4 = __clearAudioDMA              # frees the old DMA buffers
 D_80368070 = __am
 D_8036A308 = gAudDmaState                    # the demo's dmaState (that name is also a libaudio field)
 D_8036A318 = dmaBuffs
@@ -2439,3 +2439,178 @@ field LevelObject.unkEA = destroyed
 field LevelObject.unkEB = pathBuilding
 field VehRecord.active = onMovingPart
 field Person.unk15 = state
+
+# --- naming phase 3: the last functions --------------------------------------
+# front end (07390.c, 1B100.c)
+func_801EE390 = fe_pak_request_hook            # empty; the save thread calls it once per request
+func_802021FC = fe_anim_update_model           # anim_update_model(base, other, ch) for front-end C
+func_80202270 = fe_anim_init_model             # anim_init_model(bufs[1], bufs[0], ch, hdr), result dropped
+func_802022EC = fe_anim_start_channel          # speed, reverse, loop mode, interp, then anim_play(-1)
+func_80202380 = fe_veh_reset_tex_anims         # Backlash/Ramdozer texture anims reset (as their _enter)
+func_802025D0 = fe_veh_set_heading_tex_anims   # Backlash/Ramdozer heading-driven texture anim frames
+# init (1660.c gzip front end, 1A00 printf stub, 3700.c libultra)
+func_80220360 = gzip_unzip                     # boot "kiunzip": header, inflate, advance the in/out pointers
+func_802206D0 = gzip_clear_bufs                # gzip's clear_bufs: zeroes outcnt, inptr and 3 counters
+func_80220714 = init_debug_printf              # init's emptied printf: homes a0-a3, returns
+func_80222400 = __osSetHWIntrRoutine           # libultra: __osHwIntTable[i] = {handler, sp}, ints off
+# hd.c (00000.c)
+func_8024A348 = hud_update_value_popups        # queues "$value" popups of destroyed objects, fades them
+func_8024A92C = carrier_update_proximity       # danger level 0/1/2 from the carrier distance: tunes, alarm, windows
+func_8024ADD8 = hud_tick_money_counter         # eases the shown money total toward the real one
+func_8024BDA4 = hd_handle_yoshi_selection      # acts on a text-window selection for the game mode
+func_8024C404 = hd_debug_dl_stub               # empty display-list hook: *len = 0, returns gdl
+func_802502EC = veh_update_fail_spin           # failed non-carrier level: the player spins, shrinks, explodes
+# recording.c (17210.c)
+func_8025BB38 = rec_start_recording            # empties the RAM recording, skips the first frame
+func_8025BB50 = rec_start_replay               # plays back the RAM recording (the post-level replay)
+func_8025BD98 = rec_restore_start_vehicle      # the playback's start vehicle state, then enter it
+# kiunzip (17A70.c: hd_code's copy of the gzip front end)
+func_8025C230 = kiunzip                        # gzip member in memory: header, inflate, advance src/dst
+func_8025C30C = kiunzip_get_method             # gzip get_method ("kiunzip: unknown method %d")
+func_8025C56C = kiunzip_reverse_bits           # reverses the low n bits (unused; gzip's bi_reverse)
+func_8025C5A0 = kiunzip_clear_bufs             # gzip clear_bufs: zeroes inptr, outcnt and the counters
+func_8025CE74 = title_alloc_attract_bufs       # unused: a 20x79 textured quad's 4 Vtx + 0x780 bytes on the heap
+func_80260EC0 = music_push_danger_tune_stub    # unused wrapper: only calls music_push_danger_tune
+func_80262238 = lvl_init_train_line            # the level's rail line (gTrainOnLine, gTrainLineX0..)
+func_80272C40 = backdrop_unused_stub           # empty, one unused s32 parameter, no callers
+# fade.c (30430.c)
+func_80274BF0 = fade_draw                      # per frame: runs the screen fade, draws the black rectangle
+func_80275270 = fade_to_mode_speed             # starts a fade-out; at full black switches to the next mode
+func_80275390 = fade_to_mode                   # fade_to_mode_speed(next, 0.25)
+func_802753F8 = fade_window_held               # a yoshi window demand is held until the fade-in ends
+func_80285CA0 = stats_show_commpt_hint         # yoshi_show_hint(0x47) once a communication point is taken
+# loaders (46C20.c), steering (46F60.c)
+func_8028B3E0 = hd_load_front_end              # loads the front-end overlay to 0x801E7000 once ("got front end")
+func_8028B4C4 = hd_rom_load                    # ROM DMA in 16 KB pieces, then decompress by method 1/2
+func_8028B720 = cont_steer_reset               # clears the turn-around latch and the heading snap
+func_8028B734 = cont_stick_to_steer            # analog control: stick direction (camera-relative) -> steering
+func_8028BA1C = cont_steer_toward              # L/R_JPAD bit that turns the heading toward a target
+func_8028BBF4 = math_angle_2d_deg              # angle in degrees of (x1-x0, y1-y0), 0..360
+func_8028BD88 = math_asin_ratio_deg            # asin(a / |(a,b)|) in degrees through math_asin_c
+func_8028BE70 = cont_stick_to_buttons_inv_y    # unused: stick -> D-pad L/R, A/B (y inverted), Z adds L+R
+func_8028BF34 = cont_stick_dir_to_buttons      # unused: stick direction/magnitude -> D-pad L/R and A/B
+# academy marker window, inflate (53220.c), 56010.c
+func_802979E0 = academy_build_window           # window 0x15 (marker found): next-marker page, "N left"
+func_80297ECC = academy_reset_window_cursor    # window 0x15's cursor to the page's first selectable item
+func_80297EF8 = academy_marker_found           # the level's marker is saved as found in players[].academy
+func_80297F74 = academy_count_left             # markers not yet found (6 minus the saved academy bits)
+func_80297FE0 = hd_huft_build                  # inflate.c huft_build: Huffman decode table from code lengths
+func_8029867C = hd_inflate_codes               # inflate.c inflate_codes: literal/length + distance codes
+func_80298A84 = hd_inflate_stored              # inflate.c inflate_stored: a stored (uncompressed) block
+func_80298C18 = hd_inflate_fixed               # inflate.c inflate_fixed: a block with the fixed Huffman codes
+func_80298DC0 = hd_inflate_dynamic             # inflate.c inflate_dynamic: a block with dynamic Huffman codes
+func_802993AC = hd_inflate_block               # inflate.c inflate_block: block header, dispatch by type
+func_802994F8 = hd_inflate                     # inflate.c inflate: inflates blocks until the last one
+func_8029A7D0 = debug_printf_unused            # empty, homes a0-a3 like debug_printf; never called
+# levels (5CB60.c), level display lists (5FD50.c)
+func_802A1558 = veh_copy_dl                    # register-preserving call to mb_copy_dl (veh_add_record)
+func_802A20F4 = lvl_tint_path_building_red     # mode 0x800: a path building's vertex colours to red
+func_802A2164 = lvl_end_seq_set_toughness      # End Sequence (level 0x31): object kind 0x24 toughness 2
+func_802A23E0 = lvl_remap_break_fx_kinds       # an object's break-effect kinds through D_8030631F
+func_802A24BC = lvl_init_object_shadow         # types 0xBA..0xBC: shadow texture and ground height
+func_802A3198 = lvl_load_ghost_model           # the ghost vehicle's model and matrices (gGhostPlaying)
+func_802A4DE8 = lvl_build_dl_calls             # a gSPDisplayList per packed level DL, then ENDDL
+func_802A5020 = lvl_step_tex_anims             # steps the level's texture animation records
+func_802A50DC = lvl_find_tex_anim              # a tex anim record's current images/alpha by id
+func_802A51FC = lvl_copy_dl_tex_anim           # copies a DL, swapping the animated SETTIMG images
+func_802A5334 = lvl_copy_visible_groups        # the remaining visible group DLs (ids not done yet)
+# vehicles, ground (62740.c, 679E0.c)
+func_802A8314 = veh_blocked_turn_rate          # per-level turn rate from D_80305C58 just after an arc clip
+func_802A8FF4 = veh_diamond_sands_damping      # Diamond Sands, surface 0x67 last frame: gBounceDamping 8
+func_802AB1B0 = ground_interp_dx0_zero         # ground_tri_interp's cut when dx0 == 0
+func_802AB234 = ground_interp_dx12_zero        # ground_tri_interp's cut when dx12 == 0
+func_802AB2B8 = ground_interp_dz0_zero         # ground_tri_interp's cut when dz0 == 0
+func_802AB33C = ground_interp_dz12_zero        # ground_tri_interp's cut when dz12 == 0
+func_802AC0BC = ground_scan_guard_tris         # nearest height in the level header's +0x24 guard triangles
+func_802AC2A4 = veh_maze_object_hits           # level kind 0x40: a hit fails, with the power pill sends the object off
+func_802ACEB8 = math_rotate_xx                 # math_rotate_xz with z = x, mis-scaled (no callers)
+# objects (77E20.c), loaders, J-Bomb, turbo
+func_802BCD20 = veh_contacts_has_other         # 1 if gContacts holds a value other than this one (no callers)
+func_802BEF9C = obj_check_mars_fail            # Mars (0x2D): hitting object kind 0xE7..0xE9 sets gFailTrigger
+func_802BEFF4 = obj_detect_rocking_hits        # 20 hit frames rocking back and forth: allow repeat damage
+func_802BF264 = obj_tri_clip_free_arc          # a wall triangle clips the free heading arc by its side
+func_802C1A28 = obj_part_outranked             # nonzero if another part's topple key is below this part's
+func_802C4108 = kiunzip_entry                  # the loader's method 1: kiunzip *src to *dst (asm entry)
+func_802C7354 = jbomb_lift_off_water           # on surface 100 near the ground: forced into mode 1 (thrust)
+func_802CB690 = veh_start_turbo                # turbo start: sound 0x55, speed 1.5x, motion blur, gTurboActive
+func_802D2550 = hd_set_cop0_compare            # mtc0 a0 -> COP0 Compare (no callers)
+# libultra / libaudio (SDK names)
+func_802D4550 = osDpSetStatus                  # libultra: write DPC_STATUS_REG
+func_802D8310 = alCSPGetVol                    # libaudio: the ALCSPlayer's vol (s16 at +0x32)
+func_802DAAC0 = osDpGetStatus                  # libultra: read DPC_STATUS_REG
+
+# --- naming phase 3: struct fields (renamed by hand; for reference) ---------
+field AnimChannel.unk4 = frac
+field AnimChannel.unk8 = tension
+field AnimChannel.unkC = loopCount
+field AnimChannel.unkE = loopLimit
+field AnimChannel.unk10 = playing
+field AnimChannel.unk11 = reverse
+field AnimChannel.unk12 = loopMode
+field AnimChannel.unk13 = frame
+field AnimChannel.unk14 = speed
+field AnimChannel.unk15 = interp
+field VehShadow.unk0 = tex
+field VehShadow.unk1000 = renderDist
+field VehShadow.unk1004 = x
+field VehShadow.unk1008 = floorY
+field VehShadow.unk100C = z
+field VehShadow.unk1010 = bodyY
+field VehShadow.unk1014 = groundY
+field VehShadow.unk101C = rotX
+field VehShadow.unk101E = rotY
+field VehShadow.unk1020 = rotZ
+field LevelObject.unk4 = tris
+field LevelObject.unk8 = trisEnd
+field LevelObject.unkC = radius
+field LevelObject.unk1C = spawnPos
+field LevelObject.unk28 = centreX
+field LevelObject.unk2C = centreZ
+field LevelObject.unk30 = kind
+field LevelObject.unk34 = tag
+field LevelObject.unk38 = poseState
+field LevelObject.unk44 = groundY
+field LevelObject.unk48 = partFalling
+field LevelObject.unk68 = partFallTime
+field LevelObject.unk88 = partSpinX
+field LevelObject.unkA8 = partSpinY
+field LevelObject.unkC8 = partSpinZ
+field LevelObject.unkEC = partPct
+field ObjectModel.unk0 = numToppleKeys
+field ObjectModel.unk3C = toppleKeys
+field CollisionTri.unk4C = heading
+field PlayerInfo.unk0 = name
+field PlayerInfo.unk8 = levelno
+field PlayerInfo.unkA = units
+field PlayerInfo.unkC = title
+field PlayerInfo.unk10 = vehiclesUnlocked
+field PlayerInfo.unk14 = money
+field PlayerInfo.unk18 = medal
+field PlayerInfo.unk54 = commPts
+field PlayerInfo.unk90 = academy
+field PlayerInfo.unk91 = gameState
+field PlayerInfo.unk92 = bestVehicle
+field PlayerInfo.unkCE = hintShows
+field PlayerInfo.unkEE = demosSeen
+field PlayerInfo.unkF0 = controlModes
+field PlayerInfo.unkFC = crc
+field LevelInfo.unk0 = kind
+field LevelInfo.unk1 = gameState
+field LevelInfo.unk2 = raceArea
+field LevelInfo.unkA = raceStartBox
+field LevelInfo.unk12 = raceQuads
+field LevelInfo.unk18 = target
+field LevelInfo.unk1C = jbombLiftFadeY
+field LevelInfo.unk1E = jbombMaxY
+field LevelInfo.unk24 = waterY
+field LevelInfo.unk26 = chopperPos
+field LevelInfo.unk2C = vehicles
+field LevelInfo.unk30 = medalTimes
+field LevelInfo.unk38 = camLift
+field LevelInfo.unk3C = camLiftMax
+field LevelInfo.unk40 = camLiftStep
+field LevelInfo.unk42 = camLiftRadius
+# VehState (types.h, new; the code reads it through VS_ offsets): slope slotY slotLaunchVel slotLaunchY
+# slotAirTime heading moveHeading surface wheelOffsets standOffsets deckPos deckHeading deckFront
+# momentumHeading speed bands slotAirborne skidding spawnUpdate onMovingPart hitPartDown hitObject
+# hitImmunePart surfaceMax pushDivisor action actionAux moving lastDir

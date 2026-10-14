@@ -121,7 +121,7 @@ void dig_coach_update(s32 now) {
         dig_check_misuse();
     }
     if (now == 50 && !gCarrierHit) {
-        hud_panel_start(2, 1, 2, snd_random_id(1));
+        hud_panel_start(2, 1, 2, snd_random_id(SND_GROUP_LEVEL_START));
     }
     if (gHaveCarrier) {
         limit = gCarrierZ >> 5;
@@ -141,7 +141,7 @@ void dig_check_doing_well(void) {
     switch (gCurVehicle) {
         case 5:
             if (D_8036CB31 >= 16 && D_8036CB30 >= 16) {
-                hud_panel_start(3, 1, 1, 0x63);
+                hud_panel_start(3, 1, 1, SFX_COACH_WELL_BACKLASH);
                 D_8036CB28 = 0;
                 D_8036CB29 = 0;
                 debug_printf("DOING REALLY WELL\n");
@@ -149,7 +149,7 @@ void dig_check_doing_well(void) {
             break;
         case 4:
             if (D_8036CB31 >= 41 && D_8036CB30 >= 41) {
-                hud_panel_start(4, 1, 1, snd_random_id(4));
+                hud_panel_start(4, 1, 1, snd_random_id(SND_GROUP_DOING_WELL));
                 D_8036CB28 = 0;
                 D_8036CB29 = 0;
                 debug_printf("DOING REALLY WELL\n");
@@ -157,7 +157,7 @@ void dig_check_doing_well(void) {
             break;
         case 3:
             if (D_8036CB31 >= 11 && D_8036CB30 >= 11) {
-                hud_panel_start(0, 1, 3, 0xB2);
+                hud_panel_start(0, 1, 3, SFX_COACH_WELL_SKYFALL);
                 D_8036CB28 = 0;
                 D_8036CB29 = 0;
                 debug_printf("DOING REALLY WELL\n");
@@ -165,7 +165,7 @@ void dig_check_doing_well(void) {
             break;
         case 9:
             if (D_8036CB31 >= 26 && D_8036CB30 >= 26) {
-                hud_panel_start(4, 1, 1, snd_random_id(4));
+                hud_panel_start(4, 1, 1, snd_random_id(SND_GROUP_DOING_WELL));
                 D_8036CB28 = 0;
                 D_8036CB29 = 0;
                 debug_printf("DOING REALLY WELL\n");
@@ -182,7 +182,7 @@ void dig_check_wrong_digger(void) {
         case 5:
         case 9:
             if (D_8036CB31 >= 6 && D_8036CB30 < 2) {
-                hud_panel_start(1, 1, 3, 0xB3);
+                hud_panel_start(1, 1, 3, SFX_COACH_WRONG_DIGGER);
                 D_8036CB28 = 0;
                 D_8036CB29 = 0;
                 debug_printf("USING WRONG DIGGER\n");
@@ -198,7 +198,7 @@ void dig_check_misuse(void) {
         case 4:
         case 5:
             if (D_8036CB33 >= 31 && D_8036CB30 < 6) {
-                hud_panel_start(2, 1, 2, 0x58);
+                hud_panel_start(2, 1, 2, SFX_COACH_MISUSE);
                 D_8036CB28 = 0;
                 D_8036CB29 = 0;
                 debug_printf("USING DIGGER INCORRECTLY\n");
@@ -306,7 +306,7 @@ void hud_panel_start(type, arg1, arg2, sound)
     u8 pos;
 #endif
 
-    if ((gGameMode & 0x200000000400220C) && !gPanelActive) {
+    if ((gGameMode & (MODE_LEVEL | MODE_LEVEL_CLEAR | MODE_CARRIER_END | MODE_LEVEL_START | MODE_TIMED_END | MODE_YOSHI_PAGES)) && !gPanelActive) {
         if (sound) {
             snd_play(gSfxBank, sound, NULL);
         }
@@ -434,7 +434,7 @@ void hud_panel_draw(Gfx **gfx, s32 arg1, u8 buf) {
         }
         if (D_8036CB36 == 0 && D_8036CB39 < 5) {
             if (D_8036CB39 == 0) {
-                snd_play(gSfxBank, 0x69, NULL);
+                snd_play(gSfxBank, SFX_STATIC, NULL);
             }
             D_8036CB51 = 0x50;
         } else if (D_8036CB50) {
@@ -443,7 +443,7 @@ void hud_panel_draw(Gfx **gfx, s32 arg1, u8 buf) {
         } else if (!util_rand_range(0, 20)) {
             D_8036CB50 = 5;
             D_8036CB51 = 0x50;
-            snd_play(gSfxBank, 0x69, NULL);
+            snd_play(gSfxBank, SFX_STATIC, NULL);
         } else {
             D_8036CB51 = 0;
         }

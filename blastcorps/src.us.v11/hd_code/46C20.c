@@ -14,16 +14,18 @@ void port_on_load(u32 rom, u32 dst, u32 len);
 #endif
 
 
-/* Load the front end overlay to 0x801E7000 once */
-void func_8028B3E0(void) {
+/* Blanks the screen; if the front end is not loaded yet, loads and inflates it to 0x801E7000, clears the rest
+ * of its 0x37D00-byte area and starts the pak thread ("got front end") (0x8028B3E0).
+ * Load the front end overlay to 0x801E7000 once */
+void hd_load_front_end(void) {
     u32 size = *D_802FDB34 - *D_802FDB30;
 
     osViBlack(1);
     if (frontEndPresent == 0) {
         osInvalDCache((void *) 0x801E7000, 0x37D00);
-        func_802DB730((void *) 0x801E7000, 0x37D00);
-        func_8028B4C4(*D_802FDB30, 0x801E7000, &size, 0xD, 10, 1);
-        func_802DB7B0((void *) (size + 0x801E7000), 0x37D00 - size);
+        osInvalICache((void *) 0x801E7000, 0x37D00);
+        hd_rom_load(*D_802FDB30, 0x801E7000, &size, 0xD, 10, 1);
+        bzero((void *) (size + 0x801E7000), 0x37D00 - size);
         PORT_FE_LOADED();
         frontEndPresent = 1;
         fe_pak_start_thread();
@@ -31,10 +33,13 @@ void func_8028B3E0(void) {
     }
 }
 
-/* DMA *size bytes from ROM devAddr to dest (to a staging buffer at 0x8021ED00
- * when compressed), then decompress with method arg5 (1: func_8025C230,
+/* DMAs *size bytes from ROM devAddr in 16 KB pieces (compressed data to the staging buffer at 0x8021ED00),
+ * then decompresses once per non-zero pass (arg3, arg4) by method arg5 (1 kiunzip, 2 lzss_decompress); *size
+ * becomes the decompressed length (0x8028B4C4).
+ * DMA *size bytes from ROM devAddr to dest (to a staging buffer at 0x8021ED00
+ * when compressed), then decompress with method arg5 (1: kiunzip,
  * 2: lzss_decompress); *size becomes the decompressed length. */
-void func_8028B4C4(u32 devAddr, u32 dest, u32 *size, u8 arg3, u8 arg4, u8 arg5) {
+void hd_rom_load(u32 devAddr, u32 dest, u32 *size, u8 arg3, u8 arg4, u8 arg5) {
     u32 i;
     u32 rem;
     u32 buf;
@@ -53,23 +58,23 @@ void func_8028B4C4(u32 devAddr, u32 dest, u32 *size, u8 arg3, u8 arg4, u8 arg5) 
     osInvalDCache((void *) buf, *size);
     p = buf;
     for (i = 0; i < *size / 0x4000; i++) {
-        func_802DA2F0(&gDmaIoMesg, 0, 0, devAddr, (void *) p, 0x4000, &gDmaMesgQueue);
+        osPiStartDma(&gDmaIoMesg, 0, 0, devAddr, (void *) p, 0x4000, &gDmaMesgQueue);
         osRecvMesg(&gDmaMesgQueue, NULL, 1);
         devAddr += 0x4000;
         p += 0x4000;
     }
     rem = *size - (*size / 0x4000) * 0x4000;
     if (rem) {
-        func_802DA2F0(&gDmaIoMesg, 0, 0, devAddr, (void *) p, rem, &gDmaMesgQueue);
+        osPiStartDma(&gDmaIoMesg, 0, 0, devAddr, (void *) p, rem, &gDmaMesgQueue);
         osRecvMesg(&gDmaMesgQueue, NULL, 1);
     }
     switch (arg5) {
         case 1:
             if (arg3) {
-                func_8025C230((u8 * N64P *) &buf, (u8 * N64P *) &dest, 0x8004B400);
+                kiunzip((u8 * N64P *) &buf, (u8 * N64P *) &dest, 0x8004B400);
             }
             if (arg4) {
-                func_8025C230((u8 * N64P *) &buf, (u8 * N64P *) &dest, 0x8004B400);
+                kiunzip((u8 * N64P *) &buf, (u8 * N64P *) &dest, 0x8004B400);
             }
             break;
         case 2:

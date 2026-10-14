@@ -428,7 +428,7 @@ void backlash_add_tyre_trail(void);
  * switch and from backlash_spawn):
  * 1. Zone lookup (backlash_zone_alpha), veh_snapshot (position from gBacklashAnim),
  *    the animation/sound update backlash_update_anims while byte +0x9A is clear,
- *    func_802CB690 when gTurboPending is set, backlash_set_physics.
+ *    veh_start_turbo when gTurboPending is set, backlash_set_physics.
  * 2. Driving: veh_steer_throttle(rate = backlash_steer_rate, heading +0x4C, speed +0x76,
  *    mode 3, flags +0x96, bands +0x78, 8), veh_turn_heading(+0x74, rate
  *    gBacklashGrip, +0x4C -> +0x4E, flag +0x99, sound 1), f = veh_slope,
@@ -455,10 +455,10 @@ void backlash_add_tyre_trail(void);
  *    veh_step_heading(its turn, d), veh_hit_slowdown(0) and, unless gLevelKind ==
  *    0x40, obj_collide_vehicle(5).
  * 5. Player globals gPlayerX/Y/Z = the position, D_8036443C/3E/40 =
- *    speed, +0x4E, +0x4C; veh_set_record(z, 5, x, y, veh); func_802AC2A4(z,
+ *    speed, +0x4E, +0x4C; veh_set_record(z, 5, x, y, veh); veh_maze_object_hits(z,
  *    D_80305D20, x, y, b0, 5, veh) with D_803F77D0 = gBacklashAnim; sound
  *    gBacklashHitSound when >= 0 (snd_play).
- * Leaked registers (FIDELITY AUDIT): func_802AC2A4's b0 is the asm's t0 =
+ * Leaked registers (FIDELITY AUDIT): veh_maze_object_hits's b0 is the asm's t0 =
  * &gPlayerZ (kept). Passed as 0 here: the zone scan's t6/t7/s0-s4 inputs
  * (the caller's registers, dead afterwards); veh_ground_contact's f14-f26 inputs
  * (pass-through); backlash_build_model's chain inputs (only read for a
@@ -498,21 +498,21 @@ void backlash_update(void) {
         backlash_update_anims();
     }
     if (gTurboPending != 0) {
-        func_802CB690(gBacklashState);
+        veh_start_turbo(gBacklashState);
     }
     backlash_set_physics();
 
     /* 2. */
-    veh_steer_throttle(backlash_steer_rate(), &VEH5(0x4C, u16), gBacklashState, &VEH5(0x76, s16), 3, gBacklashState + 0x96,
-                  &VEH5(0x78, s16), 8);
-    veh_turn_heading(gBacklashState, &VEH5(0x74, u16), (u16) gBacklashGrip, &VEH5(0x76, s16), &VEH5(0x4C, u16),
-                  &VEH5(0x4E, u16), (s8 *) (gBacklashState + 0x99), 1);
-    step = veh_slope(&VEH5(0x76, s16), gBacklashState + 0x96, &VEH5(4, s32), (f32 *) gBacklashState);
-    veh_apply_slope(gBacklashState, &VEH5(0x76, s16), 5, (s8 *) (gBacklashState + 0x96), &VEH5(4, s32), 1, 720.0f);
+    veh_steer_throttle(backlash_steer_rate(), &VEH5(VS_HEADING, u16), gBacklashState, &VEH5(VS_SPEED, s16), 3, gBacklashState + 0x96,
+                  &VEH5(VS_BANDS, s16), 8);
+    veh_turn_heading(gBacklashState, &VEH5(VS_MOMENTUM_HEADING, u16), (u16) gBacklashGrip, &VEH5(VS_SPEED, s16), &VEH5(VS_HEADING, u16),
+                  &VEH5(VS_MOVE_HEADING, u16), (s8 *) (gBacklashState + 0x99), 1);
+    step = veh_slope(&VEH5(VS_SPEED, s16), gBacklashState + 0x96, &VEH5(4, s32), (f32 *) gBacklashState);
+    veh_apply_slope(gBacklashState, &VEH5(VS_SPEED, s16), 5, (s8 *) (gBacklashState + 0x96), &VEH5(4, s32), 1, 720.0f);
     if (gBacklashDeflecting != 0) {
         veh_set_target_heading(gBacklashState, &gBacklashDeflectHeading);
     }
-    x = veh_move_along_heading(step, VEH5(0x4E, u16), &VEH5(0x76, s16), (s32 *) &gBacklashPos[0], (s32 *) &gBacklashPos[2],
+    x = veh_move_along_heading(step, VEH5(VS_MOVE_HEADING, u16), &VEH5(VS_SPEED, s16), (s32 *) &gBacklashPos[0], (s32 *) &gBacklashPos[2],
                       &out);
     gBounceSound = 1;
     r.s3 = out.s3;
@@ -523,8 +523,8 @@ void backlash_update(void) {
     f.sideZ = 0.0f;
     f.dz = 0.0f;
     veh_ground_contact(gBacklashState, 5, (s32 *) &gBacklashPos[0], (s32 *) &gBacklashPos[1], (s32 *) &gBacklashPos[2], x, out.t1,
-                  0x2D0, 0x2D0, &VEH5(0x4C, s16), gBacklashState + 0x96, &VEH5(0x52, s16), &VEH5(0x28, s32),
-                  &VEH5(0x40, s32), &VEH5(0x34, s32), &VEH5(4, s32), &r, &f);
+                  0x2D0, 0x2D0, &VEH5(VS_HEADING, s16), gBacklashState + 0x96, &VEH5(VS_WHEEL_OFFSETS, s16), &VEH5(VS_SLOT_LAUNCH_VEL, s32),
+                  &VEH5(VS_SLOT_AIR_TIME, s32), &VEH5(VS_SLOT_LAUNCH_Y, s32), &VEH5(4, s32), &r, &f);
 
     /* 3. */
     if (gBufferIndex != 0) {
@@ -558,7 +558,7 @@ void backlash_update(void) {
     backlash_build_model(&regs);
 
     /* 4. */
-    veh_collision_setup(gBacklashPos[2], (s32) D_80305D20, 1, 1, gBacklashPos[0], gBacklashPos[1], 8, VEH5(0x76, s16), 0x64, 0,
+    veh_collision_setup(gBacklashPos[2], (s32) D_80305D20, 1, 1, gBacklashPos[0], gBacklashPos[1], 8, VEH5(VS_SPEED, s16), 0x64, 0,
                   5, gBacklashState);
     veh_collide_spheres(5, gBacklashState);
     veh_collide_world(5);
@@ -582,7 +582,7 @@ void backlash_update(void) {
             veh_rollback(gBacklashState, gBacklashAnim, (s32 *) &gBacklashPos[0], (s32 *) &gBacklashPos[1],
                           (s32 *) &gBacklashPos[2], gBacklashMtxA, gBacklashMtxB, 0x800, &end);
         }
-        v = VEH5(0x76, s16);
+        v = VEH5(VS_SPEED, s16);
         if (v < 0) {
             if (v > -0x50) {
                 v = -0x50;
@@ -590,13 +590,13 @@ void backlash_update(void) {
         } else if (v < 0x50) {
             v = 0x50;
         }
-        VEH5(0x76, s16) = -v >> 1;
+        VEH5(VS_SPEED, s16) = -v >> 1;
         backlash_build_model(&regs);
         goto globals;
     }
     veh_prepare_escape(gBacklashState);
     gBacklashDeflecting = 1;
-    d = VEH5(0x4E, u16) - 0x800;
+    d = VEH5(VS_MOVE_HEADING, u16) - 0x800;
     if (d < 0) {
         d += 0xFFF;
     }
@@ -608,10 +608,10 @@ void backlash_update(void) {
         d = 0xFFF - d;
     }
     veh_reverse_if_behind(gBacklashState);
-    turn = veh_turn_into_free_arc(gBacklashState, VEH5(0x4E, u16), VEH5(0x4C, u16), &cur, D_8030D8E0);
+    turn = veh_turn_into_free_arc(gBacklashState, VEH5(VS_MOVE_HEADING, u16), VEH5(VS_HEADING, u16), &cur, D_8030D8E0);
     gBacklashDeflectHeading = cur;
-    VEH5(0x4E, s16) = cur;
-    VEH5(0x74, s16) = cur;
+    VEH5(VS_MOVE_HEADING, s16) = cur;
+    VEH5(VS_MOMENTUM_HEADING, s16) = cur;
     veh_step_heading(gBacklashState, turn, d, &tgt);
     veh_hit_slowdown(gBacklashState, 0);
     if (((s32) gLevelKind) != 0x40) {
@@ -627,12 +627,12 @@ globals:
     gPlayerX = gBacklashPos[0];
     gPlayerY = gBacklashPos[1];
     gPlayerZ = gBacklashPos[2];
-    D_8036443C = VEH5(0x76, s16);
-    D_8036443E = VEH5(0x4E, u16);
-    D_80364440 = VEH5(0x4C, u16);
+    D_8036443C = VEH5(VS_SPEED, s16);
+    D_8036443E = VEH5(VS_MOVE_HEADING, u16);
+    D_80364440 = VEH5(VS_HEADING, u16);
     veh_set_record(gBacklashPos[2], 5, gBacklashPos[0], gBacklashPos[1], gBacklashState);
     D_803F77D0 = gBacklashAnim;
-    func_802AC2A4(gBacklashPos[2], (s32) D_80305D20, gBacklashPos[0], gBacklashPos[1], (s32) &gPlayerZ, 5, gBacklashState);
+    veh_maze_object_hits(gBacklashPos[2], (s32) D_80305D20, gBacklashPos[0], gBacklashPos[1], (s32) &gPlayerZ, 5, gBacklashState);
     if (gBacklashHitSound >= 0) {
         snd_play(gSfxBank, gBacklashHitSound, NULL);
     }

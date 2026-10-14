@@ -62,7 +62,7 @@ void hud_draw_target_marker(SpriteVtxBuf *arg0, Gfx **gfxp, u8 arg2) {
     if (!gTargetsCleared && !ret && gLevelKind == 1 && !gPaused) {
         if (!yoshi_show_hint(0x4B)) {
             yoshi_demand(0x803D);
-            hud_panel_start(3, 1, 2, 0x82);
+            hud_panel_start(3, 1, 2, SFX_SUCCESS);
         }
         gTargetsCleared = 1;
     }

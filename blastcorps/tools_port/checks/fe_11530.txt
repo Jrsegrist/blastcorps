@@ -17,7 +17,7 @@ fe_globe_draw_route: -n 400 --ret ptr --arg a0=int --arg a1=ptr:0x400 --arg a2=i
     --mem gRouteRevealMin=floats:0:1 --mem D_803156C4=int:0:200 --mem gGlobeZoomDoneTime=int:0:100 --mem gRouteRevealSound=choice:0,0x80B00000 \
     --mem gGlobePlanet=choice:3,2 --stub-ret lvl_planet=choice:3*3,1 --stub-ret fe_globe_level_locked=choice:0*4,1 \
     --follow hd_sinf,math_asin_c,sqrtf,hud_project_point --sig lvl_planet=a0:1 --sig fe_globe_level_locked=a0 \
-    --sig snd_stop=a0 --sig snd_play=a0,a1,a2 --sig func_8028BBF4=a0,a1,a2,a3
+    --sig snd_stop=a0 --sig snd_play=a0,a1,a2 --sig math_angle_2d_deg=a0,a1,a2,a3
 # drawn routes: unvisited pair (gRouteDrawn clear), both levels open (lvl_planet 3), mostly lit
 # vertices, the start level selected (out / lon set; projection when gGlobePlanet is 3)
 fe_globe_draw_route: -n 400 --seed 1 --ret ptr --arg a0=int --arg a1=ptr:0x400 --arg a2=int:0:59 --arg a3=int:0:59 \
@@ -32,7 +32,7 @@ fe_globe_draw_route: -n 400 --seed 1 --ret ptr --arg a0=int --arg a1=ptr:0x400 -
     --mem gGlobeOverlayAlpha:1=rand --mem gGlobeCamDist=floats:0:5000 --mem D_80364A87:1=0 --mem gGlobePlanet=choice:3,2 \
     --stub-ret lvl_planet=3 --stub-ret fe_globe_level_locked=0 \
     --follow hd_sinf,math_asin_c,sqrtf,hud_project_point --sig lvl_planet=a0:1 --sig fe_globe_level_locked=a0 \
-    --sig func_8028BBF4=a0,a1,a2,a3
+    --sig math_angle_2d_deg=a0,a1,a2,a3
 # route-open fade: D_80364A87 set, progress (D_803156C4 - gGlobeZoomDoneTime) / 90 against gRouteRevealMin, sound start / stop
 fe_globe_draw_route: -n 400 --seed 2 --ret ptr --arg a0=int --arg a1=ptr:0x400 --arg a2=int:0:59 --arg a3=int:0:59 \
     --arg stack0=ptr:4 --arg stack1=ptr:4 --arg stack2=choice:0,1 --arg stack3=int:0:255 --arg stack4=int:0:255 \
@@ -47,7 +47,7 @@ fe_globe_draw_route: -n 400 --seed 2 --ret ptr --arg a0=int --arg a1=ptr:0x400 -
     --mem gRouteRevealMin=choice:0,0x3F000000,0x3F800000,0x3E800000 --mem D_803156C4=int:0:200 --mem gGlobeZoomDoneTime=int:0:110 \
     --mem gRouteRevealSound=choice:0,0x80B00000 --mem gGlobePlanet=choice:3,2 --stub-ret lvl_planet=3 --stub-ret fe_globe_level_locked=0 \
     --follow hd_sinf,math_asin_c,sqrtf,hud_project_point --sig lvl_planet=a0:1 --sig fe_globe_level_locked=a0 \
-    --sig snd_stop=a0 --sig snd_play=a0,a1,a2 --sig func_8028BBF4=a0,a1,a2,a3
+    --sig snd_stop=a0 --sig snd_play=a0,a1,a2 --sig math_angle_2d_deg=a0,a1,a2,a3
 # boundaries: from == to (zero arc), antipodal / identical positions, levels at the origin
 fe_globe_draw_route: -n 200 --seed 3 --ret ptr --arg a0=int --arg a1=ptr:0x400 --arg a2=choice:0,1 --arg a3=choice:0,1 \
     --arg stack0=ptr:4 --arg stack1=ptr:4 --arg stack2=choice:0,1 --arg stack3=int:0:255 --arg stack4=int:0:255 \
@@ -60,7 +60,7 @@ fe_globe_draw_route: -n 200 --seed 3 --ret ptr --arg a0=int --arg a1=ptr:0x400 -
     --mem gGlobeCamZ=floats:-1:1 --mem angd=floats:-2:2 --mem dmm=floats:0:20 --mem mmm=floats:0:20 \
     --mem gGlobeOverlayAlpha:1=rand --mem gGlobeCamDist=floats:0:5000 --mem D_80364A87:1=0 --mem gGlobePlanet=choice:3,2 \
     --stub-ret lvl_planet=3 --stub-ret fe_globe_level_locked=0 \
-    --follow hd_sinf,math_asin_c,sqrtf,hud_project_point --sig func_8028BBF4=a0,a1,a2,a3
+    --follow hd_sinf,math_asin_c,sqrtf,hud_project_point --sig math_angle_2d_deg=a0,a1,a2,a3
 # everything followed but the sound player
 fe_globe_draw_route: -n 200 --seed 4 --ret ptr --follow-all --no-follow snd_stop,snd_play \
     --arg a0=int --arg a1=ptr:0x400 --arg a2=int:0:59 --arg a3=int:0:59 \

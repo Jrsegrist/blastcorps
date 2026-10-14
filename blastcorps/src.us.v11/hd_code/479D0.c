@@ -156,7 +156,7 @@ void crate_update(u8 arg0) {
                                      gCrates[sp34].y, gCrates[sp34].z);
                 if (sp30 <= gCrateTypes[gCrates[sp34].type].radius) {
                     gCrates[sp34].collected = 1;
-                    snd_play(gSfxBank, 0x70, 0);
+                    snd_play(gSfxBank, SFX_CRATE_PICKUP, 0);
                     switch (gCrates[sp34].type) {
                         case 0:
                             gBallistaMissiles += 10;

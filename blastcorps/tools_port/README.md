@@ -117,7 +117,7 @@ init:
   `NM_ROM_FE_TEXT_VRAM` (0x80500000, after the NM hd_code; image A covers
   both, one DMA), data pinned, calling the ROM-linked hd_code's addresses.
   hd_code inflates the front end from ROM to 0x801E7000 when it first needs
-  it (`func_8028B3E0`, from the range init stores at 0x803FFFF8/C), so
+  it (`hd_load_front_end`, from the range init stores at 0x803FFFF8/C), so
   `nm_rom.py` builds image D: the original front-end text with a trampoline
   on every function entry (all 155; skipped like hd_code's: second word a
   target, first word a delay slot, a full convention) followed by the NM

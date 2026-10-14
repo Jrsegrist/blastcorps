@@ -53,7 +53,7 @@ static u8 *port_veh_parts(u8 *veh, PortVehPos *p, s32 id, s32 scale, MtxChainReg
     u8 *base;
 
     mtx = (s32 *) ((gBufferIndex != 0 ? (u8 *) p->bufA : (u8 *) p->bufB) + off);
-    D_803ED392 = VEH_U16(veh, 0x4C);
+    D_803ED392 = VEH_U16(veh, VS_HEADING);
     mtx_build_model(p->x, p->y, p->z, scale, mtx);
     r->a3 = 0;
     r->s2 = (s32) mtx;
@@ -80,12 +80,12 @@ static s32 port_veh_track(u8 *veh, PortVehPos *p, s32 id, InterpRegs *r) {
     s32 dz;
 
     veh_deck_to_local(id, x, z, r);
-    VEH_S16(veh, 0x6A) = r->t3;
+    VEH_S16(veh, VS_DECK_POS) = r->t3;
     VEH_S16(veh, 0x6C) = r->t4;
-    VEH_S16(veh, 0x6E) = VEH_U16(veh, 0x4C);
+    VEH_S16(veh, VS_DECK_HEADING) = VEH_U16(veh, VS_HEADING);
     dx = veh_wheel_offset(0, (s16 *) (veh + 0x52), (s16 *) (veh + 0x4C), &dz);
     veh_deck_to_local(id, x + dx, z + dz, r);
-    VEH_S16(veh, 0x70) = r->t3;
+    VEH_S16(veh, VS_DECK_FRONT) = r->t3;
     VEH_S16(veh, 0x72) = r->t4;
     return (s32) (veh + 0x52);
 }
@@ -126,11 +126,11 @@ static s32 port_veh_follow(u8 *veh, PortVehPos *p, s32 vid, s32 id, InterpRegs *
     s32 s3;
     s32 h;
 
-    h = veh_follow_heading((s16 *) (veh + 0x52), VEH_S16(veh, 0x6A), (u16 *) (veh + 0x6E), id, VEH_S16(veh, 0x6C),
-                      VEH_S16(veh, 0x70), VEH_S16(veh, 0x72), &s3, r);
-    VEH_S16(veh, 0x4E) = h;
-    VEH_S16(veh, 0x4C) = h;
-    veh_deck_to_world(id, VEH_S16(veh, 0x6A), VEH_S16(veh, 0x6C), r);
+    h = veh_follow_heading((s16 *) (veh + 0x52), VEH_S16(veh, VS_DECK_POS), (u16 *) (veh + 0x6E), id, VEH_S16(veh, 0x6C),
+                      VEH_S16(veh, VS_DECK_FRONT), VEH_S16(veh, 0x72), &s3, r);
+    VEH_S16(veh, VS_MOVE_HEADING) = h;
+    VEH_S16(veh, VS_HEADING) = h;
+    veh_deck_to_world(id, VEH_S16(veh, VS_DECK_POS), VEH_S16(veh, 0x6C), r);
     setup();
     if (flag40B) {
         gBounceSound = 1;
@@ -192,9 +192,9 @@ static void port_veh_init_head(u8 *veh, PortVehPos *p, s32 id, u8 *model, const 
     p->x = x;
     p->y = y;
     p->z = z;
-    VEH_S16(veh, 0x4C) = heading;
-    VEH_S16(veh, 0x4E) = heading;
-    VEH_S16(veh, 0x74) = heading;
+    VEH_S16(veh, VS_HEADING) = heading;
+    VEH_S16(veh, VS_MOVE_HEADING) = heading;
+    VEH_S16(veh, VS_MOMENTUM_HEADING) = heading;
 }
 
 /* Second part: ground slots (veh_init_ground, key id, with the incoming fp; the
@@ -238,12 +238,12 @@ static void port_veh_init_tail(u8 *veh, PortVehPos *p, s32 id, s32 scale, s32 a1
 
     veh_register_parts(id, m + *(s32 *) (m + 4), m + *(s32 *) (m + 8), scale);
     veh_add_shadow(id, a1, a2, a2);
-    VEH_U8(veh, 0x9A) = 1;
+    VEH_U8(veh, VS_SPAWN_UPDATE) = 1;
     /* The asm enters the update with t6, t7, s0-s4 as veh_add_shadow (C) and
      * anim_update_model left them (register leak); with +0x9A set they only pass
      * through veh_zone_alpha unused. */
     update(0, 0, 0, 0, 0, 0, 0);
-    VEH_U8(veh, 0x9A) = 0;
+    VEH_U8(veh, VS_SPAWN_UPDATE) = 0;
     m = p->model;
     mtx_copy_at((u8 *) p->bufB, (u8 *) p->bufA, *(s32 *) (m + *(s32 *) (m + 0x18) + 4));
 }
@@ -272,7 +272,7 @@ static void port_veh_move(u8 *veh, PortVehPos *p, s32 id, u8 *ch, s32 rate, s32 
     if (drift != 0) {
         veh_set_target_heading(veh, driftAngle);
     }
-    x = veh_move_along_heading(fl, VEH_U16(veh, 0x4E), (s16 *) (veh + 0x76), &p->x, &p->z, &o);
+    x = veh_move_along_heading(fl, VEH_U16(veh, VS_MOVE_HEADING), (s16 *) (veh + 0x76), &p->x, &p->z, &o);
     gBounceSound = 1;
     r8.s3 = o.s3;
     /* The asm hands veh_ground_contact whatever f12-f26 hold here (f12/f14 are
@@ -292,7 +292,7 @@ static void port_veh_move(u8 *veh, PortVehPos *p, s32 id, u8 *ch, s32 rate, s32 
     mc.s0 = 0;
     mc.s1 = 0;
     parts(&mc);
-    veh_collision_setup(p->z, (s32) a1, b2, 1, p->x, p->y, b0, VEH_S16(veh, 0x76), h2, 0, id, veh);
+    veh_collision_setup(p->z, (s32) a1, b2, 1, p->x, p->y, b0, VEH_S16(veh, VS_SPEED), h2, 0, id, veh);
     veh_collide_spheres(id, veh);
     veh_collide_world(id);
 }
@@ -310,7 +310,7 @@ static void port_veh_turn(u8 *veh, f32 scale, s16 *target) {
     s32 turn;
     s32 tmp;
 
-    d = VEH_U16(veh, 0x4E) - 0x800;
+    d = VEH_U16(veh, VS_MOVE_HEADING) - 0x800;
     if (d < 0) {
         d += 0xFFF;
     }
@@ -322,10 +322,10 @@ static void port_veh_turn(u8 *veh, f32 scale, s16 *target) {
         d = 0xFFF - d;
     }
     veh_reverse_if_behind(veh);
-    turn = veh_turn_into_free_arc(veh, VEH_U16(veh, 0x4E), VEH_U16(veh, 0x4C), &cur, scale);
+    turn = veh_turn_into_free_arc(veh, VEH_U16(veh, VS_MOVE_HEADING), VEH_U16(veh, VS_HEADING), &cur, scale);
     *target = cur;
-    VEH_S16(veh, 0x4E) = cur;
-    VEH_S16(veh, 0x74) = cur;
+    VEH_S16(veh, VS_MOVE_HEADING) = cur;
+    VEH_S16(veh, VS_MOMENTUM_HEADING) = cur;
     veh_step_heading(veh, turn, d, &tmp);
     veh_hit_slowdown(veh, 0);
 }
@@ -348,9 +348,9 @@ static void port_veh_publish(u8 *veh, PortVehPos *p, s32 id) {
     gPlayerX = p->x;
     gPlayerY = p->y;
     gPlayerZ = p->z;
-    D_8036443C = VEH_S16(veh, 0x76);
-    D_8036443E = VEH_U16(veh, 0x4E);
-    D_80364440 = VEH_U16(veh, 0x4C);
+    D_8036443C = VEH_S16(veh, VS_SPEED);
+    D_8036443E = VEH_U16(veh, VS_MOVE_HEADING);
+    D_80364440 = VEH_U16(veh, VS_HEADING);
     veh_set_record(p->z, id, p->x, p->y, veh);
 }
 
@@ -564,7 +564,7 @@ extern s16 gSkyfallGrip;
  * `void (void)`, and from skyfall_spawn):
  * 1. zone level (skyfall_zone_alpha) with the incoming scan registers, save state
  *    (veh_snapshot), effects skyfall_update_anims (with the scan registers as the
- *    zone lookup left them) unless +0x9A is set, func_802CB690 when
+ *    zone lookup left them) unless +0x9A is set, veh_start_turbo when
  *    gTurboPending is set;
  * 2. setup leaf skyfall_set_physics, steering veh_steer(skyfall_steer_rate()),
  *    speed bands veh_throttle unless the countdown gSkyfallBumpTimer runs;
@@ -600,11 +600,11 @@ void skyfall_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
     zs.s4 = s4;
     skyfall_zone_alpha(&zs);
     veh_snapshot(veh, gSkyfallAnim, &p->x, &p->y, &p->z);
-    if (VEH_S8(veh, 0x9A) == 0) {
+    if (VEH_S8(veh, VS_SPAWN_UPDATE) == 0) {
         skyfall_update_anims(zs.t6, zs.t7, zs.s0, zs.s1, zs.s2, zs.s3, zs.s4);
     }
     if (gTurboPending != 0) {
-        func_802CB690(veh);
+        veh_start_turbo(veh);
     }
     skyfall_set_physics();
     veh_steer(skyfall_steer_rate(), (u16 *) (veh + 0x4C));
@@ -623,7 +623,7 @@ void skyfall_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
             gSkyfallDeflecting = 0;
             port_veh_restore(veh, p, gSkyfallAnim);
             gSkyfallBumpTimer = 5;
-            v = VEH_S16(veh, 0x76);
+            v = VEH_S16(veh, VS_SPEED);
             if (v >= 0) {
                 if (v < 0x50) {
                     v = 0x50;
@@ -631,7 +631,7 @@ void skyfall_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
             } else if (v >= -0x4F) {
                 v = -0x50;
             }
-            VEH_S16(veh, 0x76) = -v >> 1;
+            VEH_S16(veh, VS_SPEED) = -v >> 1;
             /* s0/s1: leftovers of obj_collide_vehicle / anim_update_model (leak). */
             mc.s0 = 0;
             mc.s1 = 0;
@@ -782,7 +782,7 @@ void skyfall_update_anims(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4
         gSkyfallBoostMeter -= 4;
         if (gSkyfallBoosting == 0) {
             gSkyfallBoosting = 1;
-            snd_play(gSfxBank, 0x8D, &gSkyfallBoostSound);
+            snd_play(gSfxBank, SFX_SKYFALL_BOOST, &gSkyfallBoostSound);
         }
         anim_tex_set_frame(0.0f, (s32) D_802C2314, 1);
         io.a3 = 0;
@@ -1018,7 +1018,7 @@ extern u8 gRamdozerAnim[]; /* its animation channel table */
 /* Getting into Ramdozer: engine sound 0x0B, track animations reset (0x802B448C).
  * Vehicle-type 4 setup (called from hd.c / 17210.c), shape of skyfall_enter:
  * clears byte 0x99 of the state block, resets channel 1 (03D4 only) and
- * channel 2 of gRamdozerAnim, resets the sound entries D_802C2190/A4/B8
+ * channel 2 of gRamdozerAnim, resets the texture animations D_802C2190/A4/B8
  * (0, 0, 0, -1 each), gCamDistance / gCamHeightBase = 3000, 1000, then
  * veh_start_engine_sound(&gRamdozerAnim, 0x0B). Leaves $gp = gRamdozerState (clobbers gp)
  * and v1 = -1, unused by the C callers. */
@@ -1179,13 +1179,13 @@ void ramdozer_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
     ramdozer_zone_alpha(&zs);
     veh_snapshot(veh, gRamdozerAnim, &p->x, &p->y, &p->z);
     veh_update_horn(0x8F);
-    if (VEH_S8(veh, 0x9A) == 0) {
+    if (VEH_S8(veh, VS_SPAWN_UPDATE) == 0) {
         ramdozer_update_anims(zs.t6, zs.t7, zs.s0, zs.s1, zs.s2, zs.s3, zs.s4);
     }
     if (gTurboPending != 0) {
-        func_802CB690(veh);
+        veh_start_turbo(veh);
     }
-    gEngineSoundLevel = VEH_S16(veh, 0x76);
+    gEngineSoundLevel = VEH_S16(veh, VS_SPEED);
     ramdozer_set_physics();
     veh_steer(ramdozer_steer_rate(), (u16 *) (veh + 0x4C));
     if (gRamdozerBumpTimer == 0) {
@@ -1203,7 +1203,7 @@ void ramdozer_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
             gRamdozerDeflecting = 0;
             port_veh_restore(veh, p, gRamdozerAnim);
             gRamdozerBumpTimer = 5;
-            v = VEH_S16(veh, 0x76);
+            v = VEH_S16(veh, VS_SPEED);
             if (v >= 0) {
                 if (v < 0x3E) {
                     v = 0x3E;
@@ -1215,7 +1215,7 @@ void ramdozer_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
             } else if (v < -0x5A) {
                 v = -0x5A;
             }
-            VEH_S16(veh, 0x76) = -v;
+            VEH_S16(veh, VS_SPEED) = -v;
             /* s0/s1: leftovers of obj_collide_vehicle / anim_update_model (leak). */
             mc.s0 = 0;
             mc.s1 = 0;
@@ -1260,7 +1260,7 @@ void ramdozer_add_tyre_trail(void);
  * 4. Level gRamdozerThrottleAnim (channel 2 of gRamdozerAnim): unless veh_near_top_speed(30),
  *    falls by D_8030D8D4 to 0 with gHeldBOrZ held, or rises by D_8030D8D8
  *    to 1 with gHeldA held; otherwise it moves by D_8030D8DC toward 0.5.
- * 5. Sound entries D_802C2190/D_802C21A4: moving, unk11 = (speed < 0) on
+ * 5. Texture animations D_802C2190/D_802C21A4: moving, reverse = (speed < 0) on
  *    both, unk14 = |speed| / 2 on both and veh_set_engine_level(|speed| / 8);
  *    standing, unk11 = (stick < 0) / (stick >= 0) and unk14 = |stick|
  *    (gPadStickX).
@@ -1294,7 +1294,7 @@ void ramdozer_update_anims(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s
     }
 
     if (gEngineSoundLevel == 0 && *(s16 *) (gRamdozerState + 0x76) != 0) {
-        snd_play(gSfxBank, 10, NULL);
+        snd_play(gSfxBank, SFX_SKID, NULL);
         io.a3 = 1;
         fx_spawn(&io, D_802C2954, 0x1D4C0, 1, 4, 2, 1, t7, s0, s2, s3, s4, 1);
     }
@@ -1358,7 +1358,7 @@ void ramdozer_update_anims(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s
             anim_set_speed((AnimChannel *) gRamdozerAnim, 1, 9);
             anim_set_loop_mode((AnimChannel *) gRamdozerAnim, 1, 1);
             anim_play((AnimChannel *) gRamdozerAnim, 1, 2);
-            snd_play(gSfxBank, 1, NULL);
+            snd_play(gSfxBank, SFX_CLUNK, NULL);
         }
     }
 }

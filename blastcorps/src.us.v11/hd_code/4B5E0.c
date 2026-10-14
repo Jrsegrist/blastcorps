@@ -387,7 +387,7 @@ void block_update(u8 arg0) {
                 }
             } else {
                 if (gBlocks[i].unk4 == gBlocks[i].unk1C) {
-                    snd_play(gSfxBank, 0x64, NULL);
+                    snd_play(gSfxBank, SFX_BLOCK_FALL, NULL);
                 }
                 floor = gBlockSlots[gBlocks[i].unk13].unk0C;
                 h = gBlocks[i].unk14 * gBlocks[i].unk18 + (gBlocks[i].unk18 * -4) * gBlocks[i].unk18;
@@ -408,7 +408,7 @@ void block_update(u8 arg0) {
                         gBlocks[i].unk14 = diff >> 1;
                         gBlocks[i].unk18 = 0;
                         gBlocks[i].unk1C = floor;
-                        snd_play(gSfxBank, 0xC, NULL);
+                        snd_play(gSfxBank, SFX_THUD, NULL);
                     }
                 } else {
                     gBlocks[i].unk18++;
@@ -417,7 +417,7 @@ void block_update(u8 arg0) {
         }
         if (gBlocks[i].unk0C != 0 && gBlocks[i].unk12 == 0 && gBlocks[i].unk11 == 0 &&
             gBlocks[i].unk34 == 0) {
-            snd_play(gSfxBank, 7, &gBlocks[i].unk34);
+            snd_play(gSfxBank, SFX_SCRAPE_LOOP, &gBlocks[i].unk34);
         }
         if (gBlocks[i].unk34 != 0 &&
             (gBlocks[i].unk0C == 0 || gBlocks[i].unk12 != 0 || gBlocks[i].unk11 != 0)) {

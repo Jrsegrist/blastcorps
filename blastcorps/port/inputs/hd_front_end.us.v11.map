@@ -14,18 +14,18 @@ Discarded input sections
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/00000.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/00000.c.o
  .gptab.data    0x00000000       0x48 build_nm/src.us.v11/hd_front_end/00000.c.o
- .mdebug        0x00000000     0x1760 build_nm/src.us.v11/hd_front_end/00000.c.o
+ .mdebug        0x00000000     0x1788 build_nm/src.us.v11/hd_front_end/00000.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/01C40.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/01C40.c.o
  .gptab.data    0x00000000       0x70 build_nm/src.us.v11/hd_front_end/01C40.c.o
- .mdebug        0x00000000     0x3308 build_nm/src.us.v11/hd_front_end/01C40.c.o
+ .mdebug        0x00000000     0x330c build_nm/src.us.v11/hd_front_end/01C40.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/06790.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/06790.c.o
  .gptab.data    0x00000000       0x20 build_nm/src.us.v11/hd_front_end/06790.c.o
  .mdebug        0x00000000      0xb74 build_nm/src.us.v11/hd_front_end/06790.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/07390.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/07390.c.o
- .mdebug        0x00000000      0x8a8 build_nm/src.us.v11/hd_front_end/07390.c.o
+ .mdebug        0x00000000      0x8b8 build_nm/src.us.v11/hd_front_end/07390.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/07800.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/07800.c.o
  .gptab.data    0x00000000       0x18 build_nm/src.us.v11/hd_front_end/07800.c.o
@@ -38,7 +38,7 @@ Discarded input sections
  .mdebug        0x00000000     0x1064 build_nm/src.us.v11/hd_front_end/0C450.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/0DE70.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/0DE70.c.o
- .mdebug        0x00000000      0xca8 build_nm/src.us.v11/hd_front_end/0DE70.c.o
+ .mdebug        0x00000000      0xcb8 build_nm/src.us.v11/hd_front_end/0DE70.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/0E7B0.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/0E7B0.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/10850.c.o
@@ -46,7 +46,7 @@ Discarded input sections
  .mdebug        0x00000000      0xf28 build_nm/src.us.v11/hd_front_end/10850.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/17990.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/17990.c.o
- .mdebug        0x00000000     0x1388 build_nm/src.us.v11/hd_front_end/17990.c.o
+ .mdebug        0x00000000     0x1390 build_nm/src.us.v11/hd_front_end/17990.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/196F0.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/196F0.c.o
  .mdebug        0x00000000      0x6e8 build_nm/src.us.v11/hd_front_end/196F0.c.o
@@ -213,7 +213,7 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x80906780                fe_promo_draw
  build_nm/src.us.v11/hd_front_end/07390.c.o(.text)
  .text          0x80907310      0x470 build_nm/src.us.v11/hd_front_end/07390.c.o
-                0x80907310                func_801EE390
+                0x80907310                fe_pak_request_hook
                 0x80907318                fe_pak_error_frame
  build_nm/src.us.v11/hd_front_end/07800.c.o(.text)
  .text          0x80907780     0x1d80 build_nm/src.us.v11/hd_front_end/07800.c.o
@@ -321,11 +321,11 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
  build_nm/src.us.v11/hd_front_end/1B100.c.o(.text)
  .text          0x8091b150      0x480 build_nm/src.us.v11/hd_front_end/1B100.c.o
                 0x8091b150                fe_load_model
-                0x8091b24c                func_802021FC
-                0x8091b280                func_80202270
-                0x8091b2bc                func_802022EC
-                0x8091b338                func_80202380
-                0x8091b4bc                func_802025D0
+                0x8091b24c                fe_anim_update_model
+                0x8091b280                fe_anim_init_model
+                0x8091b2bc                fe_anim_start_channel
+                0x8091b338                fe_veh_reset_tex_anims
+                0x8091b4bc                fe_veh_set_heading_tex_anims
  build_nm/src.us.v11/hd_front_end/ul_pfsfreeblocks.c.o(.text)
  .text          0x8091b5d0      0x150 build_nm/src.us.v11/hd_front_end/ul_pfsfreeblocks.c.o
                 0x8091b5d0                osPfsFreeBlocks
@@ -1033,13 +1033,13 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x8081d160                        PROVIDE (music_fade_to = 0x8081d160)
                 0x8081dba0                        PROVIDE (music_start_tune = 0x8081dba0)
                 0x8081dbf8                        PROVIDE (music_start_tune_at = 0x8081dbf8)
-                0x80831010                        PROVIDE (func_80275390 = 0x80831010)
-                0x80830870                        PROVIDE (func_80274BF0 = 0x80830870)
-                0x80830ef0                        PROVIDE (func_80275270 = 0x80830ef0)
-                0x80847224                        PROVIDE (func_8028B4C4 = 0x80847224)
-                0x80847954                        PROVIDE (func_8028BBF4 = 0x80847954)
-                0x80807d94                        PROVIDE (func_8024C404 = 0x80807d94)
-                0x80831078                        PROVIDE (func_802753F8 = 0x80831078)
+                0x80807d94                        PROVIDE (hd_debug_dl_stub = 0x80807d94)
+                0x80830870                        PROVIDE (fade_draw = 0x80830870)
+                0x80830ef0                        PROVIDE (fade_to_mode_speed = 0x80830ef0)
+                0x80831010                        PROVIDE (fade_to_mode = 0x80831010)
+                0x80831078                        PROVIDE (fade_window_held = 0x80831078)
+                0x80847224                        PROVIDE (hd_rom_load = 0x80847224)
+                0x80847954                        PROVIDE (math_angle_2d_deg = 0x80847954)
                 0x80000300                        osTvType = 0x80000300
                 0x80000308                        osRomBase = 0x80000308
                 0x8000030c                        osResetType = 0x8000030c
@@ -1359,7 +1359,7 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 [!provide]                        PROVIDE (math_cosf = 0x8086d528)
                 [!provide]                        PROVIDE (math_sinf = 0x8086d668)
                 [!provide]                        PROVIDE (lzss_decompress = 0x808850b0)
-                [!provide]                        PROVIDE (func_802C4108 = 0x808850ec)
+                [!provide]                        PROVIDE (kiunzip_entry = 0x808850ec)
                 [!provide]                        PROVIDE (lzss_decode = 0x80885168)
                 [!provide]                        PROVIDE (lzss_read_bits = 0x8088538c)
                 [!provide]                        PROVIDE (veh_start_engine_sound = 0x80885418)
@@ -3268,12 +3268,12 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x80364a70                        gPendingTune = 0x80364a70
                 [!provide]                        PROVIDE (amCreateAudioMgr = 0x808232a0)
                 [!provide]                        PROVIDE (amStartAudioMgr = 0x80823674)
-                [!provide]                        PROVIDE (amMain = 0x8082369c)
-                [!provide]                        PROVIDE (amHandleFrameMsg = 0x808238dc)
-                [!provide]                        PROVIDE (amHandleDoneMsg = 0x80823b88)
-                [!provide]                        PROVIDE (amDMA = 0x80823be0)
-                [!provide]                        PROVIDE (amDmaNew = 0x80823e54)
-                [!provide]                        PROVIDE (amClearAudioDMA = 0x80823ea4)
+                [!provide]                        PROVIDE (__amMain = 0x8082369c)
+                [!provide]                        PROVIDE (__amHandleFrameMsg = 0x808238dc)
+                [!provide]                        PROVIDE (__amHandleDoneMsg = 0x80823b88)
+                [!provide]                        PROVIDE (__amDMA = 0x80823be0)
+                [!provide]                        PROVIDE (__amDmaNew = 0x80823e54)
+                [!provide]                        PROVIDE (__clearAudioDMA = 0x80823ea4)
                 0x80368070                        __am = 0x80368070
                 0x8036a308                        gAudDmaState = 0x8036a308
                 0x8036a318                        dmaBuffs = 0x8036a318
@@ -3294,6 +3294,84 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x80368060                        gAudioFrameStart = 0x80368060
                 0x80368068                        gAudioFrameEnd = 0x80368068
                 0x803156a4                        gAudioPreempt = 0x803156a4
+                [!provide]                        PROVIDE (gzip_unzip = 0x80220360)
+                [!provide]                        PROVIDE (gzip_clear_bufs = 0x802206d0)
+                [!provide]                        PROVIDE (init_debug_printf = 0x80220714)
+                [!provide]                        PROVIDE (__osSetHWIntrRoutine = 0x80222400)
+                [!provide]                        PROVIDE (hud_update_value_popups = 0x80805b88)
+                [!provide]                        PROVIDE (carrier_update_proximity = 0x8080616c)
+                [!provide]                        PROVIDE (hud_tick_money_counter = 0x80806618)
+                [!provide]                        PROVIDE (hd_handle_yoshi_selection = 0x80807734)
+                [!provide]                        PROVIDE (hd_debug_dl_stub = 0x80807d94)
+                [!provide]                        PROVIDE (veh_update_fail_spin = 0x8080bc8c)
+                [!provide]                        PROVIDE (rec_start_recording = 0x80817618)
+                [!provide]                        PROVIDE (rec_start_replay = 0x80817630)
+                [!provide]                        PROVIDE (rec_restore_start_vehicle = 0x80817878)
+                [!provide]                        PROVIDE (kiunzip = 0x80817d10)
+                [!provide]                        PROVIDE (kiunzip_get_method = 0x80817dec)
+                [!provide]                        PROVIDE (kiunzip_reverse_bits = 0x8081804c)
+                [!provide]                        PROVIDE (kiunzip_clear_bufs = 0x80818080)
+                [!provide]                        PROVIDE (title_alloc_attract_bufs = 0x80818954)
+                [!provide]                        PROVIDE (music_push_danger_tune_stub = 0x8081cab0)
+                [!provide]                        PROVIDE (lvl_init_train_line = 0x8081de28)
+                [!provide]                        PROVIDE (backdrop_unused_stub = 0x8082e8c0)
+                [!provide]                        PROVIDE (fade_draw = 0x80830870)
+                [!provide]                        PROVIDE (fade_to_mode_speed = 0x80830ef0)
+                [!provide]                        PROVIDE (fade_to_mode = 0x80831010)
+                [!provide]                        PROVIDE (fade_window_held = 0x80831078)
+                [!provide]                        PROVIDE (stats_show_commpt_hint = 0x808419cc)
+                [!provide]                        PROVIDE (hd_load_front_end = 0x80847140)
+                [!provide]                        PROVIDE (hd_rom_load = 0x80847224)
+                [!provide]                        PROVIDE (cont_steer_reset = 0x80847480)
+                [!provide]                        PROVIDE (cont_stick_to_steer = 0x80847494)
+                [!provide]                        PROVIDE (cont_steer_toward = 0x8084777c)
+                [!provide]                        PROVIDE (math_angle_2d_deg = 0x80847954)
+                [!provide]                        PROVIDE (math_asin_ratio_deg = 0x80847af0)
+                [!provide]                        PROVIDE (cont_stick_to_buttons_inv_y = 0x80847bd8)
+                [!provide]                        PROVIDE (cont_stick_dir_to_buttons = 0x80847c9c)
+                [!provide]                        PROVIDE (academy_build_window = 0x808537a0)
+                [!provide]                        PROVIDE (academy_reset_window_cursor = 0x80853cb4)
+                [!provide]                        PROVIDE (academy_marker_found = 0x80853ce0)
+                [!provide]                        PROVIDE (academy_count_left = 0x80853d5c)
+                [!provide]                        PROVIDE (hd_huft_build = 0x80853dc8)
+                [!provide]                        PROVIDE (hd_inflate_codes = 0x80854464)
+                [!provide]                        PROVIDE (hd_inflate_stored = 0x8085486c)
+                [!provide]                        PROVIDE (hd_inflate_fixed = 0x80854a00)
+                [!provide]                        PROVIDE (hd_inflate_dynamic = 0x80854ba8)
+                [!provide]                        PROVIDE (hd_inflate_block = 0x80855194)
+                [!provide]                        PROVIDE (hd_inflate = 0x808552e0)
+                [!provide]                        PROVIDE (debug_printf_unused = 0x808565b0)
+                [!provide]                        PROVIDE (veh_copy_dl = 0x8085e40c)
+                [!provide]                        PROVIDE (lvl_tint_path_building_red = 0x8085f2c0)
+                [!provide]                        PROVIDE (lvl_end_seq_set_toughness = 0x8085f36c)
+                [!provide]                        PROVIDE (lvl_remap_break_fx_kinds = 0x8085f704)
+                [!provide]                        PROVIDE (lvl_init_object_shadow = 0x8085f7ec)
+                [!provide]                        PROVIDE (lvl_load_ghost_model = 0x808608ac)
+                [!provide]                        PROVIDE (lvl_build_dl_calls = 0x8086300c)
+                [!provide]                        PROVIDE (lvl_step_tex_anims = 0x80863348)
+                [!provide]                        PROVIDE (lvl_find_tex_anim = 0x808633f8)
+                [!provide]                        PROVIDE (lvl_copy_dl_tex_anim = 0x808634cc)
+                [!provide]                        PROVIDE (lvl_copy_visible_groups = 0x80863604)
+                [!provide]                        PROVIDE (veh_blocked_turn_rate = 0x80866720)
+                [!provide]                        PROVIDE (veh_diamond_sands_damping = 0x808673fc)
+                [!provide]                        PROVIDE (ground_interp_dx0_zero = 0x80869d98)
+                [!provide]                        PROVIDE (ground_interp_dx12_zero = 0x80869dfc)
+                [!provide]                        PROVIDE (ground_interp_dz0_zero = 0x80869e64)
+                [!provide]                        PROVIDE (ground_interp_dz12_zero = 0x80869ec8)
+                [!provide]                        PROVIDE (ground_scan_guard_tris = 0x8086aff0)
+                [!provide]                        PROVIDE (veh_maze_object_hits = 0x8086b2bc)
+                [!provide]                        PROVIDE (math_rotate_xx = 0x8086c0a0)
+                [!provide]                        PROVIDE (veh_contacts_has_other = 0x8087d11c)
+                [!provide]                        PROVIDE (obj_check_mars_fail = 0x8087fcf8)
+                [!provide]                        PROVIDE (obj_detect_rocking_hits = 0x8087fd34)
+                [!provide]                        PROVIDE (obj_tri_clip_free_arc = 0x8087ff60)
+                [!provide]                        PROVIDE (obj_part_outranked = 0x80882834)
+                [!provide]                        PROVIDE (jbomb_lift_off_water = 0x80888b48)
+                [!provide]                        PROVIDE (veh_start_turbo = 0x8088ce10)
+                [!provide]                        PROVIDE (hd_set_cop0_compare = 0x80894e70)
+                [!provide]                        PROVIDE (osDpSetStatus = 0x80896f40)
+                [!provide]                        PROVIDE (alCSPGetVol = 0x8089ad00)
+                [!provide]                        PROVIDE (osDpGetStatus = 0x8089d4b0)
                 0x803ff288                        __osEepromTimer = 0x803ff288
                 0x803ff2a8                        __osEepromTimerQ = 0x803ff2a8
                 0x803ff2c0                        __osEepromTimerMsg = 0x803ff2c0

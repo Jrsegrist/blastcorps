@@ -26,17 +26,15 @@
 /* stats_perm.c: per-level results (score, time, counts and the best/saved
  * copies), the end-of-level status screen and the status save to the pak. */
 
-/* Per-player save record, 0x100 bytes, indexed by level */
+/* This file's view of a PlayerInfo (game/types.h): stats_level_start reads
+ * bestVehicle[level] as commPts[level + 0x3E]. */
 typedef struct {
     u8 pad0[0x18];
-    u8 rank[0x3C];          /* 0x18 per level: 1..5 once completed */
-    u8 flags[0x100 - 0x54]; /* 0x54 per level */
+    u8 medal[0x3C];           /* 0x18 per level: 1..5 once completed */
+    u8 commPts[0x100 - 0x54]; /* 0x54 per level (and on: bestVehicle at +0x3E) */
 } PlayerRec;
 
-typedef struct {
-    u8 type; /* 1: no status save */
-    u8 pad[0x43];
-} LevelInfo; /* 0x44 */
+/* (gLevelInfo[]: LevelInfo, game/types.h) */
 
 /* A text/menu item */
 typedef struct {
@@ -49,8 +47,8 @@ typedef struct {
     u8 pad3[2];
 } MenuItem; /* 0x1C */
 
-extern u8 D_80364B08[][0x100]; /* = players[p].rank */
-extern u8 D_80364B44[][0x100]; /* = players[p].flags */
+extern u8 D_80364B08[][0x100]; /* = players[p].medal */
+extern u8 D_80364B44[][0x100]; /* = players[p].commPts */
 
 /* This level's results (nss) and the best (D_8036EA60), 16 bytes each:
  * money, time, then three counts with their targets in gRduCount..93 */
@@ -74,7 +72,7 @@ extern s32 gSfxBank;
 #endif
 
 #define CUR (players[playerNumber])
-#define LEVEL_DONE(l) ((CUR.rank[l] > 0 && CUR.rank[l] < 6) ? 1 : 0)
+#define LEVEL_DONE(l) ((CUR.medal[l] > 0 && CUR.medal[l] < 6) ? 1 : 0)
 
 #define LEVEL_SAVE_SIZE 64
 #define STATS_ASSERT(EX, line) \
@@ -85,8 +83,8 @@ extern s32 gSfxBank;
 void stats_level_start(void) {
     s32 i;
 
-    D_8036EA7B = players[playerNumber].flags[levelno + 0x3E];
-    D_8036EA74 = gBestTimes[playerNumber][D_802E8C44[(gLevelInfo[levelno].type == 1) ? 1 : D_8036EA7B]];
+    D_8036EA7B = players[playerNumber].commPts[levelno + 0x3E];
+    D_8036EA74 = gBestTimes[playerNumber][D_802E8C44[(gLevelInfo[levelno].kind == 1) ? 1 : D_8036EA7B]];
     D_8036EA7A = D_80364B08[playerNumber][levelno] % 8;
     for (i = 0; i < 4; i++) {
         gBonusEarned[i] = 0;
@@ -124,22 +122,22 @@ u32 stats_print_status(void) {
     } else {
         pctC = 100;
     }
-    func_802D6A60(D_8036B9A8, "***%2d (%d%c)*", D_8036EA78, pctA, '%');
-    func_802D6A60(D_8036B9A8 + 0x20, "***$%d*", nss);
-    func_802D6A60(D_8036B9A8 + 0x40, "***%2d (%d%c)*", D_8036EA79, pctB, '%');
-    func_802D6A60(D_8036B9A8 + 0x60, "***%2d (%d%c)*", D_8036EA7C, pctC, '%');
+    sprintf(D_8036B9A8, "***%2d (%d%c)*", D_8036EA78, pctA, '%');
+    sprintf(D_8036B9A8 + 0x20, "***$%d*", nss);
+    sprintf(D_8036B9A8 + 0x40, "***%2d (%d%c)*", D_8036EA79, pctB, '%');
+    sprintf(D_8036B9A8 + 0x60, "***%2d (%d%c)*", D_8036EA7C, pctC, '%');
     hud_format_time(buf, D_8036EA74, 0);
-    func_802D6A60(D_8036B9A8 + 0x80, "***%s*", buf);
+    sprintf(D_8036B9A8 + 0x80, "***%s*", buf);
     for (i = 18; i < 23; i++) {
         gYoshiGameItems[i].flags = 0x400;
     }
     for (i = 14; i < 18; i++) {
         gYoshiFeItems[i].flags = 0x400;
     }
-    if (gNextGameMode == 0x40) {
+    if (gNextGameMode == MODE_REPLAY) {
         f2 = 0x100;
     }
-    if (gGameMode & 0x30C) {
+    if (gGameMode & (MODE_LEVEL | MODE_LEVEL_CLEAR | MODE_MAP_VIEW | MODE_CARRIER_END)) {
         f1 = 0x100;
     }
     if (D_8036EA78 > D_8036EA68) {
@@ -192,7 +190,7 @@ u8 stats_save_status(void) {
         osRecvMesg(&pakToGameMessageQ, NULL, OS_MESG_BLOCK);
     }
     if (LEVEL_DONE(levelno)) {
-        if (gLevelInfo[levelno].type == 1) {
+        if (gLevelInfo[levelno].kind == 1) {
             if (pakBuffer[0] == 0x1234567887654321) {
                 hd_setup_level(NULL);
                 debug_printf("Creating status ...\n");
@@ -236,7 +234,7 @@ void stats_copy_result(u8 *src, u8 *dst) {
  * so the port masks it (PORT_SHAMT). */
 void stats_set_level_flag(u8 bit) {
     D_80364A87 |= 2;
-    CUR.flags[levelno] |= 1 << PORT_SHAMT(bit + 0x1F);
+    CUR.commPts[levelno] |= 1 << PORT_SHAMT(bit + 0x1F);
 }
 
 /* Tests a per-level flag bit (0x80285B10).
@@ -254,10 +252,10 @@ void stats_finish_bonus_level(s32 arg0) {
 
     if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
         if (LEVEL_DONE(levelno)) {
-            if (gLevelInfo[levelno].type != 1 && playerNumber == playerNumberAtStart) {
+            if (gLevelInfo[levelno].kind != 1 && playerNumber == playerNumberAtStart) {
                 commpt_save_flags();
                 gPauseRequest = 1;
-                func_80275270(0x4000, 1.25f);
+                fade_to_mode_speed(MODE_WORLD, 1.25f);
                 saveIt[playerNumber] = levelno + 1;
                 D_8036EB99 = 1;
             }
@@ -265,7 +263,8 @@ void stats_finish_bonus_level(s32 arg0) {
     }
 }
 
-void func_80285CA0(void) {
+/* Shows the communication-point hint window (hint 0x47) (0x80285CA0). */
+void stats_show_commpt_hint(void) {
     yoshi_show_hint(0x47);
 }
 

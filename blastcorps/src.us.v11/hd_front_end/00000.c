@@ -223,7 +223,7 @@ void fe_digger_frame(void) {
                     gNextGameMode = gPrevGameMode;
                     break;
                 default:
-                    gNextGameMode = 0x4000;
+                    gNextGameMode = MODE_WORLD;
                     break;
             }
         }

@@ -163,7 +163,7 @@ void cont_update(void) {
                 break;
             case 4:
             case 0x100:
-                if (!gPaused || gGameMode == 0x2000) {
+                if (!gPaused || gGameMode == MODE_LEVEL_START) {
                     rec_record(pad->button & ~START_BUTTON, pad->stick_x, pad->stick_y);
                 }
                 break;
@@ -189,7 +189,7 @@ void cont_update(void) {
             } else {
                 mode = 0;
             }
-            if (gGameMode == 2 || gGameMode == 0x100000000000) {
+            if (gGameMode == 2 || gGameMode == MODE_GLOBE_SEQ) {
                 mode = 0;
             }
             gControlMethod = mode;

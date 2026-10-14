@@ -188,7 +188,7 @@ u8 stats_save_status(void) {
     STATS_ASSERT(frontEndPresent, 140);
     frontEndPresent = 1;
     hd_mode_setup();
-    if (gGameMode == 0x4000) {
+    if (gGameMode == MODE_WORLD) {
         osRecvMesg(&pakToGameMessageQ, NULL, OS_MESG_BLOCK);
     }
     if (LEVEL_DONE(levelno)) {
@@ -252,7 +252,7 @@ s32 stats_test_level_flag(u8 bit) {
 void stats_finish_bonus_level(s32 arg0) {
     s32 unused;
 
-    if (gGameMode & 0x104) {
+    if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
         if (LEVEL_DONE(levelno)) {
             if (gLevelInfo[levelno].type != 1 && playerNumber == playerNumberAtStart) {
                 commpt_save_flags();

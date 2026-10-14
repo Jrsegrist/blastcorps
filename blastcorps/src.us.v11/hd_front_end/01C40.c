@@ -322,7 +322,7 @@ void fe_player_ticker_set_text(u8 slot, u8 arg1) {
     if (slot < 4) {
         fe_player_count_medals(slot);
     }
-    if (gNextGameMode == 0x1000000000000) {
+    if (gNextGameMode == MODE_ATTRACT_PICTURE) {
         gScrollGlyphText = NULL;
         sprintf(SCROLL_TEXT, "%s", bios[slot]);
     } else {
@@ -342,7 +342,7 @@ void fe_player_ticker_set_text(u8 slot, u8 arg1) {
                 }
                 gScrollIconPos = font_strlen((u8 *) SCROLL_TEXT);
                 sprintf(SCROLL_TEXT, "%s  %d", SCROLL_TEXT, p->title);
-                if ((gNextGameMode & 0x0200040000000000) || (gGameMode & 0x0100000000000000)) {
+                if ((gNextGameMode & 0x0200040000000000) || (gGameMode & MODE_GUEST_PLAYER)) {
                     sprintf(SCROLL_TEXT, "%s ..... %s", SCROLL_TEXT, "USE Z/R TO CHANGE PLAYER, THEN A TO SELECT!");
                 }
             } else {
@@ -1176,7 +1176,7 @@ void fe_player_update_level_kinds(void) {
 
     for (i = 0; i < 0x3C; i++) {
         if (gLevelInfo[i].type & 0x81) {
-            if (players[playerNumber].unk91 >= 11 && gNextGameMode == 0x4000) {
+            if (players[playerNumber].unk91 >= 11 && gNextGameMode == MODE_WORLD) {
                 gLevelInfo[i].type = 0x80;
             } else {
                 gLevelInfo[i].type = 1;

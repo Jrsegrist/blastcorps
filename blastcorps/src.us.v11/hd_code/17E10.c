@@ -253,11 +253,11 @@ void title_setup_logo(void) {
         gLogoState = 0;
         gLogoY = 0xA5;
         gLogoPicY = 0xD;
-    } else if (gNextGameMode & 0x40000) {
+    } else if (gNextGameMode & MODE_NAME_ENTRY) {
         gLogoPicAlpha = 0;
         gLogoState = 4;
         gLogoPicY = 0x2A;
-    } else if (gNextGameMode & 0x10000) {
+    } else if (gNextGameMode & MODE_LOAD_GAME) {
         gLogoPicAlpha = 0;
         gLogoState = 3;
     } else {

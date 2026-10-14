@@ -46,7 +46,7 @@ s32 text_compare_keys(u16 *arg0, u16 *arg1);
 void text_init(void) {
     s32 i;
 
-    if ((gNextGameMode & 0xC9FD8FE7DBFF8080) || gNextGameMode == 0x100000000000 || gNextGameMode == 2 ||
+    if ((gNextGameMode & 0xC9FD8FE7DBFF8080) || gNextGameMode == MODE_GLOBE_SEQ || gNextGameMode == 2 ||
         levelno == 0x28 || levelno == 0x32) {
         maxCharacters = 0x200;
     } else if (gNextGameMode == 0x40) {

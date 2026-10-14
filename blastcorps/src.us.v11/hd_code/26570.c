@@ -203,7 +203,7 @@ u8 yoshi_show_hint(s16 arg0) {
     s32 c1;
     s32 c2;
 
-    if (!(gGameMode & 0x2104)) {
+    if (!(gGameMode & (MODE_LEVEL | MODE_MAP_VIEW | MODE_LEVEL_START))) {
         return 0;
     }
     if (players[playerNumber].unk91 >= 11) {
@@ -381,7 +381,7 @@ void yoshi_init(u8 arg0) {
     if (arg) {
         yoshi_load_window_sprites(arg);
     }
-    if (gNextGameMode & 0x2004) {
+    if (gNextGameMode & (MODE_LEVEL | MODE_LEVEL_START)) {
         for (i = 0, found = 0; i < 8 && !found; i++) {
             trig = &gYoshiHints[i];
             if (trig->id == levelno) {

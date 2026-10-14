@@ -40,7 +40,7 @@ void academy_place_marker(arg0)
     u8 idx;
 
     found = 0;
-    if (gNextGameMode == 0x2000) {
+    if (gNextGameMode == MODE_LEVEL_START) {
         found = academy_find_level(arg0, &idx);
     } else {
         found = 0;

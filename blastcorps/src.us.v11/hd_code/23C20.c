@@ -520,7 +520,7 @@ void util_shuttle_path_step(void) {
                 gYoshiGameItems[42].text = "LANDING ABORTED!";
                 gYoshiGameItems[42].jtext = D_80303AF4;
                 gYoshiWindows[23].unk12 = 0xDA;
-                if (gGameMode & 0x104) {
+                if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
                     yoshi_demand(0x8017);
                 }
                 break;
@@ -528,7 +528,7 @@ void util_shuttle_path_step(void) {
                 gYoshiGameItems[42].text = "DITCHING IN SEA!";
                 gYoshiGameItems[42].jtext = D_80303B00;
                 gYoshiWindows[23].unk12 = 0x77;
-                if (gGameMode & 0x104) {
+                if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
                     yoshi_demand(0x8017);
                 }
                 break;
@@ -536,7 +536,7 @@ void util_shuttle_path_step(void) {
                 gYoshiGameItems[42].text = "ON FINAL APPROACH!";
                 gYoshiGameItems[42].jtext = D_80303B10;
                 gYoshiWindows[23].unk12 = 0xD7;
-                if (gGameMode & 0x104) {
+                if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
                     yoshi_demand(0x8017);
                 }
                 break;
@@ -544,7 +544,7 @@ void util_shuttle_path_step(void) {
                 gYoshiGameItems[42].text = "SUCCESSFUL LANDING!";
                 gYoshiGameItems[42].jtext = D_80303B24;
                 gYoshiWindows[23].unk12 = 0x82;
-                if (gGameMode & 0x104) {
+                if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
                     yoshi_demand(0x8017);
                 }
                 break;
@@ -552,7 +552,7 @@ void util_shuttle_path_step(void) {
                 gYoshiGameItems[42].text = "3000 FT!";
                 gYoshiGameItems[42].jtext = NULL;
                 gYoshiWindows[23].unk12 = 0xD5;
-                if (gGameMode & 0x104) {
+                if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
                     yoshi_demand(0x8017);
                 }
                 break;
@@ -560,7 +560,7 @@ void util_shuttle_path_step(void) {
                 gYoshiGameItems[42].text = "2000 FT!";
                 gYoshiGameItems[42].jtext = NULL;
                 gYoshiWindows[23].unk12 = 0xD3;
-                if (gGameMode & 0x104) {
+                if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
                     yoshi_demand(0x8017);
                 }
                 break;
@@ -568,7 +568,7 @@ void util_shuttle_path_step(void) {
                 gYoshiGameItems[42].text = "1000 FT!";
                 gYoshiGameItems[42].jtext = NULL;
                 gYoshiWindows[23].unk12 = 0xD1;
-                if (gGameMode & 0x104) {
+                if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
                     yoshi_demand(0x8017);
                     music_push_danger_tune();
                 }

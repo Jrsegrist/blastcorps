@@ -273,7 +273,7 @@ void hud_init_objective(u8 arg0) {
     }
     if (gLevelKind != 1) {
         size = D_006A8DA0 - D_006A32B0;
-        if (gLevelKind != 0x80 && gNextGameMode == 0x2000) {
+        if (gLevelKind != 0x80 && gNextGameMode == MODE_LEVEL_START) {
             func_8028B4C4((u32) D_006A32B0, (u32) gHeapPtr, (u32 *) &size, 10, 0, 1);
             for (i = 0; i < 5; i++) {
                 gTurboStartImages[i] = (i << 15) + (u8 *) gHeapPtr;

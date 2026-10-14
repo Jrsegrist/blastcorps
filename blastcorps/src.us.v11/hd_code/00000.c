@@ -491,10 +491,10 @@ void hd_main_thread(void *arg) {
                         }
                         if (msg != NULL) {
                             fe_player_new_game(playerNumber, 1, 1);
-                            gGameModeAfterNext = 0x40000;
+                            gGameModeAfterNext = MODE_NAME_ENTRY;
                         } else {
                             gSlotState[playerNumber] = 1;
-                            gGameModeAfterNext = 0x4000;
+                            gGameModeAfterNext = MODE_WORLD;
                         }
                     }
                     break;
@@ -521,7 +521,7 @@ void hd_main_thread(void *arg) {
                         case 4:
                         case 6:
                             if (gGameMode == 2) {
-                                gNextGameMode = 0x1000000000000;
+                                gNextGameMode = MODE_ATTRACT_PICTURE;
                                 hd_mode_setup();
                                 fe_bg_load(7);
                                 fe_attract_pic_load(D_80364AC4 & 3);
@@ -603,7 +603,7 @@ void hd_main_thread(void *arg) {
                     fe_player_ticker_set_text(playerNumber, 1);
                     fe_best_color_items();
                     yoshi_demand(0x8016);
-                    gNextGameMode = 0x40000000000;
+                    gNextGameMode = MODE_BEST_TIMES;
                     break;
                 case 0x2000:
                     hd_mode_setup();
@@ -709,7 +709,7 @@ void hd_main_thread(void *arg) {
                     break;
                 case 0x800:
                     hd_mode_setup();
-                    if (gGameMode == 0x4000) {
+                    if (gGameMode == MODE_WORLD) {
                         osRecvMesg(&pakToGameMessageQ, NULL, 1);
                     }
                     osViBlack(1);
@@ -822,7 +822,7 @@ void hd_main_thread(void *arg) {
                             }
                             D_80315438 = fe_stats_grade_level(&D_80364A60, 1, 1), stats_copy_result((u8 *) &nss, (u8 *) &D_8036EA90);
                             if (D_80364A60) {
-                                gGameModeAfterNext = 0x40000000;
+                                gGameModeAfterNext = MODE_PROMOTION;
                                 D_80364A64 = 0xDC;
                                 gPendingTune = 0;
                             } else {
@@ -882,7 +882,7 @@ void hd_main_thread(void *arg) {
                     break;
                 case 0x20000000:
                     hd_mode_setup();
-                    if (gGameMode == 0x4000) {
+                    if (gGameMode == MODE_WORLD) {
                         osRecvMesg(&pakToGameMessageQ, NULL, 1);
                     }
                     osViBlack(1);
@@ -890,7 +890,7 @@ void hd_main_thread(void *arg) {
                     if (fe_digger_init()) {
                         fe_bg_load(2);
                     } else {
-                        gGameModeAfterNext = 0x2000;
+                        gGameModeAfterNext = MODE_LEVEL_START;
                     }
                     break;
                 case 0x40000:
@@ -919,7 +919,7 @@ void hd_main_thread(void *arg) {
                     gPendingTune = music_tune_for_mode(gNextGameMode);
                     hd_mode_setup();
                     seq_start_level();
-                    if (gGameMode == 0x4000 || levelno == 0x2F) {
+                    if (gGameMode == MODE_WORLD || levelno == 0x2F) {
                         osRecvMesg(&pakToGameMessageQ, NULL, 1);
                     }
                     osViBlack(1);
@@ -935,7 +935,7 @@ void hd_main_thread(void *arg) {
                         gYoshiFeItems[9].unkC = "ERASE SAVED GAME!", gYoshiFeItems[9].unk10 = D_803047B4, gYoshiFeItems[9].unk6 = gYoshiFeItems[9].unk8 = 20;
                         yoshi_demand(0x800C);
                     } else {
-                        gGameModeAfterNext = 0x10;
+                        gGameModeAfterNext = MODE_BOOT_SCREEN1;
                     }
                     break;
                 case 0x100000000000000:
@@ -961,7 +961,7 @@ void hd_main_thread(void *arg) {
         while (gNextGameMode == 0) {
             gFrameStartTime = osGetTime();
             font_age_cache();
-            if (gGameMode & 0x4000) {
+            if (gGameMode & MODE_WORLD) {
                 gFrameStartLag = (osGetTime() - gLastRetraceTime) / 7825;
                 fe_globe_frame();
                 gFrameCpuTime = (osGetTime() - gFrameStartTime) / 7825;
@@ -977,10 +977,10 @@ void hd_main_thread(void *arg) {
                 fe_back_loop();
                 gFrameCpuTime = (osGetTime() - gFrameStartTime) / 7825;
                 rsp_wait_task(0x4D2);
-            } else if (gGameMode & 0x20000000) {
+            } else if (gGameMode & MODE_VEHICLE_SELECT) {
                 fe_digger_frame();
                 rsp_wait_task(0x4D2);
-            } else if (gGameMode & 0x30) {
+            } else if (gGameMode & (MODE_BOOT_SCREEN1 | MODE_BOOT_SCREEN2)) {
                 fe_boot_screen_frame();
                 rsp_wait_task(0x4D2);
             } else {
@@ -1002,7 +1002,7 @@ void hd_main_thread(void *arg) {
                 gUnpausedFrames++;
             }
         }
-        if ((gGameMode & 0x104) && (gCarrierHit || gLevelDone)) {
+        if ((gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) && (gCarrierHit || gLevelDone)) {
             rec_record(0, 0, 0);
         }
         HD_ASSERT(!areWeFading(), 627);
@@ -1017,7 +1017,7 @@ void hd_main_thread(void *arg) {
                 academy_next_mode();
                 break;
         }
-        if (playerNumber == playerNumberAtStart && gNextGameMode == 0x4000 && academy_advance_state()) {
+        if (playerNumber == playerNumberAtStart && gNextGameMode == MODE_WORLD && academy_advance_state()) {
             academy_announce_state();
         }
     }
@@ -1039,7 +1039,7 @@ void hd_game_frame(void) {
     s32 hi;
     s16 alpha;
 
-    if (gDebugCheats && (gContButtons & 1) && !(gContPrevButtons & 1) && (gGameMode & 0x104)) {
+    if (gDebugCheats && (gContButtons & 1) && !(gContPrevButtons & 1) && (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW))) {
         gLevelDoneRequest = 1;
         cmo_hit_request = 0;
         if (gContButtons & 8) {
@@ -1120,13 +1120,13 @@ void hd_game_frame(void) {
                 gUnpauseRequest = 0;
                 gPauseRequest = 0;
                 D_803156F4 = gBufferIndex ^ 1;
-                if (gGameMode & 0x104) {
+                if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
                     if (!D_8036EB99) {
                         snd_set_slot_volume(0, 0);
                     }
                     music_fade_to(0.5f);
                     if (gGameMode == 4 && (gHaveCarrier || gHaveShuttle) && currentYoshiWindow == 0) {
-                        gNextGameMode = 0x100;
+                        gNextGameMode = MODE_MAP_VIEW;
                         cull_restart(10);
                         D_80364A78 = 0;
                     }
@@ -1138,14 +1138,14 @@ void hd_game_frame(void) {
                 gPauseRequest = 0;
                 gUnpauseRequest = 0;
                 gPaused = 0;
-                if (gGameMode & 0x104) {
+                if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
                     if (D_80358064) {
                         debug_printf("LOCKING KEYS!\n");
                         gSwallowB = 1;
                     }
                     snd_set_mode_slot_volumes(gGameMode);
                     music_fade_to(1.0f);
-                    if (gGameMode == 0x100 && (gHaveCarrier || gHaveShuttle)) {
+                    if (gGameMode == MODE_MAP_VIEW && (gHaveCarrier || gHaveShuttle)) {
                         gNextGameMode = 4;
                         cull_restart(10);
                     }
@@ -1161,7 +1161,7 @@ void hd_game_frame(void) {
     } else {
         D_803156F5 = gBufferIndex;
     }
-    if (gHaveCarrier && (gGameMode & 0x104)) {
+    if (gHaveCarrier && (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW))) {
         carrier_update_sound();
     }
     if (gHaveChopper && (gGameMode & 0x1905)) {
@@ -1173,7 +1173,7 @@ void hd_game_frame(void) {
         veh_apply_switch();
     }
     cont_update();
-    if (gGameMode & 0x104) {
+    if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
         zoom = 0;
         if ((gContButtons & 4) && !(gContButtons & 8)) {
             if (gCamZoom < 1.5 && gGameMode == 4) {
@@ -1181,7 +1181,7 @@ void hd_game_frame(void) {
                 if (!(gContPrevButtons & 4)) {
                     snd_play(gSfxBank, 0xDC, NULL);
                 }
-            } else if (!(gContPrevButtons & 4) && gGameMode != 0x100) {
+            } else if (!(gContPrevButtons & 4) && gGameMode != MODE_MAP_VIEW) {
                 zoom = 3;
             }
         }
@@ -1192,7 +1192,7 @@ void hd_game_frame(void) {
                     if (!(gContPrevButtons & 8)) {
                         snd_play(gSfxBank, 0xDD, NULL);
                     }
-                } else if (!(gContPrevButtons & 8) && gGameMode == 0x100) {
+                } else if (!(gContPrevButtons & 8) && gGameMode == MODE_MAP_VIEW) {
                     zoom = 4;
                 }
             } else {
@@ -1217,7 +1217,7 @@ void hd_game_frame(void) {
             case 3:
                 if (gHaveCarrier || gHaveShuttle) {
                     cull_restart(10);
-                    gNextGameMode = 0x100;
+                    gNextGameMode = MODE_MAP_VIEW;
                     D_80364A78 = 0;
                     snd_play(gSfxBank, 0xDF, NULL);
                 }
@@ -1232,7 +1232,7 @@ void hd_game_frame(void) {
                 break;
         }
     }
-    if (gGameMode == 0x100 && gPaused && yoshiState == 2 && gHaveCarrier && currentYoshiWindow == 0) {
+    if (gGameMode == MODE_MAP_VIEW && gPaused && yoshiState == 2 && gHaveCarrier && currentYoshiWindow == 0) {
         if (!(gContButtons & 0x2000) && !(gContButtons & 0x10)) {
             D_80364A80 = 0;
         } else {
@@ -1282,25 +1282,25 @@ void hd_game_frame(void) {
     if ((gContButtons & 0x4000) && !(gContPrevButtons & 0x4000) && !areWeFading() && gNextGameMode == 0) {
         switch (gGameMode) {
             case 0x100000000000:
-                if (levelno != 0x2F && levelno != 0x31 && (levelno != 0x26 || gPrevGameMode == 0x4000)) {
+                if (levelno != 0x2F && levelno != 0x31 && (levelno != 0x26 || gPrevGameMode == MODE_WORLD)) {
                     snd_play(gSfxBank, 0xDE, NULL);
-                    gNextGameMode = 0x4000;
+                    gNextGameMode = MODE_WORLD;
                 }
                 break;
             case 0x40:
             case 0x400:
                 snd_play(gSfxBank, 0xDE, NULL);
                 if (LEVEL_DONE(levelno)) {
-                    gNextGameMode = 0x08000000;
+                    gNextGameMode = MODE_RESULTS;
                 } else {
-                    gNextGameMode = 0x4000;
+                    gNextGameMode = MODE_WORLD;
                 }
                 break;
             case 0x800:
             case 0x1000:
-                if (levelno != 0x32 || gPrevGameMode == 0x4000) {
+                if (levelno != 0x32 || gPrevGameMode == MODE_WORLD) {
                     snd_play(gSfxBank, 0xDE, NULL);
-                    gNextGameMode = 0x4000;
+                    gNextGameMode = MODE_WORLD;
                 }
                 break;
         }
@@ -1328,7 +1328,7 @@ void hd_game_frame(void) {
         if (!(gGameMode & 0x1801)) {
             carrier_update();
         }
-        if ((gGameMode & 0x104) && !yoshi_get_demand() && !gPaused && !gLevelDone && !gCarrierHit) {
+        if ((gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) && !yoshi_get_demand() && !gPaused && !gLevelDone && !gCarrierHit) {
             func_8024A92C(vis = obj_find_carrier_target());
         }
     }
@@ -1351,7 +1351,7 @@ void hd_game_frame(void) {
             rdu_update();
         }
         fx_update_power_pill();
-        if (gGameMode & 0x104) {
+        if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
             academy_check_marker(gPlayerX, gPlayerY, gPlayerZ);
         }
 #ifdef NON_MATCHING
@@ -1361,7 +1361,7 @@ void hd_game_frame(void) {
 #else
         anim_tex_update_all();
 #endif
-        if ((gGameMode & 0x104) && (gLevelKind & 1)) {
+        if ((gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) && (gLevelKind & 1)) {
             func_8024A348();
             func_8024ADD8();
         }
@@ -1440,7 +1440,7 @@ void hd_game_frame(void) {
     if ((gGameMode & 0x04002444) && gLevelKind != 1) {
         gdl = hud_draw_objective(gdl, (Gfx * N64P *) &gDynamicBufs[gBufferIndex], (u32 *) &gFrameDlLen);
     }
-    if (gGameMode & 0x100000000002) {
+    if (gGameMode & (MODE_ATTRACT | MODE_GLOBE_SEQ)) {
         if (gGameMode == 2) {
             PORT_ITAG(gdl, PORT_ITAG_NONE, 0); /* the attract mode's bobbing logo: blended */
             gdl = title_draw_attract(gdl, (s32) &gDynamicBufs[gBufferIndex], gBufferIndex, &gFrameDlLen);
@@ -1461,7 +1461,7 @@ void hd_game_frame(void) {
         }
         if (gPadDisplayAlpha && D_802E8BEC && gPadDisplayLoaded) {
             gdl = hud_draw_pad((s32) &gDynamicBufs[gBufferIndex], gdl, gPadDisplayAlpha / 2 - 103,
-                                0x55 - ((gGameMode == 0x100000000000) << 5), gPadDisplayAlpha);
+                                0x55 - ((gGameMode == MODE_GLOBE_SEQ) << 5), gPadDisplayAlpha);
         }
         if (D_802E8BEC == 0 && gLogoState == 3 && gGameMode == 2) {
             gdl = hud_draw_demo_banner((s32) gDynamicBufs, gdl);
@@ -1497,7 +1497,7 @@ void hd_game_frame(void) {
     if (gGameMode != 2) {
         gdl = func_80274BF0((s32) &gDynamicBufs[gBufferIndex], gdl);
     }
-    if (gGameMode == 0x2000000000000000) {
+    if (gGameMode == MODE_YOSHI_PAGES) {
         if ((gContButtons & 0x10) && !(gContPrevButtons & 0x10)) {
             if (currentYoshiWindow < 0x6B && yoshiState != 8 && yoshiState != 1) {
                 yoshi_demand((currentYoshiWindow + 1) | 0x8000);
@@ -1524,15 +1524,15 @@ void hd_game_frame(void) {
             case 1:
             case 0x800:
             case 0x1000:
-                if (levelno != 0x32 || gPrevGameMode == 0x4000) {
-                    gNextGameMode = 0x2000;
+                if (levelno != 0x32 || gPrevGameMode == MODE_WORLD) {
+                    gNextGameMode = MODE_LEVEL_START;
                     snd_play(gSfxBank, 0x1E, NULL);
                 }
                 break;
             case 0x40:
             case 0x400:
                 if ((LEVEL_DONE(levelno)) && gLevelKind != 1) {
-                    gNextGameMode = 0x08000000;
+                    gNextGameMode = MODE_RESULTS;
                     snd_play(gSfxBank, 0x1E, NULL);
                 } else if (yoshiState == 1) {
                     yoshi_demand(D_802F4870[lowest_set_bit(gLevelKind)] | 0x8000);
@@ -1924,7 +1924,7 @@ s32 veh_enter(s32 id) {
             ok = 0;
             break;
     }
-    if (ok && (gGameMode & 0x104)) {
+    if (ok && (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW))) {
         rec_record((players[playerNumber].unkF0 & (1 << id)) ? 0x80 : 0x40, 0, 0);
     }
     if (ok) {
@@ -2024,7 +2024,7 @@ void veh_leave(void) {
                 break;
         }
         gCurVehicle = 0;
-        if (gGameMode & 0x104) {
+        if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
             rec_record((players[playerNumber].unkF0 & 1) ? 0x80 : 0x40, 0, 0);
         }
     }
@@ -2430,7 +2430,7 @@ void func_8024BDA4(u16 *sel) {
                     }
                     break;
                 case 8:
-                    gNextGameMode = 0x2000000000000000;
+                    gNextGameMode = MODE_YOSHI_PAGES;
                     yoshi_demand(0x805E);
                     gCamSnap = 1;
                     break;
@@ -2467,7 +2467,7 @@ void func_8024BDA4(u16 *sel) {
                             debug_printf("TESTING PAUSE2 %d %d %d\n", gPaused, gPauseRequest, gUnpauseRequest);
                             yoshi_demand(0x8000);
                             if (gHaveCarrier || gHaveShuttle) {
-                                gNextGameMode = 0x100;
+                                gNextGameMode = MODE_MAP_VIEW;
                                 cull_restart(10);
                             }
                             break;
@@ -2493,15 +2493,15 @@ void func_8024BDA4(u16 *sel) {
         case 0x400:
             if ((players[playerNumber].unk18[levelno] > 0 && players[playerNumber].unk18[levelno] < 6) ? 1 : 0) {
                 if (*sel == 0x18 || *sel == 0x22 || *sel == 0xFFFF) {
-                    gNextGameMode = 0x08000000;
+                    gNextGameMode = MODE_RESULTS;
                 } else {
-                    gNextGameMode = 0x2000;
+                    gNextGameMode = MODE_LEVEL_START;
                 }
             } else {
                 if (*sel == 0x18 || *sel == 0x22 || *sel == 0xFFFF) {
-                    gNextGameMode = 0x4000;
+                    gNextGameMode = MODE_WORLD;
                 } else {
-                    gNextGameMode = 0x2000;
+                    gNextGameMode = MODE_LEVEL_START;
                 }
             }
             break;
@@ -2705,23 +2705,23 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
         fx_draw_carrier_blast(&gdl, gBufferIndex);
     }
     PORT_ITAG(gdl, PORT_ITAG_HUD, 0);
-    if (gHudDialLoaded && (gGameMode & 0x104)) {
+    if (gHudDialLoaded && (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW))) {
         hud_draw_boost_dial(&gdl, (s32) dyn, gBufferIndex, gCurVehicle);
     }
     if (gGameMode & 0x200000000400220C) {
         hud_panel_draw(&gdl, (s32) dyn, gBufferIndex);
     }
-    if (gGameMode == 0x100 && gHaveCarrier) {
+    if (gGameMode == MODE_MAP_VIEW && gHaveCarrier) {
         hud_draw_player_locator(&gdl, dyn, gBufferIndex, gPlayerX, gPlayerY, gPlayerZ);
     }
     text_begin_frame();
-    if (gHudMissileIconLoaded && (gGameMode & 0x104)) {
+    if (gHudMissileIconLoaded && (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW))) {
         hud_draw_missile_icon(&gdl, (Gfx * N64P *) dyn, gBufferIndex, gCurVehicle);
     }
-    if (gHudRamIconLoaded && (gGameMode & 0x104)) {
+    if (gHudRamIconLoaded && (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW))) {
         hud_draw_ram_icon(&gdl, (Gfx * N64P *) dyn, gBufferIndex, gCurVehicle);
     }
-    if (gGameMode & 0x104) {
+    if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
         hud_draw_veh_overlay(&gdl, gCurVehicle);
     }
     if ((gLevelKind & 1) && (gGameMode & 0x0400030C)) {
@@ -2735,27 +2735,27 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
                           D_80364A48);
         }
     }
-    if ((gGameMode & 0x2000000000000104) && (!(gLevelKind & 0x81) || gHaveCarrier || gHaveShuttle)) {
-        hud_draw_target_marker((struct SpriteVtxBuf *) dyn, &gdl, (gGameMode & 0x100) || currentYoshiWindow == 0x4D || currentYoshiWindow == 0x49);
+    if ((gGameMode & (MODE_LEVEL | MODE_MAP_VIEW | MODE_YOSHI_PAGES)) && (!(gLevelKind & 0x81) || gHaveCarrier || gHaveShuttle)) {
+        hud_draw_target_marker((struct SpriteVtxBuf *) dyn, &gdl, (gGameMode & MODE_MAP_VIEW) || currentYoshiWindow == 0x4D || currentYoshiWindow == 0x49);
     }
     if (gNextGameMode == 0 && !areWeFading()) {
         if (!(gGameMode & 0x200000100400230C) && PORT_GVI("hd_build_frame_dl", D_803156C4) % 50 * 60 / 60 >= 21 && yoshiState == 1 &&
             (!(gGameMode & 2) || (D_802E8BEC && (gLogoState == 3 || D_802E8BEC == 1))) &&
-            (gGameMode != 0x100000000000 || D_803A6B04) &&
+            (gGameMode != MODE_GLOBE_SEQ || D_803A6B04) &&
             (!(gGameMode & 0x1801) || players[playerNumber].unk91) && levelno != 0x2F) {
             text_print((Gfx * N64P *) dyn, (u8 *) ("PRESS START"), 0, 1, 0, 0x5C, 0xC4, 0x1A, 0x1A, 1, 0xFF, 0xFF, 0xFF, 0xFF);
         }
         if (PORT_GVI("hd_build_frame_dl", D_803156C4) % 40 * 60 / 60 >= 16) {
             if (gPaused) {
-                if (gGameMode == 0x2000000000000000 && yoshiState == 2) {
+                if (gGameMode == MODE_YOSHI_PAGES && yoshiState == 2) {
                     text_print((Gfx * N64P *) dyn, (u8 *) ("USE Z/R TO TURN PAGES"), D_8030491C, 0, 0, 0x18, 0x14, 0xF, 0xF, 1, 0xFF, 0xFF,
                                   0xFF, 0xFF);
-                } else if (gGameMode == 0x100 && currentYoshiWindow == 0 && yoshiState == 2 && gHaveCarrier &&
+                } else if (gGameMode == MODE_MAP_VIEW && currentYoshiWindow == 0 && yoshiState == 2 && gHaveCarrier &&
                            !(gContButtons & 0x2010)) {
                     text_print((Gfx * N64P *) dyn, (u8 *) ("USE Z/R TO MOVE MAP"), D_80304938, 0, 0, 0x18, 0x14, 0xF, 0xF, 1, 0xFF, 0xFF,
                                   0xFF, 0xFF);
                 }
-            } else if (gGameMode == 0x100) {
+            } else if (gGameMode == MODE_MAP_VIEW) {
                 if (gHaveShuttle) {
                     text_print((Gfx * N64P *) dyn, (u8 *) ("SHUTTLE VIEW"), D_80304904, 0, 0, 0x18, 0x14, 0xF, 0xF, 1, 0xFF, 0xFF, 0xFF,
                                   0xFF);
@@ -2773,10 +2773,10 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
             spr_draw_blinking(&gdl, (s32) dyn, D_80365580, 0x18, 0x12);
         }
     }
-    if ((gGameMode & 0x104) && gCamFixedEye) {
+    if ((gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) && gCamFixedEye) {
         spr_draw_blinking(&gdl, (s32) dyn, D_80364A86, 0x108, 0xBE);
     }
-    if ((gGameMode & 0x104) && gLevelKind == 1 && !gPaused) {
+    if ((gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) && gLevelKind == 1 && !gPaused) {
         stats_award_bonuses();
     }
     if (gHaveCarrier && gGameMode == 4) {
@@ -3316,7 +3316,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
         }
         D_80364A85 = 0;
     }
-    gCamSnap |= inShuttle || gGameMode == 0x100;
+    gCamSnap |= inShuttle || gGameMode == MODE_MAP_VIEW;
     gCamSnap |= gFramesInMode < 2;
     if (gCarrierHit && (gGameMode & 0x100000000600)) {
         rateX = 0.2f;
@@ -3557,8 +3557,8 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
     if (tilt < gCamTiltMin) {
         tilt = gCamTiltMin;
     }
-    if ((tilt > 0 && gHeldA && !gPaused && (gGameMode & 0x106)) ||
-        (tilt < 0 && gHeldB && !gPaused && (gGameMode & 0x106))) {
+    if ((tilt > 0 && gHeldA && !gPaused && (gGameMode & (MODE_ATTRACT | MODE_LEVEL | MODE_MAP_VIEW))) ||
+        (tilt < 0 && gHeldB && !gPaused && (gGameMode & (MODE_ATTRACT | MODE_LEVEL | MODE_MAP_VIEW)))) {
         if (gCamTilt < tilt) {
             gCamTilt += tiltRate;
         }
@@ -3927,7 +3927,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
         gCamAtGoalY = gPlayerY / 32.0f;
         gCamAtGoalZ = gPlayerZ / 32.0f;
     }
-    if ((gGameMode & 0x2000000000002104) && !gCamPathActive && !inShuttle && gGameMode != 0x100 && levelno != 0x23 &&
+    if ((gGameMode & (MODE_LEVEL | MODE_MAP_VIEW | MODE_LEVEL_START | MODE_YOSHI_PAGES)) && !gCamPathActive && !inShuttle && gGameMode != MODE_MAP_VIEW && levelno != 0x23 &&
         !D_80364A85) {
         tx = gCamAtGoalX * 65536.0;
         ty = gCamAtGoalY * 65536.0;
@@ -4207,10 +4207,10 @@ void cam_turn_heading(void) {
 
     if (gPaused == 0) {
         ok = cam_fixed_heading_area();
-        if (ok && ((gHeldCRight && !gPrevHeldCRight) || (gHeldCLeft && !gPrevHeldCLeft)) && (gGameMode & 0x104)) {
+        if (ok && ((gHeldCRight && !gPrevHeldCRight) || (gHeldCLeft && !gPrevHeldCLeft)) && (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW))) {
             snd_play(gSfxBank, 0xD0, NULL);
         }
-        if (gHeldCRight && !gPrevHeldCRight && !gCamTurnPos && !gCamTurnNeg && !ok && gGameMode != 0x2000) {
+        if (gHeldCRight && !gPrevHeldCRight && !gCamTurnPos && !gCamTurnNeg && !ok && gGameMode != MODE_LEVEL_START) {
             gCamHeadingGoal = gCamHeading + 45.0;
             if (gCamHeadingGoal >= 360.0) {
                 gCamHeadingGoal = gCamHeadingGoal - 360.0;
@@ -4238,7 +4238,7 @@ void cam_turn_heading(void) {
                 }
             }
         }
-        if (gHeldCLeft && !gPrevHeldCLeft && !gCamTurnPos && !gCamTurnNeg && !ok && gGameMode != 0x2000) {
+        if (gHeldCLeft && !gPrevHeldCLeft && !gCamTurnPos && !gCamTurnNeg && !ok && gGameMode != MODE_LEVEL_START) {
             gCamHeadingGoal = gCamHeading - 45.0;
             if (gCamHeadingGoal < 0.0) {
                 gCamHeadingGoal = gCamHeadingGoal + 360.0;
@@ -4278,7 +4278,7 @@ void cam_turn_heading(void) {
 u8 cam_fixed_heading_area(void) {
     u8 ok = 0;
 
-    if (gGameMode == 0x100000000000 || gGameMode == 2) {
+    if (gGameMode == MODE_GLOBE_SEQ || gGameMode == 2) {
         ok = 1;
     } else {
         switch (levelno) {
@@ -4379,9 +4379,9 @@ void hd_init(void) {
     } else if (D_802FDBD0) {
         gNextGameMode = 0x0000080000000000;
     } else if (D_802FDBD4) {
-        gNextGameMode = 0x0040000000000000;
+        gNextGameMode = MODE_ERASE_SAVE;
     } else {
-        gNextGameMode = 0x10;
+        gNextGameMode = MODE_BOOT_SCREEN1;
     }
     for (i = 0x1FF; i >= 0; i--) {
         gMainThreadStack[i] = 0x1122334455667788LL;
@@ -4439,7 +4439,7 @@ void hd_mode_setup(void) {
     align_up(&gHeapPtr, 0x10);
     gRdpOutputBuffer = gHeapPtr;
     gHeapPtr += 0xA000;
-    if (gLevelInfo[levelno].unk0 == 2 && !(gNextGameMode & 0x100000000002)) {
+    if (gLevelInfo[levelno].unk0 == 2 && !(gNextGameMode & (MODE_ATTRACT | MODE_GLOBE_SEQ))) {
         debug_printf("Allocating ghost buffer memory\n");
         gHeapPtr += 0x20000;
     }
@@ -4462,7 +4462,7 @@ void hd_mode_setup(void) {
     }
     academy_place_marker(levelno);
     spr_reset();
-    if (gNextGameMode == 0x40000000000) {
+    if (gNextGameMode == MODE_BEST_TIMES) {
         fe_best_build_menu();
     }
     old = gHeapPtr;
@@ -4768,7 +4768,7 @@ void hd_setup_level(s32 arg0) {
     }
     gGhostRecording = 0;
     gGhostPlaying = 0;
-    if (gLevelKind == 2 && gNextGameMode == 0x2000) {
+    if (gLevelKind == 2 && gNextGameMode == MODE_LEVEL_START) {
         if (!D_8039CA60) {
             ghost_init();
         }

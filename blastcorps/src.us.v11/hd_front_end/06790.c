@@ -130,7 +130,7 @@ Gfx *fe_promo_draw(Gfx *arg0, FeDyn *dyn, u8 arg2, s32 *arg3) {
                 gPromoRankAlpha -= 32;
             }
             if (gPromoRankAlpha == 0) {
-                gNextGameMode = 0x08000000;
+                gNextGameMode = MODE_RESULTS;
             }
             break;
     }

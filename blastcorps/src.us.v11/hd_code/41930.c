@@ -112,11 +112,11 @@ void academy_next_mode(void) {
         case 2:
         case 3:
         case 4:
-            gNextGameMode = 0x4000;
+            gNextGameMode = MODE_WORLD;
             break;
         case 5:
             seq_prepare(0);
-            gNextGameMode = 0x100000000000;
+            gNextGameMode = MODE_GLOBE_SEQ;
             break;
         case 6:
             ACADEMY_ASSERT_S(levelno == 50, "levelno==50", 140);
@@ -128,20 +128,20 @@ void academy_next_mode(void) {
             break;
         case 7:
             seq_prepare(1);
-            gNextGameMode = 0x100000000000;
+            gNextGameMode = MODE_GLOBE_SEQ;
             break;
         case 9:
             seq_prepare(3);
-            gNextGameMode = 0x100000000000;
+            gNextGameMode = MODE_GLOBE_SEQ;
             break;
         case 10:
             gNextGameMode = 0x4000000000000;
             break;
         case 11:
-            gNextGameMode = 0x4000;
+            gNextGameMode = MODE_WORLD;
             break;
         case 12:
-            gNextGameMode = 0x4000;
+            gNextGameMode = MODE_WORLD;
             break;
     }
 }
@@ -166,7 +166,7 @@ u8 academy_advance_state(void) {
         advance = 1;
         switch (players[playerNumber].gameState) {
             case 0:
-                if (gGameMode == 0x100000000000) {
+                if (gGameMode == MODE_GLOBE_SEQ) {
                     advance = 0;
                 }
                 break;

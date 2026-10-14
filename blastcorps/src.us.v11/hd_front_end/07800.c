@@ -240,7 +240,7 @@ u8 fe_stats_grade_timed_level(arg0, arg1, arg2)
 
     p = &players[playerNumber];
     l = &gLevelInfo[arg0];
-    if (gNextGameMode == 0x08000000 && arg1 && l->unk0 == 2) {
+    if (gNextGameMode == MODE_RESULTS && arg1 && l->unk0 == 2) {
         ghost_keep_if_best(stats_tenths_to_frames(nss.tc));
     }
     if (arg2 && arg1) {
@@ -409,10 +409,10 @@ void fe_boot_screen_frame(void) {
     gDPSetCycleType(gdl++, G_CYC_1CYCLE);
     cont_start_read();
     if (gFramesInMode == 250) {
-        if (gGameMode == 0x10) {
-            gNextGameMode = 0x20;
+        if (gGameMode == MODE_BOOT_SCREEN1) {
+            gNextGameMode = MODE_BOOT_SCREEN2;
         } else {
-            gNextGameMode = 0x0400000000000000;
+            gNextGameMode = MODE_ATTRACT_START;
             if (gDebugCheats) {
                 snd_play(gSfxBank, 0x68, NULL);
             }

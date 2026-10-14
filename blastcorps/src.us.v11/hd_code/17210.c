@@ -184,7 +184,7 @@ void rec_next(void) {
             D_80366994++;
             D_803669A0 = D_803669AC[D_80366994].count;
         }
-        if ((gGameMode & 0x100000000002) && D_8036698C != 9) {
+        if ((gGameMode & (MODE_ATTRACT | MODE_GLOBE_SEQ)) && D_8036698C != 9) {
             if ((gRecButtons & 0xC000) == 0x8000) {
                 gRecButtons &= ~0x8000;
                 gRecButtons |= 0x4000;

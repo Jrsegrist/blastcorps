@@ -79,7 +79,7 @@ void ghost_start_playback(void) {
 
 /* One sample ("OVERRUN GHOST DIGGER ARRAY") (0x80294F00). */
 void ghost_record(void) {
-    if (gGameMode & 0x104) {
+    if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
         if (D_8039CA80 == -1) {
             D_8039CA80 = ((s32) PORT_GVI("ghost_record", D_803156C0));
         }
@@ -136,7 +136,7 @@ void ghost_get_pose(s32 *x, s32 *y, s32 *z, s16 *rx, s16 *ry, s16 *rz) {
     f32 frac;
 
     t = ((s32) D_803156C0) - D_8039CA84;
-    if (gGameMode == 0x2000) {
+    if (gGameMode == MODE_LEVEL_START) {
         *x = gGhostSamples[0][0].x;
         *y = gGhostSamples[0][0].y;
         *z = gGhostSamples[0][0].z;

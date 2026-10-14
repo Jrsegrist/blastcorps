@@ -261,7 +261,7 @@ void fe_pak_start_thread(void) {
  *             debug_printf("pak command %d returned %d\n", cmd, ret);
  *             switch (ret) {
  *                 case 0x6E382:
- *                     if ((gGameMode & 0x10E18000) || (gNextGameMode & 0x20000000000000)) {
+ *                     if ((gGameMode & 0x10E18000) || (gNextGameMode & MODE_BOOT_CHECK)) {
  *                         done = 1;
  *                         break;
  *                     }
@@ -323,7 +323,7 @@ void fe_pak_start_thread(void) {
  *                     }
  *                     break;
  *                 case 1:
- *                     if (gNextGameMode & 0x20000000000000) {
+ *                     if (gNextGameMode & MODE_BOOT_CHECK) {
  *                         done = 1;
  *                     }
  *                     break;
@@ -482,7 +482,7 @@ void fe_pak_thread(void *arg) {
             debug_printf("pak command %d returned %d\n", cmd, ret);
             switch (ret) {
                 case 0x6E382:
-                    if ((gGameMode & 0x10E18000) || (gNextGameMode & 0x20000000000000)) {
+                    if ((gGameMode & 0x10E18000) || (gNextGameMode & MODE_BOOT_CHECK)) {
                         done = 1;
                         break;
                     }
@@ -546,7 +546,7 @@ void fe_pak_thread(void *arg) {
                     }
                     break;
                 case 1:
-                    if (gNextGameMode & 0x20000000000000) {
+                    if (gNextGameMode & MODE_BOOT_CHECK) {
                         done = 1;
                     }
                     break;
@@ -662,7 +662,7 @@ s32 fe_pak_rw_player(u8 player, u8 rw) {
     if (rw == 1) {
         fe_pak_add_crc(p, 0x100);
     }
-    if (gUseEeprom != 0 || gGameMode == 0x40000000000000) {
+    if (gUseEeprom != 0 || gGameMode == MODE_ERASE_SAVE) {
         if (gEepromPresent == 0 || D_802FA264 != 0) {
             for (i = 0; i < 0x100; i++) {
                 if (rw == 1) {
@@ -792,7 +792,7 @@ s32 fe_pak_put_semaphore(u8 player, u64 sem) {
     ret = 0;
     p = (u8 *) &players[player];
     PORT_SAVE_BE64(sem);
-    if (gUseEeprom != 0 || gGameMode == 0x40000000000000) {
+    if (gUseEeprom != 0 || gGameMode == MODE_ERASE_SAVE) {
         osEepromWrite(&gSiMesgQueue, 0x3F, (u8 *) &sem);
     } else {
         debug_printf("PUTTING SEMAPHORE %llu\n", sem);

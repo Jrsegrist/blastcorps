@@ -7,8 +7,9 @@ extern u8 * N64P D_8039CA94;
 extern u8 * N64P D_8039CA98;
 extern u8 * N64P D_8039CA9C;
 
-/* Carves four buffers out of the heap and loads ROM asset 0x6A8DA0 into the first. */
-void func_80295E50(void) {
+/* The on-screen controller picture (0x80295E50).
+ * Carves four buffers out of the heap and loads ROM asset 0x6A8DA0 into the first. */
+void hud_load_pad_image(void) {
     s32 size;
 
     D_8039CA90 = gHeapPtr;
@@ -18,8 +19,8 @@ void func_80295E50(void) {
     size = D_006A9F10 - D_006A8DA0;
     func_8028B4C4((u32) D_006A8DA0, (u32) D_8039CA90, (u32 *) &size, 10, 0, 1);
     gHeapPtr = (u8 *) gHeapPtr + size;
-    D_8039CAA0 = 0;
-    D_8039CAA2 = 1;
+    gPadDisplayAlpha = 0;
+    gPadDisplayLoaded = 1;
 }
 
 /* Pre-2.0I scissored texture rectangle (see 17E10.c): G_RDPHALF_2/G_RDPHALF_CONT
@@ -41,14 +42,15 @@ void func_80295E50(void) {
         gImmp1(pkt, OLD_RDPHALF_CONT, (_SHIFTL(dsdx, 16, 16) | _SHIFTL(dtdy, 0, 16)));       \
     }
 
-Gfx *func_8029700C(Gfx *gfx, s16 x, s16 y);
+Gfx *hud_draw_pad_image(Gfx *gfx, s16 x, s16 y);
 
-/*
+/* The demo's on-screen controller (gRecButtons) (0x80295EFC).
+ *
  * Draws the on-screen controller at (x, y) with translucency alpha: the
  * pad image (with a drop shadow), Z and L/R trigger highlights, coloured
  * A/B/Start and D-pad left/right button highlights, and the stick position.
  */
-Gfx *func_80295EFC(s32 arg0, Gfx *arg1, s16 x, s16 y, u8 alpha) {
+Gfx *hud_draw_pad(s32 arg0, Gfx *arg1, s16 x, s16 y, u8 alpha) {
     Gfx *gfx;
     s32 i;
 
@@ -60,11 +62,11 @@ Gfx *func_80295EFC(s32 arg0, Gfx *arg1, s16 x, s16 y, u8 alpha) {
     gDPSetRenderMode(gfx++, 0x00404240, 0);
     gDPSetCombine(gfx++, 0xFF97FF, 0xFF2DFEFF);
     gDPSetPrimColor(gfx++, 0, 0, 0, 0, 0, alpha / 2);
-    gfx = func_8029700C(gfx, x - 4, y + 4);
+    gfx = hud_draw_pad_image(gfx, x - 4, y + 4);
     gDPPipeSync(gfx++);
     gDPSetCombine(gfx++, 0xFF97FF, 0xFF2CFE7F);
     gDPSetPrimColor(gfx++, 0, 0, 0, 0, 0, alpha);
-    gfx = func_8029700C(gfx, x, y);
+    gfx = hud_draw_pad_image(gfx, x, y);
     if (gRecButtons & 0x30) {
         gDPLoadTextureBlock(gfx++, D_8039CA98, G_IM_FMT_RGBA, G_IM_SIZ_16b, 32, 6, 0, G_TX_MIRROR,
                             G_TX_CLAMP, 5, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
@@ -139,8 +141,9 @@ Gfx *func_80295EFC(s32 arg0, Gfx *arg1, s16 x, s16 y, u8 alpha) {
 /* Clamp a tile's last texel to the 80x80 image. */
 #define LIM79(a) ((a) > 79 ? 79 : (a))
 
-/* Draws the 80x80 RGBA16 image in D_8039CA90 at (x, y) as 32x32 tiles. */
-Gfx *func_8029700C(Gfx *gfx, s16 x, s16 y) {
+/* The 80x80 picture as 32x32 tiles (0x8029700C).
+ * Draws the 80x80 RGBA16 image in D_8039CA90 at (x, y) as 32x32 tiles. */
+Gfx *hud_draw_pad_image(Gfx *gfx, s16 x, s16 y) {
     s32 i;
     s32 j;
 

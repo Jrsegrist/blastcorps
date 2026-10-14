@@ -154,7 +154,7 @@ u8 func_801EE800(u8 *arg0, u8 arg1, u8 arg2) {
     PRINT_SCORE("rs2", D_8036EA90);
     debug_printf("units %d\n", p->unkA);
     if (gLevelInfo[levelno].unk0 == 1) {
-        t = func_802852EC();
+        t = stats_print_status();
         if (arg2) {
             if (arg1) {
                 if (t >= 100) {
@@ -240,7 +240,7 @@ u8 func_801EEDB4(arg0, arg1, arg2)
     p = &players[playerNumber];
     l = &gLevelInfo[arg0];
     if (gNextGameMode == 0x08000000 && arg1 && l->unk0 == 2) {
-        func_80295A20(func_80286038(nss.tc));
+        ghost_keep_if_best(stats_tenths_to_frames(nss.tc));
     }
     if (arg2 && arg1) {
         if (gLevelInfo[arg0].unk0 == 0x80) {
@@ -265,7 +265,7 @@ u8 func_801EEDB4(arg0, arg1, arg2)
     } else {
         x = 0x480;
     }
-    func_80264A34(buf, nss.tc, 0);
+    hud_format_time(buf, nss.tc, 0);
     sprintf(&D_8036B9A8[0x80], "****%s*", buf);
     if (arg1) {
         m = &D_8020C070[25];
@@ -273,7 +273,7 @@ u8 func_801EEDB4(arg0, arg1, arg2)
         debug_printf("getting icon %d\n", nss.bdn);
         m->unk14 = nss.bdn + 0x22;
         e = &D_802F49F4[m->unk14];
-        m->unk1A = func_80272C5C(e->unk6, 0, e->unk4, e->unk2C, e->unk2D | 4, 1.0f);
+        m->unk1A = spr_load(e->unk6, 0, e->unk4, e->unk2C, e->unk2D | 4, 1.0f);
         if (playerNumber != playerNumberAtStart) {
             idx = 3;
         } else if (gNextGameMode == 0x80 || D_803643D5) {

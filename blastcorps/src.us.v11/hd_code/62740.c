@@ -119,13 +119,13 @@ static s32 port_cvt_w_s(f32 x) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 /* Wide-FOV levels: doubles the speed-band bounds (0x802A6F00).
- * If D_80367C10 is set, double both bounds of each of the 5 band-table
+ * If gWideFovLevel is set, double both bounds of each of the 5 band-table
  * entries at veh+0x78. (The asm saves v0/v1/a0; asm callers keep f12/f14.) */
 void veh_widen_bands(u8 *veh) {
     s16 *band;
     s32 i;
 
-    if (D_80367C10 != 0) {
+    if (gWideFovLevel != 0) {
         band = &VEH_S16(veh, 0x78);
         for (i = 5; i != 0; i--) {
             band[0] = band[0] << 1;
@@ -912,7 +912,7 @@ s32 veh_drive_traction(s32 mode, u8 *f) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 /* Stick-x steering of the heading (0x802A7E70).
- * Steering: turn rate = s3 (minus a third when D_80367C10; forced to 100/200
+ * Steering: turn rate = s3 (minus a third when gWideFovLevel; forced to 100/200
  * when D_80370C75, by D_80370C34), saved to D_80370C72; then turn *angle by
  * |steer| * rate / 80 against the sign of steer (gPadStickX), wrapped to
  * 0..0xFFF. When D_803ED40A is set and D_803649EE isn't, *angle is overridden
@@ -924,7 +924,7 @@ void veh_steer(s32 rate, u16 *angle) {
     s32 a;
     s32 mag;
 
-    if (D_80367C10 != 0) {
+    if (gWideFovLevel != 0) {
         rate -= rate / 3;
     }
     if (D_80370C75 != 0) {
@@ -1458,7 +1458,7 @@ s32 veh_ground_tilt(s32 *a3Out) {
  * check, the key must exist) gives x, y, z (each s16 << 5), stored to *px,
  * *py, *pz and handed back in pos; gCamSnap = 1; veh_reset_state(veh);
  * words 1..9 of veh = y; effect kind 0x13 (data 1000000) at the new position
- * (fx_spawn_at_late) and func_80277EDC(1, 1, 4, 0x6C).
+ * (fx_spawn_at_late) and hud_panel_start(1, 1, 4, 0x6C).
  * Register convention: veh in gp, id t8, px t7, py s2, pz s1, x/z in t0/t1
  * (in/out through pos; conventions.txt). The asm saves every other register
  * (around the two calls all of them); its asm caller veh_ground_contact keeps
@@ -1504,7 +1504,7 @@ void veh_respawn_if_out(u8 *veh, s32 id, s32 *px, s32 *py, s32 *pz, Pos802A8CCC 
         VEH_S32(veh, i * 4) = y;
     }
     fx_spawn_at_late(x, y, z, 0x13, 1000000);
-    func_80277EDC(1, 1, 4, 0x6C);
+    hud_panel_start(1, 1, 4, 0x6C);
     pos->t0 = x;
     pos->t1 = z;
 }

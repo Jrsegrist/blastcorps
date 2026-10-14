@@ -75,7 +75,7 @@ void veh_check_wrap(s32 *px, s32 *py, s32 *pz) {
 
 /* Only in game mode 0x40: vehicle-state reset (veh_collision_setup with b2 = 1,
  * b3 = 0, h1 = 0, h2 = 0x40, b4 = 0), the collision pass of vehicle id
- * (obj_collide_vehicle), then if anything was hit: with D_8036E4C8 zero sets
+ * (obj_collide_vehicle), then if anything was hit: with gPowerPillTimer zero sets
  * gFailTrigger; else plays func_80260650(D_80367738, 0x3D, 0) and moves every
  * hit object (the list gObjHits .. gObjHitsEnd, read once, walked by 8 with
  * `!=`) to x = z = 0xBB80 (obj_move_model by the difference; words 0x38 = 1,
@@ -97,7 +97,7 @@ void func_802AC2A4(s32 z, s32 a1, s32 x, s32 y, s32 b0, s32 id, u8 *vehicle) {
     if (gObjHits == gObjHitsEnd) {
         return;
     }
-    if (((u16) D_8036E4C8) == 0) {
+    if (((u16) gPowerPillTimer) == 0) {
         gFailTrigger = 1;
         return;
     }

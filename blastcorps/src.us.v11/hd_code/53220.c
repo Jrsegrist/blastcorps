@@ -162,7 +162,7 @@ void func_802979E0(u8 level) {
     item->font = 0x18;
     item->unk16 = item->unk1A = 0;
     font = &D_802F49F4[item->font];
-    item->unk1A = func_80272C5C((u16 *) font->ids, 0, font->unk4, font->unk2C, font->unk2D | 4, 1.0f);
+    item->unk1A = spr_load((u16 *) font->ids, 0, font->unk4, font->unk2C, font->unk2D | 4, 1.0f);
     win->count = n + 1;
     win->cursor = D_802FF5E8[D_8039CAD0 * 5];
     if (!func_80297EF8(level)) {
@@ -170,7 +170,7 @@ void func_802979E0(u8 level) {
     }
     for (i = 0; i < win->count && !done; i++) {
         item = &gYoshiHeapItems[i];
-        for (j = 0; j < func_8025B300(item->text) && !done; j++) {
+        for (j = 0; j < font_strlen(item->text) && !done; j++) {
             if (item->text[j] >= '0' && item->text[j] < '6') {
                 item->text[j] = left + '0';
                 done = 1;
@@ -188,7 +188,7 @@ u8 func_80297EF8(u8 level) {
     u8 idx;
     u8 found;
 
-    found = func_8029766C(level, &idx);
+    found = academy_find_level(level, &idx);
     return (found && (players[playerNumber].academy & (1 << idx))) ? 1 : 0;
 }
 

@@ -153,12 +153,12 @@ globals, heap, or stack bytes the function read and wrote, plus the calls it
 made with their arguments. Use that to decide which inputs to randomize:
 
 ```
-$ python3 tools_port/eqcheck.py func_8027684C --explore --mem D_8036C7A0:40=words:0,1,2 --mem D_8036C794=int
+$ python3 tools_port/eqcheck.py hud_remember_marked_target --explore --mem gShownTargets:40=words:0,1,2 --mem gMarkedTargetPts=int
 reads:
-  D_8036C794               0x8036C794..0x8036C798 (4 bytes)
-  D_8036C7A0               0x8036C7A0..0x8036C7AC (12 bytes)
+  gMarkedTargetPts               0x8036C794..0x8036C798 (4 bytes)
+  gShownTargets               0x8036C7A0..0x8036C7AC (12 bytes)
 writes:
-  D_8036C7A0               0x8036C7A8..0x8036C7AC (4 bytes)
+  gShownTargets               0x8036C7A8..0x8036C7AC (4 bytes)
 ```
 
 Heap bytes are labelled by block (`heap0 (0x80B00000)`, see `ptr` below).
@@ -255,7 +255,7 @@ for a 25 x 0x14 table whose word 0 is an id (-1 = free):
 ```
 
 Choose pools that reach every branch. In the demo, a broken
-`func_802768A8` (with its NULL check dropped) **passes** when
+`hud_target_was_shown` (with its NULL check dropped) **passes** when
 `gNearestTargetPts=choice:1,2` and fails at once with `choice:0,1,2`. The harness
 only proves equivalence on the inputs you give it.
 
@@ -271,7 +271,7 @@ compared between the builds.
 * `--follow NAME[,NAME]` runs that callee for real, using each build's own version of it. `--follow-all` runs every callee; `--no-follow NAME[,NAME]` keeps stubbing those under `--follow-all` (OS calls that block or DMA, a decompressor, a callee whose own checks stub its callees).
 * `--stop-at NAME[:K]` ends the run at the K-th (default first) call to the stubbed or modelled NAME, as if the function had returned there: memory and calls are compared, registers are not (they're mid-function). For loops that never return, e.g. the front end's save thread `func_801F58E8`. A `--model` can end the run itself with `mem.stop()`; `tools_port/models/mesgqueue.py` models `osRecvMesg`/`osSendMesg` on the real OSMesgQueue (and stops when the thread blocks on its empty command queue).
 * **Static helpers are followed automatically.** A callee that exists only in the new build (no symbol of that name in the reference build, typically a `static` helper a rewrite introduced) is part of the rewrite, so it always runs for real instead of showing up as an extra call. The run prints `note: following NAME, which exists only in build_nm`.
-* `--sig NAME=a0,a1` sets which registers count as NAME's arguments. Use it when a callee takes fewer than 4 arguments and the two versions leave different garbage in the unused ones. **`--sig NAME=` (empty list) compares no arguments at all**, just that the call happened, for a callee that takes none (otherwise leftover a0-a3 garbage is compared). `--sig '*=a0'` changes the default. Stack arguments can be listed as `stack0` (= `sp+0x10`), `stack1`, ... For a callee in `conventions.txt` (section 3a) the arguments are already mapped, and `--sig` then selects C slots (`--sig math_dist3=a0,a1,a2`). **Widths:** an entry `REG:W` (W = 1, 2, 4, 8) compares only the low W bytes: `--sig func_8027BE7C=a0:1,a1,a2:2,stack4:2` compares a `u8`/`s16` argument at its declared width, so leftover upper bits (asm passes the whole register, C a truncated value) don't count. This works with and without a convention (no more per-line `--conv` just for widths).
+* `--sig NAME=a0,a1` sets which registers count as NAME's arguments. Use it when a callee takes fewer than 4 arguments and the two versions leave different garbage in the unused ones. **`--sig NAME=` (empty list) compares no arguments at all**, just that the call happened, for a callee that takes none (otherwise leftover a0-a3 garbage is compared). `--sig '*=a0'` changes the default. Stack arguments can be listed as `stack0` (= `sp+0x10`), `stack1`, ... For a callee in `conventions.txt` (section 3a) the arguments are already mapped, and `--sig` then selects C slots (`--sig math_dist3=a0,a1,a2`). **Widths:** an entry `REG:W` (W = 1, 2, 4, 8) compares only the low W bytes: `--sig trail_add=a0:1,a1,a2:2,stack4:2` compares a `u8`/`s16` argument at its declared width, so leftover upper bits (asm passes the whole register, C a truncated value) don't count. This works with and without a convention (no more per-line `--conv` just for widths).
 * `--stub-ret NAME=SPEC` sets what a stubbed callee returns (its first convention output, if it has one; `--stub-ret NAME.REG=SPEC` sets the output in asm register REG). SPEC is `rand` (default), a constant, `ptr:SIZE` (deterministic heap blocks, useful for allocators), `seq:1,0,5` (the k-th call in a trial returns the k-th value, cycling: one run drives several branches), or any value spec from the `--arg` table (`choice:0,1*3`, `int:LO:HI`, `int64`, `float`, `fbits`, `sym:NAME`, `val:NAME`), drawn per trial and call, identically in both builds. A constant wider than 32 bits returns `v0:v1` (o32 `u64`); for a convention output declared 64-bit (`ret64`, below) the whole value is delivered.
 * `--stub-preserve NAME=v1,a0` keeps a stub from writing those registers. The default stub writes v0, v1 and f0; asm callers that rely on the callee preserving one of them (tex_decode_next keeps &gTexDecodeQueueHead in v1 across tex_decode) fault in the reference otherwise. `NAME=*` applies to every stub. Put permanent cases in `conventions.txt` as `preserve`.
 * `--model NAME=FILE.py[:FUNC]` runs a Python function in place of NAME in both builds (like `--follow`, so no call is recorded). It is called as `FUNC(args, mem)`: `args` are NAME's inputs in C argument order (its convention's `in` list, else a0-a3), `mem` reads and writes guest memory (`mem.u32(a)`, `mem.s16(a)`, `mem.w32(a, v)`, `mem.read(a, n)`, `mem.sym("D_8036...")`). It returns the outputs in `out` order (an int for one), delivered on the caller's side like a stub's. FILE is also looked up in `tools_port/models/` (example: `math_dist3.py`). Use it for a callee that can't run in the emulator, or to cross-check a model.
@@ -374,8 +374,8 @@ difference, for example:
 
 ```
 FAIL trial 11 (seed 0)
-  inputs: D_8036C7A0 = words 1,2,2,1,2,1,1,1,1,0; D_8036C794 = 1
-  memory: 1 byte(s) differ; first at 0x8036C7C7 D_8036C7A0+0x27: build=01 build_nm=00 (word @0x8036C7C4: 00000001 vs 00000000)
+  inputs: gShownTargets = words 1,2,2,1,2,1,1,1,1,0; gMarkedTargetPts = 1
+  memory: 1 byte(s) differ; first at 0x8036C7C7 gShownTargets+0x27: build=01 build_nm=00 (word @0x8036C7C4: 00000001 vs 00000000)
 ```
 
 To reproduce a failure, rerun with the same `--seed` (and `-n` covering that
@@ -522,13 +522,13 @@ lines. Run it after changing eqcheck.
 
 | function | kind | comparison | result |
 |---|---|---|---|
-| func_80275DA4 (GBI setup, writes a display list) | matched C | build vs build / vs build_nm | PASS 50 / 100 |
-| func_802768A8 (search a 10-entry table) | matched C | vs build_nm | PASS 100 |
-| func_8027684C (insert into a free slot) | matched C | build vs build / vs build_nm | PASS 50 / 100 |
-| func_80276D1C (matrix × vec4, `--follow guMtxL2F`) | matched C | vs build_nm | PASS 100 |
-| func_8027684C, loop bound changed to 9 | broken | vs build_nm | FAIL trial 11: `D_8036C7A0+0x27` differs |
-| func_802768A8, NULL check dropped | broken | vs build_nm | PASS with pool {1,2}; FAIL trial 1 with {0,1,2}: `$v0` 0 vs 1 |
-| func_80275DA4, wrong geometry mode | broken | vs build_nm | FAIL trial 0: `heap+0xE` 02 vs 00 |
+| hud_sprite_setup (GBI setup, writes a display list) | matched C | build vs build / vs build_nm | PASS 50 / 100 |
+| hud_target_was_shown (search a 10-entry table) | matched C | vs build_nm | PASS 100 |
+| hud_remember_marked_target (insert into a free slot) | matched C | build vs build / vs build_nm | PASS 50 / 100 |
+| hud_mtx_xform (matrix × vec4, `--follow guMtxL2F`) | matched C | vs build_nm | PASS 100 |
+| hud_remember_marked_target, loop bound changed to 9 | broken | vs build_nm | FAIL trial 11: `gShownTargets+0x27` differs |
+| hud_target_was_shown, NULL check dropped | broken | vs build_nm | PASS with pool {1,2}; FAIL trial 1 with {0,1,2}: `$v0` 0 vs 1 |
+| hud_sprite_setup, wrong geometry mode | broken | vs build_nm | FAIL trial 0: `heap+0xE` 02 vs 00 |
 | radar_clear_markers (fills a 25-entry table) | hand asm, C rewrite | vs build_nm | PASS 50 |
 | barge_enter (sets 2 globals, calls veh_start_engine_sound(a0, 0x72)) | hand asm, C rewrite | vs build_nm | PASS 200 |
 | veh_tris_all_solid_impl (id in v0, result in v1), math_atan (v1 -> fp), veh_has_partial_rider_walk (s2 -> t0, recursive) | non-ABI asm, C rewrite via conventions.txt | vs build_nm | PASS 300 each |

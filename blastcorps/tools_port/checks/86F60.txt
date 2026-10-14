@@ -10,14 +10,14 @@ police_set_physics: -n 200 --ret void --mem gLevelGravity:4=floats --mem gGravit
 police_set_physics: -n 60 --seed 1 --ret void --mem gLevelGravity=choice:0,0x80000000,0x3F800000,0xBF800000,0x7F7FFFFF,0xFF7FFFFF,0x7F800000,0xFF800000,0x7FC00000,0x00000001 \
     --mem gGravity=choice:0,-1 --mem gBounceThreshold:2=bytes:0,0xFF
 
-# police_add_tyre_trail: tyre trail ($gp = gPoliceState); func_8027BE7C's args at their declared widths (--conv)
+# police_add_tyre_trail: tyre trail ($gp = gPoliceState); trail_add's args at their declared widths (--conv)
 police_add_tyre_trail: -n 400 --seed 0 --ret void --arg gp=sym:gPoliceState \
-    --conv 'func_8027BE7C: in a0=a0:1,a1=a1,a2=a2:2,a3=a3:2,stack0=stack0:2,stack1=stack1:2,stack2=stack2,stack3=stack3,stack4=stack4:2,stack5=stack5:1,stack6=stack6:1,stack7=stack7:1,stack8=stack8:1' \
+    --conv 'trail_add: in a0=a0:1,a1=a1,a2=a2:2,a3=a3:2,stack0=stack0:2,stack1=stack1:2,stack2=stack2,stack3=stack3,stack4=stack4:2,stack5=stack5:1,stack6=stack6:1,stack7=stack7:1,stack8=stack8:1' \
     --mem gPoliceState+0x99:1=bytes:0,1,0x80 \
     --mem gPoliceState+0x98:1=bytes:0*3,1,2 --mem gPoliceState+0x50:1=bytes:0,1,2*2,3,4,0x80,0xFF --mem gPoliceState+0x9B:1=bytes:0*4,1,0x80 \
     --mem gPoliceState+0x1C=int --mem gPoliceState+0x4E:2=int:0:0xFFFF --mem gPolicePos=int --mem D_803F8F30=int
 police_add_tyre_trail: -n 100 --seed 1 --ret void --arg gp=sym:gPoliceState \
-    --conv 'func_8027BE7C: in a0=a0:1,a1=a1,a2=a2:2,a3=a3:2,stack0=stack0:2,stack1=stack1:2,stack2=stack2,stack3=stack3,stack4=stack4:2,stack5=stack5:1,stack6=stack6:1,stack7=stack7:1,stack8=stack8:1' \
+    --conv 'trail_add: in a0=a0:1,a1=a1,a2=a2:2,a3=a3:2,stack0=stack0:2,stack1=stack1:2,stack2=stack2,stack3=stack3,stack4=stack4:2,stack5=stack5:1,stack6=stack6:1,stack7=stack7:1,stack8=stack8:1' \
     --mem gPoliceState+0x99:1=1 --mem gPoliceState+0x98:1=0 --mem gPoliceState+0x50:1=bytes:0,2 --mem gPoliceState+0x9B:1=0 \
     --mem gPoliceState+0x1C=choice:0,-1,0x7FFFFFFF,0x80000000 --mem gPoliceState+0x4E:2=halves:0,0x7FFF,0x8000,0xFFFF \
     --mem gPolicePos=choice:0,-1,0x80000000,0x123456 --mem D_803F8F30=choice:0,-1,0x7FFFFFFF,0x123456
@@ -79,7 +79,7 @@ police_update_effects: -n 200 --seed 2 --arg gp=sym:gPoliceState --arg t6=int --
     --mem gVehPoints:0x100=onehot:0x10@0xC/1:0xD:bytes:1,2,3 --mem gEffects:0x3C0=rand --mem gEffects+0x33*0x3C:16/1=bytes:0,1 \
     --mem gFxTileSlots:16=bytes:0,1 --mem D_803EB792:1=rand --sig tex_queue_palette=a0,a1 --sig func_80260AB8=a0,a1,a2 \
     --mem gEngineSoundLevel:2=rand --mem D_80364AB0:1=bytes:0,1 \
-    --conv 'func_8027BE7C: in a0=a0:1,a1=a1,a2=a2:2,a3=a3:2,stack0=stack0:2,stack1=stack1:2,stack2=stack2,stack3=stack3,stack4=stack4:2,stack5=stack5:1,stack6=stack6:1,stack7=stack7:1,stack8=stack8:1'
+    --conv 'trail_add: in a0=a0:1,a1=a1,a2=a2:2,a3=a3:2,stack0=stack0:2,stack1=stack1:2,stack2=stack2,stack3=stack3,stack4=stack4:2,stack5=stack5:1,stack6=stack6:1,stack7=stack7:1,stack8=stack8:1'
 # police_build_model: model placement (mtx_build_model, veh_place_parts / veh_points_transform id 0xD); regs pointers not compared
 police_build_model: -n 300 --arg gp=sym:gPoliceState --heap 0x200 --heap 0x100 --mem gPoliceModel=rel:heap0 \
     --mem @heap0=int:0:0x100 --mem @heap0+4=int:0:0x100 --mem @heap0+8=int:0:0x100 --mem @heap0+0x18=choice:0x80,0x40,0x100 \
@@ -106,7 +106,7 @@ police_ride_attach: -n 200 --seed 1 --arg a3=int:0:40 --arg f24=float --mem gPol
 police_update: -n 300 --heap 0x10 --mem @heap0:1=choice:0,1 --model obj_collide_vehicle=hit_flag_803A7424.py \
     --mem gPoliceState:0xA0=rand --mem gPoliceState+0x9A:1=choice:0,1 --mem gPoliceState+0x76:2=halves:0,1,49,50,51,0xFFCF,0xFFCE,0xFFCD,0x7FFF,0x8000,100,0xFF9C \
     --mem gPolicePos:12=rand --mem gPoliceMtxA=int --mem gPoliceMtxB=int --mem gBufferIndex:1=choice:0,1 \
-    --mem D_80367BFF:1=choice:0,1 --mem D_803F8F44:1=choice:0,1,5 --mem D_803F8F43:1=choice:0,1,0x80 --mem gCollBlocked:1=choice:0,1 \
+    --mem gTurboPending:1=choice:0,1 --mem D_803F8F44:1=choice:0,1,5 --mem D_803F8F43:1=choice:0,1,0x80 --mem gCollBlocked:1=choice:0,1 \
     --mem gPlayerX:12=rand --mem D_8036443C:6=rand --mem D_803F8F40:2=rand --mem D_803F77D0=rand --mem gBounceSound:1=rand --mem gCollHit:1=rand \
     --stub-ret police_steer_rate=int --stub-ret veh_slope=float --stub-ret veh_move_along_heading=int --stub-ret veh_free_arc_mid=int:0:0xFFF \
     --stub-ret veh_turn_into_free_arc=int:-100:100 --stub-ret veh_turn_into_free_arc.a0=int:0:0xFFF \
@@ -121,7 +121,7 @@ police_update: -n 300 --seed 1 --heap 0x10 --mem @heap0:1=choice:0,1 --model obj
     --mem gPoliceState:0xA0=rand --mem gPoliceState+0x9A:1=choice:0,1 --mem gPoliceState+0x76:2=halves:0,1,49,50,51,0xFFCF,0xFFCE,0xFFCD,200,0xFF38,100,0xFF9C \
     --mem gPoliceState+4*4:16=int:-0x100000:0x100000 --mem gPoliceState+0x4C:2=int:0:0xFFF --mem gPoliceState+0x4E:2=int:0:0xFFF --mem gPoliceState+0x74:2=int:0:0xFFF \
     --mem gPolicePos:12=int:-0x1000000:0x1000000 --heap 0x200 --mem gPoliceMtxA=rel:heap1 --mem gPoliceMtxB=rel:heap1+0x100 --mem gBufferIndex:1=choice:0,1 \
-    --mem D_80367BFF:1=choice:0,1 --mem D_803F8F44:1=choice:0,1,5 --mem D_803F8F43:1=choice:0,1,0x80 --mem gCollBlocked:1=choice:0,1 \
+    --mem gTurboPending:1=choice:0,1 --mem D_803F8F44:1=choice:0,1,5 --mem D_803F8F43:1=choice:0,1,0x80 --mem gCollBlocked:1=choice:0,1 \
     --mem gFreeArcStart:2=int:0:0xFFF --mem gFreeArcEnd:2=int:0:0xFFF --mem D_803F8F42:4=rand \
     --mem gPlayerX:12=rand --mem D_8036443C:6=rand --mem D_803F8F40:2=int:0:0xFFF --mem D_803F77D0=rand --mem gBounceSound:1=rand --mem gCollHit:1=rand \
     --sig police_zone_alpha= --sig police_build_model= --sig veh_prepare_escape=a0 \
@@ -168,7 +168,7 @@ police_spawn: -n 300 --heap 0x100 --arg s2=rel:heap0 --mem @heap0+4=int:0:0x80 -
 police_spawn: -n 200 --seed 1 --heap 0x100 --heap 0x200 --arg s2=rel:heap0 --mem @heap0+4=int:0:0x80 --mem @heap0+8=int:0:0x80 --mem @heap0+0x18=0x40 --mem @heap0+0x44=choice:0,0x40,0x80 \
     --arg t7=int --arg s3=int --arg s0=int --arg s1=int:0:0xFFF --arg fp=int --arg f12=float --arg f14=float --arg f20=float --arg f22=float \
     --arg f24=float --arg f26=float --mem gHeapPtr=rel:heap1 --mem gPoliceState:0xA0=rand --mem gPolicePos:0x1E=rand --mem gPoliceAnim:0x100=rand \
-    --mem gBufferIndex:1=choice:0,1 --mem D_80367BFF:1=choice:0,1 --mem gCollBlocked:1=choice:0,1 --mem gCollHit:1=rand \
+    --mem gBufferIndex:1=choice:0,1 --mem gTurboPending:1=choice:0,1 --mem gCollBlocked:1=choice:0,1 --mem gCollHit:1=rand \
     --follow veh_reset_state,anim_play,anim_rewind,anim_set_speed,anim_set_reverse,anim_set_loop_mode,anim_set_interp,mtx_copy_at,police_update \
     --model obj_collide_vehicle=hit_flag_803A7424.py \
     --stub-ret police_steer_rate=int --stub-ret veh_slope=float --stub-ret veh_move_along_heading=int --stub-ret veh_free_arc_mid=int:0:0xFFF \

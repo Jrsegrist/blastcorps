@@ -117,7 +117,7 @@ void func_801F7850(void) {
                 p = &players[i];
                 if (D_80365060[i] == 1 && D_80364EF0[i][D_802E8C44[lvl]] > 0
                     && (gLevelInfo[levelno].type != 0x80 || p->unk91 >= 11)) {
-                    func_80264A34(timeStr, D_80364EF0[i][D_802E8C44[lvl]], 0);
+                    hud_format_time(timeStr, D_80364EF0[i][D_802E8C44[lvl]], 0);
                     sprintf(D_80219FD0[n * 4 + i], "%-7.7s %s", p, timeStr);
                     item->text = D_80219FD0[n * 4 + i];
                     item->unk10 = 0;
@@ -136,7 +136,7 @@ void func_801F7850(void) {
                 item->unk16 = D_80364EF0[i][D_802E8C44[lvl]];
                 item->unk1A = lvl;
             }
-            func_802595E0((u8 *) &gYoshiHeapItems[n * 4], 4, 0x1C, (s32 (*)(void *, void *)) func_801F7FF4);
+            text_shell_sort((u8 *) &gYoshiHeapItems[n * 4], 4, 0x1C, (s32 (*)(void *, void *)) func_801F7FF4);
             for (i = 0; i < 4; i++) {
                 item = &gYoshiHeapItems[n * 4 + i];
                 item->unk4 = i * 17;
@@ -144,14 +144,14 @@ void func_801F7850(void) {
                     item->flags |= 1;
                 }
                 if (item->text != 0) {
-                    bcopy(item->text, buf, func_8025B300((u8 *) item->text) + 1);
+                    bcopy(item->text, buf, font_strlen((u8 *) item->text) + 1);
                     sprintf(item->text, "%s %s", D_8020D800[i], buf);
                 }
             }
             n++;
         }
     }
-    func_802595E0((u8 *) gYoshiHeapItems, n, 0x70, (s32 (*)(void *, void *)) func_801F7FF4);
+    text_shell_sort((u8 *) gYoshiHeapItems, n, 0x70, (s32 (*)(void *, void *)) func_801F7FF4);
     for (lvl = 0; lvl < n * 4; lvl++) {
         item = &gYoshiHeapItems[lvl];
         D_8021A7E8[lvl] = item->unk18;
@@ -274,9 +274,9 @@ Gfx *func_801F8440(s32 arg0, Gfx *gfx) {
     off = 0;
     g = gfx;
     if (gLevelInfo[levelno].type != 0x80) {
-        g = func_80274868(g);
-        g = func_80272ED8(g, D_8021A7D0[((u16 *) gYoshiWindows)[0x280 / 2] / 4] + D_8021A8F0, 0x18 - off, 100, 0xFF - off * 2, 1, 1.0f);
-        g = func_80274AA4(g);
+        g = spr_begin(g);
+        g = spr_draw(g, D_8021A7D0[((u16 *) gYoshiWindows)[0x280 / 2] / 4] + D_8021A8F0, 0x18 - off, 100, 0xFF - off * 2, 1, 1.0f);
+        g = spr_end(g);
     }
     return g;
 }

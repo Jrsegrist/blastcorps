@@ -24,14 +24,15 @@ typedef struct {
 
 extern u8 D_8039CAB8;
 extern Mtx * N64P D_8039CAC4;
-extern u8 D_8039CAC8;
+extern u8 gAcademyBits;
 
 
-/* K&R in the matching build (hd.c passes an int). */
+/* Places the level's academy marker (0x80297530).
+ * K&R in the matching build (hd.c passes an int). */
 #ifdef NON_MATCHING
-void func_80297530(u8 arg0)
+void academy_place_marker(u8 arg0)
 #else
-void func_80297530(arg0)
+void academy_place_marker(arg0)
     u8 arg0;
 #endif
 {
@@ -40,13 +41,13 @@ void func_80297530(arg0)
 
     found = 0;
     if (gNextGameMode == 0x2000) {
-        found = func_8029766C(arg0, &idx);
+        found = academy_find_level(arg0, &idx);
     } else {
         found = 0;
     }
-    D_8039CAC8 = players[playerNumber].unk90;
+    gAcademyBits = players[playerNumber].unk90;
     if (found) {
-        D_8039CAB7 = 1;
+        gAcademyMarkerOn = 1;
         D_8039CAB0 = D_802E8F38[idx].x;
         D_8039CAB2 = D_802E8F38[idx].y;
         D_8039CAB4 = D_802E8F38[idx].z;
@@ -57,11 +58,12 @@ void func_80297530(arg0)
         guTranslate(D_8039CAC4, 0, 0, 0);
         guTranslate(D_8039CAC4 + 1, 0, 0, 0);
     } else {
-        D_8039CAB7 = 0;
+        gAcademyMarkerOn = 0;
     }
 }
 
-u8 func_8029766C(u8 arg0, u8 *arg1) {
+/* The level's entry in the academy table (0x8029766C). */
+u8 academy_find_level(u8 arg0, u8 *arg1) {
     u8 found;
     s32 i;
 
@@ -80,10 +82,11 @@ u8 func_8029766C(u8 arg0, u8 *arg1) {
     return found;
 }
 
-void func_802976E8(Gfx **arg0) {
+/* Draws the academy marker (0x802976E8). */
+void academy_draw_marker(Gfx **arg0) {
     Gfx *gdl = *arg0;
 
-    if (D_8039CAB7) {
+    if (gAcademyMarkerOn) {
         gSPSegment(gdl++, 6, osVirtualToPhysical(D_8039CAC0));
         gSPSegment(gdl++, 7, osVirtualToPhysical(D_8039CAC4));
         gSPClearGeometryMode(gdl++, -1);
@@ -93,23 +96,25 @@ void func_802976E8(Gfx **arg0) {
     *arg0 = gdl;
 }
 
-void func_80297804(s32 x, s32 y, s32 z) {
-    if (D_8039CAB7 && players[playerNumber].unk91 < 5) {
+/* Within 0x50: the bit set, mode switch (0x80297804). */
+void academy_check_marker(s32 x, s32 y, s32 z) {
+    if (gAcademyMarkerOn && players[playerNumber].unk91 < 5) {
         if (D_8039CAB8) {
-            if (func_8026A6F0(x >> 5, y >> 5, z >> 5, D_8039CAB0, D_8039CAB2, D_8039CAB4) >= 0x8D) {
+            if (util_dist3d(x >> 5, y >> 5, z >> 5, D_8039CAB0, D_8039CAB2, D_8039CAB4) >= 0x8D) {
                 D_8039CAB8 = 0;
             }
-        } else if (func_8026A6F0(x >> 5, y >> 5, z >> 5, D_8039CAB0, D_8039CAB2, D_8039CAB4) < 0x50) {
+        } else if (util_dist3d(x >> 5, y >> 5, z >> 5, D_8039CAB0, D_8039CAB2, D_8039CAB4) < 0x50) {
             D_8039CAB8 = 1;
-            D_8039CAC8 |= 1 << D_8039CAB6;
+            gAcademyBits |= 1 << D_8039CAB6;
             gNextGameMode = 0x1000000000LL;
         }
     }
 }
 
-void func_80297960(void) {
-    if (gDebugCheats && (gContButtons & 0x2000) && D_8039CAB7) {
-        D_8039CAC8 |= 1 << D_8039CAB6;
+/* The markers into players[].academy bits (0x80297960). */
+void academy_save_markers(void) {
+    if (gDebugCheats && (gContButtons & 0x2000) && gAcademyMarkerOn) {
+        gAcademyBits |= 1 << D_8039CAB6;
     }
-    players[playerNumber].unk90 = D_8039CAC8;
+    players[playerNumber].unk90 = gAcademyBits;
 }

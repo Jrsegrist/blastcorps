@@ -184,9 +184,9 @@ A_AFRAME = syms.get("alAudioFrame", syms.get("func_802D9D68"))
 # code doesn't take (00000.c hd_build_frame_dl: the blinking "PRESS START").
 # Also D_803156C0 (the scheduler's retrace count): hd_front_end 00000.c
 # func_801E7598 (the vehicle select screen's title pulse).  And 50670.c
-# func_80294F00 (the ghost recorder's sample time, D_803156C0 - start): a
+# ghost_record (the ghost recorder's sample time, D_803156C0 - start): a
 # retrace can land between its entry (a switch point) and the read.
-GVI_FUNCS = ["hd_build_frame_dl", "func_801E7598", "func_80294F00"]
+GVI_FUNCS = ["hd_build_frame_dl", "func_801E7598", "ghost_record"]
 GVI = {}
 for name in GVI_FUNCS:
     a, size = func_sizes[name]

@@ -34,68 +34,73 @@ typedef struct {
     /* 0x28 */ u8 id;
 } GhostQuad;
 
-void func_80295394(s32 *x, s32 *y, s32 *z, s16 *rx, s16 *ry, s16 *rz);
-s16 func_80295924(s16 from, s16 to, f32 t);
+void ghost_get_pose(s32 *x, s32 *y, s32 *z, s16 *rx, s16 *ry, s16 *rz);
+s16 ghost_lerp_angle(s16 from, s16 to, f32 t);
 
 extern s32 D_802FF0D0[];
 extern GhostRenderMode D_802FF11C[];
 extern GhostQuad D_802FF150[];
 
-extern GhostSample * N64P D_8039CA68[];
-extern GhostCounts D_8039CA70[];
+extern GhostSample * N64P gGhostSamples[];
+extern GhostCounts gGhostCounts[];
 extern s32 D_8039CA78;
-extern u8 D_8039CA7C;
-extern u8 D_8039CA7D;
+extern u8 gGhostVehicle;
+extern u8 gGhostValid;
 extern s32 D_8039CA80;
 extern s32 D_8039CA84;
-extern u32 D_8039CA88;
-extern u8 D_8039CA8C;
+extern u32 gGhostBestTime;
+extern u8 gGhostOverrun;
 
-void func_80294E30(void) {
-    D_8039CA68[0] = (GhostSample *) 0x80055400;
-    D_8039CA68[1] = (GhostSample *) 0x80065400;
-    D_8039CA88 = func_80286038(0xFFFF) - 1;
-    D_8039CA7D = 0;
+/* The ghost digger's sample buffers (0x80294E30). */
+void ghost_init(void) {
+    gGhostSamples[0] = (GhostSample *) 0x80055400;
+    gGhostSamples[1] = (GhostSample *) 0x80065400;
+    gGhostBestTime = stats_tenths_to_frames(0xFFFF) - 1;
+    gGhostValid = 0;
 }
 
-void func_80294E88(void) {
-    D_8039CA70[0].recCount = 0;
+/* Starts recording the player's path (0x80294E88). */
+void ghost_start_recording(void) {
+    gGhostCounts[0].recCount = 0;
     D_8039CA80 = -1;
-    D_8039CA62 = 1;
-    D_8039CA8C = 0;
+    gGhostRecording = 1;
+    gGhostOverrun = 0;
 }
 
-void func_80294EB8(void) {
-    if (D_8039CA7D) {
-        D_8039CA61 = 1;
+/* Starts the ghost's playback (0x80294EB8). */
+void ghost_start_playback(void) {
+    if (gGhostValid) {
+        gGhostPlaying = 1;
         D_8039CA84 = -1;
         D_8039CA78 = 0;
-        D_8039CA7E = D_8039CA7C;
+        D_8039CA7E = gGhostVehicle;
     }
 }
 
-void func_80294F00(void) {
+/* One sample ("OVERRUN GHOST DIGGER ARRAY") (0x80294F00). */
+void ghost_record(void) {
     if (gGameMode & 0x104) {
         if (D_8039CA80 == -1) {
-            D_8039CA80 = ((s32) PORT_GVI("func_80294F00", D_803156C0));
+            D_8039CA80 = ((s32) PORT_GVI("ghost_record", D_803156C0));
         }
-        if (D_8039CA70[0].recCount < 0xCCC) {
-            D_8039CA68[1][D_8039CA70[0].recCount].x = gPlayerX;
-            D_8039CA68[1][D_8039CA70[0].recCount].y = gPlayerY;
-            D_8039CA68[1][D_8039CA70[0].recCount].z = gPlayerZ;
-            D_8039CA68[1][D_8039CA70[0].recCount].rx = gModelRot[0];
-            D_8039CA68[1][D_8039CA70[0].recCount].ry = gModelRot[1];
-            D_8039CA68[1][D_8039CA70[0].recCount].rz = gModelRot[2];
-            D_8039CA68[1][D_8039CA70[0].recCount].time = ((s32) PORT_GVI("func_80294F00", D_803156C0)) - D_8039CA80;
-            D_8039CA70[0].recCount++;
+        if (gGhostCounts[0].recCount < 0xCCC) {
+            gGhostSamples[1][gGhostCounts[0].recCount].x = gPlayerX;
+            gGhostSamples[1][gGhostCounts[0].recCount].y = gPlayerY;
+            gGhostSamples[1][gGhostCounts[0].recCount].z = gPlayerZ;
+            gGhostSamples[1][gGhostCounts[0].recCount].rx = gModelRot[0];
+            gGhostSamples[1][gGhostCounts[0].recCount].ry = gModelRot[1];
+            gGhostSamples[1][gGhostCounts[0].recCount].rz = gModelRot[2];
+            gGhostSamples[1][gGhostCounts[0].recCount].time = ((s32) PORT_GVI("ghost_record", D_803156C0)) - D_8039CA80;
+            gGhostCounts[0].recCount++;
         } else {
-            D_8039CA8C = 1;
+            gGhostOverrun = 1;
             debug_printf("OVERRUN GHOST DIGGER ARRAY\n");
         }
     }
 }
 
-void func_80295120(Gfx **gfxp, Mtx *mtx) {
+/* Draws the ghost (0x80295120). */
+void ghost_draw(Gfx **gfxp, Mtx *mtx) {
     Gfx *gdl = *gfxp;
     s32 x;
     s32 y;
@@ -104,9 +109,9 @@ void func_80295120(Gfx **gfxp, Mtx *mtx) {
     s16 ry;
     s16 rz;
 
-    if (D_8039CA61) {
-        func_80295394(&x, &y, &z, &rx, &ry, &rz);
-        mtx_build_model_rot(x, y, z, rx, ry, rz, D_802FF0D0[D_8039CA7C], &mtx[83]);
+    if (gGhostPlaying) {
+        ghost_get_pose(&x, &y, &z, &rx, &ry, &rz);
+        mtx_build_model_rot(x, y, z, rx, ry, rz, D_802FF0D0[gGhostVehicle], &mtx[83]);
         gSPSegment(gdl++, 6, osVirtualToPhysical(D_803BDB04));
         gSPSegment(gdl++, 7, osVirtualToPhysical(D_803BDB00));
         gSPMatrix(gdl++, &D_02000000[83], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
@@ -121,7 +126,8 @@ void func_80295120(Gfx **gfxp, Mtx *mtx) {
     *gfxp = gdl;
 }
 
-void func_80295394(s32 *x, s32 *y, s32 *z, s16 *rx, s16 *ry, s16 *rz) {
+/* The ghost's pose at this frame (0x80295394). */
+void ghost_get_pose(s32 *x, s32 *y, s32 *z, s16 *rx, s16 *ry, s16 *rz) {
     u8 found;
     s32 t;
     s32 next;
@@ -131,17 +137,17 @@ void func_80295394(s32 *x, s32 *y, s32 *z, s16 *rx, s16 *ry, s16 *rz) {
 
     t = ((s32) D_803156C0) - D_8039CA84;
     if (gGameMode == 0x2000) {
-        *x = D_8039CA68[0][0].x;
-        *y = D_8039CA68[0][0].y;
-        *z = D_8039CA68[0][0].z;
-        *rx = D_8039CA68[0][0].rx;
-        *ry = D_8039CA68[0][0].ry;
-        *rz = D_8039CA68[0][0].rz;
+        *x = gGhostSamples[0][0].x;
+        *y = gGhostSamples[0][0].y;
+        *z = gGhostSamples[0][0].z;
+        *rx = gGhostSamples[0][0].rx;
+        *ry = gGhostSamples[0][0].ry;
+        *rz = gGhostSamples[0][0].rz;
         D_8039CA84 = ((s32) D_803156C0);
     } else {
         found = 0;
-        while (D_8039CA78 < D_8039CA70[0].playCount - 2 && !found) {
-            if (t >= D_8039CA68[0][D_8039CA78].time && t < D_8039CA68[0][D_8039CA78 + 1].time) {
+        while (D_8039CA78 < gGhostCounts[0].playCount - 2 && !found) {
+            if (t >= gGhostSamples[0][D_8039CA78].time && t < gGhostSamples[0][D_8039CA78 + 1].time) {
                 found = 1;
             } else {
                 D_8039CA78++;
@@ -149,30 +155,31 @@ void func_80295394(s32 *x, s32 *y, s32 *z, s16 *rx, s16 *ry, s16 *rz) {
         }
         found = 0;
         next = D_8039CA78 + 1;
-        while (next < D_8039CA70[0].playCount - 2 && !found) {
-            if (t <= D_8039CA68[0][next].time) {
+        while (next < gGhostCounts[0].playCount - 2 && !found) {
+            if (t <= gGhostSamples[0][next].time) {
                 found = 1;
             } else {
                 next++;
             }
         }
-        span = D_8039CA68[0][next].time - D_8039CA68[0][D_8039CA78].time;
-        if (next >= D_8039CA70[0].playCount - 2) {
-            elapsed = D_8039CA68[0][next].time - D_8039CA68[0][D_8039CA78].time;
+        span = gGhostSamples[0][next].time - gGhostSamples[0][D_8039CA78].time;
+        if (next >= gGhostCounts[0].playCount - 2) {
+            elapsed = gGhostSamples[0][next].time - gGhostSamples[0][D_8039CA78].time;
         } else {
-            elapsed = t - D_8039CA68[0][D_8039CA78].time;
+            elapsed = t - gGhostSamples[0][D_8039CA78].time;
         }
         frac = (f32) elapsed / (f32) span;
-        *x = (D_8039CA68[0][next].x - D_8039CA68[0][D_8039CA78].x) * frac + D_8039CA68[0][D_8039CA78].x;
-        *y = (D_8039CA68[0][next].y - D_8039CA68[0][D_8039CA78].y) * frac + D_8039CA68[0][D_8039CA78].y;
-        *z = (D_8039CA68[0][next].z - D_8039CA68[0][D_8039CA78].z) * frac + D_8039CA68[0][D_8039CA78].z;
-        *rx = func_80295924(D_8039CA68[0][D_8039CA78].rx, D_8039CA68[0][next].rx, frac);
-        *ry = func_80295924(D_8039CA68[0][D_8039CA78].ry, D_8039CA68[0][next].ry, frac);
-        *rz = func_80295924(D_8039CA68[0][D_8039CA78].rz, D_8039CA68[0][next].rz, frac);
+        *x = (gGhostSamples[0][next].x - gGhostSamples[0][D_8039CA78].x) * frac + gGhostSamples[0][D_8039CA78].x;
+        *y = (gGhostSamples[0][next].y - gGhostSamples[0][D_8039CA78].y) * frac + gGhostSamples[0][D_8039CA78].y;
+        *z = (gGhostSamples[0][next].z - gGhostSamples[0][D_8039CA78].z) * frac + gGhostSamples[0][D_8039CA78].z;
+        *rx = ghost_lerp_angle(gGhostSamples[0][D_8039CA78].rx, gGhostSamples[0][next].rx, frac);
+        *ry = ghost_lerp_angle(gGhostSamples[0][D_8039CA78].ry, gGhostSamples[0][next].ry, frac);
+        *rz = ghost_lerp_angle(gGhostSamples[0][D_8039CA78].rz, gGhostSamples[0][next].rz, frac);
     }
 }
 
-s16 func_80295924(s16 from, s16 to, f32 t) {
+/* Angle interpolation for the ghost (0x80295924). */
+s16 ghost_lerp_angle(s16 from, s16 to, f32 t) {
     s16 d = to - from;
 
     if (d >= -0x800) {
@@ -193,29 +200,31 @@ s16 func_80295924(s16 from, s16 to, f32 t) {
     return t;
 }
 
-void func_80295A20(u32 arg0) {
+/* Keeps the run if its time is the best (0x80295A20). */
+void ghost_keep_if_best(u32 arg0) {
     u8 *dst;
     u8 *src;
     s32 i;
 
-    if (D_8039CA88 >= arg0) {
-        if (D_8039CA8C == 0) {
-            D_8039CA7D = 1;
+    if (gGhostBestTime >= arg0) {
+        if (gGhostOverrun == 0) {
+            gGhostValid = 1;
         } else {
-            D_8039CA7D = 0;
+            gGhostValid = 0;
         }
-        dst = (u8 *) D_8039CA68[0];
-        src = (u8 *) D_8039CA68[1];
+        dst = (u8 *) gGhostSamples[0];
+        src = (u8 *) gGhostSamples[1];
         for (i = 0; i < 0x10000; i++) {
             dst[i] = src[i];
         }
-        D_8039CA7C = D_803643D4;
-        D_8039CA70[0].playCount = D_8039CA70[0].recCount;
-        D_8039CA88 = arg0;
+        gGhostVehicle = D_803643D4;
+        gGhostCounts[0].playCount = gGhostCounts[0].recCount;
+        gGhostBestTime = arg0;
     }
 }
 
-void func_80295AE0(Gfx *gdl, Gfx *end) {
+/* The ghost's translucent display list (0x80295AE0). */
+void ghost_make_translucent_dl(Gfx *gdl, Gfx *end) {
     s8 cmd;
     u32 shift;
     u8 found;
@@ -259,7 +268,8 @@ void func_80295AE0(Gfx *gdl, Gfx *end) {
     }
 }
 
-void func_80295C70(u8 id, s32 px, s32 pz) {
+/* Mode 4: a fixed visible-cell list while inside the level's quad (0x80295C70). */
+void cull_override_visible_cells(u8 id, s32 px, s32 pz) {
     s32 i;
     s32 j;
 

@@ -80,7 +80,7 @@ Gfx *func_801F3450(Gfx *gdl, u8 *dyn) {
     guLookAt((Mtx *) (dyn + 0x140), D_80217B54 + 1.0f, D_80217B58, D_80217B5C, D_80217B60, D_80217B64, D_80217B68,
              0.0f, 1.0f, 0.0f);
     func_801F4878((Gfx *) (dyn + 0xACB0), dyn);
-    func_802595E0((u8 *) D_80218270, 7, sizeof(DrawEntry), (s32 (*)(void *, void *)) func_801F36B0);
+    text_shell_sort((u8 *) D_80218270, 7, sizeof(DrawEntry), (s32 (*)(void *, void *)) func_801F36B0);
     for (i = 0, found = 0; i < 7; i++) {
         if (!found || D_80217B6C != 3) {
             gSPDisplayList(gfx++, D_80218270[i].unk4);
@@ -172,7 +172,7 @@ Gfx *func_801F3964(Gfx *gdl, u8 *dyn, Node *node, f32 scale) {
         size = size * 10000.0 / node->unk38;
     }
     isize = size;
-    func_8027690C(dyn, 0.0f, 0.0f, 0.0f, &sx, &sy, &D_80217B70[node - D_8020BD30][gBufferIndex],
+    hud_project_point(dyn, 0.0f, 0.0f, 0.0f, &sx, &sy, &D_80217B70[node - D_8020BD30][gBufferIndex],
                   &D_80217B70[node - D_8020BD30][gBufferIndex] + 2, (Mtx *) (dyn + 0x1280), 4.0f);
     if (ABS(sx) + size / 2.0 < 4096.0 && ABS(sy) + size / 2.0 < 4096.0) {
         gDPLoadTextureBlock(gfx++, tex, G_IM_FMT_IA, G_IM_SIZ_8b, 64, 64, 0, G_TX_CLAMP, G_TX_MIRROR, G_TX_NOMASK,
@@ -231,7 +231,7 @@ Gfx *func_801F4110(Gfx *gdl, u8 *dyn, Node *node, f32 scale) {
         size = size * 10000.0 / node->unk38;
     }
     isize = size;
-    func_8027690C(dyn, 0.0f, 0.0f, 0.0f, &sx, &sy, &D_80217B70[node - D_8020BD30][gBufferIndex],
+    hud_project_point(dyn, 0.0f, 0.0f, 0.0f, &sx, &sy, &D_80217B70[node - D_8020BD30][gBufferIndex],
                   &D_80217B70[node - D_8020BD30][gBufferIndex] + 2, (Mtx *) (dyn + 0x1280), 4.0f);
     if (ABS(sx) + size / 2.0 < 4096.0 && ABS(sy) + size / 2.0 < 4096.0) {
         gDPLoadTextureBlock(gfx++, D_80215A84, G_IM_FMT_RGBA, G_IM_SIZ_32b, 32, 32, 0, G_TX_CLAMP, G_TX_CLAMP,

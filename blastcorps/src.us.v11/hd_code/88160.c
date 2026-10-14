@@ -356,7 +356,7 @@ void ateam_update(void) {
     if ((s8) gAteamState[0x9A] == 0) {
         ateam_update_effects(zr.t6, zr.t7, zr.s0, zr.s1, zr.s2, zr.s3, zr.s4);
     }
-    if (D_80367BFF != 0) {
+    if (gTurboPending != 0) {
         func_802CB690(gAteamState);
     }
     ateam_set_physics();
@@ -515,15 +515,15 @@ extern u32 gAteamPos[]; /* [0], [2]: trail x, z */
 /* Tyre tracks while skidding (0x802CD660).
  * Tyre trail (shape of skyfall_add_tyre_trail in 6E200; $gp = gAteamState): if the
  * byte at +0x99 is set, +0x98 isn't 1, +0x50 < 3 and +0x9B is clear,
- * func_8027BE7C(3, y, 250, -400, -400, -400, gAteamPos[0], gAteamPos[2],
+ * trail_add(3, y, 250, -400, -400, -400, gAteamPos[0], gAteamPos[2],
  * yaw, 3, 50, 50, 0).
  * Register note: the asm saves and restores every integer register; asm
  * caller ateam_update_effects keeps a0-a3, t6, t7 live (and reads f12/f14 after
- * the call, which the asm doesn't touch but func_8027BE7C may); a mixed N64
+ * the call, which the asm doesn't touch but trail_add may); a mixed N64
  * build would need a thunk. */
 void ateam_add_tyre_trail(void) {
     if (gAteamState[0x99] != 0 && gAteamState[0x98] != 1 && gAteamState[0x50] < 3 && gAteamState[0x9B] == 0) {
-        func_8027BE7C(3, *(s32 *) (gAteamState + 0x1C), 250, -400, -400, -400, gAteamPos[0], gAteamPos[2],
+        trail_add(3, *(s32 *) (gAteamState + 0x1C), 250, -400, -400, -400, gAteamPos[0], gAteamPos[2],
                       *(u16 *) (gAteamState + 0x4E), 3, 50, 50, 0);
     }
 }

@@ -24,7 +24,7 @@ extern u8 D_803669A8;
 extern RecEntry * N64P D_803669AC;
 extern void * N64P D_803669B0;
 extern RecEntry D_80365588[];
-extern u16 D_802E8CB0[]; /* sprite ids (func_80272C5C) */
+extern u16 D_802E8CB0[]; /* sprite ids (spr_load) */
 
 
 #define ASSERT(EX, line) if (!(EX)) debug_printf("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "recording.c", line)
@@ -72,7 +72,7 @@ void func_8025BB50(void) {
     D_80366998 = D_80366990;
     D_80366994 = 0;
     D_803669AC = D_80365588;
-    D_80365580 = func_80272C5C((u16 *) D_802E8CB0, 0, 1, 1, 1, 1.0f);
+    D_80365580 = spr_load((u16 *) D_802E8CB0, 0, 1, 1, 1, 1.0f);
     D_803669A0 = D_803669AC[D_80366994].count;
 }
 

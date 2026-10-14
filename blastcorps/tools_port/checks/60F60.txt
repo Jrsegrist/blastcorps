@@ -34,8 +34,8 @@ fx_age_texture_caches: -n 50 --seed 2 --ret void --mem gFxTexCaches=rel:heap --m
 # empty range
 fx_age_texture_caches: -n 20 --seed 3 --ret void --mem gFxTexCaches=rel:heap --mem gFxTexCachesEnd=rel:heap --mem gFxTexCachesFree:2=int:0:0xFFFF
 
-# fx_begin_dls: two display-list cursors through func_80257540 (stubbed)
-fx_begin_dls: -n 200 --ret void --sig func_80257540=a0 --mem gFxDlCursorA=int --mem gFxDlCursorB=int
+# fx_begin_dls: two display-list cursors through gfx_begin_textured (stubbed)
+fx_begin_dls: -n 200 --ret void --sig gfx_begin_textured=a0 --mem gFxDlCursorA=int --mem gFxDlCursorB=int
 
 # tex_decode_next: tex_decode(cursor gTexDecodeQueueHead), then cursor += 0x10. The asm relies on
 # tex_decode preserving a0 AND v1 (a stub clobbers v1 and the reference faults), so the
@@ -134,15 +134,15 @@ fx_get_dl_cursor: -n 100 --arg a0=ptr:0x40 --mem @a0+0x3B:1=choice:0,1,0x80,0xFF
 
 # ---- phase D (wave 1, wt-d4) ----
 # fx_draw_quad (obj t4, vtx t1, timg s1, fmtsiz t8, width v1, height s5, zbuf gp): *cursor =
-# func_802575F4(*cursor, ...), cursor = fx_get_dl_cursor(obj). func_802575F4's fmtsiz is compared at its
+# gfx_draw_textured_quad(*cursor, ...), cursor = fx_get_dl_cursor(obj). gfx_draw_textured_quad's fmtsiz is compared at its
 # declared s16 width (the asm passes the whole register, the C prototype narrows it).
-fx_draw_quad: -n 300 --seed 0 --follow fx_get_dl_cursor --stub-ret func_802575F4=rand \
-    --conv 'func_802575F4: in a0=a0,a1=a1,a2=a2,a3=a3:2,stack0=stack0,stack1=stack1,stack2=stack2 ; out v0=ret' \
+fx_draw_quad: -n 300 --seed 0 --follow fx_get_dl_cursor --stub-ret gfx_draw_textured_quad=rand \
+    --conv 'gfx_draw_textured_quad: in a0=a0,a1=a1,a2=a2,a3=a3:2,stack0=stack0,stack1=stack1,stack2=stack2 ; out v0=ret' \
     --arg t4=ptr:0x40 --mem @t4+0x3B:1=bytes:0,1,0xFF --arg t1=int --arg s1=int --arg t8=int --arg v1=int \
     --arg s5=int --arg gp=int --mem gFxDlCursorA=int --mem gFxDlCursorB=int
 # callee stubbed: cursor from --stub-ret
-fx_draw_quad: -n 100 --seed 1 --stub-ret fx_get_dl_cursor=0x803EB784 --stub-ret func_802575F4=rand \
-    --conv 'func_802575F4: in a0=a0,a1=a1,a2=a2,a3=a3:2,stack0=stack0,stack1=stack1,stack2=stack2 ; out v0=ret' \
+fx_draw_quad: -n 100 --seed 1 --stub-ret fx_get_dl_cursor=0x803EB784 --stub-ret gfx_draw_textured_quad=rand \
+    --conv 'gfx_draw_textured_quad: in a0=a0,a1=a1,a2=a2,a3=a3:2,stack0=stack0,stack1=stack1,stack2=stack2 ; out v0=ret' \
     --arg t4=int --arg t1=int --arg s1=int --arg t8=choice:0,1,0x7FFF,0x8000,0xFFFF,-1 --arg v1=int --arg s5=int \
     --arg gp=int --mem gFxDlCursorA=int --mem gFxDlCursorB=int
 
@@ -259,4 +259,4 @@ fx_draw_all: -n 200 --seed 2 --heap 0x40 --heap 0x40 --mem gBufferIndex:1=bytes:
     --mem @heap1+2:1=bytes:0,1,2,3 --mem @heap1+3:1=bytes:0,1,2,3 --mem @heap1+0xA:2=choice:1,8,0x40 --mem @heap1+0xC:2=choice:1,8,0x40,0xFFFF \
     --mem @heap1+0xE:2=choice:1,2,3 --mem gFxTileSlots:16=bytes:0,1 --sig fx_begin_dls= --sig fx_age_texture_caches= \
     --mem gFxTexCaches=rel:heap0 --mem gFxTexCachesEnd=rel:heap0 --mem gFxTexCachesFree:2=0 \
-    --follow fx_get_dl_cursor,fx_fill_quad,fx_age_texture_caches,fx_get_texture --sig func_80257540=a0 --sig tex_queue_load_impl=a0,a1,a2
+    --follow fx_get_dl_cursor,fx_fill_quad,fx_age_texture_caches,fx_get_texture --sig gfx_begin_textured=a0 --sig tex_queue_load_impl=a0,a1,a2

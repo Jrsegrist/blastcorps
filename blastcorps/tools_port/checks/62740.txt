@@ -37,9 +37,9 @@ veh_has_partial_rider: -n 300 --seed 1 --follow veh_has_partial_rider_walk --arg
 # ---- phase C (wt-c2). gp = vehicle record (conventions.txt: in gp=a0); --arg gp=ptr gives it a
 # random 0x100-byte record, so every field write is visible.
 
-# veh_widen_bands: double the 5 band bounds at veh+0x78 if D_80367C10
-veh_widen_bands: -n 300 --arg gp=ptr:0x100 --mem D_80367C10:1=choice:0,1,0xFF
-veh_widen_bands: -n 100 --seed 1 --arg gp=ptr:0x100 --mem D_80367C10:1=1 --mem @gp+0x78:30=halves:0,1,0x4000,0x7FFF,0x8000,0xC000,0xFFFF
+# veh_widen_bands: double the 5 band bounds at veh+0x78 if gWideFovLevel
+veh_widen_bands: -n 300 --arg gp=ptr:0x100 --mem gWideFovLevel:1=choice:0,1,0xFF
+veh_widen_bands: -n 100 --seed 1 --arg gp=ptr:0x100 --mem gWideFovLevel:1=1 --mem @gp+0x78:30=halves:0,1,0x4000,0x7FFF,0x8000,0xC000,0xFFFF
 
 # veh_hit_slowdown(veh, limit): direction byte + speed 3 toward 0, clamped at +-limit (if D_80358064)
 veh_hit_slowdown: -n 300 --arg gp=ptr:0x100 --arg a1=choice:-5,-1,0,1,3,5,100,0x7FFF,-0x8000,0x80000001 \
@@ -111,11 +111,11 @@ veh_drive_traction: -n 400 --arg t7=choice:0,1,2,3,4,5,-1,0x100 --arg s0=ptr:0x1
 
 # veh_steer(rate, angle): steering turn of *angle, D_80370C72/D_80370C70 outputs
 veh_steer: -n 400 --arg s3=int:-1000:1000 --arg s4=ptr:0x10 --mem @s4:2=int:0:0xFFFF \
-    --mem D_80367C10:1=choice:0,1 --mem D_80370C75:1=choice:0*3,1 --mem D_80370C34:1=choice:0,1 --mem gPadStickX:1=int:0:255 \
+    --mem gWideFovLevel:1=choice:0,1 --mem D_80370C75:1=choice:0*3,1 --mem D_80370C34:1=choice:0,1 --mem gPadStickX:1=int:0:255 \
     --mem D_803ED40A:1=choice:0,1 --mem D_803649EE:1=choice:0,1 --mem D_803ED408:2=int:0:0xFFFF \
     --mem D_80370C72:2=rand --mem D_80370C70:2=rand
 veh_steer: -n 300 --seed 1 --arg s3=choice:0,1,2,3,79,80,81,0x7FFFFFFF,0x80000000,-1 --arg s4=ptr:0x10 \
-    --mem @s4:2=choice:0,1,0xFFF,0x1000,0x1001,0xFFFF --mem D_80367C10:1=choice:0,1 --mem D_80370C75:1=0 \
+    --mem @s4:2=choice:0,1,0xFFF,0x1000,0x1001,0xFFFF --mem gWideFovLevel:1=choice:0,1 --mem D_80370C75:1=0 \
     --mem gPadStickX:1=choice:0,1,0x7F,0x80,0xFF --mem D_803ED40A:1=0 --mem D_80370C72:2=rand --mem D_80370C70:2=rand
 
 # func_802A8314(t5) -> t5: D_80305C58 {key, value, threshold} lookup (value 0 ends; one at entry 8)
@@ -487,7 +487,7 @@ func_802AC0BC: -n 300 --seed 2 --follow ground_tri_box_contains,ground_tri_conta
 veh_steer_throttle: -n 300 --arg s3=int --arg s4=ptr:0x10 --arg gp=ptr:0x100 --arg t6=ptr:0x10 --arg t7=int:0:5 \
     --arg s0=ptr:0x10 --arg s1=ptr:0x40 --arg s2=int:0:40
 veh_steer_throttle: -n 300 --seed 1 --follow veh_steer,veh_throttle,veh_drive_traction,veh_past_reverse_limit,veh_past_forward_limit,veh_band_accel \
-    --arg s3=int:-1000:1000 --arg s4=ptr:0x10 --mem @s4:2=int:0:0xFFFF --mem D_80367C10:1=choice:0,1 \
+    --arg s3=int:-1000:1000 --arg s4=ptr:0x10 --mem @s4:2=int:0:0xFFFF --mem gWideFovLevel:1=choice:0,1 \
     --mem D_80370C75:1=choice:0*3,1 --mem D_80370C34:1=choice:0,1 --mem gPadStickX:1=int:0:255 \
     --mem D_803ED40A:1=choice:0,1 --mem D_803649EE:1=choice:0,1 --mem D_803ED408:2=int:0:0xFFFF \
     --mem D_80370C72:2=rand --mem D_80370C70:2=rand --arg gp=ptr:0x100 --mem @gp+0x50:1=bytes:0,1,2,3,4 \
@@ -676,7 +676,7 @@ veh_respawn_if_out: -n 300 --seed 2 --heap 0x100 --arg gp=rel:heap0 --arg t8=cho
     --mem @heap2+0x75:1=2 --mem @heap2+0x7E:1=7 --mem @heap2+0x87:1=0xD --mem gLevelKind=choice:0,0x80 \
     --mem levelno=5 --mem gBoundsMinX:2=100 --mem gBoundsMaxX:2=1000 --mem gBoundsMinZ:2=200 --mem gBoundsMaxZ:2=900 \
     --sig fx_spawn_at_late=a0,a1,a2,a3,stack0
-# callees run for real (veh_reset_state, fx_spawn_at_late; fx_spawn and func_80277EDC stubbed)
+# callees run for real (veh_reset_state, fx_spawn_at_late; fx_spawn and hud_panel_start stubbed)
 veh_respawn_if_out: -n 200 --seed 3 --heap 0x100 --arg gp=rel:heap0 --arg t8=choice:7,1,2,0xD --heap 0x10 --arg t7=rel:heap1 \
     --arg s2=rel:heap1+4 --arg s1=rel:heap1+8 --arg t0=int:-0x1000:0x20000 --arg t1=int:-0x1000:0x20000 --heap 0x90 \
     --mem gRespawnPoints=rel:heap2 --mem @heap2+0x6C:1=1 --mem @heap2+0x75:1=2 --mem @heap2+0x7E:1=7 --mem @heap2+0x87:1=0xD \

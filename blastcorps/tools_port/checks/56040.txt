@@ -344,7 +344,7 @@ veh_request_switch: -n 300 --seed 2 --follow veh_rides_on --arg s1=choice:0,1,2,
     --mem gNextVehicle:1=rand --mem gStandOn:0x40=words:0x00070000,0x01070000,0x02070000,0x00060000,0xFF070000,0 \
     --mem gStandOn+0x40=0xFFFFFFFF
 
-# crane_check_part_hits (s0-s3 pass through): crane_find_test_part, then func_8028FAC0/func_802920DC(s0-s3) if found -> s4
+# crane_check_part_hits (s0-s3 pass through): crane_find_test_part, then tnt_test_sphere/block_test_sphere(s0-s3) if found -> s4
 crane_check_part_hits: -n 200 --stub-ret crane_find_test_part.s4=rand
 crane_check_part_hits: -n 100 --seed 1 --stub-ret crane_find_test_part.s4=0
 crane_check_part_hits: -n 300 --seed 2 --follow crane_find_test_part --mem gVehPartSpheres:0x140=rand --mem gVehPartSpheres+0x13*0x14:16/1=bytes:0,0,1,0xFF \
@@ -606,9 +606,9 @@ veh_sphere_hits_world: -n 300 --seed 5 --stub-ret math_sphere_tri_plane=1 --stub
     --arg t3=int --arg t4=int --arg t5=int --arg t6=int --arg t8=choice:0,1,5,6,9,0xC8
 # followed: real triangle math (small coordinates, s64 plane words from a small pool, f32 divisors 1..2000) over
 # the objects (veh_sphere_hits_object / math_spheres_overlap real), D_803BD308 and the cell lists (veh_grid_cells_at real, cell 0);
-# the D_803F9330 / gCollTris lists empty; func_80286090 (level test of obj_end_object_hidden) stubbed.
+# the D_803F9330 / gCollTris lists empty; stats_level_done (level test of obj_end_object_hidden) stubbed.
 veh_sphere_hits_world: -n 200 --seed 3 --follow veh_sphere_hits_object,math_spheres_overlap,math_sphere_tri_plane,math_tri_project_2d,math_point_in_tri_2d,math_sphere_hits_tri_edges,math_sphere_hits_tri_vertex0,veh_grid_cells_at,obj_end_object_hidden,sqrtf \
-    --sig func_80286090=a0 --heap 0x480=words:0,1,0xFFFFFFFF,100,0xFFFFFF9C,4000,0xFFFFF060 \
+    --sig stats_level_done=a0 --heap 0x480=words:0,1,0xFFFFFFFF,100,0xFFFFFF9C,4000,0xFFFFF060 \
     --mem @heap0+0x20*0x60:12=fbits:1:2000 --mem @heap0+0x24*0x60:12=fbits:-2000:-1 \
     --mem @heap0+0x51*0x60:12/1=choice:0,1,1 \
     --mem D_803059F0*0xC:4=choice:0xFFFF,0,1 --mem D_803059F0+4*0xC:4=choice:5,6,0x38 \
@@ -973,7 +973,7 @@ veh_report_world_hits: -n 300 --seed 3 --stub-ret math_sphere_tri_plane=1 --stub
     --arg t3=int --arg t4=int --arg t5=int --arg t6=int --arg t8=choice:0,1,5,6,9,0xC8 --arg fp=int
 # followed: the real triangle math as in veh_sphere_hits_world's followed run; callbacks stubbed
 veh_report_world_hits: -n 200 --seed 4 --follow veh_sphere_hits_object,math_spheres_overlap,math_sphere_tri_plane,math_tri_project_2d,math_point_in_tri_2d,math_sphere_hits_tri_edges,math_sphere_hits_tri_vertex0,veh_grid_cells_at,obj_end_object_hidden,sqrtf \
-    --sig func_80286090=a0 --heap 0x480=words:0,1,0xFFFFFFFF,100,0xFFFFFF9C,4000,0xFFFFF060 \
+    --sig stats_level_done=a0 --heap 0x480=words:0,1,0xFFFFFFFF,100,0xFFFFFF9C,4000,0xFFFFF060 \
     --mem @heap0+0x20*0x60:12=fbits:1:2000 --mem @heap0+0x24*0x60:12=fbits:-2000:-1 \
     --mem @heap0+0x51*0x60:12/1=choice:0,1,1 \
     --mem D_803059F0*0xC:4=choice:0xFFFF,0,1 --mem D_803059F0+4*0xC:4=choice:5,6,0x38 \

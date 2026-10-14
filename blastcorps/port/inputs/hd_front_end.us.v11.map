@@ -14,28 +14,28 @@ Discarded input sections
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/00000.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/00000.c.o
  .gptab.data    0x00000000       0x48 build_nm/src.us.v11/hd_front_end/00000.c.o
- .mdebug        0x00000000     0x16d4 build_nm/src.us.v11/hd_front_end/00000.c.o
+ .mdebug        0x00000000     0x16ec build_nm/src.us.v11/hd_front_end/00000.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/01C40.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/01C40.c.o
  .gptab.data    0x00000000       0x70 build_nm/src.us.v11/hd_front_end/01C40.c.o
- .mdebug        0x00000000     0x2fe4 build_nm/src.us.v11/hd_front_end/01C40.c.o
+ .mdebug        0x00000000     0x2fdc build_nm/src.us.v11/hd_front_end/01C40.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/06790.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/06790.c.o
  .gptab.data    0x00000000       0x20 build_nm/src.us.v11/hd_front_end/06790.c.o
  .mdebug        0x00000000      0xb28 build_nm/src.us.v11/hd_front_end/06790.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/07390.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/07390.c.o
- .mdebug        0x00000000      0x890 build_nm/src.us.v11/hd_front_end/07390.c.o
+ .mdebug        0x00000000      0x894 build_nm/src.us.v11/hd_front_end/07390.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/07800.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/07800.c.o
  .gptab.data    0x00000000       0x18 build_nm/src.us.v11/hd_front_end/07800.c.o
- .mdebug        0x00000000     0x1470 build_nm/src.us.v11/hd_front_end/07800.c.o
+ .mdebug        0x00000000     0x1480 build_nm/src.us.v11/hd_front_end/07800.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/09570.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/09570.c.o
  .mdebug        0x00000000     0x11e0 build_nm/src.us.v11/hd_front_end/09570.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/0C450.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/0C450.c.o
- .mdebug        0x00000000      0xfec build_nm/src.us.v11/hd_front_end/0C450.c.o
+ .mdebug        0x00000000      0xff0 build_nm/src.us.v11/hd_front_end/0C450.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/0DE70.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/0DE70.c.o
  .mdebug        0x00000000      0xc64 build_nm/src.us.v11/hd_front_end/0DE70.c.o
@@ -43,16 +43,16 @@ Discarded input sections
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/0E7B0.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/10850.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/10850.c.o
- .mdebug        0x00000000      0xebc build_nm/src.us.v11/hd_front_end/10850.c.o
+ .mdebug        0x00000000      0xeb0 build_nm/src.us.v11/hd_front_end/10850.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/17990.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/17990.c.o
- .mdebug        0x00000000     0x12fc build_nm/src.us.v11/hd_front_end/17990.c.o
+ .mdebug        0x00000000     0x1314 build_nm/src.us.v11/hd_front_end/17990.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/196F0.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/196F0.c.o
  .mdebug        0x00000000      0x6fc build_nm/src.us.v11/hd_front_end/196F0.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/1A240.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/1A240.c.o
- .mdebug        0x00000000      0x790 build_nm/src.us.v11/hd_front_end/1A240.c.o
+ .mdebug        0x00000000      0x794 build_nm/src.us.v11/hd_front_end/1A240.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/1AE80.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/1AE80.c.o
  .mdebug        0x00000000      0x608 build_nm/src.us.v11/hd_front_end/1AE80.c.o
@@ -577,6 +577,8 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x8036bb1e                        gYoshiTypeState = 0x8036bb1e
                 0x8036bb20                        gYoshiAlpha = 0x8036bb20
                 0x8036bb24                        gYoshiHeapItems = 0x8036bb24
+                0x802e8c84                        gFontAdvance = 0x802e8c84
+                0x802e8c98                        gTextTerminator = 0x802e8c98
                 0x80211a68                        D_80211A68 = 0x80211a68
                 0x803643d4                        D_803643D4 = 0x803643d4
                 0x80364b00                        D_80364B00 = 0x80364b00
@@ -615,7 +617,6 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x8021592e                        D_8021592E = 0x8021592e
                 0x802e8c94                        D_802E8C94 = 0x802e8c94
                 0x802158a8                        D_802158A8 = 0x802158a8
-                0x802e8c98                        D_802E8C98 = 0x802e8c98
                 0x802154d8                        D_802154D8 = 0x802154d8
                 0x802154e8                        D_802154E8 = 0x802154e8
                 0x802154f0                        D_802154F0 = 0x802154f0
@@ -864,7 +865,6 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x8021ab60                        D_8021AB60 = 0x8021ab60
                 0x8021ab64                        D_8021AB64 = 0x8021ab64
                 0x8021a934                        D_8021A934 = 0x8021a934
-                0x802e8c84                        D_802E8C84 = 0x802e8c84
                 0x8021a944                        D_8021A944 = 0x8021a944
                 0x8021a940                        D_8021A940 = 0x8021a940
                 0x8021a909                        D_8021A909 = 0x8021a909
@@ -995,51 +995,51 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x8085d840                        PROVIDE (anim_tex_set_speed = 0x8085d840)
                 0x8085d868                        PROVIDE (anim_tex_set_reverse = 0x8085d868)
                 0x8085d890                        PROVIDE (anim_tex_set_loop_mode = 0x8085d890)
+                0x8082062c                        PROVIDE (hud_format_time = 0x8082062c)
+                0x8082079c                        PROVIDE (lvl_planet = 0x8082079c)
+                0x80814f30                        PROVIDE (text_begin_frame = 0x80814f30)
+                0x808150c0                        PROVIDE (text_shell_sort = 0x808150c0)
+                0x808156b4                        PROVIDE (text_flush = 0x808156b4)
+                0x80815704                        PROVIDE (text_flush_screen = 0x80815704)
+                0x808157ac                        PROVIDE (text_print = 0x808157ac)
+                0x808158a8                        PROVIDE (text_print_gradient = 0x808158a8)
+                0x80816d98                        PROVIDE (font_age_cache = 0x80816d98)
+                0x80816de0                        PROVIDE (font_strlen = 0x80816de0)
+                0x80816e50                        PROVIDE (font_wstrlen = 0x80816e50)
+                0x80816ed0                        PROVIDE (font_strcmp = 0x80816ed0)
+                0x80816f78                        PROVIDE (font_center_x = 0x80816f78)
+                0x80817038                        PROVIDE (font_narrow = 0x80817038)
+                0x8082e8dc                        PROVIDE (spr_load = 0x8082e8dc)
+                0x8082eb58                        PROVIDE (spr_draw = 0x8082eb58)
+                0x808304e8                        PROVIDE (spr_begin = 0x808304e8)
+                0x80830724                        PROVIDE (spr_end = 0x80830724)
+                0x80818358                        PROVIDE (title_draw_attract = 0x80818358)
+                0x80826434                        PROVIDE (util_rand_range = 0x80826434)
+                0x80831a24                        PROVIDE (hud_sprite_setup = 0x80831a24)
+                0x80831d00                        PROVIDE (hud_sprite_quad = 0x80831d00)
+                0x80831db0                        PROVIDE (hud_sprite_quad_colors = 0x80831db0)
+                0x8083258c                        PROVIDE (hud_project_point = 0x8083258c)
+                0x8084100c                        PROVIDE (stats_print_status = 0x8084100c)
+                0x80841d64                        PROVIDE (stats_tenths_to_frames = 0x80841d64)
+                0x8084200c                        PROVIDE (academy_play_state_tune = 0x8084200c)
+                0x808553d0                        PROVIDE (seq_prepare = 0x808553d0)
+                0x80855dc8                        PROVIDE (seq_get_loop_done = 0x80855dc8)
+                0x8084ba38                        PROVIDE (cont_query_present = 0x8084ba38)
+                0x808517e0                        PROVIDE (ghost_keep_if_best = 0x808517e0)
                 0x8081c5c4                        PROVIDE (func_80260A10 = 0x8081c5c4)
                 0x8081c160                        PROVIDE (func_80260650 = 0x8081c160)
                 0x80831010                        PROVIDE (func_80275390 = 0x80831010)
-                0x80814f30                        PROVIDE (func_80259450 = 0x80814f30)
-                0x808157ac                        PROVIDE (func_80259CCC = 0x808157ac)
-                0x808158a8                        PROVIDE (func_80259DC8 = 0x808158a8)
-                0x80815704                        PROVIDE (func_80259C24 = 0x80815704)
-                0x80831db0                        PROVIDE (func_80276130 = 0x80831db0)
-                0x80831d00                        PROVIDE (func_80276080 = 0x80831d00)
-                0x80831a24                        PROVIDE (func_80275DA4 = 0x80831a24)
                 0x80830870                        PROVIDE (func_80274BF0 = 0x80830870)
-                0x8082e8dc                        PROVIDE (func_80272C5C = 0x8082e8dc)
-                0x80816de0                        PROVIDE (func_8025B300 = 0x80816de0)
-                0x80816e50                        PROVIDE (func_8025B370 = 0x80816e50)
-                0x808304e8                        PROVIDE (func_80274868 = 0x808304e8)
-                0x8082eb58                        PROVIDE (func_80272ED8 = 0x8082eb58)
-                0x80830724                        PROVIDE (func_80274AA4 = 0x80830724)
-                0x80817038                        PROVIDE (func_8025B558 = 0x80817038)
-                0x80816ed0                        PROVIDE (func_8025B3F0 = 0x80816ed0)
-                0x808156b4                        PROVIDE (func_80259BD4 = 0x808156b4)
                 0x80830ef0                        PROVIDE (func_80275270 = 0x80830ef0)
-                0x8082062c                        PROVIDE (func_80264A34 = 0x8082062c)
                 0x8081d160                        PROVIDE (func_80261570 = 0x8081d160)
-                0x80816d98                        PROVIDE (func_8025B2B8 = 0x80816d98)
-                0x8084100c                        PROVIDE (func_802852EC = 0x8084100c)
-                0x80841d64                        PROVIDE (func_80286038 = 0x80841d64)
-                0x808517e0                        PROVIDE (func_80295A20 = 0x808517e0)
                 0x80847224                        PROVIDE (func_8028B4C4 = 0x80847224)
-                0x8082079c                        PROVIDE (func_80264BA4 = 0x8082079c)
-                0x80826434                        PROVIDE (func_8026A828 = 0x80826434)
-                0x808150c0                        PROVIDE (func_802595E0 = 0x808150c0)
-                0x8083258c                        PROVIDE (func_8027690C = 0x8083258c)
-                0x8084ba38                        PROVIDE (func_8028FCD4 = 0x8084ba38)
                 0x8081dba0                        PROVIDE (func_80261FB0 = 0x8081dba0)
                 0x80847954                        PROVIDE (func_8028BBF4 = 0x80847954)
                 0x8081c434                        PROVIDE (func_802608C8 = 0x8081c434)
-                0x80855dc8                        PROVIDE (func_80299FE8 = 0x80855dc8)
                 0x80807d94                        PROVIDE (func_8024C404 = 0x80807d94)
-                0x80816f78                        PROVIDE (func_8025B498 = 0x80816f78)
                 0x8081dbf8                        PROVIDE (func_80262008 = 0x8081dbf8)
                 0x8081cad0                        PROVIDE (func_80260EE0 = 0x8081cad0)
-                0x80818358                        PROVIDE (func_8025C878 = 0x80818358)
-                0x8084200c                        PROVIDE (func_802862DC = 0x8084200c)
                 0x80831078                        PROVIDE (func_802753F8 = 0x80831078)
-                0x808553d0                        PROVIDE (func_802995F0 = 0x808553d0)
                 0x80000300                        osTvType = 0x80000300
                 0x80000308                        osRomBase = 0x80000308
                 0x8000030c                        osResetType = 0x8000030c
@@ -2754,6 +2754,423 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 [!provide]                        PROVIDE (commpt_load_flags = 0x808918e8)
                 0x803fbbb0                        gCommPts = 0x803fbbb0
                 0x803fc1f0                        gCommPtCount = 0x803fc1f0
+                [!provide]                        PROVIDE (lvl_init_chopper_pos = 0x8081ddcc)
+                [!provide]                        PROVIDE (hud_init_objective = 0x8081df10)
+                [!provide]                        PROVIDE (hud_mission_intro = 0x8081e430)
+                [!provide]                        PROVIDE (hud_update_objective = 0x8081e7e4)
+                [!provide]                        PROVIDE (hud_check_rdus = 0x8081ebc0)
+                [!provide]                        PROVIDE (hud_check_targets = 0x8081ec2c)
+                [!provide]                        PROVIDE (hud_check_path = 0x8081ed30)
+                [!provide]                        PROVIDE (hud_check_damage = 0x8081ef44)
+                [!provide]                        PROVIDE (hud_update_race = 0x8081efd4)
+                [!provide]                        PROVIDE (hud_in_box = 0x8081f540)
+                [!provide]                        PROVIDE (hud_draw_objective = 0x8081f5a8)
+                [!provide]                        PROVIDE (hud_replay_turbo = 0x8081fe04)
+                [!provide]                        PROVIDE (hud_draw_turbo_start = 0x8081fe5c)
+                [!provide]                        PROVIDE (hud_format_time = 0x8082062c)
+                [!provide]                        PROVIDE (hud_race_time_left = 0x808206e4)
+                [!provide]                        PROVIDE (lvl_planet = 0x8082079c)
+                0x80367c04                        gCurLevelInfo = 0x80367c04
+                0x80367b60                        gHudLines = 0x80367b60
+                0x80367bb0                        gHudTimeText = 0x80367bb0
+                0x80367bf6                        gTimeLeft = 0x80367bf6
+                0x80367bf4                        gSecondsLeft = 0x80367bf4
+                0x80367d08                        gPrevSecondsLeft = 0x80367d08
+                0x80367bd6                        gHudAlpha = 0x80367bd6
+                0x80367bd8                        gHudObjectiveY = 0x80367bd8
+                0x80367bc0                        gIntroStartTime = 0x80367bc0
+                0x80367bc4                        gIntroSecond = 0x80367bc4
+                0x80367c08                        gObjectiveName = 0x80367c08
+                0x80367bcc                        gObjectiveAnim = 0x80367bcc
+                0x80367bd4                        gObjectiveSprite = 0x80367bd4
+                0x80367c18                        gIntroObjectiveText = 0x80367c18
+                0x80367c40                        gIntroTimeText = 0x80367c40
+                0x80367c68                        gIntroObjectiveJText = 0x80367c68
+                0x80367cb8                        gIntroTimeJText = 0x80367cb8
+                0x80367d10                        gLapsLeftText = 0x80367d10
+                0x80367b54                        gRaceLap = 0x80367b54
+                0x80367b58                        gLapTimes = 0x80367b58
+                0x80367bf8                        gRaceQuadsCrossed = 0x80367bf8
+                0x80367bf9                        gRacePrevQuad = 0x80367bf9
+                0x80367bfa                        gRaceQuad = 0x80367bfa
+                0x80367bfb                        gBestLap = 0x80367bfb
+                0x80367bfc                        gBestLapTime = 0x80367bfc
+                0x80367bbc                        gRaceStartTime = 0x80367bbc
+                0x80367bc8                        gTurboStartState = 0x80367bc8
+                0x80367be0                        gTurboStartImages = 0x80367be0
+                0x80367d50                        gTurboBannerY = 0x80367d50
+                0x80367d52                        gTurboBannerImage = 0x80367d52
+                0x80367bfe                        gTurboEarned = 0x80367bfe
+                0x80367bff                        gTurboPending = 0x80367bff
+                0x80367c00                        gTurboActive = 0x80367c00
+                0x80367c01                        gTurboFalseStart = 0x80367c01
+                0x80367b50                        gTurboFrame = 0x80367b50
+                0x80367c10                        gWideFovLevel = 0x80367c10
+                0x802e8f30                        gWideFovLevels = 0x802e8f30
+                0x802e8f74                        gFixedEyeLevels = 0x802e8f74
+                [!provide]                        PROVIDE (text_init = 0x80814dd0)
+                [!provide]                        PROVIDE (text_begin_frame = 0x80814f30)
+                [!provide]                        PROVIDE (text_set_render_state = 0x80814f4c)
+                [!provide]                        PROVIDE (text_shell_sort = 0x808150c0)
+                [!provide]                        PROVIDE (text_copy_bytes = 0x808152b8)
+                [!provide]                        PROVIDE (text_compare_keys = 0x808152f4)
+                [!provide]                        PROVIDE (text_flush_quads = 0x80815304)
+                [!provide]                        PROVIDE (text_flush = 0x808156b4)
+                [!provide]                        PROVIDE (text_flush_screen = 0x80815704)
+                [!provide]                        PROVIDE (text_print = 0x808157ac)
+                [!provide]                        PROVIDE (text_print_gradient = 0x808158a8)
+                [!provide]                        PROVIDE (text_queue_string = 0x808159a4)
+                0x80365350                        maxCharacters = 0x80365350
+                0x80365348                        gTextVtx = 0x80365348
+                0x80365340                        gTextQuads = 0x80365340
+                0x802e8c70                        gTextFlushed = 0x802e8c70
+                0x802e8c74                        gTextCount = 0x802e8c74
+                0x802e8c78                        gTextVtxCount = 0x802e8c78
+                0x802e8c84                        gFontAdvance = 0x802e8c84
+                0x802e8c98                        gTextTerminator = 0x802e8c98
+                [!provide]                        PROVIDE (font_reset_cache = 0x80816b50)
+                [!provide]                        PROVIDE (font_get_glyph = 0x80816b98)
+                [!provide]                        PROVIDE (font_age_cache = 0x80816d98)
+                [!provide]                        PROVIDE (font_strlen = 0x80816de0)
+                [!provide]                        PROVIDE (font_wstrlen = 0x80816e50)
+                [!provide]                        PROVIDE (font_strcmp = 0x80816ed0)
+                [!provide]                        PROVIDE (font_center_x = 0x80816f78)
+                [!provide]                        PROVIDE (font_narrow = 0x80817038)
+                [!provide]                        PROVIDE (font_format_wstr = 0x808170b0)
+                [!provide]                        PROVIDE (font_to_wstr = 0x80817288)
+                [!provide]                        PROVIDE (font_wstrcat = 0x808173f4)
+                0x80365360                        gGlyphAge = 0x80365360
+                0x803653b0                        gGlyphIds = 0x803653b0
+                0x8039caf0                        gGlyphTextures = 0x8039caf0
+                0x80365458                        gNarrowTextBuf = 0x80365458
+                0x80365558                        gWideTextBuf = 0x80365558
+                [!provide]                        PROVIDE (spr_reset = 0x8082e8d0)
+                [!provide]                        PROVIDE (spr_load = 0x8082e8dc)
+                [!provide]                        PROVIDE (spr_draw = 0x8082eb58)
+                [!provide]                        PROVIDE (spr_draw_quad = 0x8082ff58)
+                [!provide]                        PROVIDE (spr_begin = 0x808304e8)
+                [!provide]                        PROVIDE (spr_begin_quads = 0x80830618)
+                [!provide]                        PROVIDE (spr_end = 0x80830724)
+                [!provide]                        PROVIDE (spr_pipe_sync = 0x80830788)
+                [!provide]                        PROVIDE (spr_draw_blinking = 0x808307c0)
+                0x8036c360                        gSpriteCount = 0x8036c360
+                0x8036bfe0                        gSpriteImages = 0x8036bfe0
+                0x8036c1e0                        gSpriteStrips = 0x8036c1e0
+                0x8036c220                        gSpriteFlags = 0x8036c220
+                0x8036c260                        gSpriteScale = 0x8036c260
+                0x8036c368                        gSpriteQuads = 0x8036c368
+                [!provide]                        PROVIDE (gfx_begin_textured = 0x80812ff0)
+                [!provide]                        PROVIDE (gfx_draw_textured_quad = 0x808130a4)
+                [!provide]                        PROVIDE (hud_attract_messages = 0x808180b0)
+                [!provide]                        PROVIDE (title_draw_attract = 0x80818358)
+                [!provide]                        PROVIDE (title_load_logo_image = 0x80818b90)
+                [!provide]                        PROVIDE (title_setup_logo = 0x80818c68)
+                [!provide]                        PROVIDE (title_draw_logo = 0x80818d98)
+                [!provide]                        PROVIDE (title_draw_vehicles = 0x80819cc4)
+                [!provide]                        PROVIDE (hud_level_complete = 0x80819db0)
+                [!provide]                        PROVIDE (hud_mission_failed = 0x8081a160)
+                0x80366bb0                        gLogoImages = 0x80366bb0
+                0x80366a12                        gLogoState = 0x80366a12
+                0x80366a14                        gLogoAlpha = 0x80366a14
+                0x80366a16                        gLogoPicAlpha = 0x80366a16
+                0x80366a00                        gLogoY = 0x80366a00
+                0x80366a02                        gLogoPicY = 0x80366a02
+                0x80366bbc                        gAttractFadeTime = 0x80366bbc
+                0x80366bb8                        gEndSeqTime = 0x80366bb8
+                0x80366bc0                        gLevelDoneSeen = 0x80366bc0
+                0x80366bc2                        gLevelDoneWindow = 0x80366bc2
+                0x80366bc5                        gFailSoundPlayed = 0x80366bc5
+                0x802e8cd0                        gLevelDoneDelay = 0x802e8cd0
+                [!provide]                        PROVIDE (backdrop_draw = 0x8082dc50)
+                [!provide]                        PROVIDE (backdrop_init = 0x8082e670)
+                0x8036bfc0                        gBackdropOffset = 0x8036bfc0
+                0x8036bfc4                        gBackdropLoaded = 0x8036bfc4
+                0x8036bfc5                        gBackdropVtxBuf = 0x8036bfc5
+                0x8036bfc8                        gBackdropScrollS = 0x8036bfc8
+                0x8036bfcc                        gBackdropHeight = 0x8036bfcc
+                0x802fa280                        gBackdropTextures = 0x802fa280
+                0x802fa820                        gBackdropVtx = 0x802fa820
+                [!provide]                        PROVIDE (util_check_board_zone = 0x80823fe0)
+                [!provide]                        PROVIDE (util_cam_path_init = 0x80824270)
+                [!provide]                        PROVIDE (util_cam_path_step = 0x808244d0)
+                [!provide]                        PROVIDE (util_cam_path_eval = 0x80824990)
+                [!provide]                        PROVIDE (util_find_shuttle_path = 0x80824af4)
+                [!provide]                        PROVIDE (util_shuttle_path_init = 0x80824b60)
+                [!provide]                        PROVIDE (util_shuttle_path_step = 0x80824e64)
+                [!provide]                        PROVIDE (util_shuttle_path_eval = 0x80825d90)
+                [!provide]                        PROVIDE (util_unwrap_angle = 0x80825ef4)
+                [!provide]                        PROVIDE (util_itoa = 0x80825f84)
+                [!provide]                        PROVIDE (util_rotate_about_point = 0x80826060)
+                [!provide]                        PROVIDE (util_copy64 = 0x808261d8)
+                [!provide]                        PROVIDE (util_dist2d = 0x8082621c)
+                [!provide]                        PROVIDE (util_dist3d = 0x808262fc)
+                [!provide]                        PROVIDE (util_rand_range = 0x80826434)
+                [!provide]                        PROVIDE (util_seed_rand = 0x808264c8)
+                [!provide]                        PROVIDE (util_rand2_range = 0x808264ec)
+                [!provide]                        PROVIDE (util_seed_rand2 = 0x80826580)
+                [!provide]                        PROVIDE (util_reset_hint_events = 0x80826594)
+                [!provide]                        PROVIDE (util_check_hint_events = 0x808265c4)
+                0x802f3c10                        gBoardZones = 0x802f3c10
+                0x802f3c24                        gCamPaths = 0x802f3c24
+                0x802f3c48                        gCamPathPoints = 0x802f3c48
+                0x802f41e8                        gShuttlePaths = 0x802f41e8
+                0x802f4224                        gShuttlePathPoints = 0x802f4224
+                0x8036b8b0                        gCamPathActive = 0x8036b8b0
+                0x8036b8b4                        gCamPathX = 0x8036b8b4
+                0x8036b8b8                        gCamPathY = 0x8036b8b8
+                0x8036b8bc                        gCamPathZ = 0x8036b8bc
+                0x8036b8c0                        gCamPathIndex = 0x8036b8c0
+                0x8036b8c8                        gCamPathBasis = 0x8036b8c8
+                0x8036b908                        gCamPathT = 0x8036b908
+                0x8036b90c                        gCamPathPoint = 0x8036b90c
+                0x8036b910                        gShuttlePathBasis = 0x8036b910
+                0x8036b950                        gShuttlePathT = 0x8036b950
+                0x8036b954                        gShuttlePathPoint = 0x8036b954
+                0x8036b955                        gShuttlePathIndex = 0x8036b955
+                0x8036b95c                        gShuttlePathBranch = 0x8036b95c
+                0x8036b968                        gRandSeed = 0x8036b968
+                0x8036b96c                        gRandSeed2 = 0x8036b96c
+                [!provide]                        PROVIDE (hud_init_target_marker = 0x808310b0)
+                [!provide]                        PROVIDE (hud_draw_target_marker = 0x808310f8)
+                [!provide]                        PROVIDE (hud_sprite_setup = 0x80831a24)
+                [!provide]                        PROVIDE (hud_sprite_quad = 0x80831d00)
+                [!provide]                        PROVIDE (hud_sprite_quad_colors = 0x80831db0)
+                [!provide]                        PROVIDE (hud_forget_offscreen_targets = 0x808321ec)
+                [!provide]                        PROVIDE (hud_remember_marked_target = 0x808324cc)
+                [!provide]                        PROVIDE (hud_target_was_shown = 0x80832528)
+                [!provide]                        PROVIDE (hud_project_point = 0x8083258c)
+                [!provide]                        PROVIDE (hud_mtx_xform = 0x8083299c)
+                [!provide]                        PROVIDE (hud_draw_player_locator = 0x80832ad0)
+                0x8036c794                        gMarkedTargetPts = 0x8036c794
+                0x8036c798                        gMarkedTarget = 0x8036c798
+                0x8036c7a0                        gShownTargets = 0x8036c7a0
+                0x8036c7cc                        gMarkerArrowsOnScreen = 0x8036c7cc
+                0x802fad40                        gMarkerBounce = 0x802fad40
+                0x802fad44                        gMarkerBounceCount = 0x802fad44
+                0x802fad48                        gMarkerBounceDir = 0x802fad48
+                [!provide]                        PROVIDE (hud_draw_target_arrow = 0x8083e980)
+                [!provide]                        PROVIDE (hud_draw_radar = 0x8083f480)
+                [!provide]                        PROVIDE (hud_heading_deg = 0x808407f0)
+                0x802fd9b0                        gRadarSweepAngle = 0x802fd9b0
+                [!provide]                        PROVIDE (hud_init_boost_dial = 0x80842730)
+                [!provide]                        PROVIDE (hud_draw_boost_dial = 0x808429b0)
+                [!provide]                        PROVIDE (hud_init_missile_icon = 0x808430fc)
+                [!provide]                        PROVIDE (hud_draw_missile_icon = 0x80843288)
+                [!provide]                        PROVIDE (hud_init_ram_icon = 0x8084383c)
+                [!provide]                        PROVIDE (hud_draw_ram_icon = 0x808439c8)
+                0x80364a68                        gHudDialLoaded = 0x80364a68
+                0x80364a6a                        gHudMissileIconLoaded = 0x80364a6a
+                0x80364a6c                        gHudRamIconLoaded = 0x80364a6c
+                [!provide]                        PROVIDE (hud_panel_init = 0x80833240)
+                [!provide]                        PROVIDE (dig_coach_update = 0x808332a0)
+                [!provide]                        PROVIDE (dig_check_doing_well = 0x80833588)
+                [!provide]                        PROVIDE (dig_check_wrong_digger = 0x8083376c)
+                [!provide]                        PROVIDE (dig_check_misuse = 0x80833810)
+                [!provide]                        PROVIDE (dig_count_samples = 0x808338ac)
+                [!provide]                        PROVIDE (dig_hit_is_weak = 0x808339c0)
+                [!provide]                        PROVIDE (dig_part_hit_is_weak = 0x80833a94)
+                [!provide]                        PROVIDE (hud_panel_start = 0x80833b68)
+                [!provide]                        PROVIDE (hud_panel_stop = 0x80833fa8)
+                [!provide]                        PROVIDE (hud_panel_draw = 0x80833fb4)
+                0x8036cb2a                        gDigHitDamage = 0x8036cb2a
+                0x8036cb2c                        gDigHitDamagePerPart = 0x8036cb2c
+                0x8036cb2e                        gDigHitVehicle = 0x8036cb2e
+                0x8036cb2f                        gDigHit = 0x8036cb2f
+                0x8036c8d0                        gDigSamples = 0x8036c8d0
+                0x8036cb34                        gPanelActive = 0x8036cb34
+                0x803be6fc                        gDigTriggers = 0x803be6fc
+                0x803be700                        gDigTriggersEnd = 0x803be700
+                [!provide]                        PROVIDE (mb_copy_dl = 0x80834880)
+                [!provide]                        PROVIDE (mb_init = 0x80834acc)
+                [!provide]                        PROVIDE (mb_start = 0x80834b40)
+                [!provide]                        PROVIDE (mb_stop = 0x80835134)
+                [!provide]                        PROVIDE (mb_cancel = 0x80835174)
+                [!provide]                        PROVIDE (mb_is_active = 0x80835180)
+                [!provide]                        PROVIDE (mb_push_sample = 0x808351a4)
+                [!provide]                        PROVIDE (mb_get_samples = 0x80835368)
+                [!provide]                        PROVIDE (mb_render_view = 0x80835408)
+                [!provide]                        PROVIDE (mb_draw = 0x80835b80)
+                [!provide]                        PROVIDE (mb_draw_strip = 0x80836474)
+                [!provide]                        PROVIDE (mb_mtx3_reorder_rows = 0x8083669c)
+                [!provide]                        PROVIDE (mb_mtx3_invert_finish = 0x80836898)
+                [!provide]                        PROVIDE (mb_mtx3_invert = 0x80836e98)
+                [!provide]                        PROVIDE (mb_mtx4_split_projective = 0x80837268)
+                [!provide]                        PROVIDE (mb_mtx4_invert = 0x80837514)
+                0x8036cb60                        gMbSamples = 0x8036cb60
+                0x8036cc68                        gMbHead = 0x8036cc68
+                0x8036cc6c                        gMbTail = 0x8036cc6c
+                0x8036d170                        gMbBuffer = 0x8036d170
+                0x8036d178                        gMbState = 0x8036d178
+                0x8036d17c                        gMbMaxCopies = 0x8036d17c
+                0x8036d180                        gMbCopies = 0x8036d180
+                [!provide]                        PROVIDE (trail_in_zone = 0x80837980)
+                [!provide]                        PROVIDE (trail_init = 0x80837adc)
+                [!provide]                        PROVIDE (trail_add = 0x80837b0c)
+                [!provide]                        PROVIDE (trail_draw = 0x80838158)
+                [!provide]                        PROVIDE (trail_box_corners = 0x80838fe0)
+                [!provide]                        PROVIDE (trail_fade_oldest = 0x8083923c)
+                0x802fc360                        gTrailZones = 0x802fc360
+                0x8036d3d0                        gTrails = 0x8036d3d0
+                0x8036dc90                        gTrailTail = 0x8036dc90
+                0x8036dc91                        gTrailHead = 0x8036dc91
+                [!provide]                        PROVIDE (bridge_update_levels = 0x808394a0)
+                [!provide]                        PROVIDE (bridge_wave_group = 0x80839584)
+                [!provide]                        PROVIDE (bridge_sag_group = 0x808396a0)
+                [!provide]                        PROVIDE (bridge_max_load = 0x808397ec)
+                [!provide]                        PROVIDE (bridge_cross_fraction = 0x80839a24)
+                [!provide]                        PROVIDE (bridge_point_in_quad = 0x80839e00)
+                [!provide]                        PROVIDE (bridge_digger_weight = 0x80839ec4)
+                [!provide]                        PROVIDE (water_init = 0x80839fe8)
+                [!provide]                        PROVIDE (water_update = 0x8083a6bc)
+                [!provide]                        PROVIDE (water_get_height = 0x8083abdc)
+                [!provide]                        PROVIDE (water_draw = 0x8083aefc)
+                [!provide]                        PROVIDE (water_flat_normal = 0x8083bfd8)
+                [!provide]                        PROVIDE (water_box_corners = 0x8083c430)
+                [!provide]                        PROVIDE (fx_init_drift_quads = 0x8083c4dc)
+                [!provide]                        PROVIDE (fx_draw_drift_quads = 0x8083cc3c)
+                [!provide]                        PROVIDE (fx_init_power_pill = 0x8083d778)
+                [!provide]                        PROVIDE (fx_update_power_pill = 0x8083d9ec)
+                [!provide]                        PROVIDE (fx_draw_power_pill = 0x8083db4c)
+                [!provide]                        PROVIDE (hud_init_veh_overlay = 0x8083ded8)
+                [!provide]                        PROVIDE (hud_draw_veh_overlay = 0x8083df30)
+                [!provide]                        PROVIDE (fx_init_carrier_blast = 0x8083e434)
+                [!provide]                        PROVIDE (fx_draw_carrier_blast = 0x8083e448)
+                0x8036dcd4                        gWaterOn = 0x8036dcd4
+                0x8036dcd6                        gWaterIndex = 0x8036dcd6
+                0x8036dcd7                        gWaterLayer = 0x8036dcd7
+                0x8036dca0                        gWaterVtx = 0x8036dca0
+                0x8036dcb0                        gWaterClock = 0x8036dcb0
+                0x8036dcd8                        gPowerPillSound = 0x8036dcd8
+                0x8036e4c8                        gPowerPillTimer = 0x8036e4c8
+                0x8036e4ca                        gPowerPillEaten = 0x8036e4ca
+                0x8036e380                        gPowerPills = 0x8036e380
+                0x8036e4c0                        gPowerPillCount = 0x8036e4c0
+                0x8036e5d8                        gBlastScales = 0x8036e5d8
+                [!provide]                        PROVIDE (stats_level_start = 0x80840eb0)
+                [!provide]                        PROVIDE (stats_print_status = 0x8084100c)
+                [!provide]                        PROVIDE (stats_save_status = 0x80841540)
+                [!provide]                        PROVIDE (stats_copy_result = 0x808417a4)
+                [!provide]                        PROVIDE (stats_set_level_flag = 0x808417dc)
+                [!provide]                        PROVIDE (stats_test_level_flag = 0x8084183c)
+                [!provide]                        PROVIDE (stats_finish_bonus_level = 0x80841894)
+                [!provide]                        PROVIDE (stats_award_bonuses = 0x808419ec)
+                [!provide]                        PROVIDE (stats_finish_level = 0x80841c20)
+                [!provide]                        PROVIDE (stats_tenths_to_frames = 0x80841d64)
+                [!provide]                        PROVIDE (stats_frames_to_tenths = 0x80841d78)
+                [!provide]                        PROVIDE (stats_level_done = 0x80841dbc)
+                0x8036eb94                        gBonusEarned = 0x8036eb94
+                0x8036eb9c                        gBonusEarnedPrev = 0x8036eb9c
+                0x8036eb98                        gTargetsCleared = 0x8036eb98
+                [!provide]                        PROVIDE (academy_announce_state = 0x80841e20)
+                [!provide]                        PROVIDE (academy_play_state_tune = 0x8084200c)
+                [!provide]                        PROVIDE (academy_next_mode = 0x80842060)
+                [!provide]                        PROVIDE (academy_advance_state = 0x8084226c)
+                [!provide]                        PROVIDE (academy_place_marker = 0x808532f0)
+                [!provide]                        PROVIDE (academy_find_level = 0x8085342c)
+                [!provide]                        PROVIDE (academy_draw_marker = 0x808534a8)
+                [!provide]                        PROVIDE (academy_check_marker = 0x808535c4)
+                [!provide]                        PROVIDE (academy_save_markers = 0x80853720)
+                0x8039cab7                        gAcademyMarkerOn = 0x8039cab7
+                0x8039cac8                        gAcademyBits = 0x8039cac8
+                [!provide]                        PROVIDE (seq_prepare = 0x808553d0)
+                [!provide]                        PROVIDE (seq_enter_start_level = 0x808559ec)
+                [!provide]                        PROVIDE (seq_start_level = 0x80855a00)
+                [!provide]                        PROVIDE (seq_finish = 0x80855bf0)
+                [!provide]                        PROVIDE (seq_get_loop_done = 0x80855dc8)
+                0x803a6af0                        gSeqDoneMode = 0x803a6af0
+                0x803a6af8                        gSeqAbortMode = 0x803a6af8
+                0x803a6b00                        gSeqDoneLevel = 0x803a6b00
+                0x803a6b01                        gSeqAbortLevel = 0x803a6b01
+                0x803a6b02                        gSeqStartLevel = 0x803a6b02
+                0x803a6b03                        gSeqNumber = 0x803a6b03
+                [!provide]                        PROVIDE (crate_spawn_all = 0x80847ef0)
+                [!provide]                        PROVIDE (crate_build_vertices = 0x80848180)
+                [!provide]                        PROVIDE (crate_update = 0x808485d8)
+                [!provide]                        PROVIDE (crate_draw = 0x80848894)
+                0x802fdb40                        gCrateTypes = 0x802fdb40
+                0x8039af00                        gCrates = 0x8039af00
+                0x8039b068                        gCrateCount = 0x8039b068
+                [!provide]                        PROVIDE (tnt_spawn_all = 0x80849220)
+                [!provide]                        PROVIDE (tnt_build_vertices = 0x808497c0)
+                [!provide]                        PROVIDE (tnt_explode = 0x80849ac8)
+                [!provide]                        PROVIDE (tnt_find_lit = 0x80849bf8)
+                [!provide]                        PROVIDE (tnt_update = 0x80849c78)
+                [!provide]                        PROVIDE (tnt_draw = 0x8084a748)
+                [!provide]                        PROVIDE (tnt_attach_to_vehicle = 0x8084b418)
+                [!provide]                        PROVIDE (tnt_ride_vehicle = 0x8084b4f8)
+                [!provide]                        PROVIDE (tnt_detach_all = 0x8084b6a0)
+                [!provide]                        PROVIDE (tnt_test_point = 0x8084b6f8)
+                [!provide]                        PROVIDE (tnt_test_sphere = 0x8084b824)
+                [!provide]                        PROVIDE (cont_boot_check_start = 0x8084b974)
+                [!provide]                        PROVIDE (cont_query_present = 0x8084ba38)
+                0x8039b070                        gTntCrates = 0x8039b070
+                0x8039b610                        gTntCount = 0x8039b610
+                0x802fdb98                        gTntTypes = 0x802fdb98
+                [!provide]                        PROVIDE (block_spawn_all = 0x8084bb00)
+                [!provide]                        PROVIDE (block_update = 0x8084c474)
+                [!provide]                        PROVIDE (block_fill_target = 0x8084d4d8)
+                [!provide]                        PROVIDE (block_draw = 0x8084d564)
+                [!provide]                        PROVIDE (block_attach_to_vehicle = 0x8084dc8c)
+                [!provide]                        PROVIDE (block_ride_vehicle = 0x8084dd60)
+                [!provide]                        PROVIDE (block_detach_all = 0x8084de38)
+                [!provide]                        PROVIDE (block_test_sphere = 0x8084de90)
+                0x8039c550                        gBlocks = 0x8039c550
+                0x8039c710                        gBlockCount = 0x8039c710
+                0x8039c718                        gBlockSlots = 0x8039c718
+                0x8039c7f8                        gBlockSlotCount = 0x8039c7f8
+                0x8039c800                        gBoxTargets = 0x8039c800
+                0x8039c940                        gBoxTargetCount = 0x8039c940
+                [!provide]                        PROVIDE (shell_init = 0x8084dff0)
+                [!provide]                        PROVIDE (shell_fire = 0x8084e038)
+                [!provide]                        PROVIDE (shell_update_all = 0x8084e5e0)
+                [!provide]                        PROVIDE (shell_explode = 0x8084eb8c)
+                [!provide]                        PROVIDE (shell_draw_all = 0x8084ec68)
+                0x8039c960                        gShells = 0x8039c960
+                0x802fe3c0                        gShellTypes = 0x802fe3c0
+                [!provide]                        PROVIDE (spline_object_matrix = 0x8084f150)
+                [!provide]                        PROVIDE (spline_walk_maze = 0x8084f45c)
+                [!provide]                        PROVIDE (spline_follow_path = 0x8084fd38)
+                [!provide]                        PROVIDE (spline_eval = 0x808505f4)
+                [!provide]                        PROVIDE (spline_set_basis = 0x80850764)
+                [!provide]                        PROVIDE (spline_swing = 0x80850918)
+                [!provide]                        PROVIDE (spline_bob = 0x80850a04)
+                [!provide]                        PROVIDE (spline_orbit = 0x80850ad8)
+                0x802fe980                        gSplinePaths = 0x802fe980
+                0x802feda0                        gMazeJunctions = 0x802feda0
+                0x8039ca10                        gSplineBasis = 0x8039ca10
+                0x8039ca50                        gSplineT = 0x8039ca50
+                0x8039ca54                        gSplineT2 = 0x8039ca54
+                0x8039ca58                        gSplineT3 = 0x8039ca58
+                [!provide]                        PROVIDE (ghost_init = 0x80850bf0)
+                [!provide]                        PROVIDE (ghost_start_recording = 0x80850c48)
+                [!provide]                        PROVIDE (ghost_start_playback = 0x80850c78)
+                [!provide]                        PROVIDE (ghost_record = 0x80850cc0)
+                [!provide]                        PROVIDE (ghost_draw = 0x80850ee0)
+                [!provide]                        PROVIDE (ghost_get_pose = 0x80851154)
+                [!provide]                        PROVIDE (ghost_lerp_angle = 0x808516e4)
+                [!provide]                        PROVIDE (ghost_keep_if_best = 0x808517e0)
+                [!provide]                        PROVIDE (ghost_make_translucent_dl = 0x808518a0)
+                [!provide]                        PROVIDE (cull_override_visible_cells = 0x80851a30)
+                0x8039ca68                        gGhostSamples = 0x8039ca68
+                0x8039ca70                        gGhostCounts = 0x8039ca70
+                0x8039ca61                        gGhostPlaying = 0x8039ca61
+                0x8039ca62                        gGhostRecording = 0x8039ca62
+                0x8039ca7c                        gGhostVehicle = 0x8039ca7c
+                0x8039ca7d                        gGhostValid = 0x8039ca7d
+                0x8039ca88                        gGhostBestTime = 0x8039ca88
+                0x8039ca8c                        gGhostOverrun = 0x8039ca8c
+                [!provide]                        PROVIDE (hud_load_pad_image = 0x80851c10)
+                [!provide]                        PROVIDE (hud_draw_pad = 0x80851cbc)
+                [!provide]                        PROVIDE (hud_draw_pad_image = 0x80852dcc)
+                0x8039caa0                        gPadDisplayAlpha = 0x8039caa0
+                0x8039caa2                        gPadDisplayLoaded = 0x8039caa2
+                [!provide]                        PROVIDE (hud_load_demo_banner = 0x80855f10)
+                [!provide]                        PROVIDE (hud_draw_demo_banner = 0x80855f88)
+                [!provide]                        PROVIDE (credits_init = 0x808562e0)
+                [!provide]                        PROVIDE (credits_draw = 0x808562f8)
+                0x803a6b20                        gCreditsScroll = 0x803a6b20
+                0x803a6b24                        gCreditsEndTimer = 0x803a6b24
+                0x80304a90                        gCreditLines = 0x80304a90
                 0x803ff288                        __osEepromTimer = 0x803ff288
                 0x803ff2a8                        __osEepromTimerQ = 0x803ff2a8
                 0x803ff2c0                        __osEepromTimerMsg = 0x803ff2c0

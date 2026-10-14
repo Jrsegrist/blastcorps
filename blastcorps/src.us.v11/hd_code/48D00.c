@@ -15,13 +15,13 @@
 #endif
 /* end of views */
 
-/* D_8039B070: array of D_8039B610 0x48-byte entries. */
+/* gTntCrates: array of gTntCount 0x48-byte entries. */
 typedef struct {
     /* 0x00 */ s32 unk0;
     /* 0x04 */ s32 unk4;
     /* 0x08 */ s32 unk8;
     /* 0x0C */ s16 unk0C;
-    /* 0x0E */ u8 unk0E; /* box type (D_802FDB98) */
+    /* 0x0E */ u8 unk0E; /* box type (gTntTypes) */
     /* 0x0F */ u8 pad0F;
     /* 0x10 */ s16 unk10;
     /* 0x12 */ s16 unk12;
@@ -46,7 +46,7 @@ typedef struct {
 } Entry48D00;
 extern Entry48D00 D_8039B070_entries[];
 
-/* D_802FDB98: 0x18-byte box definitions (min/max extents, face textures
+/* gTntTypes: 0x18-byte box definitions (min/max extents, face textures
  * and a radius). */
 typedef struct {
     /* 0x00 */ s16 x0, x1, y0, y1, z0, z1;
@@ -56,7 +56,7 @@ typedef struct {
 } BoxDef48D00;
 extern BoxDef48D00 D_802FDB98_boxes[];
 
-extern s32 D_8039B610;
+extern s32 gTntCount;
 extern s32 D_8039B614;
 extern s32 D_8039B618;
 extern s32 D_8039B61C;
@@ -65,70 +65,72 @@ extern u8 D_8039B620;
 extern Vtx *gHeapPtr; /* vertex allocator */
 #endif
 
-void func_8028DA5C(Vtx *v, u8 arg1);
+void tnt_build_vertices(Vtx *v, u8 arg1);
 
 #ifdef PORT_HOST
-/* func_8028DA5C writes ob and tc only: the boxes' flag and colour bytes are
+/* tnt_build_vertices writes ob and tc only: the boxes' flag and colour bytes are
  * whatever the heap held on the N64 (port_vtx_stale, port/src/load/swap.c). */
 void port_vtx_stale(void *v, u32 n);
 #endif
 
-/* Load the boxes from level data: 12-byte records (s16 x, y, z; u8 type,
+/* The level's TNT crates (0x8028D4C0).
+ * Load the boxes from level data: 12-byte records (s16 x, y, z; u8 type,
  * u8 timer; s16 unk1A, unk1C). Positions are scaled by 32 and snapped to
  * the ground; each box gets its face textures and 8 vertices. */
-void func_8028D4C0(u8 *arg0, u8 *arg1) {
-    D_8039B610 = 0;
+void tnt_spawn_all(u8 *arg0, u8 *arg1) {
+    gTntCount = 0;
     D_8039B614 = 0;
     D_8039B618 = 0;
     D_8039B61C = 0;
     D_8039B620 = 0;
     while (arg0 != arg1) {
-        D_8039B070_entries[D_8039B610].unk0 = *(s16 *) (arg0 + 0) << 5;
-        D_8039B070_entries[D_8039B610].unk4 = *(s16 *) (arg0 + 2) << 5;
-        D_8039B070_entries[D_8039B610].unk8 = *(s16 *) (arg0 + 4) << 5;
-        D_8039B070_entries[D_8039B610].unk4 = coll_ground_height(D_8039B070_entries[D_8039B610].unk0,
-                                                            D_8039B070_entries[D_8039B610].unk8,
-                                                            D_8039B070_entries[D_8039B610].unk4);
-        D_8039B070_entries[D_8039B610].unk23 = gGroundTriId;
-        D_8039B070_entries[D_8039B610].unk0E = arg0[6];
-        D_8039B070_entries[D_8039B610].unk10 = arg0[7] * 60;
-        D_8039B070_entries[D_8039B610].unk12 = D_8039B070_entries[D_8039B610].unk10;
-        D_8039B070_entries[D_8039B610].unk2C[0] =
-            tex_get(D_802FDB98_boxes[D_8039B070_entries[D_8039B610].unk0E].tex[0], 0);
-        D_8039B070_entries[D_8039B610].unk2C[1] =
-            tex_get(D_802FDB98_boxes[D_8039B070_entries[D_8039B610].unk0E].tex[1], 0);
-        D_8039B070_entries[D_8039B610].unk2C[2] =
-            tex_get(D_802FDB98_boxes[D_8039B070_entries[D_8039B610].unk0E].tex[2], 0);
-        D_8039B070_entries[D_8039B610].unk2C[3] =
-            tex_get(D_802FDB98_boxes[D_8039B070_entries[D_8039B610].unk0E].tex[3], 0);
-        D_8039B070_entries[D_8039B610].unk0C = 0;
-        D_8039B070_entries[D_8039B610].unk14 = 0;
-        D_8039B070_entries[D_8039B610].unk1E = 0;
-        D_8039B070_entries[D_8039B610].unk19 = 0;
-        D_8039B070_entries[D_8039B610].unk1A = *(s16 *) (arg0 + 8);
-        D_8039B070_entries[D_8039B610].unk1C = *(s16 *) (arg0 + 10);
-        D_8039B070_entries[D_8039B610].unk20 = 0;
-        D_8039B070_entries[D_8039B610].unk22 = 0;
-        D_8039B070_entries[D_8039B610].unk24 = 0;
-        D_8039B070_entries[D_8039B610].unk26 = 0;
-        D_8039B070_entries[D_8039B610].unk28 = 0;
-        D_8039B070_entries[D_8039B610].unk2A = 0;
-        D_8039B070_entries[D_8039B610].unk18 = 1;
-        D_8039B070_entries[D_8039B610].unk3C = gHeapPtr;
+        D_8039B070_entries[gTntCount].unk0 = *(s16 *) (arg0 + 0) << 5;
+        D_8039B070_entries[gTntCount].unk4 = *(s16 *) (arg0 + 2) << 5;
+        D_8039B070_entries[gTntCount].unk8 = *(s16 *) (arg0 + 4) << 5;
+        D_8039B070_entries[gTntCount].unk4 = coll_ground_height(D_8039B070_entries[gTntCount].unk0,
+                                                            D_8039B070_entries[gTntCount].unk8,
+                                                            D_8039B070_entries[gTntCount].unk4);
+        D_8039B070_entries[gTntCount].unk23 = gGroundTriId;
+        D_8039B070_entries[gTntCount].unk0E = arg0[6];
+        D_8039B070_entries[gTntCount].unk10 = arg0[7] * 60;
+        D_8039B070_entries[gTntCount].unk12 = D_8039B070_entries[gTntCount].unk10;
+        D_8039B070_entries[gTntCount].unk2C[0] =
+            tex_get(D_802FDB98_boxes[D_8039B070_entries[gTntCount].unk0E].tex[0], 0);
+        D_8039B070_entries[gTntCount].unk2C[1] =
+            tex_get(D_802FDB98_boxes[D_8039B070_entries[gTntCount].unk0E].tex[1], 0);
+        D_8039B070_entries[gTntCount].unk2C[2] =
+            tex_get(D_802FDB98_boxes[D_8039B070_entries[gTntCount].unk0E].tex[2], 0);
+        D_8039B070_entries[gTntCount].unk2C[3] =
+            tex_get(D_802FDB98_boxes[D_8039B070_entries[gTntCount].unk0E].tex[3], 0);
+        D_8039B070_entries[gTntCount].unk0C = 0;
+        D_8039B070_entries[gTntCount].unk14 = 0;
+        D_8039B070_entries[gTntCount].unk1E = 0;
+        D_8039B070_entries[gTntCount].unk19 = 0;
+        D_8039B070_entries[gTntCount].unk1A = *(s16 *) (arg0 + 8);
+        D_8039B070_entries[gTntCount].unk1C = *(s16 *) (arg0 + 10);
+        D_8039B070_entries[gTntCount].unk20 = 0;
+        D_8039B070_entries[gTntCount].unk22 = 0;
+        D_8039B070_entries[gTntCount].unk24 = 0;
+        D_8039B070_entries[gTntCount].unk26 = 0;
+        D_8039B070_entries[gTntCount].unk28 = 0;
+        D_8039B070_entries[gTntCount].unk2A = 0;
+        D_8039B070_entries[gTntCount].unk18 = 1;
+        D_8039B070_entries[gTntCount].unk3C = gHeapPtr;
         gHeapPtr += 8;
 #ifdef PORT_HOST
-        port_vtx_stale(D_8039B070_entries[D_8039B610].unk3C, 8);
+        port_vtx_stale(D_8039B070_entries[gTntCount].unk3C, 8);
 #endif
-        func_8028DA5C(D_8039B070_entries[D_8039B610].unk3C, D_8039B070_entries[D_8039B610].unk0E);
+        tnt_build_vertices(D_8039B070_entries[gTntCount].unk3C, D_8039B070_entries[gTntCount].unk0E);
         /* One statement (a for-loop increment, probably). */
-        D_8039B610++, arg0 += 12;
+        gTntCount++, arg0 += 12;
     }
 }
 
-/* Fill the 8 corner Vtx of box type arg1, with texture coords 0 or 31.0
+/* A TNT crate's vertices (0x8028DA5C).
+ * Fill the 8 corner Vtx of box type arg1, with texture coords 0 or 31.0
  * (0x3E0). Corners 2 and 5 need the comma form (probably a macro):
  * separate statements store the two tcs in the wrong order. */
-void func_8028DA5C(Vtx *v, u8 arg1) {
+void tnt_build_vertices(Vtx *v, u8 arg1) {
     v[0].v.ob[0] = D_802FDB98_boxes[arg1].x1;
     v[0].v.ob[1] = D_802FDB98_boxes[arg1].y0;
     v[0].v.ob[2] = D_802FDB98_boxes[arg1].z0;
@@ -171,7 +173,7 @@ void func_8028DA5C(Vtx *v, u8 arg1) {
 
 /* Activate entry arg0. The mix of struct-field and per-field-symbol
  * accesses below is deliberate: it is the spelling whose schedule matches. */
-extern u8 D_8039B070;
+extern u8 gTntCrates;
 extern u8 D_8039B088;
 extern u8 D_8039B089;
 extern u8 D_8039B0B0;
@@ -180,9 +182,10 @@ extern u8 D_8039B0B4;
 extern s32 D_80367738;
 #endif
 
-Entry48D00 *func_8028DE94(void);
+Entry48D00 *tnt_find_lit(void);
 
-void func_8028DD64(u8 arg0) {
+/* A TNT crate explodes (0x8028DD64). */
+void tnt_explode(u8 arg0) {
     Entry48D00 *match;
 
     coll_spawn_blast_fx(D_8039B070_entries[arg0].unk0, D_8039B070_entries[arg0].unk4, D_8039B070_entries[arg0].unk8);
@@ -192,7 +195,7 @@ void func_8028DD64(u8 arg0) {
     gShakeSize = 0x190;
     if (D_8039B070_entries[arg0].unk40 != 0) {
         func_802608C8((void *) N64_IPTR((D_8039B070_entries[arg0].unk40)));
-        match = func_8028DE94();
+        match = tnt_find_lit();
         if (match != NULL) {
             func_80260650(D_80367738, 0x73, (void *) N64_IPTR(((s32) &match->unk40)));
         }
@@ -203,14 +206,15 @@ void func_8028DD64(u8 arg0) {
     func_80260650(D_80367738, 0x10, 0);
 }
 
-extern u8 D_8039B070;
-extern s32 D_8039B610;
+extern u8 gTntCrates;
+extern s32 gTntCount;
 
-/* First entry with both unk18 and unk14 set, or NULL. */
-Entry48D00 *func_8028DE94(void) {
+/* The first live crate with a lit fuse (0x8028DE94).
+ * First entry with both unk18 and unk14 set, or NULL. */
+Entry48D00 *tnt_find_lit(void) {
     s32 i;
 
-    for (i = 0; i < D_8039B610; i++) {
+    for (i = 0; i < gTntCount; i++) {
         if (D_8039B070_entries[i].unk18 != 0 && D_8039B070_entries[i].unk14 != 0) {
             return &D_8039B070_entries[i];
         }
@@ -221,14 +225,15 @@ Entry48D00 *func_8028DE94(void) {
 extern s16 D_802FDB70[]; /* speed cap per mode */
 
 
-/* Per-frame update of the boxes (arg0 = current mode; the box sibling of
- * 4B5E0's func_802906C0). Counts down unk19 (then fires the box's
+/* Fuses, throb, pushes, collisions, sounds (0x8028DF14).
+ * Per-frame update of the boxes (arg0 = current mode; the box sibling of
+ * 4B5E0's block_update). Counts down unk19 (then fires the box's
  * trigger), runs the unk10 fuse and the unk20 throb, pushes moving boxes
  * along (coll_step_xz), resets their speed (unk1E) from the player's
  * movement when hit, handles collision, heading and slow-down, and keeps
  * the box's looping sound (unk44) alive while it moves. The two-in-one
  * assignments are deliberate: separate statements schedule differently. */
-void func_8028DF14(u8 arg0) {
+void tnt_update(u8 arg0) {
     s32 i;
     u8 hit;
     s32 dx;
@@ -241,7 +246,7 @@ void func_8028DF14(u8 arg0) {
     s16 local;
     u8 drop;
 
-    for (i = 0; i < D_8039B610; i++) {
+    for (i = 0; i < gTntCount; i++) {
         if (D_8039B070_entries[i].unk19 != 0) {
             D_8039B070_entries[i].unk19--;
             if (D_8039B070_entries[i].unk19 == 0) {
@@ -257,7 +262,7 @@ void func_8028DF14(u8 arg0) {
             if (D_8039B070_entries[i].unk14 != 0 && D_8039B070_entries[i].unk10 != 0) {
                 D_8039B070_entries[i].unk10--;
                 if (D_8039B070_entries[i].unk10 <= 0) {
-                    func_8028DD64(i);
+                    tnt_explode(i);
                 }
             }
             if (D_8039B070_entries[i].unk14 != 0 && D_8039B070_entries[i].unk12 != 0) {
@@ -295,13 +300,13 @@ void func_8028DF14(u8 arg0) {
             if (hit != 0) {
                 if (gProbeHitCarrier != 0) {
                     cmo_hit_request = 1;
-                    func_8028DD64(i);
+                    tnt_explode(i);
                 }
                 if (gProbeHitPlayer != 0) {
                     gVehSlowed = 1;
                 }
                 if (D_8039B070_entries[i].unk14 == 0 && arg0 != 0) {
-                    if (func_8028DE94() == NULL) {
+                    if (tnt_find_lit() == NULL) {
                         func_80260650(D_80367738, 0x73, (void *) N64_IPTR(((s32) &D_8039B070_entries[i].unk40)));
                     }
                     D_8039B070_entries[i].unk14 = ((s32) gFramesInMode);
@@ -331,7 +336,7 @@ void func_8028DF14(u8 arg0) {
                     local = D_8039B070_entries[i].unk1C;
                 }
                 if (coll_probe_objects(D_802FDB98_boxes[D_8039B070_entries[i].unk0E].unk16, local) != 0) {
-                    func_8028DD64(i);
+                    tnt_explode(i);
                 }
             } else {
                 moved = 0;
@@ -400,17 +405,18 @@ typedef struct Dyn48D00 {
     gDPSetTile(g++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 8, 0x100, 1, 0, 0, 5, 0, 0, 5, 0);                          \
     gDPSetTileSize(g++, 1, 2, 2, 0x7E, 0x7E);
 
-/* Draw the boxes: rotate (unk2A, 0..4095 = one turn) and place each one,
+/* Draws the TNT crates (0x8028E9E4).
+ * Draw the boxes: rotate (unk2A, 0..4095 = one turn) and place each one,
  * then draw its faces in three passes, retexturing the shared 8 vertices
  * with gSPModifyVertex between them; unk20 drives the blend (prim LOD). */
-void func_8028E9E4(Gfx **gdl, Dyn48D00 *dyn) {
+void tnt_draw(Gfx **gdl, Dyn48D00 *dyn) {
     Gfx *gfx;
     s32 i;
     f32 rot[4][4];
     f32 trans[4][4];
 
     gfx = *gdl;
-    if (D_8039B610 > 0) {
+    if (gTntCount > 0) {
         gDPPipeSync(gfx++);
         gDPSetCycleType(gfx++, G_CYC_2CYCLE);
         gDPSetRenderMode(gfx++, G_RM_PASS, G_RM_AA_ZB_OPA_SURF2);
@@ -421,7 +427,7 @@ void func_8028E9E4(Gfx **gdl, Dyn48D00 *dyn) {
         gSPTexture(gfx++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
         gDPSetTextureLOD(gfx++, G_TL_TILE);
     }
-    for (i = 0; i < D_8039B610; i++) {
+    for (i = 0; i < gTntCount; i++) {
         if (D_8039B070_entries[i].unk18 != 0) {
             guRotateF(rot, (f32) D_8039B070_entries[i].unk2A / 4095.0 * 360.0, 0.0f, 1.0f, 0.0f);
             guTranslateF(trans, D_8039B070_entries[i].unk0 / 32.0f, D_8039B070_entries[i].unk4 / 32.0f,
@@ -466,10 +472,11 @@ void func_8028E9E4(Gfx **gdl, Dyn48D00 *dyn) {
 
 extern u8 D_8039B094;
 
-void func_8028F6B4(u8 arg0) {
+/* Crates standing on a vehicle ride on it (on entering) (0x8028F6B4). */
+void tnt_attach_to_vehicle(u8 arg0) {
     s32 i;
 
-    for (i = 0; i < D_8039B610; i++) {
+    for (i = 0; i < gTntCount; i++) {
         if (D_8039B070_entries[i].unk18 != 0 && D_8039B070_entries[i].unk23 == arg0) {
             D_8039B070_entries[i].unk1E = 0;
             *(&D_8039B094 + i * 0x48) = 1;
@@ -479,41 +486,42 @@ void func_8028F6B4(u8 arg0) {
     }
 }
 
-extern s32 D_8039B610;
-extern u8 D_8039B070;
+extern s32 gTntCount;
+extern u8 gTntCrates;
 
-void func_8028DD64(u8);
+void tnt_explode(u8);
 
-void func_8028F794(u8 arg0) {
+/* Carried crates move with the vehicle; explode on impact (0x8028F794). */
+void tnt_ride_vehicle(u8 arg0) {
     s32 i;
     s16 local;
 
-    for (i = 0; i < D_8039B610; i++) {
-        if (*(&D_8039B070 + i * 0x48 + 0x18) != 0 && *(&D_8039B070 + i * 0x48 + 0x24) != 0) {
+    for (i = 0; i < gTntCount; i++) {
+        if (*(&gTntCrates + i * 0x48 + 0x18) != 0 && *(&gTntCrates + i * 0x48 + 0x24) != 0) {
             veh_deck_to_world_c(
                 arg0,
-                *(s16 *) (&D_8039B070 + i * 0x48 + 0x26),
-                *(s16 *) (&D_8039B070 + i * 0x48 + 0x28),
-                (void *) (&D_8039B070 + i * 0x48),
-                (void *) (&D_8039B070 + i * 0x48 + 8));
+                *(s16 *) (&gTntCrates + i * 0x48 + 0x26),
+                *(s16 *) (&gTntCrates + i * 0x48 + 0x28),
+                (void *) (&gTntCrates + i * 0x48),
+                (void *) (&gTntCrates + i * 0x48 + 8));
 
-            *(s32 *) (&D_8039B070 + i * 0x48 + 4) = coll_ground_height(
-                *(s32 *) (&D_8039B070 + i * 0x48),
-                *(s32 *) (&D_8039B070 + i * 0x48 + 8),
-                *(s32 *) (&D_8039B070 + i * 0x48 + 4));
+            *(s32 *) (&gTntCrates + i * 0x48 + 4) = coll_ground_height(
+                *(s32 *) (&gTntCrates + i * 0x48),
+                *(s32 *) (&gTntCrates + i * 0x48 + 8),
+                *(s32 *) (&gTntCrates + i * 0x48 + 4));
 
-            if (*(s16 *) (&D_8039B070 + i * 0x48 + 0x1A) != 0) {
+            if (*(s16 *) (&gTntCrates + i * 0x48 + 0x1A) != 0) {
                 local = 0;
             } else {
-                local = *(s16 *) (&D_8039B070 + i * 0x48 + 0x1C);
+                local = *(s16 *) (&gTntCrates + i * 0x48 + 0x1C);
             }
 
-            coll_begin_probe(*(s32 *) (&D_8039B070 + i * 0x48),
-                          *(s32 *) (&D_8039B070 + i * 0x48 + 4),
-                          *(s32 *) (&D_8039B070 + i * 0x48 + 8));
+            coll_begin_probe(*(s32 *) (&gTntCrates + i * 0x48),
+                          *(s32 *) (&gTntCrates + i * 0x48 + 4),
+                          *(s32 *) (&gTntCrates + i * 0x48 + 8));
 
-            if (coll_probe_objects(*(s16 *) (0x802FDBAC + *(&D_8039B070 + i * 0x48 + 0xE) * 0x18), local) != 0) {
-                func_8028DD64((u8) i);
+            if (coll_probe_objects(*(s16 *) (0x802FDBAC + *(&gTntCrates + i * 0x48 + 0xE) * 0x18), local) != 0) {
+                tnt_explode((u8) i);
             }
         }
     }
@@ -521,27 +529,29 @@ void func_8028F794(u8 arg0) {
 
 extern u8 D_8039B094;
 
-void func_8028F93C(void) {
+/* Unpins all crates (on leaving a vehicle) (0x8028F93C). */
+void tnt_detach_all(void) {
     s32 i;
 
-    for (i = 0; i < D_8039B610; i++) {
+    for (i = 0; i < gTntCount; i++) {
         *(&D_8039B094 + i * 0x48) = 0;
     }
 }
 
 
-/* Set gCollHit if the point (arg0, arg1, arg2) is within any active
+/* GCollHit if near a crate (0x8028F994).
+ * Set gCollHit if the point (arg0, arg1, arg2) is within any active
  * entry's category radius (all in 1/32 units). */
-void func_8028F994(s32 arg0, s32 arg1, s32 arg2) {
+void tnt_test_point(s32 arg0, s32 arg1, s32 arg2) {
     s32 i;
     s32 dist;
 
     /* One statement (likely a macro in the original): separate
      * statements schedule the three reloads in the opposite order. */
     arg0 >>= 5, arg1 >>= 5, arg2 >>= 5;
-    for (i = 0; i < D_8039B610; i++) {
+    for (i = 0; i < gTntCount; i++) {
         if (D_8039B070_entries[i].unk18 != 0) {
-            dist = func_8026A6F0(arg0, arg1, arg2, D_8039B070_entries[i].unk0 >> 5,
+            dist = util_dist3d(arg0, arg1, arg2, D_8039B070_entries[i].unk0 >> 5,
                                  D_8039B070_entries[i].unk4 >> 5, D_8039B070_entries[i].unk8 >> 5);
             if (dist <= (*(s16 *) (0x802FDBAC + D_8039B070_entries[i].unk0E * 0x18) >> 5)) {
                 gCollHit = 1;
@@ -550,17 +560,18 @@ void func_8028F994(s32 arg0, s32 arg1, s32 arg2) {
     }
 }
 
-extern u8 D_802FDB98[];
-void func_8028FAC0(s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
+extern u8 gTntTypes[];
+/* The same with a radius, uncarried crates only (0x8028FAC0). */
+void tnt_test_sphere(s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
     s32 i;
     s32 dist;
 
     arg0 >>= 5, arg1 >>= 5, arg2 >>= 5, arg3 >>= 5;
-    for (i = 0; i < D_8039B610; i++) {
+    for (i = 0; i < gTntCount; i++) {
         if (D_8039B070_entries[i].unk18 != 0 && D_8039B070_entries[i].unk24 == 0) {
-            dist = func_8026A6F0(arg0, arg1, arg2, D_8039B070_entries[i].unk0 >> 5,
+            dist = util_dist3d(arg0, arg1, arg2, D_8039B070_entries[i].unk0 >> 5,
                                  D_8039B070_entries[i].unk4 >> 5, D_8039B070_entries[i].unk8 >> 5);
-            if (dist <= (*(s16 *) ((u8 *) D_802FDB98 + 0x14 + D_8039B070_entries[i].unk0E * 0x18) >> 5) + arg3) {
+            if (dist <= (*(s16 *) ((u8 *) gTntTypes + 0x14 + D_8039B070_entries[i].unk0E * 0x18) >> 5) + arg3) {
                 gCollHit = 1;
             }
         }
@@ -568,11 +579,12 @@ void func_8028FAC0(s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
 }
 
 
-/* Boot-time controller check: read the pads (osContStartReadData,
+/* START held at boot (0x8028FC10).
+ * Boot-time controller check: read the pads (osContStartReadData,
  * osRecvMesg, osContGetReadData), note whether START is held, latch it
  * into D_802FDBD0 if controller 1 is present, and set D_802FDBD4 when
  * START is held but was not latched. */
-void func_8028FC10(void) {
+void cont_boot_check_start(void) {
     u8 mask;
     u8 start;
     OSContPad pads[4];
@@ -584,7 +596,7 @@ void func_8028FC10(void) {
     if (pads[0].button & 0x1000) {
         start = 1;
     }
-    if (func_8028FCD4(&gSiMesgQueue, &mask) == 0 && (mask & 1)) {
+    if (cont_query_present(&gSiMesgQueue, &mask) == 0 && (mask & 1)) {
         D_802FDBD0 = start;
     }
     D_802FDBD4 = start && !D_802FDBD0;
@@ -598,9 +610,10 @@ typedef struct {
 } Status48D00;
 
 
-/* Wait for arg0->unk8, then build a bitmask in *arg1 of the 4 status
+/* Bitmask of the connected controllers (0x8028FCD4).
+ * Wait for arg0->unk8, then build a bitmask in *arg1 of the 4 status
  * entries with bit 0 of unk2 set and unk3 clear. */
-u8 func_8028FCD4(void *arg0, u8 *arg1) {
+u8 cont_query_present(void *arg0, u8 *arg1) {
     Status48D00 status[4];
     s32 i;
 

@@ -114,7 +114,7 @@ void veh_update_shadow(u8 id, s32 x, s32 y, s32 z, s32 arg4, s32 arg5, s32 arg6,
         if (hit) {
             mode = 1;
         }
-        ok = func_8027EED8(x >> 5, z >> 5, &h);
+        ok = water_get_height(x >> 5, z >> 5, &h);
         if (ok) {
             d1 = arg4 - (h << 5);
             d3 = arg4 - y;

@@ -1226,7 +1226,7 @@ void veh_collide_spheres(s32 tag, u8 *veh) {
 
 /* The crane's test part against TNT crates and push blocks (0x8029C5EC).
  * Looks up the kind-6 / id-0x3BD part with crane_find_test_part; if found, calls
- * func_8028FAC0 and func_802920DC with its words 0/4/8 and the last word 0xC
+ * tnt_test_sphere and block_test_sphere with its words 0/4/8 and the last word 0xC
  * seen (s0-s3 pass through to them when the lookup doesn't load them).
  * Returns the found flag.
  * Register convention: asm takes s0-s3 and returns the flag in s4
@@ -1243,8 +1243,8 @@ s32 crane_check_part_hits(s32 s0, s32 s1, s32 s2, s32 s3) {
     o.s3 = s3;
     crane_find_test_part(&o);
     if (o.s4 != 0) {
-        func_8028FAC0(o.s0, o.s1, o.s2, o.s3);
-        func_802920DC(o.s0, o.s1, o.s2, o.s3);
+        tnt_test_sphere(o.s0, o.s1, o.s2, o.s3);
+        block_test_sphere(o.s0, o.s1, o.s2, o.s3);
     }
     return o.s4;
 }

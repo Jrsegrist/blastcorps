@@ -22,7 +22,7 @@
  * gVehiclesEnd points one past the last live entry. */
 typedef struct {
     u8 pad0[0x5C];
-    s32 type;  /* 0x5C: digger weight class, see func_8027E228 */
+    s32 type;  /* 0x5C: digger weight class, see bridge_digger_weight */
     s32 pad60;
     s32 unk64; /* 0x64 */
     s32 pad68;
@@ -36,15 +36,15 @@ extern Digger *gVehiclesEnd;
 extern s32 D_802FC51C;
 
 f32 sinf(f32);
-s32 func_8027E164(s32 arg0, s32 arg1, void *arg2, void *arg3);
-f32 func_8027DD88(s32, s32, s32 *, s32 *);
+s32 bridge_point_in_quad(s32 arg0, s32 arg1, void *arg2, void *arg3);
+f32 bridge_cross_fraction(s32, s32, s32 *, s32 *);
 #ifdef NON_MATCHING
-f32 func_8027E228(u8 type);
+f32 bridge_digger_weight(u8 type);
 #else
-f32 func_8027E228(); /* K&R */
+f32 bridge_digger_weight(); /* K&R */
 #endif
-f32 func_8027DB5C(s32 *a, s32 *b, s32 arg2);
-void func_8027DA10(s32 arg0, s32 arg1, s32 arg2);
+f32 bridge_max_load(s32 *a, s32 *b, s32 arg2);
+void bridge_sag_group(s32 arg0, s32 arg1, s32 arg2);
 
 /* Animated water surface, one entry per level that has one (0x34 bytes). The surface is an
  * (nx + 1) x (nz + 1) vertex grid over x0..x1, z0..z1, displaced by two sine waves. */
@@ -80,20 +80,20 @@ extern s16 D_802FC48C[];
 #ifndef NON_MATCHING
 extern s32 gHeapPtr; /* bump allocator for display memory */
 #endif
-extern Vtx * N64P D_8036DCA0[2]; /* double-buffered water grid */
+extern Vtx * N64P gWaterVtx[2]; /* double-buffered water grid */
 extern s32 D_8036DCA8[2];
-extern s32 D_8036DCB0; /* wave clock */
+extern s32 gWaterClock; /* wave clock */
 extern s32 D_8036DCB8[3];
 extern s32 D_8036DCC8[2];
 extern u8 D_8036DCD0;
 extern s16 D_8036DCD2;
 extern u8 D_8036DCD5;
-extern u8 D_8036DCD6; /* index into D_802FC3F0 */
+extern u8 gWaterIndex; /* index into D_802FC3F0 */
 
-void func_802802D4(Vtx *v, s32 i0, s32 i1, s32 i2);
-void func_8028072C(Vtx *v, s16 x0, s16 y0, s16 z0, s16 x1, s16 y1, s16 z1);
+void water_flat_normal(Vtx *v, s32 i0, s32 i1, s32 i2);
+void water_box_corners(Vtx *v, s16 x0, s16 y0, s16 z0, s16 x1, s16 y1, s16 z1);
 
-/* Per-level random quad spawner (0x22 bytes); ranges are passed to func_8026A828 (random in range). */
+/* Per-level random quad spawner (0x22 bytes); ranges are passed to util_rand_range (random in range). */
 typedef struct {
     u8 id; /* level id */
     u8 pad1;
@@ -143,35 +143,37 @@ typedef struct {
 
 extern MineSpawn D_802FC520[];
 extern Vtx D_802FC528[];
-extern Mine D_8036E380[];
-extern s32 D_8036E4C0; /* number of placed objects */
+extern Mine gPowerPills[];
+extern s32 gPowerPillCount; /* number of placed objects */
 extern s32 D_8036E4C4;
 
 
-void func_8027D810(s32 arg0) {
+/* Levels 0, 4, 15, 16, 20: the bridges sag under the vehicles (0x8027D810). */
+void bridge_update_levels(s32 arg0) {
     switch (arg0) {
     case 0:
-        func_8027DA10(1, 7, 0x320000);
+        bridge_sag_group(1, 7, 0x320000);
         break;
     case 4:
-        func_8027DA10(1, 7, 0xA00000);
+        bridge_sag_group(1, 7, 0xA00000);
         break;
     case 16:
-        func_8027DA10(1, 7, 0x3C0000);
-        func_8027DA10(2, 7, 0x3C0000);
+        bridge_sag_group(1, 7, 0x3C0000);
+        bridge_sag_group(2, 7, 0x3C0000);
         break;
     case 20:
-        func_8027DA10(1, 7, 0x820000);
-        func_8027DA10(2, 7, 0x820000);
+        bridge_sag_group(1, 7, 0x820000);
+        bridge_sag_group(2, 7, 0x820000);
         break;
     case 15:
-        func_8027DA10(1, 7, 0x410000);
-        func_8027DA10(2, 7, 0x410000);
+        bridge_sag_group(1, 7, 0x410000);
+        bridge_sag_group(2, 7, 0x410000);
         break;
     }
 }
 
-void func_8027D8F4(s32 arg0, s32 arg1, s32 arg2) {
+/* A travelling sine on a group (no C caller) (0x8027D8F4). */
+void bridge_wave_group(s32 arg0, s32 arg1, s32 arg2) {
     s32 i;
     s32 j;
     f32 step;
@@ -189,7 +191,8 @@ void func_8027D8F4(s32 arg0, s32 arg1, s32 arg2) {
     D_802FC51C++;
 }
 
-void func_8027DA10(s32 arg0, s32 arg1, s32 arg2) {
+/* Half-sine sag of a group's parts by load (0x8027DA10). */
+void bridge_sag_group(s32 arg0, s32 arg1, s32 arg2) {
     f32 r;
     f32 s;
     f32 step;
@@ -204,7 +207,7 @@ void func_8027DA10(s32 arg0, s32 arg1, s32 arg2) {
         x[i] = p[i * 2] << 5;
         z[i] = p[i * 2 + 1] << 5;
     }
-    r = func_8027DB5C(x, z, arg2);
+    r = bridge_max_load(x, z, arg2);
     step = 3.14159 / (arg1 + 1);
     for (i = 0; i < arg1; i++) {
         s = sinf((i + 1) * step);
@@ -212,7 +215,8 @@ void func_8027DA10(s32 arg0, s32 arg1, s32 arg2) {
     }
 }
 
-f32 func_8027DB5C(s32 *a, s32 *b, s32 arg2) {
+/* The heaviest load on a span (0x8027DB5C). */
+f32 bridge_max_load(s32 *a, s32 *b, s32 arg2) {
     s32 i;
     f32 max;
     f32 v;
@@ -224,15 +228,15 @@ f32 func_8027DB5C(s32 *a, s32 *b, s32 arg2) {
     max = 0.0f;
     while (&gVehicles[i] != gVehiclesEnd) {
         if ((type = gVehicles[i].type) != 0xFE && (type != 0 || D_803649E8 == 0)) {
-            if (func_8027E164(gVehicles[i].unk64, gVehicles[i].unk6C, a, b) != 0) {
+            if (bridge_point_in_quad(gVehicles[i].unk64, gVehicles[i].unk6C, a, b) != 0) {
                 if (gVehicles[i].unk70 != 0) {
-                    t = func_8027DD88(gVehicles[i].unk64, gVehicles[i].unk6C, a, b);
+                    t = bridge_cross_fraction(gVehicles[i].unk64, gVehicles[i].unk6C, a, b);
                     if (t <= 0.5) {
                         t = t * 2.0;
                     } else {
                         t = (1.0 - t) * 2.0;
                     }
-                    w = func_8027E228(gVehicles[i].type);
+                    w = bridge_digger_weight(gVehicles[i].type);
                     v = t * w;
                     if (max < v) {
                         max = v;
@@ -245,11 +249,12 @@ f32 func_8027DB5C(s32 *a, s32 *b, s32 arg2) {
     return arg2 * max;
 }
 
-/* Where segment p[0]..p[1] (x) / q[0]..q[1] (y) crosses the segment centred on (arg0, arg1)
+/* Where a vehicle crosses the span (0..1) (0x8027DD88).
+ * Where segment p[0]..p[1] (x) / q[0]..q[1] (y) crosses the segment centred on (arg0, arg1)
  * with half-extent (p[1] - p[2], q[1] - q[2]); returns the crossing's fraction along the
  * first segment. Line-intersection maths as in Graphics Gems II (lines_intersect).
  * The a1/b1/c1 line must stay a single source line: IDO schedules it differently otherwise. */
-f32 func_8027DD88(s32 arg0, s32 arg1, s32 *p, s32 *q) {
+f32 bridge_cross_fraction(s32 arg0, s32 arg1, s32 *p, s32 *q) {
     f32 a1, a2, b1, b2, c1, c2;
     f32 r1, r2, r3, r4;
     f32 denom, offset, num;
@@ -293,7 +298,8 @@ f32 func_8027DD88(s32 arg0, s32 arg1, s32 *p, s32 *q) {
 }
 
 
-s32 func_8027E164(s32 arg0, s32 arg1, void *arg2, void *arg3) {
+/* 1 if (x, z) is inside the quad (0x8027E164). */
+s32 bridge_point_in_quad(s32 arg0, s32 arg1, void *arg2, void *arg3) {
     if (ground_in_triangle(arg0, arg1, *(s32 *)((u8 *) arg2 + 0x0), *(s32 *)((u8 *) arg3 + 0x0),
                        *(s32 *)((u8 *) arg2 + 0x4), *(s32 *)((u8 *) arg3 + 0x4),
                        *(s32 *)((u8 *) arg2 + 0x8), *(s32 *)((u8 *) arg3 + 0x8)) != 0) {
@@ -307,10 +313,11 @@ s32 func_8027E164(s32 arg0, s32 arg1, void *arg2, void *arg3) {
     return 0;
 }
 
+/* A vehicle type's weight on the bridges ("DIGGER WEIGHT NOT SET") (0x8027E228). */
 #ifdef NON_MATCHING
-f32 func_8027E228(u8 type)
+f32 bridge_digger_weight(u8 type)
 #else
-f32 func_8027E228(type)
+f32 bridge_digger_weight(type)
     u8 type;
 #endif
 {
@@ -353,9 +360,10 @@ f32 func_8027E228(type)
 #endif
 }
 
-/* Set up the water surface for level id: allocate its vertex/display buffers, load its textures,
+/* The level's water (0x8027E344).
+ * Set up the water surface for level id: allocate its vertex/display buffers, load its textures,
  * and lay out the grid's x/z positions and texture coordinates. */
-void func_8027E344(s32 id) {
+void water_init(s32 id) {
     s32 stepX;
     s32 stepZ;
     s32 x;
@@ -372,49 +380,49 @@ void func_8027E344(s32 id) {
     tv = 0;
     tu = 0;
     found = 0;
-    D_8036DCD6 = 0;
+    gWaterIndex = 0;
     do {
-        if (D_802FC3F0[D_8036DCD6].id == id) {
+        if (D_802FC3F0[gWaterIndex].id == id) {
             found = 1;
         } else {
-            D_8036DCD6++;
+            gWaterIndex++;
         }
-    } while (!found && D_8036DCD6 < 3);
+    } while (!found && gWaterIndex < 3);
     if (!found) {
-        D_8036DCD4 = 0;
+        gWaterOn = 0;
         return;
     }
-    D_8036DCD4 = 1;
-    D_8036DCA0[0] = (Vtx *) N64_IPTR(gHeapPtr);
-    gHeapPtr += (D_802FC3F0[D_8036DCD6].nx + 1) * (D_802FC3F0[D_8036DCD6].nz + 1) * sizeof(Vtx);
-    D_8036DCA0[1] = (Vtx *) N64_IPTR(gHeapPtr);
-    gHeapPtr += (D_802FC3F0[D_8036DCD6].nx + 1) * (D_802FC3F0[D_8036DCD6].nz + 1) * sizeof(Vtx);
+    gWaterOn = 1;
+    gWaterVtx[0] = (Vtx *) N64_IPTR(gHeapPtr);
+    gHeapPtr += (D_802FC3F0[gWaterIndex].nx + 1) * (D_802FC3F0[gWaterIndex].nz + 1) * sizeof(Vtx);
+    gWaterVtx[1] = (Vtx *) N64_IPTR(gHeapPtr);
+    gHeapPtr += (D_802FC3F0[gWaterIndex].nx + 1) * (D_802FC3F0[gWaterIndex].nz + 1) * sizeof(Vtx);
 #ifdef PORT_HOST
     {
         /* every vertex gets x, z, s, t here and y every frame; the flag and
          * colour bytes stay whatever the heap held on the N64 (the RSP shades
          * the water with them): give the native records those bytes */
         void port_vtx_stale(void *v, u32 n);
-        u32 nv = (D_802FC3F0[D_8036DCD6].nx + 1) * (D_802FC3F0[D_8036DCD6].nz + 1);
-        port_vtx_stale(D_8036DCA0[0], nv);
-        port_vtx_stale(D_8036DCA0[1], nv);
+        u32 nv = (D_802FC3F0[gWaterIndex].nx + 1) * (D_802FC3F0[gWaterIndex].nz + 1);
+        port_vtx_stale(gWaterVtx[0], nv);
+        port_vtx_stale(gWaterVtx[1], nv);
     }
 #endif
     D_8036DCA8[0] = gHeapPtr;
     gHeapPtr += 0x12C0;
     D_8036DCA8[1] = gHeapPtr;
     gHeapPtr += 0x12C0;
-    size = D_802FC3F0[D_8036DCD6].nx * D_802FC3F0[D_8036DCD6].nz * 2 * 8;
-    size += (D_802FC3F0[D_8036DCD6].nx / 8 + 1) * D_802FC3F0[D_8036DCD6].nz * 8;
+    size = D_802FC3F0[gWaterIndex].nx * D_802FC3F0[gWaterIndex].nz * 2 * 8;
+    size += (D_802FC3F0[gWaterIndex].nx / 8 + 1) * D_802FC3F0[gWaterIndex].nz * 8;
     size += 0x1C20;
     D_8036DCC8[0] = gHeapPtr;
     gHeapPtr += size;
     D_8036DCC8[1] = gHeapPtr;
     gHeapPtr += size;
-    D_8036DCD7 = D_802FC3F0[D_8036DCD6].unk31;
-    if ((D_8036DCD5 = D_802FC3F0[D_8036DCD6].unk24) != 0) {
+    gWaterLayer = D_802FC3F0[gWaterIndex].unk31;
+    if ((D_8036DCD5 = D_802FC3F0[gWaterIndex].unk24) != 0) {
         D_8036DCB8[0] = gHeapPtr;
-        tex_get(D_802FC3F0[D_8036DCD6].tex, 0);
+        tex_get(D_802FC3F0[gWaterIndex].tex, 0);
     } else {
         for (i = 0; i < 3; i++) {
             D_8036DCB8[i] = gHeapPtr;
@@ -423,42 +431,43 @@ void func_8027E344(s32 id) {
     }
     D_8036DCD0 = 0;
     D_8036DCD2 = 0;
-    stepX = (D_802FC3F0[D_8036DCD6].x1 - D_802FC3F0[D_8036DCD6].x0) / D_802FC3F0[D_8036DCD6].nx;
-    stepZ = (D_802FC3F0[D_8036DCD6].z1 - D_802FC3F0[D_8036DCD6].z0) / D_802FC3F0[D_8036DCD6].nz;
-    x = D_802FC3F0[D_8036DCD6].x0;
-    z = D_802FC3F0[D_8036DCD6].z0;
-    for (i = 0; i <= D_802FC3F0[D_8036DCD6].nz; i++) {
+    stepX = (D_802FC3F0[gWaterIndex].x1 - D_802FC3F0[gWaterIndex].x0) / D_802FC3F0[gWaterIndex].nx;
+    stepZ = (D_802FC3F0[gWaterIndex].z1 - D_802FC3F0[gWaterIndex].z0) / D_802FC3F0[gWaterIndex].nz;
+    x = D_802FC3F0[gWaterIndex].x0;
+    z = D_802FC3F0[gWaterIndex].z0;
+    for (i = 0; i <= D_802FC3F0[gWaterIndex].nz; i++) {
         tu = 0;
-        for (j = 0; j <= D_802FC3F0[D_8036DCD6].nx; j++) {
-            D_8036DCA0[0][n].v.ob[0] = x;
-            D_8036DCA0[0][n].v.ob[2] = z;
-            D_8036DCA0[1][n].v.ob[0] = x;
-            D_8036DCA0[1][n].v.ob[2] = z;
-            D_8036DCA0[0][n].v.tc[0] = tv << 5;
-            D_8036DCA0[0][n].v.tc[1] = tu << 5;
-            D_8036DCA0[1][n].v.tc[0] = tv << 5;
-            D_8036DCA0[1][n].v.tc[1] = tu << 5;
+        for (j = 0; j <= D_802FC3F0[gWaterIndex].nx; j++) {
+            gWaterVtx[0][n].v.ob[0] = x;
+            gWaterVtx[0][n].v.ob[2] = z;
+            gWaterVtx[1][n].v.ob[0] = x;
+            gWaterVtx[1][n].v.ob[2] = z;
+            gWaterVtx[0][n].v.tc[0] = tv << 5;
+            gWaterVtx[0][n].v.tc[1] = tu << 5;
+            gWaterVtx[1][n].v.tc[0] = tv << 5;
+            gWaterVtx[1][n].v.tc[1] = tu << 5;
             tu ^= 0x1F;
             n++;
             x += stepX;
         }
         tv ^= 0x1F;
-        x = D_802FC3F0[D_8036DCD6].x0;
+        x = D_802FC3F0[gWaterIndex].x0;
         z += stepZ;
     }
-    D_8036DCB0 = 0;
+    gWaterClock = 0;
 }
 
-/* Per-frame water update: advance the wave clock, then rebuild the heights of vertex buffer buf. */
-void func_8027E9B8(u8 buf) {
+/* Wave clock and vertex heights (0x8027E9B8).
+ * Per-frame water update: advance the wave clock, then rebuild the heights of vertex buffer buf. */
+void water_update(u8 buf) {
     s32 i;
     s32 j;
     s32 stepX;
     s32 stepZ;
     register f32 s;
 
-    if (D_8036DCD4 != 0 && gPaused == 0) {
-        D_8036DCB0++;
+    if (gWaterOn != 0 && gPaused == 0) {
+        gWaterClock++;
         D_8036DCD2 += 15;
         if (D_8036DCD2 >= 255) {
             D_8036DCD2 = 0;
@@ -467,58 +476,60 @@ void func_8027E9B8(u8 buf) {
             }
         }
     }
-    if (D_8036DCD4 != 0) {
-        stepX = (D_802FC3F0[D_8036DCD6].x1 - D_802FC3F0[D_8036DCD6].x0) / D_802FC3F0[D_8036DCD6].nx;
-        for (i = 0; i <= D_802FC3F0[D_8036DCD6].nx; i++) {
-            for (j = 0; j <= D_802FC3F0[D_8036DCD6].nz; j++) {
-                s = sinf(((i + 1) * stepX) / D_802FC3F0[D_8036DCD6].lenX + D_8036DCB0 / D_802FC3F0[D_8036DCD6].rateX);
-                D_8036DCA0[buf][i + j * (D_802FC3F0[D_8036DCD6].nz + 1)].v.ob[1] =
-                    D_802FC3F0[D_8036DCD6].ampX * s + D_802FC3F0[D_8036DCD6].y;
+    if (gWaterOn != 0) {
+        stepX = (D_802FC3F0[gWaterIndex].x1 - D_802FC3F0[gWaterIndex].x0) / D_802FC3F0[gWaterIndex].nx;
+        for (i = 0; i <= D_802FC3F0[gWaterIndex].nx; i++) {
+            for (j = 0; j <= D_802FC3F0[gWaterIndex].nz; j++) {
+                s = sinf(((i + 1) * stepX) / D_802FC3F0[gWaterIndex].lenX + gWaterClock / D_802FC3F0[gWaterIndex].rateX);
+                gWaterVtx[buf][i + j * (D_802FC3F0[gWaterIndex].nz + 1)].v.ob[1] =
+                    D_802FC3F0[gWaterIndex].ampX * s + D_802FC3F0[gWaterIndex].y;
             }
         }
-        stepZ = (D_802FC3F0[D_8036DCD6].z1 - D_802FC3F0[D_8036DCD6].z0) / D_802FC3F0[D_8036DCD6].nz;
-        for (i = 0; i <= D_802FC3F0[D_8036DCD6].nz; i++) {
-            for (j = 0; j <= D_802FC3F0[D_8036DCD6].nx; j++) {
-                s = sinf(((i + 1) * stepZ) / D_802FC3F0[D_8036DCD6].lenZ + D_8036DCB0 / D_802FC3F0[D_8036DCD6].rateZ);
-                D_8036DCA0[buf][(D_802FC3F0[D_8036DCD6].nz + 1) * i + j].v.ob[1] =
-                    D_802FC3F0[D_8036DCD6].ampZ * s + D_8036DCA0[buf][(D_802FC3F0[D_8036DCD6].nz + 1) * i + j].v.ob[1];
+        stepZ = (D_802FC3F0[gWaterIndex].z1 - D_802FC3F0[gWaterIndex].z0) / D_802FC3F0[gWaterIndex].nz;
+        for (i = 0; i <= D_802FC3F0[gWaterIndex].nz; i++) {
+            for (j = 0; j <= D_802FC3F0[gWaterIndex].nx; j++) {
+                s = sinf(((i + 1) * stepZ) / D_802FC3F0[gWaterIndex].lenZ + gWaterClock / D_802FC3F0[gWaterIndex].rateZ);
+                gWaterVtx[buf][(D_802FC3F0[gWaterIndex].nz + 1) * i + j].v.ob[1] =
+                    D_802FC3F0[gWaterIndex].ampZ * s + gWaterVtx[buf][(D_802FC3F0[gWaterIndex].nz + 1) * i + j].v.ob[1];
             }
         }
     }
 }
 
-/* Water height at (x, z) into *y; returns 1 if (x, z) is over the water grid. */
-s32 func_8027EED8(s16 x, s16 z, s16 *y) {
+/* The water height at a point (0x8027EED8).
+ * Water height at (x, z) into *y; returns 1 if (x, z) is over the water grid. */
+s32 water_get_height(s16 x, s16 z, s16 *y) {
     s32 pad;
     f32 step;
     f32 t;
     register f32 s;
 
-    if (D_8036DCD4 == 0) {
+    if (gWaterOn == 0) {
         return 0;
     }
-    if (x < D_802FC3F0[D_8036DCD6].x0 || x > D_802FC3F0[D_8036DCD6].x1 || z < D_802FC3F0[D_8036DCD6].z0 ||
-        z > D_802FC3F0[D_8036DCD6].z1) {
-        *y = D_802FC3F0[D_8036DCD6].y;
+    if (x < D_802FC3F0[gWaterIndex].x0 || x > D_802FC3F0[gWaterIndex].x1 || z < D_802FC3F0[gWaterIndex].z0 ||
+        z > D_802FC3F0[gWaterIndex].z1) {
+        *y = D_802FC3F0[gWaterIndex].y;
         return 0;
     }
-    step = (f32) (D_802FC3F0[D_8036DCD6].x1 - D_802FC3F0[D_8036DCD6].x0) / D_802FC3F0[D_8036DCD6].nx;
-    t = (x - D_802FC3F0[D_8036DCD6].x0) / step;
-    s = sinf(((t + 1.0f) * step) / D_802FC3F0[D_8036DCD6].lenX + D_8036DCB0 / D_802FC3F0[D_8036DCD6].rateX);
-    *y = D_802FC3F0[D_8036DCD6].ampX * s + D_802FC3F0[D_8036DCD6].y;
-    step = (f32) (D_802FC3F0[D_8036DCD6].z1 - D_802FC3F0[D_8036DCD6].z0) / D_802FC3F0[D_8036DCD6].nz;
-    t = (z - D_802FC3F0[D_8036DCD6].z0) / step;
-    s = sinf(((t + 1.0f) * step) / D_802FC3F0[D_8036DCD6].lenZ + D_8036DCB0 / D_802FC3F0[D_8036DCD6].rateZ);
-    *y = D_802FC3F0[D_8036DCD6].ampZ * s + *y;
+    step = (f32) (D_802FC3F0[gWaterIndex].x1 - D_802FC3F0[gWaterIndex].x0) / D_802FC3F0[gWaterIndex].nx;
+    t = (x - D_802FC3F0[gWaterIndex].x0) / step;
+    s = sinf(((t + 1.0f) * step) / D_802FC3F0[gWaterIndex].lenX + gWaterClock / D_802FC3F0[gWaterIndex].rateX);
+    *y = D_802FC3F0[gWaterIndex].ampX * s + D_802FC3F0[gWaterIndex].y;
+    step = (f32) (D_802FC3F0[gWaterIndex].z1 - D_802FC3F0[gWaterIndex].z0) / D_802FC3F0[gWaterIndex].nz;
+    t = (z - D_802FC3F0[gWaterIndex].z0) / step;
+    s = sinf(((t + 1.0f) * step) / D_802FC3F0[gWaterIndex].lenZ + gWaterClock / D_802FC3F0[gWaterIndex].rateZ);
+    *y = D_802FC3F0[gWaterIndex].ampZ * s + *y;
     return 1;
 }
 
-/* Draw the water surface into gfx when this is its layer. The grid is emitted in strips of up to
+/* Draws the water (0x8027F1F8).
+ * Draw the water surface into gfx when this is its layer. The grid is emitted in strips of up to
  * 8x2 vertices into a sub-display-list (D_8036DCC8[buf]); every 32 vertices the strip batch is
  * closed and given a bounding box (8 verts in D_8036DCA8[buf]) for gSPCullDisplayList. With a
  * single texture the face normals are recomputed for environment mapping, otherwise two textures
  * are blended with LOD fraction D_8036DCD2. */
-void func_8027F1F8(Gfx **gfx, u8 buf, u8 layer) {
+void water_draw(Gfx **gfx, u8 buf, u8 layer) {
     Gfx *gdl;
     s32 a;
     s32 b;
@@ -545,7 +556,7 @@ void func_8027F1F8(Gfx **gfx, u8 buf, u8 layer) {
     done = 0;
     dl = (Gfx *) N64_IPTR(D_8036DCC8[buf]);
     bbox = (Vtx *) N64_IPTR(D_8036DCA8[buf]);
-    if (D_8036DCD4 == 0 || layer != D_8036DCD7) {
+    if (gWaterOn == 0 || layer != gWaterLayer) {
         return;
     }
     gDPPipeSync(gdl++);
@@ -561,9 +572,9 @@ void func_8027F1F8(Gfx **gfx, u8 buf, u8 layer) {
                             G_TX_CLAMP, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
     } else {
         gDPSetCycleType(gdl++, G_CYC_2CYCLE);
-        gDPSetRenderMode(gdl++, D_802FC3F0[D_8036DCD6].rm0, D_802FC3F0[D_8036DCD6].rm1);
+        gDPSetRenderMode(gdl++, D_802FC3F0[gWaterIndex].rm0, D_802FC3F0[gWaterIndex].rm1);
         gSPClearGeometryMode(gdl++, 0xFFFFFFFF);
-        if (D_802FC3F0[D_8036DCD6].zbuf != 0) {
+        if (D_802FC3F0[gWaterIndex].zbuf != 0) {
             gSPSetGeometryMode(gdl++, G_ZBUFFER | G_SHADE | G_SHADING_SMOOTH | G_CULL_BACK);
         } else {
             gSPSetGeometryMode(gdl++, G_SHADE | G_SHADING_SMOOTH | G_CULL_BACK);
@@ -593,16 +604,16 @@ void func_8027F1F8(Gfx **gfx, u8 buf, u8 layer) {
         gDPSetTileSize(gdl++, 1, 2, 2, 0x7E, 0x7E);
         gDPSetPrimColor(gdl++, 0, D_8036DCD2, 0x00, 0x00, 0x00, 0xAA);
     }
-    total = (D_802FC3F0[D_8036DCD6].nx + 1) * (D_802FC3F0[D_8036DCD6].nz + 1);
+    total = (D_802FC3F0[gWaterIndex].nx + 1) * (D_802FC3F0[gWaterIndex].nz + 1);
     a = 0;
-    b = D_802FC3F0[D_8036DCD6].nx + 1;
+    b = D_802FC3F0[gWaterIndex].nx + 1;
     col = 0;
     vcount = 0;
     while (!done) {
-        if (D_802FC3F0[D_8036DCD6].nx - col + 1 >= 9) {
+        if (D_802FC3F0[gWaterIndex].nx - col + 1 >= 9) {
             cnt = 8;
         } else {
-            cnt = D_802FC3F0[D_8036DCD6].nx - col + 1;
+            cnt = D_802FC3F0[gWaterIndex].nx - col + 1;
         }
         if (vcount == 0) {
             gSPDisplayList(gdl++, osVirtualToPhysical(dl));
@@ -611,71 +622,71 @@ void func_8027F1F8(Gfx **gfx, u8 buf, u8 layer) {
             minZ = minY = minX = 0x7FFF;
             maxZ = maxY = maxX = -0x8000;
         }
-        gSPVertex(dl++, osVirtualToPhysical(&D_8036DCA0[buf][a]), cnt, 0);
-        gSPVertex(dl++, osVirtualToPhysical(&D_8036DCA0[buf][b]), cnt, 8);
+        gSPVertex(dl++, osVirtualToPhysical(&gWaterVtx[buf][a]), cnt, 0);
+        gSPVertex(dl++, osVirtualToPhysical(&gWaterVtx[buf][b]), cnt, 8);
         for (m = 0; m < cnt; m++) {
-            if (D_8036DCA0[buf][a + m].v.ob[0] < minX) {
-                minX = D_8036DCA0[buf][a + m].v.ob[0];
+            if (gWaterVtx[buf][a + m].v.ob[0] < minX) {
+                minX = gWaterVtx[buf][a + m].v.ob[0];
             }
-            if (D_8036DCA0[buf][a + m].v.ob[1] < minY) {
-                minY = D_8036DCA0[buf][a + m].v.ob[1];
+            if (gWaterVtx[buf][a + m].v.ob[1] < minY) {
+                minY = gWaterVtx[buf][a + m].v.ob[1];
             }
-            if (D_8036DCA0[buf][a + m].v.ob[2] < minZ) {
-                minZ = D_8036DCA0[buf][a + m].v.ob[2];
+            if (gWaterVtx[buf][a + m].v.ob[2] < minZ) {
+                minZ = gWaterVtx[buf][a + m].v.ob[2];
             }
-            if (D_8036DCA0[buf][a + m].v.ob[0] > maxX) {
-                maxX = D_8036DCA0[buf][a + m].v.ob[0];
+            if (gWaterVtx[buf][a + m].v.ob[0] > maxX) {
+                maxX = gWaterVtx[buf][a + m].v.ob[0];
             }
-            if (D_8036DCA0[buf][a + m].v.ob[1] > maxY) {
-                maxY = D_8036DCA0[buf][a + m].v.ob[1];
+            if (gWaterVtx[buf][a + m].v.ob[1] > maxY) {
+                maxY = gWaterVtx[buf][a + m].v.ob[1];
             }
-            if (D_8036DCA0[buf][a + m].v.ob[2] > maxZ) {
-                maxZ = D_8036DCA0[buf][a + m].v.ob[2];
+            if (gWaterVtx[buf][a + m].v.ob[2] > maxZ) {
+                maxZ = gWaterVtx[buf][a + m].v.ob[2];
             }
         }
         for (m = 0; m < cnt; m++) {
-            if (D_8036DCA0[buf][b + m].v.ob[0] < minX) {
-                minX = D_8036DCA0[buf][b + m].v.ob[0];
+            if (gWaterVtx[buf][b + m].v.ob[0] < minX) {
+                minX = gWaterVtx[buf][b + m].v.ob[0];
             }
-            if (D_8036DCA0[buf][b + m].v.ob[1] < minY) {
-                minY = D_8036DCA0[buf][b + m].v.ob[1];
+            if (gWaterVtx[buf][b + m].v.ob[1] < minY) {
+                minY = gWaterVtx[buf][b + m].v.ob[1];
             }
-            if (D_8036DCA0[buf][b + m].v.ob[2] < minZ) {
-                minZ = D_8036DCA0[buf][b + m].v.ob[2];
+            if (gWaterVtx[buf][b + m].v.ob[2] < minZ) {
+                minZ = gWaterVtx[buf][b + m].v.ob[2];
             }
-            if (D_8036DCA0[buf][b + m].v.ob[0] > maxX) {
-                maxX = D_8036DCA0[buf][b + m].v.ob[0];
+            if (gWaterVtx[buf][b + m].v.ob[0] > maxX) {
+                maxX = gWaterVtx[buf][b + m].v.ob[0];
             }
-            if (D_8036DCA0[buf][b + m].v.ob[1] > maxY) {
-                maxY = D_8036DCA0[buf][b + m].v.ob[1];
+            if (gWaterVtx[buf][b + m].v.ob[1] > maxY) {
+                maxY = gWaterVtx[buf][b + m].v.ob[1];
             }
-            if (D_8036DCA0[buf][b + m].v.ob[2] > maxZ) {
-                maxZ = D_8036DCA0[buf][b + m].v.ob[2];
+            if (gWaterVtx[buf][b + m].v.ob[2] > maxZ) {
+                maxZ = gWaterVtx[buf][b + m].v.ob[2];
             }
         }
         k = 0;
         for (m = 0; m < cnt - 1; m++) {
             gSP1Triangle(dl++, k + 1, k, k + 8, 0);
             if (D_8036DCD5 != 0) {
-                func_802802D4(D_8036DCA0[buf], a + k, a + k + 1, b + k);
+                water_flat_normal(gWaterVtx[buf], a + k, a + k + 1, b + k);
             }
             gSP1Triangle(dl++, k + 8, k + 9, k + 1, 0);
             if (D_8036DCD5 != 0) {
-                func_802802D4(D_8036DCA0[buf], b + k, b + k + 1, a + k + 1);
+                water_flat_normal(gWaterVtx[buf], b + k, b + k + 1, a + k + 1);
             }
             k++;
         }
         rowlen = cnt - 1;
         col += rowlen;
         a += rowlen, b += rowlen;
-        if (D_802FC3F0[D_8036DCD6].nx == col) {
+        if (D_802FC3F0[gWaterIndex].nx == col) {
             col = 0;
             a++, b++;
         }
         vcount += cnt * 2;
         if (vcount >= 32) {
             gSPEndDisplayList(dl++);
-            func_8028072C(bbox, minX, minY, minZ, maxX, maxY, maxZ);
+            water_box_corners(bbox, minX, minY, minZ, maxX, maxY, maxZ);
             vcount = 0;
             bbox += 8;
         }
@@ -685,7 +696,7 @@ void func_8027F1F8(Gfx **gfx, u8 buf, u8 layer) {
     }
     if (vcount != 0) {
         gSPEndDisplayList(dl++);
-        func_8028072C(bbox, minX, minY, minZ, maxX, maxY, maxZ);
+        water_box_corners(bbox, minX, minY, minZ, maxX, maxY, maxZ);
         bbox += 8;
     }
     gDPPipeSync(gdl++);
@@ -694,8 +705,9 @@ void func_8027F1F8(Gfx **gfx, u8 buf, u8 layer) {
     *gfx = gdl;
 }
 
-/* Flat-shade triangle (i0, i1, i2) of v: store its face normal, scaled to length 120, in all three vertices. */
-void func_802802D4(Vtx *v, s32 i0, s32 i1, s32 i2) {
+/* The water's flat normal (0x802802D4).
+ * Flat-shade triangle (i0, i1, i2) of v: store its face normal, scaled to length 120, in all three vertices. */
+void water_flat_normal(Vtx *v, s32 i0, s32 i1, s32 i2) {
     f32 e1[3];
     f32 e2[3];
     f32 pad[3];
@@ -736,8 +748,9 @@ void func_802802D4(Vtx *v, s32 i0, s32 i1, s32 i2) {
     v[i2].v.cn[3] = 0;
 }
 
-/* Set the 8 corner positions of the box (x0..x1, y0..y1, z0..z1). */
-void func_8028072C(Vtx *v, s16 x0, s16 y0, s16 z0, s16 x1, s16 y1, s16 z1) {
+/* The water's cull box (0x8028072C).
+ * Set the 8 corner positions of the box (x0..x1, y0..y1, z0..z1). */
+void water_box_corners(Vtx *v, s16 x0, s16 y0, s16 z0, s16 x1, s16 y1, s16 z1) {
 #ifdef PORT_HOST
     {
         /* a cull box: only the corners' positions are written (and read, by
@@ -772,9 +785,10 @@ void func_8028072C(Vtx *v, s16 x0, s16 y0, s16 z0, s16 x1, s16 y1, s16 z1) {
     v[7].v.ob[2] = z1;
 }
 
-/* Scatter the level's random textured quads (D_802FC494[n].count of them, up to 12): random position,
+/* Random drifting textured quads per level (0x802807D8).
+ * Scatter the level's random textured quads (D_802FC494[n].count of them, up to 12): random position,
  * size and angle within the table's ranges, written into both vertex buffers. */
-void func_802807D8(u8 id) {
+void fx_init_drift_quads(u8 id) {
     s32 i;
     s32 j;
     s16 x;
@@ -801,18 +815,18 @@ void func_802807D8(u8 id) {
         D_8036E378 = gHeapPtr;
         tex_get(D_802FC494[D_8036E370].tex, 0);
         for (i = 0; i < D_8036E374; i++) {
-            x = func_8026A828(D_802FC494[D_8036E370].x0, D_802FC494[D_8036E370].x1);
-            y = func_8026A828(D_802FC494[D_8036E370].y0, D_802FC494[D_8036E370].y1);
-            z = func_8026A828(D_802FC494[D_8036E370].z0, D_802FC494[D_8036E370].z1);
-            w = func_8026A828(D_802FC494[D_8036E370].w0, D_802FC494[D_8036E370].w1);
-            d = func_8026A828(D_802FC494[D_8036E370].d0, D_802FC494[D_8036E370].d1);
+            x = util_rand_range(D_802FC494[D_8036E370].x0, D_802FC494[D_8036E370].x1);
+            y = util_rand_range(D_802FC494[D_8036E370].y0, D_802FC494[D_8036E370].y1);
+            z = util_rand_range(D_802FC494[D_8036E370].z0, D_802FC494[D_8036E370].z1);
+            w = util_rand_range(D_802FC494[D_8036E370].w0, D_802FC494[D_8036E370].w1);
+            d = util_rand_range(D_802FC494[D_8036E370].d0, D_802FC494[D_8036E370].d1);
             w >>= 1, d >>= 1;
             D_8036DCE0[i].w = w;
             D_8036DCE0[i].d = d;
             D_8036DCE0[i].x = x;
             D_8036DCE0[i].z = z;
-            D_8036DCE0[i].unk0 = func_8026A828(D_802FC494[D_8036E370].r0, D_802FC494[D_8036E370].r1);
-            D_8036DCE0[i].angle = func_8026A828(0, 0xFFF);
+            D_8036DCE0[i].unk0 = util_rand_range(D_802FC494[D_8036E370].r0, D_802FC494[D_8036E370].r1);
+            D_8036DCE0[i].angle = util_rand_range(0, 0xFFF);
             for (j = 0; j < 2; j++) {
                 D_8036DD70[j][i][0].v.ob[0] = x - w;
                 D_8036DD70[j][i][0].v.ob[1] = y;
@@ -839,9 +853,10 @@ void func_802807D8(u8 id) {
     }
 }
 
-/* Move the random quads (coll_step_xz steps each one; the result comes back in D_803F9320/4),
+/* Moves, wraps and draws the drifting quads (0x80280F34).
+ * Move the random quads (coll_step_xz steps each one; the result comes back in D_803F9320/4),
  * wrap them around the spawn area, rebuild their corners in vertex buffer buf and draw them. */
-void func_80280F34(Gfx **gfx, u8 buf) {
+void fx_draw_drift_quads(Gfx **gfx, u8 buf) {
     Gfx *gdl;
     s32 i;
     s16 dx;
@@ -900,64 +915,67 @@ void func_80280F34(Gfx **gfx, u8 buf) {
     *gfx = gdl;
 }
 
-void func_80281A70(s32 arg0) {
+/* Places the level's power pill (0x80281A70). */
+void fx_init_power_pill(s32 arg0) {
     s32 i;
     s32 j;
 
-    D_8036E4C0 = 0;
+    gPowerPillCount = 0;
     for (i = 0; i < 1; i++) {
         if (D_802FC520[i].id == arg0) {
-            D_8036E380[D_8036E4C0].x = D_802FC520[i].x;
-            D_8036E380[D_8036E4C0].y = D_802FC520[i].y;
-            D_8036E380[D_8036E4C0].z = D_802FC520[i].z;
-            func_8026A5CC((u64 *) (D_8036E380[D_8036E4C0].v), (u64 *) D_802FC528, sizeof(D_8036E380->v));
+            gPowerPills[gPowerPillCount].x = D_802FC520[i].x;
+            gPowerPills[gPowerPillCount].y = D_802FC520[i].y;
+            gPowerPills[gPowerPillCount].z = D_802FC520[i].z;
+            util_copy64((u64 *) (gPowerPills[gPowerPillCount].v), (u64 *) D_802FC528, sizeof(gPowerPills->v));
             for (j = 0; j < 4; j++) {
-                D_8036E380[D_8036E4C0].v[j].v.ob[0] += D_8036E380[D_8036E4C0].x;
-                D_8036E380[D_8036E4C0].v[j].v.ob[1] += D_8036E380[D_8036E4C0].y;
-                D_8036E380[D_8036E4C0].v[j].v.ob[2] += D_8036E380[D_8036E4C0].z;
+                gPowerPills[gPowerPillCount].v[j].v.ob[0] += gPowerPills[gPowerPillCount].x;
+                gPowerPills[gPowerPillCount].v[j].v.ob[1] += gPowerPills[gPowerPillCount].y;
+                gPowerPills[gPowerPillCount].v[j].v.ob[2] += gPowerPills[gPowerPillCount].z;
             }
-            D_8036E380[D_8036E4C0].active = 1;
-            D_8036E4C0++;
+            gPowerPills[gPowerPillCount].active = 1;
+            gPowerPillCount++;
         }
     }
-    if (D_8036E4C0 != 0) {
+    if (gPowerPillCount != 0) {
         D_8036E4C4 = tex_get(0x546, 0);
     }
-    D_8036E4C8 = 0;
-    D_8036E4CA = 0;
+    gPowerPillTimer = 0;
+    gPowerPillEaten = 0;
 }
 
-void func_80281CE4(void) {
+/* Eaten within 40: the 400-frame pill timer, sounds (0x80281CE4). */
+void fx_update_power_pill(void) {
     s32 i;
     s32 dist;
 
-    D_8036E4CA = 0;
-    if (D_8036E4C8 != 0) {
-        D_8036E4C8--;
+    gPowerPillEaten = 0;
+    if (gPowerPillTimer != 0) {
+        gPowerPillTimer--;
     }
-    for (i = 0; i < D_8036E4C0; i++) {
-        if (D_8036E380[i].active != 0) {
-            dist = func_8026A6F0(gPlayerX >> 5, gPlayerY >> 5, gPlayerZ >> 5,
-                                 D_8036E380[i].x, D_8036E380[i].y, D_8036E380[i].z);
+    for (i = 0; i < gPowerPillCount; i++) {
+        if (gPowerPills[i].active != 0) {
+            dist = util_dist3d(gPlayerX >> 5, gPlayerY >> 5, gPlayerZ >> 5,
+                                 gPowerPills[i].x, gPowerPills[i].y, gPowerPills[i].z);
             if (dist < 40) {
-                D_8036E4C8 = 400;
-                D_8036E4CA = 1;
-                D_8036E380[i].active = 0;
+                gPowerPillTimer = 400;
+                gPowerPillEaten = 1;
+                gPowerPills[i].active = 0;
                 func_80260650(D_80367738, 0xB0, NULL);
-                if (D_8036DCD8 == 0) {
-                    func_80260650(D_80367738, 0xCF, &D_8036DCD8);
+                if (gPowerPillSound == 0) {
+                    func_80260650(D_80367738, 0xCF, &gPowerPillSound);
                 }
             }
         }
     }
 }
 
-void func_80281E44(Gfx **gfx) {
+/* Draws the uneaten power pills (0x80281E44). */
+void fx_draw_power_pill(Gfx **gfx) {
     Gfx *gdl;
     s32 i;
 
     gdl = *gfx;
-    if (D_8036E4C0 != 0) {
+    if (gPowerPillCount != 0) {
         gSPClearGeometryMode(gdl++, 0xFFFFFFFF);
         gSPSetGeometryMode(gdl++, G_ZBUFFER | G_SHADE | G_SHADING_SMOOTH);
         gDPPipeSync(gdl++);
@@ -967,9 +985,9 @@ void func_80281E44(Gfx **gfx) {
         gSPTexture(gdl++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
         gDPLoadTextureBlock(gdl++, D_8036E4C4, G_IM_FMT_RGBA, G_IM_SIZ_16b, 32, 32, 0,
                             G_TX_CLAMP, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
-        for (i = 0; i < D_8036E4C0; i++) {
-            if (D_8036E380[i].active != 0) {
-                gSPVertex(gdl++, D_8036E380[i].v, 4, 0);
+        for (i = 0; i < gPowerPillCount; i++) {
+            if (gPowerPills[i].active != 0) {
+                gSPVertex(gdl++, gPowerPills[i].v, 4, 0);
                 gSP1Triangle(gdl++, 0, 1, 2, 0);
                 gSP1Triangle(gdl++, 0, 2, 3, 0);
             }
@@ -986,7 +1004,8 @@ extern u8 D_8036E4D2;  /* overlay on */
 extern Vtx D_802FC568[];
 
 
-void func_802821D0(void) {
+/* Loads the vehicle overlay texture (0x802821D0). */
+void hud_init_veh_overlay(void) {
     D_8036E4CC = gHeapPtr;
     tex_load_to_heap(0xA98, 0);
     gHeapPtr += 0x800;
@@ -994,9 +1013,10 @@ void func_802821D0(void) {
     D_8036E4D2 = 0;
 }
 
-/* Fade a textured quad (D_802FC568) in when arg1 is 7, 11, 17 or 18 and veh_tris_all_solid(arg1) is 0;
+/* The overlay for the train and the barges (0x80282224).
+ * Fade a textured quad (D_802FC568) in when arg1 is 7, 11, 17 or 18 and veh_tris_all_solid(arg1) is 0;
  * otherwise fade it out by 10 per frame. */
-void func_80282224(Gfx **gfx, u8 arg1) {
+void hud_draw_veh_overlay(Gfx **gfx, u8 arg1) {
     Gfx *gdl;
     u8 flag;
     u8 flag2;
@@ -1031,7 +1051,7 @@ void func_80282224(Gfx **gfx, u8 arg1) {
         gSPSetGeometryMode(gdl++, G_SHADE | G_SHADING_SMOOTH);
         gSPTexture(gdl++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
         gDPSetCombineMode(gdl++, G_CC_MODULATERGBA_PRIM, G_CC_MODULATERGBA_PRIM);
-        gDPSetPrimColor(gdl++, 0, 0, 0xFF, 0xFF, 0xFF, (D_8036E4D0 < D_80367BD6) ? D_8036E4D0 : D_80367BD6);
+        gDPSetPrimColor(gdl++, 0, 0, 0xFF, 0xFF, 0xFF, (D_8036E4D0 < gHudAlpha) ? D_8036E4D0 : gHudAlpha);
         gDPLoadTextureBlock(gdl++, OS_K0_TO_PHYSICAL(D_8036E4CC), G_IM_FMT_RGBA, G_IM_SIZ_16b, 32, 32, 0,
                             G_TX_MIRROR | G_TX_CLAMP, G_TX_MIRROR | G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK,
                             G_TX_NOLOD, G_TX_NOLOD);
@@ -1048,17 +1068,19 @@ extern u32 D_8036E4D4; /* frame the last ring started */
 extern Gfx D_802FFF38[];
 extern Gfx D_80300A68[];
 extern Mtx D_8036E4D8[][2];
-extern f32 D_8036E5D8[]; /* ring scales */
+extern f32 gBlastScales[]; /* ring scales */
 
 
-void func_80282728(void) {
+/* Resets the carrier blast (0x80282728). */
+void fx_init_carrier_blast(void) {
     D_8036E4D3 = 0;
     D_8036E4D4 = 0;
 }
 
-/* Expanding-ring effect: tint the screen, then draw up to two growing copies of display list
+/* The carrier explodes: red tint, growing dome, blast damage (0x8028273C).
+ * Expanding-ring effect: tint the screen, then draw up to two growing copies of display list
  * D_80300A68 at (gCarrierX, gCarrierY, gCarrierZ) / 32, a new one 10 frames after the last. */
-void func_8028273C(Gfx **gfx, u8 arg1) {
+void fx_draw_carrier_blast(Gfx **gfx, u8 arg1) {
     Gfx *gdl;
     f32 mf[4][4];
     f32 scale[4][4];
@@ -1068,7 +1090,7 @@ void func_8028273C(Gfx **gfx, u8 arg1) {
     if (gCarrierHit != 0) {
         if (gCarrierExplodeDone != 0 && D_8036E4D3 == 0) {
             D_8036E4D3 = 1;
-            D_8036E5D8[0] = 0.001f;
+            gBlastScales[0] = 0.001f;
             D_8036E4D4 = D_803156C4;
         }
         gDPPipeSync(gdl++);
@@ -1082,8 +1104,8 @@ void func_8028273C(Gfx **gfx, u8 arg1) {
         }
         for (i = 0; i < D_8036E4D3; i++) {
             guTranslateF(mf, gCarrierX / 32.0f, gCarrierY / 32.0f, gCarrierZ / 32.0f);
-            guScaleF(scale, D_8036E5D8[i], D_8036E5D8[i], D_8036E5D8[i]);
-            D_8036E5D8[i] += 0.06;
+            guScaleF(scale, gBlastScales[i], gBlastScales[i], gBlastScales[i]);
+            gBlastScales[i] += 0.06;
             guMtxCatF(scale, mf, mf);
             guMtxF2L(mf, &D_8036E4D8[arg1][i]);
             gDPPipeSync(gdl++);
@@ -1095,14 +1117,14 @@ void func_8028273C(Gfx **gfx, u8 arg1) {
         }
         if (D_8036E4D4 + 10 < D_803156C4 && D_8036E4D3 != 0 && D_8036E4D3 < 2) {
             D_8036E4D4 = D_803156C4;
-            D_8036E5D8[D_8036E4D3] = 0.001f;
+            gBlastScales[D_8036E4D3] = 0.001f;
             D_8036E4D3++;
         }
         gDPPipeSync(gdl++);
         gDPSetColorDither(gdl++, G_CD_MAGICSQ);
         gDPPipeSync(gdl++);
         if (D_8036E4D3 != 0) {
-            obj_blast_around_carrier(D_8036E5D8[0] * 283.0f);
+            obj_blast_around_carrier(gBlastScales[0] * 283.0f);
         }
     }
     *gfx = gdl;

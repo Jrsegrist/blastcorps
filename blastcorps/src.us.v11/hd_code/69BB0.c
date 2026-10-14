@@ -348,7 +348,7 @@ s32 driver_in_exit_zone(s32 *mode) {
  * (veh_collision_setup with b0 = 0 and h2 = the part-list end, as driver_build_model
  * leaves them in t0/t2), runs the world and object collision passes
  * (veh_collide_world(0), D_803F77D0 = gDriverAnim, obj_collide_vehicle(0)) and, outside
- * vehicle type 0xB, func_8028F994 at the position. Returns 1 when the spot is
+ * vehicle type 0xB, tnt_test_point at the position. Returns 1 when the spot is
  * free (gCollHit clear), else 0.
  * Register convention (conventions.txt): dist a2, result a3; veh_reground's
  * leftover inputs key t8, fp, f12-f26 come in from the asm caller (here key,
@@ -393,7 +393,7 @@ s32 driver_check_exit_point(s32 dist, s32 key, s32 *fp, TriSideOut *f) {
     D_803F77D0 = gDriverAnim;
     obj_collide_vehicle(0, gDriverState);
     if (gCurVehicle != 0xB) {
-        func_8028F994(pos[0], pos[1], pos[2]);
+        tnt_test_point(pos[0], pos[1], pos[2]);
     }
     return gCollHit == 0;
 }
@@ -485,7 +485,7 @@ static void port_aeec8_ring(void) {
  * gSlotSurface[0..2] and +0x50). Traced in the original (Oct 2026, gameplay,
  * level 0): fp 0 always (the game thread's); t8 = 0x13 from veh_update_player
  * (left by people_update's callees), 0 from hd_game_frame's mode-0x1801 path,
- * heap pointers during the level intro, and func_8026A8E0's seed
+ * heap pointers during the level intro, and util_rand2_range's seed
  * (0x47FF37D3) on frames where driver_update_anims took its random-idle path. The
  * key only makes ground_scan_moveable skip gMoveableTris triangles whose u16 id equals
  * it (and ground_cache_tri test 0xFF); those ids are vehicle types 6, 7, 0xB,
@@ -601,7 +601,7 @@ extern s32 gDriverExitStop;   /* exit-walk stop coordinate */
  * Register convention (conventions.txt): veh_reground's leftover inputs come
  * from the asm caller: key t8, fp and f12-f26 (here key, fp, f). Fidelity
  * notes: the asm's key is whatever t8 held in driver_update (its C callers'
- * leftover, or func_8026A8E0's seed on driver_update_anims's random-idle path;
+ * leftover, or util_rand2_range's seed on driver_update_anims's random-idle path;
  * traced 0x13 / 0x47FF37D3, see driver_update: no triangle id can equal it,
  * so the C's 0 scans the same ground); fp (traced: always 0, as here) ends up
  * as gSlotSurface[0..2] and +0x50. The asm passes only five arguments to
@@ -683,8 +683,8 @@ static s32 AnimChannelState(s32 idx) {
  * +0xA1 records whether the vehicle was moving last frame.
  * Stopped (speed +0x76 == 0): on the first stopped frame channel 1 is stopped
  * and channel 31 restarted with 70; then, when none of channels 31, 2, 3, 4 is
- * running and func_8026A8E0(0, 20) is 0, one of channels 3 / 4 / 2 (by
- * func_8026A8E0(0, 2) = 0 / 1 / else) is started.
+ * running and util_rand2_range(0, 20) is 0, one of channels 3 / 4 / 2 (by
+ * util_rand2_range(0, 2) = 0 / 1 / else) is started.
  * Moving: on the first moving frame channel 1 is set to mode 2 and the running
  * one of channels 2, 3, 4 (else 3, after resetting it) is handed over via
  * anim_blend_channels and channel 31 restarted with 40. Then, unless channel 31 is
@@ -694,7 +694,7 @@ static s32 AnimChannelState(s32 idx) {
  * Register note: the asm clobbers s5 (and f20/f30 through anim_blend_channels);
  * conventions.txt. Asm caller driver_update reads t6, t8, f12 and f14 after
  * the call, which the asm passes through except where its C callees change
- * them (func_8026A8E0 leaves its seeds in t6/t8): a mixed N64 build would need
+ * them (util_rand2_range leaves its seeds in t6/t8): a mixed N64 build would need
  * a thunk, the native port won't. */
 void driver_update_anims(void) {
     u8 *base = gDriverAnim;
@@ -717,10 +717,10 @@ void driver_update_anims(void) {
             AnimChannelState(4) == 1) {
             return;
         }
-        if (func_8026A8E0(0, 0x14) != 0) {
+        if (util_rand2_range(0, 0x14) != 0) {
             return;
         }
-        r = func_8026A8E0(0, 2);
+        r = util_rand2_range(0, 2);
         if (r == 0) {
             anim_set_frame(0.0f, (Unk8029DEA0Entry *) base, 3, 0);
             anim_play((Unk8029DEA0Entry *) base, 3, 1);

@@ -19,10 +19,10 @@ import sys
 
 # copy loops: they move bytes at whatever width suits them, which says
 # nothing about the data's own layout (the copy is byte-order neutral)
-COPIERS = {"func_8026A5CC",   # 23C20: copy in 8-byte units
+COPIERS = {"util_copy64",   # 23C20: copy in 8-byte units
            "tex_decode",   # 60F60: packed texture -> scratch copy (u64, u16)
            "tex_decode_type0",   # 60F60: type-0 (stored) texture copy
-           "func_80285A78",   # 409D0: 16-byte record copy
+           "stats_copy_result",   # 409D0: 16-byte record copy
            "obj_queue_effect",   # 77E20: 0x38-byte debris record copy (words)
            "veh_deserialize_state",   # 679E0: vehicle state restore (byte copy)
            "veh_serialize_state",   # 679E0: vehicle state save (byte copy)

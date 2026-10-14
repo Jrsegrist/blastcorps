@@ -226,7 +226,7 @@ void func_801FE990(void) {
         gDPFillRectangle(gdl++, 0, 0, 319, 239);
     }
     gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, gFrameBufferPhys[gBufferIndex]);
-    func_80259450();
+    text_begin_frame();
     gdl = func_80200BE0(gdl, (s32) &gDynamicBufs[gBufferIndex], &gFrameDlLen);
     gDPPipeSync(gdl++);
     gDPSetCycleType(gdl++, G_CYC_1CYCLE);
@@ -248,7 +248,7 @@ void func_801FE990(void) {
         gdl = func_801E9718(gdl, (struct PlayerSelDyn *) &gDynamicBufs[gBufferIndex], 0xC2);
     }
     if (gGameMode & 0x898C0FE313F78002) {
-        gdl = func_8025C878(gdl, (s32) &gDynamicBufs[gBufferIndex], gBufferIndex, &gFrameDlLen);
+        gdl = title_draw_attract(gdl, (s32) &gDynamicBufs[gBufferIndex], gBufferIndex, &gFrameDlLen);
     }
     if (gGameMode & 0x410000) {
         u8 old = playerNumber;
@@ -287,7 +287,7 @@ void func_801FE990(void) {
     }
     cont_update();
     if (gGameMode == 0x800000000000) {
-        func_802862DC();
+        academy_play_state_tune();
     }
     if ((gGameMode & 0x88000080) && D_803156C4 % 20 >= 6 && D_80364A71 != -1 && yoshiState == 2) {
         s32 x;
@@ -295,15 +295,15 @@ void func_801FE990(void) {
 
         x = 0x118, y = 0x8C;
         sprintf(D_8021AB72, "%d", D_80364A71);
-        func_80259CCC((Gfx * N64P *) &gDynamicBufs[gBufferIndex], (u8 *) D_8021AB72, 0, 1, 0, x, y, 0x1A, 0x16, 1, 0, 0, 0, gYoshiAlpha);
-        func_80259DC8((Gfx * N64P *) &gDynamicBufs[gBufferIndex], (u8 *) D_8021AB72, 0, 1, 0, x + 2, y + 2, 0x12, 0x12, 1, 0xFF, 0xFF, 0,
+        text_print((Gfx * N64P *) &gDynamicBufs[gBufferIndex], (u8 *) D_8021AB72, 0, 1, 0, x, y, 0x1A, 0x16, 1, 0, 0, 0, gYoshiAlpha);
+        text_print_gradient((Gfx * N64P *) &gDynamicBufs[gBufferIndex], (u8 *) D_8021AB72, 0, 1, 0, x + 2, y + 2, 0x12, 0x12, 1, 0xFF, 0xFF, 0,
                       gYoshiAlpha, 0xFF, 0, 0, gYoshiAlpha);
     }
     if (gGameMode & 0x40000000000) {
         func_801F803C();
         gdl = func_801F8440((s32) &gDynamicBufs[gBufferIndex], gdl);
     }
-    func_80259C24(&gdl, (Mtx *) &gDynamicBufs[gBufferIndex]);
+    text_flush_screen(&gdl, (Mtx *) &gDynamicBufs[gBufferIndex]);
     gdl = func_80274BF0((s32) &gDynamicBufs[gBufferIndex], gdl);
     if (!(gGameMode & 0xC000000000000)) {
         gdl = yoshi_draw(gdl, (s32) &gDynamicBufs[gBufferIndex], &gFrameDlLen);
@@ -364,7 +364,7 @@ void func_801FE990(void) {
             case 0x1000000:
                 osSendMesg(&D_80219EF8, (OSMesg) ((playerNumber << 16) | 7), 1);
                 osSendMesg(&D_80219EF8, (OSMesg) ((playerNumber << 16) | 0x15 | 0x01000000), 1);
-                func_802995F0(4);
+                seq_prepare(4);
                 func_80275390(0x100000000000);
                 break;
             case 0x80000000:

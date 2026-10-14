@@ -285,7 +285,7 @@ s32 func_801F1DA8(s32 level) {
     if (func_801FE760(level)) {
         return 0;
     }
-    if (func_80264BA4(level) != 3) {
+    if (lvl_planet(level) != 3) {
         return 0;
     }
     if ((LEVEL_DONE(level)) || level == 0) {
@@ -533,7 +533,7 @@ Gfx *func_801F2E20(void) {
                                     G_TX_CLAMP, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
                 k++;
             }
-            func_801FDCA4(verts, (i + j) / 4, func_8026A828(0, 25000));
+            func_801FDCA4(verts, (i + j) / 4, util_rand_range(0, 25000));
             verts[i + j].v.tc[0] = 0;
             verts[i + j].v.tc[1] = 0;
             verts[i + j + 1].v.tc[0] = 0;

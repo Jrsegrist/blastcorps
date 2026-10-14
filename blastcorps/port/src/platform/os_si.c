@@ -2,7 +2,7 @@
  *
  * Every SI transfer completes at once: the call that would start a PIF DMA
  * posts the SI event (OS_EVENT_SI) the hardware would raise, so code that
- * waits for it (osRecvMesg on the SI queue, or func_8028FCD4's poll of the
+ * waits for it (osRecvMesg on the SI queue, or cont_query_present's poll of the
  * queue's validCount) continues straight away.
  *
  * EEPROM: 4 Kbit (64 blocks of 8 bytes), kept in memory and written back to

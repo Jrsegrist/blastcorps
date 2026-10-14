@@ -4,15 +4,15 @@
 /* Matching build: IDO compiled the matched code here against older
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
-#define LEGACY_D_803BE6FC
-#define LEGACY_D_803BE700
+#define LEGACY_gDigTriggers
+#define LEGACY_gDigTriggersEnd
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_02000000 ((u8 *) D_02000000)
 #ifdef NON_MATCHING
-#define D_803BE6FC (*(DigTrigger * N64P *) &D_803BE6FC)
-#define D_803BE700 (*(DigTrigger * N64P *) &D_803BE700)
+#define gDigTriggers (*(DigTrigger * N64P *) &gDigTriggers)
+#define gDigTriggersEnd (*(DigTrigger * N64P *) &gDigTriggersEnd)
 #endif
 /* end of views */
 
@@ -37,9 +37,9 @@ typedef struct {
 } DigTrigger;
 
 #ifndef NON_MATCHING
-extern DigTrigger *D_803BE6FC; /* first */
+extern DigTrigger *gDigTriggers; /* first */
 #ifndef NON_MATCHING
-extern DigTrigger *D_803BE700; /* end */
+extern DigTrigger *gDigTriggersEnd; /* end */
 #endif
 #endif
 extern u8 D_8036CB35;
@@ -61,7 +61,7 @@ extern s16 D_802FBE44[];
 extern s16 D_802FBE80[];
 extern Vtx D_802FBD50[8];
 
-extern DigEntry D_8036C8D0[50];
+extern DigEntry gDigSamples[50];
 extern u8 D_8036CB32;
 extern void * N64P D_8036CB48[2];
 extern u8 D_8036CB28;
@@ -69,17 +69,18 @@ extern u8 D_8036CB29;
 extern u8 D_8036CB30;
 extern u8 D_8036CB31;
 extern u8 D_8036CB33;
-extern u8 D_8036CB34;
+extern u8 gPanelActive;
 
-s32 func_80277D34(void);
-s32 func_80277E08(void);
-void func_80277C20(void);
-void func_802778FC(void);
-void func_80277AE0(void);
-void func_80277B84(void);
+s32 dig_hit_is_weak(void);
+s32 dig_part_hit_is_weak(void);
+void dig_count_samples(void);
+void dig_check_doing_well(void);
+void dig_check_wrong_digger(void);
+void dig_check_misuse(void);
 
-void func_802775C0(void) {
-    D_8036CB34 = 0;
+/* The message panel's two 40x40 frame buffers (0x802775C0). */
+void hud_panel_init(void) {
+    gPanelActive = 0;
     D_8036CB48[0] = gHeapPtr;
     D_8036CB48[1] = gHeapPtr = (u8 *) gHeapPtr + 0xC80;
     gHeapPtr = (u8 *) gHeapPtr + 0xC80;
@@ -87,13 +88,14 @@ void func_802775C0(void) {
     D_8036CB29 = 0;
 }
 
-void func_80277620(s32 now) {
+/* Samples digger hits, the coaching checks, the timed panel events (0x80277620). */
+void dig_coach_update(s32 now) {
     u8 done = 0;
-    DigTrigger *p = D_803BE6FC;
+    DigTrigger *p = gDigTriggers;
     s16 limit;
 
     while (!done && D_8036CB28 != D_8036CB29) {
-        if (now - D_8036C8D0[D_8036CB28].time > 1000) {
+        if (now - gDigSamples[D_8036CB28].time > 1000) {
             if (++D_8036CB28 == 50) {
                 D_8036CB28 = 0;
             }
@@ -101,44 +103,45 @@ void func_80277620(s32 now) {
             done = 1;
         }
     }
-    if (D_8036CB2F) {
+    if (gDigHit) {
         if (D_8036CB29 + 1 != D_8036CB28 && !(D_8036CB29 == 49 && D_8036CB28 == 0)) {
-            D_8036C8D0[D_8036CB29].unk0 = func_80277D34();
-            D_8036C8D0[D_8036CB29].unk2 = func_80277E08();
-            D_8036C8D0[D_8036CB29].unk4 = D_8036CB2E;
-            D_8036C8D0[D_8036CB29].time = now;
+            gDigSamples[D_8036CB29].unk0 = dig_hit_is_weak();
+            gDigSamples[D_8036CB29].unk2 = dig_part_hit_is_weak();
+            gDigSamples[D_8036CB29].unk4 = gDigHitVehicle;
+            gDigSamples[D_8036CB29].time = now;
             if (++D_8036CB29 == 50) {
                 D_8036CB29 = 0;
             }
         }
     }
-    if (D_8036CB2F) {
-        func_80277C20();
-        func_802778FC();
-        func_80277AE0();
-        func_80277B84();
+    if (gDigHit) {
+        dig_count_samples();
+        dig_check_doing_well();
+        dig_check_wrong_digger();
+        dig_check_misuse();
     }
     if (now == 50 && !gCarrierHit) {
-        func_80277EDC(2, 1, 2, func_8026205C(1));
+        hud_panel_start(2, 1, 2, func_8026205C(1));
     }
     if (gHaveCarrier) {
         limit = gCarrierZ >> 5;
-        while (p < D_803BE700) {
+        while (p < gDigTriggersEnd) {
             if (!p->done && limit > p->time) {
-                func_80277EDC(p->a, p->b, p->c, p->d);
+                hud_panel_start(p->a, p->b, p->c, p->d);
                 p->done = 1;
             }
             p++;
         }
     }
-    D_8036CB2F = 0;
+    gDigHit = 0;
 }
 
-void func_802778FC(void) {
+/* Most recent hits strong: "DOING REALLY WELL" (0x802778FC). */
+void dig_check_doing_well(void) {
     switch (gCurVehicle) {
         case 5:
             if (D_8036CB31 >= 16 && D_8036CB30 >= 16) {
-                func_80277EDC(3, 1, 1, 0x63);
+                hud_panel_start(3, 1, 1, 0x63);
                 D_8036CB28 = 0;
                 D_8036CB29 = 0;
                 debug_printf("DOING REALLY WELL\n");
@@ -146,7 +149,7 @@ void func_802778FC(void) {
             break;
         case 4:
             if (D_8036CB31 >= 41 && D_8036CB30 >= 41) {
-                func_80277EDC(4, 1, 1, func_8026205C(4));
+                hud_panel_start(4, 1, 1, func_8026205C(4));
                 D_8036CB28 = 0;
                 D_8036CB29 = 0;
                 debug_printf("DOING REALLY WELL\n");
@@ -154,7 +157,7 @@ void func_802778FC(void) {
             break;
         case 3:
             if (D_8036CB31 >= 11 && D_8036CB30 >= 11) {
-                func_80277EDC(0, 1, 3, 0xB2);
+                hud_panel_start(0, 1, 3, 0xB2);
                 D_8036CB28 = 0;
                 D_8036CB29 = 0;
                 debug_printf("DOING REALLY WELL\n");
@@ -162,7 +165,7 @@ void func_802778FC(void) {
             break;
         case 9:
             if (D_8036CB31 >= 26 && D_8036CB30 >= 26) {
-                func_80277EDC(4, 1, 1, func_8026205C(4));
+                hud_panel_start(4, 1, 1, func_8026205C(4));
                 D_8036CB28 = 0;
                 D_8036CB29 = 0;
                 debug_printf("DOING REALLY WELL\n");
@@ -171,14 +174,15 @@ void func_802778FC(void) {
     }
 }
 
-void func_80277AE0(void) {
+/* Strong hits but weak part damage: "USING WRONG DIGGER" (0x80277AE0). */
+void dig_check_wrong_digger(void) {
     switch (gCurVehicle) {
         case 3:
         case 4:
         case 5:
         case 9:
             if (D_8036CB31 >= 6 && D_8036CB30 < 2) {
-                func_80277EDC(1, 1, 3, 0xB3);
+                hud_panel_start(1, 1, 3, 0xB3);
                 D_8036CB28 = 0;
                 D_8036CB29 = 0;
                 debug_printf("USING WRONG DIGGER\n");
@@ -187,13 +191,14 @@ void func_80277AE0(void) {
     }
 }
 
-void func_80277B84(void) {
+/* Most hits weak: "USING DIGGER INCORRECTLY" (0x80277B84). */
+void dig_check_misuse(void) {
     switch (gCurVehicle) {
         case 3:
         case 4:
         case 5:
             if (D_8036CB33 >= 31 && D_8036CB30 < 6) {
-                func_80277EDC(2, 1, 2, 0x58);
+                hud_panel_start(2, 1, 2, 0x58);
                 D_8036CB28 = 0;
                 D_8036CB29 = 0;
                 debug_printf("USING DIGGER INCORRECTLY\n");
@@ -202,7 +207,8 @@ void func_80277B84(void) {
     }
 }
 
-void func_80277C20(void) {
+/* Counts strong and weak hits in the sample ring (0x80277C20). */
+void dig_count_samples(void) {
     u8 i;
 
     D_8036CB30 = 0;
@@ -211,12 +217,12 @@ void func_80277C20(void) {
     D_8036CB32 = 0;
     D_8036CB33 = 0;
     while (i != D_8036CB29) {
-        if (!D_8036C8D0[i].unk2) {
+        if (!gDigSamples[i].unk2) {
             D_8036CB30++;
         } else {
             D_8036CB32++;
         }
-        if (!D_8036C8D0[i].unk0) {
+        if (!gDigSamples[i].unk0) {
             D_8036CB31++;
         } else {
             D_8036CB33++;
@@ -227,25 +233,26 @@ void func_80277C20(void) {
     }
 }
 
-s32 func_80277D34(void) {
-    switch (D_8036CB2E) {
+/* 1 if the hit's damage is under the vehicle's limit (0x80277D34). */
+s32 dig_hit_is_weak(void) {
+    switch (gDigHitVehicle) {
         case 5:
-            if (D_8036CB2A > 400) {
+            if (gDigHitDamage > 400) {
                 return 0;
             }
             return 1;
         case 4:
-            if (D_8036CB2A > 400) {
+            if (gDigHitDamage > 400) {
                 return 0;
             }
             return 1;
         case 9:
-            if (D_8036CB2A >= 100) {
+            if (gDigHitDamage >= 100) {
                 return 0;
             }
             return 1;
         case 3:
-            if (D_8036CB2A >= 100) {
+            if (gDigHitDamage >= 100) {
                 return 0;
             }
             return 1;
@@ -253,25 +260,26 @@ s32 func_80277D34(void) {
     return 1;
 }
 
-s32 func_80277E08(void) {
-    switch (D_8036CB2E) {
+/* The same on the per-part damage (0x80277E08). */
+s32 dig_part_hit_is_weak(void) {
+    switch (gDigHitVehicle) {
         case 5:
-            if (D_8036CB2C > 80) {
+            if (gDigHitDamagePerPart > 80) {
                 return 0;
             }
             return 1;
         case 4:
-            if (D_8036CB2C > 80) {
+            if (gDigHitDamagePerPart > 80) {
                 return 0;
             }
             return 1;
         case 9:
-            if (D_8036CB2C >= 100) {
+            if (gDigHitDamagePerPart >= 100) {
                 return 0;
             }
             return 1;
         case 3:
-            if (D_8036CB2C >= 100) {
+            if (gDigHitDamagePerPart >= 100) {
                 return 0;
             }
             return 1;
@@ -279,12 +287,13 @@ s32 func_80277E08(void) {
     return 1;
 }
 
-/* Starts a digger event. A K&R definition: callers pass plain ints, and the
+/* Starts message animation type 0..4 of the coaching panel, with its sound (0x80277EDC).
+ * Starts a digger event. A K&R definition: callers pass plain ints, and the
  * u8 parameters read their low bytes */
 #ifdef NON_MATCHING
-void func_80277EDC(u8 type, u8 arg1, s32 arg2, u8 sound)
+void hud_panel_start(u8 type, u8 arg1, s32 arg2, u8 sound)
 #else
-void func_80277EDC(type, arg1, arg2, sound)
+void hud_panel_start(type, arg1, arg2, sound)
     u8 type;
     u8 arg1;
     s32 arg2;
@@ -297,11 +306,11 @@ void func_80277EDC(type, arg1, arg2, sound)
     u8 pos;
 #endif
 
-    if ((gGameMode & 0x200000000400220C) && !D_8036CB34) {
+    if ((gGameMode & 0x200000000400220C) && !gPanelActive) {
         if (sound) {
             func_80260650(D_80367738, sound, NULL);
         }
-        D_8036CB34 = 1;
+        gPanelActive = 1;
         D_8036CB35 = arg2;
         D_8036CB36 = 0;
         D_8036CB37 = 0;
@@ -370,15 +379,17 @@ void func_80277EDC(type, arg1, arg2, sound)
     }
 }
 
-void func_80278318(void) {
-    D_8036CB34 = 0;
+/* Stops the message panel (0x80278318). */
+void hud_panel_stop(void) {
+    gPanelActive = 0;
 }
 
-/* Animates and draws the digger event panel */
-void func_80278324(Gfx **gfx, s32 arg1, u8 buf) {
+/* Inflates the frame, animates, fades and draws the panel (0x80278324).
+ * Animates and draws the digger event panel */
+void hud_panel_draw(Gfx **gfx, s32 arg1, u8 buf) {
     Gfx *gdl = *gfx;
 
-    if (D_8036CB34) {
+    if (gPanelActive) {
         tex_queue_load(D_8036CB40[D_8036CB39], D_8036CB48[buf], 0);
         switch (D_8036CB38) {
             case 1:
@@ -417,7 +428,7 @@ void func_80278324(Gfx **gfx, s32 arg1, u8 buf) {
                 break;
         }
         if (D_8036CB36 == D_8036CB35) {
-            D_8036CB34 = 0;
+            gPanelActive = 0;
         }
         if (D_8036CB36 == 0 && D_8036CB39 < 5) {
             if (D_8036CB39 == 0) {
@@ -427,7 +438,7 @@ void func_80278324(Gfx **gfx, s32 arg1, u8 buf) {
         } else if (D_8036CB50) {
             D_8036CB51 -= 15;
             D_8036CB50--;
-        } else if (!func_8026A828(0, 20)) {
+        } else if (!util_rand_range(0, 20)) {
             D_8036CB50 = 5;
             D_8036CB51 = 0x50;
             func_80260650(D_80367738, 0x69, NULL);

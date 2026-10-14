@@ -419,7 +419,7 @@ static void port_b7a88_crash(void) {
  * amdream_spawn). Zone lookup (amdream_zone_alpha), save the state for a crash
  * rollback (veh_snapshot), engine sound 0xA4 (veh_update_horn); unless byte
  * +0x9A is set, trail and effects (amdream_update_effects, fed the zone scan
- * registers); func_802CB690 while D_80367BFF is set; amdream_set_physics; steering
+ * registers); func_802CB690 while gTurboPending is set; amdream_set_physics; steering
  * (veh_steer at the rate amdream_steer_rate returns) and, unless the throttle
  * lockout gAmdreamThrottleLock is counting down, throttle (veh_throttle: mode 3,
  * delta 0x10); heading (veh_turn_heading: rate 6000, with sound), slope
@@ -455,7 +455,7 @@ void amdream_update(void) {
     if ((s8) gAmdreamState[0x9A] == 0) {
         amdream_update_effects(zr.t6, zr.t7, zr.s0, zr.s1, zr.s2, zr.s3, zr.s4);
     }
-    if (D_80367BFF != 0) {
+    if (gTurboPending != 0) {
         func_802CB690(gAmdreamState);
     }
     amdream_set_physics();
@@ -573,15 +573,15 @@ extern u32 gAmdreamPos[]; /* [0], [2]: trail x, z */
 /* Tyre tracks while skidding (0x802B80D8).
  * Tyre trail (shape of skyfall_add_tyre_trail in 6E200; $gp = gAmdreamState): if the
  * byte at +0x99 is set, +0x98 isn't 1, +0x50 < 3 and +0x9B is clear,
- * func_8027BE7C(3, y, 250, -400, -400, -400, gAmdreamPos[0], gAmdreamPos[2],
+ * trail_add(3, y, 250, -400, -400, -400, gAmdreamPos[0], gAmdreamPos[2],
  * yaw, 3, 50, 50, 0).
  * Register note: the asm saves and restores every integer register; asm
  * caller amdream_update_effects keeps a0-a3, t6, t7 live (and reads f12/f14 after
- * the call, which the asm doesn't touch but func_8027BE7C may); a mixed N64
+ * the call, which the asm doesn't touch but trail_add may); a mixed N64
  * build would need a thunk. */
 void amdream_add_tyre_trail(void) {
     if (gAmdreamState[0x99] != 0 && gAmdreamState[0x98] != 1 && gAmdreamState[0x50] < 3 && gAmdreamState[0x9B] == 0) {
-        func_8027BE7C(3, *(s32 *) (gAmdreamState + 0x1C), 250, -400, -400, -400, gAmdreamPos[0], gAmdreamPos[2],
+        trail_add(3, *(s32 *) (gAmdreamState + 0x1C), 250, -400, -400, -400, gAmdreamPos[0], gAmdreamPos[2],
                       *(u16 *) (gAmdreamState + 0x4E), 3, 50, 50, 0);
     }
 }
@@ -1090,7 +1090,7 @@ static void port_state4(void) {
     }
     gChopperTouchdown = 1;
     if (gGameMode != 0x1000) {
-        v = func_8026A610(gPlayerX, gPlayerX, gChopperX, gChopperZ);
+        v = util_dist2d(gPlayerX, gPlayerX, gChopperX, gChopperZ);
         v = 0x88B8 - (v << 1);
         if (v >= 0xFA1) {
             if (v >= 0x8000) {

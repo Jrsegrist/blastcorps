@@ -553,7 +553,7 @@ extern u8 D_803EF701;   /* effect started */
  * &gCarrierAnim) when gCarrierObjHitOn is set; if gCollHit is then still 0 and the
  * three height pairs at +4/+8, +0x10/+0x14, +0x1C/+0x20 each differ by at most
  * 10000, it returns. Otherwise cmo_hit_request = gPauseRequest = 1. Then, unless
- * D_803643D8 is set: func_80278318, anim_stop(1, &gCarrierAnim),
+ * D_803643D8 is set: hud_panel_stop, anim_stop(1, &gCarrierAnim),
  * fx_finish_all, obj_clear_effect_queue. Finally the effect: gCarrierExplodeDelay counts down
  * first; then, until gCarrierExplodeDone is set, the first frame sets up a
  * fx_spawn record (def D_802C3B44, data 0x7A120, type 1 at (0xFF, 2, 0))
@@ -595,7 +595,7 @@ void carrier_check_crash(s32 h2) {
         gPauseRequest = 1;
     }
     if (D_803643D8 == 0) {
-        func_80278318();
+        hud_panel_stop();
         anim_stop(1, (Unk8029DEA0Entry *) gCarrierAnim);
         fx_finish_all();
         obj_clear_effect_queue();

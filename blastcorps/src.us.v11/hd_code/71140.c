@@ -428,7 +428,7 @@ void backlash_add_tyre_trail(void);
  * switch and from backlash_spawn):
  * 1. Zone lookup (backlash_zone_alpha), veh_snapshot (position from gBacklashAnim),
  *    the animation/sound update backlash_update_anims while byte +0x9A is clear,
- *    func_802CB690 when D_80367BFF is set, backlash_set_physics.
+ *    func_802CB690 when gTurboPending is set, backlash_set_physics.
  * 2. Driving: veh_steer_throttle(rate = backlash_steer_rate, heading +0x4C, speed +0x76,
  *    mode 3, flags +0x96, bands +0x78, 8), veh_turn_heading(+0x74, rate
  *    gBacklashGrip, +0x4C -> +0x4E, flag +0x99, sound 1), f = veh_slope,
@@ -436,7 +436,7 @@ void backlash_add_tyre_trail(void);
  *    set, the new position veh_move_along_heading(f, +0x4E, ...), gBounceSound = 1 and
  *    the ground contact veh_ground_contact (id 5, divisors 0x2D0 / 0x2D0).
  * 3. Model: anim_update_model on the current buffer pair; while +0x99 is set
- *    func_80278EB0(6, 0.25, 100) unless func_802794F0, else func_802794A4;
+ *    mb_start(6, 0.25, 100) unless mb_is_active, else mb_stop;
  *    the tyre trail backlash_add_tyre_trail; the spawn cooldown gBacklashSmokeCooldown (at 0 with
  *    +0x99 set: restart at 1 and, with fewer than 4 fx_spawn records,
  *    one more: def D_802C2954, data 0x30D40, type 1 at (5, 1, 1));
@@ -464,7 +464,7 @@ void backlash_add_tyre_trail(void);
  * (pass-through); backlash_build_model's chain inputs (only read for a
  * zero-matrix point); fx_spawn's t6/s1/w24/w28/w18/w1C/w2C (the asm
  * hands over t7 = &gBacklashPos and anim_update_model's leftover s0/s2-s4 - after
- * the C callees func_802794F0 / func_80278EB0 / func_802794A4, which may
+ * the C callees mb_is_active / mb_start / mb_stop, which may
  * change t7; a type-1 record with z != 0 ignores them all). The asm's
  * `addi`/`sub` trap on overflow. It saves every s- and FP register it
  * changes and returns with f12/f14/v1 as its last callees leave them (read
@@ -497,7 +497,7 @@ void backlash_update(void) {
     if ((s8) gBacklashState[0x9A] == 0) {
         backlash_update_anims();
     }
-    if (D_80367BFF != 0) {
+    if (gTurboPending != 0) {
         func_802CB690(gBacklashState);
     }
     backlash_set_physics();
@@ -533,11 +533,11 @@ void backlash_update(void) {
         anim_update_model((u8 *) gBacklashMtxB, (u8 *) gBacklashMtxA, (Unk8029DEA0Entry *) gBacklashAnim);
     }
     if (gBacklashState[0x99] != 0) {
-        if (func_802794F0() == 0) {
-            func_80278EB0(6, 0.25f, 100);
+        if (mb_is_active() == 0) {
+            mb_start(6, 0.25f, 100);
         }
     } else {
-        func_802794A4();
+        mb_stop();
     }
     backlash_add_tyre_trail();
     if (gBacklashSmokeCooldown != 0) {
@@ -666,12 +666,12 @@ extern f32 gBacklashLean;   /* left/right balance, 0.5 = centred */
  * Tyre trail (shape of skyfall_add_tyre_trail in 6E200; $gp = gBacklashState). The two
  * sides' a/b values are 40 -+ d, where d = round(|gBacklashLean - 0.5| * 2 *
  * 20): a = 40 - d, b = 40 + d when gBacklashLean <= 0.5, else (NaN included)
- * a = 40 + d, b = 40 - d. Then func_8027BE7C(3, y, 400, -400, -400,
+ * a = 40 + d, b = 40 - d. Then trail_add(3, y, 400, -400, -400,
  * -400, gBacklashPos[0], gBacklashPos[2], yaw, 5, a, b, 0). The value is only
  * computed when the trail is drawn.
  * Register note: the asm saves and restores every integer register; asm
  * caller backlash_update keeps a0-a3, t6, t7 live (and reads f12/f14 after
- * the call, which the asm doesn't touch but func_8027BE7C may); a mixed N64
+ * the call, which the asm doesn't touch but trail_add may); a mixed N64
  * build would need a thunk. */
 void backlash_add_tyre_trail(void) {
     f32 bal;
@@ -692,7 +692,7 @@ void backlash_add_tyre_trail(void) {
         b = 40 - d;
         a = d + 40;
     }
-    func_8027BE7C(3, *(s32 *) (gBacklashState + 0x1C), 400, -400, -400, -400, gBacklashPos[0], gBacklashPos[2],
+    trail_add(3, *(s32 *) (gBacklashState + 0x1C), 400, -400, -400, -400, gBacklashPos[0], gBacklashPos[2],
                   *(u16 *) (gBacklashState + 0x4E), 5, a, b, 0);
 }
 #else

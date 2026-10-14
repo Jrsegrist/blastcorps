@@ -134,8 +134,8 @@ void coll_reset_dyn_tris(void) {
  * byte 0x51 = 1, h52 = a2, b56 = item byte 0x14, b55 = 0) from 0x16-byte
  * items at a0, but also passes lvl_build_coll_tri the registers v0 (id, byte
  * 0x50), t6 (byte 0x57), t9 (byte 0x4F) and s1 (byte 0x58, chained) that its
- * only caller, the IDO-compiled func_8028FDA0 (4B5E0.c), never sets for it:
- * there they hold a stale call result, &D_8039C718[i], the old D_803FB8B0
+ * only caller, the IDO-compiled block_spawn_all (4B5E0.c), never sets for it:
+ * there they hold a stale call result, &gBlockSlots[i], the old D_803FB8B0
  * and the caller's caller's s1. */
 #ifdef NON_MATCHING
 
@@ -143,7 +143,7 @@ void coll_reset_dyn_tris(void) {
  * The NM build used to keep this asm, which `jal`s the C lvl_build_coll_tri with
  * its asm register convention: the C read garbage arguments and faulted on
  * the first level load (the attract-mode demo). The leaked registers are now
- * explicit parameters; func_8028FDA0 passes what they hold in the original
+ * explicit parameters; block_spawn_all passes what they hold in the original
  * (see there). Per 0x16-byte item: rec[0x51] = 1, then lvl_build_coll_tri(rec,
  * item, id, h52, b57, item[0x14], s1 chain, b4F, b55 = 0). The asm saves and
  * restores s1 (each call's chain starts from the caller's s1) and leaves

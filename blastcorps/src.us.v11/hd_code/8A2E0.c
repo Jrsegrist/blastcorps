@@ -19,7 +19,7 @@
 #ifdef NON_MATCHING
 /* gCommPts: table of 0x14-byte entries, gCommPtCount of them in use: s32
  * x, y, z at +0, a word at +0xC (0x280), a flag halfword at +0x10 (a
- * bit/flag state, see 409D0's func_80285AB0/func_80285B10) and the record's
+ * bit/flag state, see 409D0's stats_set_level_flag/stats_test_level_flag) and the record's
  * halfword +6 at +0x12. */
 typedef struct {
     /* 0x00 */ s32 pos[3];
@@ -264,7 +264,7 @@ static s32 port_cvt_w_s(f32 x) {
  * squared distance summed in 32 bits, sqrt.s and cvt.w.s rounding; the sum
  * must not overflow, or the asm's cvt.w.s of a NaN would trap), mark it
  * taken, set D_803FBBE0's sound fields 2 and 1 to 0.0 (anim_set_frame), call
- * func_80285B68 with the countdown value (gCommPtCount for entry 0, down to 1:
+ * stats_finish_bonus_level with the countdown value (gCommPtCount for entry 0, down to 1:
  * the same quirk as commpt_save_flags), then func_80285CA0 and the
  * commpt_burst burst at the entry. The player position is read once. The
  * asm saves every register (k1, gp, sp, fp included) around the two C calls
@@ -292,7 +292,7 @@ void commpt_update(void) {
             e->unk10 = 1;
             anim_set_frame(0.0f, (Unk8029DEA0Entry *) D_803FBBE0, 2, 0);
             anim_set_frame(0.0f, (Unk8029DEA0Entry *) D_803FBBE0, 1, 0);
-            func_80285B68(n);
+            stats_finish_bonus_level(n);
             func_80285CA0();
             commpt_burst(e->pos);
         }
@@ -376,7 +376,7 @@ void commpt_burst(s32 *pos) {
 #ifdef NON_MATCHING
 /* The taken points into the per-level flag bits (0x802CF5B0).
  * For each of the gCommPtCount entries whose +0x10 flag is set, call
- * func_80285AB0. Quirk kept from the asm: the argument is the countdown value
+ * stats_set_level_flag. Quirk kept from the asm: the argument is the countdown value
  * (gCommPtCount for entry 0, down to 1 for the last entry), not the index. */
 void commpt_save_flags(void) {
     UnkEntry8A2E0 *e = gCommPts;
@@ -384,7 +384,7 @@ void commpt_save_flags(void) {
 
     for (n = gCommPtCount; n != 0; n--, e++) {
         if (e->unk10 != 0) {
-            func_80285AB0(n);
+            stats_set_level_flag(n);
         }
     }
 }
@@ -395,14 +395,14 @@ void commpt_save_flags(void) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 /* The per-level flag bits into the taken flags (0x802CF628).
- * Refresh every entry's +0x10 flag from func_80285B10, passing the same
+ * Refresh every entry's +0x10 flag from stats_test_level_flag, passing the same
  * countdown value as commpt_save_flags (stored as a halfword). */
 void commpt_load_flags(void) {
     UnkEntry8A2E0 *e = gCommPts;
     u8 n;
 
     for (n = gCommPtCount; n != 0; n--, e++) {
-        e->unk10 = func_80285B10(n);
+        e->unk10 = stats_test_level_flag(n);
     }
 }
 #else

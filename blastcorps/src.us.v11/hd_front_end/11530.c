@@ -262,7 +262,7 @@ void func_801F8530(s32 level) {
     D_8021AB44 = 0.009f;
     D_8021AB48 = 26100.0f;
     func_801FDE50();
-    D_8021AB20 = func_80272C5C(D_8020E39C, 0, 4, 1, 1, 1.0f);
+    D_8021AB20 = spr_load(D_8020E39C, 0, 4, 1, 1, 1.0f);
     for (i = 0; i < 60; i++) {
         e = &D_8020D810[i];
         lat = e->unk10;
@@ -275,7 +275,7 @@ void func_801F8530(s32 level) {
 void func_801F885C(s32 arg0) {
     u8 tune;
 
-    tune = func_80264BA4(arg0);
+    tune = lvl_planet(arg0);
     D_8021A905 = arg0;
     if (tune != D_80217B6C) {
         D_8021A924 = 0;
@@ -384,7 +384,7 @@ void func_801F8980(void) {
                 D_8021AB2C -= 64;
             }
             if (D_8021A918 <= 300.0) {
-                gNextGameMode = func_80299FE8(levelno);
+                gNextGameMode = seq_get_loop_done(levelno);
             }
             break;
         default:
@@ -448,7 +448,7 @@ Gfx *func_801F9258(Gfx *arg0, Dynamic *dyn, s32 *count) {
     gDPSetColorDither(gdl++, 0x80);
     gdl = func_801FE5D0(gdl, dyn);
     gdl = func_801F3450(gdl, (u8 *) dyn);
-    func_80259450();
+    text_begin_frame();
     {
         u32 h;
         s32 n;
@@ -458,29 +458,29 @@ Gfx *func_801F9258(Gfx *arg0, Dynamic *dyn, s32 *count) {
 
         size = 0x18;
         h = D_8021AB2C / 9;
-        func_80259DC8((Gfx * N64P *) dyn, (u8 *) (D_8020D810[D_8021A908].name), D_8020D810[D_8021A908].jname, 0, 0xA0, 0, (0x1C - h) / 2 + 0x12,
+        text_print_gradient((Gfx * N64P *) dyn, (u8 *) (D_8020D810[D_8021A908].name), D_8020D810[D_8021A908].jname, 0, 0xA0, 0, (0x1C - h) / 2 + 0x12,
                       size, h, 1, 0xFF, 0xFF, 0xFF, D_8021AB2C, 0, 0, 0xFF, D_8021AB2C);
         gdl = func_8024C404(gdl, (DynamicBuf *) dyn, &n);
-        func_80259C24(&gdl, (Mtx *) dyn);
+        text_flush_screen(&gdl, (Mtx *) dyn);
         info = &gLevelInfo[D_8021A908];
-        gdl = func_80274868(gdl);
+        gdl = spr_begin(gdl);
         y = 0xDA;
         for (i = 0, alt = 0; i < 0x13 && y > 0x28; i++) {
             if ((info->unk2C & (1 << i)) && (info->type == 1 || (D_8021AB30->unk10 & (1 << i))) &&
                 D_8020E350[i * 2] != 0) {
                 if (alt) {
-                    gdl = func_80272ED8(gdl, D_8021A8F0 + i, 0x16 - (0xFF - D_8021AB2C) / 6, y, D_8021AB2C, 0, 0.8125f);
+                    gdl = spr_draw(gdl, D_8021A8F0 + i, 0x16 - (0xFF - D_8021AB2C) / 6, y, D_8021AB2C, 0, 0.8125f);
                 } else {
-                    gdl = func_80272ED8(gdl, D_8021A8F0 + i, (0xFF - D_8021AB2C) / 6 + 0xF6, y -= 0x2C, D_8021AB2C, 0,
+                    gdl = spr_draw(gdl, D_8021A8F0 + i, (0xFF - D_8021AB2C) / 6 + 0xF6, y -= 0x2C, D_8021AB2C, 0,
                                         0.8125f);
                 }
                 alt ^= 1;
             }
         }
-        x = func_8025B498(0xA0, size, (u8 *) (D_8020D810[D_8021A908].name), (s32) (D_8020D810[D_8021A908].jname));
-        w = (s32) (size * D_802E8C84[0]) * func_8025B300((u8 *) (D_8020D810[D_8021A908].name));
+        x = font_center_x(0xA0, size, (u8 *) (D_8020D810[D_8021A908].name), (s32) (D_8020D810[D_8021A908].jname));
+        w = (s32) (size * gFontAdvance[0]) * font_strlen((u8 *) (D_8020D810[D_8021A908].name));
     }
-    gdl = func_80274AA4(gdl);
+    gdl = spr_end(gdl);
     gSPEndDisplayList(gdl++);
     *count = gdl - arg0;
     return gdl;
@@ -657,7 +657,7 @@ Gfx *func_801FA180(Gfx *arg0, Dynamic *dyn, f32 lon0, s8 *selected) {
  * opcode equal, leaving only register numbers (779 instructions, nearly all FP):
  *   1. `switch (D_80217B6C) { case 3: <the i != 0 / else calls> break; default: if (i != 0)
  *      *lon = ...; }` instead of the if/else: the case label stops ugen caching x/y in FP
- *      registers across the func_8027690C call (+3 insns per call site otherwise);
+ *      registers across the hud_project_point call (+3 insns per call site otherwise);
  *   2. bright = MAX2R(E, 0.0) with `#define MAX2R(a, b) ((b) > (a) ? (b) : (a))`: testing
  *      0.0 first hoists its mtc1 pair.
  * They are not applied to the NON_MATCHING code: with them, `make -C port verify` diverges at
@@ -744,13 +744,13 @@ Gfx *func_801FA74C(Dynamic *dyn, Gfx *arg1, u8 from, u8 to, s8 *out, f32 *lon, u
     if (found || func_801FE760(to)) {
         return arg1;
     }
-    if (func_80264BA4(from) == 3 || func_80264BA4(to) == 3) {
+    if (lvl_planet(from) == 3 || lvl_planet(to) == 3) {
         lit = 1;
     }
     if (from == D_8021A905) {
         *out = to;
     }
-    if (func_80264BA4(from) == 3 && func_80264BA4(to) == 3) {
+    if (lvl_planet(from) == 3 && lvl_planet(to) == 3) {
         if (D_80364A87 &&
             (players[playerNumber].rank[to] == 0 ||
              ((D_80364A87 & 1) && from == D_8021A905 &&
@@ -807,11 +807,11 @@ Gfx *func_801FA74C(Dynamic *dyn, Gfx *arg1, u8 from, u8 to, s8 *out, f32 *lon, u
         if (*out != -1 && i < 2) {
             if (D_80217B6C == 3) {
                 if (i != 0) {
-                    func_8027690C(dyn, x, y, z, &sx1, &sy1, &D_80217B70x.view[gBufferIndex],
+                    hud_project_point(dyn, x, y, z, &sx1, &sy1, &D_80217B70x.view[gBufferIndex],
                                   &D_80217B70x.rot[gBufferIndex], &dyn->translate, 1.0f);
                     *lon = func_8028BBF4(sx0, sy0, sx1, sy1);
                 } else {
-                    func_8027690C(dyn, x, y, z, &sx0, &sy0, &D_80217B70x.view[gBufferIndex],
+                    hud_project_point(dyn, x, y, z, &sx0, &sy0, &D_80217B70x.view[gBufferIndex],
                                   &D_80217B70x.rot[gBufferIndex], &dyn->translate, 1.0f);
                 }
             } else if (i != 0) {
@@ -1134,9 +1134,9 @@ void func_801FDCA4(Vtx *v, s32 idx, s32 z) {
     s32 y;
 
     n = idx * 4;
-    D_802159F0[idx] = func_8026A828(0x50, 0xC8);
-    x = func_8026A828(-4000, 4000);
-    y = func_8026A828(-4000, 4000);
+    D_802159F0[idx] = util_rand_range(0x50, 0xC8);
+    x = util_rand_range(-4000, 4000);
+    y = util_rand_range(-4000, 4000);
     v[n].v.ob[0] = x - 0x37;
     v[n].v.ob[1] = y - 0x37;
     v[n].v.ob[2] = z;
@@ -1152,7 +1152,7 @@ void func_801FDCA4(Vtx *v, s32 idx, s32 z) {
 }
 
 void func_801FDE50(void) {
-    D_8021A8F0 = func_80272C5C(D_8020E350, 0, 0x13, 2, 1, 1.0f);
+    D_8021A8F0 = spr_load(D_8020E350, 0, 0x13, 2, 1, 1.0f);
 }
 
 void func_801FDE98(void) {

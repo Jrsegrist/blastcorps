@@ -79,62 +79,62 @@ typedef struct {
     u8 pad54[0x100 - 0x54];
 } Player;
 
-extern LevelInfo * N64P D_80367C04;
-extern u8 D_802E8F30[];
+extern LevelInfo * N64P gCurLevelInfo;
+extern u8 gWideFovLevels[];
 extern Entry0A D_802E8F68[];
 #ifndef NON_MATCHING
 extern u32 nss;
 #endif
-extern char D_80367B60[][20]; /* HUD text lines (progress, lap times) */
-extern u8 D_80367BFE;
-extern s32 D_80367B50;
-extern u8 D_80367B54;
-extern u16 D_80367B58[];
-extern Entry08 D_802E8F74[];
-extern s32 D_80367BC0;
-extern u32 D_80367BC4;
-extern s16 D_80367BD8;
-extern char * N64P D_80367C08;
+extern char gHudLines[][20]; /* HUD text lines (progress, lap times) */
+extern u8 gTurboEarned;
+extern s32 gTurboFrame;
+extern u8 gRaceLap;
+extern u16 gLapTimes[];
+extern Entry08 gFixedEyeLevels[];
+extern s32 gIntroStartTime;
+extern u32 gIntroSecond;
+extern s16 gHudObjectiveY;
+extern char * N64P gObjectiveName;
 extern s32 D_80367C0C;
 extern char D_802E9F90[]; /* "BUILDINGS" */
 extern s32 D_802E9F9C;
 extern u8 D_802E9FA0[];   /* " S" */
-extern void * N64P D_80367BE0[];
-extern u8 D_80367C01;
-extern Anim30 * N64P D_80367BCC;
+extern void * N64P gTurboStartImages[];
+extern u8 gTurboFalseStart;
+extern Anim30 * N64P gObjectiveAnim;
 extern Anim30 * N64P D_80367BD0;
-extern u8 D_80367BD4;
+extern u8 gObjectiveSprite;
 extern u8 D_80367BD5;
-extern char D_80367BB0[];
-extern u8 D_80367BF8;  /* race: quadrants crossed this lap */
-extern u8 D_80367BF9;  /* race: previous quadrant */
-extern u8 D_80367BFA;  /* race: current quadrant */
-extern u8 D_80367BFB;  /* race: best lap */
-extern u16 D_80367BFC; /* race: best lap time */
-extern s32 D_80367BBC;
-extern char D_80367D10[];
+extern char gHudTimeText[];
+extern u8 gRaceQuadsCrossed;  /* race: quadrants crossed this lap */
+extern u8 gRacePrevQuad;  /* race: previous quadrant */
+extern u8 gRaceQuad;  /* race: current quadrant */
+extern u8 gBestLap;  /* race: best lap */
+extern u16 gBestLapTime; /* race: best lap time */
+extern s32 gRaceStartTime;
+extern char gLapsLeftText[];
 extern char D_80367D28[];
-extern s16 D_80367D50; /* turbo-start banner y offset */
-extern u8 D_80367D52;  /* turbo-start banner image (1-5) */
+extern s16 gTurboBannerY; /* turbo-start banner y offset */
+extern u8 gTurboBannerImage;  /* turbo-start banner image (1-5) */
 extern u8 D_80367D53;
-extern char D_80367C18[];
-extern char D_80367C40[];
-extern s16 D_80367C68[];
-extern s16 D_80367CB8[];
-extern u16 D_80367BF4;
-extern u16 D_80367D08;
+extern char gIntroObjectiveText[];
+extern char gIntroTimeText[];
+extern s16 gIntroObjectiveJText[];
+extern s16 gIntroTimeJText[];
+extern u16 gSecondsLeft;
+extern u16 gPrevSecondsLeft;
 
 #ifndef NON_MATCHING
 u8 obj_count_destroyed_path_buildings(void);
 #endif
-void func_80262840(void);
-void func_80262FD0(void);
-void func_8026303C(void);
-void func_80263140(void);
-void func_80263358(void);
-void func_802633E0(void);
-s32 func_8026394C(s16 x, s16 y, s16 x0, s16 y0, s16 x1, s16 y1);
-Gfx *func_80264264(Gfx * N64P *, Gfx *);
+void hud_mission_intro(void);
+void hud_check_rdus(void);
+void hud_check_targets(void);
+void hud_check_path(void);
+void hud_check_damage(void);
+void hud_update_race(void);
+s32 hud_in_box(s16 x, s16 y, s16 x0, s16 y0, s16 x1, s16 y1);
+Gfx *hud_draw_turbo_start(Gfx * N64P *, Gfx *);
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
@@ -163,18 +163,19 @@ void cam_set_level_fovy(u8 arg0) {
 
     gCamFovy = 45.0f;
     i = 0;
-    D_80367C10 = 0;
+    gWideFovLevel = 0;
     do {
-        if (D_802E8F30[i] == arg0) {
+        if (gWideFovLevels[i] == arg0) {
             gCamFovy = 80.0f;
-            D_80367C10 = 1;
+            gWideFovLevel = 1;
         } else {
             i++;
         }
-    } while (i < 5 && !D_80367C10);
+    } while (i < 5 && !gWideFovLevel);
 }
 
-void func_802621DC(u8 arg0) {
+/* The BCT chopper's start position from the level info (0x802621DC). */
+void lvl_init_chopper_pos(u8 arg0) {
     LevelInfo *p;
 
     p = &gLevelInfo[arg0];
@@ -206,9 +207,10 @@ void func_80262238(u8 arg0) {
     }
 }
 
-/* Level start: set up the objective, its HUD icon and (for most mission
+/* Fixed eye, the objective icon's sprites, the timer text (0x80262320).
+ * Level start: set up the objective, its HUD icon and (for most mission
  * types) load the HUD graphics from ROM */
-void func_80262320(u8 arg0) {
+void hud_init_objective(u8 arg0) {
     s32 i;
     u8 anim;
     u8 unused;
@@ -220,7 +222,7 @@ void func_80262320(u8 arg0) {
     unused = 0;
     found = 0;
     do {
-        if (D_802E8F74[i].id == arg0) {
+        if (gFixedEyeLevels[i].id == arg0) {
             found = 1;
         } else {
             i++;
@@ -228,35 +230,35 @@ void func_80262320(u8 arg0) {
     } while (!found && i < 4);
     if (found) {
         gCamFixedEye = 1;
-        gCamFixedEyeX = D_802E8F74[i].pos[0] << 16;
-        gCamFixedEyeY = D_802E8F74[i].pos[1] << 16;
-        gCamFixedEyeZ = D_802E8F74[i].pos[2] << 16;
+        gCamFixedEyeX = gFixedEyeLevels[i].pos[0] << 16;
+        gCamFixedEyeY = gFixedEyeLevels[i].pos[1] << 16;
+        gCamFixedEyeZ = gFixedEyeLevels[i].pos[2] << 16;
     } else {
         gCamFixedEye = 0;
     }
-    D_80367C04 = &gLevelInfo[arg0];
-    gJbombLiftFadeY = D_80367C04->unk1C << 5;
-    gJbombMaxY = D_80367C04->unk1E << 5;
-    D_80364424 = D_80367C04->unk38;
-    D_80364428 = D_80367C04->unk3C << 5;
-    D_8036442C = D_80367C04->unk40;
-    D_80364430 = D_80367C04->unk42 << 5;
-    D_80367BC0 = D_803156C4;
-    D_80367BC4 = -1;
-    D_80367BD8 = 0;
+    gCurLevelInfo = &gLevelInfo[arg0];
+    gJbombLiftFadeY = gCurLevelInfo->unk1C << 5;
+    gJbombMaxY = gCurLevelInfo->unk1E << 5;
+    D_80364424 = gCurLevelInfo->unk38;
+    D_80364428 = gCurLevelInfo->unk3C << 5;
+    D_8036442C = gCurLevelInfo->unk40;
+    D_80364430 = gCurLevelInfo->unk42 << 5;
+    gIntroStartTime = D_803156C4;
+    gIntroSecond = -1;
+    gHudObjectiveY = 0;
     switch (gLevelKind) {
         case 4:
         case 0x80:
             anim = 6;
             break;
         case 0x20:
-            anim = yoshi_get_target_building(&D_80367C08, &D_80367C0C);
-            D_80367BD8 = 2;
+            anim = yoshi_get_target_building(&gObjectiveName, &D_80367C0C);
+            gHudObjectiveY = 2;
             break;
         case 0x10:
         case 0x40:
             anim = 9;
-            D_80367BD8 = -2;
+            gHudObjectiveY = -2;
             break;
         case 1:
         case 2:
@@ -264,8 +266,8 @@ void func_80262320(u8 arg0) {
             break;
     }
     if (anim == 6) {
-        D_80367BD8 = 6;
-        D_80367C08 = D_802E9F90;
+        gHudObjectiveY = 6;
+        gObjectiveName = D_802E9F90;
         unused = 0;
         D_80367C0C = D_802E9F9C;
     }
@@ -274,94 +276,95 @@ void func_80262320(u8 arg0) {
         if (gLevelKind != 0x80 && gNextGameMode == 0x2000) {
             func_8028B4C4((u32) D_006A32B0, (u32) gHeapPtr, (u32 *) &size, 10, 0, 1);
             for (i = 0; i < 5; i++) {
-                D_80367BE0[i] = (i << 15) + (u8 *) gHeapPtr;
+                gTurboStartImages[i] = (i << 15) + (u8 *) gHeapPtr;
             }
             gHeapPtr = (u8 *) gHeapPtr + size;
         }
         if (gNextGameMode == 0x40) {
-            D_80367BC8 = 0;
+            gTurboStartState = 0;
         } else {
-            D_80367BC8 = 1;
+            gTurboStartState = 1;
         }
     } else {
-        D_80367BC8 = 0;
+        gTurboStartState = 0;
     }
-    D_80367C01 = 0;
-    D_80367C00 = 0;
+    gTurboFalseStart = 0;
+    gTurboActive = 0;
     if (gNextGameMode == 0x40) {
-        D_80367BFF = 0;
+        gTurboPending = 0;
     } else {
-        D_80367BFF = 0;
-        D_80367BFE = 0;
+        gTurboPending = 0;
+        gTurboEarned = 0;
     }
-    D_80367BCC = &D_802F49F4[anim];
+    gObjectiveAnim = &D_802F49F4[anim];
     if (gLevelInfo[arg0].type == 0x20) {
         D_80367BD0 = NULL;
-        D_80367BD4 = func_80272C5C(D_80367BCC->ids, 0, D_80367BCC->count, D_80367BCC->unk2C, D_80367BCC->unk2D,
-                                   D_80367BCC->scale * 0.5);
+        gObjectiveSprite = spr_load(gObjectiveAnim->ids, 0, gObjectiveAnim->count, gObjectiveAnim->unk2C, gObjectiveAnim->unk2D,
+                                   gObjectiveAnim->scale * 0.5);
     } else {
         D_80367BD0 = NULL;
         if (anim) {
-            D_80367BD4 = func_80272C5C(D_80367BCC->ids, 0, D_80367BCC->count, D_80367BCC->unk2C, D_80367BCC->unk2D,
+            gObjectiveSprite = spr_load(gObjectiveAnim->ids, 0, gObjectiveAnim->count, gObjectiveAnim->unk2C, gObjectiveAnim->unk2D,
                                        1.0f);
         } else {
-            D_80367BCC = NULL;
+            gObjectiveAnim = NULL;
         }
     }
     if (gNextGameMode & 0x440) {
-        func_80264A34(D_80367BB0, D_80367C04->time - D_80367BF6, 0);
+        hud_format_time(gHudTimeText, gCurLevelInfo->time - gTimeLeft, 0);
     } else {
-        D_80367B54 = 0;
+        gRaceLap = 0;
     }
 }
 
-/* Mission intro: one step per second. Second 0 prints the objective and the
+/* The objective and time-limit text, countdown sounds (0x80262840).
+ * Mission intro: one step per second. Second 0 prints the objective and the
  * time limit, 1-4 play the countdown sounds */
-void func_80262840(void) {
+void hud_mission_intro(void) {
     s32 secs;
     u16 mins;
     u16 rem;
 
-    secs = (u32) (D_803156C4 - D_80367BC0) / 60;
-    if (secs != D_80367BC4) {
+    secs = (u32) (D_803156C4 - gIntroStartTime) / 60;
+    if (secs != gIntroSecond) {
         switch (secs) {
             case 0:
-                D_80367C68[0] = 0xFFF;
-                D_80367CB8[0] = 0xFFF;
+                gIntroObjectiveJText[0] = 0xFFF;
+                gIntroTimeJText[0] = 0xFFF;
                 switch (gLevelKind) {
                     case 2:
-                        func_802D6A60(D_80367C18, "FINISH %d LAPS IN", D_80367C04->target);
+                        func_802D6A60(gIntroObjectiveText, "FINISH %d LAPS IN", gCurLevelInfo->target);
                         break;
                     case 4:
                     case 0x20:
                         if (levelno == 0x34) {
-                            func_802D6A60(D_80367C18, "DESTROY TARGETS IN");
+                            func_802D6A60(gIntroObjectiveText, "DESTROY TARGETS IN");
                         } else {
-                            func_802D6A60(D_80367C18, "DESTROY %s IN", D_80367C08);
+                            func_802D6A60(gIntroObjectiveText, "DESTROY %s IN", gObjectiveName);
                         }
                         break;
                     case 0x80:
                         if (levelno == 0x32) {
-                            func_802D6A60(D_80367C18, "CLEAR SHUTTLE PATH");
+                            func_802D6A60(gIntroObjectiveText, "CLEAR SHUTTLE PATH");
                         } else {
-                            func_802D6A60(D_80367C18, "CLEAR CARRIER PATH");
+                            func_802D6A60(gIntroObjectiveText, "CLEAR CARRIER PATH");
                         }
                         break;
                     case 8:
-                        func_802D6A60(D_80367C18, "CAUSE $%d DAMAGE", D_80367C04->target);
+                        func_802D6A60(gIntroObjectiveText, "CAUSE $%d DAMAGE", gCurLevelInfo->target);
                         break;
                     case 0x10:
                     case 0x40:
-                        func_802D6A60(D_80367C18, "FIND %d RDUS IN", D_80367C04->target);
+                        func_802D6A60(gIntroObjectiveText, "FIND %d RDUS IN", gCurLevelInfo->target);
                         break;
                 }
-                mins = D_80367C04->time / 600;
-                rem = (D_80367C04->time / 10) % 60;
-                func_802D6A60(D_80367C40, "%d MINUTE%c %d SECONDS", mins, D_802E9FA0[mins != 1], rem);
-                gYoshiGameItems[255] = D_80367C18;
-                gYoshiGameItems[262] = D_80367C40;
-                gYoshiGameItems[256] = D_80367C68;
-                gYoshiGameItems[263] = D_80367CB8;
+                mins = gCurLevelInfo->time / 600;
+                rem = (gCurLevelInfo->time / 10) % 60;
+                func_802D6A60(gIntroTimeText, "%d MINUTE%c %d SECONDS", mins, D_802E9FA0[mins != 1], rem);
+                gYoshiGameItems[255] = gIntroObjectiveText;
+                gYoshiGameItems[262] = gIntroTimeText;
+                gYoshiGameItems[256] = gIntroObjectiveJText;
+                gYoshiGameItems[263] = gIntroTimeJText;
                 yoshi_demand(0x8009);
                 func_80260650(D_80367738, func_8026205C(0), 0);
                 break;
@@ -379,22 +382,23 @@ void func_80262840(void) {
                 break;
         }
     }
-    D_80367BC4 = secs;
+    gIntroSecond = secs;
     if (secs == 4 && gBufferIndex == D_803156F4) {
         gNextGameMode = 4;
     }
 }
 
-/* Per-frame objective update: the time limit, the countdown beeps, and the
+/* Time left, beeps, the per-mission-kind checks (0x80262BF4).
+ * Per-frame objective update: the time limit, the countdown beeps, and the
  * progress check for the current mission type */
-void func_80262BF4(void) {
+void hud_update_objective(void) {
     if (!gLevelDone && !gCarrierHit) {
-        D_80367BF6 = D_80367C04->time - MIN(D_80367C04->time, func_8028604C(D_803156C0 - D_80364A58));
+        gTimeLeft = gCurLevelInfo->time - MIN(gCurLevelInfo->time, stats_frames_to_tenths(D_803156C0 - D_80364A58));
     }
-    func_80264A34(D_80367BB0, D_80367BF6, 1);
+    hud_format_time(gHudTimeText, gTimeLeft, 1);
     switch (gGameMode) {
         case 0x2000:
-            func_80262840();
+            hud_mission_intro();
             break;
         case 0x04000000:
             if (gCarrierHit && areWeFading() == 0 && yoshiState == 1) {
@@ -407,14 +411,14 @@ void func_80262BF4(void) {
             }
             break;
         default:
-            if (D_80367BF6 == 0) {
+            if (gTimeLeft == 0) {
                 cmo_hit_request = 1;
             } else {
-                D_80367BF4 = D_80367BF6 / 10;
-                if (D_80367BF4 < 10 && D_80367BF4 != D_80367D08) {
-                    func_80260650(D_80367738, 0xA3 - D_80367BF4, 0);
+                gSecondsLeft = gTimeLeft / 10;
+                if (gSecondsLeft < 10 && gSecondsLeft != gPrevSecondsLeft) {
+                    func_80260650(D_80367738, 0xA3 - gSecondsLeft, 0);
                 }
-                D_80367D08 = D_80367BF4;
+                gPrevSecondsLeft = gSecondsLeft;
             }
             if (gFailTrigger && gLevelKind == 0x40) {
                 func_80260650(D_80367738, 0x3C, 0);
@@ -433,21 +437,21 @@ void func_80262BF4(void) {
             } else {
                 switch (gLevelKind) {
                     case 2:
-                        func_802633E0();
+                        hud_update_race();
                         break;
                     case 4:
-                        func_8026303C();
+                        hud_check_targets();
                         break;
                     case 0x20:
                     case 0x80:
-                        func_80263140();
+                        hud_check_path();
                         break;
                     case 8:
-                        func_80263358();
+                        hud_check_damage();
                         break;
                     case 0x10:
                     case 0x40:
-                        func_80262FD0();
+                        hud_check_rdus();
                         break;
                 }
             }
@@ -455,35 +459,38 @@ void func_80262BF4(void) {
     }
 }
 
-/* Mission type 0x10/0x40 (find the RDUs): progress text */
-void func_80262FD0(void) {
-    if (D_8036EA7C >= D_80367C04->target) {
+/* Level kinds 0x10/0x40: the RDUs found (0x80262FD0).
+ * Mission type 0x10/0x40 (find the RDUs): progress text */
+void hud_check_rdus(void) {
+    if (D_8036EA7C >= gCurLevelInfo->target) {
         gLevelDoneRequest = 1;
     }
-    func_802D6A60(D_80367B60[0], "%d/%d", D_8036EA7C, D_80367C04->target);
+    func_802D6A60(gHudLines[0], "%d/%d", D_8036EA7C, gCurLevelInfo->target);
 }
 
-/* Mission type 4 (destroy targets) */
-void func_8026303C(void) {
+/* Level kind 4: the targets destroyed (0x8026303C).
+ * Mission type 4 (destroy targets) */
+void hud_check_targets(void) {
     s16 h;
 
     obj_tally(0);
-    if (D_8036EA78 >= D_80367C04->target) {
+    if (D_8036EA78 >= gCurLevelInfo->target) {
         gLevelDoneRequest = 1;
     }
-    if (D_8036DCD4) {
-        func_8027EED8(gPlayerX >> 5, gPlayerZ >> 5, &h);
+    if (gWaterOn) {
+        water_get_height(gPlayerX >> 5, gPlayerZ >> 5, &h);
         if (h > (gPlayerY >> 5)) {
             cmo_hit_request = 1;
         }
-    } else if (D_80367C04->unk24 > (gPlayerY >> 5)) {
+    } else if (gCurLevelInfo->unk24 > (gPlayerY >> 5)) {
         cmo_hit_request = 1;
     }
-    func_802D6A60(D_80367B60[0], "%d/%d", D_8036EA78, D_8036EB92);
+    func_802D6A60(gHudLines[0], "%d/%d", D_8036EA78, D_8036EB92);
 }
 
-/* Mission types 0x20/0x80 (destroy targets, clear the path) */
-void func_80263140(void) {
+/* Level kinds 0x20/0x80: the path cleared (0x80263140).
+ * Mission types 0x20/0x80 (destroy targets, clear the path) */
+void hud_check_path(void) {
     s16 h;
 
     obj_tally(1);
@@ -499,118 +506,122 @@ void func_80263140(void) {
             }
             break;
     }
-    if (D_8036DCD4) {
-        func_8027EED8(gPlayerX >> 5, gPlayerZ >> 5, &h);
+    if (gWaterOn) {
+        water_get_height(gPlayerX >> 5, gPlayerZ >> 5, &h);
         if (h > (gPlayerY >> 5)) {
             cmo_hit_request = 1;
         }
-    } else if (D_80367C04->unk24 > (gPlayerY >> 5)) {
+    } else if (gCurLevelInfo->unk24 > (gPlayerY >> 5)) {
         cmo_hit_request = 1;
     }
     switch (gLevelKind) {
         case 0x20:
-            func_802D6A60(D_80367B60[0], "%d/%d", D_8036EA78, D_8036EB92);
+            func_802D6A60(gHudLines[0], "%d/%d", D_8036EA78, D_8036EB92);
             break;
         case 0x80:
             if (levelno == 0x32) {
-                func_802D6A60(D_80367B60[0], "%d/%d", D_8036EA78, D_8036EB92);
+                func_802D6A60(gHudLines[0], "%d/%d", D_8036EA78, D_8036EB92);
             } else {
-                func_802D6A60(D_80367B60[0], "%d/%d", obj_count_destroyed_path_buildings(), D_8036EB92);
+                func_802D6A60(gHudLines[0], "%d/%d", obj_count_destroyed_path_buildings(), D_8036EB92);
             }
             break;
     }
 }
 
-/* Mission type 8 (cause $N damage) */
-void func_80263358(void) {
+/* Level kind 8: the damage done ("$%d LEFT") (0x80263358).
+ * Mission type 8 (cause $N damage) */
+void hud_check_damage(void) {
     s32 left;
 
     obj_tally(0);
-    if (nss >= D_80367C04->target) {
+    if (nss >= gCurLevelInfo->target) {
         gLevelDoneRequest = 1;
     }
-    left = D_80367C04->target - nss;
+    left = gCurLevelInfo->target - nss;
     if (left < 0) {
         left = 0;
     }
-    func_802D6A60(D_80367B60[0], "$%d LEFT", left);
+    func_802D6A60(gHudLines[0], "$%d LEFT", left);
 }
 
-/* Mission type 2 (race): start line, lap times, quadrant tracking */
-void func_802633E0(void) {
+/* Level kind 2: start box, quadrants, lap times (0x802633E0).
+ * Mission type 2 (race): start line, lap times, quadrant tracking */
+void hud_update_race(void) {
     s32 i;
     u8 left;
 
-    if (D_80367B54 == 0) {
-        if (func_8026394C(gPlayerX >> 5, gPlayerZ >> 5, D_80367C04->startBox[0], D_80367C04->startBox[1],
-                          D_80367C04->startBox[2], D_80367C04->startBox[3])) {
-            D_80367B54 = 1;
-            D_80367BF8 = 0;
-            D_80367BF9 = D_80367C04->quad[0];
-            D_80367BBC = D_803156C0;
-            D_80367BFB = 1;
-            D_80367BFC = 0xFFFF;
+    if (gRaceLap == 0) {
+        if (hud_in_box(gPlayerX >> 5, gPlayerZ >> 5, gCurLevelInfo->startBox[0], gCurLevelInfo->startBox[1],
+                          gCurLevelInfo->startBox[2], gCurLevelInfo->startBox[3])) {
+            gRaceLap = 1;
+            gRaceQuadsCrossed = 0;
+            gRacePrevQuad = gCurLevelInfo->quad[0];
+            gRaceStartTime = D_803156C0;
+            gBestLap = 1;
+            gBestLapTime = 0xFFFF;
         }
     } else {
-        D_80367BFA = ((gPlayerZ >> 5) - D_80367C04->area[1]) / ((D_80367C04->area[3] - D_80367C04->area[1]) >> 1);
-        D_80367BFA *= 2;
-        D_80367BFA += ((gPlayerX >> 5) - D_80367C04->area[0]) / ((D_80367C04->area[2] - D_80367C04->area[0]) >> 1);
-        D_80367B58[D_80367B54 - 1] = func_8028604C(D_803156C0 - D_80364A58);
-        for (i = D_80367B54 - 2; i >= 0; i--) {
-            D_80367B58[D_80367B54 - 1] -= D_80367B58[i];
+        gRaceQuad = ((gPlayerZ >> 5) - gCurLevelInfo->area[1]) / ((gCurLevelInfo->area[3] - gCurLevelInfo->area[1]) >> 1);
+        gRaceQuad *= 2;
+        gRaceQuad += ((gPlayerX >> 5) - gCurLevelInfo->area[0]) / ((gCurLevelInfo->area[2] - gCurLevelInfo->area[0]) >> 1);
+        gLapTimes[gRaceLap - 1] = stats_frames_to_tenths(D_803156C0 - D_80364A58);
+        for (i = gRaceLap - 2; i >= 0; i--) {
+            gLapTimes[gRaceLap - 1] -= gLapTimes[i];
         }
         if (gContButtons & 0x2000) {
-            debug_printf("box number=%d\n", D_80367BFA);
+            debug_printf("box number=%d\n", gRaceQuad);
         }
-        if (D_80367BF8 == 4) {
-            if (func_8026394C(gPlayerX >> 5, gPlayerZ >> 5, D_80367C04->startBox[0], D_80367C04->startBox[1],
-                              D_80367C04->startBox[2], D_80367C04->startBox[3])) {
-                if (D_80367B58[D_80367B54 - 1] < D_80367BFC) {
-                    debug_printf("new best lap %d %d\n", D_80367BFC, D_80367B58[D_80367B54 - 1]);
-                    D_80367BFB = D_80367B54;
-                    D_80367BFC = D_80367B58[D_80367B54 - 1];
+        if (gRaceQuadsCrossed == 4) {
+            if (hud_in_box(gPlayerX >> 5, gPlayerZ >> 5, gCurLevelInfo->startBox[0], gCurLevelInfo->startBox[1],
+                              gCurLevelInfo->startBox[2], gCurLevelInfo->startBox[3])) {
+                if (gLapTimes[gRaceLap - 1] < gBestLapTime) {
+                    debug_printf("new best lap %d %d\n", gBestLapTime, gLapTimes[gRaceLap - 1]);
+                    gBestLap = gRaceLap;
+                    gBestLapTime = gLapTimes[gRaceLap - 1];
                 }
-                if (D_80367C04->target - 1 < D_80367B54) {
+                if (gCurLevelInfo->target - 1 < gRaceLap) {
                     gLevelDoneRequest = 1;
                 } else {
-                    left = D_80367C04->target - D_80367B54;
+                    left = gCurLevelInfo->target - gRaceLap;
                     if (!gPaused) {
                         yoshi_demand(0x8008);
                     }
                     if (left == 1) {
-                        func_802D6A60(D_80367D10, "1 LAP LEFT!");
+                        func_802D6A60(gLapsLeftText, "1 LAP LEFT!");
                     } else {
-                        func_802D6A60(D_80367D10, "%d LAPS LEFT!", left);
+                        func_802D6A60(gLapsLeftText, "%d LAPS LEFT!", left);
                     }
-                    gYoshiGameItems[248] = D_80367D10;
+                    gYoshiGameItems[248] = gLapsLeftText;
                     gYoshiGameItems[249] = D_80367D28;
                     alCSPSetTempo(D_80367734, alCSPGetTempo(D_80367734) * 0.95);
                 }
-                D_80367B54++;
-                D_80367BF8 = 0;
+                gRaceLap++;
+                gRaceQuadsCrossed = 0;
             }
-        } else if (D_80367C04->quad[D_80367BF8] == D_80367BF9 && D_80367C04->quad[(D_80367BF8 + 1) % 4] == D_80367BFA) {
-            debug_printf("box cross: %d to %d\n", D_80367BF9, D_80367BFA);
-            D_80367BF8++;
+        } else if (gCurLevelInfo->quad[gRaceQuadsCrossed] == gRacePrevQuad && gCurLevelInfo->quad[(gRaceQuadsCrossed + 1) % 4] == gRaceQuad) {
+            debug_printf("box cross: %d to %d\n", gRacePrevQuad, gRaceQuad);
+            gRaceQuadsCrossed++;
         }
-        D_80367BF9 = D_80367BFA;
+        gRacePrevQuad = gRaceQuad;
     }
-    for (i = 0; i < D_80367B54 && i < D_80367C04->target; i++) {
-        func_80264A34(D_80367B60[i], D_80367B58[i], D_80367B54 == i + 1);
+    for (i = 0; i < gRaceLap && i < gCurLevelInfo->target; i++) {
+        hud_format_time(gHudLines[i], gLapTimes[i], gRaceLap == i + 1);
     }
 }
 
-/* Is (x, y) inside the box [x0, x1) x [y0, y1)? */
-s32 func_8026394C(s16 x, s16 y, s16 x0, s16 y0, s16 x1, s16 y1) {
+/* (x, y) in [x0, x1) x [y0, y1) (0x8026394C).
+ * Is (x, y) inside the box [x0, x1) x [y0, y1)? */
+s32 hud_in_box(s16 x, s16 y, s16 x0, s16 y0, s16 x1, s16 y1) {
     if (x >= x0 && y >= y0 && x < x1 && y < y1) {
         return 1;
     }
     return 0;
 }
 
-/* Draw the objective HUD: progress text or lap times, the time limit
+/* The progress or lap text, the timer, the objective icon (0x802639B4).
+ * Draw the objective HUD: progress text or lap times, the time limit
  * (flashing red under ten seconds), and the objective icon(s) */
-Gfx *func_802639B4(Gfx *gdl, Gfx * N64P *arg1, u32 *arg2) {
+Gfx *hud_draw_objective(Gfx *gdl, Gfx * N64P *arg1, u32 *arg2) {
     Gfx *g;
     s32 pad60;
     u8 grn;
@@ -628,42 +639,42 @@ Gfx *func_802639B4(Gfx *gdl, Gfx * N64P *arg1, u32 *arg2) {
     if ((gGameMode & 0x04000200) && currentYoshiWindow != 0x1E) {
         alpha = 0xFF;
     } else {
-        alpha = D_80367BD6;
+        alpha = gHudAlpha;
     }
     switch (gLevelKind) {
         case 2:
-            for (i = 0; i < D_80367B54 - ((gGameMode & 0x440) ? 1 : 0) && i < D_80367C04->target; i++) {
-                if (i + 1 == D_80367BFB && i + 1 != D_80367B54) {
+            for (i = 0; i < gRaceLap - ((gGameMode & 0x440) ? 1 : 0) && i < gCurLevelInfo->target; i++) {
+                if (i + 1 == gBestLap && i + 1 != gRaceLap) {
                     /* best lap */
-                    func_80259CCC(arg1, (u8 *) D_80367B60[i], 0, 1, 0, 0x18, i * 18 + 0x12, 0x14, 0x14, 1, 0xFF, 0, 0,
-                                  D_80367BD6);
-                } else if (i + 1 == D_80367B54) {
+                    text_print(arg1, (u8 *) gHudLines[i], 0, 1, 0, 0x18, i * 18 + 0x12, 0x14, 0x14, 1, 0xFF, 0, 0,
+                                  gHudAlpha);
+                } else if (i + 1 == gRaceLap) {
                     /* current lap */
-                    func_80259CCC(arg1, (u8 *) D_80367B60[i], 0, 1, 0, 0x18, i * 18 + 0x12, 0x14, 0x14, 1, 0xFF, 0xFF, 0xFF,
-                                  D_80367BD6);
+                    text_print(arg1, (u8 *) gHudLines[i], 0, 1, 0, 0x18, i * 18 + 0x12, 0x14, 0x14, 1, 0xFF, 0xFF, 0xFF,
+                                  gHudAlpha);
                 } else {
-                    func_80259CCC(arg1, (u8 *) D_80367B60[i], 0, 1, 0, 0x18, i * 18 + 0x12, 0x14, 0x14, 1, 0xA0, 0xA0, 0xA0,
-                                  D_80367BD6);
+                    text_print(arg1, (u8 *) gHudLines[i], 0, 1, 0, 0x18, i * 18 + 0x12, 0x14, 0x14, 1, 0xA0, 0xA0, 0xA0,
+                                  gHudAlpha);
                 }
             }
             break;
         case 4:
         case 0x20:
         case 0x80:
-            func_80259CCC(arg1, (u8 *) D_80367B60[0], 0, 1, 0, 0x38, 0x14, 0x14, 0x14, 1, 0xFF, 0xFF, 0xFF, alpha);
+            text_print(arg1, (u8 *) gHudLines[0], 0, 1, 0, 0x38, 0x14, 0x14, 0x14, 1, 0xFF, 0xFF, 0xFF, alpha);
             break;
         case 8:
-            func_80259CCC(arg1, (u8 *) D_80367B60[0], 0, 1, 0, 0x1C, 0x12, 0x14, 0x14, 1, 0xFF, 0xFF, 0xFF, alpha);
+            text_print(arg1, (u8 *) gHudLines[0], 0, 1, 0, 0x1C, 0x12, 0x14, 0x14, 1, 0xFF, 0xFF, 0xFF, alpha);
             break;
         case 0x10:
         case 0x40:
-            func_80259CCC(arg1, (u8 *) D_80367B60[0], 0, 1, 0, 0x38, 0x12, 0x14, 0x14, 1, 0xFF, 0xFF, 0xFF, alpha);
+            text_print(arg1, (u8 *) gHudLines[0], 0, 1, 0, 0x38, 0x12, 0x14, 0x14, 1, 0xFF, 0xFF, 0xFF, alpha);
             break;
     }
     red = 0xFF;
     grn = 0;
     if (gGameMode & 0x04000104) {
-        flash = D_80367BF4 < 10;
+        flash = gSecondsLeft < 10;
         if (!flash) {
             grn = 0xFF;
         }
@@ -672,98 +683,100 @@ Gfx *func_802639B4(Gfx *gdl, Gfx * N64P *arg1, u32 *arg2) {
         grn = 0xFF;
         red = 0;
     }
-    if (D_80367BF4 == 0) {
+    if (gSecondsLeft == 0) {
         flash = 0;
     }
     if (!flash || D_803156C4 % 20 < 16) {
         if (gLevelKind == 2) {
-            func_80259CCC(arg1, (u8 *) D_80367BB0, 0, 1, 0, 0x18, i * 18 + 0x14, 0x10, 0x10, 1, red, grn, 0, D_80367BD6);
+            text_print(arg1, (u8 *) gHudTimeText, 0, 1, 0, 0x18, i * 18 + 0x14, 0x10, 0x10, 1, red, grn, 0, gHudAlpha);
         } else {
-            func_80259CCC(arg1, (u8 *) D_80367BB0, 0, 1, 0, 0x1C, D_80367BD8 + 0x2A, 0x10, 0x10, 1, red, grn, 0, alpha);
+            text_print(arg1, (u8 *) gHudTimeText, 0, 1, 0, 0x1C, gHudObjectiveY + 0x2A, 0x10, 0x10, 1, red, grn, 0, alpha);
         }
     }
     if (gLevelDone && gGameMode == 0x04000000) {
-        func_8025E2CC(&g, (s32) arg1, gBufferIndex);
+        hud_level_complete(&g, (s32) arg1, gBufferIndex);
     }
-    if (D_80367BC8) {
-        g = func_80264264(arg1, g);
+    if (gTurboStartState) {
+        g = hud_draw_turbo_start(arg1, g);
     }
-    g = func_80274868(g);
-    if (D_80367BCC) {
-        g = func_80272ED8(g, D_80367BCC->frames[(D_803156C4 / D_80367BCC->speed) % D_80367BCC->nframes] + D_80367BD4 - 1,
-                          0x18, D_80367BD8 + 0xC, alpha, 1, 1.0f);
+    g = spr_begin(g);
+    if (gObjectiveAnim) {
+        g = spr_draw(g, gObjectiveAnim->frames[(D_803156C4 / gObjectiveAnim->speed) % gObjectiveAnim->nframes] + gObjectiveSprite - 1,
+                          0x18, gHudObjectiveY + 0xC, alpha, 1, 1.0f);
     }
     if (D_80367BD0) {
-        g = func_80272ED8(g, D_80367BD0->frames[(D_803156C4 / D_80367BD0->speed) % D_80367BD0->nframes] + D_80367BD5 - 1,
-                          0x18, D_80367BD8 + 0xC, alpha, 1, 1.0f);
+        g = spr_draw(g, D_80367BD0->frames[(D_803156C4 / D_80367BD0->speed) % D_80367BD0->nframes] + D_80367BD5 - 1,
+                          0x18, gHudObjectiveY + 0xC, alpha, 1, 1.0f);
     }
-    g = func_80274AA4(g);
+    g = spr_end(g);
     arg2 += g - gdl; /* dead store to the parameter, kept for the match */
     return g;
 }
 
-void func_8026420C(void) {
-    if (D_80367BFE && D_80358064 == D_80367B50) {
+/* Replays: re-arms the turbo start on its frame (0x8026420C). */
+void hud_replay_turbo(void) {
+    if (gTurboEarned && D_80358064 == gTurboFrame) {
         debug_printf("Replay turbo ....\n");
-        D_80367BFF = 1;
+        gTurboPending = 1;
     }
 }
 
-/* Turbo-start banner: a small state machine in D_80367BC8 that scrolls the
+/* The turbo-start banner's state machine and drawing (0x80264264).
+ * Turbo-start banner: a small state machine in gTurboStartState that scrolls the
  * countdown images in, rewards a turbo start, then scrolls them out; draws
  * the current image as eight 32-pixel-wide strips */
-Gfx *func_80264264(Gfx * N64P *arg0, Gfx *gdl) {
+Gfx *hud_draw_turbo_start(Gfx * N64P *arg0, Gfx *gdl) {
     Gfx *g;
     s32 i;
     s32 x0;
 
     g = gdl;
-    switch (D_80367BC8) {
+    switch (gTurboStartState) {
         case 1:
-            D_80367D52 = 3;
-            D_80367BC8 = 2;
+            gTurboBannerImage = 3;
+            gTurboStartState = 2;
             break;
         case 2:
-            D_80367D50 = (D_803156C4 - D_80367BC0) * 60 / 60 - 0x40;
-            D_80367D52 = 3 - MAX0(D_80367D50 * 2 / 10);
-            if (D_80367D50 >= 10) {
-                D_80367D52 = 1;
-                D_80367D50 = 10;
-                D_80367BC8 = 3;
+            gTurboBannerY = (D_803156C4 - gIntroStartTime) * 60 / 60 - 0x40;
+            gTurboBannerImage = 3 - MAX0(gTurboBannerY * 2 / 10);
+            if (gTurboBannerY >= 10) {
+                gTurboBannerImage = 1;
+                gTurboBannerY = 10;
+                gTurboStartState = 3;
             }
             break;
         case 3:
             if (!gPaused) {
-                D_80367BC8 = 4;
+                gTurboStartState = 4;
             }
             if (gHeldA) {
-                D_80367C01 = 1;
+                gTurboFalseStart = 1;
             }
             break;
         case 4:
-            D_80367D53 = D_80367D52;
+            D_80367D53 = gTurboBannerImage;
             if (D_803156C0 - D_80364A58 > 6) {
-                D_80367D52 = 5;
+                gTurboBannerImage = 5;
             } else {
-                D_80367D52 = 4;
+                gTurboBannerImage = 4;
             }
             if (D_803156C0 - D_80364A58 > 20) {
-                D_80367BC8 = 5;
-                D_80367BFF = D_80367BFE;
-                D_80367B50 = D_80358064;
+                gTurboStartState = 5;
+                gTurboPending = gTurboEarned;
+                gTurboFrame = D_80358064;
             }
             if (D_80367D53 == 1 && !gHeldA) {
-                D_80367BFE = !D_80367C01;
+                gTurboEarned = !gTurboFalseStart;
             }
-            if (D_80367D53 == 4 && D_80367D52 == 5 && !gHeldA) {
-                D_80367BFE = 0;
+            if (D_80367D53 == 4 && gTurboBannerImage == 5 && !gHeldA) {
+                gTurboEarned = 0;
             }
             break;
         case 5:
-            D_80367D50 = 10 - ((D_803156C0 - D_80364A58) * 2 * 60 - 2400) / 60;
-            if (D_80367D50 < -0x3F) {
+            gTurboBannerY = 10 - ((D_803156C0 - D_80364A58) * 2 * 60 - 2400) / 60;
+            if (gTurboBannerY < -0x3F) {
                 /* comma (or both on one line) needed for the store to land in the jal delay slot */
-                D_80367BC8 = 0, debug_printf("turbo %d\n", D_80367BFE);
+                gTurboStartState = 0, debug_printf("turbo %d\n", gTurboEarned);
             }
             break;
     }
@@ -777,10 +790,10 @@ Gfx *func_80264264(Gfx * N64P *arg0, Gfx *gdl) {
         gDPSetPrimColor(g++, 0, 0, 0, 0, 0, 0xFF);
         x0 = 0x20;
         for (i = 0; i < 0x100; i += 0x20) {
-            gDPLoadTextureTile(g++, D_80367BE0[D_80367D52 - 1], G_IM_FMT_RGBA, G_IM_SIZ_16b, 256, 0, i, 0, i + 31, 63,
+            gDPLoadTextureTile(g++, gTurboStartImages[gTurboBannerImage - 1], G_IM_FMT_RGBA, G_IM_SIZ_16b, 256, 0, i, 0, i + 31, 63,
                                0, G_TX_CLAMP, G_TX_CLAMP, 0, 0, G_TX_NOLOD, G_TX_NOLOD);
-            gSPScisTextureRectangleOld(g++, (i + x0) << 2, 0 << 2, (i + x0 + 0x20) << 2, (D_80367D50 + 0x3F) << 2, 0,
-                                       i << 5, -(D_80367D50 << 5), 1 << 10, 1 << 10);
+            gSPScisTextureRectangleOld(g++, (i + x0) << 2, 0 << 2, (i + x0 + 0x20) << 2, (gTurboBannerY + 0x3F) << 2, 0,
+                                       i << 5, -(gTurboBannerY << 5), 1 << 10, 1 << 10);
         }
         gDPPipeSync(g++);
         gDPSetTexturePersp(g++, G_TP_PERSP);
@@ -788,8 +801,9 @@ Gfx *func_80264264(Gfx * N64P *arg0, Gfx *gdl) {
     return g;
 }
 
-/* Format a time in tenths of a second as "MM:SS.t" */
-void func_80264A34(char *buf, u16 t, s32 arg2) {
+/* Tenths of a second to "MM:SS.t" (0x80264A34).
+ * Format a time in tenths of a second as "MM:SS.t" */
+void hud_format_time(char *buf, u16 t, s32 arg2) {
     buf[0] = t / 6000 + '0';
     t %= 6000;
     buf[1] = t / 600 + '0';
@@ -804,24 +818,26 @@ void func_80264A34(char *buf, u16 t, s32 arg2) {
     buf[7] = 0;
 }
 
-/* Race (mission type 2): time left = limit minus the finished laps' times */
-void func_80264AEC(void) {
+/* The time limit minus the finished laps' times (0x80264AEC).
+ * Race (mission type 2): time left = limit minus the finished laps' times */
+void hud_race_time_left(void) {
     s32 i;
     u16 sum;
 
     sum = 0;
-    if (gLevelKind == 2 && D_80367B54 >= 2) {
-        for (i = 0; i < D_80367B54 - 1; i++) {
-            sum += D_80367B58[i];
+    if (gLevelKind == 2 && gRaceLap >= 2) {
+        for (i = 0; i < gRaceLap - 1; i++) {
+            sum += gLapTimes[i];
         }
-        D_80367BF6 = D_80367C04->time - sum;
+        gTimeLeft = gCurLevelInfo->time - sum;
     }
-    if (D_80367BF6 >= 60000) {
-        D_80367BF6 = 0;
+    if (gTimeLeft >= 60000) {
+        gTimeLeft = 0;
     }
 }
 
-u8 func_80264BA4(u8 arg0) {
+/* A level's globe node: Moon 0, Neptune 1, Mars 2, Earth 3, Venus 4, Mercury 5 (0x80264BA4). */
+u8 lvl_planet(u8 arg0) {
     u8 ret;
 
     switch (arg0) {

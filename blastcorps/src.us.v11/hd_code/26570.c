@@ -427,7 +427,7 @@ void yoshi_load_window_sprites(YoshiArg *arg0) {
         if (node->flags & 0x400) {
             snd = &D_802F49F4[node->unk14];
             if (snd->unk2E == -1) {
-                node->unk1A = func_80272C5C((u16 *) snd->unk6, 0, snd->unk4, snd->unk2C, snd->unk2D | v, 1.0f);
+                node->unk1A = spr_load((u16 *) snd->unk6, 0, snd->unk4, snd->unk2C, snd->unk2D | v, 1.0f);
                 D_8036BA98[node->unk14] = 0;
             } else {
                 node->unk1A = snd->unk2E;
@@ -608,9 +608,9 @@ Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
                     node = &gYoshiItems[i];
                     if (node->flags & 0x20) {
                         if (arg->flags & 0x80000) {
-                            node->x = func_8025B498(arg->w / 2, node->w, node->text, (s32) node->jtext);
+                            node->x = font_center_x(arg->w / 2, node->w, node->text, (s32) node->jtext);
                         } else {
-                            node->x = func_8025B498(arg->w / 2, node->w, node->text, (s32) node->jtext);
+                            node->x = font_center_x(arg->w / 2, node->w, node->text, (s32) node->jtext);
                         }
                     }
                 }
@@ -846,12 +846,12 @@ Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
                     u8 *c2;
 
                     c2 = D_802F47B0[18];
-                    cc = func_80276130((struct SpriteVtxBuf *) N64_IPTR(arg1), 0, cc, -halfW, halfH - gYoshiArrowBob - off, 16, gYoshiArrowBob / 2 + 10,
+                    cc = hud_sprite_quad_colors((struct SpriteVtxBuf *) N64_IPTR(arg1), 0, cc, -halfW, halfH - gYoshiArrowBob - off, 16, gYoshiArrowBob / 2 + 10,
                                        c2[0], c2[1], c2[2], gYoshiAlpha, c2[4], c2[5], c2[6], gYoshiAlpha,
                                        c2[0], c2[1], c2[2], gYoshiAlpha, c2[4], c2[5], c2[6], gYoshiAlpha);
-                    cc = func_80276080((struct SpriteVtxBuf *) N64_IPTR(arg1), 0, cc, -3 - halfW, halfH - gYoshiArrowBob - off + 3, 16,
+                    cc = hud_sprite_quad((struct SpriteVtxBuf *) N64_IPTR(arg1), 0, cc, -3 - halfW, halfH - gYoshiArrowBob - off + 3, 16,
                                        gYoshiArrowBob / 2 + 10, 0, 0, 0, gYoshiAlpha / 2);
-                    gdl = func_80275DA4(gdl, 1);
+                    gdl = hud_sprite_setup(gdl, 1);
                     gSPVertex(gdl++, arg1 + 0x1E00, 8, 0);
                     gSP1Triangle(gdl++, 4, 5, 6, 0);
                     gSP1Triangle(gdl++, 4, 6, 7, 0);
@@ -865,12 +865,12 @@ Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
                     /* The ROM reloads c3[0] for the second colour here (unlike the call above, where
                      * IDO reuses the first load). No plain spelling found that defeats ugen's load
                      * cache; the volatile cast reproduces it with identical code. */
-                    cc = func_80276130((struct SpriteVtxBuf *) N64_IPTR(arg1), 1, cc, -halfW, gYoshiArrowBob - halfH + off, 16, gYoshiArrowBob / 2 + 10,
+                    cc = hud_sprite_quad_colors((struct SpriteVtxBuf *) N64_IPTR(arg1), 1, cc, -halfW, gYoshiArrowBob - halfH + off, 16, gYoshiArrowBob / 2 + 10,
                                        c3[0], c3[1], c3[2], gYoshiAlpha, c3[4], c3[5], c3[6], gYoshiAlpha,
                                        ((volatile u8 *) c3)[0], c3[1], c3[2], gYoshiAlpha, c3[4], c3[5], c3[6], gYoshiAlpha);
-                    cc = func_80276080((struct SpriteVtxBuf *) N64_IPTR(arg1), 1, cc, -3 - halfW, gYoshiArrowBob - halfH + off - 3, 16,
+                    cc = hud_sprite_quad((struct SpriteVtxBuf *) N64_IPTR(arg1), 1, cc, -3 - halfW, gYoshiArrowBob - halfH + off - 3, 16,
                                        gYoshiArrowBob / 2 + 10, 0, 0, 0, gYoshiAlpha / 2);
-                    gdl = func_80275DA4(gdl, 1);
+                    gdl = hud_sprite_setup(gdl, 1);
                     gSPVertex(gdl++, &((Vtx *) N64_IPTR((arg1 + 0x1D80)))[cc], 8, 0);
                     gSP1Triangle(gdl++, 4, 5, 6, 0);
                     gSP1Triangle(gdl++, 4, 6, 7, 0);
@@ -884,9 +884,9 @@ Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
         D_8036BB30 = gYoshiScroll;
         if (arg->flags & 0x1000) {
             if (arg->flags & 0x20000) {
-                gdl = func_80274868(gdl);
+                gdl = spr_begin(gdl);
             } else {
-                gdl = func_80274998(gdl);
+                gdl = spr_begin_quads(gdl);
             }
             for (i = arg->unkE; i < arg->unkE + arg->unk10; i++) {
                 node = &gYoshiItems[i];
@@ -927,13 +927,13 @@ Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
                             if (i == arg->sel && (node->flags & 0x40)) {
                                 mode |= 8;
                             }
-                            gdl = func_80272ED8(gdl, node->unk1A + frame - 1, snd->x + node->x + x,
+                            gdl = spr_draw(gdl, node->unk1A + frame - 1, snd->x + node->x + x,
                                                 ((node->flags & 0x1000) ? D_8036BB30 : 0) + (snd->y + node->y + y),
                                                 yoshi_scroll_fade((u16 *) arg, (u16 *) node, node->y + snd->y - halfH + D_8036BB30 + 8) *
                                                     gYoshiOpen * gYoshiScale,
                                                 mode, snd->scale);
                         } else {
-                            gdl = func_80272ED8(gdl, node->unk1A + frame - 1, snd->x + node->x + x,
+                            gdl = spr_draw(gdl, node->unk1A + frame - 1, snd->x + node->x + x,
                                                 ((node->flags & 0x1000) ? D_8036BB30 : 0) + (snd->y + node->y + y),
                                                 yoshi_scroll_fade((u16 *) arg, (u16 *) node, node->y + snd->y - halfH + D_8036BB30 + 8) *
                                                     gYoshiOpen * gYoshiScale * 0.7,
@@ -943,9 +943,9 @@ Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
                 }
             }
             if (arg->flags & 0x20000) {
-                gdl = func_80274AA4(gdl);
+                gdl = spr_end(gdl);
             } else {
-                gdl = func_80274B08(gdl);
+                gdl = spr_pipe_sync(gdl);
             }
         }
         if (currentYoshiWindow < 0x62 || currentYoshiWindow >= 0x6C || gGameMode == 2) {
@@ -955,14 +955,14 @@ Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
                 text = yoshi_get_item_text(arg, i, 0);
                 if ((node->flags & 0x80) && !(node->flags & 0x800)) {
                     if (i == arg->sel) {
-                        func_80259DC8((Gfx * N64P *) N64_IPTR(arg1), text, wtext, node->flags & 8, 0, node->x - halfW - 3,
+                        text_print_gradient((Gfx * N64P *) N64_IPTR(arg1), text, wtext, node->flags & 8, 0, node->x - halfW - 3,
                                       ((node->flags & 0x1000) ? D_8036BB30 : 0) + (node->y - halfH) + 3, node->w,
                                       node->h, 1, 0, 0, 0,
                                       gYoshiAlpha * D_802F47B0[node->selColor][3] * yoshi_scroll_fade((u16 *) arg, (u16 *) node, node->y - halfH + D_8036BB30) / 65025 / 2,
                                       0, 0, 0,
                                       gYoshiAlpha * D_802F47B0[node->selColor][3] * yoshi_scroll_fade((u16 *) arg, (u16 *) node, node->y - halfH + D_8036BB30 + node->h) / 65025 / 2);
                     } else if (!(node->flags & 4) || FRAMES(D_803156C4 % 23) < 16) {
-                        func_80259DC8((Gfx * N64P *) N64_IPTR(arg1), text, wtext, node->flags & 8, 0, node->x - halfW - 3,
+                        text_print_gradient((Gfx * N64P *) N64_IPTR(arg1), text, wtext, node->flags & 8, 0, node->x - halfW - 3,
                                       ((node->flags & 0x1000) ? D_8036BB30 : 0) + (node->y - halfH) + 3, node->w,
                                       node->h, 1, 0, 0, 0,
                                       gYoshiAlpha * D_802F47B0[node->color][3] * yoshi_scroll_fade((u16 *) arg, (u16 *) node, node->y - halfH + D_8036BB30) / 65025 / 2,
@@ -980,7 +980,7 @@ Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
                 if (i == arg->sel) {
                     if ((!(node->flags & 4) || FRAMES(D_803156C4 % 23) < 16) &&
                         (!(node->flags & 0x40) || FRAMES(D_803156C4 % 15) < 11)) {
-                        func_80259DC8((Gfx * N64P *) N64_IPTR(arg1), text, wtext, node->flags & 8, 0, node->x - halfW,
+                        text_print_gradient((Gfx * N64P *) N64_IPTR(arg1), text, wtext, node->flags & 8, 0, node->x - halfW,
                                       ((node->flags & 0x1000) ? D_8036BB30 : 0) + (node->y - halfH), node->w,
                                       node->h, 1, D_802F47B0[node->selColor][0], D_802F47B0[node->selColor][1],
                                       D_802F47B0[node->selColor][2],
@@ -990,7 +990,7 @@ Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
                                       gYoshiAlpha * D_802F47B0[node->selColor][7] * yoshi_scroll_fade((u16 *) arg, (u16 *) node, node->y - halfH + D_8036BB30 + node->h) / 65025);
                     }
                 } else if (!(node->flags & 4) || FRAMES(D_803156C4 % 23) < 16) {
-                    func_80259DC8((Gfx * N64P *) N64_IPTR(arg1), text, wtext, node->flags & 8, 0, node->x - halfW,
+                    text_print_gradient((Gfx * N64P *) N64_IPTR(arg1), text, wtext, node->flags & 8, 0, node->x - halfW,
                                   ((node->flags & 0x1000) ? D_8036BB30 : 0) + (node->y - halfH), node->w, node->h,
                                   1, D_802F47B0[node->color][0], D_802F47B0[node->color][1],
                                   D_802F47B0[node->color][2],
@@ -1000,7 +1000,7 @@ Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
                 }
             }
         }
-        func_80259BD4(&gdl, arg1);
+        text_flush(&gdl, arg1);
     }
     return gdl;
 }
@@ -1032,7 +1032,7 @@ void *yoshi_get_item_text(YoshiArg *arg0, u16 idx, u8 japanese) {
     s32 i;
     u16 next;
 
-    gYoshiTypeBuf[0] = D_802E8C98[lang];
+    gYoshiTypeBuf[0] = gTextTerminator[lang];
     switch (gYoshiTypeState) {
         case 0:
             if (japanese) {
@@ -1063,7 +1063,7 @@ void *yoshi_get_item_text(YoshiArg *arg0, u16 idx, u8 japanese) {
                     }
                     if (ch == D_802E8C90[lang]) {
                         func_80260650(D_80367738, 0x91, NULL);
-                    } else if (ch != D_802E8C94[lang] && ch != D_802E8C98[lang] && ch != D_802E8C8C[lang]) {
+                    } else if (ch != D_802E8C94[lang] && ch != gTextTerminator[lang] && ch != D_802E8C8C[lang]) {
                         func_80260650(D_80367738, 0x22, NULL);
                     }
                 }
@@ -1074,10 +1074,10 @@ void *yoshi_get_item_text(YoshiArg *arg0, u16 idx, u8 japanese) {
                 }
                 i = 0;
                 if (japanese) {
-                    while (jtext[i] != D_802E8C98[lang]) {
+                    while (jtext[i] != gTextTerminator[lang]) {
 #ifdef NON_MATCHING
                         /* unsequenced in the original: IDO stores at the old i
-                         * (see 168B0.c func_8025B558) */
+                         * (see 168B0.c font_narrow) */
                         gYoshiTypeBuf[i] = jtext[i];
                         i++;
 #else
@@ -1085,13 +1085,13 @@ void *yoshi_get_item_text(YoshiArg *arg0, u16 idx, u8 japanese) {
 #endif
                     }
                 } else {
-                    while (text[i] != D_802E8C98[lang]) {
+                    while (text[i] != gTextTerminator[lang]) {
                         gYoshiTypeBuf[i] = text[i];
                         i++;
                     }
                 }
-                gYoshiTypeBuf[i] = D_802E8C98[lang];
-                if (gYoshiTypeBuf[gYoshiTypeChar] == D_802E8C98[lang]) {
+                gYoshiTypeBuf[i] = gTextTerminator[lang];
+                if (gYoshiTypeBuf[gYoshiTypeChar] == gTextTerminator[lang]) {
                     next = yoshi_next_item(arg0->unkE, arg0->unk10, gYoshiTypeItem, 0x100);
                     if (next == gYoshiTypeItem) {
                         gYoshiTypeState = 0;
@@ -1104,16 +1104,16 @@ void *yoshi_get_item_text(YoshiArg *arg0, u16 idx, u8 japanese) {
                     }
                     gYoshiTypeChar = 0;
                 } else {
-                    gYoshiTypeBuf[gYoshiTypeChar] = D_802E8C98[lang];
+                    gYoshiTypeBuf[gYoshiTypeChar] = gTextTerminator[lang];
                     if (!(node->flags & 0x4000) && D_803156C4 % 10 >= 6) {
                         gYoshiTypeBuf[gYoshiTypeChar] = D_802E8C9C[lang];
-                        D_8036BB4A[gYoshiTypeChar] = D_802E8C98[lang];
+                        D_8036BB4A[gYoshiTypeChar] = gTextTerminator[lang];
                     }
                 }
                 if (japanese) {
                     return gYoshiTypeBuf;
                 }
-                return func_8025B558(gYoshiTypeBuf);
+                return font_narrow(gYoshiTypeBuf);
             }
             break;
     }
@@ -1121,7 +1121,7 @@ void *yoshi_get_item_text(YoshiArg *arg0, u16 idx, u8 japanese) {
         if (japanese) {
             return gYoshiTypeBuf;
         }
-        return func_8025B558(gYoshiTypeBuf);
+        return font_narrow(gYoshiTypeBuf);
     }
     if (japanese) {
         return jtext;
@@ -1227,8 +1227,8 @@ void rdu_init(s16 *pos, s16 *end) {
         gRdus[gRduCount].z = pos[2];
         gRdus[gRduCount].visited = 0;
         gRdus[gRduCount].cell = pos[0] / (gLevelCellW >> 5) + pos[2] / (gLevelCellD >> 5) * gLevelCols;
-        func_8026A5CC((u64 *) (gRdus[gRduCount].vtx[0]), (u64 *) gRduQuad, sizeof(gRdus->vtx[0]));
-        func_8026A5CC((u64 *) (gRdus[gRduCount].vtx[1]), (u64 *) gRduQuad, sizeof(gRdus->vtx[1]));
+        util_copy64((u64 *) (gRdus[gRduCount].vtx[0]), (u64 *) gRduQuad, sizeof(gRdus->vtx[0]));
+        util_copy64((u64 *) (gRdus[gRduCount].vtx[1]), (u64 *) gRduQuad, sizeof(gRdus->vtx[1]));
         gRduCount++, pos += 3;
     }
     gHeapPtr = (u8 *) ((YoshiNode *) gHeapPtr + gRduCount);
@@ -1257,7 +1257,7 @@ void rdu_update(void) {
     cell = gPlayerZ / gLevelCellD * gLevelCols + gPlayerX / gLevelCellW;
     for (i = 0; i < gRduCount; i++) {
         if (gRdus[i].cell == cell && !gRdus[i].visited) {
-            dist = func_8026A6F0(gPlayerX >> 5, gPlayerY >> 5, gPlayerZ >> 5,
+            dist = util_dist3d(gPlayerX >> 5, gPlayerY >> 5, gPlayerZ >> 5,
                                  gRdus[i].x, gRdus[i].y, gRdus[i].z);
             if (dist < gRduPickupRadius[gCurVehicle]) {
                 if (++D_8036EA7C >= 4 && !gPaused) {

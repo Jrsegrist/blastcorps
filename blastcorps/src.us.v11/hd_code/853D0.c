@@ -368,7 +368,7 @@ s32 ballista_steer_rate(void);
  * Per-frame update of vehicle 10 when it is the player's (veh_update_player and
  * its init ballista_spawn): zone lookup (ballista_zone_alpha), save copy
  * (veh_snapshot), effects (ballista_update_actions, unless +0x9A is set), the shared
- * func_802CB690 (when D_80367BFF), timers, steering (veh_steer at rate
+ * func_802CB690 (when gTurboPending), timers, steering (veh_steer at rate
  * ballista_steer_rate()), throttle (veh_throttle, held off while D_803F8B7A
  * counts down), heading (veh_turn_heading), slope and drag (veh_slope /
  * veh_apply_slope), ring turn-back (veh_set_target_heading when D_803F8B78), the
@@ -415,7 +415,7 @@ void ballista_update(void) {
     if ((s8) V853_U8(0x9A) == 0) {
         ballista_update_actions(zr.t6, zr.t7, zr.s0, zr.s1, zr.s2, zr.s3, zr.s4);
     }
-    if (D_80367BFF != 0) {
+    if (gTurboPending != 0) {
         func_802CB690(gBallistaState);
     }
     ballista_set_physics();
@@ -580,7 +580,7 @@ f32 ballista_lean_limit(s32 side);
  * gBallistaLean steers towards ballista_lean_limit's limit while gHeldLeft /
  * gHeldRight is held (else back to 0.5) and drives channel 3. The horn
  * (gHeldL/gHeldR, gBallistaMissiles presses, cooldown D_803F8B7D = 5) alternates
- * channels 4 / 5 and fires func_80292288 from record (10, 3|1) to (10, 4|2)
+ * channels 4 / 5 and fires shell_fire from record (10, 3|1) to (10, 4|2)
  * at speed |speed| * 320 / 260 + 640. A jump (gPadStickY >= 60, not near a
  * band bound per veh_near_top_speed) starts or boosts the parabola D_803F8B64 /
  * 68 / 6C; while it is active channel 2 gets height / D_8030D9A0 (at most
@@ -683,7 +683,7 @@ void ballista_update_actions(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32
             speed = -speed;
         }
         /* the asm passes the whole word; the callee takes an s16 */
-        func_80292288((u32) (speed * 0x140) / 0x104 + 0x280, rec[0], rec[1], rec[2], x1, y1, z1, 0, 0x1A4);
+        shell_fire((u32) (speed * 0x140) / 0x104 + 0x280, rec[0], rec[1], rec[2], x1, y1, z1, 0, 0x1A4);
         D_803F8B7D = 5;
     }
 
@@ -747,14 +747,14 @@ extern u32 gBallistaPos[]; /* [0], [2]: trail x, z */
 /* Tyre tracks while skidding (0x802CB224).
  * Trail (shape of skyfall_add_tyre_trail in 6E200; $gp = gBallistaState): if the byte at
  * +0x99 is set, +0x98 isn't 1, +0x50 < 3 and +0x9B is clear,
- * func_8027BE7C(3, y, 0, -800, 0, -800, gBallistaPos[0], gBallistaPos[2], yaw,
+ * trail_add(3, y, 0, -800, 0, -800, gBallistaPos[0], gBallistaPos[2], yaw,
  * 5, 40, 0, 1): a single centred track.
  * Register note: the asm saves and restores every integer register; asm
  * caller ballista_update_actions keeps a1-a3 live (a mixed N64 build would need a
  * thunk). */
 void ballista_add_tyre_trail(void) {
     if (gBallistaState[0x99] != 0 && gBallistaState[0x98] != 1 && gBallistaState[0x50] < 3 && gBallistaState[0x9B] == 0) {
-        func_8027BE7C(3, *(s32 *) (gBallistaState + 0x1C), 0, -800, 0, -800, gBallistaPos[0], gBallistaPos[2],
+        trail_add(3, *(s32 *) (gBallistaState + 0x1C), 0, -800, 0, -800, gBallistaPos[0], gBallistaPos[2],
                       *(u16 *) (gBallistaState + 0x4E), 5, 40, 0, 1);
     }
 }

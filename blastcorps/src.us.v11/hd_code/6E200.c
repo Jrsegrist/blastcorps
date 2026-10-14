@@ -565,7 +565,7 @@ extern s16 gSkyfallGrip;
  * 1. zone level (skyfall_zone_alpha) with the incoming scan registers, save state
  *    (veh_snapshot), effects skyfall_update_anims (with the scan registers as the
  *    zone lookup left them) unless +0x9A is set, func_802CB690 when
- *    D_80367BFF is set;
+ *    gTurboPending is set;
  * 2. setup leaf skyfall_set_physics, steering veh_steer(skyfall_steer_rate()),
  *    speed bands veh_throttle unless the countdown gSkyfallBumpTimer runs;
  * 3. port_veh_move (rate gSkyfallGrip, kind 3 / 724.0, drift gSkyfallDeflecting via
@@ -603,7 +603,7 @@ void skyfall_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
     if (VEH_S8(veh, 0x9A) == 0) {
         skyfall_update_anims(zs.t6, zs.t7, zs.s0, zs.s1, zs.s2, zs.s3, zs.s4);
     }
-    if (D_80367BFF != 0) {
+    if (gTurboPending != 0) {
         func_802CB690(veh);
     }
     skyfall_set_physics();
@@ -831,7 +831,7 @@ extern s16 gSkyfallBoostTrail;
  * Tyre trail. When the byte at +0x99 is set the trail's a/b value is 50;
  * else, only while gSkyfallBoosting is set, gSkyfallBoostTrail counts down by 8 to 0
  * (clamped) and its new value is used. Then, unless +0x98 is 1, +0x50 >= 3 or
- * +0x9B is set, adds a trail segment (func_8027BE7C, period 2, wheel offsets
+ * +0x9B is set, adds a trail segment (trail_add, period 2, wheel offsets
  * (+-400, -300), position gSkyfallPos[0]/[2], yaw u16 +0x4E, half-width 4).
  * The asm passes the u16/u8 arguments as full words; the C prototype narrows
  * them (only their low bits are read).
@@ -857,7 +857,7 @@ void skyfall_add_tyre_trail(void) {
         gSkyfallBoostTrail = col;
     }
     if (gSkyfallState[0x98] != 1 && gSkyfallState[0x50] < 3 && gSkyfallState[0x9B] == 0) {
-        func_8027BE7C(2, *(s32 *) (gSkyfallState + 0x1C), 400, -300, -400, -300, gSkyfallPos[0], gSkyfallPos[2],
+        trail_add(2, *(s32 *) (gSkyfallState + 0x1C), 400, -300, -400, -300, gSkyfallPos[0], gSkyfallPos[2],
                       *(u16 *) (gSkyfallState + 0x4E), 4, col, col, 0);
     }
 }
@@ -1182,7 +1182,7 @@ void ramdozer_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
     if (VEH_S8(veh, 0x9A) == 0) {
         ramdozer_update_anims(zs.t6, zs.t7, zs.s0, zs.s1, zs.s2, zs.s3, zs.s4);
     }
-    if (D_80367BFF != 0) {
+    if (gTurboPending != 0) {
         func_802CB690(veh);
     }
     gEngineSoundLevel = VEH_S16(veh, 0x76);
@@ -1373,15 +1373,15 @@ extern u32 gRamdozerPos[]; /* [0], [2]: trail x, z */
 
 /* Track marks while skidding (0x802B54EC).
  * Tyre trail (shape of skyfall_add_tyre_trail, above): if the byte at +0x99 is set,
- * +0x98 isn't 1, +0x50 < 3 and +0x9B is clear, func_8027BE7C(3, y, 400,
+ * +0x98 isn't 1, +0x50 < 3 and +0x9B is clear, trail_add(3, y, 400,
  * -300, -400, -300, gRamdozerPos[0], gRamdozerPos[2], yaw, 5, 50, 50, 0).
  * Register note: the asm saves and restores every integer register; asm
  * caller ramdozer_update_anims keeps a0-a3, t6, t7 live (and reads f12/f14 after
- * the call, which the asm doesn't touch but func_8027BE7C may); a mixed N64
+ * the call, which the asm doesn't touch but trail_add may); a mixed N64
  * build would need a thunk. */
 void ramdozer_add_tyre_trail(void) {
     if (gRamdozerState[0x99] != 0 && gRamdozerState[0x98] != 1 && gRamdozerState[0x50] < 3 && gRamdozerState[0x9B] == 0) {
-        func_8027BE7C(3, *(s32 *) (gRamdozerState + 0x1C), 400, -300, -400, -300, gRamdozerPos[0], gRamdozerPos[2],
+        trail_add(3, *(s32 *) (gRamdozerState + 0x1C), 400, -300, -400, -300, gRamdozerPos[0], gRamdozerPos[2],
                       *(u16 *) (gRamdozerState + 0x4E), 5, 50, 50, 0);
     }
 }

@@ -25,10 +25,10 @@ veh_set_record: -n 100 --seed 1 --arg a1=-1 --arg a0=int --arg v0=int --arg v1=i
 veh_set_record: -n 20 --seed 2 --arg a1=0 --arg gp=ptr:0x100 --mem gVehicles:0x74=rand --mem gVehicles+0x5C=0
 
 # func_802A1558: wrapper (callee stubbed, then followed)
-func_802A1558: -n 100 --arg t2=int --arg t3=int --arg t4=int --sig func_80278BF0=a0,a1,a2
-func_802A1558: -n 50 --seed 1 --follow func_80278BF0 --arg t2=ptr:0x80 --arg t3=rel:t2+8*int:0:16 --arg t4=ptr:0x10 \
+func_802A1558: -n 100 --arg t2=int --arg t3=int --arg t4=int --sig mb_copy_dl=a0,a1,a2
+func_802A1558: -n 50 --seed 1 --follow mb_copy_dl --arg t2=ptr:0x80 --arg t3=rel:t2+8*int:0:16 --arg t4=ptr:0x10 \
     --heap 0x100 --mem @t4=rel:heap0 --mem @t2:0x80=words:0x06000000,0xB8000000,0xE7000000,0
-func_802A1558: -n 20 --seed 2 --follow func_80278BF0 --arg t2=ptr:0x80 --arg t3=rel:t2 --arg t4=ptr:0x10 --heap 0x100 --mem @t4=rel:heap0
+func_802A1558: -n 20 --seed 2 --follow mb_copy_dl --arg t2=ptr:0x80 --arg t3=rel:t2 --arg t4=ptr:0x10 --heap 0x100 --mem @t4=rel:heap0
 
 # lvl_build_part_tris: n in {0,0x20,0x40,0x80}; block 1 tag (0 / 5 / -1) with 0..2 items, then a
 # block 2 with tag -1 and 0..1 items wherever block 1 ends
@@ -140,7 +140,7 @@ lvl_align_end: -n 100 --seed 1 --arg a1=choice:0,1,2,3,4,5,7,8,9,0xC,-1,-4,-8,0x
 veh_add_record: -n 300 --heap 0x100 --arg s2=ptr:0x100 --mem @s2+0x1C=0x80 --mem @s2+0x20=rel:0x80+8*int:0:8 \
     --mem gHeapPtr=rel:heap0 --mem gVehicles:0x200=rand --mem gVehiclesEnd=rel:gVehicles+0x74*int:0:3 \
     --mem gLevelKind=choice:0,1,1,2 --arg a1=choice:0,0,1,-1 --sig func_802A1558=a0,a1,a2
-veh_add_record: -n 200 --seed 1 --follow func_802A1558 --sig func_80278BF0=a0,a1,a2 --heap 0x100 --arg s2=ptr:0x100 \
+veh_add_record: -n 200 --seed 1 --follow func_802A1558 --sig mb_copy_dl=a0,a1,a2 --heap 0x100 --arg s2=ptr:0x100 \
     --mem @s2+0x1C=0x80 --mem @s2+0x20=rel:0x80+8*int:0:8 --mem gHeapPtr=rel:heap0 --mem gVehicles:0x200=rand \
     --mem gVehiclesEnd=rel:gVehicles+0x74*int:0:3 --mem gLevelKind=choice:0,1,2 --arg a1=choice:0,1
 
@@ -287,30 +287,30 @@ lvl_load_model: -n 200 --seed 1 --arg t3=choice:0,1,3,0xB,0x11,0x96,0x98,0xFD,0x
 # end-block
 
 # ---- wt-g3 ----
-# lvl_load_scientist: if D_8039CAB7, load object 0x98 (lvl_load_model -> data at heap0), move its 16-byte vertex records
+# lvl_load_scientist: if gAcademyMarkerOn, load object 0x98 (lvl_load_model -> data at heap0), move its 16-byte vertex records
 # [data + w14, data + w18) by D_8039CAB0/2/4; D_8039CAC0 / D_8039CABC = data + w14 / w24
-lvl_load_scientist: -n 300 --ret void --heap 0x200 --mem D_8039CAB7:1=choice:0,1,1,0xFF --stub-ret lvl_load_model.s2=0x80B00000 \
+lvl_load_scientist: -n 300 --ret void --heap 0x200 --mem gAcademyMarkerOn:1=choice:0,1,1,0xFF --stub-ret lvl_load_model.s2=0x80B00000 \
     --mem @heap0+0x14=0x40 --mem @heap0+0x18=choice:0x40,0x50,0x80,0x100,0x1C0 --mem @heap0+0x24=int \
     --mem D_8039CAB0:2=halves:0,1,0xFFFF,0x7FFF,0x8000,0x123 --mem D_8039CAB2:2=halves:0,1,0xFFFF,0x7FFF,0x8000,0x123 \
     --mem D_8039CAB4:2=halves:0,1,0xFFFF,0x7FFF,0x8000,0x123 --mem D_8039CAC0=int --mem D_8039CABC=int
 
-# func_802A3198(out s2-s4): if D_8039CA61, load object D_8039CA7E (lvl_load_model_plain -> data at heap0); globals from it,
+# func_802A3198(out s2-s4): if gGhostPlaying, load object D_8039CA7E (lvl_load_model_plain -> data at heap0); globals from it,
 # copy the word block at data + w18 to the heap (heap1) and fill the rest of its size with identity matrices
-func_802A3198: -n 300 --ret void --heap 0x100 --heap 0x400 --mem D_8039CA61:1=choice:0,1,1 --mem D_8039CA7E:1=int:0:16 \
+func_802A3198: -n 300 --ret void --heap 0x100 --heap 0x400 --mem gGhostPlaying:1=choice:0,1,1 --mem D_8039CA7E:1=int:0:16 \
     --stub-ret lvl_load_model_plain.s2=0x80B00000 --stub-ret lvl_load_model_plain.s3=int --stub-ret lvl_load_model_plain.s4=int \
     --mem @heap0+0x14=int --mem @heap0+0x24=int --mem @heap0+0x28=int --mem @heap0+0x18=0x40 \
     --mem @heap0+0x40=choice:0x10,0x50,0x90,0xD0 --mem @heap0+0x44=0x10 --mem gHeapPtr=rel:heap1 \
-    --mem D_803BDAFC=int --mem D_803BDB00=int --mem D_803BDB04=int --mem D_803BDB08=int --sig func_80295AE0=a0,a1 \
+    --mem D_803BDAFC=int --mem D_803BDB00=int --mem D_803BDB04=int --mem D_803BDB08=int --sig ghost_make_translucent_dl=a0,a1 \
     --arg s2=int --arg s3=int --arg s4=int
 # no words copied / only words copied
-func_802A3198: -n 100 --seed 1 --ret void --heap 0x100 --heap 0x400 --mem D_8039CA61:1=1 --mem D_8039CA7E:1=int:0:16 \
+func_802A3198: -n 100 --seed 1 --ret void --heap 0x100 --heap 0x400 --mem gGhostPlaying:1=1 --mem D_8039CA7E:1=int:0:16 \
     --stub-ret lvl_load_model_plain.s2=0x80B00000 --mem @heap0+0x14=int --mem @heap0+0x24=int --mem @heap0+0x28=int \
     --mem @heap0+0x18=0x40 --mem @heap0+0x40=choice:0,0x40,0x80 --mem @heap0+0x44=0 --mem gHeapPtr=rel:heap1 \
-    --mem D_803BDAFC=int --mem D_803BDB00=int --mem D_803BDB04=int --mem D_803BDB08=int --sig func_80295AE0=a0,a1
-func_802A3198: -n 100 --seed 2 --ret void --heap 0x100 --heap 0x400 --mem D_8039CA61:1=1 --mem D_8039CA7E:1=int:0:16 \
+    --mem D_803BDAFC=int --mem D_803BDB00=int --mem D_803BDB04=int --mem D_803BDB08=int --sig ghost_make_translucent_dl=a0,a1
+func_802A3198: -n 100 --seed 2 --ret void --heap 0x100 --heap 0x400 --mem gGhostPlaying:1=1 --mem D_8039CA7E:1=int:0:16 \
     --stub-ret lvl_load_model_plain.s2=0x80B00000 --mem @heap0+0x14=int --mem @heap0+0x24=int --mem @heap0+0x28=int \
     --mem @heap0+0x18=0x40 --mem @heap0+0x40=choice:0x20,0x60,0xA0 --mem @heap0+0x44=0x20 \
-    --mem gHeapPtr=rel:heap1 --sig func_80295AE0=a0,a1
+    --mem gHeapPtr=rel:heap1 --sig ghost_make_translucent_dl=a0,a1
 
 # lvl_add_object(type t3, data t4, x/y/z t5-t7, flag s0, tag t9, param fp): record at gObjectsEnd (heap0+0x200), list
 # D_803BE704 (heap0+0x300 or none), grid cell byte, triangle entries [data + w48, data + w4C) via lvl_build_coll_tri at the heap
@@ -359,7 +359,7 @@ lvl_spawn_carrier: -n 200 --arg t0=ptr:0x100 --mem @t0+0x54=choice:0x40,0x41,0x4
     --mem @t0+0x40:16=bytes:0*3,1,0x7F,0x80,0xFF,0x12 --mem gHaveCarrier:1=rand
 lvl_spawn_carrier: -n 100 --seed 1 --arg t0=ptr:0x100 --mem @t0+0x54=0x40 \
     --mem @t0+0x40:9=hex:FF_7FFF_8000_FFFF_0001 --mem gHaveCarrier:1=rand
-lvl_spawn_shuttle: -n 100 --stub-ret func_80268EE8=choice:0,1,0x100,-1 --sig func_80268EE8=a0 \
+lvl_spawn_shuttle: -n 100 --stub-ret util_find_shuttle_path=choice:0,1,0x100,-1 --sig util_find_shuttle_path=a0 \
     --mem levelno=int --mem gHaveShuttle:1=rand
 lvl_spawn_chopper: -n 200 --arg t0=ptr:0x100 --mem @t0+0x54=choice:0x40,0x41 --mem @t0+0x40:4=bytes:0,1,0xFF \
     --mem gLevelKind=choice:0,0x80,0x81,1,-0x80 --mem gHaveChopper:1=rand
@@ -405,72 +405,72 @@ lvl_spawn_vehicles: -n 200 --seed 3 --arg t6=0 --arg f12=0 --arg f14=0 --arg f20
 initlevel: -n 100 --stub-preserve anim_tex_init=v0,v1 --sig tex_load_table= --sig anim_tex_init= \
     --sig lvl_init_boxes= --sig anim_clear_copy_queue= --sig cull_restart_now= --sig fx_reset= --sig obj_clear_delayed_damage= \
     --sig obj_clear_effect_queue= --sig lvl_load_scientist= --sig lvl_spawn_shuttle= --sig func_802A3198= \
-    --sig func_8028FDA0=a0,a1,a2 --sig rdu_init=a0,a1 --sig func_8028D4C0=a0,a1 --sig func_8028C190=a0,a1 \
+    --sig block_spawn_all=a0,a1,a2 --sig rdu_init=a0,a1 --sig tnt_spawn_all=a0,a1 --sig crate_spawn_all=a0,a1 \
     --sig apply_status=a0 --arg a0=ptr:0x100 --arg a1=choice:0,1,-1 --arg fp=0 \
     --mem gNextGameMode=0 --mem gNextGameMode+4=2 --arg v0=1 --arg t9=1 --mem D_802E8BEC=choice:0,1 \
     --mem gHaveCarrier:1=rand --mem gHaveChopper:1=rand --mem gHaveShuttle:1=rand --mem frontEndPresent:1=rand \
-    --mem D_803BE6F4=rand --mem D_803BE6FC=rand --mem D_803BE700=rand
+    --mem D_803BE6F4=rand --mem gDigTriggers=rand --mem gDigTriggersEnd=rand
 initlevel: -n 100 --seed 1 --stub-preserve anim_tex_init=v0,v1 --sig tex_load_table= --sig anim_tex_init= \
     --sig lvl_init_boxes= --sig anim_clear_copy_queue= --sig cull_restart_now= --sig fx_reset= --sig obj_clear_delayed_damage= \
     --sig obj_clear_effect_queue= --sig lvl_load_scientist= --sig lvl_spawn_shuttle= --sig func_802A3198= \
-    --sig func_8028FDA0=a0,a1,a2 --sig rdu_init=a0,a1 --sig func_8028D4C0=a0,a1 --sig func_8028C190=a0,a1 \
+    --sig block_spawn_all=a0,a1,a2 --sig rdu_init=a0,a1 --sig tnt_spawn_all=a0,a1 --sig crate_spawn_all=a0,a1 \
     --sig apply_status=a0 --arg a0=ptr:0x100 --arg a1=choice:0,1,-1 --arg fp=0 \
     --mem gNextGameMode=0 --mem gNextGameMode+4=0x20 --arg v0=5 --arg t9=5 --mem D_802E8BEC=choice:0,1 \
     --mem gHaveCarrier:1=rand --mem gHaveChopper:1=rand --mem gHaveShuttle:1=rand --mem frontEndPresent:1=rand \
-    --mem D_803BE6F4=rand --mem D_803BE6FC=rand --mem D_803BE700=rand
+    --mem D_803BE6F4=rand --mem gDigTriggers=rand --mem gDigTriggersEnd=rand
 initlevel: -n 100 --seed 2 --stub-preserve anim_tex_init=v0,v1 --sig tex_load_table= --sig anim_tex_init= \
     --sig lvl_init_boxes= --sig anim_clear_copy_queue= --sig cull_restart_now= --sig fx_reset= --sig obj_clear_delayed_damage= \
     --sig obj_clear_effect_queue= --sig lvl_load_scientist= --sig lvl_spawn_shuttle= --sig func_802A3198= \
-    --sig func_8028FDA0=a0,a1,a2 --sig rdu_init=a0,a1 --sig func_8028D4C0=a0,a1 --sig func_8028C190=a0,a1 \
+    --sig block_spawn_all=a0,a1,a2 --sig rdu_init=a0,a1 --sig tnt_spawn_all=a0,a1 --sig crate_spawn_all=a0,a1 \
     --sig apply_status=a0 --arg a0=ptr:0x100 --arg a1=choice:0,1,-1 --arg fp=0 \
     --mem gNextGameMode=0 --mem gNextGameMode+4=0x80 --arg v0=7 --arg t9=7 --mem D_802E8BEC=choice:0,1 \
     --mem gHaveCarrier:1=rand --mem gHaveChopper:1=rand --mem gHaveShuttle:1=rand --mem frontEndPresent:1=rand \
-    --mem D_803BE6F4=rand --mem D_803BE6FC=rand --mem D_803BE700=rand
+    --mem D_803BE6F4=rand --mem gDigTriggers=rand --mem gDigTriggersEnd=rand
 # mode 0x100000000000 (= D_8030D880: no apply_status), bit 44
 initlevel: -n 100 --seed 3 --stub-preserve anim_tex_init=v0,v1 --sig tex_load_table= --sig anim_tex_init= \
     --sig lvl_init_boxes= --sig anim_clear_copy_queue= --sig cull_restart_now= --sig fx_reset= --sig obj_clear_delayed_damage= \
     --sig obj_clear_effect_queue= --sig lvl_load_scientist= --sig lvl_spawn_shuttle= --sig func_802A3198= \
-    --sig func_8028FDA0=a0,a1,a2 --sig rdu_init=a0,a1 --sig func_8028D4C0=a0,a1 --sig func_8028C190=a0,a1 \
+    --sig block_spawn_all=a0,a1,a2 --sig rdu_init=a0,a1 --sig tnt_spawn_all=a0,a1 --sig crate_spawn_all=a0,a1 \
     --sig apply_status=a0 --arg a0=ptr:0x100 --arg a1=choice:0,1,-1 --arg fp=0 \
     --mem gNextGameMode=0x1000 --mem gNextGameMode+4=0 --arg v0=44 --arg t9=44 --mem D_802E8BEC=choice:0,1 \
     --mem gHaveCarrier:1=rand --mem gHaveChopper:1=rand --mem gHaveShuttle:1=rand --mem frontEndPresent:1=rand \
-    --mem D_803BE6F4=rand --mem D_803BE6FC=rand --mem D_803BE700=rand
+    --mem D_803BE6F4=rand --mem gDigTriggers=rand --mem gDigTriggersEnd=rand
 # mode 0 (lowest_set_bit returns -1, t9 = 0) and an odd mode (0, t9 = the mode)
 initlevel: -n 100 --seed 4 --stub-preserve anim_tex_init=v0,v1 --sig tex_load_table= --sig anim_tex_init= \
     --sig lvl_init_boxes= --sig anim_clear_copy_queue= --sig cull_restart_now= --sig fx_reset= --sig obj_clear_delayed_damage= \
     --sig obj_clear_effect_queue= --sig lvl_load_scientist= --sig lvl_spawn_shuttle= --sig func_802A3198= \
-    --sig func_8028FDA0=a0,a1,a2 --sig rdu_init=a0,a1 --sig func_8028D4C0=a0,a1 --sig func_8028C190=a0,a1 \
+    --sig block_spawn_all=a0,a1,a2 --sig rdu_init=a0,a1 --sig tnt_spawn_all=a0,a1 --sig crate_spawn_all=a0,a1 \
     --sig apply_status=a0 --arg a0=ptr:0x100 --arg a1=choice:0,1,-1 --arg fp=0 \
     --mem gNextGameMode=0 --mem gNextGameMode+4=0 --arg v0=-1 --arg t9=0 --mem D_802E8BEC=choice:0,1 \
     --mem gHaveCarrier:1=rand --mem gHaveChopper:1=rand --mem gHaveShuttle:1=rand --mem frontEndPresent:1=rand \
-    --mem D_803BE6F4=rand --mem D_803BE6FC=rand --mem D_803BE700=rand
+    --mem D_803BE6F4=rand --mem gDigTriggers=rand --mem gDigTriggersEnd=rand
 initlevel: -n 100 --seed 5 --stub-preserve anim_tex_init=v0,v1 --sig tex_load_table= --sig anim_tex_init= \
     --sig lvl_init_boxes= --sig anim_clear_copy_queue= --sig cull_restart_now= --sig fx_reset= --sig obj_clear_delayed_damage= \
     --sig obj_clear_effect_queue= --sig lvl_load_scientist= --sig lvl_spawn_shuttle= --sig func_802A3198= \
-    --sig func_8028FDA0=a0,a1,a2 --sig rdu_init=a0,a1 --sig func_8028D4C0=a0,a1 --sig func_8028C190=a0,a1 \
+    --sig block_spawn_all=a0,a1,a2 --sig rdu_init=a0,a1 --sig tnt_spawn_all=a0,a1 --sig crate_spawn_all=a0,a1 \
     --sig apply_status=a0 --arg a0=ptr:0x100 --arg a1=choice:0,1,-1 --arg fp=0 \
     --mem gNextGameMode=0 --mem gNextGameMode+4=0x2001 --arg v0=0 --arg t9=0x2001 --mem D_802E8BEC=choice:0,1 \
     --mem gHaveCarrier:1=rand --mem gHaveChopper:1=rand --mem gHaveShuttle:1=rand --mem frontEndPresent:1=rand \
-    --mem D_803BE6F4=rand --mem D_803BE6FC=rand --mem D_803BE700=rand
+    --mem D_803BE6F4=rand --mem gDigTriggers=rand --mem gDigTriggersEnd=rand
 initlevel: -n 100 --seed 6 --stub-preserve anim_tex_init=v0,v1 --sig tex_load_table= --sig anim_tex_init= \
     --sig lvl_init_boxes= --sig anim_clear_copy_queue= --sig cull_restart_now= --sig fx_reset= --sig obj_clear_delayed_damage= \
     --sig obj_clear_effect_queue= --sig lvl_load_scientist= --sig lvl_spawn_shuttle= --sig func_802A3198= \
-    --sig func_8028FDA0=a0,a1,a2 --sig rdu_init=a0,a1 --sig func_8028D4C0=a0,a1 --sig func_8028C190=a0,a1 \
+    --sig block_spawn_all=a0,a1,a2 --sig rdu_init=a0,a1 --sig tnt_spawn_all=a0,a1 --sig crate_spawn_all=a0,a1 \
     --sig apply_status=a0 --arg a0=ptr:0x100 --arg a1=choice:0,1,-1 --arg fp=0 \
     --mem gNextGameMode=0 --mem gNextGameMode+4=0x2000 --arg v0=13 --arg t9=13 --mem D_802E8BEC=choice:0,1 \
     --mem gHaveCarrier:1=rand --mem gHaveChopper:1=rand --mem gHaveShuttle:1=rand --mem frontEndPresent:1=rand \
-    --mem D_803BE6F4=rand --mem D_803BE6FC=rand --mem D_803BE700=rand
+    --mem D_803BE6F4=rand --mem gDigTriggers=rand --mem gDigTriggersEnd=rand
 # bit 31 / bit 32 of the 64-bit mode
 initlevel: -n 50 --seed 7 --stub-preserve anim_tex_init=v0,v1 --sig tex_load_table= --sig anim_tex_init= \
     --sig lvl_init_boxes= --sig anim_clear_copy_queue= --sig cull_restart_now= --sig fx_reset= --sig obj_clear_delayed_damage= \
     --sig obj_clear_effect_queue= --sig lvl_load_scientist= --sig lvl_spawn_shuttle= --sig func_802A3198= \
-    --sig func_8028FDA0=a0,a1,a2 --sig rdu_init=a0,a1 --sig func_8028D4C0=a0,a1 --sig func_8028C190=a0,a1 \
+    --sig block_spawn_all=a0,a1,a2 --sig rdu_init=a0,a1 --sig tnt_spawn_all=a0,a1 --sig crate_spawn_all=a0,a1 \
     --sig apply_status=a0 --arg a0=ptr:0x100 --arg a1=choice:0,1 --arg fp=0 \
     --mem gNextGameMode=0 --mem gNextGameMode+4=0x80000000 --arg v0=31 --arg t9=31
 initlevel: -n 50 --seed 8 --stub-preserve anim_tex_init=v0,v1 --sig tex_load_table= --sig anim_tex_init= \
     --sig lvl_init_boxes= --sig anim_clear_copy_queue= --sig cull_restart_now= --sig fx_reset= --sig obj_clear_delayed_damage= \
     --sig obj_clear_effect_queue= --sig lvl_load_scientist= --sig lvl_spawn_shuttle= --sig func_802A3198= \
-    --sig func_8028FDA0=a0,a1,a2 --sig rdu_init=a0,a1 --sig func_8028D4C0=a0,a1 --sig func_8028C190=a0,a1 \
+    --sig block_spawn_all=a0,a1,a2 --sig rdu_init=a0,a1 --sig tnt_spawn_all=a0,a1 --sig crate_spawn_all=a0,a1 \
     --sig apply_status=a0 --arg a0=ptr:0x100 --arg a1=choice:0,1 --arg fp=0 \
     --mem gNextGameMode=1 --mem gNextGameMode+4=0 --arg v0=32 --arg t9=32
 # (disp) followed: model loads through lvl_load_model run for real (cartridge DMA
@@ -502,7 +502,7 @@ lvl_spawn_shuttle: -n 30 --seed 10 --follow \
     gHeapPtr=rel:heap0 --conv 'osPiStartDma: in \
     a0=a0,a1=a1,a2=a2,a3=a3,stack0=stack0,stack1=stack1,stack2=stack2 ; out v0=ret' --model \
     osPiStartDma=rom_dma.py:dma --model osRecvMesg=rom_dma.py:noop --model tex_resolve_dl_impl=rom_dma.py:noop \
-    --stub-ret func_80268EE8=choice:0,1 --sig func_80268EE8=a0 --mem gHaveShuttle:1=rand
+    --stub-ret util_find_shuttle_path=choice:0,1 --sig util_find_shuttle_path=a0 --mem gHaveShuttle:1=rand
 lvl_spawn_vehicles: -n 30 --seed 10 --follow lvl_find_start_vehicle --follow \
     lvl_load_model,func_802C4108,lvl_align_end,anim_tex_find_patches,osInvalDCache,func_8025C230 --sig \
     func_8025C5A0=a0,a1,a2 --sig func_8025C30C=a0,a1,a2 --sig func_802994F8=a0,a1,a2 --heap 0x40000=zero --mem \
@@ -522,8 +522,8 @@ initlevel: -n 40 --seed 21 --follow lvl_spawn_vehicles,lvl_spawn_carrier,lvl_spa
     osPiStartDma=rom_dma.py:dma --model osRecvMesg=rom_dma.py:noop --model tex_resolve_dl_impl=rom_dma.py:noop \
     --stub-preserve anim_tex_init=v0,v1 --sig tex_load_table= --sig anim_tex_init= --sig lvl_init_boxes= --sig \
     anim_clear_copy_queue= --sig cull_restart_now= --sig fx_reset= --sig obj_clear_delayed_damage= --sig obj_clear_effect_queue= --sig \
-    lvl_load_scientist= --sig func_802A3198= --sig func_8028FDA0=a0,a1,a2 --sig rdu_init=a0,a1 --sig \
-    func_8028D4C0=a0,a1 --sig func_8028C190=a0,a1 --sig apply_status=a0 --sig func_80268EE8=a0 --sig \
+    lvl_load_scientist= --sig func_802A3198= --sig block_spawn_all=a0,a1,a2 --sig rdu_init=a0,a1 --sig \
+    tnt_spawn_all=a0,a1 --sig crate_spawn_all=a0,a1 --sig apply_status=a0 --sig util_find_shuttle_path=a0 --sig \
     thunderfist_spawn=a0,a1,a2,a3,stack0,stack1,*stack3,*stack3+0x4,*stack3+0x8,*stack3+0xC,*stack3+0x10,*stack3+0x14 \
     --sig \
     starski_spawn=a0,a1,a2,a3,stack0,stack1,*stack3,*stack3+0x4,*stack3+0x8,*stack3+0xC,*stack3+0x10,*stack3+0x14 \
@@ -534,9 +534,9 @@ initlevel: -n 40 --seed 21 --follow lvl_spawn_vehicles,lvl_spawn_carrier,lvl_spa
     @a0+0x69*9:3/1=choice:0,1,2,3,4,5,6,7,8,9,0xA,0xB,0xD,0xE,0xF,0x10,0x11,0x12 --mem @a0+0x84:1=choice:0,1 \
     --arg a1=choice:0,1 --arg fp=0 --arg f12=0 --arg f14=0 --arg f20=0 --arg f22=0 --arg f24=0 --arg f26=0 --mem \
     gNextGameMode=0 --mem gNextGameMode+4=2 --arg v0=1 --arg t9=1 --mem D_802E8BEC=choice:0,1 --mem \
-    gLevelKind=choice:0,1,0x80 --mem D_803643D4:1=choice:3,5,9 --stub-ret func_80268EE8=choice:0,1 --stub-ret lvl_build_object_groups=0 --mem \
+    gLevelKind=choice:0,1,0x80 --mem D_803643D4:1=choice:3,5,9 --stub-ret util_find_shuttle_path=choice:0,1 --stub-ret lvl_build_object_groups=0 --mem \
     gHaveCarrier:1=rand --mem gHaveChopper:1=rand --mem gHaveShuttle:1=rand --mem frontEndPresent:1=rand --mem \
-    D_803BE6FC=rand --mem D_803BE700=rand
+    gDigTriggers=rand --mem gDigTriggersEnd=rand
 initlevel: -n 40 --seed 22 --follow lvl_spawn_vehicles,lvl_spawn_carrier,lvl_spawn_shuttle,lvl_spawn_chopper,lvl_find_start_vehicle \
     --follow lvl_load_model,func_802C4108,lvl_align_end,anim_tex_find_patches,osInvalDCache,func_8025C230 --sig \
     func_8025C5A0=a0,a1,a2 --sig func_8025C30C=a0,a1,a2 --sig func_802994F8=a0,a1,a2 --heap 0x40000=zero --mem \
@@ -545,8 +545,8 @@ initlevel: -n 40 --seed 22 --follow lvl_spawn_vehicles,lvl_spawn_carrier,lvl_spa
     osPiStartDma=rom_dma.py:dma --model osRecvMesg=rom_dma.py:noop --model tex_resolve_dl_impl=rom_dma.py:noop \
     --stub-preserve anim_tex_init=v0,v1 --sig tex_load_table= --sig anim_tex_init= --sig lvl_init_boxes= --sig \
     anim_clear_copy_queue= --sig cull_restart_now= --sig fx_reset= --sig obj_clear_delayed_damage= --sig obj_clear_effect_queue= --sig \
-    lvl_load_scientist= --sig func_802A3198= --sig func_8028FDA0=a0,a1,a2 --sig rdu_init=a0,a1 --sig \
-    func_8028D4C0=a0,a1 --sig func_8028C190=a0,a1 --sig apply_status=a0 --sig func_80268EE8=a0 --sig \
+    lvl_load_scientist= --sig func_802A3198= --sig block_spawn_all=a0,a1,a2 --sig rdu_init=a0,a1 --sig \
+    tnt_spawn_all=a0,a1 --sig crate_spawn_all=a0,a1 --sig apply_status=a0 --sig util_find_shuttle_path=a0 --sig \
     thunderfist_spawn=a0,a1,a2,a3,stack0,stack1,*stack3,*stack3+0x4,*stack3+0x8,*stack3+0xC,*stack3+0x10,*stack3+0x14 \
     --sig \
     starski_spawn=a0,a1,a2,a3,stack0,stack1,*stack3,*stack3+0x4,*stack3+0x8,*stack3+0xC,*stack3+0x10,*stack3+0x14 \
@@ -557,9 +557,9 @@ initlevel: -n 40 --seed 22 --follow lvl_spawn_vehicles,lvl_spawn_carrier,lvl_spa
     @a0+0x69*9:3/1=choice:0,1,2,3,4,5,6,7,8,9,0xA,0xB,0xD,0xE,0xF,0x10,0x11,0x12 --mem @a0+0x84:1=choice:0,1 \
     --arg a1=choice:0,1 --arg fp=0 --arg f12=0 --arg f14=0 --arg f20=0 --arg f22=0 --arg f24=0 --arg f26=0 --mem \
     gNextGameMode=0 --mem gNextGameMode+4=0x20 --arg v0=5 --arg t9=5 --mem D_802E8BEC=choice:0,1 --mem \
-    gLevelKind=choice:0,1,0x80 --mem D_803643D4:1=choice:3,5,9 --stub-ret func_80268EE8=choice:0,1 --stub-ret lvl_build_object_groups=0 --mem \
+    gLevelKind=choice:0,1,0x80 --mem D_803643D4:1=choice:3,5,9 --stub-ret util_find_shuttle_path=choice:0,1 --stub-ret lvl_build_object_groups=0 --mem \
     gHaveCarrier:1=rand --mem gHaveChopper:1=rand --mem gHaveShuttle:1=rand --mem frontEndPresent:1=rand --mem \
-    D_803BE6FC=rand --mem D_803BE700=rand
+    gDigTriggers=rand --mem gDigTriggersEnd=rand
 initlevel: -n 40 --seed 23 --follow lvl_spawn_vehicles,lvl_spawn_carrier,lvl_spawn_shuttle,lvl_spawn_chopper,lvl_find_start_vehicle \
     --follow lvl_load_model,func_802C4108,lvl_align_end,anim_tex_find_patches,osInvalDCache,func_8025C230 --sig \
     func_8025C5A0=a0,a1,a2 --sig func_8025C30C=a0,a1,a2 --sig func_802994F8=a0,a1,a2 --heap 0x40000=zero --mem \
@@ -568,8 +568,8 @@ initlevel: -n 40 --seed 23 --follow lvl_spawn_vehicles,lvl_spawn_carrier,lvl_spa
     osPiStartDma=rom_dma.py:dma --model osRecvMesg=rom_dma.py:noop --model tex_resolve_dl_impl=rom_dma.py:noop \
     --stub-preserve anim_tex_init=v0,v1 --sig tex_load_table= --sig anim_tex_init= --sig lvl_init_boxes= --sig \
     anim_clear_copy_queue= --sig cull_restart_now= --sig fx_reset= --sig obj_clear_delayed_damage= --sig obj_clear_effect_queue= --sig \
-    lvl_load_scientist= --sig func_802A3198= --sig func_8028FDA0=a0,a1,a2 --sig rdu_init=a0,a1 --sig \
-    func_8028D4C0=a0,a1 --sig func_8028C190=a0,a1 --sig apply_status=a0 --sig func_80268EE8=a0 --sig \
+    lvl_load_scientist= --sig func_802A3198= --sig block_spawn_all=a0,a1,a2 --sig rdu_init=a0,a1 --sig \
+    tnt_spawn_all=a0,a1 --sig crate_spawn_all=a0,a1 --sig apply_status=a0 --sig util_find_shuttle_path=a0 --sig \
     thunderfist_spawn=a0,a1,a2,a3,stack0,stack1,*stack3,*stack3+0x4,*stack3+0x8,*stack3+0xC,*stack3+0x10,*stack3+0x14 \
     --sig \
     starski_spawn=a0,a1,a2,a3,stack0,stack1,*stack3,*stack3+0x4,*stack3+0x8,*stack3+0xC,*stack3+0x10,*stack3+0x14 \
@@ -580,6 +580,6 @@ initlevel: -n 40 --seed 23 --follow lvl_spawn_vehicles,lvl_spawn_carrier,lvl_spa
     @a0+0x69*9:3/1=choice:0,1,2,3,4,5,6,7,8,9,0xA,0xB,0xD,0xE,0xF,0x10,0x11,0x12 --mem @a0+0x84:1=choice:0,1 \
     --arg a1=choice:0,1 --arg fp=0 --arg f12=0 --arg f14=0 --arg f20=0 --arg f22=0 --arg f24=0 --arg f26=0 --mem \
     gNextGameMode=0 --mem gNextGameMode+4=0x80 --arg v0=7 --arg t9=7 --mem D_802E8BEC=choice:0,1 --mem \
-    gLevelKind=choice:0,1,0x80 --mem D_803643D4:1=choice:3,5,9 --stub-ret func_80268EE8=choice:0,1 --stub-ret lvl_build_object_groups=0 --mem \
+    gLevelKind=choice:0,1,0x80 --mem D_803643D4:1=choice:3,5,9 --stub-ret util_find_shuttle_path=choice:0,1 --stub-ret lvl_build_object_groups=0 --mem \
     gHaveCarrier:1=rand --mem gHaveChopper:1=rand --mem gHaveShuttle:1=rand --mem frontEndPresent:1=rand --mem \
-    D_803BE6FC=rand --mem D_803BE700=rand
+    gDigTriggers=rand --mem gDigTriggersEnd=rand

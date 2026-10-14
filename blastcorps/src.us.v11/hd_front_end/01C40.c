@@ -237,7 +237,7 @@ u8 D_802082B8[0x20] = {
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 2, 2, 2, 1, 1, 0,
 };
 
-/* sprite ids for func_80272C5C */
+/* sprite ids for spr_load */
 u16 D_802082D8[6] = { 0x777, 0x777, 0x776, 0x773, 0, 0 };
 u16 D_802082E4[2] = { 0x774, 0x775 };
 u16 D_802082E8[2] = { 0x576, 0x575 };
@@ -256,8 +256,8 @@ void func_801E8C40(u8 arg0) {
     s32 i;
 
     playerNumber = arg0;
-    D_80215915 = func_80272C5C(D_802082F8, NULL, 1, 1, 1, 1.0f);
-    D_80215916 = func_80272C5C(D_802082EC, NULL, 5, 1, 0, 1.0f);
+    D_80215915 = spr_load(D_802082F8, NULL, 1, 1, 1, 1.0f);
+    D_80215916 = spr_load(D_802082EC, NULL, 5, 1, 0, 1.0f);
     for (i = 0; i < 2; i++) {
         dyn = &gDynamicBufs[i];
         guPerspective(&dyn->persp, &D_8021591C, 45.0f, 4.0f / 3.0f, 10.0f, 10000.0f, 1.0f);
@@ -275,7 +275,7 @@ void func_801E8DCC(u8 arg0) {
     for (i = 0; i < 0x1B; i++) {
         D_802158A8[i] = D_802E8C94[D_8021592E];
     }
-    D_802158A8[i] = D_802E8C98[D_8021592E];
+    D_802158A8[i] = gTextTerminator[D_8021592E];
     D_802154D8 = 0;
     D_802154E8 = 9999;
     for (i = 1; i < 5; i++) {
@@ -329,7 +329,7 @@ void func_801E8EB8(u8 slot, u8 arg1) {
             if (D_80365060[slot] == 1) {
                 sprintf(SCROLL_TEXT, " ..... %s%s (%s) ... ", sPrefix[guest], p->name, D_802081C0[p->title].title);
                 for (i = (players[slot].unk91 >= 12) ? 4 : 3; i > 0; i--) {
-                    D_80215508[i] = func_8025B300((u8 *) SCROLL_TEXT);
+                    D_80215508[i] = font_strlen((u8 *) SCROLL_TEXT);
                     if (i != 1) {
                         sprintf(SCROLL_TEXT, "%s  %d .. ", SCROLL_TEXT, D_80215930[i]);
                     }
@@ -338,7 +338,7 @@ void func_801E8EB8(u8 slot, u8 arg1) {
                 if (D_802E8BF8 == 0) {
                     sprintf(SCROLL_TEXT, "%s$%d ... ", SCROLL_TEXT, p->unk14);
                 }
-                D_802154EC = func_8025B300((u8 *) SCROLL_TEXT);
+                D_802154EC = font_strlen((u8 *) SCROLL_TEXT);
                 sprintf(SCROLL_TEXT, "%s  %d", SCROLL_TEXT, p->title);
                 if ((gNextGameMode & 0x0200040000000000) || (gGameMode & 0x0100000000000000)) {
                     sprintf(SCROLL_TEXT, "%s ..... %s", SCROLL_TEXT, "USE Z/R TO CHANGE PLAYER, THEN A TO SELECT!");
@@ -351,7 +351,7 @@ void func_801E8EB8(u8 slot, u8 arg1) {
         }
     }
     if (D_802158A0 != NULL) {
-        D_802154D2 = func_8025B370(D_802158A0);
+        D_802154D2 = font_wstrlen(D_802158A0);
         D_8021592E = 1;
         D_80215458 = 0x13;
         if (slot == 4) {
@@ -360,7 +360,7 @@ void func_801E8EB8(u8 slot, u8 arg1) {
             D_802154D4 = 0xE;
         }
     } else {
-        D_802154D2 = func_8025B300((u8 *) SCROLL_TEXT);
+        D_802154D2 = font_strlen((u8 *) SCROLL_TEXT);
         D_8021592E = 0;
         D_80215458 = 0xC;
         if (slot == 4) {
@@ -509,31 +509,31 @@ Gfx *func_801E9718(Gfx *arg0, PlayerSelDyn *dyn, s32 arg2) {
         D_802154D8 += D_802154E4;
         if (D_802154D8 >= D_80215458) {
             D_802154D8 -= D_80215458;
-            for (i = 1; D_802158A8[i] != D_802E8C98[D_8021592E]; i++) {
+            for (i = 1; D_802158A8[i] != gTextTerminator[D_8021592E]; i++) {
                 D_802158A8[i - 1] = D_802158A8[i];
             }
             i--;
             D_802158A8[i] = func_801E9528();
-            D_802158A8[i + 1] = D_802E8C98[D_8021592E];
+            D_802158A8[i + 1] = gTextTerminator[D_8021592E];
         }
-        gdl = func_80274868(gdl);
+        gdl = spr_begin(gdl);
         D_802154E8 += D_802154E4;
         x = 0x136 - D_802154E8;
         if (x >= -0x1F && x < 0x140) {
-            gdl = func_80272ED8(gdl, D_80215915, x, 0xC2, D_8021593C, 1, 1.0f);
+            gdl = spr_draw(gdl, D_80215915, x, 0xC2, D_8021593C, 1, 1.0f);
         }
         for (i = 1; i < 5; i++) {
             D_802154F0[i] += D_802154E4;
             x = 0x136 - D_802154F0[i];
             if (x >= -0x1F && x < 0x140) {
-                gdl = func_80272ED8(gdl, D_80215916 + i, x, 0xC2, D_8021593C, 1, 1.0f);
+                gdl = spr_draw(gdl, D_80215916 + i, x, 0xC2, D_8021593C, 1, 1.0f);
             }
         }
-        gdl = func_80274AA4(gdl);
-        func_80259CCC((Gfx * N64P *) dyn, (D_8021592E == 1) ? NULL : func_8025B558(D_802158A8), (D_8021592E == 1) ? D_802158A8 : NULL,
+        gdl = spr_end(gdl);
+        text_print((Gfx * N64P *) dyn, (D_8021592E == 1) ? NULL : font_narrow(D_802158A8), (D_8021592E == 1) ? D_802158A8 : NULL,
                       0, 0, (-D_802154D8 % D_80215458) - 3, 0xC9, 0x14, 0x14, 1, 0, 0, 0,
                       (D_8021593C / 2 - 0x1B < 0) ? 0 : D_8021593C / 2 - 0x1B);
-        func_80259DC8((Gfx * N64P *) dyn, (D_8021592E == 1) ? NULL : func_8025B558(D_802158A8), (D_8021592E == 1) ? D_802158A8 : NULL,
+        text_print_gradient((Gfx * N64P *) dyn, (D_8021592E == 1) ? NULL : font_narrow(D_802158A8), (D_8021592E == 1) ? D_802158A8 : NULL,
                       0, 0, -D_802154D8 % D_80215458, 0xC7, 0x14, 0x14, 1, 0xFF, 0xFF, 0xFF, D_8021593C, 0xFF, 0xFF,
                       0xFF, D_8021593C);
         gDPPipeSync(gdl++);
@@ -575,7 +575,7 @@ void func_801EA278(void) {
         osSendMesg(&D_80219EF8, (OSMesg) ((i << 16) | 6 | 0x1000000), OS_MESG_BLOCK);
         osRecvMesg(&pakToGameMessageQ, (OSMesg *) &msg, OS_MESG_BLOCK);
         if (msg == 0) {
-            if (func_8025B3F0((u8 *) (players[i].name), (u8 *) ("NEW GAME"))) {
+            if (font_strcmp((u8 *) (players[i].name), (u8 *) ("NEW GAME"))) {
                 D_80365060[i] = 1;
             } else {
                 D_80365060[i] = 2;
@@ -723,7 +723,7 @@ Gfx *func_801EAA7C(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
     s32 selW;
     s32 selH;
     s32 nv = 0;
-    s32 len = func_8025B300((u8 *) D_80215928);
+    s32 len = font_strlen((u8 *) D_80215928);
     u8 *col = &D_802F47B0[0x80];
     u8 *col2;
     s16 ang;
@@ -793,13 +793,13 @@ Gfx *func_801EAA7C(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
                     if (D_802154B6 == i) {
                         ch = D_80208498[0], selX = x, selY = y, selW = 0x18, selH = 0x14;
                     } else {
-                        func_80259DC8((Gfx * N64P *) dyn, D_80208498, 0, 1, 0, x, y, 0x18, 0x14, 1, 0xC8, 0xC8, 0xC8, gYoshiAlpha, 0xFF,
+                        text_print_gradient((Gfx * N64P *) dyn, D_80208498, 0, 1, 0, x, y, 0x18, 0x14, 1, 0xC8, 0xC8, 0xC8, gYoshiAlpha, 0xFF,
                                       0xFF, 0xFF, gYoshiAlpha);
                     }
                 } else if (D_802154B6 == i) {
-                    func_80259CCC((Gfx * N64P *) dyn, D_80208498, 0, 1, 0, x - 0xB, y, 0x30, 0x28, 1, 0, 0, 0, gYoshiAlpha / 2);
+                    text_print((Gfx * N64P *) dyn, D_80208498, 0, 1, 0, x - 0xB, y, 0x30, 0x28, 1, 0, 0, 0, gYoshiAlpha / 2);
                 } else {
-                    func_80259CCC((Gfx * N64P *) dyn, D_80208498, 0, 1, 0, x - 4, y + 3, 0x18, 0x14, 1, 0, 0, 0, gYoshiAlpha / 2);
+                    text_print((Gfx * N64P *) dyn, D_80208498, 0, 1, 0, x - 4, y + 3, 0x18, 0x14, 1, 0, 0, 0, gYoshiAlpha / 2);
                 }
             }
         }
@@ -811,8 +811,8 @@ Gfx *func_801EAA7C(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
             alpha = gYoshiAlpha / 3;
         }
         D_80208498[0] = ch;
-        func_80259BD4(&gdl, (s32) dyn);
-        func_80259DC8((Gfx * N64P *) dyn, D_80208498, 0, 1, 0, selX - 5, selY - 5, selW * 2, selH * 2, 1, col[0], col[1], col[2],
+        text_flush(&gdl, (s32) dyn);
+        text_print_gradient((Gfx * N64P *) dyn, D_80208498, 0, 1, 0, selX - 5, selY - 5, selW * 2, selH * 2, 1, col[0], col[1], col[2],
                       alpha, col[4], col[5], col[6], alpha);
     }
     if (yoshiState == 2 && (gContButtons & 0x1000) && !(gContPrevButtons & 0x1000) && areWeFading() == 0) {
@@ -887,9 +887,9 @@ Gfx *func_801EAA7C(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
             D_80215440 += (D_80215448 - D_80215440) * 0.2;
             D_80215444 += (D_8021544C - D_80215444) * 0.2;
             D_80208498[0] = D_802154BA;
-            func_80259CCC((Gfx * N64P *) dyn, D_80208498, 0, 0, 0, D_80215944 - 4.0f, D_80215948 + 4.0f, D_80215440, D_80215444, 1, 0,
+            text_print((Gfx * N64P *) dyn, D_80208498, 0, 0, 0, D_80215944 - 4.0f, D_80215948 + 4.0f, D_80215440, D_80215444, 1, 0,
                           0, 0, gYoshiAlpha / 2);
-            func_80259DC8((Gfx * N64P *) dyn, D_80208498, 0, 0, 0, D_80215944, D_80215948, D_80215440, D_80215444, 1, col[0], col[1],
+            text_print_gradient((Gfx * N64P *) dyn, D_80208498, 0, 0, 0, D_80215944, D_80215948, D_80215440, D_80215444, 1, col[0], col[1],
                           col[2], gYoshiAlpha, col[4], col[5], col[6], gYoshiAlpha);
             if (FABS(D_80215944 - D_8021594C) < 0.15 && FABS(D_80215948 - D_80215950) < 0.15) {
                 func_80260650(D_80367738, 1, 0);
@@ -902,7 +902,7 @@ Gfx *func_801EAA7C(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
             }
             break;
     }
-    func_80259BD4(&gdl, (s32) dyn);
+    text_flush(&gdl, (s32) dyn);
     D_80215940 += D_80215920;
     if (D_80215920 < 0) {
         D_80215940 += D_80215920 * 2;
@@ -917,25 +917,25 @@ Gfx *func_801EAA7C(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
         D_8021592C = 0;
     }
     col2 = &D_802F47B0[0x98];
-    nv = func_80276130((struct SpriteVtxBuf *) dyn, 3, nv, D_802154C4 + D_802154C8 + D_80215940, e->unk4 + e->unk8 / 2,
+    nv = hud_sprite_quad_colors((struct SpriteVtxBuf *) dyn, 3, nv, D_802154C4 + D_802154C8 + D_80215940, e->unk4 + e->unk8 / 2,
                        e->unk6 / 3 + D_80215940 / 2, e->unk8 / 2 + 3, D_802F47B0[0x98], D_802F47B0[0x99],
                        D_802F47B0[0x9A], D_8021592C, D_802F47B0[0x9C], D_802F47B0[0x9D], D_802F47B0[0x9E], D_8021592C,
                        D_802F47B0[0x98], D_802F47B0[0x99], D_802F47B0[0x9A], D_8021592C, D_802F47B0[0x9C],
                        D_802F47B0[0x9D], D_802F47B0[0x9E], D_8021592C);
-    nv = func_80276080((struct SpriteVtxBuf *) dyn, 3, nv, D_802154C4 + D_802154C8 + D_80215940 + 4, e->unk4 + e->unk8 / 2 + 3,
+    nv = hud_sprite_quad((struct SpriteVtxBuf *) dyn, 3, nv, D_802154C4 + D_802154C8 + D_80215940 + 4, e->unk4 + e->unk8 / 2 + 3,
                        e->unk6 / 3 + D_80215940 / 2, e->unk8 / 2 + 3, 0, 0, 0, D_8021592C / 2);
-    gdl = func_80275DA4(gdl, 0);
+    gdl = hud_sprite_setup(gdl, 0);
     gSPVertex(gdl++, &dyn->vtx[0], 8, 0);
     gSP1Triangle(gdl++, 4, 5, 6, 0);
     gSP1Triangle(gdl++, 4, 6, 7, 0);
     gSP1Triangle(gdl++, 0, 1, 2, 0);
     gSP1Triangle(gdl++, 0, 2, 3, 0);
-    nv = func_80276130((struct SpriteVtxBuf *) dyn, 2, nv, e->unk2 - D_80215940 - 4, e->unk4 + e->unk8 / 2, e->unk6 / 3 + D_80215940 / 2,
+    nv = hud_sprite_quad_colors((struct SpriteVtxBuf *) dyn, 2, nv, e->unk2 - D_80215940 - 4, e->unk4 + e->unk8 / 2, e->unk6 / 3 + D_80215940 / 2,
                        e->unk8 / 2 + 3, col2[0], col2[1], col2[2], D_8021592C, col2[4], col2[5], col2[6], D_8021592C,
                        col2[0], col2[1], col2[2], D_8021592C, col2[4], col2[5], col2[6], D_8021592C);
-    nv = func_80276080((struct SpriteVtxBuf *) dyn, 2, nv, e->unk2 - D_80215940 - 8, e->unk4 + e->unk8 / 2 + 3, e->unk6 / 3 + D_80215940 / 2,
+    nv = hud_sprite_quad((struct SpriteVtxBuf *) dyn, 2, nv, e->unk2 - D_80215940 - 8, e->unk4 + e->unk8 / 2 + 3, e->unk6 / 3 + D_80215940 / 2,
                        e->unk8 / 2 + 3, 0, 0, 0, D_8021592C / 2);
-    gdl = func_80275DA4(gdl, 0);
+    gdl = hud_sprite_setup(gdl, 0);
     gSPVertex(gdl++, &dyn->vtx[nv - 8], 8, 0);
     gSP1Triangle(gdl++, 4, 5, 6, 0);
     gSP1Triangle(gdl++, 4, 6, 7, 0);
@@ -971,8 +971,8 @@ void func_801EC30C(u8 arg0) {
     s32 j;
     s32 i;
 
-    D_80215914 = func_80272C5C(D_802082E4, D_802082D8, 4, 2, 0, 1.0f);
-    func_80272C5C(D_802082E8, 0, 1, 2, 1, 1.0f);
+    D_80215914 = spr_load(D_802082E4, D_802082D8, 4, 2, 0, 1.0f);
+    spr_load(D_802082E8, 0, 1, 2, 1, 1.0f);
     D_80215902[0] = 3;
     D_80215902[1] = arg0;
     if (gLevelInfo[levelno].type == 1) {
@@ -1047,7 +1047,7 @@ Gfx *func_801EC49C(Gfx *arg0, s32 x, s32 y, u8 slot) {
     } else {
         mode = 1;
     }
-    gdl = func_80272ED8(gdl, D_80215902[slot] % 5 + D_80215914, x, y, D_80215910[slot], mode, 1.0f);
+    gdl = spr_draw(gdl, D_80215902[slot] % 5 + D_80215914, x, y, D_80215910[slot], mode, 1.0f);
     return gdl;
 }
 
@@ -1062,7 +1062,7 @@ Gfx *func_801EC770(Gfx *start, void *gfxp, s32 *count) {
 #endif
 
     gdl = start;
-    gdl = func_80274868(gdl);
+    gdl = spr_begin(gdl);
     if (gLevelKind == 1) {
         gdl = func_801EC49C(gdl, 0x5C, 0x68, 0);
         if (D_80215902[1] != 0) {
@@ -1075,13 +1075,13 @@ Gfx *func_801EC770(Gfx *start, void *gfxp, s32 *count) {
             n = (MAX_RANK() < D_80215902[1] + 1) ? MAX_RANK() : D_80215902[1] + 1;
         }
         gdl = func_801EC49C(gdl, 0x82, 0x68, 1);
-        gdl = func_80272ED8(gdl, n + D_80215914, 0x2E, 0x6C, (D_80215910[1] * 3) / 4, 0, 0.75f);
+        gdl = spr_draw(gdl, n + D_80215914, 0x2E, 0x6C, (D_80215910[1] * 3) / 4, 0, 0.75f);
     }
-    gdl = func_80274AA4(gdl);
+    gdl = spr_end(gdl);
     if (gLevelKind != 1) {
-        func_80264A34((char *) D_80215470, gLevelInfo[levelno].times[5 - n], 0);
+        hud_format_time((char *) D_80215470, gLevelInfo[levelno].times[5 - n], 0);
         D_80215470[5] = 0;
-        func_80259DC8(gfxp, D_80215470, 0, 0, 0, 0x29, 0x7D, 0x10, 0x10, 1, 0xFF, 0xB4, 0, D_80215910[1], 0xFF, 0x78, 0,
+        text_print_gradient(gfxp, D_80215470, 0, 0, 0, 0x29, 0x7D, 0x10, 0x10, 1, 0xFF, 0xB4, 0, D_80215910[1], 0xFF, 0x78, 0,
                       D_80215910[1]);
     }
     *count += gdl - start;

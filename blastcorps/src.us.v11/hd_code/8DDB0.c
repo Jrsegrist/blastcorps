@@ -41,7 +41,7 @@ extern u8 D_803FCD7A;
  * part: mode D_803FCD75 1 -> anim_set_frame(0.0, 2, 0), 0 -> start sound 0x6A
  * into gShuttleSound at volume 0 (func_80260650, func_80260AB8(.., 8, 0)) and
  * anim_set_frame(f0, 2, 1); then channels 2 = (0, 0, 1, -1) and 1 = (0, 0,
- * 0360 0.0, 1, -1); veh_add_shadow(0xFD, 120, 45, 45), func_80268F54, one
+ * 0360 0.0, 1, -1); veh_add_shadow(0xFD, 120, 45, 45), util_shuttle_path_init, one
  * update with +0x9A set (shuttle_update), and the model matrix copy (word +4
  * of the entry at hdr + hdr[6], gShuttleMtxB -> gShuttleMtxA, mtx_copy_at).
  * Register notes: hdr comes in s2 (conventions.txt); the asm saves t0-t5
@@ -101,7 +101,7 @@ void shuttle_spawn(u8 *hdr) {
     anim_set_loop_mode((Unk8029DEA0Entry *) gShuttleAnim, 1, 1);
     anim_play((Unk8029DEA0Entry *) gShuttleAnim, 1, -1);
     veh_add_shadow(0xFD, 120, 45, 45);
-    func_80268F54();
+    util_shuttle_path_init();
     gShuttleState[0x9A] = 1;
     shuttle_update();
     gShuttleState[0x9A] = 0;
@@ -154,12 +154,12 @@ void shuttle_update(void) {
 #ifdef NON_MATCHING
 
 /* Util_shuttle_path_step with gp saved (0x802D2A40).
- * Calls func_80269258, saving gp around it (the asm caller shuttle_update
+ * Calls util_shuttle_path_step, saving gp around it (the asm caller shuttle_update
  * uses gp as its base pointer). The survey lists a0, a2, a3, t6, t7, f12 and
- * f14 as read by that caller afterwards; they're whatever func_80269258
+ * f14 as read by that caller afterwards; they're whatever util_shuttle_path_step
  * leaves, nothing this function sets. */
 void shuttle_follow_path(void) {
-    func_80269258();
+    util_shuttle_path_step();
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8DDB0/shuttle_follow_path.s")

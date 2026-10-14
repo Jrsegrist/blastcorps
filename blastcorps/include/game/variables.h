@@ -71,11 +71,11 @@ extern s32 D_802E8BEC;
 extern u8 D_802E8BF0;
 extern u8 D_802E8BF8;
 extern u8 D_802E8C44[];
-extern f32 D_802E8C84[]; /* per-font advance */
+extern f32 gFontAdvance[]; /* per-font advance */
 extern u16 D_802E8C8C[]; /* per-font characters that draw nothing */
 extern u16 D_802E8C90[];
 extern u16 D_802E8C94[];
-extern u16 D_802E8C98[]; /* string terminator */
+extern u16 gTextTerminator[]; /* string terminator */
 extern u8 D_802E8F38[][8];
 #ifndef LEGACY_gLevelInfo
 extern u8 gLevelInfo[][0x44]; /* one 0x44-byte record per level; +0 its kind */
@@ -194,11 +194,11 @@ extern s32 D_80364A40; /* message to post */
 extern u8 D_80364A50;
 extern s32 D_80364A58;
 extern s32 D_80364A64;
-extern u8 D_80364A68; /* dial loaded */
+extern u8 gHudDialLoaded; /* dial loaded */
 extern u8 gHaveSkyfall;
-extern u8 D_80364A6A; /* icon 1 loaded */
+extern u8 gHudMissileIconLoaded; /* icon 1 loaded */
 extern u8 D_80364A6B;
-extern u8 D_80364A6C; /* icon 2 loaded */
+extern u8 gHudRamIconLoaded; /* icon 2 loaded */
 extern u8 gHaveSideswipe;
 extern u8 gDefaultVehAlpha; /* default level */
 extern s8 D_80364A71;
@@ -228,7 +228,7 @@ extern u8 * N64P D_803669C4; /* output buffer */
 extern s32 D_803669EC; /* inptr */
 extern s32 D_803669F0; /* outcnt */
 extern s16 D_80366A04;
-extern u16 D_80366A12;
+extern u16 gLogoState;
 extern u8 D_80366A18;
 extern u8 D_80367728;
 extern u8 D_80367729;
@@ -242,23 +242,23 @@ extern ALCSPlayer * N64P D_80367734; /* the music ALCSPlayer */
 extern void * N64P D_80367738; /* the sound-effects bank (ALBank *), snd_play's first argument */
 #endif
 extern u32 D_80367740;
-extern u16 D_80367BC8;
-extern s16 D_80367BD6; /* HUD alpha cap */
-extern u16 D_80367BF6;
-extern u8 D_80367BFF;
-extern u8 D_80367C00;
-extern u8 D_80367C10;
+extern u16 gTurboStartState;
+extern s16 gHudAlpha; /* HUD alpha cap */
+extern u16 gTimeLeft;
+extern u8 gTurboPending;
+extern u8 gTurboActive;
+extern u8 gWideFovLevel;
 extern s32 gChopperLandY;
 extern s32 gPeopleRestored;
 extern s32 gChopperRetargetZ;
 extern u64 gYieldBuffer[]; /* the RSP tasks' yield data (0x900 bytes) */
-extern u8 D_8036B8B0;
-extern s32 D_8036B8B4;
-extern s32 D_8036B8B8;
-extern s32 D_8036B8BC;
+extern u8 gCamPathActive;
+extern s32 gCamPathX;
+extern s32 gCamPathY;
+extern s32 gCamPathZ;
 extern u8 D_8036B964;
 extern u8 D_8036B965;
-extern s32 D_8036B968;
+extern s32 gRandSeed;
 extern u8 D_8036B971;
 #ifndef LEGACY_D_8036B974
 extern struct Unk802C1DD0Entry * N64P D_8036B974; /* size 0x14 */
@@ -279,20 +279,20 @@ extern u8 * N64P gRdus;
 extern s32 gPreNmi;
 extern OSTime gLastRetraceTime;
 extern s16 * N64P gNearestTargetPts;
-#ifndef LEGACY_D_8036C794
-extern s16 * N64P D_8036C794;
+#ifndef LEGACY_gMarkedTargetPts
+extern s16 * N64P gMarkedTargetPts;
 #endif
 extern s32 gCarrierEta; /* time left; under 500 the target turns red */
-extern u8 D_8036C7CC;
-extern s16 D_8036CB2A;
-extern s16 D_8036CB2C;
-extern u8 D_8036CB2E;
-extern u8 D_8036CB2F;
-extern u8 D_8036DCD4; /* level has water */
-extern u8 D_8036DCD7;
-extern s32 D_8036DCD8;
-extern s16 D_8036E4C8;
-extern s8 D_8036E4CA;
+extern u8 gMarkerArrowsOnScreen;
+extern s16 gDigHitDamage;
+extern s16 gDigHitDamagePerPart;
+extern u8 gDigHitVehicle;
+extern u8 gDigHit;
+extern u8 gWaterOn; /* level has water */
+extern u8 gWaterLayer;
+extern s32 gPowerPillSound;
+extern s16 gPowerPillTimer;
+extern s8 gPowerPillEaten;
 extern u8 gRspSlotBusy[]; /* slot busy flags */
 #ifndef LEGACY_gRdpOutputBuffer
 extern u64 * N64P gRdpOutputBuffer; /* RDP output buffer (0xA000 bytes) */
@@ -311,7 +311,7 @@ extern Score D_8036EA90; /* level59 */
 extern u16 gRduCount;
 extern u8 D_8036EB92;
 extern u8 D_8036EB93;
-extern u8 D_8036EB98;
+extern u8 gTargetsCleared;
 extern u8 D_8036EB99;
 extern OSMesgQueue gSiMesgQueue; /* hd_code: SI message queue */
 extern s8 gContStickX;
@@ -355,19 +355,19 @@ extern u8 D_8039C538;
 extern u8 saveIt[]; /* per slot: 1 + level to save, 0 = nothing pending */
 extern u8 saveLevel;
 extern u8 D_8039C541;
-extern u8 D_8039C800[]; /* size 0xFC */
-extern u8 D_8039C940; /* number of D_8039C800 entries */
+extern u8 gBoxTargets[]; /* size 0xFC */
+extern u8 gBoxTargetCount; /* number of gBoxTargets entries */
 extern u8 D_8039CA60;
-extern u8 D_8039CA61;
-extern u8 D_8039CA62;
+extern u8 gGhostPlaying;
+extern u8 gGhostRecording;
 extern u8 D_8039CA7E;
-extern s16 D_8039CAA0;
-extern u8 D_8039CAA2;
+extern s16 gPadDisplayAlpha;
+extern u8 gPadDisplayLoaded;
 extern s16 D_8039CAB0;
 extern s16 D_8039CAB2;
 extern s16 D_8039CAB4;
 extern u8 D_8039CAB6;
-extern u8 D_8039CAB7;
+extern u8 gAcademyMarkerOn;
 extern u8 * N64P D_8039CABC;
 extern u8 * N64P D_8039CAC0;
 extern s32 D_8039CAE0; /* huft arena */
@@ -412,11 +412,11 @@ extern Gfx * N64P D_803BE6E4; /* level37 */
 extern Gfx * N64P D_803BE6E8; /* level38 */
 extern Gfx * N64P D_803BE6EC; /* level39 */
 extern u8 * N64P gRespawnPoints; /* 9-byte respawn records: u8 key, s16 x, y, z (big-endian) */
-#ifndef LEGACY_D_803BE6FC
-extern u8 * N64P D_803BE6FC; /* first */
+#ifndef LEGACY_gDigTriggers
+extern u8 * N64P gDigTriggers; /* first */
 #endif
-#ifndef LEGACY_D_803BE700
-extern u8 * N64P D_803BE700; /* end */
+#ifndef LEGACY_gDigTriggersEnd
+extern u8 * N64P gDigTriggersEnd; /* end */
 #endif
 extern u8 * N64P D_803BE708;
 extern s32 gLevelCellW;

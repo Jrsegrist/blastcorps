@@ -148,11 +148,11 @@ void veh_add_record(s32 a0Val, s32 a1Val, s32 v0Val, s32 v1Val, u8 *hdr) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-/* Register-preserving wrapper: func_80278BF0(src, end, dstp).
+/* Register-preserving wrapper: mb_copy_dl(src, end, dstp).
  * asm: src in t2, end in t3, dstp in t4; it saves and restores every
  * register (including v0 and s0-s7) around the call. */
 void func_802A1558(Gfx *src, Gfx *end, Gfx * N64P *dstp) {
-    func_80278BF0(src, end, dstp);
+    mb_copy_dl(src, end, dstp);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A1558.s")
@@ -227,15 +227,15 @@ static s32 port_initlevel_v0(s32 *t9) {
  * lvl_resolve_tex_ids, lvl_relocate_dls), the animation channels (anim_tex_init), the
  * collision triangles (lvl_build_coll_grid_a, lvl_build_coll_grid_b, lvl_build_switch_groups,
  * lvl_build_object_groups), grids and tables (lvl_build_ground_grid .. obj_clear_delayed_damage), the
- * placed objects (lvl_spawn_objects), obj_clear_effect_queue, func_8028FDA0(obj words
+ * placed objects (lvl_spawn_objects), obj_clear_effect_queue, block_spawn_all(obj words
  * 0x3C/0x40). Unless the game mode gNextGameMode is 0x80 the level's vehicles
  * and objects are spawned (lvl_spawn_vehicles). gHaveShuttle = gHaveCarrier =
  * gHaveChopper = 0; then mode 2: the type-0xFF object (lvl_spawn_carrier) unless
  * D_802E8BEC; other modes: unless the mode is 0x80 or arg1 is set, the
  * type-0xFF object and the 0xFD vehicle (lvl_spawn_shuttle), then always the
  * 0xFE vehicle (lvl_spawn_chopper). Then func_802A3198, commpt_setup,
- * lvl_load_scientist, D_803BE6FC / D_803BE700 = OBJ_PTR(obj, 0x58 / 0x5C),
- * rdu_init / func_8028D4C0 / func_8028C190 on the obj ranges
+ * lvl_load_scientist, gDigTriggers / gDigTriggersEnd = OBJ_PTR(obj, 0x58 / 0x5C),
+ * rdu_init / tnt_spawn_all / crate_spawn_all on the obj ranges
  * 0x34-0x38, 0x38-0x3C, 0x20-0x24, frontEndPresent = 0, and when the mode is
  * neither 2 nor D_8030D880 (0x100000000000) and arg1 is set,
  * apply_status(arg1) (arg1 is the saved-status stream it applies).
@@ -253,9 +253,9 @@ static s32 port_initlevel_v0(s32 *t9) {
  *    group records): the caller's, never changed before those calls (every
  *    callee in between preserves them); see port_initlevel_v0.
  *  - s2-s4 into func_802A3198 (in/out; its outputs are dead here): 0.
- *  - s1 also reaches func_8028FDA0's callee coll_add_dyn_tris (byte 0x58 of each
+ *  - s1 also reaches block_spawn_all's callee coll_add_dyn_tris (byte 0x58 of each
  *    record's first triangle; func_802BF264 tests it) after lvl_build_part_tris
- *    and lvl_spawn_objects change it: the NM build passes it to func_8028FDA0 as
+ *    and lvl_spawn_objects change it: the NM build passes it to block_spawn_all as
  *    an extra argument.
  */
 void initlevel(u8 *obj, s32 arg1) {
@@ -287,7 +287,7 @@ void initlevel(u8 *obj, s32 arg1) {
     obj_clear_delayed_damage();
     lvl_spawn_objects(obj, fp, &s1);
     obj_clear_effect_queue();
-    func_8028FDA0(OBJ_PTR(obj, 0x3C), OBJ_PTR(obj, 0x40), s1);
+    block_spawn_all(OBJ_PTR(obj, 0x3C), OBJ_PTR(obj, 0x40), s1);
     if (gNextGameMode != 0x80) {
         fp = (u8 *) N64_IPTR(lvl_spawn_vehicles(obj, (s32) fp));
     }
@@ -311,11 +311,11 @@ void initlevel(u8 *obj, s32 arg1) {
     func_802A3198(&o);
     commpt_setup(obj);
     lvl_load_scientist();
-    D_803BE6FC = OBJ_PTR(obj, 0x58);
-    D_803BE700 = OBJ_PTR(obj, 0x5C);
+    gDigTriggers = OBJ_PTR(obj, 0x58);
+    gDigTriggersEnd = OBJ_PTR(obj, 0x5C);
     rdu_init((s16 *) (OBJ_PTR(obj, 0x34)), (s16 *) (OBJ_PTR(obj, 0x38)));
-    func_8028D4C0(OBJ_PTR(obj, 0x38), OBJ_PTR(obj, 0x3C));
-    func_8028C190((struct BoxSpawn *) (OBJ_PTR(obj, 0x20)), (struct BoxSpawn *) (OBJ_PTR(obj, 0x24)));
+    tnt_spawn_all(OBJ_PTR(obj, 0x38), OBJ_PTR(obj, 0x3C));
+    crate_spawn_all((struct BoxSpawn *) (OBJ_PTR(obj, 0x20)), (struct BoxSpawn *) (OBJ_PTR(obj, 0x24)));
     frontEndPresent = 0;
     if (gNextGameMode != 2 && gNextGameMode != D_8030D880 && D_803BE6F4 != 0) {
         apply_status((void *) N64_IPTR(D_803BE6F4));
@@ -380,7 +380,7 @@ void lvl_init_boxes(void) {
 #ifdef NON_MATCHING
 
 /* The scientist model (type 0x98) (0x802A19F4).
- * If D_8039CAB7 is set: load packed object 0x98 (lvl_load_model), D_8039CAC0 =
+ * If gAcademyMarkerOn is set: load packed object 0x98 (lvl_load_model), D_8039CAC0 =
  * OBJ_PTR(data, 0x14) and move each 16-byte vertex record from there up to
  * OBJ_PTR(data, 0x18) by (D_8039CAB0, D_8039CAB2, D_8039CAB4) (s16 x, y, z at
  * +0/+2/+4; the asm loops with `!=` and its adds trap); D_8039CABC =
@@ -394,7 +394,7 @@ void lvl_load_scientist(void) {
     u8 *p;
     u8 *end;
 
-    if (D_8039CAB7 != 0) {
+    if (gAcademyMarkerOn != 0) {
         lvl_load_model(0x98, &o);
         p = OBJ_PTR(o.s2, 0x14);
         D_8039CAC0 = p;
@@ -425,7 +425,7 @@ void lvl_load_scientist(void) {
  * end. The asm loops with `!=`, so n must be a multiple of 0x20.
  * asm: obj in t0; it leaves scratch values in s0, s2, s3 (no caller reads
  * them) and counts the item loops down in s1, so s1 comes back 0 when n != 0
- * (unchanged otherwise). initlevel hands that s1 on to func_8028FDA0's
+ * (unchanged otherwise). initlevel hands that s1 on to block_spawn_all's
  * coll_add_dyn_tris, hence `s1io`.
  * Asm callers rely on preserved: initlevel keeps t0, f12, f14. */
 void lvl_build_part_tris(u8 *obj, s32 *s1io) {
@@ -615,7 +615,7 @@ void lvl_add_object(s32 type, u8 *obj, s32 x, s32 y, s32 z, s32 flag, s32 tag, u
  * s1 is modelled (`s1io`, unchanged without placements): per placement it is
  * the new D_8036EB93 sum (the register: old byte + count, not truncated),
  * then whatever lvl_add_object leaves; initlevel hands it on to
- * func_8028FDA0's coll_add_dyn_tris.
+ * block_spawn_all's coll_add_dyn_tris.
  * Asm caller initlevel keeps t0 live. */
 u8 *lvl_spawn_objects(u8 *obj, u8 *param, s32 *s1io) {
     Unk802A08E4Regs r;
@@ -789,7 +789,7 @@ void func_802A23E0(u8 *rec);
  * f20-f28 changed (listed as read by lvl_spawn_objects; dead there). s1 is
  * modelled (`s1io`): lvl_resolve_object_tex's, then per entry its byte 0x16 into
  * lvl_build_coll_tri's chain; the last value reaches coll_add_dyn_tris through
- * lvl_spawn_objects / initlevel / func_8028FDA0. */
+ * lvl_spawn_objects / initlevel / block_spawn_all. */
 void lvl_add_object(s32 type, u8 *obj, s32 x, s32 y, s32 z, s32 flag, s32 tag, u8 *param, s32 *s1io) {
     u8 *rec;
     u8 *list;
@@ -1307,14 +1307,14 @@ void lvl_spawn_carrier(u8 *obj, s32 fp) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-/* If func_80268EE8(levelno) (the current level has it): gHaveShuttle = 1,
+/* If util_find_shuttle_path(levelno) (the current level has it): gHaveShuttle = 1,
  * load model 0xFD (lvl_load_model) and set up vehicle 0xFD with it
  * (shuttle_spawn). The asm saves t0 (not read) and leaves lvl_load_model's s2,
  * s4 and the setup's registers changed (conventions.txt: clobbers). */
 void lvl_spawn_shuttle(void) {
     Out802A396C o;
 
-    if (func_80268EE8(levelno) != 0) {
+    if (util_find_shuttle_path(levelno) != 0) {
         gHaveShuttle = 1;
         lvl_load_model(0xFD, &o);
         shuttle_spawn(o.s2);
@@ -1351,14 +1351,14 @@ void lvl_spawn_chopper(u8 *obj) {
 #ifdef NON_MATCHING
 extern u8 * N64P D_803BDAFC;
 
-/* If D_8039CA61 is set: load packed object D_8039CA7E (lvl_load_model_plain; its s2,
+/* If gGhostPlaying is set: load packed object D_8039CA7E (lvl_load_model_plain; its s2,
  * s3, s4 results go to *out); D_803BDAFC = data, D_803BDB04 =
  * OBJ_PTR(data, 0x14), D_803BDB08 = OBJ_PTR(data, 0x24), D_803BDB00 = the heap
  * gHeapPtr. The block at OBJ_PTR(data, 0x18) is {s32 size, s32 bytes,
  * words[]}: its `bytes` bytes of words are copied to the heap, and the rest of
  * `size` is filled with 0x40-byte identity matrices (the asm loops with `!=`:
  * size - bytes must be a multiple of 0x40); gHeapPtr = the end. Then
- * func_80295AE0(OBJ_PTR(data, 0x24), OBJ_PTR(data, 0x28)). The asm's adds
+ * ghost_make_translucent_dl(OBJ_PTR(data, 0x24), OBJ_PTR(data, 0x28)). The asm's adds
  * trap (heap addresses: in range).
  * Register convention: s2, s3, s4 out through `out` when loaded (in/out:
  * unchanged otherwise); the asm sets s0 = 1 then (clobbers s0) and saves t0
@@ -1371,7 +1371,7 @@ void func_802A3198(Out802A32CC *out) {
     s32 *dst;
     s32 size;
 
-    if (D_8039CA61 == 0) {
+    if (gGhostPlaying == 0) {
         return;
     }
     lvl_load_model_plain(D_8039CA7E, out);
@@ -1416,7 +1416,7 @@ void func_802A3198(Out802A32CC *out) {
         size -= 0x40;
     }
     gHeapPtr = (u8 *) dst;
-    func_80295AE0((Gfx *) OBJ_PTR(data, 0x24), (Gfx *) OBJ_PTR(data, 0x28));
+    ghost_make_translucent_dl((Gfx *) OBJ_PTR(data, 0x24), (Gfx *) OBJ_PTR(data, 0x28));
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/5CB60/func_802A3198.s")

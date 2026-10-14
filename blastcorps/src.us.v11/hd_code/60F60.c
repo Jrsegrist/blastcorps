@@ -1023,13 +1023,13 @@ extern Gfx * N64P gFxDlCursorA;
 extern Gfx * N64P gFxDlCursorB;
 
 /* The render-state prologue of both effect lists (0x802A6D34).
- * Runs func_80257540 on the display-list cursors gFxDlCursorA and gFxDlCursorB,
+ * Runs gfx_begin_textured on the display-list cursors gFxDlCursorA and gFxDlCursorB,
  * in that order, storing the advanced cursors back.
  * Asm callers rely on preserved: fx_draw_all keeps a0-a3, t0, t1, t3-t5,
  * f12, f14 (the asm saves v0, v1, a0-a3, t0, t1, t3-t9 around the calls). */
 void fx_begin_dls(void) {
-    gFxDlCursorA = func_80257540(gFxDlCursorA);
-    gFxDlCursorB = func_80257540(gFxDlCursorB);
+    gFxDlCursorA = gfx_begin_textured(gFxDlCursorA);
+    gFxDlCursorB = gfx_begin_textured(gFxDlCursorB);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/60F60/fx_begin_dls.s")
@@ -1041,15 +1041,15 @@ Gfx * N64P *fx_get_dl_cursor(u8 *obj);
 
 /* A textured tile into the record's list (0x802A6DE8).
  * Draws a textured quad into obj's display-list cursor (fx_get_dl_cursor picks
- * gFxDlCursorA or gFxDlCursorB): *cursor = func_802575F4(*cursor, vtx, timg,
+ * gFxDlCursorA or gFxDlCursorB): *cursor = gfx_draw_textured_quad(*cursor, vtx, timg,
  * fmtsiz, width, height, zbuf). The asm takes obj, vtx, timg, fmtsiz, width,
  * height, zbuf in t4, t1, s1, t8, v1, s5, gp (conventions.txt), saves every
  * register it uses except s0 (obj copy) and t2, and passes fmtsiz to
- * func_802575F4 as the full register (the C prototype's s16 narrows it).
+ * gfx_draw_textured_quad as the full register (the C prototype's s16 narrows it).
  * Asm caller fx_draw_all keeps a0-a3, t0, t1, t3-t5, t7-t9, f12, f14 live
  * (a mixed N64 build would need a thunk; the native port won't). */
 void fx_draw_quad(u8 *obj, Vtx *vtx, void *timg, s32 fmtsiz, s32 width, s32 height, s32 zbuf) {
-    Gfx *gfx = func_802575F4(*fx_get_dl_cursor(obj), vtx, timg, fmtsiz, width, height, zbuf);
+    Gfx *gfx = gfx_draw_textured_quad(*fx_get_dl_cursor(obj), vtx, timg, fmtsiz, width, height, zbuf);
 
     *fx_get_dl_cursor(obj) = gfx;
 }

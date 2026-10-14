@@ -66,11 +66,11 @@ short *port_draw_cells(short *game) {
 }
 
 /* bc.exe's orbit camera: the commands and vertex values 2D2D810.c
- * func_80271FD0 would write for the backdrop with the camera heading and
+ * backdrop_draw would write for the backdrop with the camera heading and
  * pitch given (the game's gCamYaw / gCamPitch units), into host memory:
  * `out` (at most `max` Gfx), and `vtx[i]` = {ob[1], tc[0], tc[1]} of the 4
- * vertices of D_802FA820[0].  Nothing in RDRAM is written; the game's own
- * state (D_8036BFC8 ..., the vertex buffer index) isn't touched.  Returns the
+ * vertices of gBackdropVtx[0].  Nothing in RDRAM is written; the game's own
+ * state (gBackdropScrollS ..., the vertex buffer index) isn't touched.  Returns the
  * number of commands, 0 when the backdrop would not be drawn. */
 typedef struct {
     s16 id;

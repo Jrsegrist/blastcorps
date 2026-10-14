@@ -276,11 +276,11 @@ void func_801E7598(void) {
     gDPSetFillColor(gdl++, 0xFFFCFFFC);
     gDPFillRectangle(gdl++, 0, 0, 319, 239);
     gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, gFrameBufferPhys[gBufferIndex]);
-    func_80259450();
+    text_begin_frame();
     gdl = func_80200BE0(gdl, (s32) dyn, &gFrameDlLen);
     gDPPipeSync(gdl++);
     gDPSetCycleType(gdl++, G_CYC_1CYCLE);
-    func_80259CCC((Gfx * N64P *) dyn, (u8 *) D_80208040, D_80208044, 0, 0xA0, 0x50, 0x18, 0x15, 0x15, 1, 0, 0, 0, 0xA0);
+    text_print((Gfx * N64P *) dyn, (u8 *) D_80208040, D_80208044, 0, 0xA0, 0x50, 0x18, 0x15, 0x15, 1, 0, 0, 0, 0xA0);
     if (PORT_GVI("func_801E7598", D_803156C0) % 20 * 60 / 60 < 16) {
         D_802081B0 += D_802081B4 * 30;
         if (D_802081B0 >= 0x100) {
@@ -291,10 +291,10 @@ void func_801E7598(void) {
             D_802081B0 += 60;
             D_802081B4 = -D_802081B4;
         }
-        func_80259DC8((Gfx * N64P *) dyn, (u8 *) D_80208040, D_80208044, 0, 0xA0, 0x54, 0x15, 0x15, 0x15, 1, 0xFF, 0xFF - D_802081B0, 0,
+        text_print_gradient((Gfx * N64P *) dyn, (u8 *) D_80208040, D_80208044, 0, 0xA0, 0x54, 0x15, 0x15, 0x15, 1, 0xFF, 0xFF - D_802081B0, 0,
                       0xFF, 0xFF, D_802081B0, 0, 0xFF);
     }
-    func_80259C24(&gdl, (Mtx *) dyn);
+    text_flush_screen(&gdl, (Mtx *) dyn);
     if (gFramesInMode < 2) {
         guPerspective(&dyn->unk1240, &gPerspNorm, 45.0f, 1.3333334f, 40.0f, 4000.0f, 1.0f);
     }
@@ -348,10 +348,10 @@ void func_801E7598(void) {
     if (D_80211A68 + 1 != D_80211A6A) {
         u8 *c = &D_802F47B0[0x98];
 
-        vtx = func_80276130((struct SpriteVtxBuf *) dyn, 2, vtx, D_802153EC + 0x108, 0x20, D_802153EC / 4 + 12, 0x10, c[0], c[1], c[2], c[3],
+        vtx = hud_sprite_quad_colors((struct SpriteVtxBuf *) dyn, 2, vtx, D_802153EC + 0x108, 0x20, D_802153EC / 4 + 12, 0x10, c[0], c[1], c[2], c[3],
                             c[4], c[5], c[6], c[7], c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7]);
-        vtx = func_80276080((struct SpriteVtxBuf *) dyn, 2, vtx, D_802153EC + 0x10C, 0x23, D_802153EC / 4 + 12, 0x10, 0, 0, 0, 0xA0);
-        gdl = func_80275DA4(gdl, 0);
+        vtx = hud_sprite_quad((struct SpriteVtxBuf *) dyn, 2, vtx, D_802153EC + 0x10C, 0x23, D_802153EC / 4 + 12, 0x10, 0, 0, 0, 0xA0);
+        gdl = hud_sprite_setup(gdl, 0);
         gSPVertex(gdl++, &dyn->unk1E00[0], 8, 0);
         gSP1Triangle(gdl++, 4, 5, 6, 0);
         gSP1Triangle(gdl++, 4, 6, 7, 0);
@@ -361,10 +361,10 @@ void func_801E7598(void) {
     if (D_80211A68 > 0) {
         u8 *c = &D_802F47B0[0x98];
 
-        vtx = func_80276130((struct SpriteVtxBuf *) dyn, 3, vtx, 0x34 - D_802153EC, 0x20, D_802153EC / 4 + 12, 0x10, c[0], c[1], c[2], c[3],
+        vtx = hud_sprite_quad_colors((struct SpriteVtxBuf *) dyn, 3, vtx, 0x34 - D_802153EC, 0x20, D_802153EC / 4 + 12, 0x10, c[0], c[1], c[2], c[3],
                             c[4], c[5], c[6], c[7], c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7]);
-        vtx = func_80276080((struct SpriteVtxBuf *) dyn, 3, vtx, 0x30 - D_802153EC, 0x23, D_802153EC / 4 + 12, 0x10, 0, 0, 0, 0xA0);
-        gdl = func_80275DA4(gdl, 0);
+        vtx = hud_sprite_quad((struct SpriteVtxBuf *) dyn, 3, vtx, 0x30 - D_802153EC, 0x23, D_802153EC / 4 + 12, 0x10, 0, 0, 0, 0xA0);
+        gdl = hud_sprite_setup(gdl, 0);
         gSPVertex(gdl++, &dyn->unk1E00[vtx - 8], 8, 0);
         gSP1Triangle(gdl++, 4, 5, 6, 0);
         gSP1Triangle(gdl++, 4, 6, 7, 0);

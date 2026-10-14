@@ -10,23 +10,23 @@ typedef struct {
     u8 * N64P tex;
 } TextQuad; /* size 0xC */
 
-extern s32 D_80365350;
-extern Vtx * N64P D_80365348[2];
-extern TextQuad * N64P D_80365340;
-extern s32 D_802E8C70;
-extern s32 D_802E8C74;
-extern s32 D_802E8C78;
+extern s32 maxCharacters;
+extern Vtx * N64P gTextVtx[2];
+extern TextQuad * N64P gTextQuads;
+extern s32 gTextFlushed;
+extern s32 gTextCount;
+extern s32 gTextVtxCount;
 #ifdef PORT_HOST
 void port_unit_mark(void *p, u32 n, s32 width);
 u8 port_n64_byte(const void *p);
 
 void port_garbage(const void *p, u32 len);
 
-/* A quad func_80259EC4 just wrote: record its units, for the stale-byte
+/* A quad text_queue_string just wrote: record its units, for the stale-byte
  * emulation (a later user of this heap memory that leaves bytes unwritten,
  * 2E490.c's sprite quads, sees the N64's big-endian key / vertex index /
  * texture words).  The two padding bytes after the key are never written nor
- * read (the heap's old bytes, which the sort moves around): func_802592F0
+ * read (the heap's old bytes, which the sort moves around): text_init
  * logs them as garbage for the comparator. */
 static void port_textquad(TextQuad *q) {
     port_unit_mark(&q->key, 1, 2);
@@ -35,45 +35,48 @@ static void port_textquad(TextQuad *q) {
 }
 #endif
 
-#define VTX(n) D_80365348[gBufferIndex][n].v
+#define VTX(n) gTextVtx[gBufferIndex][n].v
 
-void func_8025946C(Gfx **gdlp, s32 arg1);
-void func_80259824(Gfx **gdlp, s32 arg1);
-void func_802597D8(u8 *dst, u8 *src, s32 n);
-s32 func_80259814(u16 *arg0, u16 *arg1);
+void text_set_render_state(Gfx **gdlp, s32 arg1);
+void text_flush_quads(Gfx **gdlp, s32 arg1);
+void text_copy_bytes(u8 *dst, u8 *src, s32 n);
+s32 text_compare_keys(u16 *arg0, u16 *arg1);
 
-void func_802592F0(void) {
+/* Per-mode maxCharacters, the text vertex and quad buffers (0x802592F0). */
+void text_init(void) {
     s32 i;
 
     if ((gNextGameMode & 0xC9FD8FE7DBFF8080) || gNextGameMode == 0x100000000000 || gNextGameMode == 2 ||
         levelno == 0x28 || levelno == 0x32) {
-        D_80365350 = 0x200;
+        maxCharacters = 0x200;
     } else if (gNextGameMode == 0x40) {
-        D_80365350 = 0x9C;
+        maxCharacters = 0x9C;
     } else {
-        D_80365350 = 0xAC;
+        maxCharacters = 0xAC;
     }
     for (i = 0; i < 2; i++) {
-        D_80365348[i] = (Vtx *) gHeapPtr;
-        gHeapPtr += D_80365350 * 16 * 4;
+        gTextVtx[i] = (Vtx *) gHeapPtr;
+        gHeapPtr += maxCharacters * 16 * 4;
     }
-    D_80365340 = (TextQuad *) gHeapPtr;
-    gHeapPtr += D_80365350 * 12;
+    gTextQuads = (TextQuad *) gHeapPtr;
+    gHeapPtr += maxCharacters * 12;
 #ifdef PORT_HOST
-    for (i = 0; i < D_80365350; i++) {
-        port_garbage((u8 *) &D_80365340[i].key + 2, 2);
+    for (i = 0; i < maxCharacters; i++) {
+        port_garbage((u8 *) &gTextQuads[i].key + 2, 2);
     }
 #endif
-    func_8025B070();
+    font_reset_cache();
 }
 
-void func_80259450(void) {
-    D_802E8C70 = 0;
-    D_802E8C74 = 0;
-    D_802E8C78 = 0;
+/* Empties the text queue for a new frame (0x80259450). */
+void text_begin_frame(void) {
+    gTextFlushed = 0;
+    gTextCount = 0;
+    gTextVtxCount = 0;
 }
 
-void func_8025946C(Gfx **gdlp, s32 arg1) {
+/* The text quads' render state (0x8025946C). */
+void text_set_render_state(Gfx **gdlp, s32 arg1) {
     Gfx *gdl = *gdlp;
 
     gSPClearGeometryMode(gdl++, 0xFFFFFFFF);
@@ -87,8 +90,9 @@ void func_8025946C(Gfx **gdlp, s32 arg1) {
     *gdlp = gdl;
 }
 
-/* Shell sort (h = 3h + 1) of n elements of the given size. */
-void func_802595E0(u8 *base, s32 n, s32 size, s32 (*cmp)(void *, void *)) {
+/* A generic Shell sort (the front end uses it too) (0x802595E0).
+ * Shell sort (h = 3h + 1) of n elements of the given size. */
+void text_shell_sort(u8 *base, s32 n, s32 size, s32 (*cmp)(void *, void *)) {
     s32 i;
     s32 j;
     s32 h;
@@ -100,18 +104,19 @@ void func_802595E0(u8 *base, s32 n, s32 size, s32 (*cmp)(void *, void *)) {
     }
     for (; h > 0; h /= 3) {
         for (i = h; i < n; i++) {
-            func_802597D8(tmp, b + size * i, size);
+            text_copy_bytes(tmp, b + size * i, size);
             j = i;
             while (j >= h && cmp(b + (j - h) * size, tmp) > 0) {
-                func_802597D8(b + size * j, b + (j - h) * size, size);
+                text_copy_bytes(b + size * j, b + (j - h) * size, size);
                 j -= h;
             }
-            func_802597D8(b + size * j, tmp, size);
+            text_copy_bytes(b + size * j, tmp, size);
         }
     }
 }
 
-void func_802597D8(u8 *dst, u8 *src, s32 n) {
+/* Copies n bytes (0x802597D8). */
+void text_copy_bytes(u8 *dst, u8 *src, s32 n) {
     s32 i;
 
     for (i = 0; i < n; i++) {
@@ -119,20 +124,22 @@ void func_802597D8(u8 *dst, u8 *src, s32 n) {
     }
 }
 
-s32 func_80259814(u16 *arg0, u16 *arg1) {
+/* The sort comparator: the quads' u16 keys (0x80259814). */
+s32 text_compare_keys(u16 *arg0, u16 *arg1) {
     return *arg0 - *arg1;
 }
 
-void func_80259824(Gfx **gdlp, s32 arg1) {
+/* Sorts the queued text quads by key and emits them (0x80259824). */
+void text_flush_quads(Gfx **gdlp, s32 arg1) {
     u8 *tex = NULL;
     Gfx *gdl = *gdlp;
     s32 i;
 
-    func_802595E0((u8 *) &D_80365340[D_802E8C70], D_802E8C74 - D_802E8C70, sizeof(TextQuad), (s32 (*)(void *, void *)) func_80259814);
-    for (i = D_802E8C70; i < D_802E8C74; i++) {
-        if (D_80365340[i].tex != tex) {
-            tex = D_80365340[i].tex;
-            if (i == D_802E8C70) {
+    text_shell_sort((u8 *) &gTextQuads[gTextFlushed], gTextCount - gTextFlushed, sizeof(TextQuad), (s32 (*)(void *, void *)) text_compare_keys);
+    for (i = gTextFlushed; i < gTextCount; i++) {
+        if (gTextQuads[i].tex != tex) {
+            tex = gTextQuads[i].tex;
+            if (i == gTextFlushed) {
                 gDPLoadTextureBlock_4b(gdl++, OS_K0_TO_PHYSICAL(tex), G_IM_FMT_I, 32, 32, 0, G_TX_CLAMP, G_TX_CLAMP,
                                        G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
             } else {
@@ -141,55 +148,60 @@ void func_80259824(Gfx **gdlp, s32 arg1) {
                 gDPLoadBlock(gdl++, G_TX_LOADTILE, 0, 0, 0xFF, 0x400);
             }
         }
-        gSPVertex(gdl++, &D_80365348[gBufferIndex][D_80365340[i].vtx * 4], 4, 0);
+        gSPVertex(gdl++, &gTextVtx[gBufferIndex][gTextQuads[i].vtx * 4], 4, 0);
         gSP1Triangle(gdl++, 0, 1, 2, 0);
         gSP1Triangle(gdl++, 0, 2, 3, 0);
     }
-    osWritebackDCache(&D_80365348[gBufferIndex][D_802E8C70 * 4], (D_802E8C74 - D_802E8C70) * 64);
-    D_802E8C70 = D_802E8C74;
+    osWritebackDCache(&gTextVtx[gBufferIndex][gTextFlushed * 4], (gTextCount - gTextFlushed) * 64);
+    gTextFlushed = gTextCount;
     *gdlp = gdl;
 }
 
-void func_80259BD4(Gfx **gdlp, s32 arg1) {
+/* Draws the queued text with the current matrices (0x80259BD4). */
+void text_flush(Gfx **gdlp, s32 arg1) {
     Gfx *gdl = *gdlp;
 
-    func_8025946C(&gdl, arg1);
-    func_80259824(&gdl, arg1);
+    text_set_render_state(&gdl, arg1);
+    text_flush_quads(&gdl, arg1);
     *gdlp = gdl;
 }
 
-void func_80259C24(Gfx **gdlp, Mtx *arg1) {
+/* Loads the screen matrices, then draws the queued text (0x80259C24). */
+void text_flush_screen(Gfx **gdlp, Mtx *arg1) {
     Gfx *gdl = *gdlp;
 
     gSPMatrix(gdl++, &arg1[3], G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
     gSPMatrix(gdl++, &arg1[7], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
-    func_8025946C(&gdl, (s32) arg1);
-    func_80259824(&gdl, (s32) arg1);
+    text_set_render_state(&gdl, (s32) arg1);
+    text_flush_quads(&gdl, (s32) arg1);
     *gdlp = gdl;
 }
 
-void func_80259EC4(Gfx * N64P *gfxp, u8 *str, u16 *wstr, u8 align, s32 fit, f32 x, s32 y, f32 w, s32 h, u8 forward,
+void text_queue_string(Gfx * N64P *gfxp, u8 *str, u16 *wstr, u8 align, s32 fit, f32 x, s32 y, f32 w, s32 h, u8 forward,
                    u8 r0, u8 g0, u8 b0, u8 a0, u8 r1, u8 g1, u8 b1, u8 a1, u8 r2, u8 g2, u8 b2, u8 a2,
                    u8 r3, u8 g3, u8 b3, u8 a3);
 
-/* Draws a string in one flat colour. */
-void func_80259CCC(Gfx * N64P *gfxp, u8 *str, u16 *wstr, u8 align, s32 fit, s32 x, s32 y, s32 w, s32 h, u8 forward,
+/* A string in one flat colour (0x80259CCC).
+ * Draws a string in one flat colour. */
+void text_print(Gfx * N64P *gfxp, u8 *str, u16 *wstr, u8 align, s32 fit, s32 x, s32 y, s32 w, s32 h, u8 forward,
                    u8 r, u8 g, u8 b, u8 a) {
-    func_80259EC4(gfxp, str, wstr, align, fit, x, y, w, h, forward, r, g, b, a, r, g, b, a, r, g, b, a, r, g, b, a);
+    text_queue_string(gfxp, str, wstr, align, fit, x, y, w, h, forward, r, g, b, a, r, g, b, a, r, g, b, a, r, g, b, a);
 }
 
-/* Draws a string with a vertical gradient (top colour, bottom colour). */
-void func_80259DC8(Gfx * N64P *gfxp, u8 *str, u16 *wstr, u8 align, s32 fit, s32 x, s32 y, s32 w, s32 h, u8 forward,
+/* A string with top and bottom colours (0x80259DC8).
+ * Draws a string with a vertical gradient (top colour, bottom colour). */
+void text_print_gradient(Gfx * N64P *gfxp, u8 *str, u16 *wstr, u8 align, s32 fit, s32 x, s32 y, s32 w, s32 h, u8 forward,
                    u8 r0, u8 g0, u8 b0, u8 a0, u8 r1, u8 g1, u8 b1, u8 a1) {
-    func_80259EC4(gfxp, str, wstr, align, fit, x, y, w, h, forward, r0, g0, b0, a0, r0, g0, b0, a0, r1, g1, b1, a1,
+    text_queue_string(gfxp, str, wstr, align, fit, x, y, w, h, forward, r0, g0, b0, a0, r0, g0, b0, a0, r1, g1, b1, a1,
                   r1, g1, b1, a1);
 }
 
-/* Queues one textured quad per visible character of str (or the 0xFFE-
+/* One quad per character, four corner colours (0x80259EC4).
+ * Queues one textured quad per visible character of str (or the 0xFFE-
  * terminated wide string wstr) into the current vertex buffer and the
- * TextQuad list; func_80259824 later sorts and draws them. Characters with
+ * TextQuad list; text_flush_quads later sorts and draws them. Characters with
  * all four alphas zero, and the per-font space characters, only advance. */
-void func_80259EC4(Gfx * N64P *gfxp, u8 *str, u16 *wstr, u8 align, s32 fit, f32 x, s32 y, f32 w, s32 h, u8 forward,
+void text_queue_string(Gfx * N64P *gfxp, u8 *str, u16 *wstr, u8 align, s32 fit, f32 x, s32 y, f32 w, s32 h, u8 forward,
                    u8 r0, u8 g0, u8 b0, u8 a0, u8 r1, u8 g1, u8 b1, u8 a1, u8 r2, u8 g2, u8 b2, u8 a2,
                    u8 r3, u8 g3, u8 b3, u8 a3) {
     u16 glyph;
@@ -220,7 +232,7 @@ void func_80259EC4(Gfx * N64P *gfxp, u8 *str, u16 *wstr, u8 align, s32 fit, f32 
         }
     }
     if (fit) {
-        x = func_8025B498(fit, w, str, (s32) wstr);
+        x = font_center_x(fit, w, str, (s32) wstr);
     }
     while (!done) {
         switch (font) {
@@ -444,65 +456,65 @@ void func_80259EC4(Gfx * N64P *gfxp, u8 *str, u16 *wstr, u8 align, s32 fit, f32 
         }
         if (ch != D_802E8C94[font] && ch != D_802E8C90[font] && ch != D_802E8C8C[font] &&
             (a0 != 0 || a1 != 0 || a2 != 0 || a3 != 0)) {
-            VTX(D_802E8C78).ob[0] = x;
-            VTX(D_802E8C78).ob[1] = y;
-            VTX(D_802E8C78).ob[2] = -10;
-            VTX(D_802E8C78).flag = 0;
-            VTX(D_802E8C78).tc[0] = 0;
-            VTX(D_802E8C78).tc[1] = 0x3E0;
-            VTX(D_802E8C78).cn[0] = r0;
-            VTX(D_802E8C78).cn[1] = g0;
-            VTX(D_802E8C78).cn[2] = b0;
-            VTX(D_802E8C78).cn[3] = a0;
-            D_802E8C78++;
-            VTX(D_802E8C78).ob[0] = x + w;
-            VTX(D_802E8C78).ob[1] = y;
-            VTX(D_802E8C78).ob[2] = -10;
-            VTX(D_802E8C78).flag = 0;
-            VTX(D_802E8C78).tc[0] = 0x3E0;
-            VTX(D_802E8C78).tc[1] = 0x3E0;
-            VTX(D_802E8C78).cn[0] = r1;
-            VTX(D_802E8C78).cn[1] = g1;
-            VTX(D_802E8C78).cn[2] = b1;
-            VTX(D_802E8C78).cn[3] = a1;
-            D_802E8C78++;
-            VTX(D_802E8C78).ob[0] = x + w;
-            VTX(D_802E8C78).ob[1] = y + h;
-            VTX(D_802E8C78).ob[2] = -10;
-            VTX(D_802E8C78).flag = 0;
-            VTX(D_802E8C78).tc[0] = 0x3E0;
-            VTX(D_802E8C78).tc[1] = 0;
-            VTX(D_802E8C78).cn[0] = r2;
-            VTX(D_802E8C78).cn[1] = g2;
-            VTX(D_802E8C78).cn[2] = b2;
-            VTX(D_802E8C78).cn[3] = a2;
-            D_802E8C78++;
-            VTX(D_802E8C78).ob[0] = x;
-            VTX(D_802E8C78).ob[1] = y + h;
-            VTX(D_802E8C78).ob[2] = -10;
-            VTX(D_802E8C78).flag = 0;
-            VTX(D_802E8C78).tc[0] = 0;
-            VTX(D_802E8C78).tc[1] = 0;
-            VTX(D_802E8C78).cn[0] = r3;
-            VTX(D_802E8C78).cn[1] = g3;
-            VTX(D_802E8C78).cn[2] = b3;
-            VTX(D_802E8C78).cn[3] = a3;
-            D_802E8C78++;
-            D_80365340[D_802E8C74].key = ch;
+            VTX(gTextVtxCount).ob[0] = x;
+            VTX(gTextVtxCount).ob[1] = y;
+            VTX(gTextVtxCount).ob[2] = -10;
+            VTX(gTextVtxCount).flag = 0;
+            VTX(gTextVtxCount).tc[0] = 0;
+            VTX(gTextVtxCount).tc[1] = 0x3E0;
+            VTX(gTextVtxCount).cn[0] = r0;
+            VTX(gTextVtxCount).cn[1] = g0;
+            VTX(gTextVtxCount).cn[2] = b0;
+            VTX(gTextVtxCount).cn[3] = a0;
+            gTextVtxCount++;
+            VTX(gTextVtxCount).ob[0] = x + w;
+            VTX(gTextVtxCount).ob[1] = y;
+            VTX(gTextVtxCount).ob[2] = -10;
+            VTX(gTextVtxCount).flag = 0;
+            VTX(gTextVtxCount).tc[0] = 0x3E0;
+            VTX(gTextVtxCount).tc[1] = 0x3E0;
+            VTX(gTextVtxCount).cn[0] = r1;
+            VTX(gTextVtxCount).cn[1] = g1;
+            VTX(gTextVtxCount).cn[2] = b1;
+            VTX(gTextVtxCount).cn[3] = a1;
+            gTextVtxCount++;
+            VTX(gTextVtxCount).ob[0] = x + w;
+            VTX(gTextVtxCount).ob[1] = y + h;
+            VTX(gTextVtxCount).ob[2] = -10;
+            VTX(gTextVtxCount).flag = 0;
+            VTX(gTextVtxCount).tc[0] = 0x3E0;
+            VTX(gTextVtxCount).tc[1] = 0;
+            VTX(gTextVtxCount).cn[0] = r2;
+            VTX(gTextVtxCount).cn[1] = g2;
+            VTX(gTextVtxCount).cn[2] = b2;
+            VTX(gTextVtxCount).cn[3] = a2;
+            gTextVtxCount++;
+            VTX(gTextVtxCount).ob[0] = x;
+            VTX(gTextVtxCount).ob[1] = y + h;
+            VTX(gTextVtxCount).ob[2] = -10;
+            VTX(gTextVtxCount).flag = 0;
+            VTX(gTextVtxCount).tc[0] = 0;
+            VTX(gTextVtxCount).tc[1] = 0;
+            VTX(gTextVtxCount).cn[0] = r3;
+            VTX(gTextVtxCount).cn[1] = g3;
+            VTX(gTextVtxCount).cn[2] = b3;
+            VTX(gTextVtxCount).cn[3] = a3;
+            gTextVtxCount++;
+            gTextQuads[gTextCount].key = ch;
             if (r0 != 0 || b0 != 0 || g0 != 0) {
-                D_80365340[D_802E8C74].key += 0x8000;
+                gTextQuads[gTextCount].key += 0x8000;
             }
-            D_80365340[D_802E8C74].vtx = D_802E8C74;
-            D_80365340[D_802E8C74].tex = func_8025B0B8(glyph);
+            gTextQuads[gTextCount].vtx = gTextCount;
+            gTextQuads[gTextCount].tex = font_get_glyph(glyph);
 #ifdef PORT_HOST
-            port_textquad(&D_80365340[D_802E8C74]);
+            port_textquad(&gTextQuads[gTextCount]);
 #endif
-            D_802E8C74++;
-            if (!(D_802E8C74 < D_80365350)) {
+            gTextCount++;
+            if (!(gTextCount < maxCharacters)) {
                 debug_printf("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", "index<maxCharacters", "drawtext.c", 435);
             }
-            if (D_802E8C74 >= D_80365350) {
-                debug_printf("%d %d\n", D_802E8C74, D_80365350);
+            if (gTextCount >= maxCharacters) {
+                debug_printf("%d %d\n", gTextCount, maxCharacters);
             }
         }
         if (align == 1) {
@@ -513,10 +525,10 @@ void func_80259EC4(Gfx * N64P *gfxp, u8 *str, u16 *wstr, u8 align, s32 fit, f32 
             }
         } else if (ch != D_802E8C8C[font]) {
             if (forward) {
-                x += w * D_802E8C84[font];
+                x += w * gFontAdvance[font];
             }
             if (!forward) {
-                x -= w * D_802E8C84[font];
+                x -= w * gFontAdvance[font];
             }
         }
         if (forward) {

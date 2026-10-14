@@ -66,8 +66,8 @@ extern u32 nss;
 extern s32 D_8036EA74;
 extern u8 D_8036EA7A;
 extern u8 D_8036EA7B;
-extern u8 D_8036EB94[]; /* bonus earned, per bonus */
-extern u8 D_8036EB9C[];
+extern u8 gBonusEarned[]; /* bonus earned, per bonus */
+extern u8 gBonusEarnedPrev[];
 
 #ifndef NON_MATCHING
 extern s32 D_80367738;
@@ -80,22 +80,24 @@ extern s32 D_80367738;
 #define STATS_ASSERT(EX, line) \
     if (!(EX)) { debug_printf("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "stats_perm.c", line); }
 
-/* Start-of-level: load this level's previous counts and reset the bonuses */
-void func_80285190(void) {
+/* Loads the counts, resets the bonuses (0x80285190).
+ * Start-of-level: load this level's previous counts and reset the bonuses */
+void stats_level_start(void) {
     s32 i;
 
     D_8036EA7B = players[playerNumber].flags[levelno + 0x3E];
     D_8036EA74 = D_80364EF0[playerNumber][D_802E8C44[(gLevelInfo[levelno].type == 1) ? 1 : D_8036EA7B]];
     D_8036EA7A = D_80364B08[playerNumber][levelno] % 8;
     for (i = 0; i < 4; i++) {
-        D_8036EB94[i] = 0;
+        gBonusEarned[i] = 0;
     }
-    D_8036EB98 = LEVEL_DONE(levelno);
+    gTargetsCleared = LEVEL_DONE(levelno);
 }
 
-/* Print the status screen lines, highlight improved results, return the
+/* The status screen's lines; returns the average percentage (0x802852EC).
+ * Print the status screen lines, highlight improved results, return the
  * average completion percentage */
-u32 func_802852EC(void) {
+u32 stats_print_status(void) {
     u32 pctA;
     u32 pctB;
     u32 pctC;
@@ -126,7 +128,7 @@ u32 func_802852EC(void) {
     func_802D6A60(D_8036B9A8 + 0x20, "***$%d*", nss);
     func_802D6A60(D_8036B9A8 + 0x40, "***%2d (%d%c)*", D_8036EA79, pctB, '%');
     func_802D6A60(D_8036B9A8 + 0x60, "***%2d (%d%c)*", D_8036EA7C, pctC, '%');
-    func_80264A34(buf, D_8036EA74, 0);
+    hud_format_time(buf, D_8036EA74, 0);
     func_802D6A60(D_8036B9A8 + 0x80, "***%s*", buf);
     for (i = 18; i < 23; i++) {
         gYoshiGameItems[i].flags = 0x400;
@@ -176,9 +178,10 @@ u32 func_802852EC(void) {
     }
 }
 
-/* End-of-level: write the status to the pak if this level saves one, then
+/* "Creating status ...": the level status to the save (0x80285814).
+ * End-of-level: write the status to the pak if this level saves one, then
  * copy the results to the best/saved slots. Returns 1 if a status was written. */
-u8 func_80285814(void) {
+u8 stats_save_status(void) {
     u8 saved = 0;
     u8 coin;
 
@@ -211,14 +214,15 @@ u8 func_80285814(void) {
     } else {
         hd_setup_level(NULL);
     }
-    func_80285A78((u8 *) &nss, (u8 *) &D_8036EA60);
-    func_80285A78((u8 *) &nss, (u8 *) D_8036EA80);
-    func_80285A78((u8 *) &nss, (u8 *) D_8036EA90);
+    stats_copy_result((u8 *) &nss, (u8 *) &D_8036EA60);
+    stats_copy_result((u8 *) &nss, (u8 *) D_8036EA80);
+    stats_copy_result((u8 *) &nss, (u8 *) D_8036EA90);
     return saved;
 }
 
-/* Copy a 16-byte results record */
-void func_80285A78(u8 *src, u8 *dst) {
+/* Copies a 16-byte Score (0x80285A78).
+ * Copy a 16-byte results record */
+void stats_copy_result(u8 *src, u8 *dst) {
     u32 i;
 
     for (i = 0; i < 16; i++) {
@@ -226,23 +230,26 @@ void func_80285A78(u8 *src, u8 *dst) {
     }
 }
 
-/* Set flag `bit` (1-based) for the current level. The shift is 32 or more:
+/* Sets a per-level flag bit (0x80285AB0).
+ * Set flag `bit` (1-based) for the current level. The shift is 32 or more:
  * MIPS sllv uses its low 5 bits (bit 1 -> 1 << 0); C leaves it undefined,
  * so the port masks it (PORT_SHAMT). */
-void func_80285AB0(u8 bit) {
+void stats_set_level_flag(u8 bit) {
     D_80364A87 |= 2;
     CUR.flags[levelno] |= 1 << PORT_SHAMT(bit + 0x1F);
 }
 
-/* Test flag `bit` (1-based) for the current level */
-s32 func_80285B10(u8 bit) {
+/* Tests a per-level flag bit (0x80285B10).
+ * Test flag `bit` (1-based) for the current level */
+s32 stats_test_level_flag(u8 bit) {
     s32 unused;
 
     return (D_80364B44[playerNumber][levelno] & (1 << PORT_SHAMT(bit + 0x1F))) ? 1 : 0;
 }
 
-/* Level just completed by the active player: mark it and fade out */
-void func_80285B68(s32 arg0) {
+/* A non-mission level done: fade to the world screen (0x80285B68).
+ * Level just completed by the active player: mark it and fade out */
+void stats_finish_bonus_level(s32 arg0) {
     s32 unused;
 
     if (gGameMode & 0x104) {
@@ -262,34 +269,35 @@ void func_80285CA0(void) {
     yoshi_show_hint(0x47);
 }
 
-/* Award each bonus once its count reaches the target, with a jingle */
-void func_80285CC0(void) {
+/* The per-count bonus jingles (0x80285CC0).
+ * Award each bonus once its count reaches the target, with a jingle */
+void stats_award_bonuses(void) {
     s32 sfx = -1;
     s32 snd = 0;
     s32 i;
 
     for (i = 0; i < 4; i++) {
-        D_8036EB9C[i] = D_8036EB94[i];
-        if (D_8036EB94[i] == 0) {
+        gBonusEarnedPrev[i] = gBonusEarned[i];
+        if (gBonusEarned[i] == 0) {
             switch (i) {
                 case 0:
-                    if (D_8036EB94[i] = (D_8036EA7C == gRduCount)) {
+                    if (gBonusEarned[i] = (D_8036EA7C == gRduCount)) {
                         sfx = 0x39;
                     }
                     break;
                 case 1:
-                    if (D_8036EB94[i] = (D_8036EA79 == D_8036EB93)) {
+                    if (gBonusEarned[i] = (D_8036EA79 == D_8036EB93)) {
                         sfx = 0x3A;
                     }
                     break;
                 case 2:
                     obj_tally(0);
-                    if (D_8036EB94[i] = (D_8036EA78 == D_8036EB92)) {
+                    if (gBonusEarned[i] = (D_8036EA78 == D_8036EB92)) {
                         sfx = 0x3B;
                     }
                     break;
                 case 3:
-                    if (D_8036EB94[i] = (D_8036EB94[0] && D_8036EB94[2] && D_8036EB94[1])) {
+                    if (gBonusEarned[i] = (gBonusEarned[0] && gBonusEarned[2] && gBonusEarned[1])) {
                         sfx = 0x3C;
                         snd = 0xC6;
                     }
@@ -307,17 +315,18 @@ void func_80285CC0(void) {
     }
 }
 
-/* Level finished at frame `start`: build the status screen with the elapsed
+/* Elapsed time, status screen, pause (0x80285EF4).
+ * Level finished at frame `start`: build the status screen with the elapsed
  * time and save the results */
-void func_80285EF4(s32 start) {
+void stats_finish_level(s32 start) {
     s32 t;
 
-    t = func_8028604C(((s32) D_803156C0) - start);
+    t = stats_frames_to_tenths(((s32) D_803156C0) - start);
     obj_tally(0);
     D_8036EA74 += t;
-    func_802852EC();
+    stats_print_status();
     D_8036EA74 -= t;
-    func_80285A78((u8 *) &nss, (u8 *) &D_8036EA60);
+    stats_copy_result((u8 *) &nss, (u8 *) &D_8036EA60);
     gYoshiGameItems[24].flags &= ~1;
     gYoshiGameItems[24].flags |= 0x800;
     gYoshiGameItems[23].flags &= ~1;
@@ -331,20 +340,23 @@ void func_80285EF4(s32 start) {
     gPauseRequest = 1;
 }
 
-/* Time units (1/10 s) to frames */
-s32 func_80286038(u16 arg0) {
+/* Tenths of a second to frames (0x80286038).
+ * Time units (1/10 s) to frames */
+s32 stats_tenths_to_frames(u16 arg0) {
     return arg0 * 6;
 }
 
-/* Frames to time units (1/10 s), capped at 59999 */
-u16 func_8028604C(u32 frames) {
+/* Frames to tenths of a second (capped at 59999) (0x8028604C).
+ * Frames to time units (1/10 s), capped at 59999 */
+u16 stats_frames_to_tenths(u32 frames) {
     s32 unused;
 
     return (frames / 6 >= 60000) ? 59999 : frames / 6;
 }
 
-/* Has the current player completed `level`? */
-u8 func_80286090(s32 level) {
+/* Has the current player completed the level (0x80286090)?
+ * Has the current player completed `level`? */
+u8 stats_level_done(s32 level) {
     s32 unused;
 
     return LEVEL_DONE(level);

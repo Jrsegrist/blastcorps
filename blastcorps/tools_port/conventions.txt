@@ -67,7 +67,7 @@ veh_hit_triangle: in s0=a0,fp=a1 ; preserve v0,v1,a0,a1,a2,a3,t0
 veh_sphere_hits_object: in t3=a0,t4=a1,t5=a2,t6=a3,s0=stack0 ; out v1=ret ; preserve v0,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t8,t9,f12,f14
 # place parts (tag t0, record walk t1..t2, Mtx base s4) at (v0,v1,a0); mtx_chain_transform's a3/s1/s2 (in/out) and s0 pass through
 veh_place_parts: in v0=a0,v1=a1,a0=a2,t0=a3,t1=stack0,t2=stack1,s4=stack2,a3=*stack3+8,s1=*stack3+0xC,s2=*stack3+0x10,s0=*stack3+0x14 ; out a3=*stack3+8,s1=*stack3+0xC,s2=*stack3+0x10 ; preserve v0,v1,a0,a1,a2,t0,t2,t3,t4,t6,t7,f12,f14
-# crane_find_test_part lookup, then func_8028FAC0/func_802920DC(s0-s3) if found; found flag -> s4 (saves everything else)
+# crane_find_test_part lookup, then tnt_test_sphere/block_test_sphere(s0-s3) if found; found flag -> s4 (saves everything else)
 crane_check_part_hits: in s0=a0,s1=a1,s2=a2,s3=a3 ; out s4=ret ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,s0,s1,s2,s3,t8,t9,gp,f14
 # gNextVehicle = s1 unless D_803EFECB and veh_rides_on(s1, 7) (saves t4, t8; a2 changed)
 veh_request_switch: in s1=a0 ; preserve v0,v1,a0,a1,a3,t0,t1,t2,t3,t4,t5,t6,t7,t8,f12,f14
@@ -207,7 +207,7 @@ tex_resolve_dl: in a0=a0,a1=a1 ; clobbers s2,s3,s4,s5,s6
 # --- 5CB60 ---
 # store v0/v1/a0/gp[0x9B] into the gVehicles record with id a1; gp is the caller's object
 veh_set_record: in a0=a0,a1=a1,v0=a2,v1=a3,gp=stack0 ; preserve v0,v1,a0,a1,a2,a3,t0,t6,f12,f14
-# register-saving wrapper of func_80278BF0(t2, t3, t4)
+# register-saving wrapper of mb_copy_dl(t2, t3, t4)
 func_802A1558: in t2=a0,t3=a1,t4=a2
 # append a gVehicles record for model header s2 (a0, a1 flag, v0, v1), copy its display list to the heap (saves t0-t6)
 veh_add_record: in a0=a0,a1=a1,v0=a2,v1=a3,s2=stack0 ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,s2,f12,f14
@@ -217,7 +217,7 @@ lvl_build_coll_grid_b: in t0=a0,v0=a1,t9=a2,s1=*a3 ; out t6=ret,s1=*a3 ; preserv
 lvl_build_switch_groups: in t0=a0,v0=a1,t9=a2,s1=*a3 ; out s1=*a3 ; preserve v0,t0,t9,f12,f14 ; clobbers s2-s7,gp
 lvl_build_object_groups: in t0=a0,s1=*a1 ; out fp=ret,s1=*a1 ; preserve t0,f12,f14 ; clobbers s0,s2-s7,gp
 # level object in t0 (s0, s2, s3 left as scratch; s1 counts the items down: 0 out when the count word is non-zero,
-# and it reaches coll_add_dyn_tris via initlevel / func_8028FDA0)
+# and it reaches coll_add_dyn_tris via initlevel / block_spawn_all)
 lvl_build_part_tris: in t0=a0,s1=*a1 ; out s1=*a1 ; preserve t0,f12,f14 ; clobbers s0,s2,s3
 lvl_relocate_dls: in t0=a0 ; preserve t0,t6,t9,f12,f14
 func_802A20F4: in t4=a0,s0=a1 ; preserve v0,v1,a0,a2,a3,t1,t2,t3,t4,t5,t6,t7,f12,f14
@@ -256,7 +256,7 @@ lvl_resolve_object_tex: in t4=a0,fp=a1,s1=*a2 ; out s1=*a2 ; preserve v0,v1,a0,a
 lvl_resolve_dl_textures: in t0=a0 ; out s1=ret ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,t8,t9 ; clobbers s0,s2,s3,s4,s5,s6
 # phase D (wt-g3): packed object 0x98 vertices moved by D_8039CAB0/2/4 (saves t0; lvl_load_model's s2/s4 left)
 lvl_load_scientist: preserve t0 ; clobbers s2,s4,s5,s6,s7
-# packed object D_8039CA7E (lvl_load_model_plain: s2-s4 out when loaded), its matrices to the heap, func_80295AE0
+# packed object D_8039CA7E (lvl_load_model_plain: s2-s4 out when loaded), its matrices to the heap, ghost_make_translucent_dl
 func_802A3198: in s2=*a0,s3=*a0+4,s4=*a0+8 ; out s2=*a0,s3=*a0+4,s4=*a0+8 ; preserve t0 ; clobbers s0,s5,s6,s7
 # placed object setup: type t3, data t4, x/y/z t5-t7, flag s0, tag t9, param fp; record from gObjectsEnd, triangles at the heap
 lvl_add_object: in t3=a0,t4=a1,t5=a2,t6=a3,t7=stack0,s0=stack1,t9=stack2,fp=stack3,s1=*stack4 ; out s1=*stack4 ; preserve t0,t1,t2 ; clobbers s0,s2-s7,gp,f20,f22,f24,f26,f28
@@ -317,7 +317,7 @@ fx_get_dl_cursor: in t4=a0 ; out t2=ret ; preserve a0,a1,a2,a3,t0,t1,t3,t4,t5,t8
 # a3 (last map byte scanned), t6 ((s16) def[0]) and s1 (record buffer) are also outputs
 fx_spawn: in a3=*a0,t6=*a0+4,s1=*a0+8,t0=a1,t1=a2,t2=a3,t3=stack0,t4=stack1,t5=stack2,t7=stack3,s0=stack4,s2=stack5,s3=stack6,s4=stack7,s5=stack8 ; out t0=ret,a3=*a0,t6=*a0+4,s1=*a0+8 ; preserve v0,v1,a0,a1,a2,t7
 
-# textured quad into obj (t4)'s cursor: func_802575F4(*cur, t1, s1, t8, v1, s5, gp); s0 scratch
+# textured quad into obj (t4)'s cursor: gfx_draw_textured_quad(*cur, t1, s1, t8, v1, s5, gp); s0 scratch
 fx_draw_quad: in t4=a0,t1=a1,s1=a2,t8=a3,v1=stack0,s5=stack1,gp=stack2 ; preserve v0,v1,a0,a1,a2,a3,t0,t1,t3,t4,t5,t6,t7,t8,t9,f12,f14 ; clobbers s0
 
 # phase D (wt-g2): billboard matrix m (t0) for gEffects record t4; saves every integer register
@@ -559,7 +559,7 @@ driver_check_exit_point: in a2=a0,t8=a1,fp=*a2,f12=*a3,f14=*a3+4,f20=*a3+8,f22=*
 # drive-in step ($gp = gDriverState read as the global); veh_reground's leftover key t8, fp, f12-f26 come in from the caller
 driver_exit_walk_step: in t8=a0,fp=a1,f12=*a2,f14=*a2+4,f20=*a2+8,f22=*a2+12,f24=*a2+16,f26=*a2+20 ; clobbers s0-s6,f20,f22,f24,f26,f28
 # per-frame animation update ($gp = gDriverState, read as globals in C); f20/f30 via anim_blend_channels. Asm caller
-# driver_update reads t6, t8, f12, f14 after it (passed through, except func_8026A8E0 leaves its seeds in t6/t8)
+# driver_update reads t6, t8, f12, f14 after it (passed through, except util_rand2_range leaves its seeds in t6/t8)
 driver_update_anims: clobbers s5,f20,f30
 
 # --- 6B4A0 ---
@@ -810,13 +810,13 @@ ateam_ride_follow: in a3=a0,f24=*a1+16 ; out s3=ret,f20=*a1+8,f22=*a1+12,f24=*a1
 # vehicle setup (dispatcher case 0xE), as police_spawn
 ateam_spawn: in s2=a0,t7=a1,s3=a2,s0=a3,s1=stack0,fp=stack1,f12=*stack2,f14=*stack2+4,f20=*stack2+8,f22=*stack2+12,f24=*stack2+16,f26=*stack2+20 ; out f22=*stack2+12,f24=*stack2+16,f26=*stack2+20 ; preserve t0,t1,t2,t3,t4,t5 ; clobbers gp,s0-s7,fp,f20,f28,f30
 # --- 8A080 ---
-# collision triangles for func_8028FDA0's records: items a0, count a1, h52 a2; the
+# collision triangles for block_spawn_all's records: items a0, count a1, h52 a2; the
 # caller's stale v0 (id), t6 (b57), t9 (b4F) and s1 (chain start; saved/restored); gp = 0 after
 coll_add_dyn_tris: in a0=a0,a1=a1,a2=a2,v0=a3,t6=stack0,t9=stack1,s1=stack2 ; clobbers gp
 # --- 4B5E0 (IDO C; matched) ---
 # never touches the s-registers: its caller's s1 reaches coll_add_dyn_tris (NM build: extra argument);
 # coll_add_dyn_tris leaves gp = 0
-func_8028FDA0: in a0=a0,a1=a1,s1=a2 ; clobbers gp
+block_spawn_all: in a0=a0,a1=a1,s1=a2 ; clobbers gp
 # --- 8AEE0 ---
 # zone lookup wrapper: veh_zone_alpha(id, x, y, z) with its scan registers t6, t7, s0-s4 passed through
 cyclone_zone_alpha: in t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; out v1=ret,t6=*a0,t7=*a0+4,s0=*a0+8,s1=*a0+12,s2=*a0+16,s3=*a0+20,s4=*a0+24 ; preserve f12,f14 ; clobbers s5,s6
@@ -858,7 +858,7 @@ shuttle_build_model: clobbers s1,s2,s4,s5,s6,s7
 # vehicle 0xFD setup (dispatcher lvl_spawn_shuttle): header in s2; saves t0-t5, leaves $gp = gShuttleState and channel-routine junk
 shuttle_spawn: in s2=a0 ; preserve t0,t1,t2,t3,t4,t5 ; clobbers gp,s0-s7,fp,f20,f30
 # --- 77E20 ---
-# 1 if every D_8039C800 entry has unk26 set; saves t0, t1, t3
+# 1 if every gBoxTargets entry has unk26 set; saves t0, t1, t3
 obj_box_targets_done: out t4=ret ; preserve a0,a1,a2,a3,t0,t1,t2,t3,f12,f14
 # phase D (wt-f2): animation channel records t1..t2 of object v0 (saves everything it uses)
 obj_step_tex_anims: in v0=a0,t1=a1,t2=a2 ; preserve v0,v1,a0,a1,t1,t2,t3,t4,t5,t6,t7
@@ -874,7 +874,7 @@ veh_prev_contacts_has: in fp=a0 ; out v1=ret ; preserve a0,a1,a2,t3,t8,t9,f12,f1
 obj_parts_destroyed: in t0=a0 ; out v0=ret ; preserve t0,t1,t2,t4,t5,t6,t7
 # clear unk51 of model triangles with unk52 == a3 + 1 (model in v0); changes nothing else
 obj_disable_landed_part_tris: in v0=a0,a3=a1 ; preserve v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,f12,f14
-# level 0x32 and !func_80286090(level) -> t1; preserves everything else
+# level 0x32 and !stats_level_done(level) -> t1; preserves everything else
 obj_end_object_hidden: out t1=ret ; preserve v0,v1,a0,a1,a2,a3,t0,t2,t3,t4,t5,t6,t7,t8,t9,f12,f14
 # move a model (v0) by (a2, a3, t0) and recompute its triangle planes; changes s0-s7, fp (callers save them), leaves junk in a1-a3
 obj_move_model: in v0=a0,a2=a1,a3=a2,t0=a3 ; preserve f12,f14 ; clobbers s0-s7,fp
@@ -891,7 +891,7 @@ func_802BEF9C: in t9=a0 ; preserve a0,a1,t8,t9,f12,f14
 obj_mark_part_gone: in t9=a0,t3=a1 ; preserve a1,t0,t1,t2,t3,t4,t5,t6,t7,t9,f12,f14
 obj_spawn_people: in t9=a0 ; preserve a0,a1,t3,t5,t9,f12,f14
 obj_check_destroyed: in t9=a0 ; preserve a0,a1,t3,t5,t9,f12,f14
-# func_8026A828(a0, a1) -> s4; preserves everything else
+# util_rand_range(a0, a1) -> s4; preserves everything else
 obj_rand_range: in a0=a0,a1=a1 ; out s4=ret ; preserve t0,t1,t4,t5,t6,t7,t9
 # entry t9, object v1; preserves everything
 obj_start_emitter: in t9=a0,v1=a1 ; preserve a0,t3,t5,t9

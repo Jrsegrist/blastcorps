@@ -2,7 +2,7 @@
 # conventions (C versions call the hd_code C rewrites; stubbed callees are compared through conventions.txt).
 # Format: func_XXXXXXXX: <eqcheck.py args>   (see tools_port/README.md, "Regression suite")
 # --follow-all lines stub (--no-follow) only what can't run here or what the callee's own checks stub:
-# OS calls that block or DMA, the ROM decompressor func_802C4108, func_80278BF0, anim_update_channel.
+# OS calls that block or DMA, the ROM decompressor func_802C4108, mb_copy_dl, anim_update_channel.
 
 # load model a0: heap0 = model data (lvl_load_model's s2), heap1 = the heap gHeapPtr points at.
 # Header offsets stay small: the asm's `sub` traps on overflow (game data never gets near that)
@@ -21,7 +21,7 @@ func_80202100: -n 100 --seed 3 --heap 0x100 --heap 0x100 --stub-ret lvl_load_mod
     --mem @heap0+0x1C=int:0:0x8000 --mem @heap0+0x2C=int:0:0x8000 --mem gHeapPtr=rel:heap1 \
     --arg a0=int --arg a1=ptr:0x10 --arg a2=rel:gHeapPtr+-4 --arg a3=rel:gHeapPtr+choice:-4,-0xC
 # the whole tree (model loader with the decompressor stubbed, veh_add_record and its callees)
-func_80202100: -n 200 --seed 4 --follow-all --no-follow osInvalDCache,osPiStartDma,osRecvMesg,func_802C4108,func_80278BF0 \
+func_80202100: -n 200 --seed 4 --follow-all --no-follow osInvalDCache,osPiStartDma,osRecvMesg,func_802C4108,mb_copy_dl \
     --arg a0=choice:0,1,3,0xB,0x11,0x96,0x98,0xFD,0xFE,0xFF --heap 0x100 --mem gHeapPtr=rel:heap0 \
     --mem @heap0+0x1C=0x40 --mem @heap0+0x20=rel:0x40+8*int:0:8 --mem @heap0+0x2C=0x60 \
     --mem @heap0+0x40:0x40=words:0x06000000,0xE7000000,0x12345678 \
@@ -30,7 +30,7 @@ func_80202100: -n 200 --seed 4 --follow-all --no-follow osInvalDCache,osPiStartD
     --mem gVehicles:0x200=rand --mem gVehiclesEnd=rel:gVehicles+0x74*int:0:3 --mem gLevelKind=choice:0,1,2 \
     --arg a1=ptr:0x10 --arg a2=ptr:0x10 --arg a3=ptr:0x20 \
     --sig osInvalDCache=a0,a1 --sig osPiStartDma=a0,a1,a2,a3,stack0,stack1,stack2 --sig osRecvMesg=a0,a1,a2 \
-    --sig func_80278BF0=a0,a1,a2
+    --sig mb_copy_dl=a0,a1,a2
 
 # anim_update_model(a1, a2, a0)
 func_802021FC: -n 200 --arg a0=ptr --arg a1=int --arg a2=int

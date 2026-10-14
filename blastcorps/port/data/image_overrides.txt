@@ -37,7 +37,7 @@
 802F48D2 20 w2 22 8
 #
 # The trail-free zones (37530.c Zone {s16 a..f, ymin, ymax}, 46 of them at
-# 0x802FC080-0x802FC360, reached only through D_802FC360's ZoneList pointers):
+# 0x802FC080-0x802FC360, reached only through gTrailZones's ZoneList pointers):
 # no declaration covered them, so they stayed big-endian and the tyre tracks
 # were drawn where the N64 suppresses them (levels 0, 7: the trail ring).
 802FC080 2E0 w2
@@ -56,7 +56,7 @@
 # words (found by checking every display list's Vtx against the ROM bytes,
 # stage 4; the renderer reads host-order halfwords and N64-order colour bytes):
 # - D_802F97B0 (16 Vtx, 26570.c's list gYoshiWindowDl): undeclared;
-# - D_802FA820 (2D810.c Vtx[2][4]): some words fell under another symbol's
+# - gBackdropVtx (2D810.c Vtx[2][4]): some words fell under another symbol's
 #   extent and became u32 words (z and flag exchanged);
 # - D_802FDD48 (8 Vtx): inside the extent of the display list D_802FDC08,
 #   which is words.
@@ -69,7 +69,7 @@
 #   the carrier is hit.
 802FFF38 B30 vtx
 # - 802FDFD8 (8 Vtx) inside the extent of the display list D_802FDC08 and
-#   802FE640 (45 Vtx: 16 + 14 + 15) inside D_802FE3C0, both lists typed as
+#   802FE640 (45 Vtx: 16 + 14 + 15) inside gShellTypes, both lists typed as
 #   words; found by scanning every G_VTX in the hd data image (gfx2 notes).
 802FDFD8 80 vtx
 802FE640 2D0 vtx

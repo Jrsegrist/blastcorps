@@ -372,7 +372,7 @@ s32 starski_ride_follow(s32 id, InterpRegs *r) {
  * Per-frame update of vehicle type 15 (called from 00000.c's veh_update_player
  * and once from starski_spawn): zone level (starski_zone_alpha), state save
  * (veh_snapshot), sound 0x76, effects (starski_update_effects unless +0x9A), the
- * D_80367BFF hook (func_802CB690), timers (starski_set_physics), steering
+ * gTurboPending hook (func_802CB690), timers (starski_set_physics), steering
  * (veh_steer with the rate from starski_steer_rate), throttle (veh_throttle,
  * skipped while the D_803FC5C4 countdown runs), heading, slope and speed
  * (veh_turn_heading / 83B8 / 843C, veh_set_target_heading while D_803FC5C3), the move
@@ -432,7 +432,7 @@ void starski_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 
     if (v[0x9A] == 0) {
         starski_update_effects(zr.t6, zr.t7, zr.s0, zr.s1, zr.s2, zr.s3, zr.s4);
     }
-    if (D_80367BFF != 0) {
+    if (gTurboPending != 0) {
         func_802CB690(v);
     }
     starski_set_physics();
@@ -584,15 +584,15 @@ extern u32 gStarskiPos[]; /* [0], [2]: trail x, z */
 /* Tyre tracks while skidding (0x802D0438).
  * Tyre trail (shape of skyfall_add_tyre_trail in 6E200; $gp = gStarskiState): if the
  * byte at +0x99 is set, +0x98 isn't 1, +0x50 < 3 and +0x9B is clear,
- * func_8027BE7C(3, y, 250, -400, -400, -400, gStarskiPos[0], gStarskiPos[2],
+ * trail_add(3, y, 250, -400, -400, -400, gStarskiPos[0], gStarskiPos[2],
  * yaw, 3, 50, 50, 0).
  * Register note: the asm saves and restores every integer register; asm
  * caller starski_update_effects keeps a0-a3, t6, t7 live (and reads f12/f14 after
- * the call, which the asm doesn't touch but func_8027BE7C may); a mixed N64
+ * the call, which the asm doesn't touch but trail_add may); a mixed N64
  * build would need a thunk. */
 void starski_add_tyre_trail(void) {
     if (gStarskiState[0x99] != 0 && gStarskiState[0x98] != 1 && gStarskiState[0x50] < 3 && gStarskiState[0x9B] == 0) {
-        func_8027BE7C(3, *(s32 *) (gStarskiState + 0x1C), 250, -400, -400, -400, gStarskiPos[0], gStarskiPos[2],
+        trail_add(3, *(s32 *) (gStarskiState + 0x1C), 250, -400, -400, -400, gStarskiPos[0], gStarskiPos[2],
                       *(u16 *) (gStarskiState + 0x4E), 3, 50, 50, 0);
     }
 }
@@ -1199,10 +1199,10 @@ static void port_802D1360_state0(void) {
         if (CHAN_GET(9, e), e[0] == 1) {
             return;
         }
-        if (func_8026A8E0(0, 0x1E) != 0) {
+        if (util_rand2_range(0, 0x1E) != 0) {
             return;
         }
-        r = func_8026A8E0(0, 2);
+        r = util_rand2_range(0, 2);
         if (r == 0) {
             r = 7;
         } else if (r == 1) {
@@ -1259,7 +1259,7 @@ static void port_802D1360_state0(void) {
         anim_blend_channels(r, 2, (Unk8029DEA0Entry *) gCycloneAnim);
         anim_stop(r, (Unk8029DEA0Entry *) gCycloneAnim);
         port_802D1360_chan1F(0x50);
-        func_80278EB0(6, D_8030D9E0, 0x64);
+        mb_start(6, D_8030D9E0, 0x64);
         return;
     }
     port_802D1360_gear();
@@ -1275,7 +1275,7 @@ static void port_802D1360_state12(s32 state) {
     if (VEH16_U8(0x9C) != 0) {
         VEH16_SPEED = VEH16_SPEED >> 1;
         if (state == 1) {
-            func_802794A4();
+            mb_stop();
             VEH16_U8(0xA1) = 3;
             anim_set_frame(0.0f, (Unk8029DEA0Entry *) gCycloneAnim, 3, 0);
             anim_blend_channels(0x1F, 3, (Unk8029DEA0Entry *) gCycloneAnim);
@@ -1323,7 +1323,7 @@ static void port_802D1360_state12(s32 state) {
         anim_blend_channels(2, 1, (Unk8029DEA0Entry *) gCycloneAnim);
     }
     port_802D1360_chan1F(0x32);
-    func_802794A4();
+    mb_stop();
     VEH16_U8(0xA1) = 0;
 }
 
@@ -1365,7 +1365,7 @@ void cyclone_update_moves(void) {
                 break;
             }
             gVehAttacking = 0;
-            func_802794A4();
+            mb_stop();
             anim_set_speed((Unk8029DEA0Entry *) gCycloneAnim, 3, 5);
             anim_set_reverse((Unk8029DEA0Entry *) gCycloneAnim, 3, 0);
             anim_set_loop_mode((Unk8029DEA0Entry *) gCycloneAnim, 3, 0);

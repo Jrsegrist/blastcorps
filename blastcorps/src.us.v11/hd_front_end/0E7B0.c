@@ -583,7 +583,7 @@ s32 func_801F5FE4(void) {
         PFS_ASSERT(1==0, 400);
         osRecvMesg(&gSiMesgQueue, &msg, OS_MESG_NOBLOCK);
     }
-    if (func_8028FCD4(&gSiMesgQueue, &status)) {
+    if (cont_query_present(&gSiMesgQueue, &status)) {
         ret = 1;
     } else if (!(status & 1)) {
         ret = 1;
@@ -603,7 +603,7 @@ s32 func_801F60C8(void) {
 
     ret = 0;
     D_8039C538 = 4;
-    if (func_8028FCD4(&gSiMesgQueue, &status)) {
+    if (cont_query_present(&gSiMesgQueue, &status)) {
         ret = 1;
     } else if (!(status & 1)) {
         ret = 1;
@@ -925,7 +925,7 @@ s32 func_801F73FC(void) {
 void func_801F7410(u8 *str) {
     s32 i;
 
-    for (i = 0; i < func_8025B300(str); i++) {
+    for (i = 0; i < font_strlen(str); i++) {
         if (str[i] < 0x45) {
             str[i] = D_8020C01C[str[i]];
         } else {
@@ -939,7 +939,7 @@ void func_801F74B0(u8 *str) {
     s32 i;
     s32 j;
 
-    for (i = 0; i < func_8025B300(str); i++) {
+    for (i = 0; i < font_strlen(str); i++) {
         for (j = 0; j < 0x45 && D_8020C01C[j] != str[i]; j++) {
         }
         if (j != 0x45) {

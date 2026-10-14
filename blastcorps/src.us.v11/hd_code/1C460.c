@@ -365,7 +365,7 @@ u8 func_80261A44(u64 event) {
             break;
         case 0x4000:
         case 0x80:
-            if (func_80264BA4(levelno) == 3) {
+            if (lvl_planet(levelno) == 3) {
                 tune = 0xC;
             } else {
                 tune = 0x13;

@@ -24,7 +24,7 @@ void func_801EE398(s32 arg0) {
     no_palette_dmas = 0;
     gdl = buf->dl;
     tex_reset_decode_queue();
-    func_8025B2B8();
+    font_age_cache();
     if (currentYoshiWindow != arg0) {
         yoshi_demand(arg0 | 0x8000 | 0x2000);
         func_80260A10();
@@ -33,7 +33,7 @@ void func_801EE398(s32 arg0) {
     if (D_802159C0 == 2) {
         osViBlack(0);
     }
-    func_80259450();
+    text_begin_frame();
     rsp_send_task((u64 *) (gDynamicBufs[gBufferIndex].dl), gFrameDlLen, 1, 1, 0x4D2, 0);
     gBufferIndex ^= 1;
     gSPSegment(gdl++, 0, 0);

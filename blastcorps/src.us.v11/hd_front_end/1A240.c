@@ -117,12 +117,12 @@ Gfx *func_80201364(s32 arg0, Gfx *arg1) {
                 case 1:
                     D_8021ABA2 = 0;
                     D_8021ABA1 = 0xFF;
-                    if (func_8026A828(0, 40) == 0) {
+                    if (util_rand_range(0, 40) == 0) {
                         D_8021ABA4 = 2;
                     }
                     break;
                 case 2:
-                    if (func_8026A828(0, 30) == 0 || D_8021ABA2 == 0xFF) {
+                    if (util_rand_range(0, 30) == 0 || D_8021ABA2 == 0xFF) {
                         D_8021ABA4 = 3;
                     }
                     if (D_8021ABA2 + 24 > 0xFF) {
@@ -133,7 +133,7 @@ Gfx *func_80201364(s32 arg0, Gfx *arg1) {
                     D_8021ABA1 = 0xFF - D_8021ABA2;
                     break;
                 case 3:
-                    if (func_8026A828(0, 50) == 0) {
+                    if (util_rand_range(0, 50) == 0) {
                         D_8021ABA4 = 2;
                     }
                     if (D_8021ABA2 - 32 < 0) {

@@ -20,8 +20,9 @@ extern u8 D_0048FE90[];
 extern void * N64P D_803A6B10;
 extern s16 D_803A6B14;
 
-/* Load the 256x16 IA8 overlay texture from ROM into the heap */
-void func_8029A130(void) {
+/* The 256x16 attract-demo banner from ROM (0x8029A130).
+ * Load the 256x16 IA8 overlay texture from ROM into the heap */
+void hud_load_demo_banner(void) {
     s32 size = D_0048FE90 - D_0048FA70;
 
     func_8028B4C4((u32) D_0048FA70, (u32) gHeapPtr, (u32 *) &size, 0xC, 0, 1);
@@ -30,8 +31,9 @@ void func_8029A130(void) {
     D_803A6B14 = 0;
 }
 
-/* Draw it as a textured rectangle, fading in by 0x40 per frame */
-Gfx *func_8029A1A8(s32 arg0, Gfx *arg1) {
+/* Draws it, fading in (0x8029A1A8).
+ * Draw it as a textured rectangle, fading in by 0x40 per frame */
+Gfx *hud_draw_demo_banner(s32 arg0, Gfx *arg1) {
     Gfx *gfx = arg1;
 
     gDPPipeSync(gfx++);

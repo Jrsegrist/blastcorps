@@ -154,20 +154,20 @@ func_802AC2A4: -n 300 --seed 0 --heap 0x50 --heap 0x50 --heap 0x50 --heap 0x50 \
     --arg a0=int --arg a1=int --arg v0=int --arg v1=int --arg t0=int --arg t8=choice:0,5,0xFF --arg gp=int \
     --mem gLevelKind=choice:0x40*3,0,0x41 --mem gObjHits=rel:heap0 --mem gObjHits+8=rel:heap1 \
     --mem gObjHits+0x10=rel:heap2 --mem gObjHits+0x18=rel:heap3 --mem gObjHitsEnd=rel:gObjHits+8*int:0:4 \
-    --mem D_8036E4C8:2=choice:0,1,0x8000 --mem gFailTrigger:1=rand --mem D_80367738=int --sig func_80260650=a0,a1,a2
+    --mem gPowerPillTimer:2=choice:0,1,0x8000 --mem gFailTrigger:1=rand --mem D_80367738=int --sig func_80260650=a0,a1,a2
 # always a non-empty list and sound; positions around 0xBB80 and the wrap points
 func_802AC2A4: -n 200 --seed 1 --heap 0x50 --heap 0x50 --heap 0x50 --heap 0x50 \
     --arg a0=int --arg a1=int --arg v0=int --arg v1=int --arg t0=int --arg t8=choice:0,5,0xFF --arg gp=int \
     --mem gLevelKind=0x40 --mem gObjHits=rel:heap0 --mem gObjHits+8=rel:heap1 \
     --mem gObjHits+0x10=rel:heap2 --mem gObjHits+0x18=rel:heap3 --mem gObjHitsEnd=rel:gObjHits+8*int:1:4 \
     --mem @heap0+0x10*0x60:4=choice:0,0xBB80,0xBB81,-1,0x7FFFFFFF,0x80000000 --mem @heap0+0x18*0x60:4=choice:0,0xBB80,0xBB7F,-1,0x80000000 \
-    --mem D_8036E4C8:2=choice:1,0xFFFF --mem gFailTrigger:1=rand --mem D_80367738=int --sig func_80260650=a0,a1,a2
+    --mem gPowerPillTimer:2=choice:1,0xFFFF --mem gFailTrigger:1=rand --mem D_80367738=int --sig func_80260650=a0,a1,a2
 # the reset and the collision pass run for real (vehicle 5's sphere in one slot, no objects)
 func_802AC2A4: -n 200 --seed 2 --heap 0x50 --heap 0x50 --heap 0x50 --heap 0x50 --heap 0x100 \
     --arg a0=int --arg a1=int --arg v0=int --arg v1=int --arg t0=int --arg t8=5 --arg gp=rel:heap4 \
     --mem gLevelKind=0x40 --mem gObjHits=rel:heap0 --mem gObjHits+8=rel:heap1 \
     --mem gObjHits+0x10=rel:heap2 --mem gObjHits+0x18=rel:heap3 --mem gObjHitsEnd=rel:gObjHits+8*int:0:4 \
-    --mem D_8036E4C8:2=choice:0,1 --mem gFailTrigger:1=rand --mem D_80367738=int --sig func_80260650=a0,a1,a2 \
+    --mem gPowerPillTimer:2=choice:0,1 --mem gFailTrigger:1=rand --mem D_80367738=int --sig func_80260650=a0,a1,a2 \
     --mem gVehBoundSpheres:0xF0=onehot:0x14@0x10/1:5:rand --mem gVehBoundSpheres+0x11*0x14:12/1=0 --mem gFramesInMode=choice:0,1 \
     --mem gObjHitPartDown:1=rand --mem gObjHit:1=rand --mem gObjHitImmunePart:1=rand --mem D_803F780F:1=rand \
     --sig veh_prev_contacts_clear= --sig veh_contacts_clear= --sig veh_contacts_save= --follow veh_collision_setup,obj_collide_vehicle,obj_hits_clear

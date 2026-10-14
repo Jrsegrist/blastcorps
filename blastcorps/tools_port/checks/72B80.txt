@@ -45,14 +45,14 @@ chopper_update_mode: -n 100 --seed 2 --ret void --sig func_80275390=a0,a1 \
 # (the asm's $gp change is declared `clobbers gp` in conventions.txt)
 amdream_enter: -n 200 --seed 0 --ret void --sig veh_start_engine_sound=a0,a1 --arg a0=int \
     --mem gAmdreamState+0x99:1=bytes:1,0xFF --mem gCamDistance:2=rand --mem gCamHeightBase:2=rand
-# amdream_add_tyre_trail: tyre trail ($gp = gAmdreamState); func_8027BE7C's args at their declared widths
+# amdream_add_tyre_trail: tyre trail ($gp = gAmdreamState); trail_add's args at their declared widths
 amdream_add_tyre_trail: -n 400 --seed 0 --ret void --arg gp=sym:gAmdreamState \
-    --conv 'func_8027BE7C: in a0=a0:1,a1=a1,a2=a2:2,a3=a3:2,stack0=stack0:2,stack1=stack1:2,stack2=stack2,stack3=stack3,stack4=stack4:2,stack5=stack5:1,stack6=stack6:1,stack7=stack7:1,stack8=stack8:1' \
+    --conv 'trail_add: in a0=a0:1,a1=a1,a2=a2:2,a3=a3:2,stack0=stack0:2,stack1=stack1:2,stack2=stack2,stack3=stack3,stack4=stack4:2,stack5=stack5:1,stack6=stack6:1,stack7=stack7:1,stack8=stack8:1' \
     --mem gAmdreamState+0x99:1=bytes:0,1,0x80 \
     --mem gAmdreamState+0x98:1=bytes:0*3,1,2 --mem gAmdreamState+0x50:1=bytes:0,1,2*2,3,4,0x80,0xFF --mem gAmdreamState+0x9B:1=bytes:0*4,1,0x80 \
     --mem gAmdreamState+0x1C=int --mem gAmdreamState+0x4E:2=int:0:0xFFFF --mem gAmdreamPos=int --mem D_803EEF20=int
 amdream_add_tyre_trail: -n 100 --seed 1 --ret void --arg gp=sym:gAmdreamState \
-    --conv 'func_8027BE7C: in a0=a0:1,a1=a1,a2=a2:2,a3=a3:2,stack0=stack0:2,stack1=stack1:2,stack2=stack2,stack3=stack3,stack4=stack4:2,stack5=stack5:1,stack6=stack6:1,stack7=stack7:1,stack8=stack8:1' \
+    --conv 'trail_add: in a0=a0:1,a1=a1,a2=a2:2,a3=a3:2,stack0=stack0:2,stack1=stack1:2,stack2=stack2,stack3=stack3,stack4=stack4:2,stack5=stack5:1,stack6=stack6:1,stack7=stack7:1,stack8=stack8:1' \
     --mem gAmdreamState+0x99:1=1 --mem gAmdreamState+0x98:1=0 --mem gAmdreamState+0x50:1=bytes:0,2 --mem gAmdreamState+0x9B:1=0 \
     --mem gAmdreamState+0x1C=choice:0,-1,0x7FFFFFFF,0x80000000 --mem gAmdreamState+0x4E:2=halves:0,0x7FFF,0x8000,0xFFFF \
     --mem gAmdreamPos=choice:0,-1,0x80000000,0x123456 --mem D_803EEF20=choice:0,-1,0x7FFFFFFF,0x123456
@@ -155,7 +155,7 @@ amdream_update_effects: -n 400 --arg gp=sym:gAmdreamState --arg t6=int --arg t7=
     --stub-ret fx_count_active=choice:0,13,14,15,16 --sig amdream_add_tyre_trail= --sig fx_count_active=
 amdream_update_effects: -n 300 --seed 1 --arg gp=sym:gAmdreamState --arg t6=int --arg t7=int --arg s0=int --arg s1=int --arg s2=int \
     --arg s3=int --arg s4=int --follow amdream_add_tyre_trail,fx_count_active,fx_spawn,veh_find_point,veh_set_engine_level \
-    --conv 'func_8027BE7C: in a0=a0:1,a1=a1,a2=a2:2,a3=a3:2,stack0=stack0:2,stack1=stack1:2,stack2=stack2,stack3=stack3,stack4=stack4:2,stack5=stack5:1,stack6=stack6:1,stack7=stack7:1,stack8=stack8:1' \
+    --conv 'trail_add: in a0=a0:1,a1=a1,a2=a2:2,a3=a3:2,stack0=stack0:2,stack1=stack1:2,stack2=stack2,stack3=stack3,stack4=stack4:2,stack5=stack5:1,stack6=stack6:1,stack7=stack7:1,stack8=stack8:1' \
     --mem gAmdreamSmokeCooldown:1=choice:0*4,1,0xFF --mem gAmdreamState+0x99:1=choice:0,1*3 --mem gAmdreamState+0x98:1=bytes:0,1 \
     --mem gAmdreamState+0x50:1=bytes:0,3 --mem gAmdreamState+0x9B:1=bytes:0,1 --mem gAmdreamState+0x76:2=int:0:0xFFFF \
     --mem gVehPoints:0x100=onehot:0x10@0xC/1:8:bytes:1,2,3 --mem gEffects:0x3C0=rand \
@@ -196,7 +196,7 @@ chopper_fly: -n 400 --follow chopper_target_distance,math_dist3 --mem gChopperMo
     --stub-ret anim_get_state.v1=choice:0,1 --stub-ret anim_get_state.f0=choice:0,0x3F800000 \
     --stub-ret veh_follow_angle=choice:0,0x3FF,0x400,0x401,0x800,0x801 --stub-ret math_rotate_xz_inv=int:-0x40000:0x40000 \
     --stub-ret math_rotate_xz_inv.t1=int:-0x40000:0x40000 --stub-ret veh_move_along_heading=int --stub-ret veh_move_along_heading.t1=int \
-    --stub-ret func_8026A610=int:0:0x8000 --stub-ret func_80260650=int \
+    --stub-ret util_dist2d=int:0:0x8000 --stub-ret func_80260650=int \
     --sig debug_printf=a0 --sig yoshi_demand=a0 --sig chopper_find_cruise_height=a0 --sig func_80260650=a0,a1:2,a2 \
     --sig func_80260AB8=a0,a1:2,a2
 # state 1 near the target: the 2000 cut, the level limits 30000 / 48000 / 70000 and the debug warp (bx = gChopperRetargetZ)
@@ -232,7 +232,7 @@ chopper_fly: -n 300 --seed 4 --follow chopper_target_distance,math_dist3 --mem g
     --mem gGameMode=0 --mem gGameMode+4=choice:0x1000,0 --mem gChopperTouchdown:1=rand --mem D_803EF32E:1=choice:0,1 --mem gLevelData=int \
     --mem gChopperX=int --mem gChopperZ=int --stub-ret anim_get_state.v1=choice:0,1 \
     --stub-ret anim_get_state.f0=choice:0,0x80000000,0x3F800000,0x7FC00000 \
-    --stub-ret func_8026A610=choice:0,1,0x3E8,0x3E9,0x3E7,0x1000,0x4000,0x7FFF,0xFFFF8000 --stub-ret func_80260650=int \
+    --stub-ret util_dist2d=choice:0,1,0x3E8,0x3E9,0x3E7,0x1000,0x4000,0x7FFF,0xFFFF8000 --stub-ret func_80260650=int \
     --stub-ret veh_move_along_heading=int --stub-ret veh_move_along_heading.t1=int \
     --sig chopper_find_cruise_height=a0 --sig func_80260650=a0,a1:2,a2 --sig func_80260AB8=a0,a1:2,a2
 # callees followed (sine/cosine, arcsine and the s64 helpers stubbed or followed as in their own checks)
@@ -341,7 +341,7 @@ amdream_spawn: -n 100 --seed 1 \
 amdream_update: -n 300 --seed 0 --arg t6=0 --arg t7=0 --arg s0=0 --arg s1=0 --arg s2=0 --arg s3=0 --arg s4=0 \
     --arg f20=0 --arg f22=0 --arg f24=0 --arg f26=0 --mem gAmdreamState:0xA6=rand --mem gAmdreamState+0x9A:1=bytes:0,1,0x80 \
     --mem gAmdreamState+0x4C:2=int:0:0xFFF --mem gAmdreamState+0x4E:2=int:0:0xFFF --mem gAmdreamPos:12=rand \
-    --mem D_80367BFF:1=bytes:0,1 --mem gAmdreamThrottleLock:1=bytes:0,1,5 --mem gAmdreamDeflecting:1=bytes:0,1,0x80 --mem gAmdreamDeflectHeading:2=rand \
+    --mem gTurboPending:1=bytes:0,1 --mem gAmdreamThrottleLock:1=bytes:0,1,5 --mem gAmdreamDeflecting:1=bytes:0,1,0x80 --mem gAmdreamDeflectHeading:2=rand \
     --mem gBufferIndex:1=bytes:0,1 --mem gAmdreamMtxA=int --mem gAmdreamMtxB=int --mem gCollBlocked:1=bytes:0,1 \
     --mem gCollHit:1=bytes:0,1 --mem D_803F77D0=int --mem gPlayerX:12=rand --mem D_8036443C:6=rand \
     --sig veh_prepare_escape=a0 --sig veh_free_arc_mid= --sig amdream_set_physics= --sig amdream_build_model= --sig amdream_steer_rate= \
@@ -350,7 +350,7 @@ amdream_update: -n 300 --seed 0 --arg t6=0 --arg t7=0 --arg s0=0 --arg s1=0 --ar
 amdream_update: -n 300 --seed 1 --heap 0x10=bytes:0,1 --model obj_collide_vehicle=hit_D_803A7424.py --arg t6=0 --arg t7=0 \
     --arg s0=0 --arg s1=0 --arg s2=0 --arg s3=0 --arg s4=0 --arg f20=0 --arg f22=0 --arg f24=0 --arg f26=0 \
     --mem gAmdreamState:0xA6=rand --mem gAmdreamState+0x76:2=halves:0,1,0x31,0x32,0x33,0x7FFF,0xFFFF,0xFFCF,0xFFCE,0xFFCD,0x8000 \
-    --mem gAmdreamPos:12=rand --mem D_80367BFF:1=bytes:0 --mem gAmdreamThrottleLock:1=bytes:0,1,5 --mem gAmdreamDeflecting:1=bytes:0,1 \
+    --mem gAmdreamPos:12=rand --mem gTurboPending:1=bytes:0 --mem gAmdreamThrottleLock:1=bytes:0,1,5 --mem gAmdreamDeflecting:1=bytes:0,1 \
     --mem gBufferIndex:1=bytes:0,1 --mem gAmdreamMtxA=int --mem gAmdreamMtxB=int --mem gCollBlocked:1=bytes:0 \
     --mem gCollHit:1=bytes:0,1 --mem D_803F77D0=int --mem gPlayerX:12=rand --mem D_8036443C:6=rand \
     --sig veh_prepare_escape=a0 --sig veh_free_arc_mid= --sig amdream_set_physics= --sig amdream_build_model= --sig amdream_steer_rate= \
@@ -361,11 +361,11 @@ amdream_update: -n 200 --seed 2 \
     --arg t6=0 --arg t7=0 --arg s0=0 --arg s1=0 --arg s2=0 --arg s3=0 --arg s4=0 --arg f20=0 --arg f22=0 --arg f24=0 \
     --arg f26=0 --mem gAmdreamState:0xA6=rand --mem gAmdreamState+0x96:3=bytes:0,1 --mem gAmdreamState+0x4C:2=int:0:0xFFF \
     --mem gAmdreamState+0x4E:2=int:0:0xFFF --mem gAmdreamState+0x76:2=int:-200:200 --mem gAmdreamPos:12=rand \
-    --mem D_80367BFF:1=bytes:0 --mem gAmdreamThrottleLock:1=bytes:0,1 --mem gAmdreamDeflecting:1=bytes:0,1 --mem gAmdreamDeflectHeading:2=int:0:0xFFF \
+    --mem gTurboPending:1=bytes:0 --mem gAmdreamThrottleLock:1=bytes:0,1 --mem gAmdreamDeflecting:1=bytes:0,1 --mem gAmdreamDeflectHeading:2=int:0:0xFFF \
     --mem gBufferIndex:1=bytes:0,1 --mem gAmdreamMtxA=int --mem gAmdreamMtxB=int --mem gCollBlocked:1=bytes:1 \
     --mem gFreeArcStart:2=int:0:0xFFF --mem gFreeArcEnd:2=int:0:0xFFF --mem D_80358064=choice:0,1 --mem D_803F77D0=int \
     --sig veh_prepare_escape=a0 --sig amdream_build_model= \
     --sig veh_ground_contact=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12,*stack13+0x8,*stack13+0xC,*stack13+0x10,*stack13+0x14
 # (gpfix) vehicle 8's block (gAmdreamState) through veh_prepare_escape and the whole veh_collide_spheres collision chain
 # (gBacklashState+0xA0 is a decoy)
-amdream_update: -n 200 --seed 5 --follow amdream_set_physics,amdream_steer_rate,veh_free_arc_mid,veh_reverse_if_behind,veh_turn_into_free_arc,veh_step_heading,veh_hit_slowdown,veh_set_target_heading,veh_prepare_escape,veh_collide_spheres,veh_collide_vehicles,veh_collide_markers,veh_collide_commpts,veh_scale_other_radius,veh_collide_vehicle_parts,veh_scale_part_radius,math_spheres_overlap,veh_rides_on --arg t6=0 --arg t7=0 --arg s0=0 --arg s1=0 --arg s2=0 --arg s3=0 --arg s4=0 --arg f20=0 --arg f22=0 --arg f24=0 --arg f26=0 --mem gAmdreamState:0xA6=rand --mem gAmdreamState+0x96:3=bytes:0,1 --mem gAmdreamState+0x4C:2=int:0:0xFFF --mem gAmdreamState+0x4E:2=int:0:0xFFF --mem gAmdreamState+0x76:2=int:-200:200 --mem gAmdreamPos:12=rand --mem D_80367BFF:1=bytes:0 --mem gAmdreamThrottleLock:1=bytes:0,1 --mem gAmdreamDeflecting:1=bytes:0,1 --mem gAmdreamDeflectHeading:2=int:0:0xFFF --mem gBufferIndex:1=bytes:0,1 --mem gAmdreamMtxA=int --mem gAmdreamMtxB=int --mem gCollBlocked:1=bytes:1 --mem gFreeArcStart:2=int:0:0xFFF --mem gFreeArcEnd:2=int:0:0xFFF --mem D_80358064=choice:0,1 --mem D_803F77D0=int --sig amdream_build_model= --sig veh_ground_contact=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12,*stack13+0x8,*stack13+0xC,*stack13+0x10,*stack13+0x14 --mem gVehBoundSpheres:0xA0=words:0,10,-10,50,100,300 --mem gVehBoundSpheres+0xC*0x14:8=choice:0,10,50,300 --mem gVehBoundSpheres+0x10*0x14:8/1=choice:0,1,2,6,7 --mem gVehBoundSpheres+0x11*0x14:8/1=choice:1,1,0 --mem gVehBoundSpheres+0x10:1=8 --mem gVehBoundSpheres+0x11:1=choice:1,1,0 --mem gVehBoundSpheres+0x9D:1=0xFF --mem D_803649E8=choice:0,1 --mem gVehPartSpheres:0xA0=words:0,10,-10,50,100,300 --mem gVehPartSpheres+0xC*0x14:8=choice:0,10,50,300 --mem gVehPartSpheres+0x12*0x14:8/1=choice:8,7,0,2 --mem gVehPartSpheres+0x13*0x14:8/1=choice:0,1 --mem gVehPartSpheres+0x9F:1=0xFF --mem gCommPtCount:1=0 --mem gRadarMarkers*0x14:25=-1 --mem gStandOn:0x40=words:0x000A0700,0x0A070000,0x07060000,0 --mem gStandOn+0x40=0xFFFFFFFF --mem gBacklashState+0xA0:1=choice:1,3 --mem gAmdreamState+0xA0:1=choice:1,2,4
+amdream_update: -n 200 --seed 5 --follow amdream_set_physics,amdream_steer_rate,veh_free_arc_mid,veh_reverse_if_behind,veh_turn_into_free_arc,veh_step_heading,veh_hit_slowdown,veh_set_target_heading,veh_prepare_escape,veh_collide_spheres,veh_collide_vehicles,veh_collide_markers,veh_collide_commpts,veh_scale_other_radius,veh_collide_vehicle_parts,veh_scale_part_radius,math_spheres_overlap,veh_rides_on --arg t6=0 --arg t7=0 --arg s0=0 --arg s1=0 --arg s2=0 --arg s3=0 --arg s4=0 --arg f20=0 --arg f22=0 --arg f24=0 --arg f26=0 --mem gAmdreamState:0xA6=rand --mem gAmdreamState+0x96:3=bytes:0,1 --mem gAmdreamState+0x4C:2=int:0:0xFFF --mem gAmdreamState+0x4E:2=int:0:0xFFF --mem gAmdreamState+0x76:2=int:-200:200 --mem gAmdreamPos:12=rand --mem gTurboPending:1=bytes:0 --mem gAmdreamThrottleLock:1=bytes:0,1 --mem gAmdreamDeflecting:1=bytes:0,1 --mem gAmdreamDeflectHeading:2=int:0:0xFFF --mem gBufferIndex:1=bytes:0,1 --mem gAmdreamMtxA=int --mem gAmdreamMtxB=int --mem gCollBlocked:1=bytes:1 --mem gFreeArcStart:2=int:0:0xFFF --mem gFreeArcEnd:2=int:0:0xFFF --mem D_80358064=choice:0,1 --mem D_803F77D0=int --sig amdream_build_model= --sig veh_ground_contact=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12,*stack13+0x8,*stack13+0xC,*stack13+0x10,*stack13+0x14 --mem gVehBoundSpheres:0xA0=words:0,10,-10,50,100,300 --mem gVehBoundSpheres+0xC*0x14:8=choice:0,10,50,300 --mem gVehBoundSpheres+0x10*0x14:8/1=choice:0,1,2,6,7 --mem gVehBoundSpheres+0x11*0x14:8/1=choice:1,1,0 --mem gVehBoundSpheres+0x10:1=8 --mem gVehBoundSpheres+0x11:1=choice:1,1,0 --mem gVehBoundSpheres+0x9D:1=0xFF --mem D_803649E8=choice:0,1 --mem gVehPartSpheres:0xA0=words:0,10,-10,50,100,300 --mem gVehPartSpheres+0xC*0x14:8=choice:0,10,50,300 --mem gVehPartSpheres+0x12*0x14:8/1=choice:8,7,0,2 --mem gVehPartSpheres+0x13*0x14:8/1=choice:0,1 --mem gVehPartSpheres+0x9F:1=0xFF --mem gCommPtCount:1=0 --mem gRadarMarkers*0x14:25=-1 --mem gStandOn:0x40=words:0x000A0700,0x0A070000,0x07060000,0 --mem gStandOn+0x40=0xFFFFFFFF --mem gBacklashState+0xA0:1=choice:1,3 --mem gAmdreamState+0xA0:1=choice:1,2,4

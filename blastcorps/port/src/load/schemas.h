@@ -114,7 +114,7 @@ static void lvl_cells(Block *b, uint32_t lo, uint32_t hi) {
     }
 }
 
-/* 0x3C: lifts (func_8028FDA0): s16 n1, n1 x {s16 x, y, z, type}; s16 n2,
+/* 0x3C: lifts (block_spawn_all): s16 n1, n1 x {s16 x, y, z, type}; s16 n2,
  * n2 x {s16 x, y, z; u8 type, n; s16 @8; n 0x16-byte triangle items read
  * bytewise (lvl_build_coll_tri, BE16S)} */
 static void lvl_lifts(Block *b, uint32_t lo, uint32_t hi) {

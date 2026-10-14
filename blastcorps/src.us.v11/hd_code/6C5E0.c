@@ -494,10 +494,10 @@ static void veh2_state0(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) 
             veh2_ch_get(9, o) == 1) {
             return;
         }
-        if (func_8026A8E0(0, 30) != 0) {
+        if (util_rand2_range(0, 30) != 0) {
             return;
         }
-        r = func_8026A8E0(0, 2);
+        r = util_rand2_range(0, 2);
         r = (r == 0) ? 7 : (r == 1) ? 8 : 9;
         anim_set_frame(0.0f, (Unk8029DEA0Entry *) gThunderfistAnim, r, 0);
         anim_play((Unk8029DEA0Entry *) gThunderfistAnim, r, 1);
@@ -542,7 +542,7 @@ static void veh2_state0(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) 
                 return; /* asm: syscall (+0xA2 is only ever 0 or 1) */
             }
             veh2_ch31_start(0x23);
-            func_80278EB0(6, D_8030D8B0, 100);
+            mb_start(6, D_8030D8B0, 100);
             return;
         }
     }
@@ -592,7 +592,7 @@ pick:
 /* Back to state 0 from state 1/2 (the shared tail of both). */
 static void veh2_to_state0_tail(void) {
     veh2_ch31_start(0x32);
-    func_802794A4();
+    mb_stop();
     gThunderfistState[0xA1] = 0;
 }
 
@@ -632,7 +632,7 @@ void thunderfist_update_actions(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, 
             }
             if (gThunderfistState[0x9C] != 0) {
                 VEH2_SPEED = VEH2_SPEED >> 1;
-                func_802794A4();
+                mb_stop();
                 gThunderfistState[0xA1] = 3;
                 anim_set_frame(0.0f, (Unk8029DEA0Entry *) gThunderfistAnim, 3, 3);
                 anim_blend_channels(0x1F, 3, (Unk8029DEA0Entry *) gThunderfistAnim);
@@ -702,7 +702,7 @@ void thunderfist_update_actions(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, 
                 return;
             }
             gVehAttacking = 0;
-            func_802794A4();
+            mb_stop();
             anim_set_speed((Unk8029DEA0Entry *) gThunderfistAnim, 3, 8);
             anim_set_reverse((Unk8029DEA0Entry *) gThunderfistAnim, 3, 0);
             anim_set_loop_mode((Unk8029DEA0Entry *) gThunderfistAnim, 3, 0);

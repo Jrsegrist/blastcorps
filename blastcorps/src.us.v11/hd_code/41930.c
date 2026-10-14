@@ -59,9 +59,10 @@ extern char D_8036EBA0[];
 #define ACADEMY_ASSERT(EX, line) \
     if (!(EX)) { debug_printf("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "academy.c", line); }
 
-/* Announce the current game state (menu, message, sound); state 4 names the
+/* The window of the game state (0x802860F0).
+ * Announce the current game state (menu, message, sound); state 4 names the
  * first level of the next uncompleted academy group */
-void func_802860F0(void) {
+void academy_announce_state(void) {
     u8 found;
     s32 lvl;
     s32 i;
@@ -96,15 +97,17 @@ void func_802860F0(void) {
     }
 }
 
-/* Play the current game state's sound */
-void func_802862DC(void) {
+/* The tune of the game state (0x802862DC).
+ * Play the current game state's sound */
+void academy_play_state_tune(void) {
     if (((s32) gFramesInMode) == 0) {
         func_80260C20(D_802FDA70[players[playerNumber].gameState], 1.0f);
     }
 }
 
-/* Pick the next top-level mode (gNextGameMode) for the current game state */
-void func_80286330(void) {
+/* GNextGameMode for the game state (0x80286330).
+ * Pick the next top-level mode (gNextGameMode) for the current game state */
+void academy_next_mode(void) {
     switch (players[playerNumber].gameState) {
         case 2:
         case 3:
@@ -112,7 +115,7 @@ void func_80286330(void) {
             gNextGameMode = 0x4000;
             break;
         case 5:
-            func_802995F0(0);
+            seq_prepare(0);
             gNextGameMode = 0x100000000000;
             break;
         case 6:
@@ -124,11 +127,11 @@ void func_80286330(void) {
             func_801F8354(playerNumber);
             break;
         case 7:
-            func_802995F0(1);
+            seq_prepare(1);
             gNextGameMode = 0x100000000000;
             break;
         case 9:
-            func_802995F0(3);
+            seq_prepare(3);
             gNextGameMode = 0x100000000000;
             break;
         case 10:
@@ -143,9 +146,10 @@ void func_80286330(void) {
     }
 }
 
-/* Advance the game state as far as the player's results allow; returns
+/* "going to game state %d" (0x8028653C).
+ * Advance the game state as far as the player's results allow; returns
  * whether it changed */
-u8 func_8028653C(void) {
+u8 academy_advance_state(void) {
     s32 i;
     Player *p;
     u8 advance;

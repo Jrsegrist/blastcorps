@@ -785,14 +785,14 @@ class Cmp:
                 return 0x80399FF0 <= v < 0x8039AFF0 and (v - 0x80399FF0) % 0x40 == 0
             if (snd(ev) or ev == 0) and (snd(nv) or nv == 0) and (ev or nv):
                 return True
-        # 34430.c func_80279778: the RDP renders a 120x90 RGBA16 view into
-        # the buffer D_8036D170 points at (its depth image: gDepthBufferPhys's);
+        # 34430.c mb_render_view: the RDP renders a 120x90 RGBA16 view into
+        # the buffer gMbBuffer points at (its depth image: gDepthBufferPhys's);
         # nothing renders natively, and the CPU doesn't read the pixels
         for ptr in (0x8036D170, 0x80358058):
             p = int.from_bytes(e[ptr - BASE:ptr - BASE + 4], "big") | 0x80000000
             if p <= a < p + 120 * 90 * 2:
                 return True
-        # 34430.c func_80278E3C passes the heap pointer gHeapPtr's value,
+        # 34430.c mb_init passes the heap pointer gHeapPtr's value,
         # not its address, to the round-up helper align_up (an original
         # bug, kept): it "rounds" the stale s32 just past that buffer (the
         # emulator's text Vtx x/y pair there gets y += 15; natively the same

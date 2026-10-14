@@ -1262,7 +1262,7 @@ and the never-written vertex fields of several builders (sprites, boxes,
 globe icons, water) get the N64's old bytes.  When the matched globe display
 list (hd_front_end func_801F1568) changed the NM ROM's CPU timing, three
 more such races showed up (lvfix agent): the mode-0x40 start time
-(hd_main_thread:4A54), the ghost recorder's sample time (func_80294F00) and
+(hd_main_thread:4A54), the ghost recorder's sample time (ghost_record) and
 the retrace handler's freeze test (__scHandleRetrace:8BD0, PORT_EMU).
 
 Debugging what native code wrote: `--watch F:ADDR[:N]` logs the first N

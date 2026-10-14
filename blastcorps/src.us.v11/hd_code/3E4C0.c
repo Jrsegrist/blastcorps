@@ -6,12 +6,13 @@ extern f32 sqrtf(f32);
 extern u16 D_802FCEB0[]; /* 32x32 RGBA16 arrow texture */
 extern Vtx D_802FD9B8[];
 
-/*
+/* The 3D arrow toward the next target (0x80282C80).
+ *
  * Draws the on-screen arrow pointing from the player towards (x, z), tinted
  * green-to-red by the player's distance from (x2, z2) and blinking when within
  * 250 units. Positions are scaled down by 32 first; y and y2 are unused.
  */
-void func_80282C80(Gfx **gfxp, Mtx *mtx, s32 x, s32 y, s32 z, s32 x2, s32 y2, s32 z2) {
+void hud_draw_target_arrow(Gfx **gfxp, Mtx *mtx, s32 x, s32 y, s32 z, s32 x2, s32 y2, s32 z2) {
     Gfx *gfx;
     f32 dist;
 #ifdef NON_MATCHING
@@ -90,13 +91,13 @@ void func_80282C80(Gfx **gfxp, Mtx *mtx, s32 x, s32 y, s32 z, s32 x2, s32 y2, s3
         gSPSetGeometryMode(gfx++, 0x61204);
         gDPPipeSync(gfx++);
         gDPSetCycleType(gfx++, G_CYC_1CYCLE);
-        if (D_80367BD6 == 0xFF) {
+        if (gHudAlpha == 0xFF) {
             gDPSetRenderMode(gfx++, 0x00552008, 0);
         } else {
             gDPSetRenderMode(gfx++, 0x005041C8, 0);
         }
         gDPSetCombine(gfx++, 0x119623, 0xFF2FFFFF);
-        gDPSetPrimColor(gfx++, 0, 0, r, g, 0, D_80367BD6);
+        gDPSetPrimColor(gfx++, 0, 0, r, g, 0, gHudAlpha);
         gSPTexture(gfx++, 0x7C0, 0x7C0, 0, G_TX_RENDERTILE, G_ON);
         gDPLoadTextureBlock(gfx++, OS_K0_TO_PHYSICAL(D_802FCEB0), G_IM_FMT_RGBA, G_IM_SIZ_16b, 32, 32, 0,
                             G_TX_CLAMP, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
@@ -115,23 +116,24 @@ void func_80282C80(Gfx **gfxp, Mtx *mtx, s32 x, s32 y, s32 z, s32 x2, s32 y2, s3
     *gfxp = gfx;
 }
 
-f32 func_80284ADC(s16 x1, s16 z1, s16 x2, s16 z2);
+f32 hud_heading_deg(s16 x1, s16 z1, s16 x2, s16 z2);
 extern u8 D_802FC5B0[];
 extern u8 D_802FC6B0[];
 extern u8 D_802FD6B0[];
 extern Vtx D_802FD7B0[];
 extern Vtx D_802FD7F0[];
 extern Vtx D_802FD830[][12]; /* per radar: target blip, player blip, heading arrow quads */
-extern f32 D_802FD9B0;
+extern f32 gRadarSweepAngle;
 extern Mtx D_8036E5E0[];
 
-/*
+/* The radar: carrier and target blips, heading arrow, sweep (0x8028376C).
+ *
  * Draws radar `idx`, centred on (x, z) and rotated with the camera: zoom
  * (scale) and texture shift depend on the distance to (x2, z2); blips for
  * (x2, z2) (blinking when zoomed in) and the player; an arrow pointing toward
  * (gEndObjectX, gEndObjectZ); and a spinning sweep overlay.
  */
-void func_8028376C(Gfx **gfxp, Mtx *mtx, u8 idx, s32 x, s32 z, s32 x2, s32 z2) {
+void hud_draw_radar(Gfx **gfxp, Mtx *mtx, u8 idx, s32 x, s32 z, s32 x2, s32 z2) {
     Gfx *gfx;
     s32 dist;
     u8 shift;
@@ -149,7 +151,7 @@ void func_8028376C(Gfx **gfxp, Mtx *mtx, u8 idx, s32 x, s32 z, s32 x2, s32 z2) {
     f32 heading;
 
     gfx = *gfxp;
-    dist = func_8026A610(x, z, x2, z2);
+    dist = util_dist2d(x, z, x2, z2);
     if (dist < 0x55F0) {
         shift = 10;
         scale = 1200;
@@ -215,7 +217,7 @@ void func_8028376C(Gfx **gfxp, Mtx *mtx, u8 idx, s32 x, s32 z, s32 x2, s32 z2) {
     gDPSetCycleType(gfx++, G_CYC_2CYCLE);
     gDPSetRenderMode(gfx++, 0x0C184340, 0);
     gDPSetCombine(gfx++, 0x3497FF, 0x4FFE7E38);
-    gDPSetPrimColor(gfx++, 0, 0, 0xFF, 0xFF, 0xFF, (D_80367BD6 < 0x3F) ? D_80367BD6 : 0x3F);
+    gDPSetPrimColor(gfx++, 0, 0, 0xFF, 0xFF, 0xFF, (gHudAlpha < 0x3F) ? gHudAlpha : 0x3F);
     gSPVertex(gfx++, osVirtualToPhysical(D_802FD7B0), 4, 0);
     gSP1Triangle(gfx++, 0, 1, 2, 0);
     gSP1Triangle(gfx++, 0, 2, 3, 0);
@@ -223,7 +225,7 @@ void func_8028376C(Gfx **gfxp, Mtx *mtx, u8 idx, s32 x, s32 z, s32 x2, s32 z2) {
     gDPPipeSync(gfx++);
     gDPSetCycleType(gfx++, G_CYC_1CYCLE);
     gDPSetCombine(gfx++, 0xFFFFFF, 0xFFFE773B);
-    gDPSetPrimColor(gfx++, 0, 0, 0, 0, 0, D_80367BD6);
+    gDPSetPrimColor(gfx++, 0, 0, 0, 0, 0, gHudAlpha);
     if (gHaveCarrier != 0) {
         gDPSetRenderMode(gfx++, 0x005041C8, 0);
         if ((D_803156C4 % 40 > 20 || shift != 10) && sx >= 0x22 && sx < 0x53 && sy >= 0xAB && sy < 0xDC) {
@@ -237,13 +239,13 @@ void func_8028376C(Gfx **gfxp, Mtx *mtx, u8 idx, s32 x, s32 z, s32 x2, s32 z2) {
             gSP1Triangle(gfx++, 0, 2, 3, 0);
         }
     }
-    heading = func_80284ADC(x >> 5, z >> 5, gEndObjectX, gEndObjectZ);
+    heading = hud_heading_deg(x >> 5, z >> 5, gEndObjectX, gEndObjectZ);
     guRotateF(mf, -((360.0 - (gCamHeading - 180.0)) + (heading + 180.0)), 0.0f, 0.0f, 1.0f);
     guTranslateF(mf2, 58.0f, 195.0f, 0.0f);
     guMtxCatF(mf, mf2, mf);
     guMtxF2L(mf, &D_8036E5E0[idx]);
     gDPPipeSync(gfx++);
-    if (D_80367BD6 == 0xFF) {
+    if (gHudAlpha == 0xFF) {
         gDPSetRenderMode(gfx++, 0x00552048, 0);
     } else {
         gDPSetRenderMode(gfx++, 0x005041C8, 0);
@@ -259,13 +261,13 @@ void func_8028376C(Gfx **gfxp, Mtx *mtx, u8 idx, s32 x, s32 z, s32 x2, s32 z2) {
         gDPSetCycleType(gfx++, G_CYC_1CYCLE);
         gDPSetRenderMode(gfx++, 0x00504340, 0);
         gDPSetCombine(gfx++, 0xFF97FF, 0xFF2E7F3F);
-        gDPSetPrimColor(gfx++, 0, 0, 0, 0, 0, (D_80367BD6 >= 0x80) ? 0x7F : D_80367BD6);
+        gDPSetPrimColor(gfx++, 0, 0, 0, 0, 0, (gHudAlpha >= 0x80) ? 0x7F : gHudAlpha);
         gDPLoadTextureBlock(gfx++, OS_K0_TO_PHYSICAL(D_802FD6B0), G_IM_FMT_IA, G_IM_SIZ_8b, 8, 32, 0,
                             G_TX_CLAMP, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
-        guRotate(&mtx[23], D_802FD9B0, 0.0f, 0.0f, 1.0f);
+        guRotate(&mtx[23], gRadarSweepAngle, 0.0f, 0.0f, 1.0f);
         guTranslate(&rot, 58.0f, 195.0f, 0.0f);
         guMtxCatL(&mtx[23], &rot, &mtx[23]);
-        D_802FD9B0 += 4.0;
+        gRadarSweepAngle += 4.0;
         gSPMatrix(gfx++, &D_02000000[23], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
         gSPVertex(gfx++, osVirtualToPhysical(D_802FD7F0), 4, 0);
         gSP1Triangle(gfx++, 0, 1, 2, 0);
@@ -276,12 +278,13 @@ void func_8028376C(Gfx **gfxp, Mtx *mtx, u8 idx, s32 x, s32 z, s32 x2, s32 z2) {
     *gfxp = gfx;
 }
 
-/*
+/* Heading 0..360 from one point to another (0x80284ADC).
+ *
  * Heading in degrees (0..360) from (x1, z1) to (x2, z2), one quadrant at a time.
  * math_asin_c maps a 0..65535 sine to a 0..0x3FFF binary angle. No return if
  * no quadrant test passes (original falls off the end).
  */
-f32 func_80284ADC(s16 x1, s16 z1, s16 x2, s16 z2) {
+f32 hud_heading_deg(s16 x1, s16 z1, s16 x2, s16 z2) {
     f32 dist;
 
     dist = sqrtf((x2 - x1) * (x2 - x1) + (z2 - z1) * (z2 - z1));

@@ -355,7 +355,7 @@ s32 police_steer_rate(void);
  * Per-frame update of vehicle 13 (hd.c, and once from police_spawn):
  * zone level (police_zone_alpha); save the record (veh_snapshot); engine sound
  * 0xD (veh_update_horn); unless +0x9A is set, the effects (police_update_effects with
- * the zone scan registers); func_802CB690 when D_80367BFF; timers
+ * the zone scan registers); func_802CB690 when gTurboPending; timers
  * (police_set_physics); turn rate from the speed (police_steer_rate -> veh_steer);
  * speed bands (veh_throttle, or count down D_803F8F44); acceleration and
  * heading (veh_turn_heading, veh_slope -> veh_apply_slope with 700.0, the
@@ -407,7 +407,7 @@ void police_update(void) {
     if ((s8) gPoliceState[0x9A] == 0) {
         police_update_effects(zr.t6, zr.t7, zr.s0, zr.s1, zr.s2, zr.s3);
     }
-    if (D_80367BFF != 0) {
+    if (gTurboPending != 0) {
         func_802CB690(gPoliceState);
     }
     police_set_physics();
@@ -586,15 +586,15 @@ extern u32 gPolicePos[]; /* [0], [2]: trail x, z */
 /* Tyre tracks while skidding (0x802CC56C).
  * Tyre trail (shape of skyfall_add_tyre_trail in 6E200; $gp = gPoliceState): if the
  * byte at +0x99 is set, +0x98 isn't 1, +0x50 < 3 and +0x9B is clear,
- * func_8027BE7C(3, y, 250, -400, -400, -400, gPolicePos[0], gPolicePos[2],
+ * trail_add(3, y, 250, -400, -400, -400, gPolicePos[0], gPolicePos[2],
  * yaw, 3, 50, 50, 0).
  * Register note: the asm saves and restores every integer register; asm
  * caller police_update_effects keeps a0-a3, t6, t7 live (and reads f12/f14 after
- * the call, which the asm doesn't touch but func_8027BE7C may); a mixed N64
+ * the call, which the asm doesn't touch but trail_add may); a mixed N64
  * build would need a thunk. */
 void police_add_tyre_trail(void) {
     if (gPoliceState[0x99] != 0 && gPoliceState[0x98] != 1 && gPoliceState[0x50] < 3 && gPoliceState[0x9B] == 0) {
-        func_8027BE7C(3, *(s32 *) (gPoliceState + 0x1C), 250, -400, -400, -400, gPolicePos[0], gPolicePos[2],
+        trail_add(3, *(s32 *) (gPoliceState + 0x1C), 250, -400, -400, -400, gPolicePos[0], gPolicePos[2],
                       *(u16 *) (gPoliceState + 0x4E), 3, 50, 50, 0);
     }
 }

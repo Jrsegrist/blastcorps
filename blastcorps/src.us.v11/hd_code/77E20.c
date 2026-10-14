@@ -3,7 +3,7 @@
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_803059F0 ((Unk803059F0 *) D_803059F0)
-#define D_8039C800 ((Unk8039C800 *) D_8039C800)
+#define gBoxTargets ((Unk8039C800 *) gBoxTargets)
 #define gVehPartSpheres ((Unk803A6B30 *) gVehPartSpheres)
 #define gCollTris ((Unk803B9890 *) gCollTris)
 #define gSinkingPart ((Unk803EFED0 *) gSinkingPart)
@@ -207,7 +207,7 @@ typedef struct {
 /* The end object touched and the objectives met: the level is done (0x802BC5E0).
  * If gEndObjectTouched is set, clears it and, unless gHaveCarrier or gHaveShuttle is set
  * and the level isn't finished yet, marks it finished (gLevelDoneRequest and
- * gPauseRequest = 1). "Finished" means gPathBuildingsDestroyed is set, every D_8039C800 entry
+ * gPauseRequest = 1). "Finished" means gPathBuildingsDestroyed is set, every gBoxTargets entry
  * has unk26 set (obj_box_targets_done) and no D_80306480 entry of the current level
  * at or beyond the player's z has an id whose gCollTris unk51 is set
  * (obj_tri_targets_ahead_done). Then, if gHaveCarrier is clear: in game mode 0x40 it calls
@@ -280,15 +280,15 @@ s32 obj_tri_targets_ahead_done(void) {
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* 1 if every D_8039C800 box target is done (unk26) (0x802BC7DC).
- * Returns 1 if every D_8039C800 entry has unk26 set, else 0. The asm returns
+/* 1 if every gBoxTargets box target is done (unk26) (0x802BC7DC).
+ * Returns 1 if every gBoxTargets entry has unk26 set, else 0. The asm returns
  * it in t4 and saves t0, t1 and t3. Asm caller obj_step_tex_anims keeps a0-a3,
  * t0-t2, f12 and f14 live across the call. */
 s32 obj_box_targets_done(void) {
     s32 i;
     Unk8039C800 *t;
 
-    for (i = D_8039C940, t = D_8039C800; i != 0; i--, t++) {
+    for (i = gBoxTargetCount, t = gBoxTargets; i != 0; i--, t++) {
         if (t->unk26 == 0) {
             return 0;
         }
@@ -345,7 +345,7 @@ void obj_clear_delayed_damage(void) {
  * gDelayedDamage holds 40 8-byte counters {s32 id; u16 amount; u8 kind; u8 timer},
  * a nonzero timer marking a slot in use. Adds `amount` to the used slot with
  * this id and kind; if there is none, fills the first free slot with id, kind
- * and amount and a timer of func_8026A8E0(1, 20). Does nothing when all 40 are
+ * and amount and a timer of util_rand2_range(1, 20). Does nothing when all 40 are
  * in use. kind is compared with the byte as a full word.
  * The asm takes kind in t3, id in t9 and amount in a2 and preserves every
  * register (it saves all of them, $sp included); asm caller obj_blast_damage
@@ -365,7 +365,7 @@ void obj_add_delayed_damage(s32 kind, s32 id, s32 amount) {
             e[6] = kind;
             *(u16 *) (e + 4) = amount;
             *(s32 *) e = id;
-            e[7] = func_8026A8E0(1, 20);
+            e[7] = util_rand2_range(1, 20);
             return;
         }
     }
@@ -605,7 +605,7 @@ s32 veh_prev_contacts_has(s32 value) {
  * strictly closer):
  *   1: gObjects entries with unkEB set, unkEA clear and not yet done
  *      (obj_parts_destroyed);
- *   2: D_8039C800 entries with unk26 clear;
+ *   2: gBoxTargets entries with unk26 clear;
  *   3: D_80306480 entries of the current level with an id whose gCollTris
  *      unk51 is set.
  * Stores the kind (0 = none) in gNearestTargetKind and a pointer for it in gNearestTargetPts
@@ -640,7 +640,7 @@ s32 obj_find_nearest_target(void) {
         best = e;
         kind = 1;
     }
-    for (i = D_8039C940, t = D_8039C800; i != 0; i--, t++) {
+    for (i = gBoxTargetCount, t = gBoxTargets; i != 0; i--, t++) {
         if (t->unk26 != 0) {
             continue;
         }
@@ -757,7 +757,7 @@ void obj_calc_target_time(s32 arg0) {
 /* Same preserve-caller-registers convention as obj_clear_delayed_damage above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 extern Mtx * N64P gToppleMtx; /* 2 matrices (lvl_group_move_part's falling parts) */
-extern s32 gPoseMtxCursor;  /* Mtx pool cursor for func_802933A0 */
+extern s32 gPoseMtxCursor;  /* Mtx pool cursor for spline_object_matrix */
 extern s32 gPartMtxPool1[]; /* matrix pools of the two frames */
 extern s32 gPartMtxPool0[];
 extern s32 * N64P gPartMtxCursor;
@@ -793,7 +793,7 @@ void obj_draw_toppling_parts(u32 **gfxA, u32 **gfxB);
  * matrix pool is this frame's (gPartMtxPool1 or gPartMtxPool0 by gBufferIndex).
  * Per object whose unkE8 is in the gVisibleCells list (-1 ends it) and that
  * isn't a 0x38 object while obj_end_object_hidden is set:
- * - with a pose (info u16 +0xE != 0): func_802933A0 builds its matrix
+ * - with a pose (info u16 +0xE != 0): spline_object_matrix builds its matrix
  *   (words +0x1C..+0x24, the pose count, the next gPoseMtxCursor Mtx (advanced by
  *   0x40), state at +0x38, gA, gB, word +0x34, the position) and both scene
  *   lists step 8; the object moves to D_803F7664/68/6C (obj_move_model by the
@@ -968,7 +968,7 @@ void obj_draw_all(u32 *gA, u32 *gB, u32 *gC, u32 *gD, s32 mtxA, s32 mtxB, u32 *g
             s32 oz;
 
             gPoseMtxCursor = mtx + 0x40;
-            func_802933A0(*(s32 *) (ob + 0x1C), *(s32 *) (ob + 0x20), *(s32 *) (ob + 0x24), count, (Mtx *) N64_IPTR(mtx),
+            spline_object_matrix(*(s32 *) (ob + 0x1C), *(s32 *) (ob + 0x20), *(s32 *) (ob + 0x24), count, (Mtx *) N64_IPTR(mtx),
                           ob + 0x38, (Gfx *) gA, (Gfx *) gB, *(s32 *) (ob + 0x34), o->pos[0], o->pos[1],
                           o->pos[2]);
             gA += 2;
@@ -1151,12 +1151,12 @@ void obj_disable_landed_part_tris(Unk802BD99CModel *model, s32 id) {
  * of v0 (the u8 callee leaves the upper bits clear anyway). */
 
 /* Level 0x32 not completed yet: its kind-0x38 end object is ignored (0x802BD8C8).
- * Returns 1 on level 0x32 when func_80286090(level) returns 0, else 0. The
+ * Returns 1 on level 0x32 when stats_level_done(level) returns 0, else 0. The
  * asm returns in t1 and preserves every other register it touches; asm
  * callers keep many registers live across the call (veh_sphere_hits_world and
  * veh_report_world_hits: a0-a3, t3-t6, t8, t9, f12, f14). */
 s32 obj_end_object_hidden(void) {
-    if (levelno == 0x32 && func_80286090(levelno) == 0) {
+    if (levelno == 0x32 && stats_level_done(levelno) == 0) {
         return 1;
     }
     return 0;
@@ -2438,12 +2438,12 @@ void obj_spawn_random_effects(Unk802C1DD0Entry *e, s32 index, s32 level, Unk802C
 #ifdef NON_MATCHING
 
 /* Util_rand_range(lo, hi) for the asm callers (0x802BFB50).
- * func_8026A828(lo, hi) (a random number in a range) for asm callers: the asm
+ * util_rand_range(lo, hi) (a random number in a range) for asm callers: the asm
  * passes a0/a1 through, returns the result in s4 and preserves every other
  * register; asm callers keep t5-t7 and t9 (obj_spawn_random_effects), t7
  * (obj_spawn_random_landing_effect) or t0, t1 and t4 (obj_draw_sinking_part) live. */
 s32 obj_rand_range(s32 lo, s32 hi) {
-    return func_8026A828(lo, hi);
+    return util_rand_range(lo, hi);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_rand_range.s")
@@ -2593,9 +2593,9 @@ s32 obj_part_exposed(s32 id, Unk802C1DD0Entry *e);
 /* A part's damage from the vehicle, its value and the toughness rules (0x802BFF6C).
  * Damage amount for part `id` of e hit with `value` under rule (bit, key):
  *   bit 0xFF: 100 if flag is 1, else 0 (nothing stored);
- *   otherwise D_8036CB2F = 1, D_8036CB2E = bit, then: the part info->unkD is
- *   immune (gObjHitImmunePart = 1, D_8036CB2F = 0, 0); obj_full_damage_rule(bit, flag)
- *   hit: 100; gFullDamage set: 100 (D_8036CB2A = D_8036CB2C = 100);
+ *   otherwise gDigHit = 1, gDigHitVehicle = bit, then: the part info->unkD is
+ *   immune (gObjHitImmunePart = 1, gDigHit = 0, 0); obj_full_damage_rule(bit, flag)
+ *   hit: 100; gFullDamage set: 100 (gDigHitDamage = gDigHitDamagePerPart = 100);
  *   else the first D_80305E50 record for (bit, key) that applies gives r:
  *     0xFC (if gVehAttacking) / 0xFB (if obj_part_exposed(id, e)): n * value;
  *     0xFF (if gHitSpeed >= 0) / 0xFE (if <= 0) / 0xFD (always):
@@ -2606,7 +2606,7 @@ s32 obj_part_exposed(s32 id, Unk802C1DD0Entry *e);
  *       else the record (n extra bytes) is skipped.
  *   The table walk isn't bounded: (bit, key) must have a record that applies
  *   (the ROM table ends each key's list with an 0xFD record). Then
- *   D_8036CB2A = r, D_8036CB2C = r / flag (unsigned; the asm traps on 0) and
+ *   gDigHitDamage = r, gDigHitDamagePerPart = r / flag (unsigned; the asm traps on 0) and
  *   r / flag is returned. Products are 32-bit (multu low word).
  * The asm takes id in t3, value in t7, bit in t8, e in t9, flag in gp and key
  * in fp (all values), returns in t7 and saves v0-t4; asm caller obj_hit_tri
@@ -2628,19 +2628,19 @@ s32 obj_calc_damage(s32 id, s32 value, s32 bit, Unk802C1DD0Entry *e, s32 flag, s
     if (bit == 0xFF) {
         return (flag == 1) ? 100 : 0;
     }
-    D_8036CB2F = 1;
-    D_8036CB2E = bit;
+    gDigHit = 1;
+    gDigHitVehicle = bit;
     if (e->info->unkD == id) {
         gObjHitImmunePart = 1;
-        D_8036CB2F = 0;
+        gDigHit = 0;
         return 0;
     }
     if (obj_full_damage_rule(bit, flag, &out) != 0) {
         return out;
     }
     if (gFullDamage != 0) {
-        D_8036CB2A = 100;
-        D_8036CB2C = 100;
+        gDigHitDamage = 100;
+        gDigHitDamagePerPart = 100;
         return 100;
     }
     rec = D_80305E50;
@@ -2689,9 +2689,9 @@ s32 obj_calc_damage(s32 id, s32 value, s32 bit, Unk802C1DD0Entry *e, s32 flag, s
             rec += rec[3] + 4;
         }
     }
-    D_8036CB2A = r;
+    gDigHitDamage = r;
     r = r / (u32) flag;
-    D_8036CB2C = r;
+    gDigHitDamagePerPart = r;
     return r;
 }
 #else
@@ -2856,7 +2856,7 @@ extern u8 * N64P D_80306270[];  /* per kind: {u8 n; u8 defIndex[n]} */
  * r[0x31]'s list in D_80306270 by (low word of D_803649D8 >> 4) % n (n == 0
  * would trap) and spawned with fx_spawn (type 0, the record's words as
  * position/data/fields, tag 1 for kind 0x15 or when gPartSinking is set or
- * D_8036DCD4 is set with D_8036DCD7 == 1, else 0). If that succeeded and
+ * gWaterOn is set with gWaterLayer == 1, else 0). If that succeeded and
  * neither the u64 gNextGameMode nor gCarrierHit is set, func_802619D0(kind)
  * (the asm saves every register around that call). The record is then
  * freed, and a nonzero u16 radius at 0x2E applies obj_blast_damage blast
@@ -2880,7 +2880,7 @@ void obj_run_effect_queue(void) {
         }
         list = D_80306270[r[0x31]];
         def = gFxDefsByKind[list[1 + ((u32) D_803649D8 >> 4) % list[0]]];
-        if (r[0x31] == 0x15 || gPartSinking != 0 || (D_8036DCD4 != 0 && D_8036DCD7 == 1)) {
+        if (r[0x31] == 0x15 || gPartSinking != 0 || (gWaterOn != 0 && gWaterLayer == 1)) {
             tag = 1;
         } else {
             tag = 0;
@@ -3296,7 +3296,7 @@ extern Mtx * N64P gToppleMtx; /* 2 matrices for them */
  * active one advances its u16 angle 0x46C by its u16 speed 0x46E while the
  * sum stays below 0x385 (the speed then grows by 15); once it doesn't, it
  * counts byte 0x471 up and, at 6, deactivates (0x470 = 0, 0x472 = 3) without
- * drawing. A drawn entry gets func_8026A454(x, y, z at 0x464..0x468, the sum,
+ * drawing. A drawn entry gets util_rotate_about_point(x, y, z at 0x464..0x468, the sum,
  * u16 0x46A, its matrix gToppleMtx[i]), then both lists get gSPSegment(9,
  * physical address in word 0x460), and a G_DL call to the entry (list A) or
  * to entry + 0x230 (list B), as physical addresses. The asm takes and returns
@@ -3332,7 +3332,7 @@ void obj_draw_toppling_parts(u32 **gfxA, u32 **gfxB) {
                 continue;
             }
         }
-        func_8026A454(*(s16 *) (e + 0x464), *(s16 *) (e + 0x466), *(s16 *) (e + 0x468), sum,
+        util_rotate_about_point(*(s16 *) (e + 0x464), *(s16 *) (e + 0x466), *(s16 *) (e + 0x468), sum,
                       *(u16 *) (e + 0x46A), m);
         seg = *(u32 *) (e + 0x460) - 0x80000000;
         PORT_ITAG(a, PORT_ITAG_FALL, 2 - i);
@@ -3655,7 +3655,7 @@ s32 obj_count_destroyed_path_buildings(void) {
  *   1: gObjects entries with unkEB set, unkEA clear and not yet done
  *      (obj_parts_destroyed), skipping one whose z is below the player's when its
  *      unkC is below the distance; records unk28, y, unk2C;
- *   2: D_8039C800 entries with unk26 clear; records x, z;
+ *   2: gBoxTargets entries with unk26 clear; records x, z;
  *   3: D_80306480 entries of the current level whose z isn't below the
  *      player's, with an id whose gCollTris unk51 is set; records x, z.
  * The recorded values go to gCarrierTargetX/Y/Z (Y only for kind 1), the
@@ -3690,7 +3690,7 @@ u32 obj_find_carrier_target(void) {
         gCarrierTargetY = e->pos[1];
         gCarrierTargetZ = e->unk2C;
     }
-    for (i = D_8039C940, t = D_8039C800; i != 0; i--, t++) {
+    for (i = gBoxTargetCount, t = gBoxTargets; i != 0; i--, t++) {
         if (t->unk26 != 0) {
             continue;
         }

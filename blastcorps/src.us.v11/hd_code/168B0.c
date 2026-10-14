@@ -4,31 +4,33 @@
 
 /* font.c (from its assert strings): text/glyph-slot cache and string helpers */
 
-extern u8 D_80365360[80];
-extern u16 D_803653B0[80];
-extern u8 D_8039CAF0[][0x200];
-extern u8 D_80365458[];
-extern u16 D_80365558[];
+extern u8 gGlyphAge[80];
+extern u16 gGlyphIds[80];
+extern u8 gGlyphTextures[][0x200];
+extern u8 gNarrowTextBuf[];
+extern u16 gWideTextBuf[];
 
 
 #define ASSERT(EX, line) if (!(EX)) debug_printf("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "font.c", line)
 
-void func_8025B070(void) {
+/* Empties the glyph cache (0x8025B070). */
+void font_reset_cache(void) {
     s32 i;
 
     for (i = 0; i < 80; i++) {
-        D_80365360[i] = 0;
-        D_803653B0[i] = 0;
+        gGlyphAge[i] = 0;
+        gGlyphIds[i] = 0;
     }
 }
 
-u8 *func_8025B0B8(u16 arg0) {
+/* A glyph's 32x32 I4 texture, cached or loaded (0x8025B0B8). */
+u8 *font_get_glyph(u16 arg0) {
     s32 i;
     u8 found;
 
     found = 0;
     for (i = 0; i < 80 && !found;) {
-        if (D_803653B0[i] == arg0) {
+        if (gGlyphIds[i] == arg0) {
             found = 1;
         } else {
             i++;
@@ -36,9 +38,9 @@ u8 *func_8025B0B8(u16 arg0) {
     }
     if (!found) {
         for (i = 0; i < 80 && !found;) {
-            if (D_803653B0[i] == 0) {
-                tex_queue_load(arg0, D_8039CAF0[i], 0);
-                D_803653B0[i] = arg0;
+            if (gGlyphIds[i] == 0) {
+                tex_queue_load(arg0, gGlyphTextures[i], 0);
+                gGlyphIds[i] = arg0;
                 found = 1;
             } else {
                 i++;
@@ -47,9 +49,9 @@ u8 *func_8025B0B8(u16 arg0) {
     }
     if (!found) {
         for (i = 0; i < 80 && !found;) {
-            if (D_80365360[i] == 0) {
-                tex_queue_load(arg0, D_8039CAF0[i], 0);
-                D_803653B0[i] = arg0;
+            if (gGlyphAge[i] == 0) {
+                tex_queue_load(arg0, gGlyphTextures[i], 0);
+                gGlyphIds[i] = arg0;
                 found = 1;
             } else {
                 i++;
@@ -58,22 +60,24 @@ u8 *func_8025B0B8(u16 arg0) {
     }
     ASSERT(found, 81);
     if (found) {
-        D_80365360[i] = 3;
+        gGlyphAge[i] = 3;
     }
-    return D_8039CAF0[i];
+    return gGlyphTextures[i];
 }
 
-void func_8025B2B8(void) {
+/* Ages the glyph slots (once a frame) (0x8025B2B8). */
+void font_age_cache(void) {
     s32 i;
 
     for (i = 0; i < 80; i++) {
-        if (D_80365360[i] != 0) {
-            D_80365360[i]--;
+        if (gGlyphAge[i] != 0) {
+            gGlyphAge[i]--;
         }
     }
 }
 
-s32 func_8025B300(u8 *arg0) {
+/* String length without the '*' characters (0x8025B300). */
+s32 font_strlen(u8 *arg0) {
     s32 i;
     s32 n;
 
@@ -89,7 +93,8 @@ s32 func_8025B300(u8 *arg0) {
     return i - n;
 }
 
-s32 func_8025B370(u16 *arg0) {
+/* Wide string length (0xFFE ends), 0x1000 codes not counted (0x8025B370). */
+s32 font_wstrlen(u16 *arg0) {
     s32 i;
     s32 n;
 
@@ -105,11 +110,12 @@ s32 func_8025B370(u16 *arg0) {
     return i - n;
 }
 
-s32 func_8025B3F0(u8 *a, u8 *b) {
+/* 1 if the strings differ, else 0 (0x8025B3F0). */
+s32 font_strcmp(u8 *a, u8 *b) {
     s32 i;
     s32 len;
 
-    if ((len = func_8025B300(a)) != func_8025B300(b)) {
+    if ((len = font_strlen(a)) != font_strlen(b)) {
         return 1;
     }
     for (i = 0; i < len; i++) {
@@ -120,37 +126,40 @@ s32 func_8025B3F0(u8 *a, u8 *b) {
     return 0;
 }
 
-s16 func_8025B498(s16 x, u16 scale, u8 *str, s32 arg3) {
+/* The x that centres a string on x (0x8025B498). */
+s16 font_center_x(s16 x, u16 scale, u8 *str, s32 arg3) {
     s32 unused;
     u16 result;
     register s32 len;
 
     unused = 0;
-    len = func_8025B300(str);
-    result = (s32)(x - ((D_802E8C84[0] * (len - 1) + 1.0f) * scale) / 2.0);
+    len = font_strlen(str);
+    result = (s32)(x - ((gFontAdvance[0] * (len - 1) + 1.0f) * scale) / 2.0);
     return result;
 }
 
-u8 *func_8025B558(u16 *arg0) {
+/* A u16 string into the narrow buffer (0x8025B558). */
+u8 *font_narrow(u16 *arg0) {
     s32 i;
 
 #ifdef NON_MATCHING
-    /* `D_80365458[i] = arg0[i++]` is unsequenced: IDO stores at the old i,
+    /* `gNarrowTextBuf[i] = arg0[i++]` is unsequenced: IDO stores at the old i,
      * gcc at the new one (found by port/tools/compare.py: the text came out
      * empty natively) */
     for (i = 0; arg0[i] != 0 && i < 0xFF; i++) {
-        D_80365458[i] = arg0[i];
+        gNarrowTextBuf[i] = arg0[i];
     }
 #else
     for (i = 0; arg0[i] != 0 && i < 0xFF;) {
-        D_80365458[i] = arg0[i++];
+        gNarrowTextBuf[i] = arg0[i++];
     }
 #endif
-    D_80365458[i] = 0;
-    return D_80365458;
+    gNarrowTextBuf[i] = 0;
+    return gNarrowTextBuf;
 }
 
-u16 *func_8025B5D4(u16 *dst, u16 *src, u16 *str, s32 num) {
+/* Expands 0x1003 (a string) and 0x1004 (a number) (0x8025B5D4). */
+u16 *font_format_wstr(u16 *dst, u16 *src, u16 *str, s32 num) {
     u8 buf[12];
     s32 i;
     s32 j;
@@ -182,43 +191,45 @@ u16 *func_8025B5D4(u16 *dst, u16 *src, u16 *str, s32 num) {
     return dst;
 }
 
-u16 *func_8025B7AC(u8 *str) {
+/* An ASCII string to wide font codes (0x8025B7AC). */
+u16 *font_to_wstr(u8 *str) {
     s32 i;
 
-    for (i = 0; i < func_8025B300(str); i++) {
+    for (i = 0; i < font_strlen(str); i++) {
         switch (str[i]) {
             case ' ':
-                D_80365558[i] = 0x1002;
+                gWideTextBuf[i] = 0x1002;
                 break;
             case '.':
-                D_80365558[i] = 0x3C;
+                gWideTextBuf[i] = 0x3C;
                 break;
             case '1':
             case '2':
             case '3':
             case '4':
-                D_80365558[i] = str[i] - 0x20;
+                gWideTextBuf[i] = str[i] - 0x20;
                 break;
             default:
-                D_80365558[i] = str[i] - 0x27;
+                gWideTextBuf[i] = str[i] - 0x27;
                 break;
             case '/':
-                D_80365558[i] = 0x3D;
+                gWideTextBuf[i] = 0x3D;
                 break;
             case ':':
-                D_80365558[i] = 0x3E;
+                gWideTextBuf[i] = 0x3E;
                 break;
         }
     }
-    D_80365558[i] = 0xFFE;
-    return D_80365558;
+    gWideTextBuf[i] = 0xFFE;
+    return gWideTextBuf;
 }
 
-void func_8025B918(u16 *dst, u16 *src) {
+/* Appends a wide string (0x8025B918). */
+void font_wstrcat(u16 *dst, u16 *src) {
     s32 i;
     s32 j;
 
-    for (i = 0, j = func_8025B370(dst); i < func_8025B370(src); i++, j++) {
+    for (i = 0, j = font_wstrlen(dst); i < font_wstrlen(src); i++, j++) {
         dst[j] = src[i];
     }
     dst[j] = 0xFFE;

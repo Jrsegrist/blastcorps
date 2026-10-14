@@ -28,7 +28,7 @@ C64_COMMON := -fms-extensions -mno-ms-bitfields -fdata-sections -fno-addrsig -fn
 	-Wno-void-pointer-to-int-cast -Wno-int-to-pointer-cast -Wno-int-to-void-pointer-cast
 # Code that sees N64 data is compiled through LLVM IR: the x86-64 ABI gives a
 # global array of 16 bytes or more 16-byte alignment and clang assumes it for
-# every array, extern ones too, so it used movaps on D_8036B8C8 (an N64 array at
+# every array, extern ones too, so it used movaps on gCamPathBasis (an N64 array at
 # an 8-aligned address: a fault).  tools/llalign64.py lowers every alignment
 # above 4 on memory accesses and N64 globals in the optimised IR, then the code
 # is generated (no further IR optimisation); tools/align64.py checks the

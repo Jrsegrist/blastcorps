@@ -384,7 +384,7 @@ void headingPitch(const Vec3 &eye, const Vec3 &at, int &heading, int &pitch) {
     pitch = int(d.y >= 0 ? p : -p);
 }
 
-/* the orbit's backdrop vertex values into D_802FA820[0 or 1] at `a`
+/* the orbit's backdrop vertex values into gBackdropVtx[0 or 1] at `a`
  * (physical), saved first; put back by restoreVtx */
 int16_t g_vtxSaved[4][8];
 int16_t *patchVtx(uint32_t a, const short vals[4][3]) {
@@ -411,7 +411,7 @@ bool commandHook(RT64::State *state, RT64::DisplayList **dl, const GbiOriginal *
      * comes after the second G_SETCIMG, the frame buffer's) */
     if (op == 0xFF) g_bd.cimg++;
     if (g_bd.cimg < 2) return false;
-    if (op == 0x04 && !g_bd.vtxDone) {   /* G_VTX: the game drew its backdrop quad (D_802FA820[buf]) */
+    if (op == 0x04 && !g_bd.vtxDone) {   /* G_VTX: the game drew its backdrop quad (gBackdropVtx[buf]) */
         const uint32_t a = state->rsp->fromSegmented(w1) & 0x7FFFFF;
         if (a != 0x2FA820 && a != 0x2FA860) return false;
         g_bd.vtxDone = true;

@@ -177,12 +177,12 @@ void ptcl_update(void) {
                     gParticles[slot].pos[0] = gEmitterX;
                     gParticles[slot].pos[1] = gEmitterY;
                     gParticles[slot].pos[2] = gEmitterZ;
-                    angle = func_8026A828(0, gParticleDef->spread);
+                    angle = util_rand_range(0, gParticleDef->spread);
                     guRotateF(mf, angle, 0.0f, 0.0f, 1.0f);
                     guMtxXFMF(mf, 0.0f,
-                              (func_8026A828(-gParticleDef->speedVar, gParticleDef->speedVar) + gParticleDef->speed) / 32.0f,
+                              (util_rand_range(-gParticleDef->speedVar, gParticleDef->speedVar) + gParticleDef->speed) / 32.0f,
                               0.0f, &x, &y, &z);
-                    angle = func_8026A828(0, 359);
+                    angle = util_rand_range(0, 359);
                     guRotateF(mf, angle, 0.0f, 1.0f, 0.0f);
                     guMtxXFMF(mf, x, y, z, &rx, &ry, &rz);
                     gParticles[slot].vel[0] = rx * 32.0f;
@@ -193,7 +193,7 @@ void ptcl_update(void) {
                     gParticles[slot].fallTime = 0;
                     gParticles[slot].age = 0;
                     gParticles[slot].life =
-                        func_8026A828(-gParticleDef->lifeVar, gParticleDef->lifeVar) + gParticleDef->life;
+                        util_rand_range(-gParticleDef->lifeVar, gParticleDef->lifeVar) + gParticleDef->life;
                     slot++;
                 } else {
                     full = 1;
@@ -329,7 +329,7 @@ void ptcl_draw(Gfx **gdl, u8 buf) {
                 }
             }
             /* tilt the billboard toward the camera's height, then face its yaw */
-            dist = func_8026A6F0(gCamEyeX >> 11, gCamEyeY >> 11, gCamEyeZ >> 11, gParticles[n].pos[0],
+            dist = util_dist3d(gCamEyeX >> 11, gCamEyeY >> 11, gCamEyeZ >> 11, gParticles[n].pos[0],
                                  gParticles[n].pos[1], gParticles[n].pos[2]);
             if (dist == 0) {
                 dist = 1;

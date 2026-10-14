@@ -14,14 +14,14 @@ ateam_set_physics: -n 60 --seed 1 --ret void --mem gLevelGravity=choice:0,0x8000
 # (the asm's $gp change is declared `clobbers gp` in conventions.txt)
 ateam_enter: -n 200 --seed 0 --ret void --sig veh_start_engine_sound=a0,a1 --arg a0=int \
     --mem gAteamState+0x99:1=bytes:1,0xFF --mem gCamDistance:2=rand --mem gCamHeightBase:2=rand
-# ateam_add_tyre_trail: tyre trail ($gp = gAteamState); func_8027BE7C's args at their declared widths (--conv)
+# ateam_add_tyre_trail: tyre trail ($gp = gAteamState); trail_add's args at their declared widths (--conv)
 ateam_add_tyre_trail: -n 400 --seed 0 --ret void --arg gp=sym:gAteamState \
-    --conv 'func_8027BE7C: in a0=a0:1,a1=a1,a2=a2:2,a3=a3:2,stack0=stack0:2,stack1=stack1:2,stack2=stack2,stack3=stack3,stack4=stack4:2,stack5=stack5:1,stack6=stack6:1,stack7=stack7:1,stack8=stack8:1' \
+    --conv 'trail_add: in a0=a0:1,a1=a1,a2=a2:2,a3=a3:2,stack0=stack0:2,stack1=stack1:2,stack2=stack2,stack3=stack3,stack4=stack4:2,stack5=stack5:1,stack6=stack6:1,stack7=stack7:1,stack8=stack8:1' \
     --mem gAteamState+0x99:1=bytes:0,1,0x80 \
     --mem gAteamState+0x98:1=bytes:0*3,1,2 --mem gAteamState+0x50:1=bytes:0,1,2*2,3,4,0x80,0xFF --mem gAteamState+0x9B:1=bytes:0*4,1,0x80 \
     --mem gAteamState+0x1C=int --mem gAteamState+0x4E:2=int:0:0xFFFF --mem gAteamPos=int --mem D_803F9300=int
 ateam_add_tyre_trail: -n 100 --seed 1 --ret void --arg gp=sym:gAteamState \
-    --conv 'func_8027BE7C: in a0=a0:1,a1=a1,a2=a2:2,a3=a3:2,stack0=stack0:2,stack1=stack1:2,stack2=stack2,stack3=stack3,stack4=stack4:2,stack5=stack5:1,stack6=stack6:1,stack7=stack7:1,stack8=stack8:1' \
+    --conv 'trail_add: in a0=a0:1,a1=a1,a2=a2:2,a3=a3:2,stack0=stack0:2,stack1=stack1:2,stack2=stack2,stack3=stack3,stack4=stack4:2,stack5=stack5:1,stack6=stack6:1,stack7=stack7:1,stack8=stack8:1' \
     --mem gAteamState+0x99:1=1 --mem gAteamState+0x98:1=0 --mem gAteamState+0x50:1=bytes:0,2 --mem gAteamState+0x9B:1=0 \
     --mem gAteamState+0x1C=choice:0,-1,0x7FFFFFFF,0x80000000 --mem gAteamState+0x4E:2=halves:0,0x7FFF,0x8000,0xFFFF \
     --mem gAteamPos=choice:0,-1,0x80000000,0x123456 --mem D_803F9300=choice:0,-1,0x7FFFFFFF,0x123456
@@ -71,7 +71,7 @@ ateam_update_effects: -n 200 --seed 2 --arg gp=sym:gAteamState --arg t6=int --ar
     --mem gVehPoints:0x100=onehot:0x10@0xC/1:0xE:bytes:1,2,3 --mem gEffects:0x3C0=rand --mem gEffects+0x33*0x3C:16/1=bytes:0,1 \
     --mem gFxTileSlots:16=bytes:0,1 --mem D_803EB792:1=rand --sig tex_queue_palette=a0,a1 --sig func_80260AB8=a0,a1,a2 \
     --mem gEngineSoundLevel:2=rand --mem D_80364AB0:1=bytes:0,1 --mem gAteamState+0x50:1=bytes:0,1,2,3 \
-    --conv 'func_8027BE7C: in a0=a0:1,a1=a1,a2=a2:2,a3=a3:2,stack0=stack0:2,stack1=stack1:2,stack2=stack2,stack3=stack3,stack4=stack4:2,stack5=stack5:1,stack6=stack6:1,stack7=stack7:1,stack8=stack8:1'
+    --conv 'trail_add: in a0=a0:1,a1=a1,a2=a2:2,a3=a3:2,stack0=stack0:2,stack1=stack1:2,stack2=stack2,stack3=stack3,stack4=stack4:2,stack5=stack5:1,stack6=stack6:1,stack7=stack7:1,stack8=stack8:1'
 # --- 88160: vehicle 14, generated from the 86F60 lines (same code, this vehicle's data) ---
 # ateam_build_model: model placement (mtx_build_model, veh_place_parts / veh_points_transform id 0xE); regs pointers not compared
 ateam_build_model: -n 300 --arg gp=sym:gAteamState --heap 0x200 --heap 0x100 --mem gAteamModel=rel:heap0 \
@@ -99,7 +99,7 @@ ateam_ride_attach: -n 200 --seed 1 --arg a3=int:0:40 --arg f24=float --mem gAtea
 ateam_update: -n 300 --heap 0x10 --mem @heap0:1=choice:0,1 --model obj_collide_vehicle=hit_flag_803A7424.py \
     --mem gAteamState:0xA0=rand --mem gAteamState+0x9A:1=choice:0,1 --mem gAteamState+0x76:2=halves:0,1,49,50,51,0xFFCF,0xFFCE,0xFFCD,0x7FFF,0x8000,100,0xFF9C \
     --mem gAteamPos:12=rand --mem gAteamMtxA=int --mem gAteamMtxB=int --mem gBufferIndex:1=choice:0,1 \
-    --mem D_80367BFF:1=choice:0,1 --mem D_803F9314:1=choice:0,1,5 --mem D_803F9313:1=choice:0,1,0x80 --mem gCollBlocked:1=choice:0,1 \
+    --mem gTurboPending:1=choice:0,1 --mem D_803F9314:1=choice:0,1,5 --mem D_803F9313:1=choice:0,1,0x80 --mem gCollBlocked:1=choice:0,1 \
     --mem gPlayerX:12=rand --mem D_8036443C:6=rand --mem D_803F9310:2=rand --mem D_803F77D0=rand --mem gBounceSound:1=rand --mem gCollHit:1=rand \
     --stub-ret ateam_steer_rate=int --stub-ret veh_slope=float --stub-ret veh_move_along_heading=int --stub-ret veh_free_arc_mid=int:0:0xFFF \
     --stub-ret veh_turn_into_free_arc=int:-100:100 --stub-ret veh_turn_into_free_arc.a0=int:0:0xFFF \
@@ -114,7 +114,7 @@ ateam_update: -n 300 --seed 1 --heap 0x10 --mem @heap0:1=choice:0,1 --model obj_
     --mem gAteamState:0xA0=rand --mem gAteamState+0x9A:1=choice:0,1 --mem gAteamState+0x76:2=halves:0,1,49,50,51,0xFFCF,0xFFCE,0xFFCD,200,0xFF38,100,0xFF9C \
     --mem gAteamState+4*4:16=int:-0x100000:0x100000 --mem gAteamState+0x4C:2=int:0:0xFFF --mem gAteamState+0x4E:2=int:0:0xFFF --mem gAteamState+0x74:2=int:0:0xFFF \
     --mem gAteamPos:12=int:-0x1000000:0x1000000 --heap 0x200 --mem gAteamMtxA=rel:heap1 --mem gAteamMtxB=rel:heap1+0x100 --mem gBufferIndex:1=choice:0,1 \
-    --mem D_80367BFF:1=choice:0,1 --mem D_803F9314:1=choice:0,1,5 --mem D_803F9313:1=choice:0,1,0x80 --mem gCollBlocked:1=choice:0,1 \
+    --mem gTurboPending:1=choice:0,1 --mem D_803F9314:1=choice:0,1,5 --mem D_803F9313:1=choice:0,1,0x80 --mem gCollBlocked:1=choice:0,1 \
     --mem gFreeArcStart:2=int:0:0xFFF --mem gFreeArcEnd:2=int:0:0xFFF --mem D_803F9312:4=rand \
     --mem gPlayerX:12=rand --mem D_8036443C:6=rand --mem D_803F9310:2=int:0:0xFFF --mem D_803F77D0=rand --mem gBounceSound:1=rand --mem gCollHit:1=rand \
     --sig ateam_zone_alpha= --sig ateam_build_model= --sig veh_prepare_escape=a0 \
@@ -161,7 +161,7 @@ ateam_spawn: -n 300 --heap 0x100 --arg s2=rel:heap0 --mem @heap0+4=int:0:0x80 --
 ateam_spawn: -n 200 --seed 1 --heap 0x100 --heap 0x200 --arg s2=rel:heap0 --mem @heap0+4=int:0:0x80 --mem @heap0+8=int:0:0x80 --mem @heap0+0x18=0x40 --mem @heap0+0x44=choice:0,0x40,0x80 \
     --arg t7=int --arg s3=int --arg s0=int --arg s1=int:0:0xFFF --arg fp=int --arg f12=float --arg f14=float --arg f20=float --arg f22=float \
     --arg f24=float --arg f26=float --mem gHeapPtr=rel:heap1 --mem gAteamState:0xA0=rand --mem gAteamPos:0x1E=rand --mem gAteamAnim:0x100=rand \
-    --mem gBufferIndex:1=choice:0,1 --mem D_80367BFF:1=choice:0,1 --mem gCollBlocked:1=choice:0,1 --mem gCollHit:1=rand \
+    --mem gBufferIndex:1=choice:0,1 --mem gTurboPending:1=choice:0,1 --mem gCollBlocked:1=choice:0,1 --mem gCollHit:1=rand \
     --follow veh_reset_state,anim_play,anim_rewind,anim_set_speed,anim_set_reverse,anim_set_loop_mode,anim_set_interp,mtx_copy_at,ateam_update \
     --model obj_collide_vehicle=hit_flag_803A7424.py \
     --stub-ret ateam_steer_rate=int --stub-ret veh_slope=float --stub-ret veh_move_along_heading=int --stub-ret veh_free_arc_mid=int:0:0xFFF \

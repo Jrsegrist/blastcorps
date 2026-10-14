@@ -14,7 +14,8 @@
 #undef TXL2WORDS_4b
 #define TXL2WORDS_4b(txls) ((txls) / 16)
 
-Gfx *func_80257540(Gfx *gfx) {
+/* Starts textured, shaded drawing (0x80257540). */
+Gfx *gfx_begin_textured(Gfx *gfx) {
     gDPPipeSync(gfx++);
     gDPSetCycleType(gfx++, G_CYC_1CYCLE);
     gSPClearGeometryMode(gfx++, 0xFFFFFFFF);
@@ -23,10 +24,11 @@ Gfx *func_80257540(Gfx *gfx) {
     return gfx;
 }
 
-/* Draws a textured quad: loads vtx[0..3], loads the texture block (size in
+/* Four vertices and a texture block, two triangles (0x802575F4).
+ * Draws a textured quad: loads vtx[0..3], loads the texture block (size in
  * the low byte of fmtsiz, format in the high byte), picks a render mode and
  * combiner for the format, and emits two triangles. */
-Gfx *func_802575F4(Gfx *gfx, Vtx *vtx, void *timg, s16 fmtsiz, s32 width, s32 height, s32 zbuf) {
+Gfx *gfx_draw_textured_quad(Gfx *gfx, Vtx *vtx, void *timg, s16 fmtsiz, s32 width, s32 height, s32 zbuf) {
     u32 img;
 
     gDPPipeSync(gfx++);

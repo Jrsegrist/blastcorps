@@ -67,7 +67,7 @@ func_801F58E8: -n 200 --seed 2 --model osRecvMesg=mesgqueue.py:recv --model osSe
 func_801F58E8: -n 300 --seed 3 --follow-all --model osRecvMesg=mesgqueue.py:recv --model osSendMesg=mesgqueue.py:send \
     --no-follow osSetEventMesg,cont_wait_read,func_801EE390,func_801EE398,osPfsAllocateFile,osPfsDeleteFile \
     --no-follow osPfsFileState,osPfsFindFile,osPfsReadWriteFile,osPfsFreeBlocks,osPfsChecker,osPfsInitPak \
-    --no-follow osEepromProbe,func_8028FCD4,cont_init,func_80204C10,func_802050F0,func_802042D0,func_80204410 \
+    --no-follow osEepromProbe,cont_query_present,cont_init,func_80204C10,func_802050F0,func_802042D0,func_80204410 \
     --no-follow __osContDataCrc,debug_printf \
     --stop-at osRecvMesg:60 --mem gPreNmi=0 \
     --mem D_80219EF8+8=choice:1,2,3 --mem D_80219EF8+0xC=0 --mem D_80219EF8+0x10=8 --mem D_80219EF8+0x14=sym:D_80219F10 \
@@ -80,7 +80,7 @@ func_801F58E8: -n 300 --seed 3 --follow-all --model osRecvMesg=mesgqueue.py:recv
     --mem D_8039C538:1=int:0:255 --mem D_80218D28=int:0:15 --mem D_802E8BF8:1=choice:0,1 \
     --stub-ret osPfsAllocateFile=choice:0,1,3,5,6,9 --stub-ret osPfsDeleteFile=choice:0,3,5,10,0x6E382 \
     --stub-ret osPfsFileState=choice:0,3,5,6,9 --stub-ret osPfsFreeBlocks=choice:0,3,10 --stub-ret osPfsChecker=choice:0,7,11 \
-    --stub-ret osEepromProbe=choice:0,1,9 --stub-ret func_8028FCD4=choice:0,1 --stub-ret osPfsInitPak=choice:0,3,10 \
+    --stub-ret osEepromProbe=choice:0,1,9 --stub-ret cont_query_present=choice:0,1 --stub-ret osPfsInitPak=choice:0,3,10 \
     --stub-ret osPfsReadWriteFile=choice:0,1 --stub-ret func_80204C10=0 \
     --sig osSetEventMesg=a0,a1,a2 --sig cont_wait_read= --sig func_801EE390= --sig func_801EE398=a0 \
-    --sig func_8028FCD4=a0 --sig cont_init= --sig debug_printf=a0,a1,a2,a3
+    --sig cont_query_present=a0 --sig cont_init= --sig debug_printf=a0,a1,a2,a3

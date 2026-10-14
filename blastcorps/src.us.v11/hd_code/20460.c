@@ -61,7 +61,7 @@ void people_init(s32 arg0) {
     for (i = 0; i < 20; i++) {
         gPeople[i].unk15 = 0;
     }
-    D_8036B968 = osGetCount();
+    gRandSeed = osGetCount();
     gChopperPickupTimer = 99999999;
     if (arg0) {
         D_8036EA79 = gPeopleRestored;
@@ -106,15 +106,15 @@ void people_spawn(s16 arg0, s16 arg1, s16 arg2, s16 arg3, u8 arg4, s32 arg5) {
             gPeople[i].z = arg2;
             gPeople[i].y = arg1;
             r = arg3 / 5;
-            gPeople[i].unkA = func_8026A8E0(-r, r) + (arg0 - arg3);
-            gPeople[i].unkC = func_8026A8E0(-r, r) + (arg2 + arg3);
+            gPeople[i].unkA = util_rand2_range(-r, r) + (arg0 - arg3);
+            gPeople[i].unkC = util_rand2_range(-r, r) + (arg2 + arg3);
             gPeople[i].unk10 = arg3 * 3 / 2;
             gPeople[i].unkE = arg3;
-            gPeople[i].unk6 = gPeople[i].unkA + func_8026A8E0(-arg3, arg3);
-            gPeople[i].unk8 = gPeople[i].unkC + func_8026A8E0(-arg3, arg3);
+            gPeople[i].unk6 = gPeople[i].unkA + util_rand2_range(-arg3, arg3);
+            gPeople[i].unk8 = gPeople[i].unkC + util_rand2_range(-arg3, arg3);
             gPeople[i].unk13 = 0;
             gPeople[i].unk14 = 0;
-            gPeople[i].unk16 = func_8026A8E0(-500, 500);
+            gPeople[i].unk16 = util_rand2_range(-500, 500);
             gPeople[i].unk12 = arg4;
             gPeople[i].unk1C = 0;
             gPeople[i].unk15 = 5;
@@ -164,7 +164,7 @@ void people_run_out(void) {
             } else {
                 adz = -dz;
             }
-            dist = func_8026A610(gPeople[i].unk6, gPeople[i].unk8, gPeople[i].x, gPeople[i].z);
+            dist = util_dist2d(gPeople[i].unk6, gPeople[i].unk8, gPeople[i].x, gPeople[i].z);
             if (dist < 1.0 || gPeople[i].unk20 < dist) {
                 gPeople[i].unk15 = 1;
             } else {
@@ -230,8 +230,8 @@ void people_flee(void) {
             if (z2 >= gPeople[i].unkC + gPeople[i].unkE) {
                 z2 = gPeople[i].unkC + gPeople[i].unkE - 1;
             }
-            d1 = func_8026A610(gPlayerX >> 5, gPlayerZ >> 5, x, z);
-            d2 = func_8026A610(gPlayerX >> 5, gPlayerZ >> 5, x2, z2);
+            d1 = util_dist2d(gPlayerX >> 5, gPlayerZ >> 5, x, z);
+            d2 = util_dist2d(gPlayerX >> 5, gPlayerZ >> 5, x2, z2);
             if (gPeople[i].unk1B) {
                 if (gPeople[i].unk1A) {
                     d2 = 0;
@@ -397,7 +397,7 @@ void people_dispatch_chopper(void) {
         }
         for (i = 0; i < 20; i++) {
             if (gPeople[i].unk15 == 1) {
-                d = func_8026A610(gChopperX, gChopperZ, gPeople[i].x << 5, gPeople[i].z << 5);
+                d = util_dist2d(gChopperX, gChopperZ, gPeople[i].x << 5, gPeople[i].z << 5);
                 if (d < minDist) {
                     minIdx = i;
                     minDist = d;
@@ -421,10 +421,10 @@ void people_dispatch_chopper(void) {
             gChopperPickupTimer = 600;
             gChopperMode = 1;
             gChopperPickupIndex = i;
-            if (35000 - func_8026A610(gPlayerX, gPlayerZ, gChopperTargetX, gChopperTargetZ) * 2 >= 0x8000) {
+            if (35000 - util_dist2d(gPlayerX, gPlayerZ, gChopperTargetX, gChopperTargetZ) * 2 >= 0x8000) {
                 vol = 0x7FFF;
             } else {
-                vol = 35000 - func_8026A610(gPlayerX, gPlayerZ, gChopperTargetX, gChopperTargetZ) * 2;
+                vol = 35000 - util_dist2d(gPlayerX, gPlayerZ, gChopperTargetX, gChopperTargetZ) * 2;
             }
             if (vol > 4000) {
                 func_80260AB8(func_80260650(D_80367738, 0x25, 0), 8, vol);
@@ -520,7 +520,7 @@ void people_draw(Gfx **gdlp, DynBuf *buf) {
             phys = osVirtualToPhysical(tex);
             PORT_ITAG(gdl, PORT_ITAG_PEOPLE, i);
             LOAD_TEX(phys);
-            func_8026A5CC((u64 *) (&buf->vtx[n]), (u64 *) D_802E9FB0, sizeof(Vtx) * 4);
+            util_copy64((u64 *) (&buf->vtx[n]), (u64 *) D_802E9FB0, sizeof(Vtx) * 4);
             for (j = 0; j < 4; j++) {
                 buf->vtx[n + j].v.ob[0] = fx[j] + gPeople[i].x;
                 buf->vtx[n + j].v.ob[1] = fy[j] + gPeople[i].y;
@@ -601,7 +601,7 @@ void people_draw(Gfx **gdlp, DynBuf *buf) {
             phys = osVirtualToPhysical(tex);
             PORT_ITAG(gdl, PORT_ITAG_PEOPLE, i);
             LOAD_TEX(phys);
-            func_8026A5CC((u64 *) (&buf->vtx[n]), (u64 *) D_802E9FB0, sizeof(Vtx) * 4);
+            util_copy64((u64 *) (&buf->vtx[n]), (u64 *) D_802E9FB0, sizeof(Vtx) * 4);
             if (flip) {
                 buf->vtx[n].v.tc[0] = 0x260;
                 buf->vtx[n + 1].v.tc[0] = 0;
@@ -627,7 +627,7 @@ void people_draw(Gfx **gdlp, DynBuf *buf) {
                 found = 1;
                 PORT_ITAG(gdl, PORT_ITAG_MARKER, 0);
                 LOAD_TEX(osVirtualToPhysical(D_802E9FF0));
-                func_8026A5CC((u64 *) (&buf->vtx[n]), (u64 *) D_802E9FB0, sizeof(Vtx) * 4);
+                util_copy64((u64 *) (&buf->vtx[n]), (u64 *) D_802E9FB0, sizeof(Vtx) * 4);
                 for (j = 0; j < 4; j++) {
                     buf->vtx[n + j].v.ob[0] = fx[j];
                     buf->vtx[n + j].v.ob[1] = fy[j];

@@ -315,7 +315,9 @@ void fe_player_ticker_set_text(u8 slot, u8 arg1) {
         gScrollGlyphText = NULL;
         if (slot < 4) {
             if (gSlotState[slot] == 1) {
-                sprintf(SCROLL_TEXT, " ..... %s%s (%s) ... ", sPrefix[guest], p->name, gRankTitles[p->title].title);
+                /* (char *): a `char * N64P` (4 bytes) through varargs would leave the upper half of
+                 * the native %s argument undefined (the port crashed here) */
+                sprintf(SCROLL_TEXT, " ..... %s%s (%s) ... ", sPrefix[guest], p->name, (char *) gRankTitles[p->title].title);
                 for (i = (players[slot].gameState >= 12) ? 4 : 3; i > 0; i--) {
                     gScrollMedalPos[i] = font_strlen((u8 *) SCROLL_TEXT);
                     if (i != 1) {

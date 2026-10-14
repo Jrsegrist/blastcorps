@@ -70,7 +70,7 @@ void academy_announce_state(void) {
                         }
                     }
                 }
-                sprintf(D_8036EBA0, "IN %s.", D_8020D7E4[lvl].name);
+                sprintf(D_8036EBA0, "IN %s.", (char *) D_8020D7E4[lvl].name); /* (char *): N64P via varargs */
                 gYoshiFeItems[82].text = D_8036EBA0;
                 break;
             case 6:

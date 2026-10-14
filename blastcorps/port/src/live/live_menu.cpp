@@ -7,12 +7,14 @@
  * (menuDraw).  Nothing of this exists until the menu is first opened, and
  * nothing is drawn while it is closed. */
 #include <windows.h>
+#include <shellapi.h>
 
 #include <algorithm>
 #include <atomic>
 #include <cfloat>
 #include <cmath>
 #include <cstdio>
+#include <filesystem>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -50,10 +52,16 @@ int g_selectTab = -1;                 /* testing: open this tab on the next fram
 float g_fontPx = 16.0f;
 CounterStats g_counter;               /* the frame-rate counter's numbers */
 
-void markChanged(const std::string &section, const std::string &key) {
+/* a setting to save when the menu closes */
+void markDirty(const std::string &section, const std::string &key) {
     Setting s{section, key};
     if (std::find(g_dirty.begin(), g_dirty.end(), s) == g_dirty.end()) g_dirty.push_back(s);
-    if (g_env.changed) g_env.changed(s);
+}
+
+/* ... and applied now */
+void markChanged(const std::string &section, const std::string &key) {
+    markDirty(section, key);
+    if (g_env.changed) g_env.changed({section, key});
 }
 
 /* the ImGui context, backends and font (the first time the menu opens) */
@@ -265,32 +273,7 @@ void videoTab(Config &c) {
         }
         help("How the finished picture is scaled to the window.");
     }
-    {
-        static char buf[1024];
-        static bool init;
-        if (!init || !ImGui::IsAnyItemActive()) {
-            snprintf(buf, sizeof buf, "%s", c.texturePack.c_str());
-            init = true;
-        }
-        ImGui::InputText("Texture pack", buf, sizeof buf);
-        if (ImGui::IsItemDeactivatedAfterEdit() && c.texturePack != buf) {
-            c.texturePack = buf;
-            markChanged("video", "texture_pack");
-        }
-        help("An RT64 texture pack: a folder with an rt64.json, or an .rtz file (relative to the game's folder).");
-        bool on = c.texturePackOn;
-        if (ImGui::Checkbox("Use the texture pack", &on)) {
-            c.texturePackOn = on;
-            markChanged("video", "texture_pack_enabled");
-        }
-        if (g_env.packStatus) {
-            const std::string st = g_env.packStatus();
-            if (!st.empty()) {
-                ImGui::SameLine();
-                ImGui::TextDisabled("(%s)", st.c_str());
-            }
-        }
-    }
+    ImGui::TextDisabled("Texture packs: the Textures tab.");
     ImGui::SeparatorText("Graphics card");
     int api = c.vulkan ? 1 : 0;
     if (combo("Graphics API", &api, {"Direct3D 12", "Vulkan"})) {
@@ -300,6 +283,129 @@ void videoTab(Config &c) {
     const bool running = g_env.app != nullptr &&
                          (g_env.app->chosenGraphicsAPI == RT64::UserConfiguration::GraphicsAPI::Vulkan) != c.vulkan;
     if (running) ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.3f, 1.0f), "The graphics API changes the next time the game starts.");
+}
+
+/* ---- the Textures tab: texture packs and the texture dump ---------------------- */
+std::vector<std::string> g_packs;   /* "packs/NAME": folders with an rt64.json and .rtz files */
+
+std::string lowerSlash(std::string s) {
+    for (char &ch : s) ch = ch == '\\' ? '/' : char(tolower((unsigned char) ch));
+    while (!s.empty() && s.back() == '/') s.pop_back();
+    return s;
+}
+
+/* the packs folder next to the exe */
+void scanPacks(const Config &c) {
+    g_packs.clear();
+    std::error_code ec;
+    const std::filesystem::path dir(wide(c.dir + "packs"));
+    for (std::filesystem::directory_iterator it(dir, ec), end; !ec && it != end; it.increment(ec)) {
+        const std::string name = utf8(it->path().filename().wstring());
+        std::error_code e2;
+        if (it->is_directory(e2) && std::filesystem::is_regular_file(it->path() / L"rt64.json", e2))
+            g_packs.push_back("packs/" + name);
+        else if (it->is_regular_file(e2) && lowerSlash(utf8(it->path().extension().wstring())) == ".rtz")
+            g_packs.push_back("packs/" + name);
+    }
+    std::sort(g_packs.begin(), g_packs.end(), [](const std::string &a, const std::string &b) { return lowerSlash(a) < lowerSlash(b); });
+}
+
+/* open a folder in Explorer (made first if missing) */
+void openFolder(const std::string &path) {
+    std::error_code ec;
+    std::filesystem::create_directories(std::filesystem::path(wide(path)), ec);
+    ShellExecuteW(nullptr, L"open", wide(path).c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+}
+
+void texturesTab(Config &c) {
+    ImGui::SeparatorText("Texture pack");
+    {
+        std::vector<std::string> items = {"None (the game's own textures)"};
+        int sel = 0;
+        const std::string cur = lowerSlash(absPath(c, c.texturePack));
+        for (size_t i = 0; i < g_packs.size(); i++) {
+            items.push_back(g_packs[i].substr(6));
+            if (c.texturePackOn && !c.texturePack.empty() && lowerSlash(absPath(c, g_packs[i])) == cur) sel = int(i) + 1;
+        }
+        if (sel == 0 && c.texturePackOn && !c.texturePack.empty()) {
+            items.push_back("Other: " + c.texturePack);
+            sel = int(items.size()) - 1;
+        }
+        if (combo("Texture pack", &sel, items)) {
+            if (sel == 0) {
+                c.texturePackOn = false;
+                markChanged("video", "texture_pack_enabled");
+            } else if (sel <= int(g_packs.size())) {
+                c.texturePack = g_packs[sel - 1];
+                c.texturePackOn = true;
+                markDirty("video", "texture_pack");
+                markChanged("video", "texture_pack_enabled");   /* (loads it) */
+            }
+        }
+        help("RT64 texture packs in the packs folder next to the game: folders with an rt64.json, or .rtz files. "
+             "bc_packtool.exe makes them from edited textures of the texture dump (README.txt).");
+        if (g_env.packStatus) {
+            const std::string st = g_env.packStatus();
+            if (!st.empty()) ImGui::TextDisabled("%s", st.c_str());
+        }
+        ImGui::BeginDisabled(!c.texturePackOn || c.texturePack.empty());
+        if (ImGui::Button("Reload the pack") && g_env.reloadPack) g_env.reloadPack();
+        ImGui::EndDisabled();
+        ImGui::SameLine();
+        if (ImGui::Button("Refresh the list")) scanPacks(c);
+        ImGui::SameLine();
+        if (ImGui::Button("Open the packs folder")) openFolder(c.dir + "packs");
+        bool b = c.texturePackReload;
+        if (ImGui::Checkbox("Reload the pack by itself when it changes", &b)) {
+            c.texturePackReload = b;
+            markChanged("video", "texture_pack_reload");
+        }
+        help("Checks the pack's rt64.json (or .rtz) once a second: with bc_packtool --watch rebuilding the pack "
+             "as you save your pictures, the game shows them a moment later.");
+        static char buf[1024];
+        static bool init;
+        if (!init || !ImGui::IsAnyItemActive()) {
+            snprintf(buf, sizeof buf, "%s", c.texturePack.c_str());
+            init = true;
+        }
+        ImGui::InputText("Pack path", buf, sizeof buf);
+        if (ImGui::IsItemDeactivatedAfterEdit() && c.texturePack != buf) {
+            c.texturePack = buf;
+            markChanged("video", "texture_pack");
+        }
+        help("Any RT64 texture pack: a folder with an rt64.json, or an .rtz file (relative to the game's folder).");
+        b = c.texturePackOn;
+        if (ImGui::Checkbox("Use the texture pack", &b)) {
+            c.texturePackOn = b;
+            markChanged("video", "texture_pack_enabled");
+        }
+    }
+    ImGui::SeparatorText("Making a texture pack");
+    {
+        bool b = c.textureDumpOn;
+        if (ImGui::Checkbox("Dump textures", &b)) {
+            c.textureDumpOn = b;
+            markChanged("video", "texture_dump_enabled");
+        }
+        help("While on, every texture the game shows is written once as <hash>.png (the name a pack uses), in a "
+             "folder for where it was first seen (frontend, level_00 ...), and listed in index.csv. Play the parts "
+             "you want to change, edit copies of the pictures (any size: 2x, 4x ...), then build a pack with "
+             "bc_packtool.exe (README.txt).");
+        static char dbuf[1024];
+        static bool dinit;
+        if (!dinit || !ImGui::IsAnyItemActive()) {
+            snprintf(dbuf, sizeof dbuf, "%s", c.textureDump.c_str());
+            dinit = true;
+        }
+        ImGui::InputText("Dump folder", dbuf, sizeof dbuf);
+        if (ImGui::IsItemDeactivatedAfterEdit() && c.textureDump != dbuf && dbuf[0] != 0) {
+            c.textureDump = dbuf;
+            markChanged("video", "texture_dump");
+        }
+        const std::string st = g_env.dumpStatus ? g_env.dumpStatus() : std::string();
+        ImGui::TextDisabled("%s", st.empty() ? "The dump is off." : ("Dump: " + st).c_str());
+        if (ImGui::Button("Open the dump folder")) openFolder(absPath(c, c.textureDump));
+    }
 }
 
 void audioTab(Config &c) {
@@ -638,6 +744,10 @@ void build() {
                 cameraTab(c);
                 ImGui::EndTabItem();
             }
+            if (ImGui::BeginTabItem("Textures", nullptr, flags(4))) {
+                texturesTab(c);
+                ImGui::EndTabItem();
+            }
             g_selectTab = -1;
             ImGui::EndTabBar();
         }
@@ -675,6 +785,7 @@ void menuOpen() {
     if (g_open || !ensureInspector()) return;
     g_open = true;
     g_dirty.clear();
+    scanPacks(*g_env.cfg);
     SDL_ShowCursor(SDL_ENABLE);
     host_log("live: settings menu opened\n");
 }

@@ -4,7 +4,7 @@
   make_dist.py --exe-dir DIR --out DIR --version-h version.h --rt64 SRC --dxc DIR --sdl2 DIR --readme README.txt
 
 writes, in --out:
-  BlastCorps-port-V/           bc.exe, SDL2.dll, dxcompiler.dll, dxil.dll,
+  BlastCorps-port-V/           bc.exe, bc_packtool.exe, SDL2.dll, dxcompiler.dll, dxil.dll,
                                README.txt and THIRD_PARTY_LICENSES.txt (Windows
                                line ends); no game data
   BlastCorps-port-V.zip        that folder
@@ -53,10 +53,11 @@ HEADER = """Third-party software in this package
 bc.exe is built from the Blast Corps decompilation project's code (the game's
 decompiled C code, the decompiled N64 SDK libraries it uses, and the code written
 for this Windows port). It contains no game data: the game's data, graphics and
-sounds are read from the player's own ROM at run time.
+sounds are read from the player's own ROM at run time. bc_packtool.exe (the
+texture-pack builder) is the port's own code with two of the components below.
 
-The following third-party components are compiled into bc.exe or shipped next to
-it. Their licences follow, each in full.
+The following third-party components are compiled into bc.exe or bc_packtool.exe
+or shipped next to them. Their licences follow, each in full.
 
   Component                       Licence                      Where
   RT64 (N64 renderer)             MIT                          bc.exe
@@ -72,10 +73,10 @@ it. Their licences follow, each in full.
   im3d                            MIT                          bc.exe
   HLSL++                          MIT                          bc.exe
   ddspp                           MIT                          bc.exe
-  stb                             MIT or public domain         bc.exe
+  stb                             MIT or public domain         bc.exe, bc_packtool.exe
   xxHash                          BSD 2-Clause                 bc.exe
   Zstandard                       BSD 3-Clause                 bc.exe
-  miniz                           MIT                          bc.exe
+  miniz                           MIT                          bc.exe, bc_packtool.exe
   JSON for Modern C++             MIT                          bc.exe
   utf8conv                        MIT                          bc.exe
   Native File Dialog Extended     zlib                         bc.exe
@@ -185,7 +186,7 @@ def main():
     d = os.path.join(a.out, name)
     shutil.rmtree(d, ignore_errors=True)
     os.makedirs(d)
-    for f in ("bc.exe", "SDL2.dll", "dxcompiler.dll", "dxil.dll"):
+    for f in ("bc.exe", "bc_packtool.exe", "SDL2.dll", "dxcompiler.dll", "dxil.dll"):
         shutil.copy2(os.path.join(a.exe_dir, f), d)
     readme = read(a.readme).replace("@VERSION@", a.version)
     open(os.path.join(d, "README.txt"), "wb").write(crlf(readme))

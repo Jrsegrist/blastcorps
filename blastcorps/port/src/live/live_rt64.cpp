@@ -82,6 +82,8 @@
  *                       (seq_F_NN.png + seq_F.txt with the times, in --shot-dir)
  *     --texture-pack P  use this RT64 texture pack (folder with rt64.json, or .rtz)
  *     --texture-hashes F  log the RT64 hashes of the textures loaded at frame F
+ *     --dump-textures DIR  write every texture the game shows to DIR as <hash>.png, once
+ *                       each, with DIR\index.csv (live_texdump.cpp; video.texture_dump)
  *     --window WxH      the window's size (desktop points) instead of 320x240 x scale
  *     --wshot F,..      save the window's picture (RT64's output at the window's size,
  *                       win_FFFFFFF.png in --shot-dir) once the game reached frame F
@@ -146,6 +148,7 @@
 #include "live_orbit.h"
 #include "live_wide.h"
 #include "live_setup.h"
+#include "live_texdump.h"
 
 extern "C" {
 #include "plat_host.h"
@@ -1443,6 +1446,7 @@ unsigned g_nextShot, g_nextWshot;
 bool g_quitRequested;
 unsigned g_hashFrame = ~0u;          /* --texture-hashes */
 void logTextureHashes(unsigned frame);
+void packWatch(unsigned viCount);
 
 /* The settings menu is open: the game waits (inside this retrace's hook)
  * while the menu runs, about 60 times a second, over the last picture.
@@ -1563,6 +1567,9 @@ void liveVi(const HostViRegs *r, unsigned viCount, unsigned long long when, unsi
         logTextureHashes(frames);
         g_hashFrame = ~0u;
     }
+    /* texture packs: the dump finds what RT64 loaded; a changed pack reloads */
+    if (live::texDumpOn()) live::texDumpPoll(g_app->textureCache.get(), frames);
+    packWatch(viCount);
     if (!g_wseq.started && frames >= g_wseq.frame) {
         g_wseq.started = true;
         g_wseq.thread = std::thread(winSeqThread, frames, g_wseq.ms);
@@ -1661,19 +1668,57 @@ void configToRT64(RT64::UserConfiguration &u) {
  * Returns a line for the log / menu. */
 bool g_packLoaded;
 std::string g_packStatus;
+long long g_packStamp;   /* the pack's rt64.json (or .rtz) time when loaded (texture_pack_reload) */
+
+/* the last-write time of a pack folder's rt64.json, or of an .rtz (0: none) */
+long long packStamp(const std::string &path) {
+    std::error_code ec;
+    std::filesystem::path p(live::wide(path));
+    if (std::filesystem::is_directory(p, ec)) p /= L"rt64.json";
+    const auto t = std::filesystem::last_write_time(p, ec);
+    return ec ? 0 : (long long) t.time_since_epoch().count();
+}
+
 void applyTexturePack() {
     if (g_cfg.texturePackOn && !g_cfg.texturePack.empty()) {
         const std::string path = live::absPath(g_cfg, g_cfg.texturePack);
+        g_packStamp = packStamp(path);
         const bool ok = g_app->textureCache->loadReplacementDirectory(
             RT64::ReplacementDirectory(std::filesystem::path(live::wide(path))));
         g_packLoaded = true;
-        g_packStatus = (ok ? "loaded " : "could not load ") + path;
-        host_log("live: texture pack %s\n", g_packStatus.c_str());
+        g_packStatus = (ok ? "loaded " : "could not load ") + g_cfg.texturePack;
+        host_log("live: texture pack %s %s\n", ok ? "loaded" : "could not load", path.c_str());
     } else if (g_packLoaded) {
         g_app->textureCache->clearReplacementDirectories();
         g_packLoaded = false;
         g_packStatus = "off";
         host_log("live: texture pack off\n");
+    }
+}
+
+/* texture_pack_reload: once a second (main thread, between frames), reload
+ * the pack when its rt64.json or .rtz was rewritten (bc_packtool --watch;
+ * the packer writes rt64.json last) */
+void packWatch(unsigned viCount) {
+    if (!g_cfg.texturePackReload || !g_packLoaded || !g_cfg.texturePackOn || viCount % 60 != 0) return;
+    const long long now = packStamp(live::absPath(g_cfg, g_cfg.texturePack));
+    if (now != 0 && now != g_packStamp) {
+        host_log("live: the texture pack changed: reloading it\n");
+        applyTexturePack();
+    }
+}
+
+/* the texture dump (video.texture_dump, --dump-textures; live_texdump.cpp):
+ * started, stopped, or restarted in another folder */
+std::string g_dumpDir;
+void applyTextureDump() {
+    const std::string dir = live::absPath(g_cfg, g_cfg.textureDump.empty() ? "texture_dump" : g_cfg.textureDump);
+    if (g_cfg.textureDumpOn && (!live::texDumpOn() || dir != g_dumpDir)) {
+        std::string why;
+        g_dumpDir = dir;
+        if (!live::texDumpStart(dir, why)) g_cfg.textureDumpOn = false;
+    } else if (!g_cfg.textureDumpOn && live::texDumpOn()) {
+        live::texDumpStop();
     }
 }
 
@@ -1708,6 +1753,10 @@ void applyPresentPacing() {
 void settingChanged(const live::Setting &s) {
     if (s.section == "video" && (s.key == "texture_pack" || s.key == "texture_pack_enabled")) {
         applyTexturePack();
+        return;
+    }
+    if (s.section == "video" && (s.key == "texture_dump" || s.key == "texture_dump_enabled")) {
+        applyTextureDump();
         return;
     }
     if (s.section == "video" && (s.key == "fps_counter" || s.key == "fps_counter_corner")) {
@@ -1785,6 +1834,7 @@ const std::pair<const char *, const char *> kSetAliases[] = {
     {"--interpolation", "video.interpolation"},
     {"--fps-counter", "video.fps_counter"},
     {"--texture-pack", "video.texture_pack"},   /* (and turns it on) */
+    {"--dump-textures", "video.texture_dump"},  /* (and turns it on) */
     {"--camera", "camera.mode"},
     {"--present-pacing", "video.present_pacing"},
 };
@@ -2017,6 +2067,10 @@ void prestart(HostOpts *o) {
     menu.msaaSupported = msaaSupported;
     menu.padNames = padNames;
     menu.packStatus = [] { return g_packStatus; };
+    menu.reloadPack = [] {
+        if (g_cfg.texturePackOn && !g_cfg.texturePack.empty()) applyTexturePack();
+    };
+    menu.dumpStatus = [] { return live::texDumpOn() ? live::texDumpStatus() : std::string(); };
     live::menuSetup(menu);
     live::interpTagsSetup(g_app);
     live::interpTagsSetLog(g_interp.log);
@@ -2043,6 +2097,7 @@ void prestart(HostOpts *o) {
                                           g_interp.displayHz, g_interp.displayHz);
     updateCullWide();
     applyTexturePack();
+    applyTextureDump();
     o->live = &kLive;
 }
 
@@ -2206,6 +2261,7 @@ int main(int, char **) {
             if (args[i] == alias.first) spec = std::string(alias.second) + "=" + args[i + 1];
         if (spec.empty()) continue;
         if (args[i] == "--texture-pack") g_cfg.texturePackOn = true;
+        if (args[i] == "--dump-textures") g_cfg.textureDumpOn = true;
         i++;
         if (!live::configSet(g_cfg, spec) && host_no_msgbox) host_fatal("%s", g_cfg.warnings.back().c_str());
     }
@@ -2217,6 +2273,7 @@ int main(int, char **) {
         if (g_dlTasks != 0)
             host_log("live: frame rate option: %.3f ms per task in processDisplayLists (%u tasks, interpolation %s)\n",
                      g_dlSeconds * 1e3 / g_dlTasks, g_dlTasks, live::interpTagsOn() ? "tagged" : "auto");
+        live::texDumpStop();   /* (the files still queued are written, then the index) */
         live::interpTagsSummary();
         live::wideSummary();
         live::orbitSummary();

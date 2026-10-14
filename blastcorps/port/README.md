@@ -773,10 +773,22 @@ it without a fault.  The x64-asan preset is the tool for this now.
       read `PORT_DRAW_CELLS(gVisibleCells)` instead (5FD50.c's level geometry
       and group lists; 77E20.c draws an unlisted building as it is, without
       any per-object work and without its moving parts), which with the orbit
-      camera on in play is every cell of the level (as the game itself does
-      while its camera turns, cull_restart). The game logic reads the real
-      list. The display lists then hold more (RDRAM differs only there).
-      People and markers on unlisted cells stay hidden.
+      camera on in play is the game's list plus the cells the orbit camera
+      can see: each cell's box (the game's own, from its grid of ground
+      height ranges, grown by the collision triangles of the buildings in
+      it) is tested against the orbit view (the game's projection, widescreen
+      and interpolation width, its far plane), from the newest game camera
+      (the level's lists are built before the frame's cam_update), with
+      margins for what the view does until the next list: 10 degrees plus
+      0.15 s of its recent turning speed, the apex moved back by 4 units
+      plus 10 steps of the eye's recent motion; turning faster than 60
+      degrees of margin covers, every cell (as before, and as the game
+      itself does while its camera turns, cull_restart). The game logic
+      reads the real list. The display lists then hold more (RDRAM differs
+      only there). People and markers on unlisted cells stay hidden.
+      `--orbit-log` checks every rendered picture's own view against its
+      frame's list (cells it sees but the list left out: none in the 60
+      levels, see below); `--orbit-cull all` draws every cell (testing).
     - The backdrop (2D2D810.c: a 2D quad scrolled by the camera's heading and
       pitch, the ground colour filled below its horizon) follows the orbit's
       heading and pitch: while RT64 reads the frame (`interpSetCommandHook`,
@@ -788,7 +800,14 @@ it without a fault.  The x64-asan preset is the tool for this now.
       collision grid, gGroundCells) and the buildings' collision triangles
       (gCollTris, the 0x60-byte records); a blocked eye is pulled in along
       the line to the target at once and let out slowly. No game function is
-      called.
+      called. A step asks up to ~800 heights (the ray to the eye, and steeper
+      rays to rise over an obstacle) while the camera is turned; testing all
+      1700-2200 building triangles for each took 650-800 ms of every second
+      on a Ryzen 7 5700U (the game slowed to 20 frames a second while
+      turning), so the triangles are binned by x/z (`orbit::TriGrid`; the
+      buildings' each step when they changed, each ground cell's list when
+      its bytes changed): 15-30 ms a second, the same answers
+      (`--orbit-log` compares every query with a test of every triangle).
     - Controls: `[controller] camera_left/right/up/down` (default the right
       stick), `camera_zoom_in` (Y), `camera_zoom_out` (left stick click),
       `camera_reset` (right stick click); `[keyboard]` keypad 4/6/8/2, + and -,
@@ -819,8 +838,11 @@ it without a fault.  The x64-asan preset is the tool for this now.
       the game's frames (it can't be added where the game didn't draw one);
       environment-mapped reflections use the game's view.
     - Testing: `--orbit-test YAWSPEED[:PITCH[:ZOOM]]` turns the camera by
-      itself (degrees a second, an absolute pitch, a zoom), `--orbit-log` logs
-      both cameras every 30 frames.
+      itself (degrees a second, an absolute pitch, a zoom; the pictures use the
+      orbit as it was when their frame was made, so a run's pictures are the
+      same every time), `--orbit-log` logs both cameras every 30 frames and
+      runs the checks above, `--orbit-cull all` draws every cell, `--perf-log`
+      has the orbit's host work.
   - Controls (`[keyboard]`, `[controller]`): the menu's Controls tab remaps
     every binding (click it, press the key, controller button, stick or
     trigger; Backspace clears; the menu's own controller buttons are a
@@ -937,6 +959,13 @@ it without a fault.  The x64-asan preset is the tool for this now.
   - `--flip-log FILE` (testing): every present RT64 made (submission, call,
     hold) and, with D3D12, every refresh and the present on screen (DXGI
     frame statistics, polled every millisecond), as CSV.
+  - `--perf-log FILE` (testing): twice a second, as CSV, the game's frames,
+    RT64's rendered pictures and their GPU time (RT64's own timestamp
+    queries), its render thread's time per workload, the main thread's time
+    in processDisplayLists and waiting for the paced retrace, the orbit
+    camera's host work, and the frame workloads' draw calls and triangles.
+    `--pace-from F` (testing) paces only from game frame F, so a measured
+    run gets to play sooner.
 - **The package** (CMake target `dist`, `dist/make_dist.py`; from WSL
   `make -C port dist` -> `port/build/dist/`): `BlastCorps-port-<hash>/` and
   its zip: bc.exe, SDL2.dll, dxcompiler.dll, dxil.dll, `README.txt` (from

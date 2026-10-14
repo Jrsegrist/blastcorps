@@ -15,13 +15,13 @@
  *    widescreen).  The game never sees any of it;
  *  - what the game culled: the level's geometry and the buildings whose cells
  *    the game's visibility walk didn't list would be missing from an orbit
- *    view.  The drawing paths (PORT_DRAW_CELLS, 5FD50.c, 77E20.c) get every
- *    cell of the level instead (as the game itself does while its own camera
- *    turns: cull_restart), unlisted buildings drawn as they are, without
- *    their per-object updates (the game leaves those alone: they stay as
- *    they are).  The game's logic keeps reading its own list (77E20.c's
- *    per-object updates run only for listed objects, so the list must not
- *    change);
+ *    view.  The drawing paths (PORT_DRAW_CELLS, 5FD50.c, 77E20.c) get the
+ *    game's cells and those the orbit camera can see (its own view test,
+ *    with margins for turning: drawCells), unlisted buildings drawn as they
+ *    are, without their per-object updates (the game leaves those alone:
+ *    they stay as they are).  The game's logic keeps reading its own list
+ *    (77E20.c's per-object updates run only for listed objects, so the list
+ *    must not change);
  *  - the backdrop (2D2D810.c: a 2D quad scrolled by the camera's heading and
  *    pitch, and the ground colour below its horizon): while RT64 reads the
  *    frame, its vertices and the fill rectangle are given the orbit view's
@@ -30,7 +30,8 @@
  *  - collision: the eye is kept above the level's ground triangles and the
  *    buildings' collision triangles (read-only copies of the game's height
  *    tests: 62740.c ground_scan_grid's grid, the 0x60-byte triangles at
- *    gCollTris), pulled in along the line to the target.
+ *    gCollTris, binned by x/z each step: orbit::TriGrid), pulled in along
+ *    the line to the target.
  * The controls: in play, the camera bindings (default: the right stick) drive
  * the camera and not the N64 buttons bound to the same inputs (the C buttons'
  * right stick); outside play the right stick is the C buttons as before. */
@@ -41,6 +42,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <memory>
 #include <mutex>
 #include <vector>
 
@@ -76,19 +78,28 @@ template <typename T> T rd(uint32_t a) {
 #define BC_MODE rd<unsigned long long>(0x80364A90u)   /* gGameMode */
 #define BC_LEVEL rd<int>(0x802E8BDCu)                 /* levelno */
 /* gDynamicBufs[2] */
-constexpr uint32_t kDyn = 0x803156F8u, kDynSize = 0x21498u, kDynDl = 0x48B0u, kDynDlEnd = 0xA3A0u, kDynView = 0x140u;
+constexpr uint32_t kDyn = 0x803156F8u, kDynSize = 0x21498u, kDynDl = 0x48B0u, kDynDlEnd = 0xA3A0u, kDynView = 0x140u,
+                   kDynProj = 0x80u, kDynCull = 0x180u;
 
 RT64::Application *g_app;
 Config *g_cfg;
 SDL_Window *g_window;
 Config g_padCfg;          /* the bindings without the camera's inputs (orbit active) */
 bool g_log;
+bool g_test;              /* --orbit-test */
+bool g_cullAll;           /* --orbit-cull all: draw every cell (testing; as before the view test) */
+std::atomic<unsigned> g_checkPictures, g_checkMissPictures, g_checkMissCells;   /* --orbit-log */
+unsigned g_gameCellsChecked, g_gameCellsOutside;                                 /* --orbit-log */
+OrbitPerf g_perf;         /* --perf-log: the host work since orbitPerfTake (main thread) */
+bool g_perfOn;
 
 /* ---- the game's camera, per frame ------------------------------------------- */
 struct Cam {
     bool valid = false;
     unsigned frame = 0;
     double view[4][4] = {};   /* the frame's view matrix (DynamicBuf.unk140) */
+    double proj[4][4] = {};   /* ... and projection (DynamicBuf.unk80, guPerspective) */
+    double cullView[4][4] = {};   /* ... and culling view (DynamicBuf.cullView: the eye pushed back) */
     Vec3 eye, target;
     bool snap = false, onFoot = false, play = false;
     unsigned long long mode = 0;
@@ -119,6 +130,8 @@ void cameraHook(int snap) {
     Cam &c = g_built[dyn];
     c.valid = false;
     mtxToDouble(kDyn + dyn * kDynSize + kDynView, c.view);
+    mtxToDouble(kDyn + dyn * kDynSize + kDynProj, c.proj);
+    mtxToDouble(kDyn + dyn * kDynSize + kDynCull, c.cullView);
     Vec3 fwd;
     if (!orbit::viewEye(c.view, c.eye, fwd)) return;
     /* gCamAtX/Y/Z */
@@ -139,11 +152,25 @@ bool g_active;            /* orbit mode, in play, the game's camera known */
 double g_yawRate, g_pitchRate;   /* degrees a second now (for pictures between steps) */
 LARGE_INTEGER g_freq;
 
+/* the cells a frame's drawing list had, with their boxes (--orbit-log: each
+ * picture's view is checked against them) */
+struct CellBox {
+    Vec3 lo, hi;
+};
+struct CellSet {
+    std::vector<CellBox> boxes;
+    std::vector<uint8_t> drawn;
+    double tanX = 0, tanY = 0, farDist = 0;
+};
+
 /* what each rendered frame (workload) needs */
 struct Entry {
     uint64_t workload = 0;
     Cam cur, prev;
     bool active = false;
+    std::shared_ptr<const CellSet> cells;   /* --orbit-log */
+    orbit::Orbit orbit;                     /* --orbit-test: the orbit when the frame was made */
+    orbit::Limits lim;
 };
 std::mutex g_mutex;       /* g_ring, g_shared */
 std::vector<Entry> g_ring;
@@ -197,8 +224,14 @@ void viewHook(const RT64::ViewHookParams &p, interop::float4x4 &view, interop::f
         e = *found;
         s = g_shared;
     }
-    const double extra = std::min(secondsSince(s.stepTime), 0.05);
-    auto camFor = [&](float w, interop::float4x4 &out) {
+    double extra = std::min(secondsSince(s.stepTime), 0.05);
+    if (g_test) {   /* --orbit-test: the orbit as it was when the frame was made (the same pictures every run) */
+        s.orbit = e.orbit;
+        s.lim = e.lim;
+        extra = 0;
+    }
+    Vec3 curEye, curTarget;
+    auto camFor = [&](float w, interop::float4x4 &out, bool cur) {
         orbit::Orbit::Game g;
         g.target = orbit::lerp(e.prev.target, e.cur.target, w);
         g.eye = orbit::lerp(e.prev.eye, e.cur.eye, w);
@@ -207,28 +240,30 @@ void viewHook(const RT64::ViewHookParams &p, interop::float4x4 &view, interop::f
         double m[4][4];
         orbit::lookAt(eye, g.target, m);
         toFloat(m, out);
+        if (cur) curEye = eye, curTarget = g.target;
     };
-    camFor(p.curFrameWeight, view);
-    camFor(p.prevFrameWeight, prevView);
+    camFor(p.curFrameWeight, view, true);
+    camFor(p.prevFrameWeight, prevView, false);
     g_hooked++;
+    /* --orbit-log: every cell this picture's view can see must be in the
+     * frame's drawing list */
+    if (e.cells) {
+        const CellSet &cs = *e.cells;
+        const orbit::ViewVolume exact(curEye, curTarget, cs.tanX, cs.tanY, 0.0, 0.0, cs.farDist);
+        unsigned missed = 0;
+        for (size_t i = 0; i < cs.boxes.size(); i++)
+            if (!cs.drawn[i] && exact.boxVisible(cs.boxes[i].lo, cs.boxes[i].hi)) missed++;
+        g_checkPictures++;
+        if (missed != 0) {
+            g_checkMissCells += missed;
+            if (g_checkMissPictures++ < 10)
+                host_log("live: orbit drawing list: a picture of frame %u sees %u cells not drawn\n", e.cur.frame, missed);
+        }
+    }
 }
 
 /* ---- ground height (read-only copies of the game's tests) --------------------- */
-/* the height of triangle p at (x, z), or false outside it / vertical */
-bool triHeight(const Vec3 p[3], double x, double z, double &h) {
-    const double minX = std::min({p[0].x, p[1].x, p[2].x}), maxX = std::max({p[0].x, p[1].x, p[2].x});
-    const double minZ = std::min({p[0].z, p[1].z, p[2].z}), maxZ = std::max({p[0].z, p[1].z, p[2].z});
-    if (x < minX || x > maxX || z < minZ || z > maxZ) return false;
-    const Vec3 n = orbit::cross(p[1] - p[0], p[2] - p[0]);
-    if (std::fabs(n.y) < 1e-9 * (std::fabs(n.x) + std::fabs(n.z) + 1.0)) return false;
-    /* inside in x/z: the three edge signs agree */
-    auto side = [&](const Vec3 &a, const Vec3 &b) { return (b.x - a.x) * (z - a.z) - (b.z - a.z) * (x - a.x); };
-    const double s0 = side(p[0], p[1]), s1 = side(p[1], p[2]), s2 = side(p[2], p[0]);
-    const bool neg = s0 < -1e-9 || s1 < -1e-9 || s2 < -1e-9, pos = s0 > 1e-9 || s1 > 1e-9 || s2 > 1e-9;
-    if (neg && pos) return false;
-    h = p[0].y - (n.x * (x - p[0].x) + n.z * (z - p[0].z)) / n.y;
-    return true;
-}
+using orbit::triHeight;
 
 /* every building's collision triangles: the gObjects records (0x803F4030,
  * 0xFC bytes each, up to gObjectsEnd at 0x803F7654) hold the range [+4, +8) of 0x60-byte triangles (77E20.c
@@ -244,11 +279,101 @@ template <typename F> void forEachObstacle(F f) {
     }
 }
 
+/* the obstacles' triangles in drawing units, binned by x/z (orbit::TriGrid):
+ * read again before each step's queries (the game moves and breaks them
+ * between frames).  Testing every triangle for each of a step's many height
+ * queries (~800 x 1700-2200 triangles) took most of a frame's time. */
+orbit::TriGrid g_obstacles;
+void groundRefresh();
+std::vector<int32_t> g_obstRaw, g_obstNew;   /* the vertices the grid was made from; this step's */
+void obstaclesRead() {
+    g_obstNew.clear();
+    forEachObstacle([&](const int32_t *v) { g_obstNew.insert(g_obstNew.end(), v, v + 9); });
+    if (g_obstNew != g_obstRaw || g_obstacles.size() * 9 != g_obstNew.size()) {   /* (mostly unchanged) */
+        g_obstRaw.swap(g_obstNew);
+        g_obstacles.clear();
+        for (size_t i = 0; i + 9 <= g_obstRaw.size(); i += 9) {
+            const int32_t *v = &g_obstRaw[i];
+            const Vec3 p[3] = {{v[0] / 8.0, v[1] / 8.0, v[2] / 8.0}, {v[3] / 8.0, v[4] / 8.0, v[5] / 8.0},
+                               {v[6] / 8.0, v[7] / 8.0, v[8] / 8.0}};
+            g_obstacles.add(p);
+        }
+        g_obstacles.build();
+    }
+    groundRefresh();
+}
+
+/* the level's ground: the collision grid (62740.c ground_scan_grid): cells of
+ * gGroundCellW x gGroundCellD world units, gGroundCols columns, lists in
+ * gGroundCells[] of 0x14-byte triangles (9 s16 in 1/32 world units).  A
+ * height query tests the list of the cell it is in (up to ~500 triangles);
+ * each cell's list is also kept binned (orbit::TriGrid, the same triangles),
+ * checked against the game's bytes before each step and made again if they
+ * changed. */
+template <typename F> void groundCellTris(uint32_t a, uint32_t end, F f) {
+    if (a >= 0x80000000u && end >= a && end - a < 0x40000 && end < 0x80800000u) {
+        end -= 4;
+        for (; a + 0x14 <= end; a += 0x14) {
+            const int16_t *t = reinterpret_cast<const int16_t *>(uintptr_t(a));
+            const Vec3 p[3] = {{double(t[0]), double(t[1]), double(t[2])},
+                               {double(t[3]), double(t[4]), double(t[5])},
+                               {double(t[6]), double(t[7]), double(t[8])}};
+            f(p);
+        }
+    }
+}
+struct GroundCell {
+    uint32_t a = 0, end = 0;
+    std::vector<uint8_t> raw;     /* the list's bytes it was made from */
+    orbit::TriGrid grid;
+};
+struct GroundCache {
+    uint32_t cw = 0, cd = 0;
+    int cols = 0, rows = 0;
+    std::vector<GroundCell> cells;
+} g_ground;
+
+bool groundGrid(uint32_t &cw, uint32_t &cd, int &cols, int &rows) {
+    cw = rd<uint32_t>(0x803BE718u), cd = rd<uint32_t>(0x803BE71Cu);
+    cols = rd<uint16_t>(0x803BE720u), rows = rd<uint16_t>(0x803BE722u);
+    return cw != 0 && cd != 0 && cols > 0 && rows > 0 && cols * rows < 0x10000;
+}
+
+void groundRefresh() {
+    uint32_t cw, cd;
+    int cols, rows;
+    if (!groundGrid(cw, cd, cols, rows)) {
+        g_ground = GroundCache();
+        return;
+    }
+    if (cw != g_ground.cw || cd != g_ground.cd || cols != g_ground.cols || rows != g_ground.rows) {
+        g_ground = GroundCache();
+        g_ground.cw = cw, g_ground.cd = cd, g_ground.cols = cols, g_ground.rows = rows;
+        g_ground.cells.resize(size_t(cols) * rows);
+    }
+    const uint32_t *cells = reinterpret_cast<const uint32_t *>(uintptr_t(0x803BDB10u));
+    for (int i = 0; i < cols * rows; i++) {
+        GroundCell &g = g_ground.cells[i];
+        const uint32_t a = cells[i], end = cells[i + 1];
+        const bool ok = a >= 0x80000000u && end >= a && end - a < 0x40000 && end < 0x80800000u;
+        const size_t n = ok ? end - a : 0;
+        if (a == g.a && end == g.end && n == g.raw.size() &&
+            (n == 0 || memcmp(g.raw.data(), reinterpret_cast<const void *>(uintptr_t(a)), n) == 0))
+            continue;
+        g.a = a, g.end = end;
+        g.raw.assign(reinterpret_cast<const uint8_t *>(uintptr_t(a)), reinterpret_cast<const uint8_t *>(uintptr_t(a)) + n);
+        g.grid.clear();
+        groundCellTris(a, end, [&](const Vec3 *p) { g.grid.add(p); });
+        g.grid.build();
+    }
+}
+
 /* drawing units (world / 32); the highest surface under x, z that is at most
  * kReach above y (a bridge deck or roof higher above isn't the ground there) */
 constexpr double kReach = 40.0;
 double g_lastTerrain, g_lastObstacle;   /* (--orbit-log) the two sources of the last query */
 double groundHeight(double x, double y, double z) {
+    g_perf.queries++;
     double best = -1e31, h;
     g_lastTerrain = g_lastObstacle = -1e31;
     bool obstacle = false;
@@ -257,37 +382,67 @@ double groundHeight(double x, double y, double z) {
         double &l = obstacle ? g_lastObstacle : g_lastTerrain;
         if (v <= y + kReach) l = std::max(l, v);
     };
-    /* the level's ground: the collision grid (62740.c ground_scan_grid): cells of
-     * gGroundCellW x gGroundCellD world units, gGroundCols columns, lists in
-     * gGroundCells[] of 0x14-byte triangles (9 s16 in 1/32 world units) */
-    const uint32_t cw = rd<uint32_t>(0x803BE718u), cd = rd<uint32_t>(0x803BE71Cu);
-    const int cols = rd<uint16_t>(0x803BE720u), rows = rd<uint16_t>(0x803BE722u);
-    if (cw != 0 && cd != 0 && cols > 0 && rows > 0 && cols * rows < 0x10000) {
+    uint32_t cw, cd;
+    int cols, rows;
+    if (groundGrid(cw, cd, cols, rows)) {
         const int cx = std::max(0, std::min(cols - 1, int(std::floor(x * 32.0 / cw))));
         const int cz = std::max(0, std::min(rows - 1, int(std::floor(z * 32.0 / cd))));
         const uint32_t *cells = reinterpret_cast<const uint32_t *>(uintptr_t(0x803BDB10u));
-        uint32_t a = cells[cz * cols + cx], end = cells[cz * cols + cx + 1];
-        if (a >= 0x80000000u && end >= a && end - a < 0x40000 && end < 0x80800000u) {
-            end -= 4;
-            for (; a + 0x14 <= end; a += 0x14) {
-                const int16_t *t = reinterpret_cast<const int16_t *>(uintptr_t(a));
-                const Vec3 p[3] = {{double(t[0]), double(t[1]), double(t[2])},
-                                   {double(t[3]), double(t[4]), double(t[5])},
-                                   {double(t[6]), double(t[7]), double(t[8])}};
+        const uint32_t a = cells[cz * cols + cx], end = cells[cz * cols + cx + 1];
+        const size_t i = size_t(cz) * cols + cx;
+        if (cols == g_ground.cols && rows == g_ground.rows && cw == g_ground.cw && cd == g_ground.cd &&
+            g_ground.cells[i].a == a && g_ground.cells[i].end == end)
+            g_ground.cells[i].grid.forEachAt(x, z, [&](const Vec3 *p) {
                 if (triHeight(p, x, z, h)) take(h);
-            }
-        }
+            });
+        else
+            groundCellTris(a, end, [&](const Vec3 *p) {
+                if (triHeight(p, x, z, h)) take(h);
+            });
     }
     /* buildings and other obstacles: the 0x60-byte collision triangles
-     * (77E20.c CollisionTri: s32 vertices at +0x28 in world / 4 units) */
+     * (77E20.c CollisionTri: s32 vertices at +0x28 in world / 4 units), as
+     * obstaclesRead last read them */
     obstacle = true;
-    forEachObstacle([&](const int32_t *v) {
-        const Vec3 p[3] = {{v[0] / 8.0, v[1] / 8.0, v[2] / 8.0}, {v[3] / 8.0, v[4] / 8.0, v[5] / 8.0},
-                           {v[6] / 8.0, v[7] / 8.0, v[8] / 8.0}};
+    g_obstacles.forEachAt(x, z, [&](const Vec3 *p) {
         double hh;
         if (triHeight(p, x, z, hh)) take(hh);
     });
     return best;
+}
+
+/* --orbit-log: every query also against all the obstacle triangles one by one
+ * (as before the grid); the answers must be the same */
+unsigned g_heightChecks, g_heightMismatches;
+double groundHeightChecked(double x, double y, double z) {
+    const double h = groundHeight(x, y, z), lastT = g_lastTerrain, lastO = g_lastObstacle;
+    double o = -1e31;
+    forEachObstacle([&](const int32_t *v) {
+        const Vec3 p[3] = {{v[0] / 8.0, v[1] / 8.0, v[2] / 8.0}, {v[3] / 8.0, v[4] / 8.0, v[5] / 8.0},
+                           {v[6] / 8.0, v[7] / 8.0, v[8] / 8.0}};
+        double hh;
+        if (triHeight(p, x, z, hh) && hh <= y + kReach) o = std::max(o, hh);
+    });
+    double t = -1e31;
+    uint32_t cw, cd;
+    int cols, rows;
+    if (groundGrid(cw, cd, cols, rows)) {
+        const int cx = std::max(0, std::min(cols - 1, int(std::floor(x * 32.0 / cw))));
+        const int cz = std::max(0, std::min(rows - 1, int(std::floor(z * 32.0 / cd))));
+        const uint32_t *cells = reinterpret_cast<const uint32_t *>(uintptr_t(0x803BDB10u));
+        groundCellTris(cells[cz * cols + cx], cells[cz * cols + cx + 1], [&](const Vec3 *p) {
+            double hh;
+            if (triHeight(p, x, z, hh) && hh <= y + kReach) t = std::max(t, hh);
+        });
+    }
+    const double all = std::max(t, o);
+    g_heightChecks++;
+    if (all != h || o != lastO || t != lastT) {
+        if (g_heightMismatches++ < 10)
+            host_log("live: orbit collision grid: query %.3f %.3f %.3f gave %.6f, every triangle %.6f (frame %u)\n", x, y, z,
+                     h, all, plat_frames());
+    }
+    return h;
 }
 
 /* ---- input ------------------------------------------------------------------ */
@@ -315,8 +470,7 @@ double g_mouseX, g_mouseY, g_wheel;   /* since the last step */
 bool g_dragging;
 bool g_resetHeld;
 
-/* --orbit-test */
-bool g_test;
+/* --orbit-test (g_test: above) */
 double g_testYaw, g_testPitch = 1e9, g_testZoom = 0;
 
 void buildPadConfig() {
@@ -342,18 +496,194 @@ void buildPadConfig() {
     }
 }
 
-/* ---- the drawing list: every cell (PORT_DRAW_CELLS) --------------------------- */
-std::vector<short> g_allCells;
+/* ---- host work (--perf-log; g_perf, g_perfOn: above) ------------------------------ */
+struct PerfTimer {
+    double &acc;
+    LARGE_INTEGER t0;
+    explicit PerfTimer(double &a) : acc(a) {
+        if (g_perfOn) QueryPerformanceCounter(&t0);
+    }
+    ~PerfTimer() {
+        if (!g_perfOn) return;
+        LARGE_INTEGER t1;
+        QueryPerformanceCounter(&t1);
+        acc += double(t1.QuadPart - t0.QuadPart) * 1e3 / double(g_freq.QuadPart);
+    }
+};
+
+unsigned listLength(const short *l) {
+    unsigned n = 0;
+    while (l[n] != -1) n++;
+    return n;
+}
+
+/* ---- how fast the orbit's view moves (the drawing list's margins) ---------------
+ * Each step: the angle the view direction turned and the distance the eye
+ * moved (drawing units); the drawing list takes the largest of the last
+ * kMotionSteps, as speeds. */
+constexpr int kMotionSteps = 8;
+struct Motion {
+    double turn[kMotionSteps] = {}, move[kMotionSteps] = {};
+    int next = 0;
+    bool have = false;
+    Vec3 eye, dir;
+    double turnPerSec() const { return *std::max_element(turn, turn + kMotionSteps) * 60.0; }
+    double movePerStep() const { return *std::max_element(move, move + kMotionSteps); }
+    void reset() { *this = Motion(); }
+    void add(const Vec3 &e, const Vec3 &target) {
+        const Vec3 d = orbit::normalize(target - e);
+        if (have) {
+            const double c = std::max(-1.0, std::min(1.0, orbit::dot(d, dir)));
+            turn[next] = std::acos(c) * 180.0 / 3.14159265358979;
+            move[next] = orbit::length(e - eye);
+            next = (next + 1) % kMotionSteps;
+        }
+        eye = e, dir = d, have = true;
+    }
+} g_motion;
+
+/* ---- the drawing list (PORT_DRAW_CELLS) ------------------------------------------
+ * The game's drawing paths (5FD50.c's level lists, 77E20.c's buildings) draw
+ * the cells of this list: the game's own (its camera's visibility walk,
+ * gVisibleCells, unchanged: the game's logic reads only that one) and the
+ * cells the orbit camera can see, ascending, -1 at the end.  The cells (the
+ * level grid: lvl_build_visible_dl's cells, cull_test_cells' boxes) get the
+ * game's own box (its grid of ground height ranges, as cull_box_corners) grown
+ * by the collision triangles of the buildings standing in them (taller than
+ * the ground, or reaching over the cell's edge).  The orbit's view is a
+ * pyramid (orbit::ViewVolume) with the frame's projection, widescreen and
+ * interpolation width (host_cull_wide), from the newest camera the game made
+ * (the frame before's: the level's lists are built before cam_update), and
+ * margins for that and for the pictures shown until the next list (the
+ * view may turn and the eye move meanwhile): 10
+ * degrees plus what the view turned in about 0.15 s at its recent speed, the
+ * apex 4 units plus 10 steps of the eye's recent motion back, and the far
+ * plane.  Turning faster than that can cover (a margin over 60 degrees), or
+ * the frame's camera unknown: every cell, as before.  Made once a frame (the
+ * paths ask for it once per record), for the game's list it was given. */
+struct DrawList {
+    unsigned frame = ~0u;
+    bool fresh = false;           /* made since the last frame task (orbitAfterTask) */
+    uint32_t lvl = 0;
+    std::vector<short> game;      /* the game's list it was made for */
+    std::vector<short> list;      /* the drawing list */
+    std::shared_ptr<CellSet> cells;
+    unsigned all = 0, made = 0;   /* lists with every cell (fast turns, camera unknown), lists made */
+} g_draw;
+
+uint32_t levelData() {
+    return rd<uint32_t>(0x80358074u);   /* gLevelData */
+}
+
+/* the n cells' boxes: the game's (ground heights) grown by its buildings' collision triangles */
+void cellBoxes(uint32_t lvl, unsigned cols, unsigned rows, std::vector<CellBox> &boxes) {
+    const int xs = rd<int16_t>(lvl + 4), zs = rd<int16_t>(lvl + 6);
+    const uint32_t grid = lvl + rd<uint32_t>(lvl + 0x48);
+    boxes.resize(size_t(cols) * rows);
+    for (unsigned z = 0; z < rows; z++)
+        for (unsigned x = 0; x < cols; x++) {
+            const uint32_t g = grid + ((z * cols + x) << 2);
+            CellBox &b = boxes[z * cols + x];
+            /* cull_box_corners: unsigned 32-bit products, as s32 */
+            b.lo = {double(int32_t(x * uint32_t(xs))), double(rd<int16_t>(g)), double(int32_t(z * uint32_t(zs)))};
+            b.hi = {double(int32_t((x + 1) * uint32_t(xs))), double(rd<int16_t>(g + 2)),
+                    double(int32_t((z + 1) * uint32_t(zs)))};
+        }
+    /* gObjects records: cell at +0xE8, collision triangles [+4, +8) (forEachObstacle) */
+    const uint32_t end = rd<uint32_t>(0x803F7654u);
+    if (end < 0x803F4030u || end > 0x803F4030u + 0xFCu * 64) return;
+    for (uint32_t o = 0x803F4030u; o + 0xFC <= end; o += 0xFC) {
+        const unsigned cell = rd<uint8_t>(o + 0xE8);
+        if (cell >= boxes.size()) continue;
+        const uint32_t a0 = rd<uint32_t>(o + 4), a1 = rd<uint32_t>(o + 8);
+        if (a0 < 0x80000000u || a1 < a0 || a1 > 0x80800000u || a1 - a0 > 0x60u * 4096) continue;
+        CellBox &b = boxes[cell];
+        for (uint32_t a = a0; a + 0x60 <= a1; a += 0x60) {
+            const int32_t *v = reinterpret_cast<const int32_t *>(uintptr_t(a + 0x28));
+            for (int k = 0; k < 3; k++) {
+                const Vec3 p = {v[k * 3] / 8.0, v[k * 3 + 1] / 8.0, v[k * 3 + 2] / 8.0};
+                b.lo = {std::min(b.lo.x, p.x), std::min(b.lo.y, p.y), std::min(b.lo.z, p.z)};
+                b.hi = {std::max(b.hi.x, p.x), std::max(b.hi.y, p.y), std::max(b.hi.z, p.z)};
+            }
+        }
+    }
+}
+
+bool sameList(const short *a, const std::vector<short> &b) {
+    for (size_t i = 0; i < b.size(); i++)
+        if (a[i] != b[i]) return false;
+    return true;   /* (b ends with its -1) */
+}
+
 short *drawCells(short *game) {
     if (!g_active) return game;
-    const unsigned n = unsigned(rd<uint16_t>(0x803BE714u)) * rd<uint16_t>(0x803BE716u);
+    PerfTimer timer(g_perf.cellsMs);
+    const unsigned cols = rd<uint16_t>(0x803BE714u), rows = rd<uint16_t>(0x803BE716u);   /* gLevelCols, gLevelRows */
+    const unsigned n = cols * rows;
     if (n == 0 || n > 0x7FFF) return game;
-    if (g_allCells.size() != n + 1) {
-        g_allCells.resize(n + 1);
-        for (unsigned i = 0; i < n; i++) g_allCells[i] = short(i);
-        g_allCells[n] = -1;
+    const unsigned frame = plat_frames();
+    const uint32_t lvl = levelData();
+    if (frame == g_draw.frame && lvl == g_draw.lvl && !g_draw.list.empty() && sameList(game, g_draw.game))
+        return g_draw.list.data();
+    g_draw.frame = frame;
+    g_draw.lvl = lvl;
+    g_draw.game.assign(game, game + listLength(game) + 1);
+    g_draw.made++;
+    auto cs = std::make_shared<CellSet>();
+    cs->drawn.assign(n, 0);
+    for (size_t i = 0; i + 1 < g_draw.game.size(); i++)
+        if (unsigned(uint16_t(g_draw.game[i])) < n) cs->drawn[uint16_t(g_draw.game[i])] = 1;
+    /* the newest camera the game made: the level's lists are built before the
+     * frame's own camera (cam_update), so it is the frame before's; the
+     * margins cover the difference */
+    const Cam &c = g_built[0].valid && (!g_built[1].valid || int(g_built[0].frame - g_built[1].frame) > 0) ? g_built[0]
+                                                                                                             : g_built[1];
+    double nearZ = 0, farZ = 0;
+    const double s = -c.proj[2][3];
+    bool all = g_cullAll || !c.valid || frame - c.frame > 4 || !orbit::perspectiveRange(c.proj, nearZ, farZ) ||
+               !(std::fabs(c.proj[0][0]) > 1e-9 && std::fabs(c.proj[1][1]) > 1e-9);
+    const double margin = 10.0 + g_motion.turnPerSec() * 0.15;
+    if (margin > 60.0) all = true;
+    if (all) {
+        g_draw.all++;
+        std::fill(cs->drawn.begin(), cs->drawn.end(), uint8_t(1));
+    } else {
+        cellBoxes(lvl, cols, rows, cs->boxes);
+        Vec3 eye;
+        g_orbit.eyeFor({c.eye, c.target}, 0, 0, g_lim, eye);
+        cs->tanX = host_cull_wide * s / std::fabs(c.proj[0][0]);
+        cs->tanY = s / std::fabs(c.proj[1][1]);
+        cs->farDist = farZ * 1.02;
+        const orbit::ViewVolume vol(eye, c.target, cs->tanX, cs->tanY, margin, 4.0 + 10.0 * g_motion.movePerStep(),
+                                    cs->farDist);
+        for (unsigned i = 0; i < n; i++)
+            if (!cs->drawn[i] && vol.boxVisible(cs->boxes[i].lo, cs->boxes[i].hi)) cs->drawn[i] = 1;
+        Vec3 cullEye, cullFwd;
+        if (g_log && orbit::viewEye(c.cullView, cullEye, cullFwd)) {
+            /* the same test from the game's culling view (its eye pushed back: cam_eye_scale) should see
+             * (about) the cells the game listed (it walks the grid over a few frames: lags a little) */
+            const orbit::ViewVolume gameVol(cullEye, c.target, cs->tanX, cs->tanY, 0.0, 0.0, cs->farDist);
+            for (size_t i = 0; i + 1 < g_draw.game.size(); i++) {
+                const unsigned k = uint16_t(g_draw.game[i]);
+                if (k >= n) continue;
+                g_gameCellsChecked++;
+                if (!gameVol.boxVisible(cs->boxes[k].lo, cs->boxes[k].hi)) g_gameCellsOutside++;
+            }
+        }
     }
-    return g_allCells.data();
+    g_draw.list.clear();
+    for (unsigned i = 0; i < n; i++)
+        if (cs->drawn[i]) g_draw.list.push_back(short(i));
+    g_draw.list.push_back(-1);
+    if (g_perfOn) {
+        g_perf.lists++;
+        g_perf.cells += unsigned(g_draw.list.size() - 1);
+        g_perf.gameCells += unsigned(g_draw.game.size() - 1);
+    }
+    g_draw.fresh = true;
+    if (g_log && !all) g_draw.cells = cs;
+    else g_draw.cells.reset();
+    return g_draw.list.data();
 }
 
 /* ---- the backdrop -------------------------------------------------------------- */
@@ -599,6 +929,7 @@ void orbitVi(const PadSet &pads, const Uint8 *keys) {
     if (!g_active) {
         if (was) host_log("live: orbit camera inactive (game mode %08llX, frame %u)\n", c.mode, plat_frames());
         g_orbit.reset(false);
+        g_motion.reset();
         g_yawRate = g_pitchRate = 0;
         g_mouseX = g_mouseY = g_wheel = 0;
         return;
@@ -606,8 +937,21 @@ void orbitVi(const PadSet &pads, const Uint8 *keys) {
     if (!was) {
         unsigned tris = 0;
         forEachObstacle([&](const int32_t *) { tris++; });
-        host_log("live: orbit camera active (level %d, frame %u, vehicle %u; %u obstacle triangles)\n", c.level,
-                 plat_frames(), unsigned(rd<uint8_t>(0x80364456u)), tris);
+        /* the ground grid's lists (groundHeight) */
+        unsigned ground = 0, most = 0;
+        const int cols = rd<uint16_t>(0x803BE720u), rows = rd<uint16_t>(0x803BE722u);
+        const uint32_t *cells = reinterpret_cast<const uint32_t *>(uintptr_t(0x803BDB10u));
+        if (cols > 0 && rows > 0 && cols * rows < 0x10000)
+            for (int i = 0; i < cols * rows; i++) {
+                const uint32_t a = cells[i], e = cells[i + 1];
+                if (a < 0x80000000u || e < a + 4 || e - a >= 0x40000) continue;
+                const unsigned n = (e - 4 - a) / 0x14;
+                ground += n;
+                most = std::max(most, n);
+            }
+        host_log("live: orbit camera active (level %d, frame %u, vehicle %u; %u obstacle triangles, ground grid %dx%d "
+                 "with %u triangles, at most %u in a cell)\n",
+                 c.level, plat_frames(), unsigned(rd<uint8_t>(0x80364456u)), tris, cols, rows, ground, most);
     }
     static bool lastFoot;
     if (c.onFoot != lastFoot) {
@@ -647,7 +991,20 @@ void orbitVi(const PadSet &pads, const Uint8 *keys) {
     orbit::Limits lim = g_lim;
     lim.recentre = g_test ? false : (cf.camRecentre || (c.onFoot && cf.camRecentreOnFoot));
     orbit::Orbit::Game g{c.eye, c.target};
-    g_orbit.step(g, in, dt, lim, groundHeight);
+    {
+        PerfTimer timer(g_perf.stepMs);
+        {
+            PerfTimer readTimer(g_perf.readMs);
+            obstaclesRead();
+        }
+        if (g_log) g_orbit.step(g, in, dt, lim, groundHeightChecked);
+        else g_orbit.step(g, in, dt, lim, groundHeight);
+    }
+    {
+        Vec3 eye;
+        g_orbit.eyeFor(g, 0, 0, lim, eye);
+        g_motion.add(eye, c.target);
+    }
     std::lock_guard<std::mutex> lock(g_mutex);
     g_shared.orbit = g_orbit;
     g_shared.lim = lim;
@@ -697,6 +1054,7 @@ void orbitBeforeTask(uint32_t dl, bool frameDl) {
         if (g_log && plat_frames() % 30 == 0) {
             int gh, gp;
             headingPitch(c.eye, c.target, gh, gp);
+            obstaclesRead();
             const double ge = groundHeight(eye.x, eye.y, eye.z), te = g_lastTerrain, ob = g_lastObstacle;
             const double gt = groundHeight(c.target.x, c.target.y, c.target.z);
             host_log("live: orbit frame %u%s: target %.0f %.0f %.0f, game eye %.0f %.0f %.0f (heading %X pitch %d), "
@@ -720,7 +1078,11 @@ void orbitAfterTask(bool frameDl) {
     e.cur = g_last;
     e.prev = g_prevDrawn;
     e.active = g_active && g_last.play;
+    if (g_log && g_draw.fresh) e.cells = g_draw.cells;   /* the list this frame's lists were made with */
+    g_draw.fresh = false;
     std::lock_guard<std::mutex> lock(g_mutex);
+    e.orbit = g_shared.orbit;
+    e.lim = g_shared.lim;
     g_ring.push_back(e);
     if (g_ring.size() > 8) g_ring.erase(g_ring.begin());
 }
@@ -740,11 +1102,33 @@ void orbitSetLog(bool on) {
     g_log = on;
 }
 
+OrbitPerf orbitPerfTake() {
+    g_perfOn = true;
+    const OrbitPerf p = g_perf;
+    g_perf = OrbitPerf();
+    return p;
+}
+
 void orbitSummary() {
     if (g_cfg == nullptr || g_cfg->cameraMode != 1) return;
     host_log("live: orbit camera: %u pictures drawn with its view, %u cuts, backdrop turned with it in %u frames, "
              "%u billboards turned to it\n",
              g_hooked.load(), g_cuts, g_bdFrames, g_bb.turned);
+    host_log("live: orbit drawing lists: %u made (%s), %u with every cell\n", g_draw.made,
+             g_cullAll ? "every cell: --orbit-cull all" : "the game's cells and the orbit view's", g_draw.all);
+    if (g_log)
+        host_log("live: orbit checks: %u pictures checked against their drawing list, %u saw cells not drawn (%u "
+                 "cells); %u collision queries, %u differing from a test of every triangle; of the game's listed "
+                 "cells %u of %u outside the same test from the game's culling view\n",
+                 g_checkPictures.load(), g_checkMissPictures.load(), g_checkMissCells.load(), g_heightChecks,
+                 g_heightMismatches, g_gameCellsOutside, g_gameCellsChecked);
+}
+
+bool orbitSetCull(const std::string &mode) {
+    if (mode == "all") g_cullAll = true;
+    else if (mode == "view") g_cullAll = false;
+    else return false;
+    return true;
 }
 
 }  // namespace live

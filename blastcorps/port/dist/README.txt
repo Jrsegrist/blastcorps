@@ -69,6 +69,8 @@ game is closed. It holds:
                resolution (internal resolution: window, 1 = the N64's, 2, 3, 4 ...),
                msaa (0, 2, 4, 8), filtering (aa, linear, nearest),
                aspect (original = 4:3, 16:9, 16:10, 21:9, window: widescreen),
+               hud_position (centered, the default, or edges: in widescreen the
+               HUD's left and right parts at the screen's edges),
                framerate (original = the game's own 20/30 pictures a second,
                display = the display's refresh rate, or a number like 60, 120, 144:
                smoother motion from in-between pictures), interpolation (tagged,
@@ -89,7 +91,10 @@ when it starts and uses the default for it.
 
 The window can be resized freely; the picture keeps the N64's 4:3 shape unless
 widescreen is on (aspect): then the 3D world fills the wider picture, nothing is
-stretched, and the HUD, menus and other 2D pictures stay 4:3 in the middle. With
+stretched, and the HUD, menus and other 2D pictures stay 4:3 in the middle (with
+hud_position = edges the HUD's left and right parts, the radar, panel, money,
+timers and icons, move out to the screen's edges; messages and menus stay in the
+middle). With
 widescreen the game also treats the wider view as visible (which parts of the level
 it draws), so it can play out slightly differently from the N64.
 
@@ -132,6 +137,7 @@ Command-line options (for shortcuts or a .bat file) override bc.ini, for example
   bc.exe --set audio.volume=50   (any bc.ini setting as section.key=value, this run only)
   bc.exe --resolution 4        bc.exe --msaa 4          bc.exe --filtering nearest
   bc.exe --aspect 16:9         bc.exe --texture-pack D:\packs\mypack
+  bc.exe --aspect 21:9 --hud-position edges
   bc.exe --framerate 60        bc.exe --framerate display
   bc.exe --interpolation auto  bc.exe --fps-counter on
   bc.exe --camera orbit        bc.exe --present-pacing vsync

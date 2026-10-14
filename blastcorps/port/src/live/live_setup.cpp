@@ -80,6 +80,9 @@ static const char kDefaultIni[] =
     "; as the window). Widescreen shows more of the world at the sides; the HUD, menus and\r\n"
     "; other 2D pictures keep their shape in the middle.\r\n"
     "aspect = original\r\n"
+    "; Widescreen HUD position: centered (the default: the HUD in the 4:3 middle, as on the N64)\r\n"
+    "; or edges (its left and right parts at the screen's edges; centred messages stay centred).\r\n"
+    "hud_position = centered\r\n"
     "; Frame rate: original (the game's own 20 or 30 pictures a second, the default), display\r\n"
     "; (as many as the display's refresh rate) or a number, e.g. 60, 120, 144. Above the\r\n"
     "; game's own rate the renderer adds in-between pictures (smoother motion; the game itself\r\n"
@@ -391,6 +394,11 @@ static void parseText(Config &c, const std::string &text, const std::string &nam
                     ok = a >= 4.0 / 3.0 - 1e-6 && a <= 4.0;
                     if (ok) c.aspect = std::fabs(a - 4.0 / 3.0) < 1e-6 ? 0 : a;
                 }
+            } else if (key == "hud_position" || key == "hud") {
+                std::string l = lower(v);
+                if (l == "centered" || l == "centred" || l == "center" || l == "centre" || l == "4:3" || l == "0") c.hudPosition = 0;
+                else if (l == "edges" || l == "edge" || l == "1") c.hudPosition = 1;
+                else ok = false;
             } else if (key == "framerate" || key == "frame_rate" || key == "fps") {
                 std::string l = lower(v);
                 if (l == "original" || l == "off" || l == "game" || l == "0") c.framerate = 0;
@@ -719,6 +727,7 @@ std::string configValue(const Config &c, const Setting &s) {
         if (k == "msaa") return std::to_string(c.msaa);
         if (k == "filtering") return c.filtering == 1 ? "linear" : c.filtering == 2 ? "nearest" : "aa";
         if (k == "aspect") return aspectName(c.aspect);
+        if (k == "hud_position") return c.hudPosition == 1 ? "edges" : "centered";
         if (k == "framerate") return framerateName(c.framerate);
         if (k == "interpolation") return c.interpolation ? "tagged" : "auto";
         if (k == "fps_counter") return fpsCounterName(c.fpsCounter);

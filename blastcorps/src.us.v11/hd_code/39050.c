@@ -1042,6 +1042,8 @@ void hud_draw_veh_overlay(Gfx **gfx, u8 arg1) {
         D_8036E4D2 = 0;
     }
     if (D_8036E4D2 != 0) {
+        /* widescreen HUD sides (port.h): by where the overlay's quad is */
+        PORT_WTAG(gdl, PORT_WTAG_SPAN, D_802FC568[0].v.ob[0], D_802FC568[2].v.ob[0]);
         gSPMatrix(gdl++, &D_02000000[3], G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
         gSPMatrix(gdl++, &D_02000000[7], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
         gDPPipeSync(gdl++);
@@ -1059,6 +1061,7 @@ void hud_draw_veh_overlay(Gfx **gfx, u8 arg1) {
         gSP1Triangle(gdl++, 0, 1, 2, 0);
         gSP1Triangle(gdl++, 0, 2, 3, 0);
         gDPPipeSync(gdl++);
+        PORT_WTAG(gdl, PORT_WTAG_NONE, 0, 0);
     }
     *gfx = gdl;
 }

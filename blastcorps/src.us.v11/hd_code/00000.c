@@ -1460,10 +1460,12 @@ void hd_game_frame(void) {
             }
         }
         if (gPadDisplayAlpha && D_802E8BEC && gPadDisplayLoaded) {
+            PORT_WTAG(gdl, PORT_WTAG_LEFT, 0, 0);
             gdl = hud_draw_pad((s32) &gDynamicBufs[gBufferIndex], gdl, gPadDisplayAlpha / 2 - 103,
                                 0x55 - ((gGameMode == MODE_GLOBE_SEQ) << 5), gPadDisplayAlpha);
         }
         if (D_802E8BEC == 0 && gLogoState == 3 && gGameMode == 2) {
+            PORT_WTAG(gdl, PORT_WTAG_NONE, 0, 0);
             gdl = hud_draw_demo_banner((s32) gDynamicBufs, gdl);
         }
         if (gGameMode == 2 || levelno == 0x2F) {
@@ -1478,6 +1480,7 @@ void hd_game_frame(void) {
             yoshi_demand(0x803F);
         }
     }
+    PORT_WTAG(gdl, PORT_WTAG_NONE, 0, 0);
     gdl = func_8024C404(gdl, &gDynamicBufs[gBufferIndex], &gFrameDlLen);
     if ((gGameMode & 0x440) && D_803156C4 - D_80364A54 > 160 && !D_80364A50) {
         D_80364A50 = 1;
@@ -1493,7 +1496,9 @@ void hd_game_frame(void) {
     if (levelno == 0x31 && yoshiState == 1) {
         gdl = credits_draw((Gfx * N64P *) &gDynamicBufs[gBufferIndex], gdl);
     }
+    PORT_WTAG(gdl, PORT_WTAG_TEXT_SIDES, 0, 0);
     text_flush_screen(&gdl, (Mtx *) &gDynamicBufs[gBufferIndex]);
+    PORT_WTAG(gdl, PORT_WTAG_NONE, 0, 0);
     if (gGameMode != 2) {
         gdl = func_80274BF0((s32) &gDynamicBufs[gBufferIndex], gdl);
     }
@@ -2706,19 +2711,23 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
     }
     PORT_ITAG(gdl, PORT_ITAG_HUD, 0);
     if (gHudDialLoaded && (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW))) {
+        PORT_WTAG(gdl, PORT_WTAG_LEFT, 0, 0); /* widescreen HUD sides: see port.h */
         hud_draw_boost_dial(&gdl, (s32) dyn, gBufferIndex, gCurVehicle);
     }
     if (gGameMode & 0x200000000400220C) {
         hud_panel_draw(&gdl, (s32) dyn, gBufferIndex);
     }
     if (gGameMode == MODE_MAP_VIEW && gHaveCarrier) {
+        PORT_WTAG(gdl, PORT_WTAG_NONE, 0, 0); /* follows the player on screen */
         hud_draw_player_locator(&gdl, dyn, gBufferIndex, gPlayerX, gPlayerY, gPlayerZ);
     }
     text_begin_frame();
     if (gHudMissileIconLoaded && (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW))) {
+        PORT_WTAG(gdl, PORT_WTAG_LEFT, 0, 0);
         hud_draw_missile_icon(&gdl, (Gfx * N64P *) dyn, gBufferIndex, gCurVehicle);
     }
     if (gHudRamIconLoaded && (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW))) {
+        PORT_WTAG(gdl, PORT_WTAG_LEFT, 0, 0);
         hud_draw_ram_icon(&gdl, (Gfx * N64P *) dyn, gBufferIndex, gCurVehicle);
     }
     if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
@@ -2736,6 +2745,7 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
         }
     }
     if ((gGameMode & (MODE_LEVEL | MODE_MAP_VIEW | MODE_YOSHI_PAGES)) && (!(gLevelKind & 0x81) || gHaveCarrier || gHaveShuttle)) {
+        PORT_WTAG(gdl, PORT_WTAG_NONE, 0, 0); /* follows the target in the 3D view */
         hud_draw_target_marker((struct SpriteVtxBuf *) dyn, &gdl, (gGameMode & MODE_MAP_VIEW) || currentYoshiWindow == 0x4D || currentYoshiWindow == 0x49);
     }
     if (gNextGameMode == 0 && !areWeFading()) {
@@ -2768,26 +2778,32 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
     }
     if (((gGameMode & 0x440) || levelno == 0x26) && yoshiState == 1 && !areWeFading()) {
         if ((gGameMode & 0x440) && gLevelKind != 1) {
+            PORT_WTAG(gdl, PORT_WTAG_RIGHT, 0, 0);
             spr_draw_blinking(&gdl, (s32) dyn, D_80365580, 0x108, 0x12);
         } else {
+            PORT_WTAG(gdl, PORT_WTAG_LEFT, 0, 0);
             spr_draw_blinking(&gdl, (s32) dyn, D_80365580, 0x18, 0x12);
         }
     }
     if ((gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) && gCamFixedEye) {
+        PORT_WTAG(gdl, PORT_WTAG_RIGHT, 0, 0);
         spr_draw_blinking(&gdl, (s32) dyn, D_80364A86, 0x108, 0xBE);
     }
     if ((gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) && gLevelKind == 1 && !gPaused) {
         stats_award_bonuses();
     }
     if (gHaveCarrier && gGameMode == 4) {
+        PORT_WTAG(gdl, PORT_WTAG_LEFT, 0, 0);
         hud_draw_target_arrow(&gdl, (Mtx *) dyn, gPlayerX, gPlayerY, gPlayerZ, gCarrierX, gCarrierY, gCarrierZ);
     }
     if ((gLevelInfo[levelno].unk0 & 0x81) && gGameMode == 4) {
         if (levelno != 0x32 ||
             ((players[playerNumber].unk18[0x32] > 0 && players[playerNumber].unk18[0x32] < 6) ? 1 : 0)) {
+            PORT_WTAG(gdl, PORT_WTAG_LEFT, 0, 0);
             hud_draw_radar(&gdl, (Mtx *) dyn, gBufferIndex, gPlayerX, gPlayerZ, gCarrierX, gCarrierZ);
         }
     }
+    PORT_WTAG(gdl, PORT_WTAG_NONE, 0, 0); /* full-screen fades, the text's own sides */
     if (gHaveCarrier || gHaveShuttle) {
         switch (gGameMode) {
             case 4:
@@ -2809,7 +2825,9 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
                 break;
         }
     }
+    PORT_WTAG(gdl, PORT_WTAG_TEXT_SIDES, 0, 0);
     text_flush_screen(&gdl, (Mtx *) dyn);
+    PORT_WTAG(gdl, PORT_WTAG_NONE, 0, 0);
     *len = gdl - dyn->dl;
     return gdl;
 }

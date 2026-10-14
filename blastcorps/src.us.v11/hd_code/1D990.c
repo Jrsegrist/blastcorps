@@ -699,6 +699,7 @@ Gfx *hud_draw_objective(Gfx *gdl, Gfx * N64P *arg1, u32 *arg2) {
     if (gTurboStartState) {
         g = hud_draw_turbo_start(arg1, g);
     }
+    PORT_WTAG(g, PORT_WTAG_LEFT, 0, 0); /* the objective icon (widescreen HUD sides: see port.h) */
     g = spr_begin(g);
     if (gObjectiveAnim) {
         g = spr_draw(g, gObjectiveAnim->frames[(D_803156C4 / gObjectiveAnim->speed) % gObjectiveAnim->nframes] + gObjectiveSprite - 1,
@@ -709,6 +710,7 @@ Gfx *hud_draw_objective(Gfx *gdl, Gfx * N64P *arg1, u32 *arg2) {
                           0x18, gHudObjectiveY + 0xC, alpha, 1, 1.0f);
     }
     g = spr_end(g);
+    PORT_WTAG(g, PORT_WTAG_NONE, 0, 0);
     arg2 += g - gdl; /* dead store to the parameter, kept for the match */
     return g;
 }

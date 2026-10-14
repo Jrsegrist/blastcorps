@@ -50,7 +50,10 @@ void interpSetCommandHook(GbiCommandHook hook, GbiMatrixHook mtxHook);
  * and a hook after every G_VTX RT64 ran, whoever ran it (`w1`: the command's
  * address word, `first`: the workload's vertex count before it) */
 typedef void (*GbiVertexHook)(RT64::State *state, uint32_t w1, uint32_t first);
-void interpSetWideHooks(GbiCommandHook hook, GbiVertexHook vtxHook);
+/* ... and one before every command, G_MTX and G_POPMTX included, with the
+ * command's physical address (the game's PORT_WTAG tags name addresses) */
+typedef void (*GbiAddressHook)(RT64::State *state, uint32_t addr);
+void interpSetWideHooks(GbiCommandHook hook, GbiVertexHook vtxHook, GbiAddressHook addrHook);
 
 }  // namespace live
 

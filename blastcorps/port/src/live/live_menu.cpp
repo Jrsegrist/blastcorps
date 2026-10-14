@@ -212,6 +212,16 @@ void videoTab(Config &c) {
         help("Widescreen: the 3D view gets wider (more of the level at the sides, nothing stretched); the HUD and "
              "other 2D pictures keep their 4:3 shape in the middle. The game then also counts the wider view as "
              "visible (which level cells it draws), so it can differ slightly from the N64's.");
+        int h = c.hudPosition;
+        ImGui::BeginDisabled(c.aspect == 0);
+        if (combo("HUD position", &h, {"Centered (4:3) (default)", "Edges"})) {
+            c.hudPosition = h;
+            markChanged("video", "hud_position");
+        }
+        ImGui::EndDisabled();
+        help("Widescreen only. Centered: the HUD stays in the 4:3 middle, as on the N64. Edges: its left parts "
+             "(the vehicle panel, damage) move to the left edge of the screen and its right parts (money, radar, "
+             "timers) to the right edge, with their original margins; centred messages stay centred.");
     }
     {
         static const int rates[] = {0, -1, 60, 120, 144, 165, 240};

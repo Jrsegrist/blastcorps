@@ -60,6 +60,14 @@ void port_itag(const void *gdl, int kind, int index) {
     if (host_itag_hook != NULL && (kind != 30 || index != 0)) host_itag_hook((unsigned) (size_t) gdl, kind, index);
 }
 
+/* ---- widescreen tags (port.h PORT_WTAG) ------------------------------------- */
+/* bc.exe's widescreen records them (live_wide.cpp); nothing goes back to the game. */
+void (*host_wtag_hook)(unsigned addr, int kind, int x0, int x1);
+
+void port_wtag(const void *gdl, int kind, int x0, int x1) {
+    if (host_wtag_hook != NULL) host_wtag_hook((unsigned) (size_t) gdl, kind, x0, x1);
+}
+
 /* PORT_DRAW_CELLS: the visible-cell list the drawing paths use */
 short *port_draw_cells(short *game) {
     return host_draw_cells_hook != NULL ? host_draw_cells_hook(game) : game;

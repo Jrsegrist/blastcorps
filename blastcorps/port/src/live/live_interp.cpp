@@ -86,6 +86,7 @@ GbiCommandHook g_hook;   /* interpSetCommandHook (the orbit camera) */
 GbiMatrixHook g_mtxHook;
 GbiCommandHook g_wideHook;   /* interpSetWideHooks (widescreen, live_wide.cpp) */
 GbiVertexHook g_vtxHook;
+GbiAddressHook g_addrHook;
 
 /* the vertices RT64 has in the workload being built */
 uint32_t vertexCount(RT64::State *state) {
@@ -94,7 +95,8 @@ uint32_t vertexCount(RT64::State *state) {
 }
 
 bool anyHook() {
-    return g_hook != nullptr || g_mtxHook != nullptr || g_wideHook != nullptr || g_vtxHook != nullptr;
+    return g_hook != nullptr || g_mtxHook != nullptr || g_wideHook != nullptr || g_vtxHook != nullptr ||
+           g_addrHook != nullptr;
 }
 
 /* the tags of the display lists being built (physical address -> kind, index) */
@@ -290,6 +292,8 @@ void run(RT64::State *state, RT64::DisplayList **dl, uint8_t op) {
 void dispatch(RT64::State *state, RT64::DisplayList **dl) {
     const uint32_t w0 = (*dl)->w0;
     const uint8_t op = uint8_t(w0 >> 24);
+    if (g_addrHook != nullptr)
+        g_addrHook(state, uint32_t(reinterpret_cast<const uint8_t *>(*dl) - state->RDRAM) & 0xFFFFFF);
     if (!g_on) {   /* only the command hooks want the commands */
         if (op == 0x01) {
             g_cur[op](state, dl);
@@ -423,9 +427,10 @@ void interpSetCommandHook(GbiCommandHook hook, GbiMatrixHook mtxHook) {
     if (!anyHook() && !g_on) unwrapAll();
 }
 
-void interpSetWideHooks(GbiCommandHook hook, GbiVertexHook vtxHook) {
+void interpSetWideHooks(GbiCommandHook hook, GbiVertexHook vtxHook, GbiAddressHook addrHook) {
     g_wideHook = hook;
     g_vtxHook = vtxHook;
+    g_addrHook = addrHook;
     if (!anyHook() && !g_on) unwrapAll();
 }
 

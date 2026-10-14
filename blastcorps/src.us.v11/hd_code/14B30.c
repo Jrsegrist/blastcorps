@@ -212,6 +212,9 @@ void text_queue_string(Gfx * N64P *gfxp, u8 *str, u16 *wstr, u8 align, s32 fit, 
     u8 wide = 0;
     u8 font = 0;
     s32 ch;
+#ifdef PORT_HOST
+    s32 port_first = gTextCount; /* this string's first quad (widescreen HUD sides) */
+#endif
 
     if (str == NULL || *str == 0) {
         return;
@@ -557,4 +560,12 @@ void text_queue_string(Gfx * N64P *gfxp, u8 *str, u16 *wstr, u8 align, s32 fit, 
             }
         }
     }
+#ifdef PORT_HOST
+    /* bc.exe's widescreen HUD (port.h PORT_WTAG): this string's vertices, so
+     * a flush under PORT_WTAG_TEXT_SIDES can place it by the side it is on
+     * (the flush sorts the quads of all strings by glyph) */
+    if (gTextCount > port_first) {
+        PORT_WTAG(&gTextVtx[gBufferIndex][port_first * 4], PORT_WTAG_TEXT, (gTextCount - port_first) * 4, fit);
+    }
+#endif
 }

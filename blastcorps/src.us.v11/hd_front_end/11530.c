@@ -284,17 +284,17 @@ void fe_globe_select_level(s32 arg0) {
         gGlobeCamDist = 6250.0f;
         if (gGlobePlanet != 6) {
             if (gGlobePlanet == 3) {
-                func_80261FB0(0x13);
+                music_start_tune(0x13);
             } else if (tune == 3) {
-                func_80261FB0(0xC);
+                music_start_tune(0xC);
             }
         }
     }
     if (gGlobePlanet != 6) {
         if (tune == 3 && gGlobePlanet == 3) {
-            func_80260650(D_80367738, 0x1D, 0);
+            snd_play(gSfxBank, 0x1D, 0);
         } else {
-            func_80260650(D_80367738, 0x3F, 0);
+            snd_play(gSfxBank, 0x3F, 0);
         }
     }
     gGlobePlanet = tune;
@@ -326,8 +326,8 @@ void fe_globe_frame(void) {
     cont_update();
     if (gGlobeSelectPending || (!areWeFading() && gGlobeState == 1 && (gContButtons & 0x9000) && !(gContPrevButtons & 0x9000))) {
         if (gFlightState == 0) {
-            func_80260A10();
-            func_80260650(D_80367738, 0x1E, 0);
+            snd_stop_all_looping();
+            snd_play(gSfxBank, 0x1E, 0);
             gGlobeState = 2;
             debug_printf("selected level %d\n", gGlobeSelLevel);
             levelno = gGlobeSelLevel;
@@ -339,7 +339,7 @@ void fe_globe_frame(void) {
     }
     if ((gContButtons & 0x4000) && !(gContPrevButtons & 0x4000) && !areWeFading() && gGlobeState == 1) {
         D_80364A87 = 0;
-        func_80260650(D_80367738, 0xDE, 0);
+        snd_play(gSfxBank, 0xDE, 0);
         func_80275390(0x4000000000000000);
         levelno = gGlobeSelLevel;
     }
@@ -357,7 +357,7 @@ void fe_globe_frame(void) {
         gFlightState = 1;
         gRouteRevealMin = 1.0f;
         if (gRouteRevealSound) {
-            func_802608C8(gRouteRevealSound);
+            snd_stop(gRouteRevealSound);
         }
     }
     switch (gGlobeState) {
@@ -766,9 +766,9 @@ Gfx *fe_globe_draw_route(Dynamic *dyn, Gfx *arg1, u8 from, u8 to, s8 *out, f32 *
             if (gGlobeState) {
                 progress = MIN2(1.0, (gRouteRevealMin > (f32) (D_803156C4 - gGlobeZoomDoneTime) * 60.0 / 60.0 / 90.0) ? gRouteRevealMin : (f32) (D_803156C4 - gGlobeZoomDoneTime) * 60.0 / 60.0 / 90.0);
                 if (progress == 1.0 && gRouteRevealSound) {
-                    func_802608C8(gRouteRevealSound);
+                    snd_stop(gRouteRevealSound);
                 } else if (!gRouteRevealSound && progress != 1.0 && gGlobePlanet == 3) {
-                    func_80260650(D_80367738, 0x7C, &gRouteRevealSound);
+                    snd_play(gSfxBank, 0x7C, &gRouteRevealSound);
                 }
             } else {
                 progress = 0.0f;

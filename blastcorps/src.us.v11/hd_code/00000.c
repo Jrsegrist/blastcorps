@@ -8,8 +8,8 @@
 #define LEGACY_gLevelData
 #define LEGACY_gLevelSegment8
 #define LEGACY_gVehiclesEnd
-#define LEGACY_D_80367734
-#define LEGACY_D_80367738
+#define LEGACY_gMusicPlayer
+#define LEGACY_gSfxBank
 #define LEGACY_gRdus
 #define LEGACY_gMarkedTargetPts
 #define LEGACY_gRdpOutputBuffer
@@ -104,7 +104,7 @@ extern Unk74 *gVehiclesEnd;
 
 extern u8 D_00787F40[]; /* static code segment bounds (ROM) */
 extern u8 D_00788000[];
-extern u8 D_80364A70;
+extern u8 gPendingTune;
 extern u8 D_803FF600[];
 #ifndef NON_MATCHING
 extern s32 gHeapPtr; /* heap pointer */
@@ -141,9 +141,9 @@ typedef struct {
     u8 padF4[0xC];
 } Player; /* 0x100 bytes */
 extern u8 D_803649EC;
-extern s32 D_803156F0;
+extern s32 gEnterRefusedSound;
 #ifndef NON_MATCHING
-extern s32 D_80367738;
+extern s32 gSfxBank;
 #endif
 s32 veh_enter(s32);
 
@@ -208,12 +208,12 @@ extern s32 gLevelDl0[2];
 extern s32 gLevelDl1[2];
 extern s32 gLevelDl2[2];
 extern s32 gLevelDl3[2];
-extern s32 D_803156EC;
+extern s32 gLeaveRefusedSound;
 u8 veh_exit_check(void);
 s32 veh_is_loaded(u8);
 
 extern u8 D_803153F0;
-extern s32 D_803156E8;
+extern s32 gCarrierAlarmSound;
 
 /* menu tables, 0x1C-byte entries */
 typedef struct {
@@ -350,7 +350,7 @@ extern s32 D_80364A80;
 extern f32 gCamZoom;
 extern u8 D_80364A85;
 #ifndef NON_MATCHING
-extern s32 D_80367734;
+extern s32 gMusicPlayer;
 #endif
 #define NUM_TEXTURE_DMAS 0x90
 void cull_start(Mtx *, Mtx *);
@@ -417,7 +417,7 @@ void hd_main_thread(void *arg) {
 
     hd_init();
     while (1) {
-        D_80364A70 = 0;
+        gPendingTune = 0;
         do {
             debug_printf("game mode switch from %d to %d\n", lowest_set_bit(gGameMode), lowest_set_bit(gNextGameMode));
             gGameModeAfterNext = 0;
@@ -437,7 +437,7 @@ void hd_main_thread(void *arg) {
                 case 0x100000000:
                     fe_pak_list_files();
                     yoshi_demand(0x8012);
-                    D_80364A70 = func_80261A44(gNextGameMode);
+                    gPendingTune = music_tune_for_mode(gNextGameMode);
                     break;
                 case 0x80000000000:
                     hd_mode_setup();
@@ -447,7 +447,7 @@ void hd_main_thread(void *arg) {
                     yoshi_demand(0x8011);
                     break;
                 case 0x10000:
-                    D_80364A70 = func_80261A44(gNextGameMode);
+                    gPendingTune = music_tune_for_mode(gNextGameMode);
                     title_setup_logo();
                     fe_player_build_load_menu();
                     fe_player_ticker_reset(playerNumber);
@@ -459,7 +459,7 @@ void hd_main_thread(void *arg) {
                     yoshi_demand(0x8011);
                     break;
                 case 0x20000000000000:
-                    func_802609D0();
+                    snd_stop_all();
                     hd_mode_setup();
                     tex_load_table();
                     title_setup_logo();
@@ -579,7 +579,7 @@ void hd_main_thread(void *arg) {
                     fe_globe_init(levelno);
                     break;
                 case 0x800000000000:
-                    D_80364A70 = func_80261A44(gNextGameMode);
+                    gPendingTune = music_tune_for_mode(gNextGameMode);
                     break;
                 case 0x400000000:
                     yoshi_demand(0x8013);
@@ -625,8 +625,8 @@ void hd_main_thread(void *arg) {
                 case 4:
                     switch (gGameMode) {
                         case 0x1000000000:
-                            func_8026101C();
-                            func_80261E9C(gNextGameMode);
+                            music_pop_tune();
+                            snd_set_mode_slot_volumes(gNextGameMode);
                             gUnpauseRequest = 1;
                             break;
                         case 0x100:
@@ -634,7 +634,7 @@ void hd_main_thread(void *arg) {
                             break;
                         case 0x2000:
                             if (gLevelInfo[levelno].unk0 != 1) {
-                                D_80364A70 = func_80261A44(gNextGameMode);
+                                gPendingTune = music_tune_for_mode(gNextGameMode);
                             }
                             gUnpauseRequest = 1;
                             gUnpauseRequest &= !yoshi_show_hint(0x52);
@@ -673,7 +673,7 @@ void hd_main_thread(void *arg) {
                     switch (gGameMode) {
                         case 0x100000000000:
                             func_8028B3E0();
-                            D_80364A70 = func_80261A44(gNextGameMode);
+                            gPendingTune = music_tune_for_mode(gNextGameMode);
                         case 0x4000:
                             newPlayer = stats_save_status();
                             break;
@@ -751,7 +751,7 @@ void hd_main_thread(void *arg) {
                             fe_player_medals_show_quiet(D_80315438);
                             break;
                         case 0x40000000:
-                            D_80364A70 = func_80261A44(gNextGameMode);
+                            gPendingTune = music_tune_for_mode(gNextGameMode);
                             break;
                         case 0x40000000000:
                         case 0x80000000000000:
@@ -823,7 +823,7 @@ void hd_main_thread(void *arg) {
                             if (D_80364A60) {
                                 gGameModeAfterNext = 0x40000000;
                                 D_80364A64 = 0xDC;
-                                D_80364A70 = 0;
+                                gPendingTune = 0;
                             } else {
                                 fe_player_medals_init(D_80315438);
                                 fe_bg_load(1);
@@ -898,7 +898,7 @@ void hd_main_thread(void *arg) {
                     fe_player_name_entry_open("ENTER NAME!", D_803047A0, 7, 0x1E, (char *) &players[playerNumber]);
                     yoshi_demand(0x800B);
                     title_setup_logo();
-                    D_80364A70 = func_80261A44(gNextGameMode);
+                    gPendingTune = music_tune_for_mode(gNextGameMode);
                     break;
                 case 0x4000000000000000:
                     hd_mode_setup();
@@ -907,15 +907,15 @@ void hd_main_thread(void *arg) {
                     yoshi_demand(0x800C);
                     break;
                 case 0x1000000000:
-                    func_80260EE0(0x18);
-                    func_80260B40(0, 0);
+                    music_push_tune(0x18);
+                    snd_set_slot_volume(0, 0);
                     func_80297ECC();
                     yoshi_demand(0x8015);
                     gPauseRequest = 1;
                     break;
                 case 0x100000000000:
                     seq_enter_start_level();
-                    D_80364A70 = func_80261A44(gNextGameMode);
+                    gPendingTune = music_tune_for_mode(gNextGameMode);
                     hd_mode_setup();
                     seq_start_level();
                     if (gGameMode == 0x4000 || levelno == 0x2F) {
@@ -947,15 +947,15 @@ void hd_main_thread(void *arg) {
                     break;
                 case 8:
                     gPauseRequest = 1;
-                    func_80260E80();
+                    music_play_clear_tune();
                     break;
             }
             gPrevGameMode = gGameMode;
             gGameMode = gNextGameMode;
             gNextGameMode = gGameModeAfterNext;
         } while (gNextGameMode != 0);
-        if (D_80364A70) {
-            func_80261FB0(D_80364A70);
+        if (gPendingTune) {
+            music_start_tune(gPendingTune);
         }
         while (gNextGameMode == 0) {
             gFrameStartTime = osGetTime();
@@ -1121,9 +1121,9 @@ void hd_game_frame(void) {
                 D_803156F4 = gBufferIndex ^ 1;
                 if (gGameMode & 0x104) {
                     if (!D_8036EB99) {
-                        func_80260B40(0, 0);
+                        snd_set_slot_volume(0, 0);
                     }
-                    func_80261570(0.5f);
+                    music_fade_to(0.5f);
                     if (gGameMode == 4 && (gHaveCarrier || gHaveShuttle) && currentYoshiWindow == 0) {
                         gNextGameMode = 0x100;
                         cull_restart(10);
@@ -1142,8 +1142,8 @@ void hd_game_frame(void) {
                         debug_printf("LOCKING KEYS!\n");
                         gSwallowB = 1;
                     }
-                    func_80261E9C(gGameMode);
-                    func_80261570(1.0f);
+                    snd_set_mode_slot_volumes(gGameMode);
+                    music_fade_to(1.0f);
                     if (gGameMode == 0x100 && (gHaveCarrier || gHaveShuttle)) {
                         gNextGameMode = 4;
                         cull_restart(10);
@@ -1178,7 +1178,7 @@ void hd_game_frame(void) {
             if (gCamZoom < 1.5 && gGameMode == 4) {
                 zoom = 2;
                 if (!(gContPrevButtons & 4)) {
-                    func_80260650(D_80367738, 0xDC, NULL);
+                    snd_play(gSfxBank, 0xDC, NULL);
                 }
             } else if (!(gContPrevButtons & 4) && gGameMode != 0x100) {
                 zoom = 3;
@@ -1189,7 +1189,7 @@ void hd_game_frame(void) {
                 if (gCamZoom > 1.0 && gGameMode == 4 && D_80364A7C == 0) {
                     zoom = 1;
                     if (!(gContPrevButtons & 8)) {
-                        func_80260650(D_80367738, 0xDD, NULL);
+                        snd_play(gSfxBank, 0xDD, NULL);
                     }
                 } else if (!(gContPrevButtons & 8) && gGameMode == 0x100) {
                     zoom = 4;
@@ -1218,7 +1218,7 @@ void hd_game_frame(void) {
                     cull_restart(10);
                     gNextGameMode = 0x100;
                     D_80364A78 = 0;
-                    func_80260650(D_80367738, 0xDF, NULL);
+                    snd_play(gSfxBank, 0xDF, NULL);
                 }
                 break;
             case 4:
@@ -1226,7 +1226,7 @@ void hd_game_frame(void) {
                 if (gHaveCarrier || gHaveShuttle) {
                     cull_restart(10);
                     gNextGameMode = 4;
-                    func_80260650(D_80367738, 0xDF, NULL);
+                    snd_play(gSfxBank, 0xDF, NULL);
                 }
                 break;
         }
@@ -1282,13 +1282,13 @@ void hd_game_frame(void) {
         switch (gGameMode) {
             case 0x100000000000:
                 if (levelno != 0x2F && levelno != 0x31 && (levelno != 0x26 || gPrevGameMode == 0x4000)) {
-                    func_80260650(D_80367738, 0xDE, NULL);
+                    snd_play(gSfxBank, 0xDE, NULL);
                     gNextGameMode = 0x4000;
                 }
                 break;
             case 0x40:
             case 0x400:
-                func_80260650(D_80367738, 0xDE, NULL);
+                snd_play(gSfxBank, 0xDE, NULL);
                 if (LEVEL_DONE(levelno)) {
                     gNextGameMode = 0x08000000;
                 } else {
@@ -1298,7 +1298,7 @@ void hd_game_frame(void) {
             case 0x800:
             case 0x1000:
                 if (levelno != 0x32 || gPrevGameMode == 0x4000) {
-                    func_80260650(D_80367738, 0xDE, NULL);
+                    snd_play(gSfxBank, 0xDE, NULL);
                     gNextGameMode = 0x4000;
                 }
                 break;
@@ -1415,7 +1415,7 @@ void hd_game_frame(void) {
             cmo_hit_request = 1;
         } else if (!areWeFading()) {
             gLevelDoneRequest = 1;
-            func_80260650(D_80367738, 0x2B, NULL);
+            snd_play(gSfxBank, 0x2B, NULL);
             if (gGameMode == 0x40) {
                 func_80275390(0x40);
             } else {
@@ -1486,7 +1486,7 @@ void hd_game_frame(void) {
             }
         }
     }
-    if (gGameMode == 8 && !areWeFading() && (!func_802D4E10(D_80367734) || D_803156C4 - D_80367740 > 300)) {
+    if (gGameMode == 8 && !areWeFading() && (!func_802D4E10(gMusicPlayer) || D_803156C4 - gDoneTuneStartTime > 300)) {
         func_80275390(0x08000000);
     }
     if (levelno == 0x31 && yoshiState == 1) {
@@ -1500,17 +1500,17 @@ void hd_game_frame(void) {
         if ((gContButtons & 0x10) && !(gContPrevButtons & 0x10)) {
             if (currentYoshiWindow < 0x6B && yoshiState != 8 && yoshiState != 1) {
                 yoshi_demand((currentYoshiWindow + 1) | 0x8000);
-                func_80260650(D_80367738, 0x1D, NULL);
+                snd_play(gSfxBank, 0x1D, NULL);
             } else {
-                func_80260650(D_80367738, 0xD0, NULL);
+                snd_play(gSfxBank, 0xD0, NULL);
             }
         }
         if ((gContButtons & 0x2000) && !(gContPrevButtons & 0x2000)) {
             if (currentYoshiWindow >= 0x5F && yoshiState != 8 && yoshiState != 1) {
                 yoshi_demand((currentYoshiWindow - 1) | 0x8000);
-                func_80260650(D_80367738, 0x1D, NULL);
+                snd_play(gSfxBank, 0x1D, NULL);
             } else {
-                func_80260650(D_80367738, 0xD0, NULL);
+                snd_play(gSfxBank, 0xD0, NULL);
             }
         }
     }
@@ -1525,23 +1525,23 @@ void hd_game_frame(void) {
             case 0x1000:
                 if (levelno != 0x32 || gPrevGameMode == 0x4000) {
                     gNextGameMode = 0x2000;
-                    func_80260650(D_80367738, 0x1E, NULL);
+                    snd_play(gSfxBank, 0x1E, NULL);
                 }
                 break;
             case 0x40:
             case 0x400:
                 if ((LEVEL_DONE(levelno)) && gLevelKind != 1) {
                     gNextGameMode = 0x08000000;
-                    func_80260650(D_80367738, 0x1E, NULL);
+                    snd_play(gSfxBank, 0x1E, NULL);
                 } else if (yoshiState == 1) {
                     yoshi_demand(D_802F4870[lowest_set_bit(gLevelKind)] | 0x8000);
                 }
                 break;
             case 2:
                 if (D_80366A18) {
-                    func_80260650(D_80367738, 0x1E, NULL);
-                    func_80260B40(0, 0);
-                    func_80260B40(5, 0);
+                    snd_play(gSfxBank, 0x1E, NULL);
+                    snd_set_slot_volume(0, 0);
+                    snd_set_slot_volume(5, 0);
                     func_80275390(0x20000000000000);
                 }
                 break;
@@ -1751,31 +1751,31 @@ void func_8024A92C(u32 dist) {
             case 1:
                 switch (D_803153F0) {
                     case 0:
-                        func_80260DFC();
+                        music_push_danger_tune();
                     case 2:
-                        func_802608C8((void *) N64_IPTR(D_803156E8));
+                        snd_stop((void *) N64_IPTR(gCarrierAlarmSound));
                         break;
                 }
                 break;
             case 2:
                 switch (D_803153F0) {
                     case 0:
-                        func_80260DFC();
+                        music_push_danger_tune();
                     case 1:
-                        func_80260650(D_80367738, 0x26, &D_803156E8);
+                        snd_play(gSfxBank, 0x26, &gCarrierAlarmSound);
                         break;
                 }
                 break;
             case 0:
-                func_802608C8((void *) N64_IPTR(D_803156E8));
+                snd_stop((void *) N64_IPTR(gCarrierAlarmSound));
                 if (gLevelInfo[levelno].unk0 != 0x80 || !obj_path_buildings_destroyed()) {
                     debug_printf("popTuneImmediate();\n");
-                    func_80261040();
+                    popTuneImmediate();
                 } else {
                     debug_printf("WILL THIS FIX IT!!?\n");
                 }
                 if (D_803153F0 == 2) {
-                    func_80260650(D_80367738, 0x68, NULL);
+                    snd_play(gSfxBank, 0x68, NULL);
                 }
                 break;
         }
@@ -1836,8 +1836,8 @@ void veh_apply_switch(void) {
             D_803649E8 = 1;
             D_803649EC = 1;
             D_803649EE = 1;
-        } else if (!func_80260634((void *) N64_IPTR(D_803156F0))) {
-            func_80260650(D_80367738, 0x2B, &D_803156F0);
+        } else if (!snd_get_state((void *) N64_IPTR(gEnterRefusedSound))) {
+            snd_play(gSfxBank, 0x2B, &gEnterRefusedSound);
         }
     }
 }
@@ -2028,8 +2028,8 @@ void veh_leave(void) {
         }
     }
     if (res == 0 || (res != 2 && !ok)) {
-        if (!func_80260634((void *) N64_IPTR(D_803156EC))) {
-            func_80260650(D_80367738, 0x2B, &D_803156EC);
+        if (!snd_get_state((void *) N64_IPTR(gLeaveRefusedSound))) {
+            snd_play(gSfxBank, 0x2B, &gLeaveRefusedSound);
         }
     }
 }
@@ -2437,7 +2437,7 @@ void func_8024BDA4(u16 *sel) {
                     func_80275270(0x4000, 0.5f);
                     break;
                 case 9:
-                    if (func_80260DF0() == 1.0) {
+                    if (music_get_master_volume() == 1.0) {
                         gYoshiWindows[13].unk18 = 40;
                     } else {
                         gYoshiWindows[13].unk18 = 39;
@@ -2478,10 +2478,10 @@ void func_8024BDA4(u16 *sel) {
                     }
                     break;
                 case 40:
-                    func_80260D7C(1.0f);
+                    music_set_master_volume(1.0f);
                     break;
                 case 39:
-                    func_80260D7C(0.7f);
+                    music_set_master_volume(0.7f);
                     break;
             }
             break;
@@ -4207,7 +4207,7 @@ void cam_turn_heading(void) {
     if (gPaused == 0) {
         ok = cam_fixed_heading_area();
         if (ok && ((gHeldCRight && !gPrevHeldCRight) || (gHeldCLeft && !gPrevHeldCLeft)) && (gGameMode & 0x104)) {
-            func_80260650(D_80367738, 0xD0, NULL);
+            snd_play(gSfxBank, 0xD0, NULL);
         }
         if (gHeldCRight && !gPrevHeldCRight && !gCamTurnPos && !gCamTurnNeg && !ok && gGameMode != 0x2000) {
             gCamHeadingGoal = gCamHeading + 45.0;
@@ -4216,7 +4216,7 @@ void cam_turn_heading(void) {
             }
             gCamTurnPos = 1;
             if (gGameMode != 0x40) {
-                func_80260650(D_80367738, 0xDD, NULL);
+                snd_play(gSfxBank, 0xDD, NULL);
             }
         }
         if (gCamTurnPos) {
@@ -4244,7 +4244,7 @@ void cam_turn_heading(void) {
             }
             gCamTurnNeg = 1;
             if (gGameMode != 0x40) {
-                func_80260650(D_80367738, 0xDC, NULL);
+                snd_play(gSfxBank, 0xDC, NULL);
             }
         }
         if (gCamTurnNeg) {
@@ -4363,7 +4363,7 @@ void hd_init(void) {
     osCreateMesgQueue(&gTaskDoneQueue, D_803153F8, 16);
     sched_add_client((struct BcSched *) gScheduler, (struct BcScClient *) gMainSchedClient, &gTaskDoneQueue, 1, 1);
     status = cont_init();
-    func_80261588();
+    music_init_audio();
     debug_printf("audio inited\n");
     osViSetSpecialFeatures(OS_VI_GAMMA_OFF);
     osViSetSpecialFeatures(OS_VI_DITHER_FILTER_ON);
@@ -4414,7 +4414,7 @@ void hd_mode_setup(void) {
 
     size = D_00788000 - D_00787F40;
     osViBlack(1);
-    D_80364A70 = func_80261A44(gNextGameMode);
+    gPendingTune = music_tune_for_mode(gNextGameMode);
     func_802D6710();
     osInvalDCache((void *) 0x80000000, 0x400000);
     D_803649F4 = 0;

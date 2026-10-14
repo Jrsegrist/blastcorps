@@ -305,7 +305,7 @@ static int apply(int kind, uint32_t dst, uint32_t rom, uint32_t len, int at_load
             if (!at_load) return 0;
             swap_seqfile(dst, len);
             return 1;
-        case K_TUNE:            /* func_80260C20: func_8028B4C4 uncompressed */
+        case K_TUNE:            /* music_play_tune: func_8028B4C4 uncompressed */
             if (!at_load) return 0;
             swap_tune(dst, len);
             return 1;

@@ -4,7 +4,7 @@
 /* Matching build: IDO compiled the matched code here against older
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
-#define LEGACY_D_80367738
+#define LEGACY_gSfxBank
 #define LEGACY_D_803FB8B0
 #endif /* legacy declarations */
 #include "game/game.h"
@@ -114,7 +114,7 @@ extern s32 D_803FB8B0;
 extern Model4B5E0 D_802FDC08[];
 extern s16 D_802FDBE0[];
 #ifndef NON_MATCHING
-extern s32 D_80367738;
+extern s32 gSfxBank;
 #endif
 
 void block_fill_target(s32);
@@ -387,7 +387,7 @@ void block_update(u8 arg0) {
                 }
             } else {
                 if (gBlocks[i].unk4 == gBlocks[i].unk1C) {
-                    func_80260650(D_80367738, 0x64, NULL);
+                    snd_play(gSfxBank, 0x64, NULL);
                 }
                 floor = gBlockSlots[gBlocks[i].unk13].unk0C;
                 h = gBlocks[i].unk14 * gBlocks[i].unk18 + (gBlocks[i].unk18 * -4) * gBlocks[i].unk18;
@@ -408,7 +408,7 @@ void block_update(u8 arg0) {
                         gBlocks[i].unk14 = diff >> 1;
                         gBlocks[i].unk18 = 0;
                         gBlocks[i].unk1C = floor;
-                        func_80260650(D_80367738, 0xC, NULL);
+                        snd_play(gSfxBank, 0xC, NULL);
                     }
                 } else {
                     gBlocks[i].unk18++;
@@ -417,11 +417,11 @@ void block_update(u8 arg0) {
         }
         if (gBlocks[i].unk0C != 0 && gBlocks[i].unk12 == 0 && gBlocks[i].unk11 == 0 &&
             gBlocks[i].unk34 == 0) {
-            func_80260650(D_80367738, 7, &gBlocks[i].unk34);
+            snd_play(gSfxBank, 7, &gBlocks[i].unk34);
         }
         if (gBlocks[i].unk34 != 0 &&
             (gBlocks[i].unk0C == 0 || gBlocks[i].unk12 != 0 || gBlocks[i].unk11 != 0)) {
-            func_802608C8((void *) N64_IPTR((gBlocks[i].unk34)));
+            snd_stop((void *) N64_IPTR((gBlocks[i].unk34)));
         }
     }
     D_8039C944 = gPlayerX;

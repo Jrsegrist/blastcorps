@@ -528,16 +528,16 @@ extern u64 * N64P gJbombMtxB;
  * s16 at +0x76, veh_sync_buffers(gJbombMtxA, gJbombMtxB, 0x1000), stops
  * channel 31 and the sounds gJbombThrustSound / gJbombAirSound that are playing (the
  * handles are left as they are). The asm saves and restores $gp and leaves
- * v1 = &gJbombAnim or func_802608C8's leftover; the C caller uses neither. */
+ * v1 = &gJbombAnim or snd_stop's leftover; the C caller uses neither. */
 void jbomb_leave(void) {
     VEH_S16(0x76) = 0;
     veh_sync_buffers(gJbombMtxA, gJbombMtxB, 0x1000);
     anim_stop(0x1F, (Unk8029DEA0Entry *) gJbombAnim);
     if (gJbombThrustSound != NULL) {
-        func_802608C8(gJbombThrustSound);
+        snd_stop(gJbombThrustSound);
     }
     if (gJbombAirSound != NULL) {
-        func_802608C8(gJbombAirSound);
+        snd_stop(gJbombAirSound);
     }
 }
 #else
@@ -995,7 +995,7 @@ void jbomb_update_tilt(s32 *up);
  * zeros/fx_spawn results on the mode-4 exit path, s4 = |speed| / 16 in
  * mode 0, s2 from jbomb_update_tilt) are what jbomb_update_jet_effects gets. Where an asm
  * callee leaves an undocumented register behind (jbomb_update_tilt leaves s3 =
- * 270 on its steering paths, func_80260650 is C and may change t6/t7) the
+ * 270 on its steering paths, snd_play is C and may change t6/t7) the
  * C passes the documented value instead. $gp (= gJbombState) is read as the
  * global. Integer counters use trapping `addi` in the asm. */
 void jbomb_update_modes(s32 s0, TriSideOut *f, TriScanRegs *r) {
@@ -1127,7 +1127,7 @@ void jbomb_update_modes(s32 s0, TriSideOut *f, TriScanRegs *r) {
     s4 = r->s4;
 
     if (VEH_U8(0xA2) == 4 && VEH_U8(0xA1) == 0) {
-        func_80260650(D_80367738, 0x7D, NULL);
+        snd_play(gSfxBank, 0x7D, NULL);
         gShakeTime = 0x14;
         gShakeSize = 0x320;
         io.a3 = 0;
@@ -1200,9 +1200,9 @@ void jbomb_update_modes(s32 s0, TriSideOut *f, TriScanRegs *r) {
             D_803F7C32 = ch[6];
             if (ch[6] != old) {
                 if (ch[6] == 0) {
-                    func_80260650(D_80367738, 0x5A, NULL);
+                    snd_play(gSfxBank, 0x5A, NULL);
                 } else if (ch[6] == 3) {
-                    func_80260650(D_80367738, 0x5B, NULL);
+                    snd_play(gSfxBank, 0x5B, NULL);
                 }
             }
             break;
@@ -1269,7 +1269,7 @@ void jbomb_update_modes(s32 s0, TriSideOut *f, TriScanRegs *r) {
             anim_set_loop_mode((Unk8029DEA0Entry *) gJbombAnim, 5, 1);
             anim_set_frame(0.0f, (Unk8029DEA0Entry *) gJbombAnim, 5, 0);
             anim_play((Unk8029DEA0Entry *) gJbombAnim, 5, 1);
-            func_80260650(D_80367738, 0x5C, NULL);
+            snd_play(gSfxBank, 0x5C, NULL);
             break;
 
         default:
@@ -1333,25 +1333,25 @@ void jbomb_update_jet_sounds(void) {
 
     if (mode == 0 || mode == 4) {
         if (gJbombAirSound != NULL) {
-            func_802608C8(gJbombAirSound);
+            snd_stop(gJbombAirSound);
         }
     }
     if (gJbombThrusting == 0) {
         if (gJbombThrustSound != NULL) {
-            func_802608C8(gJbombThrustSound);
+            snd_stop(gJbombThrustSound);
         }
         mode = VEH_U8(0xA1);
         if (mode == 1 || mode == 2 || mode == 3) {
             if (gJbombAirSound == NULL) {
-                func_80260650(D_80367738, 0xF, &gJbombAirSound);
+                snd_play(gSfxBank, 0xF, &gJbombAirSound);
             }
         }
     } else {
         if (gJbombThrustSound == NULL) {
-            func_80260650(D_80367738, 2, &gJbombThrustSound);
+            snd_play(gSfxBank, 2, &gJbombThrustSound);
         }
         if (gJbombAirSound != NULL) {
-            func_802608C8(gJbombAirSound);
+            snd_stop(gJbombAirSound);
         }
     }
 }

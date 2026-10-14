@@ -230,18 +230,18 @@ extern s32 D_803669F0; /* outcnt */
 extern s16 D_80366A04;
 extern u16 gLogoState;
 extern u8 D_80366A18;
-extern u8 D_80367728;
-extern u8 D_80367729;
-extern u8 D_8036772A;
-extern s32 D_8036772C;
-extern u8 D_80367730;
-#ifndef LEGACY_D_80367734
-extern ALCSPlayer * N64P D_80367734; /* the music ALCSPlayer */
+extern u8 gMusicPopState;
+extern u8 gMusicPushState;
+extern u8 gMusicFading;
+extern s32 gMusicSavedTempo;
+extern u8 gTuneStackEmpty;
+#ifndef LEGACY_gMusicPlayer
+extern ALCSPlayer * N64P gMusicPlayer; /* the music ALCSPlayer */
 #endif
-#ifndef LEGACY_D_80367738
-extern void * N64P D_80367738; /* the sound-effects bank (ALBank *), snd_play's first argument */
+#ifndef LEGACY_gSfxBank
+extern void * N64P gSfxBank; /* the sound-effects bank (ALBank *), snd_play's first argument */
 #endif
-extern u32 D_80367740;
+extern u32 gDoneTuneStartTime;
 extern u16 gTurboStartState;
 extern s16 gHudAlpha; /* HUD alpha cap */
 extern u16 gTimeLeft;

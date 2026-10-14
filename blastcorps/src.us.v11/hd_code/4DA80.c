@@ -178,7 +178,7 @@ void shell_explode(s32 i) {
                   gShellTypes[gShells[i].type].unk5A4);
     gShakeTime = 10;
     gShakeSize = 400;
-    func_80260650(D_80367738, 16, 0);
+    snd_play(gSfxBank, 16, 0);
 }
 
 /* Draws the flying shells (0x80292EB8). */

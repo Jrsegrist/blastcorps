@@ -782,7 +782,7 @@ void skyfall_update_anims(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4
         gSkyfallBoostMeter -= 4;
         if (gSkyfallBoosting == 0) {
             gSkyfallBoosting = 1;
-            func_80260650(D_80367738, 0x8D, &gSkyfallBoostSound);
+            snd_play(gSfxBank, 0x8D, &gSkyfallBoostSound);
         }
         anim_tex_set_frame(0.0f, (s32) D_802C2314, 1);
         io.a3 = 0;
@@ -793,7 +793,7 @@ void skyfall_update_anims(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4
         return;
     }
     if (gSkyfallBoostSound != NULL) {
-        func_802608C8(gSkyfallBoostSound);
+        snd_stop(gSkyfallBoostSound);
         gSkyfallBoostSound = NULL;
     }
     gSkyfallBoostTrail = 120;
@@ -1255,7 +1255,7 @@ void ramdozer_add_tyre_trail(void);
  *    at 1 and, while fewer than 14 fx_spawn records are active, sets up
  *    one (def D_802C2954, data 0x30D40, type 1 at (4, 1, 1)).
  * 3. With gEngineSoundLevel == 0 and the speed (s16 +0x76) nonzero: sound 10
- *    (func_80260650, the asm saving every register around it) and another
+ *    (snd_play, the asm saving every register around it) and another
  *    record (data 0x1D4C0 at (4, 2, 1)).
  * 4. Level gRamdozerThrottleAnim (channel 2 of gRamdozerAnim): unless veh_near_top_speed(30),
  *    falls by D_8030D8D4 to 0 with gHeldBOrZ held, or rises by D_8030D8D8
@@ -1294,7 +1294,7 @@ void ramdozer_update_anims(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s
     }
 
     if (gEngineSoundLevel == 0 && *(s16 *) (gRamdozerState + 0x76) != 0) {
-        func_80260650(D_80367738, 10, NULL);
+        snd_play(gSfxBank, 10, NULL);
         io.a3 = 1;
         fx_spawn(&io, D_802C2954, 0x1D4C0, 1, 4, 2, 1, t7, s0, s2, s3, s4, 1);
     }
@@ -1358,7 +1358,7 @@ void ramdozer_update_anims(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s
             anim_set_speed((Unk8029DEA0Entry *) gRamdozerAnim, 1, 9);
             anim_set_loop_mode((Unk8029DEA0Entry *) gRamdozerAnim, 1, 1);
             anim_play((Unk8029DEA0Entry *) gRamdozerAnim, 1, 2);
-            func_80260650(D_80367738, 1, NULL);
+            snd_play(gSfxBank, 1, NULL);
         }
     }
 }

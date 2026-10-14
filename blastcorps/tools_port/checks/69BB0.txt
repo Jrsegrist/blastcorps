@@ -51,20 +51,20 @@ driver_zone_alpha: -n 300 --seed 1 --follow veh_zone_alpha,math_dist3 --mem gDri
 # Channel states (field 0x10) and channel 1's mode (t1 output) from --stub-ret; util_rand2_range results 0/1/2/other.
 driver_update_anims: -n 400 --seed 0 --ret void --arg gp=sym:gDriverState \
     --stub-ret anim_get_state=choice:0*3,1,2 --stub-ret anim_get_state.t1=choice:0,2,6,1 --stub-ret util_rand2_range=choice:0*3,1,2,5 \
-    --sig util_rand2_range=a0,a1 --sig func_80260650=a0,a1:2,a2 --mem D_80367738=int \
+    --sig util_rand2_range=a0,a1 --sig snd_play=a0,a1:2,a2 --mem gSfxBank=int \
     --mem gDriverState+0x76:2=halves:0*4,1,10,11,12,21,22,0xFFFF,0xFFF5,0xFFF4,0x8000,0x7FFF \
     --mem gDriverState+0xA1:1=bytes:0,1,2,0xFF --mem levelno:1=bytes:0,5,0x31,0x26,0xFF \
     --mem gDriverWalkPose:2=halves:0,2,6,0xFFFF,1
 # stopped with every channel idle: the random start (both util_rand2_range results); moving with channel 31 idle
 driver_update_anims: -n 200 --seed 1 --ret void --arg gp=sym:gDriverState \
     --stub-ret anim_get_state=choice:0,2 --stub-ret anim_get_state.t1=choice:2,6 --stub-ret util_rand2_range=choice:0,1,2,3 \
-    --sig util_rand2_range=a0,a1 --sig func_80260650=a0,a1:2,a2 --mem D_80367738=int \
+    --sig util_rand2_range=a0,a1 --sig snd_play=a0,a1:2,a2 --mem gSfxBank=int \
     --mem gDriverState+0x76:2=halves:0*3,1,0xFFFF,0x2C --mem gDriverState+0xA1:1=bytes:0,1 --mem levelno:1=bytes:0,0x31 \
     --mem gDriverWalkPose:2=halves:0,2,6
 # setters, getter and util_rand2_range run for real (random channel table, RNG seed); anim_blend_channels stays stubbed
 driver_update_anims: -n 300 --seed 2 --ret void --arg gp=sym:gDriverState \
     --follow anim_get_state,anim_stop,anim_play,anim_set_frame,anim_set_speed,anim_set_reverse,anim_set_loop_mode,util_rand2_range \
-    --sig func_80260650=a0,a1:2,a2 --mem D_80367738=int --mem gDriverAnim:0x300=rand \
+    --sig snd_play=a0,a1:2,a2 --mem gSfxBank=int --mem gDriverAnim:0x300=rand \
     --mem gDriverAnim+0x10*0x18:32/1=bytes:0*3,1,2 --mem gDriverAnim+0x2F8:1=bytes:0*2,1 --mem gDriverAnim+0x2B:1=bytes:0,2,6 \
     --mem gRandSeed2=int --mem gDriverState+0x76:2=halves:0*3,1,11,0xFFFF,0xFFF5,0x8000,0x7FFF \
     --mem gDriverState+0xA1:1=bytes:0,1,2 --mem levelno:1=bytes:0,0x31,0x26 --mem gDriverWalkPose:2=halves:0,2,6
@@ -229,7 +229,7 @@ driver_try_exit: -n 100 --seed 3 --ret int --follow driver_in_exit_zone,driver_c
 # significant byte against 0x31 / 0x26, never the level number itself
 driver_update_anims: -n 200 --seed 3 --ret void --arg gp=sym:gDriverState \
     --stub-ret anim_get_state=choice:0*3,1,2 --stub-ret anim_get_state.t1=choice:0,2,6,1 --stub-ret util_rand2_range=choice:0*3,1,2,5 \
-    --sig util_rand2_range=a0,a1 --sig func_80260650=a0,a1:2,a2 --mem D_80367738=int \
+    --sig util_rand2_range=a0,a1 --sig snd_play=a0,a1:2,a2 --mem gSfxBank=int \
     --mem gDriverState+0x76:2=halves:0*4,1,10,11,12,21,22,0xFFFF,0xFFF5,0xFFF4,0x8000,0x7FFF \
     --mem gDriverState+0xA1:1=bytes:0,1,2,0xFF --mem levelno=choice:0,0x31,0x26,0x31000000,0x26000000,0x31313131,0x26262626 \
     --mem gDriverWalkPose:2=halves:0,2,6,0xFFFF,1

@@ -216,7 +216,7 @@ extern void * N64P gCarrierSound;  /* this sound's handle, NULL = none */
 /* Its loop sound 0x75 (0x802BA148).
  * Positional sound 0x75 at gCarrierX/Y/Z (called from hd.c); shape of
  * chopper_update_sound (72B80). d is the rounded distance from the player
- * gPlayerX/Y/Z. Beyond 16000 the sound is stopped (func_802608C8) and
+ * gPlayerX/Y/Z. Beyond 16000 the sound is stopped (snd_stop) and
  * its handle cleared. Otherwise it is started if it isn't playing, its
  * volume (parameter 8) set to 0x7FFF - 2 * max(d - 4000, 0) and its pan
  * (parameter 4) to 64 + (player x - source x) / 32, clamped to 0..127. The
@@ -230,26 +230,26 @@ void carrier_update_sound(void) {
     dist = math_dist3(gPlayerX, gPlayerY, gPlayerZ, gCarrierX, gCarrierY, gCarrierZ);
     if (dist > 16000) {
         if (gCarrierSound != NULL) {
-            func_802608C8(gCarrierSound);
+            snd_stop(gCarrierSound);
             gCarrierSound = NULL;
         }
         return;
     }
     if (gCarrierSound == NULL) {
-        func_80260650(D_80367738, 0x75, &gCarrierSound);
+        snd_play(gSfxBank, 0x75, &gCarrierSound);
     }
     dist -= 4000;
     if (dist < 0) {
         dist = 0;
     }
-    func_80260AB8(gCarrierSound, 8, 0x7FFF - (dist << 1));
+    snd_modify(gCarrierSound, 8, 0x7FFF - (dist << 1));
     pan = 0x40 + (dx >> 5);
     if (pan < 0) {
         pan = 0;
     } else if (pan >= 0x80) {
         pan = 0x7F;
     }
-    func_80260AB8(gCarrierSound, 4, pan);
+    snd_modify(gCarrierSound, 4, pan);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/75490/carrier_update_sound.s")
@@ -488,7 +488,7 @@ s32 carrier_update_anims(void) {
     if (last != speed && gCarrierSound != NULL) {
         f32 p = 1.5f + (f32) speed * D_8030D920;
 
-        func_80260AB8(gCarrierSound, 0x10, *(s32 *) &p);
+        snd_modify(gCarrierSound, 0x10, *(s32 *) &p);
     }
     a = ((u16) gCamYaw) + 0x800;
     if ((s32) a >= 0x1000) {
@@ -840,18 +840,18 @@ extern void * N64P gCraneActionSound;
 /* Getting out of the crane; stops its three sounds (0x802BB1A0).
  * Leave vehicle type 6 (called from hd.c): veh_sync_buffers(gCraneMtxA,
  * gCraneMtxB, 0x800), then stops the sounds gCraneSwingSound, gCraneArmSound and
- * gCraneActionSound that are playing (func_802608C8); the handles are left as they
+ * gCraneActionSound that are playing (snd_stop); the handles are left as they
  * are. The asm saves and restores $gp. */
 void crane_leave(void) {
     veh_sync_buffers(gCraneMtxA, gCraneMtxB, 0x800);
     if (gCraneSwingSound != NULL) {
-        func_802608C8(gCraneSwingSound);
+        snd_stop(gCraneSwingSound);
     }
     if (gCraneArmSound != NULL) {
-        func_802608C8(gCraneArmSound);
+        snd_stop(gCraneArmSound);
     }
     if (gCraneActionSound != NULL) {
-        func_802608C8(gCraneActionSound);
+        snd_stop(gCraneActionSound);
     }
 }
 #else
@@ -1016,12 +1016,12 @@ void crane_update_controls(void) {
     }
     anim_set_speed((Unk8029DEA0Entry *) gCraneAnim, 5, 0);
     if (gCraneArmSound != NULL) {
-        func_802608C8(gCraneArmSound);
+        snd_stop(gCraneArmSound);
     }
     goto chan4;
 start5:
     if (gCraneArmSound == NULL) {
-        func_80260650(D_80367738, 0x6F, &gCraneArmSound);
+        snd_play(gSfxBank, 0x6F, &gCraneArmSound);
     }
 
 chan4:
@@ -1034,12 +1034,12 @@ chan4:
     } else {
         anim_set_speed((Unk8029DEA0Entry *) gCraneAnim, 4, 0);
         if (gCraneSwingSound != NULL) {
-            func_802608C8(gCraneSwingSound);
+            snd_stop(gCraneSwingSound);
         }
         goto ground;
     }
     if (gCraneSwingSound == NULL) {
-        func_80260650(D_80367738, 0x6E, &gCraneSwingSound);
+        snd_play(gSfxBank, 0x6E, &gCraneSwingSound);
     }
 
 ground:
@@ -1062,7 +1062,7 @@ ground:
             goto check2;
         }
         if (gCraneActionSound == NULL) {
-            func_80260650(D_80367738, 0x6D, &gCraneActionSound);
+            snd_play(gSfxBank, 0x6D, &gCraneActionSound);
         }
         anim_play((Unk8029DEA0Entry *) gCraneAnim, 2, 1);
         gCraneState[0xA1] = 1;
@@ -1074,7 +1074,7 @@ check2:
     if (e[0] != 1) {
         gCraneState[0xA1] = 0;
         if (gCraneActionSound != NULL) {
-            func_802608C8(gCraneActionSound);
+            snd_stop(gCraneActionSound);
         }
     }
 }

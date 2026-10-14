@@ -4,7 +4,7 @@
 /* Matching build: IDO compiled the matched code here against older
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
-#define LEGACY_D_80367738
+#define LEGACY_gSfxBank
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
@@ -41,7 +41,7 @@ typedef struct {
 } MenuEntry;
 
 #ifndef NON_MATCHING
-extern s32 D_80367738;
+extern s32 gSfxBank;
 #endif
 extern u8 gPakReady;
 extern char D_8021AB72[];
@@ -67,7 +67,7 @@ void fe_back_loop(void) {
 
     if (gGameMode & 0x80010000000) {
         if (D_8021AB7C == 0) {
-            func_80260650(D_80367738, 0x73, &D_8021AB7C);
+            snd_play(gSfxBank, 0x73, &D_8021AB7C);
         }
         if (yoshiState == 2) {
             osRecvMesg(&pakToGameMessageQ, &msg, 1);
@@ -81,7 +81,7 @@ void fe_back_loop(void) {
             } else {
                 gNextGameMode = 0x2000000000;
             }
-            func_802608C8((void *) N64_IPTR(D_8021AB7C));
+            snd_stop((void *) N64_IPTR(D_8021AB7C));
             yoshi_demand(0x4000);
         }
     }
@@ -236,8 +236,8 @@ void fe_back_loop(void) {
     }
     if (gGameMode == 0x4000000000000) {
         if (gFramesInMode == 0) {
-            func_80262008(0x27, 0);
-            func_80260EE0(0xF);
+            music_start_tune_at(0x27, 0);
+            music_push_tune(0xF);
         }
         if (gYoshiTypeState == 0 && playerNumber == 4) {
             playerNumber = playerNumberAtStart;
@@ -283,7 +283,7 @@ void fe_back_loop(void) {
             D_80364A64--;
         } else if (gYoshiTypeState != 2 && yoshiState == 2) {
             yoshi_demand(0x4000);
-            func_80260650(D_80367738, 0x1C, NULL);
+            snd_play(gSfxBank, 0x1C, NULL);
         }
     }
     cont_update();
@@ -393,7 +393,7 @@ void fe_back_loop(void) {
                 break;
             case 0x800000000000:
                 func_80275270(0x2000000000000, 0.75f);
-                func_80261570(0.0f);
+                music_fade_to(0.0f);
                 break;
             case 0x1000000000000:
                 func_80275270(2, 0.5f);

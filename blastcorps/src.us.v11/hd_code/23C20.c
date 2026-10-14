@@ -570,7 +570,7 @@ void util_shuttle_path_step(void) {
                 gYoshiWindows[23].unk12 = 0xD1;
                 if (gGameMode & 0x104) {
                     yoshi_demand(0x8017);
-                    func_80260DFC();
+                    music_push_danger_tune();
                 }
                 break;
         }

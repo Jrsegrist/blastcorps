@@ -39,7 +39,7 @@ extern u8 D_803FCD7A;
  * D_803FCD72..7A (but 75) cleared; model channels gShuttleAnim (anim_init_model,
  * channel 0 = (100, 0, 0, 0.0, 1), run into both copies); channel 2's sound
  * part: mode D_803FCD75 1 -> anim_set_frame(0.0, 2, 0), 0 -> start sound 0x6A
- * into gShuttleSound at volume 0 (func_80260650, func_80260AB8(.., 8, 0)) and
+ * into gShuttleSound at volume 0 (snd_play, snd_modify(.., 8, 0)) and
  * anim_set_frame(f0, 2, 1); then channels 2 = (0, 0, 1, -1) and 1 = (0, 0,
  * 0360 0.0, 1, -1); veh_add_shadow(0xFD, 120, 45, 45), util_shuttle_path_init, one
  * update with +0x9A set (shuttle_update), and the model matrix copy (word +4
@@ -48,7 +48,7 @@ extern u8 D_803FCD7A;
  * (asm caller lvl_spawn_shuttle keeps t2), points $gp at gShuttleState and leaves
  * it, and leaves the channel routines' s0-s5, fp, f20 and shuttle_update's
  * f12/f14 (survey: read by lvl_spawn_shuttle; not modelled). In mode 0 the asm
- * hands anim_set_frame whatever f0 func_80260AB8 left (the mtc1 zero before
+ * hands anim_set_frame whatever f0 snd_modify left (the mtc1 zero before
  * the sound calls; those IDO sound routines do no FP work): 0.0 here. Any
  * other mode hits the asm's `syscall` debug trap and then runs mode 1, as
  * here. */
@@ -85,8 +85,8 @@ void shuttle_spawn(u8 *hdr) {
     anim_play((Unk8029DEA0Entry *) gShuttleAnim, 0, 1);
     anim_update_model(gShuttleMtxB, gShuttleMtxA, (Unk8029DEA0Entry *) gShuttleAnim);
     if (D_803FCD75 == 0) {
-        snd = func_80260650(D_80367738, 0x6A, &gShuttleSound);
-        func_80260AB8(snd, 8, 0);
+        snd = snd_play(gSfxBank, 0x6A, &gShuttleSound);
+        snd_modify(snd, 8, 0);
         anim_set_frame(0.0f, (Unk8029DEA0Entry *) gShuttleAnim, 2, 1);
     } else {
         anim_set_frame(0.0f, (Unk8029DEA0Entry *) gShuttleAnim, 2, 0);
@@ -218,7 +218,7 @@ void shuttle_update_volume(void) {
     if (vol < 0) {
         vol = 0;
     }
-    func_80260AB8(gShuttleSound, 8, vol);
+    snd_modify(gShuttleSound, 8, vol);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8DDB0/shuttle_update_volume.s")
@@ -273,19 +273,19 @@ void shuttle_update_events(void) {
             anim_set_speed((Unk8029DEA0Entry *) gShuttleAnim, 1, 1);
             anim_set_reverse((Unk8029DEA0Entry *) gShuttleAnim, 1, 0);
             anim_play((Unk8029DEA0Entry *) gShuttleAnim, 1, 1);
-            func_80260650(D_80367738, 0x66, NULL);
+            snd_play(gSfxBank, 0x66, NULL);
             break;
         case 3:
-            func_80260650(D_80367738, 0x78, NULL);
+            snd_play(gSfxBank, 0x78, NULL);
             break;
         case 0xB:
             D_803FCD77 = 1;
             D_803FCD7A = 1;
             D_803FCD78 = 1;
-            func_80260650(D_80367738, 0x83, NULL);
+            snd_play(gSfxBank, 0x83, NULL);
             break;
         case 0xC:
-            func_80260650(D_80367738, 0x7F, &gShuttleSound);
+            snd_play(gSfxBank, 0x7F, &gShuttleSound);
             D_803FCD7A = 0;
             break;
         case 0xD:
@@ -298,21 +298,21 @@ void shuttle_update_events(void) {
         if (D_803FCD72 == 0) {
             veh_find_point(0xFD, 1, &rec);
             if (!(level < ((s32 *) rec)[1])) {
-                func_80260650(D_80367738, 6, NULL);
+                snd_play(gSfxBank, 6, NULL);
                 D_803FCD72 = 1;
             }
         }
         if (D_803FCD73 == 0) {
             veh_find_point(0xFD, 2, &rec);
             if (!(level < ((s32 *) rec)[1])) {
-                func_80260650(D_80367738, 6, NULL);
+                snd_play(gSfxBank, 6, NULL);
                 D_803FCD73 = 1;
             }
         }
         if (D_803FCD74 == 0) {
             veh_find_point(0xFD, 3, &rec);
             if (!(level < ((s32 *) rec)[1])) {
-                func_80260650(D_80367738, 8, NULL);
+                snd_play(gSfxBank, 8, NULL);
                 D_803FCD74 = 1;
             }
         }

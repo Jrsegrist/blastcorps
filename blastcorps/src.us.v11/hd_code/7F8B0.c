@@ -160,7 +160,7 @@ u32 lzss_read_bits(u32 mask, LzBits *b) {
 #endif
 
 /* Save-everything sound wrapper: resets gEngineSoundLevel to -1, starts the looping
- * effect D_80367738 via func_80260650 (sndPlaySfx) with its handle stored in
+ * effect gSfxBank via snd_play (sndPlaySfx) with its handle stored in
  * gEngineSound, then veh_set_engine_level with s5 = 0. */
 #ifdef NON_MATCHING
 /* Starts the engine loop (gEngineSound), level 0 (0x802C4310).
@@ -169,7 +169,7 @@ u32 lzss_read_bits(u32 mask, LzBits *b) {
 void veh_start_engine_sound(s32 arg0, s32 arg1) {
     gEngineSoundLevel = -1;
     gHornHeld = 0;
-    func_80260650(D_80367738, arg1, &gEngineSound);
+    snd_play(gSfxBank, arg1, &gEngineSound);
     veh_set_engine_level(0);
 }
 #else
@@ -177,7 +177,7 @@ void veh_start_engine_sound(s32 arg0, s32 arg1) {
 #endif
 
 /* Save-everything sound wrapper: stops the sound handles gEngineSound and
- * gHornSound via func_802608C8 when they are non-null. */
+ * gHornSound via snd_stop when they are non-null. */
 #ifdef NON_MATCHING
 /* Stops the engine and horn loops (0x802C444C).
  * The asm saves and restores every register; asm callers thunderfist_update_actions (t7,
@@ -185,10 +185,10 @@ void veh_start_engine_sound(s32 arg0, s32 arg1) {
  * would need a thunk; the native port won't). */
 void veh_stop_engine_sounds(void) {
     if (gEngineSound != NULL) {
-        func_802608C8(gEngineSound);
+        snd_stop(gEngineSound);
     }
     if (gHornSound != NULL) {
-        func_802608C8(gHornSound);
+        snd_stop(gHornSound);
     }
 }
 #else
@@ -199,12 +199,12 @@ void veh_stop_engine_sounds(void) {
  * |s5| in gEngineSoundLevel and, when it changed (or D_80364AB0 was set, which it
  * clears), sets the gEngineSound sound's parameter 0x10 (likely pitch) to
  * 0.5 + |s5| * (D_8030D940, or D_8030D944 when gCurVehicle == 1) via
- * func_80260AB8. */
+ * snd_modify. */
 #ifdef NON_MATCHING
 /* The engine sound's pitch from |level| when it changes (0x802C4584).
  * The change test compares the old halfword (sign-extended) with the full
  * 32-bit |level|. `neg` traps on 0x80000000 (keep levels in game range). The
- * float goes to func_80260AB8 as raw bits in a2.
+ * float goes to snd_modify as raw bits in a2.
  * Register convention: level in s5 (conventions.txt); the asm saves and
  * restores every integer register (only f0-f6 change). Asm callers (e.g.
  * skyfall_update_anims: a0, t6, t7, f12, f14) rely on that (a mixed N64 build would
@@ -227,7 +227,7 @@ void veh_set_engine_level(s32 level) {
         return;
     }
     u.f = 0.5f + (f32) level * ((gCurVehicle == 1) ? D_8030D944 : D_8030D940);
-    func_80260AB8(gEngineSound, 0x10, u.i);
+    snd_modify(gEngineSound, 0x10, u.i);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7F8B0/veh_set_engine_level.s")
@@ -235,8 +235,8 @@ void veh_set_engine_level(s32 level) {
 
 /* Save-everything sound wrapper: flag = gHeldL | gHeldR. When it
  * differs from gHornHeld, stores it; on starts the second loop
- * (func_80260650(D_80367738, a1, &gHornSound)) if not already playing, off
- * stops it (func_802608C8) and clears gHornSound. */
+ * (snd_play(gSfxBank, a1, &gHornSound)) if not already playing, off
+ * stops it (snd_stop) and clears gHornSound. */
 #ifdef NON_MATCHING
 /* L or R held: the horn loop (gHornSound), else stop it (0x802C4724).
  * The sound id is whatever the caller left in a1 (0x8F, 0xA4, 0x76 ...).
@@ -256,10 +256,10 @@ void veh_update_horn(s32 sfx) {
     gHornHeld = (s16) ((gHornHeld & 0xFF) | (flag << 8));
     if (flag != 0) {
         if (h == NULL) {
-            func_80260650(D_80367738, sfx, &gHornSound);
+            snd_play(gSfxBank, sfx, &gHornSound);
         }
     } else if (h != NULL) {
-        func_802608C8(h);
+        snd_stop(h);
         gHornSound = NULL;
     }
 }

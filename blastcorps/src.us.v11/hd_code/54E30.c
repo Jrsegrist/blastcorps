@@ -4,7 +4,7 @@
 /* Matching build: IDO compiled the matched code here against older
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
-#define LEGACY_D_80367738
+#define LEGACY_gSfxBank
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
@@ -20,7 +20,7 @@ typedef struct {
 } Player;
 
 #ifndef NON_MATCHING
-extern s32 D_80367738;
+extern s32 gSfxBank;
 #endif
 /* .bss, defined here (paired u64 stores share one lui) */
 u64 gSeqDoneMode; /* loop mask used when the sequence finishes */
@@ -212,7 +212,7 @@ void seq_start_level(void) {
 /* "finishing sequence and going to level" (0x80299E10).
  * Finish the current sequence level: record completion, pick the next level */
 void seq_finish(s32 arg0) {
-    func_802609D0();
+    snd_stop_all();
     switch (levelno) {
         case 38:
         case 47:
@@ -236,7 +236,7 @@ void seq_finish(s32 arg0) {
             break;
     }
     if (arg0) {
-        func_80260650(D_80367738, 0x1E, 0);
+        snd_play(gSfxBank, 0x1E, 0);
         gNextGameMode = gSeqDoneMode;
         levelno = gSeqDoneLevel;
     } else {

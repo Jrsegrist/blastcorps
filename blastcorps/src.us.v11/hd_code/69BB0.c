@@ -770,9 +770,9 @@ void driver_update_anims(void) {
             gDriverWalkPose = mode;
             if (mode != old) {
                 if (mode == 2) {
-                    func_80260650(D_80367738, 0x14, NULL);
+                    snd_play(gSfxBank, 0x14, NULL);
                 } else if (mode == 6) {
-                    func_80260650(D_80367738, 0x15, NULL);
+                    snd_play(gSfxBank, 0x15, NULL);
                 }
             }
         }

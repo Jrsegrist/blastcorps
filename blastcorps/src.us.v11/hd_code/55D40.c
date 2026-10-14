@@ -72,7 +72,7 @@ Gfx *credits_draw(Gfx * N64P *gfxp, Gfx *gfx) {
     }
     if (gCreditsEndTimer == 0x7D) {
         yoshi_demand(0x8037);
-        func_80260EE0(0x25);
+        music_push_tune(0x25);
     }
     if (gCreditsEndTimer >= 0x7E && yoshiState == 1 && areWeFading() == 0) {
         func_80275270(0x200000000000, 0.75f);

@@ -26,7 +26,7 @@ train_zone_alpha: -n 300 --seed 1 --follow veh_zone_alpha,math_dist3 --mem gTrai
 # train_leave: leave vehicle 7: veh_sync_buffers(gTrainMtxA, gTrainMtxB, 0x800), veh_stop_engine_sounds()
 train_leave: -n 50 --seed 0 --ret void --sig veh_sync_buffers=a0,a1,a2 --sig veh_stop_engine_sounds= --mem gTrainMtxA:8=rand
 # copy and sound stop run for real (both directions of the copy, handles NULL / set)
-train_leave: -n 40 --seed 1 --ret void --follow veh_sync_buffers,veh_stop_engine_sounds --sig func_802608C8=a0 --heap 0x800 --heap 0x800 \
+train_leave: -n 40 --seed 1 --ret void --follow veh_sync_buffers,veh_stop_engine_sounds --sig snd_stop=a0 --heap 0x800 --heap 0x800 \
     --mem gTrainMtxA=rel:heap0 --mem gTrainMtxB=rel:heap1 --mem gBufferIndex:1=bytes:0,1 --mem gEngineSound:8=words:0,0x80123450
 
 # train_update_effects (t6, t7, s0-s4 through to fx_spawn; gp = gTrainState): countdown / flag per speed sign /
@@ -34,19 +34,19 @@ train_leave: -n 40 --seed 1 --ret void --follow veh_sync_buffers,veh_stop_engine
 train_update_effects: -n 400 --seed 0 --arg gp=sym:gTrainState --arg t6=int --arg t7=int --arg s0=int --arg s1=int --arg s2=int \
     --arg s3=int --arg s4=int --mem gTrainSparkTimer:1=bytes:0*3,1,2,0xFF --mem gHeldA:1=bytes:0,1,0x80 \
     --mem gHeldBOrZ:1=bytes:0,1,0x80 --mem gTrainState+0x76:2=halves:0,1,0xF,0x10,0x11,0x7FFF,0x8000,0xFFFF,0xFFF0,0xFFEF,0xFFF1,0x1234 \
-    --mem D_80367738=int --sig func_80260650=a0,a1,a2
+    --mem gSfxBank=int --sig snd_play=a0,a1,a2
 # countdown 0, only one flag set: the sign selects which flag (speed 0 -> gHeldA)
 train_update_effects: -n 100 --seed 1 --arg gp=sym:gTrainState --arg t6=int --arg t7=int --arg s0=int --arg s1=int --arg s2=int \
     --arg s3=int --arg s4=int --mem gTrainSparkTimer:1=0 --mem gHeldA:1=bytes:0,1 --mem gHeldBOrZ:1=bytes:0,1 \
-    --mem gTrainState+0x76:2=halves:0,1,0xFFFF,0x7FFF,0x8000 --mem D_80367738=int --sig func_80260650=a0,a1,a2
+    --mem gTrainState+0x76:2=halves:0,1,0xFFFF,0x7FFF,0x8000 --mem gSfxBank=int --sig snd_play=a0,a1,a2
 # callees run for real (record setup through veh_find_point for id 7; sound level / loop wrappers)
 train_update_effects: -n 200 --seed 2 --arg gp=sym:gTrainState --arg t6=int --arg t7=int --arg s0=int --arg s1=int --arg s2=int \
     --arg s3=int --arg s4=int --mem gTrainSparkTimer:1=bytes:0*3,1 --mem gHeldA:1=bytes:0,1 --mem gHeldBOrZ:1=bytes:0,1 \
-    --mem gTrainState+0x76:2=int:0:0xFFFF --mem D_80367738=int --sig func_80260650=a0,a1,a2 \
+    --mem gTrainState+0x76:2=int:0:0xFFFF --mem gSfxBank=int --sig snd_play=a0,a1,a2 \
     --follow fx_spawn,veh_find_point,veh_set_engine_level,veh_update_horn \
     --mem gVehPoints:0x100=onehot:0x10@0xC/1:7:bytes:1,2,3 --mem gEffects:0x3C0=rand --mem gEffects+0x33*0x3C:16/1=bytes:0,1 \
-    --mem gFxTileSlots:16=bytes:0,1 --mem D_803EB792:1=rand --sig tex_queue_palette=a0,a1 --sig func_80260AB8=a0,a1,a2 \
-    --sig func_802608C8=a0 --mem gEngineSoundLevel:2=rand --mem D_80364AB0:1=bytes:0,1 --mem gEngineSound:8=words:0,0x80123450 \
+    --mem gFxTileSlots:16=bytes:0,1 --mem D_803EB792:1=rand --sig tex_queue_palette=a0,a1 --sig snd_modify=a0,a1,a2 \
+    --sig snd_stop=a0 --mem gEngineSoundLevel:2=rand --mem D_80364AB0:1=bytes:0,1 --mem gEngineSound:8=words:0,0x80123450 \
     --mem gHornHeld:2=rand --mem gHeldL:2=bytes:0,1
 
 # --- vehicle type 7: spawn / per-frame / model update ---
@@ -105,7 +105,7 @@ train_update: -n 200 --seed 2 \
     --mem gTrainPart3Clear=choice:0,5,6,7 --mem gTrainPart2Clear=choice:0,5,6,7 --mem gTrainOnLine:1=choice:0,1 \
     --mem gCollBlocked:1=choice:0,1 --mem gContacts:0x40=words:2,3,9 --mem gContactsEnd=rel:gContacts+4*int:0:16 \
     --mem gPlayerX:12=rand --mem D_8036443C:6=rand --mem gBounceSound:1=rand --mem D_803F77D0=rand --mem gModelRot:6=rand \
-    --sig func_80260AB8=a0,a1,a2 --sig func_80260650=a0,a1,a2 --sig train_zone_alpha= \
+    --sig snd_modify=a0,a1,a2 --sig snd_play=a0,a1,a2 --sig train_zone_alpha= \
     --sig veh_place_parts=a0,a1,a2,a3,stack0,stack1,stack2 \
     --sig veh_points_transform=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10 \
     --sig veh_ground_contact=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12

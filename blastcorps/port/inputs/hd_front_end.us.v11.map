@@ -18,18 +18,18 @@ Discarded input sections
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/01C40.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/01C40.c.o
  .gptab.data    0x00000000       0x70 build_nm/src.us.v11/hd_front_end/01C40.c.o
- .mdebug        0x00000000     0x3310 build_nm/src.us.v11/hd_front_end/01C40.c.o
+ .mdebug        0x00000000     0x3308 build_nm/src.us.v11/hd_front_end/01C40.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/06790.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/06790.c.o
  .gptab.data    0x00000000       0x20 build_nm/src.us.v11/hd_front_end/06790.c.o
  .mdebug        0x00000000      0xb74 build_nm/src.us.v11/hd_front_end/06790.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/07390.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/07390.c.o
- .mdebug        0x00000000      0x8a4 build_nm/src.us.v11/hd_front_end/07390.c.o
+ .mdebug        0x00000000      0x8a8 build_nm/src.us.v11/hd_front_end/07390.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/07800.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/07800.c.o
  .gptab.data    0x00000000       0x18 build_nm/src.us.v11/hd_front_end/07800.c.o
- .mdebug        0x00000000     0x1508 build_nm/src.us.v11/hd_front_end/07800.c.o
+ .mdebug        0x00000000     0x1500 build_nm/src.us.v11/hd_front_end/07800.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/09570.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/09570.c.o
  .mdebug        0x00000000     0x12b4 build_nm/src.us.v11/hd_front_end/09570.c.o
@@ -43,16 +43,16 @@ Discarded input sections
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/0E7B0.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/10850.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/10850.c.o
- .mdebug        0x00000000      0xf30 build_nm/src.us.v11/hd_front_end/10850.c.o
+ .mdebug        0x00000000      0xf28 build_nm/src.us.v11/hd_front_end/10850.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/17990.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/17990.c.o
- .mdebug        0x00000000     0x138c build_nm/src.us.v11/hd_front_end/17990.c.o
+ .mdebug        0x00000000     0x1388 build_nm/src.us.v11/hd_front_end/17990.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/196F0.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/196F0.c.o
  .mdebug        0x00000000      0x6e8 build_nm/src.us.v11/hd_front_end/196F0.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/1A240.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/1A240.c.o
- .mdebug        0x00000000      0x7d4 build_nm/src.us.v11/hd_front_end/1A240.c.o
+ .mdebug        0x00000000      0x7cc build_nm/src.us.v11/hd_front_end/1A240.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/1AE80.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/1AE80.c.o
  .mdebug        0x00000000      0x62c build_nm/src.us.v11/hd_front_end/1AE80.c.o
@@ -813,6 +813,7 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x8039c4b4                        gEepromPresent = 0x8039c4b4
                 0x8039c538                        gPakFullSlot = 0x8039c538
                 0x8039c541                        gIgnorePak = 0x8039c541
+                0x80367738                        gSfxBank = 0x80367738
                 0x803643d4                        D_803643D4 = 0x803643d4
                 0x80364b00                        D_80364B00 = 0x80364b00
                 0x802e8c44                        D_802E8C44 = 0x802e8c44
@@ -820,7 +821,6 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x80211ac0                        D_80211AC0 = 0x80211ac0
                 0x80364a94                        D_80364A94 = 0x80364a94
                 0x80364b82                        D_80364B82 = 0x80364b82
-                0x80367738                        D_80367738 = 0x80367738
                 0x80364a8c                        D_80364A8C = 0x80364a8c
                 0x80364a9c                        D_80364A9C = 0x80364a9c
                 0x803156c0                        D_803156C0 = 0x803156c0
@@ -1026,19 +1026,19 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x80855dc8                        PROVIDE (seq_get_loop_done = 0x80855dc8)
                 0x8084ba38                        PROVIDE (cont_query_present = 0x8084ba38)
                 0x808517e0                        PROVIDE (ghost_keep_if_best = 0x808517e0)
-                0x8081c5c4                        PROVIDE (func_80260A10 = 0x8081c5c4)
-                0x8081c160                        PROVIDE (func_80260650 = 0x8081c160)
+                0x8081c160                        PROVIDE (snd_play = 0x8081c160)
+                0x8081c434                        PROVIDE (snd_stop = 0x8081c434)
+                0x8081c5c4                        PROVIDE (snd_stop_all_looping = 0x8081c5c4)
+                0x8081cad0                        PROVIDE (music_push_tune = 0x8081cad0)
+                0x8081d160                        PROVIDE (music_fade_to = 0x8081d160)
+                0x8081dba0                        PROVIDE (music_start_tune = 0x8081dba0)
+                0x8081dbf8                        PROVIDE (music_start_tune_at = 0x8081dbf8)
                 0x80831010                        PROVIDE (func_80275390 = 0x80831010)
                 0x80830870                        PROVIDE (func_80274BF0 = 0x80830870)
                 0x80830ef0                        PROVIDE (func_80275270 = 0x80830ef0)
-                0x8081d160                        PROVIDE (func_80261570 = 0x8081d160)
                 0x80847224                        PROVIDE (func_8028B4C4 = 0x80847224)
-                0x8081dba0                        PROVIDE (func_80261FB0 = 0x8081dba0)
                 0x80847954                        PROVIDE (func_8028BBF4 = 0x80847954)
-                0x8081c434                        PROVIDE (func_802608C8 = 0x8081c434)
                 0x80807d94                        PROVIDE (func_8024C404 = 0x80807d94)
-                0x8081dbf8                        PROVIDE (func_80262008 = 0x8081dbf8)
-                0x8081cad0                        PROVIDE (func_80260EE0 = 0x8081cad0)
                 0x80831078                        PROVIDE (func_802753F8 = 0x80831078)
                 0x80000300                        osTvType = 0x80000300
                 0x80000308                        osRomBase = 0x80000308
@@ -3181,6 +3181,119 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x8039c4b4                        gEepromPresent = 0x8039c4b4
                 0x8039c538                        gPakFullSlot = 0x8039c538
                 0x8039c541                        gIgnorePak = 0x8039c541
+                [!provide]                        PROVIDE (snd_init = 0x8081a8e0)
+                [!provide]                        PROVIDE (snd_voice_handler = 0x8081ab34)
+                [!provide]                        PROVIDE (snd_handle_event = 0x8081abe0)
+                [!provide]                        PROVIDE (snd_dispose = 0x8081bb4c)
+                [!provide]                        PROVIDE (snd_post_pitch_step = 0x8081bbc8)
+                [!provide]                        PROVIDE (snd_remove_events = 0x8081bc38)
+                [!provide]                        PROVIDE (snd_count_states = 0x8081bd00)
+                [!provide]                        PROVIDE (snd_alloc_state = 0x8081bdf0)
+                [!provide]                        PROVIDE (snd_free_state = 0x8081bfec)
+                [!provide]                        PROVIDE (snd_set_priority = 0x8081c108)
+                [!provide]                        PROVIDE (snd_get_state = 0x8081c124)
+                [!provide]                        PROVIDE (snd_play = 0x8081c160)
+                [!provide]                        PROVIDE (snd_stop = 0x8081c434)
+                [!provide]                        PROVIDE (snd_stop_matching = 0x8081c4c4)
+                [!provide]                        PROVIDE (snd_stop_all = 0x8081c584)
+                [!provide]                        PROVIDE (snd_stop_all_repeating = 0x8081c5a4)
+                [!provide]                        PROVIDE (snd_stop_all_looping = 0x8081c5c4)
+                [!provide]                        PROVIDE (snd_stop_slot = 0x8081c5e4)
+                [!provide]                        PROVIDE (snd_modify = 0x8081c66c)
+                [!provide]                        PROVIDE (snd_get_slot_volume = 0x8081c6fc)
+                [!provide]                        PROVIDE (snd_set_slot_volume = 0x8081c718)
+                0x802e8ce0                        gSndActive = 0x802e8ce0
+                0x802e8ce8                        gSndFree = 0x802e8ce8
+                0x802e8cec                        gSndp = 0x802e8cec
+                0x802e8cf0                        gSndVoiceCount = 0x802e8cf0
+                0x80366bd0                        gSndPlayer = 0x80366bd0
+                0x80366c28                        gSndSlotVolumes = 0x80366c28
+                [!provide]                        PROVIDE (music_play_tune = 0x8081c810)
+                [!provide]                        PROVIDE (music_set_master_volume = 0x8081c96c)
+                [!provide]                        PROVIDE (music_get_master_volume = 0x8081c9e0)
+                [!provide]                        PROVIDE (music_push_danger_tune = 0x8081c9ec)
+                [!provide]                        PROVIDE (music_play_done_tune = 0x8081ca1c)
+                [!provide]                        PROVIDE (music_play_clear_tune = 0x8081ca70)
+                [!provide]                        PROVIDE (music_push_tune = 0x8081cad0)
+                [!provide]                        PROVIDE (music_pop_tune_at = 0x8081cb50)
+                [!provide]                        PROVIDE (music_pop_tune = 0x8081cc0c)
+                [!provide]                        PROVIDE (popTuneImmediate = 0x8081cc30)
+                [!provide]                        PROVIDE (music_update_pop = 0x8081cc58)
+                [!provide]                        PROVIDE (music_update_auto_pop = 0x8081cde0)
+                [!provide]                        PROVIDE (music_update_push = 0x8081ce74)
+                [!provide]                        PROVIDE (music_update_fade = 0x8081cfb8)
+                [!provide]                        PROVIDE (music_restore_tempo = 0x8081d118)
+                [!provide]                        PROVIDE (music_fade_to = 0x8081d160)
+                [!provide]                        PROVIDE (music_init_audio = 0x8081d178)
+                [!provide]                        PROVIDE (snd_play_effect = 0x8081d5c0)
+                [!provide]                        PROVIDE (music_tune_for_mode = 0x8081d634)
+                [!provide]                        PROVIDE (snd_set_mode_slot_volumes = 0x8081da8c)
+                [!provide]                        PROVIDE (music_start_tune = 0x8081dba0)
+                [!provide]                        PROVIDE (music_start_tune_at = 0x8081dbf8)
+                [!provide]                        PROVIDE (music_get_tune = 0x8081dc40)
+                [!provide]                        PROVIDE (snd_random_id = 0x8081dc4c)
+                0x802e8d00                        gTuneVolumes = 0x802e8d00
+                0x802e8d84                        gSeqIndex = 0x802e8d84
+                0x802e8d88                        gMusicMasterVolume = 0x802e8d88
+                0x802e8d8c                        gLevelTunes = 0x802e8d8c
+                0x802e8dc8                        gLevelDangerTunes = 0x802e8dc8
+                0x802e8e04                        gLevelDoneTunes = 0x802e8e04
+                0x802e8e40                        gLevelClearTunes = 0x802e8e40
+                0x802e8e7c                        gEffectSounds = 0x802e8e7c
+                0x802e8eb4                        gSoundGroups = 0x802e8eb4
+                0x80366c30                        gTuneStack = 0x80366c30
+                0x80367400                        gTuneStackTop = 0x80367400
+                0x80367408                        gSeqSizes = 0x80367408
+                0x80367510                        gSeqBuffer = 0x80367510
+                0x80367514                        gSeqFile = 0x80367514
+                0x80367518                        gSeqs = 0x80367518
+                0x80367708                        gMusicTune = 0x80367708
+                0x8036770c                        gMusicVolume = 0x8036770c
+                0x80367710                        gMusicStartVolume = 0x80367710
+                0x80367714                        gMusicPopVolume = 0x80367714
+                0x80367718                        gAudioHeap = 0x80367718
+                0x80367728                        gMusicPopState = 0x80367728
+                0x80367729                        gMusicPushState = 0x80367729
+                0x8036772a                        gMusicFading = 0x8036772a
+                0x8036772c                        gMusicSavedTempo = 0x8036772c
+                0x80367730                        gTuneStackEmpty = 0x80367730
+                0x80367734                        gMusicPlayer = 0x80367734
+                0x80367738                        gSfxBank = 0x80367738
+                0x8036773c                        gMusicBank = 0x8036773c
+                0x80367740                        gDoneTuneStartTime = 0x80367740
+                0x80370c80                        gAudioHeapBuf = 0x80370c80
+                0x803156e8                        gCarrierAlarmSound = 0x803156e8
+                0x803156ec                        gLeaveRefusedSound = 0x803156ec
+                0x803156f0                        gEnterRefusedSound = 0x803156f0
+                0x80364a70                        gPendingTune = 0x80364a70
+                [!provide]                        PROVIDE (amCreateAudioMgr = 0x808232a0)
+                [!provide]                        PROVIDE (amStartAudioMgr = 0x80823674)
+                [!provide]                        PROVIDE (__amMain = 0x8082369c)
+                [!provide]                        PROVIDE (__amHandleFrameMsg = 0x808238dc)
+                [!provide]                        PROVIDE (__amHandleDoneMsg = 0x80823b88)
+                [!provide]                        PROVIDE (__amDMA = 0x80823be0)
+                [!provide]                        PROVIDE (__amDmaNew = 0x80823e54)
+                [!provide]                        PROVIDE (__clearAudioDMA = 0x80823ea4)
+                0x80368070                        __am = 0x80368070
+                0x8036a308                        gAudDmaState = 0x8036a308
+                0x8036a318                        dmaBuffs = 0x8036a318
+                0x802f3af0                        audFrameCt = 0x802f3af0
+                0x802f3af4                        nextDMA = 0x802f3af4
+                0x802f3af8                        curAcmdList = 0x802f3af8
+                0x8036a8b8                        minFrameSize = 0x8036a8b8
+                0x8036a8bc                        frameSize = 0x8036a8bc
+                0x8036a8c0                        maxFrameSize = 0x8036a8c0
+                0x8036a8c4                        gAudCmdLen = 0x8036a8c4
+                0x8036a8c8                        audDMAIOMesgBuf = 0x8036a8c8
+                0x8036ae68                        audDMAMessageQ = 0x8036ae68
+                0x8036ae80                        audDMAMessageBuf = 0x8036ae80
+                0x8036afa0                        gAudDmaMaxSearch = 0x8036afa0
+                0x80368308                        gAudioThreadStack = 0x80368308
+                0x803682f8                        gAudioSchedClient = 0x803682f8
+                0x80368058                        gAudioPrevFrameStart = 0x80368058
+                0x80368060                        gAudioFrameStart = 0x80368060
+                0x80368068                        gAudioFrameEnd = 0x80368068
+                0x803156a4                        gAudioPreempt = 0x803156a4
                 0x803ff288                        __osEepromTimer = 0x803ff288
                 0x803ff2a8                        __osEepromTimerQ = 0x803ff2a8
                 0x803ff2c0                        __osEepromTimerMsg = 0x803ff2c0

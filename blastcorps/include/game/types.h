@@ -76,7 +76,7 @@ typedef struct Unk8029DEA0Entry {
     /* 0x16 */ u8 pad16[2];
 } Unk8029DEA0Entry; /* size 0x18 */
 
-/* The sound player's configuration (func_8025EDF0, 1A630.c; the ancestor of
+/* The sound player's configuration (snd_init, 1A630.c; the ancestor of
  * GoldenEye's snd.c). */
 typedef struct SndConfig {
     u32 maxStates;

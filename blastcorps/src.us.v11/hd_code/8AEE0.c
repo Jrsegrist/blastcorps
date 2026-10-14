@@ -842,15 +842,15 @@ extern u8 gCycloneAnim[];  /* this vehicle's animation channel table */
  * Vehicle-type 16 exit: zero the speed (s16 at +0x76), copy 0x1400 bytes
  * between the gCycloneMtxA/gCycloneMtxB buffers, clear animation channel 0x1F's
  * active flag (anim_stop), veh_stop_engine_sounds, then stop the engine sound
- * (func_802608C8(gCycloneEngineSound)). The survey lists v1 as an output read by
- * veh_leave, but that caller is C and v1 is just func_802608C8's
+ * (snd_stop(gCycloneEngineSound)). The survey lists v1 as an output read by
+ * veh_leave, but that caller is C and v1 is just snd_stop's
  * leftover. */
 void cyclone_leave(void) {
     *(s16 *) (gCycloneState + 0x76) = 0;
     veh_sync_buffers(gCycloneMtxA, gCycloneMtxB, 0x1400);
     anim_stop(0x1F, (Unk8029DEA0Entry *) gCycloneAnim);
     veh_stop_engine_sounds();
-    func_802608C8(gCycloneEngineSound);
+    snd_stop(gCycloneEngineSound);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8AEE0/cyclone_leave.s")
@@ -876,7 +876,7 @@ void cyclone_enter(void) {
     gCycloneState[0x99] = 0;
     gCamDistance = 0x7D0;
     gCamHeightBase = -0x3E8;
-    func_80260650(D_80367738, 0x50, &gCycloneEngineSound);
+    snd_play(gSfxBank, 0x50, &gCycloneEngineSound);
     anim_tex_set_speed((s32) D_802C22D0, 0x64);
     anim_tex_set_reverse((s32) D_802C22D0, 0);
     anim_tex_set_loop_mode((s32) D_802C22D0, 0);
@@ -1157,9 +1157,9 @@ static void port_802D1360_state0(void) {
         D_803FC996 = e[6];
         if (e[6] != prev) {
             if (e[6] == 6) {
-                func_80260650(D_80367738, 0x4E, NULL);
+                snd_play(gSfxBank, 0x4E, NULL);
             } else if (e[6] == 2) {
-                func_80260650(D_80367738, 0x4F, NULL);
+                snd_play(gSfxBank, 0x4F, NULL);
             }
         }
     }
@@ -1348,7 +1348,7 @@ void cyclone_update_moves(void) {
             break;
         case 1:
             if (gEngineSound == NULL) {
-                func_80260650(D_80367738, 0x51, &gEngineSound);
+                snd_play(gSfxBank, 0x51, &gEngineSound);
             }
             port_802D1360_state12(1);
             break;
@@ -1358,7 +1358,7 @@ void cyclone_update_moves(void) {
         case 3:
             if (gEngineSound != NULL) {
                 veh_stop_engine_sounds();
-                func_80260650(D_80367738, 0x4B, NULL);
+                snd_play(gSfxBank, 0x4B, NULL);
             }
             veh_prev_contacts_clear();
             if (CHAN_GET(0x1F, e), e[0] == 1) {

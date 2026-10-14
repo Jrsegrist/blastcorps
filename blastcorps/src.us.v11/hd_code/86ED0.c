@@ -24,7 +24,7 @@ void func_802CB690(u8 *state) {
     s32 v;
 
     if (gNextGameMode != 0x40) {
-        func_80260650(D_80367738, 0x55, NULL);
+        snd_play(gSfxBank, 0x55, NULL);
     }
     v = gCamTiltMax;
     *(s16 *) (state + 0x76) = v + (v >> 1);

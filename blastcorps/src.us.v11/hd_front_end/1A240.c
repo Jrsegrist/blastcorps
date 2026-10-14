@@ -113,7 +113,7 @@ Gfx *fe_attract_pic_draw(s32 arg0, Gfx *arg1) {
                     }
                     if (gAttractPicEnvAlpha == 0xFF) {
                         gAttractPicFade = 1;
-                        func_80260650(D_80367738, D_8020E3E0[gAttractPicNo], NULL);
+                        snd_play(gSfxBank, D_8020E3E0[gAttractPicNo], NULL);
                     }
                     break;
                 case 1:
@@ -167,7 +167,7 @@ Gfx *fe_attract_pic_draw(s32 arg0, Gfx *arg1) {
             break;
     }
     if (gAttractPicPrimAlpha > 60 && D_8021ABA8 == 0) {
-        func_80260650(D_80367738, 0x69, &D_8021ABA8);
+        snd_play(gSfxBank, 0x69, &D_8021ABA8);
     }
     gDPSetPrimColor(gdl++, 0, 0, 0, 0, 0, gAttractPicPrimAlpha);
     gDPSetEnvColor(gdl++, 0, 0, 0, gAttractPicEnvAlpha);

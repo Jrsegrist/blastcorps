@@ -769,7 +769,7 @@ extern void * N64P gChopperSound;  /* this sound's handle, NULL = none */
 /* Its loop sound 0x13, volume and pan by distance (0x802B8794).
  * Positional sound 0x13 at gChopperX/Y/Z (called from hd.c). d is the
  * rounded distance from the player gPlayerX/Y/Z. Beyond 16000 the sound
- * is stopped (func_802608C8) and its handle cleared. Otherwise it is
+ * is stopped (snd_stop) and its handle cleared. Otherwise it is
  * started if it isn't playing, its volume (parameter 8) set to 0x7FFF -
  * max(d - 500, 0) and its pan (parameter 4) to 64 + (player x - source
  * x) / 32, clamped to 0..127. The asm's `sub`/`add` trap on overflow; C
@@ -783,26 +783,26 @@ void chopper_update_sound(void) {
     dist = math_dist3(gPlayerX, gPlayerY, gPlayerZ, gChopperX, gChopperY, gChopperZ);
     if (dist > 16000) {
         if (gChopperSound != NULL) {
-            func_802608C8(gChopperSound);
+            snd_stop(gChopperSound);
             gChopperSound = NULL;
         }
         return;
     }
     if (gChopperSound == NULL) {
-        func_80260650(D_80367738, 0x13, &gChopperSound);
+        snd_play(gSfxBank, 0x13, &gChopperSound);
     }
     dist -= 500;
     if (dist < 0) {
         dist = 0;
     }
-    func_80260AB8(gChopperSound, 8, 0x7FFF - dist);
+    snd_modify(gChopperSound, 8, 0x7FFF - dist);
     pan = 0x40 + (dx >> 5);
     if (pan < 0) {
         pan = 0;
     } else if (pan >= 0x80) {
         pan = 0x7F;
     }
-    func_80260AB8(gChopperSound, 4, pan);
+    snd_modify(gChopperSound, 4, pan);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/72B80/chopper_update_sound.s")
@@ -1096,8 +1096,8 @@ static void port_state4(void) {
             if (v >= 0x8000) {
                 v = 0x7FFF;
             }
-            h = func_80260650(D_80367738, 0x28, NULL);
-            func_80260AB8(h, 8, v);
+            h = snd_play(gSfxBank, 0x28, NULL);
+            snd_modify(h, 8, v);
         }
     }
     gChopperMode = 5;
@@ -1265,7 +1265,7 @@ f32 chopper_update_anims(void) {
     if (last != v && gChopperSound != NULL) {
         f32 p = D_8030D910 + (f32) v * D_8030D914;
 
-        func_80260AB8(gChopperSound, 0x10, *(s32 *) &p);
+        snd_modify(gChopperSound, 0x10, *(s32 *) &p);
     }
     anim_set_frame(ratio, (Unk8029DEA0Entry *) gChopperAnim, 2, 0);
     t = gChopperTurn;

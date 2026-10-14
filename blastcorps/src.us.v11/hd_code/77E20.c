@@ -2857,7 +2857,7 @@ extern u8 * N64P D_80306270[];  /* per kind: {u8 n; u8 defIndex[n]} */
  * would trap) and spawned with fx_spawn (type 0, the record's words as
  * position/data/fields, tag 1 for kind 0x15 or when gPartSinking is set or
  * gWaterOn is set with gWaterLayer == 1, else 0). If that succeeded and
- * neither the u64 gNextGameMode nor gCarrierHit is set, func_802619D0(kind)
+ * neither the u64 gNextGameMode nor gCarrierHit is set, snd_play_effect(kind)
  * (the asm saves every register around that call). The record is then
  * freed, and a nonzero u16 radius at 0x2E applies obj_blast_damage blast
  * damage at its position with amount r[0x30] << 4. Saves s0-s7. */
@@ -2892,7 +2892,7 @@ void obj_run_effect_queue(void) {
                           *(s32 *) (r + 0x08), *(s32 *) (r + 0x14), *(s32 *) (r + 0x18), *(s32 *) (r + 0x20),
                           *(s32 *) (r + 0x24), *(s32 *) (r + 0x28), r[0x35]) != 0
             && gNextGameMode == 0 && gCarrierHit == 0) {
-            func_802619D0(r[0x31]);
+            snd_play_effect(r[0x31]);
         }
         r[0x34] = 1;
         if (*(u16 *) (r + 0x2E) != 0) {

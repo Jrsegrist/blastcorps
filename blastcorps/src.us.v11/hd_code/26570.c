@@ -560,7 +560,7 @@ Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
         if ((PRESSED(0x8000) || ((arg->flags & 0x80000000) && PRESSED(0x1000))) && arg->atEnd) {
             sound = gYoshiItems[arg->sel].sound;
             if (sound) {
-                func_80260650(D_80367738, sound, NULL);
+                snd_play(gSfxBank, sound, NULL);
             }
             if (gYoshiItems[arg->sel].flags & 0x10) {
                 gUnpauseRequest = 1;
@@ -570,14 +570,14 @@ Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
         }
         if (PRESSED(0x4000)) {
             if ((arg->flags & 0x20000000) && arg->atEnd) {
-                func_80260650(D_80367738, 0xDE, NULL);
+                snd_play(gSfxBank, 0xDE, NULL);
                 yoshiSelection = 0xFFFF;
                 redraw = 1;
                 if (arg->flags & 0x40000000) {
                     gUnpauseRequest = 1;
                 }
             } else {
-                func_80260650(D_80367738, 0xD0, NULL);
+                snd_play(gSfxBank, 0xD0, NULL);
             }
         }
     }
@@ -597,7 +597,7 @@ Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
                 yoshi_start_typing(arg);
                 sound = arg->openSound;
                 if (sound) {
-                    func_80260650(D_80367738, sound, NULL);
+                    snd_play(gSfxBank, sound, NULL);
                 }
                 if (!(arg->flags & 0x400)) {
                     for (i = arg->unkE; !(gYoshiItems[i].flags & 1) && i < arg->unkE + arg->unk10; i++) {
@@ -618,7 +618,7 @@ Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
                     gPauseRequest = 1;
                 }
                 if (arg->flags & 2) {
-                    func_80261570(0.0f);
+                    music_fade_to(0.0f);
                 }
                 if (arg->flags & 0x100000) {
                     gYoshiScrollGoal = arg->h;
@@ -636,13 +636,13 @@ Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
                 yoshiState = 8;
                 sound = arg->closeSound;
                 if (sound) {
-                    func_80260650(D_80367738, sound, NULL);
+                    snd_play(gSfxBank, sound, NULL);
                 }
                 if (arg->flags & 0x200000) {
                     gUnpauseRequest = 1;
                 }
                 if (arg->flags & 4) {
-                    func_80261570(1.0f);
+                    music_fade_to(1.0f);
                 }
                 break;
         }
@@ -658,10 +658,10 @@ Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
             if (done) {
                 sound = arg->closeSound;
                 if (sound) {
-                    func_80260650(D_80367738, sound, NULL);
+                    snd_play(gSfxBank, sound, NULL);
                 }
                 if (arg->flags & 0x2000) {
-                    func_80261570(0.0f);
+                    music_fade_to(0.0f);
                 }
                 yoshiState = 8;
                 gYoshiStateTime = D_803156C4;
@@ -781,9 +781,9 @@ Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
                 sound = arg->moveSound;
                 if (sound) {
                     if (prev != arg->sel) {
-                        func_80260650(D_80367738, sound, NULL);
+                        snd_play(gSfxBank, sound, NULL);
                     } else {
-                        func_80260650(D_80367738, 0xD0, NULL);
+                        snd_play(gSfxBank, 0xD0, NULL);
                     }
                 }
                 gYoshiScrollGoal += gYoshiItems[arg->sel].y - gYoshiItems[prev].y;
@@ -800,9 +800,9 @@ Gfx *yoshi_run_window(Gfx *gfx, s32 arg1, s32 *count) {
                 sound = arg->moveSound;
                 if (sound) {
                     if (next != arg->sel) {
-                        func_80260650(D_80367738, sound, NULL);
+                        snd_play(gSfxBank, sound, NULL);
                     } else {
-                        func_80260650(D_80367738, 0xD0, NULL);
+                        snd_play(gSfxBank, 0xD0, NULL);
                     }
                 }
                 gYoshiScrollGoal += gYoshiItems[arg->sel].y - gYoshiItems[next].y;
@@ -1062,9 +1062,9 @@ void *yoshi_get_item_text(YoshiArg *arg0, u16 idx, u8 japanese) {
                         ch = text[gYoshiTypeChar];
                     }
                     if (ch == D_802E8C90[lang]) {
-                        func_80260650(D_80367738, 0x91, NULL);
+                        snd_play(gSfxBank, 0x91, NULL);
                     } else if (ch != D_802E8C94[lang] && ch != gTextTerminator[lang] && ch != D_802E8C8C[lang]) {
-                        func_80260650(D_80367738, 0x22, NULL);
+                        snd_play(gSfxBank, 0x22, NULL);
                     }
                 }
                 if (japanese) {
@@ -1099,7 +1099,7 @@ void *yoshi_get_item_text(YoshiArg *arg0, u16 idx, u8 japanese) {
                             gYoshiStateTime = D_803156C4;
                         }
                     } else {
-                        func_80260650(D_80367738, 0x23, NULL);
+                        snd_play(gSfxBank, 0x23, NULL);
                         gYoshiTypeItem = next;
                     }
                     gYoshiTypeChar = 0;
@@ -1272,9 +1272,9 @@ void rdu_update(void) {
                 if (!flag) {
                     flag = 1;
                     if (gLevelKind == 0x40) {
-                        func_80260650(D_80367738, 0x3B, NULL);
+                        snd_play(gSfxBank, 0x3B, NULL);
                     } else {
-                        func_80260650(D_80367738, 0x27, NULL);
+                        snd_play(gSfxBank, 0x27, NULL);
                     }
                 }
             }

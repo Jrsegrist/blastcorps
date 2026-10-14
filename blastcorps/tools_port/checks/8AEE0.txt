@@ -92,10 +92,10 @@ cyclone_zone_alpha: -n 300 --seed 1 --follow veh_zone_alpha,math_dist3 --mem gCy
 # cyclone_enter (vehicle-type 16 setup): setters stubbed (asm conventions mapped), then followed with the
 # D_802C22D0 key in exactly one gTexAnims entry
 cyclone_enter: -n 200 --ret void --mem gCycloneState+0x99:1=rand --mem gCamDistance:2=rand --mem gCamHeightBase:2=rand \
-    --mem D_80367738=int --sig func_80260650=a0,a1,a2
+    --mem gSfxBank=int --sig snd_play=a0,a1,a2
 cyclone_enter: -n 200 --seed 1 --ret void --follow anim_set_speed,anim_set_loop_mode,anim_set_interp,anim_tex_play,anim_tex_set_speed,anim_tex_set_reverse,anim_tex_set_loop_mode,anim_tex_find \
-    --mem gCycloneState+0x99:1=rand --mem gCamDistance:2=rand --mem gCamHeightBase:2=rand --mem D_80367738=int \
-    --mem gCycloneAnim:0x100=rand --mem gTexAnims:0x180=onehot:0x18:0x802C22D0:rand --sig func_80260650=a0,a1,a2
+    --mem gCycloneState+0x99:1=rand --mem gCamDistance:2=rand --mem gCamHeightBase:2=rand --mem gSfxBank=int \
+    --mem gCycloneAnim:0x100=rand --mem gTexAnims:0x180=onehot:0x18:0x802C22D0:rand --sig snd_play=a0,a1,a2
 
 # starski_leave (wave 3): stubbed, then following the copy and veh_stop_engine_sounds
 starski_leave: -n 200 --sig veh_sync_buffers=a0,a1,a2 --sig veh_stop_engine_sounds= --mem gStarskiState+0x76:2=int:0:0xFFFF \
@@ -104,10 +104,10 @@ starski_leave: -n 200 --seed 1 --follow veh_sync_buffers,veh_stop_engine_sounds 
     --mem gStarskiMtxA=rel:heap0 --mem gStarskiMtxB=rel:heap1 --mem gBufferIndex:1=choice:0,1,0xFF \
     --mem gStarskiState+0x76:2=choice:0,1,0x7FFF,0x8000,0xFFFF
 # cyclone_leave (wave 3)
-cyclone_leave: -n 200 --sig veh_sync_buffers=a0,a1,a2 --sig veh_stop_engine_sounds= --sig func_802608C8=a0 \
+cyclone_leave: -n 200 --sig veh_sync_buffers=a0,a1,a2 --sig veh_stop_engine_sounds= --sig snd_stop=a0 \
     --mem gCycloneState+0x76:2=int:0:0xFFFF --mem gCycloneMtxA=int --mem gCycloneMtxB=int \
     --mem gCycloneEngineSound=choice:0,1,0x80B00000 --mem gCycloneAnim+0x2E8:0x18=rand
-cyclone_leave: -n 200 --seed 1 --follow veh_sync_buffers,anim_stop,veh_stop_engine_sounds --sig func_802608C8=a0 \
+cyclone_leave: -n 200 --seed 1 --follow veh_sync_buffers,anim_stop,veh_stop_engine_sounds --sig snd_stop=a0 \
     --heap 0x1400 --heap 0x1400 --mem gCycloneMtxA=rel:heap0 --mem gCycloneMtxB=rel:heap1 \
     --mem gBufferIndex:1=choice:0,1,0xFF --mem gCycloneState+0x76:2=choice:0,1,0x7FFF,0x8000,0xFFFF \
     --mem gCycloneEngineSound=choice:0,0x80B00000 --mem gCycloneAnim+0x2E8:0x18=rand
@@ -125,7 +125,7 @@ starski_update_effects: -n 300 --seed 1 --arg gp=sym:gStarskiState --arg t6=int 
     --mem gStarskiState+0x50:1=bytes:0,3 --mem gStarskiState+0x9B:1=bytes:0,1 --mem gStarskiState+0x76:2=int:0:0xFFFF \
     --mem gVehPoints:0x100=onehot:0x10@0xC/1:15:bytes:1,2,3 --mem gEffects:0x3C0=rand \
     --mem gEffects+0x33*0x3C:16/1=bytes:0*2,1*3 --mem gFxTileSlots:16=bytes:0*3,1 --mem D_803EB792:1=rand \
-    --sig tex_queue_palette=a0,a1 --sig func_80260AB8=a0,a1,a2
+    --sig tex_queue_palette=a0,a1 --sig snd_modify=a0,a1,a2
 
 # cyclone_update_moves (wave 3; gp = gCycloneState): the vehicle-16 state machine. States 0-4 (+0xA1; 5+ hit a
 # syscall in the asm), gears 0-2 (+0xA2), speed at the gear (60, 110), special-move (150) and sign edges;
@@ -139,7 +139,7 @@ cyclone_update_moves: -n 600 --arg gp=sym:gCycloneState --mem gCycloneState+0xA1
     --mem gHeldL:1=choice:0*3,1 --mem gHeldR:1=choice:0*3,1 --mem gHeldA:1=choice:0,1 \
     --mem gHeldB:1=choice:0,1 --mem gControlMethod:1=choice:0,1 --stub-ret anim_get_state.v1=choice:0,1*3,2 \
     --stub-ret anim_get_state.a0=choice:0,1,-1 --stub-ret anim_get_state.t1=choice:2,6,0,-1 \
-    --stub-ret util_rand2_range=choice:0,1,2 --sig func_80260650=a0,a1,a2 --sig mb_start=a0,a1,a2 \
+    --stub-ret util_rand2_range=choice:0,1,2 --sig snd_play=a0,a1,a2 --sig mb_start=a0,a1,a2 \
     --sig mb_stop= --sig veh_prev_contacts_clear= --sig veh_stop_engine_sounds= --sig util_rand2_range=a0,a1
 cyclone_update_moves: -n 400 --seed 1 --arg gp=sym:gCycloneState \
     --follow anim_get_state,anim_play,anim_set_frame,anim_set_speed,anim_set_reverse,anim_set_loop_mode,anim_stop \
@@ -151,7 +151,7 @@ cyclone_update_moves: -n 400 --seed 1 --arg gp=sym:gCycloneState \
     --mem D_803FC996:2=choice:0,2,6 --mem gVehAttacking:1=rand --mem gEngineSound=choice:0,0x80B00000 \
     --mem gHeldL:1=choice:0*3,1 --mem gHeldR:1=choice:0*3,1 --mem gHeldA:1=choice:0,1 \
     --mem gHeldB:1=choice:0,1 --mem gControlMethod:1=choice:0,1 --stub-ret util_rand2_range=choice:0,1,2 \
-    --sig func_80260650=a0,a1,a2 --sig mb_start=a0,a1,a2 --sig mb_stop= --sig veh_prev_contacts_clear= \
+    --sig snd_play=a0,a1,a2 --sig mb_start=a0,a1,a2 --sig mb_stop= --sig veh_prev_contacts_clear= \
     --sig veh_stop_engine_sounds= --sig util_rand2_range=a0,a1
 
 # cyclone_build_model: vehicle 16 model matrices (mtx_build_model, veh_place_parts, veh_points_transform); gp = gCycloneState

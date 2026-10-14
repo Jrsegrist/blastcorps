@@ -179,14 +179,14 @@ extern u8 gThunderfistAnim[];  /* this vehicle's animation channel table */
  * Vehicle-type 2 shutdown (called from hd.c's veh_leave): zeroes the
  * speed (s16 at +0x76), veh_sync_buffers(gThunderfistMtxA, gThunderfistMtxB, 0x1400), stops
  * channel 31 of gThunderfistAnim, veh_stop_engine_sounds(), then stops the engine sound
- * gThunderfistEngineSound (func_802608C8). The asm leaves v1 = &gThunderfistAnim only if
- * func_802608C8 (C) happens to keep it; the C caller doesn't use it. */
+ * gThunderfistEngineSound (snd_stop). The asm leaves v1 = &gThunderfistAnim only if
+ * snd_stop (C) happens to keep it; the C caller doesn't use it. */
 void thunderfist_leave(void) {
     *(s16 *) (gThunderfistState + 0x76) = 0;
     veh_sync_buffers(gThunderfistMtxA, gThunderfistMtxB, 0x1400);
     anim_stop(0x1F, (Unk8029DEA0Entry *) gThunderfistAnim);
     veh_stop_engine_sounds();
-    func_802608C8(gThunderfistEngineSound);
+    snd_stop(gThunderfistEngineSound);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/6C5E0/thunderfist_leave.s")
@@ -211,7 +211,7 @@ void thunderfist_enter(void) {
     gThunderfistState[0x99] = 0;
     gCamDistance = 0x1068;
     gCamHeightBase = 0xBB8;
-    func_80260650(D_80367738, 0x50, &gThunderfistEngineSound);
+    snd_play(gSfxBank, 0x50, &gThunderfistEngineSound);
     anim_tex_set_speed((s32) D_802C2308, 0x19);
     anim_tex_set_reverse((s32) D_802C2308, 0);
     anim_tex_set_loop_mode((s32) D_802C2308, 0);
@@ -463,9 +463,9 @@ static void veh2_state0(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) 
         gThunderfistStepPose = o[6];
         if (o[6] != r) {
             if (o[6] == 6) {
-                func_80260650(D_80367738, 0x4E, NULL);
+                snd_play(gSfxBank, 0x4E, NULL);
             } else if (o[6] == 2) {
-                func_80260650(D_80367738, 0x4F, NULL);
+                snd_play(gSfxBank, 0x4F, NULL);
             }
         }
     }
@@ -614,7 +614,7 @@ static void veh2_to_state0_tail(void) {
  * Register convention: t6, t7, s0-s4 pass through to fx_spawn (t6 and
  * s1 in its in/out block); s1, s5 change, and f20/f30 are left as
  * anim_blend_channels leaves them (conventions.txt: clobbers). The asm caller
- * thunderfist_update reads f20 afterwards and the asm expects func_80260650 (C)
+ * thunderfist_update reads f20 afterwards and the asm expects snd_play (C)
  * to keep t6/t7 for the following fx_spawn; a mixed N64 build would
  * need a thunk, the native port doesn't. */
 void thunderfist_update_actions(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
@@ -628,7 +628,7 @@ void thunderfist_update_actions(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, 
 
         case 1:
             if (gEngineSound == NULL) {
-                func_80260650(D_80367738, 0x51, &gEngineSound);
+                snd_play(gSfxBank, 0x51, &gEngineSound);
             }
             if (gThunderfistState[0x9C] != 0) {
                 VEH2_SPEED = VEH2_SPEED >> 1;
@@ -691,7 +691,7 @@ void thunderfist_update_actions(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, 
         case 3:
             if (gEngineSound != NULL) {
                 veh_stop_engine_sounds();
-                func_80260650(D_80367738, 0x4B, NULL);
+                snd_play(gSfxBank, 0x4B, NULL);
             }
             io.a3 = 1;
             io.t6 = t6;

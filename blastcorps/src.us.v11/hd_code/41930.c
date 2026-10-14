@@ -101,7 +101,7 @@ void academy_announce_state(void) {
  * Play the current game state's sound */
 void academy_play_state_tune(void) {
     if (((s32) gFramesInMode) == 0) {
-        func_80260C20(D_802FDA70[players[playerNumber].gameState], 1.0f);
+        music_play_tune(D_802FDA70[players[playerNumber].gameState], 1.0f);
     }
 }
 
@@ -207,7 +207,7 @@ u8 academy_advance_state(void) {
                 break;
             case 9:
                 if (p->f0A >= 0xEA || D_802FA26C) {
-                    func_80261570(0.0f);
+                    music_fade_to(0.0f);
                     func_8028B3E0();
                     fe_player_regrade_missions();
                     stop = 1;
@@ -221,7 +221,7 @@ u8 academy_advance_state(void) {
                 if (p->f0A < 0x129 || D_802FA26C) {
                     advance = 0;
                 } else {
-                    func_80261570(0.0f);
+                    music_fade_to(0.0f);
                     func_8028B3E0();
                     fe_player_regrade_platinum();
                 }

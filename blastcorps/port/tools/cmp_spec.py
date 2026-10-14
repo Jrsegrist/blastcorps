@@ -151,8 +151,8 @@ for name, (a, size) in func_sizes.items():
 # (1A630.c, sndPlaySfx and friends: alEvtqPostEvent from the game thread):
 # which audio frame handles a sound depends on whether the game thread posts it
 # before or after the audio thread's frame in that retrace
-SOUND_FUNCS = ["func_80260650", "func_802600D8", "func_80260AB8", "func_80260B40", "func_80260934",
-               "func_802608C8"]
+SOUND_FUNCS = ["snd_play", "snd_post_pitch_step", "snd_modify", "snd_set_slot_volume", "snd_stop_matching",
+               "snd_stop"]
 for name in SOUND_FUNCS:
     if name in func_sizes:
         ENTRY[func_sizes[name][0]] = name

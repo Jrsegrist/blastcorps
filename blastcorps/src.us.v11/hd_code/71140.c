@@ -457,7 +457,7 @@ void backlash_add_tyre_trail(void);
  * 5. Player globals gPlayerX/Y/Z = the position, D_8036443C/3E/40 =
  *    speed, +0x4E, +0x4C; veh_set_record(z, 5, x, y, veh); func_802AC2A4(z,
  *    D_80305D20, x, y, b0, 5, veh) with D_803F77D0 = gBacklashAnim; sound
- *    gBacklashHitSound when >= 0 (func_80260650).
+ *    gBacklashHitSound when >= 0 (snd_play).
  * Leaked registers (FIDELITY AUDIT): func_802AC2A4's b0 is the asm's t0 =
  * &gPlayerZ (kept). Passed as 0 here: the zone scan's t6/t7/s0-s4 inputs
  * (the caller's registers, dead afterwards); veh_ground_contact's f14-f26 inputs
@@ -634,7 +634,7 @@ globals:
     D_803F77D0 = gBacklashAnim;
     func_802AC2A4(gBacklashPos[2], (s32) D_80305D20, gBacklashPos[0], gBacklashPos[1], (s32) &gPlayerZ, 5, gBacklashState);
     if (gBacklashHitSound >= 0) {
-        func_80260650(D_80367738, gBacklashHitSound, NULL);
+        snd_play(gSfxBank, gBacklashHitSound, NULL);
     }
 }
 #else

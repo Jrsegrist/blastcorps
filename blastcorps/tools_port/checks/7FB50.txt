@@ -155,9 +155,9 @@ jbomb_slow_down: -n 300 --ret void --arg gp=sym:gJbombState --mem gControlMethod
 jbomb_slow_down: -n 100 --seed 1 --ret void --arg gp=sym:gJbombState --mem gControlMethod:1=0 --mem gPadStickY:1=0 --mem gJbombState+0x76:2=int:0:0xFFFF
 
 # jbomb_update_jet_sounds: start/stop the two looping sounds by mode (+0xA1) and gJbombThrusting (sound calls stubbed)
-jbomb_update_jet_sounds: -n 300 --ret void --arg gp=sym:gJbombState --sig func_802608C8=a0 --sig func_80260650=a0,a1,a2 \
+jbomb_update_jet_sounds: -n 300 --ret void --arg gp=sym:gJbombState --sig snd_stop=a0 --sig snd_play=a0,a1,a2 \
     --mem gJbombState+0xA1:1=choice:0,1,2,3,4,5,6,0xFF --mem gJbombThrusting:1=choice:0,1,0xFF \
-    --mem gJbombThrustSound=choice:0,0x80B00000 --mem gJbombAirSound=choice:0,0x80B00010 --mem D_80367738=int
+    --mem gJbombThrustSound=choice:0,0x80B00000 --mem gJbombAirSound=choice:0,0x80B00010 --mem gSfxBank=int
 
 # jbomb_thrust_speed (result in s6): (a*n + round(k*n*n)) - (a*(n-1) + round(k*(n-1)^2)) + bonus;
 # k from floats with .25/.5/.75 fractions (round-half-even), bonus from the D_803F7BFC range (hi != lo)
@@ -258,9 +258,9 @@ jbomb_exit_check: -n 50 --seed 4 --ret int --follow-all --mem gJbombState+0x96:3
     --mem gJbombAnim:0x300=rand
 
 # jbomb_leave: clear +0x76, veh_sync_buffers(gJbombMtxA, gJbombMtxB, 0x1000), stop channel 31 and the sounds
-jbomb_leave: -n 200 --seed 0 --ret void --sig func_802608C8=a0 --sig veh_sync_buffers=a0,a1,a2 \
+jbomb_leave: -n 200 --seed 0 --ret void --sig snd_stop=a0 --sig veh_sync_buffers=a0,a1,a2 \
     --mem gJbombState+0x76:2=rand --mem gJbombMtxA=int --mem gJbombMtxB=int --mem gJbombThrustSound:8=words:0*2,0x80123450,-1
-jbomb_leave: -n 30 --seed 1 --ret void --follow veh_sync_buffers,anim_stop --sig func_802608C8=a0 --heap 0x1000 --heap 0x1000 \
+jbomb_leave: -n 30 --seed 1 --ret void --follow veh_sync_buffers,anim_stop --sig snd_stop=a0 --heap 0x1000 --heap 0x1000 \
     --mem gJbombMtxA=rel:heap0 --mem gJbombMtxB=rel:heap1 --mem gJbombThrustSound:8=words:0,0x80123450 --mem gJbombAnim+0x2E8:0x18=rand
 
 # jbomb_enter: clear +0x99, set up channels 3, 4, 1 (no other inputs); stubbed and run for real
@@ -381,7 +381,7 @@ jbomb_ride_attach: -n 300 --seed 2 --follow-all --arg a3=7 --mem gJbombPos=int:-
 # jbomb_update_modes (s0; FP f12-f26 + a3/t6/s1-s4 in via the mapping; gp = gJbombState): per-frame mode machine.
 # Random run over every mode (0-5; > 5 is a syscall), countdowns, inputs and stub results
 jbomb_update_modes: -n 400 --seed 0 --arg gp=sym:gJbombState --sig func_802C7354= --sig jbomb_check_idle= --sig jbomb_update_jet_sounds= \
-    --sig jbomb_track_lr_taps= --sig func_80260650=a0,a1,a2 \
+    --sig jbomb_track_lr_taps= --sig snd_play=a0,a1,a2 \
     --stub-ret anim_get_state=choice:0,1,1,2 --stub-ret anim_get_state.t1=choice:0,3,5,0x10000 \
     --mem gJbombState:0xA4=rand --mem gJbombState+0xA1:1=bytes:0,1,2,3,4,5 --mem gJbombState+0x96:3=bytes:0,1,1,2 \
     --mem gJbombState+0x76:2=halves:0,0x96,0x97,0xFF9C,0xFF9B,0x14,0x15,0xFFEC,0xFFEB,0x7FFF,0x8000,5,0xFFF0 \
@@ -394,7 +394,7 @@ jbomb_update_modes: -n 400 --seed 0 --arg gp=sym:gJbombState --sig func_802C7354
     --mem D_803F7BFC=choice:-100,0,100,5000 --mem gJbombMaxY=choice:-100,0,100,5000 --mem gJbombPos=int --mem D_803F7C00=int
 # landing in mode 4 -> the fx_spawn path (registers zeroed / its results on to jbomb_update_jet_effects), then mode 0
 jbomb_update_modes: -n 200 --seed 1 --arg gp=sym:gJbombState --sig func_802C7354= --sig jbomb_check_idle= --sig jbomb_update_jet_sounds= \
-    --sig jbomb_track_lr_taps= --sig func_80260650=a0,a1,a2 \
+    --sig jbomb_track_lr_taps= --sig snd_play=a0,a1,a2 \
     --stub-ret anim_get_state=choice:0,1,2 --stub-ret anim_get_state.t1=choice:0,3,5 \
     --stub-ret fx_spawn.t6=int --stub-ret fx_spawn.s1=int \
     --mem gJbombState:0xA4=rand --mem gJbombState+0xA1:1=bytes:4,4,2,5 --mem gJbombState+0x96:3=bytes:0,0,1 \
@@ -406,7 +406,7 @@ jbomb_update_modes: -n 200 --seed 1 --arg gp=sym:gJbombState --sig func_802C7354
     --mem D_803F7BFC=int --mem gJbombMaxY=int --mem gJbombPos=int --mem D_803F7C00=int
 # modes 1-3: the steering path and its exits (D_803F7C39 clamp of +0x76 at +-20; press trackers -> mode 4)
 jbomb_update_modes: -n 300 --seed 2 --arg gp=sym:gJbombState --sig func_802C7354= --sig jbomb_check_idle= --sig jbomb_update_jet_sounds= \
-    --sig jbomb_track_lr_taps= --sig func_80260650=a0,a1,a2 --stub-ret jbomb_thrust_speed=int \
+    --sig jbomb_track_lr_taps= --sig snd_play=a0,a1,a2 --stub-ret jbomb_thrust_speed=int \
     --mem gJbombState:0xA4=rand --mem gJbombState+0xA1:1=bytes:1,2,3 --mem gJbombState+0x96:3=bytes:0,1,2 \
     --mem gJbombState+0x76:2=halves:0,0x14,0x15,0xFFEC,0xFFEB,0x7FFF,0x8000,0x13,0xFFED \
     --mem gJbombState+0x9E:1=0 --mem gJbombState+0x9C:1=bytes:0,0,1 --mem gJbombState+0x9F:1=bytes:0,0,100,99 \
@@ -417,7 +417,7 @@ jbomb_update_modes: -n 300 --seed 2 --arg gp=sym:gJbombState --sig func_802C7354
     --mem D_803F7BFC=choice:-100,0,100 --mem gJbombMaxY=choice:-100,0,100
 # the same, every asm callee run for real except jbomb_update_tilt with its steering paths (gControlMethod /
 # |D_803F7C34|: those leave s3 = 270 behind, see the C) and anim_blend_channels/FC74 (their f20 scratch)
-jbomb_update_modes: -n 300 --seed 3 --arg gp=sym:gJbombState --sig func_80260650=a0,a1,a2 --sig func_802608C8=a0 \
+jbomb_update_modes: -n 300 --seed 3 --arg gp=sym:gJbombState --sig snd_play=a0,a1,a2 --sig snd_stop=a0 \
     --sig veh_shadow_src_y=a0 --sig veh_shadow_floor_y=a0 --sig veh_find_point=a0,a1 --sig ptcl_start=a0,a1,a2,a3,stack0 \
     --stub-ret veh_find_point.a0=ptr:0x20 \
     --follow anim_stop,anim_play,anim_set_frame,anim_set_speed,anim_set_reverse,anim_set_loop_mode,anim_set_interp,anim_get_state \

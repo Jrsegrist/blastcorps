@@ -744,7 +744,7 @@ Gfx *fe_player_name_entry_draw(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
     u8 alpha;
 
     if ((gContButtons & 0x300) && !(gContPrevButtons & 0x300)) {
-        func_80260650(D_80367738, 0xC, 0);
+        snd_play(gSfxBank, 0xC, 0);
     }
     gNamePrevStick = gNameStick;
     gNameStick = gPadStickX;
@@ -784,7 +784,7 @@ Gfx *fe_player_name_entry_draw(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
         gNameEntryFirst = 0;
     }
     if (gNameWheelSel != gNameWheelPrevSel) {
-        func_80260650(D_80367738, 0x90, 0);
+        snd_play(gSfxBank, 0x90, 0);
     }
     gNameWheelPrevSel = gNameWheelSel;
     for (pass = 0; pass < 2; pass++) {
@@ -834,7 +834,7 @@ Gfx *fe_player_name_entry_draw(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
             gSlotState[playerNumber] = 1;
             yoshi_demand(0x4000);
         } else {
-            func_80260650(D_80367738, 0x2B, 0);
+            snd_play(gSfxBank, 0x2B, 0);
         }
     }
     switch (gNameEntryState) {
@@ -851,15 +851,15 @@ Gfx *fe_player_name_entry_draw(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
                             } else {
                                 gNextGameMode = 0x200000;
                             }
-                            func_80260650(D_80367738, 0xDE, 0);
+                            snd_play(gSfxBank, 0xDE, 0);
                             yoshi_demand(0x4000);
                         } else {
-                            func_80260650(D_80367738, 0x2B, 0);
+                            snd_play(gSfxBank, 0x2B, 0);
                         }
                     } else {
                         gNameLen--;
                         gNameBuf[gNameLen] = 0;
-                        func_80260650(D_80367738, 0xE4, 0);
+                        snd_play(gSfxBank, 0xE4, 0);
                         gNameBoxState = 0;
                         D_80215464 = e->unk6;
                         i = D_80215468 = gNameEntryWidth;
@@ -870,7 +870,7 @@ Gfx *fe_player_name_entry_draw(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
                         gNameBoxXGoal = (len - 1) * i / 2 - i / 2 + 0xA0;
                     }
                 } else if (gNameLen < gNameMaxLen) {
-                    func_80260650(D_80367738, 0x91, 0);
+                    snd_play(gSfxBank, 0x91, 0);
                     gNameEntryState = 1;
                     gNameBoxState = 0;
                     gNameFlyChar = ch;
@@ -890,7 +890,7 @@ Gfx *fe_player_name_entry_draw(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
                     gFlyCharWGoal = D_80215468;
                     gFlyCharHGoal = D_80215468;
                 } else {
-                    func_80260650(D_80367738, 0x2B, 0);
+                    snd_play(gSfxBank, 0x2B, 0);
                 }
             }
             break;
@@ -905,7 +905,7 @@ Gfx *fe_player_name_entry_draw(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
             text_print_gradient((Gfx * N64P *) dyn, gNameEntryGlyph, 0, 0, 0, gFlyCharX, gFlyCharY, gFlyCharW, gFlyCharH, 1, col[0], col[1],
                           col[2], gYoshiAlpha, col[4], col[5], col[6], gYoshiAlpha);
             if (FABS(gFlyCharX - gFlyCharXGoal) < 0.15 && FABS(gFlyCharY - gFlyCharYGoal) < 0.15) {
-                func_80260650(D_80367738, 1, 0);
+                snd_play(gSfxBank, 1, 0);
                 gNameEntryState = 0;
                 gNameBoxState = 0;
                 gNameBuf[gNameLen] = gNameEntryGlyph[0];
@@ -1028,9 +1028,9 @@ Gfx *fe_player_draw_medal(Gfx *arg0, s32 x, s32 y, u8 slot) {
             if (gMedalDelay[slot] == 0) {
                 gMedalState[slot] = 1;
                 if (gMedalRank[slot] == 5) {
-                    func_80260650(D_80367738, 0xEA, 0);
+                    snd_play(gSfxBank, 0xEA, 0);
                 } else {
-                    func_80260650(D_80367738, 0xE6, 0);
+                    snd_play(gSfxBank, 0xE6, 0);
                 }
             }
             break;
@@ -1148,7 +1148,7 @@ void fe_player_save_pending(void) {
     for (i = 0; i < 4; i++) {
         if (saveIt[i] != 0) {
             if (shown == 0) {
-                func_80261570(0.0f);
+                music_fade_to(0.0f);
                 shown = 1;
             }
             osSendMesg(&gPakRequestQueue, (OSMesg) ((i << 16) | 0x14), OS_MESG_BLOCK);

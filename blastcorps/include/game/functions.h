@@ -88,40 +88,40 @@ void hud_level_complete(Gfx **arg0, s32 arg1, s32 arg2);
 void hud_mission_failed(Gfx **arg0, s32 arg1, u8 arg2);
 
 /* hd_code/1A630.c */
-void func_8025EDF0(SndConfig *c);
-u8 func_80260634(void *arg0);
-void *func_80260650(void *arg0, s16 arg1, void *arg2);
-void func_802608C8(void *arg0);
-void func_802609D0(void);
-void func_802609F0(void);
-void func_80260A10(void);
-void func_80260A30(u8 arg0);
-void func_80260AB8(void *arg0, s16 arg1, s32 arg2);
-void func_80260B40(u8 arg0, u16 arg1);
+void snd_init(SndConfig *c);
+u8 snd_get_state(void *arg0);
+void *snd_play(void *arg0, s16 arg1, void *arg2);
+void snd_stop(void *arg0);
+void snd_stop_all(void);
+void snd_stop_all_repeating(void);
+void snd_stop_all_looping(void);
+void snd_stop_slot(u8 arg0);
+void snd_modify(void *arg0, s16 arg1, s32 arg2);
+void snd_set_slot_volume(u8 arg0, u16 arg1);
 
 /* hd_code/1C460.c */
-void func_80260C20(u8 tune, f32 vol);
-void func_80260D7C(f32 vol);
-f32 func_80260DF0(void);
-void func_80260DFC(void);
-void func_80260E2C(void);
-void func_80260E80(void);
-void func_80260EE0(u8 tune);
-void func_8026101C(void);
-void func_80261040(void);
-void func_80261068(void);
-void func_802611F0(void);
-void func_80261284(void);
-void func_802613C8(void);
-void func_80261528(void);
-void func_80261570(f32 arg0);
-void func_80261588(void);
-void func_802619D0(u32 id);
-u8 func_80261A44(u64 event);
-void func_80261E9C(u64 event);
-void func_80261FB0(u8 tune);
-void func_80262008(u8 tune, f32 vol);
-s32 func_8026205C(s32 arg0);
+void music_play_tune(u8 tune, f32 vol);
+void music_set_master_volume(f32 vol);
+f32 music_get_master_volume(void);
+void music_push_danger_tune(void);
+void music_play_done_tune(void);
+void music_play_clear_tune(void);
+void music_push_tune(u8 tune);
+void music_pop_tune(void);
+void popTuneImmediate(void);
+void music_update_pop(void);
+void music_update_auto_pop(void);
+void music_update_push(void);
+void music_update_fade(void);
+void music_restore_tempo(void);
+void music_fade_to(f32 arg0);
+void music_init_audio(void);
+void snd_play_effect(u32 id);
+u8 music_tune_for_mode(u64 event);
+void snd_set_mode_slot_volumes(u64 event);
+void music_start_tune(u8 tune);
+void music_start_tune_at(u8 tune, f32 vol);
+s32 snd_random_id(s32 arg0);
 
 /* hd_code/1D990.c */
 void cam_set_level_fovy(u8 arg0);
@@ -143,8 +143,8 @@ void chopper_fly_to_carrier(void);
 void people_draw(Gfx **gdlp, struct DynBuf *buf);
 
 /* hd_code/22EE0.c */
-void func_802676A0(ALSynConfig *c, OSPri pri);
-void func_80267A74(void);
+void amCreateAudioMgr(ALSynConfig *c, OSPri pri);
+void amStartAudioMgr(void);
 
 /* hd_code/23C20.c */
 void util_check_board_zone(void);

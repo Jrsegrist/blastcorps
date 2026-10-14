@@ -69,7 +69,7 @@ void func_80275270(u64 next, f32 speed) {
         D_8036C774 = 4.25 / speed;
         D_8036C780 = D_803156C4;
         if (!(next & 0x40000000080004C2) && !(gGameMode & 0x4000000000040000)) {
-            func_80261570(0.0f);
+            music_fade_to(0.0f);
         }
     }
 }

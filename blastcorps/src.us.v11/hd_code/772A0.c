@@ -370,7 +370,7 @@ extern u8 gTrainSparkTimer;    /* countdown */
  * flag for the speed's sign (s16 at +0x76: > 0 -> gHeldBOrZ, else
  * gHeldA) is set, two fx_spawn records are set up (def D_802C2984,
  * data 0x9C40, tag 0, type 1 at (7, 2, 1) and (7, 3, 1)), sound 0x29 is
- * played (func_80260650) and the countdown restarts at 1. Then always
+ * played (snd_play) and the countdown restarts at 1. Then always
  * veh_set_engine_level(|speed >> 4|) and veh_update_horn(0x21).
  * Register convention: the asm passes t6, t7, s0-s4 through to
  * fx_spawn (t6 and s1 in its in/out block); $gp (= gTrainState) is read
@@ -389,7 +389,7 @@ void train_update_effects(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4
         fx_spawn(&io, D_802C2984, 0x9C40, 1, 7, 2, 1, t7, s0, s2, s3, s4, 0);
         io.a3 = 0;
         fx_spawn(&io, D_802C2984, 0x9C40, 1, 7, 3, 1, t7, s0, s2, s3, s4, 0);
-        func_80260650(D_80367738, 0x29, NULL);
+        snd_play(gSfxBank, 0x29, NULL);
         gTrainSparkTimer = 1;
     }
     v = *(s16 *) (gTrainState + 0x76) >> 4;

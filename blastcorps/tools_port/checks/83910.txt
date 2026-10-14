@@ -26,7 +26,7 @@ barge_steer_rate: -n 200 --seed 2 --arg gp=sym:gBarge11State --mem D_8030D980:4=
 # barge_leave: leave vehicle type a0 (0x11 / 0x12 / other): veh_sync_buffers(that pair, 0x800), veh_stop_engine_sounds()
 barge_leave: -n 200 --seed 0 --ret void --sig veh_sync_buffers=a0,a1,a2 --sig veh_stop_engine_sounds= \
     --arg a0=choice:0x11,0x12,0xB,0,0x10,0x13,0x111,-1 --mem gBarge0BMtxA:24=rand
-barge_leave: -n 60 --seed 1 --ret void --follow veh_sync_buffers,veh_stop_engine_sounds --sig func_802608C8=a0 --heap 0x800 --heap 0x800 \
+barge_leave: -n 60 --seed 1 --ret void --follow veh_sync_buffers,veh_stop_engine_sounds --sig snd_stop=a0 --heap 0x800 --heap 0x800 \
     --arg a0=choice:0x11,0x12,0xB --mem gBarge0BMtxA=rel:heap0 --mem gBarge0BMtxB=rel:heap1 --mem gBarge11MtxA=rel:heap1 \
     --mem gBarge11MtxB=rel:heap0 --mem gBarge12MtxA=rel:heap0 --mem gBarge12MtxB=rel:heap1 --mem gBufferIndex:1=bytes:0,1 \
     --mem gEngineSound:8=words:0,0x80123450
@@ -87,7 +87,7 @@ barge_update_0b: -n 200 --seed 2 \
     --mem gBarge0BBounced:1=choice:0,1 --mem gBarge0BState:0xA8=rand --mem gBarge0BState+4*4:18=int:-20000:20000 \
     --mem gBarge0BState+0x76:2=int:-300:300 --mem gBarge0BState+0x96:3=bytes:0,1,2 --mem gBarge0BState+0x50:1=int:1:5 \
     --mem gBarge0BPos:12=int:-100000:100000 --mem gPlayerX:12=rand --mem D_8036443C:6=rand --mem gBounceSound:1=rand \
-    --mem D_803F77D0=rand --mem gModelRot:6=rand --sig func_80260AB8=a0,a1,a2 --sig func_80260650=a0,a1,a2 \
+    --mem D_803F77D0=rand --mem gModelRot:6=rand --sig snd_modify=a0,a1,a2 --sig snd_play=a0,a1,a2 \
     --sig veh_place_parts=a0,a1,a2,a3,stack0,stack1,stack2 \
     --sig veh_points_transform=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10 \
     --sig veh_ground_contact=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12
@@ -106,7 +106,7 @@ barge_update_11: -n 100 --seed 4 \
     --mem gBarge11Bounced:1=choice:0,1 --mem gBarge11State:0xA8=rand --mem gBarge11State+4*4:18=int:-20000:20000 \
     --mem gBarge11State+0x76:2=int:-300:300 --mem gBarge11State+0x96:3=bytes:0,1,2 --mem gBarge11State+0x50:1=int:1:5 \
     --mem gBarge11Pos:12=int:-100000:100000 --mem gPlayerX:12=rand --mem D_8036443C:6=rand --mem gBounceSound:1=rand \
-    --mem D_803F77D0=rand --mem gModelRot:6=rand --sig func_80260AB8=a0,a1,a2 --sig func_80260650=a0,a1,a2 \
+    --mem D_803F77D0=rand --mem gModelRot:6=rand --sig snd_modify=a0,a1,a2 --sig snd_play=a0,a1,a2 \
     --sig veh_place_parts=a0,a1,a2,a3,stack0,stack1,stack2 \
     --sig veh_points_transform=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10 \
     --sig veh_ground_contact=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12
@@ -125,7 +125,7 @@ barge_update_12: -n 100 --seed 6 \
     --mem gBarge12Bounced:1=choice:0,1 --mem gBarge12State:0xA8=rand --mem gBarge12State+4*4:18=int:-20000:20000 \
     --mem gBarge12State+0x76:2=int:-300:300 --mem gBarge12State+0x96:3=bytes:0,1,2 --mem gBarge12State+0x50:1=int:1:5 \
     --mem gBarge12Pos:12=int:-100000:100000 --mem gPlayerX:12=rand --mem D_8036443C:6=rand --mem gBounceSound:1=rand \
-    --mem D_803F77D0=rand --mem gModelRot:6=rand --sig func_80260AB8=a0,a1,a2 --sig func_80260650=a0,a1,a2 \
+    --mem D_803F77D0=rand --mem gModelRot:6=rand --sig snd_modify=a0,a1,a2 --sig snd_play=a0,a1,a2 \
     --sig veh_place_parts=a0,a1,a2,a3,stack0,stack1,stack2 \
     --sig veh_points_transform=a0,a1,a2,a3,*stack0,*stack0+0x4,*stack0+0x8,*stack0+0xC,*stack0+0x10 \
     --sig veh_ground_contact=a0,a1,a2,a3,stack0,stack1,stack2,stack3,stack4,stack5,stack6,stack7,stack8,stack9,stack10,stack11,*stack12

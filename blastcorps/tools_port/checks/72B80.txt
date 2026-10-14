@@ -67,20 +67,20 @@ amdream_steer_rate: -n 300 --seed 2 --arg gp=sym:gAmdreamState --mem gAmdreamSta
 # chopper_update_sound (phase B): positional sound 0x13 at gChopperX/Y/Z; math_dist3 (asm) followed in the ref, inlined in C.
 # random positions (|coord| < 2^20: some within 16000, some beyond), handle NULL or not
 chopper_update_sound: -n 300 --seed 0 --ret void --follow math_dist3 \
-    --sig func_80260650=a0,a1,a2 --sig func_802608C8=a0 --sig func_80260AB8=a0,a1,a2 \
-    --mem gChopperSound=choice:0,0x80123450 --mem D_80367738=int \
+    --sig snd_play=a0,a1,a2 --sig snd_stop=a0 --sig snd_modify=a0,a1,a2 \
+    --mem gChopperSound=choice:0,0x80123450 --mem gSfxBank=int \
     --mem gPlayerX=int:-20000:20000 --mem gPlayerY=int:-20000:20000 --mem gPlayerZ=int:-20000:20000 \
     --mem gChopperX=int:-20000:20000 --mem gChopperY=int:-20000:20000 --mem gChopperZ=int:-20000:20000
 # distance on one axis: the 16000 cut (+-1), the 500 knee, pan clamps at dx = -2048/-2049 and 2047/2048
 chopper_update_sound: -n 300 --seed 1 --ret void --follow math_dist3 \
-    --sig func_80260650=a0,a1,a2 --sig func_802608C8=a0 --sig func_80260AB8=a0,a1,a2 \
-    --mem gChopperSound=choice:0,0x80123450 --mem D_80367738=int \
+    --sig snd_play=a0,a1,a2 --sig snd_stop=a0 --sig snd_modify=a0,a1,a2 \
+    --mem gChopperSound=choice:0,0x80123450 --mem gSfxBank=int \
     --mem gPlayerX=choice:0,1,499,500,501,15999,16000,16001,-16000,-16001,-2048,-2049,-2017,2015,2016,2047,2048,-1,31,32,-32,-33 \
     --mem gPlayerY=0 --mem gPlayerZ=0 --mem gChopperX=0 --mem gChopperY=0 --mem gChopperZ=0
 # large coordinates (squares past 2^32), distance computed on all three axes
 chopper_update_sound: -n 200 --seed 2 --ret void --follow math_dist3 \
-    --sig func_80260650=a0,a1,a2 --sig func_802608C8=a0 --sig func_80260AB8=a0,a1,a2 \
-    --mem gChopperSound=choice:0,0x80123450 --mem D_80367738=int \
+    --sig snd_play=a0,a1,a2 --sig snd_stop=a0 --sig snd_modify=a0,a1,a2 \
+    --mem gChopperSound=choice:0,0x80123450 --mem gSfxBank=int \
     --mem gPlayerX=int:-0x10000000:0x10000000 --mem gPlayerY=int:-0x10000000:0x10000000 --mem gPlayerZ=int:-0x10000000:0x10000000 \
     --mem gChopperX=choice:0,0x123456 --mem gChopperY=choice:0,-0x123456 --mem gChopperZ=choice:0,7
 
@@ -88,21 +88,21 @@ chopper_update_sound: -n 200 --seed 2 --ret void --follow math_dist3 \
 # chopper_update_sound (positional sound 0x13) now calls math_dist3 (the --follow runs above still apply):
 # stubbed, with the distance from --stub-ret around the 500 / 16000 knees
 chopper_update_sound: -n 200 --seed 7 --ret void --stub-ret math_dist3=rand \
-    --sig func_80260650=a0,a1,a2 --sig func_802608C8=a0 --sig func_80260AB8=a0,a1,a2 \
-    --mem gChopperSound=choice:0,0x80123450 --mem D_80367738=int \
+    --sig snd_play=a0,a1,a2 --sig snd_stop=a0 --sig snd_modify=a0,a1,a2 \
+    --mem gChopperSound=choice:0,0x80123450 --mem gSfxBank=int \
     --mem gPlayerX=int:-20000:20000 --mem gPlayerY=int --mem gPlayerZ=int \
     --mem gChopperX=int:-20000:20000 --mem gChopperY=int --mem gChopperZ=int
 chopper_update_sound: -n 60 --seed 3 --ret void --stub-ret math_dist3=16000 \
-    --sig func_80260650=a0,a1,a2 --sig func_802608C8=a0 --sig func_80260AB8=a0,a1,a2 \
+    --sig snd_play=a0,a1,a2 --sig snd_stop=a0 --sig snd_modify=a0,a1,a2 \
     --mem gChopperSound=choice:0,0x80123450 --mem gPlayerX=int:-20000:20000 --mem gChopperX=int:-20000:20000
 chopper_update_sound: -n 60 --seed 4 --ret void --stub-ret math_dist3=16001 \
-    --sig func_80260650=a0,a1,a2 --sig func_802608C8=a0 --sig func_80260AB8=a0,a1,a2 \
+    --sig snd_play=a0,a1,a2 --sig snd_stop=a0 --sig snd_modify=a0,a1,a2 \
     --mem gChopperSound=choice:0,0x80123450 --mem gPlayerX=int:-20000:20000 --mem gChopperX=int:-20000:20000
 chopper_update_sound: -n 60 --seed 5 --ret void --stub-ret math_dist3=499 \
-    --sig func_80260650=a0,a1,a2 --sig func_802608C8=a0 --sig func_80260AB8=a0,a1,a2 \
+    --sig snd_play=a0,a1,a2 --sig snd_stop=a0 --sig snd_modify=a0,a1,a2 \
     --mem gChopperSound=choice:0,0x80123450 --mem gPlayerX=int:-20000:20000 --mem gChopperX=int:-20000:20000
 chopper_update_sound: -n 60 --seed 6 --ret void --stub-ret math_dist3=501 \
-    --sig func_80260650=a0,a1,a2 --sig func_802608C8=a0 --sig func_80260AB8=a0,a1,a2 \
+    --sig snd_play=a0,a1,a2 --sig snd_stop=a0 --sig snd_modify=a0,a1,a2 \
     --mem gChopperSound=choice:0,0x80123450 --mem gPlayerX=int:-20000:20000 --mem gChopperX=int:-20000:20000
 
 # chopper_target_distance: distance (y = 0) gChopperX/Z -> gChopperTargetX/Z, s1 out (followed and stubbed)
@@ -116,15 +116,15 @@ chopper_target_distance: -n 100 --seed 2 --stub-ret math_dist3=rand \
 
 # chopper_update_anims ($gp = gChopperState): v = 160 - speed(+0x76) vs D_803EF2E6, sound handle gChopperSound,
 # channel 3 from gChopperTurn (+-1 -> 0, sign split); f20 out
-chopper_update_anims: -n 400 --seed 0 --arg gp=sym:gChopperState --sig func_80260AB8=a0,a1,a2 \
+chopper_update_anims: -n 400 --seed 0 --arg gp=sym:gChopperState --sig snd_modify=a0,a1,a2 \
     --mem gChopperState+0x76:2=halves:0,1,0xA0,0x9F,0xA1,0xFFFF,0x7FFF,0x8000,0x140 --mem D_803EF2E6:2=halves:0,0xA0,0x9F,0xA1,1 \
     --mem gChopperSound=choice:0,0x80123450 \
     --mem gChopperTurn:2=halves:0,1,2,0xFFFF,0xFFFE,0x1F,0x20,0x21,0x40,0x7FFF,0x8000,0xFFC0
-chopper_update_anims: -n 300 --seed 1 --arg gp=sym:gChopperState --sig func_80260AB8=a0,a1,a2 \
+chopper_update_anims: -n 300 --seed 1 --arg gp=sym:gChopperState --sig snd_modify=a0,a1,a2 \
     --mem gChopperState+0x76:2=int:0:0xFFFF --mem D_803EF2E6:2=int:0:0xFFFF --mem gChopperSound=0x80123450 \
     --mem gChopperTurn:2=int:0:0xFFFF --mem D_8030D910:4=floats:-10:10 --mem D_8030D914:4=floats:-10:10
 # unchanged value (no sound call): D_803EF2E6 == 160 - speed
-chopper_update_anims: -n 50 --seed 2 --arg gp=sym:gChopperState --sig func_80260AB8=a0,a1,a2 \
+chopper_update_anims: -n 50 --seed 2 --arg gp=sym:gChopperState --sig snd_modify=a0,a1,a2 \
     --mem gChopperState+0x76:2=halves:0x64 --mem D_803EF2E6:2=halves:0x3C,0x3B,0x3D --mem gChopperSound=0x80123450 \
     --mem gChopperTurn:2=int:0:0xFFFF
 
@@ -160,7 +160,7 @@ amdream_update_effects: -n 300 --seed 1 --arg gp=sym:gAmdreamState --arg t6=int 
     --mem gAmdreamState+0x50:1=bytes:0,3 --mem gAmdreamState+0x9B:1=bytes:0,1 --mem gAmdreamState+0x76:2=int:0:0xFFFF \
     --mem gVehPoints:0x100=onehot:0x10@0xC/1:8:bytes:1,2,3 --mem gEffects:0x3C0=rand \
     --mem gEffects+0x33*0x3C:16/1=bytes:0*2,1*3 --mem gFxTileSlots:16=bytes:0*3,1 --mem D_803EB792:1=rand \
-    --sig tex_queue_palette=a0,a1 --sig func_80260AB8=a0,a1,a2
+    --sig tex_queue_palette=a0,a1 --sig snd_modify=a0,a1,a2
 
 # chopper_update_shadow (wave 3; t3, fp, f12-f26 in; gp = gChopperState): x/z at 0, the limit (gBoundsMaxX/Z << 5) and
 # its neighbours, negative / huge limits; stubbed, then following ground_slot_height (scans stubbed) and
@@ -196,9 +196,9 @@ chopper_fly: -n 400 --follow chopper_target_distance,math_dist3 --mem gChopperMo
     --stub-ret anim_get_state.v1=choice:0,1 --stub-ret anim_get_state.f0=choice:0,0x3F800000 \
     --stub-ret veh_follow_angle=choice:0,0x3FF,0x400,0x401,0x800,0x801 --stub-ret math_rotate_xz_inv=int:-0x40000:0x40000 \
     --stub-ret math_rotate_xz_inv.t1=int:-0x40000:0x40000 --stub-ret veh_move_along_heading=int --stub-ret veh_move_along_heading.t1=int \
-    --stub-ret util_dist2d=int:0:0x8000 --stub-ret func_80260650=int \
-    --sig debug_printf=a0 --sig yoshi_demand=a0 --sig chopper_find_cruise_height=a0 --sig func_80260650=a0,a1:2,a2 \
-    --sig func_80260AB8=a0,a1:2,a2
+    --stub-ret util_dist2d=int:0:0x8000 --stub-ret snd_play=int \
+    --sig debug_printf=a0 --sig yoshi_demand=a0 --sig chopper_find_cruise_height=a0 --sig snd_play=a0,a1:2,a2 \
+    --sig snd_modify=a0,a1:2,a2
 # state 1 near the target: the 2000 cut, the level limits 30000 / 48000 / 70000 and the debug warp (bx = gChopperRetargetZ)
 chopper_fly: -n 300 --seed 1 --follow chopper_target_distance,math_dist3 --mem gChopperMode:1=1 \
     --mem gChopperTurn:2=halves:0,1,4,0xFFFF,0xFFF0,0x20 --mem gChopperState+0x76:2=halves:0,0x9E,0x9F,0xA0,0x10 \
@@ -232,9 +232,9 @@ chopper_fly: -n 300 --seed 4 --follow chopper_target_distance,math_dist3 --mem g
     --mem gGameMode=0 --mem gGameMode+4=choice:0x1000,0 --mem gChopperTouchdown:1=rand --mem D_803EF32E:1=choice:0,1 --mem gLevelData=int \
     --mem gChopperX=int --mem gChopperZ=int --stub-ret anim_get_state.v1=choice:0,1 \
     --stub-ret anim_get_state.f0=choice:0,0x80000000,0x3F800000,0x7FC00000 \
-    --stub-ret util_dist2d=choice:0,1,0x3E8,0x3E9,0x3E7,0x1000,0x4000,0x7FFF,0xFFFF8000 --stub-ret func_80260650=int \
+    --stub-ret util_dist2d=choice:0,1,0x3E8,0x3E9,0x3E7,0x1000,0x4000,0x7FFF,0xFFFF8000 --stub-ret snd_play=int \
     --stub-ret veh_move_along_heading=int --stub-ret veh_move_along_heading.t1=int \
-    --sig chopper_find_cruise_height=a0 --sig func_80260650=a0,a1:2,a2 --sig func_80260AB8=a0,a1:2,a2
+    --sig chopper_find_cruise_height=a0 --sig snd_play=a0,a1:2,a2 --sig snd_modify=a0,a1:2,a2
 # callees followed (sine/cosine, arcsine and the s64 helpers stubbed or followed as in their own checks)
 chopper_fly: -n 200 --seed 5 --follow chopper_target_distance,math_dist3,veh_follow_angle,math_rotate_xz_inv,veh_move_along_heading,__ll_mul,__ll_to_f \
     --mem gChopperMode:1=choice:0,1,1,1,2,3 --mem gChopperTurn:2=halves:0,1,4,0xFFFF,0xFFF0,0x20 \

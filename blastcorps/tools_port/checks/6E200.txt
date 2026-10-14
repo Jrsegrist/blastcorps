@@ -133,7 +133,7 @@ skyfall_update_anims: -n 400 --seed 0 --arg gp=sym:gSkyfallState --arg t6=int --
     --mem gSkyfallSteerAnim:1=choice:0,4,5,6,45,49,50,51,55,59,60,61,95,96,100,0xFF \
     --mem gSkyfallState+0x76:2=halves:0,1,0xFFFF,29,30,0xFFE2,0x8000,0x7FFF,249,250,251,274,275,276,399,400,401,0x1234 \
     --mem gSkyfallBumpTimer:1=choice:0,0,1,0xFF --mem gSkyfallBoostMeter:1=choice:0,3,4,5,99,100,0x7F,0x80,0xFF --mem gSkyfallBoosting:1=choice:0,1 \
-    --mem gSkyfallBoostSound=words:0,0x80B00000 --mem gSkyfallBoostTrail:2=rand --sig skyfall_add_tyre_trail= --sig fx_count_active= --sig func_80260650=a0,a1:2,a2 --sig func_802608C8=a0
+    --mem gSkyfallBoostSound=words:0,0x80B00000 --mem gSkyfallBoostTrail:2=rand --sig skyfall_add_tyre_trail= --sig fx_count_active= --sig snd_play=a0,a1:2,a2 --sig snd_stop=a0
 # level clamps at 0 / 0.5 / 1 (exact, one ulp off, NaN), step constants 0 and large
 skyfall_update_anims: -n 300 --seed 1 --arg gp=sym:gSkyfallState --arg t6=int --arg t7=int --arg s0=int --arg s1=int --arg s2=int --arg s3=int --arg s4=int \
     --mem gSkyfallSmokeCooldown:1=choice:0,1 --mem gSkyfallState+0x99:1=choice:0,1 --stub-ret fx_count_active=choice:14,15 --stub-ret veh_near_top_speed=choice:0,1 \
@@ -141,7 +141,7 @@ skyfall_update_anims: -n 300 --seed 1 --arg gp=sym:gSkyfallState --arg t6=int --
     --mem gSkyfallThrottleAnim=words:0,0x80000000,0x3F000000,0x3F000001,0x3EFFFFFF,0x3F800000,0x3F7FFFFF,0x3F800001,0xBF800000,0x7FC00000,0x3E800000 \
     --mem D_8030D8C4=words:0,0x3D000000,0x3F800000 --mem D_8030D8C8=words:0,0x3D000000,0x3F800000 --mem D_8030D8CC=words:0,0x3C000000,0x3F000000 \
     --mem gSkyfallState+0x76:2=int:0:0xFFFF --mem gSkyfallBumpTimer:1=choice:0,1 --mem gSkyfallBoostMeter:1=int:0:0xFF --mem gSkyfallBoosting:1=choice:0,1 \
-    --mem gSkyfallBoostSound=words:0,0x80B00000 --sig skyfall_add_tyre_trail= --sig fx_count_active= --sig func_80260650=a0,a1:2,a2 --sig func_802608C8=a0
+    --mem gSkyfallBoostSound=words:0,0x80B00000 --sig skyfall_add_tyre_trail= --sig fx_count_active= --sig snd_play=a0,a1:2,a2 --sig snd_stop=a0
 # callees followed (fx_spawn with free/used records and map slots, veh_find_point record id 3, sound entry D_802C2314)
 skyfall_update_anims: -n 300 --seed 2 --arg gp=sym:gSkyfallState --arg t6=int --arg t7=int --arg s0=int --arg s1=int --arg s2=int --arg s3=int --arg s4=int \
     --mem gSkyfallState:0xA6=rand --mem gSkyfallSmokeCooldown:1=choice:0,1 --mem gSkyfallState+0x99:1=choice:0,1 --mem gHeldBOrZ:1=choice:0,1 \
@@ -153,13 +153,13 @@ skyfall_update_anims: -n 300 --seed 2 --arg gp=sym:gSkyfallState --arg t6=int --
     --mem gVehPoints:0x100=onehot:0x10@0xC/1:3:bytes:1,2,4 --mem gEffects:0x3C0=rand --mem gEffects+0x33*0x3C:16/1=bytes:0,1,1 \
     --mem gFxTileSlots:16=bytes:0,1 --mem D_803EB792:1=rand \
     --follow veh_find_point,fx_spawn,fx_count_active,veh_near_top_speed,anim_set_frame,anim_set_reverse,anim_set_speed,anim_tex_set_frame,anim_tex_find,skyfall_add_tyre_trail \
-    --sig func_80260650=a0,a1:2,a2 --sig func_802608C8=a0 --sig tex_queue_palette=a0,a1
+    --sig snd_play=a0,a1:2,a2 --sig snd_stop=a0 --sig tex_queue_palette=a0,a1
 # channel 2 level steps at every clamp edge (±5 within 0..100, ±10 toward 50)
 skyfall_update_anims: -n 300 --seed 3 --arg gp=sym:gSkyfallState --arg t6=int --arg t7=int --arg s0=int --arg s1=int --arg s2=int --arg s3=int --arg s4=int \
     --mem gHeldLeft:1=choice:0*2,1 --mem gHeldRight:1=choice:0*2,1 \
     --mem gSkyfallSteerAnim:1=choice:0,1,4,5,6,39,40,41,45,49,50,51,59,60,61,94,95,96,99,100 --mem gSkyfallThrottleAnim=floats:0:1 \
     --mem gSkyfallBumpTimer:1=choice:0,1 --mem gSkyfallBoostMeter:1=int:0:100 --mem gSkyfallBoostSound=words:0,0x80B00000 \
-    --sig skyfall_add_tyre_trail= --sig fx_count_active= --sig func_80260650=a0,a1:2,a2 --sig func_802608C8=a0
+    --sig skyfall_add_tyre_trail= --sig fx_count_active= --sig snd_play=a0,a1:2,a2 --sig snd_stop=a0
 # ramdozer_update_anims (vehicle 4 update; t6, t7, s0-s4 through to fx_spawn; gp = gRamdozerState): every branch, callees stubbed;
 # speed 0 / +-1 / +-8 / 0x8000, stick x signs, +0x4C around 0x355 and 0x8AB, channel 1 field 0x10 == 1 or not
 ramdozer_update_anims: -n 400 --seed 0 --arg gp=sym:gRamdozerState --arg t6=int --arg t7=int --arg s0=int --arg s1=int --arg s2=int --arg s3=int --arg s4=int \
@@ -167,14 +167,14 @@ ramdozer_update_anims: -n 400 --seed 0 --arg gp=sym:gRamdozerState --arg t6=int 
     --stub-ret veh_near_top_speed=choice:0,0,1 --mem gEngineSoundLevel:2=halves:0,0,1,0x8000 --mem gHeldBOrZ:1=choice:0,1 --mem gHeldA:1=choice:0,1 \
     --mem gRamdozerThrottleAnim=floats:-0.2:1.2 --mem gRamdozerState+0x76:2=halves:0,0,1,2,3,7,8,9,0xFFFF,0xFFFE,0xFFF8,0x8000,0x7FFF,0x1234,0xF234 \
     --mem gPadStickX:1=choice:0,1,0x7F,0x80,0xFF,0x40,0xC0 --mem gRamdozerState+0x4C:2=halves:0,0x354,0x355,0x356,0x3A0,0x3A1,0x8AA,0x8AB,0xFFFF,0x500 \
-    --mem gRamdozerDeflecting:1=choice:0,1 --stub-ret anim_get_state.v1=choice:0,1,2,0xFFFFFFFF --sig ramdozer_add_tyre_trail= --sig fx_count_active= --sig func_80260650=a0,a1:2,a2
+    --mem gRamdozerDeflecting:1=choice:0,1 --stub-ret anim_get_state.v1=choice:0,1,2,0xFFFFFFFF --sig ramdozer_add_tyre_trail= --sig fx_count_active= --sig snd_play=a0,a1:2,a2
 # level clamps at 0 / 0.5 / 1 (exact, one ulp off, NaN), step constants 0 and large
 ramdozer_update_anims: -n 300 --seed 2 --arg gp=sym:gRamdozerState --arg t6=int --arg t7=int --arg s0=int --arg s1=int --arg s2=int --arg s3=int --arg s4=int \
     --mem gRamdozerSmokeCooldown:1=choice:0,1 --mem gEngineSoundLevel:2=halves:0,1 --stub-ret veh_near_top_speed=choice:0,1 --mem gHeldBOrZ:1=choice:0,1 --mem gHeldA:1=choice:0,1 \
     --mem gRamdozerThrottleAnim=words:0,0x80000000,0x3F000000,0x3F000001,0x3EFFFFFF,0x3F800000,0x3F7FFFFF,0x3F800001,0xBF800000,0x7FC00000,0x3E800000 \
     --mem D_8030D8D4=words:0,0x3D000000,0x3F800000 --mem D_8030D8D8=words:0,0x3D000000,0x3F800000 --mem D_8030D8DC=words:0,0x3C000000,0x3F000000 \
     --mem gRamdozerState+0x76:2=int:0:0xFFFF --mem gPadStickX:1=int:0:0xFF --mem gRamdozerState+0x4C:2=int:0:0xFFFF --mem gRamdozerDeflecting:1=choice:0,1 \
-    --sig ramdozer_add_tyre_trail= --sig fx_count_active= --sig func_80260650=a0,a1:2,a2
+    --sig ramdozer_add_tyre_trail= --sig fx_count_active= --sig snd_play=a0,a1:2,a2
 # callees followed (fx_spawn records/map, veh_find_point record id 4, sound entries in gTexAnims, channel table gRamdozerAnim)
 ramdozer_update_anims: -n 300 --seed 1 --arg gp=sym:gRamdozerState --arg t6=int --arg t7=int --arg s0=int --arg s1=int --arg s2=int --arg s3=int --arg s4=int \
     --mem gRamdozerState:0xA6=rand --mem gRamdozerSmokeCooldown:1=choice:0,1 --mem gRamdozerState+0x99:1=choice:0,1 --mem gEngineSoundLevel:2=halves:0,1 \
@@ -185,7 +185,7 @@ ramdozer_update_anims: -n 300 --seed 1 --arg gp=sym:gRamdozerState --arg t6=int 
     --mem gTexAnims+0x60=sym:D_802C2190 --mem gTexAnims+0x150=sym:D_802C21B8 --mem gVehPoints:0x100=onehot:0x10@0xC/1:4:bytes:1,2,3 \
     --mem gEffects:0x3C0=rand --mem gEffects+0x33*0x3C:16/1=bytes:0,1,1 --mem gFxTileSlots:16=bytes:0,1 --mem D_803EB792:1=rand \
     --follow ramdozer_add_tyre_trail,fx_count_active,fx_spawn,veh_find_point,veh_near_top_speed,anim_set_frame,anim_tex_set_reverse,anim_tex_set_speed,anim_tex_set_frame,anim_tex_find,anim_get_state,anim_set_speed,anim_set_loop_mode,anim_play \
-    --sig func_80260650=a0,a1:2,a2 --sig tex_queue_palette=a0,a1
+    --sig snd_play=a0,a1:2,a2 --sig tex_queue_palette=a0,a1
 # --- (wt-v1) vehicle 3 / 4 drivers ---
 # model parts: stubbed (mtx_build_model's leftover a3/s2 not compared) and with the whole tree run
 # (one zero-count part, so mtx_chain_transform's s0/s1/s2 pass-through reaches memory)

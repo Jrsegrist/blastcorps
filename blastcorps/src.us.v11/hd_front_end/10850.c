@@ -214,12 +214,12 @@ void fe_best_next_player(void) {
         for (; i < 4 && (gSlotState[next % 4] != 1 || fe_best_player_listed(next % 4) == 0); i++, next = (next + 1) % 4) {
         }
         if (playerNumber != next) {
-            func_80260650(D_80367738, 0x1D, 0);
+            snd_play(gSfxBank, 0x1D, 0);
             playerNumber = next;
             fe_player_ticker_set_text(playerNumber, 1);
             fe_best_color_items();
         } else {
-            func_80260650(D_80367738, 0xD0, 0);
+            snd_play(gSfxBank, 0xD0, 0);
         }
     }
 }

@@ -5,7 +5,7 @@
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
 #define LEGACY_gHeapPtr
-#define LEGACY_D_80367738
+#define LEGACY_gSfxBank
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
@@ -63,7 +63,7 @@ extern BoxType gCrateTypes[];
 #ifndef NON_MATCHING
 extern Vtx *gHeapPtr;
 #ifndef NON_MATCHING
-extern s32 D_80367738;
+extern s32 gSfxBank;
 #endif
 #endif
 extern Box gCrates[];
@@ -156,7 +156,7 @@ void crate_update(u8 arg0) {
                                      gCrates[sp34].y, gCrates[sp34].z);
                 if (sp30 <= gCrateTypes[gCrates[sp34].type].radius) {
                     gCrates[sp34].collected = 1;
-                    func_80260650(D_80367738, 0x70, 0);
+                    snd_play(gSfxBank, 0x70, 0);
                     switch (gCrates[sp34].type) {
                         case 0:
                             gBallistaMissiles += 10;

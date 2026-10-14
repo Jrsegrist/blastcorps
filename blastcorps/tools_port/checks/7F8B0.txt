@@ -31,32 +31,32 @@ lzss_decompress: --ret void -n 300 --seed 1 --follow lzss_decode,lzss_read_bits 
 func_802C4108: -n 200 --arg a0=int --arg a1=int --arg a2=int --mem D_803F7830=rand --mem D_803F7834=rand \
     --sig func_8025C230=a0,a1,a2
 
-# start loop: sound id in a1 (s16 range: func_80260650 takes an s16), then veh_set_engine_level(0)
-veh_start_engine_sound: --ret void -n 200 --arg a1=int:-0x8000:0x7FFF --mem gEngineSoundLevel:2=rand --mem gHornHeld:2=rand --mem D_80367738=int \
-    --sig func_80260650=a0,a1,a2 --sig veh_set_engine_level=a0
+# start loop: sound id in a1 (s16 range: snd_play takes an s16), then veh_set_engine_level(0)
+veh_start_engine_sound: --ret void -n 200 --arg a1=int:-0x8000:0x7FFF --mem gEngineSoundLevel:2=rand --mem gHornHeld:2=rand --mem gSfxBank=int \
+    --sig snd_play=a0,a1,a2 --sig veh_set_engine_level=a0
 veh_start_engine_sound: --ret void -n 200 --seed 1 --follow veh_set_engine_level --arg a1=int:0:0x200 --mem gEngineSoundLevel:2=rand \
-    --mem gHornHeld:2=rand --mem D_80367738=int --mem D_80364AB0=choice:0,1 --mem gCurVehicle:1=choice:0,1 \
-    --mem D_8030D940=floats:0:1 --mem D_8030D944=floats:0:1 --mem gEngineSound=int --sig func_80260650=a0,a1,a2 \
-    --sig func_80260AB8=a0,a1,a2
+    --mem gHornHeld:2=rand --mem gSfxBank=int --mem D_80364AB0=choice:0,1 --mem gCurVehicle:1=choice:0,1 \
+    --mem D_8030D940=floats:0:1 --mem D_8030D944=floats:0:1 --mem gEngineSound=int --sig snd_play=a0,a1,a2 \
+    --sig snd_modify=a0,a1,a2
 
 # stop both loops (null handles skipped)
-veh_stop_engine_sounds: --ret void -n 200 --mem gEngineSound=choice:0,0x80300000,1 --mem gHornSound=choice:0,0x80300010,-1 --sig func_802608C8=a0
+veh_stop_engine_sounds: --ret void -n 200 --mem gEngineSound=choice:0,0x80300000,1 --mem gHornSound=choice:0,0x80300010,-1 --sig snd_stop=a0
 
 # level s5: |s5| vs the old halfword, forced by D_80364AB0, factor by gCurVehicle
 veh_set_engine_level: -n 400 --arg s5=choice:0,1,-1,5,-5,100,-100,0x7FFF,-0x7FFF,0x8000,-0x8000,0x12345 \
     --mem gEngineSoundLevel:2=halves:0,1,5,100,0x7FFF,0x8000,0xFFFF,0x2345 --mem D_80364AB0=choice:0,0,1,-1 \
     --mem gCurVehicle:1=choice:0,1,2,0xFF --mem D_8030D940=floats:0:2 --mem D_8030D944=floats:0:2 --mem gEngineSound=int \
-    --sig func_80260AB8=a0,a1,a2
+    --sig snd_modify=a0,a1,a2
 # unchanged level (no update) vs the halfword sign-extension boundary
 veh_set_engine_level: -n 200 --seed 1 --arg s5=choice:5,-5,0x8000,-0x8000,0xFFFF --mem gEngineSoundLevel:2=halves:5,0x8000,0xFFFF \
     --mem D_80364AB0=0 --mem gCurVehicle:1=choice:0,1 --mem D_8030D940=floats:0:2 --mem D_8030D944=floats:0:2 \
-    --mem gEngineSound=int --sig func_80260AB8=a0,a1,a2
+    --mem gEngineSound=int --sig snd_modify=a0,a1,a2
 
 # second loop on/off from the two input bytes; id in a1
 veh_update_horn: -n 300 --arg a1=int:-0x8000:0x7FFF --mem gHeldL:1=choice:0,0,1,0x80 --mem gHeldR:1=choice:0,0,1,2 \
     --mem gHornHeld:2=halves:0,0x100,0x8100,0x200,0x300,0x8000,0xFF --mem gHornSound=choice:0,0x80300000 \
-    --mem D_80367738=int --sig func_80260650=a0,a1,a2 --sig func_802608C8=a0
+    --mem gSfxBank=int --sig snd_play=a0,a1,a2 --sig snd_stop=a0
 # [data] the flag halfword's low byte random too (only its high byte is compared and replaced)
 veh_update_horn: -n 300 --seed 1 --arg a1=int:-0x8000:0x7FFF --mem gHeldL:1=choice:0,0,1,0x80 --mem gHeldR:1=choice:0,0,1,2 \
     --mem gHornHeld:2=rand --mem gHornSound=choice:0,0x80300000 \
-    --mem D_80367738=int --sig func_80260650=a0,a1,a2 --sig func_802608C8=a0
+    --mem gSfxBank=int --sig snd_play=a0,a1,a2 --sig snd_stop=a0

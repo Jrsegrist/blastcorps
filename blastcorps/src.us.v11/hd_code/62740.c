@@ -973,7 +973,7 @@ extern f32 D_8030D890;
  * 0). Unless *flag is set, a heading within 0x156 of the target just copies
  * the target to *out and stops; otherwise *flag = 1. With `sound` set, every
  * 7th call sets pitch D_803ED3FC = 0.5 + |speed| * D_8030D890 and plays it
- * (func_80260650 / func_80260AB8). Finally *out = heading, and *flag = 0 once
+ * (snd_play / snd_modify). Finally *out = heading, and *flag = 0 once
  * the target is reached.
  * Register convention: gp, heading t1, rate t5, speed t6, target s4, out s5,
  * flag s6, sound s7 (the asm saves t6 and, around the sound calls, every
@@ -1055,7 +1055,7 @@ void veh_turn_heading(u8 *veh, u16 *heading, s32 rate, s16 *speedp, u16 *target,
             D_803ED3F8 = 0;
             pitch = 0.5f + (f32) speed * D_8030D890;
             D_803ED3FC = *(s32 *) &pitch;
-            func_80260AB8(func_80260650(D_80367738, 10, NULL), 0x10, D_803ED3FC);
+            snd_modify(snd_play(gSfxBank, 10, NULL), 0x10, D_803ED3FC);
             n = 0;
         }
         D_803ED3F8 = n;
@@ -1856,7 +1856,7 @@ s32 veh_slot_land(s32 index, s32 *a, s32 *b, s32 *c, s32 extra, s32 pos, s32 s3)
         return s3;
     }
     if (gBounceSound != 0) {
-        func_80260650(D_80367738, 0xC, NULL);
+        snd_play(gSfxBank, 0xC, NULL);
     }
     return veh_slot_launch(index, a, b, c, extra, (u32) d / gBounceDamping);
 }

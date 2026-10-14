@@ -498,25 +498,25 @@ obj_spawn_break_effects: -n 200 --seed 2 --follow-all --mem gRandSeed=int --heap
     --arg a1=choice:1,2 --arg a2=choice:0,1,2,5,100,-1
 
 # obj_run_effect_queue(): run the 30 gEffectQueue debris records (delay at 0x2C, kind 0x31 -> D_80306270 list -> gFxDefsByKind def,
-# fx_spawn spawn with tag 0/1, func_802619D0 sound unless gNextGameMode (u64) / gCarrierHit, radius 0x2E -> obj_blast_damage)
+# fx_spawn spawn with tag 0/1, snd_play_effect sound unless gNextGameMode (u64) / gCarrierHit, radius 0x2E -> obj_blast_damage)
 obj_run_effect_queue: -n 300 --ret void --mem gEffectQueue:0x690=rand --mem gEffectQueue+0x34*0x38:30/1=bytes:0*3,1 \
     --mem gEffectQueue+0x2C*0x38:30/2=halves:0*3,1,0xFFFF --mem gEffectQueue+0x31*0x38:30/1=int:0:27 \
     --mem gEffectQueue+0x2E*0x38:30/2=halves:0,5 --mem gPartSinking:1=bytes:0*3,1 --mem gWaterOn:1=bytes:0,1 \
     --mem gWaterLayer:1=bytes:0,1,2 --mem gCarrierHit:1=bytes:0*3,1 --mem gNextGameMode:8=words:0*5,1 --mem D_803649D8:8=rand \
-    --stub-ret fx_spawn=1 --sig func_802619D0=a0
+    --stub-ret fx_spawn=1 --sig snd_play_effect=a0
 # spawn failing (no sound)
 obj_run_effect_queue: -n 100 --seed 1 --ret void --mem gEffectQueue:0x690=rand --mem gEffectQueue+0x34*0x38:30/1=bytes:0*3,1 \
     --mem gEffectQueue+0x2C*0x38:30/2=halves:0*3,1,0xFFFF --mem gEffectQueue+0x31*0x38:30/1=int:0:27 \
     --mem gEffectQueue+0x2E*0x38:30/2=halves:0,5 --mem gPartSinking:1=bytes:0*3,1 --mem gWaterOn:1=bytes:0,1 \
     --mem gWaterLayer:1=bytes:0,1,2 --mem gCarrierHit:1=bytes:0*3,1 --mem gNextGameMode:8=words:0*5,1 --mem D_803649D8:8=rand \
-    --stub-ret fx_spawn=0 --sig func_802619D0=a0
+    --stub-ret fx_spawn=0 --sig snd_play_effect=a0
 # kind 0x15 / 7 (multi-entry list) in every record, all due, tag flags off, gNextGameMode high word only
 obj_run_effect_queue: -n 100 --seed 2 --ret void --mem gEffectQueue:0x690=rand --mem gEffectQueue+0x34*0x38:30/1=bytes:0 \
     --mem gEffectQueue+0x2C*0x38:30/2=halves:0 --mem gEffectQueue+0x31*0x38:30/1=choice:1,0x15 \
     --mem gEffectQueue+0x2E*0x38:30/2=halves:0,1 --mem gPartSinking:1=0 --mem gWaterOn:1=bytes:0,1 --mem gWaterLayer:1=bytes:1 \
-    --mem gCarrierHit:1=0 --mem gNextGameMode:8=words:0,1 --mem D_803649D8:8=rand --stub-ret fx_spawn=1 --sig func_802619D0=a0
-# spawn and blast run for real (func_802619D0 stubbed)
-obj_run_effect_queue: -n 200 --seed 3 --ret void --follow fx_spawn,obj_blast_damage --sig func_802619D0=a0 --sig tex_queue_palette=a0,a1 \
+    --mem gCarrierHit:1=0 --mem gNextGameMode:8=words:0,1 --mem D_803649D8:8=rand --stub-ret fx_spawn=1 --sig snd_play_effect=a0
+# spawn and blast run for real (snd_play_effect stubbed)
+obj_run_effect_queue: -n 200 --seed 3 --ret void --follow fx_spawn,obj_blast_damage --sig snd_play_effect=a0 --sig tex_queue_palette=a0,a1 \
     --mem gEffectQueue:0x690=rand --mem gEffectQueue+0x34*0x38:30/1=bytes:0*3,1 \
     --mem gEffectQueue+0x2C*0x38:30/2=halves:0*3,1 --mem gEffectQueue+0x31*0x38:30/1=int:0:27 \
     --mem gEffectQueue+0x2E*0x38:30/2=halves:0,5 --mem gPartSinking:1=bytes:0*3,1 --mem gWaterOn:1=bytes:0,1 \

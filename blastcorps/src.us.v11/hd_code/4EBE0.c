@@ -159,7 +159,7 @@ void spline_walk_maze(mf, x, z, ox, oz, px, py, pz, state, speed)
     i = 0;
     found = 0;
     if (gPowerPillTimer == 0 && gPowerPillSound != 0) {
-        func_802608C8((void *) N64_IPTR(gPowerPillSound));
+        snd_stop((void *) N64_IPTR(gPowerPillSound));
     }
     if (gPaused == 0) {
         if (((u8) gPowerPillEaten)) {

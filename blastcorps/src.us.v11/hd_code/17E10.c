@@ -469,32 +469,32 @@ void hud_level_complete(Gfx **arg0, s32 arg1, s32 arg2) {
             gEndSeqTime = 0;
             if ((players[playerNumber][levelno + 0x18] > 0 &&
                  players[playerNumber][levelno + 0x18] < 6) ? 1 : 0) {
-                func_802609F0();
-                func_80260A10();
+                snd_stop_all_repeating();
+                snd_stop_all_looping();
                 gLevelDoneWindow = 5;
                 D_80366BC4 = 0;
                 if (((s32) gLevelKind) != 1) {
-                    func_80260E2C();
+                    music_play_done_tune();
                     D_80366BC4 = 1;
                 }
             } else {
                 switch (levelno) {
                     case 0x28:
-                        func_80260A10();
-                        func_80260DFC();
+                        snd_stop_all_looping();
+                        music_push_danger_tune();
                         gLevelDoneWindow = 0x1E;
                         D_80366BC4 = 0;
                         break;
                     case 0x32:
-                        func_80260A10();
-                        func_80260EE0(0x25);
+                        snd_stop_all_looping();
+                        music_push_tune(0x25);
                         gLevelDoneWindow = 0x23;
                         D_80366BC4 = 0;
                         break;
                     default:
-                        func_80260A10();
+                        snd_stop_all_looping();
                         gLevelDoneWindow = 5;
-                        func_80260E2C();
+                        music_play_done_tune();
                         D_80366BC4 = 1;
                         break;
                 }
@@ -502,7 +502,7 @@ void hud_level_complete(Gfx **arg0, s32 arg1, s32 arg2) {
             yoshi_demand(gLevelDoneWindow | 0x8000 | 0x2000);
             gYoshiPendingWindow = -1;
             if (gLevelDoneWindow == 5) {
-                func_80260650(D_80367738, func_8026205C(2), NULL);
+                snd_play(gSfxBank, snd_random_id(2), NULL);
             }
         }
         gLevelDoneSeen = gLevelDone;
@@ -510,10 +510,10 @@ void hud_level_complete(Gfx **arg0, s32 arg1, s32 arg2) {
             if (yoshiState == 8 && currentYoshiWindow == gLevelDoneWindow) {
                 gEndSeqTime = D_803156C4;
                 hud_panel_stop();
-                hud_panel_start(2, 1, 2, func_8026205C(3));
+                hud_panel_start(2, 1, 2, snd_random_id(3));
             }
-        } else if (func_802D4E10(D_80367734) == 0 ||
-                   (D_80366BC4 != 0 && D_803156C4 - D_80367740 >= 0x1E1) ||
+        } else if (func_802D4E10(gMusicPlayer) == 0 ||
+                   (D_80366BC4 != 0 && D_803156C4 - gDoneTuneStartTime >= 0x1E1) ||
                    (D_80366BC4 == 0 && D_803156C4 - gEndSeqTime > gLevelDoneDelay[(((s32) gLevelKind) & 0x81) ? 1 : 0])) {
             func_80275270(0x08000000, 0.75f);
             gEndSeqTime = 0;
@@ -539,26 +539,26 @@ void hud_mission_failed(Gfx **arg0, s32 arg1, u8 arg2) {
     time = D_803156C4;
     if (gCarrierHit != 0) {
         if (D_803643D8 == 0) {
-            func_802609D0();
+            snd_stop_all();
             obj_tally(gLevelInfo[levelno * 68] == 0x20 || gLevelInfo[levelno * 68] == 0x80);
             switch (levelno) {
                 case 0x31:
-                    func_80260650(D_80367738, 0x31, NULL);
-                    func_80261570(0.0f);
+                    snd_play(gSfxBank, 0x31, NULL);
+                    music_fade_to(0.0f);
                     break;
                 case 0x32:
                     gYoshiPendingWindow = -1;
                     yoshi_demand(0xA00E);
-                    func_80261570(0.0f);
+                    music_fade_to(0.0f);
                     break;
                 default:
-                    func_80260650(D_80367738, 0x31, NULL);
+                    snd_play(gSfxBank, 0x31, NULL);
                     gPauseRequest = 1;
                     if (currentYoshiWindow != -1 || yoshi_get_demand() != 0) {
                         yoshi_demand(0x4000);
                     }
                     gYoshiPendingWindow = -1;
-                    func_80261570(0.0f);
+                    music_fade_to(0.0f);
                     break;
             }
             gEndSeqTime = time;
@@ -569,7 +569,7 @@ void hud_mission_failed(Gfx **arg0, s32 arg1, u8 arg2) {
             switch (levelno) {
                 case 0x31:
                     if (gFailSoundPlayed == 0) {
-                        func_80260650(D_80367738, 0x32, NULL);
+                        snd_play(gSfxBank, 0x32, NULL);
                         gFailSoundPlayed = 1;
                     }
                     break;
@@ -585,7 +585,7 @@ void hud_mission_failed(Gfx **arg0, s32 arg1, u8 arg2) {
                     break;
                 default:
                     if (gFailSoundPlayed == 0) {
-                        func_80260650(D_80367738, 0x32, NULL);
+                        snd_play(gSfxBank, 0x32, NULL);
                         gFailSoundPlayed = 1;
                     }
                     gSPMatrix(gfx++, &D_02000000[3], G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);

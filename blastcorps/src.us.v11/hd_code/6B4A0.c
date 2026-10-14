@@ -535,7 +535,7 @@ void sideswipe_update_anims(void) {
             gSideswipeRamCharges--;
             anim_play((Unk8029DEA0Entry *) gSideswipeAnim, 5, 2);
             gSideswipeRamCooldown = 10;
-            func_80260650(D_80367738, 0x37, NULL);
+            snd_play(gSfxBank, 0x37, NULL);
         }
     }
 

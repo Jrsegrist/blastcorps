@@ -517,7 +517,7 @@ void ballista_update(void) {
     D_80364440 = V853_U16(0x4C);
     veh_set_record(gBallistaPos[2], 10, gBallistaPos[0], gBallistaPos[1], gBallistaState);
     if (D_803F8B79 >= 0) {
-        func_80260650(D_80367738, D_803F8B79, NULL);
+        snd_play(gSfxBank, D_803F8B79, NULL);
     }
 }
 #else
@@ -659,7 +659,7 @@ void ballista_update_actions(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32
         D_803F8B7D--;
     } else if ((gHeldL != 0 || gHeldR != 0) && ((u16) gBallistaMissiles) != 0) {
         gBallistaMissiles--;
-        func_80260650(D_80367738, 3, NULL);
+        snd_play(gSfxBank, 3, NULL);
         D_803F8B7E ^= 1;
         if (D_803F8B7E != 0) {
             anim_set_frame(0.0f, (Unk8029DEA0Entry *) gBallistaAnim, 4, 0);

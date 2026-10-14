@@ -414,7 +414,7 @@ void fe_boot_screen_frame(void) {
         } else {
             gNextGameMode = 0x0400000000000000;
             if (gDebugCheats) {
-                func_80260650(D_80367738, 0x68, NULL);
+                snd_play(gSfxBank, 0x68, NULL);
             }
         }
     }
@@ -430,17 +430,17 @@ void fe_boot_screen_frame(void) {
     }
     if (gFramesInMode >= 20) {
         if (gFramesInMode == 20 && gBootScene == 1) {
-            func_80260650(D_80367738, 0xBA, NULL);
+            snd_play(gSfxBank, 0xBA, NULL);
         } else if (gFramesInMode == 20 && gBootScene == 2) {
-            func_80260650(D_80367738, 0xBD, NULL);
+            snd_play(gSfxBank, 0xBD, NULL);
         }
         if (gFramesInMode < 80) {
             gBootCamDist = (80 - gFramesInMode) * 7600.0 / 60.0 + 400.0;
         }
         if (gFramesInMode == 75 && gBootScene == 2) {
-            func_80260650(D_80367738, 0xB8, NULL);
+            snd_play(gSfxBank, 0xB8, NULL);
         } else if (gFramesInMode == 75 && gBootScene == 1) {
-            func_80260650(D_80367738, 0xBB, NULL);
+            snd_play(gSfxBank, 0xBB, NULL);
         }
         guLookAtReflect(&dyn->unk140, &dyn->unk3C00, 1.0f, 0.0f, gBootCamDist, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
         gBootSceneAngle += gBootSpinSpeed;

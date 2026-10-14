@@ -4,7 +4,7 @@
 /* Matching build: IDO compiled the matched code here against older
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
-#define LEGACY_D_80367738
+#define LEGACY_gSfxBank
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
@@ -47,7 +47,7 @@ extern s32 gChopperPickupTimer;
 extern s32 gChopperPickupIndex;
 extern s32 gChopperRetargetX;
 #ifndef NON_MATCHING
-extern s32 D_80367738;
+extern s32 gSfxBank;
 #endif
 
 s32 people_player_near(s32 arg0);
@@ -90,7 +90,7 @@ void people_spawn(s16 arg0, s16 arg1, s16 arg2, s16 arg3, u8 arg4, s32 arg5) {
     }
     while (n < arg5 && i < 20) {
         if (n == 2) {
-            func_80260650(D_80367738, 0x24, 0);
+            snd_play(gSfxBank, 0x24, 0);
         }
         found = 0;
         while (i < 20 && !found) {
@@ -260,7 +260,7 @@ void people_flee(void) {
                 gPeople[i].unk1A = 1;
             }
             if (i == 1 && gPeople[i].unk15 != 4) {
-                func_80260650(D_80367738, 0x24, 0);
+                snd_play(gSfxBank, 0x24, 0);
             }
             if (gPeople[i].unk15 == 2) {
                 gChopperMode = 6;
@@ -427,7 +427,7 @@ void people_dispatch_chopper(void) {
                 vol = 35000 - util_dist2d(gPlayerX, gPlayerZ, gChopperTargetX, gChopperTargetZ) * 2;
             }
             if (vol > 4000) {
-                func_80260AB8(func_80260650(D_80367738, 0x25, 0), 8, vol);
+                snd_modify(snd_play(gSfxBank, 0x25, 0), 8, vol);
             }
         }
     }

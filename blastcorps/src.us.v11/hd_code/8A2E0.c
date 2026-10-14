@@ -327,7 +327,7 @@ typedef struct {
  * (obj_clear_effect_queue), then 24 debris records (gEffectScratch, through
  * obj_queue_effect) at (x, y, z) << 11, the i-th one 0xA0000 * i higher, with
  * unkC = 50000 + 0x36B0 * i, unk2C = i and kind (byte 0x31) 0x15; finally
- * plays sound 0x5E (func_80260650(D_80367738, 0x5E, NULL)). The asm takes pos
+ * plays sound 0x5E (snd_play(gSfxBank, 0x5E, NULL)). The asm takes pos
  * in t1 and preserves every register (all of them saved); asm caller
  * commpt_update keeps t0-t4 live across the call. The asm's trapping `add`s
  * on the height and unkC can't overflow for game coordinates. */
@@ -366,7 +366,7 @@ void commpt_burst(s32 *pos) {
         d->unk35 = 0;
         obj_queue_effect((u32 *) d);
     }
-    func_80260650(D_80367738, 0x5E, NULL);
+    snd_play(gSfxBank, 0x5E, NULL);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8A2E0/commpt_burst.s")

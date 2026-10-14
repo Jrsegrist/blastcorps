@@ -960,9 +960,9 @@ void fx_update_power_pill(void) {
                 gPowerPillTimer = 400;
                 gPowerPillEaten = 1;
                 gPowerPills[i].active = 0;
-                func_80260650(D_80367738, 0xB0, NULL);
+                snd_play(gSfxBank, 0xB0, NULL);
                 if (gPowerPillSound == 0) {
-                    func_80260650(D_80367738, 0xCF, &gPowerPillSound);
+                    snd_play(gSfxBank, 0xCF, &gPowerPillSound);
                 }
             }
         }

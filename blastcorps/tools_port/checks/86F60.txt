@@ -53,7 +53,7 @@ police_enter: -n 40 --seed 1 --ret void --arg a0=int --follow anim_tex_set_speed
 # police_leave: leave vehicle 13: speed (+0x76) = 0, veh_sync_buffers(gPoliceMtxA, gPoliceMtxB, 0x100), veh_stop_engine_sounds()
 police_leave: -n 50 --seed 0 --ret void --sig veh_sync_buffers=a0,a1,a2 --sig veh_stop_engine_sounds= --mem gPoliceMtxA:8=rand \
     --mem gPoliceState+0x76:2=rand
-police_leave: -n 40 --seed 1 --ret void --follow veh_sync_buffers,veh_stop_engine_sounds --sig func_802608C8=a0 --heap 0x100 --heap 0x100 \
+police_leave: -n 40 --seed 1 --ret void --follow veh_sync_buffers,veh_stop_engine_sounds --sig snd_stop=a0 --heap 0x100 --heap 0x100 \
     --mem gPoliceMtxA=rel:heap0 --mem gPoliceMtxB=rel:heap1 --mem gBufferIndex:1=bytes:0,1 --mem gEngineSound:8=words:0,0x80123450 \
     --mem gPoliceState+0x76:2=rand
 
@@ -77,7 +77,7 @@ police_update_effects: -n 200 --seed 2 --arg gp=sym:gPoliceState --arg t6=int --
     --follow anim_tex_set_frame,anim_tex_find,police_add_tyre_trail,fx_count_active,fx_spawn,veh_find_point,veh_set_engine_level \
     --mem gTexAnims:0x180=rand --mem gTexAnims+0x30=sym:D_802C2324 --mem gTexAnims+0x78=sym:D_802C2348 \
     --mem gVehPoints:0x100=onehot:0x10@0xC/1:0xD:bytes:1,2,3 --mem gEffects:0x3C0=rand --mem gEffects+0x33*0x3C:16/1=bytes:0,1 \
-    --mem gFxTileSlots:16=bytes:0,1 --mem D_803EB792:1=rand --sig tex_queue_palette=a0,a1 --sig func_80260AB8=a0,a1,a2 \
+    --mem gFxTileSlots:16=bytes:0,1 --mem D_803EB792:1=rand --sig tex_queue_palette=a0,a1 --sig snd_modify=a0,a1,a2 \
     --mem gEngineSoundLevel:2=rand --mem D_80364AB0:1=bytes:0,1 \
     --conv 'trail_add: in a0=a0:1,a1=a1,a2=a2:2,a3=a3:2,stack0=stack0:2,stack1=stack1:2,stack2=stack2,stack3=stack3,stack4=stack4:2,stack5=stack5:1,stack6=stack6:1,stack7=stack7:1,stack8=stack8:1'
 # police_build_model: model placement (mtx_build_model, veh_place_parts / veh_points_transform id 0xD); regs pointers not compared

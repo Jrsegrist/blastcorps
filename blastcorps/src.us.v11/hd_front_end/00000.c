@@ -4,7 +4,7 @@
 /* Matching build: IDO compiled the matched code here against older
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
-#define LEGACY_D_80367738
+#define LEGACY_gSfxBank
 #define LEGACY_func_802025D0
 #endif /* legacy declarations */
 #include "game/game.h"
@@ -32,7 +32,7 @@ typedef struct {
     u8 padF0[0x10];
 } Player; /* 0x100 bytes */
 #ifndef NON_MATCHING
-extern s32 D_80367738;
+extern s32 gSfxBank;
 #endif
 extern f32 D_802FDAC0[];
 
@@ -176,8 +176,8 @@ s32 fe_digger_init(void) {
 void fe_digger_select(u8 arg0) {
     gDiggerSel = arg0;
     D_803643D4 = gDiggerSlotVehicle[arg0];
-    func_80260A10();
-    func_80260650(D_80367738, gDiggerSelectSound[gDiggerSlotVehicle[arg0]], 0);
+    snd_stop_all_looping();
+    snd_play(gSfxBank, gDiggerSelectSound[gDiggerSlotVehicle[arg0]], 0);
     gDiggerCamXGoal = gDiggerVehicleX[gDiggerSlotVehicle[arg0]];
     gDiggerCamZGoal = gDiggerViewDist[gDiggerSlotVehicle[arg0]];
 }
@@ -213,9 +213,9 @@ void fe_digger_frame(void) {
     if (gFramesInMode >= 11 && !areWeFading()) {
         if ((gContButtons & 0x9000) && !(gContPrevButtons & 0x9000)) {
             func_80275390(0x2000);
-            func_80260650(D_80367738, 0x1E, 0);
+            snd_play(gSfxBank, 0x1E, 0);
         } else if ((gContButtons & 0x4000) && !(gContPrevButtons & 0x4000)) {
-            func_80260650(D_80367738, 0xDE, 0);
+            snd_play(gSfxBank, 0xDE, 0);
             D_803643D4 = gDiggerPrevVehicle;
             switch (gPrevGameMode) {
                 case 0x80:
@@ -253,14 +253,14 @@ void fe_digger_frame(void) {
         gDiggerScrollRight = 750;
     }
     if (gBufferIndex == 0 && gDiggerScrollLeft >= 750) {
-        func_80260650(D_80367738, sfx[gDiggerSel == 0], 0);
+        snd_play(gSfxBank, sfx[gDiggerSel == 0], 0);
         if (gDiggerSel != 0) {
             fe_digger_select(gDiggerSel - 1);
         }
         gDiggerScrollLeft -= 750;
     }
     if (gBufferIndex == 0 && gDiggerScrollRight >= 750) {
-        func_80260650(D_80367738, sfx[gDiggerSel + 1 == gDiggerCount], 0);
+        snd_play(gSfxBank, sfx[gDiggerSel + 1 == gDiggerCount], 0);
         if (gDiggerSel + 1 != gDiggerCount) {
             fe_digger_select(gDiggerSel + 1);
         }

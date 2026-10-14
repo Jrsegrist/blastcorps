@@ -4,7 +4,7 @@
 /* Matching build: IDO compiled the matched code here against older
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
-#define LEGACY_D_80367738
+#define LEGACY_gSfxBank
 #define LEGACY_D_8036EA60
 #define LEGACY_nss
 #endif /* legacy declarations */
@@ -70,7 +70,7 @@ extern u8 gBonusEarned[]; /* bonus earned, per bonus */
 extern u8 gBonusEarnedPrev[];
 
 #ifndef NON_MATCHING
-extern s32 D_80367738;
+extern s32 gSfxBank;
 #endif
 
 #define CUR (players[playerNumber])
@@ -310,7 +310,7 @@ void stats_award_bonuses(void) {
             yoshi_demand(sfx | 0x8000);
         }
         if (snd) {
-            func_80260650(D_80367738, snd, 0);
+            snd_play(gSfxBank, snd, 0);
         }
     }
 }

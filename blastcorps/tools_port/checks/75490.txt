@@ -29,18 +29,18 @@ carrier_set_physics: -n 60 --seed 1 --ret void --mem gLevelGravity=choice:0,0x80
 # carrier_update_sound (phase B): positional sound 0x75 at gCarrierX/Y/Z (volume knee 4000, x2);
 # math_dist3 (asm) followed in the ref, inlined in C
 carrier_update_sound: -n 300 --seed 0 --ret void --follow math_dist3 \
-    --sig func_80260650=a0,a1,a2 --sig func_802608C8=a0 --sig func_80260AB8=a0,a1,a2 \
-    --mem gCarrierSound=choice:0,0x80123450 --mem D_80367738=int \
+    --sig snd_play=a0,a1,a2 --sig snd_stop=a0 --sig snd_modify=a0,a1,a2 \
+    --mem gCarrierSound=choice:0,0x80123450 --mem gSfxBank=int \
     --mem gPlayerX=int:-20000:20000 --mem gPlayerY=int:-20000:20000 --mem gPlayerZ=int:-20000:20000 \
     --mem gCarrierX=int:-20000:20000 --mem gCarrierY=int:-20000:20000 --mem gCarrierZ=int:-20000:20000
 carrier_update_sound: -n 300 --seed 1 --ret void --follow math_dist3 \
-    --sig func_80260650=a0,a1,a2 --sig func_802608C8=a0 --sig func_80260AB8=a0,a1,a2 \
-    --mem gCarrierSound=choice:0,0x80123450 --mem D_80367738=int \
+    --sig snd_play=a0,a1,a2 --sig snd_stop=a0 --sig snd_modify=a0,a1,a2 \
+    --mem gCarrierSound=choice:0,0x80123450 --mem gSfxBank=int \
     --mem gPlayerX=choice:0,1,3999,4000,4001,15999,16000,16001,-16000,-16001,-2048,-2049,-2017,2015,2016,2047,2048,-1,31,32,-32,-33 \
     --mem gPlayerY=0 --mem gPlayerZ=0 --mem gCarrierX=0 --mem gCarrierY=0 --mem gCarrierZ=0
 carrier_update_sound: -n 200 --seed 2 --ret void --follow math_dist3 \
-    --sig func_80260650=a0,a1,a2 --sig func_802608C8=a0 --sig func_80260AB8=a0,a1,a2 \
-    --mem gCarrierSound=choice:0,0x80123450 --mem D_80367738=int \
+    --sig snd_play=a0,a1,a2 --sig snd_stop=a0 --sig snd_modify=a0,a1,a2 \
+    --mem gCarrierSound=choice:0,0x80123450 --mem gSfxBank=int \
     --mem gPlayerX=int:-0x10000000:0x10000000 --mem gPlayerY=int:-0x10000000:0x10000000 --mem gPlayerZ=int:-0x10000000:0x10000000 \
     --mem gCarrierX=choice:0,0x123456 --mem gCarrierY=choice:0,-0x123456 --mem gCarrierZ=choice:0,7
 # carrier_scan_speed_zones: scan the 4-byte {s16 z, u8 level, u8 value} table D_80305D62 (negative z ends it) for the current
@@ -62,21 +62,21 @@ crane_exit_check: -n 100 --seed 0 --mem gCraneState+0xA1:1=bytes:0,1,2,0x80,0xFF
 # ---- phase D (wave 1, wt-d4) ----
 # carrier_update_sound now calls math_dist3: stubbed, distance driven by --stub-ret (the knees 4000 / 16000)
 carrier_update_sound: -n 200 --seed 3 --ret void --stub-ret math_dist3=rand \
-    --sig func_80260650=a0,a1,a2 --sig func_802608C8=a0 --sig func_80260AB8=a0,a1,a2 \
-    --mem gCarrierSound=choice:0,0x80123450 --mem D_80367738=int \
+    --sig snd_play=a0,a1,a2 --sig snd_stop=a0 --sig snd_modify=a0,a1,a2 \
+    --mem gCarrierSound=choice:0,0x80123450 --mem gSfxBank=int \
     --mem gPlayerX=int:-20000:20000 --mem gPlayerY=int --mem gPlayerZ=int \
     --mem gCarrierX=int:-20000:20000 --mem gCarrierY=int --mem gCarrierZ=int
 carrier_update_sound: -n 60 --seed 4 --ret void --stub-ret math_dist3=16000 \
-    --sig func_80260650=a0,a1,a2 --sig func_802608C8=a0 --sig func_80260AB8=a0,a1,a2 \
+    --sig snd_play=a0,a1,a2 --sig snd_stop=a0 --sig snd_modify=a0,a1,a2 \
     --mem gCarrierSound=choice:0,0x80123450 --mem gPlayerX=int:-20000:20000 --mem gCarrierX=int:-20000:20000
 carrier_update_sound: -n 60 --seed 5 --ret void --stub-ret math_dist3=16001 \
-    --sig func_80260650=a0,a1,a2 --sig func_802608C8=a0 --sig func_80260AB8=a0,a1,a2 \
+    --sig snd_play=a0,a1,a2 --sig snd_stop=a0 --sig snd_modify=a0,a1,a2 \
     --mem gCarrierSound=choice:0,0x80123450 --mem gPlayerX=int:-20000:20000 --mem gCarrierX=int:-20000:20000
 carrier_update_sound: -n 60 --seed 6 --ret void --stub-ret math_dist3=4001 \
-    --sig func_80260650=a0,a1,a2 --sig func_802608C8=a0 --sig func_80260AB8=a0,a1,a2 \
+    --sig snd_play=a0,a1,a2 --sig snd_stop=a0 --sig snd_modify=a0,a1,a2 \
     --mem gCarrierSound=choice:0,0x80123450 --mem gPlayerX=int:-20000:20000 --mem gCarrierX=int:-20000:20000
 carrier_update_sound: -n 60 --seed 7 --ret void --stub-ret math_dist3=3999 \
-    --sig func_80260650=a0,a1,a2 --sig func_802608C8=a0 --sig func_80260AB8=a0,a1,a2 \
+    --sig snd_play=a0,a1,a2 --sig snd_stop=a0 --sig snd_modify=a0,a1,a2 \
     --mem gCarrierSound=choice:0,0x80123450 --mem gPlayerX=int:-20000:20000 --mem gCarrierX=int:-20000:20000
 
 # carrier_check_collide_dists: distance (y = 0) gCarrierX/Z -> gCarrierStartX/Z (s1 out) vs thresholds gCarrierWorldHitDist / gCarrierObjHitDist
@@ -107,21 +107,21 @@ carrier_check_arrival: -n 100 --seed 2 --ret void --stub-ret math_dist3=5 --mem 
 
 # carrier_update_anims ($gp = gCarrierState): speed (+0x76) vs last (D_803EF6D6), sound handle, angle gCamYaw
 # (sector a / 0x555 after +0x800 and the 0x1000 wrap), gPaused gate; s4 out
-carrier_update_anims: -n 400 --seed 0 --arg gp=sym:gCarrierState --sig func_80260AB8=a0,a1,a2 \
+carrier_update_anims: -n 400 --seed 0 --arg gp=sym:gCarrierState --sig snd_modify=a0,a1,a2 \
     --mem gCarrierState+0x76:2=halves:0,1,2,3,5,0x64,0xFFFF,0xFFFE,0x7FFF,0x8000 --mem D_803EF6D6:2=halves:0,1,2,3,0xFFFF \
     --mem gCarrierSound=choice:0,0x80123450 --mem gCamYaw:2=int:0:0xFFFF --mem gPaused:1=bytes:0*2,1,0xFF
 # angle boundaries: the +0x800 wrap at 0x1000 and the sector edges 0x555 / 0xAAA
-carrier_update_anims: -n 300 --seed 1 --arg gp=sym:gCarrierState --sig func_80260AB8=a0,a1,a2 \
+carrier_update_anims: -n 300 --seed 1 --arg gp=sym:gCarrierState --sig snd_modify=a0,a1,a2 \
     --mem gCarrierState+0x76:2=int:0:0xFFFF --mem D_803EF6D6:2=int:0:0xFFFF --mem gCarrierSound=choice:0,0x80123450 \
     --mem gCamYaw:2=choice:0,1,0x554,0x555,0x556,0x7FE,0x7FF,0x800,0x801,0xAA9,0xAAA,0xAAB,0xD54,0xD55,0xFFF,0x1000,0xFFFF,0x8000 \
     --mem gPaused:1=bytes:0,1
 # rounding ties in speed * D_8030D928 (0.5, 1.5, 2.5), random scale constants
-carrier_update_anims: -n 300 --seed 2 --arg gp=sym:gCarrierState --sig func_80260AB8=a0,a1,a2 \
+carrier_update_anims: -n 300 --seed 2 --arg gp=sym:gCarrierState --sig snd_modify=a0,a1,a2 \
     --mem gCarrierState+0x76:2=halves:0,1,2,3,5,7,0xFFFF,0xFFFD,0xFFFB --mem D_803EF6D6:2=halves:0 \
     --mem D_8030D928=choice:0x3F000000,0x3FC00000,0xBF000000,0x40200000 --mem D_8030D920:4=floats:-10:10 \
     --mem D_8030D924:4=floats:1:2000 --mem gCarrierSound=0x80123450 --mem gCamYaw:2=int:0:0xFFFF --mem gPaused:1=bytes:0
 # speed unchanged (no sound call) vs changed by exactly one
-carrier_update_anims: -n 100 --seed 3 --arg gp=sym:gCarrierState --sig func_80260AB8=a0,a1,a2 \
+carrier_update_anims: -n 100 --seed 3 --arg gp=sym:gCarrierState --sig snd_modify=a0,a1,a2 \
     --mem gCarrierState+0x76:2=halves:5 --mem D_803EF6D6:2=halves:4,5,6 --mem gCarrierSound=0x80123450 \
     --mem gCamYaw:2=int:0:0xFFFF --mem gPaused:1=bytes:0
 
@@ -129,12 +129,12 @@ carrier_update_anims: -n 100 --seed 3 --arg gp=sym:gCarrierState --sig func_8026
 crane_enter: -n 50 --ret void --mem gCamDistance:2=rand --mem gCamHeightBase:2=rand
 
 # crane_leave: veh_sync_buffers(gCraneMtxA, gCraneMtxB, 0x800), then stop each non-NULL handle
-crane_leave: -n 200 --ret void --sig func_802608C8=a0 --sig veh_sync_buffers=a0,a1,a2 \
+crane_leave: -n 200 --ret void --sig snd_stop=a0 --sig veh_sync_buffers=a0,a1,a2 \
     --mem gCraneArmSound:20=words:0*2,0x80123450,0x80123460,1,-1
-crane_leave: -n 20 --seed 1 --ret void --sig func_802608C8=a0 --sig veh_sync_buffers=a0,a1,a2 --mem gCraneArmSound:12=words:0
-crane_leave: -n 20 --seed 2 --ret void --sig func_802608C8=a0 --sig veh_sync_buffers=a0,a1,a2 --mem gCraneArmSound:12=words:0x80123450
+crane_leave: -n 20 --seed 1 --ret void --sig snd_stop=a0 --sig veh_sync_buffers=a0,a1,a2 --mem gCraneArmSound:12=words:0
+crane_leave: -n 20 --seed 2 --ret void --sig snd_stop=a0 --sig veh_sync_buffers=a0,a1,a2 --mem gCraneArmSound:12=words:0x80123450
 # copy run for real
-crane_leave: -n 30 --seed 3 --ret void --follow veh_sync_buffers --sig func_802608C8=a0 --heap 0x800 --heap 0x800 \
+crane_leave: -n 30 --seed 3 --ret void --follow veh_sync_buffers --sig snd_stop=a0 --heap 0x800 --heap 0x800 \
     --mem gCraneMtxA=rel:heap0 --mem gCraneMtxB=rel:heap1 --mem gCraneArmSound:12=words:0,0x80123450
 
 # zone lookup wrapper (id 0xFF at gCarrierX): veh_zone_alpha stubbed (scan registers mapped through r)
@@ -186,7 +186,7 @@ crane_update_controls: -n 400 --arg gp=sym:gCraneState --mem gCraneState+0xA1:1=
     --mem gCraneSwingSound=choice:0,0x80B00010 --mem gCraneActionSound=choice:0,0x80B00020 \
     --stub-ret anim_get_state.f0=choice:0x3F800000*3,0x3F7FFFFF,0x3F800001,0x3F80A3D7,0x3F7EB852,0x3F7F7CEE,0x3F8147AE,0,0x3F000000,0xBF800000 \
     --stub-ret anim_get_state.t1=choice:0,1*3,-1 --stub-ret anim_get_state.v1=choice:0,1*2,2,-1 \
-    --stub-ret crane_part_on_ground=choice:0,1,2 --sig func_802608C8=a0 --sig func_80260650=a0,a1,a2 --sig crane_part_on_ground=
+    --stub-ret crane_part_on_ground=choice:0,1,2 --sig snd_stop=a0 --sig snd_play=a0,a1,a2 --sig crane_part_on_ground=
 crane_update_controls: -n 300 --seed 1 --arg gp=sym:gCraneState \
     --follow anim_set_speed,anim_set_reverse,anim_play,anim_get_state,crane_part_on_ground --mem levelno=choice:0,0x11 \
     --mem gCraneAnim:0x90=rand \
@@ -197,7 +197,7 @@ crane_update_controls: -n 300 --seed 1 --arg gp=sym:gCraneState \
     --mem gHeldA:1=choice:0,1 --mem gHeldB:1=choice:0,1 \
     --mem D_8030D930=choice:0x3F800000,0x3F000000,0,0x3F7FFFFF --mem D_8030D934=choice:0x3F800000,0x3F000000,0,0x3F800001 \
     --mem gCraneArmSound=choice:0,0x80B00000 --mem gCraneSwingSound=choice:0,0x80B00010 --mem gCraneActionSound=choice:0,0x80B00020 \
-    --sig func_802608C8=a0 --sig func_80260650=a0,a1,a2 --stub-ret crane_find_test_part.s4=choice:0,1 \
+    --sig snd_stop=a0 --sig snd_play=a0,a1,a2 --stub-ret crane_find_test_part.s4=choice:0,1 \
     --stub-ret func_802AC0BC.a1=choice:0,1 --sig crane_find_test_part= --sig func_802AC0BC=a0,a1,a2
 
 # ---- wt-v5 ----

@@ -366,19 +366,19 @@ void hud_mission_intro(void) {
                 gYoshiGameItems[256] = gIntroObjectiveJText;
                 gYoshiGameItems[263] = gIntroTimeJText;
                 yoshi_demand(0x8009);
-                func_80260650(D_80367738, func_8026205C(0), 0);
+                snd_play(gSfxBank, snd_random_id(0), 0);
                 break;
             case 1:
-                func_80260650(D_80367738, 0x96, 0);
+                snd_play(gSfxBank, 0x96, 0);
                 break;
             case 2:
-                func_80260650(D_80367738, 0x96, 0);
+                snd_play(gSfxBank, 0x96, 0);
                 break;
             case 3:
-                func_80260650(D_80367738, 0x96, 0);
+                snd_play(gSfxBank, 0x96, 0);
                 break;
             case 4:
-                func_80260650(D_80367738, 0x99, 0);
+                snd_play(gSfxBank, 0x99, 0);
                 break;
         }
     }
@@ -416,19 +416,19 @@ void hud_update_objective(void) {
             } else {
                 gSecondsLeft = gTimeLeft / 10;
                 if (gSecondsLeft < 10 && gSecondsLeft != gPrevSecondsLeft) {
-                    func_80260650(D_80367738, 0xA3 - gSecondsLeft, 0);
+                    snd_play(gSfxBank, 0xA3 - gSecondsLeft, 0);
                 }
                 gPrevSecondsLeft = gSecondsLeft;
             }
             if (gFailTrigger && gLevelKind == 0x40) {
-                func_80260650(D_80367738, 0x3C, 0);
+                snd_play(gSfxBank, 0x3C, 0);
             }
             if (gFailTrigger) {
                 cmo_hit_request = 1;
             }
             if (gCarrierHit) {
-                func_80260A10();
-                func_802609F0();
+                snd_stop_all_looping();
+                snd_stop_all_repeating();
                 yoshi_demand(0xA00E);
                 gYoshiPendingWindow = -1;
                 gNextGameMode = 0x04000000;
@@ -593,7 +593,7 @@ void hud_update_race(void) {
                     }
                     gYoshiGameItems[248] = gLapsLeftText;
                     gYoshiGameItems[249] = D_80367D28;
-                    alCSPSetTempo(D_80367734, alCSPGetTempo(D_80367734) * 0.95);
+                    alCSPSetTempo(gMusicPlayer, alCSPGetTempo(gMusicPlayer) * 0.95);
                 }
                 gRaceLap++;
                 gRaceQuadsCrossed = 0;

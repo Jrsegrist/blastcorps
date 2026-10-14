@@ -16,28 +16,29 @@ typedef struct {
     /* 0x8 */ u32 bit; /* t4: mask of the next bit of `cur` (0x80 = load a new byte first) */
 } LzBits;
 
-u32 func_802C42CC(u32 mask, LzBits *b);
-void func_802C41C0(u8 * N64P *srcp, u8 * N64P *dstp, u8 *window, s32 bits);
+u32 lzss_read_bits(u32 mask, LzBits *b);
+void lzss_decode(u8 * N64P *srcp, u8 * N64P *dstp, u8 *window, s32 bits);
 
 extern u8 * N64P D_803F7830;
 extern u8 * N64P D_803F7834;
-extern void * N64P D_803F7848; /* second looping sound handle */
-extern s16 D_803F784C;  /* its on/off flag; func_802C4724 uses the high byte */
-extern s32 D_80364AB0;  /* force the next func_802C4584 update */
+extern void * N64P gHornSound; /* the horn loop's handle (L/R held) */
+extern s16 gHornHeld;  /* its on/off flag; veh_update_horn uses the high byte */
+extern s32 D_80364AB0;  /* force the next veh_set_engine_level update */
 extern f32 D_8030D940;
 extern f32 D_8030D944;
 #endif
 
 /* C-callable (46C20.c func_8028B4C4): saves s0-s7/gp/s8, then
- * func_802C41C0(*a0, *a1) and writes the advanced pointers back to *a0/*a1. */
+ * lzss_decode(*a0, *a1) and writes the advanced pointers back to *a0/*a1. */
 #ifdef NON_MATCHING
-/* Decompress the LZSS stream at *src into *dst (window `work`, `type` offset
+/* The loader's method 2: LZSS from *src to *dst (0x802C4070).
+ * Decompress the LZSS stream at *src into *dst (window `work`, `type` offset
  * bits), advancing both pointers. */
-void func_802C4070(u32 *src, u32 *dst, u32 work, u8 type) {
-    func_802C41C0((u8 * N64P *) src, (u8 * N64P *) dst, (u8 *) work, type);
+void lzss_decompress(u32 *src, u32 *dst, u32 work, u8 type) {
+    lzss_decode((u8 * N64P *) src, (u8 * N64P *) dst, (u8 *) work, type);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7F8B0/func_802C4070.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7F8B0/lzss_decompress.s")
 #endif
 
 /* Saves s-regs, stores a0/a1 to D_803F7830/D_803F7834 and calls
@@ -46,7 +47,7 @@ void func_802C4070(u32 *src, u32 *dst, u32 work, u8 type) {
 #ifdef NON_MATCHING
 /* Register convention: the asm takes and returns the two pointers in a0/a1
  * (here through src/dst; conventions.txt) and restores a2 and every
- * s-register. Asm callers (5CB60's func_802A2A98, func_802A32CC,
+ * s-register. Asm callers (5CB60's lvl_load_object, lvl_load_model_plain,
  * lvl_load_model) keep a2, f12 and f14 live across the call. */
 void func_802C4108(u8 **src, u8 **dst, s32 work) {
     D_803F7830 = *src;
@@ -64,15 +65,16 @@ void func_802C4108(u8 **src, u8 **dst, s32 work) {
  * 16 - a3 bits). Flag bits are read MSB-first: 1 = 8-bit literal (to the
  * output and the window), 0 = window offset (0 ends) + length, copying
  * length + 3 bytes. Returns the source end (rounded up to even) in a0 and the
- * destination end in a1. Non-ABI: clobbers s0/s4-s7 (func_802C4070 saves
+ * destination end in a1. Non-ABI: clobbers s0/s4-s7 (lzss_decompress saves
  * them). */
 #ifdef NON_MATCHING
-/* Window writes start at index 1. A copy reads window[(off + i) & mask] one
+/* The LZSS decode loop (0x802C41C0).
+ * Window writes start at index 1. A copy reads window[(off + i) & mask] one
  * byte at a time, so it may read bytes it has just written. `bits` must be
  * 1..15 (game data uses 10 and 12; the asm shifts by it with sllv).
  * Register convention: src/dst in and out in a0/a1 (here through the
  * pointers); clobbers s0, s4-s7 (conventions.txt). */
-void func_802C41C0(u8 * N64P *srcp, u8 * N64P *dstp, u8 *window, s32 bits) {
+void lzss_decode(u8 * N64P *srcp, u8 * N64P *dstp, u8 *window, s32 bits) {
     LzBits b;
     u8 *dst = *dstp;
     u32 wmask = (1 << bits) - 1;
@@ -98,16 +100,16 @@ void func_802C41C0(u8 * N64P *srcp, u8 * N64P *dstp, u8 *window, s32 bits) {
             b.bit = 0x80;
         }
         if (flag != 0) {
-            c = func_802C42CC(0x80, &b);
+            c = lzss_read_bits(0x80, &b);
             *dst++ = c;
             window[pos] = c;
             pos = (pos + 1) & wmask;
         } else {
-            off = func_802C42CC(offMask, &b);
+            off = lzss_read_bits(offMask, &b);
             if (off == 0) {
                 break;
             }
-            len = func_802C42CC(lenMask, &b) + 2;
+            len = lzss_read_bits(lenMask, &b) + 2;
             for (i = 0; i <= len; i++) {
                 c = window[(off + i) & wmask];
                 *dst++ = c;
@@ -123,18 +125,19 @@ void func_802C41C0(u8 * N64P *srcp, u8 * N64P *dstp, u8 *window, s32 bits) {
     *dstp = dst;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7F8B0/func_802C41C0.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7F8B0/lzss_decode.s")
 #endif
 
-/* Bit reader for func_802C41C0: reads bits MSB-first into v0 while the mask
+/* Bit reader for lzss_decode: reads bits MSB-first into v0 while the mask
  * a3 shifts right; reader state lives in a0/t3/t4 (s4 = 0x80). */
 #ifdef NON_MATCHING
-/* Reads one source bit per step while `mask` shifts right to 0 (at least one
+/* Reads bits most significant first (0x802C42CC).
+ * Reads one source bit per step while `mask` shifts right to 0 (at least one
  * step): each source bit that is 1 ORs the current mask into the result. The asm reloads when t4 == s4 and steps a0 by s5; its only caller
  * sets s4 = 0x80 and s5 = 1, which are constants here.
  * Register convention: mask a3, state a0/t3/t4 (in/out through b), result
  * v0; clobbers s7. Its asm caller keeps a1, a2, t0, t1, t5 and t6 live. */
-u32 func_802C42CC(u32 mask, LzBits *b) {
+u32 lzss_read_bits(u32 mask, LzBits *b) {
     u32 v = 0;
 
     do {
@@ -153,59 +156,62 @@ u32 func_802C42CC(u32 mask, LzBits *b) {
     return v;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7F8B0/func_802C42CC.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7F8B0/lzss_read_bits.s")
 #endif
 
-/* Save-everything sound wrapper: resets D_803F7840 to -1, starts the looping
- * effect D_80367738 via func_80260650 (sndPlaySfx) with its handle stored in
- * D_803F7844, then func_802C4584 with s5 = 0. */
+/* Save-everything sound wrapper: resets gEngineSoundLevel to -1, starts the looping
+ * effect gSfxBank via snd_play (sndPlaySfx) with its handle stored in
+ * gEngineSound, then veh_set_engine_level with s5 = 0. */
 #ifdef NON_MATCHING
-/* arg0 is ignored; arg1 (a1) is the sound id. The asm also clears the
- * halfword D_803F784C and saves/restores every register (k0/k1/gp/sp too). */
-void func_802C4310(s32 arg0, s32 arg1) {
-    D_803F7840 = -1;
-    D_803F784C = 0;
-    func_80260650(D_80367738, arg1, &D_803F7844);
-    func_802C4584(0);
+/* Starts the engine loop (gEngineSound), level 0 (0x802C4310).
+ * arg0 is ignored; arg1 (a1) is the sound id. The asm also clears the
+ * halfword gHornHeld and saves/restores every register (k0/k1/gp/sp too). */
+void veh_start_engine_sound(s32 arg0, s32 arg1) {
+    gEngineSoundLevel = -1;
+    gHornHeld = 0;
+    snd_play(gSfxBank, arg1, &gEngineSound);
+    veh_set_engine_level(0);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7F8B0/func_802C4310.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7F8B0/veh_start_engine_sound.s")
 #endif
 
-/* Save-everything sound wrapper: stops the sound handles D_803F7844 and
- * D_803F7848 via func_802608C8 when they are non-null. */
+/* Save-everything sound wrapper: stops the sound handles gEngineSound and
+ * gHornSound via snd_stop when they are non-null. */
 #ifdef NON_MATCHING
-/* The asm saves and restores every register; asm callers func_802B18F4 (t7,
- * f12, f14) and func_802D1360 (f12, f14) rely on that (a mixed N64 build
+/* Stops the engine and horn loops (0x802C444C).
+ * The asm saves and restores every register; asm callers thunderfist_update_actions (t7,
+ * f12, f14) and cyclone_update_moves (f12, f14) rely on that (a mixed N64 build
  * would need a thunk; the native port won't). */
-void func_802C444C(void) {
-    if (D_803F7844 != NULL) {
-        func_802608C8(D_803F7844);
+void veh_stop_engine_sounds(void) {
+    if (gEngineSound != NULL) {
+        snd_stop(gEngineSound);
     }
-    if (D_803F7848 != NULL) {
-        func_802608C8(D_803F7848);
+    if (gHornSound != NULL) {
+        snd_stop(gHornSound);
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7F8B0/func_802C444C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7F8B0/veh_stop_engine_sounds.s")
 #endif
 
 /* Save-everything sound wrapper: non-ABI input s5 (a signed level). Stores
- * |s5| in D_803F7840 and, when it changed (or D_80364AB0 was set, which it
- * clears), sets the D_803F7844 sound's parameter 0x10 (likely pitch) to
+ * |s5| in gEngineSoundLevel and, when it changed (or D_80364AB0 was set, which it
+ * clears), sets the gEngineSound sound's parameter 0x10 (likely pitch) to
  * 0.5 + |s5| * (D_8030D940, or D_8030D944 when gCurVehicle == 1) via
- * func_80260AB8. */
+ * snd_modify. */
 #ifdef NON_MATCHING
-/* The change test compares the old halfword (sign-extended) with the full
+/* The engine sound's pitch from |level| when it changes (0x802C4584).
+ * The change test compares the old halfword (sign-extended) with the full
  * 32-bit |level|. `neg` traps on 0x80000000 (keep levels in game range). The
- * float goes to func_80260AB8 as raw bits in a2.
+ * float goes to snd_modify as raw bits in a2.
  * Register convention: level in s5 (conventions.txt); the asm saves and
  * restores every integer register (only f0-f6 change). Asm callers (e.g.
- * func_802B37B0: a0, t6, t7, f12, f14) rely on that (a mixed N64 build would
+ * skyfall_update_anims: a0, t6, t7, f12, f14) rely on that (a mixed N64 build would
  * need a thunk; the native port won't). */
-void func_802C4584(s32 level) {
+void veh_set_engine_level(s32 level) {
     s32 force = D_80364AB0;
-    s16 old = D_803F7840;
+    s16 old = gEngineSoundLevel;
     union {
         f32 f;
         s32 i;
@@ -214,58 +220,59 @@ void func_802C4584(s32 level) {
     if (level < 0) {
         level = -level;
     }
-    D_803F7840 = level;
+    gEngineSoundLevel = level;
     if (force != 0) {
         D_80364AB0 = 0;
     } else if (old == level) {
         return;
     }
     u.f = 0.5f + (f32) level * ((gCurVehicle == 1) ? D_8030D944 : D_8030D940);
-    func_80260AB8(D_803F7844, 0x10, u.i);
+    snd_modify(gEngineSound, 0x10, u.i);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7F8B0/func_802C4584.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7F8B0/veh_set_engine_level.s")
 #endif
 
 /* Save-everything sound wrapper: flag = gHeldL | gHeldR. When it
- * differs from D_803F784C, stores it; on starts the second loop
- * (func_80260650(D_80367738, a1, &D_803F7848)) if not already playing, off
- * stops it (func_802608C8) and clears D_803F7848. */
+ * differs from gHornHeld, stores it; on starts the second loop
+ * (snd_play(gSfxBank, a1, &gHornSound)) if not already playing, off
+ * stops it (snd_stop) and clears gHornSound. */
 #ifdef NON_MATCHING
-/* The sound id is whatever the caller left in a1 (0x8F, 0xA4, 0x76 ...).
+/* L or R held: the horn loop (gHornSound), else stop it (0x802C4724).
+ * The sound id is whatever the caller left in a1 (0x8F, 0xA4, 0x76 ...).
  * Register convention: sfx in a1 (conventions.txt); the asm saves and
- * restores every register. Asm callers (func_802B49AC, func_802B7A88,
- * func_802CBEF0, func_802CD068, func_802CFDE8) keep a0, t6, t7, f12 and f14
+ * restores every register. Asm callers (ramdozer_update, amdream_update,
+ * police_update, ateam_update, starski_update) keep a0, t6, t7, f12 and f14
  * live (a mixed N64 build would need a thunk; the native port won't). */
-void func_802C4724(s32 sfx) {
+void veh_update_horn(s32 sfx) {
     u8 flag = gHeldL | gHeldR;
-    void *h = D_803F7848;
+    void *h = gHornSound;
 
     /* The asm reads and stores the halfword's first byte (lbu/sb), i.e. its
      * high byte; done on the whole halfword so either byte order agrees. */
-    if ((u8) ((u16) D_803F784C >> 8) == flag) {
+    if ((u8) ((u16) gHornHeld >> 8) == flag) {
         return;
     }
-    D_803F784C = (s16) ((D_803F784C & 0xFF) | (flag << 8));
+    gHornHeld = (s16) ((gHornHeld & 0xFF) | (flag << 8));
     if (flag != 0) {
         if (h == NULL) {
-            func_80260650(D_80367738, sfx, &D_803F7848);
+            snd_play(gSfxBank, sfx, &gHornSound);
         }
     } else if (h != NULL) {
-        func_802608C8(h);
-        D_803F7848 = NULL;
+        snd_stop(h);
+        gHornSound = NULL;
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7F8B0/func_802C4724.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7F8B0/veh_update_horn.s")
 #endif
 
 #ifdef NON_MATCHING
 /* The tables of the 7D9D0 bin (ROM 0x7D9D0-0x7F8B0, 0x802C2190-0x802C4070),
  * just before this file's code: twelve texture-animation entries
- * (D_802C2190.., list D_802C23B4; 56040.c func_8029DEA0/func_8029E21C, the
+ * (D_802C2190.., list D_802C23B4; 56040.c anim_tex_init/anim_tex_step, the
  * vehicle files' channel keys) and the 28 billboard effect definitions
- * (EffectDef + texture ids, list D_802C3FFC; func_802A6274, func_802A64A4).
+ * (EffectDef + texture ids, list gFxDefsByKind; fx_spawn, fx_draw_all).
  * The NON_MATCHING build defines it in C and links this file's .data (it has
  * nothing else) back at the table's original address (Makefile NM_PIN_HD_CODE,
  * nm_ldscript.py --pin-object); nm_symaudit.py checks the bytes against the
@@ -373,7 +380,7 @@ typedef struct {
     /* 802C3DE4 */ u16 ed802C3DD4_ids[104];
     /* 802C3EB4 */ EffectDef ed802C3EB4; /* D_802C3EB4 */
     /* 802C3EC4 */ u16 ed802C3EB4_ids[156];
-    /* 802C3FFC */ u8 * N64P effectDefs[28]; /* D_802C3FFC */
+    /* 802C3FFC */ u8 * N64P effectDefs[28]; /* gFxDefsByKind */
     /* 802C406C */ u32 pad802C406C;
 } TextData7D9D0; /* size 0x1EE0 */
 /* the members must sit at their ROM offsets (with 4-byte pointers) */

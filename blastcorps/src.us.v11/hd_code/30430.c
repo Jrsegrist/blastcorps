@@ -24,8 +24,8 @@ Gfx *func_80274BF0(s32 arg0, Gfx *gfx) {
         if ((gGameMode & 0x4055800100040000) || ((gGameMode & 0x1801) && levelno == 50)) {
             D_8036C784 = 0xFF;
             if (gGameMode & 0x0051800100040000) {
-                D_8036C770 = func_8026B10C();
-                func_8026AF6C(0);
+                D_8036C770 = yoshi_get_demand();
+                yoshi_demand(0);
             }
             D_8036C780 = D_803156C4;
         } else {
@@ -44,7 +44,7 @@ Gfx *func_80274BF0(s32 arg0, Gfx *gfx) {
                          ? 0.0f
                          : 255.0f - (D_803156C4 - D_8036C780) * D_802FA930;
         if (!D_8036C784) {
-            func_8026AF6C(D_8036C770);
+            yoshi_demand(D_8036C770);
             D_8036C770 = 0;
         }
     }
@@ -68,8 +68,8 @@ void func_80275270(u64 next, f32 speed) {
         postFadeLoop_done = next;
         D_8036C774 = 4.25 / speed;
         D_8036C780 = D_803156C4;
-        if (!(next & 0x40000000080004C2) && !(gGameMode & 0x4000000000040000)) {
-            func_80261570(0.0f);
+        if (!(next & 0x40000000080004C2) && !(gGameMode & (MODE_NAME_ENTRY | MODE_QUIT_GAME))) {
+            music_fade_to(0.0f);
         }
     }
 }

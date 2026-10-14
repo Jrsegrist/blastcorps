@@ -289,11 +289,11 @@ static int apply(int kind, uint32_t dst, uint32_t rom, uint32_t len, int at_load
             if (!at_load) return 0;
             port_load_image_fe();
             return 1;
-        case K_TEXTAB:          /* func_802A0700: one raw DMA */
+        case K_TEXTAB:          /* tex_load_table: one raw DMA */
             if (at_load) return 0;
             swap_records(dst, len, 8, "4@0 2@4 2@6");
             return 1;
-        case K_PKTAB:           /* func_802A2BB0: one raw DMA */
+        case K_PKTAB:           /* lvl_load_object_table: one raw DMA */
             if (at_load) return 0;
             sw32(dst, len / 4);
             return 1;
@@ -305,7 +305,7 @@ static int apply(int kind, uint32_t dst, uint32_t rom, uint32_t len, int at_load
             if (!at_load) return 0;
             swap_seqfile(dst, len);
             return 1;
-        case K_TUNE:            /* func_80260C20: func_8028B4C4 uncompressed */
+        case K_TUNE:            /* music_play_tune: func_8028B4C4 uncompressed */
             if (!at_load) return 0;
             swap_tune(dst, len);
             return 1;

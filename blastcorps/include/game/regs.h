@@ -11,14 +11,14 @@
  * its asm register for eqcheck. Field names are the registers.
  */
 
-/* func_802A6274's three in/out registers (60F60.c). */
+/* fx_spawn's three in/out registers (60F60.c). */
 typedef struct {
-    /* 0x0 */ s32 a3; /* in: tag byte for D_803EB792; out: last D_803EB770 byte scanned */
+    /* 0x0 */ s32 a3; /* in: tag byte for D_803EB792; out: last gFxTileSlots byte scanned */
     /* 0x4 */ s32 t6; /* in: word for rec+0x20; out: (s16) def[0] (when a record was set up) */
     /* 0x8 */ s32 s1; /* in: word for rec+0x14; out: the record's 0x100-byte buffer (when def[0] != -1) */
 } Io802A6274;
 
-/* Results of func_802AA460 that its asm callers read from FP registers; the
+/* Results of ground_tri_contains that its asm callers read from FP registers; the
  * triangle scans and the ground functions hand them on (62740.c). */
 typedef struct {
     f32 pz;    /* f12: (f32) z */
@@ -29,28 +29,28 @@ typedef struct {
     f32 dz;    /* f26: last edge's z extent */
 } TriSideOut;
 
-/* func_802A860C's results besides t0, its return value (62740.c). */
+/* veh_move_along_heading's results besides t0, its return value (62740.c). */
 typedef struct {
     s32 t1; /* new z */
     s32 s3; /* *px as read */
-    s32 fp; /* the cosine (func_802AE104's result) */
+    s32 fp; /* the cosine (math_cos's result) */
 } Out802A860C;
 
-/* func_802A8768's register results besides the FP state (62740.c). */
+/* veh_ground_contact's register results besides the FP state (62740.c). */
 typedef struct {
     s32 s3;  /* in/out: the slot functions' result */
-    s16 *s4; /* out: angle, or veh + 0x4C when func_802A92C8 ran */
-    s32 fp;  /* out: the second tilt (also stored to D_803ED390) */
+    s16 *s4; /* out: angle, or veh + 0x4C when veh_update_stand_on ran */
+    s32 fp;  /* out: the second tilt (also stored to gModelRot) */
 } Regs802A8768;
 
-/* func_802A9A60's pointer results, the asm's s1 and s3 (62740.c). */
+/* veh_reground's pointer results, the asm's s1 and s3 (62740.c). */
 typedef struct {
     s32 *s1; /* dst + 9 (past the three records) */
     s32 *s3; /* dst */
 } Out802A9A60;
 
-/* Registers func_802AA890 reads and writes besides its arguments (62740.c);
- * func_8029C454 and func_802ABBEC pass them through. */
+/* Registers mtx_chain_transform reads and writes besides its arguments (62740.c);
+ * veh_place_parts and veh_points_transform pass them through. */
 typedef struct {
     s32 v1; /* out: y' >> 11 */
     s32 a0; /* out: z' >> 11 */
@@ -60,7 +60,7 @@ typedef struct {
     s32 s0; /* in: only read when count == 0 */
 } MtxChainRegs;
 
-/* Registers func_802AAF64 (and func_802AAD0C / func_802AAE54 / func_802AB9A4)
+/* Registers ground_tri_interp (and veh_deck_to_local / veh_deck_to_world / veh_follow_heading)
  * read and write besides their arguments (62740.c). */
 typedef struct {
     s32 t3;  /* in: value u0 at corner 0; out: interpolated u */
@@ -73,7 +73,7 @@ typedef struct {
     f32 f26; /* out: (f32) z */
 } InterpRegs;
 
-/* Registers func_802ABD54 leaves for its asm callers: the last zone looked
+/* Registers veh_zone_alpha leaves for its asm callers: the last zone looked
  * at (62740.c). The per-frame vehicle updates take them in and out. */
 typedef struct {
     s32 t6; /* zone x */
@@ -88,8 +88,8 @@ typedef struct {
 /* Registers func_802AC0BC leaves for its asm callers (62740.c). */
 typedef struct {
     s32 a1; /* found flag */
-    s32 a3; /* func_802AA2E4's a3 (in/out) */
-    s32 t6; /* func_802AA2E4's t6 (in/out) */
+    s32 a3; /* ground_tri_height's a3 (in/out) */
+    s32 t6; /* ground_tri_height's t6 (in/out) */
     s32 t7; /* = fp: the list end */
     s32 fp;
     s32 s1; /* x0, y0, z0, x1 of the last triangle loaded (in/out) */
@@ -98,7 +98,7 @@ typedef struct {
     s32 s4;
 } TriScanRegs;
 
-/* Register outputs of func_8029C6E4 (56040.c); s0-s3 are in/out: left alone
+/* Register outputs of crane_find_test_part (56040.c); s0-s3 are in/out: left alone
  * unless the asm loads them. */
 typedef struct {
     /* 0x00 */ s32 s0; /* entry word 0 */
@@ -110,32 +110,32 @@ typedef struct {
     /* 0x18 */ s32 t7; /* last byte compared */
 } Unk8029C6E4Out;
 
-/* Register results of func_802A08E4 its asm callers read (5BF40.c). */
+/* Register results of tex_resolve_dl_impl its asm callers read (5BF40.c). */
 typedef struct {
-    /* 0x0 */ u8 * N64P *s2; /* &D_803B8D40 */
-    /* 0x4 */ u8 *s3;  /* the new D_803B8D40 */
+    /* 0x0 */ u8 * N64P *s2; /* &gTexCacheEnd */
+    /* 0x4 */ u8 *s3;  /* the new gTexCacheEnd */
     /* 0x8 */ u8 *s4;  /* in/out: last cache pair looked at (only set when a G_SETTIMG was seen) */
 } Unk802A08E4Regs;
 
 /* Register results of lvl_load_model its asm callers read (5CB60.c). */
 typedef struct {
     /* 0x0 */ u8 *s2; /* the loaded data (old heap pointer) */
-    /* 0x4 */ u8 *s4; /* func_802A08E4's s4 (in: the ROM start) */
+    /* 0x4 */ u8 *s4; /* tex_resolve_dl_impl's s4 (in: the ROM start) */
     /* 0x8 */ u8 *a1; /* the new heap end */
 } Out802A396C;
 
-/* func_802B2768's (6C5E0.c) and func_802D05D8 / func_802D22F4's (8AEE0.c)
+/* thunderfist_build_model's (6C5E0.c) and starski_build_model / cyclone_build_model's (8AEE0.c)
  * results besides t0, the return value. */
 typedef struct {
     s32 t2; /* end of the second point list */
-    s32 s1; /* func_802AA890's y' (MtxChainRegs.s1) */
+    s32 s1; /* mtx_chain_transform's y' (MtxChainRegs.s1) */
     s32 s4; /* the matrix base */
 } VehMtxOut;
 
 /* A vehicle's position, model and its two 0x800-byte matrix buffers taken
  * from the heap gHeapPtr (swapped every frame by gBufferIndex); the shared
  * spawn helpers of 6B4A0.c and 6E200.c.  (N64 memory: a view of the vehicle
- * blocks D_803EE38C / D_803EE768.) */
+ * blocks gSkyfallPos / gRamdozerPos.) */
 typedef struct {
     s32 x;
     s32 y;

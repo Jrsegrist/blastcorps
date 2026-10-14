@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """draftconv: draft a tools_port/conventions.txt line from the asm survey.
 
-    python3 tools_port/draftconv.py func_802ABCDC [func_... ...] [--json funcs.json]
+    python3 tools_port/draftconv.py math_dist3 [func_... ...] [--json funcs.json]
 
 Reads the survey's funcs.json (key `funcs`: inputs, nonabi_inputs,
 outputs_used, nonabi_outputs_definite/_conditional, clobbers_callee_saved,

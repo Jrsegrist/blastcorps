@@ -3,7 +3,7 @@
 
 The x86-64 ABI gives a global array of 16 bytes or more 16-byte alignment, and
 clang assumes it for extern arrays too; N64 data sits at N64 addresses with
-N64 alignment (D_8036B8C8 is only 8-aligned), so an aligned SSE access to it
+N64 alignment (gCamPathBasis is only 8-aligned), so an aligned SSE access to it
 faults.  The game code is built without the vectorizers (port64.mk); this
 disassembles the game objects and reports every legacy-SSE instruction that
 needs a 16-byte-aligned memory operand, unless the operand is on the stack

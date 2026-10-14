@@ -8,33 +8,33 @@
 #define LEGACY_gLevelData
 #define LEGACY_gLevelSegment8
 #define LEGACY_gVehiclesEnd
-#define LEGACY_D_80367734
-#define LEGACY_D_80367738
-#define LEGACY_D_8036BED8
-#define LEGACY_D_8036C794
+#define LEGACY_gMusicPlayer
+#define LEGACY_gSfxBank
+#define LEGACY_gRdus
+#define LEGACY_gMarkedTargetPts
 #define LEGACY_gRdpOutputBuffer
-#define LEGACY_D_803ED808
+#define LEGACY_gDriverPos
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_8020C070 ((MenuEntry *) D_8020C070)
-#define D_80218D30 ((u8 *) &D_80218D30)
+#define gYoshiFeItems ((MenuEntry *) gYoshiFeItems)
+#define gPakThread ((u8 *) &gPakThread)
 #define gLevelInfo ((LevelInfo *) gLevelInfo)
-#define D_802F5804 ((MenuItem *) D_802F5804)
-#define D_802F8BDC ((MenuPage *) D_802F8BDC)
+#define gYoshiGameItems ((MenuItem *) gYoshiGameItems)
+#define gYoshiWindows ((MenuPage *) gYoshiWindows)
 #define gScheduler ((u8 *) &gScheduler)
 #define gMainSchedClient ((u8 *) &gMainSchedClient)
-#define gVehicles ((Unk74 *) gVehicles)
+#define gVehicles ((VehRecord *) gVehicles)
 #define players ((Player *) players)
 #define pakBuffer ((u8 *) pakBuffer)
 #ifdef NON_MATCHING
 #define gHeapPtr (*(s32 *) &gHeapPtr)
 #define gLevelSegment8 (*(u32 *) &gLevelSegment8)
-#define gVehiclesEnd (*(Unk74 * N64P *) &gVehiclesEnd)
-#define D_8036BED8 (*(Node88 * N64P *) &D_8036BED8)
-#define D_8036C794 (*(Box * N64P *) &D_8036C794)
+#define gVehiclesEnd (*(VehRecord * N64P *) &gVehiclesEnd)
+#define gRdus (*(Node88 * N64P *) &gRdus)
+#define gMarkedTargetPts (*(Box * N64P *) &gMarkedTargetPts)
 #define gRdpOutputBuffer (*(s32 *) &gRdpOutputBuffer)
-#define D_803ED808 (*(s32 *) D_803ED808)
+#define gDriverPos (*(s32 *) gDriverPos)
 #endif
 /* end of views */
 
@@ -77,7 +77,7 @@ extern u8 D_80314D80[];
 extern u8 D_80314D98[];
 extern u32 D_803649F4;
 
-/* a drawable object, 0x74 bytes */
+/* A gVehicles record: one per loaded vehicle model (veh_add_record), 0x74 bytes */
 typedef struct {
     void * N64P unk0; /* segment 6 */
     void * N64P unk4; /* segment 7 */
@@ -94,17 +94,18 @@ typedef struct {
     s32 unk58;
     s32 type; /* the vehicle type (docs/blast_corps_vehicles.txt) */
     u32 alpha; /* env alpha */
-    u8 pad64[0xC];
-    s32 active;
-} Unk74;
+    u8 pad64[0xC]; /* x, y, z (veh_set_record) */
+    s32 onMovingPart; /* resting on a moving level part: veh_update_others re-grounds it */
+} VehRecord;
+STATIC_ASSERT_SIZE(VehRecord, 0x74);
 #ifndef NON_MATCHING
-extern Unk74 *gVehiclesEnd;
+extern VehRecord *gVehiclesEnd;
 #endif
 
 
 extern u8 D_00787F40[]; /* static code segment bounds (ROM) */
 extern u8 D_00788000[];
-extern u8 D_80364A70;
+extern u8 gPendingTune;
 extern u8 D_803FF600[];
 #ifndef NON_MATCHING
 extern s32 gHeapPtr; /* heap pointer */
@@ -141,9 +142,9 @@ typedef struct {
     u8 padF4[0xC];
 } Player; /* 0x100 bytes */
 extern u8 D_803649EC;
-extern s32 D_803156F0;
+extern s32 gEnterRefusedSound;
 #ifndef NON_MATCHING
-extern s32 D_80367738;
+extern s32 gSfxBank;
 #endif
 s32 veh_enter(s32);
 
@@ -187,7 +188,7 @@ extern u8 D_80364A4E;
 extern u8 D_803156F5;
 
 
-extern u16 D_802E8BF4[]; /* sprite ids (func_80272C5C) */
+extern u16 D_802E8BF4[]; /* sprite ids (spr_load) */
 extern s32 gCamEyeHeight;
 extern u8 D_80364434;
 extern f32 gCamTilt;
@@ -198,7 +199,7 @@ extern s32 D_80364A5C;
 extern u8 D_80364A6F;
 extern u8 D_80364A86;
 #ifndef NON_MATCHING
-extern s32 D_803ED808;
+extern s32 gDriverPos;
 #endif
 void lvl_load_file(s32, s32, s32 *);
 void lvl_alloc_dl_buffers(void);
@@ -208,12 +209,12 @@ extern s32 gLevelDl0[2];
 extern s32 gLevelDl1[2];
 extern s32 gLevelDl2[2];
 extern s32 gLevelDl3[2];
-extern s32 D_803156EC;
-u8 func_8024B4B8(void);
-s32 func_8024B418(u8);
+extern s32 gLeaveRefusedSound;
+u8 veh_exit_check(void);
+s32 veh_is_loaded(u8);
 
 extern u8 D_803153F0;
-extern s32 D_803156E8;
+extern s32 gCarrierAlarmSound;
 
 /* menu tables, 0x1C-byte entries */
 typedef struct {
@@ -341,8 +342,8 @@ extern u8 D_8039C4F8[];
 void hd_game_frame(void);
 void hd_init(void);
 void hd_check_stack(void);
-#define MODE_PAGE(m) D_802F8BDC[D_802F4868[lowest_set_bit(m)]]
-#define MODE_ENTRY(m) D_8020C070[MODE_PAGE(m).unkE + MODE_PAGE(m).unk10 - 2]
+#define MODE_PAGE(m) gYoshiWindows[D_802F4868[lowest_set_bit(m)]]
+#define MODE_ENTRY(m) gYoshiFeItems[MODE_PAGE(m).unkE + MODE_PAGE(m).unk10 - 2]
 
 extern s32 D_80364A78;
 extern u8 D_80364A7C;
@@ -350,7 +351,7 @@ extern s32 D_80364A80;
 extern f32 gCamZoom;
 extern u8 D_80364A85;
 #ifndef NON_MATCHING
-extern s32 D_80367734;
+extern s32 gMusicPlayer;
 #endif
 #define NUM_TEXTURE_DMAS 0x90
 void cull_start(Mtx *, Mtx *);
@@ -359,7 +360,7 @@ void veh_leave(void);
 void veh_update_others(void);
 void veh_update_player(void);
 void func_8024A92C(u32);
-void func_8024B5E8(void);
+void veh_update_riders(void);
 void func_8024A348(void);
 void func_8024ADD8(void);
 Gfx *hd_build_frame_dl(DynamicBuf *, s32 *);
@@ -417,101 +418,101 @@ void hd_main_thread(void *arg) {
 
     hd_init();
     while (1) {
-        D_80364A70 = 0;
+        gPendingTune = 0;
         do {
             debug_printf("game mode switch from %d to %d\n", lowest_set_bit(gGameMode), lowest_set_bit(gNextGameMode));
             gGameModeAfterNext = 0;
             switch (gNextGameMode) {
                 case 32:
                     hd_mode_setup();
-                    func_801EF380(2);
+                    fe_boot_screen_init(2);
                     break;
                 case 16:
                     hd_mode_setup();
-                    func_801EF380(1);
+                    fe_boot_screen_init(1);
                     start2 = D_803156C4;
                     while ((u32) (D_803156C4 - start2) < 15) {
                         PORT_SPIN();
                     }
                     break;
                 case 0x100000000:
-                    func_801F6F18();
-                    func_8026AF6C(0x8012);
-                    D_80364A70 = func_80261A44(gNextGameMode);
+                    fe_pak_list_files();
+                    yoshi_demand(0x8012);
+                    gPendingTune = music_tune_for_mode(gNextGameMode);
                     break;
                 case 0x80000000000:
                     hd_mode_setup();
-                    func_8025D184();
-                    func_80200714(1);
-                    osSendMesg(&D_80219EF8, (OSMesg) 0x01000001, 1);
-                    func_8026AF6C(0x8011);
+                    title_setup_logo();
+                    fe_bg_load(1);
+                    osSendMesg(&gPakRequestQueue, (OSMesg) 0x01000001, 1);
+                    yoshi_demand(0x8011);
                     break;
                 case 0x10000:
-                    D_80364A70 = func_80261A44(gNextGameMode);
-                    func_8025D184();
-                    func_801EA4B8();
-                    func_801E8DCC(playerNumber);
-                    func_8026AF6C(0x800A);
+                    gPendingTune = music_tune_for_mode(gNextGameMode);
+                    title_setup_logo();
+                    fe_player_build_load_menu();
+                    fe_player_ticker_reset(playerNumber);
+                    yoshi_demand(0x800A);
                     break;
                 case 0x10000000:
-                    osSendMesg(&D_80219EF8, (OSMesg) 0x01000001, 1);
-                    func_801E8DCC(4);
-                    func_8026AF6C(0x8011);
+                    osSendMesg(&gPakRequestQueue, (OSMesg) 0x01000001, 1);
+                    fe_player_ticker_reset(4);
+                    yoshi_demand(0x8011);
                     break;
                 case 0x20000000000000:
-                    func_802609D0();
+                    snd_stop_all();
                     hd_mode_setup();
-                    func_802A0700();
-                    func_8025D184();
-                    func_80200714(1);
-                    osSendMesg(&D_80219EF8, (OSMesg) 0x0100000F, 1);
+                    tex_load_table();
+                    title_setup_logo();
+                    fe_bg_load(1);
+                    osSendMesg(&gPakRequestQueue, (OSMesg) 0x0100000F, 1);
                     osRecvMesg(&pakToGameMessageQ, &msg, 1);
-                    if (msg != NULL || D_8039C541) {
-                        D_802E8BF8 = 1;
+                    if (msg != NULL || gIgnorePak) {
+                        gUseEeprom = 1;
                     } else {
-                        D_802E8BF8 = 0;
+                        gUseEeprom = 0;
                     }
-                    D_8039C541 = 0;
-                    if (!D_802E8BF8) {
-                        func_801E8C40(4);
+                    gIgnorePak = 0;
+                    if (!gUseEeprom) {
+                        fe_player_panel_init(4);
                         gGameModeAfterNext = 0x10000000;
                     } else {
                         playerNumber = 0;
                         D_80364AE9 = 0;
-                        playerNumberAtStart = 0, osSendMesg(&D_80219EF8, (OSMesg) 0x01000010, 1);
-                        osRecvMesg(&pakToGameMessageQ, &D_8039C4B4, 1);
-                        if (D_8039C4B4 == NULL) {
+                        playerNumberAtStart = 0, osSendMesg(&gPakRequestQueue, (OSMesg) 0x01000010, 1);
+                        osRecvMesg(&pakToGameMessageQ, &gEepromPresent, 1);
+                        if (gEepromPresent == NULL) {
                             debug_printf("NO EE PRESENT! - USING DUMMY EE\n");
                         }
-                        osSendMesg(&D_80219EF8, (OSMesg) 0x01000006, 1);
+                        osSendMesg(&gPakRequestQueue, (OSMesg) 0x01000006, 1);
                         osRecvMesg(&pakToGameMessageQ, &msg, 1);
                         if (msg == NULL) {
-                            msg = (void *) N64_IPTR(func_80201E80());
+                            msg = (void *) N64_IPTR(fe_pak_restore_from_eeprom());
                         }
                         if (msg != NULL) {
-                            func_801EA108(playerNumber, 1, 1);
-                            gGameModeAfterNext = 0x40000;
+                            fe_player_new_game(playerNumber, 1, 1);
+                            gGameModeAfterNext = MODE_NAME_ENTRY;
                         } else {
-                            D_80365060[playerNumber] = 1;
-                            gGameModeAfterNext = 0x4000;
+                            gSlotState[playerNumber] = 1;
+                            gGameModeAfterNext = MODE_WORLD;
                         }
                     }
                     break;
                 case 0x4000000000000:
                     hd_mode_setup();
-                    func_802A0700();
-                    func_8025D184();
-                    func_80200714(4);
-                    func_801E8C40(4);
-                    func_8026AF6C(0x8038);
+                    tex_load_table();
+                    title_setup_logo();
+                    fe_bg_load(4);
+                    fe_player_panel_init(4);
+                    yoshi_demand(0x8038);
                     break;
                 case 0x400000000000000:
                     D_802E8BEC = -1;
                     D_802E8BF0 = 1;
                     D_80365065 = 0;
                     gGameModeAfterNext = 2;
-                    D_8039C541 = 0;
-                    func_801ECE9C();
+                    gIgnorePak = 0;
+                    fe_player_update_level_kinds();
                     break;
                 case 2:
                     switch (D_802E8BEC) {
@@ -520,12 +521,12 @@ void hd_main_thread(void *arg) {
                         case 4:
                         case 6:
                             if (gGameMode == 2) {
-                                gNextGameMode = 0x1000000000000;
+                                gNextGameMode = MODE_ATTRACT_PICTURE;
                                 hd_mode_setup();
-                                func_80200714(7);
-                                func_80201240(D_80364AC4 & 3);
-                                func_8026AF6C(0x8035);
-                                func_801E8C40(D_80364AC4 & 3);
+                                fe_bg_load(7);
+                                fe_attract_pic_load(D_80364AC4 & 3);
+                                yoshi_demand(0x8035);
+                                fe_player_panel_init(D_80364AC4 & 3);
                                 D_80364AC4++;
                                 break;
                             }
@@ -537,13 +538,13 @@ void hd_main_thread(void *arg) {
                         } else {
                             D_802E8BF0 ^= 1;
                         }
-                        D_8039CAA0 = 0;
+                        gPadDisplayAlpha = 0;
                         hd_mode_setup();
-                        func_8025D184();
-                        func_80295E50();
+                        title_setup_logo();
+                        hud_load_pad_image();
                         rec_start_playback(D_802E8BEC, &levelno);
                         if (D_802E8BEC == 0) {
-                            func_8029A130();
+                            hud_load_demo_banner();
                         }
                         hd_setup_level(0);
                         break;
@@ -557,12 +558,12 @@ void hd_main_thread(void *arg) {
                     func_8028B3E0();
                     debug_printf("World screen centred on level %d\n", levelno);
                     playerNumber = playerNumberAtStart;
-                    func_801ECE9C();
+                    fe_player_update_level_kinds();
                     if (!D_80365065) {
                         D_80365065 = 1;
                         D_80364A87 = 0;
                         D_803643D5 = 0;
-                        func_801FE018(8);
+                        fe_open_reachable_levels(8);
                         levelno = players[playerNumber].pad0[8];
                         debug_printf("going to level %d\n", levelno);
                     }
@@ -573,43 +574,43 @@ void hd_main_thread(void *arg) {
                         }
                     }
                     hd_mode_setup();
-                    func_801ECC8C();
+                    fe_player_save_pending();
                     osViBlack(1);
-                    func_802A0700();
-                    func_801F8530(levelno);
+                    tex_load_table();
+                    fe_globe_init(levelno);
                     break;
                 case 0x800000000000:
-                    D_80364A70 = func_80261A44(gNextGameMode);
+                    gPendingTune = music_tune_for_mode(gNextGameMode);
                     break;
                 case 0x400000000:
-                    func_8026AF6C(0x8013);
+                    yoshi_demand(0x8013);
                     break;
                 case 0x800000000000000:
                     hd_mode_setup();
-                    func_80200714(1);
-                    func_8025D184();
-                    func_8026AF6C(0x8059);
+                    fe_bg_load(1);
+                    title_setup_logo();
+                    yoshi_demand(0x8059);
                     break;
                 case 0x40000000000:
                     hd_mode_setup();
-                    func_80200714(3);
-                    func_801E8C40(playerNumber);
-                    func_8025D184();
-                    D_8021A830 = gGameMode;
-                    func_8026AF6C(0x8016);
+                    fe_bg_load(3);
+                    fe_player_panel_init(playerNumber);
+                    title_setup_logo();
+                    gBestTimesReturnMode = gGameMode;
+                    yoshi_demand(0x8016);
                     break;
                 case 0x200000000000000:
-                    func_801E8EB8(playerNumber, 1);
-                    func_801F8228();
-                    func_8026AF6C(0x8016);
-                    gNextGameMode = 0x40000000000;
+                    fe_player_ticker_set_text(playerNumber, 1);
+                    fe_best_color_items();
+                    yoshi_demand(0x8016);
+                    gNextGameMode = MODE_BEST_TIMES;
                     break;
                 case 0x2000:
                     hd_mode_setup();
                     if (gLevelInfo[levelno].unk0 != 1) {
                         hd_setup_level(0);
-                        func_80285A78((u8 *) &nss, (u8 *) &D_8036EA60);
-                        func_80285A78((u8 *) &nss, (u8 *) &D_8036EA80);
+                        stats_copy_result((u8 *) &nss, (u8 *) &D_8036EA60);
+                        stats_copy_result((u8 *) &nss, (u8 *) &D_8036EA80);
                         gPauseRequest = 1;
                     } else {
                         if ((players[playerNumber].unk18[levelno] > 0 && players[playerNumber].unk18[levelno] < 6) ? 1 : 0) {
@@ -617,16 +618,16 @@ void hd_main_thread(void *arg) {
                         } else {
                             hd_setup_level(0);
                         }
-                        func_80285A78((u8 *) &nss, (u8 *) &D_8036EA60);
-                        func_80285A78((u8 *) &nss, (u8 *) &D_8036EA80);
+                        stats_copy_result((u8 *) &nss, (u8 *) &D_8036EA60);
+                        stats_copy_result((u8 *) &nss, (u8 *) &D_8036EA80);
                         gGameModeAfterNext = 4;
                     }
                     break;
                 case 4:
                     switch (gGameMode) {
                         case 0x1000000000:
-                            func_8026101C();
-                            func_80261E9C(gNextGameMode);
+                            music_pop_tune();
+                            snd_set_mode_slot_volumes(gNextGameMode);
                             gUnpauseRequest = 1;
                             break;
                         case 0x100:
@@ -634,16 +635,16 @@ void hd_main_thread(void *arg) {
                             break;
                         case 0x2000:
                             if (gLevelInfo[levelno].unk0 != 1) {
-                                D_80364A70 = func_80261A44(gNextGameMode);
+                                gPendingTune = music_tune_for_mode(gNextGameMode);
                             }
                             gUnpauseRequest = 1;
-                            gUnpauseRequest &= !func_8026AD30(0x52);
+                            gUnpauseRequest &= !yoshi_show_hint(0x52);
                             /* one line: the line break changes as1's schedule */
-                            gUnpauseRequest &= !func_8026AD30(0x56); if ((((players[playerNumber].unk18[levelno] > 0 && players[playerNumber].unk18[levelno] < 6) ? 1 : 0)) &&
+                            gUnpauseRequest &= !yoshi_show_hint(0x56); if ((((players[playerNumber].unk18[levelno] > 0 && players[playerNumber].unk18[levelno] < 6) ? 1 : 0)) &&
                                 gLevelInfo[levelno].unk0 == 1) {
-                                gUnpauseRequest &= !func_8026AD30(0x55);
+                                gUnpauseRequest &= !yoshi_show_hint(0x55);
                             } else {
-                                gUnpauseRequest &= !func_8026AD30(0x57);
+                                gUnpauseRequest &= !yoshi_show_hint(0x57);
                             }
                             gPauseRequest = !gUnpauseRequest;
                             debug_printf("Unpause at start = %d\n", gUnpauseRequest);
@@ -673,49 +674,49 @@ void hd_main_thread(void *arg) {
                     switch (gGameMode) {
                         case 0x100000000000:
                             func_8028B3E0();
-                            D_80364A70 = func_80261A44(gNextGameMode);
+                            gPendingTune = music_tune_for_mode(gNextGameMode);
                         case 0x4000:
-                            newPlayer = func_80285814();
+                            newPlayer = stats_save_status();
                             break;
                         case 0x40000000000:
                         case 0x80000000000000:
                         case 0x100000000000000:
                             if (playerNumber != D_80364AE9) {
                                 D_80364AE9 = playerNumber, debug_printf("switching to new player ...........\n");
-                                func_80285814();
+                                stats_save_status();
                             }
                             break;
                     }
                     hd_mode_setup();
                     if (newPlayer) {
-                        osSendMesg(&D_80219EF8, (OSMesg) ((levelno << 8) | 0xD | (playerNumber << 16)), 1);
+                        osSendMesg(&gPakRequestQueue, (OSMesg) ((levelno << 8) | 0xD | (playerNumber << 16)), 1);
                     }
                     MODE_ENTRY(gLevelKind).unk0 &= ~1;
                     MODE_ENTRY(gLevelKind).unk0 |= 0x800;
-                    func_8026B8F8();
-                    func_8026AF6C(D_802F4868[lowest_set_bit(gLevelKind)] | 0x8000);
+                    yoshi_set_target_icons();
+                    yoshi_demand(D_802F4868[lowest_set_bit(gLevelKind)] | 0x8000);
                     MODE_PAGE(gLevelKind).unk18 = MODE_PAGE(gLevelKind).unkE + MODE_PAGE(gLevelKind).unk10 - 3;
                     MODE_PAGE(gLevelKind).unk8 &= ~8;
-                    func_80285A78((u8 *) &nss, (u8 *) &D_8036EA60);
-                    D_80315438 = func_801EE800(&D_80364A60, 1, 0), func_801E8C40(playerNumber);
-                    func_801EC30C(D_80315438);
-                    func_801EC288(D_80315438);
-                    func_80200714(1);
-                    D_80364A71 = func_801EF1E0();
+                    stats_copy_result((u8 *) &nss, (u8 *) &D_8036EA60);
+                    D_80315438 = fe_stats_grade_level(&D_80364A60, 1, 0), fe_player_panel_init(playerNumber);
+                    fe_player_medals_init(D_80315438);
+                    fe_player_medals_show_quiet(D_80315438);
+                    fe_bg_load(1);
+                    D_80364A71 = fe_stats_count_unlocks();
                     if (D_80364A71 != -1) {
-                        func_801F55D8();
+                        fe_comm_point_load();
                     }
                     break;
                 case 0x800:
                     hd_mode_setup();
-                    if (gGameMode == 0x4000) {
+                    if (gGameMode == MODE_WORLD) {
                         osRecvMesg(&pakToGameMessageQ, NULL, 1);
                     }
                     osViBlack(1);
                     hd_setup_level(0);
-                    func_802661EC();
+                    chopper_fly_to_carrier();
                     if (levelno == 0x32) {
-                        func_8026AF6C(0x8024);
+                        yoshi_demand(0x8024);
                     }
                     break;
                 case 0x40000000:
@@ -724,14 +725,14 @@ void hd_main_thread(void *arg) {
                     while ((u32) (D_803156C4 - start) < 15) {
                         PORT_SPIN();
                     }
-                    func_801ED790();
-                    func_80200714(3);
-                    D_80364A71 = func_801EF1E0();
+                    fe_promo_init();
+                    fe_bg_load(3);
+                    D_80364A71 = fe_stats_count_unlocks();
                     if (D_80364A71 != -1) {
-                        func_801F55D8();
+                        fe_comm_point_load();
                     }
-                    func_801E8C40(playerNumber);
-                    func_801EC30C(D_80315438);
+                    fe_player_panel_init(playerNumber);
+                    fe_player_medals_init(D_80315438);
                     break;
                 case 0x8000000:
                     switch (gGameMode) {
@@ -739,19 +740,19 @@ void hd_main_thread(void *arg) {
                         case 0x400:
                         case 0x20000000:
                             hd_mode_setup();
-                            func_80200714(1);
-                            D_80364A71 = func_801EF1E0();
+                            fe_bg_load(1);
+                            D_80364A71 = fe_stats_count_unlocks();
                             if (D_80364A71 != -1) {
-                                func_801F55D8();
+                                fe_comm_point_load();
                             }
-                            func_801E8C40(playerNumber);
-                            func_80285A78((u8 *) &D_8036EA90, (u8 *) &nss);
-                            D_80315438 = func_801EE800(&D_80364A60, 1, 0);
-                            func_801EC30C(D_80315438);
-                            func_801EC288(D_80315438);
+                            fe_player_panel_init(playerNumber);
+                            stats_copy_result((u8 *) &D_8036EA90, (u8 *) &nss);
+                            D_80315438 = fe_stats_grade_level(&D_80364A60, 1, 0);
+                            fe_player_medals_init(D_80315438);
+                            fe_player_medals_show_quiet(D_80315438);
                             break;
                         case 0x40000000:
-                            D_80364A70 = func_80261A44(gNextGameMode);
+                            gPendingTune = music_tune_for_mode(gNextGameMode);
                             break;
                         case 0x40000000000:
                         case 0x80000000000000:
@@ -760,24 +761,24 @@ void hd_main_thread(void *arg) {
                                 debug_printf("switching to new player ...........\n");
                                 D_80364AE9 = playerNumber;
                                 D_803643D5 = 0;
-                                func_80285814();
+                                stats_save_status();
                             }
                             hd_mode_setup();
-                            D_80364A71 = func_801EF1E0();
+                            D_80364A71 = fe_stats_count_unlocks();
                             if (D_80364A71 != -1) {
-                                func_801F55D8();
+                                fe_comm_point_load();
                             }
-                            func_801E8C40(playerNumber);
-                            D_80315438 = func_801EE800(&D_80364A60, 1, 0);
-                            func_80200714(1);
-                            func_801EC30C(D_80315438);
-                            func_801EC288(D_80315438);
+                            fe_player_panel_init(playerNumber);
+                            D_80315438 = fe_stats_grade_level(&D_80364A60, 1, 0);
+                            fe_bg_load(1);
+                            fe_player_medals_init(D_80315438);
+                            fe_player_medals_show_quiet(D_80315438);
                             break;
                         default:
                             MS_ASSERT(!saveIt[playerNumber] || saveIt[playerNumber]==levelno+1, 488);
                             saveIt[playerNumber] = levelno + 1;
                             if (gLevelDone) {
-                                func_802C1DD0(gLevelInfo[levelno].unk0 == 0x20 || gLevelInfo[levelno].unk0 == 0x80);
+                                obj_tally(gLevelInfo[levelno].unk0 == 0x20 || gLevelInfo[levelno].unk0 == 0x80);
                             }
                             D_803643D5 = !((players[playerNumber].unk18[levelno] > 0 && players[playerNumber].unk18[levelno] < 6) ? 1 : 0);
                             if (playerNumber == playerNumberAtStart) {
@@ -788,20 +789,20 @@ void hd_main_thread(void *arg) {
                                     D_8039C4F8[i] = pakBuffer[i];
                                 }
                             }
-                            func_802CF5B0();
-                            func_80297960();
+                            commpt_save_flags();
+                            academy_save_markers();
                             if (gLevelKind == 1) {
                                 MS_ASSERT(record_status(pakBuffer)<=LEVEL_SAVE_SIZE-4, 513);
                                 MS_ASSERT(!saveLevel || saveLevel==levelno+1, 515);
                                 saveLevel = levelno + 1;
-                                if ((u32) (func_8028604C(D_80364A5C) + nss.tc) >= 60000) {
+                                if ((u32) (stats_frames_to_tenths(D_80364A5C) + nss.tc) >= 60000) {
                                     nss.tc = 59999;
                                 } else {
-                                    nss.tc = func_8028604C(D_80364A5C) + nss.tc;
+                                    nss.tc = stats_frames_to_tenths(D_80364A5C) + nss.tc;
                                 }
                             } else if (gLevelDone) {
-                                func_80264AEC();
-                                nss.tc = gLevelInfo[levelno].unk36 - D_80367BF6;
+                                hud_race_time_left();
+                                nss.tc = gLevelInfo[levelno].unk36 - gTimeLeft;
                             } else {
                                 nss.tc = 0xFFFF;
                             }
@@ -815,23 +816,23 @@ void hd_main_thread(void *arg) {
                                 D_80365066 = 0;
                             }
                             if (D_803643D5) {
-                                func_80285A78((u8 *) &nss, (u8 *) &D_8036EA60);
+                                stats_copy_result((u8 *) &nss, (u8 *) &D_8036EA60);
                             } else {
-                                func_80285A78((u8 *) &D_8036EA80, (u8 *) &D_8036EA60);
+                                stats_copy_result((u8 *) &D_8036EA80, (u8 *) &D_8036EA60);
                             }
-                            D_80315438 = func_801EE800(&D_80364A60, 1, 1), func_80285A78((u8 *) &nss, (u8 *) &D_8036EA90);
+                            D_80315438 = fe_stats_grade_level(&D_80364A60, 1, 1), stats_copy_result((u8 *) &nss, (u8 *) &D_8036EA90);
                             if (D_80364A60) {
-                                gGameModeAfterNext = 0x40000000;
+                                gGameModeAfterNext = MODE_PROMOTION;
                                 D_80364A64 = 0xDC;
-                                D_80364A70 = 0;
+                                gPendingTune = 0;
                             } else {
-                                func_801EC30C(D_80315438);
-                                func_80200714(1);
-                                D_80364A71 = func_801EF1E0();
+                                fe_player_medals_init(D_80315438);
+                                fe_bg_load(1);
+                                D_80364A71 = fe_stats_count_unlocks();
                                 if (D_80364A71 != -1) {
-                                    func_801F55D8();
+                                    fe_comm_point_load();
                                 }
-                                func_801E8C40(playerNumber);
+                                fe_player_panel_init(playerNumber);
                             }
                             MODE_ENTRY(gLevelKind).unk0 |= 1;
                             MODE_ENTRY(gLevelKind).unk0 &= ~0x800;
@@ -843,28 +844,28 @@ void hd_main_thread(void *arg) {
                         MODE_PAGE(gLevelKind).unk18 = MODE_PAGE(gLevelKind).unkE + MODE_PAGE(gLevelKind).unk10 - 3;
                     }
                     MODE_PAGE(gLevelKind).unk8 |= 8;
-                    func_8026B8F8();
-                    if (D_802E8BF8) {
-                        D_8020C070[29].unk0 &= ~1;
+                    yoshi_set_target_icons();
+                    if (gUseEeprom) {
+                        gYoshiFeItems[29].unk0 &= ~1;
                     }
-                    func_8026AF6C(D_802F4868[lowest_set_bit(gLevelKind)] | 0x8000);
+                    yoshi_demand(D_802F4868[lowest_set_bit(gLevelKind)] | 0x8000);
                     break;
                 case 0x40:
                     if (gGameMode & 0x04000200) {
                         func_8028B3E0();
-                        nss.tc = func_8028604C(D_80364A5C), func_80285A78((u8 *) &nss, (u8 *) &D_8036EA60);
-                        func_801EE800(&D_80364A60, 0, 1);
+                        nss.tc = stats_frames_to_tenths(D_80364A5C), stats_copy_result((u8 *) &nss, (u8 *) &D_8036EA60);
+                        fe_stats_grade_level(&D_80364A60, 0, 1);
                     }
-                    D_802F5804[24].unk0 |= 1;
-                    D_802F5804[24].unk0 &= ~0x800;
-                    D_802F5804[23].unk0 |= 1;
-                    D_802F5804[23].unk0 &= ~0x800;
-                    D_802F5804[17].unk0 &= ~1;
-                    D_802F5804[17].unk0 |= 0x800;
+                    gYoshiGameItems[24].unk0 |= 1;
+                    gYoshiGameItems[24].unk0 &= ~0x800;
+                    gYoshiGameItems[23].unk0 |= 1;
+                    gYoshiGameItems[23].unk0 &= ~0x800;
+                    gYoshiGameItems[17].unk0 &= ~1;
+                    gYoshiGameItems[17].unk0 |= 0x800;
                     if ((players[playerNumber].unk18[levelno] > 0 && players[playerNumber].unk18[levelno] < 6) ? 1 : 0) {
-                        D_802F8BDC[6].unk18 = 0x18, D_802F8BDC[7].unk18 = 0x22;
+                        gYoshiWindows[6].unk18 = 0x18, gYoshiWindows[7].unk18 = 0x22;
                     } else {
-                        D_802F8BDC[6].unk18 = 0x17, D_802F8BDC[7].unk18 = 0x21;
+                        gYoshiWindows[6].unk18 = 0x17, gYoshiWindows[7].unk18 = 0x21;
                     }
                     D_80364A50 = 0;
                     D_80364A54 = PORT_GVI("hd_main_thread:4A54", D_803156C4);
@@ -876,49 +877,49 @@ void hd_main_thread(void *arg) {
                     } else {
                         hd_setup_level(0);
                     }
-                    func_8026B8F8();
+                    yoshi_set_target_icons();
                     func_8025BB50();
                     break;
                 case 0x20000000:
                     hd_mode_setup();
-                    if (gGameMode == 0x4000) {
+                    if (gGameMode == MODE_WORLD) {
                         osRecvMesg(&pakToGameMessageQ, NULL, 1);
                     }
                     osViBlack(1);
-                    func_802A0700();
-                    if (func_801E7000()) {
-                        func_80200714(2);
+                    tex_load_table();
+                    if (fe_digger_init()) {
+                        fe_bg_load(2);
                     } else {
-                        gGameModeAfterNext = 0x2000;
+                        gGameModeAfterNext = MODE_LEVEL_START;
                     }
                     break;
                 case 0x40000:
-                    osSendMesg(&D_80219EF8, (OSMesg) ((playerNumber << 16) | 0x14 | 0x01000000), 1);
+                    osSendMesg(&gPakRequestQueue, (OSMesg) ((playerNumber << 16) | 0x14 | 0x01000000), 1);
                     osRecvMesg(&pakToGameMessageQ, NULL, 1);
-                    func_801EA93C("ENTER NAME!", D_803047A0, 7, 0x1E, (char *) &players[playerNumber]);
-                    func_8026AF6C(0x800B);
-                    func_8025D184();
-                    D_80364A70 = func_80261A44(gNextGameMode);
+                    fe_player_name_entry_open("ENTER NAME!", D_803047A0, 7, 0x1E, (char *) &players[playerNumber]);
+                    yoshi_demand(0x800B);
+                    title_setup_logo();
+                    gPendingTune = music_tune_for_mode(gNextGameMode);
                     break;
                 case 0x4000000000000000:
                     hd_mode_setup();
-                    func_80200714(1);
-                    D_8020C070[9].unkC = "QUIT GAME!", D_8020C070[9].unk10 = D_803047CC, D_8020C070[9].unk6 = D_8020C070[9].unk8 = 22;
-                    func_8026AF6C(0x800C);
+                    fe_bg_load(1);
+                    gYoshiFeItems[9].unkC = "QUIT GAME!", gYoshiFeItems[9].unk10 = D_803047CC, gYoshiFeItems[9].unk6 = gYoshiFeItems[9].unk8 = 22;
+                    yoshi_demand(0x800C);
                     break;
                 case 0x1000000000:
-                    func_80260EE0(0x18);
-                    func_80260B40(0, 0);
+                    music_push_tune(0x18);
+                    snd_set_slot_volume(0, 0);
                     func_80297ECC();
-                    func_8026AF6C(0x8015);
+                    yoshi_demand(0x8015);
                     gPauseRequest = 1;
                     break;
                 case 0x100000000000:
-                    func_80299C0C();
-                    D_80364A70 = func_80261A44(gNextGameMode);
+                    seq_enter_start_level();
+                    gPendingTune = music_tune_for_mode(gNextGameMode);
                     hd_mode_setup();
-                    func_80299C20();
-                    if (gGameMode == 0x4000 || levelno == 0x2F) {
+                    seq_start_level();
+                    if (gGameMode == MODE_WORLD || levelno == 0x2F) {
                         osRecvMesg(&pakToGameMessageQ, NULL, 1);
                     }
                     osViBlack(1);
@@ -926,43 +927,43 @@ void hd_main_thread(void *arg) {
                     break;
                 case 0x40000000000000:
                     hd_mode_setup();
-                    osSendMesg(&D_80219EF8, (OSMesg) 0x01000010, 1);
-                    osRecvMesg(&pakToGameMessageQ, &D_8039C4B4, 1);
-                    if (D_8039C4B4 != NULL) {
-                        func_8025D184();
-                        func_80200714(1);
-                        D_8020C070[9].unkC = "ERASE SAVED GAME!", D_8020C070[9].unk10 = D_803047B4, D_8020C070[9].unk6 = D_8020C070[9].unk8 = 20;
-                        func_8026AF6C(0x800C);
+                    osSendMesg(&gPakRequestQueue, (OSMesg) 0x01000010, 1);
+                    osRecvMesg(&pakToGameMessageQ, &gEepromPresent, 1);
+                    if (gEepromPresent != NULL) {
+                        title_setup_logo();
+                        fe_bg_load(1);
+                        gYoshiFeItems[9].unkC = "ERASE SAVED GAME!", gYoshiFeItems[9].unk10 = D_803047B4, gYoshiFeItems[9].unk6 = gYoshiFeItems[9].unk8 = 20;
+                        yoshi_demand(0x800C);
                     } else {
-                        gGameModeAfterNext = 0x10;
+                        gGameModeAfterNext = MODE_BOOT_SCREEN1;
                     }
                     break;
                 case 0x100000000000000:
-                    D_8020C070[9].unkC = "BECOME GUEST PLAYER:", D_8020C070[9].unk10 = D_803047DC, D_8020C070[9].unk6 = D_8020C070[9].unk8 = 20;
-                    func_8026AF6C(0x800C);
+                    gYoshiFeItems[9].unkC = "BECOME GUEST PLAYER:", gYoshiFeItems[9].unk10 = D_803047DC, gYoshiFeItems[9].unk6 = gYoshiFeItems[9].unk8 = 20;
+                    yoshi_demand(0x800C);
                     break;
                 case 0x400000:
-                    func_801EA6E8();
-                    func_8026AF6C(0x800A);
+                    fe_player_build_erase_menu();
+                    yoshi_demand(0x800A);
                     break;
                 case 8:
                     gPauseRequest = 1;
-                    func_80260E80();
+                    music_play_clear_tune();
                     break;
             }
             gPrevGameMode = gGameMode;
             gGameMode = gNextGameMode;
             gNextGameMode = gGameModeAfterNext;
         } while (gNextGameMode != 0);
-        if (D_80364A70) {
-            func_80261FB0(D_80364A70);
+        if (gPendingTune) {
+            music_start_tune(gPendingTune);
         }
         while (gNextGameMode == 0) {
             gFrameStartTime = osGetTime();
-            func_8025B2B8();
-            if (gGameMode & 0x4000) {
+            font_age_cache();
+            if (gGameMode & MODE_WORLD) {
                 gFrameStartLag = (osGetTime() - gLastRetraceTime) / 7825;
-                func_801F8980();
+                fe_globe_frame();
                 gFrameCpuTime = (osGetTime() - gFrameStartTime) / 7825;
                 if (gRspSlotBusy[2]) {
                     rsp_wait_task(0x4D2);
@@ -973,14 +974,14 @@ void hd_main_thread(void *arg) {
                 rsp_wait_task(0x4D2);
             } else if (gGameMode & 0xC9FD8FE7DBFF8080) {
                 gFrameStartLag = (osGetTime() - gLastRetraceTime) / 7825;
-                func_801FE990();
+                fe_back_loop();
                 gFrameCpuTime = (osGetTime() - gFrameStartTime) / 7825;
                 rsp_wait_task(0x4D2);
-            } else if (gGameMode & 0x20000000) {
-                func_801E7598();
+            } else if (gGameMode & MODE_VEHICLE_SELECT) {
+                fe_digger_frame();
                 rsp_wait_task(0x4D2);
-            } else if (gGameMode & 0x30) {
-                func_801EF4AC();
+            } else if (gGameMode & (MODE_BOOT_SCREEN1 | MODE_BOOT_SCREEN2)) {
+                fe_boot_screen_frame();
                 rsp_wait_task(0x4D2);
             } else {
                 gFrameStartLag = (osGetTime() - gLastRetraceTime) / 7825;
@@ -1001,23 +1002,23 @@ void hd_main_thread(void *arg) {
                 gUnpausedFrames++;
             }
         }
-        if ((gGameMode & 0x104) && (gCarrierHit || gLevelDone)) {
+        if ((gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) && (gCarrierHit || gLevelDone)) {
             rec_record(0, 0, 0);
         }
         HD_ASSERT(!areWeFading(), 627);
         switch (gNextGameMode) {
             case 0x400000000000:
-                func_80299E10(1);
+                seq_finish(1);
                 break;
             case 0x200000000000:
-                func_80299E10(0);
+                seq_finish(0);
                 break;
             case 0x2000000000000:
-                func_80286330();
+                academy_next_mode();
                 break;
         }
-        if (playerNumber == playerNumberAtStart && gNextGameMode == 0x4000 && func_8028653C()) {
-            func_802860F0();
+        if (playerNumber == playerNumberAtStart && gNextGameMode == MODE_WORLD && academy_advance_state()) {
+            academy_announce_state();
         }
     }
 }
@@ -1038,7 +1039,7 @@ void hd_game_frame(void) {
     s32 hi;
     s16 alpha;
 
-    if (gDebugCheats && (gContButtons & 1) && !(gContPrevButtons & 1) && (gGameMode & 0x104)) {
+    if (gDebugCheats && (gContButtons & 1) && !(gContPrevButtons & 1) && (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW))) {
         gLevelDoneRequest = 1;
         cmo_hit_request = 0;
         if (gContButtons & 8) {
@@ -1048,12 +1049,12 @@ void hd_game_frame(void) {
             }
         }
         if ((gContButtons & 0x2000) && gLevelDoneRequest) {
-            D_803F7688 = 1;
-            D_8036EA7C = D_8036EB90;
+            gCheatAllDestroyed = 1;
+            D_8036EA7C = gRduCount;
             D_8036EA79 = D_8036EB93;
             D_80365066 = 1;
-            func_80285AB0(2);
-            func_80285AB0(1);
+            stats_set_level_flag(2);
+            stats_set_level_flag(1);
         }
         if ((LEVEL_DONE(levelno)) && gLevelKind == 1 && gLevelDoneRequest) {
             gPauseRequest = 1;
@@ -1062,7 +1063,7 @@ void hd_game_frame(void) {
     }
     nextdma = 0;
     no_palette_dmas = 0;
-    D_803A7426 = 0;
+    gCarrierContact = 0;
     if (gFramesInMode) {
         if (gBufferIndex == 0) {
             if (gFramesInMode >= 6) {
@@ -1087,7 +1088,7 @@ void hd_game_frame(void) {
                     j++;
                 }
             }
-            func_80258544(gVehicleShadows[j].unk0, gVehicleShadows[j].unk1004, gVehicleShadows[j].unk1010, gVehicleShadows[j].unk100C,
+            veh_render_shadow_tex(gVehicleShadows[j].unk0, gVehicleShadows[j].unk1004, gVehicleShadows[j].unk1010, gVehicleShadows[j].unk100C,
                           gVehicleShadows[j].unk1000, (Gfx *) N64_IPTR(((gVehicles + i)->unk54)), (gVehicles + i)->unk0, (gVehicles + i)->unk4);
         }
     }
@@ -1101,16 +1102,16 @@ void hd_game_frame(void) {
         }
     }
     if (gBufferIndex == 0) {
-        func_80279778(gPlayerX, gPlayerY, gPlayerZ, gCamEyeX, gCamEyeY, gCamEyeZ, (void *) N64_IPTR((gVehicles[i].unk58)),
+        mb_render_view(gPlayerX, gPlayerY, gPlayerZ, gCamEyeX, gCamEyeY, gCamEyeZ, (void *) N64_IPTR((gVehicles[i].unk58)),
                       gVehicles[i].unk0, gVehicles[i].unk8, gVehicles[i].alpha);
     } else {
-        func_80279778(gPlayerX, gPlayerY, gPlayerZ, gCamEyeX, gCamEyeY, gCamEyeZ, (void *) N64_IPTR((gVehicles[i].unk58)),
+        mb_render_view(gPlayerX, gPlayerY, gPlayerZ, gCamEyeX, gCamEyeY, gCamEyeZ, (void *) N64_IPTR((gVehicles[i].unk58)),
                       gVehicles[i].unk0, gVehicles[i].unk4, gVehicles[i].alpha);
     }
     D_803649D8 = osGetTime();
     cont_start_read();
     rsp_send_task((u64 *) (gDynamicBufs[gBufferIndex].dl), gFrameDlLen, 3, 1, 0x4D2, 1);
-    func_802A5720();
+    tex_reset_decode_queue();
     gBufferIndex ^= 1;
     switch (gPaused) {
         case 0:
@@ -1119,13 +1120,13 @@ void hd_game_frame(void) {
                 gUnpauseRequest = 0;
                 gPauseRequest = 0;
                 D_803156F4 = gBufferIndex ^ 1;
-                if (gGameMode & 0x104) {
+                if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
                     if (!D_8036EB99) {
-                        func_80260B40(0, 0);
+                        snd_set_slot_volume(0, 0);
                     }
-                    func_80261570(0.5f);
+                    music_fade_to(0.5f);
                     if (gGameMode == 4 && (gHaveCarrier || gHaveShuttle) && currentYoshiWindow == 0) {
-                        gNextGameMode = 0x100;
+                        gNextGameMode = MODE_MAP_VIEW;
                         cull_restart(10);
                         D_80364A78 = 0;
                     }
@@ -1137,14 +1138,14 @@ void hd_game_frame(void) {
                 gPauseRequest = 0;
                 gUnpauseRequest = 0;
                 gPaused = 0;
-                if (gGameMode & 0x104) {
+                if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
                     if (D_80358064) {
                         debug_printf("LOCKING KEYS!\n");
                         gSwallowB = 1;
                     }
-                    func_80261E9C(gGameMode);
-                    func_80261570(1.0f);
-                    if (gGameMode == 0x100 && (gHaveCarrier || gHaveShuttle)) {
+                    snd_set_mode_slot_volumes(gGameMode);
+                    music_fade_to(1.0f);
+                    if (gGameMode == MODE_MAP_VIEW && (gHaveCarrier || gHaveShuttle)) {
                         gNextGameMode = 4;
                         cull_restart(10);
                     }
@@ -1160,27 +1161,27 @@ void hd_game_frame(void) {
     } else {
         D_803156F5 = gBufferIndex;
     }
-    if (gHaveCarrier && (gGameMode & 0x104)) {
-        func_802BA148();
+    if (gHaveCarrier && (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW))) {
+        carrier_update_sound();
     }
     if (gHaveChopper && (gGameMode & 0x1905)) {
-        func_802B8794();
+        chopper_update_sound();
     }
-    func_802683E0();
+    util_check_board_zone();
     D_803649EE = 0;
     if (gCurVehicle == 0 && !(gGameMode & 0x1801)) {
         veh_apply_switch();
     }
     cont_update();
-    if (gGameMode & 0x104) {
+    if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
         zoom = 0;
         if ((gContButtons & 4) && !(gContButtons & 8)) {
             if (gCamZoom < 1.5 && gGameMode == 4) {
                 zoom = 2;
                 if (!(gContPrevButtons & 4)) {
-                    func_80260650(D_80367738, 0xDC, NULL);
+                    snd_play(gSfxBank, 0xDC, NULL);
                 }
-            } else if (!(gContPrevButtons & 4) && gGameMode != 0x100) {
+            } else if (!(gContPrevButtons & 4) && gGameMode != MODE_MAP_VIEW) {
                 zoom = 3;
             }
         }
@@ -1189,9 +1190,9 @@ void hd_game_frame(void) {
                 if (gCamZoom > 1.0 && gGameMode == 4 && D_80364A7C == 0) {
                     zoom = 1;
                     if (!(gContPrevButtons & 8)) {
-                        func_80260650(D_80367738, 0xDD, NULL);
+                        snd_play(gSfxBank, 0xDD, NULL);
                     }
-                } else if (!(gContPrevButtons & 8) && gGameMode == 0x100) {
+                } else if (!(gContPrevButtons & 8) && gGameMode == MODE_MAP_VIEW) {
                     zoom = 4;
                 }
             } else {
@@ -1216,9 +1217,9 @@ void hd_game_frame(void) {
             case 3:
                 if (gHaveCarrier || gHaveShuttle) {
                     cull_restart(10);
-                    gNextGameMode = 0x100;
+                    gNextGameMode = MODE_MAP_VIEW;
                     D_80364A78 = 0;
-                    func_80260650(D_80367738, 0xDF, NULL);
+                    snd_play(gSfxBank, 0xDF, NULL);
                 }
                 break;
             case 4:
@@ -1226,12 +1227,12 @@ void hd_game_frame(void) {
                 if (gHaveCarrier || gHaveShuttle) {
                     cull_restart(10);
                     gNextGameMode = 4;
-                    func_80260650(D_80367738, 0xDF, NULL);
+                    snd_play(gSfxBank, 0xDF, NULL);
                 }
                 break;
         }
     }
-    if (gGameMode == 0x100 && gPaused && yoshiState == 2 && gHaveCarrier && currentYoshiWindow == 0) {
+    if (gGameMode == MODE_MAP_VIEW && gPaused && yoshiState == 2 && gHaveCarrier && currentYoshiWindow == 0) {
         if (!(gContButtons & 0x2000) && !(gContButtons & 0x10)) {
             D_80364A80 = 0;
         } else {
@@ -1246,32 +1247,32 @@ void hd_game_frame(void) {
                 D_80364A78 -= D_80364A80;
             }
         }
-        pos = D_803EF6E4 + D_80364A78;
-        lo = D_803EF6F8 - 400;
-        hi = D_803EF6F8 + D_803EF6F0;
+        pos = gCarrierZ + D_80364A78;
+        lo = gCarrierStartZ - 400;
+        hi = gCarrierStartZ + gCarrierRouteLen;
         if (pos > hi) {
-            D_80364A78 = hi - D_803EF6E4;
+            D_80364A78 = hi - gCarrierZ;
         }
         if (pos < lo) {
-            D_80364A78 = lo - D_803EF6E4;
+            D_80364A78 = lo - gCarrierZ;
         }
         if (gContButtons & 0x2010) {
-            D_802F8BDC[0].unk4 = (D_802F8BDC[0].unk4 - 0x18 < -0x100) ? -0x100 : D_802F8BDC[0].unk4 - 0x18;
-            D_8036BB34 = (D_8036BB34 * 0.8 > 0.1) ? D_8036BB34 * 0.8 : 0.1;
-            D_802F8BDC[0].unk8 &= ~0x20;
+            gYoshiWindows[0].unk4 = (gYoshiWindows[0].unk4 - 0x18 < -0x100) ? -0x100 : gYoshiWindows[0].unk4 - 0x18;
+            gYoshiScale = (gYoshiScale * 0.8 > 0.1) ? gYoshiScale * 0.8 : 0.1;
+            gYoshiWindows[0].unk8 &= ~0x20;
         } else {
-            D_802F8BDC[0].unk4 = (D_802F8BDC[0].unk4 + 0x20 > 0x20) ? 0x20 : D_802F8BDC[0].unk4 + 0x20;
-            D_8036BB34 = (D_8036BB34 / 0.8 < 1.0) ? D_8036BB34 / 0.8 : 1.0;
-            if (D_8036BB34 == 1.0) {
-                D_802F8BDC[0].unk8 |= 0x20;
+            gYoshiWindows[0].unk4 = (gYoshiWindows[0].unk4 + 0x20 > 0x20) ? 0x20 : gYoshiWindows[0].unk4 + 0x20;
+            gYoshiScale = (gYoshiScale / 0.8 < 1.0) ? gYoshiScale / 0.8 : 1.0;
+            if (gYoshiScale == 1.0) {
+                gYoshiWindows[0].unk8 |= 0x20;
             }
         }
     } else {
         D_80364A80 = 0;
-        D_802F8BDC[0].unk4 = (D_802F8BDC[0].unk4 + 0x20 > 0x20) ? 0x20 : D_802F8BDC[0].unk4 + 0x20;
-        D_8036BB34 = (D_8036BB34 / 0.8 < 1.0) ? D_8036BB34 / 0.8 : 1.0;
-        if (D_8036BB34 == 1.0) {
-            D_802F8BDC[0].unk8 |= 0x20;
+        gYoshiWindows[0].unk4 = (gYoshiWindows[0].unk4 + 0x20 > 0x20) ? 0x20 : gYoshiWindows[0].unk4 + 0x20;
+        gYoshiScale = (gYoshiScale / 0.8 < 1.0) ? gYoshiScale / 0.8 : 1.0;
+        if (gYoshiScale == 1.0) {
+            gYoshiWindows[0].unk8 |= 0x20;
         }
     }
     if (gHeldZ && !gPaused && gCurVehicle && !D_8036443C && (gLevelKind == 1 || gLevelKind == 0x80)) {
@@ -1281,98 +1282,98 @@ void hd_game_frame(void) {
     if ((gContButtons & 0x4000) && !(gContPrevButtons & 0x4000) && !areWeFading() && gNextGameMode == 0) {
         switch (gGameMode) {
             case 0x100000000000:
-                if (levelno != 0x2F && levelno != 0x31 && (levelno != 0x26 || gPrevGameMode == 0x4000)) {
-                    func_80260650(D_80367738, 0xDE, NULL);
-                    gNextGameMode = 0x4000;
+                if (levelno != 0x2F && levelno != 0x31 && (levelno != 0x26 || gPrevGameMode == MODE_WORLD)) {
+                    snd_play(gSfxBank, 0xDE, NULL);
+                    gNextGameMode = MODE_WORLD;
                 }
                 break;
             case 0x40:
             case 0x400:
-                func_80260650(D_80367738, 0xDE, NULL);
+                snd_play(gSfxBank, 0xDE, NULL);
                 if (LEVEL_DONE(levelno)) {
-                    gNextGameMode = 0x08000000;
+                    gNextGameMode = MODE_RESULTS;
                 } else {
-                    gNextGameMode = 0x4000;
+                    gNextGameMode = MODE_WORLD;
                 }
                 break;
             case 0x800:
             case 0x1000:
-                if (levelno != 0x32 || gPrevGameMode == 0x4000) {
-                    func_80260650(D_80367738, 0xDE, NULL);
-                    gNextGameMode = 0x4000;
+                if (levelno != 0x32 || gPrevGameMode == MODE_WORLD) {
+                    snd_play(gSfxBank, 0xDE, NULL);
+                    gNextGameMode = MODE_WORLD;
                 }
                 break;
         }
     }
     if (gHaveChopper && (!gPaused || (gGameMode & 0x1801))) {
-        func_802B899C();
+        chopper_update();
         if (gGameMode & 0x1801) {
             if (!areWeFading()) {
                 if (gNextGameMode == 0 || (gNextGameMode & 0x1801)) {
-                    func_802AEEC8();
+                    driver_update();
                 }
-                func_802B8AE4();
+                chopper_update_mode();
             }
         } else {
-            func_8026510C();
+            people_update();
         }
     }
     if (!gPaused && !D_80364A84) {
         veh_update_player();
     }
-    if (D_8039CA62 && !gPaused) {
-        func_80294F00();
+    if (gGhostRecording && !gPaused) {
+        ghost_record();
     }
     if (gHaveCarrier && (gLevelKind & 0x81)) {
         if (!(gGameMode & 0x1801)) {
-            func_802BA354();
+            carrier_update();
         }
-        if ((gGameMode & 0x104) && !func_8026B10C() && !gPaused && !gLevelDone && !gCarrierHit) {
-            func_8024A92C(vis = func_802C1B9C());
+        if ((gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) && !yoshi_get_demand() && !gPaused && !gLevelDone && !gCarrierHit) {
+            func_8024A92C(vis = obj_find_carrier_target());
         }
     }
     if (gHaveShuttle && !gPaused) {
-        func_802D291C();
+        shuttle_update();
         if (levelno == 0x32 && yoshiState == 1 && gFramesInMode > 50 && (gGameMode & 0x1801) && !areWeFading()) {
             func_80275390(0x2000);
         }
     }
-    func_8029DDC8();
+    anim_run_mtx_copies();
     if (!gPaused) {
-        D_803ED40C = 0;
-        D_803F7806 = func_802C1AA0();
-        func_802BC5E0();
-        func_8024B5E8();
-        func_8028F794(gCurVehicle);
-        func_80291FAC(gCurVehicle);
-        func_802688C4(levelno);
+        gVehSlowed = 0;
+        gPathBuildingsDestroyed = obj_path_buildings_destroyed();
+        obj_check_level_end();
+        veh_update_riders();
+        tnt_ride_vehicle(gCurVehicle);
+        block_ride_vehicle(gCurVehicle);
+        util_cam_path_step(levelno);
         if (!(gGameMode & 0x1801)) {
-            func_8026FEC4();
+            rdu_update();
         }
-        func_80281CE4();
-        if (gGameMode & 0x104) {
-            func_80297804(gPlayerX, gPlayerY, gPlayerZ);
+        fx_update_power_pill();
+        if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
+            academy_check_marker(gPlayerX, gPlayerY, gPlayerZ);
         }
 #ifdef NON_MATCHING
         /* The asm takes its param (the texture decoder's type-4/5 table) in
          * $fp: 0 here in every level (traced). */
-        func_8029E0AC(LEAKED(s8));
+        anim_tex_update_all(LEAKED(s8));
 #else
-        func_8029E0AC();
+        anim_tex_update_all();
 #endif
-        if ((gGameMode & 0x104) && (gLevelKind & 1)) {
+        if ((gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) && (gLevelKind & 1)) {
             func_8024A348();
             func_8024ADD8();
         }
-        if (gLevelKind != 1 && D_80367C00 && (u32) (((s32) D_803156C0) - D_80364A58) > 90) {
-            D_80367C00 = 0;
-            func_802794A4();
+        if (gLevelKind != 1 && gTurboActive && (u32) (((s32) D_803156C0) - D_80364A58) > 90) {
+            gTurboActive = 0;
+            mb_stop();
         }
     }
-    if ((gCarrierHit || gLevelDone || (levelno == 0x32 && D_8036EB98 && !(LEVEL_DONE(0x32)))) && gLevelKind == 1 && D_80364A5C == 0) {
+    if ((gCarrierHit || gLevelDone || (levelno == 0x32 && gTargetsCleared && !(LEVEL_DONE(0x32)))) && gLevelKind == 1 && D_80364A5C == 0) {
         debug_printf("TIME IN LEVEL=%d\n", D_80364A5C = ((s32) D_803156C0) - D_80364A58);
     }
-    func_802A5510(gLevelData);
+    cam_apply_height_zone(gLevelData);
     if (gGameMode & 0x1801) {
         cull_restart(2);
     }
@@ -1388,34 +1389,34 @@ void hd_game_frame(void) {
                   (s32) &gDynamicBufs[gBufferIndex], (s32) (&gDynamicBufs[gBufferIndex].unk2C0[0x2D]), (u32 *) (&gDynamicBufs[gBufferIndex].unkA3A0[0x17070]),
                   (u32 *) (&gDynamicBufs[gBufferIndex].unkA3A0[0x170D8]));
     if (gGameMode == 4) {
-        func_80295C70(levelno, gPlayerX, gPlayerZ);
+        cull_override_visible_cells(levelno, gPlayerX, gPlayerZ);
     }
     lvl_build_visible_dls((u32 *) N64_IPTR(gLevelDl0[gBufferIndex]), (u32 *) N64_IPTR(gLevelDl1[gBufferIndex]), (u32 *) N64_IPTR(gLevelDl2[gBufferIndex]), (u32 *) N64_IPTR(gLevelDl3[gBufferIndex]),
                   (u32 *) (&gDynamicBufs[gBufferIndex].unkA3A0[0x140]));
-    func_8027E9B8(gBufferIndex);
+    water_update(gBufferIndex);
     if (!gPaused || (gHaveCarrier && gCarrierHit) || D_8036EB99) {
-        func_802C0574();
-        func_802BCA2C();
+        obj_run_effect_queue();
+        obj_update_delayed_damage();
     }
     if (!gPaused) {
-        func_8028DF14(gCurVehicle);
-        func_802906C0(gCurVehicle);
-        func_80292830();
-        func_8028C874(gCurVehicle);
+        tnt_update(gCurVehicle);
+        block_update(gCurVehicle);
+        shell_update_all();
+        crate_update(gCurVehicle);
     }
     if (gLevelKind != 1) {
         if (gGameMode & 0x40) {
-            func_8026420C();
+            hud_replay_turbo();
         }
         if (gGameMode & 0x04002104) {
-            func_80262BF4();
+            hud_update_objective();
         }
-    } else if (D_803BE738) {
+    } else if (gFailTrigger) {
         if (!(LEVEL_DONE(levelno))) {
             cmo_hit_request = 1;
         } else if (!areWeFading()) {
             gLevelDoneRequest = 1;
-            func_80260650(D_80367738, 0x2B, NULL);
+            snd_play(gSfxBank, 0x2B, NULL);
             if (gGameMode == 0x40) {
                 func_80275390(0x40);
             } else {
@@ -1423,58 +1424,58 @@ void hd_game_frame(void) {
             }
         }
     }
-    func_802A64A4();
-    func_802886A0();
+    fx_draw_all();
+    ptcl_update();
     if (!gPaused) {
-        func_802CF1A4();
+        commpt_update();
     }
-    func_80279514(gPlayerX, gPlayerY, gPlayerZ, gCamEyeX, gCamEyeY, gCamEyeZ);
-    func_80277620(gFramesInMode);
-    func_8027D810(levelno);
-    func_802C2054();
+    mb_push_sample(gPlayerX, gPlayerY, gPlayerZ, gCamEyeX, gCamEyeY, gCamEyeZ);
+    dig_coach_update(gFramesInMode);
+    bridge_update_levels(levelno);
+    lvl_groups_update_tris();
     if (!gPaused) {
-        func_8026A9B4();
+        util_check_hint_events();
     }
     gdl = hd_build_frame_dl(&gDynamicBufs[gBufferIndex], &gFrameDlLen);
     if ((gGameMode & 0x04002444) && gLevelKind != 1) {
-        gdl = func_802639B4(gdl, (Gfx * N64P *) &gDynamicBufs[gBufferIndex], (u32 *) &gFrameDlLen);
+        gdl = hud_draw_objective(gdl, (Gfx * N64P *) &gDynamicBufs[gBufferIndex], (u32 *) &gFrameDlLen);
     }
-    if (gGameMode & 0x100000000002) {
+    if (gGameMode & (MODE_ATTRACT | MODE_GLOBE_SEQ)) {
         if (gGameMode == 2) {
             PORT_ITAG(gdl, PORT_ITAG_NONE, 0); /* the attract mode's bobbing logo: blended */
-            gdl = func_8025C878(gdl, (s32) &gDynamicBufs[gBufferIndex], gBufferIndex, &gFrameDlLen);
+            gdl = title_draw_attract(gdl, (s32) &gDynamicBufs[gBufferIndex], gBufferIndex, &gFrameDlLen);
             PORT_ITAG(gdl, PORT_ITAG_HUD, 0);
         }
-        if (D_802E8BF0 || D_80366A12 == 3 || D_802E8BEC >= 9) {
+        if (D_802E8BF0 || gLogoState == 3 || D_802E8BEC >= 9) {
             if ((yoshiState == 1 || yoshiState == 8 || D_802E8BEC >= 9) && (!D_802E8BF0 || gFramesInMode <= D_80366A04)) {
-                if (D_8039CAA0 + 20 > 0xFF) {
-                    D_8039CAA0 = 0xFF;
+                if (gPadDisplayAlpha + 20 > 0xFF) {
+                    gPadDisplayAlpha = 0xFF;
                 } else {
-                    D_8039CAA0 += 20;
+                    gPadDisplayAlpha += 20;
                 }
-            } else if (D_8039CAA0 - 20 < 0) {
-                D_8039CAA0 = 0;
+            } else if (gPadDisplayAlpha - 20 < 0) {
+                gPadDisplayAlpha = 0;
             } else {
-                D_8039CAA0 -= 20;
+                gPadDisplayAlpha -= 20;
             }
         }
-        if (D_8039CAA0 && D_802E8BEC && D_8039CAA2) {
-            gdl = func_80295EFC((s32) &gDynamicBufs[gBufferIndex], gdl, D_8039CAA0 / 2 - 103,
-                                0x55 - ((gGameMode == 0x100000000000) << 5), D_8039CAA0);
+        if (gPadDisplayAlpha && D_802E8BEC && gPadDisplayLoaded) {
+            gdl = hud_draw_pad((s32) &gDynamicBufs[gBufferIndex], gdl, gPadDisplayAlpha / 2 - 103,
+                                0x55 - ((gGameMode == MODE_GLOBE_SEQ) << 5), gPadDisplayAlpha);
         }
-        if (D_802E8BEC == 0 && D_80366A12 == 3 && gGameMode == 2) {
-            gdl = func_8029A1A8((s32) gDynamicBufs, gdl);
+        if (D_802E8BEC == 0 && gLogoState == 3 && gGameMode == 2) {
+            gdl = hud_draw_demo_banner((s32) gDynamicBufs, gdl);
         }
         if (gGameMode == 2 || levelno == 0x2F) {
-            func_8025C5D0();
+            hud_attract_messages();
         }
     }
     if (gGameMode & 0x1801) {
         if (gFramesInMode == 150 && levelno != 0x32) {
-            func_8026AF6C(0x8040);
+            yoshi_demand(0x8040);
         }
         if (!players[playerNumber].unk91 && gFramesInMode == 10) {
-            func_8026AF6C(0x803F);
+            yoshi_demand(0x803F);
         }
     }
     gdl = func_8024C404(gdl, &gDynamicBufs[gBufferIndex], &gFrameDlLen);
@@ -1482,66 +1483,66 @@ void hd_game_frame(void) {
         D_80364A50 = 1;
         if (yoshiState == 1) {
             if (!(LEVEL_DONE(levelno)) || gLevelKind == 1) {
-                func_8026AF6C(D_802F4870[lowest_set_bit(gLevelKind)] | 0x8000);
+                yoshi_demand(D_802F4870[lowest_set_bit(gLevelKind)] | 0x8000);
             }
         }
     }
-    if (gGameMode == 8 && !areWeFading() && (!func_802D4E10(D_80367734) || D_803156C4 - D_80367740 > 300)) {
+    if (gGameMode == 8 && !areWeFading() && (!func_802D4E10(gMusicPlayer) || D_803156C4 - gDoneTuneStartTime > 300)) {
         func_80275390(0x08000000);
     }
     if (levelno == 0x31 && yoshiState == 1) {
-        gdl = func_8029A518((Gfx * N64P *) &gDynamicBufs[gBufferIndex], gdl);
+        gdl = credits_draw((Gfx * N64P *) &gDynamicBufs[gBufferIndex], gdl);
     }
-    func_80259C24(&gdl, (Mtx *) &gDynamicBufs[gBufferIndex]);
+    text_flush_screen(&gdl, (Mtx *) &gDynamicBufs[gBufferIndex]);
     if (gGameMode != 2) {
         gdl = func_80274BF0((s32) &gDynamicBufs[gBufferIndex], gdl);
     }
-    if (gGameMode == 0x2000000000000000) {
+    if (gGameMode == MODE_YOSHI_PAGES) {
         if ((gContButtons & 0x10) && !(gContPrevButtons & 0x10)) {
             if (currentYoshiWindow < 0x6B && yoshiState != 8 && yoshiState != 1) {
-                func_8026AF6C((currentYoshiWindow + 1) | 0x8000);
-                func_80260650(D_80367738, 0x1D, NULL);
+                yoshi_demand((currentYoshiWindow + 1) | 0x8000);
+                snd_play(gSfxBank, 0x1D, NULL);
             } else {
-                func_80260650(D_80367738, 0xD0, NULL);
+                snd_play(gSfxBank, 0xD0, NULL);
             }
         }
         if ((gContButtons & 0x2000) && !(gContPrevButtons & 0x2000)) {
             if (currentYoshiWindow >= 0x5F && yoshiState != 8 && yoshiState != 1) {
-                func_8026AF6C((currentYoshiWindow - 1) | 0x8000);
-                func_80260650(D_80367738, 0x1D, NULL);
+                yoshi_demand((currentYoshiWindow - 1) | 0x8000);
+                snd_play(gSfxBank, 0x1D, NULL);
             } else {
-                func_80260650(D_80367738, 0xD0, NULL);
+                snd_play(gSfxBank, 0xD0, NULL);
             }
         }
     }
     if ((((gContButtons & 0x1000) && !(gContPrevButtons & 0x1000)) || ((gContButtons & 0x8000) && !(gContPrevButtons & 0x8000))) &&
-        !areWeFading() && D_8036BB1A == -1 && gNextGameMode == 0 && !cmo_hit_request && !gLevelDoneRequest && currentYoshiWindow != 0) {
-        if ((func_8026B10C() & 0x8000) && (func_8026B10C() & 1)) {
-            func_8026B10C();
+        !areWeFading() && gYoshiPendingWindow == -1 && gNextGameMode == 0 && !cmo_hit_request && !gLevelDoneRequest && currentYoshiWindow != 0) {
+        if ((yoshi_get_demand() & 0x8000) && (yoshi_get_demand() & 1)) {
+            yoshi_get_demand();
         }
         switch (gGameMode) {
             case 1:
             case 0x800:
             case 0x1000:
-                if (levelno != 0x32 || gPrevGameMode == 0x4000) {
-                    gNextGameMode = 0x2000;
-                    func_80260650(D_80367738, 0x1E, NULL);
+                if (levelno != 0x32 || gPrevGameMode == MODE_WORLD) {
+                    gNextGameMode = MODE_LEVEL_START;
+                    snd_play(gSfxBank, 0x1E, NULL);
                 }
                 break;
             case 0x40:
             case 0x400:
                 if ((LEVEL_DONE(levelno)) && gLevelKind != 1) {
-                    gNextGameMode = 0x08000000;
-                    func_80260650(D_80367738, 0x1E, NULL);
+                    gNextGameMode = MODE_RESULTS;
+                    snd_play(gSfxBank, 0x1E, NULL);
                 } else if (yoshiState == 1) {
-                    func_8026AF6C(D_802F4870[lowest_set_bit(gLevelKind)] | 0x8000);
+                    yoshi_demand(D_802F4870[lowest_set_bit(gLevelKind)] | 0x8000);
                 }
                 break;
             case 2:
                 if (D_80366A18) {
-                    func_80260650(D_80367738, 0x1E, NULL);
-                    func_80260B40(0, 0);
-                    func_80260B40(5, 0);
+                    snd_play(gSfxBank, 0x1E, NULL);
+                    snd_set_slot_volume(0, 0);
+                    snd_set_slot_volume(5, 0);
                     func_80275390(0x20000000000000);
                 }
                 break;
@@ -1554,33 +1555,33 @@ void hd_game_frame(void) {
             case 0x100:
                 if ((gContButtons & 0x1000) && !gPaused) {
                     if ((LEVEL_DONE(levelno)) && gLevelKind == 1) {
-                        D_802F5804[2].unk0 |= 1;
-                        D_802F5804[2].unk18 = 7;
+                        gYoshiGameItems[2].unk0 |= 1;
+                        gYoshiGameItems[2].unk18 = 7;
                     } else {
-                        D_802F5804[2].unk0 &= ~1;
-                        D_802F5804[2].unk18 = 8;
+                        gYoshiGameItems[2].unk0 &= ~1;
+                        gYoshiGameItems[2].unk18 = 8;
                     }
-                    func_8026AF6C(0x8000);
+                    yoshi_demand(0x8000);
                 }
                 break;
         }
     }
-    gdl = func_8026BBD0(gdl, (s32) &gDynamicBufs[gBufferIndex], &gFrameDlLen);
-    if (D_8036BB16 && !cmo_hit_request && !gLevelDoneRequest) {
-        func_8024BDA4(&D_8036BB16);
+    gdl = yoshi_draw(gdl, (s32) &gDynamicBufs[gBufferIndex], &gFrameDlLen);
+    if (yoshiSelection && !cmo_hit_request && !gLevelDoneRequest) {
+        func_8024BDA4(&yoshiSelection);
     }
-    if ((gGameMode & 0x444) && D_8036BB1A == -1 && D_80367BC8 == 0 &&
-        !((currentYoshiWindow != -1) ? D_802F8BDC[currentYoshiWindow].unk8 & 0x01000000 : 0)) {
+    if ((gGameMode & 0x444) && gYoshiPendingWindow == -1 && gTurboStartState == 0 &&
+        !((currentYoshiWindow != -1) ? gYoshiWindows[currentYoshiWindow].unk8 & 0x01000000 : 0)) {
         alpha = (gGameMode & 0x440) ? 0xB4 : 0xFF;
-        if (D_80367BD6 < alpha) {
-            D_80367BD6 = (s32) ((alpha < D_80367BD6 + 16) ? alpha : D_80367BD6 + 16);
+        if (gHudAlpha < alpha) {
+            gHudAlpha = (s32) ((alpha < gHudAlpha + 16) ? alpha : gHudAlpha + 16);
         } else {
-            D_80367BD6 = alpha;
+            gHudAlpha = alpha;
         }
-    } else if (D_80367BD6 >= 0) {
-        D_80367BD6 = (s32) ((D_80367BD6 - 16 < 0) ? 0 : D_80367BD6 - 16);
+    } else if (gHudAlpha >= 0) {
+        gHudAlpha = (s32) ((gHudAlpha - 16 < 0) ? 0 : gHudAlpha - 16);
     } else {
-        D_80367BD6 = 0;
+        gHudAlpha = 0;
     }
     if (gGameMode == 2) {
         gdl = func_80274BF0((s32) &gDynamicBufs[gBufferIndex], gdl);
@@ -1592,7 +1593,7 @@ void hd_game_frame(void) {
     HD_ASSERT(MQ_IS_EMPTY(&textureDmaMessageQ), 1509);
     HD_ASSERT(nextdma-no_palette_dmas<NUM_TEXTURE_DMAS, 1510);
     for (i = 0; i < nextdma - no_palette_dmas; i++) {
-        func_802A57AC();
+        tex_decode_next();
     }
     D_803649E0 = D_803649D8 % 40 - 20;
     D_803649E2 = D_803649D8 / 100 % 40 - 20;
@@ -1707,10 +1708,10 @@ void func_8024A92C(u32 dist) {
             near = 35000;
             break;
         case 14:
-            if (D_803EF6E4 > 177600) {
+            if (gCarrierZ > 177600) {
                 far = 25000;
                 near = 20000;
-            } else if (D_803EF6E4 > 80000) {
+            } else if (gCarrierZ > 80000) {
                 far = 22000;
                 near = 17500;
             } else {
@@ -1719,7 +1720,7 @@ void func_8024A92C(u32 dist) {
             }
             break;
         case 9:
-            if (D_803EF6E4 > 100320) {
+            if (gCarrierZ > 100320) {
                 far = 36000;
                 near = 18000;
             } else {
@@ -1743,58 +1744,58 @@ void func_8024A92C(u32 dist) {
         D_80364A6F = 0;
     }
     if (D_80364A6F != D_803153F0) {
-        if (D_803153F0 == 0 && func_8026A610(D_803EF6DC, D_803EF6E4, gPlayerX, gPlayerZ) > 20000) {
-            func_80277EDC(1, 1, 7, 0x6C);
+        if (D_803153F0 == 0 && util_dist2d(gCarrierX, gCarrierZ, gPlayerX, gPlayerZ) > 20000) {
+            hud_panel_start(1, 1, 7, 0x6C);
             debug_printf("TOO FAR AWAY FROM CMO\n");
         }
         switch (D_80364A6F) {
             case 1:
                 switch (D_803153F0) {
                     case 0:
-                        func_80260DFC();
+                        music_push_danger_tune();
                     case 2:
-                        func_802608C8((void *) N64_IPTR(D_803156E8));
+                        snd_stop((void *) N64_IPTR(gCarrierAlarmSound));
                         break;
                 }
                 break;
             case 2:
                 switch (D_803153F0) {
                     case 0:
-                        func_80260DFC();
+                        music_push_danger_tune();
                     case 1:
-                        func_80260650(D_80367738, 0x26, &D_803156E8);
+                        snd_play(gSfxBank, 0x26, &gCarrierAlarmSound);
                         break;
                 }
                 break;
             case 0:
-                func_802608C8((void *) N64_IPTR(D_803156E8));
-                if (gLevelInfo[levelno].unk0 != 0x80 || !func_802C1AA0()) {
+                snd_stop((void *) N64_IPTR(gCarrierAlarmSound));
+                if (gLevelInfo[levelno].unk0 != 0x80 || !obj_path_buildings_destroyed()) {
                     debug_printf("popTuneImmediate();\n");
-                    func_80261040();
+                    popTuneImmediate();
                 } else {
                     debug_printf("WILL THIS FIX IT!!?\n");
                 }
                 if (D_803153F0 == 2) {
-                    func_80260650(D_80367738, 0x68, NULL);
+                    snd_play(gSfxBank, 0x68, NULL);
                 }
                 break;
         }
     }
     switch (D_80364A6F) {
         case 1:
-            if (!func_8026AD30(0x49) && currentYoshiWindow != 3) {
-                func_8026AF6C(0x8003);
+            if (!yoshi_show_hint(0x49) && currentYoshiWindow != 3) {
+                yoshi_demand(0x8003);
             }
             break;
         case 2:
             if (currentYoshiWindow != 2) {
-                func_8026AF6C(0x8002);
+                yoshi_demand(0x8002);
             }
             break;
         case 0:
-            if ((yoshiState == 2 || yoshiState == 4) && !func_8026B10C() &&
+            if ((yoshiState == 2 || yoshiState == 4) && !yoshi_get_demand() &&
                 (currentYoshiWindow == 3 || currentYoshiWindow == 2 || currentYoshiWindow == 0x49)) {
-                func_8026AF6C(0x4000);
+                yoshi_demand(0x4000);
             }
             break;
     }
@@ -1818,26 +1819,26 @@ void veh_apply_switch(void) {
     s32 pad;
 
     if (gNextVehicle != 0 && gNextVehicle != 0xFF) {
-        if (func_802AB878(gNextVehicle) == 0) {
-            func_802AB478(gNextVehicle);
-            func_8028F6B4(gNextVehicle);
-            func_80291ED8(gNextVehicle);
+        if (veh_has_partial_rider(gNextVehicle) == 0) {
+            veh_attach_riders(gNextVehicle);
+            tnt_attach_to_vehicle(gNextVehicle);
+            block_attach_to_vehicle(gNextVehicle);
             func_8028B720();
-            func_802794E4();
+            mb_cancel();
             if (veh_enter(gNextVehicle)) {
                 gCurVehicle = gNextVehicle;
-                func_802AE860();
+                driver_stop_blend_anim();
                 if (!gPaused && gFramesInMode >= 11 &&
                     (gCurVehicle == 8 || gCurVehicle == 15 || gCurVehicle == 13 || gCurVehicle == 14)) {
-                    func_8026AD30(0x4A);
+                    yoshi_show_hint(0x4A);
                 }
             }
             players[playerNumber].unk10 |= 1 << gCurVehicle;
             D_803649E8 = 1;
             D_803649EC = 1;
             D_803649EE = 1;
-        } else if (!func_80260634((void *) N64_IPTR(D_803156F0))) {
-            func_80260650(D_80367738, 0x2B, &D_803156F0);
+        } else if (!snd_get_state((void *) N64_IPTR(gEnterRefusedSound))) {
+            snd_play(gSfxBank, 0x2B, &gEnterRefusedSound);
         }
     }
 }
@@ -1849,81 +1850,81 @@ s32 veh_enter(s32 id) {
 
     switch (id) {
         case 1:
-            func_802AFFD4();
+            sideswipe_enter();
             break;
         case 2:
-            func_802B1228();
+            thunderfist_enter();
             break;
         case 3:
-            func_802B2D7C();
+            skyfall_enter();
             break;
         case 4:
-            func_802B448C();
+            ramdozer_enter();
             break;
         case 5:
-            func_802B5CD8();
+            backlash_enter();
             break;
         case 6:
-            func_802BB054();
+            crane_enter();
             break;
         case 7:
 #ifdef NON_MATCHING
-            func_802BBDC8(LEAKED(a0));
+            train_enter(LEAKED(a0));
 #else
-            func_802BBDC8();
+            train_enter();
 #endif
             break;
         case 8:
 #ifdef NON_MATCHING
-            func_802B76AC(LEAKED(a0));
+            amdream_enter(LEAKED(a0));
 #else
-            func_802B76AC();
+            amdream_enter();
 #endif
             break;
         case 9:
-            func_802C5714();
+            jbomb_enter();
             break;
         case 10:
-            func_802C9F54();
+            ballista_enter();
             break;
         case 11:
         case 17:
         case 18:
 #ifdef NON_MATCHING
-            func_802C8AB0(LEAKED(a0));
+            barge_enter(LEAKED(a0));
 #else
-            func_802C8AB0();
+            barge_enter();
 #endif
             break;
         case 13:
 #ifdef NON_MATCHING
-            func_802CBA94(LEAKED(a0));
+            police_enter(LEAKED(a0));
 #else
-            func_802CBA94();
+            police_enter();
 #endif
             break;
         case 14:
 #ifdef NON_MATCHING
-            func_802CCC8C(LEAKED(a0));
+            ateam_enter(LEAKED(a0));
 #else
-            func_802CCC8C();
+            ateam_enter();
 #endif
             break;
         case 15:
 #ifdef NON_MATCHING
-            func_802CFA0C(LEAKED(a0));
+            starski_enter(LEAKED(a0));
 #else
-            func_802CFA0C();
+            starski_enter();
 #endif
             break;
         case 16:
-            func_802D0C68();
+            cyclone_enter();
             break;
         default:
             ok = 0;
             break;
     }
-    if (ok && (gGameMode & 0x104)) {
+    if (ok && (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW))) {
         rec_record((players[playerNumber].unkF0 & (1 << id)) ? 0x80 : 0x40, 0, 0);
     }
     if (ok) {
@@ -1934,12 +1935,12 @@ s32 veh_enter(s32 id) {
 
 #if defined(NON_MATCHING) && defined(PORT_HOST)
 /* Windows port, byte order: veh_leave reads the word table that starts
- * at the u8 EEPROM flag D_802E8BF8 (set at boot), and on the N64 that flag is
+ * at the u8 EEPROM flag gUseEeprom (set at boot), and on the N64 that flag is
  * word 0's most significant byte.  The image keeps word 0 big-endian
  * (port/data/image_overrides.txt), so word 0 is assembled from its bytes;
  * the others are host-order words.  Checked by port/tools/loadref.py (T5). */
 s32 port_802E8BF8_word(s32 i) {
-    u8 *t = &D_802E8BF8;
+    u8 *t = &gUseEeprom;
 
     if (i == 0) {
         return (t[0] << 24) | (t[1] << 16) | (t[2] << 8) | t[3];
@@ -1953,89 +1954,90 @@ void veh_leave(void) {
     u8 res = 0;
     u8 ok = 0;
 
-    res = func_8024B4B8();
+    res = veh_exit_check();
     if (res == 1) {
 #if defined(NON_MATCHING) && defined(PORT_HOST)
-        ok = func_802AE888(port_802E8BF8_word(gCurVehicle));
+        ok = driver_try_exit(port_802E8BF8_word(gCurVehicle));
 #else
-        ok = func_802AE888(((s32 *) &D_802E8BF8)[gCurVehicle]);
+        ok = driver_try_exit(((s32 *) &gUseEeprom)[gCurVehicle]);
 #endif
     }
     if (ok) {
         D_803649E8 = 0;
-        func_802794E4();
-        func_8028F93C();
-        func_80292084();
+        mb_cancel();
+        tnt_detach_all();
+        block_detach_all();
         func_8028B720();
         switch (gCurVehicle) {
             case 4:
-                func_802B4658();
+                ramdozer_leave();
                 break;
             case 3:
-                func_802B2F54();
+                skyfall_leave();
                 break;
             case 5:
-                func_802B5F60();
+                backlash_leave();
                 break;
             case 2:
-                func_802B11B8();
+                thunderfist_leave();
                 break;
             case 1:
-                func_802B0254();
+                sideswipe_leave();
                 break;
             case 7:
-                func_802BBE2C();
+                train_leave();
                 break;
             case 8:
-                func_802B7754();
+                amdream_leave();
                 break;
             case 9:
-                func_802C5688();
+                jbomb_leave();
                 break;
             case 10:
-                func_802CA1AC();
+                ballista_leave();
                 break;
             case 11:
             case 17:
             case 18:
-                func_802C8B0C(gCurVehicle);
+                barge_leave(gCurVehicle);
                 break;
             case 13:
-                func_802CBBBC();
+                police_leave();
                 break;
             case 14:
-                func_802CCD34();
+                ateam_leave();
                 break;
             case 6:
-                func_802BB1A0();
-                if (func_8024B418(4)) {
-                    func_802B4658();
+                crane_leave();
+                if (veh_is_loaded(4)) {
+                    ramdozer_leave();
                 }
-                if (func_8024B418(13)) {
-                    func_802CBBBC();
+                if (veh_is_loaded(13)) {
+                    police_leave();
                 }
                 break;
             case 15:
-                func_802CFAB4();
+                starski_leave();
                 break;
             case 16:
-                func_802D0BF8();
+                cyclone_leave();
                 break;
         }
         gCurVehicle = 0;
-        if (gGameMode & 0x104) {
+        if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
             rec_record((players[playerNumber].unkF0 & 1) ? 0x80 : 0x40, 0, 0);
         }
     }
     if (res == 0 || (res != 2 && !ok)) {
-        if (!func_80260634((void *) N64_IPTR(D_803156EC))) {
-            func_80260650(D_80367738, 0x2B, &D_803156EC);
+        if (!snd_get_state((void *) N64_IPTR(gLeaveRefusedSound))) {
+            snd_play(gSfxBank, 0x2B, &gLeaveRefusedSound);
         }
     }
 }
 
-/* Is any entry of gVehicles (up to gVehiclesEnd) tagged with id? */
-s32 func_8024B418(u8 id) {
+/* 1 if some gVehicles record has type id (0x8024B418).
+ * Is any entry of gVehicles (up to gVehiclesEnd) tagged with id? */
+s32 veh_is_loaded(u8 id) {
     s32 i;
 
     i = 0;
@@ -2051,147 +2053,149 @@ s32 func_8024B418(u8 id) {
 /* Per-vehicle exit check for the current vehicle (gCurVehicle). Declared u8
  * but has no return statement: callers read the handler's leftover v0. */
 #ifdef NON_MATCHING
-u8 func_8024B4B8(void) {
+/* The current type's exit check (0 no, 1 yes, 2 silently no) (0x8024B4B8). */
+u8 veh_exit_check(void) {
     /* An id without a handler returns whatever v0 held in the original
      * (indeterminate; only vehicle ids reach this). */
     s32 ret = 0;
 
     switch (gCurVehicle) {
         case 4:
-            ret = func_802B45FC();
+            ret = ramdozer_exit_check();
             break;
         case 3:
-            ret = func_802B2EF8();
+            ret = skyfall_exit_check();
             break;
         case 5:
-            ret = func_802B5F04();
+            ret = backlash_exit_check();
             break;
         case 2:
-            ret = func_802B1150();
+            ret = thunderfist_exit_check();
             break;
         case 1:
-            ret = func_802B01DC();
+            ret = sideswipe_exit_check();
             break;
         case 6:
-            ret = func_802BB170();
+            ret = crane_exit_check();
             break;
         case 7:
-            ret = func_802BBE10();
+            ret = train_exit_check();
             break;
         case 8:
-            ret = func_802B76F8();
+            ret = amdream_exit_check();
             break;
         case 9:
-            ret = func_802C5508();
+            ret = jbomb_exit_check();
             break;
         case 10:
-            ret = func_802CA140();
+            ret = ballista_exit_check();
             break;
         case 11:
         case 17:
         case 18:
-            ret = func_802C8AF0();
+            ret = barge_exit_check();
             break;
         case 13:
-            ret = func_802CBB60();
+            ret = police_exit_check();
             break;
         case 14:
-            ret = func_802CCCD8();
+            ret = ateam_exit_check();
             break;
         case 15:
-            ret = func_802CFA58();
+            ret = starski_exit_check();
             break;
         case 16:
-            ret = func_802D0B90();
+            ret = cyclone_exit_check();
             break;
     }
     return ret;
 }
 #else
-u8 func_8024B4B8(void) {
+u8 veh_exit_check(void) {
     switch (gCurVehicle) {
         case 4:
-            func_802B45FC();
+            ramdozer_exit_check();
             break;
         case 3:
-            func_802B2EF8();
+            skyfall_exit_check();
             break;
         case 5:
-            func_802B5F04();
+            backlash_exit_check();
             break;
         case 2:
-            func_802B1150();
+            thunderfist_exit_check();
             break;
         case 1:
-            func_802B01DC();
+            sideswipe_exit_check();
             break;
         case 6:
-            func_802BB170();
+            crane_exit_check();
             break;
         case 7:
-            func_802BBE10();
+            train_exit_check();
             break;
         case 8:
-            func_802B76F8();
+            amdream_exit_check();
             break;
         case 9:
-            func_802C5508();
+            jbomb_exit_check();
             break;
         case 10:
-            func_802CA140();
+            ballista_exit_check();
             break;
         case 11:
         case 17:
         case 18:
-            func_802C8AF0();
+            barge_exit_check();
             break;
         case 13:
-            func_802CBB60();
+            police_exit_check();
             break;
         case 14:
-            func_802CCCD8();
+            ateam_exit_check();
             break;
         case 15:
-            func_802CFA58();
+            starski_exit_check();
             break;
         case 16:
-            func_802D0B90();
+            cyclone_exit_check();
             break;
     }
 }
 #endif
 
 
-void func_8024B5E8(void) {
-    D_803ED3F5 = 1;
-    func_802AB670(gCurVehicle);
+/* Vehicles standing on the player's vehicle follow it (0x8024B5E8). */
+void veh_update_riders(void) {
+    gRiderPass = 1;
+    veh_move_riders(gCurVehicle);
 }
 
 #ifdef NON_MATCHING
 /* Leaked-register inputs of the hand-asm vehicle functions called below (and
- * func_8029E0AC in hd_game_frame), which this file declares `void (void)`
+ * anim_tex_update_all in hd_game_frame), which this file declares `void (void)`
  * (traced in the original ROM with mupen64plus breakpoints over attract demos
  * 0-8, nine levels; see the port notes, trace_values.md):
- *  - $fp ($s8): 0 at veh_update_others, veh_update_player and func_8029E0AC in every
+ *  - $fp ($s8): 0 at veh_update_others, veh_update_player and anim_tex_update_all in every
  *    level (hd_game_frame and the IDO code above it never set $s8, and the
  *    hand asm they call before these points restores it). The re-ground
  *    functions of veh_update_others save and restore fp themselves, so every one
- *    of them gets 0. It reaches state: func_802A9A60 stores it into
- *    D_803ED3F2[0..2] and veh+0x50 = their average (the ground byte), and
- *    func_8029E0AC hands it to the texture decoder as the type-4/5 table.
- *  - func_802CFB00's a3 (the previous loop iteration's leftover; only read by
- *    func_802D05D8 for a zero-matrix point) and its FP pass-through state
+ *    of them gets 0. It reaches state: veh_reground stores it into
+ *    gSlotSurface[0..2] and veh+0x50 = their average (the ground byte), and
+ *    anim_tex_update_all hands it to the texture decoder as the type-4/5 table.
+ *  - starski_reground's a3 (the previous loop iteration's leftover; only read by
+ *    starski_build_model for a zero-matrix point) and its FP pass-through state
  *    f12-f26 (only FP side results of the triangle scans): 0. Not reached in
  *    the demos.
  *  - the per-frame updates' zone registers t6, t7, s0-s4 (and f14-f26 for
- *    func_802B152C / func_802CFDE8 / func_802D0F98). Measured: t6 = this
+ *    thunderfist_update / starski_update / cyclone_update). Measured: t6 = this
  *    switch's case label (the jump-table target, e.g. 0x8024B7F8), t7 = the
  *    level's leftover small integer (2..7, also in t8), s0 = 0, s1 = 1 / 0x30
  *    / 0x3A, s2/s3/s4 = 0x803B8D40 / 0x803B8578 / 0x803B8570. They only pass
- *    through func_802ABD54 (unchanged when the level has no zones, as in 8 of
- *    the 9 demo levels) into the type-1 func_802A6274 effect records, which
+ *    through veh_zone_alpha (unchanged when the level has no zones, as in 8 of
+ *    the 9 demo levels) into the type-1 fx_spawn effect records, which
  *    never store them (and the FP state only feeds FP side results): dead.
- *    0, as the other updates (func_802AEEC8, func_802B6294, ...) use. */
+ *    0, as the other updates (driver_update, backlash_update, ...) use. */
 #endif
 
 /* The per-frame routine of every placed vehicle but the player's (by type)
@@ -2202,56 +2206,56 @@ void veh_update_others(void) {
 
     i = 0;
     while (&gVehicles[i] != gVehiclesEnd) {
-        if (gVehicles[i].active != 0) {
+        if (gVehicles[i].onMovingPart != 0) {
             id = gVehicles[i].type;
             if (id != gCurVehicle && id != 0xFF && id != 0xFE && id != 0) {
                 switch (id) {
                     case 5:
-                        func_802B5FAC();
+                        backlash_reground();
                         break;
                     case 1:
 #ifdef NON_MATCHING
-                        func_802B02A0(LEAKED(fp));
+                        sideswipe_reground(LEAKED(fp));
 #else
-                        func_802B02A0();
+                        sideswipe_reground();
 #endif
                         break;
                     case 4:
 #ifdef NON_MATCHING
-                        func_802B46C4(LEAKED(fp));
+                        ramdozer_reground(LEAKED(fp));
 #else
-                        func_802B46C4();
+                        ramdozer_reground();
 #endif
                         break;
                     case 8:
-                        func_802B77A0();
+                        amdream_reground();
                         break;
                     case 13:
-                        func_802CBC08();
+                        police_reground();
                         break;
                     case 14:
-                        func_802CCD80();
+                        ateam_reground();
                         break;
                     case 15:
 #ifdef NON_MATCHING
-                        func_802CFB00(LEAKED(fp), LEAKED(a3), LEAKED(f12), LEAKED(f14), LEAKED(f20), LEAKED(f22), LEAKED(f24),
+                        starski_reground(LEAKED(fp), LEAKED(a3), LEAKED(f12), LEAKED(f14), LEAKED(f20), LEAKED(f22), LEAKED(f24),
                                       LEAKED(f26));
 #else
-                        func_802CFB00();
+                        starski_reground();
 #endif
                         break;
                     case 9:
 #ifdef NON_MATCHING
-                        func_802C5860(LEAKED(fp));
+                        jbomb_reground(LEAKED(fp));
 #else
-                        func_802C5860();
+                        jbomb_reground();
 #endif
                         break;
                     case 3:
 #ifdef NON_MATCHING
-                        func_802B2FA0(LEAKED(fp));
+                        skyfall_reground(LEAKED(fp));
 #else
-                        func_802B2FA0();
+                        skyfall_reground();
 #endif
                         break;
                     default:
@@ -2267,84 +2271,84 @@ void veh_update_others(void) {
 /* The per-frame routine of the player's vehicle (by gCurVehicle; 0: on
  * foot) (0x8024B7AC). */
 void veh_update_player(void) {
-    D_803ED3F5 = 0;
+    gRiderPass = 0;
     switch (gCurVehicle) {
         case 0:
             gNextVehicle = 0;
-            func_802AEEC8();
+            driver_update();
             break;
         case 1:
 #ifdef NON_MATCHING
-            func_802B03F4(LEAKED(t6), LEAKED(t7), LEAKED(s0), LEAKED(s1), LEAKED(s2), LEAKED(s3), LEAKED(s4));
+            sideswipe_update(LEAKED(t6), LEAKED(t7), LEAKED(s0), LEAKED(s1), LEAKED(s2), LEAKED(s3), LEAKED(s4));
 #else
-            func_802B03F4();
+            sideswipe_update();
 #endif
             break;
         case 2:
 #ifdef NON_MATCHING
-            func_802B152C(LEAKED(t6), LEAKED(t7), LEAKED(s0), LEAKED(s1), LEAKED(s2), LEAKED(s3), LEAKED(s4),
+            thunderfist_update(LEAKED(t6), LEAKED(t7), LEAKED(s0), LEAKED(s1), LEAKED(s2), LEAKED(s3), LEAKED(s4),
                           LEAKED(f14), LEAKED(f20), LEAKED(f22), LEAKED(f24), LEAKED(f26));
 #else
-            func_802B152C();
+            thunderfist_update();
 #endif
             break;
         case 3:
 #ifdef NON_MATCHING
-            func_802B327C(LEAKED(t6), LEAKED(t7), LEAKED(s0), LEAKED(s1), LEAKED(s2), LEAKED(s3), LEAKED(s4));
+            skyfall_update(LEAKED(t6), LEAKED(t7), LEAKED(s0), LEAKED(s1), LEAKED(s2), LEAKED(s3), LEAKED(s4));
 #else
-            func_802B327C();
+            skyfall_update();
 #endif
             break;
         case 4:
 #ifdef NON_MATCHING
-            func_802B49AC(LEAKED(t6), LEAKED(t7), LEAKED(s0), LEAKED(s1), LEAKED(s2), LEAKED(s3), LEAKED(s4));
+            ramdozer_update(LEAKED(t6), LEAKED(t7), LEAKED(s0), LEAKED(s1), LEAKED(s2), LEAKED(s3), LEAKED(s4));
 #else
-            func_802B49AC();
+            ramdozer_update();
 #endif
             break;
         case 5:
-            func_802B6294();
+            backlash_update();
             break;
         case 6:
-            func_802BB274();
+            crane_update();
             break;
         case 7:
-            func_802BBEB8();
+            train_update();
             break;
         case 8:
-            func_802B7A88();
+            amdream_update();
             break;
         case 9:
-            func_802C5AFC();
+            jbomb_update();
             break;
         case 10:
-            func_802CA4E0();
+            ballista_update();
             break;
         case 11:
         case 17:
         case 18:
-            func_802C8BB8(gCurVehicle);
+            barge_update(gCurVehicle);
             break;
         case 13:
-            func_802CBEF0();
+            police_update();
             break;
         case 14:
-            func_802CD068();
+            ateam_update();
             break;
         case 15:
 #ifdef NON_MATCHING
-            func_802CFDE8(LEAKED(t6), LEAKED(t7), LEAKED(s0), LEAKED(s1), LEAKED(s2), LEAKED(s3), LEAKED(s4),
+            starski_update(LEAKED(t6), LEAKED(t7), LEAKED(s0), LEAKED(s1), LEAKED(s2), LEAKED(s3), LEAKED(s4),
                           LEAKED(f14), LEAKED(f20), LEAKED(f22), LEAKED(f24), LEAKED(f26));
 #else
-            func_802CFDE8();
+            starski_update();
 #endif
             break;
         case 16:
 #ifdef NON_MATCHING
-            func_802D0F98(LEAKED(t6), LEAKED(t7), LEAKED(s0), LEAKED(s1), LEAKED(s2), LEAKED(s3), LEAKED(s4),
+            cyclone_update(LEAKED(t6), LEAKED(t7), LEAKED(s0), LEAKED(s1), LEAKED(s2), LEAKED(s3), LEAKED(s4),
                           LEAKED(f14), LEAKED(f20), LEAKED(f22), LEAKED(f24), LEAKED(f26));
 #else
-            func_802D0F98();
+            cyclone_update();
 #endif
             break;
     }
@@ -2403,17 +2407,17 @@ void func_8024BDA4(u16 *sel) {
             switch (*sel) {
                 case 1:
                     if (gCurVehicle == 6 || gCurVehicle == 11 || gCurVehicle == 17 || gCurVehicle == 18) {
-                        D_802F5804[7].unk0 &= ~1;
-                        D_802F5804[7].unk18 = 8;
+                        gYoshiGameItems[7].unk0 &= ~1;
+                        gYoshiGameItems[7].unk18 = 8;
                     } else {
-                        D_802F5804[7].unk0 |= 1;
-                        D_802F5804[7].unk18 = 7;
+                        gYoshiGameItems[7].unk0 |= 1;
+                        gYoshiGameItems[7].unk18 = 7;
                     }
-                    func_8026AF6C(0x8001);
+                    yoshi_demand(0x8001);
                     gNextGameMode = 4;
                     break;
                 case 2:
-                    func_80285EF4(D_80364A58);
+                    stats_finish_level(D_80364A58);
                     break;
                 case 7:
                     cont_show_method_option();
@@ -2426,20 +2430,20 @@ void func_8024BDA4(u16 *sel) {
                     }
                     break;
                 case 8:
-                    gNextGameMode = 0x2000000000000000;
-                    func_8026AF6C(0x805E);
+                    gNextGameMode = MODE_YOSHI_PAGES;
+                    yoshi_demand(0x805E);
                     gCamSnap = 1;
                     break;
                 case 4:
                     func_80275270(0x4000, 0.5f);
                     break;
                 case 9:
-                    if (func_80260DF0() == 1.0) {
-                        D_802F8BDC[13].unk18 = 40;
+                    if (music_get_master_volume() == 1.0) {
+                        gYoshiWindows[13].unk18 = 40;
                     } else {
-                        D_802F8BDC[13].unk18 = 39;
+                        gYoshiWindows[13].unk18 = 39;
                     }
-                    func_8026AF6C(0x800D);
+                    yoshi_demand(0x800D);
                     break;
                 case 0x1A7:
                 case 0x1A8:
@@ -2454,31 +2458,31 @@ void func_8024BDA4(u16 *sel) {
                     }
                     break;
                 case 17:
-                    D_802F8BDC[6].unk8 |= 0x80;
+                    gYoshiWindows[6].unk8 |= 0x80;
                     break;
                 case 0xFFFF:
                     switch (currentYoshiWindow) {
                         case 1:
                         case 6:
                             debug_printf("TESTING PAUSE2 %d %d %d\n", gPaused, gPauseRequest, gUnpauseRequest);
-                            func_8026AF6C(0x8000);
+                            yoshi_demand(0x8000);
                             if (gHaveCarrier || gHaveShuttle) {
-                                gNextGameMode = 0x100;
+                                gNextGameMode = MODE_MAP_VIEW;
                                 cull_restart(10);
                             }
                             break;
                         case 13:
                         case 0x58:
                             debug_printf("TESTING PAUSE3 %d %d %d\n", gPaused, gPauseRequest, gUnpauseRequest);
-                            func_8026AF6C(0x8001);
+                            yoshi_demand(0x8001);
                             break;
                     }
                     break;
                 case 40:
-                    func_80260D7C(1.0f);
+                    music_set_master_volume(1.0f);
                     break;
                 case 39:
-                    func_80260D7C(0.7f);
+                    music_set_master_volume(0.7f);
                     break;
             }
             break;
@@ -2489,22 +2493,22 @@ void func_8024BDA4(u16 *sel) {
         case 0x400:
             if ((players[playerNumber].unk18[levelno] > 0 && players[playerNumber].unk18[levelno] < 6) ? 1 : 0) {
                 if (*sel == 0x18 || *sel == 0x22 || *sel == 0xFFFF) {
-                    gNextGameMode = 0x08000000;
+                    gNextGameMode = MODE_RESULTS;
                 } else {
-                    gNextGameMode = 0x2000;
+                    gNextGameMode = MODE_LEVEL_START;
                 }
             } else {
                 if (*sel == 0x18 || *sel == 0x22 || *sel == 0xFFFF) {
-                    gNextGameMode = 0x4000;
+                    gNextGameMode = MODE_WORLD;
                 } else {
-                    gNextGameMode = 0x2000;
+                    gNextGameMode = MODE_LEVEL_START;
                 }
             }
             break;
         case 0x2000000000000000:
             if (*sel == 0xFFFF) {
                 debug_printf("TESTING PAUSE %d %d %d\n", gPaused, gPauseRequest, gUnpauseRequest);
-                func_8026AF6C(0x8001);
+                yoshi_demand(0x8001);
             }
             gNextGameMode = 4;
             break;
@@ -2549,7 +2553,7 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
     guOrtho(&dyn->orthoHi, 0.0f, 1279.0f, 959.0f, 0.0f, -20000.0f, 20000.0f, 1.0f);
     cam_update(&dyn->view, &dyn->lookAt, &dyn->cullView);
     gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, gFrameBufferPhys[gBufferIndex]);
-    gdl = func_80271FD0(gdl, (u32) dyn, levelno, gCamYaw, gCamPitch, &height);
+    gdl = backdrop_draw(gdl, (u32) dyn, levelno, gCamYaw, gCamPitch, &height);
     gDPPipeSync(gdl++);
     gDPSetCycleType(gdl++, G_CYC_FILL);
     switch (levelno) {
@@ -2591,7 +2595,7 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
     }
     gSPSetOtherMode(gdl++, G_SETOTHERMODE_H, 6, 2, 0);
     gSPClipRatio(gdl++, FRUSTRATIO_3);
-    func_8027F1F8(&gdl, gBufferIndex, 0);
+    water_draw(&gdl, gBufferIndex, 0);
     gSPSegment(gdl++, 8, PHYS(gLevelSegment8));
     gSPClearGeometryMode(gdl++, -1);
     gSPDisplayList(gdl++, osVirtualToPhysical((void *) N64_IPTR(gLevelDl0[gBufferIndex])));
@@ -2620,42 +2624,42 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
     gDPSetCombineMode(gdl++, G_CC_SHADE, G_CC_SHADE);
     gSPDisplayList(gdl++, SEG2(0x0A4E0));
     if (!(gGameMode & 0x440)) {
-        func_8027C4C8(&gdl, (struct TrailBuf *) dyn);
+        trail_draw(&gdl, (struct TrailBuf *) dyn);
     }
     func_802502EC();
     veh_draw_shadows(&gdl, dyn, 0);
-    func_80258B78(&gdl, (struct VtxBuf *) dyn);
+    obj_draw_ground_shadows(&gdl, (struct VtxBuf *) dyn);
     if (!gPaused && gLevelKind != 0x40 && !(gGameMode & 0x440) && !D_80364A84) {
-        func_80279EE8(&gdl, (s32) dyn, gBufferIndex);
+        mb_draw(&gdl, (s32) dyn, gBufferIndex);
     }
     gSPClearGeometryMode(gdl++, -1);
     gSPSetGeometryMode(gdl++, G_ZBUFFER | G_SHADE | G_SHADING_SMOOTH | G_CULL_BACK | G_LOD);
     gSPDisplayList(gdl++, SEG2(0x0A580));
     gDPPipeSync(gdl++);
-    gdl = func_802CEEFC(gdl, gBufferIndex, (Gfx *) dyn->unkA3A0, &dyn->unk2C0[0x3C]);
+    gdl = commpt_draw(gdl, gBufferIndex, (Gfx *) dyn->unkA3A0, &dyn->unk2C0[0x3C]);
     veh_draw_shadows(&gdl, dyn, 1);
     if (gHaveChopper) {
         veh_draw_chopper_shadow(&gdl, dyn);
     }
-    func_802701A8(&gdl, (s32) dyn);
-    func_80281E44(&gdl);
-    func_8028E9E4(&gdl, (struct Dyn48D00 *) dyn);
-    func_802917B0(&gdl, (struct Dyn4B5E0 *) dyn);
-    func_80292EB8(&gdl, (struct Dyn *) dyn);
-    func_8028CB30(&gdl, (s32) dyn);
+    rdu_draw(&gdl, (s32) dyn);
+    fx_draw_power_pill(&gdl);
+    tnt_draw(&gdl, (struct Dyn48D00 *) dyn);
+    block_draw(&gdl, (struct Dyn4B5E0 *) dyn);
+    shell_draw_all(&gdl, (struct Dyn *) dyn);
+    crate_draw(&gdl, (s32) dyn);
     switch (gBufferIndex) {
         case 0:
-            gSPDisplayList(gdl++, osVirtualToPhysical(D_803C5770));
+            gSPDisplayList(gdl++, osVirtualToPhysical(gFxDlA0));
             break;
         case 1:
-            gSPDisplayList(gdl++, osVirtualToPhysical(D_803C6370));
+            gSPDisplayList(gdl++, osVirtualToPhysical(gFxDlA1));
             break;
     }
-    func_80288DF0(&gdl, gBufferIndex);
+    ptcl_draw(&gdl, gBufferIndex);
     if (!(gGameMode & 2) || !D_802E8BF0) {
         veh_draw_layer(&gdl, 0);
     }
-    func_802976E8(&gdl);
+    academy_draw_marker(&gdl);
     gSPClearGeometryMode(gdl++, -1);
     gSPSetGeometryMode(gdl++, G_ZBUFFER);
     gSPDisplayList(gdl++, osVirtualToPhysical((void *) N64_IPTR(gLevelDl2[gBufferIndex])));
@@ -2680,83 +2684,83 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
     if (!(gGameMode & 2) || !D_802E8BF0) {
         veh_draw_layer(&gdl, 2);
     }
-    func_80295120(&gdl, (Mtx *) dyn);
+    ghost_draw(&gdl, (Mtx *) dyn);
     if (gGameMode & 0x2000001000003905) {
-        func_80280F34(&gdl, gBufferIndex);
+        fx_draw_drift_quads(&gdl, gBufferIndex);
     }
-    func_8027F1F8(&gdl, gBufferIndex, 1);
+    water_draw(&gdl, gBufferIndex, 1);
     veh_draw_shadows(&gdl, dyn, 2);
     if (gHaveChopper) {
-        func_80266248(&gdl, (struct DynBuf *) dyn);
+        people_draw(&gdl, (struct DynBuf *) dyn);
     }
     switch (gBufferIndex) {
         case 0:
-            gSPDisplayList(gdl++, osVirtualToPhysical(D_803C6F70));
+            gSPDisplayList(gdl++, osVirtualToPhysical(gFxDlB0));
             break;
         case 1:
-            gSPDisplayList(gdl++, osVirtualToPhysical(D_803C7B70));
+            gSPDisplayList(gdl++, osVirtualToPhysical(gFxDlB1));
             break;
     }
     if (gHaveCarrier) {
-        func_8028273C(&gdl, gBufferIndex);
+        fx_draw_carrier_blast(&gdl, gBufferIndex);
     }
     PORT_ITAG(gdl, PORT_ITAG_HUD, 0);
-    if (D_80364A68 && (gGameMode & 0x104)) {
-        func_80286C60(&gdl, (s32) dyn, gBufferIndex, gCurVehicle);
+    if (gHudDialLoaded && (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW))) {
+        hud_draw_boost_dial(&gdl, (s32) dyn, gBufferIndex, gCurVehicle);
     }
     if (gGameMode & 0x200000000400220C) {
-        func_80278324(&gdl, (s32) dyn, gBufferIndex);
+        hud_panel_draw(&gdl, (s32) dyn, gBufferIndex);
     }
-    if (gGameMode == 0x100 && gHaveCarrier) {
-        func_80276E50(&gdl, dyn, gBufferIndex, gPlayerX, gPlayerY, gPlayerZ);
+    if (gGameMode == MODE_MAP_VIEW && gHaveCarrier) {
+        hud_draw_player_locator(&gdl, dyn, gBufferIndex, gPlayerX, gPlayerY, gPlayerZ);
     }
-    func_80259450();
-    if (D_80364A6A && (gGameMode & 0x104)) {
-        func_80287530(&gdl, (Gfx * N64P *) dyn, gBufferIndex, gCurVehicle);
+    text_begin_frame();
+    if (gHudMissileIconLoaded && (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW))) {
+        hud_draw_missile_icon(&gdl, (Gfx * N64P *) dyn, gBufferIndex, gCurVehicle);
     }
-    if (D_80364A6C && (gGameMode & 0x104)) {
-        func_80287C68(&gdl, (Gfx * N64P *) dyn, gBufferIndex, gCurVehicle);
+    if (gHudRamIconLoaded && (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW))) {
+        hud_draw_ram_icon(&gdl, (Gfx * N64P *) dyn, gBufferIndex, gCurVehicle);
     }
-    if (gGameMode & 0x104) {
-        func_80282224(&gdl, gCurVehicle);
+    if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
+        hud_draw_veh_overlay(&gdl, gCurVehicle);
     }
     if ((gLevelKind & 1) && (gGameMode & 0x0400030C)) {
-        func_8026A378(D_803649F4, (u8 *) &money[1]);
+        util_itoa(D_803649F4, (u8 *) &money[1]);
         money[0] = '$';
-        func_80259CCC((Gfx * N64P *) dyn, (u8 *) money, 0, 1, 0, 0x118, 0x12, 0x14, 0x14, 0, 0xFF, 0xFF, 0xFF, D_80367BD6);
+        text_print((Gfx * N64P *) dyn, (u8 *) money, 0, 1, 0, 0x118, 0x12, 0x14, 0x14, 0, 0xFF, 0xFF, 0xFF, gHudAlpha);
         if (D_80364A44 && !gPaused) {
-            func_8026A378(D_80364A44, (u8 *) &bonus[1]);
+            util_itoa(D_80364A44, (u8 *) &bonus[1]);
             bonus[0] = '$';
-            func_80259CCC((Gfx * N64P *) dyn, (u8 *) bonus, 0, 1, 0, D_80364A4A, D_80364A4C, 0x23, 0x23, D_80364A4E, 0xFF, 0xFF, 0xFF,
+            text_print((Gfx * N64P *) dyn, (u8 *) bonus, 0, 1, 0, D_80364A4A, D_80364A4C, 0x23, 0x23, D_80364A4E, 0xFF, 0xFF, 0xFF,
                           D_80364A48);
         }
     }
-    if ((gGameMode & 0x2000000000000104) && (!(gLevelKind & 0x81) || gHaveCarrier || gHaveShuttle)) {
-        func_80275478((struct SpriteVtxBuf *) dyn, &gdl, (gGameMode & 0x100) || currentYoshiWindow == 0x4D || currentYoshiWindow == 0x49);
+    if ((gGameMode & (MODE_LEVEL | MODE_MAP_VIEW | MODE_YOSHI_PAGES)) && (!(gLevelKind & 0x81) || gHaveCarrier || gHaveShuttle)) {
+        hud_draw_target_marker((struct SpriteVtxBuf *) dyn, &gdl, (gGameMode & MODE_MAP_VIEW) || currentYoshiWindow == 0x4D || currentYoshiWindow == 0x49);
     }
     if (gNextGameMode == 0 && !areWeFading()) {
         if (!(gGameMode & 0x200000100400230C) && PORT_GVI("hd_build_frame_dl", D_803156C4) % 50 * 60 / 60 >= 21 && yoshiState == 1 &&
-            (!(gGameMode & 2) || (D_802E8BEC && (D_80366A12 == 3 || D_802E8BEC == 1))) &&
-            (gGameMode != 0x100000000000 || D_803A6B04) &&
+            (!(gGameMode & 2) || (D_802E8BEC && (gLogoState == 3 || D_802E8BEC == 1))) &&
+            (gGameMode != MODE_GLOBE_SEQ || D_803A6B04) &&
             (!(gGameMode & 0x1801) || players[playerNumber].unk91) && levelno != 0x2F) {
-            func_80259CCC((Gfx * N64P *) dyn, (u8 *) ("PRESS START"), 0, 1, 0, 0x5C, 0xC4, 0x1A, 0x1A, 1, 0xFF, 0xFF, 0xFF, 0xFF);
+            text_print((Gfx * N64P *) dyn, (u8 *) ("PRESS START"), 0, 1, 0, 0x5C, 0xC4, 0x1A, 0x1A, 1, 0xFF, 0xFF, 0xFF, 0xFF);
         }
         if (PORT_GVI("hd_build_frame_dl", D_803156C4) % 40 * 60 / 60 >= 16) {
             if (gPaused) {
-                if (gGameMode == 0x2000000000000000 && yoshiState == 2) {
-                    func_80259CCC((Gfx * N64P *) dyn, (u8 *) ("USE Z/R TO TURN PAGES"), D_8030491C, 0, 0, 0x18, 0x14, 0xF, 0xF, 1, 0xFF, 0xFF,
+                if (gGameMode == MODE_YOSHI_PAGES && yoshiState == 2) {
+                    text_print((Gfx * N64P *) dyn, (u8 *) ("USE Z/R TO TURN PAGES"), D_8030491C, 0, 0, 0x18, 0x14, 0xF, 0xF, 1, 0xFF, 0xFF,
                                   0xFF, 0xFF);
-                } else if (gGameMode == 0x100 && currentYoshiWindow == 0 && yoshiState == 2 && gHaveCarrier &&
+                } else if (gGameMode == MODE_MAP_VIEW && currentYoshiWindow == 0 && yoshiState == 2 && gHaveCarrier &&
                            !(gContButtons & 0x2010)) {
-                    func_80259CCC((Gfx * N64P *) dyn, (u8 *) ("USE Z/R TO MOVE MAP"), D_80304938, 0, 0, 0x18, 0x14, 0xF, 0xF, 1, 0xFF, 0xFF,
+                    text_print((Gfx * N64P *) dyn, (u8 *) ("USE Z/R TO MOVE MAP"), D_80304938, 0, 0, 0x18, 0x14, 0xF, 0xF, 1, 0xFF, 0xFF,
                                   0xFF, 0xFF);
                 }
-            } else if (gGameMode == 0x100) {
+            } else if (gGameMode == MODE_MAP_VIEW) {
                 if (gHaveShuttle) {
-                    func_80259CCC((Gfx * N64P *) dyn, (u8 *) ("SHUTTLE VIEW"), D_80304904, 0, 0, 0x18, 0x14, 0xF, 0xF, 1, 0xFF, 0xFF, 0xFF,
+                    text_print((Gfx * N64P *) dyn, (u8 *) ("SHUTTLE VIEW"), D_80304904, 0, 0, 0x18, 0x14, 0xF, 0xF, 1, 0xFF, 0xFF, 0xFF,
                                   0xFF);
                 } else {
-                    func_80259CCC((Gfx * N64P *) dyn, (u8 *) ("MISSILE VIEW"), D_80304910, 0, 0, 0x18, 0x14, 0xF, 0xF, 1, 0xFF, 0xFF, 0xFF,
+                    text_print((Gfx * N64P *) dyn, (u8 *) ("MISSILE VIEW"), D_80304910, 0, 0, 0x18, 0x14, 0xF, 0xF, 1, 0xFF, 0xFF, 0xFF,
                                   0xFF);
                 }
             }
@@ -2764,24 +2768,24 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
     }
     if (((gGameMode & 0x440) || levelno == 0x26) && yoshiState == 1 && !areWeFading()) {
         if ((gGameMode & 0x440) && gLevelKind != 1) {
-            func_80274B40(&gdl, (s32) dyn, D_80365580, 0x108, 0x12);
+            spr_draw_blinking(&gdl, (s32) dyn, D_80365580, 0x108, 0x12);
         } else {
-            func_80274B40(&gdl, (s32) dyn, D_80365580, 0x18, 0x12);
+            spr_draw_blinking(&gdl, (s32) dyn, D_80365580, 0x18, 0x12);
         }
     }
-    if ((gGameMode & 0x104) && gCamFixedEye) {
-        func_80274B40(&gdl, (s32) dyn, D_80364A86, 0x108, 0xBE);
+    if ((gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) && gCamFixedEye) {
+        spr_draw_blinking(&gdl, (s32) dyn, D_80364A86, 0x108, 0xBE);
     }
-    if ((gGameMode & 0x104) && gLevelKind == 1 && !gPaused) {
-        func_80285CC0();
+    if ((gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) && gLevelKind == 1 && !gPaused) {
+        stats_award_bonuses();
     }
     if (gHaveCarrier && gGameMode == 4) {
-        func_80282C80(&gdl, (Mtx *) dyn, gPlayerX, gPlayerY, gPlayerZ, D_803EF6DC, D_803EF6E0, D_803EF6E4);
+        hud_draw_target_arrow(&gdl, (Mtx *) dyn, gPlayerX, gPlayerY, gPlayerZ, gCarrierX, gCarrierY, gCarrierZ);
     }
     if ((gLevelInfo[levelno].unk0 & 0x81) && gGameMode == 4) {
         if (levelno != 0x32 ||
             ((players[playerNumber].unk18[0x32] > 0 && players[playerNumber].unk18[0x32] < 6) ? 1 : 0)) {
-            func_8028376C(&gdl, (Mtx *) dyn, gBufferIndex, gPlayerX, gPlayerZ, D_803EF6DC, D_803EF6E4);
+            hud_draw_radar(&gdl, (Mtx *) dyn, gBufferIndex, gPlayerX, gPlayerZ, gCarrierX, gCarrierZ);
         }
     }
     if (gHaveCarrier || gHaveShuttle) {
@@ -2790,8 +2794,8 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
             case 0x100:
             case 0x200:
             case 0x100000000000:
-                func_8025E2CC(&gdl, (s32) dyn, gBufferIndex);
-                func_8025E67C(&gdl, (s32) dyn, gBufferIndex);
+                hud_level_complete(&gdl, (s32) dyn, gBufferIndex);
+                hud_mission_failed(&gdl, (s32) dyn, gBufferIndex);
             case 0x40:
             case 0x400:
                 if ((gCarrierHit || gLevelDone || cmo_hit_request || gLevelDoneRequest) && (gGameMode & 0x144)) {
@@ -2805,7 +2809,7 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
                 break;
         }
     }
-    func_80259C24(&gdl, (Mtx *) dyn);
+    text_flush_screen(&gdl, (Mtx *) dyn);
     *len = gdl - dyn->dl;
     return gdl;
 }
@@ -2843,14 +2847,14 @@ void veh_draw_shadows(Gfx **gfx, DynamicBuf *dyn, u8 layer) {
     i = 0;
     while (&gVehicleShadows[i] != gVehicleShadowsEnd) {
         if ((gVehicleShadows[i].type != 0 || all) && gVehicleShadows[i].type != 0xFE &&
-            (gVehicleShadows[i].type != 0xFF || !D_803EF6FF) &&
+            (gVehicleShadows[i].type != 0xFF || !gCarrierExplodeDone) &&
             (gVehicleShadows[i].type == 0xFD || !D_80364A84 || !gHaveShuttle) && gVehicleShadows[i].layer == layer) {
             x = gVehicleShadows[i].unk1004 >> 5;
             y = gVehicleShadows[i].unk1008 >> 5;
             z = gVehicleShadows[i].unk100C >> 5;
             w = gVehicleShadows[i].halfWidth;
             d = gVehicleShadows[i].halfDepth;
-            spin = gVehicleShadows[i].type == gCurVehicle && D_803ED40D == 0x65;
+            spin = gVehicleShadows[i].type == gCurVehicle && gSurfaceMax == 0x65;
             if (spin) {
                 guRotateF(tmp, (f32) D_80364440 * 360.0 / 4096.0, 0.0f, 1.0f, 0.0f);
             }
@@ -2872,7 +2876,7 @@ void veh_draw_shadows(Gfx **gfx, DynamicBuf *dyn, u8 layer) {
                                     G_TX_CLAMP, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
                 th = 32, tw = 32;
             } else {
-                gDPLoadTextureBlock(gdl++, PHYS((u32) gVehicleShadows + i * sizeof(Vehicle)), G_IM_FMT_IA, G_IM_SIZ_8b,
+                gDPLoadTextureBlock(gdl++, PHYS((u32) gVehicleShadows + i * sizeof(VehShadow)), G_IM_FMT_IA, G_IM_SIZ_8b,
                                     64, 64, 0, G_TX_CLAMP, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD,
                                     G_TX_NOLOD);
                 th = 64, tw = 64;
@@ -2970,7 +2974,7 @@ void veh_draw_chopper_shadow(Gfx **gfx, DynamicBuf *dyn) {
             i++;
         }
     }
-    gDPLoadTextureBlock(gdl++, PHYS((u32) gVehicleShadows + i * sizeof(Vehicle)), G_IM_FMT_IA, G_IM_SIZ_8b, 64, 64, 0, G_TX_CLAMP, G_TX_CLAMP,
+    gDPLoadTextureBlock(gdl++, PHYS((u32) gVehicleShadows + i * sizeof(VehShadow)), G_IM_FMT_IA, G_IM_SIZ_8b, 64, 64, 0, G_TX_CLAMP, G_TX_CLAMP,
                         G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
     x = gVehicleShadows[i].unk1004 >> 5;
     y = gVehicleShadows[i].unk1008 >> 5;
@@ -3042,7 +3046,7 @@ void veh_draw_layer(Gfx **gfx, u8 lod) {
     all = !D_803649E8 && (D_803649EC || (gGameMode & 0x1801));
     i = 0;
     while (&gVehicles[i] != gVehiclesEnd) {
-        if ((gVehicles[i].type != 0 || all) && (gVehicles[i].type != 0xFF || !D_803EF6FF) &&
+        if ((gVehicles[i].type != 0 || all) && (gVehicles[i].type != 0xFF || !gCarrierExplodeDone) &&
             (gVehicles[i].type == 0xFD || !D_80364A84 || !gHaveShuttle)) {
             PORT_ITAG(gdl, PORT_ITAG_OBJ, i | (lod << 8));
             gSPSegment(gdl++, 6, osVirtualToPhysical(gVehicles[i].unk0));
@@ -3135,7 +3139,7 @@ void func_802502EC(void) {
             }
         }
         if (D_80364ABC == 0.0 && D_80364AC0 == 0) {
-            func_802AC61C(gPlayerX, gPlayerY, gPlayerZ, 0x13, 400000);
+            fx_spawn_at(gPlayerX, gPlayerY, gPlayerZ, 0x13, 400000);
             D_80364AC0 = 1;
         }
         D_80364AB4 += D_80364AB8;
@@ -3160,7 +3164,7 @@ typedef struct {
     u8 pad6[0x82];
 } Node88; /* 0x88 bytes */
 #ifndef NON_MATCHING
-extern Node88 *D_8036BED8;
+extern Node88 *gRdus;
 #endif
 extern u8 gCamAtSettled; /* target easing settled */
 extern s32 gCamAtHeight; /* target height offset */
@@ -3184,7 +3188,7 @@ extern u16 gCamEasedHeading; /* eased heading */
 extern s16 gCamType; /* camera type */
 extern s16 gCamPrevType; /* previous camera type */
 #ifndef NON_MATCHING
-extern Box *D_8036C794;
+extern Box *gMarkedTargetPts;
 #endif
 f32 cam_eye_scale(f32, f32, f32, f32, f32, f32);
 void cam_polar_offset(s32, f32, s32 *, s32 *);
@@ -3268,7 +3272,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
         D_8036B965 = 0;
     }
     inShuttle = gHaveShuttle && ((gGameMode & 0x940) || D_8036B965);
-    if (gGameMode == 8 || (currentYoshiWindow == 0x4B && yoshiState == 2 && (u16) D_802F8BDC[currentYoshiWindow].unk18 == 0x14D)) {
+    if (gGameMode == 8 || (currentYoshiWindow == 0x4B && yoshiState == 2 && (u16) gYoshiWindows[currentYoshiWindow].unk18 == 0x14D)) {
         if (!D_8030F668) {
             changed = 1;
         }
@@ -3279,7 +3283,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
         }
         D_8030F668 = 0;
     }
-    if (currentYoshiWindow == 0x49 && yoshiState == 2 && (u16) D_802F8BDC[currentYoshiWindow].unk18 == 0x130) {
+    if (currentYoshiWindow == 0x49 && yoshiState == 2 && (u16) gYoshiWindows[currentYoshiWindow].unk18 == 0x130) {
         if (!D_8030F66A) {
             changed = 1;
         }
@@ -3290,7 +3294,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
         }
         D_8030F66A = 0;
     }
-    if (currentYoshiWindow == 0x4D && yoshiState == 2 && (u16) D_802F8BDC[currentYoshiWindow].unk18 != 0x164) {
+    if (currentYoshiWindow == 0x4D && yoshiState == 2 && (u16) gYoshiWindows[currentYoshiWindow].unk18 != 0x164) {
         if (!D_8030F669) {
             changed = 1;
         }
@@ -3312,7 +3316,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
         }
         D_80364A85 = 0;
     }
-    gCamSnap |= inShuttle || gGameMode == 0x100;
+    gCamSnap |= inShuttle || gGameMode == MODE_MAP_VIEW;
     gCamSnap |= gFramesInMode < 2;
     if (gCarrierHit && (gGameMode & 0x100000000600)) {
         rateX = 0.2f;
@@ -3376,7 +3380,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
     }
     tilt = D_8036443C;
     if (!D_803649EC) {
-        gCamAtHeight = func_802A56C4();
+        gCamAtHeight = cam_load_level_defaults();
     }
     if (((gGameMode & 2) && D_802E8BF0) || !D_803649EC) {
         radius = 0;
@@ -3553,8 +3557,8 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
     if (tilt < gCamTiltMin) {
         tilt = gCamTiltMin;
     }
-    if ((tilt > 0 && gHeldA && !gPaused && (gGameMode & 0x106)) ||
-        (tilt < 0 && gHeldB && !gPaused && (gGameMode & 0x106))) {
+    if ((tilt > 0 && gHeldA && !gPaused && (gGameMode & (MODE_ATTRACT | MODE_LEVEL | MODE_MAP_VIEW))) ||
+        (tilt < 0 && gHeldB && !gPaused && (gGameMode & (MODE_ATTRACT | MODE_LEVEL | MODE_MAP_VIEW)))) {
         if (gCamTilt < tilt) {
             gCamTilt += tiltRate;
         }
@@ -3637,13 +3641,13 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                 } else {
                     gCamEasedHeading = (s16) ((u16) D_803FCD68 * 16 - gCamEasedHeading) / 10 + (s16) gCamEasedHeading;
                 }
-                gCamEyeGoalX = (s32) (D_803FCD48 - SINE(gCamEasedHeading) * 8000.0f + offX) << 11;
+                gCamEyeGoalX = (s32) (gShuttlePos - SINE(gCamEasedHeading) * 8000.0f + offX) << 11;
                 gCamEyeGoalY = (D_803FCD4C + 0xDAC) << 11;
                 gCamEyeGoalZ = (s32) (D_803FCD50 - COSINE(gCamEasedHeading) * 8000.0f + offZ) << 11;
             } else {
-                gCamEyeGoalX = (D_803EF6DC + 4000) << 11;
-                gCamEyeGoalY = (D_803EF6E0 + 25000) << 11;
-                gCamEyeGoalZ = (D_803EF6E4 + D_80364A78 + 7000) << 11;
+                gCamEyeGoalX = (gCarrierX + 4000) << 11;
+                gCamEyeGoalY = (gCarrierY + 25000) << 11;
+                gCamEyeGoalZ = (gCarrierZ + D_80364A78 + 7000) << 11;
             }
             break;
         case 0x40:
@@ -3651,9 +3655,9 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                 case 1:
                 case 0x80:
                     if (gHaveCarrier) {
-                        gCamEyeGoalX = (D_803EF6DC + offX) << 11;
-                        gCamEyeGoalY = (D_803EF6E0 + 2000) << 11;
-                        gCamEyeGoalZ = (D_803EF6E4 + offZ) << 11;
+                        gCamEyeGoalX = (gCarrierX + offX) << 11;
+                        gCamEyeGoalY = (gCarrierY + 2000) << 11;
+                        gCamEyeGoalZ = (gCarrierZ + offZ) << 11;
                     }
                     if (gHaveShuttle) {
                         if (gFramesInMode < 2) {
@@ -3661,7 +3665,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                         } else {
                             gCamEasedHeading = (s16) ((u16) D_803FCD68 * 16 - gCamEasedHeading) / 10 + (s16) gCamEasedHeading;
                         }
-                        gCamEyeGoalX = (s32) (D_803FCD48 - SINE(gCamEasedHeading) * 8000.0f + offX) << 11;
+                        gCamEyeGoalX = (s32) (gShuttlePos - SINE(gCamEasedHeading) * 8000.0f + offX) << 11;
                         gCamEyeGoalY = (D_803FCD4C + 0xDAC) << 11;
                         gCamEyeGoalZ = (s32) (D_803FCD50 - COSINE(gCamEasedHeading) * 8000.0f + offZ) << 11;
                     }
@@ -3692,46 +3696,46 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                     break;
                 case 0x10:
                 case 0x40:
-                    gCamEyeGoalX = ((D_8036BED8[D_8036BBB0[D_8036EA7C]].unk0 << 5) + offX) << 11;
-                    gCamEyeGoalY = ((D_8036BED8[D_8036BBB0[D_8036EA7C]].unk2 << 5) + 2000) << 11;
-                    gCamEyeGoalZ = ((D_8036BED8[D_8036BBB0[D_8036EA7C]].unk4 << 5) + offZ) << 11;
+                    gCamEyeGoalX = ((gRdus[gRduLitOrder[D_8036EA7C]].unk0 << 5) + offX) << 11;
+                    gCamEyeGoalY = ((gRdus[gRduLitOrder[D_8036EA7C]].unk2 << 5) + 2000) << 11;
+                    gCamEyeGoalZ = ((gRdus[gRduLitOrder[D_8036EA7C]].unk4 << 5) + offZ) << 11;
                     break;
             }
             break;
         case 0x200:
             if (gHaveShuttle) {
-                gCamEyeGoalX = (D_803FCD48 + offX - 6000) << 11;
+                gCamEyeGoalX = (gShuttlePos + offX - 6000) << 11;
                 gCamEyeGoalY = (D_803FCD4C + 0xD48) << 11;
                 gCamEyeGoalZ = (D_803FCD50 + offZ + 6000) << 11;
             } else if (gCarrierHit) {
-                gCamEyeGoalX = (D_803EF6DC + offX + 16000) << 11;
-                gCamEyeGoalY = (D_803EF6E0 + 15000) << 11;
-                gCamEyeGoalZ = (D_803EF6E4 + offZ - 3000) << 11;
+                gCamEyeGoalX = (gCarrierX + offX + 16000) << 11;
+                gCamEyeGoalY = (gCarrierY + 15000) << 11;
+                gCamEyeGoalZ = (gCarrierZ + offZ - 3000) << 11;
             } else {
-                gCamEyeGoalX = (D_803EF6DC + offX + 4000) << 11;
-                gCamEyeGoalY = (D_803EF6E0 + 2400) << 11;
+                gCamEyeGoalX = (gCarrierX + offX + 4000) << 11;
+                gCamEyeGoalY = (gCarrierY + 2400) << 11;
                 if (levelno == 0) {
                     gCamEyeGoalY += 0x5DC000;
                 }
-                gCamEyeGoalZ = (D_803EF6E4 + offZ - 4000) << 11;
+                gCamEyeGoalZ = (gCarrierZ + offZ - 4000) << 11;
             }
             break;
         case 0x400:
             if (gHaveShuttle) {
-                gCamEyeGoalX = (D_803FCD48 + offX + 6000) << 11;
+                gCamEyeGoalX = (gShuttlePos + offX + 6000) << 11;
                 gCamEyeGoalY = (D_803FCD4C + 0xD48) << 11;
                 gCamEyeGoalZ = (D_803FCD50 + offZ - 6000) << 11;
             } else if (gCarrierHit) {
-                gCamEyeGoalX = (D_803EF6DC + offX - 16000) << 11;
-                gCamEyeGoalY = (D_803EF6E0 + 15000) << 11;
-                gCamEyeGoalZ = (D_803EF6E4 - offZ + 3000) << 11;
+                gCamEyeGoalX = (gCarrierX + offX - 16000) << 11;
+                gCamEyeGoalY = (gCarrierY + 15000) << 11;
+                gCamEyeGoalZ = (gCarrierZ - offZ + 3000) << 11;
             } else {
-                gCamEyeGoalX = (D_803EF6DC + offX - 4000) << 11;
-                gCamEyeGoalY = (D_803EF6E0 + 2400) << 11;
+                gCamEyeGoalX = (gCarrierX + offX - 4000) << 11;
+                gCamEyeGoalY = (gCarrierY + 2400) << 11;
                 if (levelno == 0) {
                     gCamEyeGoalY += 0x5DC000;
                 }
-                gCamEyeGoalZ = (D_803EF6E4 + offZ + 4000) << 11;
+                gCamEyeGoalZ = (gCarrierZ + offZ + 4000) << 11;
             }
             break;
         case 1:
@@ -3742,7 +3746,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                 } else {
                     gCamEasedHeading = (s16) ((u16) D_803FCD68 * 16 - gCamEasedHeading) / 10 + (s16) gCamEasedHeading;
                 }
-                gCamEyeGoalX = (s32) (D_803FCD48 - SINE(gCamEasedHeading) * 8000.0f + offX) << 11;
+                gCamEyeGoalX = (s32) (gShuttlePos - SINE(gCamEasedHeading) * 8000.0f + offX) << 11;
                 gCamEyeGoalY = (D_803FCD4C + 0xDAC) << 11;
                 gCamEyeGoalZ = (s32) (D_803FCD50 - COSINE(gCamEasedHeading) * 8000.0f + offZ) << 11;
             } else {
@@ -3767,30 +3771,30 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
                     gCamHeight = 11000;
                     gCamEyeHeight = 11000;
                 }
-                if (gHaveShuttle && D_8036B8B0) {
-                    gCamEyeGoalX = (D_803FCD48 + D_8036B8B4) << 11;
-                    gCamEyeGoalY = (D_803FCD4C + D_8036B8B8) << 11;
-                    gCamEyeGoalZ = (D_803FCD50 + D_8036B8BC) << 11;
-                } else if (gHaveCarrier && D_8036B8B0) {
-                    gCamEyeGoalX = (D_803EF6DC + D_8036B8B4) << 11;
-                    gCamEyeGoalY = (D_803EF6E0 + D_8036B8B8) << 11;
-                    gCamEyeGoalZ = (D_803EF6E4 + D_8036B8BC) << 11;
+                if (gHaveShuttle && gCamPathActive) {
+                    gCamEyeGoalX = (gShuttlePos + gCamPathX) << 11;
+                    gCamEyeGoalY = (D_803FCD4C + gCamPathY) << 11;
+                    gCamEyeGoalZ = (D_803FCD50 + gCamPathZ) << 11;
+                } else if (gHaveCarrier && gCamPathActive) {
+                    gCamEyeGoalX = (gCarrierX + gCamPathX) << 11;
+                    gCamEyeGoalY = (gCarrierY + gCamPathY) << 11;
+                    gCamEyeGoalZ = (gCarrierZ + gCamPathZ) << 11;
                 } else if (D_8030F668) {
                     cam_polar_offset(2500, gCamHeading, &px, &pz);
-                    gCamEyeGoalX = ((D_803F767C << 5) + px) << 11;
-                    gCamEyeGoalY = ((D_803F767E << 5) + 5000) << 11;
-                    gCamEyeGoalZ = ((D_803F7680 << 5) + pz) << 11;
+                    gCamEyeGoalX = ((gEndObjectX << 5) + px) << 11;
+                    gCamEyeGoalY = ((gEndObjectY << 5) + 5000) << 11;
+                    gCamEyeGoalZ = ((gEndObjectZ << 5) + pz) << 11;
                 } else if (D_8030F66A) {
                     cam_polar_offset(2500, gCamHeading, &px, &pz);
-                    gCamEyeGoalX = (px + D_803F7670) << 11;
-                    gCamEyeGoalY = (D_803F7674 + 5000) << 11;
-                    gCamEyeGoalZ = (pz + D_803F7678) << 11;
+                    gCamEyeGoalX = (px + gCarrierTargetX) << 11;
+                    gCamEyeGoalY = (gCarrierTargetY + 5000) << 11;
+                    gCamEyeGoalZ = (pz + gCarrierTargetZ) << 11;
                 } else if (D_8030F669) {
-                    if (D_8036C794 != NULL) {
+                    if (gMarkedTargetPts != NULL) {
                         cam_polar_offset(2500, gCamHeading, &px, &pz);
-                        gCamEyeGoalX = ((D_8036C794->unk12 + D_8036C794->unk0) / 2 << 16) + (px << 11);
-                        gCamEyeGoalY = ((D_8036C794->unk14 + D_8036C794->unk2) / 2 << 16) + 0x9C4000;
-                        gCamEyeGoalZ = ((D_8036C794->unk16 + D_8036C794->unk4) / 2 << 16) + (pz << 11);
+                        gCamEyeGoalX = ((gMarkedTargetPts->unk12 + gMarkedTargetPts->unk0) / 2 << 16) + (px << 11);
+                        gCamEyeGoalY = ((gMarkedTargetPts->unk14 + gMarkedTargetPts->unk2) / 2 << 16) + 0x9C4000;
+                        gCamEyeGoalZ = ((gMarkedTargetPts->unk16 + gMarkedTargetPts->unk4) / 2 << 16) + (pz << 11);
                     }
                 } else {
                     if (D_80364A85) {
@@ -3826,69 +3830,69 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
     switch (gGameMode) {
         case 0x100:
             if (gHaveShuttle) {
-                gCamAtGoalX = D_803FCD48 / 32.0f;
+                gCamAtGoalX = gShuttlePos / 32.0f;
                 gCamAtGoalY = (D_803FCD4C + 2000) / 32.0f;
                 gCamAtGoalZ = D_803FCD50 / 32.0f;
             } else {
-                gCamAtGoalX = D_803EF6DC / 32.0f;
-                gCamAtGoalY = D_803EF6E0 / 32.0f;
-                gCamAtGoalZ = (D_803EF6E4 + D_80364A78 + 11000) / 32.0f;
+                gCamAtGoalX = gCarrierX / 32.0f;
+                gCamAtGoalY = gCarrierY / 32.0f;
+                gCamAtGoalZ = (gCarrierZ + D_80364A78 + 11000) / 32.0f;
             }
             break;
         case 0x200:
         case 0x400:
             if (gHaveShuttle) {
-                gCamAtGoalX = (D_803FCD48 + offX) / 32.0f;
+                gCamAtGoalX = (gShuttlePos + offX) / 32.0f;
                 gCamAtGoalY = (D_803FCD4C + 2000) / 32.0f;
                 gCamAtGoalZ = (D_803FCD50 + offZ) / 32.0f;
             } else {
-                gCamAtGoalX = (D_803EF6DC + offX) / 32.0f;
-                gCamAtGoalY = D_803EF6E0 / 32.0f;
-                gCamAtGoalZ = (D_803EF6E4 + offZ) / 32.0f;
+                gCamAtGoalX = (gCarrierX + offX) / 32.0f;
+                gCamAtGoalY = gCarrierY / 32.0f;
+                gCamAtGoalZ = (gCarrierZ + offZ) / 32.0f;
             }
             break;
         case 1:
         case 0x800:
         case 0x1000:
             if (gHaveShuttle) {
-                gCamAtGoalX = D_803FCD48 / 32.0f;
+                gCamAtGoalX = gShuttlePos / 32.0f;
                 gCamAtGoalY = (D_803FCD4C + 2000) / 32.0f;
                 gCamAtGoalZ = D_803FCD50 / 32.0f;
             } else {
-                gCamAtGoalX = (D_803EF2EC + offX) / 32.0f;
+                gCamAtGoalX = (gChopperX + offX) / 32.0f;
                 gCamAtGoalY = D_803EF314 / 32.0f;
-                gCamAtGoalZ = (D_803EF2F4 + offZ) / 32.0f;
+                gCamAtGoalZ = (gChopperZ + offZ) / 32.0f;
             }
             break;
         case 0x40:
             if (gHaveShuttle) {
-                gCamAtGoalX = D_803FCD48 / 32.0f;
+                gCamAtGoalX = gShuttlePos / 32.0f;
                 gCamAtGoalY = (D_803FCD4C + 2000) / 32.0f;
                 gCamAtGoalZ = D_803FCD50 / 32.0f;
                 break;
             }
         default:
-            if (gHaveShuttle && D_8036B8B0) {
-                gCamAtGoalX = D_803FCD48 / 32.0f;
+            if (gHaveShuttle && gCamPathActive) {
+                gCamAtGoalX = gShuttlePos / 32.0f;
                 gCamAtGoalY = (D_803FCD4C + 6000) / 32.0f;
                 gCamAtGoalZ = D_803FCD50 / 32.0f;
-            } else if (gHaveCarrier && D_8036B8B0) {
-                gCamAtGoalX = D_803EF6DC / 32.0f;
-                gCamAtGoalY = D_803EF6E0 / 32.0f;
-                gCamAtGoalZ = D_803EF6E4 / 32.0f;
+            } else if (gHaveCarrier && gCamPathActive) {
+                gCamAtGoalX = gCarrierX / 32.0f;
+                gCamAtGoalY = gCarrierY / 32.0f;
+                gCamAtGoalZ = gCarrierZ / 32.0f;
             } else if (D_8030F668) {
-                gCamAtGoalX = D_803F767C;
-                gCamAtGoalY = D_803F767E;
-                gCamAtGoalZ = D_803F7680;
+                gCamAtGoalX = gEndObjectX;
+                gCamAtGoalY = gEndObjectY;
+                gCamAtGoalZ = gEndObjectZ;
             } else if (D_8030F66A) {
-                gCamAtGoalX = D_803F7670 / 32.0f;
-                gCamAtGoalY = D_803F7674 / 32.0f;
-                gCamAtGoalZ = D_803F7678 / 32.0f;
+                gCamAtGoalX = gCarrierTargetX / 32.0f;
+                gCamAtGoalY = gCarrierTargetY / 32.0f;
+                gCamAtGoalZ = gCarrierTargetZ / 32.0f;
             } else if (D_8030F669) {
-                if (D_8036C794 != NULL) {
-                    gCamAtGoalX = (f32) (D_8036C794->unk12 + D_8036C794->unk0) / 2.0;
-                    gCamAtGoalY = (f32) (D_8036C794->unk14 + D_8036C794->unk2) / 2.0;
-                    gCamAtGoalZ = (f32) (D_8036C794->unk16 + D_8036C794->unk4) / 2.0;
+                if (gMarkedTargetPts != NULL) {
+                    gCamAtGoalX = (f32) (gMarkedTargetPts->unk12 + gMarkedTargetPts->unk0) / 2.0;
+                    gCamAtGoalY = (f32) (gMarkedTargetPts->unk14 + gMarkedTargetPts->unk2) / 2.0;
+                    gCamAtGoalZ = (f32) (gMarkedTargetPts->unk16 + gMarkedTargetPts->unk4) / 2.0;
                 }
             } else {
                 gCamAtGoalX = (gPlayerX + offX) / 32.0f;
@@ -3898,9 +3902,9 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
             break;
     }
     if (gCarrierHit && levelno == 0x31) {
-        gCamEyeGoalX = (D_803EF6DC + offX + 16000) << 11;
-        gCamEyeGoalY = (D_803EF6E0 + 15000) << 11;
-        gCamEyeGoalZ = (D_803EF6E4 + offZ - 3000) << 11;
+        gCamEyeGoalX = (gCarrierX + offX + 16000) << 11;
+        gCamEyeGoalY = (gCarrierY + 15000) << 11;
+        gCamEyeGoalZ = (gCarrierZ + offZ - 3000) << 11;
     }
     if (gHaveShuttle && D_8036B965) {
         if (gCamSnap) {
@@ -3908,10 +3912,10 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
         } else {
             gCamEasedHeading = (s16) ((u16) D_803FCD68 * 16 - gCamEasedHeading) / 10 + (s16) gCamEasedHeading;
         }
-        gCamEyeGoalX = (s32) (D_803FCD48 - SINE(gCamEasedHeading) * 8000.0f + offX) << 11;
+        gCamEyeGoalX = (s32) (gShuttlePos - SINE(gCamEasedHeading) * 8000.0f + offX) << 11;
         gCamEyeGoalY = (D_803FCD4C + 0xDAC) << 11;
         gCamEyeGoalZ = (s32) (D_803FCD50 - COSINE(gCamEasedHeading) * 8000.0f + offZ) << 11;
-        gCamAtGoalX = D_803FCD48 / 32.0f;
+        gCamAtGoalX = gShuttlePos / 32.0f;
         gCamAtGoalY = (D_803FCD4C + 2000) / 32.0f;
         gCamAtGoalZ = D_803FCD50 / 32.0f;
     }
@@ -3923,7 +3927,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
         gCamAtGoalY = gPlayerY / 32.0f;
         gCamAtGoalZ = gPlayerZ / 32.0f;
     }
-    if ((gGameMode & 0x2000000000002104) && !D_8036B8B0 && !inShuttle && gGameMode != 0x100 && levelno != 0x23 &&
+    if ((gGameMode & (MODE_LEVEL | MODE_MAP_VIEW | MODE_LEVEL_START | MODE_YOSHI_PAGES)) && !gCamPathActive && !inShuttle && gGameMode != MODE_MAP_VIEW && levelno != 0x23 &&
         !D_80364A85) {
         tx = gCamAtGoalX * 65536.0;
         ty = gCamAtGoalY * 65536.0;
@@ -3948,11 +3952,11 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
         gCamPrevType = !gCamType;
     }
     if (D_80364424 && (gCamHeading < 134.0 || gCamHeading > 136.0)) {
-        func_802CE4F0(gCamEyeX >> 11, gCamEyeY >> 11, gCamEyeZ >> 11);
-        func_802CE5BC(gCamEyeX >> 11, gCamEyeY >> 11, gCamEyeZ >> 11,
+        coll_begin_probe(gCamEyeX >> 11, gCamEyeY >> 11, gCamEyeZ >> 11);
+        coll_probe_tris(gCamEyeX >> 11, gCamEyeY >> 11, gCamEyeZ >> 11,
                       D_80364434 ? D_80364430 : D_80364430 + 1600, 0xBE, 0);
         if (D_80364434) {
-            if (D_803A7424) {
+            if (gCollHit) {
                 gCamEyeHeight += D_8036442C;
                 if (gCamEyeHeight > D_80364428) {
                     gCamEyeHeight = D_80364428;
@@ -3961,7 +3965,7 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
             } else {
                 D_80364434 = 0;
             }
-        } else if (D_803A7424) {
+        } else if (gCollHit) {
             D_80364434 = 1;
         } else {
             gCamEyeHeight -= D_8036442C;
@@ -4053,29 +4057,29 @@ void cam_update(Mtx *mtx, LookAt *lookAt, Mtx *view) {
         dist = 1.0f;
     }
     if (eyeX >= gCamAtX && eyeZ >= gCamAtZ) {
-        gCamYaw = func_802AD7D4((eyeX - gCamAtX) * 65535.9 / dist) >> 4;
+        gCamYaw = math_asin_c((eyeX - gCamAtX) * 65535.9 / dist) >> 4;
         quadrant = 0;
     }
     if (eyeX >= gCamAtX && eyeZ < gCamAtZ) {
-        gCamYaw = (func_802AD7D4((gCamAtZ - eyeZ) * 65535.9 / dist) >> 4) + 0x400; quadrant = 1;
+        gCamYaw = (math_asin_c((gCamAtZ - eyeZ) * 65535.9 / dist) >> 4) + 0x400; quadrant = 1;
     }
     if (eyeX < gCamAtX && eyeZ < gCamAtZ) {
-        gCamYaw = (func_802AD7D4((gCamAtX - eyeX) * 65535.9 / dist) >> 4) + 0x800; quadrant = 2;
+        gCamYaw = (math_asin_c((gCamAtX - eyeX) * 65535.9 / dist) >> 4) + 0x800; quadrant = 2;
     }
     if (eyeX < gCamAtX && eyeZ >= gCamAtZ) {
-        gCamYaw = (func_802AD7D4((eyeZ - gCamAtZ) * 65535.9 / dist) >> 4) + 0xC00; quadrant = 3;
+        gCamYaw = (math_asin_c((eyeZ - gCamAtZ) * 65535.9 / dist) >> 4) + 0xC00; quadrant = 3;
     }
     dist = sqrtf((eyeX - gCamAtX) * (eyeX - gCamAtX) + (eyeZ - gCamAtZ) * (eyeZ - gCamAtZ) +
                  (eyeY - gCamAtY) * (eyeY - gCamAtY));
     if (eyeY >= gCamAtY) {
-        pitch1 = func_802AD7D4((eyeY - gCamAtY) * 65535.9 / dist) >> 3;
+        pitch1 = math_asin_c((eyeY - gCamAtY) * 65535.9 / dist) >> 3;
     } else {
-        pitch1 = 0x1000 - (func_802AD7D4((gCamAtY - eyeY) * 65535.9 / dist) >> 3);
+        pitch1 = 0x1000 - (math_asin_c((gCamAtY - eyeY) * 65535.9 / dist) >> 3);
     }
     if (eyeY >= gCamAtY) {
-        pitch2 = func_802AD7D4((65535.0 < (eyeY - gCamAtY) * 65535.9 / 20000.0) ? 65535.0 : (eyeY - gCamAtY) * 65535.9 / 20000.0) >> 3;
+        pitch2 = math_asin_c((65535.0 < (eyeY - gCamAtY) * 65535.9 / 20000.0) ? 65535.0 : (eyeY - gCamAtY) * 65535.9 / 20000.0) >> 3;
     } else {
-        pitch2 = 0x1000 - (func_802AD7D4((65535.0 < (gCamAtY - eyeY) * 65535.9 / 20000.0) ? 65535.0 : (gCamAtY - eyeY) * 65535.9 / 20000.0) >> 3);
+        pitch2 = 0x1000 - (math_asin_c((65535.0 < (gCamAtY - eyeY) * 65535.9 / 20000.0) ? 65535.0 : (gCamAtY - eyeY) * 65535.9 / 20000.0) >> 3);
     }
     gCamPitch = pitch1 - pitch2;
     scale = cam_eye_scale(eyeX, eyeY, eyeZ, gCamAtX, gCamAtY, gCamAtZ);
@@ -4203,17 +4207,17 @@ void cam_turn_heading(void) {
 
     if (gPaused == 0) {
         ok = cam_fixed_heading_area();
-        if (ok && ((gHeldCRight && !gPrevHeldCRight) || (gHeldCLeft && !gPrevHeldCLeft)) && (gGameMode & 0x104)) {
-            func_80260650(D_80367738, 0xD0, NULL);
+        if (ok && ((gHeldCRight && !gPrevHeldCRight) || (gHeldCLeft && !gPrevHeldCLeft)) && (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW))) {
+            snd_play(gSfxBank, 0xD0, NULL);
         }
-        if (gHeldCRight && !gPrevHeldCRight && !gCamTurnPos && !gCamTurnNeg && !ok && gGameMode != 0x2000) {
+        if (gHeldCRight && !gPrevHeldCRight && !gCamTurnPos && !gCamTurnNeg && !ok && gGameMode != MODE_LEVEL_START) {
             gCamHeadingGoal = gCamHeading + 45.0;
             if (gCamHeadingGoal >= 360.0) {
                 gCamHeadingGoal = gCamHeadingGoal - 360.0;
             }
             gCamTurnPos = 1;
             if (gGameMode != 0x40) {
-                func_80260650(D_80367738, 0xDD, NULL);
+                snd_play(gSfxBank, 0xDD, NULL);
             }
         }
         if (gCamTurnPos) {
@@ -4234,14 +4238,14 @@ void cam_turn_heading(void) {
                 }
             }
         }
-        if (gHeldCLeft && !gPrevHeldCLeft && !gCamTurnPos && !gCamTurnNeg && !ok && gGameMode != 0x2000) {
+        if (gHeldCLeft && !gPrevHeldCLeft && !gCamTurnPos && !gCamTurnNeg && !ok && gGameMode != MODE_LEVEL_START) {
             gCamHeadingGoal = gCamHeading - 45.0;
             if (gCamHeadingGoal < 0.0) {
                 gCamHeadingGoal = gCamHeadingGoal + 360.0;
             }
             gCamTurnNeg = 1;
             if (gGameMode != 0x40) {
-                func_80260650(D_80367738, 0xDC, NULL);
+                snd_play(gSfxBank, 0xDC, NULL);
             }
         }
         if (gCamTurnNeg) {
@@ -4274,13 +4278,13 @@ void cam_turn_heading(void) {
 u8 cam_fixed_heading_area(void) {
     u8 ok = 0;
 
-    if (gGameMode == 0x100000000000 || gGameMode == 2) {
+    if (gGameMode == MODE_GLOBE_SEQ || gGameMode == 2) {
         ok = 1;
     } else {
         switch (levelno) {
             case 4:
-                if (func_802AC4C4(gPlayerX >> 5, gPlayerZ >> 5, 0xE56, 0x8EC, 0xBB8, 0x6A4, 0x1068, 0x1F4) ||
-                    func_802AC4C4(gPlayerX >> 5, gPlayerZ >> 5, 0xE56, 0x8EC, 0x1068, 0x1F4, 0x1324, 0x4B0)) {
+                if (ground_in_triangle(gPlayerX >> 5, gPlayerZ >> 5, 0xE56, 0x8EC, 0xBB8, 0x6A4, 0x1068, 0x1F4) ||
+                    ground_in_triangle(gPlayerX >> 5, gPlayerZ >> 5, 0xE56, 0x8EC, 0x1068, 0x1F4, 0x1324, 0x4B0)) {
                     ok = 1;
                 }
                 break;
@@ -4360,7 +4364,7 @@ void hd_init(void) {
     osCreateMesgQueue(&gTaskDoneQueue, D_803153F8, 16);
     sched_add_client((struct BcSched *) gScheduler, (struct BcScClient *) gMainSchedClient, &gTaskDoneQueue, 1, 1);
     status = cont_init();
-    func_80261588();
+    music_init_audio();
     debug_printf("audio inited\n");
     osViSetSpecialFeatures(OS_VI_GAMMA_OFF);
     osViSetSpecialFeatures(OS_VI_DITHER_FILTER_ON);
@@ -4369,15 +4373,15 @@ void hd_init(void) {
     gDepthBufferPhys = PHYS(D_8021ED00);
     rsp_init_ucode_table();
     func_802D6710();
-    func_8028FC10();
+    cont_boot_check_start();
     if (!(status & 1)) {
         gNextGameMode = 0x0800000000000000;
     } else if (D_802FDBD0) {
         gNextGameMode = 0x0000080000000000;
     } else if (D_802FDBD4) {
-        gNextGameMode = 0x0040000000000000;
+        gNextGameMode = MODE_ERASE_SAVE;
     } else {
-        gNextGameMode = 0x10;
+        gNextGameMode = MODE_BOOT_SCREEN1;
     }
     for (i = 0x1FF; i >= 0; i--) {
         gMainThreadStack[i] = 0x1122334455667788LL;
@@ -4411,7 +4415,7 @@ void hd_mode_setup(void) {
 
     size = D_00788000 - D_00787F40;
     osViBlack(1);
-    D_80364A70 = func_80261A44(gNextGameMode);
+    gPendingTune = music_tune_for_mode(gNextGameMode);
     func_802D6710();
     osInvalDCache((void *) 0x80000000, 0x400000);
     D_803649F4 = 0;
@@ -4419,9 +4423,9 @@ void hd_mode_setup(void) {
     D_80358064 = 0;
     gFramesInMode = 0;
     gBufferIndex = 0;
-    D_80367BD6 = 0;
-    func_8026A8BC();
-    func_8026A974();
+    gHudAlpha = 0;
+    util_seed_rand();
+    util_seed_rand2();
     cont_clear();
     func_8028B720();
     gStaticSegment = D_803FF600;
@@ -4435,14 +4439,14 @@ void hd_mode_setup(void) {
     align_up(&gHeapPtr, 0x10);
     gRdpOutputBuffer = gHeapPtr;
     gHeapPtr += 0xA000;
-    if (gLevelInfo[levelno].unk0 == 2 && !(gNextGameMode & 0x100000000002)) {
+    if (gLevelInfo[levelno].unk0 == 2 && !(gNextGameMode & (MODE_ATTRACT | MODE_GLOBE_SEQ))) {
         debug_printf("Allocating ghost buffer memory\n");
         gHeapPtr += 0x20000;
     }
-    D_803B9888 = 0;
-    func_802A0700();
-    gVehicleShadows = (Vehicle *) (((u32) D_80358088 + 0x40) & ~0x3F);
-    func_80278E3C();
+    gTexTableLoaded = 0;
+    tex_load_table();
+    gVehicleShadows = (VehShadow *) (((u32) D_80358088 + 0x40) & ~0x3F);
+    mb_init();
     cmo_hit_request = 0;
     gLevelDoneRequest = 0;
     D_803643D8 = 0;
@@ -4456,18 +4460,18 @@ void hd_mode_setup(void) {
     if (gNextGameMode & 0xC9FD8FE7FBFFC0B0) {
         func_8028B3E0();
     }
-    func_80297530(levelno);
-    func_80272C50();
-    if (gNextGameMode == 0x40000000000) {
-        func_801F7850();
+    academy_place_marker(levelno);
+    spr_reset();
+    if (gNextGameMode == MODE_BEST_TIMES) {
+        fe_best_build_menu();
     }
     old = gHeapPtr;
-    func_8026B118(0);
+    yoshi_init(0);
     debug_printf("Yoshi windows allocated %d bytes, %x\n", gHeapPtr - old, gHeapPtr);
     gVehiclesEnd = gVehicles;
     cont_wait_read();
-    func_802592F0();
-    D_8039CAA2 = 0;
+    text_init();
+    gPadDisplayLoaded = 0;
 }
 
 /* Inflates level's data file (lagp, chimp, valley, ..., level59: the ROM symbols
@@ -4726,16 +4730,16 @@ void lvl_load_file(s32 level, s32 dest, s32 *size) {
 void hd_setup_level(s32 arg0) {
     s32 i;
     s32 size;
-    Vehicle *v;
+    VehShadow *v;
     u8 found;
     s32 old;
 
-    D_80364A68 = 0;
-    D_80364A69 = 0;
-    D_80364A6A = 0;
+    gHudDialLoaded = 0;
+    gHaveSkyfall = 0;
+    gHudMissileIconLoaded = 0;
     D_80364A6B = 0;
-    D_80364A6C = 0;
-    D_80364A6D = 0;
+    gHudRamIconLoaded = 0;
+    gHaveSideswipe = 0;
     D_803649E8 = 0;
     D_803649EC = 0;
     gVehicleShadowsEnd = gVehicleShadows;
@@ -4752,36 +4756,36 @@ void hd_setup_level(s32 arg0) {
     gCamTurnNeg = 0;
     gCamEyeHeight = 3000;
     D_80364434 = 1;
-    D_803A7430 = 0;
+    gTrainContactFrames = 0;
     D_803649EE = 0;
     D_80364A84 = 0;
     gCurVehicle = 0;
     if (frontEndPresent) {
         HD_ASSERT(!pakBusy, 4162);
         HD_ASSERT(MQ_IS_EMPTY(&pakToGameMessageQ), 4163);
-        sched_remove_client((struct BcSched *) gScheduler, (struct BcScClient *) D_80218EE0);
-        func_802D67F0((OSThread *) D_80218D30);
+        sched_remove_client((struct BcSched *) gScheduler, (struct BcScClient *) gPakSchedClient);
+        func_802D67F0((OSThread *) gPakThread);
     }
-    D_8039CA62 = 0;
-    D_8039CA61 = 0;
-    if (gLevelKind == 2 && gNextGameMode == 0x2000) {
+    gGhostRecording = 0;
+    gGhostPlaying = 0;
+    if (gLevelKind == 2 && gNextGameMode == MODE_LEVEL_START) {
         if (!D_8039CA60) {
-            func_80294E30();
+            ghost_init();
         }
-        func_80294E88();
-        func_80294EB8();
+        ghost_start_recording();
+        ghost_start_playback();
     }
     lvl_load_file(levelno, gHeapPtr, &size);
     gLevelData = (u8 *) N64_IPTR(gHeapPtr);
     gHeapPtr += size;
     align_up(&gHeapPtr, 0x10);
-    func_80285190();
-    func_80275430();
-    func_802621DC(levelno);
+    stats_level_start();
+    hud_init_target_marker();
+    lvl_init_chopper_pos(levelno);
     func_80262238(levelno);
     cam_set_level_fovy(levelno);
-    D_80367BFF = 0;
-    func_802CE840();
+    gTurboPending = 0;
+    radar_clear_markers();
     debug_printf("enter initlevel game_mode=%d loop_done=%d\n", lowest_set_bit(gGameMode), lowest_set_bit(gNextGameMode));
     old = gHeapPtr;
     initlevel(gLevelData, arg0);
@@ -4789,37 +4793,37 @@ void hd_setup_level(s32 arg0) {
     lvl_alloc_dl_buffers();
     if (gNextGameMode != 2) {
         if ((players[playerNumber].unk18[levelno] > 0 && players[playerNumber].unk18[levelno] < 6) ? 1 : 0) {
-            func_802CF628();
+            commpt_load_flags();
         }
     }
-    func_802C1DD0(gLevelKind == 0x20 || gLevelKind == 0x80);
-    func_80262320(levelno);
+    obj_tally(gLevelKind == 0x20 || gLevelKind == 0x80);
+    hud_init_objective(levelno);
     if (gCamFixedEye) {
-        D_80364A86 = func_80272C5C((u16 *) D_802E8BF4, 0, 1, 1, 1, 1.0f);
+        D_80364A86 = spr_load((u16 *) D_802E8BF4, 0, 1, 1, 1, 1.0f);
     }
-    func_802775C0();
-    if (D_80364A69) {
-        func_80286A00();
+    hud_panel_init();
+    if (gHaveSkyfall) {
+        hud_init_boost_dial();
     }
     if (D_80364A6B) {
-        func_802873AC();
+        hud_init_missile_icon();
     }
-    if (D_80364A6D) {
-        func_80287AE4();
+    if (gHaveSideswipe) {
+        hud_init_ram_icon();
     }
-    func_802821D0();
-    func_80282728();
-    func_80281A70(levelno);
+    hud_init_veh_overlay();
+    fx_init_carrier_blast();
+    fx_init_power_pill(levelno);
     if (gLevelInfo[levelno].unk0 == 1) {
-        func_80264C20(arg0);
+        people_init(arg0);
     }
-    func_80288220();
-    func_8027BE4C();
-    func_80292240();
-    func_8027E344(levelno);
-    func_802807D8(levelno);
-    func_80268664(levelno);
-    func_8026A988();
+    ptcl_init();
+    trail_init();
+    shell_init();
+    water_init(levelno);
+    fx_init_drift_quads(levelno);
+    util_cam_path_init(levelno);
+    util_reset_hint_events();
     v = gVehicleShadows;
     while (v != gVehicleShadowsEnd) {
         i = 0;
@@ -4831,12 +4835,12 @@ void hd_setup_level(s32 arg0) {
                 i++;
             }
         }
-        func_80258544(v, v->unk1004, v->unk1010, v->unk100C, v->unk1000, (Gfx *) N64_IPTR((gVehicles[i].unk54)), gVehicles[i].unk0,
+        veh_render_shadow_tex(v, v->unk1004, v->unk1010, v->unk100C, v->unk1000, (Gfx *) N64_IPTR((gVehicles[i].unk54)), gVehicles[i].unk0,
                       gVehicles[i].unk4);
         rsp_wait_task(0x61F);
         v++;
     }
-    func_802729F0(gNextGameMode, levelno);
+    backdrop_init(gNextGameMode, levelno);
     gCamYaw = 0x2000;
     gCamPitch = 0x2000;
     gCurVehicle = 0;
@@ -4856,11 +4860,11 @@ void hd_setup_level(s32 arg0) {
     D_80364AB8 = 1.0f;
     D_80364ABC = 1.0f;
     D_80364AC0 = 0;
-    gPlayerX = D_803ED808;
+    gPlayerX = gDriverPos;
     gPlayerY = D_803ED80C;
     gPlayerZ = D_803ED810;
     D_802FDB14 = 0;
-    if (D_802E8BF8) {
+    if (gUseEeprom) {
         D_803649F0 = nss.ip;
     } else {
         D_803649F0 = players[playerNumber].unk14;
@@ -4872,11 +4876,11 @@ void hd_setup_level(s32 arg0) {
     }
     debug_printf("Level %d: mem_pool=0x%x, code seg=0x%x, space=%d bytes\n", levelno, gHeapPtr, 0x802447C0,
                   0x8021ED00 - gHeapPtr);
-    if (D_8039CAB7) {
+    if (gAcademyMarkerOn) {
         func_802979E0(levelno);
     }
-    func_802A56C4();
-    func_802A5FA8();
+    cam_load_level_defaults();
+    fx_alloc_texture_caches();
 }
 
 /* Allocates the per-level display list buffers (two of each) from the heap

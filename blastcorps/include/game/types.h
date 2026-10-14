@@ -59,24 +59,26 @@ typedef struct FeDyn {
     u8 unkA3A0[0x21498 - 0xA3A0];
 } FeDyn;
 
-/* 0x18-byte animation-channel entry (the -1-terminated table D_803B35F8 and
- * the 0x20-entry blocks built by func_8029F85C; 56040.c). */
-typedef struct Unk8029DEA0Entry {
-    /* 0x00 */ s32 id;
-    /* 0x04 */ f32 unk4;
-    /* 0x08 */ f32 unk8;
-    /* 0x0C */ s16 unkC;
+/* 0x18-byte animation channel (the -1-terminated texture-animation table
+ * gTexAnims and the 32-channel blocks built by anim_init_model; 56040.c).
+ * The setters (anim_play .. anim_set_interp) show what the fields hold; the
+ * names stay unkXX because many files read these offsets through views. */
+typedef struct AnimChannel {
+    /* 0x00 */ s32 id;    /* the track (or texture animation) data */
+    /* 0x04 */ f32 unk4;  /* fraction within the frame */
+    /* 0x08 */ f32 unk8;  /* spline tension (anim_set_interp) */
+    /* 0x0C */ s16 unkC;  /* loop count / limit (anim_play, anim_set_loops; -1 = forever) */
     /* 0x0E */ s16 unkE;
-    /* 0x10 */ s8 unk10;
-    /* 0x11 */ s8 unk11;
-    /* 0x12 */ s8 unk12;
-    /* 0x13 */ s8 unk13;
-    /* 0x14 */ u8 unk14;
-    /* 0x15 */ u8 unk15;
+    /* 0x10 */ s8 unk10;  /* playing */
+    /* 0x11 */ s8 unk11;  /* reversed (anim_set_reverse) */
+    /* 0x12 */ s8 unk12;  /* loop mode: 0 wrap, 1 ping-pong (anim_set_loop_mode) */
+    /* 0x13 */ s8 unk13;  /* the current keyframe */
+    /* 0x14 */ u8 unk14;  /* speed (anim_set_speed) */
+    /* 0x15 */ u8 unk15;  /* interpolation: 0 linear, 1 spline (anim_set_interp) */
     /* 0x16 */ u8 pad16[2];
-} Unk8029DEA0Entry; /* size 0x18 */
+} AnimChannel; /* size 0x18 */
 
-/* The sound player's configuration (func_8025EDF0, 1A630.c; the ancestor of
+/* The sound player's configuration (snd_init, 1A630.c; the ancestor of
  * GoldenEye's snd.c). */
 typedef struct SndConfig {
     u32 maxStates;
@@ -88,13 +90,13 @@ typedef struct SndConfig {
 
 /* A vehicle's shadow record, 0x1040 bytes (gVehicleShadows / gVehicleShadowsEnd; hd.c;
  * 13A70.c reads it as its Struct13A70). */
-typedef struct Vehicle {
+typedef struct VehShadow {
     u8 unk0[0x1000]; /* shadow texture, 64x64 IA8 */
-    f32 unk1000;
-    s32 unk1004; /* position, 1/32 units */
-    s32 unk1008;
-    s32 unk100C;
-    s32 unk1010;
+    f32 unk1000; /* render distance (veh_render_shadow_tex) */
+    s32 unk1004; /* position x, 1/32 units */
+    s32 unk1008; /* the floor y under it (veh_shadow_floor_y) */
+    s32 unk100C; /* z */
+    s32 unk1010; /* the render eye's y */
     u8 pad1014[4];
     s16 halfWidth; /* shadow half-width */
     s16 halfDepth; /* shadow half-depth */
@@ -104,7 +106,7 @@ typedef struct Vehicle {
     u8 type; /* the vehicle type */
     u8 layer; /* draw layer (veh_draw_shadows) */
     u8 pad1024[0x1C];
-} Vehicle; /* 0x1040 bytes */
+} VehShadow; /* 0x1040 bytes */
 
 /* A level result (D_8036EA60 best, nss this run, D_8036EA80/90). */
 typedef struct Score {
@@ -117,7 +119,7 @@ typedef struct Score {
     u16 rt;
 } Score;
 
-/* One entry per level on the front end's level-select globe (D_8020D810,
+/* One entry per level on the front end's level-select globe (gGlobeLevels,
  * defined in hd_front_end/11530.c). */
 typedef struct GlobeLevel {
     /* 0x00 */ u8 unk0;
@@ -134,7 +136,7 @@ typedef struct GlobeLevel {
     /* 0x2C */ f32 unk2C;
 } GlobeLevel; /* size 0x30 */
 
-/* A rank title (D_802081C0, defined in hd_front_end/01C40.c). The u16
+/* A rank title (gRankTitles, defined in hd_front_end/01C40.c). The u16
  * pointers are hd_code data (glyph strings and portraits). */
 typedef struct RankTitle {
     char * N64P title;
@@ -146,8 +148,8 @@ typedef struct RankTitle {
  * 8DDB0.c). Each field has the width its readers use, so the tables read
  * the same on either byte order. */
 
-/* Header of a billboard effect definition (func_802A6274 / func_802A64A4,
- * listed at D_802C3FFC), followed by cols * rows * frames u16 texture ids. */
+/* Header of a billboard effect definition (fx_spawn / fx_draw_all,
+ * listed at gFxDefsByKind), followed by cols * rows * frames u16 texture ids. */
 typedef struct EffectDef {
     /* 0x0 */ s16 id;     /* texture-group id, -1 = none */
     /* 0x2 */ u8 cols;
@@ -162,7 +164,7 @@ typedef struct EffectDef {
     /* 0xE */ u16 frames;
 } EffectDef; /* size 0x10 */
 
-/* A particle emitter definition (43A60.c, list D_802C4A20). */
+/* A particle emitter definition (43A60.c, list gParticleDefs). */
 typedef struct ParticleDef {
     /* 0x00 */ s16 * N64P seqBirth; /* texture ids; [0] doubles as the frame count */
     /* 0x04 */ s16 * N64P seqLoop;
@@ -187,13 +189,26 @@ typedef struct ParticleDef {
     /* 0x22 */ u8 siz; /* G_IM_SIZ_* */
 } ParticleDef; /* size 0x24 */
 
-/* One record of a level's part list (func_802A1EC8 picks the list by level:
+/* One record of a level's part list (lvl_pick_object_list picks the list by level:
  * s32 count, then count of these). `entry` is filled in at level load
- * (func_802A21AC); obj_parts_destroyed checks the listed parts. */
+ * (lvl_add_object); obj_parts_destroyed checks the listed parts. */
 typedef struct LevelPart {
     /* 0x00 */ void * N64P entry; /* the level object's 0xFC-byte record */
     /* 0x04 */ s32 n;       /* number of part indices used */
     /* 0x08 */ u8 idx[16];  /* indices into the record's +0xEC bytes */
 } LevelPart; /* size 0x18 */
+
+/* Layout checks: these records are read from the N64 image and by hand-written asm at fixed
+ * offsets, so their sizes must stay the original ones in every build (a mismatch makes the
+ * array size negative, a compile error).  No code comes from a typedef. */
+#define STATIC_ASSERT_SIZE(T, n) typedef char static_assert_size_##T[(sizeof(T) == (n)) ? 1 : -1]
+STATIC_ASSERT_SIZE(DynamicBuf, 0x21498);
+STATIC_ASSERT_SIZE(AnimChannel, 0x18);
+STATIC_ASSERT_SIZE(VehShadow, 0x1040);
+STATIC_ASSERT_SIZE(Score, 0x10);
+STATIC_ASSERT_SIZE(GlobeLevel, 0x30);
+STATIC_ASSERT_SIZE(EffectDef, 0x10);
+STATIC_ASSERT_SIZE(ParticleDef, 0x24);
+STATIC_ASSERT_SIZE(LevelPart, 0x18);
 
 #endif

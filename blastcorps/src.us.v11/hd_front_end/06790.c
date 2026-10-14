@@ -2,7 +2,7 @@
 #include <ultra64.h>
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_802081C0 ((RankName *) D_802081C0)
+#define gRankTitles ((RankName *) gRankTitles)
 #define players ((FePlayer *) players)
 /* end of views */
 
@@ -24,40 +24,42 @@ typedef struct {
     u8 pad4[4];
 } RankName;
 
-extern s32 D_80215960; /* scale state */
-extern s32 D_80215964; /* text fade state */
-extern f32 D_80215968; /* scene angle */
-extern f32 D_8021596C; /* scene scale */
-extern s32 D_80215970;
-extern s16 D_80215974; /* title alpha */
-extern s16 D_80215976; /* rank name alpha */
-extern s32 D_80215978; /* rank */
-extern u8 D_80215980[]; /* rank name, first line */
-extern u8 D_80215998[]; /* rank name, second line */
-extern s16 D_802159B0;
+extern s32 gPromoScaleState; /* scale state */
+extern s32 gPromoTextState; /* text fade state */
+extern f32 gPromoAngle; /* scene angle */
+extern f32 gPromoScale; /* scene scale */
+extern s32 gPromoHoldTimer;
+extern s16 gPromoTitleAlpha; /* title alpha */
+extern s16 gPromoRankAlpha; /* rank name alpha */
+extern s32 gPromoRank; /* rank */
+extern u8 gPromoRankLine1[]; /* rank name, first line */
+extern u8 gPromoRankLine2[]; /* rank name, second line */
+extern s16 gPromoPulse;
 extern u16 D_80303B78[];
 extern u16 D_80303B88[];
 
 
 /* title lines and their glyph lists */
-u8 * N64P D_802084B0 = N64_DPTR((u8 *) "CONGRATULATIONS");
-u8 * N64P D_802084B4 = N64_DPTR((u8 *) "ON YOUR PROMOTION!");
-u16 * N64P D_802084B8 = N64_DPTR(D_80303B78);
-u16 * N64P D_802084BC = N64_DPTR(D_80303B88);
-s8 D_802084C0 = 1; /* colour cycle direction */
+u8 * N64P gPromoTitle1 = N64_DPTR((u8 *) "CONGRATULATIONS");
+u8 * N64P gPromoTitle2 = N64_DPTR((u8 *) "ON YOUR PROMOTION!");
+u16 * N64P gPromoTitle1Glyphs = N64_DPTR(D_80303B78);
+u16 * N64P gPromoTitle2Glyphs = N64_DPTR(D_80303B88);
+s8 gPromoPulseDir = 1; /* colour cycle direction */
 
-/* Promotion screen init: load scene 0 and reset the screen's state. */
-void func_801ED790(void) {
-    func_801F4E70(0);
-    D_80215960 = 0;
-    D_80215964 = 0;
-    D_80215968 = D_8021596C = 0.0f;
-    D_80215974 = D_80215976 = 0;
-    D_80215978 = players[playerNumber].unkC;
+/* The promotion screen: scene, state, the rank (0x801ED790).
+ * Promotion screen init: load scene 0 and reset the screen's state. */
+void fe_promo_init(void) {
+    fe_scene_load(0);
+    gPromoScaleState = 0;
+    gPromoTextState = 0;
+    gPromoAngle = gPromoScale = 0.0f;
+    gPromoTitleAlpha = gPromoRankAlpha = 0;
+    gPromoRank = players[playerNumber].unkC;
 }
 
-/* Promotion screen frame: animate, draw the text and the scene; *arg3 += commands written. */
-Gfx *func_801ED800(Gfx *arg0, FeDyn *dyn, u8 arg2, s32 *arg3) {
+/* "CONGRATULATIONS / ON YOUR PROMOTION!" and the rank (0x801ED800).
+ * Promotion screen frame: animate, draw the text and the scene; *arg3 += commands written. */
+Gfx *fe_promo_draw(Gfx *arg0, FeDyn *dyn, u8 arg2, s32 *arg3) {
     Gfx *gdl = arg0;
     s32 i;
     s32 j;
@@ -65,116 +67,116 @@ Gfx *func_801ED800(Gfx *arg0, FeDyn *dyn, u8 arg2, s32 *arg3) {
     s32 size;
 
     if ((gContButtons & 0x8000) && !(gContPrevButtons & 0x8000) && gDebugCheats) {
-        D_80215960 = 2;
-        D_80215964 = 3;
+        gPromoScaleState = 2;
+        gPromoTextState = 3;
     }
-    switch (D_80215960) {
+    switch (gPromoScaleState) {
         case 0:
-            D_8021596C = sins(gFramesInMode * 0x4000 * 60 / 60 / 90) * 2.85 / 32767.0;
-            if (D_8021596C >= 2.84) {
-                D_8021596C = 2.84f;
-                D_80215960 = 1;
-                D_80215970 = 0x91;
+            gPromoScale = sins(gFramesInMode * 0x4000 * 60 / 60 / 90) * 2.85 / 32767.0;
+            if (gPromoScale >= 2.84) {
+                gPromoScale = 2.84f;
+                gPromoScaleState = 1;
+                gPromoHoldTimer = 0x91;
             }
             break;
         case 1:
-            if (D_80215970-- == 0) {
-                D_80215960 = 2;
+            if (gPromoHoldTimer-- == 0) {
+                gPromoScaleState = 2;
             }
             break;
         case 2:
-            D_8021596C *= 0.9;
+            gPromoScale *= 0.9;
             break;
         case 3:
             break;
     }
-    switch (D_80215964) {
+    switch (gPromoTextState) {
         case 0:
             if (gFramesInMode == 50) {
-                D_80215964 = 1;
-                D_80215974 = 0;
-                D_80215976 = 0;
+                gPromoTextState = 1;
+                gPromoTitleAlpha = 0;
+                gPromoRankAlpha = 0;
             }
             break;
         case 1:
-            if (D_80215974 + 16 > 0xFF) {
-                D_80215974 = 0xFF;
+            if (gPromoTitleAlpha + 16 > 0xFF) {
+                gPromoTitleAlpha = 0xFF;
             } else {
-                D_80215974 += 16;
+                gPromoTitleAlpha += 16;
             }
             if (gFramesInMode == 200) {
-                D_80215964 = 2;
+                gPromoTextState = 2;
             }
             break;
         case 2:
-            if (D_80215974 - 32 < 0) {
-                D_80215974 = 0;
+            if (gPromoTitleAlpha - 32 < 0) {
+                gPromoTitleAlpha = 0;
             } else {
-                D_80215974 -= 32;
+                gPromoTitleAlpha -= 32;
             }
-            if (D_80215976 + 16 > 0xFF) {
-                D_80215976 = 0xFF;
+            if (gPromoRankAlpha + 16 > 0xFF) {
+                gPromoRankAlpha = 0xFF;
             } else {
-                D_80215976 += 16;
+                gPromoRankAlpha += 16;
             }
             if (gFramesInMode == 290) {
-                D_80215964 = 3;
+                gPromoTextState = 3;
             }
             break;
         case 3:
-            if (D_80215976 - 32 < 0) {
-                D_80215976 = 0;
+            if (gPromoRankAlpha - 32 < 0) {
+                gPromoRankAlpha = 0;
             } else {
-                D_80215976 -= 32;
+                gPromoRankAlpha -= 32;
             }
-            if (D_80215976 == 0) {
-                gNextGameMode = 0x08000000;
+            if (gPromoRankAlpha == 0) {
+                gNextGameMode = MODE_RESULTS;
             }
             break;
     }
-    if (D_80215974 > 0 || D_80215976 > 0) {
+    if (gPromoTitleAlpha > 0 || gPromoRankAlpha > 0) {
         p = &players[playerNumber];
-        func_80259CCC((Gfx * N64P *) dyn, D_802084B0, D_802084B8, 0, 0x9C, 0, 0x18, 0x1A, 0x1A, 1, 0, 0, 0, D_80215974 / 2);
-        func_80259CCC((Gfx * N64P *) dyn, D_802084B4, D_802084BC, 0, 0x9D, 0, 0xCB, 0x16, 0x16, 1, 0, 0, 0, D_80215974 / 2);
+        text_print((Gfx * N64P *) dyn, gPromoTitle1, gPromoTitle1Glyphs, 0, 0x9C, 0, 0x18, 0x1A, 0x1A, 1, 0, 0, 0, gPromoTitleAlpha / 2);
+        text_print((Gfx * N64P *) dyn, gPromoTitle2, gPromoTitle2Glyphs, 0, 0x9D, 0, 0xCB, 0x16, 0x16, 1, 0, 0, 0, gPromoTitleAlpha / 2);
         /* split the rank name into two lines */
-        for (i = 0, j = 0; j < D_802082B8[D_80215978]; i++) {
-            if ((D_80215980[i] = D_802081C0[D_80215978].unk0[i]) == ' ') {
+        for (i = 0, j = 0; j < gRankTitleLine1Words[gPromoRank]; i++) {
+            if ((gPromoRankLine1[i] = gRankTitles[gPromoRank].unk0[i]) == ' ') {
                 j++;
             }
         }
-        D_80215980[i - 1] = 0;
-        for (j = i; D_802081C0[D_80215978].unk0[i] != 0; i++) {
-            D_80215998[i - j] = D_802081C0[D_80215978].unk0[i];
+        gPromoRankLine1[i - 1] = 0;
+        for (j = i; gRankTitles[gPromoRank].unk0[i] != 0; i++) {
+            gPromoRankLine2[i - j] = gRankTitles[gPromoRank].unk0[i];
         }
-        D_80215998[i - j] = 0;
-        if (func_8025B300(D_80215980) >= 14 || func_8025B300(D_80215998) >= 14) {
+        gPromoRankLine2[i - j] = 0;
+        if (font_strlen(gPromoRankLine1) >= 14 || font_strlen(gPromoRankLine2) >= 14) {
             size = 0x1D;
         } else {
             size = 0x21;
         }
-        func_80259CCC((Gfx * N64P *) dyn, D_80215980, NULL, 0, 0x9D, 0, 0x58, size, size, 1, 0, 0, 0, D_80215976 / 2);
-        func_80259CCC((Gfx * N64P *) dyn, D_80215998, NULL, 0, 0x9D, 0, 0x76, size, size, 1, 0, 0, 0, D_80215976 / 2);
-        D_802159B0 += D_802084C0 * 15;
-        if (D_802159B0 > 0xFF) {
-            D_802159B0 -= 30;
-            D_802084C0 = -D_802084C0;
+        text_print((Gfx * N64P *) dyn, gPromoRankLine1, NULL, 0, 0x9D, 0, 0x58, size, size, 1, 0, 0, 0, gPromoRankAlpha / 2);
+        text_print((Gfx * N64P *) dyn, gPromoRankLine2, NULL, 0, 0x9D, 0, 0x76, size, size, 1, 0, 0, 0, gPromoRankAlpha / 2);
+        gPromoPulse += gPromoPulseDir * 15;
+        if (gPromoPulse > 0xFF) {
+            gPromoPulse -= 30;
+            gPromoPulseDir = -gPromoPulseDir;
         }
-        if (D_802159B0 < 0) {
-            D_802159B0 += 30;
-            D_802084C0 = -D_802084C0;
+        if (gPromoPulse < 0) {
+            gPromoPulse += 30;
+            gPromoPulseDir = -gPromoPulseDir;
         }
-        func_80259DC8((Gfx * N64P *) dyn, D_802084B0, D_802084B8, 0, 0xA0, 0, 0x14, 0x1A, 0x1A, 1, 0xFF, 0xFF - D_802159B0, 0,
-                      D_80215974, 0xFF, D_802159B0, 0, D_80215974);
-        func_80259DC8((Gfx * N64P *) dyn, D_802084B4, D_802084BC, 0, 0xA0, 0, 0xC8, 0x16, 0x16, 1, 0xFF, 0xFF - D_802159B0, 0,
-                      D_80215974, 0xFF, D_802159B0, 0, D_80215974);
-        func_80259DC8((Gfx * N64P *) dyn, D_80215980, NULL, 0, 0xA0, 0, 0x55, size, size, 1, 0xFF, 0xFF - D_802159B0, 0,
-                      D_80215976, 0xFF, D_802159B0, 0, D_80215976);
-        func_80259DC8((Gfx * N64P *) dyn, D_80215998, NULL, 0, 0xA0, 0, 0x73, size, size, 1, 0xFF, 0xFF - D_802159B0, 0,
-                      D_80215976, 0xFF, D_802159B0, 0, D_80215976);
+        text_print_gradient((Gfx * N64P *) dyn, gPromoTitle1, gPromoTitle1Glyphs, 0, 0xA0, 0, 0x14, 0x1A, 0x1A, 1, 0xFF, 0xFF - gPromoPulse, 0,
+                      gPromoTitleAlpha, 0xFF, gPromoPulse, 0, gPromoTitleAlpha);
+        text_print_gradient((Gfx * N64P *) dyn, gPromoTitle2, gPromoTitle2Glyphs, 0, 0xA0, 0, 0xC8, 0x16, 0x16, 1, 0xFF, 0xFF - gPromoPulse, 0,
+                      gPromoTitleAlpha, 0xFF, gPromoPulse, 0, gPromoTitleAlpha);
+        text_print_gradient((Gfx * N64P *) dyn, gPromoRankLine1, NULL, 0, 0xA0, 0, 0x55, size, size, 1, 0xFF, 0xFF - gPromoPulse, 0,
+                      gPromoRankAlpha, 0xFF, gPromoPulse, 0, gPromoRankAlpha);
+        text_print_gradient((Gfx * N64P *) dyn, gPromoRankLine2, NULL, 0, 0xA0, 0, 0x73, size, size, 1, 0xFF, 0xFF - gPromoPulse, 0,
+                      gPromoRankAlpha, 0xFF, gPromoPulse, 0, gPromoRankAlpha);
     }
-    D_80215968 += 12.0 - D_8021596C * 2.0f;
-    if (D_80215968 > 360.0) {
-        D_80215968 -= 360.0;
+    gPromoAngle += 12.0 - gPromoScale * 2.0f;
+    if (gPromoAngle > 360.0) {
+        gPromoAngle -= 360.0;
     }
     if (gFramesInMode < 2) {
         guPerspective(&dyn->unk1240, &gPerspNorm, 45.0f, 1.3333334f, 40.0f, 4000.0f, 1.0f);
@@ -182,10 +184,10 @@ Gfx *func_801ED800(Gfx *arg0, FeDyn *dyn, u8 arg2, s32 *arg3) {
         guMtxIdent(&dyn->unk1280);
         guMtxIdent(&dyn->unk12C0);
     }
-    guScale(&dyn->unk1300, D_8021596C / 8.0f, D_8021596C / 8.0f, D_8021596C / 8.0f);
-    guRotate(&D_802182D0[arg2], D_80215968, 1.0f, 1.0f, 1.0f);
-    if (D_8021596C > 0.2) {
-        gdl = func_801F4FBC(dyn, gdl);
+    guScale(&dyn->unk1300, gPromoScale / 8.0f, gPromoScale / 8.0f, gPromoScale / 8.0f);
+    guRotate(&gFeSceneRot[arg2], gPromoAngle, 1.0f, 1.0f, 1.0f);
+    if (gPromoScale > 0.2) {
+        gdl = fe_scene_draw(dyn, gdl);
     }
     *arg3 += gdl - arg0;
     return gdl;

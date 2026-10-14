@@ -3,8 +3,8 @@
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_02000000 ((u8 *) D_02000000)
-#define D_8020D810 ((LevelInfo *) D_8020D810)
-#define D_80215A70 ((u16 * N64P *) D_80215A70)
+#define gGlobeLevels ((LevelInfo *) gGlobeLevels)
+#define gLvlselMarkerFrames ((u16 * N64P *) gLvlselMarkerFrames)
 #define D_802E8F38 ((Entry8 *) D_802E8F38)
 #define gLevelInfo ((LevelFlags *) gLevelInfo)
 #define gDynamicBufs ((u8 *) gDynamicBufs)
@@ -45,21 +45,22 @@ typedef struct {
 
 extern Gfx D_8020BC88[];
 extern DlTable D_8020BD08; /* per-category display lists */
-extern u16 D_80217288; /* perspNorm */
-extern u16 * N64P D_8021728C; /* star textures, 16x16 RGBA16 each */
-extern Vtx D_80215A88[]; /* globe vertices, 6 faces x 64 */
-extern s32 D_80217290[64]; /* face grid x */
-extern s32 D_80217390[64]; /* face grid y */
-extern s32 D_80217490[64]; /* face grid s */
-extern s32 D_80217590[64]; /* face grid t */
+extern u16 gStarfieldPerspNorm; /* perspNorm */
+extern u16 * N64P gStarTextures; /* star textures, 16x16 RGBA16 each */
+extern Vtx gLvlselGlobeVtx[]; /* globe vertices, 6 faces x 64 */
+extern s32 gGlobeGridX[64]; /* face grid x */
+extern s32 gGlobeGridY[64]; /* face grid y */
+extern s32 gGlobeGridS[64]; /* face grid s */
+extern s32 gGlobeGridT[64]; /* face grid t */
 
-s32 func_801F1DA8(s32);
+s32 fe_lvlsel_level_open(s32);
 
 #pragma intrinsic (sqrtf)
 
-/* globe vertices: an 8x8 grid on each of the six cube faces, pushed out to
+/* The globe mesh: 6 faces of 8x8, radius 250 (0x801F0570).
+ * globe vertices: an 8x8 grid on each of the six cube faces, pushed out to
  * radius 250 (positions, texture coords, normals) */
-void func_801F0570(void) {
+void fe_lvlsel_build_globe_vtx(void) {
     s32 i;
     s32 j;
     s32 k;
@@ -76,113 +77,113 @@ void func_801F0570(void) {
     step = half * 2.0 / 7.0;
     for (j = 0; j < 8; j++) {
         for (i = 0; i < 8; i++) {
-            D_80217290[i + j * 8] = i * step - half;
-            D_80217390[i + j * 8] = j * step - half;
-            D_80217490[i + j * 8] = (i * 32) << 5;
-            D_80217590[i + j * 8] = (j * 32) << 5;
+            gGlobeGridX[i + j * 8] = i * step - half;
+            gGlobeGridY[i + j * 8] = j * step - half;
+            gGlobeGridS[i + j * 8] = (i * 32) << 5;
+            gGlobeGridT[i + j * 8] = (j * 32) << 5;
         }
     }
     for (k = 0; k < 64; k++) {
-        px = D_80217290[k];
-        py = D_80217390[k];
+        px = gGlobeGridX[k];
+        py = gGlobeGridY[k];
         pz = 250.0f;
         len = sqrtf(px * px + py * py + pz * pz);
-        D_80215A88[k].v.ob[0] = px / len * 250.0;
-        D_80215A88[k].v.ob[1] = py / len * 250.0;
-        D_80215A88[k].v.ob[2] = pz / len * 250.0;
-        D_80215A88[k].v.tc[0] = D_80217490[k];
-        D_80215A88[k].v.tc[1] = D_80217590[k];
-        D_80215A88[k].n.n[0] = px / len * 127.0f;
-        D_80215A88[k].n.n[1] = py / len * 127.0f;
-        D_80215A88[k].n.n[2] = pz / len * 127.0f;
-        D_80215A88[k].n.a = 0xFF;
+        gLvlselGlobeVtx[k].v.ob[0] = px / len * 250.0;
+        gLvlselGlobeVtx[k].v.ob[1] = py / len * 250.0;
+        gLvlselGlobeVtx[k].v.ob[2] = pz / len * 250.0;
+        gLvlselGlobeVtx[k].v.tc[0] = gGlobeGridS[k];
+        gLvlselGlobeVtx[k].v.tc[1] = gGlobeGridT[k];
+        gLvlselGlobeVtx[k].n.n[0] = px / len * 127.0f;
+        gLvlselGlobeVtx[k].n.n[1] = py / len * 127.0f;
+        gLvlselGlobeVtx[k].n.n[2] = pz / len * 127.0f;
+        gLvlselGlobeVtx[k].n.a = 0xFF;
     }
     face = 0x40;
     for (k = 0; k < 64; k++) {
-        px = D_80217290[k];
-        py = D_80217390[k];
+        px = gGlobeGridX[k];
+        py = gGlobeGridY[k];
         pz = 250.0f;
         len = sqrtf(px * px + py * py + pz * pz);
-        D_80215A88[face + k].v.ob[0] = px / len * 250.0;
-        D_80215A88[face + k].v.ob[1] = py / len * 250.0;
-        D_80215A88[face + k].v.ob[2] = -pz / len * 250.0;
-        D_80215A88[face + k].v.tc[0] = D_80217490[k];
-        D_80215A88[face + k].v.tc[1] = D_80217590[k];
-        D_80215A88[face + k].n.n[0] = px / len * 127.0f;
-        D_80215A88[face + k].n.n[1] = py / len * 127.0f;
-        D_80215A88[face + k].n.n[2] = -pz / len * 127.0f;
-        D_80215A88[face + k].n.a = 0xFF;
+        gLvlselGlobeVtx[face + k].v.ob[0] = px / len * 250.0;
+        gLvlselGlobeVtx[face + k].v.ob[1] = py / len * 250.0;
+        gLvlselGlobeVtx[face + k].v.ob[2] = -pz / len * 250.0;
+        gLvlselGlobeVtx[face + k].v.tc[0] = gGlobeGridS[k];
+        gLvlselGlobeVtx[face + k].v.tc[1] = gGlobeGridT[k];
+        gLvlselGlobeVtx[face + k].n.n[0] = px / len * 127.0f;
+        gLvlselGlobeVtx[face + k].n.n[1] = py / len * 127.0f;
+        gLvlselGlobeVtx[face + k].n.n[2] = -pz / len * 127.0f;
+        gLvlselGlobeVtx[face + k].n.a = 0xFF;
     }
     face = 0x80;
     for (k = 0; k < 64; k++) {
-        px = D_80217290[k];
-        py = D_80217390[k];
+        px = gGlobeGridX[k];
+        py = gGlobeGridY[k];
         pz = 250.0f;
         len = sqrtf(px * px + py * py + pz * pz);
-        D_80215A88[face + k].v.ob[0] = px / len * 250.0;
-        D_80215A88[face + k].v.ob[1] = pz / len * 250.0;
-        D_80215A88[face + k].v.ob[2] = py / len * 250.0;
-        D_80215A88[face + k].v.tc[0] = D_80217490[k];
-        D_80215A88[face + k].v.tc[1] = D_80217590[k];
-        D_80215A88[face + k].n.n[0] = px / len * 127.0f;
-        D_80215A88[face + k].n.n[1] = pz / len * 127.0f;
-        D_80215A88[face + k].n.n[2] = py / len * 127.0f;
-        D_80215A88[face + k].n.a = 0xFF;
+        gLvlselGlobeVtx[face + k].v.ob[0] = px / len * 250.0;
+        gLvlselGlobeVtx[face + k].v.ob[1] = pz / len * 250.0;
+        gLvlselGlobeVtx[face + k].v.ob[2] = py / len * 250.0;
+        gLvlselGlobeVtx[face + k].v.tc[0] = gGlobeGridS[k];
+        gLvlselGlobeVtx[face + k].v.tc[1] = gGlobeGridT[k];
+        gLvlselGlobeVtx[face + k].n.n[0] = px / len * 127.0f;
+        gLvlselGlobeVtx[face + k].n.n[1] = pz / len * 127.0f;
+        gLvlselGlobeVtx[face + k].n.n[2] = py / len * 127.0f;
+        gLvlselGlobeVtx[face + k].n.a = 0xFF;
     }
     face = 0xC0;
     for (k = 0; k < 64; k++) {
-        px = D_80217290[k];
-        py = D_80217390[k];
+        px = gGlobeGridX[k];
+        py = gGlobeGridY[k];
         pz = 250.0f;
         len = sqrtf(px * px + py * py + pz * pz);
-        D_80215A88[face + k].v.ob[0] = px / len * 250.0;
-        D_80215A88[face + k].v.ob[1] = -pz / len * 250.0;
-        D_80215A88[face + k].v.ob[2] = py / len * 250.0;
-        D_80215A88[face + k].v.tc[0] = D_80217490[k];
-        D_80215A88[face + k].v.tc[1] = D_80217590[k];
-        D_80215A88[face + k].n.n[0] = px / len * 127.0f;
-        D_80215A88[face + k].n.n[1] = -pz / len * 127.0f;
-        D_80215A88[face + k].n.n[2] = py / len * 127.0f;
-        D_80215A88[face + k].n.a = 0xFF;
+        gLvlselGlobeVtx[face + k].v.ob[0] = px / len * 250.0;
+        gLvlselGlobeVtx[face + k].v.ob[1] = -pz / len * 250.0;
+        gLvlselGlobeVtx[face + k].v.ob[2] = py / len * 250.0;
+        gLvlselGlobeVtx[face + k].v.tc[0] = gGlobeGridS[k];
+        gLvlselGlobeVtx[face + k].v.tc[1] = gGlobeGridT[k];
+        gLvlselGlobeVtx[face + k].n.n[0] = px / len * 127.0f;
+        gLvlselGlobeVtx[face + k].n.n[1] = -pz / len * 127.0f;
+        gLvlselGlobeVtx[face + k].n.n[2] = py / len * 127.0f;
+        gLvlselGlobeVtx[face + k].n.a = 0xFF;
     }
     face = 0x100;
     for (k = 0; k < 64; k++) {
-        px = D_80217290[k];
-        py = D_80217390[k];
+        px = gGlobeGridX[k];
+        py = gGlobeGridY[k];
         pz = 250.0f;
         len = sqrtf(px * px + py * py + pz * pz);
-        D_80215A88[face + k].v.ob[0] = pz / len * 250.0;
-        D_80215A88[face + k].v.ob[1] = px / len * 250.0;
-        D_80215A88[face + k].v.ob[2] = py / len * 250.0;
-        D_80215A88[face + k].v.tc[0] = D_80217490[k];
-        D_80215A88[face + k].v.tc[1] = D_80217590[k];
-        D_80215A88[face + k].n.n[0] = pz / len * 127.0f;
-        D_80215A88[face + k].n.n[1] = px / len * 127.0f;
-        D_80215A88[face + k].n.n[2] = py / len * 127.0f;
-        D_80215A88[face + k].n.a = 0xFF;
+        gLvlselGlobeVtx[face + k].v.ob[0] = pz / len * 250.0;
+        gLvlselGlobeVtx[face + k].v.ob[1] = px / len * 250.0;
+        gLvlselGlobeVtx[face + k].v.ob[2] = py / len * 250.0;
+        gLvlselGlobeVtx[face + k].v.tc[0] = gGlobeGridS[k];
+        gLvlselGlobeVtx[face + k].v.tc[1] = gGlobeGridT[k];
+        gLvlselGlobeVtx[face + k].n.n[0] = pz / len * 127.0f;
+        gLvlselGlobeVtx[face + k].n.n[1] = px / len * 127.0f;
+        gLvlselGlobeVtx[face + k].n.n[2] = py / len * 127.0f;
+        gLvlselGlobeVtx[face + k].n.a = 0xFF;
     }
     face = 0x140;
     for (k = 0; k < 64; k++) {
-        px = D_80217290[k];
-        py = D_80217390[k];
+        px = gGlobeGridX[k];
+        py = gGlobeGridY[k];
         pz = 250.0f;
         len = sqrtf(px * px + py * py + pz * pz);
-        D_80215A88[face + k].v.ob[0] = -pz / len * 250.0;
-        D_80215A88[face + k].v.ob[1] = px / len * 250.0;
-        D_80215A88[face + k].v.ob[2] = py / len * 250.0;
-        D_80215A88[face + k].v.tc[0] = D_80217490[k];
-        D_80215A88[face + k].v.tc[1] = D_80217590[k];
-        D_80215A88[face + k].n.n[0] = -pz / len * 127.0f;
-        D_80215A88[face + k].n.n[1] = px / len * 127.0f;
-        D_80215A88[face + k].n.n[2] = py / len * 127.0f;
-        D_80215A88[face + k].n.a = 0xFF;
+        gLvlselGlobeVtx[face + k].v.ob[0] = -pz / len * 250.0;
+        gLvlselGlobeVtx[face + k].v.ob[1] = px / len * 250.0;
+        gLvlselGlobeVtx[face + k].v.ob[2] = py / len * 250.0;
+        gLvlselGlobeVtx[face + k].v.tc[0] = gGlobeGridS[k];
+        gLvlselGlobeVtx[face + k].v.tc[1] = gGlobeGridT[k];
+        gLvlselGlobeVtx[face + k].n.n[0] = -pz / len * 127.0f;
+        gLvlselGlobeVtx[face + k].n.n[1] = px / len * 127.0f;
+        gLvlselGlobeVtx[face + k].n.n[2] = py / len * 127.0f;
+        gLvlselGlobeVtx[face + k].n.a = 0xFF;
     }
 }
 
 /*
- * func_801F1568 builds the globe display list: inflates worldtextures.raw
+ * fe_lvlsel_build_globe_dl builds the globe display list: inflates worldtextures.raw
  * (ROM D_0066C900..D_0068B550) to the heap, carves the texture pointers out of
- * its tail, builds the vertices (func_801F0570) and emits, per face and grid cell,
+ * its tail, builds the vertices (fe_lvlsel_build_globe_vtx) and emits, per face and grid cell,
  * five mip levels of a 17x17..2x2 RGBA16 texture plus two triangles.
  * Matched once the mip loop became a for loop with all three counters in its
  * header (`for (lod = 0, tmem = 0, texoff = 0; ...; lod++, tmem += step,
@@ -193,7 +194,8 @@ typedef struct {
     u16 tex[49][0x1A4];
 } Globe; /* one face's 7x7 cells, five mip levels each */
 
-Gfx *func_801F1568(void) {
+/* Inflates the world textures, the globe display list (0x801F1568). */
+Gfx *fe_lvlsel_build_globe_dl(void) {
     u8 *base;
     s32 size;
     s32 pad[2];
@@ -217,23 +219,23 @@ Gfx *func_801F1568(void) {
     size = D_0068B550 - D_0066C900;
     func_8028B4C4((u32) D_0066C900, (u32) gHeapPtr, (u32 *) &size, 0xD, 0, 1);
     gHeapPtr += size;
-    D_8021728C = (u16 *) (gHeapPtr - 0x6600);
+    gStarTextures = (u16 *) (gHeapPtr - 0x6600);
     for (i = 0; i < 3; i++) {
-        D_80215A70[i] = (u16 *) gHeapPtr - (3 - i) * 0x800 - 0x1800;
+        gLvlselMarkerFrames[i] = (u16 *) gHeapPtr - (3 - i) * 0x800 - 0x1800;
     }
-    D_80215A7C = gHeapPtr - 0x3000;
-    D_80215A80 = gHeapPtr - 0x2000;
+    gLvlselGlowTex = gHeapPtr - 0x3000;
+    gLvlselGlowTex2 = gHeapPtr - 0x2000;
     D_80215A84 = gHeapPtr - 0x1000;
     gfx = (Gfx *) gHeapPtr;
     dl = gfx;
-    func_801F0570();
+    fe_lvlsel_build_globe_vtx();
     gSPTexture(gfx++, 0x8000, 0x8000, 4, G_TX_RENDERTILE, G_ON);
     for (k = 0; k < 6; k++) {
         faceOff = k << 6;
-        gSPVertex(gfx++, &D_80215A88[faceOff], 8, 0);
+        gSPVertex(gfx++, &gLvlselGlobeVtx[faceOff], 8, 0);
         flip = 8;
         for (i = 0; i < 7; i++) {
-            gSPVertex(gfx++, &D_80215A88[faceOff + i * 8 + 8], 8, flip);
+            gSPVertex(gfx++, &gLvlselGlobeVtx[faceOff + i * 8 + 8], 8, flip);
             for (j = 0; j < 7; j++) {
                 idx = i * 7 + j;
                 for (lod = 0, tmem = 0, texoff = 0; lod < 5; lod++, tmem += step, texoff += ww + 3) {
@@ -276,16 +278,17 @@ Gfx *func_801F1568(void) {
 /* hd.c's LEVEL_DONE */
 #define LEVEL_DONE(l) (players[playerNumber].unk18[l] > 0 && players[playerNumber].unk18[l] < 6) ? 1 : 0
 
-/* is the level available: done, level 0, or unlocked by a done level */
-s32 func_801F1DA8(s32 level) {
+/* A level can be picked: done, level 0, or unlocked (0x801F1DA8).
+ * is the level available: done, level 0, or unlocked by a done level */
+s32 fe_lvlsel_level_open(s32 level) {
     LevelInfo *info;
     s32 i;
     s32 j;
 
-    if (func_801FE760(level)) {
+    if (fe_globe_level_locked(level)) {
         return 0;
     }
-    if (func_80264BA4(level) != 3) {
+    if (lvl_planet(level) != 3) {
         return 0;
     }
     if ((LEVEL_DONE(level)) || level == 0) {
@@ -293,7 +296,7 @@ s32 func_801F1DA8(s32 level) {
     }
     for (i = 0; i < 60; i++) {
         if (LEVEL_DONE(i)) {
-            info = &D_8020D810[i];
+            info = &gGlobeLevels[i];
             for (j = 0; j < 8 && info->unk1C[j] != -1; j++) {
                 if (info->unk1C[j] == level) {
                     return 1;
@@ -309,9 +312,10 @@ s32 func_801F1DA8(s32 level) {
     return 0;
 }
 
-/* display list of the level icons (one quad per level with its bit set in
+/* Icons of the academy levels found (0x801F2000).
+ * display list of the level icons (one quad per level with its bit set in
  * the player's unk90), drawn in two passes */
-Gfx *func_801F2000(void) {
+Gfx *fe_lvlsel_build_academy_dl(void) {
     Vtx *vtx;
     u8 *heap;
     Gfx *dl;
@@ -349,7 +353,7 @@ Gfx *func_801F2000(void) {
             }
             /* j is one past the match here, so bit (j + 31) & 31 = j - 1 */
             if (found && (players[playerNumber].unk90 & (1 << PORT_SHAMT(j + 31)))) {
-                func_801FCE74(vtx, i, pass * 1.5 + 2.5, pass * 1.5 + 4.0, 32, 32, 2.25f, 1);
+                fe_globe_quad_at_level(vtx, i, pass * 1.5 + 2.5, pass * 1.5 + 4.0, 32, 32, 2.25f, 1);
                 gSPVertex(gfx++, vtx, 4, 0);
                 gSP1Triangle(gfx++, 0, 1, 2, 0);
                 gSP1Triangle(gfx++, 2, 3, 0, 0);
@@ -364,9 +368,10 @@ Gfx *func_801F2000(void) {
     return dl;
 }
 
-/* display list of the level select icons, one category (colour/combiner) at a time,
+/* One icon per open level, by medal (0x801F2428).
+ * display list of the level select icons, one category (colour/combiner) at a time,
  * flushing vertices 16 at a time */
-Gfx *func_801F2428(void) {
+Gfx *fe_lvlsel_build_level_icons_dl(void) {
     LevelInfo *info;
     Vtx *vtx;
     Gfx *gfx;
@@ -437,8 +442,8 @@ Gfx *func_801F2428(void) {
         for (lvl = 0; lvl < 60; lvl++) {
             avail = (cat == 6 || cat == 7) && (LEVEL_DONE(lvl)) && players[playerNumber].unk18[lvl] != 4;
             if (players[playerNumber].unk18[lvl] == cat || avail) {
-                info = &D_8020D810[lvl];
-                if (func_801F1DA8(lvl)) {
+                info = &gGlobeLevels[lvl];
+                if (fe_lvlsel_level_open(lvl)) {
                     if (avail) {
                         for (j = 0, found = 0; j < 4 && info->unk18[j] != -1 && !found; j++) {
                             if (!(players[playerNumber].unk54[lvl] & (1 << j))) {
@@ -457,7 +462,7 @@ Gfx *func_801F2428(void) {
                     if (avail) {
                         scale += 0.3;
                     }
-                    func_801FCE74(&vtx[n], lvl, 0.0f, 0.0f, 32, 32, scale, 0);
+                    fe_globe_quad_at_level(&vtx[n], lvl, 0.0f, 0.0f, 32, 32, scale, 0);
                     for (j = 0; j < 4; j++) {
                         vtx[n + j].v.cn[0] = r;
                         vtx[n + j].v.cn[1] = g;
@@ -497,9 +502,10 @@ Gfx *func_801F2428(void) {
     return dl;
 }
 
-/* starfield: projection/view matrices, then 0x200 random textured star quads
+/* 0x200 random star quads (0x801F2E20).
+ * starfield: projection/view matrices, then 0x200 random textured star quads
  * (vertices at segment 2 offset 0x15C0, copied to the other buffer) */
-Gfx *func_801F2E20(void) {
+Gfx *fe_lvlsel_build_starfield_dl(void) {
     Vtx *verts;
     u8 *copy;
     Mtx *mtx;
@@ -517,9 +523,9 @@ Gfx *func_801F2E20(void) {
     gHeapPtr += 0x80;
     gfx = (Gfx *) gHeapPtr;
     dl = gfx;
-    guPerspective(mtx, &D_80217288, 45.0f, 4.0f / 3.0f, 100.0f, 25000.0f, 1.0f);
+    guPerspective(mtx, &gStarfieldPerspNorm, 45.0f, 4.0f / 3.0f, 100.0f, 25000.0f, 1.0f);
     guLookAt(mtx + 1, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f);
-    gImmp1(gfx++, G_RDPHALF_1, D_80217288);
+    gImmp1(gfx++, G_RDPHALF_1, gStarfieldPerspNorm);
     gSPMatrix(gfx++, mtx, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
     gSPMatrix(gfx++, mtx + 1, G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
     gSPTexture(gfx++, 0x8000, 0x8000, 0, G_TX_RENDERTILE, G_ON);
@@ -529,11 +535,11 @@ Gfx *func_801F2E20(void) {
         gDPPipeSync(gfx++);
         for (j = 0; j < 16; j += 4) {
             if (((i + j) >> 2) % 43 == 0) {
-                gDPLoadTextureBlock(gfx++, D_8021728C + k * 256, G_IM_FMT_RGBA, G_IM_SIZ_16b, 16, 16, 0,
+                gDPLoadTextureBlock(gfx++, gStarTextures + k * 256, G_IM_FMT_RGBA, G_IM_SIZ_16b, 16, 16, 0,
                                     G_TX_CLAMP, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
                 k++;
             }
-            func_801FDCA4(verts, (i + j) / 4, func_8026A828(0, 25000));
+            fe_globe_respawn_star(verts, (i + j) / 4, util_rand_range(0, 25000));
             verts[i + j].v.tc[0] = 0;
             verts[i + j].v.tc[1] = 0;
             verts[i + j + 1].v.tc[0] = 0;

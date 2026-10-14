@@ -7,78 +7,79 @@
 /* end of views */
 
 
-void func_8025C5D0(void) {
+/* The attract demo's windows at fixed frames (0x8025C5D0). */
+void hud_attract_messages(void) {
     switch (((u32) D_802E8BEC)) {
         case 0:
             if (gGameMode == 2) {
                 if (((s32) gFramesInMode) == 0x96) {
-                    func_8026AF6C(0x803E);
+                    yoshi_demand(0x803E);
                 }
                 if (((s32) gFramesInMode) == 0x190) {
-                    func_8026AF6C(0x8025);
+                    yoshi_demand(0x8025);
                 }
                 if (((s32) gFramesInMode) == 0x2BC) {
-                    func_8026AF6C(0x8026);
+                    yoshi_demand(0x8026);
                 }
             } else {
                 if (((s32) gFramesInMode) == 0x64) {
-                    func_8026AF6C(0x8027);
+                    yoshi_demand(0x8027);
                 }
                 if (((s32) gFramesInMode) == 0x12C) {
-                    func_8026AF6C(0x8028);
+                    yoshi_demand(0x8028);
                 }
                 if (((s32) gFramesInMode) == 0x1F4) {
-                    func_8026AF6C(0x8029);
+                    yoshi_demand(0x8029);
                 }
                 if (((s32) gFramesInMode) == 0x2BC) {
-                    func_8026AF6C(0x802A);
+                    yoshi_demand(0x802A);
                 }
             }
             break;
         case 1:
             if (((s32) gFramesInMode) == 0xB4) {
-                func_8026AF6C(0x802B);
+                yoshi_demand(0x802B);
             }
             if (((s32) gFramesInMode) == 0x1D6) {
-                func_8026AF6C(0x802C);
+                yoshi_demand(0x802C);
             }
             break;
         case 2:
             if (((s32) gFramesInMode) == 0xB4) {
-                func_8026AF6C(0x802D);
+                yoshi_demand(0x802D);
             }
             break;
         case 3:
             if (((s32) gFramesInMode) == 0xB4) {
-                func_8026AF6C(0x802E);
+                yoshi_demand(0x802E);
             }
             break;
         case 4:
             if (((s32) gFramesInMode) == 0xB4) {
-                func_8026AF6C(0x802F);
+                yoshi_demand(0x802F);
             }
             break;
         case 5:
             if (((s32) gFramesInMode) == 0xB4) {
-                func_8026AF6C(0x8030);
+                yoshi_demand(0x8030);
             }
             break;
         case 6:
             if (((s32) gFramesInMode) == 0xB4) {
-                func_8026AF6C(0x8031);
+                yoshi_demand(0x8031);
             }
             if (((s32) gFramesInMode) == 0x1D6) {
-                func_8026AF6C(0x8032);
+                yoshi_demand(0x8032);
             }
             break;
         case 7:
             if (((s32) gFramesInMode) == 0xB4) {
-                func_8026AF6C(0x8033);
+                yoshi_demand(0x8033);
             }
             break;
         case 8:
             if (((s32) gFramesInMode) == 0xB4) {
-                func_8026AF6C(0x8034);
+                yoshi_demand(0x8034);
             }
             break;
     }
@@ -91,11 +92,12 @@ extern void * N64P D_80366BA4;
 extern s32 D_80366BA8;
 extern u8 D_80366A10;
 extern u8 D_80366A11;
-extern u32 D_80366BBC;
-void func_8025E1E0(Gfx **);
-Gfx *func_8025D2B4(Gfx *, s32, s32 *);
+extern u32 gAttractFadeTime;
+void title_draw_vehicles(Gfx **);
+Gfx *title_draw_logo(Gfx *, s32, s32 *);
 
-Gfx *func_8025C878(Gfx *arg0, s32 arg1, u8 arg2, s32 *arg3) {
+/* Attract mode: the fade at a demo's end, else the logo (0x8025C878). */
+Gfx *title_draw_attract(Gfx *arg0, s32 arg1, u8 arg2, s32 *arg3) {
     void *buf;
     u32 time;
     Gfx *gfx;
@@ -115,7 +117,7 @@ Gfx *func_8025C878(Gfx *arg0, s32 arg1, u8 arg2, s32 *arg3) {
             D_80366A11 = 0;
         }
         if ((u32) ((s32) gFramesInMode) > D_80366A04) {
-            if (time < D_80366BBC + 0x78) {
+            if (time < gAttractFadeTime + 0x78) {
                 gDPPipeSync(gfx++);
                 gSPMatrix(gfx++, &D_02000000[3], G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
                 gSPMatrix(gfx++, &D_02000000[7], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
@@ -130,9 +132,9 @@ Gfx *func_8025C878(Gfx *arg0, s32 arg1, u8 arg2, s32 *arg3) {
                     D_802FA8B0[arg2][i].v.cn[0] = 0;
                     D_802FA8B0[arg2][i].v.cn[1] = 0;
                     D_802FA8B0[arg2][i].v.cn[2] = 0;
-                    D_802FA8B0[arg2][i].v.cn[3] = (time - D_80366BBC) * 2.125;
+                    D_802FA8B0[arg2][i].v.cn[3] = (time - gAttractFadeTime) * 2.125;
                 }
-                func_8025E1E0(&gfx);
+                title_draw_vehicles(&gfx);
             } else {
                 gDPPipeSync(gfx++);
                 gSPClearGeometryMode(gfx++, 0xFFFFFFFF);
@@ -142,16 +144,16 @@ Gfx *func_8025C878(Gfx *arg0, s32 arg1, u8 arg2, s32 *arg3) {
                 gDPFillRectangle(gfx++, 0, 0, 319, 239);
                 gDPPipeSync(gfx++);
                 gDPSetCycleType(gfx++, G_CYC_1CYCLE);
-                func_8025E1E0(&gfx);
+                title_draw_vehicles(&gfx);
             }
         } else {
             if (D_80366A04 == ((s32) gFramesInMode)) {
-                D_80366BBC = time;
+                gAttractFadeTime = time;
             }
-            func_8025E1E0(&gfx);
+            title_draw_vehicles(&gfx);
         }
     } else {
-        gfx = func_8025D2B4(gfx, arg1, arg3);
+        gfx = title_draw_logo(gfx, arg1, arg3);
     }
     *arg3 = *arg3 + (gfx - arg0);
     return gfx;
@@ -211,9 +213,10 @@ void func_8025CE74(void) {
 
 extern u8 D_00487050[];
 extern u8 D_00489E70[];
-extern u32 D_80366BB0[];
+extern u32 gLogoImages[];
 
-void func_8025D0B0(u8 arg0) {
+/* 0: the 280x64 logo strip, 1: the 156x156 picture (0x8025D0B0). */
+void title_load_logo_image(u8 arg0) {
 #ifdef NON_MATCHING
     void *rom = NULL; /* arg0 is 0 or 1; any other value reads an indeterminate slot in the original */
 #else
@@ -232,36 +235,37 @@ void func_8025D0B0(u8 arg0) {
             break;
     }
     func_8028B4C4((u32) rom, (u32) gHeapPtr, (u32 *) &size, 0xC, 0, 1);
-    D_80366BB0[arg0] = (u32) gHeapPtr & 0x1FFFFFFF;
+    gLogoImages[arg0] = (u32) gHeapPtr & 0x1FFFFFFF;
     gHeapPtr = (u8 *) gHeapPtr + size;
 }
 
-extern s16 D_80366A00;
-extern s16 D_80366A02;
-extern s16 D_80366A14;
-extern s16 D_80366A16;
+extern s16 gLogoY;
+extern s16 gLogoPicY;
+extern s16 gLogoAlpha;
+extern s16 gLogoPicAlpha;
 
-void func_8025D184(void) {
+/* The logo state, positions and images for the next mode (0x8025D184). */
+void title_setup_logo(void) {
     if (gNextGameMode & 2) {
-        func_8025D0B0(1);
-        func_8025D0B0(0);
-        D_80366A16 = 0xFF;
-        D_80366A12 = 0;
-        D_80366A00 = 0xA5;
-        D_80366A02 = 0xD;
-    } else if (gNextGameMode & 0x40000) {
-        D_80366A16 = 0;
-        D_80366A12 = 4;
-        D_80366A02 = 0x2A;
-    } else if (gNextGameMode & 0x10000) {
-        D_80366A16 = 0;
-        D_80366A12 = 3;
+        title_load_logo_image(1);
+        title_load_logo_image(0);
+        gLogoPicAlpha = 0xFF;
+        gLogoState = 0;
+        gLogoY = 0xA5;
+        gLogoPicY = 0xD;
+    } else if (gNextGameMode & MODE_NAME_ENTRY) {
+        gLogoPicAlpha = 0;
+        gLogoState = 4;
+        gLogoPicY = 0x2A;
+    } else if (gNextGameMode & MODE_LOAD_GAME) {
+        gLogoPicAlpha = 0;
+        gLogoState = 3;
     } else {
-        func_8025D0B0(1);
-        func_8025D0B0(0);
-        D_80366A12 = 3;
-        D_80366A14 = 0;
-        D_80366A00 = 0x10;
+        title_load_logo_image(1);
+        title_load_logo_image(0);
+        gLogoState = 3;
+        gLogoAlpha = 0;
+        gLogoY = 0x10;
     }
 }
 
@@ -295,22 +299,23 @@ void func_8025D184(void) {
         gImmp1(pkt, OLD_RDPHALF_CONT, (_SHIFTL(dsdx, 16, 16) | _SHIFTL(dtdy, 0, 16)));       \
     }
 
-extern s16 D_80366A00;
-extern s16 D_80366A02;
-extern s16 D_80366A14;
-extern s16 D_80366A16;
+extern s16 gLogoY;
+extern s16 gLogoPicY;
+extern s16 gLogoAlpha;
+extern s16 gLogoPicAlpha;
 
-/* Draws the scrolling title backdrop. Input bits in the u64 gGameMode fade
- * D_80366A14 up/down, a little state machine on D_80366A12 (0 -> 1 on
- * gFramesInMode == 0x3C, 1 fades D_80366A16 out, 2 scrolls D_80366A00 to 0x10,
+/* The logo state machine and its texture rectangles (0x8025D2B4).
+ * Draws the scrolling title backdrop. Input bits in the u64 gGameMode fade
+ * gLogoAlpha up/down, a little state machine on gLogoState (0 -> 1 on
+ * gFramesInMode == 0x3C, 1 fades gLogoPicAlpha out, 2 scrolls gLogoY to 0x10,
  * 4 tracks yoshiState) steps the intro, then: a 5x5 grid of 32x32 tiles from
- * D_80366BB0[1] (states 0/1/4) and, falling through the switch for every state
- * but 4, a strip of tiles from D_80366BB0[0] drawn twice with scissored texture
- * rectangles at a vertical offset derived from D_8039CAA0.
+ * gLogoImages[1] (states 0/1/4) and, falling through the switch for every state
+ * but 4, a strip of tiles from gLogoImages[0] drawn twice with scissored texture
+ * rectangles at a vertical offset derived from gPadDisplayAlpha.
  * The two slti-tested add-and-clamp updates only schedule like the ROM (sh
  * between the sll/sra pair) with the update and the test on separate source
  * lines; the line break changes as1's schedule. */
-Gfx *func_8025D2B4(Gfx *arg0, s32 arg1, s32 *arg2) {
+Gfx *title_draw_logo(Gfx *arg0, s32 arg1, s32 *arg2) {
     Gfx *gfx;
     s32 i;
     s32 j;
@@ -319,47 +324,47 @@ Gfx *func_8025D2B4(Gfx *arg0, s32 arg1, s32 *arg2) {
 
     gfx = arg0;
     if (gGameMode & 0x08040E2110418002LL) {
-        D_80366A14 += 10;
-        if (D_80366A14 > 0xFF) {
-            D_80366A14 = 0xFF;
+        gLogoAlpha += 10;
+        if (gLogoAlpha > 0xFF) {
+            gLogoAlpha = 0xFF;
         }
     } else if (gGameMode & 0x0188004203160000LL) {
-        if ((D_80366A14 -= 10) <= 0) {
-            D_80366A14 = 0;
+        if ((gLogoAlpha -= 10) <= 0) {
+            gLogoAlpha = 0;
         }
     }
 
-    switch (D_80366A12) {
+    switch (gLogoState) {
         case 0:
             if (((s32) gFramesInMode) == 0x3C) {
-                D_80366A12 = 1;
+                gLogoState = 1;
             }
             break;
         case 1:
-            if ((D_80366A16 -= 8) < 0) {
-                D_80366A16 = 0;
-                D_80366A12 = 2;
+            if ((gLogoPicAlpha -= 8) < 0) {
+                gLogoPicAlpha = 0;
+                gLogoState = 2;
             }
             break;
         case 2:
-            D_80366A00 -= 10;
-            if (D_80366A00 <= 0x10) {
-                D_80366A00 = 0x10;
-                D_80366A12 = 3;
+            gLogoY -= 10;
+            if (gLogoY <= 0x10) {
+                gLogoY = 0x10;
+                gLogoState = 3;
             }
             break;
         case 4:
             if (yoshiState == 2) {
-                if (D_80366A16 + 4 > 0x80) {
-                    D_80366A16 = 0x80;
+                if (gLogoPicAlpha + 4 > 0x80) {
+                    gLogoPicAlpha = 0x80;
                 } else {
-                    D_80366A16 += 4;
+                    gLogoPicAlpha += 4;
                 }
             } else if (gGameMode == 0x200000) {
-                if (D_80366A16 - 6 < 0) {
-                    D_80366A16 = 0;
+                if (gLogoPicAlpha - 6 < 0) {
+                    gLogoPicAlpha = 0;
                 } else {
-                    D_80366A16 -= 6;
+                    gLogoPicAlpha -= 6;
                 }
             }
             break;
@@ -373,54 +378,54 @@ Gfx *func_8025D2B4(Gfx *arg0, s32 arg1, s32 *arg2) {
     gDPSetCombine(gfx++, 0xFF97FF, 0xFF2CFE7F);
 
     if (gGameMode == 2 && yoshiState != 1) {
-        top = D_80366A00 - (0xFF - D_8039CAA0) / 4;
-        if (top + 0x3F == D_80366A00) {
+        top = gLogoY - (0xFF - gPadDisplayAlpha) / 4;
+        if (top + 0x3F == gLogoY) {
             top = -100;
         }
     } else {
-        top = D_80366A00;
+        top = gLogoY;
     }
 
-    switch (D_80366A12) {
+    switch (gLogoState) {
         case 0:
         case 1:
         case 4:
-            gDPSetPrimColor(gfx++, 0, 0, 0, 0, 0, D_80366A16);
+            gDPSetPrimColor(gfx++, 0, 0, 0, 0, 0, gLogoPicAlpha);
             step = 0x52;
             for (i = 0; i < 0x96; i += 0x1F) {
                 for (j = 0; j < 0x96; j += 0x1F) {
-                    gDPLoadTextureTile(gfx++, D_80366BB0[1], G_IM_FMT_RGBA, G_IM_SIZ_16b, 156, 0, i, j,
+                    gDPLoadTextureTile(gfx++, gLogoImages[1], G_IM_FMT_RGBA, G_IM_SIZ_16b, 156, 0, i, j,
                                        i + 31, j + 31, 0, G_TX_CLAMP, G_TX_CLAMP, 0, 0, G_TX_NOLOD,
                                        G_TX_NOLOD);
-                    gSPTextureRectangleOld(gfx++, (i + step) << 2, (j + D_80366A02) << 2,
-                                           (i + step + 0x1F) << 2, (j + D_80366A02 + 0x1F) << 2, 0,
+                    gSPTextureRectangleOld(gfx++, (i + step) << 2, (j + gLogoPicY) << 2,
+                                           (i + step + 0x1F) << 2, (j + gLogoPicY + 0x1F) << 2, 0,
                                            i << 5, j << 5, 1 << 10, 1 << 10);
                 }
             }
-            if (D_80366A12 == 4) {
+            if (gLogoState == 4) {
                 break;
             }
         default:
             gDPPipeSync(gfx++);
             gDPSetCombine(gfx++, 0xFF97FF, 0xFF2DFEFF);
-            gDPSetPrimColor(gfx++, 0, 0, 0, 0, 0, D_80366A14 / 2);
+            gDPSetPrimColor(gfx++, 0, 0, 0, 0, 0, gLogoAlpha / 2);
             step = 0x14;
             for (i = 0; i < 0x110; i += 0x1F) {
-                gDPLoadTextureTile(gfx++, D_80366BB0[0], G_IM_FMT_RGBA, G_IM_SIZ_16b, 280, 0, i, 0,
+                gDPLoadTextureTile(gfx++, gLogoImages[0], G_IM_FMT_RGBA, G_IM_SIZ_16b, 280, 0, i, 0,
                                    i + 31, 63, 0, G_TX_CLAMP, G_TX_CLAMP, 0, 0, G_TX_NOLOD, G_TX_NOLOD);
                 gDPPipeSync(gfx++);
                 gDPSetRenderMode(gfx++, 0x00504240, 0);
                 gDPSetCombine(gfx++, 0xFF97FF, 0xFF2DFEFF);
-                gDPSetPrimColor(gfx++, 0, 0, 0, 0, 0, D_80366A14 / 2);
+                gDPSetPrimColor(gfx++, 0, 0, 0, 0, 0, gLogoAlpha / 2);
                 gSPScisTextureRectangleOld(gfx++, (i + step) << 2, (top + 6) << 2,
                                            (i + step + 0x1F) << 2, (top + 0x45) << 2, 0, i << 5, 0,
                                            1 << 10, 1 << 10);
                 gDPPipeSync(gfx++);
-                if (D_80366A14 == 0xFF && (gGameMode & 0xC9FD0FE79BFF80B0LL)) {
+                if (gLogoAlpha == 0xFF && (gGameMode & 0xC9FD0FE79BFF80B0LL)) {
                     gDPSetRenderMode(gfx++, 0x0F0A7008, 0);
                 }
                 gDPSetCombine(gfx++, 0xFF97FF, 0xFF2CFE7F);
-                gDPSetPrimColor(gfx++, 0, 0, 0, 0, 0, D_80366A14);
+                gDPSetPrimColor(gfx++, 0, 0, 0, 0, 0, gLogoAlpha);
                 gSPScisTextureRectangleOld(gfx++, (i + step) << 2, top << 2, (i + step + 0x1F) << 2,
                                            (top + 0x3F) << 2, 0, i << 5, 0, 1 << 10, 1 << 10);
             }
@@ -434,7 +439,8 @@ Gfx *func_8025D2B4(Gfx *arg0, s32 arg1, s32 *arg2) {
 }
 
 
-void func_8025E1E0(Gfx **arg0) {
+/* The 3D matrices, then the three vehicle layers (0x8025E1E0). */
+void title_draw_vehicles(Gfx **arg0) {
     Gfx *gfx = *arg0;
 
     gSPMatrix(gfx++, &D_02000000[2], G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
@@ -446,80 +452,82 @@ void func_8025E1E0(Gfx **arg0) {
     *arg0 = gfx;
 }
 
-extern u8 D_80366BC0;
-extern u16 D_80366BC2;
+extern u8 gLevelDoneSeen;
+extern u16 gLevelDoneWindow;
 extern u8 D_80366BC4;
-extern u32 D_80366BB8;
-extern u32 D_802E8CD0[];
+extern u32 gEndSeqTime;
+extern u32 gLevelDoneDelay[];
 
-void func_8025E2CC(Gfx **arg0, s32 arg1, s32 arg2) {
+/* Level complete: status, window and music, fade out (0x8025E2CC). */
+void hud_level_complete(Gfx **arg0, s32 arg1, s32 arg2) {
     Gfx *gfx;
 
     gfx = *arg0;
     if (gLevelDone != 0 && areWeFading() == 0) {
-        if (D_80366BC0 == 0) {
-            func_802C1DD0(gLevelInfo[levelno * 68] == 0x20 || gLevelInfo[levelno * 68] == 0x80);
-            D_80366BB8 = 0;
+        if (gLevelDoneSeen == 0) {
+            obj_tally(gLevelInfo[levelno * 68] == 0x20 || gLevelInfo[levelno * 68] == 0x80);
+            gEndSeqTime = 0;
             if ((players[playerNumber][levelno + 0x18] > 0 &&
                  players[playerNumber][levelno + 0x18] < 6) ? 1 : 0) {
-                func_802609F0();
-                func_80260A10();
-                D_80366BC2 = 5;
+                snd_stop_all_repeating();
+                snd_stop_all_looping();
+                gLevelDoneWindow = 5;
                 D_80366BC4 = 0;
                 if (((s32) gLevelKind) != 1) {
-                    func_80260E2C();
+                    music_play_done_tune();
                     D_80366BC4 = 1;
                 }
             } else {
                 switch (levelno) {
                     case 0x28:
-                        func_80260A10();
-                        func_80260DFC();
-                        D_80366BC2 = 0x1E;
+                        snd_stop_all_looping();
+                        music_push_danger_tune();
+                        gLevelDoneWindow = 0x1E;
                         D_80366BC4 = 0;
                         break;
                     case 0x32:
-                        func_80260A10();
-                        func_80260EE0(0x25);
-                        D_80366BC2 = 0x23;
+                        snd_stop_all_looping();
+                        music_push_tune(0x25);
+                        gLevelDoneWindow = 0x23;
                         D_80366BC4 = 0;
                         break;
                     default:
-                        func_80260A10();
-                        D_80366BC2 = 5;
-                        func_80260E2C();
+                        snd_stop_all_looping();
+                        gLevelDoneWindow = 5;
+                        music_play_done_tune();
                         D_80366BC4 = 1;
                         break;
                 }
             }
-            func_8026AF6C(D_80366BC2 | 0x8000 | 0x2000);
-            D_8036BB1A = -1;
-            if (D_80366BC2 == 5) {
-                func_80260650(D_80367738, func_8026205C(2), NULL);
+            yoshi_demand(gLevelDoneWindow | 0x8000 | 0x2000);
+            gYoshiPendingWindow = -1;
+            if (gLevelDoneWindow == 5) {
+                snd_play(gSfxBank, snd_random_id(2), NULL);
             }
         }
-        D_80366BC0 = gLevelDone;
-        if (D_80366BB8 == 0) {
-            if (yoshiState == 8 && currentYoshiWindow == D_80366BC2) {
-                D_80366BB8 = D_803156C4;
-                func_80278318();
-                func_80277EDC(2, 1, 2, func_8026205C(3));
+        gLevelDoneSeen = gLevelDone;
+        if (gEndSeqTime == 0) {
+            if (yoshiState == 8 && currentYoshiWindow == gLevelDoneWindow) {
+                gEndSeqTime = D_803156C4;
+                hud_panel_stop();
+                hud_panel_start(2, 1, 2, snd_random_id(3));
             }
-        } else if (func_802D4E10(D_80367734) == 0 ||
-                   (D_80366BC4 != 0 && D_803156C4 - D_80367740 >= 0x1E1) ||
-                   (D_80366BC4 == 0 && D_803156C4 - D_80366BB8 > D_802E8CD0[(((s32) gLevelKind) & 0x81) ? 1 : 0])) {
+        } else if (func_802D4E10(gMusicPlayer) == 0 ||
+                   (D_80366BC4 != 0 && D_803156C4 - gDoneTuneStartTime >= 0x1E1) ||
+                   (D_80366BC4 == 0 && D_803156C4 - gEndSeqTime > gLevelDoneDelay[(((s32) gLevelKind) & 0x81) ? 1 : 0])) {
             func_80275270(0x08000000, 0.75f);
-            D_80366BB8 = 0;
-            D_80366BC0 = 0;
+            gEndSeqTime = 0;
+            gLevelDoneSeen = 0;
         }
     }
     *arg0 = gfx;
 }
 
-extern u32 D_80366BB8;
-extern u8 D_80366BC5;
+extern u32 gEndSeqTime;
+extern u8 gFailSoundPlayed;
 
-void func_8025E67C(Gfx **arg0, s32 arg1, u8 arg2) {
+/* Mission failed (gCarrierHit): sound, window, fade, next mode (0x8025E67C). */
+void hud_mission_failed(Gfx **arg0, s32 arg1, u8 arg2) {
     Gfx *gfx;
     u32 time;
     u32 i;
@@ -531,38 +539,38 @@ void func_8025E67C(Gfx **arg0, s32 arg1, u8 arg2) {
     time = D_803156C4;
     if (gCarrierHit != 0) {
         if (D_803643D8 == 0) {
-            func_802609D0();
-            func_802C1DD0(gLevelInfo[levelno * 68] == 0x20 || gLevelInfo[levelno * 68] == 0x80);
+            snd_stop_all();
+            obj_tally(gLevelInfo[levelno * 68] == 0x20 || gLevelInfo[levelno * 68] == 0x80);
             switch (levelno) {
                 case 0x31:
-                    func_80260650(D_80367738, 0x31, NULL);
-                    func_80261570(0.0f);
+                    snd_play(gSfxBank, 0x31, NULL);
+                    music_fade_to(0.0f);
                     break;
                 case 0x32:
-                    D_8036BB1A = -1;
-                    func_8026AF6C(0xA00E);
-                    func_80261570(0.0f);
+                    gYoshiPendingWindow = -1;
+                    yoshi_demand(0xA00E);
+                    music_fade_to(0.0f);
                     break;
                 default:
-                    func_80260650(D_80367738, 0x31, NULL);
+                    snd_play(gSfxBank, 0x31, NULL);
                     gPauseRequest = 1;
-                    if (currentYoshiWindow != -1 || func_8026B10C() != 0) {
-                        func_8026AF6C(0x4000);
+                    if (currentYoshiWindow != -1 || yoshi_get_demand() != 0) {
+                        yoshi_demand(0x4000);
                     }
-                    D_8036BB1A = -1;
-                    func_80261570(0.0f);
+                    gYoshiPendingWindow = -1;
+                    music_fade_to(0.0f);
                     break;
             }
-            D_80366BB8 = time;
-            D_80366BC5 = 0;
+            gEndSeqTime = time;
+            gFailSoundPlayed = 0;
         }
-        i = time - D_80366BB8;
+        i = time - gEndSeqTime;
         if (i >= 0xB4) {
             switch (levelno) {
                 case 0x31:
-                    if (D_80366BC5 == 0) {
-                        func_80260650(D_80367738, 0x32, NULL);
-                        D_80366BC5 = 1;
+                    if (gFailSoundPlayed == 0) {
+                        snd_play(gSfxBank, 0x32, NULL);
+                        gFailSoundPlayed = 1;
                     }
                     break;
                 case 0x32:
@@ -576,9 +584,9 @@ void func_8025E67C(Gfx **arg0, s32 arg1, u8 arg2) {
                     }
                     break;
                 default:
-                    if (D_80366BC5 == 0) {
-                        func_80260650(D_80367738, 0x32, NULL);
-                        D_80366BC5 = 1;
+                    if (gFailSoundPlayed == 0) {
+                        snd_play(gSfxBank, 0x32, NULL);
+                        gFailSoundPlayed = 1;
                     }
                     gSPMatrix(gfx++, &D_02000000[3], G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
                     gSPMatrix(gfx++, &D_02000000[7], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
@@ -592,14 +600,14 @@ void func_8025E67C(Gfx **arg0, s32 arg1, u8 arg2) {
                     gSP1Triangle(gfx++, 0, 2, 3, 0);
                     gDPPipeSync(gfx++);
                     if (areWeFading() == 0) {
-                        if (time - D_80366BB8 - 0xB4 < 0x5A) {
-                            alpha = (time - D_80366BB8 - 0xB4) * 2.8333333333333335;
+                        if (time - gEndSeqTime - 0xB4 < 0x5A) {
+                            alpha = (time - gEndSeqTime - 0xB4) * 2.8333333333333335;
                             for (i = 0; i < 4; i++) {
                                 for (j = 0; j < 4; j++) {
                                     D_802FA8B0[arg2][i].v.cn[j] = alpha;
                                 }
                             }
-                        } else if (time - D_80366BB8 - 0x10E >= 0x2E) {
+                        } else if (time - gEndSeqTime - 0x10E >= 0x2E) {
                             if (gGameMode == 0x100000000000LL) {
                                 gNextGameMode = 0x200000000000LL;
                             } else if ((players[playerNumber][levelno + 0x18] > 0 &&

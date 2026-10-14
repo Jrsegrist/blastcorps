@@ -4,7 +4,7 @@
 /* Matching build: IDO compiled the matched code here against older
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
-#define LEGACY_D_80367738
+#define LEGACY_gSfxBank
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
@@ -20,137 +20,140 @@ typedef struct {
 } Player;
 
 #ifndef NON_MATCHING
-extern s32 D_80367738;
+extern s32 gSfxBank;
 #endif
 /* .bss, defined here (paired u64 stores share one lui) */
-u64 D_803A6AF0; /* loop mask used when the sequence finishes */
-u64 D_803A6AF8; /* loop mask used when it is aborted */
-u8 D_803A6B00;  /* level to go to when finished */
-u8 D_803A6B01;  /* level to go to when aborted */
-u8 D_803A6B02;  /* level the sequence starts in */
-u8 D_803A6B03;  /* current sequence number */
+u64 gSeqDoneMode; /* loop mask used when the sequence finishes */
+u64 gSeqAbortMode; /* loop mask used when it is aborted */
+u8 gSeqDoneLevel;  /* level to go to when finished */
+u8 gSeqAbortLevel;  /* level to go to when aborted */
+u8 gSeqStartLevel;  /* level the sequence starts in */
+u8 gSeqNumber;  /* current sequence number */
 u8 D_803A6B04;
 
 
 #define LEVEL_DONE(l) ((players[playerNumber].rank[l] > 0 && players[playerNumber].rank[l] < 6) ? 1 : 0)
 
-/* Set up level sequence seq: its start level, exit levels and loop masks.
- * D_803A6B02 is read back through ugen's store cache here, so the rank
+/* "prepare sequence %d" (0x802995F0).
+ * Set up level sequence seq: its start level, exit levels and loop masks.
+ * gSeqStartLevel is read back through ugen's store cache here, so the rank
  * index is not folded into the address. */
-void func_802995F0(s32 seq) {
-    D_803A6B03 = seq;
+void seq_prepare(s32 seq) {
+    gSeqNumber = seq;
     debug_printf("prepare sequence %d\n", seq);
-    switch (D_803A6B03) {
+    switch (gSeqNumber) {
         case 1:
-            D_803A6B02 = 0x26;
-            D_803A6B01 = 0x28;
-            D_803A6B00 = 0x28;
-            D_803A6AF0 = 0x4000;
-            D_803A6AF8 = 0x4000;
+            gSeqStartLevel = 0x26;
+            gSeqAbortLevel = 0x28;
+            gSeqDoneLevel = 0x28;
+            gSeqDoneMode = 0x4000;
+            gSeqAbortMode = 0x4000;
             D_803A6B04 = 1;
             break;
         case 3:
-            D_803A6B02 = 0x26;
-            D_803A6B01 = 0x2B;
-            D_803A6B00 = 0x2B;
-            D_803A6AF0 = 0x4000;
-            D_803A6AF8 = 0x4000;
+            gSeqStartLevel = 0x26;
+            gSeqAbortLevel = 0x2B;
+            gSeqDoneLevel = 0x2B;
+            gSeqDoneMode = 0x4000;
+            gSeqAbortMode = 0x4000;
             D_803A6B04 = 1;
             break;
         case 0:
-            D_803A6B02 = 0x31;
-            D_803A6B01 = 0x32;
-            D_803A6B00 = 0x32;
-            D_803A6AF0 = 0x4000;
-            D_803A6AF8 = 0x4000;
+            gSeqStartLevel = 0x31;
+            gSeqAbortLevel = 0x32;
+            gSeqDoneLevel = 0x32;
+            gSeqDoneMode = 0x4000;
+            gSeqAbortMode = 0x4000;
             D_803A6B04 = 0;
             break;
         case 4:
-            D_803A6B02 = 0x2F;
-            D_803A6B01 = 0;
-            D_803A6B00 = 0;
-            D_803A6AF0 = 0x4000;
-            D_803A6AF8 = 0x4000;
+            gSeqStartLevel = 0x2F;
+            gSeqAbortLevel = 0;
+            gSeqDoneLevel = 0;
+            gSeqDoneMode = 0x4000;
+            gSeqAbortMode = 0x4000;
             D_803A6B04 = 1;
             break;
         case 5:
-            D_803A6B02 = 0x37;
-            D_803A6B01 = 0x37;
-            D_803A6B00 = 0x37;
-            if (LEVEL_DONE(D_803A6B02)) {
-                D_803A6AF0 = 0x80;
-                D_803A6AF8 = 0x80;
+            gSeqStartLevel = 0x37;
+            gSeqAbortLevel = 0x37;
+            gSeqDoneLevel = 0x37;
+            if (LEVEL_DONE(gSeqStartLevel)) {
+                gSeqDoneMode = 0x80;
+                gSeqAbortMode = 0x80;
             } else {
-                D_803A6AF0 = 0x2000;
-                D_803A6AF8 = 0x2000;
+                gSeqDoneMode = 0x2000;
+                gSeqAbortMode = 0x2000;
             }
             D_803A6B04 = 1;
             break;
         case 6:
-            D_803A6B02 = 0x1C;
-            D_803A6B01 = 0x1C;
-            D_803A6B00 = 0x1C;
-            if (LEVEL_DONE(D_803A6B02)) {
-                D_803A6AF0 = 0x80;
-                D_803A6AF8 = 0x80;
+            gSeqStartLevel = 0x1C;
+            gSeqAbortLevel = 0x1C;
+            gSeqDoneLevel = 0x1C;
+            if (LEVEL_DONE(gSeqStartLevel)) {
+                gSeqDoneMode = 0x80;
+                gSeqAbortMode = 0x80;
             } else {
-                D_803A6AF0 = 0x2000;
-                D_803A6AF8 = 0x2000;
+                gSeqDoneMode = 0x2000;
+                gSeqAbortMode = 0x2000;
             }
             D_803A6B04 = 1;
             break;
         case 7:
-            D_803A6B02 = 0x35;
-            D_803A6B01 = 0x35;
-            D_803A6B00 = 0x35;
-            if (LEVEL_DONE(D_803A6B02)) {
-                D_803A6AF0 = 0x80;
-                D_803A6AF8 = 0x80;
+            gSeqStartLevel = 0x35;
+            gSeqAbortLevel = 0x35;
+            gSeqDoneLevel = 0x35;
+            if (LEVEL_DONE(gSeqStartLevel)) {
+                gSeqDoneMode = 0x80;
+                gSeqAbortMode = 0x80;
             } else {
-                D_803A6AF0 = 0x2000;
-                D_803A6AF8 = 0x2000;
+                gSeqDoneMode = 0x2000;
+                gSeqAbortMode = 0x2000;
             }
             D_803A6B04 = 1;
             break;
         case 8:
-            D_803A6B02 = 7;
-            D_803A6B01 = 7;
-            D_803A6B00 = 7;
-            if (LEVEL_DONE(D_803A6B02)) {
-                D_803A6AF0 = 0x80;
-                D_803A6AF8 = 0x80;
+            gSeqStartLevel = 7;
+            gSeqAbortLevel = 7;
+            gSeqDoneLevel = 7;
+            if (LEVEL_DONE(gSeqStartLevel)) {
+                gSeqDoneMode = 0x80;
+                gSeqAbortMode = 0x80;
             } else {
-                D_803A6AF0 = 0x2000;
-                D_803A6AF8 = 0x2000;
+                gSeqDoneMode = 0x2000;
+                gSeqAbortMode = 0x2000;
             }
             D_803A6B04 = 1;
             break;
         case 9:
-            D_803A6B02 = 0x13;
-            D_803A6B01 = 0x13;
-            D_803A6B00 = 0x13;
-            if (LEVEL_DONE(D_803A6B02)) {
-                D_803A6AF0 = 0x80;
-                D_803A6AF8 = 0x80;
+            gSeqStartLevel = 0x13;
+            gSeqAbortLevel = 0x13;
+            gSeqDoneLevel = 0x13;
+            if (LEVEL_DONE(gSeqStartLevel)) {
+                gSeqDoneMode = 0x80;
+                gSeqAbortMode = 0x80;
             } else {
-                D_803A6AF0 = 0x2000;
-                D_803A6AF8 = 0x2000;
+                gSeqDoneMode = 0x2000;
+                gSeqAbortMode = 0x2000;
             }
             D_803A6B04 = 1;
             break;
         default:
-            debug_printf("unknown sequence number %d\n", D_803A6B03);
+            debug_printf("unknown sequence number %d\n", gSeqNumber);
             break;
     }
 }
 
-/* Enter the sequence's first level */
-void func_80299C0C(void) {
-    levelno = D_803A6B02;
+/* Enters the sequence's start level (0x80299C0C).
+ * Enter the sequence's first level */
+void seq_enter_start_level(void) {
+    levelno = gSeqStartLevel;
 }
 
-/* Per-level sequence start actions (cutscenes, jingles) */
-void func_80299C20(void) {
+/* Starts the sequence level (demos, credits ...) (0x80299C20).
+ * Per-level sequence start actions (cutscenes, jingles) */
+void seq_start_level(void) {
     switch (levelno) {
         case 47:
             D_802E8BEC = 0;
@@ -162,43 +165,43 @@ void func_80299C20(void) {
             D_802E8BF0 = 0;
             rec_start_playback(9, &levelno);
             D_803643D4 = 5;
-            func_8026AF6C(0x8041);
-            func_80295E50();
+            yoshi_demand(0x8041);
+            hud_load_pad_image();
             break;
         case 28:
             D_802E8BEC = 10;
             D_802E8BF0 = 0;
             rec_start_playback(10, &levelno);
             D_803643D4 = 1;
-            func_8026AF6C(0x8042);
-            func_80295E50();
+            yoshi_demand(0x8042);
+            hud_load_pad_image();
             break;
         case 53:
             D_802E8BEC = 11;
             D_802E8BF0 = 0;
             rec_start_playback(11, &levelno);
             D_803643D4 = 2;
-            func_8026AF6C(0x8043);
-            func_80295E50();
+            yoshi_demand(0x8043);
+            hud_load_pad_image();
             break;
         case 7:
             D_802E8BEC = 12;
             D_802E8BF0 = 0;
             rec_start_playback(12, &levelno);
             D_803643D4 = 3;
-            func_8026AF6C(0x8044);
-            func_80295E50();
+            yoshi_demand(0x8044);
+            hud_load_pad_image();
             break;
         case 19:
             D_802E8BEC = 13;
             D_802E8BF0 = 0;
             rec_start_playback(13, &levelno);
             D_803643D4 = 9;
-            func_8026AF6C(0x8045);
-            func_80295E50();
+            yoshi_demand(0x8045);
+            hud_load_pad_image();
             break;
         case 49:
-            func_8029A500();
+            credits_init();
             break;
         case 38:
             func_8025BB50();
@@ -206,9 +209,10 @@ void func_80299C20(void) {
     }
 }
 
-/* Finish the current sequence level: record completion, pick the next level */
-void func_80299E10(s32 arg0) {
-    func_802609D0();
+/* "finishing sequence and going to level" (0x80299E10).
+ * Finish the current sequence level: record completion, pick the next level */
+void seq_finish(s32 arg0) {
+    snd_stop_all();
     switch (levelno) {
         case 38:
         case 47:
@@ -232,47 +236,48 @@ void func_80299E10(s32 arg0) {
             break;
     }
     if (arg0) {
-        func_80260650(D_80367738, 0x1E, 0);
-        gNextGameMode = D_803A6AF0;
-        levelno = D_803A6B00;
+        snd_play(gSfxBank, 0x1E, 0);
+        gNextGameMode = gSeqDoneMode;
+        levelno = gSeqDoneLevel;
     } else {
-        gNextGameMode = D_803A6AF8;
-        levelno = D_803A6B01;
+        gNextGameMode = gSeqAbortMode;
+        levelno = gSeqAbortLevel;
     }
     debug_printf("finishing sequence and going to level %d\n", levelno);
 }
 
-/* Return the loop mask for a level, starting its sequence where it has one */
-u64 func_80299FE8(u8 level) {
+/* "get loop done for world %d" (0x80299FE8).
+ * Return the loop mask for a level, starting its sequence where it has one */
+u64 seq_get_loop_done(u8 level) {
     u64 mask;
 
     switch (level) {
         case 38:
             mask = 0x100000000000;
-            func_802995F0(1);
+            seq_prepare(1);
             break;
         case 55:
             mask = 0x100000000000;
-            func_802995F0(5);
+            seq_prepare(5);
             break;
         case 28:
             mask = 0x100000000000;
-            func_802995F0(6);
+            seq_prepare(6);
             break;
         case 53:
             mask = 0x100000000000;
-            func_802995F0(7);
+            seq_prepare(7);
             break;
         case 7:
             mask = 0x100000000000;
-            func_802995F0(8);
+            seq_prepare(8);
             break;
         case 19:
             mask = 0x100000000000;
-            func_802995F0(9);
+            seq_prepare(9);
             break;
         default:
-            mask = func_801ECA50(level);
+            mask = fe_player_loop_done_mode(level);
             break;
     }
     debug_printf("get loop done for world %d\n", lowest_set_bit(mask));

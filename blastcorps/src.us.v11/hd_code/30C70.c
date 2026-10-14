@@ -6,35 +6,37 @@
 /* end of views */
 
 /* This file's .bss starts at 0x8036C790 */
-extern s32 D_8036C798;
-extern s16 * N64P D_8036C7A0[10]; /* point lists to keep on screen */
+extern s32 gMarkedTarget;
+extern s16 * N64P gShownTargets[10]; /* point lists to keep on screen */
 extern Vtx D_8036C7D0[][4];   /* off-screen marker quads */
 extern Mtx D_8036C850[];      /* off-screen marker matrices */
-extern s32 D_802FAD40; /* target bounce offset */
-extern s32 D_802FAD44; /* target bounce count */
-extern u8 D_802FAD48;  /* target bounce direction */
+extern s32 gMarkerBounce; /* target bounce offset */
+extern s32 gMarkerBounceCount; /* target bounce count */
+extern u8 gMarkerBounceDir;  /* target bounce direction */
 
 typedef struct SpriteVtxBuf {
     u8 pad[0x1E00];
     Vtx vtx[1]; /* sprite quads */
 } SpriteVtxBuf;
 
-void func_80276D1C(Mtx *m, f32 x, f32 y, f32 z, f32 w, f32 *ox, f32 *oy, f32 *oz, f32 *ow);
-s32 func_802768A8(void);
-void func_8027656C(void *arg0);
+void hud_mtx_xform(Mtx *m, f32 x, f32 y, f32 z, f32 w, f32 *ox, f32 *oy, f32 *oz, f32 *ow);
+s32 hud_target_was_shown(void);
+void hud_forget_offscreen_targets(void *arg0);
 
-void func_80275430(void) {
+/* Clears the shown-target list and the marker state (0x80275430). */
+void hud_init_target_marker(void) {
     s32 i;
 
     for (i = 0; i < 10; i++) {
-        D_8036C7A0[i] = 0;
+        gShownTargets[i] = 0;
     }
-    D_8036C794 = 0;
-    D_8036C7CC = 0;
+    gMarkedTargetPts = 0;
+    gMarkerArrowsOnScreen = 0;
 }
 
-/* Picks the on-screen target marker, colours it by time left, bounces it and draws its four arrows */
-void func_80275478(SpriteVtxBuf *arg0, Gfx **gfxp, u8 arg2) {
+/* Four bouncing arrows round the next target, coloured by gCarrierEta (0x80275478).
+ * Picks the on-screen target marker, colours it by time left, bounces it and draws its four arrows */
+void hud_draw_target_marker(SpriteVtxBuf *arg0, Gfx **gfxp, u8 arg2) {
     s16 i;
     s16 k;
     s16 vtxIdx = 16;
@@ -55,19 +57,19 @@ void func_80275478(SpriteVtxBuf *arg0, Gfx **gfxp, u8 arg2) {
 
     minX = 0x7FFF, maxX = -0x8000, minY = 0x7FFF, maxY = -0x8000;
     ret = obj_find_nearest_target();
-    pts = D_8036C790;
-    D_8036C7CC = 0;
-    if (!D_8036EB98 && !ret && gLevelKind == 1 && !gPaused) {
-        if (!func_8026AD30(0x4B)) {
-            func_8026AF6C(0x803D);
-            func_80277EDC(3, 1, 2, 0x82);
+    pts = gNearestTargetPts;
+    gMarkerArrowsOnScreen = 0;
+    if (!gTargetsCleared && !ret && gLevelKind == 1 && !gPaused) {
+        if (!yoshi_show_hint(0x4B)) {
+            yoshi_demand(0x803D);
+            hud_panel_start(3, 1, 2, 0x82);
         }
-        D_8036EB98 = 1;
+        gTargetsCleared = 1;
     }
-    if (D_8036C790 != NULL && (!func_802768A8() || arg2) && D_8036C794 == NULL) {
+    if (gNearestTargetPts != NULL && (!hud_target_was_shown() || arg2) && gMarkedTargetPts == NULL) {
         for (i = 0; i < 4; i++) {
-            func_8027690C(arg0, D_8036C790[0], D_8036C790[1], D_8036C790[2], &sx, &sy, NULL, NULL, NULL, 1.0f);
-            D_8036C790 += 3;
+            hud_project_point(arg0, gNearestTargetPts[0], gNearestTargetPts[1], gNearestTargetPts[2], &sx, &sy, NULL, NULL, NULL, 1.0f);
+            gNearestTargetPts += 3;
             if (sx < minX) {
                 minX = sx;
             }
@@ -81,7 +83,7 @@ void func_80275478(SpriteVtxBuf *arg0, Gfx **gfxp, u8 arg2) {
                 maxY = sy;
             }
         }
-        D_8036C7CC = 0;
+        gMarkerArrowsOnScreen = 0;
         for (k = 0; k < 4; k++) {
             switch (k) {
                 case 0:
@@ -102,32 +104,32 @@ void func_80275478(SpriteVtxBuf *arg0, Gfx **gfxp, u8 arg2) {
                     break;
             }
             if (px < 310 && px >= 11 && py < 230 && py >= 11) {
-                D_8036C794 = pts;
-                D_8036C798 = ret;
-                D_803F7809 = D_803F7808;
-                D_802FAD44 = 0;
+                gMarkedTargetPts = pts;
+                gMarkedTarget = ret;
+                gMarkedTargetKind = gNearestTargetKind;
+                gMarkerBounceCount = 0;
             }
         }
     }
-    if (D_8036C794 != NULL) {
-        func_802BD10C(D_8036C798);
-        if (D_8036C7C8 >= 1501 || !gHaveCarrier) {
+    if (gMarkedTargetPts != NULL) {
+        obj_calc_target_time(gMarkedTarget);
+        if (gCarrierEta >= 1501 || !gHaveCarrier) {
             g = 0xFF;
             r = 0;
-        } else if (D_8036C7C8 < 500) {
+        } else if (gCarrierEta < 500) {
             r = 0xFF;
             g = 0;
         } else {
-            t = (D_8036C7C8 - 500) / 1000.0f * 511.0f;
+            t = (gCarrierEta - 500) / 1000.0f * 511.0f;
             if (t < 256) {
                 g = t, r = 0xFF;
             } else {
                 g = 0xFF, r = 0x1FE - t;
             }
         }
-        pts = D_8036C794;
+        pts = gMarkedTargetPts;
         for (i = 0; i < 4; i++) {
-            func_8027690C(arg0, pts[0], pts[1], pts[2], &sx, &sy, NULL, NULL, NULL, 1.0f);
+            hud_project_point(arg0, pts[0], pts[1], pts[2], &sx, &sy, NULL, NULL, NULL, 1.0f);
             pts += 3;
             if (sx < minX) {
                 minX = sx;
@@ -145,42 +147,42 @@ void func_80275478(SpriteVtxBuf *arg0, Gfx **gfxp, u8 arg2) {
         for (k = 0; k < 4; k++) {
             switch (k) {
                 case 0:
-                    px = (maxX - minX) / 2 + minX, py = minY - D_802FAD40;
+                    px = (maxX - minX) / 2 + minX, py = minY - gMarkerBounce;
                     break;
                 case 1:
-                    px = (maxX - minX) / 2 + minX, py = maxY + D_802FAD40;
+                    px = (maxX - minX) / 2 + minX, py = maxY + gMarkerBounce;
                     break;
                 case 2:
-                    px = minX - D_802FAD40;
+                    px = minX - gMarkerBounce;
                     py = (maxY - minY) / 2 + minY;
                     break;
                 case 3:
-                    px = maxX + D_802FAD40;
+                    px = maxX + gMarkerBounce;
                     py = (maxY - minY) / 2 + minY;
                     break;
             }
             if (px < 310 && px >= 11 && py < 230 && py >= 11) {
-                D_8036C7CC++;
+                gMarkerArrowsOnScreen++;
             }
-            vtxIdx = func_80276080(arg0, k, vtxIdx, px, py, 8, 8, r, g, 0, 0xFF);
+            vtxIdx = hud_sprite_quad(arg0, k, vtxIdx, px, py, 8, 8, r, g, 0, 0xFF);
         }
-        if (!D_802FAD48) {
-            D_802FAD40++;
-            if (D_802FAD40 == 10) {
-                D_802FAD48 = 1;
-                D_802FAD44++;
+        if (!gMarkerBounceDir) {
+            gMarkerBounce++;
+            if (gMarkerBounce == 10) {
+                gMarkerBounceDir = 1;
+                gMarkerBounceCount++;
             }
         } else {
-            D_802FAD40--;
-            if (D_802FAD40 == 0) {
-                D_802FAD48 = 0;
-                D_802FAD44++;
+            gMarkerBounce--;
+            if (gMarkerBounce == 0) {
+                gMarkerBounceDir = 0;
+                gMarkerBounceCount++;
             }
         }
-        if (D_802FAD44 == 5) {
-            D_8036C794 = NULL;
+        if (gMarkerBounceCount == 5) {
+            gMarkedTargetPts = NULL;
         }
-        gdl = func_80275DA4(gdl, 0);
+        gdl = hud_sprite_setup(gdl, 0);
         gSPVertex(gdl++, (u32) D_02000000 + 0x1F00, 16, 0);
         vtxIdx = 0;
         for (k = 0; k < 4; k++) {
@@ -189,11 +191,12 @@ void func_80275478(SpriteVtxBuf *arg0, Gfx **gfxp, u8 arg2) {
             vtxIdx += 4;
         }
     }
-    func_8027656C(arg0);
+    hud_forget_offscreen_targets(arg0);
     *gfxp = gdl;
 }
 
-Gfx *func_80275DA4(Gfx *gfx, u8 arg1) {
+/* 2D render state and the 32x32 IA sprite texture (0x80275DA4). */
+Gfx *hud_sprite_setup(Gfx *gfx, u8 arg1) {
     Gfx *gdl = gfx;
 
     if (!arg1) {
@@ -212,12 +215,14 @@ Gfx *func_80275DA4(Gfx *gfx, u8 arg1) {
     return gdl;
 }
 
-s32 func_80276080(SpriteVtxBuf *arg0, u8 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5, s32 arg6, u8 r, u8 g, u8 b, u8 a) {
-    return func_80276130(arg0, arg1, arg2, arg3, arg4, arg5, arg6, r, g, b, a, r, g, b, a, r, g, b, a, r, g, b, a);
+/* A one-colour sprite quad (0x80276080). */
+s32 hud_sprite_quad(SpriteVtxBuf *arg0, u8 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5, s32 arg6, u8 r, u8 g, u8 b, u8 a) {
+    return hud_sprite_quad_colors(arg0, arg1, arg2, arg3, arg4, arg5, arg6, r, g, b, a, r, g, b, a, r, g, b, a, r, g, b, a);
 }
 
-/* Writes a quad of 4 Vtx centred on (x, y), half size (w, h); arg1 picks the texture orientation */
-s32 func_80276130(SpriteVtxBuf *arg0, u8 arg1, s32 arg2, s32 x, s32 y, s32 w, s32 h,
+/* Four vertices centred on x, y with per-corner colours (0x80276130).
+ * Writes a quad of 4 Vtx centred on (x, y), half size (w, h); arg1 picks the texture orientation */
+s32 hud_sprite_quad_colors(SpriteVtxBuf *arg0, u8 arg1, s32 arg2, s32 x, s32 y, s32 w, s32 h,
                   u8 r0, u8 g0, u8 b0, u8 a0, u8 r1, u8 g1, u8 b1, u8 a1,
                   u8 r2, u8 g2, u8 b2, u8 a2, u8 r3, u8 g3, u8 b3, u8 a3) {
     s32 pad;
@@ -287,7 +292,8 @@ s32 func_80276130(SpriteVtxBuf *arg0, u8 arg1, s32 arg2, s32 x, s32 y, s32 w, s3
     return arg2;
 }
 
-void func_8027656C(void *arg0) {
+/* Drops shown targets no longer on screen (0x8027656C). */
+void hud_forget_offscreen_targets(void *arg0) {
     s32 i;
     s32 j;
     s16 *pts;
@@ -302,12 +308,12 @@ void func_8027656C(void *arg0) {
     u8 found;
 
     for (i = 0; i < 10; i++) {
-        if (D_8036C7A0[i]) {
+        if (gShownTargets[i]) {
             minX = 0x7FFF, maxX = -0x8000;
             minY = 0x7FFF, maxY = -0x8000;
-            pts = D_8036C7A0[i];
+            pts = gShownTargets[i];
             for (j = 0; j < 4; j++) {
-                func_8027690C(arg0, pts[0], pts[1], pts[2], &sx, &sy, 0, 0, 0, 1.0f);
+                hud_project_point(arg0, pts[0], pts[1], pts[2], &sx, &sy, 0, 0, 0, 1.0f);
                 pts += 3;
                 if (sx < minX) {
                     minX = sx;
@@ -349,31 +355,33 @@ void func_8027656C(void *arg0) {
                 j++;
             }
             if (!found) {
-                D_8036C7A0[i] = NULL;
+                gShownTargets[i] = NULL;
             }
         }
     }
 }
 
-void func_8027684C(void) {
+/* Adds the marked target to the shown list (0x8027684C). */
+void hud_remember_marked_target(void) {
     s32 i;
 
     i = 0;
     while (i < 10) {
-        if (!D_8036C7A0[i]) {
-            D_8036C7A0[i] = D_8036C794;
+        if (!gShownTargets[i]) {
+            gShownTargets[i] = gMarkedTargetPts;
             return;
         }
         i++;
     }
 }
 
-s32 func_802768A8(void) {
+/* 1 if the nearest target was already marked (0x802768A8). */
+s32 hud_target_was_shown(void) {
     s32 i;
 
     i = 0;
     while (i < 10) {
-        if (D_8036C7A0[i] && D_8036C7A0[i] == D_8036C790) {
+        if (gShownTargets[i] && gShownTargets[i] == gNearestTargetPts) {
             return 1;
         }
         i++;
@@ -381,26 +389,27 @@ s32 func_802768A8(void) {
     return 0;
 }
 
-/* Projects a point to screen coordinates, clamped to +-0x4000 (0x4000 when behind the camera) */
-void func_8027690C(void *arg0, f32 x, f32 y, f32 z, s16 *sx, s16 *sy, Mtx *arg6, Mtx *arg7, Mtx *arg8, f32 arg9) {
+/* A world point to screen x, y (0x4000 if behind) (0x8027690C).
+ * Projects a point to screen coordinates, clamped to +-0x4000 (0x4000 when behind the camera) */
+void hud_project_point(void *arg0, f32 x, f32 y, f32 z, s16 *sx, s16 *sy, Mtx *arg6, Mtx *arg7, Mtx *arg8, f32 arg9) {
     f32 w = 1.0f;
 
     if (arg8 != NULL) {
-        func_80276D1C(arg8, x, y, z, w, &x, &y, &z, &w);
+        hud_mtx_xform(arg8, x, y, z, w, &x, &y, &z, &w);
     }
     if (arg7 != NULL) {
-        func_80276D1C(arg7, x, y, z, w, &x, &y, &z, &w);
+        hud_mtx_xform(arg7, x, y, z, w, &x, &y, &z, &w);
     }
     if (arg6 != NULL) {
-        func_80276D1C(arg6, x, y, z, w, &x, &y, &z, &w);
+        hud_mtx_xform(arg6, x, y, z, w, &x, &y, &z, &w);
     }
-    func_80276D1C((Mtx *) ((u8 *) arg0 + 0x140), x, y, z, w, &x, &y, &z, &w);
+    hud_mtx_xform((Mtx *) ((u8 *) arg0 + 0x140), x, y, z, w, &x, &y, &z, &w);
     if (z >= 0.0) {
         *sx = 0x4000;
         *sy = 0x4000;
         return;
     }
-    func_80276D1C((Mtx *) ((u8 *) arg0 + 0x80), x, y, z, w, &x, &y, &z, &w);
+    hud_mtx_xform((Mtx *) ((u8 *) arg0 + 0x80), x, y, z, w, &x, &y, &z, &w);
     x = x * (gPerspNorm / 65535.0);
     y = y * (gPerspNorm / 65535.0);
     w = w * (gPerspNorm / 65535.0);
@@ -421,7 +430,8 @@ void func_8027690C(void *arg0, f32 x, f32 y, f32 z, s16 *sx, s16 *sy, Mtx *arg6,
     *sy = y;
 }
 
-void func_80276D1C(Mtx *m, f32 x, f32 y, f32 z, f32 w, f32 *ox, f32 *oy, f32 *oz, f32 *ow) {
+/* A fixed-point Mtx times (x, y, z, w) (0x80276D1C). */
+void hud_mtx_xform(Mtx *m, f32 x, f32 y, f32 z, f32 w, f32 *ox, f32 *oy, f32 *oz, f32 *ow) {
     f32 mf[4][4];
 
     guMtxL2F(mf, m);
@@ -431,15 +441,16 @@ void func_80276D1C(Mtx *m, f32 x, f32 y, f32 z, f32 w, f32 *ox, f32 *oy, f32 *oz
     *ow = mf[0][3] * x + mf[1][3] * y + mf[2][3] * z + mf[3][3];
 }
 
-/* Draws a marker at the screen edge pointing towards an off-screen point (x, y, z in 1/32 units) */
-void func_80276E50(Gfx **gfxp, void *view, u8 idx, s32 x, s32 y, s32 z) {
+/* The edge-of-screen marker toward the player (missile view) (0x80276E50).
+ * Draws a marker at the screen edge pointing towards an off-screen point (x, y, z in 1/32 units) */
+void hud_draw_player_locator(Gfx **gfxp, void *view, u8 idx, s32 x, s32 y, s32 z) {
     s16 sx;
     s16 sy;
     Gfx *gdl = *gfxp;
     f32 mf[4][4];
     f32 rot[4][4];
 
-    func_8027690C(view, x >> 5, y >> 5, z >> 5, &sx, &sy, NULL, NULL, NULL, 1.0f);
+    hud_project_point(view, x >> 5, y >> 5, z >> 5, &sx, &sy, NULL, NULL, NULL, 1.0f);
     if (sx < 30 || sx >= 291 || sy < 25 || sy >= 216) {
         if (sx < 30) {
             sx = 30;

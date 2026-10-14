@@ -24,7 +24,7 @@ extern u8 D_803669A8;
 extern RecEntry * N64P D_803669AC;
 extern void * N64P D_803669B0;
 extern RecEntry D_80365588[];
-extern u16 D_802E8CB0[]; /* sprite ids (func_80272C5C) */
+extern u16 D_802E8CB0[]; /* sprite ids (spr_load) */
 
 
 #define ASSERT(EX, line) if (!(EX)) debug_printf("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "recording.c", line)
@@ -72,7 +72,7 @@ void func_8025BB50(void) {
     D_80366998 = D_80366990;
     D_80366994 = 0;
     D_803669AC = D_80365588;
-    D_80365580 = func_80272C5C((u16 *) D_802E8CB0, 0, 1, 1, 1, 1.0f);
+    D_80365580 = spr_load((u16 *) D_802E8CB0, 0, 1, 1, 1, 1.0f);
     D_803669A0 = D_803669AC[D_80366994].count;
 }
 
@@ -103,39 +103,39 @@ void rec_record(u16 buttons, s8 x, s8 y) {
 void func_8025BD98(void) {
     switch (D_8036698C) {
         case 3:
-            func_802B40D4(D_803669B0);
-            func_802B2D7C();
+            skyfall_load_state(D_803669B0);
+            skyfall_enter();
             break;
         case 0:
-            func_802AFC28(D_803669B0);
+            driver_load_state(D_803669B0);
             break;
         case 1:
-            func_802B0D70(D_803669B0);
-            func_802AFFD4();
+            sideswipe_load_state(D_803669B0);
+            sideswipe_enter();
             break;
         case 2:
-            func_802B2988(D_803669B0);
-            func_802B1228();
+            thunderfist_load_state(D_803669B0);
+            thunderfist_enter();
             break;
         case 16:
-            func_802D2524(D_803669B0);
-            func_802D0C68();
+            cyclone_load_state(D_803669B0);
+            cyclone_enter();
             break;
         case 4:
-            func_802B58C8(D_803669B0);
-            func_802B448C();
+            ramdozer_load_state(D_803669B0);
+            ramdozer_enter();
             break;
         case 5:
-            func_802B7308(D_803669B0);
-            func_802B5CD8();
+            backlash_load_state(D_803669B0);
+            backlash_enter();
             break;
         case 9:
-            func_802C80A0(D_803669B0);
-            func_802C5714();
+            jbomb_load_state(D_803669B0);
+            jbomb_enter();
             break;
         case 10:
-            func_802CB660(D_803669B0);
-            func_802C9F54();
+            ballista_load_state(D_803669B0);
+            ballista_enter();
             break;
     }
     if (D_8036698C) {
@@ -184,7 +184,7 @@ void rec_next(void) {
             D_80366994++;
             D_803669A0 = D_803669AC[D_80366994].count;
         }
-        if ((gGameMode & 0x100000000002) && D_8036698C != 9) {
+        if ((gGameMode & (MODE_ATTRACT | MODE_GLOBE_SEQ)) && D_8036698C != 9) {
             if ((gRecButtons & 0xC000) == 0x8000) {
                 gRecButtons &= ~0x8000;
                 gRecButtons |= 0x4000;

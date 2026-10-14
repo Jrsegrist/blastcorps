@@ -5,7 +5,7 @@
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
 #define LEGACY_gHeapPtr
-#define LEGACY_D_80367738
+#define LEGACY_gSfxBank
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
@@ -28,9 +28,9 @@ typedef struct {
     s16 z1;
     s16 tex0Id;
     s16 tex1Id;
-    s16 radarSize; /* passed to func_802CE880 */
+    s16 radarSize; /* passed to radar_set_marker */
     s16 radius;    /* collect distance */
-    u8 trigger;    /* compared with func_8028C874's argument */
+    u8 trigger;    /* compared with crate_update's argument */
     u8 pad15;
 } BoxType; /* size 0x16 */
 
@@ -59,18 +59,18 @@ typedef struct {
  * in comma-expression order). */
 #define SET_TC(vtx, s, t) ((vtx).v.tc[0] = (s), (vtx).v.tc[1] = (t))
 
-extern BoxType D_802FDB40[];
+extern BoxType gCrateTypes[];
 #ifndef NON_MATCHING
 extern Vtx *gHeapPtr;
 #ifndef NON_MATCHING
-extern s32 D_80367738;
+extern s32 gSfxBank;
 #endif
 #endif
-extern Box D_8039AF00[];
-extern s32 D_8039B068;
+extern Box gCrates[];
+extern s32 gCrateCount;
 
 
-void func_8028C41C(Vtx *v, u8 type, s16 x, s16 y, s16 z);
+void crate_build_vertices(Vtx *v, u8 type, s16 x, s16 y, s16 z);
 
 #ifdef PORT_HOST
 /* The boxes' vertices (fresh heap memory) get ob and tc only: flag and
@@ -79,105 +79,109 @@ void func_8028C41C(Vtx *v, u8 type, s16 x, s16 y, s16 z);
 void port_vtx_stale(void *v, u32 n);
 #endif
 
-/* Spawn boxes from the records [arg0, arg1). */
-void func_8028C190(BoxSpawn *arg0, BoxSpawn *arg1) {
-    D_8039B068 = 0;
+/* The level's ammo crates (0x8028C190).
+ * Spawn boxes from the records [arg0, arg1). */
+void crate_spawn_all(BoxSpawn *arg0, BoxSpawn *arg1) {
+    gCrateCount = 0;
     while (arg0 != arg1) {
-        D_8039AF00[D_8039B068].x = arg0->x;
-        D_8039AF00[D_8039B068].y = arg0->y;
-        D_8039AF00[D_8039B068].z = arg0->z;
-        D_8039AF00[D_8039B068].type = arg0->type;
-        D_8039AF00[D_8039B068].collected = 0;
-        D_8039AF00[D_8039B068].alpha = 0xFF;
-        D_8039AF00[D_8039B068].tex0 = func_802A0CC8(D_802FDB40[D_8039AF00[D_8039B068].type].tex0Id, 0);
-        D_8039AF00[D_8039B068].tex1 = func_802A0CC8(D_802FDB40[D_8039AF00[D_8039B068].type].tex1Id, 0);
-        D_8039AF00[D_8039B068].vtx = gHeapPtr;
+        gCrates[gCrateCount].x = arg0->x;
+        gCrates[gCrateCount].y = arg0->y;
+        gCrates[gCrateCount].z = arg0->z;
+        gCrates[gCrateCount].type = arg0->type;
+        gCrates[gCrateCount].collected = 0;
+        gCrates[gCrateCount].alpha = 0xFF;
+        gCrates[gCrateCount].tex0 = tex_get(gCrateTypes[gCrates[gCrateCount].type].tex0Id, 0);
+        gCrates[gCrateCount].tex1 = tex_get(gCrateTypes[gCrates[gCrateCount].type].tex1Id, 0);
+        gCrates[gCrateCount].vtx = gHeapPtr;
         gHeapPtr += 8;
 #ifdef PORT_HOST
-        port_vtx_stale(D_8039AF00[D_8039B068].vtx, 8);
+        port_vtx_stale(gCrates[gCrateCount].vtx, 8);
 #endif
-        func_8028C41C(D_8039AF00[D_8039B068].vtx, D_8039AF00[D_8039B068].type, D_8039AF00[D_8039B068].x,
-                      D_8039AF00[D_8039B068].y, D_8039AF00[D_8039B068].z);
-        D_8039B068++;
+        crate_build_vertices(gCrates[gCrateCount].vtx, gCrates[gCrateCount].type, gCrates[gCrateCount].x,
+                      gCrates[gCrateCount].y, gCrates[gCrateCount].z);
+        gCrateCount++;
         arg0++;
     }
 }
 
-/* Fill the 8 cube vertices of a box of the given type at (x, y, z). */
-void func_8028C41C(Vtx *v, u8 type, s16 x, s16 y, s16 z) {
-    v[0].v.ob[0] = D_802FDB40[type].x0 + x;
-    v[0].v.ob[1] = D_802FDB40[type].y0 + y;
-    v[0].v.ob[2] = D_802FDB40[type].z0 + z;
+/* A crate's vertices (0x8028C41C).
+ * Fill the 8 cube vertices of a box of the given type at (x, y, z). */
+void crate_build_vertices(Vtx *v, u8 type, s16 x, s16 y, s16 z) {
+    v[0].v.ob[0] = gCrateTypes[type].x0 + x;
+    v[0].v.ob[1] = gCrateTypes[type].y0 + y;
+    v[0].v.ob[2] = gCrateTypes[type].z0 + z;
     SET_TC(v[0], 0, 0);
-    v[1].v.ob[0] = D_802FDB40[type].x0 + x;
-    v[1].v.ob[1] = D_802FDB40[type].y1 + y;
-    v[1].v.ob[2] = D_802FDB40[type].z0 + z;
+    v[1].v.ob[0] = gCrateTypes[type].x0 + x;
+    v[1].v.ob[1] = gCrateTypes[type].y1 + y;
+    v[1].v.ob[2] = gCrateTypes[type].z0 + z;
     SET_TC(v[1], 0, 0x1E0);
-    v[2].v.ob[0] = D_802FDB40[type].x0 + x;
-    v[2].v.ob[1] = D_802FDB40[type].y1 + y;
-    v[2].v.ob[2] = D_802FDB40[type].z1 + z;
+    v[2].v.ob[0] = gCrateTypes[type].x0 + x;
+    v[2].v.ob[1] = gCrateTypes[type].y1 + y;
+    v[2].v.ob[2] = gCrateTypes[type].z1 + z;
     SET_TC(v[2], 0x1E0, 0x1E0);
-    v[3].v.ob[0] = D_802FDB40[type].x0 + x;
-    v[3].v.ob[1] = D_802FDB40[type].y0 + y;
-    v[3].v.ob[2] = D_802FDB40[type].z1 + z;
+    v[3].v.ob[0] = gCrateTypes[type].x0 + x;
+    v[3].v.ob[1] = gCrateTypes[type].y0 + y;
+    v[3].v.ob[2] = gCrateTypes[type].z1 + z;
     SET_TC(v[3], 0x1E0, 0);
-    v[4].v.ob[0] = D_802FDB40[type].x1 + x;
-    v[4].v.ob[1] = D_802FDB40[type].y0 + y;
-    v[4].v.ob[2] = D_802FDB40[type].z0 + z;
+    v[4].v.ob[0] = gCrateTypes[type].x1 + x;
+    v[4].v.ob[1] = gCrateTypes[type].y0 + y;
+    v[4].v.ob[2] = gCrateTypes[type].z0 + z;
     SET_TC(v[4], 0x1E0, 0);
-    v[5].v.ob[0] = D_802FDB40[type].x1 + x;
-    v[5].v.ob[1] = D_802FDB40[type].y1 + y;
-    v[5].v.ob[2] = D_802FDB40[type].z0 + z;
+    v[5].v.ob[0] = gCrateTypes[type].x1 + x;
+    v[5].v.ob[1] = gCrateTypes[type].y1 + y;
+    v[5].v.ob[2] = gCrateTypes[type].z0 + z;
     SET_TC(v[5], 0x1E0, 0x1E0);
-    v[6].v.ob[0] = D_802FDB40[type].x1 + x;
-    v[6].v.ob[1] = D_802FDB40[type].y1 + y;
-    v[6].v.ob[2] = D_802FDB40[type].z1 + z;
+    v[6].v.ob[0] = gCrateTypes[type].x1 + x;
+    v[6].v.ob[1] = gCrateTypes[type].y1 + y;
+    v[6].v.ob[2] = gCrateTypes[type].z1 + z;
     SET_TC(v[6], 0, 0x1E0);
-    v[7].v.ob[0] = D_802FDB40[type].x1 + x;
-    v[7].v.ob[1] = D_802FDB40[type].y0 + y;
-    v[7].v.ob[2] = D_802FDB40[type].z1 + z;
+    v[7].v.ob[0] = gCrateTypes[type].x1 + x;
+    v[7].v.ob[1] = gCrateTypes[type].y0 + y;
+    v[7].v.ob[2] = gCrateTypes[type].z1 + z;
     SET_TC(v[7], 0, 0);
 }
 
-/* Per-frame update: collect boxes of the given trigger class that are within
+/* Pickups (+10 ammo by type), radar marks (0x8028C874).
+ * Per-frame update: collect boxes of the given trigger class that are within
  * range, mark the rest on the radar, and fade out collected ones. */
-void func_8028C874(u8 arg0) {
+void crate_update(u8 arg0) {
     s32 sp34;
     s32 sp30;
 
-    for (sp34 = 0; sp34 < D_8039B068; sp34++) {
-        if (D_8039AF00[sp34].collected == 0) {
-            if (D_802FDB40[D_8039AF00[sp34].type].trigger == arg0) {
-                func_802CE90C(sp34 + 0x10000);
-                sp30 = func_8026A6F0(gPlayerX >> 5, gPlayerY >> 5, gPlayerZ >> 5, D_8039AF00[sp34].x,
-                                     D_8039AF00[sp34].y, D_8039AF00[sp34].z);
-                if (sp30 <= D_802FDB40[D_8039AF00[sp34].type].radius) {
-                    D_8039AF00[sp34].collected = 1;
-                    func_80260650(D_80367738, 0x70, 0);
-                    switch (D_8039AF00[sp34].type) {
+    for (sp34 = 0; sp34 < gCrateCount; sp34++) {
+        if (gCrates[sp34].collected == 0) {
+            if (gCrateTypes[gCrates[sp34].type].trigger == arg0) {
+                radar_remove_marker(sp34 + 0x10000);
+                sp30 = util_dist3d(gPlayerX >> 5, gPlayerY >> 5, gPlayerZ >> 5, gCrates[sp34].x,
+                                     gCrates[sp34].y, gCrates[sp34].z);
+                if (sp30 <= gCrateTypes[gCrates[sp34].type].radius) {
+                    gCrates[sp34].collected = 1;
+                    snd_play(gSfxBank, 0x70, 0);
+                    switch (gCrates[sp34].type) {
                         case 0:
-                            D_803F8B72 += 10;
+                            gBallistaMissiles += 10;
                             break;
                         case 1:
-                            D_803EDC00 += 10;
+                            gSideswipeRamCharges += 10;
                             break;
                     }
                 }
             } else {
-                func_802CE880(sp34 + 0x10000, D_8039AF00[sp34].x << 5, D_8039AF00[sp34].y << 5,
-                              D_8039AF00[sp34].z << 5, D_802FDB40[D_8039AF00[sp34].type].radarSize);
+                radar_set_marker(sp34 + 0x10000, gCrates[sp34].x << 5, gCrates[sp34].y << 5,
+                              gCrates[sp34].z << 5, gCrateTypes[gCrates[sp34].type].radarSize);
             }
         } else {
-            D_8039AF00[sp34].alpha -= 20;
-            if (D_8039AF00[sp34].alpha < 0) {
-                D_8039AF00[sp34].alpha = 0;
+            gCrates[sp34].alpha -= 20;
+            if (gCrates[sp34].alpha < 0) {
+                gCrates[sp34].alpha = 0;
             }
         }
     }
 }
 
-/* Draw every box that is uncollected or still fading. */
-void func_8028CB30(Gfx **arg0, s32 arg1) {
+/* Draws the crates (0x8028CB30).
+ * Draw every box that is uncollected or still fading. */
+void crate_draw(Gfx **arg0, s32 arg1) {
     Gfx *gfx;
     s32 i;
     u8 renderMode;
@@ -190,20 +194,20 @@ void func_8028CB30(Gfx **arg0, s32 arg1) {
     gSPClearGeometryMode(gfx++, 0xFFFFFFFF);
     gSPSetGeometryMode(gfx++, G_ZBUFFER | G_SHADE | G_SHADING_SMOOTH | G_CULL_BACK);
     gSPTexture(gfx++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
-    for (i = 0; i < D_8039B068; i++) {
-        if (D_8039AF00[i].collected == 0 || D_8039AF00[i].alpha != 0) {
+    for (i = 0; i < gCrateCount; i++) {
+        if (gCrates[i].collected == 0 || gCrates[i].alpha != 0) {
             gDPPipeSync(gfx++);
-            if (D_8039AF00[i].collected == 0 && (renderMode == 0 || renderMode == 2)) {
+            if (gCrates[i].collected == 0 && (renderMode == 0 || renderMode == 2)) {
                 gDPSetRenderMode(gfx++, G_RM_AA_ZB_OPA_SURF, G_RM_AA_ZB_OPA_SURF2);
                 renderMode = 1;
             }
-            if (D_8039AF00[i].collected != 0 && (renderMode == 0 || renderMode == 1)) {
+            if (gCrates[i].collected != 0 && (renderMode == 0 || renderMode == 1)) {
                 gDPSetRenderMode(gfx++, G_RM_AA_ZB_XLU_SURF, G_RM_AA_ZB_XLU_SURF2);
                 renderMode = 2;
             }
-            gDPSetPrimColor(gfx++, 0, 0, 0, 0, 0, D_8039AF00[i].alpha);
-            gSPVertex(gfx++, osVirtualToPhysical(D_8039AF00[i].vtx), 8, 0);
-            gDPLoadTextureBlock(gfx++, (u32) D_8039AF00[i].tex0 - 0x80000000, G_IM_FMT_RGBA, G_IM_SIZ_16b, 16, 16, 0,
+            gDPSetPrimColor(gfx++, 0, 0, 0, 0, 0, gCrates[i].alpha);
+            gSPVertex(gfx++, osVirtualToPhysical(gCrates[i].vtx), 8, 0);
+            gDPLoadTextureBlock(gfx++, (u32) gCrates[i].tex0 - 0x80000000, G_IM_FMT_RGBA, G_IM_SIZ_16b, 16, 16, 0,
                                 G_TX_CLAMP, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
             gSP1Triangle(gfx++, 6, 3, 2, 0);
             gSP1Triangle(gfx++, 6, 7, 3, 0);
@@ -221,7 +225,7 @@ void func_8028CB30(Gfx **arg0, s32 arg1) {
             gSPModifyVertex(gfx++, 4, G_MWO_POINT_ST, 0x00000000);
             gSP1Triangle(gfx++, 7, 5, 4, 0);
             gSP1Triangle(gfx++, 7, 6, 5, 0);
-            gDPLoadTextureBlock(gfx++, (u32) D_8039AF00[i].tex1 - 0x80000000, G_IM_FMT_RGBA, G_IM_SIZ_16b, 16, 16, 0,
+            gDPLoadTextureBlock(gfx++, (u32) gCrates[i].tex1 - 0x80000000, G_IM_FMT_RGBA, G_IM_SIZ_16b, 16, 16, 0,
                                 G_TX_CLAMP, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
             gSPModifyVertex(gfx++, 2, G_MWO_POINT_ST, 0x00000000);
             gSPModifyVertex(gfx++, 1, G_MWO_POINT_ST, 0x01E00000);

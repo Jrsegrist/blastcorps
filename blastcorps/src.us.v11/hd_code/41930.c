@@ -2,7 +2,7 @@
 #include <ultra64.h>
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_8020C070 ((MenuItem *) D_8020C070)
+#define gYoshiFeItems ((MenuItem *) gYoshiFeItems)
 #define D_802E8F38 ((Entry8 *) D_802E8F38)
 #define gLevelInfo ((LevelInfo *) gLevelInfo)
 #define players ((Player *) players)
@@ -59,9 +59,10 @@ extern char D_8036EBA0[];
 #define ACADEMY_ASSERT(EX, line) \
     if (!(EX)) { debug_printf("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "academy.c", line); }
 
-/* Announce the current game state (menu, message, sound); state 4 names the
+/* The window of the game state (0x802860F0).
+ * Announce the current game state (menu, message, sound); state 4 names the
  * first level of the next uncompleted academy group */
-void func_802860F0(void) {
+void academy_announce_state(void) {
     u8 found;
     s32 lvl;
     s32 i;
@@ -71,7 +72,7 @@ void func_802860F0(void) {
         players[playerNumber].gameState != 1) {
         gNextGameMode = 0x800000000000;
         hd_mode_setup();
-        func_80200714(D_802FDA60[players[playerNumber].gameState]);
+        fe_bg_load(D_802FDA60[players[playerNumber].gameState]);
         switch (players[playerNumber].gameState) {
             case 4:
                 found = 0;
@@ -86,34 +87,36 @@ void func_802860F0(void) {
                     }
                 }
                 func_802D6A60(D_8036EBA0, "IN %s.", D_8020D7E4[lvl].name);
-                D_8020C070[82].text = D_8036EBA0;
+                gYoshiFeItems[82].text = D_8036EBA0;
                 break;
             case 6:
-                func_801ECC8C();
+                fe_player_save_pending();
                 break;
         }
-        func_8026AF6C((players[playerNumber].gameState + 0x16) | 0x8000);
+        yoshi_demand((players[playerNumber].gameState + 0x16) | 0x8000);
     }
 }
 
-/* Play the current game state's sound */
-void func_802862DC(void) {
+/* The tune of the game state (0x802862DC).
+ * Play the current game state's sound */
+void academy_play_state_tune(void) {
     if (((s32) gFramesInMode) == 0) {
-        func_80260C20(D_802FDA70[players[playerNumber].gameState], 1.0f);
+        music_play_tune(D_802FDA70[players[playerNumber].gameState], 1.0f);
     }
 }
 
-/* Pick the next top-level mode (gNextGameMode) for the current game state */
-void func_80286330(void) {
+/* GNextGameMode for the game state (0x80286330).
+ * Pick the next top-level mode (gNextGameMode) for the current game state */
+void academy_next_mode(void) {
     switch (players[playerNumber].gameState) {
         case 2:
         case 3:
         case 4:
-            gNextGameMode = 0x4000;
+            gNextGameMode = MODE_WORLD;
             break;
         case 5:
-            func_802995F0(0);
-            gNextGameMode = 0x100000000000;
+            seq_prepare(0);
+            gNextGameMode = MODE_GLOBE_SEQ;
             break;
         case 6:
             ACADEMY_ASSERT_S(levelno == 50, "levelno==50", 140);
@@ -121,31 +124,32 @@ void func_80286330(void) {
             ACADEMY_ASSERT(frontEndPresent, 142);
             gNextGameMode = 0x800;
             D_803643D5 = 0;
-            func_801F8354(playerNumber);
+            fe_best_clear_times(playerNumber);
             break;
         case 7:
-            func_802995F0(1);
-            gNextGameMode = 0x100000000000;
+            seq_prepare(1);
+            gNextGameMode = MODE_GLOBE_SEQ;
             break;
         case 9:
-            func_802995F0(3);
-            gNextGameMode = 0x100000000000;
+            seq_prepare(3);
+            gNextGameMode = MODE_GLOBE_SEQ;
             break;
         case 10:
             gNextGameMode = 0x4000000000000;
             break;
         case 11:
-            gNextGameMode = 0x4000;
+            gNextGameMode = MODE_WORLD;
             break;
         case 12:
-            gNextGameMode = 0x4000;
+            gNextGameMode = MODE_WORLD;
             break;
     }
 }
 
-/* Advance the game state as far as the player's results allow; returns
+/* "going to game state %d" (0x8028653C).
+ * Advance the game state as far as the player's results allow; returns
  * whether it changed */
-u8 func_8028653C(void) {
+u8 academy_advance_state(void) {
     s32 i;
     Player *p;
     u8 advance;
@@ -162,7 +166,7 @@ u8 func_8028653C(void) {
         advance = 1;
         switch (players[playerNumber].gameState) {
             case 0:
-                if (gGameMode == 0x100000000000) {
+                if (gGameMode == MODE_GLOBE_SEQ) {
                     advance = 0;
                 }
                 break;
@@ -203,9 +207,9 @@ u8 func_8028653C(void) {
                 break;
             case 9:
                 if (p->f0A >= 0xEA || D_802FA26C) {
-                    func_80261570(0.0f);
+                    music_fade_to(0.0f);
                     func_8028B3E0();
-                    func_801ECF5C();
+                    fe_player_regrade_missions();
                     stop = 1;
                 } else {
                     advance = 0;
@@ -217,9 +221,9 @@ u8 func_8028653C(void) {
                 if (p->f0A < 0x129 || D_802FA26C) {
                     advance = 0;
                 } else {
-                    func_80261570(0.0f);
+                    music_fade_to(0.0f);
                     func_8028B3E0();
-                    func_801ED4B8();
+                    fe_player_regrade_platinum();
                 }
                 break;
             case 12:

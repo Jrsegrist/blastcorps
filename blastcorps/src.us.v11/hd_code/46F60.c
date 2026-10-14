@@ -74,7 +74,7 @@ u16 func_8028BA1C(s16 arg0, s16 arg1, s8 *arg2, u8 arg3) {
     u16 sp8;
 
     sp8 = 0x5A;
-    spA = 0x78 - ABS(D_803ED400) * (0x78 - sp8) / 200;
+    spA = 0x78 - ABS(gLastSpeed) * (0x78 - sp8) / 200;
     spC = 0x8000 - ((spA < sp8 ? sp8 : spA) << 16) / 720;
     if (*arg2 != 0) {
         arg0 += 0x8000;
@@ -115,7 +115,7 @@ f32 func_8028BBF4(s16 arg0, s16 arg1, s16 arg2, s16 arg3) {
 }
 
 /* Angle in degrees from the ratio arg0 / |(arg0, arg1)|, through the
- * fixed-point inverse-trig lookup func_802AD7D4. */
+ * fixed-point inverse-trig lookup math_asin_c. */
 f32 func_8028BD88(f32 arg0, f32 arg1) {
     s32 sp1C;
     f32 sp18;
@@ -124,7 +124,7 @@ f32 func_8028BD88(f32 arg0, f32 arg1) {
         return 0.0f;
     }
     sp18 = arg0 / sqrtf(arg0 * arg0 + arg1 * arg1);
-    sp1C = func_802AD7D4(sp18 * 65536.0);
+    sp1C = math_asin_c(sp18 * 65536.0);
     return ((f32) sp1C / 65536.0) * 360.0;
 }
 

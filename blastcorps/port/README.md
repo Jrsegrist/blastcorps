@@ -246,7 +246,7 @@ streams the code reads bytewise (5CB60.c's BE16U/BE16S/BE32) stay big-endian.
      bytes 1-2 leave untyped (made once by `tools/mixscan.py --widths` over
      the retired i686 build's gcc assembly);
   4. `data/image_overrides.txt`: hand decisions (D_802F46C0 DL commands as
-     words, the D_802E8BF8 flag/word alias kept big-endian, struct copies).
+     words, the gUseEeprom flag/word alias kept big-endian, struct copies).
   Bytes from C objects need nothing: their native initialisers are copied
   over the image. `make -C port typemap` prints the coverage.
 - **Assets**: `port_on_dma` (every PI copy, from the platform) and
@@ -291,7 +291,7 @@ Tools:
 - `make -C port loadcheck [LC_TRACE=trace.txt]`: real assets through the
   game's own loaders and consumers (`bc_loadcheck.exe`,
   `src/loadcheck_main.c`), native vs the original code in unicorn
-  (`tools/loadref.py`): T5 the D_802E8BF8 alias, T6 520 texture decodes, T7
+  (`tools/loadref.py`): T5 the gUseEeprom alias, T6 520 texture decodes, T7
   every level's object stream, T8 every level's height zones; with a trace,
   T9 checks every traced read of every traced asset right after loading.
 
@@ -502,7 +502,7 @@ Example (bc_headless --crash-test av:5):
       #1   0000400AECB8  bc_headless.exe+0AECB8  plat_on_frame+0x128 (plat_core.c:112)
       #2   0000400A9376  bc_headless.exe+0A9376  osSendMesg+0x46 (os_thread.c:295)
       #3   00004004B40F  bc_headless.exe+04B40F  rsp_send_task+0x17F (405F0.c:97)
-      #4   00004008ECE9  bc_headless.exe+08ECE9  func_801EF4AC+0x79 (07800.c:380)
+      #4   00004008ECE9  bc_headless.exe+08ECE9  fe_boot_screen_frame+0x79 (07800.c:380)
       #5   000040024270  bc_headless.exe+024270  hd_main_thread+0x1930 (00000.c:977)
       #6 ? 0000400A8DEE  bc_headless.exe+0A8DEE  fiber_main+0xE (os_thread.c:138)
       ...
@@ -784,9 +784,9 @@ it without a fault.  The x64-asan preset is the tool for this now.
       just for RT64's read and are put back at once, and the fill rectangle's
       top is changed in a copy of the command.
     - Collision: read-only copies of the game's height tests keep the eye 1
-      unit above the level's ground triangles (62740.c func_802AA094's
-      collision grid, D_803BDB10) and the buildings' collision triangles
-      (D_803B9890, the 0x60-byte records); a blocked eye is pulled in along
+      unit above the level's ground triangles (62740.c ground_scan_grid's
+      collision grid, gGroundCells) and the buildings' collision triangles
+      (gCollTris, the 0x60-byte records); a blocked eye is pulled in along
       the line to the target at once and let out slowly. No game function is
       called.
     - Controls: `[controller] camera_left/right/up/down` (default the right
@@ -1260,9 +1260,9 @@ retrace reads (PORT_GVI), and the stale-byte emulation: display lists,
 matrices, vertices and text quads built in heap memory record their units,
 and the never-written vertex fields of several builders (sprites, boxes,
 globe icons, water) get the N64's old bytes.  When the matched globe display
-list (hd_front_end func_801F1568) changed the NM ROM's CPU timing, three
+list (hd_front_end fe_lvlsel_build_globe_dl) changed the NM ROM's CPU timing, three
 more such races showed up (lvfix agent): the mode-0x40 start time
-(hd_main_thread:4A54), the ghost recorder's sample time (func_80294F00) and
+(hd_main_thread:4A54), the ghost recorder's sample time (ghost_record) and
 the retrace handler's freeze test (__scHandleRetrace:8BD0, PORT_EMU).
 
 Debugging what native code wrote: `--watch F:ADDR[:N]` logs the first N
@@ -1315,7 +1315,7 @@ minimal runtime of our own, `tools/ubsan_minimal.c`) run over the attract
 demos and every level (`tools/overflow_census.py`); it fails if any signed
 add or multiply overflows that the source doesn't wrap explicitly
 (`PORT_WRAP_*`).  `OC_ARGS`: e.g. `--levels 0-9`.  (Its build crashes in
-level 47: 01C40.c func_801E8EB8 reads `bios[slot]` with slot 4, past its
+level 47: 01C40.c fe_player_ticker_set_text reads `bios[slot]` with slot 4, past its
 4-entry array, in the player select's biography mode; a latent
 out-of-bounds read of the original code that the normal builds survive.)
 

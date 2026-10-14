@@ -9,7 +9,7 @@
  * streamed into a small cache on demand.
  */
 
-/* ParticleDef (the emitter definitions, list D_802C4A20) is in game/types.h. */
+/* ParticleDef (the emitter definitions, list gParticleDefs) is in game/types.h. */
 
 typedef struct {
     /* 0x00 */ u8 active;
@@ -27,44 +27,46 @@ typedef struct {
     s32 val; /* texture address, sort key */
 } SortEntry;
 
-extern ParticleDef * N64P D_802C4A20[];
-extern Vtx D_802FDA80[4];
-extern ParticleDef * N64P D_8036EC30;
-extern Particle D_8036EC38[50];
-extern Mtx D_8036F278[][50];
-extern s32 D_80370B78; /* emitter position */
-extern s32 D_80370B7C;
-extern s32 D_80370B80;
-extern u8 D_80370B84; /* bursts emitted */
-extern s32 D_80370B88; /* floor height */
-extern u8 D_80370B8C;  /* emitter busy */
-extern u8 D_80370B8D;  /* cooldown */
-extern u8 * N64P D_80370B90; /* texture cache */
-extern s16 D_80370B98[];
-extern s32 D_80370BB0; /* textures cached */
-extern s32 D_80370BB4; /* bytes per texture */
+extern ParticleDef * N64P gParticleDefs[];
+extern Vtx gParticleQuad[4];
+extern ParticleDef * N64P gParticleDef;
+extern Particle gParticles[50];
+extern Mtx gParticleMtx[][50];
+extern s32 gEmitterX; /* emitter position */
+extern s32 gEmitterY;
+extern s32 gEmitterZ;
+extern u8 gEmitterBursts; /* bursts emitted */
+extern s32 gEmitterFloorY; /* floor height */
+extern u8 gEmitterActive;  /* emitter busy */
+extern u8 gEmitterCooldown;  /* cooldown */
+extern u8 * N64P gParticleTexCache; /* texture cache */
+extern s16 gParticleTexIds[];
+extern s32 gParticleTexCount; /* textures cached */
+extern s32 gParticleTexSize; /* bytes per texture */
 
-void func_80289EF4(Gfx **gdl);
-u32 func_8028A0A0(s16 id);
-void func_8028A1D0(SortEntry *a, s32 n);
+void ptcl_set_render_state(Gfx **gdl);
+u32 ptcl_get_texture(s16 id);
+void ptcl_sort_by_texture(SortEntry *a, s32 n);
 
 /* Old SDK form of the 4-bit dxt helper: no MAX(1, ...) clamp. */
 #undef TXL2WORDS_4b
 #define TXL2WORDS_4b(txls) ((txls) / 16)
 
-void func_80288220(void) {
+/* Frees all 50 particles; takes the texture cache (0x80288220). */
+void ptcl_init(void) {
     s32 i;
 
     for (i = 0; i < 50; i++) {
-        D_8036EC38[i].active = 0;
+        gParticles[i].active = 0;
     }
-    D_80370B8C = 0;
-    D_80370B8D = 0;
-    D_80370B90 = gHeapPtr;
+    gEmitterActive = 0;
+    gEmitterCooldown = 0;
+    gParticleTexCache = gHeapPtr;
     gHeapPtr += 0x1400;
 }
 
-s32 func_80288284(u8 type, s32 x, s32 y, s32 z, s32 floor) {
+/* Starts emitter type at (x, y, z); 0 if one is still running (0x80288284). */
+s32 ptcl_start(u8 type, s32 x, s32 y, s32 z, s32 floor) {
     s32 unused;
 #ifdef NON_MATCHING
     s32 bpp = 0; /* formats without a case leave it indeterminate in the original */
@@ -72,46 +74,46 @@ s32 func_80288284(u8 type, s32 x, s32 y, s32 z, s32 floor) {
     s32 bpp;
 #endif
 
-    if (D_80370B8C == 0 && D_80370B8D == 0) {
-        D_80370B78 = x;
-        D_80370B7C = y;
-        D_80370B80 = z;
-        D_80370B88 = floor;
-        D_8036EC30 = D_802C4A20[type];
-        D_80370B84 = 0;
-        D_802FDA80[0].v.ob[0] = -D_8036EC30->size;
-        D_802FDA80[0].v.ob[1] = D_8036EC30->size;
-        D_802FDA80[0].v.tc[0] = 0;
-        D_802FDA80[0].v.tc[1] = 0;
-        D_802FDA80[0].v.cn[0] = D_8036EC30->r;
-        D_802FDA80[0].v.cn[1] = D_8036EC30->g;
-        D_802FDA80[0].v.cn[2] = D_8036EC30->b;
-        D_802FDA80[0].v.cn[3] = D_8036EC30->a;
-        D_802FDA80[1].v.ob[0] = D_8036EC30->size;
-        D_802FDA80[1].v.ob[1] = D_8036EC30->size;
-        D_802FDA80[1].v.tc[0] = 0;
-        D_802FDA80[1].v.tc[1] = D_8036EC30->texH << 5;
-        D_802FDA80[1].v.cn[0] = D_8036EC30->r;
-        D_802FDA80[1].v.cn[1] = D_8036EC30->g;
-        D_802FDA80[1].v.cn[2] = D_8036EC30->b;
-        D_802FDA80[1].v.cn[3] = D_8036EC30->a;
-        D_802FDA80[2].v.ob[0] = D_8036EC30->size;
-        D_802FDA80[2].v.ob[1] = -D_8036EC30->size;
-        D_802FDA80[2].v.tc[0] = D_8036EC30->texW << 5;
-        D_802FDA80[2].v.tc[1] = D_8036EC30->texH << 5;
-        D_802FDA80[2].v.cn[0] = D_8036EC30->r;
-        D_802FDA80[2].v.cn[1] = D_8036EC30->g;
-        D_802FDA80[2].v.cn[2] = D_8036EC30->b;
-        D_802FDA80[2].v.cn[3] = D_8036EC30->a;
-        D_802FDA80[3].v.ob[0] = -D_8036EC30->size;
-        D_802FDA80[3].v.ob[1] = -D_8036EC30->size;
-        D_802FDA80[3].v.tc[0] = 0;
-        D_802FDA80[3].v.tc[1] = D_8036EC30->texH << 5;
-        D_802FDA80[3].v.cn[0] = D_8036EC30->r;
-        D_802FDA80[3].v.cn[1] = D_8036EC30->g;
-        D_802FDA80[3].v.cn[2] = D_8036EC30->b;
-        D_802FDA80[3].v.cn[3] = D_8036EC30->a;
-        switch (D_8036EC30->siz) {
+    if (gEmitterActive == 0 && gEmitterCooldown == 0) {
+        gEmitterX = x;
+        gEmitterY = y;
+        gEmitterZ = z;
+        gEmitterFloorY = floor;
+        gParticleDef = gParticleDefs[type];
+        gEmitterBursts = 0;
+        gParticleQuad[0].v.ob[0] = -gParticleDef->size;
+        gParticleQuad[0].v.ob[1] = gParticleDef->size;
+        gParticleQuad[0].v.tc[0] = 0;
+        gParticleQuad[0].v.tc[1] = 0;
+        gParticleQuad[0].v.cn[0] = gParticleDef->r;
+        gParticleQuad[0].v.cn[1] = gParticleDef->g;
+        gParticleQuad[0].v.cn[2] = gParticleDef->b;
+        gParticleQuad[0].v.cn[3] = gParticleDef->a;
+        gParticleQuad[1].v.ob[0] = gParticleDef->size;
+        gParticleQuad[1].v.ob[1] = gParticleDef->size;
+        gParticleQuad[1].v.tc[0] = 0;
+        gParticleQuad[1].v.tc[1] = gParticleDef->texH << 5;
+        gParticleQuad[1].v.cn[0] = gParticleDef->r;
+        gParticleQuad[1].v.cn[1] = gParticleDef->g;
+        gParticleQuad[1].v.cn[2] = gParticleDef->b;
+        gParticleQuad[1].v.cn[3] = gParticleDef->a;
+        gParticleQuad[2].v.ob[0] = gParticleDef->size;
+        gParticleQuad[2].v.ob[1] = -gParticleDef->size;
+        gParticleQuad[2].v.tc[0] = gParticleDef->texW << 5;
+        gParticleQuad[2].v.tc[1] = gParticleDef->texH << 5;
+        gParticleQuad[2].v.cn[0] = gParticleDef->r;
+        gParticleQuad[2].v.cn[1] = gParticleDef->g;
+        gParticleQuad[2].v.cn[2] = gParticleDef->b;
+        gParticleQuad[2].v.cn[3] = gParticleDef->a;
+        gParticleQuad[3].v.ob[0] = -gParticleDef->size;
+        gParticleQuad[3].v.ob[1] = -gParticleDef->size;
+        gParticleQuad[3].v.tc[0] = 0;
+        gParticleQuad[3].v.tc[1] = gParticleDef->texH << 5;
+        gParticleQuad[3].v.cn[0] = gParticleDef->r;
+        gParticleQuad[3].v.cn[1] = gParticleDef->g;
+        gParticleQuad[3].v.cn[2] = gParticleDef->b;
+        gParticleQuad[3].v.cn[3] = gParticleDef->a;
+        switch (gParticleDef->siz) {
             case 0:
                 bpp = 4;
                 break;
@@ -125,15 +127,16 @@ s32 func_80288284(u8 type, s32 x, s32 y, s32 z, s32 floor) {
                 bpp = 32;
                 break;
         }
-        D_80370BB4 = D_8036EC30->texW * D_8036EC30->texH * bpp / 8;
-        D_80370BB0 = 0;
-        D_80370B8C = 1;
+        gParticleTexSize = gParticleDef->texW * gParticleDef->texH * bpp / 8;
+        gParticleTexCount = 0;
+        gEmitterActive = 1;
         return 1;
     }
     return 0;
 }
 
-void func_802886A0(void) {
+/* Bursts, birth/loop/death sequences, gravity, bounce (0x802886A0). */
+void ptcl_update(void) {
     s32 n;
     s32 slot;
     u8 full;
@@ -152,17 +155,17 @@ void func_802886A0(void) {
     n = 0;
     slot = 0;
     full = 0;
-    if (D_80370B8C == 0) {
-        if (D_80370B8D != 0) {
-            D_80370B8D--;
+    if (gEmitterActive == 0) {
+        if (gEmitterCooldown != 0) {
+            gEmitterCooldown--;
         }
     } else {
-        D_80370B8C = 0;
-        if (D_80370B84 < D_8036EC30->bursts) {
-            while (!full && n < D_8036EC30->count) {
+        gEmitterActive = 0;
+        if (gEmitterBursts < gParticleDef->bursts) {
+            while (!full && n < gParticleDef->count) {
                 found = 0;
                 while (!found && slot < 50) {
-                    if (D_8036EC38[slot].active == 0) {
+                    if (gParticles[slot].active == 0) {
                         found = 1;
                     } else {
                         slot++;
@@ -170,88 +173,89 @@ void func_802886A0(void) {
                 }
                 if (found) {
                     PORT_ISPAWN(PORT_ITAG_PARTICLE, slot);
-                    D_8036EC38[slot].active = 1;
-                    D_8036EC38[slot].pos[0] = D_80370B78;
-                    D_8036EC38[slot].pos[1] = D_80370B7C;
-                    D_8036EC38[slot].pos[2] = D_80370B80;
-                    angle = func_8026A828(0, D_8036EC30->spread);
+                    gParticles[slot].active = 1;
+                    gParticles[slot].pos[0] = gEmitterX;
+                    gParticles[slot].pos[1] = gEmitterY;
+                    gParticles[slot].pos[2] = gEmitterZ;
+                    angle = util_rand_range(0, gParticleDef->spread);
                     guRotateF(mf, angle, 0.0f, 0.0f, 1.0f);
                     guMtxXFMF(mf, 0.0f,
-                              (func_8026A828(-D_8036EC30->speedVar, D_8036EC30->speedVar) + D_8036EC30->speed) / 32.0f,
+                              (util_rand_range(-gParticleDef->speedVar, gParticleDef->speedVar) + gParticleDef->speed) / 32.0f,
                               0.0f, &x, &y, &z);
-                    angle = func_8026A828(0, 359);
+                    angle = util_rand_range(0, 359);
                     guRotateF(mf, angle, 0.0f, 1.0f, 0.0f);
                     guMtxXFMF(mf, x, y, z, &rx, &ry, &rz);
-                    D_8036EC38[slot].vel[0] = rx * 32.0f;
-                    D_8036EC38[slot].vel[1] = ry * 32.0f;
-                    D_8036EC38[slot].vel[2] = rz * 32.0f;
-                    D_8036EC38[slot].state = 0;
-                    D_8036EC38[slot].frame = 0;
-                    D_8036EC38[slot].fallTime = 0;
-                    D_8036EC38[slot].age = 0;
-                    D_8036EC38[slot].life =
-                        func_8026A828(-D_8036EC30->lifeVar, D_8036EC30->lifeVar) + D_8036EC30->life;
+                    gParticles[slot].vel[0] = rx * 32.0f;
+                    gParticles[slot].vel[1] = ry * 32.0f;
+                    gParticles[slot].vel[2] = rz * 32.0f;
+                    gParticles[slot].state = 0;
+                    gParticles[slot].frame = 0;
+                    gParticles[slot].fallTime = 0;
+                    gParticles[slot].age = 0;
+                    gParticles[slot].life =
+                        util_rand_range(-gParticleDef->lifeVar, gParticleDef->lifeVar) + gParticleDef->life;
                     slot++;
                 } else {
                     full = 1;
                 }
                 n++;
             }
-            D_80370B84++;
+            gEmitterBursts++;
         }
         for (n = 0; n < 50; n++) {
-            if (D_8036EC38[n].active) {
-                D_80370B8C = 1;
-                switch (D_8036EC38[n].state) {
+            if (gParticles[n].active) {
+                gEmitterActive = 1;
+                switch (gParticles[n].state) {
                     case 0:
-                        len = *D_8036EC30->seqBirth;
-                        if (D_8036EC38[n].frame == len) {
-                            D_8036EC38[n].state = 1;
-                            D_8036EC38[n].frame = 0;
+                        len = *gParticleDef->seqBirth;
+                        if (gParticles[n].frame == len) {
+                            gParticles[n].state = 1;
+                            gParticles[n].frame = 0;
                         }
                         break;
                     case 1:
-                        len = *D_8036EC30->seqLoop;
-                        if (D_8036EC38[n].frame == len) {
-                            D_8036EC38[n].frame = 0;
+                        len = *gParticleDef->seqLoop;
+                        if (gParticles[n].frame == len) {
+                            gParticles[n].frame = 0;
                         }
                         break;
                     case 3:
-                        len = *D_8036EC30->seqDeath;
-                        if (D_8036EC38[n].frame == len) {
-                            D_8036EC38[n].active = 0;
+                        len = *gParticleDef->seqDeath;
+                        if (gParticles[n].frame == len) {
+                            gParticles[n].active = 0;
                         }
                         break;
                 }
-                if (D_8036EC38[n].age == D_8036EC38[n].life) {
-                    D_8036EC38[n].state = 3;
-                    D_8036EC38[n].frame = 0;
+                if (gParticles[n].age == gParticles[n].life) {
+                    gParticles[n].state = 3;
+                    gParticles[n].frame = 0;
                 }
             }
         }
         for (n = 0; n < 50; n++) {
-            if (D_8036EC38[n].active) {
-                D_8036EC38[n].pos[0] += D_8036EC38[n].vel[0];
-                D_8036EC38[n].pos[2] += D_8036EC38[n].vel[2];
-                dy = D_8036EC38[n].vel[1] + D_8036EC38[n].fallTime * D_8036EC30->gravity;
-                D_8036EC38[n].pos[1] += dy;
-                if (D_8036EC38[n].pos[1] < D_80370B88) {
-                    D_8036EC38[n].pos[1] = D_80370B88;
-                    D_8036EC38[n].vel[1] = -(dy * 16 / D_8036EC30->bounce);
-                    D_8036EC38[n].fallTime = 0;
+            if (gParticles[n].active) {
+                gParticles[n].pos[0] += gParticles[n].vel[0];
+                gParticles[n].pos[2] += gParticles[n].vel[2];
+                dy = gParticles[n].vel[1] + gParticles[n].fallTime * gParticleDef->gravity;
+                gParticles[n].pos[1] += dy;
+                if (gParticles[n].pos[1] < gEmitterFloorY) {
+                    gParticles[n].pos[1] = gEmitterFloorY;
+                    gParticles[n].vel[1] = -(dy * 16 / gParticleDef->bounce);
+                    gParticles[n].fallTime = 0;
                 }
             }
-            D_8036EC38[n].fallTime++;
-            D_8036EC38[n].frame++;
-            D_8036EC38[n].age++;
+            gParticles[n].fallTime++;
+            gParticles[n].frame++;
+            gParticles[n].age++;
         }
-        if (D_80370B8C == 0) {
-            D_80370B8D = 3;
+        if (gEmitterActive == 0) {
+            gEmitterCooldown = 3;
         }
     }
 }
 
-void func_80288DF0(Gfx **gdl, u8 buf) {
+/* The particles as camera-facing quads, sorted by texture (0x80288DF0). */
+void ptcl_draw(Gfx **gdl, u8 buf) {
     s32 n;
     s32 i;
     Gfx *gfx;
@@ -274,63 +278,63 @@ void func_80288DF0(Gfx **gdl, u8 buf) {
     gfx = *gdl;
     count = 0;
     lastTex = -1;
-    if (D_80370B8C) {
-        func_80289EF4(&gfx);
+    if (gEmitterActive) {
+        ptcl_set_render_state(&gfx);
         for (n = 0; n < 50; n++) {
-            if (D_8036EC38[n].active) {
-                switch (D_8036EC38[n].state) {
+            if (gParticles[n].active) {
+                switch (gParticles[n].state) {
                     case 0:
-                        texId = D_8036EC30->seqBirth[D_8036EC38[n].frame];
+                        texId = gParticleDef->seqBirth[gParticles[n].frame];
                         break;
                     case 1:
-                        texId = D_8036EC30->seqLoop[D_8036EC38[n].frame];
+                        texId = gParticleDef->seqLoop[gParticles[n].frame];
                         break;
                     case 3:
-                        texId = D_8036EC30->seqDeath[D_8036EC38[n].frame];
+                        texId = gParticleDef->seqDeath[gParticles[n].frame];
                         break;
                 }
                 entries[count].key = n;
-                entries[count].val = func_8028A0A0(texId);
+                entries[count].val = ptcl_get_texture(texId);
                 count++;
             }
         }
         /* sort by texture so each one is loaded once */
-        func_8028A1D0(entries, count);
+        ptcl_sort_by_texture(entries, count);
         for (i = 0; i < count; i++) {
             n = entries[i].key;
             if (entries[i].val != lastTex) {
                 lastTex = entries[i].val;
                 gDPPipeSync(gfx++);
-                switch (D_8036EC30->siz) {
+                switch (gParticleDef->siz) {
                     case 0:
-                        gDPLoadTextureBlock_4b(gfx++, OS_PHYSICAL_TO_K0(lastTex), D_8036EC30->fmt, D_8036EC30->texW,
-                                               D_8036EC30->texH, 0, G_TX_CLAMP, G_TX_CLAMP, G_TX_NOMASK,
+                        gDPLoadTextureBlock_4b(gfx++, OS_PHYSICAL_TO_K0(lastTex), gParticleDef->fmt, gParticleDef->texW,
+                                               gParticleDef->texH, 0, G_TX_CLAMP, G_TX_CLAMP, G_TX_NOMASK,
                                                G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
                         break;
                     case 1:
-                        gDPLoadTextureBlock(gfx++, OS_PHYSICAL_TO_K0(lastTex), D_8036EC30->fmt, G_IM_SIZ_8b,
-                                            D_8036EC30->texW, D_8036EC30->texH, 0, G_TX_CLAMP, G_TX_CLAMP,
+                        gDPLoadTextureBlock(gfx++, OS_PHYSICAL_TO_K0(lastTex), gParticleDef->fmt, G_IM_SIZ_8b,
+                                            gParticleDef->texW, gParticleDef->texH, 0, G_TX_CLAMP, G_TX_CLAMP,
                                             G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
                         break;
                     case 2:
-                        gDPLoadTextureBlock(gfx++, OS_PHYSICAL_TO_K0(lastTex), D_8036EC30->fmt, G_IM_SIZ_16b,
-                                            D_8036EC30->texW, D_8036EC30->texH, 0, G_TX_CLAMP, G_TX_CLAMP,
+                        gDPLoadTextureBlock(gfx++, OS_PHYSICAL_TO_K0(lastTex), gParticleDef->fmt, G_IM_SIZ_16b,
+                                            gParticleDef->texW, gParticleDef->texH, 0, G_TX_CLAMP, G_TX_CLAMP,
                                             G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
                         break;
                     case 3:
-                        gDPLoadTextureBlock(gfx++, OS_PHYSICAL_TO_K0(lastTex), D_8036EC30->fmt, G_IM_SIZ_32b,
-                                            D_8036EC30->texW, D_8036EC30->texH, 0, G_TX_CLAMP, G_TX_CLAMP,
+                        gDPLoadTextureBlock(gfx++, OS_PHYSICAL_TO_K0(lastTex), gParticleDef->fmt, G_IM_SIZ_32b,
+                                            gParticleDef->texW, gParticleDef->texH, 0, G_TX_CLAMP, G_TX_CLAMP,
                                             G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
                         break;
                 }
             }
             /* tilt the billboard toward the camera's height, then face its yaw */
-            dist = func_8026A6F0(gCamEyeX >> 11, gCamEyeY >> 11, gCamEyeZ >> 11, D_8036EC38[n].pos[0],
-                                 D_8036EC38[n].pos[1], D_8036EC38[n].pos[2]);
+            dist = util_dist3d(gCamEyeX >> 11, gCamEyeY >> 11, gCamEyeZ >> 11, gParticles[n].pos[0],
+                                 gParticles[n].pos[1], gParticles[n].pos[2]);
             if (dist == 0) {
                 dist = 1;
             }
-            dy = (gCamEyeY >> 11) - D_8036EC38[n].pos[1];
+            dy = (gCamEyeY >> 11) - gParticles[n].pos[1];
             dy <<= 16;
             ratio = dy / dist;
             if (ratio < 0) {
@@ -338,20 +342,20 @@ void func_80288DF0(Gfx **gdl, u8 buf) {
             } else {
                 absRatio = ratio;
             }
-            ang = func_802AD7D4(absRatio);
+            ang = math_asin_c(absRatio);
             if (ratio > 0) {
                 ang = -ang;
             }
             guRotateF(mf1, (f32) ang / 65536.0 * 360.0, 1.0f, 0.0f, 0.0f);
             guRotateF(mf2, (f32) gCamYaw / 4095.0 * 360.0, 0.0f, 1.0f, 0.0f);
             guMtxCatF(mf1, mf2, mf1);
-            guTranslateF(mf2, D_8036EC38[n].pos[0] / 32.0f, D_8036EC38[n].pos[1] / 32.0f,
-                         D_8036EC38[n].pos[2] / 32.0f);
+            guTranslateF(mf2, gParticles[n].pos[0] / 32.0f, gParticles[n].pos[1] / 32.0f,
+                         gParticles[n].pos[2] / 32.0f);
             guMtxCatF(mf1, mf2, mf1);
-            guMtxF2L(mf1, &D_8036F278[buf][n]);
+            guMtxF2L(mf1, &gParticleMtx[buf][n]);
             PORT_ITAG(gfx, PORT_ITAG_PARTICLE, n);
-            gSPMatrix(gfx++, osVirtualToPhysical(&D_8036F278[buf][n]), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
-            gSPVertex(gfx++, osVirtualToPhysical(D_802FDA80), 4, 0);
+            gSPMatrix(gfx++, osVirtualToPhysical(&gParticleMtx[buf][n]), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
+            gSPVertex(gfx++, osVirtualToPhysical(gParticleQuad), 4, 0);
             gSP1Triangle(gfx++, 0, 1, 2, 0);
             gSP1Triangle(gfx++, 0, 2, 3, 0);
             gSPPopMatrix(gfx++, G_MTX_MODELVIEW);
@@ -361,14 +365,15 @@ void func_80288DF0(Gfx **gdl, u8 buf) {
     }
 }
 
-void func_80289EF4(Gfx **gdl) {
+/* The particles' render state (0x80289EF4). */
+void ptcl_set_render_state(Gfx **gdl) {
     Gfx *gfx = *gdl;
 
     gDPPipeSync(gfx++);
     gSPClearGeometryMode(gfx++, -1);
     gSPSetGeometryMode(gfx++, G_ZBUFFER | G_SHADE | G_SHADING_SMOOTH);
     gDPSetRenderMode(gfx++, G_RM_ZB_XLU_SURF, G_RM_ZB_XLU_SURF2);
-    switch (D_8036EC30->fmt) {
+    switch (gParticleDef->fmt) {
         case G_IM_FMT_RGBA:
             gDPSetCombineMode(gfx++, G_CC_MODULATERGBA, G_CC_MODULATERGBA);
             break;
@@ -383,33 +388,35 @@ void func_80289EF4(Gfx **gdl) {
     *gdl = gfx;
 }
 
-/* Returns the physical address of texture `id`, loading it into the cache if needed. */
-u32 func_8028A0A0(s16 id) {
+/* Texture id to cache slot (loads it on a miss) (0x8028A0A0).
+ * Returns the physical address of texture `id`, loading it into the cache if needed. */
+u32 ptcl_get_texture(s16 id) {
     u8 found;
     s32 i;
     u8 *p;
 
     found = 0;
     i = 0;
-    while (!found && i < D_80370BB0) {
-        if (D_80370B98[i] == id) {
+    while (!found && i < gParticleTexCount) {
+        if (gParticleTexIds[i] == id) {
             found = 1;
         } else {
             i++;
         }
     }
     if (found) {
-        return osVirtualToPhysical(i * D_80370BB4 + D_80370B90);
+        return osVirtualToPhysical(i * gParticleTexSize + gParticleTexCache);
     }
-    p = D_80370BB0 * D_80370BB4 + D_80370B90;
-    D_80370B98[D_80370BB0] = id;
-    D_80370BB0++;
-    func_802A1040(id, p, 0);
+    p = gParticleTexCount * gParticleTexSize + gParticleTexCache;
+    gParticleTexIds[gParticleTexCount] = id;
+    gParticleTexCount++;
+    tex_queue_load(id, p, 0);
     return osVirtualToPhysical(p);
 }
 
-/* Shell sort (Knuth gaps) by val, ascending. */
-void func_8028A1D0(SortEntry *a, s32 n) {
+/* Shell sort of the draw list by texture (0x8028A1D0).
+ * Shell sort (Knuth gaps) by val, ascending. */
+void ptcl_sort_by_texture(SortEntry *a, s32 n) {
     s32 i;
     s32 j;
     s32 h;

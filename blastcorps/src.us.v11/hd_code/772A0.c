@@ -12,7 +12,7 @@
 
 #ifdef NON_MATCHING
 /* Port-phase rewrites (functional, not matching) of vehicle type 7. Its asm
- * points $gp at the block D_803EFDF0 (a fixed global here, so the C reads
+ * points $gp at the block gTrainState (a fixed global here, so the C reads
  * it directly). Spawn, per-frame and model update follow the same pattern as
  * the three vehicles of 83910.c. */
 #define VEH_U8(v, off) (*(u8 *) ((u8 *) (v) + (off)))
@@ -41,56 +41,57 @@
     } while (0)
 
 
-extern u8 D_803EFDF0[];  /* this vehicle's block (the asm's $gp) */
-extern u8 D_803EFAF0[];  /* its animation channel table */
-extern s32 D_803EFE98;   /* x */
-extern s32 D_803EFE9C;   /* y */
-extern s32 D_803EFEA0;   /* z */
-extern u8 * N64P D_803EFEA4;   /* model data */
-extern u64 * N64P D_803EFEA8;  /* save-buffer pair */
-extern u64 * N64P D_803EFEAC;
-extern s32 D_803EFEC0;   /* frame counters */
-extern s32 D_803EFEC4;
-extern u8 D_803EFEC9;
+extern u8 gTrainState[];  /* this vehicle's block (the asm's $gp) */
+extern u8 gTrainAnim[];  /* its animation channel table */
+extern s32 gTrainX;   /* x */
+extern s32 gTrainY;   /* y */
+extern s32 gTrainZ;   /* z */
+extern u8 * N64P gTrainModel;   /* model data */
+extern u64 * N64P gTrainMtxA;  /* save-buffer pair */
+extern u64 * N64P gTrainMtxB;
+extern s32 gTrainPart3Clear;   /* frame counters */
+extern s32 gTrainPart2Clear;
+extern u8 gTrainSparkTimer;
 extern u8 D_803EFECA;
 extern u8 D_80305E00[];
 
-s32 func_802BBE74(ZoneScanRegs *r);
-void func_802BC2C8(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4);
-void func_802BC3D0(void);
-void func_802BC578(void);
+s32 train_zone_alpha(ZoneScanRegs *r);
+void train_update_effects(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4);
+void train_build_model(void);
+void train_set_physics(void);
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Spawn vehicle type 7, called from lvl_spawn_vehicles's object loop with the
+/* Sets up the train (type 7) (0x802BBA60).
+ * Spawn vehicle type 7, called from lvl_spawn_vehicles's object loop with the
  * spawn record in t7 (x), s3 (y), s0 (z), s1 (heading), s2 (model data) and
- * fp (the ground-scan byte the previous object left; see func_802A992C):
+ * fp (the ground-scan byte the previous object left; see veh_init_ground):
  * as 83910.c's veh83910_init (save buffers from the heap, model record,
  * block reset, wheel offsets, gear bands, ground, animation channel 0, parts
- * with scale 0x3A98, func_80258230, one frame (func_802BBEB8) with byte
- * +0x9A set, buffer copy), and in addition D_803EFEC9 = D_803EFECA = 0 and
- * both frame counters D_803EFEC0 / D_803EFEC4 = 999999.
+ * with scale 0x3A98, veh_add_shadow, one frame (train_update) with byte
+ * +0x9A set, buffer copy), and in addition gTrainSparkTimer = D_803EFECA = 0 and
+ * both frame counters gTrainPart3Clear / gTrainPart2Clear = 999999.
  * The asm saves t0-t5: asm caller lvl_spawn_vehicles keeps t1 and t2 live (a
  * mixed N64 build would need a thunk). It leaves s2-s4, fp and f12-f26 as
  * its callees leave them, and lvl_spawn_vehicles hands fp and f12-f26 on to the
  * next object's spawn (not modelled; see the fidelity notes).
- * Fidelity: func_802A992C's FP inputs (the dispatcher's f12-f26) start at 0;
+ * Fidelity: veh_init_ground's FP inputs (the dispatcher's f12-f26) start at 0;
  * they only pass through to its FP outputs. */
-void func_802BBA60(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp) {
-    u8 *veh = D_803EFDF0;
+void train_spawn(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp) {
+    u8 *veh = gTrainState;
     u8 *heap;
     u64 *a;
     u64 *b;
     TriSideOut tri;
 
-    D_803EFEA4 = data;
+    gTrainModel = data;
     heap = gHeapPtr;
-    D_803EFEA8 = (u64 *) heap;
-    D_803EFEAC = (u64 *) (heap + 0x800);
+    gTrainMtxA = (u64 *) heap;
+    gTrainMtxB = (u64 *) (heap + 0x800);
     gHeapPtr = heap + 0x1000;
-    veh_add_record(7, 0, (s32) D_803EFEA8, (s32) D_803EFEAC, data);
-    func_802A754C(veh);
+    veh_add_record(7, 0, (s32) gTrainMtxA, (s32) gTrainMtxB, data);
+    veh_reset_state(veh);
     VEH_S16(veh, 0x52) = 0x50;
     VEH_S16(veh, 0x54) = 0x50;
     VEH_S16(veh, 0x56) = -0x50;
@@ -103,9 +104,9 @@ void func_802BBA60(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp) {
     VEH_S16(veh, 0x64) = 0x5A;
     VEH_S16(veh, 0x66) = 0x5A;
     VEH_S16(veh, 0x68) = -0x5A;
-    D_803EFE98 = x;
-    D_803EFE9C = y;
-    D_803EFEA0 = z;
+    gTrainX = x;
+    gTrainY = y;
+    gTrainZ = z;
     VEH_S16(veh, 0x4C) = angle;
     VEH_S16(veh, 0x4E) = angle;
     VEH_S16(veh, 0x74) = angle;
@@ -115,20 +116,20 @@ void func_802BBA60(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp) {
     tri.side = 0.0f;
     tri.sideZ = 0.0f;
     tri.dz = 0.0f;
-    func_802A992C(&VEH_S16(veh, 0x52), D_803EFE9C, x, z, &VEH_S32(veh, 4), &D_803EFE9C, &VEH_S16(veh, 0x4C), 7,
+    veh_init_ground(&VEH_S16(veh, 0x52), gTrainY, x, z, &VEH_S32(veh, 4), &gTrainY, &VEH_S16(veh, 0x4C), 7,
                   fp, veh, &tri);
-    a = D_803EFEA8;
-    b = D_803EFEAC;
-    func_8029F85C((u32 *) b, (u32 *) a, (Unk8029DEA0Entry *) D_803EFAF0, D_803EFEA4);
-    func_802A039C((Unk8029DEA0Entry *) D_803EFAF0, 0, 0x64);
-    func_802A03D4((Unk8029DEA0Entry *) D_803EFAF0, 0, 0);
-    func_802A040C((Unk8029DEA0Entry *) D_803EFAF0, 0, 0);
-    func_802A0480(0.0f, (Unk8029DEA0Entry *) D_803EFAF0, 0, 0);
-    func_802A0290((Unk8029DEA0Entry *) D_803EFAF0, 0, 1);
-    func_8029E558((u8 *) a, (u8 *) b, (Unk8029DEA0Entry *) D_803EFAF0);
-    func_802A0320(0, (Unk8029DEA0Entry *) D_803EFAF0);
-    func_802A0290((Unk8029DEA0Entry *) D_803EFAF0, 0, 1);
-    func_8029E558((u8 *) b, (u8 *) a, (Unk8029DEA0Entry *) D_803EFAF0);
+    a = gTrainMtxA;
+    b = gTrainMtxB;
+    anim_init_model((u32 *) b, (u32 *) a, (AnimChannel *) gTrainAnim, gTrainModel);
+    anim_set_speed((AnimChannel *) gTrainAnim, 0, 0x64);
+    anim_set_reverse((AnimChannel *) gTrainAnim, 0, 0);
+    anim_set_loop_mode((AnimChannel *) gTrainAnim, 0, 0);
+    anim_set_interp(0.0f, (AnimChannel *) gTrainAnim, 0, 0);
+    anim_play((AnimChannel *) gTrainAnim, 0, 1);
+    anim_update_model((u8 *) a, (u8 *) b, (AnimChannel *) gTrainAnim);
+    anim_rewind(0, (AnimChannel *) gTrainAnim);
+    anim_play((AnimChannel *) gTrainAnim, 0, 1);
+    anim_update_model((u8 *) b, (u8 *) a, (AnimChannel *) gTrainAnim);
     VEH_S16(veh, 0x78) = -0xB4;
     VEH_S16(veh, 0x7A) = 0;
     VEH_S16(veh, 0x7C) = 1;
@@ -144,41 +145,42 @@ void func_802BBA60(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp) {
     VEH_S16(veh, 0x90) = 0xBE;
     VEH_S16(veh, 0x92) = 0xFA;
     VEH_S16(veh, 0x94) = 1;
-    D_803EFEC9 = 0;
+    gTrainSparkTimer = 0;
     D_803EFECA = 0;
-    D_803EFEC0 = 999999;
-    D_803EFEC4 = 999999;
-    data = D_803EFEA4;
-    func_8029C354(7, OBJ_PTR(data, 4), OBJ_PTR(data, 8), 0x3A98);
-    func_80258230(7, 0x96, 0x2D, 0x2D);
+    gTrainPart3Clear = 999999;
+    gTrainPart2Clear = 999999;
+    data = gTrainModel;
+    veh_register_parts(7, OBJ_PTR(data, 4), OBJ_PTR(data, 8), 0x3A98);
+    veh_add_shadow(7, 0x96, 0x2D, 0x2D);
     VEH_U8(veh, 0x9A) = 1;
-    func_802BBEB8();
+    train_update();
     VEH_U8(veh, 0x9A) = 0;
-    data = D_803EFEA4;
-    func_802AA838((u8 *) D_803EFEAC, (u8 *) D_803EFEA8, *(s32 *) (OBJ_PTR(data, 0x18) + 4));
+    data = gTrainModel;
+    mtx_copy_at((u8 *) gTrainMtxB, (u8 *) gTrainMtxA, *(s32 *) (OBJ_PTR(data, 0x18) + 4));
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/772A0/func_802BBA60.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/772A0/train_spawn.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-/* Enter vehicle type 7: gCamDistance / D_80364450 = 3000, 0, then func_802C4310(arg0,
+/* Getting into the train: engine sound 0x20 (0x802BBDC8).
+ * Enter vehicle type 7: gCamDistance / gCamHeightBase = 3000, 0, then veh_start_engine_sound(arg0,
  * 0x20) (arg0 passes straight through; hd.c calls this with no arguments
- * and func_802C4310 ignores it). The asm also points $gp at D_803EFDF0 and
+ * and veh_start_engine_sound ignores it). The asm also points $gp at gTrainState and
  * leaves it there (conventions.txt: clobbers gp); C code doesn't use $gp.
- * Same shape as func_802C8AB0 (83910) and func_802B76AC (72B80). */
-void func_802BBDC8(s32 arg0) {
+ * Same shape as barge_enter (83910) and amdream_enter (72B80). */
+void train_enter(s32 arg0) {
     gCamDistance = 3000;
-    D_80364450 = 0;
-    func_802C4310(arg0, 0x20);
+    gCamHeightBase = 0;
+    veh_start_engine_sound(arg0, 0x20);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/772A0/func_802BBDC8.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/772A0/train_enter.s")
 #endif
 
-/* func_802BBE10: `return 1;` wrapped in a dead `addiu sp,sp,-8`/`sd
+/* train_exit_check: `return 1;` wrapped in a dead `addiu sp,sp,-8`/`sd
  * $ra,($sp)`/`ld $ra,($sp)`/`addiu sp,sp,8` frame that saves/restores
  * nothing. Confirmed via probe compiles that this is NOT reachable from
  * any plausible C: IDO's own codegen for a real function call (verified
@@ -190,77 +192,81 @@ void func_802BBDC8(s32 arg0) {
  * the first place. Same hand-written-leaf-stub character as init's
  * __osGetSR and this segment's COP0 stubs. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Functional rewrite (tools_port/eqcheck.py verified): always returns 1
- * (vehicle-type 7 "can exit" check; same as func_802C8AF0). 00000.c
+/* Always 1 (0x802BBE10).
+ * Functional rewrite (tools_port/eqcheck.py verified): always returns 1
+ * (vehicle-type 7 "can exit" check; same as barge_exit_check). 00000.c
  * declares it void and ignores the result, but the asm returns 1 in v0. */
-s32 func_802BBE10(void) {
+s32 train_exit_check(void) {
     return 1;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/772A0/func_802BBE10.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/772A0/train_exit_check.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u64 * N64P D_803EFEA8; /* save copy pair (func_802A7764) */
-extern u64 * N64P D_803EFEAC;
+extern u64 * N64P gTrainMtxA; /* save copy pair (veh_sync_buffers) */
+extern u64 * N64P gTrainMtxB;
 
-/* Leave vehicle type 7 (called from hd.c): func_802A7764(D_803EFEA8,
- * D_803EFEAC, 0x800), then stop the looping sounds (func_802C444C). The asm
- * points $gp at D_803EFDF0 around the calls and restores it. */
-void func_802BBE2C(void) {
-    func_802A7764(D_803EFEA8, D_803EFEAC, 0x800);
-    func_802C444C();
+/* Getting out of the train (0x802BBE2C).
+ * Leave vehicle type 7 (called from hd.c): veh_sync_buffers(gTrainMtxA,
+ * gTrainMtxB, 0x800), then stop the looping sounds (veh_stop_engine_sounds). The asm
+ * points $gp at gTrainState around the calls and restores it. */
+void train_leave(void) {
+    veh_sync_buffers(gTrainMtxA, gTrainMtxB, 0x800);
+    veh_stop_engine_sounds();
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/772A0/func_802BBE2C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/772A0/train_leave.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* (D_803EFE98 / 9C / A0 = x, y, z are declared at the top of the file.) */
-/* Zone level lookup (func_802ABD54) for vehicle id 7 at its position
- * D_803EFE98..+8; returns func_802ABD54's v1 (the zone list end).
- * Register convention: the asm passes func_802ABD54's scan registers t6, t7,
+/* (gTrainX / 9C / A0 = x, y, z are declared at the top of the file.) */
+/* Veh_zone_alpha at the train's position (0x802BBE74).
+ * Zone level lookup (veh_zone_alpha) for vehicle id 7 at its position
+ * gTrainX..+8; returns veh_zone_alpha's v1 (the zone list end).
+ * Register convention: the asm passes veh_zone_alpha's scan registers t6, t7,
  * s0-s4 through (in and out; here through r), leaves a3 = id and clobbers
- * s5, s6 (conventions.txt). Asm caller func_802BBEB8 keeps a0, f12 and f14 live
+ * s5, s6 (conventions.txt). Asm caller train_update keeps a0, f12 and f14 live
  * (a mixed N64 build would need a thunk; the native port won't). */
-s32 func_802BBE74(ZoneScanRegs *r) {
-    return func_802ABD54(7, D_803EFE98, D_803EFE9C, D_803EFEA0, r);
+s32 train_zone_alpha(ZoneScanRegs *r) {
+    return veh_zone_alpha(7, gTrainX, gTrainY, gTrainZ, r);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/772A0/func_802BBE74.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/772A0/train_zone_alpha.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Per-frame update of vehicle type 7 (hd.c's vehicle switch, and the spawn):
- * zone lookup (func_802BBE74) whose scan registers feed the dust effect
- * func_802BC2C8 (only while byte +0x9A is clear), timers (func_802BC578);
- * throttle (func_802A785C), steering (func_802A7FD8), slope ratio
- * (func_802A83B8), drag (func_802A843C, kind 7), move along the heading
- * (func_802A860C). With D_803EFEC8 set, x is then pinned to the line from
- * (D_803EFEB0, D_803EFEB4) to (D_803EFEB8, D_803EFEBC) at the current z:
+/* The train driven by the player: throttle only, its rail line (0x802BBEB8).
+ * Per-frame update of vehicle type 7 (hd.c's vehicle switch, and the spawn):
+ * zone lookup (train_zone_alpha) whose scan registers feed the dust effect
+ * train_update_effects (only while byte +0x9A is clear), timers (train_set_physics);
+ * throttle (veh_throttle), steering (veh_turn_heading), slope ratio
+ * (veh_slope), drag (veh_apply_slope, kind 7), move along the heading
+ * (veh_move_along_heading). With gTrainOnLine set, x is then pinned to the line from
+ * (gTrainLineX0, gTrainLineZ0) to (gTrainLineX1, gTrainLineZ1) at the current z:
  * x = x0 + round((x1 - x0) * (z - z0) / (z1 - z0)) (the asm also rounds
  * 100 * the ratio into a register it then overwrites; z1 == z0 would make
- * that cvt.w.s fault). Ground contact (func_802A8768), animation channels
- * (func_8029E558), model update (func_802BC3D0), both frame counters + 1.
- * While byte +0x9A is clear: collisions (func_8029A800, func_8029C52C,
- * func_8029AA10, func_802BE77C) and, if they flagged D_803A7425, the bumper
- * check: with contact 3 (func_802BCD80) the speed becomes 0 if contact 2 is
- * also set, else D_803EFEC0 = 0 and -40 once D_803EFEC4 >= 6 (else 0); with
- * only contact 2, D_803EFEC4 = 0 and +40 once D_803EFEC0 >= 6 (else 0).
+ * that cvt.w.s fault). Ground contact (veh_ground_contact), animation channels
+ * (anim_update_model), model update (train_build_model), both frame counters + 1.
+ * While byte +0x9A is clear: collisions (veh_collision_setup, veh_collide_spheres,
+ * veh_collide_world, obj_collide_vehicle) and, if they flagged gCollBlocked, the bumper
+ * check: with contact 3 (veh_contacts_has) the speed becomes 0 if contact 2 is
+ * also set, else gTrainPart3Clear = 0 and -40 once gTrainPart2Clear >= 6 (else 0); with
+ * only contact 2, gTrainPart2Clear = 0 and +40 once gTrainPart3Clear >= 6 (else 0).
  * Finally position / speed / headings go to gPlayerX.. and veh_set_record.
  * The asm saves s0-s7, gp, fp and f20-f30. The asm's adds/subs trap on
  * overflow (game range).
- * Fidelity: func_802BBE74's scan registers are passed through from the
+ * Fidelity: train_zone_alpha's scan registers are passed through from the
  * caller (t6, t7, s0-s4 as hd.c's compiled caller or the spawn leave them)
- * and reach func_802BC2C8's func_802A6274 records only when no zone is looked
- * at (empty zone list); the C starts them at 0. func_802A8768's FP inputs
- * (f12/f14 as func_802A860C's sine leaves them, the caller's f20-f26) start
+ * and reach train_update_effects's fx_spawn records only when no zone is looked
+ * at (empty zone list); the C starts them at 0. veh_ground_contact's FP inputs
+ * (f12/f14 as veh_move_along_heading's sine leaves them, the caller's f20-f26) start
  * at 0; they only reach its FP outputs, which nothing here reads. */
-void func_802BBEB8(void) {
-    u8 *veh = D_803EFDF0;
+void train_update(void) {
+    u8 *veh = gTrainState;
     ZoneScanRegs zr;
     Regs802A8768 r;
     Out802A860C o;
@@ -280,26 +286,26 @@ void func_802BBEB8(void) {
     zr.s2 = 0;
     zr.s3 = 0;
     zr.s4 = 0;
-    func_802BBE74(&zr);
+    train_zone_alpha(&zr);
     if (VEH_S8(veh, 0x9A) == 0) {
-        func_802BC2C8(zr.t6, zr.t7, zr.s0, zr.s1, zr.s2, zr.s3, zr.s4);
+        train_update_effects(zr.t6, zr.t7, zr.s0, zr.s1, zr.s2, zr.s3, zr.s4);
     }
-    func_802BC578();
-    func_802A785C(veh, &VEH_S16(veh, 0x76), 3, &VEH_U8(veh, 0x96), &VEH_S16(veh, 0x78), 6);
-    func_802A7FD8(veh, &VEH_U16(veh, 0x74), 0x2328, &VEH_S16(veh, 0x76), &VEH_U16(veh, 0x4C),
+    train_set_physics();
+    veh_throttle(veh, &VEH_S16(veh, 0x76), 3, &VEH_U8(veh, 0x96), &VEH_S16(veh, 0x78), 6);
+    veh_turn_heading(veh, &VEH_U16(veh, 0x74), 0x2328, &VEH_S16(veh, 0x76), &VEH_U16(veh, 0x4C),
                   &VEH_U16(veh, 0x4E), &VEH_S8(veh, 0x99), 0);
-    f = func_802A83B8(&VEH_S16(veh, 0x76), &VEH_U8(veh, 0x96), &VEH_S32(veh, 4), &VEH_F32(veh, 0));
-    func_802A843C(veh, &VEH_S16(veh, 0x76), 7, &VEH_S8(veh, 0x96), &VEH_S32(veh, 4), 1, 160.0f);
-    x = func_802A860C(f, VEH_U16(veh, 0x4E), &VEH_S16(veh, 0x76), &D_803EFE98, &D_803EFEA0, &o);
-    if (D_803EFEC8 != 0) {
-        z0 = D_803EFEB4;
-        k = (f32) (D_803EFEA0 - z0) / (f32) (D_803EFEBC - z0);
-        x0 = D_803EFEB0;
-        CVT_W_S(x, (f32) (D_803EFEB8 - x0) * k);
+    f = veh_slope(&VEH_S16(veh, 0x76), &VEH_U8(veh, 0x96), &VEH_S32(veh, 4), &VEH_F32(veh, 0));
+    veh_apply_slope(veh, &VEH_S16(veh, 0x76), 7, &VEH_S8(veh, 0x96), &VEH_S32(veh, 4), 1, 160.0f);
+    x = veh_move_along_heading(f, VEH_U16(veh, 0x4E), &VEH_S16(veh, 0x76), &gTrainX, &gTrainZ, &o);
+    if (gTrainOnLine != 0) {
+        z0 = gTrainLineZ0;
+        k = (f32) (gTrainZ - z0) / (f32) (gTrainLineZ1 - z0);
+        x0 = gTrainLineX0;
+        CVT_W_S(x, (f32) (gTrainLineX1 - x0) * k);
         x += x0;
-        D_803EFE98 = x;
+        gTrainX = x;
     }
-    D_803ED40B = 0;
+    gBounceSound = 0;
     r.s3 = o.s3;
     tri.pz = 0.0f;
     tri.cross = 0.0f;
@@ -307,154 +313,157 @@ void func_802BBEB8(void) {
     tri.side = 0.0f;
     tri.sideZ = 0.0f;
     tri.dz = 0.0f;
-    func_802A8768(veh, 7, &D_803EFE98, &D_803EFE9C, &D_803EFEA0, x, o.t1, 0xA0, 0xA0, &VEH_S16(veh, 0x4C),
+    veh_ground_contact(veh, 7, &gTrainX, &gTrainY, &gTrainZ, x, o.t1, 0xA0, 0xA0, &VEH_S16(veh, 0x4C),
                   &VEH_U8(veh, 0x96), &VEH_S16(veh, 0x52), &VEH_S32(veh, 0x28), &VEH_S32(veh, 0x40),
                   &VEH_S32(veh, 0x34), &VEH_S32(veh, 4), &r, &tri);
     if (gBufferIndex != 0) {
-        func_8029E558((u8 *) D_803EFEA8, (u8 *) D_803EFEAC, (Unk8029DEA0Entry *) D_803EFAF0);
+        anim_update_model((u8 *) gTrainMtxA, (u8 *) gTrainMtxB, (AnimChannel *) gTrainAnim);
     } else {
-        func_8029E558((u8 *) D_803EFEAC, (u8 *) D_803EFEA8, (Unk8029DEA0Entry *) D_803EFAF0);
+        anim_update_model((u8 *) gTrainMtxB, (u8 *) gTrainMtxA, (AnimChannel *) gTrainAnim);
     }
-    func_802BC3D0();
-    D_803EFEC0++;
-    D_803EFEC4++;
+    train_build_model();
+    gTrainPart3Clear++;
+    gTrainPart2Clear++;
     if (VEH_S8(veh, 0x9A) == 0) {
         /* b0 / h2 are the model update's leftover t0 (x) and t2 (7) */
-        func_8029A800(D_803EFEA0, (s32) D_80305E00, 0, 0, D_803EFE98, D_803EFE9C, D_803EFE98,
+        veh_collision_setup(gTrainZ, (s32) D_80305E00, 0, 0, gTrainX, gTrainY, gTrainX,
                       VEH_S16(veh, 0x76), 7, 0, 7, veh);
-        func_8029C52C(7, veh);
-        func_8029AA10(7);
-        D_803F77D0 = D_803EFAF0;
-        func_802BE77C(7, veh);
-        if (D_803A7425 != 0) {
-            c2 = func_802BCD80(2);
-            c3 = func_802BCD80(3);
+        veh_collide_spheres(7, veh);
+        veh_collide_world(7);
+        D_803F77D0 = gTrainAnim;
+        obj_collide_vehicle(7, veh);
+        if (gCollBlocked != 0) {
+            c2 = veh_contacts_has(2);
+            c3 = veh_contacts_has(3);
             if (c3 != 0) {
                 if (c2 != 0) {
                     VEH_S16(veh, 0x76) = 0;
                 } else {
-                    D_803EFEC0 = 0;
-                    VEH_S16(veh, 0x76) = (D_803EFEC4 >= 6) ? -0x28 : 0;
+                    gTrainPart3Clear = 0;
+                    VEH_S16(veh, 0x76) = (gTrainPart2Clear >= 6) ? -0x28 : 0;
                 }
             } else if (c2 != 0) {
-                D_803EFEC4 = 0;
-                VEH_S16(veh, 0x76) = (D_803EFEC0 >= 6) ? 0x28 : 0;
+                gTrainPart2Clear = 0;
+                VEH_S16(veh, 0x76) = (gTrainPart3Clear >= 6) ? 0x28 : 0;
             }
         }
     }
-    gPlayerX = D_803EFE98;
-    gPlayerY = D_803EFE9C;
-    gPlayerZ = D_803EFEA0;
+    gPlayerX = gTrainX;
+    gPlayerY = gTrainY;
+    gPlayerZ = gTrainZ;
     D_8036443C = VEH_S16(veh, 0x76);
     D_8036443E = VEH_U16(veh, 0x4E);
     D_80364440 = VEH_U16(veh, 0x4C);
-    veh_set_record(D_803EFEA0, 7, D_803EFE98, D_803EFE9C, veh);
+    veh_set_record(gTrainZ, 7, gTrainX, gTrainY, veh);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/772A0/func_802BBEB8.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/772A0/train_update.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-extern u8 D_803EFDF0[];  /* this vehicle's state block (the asm's $gp) */
-extern u8 D_803EFEC9;    /* countdown */
+extern u8 gTrainState[];  /* this vehicle's state block (the asm's $gp) */
+extern u8 gTrainSparkTimer;    /* countdown */
 
-/* Countdown D_803EFEC9: when nonzero it just counts down. At zero, if the
+/* Brake sparks and sound 0x29, engine pitch, the L/R whistle loop (0x802BC2C8).
+ * Countdown gTrainSparkTimer: when nonzero it just counts down. At zero, if the
  * flag for the speed's sign (s16 at +0x76: > 0 -> gHeldBOrZ, else
- * gHeldA) is set, two func_802A6274 records are set up (def D_802C2984,
+ * gHeldA) is set, two fx_spawn records are set up (def D_802C2984,
  * data 0x9C40, tag 0, type 1 at (7, 2, 1) and (7, 3, 1)), sound 0x29 is
- * played (func_80260650) and the countdown restarts at 1. Then always
- * func_802C4584(|speed >> 4|) and func_802C4724(0x21).
+ * played (snd_play) and the countdown restarts at 1. Then always
+ * veh_set_engine_level(|speed >> 4|) and veh_update_horn(0x21).
  * Register convention: the asm passes t6, t7, s0-s4 through to
- * func_802A6274 (t6 and s1 in its in/out block); $gp (= D_803EFDF0) is read
- * as the global. It leaves func_802A6274's s1 and changes s5
+ * fx_spawn (t6 and s1 in its in/out block); $gp (= gTrainState) is read
+ * as the global. It leaves fx_spawn's s1 and changes s5
  * (conventions.txt: clobbers). */
-void func_802BC2C8(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
+void train_update_effects(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
     Io802A6274 io;
     s32 v;
 
-    if (D_803EFEC9 != 0) {
-        D_803EFEC9--;
-    } else if ((*(s16 *) (D_803EFDF0 + 0x76) > 0) ? (gHeldBOrZ != 0) : (gHeldA != 0)) {
+    if (gTrainSparkTimer != 0) {
+        gTrainSparkTimer--;
+    } else if ((*(s16 *) (gTrainState + 0x76) > 0) ? (gHeldBOrZ != 0) : (gHeldA != 0)) {
         io.a3 = 0;
         io.t6 = t6;
         io.s1 = s1;
-        func_802A6274(&io, D_802C2984, 0x9C40, 1, 7, 2, 1, t7, s0, s2, s3, s4, 0);
+        fx_spawn(&io, D_802C2984, 0x9C40, 1, 7, 2, 1, t7, s0, s2, s3, s4, 0);
         io.a3 = 0;
-        func_802A6274(&io, D_802C2984, 0x9C40, 1, 7, 3, 1, t7, s0, s2, s3, s4, 0);
-        func_80260650(D_80367738, 0x29, NULL);
-        D_803EFEC9 = 1;
+        fx_spawn(&io, D_802C2984, 0x9C40, 1, 7, 3, 1, t7, s0, s2, s3, s4, 0);
+        snd_play(gSfxBank, 0x29, NULL);
+        gTrainSparkTimer = 1;
     }
-    v = *(s16 *) (D_803EFDF0 + 0x76) >> 4;
+    v = *(s16 *) (gTrainState + 0x76) >> 4;
     if (v < 0) {
         v = -v;
     }
-    func_802C4584(v);
-    func_802C4724(0x21);
+    veh_set_engine_level(v);
+    veh_update_horn(0x21);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/772A0/func_802BC2C8.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/772A0/train_update_effects.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Model update of vehicle type 7: as 83910.c's veh83910_model (scale
- * 0x3A98, tag 7), then D_803EFECB = func_8029DC14(7). The asm reads the
- * block through $gp (always D_803EFDF0). It leaves t0 = x and t2 = 7 for
- * func_802BBEB8's func_8029A800 call (the C caller passes them itself) and
+/* Matrices, parts, points and its deck triangles (0x802BC3D0).
+ * Model update of vehicle type 7: as 83910.c's veh83910_model (scale
+ * 0x3A98, tag 7), then D_803EFECB = veh_tris_all_solid_impl(7). The asm reads the
+ * block through $gp (always gTrainState). It leaves t0 = x and t2 = 7 for
+ * train_update's veh_collision_setup call (the C caller passes them itself) and
  * s0-s7, fp, f20-f28 as its callees do (conventions.txt: clobbers).
- * Fidelity: func_802AA890's extra registers (a3, s1, s2, s0 as the caller
- * and func_802AA764 leave them; read only for a part with an empty matrix
+ * Fidelity: mtx_chain_transform's extra registers (a3, s1, s2, s0 as the caller
+ * and mtx_build_model leave them; read only for a part with an empty matrix
  * chain) start at 0 here. */
-void func_802BC3D0(void) {
-    u8 *veh = D_803EFDF0;
-    u8 *data = D_803EFEA4;
+void train_build_model(void) {
+    u8 *veh = gTrainState;
+    u8 *data = gTrainModel;
     u8 *base;
     s16 *verts;
     MtxChainRegs regs;
 
-    base = (u8 *) (gBufferIndex != 0 ? D_803EFEA8 : D_803EFEAC);
+    base = (u8 *) (gBufferIndex != 0 ? gTrainMtxA : gTrainMtxB);
     base += *(s32 *) (OBJ_PTR(data, 0x18) + 4);
-    D_803ED390[0] = 0;
-    D_803ED390[2] = 0;
-    D_803ED390[1] = VEH_U16(veh, 0x4C);
-    func_802AA764(D_803EFE98, D_803EFE9C, D_803EFEA0, 0x3A98, (s32 *) base);
+    gModelRot[0] = 0;
+    gModelRot[2] = 0;
+    gModelRot[1] = VEH_U16(veh, 0x4C);
+    mtx_build_model(gTrainX, gTrainY, gTrainZ, 0x3A98, (s32 *) base);
 
-    base = (u8 *) (gBufferIndex != 0 ? D_803EFEA8 : D_803EFEAC);
-    regs.v1 = D_803EFE9C;
-    regs.a0 = D_803EFEA0;
+    base = (u8 *) (gBufferIndex != 0 ? gTrainMtxA : gTrainMtxB);
+    regs.v1 = gTrainY;
+    regs.a0 = gTrainZ;
     regs.a3 = 0;
     regs.s1 = 0;
     regs.s2 = 0;
     regs.s0 = 0;
-    data = D_803EFEA4;
-    func_8029C454(D_803EFE98, D_803EFE9C, D_803EFEA0, 7, OBJ_PTR(data, 4), OBJ_PTR(data, 8), base, &regs);
-    /* the asm's v1 / a0 (y / z) survive func_8029C454 */
-    regs.v1 = D_803EFE9C;
-    regs.a0 = D_803EFEA0;
-    data = D_803EFEA4;
-    func_802ABBEC(7, (s16 *) OBJ_PTR(data, 0), (s16 *) OBJ_PTR(data, 4), base, &regs);
-    data = D_803EFEA4;
-    func_802AABE4(7, (u16 *) OBJ_PTR(data, 8), base, &regs, &verts);
-    data = D_803EFEA4;
-    func_8029D040(VEH_U16(veh, 0x4C), (Unk8029DEA0Entry *) D_803EFAF0, D_803EFE98, D_803EFEA0, 7, OBJ_PTR(data, 0xC), base);
-    D_803EFECB = func_8029DC14(7);
+    data = gTrainModel;
+    veh_place_parts(gTrainX, gTrainY, gTrainZ, 7, OBJ_PTR(data, 4), OBJ_PTR(data, 8), base, &regs);
+    /* the asm's v1 / a0 (y / z) survive veh_place_parts */
+    regs.v1 = gTrainY;
+    regs.a0 = gTrainZ;
+    data = gTrainModel;
+    veh_points_transform(7, (s16 *) OBJ_PTR(data, 0), (s16 *) OBJ_PTR(data, 4), base, &regs);
+    data = gTrainModel;
+    veh_deck_transform(7, (u16 *) OBJ_PTR(data, 8), base, &regs, &verts);
+    data = gTrainModel;
+    veh_update_tris(VEH_U16(veh, 0x4C), (AnimChannel *) gTrainAnim, gTrainX, gTrainZ, 7, OBJ_PTR(data, 0xC), base);
+    D_803EFECB = veh_tris_all_solid_impl(7);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/772A0/func_802BC3D0.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/772A0/train_build_model.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 /* Functional rewrite (tools_port/eqcheck.py verified). Same "set timers"
- * shape as func_802BAD24 (75490.c). Asm caller func_802BBEB8 relies on
+ * shape as carrier_set_physics (75490.c). Asm caller train_update relies on
  * a0-a3 being preserved (mixed N64 build would need a thunk). */
 
-void func_802BC578(void) {
-    D_803EBBF4 = D_803EBBF0 * 2.0f;
-    D_803ED3F6 = 60;
-    D_803ED3F7 = 4;
+/* Gravity x2, bounce 60/4 (0x802BC578). */
+void train_set_physics(void) {
+    gGravity = gLevelGravity * 2.0f;
+    gBounceThreshold = 60;
+    gBounceDamping = 4;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/772A0/func_802BC578.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/772A0/train_set_physics.s")
 #endif

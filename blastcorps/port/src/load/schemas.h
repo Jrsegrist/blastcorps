@@ -88,7 +88,7 @@ static int blk_sect(Block *b, uint32_t s, uint32_t e, uint32_t *lo, uint32_t *hi
 /* ------------------------------------------------------------------ levels */
 
 /* 0x2C: texture records {u32 id; u8 count @4; u8 @5, @6; s16 @8, @A; then
- * count - 1 u32 texture ids from +0xC} (func_802A1C20, func_802A5020) */
+ * count - 1 u32 texture ids from +0xC} (lvl_resolve_tex_ids, func_802A5020) */
 static void lvl_texrecs(Block *b, uint32_t lo, uint32_t hi) {
     while (lo + 0xC <= hi) {
         uint32_t n = P(b->base + lo)[4];
@@ -102,7 +102,7 @@ static void lvl_texrecs(Block *b, uint32_t lo, uint32_t hi) {
 
 /* 0x30: collision cells: a big-endian u32 (read bytewise, BE32: the offset of
  * the next cell from the section start), then 0x14-byte triangles (nine s16,
- * then two bytes) up to it (func_802A4464, func_802AA094) */
+ * then two bytes) up to it (lvl_build_ground_grid, ground_scan_grid) */
 static void lvl_cells(Block *b, uint32_t lo, uint32_t hi) {
     uint32_t p = lo;
     while (p + 4 <= hi) {
@@ -114,9 +114,9 @@ static void lvl_cells(Block *b, uint32_t lo, uint32_t hi) {
     }
 }
 
-/* 0x3C: lifts (func_8028FDA0): s16 n1, n1 x {s16 x, y, z, type}; s16 n2,
+/* 0x3C: lifts (block_spawn_all): s16 n1, n1 x {s16 x, y, z, type}; s16 n2,
  * n2 x {s16 x, y, z; u8 type, n; s16 @8; n 0x16-byte triangle items read
- * bytewise (func_802A41B0, BE16S)} */
+ * bytewise (lvl_build_coll_tri, BE16S)} */
 static void lvl_lifts(Block *b, uint32_t lo, uint32_t hi) {
     uint32_t p = lo, i, n;
     if (p + 2 > hi) return;
@@ -137,7 +137,7 @@ static void lvl_lifts(Block *b, uint32_t lo, uint32_t hi) {
     }
 }
 
-/* 0x74: group chain (func_802A1A9C, func_802C2054, func_802C1F30): s32 n (0 =
+/* 0x74: group chain (lvl_build_part_tris, lvl_groups_update_tris, lvl_group_move_part): s32 n (0 =
  * empty), then groups: {s16 next (-1 = last); s16 [9]; u16 mtxOffset[10] @0x14;
  * s32 count @0x28} + count x {s16 index[9]; u8 @0x12, @0x13; {s32 unk0;
  * s32 base[3]}[3] @0x14} */
@@ -193,7 +193,7 @@ static void swap_level(uint32_t base, uint32_t len) {
     if (blk_sect(&b, 0x60, 0x74, &lo, &hi)) blk_keep(&b, lo, hi - lo);
     if (blk_sect(&b, 0x74, 0x78, &lo, &hi)) lvl_groups(&b, lo, hi);
     /* display lists and the visibility records/groups (0xA0..0xC0): all u32
-     * words (func_802A08E4, func_802A1C88, lvl_build_visible_dl, func_802A51FC) */
+     * words (tex_resolve_dl_impl, lvl_relocate_dls, lvl_build_visible_dl, func_802A51FC) */
     if (blk_sect(&b, 0xA0, 0xC0, &lo, &hi)) blk_words(&b, lo, hi);
     if (blk_sect(&b, 0x78, 0x84, &lo, &hi)) blk_words(&b, lo, hi);
     if (blk_sect(&b, 0x88, 0x9C, &lo, &hi)) blk_words(&b, lo, hi);
@@ -206,7 +206,7 @@ static void swap_level(uint32_t base, uint32_t len) {
 #define TRI_LEAVES "2@0 2@2 2@4 2@6 2@8 2@A 2@C 2@E 2@10"
 
 /* 0x28: texture records {u32 id; u8 count @4; u8 @5..7; u32 @8; s16 @C, @E;
- * count - 1 u32 texture ids from +0x10} (func_802A2608) */
+ * count - 1 u32 texture ids from +0x10} (lvl_resolve_object_tex) */
 static void obj_texrecs(Block *b, uint32_t lo, uint32_t hi) {
     while (lo + 0x10 <= hi) {
         uint32_t n = P(b->base + lo)[4];
@@ -244,9 +244,9 @@ static void obj_parts(Block *b, uint32_t lo, uint32_t hi) {
     }
 }
 
-/* Buildings and other level objects (ROM 0x6ECCC0.., func_802A2A98): u16 at
+/* Buildings and other level objects (ROM 0x6ECCC0.., lvl_load_object): u16 at
  * 0 and 2, bytes 4..7, s32 at 8, u16 at 0xE, s32 offsets 0x10..0x4C, Vtx
- * from 0x50 (func_802A26A8 moves them).  Read by 5CB60.c, 77E20.c. */
+ * from 0x50 (lvl_translate_object moves them).  Read by 5CB60.c, 77E20.c. */
 static void swap_object(uint32_t base, uint32_t len) {
     Block b;
     uint32_t lo, hi;
@@ -264,8 +264,8 @@ static void swap_object(uint32_t base, uint32_t len) {
     if (blk_sect(&b, 0x24, 0x28, &lo, &hi)) blk_records(&b, lo, hi, 0x14, TRI_LEAVES);
     if (blk_sect(&b, 0x28, 0x2C, &lo, &hi)) obj_texrecs(&b, lo, hi);
     if (blk_sect(&b, 0x2C, 0x30, &lo, &hi)) blk_records(&b, lo, hi, 2, "2@0");
-    /* 0x38-byte debris records (func_802A26A8 moves words 0-2 and 10;
-     * func_802C0574 reads the copy: u16 delay 0x2C, u16 radius 0x2E, bytes
+    /* 0x38-byte debris records (lvl_translate_object moves words 0-2 and 10;
+     * obj_run_effect_queue reads the copy: u16 delay 0x2C, u16 radius 0x2E, bytes
      * 0x30.. (kind at 0x31, func_802A23E0), flag byte 0x34) */
     if (blk_sect(&b, 0x30, 0x38, &lo, &hi))
         blk_records(&b, lo, hi, 0x38, "4@0 4@4 4@8 4@C 4@10 4@14 4@18 4@1C 4@20 4@24 4@28 2@2C 2@2E");
@@ -282,11 +282,11 @@ static void swap_object(uint32_t base, uint32_t len) {
 
 /* Vehicle models (ROM 0x48FE90.., lvl_load_model): s32 offsets 0x00..0x44;
  * Vtx [hdr[0x14], hdr[0x18]); display lists and their tables from hdr[0x18]
- * to the end (u32 words: func_802A08E4, veh_add_record, func_8029DF78) */
+ * to the end (u32 words: tex_resolve_dl_impl, veh_add_record, anim_tex_find_patches) */
 /* vehicle animation block [hdr[0x10], hdr[0x14]): s16 offsets (count = the
- * first / 2, func_8029F85C), each to {u8 k; k + 1 bytes; pad to a word}
+ * first / 2, anim_init_model), each to {u8 k; k + 1 bytes; pad to a word}
  * then groups {s32; s32; k x ten s16} up to the next animation
- * (func_8029E5AC, func_8029EF80) */
+ * (anim_update_channel, anim_apply_linear_key) */
 static void mdl_anims(Block *b, uint32_t lo, uint32_t hi) {
     uint32_t n, i;
     if (lo + 2 > hi) return;
@@ -346,12 +346,12 @@ static void swap_model(uint32_t base, uint32_t len) {
     b.len = len;
     b.done = calloc(len + 4, 1);
     blk_n(&b, 0, 0x4C / 4, 4);
-    /* collision/attachment parts (func_802ABBEC, func_8029C354/C454,
-     * func_802AABE4, func_8029D24C; func_802AA890 reads their words):
+    /* collision/attachment parts (veh_points_transform, veh_register_parts/C454,
+     * veh_deck_transform, veh_build_tris; mtx_chain_transform reads their words):
      * [hdr0, hdr4): {s16 x4, the last = n; n x s32} ...
      * [hdr4, hdr8): s16, pad, then {s16 x6, the last = n; n x s32} ...
      * [hdr8, hdrC): {s16 k; s16 n; n x s32; k x ten s16}
-     * [hdrC, hdr10): the same (func_8029D24C) */
+     * [hdrC, hdr10): the same (veh_build_tris) */
     if (blk_sect(&b, 0x00, 0x04, &lo, &hi)) mdl_parts(&b, lo, hi, 4);
     if (blk_sect(&b, 0x04, 0x08, &lo, &hi) && lo + 4 <= hi) {
         blk_n(&b, lo, 2, 2);
@@ -369,8 +369,8 @@ static void swap_model(uint32_t base, uint32_t len) {
 /* The attract-mode recordings (ROM 0x6A9F10, 17210.c): per demo a header
  * (u16 at 0, 2, 8; bytes 0xA, 0xB), 0x400 five-byte RecEntry (bytes), s16
  * length at 0x140C, then the vehicle's saved state (0xB2 bytes,
- * func_802AC7DC): the first 0xA6 bytes of its state block, which
- * func_802AC85C copies bytewise into the live block, then three words it
+ * veh_serialize_state): the first 0xA6 bytes of its state block, which
+ * veh_deserialize_state copies bytewise into the live block, then three words it
  * reassembles from big-endian bytes itself.  The block's fields, the same
  * for every vehicle (traced on the blocks of vehicles 0-5, 9 and 10 over
  * the attract demos; tools/m64widths.py EXTRA=...):

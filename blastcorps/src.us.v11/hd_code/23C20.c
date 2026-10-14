@@ -9,8 +9,8 @@
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_802F5804 ((PathNode *) D_802F5804)
-#define D_802F8BDC ((TextArg *) D_802F8BDC)
+#define gYoshiGameItems ((YoshiItem *) gYoshiGameItems)
+#define gYoshiWindows ((TextArg *) gYoshiWindows)
 #define gVehicles ((Struct80364460 *) gVehicles)
 #define players ((Struct80364AF0 *) players)
 #ifdef NON_MATCHING
@@ -22,8 +22,8 @@
 /* utils2.c (from its assert strings): camera spline paths, triggers, small maths helpers. */
 
 f32 sqrtf(f32);
-f32 func_8026A184(f32 x, f32 y, f32 z, f32 w, f32 a, f32 b, f32 c);
-f32 func_80268D84(f32 x, f32 y, f32 z, f32 w, f32 a, f32 b, f32 c);
+f32 util_shuttle_path_eval(f32 x, f32 y, f32 z, f32 w, f32 a, f32 b, f32 c);
+f32 util_cam_path_eval(f32 x, f32 y, f32 z, f32 w, f32 a, f32 b, f32 c);
 
 #define ASSERT(EX, line) \
     if (!(EX)) debug_printf("\n --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "utils2.c", line)
@@ -92,7 +92,7 @@ typedef struct {
     u8 pad15[3];
 } Struct802F4224;
 
-/* Pathfinding node, 0x1C bytes (see 45BB0.c) */
+/* A text-window item, 0x1C bytes (yoshi.c's YoshiItem; this file writes the landing messages into item 42) */
 typedef struct {
     /* 0x00 */ u8 unk0[2];
     /* 0x02 */ u8 unk2[4];
@@ -101,7 +101,7 @@ typedef struct {
     /* 0x0C */ char * N64P text;
     /* 0x10 */ u16 * N64P jtext;
     /* 0x14 */ u8 unk14[8];
-} PathNode;
+} YoshiItem;
 
 /* 0x1C bytes (45BB0.c's YoshiArg) */
 typedef struct {
@@ -127,11 +127,11 @@ typedef struct {
     u8 unk18[0xE8];
 } Struct80364AF0;
 
-extern Struct802F3C10 D_802F3C10[];
-extern Struct802F3C24 D_802F3C24[];
-extern Struct802F3C48 D_802F3C48[];
-extern Struct802F41E8 D_802F41E8[];
-extern Struct802F4224 D_802F4224[];
+extern Struct802F3C10 gBoardZones[];
+extern Struct802F3C24 gCamPaths[];
+extern Struct802F3C48 gCamPathPoints[];
+extern Struct802F41E8 gShuttlePaths[];
+extern Struct802F4224 gShuttlePathPoints[];
 extern u16 D_80303AF4[];
 extern u16 D_80303B00[];
 extern u16 D_80303B10[];
@@ -139,19 +139,19 @@ extern u16 D_80303B24[];
 #ifndef NON_MATCHING
 extern Struct80364460 *gVehiclesEnd;
 #endif
-extern u8 D_8036B8C0;
-extern f32 D_8036B8C8[4][4];
-extern s32 D_8036B908;
-extern u8 D_8036B90C;
-extern f32 D_8036B910[4][4];
-extern s32 D_8036B950;
-extern u8 D_8036B954;
-extern u8 D_8036B955;
+extern u8 gCamPathIndex;
+extern f32 gCamPathBasis[4][4];
+extern s32 gCamPathT;
+extern u8 gCamPathPoint;
+extern f32 gShuttlePathBasis[4][4];
+extern s32 gShuttlePathT;
+extern u8 gShuttlePathPoint;
+extern u8 gShuttlePathIndex;
 extern u8 D_8036B958[4];
-extern u8 D_8036B95C;
+extern u8 gShuttlePathBranch;
 extern u8 D_8036B960[4];
 extern u8 D_8036B966;
-extern s32 D_8036B96C;
+extern s32 gRandSeed2;
 extern u8 D_8036B970;
 #ifndef NON_MATCHING
 extern s32 D_8036B974;
@@ -159,8 +159,9 @@ extern s32 D_8036B974;
 extern u8 D_8036B978;
 extern u8 D_8036B979;
 
-/* Checks the trigger zones for the current level; sets gNextVehicle on a hit. */
-void func_802683E0(void) {
+/* On foot near a zone's vehicle: switch to it (0x802683E0).
+ * Checks the trigger zones for the current level; sets gNextVehicle on a hit. */
+void util_check_board_zone(void) {
     s32 i;
     u8 found;
     u8 hit;
@@ -168,27 +169,27 @@ void func_802683E0(void) {
 
     i = 0;
     found = 0;
-    if (gCurVehicle || D_803ED826) {
+    if (gCurVehicle || gDriverExitWalk) {
         return;
     }
     while (!found && i < 1) {
-        if (D_802F3C10[i].id == levelno) {
+        if (gBoardZones[i].id == levelno) {
             p = gVehicles;
             hit = 0;
             while (!hit && gVehiclesEnd != p) {
-                if (D_802F3C10[i].unk1 == p->unk5C) {
+                if (gBoardZones[i].unk1 == p->unk5C) {
                     hit = 1;
                 } else {
                     p++;
                 }
             }
             if (hit) {
-                if (func_802AC4C4(p->unk64 >> 5, p->unk6C >> 5, D_802F3C10[i].unk2, D_802F3C10[i].unk4,
-                                  D_802F3C10[i].unk6, D_802F3C10[i].unk8, D_802F3C10[i].unkA, D_802F3C10[i].unkC)
-                    || func_802AC4C4(p->unk64 >> 5, p->unk6C >> 5, D_802F3C10[i].unk2, D_802F3C10[i].unk4,
-                                     D_802F3C10[i].unkA, D_802F3C10[i].unkC, D_802F3C10[i].unkE, D_802F3C10[i].unk10)) {
-                    if (func_8026A6F0(p->unk64, p->unk68, p->unk6C, gPlayerX, gPlayerY, gPlayerZ) < D_802F3C10[i].unk12) {
-                        gNextVehicle = D_802F3C10[i].unk1;
+                if (ground_in_triangle(p->unk64 >> 5, p->unk6C >> 5, gBoardZones[i].unk2, gBoardZones[i].unk4,
+                                  gBoardZones[i].unk6, gBoardZones[i].unk8, gBoardZones[i].unkA, gBoardZones[i].unkC)
+                    || ground_in_triangle(p->unk64 >> 5, p->unk6C >> 5, gBoardZones[i].unk2, gBoardZones[i].unk4,
+                                     gBoardZones[i].unkA, gBoardZones[i].unkC, gBoardZones[i].unkE, gBoardZones[i].unk10)) {
+                    if (util_dist3d(p->unk64, p->unk68, p->unk6C, gPlayerX, gPlayerY, gPlayerZ) < gBoardZones[i].unk12) {
+                        gNextVehicle = gBoardZones[i].unk1;
                         found = 1;
                     }
                 }
@@ -198,44 +199,46 @@ void func_802683E0(void) {
     }
 }
 
-/* Selects spline path id and builds its cardinal-spline basis matrix in D_8036B8C8. */
-void func_80268664(s32 id) {
+/* The level's camera path, its spline basis (0x80268664).
+ * Selects spline path id and builds its cardinal-spline basis matrix in gCamPathBasis. */
+void util_cam_path_init(s32 id) {
     f32 s;
 
-    D_8036B8B0 = 0;
-    D_8036B8C0 = 0;
+    gCamPathActive = 0;
+    gCamPathIndex = 0;
     do {
-        if (D_802F3C24[D_8036B8C0].id == id) {
-            D_8036B8B0 = 1;
+        if (gCamPaths[gCamPathIndex].id == id) {
+            gCamPathActive = 1;
         } else {
-            D_8036B8C0++;
+            gCamPathIndex++;
         }
-    } while (D_8036B8C0 < 3 && !D_8036B8B0);
-    if (D_8036B8B0) {
-        s = D_802F3C24[D_8036B8C0].val;
-        D_8036B8C8[0][0] = -s;
-        D_8036B8C8[0][1] = s * 2.0;
-        D_8036B8C8[0][2] = -s;
-        D_8036B8C8[0][3] = 0.0f;
-        D_8036B8C8[1][0] = 2.0 - s;
-        D_8036B8C8[1][1] = s - 3.0;
-        D_8036B8C8[1][2] = 0.0f;
-        D_8036B8C8[1][3] = 1.0f;
-        D_8036B8C8[2][0] = s - 2.0;
-        D_8036B8C8[2][1] = 3.0 - s * 2.0;
-        D_8036B8C8[2][2] = s;
-        D_8036B8C8[2][3] = 0.0f;
-        D_8036B8C8[3][0] = s;
-        D_8036B8C8[3][1] = -s;
-        D_8036B8C8[3][2] = 0.0f;
-        D_8036B8C8[3][3] = 0.0f;
-        D_8036B908 = 0;
-        D_8036B90C = 1;
+    } while (gCamPathIndex < 3 && !gCamPathActive);
+    if (gCamPathActive) {
+        s = gCamPaths[gCamPathIndex].val;
+        gCamPathBasis[0][0] = -s;
+        gCamPathBasis[0][1] = s * 2.0;
+        gCamPathBasis[0][2] = -s;
+        gCamPathBasis[0][3] = 0.0f;
+        gCamPathBasis[1][0] = 2.0 - s;
+        gCamPathBasis[1][1] = s - 3.0;
+        gCamPathBasis[1][2] = 0.0f;
+        gCamPathBasis[1][3] = 1.0f;
+        gCamPathBasis[2][0] = s - 2.0;
+        gCamPathBasis[2][1] = 3.0 - s * 2.0;
+        gCamPathBasis[2][2] = s;
+        gCamPathBasis[2][3] = 0.0f;
+        gCamPathBasis[3][0] = s;
+        gCamPathBasis[3][1] = -s;
+        gCamPathBasis[3][2] = 0.0f;
+        gCamPathBasis[3][3] = 0.0f;
+        gCamPathT = 0;
+        gCamPathPoint = 1;
     }
 }
 
-/* Advances along the path: evaluates the spline at the four current control points. */
-void func_802688C4(s32 path) {
+/* GCamPathX/Y/Z along the path (0x802688C4).
+ * Advances along the path: evaluates the spline at the four current control points. */
+void util_cam_path_step(s32 path) {
     s32 j;
     s32 i;
     u8 pts[4];
@@ -246,16 +249,16 @@ void func_802688C4(s32 path) {
     s32 pad[4];
     u8 found;
 
-    if (D_8036B8B0) {
-        want[0] = D_8036B90C - 1;
-        want[1] = D_8036B90C;
-        want[2] = D_8036B90C + 1;
-        want[3] = D_8036B90C + 2;
+    if (gCamPathActive) {
+        want[0] = gCamPathPoint - 1;
+        want[1] = gCamPathPoint;
+        want[2] = gCamPathPoint + 1;
+        want[3] = gCamPathPoint + 2;
         for (j = 0; j < 4; j++) {
             i = 0;
             found = 0;
             while (i < 90 && !found) {
-                if (D_802F3C48[i].id == path && D_802F3C48[i].unk4 == want[j]) {
+                if (gCamPathPoints[i].id == path && gCamPathPoints[i].unk4 == want[j]) {
                     found = 1;
                 } else {
                     i++;
@@ -264,48 +267,50 @@ void func_802688C4(s32 path) {
             ASSERT(found, 181);
             pts[j] = i;
         }
-        t = (f32) D_8036B908 / 1000.0;
+        t = (f32) gCamPathT / 1000.0;
         t2 = t * t;
         t3 = t2 * t;
-        D_8036B8B4 = func_80268D84(D_802F3C48[pts[0]].x << 5, D_802F3C48[pts[1]].x << 5, D_802F3C48[pts[2]].x << 5,
-                                   D_802F3C48[pts[3]].x << 5, t, t2, t3);
-        D_8036B8B8 = func_80268D84(D_802F3C48[pts[0]].y << 5, D_802F3C48[pts[1]].y << 5, D_802F3C48[pts[2]].y << 5,
-                                   D_802F3C48[pts[3]].y << 5, t, t2, t3);
-        D_8036B8BC = func_80268D84(D_802F3C48[pts[0]].z << 5, D_802F3C48[pts[1]].z << 5, D_802F3C48[pts[2]].z << 5,
-                                   D_802F3C48[pts[3]].z << 5, t, t2, t3);
+        gCamPathX = util_cam_path_eval(gCamPathPoints[pts[0]].x << 5, gCamPathPoints[pts[1]].x << 5, gCamPathPoints[pts[2]].x << 5,
+                                   gCamPathPoints[pts[3]].x << 5, t, t2, t3);
+        gCamPathY = util_cam_path_eval(gCamPathPoints[pts[0]].y << 5, gCamPathPoints[pts[1]].y << 5, gCamPathPoints[pts[2]].y << 5,
+                                   gCamPathPoints[pts[3]].y << 5, t, t2, t3);
+        gCamPathZ = util_cam_path_eval(gCamPathPoints[pts[0]].z << 5, gCamPathPoints[pts[1]].z << 5, gCamPathPoints[pts[2]].z << 5,
+                                   gCamPathPoints[pts[3]].z << 5, t, t2, t3);
         if (!gLevelDone && !gCarrierHit && !areWeFading()) {
-            D_8036B908 += D_802F3C24[D_8036B8C0].unk8 *
-                          ((D_802F3C48[pts[2]].speed - D_802F3C48[pts[1]].speed) * t + D_802F3C48[pts[1]].speed);
+            gCamPathT += gCamPaths[gCamPathIndex].unk8 *
+                          ((gCamPathPoints[pts[2]].speed - gCamPathPoints[pts[1]].speed) * t + gCamPathPoints[pts[1]].speed);
         }
-        if (D_8036B908 >= 1000) {
-            D_8036B908 = 0;
-            D_8036B90C++;
+        if (gCamPathT >= 1000) {
+            gCamPathT = 0;
+            gCamPathPoint++;
         }
     }
 }
 
-/* Evaluates one spline coordinate with basis D_8036B8C8. */
-f32 func_80268D84(f32 x, f32 y, f32 z, f32 w, f32 a, f32 b, f32 c) {
+/* Evaluates the camera path (0x80268D84).
+ * Evaluates one spline coordinate with basis gCamPathBasis. */
+f32 util_cam_path_eval(f32 x, f32 y, f32 z, f32 w, f32 a, f32 b, f32 c) {
     s32 i0;
     s32 i1;
     s32 i2;
     s32 i3;
 
-    i0 = D_8036B8C8[0][0] * x + D_8036B8C8[1][0] * y + D_8036B8C8[2][0] * z + D_8036B8C8[3][0] * w;
-    i1 = D_8036B8C8[0][1] * x + D_8036B8C8[1][1] * y + D_8036B8C8[2][1] * z + D_8036B8C8[3][1] * w;
-    i2 = D_8036B8C8[0][2] * x + D_8036B8C8[1][2] * y + D_8036B8C8[2][2] * z + D_8036B8C8[3][2] * w;
-    i3 = D_8036B8C8[0][3] * x + D_8036B8C8[1][3] * y + D_8036B8C8[2][3] * z + D_8036B8C8[3][3] * w;
+    i0 = gCamPathBasis[0][0] * x + gCamPathBasis[1][0] * y + gCamPathBasis[2][0] * z + gCamPathBasis[3][0] * w;
+    i1 = gCamPathBasis[0][1] * x + gCamPathBasis[1][1] * y + gCamPathBasis[2][1] * z + gCamPathBasis[3][1] * w;
+    i2 = gCamPathBasis[0][2] * x + gCamPathBasis[1][2] * y + gCamPathBasis[2][2] * z + gCamPathBasis[3][2] * w;
+    i3 = gCamPathBasis[0][3] * x + gCamPathBasis[1][3] * y + gCamPathBasis[2][3] * z + gCamPathBasis[3][3] * w;
     return i0 * c + b * i1 + a * i2 + i3;
 }
 
 
-s32 func_80268EE8(s32 id) {
+/* 1 if the level has a shuttle path; its kind (0x80268EE8). */
+s32 util_find_shuttle_path(s32 id) {
     s32 i;
 
     i = 0;
     do {
-        if (D_802F41E8[i].id == id) {
-            D_803FCD75 = D_802F41E8[i].unk5;
+        if (gShuttlePaths[i].id == id) {
+            D_803FCD75 = gShuttlePaths[i].unk5;
             return 1;
         }
         i++;
@@ -313,8 +318,9 @@ s32 func_80268EE8(s32 id) {
     return 0;
 }
 
-/* Picks the second path set (D_802F41E8) for this level and builds basis D_8036B910. */
-void func_80268F54(void) {
+/* The shuttle's flight path (0x80268F54).
+ * Picks the second path set (gShuttlePaths) for this level and builds basis gShuttlePathBasis. */
+void util_shuttle_path_init(void) {
     u8 found;
     f32 s;
 
@@ -324,45 +330,46 @@ void func_80268F54(void) {
     } else {
         D_8036B966 = 1;
     }
-    D_8036B955 = 0;
+    gShuttlePathIndex = 0;
     while (!found) {
-        if (D_802F41E8[D_8036B955].id == levelno && D_802F41E8[D_8036B955].unk4 == D_8036B966) {
+        if (gShuttlePaths[gShuttlePathIndex].id == levelno && gShuttlePaths[gShuttlePathIndex].unk4 == D_8036B966) {
             found = 1;
         } else {
-            D_8036B955++;
+            gShuttlePathIndex++;
         }
     }
-    s = D_802F41E8[D_8036B955].unk8;
-    D_8036B910[0][0] = -s;
-    D_8036B910[0][1] = s * 2.0;
-    D_8036B910[0][2] = -s;
-    D_8036B910[0][3] = 0.0f;
-    D_8036B910[1][0] = 2.0 - s;
-    D_8036B910[1][1] = s - 3.0;
-    D_8036B910[1][2] = 0.0f;
-    D_8036B910[1][3] = 1.0f;
-    D_8036B910[2][0] = s - 2.0;
-    D_8036B910[2][1] = 3.0 - s * 2.0;
-    D_8036B910[2][2] = s;
-    D_8036B910[2][3] = 0.0f;
-    D_8036B910[3][0] = s;
-    D_8036B910[3][1] = -s;
-    D_8036B910[3][2] = 0.0f;
-    D_8036B910[3][3] = 0.0f;
-    D_803FCD60 = D_802F41E8[D_8036B955].unkC << 5;
-    D_8036B950 = 0;
-    D_8036B954 = 1;
+    s = gShuttlePaths[gShuttlePathIndex].unk8;
+    gShuttlePathBasis[0][0] = -s;
+    gShuttlePathBasis[0][1] = s * 2.0;
+    gShuttlePathBasis[0][2] = -s;
+    gShuttlePathBasis[0][3] = 0.0f;
+    gShuttlePathBasis[1][0] = 2.0 - s;
+    gShuttlePathBasis[1][1] = s - 3.0;
+    gShuttlePathBasis[1][2] = 0.0f;
+    gShuttlePathBasis[1][3] = 1.0f;
+    gShuttlePathBasis[2][0] = s - 2.0;
+    gShuttlePathBasis[2][1] = 3.0 - s * 2.0;
+    gShuttlePathBasis[2][2] = s;
+    gShuttlePathBasis[2][3] = 0.0f;
+    gShuttlePathBasis[3][0] = s;
+    gShuttlePathBasis[3][1] = -s;
+    gShuttlePathBasis[3][2] = 0.0f;
+    gShuttlePathBasis[3][3] = 0.0f;
+    D_803FCD60 = gShuttlePaths[gShuttlePathIndex].unkC << 5;
+    gShuttlePathT = 0;
+    gShuttlePathPoint = 1;
     D_8036B958[0] = 0;
     D_8036B958[1] = 0;
     D_8036B958[2] = 0;
     D_8036B958[3] = 0;
-    D_8036B95C = 0;
+    gShuttlePathBranch = 0;
     D_8036B964 = 0;
     D_8036B965 = 0;
 }
 
-/* Camera/aircraft path follower on the D_802F4224 spline set: position, angles, and the landing messages. */
-void func_80269258(void) {
+/* The shuttle along its path: position, angles, landing events (0x80269258).
+ * Camera/aircraft path follower on the gShuttlePathPoints spline set: position, angles, and the landing messages. */
+void util_shuttle_path_step(void) {
     s32 j;
     s32 i;
     u8 pts[4];
@@ -379,16 +386,16 @@ void func_80269258(void) {
     u8 found;
     u8 lim;
 
-    D_8036B960[0] = D_8036B954 - 1;
-    D_8036B960[1] = D_8036B954;
-    D_8036B960[2] = D_8036B954 + 1;
-    D_8036B960[3] = D_8036B954 + 2;
+    D_8036B960[0] = gShuttlePathPoint - 1;
+    D_8036B960[1] = gShuttlePathPoint;
+    D_8036B960[2] = gShuttlePathPoint + 1;
+    D_8036B960[3] = gShuttlePathPoint + 2;
     for (j = 0; j < 4; j++) {
         i = 0;
         found = 0;
         while (i < 49 && !found) {
-            if (D_802F4224[i].id == levelno && D_802F4224[i].unk4 == D_8036B966
-                && D_802F4224[i].idx == D_8036B960[j] && D_802F4224[i].unk13 == D_8036B95C) {
+            if (gShuttlePathPoints[i].id == levelno && gShuttlePathPoints[i].unk4 == D_8036B966
+                && gShuttlePathPoints[i].idx == D_8036B960[j] && gShuttlePathPoints[i].unk13 == gShuttlePathBranch) {
                 found = 1;
             } else {
                 i++;
@@ -397,8 +404,8 @@ void func_80269258(void) {
         if (!found) {
             i = 0;
             while (i < 49 && !found) {
-                if (D_802F4224[i].id == levelno && D_802F4224[i].unk4 == D_8036B966
-                    && D_802F4224[i].idx == D_8036B960[j] && D_802F4224[i].unk13 == D_8036B958[j]) {
+                if (gShuttlePathPoints[i].id == levelno && gShuttlePathPoints[i].unk4 == D_8036B966
+                    && gShuttlePathPoints[i].idx == D_8036B960[j] && gShuttlePathPoints[i].unk13 == D_8036B958[j]) {
                     found = 1;
                 } else {
                     i++;
@@ -408,70 +415,70 @@ void func_80269258(void) {
         ASSERT(found, 387);
         pts[j] = i;
     }
-    t = (f32) D_8036B950 / 1000.0;
+    t = (f32) gShuttlePathT / 1000.0;
     t2 = t * t;
     t3 = t2 * t;
 
-    a0 = D_802F4224[pts[0]].rot[0];
-    a1 = D_802F4224[pts[1]].rot[0];
-    a2 = D_802F4224[pts[2]].rot[0];
-    a3 = D_802F4224[pts[3]].rot[0];
-    func_8026A2E8(a0, &a1);
-    func_8026A2E8(a1, &a2);
-    func_8026A2E8(a2, &a3);
-    r0 = func_8026A184(a0, a1, a2, a3, t, t2, t3);
+    a0 = gShuttlePathPoints[pts[0]].rot[0];
+    a1 = gShuttlePathPoints[pts[1]].rot[0];
+    a2 = gShuttlePathPoints[pts[2]].rot[0];
+    a3 = gShuttlePathPoints[pts[3]].rot[0];
+    util_unwrap_angle(a0, &a1);
+    util_unwrap_angle(a1, &a2);
+    util_unwrap_angle(a2, &a3);
+    r0 = util_shuttle_path_eval(a0, a1, a2, a3, t, t2, t3);
     D_803FCD6A = r0 / 360.0 * 4095.0;
 
-    a0 = D_802F4224[pts[0]].rot[1];
-    a1 = D_802F4224[pts[1]].rot[1];
-    a2 = D_802F4224[pts[2]].rot[1];
-    a3 = D_802F4224[pts[3]].rot[1];
-    func_8026A2E8(a0, &a1);
-    func_8026A2E8(a1, &a2);
-    func_8026A2E8(a2, &a3);
-    r1 = func_8026A184(a0, a1, a2, a3, t, t2, t3);
+    a0 = gShuttlePathPoints[pts[0]].rot[1];
+    a1 = gShuttlePathPoints[pts[1]].rot[1];
+    a2 = gShuttlePathPoints[pts[2]].rot[1];
+    a3 = gShuttlePathPoints[pts[3]].rot[1];
+    util_unwrap_angle(a0, &a1);
+    util_unwrap_angle(a1, &a2);
+    util_unwrap_angle(a2, &a3);
+    r1 = util_shuttle_path_eval(a0, a1, a2, a3, t, t2, t3);
     D_803FCD6C = r1 / 360.0 * 4095.0;
 
-    a0 = D_802F4224[pts[0]].rot[2];
-    a1 = D_802F4224[pts[1]].rot[2];
-    a2 = D_802F4224[pts[2]].rot[2];
-    a3 = D_802F4224[pts[3]].rot[2];
-    func_8026A2E8(a0, &a1);
-    func_8026A2E8(a1, &a2);
-    func_8026A2E8(a2, &a3);
-    r2 = func_8026A184(a0, a1, a2, a3, t, t2, t3);
+    a0 = gShuttlePathPoints[pts[0]].rot[2];
+    a1 = gShuttlePathPoints[pts[1]].rot[2];
+    a2 = gShuttlePathPoints[pts[2]].rot[2];
+    a3 = gShuttlePathPoints[pts[3]].rot[2];
+    util_unwrap_angle(a0, &a1);
+    util_unwrap_angle(a1, &a2);
+    util_unwrap_angle(a2, &a3);
+    r2 = util_shuttle_path_eval(a0, a1, a2, a3, t, t2, t3);
     D_803FCD6E = r2 / 360.0 * 4095.0;
 
-    D_803FCD48 = func_8026A184(D_802F4224[pts[0]].x << 5, D_802F4224[pts[1]].x << 5, D_802F4224[pts[2]].x << 5,
-                               D_802F4224[pts[3]].x << 5, t, t2, t3);
-    D_803FCD4C = func_8026A184(D_802F4224[pts[0]].y << 5, D_802F4224[pts[1]].y << 5, D_802F4224[pts[2]].y << 5,
-                               D_802F4224[pts[3]].y << 5, t, t2, t3);
-    D_803FCD50 = func_8026A184(D_802F4224[pts[0]].z << 5, D_802F4224[pts[1]].z << 5, D_802F4224[pts[2]].z << 5,
-                               D_802F4224[pts[3]].z << 5, t, t2, t3);
-    if (D_802F41E8[D_8036B955].unkE != -1 && D_803FCD4C < D_802F41E8[D_8036B955].unkE << 5) {
-        D_803FCD4C = D_802F41E8[D_8036B955].unkE << 5;
+    gShuttlePos = util_shuttle_path_eval(gShuttlePathPoints[pts[0]].x << 5, gShuttlePathPoints[pts[1]].x << 5, gShuttlePathPoints[pts[2]].x << 5,
+                               gShuttlePathPoints[pts[3]].x << 5, t, t2, t3);
+    D_803FCD4C = util_shuttle_path_eval(gShuttlePathPoints[pts[0]].y << 5, gShuttlePathPoints[pts[1]].y << 5, gShuttlePathPoints[pts[2]].y << 5,
+                               gShuttlePathPoints[pts[3]].y << 5, t, t2, t3);
+    D_803FCD50 = util_shuttle_path_eval(gShuttlePathPoints[pts[0]].z << 5, gShuttlePathPoints[pts[1]].z << 5, gShuttlePathPoints[pts[2]].z << 5,
+                               gShuttlePathPoints[pts[3]].z << 5, t, t2, t3);
+    if (gShuttlePaths[gShuttlePathIndex].unkE != -1 && D_803FCD4C < gShuttlePaths[gShuttlePathIndex].unkE << 5) {
+        D_803FCD4C = gShuttlePaths[gShuttlePathIndex].unkE << 5;
     }
-    D_803FCD70 = 0;
+    gShuttlePathEvent = 0;
     if (!gLevelDone && !gCarrierHit && !areWeFading()) {
-        D_8036B950 += D_802F41E8[D_8036B955].unk10 *
-                      ((D_802F4224[pts[2]].speed - D_802F4224[pts[1]].speed) * t + D_802F4224[pts[1]].speed);
+        gShuttlePathT += gShuttlePaths[gShuttlePathIndex].unk10 *
+                      ((gShuttlePathPoints[pts[2]].speed - gShuttlePathPoints[pts[1]].speed) * t + gShuttlePathPoints[pts[1]].speed);
     }
-    if (D_8036B950 >= 1000) {
-        D_8036B950 = 0;
-        D_8036B954++;
-        switch (D_8036B95C) {
+    if (gShuttlePathT >= 1000) {
+        gShuttlePathT = 0;
+        gShuttlePathPoint++;
+        switch (gShuttlePathBranch) {
             case 0:
-                lim = D_802F41E8[D_8036B955].unk11;
+                lim = gShuttlePaths[gShuttlePathIndex].unk11;
                 break;
             case 1:
-                lim = D_802F41E8[D_8036B955].unk12;
+                lim = gShuttlePaths[gShuttlePathIndex].unk12;
                 break;
             case 2:
-                lim = D_802F41E8[D_8036B955].unk13;
+                lim = gShuttlePaths[gShuttlePathIndex].unk13;
                 break;
         }
-        if (D_8036B954 >= lim) {
-            switch (D_8036B95C) {
+        if (gShuttlePathPoint >= lim) {
+            switch (gShuttlePathBranch) {
                 case 0:
                     if (D_803FCD75 == 1) {
                         func_80275270(0x200000000000, 0.5f);
@@ -486,17 +493,17 @@ void func_80269258(void) {
                     break;
             }
         }
-        switch (D_802F4224[pts[2]].event) {
+        switch (gShuttlePathPoints[pts[2]].event) {
             case 0:
                 break;
             case 1:
                 if (((s32) gLevelKind) == 0x80) {
-                    D_8036B95C = 1;
+                    gShuttlePathBranch = 1;
                 } else {
-                    func_802C1DD0(0);
+                    obj_tally(0);
                     if (D_8036EA78 < D_8036EB92) {
                         D_8036B964 = 1;
-                        D_8036B95C = 1;
+                        gShuttlePathBranch = 1;
                     }
                     D_8036B965 = 1;
                     D_80364A84 = 1;
@@ -507,85 +514,87 @@ void func_80269258(void) {
             case 11:
             case 12:
             case 13:
-                D_803FCD70 = D_802F4224[pts[2]].event;
+                gShuttlePathEvent = gShuttlePathPoints[pts[2]].event;
                 break;
             case 5:
-                D_802F5804[42].text = "LANDING ABORTED!";
-                D_802F5804[42].jtext = D_80303AF4;
-                D_802F8BDC[23].unk12 = 0xDA;
-                if (gGameMode & 0x104) {
-                    func_8026AF6C(0x8017);
+                gYoshiGameItems[42].text = "LANDING ABORTED!";
+                gYoshiGameItems[42].jtext = D_80303AF4;
+                gYoshiWindows[23].unk12 = 0xDA;
+                if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
+                    yoshi_demand(0x8017);
                 }
                 break;
             case 6:
-                D_802F5804[42].text = "DITCHING IN SEA!";
-                D_802F5804[42].jtext = D_80303B00;
-                D_802F8BDC[23].unk12 = 0x77;
-                if (gGameMode & 0x104) {
-                    func_8026AF6C(0x8017);
+                gYoshiGameItems[42].text = "DITCHING IN SEA!";
+                gYoshiGameItems[42].jtext = D_80303B00;
+                gYoshiWindows[23].unk12 = 0x77;
+                if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
+                    yoshi_demand(0x8017);
                 }
                 break;
             case 4:
-                D_802F5804[42].text = "ON FINAL APPROACH!";
-                D_802F5804[42].jtext = D_80303B10;
-                D_802F8BDC[23].unk12 = 0xD7;
-                if (gGameMode & 0x104) {
-                    func_8026AF6C(0x8017);
+                gYoshiGameItems[42].text = "ON FINAL APPROACH!";
+                gYoshiGameItems[42].jtext = D_80303B10;
+                gYoshiWindows[23].unk12 = 0xD7;
+                if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
+                    yoshi_demand(0x8017);
                 }
                 break;
             case 7:
-                D_802F5804[42].text = "SUCCESSFUL LANDING!";
-                D_802F5804[42].jtext = D_80303B24;
-                D_802F8BDC[23].unk12 = 0x82;
-                if (gGameMode & 0x104) {
-                    func_8026AF6C(0x8017);
+                gYoshiGameItems[42].text = "SUCCESSFUL LANDING!";
+                gYoshiGameItems[42].jtext = D_80303B24;
+                gYoshiWindows[23].unk12 = 0x82;
+                if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
+                    yoshi_demand(0x8017);
                 }
                 break;
             case 8:
-                D_802F5804[42].text = "3000 FT!";
-                D_802F5804[42].jtext = NULL;
-                D_802F8BDC[23].unk12 = 0xD5;
-                if (gGameMode & 0x104) {
-                    func_8026AF6C(0x8017);
+                gYoshiGameItems[42].text = "3000 FT!";
+                gYoshiGameItems[42].jtext = NULL;
+                gYoshiWindows[23].unk12 = 0xD5;
+                if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
+                    yoshi_demand(0x8017);
                 }
                 break;
             case 9:
-                D_802F5804[42].text = "2000 FT!";
-                D_802F5804[42].jtext = NULL;
-                D_802F8BDC[23].unk12 = 0xD3;
-                if (gGameMode & 0x104) {
-                    func_8026AF6C(0x8017);
+                gYoshiGameItems[42].text = "2000 FT!";
+                gYoshiGameItems[42].jtext = NULL;
+                gYoshiWindows[23].unk12 = 0xD3;
+                if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
+                    yoshi_demand(0x8017);
                 }
                 break;
             case 10:
-                D_802F5804[42].text = "1000 FT!";
-                D_802F5804[42].jtext = NULL;
-                D_802F8BDC[23].unk12 = 0xD1;
-                if (gGameMode & 0x104) {
-                    func_8026AF6C(0x8017);
-                    func_80260DFC();
+                gYoshiGameItems[42].text = "1000 FT!";
+                gYoshiGameItems[42].jtext = NULL;
+                gYoshiWindows[23].unk12 = 0xD1;
+                if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
+                    yoshi_demand(0x8017);
+                    music_push_danger_tune();
                 }
                 break;
         }
     }
 }
 
-/* Same as func_80268D84 with basis D_8036B910. */
-f32 func_8026A184(f32 x, f32 y, f32 z, f32 w, f32 a, f32 b, f32 c) {
+/* Evaluates the shuttle path (0x8026A184).
+ * Same as util_cam_path_eval with basis gShuttlePathBasis. */
+f32 util_shuttle_path_eval(f32 x, f32 y, f32 z, f32 w, f32 a, f32 b, f32 c) {
     s32 i0;
     s32 i1;
     s32 i2;
     s32 i3;
 
-    i0 = D_8036B910[0][0] * x + D_8036B910[1][0] * y + D_8036B910[2][0] * z + D_8036B910[3][0] * w;
-    i1 = D_8036B910[0][1] * x + D_8036B910[1][1] * y + D_8036B910[2][1] * z + D_8036B910[3][1] * w;
-    i2 = D_8036B910[0][2] * x + D_8036B910[1][2] * y + D_8036B910[2][2] * z + D_8036B910[3][2] * w;
-    i3 = D_8036B910[0][3] * x + D_8036B910[1][3] * y + D_8036B910[2][3] * z + D_8036B910[3][3] * w;
+    i0 = gShuttlePathBasis[0][0] * x + gShuttlePathBasis[1][0] * y + gShuttlePathBasis[2][0] * z + gShuttlePathBasis[3][0] * w;
+    i1 = gShuttlePathBasis[0][1] * x + gShuttlePathBasis[1][1] * y + gShuttlePathBasis[2][1] * z + gShuttlePathBasis[3][1] * w;
+    i2 = gShuttlePathBasis[0][2] * x + gShuttlePathBasis[1][2] * y + gShuttlePathBasis[2][2] * z + gShuttlePathBasis[3][2] * w;
+    i3 = gShuttlePathBasis[0][3] * x + gShuttlePathBasis[1][3] * y + gShuttlePathBasis[2][3] * z + gShuttlePathBasis[3][3] * w;
     return i0 * c + b * i1 + a * i2 + i3;
 }
 
-/* Wraps *angle into (ref - 180, ref + 180]. */
-void func_8026A2E8(f32 ref, f32 *angle) {
+/* *angle into (ref - 180, ref + 180] (0x8026A2E8).
+ * Wraps *angle into (ref - 180, ref + 180]. */
+void util_unwrap_angle(f32 ref, f32 *angle) {
     f32 d = *angle - ref;
 
     if (d > 180.0) {
@@ -595,8 +604,9 @@ void func_8026A2E8(f32 ref, f32 *angle) {
     }
 }
 
-/* Writes n as decimal digits (no leading zeros, at most 9 digits) plus a NUL. */
-void func_8026A378(s32 n, u8 *buf) {
+/* Decimal string, no leading zeros (0x8026A378).
+ * Writes n as decimal digits (no leading zeros, at most 9 digits) plus a NUL. */
+void util_itoa(s32 n, u8 *buf) {
     s32 div;
     u8 digit;
     u8 printed;
@@ -620,8 +630,9 @@ void func_8026A378(s32 n, u8 *buf) {
     *buf = 0;
 }
 
-/* Rotation about the point (x, y, z): z axis by rx, then y axis by ry (units of 1/11.375 degree). */
-void func_8026A454(s16 x, s16 y, s16 z, s16 rx, s16 ry, Mtx *m) {
+/* A matrix: z rotation, then y, about (x, y, z) (0x8026A454).
+ * Rotation about the point (x, y, z): z axis by rx, then y axis by ry (units of 1/11.375 degree). */
+void util_rotate_about_point(s16 x, s16 y, s16 z, s16 rx, s16 ry, Mtx *m) {
     f32 a[4][4];
     f32 b[4][4];
 
@@ -635,8 +646,9 @@ void func_8026A454(s16 x, s16 y, s16 z, s16 rx, s16 ry, Mtx *m) {
     guMtxF2L(a, m);
 }
 
-/* Copies size bytes in 8-byte units. */
-void func_8026A5CC(u64 *dst, u64 *src, s32 size) {
+/* Copies size bytes as u64s (0x8026A5CC).
+ * Copies size bytes in 8-byte units. */
+void util_copy64(u64 *dst, u64 *src, s32 size) {
     s32 unused;
 
     size >>= 3;
@@ -645,8 +657,9 @@ void func_8026A5CC(u64 *dst, u64 *src, s32 size) {
     }
 }
 
-/* 2D distance, squared in 64 bits. */
-s32 func_8026A610(s32 x1, s32 y1, s32 x2, s32 y2) {
+/* 2-D distance (64-bit squares, then sqrtf) (0x8026A610).
+ * 2D distance (the squares summed in 64 bits, then sqrtf). */
+s32 util_dist2d(s32 x1, s32 y1, s32 x2, s32 y2) {
     s64 dx;
     s64 dy;
 
@@ -656,8 +669,9 @@ s32 func_8026A610(s32 x1, s32 y1, s32 x2, s32 y2) {
     return sqrtf(dx + dy);
 }
 
-/* 3D distance, squared in 64 bits. */
-s32 func_8026A6F0(s32 x1, s32 y1, s32 z1, s32 x2, s32 y2, s32 z2) {
+/* 3-D distance (64-bit squares, then sqrtf) (0x8026A6F0).
+ * 3D distance (the squares summed in 64 bits, then sqrtf). */
+s32 util_dist3d(s32 x1, s32 y1, s32 z1, s32 x2, s32 y2, s32 z2) {
     s64 dx;
     s64 dy;
     s64 dz;
@@ -669,35 +683,40 @@ s32 func_8026A6F0(s32 x1, s32 y1, s32 z1, s32 x2, s32 y2, s32 z2) {
     return sqrtf(dx + dy + dz);
 }
 
-/* LCG random integer in [lo, hi], rounded. */
-s32 func_8026A828(s32 lo, s32 hi) {
+/* LCG random number in [lo, hi] (0x8026A828).
+ * LCG random integer in [lo, hi], rounded. */
+s32 util_rand_range(s32 lo, s32 hi) {
     f32 f;
 
-    D_8036B968 = PORT_WRAP_ADD(PORT_WRAP_MUL(D_8036B968, 0x41C64E6D), 0x3039);
-    f = (D_8036B968 & 0x7FFFFFFF) / 2147483648.0f;
+    gRandSeed = PORT_WRAP_ADD(PORT_WRAP_MUL(gRandSeed, 0x41C64E6D), 0x3039);
+    f = (gRandSeed & 0x7FFFFFFF) / 2147483648.0f;
     f = (hi - lo) * f + lo;
     return f + 0.5;
 }
 
-void func_8026A8BC(void) {
-    D_8036B968 = osGetCount();
+/* Seeds util_rand_range from the CPU counter (0x8026A8BC). */
+void util_seed_rand(void) {
+    gRandSeed = osGetCount();
 }
 
-/* Same with the second seed. */
-s32 func_8026A8E0(s32 lo, s32 hi) {
+/* The second, fixed-seed generator (0x8026A8E0).
+ * Same with the second seed. */
+s32 util_rand2_range(s32 lo, s32 hi) {
     f32 f;
 
-    D_8036B96C = PORT_WRAP_ADD(PORT_WRAP_MUL(D_8036B96C, 0x41C64E6D), 0x3039);
-    f = (D_8036B96C & 0x7FFFFFFF) / 2147483648.0f;
+    gRandSeed2 = PORT_WRAP_ADD(PORT_WRAP_MUL(gRandSeed2, 0x41C64E6D), 0x3039);
+    f = (gRandSeed2 & 0x7FFFFFFF) / 2147483648.0f;
     f = (hi - lo) * f + lo;
     return f + 0.5;
 }
 
-void func_8026A974(void) {
-    D_8036B96C = 0x9BA0D;
+/* The fixed seed of util_rand2_range (0x8026A974). */
+void util_seed_rand2(void) {
+    gRandSeed2 = 0x9BA0D;
 }
 
-void func_8026A988(void) {
+/* Clears the hint-event latches (0x8026A988). */
+void util_reset_hint_events(void) {
     D_8036B970 = 0;
     D_8036B971 = 0;
     D_8036B974 = 0;
@@ -705,20 +724,21 @@ void func_8026A988(void) {
     D_8036B979 = 0;
 }
 
-/* Per-frame event checks: proximity to vehicles, level-specific triggers (func_8026AD30). */
-void func_8026A9B4(void) {
+/* Per frame: hint windows near other vehicles and at level spots (0x8026A9B4).
+ * Per-frame event checks: proximity to vehicles, level-specific triggers (yoshi_show_hint). */
+void util_check_hint_events(void) {
     Struct80364460 *p;
     u8 done;
     s32 minDist;
     s32 d;
 
     minDist = 999999;
-    if (D_803A7430 == 15) {
-        func_8026AD30(0x50);
+    if (gTrainContactFrames == 15) {
+        yoshi_show_hint(0x50);
     }
     if (levelno == 0x12 && (gPlayerX >> 5) < 0x578
-        && func_8026A610(gPlayerX >> 5, gPlayerZ >> 5, 0x531, 0x1061) < 0x82) {
-        func_8026AD30(0x51);
+        && util_dist2d(gPlayerX >> 5, gPlayerZ >> 5, 0x531, 0x1061) < 0x82) {
+        yoshi_show_hint(0x51);
     }
     if (gCurVehicle != D_8036B979) {
         D_8036B978 = D_8036B979;
@@ -731,13 +751,13 @@ void func_8026A9B4(void) {
     while (!done && gVehiclesEnd != p) {
         if (p->unk5C != D_8036B978 && p->unk5C != gCurVehicle && gCurVehicle != 0 && p->unk5C != 0
             && p->unk5C != 0xFE && p->unk5C != 0xFF && p->unk5C != 7 && p->unk5C != 6) {
-            d = func_8026A6F0(gPlayerX >> 5, gPlayerY >> 5, gPlayerZ >> 5, p->unk64 >> 5, p->unk68 >> 5,
+            d = util_dist3d(gPlayerX >> 5, gPlayerY >> 5, gPlayerZ >> 5, p->unk64 >> 5, p->unk68 >> 5,
                               p->unk6C >> 5);
             if (d < minDist) {
                 minDist = d;
             }
-            if (d < 100 && !D_8036B970 && (!func_802AB3C0(p->unk5C) || !D_803EFECB)) {
-                func_8026AD30(0x4C);
+            if (d < 100 && !D_8036B970 && (!veh_is_riding(p->unk5C) || !D_803EFECB)) {
+                yoshi_show_hint(0x4C);
                 D_8036B970 = 1;
                 done = 1;
             }
@@ -747,17 +767,17 @@ void func_8026A9B4(void) {
     if (D_8036B970 && minDist > 400) {
         D_8036B970 = 0;
     }
-    if (levelno == 0 && D_8036C7CC >= 2) {
-        func_8026AD30(0x4D);
+    if (levelno == 0 && gMarkerArrowsOnScreen >= 2) {
+        yoshi_show_hint(0x4D);
     }
     if (levelno == 0 && gCurVehicle == 7 && (gPlayerX >> 5) >= 0x899) {
-        func_8026AD30(0x53);
+        yoshi_show_hint(0x53);
     }
     if (D_8036B971) {
         if (!((players[playerNumber].unk18[levelno] > 0 && players[playerNumber].unk18[levelno] < 6) ? 1 : 0)
-            && !D_8036EB98) {
-            if (!func_8026AD30(0x4E)) {
-                func_8026AD30(0x4F);
+            && !gTargetsCleared) {
+            if (!yoshi_show_hint(0x4E)) {
+                yoshi_show_hint(0x4F);
             }
             D_8036B971 = 0;
         }

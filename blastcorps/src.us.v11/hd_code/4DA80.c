@@ -43,21 +43,23 @@ typedef struct Dyn {
     Mtx mtx[4];
 } Dyn;
 
-extern ShellType D_802FE3C0[];
-extern Shell D_8039C960[4];
+extern ShellType gShellTypes[];
+extern Shell gShells[4];
 
 f32 sqrtf(f32);
-void func_80292DDC(s32 i);
+void shell_explode(s32 i);
 
-void func_80292240(void) {
+/* Frees all four shells (0x80292240). */
+void shell_init(void) {
     s32 i;
 
     for (i = 0; i < 4; i++) {
-        D_8039C960[i].active = 0;
+        gShells[i].active = 0;
     }
 }
 
-s32 func_80292288(s16 speed, s32 x0, s32 y0, s32 z0, s32 x1, s32 y1, s32 z1, u8 type, s16 arg8) {
+/* Fires a shell through two points; 0 if all four fly (0x80292288). */
+s32 shell_fire(s16 speed, s32 x0, s32 y0, s32 z0, s32 x1, s32 y1, s32 z1, u8 type, s16 arg8) {
     s32 i;
     u8 found;
     f32 dx;
@@ -68,7 +70,7 @@ s32 func_80292288(s16 speed, s32 x0, s32 y0, s32 z0, s32 x1, s32 y1, s32 z1, u8 
     i = 0;
     found = 0;
     while (!found && i < 4) {
-        if (D_8039C960[i].active) {
+        if (gShells[i].active) {
             i++;
         } else {
             found = 1;
@@ -77,40 +79,41 @@ s32 func_80292288(s16 speed, s32 x0, s32 y0, s32 z0, s32 x1, s32 y1, s32 z1, u8 
     if (!found) {
         return 0;
     }
-    D_8039C960[i].active = 1;
-    D_8039C960[i].type = type;
-    D_8039C960[i].unk1A = arg8;
-    D_8039C960[i].x = x1;
-    D_8039C960[i].y = y1;
-    D_8039C960[i].z = z1;
-    D_8039C960[i].y0 = y1;
-    D_8039C960[i].t = 0;
-    D_8039C960[i].alpha = 255;
+    gShells[i].active = 1;
+    gShells[i].type = type;
+    gShells[i].unk1A = arg8;
+    gShells[i].x = x1;
+    gShells[i].y = y1;
+    gShells[i].z = z1;
+    gShells[i].y0 = y1;
+    gShells[i].t = 0;
+    gShells[i].alpha = 255;
     dx = x1 - x0, dy = y1 - y0, dz = z1 - z0;
     guNormalize(&dx, &dy, &dz);
-    D_8039C960[i].vx = speed * dx;
-    D_8039C960[i].vz = speed * dz;
-    D_8039C960[i].vy = speed * dy;
+    gShells[i].vx = speed * dx;
+    gShells[i].vz = speed * dz;
+    gShells[i].vy = speed * dy;
     dist = sqrtf((x1 - x0) * (x1 - x0) + (z1 - z0) * (z1 - z0));
     if (dist < 1.0) {
         dist = 1.0f;
     }
     if (x1 >= x0 && z1 >= z0) {
-        D_8039C960[i].yaw = func_802AD7D4((x1 - x0) * 65535.0 / dist) >> 4;
+        gShells[i].yaw = math_asin_c((x1 - x0) * 65535.0 / dist) >> 4;
     }
     if (x1 >= x0 && z1 < z0) {
-        D_8039C960[i].yaw = (func_802AD7D4((z0 - z1) * 65535.0 / dist) >> 4) + 0x400;
+        gShells[i].yaw = (math_asin_c((z0 - z1) * 65535.0 / dist) >> 4) + 0x400;
     }
     if (x1 < x0 && z1 < z0) {
-        D_8039C960[i].yaw = (func_802AD7D4((x0 - x1) * 65535.0 / dist) >> 4) + 0x800;
+        gShells[i].yaw = (math_asin_c((x0 - x1) * 65535.0 / dist) >> 4) + 0x800;
     }
     if (x1 < x0 && z1 >= z0) {
-        D_8039C960[i].yaw = (func_802AD7D4((z1 - z0) * 65535.0 / dist) >> 4) + 0xC00;
+        gShells[i].yaw = (math_asin_c((z1 - z0) * 65535.0 / dist) >> 4) + 0xC00;
     }
     return 1;
 }
 
-void func_80292830(void) {
+/* The shells' gravity arcs; explode on a hit (0x80292830). */
+void shell_update_all(void) {
     s32 i;
     s16 pitch;
     s16 savedA;
@@ -118,66 +121,68 @@ void func_80292830(void) {
     s32 limX;
     s32 limZ;
 
-    limX = ((u16) D_803BE714) * D_803BE70C;
-    limZ = D_803BE716 * D_803BE710;
+    limX = ((u16) gLevelCols) * gLevelCellW;
+    limZ = gLevelRows * gLevelCellD;
     for (i = 0; i < 4; i++) {
-        if (D_8039C960[i].active) {
-            D_8039C960[i].x += D_8039C960[i].vx;
-            D_8039C960[i].z += D_8039C960[i].vz;
-            D_8039C960[i].y = (D_8039C960[i].y0 + D_8039C960[i].vy * D_8039C960[i].t) +
-                              -12.0 * D_8039C960[i].t * D_8039C960[i].t;
-            pitch = D_8039C960[i].prevY - D_8039C960[i].y;
+        if (gShells[i].active) {
+            gShells[i].x += gShells[i].vx;
+            gShells[i].z += gShells[i].vz;
+            gShells[i].y = (gShells[i].y0 + gShells[i].vy * gShells[i].t) +
+                              -12.0 * gShells[i].t * gShells[i].t;
+            pitch = gShells[i].prevY - gShells[i].y;
             if (pitch >= 0x400) {
                 pitch = 0x3FF;
             }
             if (pitch < -0x3FF) {
                 pitch = -0x3FF;
             }
-            D_8039C960[i].pitch = pitch;
-            if (D_8039C960[i].x >= limX || D_8039C960[i].z >= limZ || D_8039C960[i].x < 0 ||
-                D_8039C960[i].z < 0 || D_8039C960[i].y < 0) {
-                func_80292DDC(i);
+            gShells[i].pitch = pitch;
+            if (gShells[i].x >= limX || gShells[i].z >= limZ || gShells[i].x < 0 ||
+                gShells[i].z < 0 || gShells[i].y < 0) {
+                shell_explode(i);
             } else {
-                func_802CE4F0(D_8039C960[i].x, D_8039C960[i].y, D_8039C960[i].z);
-                func_802CDF94(D_802FE3C0[D_8039C960[i].type].unk5A0);
-                if (D_803F932D) {
+                coll_begin_probe(gShells[i].x, gShells[i].y, gShells[i].z);
+                coll_probe_vehicles(gShellTypes[gShells[i].type].unk5A0);
+                if (gProbeHitCarrier) {
                     cmo_hit_request = 1;
                 }
-                savedA = D_803A7410, savedB = D_803A7412;
-                func_802CE5BC(D_8039C960[i].x, D_8039C960[i].y, D_8039C960[i].z,
-                              D_802FE3C0[D_8039C960[i].type].unk5A0, 0xCA, 0);
-                func_802CDB70(D_802FE3C0[D_8039C960[i].type].unk5A0, D_8039C960[i].unk1A);
-                if (savedA != D_803A7410 || savedB != D_803A7412) {
-                    func_80292DDC(i);
+                savedA = gFreeArcStart, savedB = gFreeArcEnd;
+                coll_probe_tris(gShells[i].x, gShells[i].y, gShells[i].z,
+                              gShellTypes[gShells[i].type].unk5A0, 0xCA, 0);
+                coll_probe_objects(gShellTypes[gShells[i].type].unk5A0, gShells[i].unk1A);
+                if (savedA != gFreeArcStart || savedB != gFreeArcEnd) {
+                    shell_explode(i);
                 }
-                if (D_8039C960[i].y < func_802CE6F8(D_8039C960[i].x, D_8039C960[i].z, D_8039C960[i].y)) {
-                    func_80292DDC(i);
+                if (gShells[i].y < coll_ground_height(gShells[i].x, gShells[i].z, gShells[i].y)) {
+                    shell_explode(i);
                 }
-                if (D_802FE3C0[D_8039C960[i].type].unk5A9) {
-                    func_802AC61C(D_8039C960[i].x, D_8039C960[i].y, D_8039C960[i].z,
-                                  D_802FE3C0[D_8039C960[i].type].unk5B0, D_802FE3C0[D_8039C960[i].type].unk5AC);
+                if (gShellTypes[gShells[i].type].unk5A9) {
+                    fx_spawn_at(gShells[i].x, gShells[i].y, gShells[i].z,
+                                  gShellTypes[gShells[i].type].unk5B0, gShellTypes[gShells[i].type].unk5AC);
                 }
-                D_8039C960[i].prevY = D_8039C960[i].y;
-                D_8039C960[i].alpha -= 25;
-                if (D_8039C960[i].alpha < 100) {
-                    D_8039C960[i].alpha = 255;
+                gShells[i].prevY = gShells[i].y;
+                gShells[i].alpha -= 25;
+                if (gShells[i].alpha < 100) {
+                    gShells[i].alpha = 255;
                 }
-                D_8039C960[i].t++;
+                gShells[i].t++;
             }
         }
     }
 }
 
-void func_80292DDC(s32 i) {
-    D_8039C960[i].active = 0;
-    func_802AC61C(D_8039C960[i].x, D_8039C960[i].y, D_8039C960[i].z, D_802FE3C0[D_8039C960[i].type].unk5A8,
-                  D_802FE3C0[D_8039C960[i].type].unk5A4);
+/* Shell i explodes: effect, shake, sound (0x80292DDC). */
+void shell_explode(s32 i) {
+    gShells[i].active = 0;
+    fx_spawn_at(gShells[i].x, gShells[i].y, gShells[i].z, gShellTypes[gShells[i].type].unk5A8,
+                  gShellTypes[gShells[i].type].unk5A4);
     gShakeTime = 10;
     gShakeSize = 400;
-    func_80260650(D_80367738, 16, 0);
+    snd_play(gSfxBank, 16, 0);
 }
 
-void func_80292EB8(Gfx **gdl, Dyn *dyn) {
+/* Draws the flying shells (0x80292EB8). */
+void shell_draw_all(Gfx **gdl, Dyn *dyn) {
     Gfx *gfx = *gdl;
     s32 i;
     f32 mf1[4][4];
@@ -191,19 +196,19 @@ void func_80292EB8(Gfx **gdl, Dyn *dyn) {
     gSPSetGeometryMode(gfx++, G_ZBUFFER | G_SHADE | G_SHADING_SMOOTH);
     gSPTexture(gfx++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_OFF);
     for (i = 0; i < 4; i++) {
-        if (D_8039C960[i].active && D_8039C960[i].t >= 2) {
+        if (gShells[i].active && gShells[i].t >= 2) {
             guScaleF(mf1, 0.5f, 0.5f, 0.35f);
-            guRotateF(mf2, D_8039C960[i].pitch / 4095.0 * 360.0, 1.0f, 0.0f, 0.0f);
+            guRotateF(mf2, gShells[i].pitch / 4095.0 * 360.0, 1.0f, 0.0f, 0.0f);
             guMtxCatF(mf1, mf2, mf1);
-            guRotateF(mf2, D_8039C960[i].yaw / 4095.0 * 360.0, 0.0f, 1.0f, 0.0f);
+            guRotateF(mf2, gShells[i].yaw / 4095.0 * 360.0, 0.0f, 1.0f, 0.0f);
             guMtxCatF(mf1, mf2, mf1);
-            guTranslateF(mf2, D_8039C960[i].x / 32.0f, D_8039C960[i].y / 32.0f, D_8039C960[i].z / 32.0f);
+            guTranslateF(mf2, gShells[i].x / 32.0f, gShells[i].y / 32.0f, gShells[i].z / 32.0f);
             guMtxCatF(mf1, mf2, mf1);
             guMtxF2L(mf1, &dyn->mtx[i]);
             gSPMatrix(gfx++, &D_02000000[i + 52], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
             gDPPipeSync(gfx++);
-            gDPSetPrimColor(gfx++, 0, 0, D_8039C960[i].alpha, 0, 0, 255);
-            gSPDisplayList(gfx++, osVirtualToPhysical(D_802FE3C0[D_8039C960[i].type].dl));
+            gDPSetPrimColor(gfx++, 0, 0, gShells[i].alpha, 0, 0, 255);
+            gSPDisplayList(gfx++, osVirtualToPhysical(gShellTypes[gShells[i].type].dl));
             gSPPopMatrix(gfx++, G_MTX_MODELVIEW);
         }
     }

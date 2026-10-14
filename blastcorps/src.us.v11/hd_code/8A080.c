@@ -2,7 +2,7 @@
 #include <ultra64.h>
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_803FB8B8 ((RadarMarker *) D_803FB8B8)
+#define gRadarMarkers ((RadarMarker *) gRadarMarkers)
 /* end of views */
 
 /* FILE-WIDE FINDING: this file's functions save $ra via the 64-bit `sd`/`ld`
@@ -14,7 +14,7 @@
  * more specific non-ABI explanation where one was already worked out. */
 
 #ifdef NON_MATCHING
-/* Functional rewrites (verified with tools_port/eqcheck.py). D_803FB8B8 is a
+/* Functional rewrites (verified with tools_port/eqcheck.py). gRadarMarkers is a
  * 25-slot table of radar/map markers keyed by an id; a free slot has
  * id == -1. Callers: 479D0 (ids 0x10000+), 48D00 (0x100+), 4B5E0 (0+). */
 typedef struct {
@@ -32,32 +32,34 @@ typedef struct {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Clear the marker table: mark every slot free. */
-void func_802CE840(void) {
+/* Clears the radar marker table (0x802CE840).
+ * Clear the marker table: mark every slot free. */
+void radar_clear_markers(void) {
     s32 i;
 
     for (i = 0; i < RADAR_MARKER_COUNT; i++) {
-        D_803FB8B8[i].id = RADAR_MARKER_FREE;
+        gRadarMarkers[i].id = RADAR_MARKER_FREE;
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8A080/func_802CE840.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8A080/radar_clear_markers.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Add or update marker `id`: reuse its slot if present, else claim the first
+/* Adds or updates marker id (x, y, z, size) (0x802CE880).
+ * Add or update marker `id`: reuse its slot if present, else claim the first
  * free slot. If the table is full, nothing happens. */
-void func_802CE880(s32 id, s32 x, s32 y, s32 z, s32 size) {
+void radar_set_marker(s32 id, s32 x, s32 y, s32 z, s32 size) {
     RadarMarker *m;
     s32 i;
 
-    for (i = 0, m = D_803FB8B8; i < RADAR_MARKER_COUNT; i++, m++) {
+    for (i = 0, m = gRadarMarkers; i < RADAR_MARKER_COUNT; i++, m++) {
         if (m->id == id) {
             goto found;
         }
     }
-    for (i = 0, m = D_803FB8B8; i < RADAR_MARKER_COUNT; i++, m++) {
+    for (i = 0, m = gRadarMarkers; i < RADAR_MARKER_COUNT; i++, m++) {
         if (m->id == RADAR_MARKER_FREE) {
             m->id = id;
             goto found;
@@ -72,97 +74,102 @@ found:
     m->size = size;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8A080/func_802CE880.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8A080/radar_set_marker.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Remove marker `id` (first matching slot only). */
-void func_802CE90C(s32 id) {
+/* Removes marker id (0x802CE90C).
+ * Remove marker `id` (first matching slot only). */
+void radar_remove_marker(s32 id) {
     s32 i;
 
     for (i = 0; i < RADAR_MARKER_COUNT; i++) {
-        if (D_803FB8B8[i].id == id) {
-            D_803FB8B8[i].id = RADAR_MARKER_FREE;
+        if (gRadarMarkers[i].id == id) {
+            gRadarMarkers[i].id = RADAR_MARKER_FREE;
             return;
         }
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8A080/func_802CE90C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8A080/radar_remove_marker.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Returns 1 if marker `id` is in the table, else 0. */
-s32 func_802CE958(s32 id) {
+/* 1 if marker id is in the table (0x802CE958).
+ * Returns 1 if marker `id` is in the table, else 0. */
+s32 radar_has_marker(s32 id) {
     s32 i;
 
     for (i = 0; i < RADAR_MARKER_COUNT; i++) {
-        if (D_803FB8B8[i].id == id) {
+        if (gRadarMarkers[i].id == id) {
             return 1;
         }
     }
     return 0;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8A080/func_802CE958.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8A080/radar_has_marker.s")
 #endif
 
-/* func_802CE9A4: `D_803FB8B0 = &D_803F9330;` wrapped in the same dead
+/* coll_reset_dyn_tris: `D_803FB8B0 = &D_803F9330;` wrapped in the same dead
  * `addiu sp,sp,-8`/`sd $ra`/`ld $ra`/`addiu sp,sp,8` frame as
- * func_802BBE10/func_802C8AF0 - confirmed hand-written by the same
+ * train_exit_check/barge_exit_check - confirmed hand-written by the same
  * probe evidence (no calls, no locals, nothing that could need a frame;
  * IDO never generates this shape on its own). Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-/* Reset a buffer cursor (read by 4B5E0) to the start of D_803F9330. */
-void func_802CE9A4(void) {
+/* Resets the dynamic collision triangles' write cursor (0x802CE9A4).
+ * Reset a buffer cursor (read by 4B5E0) to the start of D_803F9330. */
+void coll_reset_dyn_tris(void) {
     D_803FB8B0 = D_803F9330;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8A080/func_802CE9A4.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8A080/coll_reset_dyn_tris.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM.
- * It sets up `count` collision triangles at *D_803FB8B0 (func_802A41B0,
+ * It sets up `count` collision triangles at *D_803FB8B0 (lvl_build_coll_tri,
  * byte 0x51 = 1, h52 = a2, b56 = item byte 0x14, b55 = 0) from 0x16-byte
- * items at a0, but also passes func_802A41B0 the registers v0 (id, byte
+ * items at a0, but also passes lvl_build_coll_tri the registers v0 (id, byte
  * 0x50), t6 (byte 0x57), t9 (byte 0x4F) and s1 (byte 0x58, chained) that its
- * only caller, the IDO-compiled func_8028FDA0 (4B5E0.c), never sets for it:
- * there they hold a stale call result, &D_8039C718[i], the old D_803FB8B0
+ * only caller, the IDO-compiled block_spawn_all (4B5E0.c), never sets for it:
+ * there they hold a stale call result, &gBlockSlots[i], the old D_803FB8B0
  * and the caller's caller's s1. */
 #ifdef NON_MATCHING
 
-/* The NM build used to keep this asm, which `jal`s the C func_802A41B0 with
+/* N items into 0x60-byte collision triangles (0x802CE9C8).
+ * The NM build used to keep this asm, which `jal`s the C lvl_build_coll_tri with
  * its asm register convention: the C read garbage arguments and faulted on
  * the first level load (the attract-mode demo). The leaked registers are now
- * explicit parameters; func_8028FDA0 passes what they hold in the original
- * (see there). Per 0x16-byte item: rec[0x51] = 1, then func_802A41B0(rec,
+ * explicit parameters; block_spawn_all passes what they hold in the original
+ * (see there). Per 0x16-byte item: rec[0x51] = 1, then lvl_build_coll_tri(rec,
  * item, id, h52, b57, item[0x14], s1 chain, b4F, b55 = 0). The asm saves and
  * restores s1 (each call's chain starts from the caller's s1) and leaves
  * gp = 0. Like the asm, n counts down with `!=`.
  * asm: items a0, n a1, h52 a2, id v0, b57 t6, b4F t9, s1. */
-void func_802CE9C8(u8 *items, s32 n, s32 h52, s32 id, s32 b57, s32 b4F, s32 s1) {
+void coll_add_dyn_tris(u8 *items, s32 n, s32 h52, s32 id, s32 b57, s32 b4F, s32 s1) {
     u8 *rec = D_803FB8B0;
 
     while (n != 0) {
         n--;
         rec[0x51] = 1;
-        rec = func_802A41B0(rec, items, id, h52, b57, items[0x14], &s1, b4F, 0);
+        rec = lvl_build_coll_tri(rec, items, id, h52, b57, items[0x14], &s1, b4F, 0);
         items += 0x16;
     }
     D_803FB8B0 = rec;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8A080/func_802CE9C8.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8A080/coll_add_dyn_tris.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Clear byte 0x51 of each 0x60-byte record in [start, end). Like the asm,
+/* Makes a range of collision triangles not solid (0x802CEA68).
+ * Clear byte 0x51 of each 0x60-byte record in [start, end). Like the asm,
  * this loops with `!=`, so `end` must be `start + n * 0x60`. */
-void func_802CEA68(u8 *start, u8 *end) {
+void coll_disable_tris(u8 *start, u8 *end) {
     u8 *p;
 
     for (p = start; p != end; p += 0x60) {
@@ -170,5 +177,5 @@ void func_802CEA68(u8 *start, u8 *end) {
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8A080/func_802CEA68.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8A080/coll_disable_tris.s")
 #endif

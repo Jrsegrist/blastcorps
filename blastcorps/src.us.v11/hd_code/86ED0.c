@@ -17,20 +17,20 @@
  * Plays sound 0x55 unless the next game mode is 0x40 (a full 64-bit
  * compare), sets the vehicle's speed (s16 at +0x76) to 1.5 * gCamTiltMax
  * (gCamTiltMax + (gCamTiltMax >> 1), truncated to 16 bits), clears
- * D_80367BFF, calls func_80278EB0(6, 0.25f, 100) and sets D_80367C00 = 1.
- * The asm returns with a0 = 1 and a1-a3 as func_80278EB0 left them; its asm
+ * gTurboPending, calls mb_start(6, 0.25f, 100) and sets gTurboActive = 1.
+ * The asm returns with a0 = 1 and a1-a3 as mb_start left them; its asm
  * callers go on to calls that don't read them. */
 void func_802CB690(u8 *state) {
     s32 v;
 
     if (gNextGameMode != 0x40) {
-        func_80260650(D_80367738, 0x55, NULL);
+        snd_play(gSfxBank, 0x55, NULL);
     }
     v = gCamTiltMax;
     *(s16 *) (state + 0x76) = v + (v >> 1);
-    D_80367BFF = 0;
-    func_80278EB0(6, 0.25f, 100);
-    D_80367C00 = 1;
+    gTurboPending = 0;
+    mb_start(6, 0.25f, 100);
+    gTurboActive = 1;
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/86ED0/func_802CB690.s")

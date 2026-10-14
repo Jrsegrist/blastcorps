@@ -19,11 +19,12 @@ typedef struct {
 } Player; /* 0x100 bytes */
 
 
-/* Restore the current player's records from EEPROM: one pak-thread request
+/* "restoring from EE memory": rebuilds the RAM save image (0x80201E80).
+ * Restore the current player's records from EEPROM: one pak-thread request
  * (0xA) per even level, then for each completed level other than 0x26, 0x2F
  * and 0x31 requests 0xD (when gLevelInfo[level].unk0 == 1) and 9, copying a
- * time from D_80364F70 into D_80364EF0. Stops early on a non-zero reply. */
-s32 func_80201E80(void) {
+ * time from gEepTimes into gBestTimes. Stops early on a non-zero reply. */
+s32 fe_pak_restore_from_eeprom(void) {
     u8 i;
     OSMesg msg;
 
@@ -31,19 +32,19 @@ s32 func_80201E80(void) {
     debug_printf("restoring from EE memory\n");
     for (i = 0; i < 0x3C && msg == 0; i++) {
         if (!(i & 1)) {
-            osSendMesg(&D_80219EF8, (OSMesg) ((i << 8) | 0xA | (playerNumber << 16) | 0x01000000), 1);
+            osSendMesg(&gPakRequestQueue, (OSMesg) ((i << 8) | 0xA | (playerNumber << 16) | 0x01000000), 1);
             osRecvMesg(&pakToGameMessageQ, &msg, 1);
         }
         if (((players[playerNumber].unk18[i] > 0 && players[playerNumber].unk18[i] < 6) ? 1 : 0) &&
             i != 0x31 && i != 0x2F && i != 0x26 && msg == 0) {
             if (gLevelInfo[i].unk0 == 1) {
                 pakBuffer[0] = 0x1234567887654321;
-                osSendMesg(&D_80219EF8, (OSMesg) ((i << 8) | 0xD | (playerNumber << 16) | 0x01000000), 1);
+                osSendMesg(&gPakRequestQueue, (OSMesg) ((i << 8) | 0xD | (playerNumber << 16) | 0x01000000), 1);
                 osRecvMesg(&pakToGameMessageQ, NULL, 1);
             }
-            func_801F8354(playerNumber);
-            D_80364EF0[playerNumber][D_802E8C44[players[playerNumber].unk92[i]]] = D_80364F70[i * 2];
-            osSendMesg(&D_80219EF8, (OSMesg) ((i << 8) | 9 | (playerNumber << 16) | 0x01000000), 1);
+            fe_best_clear_times(playerNumber);
+            gBestTimes[playerNumber][D_802E8C44[players[playerNumber].unk92[i]]] = gEepTimes[i * 2];
+            osSendMesg(&gPakRequestQueue, (OSMesg) ((i << 8) | 9 | (playerNumber << 16) | 0x01000000), 1);
             osRecvMesg(&pakToGameMessageQ, NULL, 1);
         }
     }

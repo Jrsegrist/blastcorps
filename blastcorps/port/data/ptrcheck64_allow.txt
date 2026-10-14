@@ -64,5 +64,5 @@ SEXT ul_env.c:291           # (void *) e->ctrlList->data.i
 # a host local's address cast through void ** to the s32 * of align_up
 # (align a pointer); it reads and writes the low 32 bits, the pointer is < 4 GB
 CAST 17210.c:59             # &p (host local u8 *), aligned in place
-# func_802ABC88(id, n, u8 **recOut) fills the caller's own local pointer
+# veh_find_point(id, n, u8 **recOut) fills the caller's own local pointer
 CAST 853D0.c:6??            # &rec (host local)

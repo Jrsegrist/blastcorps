@@ -29,8 +29,8 @@
  *    back right after it: RDRAM is as the game left it);
  *  - collision: the eye is kept above the level's ground triangles and the
  *    buildings' collision triangles (read-only copies of the game's height
- *    tests: 62740.c func_802AA094's grid, the 0x60-byte triangles at
- *    D_803B9890), pulled in along the line to the target.
+ *    tests: 62740.c ground_scan_grid's grid, the 0x60-byte triangles at
+ *    gCollTris), pulled in along the line to the target.
  * The controls: in play, the camera bindings (default: the right stick) drive
  * the camera and not the N64 buttons bound to the same inputs (the C buttons'
  * right stick); outside play the right stick is the C buttons as before. */
@@ -232,7 +232,7 @@ bool triHeight(const Vec3 p[3], double x, double z, double &h) {
 
 /* every building's collision triangles: the gObjects records (0x803F4030,
  * 0xFC bytes each, up to gObjectsEnd at 0x803F7654) hold the range [+4, +8) of 0x60-byte triangles (77E20.c
- * Unk803B9890: s32 vertices at +0x28 in world / 4 units, kept where the
+ * CollisionTri: s32 vertices at +0x28 in world / 4 units, kept where the
  * building is) */
 template <typename F> void forEachObstacle(F f) {
     const uint32_t end = rd<uint32_t>(0x803F7654u);
@@ -257,9 +257,9 @@ double groundHeight(double x, double y, double z) {
         double &l = obstacle ? g_lastObstacle : g_lastTerrain;
         if (v <= y + kReach) l = std::max(l, v);
     };
-    /* the level's ground: the collision grid (62740.c func_802AA094): cells of
-     * D_803BE718 x D_803BE71C world units, D_803BE720 columns, lists in
-     * D_803BDB10[] of 0x14-byte triangles (9 s16 in 1/32 world units) */
+    /* the level's ground: the collision grid (62740.c ground_scan_grid): cells of
+     * gGroundCellW x gGroundCellD world units, gGroundCols columns, lists in
+     * gGroundCells[] of 0x14-byte triangles (9 s16 in 1/32 world units) */
     const uint32_t cw = rd<uint32_t>(0x803BE718u), cd = rd<uint32_t>(0x803BE71Cu);
     const int cols = rd<uint16_t>(0x803BE720u), rows = rd<uint16_t>(0x803BE722u);
     if (cw != 0 && cd != 0 && cols > 0 && rows > 0 && cols * rows < 0x10000) {
@@ -279,7 +279,7 @@ double groundHeight(double x, double y, double z) {
         }
     }
     /* buildings and other obstacles: the 0x60-byte collision triangles
-     * (77E20.c Unk803B9890: s32 vertices at +0x28 in world / 4 units) */
+     * (77E20.c CollisionTri: s32 vertices at +0x28 in world / 4 units) */
     obstacle = true;
     forEachObstacle([&](const int32_t *v) {
         const Vec3 p[3] = {{v[0] / 8.0, v[1] / 8.0, v[2] / 8.0}, {v[3] / 8.0, v[4] / 8.0, v[5] / 8.0},
@@ -384,7 +384,7 @@ void headingPitch(const Vec3 &eye, const Vec3 &at, int &heading, int &pitch) {
     pitch = int(d.y >= 0 ? p : -p);
 }
 
-/* the orbit's backdrop vertex values into D_802FA820[0 or 1] at `a`
+/* the orbit's backdrop vertex values into gBackdropVtx[0 or 1] at `a`
  * (physical), saved first; put back by restoreVtx */
 int16_t g_vtxSaved[4][8];
 int16_t *patchVtx(uint32_t a, const short vals[4][3]) {
@@ -411,7 +411,7 @@ bool commandHook(RT64::State *state, RT64::DisplayList **dl, const GbiOriginal *
      * comes after the second G_SETCIMG, the frame buffer's) */
     if (op == 0xFF) g_bd.cimg++;
     if (g_bd.cimg < 2) return false;
-    if (op == 0x04 && !g_bd.vtxDone) {   /* G_VTX: the game drew its backdrop quad (D_802FA820[buf]) */
+    if (op == 0x04 && !g_bd.vtxDone) {   /* G_VTX: the game drew its backdrop quad (gBackdropVtx[buf]) */
         const uint32_t a = state->rsp->fromSegmented(w1) & 0x7FFFFF;
         if (a != 0x2FA820 && a != 0x2FA860) return false;
         g_bd.vtxDone = true;
@@ -461,7 +461,7 @@ bool commandHook(RT64::State *state, RT64::DisplayList **dl, const GbiOriginal *
 }
 
 /* ---- billboards ---------------------------------------------------------------
- * Smoke, explosions and particles (60F60.c func_802A68D4, 43A60.c) are quads
+ * Smoke, explosions and particles (60F60.c fx_build_matrix, 43A60.c) are quads
  * the game turns to face its own camera (a rotation by the camera's pitch
  * and heading in their model matrix).  In the orbit view they are turned to
  * face the orbit camera instead: a model matrix whose rotation is (up to its

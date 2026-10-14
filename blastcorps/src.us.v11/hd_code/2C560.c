@@ -170,7 +170,7 @@ void __scMain(void *arg) {
 
     while (TRUE) {
         osRecvMesg(&sc->interruptQ, &msg, OS_MESG_BLOCK);
-        if (!(func_802A1320() & 0x1000)) {
+        if (!(get_cop0_status() & 0x1000)) {
             for (client = sc->clientList; client != NULL; client = client->next) {
                 osSendMesg(client->msgQ, (OSMesg) 0x29D, OS_MESG_NOBLOCK);
             }

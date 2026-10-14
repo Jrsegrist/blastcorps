@@ -123,7 +123,7 @@ function of the three code segments by category. Permanent hand-written assembly
   matching build; the port uses the `NON_MATCHING` C versions where they exist ("+ NM C"), and its
   platform layer replaces the SDK ones.
 - **near-miss**: IDO-compiled functions still `GLOBAL_ASM` in the matching build, with
-  `NON_MATCHING` C that the port uses (front end func_801F58E8 and func_801FA74C).
+  `NON_MATCHING` C that the port uses (front end fe_pak_thread and fe_globe_draw_route).
 
 ## Naming conventions
 

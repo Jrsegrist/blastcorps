@@ -28,7 +28,7 @@ C64_COMMON := -fms-extensions -mno-ms-bitfields -fdata-sections -fno-addrsig -fn
 	-Wno-void-pointer-to-int-cast -Wno-int-to-pointer-cast -Wno-int-to-void-pointer-cast
 # Code that sees N64 data is compiled through LLVM IR: the x86-64 ABI gives a
 # global array of 16 bytes or more 16-byte alignment and clang assumes it for
-# every array, extern ones too, so it used movaps on D_8036B8C8 (an N64 array at
+# every array, extern ones too, so it used movaps on gCamPathBasis (an N64 array at
 # an 8-aligned address: a fault).  tools/llalign64.py lowers every alignment
 # above 4 on memory accesses and N64 globals in the optimised IR, then the code
 # is generated (no further IR optimisation); tools/align64.py checks the
@@ -45,8 +45,8 @@ IR64_DEPS := tools/llalign64.py $(H64)/addrs.txt
 # -fno-optimize-sibling-calls: a call's return address names its real caller
 # (the keys of --clock and --sync, see os_time.c / os_thread.c; crash reports).
 # -fno-inline-functions: only `inline` functions are inlined: clang inlines far
-# more than the N64's compiler (func_802A2BB0's PI wait came out inside
-# func_802A1D54: 8627 sync mismatches in verify), so game functions keep their
+# more than the N64's compiler (lvl_load_object_table's PI wait came out inside
+# lvl_spawn_objects: 8627 sync mismatches in verify), so game functions keep their
 # own bodies.  HL_EXTRA: extra flags for debugging.
 HL64_CFLAGS := -std=gnu89 -nostdinc -I$(ROOT) -I$(ROOT)/include -I$(ROOT)/include/2.0I \
 	-I$(ROOT)/include/2.0I/PR -include include/port_ultratypes.h \

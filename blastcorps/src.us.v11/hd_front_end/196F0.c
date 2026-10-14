@@ -27,18 +27,20 @@
         _g->words.w1 = (unsigned int) (m1);                               \
     }
 
-extern u8 * N64P D_8021AB80;        /* the inflated picture */
-extern u8 D_8021AB84;         /* its number */
+extern u8 * N64P gBgPicture;        /* the inflated picture */
+extern u8 gBgPictureMode;         /* its number */
 extern u8 D_006BF2F0[];
 extern u8 D_006D3D30[];
 
 
-void func_802006F0(void) {
-    func_80200714(D_8021AB84);
+/* Inflates the current background picture again (0x802006F0). */
+void fe_bg_reload(void) {
+    fe_bg_load(gBgPictureMode);
 }
 
-/* inflate background picture `mode` onto the heap and tint it per mode */
-void func_80200714(u8 mode) {
+/* The background picture of a mode, tinted (0x80200714).
+ * inflate background picture `mode` onto the heap and tint it per mode */
+void fe_bg_load(u8 mode) {
     u8 *start;
     u8 *end;
     u32 size;
@@ -49,8 +51,8 @@ void func_80200714(u8 mode) {
     u8 b;
     u8 tmp;
 
-    D_8021AB80 = gHeapPtr;
-    D_8021AB84 = mode;
+    gBgPicture = gHeapPtr;
+    gBgPictureMode = mode;
     switch (mode) {
         case 1:
         case 2:
@@ -136,12 +138,14 @@ void func_80200714(u8 mode) {
     gHeapPtr += size;
 }
 
-void func_80200BD4(s32 arg0) {
-    D_8021AB80 = (u8 *) N64_IPTR(arg0);
+/* Points the background picture at an address (no callers) (0x80200BD4). */
+void fe_bg_set(s32 arg0) {
+    gBgPicture = (u8 *) N64_IPTR(arg0);
 }
 
-/* draw the picture as 64x16 texture rectangles (translucent in some modes) */
-Gfx *func_80200BE0(Gfx *gfx, s32 arg1, s32 *count) {
+/* The background picture as texture rectangles (0x80200BE0).
+ * draw the picture as 64x16 texture rectangles (translucent in some modes) */
+Gfx *fe_bg_draw(Gfx *gfx, s32 arg1, s32 *count) {
     Gfx *gdl = gfx;
     s32 x;
     s32 y;
@@ -171,7 +175,7 @@ Gfx *func_80200BE0(Gfx *gfx, s32 arg1, s32 *count) {
     }
     for (x = 0; x < 320; x += 64) {
         for (y = 0; y < 240; y += 16) {
-            gDPLoadTextureTile(gdl++, D_8021AB80, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, 240, x, y, x + 63, y + 15, 0,
+            gDPLoadTextureTile(gdl++, gBgPicture, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, 240, x, y, x + 63, y + 15, 0,
                                G_TX_CLAMP, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
             if (gGameMode & 0xC000000000000) {
                 gSPTextureRectangleOld(gdl++, x << 2, y << 2, (x + 64) << 2, (y + 16) << 2, G_TX_RENDERTILE, x << 5,

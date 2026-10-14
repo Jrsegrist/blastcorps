@@ -4,16 +4,16 @@
 /* Matching build: IDO compiled the matched code here against older
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
-#define LEGACY_D_80367738
+#define LEGACY_gSfxBank
 #define LEGACY_D_8036EA60
 #define LEGACY_nss
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_8020C070 ((MenuItem *) D_8020C070)
+#define gYoshiFeItems ((MenuItem *) gYoshiFeItems)
 #define gLevelInfo ((LevelInfo *) gLevelInfo)
-#define D_802F5804 ((MenuItem *) D_802F5804)
-#define D_802F8BDC ((MenuItem *) D_802F8BDC)
+#define gYoshiGameItems ((MenuItem *) gYoshiGameItems)
+#define gYoshiWindows ((MenuItem *) gYoshiWindows)
 #define players ((PlayerRec *) players)
 #define D_8036EA80 ((u32 *) &D_8036EA80)
 #define D_8036EA90 ((u32 *) &D_8036EA90)
@@ -53,7 +53,7 @@ extern u8 D_80364B08[][0x100]; /* = players[p].rank */
 extern u8 D_80364B44[][0x100]; /* = players[p].flags */
 
 /* This level's results (nss) and the best (D_8036EA60), 16 bytes each:
- * money, time, then three counts with their targets in D_8036EB90..93 */
+ * money, time, then three counts with their targets in gRduCount..93 */
 #ifndef NON_MATCHING
 extern u32 D_8036EA60;
 #endif
@@ -66,11 +66,11 @@ extern u32 nss;
 extern s32 D_8036EA74;
 extern u8 D_8036EA7A;
 extern u8 D_8036EA7B;
-extern u8 D_8036EB94[]; /* bonus earned, per bonus */
-extern u8 D_8036EB9C[];
+extern u8 gBonusEarned[]; /* bonus earned, per bonus */
+extern u8 gBonusEarnedPrev[];
 
 #ifndef NON_MATCHING
-extern s32 D_80367738;
+extern s32 gSfxBank;
 #endif
 
 #define CUR (players[playerNumber])
@@ -80,22 +80,24 @@ extern s32 D_80367738;
 #define STATS_ASSERT(EX, line) \
     if (!(EX)) { debug_printf("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "stats_perm.c", line); }
 
-/* Start-of-level: load this level's previous counts and reset the bonuses */
-void func_80285190(void) {
+/* Loads the counts, resets the bonuses (0x80285190).
+ * Start-of-level: load this level's previous counts and reset the bonuses */
+void stats_level_start(void) {
     s32 i;
 
     D_8036EA7B = players[playerNumber].flags[levelno + 0x3E];
-    D_8036EA74 = D_80364EF0[playerNumber][D_802E8C44[(gLevelInfo[levelno].type == 1) ? 1 : D_8036EA7B]];
+    D_8036EA74 = gBestTimes[playerNumber][D_802E8C44[(gLevelInfo[levelno].type == 1) ? 1 : D_8036EA7B]];
     D_8036EA7A = D_80364B08[playerNumber][levelno] % 8;
     for (i = 0; i < 4; i++) {
-        D_8036EB94[i] = 0;
+        gBonusEarned[i] = 0;
     }
-    D_8036EB98 = LEVEL_DONE(levelno);
+    gTargetsCleared = LEVEL_DONE(levelno);
 }
 
-/* Print the status screen lines, highlight improved results, return the
+/* The status screen's lines; returns the average percentage (0x802852EC).
+ * Print the status screen lines, highlight improved results, return the
  * average completion percentage */
-u32 func_802852EC(void) {
+u32 stats_print_status(void) {
     u32 pctA;
     u32 pctB;
     u32 pctC;
@@ -117,8 +119,8 @@ u32 func_802852EC(void) {
     } else {
         pctB = 100;
     }
-    if (D_8036EB90) {
-        pctC = (D_8036EA7C * 100) / D_8036EB90;
+    if (gRduCount) {
+        pctC = (D_8036EA7C * 100) / gRduCount;
     } else {
         pctC = 100;
     }
@@ -126,13 +128,13 @@ u32 func_802852EC(void) {
     func_802D6A60(D_8036B9A8 + 0x20, "***$%d*", nss);
     func_802D6A60(D_8036B9A8 + 0x40, "***%2d (%d%c)*", D_8036EA79, pctB, '%');
     func_802D6A60(D_8036B9A8 + 0x60, "***%2d (%d%c)*", D_8036EA7C, pctC, '%');
-    func_80264A34(buf, D_8036EA74, 0);
+    hud_format_time(buf, D_8036EA74, 0);
     func_802D6A60(D_8036B9A8 + 0x80, "***%s*", buf);
     for (i = 18; i < 23; i++) {
-        D_802F5804[i].flags = 0x400;
+        gYoshiGameItems[i].flags = 0x400;
     }
     for (i = 14; i < 18; i++) {
-        D_8020C070[i].flags = 0x400;
+        gYoshiFeItems[i].flags = 0x400;
     }
     if (gNextGameMode == 0x40) {
         f2 = 0x100;
@@ -145,47 +147,48 @@ u32 func_802852EC(void) {
     } else {
         f = 0;
     }
-    D_8020C070[14].flags |= f | 0x80;
-    D_802F5804[18].flags |= f | f2 | 0x80;
+    gYoshiFeItems[14].flags |= f | 0x80;
+    gYoshiGameItems[18].flags |= f | f2 | 0x80;
     if (nss > D_8036EA60) {
         f = f1 | 4;
     } else {
         f = 0;
     }
-    D_8020C070[15].flags |= f | 0x80;
-    D_802F5804[19].flags |= f | f2 | 0x80;
+    gYoshiFeItems[15].flags |= f | 0x80;
+    gYoshiGameItems[19].flags |= f | f2 | 0x80;
     if (D_8036EA79 > D_8036EA69) {
         f = f1 | 4;
     } else {
         f = 0;
     }
-    D_8020C070[16].flags |= f | 0x80;
-    D_802F5804[20].flags |= f | f2 | 0x80;
+    gYoshiFeItems[16].flags |= f | 0x80;
+    gYoshiGameItems[20].flags |= f | f2 | 0x80;
     if (D_8036EA7C > D_8036EA6C) {
         f = f1 | 4;
     } else {
         f = 0;
     }
-    D_8020C070[17].flags |= f | 0x80;
-    D_802F5804[21].flags |= f | f2 | 0x80;
-    D_802F5804[22].flags |= f2 | 0x80;
-    if (D_802E8BF8) {
+    gYoshiFeItems[17].flags |= f | 0x80;
+    gYoshiGameItems[21].flags |= f | f2 | 0x80;
+    gYoshiGameItems[22].flags |= f2 | 0x80;
+    if (gUseEeprom) {
         return (pctA + pctC) / 2;
     } else {
         return (pctA + pctB + pctC) / 3;
     }
 }
 
-/* End-of-level: write the status to the pak if this level saves one, then
+/* "Creating status ...": the level status to the save (0x80285814).
+ * End-of-level: write the status to the pak if this level saves one, then
  * copy the results to the best/saved slots. Returns 1 if a status was written. */
-u8 func_80285814(void) {
+u8 stats_save_status(void) {
     u8 saved = 0;
     u8 coin;
 
     STATS_ASSERT(frontEndPresent, 140);
     frontEndPresent = 1;
     hd_mode_setup();
-    if (gGameMode == 0x4000) {
+    if (gGameMode == MODE_WORLD) {
         osRecvMesg(&pakToGameMessageQ, NULL, OS_MESG_BLOCK);
     }
     if (LEVEL_DONE(levelno)) {
@@ -198,9 +201,9 @@ u8 func_80285814(void) {
                     coin = 4;
                 }
                 STATS_ASSERT(create_status(pakBuffer,coin)<=LEVEL_SAVE_SIZE-4, 161);
-                func_802C4BF0(pakBuffer);
-                func_802C1DD0(0);
-                func_80264C20((s32) pakBuffer);
+                apply_status(pakBuffer);
+                obj_tally(0);
+                people_init((s32) pakBuffer);
                 saved = 1;
             } else {
                 hd_setup_level((s32) pakBuffer);
@@ -211,14 +214,15 @@ u8 func_80285814(void) {
     } else {
         hd_setup_level(NULL);
     }
-    func_80285A78((u8 *) &nss, (u8 *) &D_8036EA60);
-    func_80285A78((u8 *) &nss, (u8 *) D_8036EA80);
-    func_80285A78((u8 *) &nss, (u8 *) D_8036EA90);
+    stats_copy_result((u8 *) &nss, (u8 *) &D_8036EA60);
+    stats_copy_result((u8 *) &nss, (u8 *) D_8036EA80);
+    stats_copy_result((u8 *) &nss, (u8 *) D_8036EA90);
     return saved;
 }
 
-/* Copy a 16-byte results record */
-void func_80285A78(u8 *src, u8 *dst) {
+/* Copies a 16-byte Score (0x80285A78).
+ * Copy a 16-byte results record */
+void stats_copy_result(u8 *src, u8 *dst) {
     u32 i;
 
     for (i = 0; i < 16; i++) {
@@ -226,29 +230,32 @@ void func_80285A78(u8 *src, u8 *dst) {
     }
 }
 
-/* Set flag `bit` (1-based) for the current level. The shift is 32 or more:
+/* Sets a per-level flag bit (0x80285AB0).
+ * Set flag `bit` (1-based) for the current level. The shift is 32 or more:
  * MIPS sllv uses its low 5 bits (bit 1 -> 1 << 0); C leaves it undefined,
  * so the port masks it (PORT_SHAMT). */
-void func_80285AB0(u8 bit) {
+void stats_set_level_flag(u8 bit) {
     D_80364A87 |= 2;
     CUR.flags[levelno] |= 1 << PORT_SHAMT(bit + 0x1F);
 }
 
-/* Test flag `bit` (1-based) for the current level */
-s32 func_80285B10(u8 bit) {
+/* Tests a per-level flag bit (0x80285B10).
+ * Test flag `bit` (1-based) for the current level */
+s32 stats_test_level_flag(u8 bit) {
     s32 unused;
 
     return (D_80364B44[playerNumber][levelno] & (1 << PORT_SHAMT(bit + 0x1F))) ? 1 : 0;
 }
 
-/* Level just completed by the active player: mark it and fade out */
-void func_80285B68(s32 arg0) {
+/* A non-mission level done: fade to the world screen (0x80285B68).
+ * Level just completed by the active player: mark it and fade out */
+void stats_finish_bonus_level(s32 arg0) {
     s32 unused;
 
-    if (gGameMode & 0x104) {
+    if (gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) {
         if (LEVEL_DONE(levelno)) {
             if (gLevelInfo[levelno].type != 1 && playerNumber == playerNumberAtStart) {
-                func_802CF5B0();
+                commpt_save_flags();
                 gPauseRequest = 1;
                 func_80275270(0x4000, 1.25f);
                 saveIt[playerNumber] = levelno + 1;
@@ -259,37 +266,38 @@ void func_80285B68(s32 arg0) {
 }
 
 void func_80285CA0(void) {
-    func_8026AD30(0x47);
+    yoshi_show_hint(0x47);
 }
 
-/* Award each bonus once its count reaches the target, with a jingle */
-void func_80285CC0(void) {
+/* The per-count bonus jingles (0x80285CC0).
+ * Award each bonus once its count reaches the target, with a jingle */
+void stats_award_bonuses(void) {
     s32 sfx = -1;
     s32 snd = 0;
     s32 i;
 
     for (i = 0; i < 4; i++) {
-        D_8036EB9C[i] = D_8036EB94[i];
-        if (D_8036EB94[i] == 0) {
+        gBonusEarnedPrev[i] = gBonusEarned[i];
+        if (gBonusEarned[i] == 0) {
             switch (i) {
                 case 0:
-                    if (D_8036EB94[i] = (D_8036EA7C == D_8036EB90)) {
+                    if (gBonusEarned[i] = (D_8036EA7C == gRduCount)) {
                         sfx = 0x39;
                     }
                     break;
                 case 1:
-                    if (D_8036EB94[i] = (D_8036EA79 == D_8036EB93)) {
+                    if (gBonusEarned[i] = (D_8036EA79 == D_8036EB93)) {
                         sfx = 0x3A;
                     }
                     break;
                 case 2:
-                    func_802C1DD0(0);
-                    if (D_8036EB94[i] = (D_8036EA78 == D_8036EB92)) {
+                    obj_tally(0);
+                    if (gBonusEarned[i] = (D_8036EA78 == D_8036EB92)) {
                         sfx = 0x3B;
                     }
                     break;
                 case 3:
-                    if (D_8036EB94[i] = (D_8036EB94[0] && D_8036EB94[2] && D_8036EB94[1])) {
+                    if (gBonusEarned[i] = (gBonusEarned[0] && gBonusEarned[2] && gBonusEarned[1])) {
                         sfx = 0x3C;
                         snd = 0xC6;
                     }
@@ -298,53 +306,57 @@ void func_80285CC0(void) {
         }
     }
     if (D_80358064) {
-        if (sfx != -1 && !(func_8026B10C() & 0x8000)) {
-            func_8026AF6C(sfx | 0x8000);
+        if (sfx != -1 && !(yoshi_get_demand() & 0x8000)) {
+            yoshi_demand(sfx | 0x8000);
         }
         if (snd) {
-            func_80260650(D_80367738, snd, 0);
+            snd_play(gSfxBank, snd, 0);
         }
     }
 }
 
-/* Level finished at frame `start`: build the status screen with the elapsed
+/* Elapsed time, status screen, pause (0x80285EF4).
+ * Level finished at frame `start`: build the status screen with the elapsed
  * time and save the results */
-void func_80285EF4(s32 start) {
+void stats_finish_level(s32 start) {
     s32 t;
 
-    t = func_8028604C(((s32) D_803156C0) - start);
-    func_802C1DD0(0);
+    t = stats_frames_to_tenths(((s32) D_803156C0) - start);
+    obj_tally(0);
     D_8036EA74 += t;
-    func_802852EC();
+    stats_print_status();
     D_8036EA74 -= t;
-    func_80285A78((u8 *) &nss, (u8 *) &D_8036EA60);
-    D_802F5804[24].flags &= ~1;
-    D_802F5804[24].flags |= 0x800;
-    D_802F5804[23].flags &= ~1;
-    D_802F5804[23].flags |= 0x800;
-    D_802F5804[17].flags |= 1;
-    D_802F5804[17].flags &= ~0x800;
-    D_802F8BDC[6].f18 = 0x11;
-    D_802F8BDC[6].f8 |= 0x80;
-    func_8026AF6C(0x8006);
-    D_802F8BDC[6].fC = 0;
+    stats_copy_result((u8 *) &nss, (u8 *) &D_8036EA60);
+    gYoshiGameItems[24].flags &= ~1;
+    gYoshiGameItems[24].flags |= 0x800;
+    gYoshiGameItems[23].flags &= ~1;
+    gYoshiGameItems[23].flags |= 0x800;
+    gYoshiGameItems[17].flags |= 1;
+    gYoshiGameItems[17].flags &= ~0x800;
+    gYoshiWindows[6].f18 = 0x11;
+    gYoshiWindows[6].f8 |= 0x80;
+    yoshi_demand(0x8006);
+    gYoshiWindows[6].fC = 0;
     gPauseRequest = 1;
 }
 
-/* Time units (1/10 s) to frames */
-s32 func_80286038(u16 arg0) {
+/* Tenths of a second to frames (0x80286038).
+ * Time units (1/10 s) to frames */
+s32 stats_tenths_to_frames(u16 arg0) {
     return arg0 * 6;
 }
 
-/* Frames to time units (1/10 s), capped at 59999 */
-u16 func_8028604C(u32 frames) {
+/* Frames to tenths of a second (capped at 59999) (0x8028604C).
+ * Frames to time units (1/10 s), capped at 59999 */
+u16 stats_frames_to_tenths(u32 frames) {
     s32 unused;
 
     return (frames / 6 >= 60000) ? 59999 : frames / 6;
 }
 
-/* Has the current player completed `level`? */
-u8 func_80286090(s32 level) {
+/* Has the current player completed the level (0x80286090)?
+ * Has the current player completed `level`? */
+u8 stats_level_done(s32 level) {
     s32 unused;
 
     return LEVEL_DONE(level);

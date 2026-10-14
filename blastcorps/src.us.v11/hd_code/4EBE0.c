@@ -47,28 +47,29 @@ typedef struct {
     /* 0x04 */ s32 angle;
 } SwingState;
 
-extern Path D_802FE980[];
-extern f32 D_8039CA10[4][4];
-extern f32 D_8039CA50;
-extern f32 D_8039CA54;
-extern f32 D_8039CA58;
-extern Junction D_802FEDA0[];
+extern Path gSplinePaths[];
+extern f32 gSplineBasis[4][4];
+extern f32 gSplineT;
+extern f32 gSplineT2;
+extern f32 gSplineT3;
+extern Junction gMazeJunctions[];
 
 #ifdef NON_MATCHING
-void func_802936AC(f32 mf[4][4], s16 x, s16 z, s16 ox, s16 oz, s16 *px, s16 *py, s16 *pz, WalkState *state,
+void spline_walk_maze(f32 mf[4][4], s16 x, s16 z, s16 ox, s16 oz, s16 *px, s16 *py, s16 *pz, WalkState *state,
                    s32 speed);
-void func_80293F84(f32 mf[4][4], s16 x, s16 z, s16 *px, s16 *py, s16 *pz, PathState *state, s32 idx);
+void spline_follow_path(f32 mf[4][4], s16 x, s16 z, s16 *px, s16 *py, s16 *pz, PathState *state, s32 idx);
 #else
-void func_802936AC(); /* K&R */
-void func_80293F84(); /* K&R */
+void spline_walk_maze(); /* K&R */
+void spline_follow_path(); /* K&R */
 #endif
-f32 func_80294840(f32 a, f32 b, f32 c, f32 d);
-void func_802949B0(s32 idx);
-void func_80294B64(f32 mf[4][4], s32 limit, s16 *x, s16 *y, s16 *z, SwingState *state, s32 delay);
-void func_80294C50(f32 mf[4][4], s16 *x, s16 *y, s16 *z, s32 *counter, s32 amp);
-void func_80294D24(f32 mf[4][4], s16 *x, s16 *y, s16 *z, s32 *angle, s32 speed);
+f32 spline_eval(f32 a, f32 b, f32 c, f32 d);
+void spline_set_basis(s32 idx);
+void spline_swing(f32 mf[4][4], s32 limit, s16 *x, s16 *y, s16 *z, SwingState *state, s32 delay);
+void spline_bob(f32 mf[4][4], s16 *x, s16 *y, s16 *z, s32 *counter, s32 amp);
+void spline_orbit(f32 mf[4][4], s16 *x, s16 *y, s16 *z, s32 *angle, s32 speed);
 
-void func_802933A0(s32 x, s32 y, s32 z, s32 type, Mtx *mtx, void *state, Gfx *gfx1, Gfx *gfx2, s32 idx,
+/* An object's pose by motion type 1..5 (0x802933A0). */
+void spline_object_matrix(s32 x, s32 y, s32 z, s32 type, Mtx *mtx, void *state, Gfx *gfx1, Gfx *gfx2, s32 idx,
                    s32 arg9, s32 arg10, s32 arg11) {
     s16 rx;
     s16 ry;
@@ -81,25 +82,25 @@ void func_802933A0(s32 x, s32 y, s32 z, s32 type, Mtx *mtx, void *state, Gfx *gf
     rz = 0;
     switch (type) {
         case 1:
-            func_80294C50(mf, &rx, &ry, &rz, (s32 *) state, idx);
+            spline_bob(mf, &rx, &ry, &rz, (s32 *) state, idx);
             break;
         case 2:
-            func_80294D24(mf, &rx, &ry, &rz, (s32 *) state, idx);
+            spline_orbit(mf, &rx, &ry, &rz, (s32 *) state, idx);
             break;
         case 3:
-            func_80293F84(mf, x >> 5, z >> 5, &rx, &ry, &rz, state, idx);
+            spline_follow_path(mf, x >> 5, z >> 5, &rx, &ry, &rz, state, idx);
             break;
         case 4:
-            func_802936AC(mf, x >> 5, z >> 5, arg9 >> 5, arg11 >> 5, &rx, &ry, &rz, state, idx);
+            spline_walk_maze(mf, x >> 5, z >> 5, arg9 >> 5, arg11 >> 5, &rx, &ry, &rz, state, idx);
             break;
         case 5:
-            func_80294B64(mf, 90, &rx, &ry, &rz, (SwingState *) state, idx);
+            spline_swing(mf, 90, &rx, &ry, &rz, (SwingState *) state, idx);
             break;
         default:
             guTranslateF(mf, 0.0f, 0.0f, 0.0f);
             break;
     }
-    if (type == 3 && D_802FE980[idx].mode == 1) {
+    if (type == 3 && gSplinePaths[idx].mode == 1) {
         y = 0;
     }
     guTranslateF(tmp, x / 32.0f, y / 32.0f, z / 32.0f);
@@ -114,11 +115,13 @@ void func_802933A0(s32 x, s32 y, s32 z, s32 type, Mtx *mtx, void *state, Gfx *gf
 
 #define ABS(x) ((x) < 0 ? -(x) : (x))
 
+/* The maze walker on gMazeJunctions: chases the player; while gPowerPillTimer runs it turns
+ * back, flees and blinks (0x802936AC). */
 #ifdef NON_MATCHING
-void func_802936AC(f32 mf[4][4], s16 x, s16 z, s16 ox, s16 oz, s16 *px, s16 *py, s16 *pz, WalkState *state,
+void spline_walk_maze(f32 mf[4][4], s16 x, s16 z, s16 ox, s16 oz, s16 *px, s16 *py, s16 *pz, WalkState *state,
                    s32 speed)
 #else
-void func_802936AC(mf, x, z, ox, oz, px, py, pz, state, speed)
+void spline_walk_maze(mf, x, z, ox, oz, px, py, pz, state, speed)
     f32 mf[4][4];
     s16 x;
     s16 z;
@@ -155,11 +158,11 @@ void func_802936AC(mf, x, z, ox, oz, px, py, pz, state, speed)
 
     i = 0;
     found = 0;
-    if (D_8036E4C8 == 0 && D_8036DCD8 != 0) {
-        func_802608C8((void *) N64_IPTR(D_8036DCD8));
+    if (gPowerPillTimer == 0 && gPowerPillSound != 0) {
+        snd_stop((void *) N64_IPTR(gPowerPillSound));
     }
     if (gPaused == 0) {
-        if (((u8) D_8036E4CA)) {
+        if (((u8) gPowerPillEaten)) {
             state->last = -1;
             switch (state->dir) {
                 case 1:
@@ -177,8 +180,8 @@ void func_802936AC(mf, x, z, ox, oz, px, py, pz, state, speed)
             }
         }
         while (i < 102 && !found) {
-            if (D_802FEDA0[i].level == levelno && D_802FEDA0[i].x - 5 <= ox && D_802FEDA0[i].z - 5 <= oz &&
-                ox < D_802FEDA0[i].x + 5 && oz < D_802FEDA0[i].z + 5 && state->last != i) {
+            if (gMazeJunctions[i].level == levelno && gMazeJunctions[i].x - 5 <= ox && gMazeJunctions[i].z - 5 <= oz &&
+                ox < gMazeJunctions[i].x + 5 && oz < gMazeJunctions[i].z + 5 && state->last != i) {
                 found = 1;
             } else {
                 i++;
@@ -187,7 +190,7 @@ void func_802936AC(mf, x, z, ox, oz, px, py, pz, state, speed)
         if (found) {
             state->last = i;
             cx = gPlayerX >> 5, cz = gPlayerZ >> 5;
-            if (D_8036E4C8 == 0) {
+            if (gPowerPillTimer == 0) {
                 dx = cx - ox, dz = cz - oz;
             } else {
                 dx = ox - cx;
@@ -212,7 +215,7 @@ void func_802936AC(mf, x, z, ox, oz, px, py, pz, state, speed)
                     back = 0;
                     break;
             }
-            exits = (D_802FEDA0[i].exits & back) ? (D_802FEDA0[i].exits & (back ^ 0xFF)) : D_802FEDA0[i].exits;
+            exits = (gMazeJunctions[i].exits & back) ? (gMazeJunctions[i].exits & (back ^ 0xFF)) : gMazeJunctions[i].exits;
             if (dz > 0 && adz >= adx) {
                 want = 1;
             }
@@ -266,7 +269,7 @@ void func_802936AC(mf, x, z, ox, oz, px, py, pz, state, speed)
                 }
             }
         }
-        if (D_8036E4C8 == 0) {
+        if (gPowerPillTimer == 0) {
             offset = speed;
         } else {
             offset = speed * 3 / 2;
@@ -318,7 +321,7 @@ void func_802936AC(mf, x, z, ox, oz, px, py, pz, state, speed)
         *pz = oz - z;
     }
     guRotateF(mf, state->angle, 0.0f, 1.0f, 0.0f);
-    if (D_8036E4C8 == 0 || (D_803156C4 & 0xF) >= 7) {
+    if (gPowerPillTimer == 0 || (D_803156C4 & 0xF) >= 7) {
         guTranslateF(m, *px, *py, *pz);
     } else {
         guTranslateF(m, 0.0f, 20000.0f, 0.0f);
@@ -326,10 +329,11 @@ void func_802936AC(mf, x, z, ox, oz, px, py, pz, state, speed)
     guMtxCatF(mf, m, mf);
 }
 
+/* Follows spline path idx (its tension); y from the spline or the water (0x80293F84). */
 #ifdef NON_MATCHING
-void func_80293F84(f32 mf[4][4], s16 x, s16 z, s16 *px, s16 *py, s16 *pz, PathState *state, s32 idx)
+void spline_follow_path(f32 mf[4][4], s16 x, s16 z, s16 *px, s16 *py, s16 *pz, PathState *state, s32 idx)
 #else
-void func_80293F84(mf, x, z, px, py, pz, state, idx)
+void spline_follow_path(mf, x, z, px, py, pz, state, idx)
     f32 mf[4][4];
     s16 x;
     s16 z;
@@ -352,19 +356,19 @@ void func_80293F84(mf, x, z, px, py, pz, state, idx)
     f32 p2;
     f32 p3;
 
-    func_802949B0(idx);
+    spline_set_basis(idx);
     if (gPaused == 0) {
-        state->t += D_802FE980[idx].speed;
+        state->t += gSplinePaths[idx].speed;
         if (state->t >= 1000) {
             state->t = 0;
             state->seg++;
-            if (state->seg >= D_802FE980[idx].count - 1) {
+            if (state->seg >= gSplinePaths[idx].count - 1) {
                 state->seg = 0;
             }
         }
     }
     seg = state->seg;
-    last = D_802FE980[idx].count - 1;
+    last = gSplinePaths[idx].count - 1;
     if (seg <= 0) {
         k[0] = last + seg - 1;
     } else {
@@ -381,42 +385,42 @@ void func_80293F84(mf, x, z, px, py, pz, state, idx)
     } else {
         k[3] = seg + 2;
     }
-    D_8039CA50 = (f32) state->t / 1000.0;
-    D_8039CA54 = D_8039CA50 * D_8039CA50;
-    D_8039CA58 = D_8039CA54 * D_8039CA50;
+    gSplineT = (f32) state->t / 1000.0;
+    gSplineT2 = gSplineT * gSplineT;
+    gSplineT3 = gSplineT2 * gSplineT;
 
-    p0 = D_802FE980[idx].pts[k[0]].rx, p1 = D_802FE980[idx].pts[k[1]].rx, p2 = D_802FE980[idx].pts[k[2]].rx,
-    p3 = D_802FE980[idx].pts[k[3]].rx;
-    func_8026A2E8(p0, &p1);
-    func_8026A2E8(p1, &p2);
-    func_8026A2E8(p2, &p3);
-    rotX = func_80294840(p0, p1, p2, p3);
+    p0 = gSplinePaths[idx].pts[k[0]].rx, p1 = gSplinePaths[idx].pts[k[1]].rx, p2 = gSplinePaths[idx].pts[k[2]].rx,
+    p3 = gSplinePaths[idx].pts[k[3]].rx;
+    util_unwrap_angle(p0, &p1);
+    util_unwrap_angle(p1, &p2);
+    util_unwrap_angle(p2, &p3);
+    rotX = spline_eval(p0, p1, p2, p3);
 
-    p0 = D_802FE980[idx].pts[k[0]].ry, p1 = D_802FE980[idx].pts[k[1]].ry, p2 = D_802FE980[idx].pts[k[2]].ry,
-    p3 = D_802FE980[idx].pts[k[3]].ry;
-    func_8026A2E8(p0, &p1);
-    func_8026A2E8(p1, &p2);
-    func_8026A2E8(p2, &p3);
-    rotY = func_80294840(p0, p1, p2, p3);
+    p0 = gSplinePaths[idx].pts[k[0]].ry, p1 = gSplinePaths[idx].pts[k[1]].ry, p2 = gSplinePaths[idx].pts[k[2]].ry,
+    p3 = gSplinePaths[idx].pts[k[3]].ry;
+    util_unwrap_angle(p0, &p1);
+    util_unwrap_angle(p1, &p2);
+    util_unwrap_angle(p2, &p3);
+    rotY = spline_eval(p0, p1, p2, p3);
 
-    p0 = D_802FE980[idx].pts[k[0]].rz, p1 = D_802FE980[idx].pts[k[1]].rz, p2 = D_802FE980[idx].pts[k[2]].rz,
-    p3 = D_802FE980[idx].pts[k[3]].rz;
-    func_8026A2E8(p0, &p1);
-    func_8026A2E8(p1, &p2);
-    func_8026A2E8(p2, &p3);
-    rotZ = func_80294840(p0, p1, p2, p3);
+    p0 = gSplinePaths[idx].pts[k[0]].rz, p1 = gSplinePaths[idx].pts[k[1]].rz, p2 = gSplinePaths[idx].pts[k[2]].rz,
+    p3 = gSplinePaths[idx].pts[k[3]].rz;
+    util_unwrap_angle(p0, &p1);
+    util_unwrap_angle(p1, &p2);
+    util_unwrap_angle(p2, &p3);
+    rotZ = spline_eval(p0, p1, p2, p3);
 
-    *px = func_80294840(D_802FE980[idx].pts[k[0]].x, D_802FE980[idx].pts[k[1]].x, D_802FE980[idx].pts[k[2]].x,
-                        D_802FE980[idx].pts[k[3]].x);
-    *pz = func_80294840(D_802FE980[idx].pts[k[0]].z, D_802FE980[idx].pts[k[1]].z, D_802FE980[idx].pts[k[2]].z,
-                        D_802FE980[idx].pts[k[3]].z);
-    switch (D_802FE980[idx].mode) {
+    *px = spline_eval(gSplinePaths[idx].pts[k[0]].x, gSplinePaths[idx].pts[k[1]].x, gSplinePaths[idx].pts[k[2]].x,
+                        gSplinePaths[idx].pts[k[3]].x);
+    *pz = spline_eval(gSplinePaths[idx].pts[k[0]].z, gSplinePaths[idx].pts[k[1]].z, gSplinePaths[idx].pts[k[2]].z,
+                        gSplinePaths[idx].pts[k[3]].z);
+    switch (gSplinePaths[idx].mode) {
         case 0:
-            *py = func_80294840(D_802FE980[idx].pts[k[0]].y, D_802FE980[idx].pts[k[1]].y,
-                                D_802FE980[idx].pts[k[2]].y, D_802FE980[idx].pts[k[3]].y);
+            *py = spline_eval(gSplinePaths[idx].pts[k[0]].y, gSplinePaths[idx].pts[k[1]].y,
+                                gSplinePaths[idx].pts[k[2]].y, gSplinePaths[idx].pts[k[3]].y);
             break;
         case 1:
-            func_8027EED8(*px + x, *pz + z, py);
+            water_get_height(*px + x, *pz + z, py);
             break;
     }
     guRotateF(m, rotX, 1.0f, 0.0f, 0.0f);
@@ -428,42 +432,45 @@ void func_80293F84(mf, x, z, px, py, pz, state, idx)
     guMtxCatF(m, mf, mf);
 }
 
-f32 func_80294840(f32 a, f32 b, f32 c, f32 d) {
+/* The cubic with gSplineBasis at gSplineT (0x80294840). */
+f32 spline_eval(f32 a, f32 b, f32 c, f32 d) {
     s32 v0;
     s32 v1;
     s32 v2;
     s32 v3;
 
-    v0 = D_8039CA10[0][0] * a + D_8039CA10[1][0] * b + D_8039CA10[2][0] * c + D_8039CA10[3][0] * d;
-    v1 = D_8039CA10[0][1] * a + D_8039CA10[1][1] * b + D_8039CA10[2][1] * c + D_8039CA10[3][1] * d;
-    v2 = D_8039CA10[0][2] * a + D_8039CA10[1][2] * b + D_8039CA10[2][2] * c + D_8039CA10[3][2] * d;
-    v3 = D_8039CA10[0][3] * a + D_8039CA10[1][3] * b + D_8039CA10[2][3] * c + D_8039CA10[3][3] * d;
-    return v0 * D_8039CA58 + D_8039CA54 * v1 + D_8039CA50 * v2 + v3;
+    v0 = gSplineBasis[0][0] * a + gSplineBasis[1][0] * b + gSplineBasis[2][0] * c + gSplineBasis[3][0] * d;
+    v1 = gSplineBasis[0][1] * a + gSplineBasis[1][1] * b + gSplineBasis[2][1] * c + gSplineBasis[3][1] * d;
+    v2 = gSplineBasis[0][2] * a + gSplineBasis[1][2] * b + gSplineBasis[2][2] * c + gSplineBasis[3][2] * d;
+    v3 = gSplineBasis[0][3] * a + gSplineBasis[1][3] * b + gSplineBasis[2][3] * c + gSplineBasis[3][3] * d;
+    return v0 * gSplineT3 + gSplineT2 * v1 + gSplineT * v2 + v3;
 }
 
-void func_802949B0(s32 idx) {
+/* The cardinal basis from the path's tension (0x802949B0). */
+void spline_set_basis(s32 idx) {
     f32 s;
 
-    s = D_802FE980[idx].tension;
-    D_8039CA10[0][0] = -s;
-    D_8039CA10[0][1] = s * 2.0;
-    D_8039CA10[0][2] = -s;
-    D_8039CA10[0][3] = 0.0f;
-    D_8039CA10[1][0] = 2.0 - s;
-    D_8039CA10[1][1] = s - 3.0;
-    D_8039CA10[1][2] = 0.0f;
-    D_8039CA10[1][3] = 1.0f;
-    D_8039CA10[2][0] = s - 2.0;
-    D_8039CA10[2][1] = 3.0 - s * 2.0;
-    D_8039CA10[2][2] = s;
-    D_8039CA10[2][3] = 0.0f;
-    D_8039CA10[3][0] = s;
-    D_8039CA10[3][1] = -s;
-    D_8039CA10[3][2] = 0.0f;
-    D_8039CA10[3][3] = 0.0f;
+    s = gSplinePaths[idx].tension;
+    gSplineBasis[0][0] = -s;
+    gSplineBasis[0][1] = s * 2.0;
+    gSplineBasis[0][2] = -s;
+    gSplineBasis[0][3] = 0.0f;
+    gSplineBasis[1][0] = 2.0 - s;
+    gSplineBasis[1][1] = s - 3.0;
+    gSplineBasis[1][2] = 0.0f;
+    gSplineBasis[1][3] = 1.0f;
+    gSplineBasis[2][0] = s - 2.0;
+    gSplineBasis[2][1] = 3.0 - s * 2.0;
+    gSplineBasis[2][2] = s;
+    gSplineBasis[2][3] = 0.0f;
+    gSplineBasis[3][0] = s;
+    gSplineBasis[3][1] = -s;
+    gSplineBasis[3][2] = 0.0f;
+    gSplineBasis[3][3] = 0.0f;
 }
 
-void func_80294B64(f32 mf[4][4], s32 limit, s16 *x, s16 *y, s16 *z, SwingState *state, s32 delay) {
+/* Turns up to a limit about y (a gate or door) (0x80294B64). */
+void spline_swing(f32 mf[4][4], s32 limit, s16 *x, s16 *y, s16 *z, SwingState *state, s32 delay) {
     if (state->time == 0) {
         state->time = delay + D_803156C4;
     }
@@ -479,7 +486,8 @@ void func_80294B64(f32 mf[4][4], s32 limit, s16 *x, s16 *y, s16 *z, SwingState *
     *z = 0;
 }
 
-void func_80294C50(f32 mf[4][4], s16 *x, s16 *y, s16 *z, s32 *counter, s32 amp) {
+/* Bobs up and down (0x80294C50). */
+void spline_bob(f32 mf[4][4], s16 *x, s16 *y, s16 *z, s32 *counter, s32 amp) {
     f32 s;
 
     if (gPaused == 0) {
@@ -492,7 +500,8 @@ void func_80294C50(f32 mf[4][4], s16 *x, s16 *y, s16 *z, s32 *counter, s32 amp) 
     guTranslateF(mf, 0.0f, *y, 0.0f);
 }
 
-void func_80294D24(f32 mf[4][4], s16 *x, s16 *y, s16 *z, s32 *angle, s32 speed) {
+/* Circles on a tilted axis (0x80294D24). */
+void spline_orbit(f32 mf[4][4], s16 *x, s16 *y, s16 *z, s32 *angle, s32 speed) {
     f32 m[4][4];
     f32 ox;
     f32 oy;

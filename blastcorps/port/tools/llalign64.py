@@ -4,7 +4,7 @@
 The x86-64 ABI gives a global array of 16 bytes or more 16-byte alignment and
 clang assumes it for every array it sees, extern ones included; it then uses
 aligned SSE accesses (movaps) on them.  N64 data sits at N64 addresses with
-N64 alignment (D_8036B8C8 is 8-aligned): such an access faults.  No clang
+N64 alignment (gCamPathBasis is 8-aligned): such an access faults.  No clang
 option turns the assumption off, and the attribute that would (aligned on
 each declaration) can't be applied by #pragma clang attribute, so the 64-bit
 build compiles the game code to optimised IR, lowers every `align N` above 4

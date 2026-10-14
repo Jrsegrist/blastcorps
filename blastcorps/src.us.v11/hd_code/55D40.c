@@ -2,12 +2,13 @@
 #include <ultra64.h>
 #include "game/game.h"
 
-extern s32 D_803A6B20;
-extern s32 D_803A6B24;
+extern s32 gCreditsScroll;
+extern s32 gCreditsEndTimer;
 
-void func_8029A500(void) {
-    D_803A6B20 = -0xef;
-    D_803A6B24 = 0;
+/* Starts the credits (0x8029A500). */
+void credits_init(void) {
+    gCreditsScroll = -0xef;
+    gCreditsEndTimer = 0;
 }
 typedef struct {
     u32 flags;
@@ -16,11 +17,12 @@ typedef struct {
     char str[42];
 } CreditLine;
 
-extern CreditLine D_80304A90[];
+extern CreditLine gCreditLines[];
 
 
-/* Credits scroller: draws the visible credit lines, advances the scroll, and ends the credits */
-Gfx *func_8029A518(Gfx * N64P *gfxp, Gfx *gfx) {
+/* Draws the visible credit lines and scrolls them (0x8029A518).
+ * Credits scroller: draws the visible credit lines, advances the scroll, and ends the credits */
+Gfx *credits_draw(Gfx * N64P *gfxp, Gfx *gfx) {
     Gfx *ret = gfx;
     CreditLine *line;
     s32 i;
@@ -33,7 +35,7 @@ Gfx *func_8029A518(Gfx * N64P *gfxp, Gfx *gfx) {
     s32 color;
 
     for (i = 0; i < 0x52; i++) {
-        line = &D_80304A90[i];
+        line = &gCreditLines[i];
         if (line->flags & 1) {
             color = 0xA0;
         } else if (line->flags & 4) {
@@ -43,8 +45,8 @@ Gfx *func_8029A518(Gfx * N64P *gfxp, Gfx *gfx) {
         } else {
             color = 0;
         }
-        if (y - D_803A6B20 >= -0x31 && y - D_803A6B20 < 0xF0) {
-            func_80259DC8(gfxp, (u8 *) line->str, 0, 0, color, x, y - D_803A6B20, line->size, line->size, 1,
+        if (y - gCreditsScroll >= -0x31 && y - gCreditsScroll < 0xF0) {
+            text_print_gradient(gfxp, (u8 *) line->str, 0, 0, color, x, y - gCreditsScroll, line->size, line->size, 1,
                           D_802F47B0[line->color][0], D_802F47B0[line->color][1], D_802F47B0[line->color][2],
                           D_802F47B0[line->color][3], D_802F47B0[line->color][4], D_802F47B0[line->color][5],
                           D_802F47B0[line->color][6], D_802F47B0[line->color][7]);
@@ -60,19 +62,19 @@ Gfx *func_8029A518(Gfx * N64P *gfxp, Gfx *gfx) {
         }
     }
     if (((s32) gFramesInMode) == 100) {
-        func_8026AF6C(0x8036);
+        yoshi_demand(0x8036);
     }
     if ((u32) ((s32) gFramesInMode) >= 0x18C) {
-        D_803A6B20++;
+        gCreditsScroll++;
     }
     if (gCarrierHit) {
-        D_803A6B24++;
+        gCreditsEndTimer++;
     }
-    if (D_803A6B24 == 0x7D) {
-        func_8026AF6C(0x8037);
-        func_80260EE0(0x25);
+    if (gCreditsEndTimer == 0x7D) {
+        yoshi_demand(0x8037);
+        music_push_tune(0x25);
     }
-    if (D_803A6B24 >= 0x7E && yoshiState == 1 && areWeFading() == 0) {
+    if (gCreditsEndTimer >= 0x7E && yoshiState == 1 && areWeFading() == 0) {
         func_80275270(0x200000000000, 0.75f);
     }
     return ret;

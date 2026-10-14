@@ -15,8 +15,8 @@
  * Layouts (every other byte is a u8):
  *   PLAYER   players[n], 0x100: u16 0x0A (rank points), u32 0x10 (vehicle
  *            unlocks), u32 0x14 (money), u32 0xF0 (vehicle flags); CRC 0xFC.
- *   TIMES    D_80364EF0[n], 0x20: u16[14] best times; CRC 0x1C.
- *   EETIMES  D_80364F70 block, 8: u16[4] (time, time ^ 0x55AA pairs).
+ *   TIMES    gBestTimes[n], 0x20: u16[14] best times; CRC 0x1C.
+ *   EETIMES  gEepTimes block, 8: u16[4] (time, time ^ 0x55AA pairs).
  *   STATUS   pakBuffer, 0x40: a bit stream (bytes), or the u64 marker
  *            0x1234567887654321 at 0 ("no status"); CRC 0x3C.  Swapped in
  *            place (a macro array; the marker is the only multi-byte value).
@@ -109,7 +109,7 @@ void *port_save_end(void *buf, int kind, int size) {
     return orig;
 }
 
-/* func_801F6AF4 writes 0x20 bytes to the pak from the address of its u64
+/* fe_pak_put_semaphore writes 0x20 bytes to the pak from the address of its u64
  * parameter: the semaphore and then whatever follows it on the stack.  On
  * the N64 (mupen64plus, original ROM, every write seen) that is
  * 00000000 00000000 00000000 802DC2C8 00000000 00000000; the port writes

@@ -9,6 +9,9 @@ Every function in the matching build falls in exactly one category:
   near-miss       IDO C still behind GLOBAL_ASM, with a NON_MATCHING C draft
   unmatched C     IDO C still behind GLOBAL_ASM, no C at all
 
+"named" counts the functions with a real name (SDK names and tools_port/names.txt renames)
+rather than a func_XXXXXXXX address name.
+
 "Permanent hand-written" comes from tools_port/hand_asm.txt.  Functions are counted from the
 matching build's ELFs (build/<segment>.us.v11.elf: defined FUNC symbols, without jump-table
 L-labels), and the GLOBAL_ASM side from the #pragma lines in src.us.v11/<segment>/*.c and the
@@ -40,6 +43,7 @@ LABEL_RE = re.compile(r'^L[0-9A-F]{8}(_[0-9A-F]+)?$')
 PRAGMA_RE = re.compile(r'^\s*#\s*pragma\s+GLOBAL_ASM\(\s*"([^"]+)"\s*\)')
 COND_RE = re.compile(r'^\s*#\s*(ifdef|ifndef|if|elif|else|endif)\b(.*)')
 GLABEL_RE = re.compile(r'^\s*glabel\s+(\S+)')
+ADDR_NAME_RE = re.compile(r'^func_[0-9A-F]{8}$')   # still an address name (not in tools_port/names.txt)
 
 
 def load_hand_list(path):
@@ -153,6 +157,7 @@ def main():
     used_hand = set()
     problems = []
     rows = {}
+    named = {}
     lists = {'hand': [], 'near': [], 'unmatched': []}
     for seg in SEGMENTS:
         counts = dict.fromkeys(CATS, 0)
@@ -179,6 +184,7 @@ def main():
             problems.append('%s: GLOBAL_ASM functions missing from the ELF: %s' % (seg, ' '.join(sorted(missing))))
         counts['matched'] = len(funcs - asm_names)
         rows[seg] = counts
+        named[seg] = len([n for n in funcs | asm_names if not ADDR_NAME_RE.match(n)])
     for (seg, f), names in hand.items():
         for n in (['*'] if names is None else names):
             if (seg, f, n) not in used_hand:
@@ -190,16 +196,19 @@ def main():
         for c in CATS:
             total[c] += rows[seg][c]
     rows['total'] = total
+    named['total'] = sum(named[s] for s in SEGMENTS)
 
     def pct(r):
         ido = r['matched'] + r['near'] + r['unmatched']
         return 100.0 * r['matched'] / ido if ido else 100.0
 
-    head = ['segment', 'functions'] + [CAT_TITLES[c] for c in CATS] + ['IDO C matched']
+    head = ['segment', 'functions'] + [CAT_TITLES[c] for c in CATS] + ['IDO C matched', 'named']
     body = []
     for seg in SEGMENTS + ['total']:
         r = rows[seg]
-        body.append([seg, str(sum(r.values()))] + [str(r[c]) for c in CATS] + ['%.1f%%' % pct(r)])
+        n = sum(r.values())
+        body.append([seg, str(n)] + [str(r[c]) for c in CATS] + ['%.1f%%' % pct(r),
+                    '%d (%.0f%%)' % (named[seg], 100.0 * named[seg] / n if n else 0)])
     if args.markdown:
         print('| ' + ' | '.join(head) + ' |')
         print('|' + '|'.join(['---'] + ['---:'] * (len(head) - 1)) + '|')

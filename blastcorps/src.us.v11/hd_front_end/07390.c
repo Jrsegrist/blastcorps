@@ -7,14 +7,15 @@
 /* end of views */
 
 
-extern s32 D_802159C0;
+extern s32 gPakErrorFrames;
 
 
 void func_801EE390(void) {
 }
 
-/* draw one front-end frame: a cleared screen plus the yoshi window `arg0` */
-void func_801EE398(s32 arg0) {
+/* The save thread's error screen: a black frame and a window (0x801EE398).
+ * draw one front-end frame: a cleared screen plus the yoshi window `arg0` */
+void fe_pak_error_frame(s32 arg0) {
     FeDyn *buf;
     Gfx *gdl;
     s32 i;
@@ -23,17 +24,17 @@ void func_801EE398(s32 arg0) {
     nextdma = 0;
     no_palette_dmas = 0;
     gdl = buf->dl;
-    func_802A5720();
-    func_8025B2B8();
+    tex_reset_decode_queue();
+    font_age_cache();
     if (currentYoshiWindow != arg0) {
-        func_8026AF6C(arg0 | 0x8000 | 0x2000);
-        func_80260A10();
-        D_802159C0 = 0;
+        yoshi_demand(arg0 | 0x8000 | 0x2000);
+        snd_stop_all_looping();
+        gPakErrorFrames = 0;
     }
-    if (D_802159C0 == 2) {
+    if (gPakErrorFrames == 2) {
         osViBlack(0);
     }
-    func_80259450();
+    text_begin_frame();
     rsp_send_task((u64 *) (gDynamicBufs[gBufferIndex].dl), gFrameDlLen, 1, 1, 0x4D2, 0);
     gBufferIndex ^= 1;
     gSPSegment(gdl++, 0, 0);
@@ -47,7 +48,7 @@ void func_801EE398(s32 arg0) {
     gDPSetFillColor(gdl++, 0x00010001);
     gDPFillRectangle(gdl++, 0, 0, 319, 239);
     gDPSetCycleType(gdl++, G_CYC_1CYCLE);
-    gdl = func_8026BBD0(gdl, (s32) &gDynamicBufs[gBufferIndex], &gFrameDlLen);
+    gdl = yoshi_draw(gdl, (s32) &gDynamicBufs[gBufferIndex], &gFrameDlLen);
     gDPFullSync(gdl++);
     gSPEndDisplayList(gdl++);
     gFrameDlLen = gdl - buf->dl;
@@ -55,8 +56,8 @@ void func_801EE398(s32 arg0) {
         osRecvMesg(&textureDmaMessageQ, NULL, OS_MESG_BLOCK);
     }
     for (i = 0; i < nextdma - no_palette_dmas; i++) {
-        func_802A57AC();
+        tex_decode_next();
     }
     rsp_wait_task(0x4D2);
-    D_802159C0++;
+    gPakErrorFrames++;
 }

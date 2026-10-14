@@ -766,14 +766,14 @@ class Cmp:
 
     def rule_ignored(self, a, e, nat=None):
         """Conditional ignores (state-dependent, so not in compare_ignore.txt)."""
-        # 60F60.c's 0x1010-byte texture HeapBlocks (D_803EB788 .. D_803EB78C,
+        # 60F60.c's 0x1010-byte texture HeapBlocks (gFxTexCaches .. gFxTexCachesEnd,
         # carved from heap that held other data before): the trailer's only
         # fields are the s32 at 0x1000, the u16 age at 0x1004 and the byte key
         # at 0x1006; bytes 0x1007-0x100F are never written, so they keep
         # whatever the memory held before, in that data's own byte order
         o = a - BASE
         if nat is not None:
-            # sound handles (sndPlaySfx's out parameter, e.g. D_803F7C18 or in
+            # sound handles (sndPlaySfx's out parameter, e.g. gJbombThrustSound or in
             # heap objects): which slot of the sound player's state array
             # (0x40-byte entries from 0x80399FF0) a sound gets, and when it
             # ends (the handle goes NULL), follow the audio thread's timing,
@@ -785,14 +785,14 @@ class Cmp:
                 return 0x80399FF0 <= v < 0x8039AFF0 and (v - 0x80399FF0) % 0x40 == 0
             if (snd(ev) or ev == 0) and (snd(nv) or nv == 0) and (ev or nv):
                 return True
-        # 34430.c func_80279778: the RDP renders a 120x90 RGBA16 view into
-        # the buffer D_8036D170 points at (its depth image: gDepthBufferPhys's);
+        # 34430.c mb_render_view: the RDP renders a 120x90 RGBA16 view into
+        # the buffer gMbBuffer points at (its depth image: gDepthBufferPhys's);
         # nothing renders natively, and the CPU doesn't read the pixels
         for ptr in (0x8036D170, 0x80358058):
             p = int.from_bytes(e[ptr - BASE:ptr - BASE + 4], "big") | 0x80000000
             if p <= a < p + 120 * 90 * 2:
                 return True
-        # 34430.c func_80278E3C passes the heap pointer gHeapPtr's value,
+        # 34430.c mb_init passes the heap pointer gHeapPtr's value,
         # not its address, to the round-up helper align_up (an original
         # bug, kept): it "rounds" the stale s32 just past that buffer (the
         # emulator's text Vtx x/y pair there gets y += 15; natively the same
@@ -806,7 +806,7 @@ class Cmp:
             return True   # (a trailer of an earlier level's blocks, unchanged since)
         if lo <= a < hi and nat is not None:
             r = (a - lo) % 0x1010
-            # a free block (inUse at 0x1000 is 0 on both sides: func_802A5FA8
+            # a free block (inUse at 0x1000 is 0 on both sides: fx_alloc_texture_caches
             # clears it, the age and key at 0x1004 are only written once the
             # block is used): its trailer is all stale bytes
             u = o - r + 0x1000
@@ -938,9 +938,9 @@ class Layout:
     FE = (0x801E7000, 0x8021ED00)   # the front end's text, data and bss
     # assets whose traced widths are polluted (the tracer charges an access to
     # the last load at the address; heap reused by other code afterwards)
-    UNTYPED_ROM = {0x6EC4C0: "packed-object table (u32 offsets, read by func_802A2A98 only): its 0x800 "
+    UNTYPED_ROM = {0x6EC4C0: "packed-object table (u32 offsets, read by lvl_load_object only): its 0x800 "
                              "bytes of heap are reused by the collision/level loaders in the trace"}
-    UNTYPED = [("D_803C3250", "60F60.c texture decode scratch: declared u64 (the copy loop's unit), "
+    UNTYPED = [("gTexDecodeScratch", "60F60.c texture decode scratch: declared u64 (the copy loop's unit), "
                               "holds the packed s16 tokens"),
                ("D_803EBB58", "62740.c accumulated Mtx: declared u16[], used as Mtx words (PORT_HALF)"),
                ("D_803EBB98", "62740.c product Mtx: declared u16[], used as Mtx words (PORT_HALF)"),

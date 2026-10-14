@@ -6,29 +6,29 @@
  * returned in $s8 or $f0), split out of the old 68810 bin blob. Like the
  * 56040..8DDB0 block, these stay GLOBAL_ASM permanently in the matching build.
  *
- * ROM 0x690C0-0x69944 holds the arcsine tables D_802AD880 / D_802AE084 (see
+ * ROM 0x690C0-0x69944 holds the arcsine tables gAsinTable / gAsinSteepTable (see
  * 69000.c). Code units must start on a 16-byte boundary, so this file begins
  * 0x14 bytes early, at 0x802AE0F0, and carries the last five words of
- * D_802AE084 as data below. */
+ * gAsinSteepTable as data below. */
 
 #ifndef NON_MATCHING
-/* Last 5 words of the u16 table D_802AE084 (data, not code): the matching
+/* Last 5 words of the u16 table gAsinSteepTable (data, not code): the matching
  * build has to assemble them into this file's .text. */
 GLOBAL_ASM(
 glabel D_802AE0F0
 .word 0x3F513F5B, 0x3F663F71, 0x3F7E3F8B, 0x3F9B3FAD, 0x3FC53FFF
 )
 #else
-/* The arcsine tables D_802AD880 (1025 entries) and D_802AE084 (64), i.e. the
+/* The arcsine tables gAsinTable (1025 entries) and gAsinSteepTable (64), i.e. the
  * 690C0 bin plus the five words above, ROM 0x690C0-0x69944.
  * The NON_MATCHING build defines it in C and links this file's .data (it has
  * nothing else) back at the table's original address (Makefile NM_PIN_HD_CODE,
  * nm_ldscript.py --pin-object); nm_symaudit.py checks the bytes against the
  * bin. Code reaches it through the absolute D_ symbols. */
 typedef struct {
-    /* 802AD880 */ u16 asin[0x401]; /* D_802AD880 */
+    /* 802AD880 */ u16 asin[0x401]; /* gAsinTable */
     /* 802AE082 */ u16 pad802AE082;
-    /* 802AE084 */ u16 asinSteep[64]; /* D_802AE084 */
+    /* 802AE084 */ u16 asinSteep[64]; /* gAsinSteepTable */
 } TextData690C0; /* size 0x884 */
 /* the members must sit at their ROM offsets (with 4-byte pointers) */
 typedef char TextData690C0_size_check[(sizeof(void *) != 4 || sizeof(TextData690C0) == 0x884) ? 1 : -1];
@@ -193,8 +193,8 @@ extern f32 D_80305C94; /* 1/8! */
 extern f32 D_80305C9C; /* 65536.0 */
 extern f32 D_80305CA0; /* 2*pi / 4096 */
 
-f32 func_802AE1BC(f32 x);
-f32 func_802AE290(f32 x);
+f32 math_cosf(f32 x);
+f32 math_sinf(f32 x);
 
 /* cvt.w.s: float -> s32 rounding to nearest, ties to even (the FCSR mode the
  * game runs with), not truncation like a C cast. */
@@ -212,37 +212,40 @@ static s32 port_cvt_w_s(f32 x) {
 #endif
 
 /* Fixed-point cosine: in v1 = angle (low 12 bits, 0x1000 = 360 degrees),
- * out s8 = (s32)(cos * scale) via func_802AE1BC. Preserves v1/a0. */
+ * out s8 = (s32)(cos * scale) via math_cosf. Preserves v1/a0. */
 #ifdef NON_MATCHING
-/* Convention: in v1=a0 ; out fp=ret. Asm callers rely on it preserving v1/a0
+/* 12-bit angle to a 16.16 cosine (0x802AE104).
+ * Convention: in v1=a0 ; out fp=ret. Asm callers rely on it preserving v1/a0
  * (it saves them) and t0/t3/t4/t5/t7, a1-a3 (untouched); a mixed build needs a
  * thunk. The asm also leaves f12 = 65536.0 and the core's f8/f14 temporaries;
  * the survey lists those as read by callers, but none of the callers reads
  * them before writing them (checked by hand), so they are not modelled. */
-s32 func_802AE104(s32 angle) {
-    return port_cvt_w_s(func_802AE1BC((f32) (angle & 0xFFF) * D_80305CA0) * D_80305C9C);
+s32 math_cos(s32 angle) {
+    return port_cvt_w_s(math_cosf((f32) (angle & 0xFFF) * D_80305CA0) * D_80305C9C);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/69930/func_802AE104.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/69930/math_cos.s")
 #endif
 
-/* Fixed-point sine: as func_802AE104 but via func_802AE290. */
+/* Fixed-point sine: as math_cos but via math_sinf. */
 #ifdef NON_MATCHING
-/* Convention: in v1=a0 ; out fp=ret. Same preserved registers and leftover
- * f12/f14 as func_802AE104. */
-s32 func_802AE160(s32 angle) {
-    return port_cvt_w_s(func_802AE290((f32) (angle & 0xFFF) * D_80305CA0) * D_80305C9C);
+/* 12-bit angle to a 16.16 sine (0x802AE160).
+ * Convention: in v1=a0 ; out fp=ret. Same preserved registers and leftover
+ * f12/f14 as math_cos. */
+s32 math_sin(s32 angle) {
+    return port_cvt_w_s(math_sinf((f32) (angle & 0xFFF) * D_80305CA0) * D_80305C9C);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/69930/func_802AE160.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/69930/math_sin.s")
 #endif
 
 /* Float cosine core: f12 = radians, returns f0 (range reduction + even
  * polynomial). Clobbers a0, f2-f16. */
 #ifdef NON_MATCHING
-/* Plain o32 (f12 in, f0 out). The asm's only caller, func_802AE104, reads
+/* Float cosine (radians, polynomial) (0x802AE1BC).
+ * Plain o32 (f12 in, f0 out). The asm's only caller, math_cos, reads
  * nothing but f0. An infinite input loops forever in the asm too. */
-f32 func_802AE1BC(f32 x) {
+f32 math_cosf(f32 x) {
     union {
         f32 f;
         u32 u;
@@ -278,13 +281,14 @@ f32 func_802AE1BC(f32 x) {
     return r;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/69930/func_802AE1BC.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/69930/math_cosf.s")
 #endif
 
 /* Float sine core: f12 = radians, returns f0 (odd polynomial). */
 #ifdef NON_MATCHING
-/* Plain o32 (f12 in, f0 out); its only caller func_802AE160 reads only f0. */
-f32 func_802AE290(f32 x) {
+/* Float sine (radians, polynomial) (0x802AE290).
+ * Plain o32 (f12 in, f0 out); its only caller math_sin reads only f0. */
+f32 math_sinf(f32 x) {
     f32 x2, x4, x6, r;
     s32 neg = 0;
 
@@ -315,5 +319,5 @@ f32 func_802AE290(f32 x) {
     return r;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/69930/func_802AE290.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/69930/math_sinf.s")
 #endif

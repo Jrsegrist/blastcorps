@@ -40,16 +40,16 @@ typedef struct {
     u32 to;
 } MbRemap;
 
-extern MbSample D_8036CB60[11]; /* ring of samples */
-extern s32 D_8036CC68;         /* ring head */
-extern s32 D_8036CC6C;         /* ring tail */
+extern MbSample gMbSamples[11]; /* ring of samples */
+extern s32 gMbHead;         /* ring head */
+extern s32 gMbTail;         /* ring tail */
 extern Mtx D_8036CC70[][10];   /* view matrices per slot */
-extern u8 * N64P D_8036D170;         /* 0x5460-byte buffer */
-extern u8 D_8036D178;
-extern s32 D_8036D180;
+extern u8 * N64P gMbBuffer;         /* 0x5460-byte buffer */
+extern u8 gMbState;
+extern s32 gMbCopies;
 extern MbRemap D_802FC060[3];
 extern f32 D_8036D174;         /* view angle, degrees */
-extern s32 D_8036D17C;
+extern s32 gMbMaxCopies;
 extern f32 D_8036D184;
 extern Vtx D_802FBEE0[];       /* 6 x 4 grid of view points */
 extern Gfx D_8036D188[40];     /* display list for the view */
@@ -60,12 +60,13 @@ extern Vp D_802FBED0;
 extern void *gDepthBufferPhys; /* depth buffer */
 #endif
 
-s32 func_802796D8(s32 n, s32 *a, s32 *b);
-void func_8027A7DC(Gfx **gfxp, s32 offset, s32 v);
-s32 func_8027B87C(f32 out[4][4], f32 in[4][4]);
+s32 mb_get_samples(s32 n, s32 *a, s32 *b);
+void mb_draw_strip(Gfx **gfxp, s32 offset, s32 v);
+s32 mb_mtx4_invert(f32 out[4][4], f32 in[4][4]);
 
-/* Copies a display list to the heap, dropping G_ENDDLs and remapping render modes */
-void func_80278BF0(Gfx *src, Gfx *end, Gfx * N64P *dstp) {
+/* Copies a display list to the heap, remapping render modes (0x80278BF0).
+ * Copies a display list to the heap, dropping G_ENDDLs and remapping render modes */
+void mb_copy_dl(Gfx *src, Gfx *end, Gfx * N64P *dstp) {
     Gfx *dst;
     s8 c;
     u32 v;
@@ -110,7 +111,7 @@ void func_80278BF0(Gfx *src, Gfx *end, Gfx * N64P *dstp) {
 }
 
 #ifdef PORT_HOST
-/* func_80278E3C passes the heap pointer's value, not its address, to the
+/* mb_init passes the heap pointer's value, not its address, to the
  * round-up helper (an original slip): it "rounds" whatever s32 the heap holds
  * there.  On the N64 that word is big-endian bytes of the previous user (e.g.
  * a text vertex's x/y); do the same arithmetic on those bytes (port_n64_byte)
@@ -132,20 +133,22 @@ static void port_round_stale(u8 *p, s32 align) {
 #define ROUND_HEAP_WORD(p, align) align_up((s32 *) (p), align)
 #endif
 
-/* Allocates the buffers and resets the state */
-void func_80278E3C(void) {
+/* The motion blur buffer, state reset (0x80278E3C).
+ * Allocates the buffers and resets the state */
+void mb_init(void) {
     ROUND_HEAP_WORD(gHeapPtr, 0x40);
-    D_8036D170 = gHeapPtr;
+    gMbBuffer = gHeapPtr;
     ROUND_HEAP_WORD(gHeapPtr = gHeapPtr + 0x5460, 8);
-    D_8036D178 = 0;
-    D_8036CC68 = 0;
-    D_8036CC6C = 0;
-    D_8036D180 = 0;
-    D_80367C00 = 0;
+    gMbState = 0;
+    gMbHead = 0;
+    gMbTail = 0;
+    gMbCopies = 0;
+    gTurboActive = 0;
 }
 
-/* Sets up the view: count n (at most 10), scale (at most 1), and a view angle from the latest sample (25 degrees if none); fills a 6x4 grid of points 100 units out */
-void func_80278EB0(s32 n, f32 scale, s32 arg2) {
+/* N copies, spacing, view angle (0x80278EB0).
+ * Sets up the view: count n (at most 10), scale (at most 1), and a view angle from the latest sample (25 degrees if none); fills a 6x4 grid of points 100 units out */
+void mb_start(s32 n, f32 scale, s32 arg2) {
     f32 mf1[4][4];
     f32 mf2[4][4];
     f32 p[3];
@@ -168,18 +171,18 @@ void func_80278EB0(s32 n, f32 scale, s32 arg2) {
     if (scale > 1.0f) {
         scale = 1.0f;
     }
-    D_8036D17C = n;
+    gMbMaxCopies = n;
     D_8036D184 = scale;
-    D_8036D180 = 0;
-    D_8036D178 = 1;
-    ok = func_802796D8(1, &i0, &i1);
+    gMbCopies = 0;
+    gMbState = 1;
+    ok = mb_get_samples(1, &i0, &i1);
     if (ok) {
-        r = func_8026A6F0(D_8036CB60[i0].a, D_8036CB60[i0].b, D_8036CB60[i0].c, D_8036CB60[i0].x,
-                          D_8036CB60[i0].y, D_8036CB60[i0].z);
+        r = util_dist3d(gMbSamples[i0].a, gMbSamples[i0].b, gMbSamples[i0].c, gMbSamples[i0].x,
+                          gMbSamples[i0].y, gMbSamples[i0].z);
         if (r < 1.0) {
             r = 1;
         }
-        v = func_802ACF3C((arg2 <<= 16) / r);
+        v = math_atan_c((arg2 <<= 16) / r);
         D_8036D174 = (f32) v / 65536.0 * 360.0;
     } else {
         D_8036D174 = 25.0f;
@@ -217,49 +220,54 @@ void func_80278EB0(s32 n, f32 scale, s32 arg2) {
     }
 }
 
-void func_802794A4(void) {
-    if (!D_80367C00) {
-        if (D_8036D180 < 2) {
-            D_8036D178 = 0;
+/* The blur's fade-out (unless gTurboActive holds it) (0x802794A4). */
+void mb_stop(void) {
+    if (!gTurboActive) {
+        if (gMbCopies < 2) {
+            gMbState = 0;
         } else {
-            D_8036D178 = 2;
+            gMbState = 2;
         }
     }
 }
 
-void func_802794E4(void) {
-    D_8036D178 = 0;
+/* Motion blur off at once (0x802794E4). */
+void mb_cancel(void) {
+    gMbState = 0;
 }
 
-u8 func_802794F0(void) {
+/* 1 while the motion blur is on (0x802794F0). */
+u8 mb_is_active(void) {
     s32 unused;
 
-    return !(D_8036D178 == 0);
+    return !(gMbState == 0);
 }
 
-/* Pushes a sample onto the ring, dropping the oldest when full */
-void func_80279514(s32 x, s32 y, s32 z, s32 a, s32 b, s32 c) {
-    D_8036CB60[D_8036CC68].a = (f32) a / 65536.0;
-    D_8036CB60[D_8036CC68].b = (f32) b / 65536.0;
-    D_8036CB60[D_8036CC68].c = (f32) c / 65536.0;
-    D_8036CB60[D_8036CC68].x = x / 32.0f;
-    D_8036CB60[D_8036CC68].y = y / 32.0f;
-    D_8036CB60[D_8036CC68].z = z / 32.0f;
-    D_8036CC68++;
-    if (D_8036CC68 == 11) {
-        D_8036CC68 = 0;
+/* The player's position and the camera eye into the ring (0x80279514).
+ * Pushes a sample onto the ring, dropping the oldest when full */
+void mb_push_sample(s32 x, s32 y, s32 z, s32 a, s32 b, s32 c) {
+    gMbSamples[gMbHead].a = (f32) a / 65536.0;
+    gMbSamples[gMbHead].b = (f32) b / 65536.0;
+    gMbSamples[gMbHead].c = (f32) c / 65536.0;
+    gMbSamples[gMbHead].x = x / 32.0f;
+    gMbSamples[gMbHead].y = y / 32.0f;
+    gMbSamples[gMbHead].z = z / 32.0f;
+    gMbHead++;
+    if (gMbHead == 11) {
+        gMbHead = 0;
     }
-    if (D_8036CC68 == D_8036CC6C) {
-        D_8036CC6C++;
-        if (D_8036CC6C == 11) {
-            D_8036CC6C = 0;
+    if (gMbHead == gMbTail) {
+        gMbTail++;
+        if (gMbTail == 11) {
+            gMbTail = 0;
         }
     }
 }
 
-/* Fetches the ring indices n and n + 1 steps back from the head; 0 if not there */
-s32 func_802796D8(s32 n, s32 *a, s32 *b) {
-    s32 idx = D_8036CC68;
+/* Ring indices n and n + 1 back (0x802796D8).
+ * Fetches the ring indices n and n + 1 steps back from the head; 0 if not there */
+s32 mb_get_samples(s32 n, s32 *a, s32 *b) {
+    s32 idx = gMbHead;
 
     while (n--) {
         if (idx) {
@@ -267,7 +275,7 @@ s32 func_802796D8(s32 n, s32 *a, s32 *b) {
         } else {
             idx = 10;
         }
-        if (idx == D_8036CC6C) {
+        if (idx == gMbTail) {
             return 0;
         }
     }
@@ -281,8 +289,9 @@ s32 func_802796D8(s32 n, s32 *a, s32 *b) {
     return 1;
 }
 
-/* Renders the 120x90 view into the buffer: clears it, sets the projection from the view angle and looks from (a, b, c) (16.16) at (x, y, z) (1/32), then calls dl */
-void func_80279778(s32 x, s32 y, s32 z, s32 a, s32 b, s32 c, void *dl, void *seg6, void *seg7, s32 alpha) {
+/* The player's vehicle rendered into the 120x90 texture (0x80279778).
+ * Renders the 120x90 view into the buffer: clears it, sets the projection from the view angle and looks from (a, b, c) (16.16) at (x, y, z) (1/32), then calls dl */
+void mb_render_view(s32 x, s32 y, s32 z, s32 a, s32 b, s32 c, void *dl, void *seg6, void *seg7, s32 alpha) {
     Gfx *gdl;
     u16 perspNorm;
     s32 pad;
@@ -296,7 +305,7 @@ void func_80279778(s32 x, s32 y, s32 z, s32 a, s32 b, s32 c, void *dl, void *seg
     f32 dx;
     f32 dz;
 
-    if (D_8036D178) {
+    if (gMbState) {
         gdl = D_8036D188;
         gSPViewport(gdl++, PHYS(&D_802FBED0));
         gSPClearGeometryMode(gdl++, 0xFFFFFFFF);
@@ -313,7 +322,7 @@ void func_80279778(s32 x, s32 y, s32 z, s32 a, s32 b, s32 c, void *dl, void *seg
         gDPSetFillColor(gdl++, 0xFFFCFFFC);
         gDPFillRectangle(gdl++, 0, 0, 119, 89);
         gDPPipeSync(gdl++);
-        gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 120, PHYS(D_8036D170));
+        gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 120, PHYS(gMbBuffer));
         gDPSetFillColor(gdl++, 0);
         gDPFillRectangle(gdl++, 0, 0, 119, 89);
         gDPPipeSync(gdl++);
@@ -347,8 +356,9 @@ void func_80279778(s32 x, s32 y, s32 z, s32 a, s32 b, s32 c, void *dl, void *seg
     }
 }
 
-/* Draws up to D_8036D180 trailing copies of the view, fading out, along the recorded path */
-void func_80279EE8(Gfx **gfxp, s32 arg1, u8 slot) {
+/* Fading copies along the recorded path (0x80279EE8).
+ * Draws up to gMbCopies trailing copies of the view, fading out, along the recorded path */
+void mb_draw(Gfx **gfxp, s32 arg1, u8 slot) {
     Gfx *gdl = *gfxp;
     u8 flag;
     s32 off = 0;
@@ -371,21 +381,21 @@ void func_80279EE8(Gfx **gfxp, s32 arg1, u8 slot) {
     f32 dx;
     f32 dz;
 
-    switch (D_8036D178) {
+    switch (gMbState) {
         case 1:
-            D_8036D180++;
-            if (D_8036D180 == D_8036D17C) {
-                D_8036D178 = 3;
+            gMbCopies++;
+            if (gMbCopies == gMbMaxCopies) {
+                gMbState = 3;
             }
             break;
         case 2:
-            D_8036D180--;
-            if (D_8036D180 == 0) {
-                D_8036D178 = 0;
+            gMbCopies--;
+            if (gMbCopies == 0) {
+                gMbState = 0;
             }
             break;
     }
-    if (D_8036D178) {
+    if (gMbState) {
         gDPPipeSync(gdl++);
         gDPSetColorDither(gdl++, G_CD_NOISE);
         gDPSetAlphaDither(gdl++, G_AD_NOTPATTERN);
@@ -396,20 +406,20 @@ void func_80279EE8(Gfx **gfxp, s32 arg1, u8 slot) {
         gDPSetCombine(gdl++, 0x119623, 0xFF2FFFFF);
         gDPSetTextureFilter(gdl++, G_TF_BILERP);
         gSPTexture(gdl++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
-        a = 30 / (D_8036D17C - 1);
-        b = 40 - a * (D_8036D17C - D_8036D180);
-        for (i = 0; i < D_8036D180; i++) {
+        a = 30 / (gMbMaxCopies - 1);
+        b = 40 - a * (gMbMaxCopies - gMbCopies);
+        for (i = 0; i < gMbCopies; i++) {
             gDPSetPrimColor(gdl++, 0, 0, 0xFF, 0xFF, 0xFF, b);
-            flag = func_802796D8(n, &i0, &i1);
+            flag = mb_get_samples(n, &i0, &i1);
             if (!flag) {
                 break;
             }
-            tx = (D_8036CB60[i1].x - D_8036CB60[i0].x) * t + D_8036CB60[i0].x;
-            ty = (D_8036CB60[i1].y - D_8036CB60[i0].y) * t + D_8036CB60[i0].y;
-            tz = (D_8036CB60[i1].z - D_8036CB60[i0].z) * t + D_8036CB60[i0].z;
-            ea = (D_8036CB60[i1].a - D_8036CB60[i0].a) * t + D_8036CB60[i0].a;
-            eb = (D_8036CB60[i1].b - D_8036CB60[i0].b) * t + D_8036CB60[i0].b;
-            ec = (D_8036CB60[i1].c - D_8036CB60[i0].c) * t + D_8036CB60[i0].c;
+            tx = (gMbSamples[i1].x - gMbSamples[i0].x) * t + gMbSamples[i0].x;
+            ty = (gMbSamples[i1].y - gMbSamples[i0].y) * t + gMbSamples[i0].y;
+            tz = (gMbSamples[i1].z - gMbSamples[i0].z) * t + gMbSamples[i0].z;
+            ea = (gMbSamples[i1].a - gMbSamples[i0].a) * t + gMbSamples[i0].a;
+            eb = (gMbSamples[i1].b - gMbSamples[i0].b) * t + gMbSamples[i0].b;
+            ec = (gMbSamples[i1].c - gMbSamples[i0].c) * t + gMbSamples[i0].c;
             t += D_8036D184;
             if (t >= 1.0) {
                 n++;
@@ -428,26 +438,26 @@ void func_80279EE8(Gfx **gfxp, s32 arg1, u8 slot) {
             } else {
                 guLookAtF(mf, ea + 2.0, eb, ec + 2.0, tx, ty, tz, 0.0f, 1.0f, 0.0f);
             }
-            flag = func_8027B87C(inv, mf);
+            flag = mb_mtx4_invert(inv, mf);
             MB_ASSERT_BELL(flag, 547);
             guMtxF2L(inv, &D_8036CC70[slot][i]);
             gSPMatrix(gdl++, PHYS(&D_8036CC70[slot][i]), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
             gSPVertex(gdl++, PHYS(D_802FBEE0), 16, 0);
             vi = 0;
             off = 0;
-            func_8027A7DC(&gdl, off, vi);
+            mb_draw_strip(&gdl, off, vi);
             off += 0xE10, vi += 4;
-            func_8027A7DC(&gdl, off, vi);
+            mb_draw_strip(&gdl, off, vi);
             off += 0xE10, vi += 4;
-            func_8027A7DC(&gdl, off, vi);
+            mb_draw_strip(&gdl, off, vi);
             off += 0xE10, vi += 4;
-            func_8027A7DC(&gdl, off, vi);
+            mb_draw_strip(&gdl, off, vi);
             off += 0xE10, vi += 4;
             gSPVertex(gdl++, PHYS(&D_802FBEE0[16]), 8, 0);
             vi = 0;
-            func_8027A7DC(&gdl, off, vi);
+            mb_draw_strip(&gdl, off, vi);
             off += 0xE10, vi += 4;
-            func_8027A7DC(&gdl, off, vi);
+            mb_draw_strip(&gdl, off, vi);
             off += 0xE10, vi += 4;
             gSPPopMatrix(gdl++, G_MTX_MODELVIEW);
             b -= a;
@@ -459,20 +469,22 @@ void func_80279EE8(Gfx **gfxp, s32 arg1, u8 slot) {
     }
 }
 
-/* Draws a 120x15 RGBA16 strip from the buffer at offset as two triangles from vertex v */
-void func_8027A7DC(Gfx **gfxp, s32 offset, s32 v) {
+/* One 120x15 strip of the texture (0x8027A7DC).
+ * Draws a 120x15 RGBA16 strip from the buffer at offset as two triangles from vertex v */
+void mb_draw_strip(Gfx **gfxp, s32 offset, s32 v) {
     Gfx *gdl = *gfxp;
     s32 pad;
 
-    gDPLoadTextureBlock(gdl++, D_8036D170 + offset - 0x80000000, G_IM_FMT_RGBA, G_IM_SIZ_16b, 120, 15, 0, G_TX_CLAMP,
+    gDPLoadTextureBlock(gdl++, gMbBuffer + offset - 0x80000000, G_IM_FMT_RGBA, G_IM_SIZ_16b, 120, 15, 0, G_TX_CLAMP,
                         G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
     gSP1Triangle(gdl++, v, v + 1, v + 2, 0);
     gSP1Triangle(gdl++, v, v + 2, v + 3, 0);
     *gfxp = gdl;
 }
 
-/* Swaps rows of a 3x3 matrix so the axes come out in order */
-void func_8027AA04(f32 m[][3], s32 a, s32 b, s32 c) {
+/* 3x3 inverse helper: row order (0x8027AA04).
+ * Swaps rows of a 3x3 matrix so the axes come out in order */
+void mb_mtx3_reorder_rows(f32 m[][3], s32 a, s32 b, s32 c) {
     s32 i;
     s32 t;
     f32 tmp;
@@ -510,8 +522,9 @@ void func_8027AA04(f32 m[][3], s32 a, s32 b, s32 c) {
     }
 }
 
-/* Finishes the 3x3 inversion for columns 1 and 2 (pivot rows q and r), then reorders the rows; 0 if singular */
-s32 func_8027AC00(f32 m[3][3], f32 out[3][3], s32 p) {
+/* 3x3 inverse helper: back substitution (0x8027AC00).
+ * Finishes the 3x3 inversion for columns 1 and 2 (pivot rows q and r), then reorders the rows; 0 if singular */
+s32 mb_mtx3_invert_finish(f32 m[3][3], f32 out[3][3], s32 p) {
     s32 q;
     s32 r;
     s32 a;
@@ -578,12 +591,13 @@ s32 func_8027AC00(f32 m[3][3], f32 out[3][3], s32 p) {
             out[i][r] += s * out[r][r];
         }
     }
-    func_8027AA04(out, p, q, r);
+    mb_mtx3_reorder_rows(out, p, q, r);
     return 1;
 }
 
-/* Inverts a 3x3 matrix into out by elimination: pivots on the largest column-0 entry, then hands over to func_8027AC00; 0 if singular */
-s32 func_8027B200(f32 m[3][3], f32 out[3][3]) {
+/* 3x3 inverse (0x8027B200).
+ * Inverts a 3x3 matrix into out by elimination: pivots on the largest column-0 entry, then hands over to mb_mtx3_invert_finish; 0 if singular */
+s32 mb_mtx3_invert(f32 m[3][3], f32 out[3][3]) {
     s32 i;
     s32 p;
     f32 s;
@@ -630,14 +644,15 @@ s32 func_8027B200(f32 m[3][3], f32 out[3][3]) {
             out[i][p] = out[p][p] * s;
         }
     }
-    if (!func_8027AC00(m, out, p)) {
+    if (!mb_mtx3_invert_finish(m, out, p)) {
         return 0;
     }
     return 1;
 }
 
-/* Splits a 4x4 matrix into translation v, scale s and the rest (pivoting rows if m[3][3] is ~0) */
-s32 func_8027B5D0(f32 m[4][4], f32 *v, f32 *s, s32 *row) {
+/* 4x4 inverse helper (0x8027B5D0).
+ * Splits a 4x4 matrix into translation v, scale s and the rest (pivoting rows if m[3][3] is ~0) */
+s32 mb_mtx4_split_projective(f32 m[4][4], f32 *v, f32 *s, s32 *row) {
     s32 i;
     s32 j;
     f32 tmp;
@@ -681,8 +696,9 @@ s32 func_8027B5D0(f32 m[4][4], f32 *v, f32 *s, s32 *row) {
     return 1;
 }
 
-/* Inverts a 4x4 matrix (general or affine); 0 if singular */
-s32 func_8027B87C(f32 out[4][4], f32 in[4][4]) {
+/* 4x4 inverse (0x8027B87C).
+ * Inverts a 4x4 matrix (general or affine); 0 if singular */
+s32 mb_mtx4_invert(f32 out[4][4], f32 in[4][4]) {
     f32 m[4][4];
     s32 i;
     s32 j;
@@ -708,7 +724,7 @@ s32 func_8027B87C(f32 out[4][4], f32 in[4][4]) {
     out[3][3] = 1.0f;
     affine = m[0][3] == 0.0 && m[1][3] == 0.0 && m[2][3] == 0.0 && m[3][3] == 1.0;
     if (!affine) {
-        if (!func_8027B5D0(m, v, &s, &row)) {
+        if (!mb_mtx4_split_projective(m, v, &s, &row)) {
             return 0;
         }
     }
@@ -720,7 +736,7 @@ s32 func_8027B87C(f32 out[4][4], f32 in[4][4]) {
             a[i][j] = m[i][j];
         }
     }
-    if (!func_8027B200(a, inv)) {
+    if (!mb_mtx3_invert(a, inv)) {
         return 0;
     }
     for (i = 0; i < 3; i++) {

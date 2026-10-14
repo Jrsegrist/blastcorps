@@ -4,7 +4,7 @@
 /* Matching build: IDO compiled the matched code here against older
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
-#define LEGACY_D_80217B70
+#define LEGACY_gSolarNodeMtx
 #define LEGACY_gDepthBufferPhys
 #define LEGACY_gHeapPtr
 #endif /* legacy declarations */
@@ -15,7 +15,7 @@
 #define gFrameBufferPhys ((u16 * N64P *) gFrameBufferPhys)
 #define players ((Player *) players)
 #ifdef NON_MATCHING
-#define D_80217B70 ((Mtx *) D_80217B70)
+#define gSolarNodeMtx ((Mtx *) gSolarNodeMtx)
 #define gDepthBufferPhys (*(u16 * N64P *) &gDepthBufferPhys)
 #define gHeapPtr (*(s32 *) &gHeapPtr)
 #endif
@@ -26,7 +26,7 @@
 #define MAX2(a, b) ((a) < (b) ? (b) : (a))
 #define JTEXT(addr) ((u16 * N64P) (addr))
 
-GlobeLevel D_8020D810[60] = {
+GlobeLevel gGlobeLevels[60] = {
     { 0x64, 1, N64_DPTR("SIMIAN ACRES"), JTEXT(0x80303700), 0, 0.0f, 0.0f, { -1 }, { 0x1C, 0x13, 0x03, 0x37, 0x32, -1 } },
     { 0x64, 1, N64_DPTR("ANGEL CITY"), JTEXT(0x8030370C), 0, -20.0f, -120.0f, { -1 }, { -1 } },
     { 0x64, 1, N64_DPTR("OUTLAND FARM"), JTEXT(0x80303720), 0, 20.0f, 60.0f, { 0x25, 0x1B, -1 }, { 0x05, 0x0D, 0x09, -1 } },
@@ -89,26 +89,26 @@ GlobeLevel D_8020D810[60] = {
     { 0x64, 1, N64_DPTR("LIZARD ISLAND"), JTEXT(0x80303AE8), 0, 30.0f, 150.0f, { 0x36, -1 }, { -1 } },
 };
 
-u16 D_8020E350[38] = {
+u16 gVehicleIcons[38] = {
     0x0000, 0x0000, 0x0571, 0x0570, 0x0918, 0x0917, 0x090C, 0x090B, 0x070A, 0x0709, 0x0772, 0x0713, 0x0000, 0x0000, 0x0000, 0x0000, 0x0912, 0x0911, 0x0916, 0x0915, 0x090A, 0x0909, 0x0000, 0x0000, 0x0000, 0x0000, 0x090E, 0x090D, 0x0908, 0x0907, 0x091A, 0x0919, 0x0712, 0x0711, 0x0000, 0x0000, 0x0000, 0x0000
 };
 
 u16 D_8020E39C[4] = { 0x0A98, 0x0A99, 0x0A9A, 0x0A9B };
 
 /* one per frame buffer (gBufferIndex) */
-Lights1 D_8020E3A8[2] = {
+Lights1 gGlobeLights[2] = {
     gdSPDefLights1(0x10, 0x10, 0x10, 0xFF, 0xFF, 0xFF, 0, 0, 1),
     gdSPDefLights1(0x10, 0x10, 0x10, 0xFF, 0xFF, 0xFF, 0, 0, 1),
 };
 
-f32 D_8020E3D8 = 0.0f;
+f32 gGlobeStickAngle = 0.0f;
 
 /* hd_code: one entry per level in gLevelInfo (0x44 bytes), as in hd_code 1D990.c */
 typedef struct {
     /* 0x00 */ u8 type;
     /* 0x01 */ u8 unk1; /* needed (save) progress */
     /* 0x02 */ u8 pad2[0x2A];
-    /* 0x2C */ u32 unk2C; /* collectables present (bit per D_8020E350 entry) */
+    /* 0x2C */ u32 unk2C; /* collectables present (bit per gVehicleIcons entry) */
     /* 0x30 */ u8 pad30[0x14];
 } LevelInfo;
 
@@ -145,162 +145,165 @@ extern u16 *gDepthBufferPhys;
 f32 sqrtf(f32);
 
 /* front end */
-extern Gfx * N64P D_8021A8F8;
-extern u8 D_8021A905;
-extern u16 D_8021A924;
-extern u8 D_802159F0[];
+extern Gfx * N64P gGlobeStarsDl;
+extern u8 gGlobeSelLevel;
+extern u16 gGlobeState;
+extern u8 gStarSpeeds[];
 #ifndef NON_MATCHING
-extern Mtx D_80217B70[];
+extern Mtx gSolarNodeMtx[];
 #endif
-extern u8 D_8021A904;
-extern s8 D_8021A906;
-extern s8 D_8021A907;
-extern u8 D_8021A908;
-extern u8 D_8021A909;
-u64 D_8021A940[60];
-extern f32 D_8021A934;
-extern f32 D_8021A938;
-extern u16 D_8021A926;
-extern s32 D_8021A928[];
-extern u8 D_8021A930;
+extern u8 gGlobeFromLevel;
+extern s8 gGlobeStartLevel;
+extern s8 gGlobeStickLevel;
+extern u8 gGlobeShownLevel;
+extern u8 gRouteCount;
+u64 gRouteDrawn[60];
+extern f32 gGlobeLonStep;
+extern f32 gGlobeLatStep;
+extern u16 gFlightState;
+extern s32 gRouteVtxBufs[];
+extern u8 gGlobeStickCentred;
 extern u8 D_8021AB20;
-extern f32 D_8021AB28;
-extern s16 D_8021AB2C;
-extern u8 D_8021AB2E;
-extern void * N64P D_8021AB38;
-extern f32 D_8021AB40;
-extern f32 D_8021AB44;
-extern f32 D_8021AB48;
+extern f32 gRouteRevealMin;
+extern s16 gGlobeNameAlpha;
+extern u8 gGlobeSelectPending;
+extern void * N64P gRouteRevealSound;
+extern f32 angd;
+extern f32 dmm;
+extern f32 mmm;
 #ifndef NON_MATCHING
 extern s32 gHeapPtr;
 #endif
-void func_801F885C(s32 arg0);
-f32 func_801FD6B8(f32 a, f32 b, f32 range);
-Gfx *func_801FE5D0(Gfx *arg0, Dynamic *dyn);
-Gfx *func_801FC5B8(Dynamic *dyn, Gfx *gdl, u8 from, u8 to);
-void func_801FDE98(void);
-extern Gfx * N64P D_8021A8F4;
+void fe_globe_select_level(s32 arg0);
+f32 fe_globe_angle_diff(f32 a, f32 b, f32 range);
+Gfx *fe_globe_draw_stars(Gfx *arg0, Dynamic *dyn);
+Gfx *fe_globe_draw_plane(Dynamic *dyn, Gfx *gdl, u8 from, u8 to);
+void fe_globe_set_light(void);
+extern Gfx * N64P gGlobeMeshDl;
 extern Gfx * N64P D_8021A8FC;
 extern Gfx * N64P D_8021A900;
-extern u8 D_8021AB21;
-extern Player * N64P D_8021AB30;
-extern LevelInfo * N64P D_8021AB34;
-extern f32 D_8021AB4C;
-extern f32 D_8021AB50;
-extern f32 D_8021AB54;
-extern Vtx D_8021A840[2][4];
-extern s32 D_8021A8C0; /* flight time */
-extern f32 D_8021A8C4; /* flight start/end points */
-extern f32 D_8021A8C8;
-extern f32 D_8021A8CC;
-extern f32 D_8021A8D0;
-extern f32 D_8021A8D4;
-extern f32 D_8021A8D8;
-extern f32 D_8021A8DC; /* distance */
-extern f32 D_8021A8E0; /* cos of the arc */
-extern f32 D_8021A8E4; /* arc angle */
-extern f32 D_8021A8E8; /* flight progress 0..1 */
-extern f32 D_8021A8EC; /* altitude scale */
-extern f32 D_8021A90C;
-extern f32 D_8021A910;
-extern f32 D_8021A914;
-extern s32 D_8021AB24;
-extern s32 D_8021AB58;
-extern s32 D_8021AB5C;
-extern f32 D_8021AB60;
-extern f32 D_8021AB64;
-extern Gfx * N64P D_8021AB68;
-extern Gfx * N64P D_8021AB6C;
-Gfx *func_801F9258(Gfx *, Dynamic *, s32 *);
-Gfx *func_801F9820(Gfx *, Dynamic *, s32 *);
-Gfx *func_801F9B84(Gfx *, Dynamic *, s32 *);
-void func_801FD748(void);
+extern u8 gGlobeOverlayAlpha;
+extern Player * N64P gGlobePlayer;
+extern LevelInfo * N64P gGlobeLevelInfo;
+extern f32 gPlaneX;
+extern f32 gPlaneY;
+extern f32 gPlaneZ;
+extern Vtx gPlaneVtx[2][4];
+extern s32 gFlightSteps; /* flight time */
+extern f32 gFlightFromX; /* flight start/end points */
+extern f32 gFlightToX;
+extern f32 gFlightFromY;
+extern f32 gFlightToY;
+extern f32 gFlightFromZ;
+extern f32 gFlightToZ;
+extern f32 gFlightDist; /* distance */
+extern f32 gFlightCos; /* cos of the arc */
+extern f32 gFlightAngle; /* arc angle */
+extern f32 gFlightProgress; /* flight progress 0..1 */
+extern f32 gFlightAltitude; /* altitude scale */
+extern f32 gGlobeCamX;
+extern f32 gGlobeCamY;
+extern f32 gGlobeCamZ;
+extern s32 gGlobeZoomDoneTime;
+extern s32 gGlobeRoutesDlLen;
+extern s32 gGlobePlaneDlLen;
+extern f32 gGlobeTargetLon;
+extern f32 gGlobeTargetLat;
+extern Gfx * N64P gGlobeRoutesDl;
+extern Gfx * N64P gGlobePlaneDl;
+Gfx *fe_globe_build_scene_dl(Gfx *, Dynamic *, s32 *);
+Gfx *fe_globe_build_routes_dl(Gfx *, Dynamic *, s32 *);
+Gfx *fe_globe_build_plane_dl(Gfx *, Dynamic *, s32 *);
+void fe_globe_scroll_stars(void);
 
-void func_801FCF38(Vtx *v, f32 x, f32 y, f32 z, u8 w, u8 h, f32 scale, u8 flip);
-Gfx *func_801FA180(Gfx *gdl, Dynamic *dyn, f32 arg2, s8 *arg3);
-Gfx *func_801FA74C(Dynamic *dyn, Gfx *arg1, u8 from, u8 to, s8 *out, f32 *lon, u8 curved, u8 r0, u8 g0, u8 b0,
+void fe_globe_quad_at(Vtx *v, f32 x, f32 y, f32 z, u8 w, u8 h, f32 scale, u8 flip);
+Gfx *fe_globe_draw_routes(Gfx *gdl, Dynamic *dyn, f32 arg2, s8 *arg3);
+Gfx *fe_globe_draw_route(Dynamic *dyn, Gfx *arg1, u8 from, u8 to, s8 *out, f32 *lon, u8 curved, u8 r0, u8 g0, u8 b0,
                    u8 r1, u8 g1, u8 b1);
 
-/* Level-select globe: initialise for the given level. */
-void func_801F8530(s32 level) {
+/* The level-select globe's setup (0x801F8530).
+ * Level-select globe: initialise for the given level. */
+void fe_globe_init(s32 level) {
     Dynamic *d;
     u32 i;
     GlobeLevel *e;
     f32 lat;
     f32 lon;
 
-    D_8021AB30 = &players[playerNumber];
-    D_8021AB34 = &gLevelInfo[level];
-    D_8021A91C = func_801FD6B8(90.0f, D_8020D810[level].unk14, 180.0f);
-    D_8021A920 = func_801FD6B8(90.0f, D_8020D810[level].unk10, 180.0f);
-    D_8021A8F4 = func_801F1568();
-    D_8021A8FC = func_801F2428();
-    D_8021A900 = func_801F2000();
+    gGlobePlayer = &players[playerNumber];
+    gGlobeLevelInfo = &gLevelInfo[level];
+    gGlobeCamLon = fe_globe_angle_diff(90.0f, gGlobeLevels[level].unk14, 180.0f);
+    gGlobeCamLat = fe_globe_angle_diff(90.0f, gGlobeLevels[level].unk10, 180.0f);
+    gGlobeMeshDl = fe_lvlsel_build_globe_dl();
+    D_8021A8FC = fe_lvlsel_build_level_icons_dl();
+    D_8021A900 = fe_lvlsel_build_academy_dl();
     for (i = 0; i < 2; i++) {
-        D_8021A928[i] = gHeapPtr;
+        gRouteVtxBufs[i] = gHeapPtr;
         gHeapPtr += 0x17000;
     }
-    D_8021A8F8 = func_801F2E20();
+    gGlobeStarsDl = fe_lvlsel_build_starfield_dl();
     for (i = 0; i < 2; i++) {
         d = &gDynamicBufs[i];
         guPerspective(&d->persp, &gPerspNorm, 45.0f, 4.0f / 3.0f, 100.0f, 20000.0f, 1.0f);
         guTranslate(&d->translate, 0.0f, -50.0f, 0.0f);
     }
-    D_80217B6C = 6;
-    func_801F885C(level);
-    D_8021A904 = level;
-    D_8021A908 = level;
-    D_8021A926 = 1;
-    D_8021A930 = 0;
-    D_8021A907 = -1;
-    D_8021AB21 = 0;
-    D_8021A906 = level;
-    D_8021AB28 = 0.0f;
-    D_8021AB38 = 0;
-    D_8021AB2C = 0;
-    D_8021AB40 = 0.915f;
-    D_8021AB44 = 0.009f;
-    D_8021AB48 = 26100.0f;
-    func_801FDE50();
-    D_8021AB20 = func_80272C5C(D_8020E39C, 0, 4, 1, 1, 1.0f);
+    gGlobePlanet = 6;
+    fe_globe_select_level(level);
+    gGlobeFromLevel = level;
+    gGlobeShownLevel = level;
+    gFlightState = 1;
+    gGlobeStickCentred = 0;
+    gGlobeStickLevel = -1;
+    gGlobeOverlayAlpha = 0;
+    gGlobeStartLevel = level;
+    gRouteRevealMin = 0.0f;
+    gRouteRevealSound = 0;
+    gGlobeNameAlpha = 0;
+    angd = 0.915f;
+    dmm = 0.009f;
+    mmm = 26100.0f;
+    fe_load_vehicle_icons();
+    D_8021AB20 = spr_load(D_8020E39C, 0, 4, 1, 1, 1.0f);
     for (i = 0; i < 60; i++) {
-        e = &D_8020D810[i];
+        e = &gGlobeLevels[i];
         lat = e->unk10;
         lon = e->unk14;
-        func_801FD484(&lat, &lon, &e->unk24, &e->unk28, &e->unk2C, 250.0f);
+        fe_globe_latlon_to_xyz(&lat, &lon, &e->unk24, &e->unk28, &e->unk2C, 250.0f);
     }
-    D_8021AB2E = 0;
+    gGlobeSelectPending = 0;
 }
 
-void func_801F885C(s32 arg0) {
+/* Selects a level: its planet, the Earth music, a move sound (0x801F885C). */
+void fe_globe_select_level(s32 arg0) {
     u8 tune;
 
-    tune = func_80264BA4(arg0);
-    D_8021A905 = arg0;
-    if (tune != D_80217B6C) {
-        D_8021A924 = 0;
-        D_8021A918 = 6250.0f;
-        if (D_80217B6C != 6) {
-            if (D_80217B6C == 3) {
-                func_80261FB0(0x13);
+    tune = lvl_planet(arg0);
+    gGlobeSelLevel = arg0;
+    if (tune != gGlobePlanet) {
+        gGlobeState = 0;
+        gGlobeCamDist = 6250.0f;
+        if (gGlobePlanet != 6) {
+            if (gGlobePlanet == 3) {
+                music_start_tune(0x13);
             } else if (tune == 3) {
-                func_80261FB0(0xC);
+                music_start_tune(0xC);
             }
         }
     }
-    if (D_80217B6C != 6) {
-        if (tune == 3 && D_80217B6C == 3) {
-            func_80260650(D_80367738, 0x1D, 0);
+    if (gGlobePlanet != 6) {
+        if (tune == 3 && gGlobePlanet == 3) {
+            snd_play(gSfxBank, 0x1D, 0);
         } else {
-            func_80260650(D_80367738, 0x3F, 0);
+            snd_play(gSfxBank, 0x3F, 0);
         }
     }
-    D_80217B6C = tune;
-    D_8021AB34 = &gLevelInfo[D_8021A905];
+    gGlobePlanet = tune;
+    gGlobeLevelInfo = &gLevelInfo[gGlobeSelLevel];
 }
 
-/* Level-select: one frame (input, globe spin, fades, draw). */
-void func_801F8980(void) {
+/* The globe's frame: input, zoom, spin, three RSP tasks (0x801F8980).
+ * Level-select: one frame (input, globe spin, fades, draw). */
+void fe_globe_frame(void) {
     s16 ox;
     s16 oy;
     s32 i;
@@ -309,123 +312,124 @@ void func_801F8980(void) {
 
     nextdma = 0;
     no_palette_dmas = 0;
-    func_802A5720();
+    tex_reset_decode_queue();
     cont_start_read();
     if (((s32) gFramesInMode)) {
         rsp_send_task((u64 *) (gDynamicBufs[gBufferIndex].gfx), gFrameDlLen, 2, 0, 1234, 0);
-        rsp_send_task((u64 *) D_8021AB68, D_8021AB58, 0, 0, 1234, 0);
-        rsp_send_task((u64 *) D_8021AB6C, D_8021AB5C, 1, 1, 1234, 0);
+        rsp_send_task((u64 *) gGlobeRoutesDl, gGlobeRoutesDlLen, 0, 0, 1234, 0);
+        rsp_send_task((u64 *) gGlobePlaneDl, gGlobePlaneDlLen, 1, 1, 1234, 0);
     } else {
         rsp_send_task((u64 *) (gDynamicBufs[gBufferIndex].gfx), gFrameDlLen, 1, 1, 1234, 0);
     }
     gBufferIndex ^= 1;
     dyn = &gDynamicBufs[gBufferIndex];
     cont_update();
-    if (D_8021AB2E || (!areWeFading() && D_8021A924 == 1 && (gContButtons & 0x9000) && !(gContPrevButtons & 0x9000))) {
-        if (D_8021A926 == 0) {
-            func_80260A10();
-            func_80260650(D_80367738, 0x1E, 0);
-            D_8021A924 = 2;
-            debug_printf("selected level %d\n", D_8021A905);
-            levelno = D_8021A905;
-            func_801ECB18();
-            D_8021AB2E = 0;
+    if (gGlobeSelectPending || (!areWeFading() && gGlobeState == 1 && (gContButtons & 0x9000) && !(gContPrevButtons & 0x9000))) {
+        if (gFlightState == 0) {
+            snd_stop_all_looping();
+            snd_play(gSfxBank, 0x1E, 0);
+            gGlobeState = 2;
+            debug_printf("selected level %d\n", gGlobeSelLevel);
+            levelno = gGlobeSelLevel;
+            fe_player_load_level_save();
+            gGlobeSelectPending = 0;
         } else {
-            D_8021AB2E = 1;
+            gGlobeSelectPending = 1;
         }
     }
-    if ((gContButtons & 0x4000) && !(gContPrevButtons & 0x4000) && !areWeFading() && D_8021A924 == 1) {
+    if ((gContButtons & 0x4000) && !(gContPrevButtons & 0x4000) && !areWeFading() && gGlobeState == 1) {
         D_80364A87 = 0;
-        func_80260650(D_80367738, 0xDE, 0);
+        snd_play(gSfxBank, 0xDE, 0);
         func_80275390(0x4000000000000000);
-        levelno = D_8021A905;
+        levelno = gGlobeSelLevel;
     }
     dist = gPadStickX * gPadStickX + gPadStickY * gPadStickY;
     if (dist < 1500) {
-        D_8021A930 = 1;
+        gGlobeStickCentred = 1;
     }
     if (dist != 0) {
-        D_8020E3D8 = func_8028BBF4(0, 0, gPadStickX, -gPadStickY);
+        gGlobeStickAngle = func_8028BBF4(0, 0, gPadStickX, -gPadStickY);
     }
-    if (dist > 1500 && D_8021A930 && D_8021A907 >= 0 && D_8021AB2C == 0xFF && D_8021A924 == 1 && yoshiState == 1) {
-        D_8021A930 = 0;
-        D_8021A904 = D_8021A905;
-        func_801F885C(D_8021A907);
-        D_8021A926 = 1;
-        D_8021AB28 = 1.0f;
-        if (D_8021AB38) {
-            func_802608C8(D_8021AB38);
+    if (dist > 1500 && gGlobeStickCentred && gGlobeStickLevel >= 0 && gGlobeNameAlpha == 0xFF && gGlobeState == 1 && yoshiState == 1) {
+        gGlobeStickCentred = 0;
+        gGlobeFromLevel = gGlobeSelLevel;
+        fe_globe_select_level(gGlobeStickLevel);
+        gFlightState = 1;
+        gRouteRevealMin = 1.0f;
+        if (gRouteRevealSound) {
+            snd_stop(gRouteRevealSound);
         }
     }
-    switch (D_8021A924) {
+    switch (gGlobeState) {
         case 0:
-            if (D_8021AB21 + 10 >= 0x100) {
-                D_8021AB21 = 0xFF;
+            if (gGlobeOverlayAlpha + 10 >= 0x100) {
+                gGlobeOverlayAlpha = 0xFF;
             } else {
-                D_8021AB21 += 10;
+                gGlobeOverlayAlpha += 10;
             }
-            D_8021A918 -= 200.0f;
-            if (D_8021A918 <= 925.0) {
-                D_8021A924 = 1;
-                D_8021A918 = 925.0f;
-                D_8021AB24 = D_803156C4;
+            gGlobeCamDist -= 200.0f;
+            if (gGlobeCamDist <= 925.0) {
+                gGlobeState = 1;
+                gGlobeCamDist = 925.0f;
+                gGlobeZoomDoneTime = D_803156C4;
             }
             break;
         case 2:
-            D_8021A918 -= 50.0f;
-            if (D_8021AB21 - 25 < 0) {
-                D_8021AB21 = 0;
+            gGlobeCamDist -= 50.0f;
+            if (gGlobeOverlayAlpha - 25 < 0) {
+                gGlobeOverlayAlpha = 0;
             } else {
-                D_8021AB21 -= 25;
+                gGlobeOverlayAlpha -= 25;
             }
-            if (D_8021AB2C - 64 < 0) {
-                D_8021AB2C = 0;
+            if (gGlobeNameAlpha - 64 < 0) {
+                gGlobeNameAlpha = 0;
             } else {
-                D_8021AB2C -= 64;
+                gGlobeNameAlpha -= 64;
             }
-            if (D_8021A918 <= 300.0) {
-                gNextGameMode = func_80299FE8(levelno);
+            if (gGlobeCamDist <= 300.0) {
+                gNextGameMode = seq_get_loop_done(levelno);
             }
             break;
         default:
-            D_8021AB21 = 0xFF;
-            if (D_8021A926 == 0) {
-                if (D_8021AB2C + 32 >= 0x100) {
-                    D_8021AB2C = 0xFF;
+            gGlobeOverlayAlpha = 0xFF;
+            if (gFlightState == 0) {
+                if (gGlobeNameAlpha + 32 >= 0x100) {
+                    gGlobeNameAlpha = 0xFF;
                 } else {
-                    D_8021AB2C += 32;
+                    gGlobeNameAlpha += 32;
                 }
             }
             break;
     }
-    if (D_80217B6C != 3) {
-        D_8021AB21 = 0;
+    if (gGlobePlanet != 3) {
+        gGlobeOverlayAlpha = 0;
     }
-    ox = D_8021A90C;
-    oy = D_8021A910;
-    func_801FD484(&D_8021A920, &D_8021A91C, &D_8021A90C, &D_8021A910, &D_8021A914, 925.0f);
-    D_8021A934 = D_8021A90C - ox;
-    D_8021A938 = D_8021A910 - oy;
-    D_8021AB60 = D_8020D810[D_8021A905].unk14;
-    D_8021AB64 = D_8020D810[D_8021A905].unk10;
-    D_8021A934 = func_801FD6B8(D_8021AB60, D_8021A91C, 180.0f) * MAX2(dist >> 2, 500) / 10000.0f;
-    D_8021A938 = func_801FD6B8(D_8021AB64, D_8021A920, 180.0f) * MAX2(dist >> 2, 500) / 10000.0f;
-    D_8021A91C -= D_8021A934;
-    D_8021A920 -= D_8021A938;
-    D_8021AB68 = func_801F9258(dyn->gfx, dyn, &gFrameDlLen);
-    D_8021AB6C = func_801F9820(D_8021AB68, dyn, &D_8021AB58);
-    func_801F9B84(D_8021AB6C, dyn, &D_8021AB5C);
-    func_801FD748();
+    ox = gGlobeCamX;
+    oy = gGlobeCamY;
+    fe_globe_latlon_to_xyz(&gGlobeCamLat, &gGlobeCamLon, &gGlobeCamX, &gGlobeCamY, &gGlobeCamZ, 925.0f);
+    gGlobeLonStep = gGlobeCamX - ox;
+    gGlobeLatStep = gGlobeCamY - oy;
+    gGlobeTargetLon = gGlobeLevels[gGlobeSelLevel].unk14;
+    gGlobeTargetLat = gGlobeLevels[gGlobeSelLevel].unk10;
+    gGlobeLonStep = fe_globe_angle_diff(gGlobeTargetLon, gGlobeCamLon, 180.0f) * MAX2(dist >> 2, 500) / 10000.0f;
+    gGlobeLatStep = fe_globe_angle_diff(gGlobeTargetLat, gGlobeCamLat, 180.0f) * MAX2(dist >> 2, 500) / 10000.0f;
+    gGlobeCamLon -= gGlobeLonStep;
+    gGlobeCamLat -= gGlobeLatStep;
+    gGlobeRoutesDl = fe_globe_build_scene_dl(dyn->gfx, dyn, &gFrameDlLen);
+    gGlobePlaneDl = fe_globe_build_routes_dl(gGlobeRoutesDl, dyn, &gGlobeRoutesDlLen);
+    fe_globe_build_plane_dl(gGlobePlaneDl, dyn, &gGlobePlaneDlLen);
+    fe_globe_scroll_stars();
     for (i = 0; i < nextdma; i++) {
         osRecvMesg(&textureDmaMessageQ, NULL, OS_MESG_BLOCK);
     }
     for (i = 0; i < nextdma - no_palette_dmas; i++) {
-        func_802A57AC();
+        tex_decode_next();
     }
 }
 
-/* Level-select info screen: level name and the level's collectable icons. */
-Gfx *func_801F9258(Gfx *arg0, Dynamic *dyn, s32 *count) {
+/* Stars, the solar system, the level name and vehicle icons (0x801F9258).
+ * Level-select info screen: level name and the level's collectable icons. */
+Gfx *fe_globe_build_scene_dl(Gfx *arg0, Dynamic *dyn, s32 *count) {
     Gfx *gdl = arg0;
     s32 padC0;
     s32 i;
@@ -446,9 +450,9 @@ Gfx *func_801F9258(Gfx *arg0, Dynamic *dyn, s32 *count) {
     gDPPipeSync(gdl++);
     gDPPipelineMode(gdl++, G_PM_1PRIMITIVE);
     gDPSetColorDither(gdl++, 0x80);
-    gdl = func_801FE5D0(gdl, dyn);
-    gdl = func_801F3450(gdl, (u8 *) dyn);
-    func_80259450();
+    gdl = fe_globe_draw_stars(gdl, dyn);
+    gdl = fe_solar_draw(gdl, (u8 *) dyn);
+    text_begin_frame();
     {
         u32 h;
         s32 n;
@@ -457,37 +461,38 @@ Gfx *func_801F9258(Gfx *arg0, Dynamic *dyn, s32 *count) {
         s32 w;
 
         size = 0x18;
-        h = D_8021AB2C / 9;
-        func_80259DC8((Gfx * N64P *) dyn, (u8 *) (D_8020D810[D_8021A908].name), D_8020D810[D_8021A908].jname, 0, 0xA0, 0, (0x1C - h) / 2 + 0x12,
-                      size, h, 1, 0xFF, 0xFF, 0xFF, D_8021AB2C, 0, 0, 0xFF, D_8021AB2C);
+        h = gGlobeNameAlpha / 9;
+        text_print_gradient((Gfx * N64P *) dyn, (u8 *) (gGlobeLevels[gGlobeShownLevel].name), gGlobeLevels[gGlobeShownLevel].jname, 0, 0xA0, 0, (0x1C - h) / 2 + 0x12,
+                      size, h, 1, 0xFF, 0xFF, 0xFF, gGlobeNameAlpha, 0, 0, 0xFF, gGlobeNameAlpha);
         gdl = func_8024C404(gdl, (DynamicBuf *) dyn, &n);
-        func_80259C24(&gdl, (Mtx *) dyn);
-        info = &gLevelInfo[D_8021A908];
-        gdl = func_80274868(gdl);
+        text_flush_screen(&gdl, (Mtx *) dyn);
+        info = &gLevelInfo[gGlobeShownLevel];
+        gdl = spr_begin(gdl);
         y = 0xDA;
         for (i = 0, alt = 0; i < 0x13 && y > 0x28; i++) {
-            if ((info->unk2C & (1 << i)) && (info->type == 1 || (D_8021AB30->unk10 & (1 << i))) &&
-                D_8020E350[i * 2] != 0) {
+            if ((info->unk2C & (1 << i)) && (info->type == 1 || (gGlobePlayer->unk10 & (1 << i))) &&
+                gVehicleIcons[i * 2] != 0) {
                 if (alt) {
-                    gdl = func_80272ED8(gdl, D_8021A8F0 + i, 0x16 - (0xFF - D_8021AB2C) / 6, y, D_8021AB2C, 0, 0.8125f);
+                    gdl = spr_draw(gdl, gVehicleIconTex + i, 0x16 - (0xFF - gGlobeNameAlpha) / 6, y, gGlobeNameAlpha, 0, 0.8125f);
                 } else {
-                    gdl = func_80272ED8(gdl, D_8021A8F0 + i, (0xFF - D_8021AB2C) / 6 + 0xF6, y -= 0x2C, D_8021AB2C, 0,
+                    gdl = spr_draw(gdl, gVehicleIconTex + i, (0xFF - gGlobeNameAlpha) / 6 + 0xF6, y -= 0x2C, gGlobeNameAlpha, 0,
                                         0.8125f);
                 }
                 alt ^= 1;
             }
         }
-        x = func_8025B498(0xA0, size, (u8 *) (D_8020D810[D_8021A908].name), (s32) (D_8020D810[D_8021A908].jname));
-        w = (s32) (size * D_802E8C84[0]) * func_8025B300((u8 *) (D_8020D810[D_8021A908].name));
+        x = font_center_x(0xA0, size, (u8 *) (gGlobeLevels[gGlobeShownLevel].name), (s32) (gGlobeLevels[gGlobeShownLevel].jname));
+        w = (s32) (size * gFontAdvance[0]) * font_strlen((u8 *) (gGlobeLevels[gGlobeShownLevel].name));
     }
-    gdl = func_80274AA4(gdl);
+    gdl = spr_end(gdl);
     gSPEndDisplayList(gdl++);
     *count = gdl - arg0;
     return gdl;
 }
 
-/* Level-select globe: frame setup, camera matrices, then the globe itself. */
-Gfx *func_801F9820(Gfx *arg0, Dynamic *dyn, s32 *count) {
+/* The globe camera and the route lines (0x801F9820).
+ * Level-select globe: frame setup, camera matrices, then the globe itself. */
+Gfx *fe_globe_build_routes_dl(Gfx *arg0, Dynamic *dyn, s32 *count) {
     Gfx *gdl = arg0;
 
     gSPSegment(gdl++, 0, 0);
@@ -502,17 +507,18 @@ Gfx *func_801F9820(Gfx *arg0, Dynamic *dyn, s32 *count) {
     gImmp1(gdl++, G_RDPHALF_1, gPerspNorm);
     gSPMatrix(gdl++, &dyn->persp, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
     gSPMatrix(gdl++, &dyn->unk140, G_MTX_PROJECTION | G_MTX_MUL | G_MTX_NOPUSH);
-    gSPMatrix(gdl++, &D_80217B70[gBufferIndex + 12], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
-    gSPMatrix(gdl++, &D_80217B70[gBufferIndex + 14], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
+    gSPMatrix(gdl++, &gSolarNodeMtx[gBufferIndex + 12], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+    gSPMatrix(gdl++, &gSolarNodeMtx[gBufferIndex + 14], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
     gSPMatrix(gdl++, &dyn->translate, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
-    gdl = func_801FA180(gdl, dyn, D_8020E3D8, &D_8021A907);
+    gdl = fe_globe_draw_routes(gdl, dyn, gGlobeStickAngle, &gGlobeStickLevel);
     gSPEndDisplayList(gdl++);
     *count = gdl - arg0;
     return gdl;
 }
 
-/* Level-select globe in close-up (route view), with a debug camera tweak on the controller. */
-Gfx *func_801F9B84(Gfx *arg0, Dynamic *dyn, s32 *count) {
+/* The flying marker (debug angd/dmm/mmm tweaks) (0x801F9B84).
+ * Level-select globe in close-up (route view), with a debug camera tweak on the controller. */
+Gfx *fe_globe_build_plane_dl(Gfx *arg0, Dynamic *dyn, s32 *count) {
     Gfx *gdl = arg0;
 
     gSPSegment(gdl++, 0, 0);
@@ -524,54 +530,55 @@ Gfx *func_801F9B84(Gfx *arg0, Dynamic *dyn, s32 *count) {
     gDPSetDepthImage(gdl++, gDepthBufferPhys);
     gDPSetRenderMode(gdl++, 0x00504240, 0);
     gSPTexture(gdl++, 0x8000, 0x8000, 0, G_TX_RENDERTILE, G_ON);
-    gDPSetPrimColor(gdl++, 0, 0, 0, 0, 0, D_8021AB21);
+    gDPSetPrimColor(gdl++, 0, 0, 0, 0, 0, gGlobeOverlayAlpha);
     gDPSetCombine(gdl++, 0xFF97FF, 0xFF2CFE7F);
     gImmp1(gdl++, G_RDPHALF_1, gPerspNorm);
     gSPMatrix(gdl++, &dyn->persp, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
     gSPMatrix(gdl++, &dyn->unk140, G_MTX_PROJECTION | G_MTX_MUL | G_MTX_NOPUSH);
-    gSPMatrix(gdl++, &D_80217B70[gBufferIndex + 12], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
-    gSPMatrix(gdl++, &D_80217B70[gBufferIndex + 14], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
+    gSPMatrix(gdl++, &gSolarNodeMtx[gBufferIndex + 12], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+    gSPMatrix(gdl++, &gSolarNodeMtx[gBufferIndex + 14], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
     gSPMatrix(gdl++, &dyn->translate, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
-    gdl = func_801FC5B8(dyn, gdl, D_8021A904, D_8021A905);
-    func_801FDE98();
+    gdl = fe_globe_draw_plane(dyn, gdl, gGlobeFromLevel, gGlobeSelLevel);
+    fe_globe_set_light();
     gdl = func_80274BF0((s32) &dyn[gBufferIndex], gdl);
     gDPFullSync(gdl++);
     gSPEndDisplayList(gdl++);
     if (D_802FA264) {
         if (gContButtons & 0x800) {
-            D_8021AB40 += 0.01;
+            angd += 0.01;
         }
         if (gContButtons & 0x400) {
-            D_8021AB40 -= 0.01;
+            angd -= 0.01;
         }
         if (gContButtons & 0xC00) {
-            debug_printf("angd %f\n", D_8021AB40);
+            debug_printf("angd %f\n", angd);
         }
         if (gContButtons & 0x100) {
-            D_8021AB44 += 0.001;
+            dmm += 0.001;
         }
         if (gContButtons & 0x200) {
-            D_8021AB44 -= 0.001;
+            dmm -= 0.001;
         }
         if (gContButtons & 0x300) {
-            debug_printf("dmm %f\n", D_8021AB44);
+            debug_printf("dmm %f\n", dmm);
         }
         if (gContButtons & 0x10) {
-            D_8021AB48 += 100.0f;
+            mmm += 100.0f;
         }
         if (gContButtons & 0x20) {
-            D_8021AB48 -= 100.0f;
+            mmm -= 100.0f;
         }
         if (gContButtons & 0x30) {
-            debug_printf("mmm %f\n", D_8021AB48);
+            debug_printf("mmm %f\n", mmm);
         }
     }
     *count = gdl - arg0;
     return gdl;
 }
 
-/* Draw the routes between open levels; pick the route marker nearest the globe's facing longitude. */
-Gfx *func_801FA180(Gfx *arg0, Dynamic *dyn, f32 lon0, s8 *selected) {
+/* The routes between the levels (0x801FA180).
+ * Draw the routes between open levels; pick the route marker nearest the globe's facing longitude. */
+Gfx *fe_globe_draw_routes(Gfx *arg0, Dynamic *dyn, f32 lon0, s8 *selected) {
     GlobeLevel *e;
     Gfx *gdl = arg0;
     f32 lon;
@@ -586,32 +593,32 @@ Gfx *func_801FA180(Gfx *arg0, Dynamic *dyn, f32 lon0, s8 *selected) {
 #endif
 
     best = 180.0f;
-    D_8021A909 = 0;
+    gRouteCount = 0;
     gDPPipeSync(gdl++);
     for (i = 0; i < 60; i++) {
-        D_8021A940[i] = 0;
+        gRouteDrawn[i] = 0;
     }
     for (i = 0; i < 60; i++) {
-        e = &D_8020D810[i];
+        e = &gGlobeLevels[i];
         if ((players[playerNumber].rank[i] > 0 && players[playerNumber].rank[i] < 6) ? 1 : 0) {
             for (j = 0; j < 8 && e->unk1C[j] != -1; j++) {
-                gdl = func_801FA74C(dyn, gdl, i, e->unk1C[j], &out, &lon, 0, 0, 0, 0, 0, 0, 0);
+                gdl = fe_globe_draw_route(dyn, gdl, i, e->unk1C[j], &out, &lon, 0, 0, 0, 0, 0, 0, 0);
             }
         }
     }
     for (i = 0; i < 60; i++) {
-        D_8021A940[i] = 0;
+        gRouteDrawn[i] = 0;
     }
     for (i = 0; i < 60; i++) {
-        e = &D_8020D810[i];
+        e = &gGlobeLevels[i];
         if ((players[playerNumber].rank[i] > 0 && players[playerNumber].rank[i] < 6) ? 1 : 0) {
             for (j = 0; j < 4 && e->unk18[j] != -1; j++) {
                 if (players[playerNumber].unk54[i] & (1 << j)) {
-                    gdl = func_801FA74C(dyn, gdl, i, e->unk18[j], &out, &lon, 1, 0, 0xFF, 0, 0xFF, 0xFF, 0);
+                    gdl = fe_globe_draw_route(dyn, gdl, i, e->unk18[j], &out, &lon, 1, 0, 0xFF, 0, 0xFF, 0xFF, 0);
                     if (out != -1) {
                         f32 d;
 
-                        d = func_801FD6B8(lon0, lon, 180.0f);
+                        d = fe_globe_angle_diff(lon0, lon, 180.0f);
                         d = (d > 0.0f) ? d : -d;
                         if (d < best) {
                             best = d;
@@ -623,14 +630,14 @@ Gfx *func_801FA180(Gfx *arg0, Dynamic *dyn, f32 lon0, s8 *selected) {
         }
     }
     for (i = 0; i < 60; i++) {
-        e = &D_8020D810[i];
+        e = &gGlobeLevels[i];
         if ((players[playerNumber].rank[i] > 0 && players[playerNumber].rank[i] < 6) ? 1 : 0) {
             for (j = 0; j < 8 && e->unk1C[j] != -1; j++) {
-                gdl = func_801FA74C(dyn, gdl, i, e->unk1C[j], &out, &lon, 1, 0xFF, 0, 0, 0xFF, 0x80, 0x80);
+                gdl = fe_globe_draw_route(dyn, gdl, i, e->unk1C[j], &out, &lon, 1, 0xFF, 0, 0, 0xFF, 0x80, 0x80);
                 if (out != -1) {
                     f32 d;
 
-                    d = func_801FD6B8(lon0, lon, 180.0f);
+                    d = fe_globe_angle_diff(lon0, lon, 180.0f);
                     d = (d > 0.0f) ? d : -d;
                     if (d < best) {
                         best = d;
@@ -640,7 +647,7 @@ Gfx *func_801FA180(Gfx *arg0, Dynamic *dyn, f32 lon0, s8 *selected) {
             }
         }
     }
-    osWritebackDCache((void *) N64_IPTR(D_8021A928[gBufferIndex]), 0x17000);
+    osWritebackDCache((void *) N64_IPTR(gRouteVtxBufs[gBufferIndex]), 0x17000);
     if (best < 45.0f) {
         *selected = sel;
     } else {
@@ -650,14 +657,14 @@ Gfx *func_801FA180(Gfx *arg0, Dynamic *dyn, f32 lon0, s8 *selected) {
 }
 
 /*
- * TODO: func_801FA74C (1947 insns) draws one route between two levels: an arc of line segments
+ * TODO: fe_globe_draw_route (1947 insns) draws one route between two levels: an arc of line segments
  * over the globe (gSPVertex + gSPLineW3D), coloured from (r0,g0,b0) to (r1,g1,b1), brightened
- * towards the camera, with the route-open fade timed by D_8021AB28 and a sound on completion.
+ * towards the camera, with the route-open fade timed by gRouteRevealMin and a sound on completion.
  * The draft below compiles to 1953 instructions. Two edits give the target's 1947 with every
  * opcode equal, leaving only register numbers (779 instructions, nearly all FP):
- *   1. `switch (D_80217B6C) { case 3: <the i != 0 / else calls> break; default: if (i != 0)
+ *   1. `switch (gGlobePlanet) { case 3: <the i != 0 / else calls> break; default: if (i != 0)
  *      *lon = ...; }` instead of the if/else: the case label stops ugen caching x/y in FP
- *      registers across the func_8027690C call (+3 insns per call site otherwise);
+ *      registers across the hud_project_point call (+3 insns per call site otherwise);
  *   2. bright = MAX2R(E, 0.0) with `#define MAX2R(a, b) ((b) > (a) ? (b) : (a))`: testing
  *      0.0 first hoists its mtc1 pair.
  * They are not applied to the NON_MATCHING code: with them, `make -C port verify` diverges at
@@ -666,25 +673,26 @@ Gfx *func_801FA180(Gfx *arg0, Dynamic *dyn, f32 lon0, s8 *selected) {
  * IDO's FP temp choice is whole-function (a spelling change at the end moves registers at the
  * start). A scripted greedy/random search over ~60 spelling sites (MIN/MAX/FABS operand orders,
  * compare directions, sum/product operand orders) got the register diffs to 619 at best, with
- * mixed macro spellings that look like noise. Fixed earlier: the MAX with D_8021AB28 is
+ * mixed macro spellings that look like noise. Fixed earlier: the MAX with gRouteRevealMin is
  * "(AB28 > e) ? AB28 : e", the colour factors are (f32) u8, *lon gets an int ternary, the acos
- * sign goes first (as in func_801FC5B8). Also tried earlier: statement/declaration-initializer
+ * sign goes first (as in fe_globe_draw_plane). Also tried earlier: statement/declaration-initializer
  * orders, matrix spellings, a pos[3] array.
  */
 #ifdef NON_MATCHING
 /* (The NON_MATCHING build uses this draft; checks in tools_port/checks/fe_11530.txt.) */
-/* D_80217B70 seen as a struct (the same address) */
+/* gSolarNodeMtx seen as a struct (the same address) */
 typedef struct {
     Mtx pad[12];
     Mtx view[2];
     Mtx rot[2];
 } GlobeMtx;
-#define D_80217B70x (*(GlobeMtx *) D_80217B70)
+#define D_80217B70x (*(GlobeMtx *) gSolarNodeMtx)
 
 #define FABS(x) ((x) > 0 ? (x) : -(x))
 
-/* One route between two levels: an arc of line segments over the globe, coloured r0..r1 along it. */
-Gfx *func_801FA74C(Dynamic *dyn, Gfx *arg1, u8 from, u8 to, s8 *out, f32 *lon, u8 curved, u8 r0, u8 g0, u8 b0,
+/* One great-circle arc between two levels (0x801FA74C).
+ * One route between two levels: an arc of line segments over the globe, coloured r0..r1 along it. */
+Gfx *fe_globe_draw_route(Dynamic *dyn, Gfx *arg1, u8 from, u8 to, s8 *out, f32 *lon, u8 curved, u8 r0, u8 g0, u8 b0,
                    u8 r1, u8 g1, u8 b1) {
     Vtx *v;
     Vtx *vbase;
@@ -726,41 +734,41 @@ Gfx *func_801FA74C(Dynamic *dyn, Gfx *arg1, u8 from, u8 to, s8 *out, f32 *lon, u
     lit = 0;
     gdl = arg1;
     scale = 1.0f;
-    if (to == D_8021A905 || players[playerNumber].rank[from] == 0) {
+    if (to == gGlobeSelLevel || players[playerNumber].rank[from] == 0) {
         u8 tmp;
 
         tmp = to;
         to = from;
         from = tmp;
     }
-    if (D_8021A940[from] & ((u64) 1 << to)) {
+    if (gRouteDrawn[from] & ((u64) 1 << to)) {
         found = 1;
     } else {
         found = 0;
     }
-    D_8021A940[from] |= (u64) 1 << to;
-    D_8021A940[to] |= (u64) 1 << from;
+    gRouteDrawn[from] |= (u64) 1 << to;
+    gRouteDrawn[to] |= (u64) 1 << from;
     *out = -1;
-    if (found || func_801FE760(to)) {
+    if (found || fe_globe_level_locked(to)) {
         return arg1;
     }
-    if (func_80264BA4(from) == 3 || func_80264BA4(to) == 3) {
+    if (lvl_planet(from) == 3 || lvl_planet(to) == 3) {
         lit = 1;
     }
-    if (from == D_8021A905) {
+    if (from == gGlobeSelLevel) {
         *out = to;
     }
-    if (func_80264BA4(from) == 3 && func_80264BA4(to) == 3) {
+    if (lvl_planet(from) == 3 && lvl_planet(to) == 3) {
         if (D_80364A87 &&
             (players[playerNumber].rank[to] == 0 ||
-             ((D_80364A87 & 1) && from == D_8021A905 &&
+             ((D_80364A87 & 1) && from == gGlobeSelLevel &&
               !((players[playerNumber].rank[to] > 0 && players[playerNumber].rank[to] < 6) ? 1 : 0)))) {
-            if (D_8021A924) {
-                progress = MIN2(1.0, (D_8021AB28 > (f32) (D_803156C4 - D_8021AB24) * 60.0 / 60.0 / 90.0) ? D_8021AB28 : (f32) (D_803156C4 - D_8021AB24) * 60.0 / 60.0 / 90.0);
-                if (progress == 1.0 && D_8021AB38) {
-                    func_802608C8(D_8021AB38);
-                } else if (!D_8021AB38 && progress != 1.0 && D_80217B6C == 3) {
-                    func_80260650(D_80367738, 0x7C, &D_8021AB38);
+            if (gGlobeState) {
+                progress = MIN2(1.0, (gRouteRevealMin > (f32) (D_803156C4 - gGlobeZoomDoneTime) * 60.0 / 60.0 / 90.0) ? gRouteRevealMin : (f32) (D_803156C4 - gGlobeZoomDoneTime) * 60.0 / 60.0 / 90.0);
+                if (progress == 1.0 && gRouteRevealSound) {
+                    snd_stop(gRouteRevealSound);
+                } else if (!gRouteRevealSound && progress != 1.0 && gGlobePlanet == 3) {
+                    snd_play(gSfxBank, 0x7C, &gRouteRevealSound);
                 }
             } else {
                 progress = 0.0f;
@@ -771,8 +779,8 @@ Gfx *func_801FA74C(Dynamic *dyn, Gfx *arg1, u8 from, u8 to, s8 *out, f32 *lon, u
     } else {
         progress = 1.0f;
     }
-    e1 = &D_8020D810[from];
-    e2 = &D_8020D810[to];
+    e1 = &gGlobeLevels[from];
+    e2 = &gGlobeLevels[to];
     x0 = e1->unk24;
     y0 = e1->unk28;
     z0 = e1->unk2C;
@@ -782,9 +790,9 @@ Gfx *func_801FA74C(Dynamic *dyn, Gfx *arg1, u8 from, u8 to, s8 *out, f32 *lon, u
     dist = sqrtf((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0) + (z1 - z0) * (z1 - z0));
     steps = MAX2(MIN2(dist / 32.0, 15.0), 3.0);
     n = steps + 1;
-    v = vbase = (Vtx *) N64_IPTR(D_8021A928[gBufferIndex]) + D_8021A909 * 16;
+    v = vbase = (Vtx *) N64_IPTR(gRouteVtxBufs[gBufferIndex]) + gRouteCount * 16;
     cosang = (x0 * x1 + y0 * y1 + z0 * z1) / 250.0 / 250.0;
-    angle = 90.0 - ((cosang >= 0.0f) ? 1 : -1) * func_802AD7D4(((cosang > 0.0f) ? cosang : -cosang) * 65535.0) /
+    angle = 90.0 - ((cosang >= 0.0f) ? 1 : -1) * math_asin_c(((cosang > 0.0f) ? cosang : -cosang) * 65535.0) /
                        16.0 / 11.377777;
     if (angle >= 180.0) {
         angle -= 180.0;
@@ -805,13 +813,13 @@ Gfx *func_801FA74C(Dynamic *dyn, Gfx *arg1, u8 from, u8 to, s8 *out, f32 *lon, u
         y = (a * y0 + b * y1) * scale;
         z = (a * z0 + b * z1) * scale;
         if (*out != -1 && i < 2) {
-            if (D_80217B6C == 3) {
+            if (gGlobePlanet == 3) {
                 if (i != 0) {
-                    func_8027690C(dyn, x, y, z, &sx1, &sy1, &D_80217B70x.view[gBufferIndex],
+                    hud_project_point(dyn, x, y, z, &sx1, &sy1, &D_80217B70x.view[gBufferIndex],
                                   &D_80217B70x.rot[gBufferIndex], &dyn->translate, 1.0f);
                     *lon = func_8028BBF4(sx0, sy0, sx1, sy1);
                 } else {
-                    func_8027690C(dyn, x, y, z, &sx0, &sy0, &D_80217B70x.view[gBufferIndex],
+                    hud_project_point(dyn, x, y, z, &sx0, &sy0, &D_80217B70x.view[gBufferIndex],
                                   &D_80217B70x.rot[gBufferIndex], &dyn->translate, 1.0f);
                 }
             } else if (i != 0) {
@@ -821,33 +829,34 @@ Gfx *func_801FA74C(Dynamic *dyn, Gfx *arg1, u8 from, u8 to, s8 *out, f32 *lon, u
         v->v.ob[0] = x;
         v->v.ob[1] = y;
         v->v.ob[2] = z;
-        bright = MAX2((x * D_8021A90C + y * D_8021A910 + z * D_8021A914) / scale / 250000.0, 0.0);
+        bright = MAX2((x * gGlobeCamX + y * gGlobeCamY + z * gGlobeCamZ) / scale / 250000.0, 0.0);
         if (curved) {
-            extra = 1.0 / MAX2(FABS(bright - D_8021AB40), 0.001) * D_8021AB44 * D_8021AB44 * D_8021AB48;
+            extra = 1.0 / MAX2(FABS(bright - angd), 0.001) * dmm * dmm * mmm;
         } else {
             extra = 0;
         }
         v->v.cn[0] = MIN2(255.0, (FABS(t - 0.5) * (f32) r0 + (0.5 - FABS(t - 0.5)) * (f32) r1) * 2.0 + extra);
         v->v.cn[1] = MIN2(255.0, (FABS(t - 0.5) * (f32) g0 + (0.5 - FABS(t - 0.5)) * (f32) g1) * 2.0 * bright + extra);
         v->v.cn[2] = MIN2(255.0, (FABS(t - 0.5) * (f32) b0 + (0.5 - FABS(t - 0.5)) * (f32) b1) * 2.0 * (1.0 - bright) + extra);
-        v->v.cn[3] = D_8021AB21 * bright / (2 - curved);
+        v->v.cn[3] = gGlobeOverlayAlpha * bright / (2 - curved);
         if (i != 0 && !found && lit && bright > 0.0f) {
             if (!loaded) {
                 gSPVertex(gdl++, vbase, n, 0);
                 loaded = 1;
             }
-            gSPLineW3D(gdl++, i - 1, i, 2.0 - MIN2(2.0, D_8021A918 / 1000.0f / (1.0 + bright / 2.0f)), 0);
+            gSPLineW3D(gdl++, i - 1, i, 2.0 - MIN2(2.0, gGlobeCamDist / 1000.0f / (1.0 + bright / 2.0f)), 0);
         }
     }
-    D_8021A909++;
+    gRouteCount++;
     return gdl;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/11530/func_801FA74C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/11530/fe_globe_draw_route.s")
 #endif
 
-/* The plane icon flying along the great circle between two levels. */
-Gfx *func_801FC5B8(Dynamic *dyn, Gfx *arg1, u8 from, u8 to) {
+/* The marker flying between two levels (0x801FC5B8).
+ * The plane icon flying along the great circle between two levels. */
+Gfx *fe_globe_draw_plane(Dynamic *dyn, Gfx *arg1, u8 from, u8 to) {
     f32 a;
     f32 b;
     Gfx *gdl;
@@ -856,60 +865,60 @@ Gfx *func_801FC5B8(Dynamic *dyn, Gfx *arg1, u8 from, u8 to) {
     GlobeLevel *e2;
 
     gdl = arg1;
-    v = D_8021A840[gBufferIndex];
-    switch (D_8021A926) {
+    v = gPlaneVtx[gBufferIndex];
+    switch (gFlightState) {
         case 0:
             break;
         case 1:
-            e1 = &D_8020D810[from];
-            e2 = &D_8020D810[to];
-            D_8021A8C4 = e1->unk24;
-            D_8021A8CC = e1->unk28;
-            D_8021A8D4 = e1->unk2C;
-            D_8021A8C8 = e2->unk24;
-            D_8021A8D0 = e2->unk28;
-            D_8021A8D8 = e2->unk2C;
-            D_8021A8DC = sqrtf((D_8021A8C8 - D_8021A8C4) * (D_8021A8C8 - D_8021A8C4) +
-                               (D_8021A8D0 - D_8021A8CC) * (D_8021A8D0 - D_8021A8CC) +
-                               (D_8021A8D8 - D_8021A8D4) * (D_8021A8D8 - D_8021A8D4));
-            D_8021A8C0 = MAX2(MIN2(D_8021A8DC / 32.0, 15.0), 3.0);
+            e1 = &gGlobeLevels[from];
+            e2 = &gGlobeLevels[to];
+            gFlightFromX = e1->unk24;
+            gFlightFromY = e1->unk28;
+            gFlightFromZ = e1->unk2C;
+            gFlightToX = e2->unk24;
+            gFlightToY = e2->unk28;
+            gFlightToZ = e2->unk2C;
+            gFlightDist = sqrtf((gFlightToX - gFlightFromX) * (gFlightToX - gFlightFromX) +
+                               (gFlightToY - gFlightFromY) * (gFlightToY - gFlightFromY) +
+                               (gFlightToZ - gFlightFromZ) * (gFlightToZ - gFlightFromZ));
+            gFlightSteps = MAX2(MIN2(gFlightDist / 32.0, 15.0), 3.0);
             if (from != to) {
-                D_8021A926 = 2;
+                gFlightState = 2;
             } else {
-                D_8021A926 = 0;
+                gFlightState = 0;
             }
-            D_8021A8E8 = 0.0f;
-            D_8021A8E0 = (D_8021A8C4 * D_8021A8C8 + D_8021A8CC * D_8021A8D0 + D_8021A8D4 * D_8021A8D8) / 250.0 / 250.0;
-            D_8021A8E4 = 90.0 - ((D_8021A8E0 >= 0.0f) ? 1 : -1) * func_802AD7D4(((D_8021A8E0 > 0.0f) ? D_8021A8E0 : -D_8021A8E0) * 65535.0) / 16.0 / 11.377777;
-            if (D_8021A8E4 >= 180.0) {
-                D_8021A8E4 -= 180.0;
+            gFlightProgress = 0.0f;
+            gFlightCos = (gFlightFromX * gFlightToX + gFlightFromY * gFlightToY + gFlightFromZ * gFlightToZ) / 250.0 / 250.0;
+            gFlightAngle = 90.0 - ((gFlightCos >= 0.0f) ? 1 : -1) * math_asin_c(((gFlightCos > 0.0f) ? gFlightCos : -gFlightCos) * 65535.0) / 16.0 / 11.377777;
+            if (gFlightAngle >= 180.0) {
+                gFlightAngle -= 180.0;
             }
-            if (D_8021A8E4 < -180.0) {
-                D_8021A8E4 += 180.0;
+            if (gFlightAngle < -180.0) {
+                gFlightAngle += 180.0;
             }
-            D_8021A8E4 *= 0.017453292519943295;
+            gFlightAngle *= 0.017453292519943295;
             break;
         case 2:
-            D_8021A8E8 += 0.4 / D_8021A8C0;
-            if (D_8021A8E8 > 1.0) {
-                D_8021A926 = 0;
-                D_8021A8E8 = 1.0f;
+            gFlightProgress += 0.4 / gFlightSteps;
+            if (gFlightProgress > 1.0) {
+                gFlightState = 0;
+                gFlightProgress = 1.0f;
             }
-            D_8021AB2C = ((0.5 - D_8021A8E8 > 0.0) ? 0.5 - D_8021A8E8 : -(0.5 - D_8021A8E8)) * 510.0;
-            if (D_8021A8E8 >= 0.5) {
-                D_8021A908 = D_8021A905;
+            gGlobeNameAlpha = ((0.5 - gFlightProgress > 0.0) ? 0.5 - gFlightProgress : -(0.5 - gFlightProgress)) * 510.0;
+            if (gFlightProgress >= 0.5) {
+                gGlobeShownLevel = gGlobeSelLevel;
             }
             break;
     }
-    a = hd_sinf((1.0 - D_8021A8E8) * D_8021A8E4) / hd_sinf(D_8021A8E4);
-    b = hd_sinf(D_8021A8E8 * D_8021A8E4) / hd_sinf(D_8021A8E4);
-    D_8021A8EC = hd_sinf(D_8021A8E8 * 3.141592653) * D_8021A8C0 / 64.0 + 1.0;
-    D_8021AB4C = (a * D_8021A8C4 + b * D_8021A8C8) * D_8021A8EC;
-    D_8021AB50 = (a * D_8021A8CC + b * D_8021A8D0) * D_8021A8EC;
-    D_8021AB54 = (a * D_8021A8D4 + b * D_8021A8D8) * D_8021A8EC;
-    func_801FCF38(v, D_8021AB4C, D_8021AB50, D_8021AB54, 0x20, 0x20, 1.75f, 1);
+    a = hd_sinf((1.0 - gFlightProgress) * gFlightAngle) / hd_sinf(gFlightAngle);
+    b = hd_sinf(gFlightProgress * gFlightAngle) / hd_sinf(gFlightAngle);
+    gFlightAltitude = hd_sinf(gFlightProgress * 3.141592653) * gFlightSteps / 64.0 + 1.0;
+    gPlaneX = (a * gFlightFromX + b * gFlightToX) * gFlightAltitude;
+    gPlaneY = (a * gFlightFromY + b * gFlightToY) * gFlightAltitude;
+    gPlaneZ = (a * gFlightFromZ + b * gFlightToZ) * gFlightAltitude;
+    fe_globe_quad_at(v, gPlaneX, gPlaneY, gPlaneZ, 0x20, 0x20, 1.75f, 1);
     osWritebackDCache(v, sizeof(Vtx) * 4);
-    gDPLoadTextureBlock(gdl++, D_80215A70[D_803156C4 / 3 % 3], G_IM_FMT_RGBA, G_IM_SIZ_32b, 32, 32, 0,
+    gDPLoadTextureBlock(gdl++, gLvlselMarkerFrames[D_803156C4 / 3 % 3], G_IM_FMT_RGBA, G_IM_SIZ_32b, 32, 32, 0,
                         G_TX_CLAMP, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
     gSPVertex(gdl++, v, 4, 0);
     gSP1Triangle(gdl++, 0, 1, 2, 0);
@@ -917,7 +926,8 @@ Gfx *func_801FC5B8(Dynamic *dyn, Gfx *arg1, u8 from, u8 to) {
     return gdl;
 }
 
-void func_801FCE74(Vtx *v, u8 level, f32 dlat, f32 dlon, u8 w, u8 h, f32 scale, u8 flip) {
+/* A flat quad at a level's latitude/longitude (0x801FCE74). */
+void fe_globe_quad_at_level(Vtx *v, u8 level, f32 dlat, f32 dlon, u8 w, u8 h, f32 scale, u8 flip) {
     GlobeLevel *info;
     f32 lat;
     f32 lon;
@@ -925,15 +935,16 @@ void func_801FCE74(Vtx *v, u8 level, f32 dlat, f32 dlon, u8 w, u8 h, f32 scale, 
     f32 y;
     f32 z;
 
-    info = &D_8020D810[level];
+    info = &gGlobeLevels[level];
     lat = info->unk10 + dlat;
     lon = info->unk14 + dlon;
-    func_801FD484(&lat, &lon, &x, &y, &z, 248.75f);
-    func_801FCF38(v, x, y, z, w, h, scale, flip);
+    fe_globe_latlon_to_xyz(&lat, &lon, &x, &y, &z, 248.75f);
+    fe_globe_quad_at(v, x, y, z, w, h, scale, flip);
 }
 
-/* A w x h textured quad lying flat on the globe at (x, y, z), rotated 45 degrees about the normal. */
-void func_801FCF38(Vtx *v, f32 x, f32 y, f32 z, u8 w, u8 h, f32 scale, u8 flip) {
+/* A quad lying flat on the sphere at x, y, z (0x801FCF38).
+ * A w x h textured quad lying flat on the globe at (x, y, z), rotated 45 degrees about the normal. */
+void fe_globe_quad_at(Vtx *v, f32 x, f32 y, f32 z, u8 w, u8 h, f32 scale, u8 flip) {
     f32 m[4][4];
     f32 ux;
     f32 uy;
@@ -1024,8 +1035,9 @@ void func_801FCF38(Vtx *v, f32 x, f32 y, f32 z, u8 w, u8 h, f32 scale, u8 flip) 
     v[3].v.ob[2] = z3;
 }
 
-/* Latitude/longitude (degrees, normalised in place) to a point on a sphere of radius r. */
-void func_801FD484(f32 *lat, f32 *lon, f32 *x, f32 *y, f32 *z, f32 r) {
+/* A point on the sphere from latitude/longitude (0x801FD484).
+ * Latitude/longitude (degrees, normalised in place) to a point on a sphere of radius r. */
+void fe_globe_latlon_to_xyz(f32 *lat, f32 *lon, f32 *x, f32 *y, f32 *z, f32 r) {
     if (*lat >= 90.0 || *lat < -90.0) {
         if (*lat >= 90.0) {
             *lat = 180.0 - *lat;
@@ -1044,8 +1056,9 @@ void func_801FD484(f32 *lat, f32 *lon, f32 *x, f32 *y, f32 *z, f32 r) {
     *z = hd_sinf(-*lon * 0.017453292519943295) * hd_cosf(*lat * 0.017453292519943295) * r;
 }
 
-/* Wrap the difference b - a into [-range, range). */
-f32 func_801FD6B8(f32 a, f32 b, f32 range) {
+/* B - a wrapped into [-range, range) (0x801FD6B8).
+ * Wrap the difference b - a into [-range, range). */
+f32 fe_globe_angle_diff(f32 a, f32 b, f32 range) {
     f32 d;
 
     d = b - a;
@@ -1060,8 +1073,9 @@ f32 func_801FD6B8(f32 a, f32 b, f32 range) {
 
 #define ABS(x) ((x) > 0 ? (x) : -(x))
 
-/* Scroll the star field with the globe's spin; respawn stars that wrap or pass the camera. */
-void func_801FD748(void) {
+/* Moves the starfield (0x801FD748).
+ * Scroll the star field with the globe's spin; respawn stars that wrap or pass the camera. */
+void fe_globe_scroll_stars(void) {
     s32 i;
     s32 k;
     s32 n;
@@ -1085,9 +1099,9 @@ void func_801FD748(void) {
         minx = miny = 0x40000000;
         for (k = 0, bigx = bigy = 0; k < 4; k++) {
             n = i * 4 + k;
-            nx = cur[n].v.ob[0] = prev[n].v.ob[0] - (D_80217B6C == 3 ? D_8021A934 * 40.0f : 0.0f);
-            ny = cur[n].v.ob[1] = prev[n].v.ob[1] + (D_80217B6C == 3 ? D_8021A938 * 40.0f : 0.0f);
-            nz = cur[n].v.ob[2] = prev[n].v.ob[2] - D_802159F0[i] * D_8021A918 / 925.0;
+            nx = cur[n].v.ob[0] = prev[n].v.ob[0] - (gGlobePlanet == 3 ? gGlobeLonStep * 40.0f : 0.0f);
+            ny = cur[n].v.ob[1] = prev[n].v.ob[1] + (gGlobePlanet == 3 ? gGlobeLatStep * 40.0f : 0.0f);
+            nz = cur[n].v.ob[2] = prev[n].v.ob[2] - gStarSpeeds[i] * gGlobeCamDist / 925.0;
             if (ABS(nx) > 4000) {
                 bigx = nx;
             }
@@ -1108,10 +1122,10 @@ void func_801FD748(void) {
                 ox = cur[n].v.ob[0];
                 oy = cur[n].v.ob[1];
                 if (bigx != 0) {
-                    nx = cur[n].v.ob[0] = func_801FD6B8(0.0f, cur[n].v.ob[0], 3890.0f);
+                    nx = cur[n].v.ob[0] = fe_globe_angle_diff(0.0f, cur[n].v.ob[0], 3890.0f);
                 }
                 if (bigy != 0) {
-                    ny = cur[n].v.ob[1] = func_801FD6B8(0.0f, cur[n].v.ob[1], 3890.0f);
+                    ny = cur[n].v.ob[1] = fe_globe_angle_diff(0.0f, cur[n].v.ob[1], 3890.0f);
                 }
                 if (bigx != 0 && ox * nx > 0) {
                     respawn = 1;
@@ -1121,22 +1135,23 @@ void func_801FD748(void) {
                 }
             }
         }
-        if (respawn || nz < 0 || (minx < 231250.0 / D_8021A918 && miny < 231250.0 / D_8021A918)) {
-            func_801FDCA4(cur, i, 25000);
+        if (respawn || nz < 0 || (minx < 231250.0 / gGlobeCamDist && miny < 231250.0 / gGlobeCamDist)) {
+            fe_globe_respawn_star(cur, i, 25000);
         }
     }
 }
 
-/* A randomly placed 0x6D-unit square (4 vertices) at depth z. */
-void func_801FDCA4(Vtx *v, s32 idx, s32 z) {
+/* Respawns a star at a random place and speed (0x801FDCA4).
+ * A randomly placed 0x6D-unit square (4 vertices) at depth z. */
+void fe_globe_respawn_star(Vtx *v, s32 idx, s32 z) {
     s32 n;
     s32 x;
     s32 y;
 
     n = idx * 4;
-    D_802159F0[idx] = func_8026A828(0x50, 0xC8);
-    x = func_8026A828(-4000, 4000);
-    y = func_8026A828(-4000, 4000);
+    gStarSpeeds[idx] = util_rand_range(0x50, 0xC8);
+    x = util_rand_range(-4000, 4000);
+    y = util_rand_range(-4000, 4000);
     v[n].v.ob[0] = x - 0x37;
     v[n].v.ob[1] = y - 0x37;
     v[n].v.ob[2] = z;
@@ -1151,50 +1166,53 @@ void func_801FDCA4(Vtx *v, s32 idx, s32 z) {
     v[n + 3].v.ob[2] = z;
 }
 
-void func_801FDE50(void) {
-    D_8021A8F0 = func_80272C5C(D_8020E350, 0, 0x13, 2, 1, 1.0f);
+/* The vehicle icon textures (0x801FDE50). */
+void fe_load_vehicle_icons(void) {
+    gVehicleIconTex = spr_load(gVehicleIcons, 0, 0x13, 2, 1, 1.0f);
 }
 
-void func_801FDE98(void) {
+/* The light toward the marker (0x801FDE98). */
+void fe_globe_set_light(void) {
     f32 len;
     f32 x;
     f32 y;
     f32 z;
 
-    len = sqrtf(D_8021AB4C * D_8021AB4C + D_8021AB50 * D_8021AB50 + D_8021AB54 * D_8021AB54);
+    len = sqrtf(gPlaneX * gPlaneX + gPlaneY * gPlaneY + gPlaneZ * gPlaneZ);
     if (len < 1.0) {
         len = 1.0f;
     }
-    x = D_8021AB4C / len * 120.0f;
-    y = D_8021AB50 / len * 120.0f;
-    z = D_8021AB54 / len * 120.0f;
-    D_8020E3A8[gBufferIndex].l[0].l.dir[0] = x;
-    D_8020E3A8[gBufferIndex].l[0].l.dir[1] = y;
-    D_8020E3A8[gBufferIndex].l[0].l.dir[2] = z;
-    osWritebackDCache(&D_8020E3A8[gBufferIndex], sizeof(D_8020E3A8));
+    x = gPlaneX / len * 120.0f;
+    y = gPlaneY / len * 120.0f;
+    z = gPlaneZ / len * 120.0f;
+    gGlobeLights[gBufferIndex].l[0].l.dir[0] = x;
+    gGlobeLights[gBufferIndex].l[0].l.dir[1] = y;
+    gGlobeLights[gBufferIndex].l[0].l.dir[2] = z;
+    osWritebackDCache(&gGlobeLights[gBufferIndex], sizeof(gGlobeLights));
 }
 
-/* Open every level reachable from a completed one (no prototype in scope for func_801FE760). */
-void func_801FE018(u8 rank) {
+/* Opens the levels reachable from the done ones (0x801FE018).
+ * Open every level reachable from a completed one (no prototype in scope for fe_globe_level_locked). */
+void fe_open_reachable_levels(u8 rank) {
     s32 i;
     s32 j;
     GlobeLevel *e;
     LevelInfo *info;
 
-    D_8021AB30 = &players[playerNumber];
+    gGlobePlayer = &players[playerNumber];
     for (i = 0; i < 60; i++) {
         if ((players[playerNumber].rank[i] > 0 && players[playerNumber].rank[i] < 6) ? 1 : 0) {
-            e = &D_8020D810[i];
+            e = &gGlobeLevels[i];
             info = &gLevelInfo[i];
             for (j = 0; j < 8 && e->unk1C[j] != -1; j++) {
-                if (D_8021AB30->rank[e->unk1C[j]] == 0 && func_801FE760(e->unk1C[j]) == 0) {
-                    D_8021AB30->rank[e->unk1C[j]] = rank;
+                if (gGlobePlayer->rank[e->unk1C[j]] == 0 && fe_globe_level_locked(e->unk1C[j]) == 0) {
+                    gGlobePlayer->rank[e->unk1C[j]] = rank;
                 }
             }
             for (j = 0; j < 4 && e->unk18[j] != -1; j++) {
-                if (D_8021AB30->unk54[i] & (1 << j)) {
-                    if (D_8021AB30->rank[e->unk18[j]] == 0) {
-                        D_8021AB30->rank[e->unk18[j]] = rank;
+                if (gGlobePlayer->unk54[i] & (1 << j)) {
+                    if (gGlobePlayer->rank[e->unk18[j]] == 0) {
+                        gGlobePlayer->rank[e->unk18[j]] = rank;
                     }
                 }
             }
@@ -1202,32 +1220,34 @@ void func_801FE018(u8 rank) {
     }
 }
 
-Gfx *func_801FE238(Gfx *arg0, s32 arg1) {
+/* The Earth node: the globe mesh and the icon lists (0x801FE238). */
+Gfx *fe_globe_draw_earth(Gfx *arg0, s32 arg1) {
     Gfx *gdl = arg0;
 
     gDPSetTextureLOD(gdl++, G_TL_LOD);
     gDPSetCycleType(gdl++, G_CYC_2CYCLE);
     gDPSetRenderMode(gdl++, 0x0C182048, 0);
-    if (D_80217B6C == 3) {
-        gSPSetLights1(gdl++, D_8020E3A8[gBufferIndex]);
+    if (gGlobePlanet == 3) {
+        gSPSetLights1(gdl++, gGlobeLights[gBufferIndex]);
         gSPSetGeometryMode(gdl++, G_LIGHTING | G_CULL_BACK | G_SHADING_SMOOTH | G_SHADE);
         gDPSetCombine(gdl++, 0x26A024, 0x1FFC93FC);
     } else {
         gSPSetGeometryMode(gdl++, G_LIGHTING | G_CULL_BACK | G_SHADING_SMOOTH | G_SHADE);
         gDPSetCombine(gdl++, 0x26A1FF, 0x1FFC927C);
     }
-    gSPDisplayList(gdl++, D_8021A8F4);
+    gSPDisplayList(gdl++, gGlobeMeshDl);
     gDPPipeSync(gdl++);
     gSPClearGeometryMode(gdl++, G_LIGHTING);
-    gDPSetPrimColor(gdl++, 0, 0, 0, 0, 0, D_8021AB21);
-    gDPSetEnvColor(gdl++, 0, 0, 0, D_8021AB21 * 2 / 3);
+    gDPSetPrimColor(gdl++, 0, 0, 0, 0, 0, gGlobeOverlayAlpha);
+    gDPSetEnvColor(gdl++, 0, 0, 0, gGlobeOverlayAlpha * 2 / 3);
     gSPDisplayList(gdl++, D_8021A8FC);
     gSPDisplayList(gdl++, D_8021A900);
     gSPEndDisplayList(gdl++);
     return gdl;
 }
 
-Gfx *func_801FE5D0(Gfx *arg0, Dynamic *dyn) {
+/* The starfield display list (0x801FE5D0). */
+Gfx *fe_globe_draw_stars(Gfx *arg0, Dynamic *dyn) {
     Gfx *gdl = arg0;
 
     gDPPipeSync(gdl++);
@@ -1237,7 +1257,7 @@ Gfx *func_801FE5D0(Gfx *arg0, Dynamic *dyn) {
     gDPSetRenderMode(gdl++, 0x0F0A7008, 0);
     gDPSetCombine(gdl++, 0xFFFFFF, 0xFFFCF279);
     gDPSetTextureFilter(gdl++, G_TF_BILERP);
-    gSPDisplayList(gdl++, D_8021A8F8);
+    gSPDisplayList(gdl++, gGlobeStarsDl);
     gDPPipeSync(gdl++);
     return gdl;
 }
@@ -1246,11 +1266,12 @@ Gfx *func_801FE5D0(Gfx *arg0, Dynamic *dyn) {
  * K&R in the matching build, where the unused second parameter is the
  * scratch the checks below reuse (no caller passes it). */
 #ifdef NON_MATCHING
-s32 func_801FE760(u8 level) {
+/* Progress needed, or a prerequisite level not done (0x801FE760). */
+s32 fe_globe_level_locked(u8 level) {
     s32 arg1;
     u8 locked = 0;
 #else
-s32 func_801FE760(level, arg1)
+s32 fe_globe_level_locked(level, arg1)
     u8 level;
     s32 arg1;
 {

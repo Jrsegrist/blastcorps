@@ -4,14 +4,14 @@
 /* Matching build: IDO compiled the matched code here against older
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
-#define LEGACY_D_8036BB24
+#define LEGACY_gYoshiHeapItems
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define D_802F49F4 ((Font *) D_802F49F4)
 #define players ((Player *) players)
 #ifdef NON_MATCHING
-#define D_8036BB24 (*(MenuItem * N64P *) &D_8036BB24)
+#define gYoshiHeapItems (*(MenuItem * N64P *) &gYoshiHeapItems)
 #endif
 /* end of views */
 
@@ -80,7 +80,7 @@ extern u8 D_802FF180[];
 extern MenuText D_802FF188[][20];
 extern u8 D_802FF5E8[];
 #ifndef NON_MATCHING
-extern MenuItem *D_8036BB24;
+extern MenuItem *gYoshiHeapItems;
 #endif
 
 
@@ -90,7 +90,7 @@ u8 func_80297F74(void);
 /* Build the yoshi window that lists a group's levels, numbering the
  * "N left" text with how many levels remain */
 void func_802979E0(u8 level) {
-    Window *win = (Window *) (D_802F8BDC + 0x24C);
+    Window *win = (Window *) (gYoshiWindows + 0x24C);
     MenuItem *item;
     Font *font;
     u8 left;
@@ -122,7 +122,7 @@ void func_802979E0(u8 level) {
         D_8039CAD0 = i % 6;
     }
     i = 0;
-    D_8036BB24 = (MenuItem *) gHeapPtr;
+    gYoshiHeapItems = (MenuItem *) gHeapPtr;
     gHeapPtr = (u8 *) gHeapPtr + 0x24C;
     nsel = 0;
     n = 0;
@@ -130,7 +130,7 @@ void func_802979E0(u8 level) {
     for (; i < 20 && !stop; i++) {
         text = D_802FF188[D_8039CAD0][i].text;
         jtext = D_802FF188[D_8039CAD0][i].jtext;
-        item = &D_8036BB24[i];
+        item = &gYoshiHeapItems[i];
         if (text != NULL) {
             n++;
             item->flags = 0x1020;
@@ -153,7 +153,7 @@ void func_802979E0(u8 level) {
         }
     }
 
-    item = &D_8036BB24[n];
+    item = &gYoshiHeapItems[n];
     item->text = NULL;
     item->jtext = 0;
     item->flags = 0x400;
@@ -162,15 +162,15 @@ void func_802979E0(u8 level) {
     item->font = 0x18;
     item->unk16 = item->unk1A = 0;
     font = &D_802F49F4[item->font];
-    item->unk1A = func_80272C5C((u16 *) font->ids, 0, font->unk4, font->unk2C, font->unk2D | 4, 1.0f);
+    item->unk1A = spr_load((u16 *) font->ids, 0, font->unk4, font->unk2C, font->unk2D | 4, 1.0f);
     win->count = n + 1;
     win->cursor = D_802FF5E8[D_8039CAD0 * 5];
     if (!func_80297EF8(level)) {
         left--;
     }
     for (i = 0; i < win->count && !done; i++) {
-        item = &D_8036BB24[i];
-        for (j = 0; j < func_8025B300(item->text) && !done; j++) {
+        item = &gYoshiHeapItems[i];
+        for (j = 0; j < font_strlen(item->text) && !done; j++) {
             if (item->text[j] >= '0' && item->text[j] < '6') {
                 item->text[j] = left + '0';
                 done = 1;
@@ -180,7 +180,7 @@ void func_802979E0(u8 level) {
 }
 
 void func_80297ECC(void) {
-    *(s16 *) (D_802F8BDC + 0x264) = D_802FF5E8[D_8039CAD0 * 5];
+    *(s16 *) (gYoshiWindows + 0x264) = D_802FF5E8[D_8039CAD0 * 5];
 }
 
 /* Is level completed in its academy group? */
@@ -188,7 +188,7 @@ u8 func_80297EF8(u8 level) {
     u8 idx;
     u8 found;
 
-    found = func_8029766C(level, &idx);
+    found = academy_find_level(level, &idx);
     return (found && (players[playerNumber].academy & (1 << idx))) ? 1 : 0;
 }
 

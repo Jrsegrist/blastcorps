@@ -98,7 +98,7 @@ if "6" in TESTS:
         req = 0x803C4B58
         w32(req, buf); w32(req + 4, size); w32(req + 8, typ)
         w32(req + 12, PARAM if typ in (4, 5) else 0)
-        n = call("func_802A57DC", a0=req)
+        n = call("tex_decode", a0=req)
         out.append("T6 %03X %d %05X %08X" % (tid, typ, n, zlib.crc32(rd(buf, n)) & 0xFFFFFFFF))
 
 
@@ -132,7 +132,7 @@ if "7" in TESTS:
         blob = level_blob(lvl)
         wr(HEAP, blob)
         try:
-            call("func_802A2C54", t0=HEAP)
+            call("lvl_read_alpha_zones", t0=HEAP)
         except UcError:
             out.append("T7 %02d.size CRASH" % lvl)
             continue
@@ -159,7 +159,7 @@ if "8" in TESTS:
             w16(0x8036444E, 0x1234)
             w8(0x80364411, 0x55)
             try:
-                call("func_802A5510", a0=HEAP)
+                call("cam_apply_height_zone", a0=HEAP)
             except UcError:
                 out.append("T8 %02d.%02d CRASH" % (lvl, i))
                 continue

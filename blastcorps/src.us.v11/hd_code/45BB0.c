@@ -2,8 +2,8 @@
 #include <ultra64.h>
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_802F5804 ((PathNode *) D_802F5804)
-#define D_802F8BDC ((YoshiArg *) D_802F8BDC)
+#define gYoshiGameItems ((YoshiItem *) gYoshiGameItems)
+#define gYoshiWindows ((YoshiArg *) gYoshiWindows)
 /* end of views */
 
 /* controller.c: controller init, reading, the demo/replay pad source and
@@ -12,7 +12,7 @@
 #define CONTROLLER_ASSERT(EX, line) \
     if (!(EX)) debug_printf("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "controller.c", line)
 
-/* Pathfinding node, 0x1C bytes (see 26570.c) */
+/* A text-window item, 0x1C bytes (yoshi.c's YoshiItem) */
 typedef struct {
     /* 0x00 */ u16 flags;
     /* 0x02 */ u8 unk2[4];
@@ -21,7 +21,7 @@ typedef struct {
     /* 0x0C */ char * N64P text;
     /* 0x10 */ u16 * N64P jtext;
     /* 0x14 */ u8 unk14[8];
-} PathNode;
+} YoshiItem;
 
 /* 0x1C bytes (see 26570.c) */
 typedef struct {
@@ -163,7 +163,7 @@ void cont_update(void) {
                 break;
             case 4:
             case 0x100:
-                if (!gPaused || gGameMode == 0x2000) {
+                if (!gPaused || gGameMode == MODE_LEVEL_START) {
                     rec_record(pad->button & ~START_BUTTON, pad->stick_x, pad->stick_y);
                 }
                 break;
@@ -189,7 +189,7 @@ void cont_update(void) {
             } else {
                 mode = 0;
             }
-            if (gGameMode == 2 || gGameMode == 0x100000000000) {
+            if (gGameMode == 2 || gGameMode == MODE_GLOBE_SEQ) {
                 mode = 0;
             }
             gControlMethod = mode;
@@ -200,7 +200,7 @@ void cont_update(void) {
                     case 0:
                         switch (gCurVehicle) {
                             case 9:
-                                if (D_803F7C3F) {
+                                if (gJbombAirborne) {
                                     D_80370C34 = 1;
                                 }
                             case 0:
@@ -449,14 +449,14 @@ void cont_show_method_option(void) {
         }
     } while (i < 3 && !found);
     CONTROLLER_ASSERT(found, 515);
-    D_802F5804[421].text = str;
-    D_802F5804[421].jtext = NULL;
-    D_802F5804[422].text = tbl[i];
-    D_802F5804[422].unk6 = 0x13;
+    gYoshiGameItems[421].text = str;
+    gYoshiGameItems[421].jtext = NULL;
+    gYoshiGameItems[422].text = tbl[i];
+    gYoshiGameItems[422].unk6 = 0x13;
     if ((D_80364BE0[playerNumber].flags ^ 0x10205) & (1 << gCurVehicle)) {
-        D_802F8BDC[88].unk18 = 0x1A8;
+        gYoshiWindows[88].unk18 = 0x1A8;
     } else {
-        D_802F8BDC[88].unk18 = 0x1A7;
+        gYoshiWindows[88].unk18 = 0x1A7;
     }
-    func_8026AF6C(0x8058);
+    yoshi_demand(0x8058);
 }

@@ -8,7 +8,7 @@
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_8020C070 ((MenuEntry *) D_8020C070)
+#define gYoshiFeItems ((MenuEntry *) gYoshiFeItems)
 #ifdef NON_MATCHING
 #define gHeapPtr (*(s32 *) &gHeapPtr)
 #endif
@@ -52,34 +52,36 @@ extern s32 gHeapPtr; /* heap pointer */
 #endif
 extern s16 D_8036BB1C;
 
-extern u8 * N64P D_8021AB90[4]; /* the four inflated pictures */
-extern u8 D_8021ABA0;     /* current picture */
-extern u8 D_8021ABA1;     /* env alpha */
-extern u8 D_8021ABA2;     /* prim alpha */
-extern s32 D_8021ABA4;    /* fade state */
+extern u8 * N64P gAttractPics[4]; /* the four inflated pictures */
+extern u8 gAttractPicNo;     /* current picture */
+extern u8 gAttractPicEnvAlpha;     /* env alpha */
+extern u8 gAttractPicPrimAlpha;     /* prim alpha */
+extern s32 gAttractPicFade;    /* fade state */
 extern s32 D_8021ABA8;
 
 
-/* Inflate the pictures and select picture `arg0`. */
-void func_80201240(s32 arg0) {
+/* The attract screen's four pictures; selects one (0x80201240).
+ * Inflate the pictures and select picture `arg0`. */
+void fe_attract_pic_load(s32 arg0) {
     s32 size;
     s32 i;
 
     size = D_006A32B0 - D_0068B550;
     func_8028B4C4((u32) D_0068B550, (u32) ((void *) N64_IPTR(gHeapPtr)), (u32 *) &size, 13, 0, 1);
     for (i = 0; i < 4; i++) {
-        D_8021AB90[i] = (u8 *) N64_IPTR((i * 160 * 120 * 2 + gHeapPtr));
+        gAttractPics[i] = (u8 *) N64_IPTR((i * 160 * 120 * 2 + gHeapPtr));
     }
     gHeapPtr += size;
-    D_8021ABA0 = arg0;
-    D_8021ABA2 = 0;
-    D_8021ABA1 = 0;
-    D_8020C070[175].unkC = D_8020E3E8[arg0];
-    D_8020C070[175].unk10 = D_8020E430[arg0];
+    gAttractPicNo = arg0;
+    gAttractPicPrimAlpha = 0;
+    gAttractPicEnvAlpha = 0;
+    gYoshiFeItems[175].unkC = D_8020E3E8[arg0];
+    gYoshiFeItems[175].unk10 = D_8020E430[arg0];
 }
 
-/* Draw the current picture and its frame, stepping the fade. */
-Gfx *func_80201364(s32 arg0, Gfx *arg1) {
+/* Flicker and cross-fade of the picture, its frame (0x80201364).
+ * Draw the current picture and its frame, stepping the fade. */
+Gfx *fe_attract_pic_draw(s32 arg0, Gfx *arg1) {
     Gfx *gdl = arg1;
     s32 x;
     s32 y;
@@ -94,87 +96,87 @@ Gfx *func_80201364(s32 arg0, Gfx *arg1) {
     switch (D_8036BB1C) {
         case 1:
         case 4:
-            D_8021ABA4 = 0;
+            gAttractPicFade = 0;
             break;
         case 2:
-            switch (D_8021ABA4) {
+            switch (gAttractPicFade) {
                 case 0:
-                    if (D_8021ABA1 + 3 > 0xFF) {
-                        D_8021ABA1 = 0xFF;
+                    if (gAttractPicEnvAlpha + 3 > 0xFF) {
+                        gAttractPicEnvAlpha = 0xFF;
                     } else {
-                        D_8021ABA1 += 3;
+                        gAttractPicEnvAlpha += 3;
                     }
-                    if (D_8021ABA1 < 0x80) {
-                        D_8021ABA2 = D_8021ABA1;
+                    if (gAttractPicEnvAlpha < 0x80) {
+                        gAttractPicPrimAlpha = gAttractPicEnvAlpha;
                     } else {
-                        D_8021ABA2 = 0xFF - D_8021ABA1;
+                        gAttractPicPrimAlpha = 0xFF - gAttractPicEnvAlpha;
                     }
-                    if (D_8021ABA1 == 0xFF) {
-                        D_8021ABA4 = 1;
-                        func_80260650(D_80367738, D_8020E3E0[D_8021ABA0], NULL);
+                    if (gAttractPicEnvAlpha == 0xFF) {
+                        gAttractPicFade = 1;
+                        snd_play(gSfxBank, D_8020E3E0[gAttractPicNo], NULL);
                     }
                     break;
                 case 1:
-                    D_8021ABA2 = 0;
-                    D_8021ABA1 = 0xFF;
-                    if (func_8026A828(0, 40) == 0) {
-                        D_8021ABA4 = 2;
+                    gAttractPicPrimAlpha = 0;
+                    gAttractPicEnvAlpha = 0xFF;
+                    if (util_rand_range(0, 40) == 0) {
+                        gAttractPicFade = 2;
                     }
                     break;
                 case 2:
-                    if (func_8026A828(0, 30) == 0 || D_8021ABA2 == 0xFF) {
-                        D_8021ABA4 = 3;
+                    if (util_rand_range(0, 30) == 0 || gAttractPicPrimAlpha == 0xFF) {
+                        gAttractPicFade = 3;
                     }
-                    if (D_8021ABA2 + 24 > 0xFF) {
-                        D_8021ABA2 = 0xFF;
+                    if (gAttractPicPrimAlpha + 24 > 0xFF) {
+                        gAttractPicPrimAlpha = 0xFF;
                     } else {
-                        D_8021ABA2 += 24;
+                        gAttractPicPrimAlpha += 24;
                     }
-                    D_8021ABA1 = 0xFF - D_8021ABA2;
+                    gAttractPicEnvAlpha = 0xFF - gAttractPicPrimAlpha;
                     break;
                 case 3:
-                    if (func_8026A828(0, 50) == 0) {
-                        D_8021ABA4 = 2;
+                    if (util_rand_range(0, 50) == 0) {
+                        gAttractPicFade = 2;
                     }
-                    if (D_8021ABA2 - 32 < 0) {
-                        D_8021ABA2 = 0;
+                    if (gAttractPicPrimAlpha - 32 < 0) {
+                        gAttractPicPrimAlpha = 0;
                     } else {
-                        D_8021ABA2 -= 32;
+                        gAttractPicPrimAlpha -= 32;
                     }
-                    D_8021ABA1 = 0xFF - D_8021ABA2;
-                    if (D_8021ABA2 == 0) {
-                        D_8021ABA4 = 1;
+                    gAttractPicEnvAlpha = 0xFF - gAttractPicPrimAlpha;
+                    if (gAttractPicPrimAlpha == 0) {
+                        gAttractPicFade = 1;
                     }
                     break;
             }
-            if (func_801E96F8()) {
-                func_8026AF6C(0x4000);
+            if (fe_player_ticker_at_end()) {
+                yoshi_demand(0x4000);
             }
             break;
         case 8:
-            if (D_8021ABA1 - 6 < 0) {
-                D_8021ABA1 = 0;
+            if (gAttractPicEnvAlpha - 6 < 0) {
+                gAttractPicEnvAlpha = 0;
             } else {
-                D_8021ABA1 -= 6;
+                gAttractPicEnvAlpha -= 6;
             }
-            if (D_8021ABA1 < 0x80) {
-                D_8021ABA2 = D_8021ABA1;
+            if (gAttractPicEnvAlpha < 0x80) {
+                gAttractPicPrimAlpha = gAttractPicEnvAlpha;
             } else {
-                D_8021ABA2 = 0xFF - D_8021ABA1;
+                gAttractPicPrimAlpha = 0xFF - gAttractPicEnvAlpha;
             }
             break;
     }
-    if (D_8021ABA2 > 60 && D_8021ABA8 == 0) {
-        func_80260650(D_80367738, 0x69, &D_8021ABA8);
+    if (gAttractPicPrimAlpha > 60 && D_8021ABA8 == 0) {
+        snd_play(gSfxBank, 0x69, &D_8021ABA8);
     }
-    gDPSetPrimColor(gdl++, 0, 0, 0, 0, 0, D_8021ABA2);
-    gDPSetEnvColor(gdl++, 0, 0, 0, D_8021ABA1);
+    gDPSetPrimColor(gdl++, 0, 0, 0, 0, 0, gAttractPicPrimAlpha);
+    gDPSetEnvColor(gdl++, 0, 0, 0, gAttractPicEnvAlpha);
     gDPSetRenderMode(gdl++, FORCE_BL | GBL_c1(G_BL_CLR_IN, G_BL_0, G_BL_CLR_IN, G_BL_1),
                      GBL_c2(G_BL_CLR_IN, G_BL_0, G_BL_CLR_IN, G_BL_1));
     xo = 80;
     for (x = 0; x < 160; x += 32) {
         for (yo = 32, y = 0; y < 120; y += 8) {
-            gDPLoadTextureTile(gdl++, D_8021AB90[D_8021ABA0], G_IM_FMT_RGBA, G_IM_SIZ_16b, 160, 120, x, y,
+            gDPLoadTextureTile(gdl++, gAttractPics[gAttractPicNo], G_IM_FMT_RGBA, G_IM_SIZ_16b, 160, 120, x, y,
                                x + 31, y + 7, 0, G_TX_CLAMP, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD,
                                G_TX_NOLOD);
             gSPTextureRectangleOld(gdl++, (x + xo) << 2, (y + yo) << 2, (x + xo + 32) << 2, (y + yo + 8) << 2,

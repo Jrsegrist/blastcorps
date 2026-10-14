@@ -151,8 +151,8 @@ for name, (a, size) in func_sizes.items():
 # (1A630.c, sndPlaySfx and friends: alEvtqPostEvent from the game thread):
 # which audio frame handles a sound depends on whether the game thread posts it
 # before or after the audio thread's frame in that retrace
-SOUND_FUNCS = ["func_80260650", "func_802600D8", "func_80260AB8", "func_80260B40", "func_80260934",
-               "func_802608C8"]
+SOUND_FUNCS = ["snd_play", "snd_post_pitch_step", "snd_modify", "snd_set_slot_volume", "snd_stop_matching",
+               "snd_stop"]
 for name in SOUND_FUNCS:
     if name in func_sizes:
         ENTRY[func_sizes[name][0]] = name
@@ -183,10 +183,10 @@ A_AFRAME = syms.get("alAudioFrame", syms.get("func_802D9D68"))
 # where the game reads D_803156C4 mid-function, after CPU time the native
 # code doesn't take (00000.c hd_build_frame_dl: the blinking "PRESS START").
 # Also D_803156C0 (the scheduler's retrace count): hd_front_end 00000.c
-# func_801E7598 (the vehicle select screen's title pulse).  And 50670.c
-# func_80294F00 (the ghost recorder's sample time, D_803156C0 - start): a
+# fe_digger_frame (the vehicle select screen's title pulse).  And 50670.c
+# ghost_record (the ghost recorder's sample time, D_803156C0 - start): a
 # retrace can land between its entry (a switch point) and the read.
-GVI_FUNCS = ["hd_build_frame_dl", "func_801E7598", "func_80294F00"]
+GVI_FUNCS = ["hd_build_frame_dl", "fe_digger_frame", "ghost_record"]
 GVI = {}
 for name in GVI_FUNCS:
     a, size = func_sizes[name]
@@ -218,7 +218,7 @@ for name, store, src in GVI_SITES:
 #   2C560.c __scHandleRetrace (__scHandleRetrace) counts the retrace in
 #   D_803156C0 unless gPaused (the main thread's display freeze around
 #   loads) is set; the main thread clears it after its frame's CPU time
-#   (00000.c hd_game_frame, after func_802A5720), so a retrace there sees it
+#   (00000.c hd_game_frame, after tex_reset_decode_queue), so a retrace there sees it
 #   still set in the emulator and already clear natively.
 EMU_SITES = [("__scHandleRetrace", 0x802E8BD0, 1)]
 for name, addr, size in EMU_SITES:

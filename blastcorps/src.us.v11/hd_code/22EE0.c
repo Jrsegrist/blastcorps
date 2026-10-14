@@ -4,7 +4,13 @@
 
 /* audio.c: Rare's copy of the SDK demos' audio manager (audiomgr.c). The
  * thread renders one audio frame per retrace message from the scheduler and
- * streams sample data through a small cache of 0x200-byte DMA buffers. */
+ * streams sample data through a small cache of 0x200-byte DMA buffers.
+ * Names follow the demo's (amCreateAudioMgr, audFrameCt, ...); its static
+ * functions __amMain, __amHandleFrameMsg, __amHandleDoneMsg, __amDMA,
+ * __amDmaNew and __clearAudioDMA are amMain .. amClearAudioDMA here: the
+ * port's symbol loaders (os_time.c plat_syms_load, compare.py nm_syms) drop
+ * one leading underscore from every exe symbol, so a game function whose
+ * name starts with "_" loses its keyed clock values in the comparisons. */
 
 typedef struct BcScTask {
     /* 0x00 */ struct BcScTask * N64P next;
@@ -48,15 +54,15 @@ typedef struct {
     /* 0x08 */ AMDMABuffer * N64P firstFree;
 } AMDMAState;
 
-extern AMAudioMgr D_80368070;
-extern AMDMAState D_8036A308;
-/* .data (0x802F3AF0); the reverb template in func_802676A0 and
- * func_80267F88's firstTime follow in source order */
-u32 D_802F3AF0 = 0; /* audFrameCt */
-u32 D_802F3AF4 = 0; /* nextDMA */
-s32 D_802F3AF8 = 0; /* curAcmdList */
-extern s32 D_8036AFA0; /* deepest DMA list search */
-extern OSMesgQueue D_8036AE68; /* audDMAMessageQ */
+extern AMAudioMgr __am;
+extern AMDMAState gAudDmaState;
+/* .data (0x802F3AF0); the reverb template in amCreateAudioMgr and
+ * amHandleDoneMsg's firstTime follow in source order */
+u32 audFrameCt = 0; /* audFrameCt */
+u32 nextDMA = 0; /* nextDMA */
+s32 curAcmdList = 0; /* curAcmdList */
+extern s32 gAudDmaMaxSearch; /* deepest DMA list search */
+extern OSMesgQueue audDMAMessageQ; /* audDMAMessageQ */
 /* the old SDK's OSIoMesg, without piHandle */
 typedef struct {
     OSIoMesgHdr hdr;
@@ -65,59 +71,60 @@ typedef struct {
     u32 size;
 } OldIoMesg;
 
-extern OldIoMesg D_8036A8C8[]; /* audDMAIOMesgBuf */
-extern u32 D_8036A8B8; /* minFrameSize */
-extern u32 D_8036A8BC; /* frameSize */
-extern u32 D_8036A8C0; /* maxFrameSize */
-extern s32 D_8036A8C4; /* cmdLen */
-extern u8 D_803682F8[];
+extern OldIoMesg audDMAIOMesgBuf[]; /* audDMAIOMesgBuf */
+extern u32 minFrameSize; /* minFrameSize */
+extern u32 frameSize; /* frameSize */
+extern u32 maxFrameSize; /* maxFrameSize */
+extern s32 gAudCmdLen; /* cmdLen */
+extern u8 gAudioSchedClient[];
 extern u8 D_8030EB90[];
-extern s32 D_803156A4;
+extern s32 gAudioPreempt;
 /* .bss (0x80368050, placed by hd_code_bss.us.v11.ld); the first two words
  * are unreferenced placeholders */
 s32 D_80368050;
 s32 D_80368054;
-u64 D_80368058; /* last audio frame start */
-u64 D_80368060; /* audio frame start */
-u64 D_80368068; /* audio frame end */
+u64 gAudioPrevFrameStart; /* last audio frame start */
+u64 gAudioFrameStart; /* audio frame start */
+u64 gAudioFrameEnd; /* audio frame end */
 
-void func_802682A4(void);
-ALDMAproc func_80268254(AMDMAState **state);
-void func_80267A9C(void *arg);
+void amClearAudioDMA(void);
+ALDMAproc amDmaNew(AMDMAState **state);
+void amMain(void *arg);
 extern s32 osViClock;
-extern OSMesg D_8036AE80[];
-extern u64 D_80368308[]; /* audio thread stack */
-extern AMDMABuffer D_8036A318[72];
-s32 func_80267FE0(s32 addr, s32 len, void *state);
-/* __amHandleFrameMsg */
-void func_80267CDC(AudioInfo *info, AudioInfo *lastInfo);
-void func_80267F88(AudioInfo *info);
+extern OSMesg audDMAMessageBuf[];
+extern u64 gAudioThreadStack[]; /* audio thread stack */
+extern AMDMABuffer dmaBuffs[72];
+s32 amDMA(s32 addr, s32 len, void *state);
+/* amHandleFrameMsg */
+void amHandleFrameMsg(AudioInfo *info, AudioInfo *lastInfo);
+void amHandleDoneMsg(AudioInfo *info);
 
 #define AUDIO_ASSERT(EX, line) \
     if (!(EX)) debug_printf("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "audio.c", line)
 
 #define MAX_RSP_CMDS 0xABE
 
-/* amCreateAudioMgr */
-void func_802676A0(ALSynConfig *c, OSPri pri) {
+/* The audio manager (the SDK demo's amCreateAudioMgr) (0x802676A0).
+ * amCreateAudioMgr */
+void amCreateAudioMgr(ALSynConfig *c, OSPri pri) {
     s32 i;
     f32 fsize;
 
-    c->dmaproc = (ALDMANew) func_80268254;
+    c->dmaproc = (ALDMANew) amDmaNew;
     if (D_80000300 != 1) {
         osViClock = 0x02E6025C;
     }
     c->outputRate = osAiSetFrequency(22050);
     fsize = (f32) c->outputRate * 2.0f / 60.0f;
-    D_8036A8BC = (s32) fsize;
-    if (D_8036A8BC < fsize) {
-        D_8036A8BC++;
+    frameSize = (s32) fsize;
+    if (frameSize < fsize) {
+        frameSize++;
     }
-    if (D_8036A8BC & 0xF) {
-        D_8036A8BC = (D_8036A8BC & ~0xF) + 0x10;
+    if (frameSize & 0xF) {
+        frameSize = (frameSize & ~0xF) + 0x10;
     }
-    D_8036A8B8 = D_8036A8BC - 16;
-    D_8036A8C0 = D_8036A8BC + 0x35;
+    minFrameSize = frameSize - 16;
+    maxFrameSize = frameSize + 0x35;
     if (c->fxType == 6) {
         s32 pad = 0;
         s32 params[66] = {
@@ -132,37 +139,39 @@ void func_802676A0(ALSynConfig *c, OSPri pri) {
             0, 5920, 13000, -13000, 0, 380, 10, 17664,
         };
         c->params = params;
-        alInit(&D_80368070.g, c);
+        alInit(&__am.g, c);
     } else {
-        alInit(&D_80368070.g, c);
+        alInit(&__am.g, c);
     }
-    D_8036A318[0].node.prev = NULL;
-    D_8036A318[0].node.next = NULL;
+    dmaBuffs[0].node.prev = NULL;
+    dmaBuffs[0].node.next = NULL;
     for (i = 0; i < 71; i++) {
-        alLink(&D_8036A318[i + 1].node, &D_8036A318[i].node);
-        D_8036A318[i].ptr = alHeapAlloc(c->heap, 1, 0x200);
+        alLink(&dmaBuffs[i + 1].node, &dmaBuffs[i].node);
+        dmaBuffs[i].ptr = alHeapAlloc(c->heap, 1, 0x200);
     }
-    D_8036A318[i].ptr = alHeapAlloc(c->heap, 1, 0x200);
+    dmaBuffs[i].ptr = alHeapAlloc(c->heap, 1, 0x200);
     for (i = 0; i < 2; i++) {
-        D_80368070.ACMDList[i] = alHeapAlloc(c->heap, 1, 0x55F0);
+        __am.ACMDList[i] = alHeapAlloc(c->heap, 1, 0x55F0);
     }
     for (i = 0; i < 3; i++) {
-        D_80368070.audioInfo[i] = alHeapAlloc(c->heap, 1, sizeof(AudioInfo));
-        D_80368070.audioInfo[i]->data = alHeapAlloc(c->heap, 1, D_8036A8C0 * 4);
+        __am.audioInfo[i] = alHeapAlloc(c->heap, 1, sizeof(AudioInfo));
+        __am.audioInfo[i]->data = alHeapAlloc(c->heap, 1, maxFrameSize * 4);
     }
-    osCreateMesgQueue(&D_80368070.audioReplyMsgQ, D_80368070.audioReplyMsgBuf, 8);
-    osCreateMesgQueue(&D_80368070.audioFrameMsgQ, D_80368070.audioFrameMsgBuf, 8);
-    osCreateMesgQueue(&D_8036AE68, D_8036AE80, 0x48);
-    osCreateThread(&D_80368070.thread, 4, func_80267A9C, NULL, &D_80368308[0x400], pri);
+    osCreateMesgQueue(&__am.audioReplyMsgQ, __am.audioReplyMsgBuf, 8);
+    osCreateMesgQueue(&__am.audioFrameMsgQ, __am.audioFrameMsgBuf, 8);
+    osCreateMesgQueue(&audDMAMessageQ, audDMAMessageBuf, 0x48);
+    osCreateThread(&__am.thread, 4, amMain, NULL, &gAudioThreadStack[0x400], pri);
 }
 
-/* amStartAudioMgr */
-void func_80267A74(void) {
-    osStartThread(&D_80368070.thread);
+/* Starts the audio thread (0x80267A74).
+ * amStartAudioMgr */
+void amStartAudioMgr(void) {
+    osStartThread(&__am.thread);
 }
 
-/* __amMain */
-void func_80267A9C(void *arg) {
+/* The audio thread (0x80267A9C).
+ * amMain */
+void amMain(void *arg) {
     s32 done;
     s32 msg;
     AudioInfo *lastInfo;
@@ -171,40 +180,40 @@ void func_80267A9C(void *arg) {
     done = 0;
     lastInfo = NULL;
     firstTime = 1;
-    sched_add_client((struct BcSched *) &gScheduler, (struct BcScClient *) D_803682F8, &D_80368070.audioFrameMsgQ, 2, 2);
-    osSendMesg(&D_80368070.audioFrameMsgQ, (OSMesg) 5, OS_MESG_NOBLOCK);
+    sched_add_client((struct BcSched *) &gScheduler, (struct BcScClient *) gAudioSchedClient, &__am.audioFrameMsgQ, 2, 2);
+    osSendMesg(&__am.audioFrameMsgQ, (OSMesg) 5, OS_MESG_NOBLOCK);
     while (!done) {
-        osRecvMesg(&D_80368070.audioFrameMsgQ, (OSMesg *) &msg, OS_MESG_BLOCK);
+        osRecvMesg(&__am.audioFrameMsgQ, (OSMesg *) &msg, OS_MESG_BLOCK);
         switch (msg) {
             case 4:
                 break;
             case 5:
-                if (D_803156A4) {
+                if (gAudioPreempt) {
                     osSendMesg(&gScheduler, (OSMesg) 0x29E, OS_MESG_BLOCK);
                 }
-                D_80368060 = osGetTime();
-                func_80267CDC(D_80368070.audioInfo[D_802F3AF0 % 3], lastInfo);
-                D_80368068 = osGetTime();
-                D_80368058 = D_80368060;
+                gAudioFrameStart = osGetTime();
+                amHandleFrameMsg(__am.audioInfo[audFrameCt % 3], lastInfo);
+                gAudioFrameEnd = osGetTime();
+                gAudioPrevFrameStart = gAudioFrameStart;
                 if (!firstTime) {
-                    osRecvMesg(&D_80368070.audioReplyMsgQ, (OSMesg *) &lastInfo, OS_MESG_BLOCK);
-                    func_80267F88(lastInfo);
+                    osRecvMesg(&__am.audioReplyMsgQ, (OSMesg *) &lastInfo, OS_MESG_BLOCK);
+                    amHandleDoneMsg(lastInfo);
                 }
                 firstTime = 0;
-                if (D_8036772A) {
-                    func_802613C8();
+                if (gMusicFading) {
+                    music_update_fade();
                 }
-                if (D_80367728) {
-                    func_80261068();
+                if (gMusicPopState) {
+                    music_update_pop();
                 }
-                if (D_80367729) {
-                    func_80261284();
+                if (gMusicPushState) {
+                    music_update_push();
                 }
-                if (!D_80367730) {
-                    func_802611F0();
+                if (!gTuneStackEmpty) {
+                    music_update_auto_pop();
                 }
-                if (D_8036772C) {
-                    func_80261528();
+                if (gMusicSavedTempo) {
+                    music_restore_tempo();
                 }
                 break;
             case 10:
@@ -215,40 +224,41 @@ void func_80267A9C(void *arg) {
                 break;
         }
     }
-    alClose(&D_80368070.g);
+    alClose(&__am.g);
 }
 
 #define osScGetCmdQ sched_get_cmd_queue
 #define sc gScheduler
-#define cmdLen D_8036A8C4
+#define cmdLen gAudCmdLen
 
-void func_80267CDC(AudioInfo *info, AudioInfo *lastInfo) {
+/* One audio frame (0x80267CDC). */
+void amHandleFrameMsg(AudioInfo *info, AudioInfo *lastInfo) {
     s16 *audioPtr;
     Acmd *cmdp;
     s32 samplesLeft;
     BcScTask *t;
 
     samplesLeft = 0;
-    func_802682A4();
+    amClearAudioDMA();
     audioPtr = (s16 *) osVirtualToPhysical(info->data);
     if (lastInfo) {
         func_802D9B60(lastInfo->data, lastInfo->frameSamples << 2);
     }
     samplesLeft = func_802D9C10() >> 2;
-    info->frameSamples = (D_8036A8BC - samplesLeft + 0x35) & ~0xF;
-    if (info->frameSamples < D_8036A8B8) {
-        info->frameSamples = D_8036A8B8;
+    info->frameSamples = (frameSize - samplesLeft + 0x35) & ~0xF;
+    if (info->frameSamples < minFrameSize) {
+        info->frameSamples = minFrameSize;
     }
-    cmdp = func_802D9D68(D_80368070.ACMDList[D_802F3AF8], &D_8036A8C4, audioPtr, info->frameSamples);
+    cmdp = func_802D9D68(__am.ACMDList[curAcmdList], &gAudCmdLen, audioPtr, info->frameSamples);
     AUDIO_ASSERT(cmdLen <= MAX_RSP_CMDS, 336);
     t = &info->task;
     t->next = NULL;
-    t->msgQ = &D_80368070.audioReplyMsgQ;
+    t->msgQ = &__am.audioReplyMsgQ;
     t->msg = (OSMesg) info;
     t->flags = 1;
-    t->unk50 = D_803682F8;
-    t->list.t.data_ptr = (u64 *) D_80368070.ACMDList[D_802F3AF8];
-    t->list.t.data_size = (cmdp - D_80368070.ACMDList[D_802F3AF8]) * sizeof(Acmd);
+    t->unk50 = gAudioSchedClient;
+    t->list.t.data_ptr = (u64 *) __am.ACMDList[curAcmdList];
+    t->list.t.data_size = (cmdp - __am.ACMDList[curAcmdList]) * sizeof(Acmd);
     t->list.t.type = M_AUDTASK;
     t->list.t.ucode_boot = (u64 *) D_802E6820;
     t->list.t.ucode_boot_size = D_802E68F0 - D_802E6820;
@@ -261,14 +271,15 @@ void func_80267CDC(AudioInfo *info, AudioInfo *lastInfo) {
     osWritebackDCache(t, sizeof(BcScTask));
     osWritebackDCache(t->list.t.data_ptr, t->list.t.data_size);
     AUDIO_ASSERT(osSendMesg(osScGetCmdQ(&sc), (OSMesg) t, OS_MESG_NOBLOCK)!=-1, 361);
-    D_802F3AF8 ^= 1;
+    curAcmdList ^= 1;
 }
 
 #undef sc
 #undef osScGetCmdQ
 
-/* __amHandleDoneMsg */
-void func_80267F88(AudioInfo *info) {
+/* Audio task done (0x80267F88).
+ * amHandleDoneMsg */
+void amHandleDoneMsg(AudioInfo *info) {
     static s32 D_802F3C04 N64_KEEP = 1; /* firstTime (never cleared: N64_KEEP) */
     u32 samplesLeft;
 
@@ -279,8 +290,9 @@ void func_80267F88(AudioInfo *info) {
     }
 }
 
-/* __amDma */
-s32 func_80267FE0(s32 addr, s32 len, void *state) {
+/* The synthesizer's DMA callback (0x200-byte buffer cache) (0x80267FE0).
+ * __amDma */
+s32 amDMA(s32 addr, s32 len, void *state) {
     void *foundBuffer;
     s32 delta;
     s32 addrEnd;
@@ -290,7 +302,7 @@ s32 func_80267FE0(s32 addr, s32 len, void *state) {
     AMDMABuffer *prev;
     s32 count;
 
-    dmaPtr = D_8036A308.firstUsed;
+    dmaPtr = gAudDmaState.firstUsed;
     count = 0;
     lastDmaPtr = NULL;
     addrEnd = addr + len;
@@ -301,7 +313,7 @@ s32 func_80267FE0(s32 addr, s32 len, void *state) {
         if (dmaPtr->startAddr > (u32) addr) {
             break;
         } else if (addrEnd <= buffEnd) {
-            dmaPtr->lastFrame = D_802F3AF0;
+            dmaPtr->lastFrame = audFrameCt;
             foundBuffer = dmaPtr->ptr + addr - dmaPtr->startAddr;
             return osVirtualToPhysical(foundBuffer);
         }
@@ -309,82 +321,84 @@ s32 func_80267FE0(s32 addr, s32 len, void *state) {
         dmaPtr = (AMDMABuffer *) dmaPtr->node.next;
         count++;
     }
-    if (count > D_8036AFA0) {
-        D_8036AFA0 = count;
+    if (count > gAudDmaMaxSearch) {
+        gAudDmaMaxSearch = count;
     }
-    dmaPtr = D_8036A308.firstFree;
+    dmaPtr = gAudDmaState.firstFree;
     if (!dmaPtr) {
         debug_printf("OH DEAR - No audio DMA buffers left\n");
     }
     if (!dmaPtr) {
-        return osVirtualToPhysical(D_8036A308.firstUsed);
+        return osVirtualToPhysical(gAudDmaState.firstUsed);
     }
-    D_8036A308.firstFree = (AMDMABuffer *) dmaPtr->node.next;
+    gAudDmaState.firstFree = (AMDMABuffer *) dmaPtr->node.next;
     alUnlink((ALLink *) dmaPtr);
     if (lastDmaPtr) {
         alLink((ALLink *) dmaPtr, (ALLink *) lastDmaPtr);
-    } else if (D_8036A308.firstUsed) {
-        lastDmaPtr = D_8036A308.firstUsed;
-        D_8036A308.firstUsed = dmaPtr;
+    } else if (gAudDmaState.firstUsed) {
+        lastDmaPtr = gAudDmaState.firstUsed;
+        gAudDmaState.firstUsed = dmaPtr;
         dmaPtr->node.next = (ALLink *) lastDmaPtr;
         dmaPtr->node.prev = NULL;
         lastDmaPtr->node.prev = (ALLink *) dmaPtr;
     } else {
-        D_8036A308.firstUsed = dmaPtr;
+        gAudDmaState.firstUsed = dmaPtr;
         dmaPtr->node.next = NULL;
         dmaPtr->node.prev = NULL;
     }
     foundBuffer = dmaPtr->ptr;
     addr -= delta;
     dmaPtr->startAddr = addr;
-    dmaPtr->lastFrame = D_802F3AF0;
-    func_802DA2F0((OSIoMesg *) &D_8036A8C8[D_802F3AF4++], OS_MESG_PRI_NORMAL, OS_READ, addr, foundBuffer, 0x200, &D_8036AE68);
+    dmaPtr->lastFrame = audFrameCt;
+    func_802DA2F0((OSIoMesg *) &audDMAIOMesgBuf[nextDMA++], OS_MESG_PRI_NORMAL, OS_READ, addr, foundBuffer, 0x200, &audDMAMessageQ);
     return osVirtualToPhysical(foundBuffer) + delta;
 }
 
-/* __amDmaNew */
-ALDMAproc func_80268254(AMDMAState **state) {
+/* The DMA callback factory (0x80268254).
+ * amDmaNew */
+ALDMAproc amDmaNew(AMDMAState **state) {
     s32 pad;
 
-    if (!D_8036A308.initialized) {
-        D_8036A308.firstUsed = NULL;
-        D_8036A308.firstFree = &D_8036A318[0];
-        D_8036A308.initialized = 1;
+    if (!gAudDmaState.initialized) {
+        gAudDmaState.firstUsed = NULL;
+        gAudDmaState.firstFree = &dmaBuffs[0];
+        gAudDmaState.initialized = 1;
     }
-    *state = &D_8036A308;
-    return (ALDMAproc) func_80267FE0;
+    *state = &gAudDmaState;
+    return (ALDMAproc) amDMA;
 }
 
-/* __clearAudioDMA */
-void func_802682A4(void) {
+/* Frees the old DMA buffers (0x802682A4).
+ * amClearAudioDMA */
+void amClearAudioDMA(void) {
     u32 i;
     OSIoMesg *iomsg;
     AMDMABuffer *dmaPtr;
     AMDMABuffer *nextPtr;
 
-    for (i = 0; i < D_802F3AF4; i++) {
-        if (osRecvMesg(&D_8036AE68, (OSMesg *) &iomsg, OS_MESG_NOBLOCK) == -1) {
+    for (i = 0; i < nextDMA; i++) {
+        if (osRecvMesg(&audDMAMessageQ, (OSMesg *) &iomsg, OS_MESG_NOBLOCK) == -1) {
             debug_printf("Dma not done\n");
         }
     }
-    dmaPtr = D_8036A308.firstUsed;
+    dmaPtr = gAudDmaState.firstUsed;
     while (dmaPtr) {
         nextPtr = (AMDMABuffer *) dmaPtr->node.next;
-        if (dmaPtr->lastFrame + 1 < D_802F3AF0) {
-            if (D_8036A308.firstUsed == dmaPtr) {
-                D_8036A308.firstUsed = (AMDMABuffer *) dmaPtr->node.next;
+        if (dmaPtr->lastFrame + 1 < audFrameCt) {
+            if (gAudDmaState.firstUsed == dmaPtr) {
+                gAudDmaState.firstUsed = (AMDMABuffer *) dmaPtr->node.next;
             }
             alUnlink((ALLink *) dmaPtr);
-            if (D_8036A308.firstFree) {
-                alLink((ALLink *) dmaPtr, (ALLink *) D_8036A308.firstFree);
+            if (gAudDmaState.firstFree) {
+                alLink((ALLink *) dmaPtr, (ALLink *) gAudDmaState.firstFree);
             } else {
-                D_8036A308.firstFree = dmaPtr;
+                gAudDmaState.firstFree = dmaPtr;
                 dmaPtr->node.next = NULL;
                 dmaPtr->node.prev = NULL;
             }
         }
         dmaPtr = nextPtr;
     }
-    D_802F3AF4 = 0;
-    D_802F3AF0++;
+    nextDMA = 0;
+    audFrameCt++;
 }

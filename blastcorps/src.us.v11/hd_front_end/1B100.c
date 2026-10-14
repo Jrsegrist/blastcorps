@@ -19,7 +19,8 @@
 /* engine-sound channel tables in hd_code's 7D9D0 text blob */
 
 
-/*
+/* Lvl_load_model, two heap buffers, display lists, veh_add_record (0x80202100).
+ *
  * Load model `type` (lvl_load_model), reserve two 6000-byte heap buffers
  * (heap[0], heap[1]) and set up the two display-list ranges in dl[0..3]
  * (start in the model data at its header offsets 0x1C / 0x2C, write position
@@ -27,7 +28,7 @@
  * The loads and stores keep the asm's order (the last call's arguments are
  * read back from memory).
  */
-void func_80202100(s32 type, u8 * N64P *model, u8 * N64P *heap, u8 * N64P *dl) {
+void fe_load_model(s32 type, u8 * N64P *model, u8 * N64P *heap, u8 * N64P *dl) {
     Out802A396C o;
     u8 *data;
     u8 *h;
@@ -52,32 +53,32 @@ void func_80202100(s32 type, u8 * N64P *model, u8 * N64P *heap, u8 * N64P *dl) {
     veh_add_record(type, 0, (s32) heap[0], (s32) heap[1], *model);
 }
 
-/* func_8029E558 with the arguments rotated (asm: v0 = a1, v1 = a2, t0 = a0).
+/* anim_update_model with the arguments rotated (asm: v0 = a1, v1 = a2, t0 = a0).
  * The asm saves only integer registers, so it leaves f20/f30 as the asm
- * func_8029E558 leaves them (conventions.txt: clobbers f20,f30). */
+ * anim_update_model leaves them (conventions.txt: clobbers f20,f30). */
 void func_802021FC(void *ch, void *base, void *other) {
-    func_8029E558(base, other, ch);
+    anim_update_model(base, other, ch);
 }
 
-/* func_8029F85C(bufs[1], bufs[0], ch, hdr); its result is dropped */
+/* anim_init_model(bufs[1], bufs[0], ch, hdr); its result is dropped */
 void func_80202270(u8 *hdr, u32 * N64P *bufs, void *ch) {
-    func_8029F85C(bufs[1], bufs[0], ch, hdr);
+    anim_init_model(bufs[1], bufs[0], ch, hdr);
 }
 
 /* the five setters of channel `idx` of table `base` */
 void func_802022EC(void *base, s32 idx, s32 v040C, s32 v0480, f32 f, s32 v039C, s32 v03D4) {
-    func_802A039C(base, idx, v039C);
-    func_802A03D4(base, idx, v03D4);
-    func_802A040C(base, idx, v040C);
-    func_802A0480(f, base, idx, v0480);
-    func_802A0290(base, idx, -1);
+    anim_set_speed(base, idx, v039C);
+    anim_set_reverse(base, idx, v03D4);
+    anim_set_loop_mode(base, idx, v040C);
+    anim_set_interp(f, base, idx, v0480);
+    anim_play(base, idx, -1);
 }
 
 #define RESET_CHANNEL(tbl)         \
-    func_802A05D0((s32) (tbl), 0); \
-    func_802A05F8((s32) (tbl), 0); \
-    func_802A0620((s32) (tbl), 0); \
-    func_802A0508((s32) (tbl), -1)
+    anim_tex_set_speed((s32) (tbl), 0); \
+    anim_tex_set_reverse((s32) (tbl), 0); \
+    anim_tex_set_loop_mode((s32) (tbl), 0); \
+    anim_tex_play((s32) (tbl), -1)
 
 /* reset the engine-sound channels of vehicle kind 5 or 4.  (After the kind-4
  * block the asm has a third, unreachable one that would set up D_802C2324 and
@@ -100,8 +101,8 @@ void func_802025D0(s32 kind, s32 val) {
             val -= 0x800;
         }
         val = (u32) val / 0x55;
-        func_802A05A4(0.0f, (s32) D_802C2208, val);
-        func_802A05A4(0.0f, (s32) D_802C226C, val);
+        anim_tex_set_frame(0.0f, (s32) D_802C2208, val);
+        anim_tex_set_frame(0.0f, (s32) D_802C226C, val);
     } else if (kind == 4) {
         if (val >= 0x355 && val < 0x8AB) {
             val -= 0x355;
@@ -109,13 +110,13 @@ void func_802025D0(s32 kind, s32 val) {
             val = 0;
         }
         val = (u32) val / 0x4C;
-        func_802A05A4(0.0f, (s32) D_802C21B8, val);
-        func_802A05D0((s32) D_802C2190, 0x32);
-        func_802A05D0((s32) D_802C21A4, 0x32);
+        anim_tex_set_frame(0.0f, (s32) D_802C21B8, val);
+        anim_tex_set_speed((s32) D_802C2190, 0x32);
+        anim_tex_set_speed((s32) D_802C21A4, 0x32);
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/1B100/func_80202100.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/1B100/fe_load_model.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/1B100/func_802021FC.s")
 

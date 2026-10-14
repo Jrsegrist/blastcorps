@@ -2,7 +2,7 @@
 #include <ultra64.h>
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_8020C070 ((MenuItem *) D_8020C070)
+#define gYoshiFeItems ((MenuItem *) gYoshiFeItems)
 #define D_802E8F38 ((Entry8 *) D_802E8F38)
 #define gLevelInfo ((LevelInfo *) gLevelInfo)
 #define players ((Player *) players)
@@ -72,7 +72,7 @@ void academy_announce_state(void) {
         players[playerNumber].gameState != 1) {
         gNextGameMode = 0x800000000000;
         hd_mode_setup();
-        func_80200714(D_802FDA60[players[playerNumber].gameState]);
+        fe_bg_load(D_802FDA60[players[playerNumber].gameState]);
         switch (players[playerNumber].gameState) {
             case 4:
                 found = 0;
@@ -87,10 +87,10 @@ void academy_announce_state(void) {
                     }
                 }
                 func_802D6A60(D_8036EBA0, "IN %s.", D_8020D7E4[lvl].name);
-                D_8020C070[82].text = D_8036EBA0;
+                gYoshiFeItems[82].text = D_8036EBA0;
                 break;
             case 6:
-                func_801ECC8C();
+                fe_player_save_pending();
                 break;
         }
         yoshi_demand((players[playerNumber].gameState + 0x16) | 0x8000);
@@ -124,7 +124,7 @@ void academy_next_mode(void) {
             ACADEMY_ASSERT(frontEndPresent, 142);
             gNextGameMode = 0x800;
             D_803643D5 = 0;
-            func_801F8354(playerNumber);
+            fe_best_clear_times(playerNumber);
             break;
         case 7:
             seq_prepare(1);
@@ -209,7 +209,7 @@ u8 academy_advance_state(void) {
                 if (p->f0A >= 0xEA || D_802FA26C) {
                     func_80261570(0.0f);
                     func_8028B3E0();
-                    func_801ECF5C();
+                    fe_player_regrade_missions();
                     stop = 1;
                 } else {
                     advance = 0;
@@ -223,7 +223,7 @@ u8 academy_advance_state(void) {
                 } else {
                     func_80261570(0.0f);
                     func_8028B3E0();
-                    func_801ED4B8();
+                    fe_player_regrade_platinum();
                 }
                 break;
             case 12:

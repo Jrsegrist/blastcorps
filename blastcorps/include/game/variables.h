@@ -34,31 +34,31 @@ extern u8 D_802E6820[]; /* RSP boot ucode, ends at D_802E68F0 */
 extern u8 D_802E68F0[];
 
 /* front end .data / .bss (0x80208040-0x8021ED00) */
-extern RankTitle D_802081C0[31]; /* rank name, first line */
-extern u8 D_802082B8[0x20]; /* number of words on the rank name's first line */
-#ifndef LEGACY_D_8020C070
-extern u8 D_8020C070[]; /* = players[p].flags */
+extern RankTitle gRankTitles[31]; /* the 31 rank titles, "ROOKIE WRECKER" .. "YOU CAN STOP NOW." */
+extern u8 gRankTitleLine1Words[0x20]; /* number of words on the rank name's first line */
+#ifndef LEGACY_gYoshiFeItems
+extern u8 gYoshiFeItems[]; /* the window items (0x1C each) of the front end's windows */
 #endif
-extern GlobeLevel D_8020D810[60]; /* 0x44 */
-extern u8 D_802154B0;
-extern u8 * N64P D_80215A70[]; /* plane icon animation frames, 32x32 RGBA32 */
-extern u8 * N64P D_80215A7C; /* glow textures */
-extern u8 * N64P D_80215A80;
+extern GlobeLevel gGlobeLevels[60]; /* 0x44 */
+extern u8 gLoadMenuFullSlot;
+extern u8 * N64P gLvlselMarkerFrames[]; /* plane icon animation frames, 32x32 RGBA32 */
+extern u8 * N64P gLvlselGlowTex; /* glow textures */
+extern u8 * N64P gLvlselGlowTex2;
 extern u8 * N64P D_80215A84;
-extern s32 D_80217B6C; /* camera node */
-#ifndef LEGACY_D_80217B70
-extern Mtx D_80217B70[][4];
+extern s32 gGlobePlanet; /* camera node */
+#ifndef LEGACY_gSolarNodeMtx
+extern Mtx gSolarNodeMtx[][4];
 #endif
-extern Mtx D_802182D0[];
-extern OSThread D_80218D30; /* hd_code .bss: the Controller Pak file system */
-extern u8 D_80218EE0[];
-extern OSMesgQueue D_80219EF8; /* requests to the pak/EEPROM thread */
+extern Mtx gFeSceneRot[];
+extern OSThread gPakThread; /* the save thread (front-end .bss) */
+extern u8 gPakSchedClient[];
+extern OSMesgQueue gPakRequestQueue; /* requests to the pak/EEPROM thread */
 extern OSMesgQueue pakToGameMessageQ; /* replies of the pak/EEPROM thread */
-extern u64 D_8021A830;
-extern u8 D_8021A8F0;
-extern f32 D_8021A918;
-extern f32 D_8021A91C;
-extern f32 D_8021A920;
+extern u64 gBestTimesReturnMode;
+extern u8 gVehicleIconTex;
+extern f32 gGlobeCamDist;
+extern f32 gGlobeCamLon;
+extern f32 gGlobeCamLat;
 
 /* hd_code .data / .rodata (0x802E8BD0-0x8030F660) */
 extern u8 gPaused;         /* updates stop, the last picture is held (pause, loading) */
@@ -69,7 +69,7 @@ extern u8 gShakeTime; /* screen shake time */
 extern s32 gShakeSize; /* screen shake size */
 extern s32 D_802E8BEC;
 extern u8 D_802E8BF0;
-extern u8 D_802E8BF8;
+extern u8 gUseEeprom;
 extern u8 D_802E8C44[];
 extern f32 gFontAdvance[]; /* per-font advance */
 extern u16 D_802E8C8C[]; /* per-font characters that draw nothing */
@@ -216,9 +216,9 @@ extern u8 playerNumberAtStart;
 #ifndef LEGACY_players
 extern u8 players[][0x100]; /* per-player progress, 0x100 bytes each */
 #endif
-extern u16 D_80364EF0[][16]; /* per player: saved level times */
-extern u16 D_80364F70[]; /* EEPROM best-time words (time, time ^ 0x55AA) */
-extern u8 D_80365060[]; /* per slot: 0 no save, 1 saved game, 2 new game */
+extern u16 gBestTimes[][16]; /* per player: saved level times */
+extern u16 gEepTimes[]; /* EEPROM best-time words (time, time ^ 0x55AA) */
+extern u8 gSlotState[]; /* per slot: 0 no save, 1 saved game, 2 new game */
 extern u8 * N64P D_80365330;
 extern u8 D_80365580;
 extern u8 D_8036698C;
@@ -347,14 +347,14 @@ extern u16 D_80370C70;
 extern s16 D_80370C72;
 extern u8 D_80370C75;
 extern u8 pakBusy; /* pak thread busy */
-#ifndef LEGACY_D_8039C4B4
-extern void * N64P D_8039C4B4; /* file extensions */
+#ifndef LEGACY_gEepromPresent
+extern void * N64P gEepromPresent; /* osEepromProbe's result ("NO EE PRESENT! - USING DUMMY EE") */
 #endif
 extern u64 pakBuffer[]; /* 0x100 bytes */
-extern u8 D_8039C538;
+extern u8 gPakFullSlot;
 extern u8 saveIt[]; /* per slot: 1 + level to save, 0 = nothing pending */
 extern u8 saveLevel;
-extern u8 D_8039C541;
+extern u8 gIgnorePak;
 extern u8 gBoxTargets[]; /* size 0xFC */
 extern u8 gBoxTargetCount; /* number of gBoxTargets entries */
 extern u8 D_8039CA60;

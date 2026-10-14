@@ -1,6 +1,6 @@
 """--model stand-ins for osRecvMesg / osSendMesg that move messages through the
 OSMesgQueue in guest memory (for thread loops such as the front end's save
-thread func_801F58E8, which never return):
+thread fe_pak_thread, which never return):
 
     --model osRecvMesg=mesgqueue.py:recv --model osSendMesg=mesgqueue.py:send
 
@@ -16,7 +16,7 @@ send: appends when there is room and returns 0; a full queue returns -1
 (OS_MESG_NOBLOCK) or ends the run (OS_MESG_BLOCK, the sender would wait).
 """
 
-STOP_QUEUE = "D_80219EF8"       # the save thread's command queue
+STOP_QUEUE = "gPakRequestQueue"       # the save thread's command queue
 
 
 def _q(mem, mq):

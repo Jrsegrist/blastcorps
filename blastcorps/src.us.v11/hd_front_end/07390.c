@@ -7,14 +7,15 @@
 /* end of views */
 
 
-extern s32 D_802159C0;
+extern s32 gPakErrorFrames;
 
 
 void func_801EE390(void) {
 }
 
-/* draw one front-end frame: a cleared screen plus the yoshi window `arg0` */
-void func_801EE398(s32 arg0) {
+/* The save thread's error screen: a black frame and a window (0x801EE398).
+ * draw one front-end frame: a cleared screen plus the yoshi window `arg0` */
+void fe_pak_error_frame(s32 arg0) {
     FeDyn *buf;
     Gfx *gdl;
     s32 i;
@@ -28,9 +29,9 @@ void func_801EE398(s32 arg0) {
     if (currentYoshiWindow != arg0) {
         yoshi_demand(arg0 | 0x8000 | 0x2000);
         func_80260A10();
-        D_802159C0 = 0;
+        gPakErrorFrames = 0;
     }
-    if (D_802159C0 == 2) {
+    if (gPakErrorFrames == 2) {
         osViBlack(0);
     }
     text_begin_frame();
@@ -58,5 +59,5 @@ void func_801EE398(s32 arg0) {
         tex_decode_next();
     }
     rsp_wait_task(0x4D2);
-    D_802159C0++;
+    gPakErrorFrames++;
 }

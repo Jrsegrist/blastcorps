@@ -8,7 +8,7 @@
  * (port/tools/loadref.py); `make -C port loadcheck` compares the two outputs
  * line by line.
  *
- *   T5  port_802E8BF8_word: the D_802E8BF8 flag/word-table alias (00000.c)
+ *   T5  port_802E8BF8_word: the gUseEeprom flag/word-table alias (00000.c)
  *   T6  texture entries: DMA + tex_decode decode, output bytes (BE) CRC
  *   T7  every level: lvl_load_file load + lvl_read_alpha_zones object-stream unpack
  *   T8  every level: cam_apply_height_zone height zones at random positions

@@ -896,108 +896,108 @@ s16 func_802D8310(void *arg0);
 u32 func_802DAAC0(void);
 
 /* hd_front_end/00000.c */
-s32 func_801E7000(void);
-void func_801E7598(void);
+s32 fe_digger_init(void);
+void fe_digger_frame(void);
 
 /* hd_front_end/01C40.c */
-void func_801E8C40(u8 arg0);
-void func_801E8DCC(u8 arg0);
-void func_801E8EB8(u8 slot, u8 arg1);
-s32 func_801E96F8(void);
-Gfx *func_801E9718(Gfx *arg0, struct PlayerSelDyn *dyn, s32 arg2);
-void func_801EA108(u8 slot, u8 send, u8 newGame);
-void func_801EA278(void);
-void func_801EA4B8(void);
-void func_801EA6E8(void);
-void func_801EA93C(char *title, u16 *glyphs, u8 arg2, u8 width, char *buf);
-Gfx *func_801EAA7C(Gfx *arg0, struct PlayerSelDyn *dyn, s32 *count);
-void func_801EC288(u8 arg0);
-void func_801EC30C(u8 arg0);
-Gfx *func_801EC770(Gfx *start, void *gfxp, s32 *count);
-u64 func_801ECA50(u8 level);
-void func_801ECB18(void);
-void func_801ECC8C(void);
-void func_801ECE9C(void);
-void func_801ECF5C(void);
-void func_801ED4B8(void);
+void fe_player_panel_init(u8 arg0);
+void fe_player_ticker_reset(u8 arg0);
+void fe_player_ticker_set_text(u8 slot, u8 arg1);
+s32 fe_player_ticker_at_end(void);
+Gfx *fe_player_draw_panel(Gfx *arg0, struct PlayerSelDyn *dyn, s32 arg2);
+void fe_player_new_game(u8 slot, u8 send, u8 newGame);
+void fe_player_load_slots(void);
+void fe_player_build_load_menu(void);
+void fe_player_build_erase_menu(void);
+void fe_player_name_entry_open(char *title, u16 *glyphs, u8 arg2, u8 width, char *buf);
+Gfx *fe_player_name_entry_draw(Gfx *arg0, struct PlayerSelDyn *dyn, s32 *count);
+void fe_player_medals_show_quiet(u8 arg0);
+void fe_player_medals_init(u8 arg0);
+Gfx *fe_player_draw_medals(Gfx *start, void *gfxp, s32 *count);
+u64 fe_player_loop_done_mode(u8 level);
+void fe_player_load_level_save(void);
+void fe_player_save_pending(void);
+void fe_player_update_level_kinds(void);
+void fe_player_regrade_missions(void);
+void fe_player_regrade_platinum(void);
 
 /* hd_front_end/06790.c */
-void func_801ED790(void);
-Gfx *func_801ED800(Gfx *arg0, FeDyn *dyn, u8 arg2, s32 *arg3);
+void fe_promo_init(void);
+Gfx *fe_promo_draw(Gfx *arg0, FeDyn *dyn, u8 arg2, s32 *arg3);
 
 /* hd_front_end/07390.c */
 void func_801EE390(void);
-void func_801EE398(s32 arg0);
+void fe_pak_error_frame(s32 arg0);
 
 /* hd_front_end/07800.c */
-u8 func_801EE800(u8 *arg0, u8 arg1, u8 arg2);
-s8 func_801EF1E0(void);
+u8 fe_stats_grade_level(u8 *arg0, u8 arg1, u8 arg2);
+s8 fe_stats_count_unlocks(void);
 #ifdef NON_MATCHING
-u8 func_801EF2BC(u16 arg0, u8 arg1, u8 arg2);
+u8 fe_stats_grade_time(u16 arg0, u8 arg1, u8 arg2);
 #else
-u8 func_801EF2BC(); /* K&R definition in the matching build */
+u8 fe_stats_grade_time(); /* K&R definition in the matching build */
 #endif
-void func_801EF380(s32 arg0);
-void func_801EF4AC(void);
+void fe_boot_screen_init(s32 arg0);
+void fe_boot_screen_frame(void);
 
 /* hd_front_end/09570.c */
-Gfx *func_801F1568(void);
-Gfx *func_801F2000(void);
-Gfx *func_801F2428(void);
-Gfx *func_801F2E20(void);
+Gfx *fe_lvlsel_build_globe_dl(void);
+Gfx *fe_lvlsel_build_academy_dl(void);
+Gfx *fe_lvlsel_build_level_icons_dl(void);
+Gfx *fe_lvlsel_build_starfield_dl(void);
 
 /* hd_front_end/0C450.c */
-Gfx *func_801F3450(Gfx *gdl, u8 *dyn);
+Gfx *fe_solar_draw(Gfx *gdl, u8 *dyn);
 
 /* hd_front_end/0DE70.c */
-void func_801F4E70(u8 arg0);
-Gfx *func_801F4FBC(FeDyn *dyn, Gfx *arg1);
-Gfx *func_801F51C8(FeDyn *dyn, Gfx *arg1);
-void func_801F55D8(void);
+void fe_scene_load(u8 arg0);
+Gfx *fe_scene_draw(FeDyn *dyn, Gfx *arg1);
+Gfx *fe_comm_point_draw(FeDyn *dyn, Gfx *arg1);
+void fe_comm_point_load(void);
 
 /* hd_front_end/0E7B0.c */
-void func_801F57B0(void);
-s32 func_801F6F18(void);
-s32 func_801F73FC(void);
+void fe_pak_start_thread(void);
+s32 fe_pak_list_files(void);
+s32 fe_pak_has_files(void);
 
 /* hd_front_end/10850.c */
-void func_801F7850(void);
-void func_801F803C(void);
-void func_801F8228(void);
-void func_801F8354(u8 pn);
-Gfx *func_801F8440(s32 arg0, Gfx *gfx);
+void fe_best_build_menu(void);
+void fe_best_next_player(void);
+void fe_best_color_items(void);
+void fe_best_clear_times(u8 pn);
+Gfx *fe_best_draw_icon(s32 arg0, Gfx *gfx);
 
 /* hd_front_end/11530.c */
-void func_801F8530(s32 level);
-void func_801F8980(void);
-void func_801FCE74(Vtx *v, u8 level, f32 dlat, f32 dlon, u8 w, u8 h, f32 scale, u8 flip);
-void func_801FD484(f32 *lat, f32 *lon, f32 *x, f32 *y, f32 *z, f32 r);
-void func_801FDCA4(Vtx *v, s32 idx, s32 z);
-void func_801FDE50(void);
-void func_801FE018(u8 rank);
-Gfx *func_801FE238(Gfx *arg0, s32 arg1);
+void fe_globe_init(s32 level);
+void fe_globe_frame(void);
+void fe_globe_quad_at_level(Vtx *v, u8 level, f32 dlat, f32 dlon, u8 w, u8 h, f32 scale, u8 flip);
+void fe_globe_latlon_to_xyz(f32 *lat, f32 *lon, f32 *x, f32 *y, f32 *z, f32 r);
+void fe_globe_respawn_star(Vtx *v, s32 idx, s32 z);
+void fe_load_vehicle_icons(void);
+void fe_open_reachable_levels(u8 rank);
+Gfx *fe_globe_draw_earth(Gfx *arg0, s32 arg1);
 #ifdef NON_MATCHING
-s32 func_801FE760(u8 level);
+s32 fe_globe_level_locked(u8 level);
 #else
-s32 func_801FE760(); /* K&R definition in the matching build */
+s32 fe_globe_level_locked(); /* K&R definition in the matching build */
 #endif
 
 /* hd_front_end/17990.c */
-void func_801FE990(void);
+void fe_back_loop(void);
 
 /* hd_front_end/196F0.c */
-void func_80200714(u8 mode);
-Gfx *func_80200BE0(Gfx *gfx, s32 arg1, s32 *count);
+void fe_bg_load(u8 mode);
+Gfx *fe_bg_draw(Gfx *gfx, s32 arg1, s32 *count);
 
 /* hd_front_end/1A240.c */
-void func_80201240(s32 arg0);
-Gfx *func_80201364(s32 arg0, Gfx *arg1);
+void fe_attract_pic_load(s32 arg0);
+Gfx *fe_attract_pic_draw(s32 arg0, Gfx *arg1);
 
 /* hd_front_end/1AE80.c */
-s32 func_80201E80(void);
+s32 fe_pak_restore_from_eeprom(void);
 
 /* hd_front_end/1B100.c */
-void func_80202100(s32 type, u8 * N64P *model, u8 * N64P *heap, u8 * N64P *dl);
+void fe_load_model(s32 type, u8 * N64P *model, u8 * N64P *heap, u8 * N64P *dl);
 void func_802021FC(void *ch, void *base, void *other);
 void func_80202270(u8 *hdr, u32 * N64P *bufs, void *ch);
 void func_802022EC(void *base, s32 idx, s32 v040C, s32 v0480, f32 f, s32 v039C, s32 v03D4);

@@ -17,8 +17,8 @@
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_8020C070 ((MenuEntry *) D_8020C070)
-#define D_80218D30 ((u8 *) &D_80218D30)
+#define gYoshiFeItems ((MenuEntry *) gYoshiFeItems)
+#define gPakThread ((u8 *) &gPakThread)
 #define gLevelInfo ((LevelInfo *) gLevelInfo)
 #define gYoshiGameItems ((MenuItem *) gYoshiGameItems)
 #define gYoshiWindows ((MenuPage *) gYoshiWindows)
@@ -342,7 +342,7 @@ void hd_game_frame(void);
 void hd_init(void);
 void hd_check_stack(void);
 #define MODE_PAGE(m) gYoshiWindows[D_802F4868[lowest_set_bit(m)]]
-#define MODE_ENTRY(m) D_8020C070[MODE_PAGE(m).unkE + MODE_PAGE(m).unk10 - 2]
+#define MODE_ENTRY(m) gYoshiFeItems[MODE_PAGE(m).unkE + MODE_PAGE(m).unk10 - 2]
 
 extern s32 D_80364A78;
 extern u8 D_80364A7C;
@@ -424,38 +424,38 @@ void hd_main_thread(void *arg) {
             switch (gNextGameMode) {
                 case 32:
                     hd_mode_setup();
-                    func_801EF380(2);
+                    fe_boot_screen_init(2);
                     break;
                 case 16:
                     hd_mode_setup();
-                    func_801EF380(1);
+                    fe_boot_screen_init(1);
                     start2 = D_803156C4;
                     while ((u32) (D_803156C4 - start2) < 15) {
                         PORT_SPIN();
                     }
                     break;
                 case 0x100000000:
-                    func_801F6F18();
+                    fe_pak_list_files();
                     yoshi_demand(0x8012);
                     D_80364A70 = func_80261A44(gNextGameMode);
                     break;
                 case 0x80000000000:
                     hd_mode_setup();
                     title_setup_logo();
-                    func_80200714(1);
-                    osSendMesg(&D_80219EF8, (OSMesg) 0x01000001, 1);
+                    fe_bg_load(1);
+                    osSendMesg(&gPakRequestQueue, (OSMesg) 0x01000001, 1);
                     yoshi_demand(0x8011);
                     break;
                 case 0x10000:
                     D_80364A70 = func_80261A44(gNextGameMode);
                     title_setup_logo();
-                    func_801EA4B8();
-                    func_801E8DCC(playerNumber);
+                    fe_player_build_load_menu();
+                    fe_player_ticker_reset(playerNumber);
                     yoshi_demand(0x800A);
                     break;
                 case 0x10000000:
-                    osSendMesg(&D_80219EF8, (OSMesg) 0x01000001, 1);
-                    func_801E8DCC(4);
+                    osSendMesg(&gPakRequestQueue, (OSMesg) 0x01000001, 1);
+                    fe_player_ticker_reset(4);
                     yoshi_demand(0x8011);
                     break;
                 case 0x20000000000000:
@@ -463,36 +463,36 @@ void hd_main_thread(void *arg) {
                     hd_mode_setup();
                     tex_load_table();
                     title_setup_logo();
-                    func_80200714(1);
-                    osSendMesg(&D_80219EF8, (OSMesg) 0x0100000F, 1);
+                    fe_bg_load(1);
+                    osSendMesg(&gPakRequestQueue, (OSMesg) 0x0100000F, 1);
                     osRecvMesg(&pakToGameMessageQ, &msg, 1);
-                    if (msg != NULL || D_8039C541) {
-                        D_802E8BF8 = 1;
+                    if (msg != NULL || gIgnorePak) {
+                        gUseEeprom = 1;
                     } else {
-                        D_802E8BF8 = 0;
+                        gUseEeprom = 0;
                     }
-                    D_8039C541 = 0;
-                    if (!D_802E8BF8) {
-                        func_801E8C40(4);
+                    gIgnorePak = 0;
+                    if (!gUseEeprom) {
+                        fe_player_panel_init(4);
                         gGameModeAfterNext = 0x10000000;
                     } else {
                         playerNumber = 0;
                         D_80364AE9 = 0;
-                        playerNumberAtStart = 0, osSendMesg(&D_80219EF8, (OSMesg) 0x01000010, 1);
-                        osRecvMesg(&pakToGameMessageQ, &D_8039C4B4, 1);
-                        if (D_8039C4B4 == NULL) {
+                        playerNumberAtStart = 0, osSendMesg(&gPakRequestQueue, (OSMesg) 0x01000010, 1);
+                        osRecvMesg(&pakToGameMessageQ, &gEepromPresent, 1);
+                        if (gEepromPresent == NULL) {
                             debug_printf("NO EE PRESENT! - USING DUMMY EE\n");
                         }
-                        osSendMesg(&D_80219EF8, (OSMesg) 0x01000006, 1);
+                        osSendMesg(&gPakRequestQueue, (OSMesg) 0x01000006, 1);
                         osRecvMesg(&pakToGameMessageQ, &msg, 1);
                         if (msg == NULL) {
-                            msg = (void *) N64_IPTR(func_80201E80());
+                            msg = (void *) N64_IPTR(fe_pak_restore_from_eeprom());
                         }
                         if (msg != NULL) {
-                            func_801EA108(playerNumber, 1, 1);
+                            fe_player_new_game(playerNumber, 1, 1);
                             gGameModeAfterNext = 0x40000;
                         } else {
-                            D_80365060[playerNumber] = 1;
+                            gSlotState[playerNumber] = 1;
                             gGameModeAfterNext = 0x4000;
                         }
                     }
@@ -501,8 +501,8 @@ void hd_main_thread(void *arg) {
                     hd_mode_setup();
                     tex_load_table();
                     title_setup_logo();
-                    func_80200714(4);
-                    func_801E8C40(4);
+                    fe_bg_load(4);
+                    fe_player_panel_init(4);
                     yoshi_demand(0x8038);
                     break;
                 case 0x400000000000000:
@@ -510,8 +510,8 @@ void hd_main_thread(void *arg) {
                     D_802E8BF0 = 1;
                     D_80365065 = 0;
                     gGameModeAfterNext = 2;
-                    D_8039C541 = 0;
-                    func_801ECE9C();
+                    gIgnorePak = 0;
+                    fe_player_update_level_kinds();
                     break;
                 case 2:
                     switch (D_802E8BEC) {
@@ -522,10 +522,10 @@ void hd_main_thread(void *arg) {
                             if (gGameMode == 2) {
                                 gNextGameMode = 0x1000000000000;
                                 hd_mode_setup();
-                                func_80200714(7);
-                                func_80201240(D_80364AC4 & 3);
+                                fe_bg_load(7);
+                                fe_attract_pic_load(D_80364AC4 & 3);
                                 yoshi_demand(0x8035);
-                                func_801E8C40(D_80364AC4 & 3);
+                                fe_player_panel_init(D_80364AC4 & 3);
                                 D_80364AC4++;
                                 break;
                             }
@@ -557,12 +557,12 @@ void hd_main_thread(void *arg) {
                     func_8028B3E0();
                     debug_printf("World screen centred on level %d\n", levelno);
                     playerNumber = playerNumberAtStart;
-                    func_801ECE9C();
+                    fe_player_update_level_kinds();
                     if (!D_80365065) {
                         D_80365065 = 1;
                         D_80364A87 = 0;
                         D_803643D5 = 0;
-                        func_801FE018(8);
+                        fe_open_reachable_levels(8);
                         levelno = players[playerNumber].pad0[8];
                         debug_printf("going to level %d\n", levelno);
                     }
@@ -573,10 +573,10 @@ void hd_main_thread(void *arg) {
                         }
                     }
                     hd_mode_setup();
-                    func_801ECC8C();
+                    fe_player_save_pending();
                     osViBlack(1);
                     tex_load_table();
-                    func_801F8530(levelno);
+                    fe_globe_init(levelno);
                     break;
                 case 0x800000000000:
                     D_80364A70 = func_80261A44(gNextGameMode);
@@ -586,21 +586,21 @@ void hd_main_thread(void *arg) {
                     break;
                 case 0x800000000000000:
                     hd_mode_setup();
-                    func_80200714(1);
+                    fe_bg_load(1);
                     title_setup_logo();
                     yoshi_demand(0x8059);
                     break;
                 case 0x40000000000:
                     hd_mode_setup();
-                    func_80200714(3);
-                    func_801E8C40(playerNumber);
+                    fe_bg_load(3);
+                    fe_player_panel_init(playerNumber);
                     title_setup_logo();
-                    D_8021A830 = gGameMode;
+                    gBestTimesReturnMode = gGameMode;
                     yoshi_demand(0x8016);
                     break;
                 case 0x200000000000000:
-                    func_801E8EB8(playerNumber, 1);
-                    func_801F8228();
+                    fe_player_ticker_set_text(playerNumber, 1);
+                    fe_best_color_items();
                     yoshi_demand(0x8016);
                     gNextGameMode = 0x40000000000;
                     break;
@@ -688,7 +688,7 @@ void hd_main_thread(void *arg) {
                     }
                     hd_mode_setup();
                     if (newPlayer) {
-                        osSendMesg(&D_80219EF8, (OSMesg) ((levelno << 8) | 0xD | (playerNumber << 16)), 1);
+                        osSendMesg(&gPakRequestQueue, (OSMesg) ((levelno << 8) | 0xD | (playerNumber << 16)), 1);
                     }
                     MODE_ENTRY(gLevelKind).unk0 &= ~1;
                     MODE_ENTRY(gLevelKind).unk0 |= 0x800;
@@ -697,13 +697,13 @@ void hd_main_thread(void *arg) {
                     MODE_PAGE(gLevelKind).unk18 = MODE_PAGE(gLevelKind).unkE + MODE_PAGE(gLevelKind).unk10 - 3;
                     MODE_PAGE(gLevelKind).unk8 &= ~8;
                     stats_copy_result((u8 *) &nss, (u8 *) &D_8036EA60);
-                    D_80315438 = func_801EE800(&D_80364A60, 1, 0), func_801E8C40(playerNumber);
-                    func_801EC30C(D_80315438);
-                    func_801EC288(D_80315438);
-                    func_80200714(1);
-                    D_80364A71 = func_801EF1E0();
+                    D_80315438 = fe_stats_grade_level(&D_80364A60, 1, 0), fe_player_panel_init(playerNumber);
+                    fe_player_medals_init(D_80315438);
+                    fe_player_medals_show_quiet(D_80315438);
+                    fe_bg_load(1);
+                    D_80364A71 = fe_stats_count_unlocks();
                     if (D_80364A71 != -1) {
-                        func_801F55D8();
+                        fe_comm_point_load();
                     }
                     break;
                 case 0x800:
@@ -724,14 +724,14 @@ void hd_main_thread(void *arg) {
                     while ((u32) (D_803156C4 - start) < 15) {
                         PORT_SPIN();
                     }
-                    func_801ED790();
-                    func_80200714(3);
-                    D_80364A71 = func_801EF1E0();
+                    fe_promo_init();
+                    fe_bg_load(3);
+                    D_80364A71 = fe_stats_count_unlocks();
                     if (D_80364A71 != -1) {
-                        func_801F55D8();
+                        fe_comm_point_load();
                     }
-                    func_801E8C40(playerNumber);
-                    func_801EC30C(D_80315438);
+                    fe_player_panel_init(playerNumber);
+                    fe_player_medals_init(D_80315438);
                     break;
                 case 0x8000000:
                     switch (gGameMode) {
@@ -739,16 +739,16 @@ void hd_main_thread(void *arg) {
                         case 0x400:
                         case 0x20000000:
                             hd_mode_setup();
-                            func_80200714(1);
-                            D_80364A71 = func_801EF1E0();
+                            fe_bg_load(1);
+                            D_80364A71 = fe_stats_count_unlocks();
                             if (D_80364A71 != -1) {
-                                func_801F55D8();
+                                fe_comm_point_load();
                             }
-                            func_801E8C40(playerNumber);
+                            fe_player_panel_init(playerNumber);
                             stats_copy_result((u8 *) &D_8036EA90, (u8 *) &nss);
-                            D_80315438 = func_801EE800(&D_80364A60, 1, 0);
-                            func_801EC30C(D_80315438);
-                            func_801EC288(D_80315438);
+                            D_80315438 = fe_stats_grade_level(&D_80364A60, 1, 0);
+                            fe_player_medals_init(D_80315438);
+                            fe_player_medals_show_quiet(D_80315438);
                             break;
                         case 0x40000000:
                             D_80364A70 = func_80261A44(gNextGameMode);
@@ -763,15 +763,15 @@ void hd_main_thread(void *arg) {
                                 stats_save_status();
                             }
                             hd_mode_setup();
-                            D_80364A71 = func_801EF1E0();
+                            D_80364A71 = fe_stats_count_unlocks();
                             if (D_80364A71 != -1) {
-                                func_801F55D8();
+                                fe_comm_point_load();
                             }
-                            func_801E8C40(playerNumber);
-                            D_80315438 = func_801EE800(&D_80364A60, 1, 0);
-                            func_80200714(1);
-                            func_801EC30C(D_80315438);
-                            func_801EC288(D_80315438);
+                            fe_player_panel_init(playerNumber);
+                            D_80315438 = fe_stats_grade_level(&D_80364A60, 1, 0);
+                            fe_bg_load(1);
+                            fe_player_medals_init(D_80315438);
+                            fe_player_medals_show_quiet(D_80315438);
                             break;
                         default:
                             MS_ASSERT(!saveIt[playerNumber] || saveIt[playerNumber]==levelno+1, 488);
@@ -819,19 +819,19 @@ void hd_main_thread(void *arg) {
                             } else {
                                 stats_copy_result((u8 *) &D_8036EA80, (u8 *) &D_8036EA60);
                             }
-                            D_80315438 = func_801EE800(&D_80364A60, 1, 1), stats_copy_result((u8 *) &nss, (u8 *) &D_8036EA90);
+                            D_80315438 = fe_stats_grade_level(&D_80364A60, 1, 1), stats_copy_result((u8 *) &nss, (u8 *) &D_8036EA90);
                             if (D_80364A60) {
                                 gGameModeAfterNext = 0x40000000;
                                 D_80364A64 = 0xDC;
                                 D_80364A70 = 0;
                             } else {
-                                func_801EC30C(D_80315438);
-                                func_80200714(1);
-                                D_80364A71 = func_801EF1E0();
+                                fe_player_medals_init(D_80315438);
+                                fe_bg_load(1);
+                                D_80364A71 = fe_stats_count_unlocks();
                                 if (D_80364A71 != -1) {
-                                    func_801F55D8();
+                                    fe_comm_point_load();
                                 }
-                                func_801E8C40(playerNumber);
+                                fe_player_panel_init(playerNumber);
                             }
                             MODE_ENTRY(gLevelKind).unk0 |= 1;
                             MODE_ENTRY(gLevelKind).unk0 &= ~0x800;
@@ -844,8 +844,8 @@ void hd_main_thread(void *arg) {
                     }
                     MODE_PAGE(gLevelKind).unk8 |= 8;
                     yoshi_set_target_icons();
-                    if (D_802E8BF8) {
-                        D_8020C070[29].unk0 &= ~1;
+                    if (gUseEeprom) {
+                        gYoshiFeItems[29].unk0 &= ~1;
                     }
                     yoshi_demand(D_802F4868[lowest_set_bit(gLevelKind)] | 0x8000);
                     break;
@@ -853,7 +853,7 @@ void hd_main_thread(void *arg) {
                     if (gGameMode & 0x04000200) {
                         func_8028B3E0();
                         nss.tc = stats_frames_to_tenths(D_80364A5C), stats_copy_result((u8 *) &nss, (u8 *) &D_8036EA60);
-                        func_801EE800(&D_80364A60, 0, 1);
+                        fe_stats_grade_level(&D_80364A60, 0, 1);
                     }
                     gYoshiGameItems[24].unk0 |= 1;
                     gYoshiGameItems[24].unk0 &= ~0x800;
@@ -886,24 +886,24 @@ void hd_main_thread(void *arg) {
                     }
                     osViBlack(1);
                     tex_load_table();
-                    if (func_801E7000()) {
-                        func_80200714(2);
+                    if (fe_digger_init()) {
+                        fe_bg_load(2);
                     } else {
                         gGameModeAfterNext = 0x2000;
                     }
                     break;
                 case 0x40000:
-                    osSendMesg(&D_80219EF8, (OSMesg) ((playerNumber << 16) | 0x14 | 0x01000000), 1);
+                    osSendMesg(&gPakRequestQueue, (OSMesg) ((playerNumber << 16) | 0x14 | 0x01000000), 1);
                     osRecvMesg(&pakToGameMessageQ, NULL, 1);
-                    func_801EA93C("ENTER NAME!", D_803047A0, 7, 0x1E, (char *) &players[playerNumber]);
+                    fe_player_name_entry_open("ENTER NAME!", D_803047A0, 7, 0x1E, (char *) &players[playerNumber]);
                     yoshi_demand(0x800B);
                     title_setup_logo();
                     D_80364A70 = func_80261A44(gNextGameMode);
                     break;
                 case 0x4000000000000000:
                     hd_mode_setup();
-                    func_80200714(1);
-                    D_8020C070[9].unkC = "QUIT GAME!", D_8020C070[9].unk10 = D_803047CC, D_8020C070[9].unk6 = D_8020C070[9].unk8 = 22;
+                    fe_bg_load(1);
+                    gYoshiFeItems[9].unkC = "QUIT GAME!", gYoshiFeItems[9].unk10 = D_803047CC, gYoshiFeItems[9].unk6 = gYoshiFeItems[9].unk8 = 22;
                     yoshi_demand(0x800C);
                     break;
                 case 0x1000000000:
@@ -926,23 +926,23 @@ void hd_main_thread(void *arg) {
                     break;
                 case 0x40000000000000:
                     hd_mode_setup();
-                    osSendMesg(&D_80219EF8, (OSMesg) 0x01000010, 1);
-                    osRecvMesg(&pakToGameMessageQ, &D_8039C4B4, 1);
-                    if (D_8039C4B4 != NULL) {
+                    osSendMesg(&gPakRequestQueue, (OSMesg) 0x01000010, 1);
+                    osRecvMesg(&pakToGameMessageQ, &gEepromPresent, 1);
+                    if (gEepromPresent != NULL) {
                         title_setup_logo();
-                        func_80200714(1);
-                        D_8020C070[9].unkC = "ERASE SAVED GAME!", D_8020C070[9].unk10 = D_803047B4, D_8020C070[9].unk6 = D_8020C070[9].unk8 = 20;
+                        fe_bg_load(1);
+                        gYoshiFeItems[9].unkC = "ERASE SAVED GAME!", gYoshiFeItems[9].unk10 = D_803047B4, gYoshiFeItems[9].unk6 = gYoshiFeItems[9].unk8 = 20;
                         yoshi_demand(0x800C);
                     } else {
                         gGameModeAfterNext = 0x10;
                     }
                     break;
                 case 0x100000000000000:
-                    D_8020C070[9].unkC = "BECOME GUEST PLAYER:", D_8020C070[9].unk10 = D_803047DC, D_8020C070[9].unk6 = D_8020C070[9].unk8 = 20;
+                    gYoshiFeItems[9].unkC = "BECOME GUEST PLAYER:", gYoshiFeItems[9].unk10 = D_803047DC, gYoshiFeItems[9].unk6 = gYoshiFeItems[9].unk8 = 20;
                     yoshi_demand(0x800C);
                     break;
                 case 0x400000:
-                    func_801EA6E8();
+                    fe_player_build_erase_menu();
                     yoshi_demand(0x800A);
                     break;
                 case 8:
@@ -962,7 +962,7 @@ void hd_main_thread(void *arg) {
             font_age_cache();
             if (gGameMode & 0x4000) {
                 gFrameStartLag = (osGetTime() - gLastRetraceTime) / 7825;
-                func_801F8980();
+                fe_globe_frame();
                 gFrameCpuTime = (osGetTime() - gFrameStartTime) / 7825;
                 if (gRspSlotBusy[2]) {
                     rsp_wait_task(0x4D2);
@@ -973,14 +973,14 @@ void hd_main_thread(void *arg) {
                 rsp_wait_task(0x4D2);
             } else if (gGameMode & 0xC9FD8FE7DBFF8080) {
                 gFrameStartLag = (osGetTime() - gLastRetraceTime) / 7825;
-                func_801FE990();
+                fe_back_loop();
                 gFrameCpuTime = (osGetTime() - gFrameStartTime) / 7825;
                 rsp_wait_task(0x4D2);
             } else if (gGameMode & 0x20000000) {
-                func_801E7598();
+                fe_digger_frame();
                 rsp_wait_task(0x4D2);
             } else if (gGameMode & 0x30) {
-                func_801EF4AC();
+                fe_boot_screen_frame();
                 rsp_wait_task(0x4D2);
             } else {
                 gFrameStartLag = (osGetTime() - gLastRetraceTime) / 7825;
@@ -1934,12 +1934,12 @@ s32 veh_enter(s32 id) {
 
 #if defined(NON_MATCHING) && defined(PORT_HOST)
 /* Windows port, byte order: veh_leave reads the word table that starts
- * at the u8 EEPROM flag D_802E8BF8 (set at boot), and on the N64 that flag is
+ * at the u8 EEPROM flag gUseEeprom (set at boot), and on the N64 that flag is
  * word 0's most significant byte.  The image keeps word 0 big-endian
  * (port/data/image_overrides.txt), so word 0 is assembled from its bytes;
  * the others are host-order words.  Checked by port/tools/loadref.py (T5). */
 s32 port_802E8BF8_word(s32 i) {
-    u8 *t = &D_802E8BF8;
+    u8 *t = &gUseEeprom;
 
     if (i == 0) {
         return (t[0] << 24) | (t[1] << 16) | (t[2] << 8) | t[3];
@@ -1958,7 +1958,7 @@ void veh_leave(void) {
 #if defined(NON_MATCHING) && defined(PORT_HOST)
         ok = driver_try_exit(port_802E8BF8_word(gCurVehicle));
 #else
-        ok = driver_try_exit(((s32 *) &D_802E8BF8)[gCurVehicle]);
+        ok = driver_try_exit(((s32 *) &gUseEeprom)[gCurVehicle]);
 #endif
     }
     if (ok) {
@@ -4462,7 +4462,7 @@ void hd_mode_setup(void) {
     academy_place_marker(levelno);
     spr_reset();
     if (gNextGameMode == 0x40000000000) {
-        func_801F7850();
+        fe_best_build_menu();
     }
     old = gHeapPtr;
     yoshi_init(0);
@@ -4762,8 +4762,8 @@ void hd_setup_level(s32 arg0) {
     if (frontEndPresent) {
         HD_ASSERT(!pakBusy, 4162);
         HD_ASSERT(MQ_IS_EMPTY(&pakToGameMessageQ), 4163);
-        sched_remove_client((struct BcSched *) gScheduler, (struct BcScClient *) D_80218EE0);
-        func_802D67F0((OSThread *) D_80218D30);
+        sched_remove_client((struct BcSched *) gScheduler, (struct BcScClient *) gPakSchedClient);
+        func_802D67F0((OSThread *) gPakThread);
     }
     gGhostRecording = 0;
     gGhostPlaying = 0;
@@ -4863,7 +4863,7 @@ void hd_setup_level(s32 arg0) {
     gPlayerY = D_803ED80C;
     gPlayerZ = D_803ED810;
     D_802FDB14 = 0;
-    if (D_802E8BF8) {
+    if (gUseEeprom) {
         D_803649F0 = nss.ip;
     } else {
         D_803649F0 = players[playerNumber].unk14;

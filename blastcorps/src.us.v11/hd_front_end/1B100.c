@@ -19,7 +19,8 @@
 /* engine-sound channel tables in hd_code's 7D9D0 text blob */
 
 
-/*
+/* Lvl_load_model, two heap buffers, display lists, veh_add_record (0x80202100).
+ *
  * Load model `type` (lvl_load_model), reserve two 6000-byte heap buffers
  * (heap[0], heap[1]) and set up the two display-list ranges in dl[0..3]
  * (start in the model data at its header offsets 0x1C / 0x2C, write position
@@ -27,7 +28,7 @@
  * The loads and stores keep the asm's order (the last call's arguments are
  * read back from memory).
  */
-void func_80202100(s32 type, u8 * N64P *model, u8 * N64P *heap, u8 * N64P *dl) {
+void fe_load_model(s32 type, u8 * N64P *model, u8 * N64P *heap, u8 * N64P *dl) {
     Out802A396C o;
     u8 *data;
     u8 *h;
@@ -115,7 +116,7 @@ void func_802025D0(s32 kind, s32 val) {
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/1B100/func_80202100.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/1B100/fe_load_model.s")
 
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_front_end/1B100/func_802021FC.s")
 

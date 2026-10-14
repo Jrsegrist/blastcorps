@@ -183,10 +183,10 @@ A_AFRAME = syms.get("alAudioFrame", syms.get("func_802D9D68"))
 # where the game reads D_803156C4 mid-function, after CPU time the native
 # code doesn't take (00000.c hd_build_frame_dl: the blinking "PRESS START").
 # Also D_803156C0 (the scheduler's retrace count): hd_front_end 00000.c
-# func_801E7598 (the vehicle select screen's title pulse).  And 50670.c
+# fe_digger_frame (the vehicle select screen's title pulse).  And 50670.c
 # ghost_record (the ghost recorder's sample time, D_803156C0 - start): a
 # retrace can land between its entry (a switch point) and the read.
-GVI_FUNCS = ["hd_build_frame_dl", "func_801E7598", "ghost_record"]
+GVI_FUNCS = ["hd_build_frame_dl", "fe_digger_frame", "ghost_record"]
 GVI = {}
 for name in GVI_FUNCS:
     a, size = func_sizes[name]

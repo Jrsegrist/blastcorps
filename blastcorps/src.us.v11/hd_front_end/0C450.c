@@ -2,7 +2,7 @@
 #include <ultra64.h>
 #include "game/game.h"
 
-/* front-end 3D scene: a small hierarchy of nodes (D_8020BD30[7]) drawn with a
+/* front-end 3D scene: a small hierarchy of nodes (gSolarNodes[7]) drawn with a
  * float matrix stack, a look-at camera and a depth-sorted display list table */
 
 typedef f32 MtxF[4][4];
@@ -30,32 +30,33 @@ typedef struct {
     Gfx * N64P unk4;
 } DrawEntry;
 
-extern Node D_8020BD30[];
-extern f32 D_8020BDE4; /* D_8020BD30[3].unk0 */
-extern f32 D_8020BDEC; /* D_8020BD30[3].unk8 */
-extern Node D_8020BE98; /* D_8020BD30[6] */
-extern Vtx D_80217690[][2][4];
-extern MtxF D_80217A10[];
-extern s32 D_80217B50; /* matrix stack index into D_80217A10 */
-extern f32 D_80217B54; /* camera eye */
-extern f32 D_80217B58;
-extern f32 D_80217B5C;
-extern f32 D_80217B60; /* camera target */
-extern f32 D_80217B64;
-extern f32 D_80217B68;
-extern DrawEntry D_80218270[];
+extern Node gSolarNodes[];
+extern f32 D_8020BDE4; /* gSolarNodes[3].unk0 */
+extern f32 D_8020BDEC; /* gSolarNodes[3].unk8 */
+extern Node D_8020BE98; /* gSolarNodes[6] */
+extern Vtx gSolarSpriteVtx[][2][4];
+extern MtxF gSolarMtxStack[];
+extern s32 gSolarMtxTop; /* matrix stack index into gSolarMtxStack */
+extern f32 gSolarEyeX; /* camera eye */
+extern f32 gSolarEyeY;
+extern f32 gSolarEyeZ;
+extern f32 gSolarAtX; /* camera target */
+extern f32 gSolarAtY;
+extern f32 gSolarAtZ;
+extern DrawEntry gSolarDrawList[];
 extern s16 D_802182A8;
 
 f32 sqrtf(f32);
-void func_801F374C(Node *);
-Gfx *func_801F3964(Gfx *, u8 *, Node *, f32);
-Gfx *func_801F4110(Gfx *, u8 *, Node *, f32);
-void func_801F4878(Gfx *, u8 *);
-void func_801F4C3C(Node *, f32);
-s32 func_801F36B0(DrawEntry *, DrawEntry *);
+void fe_solar_build_mtx(Node *);
+Gfx *fe_solar_draw_glow(Gfx *, u8 *, Node *, f32);
+Gfx *fe_solar_draw_sun(Gfx *, u8 *, Node *, f32);
+void fe_solar_build_node_dls(Gfx *, u8 *);
+void fe_solar_update_node(Node *, f32);
+s32 fe_solar_cmp_depth(DrawEntry *, DrawEntry *);
 
-/* draw the node scene: build the matrices, set the camera, sort and emit the display lists */
-Gfx *func_801F3450(Gfx *gdl, u8 *dyn) {
+/* Node matrices, the look-at camera, depth-sorted node lists (0x801F3450).
+ * draw the node scene: build the matrices, set the camera, sort and emit the display lists */
+Gfx *fe_solar_draw(Gfx *gdl, u8 *dyn) {
     Gfx *gfx;
     Node *nodes;
     Node *cam;
@@ -63,49 +64,51 @@ Gfx *func_801F3450(Gfx *gdl, u8 *dyn) {
     s32 i;
 
     gfx = gdl;
-    nodes = D_8020BD30;
-    cam = &nodes[&nodes[D_80217B6C] - nodes];
+    nodes = gSolarNodes;
+    cam = &nodes[&nodes[gGlobePlanet] - nodes];
     gImmp1(gfx++, G_RDPHALF_1, gPerspNorm);
-    D_80217B50 = 4;
-    guMtxIdentF(D_80217A10[4]);
-    func_801F374C(&D_8020BE98);
+    gSolarMtxTop = 4;
+    guMtxIdentF(gSolarMtxStack[4]);
+    fe_solar_build_mtx(&D_8020BE98);
     if (D_802182A8 != 1) {
-        D_80217B54 = cam->unk2C;
-        D_80217B58 = cam->unk30;
-        D_80217B5C = cam->unk34;
-        D_80217B60 = cam->unk20;
-        D_80217B64 = cam->unk24;
-        D_80217B68 = cam->unk28;
+        gSolarEyeX = cam->unk2C;
+        gSolarEyeY = cam->unk30;
+        gSolarEyeZ = cam->unk34;
+        gSolarAtX = cam->unk20;
+        gSolarAtY = cam->unk24;
+        gSolarAtZ = cam->unk28;
     }
-    guLookAt((Mtx *) (dyn + 0x140), D_80217B54 + 1.0f, D_80217B58, D_80217B5C, D_80217B60, D_80217B64, D_80217B68,
+    guLookAt((Mtx *) (dyn + 0x140), gSolarEyeX + 1.0f, gSolarEyeY, gSolarEyeZ, gSolarAtX, gSolarAtY, gSolarAtZ,
              0.0f, 1.0f, 0.0f);
-    func_801F4878((Gfx *) (dyn + 0xACB0), dyn);
-    text_shell_sort((u8 *) D_80218270, 7, sizeof(DrawEntry), (s32 (*)(void *, void *)) func_801F36B0);
+    fe_solar_build_node_dls((Gfx *) (dyn + 0xACB0), dyn);
+    text_shell_sort((u8 *) gSolarDrawList, 7, sizeof(DrawEntry), (s32 (*)(void *, void *)) fe_solar_cmp_depth);
     for (i = 0, found = 0; i < 7; i++) {
-        if (!found || D_80217B6C != 3) {
-            gSPDisplayList(gfx++, D_80218270[i].unk4);
+        if (!found || gGlobePlanet != 3) {
+            gSPDisplayList(gfx++, gSolarDrawList[i].unk4);
         }
-        if (D_80218270[i].unk0 == 3) {
+        if (gSolarDrawList[i].unk0 == 3) {
             found = 1;
         }
     }
     return gfx;
 }
 
-/* sort comparator for D_80218270: by node depth */
-s32 func_801F36B0(DrawEntry *a, DrawEntry *b) {
+/* Draw-table comparator: the farther node first (0x801F36B0).
+ * sort comparator for gSolarDrawList: by node depth */
+s32 fe_solar_cmp_depth(DrawEntry *a, DrawEntry *b) {
     Node *nodes;
     Node *na;
     Node *nb;
 
-    nodes = D_8020BD30;
+    nodes = gSolarNodes;
     na = &nodes[&nodes[a->unk0] - nodes];
     nb = &nodes[&nodes[b->unk0] - nodes];
     return nb->unk38 - na->unk38;
 }
 
-/* build the matrices of a node list and its children (recursive) */
-void func_801F374C(Node *node) {
+/* Orbit step, then the node's and its children's matrices (0x801F374C).
+ * build the matrices of a node list and its children (recursive) */
+void fe_solar_build_mtx(Node *node) {
     f32 scale;
     f32 x;
     f32 y;
@@ -116,30 +119,31 @@ void func_801F374C(Node *node) {
 
     while (node != NULL) {
         scale = node->unk0 / D_8020BDE4;
-        m = D_80217B70[node - D_8020BD30];
+        m = gSolarNodeMtx[node - gSolarNodes];
         rot = 0.0f;
         if (node->unk8 != 0.0f) {
             node->unk1C += D_8020BDEC * 360.0 / node->unk8 / 1800.0 * 60.0 / 60.0;
         }
-        func_801FD484(&rot, &node->unk1C, &x, &y, &z, node->unkC);
+        fe_globe_latlon_to_xyz(&rot, &node->unk1C, &x, &y, &z, node->unkC);
         guTranslateF(mf, -x, -y, -z);
         guScale(&m[gBufferIndex + 2], scale, scale, scale);
-        guMtxCatF(D_80217A10[D_80217B50], mf, D_80217A10[D_80217B50 - 1]);
-        D_80217B50--;
-        guMtxF2L(D_80217A10[D_80217B50], &m[gBufferIndex]);
+        guMtxCatF(gSolarMtxStack[gSolarMtxTop], mf, gSolarMtxStack[gSolarMtxTop - 1]);
+        gSolarMtxTop--;
+        guMtxF2L(gSolarMtxStack[gSolarMtxTop], &m[gBufferIndex]);
         osWritebackDCache(m, 0x100);
-        func_801F4C3C(node, scale);
-        func_801F374C(node->unk14);
-        D_80217B50++;
+        fe_solar_update_node(node, scale);
+        fe_solar_build_mtx(node->unk14);
+        gSolarMtxTop++;
         node = node->unk10;
     }
 }
 
 #define ABS(x) ((x) > 0 ? (x) : -(x))
 
-/* a node's glow sprite: a screen-space textured quad (64x64 IA8) at the
+/* A planet's glow sprite (0x801F3964).
+ * a node's glow sprite: a screen-space textured quad (64x64 IA8) at the
  * node's projected position, sized by scale and depth */
-Gfx *func_801F3964(Gfx *gdl, u8 *dyn, Node *node, f32 scale) {
+Gfx *fe_solar_draw_glow(Gfx *gdl, u8 *dyn, Node *node, f32 scale) {
     Gfx *gfx;
     f32 size;
     s16 sx;
@@ -150,7 +154,7 @@ Gfx *func_801F3964(Gfx *gdl, u8 *dyn, Node *node, f32 scale) {
 
     gfx = gdl;
     size = node->unk0 * 64.0 / D_8020BDE4;
-    vtx = D_80217690[node - D_8020BD30][gBufferIndex];
+    vtx = gSolarSpriteVtx[node - gSolarNodes][gBufferIndex];
     gDPPipeSync(gfx++);
     gDPSetPrimColor(gfx++, 0xFF, 0xFF, node->unk18[0], node->unk18[1], node->unk18[2], 0xFF);
     gDPSetRenderMode(gfx++, G_RM_XLU_SURF, G_RM_XLU_SURF2);
@@ -159,21 +163,21 @@ Gfx *func_801F3964(Gfx *gdl, u8 *dyn, Node *node, f32 scale) {
     gSPSetGeometryMode(gfx++, G_SHADE | G_SHADING_SMOOTH);
     gSPTexture(gfx++, 0x2000, 0x2000, 0, G_TX_RENDERTILE, G_ON);
     gDPSetCombine(gfx++, 0x11FE23, 0xFFFFF3F9);
-    switch (node - D_8020BD30) {
+    switch (node - gSolarNodes) {
         case 1:
         case 4:
-            tex = D_80215A80;
+            tex = gLvlselGlowTex2;
             break;
         default:
-            tex = D_80215A7C;
+            tex = gLvlselGlowTex;
             break;
     }
     if (node->unk38 > 1.0) {
         size = size * 10000.0 / node->unk38;
     }
     isize = size;
-    hud_project_point(dyn, 0.0f, 0.0f, 0.0f, &sx, &sy, &D_80217B70[node - D_8020BD30][gBufferIndex],
-                  &D_80217B70[node - D_8020BD30][gBufferIndex] + 2, (Mtx *) (dyn + 0x1280), 4.0f);
+    hud_project_point(dyn, 0.0f, 0.0f, 0.0f, &sx, &sy, &gSolarNodeMtx[node - gSolarNodes][gBufferIndex],
+                  &gSolarNodeMtx[node - gSolarNodes][gBufferIndex] + 2, (Mtx *) (dyn + 0x1280), 4.0f);
     if (ABS(sx) + size / 2.0 < 4096.0 && ABS(sy) + size / 2.0 < 4096.0) {
         gDPLoadTextureBlock(gfx++, tex, G_IM_FMT_IA, G_IM_SIZ_8b, 64, 64, 0, G_TX_CLAMP, G_TX_MIRROR, G_TX_NOMASK,
                             6, G_TX_NOLOD, G_TX_NOLOD);
@@ -207,8 +211,9 @@ Gfx *func_801F3964(Gfx *gdl, u8 *dyn, Node *node, f32 scale) {
     return gfx;
 }
 
-/* the same sprite for node 6, with a 32x32 RGBA32 texture */
-Gfx *func_801F4110(Gfx *gdl, u8 *dyn, Node *node, f32 scale) {
+/* The Sun's sprite (0x801F4110).
+ * the same sprite for node 6, with a 32x32 RGBA32 texture */
+Gfx *fe_solar_draw_sun(Gfx *gdl, u8 *dyn, Node *node, f32 scale) {
     Gfx *gfx;
     f32 size;
     s16 sx;
@@ -218,7 +223,7 @@ Gfx *func_801F4110(Gfx *gdl, u8 *dyn, Node *node, f32 scale) {
 
     gfx = gdl;
     size = node->unk0 * 64.0 / D_8020BDE4;
-    vtx = D_80217690[node - D_8020BD30][gBufferIndex];
+    vtx = gSolarSpriteVtx[node - gSolarNodes][gBufferIndex];
     gDPPipeSync(gfx++);
     gDPSetPrimColor(gfx++, 0xFF, 0xFF, node->unk18[0], node->unk18[1], node->unk18[2], 0xFF);
     gDPSetRenderMode(gfx++, G_RM_XLU_SURF, G_RM_XLU_SURF2);
@@ -231,8 +236,8 @@ Gfx *func_801F4110(Gfx *gdl, u8 *dyn, Node *node, f32 scale) {
         size = size * 10000.0 / node->unk38;
     }
     isize = size;
-    hud_project_point(dyn, 0.0f, 0.0f, 0.0f, &sx, &sy, &D_80217B70[node - D_8020BD30][gBufferIndex],
-                  &D_80217B70[node - D_8020BD30][gBufferIndex] + 2, (Mtx *) (dyn + 0x1280), 4.0f);
+    hud_project_point(dyn, 0.0f, 0.0f, 0.0f, &sx, &sy, &gSolarNodeMtx[node - gSolarNodes][gBufferIndex],
+                  &gSolarNodeMtx[node - gSolarNodes][gBufferIndex] + 2, (Mtx *) (dyn + 0x1280), 4.0f);
     if (ABS(sx) + size / 2.0 < 4096.0 && ABS(sy) + size / 2.0 < 4096.0) {
         gDPLoadTextureBlock(gfx++, D_80215A84, G_IM_FMT_RGBA, G_IM_SIZ_32b, 32, 32, 0, G_TX_CLAMP, G_TX_CLAMP,
                             G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
@@ -266,8 +271,9 @@ Gfx *func_801F4110(Gfx *gdl, u8 *dyn, Node *node, f32 scale) {
     return gfx;
 }
 
-/* per node: depth from the camera, draw table entry, matrices and model */
-void func_801F4878(Gfx *gdl, u8 *dyn) {
+/* Per node: eye distance, draw entry, matrices and model or sprite (0x801F4878).
+ * per node: depth from the camera, draw table entry, matrices and model */
+void fe_solar_build_node_dls(Gfx *gdl, u8 *dyn) {
     Gfx *gfx;
     s32 i;
     Node *nodes;
@@ -280,16 +286,16 @@ void func_801F4878(Gfx *gdl, u8 *dyn) {
 
     gfx = gdl;
     for (i = 0; i < 7; i++) {
-        nodes = D_8020BD30;
+        nodes = gSolarNodes;
         node = &nodes[&nodes[i] - nodes];
-        m = D_80217B70[i];
+        m = gSolarNodeMtx[i];
         scale = node->unk0 / D_8020BDE4;
-        dx = node->unk20 - D_80217B54;
-        dy = node->unk24 - D_80217B58;
-        dz = node->unk28 - D_80217B5C;
+        dx = node->unk20 - gSolarEyeX;
+        dy = node->unk24 - gSolarEyeY;
+        dz = node->unk28 - gSolarEyeZ;
         node->unk38 = sqrtf(dx * dx + dy * dy + dz * dz);
-        D_80218270[node - D_8020BD30].unk0 = node - D_8020BD30;
-        D_80218270[node - D_8020BD30].unk4 = gfx;
+        gSolarDrawList[node - gSolarNodes].unk0 = node - gSolarNodes;
+        gSolarDrawList[node - gSolarNodes].unk4 = gfx;
         switch (i) {
             case 3:
                 gSPMatrix(gfx++, dyn + 0x80, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
@@ -297,46 +303,47 @@ void func_801F4878(Gfx *gdl, u8 *dyn) {
                 gSPMatrix(gfx++, &m[gBufferIndex], G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
                 gSPMatrix(gfx++, &m[gBufferIndex + 2], G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
                 gSPMatrix(gfx++, dyn + 0x1280, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
-                gfx = func_801FE238(gfx, (s32) dyn);
+                gfx = fe_globe_draw_earth(gfx, (s32) dyn);
                 break;
             case 6:
                 gSPMatrix(gfx++, dyn + 0x100, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
                 gSPMatrix(gfx++, dyn + 0x1C0, G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
-                gfx = func_801F4110(gfx, dyn, node, scale);
+                gfx = fe_solar_draw_sun(gfx, dyn, node, scale);
                 break;
             default:
                 gSPMatrix(gfx++, dyn + 0x100, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
                 gSPMatrix(gfx++, dyn + 0x1C0, G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
-                gfx = func_801F3964(gfx, dyn, node, scale);
+                gfx = fe_solar_draw_glow(gfx, dyn, node, scale);
                 break;
         }
         gSPEndDisplayList(gfx++);
     }
 }
 
-/* node position from the current matrix, then move it */
-void func_801F4C3C(Node *node, f32 scale) {
+/* A node's world position and its camera eye (0x801F4C3C).
+ * node position from the current matrix, then move it */
+void fe_solar_update_node(Node *node, f32 scale) {
     f32 w;
     f32 x;
     f32 y;
 
     x = 0.0f;
     y = 0.0f;
-    if (node - D_8020BD30 != 6) {
-        w = D_80217A10[D_80217B50][3][3];
-        node->unk20 = D_80217A10[D_80217B50][3][0] / w;
-        node->unk24 = D_80217A10[D_80217B50][3][1] / w;
-        node->unk28 = D_80217A10[D_80217B50][3][2] / w;
+    if (node - gSolarNodes != 6) {
+        w = gSolarMtxStack[gSolarMtxTop][3][3];
+        node->unk20 = gSolarMtxStack[gSolarMtxTop][3][0] / w;
+        node->unk24 = gSolarMtxStack[gSolarMtxTop][3][1] / w;
+        node->unk28 = gSolarMtxStack[gSolarMtxTop][3][2] / w;
     }
-    switch (node - D_8020BD30) {
+    switch (node - gSolarNodes) {
         case 3:
-            func_801FD484(&D_8021A920, &D_8021A91C, &node->unk2C, &node->unk30, &node->unk34, scale * D_8021A918);
+            fe_globe_latlon_to_xyz(&gGlobeCamLat, &gGlobeCamLon, &node->unk2C, &node->unk30, &node->unk34, scale * gGlobeCamDist);
             node->unk2C += node->unk20;
             node->unk30 += node->unk24;
             node->unk34 += node->unk28;
             break;
         default:
-            func_801FD484(&x, &y, &node->unk2C, &node->unk30, &node->unk34, scale * D_8021A918);
+            fe_globe_latlon_to_xyz(&x, &y, &node->unk2C, &node->unk30, &node->unk34, scale * gGlobeCamDist);
             node->unk2C += node->unk20;
             node->unk30 += node->unk24;
             node->unk34 += node->unk28;
@@ -344,8 +351,9 @@ void func_801F4C3C(Node *node, f32 scale) {
     }
 }
 
-/* copy 16 words */
-void func_801F4E1C(s32 *arg0, s32 *arg1) {
+/* Copies 16 words (no callers) (0x801F4E1C).
+ * copy 16 words */
+void fe_copy_mtx(s32 *arg0, s32 *arg1) {
     s32 *src = arg0;
     s32 *dst = arg1;
     u32 i;

@@ -10,7 +10,7 @@
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_8020C070 ((PathNode *) D_8020C070)
+#define gYoshiFeItems ((PathNode *) gYoshiFeItems)
 #define gLevelInfo ((LevelInfo *) gLevelInfo)
 #define D_802F49F4 ((YoshiSnd *) D_802F49F4)
 #define gYoshiGameItems ((PathNode *) gYoshiGameItems)
@@ -298,30 +298,30 @@ void yoshi_init(u8 arg0) {
     switch (gNextGameMode) {
         case 0x80:
         case 0x8000000:
-            D_8020C070[25].unk14 = 0;
+            gYoshiFeItems[25].unk14 = 0;
             /* fallthrough */
         case 0x40000000:
             arg = &gYoshiWindows[D_802F4868[lowest_set_bit(gLevelInfo[levelno].unk0)]];
-            if (D_802E8BF8) {
-                D_8020C070[29].flags &= ~1;
-                D_8020C070[29].unk14 = 11;
+            if (gUseEeprom) {
+                gYoshiFeItems[29].flags &= ~1;
+                gYoshiFeItems[29].unk14 = 11;
             }
             if (gLevelInfo[levelno].unk0 == 1) {
                 if (func_80297EF8(levelno)) {
-                    D_8020C070[18].unk14 = 24;
+                    gYoshiFeItems[18].unk14 = 24;
                 } else {
-                    D_8020C070[18].unk14 = 0;
+                    gYoshiFeItems[18].unk14 = 0;
                 }
             } else if (gLevelInfo[levelno].unk0 == 0x20) {
-                D_8020C070[23].flags &= ~0x400;
-                D_8020C070[26].flags &= ~0x400;
-                D_8020C070[27].unk14 = 0;
-                D_8020C070[28].unk14 = 0;
+                gYoshiFeItems[23].flags &= ~0x400;
+                gYoshiFeItems[26].flags &= ~0x400;
+                gYoshiFeItems[27].unk14 = 0;
+                gYoshiFeItems[28].unk14 = 0;
             } else {
-                D_8020C070[23].unk14 = D_802F4878[lowest_set_bit(gLevelInfo[levelno].unk0)];
-                D_8020C070[26].unk14 = D_802F4878[lowest_set_bit(gLevelInfo[levelno].unk0)];
-                D_8020C070[27].unk14 = 0;
-                D_8020C070[28].unk14 = 0;
+                gYoshiFeItems[23].unk14 = D_802F4878[lowest_set_bit(gLevelInfo[levelno].unk0)];
+                gYoshiFeItems[26].unk14 = D_802F4878[lowest_set_bit(gLevelInfo[levelno].unk0)];
+                gYoshiFeItems[27].unk14 = 0;
+                gYoshiFeItems[28].unk14 = 0;
             }
             break;
         case 0x40000000000:
@@ -396,11 +396,11 @@ void yoshi_init(u8 arg0) {
 /* Destroy-building levels: the target's icon in the briefing (0x8026B8F8). */
 void yoshi_set_target_icons(void) {
     if (gLevelKind & 0x20) {
-        D_8020C070[23].flags |= 0x400;
-        D_8020C070[26].flags |= 0x400;
+        gYoshiFeItems[23].flags |= 0x400;
+        gYoshiFeItems[26].flags |= 0x400;
         gYoshiGameItems[27].flags |= 0x400;
         gYoshiGameItems[28].flags |= 0x400;
-        D_8020C070[23].unk14 = D_8020C070[26].unk14 = gYoshiGameItems[27].unk14 = gYoshiGameItems[28].unk14 =
+        gYoshiFeItems[23].unk14 = gYoshiFeItems[26].unk14 = gYoshiGameItems[27].unk14 = gYoshiGameItems[28].unk14 =
             yoshi_get_target_building(NULL, NULL);
         if (gNextGameMode == 0x40) {
             yoshi_load_window_sprites(&gYoshiWindows[D_802F4870[lowest_set_bit(gLevelKind)]]);
@@ -1203,7 +1203,7 @@ void yoshi_select_items(YoshiArg *arg0) {
     if (arg0->flags & 0x8000) {
         gYoshiItems = gYoshiHeapItems;
     } else if (arg0->flags & 0x800) {
-        gYoshiItems = D_8020C070;
+        gYoshiItems = gYoshiFeItems;
     } else {
         gYoshiItems = gYoshiGameItems;
     }

@@ -277,7 +277,7 @@ u64 seq_get_loop_done(u8 level) {
             seq_prepare(9);
             break;
         default:
-            mask = func_801ECA50(level);
+            mask = fe_player_loop_done_mode(level);
             break;
     }
     debug_printf("get loop done for world %d\n", lowest_set_bit(mask));

@@ -34,19 +34,19 @@ D_80303B68 = 0x80303B68;
 D_8036B980 = 0x8036B980;
 nss = 0x8036EA70;
 D_01000038 = 0x01000038;
-gScheduler = 0x80315440; /* hd_code scheduler (0E7B0 func_801F57B0) */
+gScheduler = 0x80315440; /* hd_code scheduler (0E7B0 fe_pak_start_thread) */
 /* EEPROM libultra by address (0E7B0 calls them through these until the Read/Write name swap fix lands) */
 func_80204C10 = 0x80204C10; /* osEepromWrite */
 func_802050F0 = 0x802050F0; /* osEepromRead */
 func_802042D0 = 0x802042D0; /* osEepromLongWrite */
 func_80204410 = 0x80204410; /* osEepromLongRead */
-D_006AD3F0 = 0x006AD3F0; /* compressed front-end pictures in ROM (196F0 func_80200714) */
+D_006AD3F0 = 0x006AD3F0; /* compressed front-end pictures in ROM (196F0 fe_bg_load) */
 D_006BF2F0 = 0x006BF2F0;
 D_006D3D30 = 0x006D3D30;
-D_8021591C = 0x8021591C; /* 01C40: perspNorm (splat left the lui/addiu raw) */
+gPanelPerspNorm = 0x8021591C; /* 01C40: perspNorm (splat left the lui/addiu raw) */
 D_8020BC88 = 0x8020BC88; /* 09570: display list referenced only by a raw lui/addiu pair */
-D_80217288 = 0x80217288; /* 09570: perspNorm, raw lui/addiu pair */
-D_0066C900 = 0x0066C900; /* 09570 func_801F1568: worldtextures.raw in ROM (as in undefined_syms.hd_code) */
+gStarfieldPerspNorm = 0x80217288; /* 09570: perspNorm, raw lui/addiu pair */
+D_0066C900 = 0x0066C900; /* 09570 fe_lvlsel_build_globe_dl: worldtextures.raw in ROM (as in undefined_syms.hd_code) */
 D_02000000 = 0x02000000; /* segment 2 base (as in undefined_syms.hd_code) */
 /* 11530: segment-1 display lists (as in hd_code) and hd_code globals splat left unpaired */
-D_8021A8EC = 0x8021A8EC;
+gFlightAltitude = 0x8021A8EC;

@@ -56,7 +56,7 @@ Discarded input sections
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/00000.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/00000.c.o
  .gptab.bss     0x00000000       0x28 build_nm/src.us.v11/hd_code/00000.c.o
- .mdebug        0x00000000     0xa5fc build_nm/src.us.v11/hd_code/00000.c.o
+ .mdebug        0x00000000     0xa6d8 build_nm/src.us.v11/hd_code/00000.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/22EE0.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/22EE0.c.o
  .gptab.data    0x00000000       0x20 build_nm/src.us.v11/hd_code/22EE0.c.o
@@ -77,7 +77,7 @@ Discarded input sections
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/54E30.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/54E30.c.o
  .gptab.bss     0x00000000       0x20 build_nm/src.us.v11/hd_code/54E30.c.o
- .mdebug        0x00000000      0xa58 build_nm/src.us.v11/hd_code/54E30.c.o
+ .mdebug        0x00000000      0xa64 build_nm/src.us.v11/hd_code/54E30.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/12D80.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/12D80.c.o
  .mdebug        0x00000000      0x308 build_nm/src.us.v11/hd_code/12D80.c.o
@@ -144,10 +144,10 @@ Discarded input sections
  .mdebug        0x00000000      0x914 build_nm/src.us.v11/hd_code/405F0.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/409D0.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/409D0.c.o
- .mdebug        0x00000000     0x159c build_nm/src.us.v11/hd_code/409D0.c.o
+ .mdebug        0x00000000     0x15a0 build_nm/src.us.v11/hd_code/409D0.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/41930.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/41930.c.o
- .mdebug        0x00000000      0xb64 build_nm/src.us.v11/hd_code/41930.c.o
+ .mdebug        0x00000000      0xb90 build_nm/src.us.v11/hd_code/41930.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/42240.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/42240.c.o
  .mdebug        0x00000000      0xd48 build_nm/src.us.v11/hd_code/42240.c.o
@@ -160,7 +160,7 @@ Discarded input sections
  .mdebug        0x00000000     0x15a8 build_nm/src.us.v11/hd_code/45BB0.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/46C20.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/46C20.c.o
- .mdebug        0x00000000      0x708 build_nm/src.us.v11/hd_code/46C20.c.o
+ .mdebug        0x00000000      0x710 build_nm/src.us.v11/hd_code/46C20.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_code/46F60.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_code/46F60.c.o
  .mdebug        0x00000000      0xa30 build_nm/src.us.v11/hd_code/46F60.c.o
@@ -4067,6 +4067,16 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x803a6b20                        gCreditsScroll = 0x803a6b20
                 0x803a6b24                        gCreditsEndTimer = 0x803a6b24
                 0x80304a90                        gCreditLines = 0x80304a90
+                0x80218d30                        gPakThread = 0x80218d30
+                0x80218ee0                        gPakSchedClient = 0x80218ee0
+                0x80219ef8                        gPakRequestQueue = 0x80219ef8
+                0x802e8bf8                        gUseEeprom = 0x802e8bf8
+                0x80364ef0                        gBestTimes = 0x80364ef0
+                0x80365060                        gSlotState = 0x80365060
+                0x8039c4b4                        gEepromPresent = 0x8039c4b4
+                0x8039c541                        gIgnorePak = 0x8039c541
+                0x8021a830                        gBestTimesReturnMode = 0x8021a830
+                0x8020c070                        gYoshiFeItems = 0x8020c070
                 0x80314d80                        D_80314D80 = 0x80314d80
                 0x80314d98                        D_80314D98 = 0x80314d98
                 0x802fa254                        D_802FA254 = 0x802fa254
@@ -4074,12 +4084,7 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x80364a94                        D_80364A94 = 0x80364a94
                 0x80364a9c                        D_80364A9C = 0x80364a9c
                 0x803156c4                        D_803156C4 = 0x803156c4
-                0x80219ef8                        D_80219EF8 = 0x80219ef8
-                0x8039c541                        D_8039C541 = 0x8039c541
-                0x802e8bf8                        D_802E8BF8 = 0x802e8bf8
                 0x80364ae9                        D_80364AE9 = 0x80364ae9
-                0x8039c4b4                        D_8039C4B4 = 0x8039c4b4
-                0x80365060                        D_80365060 = 0x80365060
                 0x80364aa4                        D_80364AA4 = 0x80364aa4
                 0x802e8bec                        D_802E8BEC = 0x802e8bec
                 0x802e8bf0                        D_802E8BF0 = 0x802e8bf0
@@ -4089,7 +4094,6 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x803643d5                        D_803643D5 = 0x803643d5
                 0x80364af8                        D_80364AF8 = 0x80364af8
                 0x8039ca60                        D_8039CA60 = 0x8039ca60
-                0x8021a830                        D_8021A830 = 0x8021a830
                 0x8021a834                        D_8021A834 = 0x8021a834
                 0x8036ea60                        D_8036EA60 = 0x8036ea60
                 0x8036ea80                        D_8036EA80 = 0x8036ea80
@@ -4118,7 +4122,6 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x8036ea94                        D_8036EA94 = 0x8036ea94
                 0x8036ea98                        D_8036EA98 = 0x8036ea98
                 0x802f4868                        D_802F4868 = 0x802f4868
-                0x8020c070                        D_8020C070 = 0x8020c070
                 0x80364a60                        D_80364A60 = 0x80364a60
                 0x80315438                        D_80315438 = 0x80315438
                 0x80364a71                        D_80364A71 = 0x80364a71
@@ -4228,8 +4231,6 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x803669b4                        D_803669B4 = 0x803669b4
                 0x80364a6b                        D_80364A6B = 0x80364a6b
                 0x80219f58                        D_80219F58 = 0x80219f58
-                0x80218ee0                        D_80218EE0 = 0x80218ee0
-                0x80218d30                        D_80218D30 = 0x80218d30
                 0x802e8bf4                        D_802E8BF4 = 0x802e8bf4
                 0x803ed80c                        D_803ED80C = 0x803ed80c
                 0x803ed810                        D_803ED810 = 0x803ed810
@@ -4608,7 +4609,6 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0x8030e390                        D_8030E390 = 0x8030e390
                 0x802e6820                        D_802E6820 = 0x802e6820
                 0x802e8c44                        D_802E8C44 = 0x802e8c44
-                0x80364ef0                        D_80364EF0 = 0x80364ef0
                 0x80364b08                        D_80364B08 = 0x80364b08
                 0x8036b9a8                        D_8036B9A8 = 0x8036b9a8
                 0x8036ea69                        D_8036EA69 = 0x8036ea69
@@ -5184,40 +5184,40 @@ LOAD build_nm/assets/hd_code/hd_code_data_C9BD0.bin.o
                 0xa4800010                        D_A4800010 = 0xa4800010
                 0x803ff330                        D_803FF330 = 0x803ff330
                 0x803ff350                        D_803FF350 = 0x803ff350
-                0x801ef380                        PROVIDE (func_801EF380 = 0x801ef380)
-                0x801f6f18                        PROVIDE (func_801F6F18 = 0x801f6f18)
-                0x80200714                        PROVIDE (func_80200714 = 0x80200714)
-                0x801ea4b8                        PROVIDE (func_801EA4B8 = 0x801ea4b8)
-                0x801e8dcc                        PROVIDE (func_801E8DCC = 0x801e8dcc)
-                0x801e8c40                        PROVIDE (func_801E8C40 = 0x801e8c40)
-                0x80201e80                        PROVIDE (func_80201E80 = 0x80201e80)
-                0x801ea108                        PROVIDE (func_801EA108 = 0x801ea108)
-                0x801ece9c                        PROVIDE (func_801ECE9C = 0x801ece9c)
-                0x80201240                        PROVIDE (func_80201240 = 0x80201240)
-                0x801fe018                        PROVIDE (func_801FE018 = 0x801fe018)
-                0x801ecc8c                        PROVIDE (func_801ECC8C = 0x801ecc8c)
-                0x801f8530                        PROVIDE (func_801F8530 = 0x801f8530)
-                0x801e8eb8                        PROVIDE (func_801E8EB8 = 0x801e8eb8)
-                0x801f8228                        PROVIDE (func_801F8228 = 0x801f8228)
-                0x801ee800                        PROVIDE (func_801EE800 = 0x801ee800)
-                0x801ec30c                        PROVIDE (func_801EC30C = 0x801ec30c)
-                0x801ec288                        PROVIDE (func_801EC288 = 0x801ec288)
-                0x801ef1e0                        PROVIDE (func_801EF1E0 = 0x801ef1e0)
-                0x801f55d8                        PROVIDE (func_801F55D8 = 0x801f55d8)
-                0x801ed790                        PROVIDE (func_801ED790 = 0x801ed790)
-                0x801e7000                        PROVIDE (func_801E7000 = 0x801e7000)
-                0x801ea93c                        PROVIDE (func_801EA93C = 0x801ea93c)
-                0x801ea6e8                        PROVIDE (func_801EA6E8 = 0x801ea6e8)
-                0x801f8980                        PROVIDE (func_801F8980 = 0x801f8980)
-                0x801fe990                        PROVIDE (func_801FE990 = 0x801fe990)
-                0x801e7598                        PROVIDE (func_801E7598 = 0x801e7598)
-                0x801ef4ac                        PROVIDE (func_801EF4AC = 0x801ef4ac)
-                0x801f7850                        PROVIDE (func_801F7850 = 0x801f7850)
-                0x801f8354                        PROVIDE (func_801F8354 = 0x801f8354)
-                0x801ecf5c                        PROVIDE (func_801ECF5C = 0x801ecf5c)
-                0x801ed4b8                        PROVIDE (func_801ED4B8 = 0x801ed4b8)
-                0x801f57b0                        PROVIDE (func_801F57B0 = 0x801f57b0)
-                0x801eca50                        PROVIDE (func_801ECA50 = 0x801eca50)
+                0x801e7000                        PROVIDE (fe_digger_init = 0x801e7000)
+                0x801e7598                        PROVIDE (fe_digger_frame = 0x801e7598)
+                0x801e8c40                        PROVIDE (fe_player_panel_init = 0x801e8c40)
+                0x801e8dcc                        PROVIDE (fe_player_ticker_reset = 0x801e8dcc)
+                0x801e8eb8                        PROVIDE (fe_player_ticker_set_text = 0x801e8eb8)
+                0x801ea108                        PROVIDE (fe_player_new_game = 0x801ea108)
+                0x801ea4b8                        PROVIDE (fe_player_build_load_menu = 0x801ea4b8)
+                0x801ea6e8                        PROVIDE (fe_player_build_erase_menu = 0x801ea6e8)
+                0x801ea93c                        PROVIDE (fe_player_name_entry_open = 0x801ea93c)
+                0x801ec288                        PROVIDE (fe_player_medals_show_quiet = 0x801ec288)
+                0x801ec30c                        PROVIDE (fe_player_medals_init = 0x801ec30c)
+                0x801eca50                        PROVIDE (fe_player_loop_done_mode = 0x801eca50)
+                0x801ecc8c                        PROVIDE (fe_player_save_pending = 0x801ecc8c)
+                0x801ece9c                        PROVIDE (fe_player_update_level_kinds = 0x801ece9c)
+                0x801ecf5c                        PROVIDE (fe_player_regrade_missions = 0x801ecf5c)
+                0x801ed4b8                        PROVIDE (fe_player_regrade_platinum = 0x801ed4b8)
+                0x801ed790                        PROVIDE (fe_promo_init = 0x801ed790)
+                0x801ee800                        PROVIDE (fe_stats_grade_level = 0x801ee800)
+                0x801ef1e0                        PROVIDE (fe_stats_count_unlocks = 0x801ef1e0)
+                0x801ef380                        PROVIDE (fe_boot_screen_init = 0x801ef380)
+                0x801ef4ac                        PROVIDE (fe_boot_screen_frame = 0x801ef4ac)
+                0x801f55d8                        PROVIDE (fe_comm_point_load = 0x801f55d8)
+                0x801f57b0                        PROVIDE (fe_pak_start_thread = 0x801f57b0)
+                0x801f6f18                        PROVIDE (fe_pak_list_files = 0x801f6f18)
+                0x801f7850                        PROVIDE (fe_best_build_menu = 0x801f7850)
+                0x801f8228                        PROVIDE (fe_best_color_items = 0x801f8228)
+                0x801f8354                        PROVIDE (fe_best_clear_times = 0x801f8354)
+                0x801f8530                        PROVIDE (fe_globe_init = 0x801f8530)
+                0x801f8980                        PROVIDE (fe_globe_frame = 0x801f8980)
+                0x801fe018                        PROVIDE (fe_open_reachable_levels = 0x801fe018)
+                0x801fe990                        PROVIDE (fe_back_loop = 0x801fe990)
+                0x80200714                        PROVIDE (fe_bg_load = 0x80200714)
+                0x80201240                        PROVIDE (fe_attract_pic_load = 0x80201240)
+                0x80201e80                        PROVIDE (fe_pak_restore_from_eeprom = 0x80201e80)
                 0x02000000                        D_02000000 = 0x2000000
                 0x00487050                        D_00487050 = 0x487050
                 0x00489e70                        D_00489E70 = 0x489e70

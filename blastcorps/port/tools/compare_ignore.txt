@@ -75,5 +75,5 @@ gSchedStack 2000 scheduler thread stack
 80368088 80368238 OSThread: the audio thread (D_80368070 + 0x18)
 D_80368308 2000 audio thread stack
 803154F0 803156A0 OSThread: the scheduler thread (gScheduler + 0xB0)
-D_80218D30 1B0 OSThread: the front end's pak/save thread
-D_80218EF8 1000 front-end pak thread stack
+gPakThread 1B0 OSThread: the front end's pak/save thread
+gPakThreadStack 1000 front-end pak thread stack

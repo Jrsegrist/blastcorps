@@ -10,7 +10,7 @@
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_8020C070 ((MenuItem *) D_8020C070)
+#define gYoshiFeItems ((MenuItem *) gYoshiFeItems)
 #define gLevelInfo ((LevelInfo *) gLevelInfo)
 #define gYoshiGameItems ((MenuItem *) gYoshiGameItems)
 #define gYoshiWindows ((MenuItem *) gYoshiWindows)
@@ -86,7 +86,7 @@ void stats_level_start(void) {
     s32 i;
 
     D_8036EA7B = players[playerNumber].flags[levelno + 0x3E];
-    D_8036EA74 = D_80364EF0[playerNumber][D_802E8C44[(gLevelInfo[levelno].type == 1) ? 1 : D_8036EA7B]];
+    D_8036EA74 = gBestTimes[playerNumber][D_802E8C44[(gLevelInfo[levelno].type == 1) ? 1 : D_8036EA7B]];
     D_8036EA7A = D_80364B08[playerNumber][levelno] % 8;
     for (i = 0; i < 4; i++) {
         gBonusEarned[i] = 0;
@@ -134,7 +134,7 @@ u32 stats_print_status(void) {
         gYoshiGameItems[i].flags = 0x400;
     }
     for (i = 14; i < 18; i++) {
-        D_8020C070[i].flags = 0x400;
+        gYoshiFeItems[i].flags = 0x400;
     }
     if (gNextGameMode == 0x40) {
         f2 = 0x100;
@@ -147,31 +147,31 @@ u32 stats_print_status(void) {
     } else {
         f = 0;
     }
-    D_8020C070[14].flags |= f | 0x80;
+    gYoshiFeItems[14].flags |= f | 0x80;
     gYoshiGameItems[18].flags |= f | f2 | 0x80;
     if (nss > D_8036EA60) {
         f = f1 | 4;
     } else {
         f = 0;
     }
-    D_8020C070[15].flags |= f | 0x80;
+    gYoshiFeItems[15].flags |= f | 0x80;
     gYoshiGameItems[19].flags |= f | f2 | 0x80;
     if (D_8036EA79 > D_8036EA69) {
         f = f1 | 4;
     } else {
         f = 0;
     }
-    D_8020C070[16].flags |= f | 0x80;
+    gYoshiFeItems[16].flags |= f | 0x80;
     gYoshiGameItems[20].flags |= f | f2 | 0x80;
     if (D_8036EA7C > D_8036EA6C) {
         f = f1 | 4;
     } else {
         f = 0;
     }
-    D_8020C070[17].flags |= f | 0x80;
+    gYoshiFeItems[17].flags |= f | 0x80;
     gYoshiGameItems[21].flags |= f | f2 | 0x80;
     gYoshiGameItems[22].flags |= f2 | 0x80;
-    if (D_802E8BF8) {
+    if (gUseEeprom) {
         return (pctA + pctC) / 2;
     } else {
         return (pctA + pctB + pctC) / 3;

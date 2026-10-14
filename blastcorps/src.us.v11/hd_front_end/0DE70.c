@@ -40,56 +40,58 @@ extern u8 D_006EA850[];
 extern u8 D_006EAB90[];
 extern u8 D_006EC4C0[];
 
-extern u32 D_802182C0;
-extern u8 * N64P D_802182C4;
-extern Gfx * N64P D_802182C8;
-extern void * N64P D_802182CC;
-extern u8 * N64P D_80218350;
-extern void * N64P D_80218358[2];
-extern Gfx * N64P D_80218360[2][2];
-extern Mtx D_80218370;
-extern Mtx D_802183B0;
-extern Mtx D_802183F0;
+extern u32 gFeSceneSize;
+extern u8 * N64P gFeSceneRom;
+extern Gfx * N64P gFeSceneDl;
+extern void * N64P gFeSceneSeg6;
+extern u8 * N64P gCommPointModel;
+extern void * N64P gCommPointBufs[2];
+extern Gfx * N64P gCommPointDls[2][2];
+extern Mtx gCommPointTranslate;
+extern Mtx gCommPointScale;
+extern Mtx gCommPointTilt;
 extern u8 D_80218430[];
-extern u32 D_80218730;
-extern u16 D_80218734;
+extern u32 gCommPointAngle;
+extern u16 gCommPointPerspNorm;
 
 
-/* Inflate scene blob `arg0` onto the heap and record its parts. */
-void func_801F4E70(u8 arg0) {
+/* Inflates scene blob 0/1/2 onto the heap (0x801F4E70).
+ * Inflate scene blob `arg0` onto the heap and record its parts. */
+void fe_scene_load(u8 arg0) {
     FeHdr *hdr;
     void *p;
 
     tex_load_table();
     switch (arg0) {
         case 0:
-            D_802182C4 = D_006E8980;
-            D_802182C0 = D_006EA850 - D_006E8980;
+            gFeSceneRom = D_006E8980;
+            gFeSceneSize = D_006EA850 - D_006E8980;
             break;
         case 1:
-            D_802182C4 = D_006EA850;
-            D_802182C0 = D_006EAB90 - D_006EA850;
+            gFeSceneRom = D_006EA850;
+            gFeSceneSize = D_006EAB90 - D_006EA850;
             break;
         case 2:
-            D_802182C4 = D_006EAB90;
-            D_802182C0 = D_006EC4C0 - D_006EAB90;
+            gFeSceneRom = D_006EAB90;
+            gFeSceneSize = D_006EC4C0 - D_006EAB90;
             break;
     }
-    func_8028B4C4((u32) D_802182C4, (u32) ((void *) N64_IPTR(gHeapPtr)), &D_802182C0, 12, 10, 1);
+    func_8028B4C4((u32) gFeSceneRom, (u32) ((void *) N64_IPTR(gHeapPtr)), &gFeSceneSize, 12, 10, 1);
     hdr = (FeHdr *) N64_IPTR(gHeapPtr);
-    gHeapPtr += D_802182C0;
-    D_802182C8 = (Gfx *) (hdr->unk1C + (u32) hdr);
+    gHeapPtr += gFeSceneSize;
+    gFeSceneDl = (Gfx *) (hdr->unk1C + (u32) hdr);
     p = (void *) (hdr->unk20 + (u32) hdr);
-    D_802182CC = (void *) (hdr->unk14 + (u32) hdr);
-    tex_resolve_dl((u32 *) D_802182C8, p);
+    gFeSceneSeg6 = (void *) (hdr->unk14 + (u32) hdr);
+    tex_resolve_dl((u32 *) gFeSceneDl, p);
 }
 
-/* Draw the scene loaded by func_801F4E70. */
-Gfx *func_801F4FBC(FeDyn *dyn, Gfx *arg1) {
+/* Draws the inflated scene (0x801F4FBC).
+ * Draw the scene loaded by fe_scene_load. */
+Gfx *fe_scene_draw(FeDyn *dyn, Gfx *arg1) {
     Gfx *gdl = arg1;
 
-    gSPSegment(gdl++, 6, D_802182CC);
-    gSPSegment(gdl++, 7, &D_802182D0[gBufferIndex]);
+    gSPSegment(gdl++, 6, gFeSceneSeg6);
+    gSPSegment(gdl++, 7, &gFeSceneRot[gBufferIndex]);
     gImmp1(gdl++, G_RDPHALF_1, gPerspNorm);
     gSPLookAtX(gdl++, &dyn->unk3C00);
     gSPLookAtY(gdl++, (u8 *) &dyn->unk3C00 + 0x10);
@@ -98,16 +100,17 @@ Gfx *func_801F4FBC(FeDyn *dyn, Gfx *arg1) {
     gSPMatrix(gdl++, &dyn->unk12C0, G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
     gSPMatrix(gdl++, &dyn->unk1280, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
     gSPMatrix(gdl++, &dyn->unk1300, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
-    gSPDisplayList(gdl++, D_802182C8);
+    gSPDisplayList(gdl++, gFeSceneDl);
     return gdl;
 }
 
-/* Draw the spinning model set up by func_801F55D8 (turns 3 degrees a frame). */
-Gfx *func_801F51C8(FeDyn *dyn, Gfx *arg1) {
+/* The spinning communication-point model on the results screens (0x801F51C8).
+ * Draw the spinning model set up by fe_comm_point_load (turns 3 degrees a frame). */
+Gfx *fe_comm_point_draw(FeDyn *dyn, Gfx *arg1) {
     Gfx *gdl = arg1;
     void *seg;
 
-    gImmp1(gdl++, G_RDPHALF_1, D_80218734);
+    gImmp1(gdl++, G_RDPHALF_1, gCommPointPerspNorm);
     gSPLookAtX(gdl++, &dyn->unk3C00);
     gSPLookAtY(gdl++, (u8 *) &dyn->unk3C00 + 0x10);
     gSPMatrix(gdl++, &dyn->unk240, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
@@ -117,42 +120,43 @@ Gfx *func_801F51C8(FeDyn *dyn, Gfx *arg1) {
         s32 base;
         Mtx *m;
 
-        base = ((FeHdr *) (((FeHdr *) D_80218350)->unk18 + D_80218350))->unk4;
-        m = (Mtx *) ((u32) D_80218358[gBufferIndex] + base);
-        func_802021FC(D_80218430, D_80218358[gBufferIndex], D_80218358[gBufferIndex ^ 1]);
-        D_80218730 += 3;
-        guRotate(m, D_80218730 % 360, 0.0f, 1.0f, 0.0f);
+        base = ((FeHdr *) (((FeHdr *) gCommPointModel)->unk18 + gCommPointModel))->unk4;
+        m = (Mtx *) ((u32) gCommPointBufs[gBufferIndex] + base);
+        func_802021FC(D_80218430, gCommPointBufs[gBufferIndex], gCommPointBufs[gBufferIndex ^ 1]);
+        gCommPointAngle += 3;
+        guRotate(m, gCommPointAngle % 360, 0.0f, 1.0f, 0.0f);
         osWritebackDCache(m, sizeof(Mtx));
     }
-    seg = (void *) (((FeHdr *) D_80218350)->unk14 + D_80218350);
+    seg = (void *) (((FeHdr *) gCommPointModel)->unk14 + gCommPointModel);
     gSPSegment(gdl++, 6, seg);
-    gSPSegment(gdl++, 7, D_80218358[gBufferIndex]);
-    gSPMatrix(gdl++, &D_802183F0, G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
-    gSPMatrix(gdl++, &D_80218370, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
-    gSPMatrix(gdl++, &D_802183B0, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
-    gSPDisplayList(gdl++, D_80218360[0][gBufferIndex]);
-    gSPMatrix(gdl++, &D_802183F0, G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
-    gSPMatrix(gdl++, &D_80218370, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
-    gSPMatrix(gdl++, &D_802183B0, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
-    gSPDisplayList(gdl++, D_80218360[1][gBufferIndex]);
+    gSPSegment(gdl++, 7, gCommPointBufs[gBufferIndex]);
+    gSPMatrix(gdl++, &gCommPointTilt, G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+    gSPMatrix(gdl++, &gCommPointTranslate, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
+    gSPMatrix(gdl++, &gCommPointScale, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
+    gSPDisplayList(gdl++, gCommPointDls[0][gBufferIndex]);
+    gSPMatrix(gdl++, &gCommPointTilt, G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+    gSPMatrix(gdl++, &gCommPointTranslate, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
+    gSPMatrix(gdl++, &gCommPointScale, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
+    gSPDisplayList(gdl++, gCommPointDls[1][gBufferIndex]);
     return gdl;
 }
 
-/* Load the spinning model and set up both frame buffers' cameras. */
-void func_801F55D8(void) {
+/* Loads the communication-point model, both cameras (0x801F55D8).
+ * Load the spinning model and set up both frame buffers' cameras. */
+void fe_comm_point_load(void) {
     s32 i;
     FeDyn *dyn;
 
-    func_80202100(0x96, &D_80218350, (u8 * N64P *) D_80218358, (u8 * N64P *) D_80218360[0]);
-    guTranslate(&D_80218370, 150.0f, -45.0f, 0.0f);
-    guScale(&D_802183B0, 1.5f, 1.5f, 1.5f);
-    func_80202270(D_80218350, (u32 * N64P *) D_80218358, D_80218430);
+    fe_load_model(0x96, &gCommPointModel, (u8 * N64P *) gCommPointBufs, (u8 * N64P *) gCommPointDls[0]);
+    guTranslate(&gCommPointTranslate, 150.0f, -45.0f, 0.0f);
+    guScale(&gCommPointScale, 1.5f, 1.5f, 1.5f);
+    func_80202270(gCommPointModel, (u32 * N64P *) gCommPointBufs, D_80218430);
     func_802022EC(D_80218430, 1, 0, 0, 0.0f, 2, 0);
     func_802022EC(D_80218430, 2, 0, 0, 0.0f, 1, 1);
-    guRotate(&D_802183F0, 20.0f, 1.0f, 0.0f, 0.0f);
+    guRotate(&gCommPointTilt, 20.0f, 1.0f, 0.0f, 0.0f);
     for (i = 0; i < 2; i++) {
         dyn = &gDynamicBufs[i];
-        guPerspective(&dyn->unk240, &D_80218734, 45.0f, 1.3333334f, 40.0f, 4000.0f, 1.0f);
+        guPerspective(&dyn->unk240, &gCommPointPerspNorm, 45.0f, 1.3333334f, 40.0f, 4000.0f, 1.0f);
         guLookAtReflect(&dyn->unk140, &dyn->unk3C00, 0.0f, 1.0f, 400.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
     }
 }

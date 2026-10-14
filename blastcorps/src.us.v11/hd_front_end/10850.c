@@ -17,7 +17,7 @@
 
 /*
  * bestTimes.c (assert file name at 0x8020FF70): the best-times screen, a
- * menu of 4 rows per level (one per player) built from the save records.
+ * menu of 4 rows per vehicle slot (one per player) built from the save records.
  */
 
 int sprintf(char *, const char *, ...);
@@ -70,9 +70,9 @@ typedef struct {
     s16 unk18;
 } MenuHeader;
 
-extern u32 D_8021A828;        /* number of best-time menu items */
-extern u8 D_8021A7E8[];       /* player of each item */
-extern u8 D_8021A7D0[];       /* level of each row */
+extern u32 gBestItemCount;        /* number of best-time menu items */
+extern u8 gBestItemPlayer[];       /* player of each item */
+extern u8 gBestRowSlot[];       /* level of each row */
 #ifndef NON_MATCHING
 extern MenuItem *gYoshiHeapItems;
 #endif
@@ -80,12 +80,13 @@ extern char D_80219FD0[][0x20];
 extern char D_8020D800[][4];
 
 
-s32 func_801F7F74(u8 lvl);
-s32 func_801F7FF4(MenuItem *a, MenuItem *b);
-s32 func_801F81B4(u8 pn);
+s32 fe_best_slot_shown(u8 lvl);
+s32 fe_best_cmp(MenuItem *a, MenuItem *b);
+s32 fe_best_player_listed(u8 pn);
 
-/* build the best-times menu */
-void func_801F7850(void) {
+/* The best-times menu: per vehicle slot, a row per player (0x801F7850).
+ * build the best-times menu */
+void fe_best_build_menu(void) {
     Player *p;
     MenuHeader *hdr;
     MenuItem *item;
@@ -100,28 +101,28 @@ void func_801F7850(void) {
     gYoshiHeapItems = (MenuItem *) gHeapPtr;
     gHeapPtr += 0x71C;
     for (i = 0; i < 4; i++) {
-        if (D_80365060[i] == 1 && saveIt[i] == 0
+        if (gSlotState[i] == 1 && saveIt[i] == 0
             && ((players[i].rank[levelno] > 0 && players[i].rank[levelno] < 6) ? 1 : 0)) {
-            osSendMesg(&D_80219EF8, (OSMesg) PAK_MSG(8, levelno, i, 1), OS_MESG_BLOCK);
+            osSendMesg(&gPakRequestQueue, (OSMesg) PAK_MSG(8, levelno, i, 1), OS_MESG_BLOCK);
             osRecvMesg(&pakToGameMessageQ, NULL, OS_MESG_BLOCK);
         } else {
-            func_801F8354(i);
+            fe_best_clear_times(i);
         }
     }
     lvl = 0;
     n = 0;
     for (; lvl < 16; lvl++) {
-        if (func_801F7F74(lvl) && D_80364EF0[playerNumberAtStart][D_802E8C44[lvl]] > 0) {
+        if (fe_best_slot_shown(lvl) && gBestTimes[playerNumberAtStart][D_802E8C44[lvl]] > 0) {
             for (i = 0; i < 4; i++) {
                 item = &gYoshiHeapItems[n * 4 + i];
                 p = &players[i];
-                if (D_80365060[i] == 1 && D_80364EF0[i][D_802E8C44[lvl]] > 0
+                if (gSlotState[i] == 1 && gBestTimes[i][D_802E8C44[lvl]] > 0
                     && (gLevelInfo[levelno].type != 0x80 || p->unk91 >= 11)) {
-                    hud_format_time(timeStr, D_80364EF0[i][D_802E8C44[lvl]], 0);
+                    hud_format_time(timeStr, gBestTimes[i][D_802E8C44[lvl]], 0);
                     sprintf(D_80219FD0[n * 4 + i], "%-7.7s %s", p, timeStr);
                     item->text = D_80219FD0[n * 4 + i];
                     item->unk10 = 0;
-                    item->unk14 = func_801EF2BC(D_80364EF0[i][D_802E8C44[lvl]], levelno, players[i].unk91) % 5 + 0x12;
+                    item->unk14 = fe_stats_grade_time(gBestTimes[i][D_802E8C44[lvl]], levelno, players[i].unk91) % 5 + 0x12;
                     item->unk18 = i;
                 } else {
                     item->text = 0;
@@ -133,10 +134,10 @@ void func_801F7850(void) {
                 item->unk2 = 0x24;
                 item->unk6 = 0x10;
                 item->unk8 = 0x11;
-                item->unk16 = D_80364EF0[i][D_802E8C44[lvl]];
+                item->unk16 = gBestTimes[i][D_802E8C44[lvl]];
                 item->unk1A = lvl;
             }
-            text_shell_sort((u8 *) &gYoshiHeapItems[n * 4], 4, 0x1C, (s32 (*)(void *, void *)) func_801F7FF4);
+            text_shell_sort((u8 *) &gYoshiHeapItems[n * 4], 4, 0x1C, (s32 (*)(void *, void *)) fe_best_cmp);
             for (i = 0; i < 4; i++) {
                 item = &gYoshiHeapItems[n * 4 + i];
                 item->unk4 = i * 17;
@@ -151,12 +152,12 @@ void func_801F7850(void) {
             n++;
         }
     }
-    text_shell_sort((u8 *) gYoshiHeapItems, n, 0x70, (s32 (*)(void *, void *)) func_801F7FF4);
+    text_shell_sort((u8 *) gYoshiHeapItems, n, 0x70, (s32 (*)(void *, void *)) fe_best_cmp);
     for (lvl = 0; lvl < n * 4; lvl++) {
         item = &gYoshiHeapItems[lvl];
-        D_8021A7E8[lvl] = item->unk18;
+        gBestItemPlayer[lvl] = item->unk18;
         if (!(lvl & 3)) {
-            D_8021A7D0[lvl / 4] = item->unk1A;
+            gBestRowSlot[lvl / 4] = item->unk1A;
         }
         item->unk16 = 0x1E;
         item->unk4 += lvl / 4 * 100;
@@ -175,21 +176,23 @@ void func_801F7850(void) {
         hdr->unk10 = n * 4;
     }
     hdr->unk18 = 2;
-    D_8021A828 = n * 4;
-    func_801F8228();
-    func_801FDE50();
+    gBestItemCount = n * 4;
+    fe_best_color_items();
+    fe_load_vehicle_icons();
 }
 
-/* whether best-time slot `lvl` is shown (special levels: only slot 0) */
-s32 func_801F7F74(u8 lvl) {
+/* A vehicle slot the player knows (special levels: slot 0) (0x801F7F74).
+ * whether best-time slot `lvl` is shown (special levels: only slot 0) */
+s32 fe_best_slot_shown(u8 lvl) {
     if (gLevelInfo[levelno].type == 0x80) {
         return lvl == 0;
     }
     return (players[playerNumberAtStart].unk10 & (1 << lvl)) ? 1 : 0;
 }
 
-/* qsort comparator: items with text first, then by time */
-s32 func_801F7FF4(MenuItem *a, MenuItem *b) {
+/* Sort: items with text first, then by time (0x801F7FF4).
+ * qsort comparator: items with text first, then by time */
+s32 fe_best_cmp(MenuItem *a, MenuItem *b) {
     if (a->text != 0 && b->text != 0) {
         return a->unk16 - b->unk16;
     }
@@ -199,54 +202,57 @@ s32 func_801F7FF4(MenuItem *a, MenuItem *b) {
     return 1;
 }
 
-/* cycle the highlighted player on a button press */
-void func_801F803C(void) {
+/* Z/R: highlights the next player with entries (0x801F803C).
+ * cycle the highlighted player on a button press */
+void fe_best_next_player(void) {
     s32 next;
     s32 i;
 
     if ((gContButtons & 0x2010) && !(gContPrevButtons & 0x2010)) {
         next = (playerNumber + 1) % 4;
         i = 0;
-        for (; i < 4 && (D_80365060[next % 4] != 1 || func_801F81B4(next % 4) == 0); i++, next = (next + 1) % 4) {
+        for (; i < 4 && (gSlotState[next % 4] != 1 || fe_best_player_listed(next % 4) == 0); i++, next = (next + 1) % 4) {
         }
         if (playerNumber != next) {
             func_80260650(D_80367738, 0x1D, 0);
             playerNumber = next;
-            func_801E8EB8(playerNumber, 1);
-            func_801F8228();
+            fe_player_ticker_set_text(playerNumber, 1);
+            fe_best_color_items();
         } else {
             func_80260650(D_80367738, 0xD0, 0);
         }
     }
 }
 
-/* whether player `pn` has an item in the menu */
-s32 func_801F81B4(u8 pn) {
+/* Whether the player has entries (0x801F81B4).
+ * whether player `pn` has an item in the menu */
+s32 fe_best_player_listed(u8 pn) {
     u32 n;
     u32 i;
 
     i = 0;
-    n = D_8021A828;
-    for (; i < n && D_8021A7E8[i] != pn; i++) {
+    n = gBestItemCount;
+    for (; i < n && gBestItemPlayer[i] != pn; i++) {
     }
     return i != n;
 }
 
-/* highlight and colour the items by player */
-void func_801F8228(void) {
+/* The highlight and colours by player (0x801F8228).
+ * highlight and colour the items by player */
+void fe_best_color_items(void) {
     MenuItem *p;
     u32 i;
 
-    for (i = 0; i < D_8021A828; i++) {
+    for (i = 0; i < gBestItemCount; i++) {
         p = &gYoshiHeapItems[i];
-        if (D_8021A7E8[i] == playerNumber) {
+        if (gBestItemPlayer[i] == playerNumber) {
             p->flags |= 4;
         } else {
             p->flags &= ~4;
         }
-        if (D_8021A7E8[i] == playerNumberAtStart) {
+        if (gBestItemPlayer[i] == playerNumberAtStart) {
             p->unk18 = p->unk19 = 6;
-        } else if (D_8021A7E8[i] == playerNumber) {
+        } else if (gBestItemPlayer[i] == playerNumber) {
             p->unk18 = p->unk19 = 2;
         } else {
             p->unk18 = p->unk19 = 7;
@@ -254,20 +260,22 @@ void func_801F8228(void) {
     }
 }
 
-/* clear player `pn`'s best times unless the current level is ranked */
-void func_801F8354(u8 pn) {
+/* Zeroes a player's times unless the level is done (0x801F8354).
+ * clear player `pn`'s best times unless the current level is ranked */
+void fe_best_clear_times(u8 pn) {
     s32 i;
 
     BT_ASSERT(frontEndPresent, 279);
     if (!((players[pn].rank[levelno] > 0 && players[pn].rank[levelno] < 6) ? 1 : 0)) {
         for (i = 0; i < 16; i++) {
-            D_80364EF0[pn][D_802E8C44[i]] = 0;
+            gBestTimes[pn][D_802E8C44[i]] = 0;
         }
     }
 }
 
-/* draw the current row's level icon */
-Gfx *func_801F8440(s32 arg0, Gfx *gfx) {
+/* The current row's vehicle icon (0x801F8440).
+ * draw the current row's level icon */
+Gfx *fe_best_draw_icon(s32 arg0, Gfx *gfx) {
     Gfx *g;
     s16 off;
 
@@ -275,7 +283,7 @@ Gfx *func_801F8440(s32 arg0, Gfx *gfx) {
     g = gfx;
     if (gLevelInfo[levelno].type != 0x80) {
         g = spr_begin(g);
-        g = spr_draw(g, D_8021A7D0[((u16 *) gYoshiWindows)[0x280 / 2] / 4] + D_8021A8F0, 0x18 - off, 100, 0xFF - off * 2, 1, 1.0f);
+        g = spr_draw(g, gBestRowSlot[((u16 *) gYoshiWindows)[0x280 / 2] / 4] + gVehicleIconTex, 0x18 - off, 100, 0xFF - off * 2, 1, 1.0f);
         g = spr_end(g);
     }
     return g;

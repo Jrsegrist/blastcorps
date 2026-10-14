@@ -4,7 +4,7 @@
 /* Matching build: IDO compiled the matched code here against older
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
-#define LEGACY_D_8020C070
+#define LEGACY_gYoshiFeItems
 #define LEGACY_gLevelInfo
 #define LEGACY_D_802F47B0
 #define LEGACY_gYoshiWindows
@@ -14,7 +14,7 @@
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #ifdef NON_MATCHING
-#define D_8020C070 ((MenuEntry *) D_8020C070)
+#define gYoshiFeItems ((MenuEntry *) gYoshiFeItems)
 #define gLevelInfo ((LevelInfo *) gLevelInfo)
 #define D_802F47B0 ((u8 *) D_802F47B0)
 #define gYoshiWindows ((MenuPage *) gYoshiWindows)
@@ -40,7 +40,7 @@ typedef struct {
     /* 0x08 */ u8 level; /* level the player was last on */
     /* 0x09 */ u8 pad9;
     /* 0x0A */ u16 stars; /* rank points: 3 per gold, 2 per silver, 1 per bronze */
-    /* 0x0C */ u8 title; /* index into D_802081C0 */
+    /* 0x0C */ u8 title; /* index into gRankTitles */
     /* 0x0D */ u8 padD[3];
     /* 0x10 */ s32 unk10;
     /* 0x14 */ s32 unk14; /* money */
@@ -51,7 +51,7 @@ typedef struct {
     /* 0xCE */ u8 padCE[0x100 - 0xCE];
 } Player;
 
-/* Menu entries (D_8020C070, 0x1C bytes), as in hd_code 00000.c */
+/* Menu entries (gYoshiFeItems, 0x1C bytes), as in hd_code 00000.c */
 typedef struct {
     /* 0x00 */ u16 unk0; /* flags */
     /* 0x02 */ s16 unk2; /* x */
@@ -103,7 +103,7 @@ extern Player players[];
 extern LevelInfo gLevelInfo[];
 #endif
 #ifndef NON_MATCHING
-extern MenuEntry D_8020C070[];
+extern MenuEntry gYoshiFeItems[];
 #ifndef NON_MATCHING
 extern MenuPage gYoshiWindows[];
 #ifndef NON_MATCHING
@@ -111,95 +111,95 @@ extern PlayerSelDyn gDynamicBufs[];
 #endif
 #endif
 #endif
-extern char D_80215520[][25];
+extern char gSlotLabels[][25];
 extern u16 D_803046F8[];
 extern u16 D_80304710[];
 extern u16 D_80304730[];
-extern s16 D_802154D4;
-extern f32 D_802154E0;
-extern s32 D_802154EC;
-extern s32 D_80215508[];
-extern u8 D_802155A0[]; /* ticker text */
-#define SCROLL_TEXT ((char *) D_802155A0)
-extern char D_80215480[][16];
-extern u16 * N64P D_802158A0;
+extern s16 gScrollHoldTime;
+extern f32 gScrollSpeedGoal;
+extern s32 gScrollIconPos;
+extern s32 gScrollMedalPos[];
+extern u8 gScrollText[]; /* ticker text */
+#define SCROLL_TEXT ((char *) gScrollText)
+extern char gMedalCountText[][16];
+extern u16 * N64P gScrollGlyphText;
 
-extern Vtx D_80208380[];
-extern Gfx D_80208400[];
-extern Lights2 D_80208448;
-extern u16 D_8021591C;
-extern s16 D_8021593C;
-extern s32 D_80215458;
-extern u8 D_80215470[];
-extern u8 D_80215915;
-extern u8 D_80215916;
-extern s16 D_802154B2;
-extern s16 D_802154B4;
-extern s16 D_802154B6;
-extern s16 D_802154B8;
-extern s16 D_802154BA;
-extern u8 D_802154BC;
-extern s16 D_802154BE;
-extern s16 D_802154C0;
-extern s32 D_802154C4;
-extern s32 D_802154C8;
-extern s32 D_802154CC;
-extern u8 D_802154D0;
-extern s16 D_80215918;
-extern s16 D_8021591A;
-extern s32 D_80215920;
-extern u8 D_80215924;
-extern char * N64P D_80215928;
+extern Vtx gPanelVtx[];
+extern Gfx gPanelDl[];
+extern Lights2 gPanelLights;
+extern u16 gPanelPerspNorm;
+extern s16 gPanelAlpha;
+extern s32 gScrollCharWidth;
+extern u8 gMedalTimeText[];
+extern u8 gScrollIconSprite;
+extern u8 gScrollMedalSpriteBase;
+extern s16 gNameWheelAngleGoal;
+extern s16 gNameWheelAngle;
+extern s16 gNameWheelSel;
+extern s16 gNameWheelPrevSel;
+extern s16 gNameFlyChar;
+extern u8 gNameLen;
+extern s16 gNameEntryState;
+extern s16 gNameBoxState;
+extern s32 gNameBoxX;
+extern s32 gNameBoxW;
+extern s32 gNameEntryWidth;
+extern u8 gNameEntryFirst;
+extern s16 gNameWheelStartSel;
+extern s16 gNameStick;
+extern s32 gNameArrowStep;
+extern u8 gNameMaxLen;
+extern char * N64P gNameBuf;
 #ifndef NON_MATCHING
 extern u8 D_802F47B0[];
 #endif
-extern f32 D_80215440;
-extern f32 D_80215444;
-extern f32 D_80215448;
-extern f32 D_8021544C;
-extern f32 D_80215450;
-extern f32 D_80215454;
-extern f32 D_8021545C;
-extern f32 D_80215460;
+extern f32 gFlyCharW;
+extern f32 gFlyCharH;
+extern f32 gFlyCharWGoal;
+extern f32 gFlyCharHGoal;
+extern f32 gNameTextX;
+extern f32 gNameTextXGoal;
+extern f32 gNameBoxXAnim;
+extern f32 gNameBoxXGoal;
 extern f32 D_80215464;
 extern f32 D_80215468;
-extern s16 D_8021546C;
-extern s32 D_80215940;
-extern f32 D_80215944;
-extern f32 D_80215948;
-extern f32 D_8021594C;
-extern f32 D_80215950;
-extern s16 D_8021592C;
+extern s16 gNamePrevStick;
+extern s32 gNameArrowPulse;
+extern f32 gFlyCharX;
+extern f32 gFlyCharY;
+extern f32 gFlyCharXGoal;
+extern f32 gFlyCharYGoal;
+extern s16 gNameArrowAlpha;
 
-extern s16 D_802154D2;
-extern s32 D_802154DC;
-extern u8 D_80215900[];
-extern u8 D_80215902[];
-extern s32 D_80215908[];
-extern s16 D_80215910[];
-extern u8 D_80215914;
-extern u16 D_80215930[];
-extern u16 D_802158A8[];
-extern u8 D_8021592E;
-extern s32 D_802154D8;
-extern f32 D_802154E4;
-extern s32 D_802154E8;
-extern s32 D_802154F0[];
-extern u16 D_802082D8[];
-extern u16 D_802082E4[];
+extern s16 sslen;
+extern s32 gScrollPos;
+extern u8 gMedalState[];
+extern u8 gMedalRank[];
+extern s32 gMedalDelay[];
+extern s16 gMedalAlpha[];
+extern u8 gMedalSpriteBase;
+extern u16 gMedalCounts[];
+extern u16 gScrollLine[];
+extern u8 gScrollUsesGlyphs;
+extern s32 gScrollPixel;
+extern f32 gScrollSpeed;
+extern s32 gScrollIconX;
+extern s32 gScrollMedalX[];
+extern u16 gMedalPalettes[];
+extern u16 gMedalSprites[];
 extern u16 D_802082E8[];
 
-void func_801E93DC(u8 arg0);
-void func_801ED480(u8 *src, u8 *dst);
-u16 func_801E9528(void);
-void func_801EA268(Player *p);
-Gfx *func_801EC49C(Gfx *arg0, s32 x, s32 y, u8 slot);
+void fe_player_count_medals(u8 arg0);
+void fe_player_copy_times(u8 *src, u8 *dst);
+u16 fe_player_ticker_next_glyph(void);
+void fe_player_init_vehicles(Player *p);
+Gfx *fe_player_draw_medal(Gfx *arg0, s32 x, s32 y, u8 slot);
 
 /* Highest rank shown: 4 once unk91 reaches 12, else 3 */
 #define MAX_RANK() ((players[playerNumber].unk91 >= 12) ? 4 : 3)
 
 
-RankTitle D_802081C0[31] = {
+RankTitle gRankTitles[31] = {
     { N64_DPTR("ROOKIE WRECKER"), (u16 * N64P) 0x803041DC },
     { N64_DPTR("TRAINED CRUSHER"), (u16 * N64P) 0x803041EC },
     { N64_DPTR("EXPERIENCED RAVAGER"), (u16 * N64P) 0x803041FC },
@@ -233,67 +233,69 @@ RankTitle D_802081C0[31] = {
     { N64_DPTR("YOU CAN STOP NOW."), (u16 * N64P) 0x8030439C },
 };
 
-u8 D_802082B8[0x20] = {
+u8 gRankTitleLine1Words[0x20] = {
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 2, 2, 2, 1, 1, 0,
 };
 
 /* sprite ids for spr_load */
-u16 D_802082D8[6] = { 0x777, 0x777, 0x776, 0x773, 0, 0 };
-u16 D_802082E4[2] = { 0x774, 0x775 };
+u16 gMedalPalettes[6] = { 0x777, 0x777, 0x776, 0x773, 0, 0 };
+u16 gMedalSprites[2] = { 0x774, 0x775 };
 u16 D_802082E8[2] = { 0x576, 0x575 };
-u16 D_802082EC[6] = { 0x91B, 0x91B, 0x91C, 0x91D, 0x572, 0 };
-u16 D_802082F8[2] = { 0x91F, 0 };
+u16 gTickerMedalSprites[6] = { 0x91B, 0x91B, 0x91C, 0x91D, 0x572, 0 };
+u16 gTickerIconSprite[2] = { 0x91F, 0 };
 
 /* name entry character sets and their lengths */
-u8 D_802082FC[2][12] = { "1234/.\x7F", "0123456789/\x7F" };
-u8 D_80208314[2][26] = { "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "BCDFGHJKLMNPQRSTVWXYZ" };
-s32 D_80208348[2] = { 7, 12 };
-u32 D_80208350[2] = { 26, 21 };
+u8 gNameEntrySymbols[2][12] = { "1234/.\x7F", "0123456789/\x7F" };
+u8 gNameEntryLetters[2][26] = { "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "BCDFGHJKLMNPQRSTVWXYZ" };
+s32 gNameEntrySymbolCount[2] = { 7, 12 };
+u32 gNameEntryLetterCount[2] = { 26, 21 };
 
-/* Set up the player select screen for a player: sprites and both frames' matrices */
-void func_801E8C40(u8 arg0) {
+/* Sets playerNumber, the panel's sprites and matrices, the ticker (0x801E8C40).
+ * Set up the player select screen for a player: sprites and both frames' matrices */
+void fe_player_panel_init(u8 arg0) {
     PlayerSelDyn *dyn;
     s32 i;
 
     playerNumber = arg0;
-    D_80215915 = spr_load(D_802082F8, NULL, 1, 1, 1, 1.0f);
-    D_80215916 = spr_load(D_802082EC, NULL, 5, 1, 0, 1.0f);
+    gScrollIconSprite = spr_load(gTickerIconSprite, NULL, 1, 1, 1, 1.0f);
+    gScrollMedalSpriteBase = spr_load(gTickerMedalSprites, NULL, 5, 1, 0, 1.0f);
     for (i = 0; i < 2; i++) {
         dyn = &gDynamicBufs[i];
-        guPerspective(&dyn->persp, &D_8021591C, 45.0f, 4.0f / 3.0f, 10.0f, 10000.0f, 1.0f);
+        guPerspective(&dyn->persp, &gPanelPerspNorm, 45.0f, 4.0f / 3.0f, 10.0f, 10000.0f, 1.0f);
         guLookAt(&dyn->lookAt, 0.0f, 277.0f, 480.0f, 0.0f, 189.0f, 200.0f, 0.0f, 0.0f, 1.0f);
         guTranslate(&dyn->trans, 0.0f, 88.0f, 0.0f);
     }
-    D_8021593C = 0;
-    func_801E8DCC(playerNumber);
+    gPanelAlpha = 0;
+    fe_player_ticker_reset(playerNumber);
 }
 
-void func_801E8DCC(u8 arg0) {
+/* The ticker's text, a blank line, scroll state reset (0x801E8DCC). */
+void fe_player_ticker_reset(u8 arg0) {
     s32 i;
 
-    func_801E8EB8(arg0, 0);
+    fe_player_ticker_set_text(arg0, 0);
     for (i = 0; i < 0x1B; i++) {
-        D_802158A8[i] = D_802E8C94[D_8021592E];
+        gScrollLine[i] = D_802E8C94[gScrollUsesGlyphs];
     }
-    D_802158A8[i] = gTextTerminator[D_8021592E];
-    D_802154D8 = 0;
-    D_802154E8 = 9999;
+    gScrollLine[i] = gTextTerminator[gScrollUsesGlyphs];
+    gScrollPixel = 0;
+    gScrollIconX = 9999;
     for (i = 1; i < 5; i++) {
-        D_802154F0[i] = 9999;
+        gScrollMedalX[i] = 9999;
     }
-    D_802154E4 = 3.0f;
+    gScrollSpeed = 3.0f;
 }
 
 #define PLAYER_ASSERT(EX, line) \
     if (!(EX)) debug_printf("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "player.c", line)
-#define sslen D_802154D2
 #define TOTAL_SCROLL_LENGTH 256
 
-/* Build the player select ticker text for a slot (4 = guest/new): the
+/* The ticker: bio or name, title, medals, money (0x801E8EB8).
+ * Build the player select ticker text for a slot (4 = guest/new): the
  * biography in mode 0x1000000000000, else name, title, rank counts and money.
  * The local arrays' templates are .data 0x80208358/0x80208368 and sPrefix is
  * 0x80208378 (IDO puts function statics after the templates). */
-void func_801E8EB8(u8 slot, u8 arg1) {
+void fe_player_ticker_set_text(u8 slot, u8 arg1) {
     s32 i;
     Player *p = &players[slot];
     u8 guest = 0;
@@ -313,32 +315,32 @@ void func_801E8EB8(u8 slot, u8 arg1) {
     if (!(gGameMode & 0x10E18000) && slot != playerNumberAtStart) {
         guest = 1;
     }
-    D_802154EC = -1;
+    gScrollIconPos = -1;
     for (i = 1; i < 5; i++) {
-        D_80215508[i] = -1;
+        gScrollMedalPos[i] = -1;
     }
     if (slot < 4) {
-        func_801E93DC(slot);
+        fe_player_count_medals(slot);
     }
     if (gNextGameMode == 0x1000000000000) {
-        D_802158A0 = NULL;
+        gScrollGlyphText = NULL;
         sprintf(SCROLL_TEXT, "%s", bios[slot]);
     } else {
-        D_802158A0 = NULL;
+        gScrollGlyphText = NULL;
         if (slot < 4) {
-            if (D_80365060[slot] == 1) {
-                sprintf(SCROLL_TEXT, " ..... %s%s (%s) ... ", sPrefix[guest], p->name, D_802081C0[p->title].title);
+            if (gSlotState[slot] == 1) {
+                sprintf(SCROLL_TEXT, " ..... %s%s (%s) ... ", sPrefix[guest], p->name, gRankTitles[p->title].title);
                 for (i = (players[slot].unk91 >= 12) ? 4 : 3; i > 0; i--) {
-                    D_80215508[i] = font_strlen((u8 *) SCROLL_TEXT);
+                    gScrollMedalPos[i] = font_strlen((u8 *) SCROLL_TEXT);
                     if (i != 1) {
-                        sprintf(SCROLL_TEXT, "%s  %d .. ", SCROLL_TEXT, D_80215930[i]);
+                        sprintf(SCROLL_TEXT, "%s  %d .. ", SCROLL_TEXT, gMedalCounts[i]);
                     }
                 }
-                sprintf(SCROLL_TEXT, "%s  %d ... ", SCROLL_TEXT, D_80215930[1]);
-                if (D_802E8BF8 == 0) {
+                sprintf(SCROLL_TEXT, "%s  %d ... ", SCROLL_TEXT, gMedalCounts[1]);
+                if (gUseEeprom == 0) {
                     sprintf(SCROLL_TEXT, "%s$%d ... ", SCROLL_TEXT, p->unk14);
                 }
-                D_802154EC = font_strlen((u8 *) SCROLL_TEXT);
+                gScrollIconPos = font_strlen((u8 *) SCROLL_TEXT);
                 sprintf(SCROLL_TEXT, "%s  %d", SCROLL_TEXT, p->title);
                 if ((gNextGameMode & 0x0200040000000000) || (gGameMode & 0x0100000000000000)) {
                     sprintf(SCROLL_TEXT, "%s ..... %s", SCROLL_TEXT, "USE Z/R TO CHANGE PLAYER, THEN A TO SELECT!");
@@ -350,36 +352,36 @@ void func_801E8EB8(u8 slot, u8 arg1) {
             sprintf(SCROLL_TEXT, " ");
         }
     }
-    if (D_802158A0 != NULL) {
-        D_802154D2 = font_wstrlen(D_802158A0);
-        D_8021592E = 1;
-        D_80215458 = 0x13;
+    if (gScrollGlyphText != NULL) {
+        sslen = font_wstrlen(gScrollGlyphText);
+        gScrollUsesGlyphs = 1;
+        gScrollCharWidth = 0x13;
         if (slot == 4) {
-            D_802154D4 = 0x16;
+            gScrollHoldTime = 0x16;
         } else {
-            D_802154D4 = 0xE;
+            gScrollHoldTime = 0xE;
         }
     } else {
-        D_802154D2 = font_strlen((u8 *) SCROLL_TEXT);
-        D_8021592E = 0;
-        D_80215458 = 0xC;
+        sslen = font_strlen((u8 *) SCROLL_TEXT);
+        gScrollUsesGlyphs = 0;
+        gScrollCharWidth = 0xC;
         if (slot == 4) {
-            D_802154D4 = 0x24;
+            gScrollHoldTime = 0x24;
         } else {
-            D_802154D4 = 0x16;
+            gScrollHoldTime = 0x16;
         }
     }
     PLAYER_ASSERT(sslen<TOTAL_SCROLL_LENGTH, 400);
-    D_802154DC = -1;
+    gScrollPos = -1;
     if (arg1 || slot == 4) {
-        D_802154E0 = 12.0f;
+        gScrollSpeedGoal = 12.0f;
     } else {
-        D_802154E0 = 8.0f;
+        gScrollSpeedGoal = 8.0f;
     }
 }
 
-/* player select backdrop: two lit quads (.data after func_801E8EB8's) */
-Vtx D_80208380[8] = {
+/* player select backdrop: two lit quads (.data after fe_player_ticker_set_text's) */
+Vtx gPanelVtx[8] = {
     { { { -160, 174, 180 }, 0, { 0, 0 }, { 0x00, 0x81, 0x00, 0x28 } } },
     { { { 160, 174, 180 }, 0, { 0, 0 }, { 0x00, 0x81, 0x00, 0x28 } } },
     { { { 160, 204, 180 }, 0, { 0, 0 }, { 0x00, 0x7F, 0x1E, 0x28 } } },
@@ -390,8 +392,8 @@ Vtx D_80208380[8] = {
     { { { 160, 198, 200 }, 0, { 0, 0 }, { 0x5A, 0x5A, 0x00, 0xB4 } } },
 };
 
-Gfx D_80208400[] = {
-    gsSPVertex(N64_DPTR(D_80208380), 8, 0),
+Gfx gPanelDl[] = {
+    gsSPVertex(N64_DPTR(gPanelVtx), 8, 0),
     gsDPPipeSync(),
     gsSP1Triangle(0, 5, 1, 0),
     gsSP1Triangle(5, 1, 6, 0),
@@ -402,71 +404,75 @@ Gfx D_80208400[] = {
     gsSPEndDisplayList(),
 };
 
-Lights2 D_80208448 = gdSPDefLights2(0x28, 0x0A, 0x0A, 0xF0, 0xC8, 0x14, 69, -69, 69, 0xF0, 0x6E, 0x14, -69, 69, 69);
+Lights2 gPanelLights = gdSPDefLights2(0x28, 0x0A, 0x0A, 0xF0, 0xC8, 0x14, 69, -69, 69, 0xF0, 0x6E, 0x14, -69, 69, 69);
 Lights2 D_80208470 = gdSPDefLights2(0x28, 0x02, 0x21, 0x5A, 0x02, 0xDC, 69, -69, 69, 0x5A, 0x02, 0xDC, -69, 69, 69);
 
-u8 D_80208498[4] = " "; /* one-character string for the name entry wheel */
+u8 gNameEntryGlyph[4] = " "; /* one-character string for the name entry wheel */
 
-/* Count the player's ranks per grade (D_80215930[1..4]) and the finished
+/* A slot's medals by grade (0x801E93DC).
+ * Count the player's ranks per grade (gMedalCounts[1..4]) and the finished
  * levels of the 0x81 types, other than levels 0x26, 0x2F and 0x31 ([3]) */
-void func_801E93DC(u8 arg0) {
+void fe_player_count_medals(u8 arg0) {
     s32 i;
     Player *p;
 
     p = &players[arg0];
     for (i = 0; i < 6; i++) {
-        D_80215930[i] = 0;
+        gMedalCounts[i] = 0;
     }
     for (i = 0; i < 0x3C; i++) {
         if (p->rank[i] > 0 && p->rank[i] < 5) {
-            D_80215930[p->rank[i]]++;
+            gMedalCounts[p->rank[i]]++;
         }
         if (((players[arg0].rank[i] > 0 && players[arg0].rank[i] < 6) ? 1 : 0) && (gLevelInfo[i].type & 0x81) &&
             i != 0x31 && i != 0x2F && i != 0x26) {
-            D_80215930[3]++;
+            gMedalCounts[3]++;
         }
     }
 }
 
-/* Advance the name ticker by one character and return the next glyph */
-u16 func_801E9528(void) {
+/* The next character fed into the ticker (0x801E9528).
+ * Advance the name ticker by one character and return the next glyph */
+u16 fe_player_ticker_next_glyph(void) {
     s32 i;
 
-    D_802154DC = (D_802154DC + 1) % D_802154D2;
-    if (D_802154DC == D_802154EC) {
-        D_802154E8 = 0;
+    gScrollPos = (gScrollPos + 1) % sslen;
+    if (gScrollPos == gScrollIconPos) {
+        gScrollIconX = 0;
     }
     for (i = 1; i <= MAX_RANK(); i++) {
-        if (D_80215508[i] == D_802154DC) {
-            D_802154F0[i] = 0;
+        if (gScrollMedalPos[i] == gScrollPos) {
+            gScrollMedalX[i] = 0;
         }
     }
-    if (D_802154D4 != 0) {
-        D_802154D4--;
-        if (D_802154D4 == 0) {
-            D_802154E0 = 3.0f;
+    if (gScrollHoldTime != 0) {
+        gScrollHoldTime--;
+        if (gScrollHoldTime == 0) {
+            gScrollSpeedGoal = 3.0f;
         }
     }
-    D_802154E4 = (D_802154E0 - D_802154E4) * 0.2 + D_802154E4;
-    if (D_802158A0 != NULL) {
-        return D_802158A0[D_802154DC];
+    gScrollSpeed = (gScrollSpeedGoal - gScrollSpeed) * 0.2 + gScrollSpeed;
+    if (gScrollGlyphText != NULL) {
+        return gScrollGlyphText[gScrollPos];
     }
-    return D_802155A0[D_802154DC];
+    return gScrollText[gScrollPos];
 }
 
-s32 func_801E96F8(void) {
-    return D_802154D2 == D_802154DC + 8;
+/* 1 when the ticker text has scrolled to its end (0x801E96F8). */
+s32 fe_player_ticker_at_end(void) {
+    return sslen == gScrollPos + 8;
 }
 
-/* Player select scene: lit backdrop fading with L/R (D_8021593C), the
+/* The lit band, the scrolling ticker and its medal icons (0x801E9718).
+ * Player select scene: lit backdrop fading with L/R (gPanelAlpha), the
  * scrolling vehicle icons and the scrolling name ticker */
-Gfx *func_801E9718(Gfx *arg0, PlayerSelDyn *dyn, s32 arg2) {
+Gfx *fe_player_draw_panel(Gfx *arg0, PlayerSelDyn *dyn, s32 arg2) {
     Gfx *gdl = arg0;
 
     gSPMatrix(gdl++, &dyn->persp, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
     gSPMatrix(gdl++, &dyn->lookAt, G_MTX_PROJECTION | G_MTX_MUL | G_MTX_NOPUSH);
     gSPMatrix(gdl++, &dyn->trans, G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
-    gImmp1(gdl++, G_RDPHALF_1, D_8021591C); /* old gSPPerspNormalize */
+    gImmp1(gdl++, G_RDPHALF_1, gPanelPerspNorm); /* old gSPPerspNormalize */
     gDPPipeSync(gdl++);
     gSPTexture(gdl++, 0x7C0, 0x7C0, 0, G_TX_RENDERTILE, G_OFF);
     gDPSetCycleType(gdl++, G_CYC_1CYCLE);
@@ -475,7 +481,7 @@ Gfx *func_801E9718(Gfx *arg0, PlayerSelDyn *dyn, s32 arg2) {
     {
         s32 pad[4]; /* four unused stack slots sit here */
 
-        gSPSetLights2(gdl++, D_80208448);
+        gSPSetLights2(gdl++, gPanelLights);
     }
     gDPSetRenderMode(gdl++, G_RM_AA_XLU_SURF, G_RM_AA_XLU_SURF2);
     gDPSetCombineMode(gdl++, G_CC_SHADE, G_CC_SHADE);
@@ -484,65 +490,66 @@ Gfx *func_801E9718(Gfx *arg0, PlayerSelDyn *dyn, s32 arg2) {
         s32 i;
 
         if (gGameMode & 0x0005040008010080) {
-            D_8021593C += 0x10;
-            if (D_8021593C >= 0x100) {
-                D_8021593C = 0xFF;
+            gPanelAlpha += 0x10;
+            if (gPanelAlpha >= 0x100) {
+                gPanelAlpha = 0xFF;
             }
         } else if (gGameMode & 0x0008000202020000) {
-            D_8021593C -= 0x10;
-            if (D_8021593C <= 0) {
-                D_8021593C = 0;
+            gPanelAlpha -= 0x10;
+            if (gPanelAlpha <= 0) {
+                gPanelAlpha = 0;
             }
         }
         for (i = 0; i < 4; i++) {
-            D_80208380[i].v.cn[3] = (D_8021593C * 40) / 255;
+            gPanelVtx[i].v.cn[3] = (gPanelAlpha * 40) / 255;
         }
         for (i = 4; i < 7; i++) {
-            D_80208380[i].v.cn[3] = (D_8021593C * 180) / 255;
+            gPanelVtx[i].v.cn[3] = (gPanelAlpha * 180) / 255;
         }
-        osWritebackDCache(D_80208380, 0x80);
-        if (D_8021593C != 0) {
-            gSPDisplayList(gdl++, D_80208400);
+        osWritebackDCache(gPanelVtx, 0x80);
+        if (gPanelAlpha != 0) {
+            gSPDisplayList(gdl++, gPanelDl);
         }
         gDPPipeSync(gdl++);
         gSPClearGeometryMode(gdl++, G_LIGHTING);
-        D_802154D8 += D_802154E4;
-        if (D_802154D8 >= D_80215458) {
-            D_802154D8 -= D_80215458;
-            for (i = 1; D_802158A8[i] != gTextTerminator[D_8021592E]; i++) {
-                D_802158A8[i - 1] = D_802158A8[i];
+        gScrollPixel += gScrollSpeed;
+        if (gScrollPixel >= gScrollCharWidth) {
+            gScrollPixel -= gScrollCharWidth;
+            for (i = 1; gScrollLine[i] != gTextTerminator[gScrollUsesGlyphs]; i++) {
+                gScrollLine[i - 1] = gScrollLine[i];
             }
             i--;
-            D_802158A8[i] = func_801E9528();
-            D_802158A8[i + 1] = gTextTerminator[D_8021592E];
+            gScrollLine[i] = fe_player_ticker_next_glyph();
+            gScrollLine[i + 1] = gTextTerminator[gScrollUsesGlyphs];
         }
         gdl = spr_begin(gdl);
-        D_802154E8 += D_802154E4;
-        x = 0x136 - D_802154E8;
+        gScrollIconX += gScrollSpeed;
+        x = 0x136 - gScrollIconX;
         if (x >= -0x1F && x < 0x140) {
-            gdl = spr_draw(gdl, D_80215915, x, 0xC2, D_8021593C, 1, 1.0f);
+            gdl = spr_draw(gdl, gScrollIconSprite, x, 0xC2, gPanelAlpha, 1, 1.0f);
         }
         for (i = 1; i < 5; i++) {
-            D_802154F0[i] += D_802154E4;
-            x = 0x136 - D_802154F0[i];
+            gScrollMedalX[i] += gScrollSpeed;
+            x = 0x136 - gScrollMedalX[i];
             if (x >= -0x1F && x < 0x140) {
-                gdl = spr_draw(gdl, D_80215916 + i, x, 0xC2, D_8021593C, 1, 1.0f);
+                gdl = spr_draw(gdl, gScrollMedalSpriteBase + i, x, 0xC2, gPanelAlpha, 1, 1.0f);
             }
         }
         gdl = spr_end(gdl);
-        text_print((Gfx * N64P *) dyn, (D_8021592E == 1) ? NULL : font_narrow(D_802158A8), (D_8021592E == 1) ? D_802158A8 : NULL,
-                      0, 0, (-D_802154D8 % D_80215458) - 3, 0xC9, 0x14, 0x14, 1, 0, 0, 0,
-                      (D_8021593C / 2 - 0x1B < 0) ? 0 : D_8021593C / 2 - 0x1B);
-        text_print_gradient((Gfx * N64P *) dyn, (D_8021592E == 1) ? NULL : font_narrow(D_802158A8), (D_8021592E == 1) ? D_802158A8 : NULL,
-                      0, 0, -D_802154D8 % D_80215458, 0xC7, 0x14, 0x14, 1, 0xFF, 0xFF, 0xFF, D_8021593C, 0xFF, 0xFF,
-                      0xFF, D_8021593C);
+        text_print((Gfx * N64P *) dyn, (gScrollUsesGlyphs == 1) ? NULL : font_narrow(gScrollLine), (gScrollUsesGlyphs == 1) ? gScrollLine : NULL,
+                      0, 0, (-gScrollPixel % gScrollCharWidth) - 3, 0xC9, 0x14, 0x14, 1, 0, 0, 0,
+                      (gPanelAlpha / 2 - 0x1B < 0) ? 0 : gPanelAlpha / 2 - 0x1B);
+        text_print_gradient((Gfx * N64P *) dyn, (gScrollUsesGlyphs == 1) ? NULL : font_narrow(gScrollLine), (gScrollUsesGlyphs == 1) ? gScrollLine : NULL,
+                      0, 0, -gScrollPixel % gScrollCharWidth, 0xC7, 0x14, 0x14, 1, 0xFF, 0xFF, 0xFF, gPanelAlpha, 0xFF, 0xFF,
+                      0xFF, gPanelAlpha);
         gDPPipeSync(gdl++);
     }
     return gdl;
 }
 
-/* Reset a save slot to a fresh "NEW GAME" player and tell the save thread */
-void func_801EA108(u8 slot, u8 send, u8 newGame) {
+/* Resets a slot to "NEW GAME" and saves it (0x801EA108).
+ * Reset a save slot to a fresh "NEW GAME" player and tell the save thread */
+void fe_player_new_game(u8 slot, u8 send, u8 newGame) {
     Player *p;
     u32 i;
 
@@ -550,156 +557,162 @@ void func_801EA108(u8 slot, u8 send, u8 newGame) {
     for (i = 0; i < 0x100; i++) {
         ((u8 *) p)[i] = 0;
     }
-    func_801EA268(p);
+    fe_player_init_vehicles(p);
     sprintf(p->name, "%s", "NEW GAME");
-    D_80365060[slot] = 2;
-    osSendMesg(&D_80219EF8, (OSMesg) ((slot << 16) | 7), OS_MESG_BLOCK);
+    gSlotState[slot] = 2;
+    osSendMesg(&gPakRequestQueue, (OSMesg) ((slot << 16) | 7), OS_MESG_BLOCK);
     if (send) {
-        osSendMesg(&D_80219EF8, (OSMesg) ((newGame ? 0x14 : 0x15) | (slot << 16) | 0x1000000), OS_MESG_BLOCK);
+        osSendMesg(&gPakRequestQueue, (OSMesg) ((newGame ? 0x14 : 0x15) | (slot << 16) | 0x1000000), OS_MESG_BLOCK);
         osRecvMesg(&pakToGameMessageQ, NULL, OS_MESG_BLOCK);
     } else {
-        osSendMesg(&D_80219EF8, (OSMesg) ((newGame ? 0x14 : 0x15) | (slot << 16)), OS_MESG_BLOCK);
+        osSendMesg(&gPakRequestQueue, (OSMesg) ((newGame ? 0x14 : 0x15) | (slot << 16)), OS_MESG_BLOCK);
     }
 }
 
-void func_801EA268(Player *p) {
+/* A new player's vehicle mask (0x1063E) (0x801EA268). */
+void fe_player_init_vehicles(Player *p) {
     p->unk10 = 0x1063E;
 }
 
-/* Load the four save slots through the save thread and build their menu labels */
-void func_801EA278(void) {
+/* Reads the four save slots and their labels ("PAK FULL") (0x801EA278).
+ * Load the four save slots through the save thread and build their menu labels */
+void fe_player_load_slots(void) {
     s32 i;
     s32 msg;
 
     for (i = 0; i < 4; i++) {
-        osSendMesg(&D_80219EF8, (OSMesg) ((i << 16) | 6 | 0x1000000), OS_MESG_BLOCK);
+        osSendMesg(&gPakRequestQueue, (OSMesg) ((i << 16) | 6 | 0x1000000), OS_MESG_BLOCK);
         osRecvMesg(&pakToGameMessageQ, (OSMesg *) &msg, OS_MESG_BLOCK);
         if (msg == 0) {
             if (font_strcmp((u8 *) (players[i].name), (u8 *) ("NEW GAME"))) {
-                D_80365060[i] = 1;
+                gSlotState[i] = 1;
             } else {
-                D_80365060[i] = 2;
+                gSlotState[i] = 2;
             }
         } else if (msg != 0x6E382) {
-            if (i < D_8039C538) {
-                osSendMesg(&D_80219EF8, (OSMesg) ((i << 16) | 3 | 0x1000000), OS_MESG_BLOCK);
+            if (i < gPakFullSlot) {
+                osSendMesg(&gPakRequestQueue, (OSMesg) ((i << 16) | 3 | 0x1000000), OS_MESG_BLOCK);
                 osRecvMesg(&pakToGameMessageQ, (OSMesg *) &msg, OS_MESG_BLOCK);
             }
-            if (msg != 0 || i >= D_8039C538) {
-                D_80365060[i] = 0;
-                sprintf(D_80215520[i], "%d : %s", i + 1, "PAK FULL");
+            if (msg != 0 || i >= gPakFullSlot) {
+                gSlotState[i] = 0;
+                sprintf(gSlotLabels[i], "%d : %s", i + 1, "PAK FULL");
             } else {
-                func_801EA108(i, 1, 0);
+                fe_player_new_game(i, 1, 0);
             }
         } else {
-            func_801EA108(i, 1, 0);
+            fe_player_new_game(i, 1, 0);
         }
-        if (D_80365060[i] == 1 || D_80365060[i] == 2) {
-            sprintf(D_80215520[i], "%d : %s", i + 1, players[i].name);
+        if (gSlotState[i] == 1 || gSlotState[i] == 2) {
+            sprintf(gSlotLabels[i], "%d : %s", i + 1, players[i].name);
         }
     }
 }
 
-/* Build the "load game" slot menu (entries 2-5, then ERASE GAME / IGNORE PAK) */
-void func_801EA4B8(void) {
+/* The load-game menu (ERASE GAME / IGNORE PAK) (0x801EA4B8).
+ * Build the "load game" slot menu (entries 2-5, then ERASE GAME / IGNORE PAK) */
+void fe_player_build_load_menu(void) {
     s32 i;
 
-    func_801EA278();
-    D_802154B0 = 0;
+    fe_player_load_slots();
+    gLoadMenuFullSlot = 0;
     for (i = 0; i < 4; i++) {
-        D_8020C070[i + 2].unkC = D_80215520[i];
-        D_8020C070[i + 2].unk0 |= 0x81;
-        D_8020C070[i + 2].unk0 &= ~0x20;
-        D_8020C070[i + 2].unk18 = 7;
-        D_8020C070[i + 2].unk19 = 4;
-        D_8020C070[i + 2].unk2 = 0x50;
+        gYoshiFeItems[i + 2].unkC = gSlotLabels[i];
+        gYoshiFeItems[i + 2].unk0 |= 0x81;
+        gYoshiFeItems[i + 2].unk0 &= ~0x20;
+        gYoshiFeItems[i + 2].unk18 = 7;
+        gYoshiFeItems[i + 2].unk19 = 4;
+        gYoshiFeItems[i + 2].unk2 = 0x50;
         /* an empty then-block: needed for i to be reloaded in the else */
-        if (D_80365060[i] != 0) {
+        if (gSlotState[i] != 0) {
         } else {
-            D_8020C070[i + 2].unk0 &= ~0x81;
-            D_8020C070[i + 2].unk18 = 8;
-            D_802154B0++;
+            gYoshiFeItems[i + 2].unk0 &= ~0x81;
+            gYoshiFeItems[i + 2].unk18 = 8;
+            gLoadMenuFullSlot++;
         }
     }
-    if (D_802154B0 != 4) {
-        D_8020C070[6].unkC = "ERASE GAME";
-        D_8020C070[6].unk10 = D_803046F8;
+    if (gLoadMenuFullSlot != 4) {
+        gYoshiFeItems[6].unkC = "ERASE GAME";
+        gYoshiFeItems[6].unk10 = D_803046F8;
     } else {
-        D_8020C070[6].unkC = "IGNORE PAK";
-        D_8020C070[6].unk10 = D_80304710;
+        gYoshiFeItems[6].unkC = "IGNORE PAK";
+        gYoshiFeItems[6].unk10 = D_80304710;
     }
-    D_8020C070[6].unk19 = 2;
+    gYoshiFeItems[6].unk19 = 2;
     gYoshiWindows[10].unk8 &= ~0x400;
 }
 
-/* Build the "erase game" slot menu */
-void func_801EA6E8(void) {
+/* The erase-game menu (0x801EA6E8).
+ * Build the "erase game" slot menu */
+void fe_player_build_erase_menu(void) {
     s32 i;
 
-    func_801EA278();
+    fe_player_load_slots();
     for (i = 0; i < 4; i++) {
-        D_8020C070[i + 2].unk2 = 0x40;
-        switch (D_80365060[i]) {
+        gYoshiFeItems[i + 2].unk2 = 0x40;
+        switch (gSlotState[i]) {
             case 1:
-                sprintf(D_80215520[i], "ERASE %d : %s", i + 1, players[i].name);
-                D_8020C070[i + 2].unk0 |= 0x81;
-                D_8020C070[i + 2].unk0 &= ~0x20;
-                D_8020C070[i + 2].unk18 = 7;
-                D_8020C070[i + 2].unk19 = 4;
+                sprintf(gSlotLabels[i], "ERASE %d : %s", i + 1, players[i].name);
+                gYoshiFeItems[i + 2].unk0 |= 0x81;
+                gYoshiFeItems[i + 2].unk0 &= ~0x20;
+                gYoshiFeItems[i + 2].unk18 = 7;
+                gYoshiFeItems[i + 2].unk19 = 4;
                 break;
             case 0:
             case 2:
-                D_8020C070[i + 2].unk18 = 8;
-                D_8020C070[i + 2].unk0 |= 0x20;
-                D_8020C070[i + 2].unk0 &= ~0x81;
-                D_8020C070[i + 2].unk18 = 8;
+                gYoshiFeItems[i + 2].unk18 = 8;
+                gYoshiFeItems[i + 2].unk0 |= 0x20;
+                gYoshiFeItems[i + 2].unk0 &= ~0x81;
+                gYoshiFeItems[i + 2].unk18 = 8;
                 break;
         }
     }
-    D_8020C070[6].unkC = "GO BACK";
-    D_8020C070[6].unk10 = D_80304730;
-    D_8020C070[6].unk19 = 2;
+    gYoshiFeItems[6].unkC = "GO BACK";
+    gYoshiFeItems[6].unk10 = D_80304730;
+    gYoshiFeItems[6].unk19 = 2;
     gYoshiWindows[10].unk8 |= 0x400;
     gYoshiWindows[10].unk18 = 6;
 }
 
-/* Open the name entry screen (menu entries 7 and 8) on buf */
-void func_801EA93C(char *title, u16 *glyphs, u8 arg2, u8 width, char *buf) {
-    D_802154B2 = 0x7FFF;
-    D_802154B4 = 0x7FFF;
-    D_80215918 = 0;
-    D_802154B8 = 0;
-    D_802154B6 = 0;
-    D_802154BA = -1;
-    D_802154BC = 0;
-    D_802154BE = 0;
-    D_802154C0 = 1;
-    D_8020C070[7].unk6 = width;
-    D_8020C070[7].unk8 = width;
-    D_802154CC = width;
-    D_802154C8 = (width * 3) / 5;
-    D_80215928 = buf;
+/* Opens the name entry ("ENTER NAME!") (0x801EA93C).
+ * Open the name entry screen (menu entries 7 and 8) on buf */
+void fe_player_name_entry_open(char *title, u16 *glyphs, u8 arg2, u8 width, char *buf) {
+    gNameWheelAngleGoal = 0x7FFF;
+    gNameWheelAngle = 0x7FFF;
+    gNameWheelStartSel = 0;
+    gNameWheelPrevSel = 0;
+    gNameWheelSel = 0;
+    gNameFlyChar = -1;
+    gNameLen = 0;
+    gNameEntryState = 0;
+    gNameBoxState = 1;
+    gYoshiFeItems[7].unk6 = width;
+    gYoshiFeItems[7].unk8 = width;
+    gNameEntryWidth = width;
+    gNameBoxW = (width * 3) / 5;
+    gNameBuf = buf;
     *buf = 0;
-    D_8020C070[7].unkC = D_80215928;
-    D_802154C4 = 0xA0 - D_802154C8 / 2;
-    D_8020C070[7].unk2 = D_802154C4;
-    D_8020C070[8].unkC = title;
-    D_8020C070[8].unk10 = glyphs;
-    D_80215924 = arg2;
-    D_802154D0 = 1;
-    D_8021591A = 0;
-    D_80215920 = 1;
-    D_8021592C = 0;
+    gYoshiFeItems[7].unkC = gNameBuf;
+    gNameBoxX = 0xA0 - gNameBoxW / 2;
+    gYoshiFeItems[7].unk2 = gNameBoxX;
+    gYoshiFeItems[8].unkC = title;
+    gYoshiFeItems[8].unk10 = glyphs;
+    gNameMaxLen = arg2;
+    gNameEntryFirst = 1;
+    gNameStick = 0;
+    gNameArrowStep = 1;
+    gNameArrowAlpha = 0;
 }
 
 #define ABS(x) ((x) > 0 ? (x) : -(x))
 #define FABS(x) ((x) > 0.0f ? (x) : -(x))
 
-/* Name entry screen: the wheel of 33 characters turned with the stick,
+/* The 33-character wheel, B delete, START accept (0x801EAA7C).
+ * Name entry screen: the wheel of 33 characters turned with the stick,
  * the picked character flying into the name, B to delete, START to accept */
-Gfx *func_801EAA7C(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
+Gfx *fe_player_name_entry_draw(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
     Gfx *gdl = arg0;
-    MenuEntry *e = &D_8020C070[7];
+    MenuEntry *e = &gYoshiFeItems[7];
 #ifdef NON_MATCHING
     u8 ch = 0; /* indeterminate in the original when no slot is selected */
 #else
@@ -723,7 +736,7 @@ Gfx *func_801EAA7C(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
     s32 selW;
     s32 selH;
     s32 nv = 0;
-    s32 len = font_strlen((u8 *) D_80215928);
+    s32 len = font_strlen((u8 *) gNameBuf);
     u8 *col = &D_802F47B0[0x80];
     u8 *col2;
     s16 ang;
@@ -733,107 +746,107 @@ Gfx *func_801EAA7C(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
     if ((gContButtons & 0x300) && !(gContPrevButtons & 0x300)) {
         func_80260650(D_80367738, 0xC, 0);
     }
-    D_8021546C = D_8021591A;
-    D_8021591A = gPadStickX;
-    if (ABS(D_8021591A) < 10) {
-        D_8021591A = 0;
+    gNamePrevStick = gNameStick;
+    gNameStick = gPadStickX;
+    if (ABS(gNameStick) < 10) {
+        gNameStick = 0;
     } else {
-        D_8021591A *= ABS(D_8021591A);
+        gNameStick *= ABS(gNameStick);
     }
-    if (D_8021591A != 0) {
-        if (D_8021546C == 0) {
-            D_80215918 = D_802154B6;
+    if (gNameStick != 0) {
+        if (gNamePrevStick == 0) {
+            gNameWheelStartSel = gNameWheelSel;
         }
-        D_802154B4 -= D_8021591A >> 3;
+        gNameWheelAngle -= gNameStick >> 3;
     } else {
-        if (D_8021546C != 0 && D_802154B6 == D_80215918) {
-            D_802154B6 += (D_8021546C >= 0) ? 1 : -1;
-            if (D_802154B6 < 0) {
-                D_802154B6 += 0x21;
+        if (gNamePrevStick != 0 && gNameWheelSel == gNameWheelStartSel) {
+            gNameWheelSel += (gNamePrevStick >= 0) ? 1 : -1;
+            if (gNameWheelSel < 0) {
+                gNameWheelSel += 0x21;
             }
-            if (D_802154B6 >= 0x21) {
-                D_802154B6 -= 0x21;
+            if (gNameWheelSel >= 0x21) {
+                gNameWheelSel -= 0x21;
             }
-            D_802154B2 = 0x7FFF - D_802154B6 * 0x7C2;
+            gNameWheelAngleGoal = 0x7FFF - gNameWheelSel * 0x7C2;
         }
-        diff = D_802154B4 - D_802154B2;
-        D_802154B4 -= diff >> 4;
+        diff = gNameWheelAngle - gNameWheelAngleGoal;
+        gNameWheelAngle -= diff >> 4;
     }
-    D_802154B6 = (0x83E0 - D_802154B4) / 0x7C2;
-    if (D_802154B6 == 0x21) {
-        D_802154B6 = 0;
+    gNameWheelSel = (0x83E0 - gNameWheelAngle) / 0x7C2;
+    if (gNameWheelSel == 0x21) {
+        gNameWheelSel = 0;
     }
-    if (D_8021591A != 0) {
-        D_802154B2 = 0x7FFF - D_802154B6 * 0x7C2;
+    if (gNameStick != 0) {
+        gNameWheelAngleGoal = 0x7FFF - gNameWheelSel * 0x7C2;
     }
-    if (D_802154D0 != 0) {
-        D_802154B8 = D_802154B6;
-        D_802154D0 = 0;
+    if (gNameEntryFirst != 0) {
+        gNameWheelPrevSel = gNameWheelSel;
+        gNameEntryFirst = 0;
     }
-    if (D_802154B6 != D_802154B8) {
+    if (gNameWheelSel != gNameWheelPrevSel) {
         func_80260650(D_80367738, 0x90, 0);
     }
-    D_802154B8 = D_802154B6;
+    gNameWheelPrevSel = gNameWheelSel;
     for (pass = 0; pass < 2; pass++) {
         for (i = 0; i < 0x21; i++) {
-            ang = D_802154B4 + i * 0x7C2 - 0x6000;
+            ang = gNameWheelAngle + i * 0x7C2 - 0x6000;
             ang2 = ang - 0x2000;
             ang2 = ang2 + 0x7FFF;
             ang2 = ang2 + 0x2000;
             ang2 = ang2 + 0x7FFF;
             x = sins(ang2) * 120.0 / 32768.0 - 7.0;
             y = coss(ang2) * 96.0 / 32768.0 - 10.0;
-            if (i < D_80208350[0]) {
-                D_80208498[0] = D_80208314[0][i];
+            if (i < gNameEntryLetterCount[0]) {
+                gNameEntryGlyph[0] = gNameEntryLetters[0][i];
             } else {
-                D_80208498[0] = D_802082FC[0][i - D_80208350[0]];
+                gNameEntryGlyph[0] = gNameEntrySymbols[0][i - gNameEntryLetterCount[0]];
             }
-            if (D_80208498[0] != D_802154BA) {
+            if (gNameEntryGlyph[0] != gNameFlyChar) {
                 if (pass != 0) {
-                    if (D_802154B6 == i) {
-                        ch = D_80208498[0], selX = x, selY = y, selW = 0x18, selH = 0x14;
+                    if (gNameWheelSel == i) {
+                        ch = gNameEntryGlyph[0], selX = x, selY = y, selW = 0x18, selH = 0x14;
                     } else {
-                        text_print_gradient((Gfx * N64P *) dyn, D_80208498, 0, 1, 0, x, y, 0x18, 0x14, 1, 0xC8, 0xC8, 0xC8, gYoshiAlpha, 0xFF,
+                        text_print_gradient((Gfx * N64P *) dyn, gNameEntryGlyph, 0, 1, 0, x, y, 0x18, 0x14, 1, 0xC8, 0xC8, 0xC8, gYoshiAlpha, 0xFF,
                                       0xFF, 0xFF, gYoshiAlpha);
                     }
-                } else if (D_802154B6 == i) {
-                    text_print((Gfx * N64P *) dyn, D_80208498, 0, 1, 0, x - 0xB, y, 0x30, 0x28, 1, 0, 0, 0, gYoshiAlpha / 2);
+                } else if (gNameWheelSel == i) {
+                    text_print((Gfx * N64P *) dyn, gNameEntryGlyph, 0, 1, 0, x - 0xB, y, 0x30, 0x28, 1, 0, 0, 0, gYoshiAlpha / 2);
                 } else {
-                    text_print((Gfx * N64P *) dyn, D_80208498, 0, 1, 0, x - 4, y + 3, 0x18, 0x14, 1, 0, 0, 0, gYoshiAlpha / 2);
+                    text_print((Gfx * N64P *) dyn, gNameEntryGlyph, 0, 1, 0, x - 4, y + 3, 0x18, 0x14, 1, 0, 0, 0, gYoshiAlpha / 2);
                 }
             }
         }
     }
-    if (ch != D_802154BA && D_802154BA == -1) {
+    if (ch != gNameFlyChar && gNameFlyChar == -1) {
         if (D_803156C4 % 20 < 15) {
             alpha = gYoshiAlpha;
         } else {
             alpha = gYoshiAlpha / 3;
         }
-        D_80208498[0] = ch;
+        gNameEntryGlyph[0] = ch;
         text_flush(&gdl, (s32) dyn);
-        text_print_gradient((Gfx * N64P *) dyn, D_80208498, 0, 1, 0, selX - 5, selY - 5, selW * 2, selH * 2, 1, col[0], col[1], col[2],
+        text_print_gradient((Gfx * N64P *) dyn, gNameEntryGlyph, 0, 1, 0, selX - 5, selY - 5, selW * 2, selH * 2, 1, col[0], col[1], col[2],
                       alpha, col[4], col[5], col[6], alpha);
     }
     if (yoshiState == 2 && (gContButtons & 0x1000) && !(gContPrevButtons & 0x1000) && areWeFading() == 0) {
-        if (D_802154BC != 0) {
+        if (gNameLen != 0) {
             gNextGameMode = 0x1000000;
-            D_80365060[playerNumber] = 1;
+            gSlotState[playerNumber] = 1;
             yoshi_demand(0x4000);
         } else {
             func_80260650(D_80367738, 0x2B, 0);
         }
     }
-    switch (D_802154BE) {
+    switch (gNameEntryState) {
         case 0:
             if (yoshiState == 2 && (gContButtons & 0xC000) && !(gContPrevButtons & 0xC000) && areWeFading() == 0) {
                 if (gContButtons & 0x4000) {
                     ch = 0x7F;
                 }
                 if (ch == 0x7F) {
-                    if (D_802154BC == 0) {
+                    if (gNameLen == 0) {
                         if (gContButtons & 0x4000) {
-                            if (D_802E8BF8 != 0) {
+                            if (gUseEeprom != 0) {
                                 func_80275270(0x0400000000000000, 0.5f);
                             } else {
                                 gNextGameMode = 0x200000;
@@ -844,109 +857,109 @@ Gfx *func_801EAA7C(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
                             func_80260650(D_80367738, 0x2B, 0);
                         }
                     } else {
-                        D_802154BC--;
-                        D_80215928[D_802154BC] = 0;
+                        gNameLen--;
+                        gNameBuf[gNameLen] = 0;
                         func_80260650(D_80367738, 0xE4, 0);
-                        D_802154C0 = 0;
+                        gNameBoxState = 0;
                         D_80215464 = e->unk6;
-                        i = D_80215468 = D_802154CC;
+                        i = D_80215468 = gNameEntryWidth;
                         i = i * 3 / 5;
-                        D_80215450 = e->unk2;
-                        D_80215454 = -((len - 1) * i / 2) - i / 2 + 0xA0;
-                        D_8021545C = D_802154C4;
-                        D_80215460 = (len - 1) * i / 2 - i / 2 + 0xA0;
+                        gNameTextX = e->unk2;
+                        gNameTextXGoal = -((len - 1) * i / 2) - i / 2 + 0xA0;
+                        gNameBoxXAnim = gNameBoxX;
+                        gNameBoxXGoal = (len - 1) * i / 2 - i / 2 + 0xA0;
                     }
-                } else if (D_802154BC < D_80215924) {
+                } else if (gNameLen < gNameMaxLen) {
                     func_80260650(D_80367738, 0x91, 0);
-                    D_802154BE = 1;
-                    D_802154C0 = 0;
-                    D_802154BA = ch;
+                    gNameEntryState = 1;
+                    gNameBoxState = 0;
+                    gNameFlyChar = ch;
                     D_80215464 = e->unk6;
-                    i = D_80215468 = D_802154CC;
+                    i = D_80215468 = gNameEntryWidth;
                     i = i * 3 / 5;
-                    D_80215450 = e->unk2;
-                    D_80215454 = -((len + 1) * i / 2) - i / 2 + 0xA0;
-                    D_8021545C = D_802154C4;
-                    D_80215460 = (len + 1) * i / 2 - i / 2 + 0xA0;
-                    D_80215944 = selX - 5;
-                    D_80215948 = selY - 5;
-                    D_8021594C = D_80215460 - 160.0f - i;
-                    D_80215950 = e->unk4 - 0x78;
-                    D_80215440 = 48.0f;
-                    D_80215444 = 40.0f;
-                    D_80215448 = D_80215468;
-                    D_8021544C = D_80215468;
+                    gNameTextX = e->unk2;
+                    gNameTextXGoal = -((len + 1) * i / 2) - i / 2 + 0xA0;
+                    gNameBoxXAnim = gNameBoxX;
+                    gNameBoxXGoal = (len + 1) * i / 2 - i / 2 + 0xA0;
+                    gFlyCharX = selX - 5;
+                    gFlyCharY = selY - 5;
+                    gFlyCharXGoal = gNameBoxXGoal - 160.0f - i;
+                    gFlyCharYGoal = e->unk4 - 0x78;
+                    gFlyCharW = 48.0f;
+                    gFlyCharH = 40.0f;
+                    gFlyCharWGoal = D_80215468;
+                    gFlyCharHGoal = D_80215468;
                 } else {
                     func_80260650(D_80367738, 0x2B, 0);
                 }
             }
             break;
         case 1:
-            D_80215944 += (D_8021594C - D_80215944) * 0.2;
-            D_80215948 += (D_80215950 - D_80215948) * 0.2;
-            D_80215440 += (D_80215448 - D_80215440) * 0.2;
-            D_80215444 += (D_8021544C - D_80215444) * 0.2;
-            D_80208498[0] = D_802154BA;
-            text_print((Gfx * N64P *) dyn, D_80208498, 0, 0, 0, D_80215944 - 4.0f, D_80215948 + 4.0f, D_80215440, D_80215444, 1, 0,
+            gFlyCharX += (gFlyCharXGoal - gFlyCharX) * 0.2;
+            gFlyCharY += (gFlyCharYGoal - gFlyCharY) * 0.2;
+            gFlyCharW += (gFlyCharWGoal - gFlyCharW) * 0.2;
+            gFlyCharH += (gFlyCharHGoal - gFlyCharH) * 0.2;
+            gNameEntryGlyph[0] = gNameFlyChar;
+            text_print((Gfx * N64P *) dyn, gNameEntryGlyph, 0, 0, 0, gFlyCharX - 4.0f, gFlyCharY + 4.0f, gFlyCharW, gFlyCharH, 1, 0,
                           0, 0, gYoshiAlpha / 2);
-            text_print_gradient((Gfx * N64P *) dyn, D_80208498, 0, 0, 0, D_80215944, D_80215948, D_80215440, D_80215444, 1, col[0], col[1],
+            text_print_gradient((Gfx * N64P *) dyn, gNameEntryGlyph, 0, 0, 0, gFlyCharX, gFlyCharY, gFlyCharW, gFlyCharH, 1, col[0], col[1],
                           col[2], gYoshiAlpha, col[4], col[5], col[6], gYoshiAlpha);
-            if (FABS(D_80215944 - D_8021594C) < 0.15 && FABS(D_80215948 - D_80215950) < 0.15) {
+            if (FABS(gFlyCharX - gFlyCharXGoal) < 0.15 && FABS(gFlyCharY - gFlyCharYGoal) < 0.15) {
                 func_80260650(D_80367738, 1, 0);
-                D_802154BE = 0;
-                D_802154C0 = 0;
-                D_80215928[D_802154BC] = D_80208498[0];
-                D_802154BC++;
-                D_80215928[D_802154BC] = 0;
-                D_802154BA = -1;
+                gNameEntryState = 0;
+                gNameBoxState = 0;
+                gNameBuf[gNameLen] = gNameEntryGlyph[0];
+                gNameLen++;
+                gNameBuf[gNameLen] = 0;
+                gNameFlyChar = -1;
             }
             break;
     }
     text_flush(&gdl, (s32) dyn);
-    D_80215940 += D_80215920;
-    if (D_80215920 < 0) {
-        D_80215940 += D_80215920 * 2;
+    gNameArrowPulse += gNameArrowStep;
+    if (gNameArrowStep < 0) {
+        gNameArrowPulse += gNameArrowStep * 2;
     }
-    if (D_80215940 < 0 || D_80215940 >= 0x10) {
-        D_80215940 -= D_80215920 * 2;
-        D_80215920 = -D_80215920;
+    if (gNameArrowPulse < 0 || gNameArrowPulse >= 0x10) {
+        gNameArrowPulse -= gNameArrowStep * 2;
+        gNameArrowStep = -gNameArrowStep;
     }
     if (yoshiState == 2) {
-        D_8021592C = (s32) ((D_8021592C + 0x10 < 0xFF) ? D_8021592C + 0x10 : 0xFF);
+        gNameArrowAlpha = (s32) ((gNameArrowAlpha + 0x10 < 0xFF) ? gNameArrowAlpha + 0x10 : 0xFF);
     } else {
-        D_8021592C = 0;
+        gNameArrowAlpha = 0;
     }
     col2 = &D_802F47B0[0x98];
-    nv = hud_sprite_quad_colors((struct SpriteVtxBuf *) dyn, 3, nv, D_802154C4 + D_802154C8 + D_80215940, e->unk4 + e->unk8 / 2,
-                       e->unk6 / 3 + D_80215940 / 2, e->unk8 / 2 + 3, D_802F47B0[0x98], D_802F47B0[0x99],
-                       D_802F47B0[0x9A], D_8021592C, D_802F47B0[0x9C], D_802F47B0[0x9D], D_802F47B0[0x9E], D_8021592C,
-                       D_802F47B0[0x98], D_802F47B0[0x99], D_802F47B0[0x9A], D_8021592C, D_802F47B0[0x9C],
-                       D_802F47B0[0x9D], D_802F47B0[0x9E], D_8021592C);
-    nv = hud_sprite_quad((struct SpriteVtxBuf *) dyn, 3, nv, D_802154C4 + D_802154C8 + D_80215940 + 4, e->unk4 + e->unk8 / 2 + 3,
-                       e->unk6 / 3 + D_80215940 / 2, e->unk8 / 2 + 3, 0, 0, 0, D_8021592C / 2);
+    nv = hud_sprite_quad_colors((struct SpriteVtxBuf *) dyn, 3, nv, gNameBoxX + gNameBoxW + gNameArrowPulse, e->unk4 + e->unk8 / 2,
+                       e->unk6 / 3 + gNameArrowPulse / 2, e->unk8 / 2 + 3, D_802F47B0[0x98], D_802F47B0[0x99],
+                       D_802F47B0[0x9A], gNameArrowAlpha, D_802F47B0[0x9C], D_802F47B0[0x9D], D_802F47B0[0x9E], gNameArrowAlpha,
+                       D_802F47B0[0x98], D_802F47B0[0x99], D_802F47B0[0x9A], gNameArrowAlpha, D_802F47B0[0x9C],
+                       D_802F47B0[0x9D], D_802F47B0[0x9E], gNameArrowAlpha);
+    nv = hud_sprite_quad((struct SpriteVtxBuf *) dyn, 3, nv, gNameBoxX + gNameBoxW + gNameArrowPulse + 4, e->unk4 + e->unk8 / 2 + 3,
+                       e->unk6 / 3 + gNameArrowPulse / 2, e->unk8 / 2 + 3, 0, 0, 0, gNameArrowAlpha / 2);
     gdl = hud_sprite_setup(gdl, 0);
     gSPVertex(gdl++, &dyn->vtx[0], 8, 0);
     gSP1Triangle(gdl++, 4, 5, 6, 0);
     gSP1Triangle(gdl++, 4, 6, 7, 0);
     gSP1Triangle(gdl++, 0, 1, 2, 0);
     gSP1Triangle(gdl++, 0, 2, 3, 0);
-    nv = hud_sprite_quad_colors((struct SpriteVtxBuf *) dyn, 2, nv, e->unk2 - D_80215940 - 4, e->unk4 + e->unk8 / 2, e->unk6 / 3 + D_80215940 / 2,
-                       e->unk8 / 2 + 3, col2[0], col2[1], col2[2], D_8021592C, col2[4], col2[5], col2[6], D_8021592C,
-                       col2[0], col2[1], col2[2], D_8021592C, col2[4], col2[5], col2[6], D_8021592C);
-    nv = hud_sprite_quad((struct SpriteVtxBuf *) dyn, 2, nv, e->unk2 - D_80215940 - 8, e->unk4 + e->unk8 / 2 + 3, e->unk6 / 3 + D_80215940 / 2,
-                       e->unk8 / 2 + 3, 0, 0, 0, D_8021592C / 2);
+    nv = hud_sprite_quad_colors((struct SpriteVtxBuf *) dyn, 2, nv, e->unk2 - gNameArrowPulse - 4, e->unk4 + e->unk8 / 2, e->unk6 / 3 + gNameArrowPulse / 2,
+                       e->unk8 / 2 + 3, col2[0], col2[1], col2[2], gNameArrowAlpha, col2[4], col2[5], col2[6], gNameArrowAlpha,
+                       col2[0], col2[1], col2[2], gNameArrowAlpha, col2[4], col2[5], col2[6], gNameArrowAlpha);
+    nv = hud_sprite_quad((struct SpriteVtxBuf *) dyn, 2, nv, e->unk2 - gNameArrowPulse - 8, e->unk4 + e->unk8 / 2 + 3, e->unk6 / 3 + gNameArrowPulse / 2,
+                       e->unk8 / 2 + 3, 0, 0, 0, gNameArrowAlpha / 2);
     gdl = hud_sprite_setup(gdl, 0);
     gSPVertex(gdl++, &dyn->vtx[nv - 8], 8, 0);
     gSP1Triangle(gdl++, 4, 5, 6, 0);
     gSP1Triangle(gdl++, 4, 6, 7, 0);
     gSP1Triangle(gdl++, 0, 1, 2, 0);
     gSP1Triangle(gdl++, 0, 2, 3, 0);
-    switch (D_802154C0) {
+    switch (gNameBoxState) {
         case 0:
-            D_80215450 += (D_80215454 - D_80215450) * 0.2;
-            e->unk2 = D_80215450;
-            D_8021545C += (D_80215460 - D_8021545C) * 0.2;
-            D_802154C4 = D_8021545C;
+            gNameTextX += (gNameTextXGoal - gNameTextX) * 0.2;
+            e->unk2 = gNameTextX;
+            gNameBoxXAnim += (gNameBoxXGoal - gNameBoxXAnim) * 0.2;
+            gNameBoxX = gNameBoxXAnim;
             break;
         case 1:
             break;
@@ -955,62 +968,66 @@ Gfx *func_801EAA7C(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
     return gdl;
 }
 
-void func_801EC288(u8 arg0) {
+/* Both medals after a 50-frame wait, no sound (0x801EC288). */
+void fe_player_medals_show_quiet(u8 arg0) {
     s32 i;
 
-    D_80215902[0] = 3;
-    D_80215902[1] = arg0;
+    gMedalRank[0] = 3;
+    gMedalRank[1] = arg0;
     for (i = 0; i < 2; i++) {
-        D_80215900[i] = 4;
-        D_80215908[i] = 0x32;
-        D_80215910[i] = 0;
+        gMedalState[i] = 4;
+        gMedalDelay[i] = 0x32;
+        gMedalAlpha[i] = 0;
     }
 }
 
-void func_801EC30C(u8 arg0) {
+/* The medal sprites; a staggered reveal with sound (0x801EC30C). */
+void fe_player_medals_init(u8 arg0) {
     s32 j;
     s32 i;
 
-    D_80215914 = spr_load(D_802082E4, D_802082D8, 4, 2, 0, 1.0f);
+    gMedalSpriteBase = spr_load(gMedalSprites, gMedalPalettes, 4, 2, 0, 1.0f);
     spr_load(D_802082E8, 0, 1, 2, 1, 1.0f);
-    D_80215902[0] = 3;
-    D_80215902[1] = arg0;
+    gMedalRank[0] = 3;
+    gMedalRank[1] = arg0;
     if (gLevelInfo[levelno].type == 1) {
         j = 0;
     } else {
         j = 1;
     }
     for (i = 0; j < 2; j++, i++) {
-        D_80215900[j] = 0;
-        D_80215908[j] = i * 60 + 0x28;
-        D_80215910[j] = 0;
+        gMedalState[j] = 0;
+        gMedalDelay[j] = i * 60 + 0x28;
+        gMedalAlpha[j] = 0;
     }
 }
 
-void func_801EC464(void) {
+/* Both medals fade out (0x801EC464). */
+void fe_player_medals_hide(void) {
     s32 i;
 
     for (i = 0; i < 2; i++) {
-        D_80215900[i] = 3;
+        gMedalState[i] = 3;
     }
 }
 
-/* Draw a save slot's rank badge, stepping its state: 0/4 count down, 1 fade
- * in, 2 shown, 3 fade out (D_80215900/08/10[slot]) */
-Gfx *func_801EC49C(Gfx *arg0, s32 x, s32 y, u8 slot) {
+/* One medal: its state step and drawing (0x801EC49C).
+ * Draw a save slot's rank badge, stepping its state: 0/4 count down, 1 fade
+ * in, 2 shown, 3 fade out (gMedalState/Delay/Alpha[slot]) */
+Gfx *fe_player_draw_medal(Gfx *arg0, s32 x, s32 y, u8 slot) {
     Gfx *gdl = arg0;
     s32 pad;
     s32 mode;
 
     if (yoshiState == 8) {
-        D_80215900[slot] = 3;
+        gMedalState[slot] = 3;
     }
-    switch (D_80215900[slot]) {
+    switch (gMedalState[slot]) {
         case 0:
-            D_80215908[slot]--;
-            if (D_80215908[slot] == 0) {
-                D_80215900[slot] = 1;
-                if (D_80215902[slot] == 5) {
+            gMedalDelay[slot]--;
+            if (gMedalDelay[slot] == 0) {
+                gMedalState[slot] = 1;
+                if (gMedalRank[slot] == 5) {
                     func_80260650(D_80367738, 0xEA, 0);
                 } else {
                     func_80260650(D_80367738, 0xE6, 0);
@@ -1018,42 +1035,43 @@ Gfx *func_801EC49C(Gfx *arg0, s32 x, s32 y, u8 slot) {
             }
             break;
         case 4:
-            D_80215908[slot]--;
-            if (D_80215908[slot] == 0) {
-                D_80215900[slot] = 1;
+            gMedalDelay[slot]--;
+            if (gMedalDelay[slot] == 0) {
+                gMedalState[slot] = 1;
             }
             break;
         case 1:
-            D_80215910[slot] += 0x10;
-            if (D_80215910[slot] >= 0x100) {
-                D_80215910[slot] = 0xFF;
-                D_80215900[slot] = 2;
+            gMedalAlpha[slot] += 0x10;
+            if (gMedalAlpha[slot] >= 0x100) {
+                gMedalAlpha[slot] = 0xFF;
+                gMedalState[slot] = 2;
             }
             break;
         case 3:
-            D_80215910[slot] -= 0x20;
-            if (D_80215910[slot] < 0) {
-                D_80215910[slot] = 0;
+            gMedalAlpha[slot] -= 0x20;
+            if (gMedalAlpha[slot] < 0) {
+                gMedalAlpha[slot] = 0;
             }
             break;
         case 2:
             break;
     }
-    if (D_80215900[slot] == 0) {
+    if (gMedalState[slot] == 0) {
         return gdl;
     }
-    if (D_80215902[slot] == 5) {
+    if (gMedalRank[slot] == 5) {
         mode = 2;
     } else {
         mode = 1;
     }
-    gdl = spr_draw(gdl, D_80215902[slot] % 5 + D_80215914, x, y, D_80215910[slot], mode, 1.0f);
+    gdl = spr_draw(gdl, gMedalRank[slot] % 5 + gMedalSpriteBase, x, y, gMedalAlpha[slot], mode, 1.0f);
     return gdl;
 }
 
-/* Draw the save-slot panel: the two slot boxes, or the rank badge and the
+/* The results medals and the next medal's target time (0x801EC770).
+ * Draw the save-slot panel: the two slot boxes, or the rank badge and the
  * level's target time for it */
-Gfx *func_801EC770(Gfx *start, void *gfxp, s32 *count) {
+Gfx *fe_player_draw_medals(Gfx *start, void *gfxp, s32 *count) {
     Gfx *gdl;
 #ifdef NON_MATCHING
     u8 n = 0; /* the first branch leaves it indeterminate in the original */
@@ -1064,32 +1082,33 @@ Gfx *func_801EC770(Gfx *start, void *gfxp, s32 *count) {
     gdl = start;
     gdl = spr_begin(gdl);
     if (gLevelKind == 1) {
-        gdl = func_801EC49C(gdl, 0x5C, 0x68, 0);
-        if (D_80215902[1] != 0) {
-            gdl = func_801EC49C(gdl, 0xA8, 0x68, 1);
+        gdl = fe_player_draw_medal(gdl, 0x5C, 0x68, 0);
+        if (gMedalRank[1] != 0) {
+            gdl = fe_player_draw_medal(gdl, 0xA8, 0x68, 1);
         }
     } else {
-        if (D_80215902[1] == 5) {
+        if (gMedalRank[1] == 5) {
             n = 1;
         } else {
-            n = (MAX_RANK() < D_80215902[1] + 1) ? MAX_RANK() : D_80215902[1] + 1;
+            n = (MAX_RANK() < gMedalRank[1] + 1) ? MAX_RANK() : gMedalRank[1] + 1;
         }
-        gdl = func_801EC49C(gdl, 0x82, 0x68, 1);
-        gdl = spr_draw(gdl, n + D_80215914, 0x2E, 0x6C, (D_80215910[1] * 3) / 4, 0, 0.75f);
+        gdl = fe_player_draw_medal(gdl, 0x82, 0x68, 1);
+        gdl = spr_draw(gdl, n + gMedalSpriteBase, 0x2E, 0x6C, (gMedalAlpha[1] * 3) / 4, 0, 0.75f);
     }
     gdl = spr_end(gdl);
     if (gLevelKind != 1) {
-        hud_format_time((char *) D_80215470, gLevelInfo[levelno].times[5 - n], 0);
-        D_80215470[5] = 0;
-        text_print_gradient(gfxp, D_80215470, 0, 0, 0, 0x29, 0x7D, 0x10, 0x10, 1, 0xFF, 0xB4, 0, D_80215910[1], 0xFF, 0x78, 0,
-                      D_80215910[1]);
+        hud_format_time((char *) gMedalTimeText, gLevelInfo[levelno].times[5 - n], 0);
+        gMedalTimeText[5] = 0;
+        text_print_gradient(gfxp, gMedalTimeText, 0, 0, 0, 0x29, 0x7D, 0x10, 0x10, 1, 0xFF, 0xB4, 0, gMedalAlpha[1], 0xFF, 0x78, 0,
+                      gMedalAlpha[1]);
     }
     *count += gdl - start;
     return gdl;
 }
 
-/* Level-select mask bit for a level: done, of a 0x81 type, or other */
-u64 func_801ECA50(u8 level) {
+/* The game mode after a level (0x801ECA50).
+ * Level-select mask bit for a level: done, of a 0x81 type, or other */
+u64 fe_player_loop_done_mode(u8 level) {
     u64 mask;
 
     if ((players[playerNumber].rank[level] > 0 && players[playerNumber].rank[level] < 6) ? 1 : 0) {
@@ -1102,24 +1121,26 @@ u64 func_801ECA50(u8 level) {
     return mask;
 }
 
-/* Leave a level: queue the result messages for the current level and player */
-void func_801ECB18(void) {
-    func_801FE018(8);
+/* A level picked on the globe: reads its saved records (0x801ECB18).
+ * A level was picked on the globe: ask the save thread for its saved records */
+void fe_player_load_level_save(void) {
+    fe_open_reachable_levels(8);
     D_80364A87 = 0;
     D_803643D5 = 0;
     if ((players[playerNumber].rank[levelno] > 0 && players[playerNumber].rank[levelno] < 6) ? 1 : 0) {
         if (gLevelInfo[levelno].type == 1) {
-            osSendMesg(&D_80219EF8, (OSMesg) ((levelno << 8) | 0xC | (playerNumber << 16)), OS_MESG_BLOCK);
+            osSendMesg(&gPakRequestQueue, (OSMesg) ((levelno << 8) | 0xC | (playerNumber << 16)), OS_MESG_BLOCK);
         }
-        osSendMesg(&D_80219EF8, (OSMesg) ((levelno << 8) | 8 | (playerNumber << 16) | 0x1000000), OS_MESG_BLOCK);
+        osSendMesg(&gPakRequestQueue, (OSMesg) ((levelno << 8) | 8 | (playerNumber << 16) | 0x1000000), OS_MESG_BLOCK);
     } else {
-        osSendMesg(&D_80219EF8, (OSMesg) ((levelno << 8) | 0x16 | (playerNumber << 16) | 0x1000000), OS_MESG_BLOCK);
-        func_801F8354(playerNumber);
+        osSendMesg(&gPakRequestQueue, (OSMesg) ((levelno << 8) | 0x16 | (playerNumber << 16) | 0x1000000), OS_MESG_BLOCK);
+        fe_best_clear_times(playerNumber);
     }
 }
 
-/* Send the pending saves (saveIt) to the save thread */
-void func_801ECC8C(void) {
+/* Writes every pending save (saveIt; "saving player %d") (0x801ECC8C).
+ * Send the pending saves (saveIt) to the save thread */
+void fe_player_save_pending(void) {
     s32 i;
     s32 shown;
 
@@ -1130,26 +1151,27 @@ void func_801ECC8C(void) {
                 func_80261570(0.0f);
                 shown = 1;
             }
-            osSendMesg(&D_80219EF8, (OSMesg) ((i << 16) | 0x14), OS_MESG_BLOCK);
+            osSendMesg(&gPakRequestQueue, (OSMesg) ((i << 16) | 0x14), OS_MESG_BLOCK);
             debug_printf("saving player %d on level %d\n", i, saveIt[i] - 1);
             players[i].level = levelno;
-            osSendMesg(&D_80219EF8, (OSMesg) (((saveIt[i] - 1) << 8) | 7 | (i << 16)), OS_MESG_BLOCK);
-            osSendMesg(&D_80219EF8, (OSMesg) (((saveIt[i] - 1) << 8) | 9 | (i << 16)), OS_MESG_BLOCK);
-            osSendMesg(&D_80219EF8, (OSMesg) (((saveIt[i] - 1) << 8) | 0xB | (i << 16)), OS_MESG_BLOCK);
+            osSendMesg(&gPakRequestQueue, (OSMesg) (((saveIt[i] - 1) << 8) | 7 | (i << 16)), OS_MESG_BLOCK);
+            osSendMesg(&gPakRequestQueue, (OSMesg) (((saveIt[i] - 1) << 8) | 9 | (i << 16)), OS_MESG_BLOCK);
+            osSendMesg(&gPakRequestQueue, (OSMesg) (((saveIt[i] - 1) << 8) | 0xB | (i << 16)), OS_MESG_BLOCK);
             if (saveLevel != 0 && playerNumber == i) {
-                osSendMesg(&D_80219EF8, (OSMesg) (((saveLevel - 1) << 8) | 0xD | (playerNumber << 16)),
+                osSendMesg(&gPakRequestQueue, (OSMesg) (((saveLevel - 1) << 8) | 0xD | (playerNumber << 16)),
                            OS_MESG_BLOCK);
                 saveLevel = 0;
             }
-            osSendMesg(&D_80219EF8, (OSMesg) ((i << 16) | 0x15 | 0x1000000), OS_MESG_BLOCK);
+            osSendMesg(&gPakRequestQueue, (OSMesg) ((i << 16) | 0x15 | 0x1000000), OS_MESG_BLOCK);
             osRecvMesg(&pakToGameMessageQ, NULL, OS_MESG_BLOCK);
             saveIt[i] = 0;
         }
     }
 }
 
-/* Retype the 0x81-type levels: 0x80 once unk91 >= 11 in mode 0x4000, else 1 */
-void func_801ECE9C(void) {
+/* 0x81-kind levels become 0x80 or 1 by the game state (0x801ECE9C).
+ * Retype the 0x81-type levels: 0x80 once unk91 >= 11 in mode 0x4000, else 1 */
+void fe_player_update_level_kinds(void) {
     s32 i;
 
     for (i = 0; i < 0x3C; i++) {
@@ -1164,9 +1186,10 @@ void func_801ECE9C(void) {
 }
 
 
-/* After a level: re-rank the player's finished race levels from their saved
+/* Game state 9: missions re-ranked by time (0x801ECF5C).
+ * After a level: re-rank the player's finished race levels from their saved
  * times, add up the rank points and award new titles (menu entries 185-194) */
-void func_801ECF5C(void) {
+void fe_player_regrade_missions(void) {
     Player *p = &players[playerNumber];
     u8 buf[0x20];
     LevelInfo *info;
@@ -1179,26 +1202,26 @@ void func_801ECF5C(void) {
     u8 rank;
     u8 level;
 
-    func_801ED480((u8 *) D_80364EF0[playerNumber], buf);
+    fe_player_copy_times((u8 *) gBestTimes[playerNumber], buf);
     PLAYER_ASSERT(saveIt[playerNumber], 1384);
     for (level = 0; level < 0x3C; level++) {
         if (((players[playerNumber].rank[level] > 0 && players[playerNumber].rank[level] < 6) ? 1 : 0) &&
             gLevelInfo[level].type == 1 && level != 0x31 && level != 0x2F && level != 0x26) {
             info = &gLevelInfo[level];
             if (saveIt[playerNumber] != level + 1) {
-                osSendMesg(&D_80219EF8, (OSMesg) ((level << 8) | 8 | (playerNumber << 16) | 0x1000000), OS_MESG_BLOCK);
+                osSendMesg(&gPakRequestQueue, (OSMesg) ((level << 8) | 8 | (playerNumber << 16) | 0x1000000), OS_MESG_BLOCK);
                 osRecvMesg(&pakToGameMessageQ, NULL, OS_MESG_BLOCK);
             } else {
-                func_801ED480(buf, (u8 *) D_80364EF0[playerNumber]);
+                fe_player_copy_times(buf, (u8 *) gBestTimes[playerNumber]);
             }
-            time = D_80364EF0[playerNumber][D_802E8C44[0]];
+            time = gBestTimes[playerNumber][D_802E8C44[0]];
             debug_printf("level %d time is %d\n", level, time);
-            rank = func_801EF2BC(time, level, players[playerNumber].unk91);
+            rank = fe_stats_grade_time(time, level, players[playerNumber].unk91);
             p->rank[level] = rank;
             stars[rank - 1]++;
         }
     }
-    func_801ED480(buf, (u8 *) D_80364EF0[playerNumber]);
+    fe_player_copy_times(buf, (u8 *) gBestTimes[playerNumber]);
     levelno = 0;
     debug_printf(" %d %d %d %d %d\n", stars[2] * 3, stars[1] * 2, stars[0], p->stars, oldStars);
     p->stars += stars[2] * 3 + stars[1] * 2 + stars[0];
@@ -1208,21 +1231,22 @@ void func_801ECF5C(void) {
     i = 0;
     x = (0x140 - gained * 32) / 2 + 0x28;
     for (; i < gained; i++, x += 0x20) {
-        D_8020C070[i + 189].unk0 |= 0x100;
-        D_8020C070[i + 189].unk2 = x;
-        D_8020C070[i + 189].unk14 = 0x33;
+        gYoshiFeItems[i + 189].unk0 |= 0x100;
+        gYoshiFeItems[i + 189].unk2 = x;
+        gYoshiFeItems[i + 189].unk14 = 0x33;
     }
     for (; i < 6; i++) {
-        D_8020C070[i + 189].unk0 &= ~0x100;
-        D_8020C070[i + 189].unk14 = 0;
+        gYoshiFeItems[i + 189].unk0 &= ~0x100;
+        gYoshiFeItems[i + 189].unk14 = 0;
     }
     for (i = 0; i < 3; i++) {
-        sprintf(D_80215480[i], "*******%-2d**", stars[2 - i]);
-        D_8020C070[i + 185].unkC = D_80215480[i];
+        sprintf(gMedalCountText[i], "*******%-2d**", stars[2 - i]);
+        gYoshiFeItems[i + 185].unkC = gMedalCountText[i];
     }
 }
 
-void func_801ED480(u8 *src, u8 *dst) {
+/* Copies a player's 0x20-byte time record (0x801ED480). */
+void fe_player_copy_times(u8 *src, u8 *dst) {
     u32 i;
 
     for (i = 0; i < 0x20; i++) {
@@ -1230,9 +1254,10 @@ void func_801ED480(u8 *src, u8 *dst) {
     }
 }
 
-/* Like func_801ECF5C for all finished levels after a cheat-mode ("cmo") run:
+/* Game state 11: every level re-ranked, platinum allowed (0x801ED4B8).
+ * Like fe_player_regrade_missions for all finished levels after a cheat-mode ("cmo") run:
  * re-rank them, a rank of 4 is worth one point */
-void func_801ED4B8(void) {
+void fe_player_regrade_platinum(void) {
     Player *p = &players[playerNumber];
     u8 buf[0x20];
     LevelInfo *info;
@@ -1242,19 +1267,19 @@ void func_801ED4B8(void) {
     u8 rank;
     u8 level;
 
-    func_801ED480((u8 *) D_80364EF0[playerNumber], buf);
+    fe_player_copy_times((u8 *) gBestTimes[playerNumber], buf);
     PLAYER_ASSERT(saveIt[playerNumber], 1472);
     for (level = 0; level < 0x3C; level++) {
         if (((players[playerNumber].rank[level] > 0 && players[playerNumber].rank[level] < 6) ? 1 : 0) &&
             level != 0x31 && level != 0x2F && level != 0x26) {
             info = &gLevelInfo[level];
             if (saveIt[playerNumber] != level + 1) {
-                osSendMesg(&D_80219EF8, (OSMesg) ((level << 8) | 8 | (playerNumber << 16) | 0x1000000), OS_MESG_BLOCK);
+                osSendMesg(&gPakRequestQueue, (OSMesg) ((level << 8) | 8 | (playerNumber << 16) | 0x1000000), OS_MESG_BLOCK);
                 osRecvMesg(&pakToGameMessageQ, NULL, OS_MESG_BLOCK);
             } else {
-                func_801ED480(buf, (u8 *) D_80364EF0[playerNumber]);
+                fe_player_copy_times(buf, (u8 *) gBestTimes[playerNumber]);
             }
-            rank = func_801EF2BC(D_80364EF0[playerNumber][D_802E8C44[players[playerNumber].unk92[level]]], level,
+            rank = fe_stats_grade_time(gBestTimes[playerNumber][D_802E8C44[players[playerNumber].unk92[level]]], level,
                                  players[playerNumber].unk91 + 1);
             p->rank[level] = rank;
             if (rank == 4) {
@@ -1262,7 +1287,7 @@ void func_801ED4B8(void) {
             }
         }
     }
-    func_801ED480(buf, (u8 *) D_80364EF0[playerNumber]);
+    fe_player_copy_times(buf, (u8 *) gBestTimes[playerNumber]);
     levelno = 0;
     gained = p->stars / 12 - oldStars / 12;
     p->title += gained;

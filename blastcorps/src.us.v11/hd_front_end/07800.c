@@ -8,8 +8,8 @@
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_8020C070 ((MenuEntry *) D_8020C070)
-#define D_8020D810 ((FeLevelEntry *) D_8020D810)
+#define gYoshiFeItems ((MenuEntry *) gYoshiFeItems)
+#define gGlobeLevels ((FeLevelEntry *) gGlobeLevels)
 #define gLevelInfo ((LevelInfo *) gLevelInfo)
 #define D_802F49F4 ((IconInfo *) D_802F49F4)
 #define gDynamicBufs ((FeDyn *) gDynamicBufs)
@@ -110,12 +110,12 @@ extern u16 D_80303B68[];
 #ifndef NON_MATCHING
 extern s32 gHeapPtr; /* heap pointer */
 #endif
-extern u16 D_802159D0; /* scene angle */
-extern u8 * N64P D_802159D4; /* 256x32 IA8 banner */
-extern u8 * N64P D_802159D8; /* 40x24 IA8 icon */
-extern u16 D_802159DC; /* scene */
-extern f32 D_802159E0; /* camera distance */
-extern f32 D_802159E4; /* spin speed */
+extern u16 gBootSceneAngle; /* scene angle */
+extern u8 * N64P gBootBannerTex; /* 256x32 IA8 banner */
+extern u8 * N64P gBootIconTex; /* 40x24 IA8 icon */
+extern u16 gBootScene; /* scene */
+extern f32 gBootCamDist; /* camera distance */
+extern f32 gBootSpinSpeed; /* spin speed */
 
 /* ROM bounds of two compressed blobs (the first ends where the second starts) */
 extern u8 D_0048F5A0_end[];
@@ -124,9 +124,9 @@ extern u8 D_0048F970_end[];
 
 int sprintf(char *, const char *, ...);
 #ifdef NON_MATCHING
-u8 func_801EEDB4(u8 arg0, u8 arg1, u8 arg2);
+u8 fe_stats_grade_timed_level(u8 arg0, u8 arg1, u8 arg2);
 #else
-u8 func_801EEDB4(); /* K&R */
+u8 fe_stats_grade_timed_level(); /* K&R */
 #endif
 
 #define DUMMY_LEVELS(l) ((l) == 49 || (l) == 47 || (l) == 38)
@@ -138,8 +138,9 @@ u8 func_801EEDB4(); /* K&R */
     debug_printf(name " ip=%8d : tc=%5d : bd=%2d : cr=%2d : rt=%3d : coin=%1d : bdn=%1d\n", (s).ip, (s).tc, (s).bd, \
                   (s).cr, (s).rt, (s).coin, (s).bdn)
 
-/* Finish a level: grade it, update units and best times. *arg0 = 1 if a rank was gained. */
-u8 func_801EE800(u8 *arg0, u8 arg1, u8 arg2) {
+/* Grades the level; records units, best time and medal (0x801EE800).
+ * Finish a level: grade it, update units and best times. *arg0 = 1 if a rank was gained. */
+u8 fe_stats_grade_level(u8 *arg0, u8 arg1, u8 arg2) {
     FePlayer *p;
     LevelInfo *l;
     u32 t;
@@ -177,9 +178,9 @@ u8 func_801EE800(u8 *arg0, u8 arg1, u8 arg2) {
         }
         ret = nss.coin;
     } else {
-        ret = func_801EEDB4(levelno, arg1, arg2);
+        ret = fe_stats_grade_timed_level(levelno, arg1, arg2);
     }
-    sprintf(D_8036B980, "%s", D_8020D810[levelno].unk4);
+    sprintf(D_8036B980, "%s", gGlobeLevels[levelno].unk4);
     *arg0 = 0;
     if (arg1 && arg2) {
         STATS_ASSERT(!DUMMY_LEVELS(levelno), 94);
@@ -200,28 +201,28 @@ u8 func_801EE800(u8 *arg0, u8 arg1, u8 arg2) {
         if (!(gLevelInfo[levelno].unk0 & 0x81)) {
             p->unk92[levelno] = nss.bdn;
         }
-        D_80364EF0[playerNumber][D_802E8C44[nss.bdn]] = nss.tc;
+        gBestTimes[playerNumber][D_802E8C44[nss.bdn]] = nss.tc;
         if (D_803643D5 && gLevelInfo[levelno].unk0 == 1) {
-            D_80364EF0[playerNumber][D_802E8C44[0]] = nss.tc;
+            gBestTimes[playerNumber][D_802E8C44[0]] = nss.tc;
         }
         p->unk18[levelno] = ret;
-        func_801E8DCC(playerNumber);
+        fe_player_ticker_reset(playerNumber);
     }
     return ret;
 }
 
 /* results screen banner and its glyph list, by outcome */
-char * N64P D_802084D0[] = { N64_DPTR("YOUR NEW BEST!"), N64_DPTR("BEST TO DATE"), N64_DPTR("YOUR BEST STAYS"),
+char * N64P gBestBanners[] = { N64_DPTR("YOUR NEW BEST!"), N64_DPTR("BEST TO DATE"), N64_DPTR("YOUR BEST STAYS"),
                               N64_DPTR("GUEST BEST IS") };
-u16 * N64P D_802084E0[] = { N64_DPTR(D_80303B3C), N64_DPTR(D_80303B48), N64_DPTR(D_80303B58),
+u16 * N64P gBestBannerGlyphs[] = { N64_DPTR(D_80303B3C), N64_DPTR(D_80303B48), N64_DPTR(D_80303B58),
                              N64_DPTR(D_80303B68) };
 
-/* Grade a timed level `arg0` and record the best time; returns the grade.
+/* Grade a timed level `arg0` and record the best time; returns the grade (0x801EEDB4).
  * K&R in the matching build (its callers pass unmasked ints). */
 #ifdef NON_MATCHING
-u8 func_801EEDB4(u8 arg0, u8 arg1, u8 arg2)
+u8 fe_stats_grade_timed_level(u8 arg0, u8 arg1, u8 arg2)
 #else
-u8 func_801EEDB4(arg0, arg1, arg2)
+u8 fe_stats_grade_timed_level(arg0, arg1, arg2)
     u8 arg0;
     u8 arg1;
     u8 arg2;
@@ -248,12 +249,12 @@ u8 func_801EEDB4(arg0, arg1, arg2)
         } else if (nss.tc <= D_8036EA60.tc) {
             nss.bdn = D_803643D4;
         } else if (nss.tc != 0xFFFF &&
-                   ((old = D_80364EF0[playerNumber][D_802E8C44[D_803643D4]]) == 0 || nss.tc < old)) {
-            D_80364EF0[playerNumber][D_802E8C44[D_803643D4]] = nss.tc;
+                   ((old = gBestTimes[playerNumber][D_802E8C44[D_803643D4]]) == 0 || nss.tc < old)) {
+            gBestTimes[playerNumber][D_802E8C44[D_803643D4]] = nss.tc;
         }
     }
     if (nss.tc <= D_8036EA60.tc && arg1) {
-        nss.coin = func_801EF2BC(nss.tc, arg0, players[playerNumber].unk91);
+        nss.coin = fe_stats_grade_time(nss.tc, arg0, players[playerNumber].unk91);
     } else {
         nss.tc = D_8036EA60.tc;
     }
@@ -268,8 +269,8 @@ u8 func_801EEDB4(arg0, arg1, arg2)
     hud_format_time(buf, nss.tc, 0);
     sprintf(&D_8036B9A8[0x80], "****%s*", buf);
     if (arg1) {
-        m = &D_8020C070[25];
-        D_8020C070[25].unk0 = x;
+        m = &gYoshiFeItems[25];
+        gYoshiFeItems[25].unk0 = x;
         debug_printf("getting icon %d\n", nss.bdn);
         m->unk14 = nss.bdn + 0x22;
         e = &D_802F49F4[m->unk14];
@@ -283,19 +284,20 @@ u8 func_801EEDB4(arg0, arg1, arg2)
         } else {
             idx = 2;
         }
-        D_8020C070[24].unkC = D_802084D0[idx];
-        D_8020C070[24].unk10 = D_802084E0[idx];
+        gYoshiFeItems[24].unkC = gBestBanners[idx];
+        gYoshiFeItems[24].unk10 = gBestBannerGlyphs[idx];
     }
     return nss.coin;
 }
 
-/* Count the current level's entries (at most 2) whose bit is set for the player. */
-s8 func_801EF1E0(void) {
+/* The level's unlock bits owned (max 2), -1 if none (0x801EF1E0).
+ * Count the current level's entries (at most 2) whose bit is set for the player. */
+s8 fe_stats_count_unlocks(void) {
     FeLevelEntry *e;
     s32 i;
     s32 count;
 
-    e = &D_8020D810[levelno];
+    e = &gGlobeLevels[levelno];
     if (e->unk18[0] == -1) {
         return -1;
     }
@@ -307,11 +309,12 @@ s8 func_801EF1E0(void) {
     return count;
 }
 
-/* Grade a time against level `arg1`'s thresholds: 4 (best, needs arg2 >= 12) .. 1, else 5. */
+/* A time's medal against level `arg1`'s thresholds: 4 platinum (needs game state arg2 >= 12), 3 gold,
+ * 2 silver, 1 bronze, else 5 (0x801EF2BC). */
 #ifdef NON_MATCHING
-u8 func_801EF2BC(u16 arg0, u8 arg1, u8 arg2)
+u8 fe_stats_grade_time(u16 arg0, u8 arg1, u8 arg2)
 #else
-u8 func_801EF2BC(arg0, arg1, arg2)
+u8 fe_stats_grade_time(arg0, arg1, arg2)
     u16 arg0;
     u8 arg1;
     u8 arg2;
@@ -335,37 +338,39 @@ u8 func_801EF2BC(arg0, arg1, arg2)
     return ret;
 }
 
-/* Results screen init: load scene `arg0` and inflate the two blobs onto the heap. */
-void func_801EF380(s32 arg0) {
+/* The boot screens (modes 0x10, 0x20): scene and textures (0x801EF380).
+ * Boot screen (modes 0x10 / 0x20) init: load scene `arg0` and inflate the two blobs onto the heap. */
+void fe_boot_screen_init(s32 arg0) {
     s32 size1;
     s32 size2;
 
     size1 = D_0048F5A0_end - D_0048F5A0;
     size2 = D_0048F970_end - D_0048F970;
-    func_801F4E70(arg0);
+    fe_scene_load(arg0);
     if (arg0 == 2) {
-        D_802159D0 = 90;
+        gBootSceneAngle = 90;
     } else {
-        D_802159D0 = 0;
+        gBootSceneAngle = 0;
     }
     func_8028B4C4((u32) D_0048F5A0, (u32) ((void *) N64_IPTR(gHeapPtr)), (u32 *) &size1, 12, 0, 1);
-    D_802159D4 = (u8 *) N64_IPTR(gHeapPtr);
+    gBootBannerTex = (u8 *) N64_IPTR(gHeapPtr);
     gHeapPtr += size1;
     func_8028B4C4((u32) D_0048F970, (u32) ((void *) N64_IPTR(gHeapPtr)), (u32 *) &size2, 12, 0, 1);
-    D_802159D8 = (u8 *) N64_IPTR(gHeapPtr);
+    gBootIconTex = (u8 *) N64_IPTR(gHeapPtr);
     gHeapPtr += size2;
-    D_802159DC = arg0;
-    D_802159E0 = 0.0f;
-    D_802159E4 = 3.0f;
+    gBootScene = arg0;
+    gBootCamDist = 0.0f;
+    gBootSpinSpeed = 3.0f;
 }
 
-/* 8 unreferenced zero bytes sit between the last string and func_801EF4AC's
+/* 8 unreferenced zero bytes sit between the last string and fe_boot_screen_frame's
  * double 7600.0 (0x8020EFA4..AB); probably compiled-out debug strings. */
 const u32 D_8020EFA4[2] = { 0, 0 };
 
-/* Results screen frame: builds the whole top-level display list (spinning
+/* One boot-screen frame (0x801EF4AC).
+ * Boot screen frame: builds the whole top-level display list (spinning
  * scene, banner and icon fading in, final fade out). */
-void func_801EF4AC(void) {
+void fe_boot_screen_frame(void) {
     FeDyn *dyn;
     Gfx *gdl;
     s32 i;
@@ -390,7 +395,7 @@ void func_801EF4AC(void) {
     gDPFillRectangle(gdl++, 0, 0, 319, 239);
     gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, gFrameBufferPhys[gBufferIndex]);
     gDPPipeSync(gdl++);
-    if (D_802159DC == 1) {
+    if (gBootScene == 1) {
         if (gFramesInMode * 185 / 20 > 185) {
             c = 185;
         } else {
@@ -415,7 +420,7 @@ void func_801EF4AC(void) {
     }
     if (gFramesInMode < 2) {
         guPerspective(&dyn->unk1240, &gPerspNorm, 45.0f, 1.3333334f, 40.0f, 8000.0f, 0.25f);
-        if (D_802159DC == 1) {
+        if (gBootScene == 1) {
             guTranslate(&dyn->unk1280, 0.0f, -130.0f, 0.0f);
             guRotate(&dyn->unk12C0, 35.0f, 0.1f, 0.0f, 0.0f);
         } else {
@@ -424,27 +429,27 @@ void func_801EF4AC(void) {
         }
     }
     if (gFramesInMode >= 20) {
-        if (gFramesInMode == 20 && D_802159DC == 1) {
+        if (gFramesInMode == 20 && gBootScene == 1) {
             func_80260650(D_80367738, 0xBA, NULL);
-        } else if (gFramesInMode == 20 && D_802159DC == 2) {
+        } else if (gFramesInMode == 20 && gBootScene == 2) {
             func_80260650(D_80367738, 0xBD, NULL);
         }
         if (gFramesInMode < 80) {
-            D_802159E0 = (80 - gFramesInMode) * 7600.0 / 60.0 + 400.0;
+            gBootCamDist = (80 - gFramesInMode) * 7600.0 / 60.0 + 400.0;
         }
-        if (gFramesInMode == 75 && D_802159DC == 2) {
+        if (gFramesInMode == 75 && gBootScene == 2) {
             func_80260650(D_80367738, 0xB8, NULL);
-        } else if (gFramesInMode == 75 && D_802159DC == 1) {
+        } else if (gFramesInMode == 75 && gBootScene == 1) {
             func_80260650(D_80367738, 0xBB, NULL);
         }
-        guLookAtReflect(&dyn->unk140, &dyn->unk3C00, 1.0f, 0.0f, D_802159E0, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
-        D_802159D0 += D_802159E4;
-        guRotate(&D_802182D0[gBufferIndex], D_802159D0 % 360, 0.0f, 1.0f, 0.0f);
+        guLookAtReflect(&dyn->unk140, &dyn->unk3C00, 1.0f, 0.0f, gBootCamDist, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
+        gBootSceneAngle += gBootSpinSpeed;
+        guRotate(&gFeSceneRot[gBufferIndex], gBootSceneAngle % 360, 0.0f, 1.0f, 0.0f);
         guScale(&dyn->unk1300, 1.5f, 1.5f, 1.5f);
         gDPSetRenderMode(gdl++, G_RM_AA_ZB_OPA_INTER, G_RM_NOOP2);
-        gdl = func_801F4FBC(dyn, gdl);
+        gdl = fe_scene_draw(dyn, gdl);
     }
-    if (gFramesInMode > 80 && D_802159DC == 1) {
+    if (gFramesInMode > 80 && gBootScene == 1) {
         gDPPipeSync(gdl++);
         gSPTexture(gdl++, 0, 0, 0, 0, G_OFF);
         gDPSetTexturePersp(gdl++, G_TP_NONE);
@@ -454,14 +459,14 @@ void func_801EF4AC(void) {
         /* the banner, in 32-texel-wide strips */
         xo = 26, yo = 42;
         for (i = 0; i < 256; i += 32) {
-            gDPLoadTextureTile(gdl++, D_802159D4, G_IM_FMT_IA, G_IM_SIZ_8b, 256, 32, i, 0, i + 31, 31, 0, G_TX_CLAMP,
+            gDPLoadTextureTile(gdl++, gBootBannerTex, G_IM_FMT_IA, G_IM_SIZ_8b, 256, 32, i, 0, i + 31, 31, 0, G_TX_CLAMP,
                                G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
             gSPTextureRectangleOld(gdl++, (i + xo) << 2, yo << 2, (i + xo + 32) << 2, (yo + 32) << 2,
                                    G_TX_RENDERTILE, i << 5, 0, 1 << 10, 1 << 10);
         }
         gDPPipeSync(gdl++);
         gDPSetPrimColor(gdl++, 0, 0, 0xFF, 0, 0x28, (gFramesInMode * 4 - 320 < 255) ? gFramesInMode * 4 - 320 : 255);
-        gDPLoadTextureBlock(gdl++, D_802159D8, G_IM_FMT_IA, G_IM_SIZ_8b, 40, 24, 0, G_TX_CLAMP, G_TX_CLAMP,
+        gDPLoadTextureBlock(gdl++, gBootIconTex, G_IM_FMT_IA, G_IM_SIZ_8b, 40, 24, 0, G_TX_CLAMP, G_TX_CLAMP,
                             G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
         gSPTextureRectangleOld(gdl++, 256 << 2, 20 << 2, (256 + 40) << 2, (20 + 24) << 2, G_TX_RENDERTILE, 0, 0,
                                1 << 10, 1 << 10);

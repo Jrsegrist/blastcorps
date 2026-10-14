@@ -26,7 +26,7 @@ void func_8028B3E0(void) {
         func_802DB7B0((void *) (size + 0x801E7000), 0x37D00 - size);
         PORT_FE_LOADED();
         frontEndPresent = 1;
-        func_801F57B0();
+        fe_pak_start_thread();
         debug_printf("got front end\n");
     }
 }

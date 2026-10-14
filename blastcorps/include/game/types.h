@@ -117,7 +117,7 @@ typedef struct Score {
     u16 rt;
 } Score;
 
-/* One entry per level on the front end's level-select globe (D_8020D810,
+/* One entry per level on the front end's level-select globe (gGlobeLevels,
  * defined in hd_front_end/11530.c). */
 typedef struct GlobeLevel {
     /* 0x00 */ u8 unk0;
@@ -134,7 +134,7 @@ typedef struct GlobeLevel {
     /* 0x2C */ f32 unk2C;
 } GlobeLevel; /* size 0x30 */
 
-/* A rank title (D_802081C0, defined in hd_front_end/01C40.c). The u16
+/* A rank title (gRankTitles, defined in hd_front_end/01C40.c). The u16
  * pointers are hd_code data (glyph strings and portraits). */
 typedef struct RankTitle {
     char * N64P title;

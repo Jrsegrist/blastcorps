@@ -14,48 +14,48 @@ Discarded input sections
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/00000.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/00000.c.o
  .gptab.data    0x00000000       0x48 build_nm/src.us.v11/hd_front_end/00000.c.o
- .mdebug        0x00000000     0x16ec build_nm/src.us.v11/hd_front_end/00000.c.o
+ .mdebug        0x00000000     0x1760 build_nm/src.us.v11/hd_front_end/00000.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/01C40.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/01C40.c.o
  .gptab.data    0x00000000       0x70 build_nm/src.us.v11/hd_front_end/01C40.c.o
- .mdebug        0x00000000     0x2fdc build_nm/src.us.v11/hd_front_end/01C40.c.o
+ .mdebug        0x00000000     0x3310 build_nm/src.us.v11/hd_front_end/01C40.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/06790.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/06790.c.o
  .gptab.data    0x00000000       0x20 build_nm/src.us.v11/hd_front_end/06790.c.o
- .mdebug        0x00000000      0xb28 build_nm/src.us.v11/hd_front_end/06790.c.o
+ .mdebug        0x00000000      0xb74 build_nm/src.us.v11/hd_front_end/06790.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/07390.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/07390.c.o
- .mdebug        0x00000000      0x894 build_nm/src.us.v11/hd_front_end/07390.c.o
+ .mdebug        0x00000000      0x8a4 build_nm/src.us.v11/hd_front_end/07390.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/07800.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/07800.c.o
  .gptab.data    0x00000000       0x18 build_nm/src.us.v11/hd_front_end/07800.c.o
- .mdebug        0x00000000     0x1480 build_nm/src.us.v11/hd_front_end/07800.c.o
+ .mdebug        0x00000000     0x1508 build_nm/src.us.v11/hd_front_end/07800.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/09570.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/09570.c.o
- .mdebug        0x00000000     0x11e0 build_nm/src.us.v11/hd_front_end/09570.c.o
+ .mdebug        0x00000000     0x12b4 build_nm/src.us.v11/hd_front_end/09570.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/0C450.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/0C450.c.o
- .mdebug        0x00000000      0xff0 build_nm/src.us.v11/hd_front_end/0C450.c.o
+ .mdebug        0x00000000     0x1064 build_nm/src.us.v11/hd_front_end/0C450.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/0DE70.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/0DE70.c.o
- .mdebug        0x00000000      0xc64 build_nm/src.us.v11/hd_front_end/0DE70.c.o
+ .mdebug        0x00000000      0xca8 build_nm/src.us.v11/hd_front_end/0DE70.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/0E7B0.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/0E7B0.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/10850.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/10850.c.o
- .mdebug        0x00000000      0xeb0 build_nm/src.us.v11/hd_front_end/10850.c.o
+ .mdebug        0x00000000      0xf30 build_nm/src.us.v11/hd_front_end/10850.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/17990.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/17990.c.o
- .mdebug        0x00000000     0x1314 build_nm/src.us.v11/hd_front_end/17990.c.o
+ .mdebug        0x00000000     0x138c build_nm/src.us.v11/hd_front_end/17990.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/196F0.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/196F0.c.o
- .mdebug        0x00000000      0x6fc build_nm/src.us.v11/hd_front_end/196F0.c.o
+ .mdebug        0x00000000      0x6e8 build_nm/src.us.v11/hd_front_end/196F0.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/1A240.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/1A240.c.o
- .mdebug        0x00000000      0x794 build_nm/src.us.v11/hd_front_end/1A240.c.o
+ .mdebug        0x00000000      0x7d4 build_nm/src.us.v11/hd_front_end/1A240.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/1AE80.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/1AE80.c.o
- .mdebug        0x00000000      0x608 build_nm/src.us.v11/hd_front_end/1AE80.c.o
+ .mdebug        0x00000000      0x62c build_nm/src.us.v11/hd_front_end/1AE80.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/1B100.c.o
  .reginfo       0x00000000       0x18 build_nm/src.us.v11/hd_front_end/1B100.c.o
  .options       0x00000000       0x20 build_nm/src.us.v11/hd_front_end/ul_pfsfreeblocks.c.o
@@ -176,151 +176,151 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x80900000                        hd_front_end_TEXT_START = .
  build_nm/src.us.v11/hd_front_end/00000.c.o(.text)
  .text          0x80900000     0x1bb0 build_nm/src.us.v11/hd_front_end/00000.c.o
-                0x80900000                func_801E7000
-                0x809004e8                func_801E74E8
-                0x80900598                func_801E7598
+                0x80900000                fe_digger_init
+                0x809004e8                fe_digger_select
+                0x80900598                fe_digger_frame
  build_nm/src.us.v11/hd_front_end/01C40.c.o(.text)
  .text          0x80901bb0     0x4b60 build_nm/src.us.v11/hd_front_end/01C40.c.o
-                0x80901bb0                func_801E8C40
-                0x80901d3c                func_801E8DCC
-                0x80901e28                func_801E8EB8
-                0x8090234c                func_801E93DC
-                0x80902498                func_801E9528
-                0x80902668                func_801E96F8
-                0x80902688                func_801E9718
-                0x80903078                func_801EA108
-                0x809031d8                func_801EA268
-                0x809031e8                func_801EA278
-                0x80903428                func_801EA4B8
-                0x80903658                func_801EA6E8
-                0x809038ac                func_801EA93C
-                0x809039ec                func_801EAA7C
-                0x80905204                func_801EC288
-                0x80905288                func_801EC30C
-                0x809053e0                func_801EC464
-                0x80905418                func_801EC49C
-                0x809056ec                func_801EC770
-                0x809059d0                func_801ECA50
-                0x80905a98                func_801ECB18
-                0x80905c0c                func_801ECC8C
-                0x80905e1c                func_801ECE9C
-                0x80905edc                func_801ECF5C
-                0x80906404                func_801ED480
-                0x8090643c                func_801ED4B8
+                0x80901bb0                fe_player_panel_init
+                0x80901d3c                fe_player_ticker_reset
+                0x80901e28                fe_player_ticker_set_text
+                0x8090234c                fe_player_count_medals
+                0x80902498                fe_player_ticker_next_glyph
+                0x80902668                fe_player_ticker_at_end
+                0x80902688                fe_player_draw_panel
+                0x80903078                fe_player_new_game
+                0x809031d8                fe_player_init_vehicles
+                0x809031e8                fe_player_load_slots
+                0x80903428                fe_player_build_load_menu
+                0x80903658                fe_player_build_erase_menu
+                0x809038ac                fe_player_name_entry_open
+                0x809039ec                fe_player_name_entry_draw
+                0x80905204                fe_player_medals_show_quiet
+                0x80905288                fe_player_medals_init
+                0x809053e0                fe_player_medals_hide
+                0x80905418                fe_player_draw_medal
+                0x809056ec                fe_player_draw_medals
+                0x809059d0                fe_player_loop_done_mode
+                0x80905a98                fe_player_load_level_save
+                0x80905c0c                fe_player_save_pending
+                0x80905e1c                fe_player_update_level_kinds
+                0x80905edc                fe_player_regrade_missions
+                0x80906404                fe_player_copy_times
+                0x8090643c                fe_player_regrade_platinum
  build_nm/src.us.v11/hd_front_end/06790.c.o(.text)
  .text          0x80906710      0xc00 build_nm/src.us.v11/hd_front_end/06790.c.o
-                0x80906710                func_801ED790
-                0x80906780                func_801ED800
+                0x80906710                fe_promo_init
+                0x80906780                fe_promo_draw
  build_nm/src.us.v11/hd_front_end/07390.c.o(.text)
  .text          0x80907310      0x470 build_nm/src.us.v11/hd_front_end/07390.c.o
                 0x80907310                func_801EE390
-                0x80907318                func_801EE398
+                0x80907318                fe_pak_error_frame
  build_nm/src.us.v11/hd_front_end/07800.c.o(.text)
  .text          0x80907780     0x1d80 build_nm/src.us.v11/hd_front_end/07800.c.o
-                0x80907780                func_801EE800
-                0x80907d34                func_801EEDB4
-                0x80908160                func_801EF1E0
-                0x8090823c                func_801EF2BC
-                0x80908300                func_801EF380
-                0x80908440                func_801EF4AC
+                0x80907780                fe_stats_grade_level
+                0x80907d34                fe_stats_grade_timed_level
+                0x80908160                fe_stats_count_unlocks
+                0x8090823c                fe_stats_grade_time
+                0x80908300                fe_boot_screen_init
+                0x80908440                fe_boot_screen_frame
  build_nm/src.us.v11/hd_front_end/09570.c.o(.text)
  .text          0x80909500     0x2ee0 build_nm/src.us.v11/hd_front_end/09570.c.o
-                0x80909500                func_801F0570
-                0x8090a4f8                func_801F1568
-                0x8090ad38                func_801F1DA8
-                0x8090af90                func_801F2000
-                0x8090b3b8                func_801F2428
-                0x8090bdb0                func_801F2E20
+                0x80909500                fe_lvlsel_build_globe_vtx
+                0x8090a4f8                fe_lvlsel_build_globe_dl
+                0x8090ad38                fe_lvlsel_level_open
+                0x8090af90                fe_lvlsel_build_academy_dl
+                0x8090b3b8                fe_lvlsel_build_level_icons_dl
+                0x8090bdb0                fe_lvlsel_build_starfield_dl
  build_nm/src.us.v11/hd_front_end/0C450.c.o(.text)
  .text          0x8090c3e0     0x1a20 build_nm/src.us.v11/hd_front_end/0C450.c.o
-                0x8090c3e0                func_801F3450
-                0x8090c640                func_801F36B0
-                0x8090c6dc                func_801F374C
-                0x8090c8f4                func_801F3964
-                0x8090d0a0                func_801F4110
-                0x8090d808                func_801F4878
-                0x8090dbcc                func_801F4C3C
-                0x8090ddac                func_801F4E1C
+                0x8090c3e0                fe_solar_draw
+                0x8090c640                fe_solar_cmp_depth
+                0x8090c6dc                fe_solar_build_mtx
+                0x8090c8f4                fe_solar_draw_glow
+                0x8090d0a0                fe_solar_draw_sun
+                0x8090d808                fe_solar_build_node_dls
+                0x8090dbcc                fe_solar_update_node
+                0x8090ddac                fe_copy_mtx
  build_nm/src.us.v11/hd_front_end/0DE70.c.o(.text)
  .text          0x8090de00      0x950 build_nm/src.us.v11/hd_front_end/0DE70.c.o
-                0x8090de00                func_801F4E70
-                0x8090df54                func_801F4FBC
-                0x8090e160                func_801F51C8
-                0x8090e570                func_801F55D8
+                0x8090de00                fe_scene_load
+                0x8090df54                fe_scene_draw
+                0x8090e160                fe_comm_point_draw
+                0x8090e570                fe_comm_point_load
  build_nm/src.us.v11/hd_front_end/0E7B0.c.o(.text)
  .text          0x8090e750     0x20d0 build_nm/src.us.v11/hd_front_end/0E7B0.c.o
-                0x8090e750                func_801F57B0
-                0x8090e888                func_801F58E8
-                0x8090efa4                func_801F5FE4
-                0x8090f088                func_801F60C8
-                0x8090f120                func_801F6160
-                0x8090f188                func_801F61C8
-                0x8090f1d0                func_801F6210
-                0x8090f224                func_801F6264
-                0x8090f588                func_801F65C4
-                0x8090f7a8                func_801F67E4
-                0x8090fab8                func_801F6AF4
-                0x8090fb94                func_801F6BD0
-                0x8090fc68                func_801F6CA4
-                0x8090fe98                func_801F6ED4
-                0x8090fedc                func_801F6F18
-                0x809103c0                func_801F73FC
-                0x809103d4                func_801F7410
-                0x80910474                func_801F74B0
-                0x80910568                func_801F75A4
-                0x809106a8                func_801F76E4
+                0x8090e750                fe_pak_start_thread
+                0x8090e888                fe_pak_thread
+                0x8090efa4                fe_pak_is_missing
+                0x8090f088                fe_pak_init_pak
+                0x8090f120                fe_pak_create_file
+                0x8090f188                fe_pak_delete_file
+                0x8090f1d0                fe_pak_delete_listed_file
+                0x8090f224                fe_pak_rw_player
+                0x8090f588                fe_pak_rw_times
+                0x8090f7a8                fe_pak_rw_eeprom_times
+                0x8090fab8                fe_pak_put_semaphore
+                0x8090fb94                fe_pak_get_semaphore
+                0x8090fc68                fe_pak_rw_status
+                0x8090fe98                fe_pak_get_file_state
+                0x8090fedc                fe_pak_list_files
+                0x809103c0                fe_pak_has_files
+                0x809103d4                fe_pak_chars_to_ascii
+                0x80910474                fe_pak_ascii_to_chars
+                0x80910568                fe_pak_add_crc
+                0x809106a8                fe_pak_check_crc
  build_nm/src.us.v11/hd_front_end/10850.c.o(.text)
  .text          0x80910820      0xd00 build_nm/src.us.v11/hd_front_end/10850.c.o
-                0x80910820                func_801F7850
-                0x80910f68                func_801F7F74
-                0x80910fe8                func_801F7FF4
-                0x80911030                func_801F803C
-                0x809111a8                func_801F81B4
-                0x8091121c                func_801F8228
-                0x8091134c                func_801F8354
-                0x80911438                func_801F8440
+                0x80910820                fe_best_build_menu
+                0x80910f68                fe_best_slot_shown
+                0x80910fe8                fe_best_cmp
+                0x80911030                fe_best_next_player
+                0x809111a8                fe_best_player_listed
+                0x8091121c                fe_best_color_items
+                0x8091134c                fe_best_clear_times
+                0x80911438                fe_best_draw_icon
  build_nm/src.us.v11/hd_front_end/11530.c.o(.text)
  .text          0x80911520     0x64b0 build_nm/src.us.v11/hd_front_end/11530.c.o
-                0x80911520                func_801F8530
-                0x80911850                func_801F885C
-                0x80911974                func_801F8980
-                0x8091224c                func_801F9258
-                0x80912814                func_801F9820
-                0x80912b7c                func_801F9B84
-                0x8091317c                func_801FA180
-                0x8091374c                func_801FA74C
-                0x809155d0                func_801FC5B8
-                0x80915e8c                func_801FCE74
-                0x80915f50                func_801FCF38
-                0x8091649c                func_801FD484
-                0x809166d0                func_801FD6B8
-                0x80916760                func_801FD748
-                0x80916cbc                func_801FDCA4
-                0x80916e68                func_801FDE50
-                0x80916eb0                func_801FDE98
-                0x80917030                func_801FE018
-                0x80917250                func_801FE238
-                0x809175e8                func_801FE5D0
-                0x80917778                func_801FE760
+                0x80911520                fe_globe_init
+                0x80911850                fe_globe_select_level
+                0x80911974                fe_globe_frame
+                0x8091224c                fe_globe_build_scene_dl
+                0x80912814                fe_globe_build_routes_dl
+                0x80912b7c                fe_globe_build_plane_dl
+                0x8091317c                fe_globe_draw_routes
+                0x8091374c                fe_globe_draw_route
+                0x809155d0                fe_globe_draw_plane
+                0x80915e8c                fe_globe_quad_at_level
+                0x80915f50                fe_globe_quad_at
+                0x8091649c                fe_globe_latlon_to_xyz
+                0x809166d0                fe_globe_angle_diff
+                0x80916760                fe_globe_scroll_stars
+                0x80916cbc                fe_globe_respawn_star
+                0x80916e68                fe_load_vehicle_icons
+                0x80916eb0                fe_globe_set_light
+                0x80917030                fe_open_reachable_levels
+                0x80917250                fe_globe_draw_earth
+                0x809175e8                fe_globe_draw_stars
+                0x80917778                fe_globe_level_locked
  build_nm/src.us.v11/hd_front_end/17990.c.o(.text)
  .text          0x809179d0     0x1d60 build_nm/src.us.v11/hd_front_end/17990.c.o
-                0x809179d0                func_801FE990
+                0x809179d0                fe_back_loop
  build_nm/src.us.v11/hd_front_end/196F0.c.o(.text)
  .text          0x80919730      0xb50 build_nm/src.us.v11/hd_front_end/196F0.c.o
-                0x80919730                func_802006F0
-                0x80919754                func_80200714
-                0x80919c14                func_80200BD4
-                0x80919c20                func_80200BE0
+                0x80919730                fe_bg_reload
+                0x80919754                fe_bg_load
+                0x80919c14                fe_bg_set
+                0x80919c20                fe_bg_draw
  build_nm/src.us.v11/hd_front_end/1A240.c.o(.text)
  .text          0x8091a280      0xc50 build_nm/src.us.v11/hd_front_end/1A240.c.o
-                0x8091a280                func_80201240
-                0x8091a3ac                func_80201364
+                0x8091a280                fe_attract_pic_load
+                0x8091a3ac                fe_attract_pic_draw
  build_nm/src.us.v11/hd_front_end/1AE80.c.o(.text)
  .text          0x8091aed0      0x280 build_nm/src.us.v11/hd_front_end/1AE80.c.o
-                0x8091aed0                func_80201E80
+                0x8091aed0                fe_pak_restore_from_eeprom
  build_nm/src.us.v11/hd_front_end/1B100.c.o(.text)
  .text          0x8091b150      0x480 build_nm/src.us.v11/hd_front_end/1B100.c.o
-                0x8091b150                func_80202100
+                0x8091b150                fe_load_model
                 0x8091b24c                func_802021FC
                 0x8091b280                func_80202270
                 0x8091b2bc                func_802022EC
@@ -414,48 +414,48 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x80208040                        hd_front_end_00000_c = .
  build_nm/src.us.v11/hd_front_end/00000.c.o(.data)
  .data          0x80208040      0x180 build_nm/src.us.v11/hd_front_end/00000.c.o
-                0x80208040                D_80208040
-                0x80208044                D_80208044
+                0x80208040                gDiggerTitle
+                0x80208044                gDiggerTitleGlyphs
                 0x80208048                D_80208048
                 0x8020804c                D_8020804C
                 0x80208060                D_80208060
                 0x802080f8                D_802080F8
                 0x8020810c                D_8020810C
-                0x80208120                D_80208120
-                0x8020816c                D_8020816C
-                0x80208194                D_80208194
+                0x80208120                gDiggerViewDist
+                0x8020816c                gDiggerModelY
+                0x80208194                gDiggerSelectSound
                 0x802081c0                        hd_front_end_01C40_c = .
  build_nm/src.us.v11/hd_front_end/01C40.c.o(.data)
  .data          0x802081c0      0x2f0 build_nm/src.us.v11/hd_front_end/01C40.c.o
-                0x802081c0                D_802081C0
-                0x802082b8                D_802082B8
-                0x802082d8                D_802082D8
-                0x802082e4                D_802082E4
+                0x802081c0                gRankTitles
+                0x802082b8                gRankTitleLine1Words
+                0x802082d8                gMedalPalettes
+                0x802082e4                gMedalSprites
                 0x802082e8                D_802082E8
-                0x802082ec                D_802082EC
-                0x802082f8                D_802082F8
-                0x802082fc                D_802082FC
-                0x80208314                D_80208314
-                0x80208348                D_80208348
-                0x80208350                D_80208350
-                0x80208380                D_80208380
-                0x80208400                D_80208400
-                0x80208448                D_80208448
+                0x802082ec                gTickerMedalSprites
+                0x802082f8                gTickerIconSprite
+                0x802082fc                gNameEntrySymbols
+                0x80208314                gNameEntryLetters
+                0x80208348                gNameEntrySymbolCount
+                0x80208350                gNameEntryLetterCount
+                0x80208380                gPanelVtx
+                0x80208400                gPanelDl
+                0x80208448                gPanelLights
                 0x80208470                D_80208470
-                0x80208498                D_80208498
+                0x80208498                gNameEntryGlyph
                 0x802084b0                        hd_front_end_06790_c = .
  build_nm/src.us.v11/hd_front_end/06790.c.o(.data)
  .data          0x802084b0       0x20 build_nm/src.us.v11/hd_front_end/06790.c.o
-                0x802084b0                D_802084B0
-                0x802084b4                D_802084B4
-                0x802084b8                D_802084B8
-                0x802084bc                D_802084BC
-                0x802084c0                D_802084C0
+                0x802084b0                gPromoTitle1
+                0x802084b4                gPromoTitle2
+                0x802084b8                gPromoTitle1Glyphs
+                0x802084bc                gPromoTitle2Glyphs
+                0x802084c0                gPromoPulseDir
                 0x802084d0                        hd_front_end_07800_c = .
  build_nm/src.us.v11/hd_front_end/07800.c.o(.data)
  .data          0x802084d0       0x20 build_nm/src.us.v11/hd_front_end/07800.c.o
-                0x802084d0                D_802084D0
-                0x802084e0                D_802084E0
+                0x802084d0                gBestBanners
+                0x802084e0                gBestBannerGlyphs
                 0x000004b0                        . = 0x4b0
                 0x802084f0                        hd_front_end_hd_front_end_data_214F0_bin = .
  build_nm/assets/hd_front_end/hd_front_end_data_214F0.bin.o(.data)
@@ -465,11 +465,11 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x8020d810                        hd_front_end_11530_c = .
  build_nm/src.us.v11/hd_front_end/11530.c.o(.data)
  .data          0x8020d810      0xbd0 build_nm/src.us.v11/hd_front_end/11530.c.o
-                0x8020d810                D_8020D810
-                0x8020e350                D_8020E350
+                0x8020d810                gGlobeLevels
+                0x8020e350                gVehicleIcons
                 0x8020e39c                D_8020E39C
-                0x8020e3a8                D_8020E3A8
-                0x8020e3d8                D_8020E3D8
+                0x8020e3a8                gGlobeLights
+                0x8020e3d8                gGlobeStickAngle
                 0x000063a0                        . = 0x63a0
                 0x8020e3e0                        hd_front_end_hd_front_end_data_273E0_bin = .
  build_nm/assets/hd_front_end/hd_front_end_data_273E0.bin.o(.data)
@@ -534,6 +534,230 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x8021abf0                        __osPfsPifRam = 0x8021abf0
                 0x8021abb0                        __osEepPifRam = 0x8021abb0
                 0x80219f50                        pakToGameMessageQ = 0x80219f50
+                0x80210e90                        gDiggerModels = 0x80210e90
+                0x80210ee0                        gDiggerMtxBufs = 0x80210ee0
+                0x80210f78                        gDiggerDls = 0x80210f78
+                0x802110a8                        gDiggerTransMtx = 0x802110a8
+                0x80211568                        gDiggerScaleMtx = 0x80211568
+                0x80211a28                        gDiggerTiltMtx = 0x80211a28
+                0x80211a68                        gDiggerSel = 0x80211a68
+                0x80211a6a                        gDiggerCount = 0x80211a6a
+                0x80211a70                        gDiggerVehicleX = 0x80211a70
+                0x802153c0                        gDiggerSlotVehicle = 0x802153c0
+                0x802153d4                        gDiggerCamXGoal = 0x802153d4
+                0x802153d8                        gDiggerCamX = 0x802153d8
+                0x802153dc                        gDiggerCamZGoal = 0x802153dc
+                0x802153e0                        gDiggerCamZ = 0x802153e0
+                0x802153e4                        gDiggerScrollLeft = 0x802153e4
+                0x802153e6                        gDiggerScrollRight = 0x802153e6
+                0x802153e8                        gDiggerPrevVehicle = 0x802153e8
+                0x802153ec                        gDiggerArrowPulse = 0x802153ec
+                0x802153f0                        gDiggerSpin = 0x802153f0
+                0x80215450                        gNameTextX = 0x80215450
+                0x80215454                        gNameTextXGoal = 0x80215454
+                0x80215458                        gScrollCharWidth = 0x80215458
+                0x8021545c                        gNameBoxXAnim = 0x8021545c
+                0x80215460                        gNameBoxXGoal = 0x80215460
+                0x8021546c                        gNamePrevStick = 0x8021546c
+                0x80215470                        gMedalTimeText = 0x80215470
+                0x80215480                        gMedalCountText = 0x80215480
+                0x802154b0                        gLoadMenuFullSlot = 0x802154b0
+                0x802154b2                        gNameWheelAngleGoal = 0x802154b2
+                0x802154b4                        gNameWheelAngle = 0x802154b4
+                0x802154b6                        gNameWheelSel = 0x802154b6
+                0x802154b8                        gNameWheelPrevSel = 0x802154b8
+                0x802154ba                        gNameFlyChar = 0x802154ba
+                0x802154bc                        gNameLen = 0x802154bc
+                0x802154be                        gNameEntryState = 0x802154be
+                0x802154c0                        gNameBoxState = 0x802154c0
+                0x802154c4                        gNameBoxX = 0x802154c4
+                0x802154c8                        gNameBoxW = 0x802154c8
+                0x802154cc                        gNameEntryWidth = 0x802154cc
+                0x802154d0                        gNameEntryFirst = 0x802154d0
+                0x802154d2                        sslen = 0x802154d2
+                0x802154d4                        gScrollHoldTime = 0x802154d4
+                0x802154d8                        gScrollPixel = 0x802154d8
+                0x802154dc                        gScrollPos = 0x802154dc
+                0x802154e0                        gScrollSpeedGoal = 0x802154e0
+                0x802154e4                        gScrollSpeed = 0x802154e4
+                0x802154e8                        gScrollIconX = 0x802154e8
+                0x802154ec                        gScrollIconPos = 0x802154ec
+                0x802154f0                        gScrollMedalX = 0x802154f0
+                0x80215508                        gScrollMedalPos = 0x80215508
+                0x80215520                        gSlotLabels = 0x80215520
+                0x802155a0                        gScrollText = 0x802155a0
+                0x802158a0                        gScrollGlyphText = 0x802158a0
+                0x802158a8                        gScrollLine = 0x802158a8
+                0x80215900                        gMedalState = 0x80215900
+                0x80215902                        gMedalRank = 0x80215902
+                0x80215908                        gMedalDelay = 0x80215908
+                0x80215910                        gMedalAlpha = 0x80215910
+                0x80215914                        gMedalSpriteBase = 0x80215914
+                0x80215915                        gScrollIconSprite = 0x80215915
+                0x80215916                        gScrollMedalSpriteBase = 0x80215916
+                0x80215918                        gNameWheelStartSel = 0x80215918
+                0x8021591a                        gNameStick = 0x8021591a
+                0x80215920                        gNameArrowStep = 0x80215920
+                0x80215924                        gNameMaxLen = 0x80215924
+                0x80215928                        gNameBuf = 0x80215928
+                0x8021592c                        gNameArrowAlpha = 0x8021592c
+                0x8021592e                        gScrollUsesGlyphs = 0x8021592e
+                0x80215930                        gMedalCounts = 0x80215930
+                0x8021593c                        gPanelAlpha = 0x8021593c
+                0x80215940                        gNameArrowPulse = 0x80215940
+                0x80215944                        gFlyCharX = 0x80215944
+                0x80215948                        gFlyCharY = 0x80215948
+                0x8021594c                        gFlyCharXGoal = 0x8021594c
+                0x80215950                        gFlyCharYGoal = 0x80215950
+                0x80215440                        gFlyCharW = 0x80215440
+                0x80215444                        gFlyCharH = 0x80215444
+                0x80215448                        gFlyCharWGoal = 0x80215448
+                0x8021544c                        gFlyCharHGoal = 0x8021544c
+                0x80215960                        gPromoScaleState = 0x80215960
+                0x80215964                        gPromoTextState = 0x80215964
+                0x80215968                        gPromoAngle = 0x80215968
+                0x8021596c                        gPromoScale = 0x8021596c
+                0x80215970                        gPromoHoldTimer = 0x80215970
+                0x80215974                        gPromoTitleAlpha = 0x80215974
+                0x80215976                        gPromoRankAlpha = 0x80215976
+                0x80215978                        gPromoRank = 0x80215978
+                0x80215980                        gPromoRankLine1 = 0x80215980
+                0x80215998                        gPromoRankLine2 = 0x80215998
+                0x802159b0                        gPromoPulse = 0x802159b0
+                0x802159c0                        gPakErrorFrames = 0x802159c0
+                0x802159d0                        gBootSceneAngle = 0x802159d0
+                0x802159d4                        gBootBannerTex = 0x802159d4
+                0x802159d8                        gBootIconTex = 0x802159d8
+                0x802159dc                        gBootScene = 0x802159dc
+                0x802159e0                        gBootCamDist = 0x802159e0
+                0x802159e4                        gBootSpinSpeed = 0x802159e4
+                0x80215a70                        gLvlselMarkerFrames = 0x80215a70
+                0x80215a7c                        gLvlselGlowTex = 0x80215a7c
+                0x80215a80                        gLvlselGlowTex2 = 0x80215a80
+                0x80215a88                        gLvlselGlobeVtx = 0x80215a88
+                0x8021728c                        gStarTextures = 0x8021728c
+                0x80217290                        gGlobeGridX = 0x80217290
+                0x80217390                        gGlobeGridY = 0x80217390
+                0x80217490                        gGlobeGridS = 0x80217490
+                0x80217590                        gGlobeGridT = 0x80217590
+                0x8020bd30                        gSolarNodes = 0x8020bd30
+                0x80217690                        gSolarSpriteVtx = 0x80217690
+                0x80217a10                        gSolarMtxStack = 0x80217a10
+                0x80217b50                        gSolarMtxTop = 0x80217b50
+                0x80217b54                        gSolarEyeX = 0x80217b54
+                0x80217b58                        gSolarEyeY = 0x80217b58
+                0x80217b5c                        gSolarEyeZ = 0x80217b5c
+                0x80217b60                        gSolarAtX = 0x80217b60
+                0x80217b64                        gSolarAtY = 0x80217b64
+                0x80217b68                        gSolarAtZ = 0x80217b68
+                0x80217b6c                        gGlobePlanet = 0x80217b6c
+                0x80217b70                        gSolarNodeMtx = 0x80217b70
+                0x80218270                        gSolarDrawList = 0x80218270
+                0x802182c0                        gFeSceneSize = 0x802182c0
+                0x802182c4                        gFeSceneRom = 0x802182c4
+                0x802182c8                        gFeSceneDl = 0x802182c8
+                0x802182cc                        gFeSceneSeg6 = 0x802182cc
+                0x802182d0                        gFeSceneRot = 0x802182d0
+                0x80218350                        gCommPointModel = 0x80218350
+                0x80218358                        gCommPointBufs = 0x80218358
+                0x80218360                        gCommPointDls = 0x80218360
+                0x80218370                        gCommPointTranslate = 0x80218370
+                0x802183b0                        gCommPointScale = 0x802183b0
+                0x802183f0                        gCommPointTilt = 0x802183f0
+                0x80218730                        gCommPointAngle = 0x80218730
+                0x80218734                        gCommPointPerspNorm = 0x80218734
+                0x8020bee0                        gDummyEeprom = 0x8020bee0
+                0x8020c000                        gPakGameName = 0x8020c000
+                0x8020c014                        gPakExtName = 0x8020c014
+                0x8020c01c                        gPakCharset = 0x8020c01c
+                0x80218740                        gPakFileLines = 0x80218740
+                0x802189c0                        gPakFileNames = 0x802189c0
+                0x80218ad0                        gPakFileExts = 0x80218ad0
+                0x80218b20                        gPakFileStates = 0x80218b20
+                0x80218d24                        gPakErrorShown = 0x80218d24
+                0x80218d28                        gPakFileCount = 0x80218d28
+                0x80218d30                        gPakThread = 0x80218d30
+                0x80218ee0                        gPakSchedClient = 0x80218ee0
+                0x80218ef0                        gPakFreeBytes = 0x80218ef0
+                0x80218ef8                        gPakThreadStack = 0x80218ef8
+                0x80219ef8                        gPakRequestQueue = 0x80219ef8
+                0x80219f10                        gPakRequestMesgs = 0x80219f10
+                0x80219f30                        gPakRetraceQueue = 0x80219f30
+                0x80219f48                        gPakRetraceMesgs = 0x80219f48
+                0x80219f68                        gPakReplyMesgs = 0x80219f68
+                0x80219f88                        gPakErrorWindow = 0x80219f88
+                0x80219f90                        gPakFreeText = 0x80219f90
+                0x80219fb0                        gPakNeededText = 0x80219fb0
+                0x8021a7d0                        gBestRowSlot = 0x8021a7d0
+                0x8021a7e8                        gBestItemPlayer = 0x8021a7e8
+                0x8021a828                        gBestItemCount = 0x8021a828
+                0x8021a830                        gBestTimesReturnMode = 0x8021a830
+                0x8021a840                        gPlaneVtx = 0x8021a840
+                0x8021a8c0                        gFlightSteps = 0x8021a8c0
+                0x8021a8c4                        gFlightFromX = 0x8021a8c4
+                0x8021a8c8                        gFlightToX = 0x8021a8c8
+                0x8021a8cc                        gFlightFromY = 0x8021a8cc
+                0x8021a8d0                        gFlightToY = 0x8021a8d0
+                0x8021a8d4                        gFlightFromZ = 0x8021a8d4
+                0x8021a8d8                        gFlightToZ = 0x8021a8d8
+                0x8021a8dc                        gFlightDist = 0x8021a8dc
+                0x8021a8e0                        gFlightCos = 0x8021a8e0
+                0x8021a8e4                        gFlightAngle = 0x8021a8e4
+                0x8021a8e8                        gFlightProgress = 0x8021a8e8
+                0x8021a8f0                        gVehicleIconTex = 0x8021a8f0
+                0x8021a8f4                        gGlobeMeshDl = 0x8021a8f4
+                0x8021a8f8                        gGlobeStarsDl = 0x8021a8f8
+                0x8021a904                        gGlobeFromLevel = 0x8021a904
+                0x8021a905                        gGlobeSelLevel = 0x8021a905
+                0x8021a906                        gGlobeStartLevel = 0x8021a906
+                0x8021a907                        gGlobeStickLevel = 0x8021a907
+                0x8021a908                        gGlobeShownLevel = 0x8021a908
+                0x8021a909                        gRouteCount = 0x8021a909
+                0x8021a90c                        gGlobeCamX = 0x8021a90c
+                0x8021a910                        gGlobeCamY = 0x8021a910
+                0x8021a914                        gGlobeCamZ = 0x8021a914
+                0x8021a918                        gGlobeCamDist = 0x8021a918
+                0x8021a91c                        gGlobeCamLon = 0x8021a91c
+                0x8021a920                        gGlobeCamLat = 0x8021a920
+                0x8021a924                        gGlobeState = 0x8021a924
+                0x8021a926                        gFlightState = 0x8021a926
+                0x8021a928                        gRouteVtxBufs = 0x8021a928
+                0x8021a930                        gGlobeStickCentred = 0x8021a930
+                0x8021a934                        gGlobeLonStep = 0x8021a934
+                0x8021a938                        gGlobeLatStep = 0x8021a938
+                0x8021a940                        gRouteDrawn = 0x8021a940
+                0x8021ab21                        gGlobeOverlayAlpha = 0x8021ab21
+                0x8021ab24                        gGlobeZoomDoneTime = 0x8021ab24
+                0x8021ab28                        gRouteRevealMin = 0x8021ab28
+                0x8021ab2c                        gGlobeNameAlpha = 0x8021ab2c
+                0x8021ab2e                        gGlobeSelectPending = 0x8021ab2e
+                0x8021ab30                        gGlobePlayer = 0x8021ab30
+                0x8021ab34                        gGlobeLevelInfo = 0x8021ab34
+                0x8021ab38                        gRouteRevealSound = 0x8021ab38
+                0x8021ab40                        angd = 0x8021ab40
+                0x8021ab44                        dmm = 0x8021ab44
+                0x8021ab48                        mmm = 0x8021ab48
+                0x8021ab4c                        gPlaneX = 0x8021ab4c
+                0x8021ab50                        gPlaneY = 0x8021ab50
+                0x8021ab54                        gPlaneZ = 0x8021ab54
+                0x8021ab58                        gGlobeRoutesDlLen = 0x8021ab58
+                0x8021ab5c                        gGlobePlaneDlLen = 0x8021ab5c
+                0x8021ab60                        gGlobeTargetLon = 0x8021ab60
+                0x8021ab64                        gGlobeTargetLat = 0x8021ab64
+                0x8021ab68                        gGlobeRoutesDl = 0x8021ab68
+                0x8021ab6c                        gGlobePlaneDl = 0x8021ab6c
+                0x802159f0                        gStarSpeeds = 0x802159f0
+                0x8021ab70                        gPakReady = 0x8021ab70
+                0x8021ab74                        gPakDeleteItem = 0x8021ab74
+                0x8021ab76                        gLastYoshiSelection = 0x8021ab76
+                0x8021ab80                        gBgPicture = 0x8021ab80
+                0x8021ab84                        gBgPictureMode = 0x8021ab84
+                0x8021ab90                        gAttractPics = 0x8021ab90
+                0x8021aba0                        gAttractPicNo = 0x8021aba0
+                0x8021aba1                        gAttractPicEnvAlpha = 0x8021aba1
+                0x8021aba2                        gAttractPicPrimAlpha = 0x8021aba2
+                0x8021aba4                        gAttractPicFade = 0x8021aba4
+                0x8020c070                        gYoshiFeItems = 0x8020c070
                 0x803ff280                        __osContLastCmd = 0x803ff280
                 0x803ff281                        __osMaxControllers = 0x803ff281
                 0x8036bb18                        currentYoshiWindow = 0x8036bb18
@@ -579,134 +803,46 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x8036bb24                        gYoshiHeapItems = 0x8036bb24
                 0x802e8c84                        gFontAdvance = 0x802e8c84
                 0x802e8c98                        gTextTerminator = 0x802e8c98
-                0x80211a68                        D_80211A68 = 0x80211a68
+                0x802e8bf8                        gUseEeprom = 0x802e8bf8
+                0x80364ef0                        gBestTimes = 0x80364ef0
+                0x80364f70                        gEepTimes = 0x80364f70
+                0x80365060                        gSlotState = 0x80365060
+                0x8039b630                        gPfs = 0x8039b630
+                0x8039b698                        gPakFileNo = 0x8039b698
+                0x8039b6b0                        gSaveImage = 0x8039b6b0
+                0x8039c4b4                        gEepromPresent = 0x8039c4b4
+                0x8039c538                        gPakFullSlot = 0x8039c538
+                0x8039c541                        gIgnorePak = 0x8039c541
                 0x803643d4                        D_803643D4 = 0x803643d4
                 0x80364b00                        D_80364B00 = 0x80364b00
                 0x802e8c44                        D_802E8C44 = 0x802e8c44
-                0x80364ef0                        D_80364EF0 = 0x80364ef0
-                0x80211a6a                        D_80211A6A = 0x80211a6a
-                0x80210e90                        D_80210E90 = 0x80210e90
-                0x80210ee0                        D_80210EE0 = 0x80210ee0
-                0x80210f78                        D_80210F78 = 0x80210f78
-                0x80211a70                        D_80211A70 = 0x80211a70
-                0x802110a8                        D_802110A8 = 0x802110a8
                 0x802fdac0                        D_802FDAC0 = 0x802fdac0
-                0x80211568                        D_80211568 = 0x80211568
                 0x80211ac0                        D_80211AC0 = 0x80211ac0
-                0x802153c0                        D_802153C0 = 0x802153c0
-                0x80211a28                        D_80211A28 = 0x80211a28
                 0x80364a94                        D_80364A94 = 0x80364a94
                 0x80364b82                        D_80364B82 = 0x80364b82
-                0x802153d4                        D_802153D4 = 0x802153d4
-                0x802153d8                        D_802153D8 = 0x802153d8
-                0x802153dc                        D_802153DC = 0x802153dc
-                0x802153e6                        D_802153E6 = 0x802153e6
-                0x802153e4                        D_802153E4 = 0x802153e4
                 0x80367738                        D_80367738 = 0x80367738
-                0x802153e8                        D_802153E8 = 0x802153e8
                 0x80364a8c                        D_80364A8C = 0x80364a8c
                 0x80364a9c                        D_80364A9C = 0x80364a9c
                 0x803156c0                        D_803156C0 = 0x803156c0
-                0x802153e0                        D_802153E0 = 0x802153e0
-                0x802153f0                        D_802153F0 = 0x802153f0
-                0x802153ec                        D_802153EC = 0x802153ec
                 0x802f47b0                        D_802F47B0 = 0x802f47b0
-                0x80215915                        D_80215915 = 0x80215915
-                0x80215916                        D_80215916 = 0x80215916
-                0x8021593c                        D_8021593C = 0x8021593c
-                0x8021592e                        D_8021592E = 0x8021592e
                 0x802e8c94                        D_802E8C94 = 0x802e8c94
-                0x802158a8                        D_802158A8 = 0x802158a8
-                0x802154d8                        D_802154D8 = 0x802154d8
-                0x802154e8                        D_802154E8 = 0x802154e8
-                0x802154f0                        D_802154F0 = 0x802154f0
-                0x802154e4                        D_802154E4 = 0x802154e4
-                0x802154ec                        D_802154EC = 0x802154ec
-                0x80215508                        D_80215508 = 0x80215508
-                0x802158a0                        D_802158A0 = 0x802158a0
-                0x802155a0                        D_802155A0 = 0x802155a0
-                0x80365060                        D_80365060 = 0x80365060
                 0x80364b81                        D_80364B81 = 0x80364b81
-                0x80215930                        D_80215930 = 0x80215930
-                0x802e8bf8                        D_802E8BF8 = 0x802e8bf8
-                0x802154d2                        D_802154D2 = 0x802154d2
-                0x80215458                        D_80215458 = 0x80215458
-                0x802154d4                        D_802154D4 = 0x802154d4
-                0x802154dc                        D_802154DC = 0x802154dc
-                0x802154e0                        D_802154E0 = 0x802154e0
                 0x802158aa                        D_802158AA = 0x802158aa
-                0x80219ef8                        D_80219EF8 = 0x80219ef8
-                0x8039c538                        D_8039C538 = 0x8039c538
-                0x80215520                        D_80215520 = 0x80215520
-                0x802154b0                        D_802154B0 = 0x802154b0
-                0x8020c070                        D_8020C070 = 0x8020c070
                 0x8020c0aa                        D_8020C0AA = 0x8020c0aa
                 0x803046f8                        D_803046F8 = 0x803046f8
                 0x80304710                        D_80304710 = 0x80304710
                 0x8020c0c1                        D_8020C0C1 = 0x8020c0c1
                 0x8020c0c0                        D_8020C0C0 = 0x8020c0c0
                 0x80304730                        D_80304730 = 0x80304730
-                0x802154b2                        D_802154B2 = 0x802154b2
-                0x802154b4                        D_802154B4 = 0x802154b4
-                0x80215918                        D_80215918 = 0x80215918
-                0x802154b8                        D_802154B8 = 0x802154b8
-                0x802154b6                        D_802154B6 = 0x802154b6
-                0x802154ba                        D_802154BA = 0x802154ba
-                0x802154bc                        D_802154BC = 0x802154bc
-                0x802154be                        D_802154BE = 0x802154be
-                0x802154c0                        D_802154C0 = 0x802154c0
-                0x802154cc                        D_802154CC = 0x802154cc
-                0x802154c8                        D_802154C8 = 0x802154c8
-                0x80215928                        D_80215928 = 0x80215928
-                0x802154c4                        D_802154C4 = 0x802154c4
-                0x80215924                        D_80215924 = 0x80215924
-                0x802154d0                        D_802154D0 = 0x802154d0
-                0x8021591a                        D_8021591A = 0x8021591a
-                0x80215920                        D_80215920 = 0x80215920
-                0x8021592c                        D_8021592C = 0x8021592c
-                0x8021546c                        D_8021546C = 0x8021546c
                 0x803156c4                        D_803156C4 = 0x803156c4
                 0x80215464                        D_80215464 = 0x80215464
                 0x80215468                        D_80215468 = 0x80215468
-                0x80215454                        D_80215454 = 0x80215454
-                0x8021545c                        D_8021545C = 0x8021545c
-                0x80215460                        D_80215460 = 0x80215460
-                0x80215450                        D_80215450 = 0x80215450
-                0x80215944                        D_80215944 = 0x80215944
-                0x80215948                        D_80215948 = 0x80215948
-                0x8021594c                        D_8021594C = 0x8021594c
-                0x80215950                        D_80215950 = 0x80215950
-                0x80215440                        D_80215440 = 0x80215440
-                0x80215444                        D_80215444 = 0x80215444
-                0x80215448                        D_80215448 = 0x80215448
-                0x8021544c                        D_8021544C = 0x8021544c
-                0x80215940                        D_80215940 = 0x80215940
-                0x80215902                        D_80215902 = 0x80215902
-                0x80215900                        D_80215900 = 0x80215900
-                0x80215908                        D_80215908 = 0x80215908
-                0x80215910                        D_80215910 = 0x80215910
-                0x80215914                        D_80215914 = 0x80215914
-                0x80215470                        D_80215470 = 0x80215470
                 0x80364a87                        D_80364A87 = 0x80364a87
                 0x803643d5                        D_803643D5 = 0x803643d5
                 0x8020d530                        D_8020D530 = 0x8020d530
-                0x80215480                        D_80215480 = 0x80215480
                 0x8020d4b8                        D_8020D4B8 = 0x8020d4b8
-                0x80215960                        D_80215960 = 0x80215960
-                0x80215964                        D_80215964 = 0x80215964
-                0x8021596c                        D_8021596C = 0x8021596c
-                0x80215968                        D_80215968 = 0x80215968
-                0x80215976                        D_80215976 = 0x80215976
                 0x80364afc                        D_80364AFC = 0x80364afc
-                0x80215974                        D_80215974 = 0x80215974
-                0x80215978                        D_80215978 = 0x80215978
-                0x80215970                        D_80215970 = 0x80215970
-                0x80215980                        D_80215980 = 0x80215980
                 0x8021597f                        D_8021597F = 0x8021597f
-                0x80215998                        D_80215998 = 0x80215998
-                0x802159b0                        D_802159B0 = 0x802159b0
-                0x802182d0                        D_802182D0 = 0x802182d0
-                0x802159c0                        D_802159C0 = 0x802159c0
                 0x8036ea79                        D_8036EA79 = 0x8036ea79
                 0x8036ea7c                        D_8036EA7C = 0x8036ea7c
                 0x8036ea78                        D_8036EA78 = 0x8036ea78
@@ -735,155 +871,31 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x8036b9a8                        D_8036B9A8 = 0x8036b9a8
                 0x802f49f4                        D_802F49F4 = 0x802f49f4
                 0x80364b44                        D_80364B44 = 0x80364b44
-                0x802159d0                        D_802159D0 = 0x802159d0
-                0x802159d4                        D_802159D4 = 0x802159d4
-                0x802159d8                        D_802159D8 = 0x802159d8
-                0x802159dc                        D_802159DC = 0x802159dc
-                0x802159e0                        D_802159E0 = 0x802159e0
-                0x802159e4                        D_802159E4 = 0x802159e4
-                0x80217490                        D_80217490 = 0x80217490
-                0x80217590                        D_80217590 = 0x80217590
-                0x80217290                        D_80217290 = 0x80217290
-                0x80217390                        D_80217390 = 0x80217390
                 0x80215a90                        D_80215A90 = 0x80215a90
                 0x80215a92                        D_80215A92 = 0x80215a92
                 0x80215a97                        D_80215A97 = 0x80215a97
-                0x8021728c                        D_8021728C = 0x8021728c
-                0x80215a70                        D_80215A70 = 0x80215a70
-                0x80215a7c                        D_80215A7C = 0x80215a7c
-                0x80215a80                        D_80215A80 = 0x80215a80
                 0x80215a84                        D_80215A84 = 0x80215a84
-                0x80215a88                        D_80215A88 = 0x80215a88
                 0x802e8f38                        D_802E8F38 = 0x802e8f38
                 0x80364b80                        D_80364B80 = 0x80364b80
                 0x8020bd08                        D_8020BD08 = 0x8020bd08
                 0x80364b08                        D_80364B08 = 0x80364b08
-                0x80217b6c                        D_80217B6C = 0x80217b6c
-                0x8020bd30                        D_8020BD30 = 0x8020bd30
-                0x80217a10                        D_80217A10 = 0x80217a10
-                0x80217b50                        D_80217B50 = 0x80217b50
                 0x8020be98                        D_8020BE98 = 0x8020be98
                 0x802182a8                        D_802182A8 = 0x802182a8
-                0x80217b54                        D_80217B54 = 0x80217b54
-                0x80217b58                        D_80217B58 = 0x80217b58
-                0x80217b5c                        D_80217B5C = 0x80217b5c
-                0x80217b60                        D_80217B60 = 0x80217b60
-                0x80217b64                        D_80217B64 = 0x80217b64
-                0x80217b68                        D_80217B68 = 0x80217b68
-                0x80218270                        D_80218270 = 0x80218270
                 0x8020bde4                        D_8020BDE4 = 0x8020bde4
-                0x80217b70                        D_80217B70 = 0x80217b70
                 0x8020bdec                        D_8020BDEC = 0x8020bdec
-                0x80217690                        D_80217690 = 0x80217690
                 0x80218274                        D_80218274 = 0x80218274
-                0x8021a918                        D_8021A918 = 0x8021a918
-                0x8021a91c                        D_8021A91C = 0x8021a91c
-                0x802182c4                        D_802182C4 = 0x802182c4
-                0x802182c0                        D_802182C0 = 0x802182c0
-                0x802182c8                        D_802182C8 = 0x802182c8
-                0x802182cc                        D_802182CC = 0x802182cc
-                0x80218734                        D_80218734 = 0x80218734
-                0x80218358                        D_80218358 = 0x80218358
-                0x80218730                        D_80218730 = 0x80218730
-                0x80218350                        D_80218350 = 0x80218350
-                0x802183f0                        D_802183F0 = 0x802183f0
-                0x80218370                        D_80218370 = 0x80218370
-                0x802183b0                        D_802183B0 = 0x802183b0
-                0x80218360                        D_80218360 = 0x80218360
                 0x80218430                        D_80218430 = 0x80218430
-                0x80218ef8                        D_80218EF8 = 0x80218ef8
-                0x80219f10                        D_80219F10 = 0x80219f10
-                0x80219f30                        D_80219F30 = 0x80219f30
-                0x80219f48                        D_80219F48 = 0x80219f48
-                0x80219f68                        D_80219F68 = 0x80219f68
-                0x8020c000                        D_8020C000 = 0x8020c000
-                0x8020c014                        D_8020C014 = 0x8020c014
-                0x80218ee0                        D_80218EE0 = 0x80218ee0
-                0x80218d30                        D_80218D30 = 0x80218d30
-                0x80218d24                        D_80218D24 = 0x80218d24
-                0x8039b630                        D_8039B630 = 0x8039b630
-                0x80218ef0                        D_80218EF0 = 0x80218ef0
-                0x80219f88                        D_80219F88 = 0x80219f88
                 0x80370c00                        D_80370C00 = 0x80370c00
-                0x8039b698                        D_8039B698 = 0x8039b698
-                0x80218b20                        D_80218B20 = 0x80218b20
-                0x8039c4b4                        D_8039C4B4 = 0x8039c4b4
                 0x802fa264                        D_802FA264 = 0x802fa264
-                0x8039b6b0                        D_8039B6B0 = 0x8039b6b0
-                0x8020bee0                        D_8020BEE0 = 0x8020bee0
-                0x80364f70                        D_80364F70 = 0x80364f70
-                0x80218d28                        D_80218D28 = 0x80218d28
-                0x802189c0                        D_802189C0 = 0x802189c0
-                0x80218ad0                        D_80218AD0 = 0x80218ad0
                 0x802189d0                        D_802189D0 = 0x802189d0
-                0x80218740                        D_80218740 = 0x80218740
                 0x8020c488                        D_8020C488 = 0x8020c488
-                0x80219f90                        D_80219F90 = 0x80219f90
-                0x80219fb0                        D_80219FB0 = 0x80219fb0
                 0x80301080                        D_80301080 = 0x80301080
-                0x8020c01c                        D_8020C01C = 0x8020c01c
                 0x80219fd0                        D_80219FD0 = 0x80219fd0
                 0x8020d800                        D_8020D800 = 0x8020d800
-                0x8021a7e8                        D_8021A7E8 = 0x8021a7e8
-                0x8021a7d0                        D_8021A7D0 = 0x8021a7d0
-                0x8021a828                        D_8021A828 = 0x8021a828
-                0x8021a8f0                        D_8021A8F0 = 0x8021a8f0
-                0x8021ab30                        D_8021AB30 = 0x8021ab30
-                0x8021ab34                        D_8021AB34 = 0x8021ab34
-                0x8021a920                        D_8021A920 = 0x8021a920
-                0x8021a8f4                        D_8021A8F4 = 0x8021a8f4
                 0x8021a8fc                        D_8021A8FC = 0x8021a8fc
                 0x8021a900                        D_8021A900 = 0x8021a900
-                0x8021a928                        D_8021A928 = 0x8021a928
-                0x8021a8f8                        D_8021A8F8 = 0x8021a8f8
-                0x8021a904                        D_8021A904 = 0x8021a904
-                0x8021a908                        D_8021A908 = 0x8021a908
-                0x8021a926                        D_8021A926 = 0x8021a926
-                0x8021a930                        D_8021A930 = 0x8021a930
-                0x8021a907                        D_8021A907 = 0x8021a907
-                0x8021ab21                        D_8021AB21 = 0x8021ab21
-                0x8021a906                        D_8021A906 = 0x8021a906
-                0x8021ab28                        D_8021AB28 = 0x8021ab28
-                0x8021ab38                        D_8021AB38 = 0x8021ab38
-                0x8021ab2c                        D_8021AB2C = 0x8021ab2c
-                0x8021ab40                        D_8021AB40 = 0x8021ab40
-                0x8021ab44                        D_8021AB44 = 0x8021ab44
-                0x8021ab48                        D_8021AB48 = 0x8021ab48
                 0x8021ab20                        D_8021AB20 = 0x8021ab20
-                0x8021ab2e                        D_8021AB2E = 0x8021ab2e
-                0x8021a905                        D_8021A905 = 0x8021a905
-                0x8021a924                        D_8021A924 = 0x8021a924
-                0x8021ab68                        D_8021AB68 = 0x8021ab68
-                0x8021ab58                        D_8021AB58 = 0x8021ab58
-                0x8021ab6c                        D_8021AB6C = 0x8021ab6c
-                0x8021ab5c                        D_8021AB5C = 0x8021ab5c
-                0x8021ab24                        D_8021AB24 = 0x8021ab24
-                0x8021a90c                        D_8021A90C = 0x8021a90c
-                0x8021a910                        D_8021A910 = 0x8021a910
-                0x8021a914                        D_8021A914 = 0x8021a914
-                0x8021a938                        D_8021A938 = 0x8021a938
-                0x8021ab60                        D_8021AB60 = 0x8021ab60
-                0x8021ab64                        D_8021AB64 = 0x8021ab64
-                0x8021a934                        D_8021A934 = 0x8021a934
                 0x8021a944                        D_8021A944 = 0x8021a944
-                0x8021a940                        D_8021A940 = 0x8021a940
-                0x8021a909                        D_8021A909 = 0x8021a909
-                0x8021a840                        D_8021A840 = 0x8021a840
-                0x8021a8c4                        D_8021A8C4 = 0x8021a8c4
-                0x8021a8cc                        D_8021A8CC = 0x8021a8cc
-                0x8021a8d4                        D_8021A8D4 = 0x8021a8d4
-                0x8021a8c8                        D_8021A8C8 = 0x8021a8c8
-                0x8021a8d0                        D_8021A8D0 = 0x8021a8d0
-                0x8021a8d8                        D_8021A8D8 = 0x8021a8d8
-                0x8021a8dc                        D_8021A8DC = 0x8021a8dc
-                0x8021a8c0                        D_8021A8C0 = 0x8021a8c0
-                0x8021a8e8                        D_8021A8E8 = 0x8021a8e8
-                0x8021a8e0                        D_8021A8E0 = 0x8021a8e0
-                0x8021a8e4                        D_8021A8E4 = 0x8021a8e4
-                0x8021ab4c                        D_8021AB4C = 0x8021ab4c
-                0x8021ab50                        D_8021AB50 = 0x8021ab50
-                0x8021ab54                        D_8021AB54 = 0x8021ab54
-                0x802159f0                        D_802159F0 = 0x802159f0
                 0x80364b3f                        D_80364B3F = 0x80364b3f
                 0x80364b24                        D_80364B24 = 0x80364b24
                 0x80364b3d                        D_80364B3D = 0x80364b3d
@@ -891,26 +903,14 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x80364b1b                        D_80364B1B = 0x80364b1b
                 0x8021ab7c                        D_8021AB7C = 0x8021ab7c
                 0x80219f58                        D_80219F58 = 0x80219f58
-                0x8021ab70                        D_8021AB70 = 0x8021ab70
-                0x8039c541                        D_8039C541 = 0x8039c541
-                0x8021ab74                        D_8021AB74 = 0x8021ab74
                 0x8039ca60                        D_8039CA60 = 0x8039ca60
                 0x80364ae9                        D_80364AE9 = 0x80364ae9
-                0x8021a830                        D_8021A830 = 0x8021a830
                 0x8021a834                        D_8021A834 = 0x8021a834
-                0x8021ab76                        D_8021AB76 = 0x8021ab76
                 0x80364a71                        D_80364A71 = 0x80364a71
                 0x80364a64                        D_80364A64 = 0x80364a64
                 0x8021ab72                        D_8021AB72 = 0x8021ab72
-                0x8021ab84                        D_8021AB84 = 0x8021ab84
-                0x8021ab80                        D_8021AB80 = 0x8021ab80
-                0x8021ab90                        D_8021AB90 = 0x8021ab90
-                0x8021aba0                        D_8021ABA0 = 0x8021aba0
-                0x8021aba2                        D_8021ABA2 = 0x8021aba2
                 0x8020e3e8                        D_8020E3E8 = 0x8020e3e8
-                0x8021aba1                        D_8021ABA1 = 0x8021aba1
                 0x8020e430                        D_8020E430 = 0x8020e430
-                0x8021aba4                        D_8021ABA4 = 0x8021aba4
                 0x8021aba8                        D_8021ABA8 = 0x8021aba8
                 0x802fad50                        D_802FAD50 = 0x802fad50
                 0x802c2208                        D_802C2208 = 0x802c2208
@@ -3171,6 +3171,16 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x803a6b20                        gCreditsScroll = 0x803a6b20
                 0x803a6b24                        gCreditsEndTimer = 0x803a6b24
                 0x80304a90                        gCreditLines = 0x80304a90
+                0x802e8bf8                        gUseEeprom = 0x802e8bf8
+                0x80364ef0                        gBestTimes = 0x80364ef0
+                0x80364f70                        gEepTimes = 0x80364f70
+                0x80365060                        gSlotState = 0x80365060
+                0x8039b630                        gPfs = 0x8039b630
+                0x8039b698                        gPakFileNo = 0x8039b698
+                0x8039b6b0                        gSaveImage = 0x8039b6b0
+                0x8039c4b4                        gEepromPresent = 0x8039c4b4
+                0x8039c538                        gPakFullSlot = 0x8039c538
+                0x8039c541                        gIgnorePak = 0x8039c541
                 0x803ff288                        __osEepromTimer = 0x803ff288
                 0x803ff2a8                        __osEepromTimerQ = 0x803ff2a8
                 0x803ff2c0                        __osEepromTimerMsg = 0x803ff2c0
@@ -3207,10 +3217,10 @@ LOAD build_nm/assets/hd_front_end/hd_front_end_data_29690.bin.o
                 0x006ad3f0                        D_006AD3F0 = 0x6ad3f0
                 0x006bf2f0                        D_006BF2F0 = 0x6bf2f0
                 0x006d3d30                        D_006D3D30 = 0x6d3d30
-                0x8021591c                        D_8021591C = 0x8021591c
+                0x8021591c                        gPanelPerspNorm = 0x8021591c
                 0x8020bc88                        D_8020BC88 = 0x8020bc88
-                0x80217288                        D_80217288 = 0x80217288
+                0x80217288                        gStarfieldPerspNorm = 0x80217288
                 0x0066c900                        D_0066C900 = 0x66c900
                 0x02000000                        D_02000000 = 0x2000000
-                0x8021a8ec                        D_8021A8EC = 0x8021a8ec
+                0x8021a8ec                        gFlightAltitude = 0x8021a8ec
 OUTPUT(build_nm/hd_front_end.us.v11.elf elf32-tradbigmips)

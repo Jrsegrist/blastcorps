@@ -33,7 +33,7 @@ COPIERS = {"util_copy64",   # 23C20: copy in 8-byte units
 # is heap (decoded textures, models, collision records), so what these read
 # there says nothing about the front end's data image.  (Before this filter,
 # the texture decoder's u16 accesses swapped e.g. the pak file name strings
-# D_8020C000 and character set D_8020C01C as halfwords.)
+# gPakGameName and character set gPakCharset as halfwords.)
 LEVEL_HEAP_USERS = {"tex_decode_type1", "tex_decode_type2",   # 60F60: texture decode
                     "anim_init_model", "anim_update_channel", "anim_apply_linear_key",   # 56040: models
                     "veh_add_record", "tex_resolve_dl_impl", "lvl_load_model",   # 5CB60: level/object load

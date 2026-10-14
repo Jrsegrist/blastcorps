@@ -8,7 +8,7 @@
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
-#define D_8020C070 ((MenuEntry *) D_8020C070)
+#define gYoshiFeItems ((MenuEntry *) gYoshiFeItems)
 #define gYoshiWindows ((MenuPage *) gYoshiWindows)
 #define gDynamicBufs ((FeDyn *) gDynamicBufs)
 /* end of views */
@@ -43,10 +43,10 @@ typedef struct {
 #ifndef NON_MATCHING
 extern s32 D_80367738;
 #endif
-extern u8 D_8021AB70;
+extern u8 gPakReady;
 extern char D_8021AB72[];
-extern s16 D_8021AB74;
-extern s16 D_8021AB76;
+extern s16 gPakDeleteItem;
+extern s16 gLastYoshiSelection;
 extern s32 D_8021AB7C;
 
 int sprintf(char *, const char *, ...);
@@ -56,10 +56,11 @@ int sprintf(char *, const char *, ...);
     if (!(EX)) \
     debug_printf("\n\a --- ASSERTION FAULT - %s - %s, line %d\n\n", #EX, "back_loop.c", line)
 
-/* One front-end frame: handles pak replies and the menu (yoshi) selection for
+/* The front end's frame: window selections, display list, next mode (0x801FE990).
+ * One front-end frame: handles pak replies and the menu (yoshi) selection for
  * the current mode, starts the previous display list and builds this frame's,
  * then picks the next mode once the current one is idle. */
-void func_801FE990(void) {
+void fe_back_loop(void) {
     s32 i;
     Gfx *gdl;
     OSMesg msg;
@@ -71,10 +72,10 @@ void func_801FE990(void) {
         if (yoshiState == 2) {
             osRecvMesg(&pakToGameMessageQ, &msg, 1);
             BACK_ASSERT(MQ_IS_EMPTY(&pakToGameMessageQ), 62);
-            D_8021AB70 = !msg;
+            gPakReady = !msg;
             if (gGameMode == 0x10000000) {
-                if (D_8021AB70) {
-                    func_801EA278();
+                if (gPakReady) {
+                    fe_player_load_slots();
                 }
                 gNextGameMode = 0x8000;
             } else {
@@ -90,26 +91,26 @@ void func_801FE990(void) {
             case 0x10000:
                 if (yoshiSelection == 0xFFFF) {
                     gNextGameMode = 0x8000000000000000;
-                    func_801E8EB8(4, 1);
+                    fe_player_ticker_set_text(4, 1);
                 } else if (gYoshiWindows[10].unk18 - 2 < 4) {
                     gNextGameMode = 0x2000000;
-                } else if (D_802154B0 == 4) {
-                    D_8021AB70 = 0;
-                    D_8039C541 = 1;
+                } else if (gLoadMenuFullSlot == 4) {
+                    gPakReady = 0;
+                    gIgnorePak = 1;
                     gNextGameMode = 0x8000;
                 } else {
                     gNextGameMode = 0x800000;
                 }
                 break;
             case 0x100000000:
-                if (yoshiSelection != 0xFFFF && func_801F73FC()) {
-                    D_8021AB74 = yoshiSelection;
+                if (yoshiSelection != 0xFFFF && fe_pak_has_files()) {
+                    gPakDeleteItem = yoshiSelection;
                     gNextGameMode = 0x4000000000;
                 }
                 break;
             case 0x400000:
                 if (yoshiSelection == 0xFFFF) {
-                    func_801E8EB8(4, 1);
+                    fe_player_ticker_set_text(4, 1);
                     gNextGameMode = 0x200000;
                 } else {
                     playerNumber = yoshiSelection - 2;
@@ -122,14 +123,14 @@ void func_801FE990(void) {
                 break;
             case 0x80000:
                 if (yoshiSelection == 0xC) {
-                    func_801EA108(playerNumber, 0, 0);
+                    fe_player_new_game(playerNumber, 0, 0);
                 }
-                func_801E8EB8(4, 1);
+                fe_player_ticker_set_text(4, 1);
                 gNextGameMode = 0x800000;
                 break;
             case 0x8000000000:
                 if (yoshiSelection == 0xC) {
-                    osSendMesg(&D_80219EF8, (OSMesg) ((D_8021AB74 << 16) | 5), 1);
+                    osSendMesg(&gPakRequestQueue, (OSMesg) ((gPakDeleteItem << 16) | 5), 1);
                 }
                 gNextGameMode = 0x10000000000;
                 break;
@@ -167,13 +168,13 @@ void func_801FE990(void) {
                     playerNumber = D_80364AE9;
                 }
                 if (playerNumber == D_80364AE9 || playerNumber == playerNumberAtStart || yoshiSelection == 0xFFFF) {
-                    gNextGameMode = D_8021A830;
+                    gNextGameMode = gBestTimesReturnMode;
                 } else {
                     gNextGameMode = 0x100000000000000;
                 }
                 break;
             case 0x4000000000000:
-                func_801E8C40(4);
+                fe_player_panel_init(4);
                 gNextGameMode = 0x8000000000000;
                 break;
             case 0x1000000000000:
@@ -181,11 +182,11 @@ void func_801FE990(void) {
                 break;
             case 0x40000000000000:
                 if (yoshiSelection == 0xC) {
-                    func_801EA108(playerNumber, 0, 1);
+                    fe_player_new_game(playerNumber, 0, 1);
                 }
                 break;
             case 0x100000000000000:
-                func_801E8EB8(4, 1);
+                fe_player_ticker_set_text(4, 1);
                 break;
             case 0x4000000000000000:
                 if (yoshiSelection == 0xC) {
@@ -198,7 +199,7 @@ void func_801FE990(void) {
                 debug_printf("backdrop illegal yoshi selection\n");
                 break;
         }
-        D_8021AB76 = yoshiSelection;
+        gLastYoshiSelection = yoshiSelection;
         yoshiSelection = 0;
     }
     nextdma = 0;
@@ -227,7 +228,7 @@ void func_801FE990(void) {
     }
     gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, gFrameBufferPhys[gBufferIndex]);
     text_begin_frame();
-    gdl = func_80200BE0(gdl, (s32) &gDynamicBufs[gBufferIndex], &gFrameDlLen);
+    gdl = fe_bg_draw(gdl, (s32) &gDynamicBufs[gBufferIndex], &gFrameDlLen);
     gDPPipeSync(gdl++);
     gDPSetCycleType(gdl++, G_CYC_1CYCLE);
     if (gGameMode & 0xC000000000000) {
@@ -240,12 +241,12 @@ void func_801FE990(void) {
         }
         if (gYoshiTypeState == 0 && playerNumber == 4) {
             playerNumber = playerNumberAtStart;
-            func_801E8DCC(playerNumber);
+            fe_player_ticker_reset(playerNumber);
             gYoshiWindows[56].unk8 |= 0x20;
         }
     }
     if (gGameMode & 0x818D04001AFB8080) {
-        gdl = func_801E9718(gdl, (struct PlayerSelDyn *) &gDynamicBufs[gBufferIndex], 0xC2);
+        gdl = fe_player_draw_panel(gdl, (struct PlayerSelDyn *) &gDynamicBufs[gBufferIndex], 0xC2);
     }
     if (gGameMode & 0x898C0FE313F78002) {
         gdl = title_draw_attract(gdl, (s32) &gDynamicBufs[gBufferIndex], gBufferIndex, &gFrameDlLen);
@@ -256,24 +257,24 @@ void func_801FE990(void) {
         playerNumber = gYoshiWindows[10].unk18 - 2;
         if (playerNumber != old) {
             if (old == 4) {
-                func_801E8EB8(playerNumber, 0);
+                fe_player_ticker_set_text(playerNumber, 0);
             } else {
-                func_801E8EB8(playerNumber, 1);
+                fe_player_ticker_set_text(playerNumber, 1);
             }
         }
     }
     cont_start_read();
     if (gGameMode & 0x40000000) {
-        gdl = func_801ED800(gdl, &gDynamicBufs[gBufferIndex], gBufferIndex, &gFrameDlLen);
+        gdl = fe_promo_draw(gdl, &gDynamicBufs[gBufferIndex], gBufferIndex, &gFrameDlLen);
     }
     if (gGameMode == 0x1000000000000) {
-        gdl = func_80201364((s32) gDynamicBufs, gdl);
+        gdl = fe_attract_pic_draw((s32) gDynamicBufs, gdl);
     }
     gdl = func_8024C404(gdl, (DynamicBuf *) &gDynamicBufs[gBufferIndex], &gFrameDlLen);
     if (gGameMode & 0x88000080) {
-        gdl = func_801EC770(gdl, &gDynamicBufs[gBufferIndex], &gFrameDlLen);
+        gdl = fe_player_draw_medals(gdl, &gDynamicBufs[gBufferIndex], &gFrameDlLen);
         if (D_80364A71 != -1 && yoshiState == 2) {
-            gdl = func_801F51C8(&gDynamicBufs[gBufferIndex], gdl);
+            gdl = fe_comm_point_draw(&gDynamicBufs[gBufferIndex], gdl);
             gSPClearGeometryMode(gdl++, G_ZBUFFER);
         }
     }
@@ -300,8 +301,8 @@ void func_801FE990(void) {
                       gYoshiAlpha, 0xFF, 0, 0, gYoshiAlpha);
     }
     if (gGameMode & 0x40000000000) {
-        func_801F803C();
-        gdl = func_801F8440((s32) &gDynamicBufs[gBufferIndex], gdl);
+        fe_best_next_player();
+        gdl = fe_best_draw_icon((s32) &gDynamicBufs[gBufferIndex], gdl);
     }
     text_flush_screen(&gdl, (Mtx *) &gDynamicBufs[gBufferIndex]);
     gdl = func_80274BF0((s32) &gDynamicBufs[gBufferIndex], gdl);
@@ -309,7 +310,7 @@ void func_801FE990(void) {
         gdl = yoshi_draw(gdl, (s32) &gDynamicBufs[gBufferIndex], &gFrameDlLen);
     }
     if (yoshiState != 1 && currentYoshiWindow == 0xB) {
-        gdl = func_801EAA7C(gdl, (struct PlayerSelDyn *) &gDynamicBufs[gBufferIndex], &gFrameDlLen);
+        gdl = fe_player_name_entry_draw(gdl, (struct PlayerSelDyn *) &gDynamicBufs[gBufferIndex], &gFrameDlLen);
     }
     gDPFullSync(gdl++);
     gSPEndDisplayList(gdl++);
@@ -334,16 +335,16 @@ void func_801FE990(void) {
                 break;
             case 0x100000:
                 gNextGameMode = 0x80000;
-                D_8020C070[9].unkC = D_8020C070[playerNumber + 2].unkC;
-                D_8020C070[9].unk10 = NULL;
-                D_8020C070[9].unk6 = D_8020C070[9].unk8 = 0x14;
+                gYoshiFeItems[9].unkC = gYoshiFeItems[playerNumber + 2].unkC;
+                gYoshiFeItems[9].unk10 = NULL;
+                gYoshiFeItems[9].unk6 = gYoshiFeItems[9].unk8 = 0x14;
                 yoshi_demand(0x800C);
                 break;
             case 0x4000000000:
                 gNextGameMode = 0x8000000000;
-                D_8020C070[9].unkC = D_8020C070[D_8021AB74].unkC;
-                D_8020C070[9].unk10 = D_8020C070[D_8021AB74].unk10;
-                D_8020C070[9].unk6 = D_8020C070[9].unk8 = 0xF;
+                gYoshiFeItems[9].unkC = gYoshiFeItems[gPakDeleteItem].unkC;
+                gYoshiFeItems[9].unk10 = gYoshiFeItems[gPakDeleteItem].unk10;
+                gYoshiFeItems[9].unk6 = gYoshiFeItems[9].unk8 = 0xF;
                 yoshi_demand(0x800C);
                 break;
             case 0x800000:
@@ -352,7 +353,7 @@ void func_801FE990(void) {
             case 0x2000000:
                 D_80364AE9 = playerNumber;
                 playerNumberAtStart = playerNumber;
-                if (D_80365060[playerNumber] == 1) {
+                if (gSlotState[playerNumber] == 1) {
                     func_80275390(0x4000);
                 } else {
                     gNextGameMode = 0x20000;
@@ -362,8 +363,8 @@ void func_801FE990(void) {
                 func_80275390(0x400000000000000);
                 break;
             case 0x1000000:
-                osSendMesg(&D_80219EF8, (OSMesg) ((playerNumber << 16) | 7), 1);
-                osSendMesg(&D_80219EF8, (OSMesg) ((playerNumber << 16) | 0x15 | 0x01000000), 1);
+                osSendMesg(&gPakRequestQueue, (OSMesg) ((playerNumber << 16) | 7), 1);
+                osSendMesg(&gPakRequestQueue, (OSMesg) ((playerNumber << 16) | 0x15 | 0x01000000), 1);
                 seq_prepare(4);
                 func_80275390(0x100000000000);
                 break;
@@ -371,16 +372,16 @@ void func_801FE990(void) {
                 gNextGameMode = 0x40000000;
                 break;
             case 0x8000:
-                if (D_8039C541) {
+                if (gIgnorePak) {
                     func_80275390(0x20000000000000);
-                } else if (D_8021AB70) {
+                } else if (gPakReady) {
                     gNextGameMode = 0x10000;
                 } else {
                     gNextGameMode = 0x10000000;
                 }
                 break;
             case 0x2000000000:
-                if (D_8021AB70) {
+                if (gPakReady) {
                     gNextGameMode = 0x100000000;
                 } else {
                     gNextGameMode = 0x80000000000;
@@ -403,16 +404,16 @@ void func_801FE990(void) {
                 break;
             case 0x80000000000000:
                 if (playerNumber == D_80364AE9 || playerNumber == playerNumberAtStart) {
-                    gNextGameMode = D_8021A830;
+                    gNextGameMode = gBestTimesReturnMode;
                 } else {
                     gNextGameMode = 0x100000000000000;
                 }
                 break;
             case 0x100000000000000:
-                if (D_8021AB76 != 0xC) {
+                if (gLastYoshiSelection != 0xC) {
                     gNextGameMode = 0x200000000000000;
                 } else {
-                    func_80275390(D_8021A830);
+                    func_80275390(gBestTimesReturnMode);
                 }
                 break;
             default:

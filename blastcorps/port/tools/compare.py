@@ -120,9 +120,11 @@ def nm_syms(path):
     s = Syms()
     for line in open(path):
         p = line.split()
-        # (`nm -n` of the i686 exe: 8 digits; of the x86_64 one: 16)
+        # (`nm -n` of the i686 exe: 8 digits; of the x86_64 one: 16).  Only
+        # i686 C names carry a leading '_'; x86_64 names are kept as they are
+        # (SDK names like __amMain, __scMain)
         if len(p) == 3 and p[1] in "Tt" and len(p[0]) in (8, 16):
-            name = p[2][1:] if p[2].startswith("_") else p[2]
+            name = p[2][1:] if len(p[0]) == 8 and p[2].startswith("_") else p[2]
             s.add(int(p[0], 16), name.split(".")[0])
     return s.done()
 

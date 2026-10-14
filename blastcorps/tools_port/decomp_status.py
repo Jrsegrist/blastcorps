@@ -146,11 +146,62 @@ def defines(text, name):
                      re.M) is not None
 
 
+SHARED_HEADERS = ['include/game/types.h', 'include/game/object.h']
+UNNAMED_FIELD_RE = re.compile(r'^(unk|pad)[0-9A-Fa-f]*$')
+
+
+def naming_counts():
+    """the rename map's entries, the shared structs' fields (named / all) and the named constants"""
+    funcs = data = 0
+    for line in open('tools_port/names.txt'):
+        s = line.split('#', 1)[0].strip()
+        if not s or s.startswith('field ') or '=' not in s:
+            continue
+        if s.startswith('func_'):
+            funcs += 1
+        else:
+            data += 1
+    structs = []   # (name, named fields, fields)
+    for h in SHARED_HEADERS:
+        if not os.path.exists(h):
+            continue
+        text = open(h).read()
+        for m in re.finditer(r'typedef struct(?: \w+)? \{(.*?)\} (\w+);', text, re.S):
+            body = re.sub(r'/\*.*?\*/', '', m.group(1), flags=re.S)
+            fields = re.findall(r'(\w+)\s*(?:\[[^\]]*\])*\s*;', body)
+            if fields:
+                named = [f for f in fields if not UNNAMED_FIELD_RE.match(f)]
+                structs.append((m.group(2), len(named), len(fields)))
+    consts = {}
+    for h, prefixes in (('include/game/game.h', ('MODE_',)), ('include/game/sound.h', ('SFX_', 'MUS_', 'SND_GROUP_')),
+                        ('include/game/types.h', ('VS_',))):
+        if os.path.exists(h):
+            for m in re.finditer(r'^#define ((?:%s)\w*)\s' % '|'.join(prefixes), open(h).read(), re.M):
+                p = next(x for x in prefixes if m.group(1).startswith(x))
+                consts[p] = consts.get(p, 0) + 1
+    return funcs, data, structs, consts
+
+
+def print_naming(markdown):
+    funcs, data, structs, consts = naming_counts()
+    named = sum(s[1] for s in structs)
+    total = sum(s[2] for s in structs)
+    lines = ['rename map (tools_port/names.txt): %d functions, %d data symbols' % (funcs, data),
+             'shared structs (%s): %d of %d fields named, in %d structs' % (', '.join(SHARED_HEADERS), named, total,
+                                                                          len(structs)),
+             'named constants: ' + ', '.join('%s* %d' % (k, v) for k, v in sorted(consts.items()))]
+    print()
+    for l in lines:
+        print(('- ' if markdown else '') + l)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('-v', '--verbose', action='store_true',
                     help='list the hand-asm-without-C, near-miss and unmatched functions')
     ap.add_argument('--markdown', action='store_true', help='print a Markdown table')
+    ap.add_argument('--naming', action='store_true',
+                    help='also count the rename map, the shared structs\' named fields and the named constants')
     args = ap.parse_args()
 
     hand = load_hand_list('tools_port/hand_asm.txt')
@@ -223,6 +274,8 @@ def main():
             if b[0] == 'total':
                 print('  '.join('-' * x for x in w))
             print(fmt % tuple(b))
+    if args.naming:
+        print_naming(args.markdown)
     if args.verbose:
         for c in ('hand', 'near', 'unmatched'):
             if lists[c]:

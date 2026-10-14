@@ -3,20 +3,12 @@
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define gLevelInfo ((LevelInfo *) gLevelInfo)
-#define players ((Player *) players)
+#define players ((PlayerInfo *) players)
 /* end of views */
 
-typedef struct {
-    u8 unk0;
-    u8 pad1[0x43];
-} LevelInfo; /* 0x44 bytes */
+/* (gLevelInfo[]: LevelInfo, game/types.h) */
 
-typedef struct {
-    u8 pad0[0x18];
-    u8 unk18[0x7A]; /* per level: completion state */
-    u8 unk92[0x5E]; /* per level */
-    u8 padF0[0x10];
-} Player; /* 0x100 bytes */
+/* (players[]: PlayerInfo, game/types.h) */
 
 
 /* "restoring from EE memory": rebuilds the RAM save image (0x80201E80).
@@ -35,15 +27,15 @@ s32 fe_pak_restore_from_eeprom(void) {
             osSendMesg(&gPakRequestQueue, (OSMesg) ((i << 8) | 0xA | (playerNumber << 16) | 0x01000000), 1);
             osRecvMesg(&pakToGameMessageQ, &msg, 1);
         }
-        if (((players[playerNumber].unk18[i] > 0 && players[playerNumber].unk18[i] < 6) ? 1 : 0) &&
+        if (((players[playerNumber].medal[i] > 0 && players[playerNumber].medal[i] < 6) ? 1 : 0) &&
             i != 0x31 && i != 0x2F && i != 0x26 && msg == 0) {
-            if (gLevelInfo[i].unk0 == 1) {
+            if (gLevelInfo[i].kind == 1) {
                 pakBuffer[0] = 0x1234567887654321;
                 osSendMesg(&gPakRequestQueue, (OSMesg) ((i << 8) | 0xD | (playerNumber << 16) | 0x01000000), 1);
                 osRecvMesg(&pakToGameMessageQ, NULL, 1);
             }
             fe_best_clear_times(playerNumber);
-            gBestTimes[playerNumber][D_802E8C44[players[playerNumber].unk92[i]]] = gEepTimes[i * 2];
+            gBestTimes[playerNumber][D_802E8C44[players[playerNumber].bestVehicle[i]]] = gEepTimes[i * 2];
             osSendMesg(&gPakRequestQueue, (OSMesg) ((i << 8) | 9 | (playerNumber << 16) | 0x01000000), 1);
             osRecvMesg(&pakToGameMessageQ, NULL, 1);
         }

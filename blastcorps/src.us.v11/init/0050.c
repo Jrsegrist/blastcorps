@@ -69,7 +69,7 @@ extern s32 D_802229EC;
  * D_802229EC*sizeof(Huft)) instead of malloc'd, and the reference's
  * defensive error returns inside the main loop are absent.
  *
- * Matched by porting hd_code's copy (func_80297FE0 in hd_code/53220.c).
+ * Matched by porting hd_code's copy (hd_huft_build in hd_code/53220.c).
  * What fixed the old near-miss: it returns `int`, not s32. s32 is `long`
  * in this ultra64.h, and with it IDO computes the `&&` into $s6 and adds a
  * `move v0,s6`. The arena address is written `D_802229EC * 8 + D_802229E0`
@@ -233,7 +233,7 @@ int huft_build(s32 *b, u32 n, u32 s, u16 *d, u8 *e, Huft **t, s32 *m) {
  * minus its WSIZE sliding window (no flush_output, no `& (WSIZE-1)`) and
  * minus the defensive `if (e == 99) return 1;` checks.
  *
- * Matched by porting hd_code's copy (func_8029867C in hd_code/53220.c).
+ * Matched by porting hd_code's copy (hd_inflate_codes in hd_code/53220.c).
  * What fixed the old one-missing-`move` near-miss: `register u32 k;`
  * declared before `register u32 b;`, the copy loop written as the
  * reference's `n -= (e = n); do { ... } while (--e);` (reusing `e`, no extra

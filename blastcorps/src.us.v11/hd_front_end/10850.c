@@ -9,7 +9,7 @@
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define gLevelInfo ((LevelInfo *) gLevelInfo)
-#define players ((Player *) players)
+#define players ((PlayerInfo *) players)
 #ifdef NON_MATCHING
 #define gYoshiHeapItems (*(MenuItem * N64P *) &gYoshiHeapItems)
 #endif
@@ -29,21 +29,9 @@ void bcopy(const void *, void *, int);
 /* pfsHandler.c's message to the save thread: command, argument, player, reply wanted */
 #define PAK_MSG(cmd, arg, pn, reply) ((cmd) | ((arg) << 8) | ((pn) << 16) | ((reply) << 24))
 
-typedef struct {
-    u8 name[0x10];
-    u32 unk10;         /* 0x10: bit per best-time slot */
-    u8 pad14[4];
-    u8 rank[0x3C];     /* 0x18 */
-    u8 pad54[0x91 - 0x54];
-    u8 unk91;
-    u8 timeSlot[0x3C]; /* 0x92 */
-    u8 padCE[0x100 - 0xCE];
-} Player;
+/* (players[]: PlayerInfo, game/types.h) */
 
-typedef struct {
-    u8 type; /* 0x80: special level */
-    u8 pad[0x43];
-} LevelInfo; /* 0x44 */
+/* (gLevelInfo[]: LevelInfo, game/types.h) */
 
 typedef struct {
     u16 flags;
@@ -87,7 +75,7 @@ s32 fe_best_player_listed(u8 pn);
 /* The best-times menu: per vehicle slot, a row per player (0x801F7850).
  * build the best-times menu */
 void fe_best_build_menu(void) {
-    Player *p;
+    PlayerInfo *p;
     MenuHeader *hdr;
     MenuItem *item;
     s32 lvl;
@@ -102,7 +90,7 @@ void fe_best_build_menu(void) {
     gHeapPtr += 0x71C;
     for (i = 0; i < 4; i++) {
         if (gSlotState[i] == 1 && saveIt[i] == 0
-            && ((players[i].rank[levelno] > 0 && players[i].rank[levelno] < 6) ? 1 : 0)) {
+            && ((players[i].medal[levelno] > 0 && players[i].medal[levelno] < 6) ? 1 : 0)) {
             osSendMesg(&gPakRequestQueue, (OSMesg) PAK_MSG(8, levelno, i, 1), OS_MESG_BLOCK);
             osRecvMesg(&pakToGameMessageQ, NULL, OS_MESG_BLOCK);
         } else {
@@ -117,12 +105,12 @@ void fe_best_build_menu(void) {
                 item = &gYoshiHeapItems[n * 4 + i];
                 p = &players[i];
                 if (gSlotState[i] == 1 && gBestTimes[i][D_802E8C44[lvl]] > 0
-                    && (gLevelInfo[levelno].type != 0x80 || p->unk91 >= 11)) {
+                    && (gLevelInfo[levelno].kind != 0x80 || p->gameState >= 11)) {
                     hud_format_time(timeStr, gBestTimes[i][D_802E8C44[lvl]], 0);
                     sprintf(D_80219FD0[n * 4 + i], "%-7.7s %s", p, timeStr);
                     item->text = D_80219FD0[n * 4 + i];
                     item->unk10 = 0;
-                    item->unk14 = fe_stats_grade_time(gBestTimes[i][D_802E8C44[lvl]], levelno, players[i].unk91) % 5 + 0x12;
+                    item->unk14 = fe_stats_grade_time(gBestTimes[i][D_802E8C44[lvl]], levelno, players[i].gameState) % 5 + 0x12;
                     item->unk18 = i;
                 } else {
                     item->text = 0;
@@ -162,7 +150,7 @@ void fe_best_build_menu(void) {
         item->unk16 = 0x1E;
         item->unk4 += lvl / 4 * 100;
     }
-    if (gLevelInfo[levelno].type == 0x80) {
+    if (gLevelInfo[levelno].kind == 0x80) {
         item = &gYoshiHeapItems[lvl];
         item->text = 0;
         item->unk10 = 0;
@@ -184,10 +172,10 @@ void fe_best_build_menu(void) {
 /* A vehicle slot the player knows (special levels: slot 0) (0x801F7F74).
  * whether best-time slot `lvl` is shown (special levels: only slot 0) */
 s32 fe_best_slot_shown(u8 lvl) {
-    if (gLevelInfo[levelno].type == 0x80) {
+    if (gLevelInfo[levelno].kind == 0x80) {
         return lvl == 0;
     }
-    return (players[playerNumberAtStart].unk10 & (1 << lvl)) ? 1 : 0;
+    return (players[playerNumberAtStart].vehiclesUnlocked & (1 << lvl)) ? 1 : 0;
 }
 
 /* Sort: items with text first, then by time (0x801F7FF4).
@@ -214,12 +202,12 @@ void fe_best_next_player(void) {
         for (; i < 4 && (gSlotState[next % 4] != 1 || fe_best_player_listed(next % 4) == 0); i++, next = (next + 1) % 4) {
         }
         if (playerNumber != next) {
-            snd_play(gSfxBank, 0x1D, 0);
+            snd_play(gSfxBank, SFX_MENU_MOVE, 0);
             playerNumber = next;
             fe_player_ticker_set_text(playerNumber, 1);
             fe_best_color_items();
         } else {
-            snd_play(gSfxBank, 0xD0, 0);
+            snd_play(gSfxBank, SFX_DENIED, 0);
         }
     }
 }
@@ -266,7 +254,7 @@ void fe_best_clear_times(u8 pn) {
     s32 i;
 
     BT_ASSERT(frontEndPresent, 279);
-    if (!((players[pn].rank[levelno] > 0 && players[pn].rank[levelno] < 6) ? 1 : 0)) {
+    if (!((players[pn].medal[levelno] > 0 && players[pn].medal[levelno] < 6) ? 1 : 0)) {
         for (i = 0; i < 16; i++) {
             gBestTimes[pn][D_802E8C44[i]] = 0;
         }
@@ -281,7 +269,7 @@ Gfx *fe_best_draw_icon(s32 arg0, Gfx *gfx) {
 
     off = 0;
     g = gfx;
-    if (gLevelInfo[levelno].type != 0x80) {
+    if (gLevelInfo[levelno].kind != 0x80) {
         g = spr_begin(g);
         g = spr_draw(g, gBestRowSlot[((u16 *) gYoshiWindows)[0x280 / 2] / 4] + gVehicleIconTex, 0x18 - off, 100, 0xFF - off * 2, 1, 1.0f);
         g = spr_end(g);

@@ -116,9 +116,9 @@ void amdream_spawn(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut
     gAmdreamPos[0] = x;
     gAmdreamPos[1] = y;
     gAmdreamPos[2] = z;
-    VEH8_S16(0x4C) = heading;
-    VEH8_S16(0x4E) = heading;
-    VEH8_S16(0x74) = heading;
+    VEH8_S16(VS_HEADING) = heading;
+    VEH8_S16(VS_MOVE_HEADING) = heading;
+    VEH8_S16(VS_MOMENTUM_HEADING) = heading;
     veh_init_ground((s16 *) (gAmdreamState + 0x52), gAmdreamPos[1], x, z, (s32 *) (gAmdreamState + 4),
                   (s32 *) &gAmdreamPos[1], (s16 *) (gAmdreamState + 0x4C), 8, fp, gAmdreamState, f);
     anim_init_model((u32 *) gAmdreamMtxB, (u32 *) gAmdreamMtxA, (AnimChannel *) gAmdreamAnim, gAmdreamModel);
@@ -283,12 +283,12 @@ void amdream_ride_attach(s32 id, InterpRegs *r) {
     s32 dz;
 
     veh_deck_to_local(id, x, z, r);
-    VEH8_S16(0x6A) = r->t3;
+    VEH8_S16(VS_DECK_POS) = r->t3;
     VEH8_S16(0x6C) = r->t4;
-    VEH8_S16(0x6E) = VEH8_U16(0x4C);
+    VEH8_S16(VS_DECK_HEADING) = VEH8_U16(VS_HEADING);
     dx = veh_wheel_offset(0, (s16 *) (gAmdreamState + 0x52), (s16 *) (gAmdreamState + 0x4C), &dz);
     veh_deck_to_local(id, x + dx, z + dz, r);
-    VEH8_S16(0x70) = r->t3;
+    VEH8_S16(VS_DECK_FRONT) = r->t3;
     VEH8_S16(0x72) = r->t4;
 }
 #else
@@ -320,11 +320,11 @@ void amdream_ride_follow(s32 id, f32 *f24) {
     s32 h;
 
     r.f24 = *f24;
-    h = veh_follow_heading((s16 *) (gAmdreamState + 0x52), VEH8_S16(0x6A), (u16 *) (gAmdreamState + 0x6E), id,
-                      VEH8_S16(0x6C), VEH8_S16(0x70), VEH8_S16(0x72), &s3, &r);
-    VEH8_S16(0x4E) = h;
-    VEH8_S16(0x4C) = h;
-    veh_deck_to_world(id, VEH8_S16(0x6A), VEH8_S16(0x6C), &r);
+    h = veh_follow_heading((s16 *) (gAmdreamState + 0x52), VEH8_S16(VS_DECK_POS), (u16 *) (gAmdreamState + 0x6E), id,
+                      VEH8_S16(0x6C), VEH8_S16(VS_DECK_FRONT), VEH8_S16(0x72), &s3, &r);
+    VEH8_S16(VS_MOVE_HEADING) = h;
+    VEH8_S16(VS_HEADING) = h;
+    veh_deck_to_world(id, VEH8_S16(VS_DECK_POS), VEH8_S16(0x6C), &r);
     amdream_set_physics();
     gBounceSound = 1;
     INTERP_TO_TRISIDE(f, r);
@@ -362,7 +362,7 @@ static void port_b7a88_ring(void) {
     veh_prepare_escape(gAmdreamState);
     gAmdreamDeflecting = 1;
     mid = veh_free_arc_mid();
-    d = VEH8_U16(0x4E) - 0x800;
+    d = VEH8_U16(VS_MOVE_HEADING) - 0x800;
     if (d < 0) {
         d += 0xFFF;
     }
@@ -374,10 +374,10 @@ static void port_b7a88_ring(void) {
         d = 0xFFF - d;
     }
     veh_reverse_if_behind(gAmdreamState);
-    turn = veh_turn_into_free_arc(gAmdreamState, VEH8_U16(0x4E), VEH8_U16(0x4C), &cur, D_8030D900);
+    turn = veh_turn_into_free_arc(gAmdreamState, VEH8_U16(VS_MOVE_HEADING), VEH8_U16(VS_HEADING), &cur, D_8030D900);
     gAmdreamDeflectHeading = cur;
-    VEH8_S16(0x4E) = cur;
-    VEH8_S16(0x74) = cur;
+    VEH8_S16(VS_MOVE_HEADING) = cur;
+    VEH8_S16(VS_MOMENTUM_HEADING) = cur;
     veh_step_heading(gAmdreamState, turn, d, &target);
     veh_hit_slowdown(gAmdreamState, 0);
     D_803F77D0 = gAmdreamAnim;
@@ -402,7 +402,7 @@ static void port_b7a88_crash(void) {
                       (s32 *) &gAmdreamPos[2], gAmdreamMtxA, gAmdreamMtxB, 0x100, &end);
     }
     gAmdreamThrottleLock = 5;
-    v = VEH8_S16(0x76);
+    v = VEH8_S16(VS_SPEED);
     if (v >= 0) {
         if (v < 0x32) {
             v = 0x32;
@@ -410,7 +410,7 @@ static void port_b7a88_crash(void) {
     } else if (!(v < -0x31)) {
         v = -0x32;
     }
-    VEH8_S16(0x76) = -v >> 1;
+    VEH8_S16(VS_SPEED) = -v >> 1;
     amdream_build_model();
 }
 
@@ -419,7 +419,7 @@ static void port_b7a88_crash(void) {
  * amdream_spawn). Zone lookup (amdream_zone_alpha), save the state for a crash
  * rollback (veh_snapshot), engine sound 0xA4 (veh_update_horn); unless byte
  * +0x9A is set, trail and effects (amdream_update_effects, fed the zone scan
- * registers); func_802CB690 while gTurboPending is set; amdream_set_physics; steering
+ * registers); veh_start_turbo while gTurboPending is set; amdream_set_physics; steering
  * (veh_steer at the rate amdream_steer_rate returns) and, unless the throttle
  * lockout gAmdreamThrottleLock is counting down, throttle (veh_throttle: mode 3,
  * delta 0x10); heading (veh_turn_heading: rate 6000, with sound), slope
@@ -456,7 +456,7 @@ void amdream_update(void) {
         amdream_update_effects(zr.t6, zr.t7, zr.s0, zr.s1, zr.s2, zr.s3, zr.s4);
     }
     if (gTurboPending != 0) {
-        func_802CB690(gAmdreamState);
+        veh_start_turbo(gAmdreamState);
     }
     amdream_set_physics();
     veh_steer(amdream_steer_rate(), (u16 *) (gAmdreamState + 0x4C));
@@ -475,7 +475,7 @@ void amdream_update(void) {
     if (gAmdreamDeflecting != 0) {
         veh_set_target_heading(gAmdreamState, &gAmdreamDeflectHeading);
     }
-    x = veh_move_along_heading(slope, VEH8_U16(0x4E), (s16 *) (gAmdreamState + 0x76), (s32 *) &gAmdreamPos[0],
+    x = veh_move_along_heading(slope, VEH8_U16(VS_MOVE_HEADING), (s16 *) (gAmdreamState + 0x76), (s32 *) &gAmdreamPos[0],
                       (s32 *) &gAmdreamPos[2], &o);
     gBounceSound = 1;
     rr.s3 = o.s3;
@@ -490,7 +490,7 @@ void amdream_update(void) {
         anim_update_model((u8 *) gAmdreamMtxB, (u8 *) gAmdreamMtxA, (AnimChannel *) gAmdreamAnim);
     }
     amdream_build_model();
-    veh_collision_setup(gAmdreamPos[2], (s32) D_80305D30, 1, 1, gAmdreamPos[0], gAmdreamPos[1], 7, VEH8_S16(0x76), 0x96, 0,
+    veh_collision_setup(gAmdreamPos[2], (s32) D_80305D30, 1, 1, gAmdreamPos[0], gAmdreamPos[1], 7, VEH8_S16(VS_SPEED), 0x96, 0,
                   8, gAmdreamState);
     veh_collide_spheres(8, gAmdreamState);
     veh_collide_world(8);
@@ -509,9 +509,9 @@ void amdream_update(void) {
     gPlayerX = gAmdreamPos[0];
     gPlayerY = gAmdreamPos[1];
     gPlayerZ = gAmdreamPos[2];
-    D_8036443C = VEH8_S16(0x76);
-    D_8036443E = VEH8_U16(0x4E);
-    D_80364440 = VEH8_U16(0x4C);
+    D_8036443C = VEH8_S16(VS_SPEED);
+    D_8036443E = VEH8_U16(VS_MOVE_HEADING);
+    D_80364440 = VEH8_U16(VS_HEADING);
     veh_set_record(gAmdreamPos[2], 8, gAmdreamPos[0], gAmdreamPos[1], gAmdreamState);
 }
 #else
@@ -611,7 +611,7 @@ void amdream_build_model(void) {
     u8 *base;
 
     m += (N64_A32) (gBufferIndex != 0 ? gAmdreamMtxA : gAmdreamMtxB);
-    gModelRot[1] = VEH8_U16(0x4C);
+    gModelRot[1] = VEH8_U16(VS_HEADING);
     mtx_build_model(gAmdreamPos[0], gAmdreamPos[1], gAmdreamPos[2], 0x32C8, (s32 *) m);
     base = (u8 *) (gBufferIndex != 0 ? gAmdreamMtxA : gAmdreamMtxB);
     regs.a3 = 0;
@@ -789,7 +789,7 @@ void chopper_update_sound(void) {
         return;
     }
     if (gChopperSound == NULL) {
-        snd_play(gSfxBank, 0x13, &gChopperSound);
+        snd_play(gSfxBank, SFX_CHOPPER_LOOP, &gChopperSound);
     }
     dist -= 500;
     if (dist < 0) {
@@ -856,7 +856,7 @@ extern s32 gChopperGroundY;
  * Copies two halfwords of the vehicle block (+0x4E, +0x76) to D_803EF32A /
  * D_803EF328, and the marker position D_803EF310..1C to gDriverPos..10 and
  * gChopperLandY. Then, in game mode 0x1000: if gChopperMode == 5 or
- * gChopperGroundY >= D_803EF314, calls func_80275390(0x2000). In any other mode:
+ * gChopperGroundY >= D_803EF314, calls fade_to_mode(0x2000). In any other mode:
  * if gChopperMode == 4, sets the next game mode to 0x1000.
  * The game-mode compare is a full 64-bit compare in the asm (ld/beq). */
 void chopper_update_mode(void) {
@@ -866,12 +866,12 @@ void chopper_update_mode(void) {
     D_803ED80C = D_803EF314;
     D_803ED810 = D_803EF318;
     gChopperLandY = gChopperGroundY;
-    if (gGameMode == 0x1000) {
+    if (gGameMode == MODE_INTRO_LANDING) {
         if (gChopperMode == 5 || !(gChopperGroundY < D_803EF314)) {
-            func_80275390(0x2000);
+            fade_to_mode(MODE_LEVEL_START);
         }
     } else if (gChopperMode == 4) {
-        gNextGameMode = 0x1000;
+        gNextGameMode = MODE_INTRO_LANDING;
     }
 }
 #else
@@ -972,7 +972,7 @@ static s32 port_state1(void) {
     s32 t3;
     s32 t2;
 
-    if (gGameMode == 0x800) {
+    if (gGameMode == MODE_INTRO_FLY) {
         if (levelno == 0x1A || levelno == 4) {
             limit = 48000;
         } else if (levelno == 0x1D || levelno == 0x3A || levelno == 0xD) {
@@ -981,7 +981,7 @@ static s32 port_state1(void) {
             limit = 30000;
         }
         if (!(limit < dist)) {
-            gNextGameMode = 1;
+            gNextGameMode = MODE_INTRO_APPROACH;
             debug_printf(D_80305D40);
             gChopperTargetX = (&gChopperRetargetZ)[-1];
             bx = gChopperRetargetZ;
@@ -993,11 +993,11 @@ static s32 port_state1(void) {
         gChopperMode = 2;
         return 1;
     }
-    t0 = VEH8D04_S16(0x76) + 2;
+    t0 = VEH8D04_S16(VS_SPEED) + 2;
     if (t0 >= 0xA1) {
         t0 = 0xA0;
     }
-    VEH8D04_S16(0x76) = t0;
+    VEH8D04_S16(VS_SPEED) = t0;
     a = veh_follow_angle(ax, az, 0, dist, bx, bz);
     if (a >= 0x401) {
         a = veh_follow_angle(ax, az, dist, 0, bx, bz) + 0x400;
@@ -1012,7 +1012,7 @@ static s32 port_state1(void) {
     if (!(d1 < d2)) {
         a = 0xFFF - a;
     }
-    t0 = VEH8D04_U16(0x4E) - a;
+    t0 = VEH8D04_U16(VS_MOVE_HEADING) - a;
     t3 = t0;
     if (t3 >= 0) {
         if (t3 >= 0x800) {
@@ -1062,7 +1062,7 @@ static s32 port_state3(void) {
     if (dist == 0) {
         return 1;
     }
-    speed = VEH8D04_S16(0x76);
+    speed = VEH8D04_S16(VS_SPEED);
     gChopperX = port_step_axis(gChopperX, gChopperTargetX, dist, speed);
     gChopperZ = port_step_axis(gChopperZ, gChopperTargetZ, dist, speed);
     dist = chopper_target_distance();
@@ -1089,14 +1089,14 @@ static void port_state4(void) {
         return;
     }
     gChopperTouchdown = 1;
-    if (gGameMode != 0x1000) {
+    if (gGameMode != MODE_INTRO_LANDING) {
         v = util_dist2d(gPlayerX, gPlayerX, gChopperX, gChopperZ);
         v = 0x88B8 - (v << 1);
         if (v >= 0xFA1) {
             if (v >= 0x8000) {
                 v = 0x7FFF;
             }
-            h = snd_play(gSfxBank, 0x28, NULL);
+            h = snd_play(gSfxBank, SFX_CHOPPER_LAND, NULL);
             snd_modify(h, 8, v);
         }
     }
@@ -1166,12 +1166,12 @@ void chopper_fly(void) {
             port_state1();
             goto heading;
         case 2:
-            t = VEH8D04_S16(0x76);
+            t = VEH8D04_S16(VS_SPEED);
             if (t >= 0x15) {
-                VEH8D04_S16(0x76) = t - 4;
+                VEH8D04_S16(VS_SPEED) = t - 4;
                 goto heading;
             }
-            VEH8D04_S16(0x76) = 0x14;
+            VEH8D04_S16(VS_SPEED) = 0x14;
             gChopperMode = 3;
             D_803EF320 = chopper_target_distance();
             /* fallthrough */
@@ -1200,15 +1200,15 @@ void chopper_fly(void) {
             goto tail;
     }
 heading:
-    t = VEH8D04_U16(0x4E) + gChopperTurn;
+    t = VEH8D04_U16(VS_MOVE_HEADING) + gChopperTurn;
     if (t >= 0x1000) {
         t -= 0xFFF;
     } else if (t < 0) {
         t += 0xFFF;
     }
-    VEH8D04_S16(0x4E) = t;
-    VEH8D04_S16(0x4C) = t;
-    gChopperX = veh_move_along_heading(0.0f, t, &VEH8D04_S16(0x76), &gChopperX, &gChopperZ, &o);
+    VEH8D04_S16(VS_MOVE_HEADING) = t;
+    VEH8D04_S16(VS_HEADING) = t;
+    gChopperX = veh_move_along_heading(0.0f, t, &VEH8D04_S16(VS_SPEED), &gChopperX, &gChopperZ, &o);
     gChopperZ = o.t1;
 tail:
     if (gChopperMode != 4 && gChopperMode != 5) {

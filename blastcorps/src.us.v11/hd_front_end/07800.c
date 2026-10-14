@@ -13,7 +13,7 @@
 #define gLevelInfo ((LevelInfo *) gLevelInfo)
 #define D_802F49F4 ((IconInfo *) D_802F49F4)
 #define gDynamicBufs ((FeDyn *) gDynamicBufs)
-#define players ((FePlayer *) players)
+#define players ((PlayerInfo *) players)
 #ifdef NON_MATCHING
 #define gHeapPtr (*(s32 *) &gHeapPtr)
 #endif
@@ -39,20 +39,7 @@
     }
 
 
-/* front-end view of hd_code's Player record (0x100 bytes, players) */
-typedef struct {
-    u8 pad0[0xA];
-    u16 unkA; /* units */
-    u8 unkC;
-    u8 padD[7];
-    s32 unk14;
-    u8 unk18[60]; /* per level: grade */
-    u8 unk54[60]; /* per level: bits */
-    u8 pad90;
-    u8 unk91;
-    u8 unk92[60]; /* per level */
-    u8 padCE[0x100 - 0xCE];
-} FePlayer;
+/* (players[]: PlayerInfo, game/types.h) */
 
 typedef struct {
     u8 pad0[4];
@@ -61,15 +48,7 @@ typedef struct {
     s8 unk18[0x18]; /* -1 terminated */
 } FeLevelEntry;     /* 0x30 bytes, one per level */
 
-typedef struct {
-    u8 unk0; /* type */
-    u8 pad1[0x2F];
-    u16 unk30; /* time thresholds, best first */
-    u16 unk32;
-    u16 unk34;
-    u16 unk36;
-    u8 pad38[0xC];
-} LevelInfo;
+/* (gLevelInfo[]: LevelInfo, game/types.h) */
 
 
 typedef struct {
@@ -141,7 +120,7 @@ u8 fe_stats_grade_timed_level(); /* K&R */
 /* Grades the level; records units, best time and medal (0x801EE800).
  * Finish a level: grade it, update units and best times. *arg0 = 1 if a rank was gained. */
 u8 fe_stats_grade_level(u8 *arg0, u8 arg1, u8 arg2) {
-    FePlayer *p;
+    PlayerInfo *p;
     LevelInfo *l;
     u32 t;
     u8 ret;
@@ -153,8 +132,8 @@ u8 fe_stats_grade_level(u8 *arg0, u8 arg1, u8 arg2) {
     PRINT_SCORE("old", D_8036EA60);
     PRINT_SCORE("res", D_8036EA80);
     PRINT_SCORE("rs2", D_8036EA90);
-    debug_printf("units %d\n", p->unkA);
-    if (gLevelInfo[levelno].unk0 == 1) {
+    debug_printf("units %d\n", p->units);
+    if (gLevelInfo[levelno].kind == 1) {
         t = stats_print_status();
         if (arg2) {
             if (arg1) {
@@ -169,7 +148,7 @@ u8 fe_stats_grade_level(u8 *arg0, u8 arg1, u8 arg2) {
                 }
                 if (D_803643D5) {
                     debug_printf("Units up 3\n");
-                    p->unkA += 3;
+                    p->units += 3;
                 }
                 nss.bdn = 1;
             } else {
@@ -184,28 +163,28 @@ u8 fe_stats_grade_level(u8 *arg0, u8 arg1, u8 arg2) {
     *arg0 = 0;
     if (arg1 && arg2) {
         STATS_ASSERT(!DUMMY_LEVELS(levelno), 94);
-        if (gLevelInfo[levelno].unk0 == 1) {
-            p->unk14 = ((s32) D_803649F0);
+        if (gLevelInfo[levelno].kind == 1) {
+            p->money = ((s32) D_803649F0);
         }
-        if (p->unkA < 360) {
+        if (p->units < 360) {
             debug_printf("UNITS UP %d\n", nss.coin % 5 - D_8036EA60.coin % 5);
-            p->unkA += nss.coin % 5 - D_8036EA60.coin % 5;
+            p->units += nss.coin % 5 - D_8036EA60.coin % 5;
         }
-        if (p->unkA == 354) {
-            p->unkA += 6;
+        if (p->units == 354) {
+            p->units += 6;
         }
-        if (p->unkA / 12 > p->unkC) {
+        if (p->units / 12 > p->title) {
             *arg0 = 1;
-            p->unkC++;
+            p->title++;
         }
-        if (!(gLevelInfo[levelno].unk0 & 0x81)) {
-            p->unk92[levelno] = nss.bdn;
+        if (!(gLevelInfo[levelno].kind & 0x81)) {
+            p->bestVehicle[levelno] = nss.bdn;
         }
         gBestTimes[playerNumber][D_802E8C44[nss.bdn]] = nss.tc;
-        if (D_803643D5 && gLevelInfo[levelno].unk0 == 1) {
+        if (D_803643D5 && gLevelInfo[levelno].kind == 1) {
             gBestTimes[playerNumber][D_802E8C44[0]] = nss.tc;
         }
-        p->unk18[levelno] = ret;
+        p->medal[levelno] = ret;
         fe_player_ticker_reset(playerNumber);
     }
     return ret;
@@ -231,7 +210,7 @@ u8 fe_stats_grade_timed_level(arg0, arg1, arg2)
     s32 x;
     s32 pad;
     s32 idx;
-    FePlayer *p;
+    PlayerInfo *p;
     LevelInfo *l;
     IconInfo *e;
     MenuEntry *m;
@@ -240,11 +219,11 @@ u8 fe_stats_grade_timed_level(arg0, arg1, arg2)
 
     p = &players[playerNumber];
     l = &gLevelInfo[arg0];
-    if (gNextGameMode == MODE_RESULTS && arg1 && l->unk0 == 2) {
+    if (gNextGameMode == MODE_RESULTS && arg1 && l->kind == 2) {
         ghost_keep_if_best(stats_tenths_to_frames(nss.tc));
     }
     if (arg2 && arg1) {
-        if (gLevelInfo[arg0].unk0 == 0x80) {
+        if (gLevelInfo[arg0].kind == 0x80) {
             nss.bdn = 0;
         } else if (nss.tc <= D_8036EA60.tc) {
             nss.bdn = D_803643D4;
@@ -254,7 +233,7 @@ u8 fe_stats_grade_timed_level(arg0, arg1, arg2)
         }
     }
     if (nss.tc <= D_8036EA60.tc && arg1) {
-        nss.coin = fe_stats_grade_time(nss.tc, arg0, players[playerNumber].unk91);
+        nss.coin = fe_stats_grade_time(nss.tc, arg0, players[playerNumber].gameState);
     } else {
         nss.tc = D_8036EA60.tc;
     }
@@ -277,7 +256,7 @@ u8 fe_stats_grade_timed_level(arg0, arg1, arg2)
         m->unk1A = spr_load(e->unk6, 0, e->unk4, e->unk2C, e->unk2D | 4, 1.0f);
         if (playerNumber != playerNumberAtStart) {
             idx = 3;
-        } else if (gNextGameMode == 0x80 || D_803643D5) {
+        } else if (gNextGameMode == MODE_LEVEL_STATUS || D_803643D5) {
             idx = 1;
         } else if (nss.tc < D_8036EA60.tc) {
             idx = 0;
@@ -302,7 +281,7 @@ s8 fe_stats_count_unlocks(void) {
         return -1;
     }
     for (i = 0, count = 0; e->unk18[i] != -1 && i < 2; i++) {
-        if (players[playerNumber].unk54[levelno] & (1 << i)) {
+        if (players[playerNumber].commPts[levelno] & (1 << i)) {
             count++;
         }
     }
@@ -324,13 +303,13 @@ u8 fe_stats_grade_time(arg0, arg1, arg2)
     LevelInfo *l;
 
     l = &gLevelInfo[arg1];
-    if (l->unk30 >= arg0 && arg2 >= 12) {
+    if (l->medalTimes[0] >= arg0 && arg2 >= 12) {
         ret = 4;
-    } else if (l->unk32 >= arg0) {
+    } else if (l->medalTimes[1] >= arg0) {
         ret = 3;
-    } else if (l->unk34 >= arg0) {
+    } else if (l->medalTimes[2] >= arg0) {
         ret = 2;
-    } else if (l->unk36 >= arg0) {
+    } else if (l->medalTimes[3] >= arg0) {
         ret = 1;
     } else {
         ret = 5;
@@ -352,10 +331,10 @@ void fe_boot_screen_init(s32 arg0) {
     } else {
         gBootSceneAngle = 0;
     }
-    func_8028B4C4((u32) D_0048F5A0, (u32) ((void *) N64_IPTR(gHeapPtr)), (u32 *) &size1, 12, 0, 1);
+    hd_rom_load((u32) D_0048F5A0, (u32) ((void *) N64_IPTR(gHeapPtr)), (u32 *) &size1, 12, 0, 1);
     gBootBannerTex = (u8 *) N64_IPTR(gHeapPtr);
     gHeapPtr += size1;
-    func_8028B4C4((u32) D_0048F970, (u32) ((void *) N64_IPTR(gHeapPtr)), (u32 *) &size2, 12, 0, 1);
+    hd_rom_load((u32) D_0048F970, (u32) ((void *) N64_IPTR(gHeapPtr)), (u32 *) &size2, 12, 0, 1);
     gBootIconTex = (u8 *) N64_IPTR(gHeapPtr);
     gHeapPtr += size2;
     gBootScene = arg0;
@@ -414,7 +393,7 @@ void fe_boot_screen_frame(void) {
         } else {
             gNextGameMode = MODE_ATTRACT_START;
             if (gDebugCheats) {
-                snd_play(gSfxBank, 0x68, NULL);
+                snd_play(gSfxBank, SFX_UNK_0x68_CHIME, NULL);
             }
         }
     }
@@ -430,17 +409,17 @@ void fe_boot_screen_frame(void) {
     }
     if (gFramesInMode >= 20) {
         if (gFramesInMode == 20 && gBootScene == 1) {
-            snd_play(gSfxBank, 0xBA, NULL);
+            snd_play(gSfxBank, SFX_BOOT1_IN, NULL);
         } else if (gFramesInMode == 20 && gBootScene == 2) {
-            snd_play(gSfxBank, 0xBD, NULL);
+            snd_play(gSfxBank, SFX_BOOT2_IN, NULL);
         }
         if (gFramesInMode < 80) {
             gBootCamDist = (80 - gFramesInMode) * 7600.0 / 60.0 + 400.0;
         }
         if (gFramesInMode == 75 && gBootScene == 2) {
-            snd_play(gSfxBank, 0xB8, NULL);
+            snd_play(gSfxBank, SFX_BOOT2_LAND, NULL);
         } else if (gFramesInMode == 75 && gBootScene == 1) {
-            snd_play(gSfxBank, 0xBB, NULL);
+            snd_play(gSfxBank, SFX_BOOT1_LAND, NULL);
         }
         guLookAtReflect(&dyn->unk140, &dyn->unk3C00, 1.0f, 0.0f, gBootCamDist, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
         gBootSceneAngle += gBootSpinSpeed;

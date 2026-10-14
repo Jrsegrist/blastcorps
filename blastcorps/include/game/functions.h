@@ -30,7 +30,7 @@ struct CollisionTri;
 struct VtxBuf;
 
 /* hd_code/00000.c */
-Gfx *func_8024C404(Gfx *arg0, DynamicBuf *arg1, s32 *arg2);
+Gfx *hd_debug_dl_stub(Gfx *arg0, DynamicBuf *arg1, s32 *arg2);
 void veh_draw_layer(Gfx **gfx, u8 lod);
 void hd_mode_setup(void);
 void hd_setup_level(s32 arg0);
@@ -71,14 +71,14 @@ u8 *font_narrow(u16 *arg0);
 
 /* hd_code/17210.c */
 void rec_start_playback(s32 arg0, s32 *arg1);
-void func_8025BB38(void);
-void func_8025BB50(void);
+void rec_start_recording(void);
+void rec_start_replay(void);
 void rec_record(u16 buttons, s8 x, s8 y);
-void func_8025BD98(void);
+void rec_restore_start_vehicle(void);
 void rec_next(void);
 
 /* hd_code/17A70.c */
-void func_8025C230(u8 * N64P *arg0, u8 * N64P *arg1, s32 arg2);
+void kiunzip(u8 * N64P *arg0, u8 * N64P *arg1, s32 arg2);
 
 /* hd_code/17E10.c */
 void hud_attract_messages(void);
@@ -126,7 +126,7 @@ s32 snd_random_id(s32 arg0);
 /* hd_code/1D990.c */
 void cam_set_level_fovy(u8 arg0);
 void lvl_init_chopper_pos(u8 arg0);
-void func_80262238(u8 arg0);
+void lvl_init_train_line(u8 arg0);
 void hud_init_objective(u8 arg0);
 void hud_update_objective(void);
 Gfx *hud_draw_objective(Gfx *gdl, Gfx * N64P *arg1, u32 *arg2);
@@ -205,11 +205,11 @@ Gfx *spr_pipe_sync(Gfx *gfx);
 void spr_draw_blinking(Gfx **gfx, s32 arg1, u8 arg2, s16 arg3, s16 arg4);
 
 /* hd_code/30430.c */
-Gfx *func_80274BF0(s32 arg0, Gfx *gfx);
-void func_80275270(u64 next, f32 speed);
-void func_80275390(u64 next);
+Gfx *fade_draw(s32 arg0, Gfx *gfx);
+void fade_to_mode_speed(u64 next, f32 speed);
+void fade_to_mode(u64 next);
 s32 areWeFading(void);
-s32 func_802753F8(void);
+s32 fade_window_held(void);
 
 /* hd_code/30C70.c */
 void hud_init_target_marker(void);
@@ -280,7 +280,7 @@ void stats_copy_result(u8 *src, u8 *dst);
 void stats_set_level_flag(u8 bit);
 s32 stats_test_level_flag(u8 bit);
 void stats_finish_bonus_level(s32 arg0);
-void func_80285CA0(void);
+void stats_show_commpt_hint(void);
 void stats_award_bonuses(void);
 void stats_finish_level(s32 start);
 s32 stats_tenths_to_frames(u16 arg0);
@@ -316,13 +316,13 @@ void cont_clear(void);
 void cont_show_method_option(void);
 
 /* hd_code/46C20.c */
-void func_8028B3E0(void);
-void func_8028B4C4(u32 devAddr, u32 dest, u32 *size, u8 arg3, u8 arg4, u8 arg5);
+void hd_load_front_end(void);
+void hd_rom_load(u32 devAddr, u32 dest, u32 *size, u8 arg3, u8 arg4, u8 arg5);
 
 /* hd_code/46F60.c */
-void func_8028B720(void);
-void func_8028B734(s8 *arg0, s8 *arg1, u8 arg2);
-f32 func_8028BBF4(s16 arg0, s16 arg1, s16 arg2, s16 arg3);
+void cont_steer_reset(void);
+void cont_stick_to_steer(s8 *arg0, s8 *arg1, u8 arg2);
+f32 math_angle_2d_deg(s16 arg0, s16 arg1, s16 arg2, s16 arg3);
 
 /* hd_code/479D0.c */
 void crate_spawn_all(struct BoxSpawn *arg0, struct BoxSpawn *arg1);
@@ -389,10 +389,10 @@ void academy_check_marker(s32 x, s32 y, s32 z);
 void academy_save_markers(void);
 
 /* hd_code/53220.c */
-void func_802979E0(u8 level);
-void func_80297ECC(void);
-u8 func_80297EF8(u8 level);
-s32 func_802994F8(void);
+void academy_build_window(u8 level);
+void academy_reset_window_cursor(void);
+u8 academy_marker_found(u8 level);
+s32 hd_inflate(void);
 
 /* hd_code/54E30.c */
 void seq_prepare(s32 seq);
@@ -558,12 +558,12 @@ s32 veh_find_point(s32 id, s32 n, u8 **recOut);
 s32 math_dist3(s32 ax, s32 ay, s32 az, s32 bx, s32 by, s32 bz);
 s32 veh_zone_alpha(s32 id, s32 x, s32 y, s32 z, ZoneScanRegs *r);
 s32 ground_over_object(s32 x, s32 y, s32 z);
-s32 func_802AC0BC(s32 x, s32 z, s32 y, TriSideOut *f, TriScanRegs *r);
+s32 ground_scan_guard_tris(s32 x, s32 z, s32 y, TriSideOut *f, TriScanRegs *r);
 
 /* hd_code/679E0.c */
 void obj_blast_around_carrier(s32 radius);
 void veh_check_wrap(s32 *px, s32 *py, s32 *pz);
-void func_802AC2A4(s32 z, s32 a1, s32 x, s32 y, s32 b0, s32 id, u8 *vehicle);
+void veh_maze_object_hits(s32 z, s32 a1, s32 x, s32 y, s32 b0, s32 id, u8 *vehicle);
 s32 ground_in_triangle(s32 px, s32 pz, s32 x0, s32 z0, s32 x1, s32 z1, s32 x2, s32 z2);
 void fx_spawn_node_hit(s32 x, s32 y, s32 z);
 void fx_spawn_at(s32 x, s32 y, s32 z, s32 kind, s32 data);
@@ -718,7 +718,7 @@ s32 obj_end_object_hidden(void);
 void obj_move_model(struct LevelObjectHead *model, s32 dx, s32 dy, s32 dz);
 void obj_collide_vehicle(s32 id, u8 *vehicle);
 void obj_mark_part_gone(struct LevelObject *e, s32 id);
-void func_802BF264(struct CollisionTri *t);
+void obj_tri_clip_free_arc(struct CollisionTri *t);
 void obj_spawn_people(struct LevelObject *e);
 void obj_check_destroyed(struct LevelObject *e);
 void obj_drop_unsupported_parts(struct LevelObject *e);
@@ -742,7 +742,7 @@ void lvl_groups_update_tris(void);
 
 /* hd_code/7F8B0.c */
 void lzss_decompress(u32 *src, u32 *dst, u32 work, u8 type);
-void func_802C4108(u8 **src, u8 **dst, s32 work);
+void kiunzip_entry(u8 **src, u8 **dst, s32 work);
 void veh_start_engine_sound(s32 arg0, s32 arg1);
 void veh_stop_engine_sounds(void);
 void veh_set_engine_level(s32 level);
@@ -788,7 +788,7 @@ void ballista_update(void);
 void ballista_load_state(void *src);
 
 /* hd_code/86ED0.c */
-void func_802CB690(u8 *state);
+void veh_start_turbo(u8 *state);
 
 /* hd_code/86F60.c */
 void police_spawn(u8 *hdr, s32 x, s32 y, s32 z, s32 heading, s32 fp, TriSideOut *f);
@@ -886,14 +886,8 @@ void cyclone_load_state(void *src);
 void shuttle_spawn(u8 *hdr);
 void shuttle_update(void);
 
-/* hd_code/8FD90.c */
-void func_802D4550(u32 arg0);
-
-/* hd_code/93B50.c */
-s16 func_802D8310(void *arg0);
-
-/* hd_code/96300.c */
-u32 func_802DAAC0(void);
+/* hd_code/8FD90.c, 93B50.c, 96300.c: osDpSetStatus, alCSPGetVol and
+ * osDpGetStatus (declared by <PR/os.h> / <PR/libaudio.h>) */
 
 /* hd_front_end/00000.c */
 s32 fe_digger_init(void);
@@ -926,7 +920,7 @@ void fe_promo_init(void);
 Gfx *fe_promo_draw(Gfx *arg0, FeDyn *dyn, u8 arg2, s32 *arg3);
 
 /* hd_front_end/07390.c */
-void func_801EE390(void);
+void fe_pak_request_hook(void);
 void fe_pak_error_frame(s32 arg0);
 
 /* hd_front_end/07800.c */
@@ -998,12 +992,12 @@ s32 fe_pak_restore_from_eeprom(void);
 
 /* hd_front_end/1B100.c */
 void fe_load_model(s32 type, u8 * N64P *model, u8 * N64P *heap, u8 * N64P *dl);
-void func_802021FC(void *ch, void *base, void *other);
-void func_80202270(u8 *hdr, u32 * N64P *bufs, void *ch);
-void func_802022EC(void *base, s32 idx, s32 v040C, s32 v0480, f32 f, s32 v039C, s32 v03D4);
-void func_80202380(s32 kind);
-#ifndef LEGACY_func_802025D0
-void func_802025D0(s32 kind, s32 val);
+void fe_anim_update_model(void *ch, void *base, void *other);
+void fe_anim_init_model(u8 *hdr, u32 * N64P *bufs, void *ch);
+void fe_anim_start_channel(void *base, s32 idx, s32 v040C, s32 v0480, f32 f, s32 v039C, s32 v03D4);
+void fe_veh_reset_tex_anims(s32 kind);
+#ifndef LEGACY_fe_veh_set_heading_tex_anims
+void fe_veh_set_heading_tex_anims(s32 kind, s32 val);
 #endif
 
 /* (hd_code/69000.c, 69930.c: fixed-point trig in the asm blobs) */
@@ -1013,22 +1007,5 @@ s32 math_cos(s32 angle);
 s32 math_sin(s32 angle);
 
 /* (libultra functions the game calls by address names; aliased in undefined_syms.hd_code.us.v11.txt) */
-#define func_802D4020 osInitialize
-#define func_802D4560 osCreatePiManager
-#define func_802D4E10 alCSPGetState
-#define func_802D6710 osWritebackDCacheAll
-#define func_802D67F0 osDestroyThread
-#define func_802D6A60 sprintf
-#define func_802D9B60 osAiSetNextBuffer
-#define func_802D9C10 osAiGetLength
-#define func_802D9D68 alAudioFrame
-#define func_802DA2F0 osPiStartDma
-#define func_802DA610 osCreateViManager
-#define func_802DAE1C osSpTaskLoad
-#define func_802DB0A0 osContInit
-#define func_802DB4D0 osContStartReadData
-#define func_802DB594 osContGetReadData
-#define func_802DB730 osInvalICache
-#define func_802DB7B0 bzero
 
 #endif

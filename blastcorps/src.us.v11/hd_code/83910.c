@@ -106,7 +106,7 @@ static void veh83910_model(const VehDesc83910 *d) {
     base += *(s32 *) (OBJ_PTR(data, 0x18) + 4);
     gModelRot[0] = 0;
     gModelRot[2] = 0;
-    gModelRot[1] = VEH_U16(veh, 0x4C);
+    gModelRot[1] = VEH_U16(veh, VS_HEADING);
     mtx_build_model(pos[0], pos[1], pos[2], 0x88B8, (s32 *) base);
 
     base = (u8 *) (gBufferIndex != 0 ? *d->bufA : *d->bufB);
@@ -126,7 +126,7 @@ static void veh83910_model(const VehDesc83910 *d) {
     data = *d->data;
     veh_deck_transform(d->type, (u16 *) OBJ_PTR(data, 8), base, &regs, &verts);
     data = *d->data;
-    veh_update_tris(VEH_U16(veh, 0x4C), (AnimChannel *) d->chan, pos[0], pos[2], d->type, OBJ_PTR(data, 0xC), base);
+    veh_update_tris(VEH_U16(veh, VS_HEADING), (AnimChannel *) d->chan, pos[0], pos[2], d->type, OBJ_PTR(data, 0xC), base);
 }
 
 /* Per-frame update (barge_update_0b / 8FA8 / 92C0, through barge_update):
@@ -160,17 +160,17 @@ static void veh83910_frame(const VehDesc83910 *d) {
     veh_snapshot(veh, d->chan, &pos[0], &pos[1], &pos[2]);
     veh_update_horn(0x71);
     barge_set_physics();
-    s = VEH_S16(veh, 0x76);
+    s = VEH_S16(veh, VS_SPEED);
     if (s < 0) {
         s = -s;
     }
     veh_set_engine_level((u32) s >> 5);
-    veh_throttle(veh, &VEH_S16(veh, 0x76), 3, &VEH_U8(veh, 0x96), &VEH_S16(veh, 0x78), 6);
-    veh_turn_heading(veh, &VEH_U16(veh, 0x74), 0x2328, &VEH_S16(veh, 0x76), &VEH_U16(veh, 0x4C),
-                  &VEH_U16(veh, 0x4E), &VEH_S8(veh, 0x99), 0);
-    f = veh_slope(&VEH_S16(veh, 0x76), &VEH_U8(veh, 0x96), &VEH_S32(veh, 4), &VEH_F32(veh, 0));
-    veh_apply_slope(veh, &VEH_S16(veh, 0x76), d->type, &VEH_S8(veh, 0x96), &VEH_S32(veh, 4), 1, 160.0f);
-    x = veh_move_along_heading(f, VEH_U16(veh, 0x4E), &VEH_S16(veh, 0x76), &pos[0], &pos[2], &o);
+    veh_throttle(veh, &VEH_S16(veh, VS_SPEED), 3, &VEH_U8(veh, VS_SLOT_AIRBORNE), &VEH_S16(veh, VS_BANDS), 6);
+    veh_turn_heading(veh, &VEH_U16(veh, VS_MOMENTUM_HEADING), 0x2328, &VEH_S16(veh, VS_SPEED), &VEH_U16(veh, VS_HEADING),
+                  &VEH_U16(veh, VS_MOVE_HEADING), &VEH_S8(veh, VS_SKIDDING), 0);
+    f = veh_slope(&VEH_S16(veh, VS_SPEED), &VEH_U8(veh, VS_SLOT_AIRBORNE), &VEH_S32(veh, 4), &VEH_F32(veh, 0));
+    veh_apply_slope(veh, &VEH_S16(veh, VS_SPEED), d->type, &VEH_S8(veh, VS_SLOT_AIRBORNE), &VEH_S32(veh, 4), 1, 160.0f);
+    x = veh_move_along_heading(f, VEH_U16(veh, VS_MOVE_HEADING), &VEH_S16(veh, VS_SPEED), &pos[0], &pos[2], &o);
     gBounceSound = 0;
     r.s3 = o.s3;
     tri.pz = 0.0f;
@@ -179,9 +179,9 @@ static void veh83910_frame(const VehDesc83910 *d) {
     tri.side = 0.0f;
     tri.sideZ = 0.0f;
     tri.dz = 0.0f;
-    veh_ground_contact(veh, d->type, &pos[0], &pos[1], &pos[2], x, o.t1, 0xA0, 0xA0, &VEH_S16(veh, 0x4C),
-                  &VEH_U8(veh, 0x96), &VEH_S16(veh, 0x52), &VEH_S32(veh, 0x28), &VEH_S32(veh, 0x40),
-                  &VEH_S32(veh, 0x34), &VEH_S32(veh, 4), &r, &tri);
+    veh_ground_contact(veh, d->type, &pos[0], &pos[1], &pos[2], x, o.t1, 0xA0, 0xA0, &VEH_S16(veh, VS_HEADING),
+                  &VEH_U8(veh, VS_SLOT_AIRBORNE), &VEH_S16(veh, VS_WHEEL_OFFSETS), &VEH_S32(veh, VS_SLOT_LAUNCH_VEL), &VEH_S32(veh, VS_SLOT_AIR_TIME),
+                  &VEH_S32(veh, VS_SLOT_LAUNCH_Y), &VEH_S32(veh, 4), &r, &tri);
     if (gBufferIndex != 0) {
         anim_update_model((u8 *) *d->bufA, (u8 *) *d->bufB, (AnimChannel *) d->chan);
     } else {
@@ -189,7 +189,7 @@ static void veh83910_frame(const VehDesc83910 *d) {
     }
     d->model();
     /* b0 / h2 are the model update's leftover t0 (x) and t2 (the type) */
-    veh_collision_setup(pos[2], (s32) D_80306410, 0, 0, pos[0], pos[1], pos[0], VEH_S16(veh, 0x76), d->type, 0,
+    veh_collision_setup(pos[2], (s32) D_80306410, 0, 0, pos[0], pos[1], pos[0], VEH_S16(veh, VS_SPEED), d->type, 0,
                   d->type, veh);
     veh_collide_spheres(d->type, veh);
     veh_collide_world(d->type);
@@ -216,9 +216,9 @@ static void veh83910_frame(const VehDesc83910 *d) {
     gPlayerX = pos[0];
     gPlayerY = pos[1];
     gPlayerZ = pos[2];
-    D_8036443C = VEH_S16(veh, 0x76);
-    D_8036443E = VEH_U16(veh, 0x4E);
-    D_80364440 = VEH_U16(veh, 0x4C);
+    D_8036443C = VEH_S16(veh, VS_SPEED);
+    D_8036443E = VEH_U16(veh, VS_MOVE_HEADING);
+    D_80364440 = VEH_U16(veh, VS_HEADING);
     veh_set_record(pos[2], d->type, pos[0], pos[1], veh);
 }
 
@@ -248,13 +248,13 @@ static void veh83910_init(const VehDesc83910 *d, s32 x, s32 y, s32 z, s32 angle,
     veh_add_record(d->type, 0, (s32) *d->bufA, (s32) *d->bufB, data);
     *d->flag = 0;
     veh_reset_state(veh);
-    VEH_S16(veh, 0x52) = 0x50;
+    VEH_S16(veh, VS_WHEEL_OFFSETS) = 0x50;
     VEH_S16(veh, 0x54) = 0x50;
     VEH_S16(veh, 0x56) = -0x50;
     VEH_S16(veh, 0x58) = 0x50;
     VEH_S16(veh, 0x5A) = 0x50;
     VEH_S16(veh, 0x5C) = -0x50;
-    VEH_S16(veh, 0x5E) = 0x5A;
+    VEH_S16(veh, VS_STAND_OFFSETS) = 0x5A;
     VEH_S16(veh, 0x60) = 0x5A;
     VEH_S16(veh, 0x62) = -0x5A;
     VEH_S16(veh, 0x64) = 0x5A;
@@ -263,16 +263,16 @@ static void veh83910_init(const VehDesc83910 *d, s32 x, s32 y, s32 z, s32 angle,
     pos[0] = x;
     pos[1] = y;
     pos[2] = z;
-    VEH_S16(veh, 0x4C) = angle;
-    VEH_S16(veh, 0x4E) = angle;
-    VEH_S16(veh, 0x74) = angle;
+    VEH_S16(veh, VS_HEADING) = angle;
+    VEH_S16(veh, VS_MOVE_HEADING) = angle;
+    VEH_S16(veh, VS_MOMENTUM_HEADING) = angle;
     tri.pz = 0.0f;
     tri.cross = 0.0f;
     tri.cz = 0.0f;
     tri.side = 0.0f;
     tri.sideZ = 0.0f;
     tri.dz = 0.0f;
-    veh_init_ground(&VEH_S16(veh, 0x52), pos[1], x, z, &VEH_S32(veh, 4), &pos[1], &VEH_S16(veh, 0x4C), d->type,
+    veh_init_ground(&VEH_S16(veh, VS_WHEEL_OFFSETS), pos[1], x, z, &VEH_S32(veh, 4), &pos[1], &VEH_S16(veh, VS_HEADING), d->type,
                   fp, veh, &tri);
     a = *d->bufA;
     b = *d->bufB;
@@ -286,7 +286,7 @@ static void veh83910_init(const VehDesc83910 *d, s32 x, s32 y, s32 z, s32 angle,
     anim_rewind(0, (AnimChannel *) d->chan);
     anim_play((AnimChannel *) d->chan, 0, 1);
     anim_update_model((u8 *) b, (u8 *) a, (AnimChannel *) d->chan);
-    VEH_S16(veh, 0x78) = -0xB4;
+    VEH_S16(veh, VS_BANDS) = -0xB4;
     VEH_S16(veh, 0x7A) = 0;
     VEH_S16(veh, 0x7C) = 1;
     VEH_S16(veh, 0x7E) = 0;
@@ -304,9 +304,9 @@ static void veh83910_init(const VehDesc83910 *d, s32 x, s32 y, s32 z, s32 angle,
     data = *d->data;
     veh_register_parts(d->type, OBJ_PTR(data, 4), OBJ_PTR(data, 8), 0x88B8);
     veh_add_shadow(d->type, 0x96, 0x2D, 0x2D);
-    VEH_U8(veh, 0x9A) = 1;
+    VEH_U8(veh, VS_SPAWN_UPDATE) = 1;
     barge_update(d->type);
-    VEH_U8(veh, 0x9A) = 0;
+    VEH_U8(veh, VS_SPAWN_UPDATE) = 0;
     data = *d->data;
     mtx_copy_at((u8 *) *d->bufB, (u8 *) *d->bufA, *(s32 *) (OBJ_PTR(data, 0x18) + 4));
 }

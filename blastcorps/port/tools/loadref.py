@@ -117,7 +117,7 @@ def level_blob(lvl):
     st, en = LEVELS[lvl]
     data = rom[st:en]
     blob = b""
-    for _ in range(2):     # func_8028B4C4(..., 12, 10, 1): two gzip members
+    for _ in range(2):     # hd_rom_load(..., 12, 10, 1): two gzip members
         d = zlib.decompressobj(31)
         blob += d.decompress(data)
         data = d.unused_data

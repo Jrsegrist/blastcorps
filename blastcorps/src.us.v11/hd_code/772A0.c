@@ -92,13 +92,13 @@ void train_spawn(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp) {
     gHeapPtr = heap + 0x1000;
     veh_add_record(7, 0, (s32) gTrainMtxA, (s32) gTrainMtxB, data);
     veh_reset_state(veh);
-    VEH_S16(veh, 0x52) = 0x50;
+    VEH_S16(veh, VS_WHEEL_OFFSETS) = 0x50;
     VEH_S16(veh, 0x54) = 0x50;
     VEH_S16(veh, 0x56) = -0x50;
     VEH_S16(veh, 0x58) = 0x50;
     VEH_S16(veh, 0x5A) = 0x50;
     VEH_S16(veh, 0x5C) = -0x50;
-    VEH_S16(veh, 0x5E) = 0x5A;
+    VEH_S16(veh, VS_STAND_OFFSETS) = 0x5A;
     VEH_S16(veh, 0x60) = 0x5A;
     VEH_S16(veh, 0x62) = -0x5A;
     VEH_S16(veh, 0x64) = 0x5A;
@@ -107,16 +107,16 @@ void train_spawn(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp) {
     gTrainX = x;
     gTrainY = y;
     gTrainZ = z;
-    VEH_S16(veh, 0x4C) = angle;
-    VEH_S16(veh, 0x4E) = angle;
-    VEH_S16(veh, 0x74) = angle;
+    VEH_S16(veh, VS_HEADING) = angle;
+    VEH_S16(veh, VS_MOVE_HEADING) = angle;
+    VEH_S16(veh, VS_MOMENTUM_HEADING) = angle;
     tri.pz = 0.0f;
     tri.cross = 0.0f;
     tri.cz = 0.0f;
     tri.side = 0.0f;
     tri.sideZ = 0.0f;
     tri.dz = 0.0f;
-    veh_init_ground(&VEH_S16(veh, 0x52), gTrainY, x, z, &VEH_S32(veh, 4), &gTrainY, &VEH_S16(veh, 0x4C), 7,
+    veh_init_ground(&VEH_S16(veh, VS_WHEEL_OFFSETS), gTrainY, x, z, &VEH_S32(veh, 4), &gTrainY, &VEH_S16(veh, VS_HEADING), 7,
                   fp, veh, &tri);
     a = gTrainMtxA;
     b = gTrainMtxB;
@@ -130,7 +130,7 @@ void train_spawn(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp) {
     anim_rewind(0, (AnimChannel *) gTrainAnim);
     anim_play((AnimChannel *) gTrainAnim, 0, 1);
     anim_update_model((u8 *) b, (u8 *) a, (AnimChannel *) gTrainAnim);
-    VEH_S16(veh, 0x78) = -0xB4;
+    VEH_S16(veh, VS_BANDS) = -0xB4;
     VEH_S16(veh, 0x7A) = 0;
     VEH_S16(veh, 0x7C) = 1;
     VEH_S16(veh, 0x7E) = 0;
@@ -152,9 +152,9 @@ void train_spawn(s32 x, s32 y, s32 z, s32 angle, u8 *data, s32 fp) {
     data = gTrainModel;
     veh_register_parts(7, OBJ_PTR(data, 4), OBJ_PTR(data, 8), 0x3A98);
     veh_add_shadow(7, 0x96, 0x2D, 0x2D);
-    VEH_U8(veh, 0x9A) = 1;
+    VEH_U8(veh, VS_SPAWN_UPDATE) = 1;
     train_update();
-    VEH_U8(veh, 0x9A) = 0;
+    VEH_U8(veh, VS_SPAWN_UPDATE) = 0;
     data = gTrainModel;
     mtx_copy_at((u8 *) gTrainMtxB, (u8 *) gTrainMtxA, *(s32 *) (OBJ_PTR(data, 0x18) + 4));
 }
@@ -287,16 +287,16 @@ void train_update(void) {
     zr.s3 = 0;
     zr.s4 = 0;
     train_zone_alpha(&zr);
-    if (VEH_S8(veh, 0x9A) == 0) {
+    if (VEH_S8(veh, VS_SPAWN_UPDATE) == 0) {
         train_update_effects(zr.t6, zr.t7, zr.s0, zr.s1, zr.s2, zr.s3, zr.s4);
     }
     train_set_physics();
-    veh_throttle(veh, &VEH_S16(veh, 0x76), 3, &VEH_U8(veh, 0x96), &VEH_S16(veh, 0x78), 6);
-    veh_turn_heading(veh, &VEH_U16(veh, 0x74), 0x2328, &VEH_S16(veh, 0x76), &VEH_U16(veh, 0x4C),
-                  &VEH_U16(veh, 0x4E), &VEH_S8(veh, 0x99), 0);
-    f = veh_slope(&VEH_S16(veh, 0x76), &VEH_U8(veh, 0x96), &VEH_S32(veh, 4), &VEH_F32(veh, 0));
-    veh_apply_slope(veh, &VEH_S16(veh, 0x76), 7, &VEH_S8(veh, 0x96), &VEH_S32(veh, 4), 1, 160.0f);
-    x = veh_move_along_heading(f, VEH_U16(veh, 0x4E), &VEH_S16(veh, 0x76), &gTrainX, &gTrainZ, &o);
+    veh_throttle(veh, &VEH_S16(veh, VS_SPEED), 3, &VEH_U8(veh, VS_SLOT_AIRBORNE), &VEH_S16(veh, VS_BANDS), 6);
+    veh_turn_heading(veh, &VEH_U16(veh, VS_MOMENTUM_HEADING), 0x2328, &VEH_S16(veh, VS_SPEED), &VEH_U16(veh, VS_HEADING),
+                  &VEH_U16(veh, VS_MOVE_HEADING), &VEH_S8(veh, VS_SKIDDING), 0);
+    f = veh_slope(&VEH_S16(veh, VS_SPEED), &VEH_U8(veh, VS_SLOT_AIRBORNE), &VEH_S32(veh, 4), &VEH_F32(veh, 0));
+    veh_apply_slope(veh, &VEH_S16(veh, VS_SPEED), 7, &VEH_S8(veh, VS_SLOT_AIRBORNE), &VEH_S32(veh, 4), 1, 160.0f);
+    x = veh_move_along_heading(f, VEH_U16(veh, VS_MOVE_HEADING), &VEH_S16(veh, VS_SPEED), &gTrainX, &gTrainZ, &o);
     if (gTrainOnLine != 0) {
         z0 = gTrainLineZ0;
         k = (f32) (gTrainZ - z0) / (f32) (gTrainLineZ1 - z0);
@@ -313,9 +313,9 @@ void train_update(void) {
     tri.side = 0.0f;
     tri.sideZ = 0.0f;
     tri.dz = 0.0f;
-    veh_ground_contact(veh, 7, &gTrainX, &gTrainY, &gTrainZ, x, o.t1, 0xA0, 0xA0, &VEH_S16(veh, 0x4C),
-                  &VEH_U8(veh, 0x96), &VEH_S16(veh, 0x52), &VEH_S32(veh, 0x28), &VEH_S32(veh, 0x40),
-                  &VEH_S32(veh, 0x34), &VEH_S32(veh, 4), &r, &tri);
+    veh_ground_contact(veh, 7, &gTrainX, &gTrainY, &gTrainZ, x, o.t1, 0xA0, 0xA0, &VEH_S16(veh, VS_HEADING),
+                  &VEH_U8(veh, VS_SLOT_AIRBORNE), &VEH_S16(veh, VS_WHEEL_OFFSETS), &VEH_S32(veh, VS_SLOT_LAUNCH_VEL), &VEH_S32(veh, VS_SLOT_AIR_TIME),
+                  &VEH_S32(veh, VS_SLOT_LAUNCH_Y), &VEH_S32(veh, 4), &r, &tri);
     if (gBufferIndex != 0) {
         anim_update_model((u8 *) gTrainMtxA, (u8 *) gTrainMtxB, (AnimChannel *) gTrainAnim);
     } else {
@@ -324,10 +324,10 @@ void train_update(void) {
     train_build_model();
     gTrainPart3Clear++;
     gTrainPart2Clear++;
-    if (VEH_S8(veh, 0x9A) == 0) {
+    if (VEH_S8(veh, VS_SPAWN_UPDATE) == 0) {
         /* b0 / h2 are the model update's leftover t0 (x) and t2 (7) */
         veh_collision_setup(gTrainZ, (s32) D_80305E00, 0, 0, gTrainX, gTrainY, gTrainX,
-                      VEH_S16(veh, 0x76), 7, 0, 7, veh);
+                      VEH_S16(veh, VS_SPEED), 7, 0, 7, veh);
         veh_collide_spheres(7, veh);
         veh_collide_world(7);
         D_803F77D0 = gTrainAnim;
@@ -337,23 +337,23 @@ void train_update(void) {
             c3 = veh_contacts_has(3);
             if (c3 != 0) {
                 if (c2 != 0) {
-                    VEH_S16(veh, 0x76) = 0;
+                    VEH_S16(veh, VS_SPEED) = 0;
                 } else {
                     gTrainPart3Clear = 0;
-                    VEH_S16(veh, 0x76) = (gTrainPart2Clear >= 6) ? -0x28 : 0;
+                    VEH_S16(veh, VS_SPEED) = (gTrainPart2Clear >= 6) ? -0x28 : 0;
                 }
             } else if (c2 != 0) {
                 gTrainPart2Clear = 0;
-                VEH_S16(veh, 0x76) = (gTrainPart3Clear >= 6) ? 0x28 : 0;
+                VEH_S16(veh, VS_SPEED) = (gTrainPart3Clear >= 6) ? 0x28 : 0;
             }
         }
     }
     gPlayerX = gTrainX;
     gPlayerY = gTrainY;
     gPlayerZ = gTrainZ;
-    D_8036443C = VEH_S16(veh, 0x76);
-    D_8036443E = VEH_U16(veh, 0x4E);
-    D_80364440 = VEH_U16(veh, 0x4C);
+    D_8036443C = VEH_S16(veh, VS_SPEED);
+    D_8036443E = VEH_U16(veh, VS_MOVE_HEADING);
+    D_80364440 = VEH_U16(veh, VS_HEADING);
     veh_set_record(gTrainZ, 7, gTrainX, gTrainY, veh);
 }
 #else
@@ -389,7 +389,7 @@ void train_update_effects(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4
         fx_spawn(&io, D_802C2984, 0x9C40, 1, 7, 2, 1, t7, s0, s2, s3, s4, 0);
         io.a3 = 0;
         fx_spawn(&io, D_802C2984, 0x9C40, 1, 7, 3, 1, t7, s0, s2, s3, s4, 0);
-        snd_play(gSfxBank, 0x29, NULL);
+        snd_play(gSfxBank, SFX_TRAIN_BRAKE, NULL);
         gTrainSparkTimer = 1;
     }
     v = *(s16 *) (gTrainState + 0x76) >> 4;
@@ -425,7 +425,7 @@ void train_build_model(void) {
     base += *(s32 *) (OBJ_PTR(data, 0x18) + 4);
     gModelRot[0] = 0;
     gModelRot[2] = 0;
-    gModelRot[1] = VEH_U16(veh, 0x4C);
+    gModelRot[1] = VEH_U16(veh, VS_HEADING);
     mtx_build_model(gTrainX, gTrainY, gTrainZ, 0x3A98, (s32 *) base);
 
     base = (u8 *) (gBufferIndex != 0 ? gTrainMtxA : gTrainMtxB);
@@ -445,7 +445,7 @@ void train_build_model(void) {
     data = gTrainModel;
     veh_deck_transform(7, (u16 *) OBJ_PTR(data, 8), base, &regs, &verts);
     data = gTrainModel;
-    veh_update_tris(VEH_U16(veh, 0x4C), (AnimChannel *) gTrainAnim, gTrainX, gTrainZ, 7, OBJ_PTR(data, 0xC), base);
+    veh_update_tris(VEH_U16(veh, VS_HEADING), (AnimChannel *) gTrainAnim, gTrainX, gTrainZ, 7, OBJ_PTR(data, 0xC), base);
     D_803EFECB = veh_tris_all_solid_impl(7);
 }
 #else

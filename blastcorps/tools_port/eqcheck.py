@@ -2550,6 +2550,15 @@ def parse_args(argv):
 SEGMENTS = ("init", "hd_code", "hd_front_end")     # ELFs of a build, in load order
 
 
+def names_txt_digest(path):
+    """sha1 of the rename map (empty if there is none)"""
+    try:
+        with open(path, "rb") as f:
+            return hashlib.sha1(f.read()).hexdigest()
+    except OSError:
+        return ""
+
+
 def load_build(d, version, label):
     """init, hd_code and the front end of one build dir as one Build: a
     function is found in whichever segment defines it, and each segment's
@@ -2559,10 +2568,14 @@ def load_build(d, version, label):
         if not os.path.exists(p):
             sys.exit("eqcheck: %s not found (build it first)" % p)
     # Parsing the ELF symbol tables takes most of a short run's startup, so the
-    # parsed Build is cached next to the ELFs, keyed by their size/mtime and by
-    # this script's own mtime.
+    # parsed Build is cached next to the ELFs, keyed by their size/mtime, by
+    # this script's and names.py's mtimes and by the rename map's contents
+    # (symbols are classified through names.orig, so a rename must not reuse
+    # a Build parsed under the old map).
+    import names as names_mod
     key = tuple((os.path.abspath(p), os.stat(p).st_size, os.stat(p).st_mtime_ns)
-                for p in elfs + [os.path.abspath(__file__)])
+                for p in elfs + [os.path.abspath(__file__), os.path.abspath(names_mod.__file__)])
+    key += (("names.txt", names_txt_digest(names_mod.NAMES_TXT)),)
     if REUSE:
         # a long-lived process (runchecks' workers) keeps the parsed builds;
         # each run gets its own shallow copy (the label differs per run)

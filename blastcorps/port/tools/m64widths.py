@@ -4,7 +4,7 @@
 demos and records, for every CPU load/store into
   - the hd_code .data/.rodata image (0x802E8BD0-0x8030F660),
   - the front-end .data/.rodata image (0x80208040-0x80210E90, while resident),
-  - every asset loaded through func_8028B4C4 (decompressed, at its dest) and
+  - every asset loaded through hd_rom_load (decompressed, at its dest) and
     every other osPiStartDma (raw, at its dram address),
 the access width (1/2/4/8, U = lwl/lwr/swl/swr) and whether it was a read or
 a write, plus whether the first access to each byte was a read (only those
@@ -18,7 +18,7 @@ new load.
 
 usage: load_m64widths.py ROM OUT VIS
 OUT lines:
-  L vi rom dest size kind ra         a load (kind gz = func_8028B4C4, dma = osPiStartDma)
+  L vi rom dest size kind ra         a load (kind gz = hd_rom_load, dma = osPiStartDma)
   A region off width kind count pc   region = 'hd' | 'fe' | 'r<ROMHEX>' (asset by ROM start)
   F region off                       first access to that byte was a read
 """
@@ -225,11 +225,11 @@ def text_range(mapfile, obj):
 
 
 _MAP = "build/hd_code.us.v11.map" if BASE else "build_nm/hd_code.rom.us.v11.map"
-LOADER = sym("func_8028B4C4")
+LOADER = sym("hd_rom_load")
 LOADER_RET = first_jr_ra(LOADER)
 PIDMA = sym("osPiStartDma")
 AUDIO = text_range(_MAP, "22EE0")        # audio.c: sample DMA (.tbl pieces, read by the RSP only)
-PK_ENTRY = sym("func_802C4108")          # inflate one member
+PK_ENTRY = sym("kiunzip_entry")          # inflate one member
 PK_RET = first_jr_ra(PK_ENTRY)
 PK_PTR = not BASE                        # hand asm: a1 = dst value; C rewrite: a1 = &dst
 # only game code counts: the decompressors' window reads and the copy loops

@@ -76,7 +76,7 @@ void fe_bg_load(u8 mode) {
             return;
     }
     size = end - start;
-    func_8028B4C4((u32) start, (u32) gHeapPtr, &size, 0xD, 0, 2);
+    hd_rom_load((u32) start, (u32) gHeapPtr, &size, 0xD, 0, 2);
     pix = (u16 *) gHeapPtr;
 #if defined(NON_MATCHING) && defined(PORT_HOST)
     /* Windows port, byte order: the picture is a texture and stays big-endian
@@ -154,14 +154,14 @@ Gfx *fe_bg_draw(Gfx *gfx, s32 arg1, s32 *count) {
     gDPPipeSync(gdl++);
     gSPTexture(gdl++, 0, 0, 0, 0, G_OFF);
     gDPSetTexturePersp(gdl++, G_TP_NONE);
-    if (gGameMode & 0xC000000000000) {
+    if (gGameMode & (MODE_REGRADE_NOTICE | MODE_REGRADE_NOTICE_END)) {
         gDPSetCycleType(gdl++, G_CYC_1CYCLE);
         gDPSetRenderMode(gdl++, FORCE_BL | GBL_c1(G_BL_CLR_IN, G_BL_0, G_BL_CLR_IN, G_BL_1),
                          GBL_c2(G_BL_CLR_IN, G_BL_0, G_BL_CLR_IN, G_BL_1));
         gDPSetCombineRaw(gdl++, 0x157E2A, 0xFFFFFDFE);
         switch (gGameMode) {
-            case 0x4000000000000:
-            case 0x8000000000000:
+            case MODE_REGRADE_NOTICE:
+            case MODE_REGRADE_NOTICE_END:
                 alpha = 0x60;
                 break;
             default:
@@ -177,7 +177,7 @@ Gfx *fe_bg_draw(Gfx *gfx, s32 arg1, s32 *count) {
         for (y = 0; y < 240; y += 16) {
             gDPLoadTextureTile(gdl++, gBgPicture, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, 240, x, y, x + 63, y + 15, 0,
                                G_TX_CLAMP, G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
-            if (gGameMode & 0xC000000000000) {
+            if (gGameMode & (MODE_REGRADE_NOTICE | MODE_REGRADE_NOTICE_END)) {
                 gSPTextureRectangleOld(gdl++, x << 2, y << 2, (x + 64) << 2, (y + 16) << 2, G_TX_RENDERTILE, x << 5,
                                        y << 5, 1 << 10, 1 << 10);
             } else {

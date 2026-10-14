@@ -65,21 +65,21 @@ void fe_back_loop(void) {
     Gfx *gdl;
     OSMesg msg;
 
-    if (gGameMode & 0x80010000000) {
+    if (gGameMode & (MODE_PAK_CHECK | MODE_PAK_MANAGER)) {
         if (D_8021AB7C == 0) {
-            snd_play(gSfxBank, 0x73, &D_8021AB7C);
+            snd_play(gSfxBank, SFX_TICK_LOOP, &D_8021AB7C);
         }
         if (yoshiState == 2) {
             osRecvMesg(&pakToGameMessageQ, &msg, 1);
             BACK_ASSERT(MQ_IS_EMPTY(&pakToGameMessageQ), 62);
             gPakReady = !msg;
-            if (gGameMode == 0x10000000) {
+            if (gGameMode == MODE_PAK_CHECK) {
                 if (gPakReady) {
                     fe_player_load_slots();
                 }
-                gNextGameMode = 0x8000;
+                gNextGameMode = MODE_PAK_CHECKED;
             } else {
-                gNextGameMode = 0x2000000000;
+                gNextGameMode = MODE_PAK_MANAGER_CHECKED;
             }
             snd_stop((void *) N64_IPTR(D_8021AB7C));
             yoshi_demand(0x4000);
@@ -88,54 +88,54 @@ void fe_back_loop(void) {
     if (yoshiSelection) {
         debug_printf("yoshiSelection in back_loop is %d %d\n", yoshiSelection, lowest_set_bit(gGameMode));
         switch (gGameMode) {
-            case 0x10000:
+            case MODE_LOAD_GAME:
                 if (yoshiSelection == 0xFFFF) {
-                    gNextGameMode = 0x8000000000000000;
+                    gNextGameMode = MODE_LOAD_GAME_EXIT;
                     fe_player_ticker_set_text(4, 1);
                 } else if (gYoshiWindows[10].unk18 - 2 < 4) {
-                    gNextGameMode = 0x2000000;
+                    gNextGameMode = MODE_PLAYER_CHOSEN;
                 } else if (gLoadMenuFullSlot == 4) {
                     gPakReady = 0;
                     gIgnorePak = 1;
-                    gNextGameMode = 0x8000;
+                    gNextGameMode = MODE_PAK_CHECKED;
                 } else {
-                    gNextGameMode = 0x800000;
+                    gNextGameMode = MODE_TO_ERASE_MENU;
                 }
                 break;
-            case 0x100000000:
+            case MODE_PAK_FILES:
                 if (yoshiSelection != 0xFFFF && fe_pak_has_files()) {
                     gPakDeleteItem = yoshiSelection;
-                    gNextGameMode = 0x4000000000;
+                    gNextGameMode = MODE_PAK_FILE_CHOSEN;
                 }
                 break;
-            case 0x400000:
+            case MODE_ERASE_MENU:
                 if (yoshiSelection == 0xFFFF) {
                     fe_player_ticker_set_text(4, 1);
-                    gNextGameMode = 0x200000;
+                    gNextGameMode = MODE_LOAD_GAME_RETURN;
                 } else {
                     playerNumber = yoshiSelection - 2;
                     if (playerNumber < 4) {
-                        gNextGameMode = 0x100000;
+                        gNextGameMode = MODE_ERASE_PLAYER_CHOSEN;
                     } else {
-                        gNextGameMode = 0x200000;
+                        gNextGameMode = MODE_LOAD_GAME_RETURN;
                     }
                 }
                 break;
-            case 0x80000:
+            case MODE_ERASE_CONFIRM:
                 if (yoshiSelection == 0xC) {
                     fe_player_new_game(playerNumber, 0, 0);
                 }
                 fe_player_ticker_set_text(4, 1);
-                gNextGameMode = 0x800000;
+                gNextGameMode = MODE_TO_ERASE_MENU;
                 break;
-            case 0x8000000000:
+            case MODE_PAK_DELETE_CONFIRM:
                 if (yoshiSelection == 0xC) {
                     osSendMesg(&gPakRequestQueue, (OSMesg) ((gPakDeleteItem << 16) | 5), 1);
                 }
-                gNextGameMode = 0x10000000000;
+                gNextGameMode = MODE_PAK_FILE_DELETED;
                 break;
-            case 0x80:
-            case 0x8000000:
+            case MODE_LEVEL_STATUS:
+            case MODE_RESULTS:
                 if (yoshiSelection == 0xFFFF) {
                     gNextGameMode = MODE_WORLD;
                 } else {
@@ -145,7 +145,7 @@ void fe_back_loop(void) {
                             gNextGameMode = MODE_WORLD;
                             break;
                         case 1:
-                            gNextGameMode = 0x40;
+                            gNextGameMode = MODE_REPLAY;
                             break;
                         case 2:
                             if (!(((s32) gLevelKind) & 0x81)) {
@@ -163,7 +163,7 @@ void fe_back_loop(void) {
                     }
                 }
                 break;
-            case 0x40000000000:
+            case MODE_BEST_TIMES:
                 if (yoshiSelection == 0xFFFF) {
                     playerNumber = D_80364AE9;
                 }
@@ -173,26 +173,26 @@ void fe_back_loop(void) {
                     gNextGameMode = MODE_GUEST_PLAYER;
                 }
                 break;
-            case 0x4000000000000:
+            case MODE_REGRADE_NOTICE:
                 fe_player_panel_init(4);
-                gNextGameMode = 0x8000000000000;
+                gNextGameMode = MODE_REGRADE_NOTICE_END;
                 break;
-            case 0x1000000000000:
-                func_80275390(0x20000000000000);
+            case MODE_ATTRACT_PICTURE:
+                fade_to_mode(MODE_BOOT_CHECK);
                 break;
-            case 0x40000000000000:
+            case MODE_ERASE_SAVE:
                 if (yoshiSelection == 0xC) {
                     fe_player_new_game(playerNumber, 0, 1);
                 }
                 break;
-            case 0x100000000000000:
+            case MODE_GUEST_PLAYER:
                 fe_player_ticker_set_text(4, 1);
                 break;
-            case 0x4000000000000000:
+            case MODE_QUIT_GAME:
                 if (yoshiSelection == 0xC) {
-                    func_80275270(0x400000000000000, 0.5f);
+                    fade_to_mode_speed(MODE_ATTRACT_START, 0.5f);
                 } else {
-                    func_80275270(0x4000, 0.5f);
+                    fade_to_mode_speed(MODE_WORLD, 0.5f);
                 }
                 break;
             default:
@@ -215,7 +215,7 @@ void fe_back_loop(void) {
     gSPDisplayList(gdl++, D_01000010);
     gSPClipRatio(gdl++, FRUSTRATIO_3);
     gDPSetCycleType(gdl++, G_CYC_FILL);
-    if (gGameMode & 0x88000080) {
+    if (gGameMode & (MODE_LEVEL_STATUS | MODE_RESULTS | MODE_PRE_PROMOTION)) {
         gDPSetDepthImage(gdl++, gDepthBufferPhys);
         gDPSetColorImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, gDepthBufferPhys);
         gDPSetFillColor(gdl++, 0xFFFCFFFC);
@@ -231,13 +231,13 @@ void fe_back_loop(void) {
     gdl = fe_bg_draw(gdl, (s32) &gDynamicBufs[gBufferIndex], &gFrameDlLen);
     gDPPipeSync(gdl++);
     gDPSetCycleType(gdl++, G_CYC_1CYCLE);
-    if (gGameMode & 0xC000000000000) {
+    if (gGameMode & (MODE_REGRADE_NOTICE | MODE_REGRADE_NOTICE_END)) {
         gdl = yoshi_draw(gdl, (s32) &gDynamicBufs[gBufferIndex], &gFrameDlLen);
     }
-    if (gGameMode == 0x4000000000000) {
+    if (gGameMode == MODE_REGRADE_NOTICE) {
         if (gFramesInMode == 0) {
-            music_start_tune_at(0x27, 0);
-            music_push_tune(0xF);
+            music_start_tune_at(MUS_UNK_0x27_STATE10, 0);
+            music_push_tune(MUS_PROMOTION);
         }
         if (gYoshiTypeState == 0 && playerNumber == 4) {
             playerNumber = playerNumberAtStart;
@@ -245,10 +245,10 @@ void fe_back_loop(void) {
             gYoshiWindows[56].unk8 |= 0x20;
         }
     }
-    if (gGameMode & 0x818D04001AFB8080) {
+    if (gGameMode & (MODE_LEVEL_STATUS | MODE_PAK_CHECKED | MODE_LOAD_GAME | MODE_NEW_PLAYER | MODE_ERASE_CONFIRM | MODE_ERASE_PLAYER_CHOSEN | MODE_LOAD_GAME_RETURN | MODE_ERASE_MENU | MODE_TO_ERASE_MENU | MODE_PLAYER_CHOSEN | MODE_RESULTS | MODE_PAK_CHECK | MODE_BEST_TIMES | MODE_ATTRACT_PICTURE | MODE_REGRADE_NOTICE | MODE_REGRADE_NOTICE_END | MODE_BEST_TIMES_UNUSED | MODE_GUEST_PLAYER | MODE_LOAD_GAME_EXIT)) {
         gdl = fe_player_draw_panel(gdl, (struct PlayerSelDyn *) &gDynamicBufs[gBufferIndex], 0xC2);
     }
-    if (gGameMode & 0x898C0FE313F78002) {
+    if (gGameMode & (MODE_ATTRACT | MODE_PAK_CHECKED | MODE_LOAD_GAME | MODE_NEW_PLAYER | MODE_NAME_ENTRY | MODE_ERASE_PLAYER_CHOSEN | MODE_LOAD_GAME_RETURN | MODE_ERASE_MENU | MODE_TO_ERASE_MENU | MODE_NAME_ENTERED | MODE_PLAYER_CHOSEN | MODE_PAK_CHECK | MODE_PAK_FILES | MODE_UNUSED_33 | MODE_PAK_MANAGER_CHECKED | MODE_PAK_FILE_CHOSEN | MODE_PAK_DELETE_CONFIRM | MODE_PAK_FILE_DELETED | MODE_UNUSED_41 | MODE_BEST_TIMES | MODE_PAK_MANAGER | MODE_REGRADE_NOTICE | MODE_REGRADE_NOTICE_END | MODE_BEST_TIMES_UNUSED | MODE_GUEST_PLAYER | MODE_NO_CONTROLLER | MODE_LOAD_GAME_EXIT)) {
         gdl = title_draw_attract(gdl, (s32) &gDynamicBufs[gBufferIndex], gBufferIndex, &gFrameDlLen);
     }
     if (gGameMode & (MODE_LOAD_GAME | MODE_ERASE_MENU)) {
@@ -270,27 +270,27 @@ void fe_back_loop(void) {
     if (gGameMode == MODE_ATTRACT_PICTURE) {
         gdl = fe_attract_pic_draw((s32) gDynamicBufs, gdl);
     }
-    gdl = func_8024C404(gdl, (DynamicBuf *) &gDynamicBufs[gBufferIndex], &gFrameDlLen);
-    if (gGameMode & 0x88000080) {
+    gdl = hd_debug_dl_stub(gdl, (DynamicBuf *) &gDynamicBufs[gBufferIndex], &gFrameDlLen);
+    if (gGameMode & (MODE_LEVEL_STATUS | MODE_RESULTS | MODE_PRE_PROMOTION)) {
         gdl = fe_player_draw_medals(gdl, &gDynamicBufs[gBufferIndex], &gFrameDlLen);
         if (D_80364A71 != -1 && yoshiState == 2) {
             gdl = fe_comm_point_draw(&gDynamicBufs[gBufferIndex], gdl);
             gSPClearGeometryMode(gdl++, G_ZBUFFER);
         }
     }
-    if (gGameMode == 0x80000000) {
+    if (gGameMode == MODE_PRE_PROMOTION) {
         if (D_80364A64) {
             D_80364A64--;
         } else if (gYoshiTypeState != 2 && yoshiState == 2) {
             yoshi_demand(0x4000);
-            snd_play(gSfxBank, 0x1C, NULL);
+            snd_play(gSfxBank, SFX_PROMOTION_CUE, NULL);
         }
     }
     cont_update();
-    if (gGameMode == 0x800000000000) {
+    if (gGameMode == MODE_ACADEMY_MESSAGE) {
         academy_play_state_tune();
     }
-    if ((gGameMode & 0x88000080) && D_803156C4 % 20 >= 6 && D_80364A71 != -1 && yoshiState == 2) {
+    if ((gGameMode & (MODE_LEVEL_STATUS | MODE_RESULTS | MODE_PRE_PROMOTION)) && D_803156C4 % 20 >= 6 && D_80364A71 != -1 && yoshiState == 2) {
         s32 x;
         s32 y;
 
@@ -305,8 +305,8 @@ void fe_back_loop(void) {
         gdl = fe_best_draw_icon((s32) &gDynamicBufs[gBufferIndex], gdl);
     }
     text_flush_screen(&gdl, (Mtx *) &gDynamicBufs[gBufferIndex]);
-    gdl = func_80274BF0((s32) &gDynamicBufs[gBufferIndex], gdl);
-    if (!(gGameMode & 0xC000000000000)) {
+    gdl = fade_draw((s32) &gDynamicBufs[gBufferIndex], gdl);
+    if (!(gGameMode & (MODE_REGRADE_NOTICE | MODE_REGRADE_NOTICE_END))) {
         gdl = yoshi_draw(gdl, (s32) &gDynamicBufs[gBufferIndex], &gFrameDlLen);
     }
     if (yoshiState != 1 && currentYoshiWindow == 0xB) {
@@ -321,99 +321,99 @@ void fe_back_loop(void) {
     for (i = 0; i < nextdma - no_palette_dmas; i++) {
         tex_decode_next();
     }
-    if ((gGameMode & 0x81D9836583B28000) && yoshiState == 1 && !func_802753F8() && !areWeFading() &&
+    if ((gGameMode & (MODE_PAK_CHECKED | MODE_NEW_PLAYER | MODE_ERASE_PLAYER_CHOSEN | MODE_LOAD_GAME_RETURN | MODE_TO_ERASE_MENU | MODE_NAME_ENTERED | MODE_PLAYER_CHOSEN | MODE_PRE_PROMOTION | MODE_PAK_FILES | MODE_UNUSED_WINDOW_13 | MODE_PAK_MANAGER_CHECKED | MODE_PAK_FILE_CHOSEN | MODE_PAK_FILE_DELETED | MODE_UNUSED_41 | MODE_ACADEMY_MESSAGE | MODE_ATTRACT_PICTURE | MODE_REGRADE_NOTICE_END | MODE_UNUSED_52 | MODE_ERASE_SAVE | MODE_BEST_TIMES_UNUSED | MODE_GUEST_PLAYER | MODE_LOAD_GAME_EXIT)) && yoshiState == 1 && !fade_window_held() && !areWeFading() &&
         gNextGameMode == 0 && gYoshiPendingWindow == -1) {
         switch (gGameMode) {
-            case 0x20000:
+            case MODE_NEW_PLAYER:
                 gNextGameMode = MODE_NAME_ENTRY;
                 break;
-            case 0x200000:
+            case MODE_LOAD_GAME_RETURN:
                 gNextGameMode = MODE_LOAD_GAME;
                 break;
-            case 0x10000000000:
-                gNextGameMode = 0x100000000;
+            case MODE_PAK_FILE_DELETED:
+                gNextGameMode = MODE_PAK_FILES;
                 break;
-            case 0x100000:
-                gNextGameMode = 0x80000;
+            case MODE_ERASE_PLAYER_CHOSEN:
+                gNextGameMode = MODE_ERASE_CONFIRM;
                 gYoshiFeItems[9].unkC = gYoshiFeItems[playerNumber + 2].unkC;
                 gYoshiFeItems[9].unk10 = NULL;
                 gYoshiFeItems[9].unk6 = gYoshiFeItems[9].unk8 = 0x14;
                 yoshi_demand(0x800C);
                 break;
-            case 0x4000000000:
-                gNextGameMode = 0x8000000000;
+            case MODE_PAK_FILE_CHOSEN:
+                gNextGameMode = MODE_PAK_DELETE_CONFIRM;
                 gYoshiFeItems[9].unkC = gYoshiFeItems[gPakDeleteItem].unkC;
                 gYoshiFeItems[9].unk10 = gYoshiFeItems[gPakDeleteItem].unk10;
                 gYoshiFeItems[9].unk6 = gYoshiFeItems[9].unk8 = 0xF;
                 yoshi_demand(0x800C);
                 break;
-            case 0x800000:
+            case MODE_TO_ERASE_MENU:
                 gNextGameMode = MODE_ERASE_MENU;
                 break;
-            case 0x2000000:
+            case MODE_PLAYER_CHOSEN:
                 D_80364AE9 = playerNumber;
                 playerNumberAtStart = playerNumber;
                 if (gSlotState[playerNumber] == 1) {
-                    func_80275390(0x4000);
+                    fade_to_mode(MODE_WORLD);
                 } else {
-                    gNextGameMode = 0x20000;
+                    gNextGameMode = MODE_NEW_PLAYER;
                 }
                 break;
-            case 0x8000000000000000:
-                func_80275390(0x400000000000000);
+            case MODE_LOAD_GAME_EXIT:
+                fade_to_mode(MODE_ATTRACT_START);
                 break;
-            case 0x1000000:
+            case MODE_NAME_ENTERED:
                 osSendMesg(&gPakRequestQueue, (OSMesg) ((playerNumber << 16) | 7), 1);
                 osSendMesg(&gPakRequestQueue, (OSMesg) ((playerNumber << 16) | 0x15 | 0x01000000), 1);
                 seq_prepare(4);
-                func_80275390(0x100000000000);
+                fade_to_mode(MODE_GLOBE_SEQ);
                 break;
-            case 0x80000000:
+            case MODE_PRE_PROMOTION:
                 gNextGameMode = MODE_PROMOTION;
                 break;
-            case 0x8000:
+            case MODE_PAK_CHECKED:
                 if (gIgnorePak) {
-                    func_80275390(0x20000000000000);
+                    fade_to_mode(MODE_BOOT_CHECK);
                 } else if (gPakReady) {
                     gNextGameMode = MODE_LOAD_GAME;
                 } else {
-                    gNextGameMode = 0x10000000;
+                    gNextGameMode = MODE_PAK_CHECK;
                 }
                 break;
-            case 0x2000000000:
+            case MODE_PAK_MANAGER_CHECKED:
                 if (gPakReady) {
-                    gNextGameMode = 0x100000000;
+                    gNextGameMode = MODE_PAK_FILES;
                 } else {
-                    gNextGameMode = 0x80000000000;
+                    gNextGameMode = MODE_PAK_MANAGER;
                 }
                 break;
-            case 0x40000000000000:
-            case 0x100000000:
-                func_80275270(0x10, 0.5f);
+            case MODE_ERASE_SAVE:
+            case MODE_PAK_FILES:
+                fade_to_mode_speed(MODE_BOOT_SCREEN1, 0.5f);
                 break;
-            case 0x800000000000:
-                func_80275270(0x2000000000000, 0.75f);
+            case MODE_ACADEMY_MESSAGE:
+                fade_to_mode_speed(MODE_ACADEMY_NEXT, 0.75f);
                 music_fade_to(0.0f);
                 break;
-            case 0x1000000000000:
-                func_80275270(2, 0.5f);
+            case MODE_ATTRACT_PICTURE:
+                fade_to_mode_speed(MODE_ATTRACT, 0.5f);
                 break;
-            case 0x8000000000000:
+            case MODE_REGRADE_NOTICE_END:
                 playerNumber = playerNumberAtStart;
-                func_80275270(0x4000, 0.6f);
+                fade_to_mode_speed(MODE_WORLD, 0.6f);
                 break;
-            case 0x80000000000000:
+            case MODE_BEST_TIMES_UNUSED:
                 if (playerNumber == D_80364AE9 || playerNumber == playerNumberAtStart) {
                     gNextGameMode = gBestTimesReturnMode;
                 } else {
                     gNextGameMode = MODE_GUEST_PLAYER;
                 }
                 break;
-            case 0x100000000000000:
+            case MODE_GUEST_PLAYER:
                 if (gLastYoshiSelection != 0xC) {
-                    gNextGameMode = 0x200000000000000;
+                    gNextGameMode = MODE_BEST_TIMES_RETURN;
                 } else {
-                    func_80275390(gBestTimesReturnMode);
+                    fade_to_mode(gBestTimesReturnMode);
                 }
                 break;
             default:

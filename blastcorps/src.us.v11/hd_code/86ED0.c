@@ -20,11 +20,11 @@
  * gTurboPending, calls mb_start(6, 0.25f, 100) and sets gTurboActive = 1.
  * The asm returns with a0 = 1 and a1-a3 as mb_start left them; its asm
  * callers go on to calls that don't read them. */
-void func_802CB690(u8 *state) {
+void veh_start_turbo(u8 *state) {
     s32 v;
 
-    if (gNextGameMode != 0x40) {
-        snd_play(gSfxBank, 0x55, NULL);
+    if (gNextGameMode != MODE_REPLAY) {
+        snd_play(gSfxBank, SFX_TURBO, NULL);
     }
     v = gCamTiltMax;
     *(s16 *) (state + 0x76) = v + (v >> 1);
@@ -33,5 +33,5 @@ void func_802CB690(u8 *state) {
     gTurboActive = 1;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/86ED0/func_802CB690.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/86ED0/veh_start_turbo.s")
 #endif

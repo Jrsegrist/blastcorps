@@ -368,7 +368,7 @@ s32 ballista_steer_rate(void);
  * Per-frame update of vehicle 10 when it is the player's (veh_update_player and
  * its init ballista_spawn): zone lookup (ballista_zone_alpha), save copy
  * (veh_snapshot), effects (ballista_update_actions, unless +0x9A is set), the shared
- * func_802CB690 (when gTurboPending), timers, steering (veh_steer at rate
+ * veh_start_turbo (when gTurboPending), timers, steering (veh_steer at rate
  * ballista_steer_rate()), throttle (veh_throttle, held off while D_803F8B7A
  * counts down), heading (veh_turn_heading), slope and drag (veh_slope /
  * veh_apply_slope), ring turn-back (veh_set_target_heading when D_803F8B78), the
@@ -412,44 +412,44 @@ void ballista_update(void) {
     zr.t6 = zr.t7 = zr.s0 = zr.s1 = zr.s2 = zr.s3 = zr.s4 = 0;
     ballista_zone_alpha(&zr);
     veh_snapshot(gBallistaState, gBallistaAnim, (s32 *) &gBallistaPos[0], (s32 *) &gBallistaPos[1], (s32 *) &gBallistaPos[2]);
-    if ((s8) V853_U8(0x9A) == 0) {
+    if ((s8) V853_U8(VS_SPAWN_UPDATE) == 0) {
         ballista_update_actions(zr.t6, zr.t7, zr.s0, zr.s1, zr.s2, zr.s3, zr.s4);
     }
     if (gTurboPending != 0) {
-        func_802CB690(gBallistaState);
+        veh_start_turbo(gBallistaState);
     }
     ballista_set_physics();
-    veh_steer(ballista_steer_rate(), &V853_U16(0x4C));
+    veh_steer(ballista_steer_rate(), &V853_U16(VS_HEADING));
     if (D_803F8B7A == 0) {
-        veh_throttle(gBallistaState, &V853_S16(0x76), 3, &V853_U8(0x96), &V853_S16(0x78), 0x10);
+        veh_throttle(gBallistaState, &V853_S16(VS_SPEED), 3, &V853_U8(VS_SLOT_AIRBORNE), &V853_S16(VS_BANDS), 0x10);
     } else {
         D_803F8B7A--;
     }
-    veh_turn_heading(gBallistaState, &V853_U16(0x74), 0x3E80, &V853_S16(0x76), &V853_U16(0x4C), &V853_U16(0x4E),
-                  (s8 *) &V853_U8(0x99), 1);
-    f.pz = veh_slope(&V853_S16(0x76), &V853_U8(0x96), (s32 *) (gBallistaState + 4), (f32 *) (gBallistaState + 0));
-    veh_apply_slope(gBallistaState, &V853_S16(0x76), 10, (s8 *) &V853_U8(0x96), (s32 *) (gBallistaState + 4), 1, 640.0f);
+    veh_turn_heading(gBallistaState, &V853_U16(VS_MOMENTUM_HEADING), 0x3E80, &V853_S16(VS_SPEED), &V853_U16(VS_HEADING), &V853_U16(VS_MOVE_HEADING),
+                  (s8 *) &V853_U8(VS_SKIDDING), 1);
+    f.pz = veh_slope(&V853_S16(VS_SPEED), &V853_U8(VS_SLOT_AIRBORNE), (s32 *) (gBallistaState + 4), (f32 *) (gBallistaState + 0));
+    veh_apply_slope(gBallistaState, &V853_S16(VS_SPEED), 10, (s8 *) &V853_U8(VS_SLOT_AIRBORNE), (s32 *) (gBallistaState + 4), 1, 640.0f);
     if (D_803F8B78 != 0) {
         veh_set_target_heading(gBallistaState, &D_803F8B74);
     }
-    x = veh_move_along_heading(f.pz, V853_U16(0x4E), &V853_S16(0x76), (s32 *) &gBallistaPos[0], (s32 *) &gBallistaPos[2],
+    x = veh_move_along_heading(f.pz, V853_U16(VS_MOVE_HEADING), &V853_S16(VS_SPEED), (s32 *) &gBallistaPos[0], (s32 *) &gBallistaPos[2],
                       &o860c);
     z = o860c.t1;
     gBounceSound = 1;
     f.pz = f.cross = f.cz = f.side = f.sideZ = f.dz = 0.0f;
     r8768.s3 = o860c.s3;
     veh_ground_contact(gBallistaState, 10, (s32 *) &gBallistaPos[0], (s32 *) &gBallistaPos[1], (s32 *) &gBallistaPos[2], x, z,
-                  0x280, 0x208, &V853_S16(0x4C), &V853_U8(0x96), &V853_S16(0x52), (s32 *) (gBallistaState + 0x28),
+                  0x280, 0x208, &V853_S16(VS_HEADING), &V853_U8(VS_SLOT_AIRBORNE), &V853_S16(VS_WHEEL_OFFSETS), (s32 *) (gBallistaState + 0x28),
                   (s32 *) (gBallistaState + 0x40), (s32 *) (gBallistaState + 0x34), (s32 *) (gBallistaState + 4), &r8768, &f);
     if (gBufferIndex != 0) {
         anim_update_model((u8 *) gBallistaMtxA, (u8 *) gBallistaMtxB, (AnimChannel *) gBallistaAnim);
     } else {
         anim_update_model((u8 *) gBallistaMtxB, (u8 *) gBallistaMtxA, (AnimChannel *) gBallistaAnim);
     }
-    regs.s0 = (s32) &V853_U8(0x96);
+    regs.s0 = (s32) &V853_U8(VS_SLOT_AIRBORNE);
     regs.s1 = (s32) &gBallistaPos[2];
     ballista_build_model(&regs);
-    veh_collision_setup(gBallistaPos[2], (s32) D_80306420, 1, 1, gBallistaPos[0], gBallistaPos[1], 8, V853_S16(0x76), 0x64, 0, 10,
+    veh_collision_setup(gBallistaPos[2], (s32) D_80306420, 1, 1, gBallistaPos[0], gBallistaPos[1], 8, V853_S16(VS_SPEED), 0x64, 0, 10,
                   gBallistaState);
     veh_collide_spheres(10, gBallistaState);
     veh_collide_world(10);
@@ -467,7 +467,7 @@ void ballista_update(void) {
             if (D_803F8B7B == 0 && D_803F8B7A == 0) {
                 /* bounce off the ring end */
                 D_803F8B7A = 5;
-                v = V853_S16(0x76);
+                v = V853_S16(VS_SPEED);
                 if (v >= 0) {
                     if (v < 0x41) {
                         v = 0x41;
@@ -479,7 +479,7 @@ void ballista_update(void) {
                 } else if (v < -0x4B) {
                     v = -0x4B;
                 }
-                V853_S16(0x76) = -v;
+                V853_S16(VS_SPEED) = -v;
                 D_803F8B7B = 1;
             }
         }
@@ -488,7 +488,7 @@ void ballista_update(void) {
         veh_prepare_escape(gBallistaState);
         D_803F8B78 = 1;
         mid = veh_free_arc_mid();
-        v = V853_U16(0x4E) - 0x800;
+        v = V853_U16(VS_MOVE_HEADING) - 0x800;
         if (v < 0) {
             v += 0xFFF;
         }
@@ -500,10 +500,10 @@ void ballista_update(void) {
             v = 0xFFF - v;
         }
         veh_reverse_if_behind(gBallistaState);
-        turn = veh_turn_into_free_arc(gBallistaState, V853_U16(0x4E), V853_U16(0x4C), &cur, D_8030D990);
+        turn = veh_turn_into_free_arc(gBallistaState, V853_U16(VS_MOVE_HEADING), V853_U16(VS_HEADING), &cur, D_8030D990);
         D_803F8B74 = cur;
-        V853_S16(0x4E) = cur;
-        V853_S16(0x74) = cur;
+        V853_S16(VS_MOVE_HEADING) = cur;
+        V853_S16(VS_MOMENTUM_HEADING) = cur;
         veh_step_heading(gBallistaState, turn, v, &tgt);
         veh_hit_slowdown(gBallistaState, 0);
         D_803F77D0 = gBallistaAnim;
@@ -512,9 +512,9 @@ void ballista_update(void) {
     gPlayerX = gBallistaPos[0];
     gPlayerY = gBallistaPos[1];
     gPlayerZ = gBallistaPos[2];
-    D_8036443C = V853_S16(0x76);
-    D_8036443E = V853_U16(0x4E);
-    D_80364440 = V853_U16(0x4C);
+    D_8036443C = V853_S16(VS_SPEED);
+    D_8036443E = V853_U16(VS_MOVE_HEADING);
+    D_80364440 = V853_U16(VS_HEADING);
     veh_set_record(gBallistaPos[2], 10, gBallistaPos[0], gBallistaPos[1], gBallistaState);
     if (D_803F8B79 >= 0) {
         snd_play(gSfxBank, D_803F8B79, NULL);
@@ -659,7 +659,7 @@ void ballista_update_actions(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32
         D_803F8B7D--;
     } else if ((gHeldL != 0 || gHeldR != 0) && ((u16) gBallistaMissiles) != 0) {
         gBallistaMissiles--;
-        snd_play(gSfxBank, 3, NULL);
+        snd_play(gSfxBank, SFX_BALLISTA_MISSILE, NULL);
         D_803F8B7E ^= 1;
         if (D_803F8B7E != 0) {
             anim_set_frame(0.0f, (AnimChannel *) gBallistaAnim, 4, 0);

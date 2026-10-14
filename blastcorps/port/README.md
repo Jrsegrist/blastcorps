@@ -251,7 +251,7 @@ streams the code reads bytewise (5CB60.c's BE16U/BE16S/BE32) stay big-endian.
   over the image. `make -C port typemap` prints the coverage.
 - **Assets**: `port_on_dma` (every PI copy, from the platform) and
   `port_on_load` (after the game decompressed a block: hooks in 46C20.c
-  func_8028B4C4 and 5CB60.c's packed loader) classify the ROM range
+  hd_rom_load and 5CB60.c's packed loader) classify the ROM range
   (port_assets.c) and apply the schema (schemas.h): the texture table, sound
   banks (walked like alBnkfNew), the sequence file and tunes, levels (header
   offsets, triangles, collision cells, lifts, group chain, display lists,
@@ -882,7 +882,7 @@ it without a fault.  The x64-asan preset is the tool for this now.
       back behind the player after `recentre_delay` seconds without camera
       input; 0: the camera keeps its world direction until reset),
       `recentre_on_foot` (on foot the game steers the driver relative to its
-      own camera heading, 46F60.c func_8028B734 with gCamHeading: a turned
+      own camera heading, 46F60.c cont_stick_to_steer with gCamHeading: a turned
       view would make the stick feel rotated, so by default it eases back on
       foot anyway; camera-relative on-foot input would change the game's
       input, so it isn't offered), `zoom_min/max` (times the game's

@@ -12,7 +12,7 @@ options:
   undefined_syms_auto_path: undefined_syms_auto.hd_front_end.us.v11.txt
   src_path: src.us.v11
 segments:
-  # The front end is inflated once by hd_code func_8028B3E0 (46C20.c) to
+  # The front end is inflated once by hd_code hd_load_front_end (46C20.c) to
   # 0x801E7000: osInvalDCache(0x801E7000, 0x37D00), then the gzip inflate of
   # ROM 0x7E3AD0 (text) / 0x7F63A1 (data) to that address. 307 of the 917 jal
   # words in the text land inside it at this base, all on function starts.

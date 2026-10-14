@@ -25,7 +25,7 @@ extern s16 D_803A6B14;
 void hud_load_demo_banner(void) {
     s32 size = D_0048FE90 - D_0048FA70;
 
-    func_8028B4C4((u32) D_0048FA70, (u32) gHeapPtr, (u32 *) &size, 0xC, 0, 1);
+    hd_rom_load((u32) D_0048FA70, (u32) gHeapPtr, (u32 *) &size, 0xC, 0, 1);
     D_803A6B10 = gHeapPtr;
     gHeapPtr = (u8 *) gHeapPtr + size;
     D_803A6B14 = 0;

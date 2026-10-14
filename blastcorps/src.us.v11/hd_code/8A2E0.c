@@ -265,7 +265,7 @@ static s32 port_cvt_w_s(f32 x) {
  * must not overflow, or the asm's cvt.w.s of a NaN would trap), mark it
  * taken, set D_803FBBE0's sound fields 2 and 1 to 0.0 (anim_set_frame), call
  * stats_finish_bonus_level with the countdown value (gCommPtCount for entry 0, down to 1:
- * the same quirk as commpt_save_flags), then func_80285CA0 and the
+ * the same quirk as commpt_save_flags), then stats_show_commpt_hint and the
  * commpt_burst burst at the entry. The player position is read once. The
  * asm saves every register (k1, gp, sp, fp included) around the two C calls
  * only because it keeps its loop state in t0-t4 across them; its only
@@ -293,7 +293,7 @@ void commpt_update(void) {
             anim_set_frame(0.0f, (AnimChannel *) D_803FBBE0, 2, 0);
             anim_set_frame(0.0f, (AnimChannel *) D_803FBBE0, 1, 0);
             stats_finish_bonus_level(n);
-            func_80285CA0();
+            stats_show_commpt_hint();
             commpt_burst(e->pos);
         }
     }
@@ -366,7 +366,7 @@ void commpt_burst(s32 *pos) {
         d->unk35 = 0;
         obj_queue_effect((u32 *) d);
     }
-    snd_play(gSfxBank, 0x5E, NULL);
+    snd_play(gSfxBank, SFX_COMMPT_BURST, NULL);
 }
 #else
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8A2E0/commpt_burst.s")

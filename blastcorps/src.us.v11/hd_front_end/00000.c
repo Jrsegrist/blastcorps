@@ -5,32 +5,21 @@
  * declarations of these, which the file keeps; the NON_MATCHING build
  * uses game/game.h's. */
 #define LEGACY_gSfxBank
-#define LEGACY_func_802025D0
+#define LEGACY_fe_veh_set_heading_tex_anims
 #endif /* legacy declarations */
 #include "game/game.h"
 /* Views: this file reads these shared variables (game/variables.h) as other types. */
 #define gLevelInfo ((LevelInfo *) gLevelInfo)
 #define D_802F47B0 ((u8 *) D_802F47B0)
 #define gDynamicBufs ((FeDyn *) gDynamicBufs)
-#define players ((Player *) players)
+#define players ((PlayerInfo *) players)
 /* end of views */
 
 /* digger_loop.c: the vehicle ("digger") select screen. */
 
-typedef struct {
-    u8 pad0[0x2C];
-    u32 unk2C; /* mask of vehicles available on this level */
-    u8 pad30[0x14];
-} LevelInfo; /* 0x44 bytes */
+/* (gLevelInfo[]: LevelInfo, game/types.h) */
 
-typedef struct {
-    u8 pad0[0x10];
-    u32 unk10; /* mask of vehicles unlocked */
-    u8 pad14[4];
-    u8 unk18[0x7A]; /* per level */
-    u8 unk92[0x5E]; /* per level: last vehicle used */
-    u8 padF0[0x10];
-} Player; /* 0x100 bytes */
+/* (players[]: PlayerInfo, game/types.h) */
 #ifndef NON_MATCHING
 extern s32 gSfxBank;
 #endif
@@ -94,7 +83,7 @@ u8 gDiggerSelectSound[19] = {
 
 void fe_digger_select(u8);
 #ifndef NON_MATCHING
-void func_802025D0(u8, u32);
+void fe_veh_set_heading_tex_anims(u8, u32);
 #endif
 
 /* Rare's assert; line numbers are the original digger_loop.c's */
@@ -127,17 +116,17 @@ s32 fe_digger_init(void) {
     anim_tex_init();
     for (i = 0; i < 19; i++) {
         slot[i] = -1;
-        if ((players[playerNumberAtStart].unk10 & (1 << i) & level->unk2C) &&
+        if ((players[playerNumberAtStart].vehiclesUnlocked & (1 << i) & level->vehicles) &&
             (playerNumber == playerNumberAtStart || gBestTimes[playerNumberAtStart][D_802E8C44[i]] != 0)) {
             fe_load_model(i, (u8 * N64P *) &gDiggerModels[gDiggerCount], (u8 * N64P *) gDiggerMtxBufs[gDiggerCount], (u8 * N64P *) gDiggerDls[gDiggerCount]);
             gDiggerVehicleX[i] = x;
             x += 380.0;
             guTranslate(&gDiggerTransMtx[gDiggerCount], gDiggerVehicleX[i], gDiggerModelY[i], 0.0f);
             guScale(&gDiggerScaleMtx[gDiggerCount], D_802FDAC0[i], D_802FDAC0[i], D_802FDAC0[i]);
-            func_80202270((u8 *) gDiggerModels[gDiggerCount], (u32 * N64P *) gDiggerMtxBufs[gDiggerCount], D_80211AC0[gDiggerCount]);
-            func_802022EC(D_80211AC0[gDiggerCount], D_802080F8[i], D_8020804C[i], D_80208060[i].unk0,
+            fe_anim_init_model((u8 *) gDiggerModels[gDiggerCount], (u32 * N64P *) gDiggerMtxBufs[gDiggerCount], D_80211AC0[gDiggerCount]);
+            fe_anim_start_channel(D_80211AC0[gDiggerCount], D_802080F8[i], D_8020804C[i], D_80208060[i].unk0,
                           D_80208060[i].unk4, D_8020810C[i], 0);
-            func_80202380(i);
+            fe_veh_reset_tex_anims(i);
             gDiggerSlotVehicle[gDiggerCount] = i;
             slot[i] = gDiggerCount;
             gDiggerCount++;
@@ -147,15 +136,15 @@ s32 fe_digger_init(void) {
     mid = (gDiggerCount - 1) / 2;
     sel = -1;
     switch (gGameMode) {
-        case 0x80:
-            sel = slot[players[playerNumber].unk92[levelno]];
+        case MODE_LEVEL_STATUS:
+            sel = slot[players[playerNumber].bestVehicle[levelno]];
             break;
-        case 4:
-        case 0x100:
-        case 0x8000000:
+        case MODE_LEVEL:
+        case MODE_MAP_VIEW:
+        case MODE_RESULTS:
             sel = slot[D_803643D4];
             break;
-        case 0x4000:
+        case MODE_WORLD:
             break;
         default:
             DIGGER_ASSERT(1==0, 139);
@@ -212,14 +201,14 @@ void fe_digger_frame(void) {
     cont_update();
     if (gFramesInMode >= 11 && !areWeFading()) {
         if ((gContButtons & 0x9000) && !(gContPrevButtons & 0x9000)) {
-            func_80275390(0x2000);
-            snd_play(gSfxBank, 0x1E, 0);
+            fade_to_mode(MODE_LEVEL_START);
+            snd_play(gSfxBank, SFX_SELECT, 0);
         } else if ((gContButtons & 0x4000) && !(gContPrevButtons & 0x4000)) {
-            snd_play(gSfxBank, 0xDE, 0);
+            snd_play(gSfxBank, SFX_BACK, 0);
             D_803643D4 = gDiggerPrevVehicle;
             switch (gPrevGameMode) {
-                case 0x80:
-                case 0x8000000:
+                case MODE_LEVEL_STATUS:
+                case MODE_RESULTS:
                     gNextGameMode = gPrevGameMode;
                     break;
                 default:
@@ -323,10 +312,10 @@ void fe_digger_frame(void) {
             if (gDiggerSel == i) {
                 off = *(s32 *) (gDiggerModels[i]->unk18 + (u8 *) gDiggerModels[i] + 4);
                 mtx = (Mtx *) ((u8 *) gDiggerMtxBufs[i][flag] + off);
-                func_802021FC(D_80211AC0[i], gDiggerMtxBufs[i][gBufferIndex], gDiggerMtxBufs[i][gBufferIndex ^ 1]);
+                fe_anim_update_model(D_80211AC0[i], gDiggerMtxBufs[i][gBufferIndex], gDiggerMtxBufs[i][gBufferIndex ^ 1]);
                 guRotate(mtx, (gDiggerSpin[i] += 4) % 360, 0.0f, 1.0f, 0.0f);
                 osWritebackDCache(mtx, sizeof(Mtx));
-                func_802025D0(gDiggerSlotVehicle[i], (f32) ((gDiggerSpin[i] + 180) % 360) * 11.37778);
+                fe_veh_set_heading_tex_anims(gDiggerSlotVehicle[i], (f32) ((gDiggerSpin[i] + 180) % 360) * 11.37778);
             }
             gSPSegment(gdl++, 6, seg);
             gSPSegment(gdl++, 7, gDiggerMtxBufs[i][flag]);
@@ -375,7 +364,7 @@ void fe_digger_frame(void) {
         gSP1Triangle(gdl++, 0, 2, 3, 0);
     }
     gdl = yoshi_draw(gdl, (s32) &gDynamicBufs[gBufferIndex], &gFrameDlLen);
-    gdl = func_80274BF0((s32) dyn, gdl);
+    gdl = fade_draw((s32) dyn, gdl);
     gDPFullSync(gdl++);
     gSPEndDisplayList(gdl++);
     gFrameDlLen = gdl - dyn->dl;

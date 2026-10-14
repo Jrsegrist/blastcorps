@@ -88,7 +88,7 @@ static int blk_sect(Block *b, uint32_t s, uint32_t e, uint32_t *lo, uint32_t *hi
 /* ------------------------------------------------------------------ levels */
 
 /* 0x2C: texture records {u32 id; u8 count @4; u8 @5, @6; s16 @8, @A; then
- * count - 1 u32 texture ids from +0xC} (lvl_resolve_tex_ids, func_802A5020) */
+ * count - 1 u32 texture ids from +0xC} (lvl_resolve_tex_ids, lvl_step_tex_anims) */
 static void lvl_texrecs(Block *b, uint32_t lo, uint32_t hi) {
     while (lo + 0xC <= hi) {
         uint32_t n = P(b->base + lo)[4];
@@ -193,7 +193,7 @@ static void swap_level(uint32_t base, uint32_t len) {
     if (blk_sect(&b, 0x60, 0x74, &lo, &hi)) blk_keep(&b, lo, hi - lo);
     if (blk_sect(&b, 0x74, 0x78, &lo, &hi)) lvl_groups(&b, lo, hi);
     /* display lists and the visibility records/groups (0xA0..0xC0): all u32
-     * words (tex_resolve_dl_impl, lvl_relocate_dls, lvl_build_visible_dl, func_802A51FC) */
+     * words (tex_resolve_dl_impl, lvl_relocate_dls, lvl_build_visible_dl, lvl_copy_dl_tex_anim) */
     if (blk_sect(&b, 0xA0, 0xC0, &lo, &hi)) blk_words(&b, lo, hi);
     if (blk_sect(&b, 0x78, 0x84, &lo, &hi)) blk_words(&b, lo, hi);
     if (blk_sect(&b, 0x88, 0x9C, &lo, &hi)) blk_words(&b, lo, hi);
@@ -266,11 +266,11 @@ static void swap_object(uint32_t base, uint32_t len) {
     if (blk_sect(&b, 0x2C, 0x30, &lo, &hi)) blk_records(&b, lo, hi, 2, "2@0");
     /* 0x38-byte debris records (lvl_translate_object moves words 0-2 and 10;
      * obj_run_effect_queue reads the copy: u16 delay 0x2C, u16 radius 0x2E, bytes
-     * 0x30.. (kind at 0x31, func_802A23E0), flag byte 0x34) */
+     * 0x30.. (kind at 0x31, lvl_remap_break_fx_kinds), flag byte 0x34) */
     if (blk_sect(&b, 0x30, 0x38, &lo, &hi))
         blk_records(&b, lo, hi, 0x38, "4@0 4@4 4@8 4@C 4@10 4@14 4@18 4@1C 4@20 4@24 4@28 2@2C 2@2E");
     if (blk_sect(&b, 0x38, 0x3C, &lo, &hi)) obj_parts(&b, lo, hi);
-    /* 0x3C: s16 x hdr[0] (func_802C1A28; 77E20.c obj_draw_all's falling
+    /* 0x3C: s16 x hdr[0] (obj_part_outranked; 77E20.c obj_draw_all's falling
      * parts read their landing heights from it as u16) */
     lo = blk_rd32(&b, 0x3C);
     blk_n(&b, lo, (uint16_t) rd16(base), 2);

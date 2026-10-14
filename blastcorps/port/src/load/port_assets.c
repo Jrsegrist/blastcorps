@@ -1,7 +1,7 @@
 /* Runtime assets: byte order on arrival (see port_load.h).
  *
  * Every ROM -> RDRAM transfer reaches port_on_dma (platform PI layer) and,
- * when the game decompresses a block, port_on_load (func_8028B4C4 and 5CB60's
+ * when the game decompresses a block, port_on_load (hd_rom_load and 5CB60's
  * packed-object loader).  The ROM start identifies the asset; its kind says at
  * which of the two points it is swapped and how.  The schemas come from the
  * game's structures and were checked against the widths the code reads each
@@ -285,7 +285,7 @@ static void swap_tune(uint32_t a, uint32_t len) {
 
 static int apply(int kind, uint32_t dst, uint32_t rom, uint32_t len, int at_load) {
     switch (kind) {
-        case K_FE:              /* inflated by func_8028B3E0 (func_8028B4C4) */
+        case K_FE:              /* inflated by hd_load_front_end (hd_rom_load) */
             if (!at_load) return 0;
             port_load_image_fe();
             return 1;
@@ -297,15 +297,15 @@ static int apply(int kind, uint32_t dst, uint32_t rom, uint32_t len, int at_load
             if (at_load) return 0;
             sw32(dst, len / 4);
             return 1;
-        case K_BANK:            /* func_8028B4C4, Rare LZSS (twice: size probe, then the heap copy) */
+        case K_BANK:            /* hd_rom_load, Rare LZSS (twice: size probe, then the heap copy) */
             if (!at_load) return 0;
             swap_bank(dst, len);
             return 1;
-        case K_SEQFILE:         /* func_8028B4C4 uncompressed: 4 bytes, then the table */
+        case K_SEQFILE:         /* hd_rom_load uncompressed: 4 bytes, then the table */
             if (!at_load) return 0;
             swap_seqfile(dst, len);
             return 1;
-        case K_TUNE:            /* music_play_tune: func_8028B4C4 uncompressed */
+        case K_TUNE:            /* music_play_tune: hd_rom_load uncompressed */
             if (!at_load) return 0;
             swap_tune(dst, len);
             return 1;

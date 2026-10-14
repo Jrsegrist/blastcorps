@@ -46,6 +46,11 @@ typedef bool (*GbiCommandHook)(RT64::State *state, RT64::DisplayList **dl, const
  * byte), e.g. to adjust the matrix RT64 now holds */
 typedef void (*GbiMatrixHook)(RT64::State *state, uint8_t params);
 void interpSetCommandHook(GbiCommandHook hook, GbiMatrixHook mtxHook);
+/* widescreen's (live_wide.cpp): a command hook asked after the orbit camera's,
+ * and a hook after every G_VTX RT64 ran, whoever ran it (`w1`: the command's
+ * address word, `first`: the workload's vertex count before it) */
+typedef void (*GbiVertexHook)(RT64::State *state, uint32_t w1, uint32_t first);
+void interpSetWideHooks(GbiCommandHook hook, GbiVertexHook vtxHook);
 
 }  // namespace live
 

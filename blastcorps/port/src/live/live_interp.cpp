@@ -56,6 +56,7 @@
 #include "hle/rt64_interpreter.h"
 #include "hle/rt64_rsp.h"
 #include "hle/rt64_state.h"
+#include "hle/rt64_workload_queue.h"
 
 #include "live_interp.h"
 
@@ -83,6 +84,18 @@ bool g_on;
 bool g_log;
 GbiCommandHook g_hook;   /* interpSetCommandHook (the orbit camera) */
 GbiMatrixHook g_mtxHook;
+GbiCommandHook g_wideHook;   /* interpSetWideHooks (widescreen, live_wide.cpp) */
+GbiVertexHook g_vtxHook;
+
+/* the vertices RT64 has in the workload being built */
+uint32_t vertexCount(RT64::State *state) {
+    const RT64::WorkloadQueue &q = *state->ext.workloadQueue;
+    return q.workloads[q.writeCursor].drawData.vertexCount();
+}
+
+bool anyHook() {
+    return g_hook != nullptr || g_mtxHook != nullptr || g_wideHook != nullptr || g_vtxHook != nullptr;
+}
 
 /* the tags of the display lists being built (physical address -> kind, index) */
 struct Tag {
@@ -256,6 +269,24 @@ bool jumped(RT64::State *state, uint32_t ordinal) {
     return jump;
 }
 
+/* a command other than G_MTX / G_POPMTX: the hooks' turn (the orbit camera's,
+ * then widescreen's), else RT64's own; after a G_VTX, the vertex hook */
+void runHooks(RT64::State *state, RT64::DisplayList **dl, uint8_t op) {
+    if (g_hook != nullptr && g_hook(state, dl, g_cur)) return;
+    if (g_wideHook != nullptr && g_wideHook(state, dl, g_cur)) return;
+    g_cur[op](state, dl);
+}
+void run(RT64::State *state, RT64::DisplayList **dl, uint8_t op) {
+    if (op != 0x04 || g_vtxHook == nullptr) {
+        runHooks(state, dl, op);
+        return;
+    }
+    const uint32_t w1 = (*dl)->w1;
+    const uint32_t first = vertexCount(state);
+    runHooks(state, dl, op);
+    g_vtxHook(state, w1, first);
+}
+
 void dispatch(RT64::State *state, RT64::DisplayList **dl) {
     const uint32_t w0 = (*dl)->w0;
     const uint8_t op = uint8_t(w0 >> 24);
@@ -263,8 +294,10 @@ void dispatch(RT64::State *state, RT64::DisplayList **dl) {
         if (op == 0x01) {
             g_cur[op](state, dl);
             if (g_mtxHook != nullptr) g_mtxHook(state, uint8_t(w0 >> 16));
-        } else if (op == 0xBD || g_hook == nullptr || !g_hook(state, dl, g_cur)) {
+        } else if (op == 0xBD) {
             g_cur[op](state, dl);
+        } else {
+            run(state, dl, op);
         }
         return;
     }
@@ -326,8 +359,7 @@ void dispatch(RT64::State *state, RT64::DisplayList **dl) {
         }
         return;
     }
-    if (g_hook != nullptr && g_hook(state, dl, g_cur)) return;
-    g_cur[op](state, dl);
+    run(state, dl, op);
 }
 
 void resetTask() {
@@ -380,7 +412,7 @@ void interpTagsEnable(bool on) {
         host_itag_hook = itagHook;
     } else {
         host_itag_hook = nullptr;
-        if (g_hook == nullptr && g_mtxHook == nullptr) unwrapAll();
+        if (!anyHook()) unwrapAll();
     }
     host_log("live: tagged interpolation %s\n", on ? "on" : "off");
 }
@@ -388,7 +420,13 @@ void interpTagsEnable(bool on) {
 void interpSetCommandHook(GbiCommandHook hook, GbiMatrixHook mtxHook) {
     g_hook = hook;
     g_mtxHook = mtxHook;
-    if (hook == nullptr && mtxHook == nullptr && !g_on) unwrapAll();
+    if (!anyHook() && !g_on) unwrapAll();
+}
+
+void interpSetWideHooks(GbiCommandHook hook, GbiVertexHook vtxHook) {
+    g_wideHook = hook;
+    g_vtxHook = vtxHook;
+    if (!anyHook() && !g_on) unwrapAll();
 }
 
 bool interpTagsOn() {
@@ -405,7 +443,7 @@ void interpTagsSetTest(unsigned mask) {
 
 void interpTagsBeforeTask(unsigned dl, bool mainFrame) {
     (void) dl;
-    if ((!g_on && g_hook == nullptr && g_mtxHook == nullptr) || g_app->interpreter->hleGBI == nullptr) return;
+    if ((!g_on && !anyHook()) || g_app->interpreter->hleGBI == nullptr) return;
     wrap(g_app->interpreter->hleGBI);
     resetTask();
     if (!g_on) return;

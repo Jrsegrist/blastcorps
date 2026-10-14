@@ -626,6 +626,22 @@ it without a fault.  The x64-asan preset is the tool for this now.
     checked against an independent model of the K-times-wider frustum over
     every test of levels 0, 13, 30 (1187 tests, K = 1, 4/3, 1.75: all
     agree; at 1.75, 184 tests turn visible only through the wider view).
+    The game's full-screen 2D would stop at the 4:3 edges too, so it is
+    widened on RT64's side while RT64 reads the display list
+    (`src/live/live_wide.cpp`, through live_interp.cpp's GBI wrapping; RDRAM
+    and the display lists untouched; nothing at all with `original`): the
+    sky (2D810.c backdrop_draw, a textured quad under the orthographic
+    projection: RT64's copies of its 4 vertices are widened about the
+    screen's centre, its texture coordinates with them, so the sky goes on
+    to the edges instead of showing the far ground or older pictures above
+    the horizon), the full-screen fade quad of a failed mission and of the
+    attract demo's end (17E10.c, D_802FA8B0), the dark panels of the
+    full-width message windows (26570.c gYoshiWindowDl, widened from 80 %
+    of the width up), and the front end's background picture (196F0.c
+    fe_bg_draw's 64x16 rectangles, drawn with RT64's extended
+    `G_EX_ASPECT_STRETCH`: stretched to the width).  The fades to black
+    (30430.c), the carrier blast's red tint and the clears are full-width
+    fill rectangles (stretched by RT64 already).
     Limits (widescreen): markers that point at off-screen targets (30C70.c) still use
     the 4:3 edges; the HUD is centred, not anchored to the screen edges
     (that would need RT64's extended GBI origins in the game's lists).

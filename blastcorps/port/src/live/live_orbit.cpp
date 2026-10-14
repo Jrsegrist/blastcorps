@@ -51,10 +51,12 @@
 #include "gbi/rt64_display_list.h"
 #include "hle/rt64_rsp.h"
 #include "hle/rt64_state.h"
+#include "hle/rt64_workload_queue.h"
 #include "render/rt64_projection_processor.h"
 
 #include "live_interp.h"
 #include "live_orbit.h"
+#include "live_wide.h"
 #include "orbit_math.h"
 
 extern "C" {
@@ -789,7 +791,11 @@ bool commandHook(RT64::State *state, RT64::DisplayList **dl, const GbiOriginal *
             int16_t *p = patchVtx(0x2FA820, g_bd.vtx);
             for (int i = 0; i < g_bd.count; i++) {
                 RT64::DisplayList *c = &g_bd.gfx[i];
-                originals[c->w0 >> 24](state, &c);
+                const uint32_t op = c->w0 >> 24, w1 = c->w1;
+                const RT64::WorkloadQueue &q = *state->ext.workloadQueue;
+                const uint32_t first = q.workloads[q.writeCursor].drawData.vertexCount();
+                originals[op](state, &c);
+                if (op == 0x04) wideAfterVertex(state, w1, first);   /* widescreen: as wide as the picture */
             }
             restoreVtx(p);
             RT64::DisplayList *c = &g_bd.cycle;

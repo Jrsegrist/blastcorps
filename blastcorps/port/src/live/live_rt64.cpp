@@ -144,6 +144,7 @@
 #include "live_interp.h"
 #include "live_menu.h"
 #include "live_orbit.h"
+#include "live_wide.h"
 #include "live_setup.h"
 
 extern "C" {
@@ -1004,6 +1005,7 @@ void updateCullWide() {
         if (pw > 0 && ph > 0) k = double(pw) / double(ph) / (4.0 / 3.0);
     }
     if (k < 1.0) k = 1.0;
+    live::wideSetFactor(k);   /* the full-screen 2D (sky, fades, ...) as wide as the picture (live_wide.cpp) */
     if (g_cfg.framerate != 0) k *= kInterpCullMargin;
     if (k != host_cull_wide) {
         host_cull_wide = k;
@@ -2216,6 +2218,7 @@ int main(int, char **) {
             host_log("live: frame rate option: %.3f ms per task in processDisplayLists (%u tasks, interpolation %s)\n",
                      g_dlSeconds * 1e3 / g_dlTasks, g_dlTasks, live::interpTagsOn() ? "tagged" : "auto");
         live::interpTagsSummary();
+        live::wideSummary();
         live::orbitSummary();
     };
     host_opts_hook = optsHook;

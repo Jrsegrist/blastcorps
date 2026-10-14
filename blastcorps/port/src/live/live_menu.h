@@ -31,6 +31,8 @@ struct MenuEnv {
     std::function<std::vector<std::string>()> padNames;    /* the game controllers connected now */
     std::function<std::string()> status;                   /* one line about the renderer (resolution ...) */
     std::function<std::string()> packStatus;               /* the texture pack's state ("" = never loaded) */
+    std::function<void()> reloadPack;                      /* load the texture pack again from its files */
+    std::function<std::string()> dumpStatus;               /* the texture dump's counts ("" = off) */
     std::function<unsigned()> msaaSupported;               /* MSAA sample counts possible (mask: 2, 4, 8) */
 };
 

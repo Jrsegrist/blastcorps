@@ -779,10 +779,10 @@ it without a fault.  The x64-asan preset is the tool for this now.
       it) is tested against the orbit view (the game's projection, widescreen
       and interpolation width, its far plane), from the newest game camera
       (the level's lists are built before the frame's cam_update), with
-      margins for what the view does until the next list: 10 degrees plus
-      0.15 s of its recent turning speed, the apex moved back by 4 units
-      plus 10 steps of the eye's recent motion; turning faster than 60
-      degrees of margin covers, every cell (as before, and as the game
+      margins for what the view does until the next list: 20 degrees plus
+      0.25 s of its recent turning speed, the apex moved back by 4 units
+      plus 10 steps of the eye's recent motion; turning faster than 70
+      degrees of margin covers (200 degrees a second), every cell (as before, and as the game
       itself does while its camera turns, cull_restart). The game logic
       reads the real list. The display lists then hold more (RDRAM differs
       only there). People and markers on unlisted cells stay hidden.
@@ -838,11 +838,11 @@ it without a fault.  The x64-asan preset is the tool for this now.
       the game's frames (it can't be added where the game didn't draw one);
       environment-mapped reflections use the game's view.
     - Testing: `--orbit-test YAWSPEED[:PITCH[:ZOOM]]` turns the camera by
-      itself (degrees a second, an absolute pitch, a zoom; the pictures use the
-      orbit as it was when their frame was made, so a run's pictures are the
-      same every time), `--orbit-log` logs both cameras every 30 frames and
-      runs the checks above, `--orbit-cull all` draws every cell, `--perf-log`
-      has the orbit's host work.
+      itself (degrees a second, an absolute pitch, a zoom), `--orbit-log` logs
+      both cameras every 30 frames and runs the checks above, `--orbit-cull
+      all` draws every cell, `--orbit-repeatable` makes each picture use the
+      orbit as it was when its frame was made (the same pictures every run,
+      for comparisons), `--perf-log` has the orbit's host work.
   - Controls (`[keyboard]`, `[controller]`): the menu's Controls tab remaps
     every binding (click it, press the key, controller button, stick or
     trigger; Backspace clears; the menu's own controller buttons are a

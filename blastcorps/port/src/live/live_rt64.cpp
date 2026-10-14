@@ -71,6 +71,8 @@
  *                       query against a test of every triangle (summary at exit)
  *     --orbit-cull M    (testing) all: the drawing paths get every cell (as before the orbit
  *                       view's test), view: the game's cells and the orbit view's (default)
+ *     --orbit-repeatable  (testing) pictures use the orbit as it was when their frame was made
+ *                       (the same pictures every run, for comparisons)
  *     --interp-log      log every frame's camera motion (the interpolation cut test) and
  *                       tagged objects that jumped
  *     --tag-test MASK   (testing) tagged interpolation experiments: 1 no vertex blending, 2 HUD
@@ -1838,6 +1840,7 @@ int extraArg(int argc, char **argv, int *i, HostOpts *o) {
     else if (!strcmp(a, "--display-hz")) g_interp.displayHz = std::max(1u, num(next()));
     else if (!strcmp(a, "--interp-log")) g_interp.log = true;
     else if (!strcmp(a, "--orbit-log")) live::orbitSetLog(true);
+    else if (!strcmp(a, "--orbit-repeatable")) live::orbitSetRepeatable(true);
     else if (!strcmp(a, "--orbit-cull")) {
         const char *s = next();
         if (!live::orbitSetCull(s)) host_fatal("--orbit-cull %s: all or view", s);

@@ -87,6 +87,7 @@ SDL_Window *g_window;
 Config g_padCfg;          /* the bindings without the camera's inputs (orbit active) */
 bool g_log;
 bool g_test;              /* --orbit-test */
+bool g_repeatable;        /* --orbit-repeatable */
 bool g_cullAll;           /* --orbit-cull all: draw every cell (testing; as before the view test) */
 std::atomic<unsigned> g_checkPictures, g_checkMissPictures, g_checkMissCells;   /* --orbit-log */
 unsigned g_gameCellsChecked, g_gameCellsOutside;                                 /* --orbit-log */
@@ -169,7 +170,7 @@ struct Entry {
     Cam cur, prev;
     bool active = false;
     std::shared_ptr<const CellSet> cells;   /* --orbit-log */
-    orbit::Orbit orbit;                     /* --orbit-test: the orbit when the frame was made */
+    orbit::Orbit orbit;                     /* --orbit-repeatable: the orbit when the frame was made */
     orbit::Limits lim;
 };
 std::mutex g_mutex;       /* g_ring, g_shared */
@@ -225,7 +226,7 @@ void viewHook(const RT64::ViewHookParams &p, interop::float4x4 &view, interop::f
         s = g_shared;
     }
     double extra = std::min(secondsSince(s.stepTime), 0.05);
-    if (g_test) {   /* --orbit-test: the orbit as it was when the frame was made (the same pictures every run) */
+    if (g_repeatable) {   /* --orbit-repeatable: the orbit as it was when the frame was made (the same pictures every run) */
         s.orbit = e.orbit;
         s.lim = e.lim;
         extra = 0;
@@ -555,11 +556,13 @@ struct Motion {
  * interpolation width (host_cull_wide), from the newest camera the game made
  * (the frame before's: the level's lists are built before cam_update), and
  * margins for that and for the pictures shown until the next list (the
- * view may turn and the eye move meanwhile): 10
- * degrees plus what the view turned in about 0.15 s at its recent speed, the
- * apex 4 units plus 10 steps of the eye's recent motion back, and the far
- * plane.  Turning faster than that can cover (a margin over 60 degrees), or
- * the frame's camera unknown: every cell, as before.  Made once a frame (the
+ * view may turn and the eye move meanwhile): 20
+ * degrees plus what the view turned in 0.25 s at its recent speed, the apex
+ * 4 units plus 10 steps of the eye's recent motion back, and the far plane.
+ * Turning faster than that can cover (a margin over 70 degrees: from 200
+ * degrees a second), or the camera unknown: every cell, as before.  (The
+ * cells cost little to draw: the margins are generous; a sudden mouse flick
+ * from rest is the one case they can lag.)  Made once a frame (the
  * paths ask for it once per record), for the game's list it was given. */
 struct DrawList {
     unsigned frame = ~0u;
@@ -642,8 +645,8 @@ short *drawCells(short *game) {
     const double s = -c.proj[2][3];
     bool all = g_cullAll || !c.valid || frame - c.frame > 4 || !orbit::perspectiveRange(c.proj, nearZ, farZ) ||
                !(std::fabs(c.proj[0][0]) > 1e-9 && std::fabs(c.proj[1][1]) > 1e-9);
-    const double margin = 10.0 + g_motion.turnPerSec() * 0.15;
-    if (margin > 60.0) all = true;
+    const double margin = 20.0 + g_motion.turnPerSec() * 0.25;
+    if (margin > 70.0) all = true;
     if (all) {
         g_draw.all++;
         std::fill(cs->drawn.begin(), cs->drawn.end(), uint8_t(1));
@@ -1122,6 +1125,10 @@ void orbitSummary() {
                  "cells %u of %u outside the same test from the game's culling view\n",
                  g_checkPictures.load(), g_checkMissPictures.load(), g_checkMissCells.load(), g_heightChecks,
                  g_heightMismatches, g_gameCellsOutside, g_gameCellsChecked);
+}
+
+void orbitSetRepeatable(bool on) {
+    g_repeatable = on;
 }
 
 bool orbitSetCull(const std::string &mode) {

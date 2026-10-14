@@ -45,6 +45,10 @@ void orbitSetLog(bool on);
  * as before the orbit view's test) or view (the default: the game's cells and
  * those the orbit camera can see) */
 bool orbitSetCull(const std::string &mode);
+/* testing: --orbit-repeatable: each picture uses the orbit as it was when its
+ * frame was made (no input since: the same pictures every run, for
+ * comparisons; normally pictures use the newest orbit) */
+void orbitSetRepeatable(bool on);
 void orbitSummary();
 /* testing (--perf-log): the orbit's host work since the last call (ms: its
  * step with the collision queries, the drawing list) and the cells the

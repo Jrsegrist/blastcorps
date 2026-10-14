@@ -184,7 +184,9 @@ void lvl_init_chopper_pos(u8 arg0) {
     gChopperZ = p->unk26[2] << 5;
 }
 
-void func_80262238(u8 arg0) {
+/* If the level has a rail line (table D_802E8F68), sets gTrainOnLine and the line's ends (x0, z0)-(x1, z1) in
+ * world units (0x80262238). */
+void lvl_init_train_line(u8 arg0) {
     s32 i;
     u8 found;
 
@@ -274,7 +276,7 @@ void hud_init_objective(u8 arg0) {
     if (gLevelKind != 1) {
         size = D_006A8DA0 - D_006A32B0;
         if (gLevelKind != 0x80 && gNextGameMode == MODE_LEVEL_START) {
-            func_8028B4C4((u32) D_006A32B0, (u32) gHeapPtr, (u32 *) &size, 10, 0, 1);
+            hd_rom_load((u32) D_006A32B0, (u32) gHeapPtr, (u32 *) &size, 10, 0, 1);
             for (i = 0; i < 5; i++) {
                 gTurboStartImages[i] = (i << 15) + (u8 *) gHeapPtr;
             }
@@ -333,34 +335,34 @@ void hud_mission_intro(void) {
                 gIntroTimeJText[0] = 0xFFF;
                 switch (gLevelKind) {
                     case 2:
-                        func_802D6A60(gIntroObjectiveText, "FINISH %d LAPS IN", gCurLevelInfo->target);
+                        sprintf(gIntroObjectiveText, "FINISH %d LAPS IN", gCurLevelInfo->target);
                         break;
                     case 4:
                     case 0x20:
                         if (levelno == 0x34) {
-                            func_802D6A60(gIntroObjectiveText, "DESTROY TARGETS IN");
+                            sprintf(gIntroObjectiveText, "DESTROY TARGETS IN");
                         } else {
-                            func_802D6A60(gIntroObjectiveText, "DESTROY %s IN", gObjectiveName);
+                            sprintf(gIntroObjectiveText, "DESTROY %s IN", gObjectiveName);
                         }
                         break;
                     case 0x80:
                         if (levelno == 0x32) {
-                            func_802D6A60(gIntroObjectiveText, "CLEAR SHUTTLE PATH");
+                            sprintf(gIntroObjectiveText, "CLEAR SHUTTLE PATH");
                         } else {
-                            func_802D6A60(gIntroObjectiveText, "CLEAR CARRIER PATH");
+                            sprintf(gIntroObjectiveText, "CLEAR CARRIER PATH");
                         }
                         break;
                     case 8:
-                        func_802D6A60(gIntroObjectiveText, "CAUSE $%d DAMAGE", gCurLevelInfo->target);
+                        sprintf(gIntroObjectiveText, "CAUSE $%d DAMAGE", gCurLevelInfo->target);
                         break;
                     case 0x10:
                     case 0x40:
-                        func_802D6A60(gIntroObjectiveText, "FIND %d RDUS IN", gCurLevelInfo->target);
+                        sprintf(gIntroObjectiveText, "FIND %d RDUS IN", gCurLevelInfo->target);
                         break;
                 }
                 mins = gCurLevelInfo->time / 600;
                 rem = (gCurLevelInfo->time / 10) % 60;
-                func_802D6A60(gIntroTimeText, "%d MINUTE%c %d SECONDS", mins, D_802E9FA0[mins != 1], rem);
+                sprintf(gIntroTimeText, "%d MINUTE%c %d SECONDS", mins, D_802E9FA0[mins != 1], rem);
                 gYoshiGameItems[255] = gIntroObjectiveText;
                 gYoshiGameItems[262] = gIntroTimeText;
                 gYoshiGameItems[256] = gIntroObjectiveJText;
@@ -404,9 +406,9 @@ void hud_update_objective(void) {
             if (gCarrierHit && areWeFading() == 0 && yoshiState == 1) {
                 if ((players[playerNumber].rank[levelno] > 0 && players[playerNumber].rank[levelno] < 6) ? 1
                                                                                                                  : 0) {
-                    func_80275270(0x08000000, 0.25f);
+                    fade_to_mode_speed(0x08000000, 0.25f);
                 } else {
-                    func_80275270(0x40, 0.25f);
+                    fade_to_mode_speed(0x40, 0.25f);
                 }
             }
             break;
@@ -465,7 +467,7 @@ void hud_check_rdus(void) {
     if (D_8036EA7C >= gCurLevelInfo->target) {
         gLevelDoneRequest = 1;
     }
-    func_802D6A60(gHudLines[0], "%d/%d", D_8036EA7C, gCurLevelInfo->target);
+    sprintf(gHudLines[0], "%d/%d", D_8036EA7C, gCurLevelInfo->target);
 }
 
 /* Level kind 4: the targets destroyed (0x8026303C).
@@ -485,7 +487,7 @@ void hud_check_targets(void) {
     } else if (gCurLevelInfo->unk24 > (gPlayerY >> 5)) {
         cmo_hit_request = 1;
     }
-    func_802D6A60(gHudLines[0], "%d/%d", D_8036EA78, D_8036EB92);
+    sprintf(gHudLines[0], "%d/%d", D_8036EA78, D_8036EB92);
 }
 
 /* Level kinds 0x20/0x80: the path cleared (0x80263140).
@@ -516,13 +518,13 @@ void hud_check_path(void) {
     }
     switch (gLevelKind) {
         case 0x20:
-            func_802D6A60(gHudLines[0], "%d/%d", D_8036EA78, D_8036EB92);
+            sprintf(gHudLines[0], "%d/%d", D_8036EA78, D_8036EB92);
             break;
         case 0x80:
             if (levelno == 0x32) {
-                func_802D6A60(gHudLines[0], "%d/%d", D_8036EA78, D_8036EB92);
+                sprintf(gHudLines[0], "%d/%d", D_8036EA78, D_8036EB92);
             } else {
-                func_802D6A60(gHudLines[0], "%d/%d", obj_count_destroyed_path_buildings(), D_8036EB92);
+                sprintf(gHudLines[0], "%d/%d", obj_count_destroyed_path_buildings(), D_8036EB92);
             }
             break;
     }
@@ -541,7 +543,7 @@ void hud_check_damage(void) {
     if (left < 0) {
         left = 0;
     }
-    func_802D6A60(gHudLines[0], "$%d LEFT", left);
+    sprintf(gHudLines[0], "$%d LEFT", left);
 }
 
 /* Level kind 2: start box, quadrants, lap times (0x802633E0).
@@ -587,9 +589,9 @@ void hud_update_race(void) {
                         yoshi_demand(0x8008);
                     }
                     if (left == 1) {
-                        func_802D6A60(gLapsLeftText, "1 LAP LEFT!");
+                        sprintf(gLapsLeftText, "1 LAP LEFT!");
                     } else {
-                        func_802D6A60(gLapsLeftText, "%d LAPS LEFT!", left);
+                        sprintf(gLapsLeftText, "%d LAPS LEFT!", left);
                     }
                     gYoshiGameItems[248] = gLapsLeftText;
                     gYoshiGameItems[249] = D_80367D28;

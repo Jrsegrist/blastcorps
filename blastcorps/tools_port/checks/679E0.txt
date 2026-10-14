@@ -125,12 +125,12 @@ math_rotate_xz_inv: -n 100 --seed 1 --arg a0=choice:0,1,-1,0xFFFF,0x10000,-0x100
     --stub-ret math_cos=choice:0,0x10000,1,0xFFFF,0xB505 --stub-ret math_sin=choice:0,0x10000,1,0xFFFF,0xB505
 math_rotate_xz_inv: -n 200 --seed 2 --arg a0=int:-0x20000000:0x20000000 --arg a2=int:-0x20000000:0x20000000 --arg a3=int \
     --follow math_cos,math_sin,math_cosf,math_sinf
-# func_802ACEB8 (x a0, angle a3 -> t0, a3); |x| <= 0x4000 keeps p * s >> 16 in 32 bits
-func_802ACEB8: -n 300 --seed 0 --arg a0=int:-0x4000:0x4000 --arg a3=int \
+# math_rotate_xx (x a0, angle a3 -> t0, a3); |x| <= 0x4000 keeps p * s >> 16 in 32 bits
+math_rotate_xx: -n 300 --seed 0 --arg a0=int:-0x4000:0x4000 --arg a3=int \
     --stub-ret math_cos=int:0:0x10000 --stub-ret math_sin=int:0:0x10000
-func_802ACEB8: -n 100 --seed 1 --arg a0=choice:0,1,-1,0xFFF,0x1000,-0x1000,0x4000,-0x4000 --arg a3=int \
+math_rotate_xx: -n 100 --seed 1 --arg a0=choice:0,1,-1,0xFFF,0x1000,-0x1000,0x4000,-0x4000 --arg a3=int \
     --stub-ret math_cos=choice:0,0x10000,1,0xFFFF,0xB505 --stub-ret math_sin=choice:0,0x10000,1,0xFFFF,0xB505
-func_802ACEB8: -n 200 --seed 2 --arg a0=int:-0x4000:0x4000 --arg a3=int \
+math_rotate_xx: -n 200 --seed 2 --arg a0=int:-0x4000:0x4000 --arg a3=int \
     --follow math_cos,math_sin,math_cosf,math_sinf
 # boundary angles and coordinates with the real cos/sin
 math_rotate_xz: -n 200 --seed 3 --arg a1=choice:0,1,-1,0xFFFF,0x10000,-0x10000,0x1FFFFFFF,-0x20000000 \
@@ -139,7 +139,7 @@ math_rotate_xz: -n 200 --seed 3 --arg a1=choice:0,1,-1,0xFFFF,0x10000,-0x10000,0
 math_rotate_xz_inv: -n 200 --seed 3 --arg a0=choice:0,1,-1,0xFFFF,0x10000,-0x10000,0x1FFFFFFF,-0x20000000 \
     --arg a2=choice:0,1,-1,0xFFFF,0x10000,-0x10000,0x1FFFFFFF,-0x20000000 --arg a3=choice:0,0x400,0x800,0xC00,0x200,0xFFF,0x1000,-1 \
     --follow math_cos,math_sin,math_cosf,math_sinf
-func_802ACEB8: -n 200 --seed 3 --arg a0=choice:0,1,-1,0xFFF,0x1000,-0x1000,0x4000,-0x4000 \
+math_rotate_xx: -n 200 --seed 3 --arg a0=choice:0,1,-1,0xFFF,0x1000,-0x1000,0x4000,-0x4000 \
     --arg a3=choice:0,0x400,0x800,0xC00,0x200,0xFFF,0x1000,-1 --follow math_cos,math_sin,math_cosf,math_sinf
 
 # veh_check_wrap (px v0, py v1, pz a0): trampoline to veh_wrap_position; stubbed, then followed with the wrap boundaries
@@ -148,22 +148,22 @@ veh_check_wrap: -n 200 --seed 1 --heap 0x10 --arg v0=rel:heap0 --arg v1=rel:heap
     --mem @heap0:12=words:0,0x2580,0x2581,0x3E80,0x3E81,0x13880,0x13881,0x15180,0x15181,-1 --mem levelno=choice:0x17,0x17,0x16 \
     --mem gCamSnap:1=bytes:0,0,1 --follow veh_wrap_position
 
-# func_802AC2A4 (a0, a1, v0, v1, t0, vehicle t8, record gp): game mode 0x40 only; reset, collision pass, then the
+# veh_maze_object_hits (a0, a1, v0, v1, t0, vehicle t8, record gp): game mode 0x40 only; reset, collision pass, then the
 # 0..4 hit objects (heap0..heap3) in the gObjHits list are moved to x = z = 0xBB80
-func_802AC2A4: -n 300 --seed 0 --heap 0x50 --heap 0x50 --heap 0x50 --heap 0x50 \
+veh_maze_object_hits: -n 300 --seed 0 --heap 0x50 --heap 0x50 --heap 0x50 --heap 0x50 \
     --arg a0=int --arg a1=int --arg v0=int --arg v1=int --arg t0=int --arg t8=choice:0,5,0xFF --arg gp=int \
     --mem gLevelKind=choice:0x40*3,0,0x41 --mem gObjHits=rel:heap0 --mem gObjHits+8=rel:heap1 \
     --mem gObjHits+0x10=rel:heap2 --mem gObjHits+0x18=rel:heap3 --mem gObjHitsEnd=rel:gObjHits+8*int:0:4 \
     --mem gPowerPillTimer:2=choice:0,1,0x8000 --mem gFailTrigger:1=rand --mem gSfxBank=int --sig snd_play=a0,a1,a2
 # always a non-empty list and sound; positions around 0xBB80 and the wrap points
-func_802AC2A4: -n 200 --seed 1 --heap 0x50 --heap 0x50 --heap 0x50 --heap 0x50 \
+veh_maze_object_hits: -n 200 --seed 1 --heap 0x50 --heap 0x50 --heap 0x50 --heap 0x50 \
     --arg a0=int --arg a1=int --arg v0=int --arg v1=int --arg t0=int --arg t8=choice:0,5,0xFF --arg gp=int \
     --mem gLevelKind=0x40 --mem gObjHits=rel:heap0 --mem gObjHits+8=rel:heap1 \
     --mem gObjHits+0x10=rel:heap2 --mem gObjHits+0x18=rel:heap3 --mem gObjHitsEnd=rel:gObjHits+8*int:1:4 \
     --mem @heap0+0x10*0x60:4=choice:0,0xBB80,0xBB81,-1,0x7FFFFFFF,0x80000000 --mem @heap0+0x18*0x60:4=choice:0,0xBB80,0xBB7F,-1,0x80000000 \
     --mem gPowerPillTimer:2=choice:1,0xFFFF --mem gFailTrigger:1=rand --mem gSfxBank=int --sig snd_play=a0,a1,a2
 # the reset and the collision pass run for real (vehicle 5's sphere in one slot, no objects)
-func_802AC2A4: -n 200 --seed 2 --heap 0x50 --heap 0x50 --heap 0x50 --heap 0x50 --heap 0x100 \
+veh_maze_object_hits: -n 200 --seed 2 --heap 0x50 --heap 0x50 --heap 0x50 --heap 0x50 --heap 0x100 \
     --arg a0=int --arg a1=int --arg v0=int --arg v1=int --arg t0=int --arg t8=5 --arg gp=rel:heap4 \
     --mem gLevelKind=0x40 --mem gObjHits=rel:heap0 --mem gObjHits+8=rel:heap1 \
     --mem gObjHits+0x10=rel:heap2 --mem gObjHits+0x18=rel:heap3 --mem gObjHitsEnd=rel:gObjHits+8*int:0:4 \

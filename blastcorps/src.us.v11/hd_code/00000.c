@@ -318,7 +318,7 @@ extern u16 D_8030491C[];
 extern u16 D_80304938[];
 void veh_draw_shadows(Gfx **, DynamicBuf *, u8);
 void veh_draw_chopper_shadow(Gfx **, DynamicBuf *);
-void func_802502EC(void);
+void veh_update_fail_spin(void);
 void cam_update(Mtx *, LookAt *, Mtx *);
 #define SEG2(off) ((u8 *) D_02000000 + (off))
 
@@ -359,12 +359,12 @@ void veh_apply_switch(void);
 void veh_leave(void);
 void veh_update_others(void);
 void veh_update_player(void);
-void func_8024A92C(u32);
+void carrier_update_proximity(u32);
 void veh_update_riders(void);
-void func_8024A348(void);
-void func_8024ADD8(void);
+void hud_update_value_popups(void);
+void hud_tick_money_counter(void);
 Gfx *hd_build_frame_dl(DynamicBuf *, s32 *);
-void func_8024BDA4(u16 *);
+void hd_handle_yoshi_selection(u16 *);
 #define LEVEL_DONE(l) (players[playerNumber].unk18[l] > 0 && players[playerNumber].unk18[l] < 6) ? 1 : 0
 
 /* (end of declarations) */
@@ -379,7 +379,7 @@ void hd_boot(void) {
     u32 buf[16];
     s32 pad2[2];
 
-    func_802D4020();
+    osInitialize();
     for (addr = 0xFFB000, i = 0; i < 16; i++, addr += 4) {
         osPiRawReadIo(addr, &buf[i]);
     }
@@ -393,8 +393,8 @@ void hd_boot(void) {
 void hd_idle_thread(void *arg0) {
     s32 pad;
 
-    func_802D4550(4);
-    func_802D4560(0x96, (OSMesgQueue *) D_80314D80, (void * N64P *) D_80314D98, 0xC2);
+    osDpSetStatus(4);
+    osCreatePiManager(0x96, (OSMesgQueue *) D_80314D80, (void * N64P *) D_80314D98, 0xC2);
     osCreateThread(&gMainThread, 3, hd_main_thread, arg0, gMainThreadStack + 0x400, 10);
     osStartThread(&gMainThread);
     if (D_802FA254 == 0) {
@@ -555,7 +555,7 @@ void hd_main_thread(void *arg) {
                         D_80364AE9 = playerNumberAtStart;
                         playerNumber = playerNumberAtStart;
                     }
-                    func_8028B3E0();
+                    hd_load_front_end();
                     debug_printf("World screen centred on level %d\n", levelno);
                     playerNumber = playerNumberAtStart;
                     fe_player_update_level_kinds();
@@ -650,7 +650,7 @@ void hd_main_thread(void *arg) {
                             debug_printf("Unpause at start = %d\n", gUnpauseRequest);
                             D_80364A58 = ((s32) PORT_GVI("hd_main_thread:4A58", D_803156C0));
                             D_80358064 = 0;
-                            func_8025BB38();
+                            rec_start_recording();
                             debug_printf("snew ip=%8d : tc=%5d : bd=%2d : cr=%2d : rt=%3d : coin=%1d : bdn=%1d\n",
                                           nss.ip, nss.tc, nss.bd, nss.cr, nss.rt,
                                           nss.coin, nss.bdn);
@@ -673,7 +673,7 @@ void hd_main_thread(void *arg) {
                     newPlayer = 0;
                     switch (gGameMode) {
                         case 0x100000000000:
-                            func_8028B3E0();
+                            hd_load_front_end();
                             gPendingTune = music_tune_for_mode(gNextGameMode);
                         case 0x4000:
                             newPlayer = stats_save_status();
@@ -852,7 +852,7 @@ void hd_main_thread(void *arg) {
                     break;
                 case 0x40:
                     if (gGameMode & 0x04000200) {
-                        func_8028B3E0();
+                        hd_load_front_end();
                         nss.tc = stats_frames_to_tenths(D_80364A5C), stats_copy_result((u8 *) &nss, (u8 *) &D_8036EA60);
                         fe_stats_grade_level(&D_80364A60, 0, 1);
                     }
@@ -878,7 +878,7 @@ void hd_main_thread(void *arg) {
                         hd_setup_level(0);
                     }
                     yoshi_set_target_icons();
-                    func_8025BB50();
+                    rec_start_replay();
                     break;
                 case 0x20000000:
                     hd_mode_setup();
@@ -910,7 +910,7 @@ void hd_main_thread(void *arg) {
                 case 0x1000000000:
                     music_push_tune(0x18);
                     snd_set_slot_volume(0, 0);
-                    func_80297ECC();
+                    academy_reset_window_cursor();
                     yoshi_demand(0x8015);
                     gPauseRequest = 1;
                     break;
@@ -1058,7 +1058,7 @@ void hd_game_frame(void) {
         }
         if ((LEVEL_DONE(levelno)) && gLevelKind == 1 && gLevelDoneRequest) {
             gPauseRequest = 1;
-            func_80275390(0x08000000);
+            fade_to_mode(0x08000000);
         }
     }
     nextdma = 0;
@@ -1329,13 +1329,13 @@ void hd_game_frame(void) {
             carrier_update();
         }
         if ((gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) && !yoshi_get_demand() && !gPaused && !gLevelDone && !gCarrierHit) {
-            func_8024A92C(vis = obj_find_carrier_target());
+            carrier_update_proximity(vis = obj_find_carrier_target());
         }
     }
     if (gHaveShuttle && !gPaused) {
         shuttle_update();
         if (levelno == 0x32 && yoshiState == 1 && gFramesInMode > 50 && (gGameMode & 0x1801) && !areWeFading()) {
-            func_80275390(0x2000);
+            fade_to_mode(0x2000);
         }
     }
     anim_run_mtx_copies();
@@ -1362,8 +1362,8 @@ void hd_game_frame(void) {
         anim_tex_update_all();
 #endif
         if ((gGameMode & (MODE_LEVEL | MODE_MAP_VIEW)) && (gLevelKind & 1)) {
-            func_8024A348();
-            func_8024ADD8();
+            hud_update_value_popups();
+            hud_tick_money_counter();
         }
         if (gLevelKind != 1 && gTurboActive && (u32) (((s32) D_803156C0) - D_80364A58) > 90) {
             gTurboActive = 0;
@@ -1418,9 +1418,9 @@ void hd_game_frame(void) {
             gLevelDoneRequest = 1;
             snd_play(gSfxBank, 0x2B, NULL);
             if (gGameMode == 0x40) {
-                func_80275390(0x40);
+                fade_to_mode(0x40);
             } else {
-                func_80275390(0x08000000);
+                fade_to_mode(0x08000000);
             }
         }
     }
@@ -1478,7 +1478,7 @@ void hd_game_frame(void) {
             yoshi_demand(0x803F);
         }
     }
-    gdl = func_8024C404(gdl, &gDynamicBufs[gBufferIndex], &gFrameDlLen);
+    gdl = hd_debug_dl_stub(gdl, &gDynamicBufs[gBufferIndex], &gFrameDlLen);
     if ((gGameMode & 0x440) && D_803156C4 - D_80364A54 > 160 && !D_80364A50) {
         D_80364A50 = 1;
         if (yoshiState == 1) {
@@ -1487,15 +1487,15 @@ void hd_game_frame(void) {
             }
         }
     }
-    if (gGameMode == 8 && !areWeFading() && (!func_802D4E10(gMusicPlayer) || D_803156C4 - gDoneTuneStartTime > 300)) {
-        func_80275390(0x08000000);
+    if (gGameMode == 8 && !areWeFading() && (!alCSPGetState(gMusicPlayer) || D_803156C4 - gDoneTuneStartTime > 300)) {
+        fade_to_mode(0x08000000);
     }
     if (levelno == 0x31 && yoshiState == 1) {
         gdl = credits_draw((Gfx * N64P *) &gDynamicBufs[gBufferIndex], gdl);
     }
     text_flush_screen(&gdl, (Mtx *) &gDynamicBufs[gBufferIndex]);
     if (gGameMode != 2) {
-        gdl = func_80274BF0((s32) &gDynamicBufs[gBufferIndex], gdl);
+        gdl = fade_draw((s32) &gDynamicBufs[gBufferIndex], gdl);
     }
     if (gGameMode == MODE_YOSHI_PAGES) {
         if ((gContButtons & 0x10) && !(gContPrevButtons & 0x10)) {
@@ -1543,7 +1543,7 @@ void hd_game_frame(void) {
                     snd_play(gSfxBank, 0x1E, NULL);
                     snd_set_slot_volume(0, 0);
                     snd_set_slot_volume(5, 0);
-                    func_80275390(0x20000000000000);
+                    fade_to_mode(0x20000000000000);
                 }
                 break;
             case 0x100000000000:
@@ -1568,7 +1568,7 @@ void hd_game_frame(void) {
     }
     gdl = yoshi_draw(gdl, (s32) &gDynamicBufs[gBufferIndex], &gFrameDlLen);
     if (yoshiSelection && !cmo_hit_request && !gLevelDoneRequest) {
-        func_8024BDA4(&yoshiSelection);
+        hd_handle_yoshi_selection(&yoshiSelection);
     }
     if ((gGameMode & 0x444) && gYoshiPendingWindow == -1 && gTurboStartState == 0 &&
         !((currentYoshiWindow != -1) ? gYoshiWindows[currentYoshiWindow].unk8 & 0x01000000 : 0)) {
@@ -1584,7 +1584,7 @@ void hd_game_frame(void) {
         gHudAlpha = 0;
     }
     if (gGameMode == 2) {
-        gdl = func_80274BF0((s32) &gDynamicBufs[gBufferIndex], gdl);
+        gdl = fade_draw((s32) &gDynamicBufs[gBufferIndex], gdl);
     }
     hd_close_display_list(gdl, &gFrameDlLen);
     for (i = 0; i < nextdma; i++) {
@@ -1611,8 +1611,10 @@ void hd_game_frame(void) {
     }
 }
 
-/* On-screen message queue: posts D_80364A40 and fades the current one */
-void func_8024A348(void) {
+/* Queues the value of a destroyed object (D_80364A40) as a "$N" popup placed by the camera heading quadrant,
+ * and fades the current popup in and out over 30 frames (0x8024A348).
+ * On-screen message queue: posts D_80364A40 and fades the current one */
+void hud_update_value_popups(void) {
     s32 pad;
 
     if (D_80364A40 != 0) {
@@ -1673,8 +1675,11 @@ void func_8024A348(void) {
     }
 }
 
-/* Picks the music intensity from the distance to the carrier (CMO) */
-void func_8024A92C(u32 dist) {
+/* Sets the carrier danger level (0 far, 1 near, 2 very near) from the distance to the carrier's target with
+ * per-level thresholds; on a change pushes or pops the tension tune, starts or stops the alarm and opens the
+ * warning windows (0x8024A92C).
+ * Picks the music intensity from the distance to the carrier (CMO) */
+void carrier_update_proximity(u32 dist) {
     u32 far;
     u32 near;
 
@@ -1801,8 +1806,10 @@ void func_8024A92C(u32 dist) {
     }
 }
 
-/* Eases D_803649F4 towards D_803649F0 by a tenth of the gap plus 10 */
-void func_8024ADD8(void) {
+/* Moves the displayed money (D_803649F4) toward the money total (D_803649F0) by a tenth of the gap plus 10
+ * each frame (0x8024ADD8).
+ * Eases D_803649F4 towards D_803649F0 by a tenth of the gap plus 10 */
+void hud_tick_money_counter(void) {
     u32 d;
 
     d = D_803649F0 - D_803649F4;
@@ -1823,7 +1830,7 @@ void veh_apply_switch(void) {
             veh_attach_riders(gNextVehicle);
             tnt_attach_to_vehicle(gNextVehicle);
             block_attach_to_vehicle(gNextVehicle);
-            func_8028B720();
+            cont_steer_reset();
             mb_cancel();
             if (veh_enter(gNextVehicle)) {
                 gCurVehicle = gNextVehicle;
@@ -1967,7 +1974,7 @@ void veh_leave(void) {
         mb_cancel();
         tnt_detach_all();
         block_detach_all();
-        func_8028B720();
+        cont_steer_reset();
         switch (gCurVehicle) {
             case 4:
                 ramdozer_leave();
@@ -2399,8 +2406,10 @@ void cull_start(Mtx *proj, Mtx *view) {
     cull_step_delayed((s32) gLevelData, dl, v, (s32) (gdl - dl) * sizeof(Gfx));
 }
 
-/* Handles a Yoshi (menu) selection *sel for the current game mode */
-void func_8024BDA4(u16 *sel) {
+/* Acts on the item selected in a text window (*sel) for the current game mode (pause menu, music volume,
+ * controller mode, replay end), then clears *sel (0x8024BDA4).
+ * Handles a Yoshi (menu) selection *sel for the current game mode */
+void hd_handle_yoshi_selection(u16 *sel) {
     switch (gGameMode) {
         case 4:
         case 0x100:
@@ -2424,9 +2433,9 @@ void func_8024BDA4(u16 *sel) {
                     break;
                 case 3:
                     if (gLevelInfo[levelno].unk0 & 0x81) {
-                        func_80275270(0x2000, 0.5f);
+                        fade_to_mode_speed(0x2000, 0.5f);
                     } else {
-                        func_80275270(0x20000000, 0.5f);
+                        fade_to_mode_speed(0x20000000, 0.5f);
                     }
                     break;
                 case 8:
@@ -2435,7 +2444,7 @@ void func_8024BDA4(u16 *sel) {
                     gCamSnap = 1;
                     break;
                 case 4:
-                    func_80275270(0x4000, 0.5f);
+                    fade_to_mode_speed(0x4000, 0.5f);
                     break;
                 case 9:
                     if (music_get_master_volume() == 1.0) {
@@ -2519,9 +2528,11 @@ void func_8024BDA4(u16 *sel) {
     *sel = 0;
 }
 
-/* An empty hook after the frame's list (probably a compiled-out debug
+/* Empty display-list hook (probably a compiled-out debug overlay): sets *len to 0 and returns gdl unchanged
+ * (0x8024C404).
+ * An empty hook after the frame's list (probably a compiled-out debug
  * overlay): zeroes *arg2 (gFrameDlLen; hd_close_display_list sets it again). */
-Gfx *func_8024C404(Gfx *arg0, DynamicBuf *arg1, s32 *arg2) {
+Gfx *hd_debug_dl_stub(Gfx *arg0, DynamicBuf *arg1, s32 *arg2) {
     *arg2 = 0;
     return arg0;
 }
@@ -2626,7 +2637,7 @@ Gfx *hd_build_frame_dl(DynamicBuf *dyn, s32 *len) {
     if (!(gGameMode & 0x440)) {
         trail_draw(&gdl, (struct TrailBuf *) dyn);
     }
-    func_802502EC();
+    veh_update_fail_spin();
     veh_draw_shadows(&gdl, dyn, 0);
     obj_draw_ground_shadows(&gdl, (struct VtxBuf *) dyn);
     if (!gPaused && gLevelKind != 0x40 && !(gGameMode & 0x440) && !D_80364A84) {
@@ -3099,8 +3110,10 @@ void veh_draw_layer(Gfx **gfx, u8 lod) {
     *gfx = gdl;
 }
 
-/* Spins and shrinks the selected vehicle's matrices (vehicle eject effect?) */
-void func_802502EC(void) {
+/* When a level without a carrier fails (gCarrierHit), spins the player's vehicle and its shadow around the
+ * player while shrinking them, then spawns explosion effect 0x13 once the scale reaches 0 (0x802502EC).
+ * Spins and shrinks the selected vehicle's matrices (vehicle eject effect?) */
+void veh_update_fail_spin(void) {
     f32 mf[4][4];
     f32 tmp[4][4];
     s32 i;
@@ -4372,7 +4385,7 @@ void hd_init(void) {
     gFrameBufferPhys[1] = PHYS(gFrameBuffers[1]);
     gDepthBufferPhys = PHYS(D_8021ED00);
     rsp_init_ucode_table();
-    func_802D6710();
+    osWritebackDCacheAll();
     cont_boot_check_start();
     if (!(status & 1)) {
         gNextGameMode = 0x0800000000000000;
@@ -4416,7 +4429,7 @@ void hd_mode_setup(void) {
     size = D_00788000 - D_00787F40;
     osViBlack(1);
     gPendingTune = music_tune_for_mode(gNextGameMode);
-    func_802D6710();
+    osWritebackDCacheAll();
     osInvalDCache((void *) 0x80000000, 0x400000);
     D_803649F4 = 0;
     gUnpausedFrames = 0;
@@ -4427,9 +4440,9 @@ void hd_mode_setup(void) {
     util_seed_rand();
     util_seed_rand2();
     cont_clear();
-    func_8028B720();
+    cont_steer_reset();
     gStaticSegment = D_803FF600;
-    func_8028B4C4((u32) D_00787F40, (u32) D_803FF600, &size, 10, 0, 2);
+    hd_rom_load((u32) D_00787F40, (u32) D_803FF600, &size, 10, 0, 2);
     end = (u32) (D_00788000 - D_00787F40) + (u32) D_803FF600;
     debug_printf("Static end = 0x%x, space=0x%x (%d) bytes\n", end, 0x80400000 - end, 0x80400000 - end);
     gFrameDlLen = 0;
@@ -4458,7 +4471,7 @@ void hd_mode_setup(void) {
     D_8036EB99 = 0;
     D_803669B4 = 0;
     if (gNextGameMode & 0xC9FD8FE7FBFFC0B0) {
-        func_8028B3E0();
+        hd_load_front_end();
     }
     academy_place_marker(levelno);
     spr_reset();
@@ -4721,7 +4734,7 @@ void lvl_load_file(s32 level, s32 dest, s32 *size) {
             *size = D_0066C900 - D_00665F80;
             break;
     }
-    func_8028B4C4((u32) start, (u32) ((void *) N64_IPTR(dest)), (u32 *) size, 12, 10, 1);
+    hd_rom_load((u32) start, (u32) ((void *) N64_IPTR(dest)), (u32 *) size, 12, 10, 1);
 }
 
 /* hd.c's level setup (arg0: a saved status stream or 0): the level's state,
@@ -4764,7 +4777,7 @@ void hd_setup_level(s32 arg0) {
         HD_ASSERT(!pakBusy, 4162);
         HD_ASSERT(MQ_IS_EMPTY(&pakToGameMessageQ), 4163);
         sched_remove_client((struct BcSched *) gScheduler, (struct BcScClient *) gPakSchedClient);
-        func_802D67F0((OSThread *) gPakThread);
+        osDestroyThread((OSThread *) gPakThread);
     }
     gGhostRecording = 0;
     gGhostPlaying = 0;
@@ -4782,7 +4795,7 @@ void hd_setup_level(s32 arg0) {
     stats_level_start();
     hud_init_target_marker();
     lvl_init_chopper_pos(levelno);
-    func_80262238(levelno);
+    lvl_init_train_line(levelno);
     cam_set_level_fovy(levelno);
     gTurboPending = 0;
     radar_clear_markers();
@@ -4872,12 +4885,12 @@ void hd_setup_level(s32 arg0) {
     D_80364A5C = 0;
     D_80364A58 = 0;
     if (D_803669B4) {
-        func_8025BD98();
+        rec_restore_start_vehicle();
     }
     debug_printf("Level %d: mem_pool=0x%x, code seg=0x%x, space=%d bytes\n", levelno, gHeapPtr, 0x802447C0,
                   0x8021ED00 - gHeapPtr);
     if (gAcademyMarkerOn) {
-        func_802979E0(levelno);
+        academy_build_window(levelno);
     }
     cam_load_level_defaults();
     fx_alloc_texture_caches();

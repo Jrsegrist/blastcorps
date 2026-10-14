@@ -419,7 +419,7 @@ static void port_b7a88_crash(void) {
  * amdream_spawn). Zone lookup (amdream_zone_alpha), save the state for a crash
  * rollback (veh_snapshot), engine sound 0xA4 (veh_update_horn); unless byte
  * +0x9A is set, trail and effects (amdream_update_effects, fed the zone scan
- * registers); func_802CB690 while gTurboPending is set; amdream_set_physics; steering
+ * registers); veh_start_turbo while gTurboPending is set; amdream_set_physics; steering
  * (veh_steer at the rate amdream_steer_rate returns) and, unless the throttle
  * lockout gAmdreamThrottleLock is counting down, throttle (veh_throttle: mode 3,
  * delta 0x10); heading (veh_turn_heading: rate 6000, with sound), slope
@@ -456,7 +456,7 @@ void amdream_update(void) {
         amdream_update_effects(zr.t6, zr.t7, zr.s0, zr.s1, zr.s2, zr.s3, zr.s4);
     }
     if (gTurboPending != 0) {
-        func_802CB690(gAmdreamState);
+        veh_start_turbo(gAmdreamState);
     }
     amdream_set_physics();
     veh_steer(amdream_steer_rate(), (u16 *) (gAmdreamState + 0x4C));
@@ -856,7 +856,7 @@ extern s32 gChopperGroundY;
  * Copies two halfwords of the vehicle block (+0x4E, +0x76) to D_803EF32A /
  * D_803EF328, and the marker position D_803EF310..1C to gDriverPos..10 and
  * gChopperLandY. Then, in game mode 0x1000: if gChopperMode == 5 or
- * gChopperGroundY >= D_803EF314, calls func_80275390(0x2000). In any other mode:
+ * gChopperGroundY >= D_803EF314, calls fade_to_mode(0x2000). In any other mode:
  * if gChopperMode == 4, sets the next game mode to 0x1000.
  * The game-mode compare is a full 64-bit compare in the asm (ld/beq). */
 void chopper_update_mode(void) {
@@ -868,7 +868,7 @@ void chopper_update_mode(void) {
     gChopperLandY = gChopperGroundY;
     if (gGameMode == 0x1000) {
         if (gChopperMode == 5 || !(gChopperGroundY < D_803EF314)) {
-            func_80275390(0x2000);
+            fade_to_mode(0x2000);
         }
     } else if (gChopperMode == 4) {
         gNextGameMode = 0x1000;

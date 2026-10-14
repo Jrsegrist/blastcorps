@@ -961,7 +961,7 @@ void veh_steer(s32 rate, u16 *angle) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-s32 func_802A8314(s32 cur);
+s32 veh_blocked_turn_rate(s32 cur);
 extern u8 D_803ED3F8;  /* sound retrigger counter */
 extern s32 D_803ED3FC; /* f32 bits: pitch */
 extern f32 D_8030D890;
@@ -969,7 +969,7 @@ extern f32 D_8030D890;
 /* Travel heading toward the facing; skid flag and sound (0x802A7FD8).
  * Turn the heading *heading toward *target (12-bit angles, wrapping through
  * 0x1000, snapping to the target when the step passes it). The step is
- * |func_802A8314(rate) * veh+0x50 / *speed| (no division when the speed is
+ * |veh_blocked_turn_rate(rate) * veh+0x50 / *speed| (no division when the speed is
  * 0). Unless *flag is set, a heading within 0x156 of the target just copies
  * the target to *out and stops; otherwise *flag = 1. With `sound` set, every
  * 7th call sets pitch D_803ED3FC = 0.5 + |speed| * D_8030D890 and plays it
@@ -988,7 +988,7 @@ void veh_turn_heading(u8 *veh, u16 *heading, s32 rate, s16 *speedp, u16 *target,
     s32 n;
     f32 pitch;
 
-    rate = func_802A8314(rate);
+    rate = veh_blocked_turn_rate(rate);
     speed = *speedp;
     h = *heading;
     t = *target;
@@ -1071,14 +1071,16 @@ void veh_turn_heading(u8 *veh, u16 *heading, s32 rate, s16 *speedp, u16 *target,
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Unless gBlockedFrame + 10 < gUnpausedFrames, walk the {key, value, threshold}
+/* For 10 frames after an arc clip (gBlockedFrame), returns the first D_80305C58 entry for this level whose
+ * window is still open; otherwise the caller's rate (0x802A8314).
+ * Unless gBlockedFrame + 10 < gUnpausedFrames, walk the {key, value, threshold}
  * table D_80305C58 (ended by value 0) for the first entry with key ==
  * levelno and threshold + gBlockedFrame >= gUnpausedFrames, and return its value;
  * otherwise return `cur` unchanged.
  * Register convention: the asm returns the value in t5 and leaves t5 alone
  * otherwise, so the C takes the caller's t5 as `cur` (the asm saves every
  * other register it uses). Asm callers keep t1 and t6 live. */
-s32 func_802A8314(s32 cur) {
+s32 veh_blocked_turn_rate(s32 cur) {
     s32 base = gBlockedFrame;
     s32 limit = gUnpausedFrames;
     s32 *e;
@@ -1098,7 +1100,7 @@ s32 func_802A8314(s32 cur) {
     return cur;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802A8314.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/veh_blocked_turn_rate.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -1286,7 +1288,7 @@ extern s16 D_803ED406;
 extern u8 D_803ED40E;
 void veh_respawn_if_out(u8 *veh, s32 id, s32 *px, s32 *py, s32 *pz, Pos802A8CCC *pos);
 void veh_check_no_wheels(u16 *p);
-void func_802A8FF4(u8 *veh);
+void veh_diamond_sands_damping(u8 *veh);
 void veh_rider_gravity(void);
 void veh_copy_slot0(u8 *veh);
 void veh_ground_surface(u8 *veh, u8 *f, s32 kind);
@@ -1309,7 +1311,7 @@ void veh_slot_airborne(s32 index, s32 *a, s32 *b, s32 *c, s16 *tbl, s32 x, s32 z
  * Per-frame ground contact of vehicle `id` (record veh): out-of-bounds reset
  * (veh_respawn_if_out, may move (x, z) and write *px/*py/*pz); D_803ED402 = divB,
  * D_803ED404 = divA, D_803ED406 = *angle, D_803ED40E = flags[0]; veh+0x9B =
- * 0; veh_check_no_wheels(tbl), func_802A8FF4, veh_rider_gravity. Then the three wheel
+ * 0; veh_check_no_wheels(tbl), veh_diamond_sands_damping, veh_rider_gravity. Then the three wheel
  * slots: for i = 0..2, if gNoWheels is set and i > 0, veh_copy_slot0(veh) and
  * stop; else (s8) flags[i] == 1 -> veh_slot_airborne (airborne), 0 ->
  * veh_slot_grounded (grounded; other values hit the asm's `syscall` debug trap
@@ -1353,7 +1355,7 @@ void veh_ground_contact(u8 *veh, s32 id, s32 *px, s32 *py, s32 *pz, s32 x, s32 z
     D_803ED40E = flags[0];
     VEH_U8(veh, 0x9B) = 0;
     veh_check_no_wheels((u16 *) tbl);
-    func_802A8FF4(veh);
+    veh_diamond_sands_damping(veh);
     veh_rider_gravity();
     for (i = 0; i < 3; i++) {
         if (gNoWheels != 0 && i != 0) {
@@ -1534,13 +1536,13 @@ void veh_rider_gravity(void) {
 /* If the vehicle's mode byte (veh+0x9F) is 0x67 and levelno == 12, set
  * gBounceDamping = 8. (The asm clobbers v0.) Asm callers keep a1-a3, t0, t1,
  * t7-t9, f12 and f14 live. */
-void func_802A8FF4(u8 *veh) {
+void veh_diamond_sands_damping(u8 *veh) {
     if (VEH_U8(veh, 0x9F) == 0x67 && levelno == 12) {
         gBounceDamping = 8;
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802A8FF4.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/veh_diamond_sands_damping.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -2814,10 +2816,10 @@ void veh_deck_to_world(s32 id, s32 x, s32 z, InterpRegs *r) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-f32 func_802AB1B0(s32 t0, s32 s7, s32 v1, s32 a1, s32 t9, s32 t1, s32 a0, f32 *f20Out);
-f32 func_802AB234(s32 s7, s32 t0, s32 v0, s32 a0, s32 t1, s32 t9, s32 a1, f32 *f20Out);
-f32 func_802AB2B8(s32 t1, s32 t9, s32 a1, s32 v1, s32 s7, s32 t0, s32 v0, f32 *f20Out);
-f32 func_802AB33C(s32 t9, s32 t1, s32 a0, s32 v0, s32 t0, s32 s7, s32 v1, f32 *f20Out);
+f32 ground_interp_dx0_zero(s32 t0, s32 s7, s32 v1, s32 a1, s32 t9, s32 t1, s32 a0, f32 *f20Out);
+f32 ground_interp_dx12_zero(s32 s7, s32 t0, s32 v0, s32 a0, s32 t1, s32 t9, s32 a1, f32 *f20Out);
+f32 ground_interp_dz0_zero(s32 t1, s32 t9, s32 a1, s32 v1, s32 s7, s32 t0, s32 v0, f32 *f20Out);
+f32 ground_interp_dz12_zero(s32 t9, s32 t1, s32 a0, s32 v0, s32 t0, s32 s7, s32 v1, f32 *f20Out);
 
 /* (InterpRegs is declared above veh_deck_to_local.) */
 
@@ -2826,8 +2828,8 @@ f32 func_802AB33C(s32 t9, s32 t1, s32 a0, s32 v0, s32 t0, s32 s7, s32 v1, f32 *f
  * corners (x0, z0), (x1, z1), (x2, z2) carrying (r->t3, r->t4), (u1, w1),
  * (u2, w2): if the point is corner 0 nothing changes, at corner 1 or 2 its
  * pair is copied. Otherwise the line from corner 0 through the point meets
- * edge 1-2 at parameter t along it (func_802AB1B0/234/2B8/33C handle the
- * axis-aligned cases, inline 64-bit products and single-precision math the
+ * edge 1-2 at parameter t along it (ground_interp_dx0_zero, _dx12_zero,
+ * _dz0_zero and _dz12_zero handle the axis-aligned cases, inline 64-bit products and single-precision math the
  * general one) with k the point's position on that line, and
  * u = round((edge value - u0 * k) / (1 - k)), likewise w. Every result
  * (and the FP intermediates the asm callers read) goes to `r`; on the corner
@@ -2870,13 +2872,13 @@ void ground_tri_interp(s32 x, s32 z, s32 x0, s32 z0, s32 x1, s32 z1, s32 x2, s32
     dz0 = z0 - z;
     dz12 = z1 - z2;
     if (dx0 == 0) {
-        k = func_802AB1B0(x, x2, dx12, dz12, z2, z, dz0, &t);
+        k = ground_interp_dx0_zero(x, x2, dx12, dz12, z2, z, dz0, &t);
     } else if (dx12 == 0) {
-        k = func_802AB234(x2, x, dx0, dz0, z, z2, dz12, &t);
+        k = ground_interp_dx12_zero(x2, x, dx0, dz0, z, z2, dz12, &t);
     } else if (dz0 == 0) {
-        k = func_802AB2B8(z, z2, dz12, dx12, x2, x, dx0, &t);
+        k = ground_interp_dz0_zero(z, z2, dz12, dx12, x2, x, dx0, &t);
     } else if (dz12 == 0) {
-        k = func_802AB33C(z2, z, dz0, dx0, x, x2, dx12, &t);
+        k = ground_interp_dz12_zero(z2, z, dz0, dx0, x, x2, dx12, &t);
     } else {
         fdx0 = (f32) dx0;
         b = (f32) ((s64) dz12 * dx0);
@@ -2903,7 +2905,7 @@ void ground_tri_interp(s32 x, s32 z, s32 x0, s32 z0, s32 x1, s32 z1, s32 x2, s32
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/ground_tri_interp.s")
 #endif
 
-/* func_802AB1B0 / func_802AB234 / func_802AB2B8 / func_802AB33C: four
+/* ground_interp_dx0_zero / ground_interp_dx12_zero / ground_interp_dz0_zero / ground_interp_dz12_zero: four
  * variants of one line-intersection step used by ground_tri_interp. Each computes
  * a slope k = (f32) (p - q) / (f32) d and then
  * t = ((f32) m * k + (f32) c - (f32) e) / (f32) n, returning k and t in f10/f20
@@ -2915,53 +2917,53 @@ void ground_tri_interp(s32 x, s32 z, s32 x0, s32 z0, s32 x1, s32 z1, s32 x2, s32
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 /* f20 = (t0 - s7) / v1; f10 = (a1 * f20 + t9 - t1) / a0. */
-f32 func_802AB1B0(s32 t0, s32 s7, s32 v1, s32 a1, s32 t9, s32 t1, s32 a0, f32 *f20Out) {
+f32 ground_interp_dx0_zero(s32 t0, s32 s7, s32 v1, s32 a1, s32 t9, s32 t1, s32 a0, f32 *f20Out) {
     f32 k = (f32) (t0 - s7) / (f32) v1;
 
     *f20Out = k;
     return ((f32) a1 * k + (f32) t9 - (f32) t1) / (f32) a0;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802AB1B0.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/ground_interp_dx0_zero.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 /* f10 = (s7 - t0) / v0; f20 = (a0 * f10 + t1 - t9) / a1. */
-f32 func_802AB234(s32 s7, s32 t0, s32 v0, s32 a0, s32 t1, s32 t9, s32 a1, f32 *f20Out) {
+f32 ground_interp_dx12_zero(s32 s7, s32 t0, s32 v0, s32 a0, s32 t1, s32 t9, s32 a1, f32 *f20Out) {
     f32 k = (f32) (s7 - t0) / (f32) v0;
 
     *f20Out = ((f32) a0 * k + (f32) t1 - (f32) t9) / (f32) a1;
     return k;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802AB234.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/ground_interp_dx12_zero.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 /* f20 = (t1 - t9) / a1; f10 = (v1 * f20 + s7 - t0) / v0. */
-f32 func_802AB2B8(s32 t1, s32 t9, s32 a1, s32 v1, s32 s7, s32 t0, s32 v0, f32 *f20Out) {
+f32 ground_interp_dz0_zero(s32 t1, s32 t9, s32 a1, s32 v1, s32 s7, s32 t0, s32 v0, f32 *f20Out) {
     f32 k = (f32) (t1 - t9) / (f32) a1;
 
     *f20Out = k;
     return ((f32) v1 * k + (f32) s7 - (f32) t0) / (f32) v0;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802AB2B8.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/ground_interp_dz0_zero.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 /* f10 = (t9 - t1) / a0; f20 = (v0 * f10 + t0 - s7) / v1. */
-f32 func_802AB33C(s32 t9, s32 t1, s32 a0, s32 v0, s32 t0, s32 s7, s32 v1, f32 *f20Out) {
+f32 ground_interp_dz12_zero(s32 t9, s32 t1, s32 a0, s32 v0, s32 t0, s32 s7, s32 v1, f32 *f20Out) {
     f32 k = (f32) (t9 - t1) / (f32) a0;
 
     *f20Out = ((f32) v0 * k + (f32) t0 - (f32) s7) / (f32) v1;
     return k;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802AB33C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/ground_interp_dz12_zero.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -3632,14 +3634,16 @@ s32 ground_scan_object(s32 x, s32 z, s32 y, u8 *obj, s32 *found, TriSideOut *f) 
 #ifdef NON_MATCHING
 
 
-/* ground_scan_part_tris's nearest-height scan over D_803BDAF4 .. D_803BDAF8: each
+/* Scans the level header's guard triangles (+0x24..+0x28: J-Bomb anti-clip, the Ironstone Mine crane area)
+ * for the one nearest y at (x, z); returns |y - h| and sets the found flag and D_803EBBFC (0x802AC0BC).
+ * ground_scan_part_tris's nearest-height scan over D_803BDAF4 .. D_803BDAF8: each
  * nearer-or-equal hit sets the found flag and D_803EBBFC = h. Returns the
  * best |y - h| (0x5F5E0FF if none).
  * Register convention: x t0, z t1, y t2; results v1 (return value), a1, a3,
  * t6, t7, fp, s1-s4 through r (a3, t6, s1-s4 in/out) and the FP results
  * through f (in/out). The asm clobbers s5-s7, t8, t9 and f28; `neg` traps on
  * 0x80000000. */
-s32 func_802AC0BC(s32 x, s32 z, s32 y, TriSideOut *f, TriScanRegs *r) {
+s32 ground_scan_guard_tris(s32 x, s32 z, s32 y, TriSideOut *f, TriScanRegs *r) {
     u8 *rec = D_803BDAF4;
     u8 *end = D_803BDAF8;
     u32 bestD = 0x5F5E0FF;
@@ -3673,5 +3677,5 @@ s32 func_802AC0BC(s32 x, s32 z, s32 y, TriSideOut *f, TriScanRegs *r) {
     return bestD;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/func_802AC0BC.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/62740/ground_scan_guard_tris.s")
 #endif

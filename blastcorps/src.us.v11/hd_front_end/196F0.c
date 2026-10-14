@@ -76,7 +76,7 @@ void fe_bg_load(u8 mode) {
             return;
     }
     size = end - start;
-    func_8028B4C4((u32) start, (u32) gHeapPtr, &size, 0xD, 0, 2);
+    hd_rom_load((u32) start, (u32) gHeapPtr, &size, 0xD, 0, 2);
     pix = (u16 *) gHeapPtr;
 #if defined(NON_MATCHING) && defined(PORT_HOST)
     /* Windows port, byte order: the picture is a texture and stays big-endian

@@ -970,7 +970,7 @@ extern u8 D_803F7C4A;
 extern f32 D_8030D950;
 s32 jbomb_thrust_speed(void);
 s32 jbomb_check_surface_above(TriSideOut *f, TriScanRegs *r);
-void func_802C7354(void);
+void jbomb_lift_off_water(void);
 void jbomb_update_jet_effects(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4);
 void jbomb_check_idle(void);
 void jbomb_update_jet_sounds(void);
@@ -984,7 +984,7 @@ void jbomb_update_tilt(s32 *up);
  * Per-frame update of this vehicle's mode machine (+0xA1: 0 idle/driving,
  * 1 airborne?, 2/3, 4, 5; +0xA2 keeps the mode the frame started in), its
  * countdowns and animation channels (gJbombAnim), then the ground check
- * jbomb_check_surface_above, func_802C7354, the steering channels (jbomb_update_tilt, modes
+ * jbomb_check_surface_above, jbomb_lift_off_water, the steering channels (jbomb_update_tilt, modes
  * 1-3), the ramp/records jbomb_update_jet_effects, the idle check jbomb_check_idle and
  * the looping sounds jbomb_update_jet_sounds. Mode values above 5 hit a `syscall` in
  * the asm (not reached in the game; the C does nothing there).
@@ -1118,7 +1118,7 @@ void jbomb_update_modes(s32 s0, TriSideOut *f, TriScanRegs *r) {
     }
 
     jbomb_check_surface_above(f, r);
-    func_802C7354();
+    jbomb_lift_off_water();
     t6 = r->t6;
     t7 = r->t7;
     s1 = r->s1;
@@ -1400,16 +1400,16 @@ extern u32 gJbombPos[]; /* x, y, z */
 
 /* A surface 0..3000 above: pushed up (mode 1) (0x802C70E8).
  * Ground check below the vehicle (gJbombPos x/z, D_803F7BFC y) with
- * func_802AC0BC: when a triangle was found whose height h >= y, and h - y is
+ * ground_scan_guard_tris: when a triangle was found whose height h >= y, and h - y is
  * below 200, the vehicle snaps to mode 1 (+0xA1 = 1, triples +0x34.. = y,
  * +0x40.. = 1, +0x28.. = 30, flags +0x96..0x98 = 1, gJbombThrusting = 1); below
  * 3000 the same with +0x28.. = 0 and gJbombThrusting left alone. Returns the asm's
- * v1: 1 when it switched, else func_802AC0BC's result.
- * Register convention: func_802AC0BC's FP results (f12-f26) and scan
+ * v1: 1 when it switched, else ground_scan_guard_tris's result.
+ * Register convention: ground_scan_guard_tris's FP results (f12-f26) and scan
  * registers (a3, t6, t7, fp, s1-s4) pass through to the caller, here through
  * f and r (conventions.txt); $gp (= gJbombState) is read as the global. */
 s32 jbomb_check_surface_above(TriSideOut *f, TriScanRegs *r) {
-    s32 best = func_802AC0BC(gJbombPos[0], gJbombPos[2], D_803F7BFC, f, r);
+    s32 best = ground_scan_guard_tris(gJbombPos[0], gJbombPos[2], D_803F7BFC, f, r);
     s32 d;
     s32 w;
 
@@ -1450,13 +1450,13 @@ s32 jbomb_check_surface_above(TriSideOut *f, TriScanRegs *r) {
 #ifdef NON_MATCHING
 
 /* A surface >= 200 above the new x/z (0x802C71FC).
- * D_803F7C49 = 1 when func_802AC0BC at (x, z, D_803F7BFC) finds ground at
+ * D_803F7C49 = 1 when ground_scan_guard_tris at (x, z, D_803F7BFC) finds ground at
  * least 200 above D_803F7BFC, else 0.
- * Register convention: x t0, z t1; func_802AC0BC's FP results (f12-f26) are
+ * Register convention: x t0, z t1; ground_scan_guard_tris's FP results (f12-f26) are
  * left for the caller, here through f (in/out; conventions.txt). The asm
  * saves and restores every integer register; asm caller jbomb_update keeps
  * t0, t1 and t7 live (a mixed N64 build would need a thunk; the native port
- * won't). func_802AC0BC's scan-register inputs are whatever the caller left
+ * won't). ground_scan_guard_tris's scan-register inputs are whatever the caller left
  * in a3/t6/s1-s4; they only pass through, so the C hands it zeros. */
 void jbomb_check_overhead(s32 x, s32 z, TriSideOut *f) {
     TriScanRegs r;
@@ -1471,7 +1471,7 @@ void jbomb_check_overhead(s32 x, s32 z, TriSideOut *f) {
     r.s3 = 0;
     r.s4 = 0;
     D_803F7C49 = 0;
-    func_802AC0BC(x, z, D_803F7BFC, f, &r);
+    ground_scan_guard_tris(x, z, D_803F7BFC, f, &r);
     if (r.a1 != 0 && D_803EBBFC >= D_803F7BFC && D_803EBBFC - D_803F7BFC >= 200) {
         D_803F7C49 = 1;
     }
@@ -1482,7 +1482,9 @@ void jbomb_check_overhead(s32 x, s32 z, TriSideOut *f) {
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* When +0x9F of the vehicle block is 100: outside mode 1, resets
+/* J-Bomb on surface 100 (water): outside mode 1 resets D_803F7C28/2C to 0.5; below the shadow height + 2500
+ * it is lifted into mode 1 with thrust on (0x802C7354).
+ * When +0x9F of the vehicle block is 100: outside mode 1, resets
  * D_803F7C28/D_803F7C2C to 0.5; then, if D_803F7BFC < veh_shadow_src_y(9) +
  * 2500, switches to mode 1 (triples +0x34.. = D_803F7BFC, +0x40.. = 1,
  * +0x28.. = 30, flags +0x96..0x98 = 1, gJbombThrusting = 1).
@@ -1490,7 +1492,7 @@ void jbomb_check_overhead(s32 x, s32 z, TriSideOut *f) {
  * scratch on the taken path and t6/t7 are untouched. Asm caller
  * jbomb_update_modes keeps a1-a3, f12 and f14 live (a mixed N64 build would need
  * a thunk, the native port doesn't). */
-void func_802C7354(void) {
+void jbomb_lift_off_water(void) {
     s32 limit;
     s32 cur;
 
@@ -1521,7 +1523,7 @@ void func_802C7354(void) {
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/func_802C7354.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7FB50/jbomb_lift_off_water.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */

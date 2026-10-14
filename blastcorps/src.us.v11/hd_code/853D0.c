@@ -368,7 +368,7 @@ s32 ballista_steer_rate(void);
  * Per-frame update of vehicle 10 when it is the player's (veh_update_player and
  * its init ballista_spawn): zone lookup (ballista_zone_alpha), save copy
  * (veh_snapshot), effects (ballista_update_actions, unless +0x9A is set), the shared
- * func_802CB690 (when gTurboPending), timers, steering (veh_steer at rate
+ * veh_start_turbo (when gTurboPending), timers, steering (veh_steer at rate
  * ballista_steer_rate()), throttle (veh_throttle, held off while D_803F8B7A
  * counts down), heading (veh_turn_heading), slope and drag (veh_slope /
  * veh_apply_slope), ring turn-back (veh_set_target_heading when D_803F8B78), the
@@ -416,7 +416,7 @@ void ballista_update(void) {
         ballista_update_actions(zr.t6, zr.t7, zr.s0, zr.s1, zr.s2, zr.s3, zr.s4);
     }
     if (gTurboPending != 0) {
-        func_802CB690(gBallistaState);
+        veh_start_turbo(gBallistaState);
     }
     ballista_set_physics();
     veh_steer(ballista_steer_rate(), &V853_U16(0x4C));

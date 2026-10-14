@@ -102,7 +102,7 @@ void sched_create(BcSched *sc, void *stack, OSPri priority, u8 mode, u8 numField
     gDeferredSwapTask = 0;
     osCreateMesgQueue(&sc->interruptQ, sc->intBuf, 16);
     osCreateMesgQueue(&sc->cmdQ, sc->cmdMsgBuf, 16);
-    func_802DA610(0xFE);
+    osCreateViManager(0xFE);
     osViSetMode(&D_80306E70[mode]);
     osViBlack(TRUE);
     osSetEventMesg(OS_EVENT_SP, &sc->interruptQ, (OSMesg) 0x29B);
@@ -176,11 +176,11 @@ void __scMain(void *arg) {
             }
             gPreNmi = 1;
             osViBlack(TRUE);
-            debug_printf("GO %x\n", func_802DAAC0());
-            func_802D4550(4);
+            debug_printf("GO %x\n", osDpGetStatus());
+            osDpSetStatus(4);
             debug_printf("current=%x start=%x end=%x dpstat=%x spstat=%x\n", IO_READ(DPC_CURRENT_REG),
                           IO_READ(DPC_START_REG), IO_READ(DPC_END_REG), IO_READ(DPC_STATUS_REG), IO_READ(SP_STATUS_REG));
-            debug_printf("GO %x\n", func_802DAAC0());
+            debug_printf("GO %x\n", osDpGetStatus());
             while (TRUE) {
             }
         }
@@ -210,18 +210,18 @@ void __scMain(void *arg) {
                 }
                 gPreNmi = 1;
                 osViBlack(TRUE);
-                debug_printf("%x\n", func_802DAAC0());
-                func_802D4550(4);
+                debug_printf("%x\n", osDpGetStatus());
+                osDpSetStatus(4);
                 debug_printf("current=%x start=%x end=%x dpstat=%x spstat=%x\n", IO_READ(DPC_CURRENT_REG),
                               IO_READ(DPC_START_REG), IO_READ(DPC_END_REG), IO_READ(DPC_STATUS_REG), IO_READ(SP_STATUS_REG));
-                debug_printf("%x\n", func_802DAAC0());
+                debug_printf("%x\n", osDpGetStatus());
                 while (TRUE) {
                 }
             case 0x2A0:
                 debug_printf(" *** CPU FAULT *** - UNFREEZING RDP?\n");
                 while (osViGetCurrentFramebuffer() != osViGetNextFramebuffer()) {
                 }
-                func_802D4550(4);
+                osDpSetStatus(4);
                 while (TRUE) {
                 }
             default:
@@ -280,15 +280,15 @@ void __scHandleRetrace(BcSched *sc) {
         osViSwapBuffer(((BcScTask *) N64_IPTR(gDeferredSwapTask))->framebuffer);
         D_8036BF18 = D_8036BF14;
         D_8036BF14 = sc->frameCount + 1;
-        func_802D4550(8);
+        osDpSetStatus(8);
         if (((BcScTask *) N64_IPTR(gDeferredSwapTask))->msgQ != NULL) {
             sched_send_mesg(((BcScTask *) N64_IPTR(gDeferredSwapTask))->msgQ, ((BcScTask *) N64_IPTR(gDeferredSwapTask))->msg, OS_MESG_NOBLOCK);
         }
         gDeferredSwapTask = 0;
     } else if (osViGetCurrentFramebuffer() == osViGetNextFramebuffer()) {
-        if (func_802DAAC0() & 2) {
+        if (osDpGetStatus() & 2) {
             sc->rdpStartTime = osGetTime();
-            func_802D4550(4);
+            osDpSetStatus(4);
         }
     }
 
@@ -375,7 +375,7 @@ void __scHandleRDP(BcSched *sc) {
         osViSwapBuffer(t->framebuffer);
         D_8036BF18 = D_8036BF14;
         D_8036BF14 = sc->frameCount + 1;
-        func_802D4550(8);
+        osDpSetStatus(8);
     } else {
         gDeferredSwapTask = (s32) t;
     }
@@ -474,7 +474,7 @@ void sched_start_next_task(BcSched *sc, s32 availRCP) {
         }
     }
     t->state = 1;
-    func_802DAE1C(&t->list);
+    osSpTaskLoad(&t->list);
     osSpTaskStartGo(&t->list);
     sc->curRSPTask = t;
     if (t->flags & 0x40) {

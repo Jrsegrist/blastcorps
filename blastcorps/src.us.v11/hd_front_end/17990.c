@@ -178,7 +178,7 @@ void fe_back_loop(void) {
                 gNextGameMode = 0x8000000000000;
                 break;
             case 0x1000000000000:
-                func_80275390(0x20000000000000);
+                fade_to_mode(0x20000000000000);
                 break;
             case 0x40000000000000:
                 if (yoshiSelection == 0xC) {
@@ -190,9 +190,9 @@ void fe_back_loop(void) {
                 break;
             case 0x4000000000000000:
                 if (yoshiSelection == 0xC) {
-                    func_80275270(0x400000000000000, 0.5f);
+                    fade_to_mode_speed(0x400000000000000, 0.5f);
                 } else {
-                    func_80275270(0x4000, 0.5f);
+                    fade_to_mode_speed(0x4000, 0.5f);
                 }
                 break;
             default:
@@ -270,7 +270,7 @@ void fe_back_loop(void) {
     if (gGameMode == MODE_ATTRACT_PICTURE) {
         gdl = fe_attract_pic_draw((s32) gDynamicBufs, gdl);
     }
-    gdl = func_8024C404(gdl, (DynamicBuf *) &gDynamicBufs[gBufferIndex], &gFrameDlLen);
+    gdl = hd_debug_dl_stub(gdl, (DynamicBuf *) &gDynamicBufs[gBufferIndex], &gFrameDlLen);
     if (gGameMode & 0x88000080) {
         gdl = fe_player_draw_medals(gdl, &gDynamicBufs[gBufferIndex], &gFrameDlLen);
         if (D_80364A71 != -1 && yoshiState == 2) {
@@ -305,7 +305,7 @@ void fe_back_loop(void) {
         gdl = fe_best_draw_icon((s32) &gDynamicBufs[gBufferIndex], gdl);
     }
     text_flush_screen(&gdl, (Mtx *) &gDynamicBufs[gBufferIndex]);
-    gdl = func_80274BF0((s32) &gDynamicBufs[gBufferIndex], gdl);
+    gdl = fade_draw((s32) &gDynamicBufs[gBufferIndex], gdl);
     if (!(gGameMode & 0xC000000000000)) {
         gdl = yoshi_draw(gdl, (s32) &gDynamicBufs[gBufferIndex], &gFrameDlLen);
     }
@@ -321,7 +321,7 @@ void fe_back_loop(void) {
     for (i = 0; i < nextdma - no_palette_dmas; i++) {
         tex_decode_next();
     }
-    if ((gGameMode & 0x81D9836583B28000) && yoshiState == 1 && !func_802753F8() && !areWeFading() &&
+    if ((gGameMode & 0x81D9836583B28000) && yoshiState == 1 && !fade_window_held() && !areWeFading() &&
         gNextGameMode == 0 && gYoshiPendingWindow == -1) {
         switch (gGameMode) {
             case 0x20000:
@@ -354,26 +354,26 @@ void fe_back_loop(void) {
                 D_80364AE9 = playerNumber;
                 playerNumberAtStart = playerNumber;
                 if (gSlotState[playerNumber] == 1) {
-                    func_80275390(0x4000);
+                    fade_to_mode(0x4000);
                 } else {
                     gNextGameMode = 0x20000;
                 }
                 break;
             case 0x8000000000000000:
-                func_80275390(0x400000000000000);
+                fade_to_mode(0x400000000000000);
                 break;
             case 0x1000000:
                 osSendMesg(&gPakRequestQueue, (OSMesg) ((playerNumber << 16) | 7), 1);
                 osSendMesg(&gPakRequestQueue, (OSMesg) ((playerNumber << 16) | 0x15 | 0x01000000), 1);
                 seq_prepare(4);
-                func_80275390(0x100000000000);
+                fade_to_mode(0x100000000000);
                 break;
             case 0x80000000:
                 gNextGameMode = MODE_PROMOTION;
                 break;
             case 0x8000:
                 if (gIgnorePak) {
-                    func_80275390(0x20000000000000);
+                    fade_to_mode(0x20000000000000);
                 } else if (gPakReady) {
                     gNextGameMode = MODE_LOAD_GAME;
                 } else {
@@ -389,18 +389,18 @@ void fe_back_loop(void) {
                 break;
             case 0x40000000000000:
             case 0x100000000:
-                func_80275270(0x10, 0.5f);
+                fade_to_mode_speed(0x10, 0.5f);
                 break;
             case 0x800000000000:
-                func_80275270(0x2000000000000, 0.75f);
+                fade_to_mode_speed(0x2000000000000, 0.75f);
                 music_fade_to(0.0f);
                 break;
             case 0x1000000000000:
-                func_80275270(2, 0.5f);
+                fade_to_mode_speed(2, 0.5f);
                 break;
             case 0x8000000000000:
                 playerNumber = playerNumberAtStart;
-                func_80275270(0x4000, 0.6f);
+                fade_to_mode_speed(0x4000, 0.6f);
                 break;
             case 0x80000000000000:
                 if (playerNumber == D_80364AE9 || playerNumber == playerNumberAtStart) {
@@ -413,7 +413,7 @@ void fe_back_loop(void) {
                 if (gLastYoshiSelection != 0xC) {
                     gNextGameMode = 0x200000000000000;
                 } else {
-                    func_80275390(gBestTimesReturnMode);
+                    fade_to_mode(gBestTimesReturnMode);
                 }
                 break;
             default:

@@ -352,10 +352,10 @@ void fe_boot_screen_init(s32 arg0) {
     } else {
         gBootSceneAngle = 0;
     }
-    func_8028B4C4((u32) D_0048F5A0, (u32) ((void *) N64_IPTR(gHeapPtr)), (u32 *) &size1, 12, 0, 1);
+    hd_rom_load((u32) D_0048F5A0, (u32) ((void *) N64_IPTR(gHeapPtr)), (u32 *) &size1, 12, 0, 1);
     gBootBannerTex = (u8 *) N64_IPTR(gHeapPtr);
     gHeapPtr += size1;
-    func_8028B4C4((u32) D_0048F970, (u32) ((void *) N64_IPTR(gHeapPtr)), (u32 *) &size2, 12, 0, 1);
+    hd_rom_load((u32) D_0048F970, (u32) ((void *) N64_IPTR(gHeapPtr)), (u32 *) &size2, 12, 0, 1);
     gBootIconTex = (u8 *) N64_IPTR(gHeapPtr);
     gHeapPtr += size2;
     gBootScene = arg0;

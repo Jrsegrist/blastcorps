@@ -590,9 +590,9 @@ void cont_boot_check_start(void) {
     OSContPad pads[4];
 
     start = 0;
-    func_802DB4D0(&gSiMesgQueue);
+    osContStartReadData(&gSiMesgQueue);
     osRecvMesg(&gSiMesgQueue, 0, 1);
-    func_802DB594(pads);
+    osContGetReadData(pads);
     if (pads[0].button & 0x1000) {
         start = 1;
     }

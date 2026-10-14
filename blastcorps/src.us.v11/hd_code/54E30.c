@@ -204,7 +204,7 @@ void seq_start_level(void) {
             credits_init();
             break;
         case 38:
-            func_8025BB50();
+            rec_start_replay();
             break;
     }
 }

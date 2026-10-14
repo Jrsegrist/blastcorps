@@ -1,7 +1,7 @@
 /* loadcheck: the byte-order layer (port/src/load/) against the original code.
  *
  * Real game C (NON_MATCHING, native) loads real assets from the user's ROM
- * through the game's own loaders (func_8028B4C4, lvl_load_file, 5BF40's
+ * through the game's own loaders (hd_rom_load, lvl_load_file, 5BF40's
  * texture loads), with osPiStartDma emulated here the way the platform layer
  * does it (copy from the ROM, then port_on_dma).  The same cases run through
  * the ORIGINAL MIPS code in unicorn on big-endian memory
@@ -55,9 +55,6 @@ s32 osPiStartDma(void *mb, s32 pri, s32 dir, u32 devAddr, void *dram, u32 size, 
     memcpy(dram, g_rom + devAddr, size);
     port_on_dma((u32) (uintptr_t) dram, devAddr, size);
     return 0;
-}
-s32 func_802DA2F0(void *mb, s32 pri, s32 dir, u32 devAddr, void *dram, u32 size, void *mq) {
-    return osPiStartDma(mb, pri, dir, devAddr, dram, size, mq);
 }
 s32 osRecvMesg(void *mq, void *msg, s32 flag) { (void) mq; (void) msg; (void) flag; return 0; }
 void osInvalDCache(void *p, s32 n) { (void) p; (void) n; }
@@ -207,14 +204,14 @@ static void t8(void) {
  * committed).  Right after the asset arrives and port_on_dma/port_on_load
  * ran, a native read of WIDTH bytes at OFF must give the big-endian value the
  * N64 read there; bytes read only bytewise must be unchanged. */
-void func_802C4108(u8 **src, u8 **dst, s32 work);
+void kiunzip_entry(u8 **src, u8 **dst, s32 work);
 void lzss_decompress(u32 *src, u32 *dst, u32 work, u8 type);
 
 #define T9_DST   0x80100000u
 #define T9_STAGE 0x8021ED00u
 
 static int lzss_bits(uint32_t rom) {
-    if (rom == 0x787F40u) return 10;   /* static segment: func_8028B4C4(.., 10, 0, 2) */
+    if (rom == 0x787F40u) return 10;   /* static segment: hd_rom_load(.., 10, 0, 2) */
     return 13;                         /* sound banks, front-end blocks: (.., 0xD, 0, 2) */
 }
 
@@ -237,7 +234,7 @@ static int t9_load(uint32_t rom, uint32_t size, const char *how, uint8_t **raw) 
         if (g_rom[rom] == 0x1F && g_rom[rom + 1] == 0x8B) {
             int m;
             for (m = 0; m < 4 && dst - T9_DST < size; m++)
-                func_802C4108((u8 **) &src, (u8 **) &dst, 0x8004B400);
+                kiunzip_entry((u8 **) &src, (u8 **) &dst, 0x8004B400);
         } else {
             lzss_decompress(&src, &dst, 0x8004B400u, (u8) lzss_bits(rom));
         }

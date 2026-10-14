@@ -148,5 +148,6 @@ void backdrop_init(u16 type, u16 level) {
     }
 }
 
-void func_80272C40(s32 arg0) {
+/* Empty, with one unused s32 parameter; no callers (0x80272C40). */
+void backdrop_unused_stub(s32 arg0) {
 }

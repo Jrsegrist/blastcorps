@@ -357,7 +357,7 @@ void ateam_update(void) {
         ateam_update_effects(zr.t6, zr.t7, zr.s0, zr.s1, zr.s2, zr.s3, zr.s4);
     }
     if (gTurboPending != 0) {
-        func_802CB690(gAteamState);
+        veh_start_turbo(gAteamState);
     }
     ateam_set_physics();
     veh_steer(ateam_steer_rate(), (u16 *) (gAteamState + 0x4C));

@@ -28,7 +28,7 @@ extern f32 D_8030D940;
 extern f32 D_8030D944;
 #endif
 
-/* C-callable (46C20.c func_8028B4C4): saves s0-s7/gp/s8, then
+/* C-callable (46C20.c hd_rom_load): saves s0-s7/gp/s8, then
  * lzss_decode(*a0, *a1) and writes the advanced pointers back to *a0/*a1. */
 #ifdef NON_MATCHING
 /* The loader's method 2: LZSS from *src to *dst (0x802C4070).
@@ -42,22 +42,24 @@ void lzss_decompress(u32 *src, u32 *dst, u32 work, u8 type) {
 #endif
 
 /* Saves s-regs, stores a0/a1 to D_803F7830/D_803F7834 and calls
- * func_8025C230(&D_803F7830, &D_803F7834, a2); returns the updated values in
+ * kiunzip(&D_803F7830, &D_803F7834, a2); returns the updated values in
  * a0/a1 (non-ABI outputs). */
 #ifdef NON_MATCHING
-/* Register convention: the asm takes and returns the two pointers in a0/a1
+/* The asm entry of kiunzip (method 1 of the loader): inflates *src into *dst with the given window and
+ * advances both pointers (0x802C4108).
+ * Register convention: the asm takes and returns the two pointers in a0/a1
  * (here through src/dst; conventions.txt) and restores a2 and every
  * s-register. Asm callers (5CB60's lvl_load_object, lvl_load_model_plain,
  * lvl_load_model) keep a2, f12 and f14 live across the call. */
-void func_802C4108(u8 **src, u8 **dst, s32 work) {
+void kiunzip_entry(u8 **src, u8 **dst, s32 work) {
     D_803F7830 = *src;
     D_803F7834 = *dst;
-    func_8025C230(&D_803F7830, &D_803F7834, work);
+    kiunzip(&D_803F7830, &D_803F7834, work);
     *src = D_803F7830;
     *dst = D_803F7834;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7F8B0/func_802C4108.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/7F8B0/kiunzip_entry.s")
 #endif
 
 /* Bit-packed LZSS decompressor: a0 = source, a1 = destination, a2 = ring

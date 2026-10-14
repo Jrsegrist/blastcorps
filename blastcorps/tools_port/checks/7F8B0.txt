@@ -1,4 +1,4 @@
-# 7F8B0: LZSS decompressor (lzss_decompress / 41C0 / 42CC), func_8025C230 wrapper, looping-sound wrappers
+# 7F8B0: LZSS decompressor (lzss_decompress / 41C0 / 42CC), kiunzip wrapper, looping-sound wrappers
 
 # bit reader: mask a3, state a0/t3/t4 (s4 = 0x80, s5 = 1 as its only caller sets them)
 lzss_read_bits: -n 300 --arg s4=0x80 --arg s5=1 --arg a0=ptr:0x20 --arg a3=choice:0x80,0x40,0x200,0x800,1,0x10000,0 \
@@ -27,9 +27,9 @@ lzss_decompress: --ret void -n 300 --seed 1 --follow lzss_decode,lzss_read_bits 
     --arg a0=ptr:8 --arg a1=ptr:8 --mem @a0=rel:heap0+choice:0,1 --mem @a1=rel:heap1 --arg a2=rel:heap2 \
     --arg a3=choice:4,8,10,12
 
-# func_8025C230 wrapper (callee is matched C: stubbed)
-func_802C4108: -n 200 --arg a0=int --arg a1=int --arg a2=int --mem D_803F7830=rand --mem D_803F7834=rand \
-    --sig func_8025C230=a0,a1,a2
+# kiunzip wrapper (callee is matched C: stubbed)
+kiunzip_entry: -n 200 --arg a0=int --arg a1=int --arg a2=int --mem D_803F7830=rand --mem D_803F7834=rand \
+    --sig kiunzip=a0,a1,a2
 
 # start loop: sound id in a1 (s16 range: snd_play takes an s16), then veh_set_engine_level(0)
 veh_start_engine_sound: --ret void -n 200 --arg a1=int:-0x8000:0x7FFF --mem gEngineSoundLevel:2=rand --mem gHornHeld:2=rand --mem gSfxBank=int \

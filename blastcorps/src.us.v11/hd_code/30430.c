@@ -17,7 +17,9 @@ u8 D_8036C784;             /* fade alpha */
 extern f32 D_802FA930;     /* fade-in step per frame */
 
 
-Gfx *func_80274BF0(s32 arg0, Gfx *gfx) {
+/* Runs the screen fade each frame and draws it as a full-screen black rectangle; on a mode's first frame some
+ * modes start black and hold back the yoshi window demand. arg0 is not used (0x80274BF0). */
+Gfx *fade_draw(s32 arg0, Gfx *gfx) {
     Gfx *gdl = gfx;
 
     if (!((s32) gFramesInMode)) {
@@ -61,8 +63,10 @@ Gfx *func_80274BF0(s32 arg0, Gfx *gfx) {
     return gdl;
 }
 
-/* Starts a fade; when it ends, the game switches to the level flags in next */
-void func_80275270(u64 next, f32 speed) {
+/* Starts a fade to black; when it ends the game switches to the mode bits in next. The fade step is 4.25 /
+ * speed; the music fades out too, except for some target modes (0x80275270).
+ * Starts a fade; when it ends, the game switches to the level flags in next */
+void fade_to_mode_speed(u64 next, f32 speed) {
     FADE_ASSERT(!postFadeLoop_done, 100);
     if (!postFadeLoop_done) {
         postFadeLoop_done = next;
@@ -74,14 +78,17 @@ void func_80275270(u64 next, f32 speed) {
     }
 }
 
-void func_80275390(u64 next) {
-    func_80275270(next, 0.25f);
+/* Starts a fade to next at the default speed (0.25) (0x80275390). */
+void fade_to_mode(u64 next) {
+    fade_to_mode_speed(next, 0.25f);
 }
 
 s32 areWeFading(void) {
     return postFadeLoop_done ? 1 : 0;
 }
 
-s32 func_802753F8(void) {
+/* Returns 1 while fade_draw holds back a yoshi window demand (from a fade-in's start until it ends)
+ * (0x802753F8). */
+s32 fade_window_held(void) {
     return D_8036C770 ? 1 : 0;
 }

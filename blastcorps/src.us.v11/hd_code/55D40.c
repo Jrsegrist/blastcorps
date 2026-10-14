@@ -75,7 +75,7 @@ Gfx *credits_draw(Gfx * N64P *gfxp, Gfx *gfx) {
         music_push_tune(0x25);
     }
     if (gCreditsEndTimer >= 0x7E && yoshiState == 1 && areWeFading() == 0) {
-        func_80275270(0x200000000000, 0.75f);
+        fade_to_mode_speed(0x200000000000, 0.75f);
     }
     return ret;
 }

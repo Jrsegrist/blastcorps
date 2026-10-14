@@ -162,7 +162,9 @@ Gfx *title_draw_attract(Gfx *arg0, s32 arg1, u8 arg2, s32 *arg3) {
 extern void * N64P D_80366BA0;
 extern void * N64P D_80366BA4;
 
-void func_8025CE74(void) {
+/* No callers: takes 0x40 bytes of heap for four Vtx of a 20x79 textured quad (D_80366BA0), then 0x780 bytes
+ * (D_80366BA4, the two halves title_draw_attract selects); leftover attract code (0x8025CE74). */
+void title_alloc_attract_bufs(void) {
     D_80366BA0 = gHeapPtr;
     gHeapPtr = (u8 *) D_80366BA0 + 0x40;
 
@@ -234,7 +236,7 @@ void title_load_logo_image(u8 arg0) {
             size = D_00489E70 - D_00487050;
             break;
     }
-    func_8028B4C4((u32) rom, (u32) gHeapPtr, (u32 *) &size, 0xC, 0, 1);
+    hd_rom_load((u32) rom, (u32) gHeapPtr, (u32 *) &size, 0xC, 0, 1);
     gLogoImages[arg0] = (u32) gHeapPtr & 0x1FFFFFFF;
     gHeapPtr = (u8 *) gHeapPtr + size;
 }
@@ -512,10 +514,10 @@ void hud_level_complete(Gfx **arg0, s32 arg1, s32 arg2) {
                 hud_panel_stop();
                 hud_panel_start(2, 1, 2, snd_random_id(3));
             }
-        } else if (func_802D4E10(gMusicPlayer) == 0 ||
+        } else if (alCSPGetState(gMusicPlayer) == 0 ||
                    (D_80366BC4 != 0 && D_803156C4 - gDoneTuneStartTime >= 0x1E1) ||
                    (D_80366BC4 == 0 && D_803156C4 - gEndSeqTime > gLevelDoneDelay[(((s32) gLevelKind) & 0x81) ? 1 : 0])) {
-            func_80275270(0x08000000, 0.75f);
+            fade_to_mode_speed(0x08000000, 0.75f);
             gEndSeqTime = 0;
             gLevelDoneSeen = 0;
         }
@@ -577,9 +579,9 @@ void hud_mission_failed(Gfx **arg0, s32 arg1, u8 arg2) {
                     if (yoshiState == 1 && areWeFading() == 0) {
                         if ((players[playerNumber][levelno + 0x18] > 0 &&
                              players[playerNumber][levelno + 0x18] < 6) ? 1 : 0) {
-                            func_80275390(0x08000000);
+                            fade_to_mode(0x08000000);
                         } else {
-                            func_80275390(0x40);
+                            fade_to_mode(0x40);
                         }
                     }
                     break;
@@ -612,9 +614,9 @@ void hud_mission_failed(Gfx **arg0, s32 arg1, u8 arg2) {
                                 gNextGameMode = 0x200000000000LL;
                             } else if ((players[playerNumber][levelno + 0x18] > 0 &&
                                         players[playerNumber][levelno + 0x18] < 6) ? 1 : 0) {
-                                func_80275390(0x08000000);
+                                fade_to_mode(0x08000000);
                             } else {
-                                func_80275390(0x40);
+                                fade_to_mode(0x40);
                             }
                         } else {
                             for (i = 0; i < 4; i++) {

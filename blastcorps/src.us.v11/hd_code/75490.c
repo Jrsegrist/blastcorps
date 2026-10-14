@@ -1087,13 +1087,13 @@ check2:
 
 /* Level 0x11: the crane's test part has ground under it (0x802BB868).
  * On level 0x11 only: finds the kind-6 / id-0x3BD part (crane_find_test_part) and
- * returns whether func_802AC0BC finds ground under its position (words 0, 8
+ * returns whether ground_scan_guard_tris finds ground under its position (words 0, 8
  * as x, z; word 4 as y); 0 otherwise.
  * Register convention: result in v0 (ABI). The asm leaves both callees'
  * registers behind (s0-s4, t6, t7, fp, f12-f26) and its caller
  * crane_update_controls only tests v0, so they're not modelled (conventions.txt:
  * clobbers). Its s0-s3 inputs only pass through crane_find_test_part when nothing is
- * found, and func_802AC0BC's pass-through inputs a3 / f12-f26 don't affect
+ * found, and ground_scan_guard_tris's pass-through inputs a3 / f12-f26 don't affect
  * the found flag, so the C starts them at 0. */
 s32 crane_part_on_ground(void) {
     Unk8029C6E4Out o;
@@ -1126,7 +1126,7 @@ s32 crane_part_on_ground(void) {
     r.s2 = o.s2;
     r.s3 = o.s3;
     r.s4 = o.s4;
-    func_802AC0BC(o.s0, o.s2, o.s1, &f, &r);
+    ground_scan_guard_tris(o.s0, o.s2, o.s1, &f, &r);
     return r.a1;
 }
 #else

@@ -436,7 +436,7 @@ extern s16 gSideswipeDeflectHeading;
  *    animation/sound update sideswipe_update_anims unless +0x9A is set;
  * 2. setup leaf sideswipe_set_physics, steering + speed bands
  *    veh_steer_throttle(sideswipe_steer_rate(), ...) (no countdown, no state save, no
- *    func_802CB690, unlike vehicles 3 and 4);
+ *    veh_start_turbo, unlike vehicles 3 and 4);
  * 3. port_veh_move (rate 0x4650, kind 1 / 720.0, drift gSideswipeDeflecting via
  *    gSideswipeDeflectHeading, divisors 0x2D0 / 0x2D0, parts sideswipe_build_model, veh_collision_setup
  *    with D_80305CE0, 0, 7, 100);

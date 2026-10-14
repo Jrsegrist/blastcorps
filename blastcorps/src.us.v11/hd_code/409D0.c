@@ -124,12 +124,12 @@ u32 stats_print_status(void) {
     } else {
         pctC = 100;
     }
-    func_802D6A60(D_8036B9A8, "***%2d (%d%c)*", D_8036EA78, pctA, '%');
-    func_802D6A60(D_8036B9A8 + 0x20, "***$%d*", nss);
-    func_802D6A60(D_8036B9A8 + 0x40, "***%2d (%d%c)*", D_8036EA79, pctB, '%');
-    func_802D6A60(D_8036B9A8 + 0x60, "***%2d (%d%c)*", D_8036EA7C, pctC, '%');
+    sprintf(D_8036B9A8, "***%2d (%d%c)*", D_8036EA78, pctA, '%');
+    sprintf(D_8036B9A8 + 0x20, "***$%d*", nss);
+    sprintf(D_8036B9A8 + 0x40, "***%2d (%d%c)*", D_8036EA79, pctB, '%');
+    sprintf(D_8036B9A8 + 0x60, "***%2d (%d%c)*", D_8036EA7C, pctC, '%');
     hud_format_time(buf, D_8036EA74, 0);
-    func_802D6A60(D_8036B9A8 + 0x80, "***%s*", buf);
+    sprintf(D_8036B9A8 + 0x80, "***%s*", buf);
     for (i = 18; i < 23; i++) {
         gYoshiGameItems[i].flags = 0x400;
     }
@@ -257,7 +257,7 @@ void stats_finish_bonus_level(s32 arg0) {
             if (gLevelInfo[levelno].type != 1 && playerNumber == playerNumberAtStart) {
                 commpt_save_flags();
                 gPauseRequest = 1;
-                func_80275270(0x4000, 1.25f);
+                fade_to_mode_speed(0x4000, 1.25f);
                 saveIt[playerNumber] = levelno + 1;
                 D_8036EB99 = 1;
             }
@@ -265,7 +265,8 @@ void stats_finish_bonus_level(s32 arg0) {
     }
 }
 
-void func_80285CA0(void) {
+/* Shows the communication-point hint window (hint 0x47) (0x80285CA0). */
+void stats_show_commpt_hint(void) {
     yoshi_show_hint(0x47);
 }
 

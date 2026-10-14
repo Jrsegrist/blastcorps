@@ -481,7 +481,7 @@ void util_shuttle_path_step(void) {
             switch (gShuttlePathBranch) {
                 case 0:
                     if (D_803FCD75 == 1) {
-                        func_80275270(0x200000000000, 0.5f);
+                        fade_to_mode_speed(0x200000000000, 0.5f);
                     } else {
                         gLevelDoneRequest = 1;
                         gPauseRequest = 1;

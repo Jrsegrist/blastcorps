@@ -355,7 +355,7 @@ s32 police_steer_rate(void);
  * Per-frame update of vehicle 13 (hd.c, and once from police_spawn):
  * zone level (police_zone_alpha); save the record (veh_snapshot); engine sound
  * 0xD (veh_update_horn); unless +0x9A is set, the effects (police_update_effects with
- * the zone scan registers); func_802CB690 when gTurboPending; timers
+ * the zone scan registers); veh_start_turbo when gTurboPending; timers
  * (police_set_physics); turn rate from the speed (police_steer_rate -> veh_steer);
  * speed bands (veh_throttle, or count down D_803F8F44); acceleration and
  * heading (veh_turn_heading, veh_slope -> veh_apply_slope with 700.0, the
@@ -408,7 +408,7 @@ void police_update(void) {
         police_update_effects(zr.t6, zr.t7, zr.s0, zr.s1, zr.s2, zr.s3);
     }
     if (gTurboPending != 0) {
-        func_802CB690(gPoliceState);
+        veh_start_turbo(gPoliceState);
     }
     police_set_physics();
     veh_steer(police_steer_rate(), (u16 *) (gPoliceState + 0x4C));

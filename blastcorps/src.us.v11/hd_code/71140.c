@@ -428,7 +428,7 @@ void backlash_add_tyre_trail(void);
  * switch and from backlash_spawn):
  * 1. Zone lookup (backlash_zone_alpha), veh_snapshot (position from gBacklashAnim),
  *    the animation/sound update backlash_update_anims while byte +0x9A is clear,
- *    func_802CB690 when gTurboPending is set, backlash_set_physics.
+ *    veh_start_turbo when gTurboPending is set, backlash_set_physics.
  * 2. Driving: veh_steer_throttle(rate = backlash_steer_rate, heading +0x4C, speed +0x76,
  *    mode 3, flags +0x96, bands +0x78, 8), veh_turn_heading(+0x74, rate
  *    gBacklashGrip, +0x4C -> +0x4E, flag +0x99, sound 1), f = veh_slope,
@@ -455,10 +455,10 @@ void backlash_add_tyre_trail(void);
  *    veh_step_heading(its turn, d), veh_hit_slowdown(0) and, unless gLevelKind ==
  *    0x40, obj_collide_vehicle(5).
  * 5. Player globals gPlayerX/Y/Z = the position, D_8036443C/3E/40 =
- *    speed, +0x4E, +0x4C; veh_set_record(z, 5, x, y, veh); func_802AC2A4(z,
+ *    speed, +0x4E, +0x4C; veh_set_record(z, 5, x, y, veh); veh_maze_object_hits(z,
  *    D_80305D20, x, y, b0, 5, veh) with D_803F77D0 = gBacklashAnim; sound
  *    gBacklashHitSound when >= 0 (snd_play).
- * Leaked registers (FIDELITY AUDIT): func_802AC2A4's b0 is the asm's t0 =
+ * Leaked registers (FIDELITY AUDIT): veh_maze_object_hits's b0 is the asm's t0 =
  * &gPlayerZ (kept). Passed as 0 here: the zone scan's t6/t7/s0-s4 inputs
  * (the caller's registers, dead afterwards); veh_ground_contact's f14-f26 inputs
  * (pass-through); backlash_build_model's chain inputs (only read for a
@@ -498,7 +498,7 @@ void backlash_update(void) {
         backlash_update_anims();
     }
     if (gTurboPending != 0) {
-        func_802CB690(gBacklashState);
+        veh_start_turbo(gBacklashState);
     }
     backlash_set_physics();
 
@@ -632,7 +632,7 @@ globals:
     D_80364440 = VEH5(0x4C, u16);
     veh_set_record(gBacklashPos[2], 5, gBacklashPos[0], gBacklashPos[1], gBacklashState);
     D_803F77D0 = gBacklashAnim;
-    func_802AC2A4(gBacklashPos[2], (s32) D_80305D20, gBacklashPos[0], gBacklashPos[1], (s32) &gPlayerZ, 5, gBacklashState);
+    veh_maze_object_hits(gBacklashPos[2], (s32) D_80305D20, gBacklashPos[0], gBacklashPos[1], (s32) &gPlayerZ, 5, gBacklashState);
     if (gBacklashHitSound >= 0) {
         snd_play(gSfxBank, gBacklashHitSound, NULL);
     }

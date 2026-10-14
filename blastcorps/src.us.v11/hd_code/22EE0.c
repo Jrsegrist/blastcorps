@@ -239,14 +239,14 @@ void __amHandleFrameMsg(AudioInfo *info, AudioInfo *lastInfo) {
     __clearAudioDMA();
     audioPtr = (s16 *) osVirtualToPhysical(info->data);
     if (lastInfo) {
-        func_802D9B60(lastInfo->data, lastInfo->frameSamples << 2);
+        osAiSetNextBuffer(lastInfo->data, lastInfo->frameSamples << 2);
     }
-    samplesLeft = func_802D9C10() >> 2;
+    samplesLeft = osAiGetLength() >> 2;
     info->frameSamples = (frameSize - samplesLeft + 0x35) & ~0xF;
     if (info->frameSamples < minFrameSize) {
         info->frameSamples = minFrameSize;
     }
-    cmdp = func_802D9D68(__am.ACMDList[curAcmdList], &gAudCmdLen, audioPtr, info->frameSamples);
+    cmdp = alAudioFrame(__am.ACMDList[curAcmdList], &gAudCmdLen, audioPtr, info->frameSamples);
     AUDIO_ASSERT(cmdLen <= MAX_RSP_CMDS, 336);
     t = &info->task;
     t->next = NULL;
@@ -280,7 +280,7 @@ void __amHandleDoneMsg(AudioInfo *info) {
     static s32 D_802F3C04 N64_KEEP = 1; /* firstTime (never cleared: N64_KEEP) */
     u32 samplesLeft;
 
-    samplesLeft = func_802D9C10() >> 2;
+    samplesLeft = osAiGetLength() >> 2;
     if (samplesLeft == 0 && !D_802F3C04) {
         debug_printf("audio: ai out of samples\n");
         D_802F3C04 = 0;
@@ -347,7 +347,7 @@ s32 __amDMA(s32 addr, s32 len, void *state) {
     addr -= delta;
     dmaPtr->startAddr = addr;
     dmaPtr->lastFrame = audFrameCt;
-    func_802DA2F0((OSIoMesg *) &audDMAIOMesgBuf[nextDMA++], OS_MESG_PRI_NORMAL, OS_READ, addr, foundBuffer, 0x200, &audDMAMessageQ);
+    osPiStartDma((OSIoMesg *) &audDMAIOMesgBuf[nextDMA++], OS_MESG_PRI_NORMAL, OS_READ, addr, foundBuffer, 0x200, &audDMAMessageQ);
     return osVirtualToPhysical(foundBuffer) + delta;
 }
 

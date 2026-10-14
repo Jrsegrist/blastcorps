@@ -217,7 +217,7 @@ Gfx *fe_lvlsel_build_globe_dl(void) {
 
     base = gHeapPtr;
     size = D_0068B550 - D_0066C900;
-    func_8028B4C4((u32) D_0066C900, (u32) gHeapPtr, (u32 *) &size, 0xD, 0, 1);
+    hd_rom_load((u32) D_0066C900, (u32) gHeapPtr, (u32 *) &size, 0xD, 0, 1);
     gHeapPtr += size;
     gStarTextures = (u16 *) (gHeapPtr - 0x6600);
     for (i = 0; i < 3; i++) {

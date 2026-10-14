@@ -28,7 +28,7 @@
 /* A level object's model header (the `info` of a LevelObject): mostly byte offsets
  * (from the header) of its tables. */
 typedef struct {
-    /* 0x00 */ u16 unk0;  /* number of s16 entries at unk3C (func_802C1A28) */
+    /* 0x00 */ u16 unk0;  /* number of s16 entries at unk3C (obj_part_outranked) */
     /* 0x02 */ u8 pad2[2];
     /* 0x04 */ u8 type;   /* toughness: the damage divisor; 0xFF = not tallied, 1 = flimsy (not counted) */
     /* 0x05 */ u8 unk5;   /* scale of the debris records (obj_spawn_random_effects, obj_spawn_random_landing_effect) */
@@ -46,7 +46,7 @@ typedef struct {
     /* 0x30 */ s32 unk30; /* offsets of 0x38-byte records (obj_spawn_break_effects) */
     /* 0x34 */ s32 unk34; /*   their end = start of more (obj_spawn_landing_effects) */
     /* 0x38 */ s32 unk38; /*   their end = start of the conditional DL records (obj_start_part_fade) */
-    /* 0x3C */ s32 unk3C; /* offset of an s16 table (func_802C1A28); end of the DL records */
+    /* 0x3C */ s32 unk3C; /* offset of an s16 table (obj_part_outranked); end of the DL records */
     /* 0x40 */ s32 unk40; /* offset of an s16 table indexed 1-based (obj_part_exposed) */
     /* 0x44 */ s32 unk44; /* offsets of variable-length records (obj_part_exposed) */
     /* 0x48 */ s32 unk48; /*   and their end */
@@ -99,7 +99,7 @@ typedef struct CollisionTri {
     /* 0x20 */ f32 len;       /* |normal| */
     /* 0x24 */ f32 lenSq;
     /* 0x28 */ s32 v[3][3];   /* vertices x, y, z */
-    /* 0x4C */ u16 unk4C;  /* ring index (func_802BF264) */
+    /* 0x4C */ u16 unk4C;  /* ring index (obj_tri_clip_free_arc) */
     /* 0x4E */ u8 axis;       /* dominant normal axis: 0 = z, 1 = y, 2 = x */
     /* 0x4F */ u8 pad4F;
     /* 0x50 */ u8 id;
@@ -215,7 +215,7 @@ typedef struct {
  * has unk26 set (obj_box_targets_done) and no D_80306480 entry of the current level
  * at or beyond the player's z has an id whose gCollTris unk51 is set
  * (obj_tri_targets_ahead_done). Then, if gHaveCarrier is clear: in game mode 0x40 it calls
- * func_80275390(0x40), otherwise it sets D_803649E8 = 1 and the next mode 8.
+ * fade_to_mode(0x40), otherwise it sets D_803649E8 = 1 and the next mode 8.
  * Declared void in hd.c; the asm leaves garbage in v0. */
 void obj_check_level_end(void) {
     if (gEndObjectTouched == 0) {
@@ -239,7 +239,7 @@ void obj_check_level_end(void) {
         return;
     }
     if (gGameMode == 0x40) {
-        func_80275390(0x40);
+        fade_to_mode(0x40);
     } else {
         /* The asm stores 1 with sb into the s32 D_803649E8, i.e. into its
          * most significant byte (readers only test it against 0). Done on
@@ -537,12 +537,14 @@ void veh_contacts_add(s32 value) {
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-/* Returns 1 if some byte of buffer A (gContacts up to its write pointer)
+/* Returns 1 if some entry of gContacts differs from value, else 0 (veh_contacts_has's twin); nothing calls it
+ * (0x802BCD20).
+ * Returns 1 if some byte of buffer A (gContacts up to its write pointer)
  * differs from value (compared as a full word), else 0. The asm takes value
  * in v0 and returns in v1 (it has no callers); it saves a0, a1 and a2. The
  * scan stops at the write pointer with `!=`, which must not be below the
  * buffer start. */
-s32 func_802BCD20(s32 value) {
+s32 veh_contacts_has_other(s32 value) {
     u8 *p = gContacts;
     u8 *end = gContactsEnd;
 
@@ -554,7 +556,7 @@ s32 func_802BCD20(s32 value) {
     return 0;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BCD20.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/veh_contacts_has_other.s")
 #endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
@@ -1595,8 +1597,8 @@ void obj_hits_add(s32 a, s32 b);
 s32 obj_hits_has(s32 a, s32 b);
 void obj_collide_sphere(s32 x, s32 y, s32 z, s32 r, LevelObject *e, s32 id);
 void obj_hit_tri(s32 id, LevelObject *e, CollisionTri *tri);
-void func_802BEF9C(LevelObject *e);
-void func_802BEFF4(void);
+void obj_check_mars_fail(LevelObject *e);
+void obj_detect_rocking_hits(void);
 void obj_set_full_damage(u8 *vehicle);
 s32 obj_calc_damage(s32 id, s32 value, s32 bit, LevelObject *e, s32 flag, s32 key);
 extern u8 gObjHitPartDown;
@@ -1838,10 +1840,10 @@ extern u16 gLastHitDamage;
  * counting them; the first whose sphere ((x, y, z, r) >> 2) hits tri wins
  * (none: returns). Then: stamps gObjHitFrame and records e in D_8036B974 /
  * D_8036B971 (id != 0xFF; e countable, pathBuilding clear, unk30 != 0x38, new),
- * func_802BEF9C, and unless gFailTrigger is set: adds the count to buffer A
+ * obj_check_mars_fail, and unless gFailTrigger is set: adds the count to buffer A
  * (veh_contacts_add); if (e, part = tri->unk52) isn't in the hit list yet (and,
  * for a vehicle with gFullDamage clear, buffer B has the count or D_803F7812 is
- * clear and func_802BEFF4 didn't set D_803F780C), it is added, the damage
+ * clear and obj_detect_rocking_hits didn't set D_803F780C), it is added, the damage
  * (0 for unk30 0x38, which also sets gEndObjectTouched for vehicle 0; else
  * obj_calc_damage) goes into the screen shake (10, min(damage, 500)), the part's
  * percentage (capped at 100) and gLastHitDamage, obj_spawn_break_effects updates the part,
@@ -1849,7 +1851,7 @@ extern u16 gLastHitDamage;
  * obj_start_part_fade, obj_start_sinking_part, obj_spawn_people, shake 15/400, the part's
  * triangles off and the triangles whose unk57 is the part on unless their own
  * part is done). Finally gObjHit = 1, and unless the count is in the
- * gNonBlockingParts list: gCollHit = 1 and func_802BF264(tri) while the part isn't
+ * gNonBlockingParts list: gCollHit = 1 and obj_tri_clip_free_arc(tri) while the part isn't
  * done, else gObjHitPartDown = 1; then obj_drop_unsupported_parts and obj_check_destroyed.
  * Register convention: id in t8, e in t9, tri in s0. The asm saves t3-t7,
  * s0-s4, gp and fp and leaves a1 = 0 when no sphere hits (dead: its only
@@ -1884,7 +1886,7 @@ void obj_hit_tri(s32 id, LevelObject *e, CollisionTri *tri) {
         D_8036B971 = 1;
         D_8036B974 = e;
     }
-    func_802BEF9C(e);
+    obj_check_mars_fail(e);
     if (gFailTrigger != 0) {
         return;
     }
@@ -1895,7 +1897,7 @@ void obj_hit_tri(s32 id, LevelObject *e, CollisionTri *tri) {
     }
     if (gFullDamage == 0 && id != 0xFF) {
         if (D_803F7812 == 0) {
-            func_802BEFF4();
+            obj_detect_rocking_hits();
             if (D_803F780C != 0) {
                 goto add;
             }
@@ -1960,7 +1962,7 @@ done:
     }
     if (pcts[part - 1] != 100) {
         gCollHit = 1;
-        func_802BF264(tri);
+        obj_tri_clip_free_arc(tri);
     } else {
         gObjHitPartDown = 1;
     }
@@ -1975,16 +1977,17 @@ tail:
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-/* On level 0x2D, sets gFailTrigger when e->unk30 is 0xE7..0xE9 (signed). The asm
+/* On Mars (level 0x2D), touching an object of kind 0xE7..0xE9 fails the mission (0x802BEF9C).
+ * On level 0x2D, sets gFailTrigger when e->unk30 is 0xE7..0xE9 (signed). The asm
  * takes e in t9 and saves v0; asm caller obj_hit_tri keeps a0, a1, t8, t9,
  * f12 and f14 live. */
-void func_802BEF9C(LevelObject *e) {
+void obj_check_mars_fail(LevelObject *e) {
     if (levelno == 0x2D && e->unk30 >= 0xE7 && e->unk30 < 0xEA) {
         gFailTrigger = 1;
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BEF9C.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_check_mars_fail.s")
 #endif
 
 /* Same preserve-caller-registers convention as obj_clear_delayed_damage above - permanently GLOBAL_ASM. */
@@ -1994,7 +1997,9 @@ extern u8 D_803F780D;   /* "the flag changed during this run" */
 extern u8 D_803F780E;   /* flag value at the start of the run */
 extern u8 D_803F780F;   /* once-per-frame latch, set here */
 
-/* Once-per-frame run detector. Unless the mode excludes it or it already ran
+/* Once per frame for the ramming vehicles: counts consecutive hit frames in which the speed's sign flips or
+ * is 0; after 20 with a stick change sets D_803F780C so the same part can be damaged again (0x802BEFF4).
+ * Once-per-frame run detector. Unless the mode excludes it or it already ran
  * (latch D_803F780F), it counts consecutive frames (gObjPrevHitFrame + 1 ==
  * gUnpausedFrames) in which gHitSpeed's sign doesn't repeat a nonzero previous
  * sign, recording whether gPadStickX's truth value changed since the run
@@ -2003,7 +2008,7 @@ extern u8 D_803F780F;   /* once-per-frame latch, set here */
  * gObjPrevHitFrame traps on 0x7FFFFFFF; the C wraps instead.
  * Register note: the asm saves/restores v0, v1, a0 and a1 (and clobbers at);
  * asm caller obj_hit_tri keeps a0, a1, t3, t8, t9, f12 and f14 live. */
-void func_802BEFF4(void) {
+void obj_detect_rocking_hits(void) {
     u8 mode = gCurVehicle;
     s32 sign;
     s32 flag;
@@ -2051,7 +2056,7 @@ void func_802BEFF4(void) {
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BEFF4.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_detect_rocking_hits.s")
 #endif
 
 /* Same preserve-caller-registers convention as obj_clear_delayed_damage above - permanently GLOBAL_ASM. */
@@ -2081,7 +2086,9 @@ void obj_mark_part_gone(LevelObject *e, s32 id) {
 /* Same preserve-caller-registers convention as obj_clear_delayed_damage above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-/* For a collision triangle t with unk58 set: s = t's plane function at the
+/* For a wall triangle (unk58 set), clips the free heading arc to +-0x400 around its heading unk4C, on the
+ * side of the plane where gCollX/Y/Z lies (0x802BF264).
+ * For a collision triangle t with unk58 set: s = t's plane function at the
  * point gCollX/Y/Z >> 2 (normal . p + d, 64-bit, wrapping where the
  * asm's dadd traps). If s has the same sign as d (s > 0 with d > 0, or s < 0
  * with d <= 0), veh_clip_free_arc(h - 0x400, h + 0x400) when t->unk55 is 1 or
@@ -2089,7 +2096,7 @@ void obj_mark_part_gone(LevelObject *e, s32 id) {
  * t->unk55 is 1 or t->unk56 is clear (h = t->unk4C). The asm takes t in s0
  * and saves v0-a3 and t0; asm callers keep a1, t9, f12, f14 (obj_hit_tri)
  * or a1, t3-t6, t9 (coll_probe_object_tris) live across the call. */
-void func_802BF264(CollisionTri *t) {
+void obj_tri_clip_free_arc(CollisionTri *t) {
     s64 s;
     s32 h;
 
@@ -2111,7 +2118,7 @@ void func_802BF264(CollisionTri *t) {
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802BF264.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_tri_clip_free_arc.s")
 #endif
 
 /* Same preserve-caller-registers convention as obj_clear_delayed_damage above - permanently GLOBAL_ASM. */
@@ -3363,7 +3370,7 @@ void obj_draw_toppling_parts(u32 **gfxA, u32 **gfxB) {
 
 /* Same preserve-caller-registers convention as obj_clear_delayed_damage above - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
-s32 func_802C1A28(LevelObject *e, s32 index);
+s32 obj_part_outranked(LevelObject *e, s32 index);
 
 /* Quarter-turn heading (0..0x3FF) from the sine num / d: arcsine >> 4. */
 static s32 heading_802C1438(s32 num, f32 d) {
@@ -3375,7 +3382,7 @@ static s32 heading_802C1438(s32 num, f32 d) {
 
 /* Model unk7 set: the part topples away from the vehicle (0x802C1438).
  * Starts the toppling of part `index` (1-based) of e: only when
- * e's info byte 7 is set and func_802C1A28(e, index) is 0. The first
+ * e's info byte 7 is set and obj_part_outranked(e, index) is 0. The first
  * gTopplingParts slot (2 of 0x478 bytes) whose bytes 0x470 and 0x472 are both
  * clear gets: word 0x460 = info + 0x50; two display lists, A at the slot and
  * B at slot + 0x230, each starting with {0x01040040, 0x02000000 + slot *
@@ -3419,7 +3426,7 @@ void obj_start_topple(LevelObject *e, s32 index) {
     if (((u8 *) info)[7] == 0) {
         return;
     }
-    if (func_802C1A28(e, index) != 0) {
+    if (obj_part_outranked(e, index) != 0) {
         return;
     }
     for (i = 2;; i--, seg += 0x40, slot += 0x478) {
@@ -3583,7 +3590,7 @@ void obj_blast_damage(s32 x, s32 y, s32 z, s32 radius, s32 amount) {
  * all n are). The asm takes e in t9 and index in t3, returns in a2 and saves
  * v0, a0, a1 and a3; asm caller obj_start_topple keeps t3, t9, f12 and f14
  * live. */
-s32 func_802C1A28(LevelObject *e, s32 index) {
+s32 obj_part_outranked(LevelObject *e, s32 index) {
     ObjectModel *info = e->info;
     s16 *tbl = (s16 *) ((u8 *) info + info->unk3C);
     s32 key = tbl[index - 1];
@@ -3596,7 +3603,7 @@ s32 func_802C1A28(LevelObject *e, s32 index) {
     return n;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/func_802C1A28.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/77E20/obj_part_outranked.s")
 #endif
 
 /* Uses the sd-$ra frame convention - see the file-level note at the top of this file. Permanently GLOBAL_ASM. */

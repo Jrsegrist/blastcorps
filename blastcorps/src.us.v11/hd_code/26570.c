@@ -307,7 +307,7 @@ void yoshi_init(u8 arg0) {
                 gYoshiFeItems[29].unk14 = 11;
             }
             if (gLevelInfo[levelno].unk0 == 1) {
-                if (func_80297EF8(levelno)) {
+                if (academy_marker_found(levelno)) {
                     gYoshiFeItems[18].unk14 = 24;
                 } else {
                     gYoshiFeItems[18].unk14 = 0;

@@ -175,7 +175,7 @@ u16 *font_format_wstr(u16 *dst, u16 *src, u16 *str, s32 num) {
                 }
                 break;
             case 0x1004:
-                func_802D6A60((char *) buf, "%d", num);
+                sprintf((char *) buf, "%d", num);
                 for (k = 0; buf[k] != 0; k++, j++) {
                     dst[j] = buf[k] - 0x20;
                 }

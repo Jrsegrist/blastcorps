@@ -91,7 +91,7 @@ void rsp_send_task(u64 *data, s32 count, u8 slot, u8 yield, s32 id, u8 writeback
     task->t.framebuffer = &gFrameBuffers[gBufferIndex];
     task->t.msgQ = &gMainSchedClient;
     if (writebackAll) {
-        func_802D6710();
+        osWritebackDCacheAll();
     } else {
         osWritebackDCache(task, sizeof(RspTask));
         osWritebackDCache(data, size);

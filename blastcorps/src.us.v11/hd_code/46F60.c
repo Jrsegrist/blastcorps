@@ -13,15 +13,20 @@ f32 sqrtf(f32);
 extern s8 D_80370C74;
 extern s16 D_80370C76;
 
-u16 func_8028BA1C(s16 arg0, s16 arg1, s8 *arg2, u8 arg3);
-f32 func_8028BD88(f32 arg0, f32 arg1);
+u16 cont_steer_toward(s16 arg0, s16 arg1, s8 *arg2, u8 arg3);
+f32 math_asin_ratio_deg(f32 arg0, f32 arg1);
 
-void func_8028B720(void) {
+/* Resets the analog steering state: the turn-around latch (D_80370C75) and the heading snap (D_803ED40A)
+ * (0x8028B720). */
+void cont_steer_reset(void) {
     D_80370C75 = 0;
     D_803ED40A = 0;
 }
 
-void func_8028B734(s8 *arg0, s8 *arg1, u8 arg2) {
+/* Analog control method: the stick points where to go, relative to the camera; returns a left/right steer of
+ * -80/0/+80 in *x and the stick's magnitude in *y, snapping the heading once within one frame's turn
+ * (0x8028B734). */
+void cont_stick_to_steer(s8 *arg0, s8 *arg1, u8 arg2) {
     s8 sp37;
     s8 sp36;
     s16 sp34;
@@ -33,7 +38,7 @@ void func_8028B734(s8 *arg0, s8 *arg1, u8 arg2) {
     sp30 = -D_80370C70 * 16 + 0x7FF0;
     sp37 = *arg0;
     sp36 = *arg1;
-    sp34 = func_8028BBF4(0, 0, sp37, -sp36) * 65536.0 / 360.0 + 32768.0 +
+    sp34 = math_angle_2d_deg(0, 0, sp37, -sp36) * 65536.0 / 360.0 + 32768.0 +
            (s16) ((360.0 - (gCamHeading + 180.0)) / 360.0 * 65536.0);
     sp32 = sqrtf(sp37 * sp37 + sp36 * sp36);
     *arg1 = sp32;
@@ -47,7 +52,7 @@ void func_8028B734(s8 *arg0, s8 *arg1, u8 arg2) {
         sp2E = 0x200;
     } else {
         if (*arg1 >= 0xB) {
-            sp2E = func_8028BA1C(sp30, sp34, &D_80370C74, arg2);
+            sp2E = cont_steer_toward(sp30, sp34, &D_80370C74, arg2);
         }
         if (D_80370C74 != 0 && D_8036443C < 0x28) {
             D_80370C76 = sp34;
@@ -67,7 +72,10 @@ void func_8028B734(s8 *arg0, s8 *arg1, u8 arg2) {
     }
 }
 
-u16 func_8028BA1C(s16 arg0, s16 arg1, s8 *arg2, u8 arg3) {
+/* Returns R_JPAD or L_JPAD to turn the heading toward the target (sets the heading snap when close); if the
+ * target is far behind and the speed is below 40, flips the reverse flag and returns 0. arg 4 is unused
+ * (0x8028BA1C). */
+u16 cont_steer_toward(s16 arg0, s16 arg1, s8 *arg2, u8 arg3) {
     s16 spE;
     u16 spC;
     s16 spA;
@@ -94,8 +102,9 @@ u16 func_8028BA1C(s16 arg0, s16 arg1, s8 *arg2, u8 arg3) {
     return 0x200;
 }
 
-/* Angle in degrees of the vector (arg2 - arg0, arg3 - arg1), per quadrant. */
-f32 func_8028BBF4(s16 arg0, s16 arg1, s16 arg2, s16 arg3) {
+/* Angle in degrees of the vector from (x0, y0) to (x1, y1): -y is 0, +x 90, +y 180, -x 270 (0x8028BBF4).
+ * Angle in degrees of the vector (arg2 - arg0, arg3 - arg1), per quadrant. */
+f32 math_angle_2d_deg(s16 arg0, s16 arg1, s16 arg2, s16 arg3) {
 #ifdef NON_MATCHING
     f32 sp1C = 0.0f; /* every quadrant test sets it; never read unset */
 #else
@@ -103,20 +112,21 @@ f32 func_8028BBF4(s16 arg0, s16 arg1, s16 arg2, s16 arg3) {
 #endif
 
     if (arg2 >= arg0 && arg3 >= arg1) {
-        sp1C = func_8028BD88(arg3 - arg1, arg2 - arg0) + 90.0f;
+        sp1C = math_asin_ratio_deg(arg3 - arg1, arg2 - arg0) + 90.0f;
     } else if (arg2 >= arg0 && arg3 < arg1) {
-        sp1C = 90.0f - func_8028BD88(arg1 - arg3, arg2 - arg0);
+        sp1C = 90.0f - math_asin_ratio_deg(arg1 - arg3, arg2 - arg0);
     } else if (arg2 < arg0 && arg3 < arg1) {
-        sp1C = func_8028BD88(arg1 - arg3, arg0 - arg2) + 270.0f;
+        sp1C = math_asin_ratio_deg(arg1 - arg3, arg0 - arg2) + 270.0f;
     } else if (arg2 < arg0 && arg3 >= arg1) {
-        sp1C = 270.0f - func_8028BD88(arg3 - arg1, arg0 - arg2);
+        sp1C = 270.0f - math_asin_ratio_deg(arg3 - arg1, arg0 - arg2);
     }
     return sp1C;
 }
 
-/* Angle in degrees from the ratio arg0 / |(arg0, arg1)|, through the
+/* asin(a / sqrt(a*a + b*b)) in degrees through math_asin_c; 0 when both are 0 (0x8028BD88).
+ * Angle in degrees from the ratio arg0 / |(arg0, arg1)|, through the
  * fixed-point inverse-trig lookup math_asin_c. */
-f32 func_8028BD88(f32 arg0, f32 arg1) {
+f32 math_asin_ratio_deg(f32 arg0, f32 arg1) {
     s32 sp1C;
     f32 sp18;
 
@@ -128,8 +138,10 @@ f32 func_8028BD88(f32 arg0, f32 arg1) {
     return ((f32) sp1C / 65536.0) * 360.0;
 }
 
-/* Turn stick deflection past +-50 into direction-button bits. */
-void func_8028BE70(u16 *arg0, s8 arg1, s8 arg2) {
+/* Unused: stick past +-50 presses D-pad left/right and A (y < -50) or B (y > 50); Z also presses L and R
+ * (0x8028BE70).
+ * Turn stick deflection past +-50 into direction-button bits. */
+void cont_stick_to_buttons_inv_y(u16 *arg0, s8 arg1, s8 arg2) {
     if (!(*arg0 & 0x200) && (arg1 < -0x32)) {
         *arg0 |= 0x200;
     }
@@ -147,13 +159,15 @@ void func_8028BE70(u16 *arg0, s8 arg1, s8 arg2) {
     }
 }
 
-void func_8028BF34(u16 *arg0, s8 arg1, s8 arg2, u8 arg3) {
+/* Unused analog-to-digital control: the stick's magnitude and its direction against the heading press D-pad
+ * left/right (cont_steer_toward) and A, or B when reversing; Z also presses L and R (0x8028BF34). */
+void cont_stick_dir_to_buttons(u16 *arg0, s8 arg1, s8 arg2, u8 arg3) {
     s16 sp2E;
     s16 sp2C;
     s16 sp2A;
     u16 sp28;
 
-    sp2E = func_8028BBF4(0, 0, arg1, -arg2) * 65536.0 / 360.0 + 32768.0;
+    sp2E = math_angle_2d_deg(0, 0, arg1, -arg2) * 65536.0 / 360.0 + 32768.0;
     sp2C = sqrtf(arg1 * arg1 + arg2 * arg2);
     sp28 = 0;
     sp2A = -D_80370C70 * 16 + 0x7FF0;
@@ -174,7 +188,7 @@ void func_8028BF34(u16 *arg0, s8 arg1, s8 arg2, u8 arg3) {
         D_80370C74 = 0;
     }
     if (!(*arg0 & 0x300) && (sp28 & 1)) {
-        *arg0 |= func_8028BA1C(sp2A, sp2E, &D_80370C74, arg3);
+        *arg0 |= cont_steer_toward(sp2A, sp2E, &D_80370C74, arg3);
     }
     if (!(*arg0 & 0xC000) && (sp28 & 2)) {
         if (D_80370C74 != 0) {

@@ -372,7 +372,7 @@ s32 starski_ride_follow(s32 id, InterpRegs *r) {
  * Per-frame update of vehicle type 15 (called from 00000.c's veh_update_player
  * and once from starski_spawn): zone level (starski_zone_alpha), state save
  * (veh_snapshot), sound 0x76, effects (starski_update_effects unless +0x9A), the
- * gTurboPending hook (func_802CB690), timers (starski_set_physics), steering
+ * gTurboPending hook (veh_start_turbo), timers (starski_set_physics), steering
  * (veh_steer with the rate from starski_steer_rate), throttle (veh_throttle,
  * skipped while the D_803FC5C4 countdown runs), heading, slope and speed
  * (veh_turn_heading / 83B8 / 843C, veh_set_target_heading while D_803FC5C3), the move
@@ -433,7 +433,7 @@ void starski_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4, f32 
         starski_update_effects(zr.t6, zr.t7, zr.s0, zr.s1, zr.s2, zr.s3, zr.s4);
     }
     if (gTurboPending != 0) {
-        func_802CB690(v);
+        veh_start_turbo(v);
     }
     starski_set_physics();
     veh_steer(starski_steer_rate(), (u16 *) (v + 0x4C));
@@ -1513,7 +1513,8 @@ void cyclone_load_state(void *src) {
 #pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8AEE0/cyclone_load_state.s")
 #endif
 
-/* func_802D2550: `mtc0 $a0, $11` (write COP0 Compare register) wrapped in a
+/* Writes a0 to the COP0 Compare register (the game's own stub, sd-$ra frame); no callers (0x802D2550).
+ * hd_set_cop0_compare: `mtc0 $a0, $11` (write COP0 Compare register) wrapped in a
  * dead $ra save/restore frame - same hand-written COP0-leaf-stub character
  * as __osSetSR in init/2330.c. Permanently GLOBAL_ASM. */
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8AEE0/func_802D2550.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/8AEE0/hd_set_cop0_compare.s")

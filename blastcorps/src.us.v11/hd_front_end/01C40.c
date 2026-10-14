@@ -847,7 +847,7 @@ Gfx *fe_player_name_entry_draw(Gfx *arg0, PlayerSelDyn *dyn, s32 *count) {
                     if (gNameLen == 0) {
                         if (gContButtons & 0x4000) {
                             if (gUseEeprom != 0) {
-                                func_80275270(0x0400000000000000, 0.5f);
+                                fade_to_mode_speed(0x0400000000000000, 0.5f);
                             } else {
                                 gNextGameMode = 0x200000;
                             }

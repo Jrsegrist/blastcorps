@@ -17,7 +17,7 @@ extern void hd_boot(void);
 
 /* ---- front-end overlay ------------------------------------------------------ */
 /* The front end (0x801E7000-0x8021ED00) is inflated from the ROM whenever the
- * game returns to the menus (46C20.c func_8028B3E0); its .data and .bss come
+ * game returns to the menus (46C20.c hd_load_front_end); its .data and .bss come
  * back to their initial state each time, because the heap overwrote them.
  * Natively its code is in the exe; its data lives in RDRAM.  The initial
  * data image (ROM bytes after the load-time swap, plus the native

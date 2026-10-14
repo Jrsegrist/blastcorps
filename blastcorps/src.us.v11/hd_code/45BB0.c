@@ -77,7 +77,7 @@ u8 cont_init(void) {
 
     osCreateMesgQueue(&gSiMesgQueue, &gSiMesgBuf, 1);
     osSetEventMesg(OS_EVENT_SI, &gSiMesgQueue, 0);
-    func_802DB0A0(&gSiMesgQueue, &pattern, &gContStatus);
+    osContInit(&gSiMesgQueue, &pattern, &gContStatus);
     osContSetCh(1);
     gContReadPending = 0;
     gControlMethod = 0;
@@ -88,7 +88,7 @@ u8 cont_init(void) {
 void cont_start_read(void) {
     if (pakBusy == 0) {
         cont_wait_read();
-        func_802DB4D0(&gSiMesgQueue);
+        osContStartReadData(&gSiMesgQueue);
         gContReadPending = 1;
     }
 }
@@ -110,7 +110,7 @@ void cont_update(void) {
     if (((u32) D_80358064) != 0) {
         if (pakBusy == 0 && gContReadPending != 0) {
             osRecvMesg(&gSiMesgQueue, NULL, 1);
-            func_802DB594(pad);
+            osContGetReadData(pad);
             if (pad->errno) {
                 debug_printf("pad read error - zeroing data\n");
                 pad->stick_x = pad->stick_y = pad->button = 0;
@@ -206,7 +206,7 @@ void cont_update(void) {
                             case 0:
                             case 2:
                             case 16:
-                                func_8028B734(&pad->stick_x, &pad->stick_y, gCurVehicle);
+                                cont_stick_to_steer(&pad->stick_x, &pad->stick_y, gCurVehicle);
                                 cont_dead_zone(&pad->stick_x, &pad->stick_y);
                                 break;
                             default:

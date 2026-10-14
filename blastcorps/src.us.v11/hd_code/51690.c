@@ -17,7 +17,7 @@ void hud_load_pad_image(void) {
     D_8039CA98 = D_8039CA94 + 0xF0;
     D_8039CA9C = D_8039CA98 + 0x180;
     size = D_006A9F10 - D_006A8DA0;
-    func_8028B4C4((u32) D_006A8DA0, (u32) D_8039CA90, (u32 *) &size, 10, 0, 1);
+    hd_rom_load((u32) D_006A8DA0, (u32) D_8039CA90, (u32 *) &size, 10, 0, 1);
     gHeapPtr = (u8 *) gHeapPtr + size;
     gPadDisplayAlpha = 0;
     gPadDisplayLoaded = 1;

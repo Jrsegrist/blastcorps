@@ -168,11 +168,11 @@ jbomb_thrust_speed: -n 100 --seed 1 --arg gp=sym:gJbombState --mem gJbombState+0
     --mem gGravity=choice:0x3F000000,0x3E800000,0xBF000000 \
     --mem gJbombLiftFadeY=100 --mem gJbombMaxY=200 --mem D_803F7BFC=choice:99,100,101,150,199,200,201
 
-# func_802C7354: when +0x9F == 100, maybe switch to mode 1 (veh_shadow_src_y stubbed at 0x100: limit 0xAC4)
-func_802C7354: -n 300 --ret void --arg gp=sym:gJbombState --sig veh_shadow_src_y=a0 --stub-ret veh_shadow_src_y=0x100 \
+# jbomb_lift_off_water: when +0x9F == 100, maybe switch to mode 1 (veh_shadow_src_y stubbed at 0x100: limit 0xAC4)
+jbomb_lift_off_water: -n 300 --ret void --arg gp=sym:gJbombState --sig veh_shadow_src_y=a0 --stub-ret veh_shadow_src_y=0x100 \
     --mem gJbombState:0xA8=rand --mem gJbombState+0x9F:1=choice:100*3,99,0,0xFF --mem gJbombState+0xA1:1=choice:0,1,2,5 \
     --mem D_803F7BFC=choice:0,-1,0xAC2,0xAC3,0xAC4,0xAC5,0x7FFFFFFF,0x80000000 --mem D_803F7C28=rand --mem D_803F7C2C=rand --mem gJbombThrusting:1=rand
-func_802C7354: -n 100 --seed 1 --ret void --arg gp=sym:gJbombState --sig veh_shadow_src_y=a0 --stub-ret veh_shadow_src_y=-0x9C4 \
+jbomb_lift_off_water: -n 100 --seed 1 --ret void --arg gp=sym:gJbombState --sig veh_shadow_src_y=a0 --stub-ret veh_shadow_src_y=-0x9C4 \
     --mem gJbombState:0xA8=rand --mem gJbombState+0x9F:1=100 --mem gJbombState+0xA1:1=choice:0,1 \
     --mem D_803F7BFC=choice:-1,0,1 --mem D_803F7C28=rand --mem D_803F7C2C=rand --mem gJbombThrusting:1=rand
 
@@ -308,39 +308,39 @@ jbomb_zone_alpha: -n 300 --seed 1 --follow veh_zone_alpha,math_dist3 --mem gJbom
     --mem gVehicles+0x1B8=9 --mem gVehicles+0x60*0x74:4=int
 
 # jbomb_check_surface_above (gp = gJbombState): ground check under (gJbombPos, D_803F7C00) at height D_803F7BFC.
-# func_802AC0BC stubbed (found flag random / 0; D_803EBBFC is its height output), the 200 / 3000 bands
+# ground_scan_guard_tris stubbed (found flag random / 0; D_803EBBFC is its height output), the 200 / 3000 bands
 # and their edges, then followed over random triangles
-jbomb_check_surface_above: -n 300 --arg gp=sym:gJbombState --stub-ret func_802AC0BC.a1=rand --mem D_803EBBFC=int:-5000:5000 \
+jbomb_check_surface_above: -n 300 --arg gp=sym:gJbombState --stub-ret ground_scan_guard_tris.a1=rand --mem D_803EBBFC=int:-5000:5000 \
     --mem D_803F7BFC=int:-5000:5000 --mem gJbombPos=int --mem D_803F7C00=int --mem gJbombState+0x28:0x24=rand \
     --mem gJbombState+0x96:3=rand --mem gJbombState+0xA1:1=rand --mem gJbombThrusting:1=rand
-jbomb_check_surface_above: -n 200 --seed 1 --arg gp=sym:gJbombState --stub-ret func_802AC0BC.a1=1 \
+jbomb_check_surface_above: -n 200 --seed 1 --arg gp=sym:gJbombState --stub-ret ground_scan_guard_tris.a1=1 \
     --mem D_803F7BFC=1000 --mem D_803EBBFC=choice:999,1000,1001,1199,1200,1201,3999,4000,4001 \
     --mem gJbombState+0x28:0x24=rand --mem gJbombState+0x96:3=rand --mem gJbombState+0xA1:1=rand --mem gJbombThrusting:1=rand
 # h - y wrapping past 0x7FFFFFFF (signed difference goes negative)
-jbomb_check_surface_above: -n 50 --seed 4 --arg gp=sym:gJbombState --stub-ret func_802AC0BC.a1=1 \
+jbomb_check_surface_above: -n 50 --seed 4 --arg gp=sym:gJbombState --stub-ret ground_scan_guard_tris.a1=1 \
     --mem D_803F7BFC=choice:-0x7FFFFF00,0 --mem D_803EBBFC=choice:0x7FFFFFF0,0x7FFFFFFF,100 \
     --mem gJbombState+0x28:0x24=rand --mem gJbombState+0x96:3=rand --mem gJbombState+0xA1:1=rand --mem gJbombThrusting:1=rand
-jbomb_check_surface_above: -n 100 --seed 2 --arg gp=sym:gJbombState --stub-ret func_802AC0BC.a1=0 --mem D_803EBBFC=int:-5000:5000 \
+jbomb_check_surface_above: -n 100 --seed 2 --arg gp=sym:gJbombState --stub-ret ground_scan_guard_tris.a1=0 --mem D_803EBBFC=int:-5000:5000 \
     --mem D_803F7BFC=int:-5000:5000 --mem gJbombState+0x28:0x24=rand --mem gJbombState+0x96:3=rand --mem gJbombThrusting:1=rand
 jbomb_check_surface_above: -n 300 --seed 3 --arg gp=sym:gJbombState \
-    --follow func_802AC0BC,ground_tri_box_contains,ground_tri_contains,ground_tri_height,__ll_mul,__ll_to_d,__d_to_ll \
+    --follow ground_scan_guard_tris,ground_tri_box_contains,ground_tri_contains,ground_tri_height,__ll_mul,__ll_to_d,__d_to_ll \
     --heap 0x64=halves:0,1,2,0xFFFF,0xFFFE,0x20,0xFFE0 --mem gJbombPos=int:-40:40 --mem D_803F7C00=int:-40:40 \
     --mem D_803F7BFC=int:-3500:500 --mem D_803BDAF4=rel:heap0 --mem D_803BDAF8=rel:heap0+0x14*int:0:5 \
     --mem D_803EBBFC=int --mem gJbombState+0x28:0x24=rand --mem gJbombState+0x96:3=rand --mem gJbombState+0xA1:1=rand \
     --mem gJbombThrusting:1=rand
 
 # jbomb_check_overhead (x t0, z t1): D_803F7C49 = ground >= 200 above D_803F7BFC; FP results through
-jbomb_check_overhead: -n 300 --arg t0=int --arg t1=int --stub-ret func_802AC0BC.a1=rand --mem D_803EBBFC=int:-5000:5000 \
-    --mem D_803F7BFC=int:-5000:5000 --mem D_803F7C49:1=rand --sig func_802AC0BC=a0,a1,a2,a3
-jbomb_check_overhead: -n 200 --seed 1 --arg t0=int --arg t1=int --stub-ret func_802AC0BC.a1=1 \
+jbomb_check_overhead: -n 300 --arg t0=int --arg t1=int --stub-ret ground_scan_guard_tris.a1=rand --mem D_803EBBFC=int:-5000:5000 \
+    --mem D_803F7BFC=int:-5000:5000 --mem D_803F7C49:1=rand --sig ground_scan_guard_tris=a0,a1,a2,a3
+jbomb_check_overhead: -n 200 --seed 1 --arg t0=int --arg t1=int --stub-ret ground_scan_guard_tris.a1=1 \
     --mem D_803F7BFC=1000 --mem D_803EBBFC=choice:999,1000,1001,1199,1200,1201 \
-    --mem D_803F7C49:1=rand --sig func_802AC0BC=a0,a1,a2,a3
-jbomb_check_overhead: -n 50 --seed 4 --arg t0=int --arg t1=int --stub-ret func_802AC0BC.a1=1 \
+    --mem D_803F7C49:1=rand --sig ground_scan_guard_tris=a0,a1,a2,a3
+jbomb_check_overhead: -n 50 --seed 4 --arg t0=int --arg t1=int --stub-ret ground_scan_guard_tris.a1=1 \
     --mem D_803F7BFC=choice:-0x7FFFFF00,0 --mem D_803EBBFC=choice:0x7FFFFFF0,0x7FFFFFFF,100 \
-    --mem D_803F7C49:1=rand --sig func_802AC0BC=a0,a1,a2,a3
-jbomb_check_overhead: -n 100 --seed 2 --arg t0=int --arg t1=int --stub-ret func_802AC0BC.a1=0 --mem D_803EBBFC=int:-5000:5000 \
-    --mem D_803F7BFC=int:-5000:5000 --mem D_803F7C49:1=rand --sig func_802AC0BC=a0,a1,a2,a3
-jbomb_check_overhead: -n 300 --seed 3 --follow func_802AC0BC,ground_tri_box_contains,ground_tri_contains,ground_tri_height,__ll_mul,__ll_to_d,__d_to_ll \
+    --mem D_803F7C49:1=rand --sig ground_scan_guard_tris=a0,a1,a2,a3
+jbomb_check_overhead: -n 100 --seed 2 --arg t0=int --arg t1=int --stub-ret ground_scan_guard_tris.a1=0 --mem D_803EBBFC=int:-5000:5000 \
+    --mem D_803F7BFC=int:-5000:5000 --mem D_803F7C49:1=rand --sig ground_scan_guard_tris=a0,a1,a2,a3
+jbomb_check_overhead: -n 300 --seed 3 --follow ground_scan_guard_tris,ground_tri_box_contains,ground_tri_contains,ground_tri_height,__ll_mul,__ll_to_d,__d_to_ll \
     --heap 0x64=halves:0,1,2,0xFFFF,0xFFFE,0x20,0xFFE0 --arg t0=int:-40:40 --arg t1=int:-40:40 \
     --mem D_803F7BFC=int:-500:500 --mem D_803BDAF4=rel:heap0 --mem D_803BDAF8=rel:heap0+0x14*int:0:5 \
     --mem D_803EBBFC=int --mem D_803F7C49:1=rand
@@ -380,7 +380,7 @@ jbomb_ride_attach: -n 300 --seed 2 --follow-all --arg a3=7 --mem gJbombPos=int:-
 
 # jbomb_update_modes (s0; FP f12-f26 + a3/t6/s1-s4 in via the mapping; gp = gJbombState): per-frame mode machine.
 # Random run over every mode (0-5; > 5 is a syscall), countdowns, inputs and stub results
-jbomb_update_modes: -n 400 --seed 0 --arg gp=sym:gJbombState --sig func_802C7354= --sig jbomb_check_idle= --sig jbomb_update_jet_sounds= \
+jbomb_update_modes: -n 400 --seed 0 --arg gp=sym:gJbombState --sig jbomb_lift_off_water= --sig jbomb_check_idle= --sig jbomb_update_jet_sounds= \
     --sig jbomb_track_lr_taps= --sig snd_play=a0,a1,a2 \
     --stub-ret anim_get_state=choice:0,1,1,2 --stub-ret anim_get_state.t1=choice:0,3,5,0x10000 \
     --mem gJbombState:0xA4=rand --mem gJbombState+0xA1:1=bytes:0,1,2,3,4,5 --mem gJbombState+0x96:3=bytes:0,1,1,2 \
@@ -393,7 +393,7 @@ jbomb_update_modes: -n 400 --seed 0 --arg gp=sym:gJbombState --sig func_802C7354
     --mem D_803F7C4A:1=bytes:0,1 --mem gHeldL:4=bytes:0,0,0,1 --mem gShakeTime:1=rand --mem gShakeSize=int \
     --mem D_803F7BFC=choice:-100,0,100,5000 --mem gJbombMaxY=choice:-100,0,100,5000 --mem gJbombPos=int --mem D_803F7C00=int
 # landing in mode 4 -> the fx_spawn path (registers zeroed / its results on to jbomb_update_jet_effects), then mode 0
-jbomb_update_modes: -n 200 --seed 1 --arg gp=sym:gJbombState --sig func_802C7354= --sig jbomb_check_idle= --sig jbomb_update_jet_sounds= \
+jbomb_update_modes: -n 200 --seed 1 --arg gp=sym:gJbombState --sig jbomb_lift_off_water= --sig jbomb_check_idle= --sig jbomb_update_jet_sounds= \
     --sig jbomb_track_lr_taps= --sig snd_play=a0,a1,a2 \
     --stub-ret anim_get_state=choice:0,1,2 --stub-ret anim_get_state.t1=choice:0,3,5 \
     --stub-ret fx_spawn.t6=int --stub-ret fx_spawn.s1=int \
@@ -405,7 +405,7 @@ jbomb_update_modes: -n 200 --seed 1 --arg gp=sym:gJbombState --sig func_802C7354
     --mem D_803F7C42:1=rand --mem gHeldL:4=bytes:0,0,1 --mem gShakeTime:1=rand --mem gShakeSize=int \
     --mem D_803F7BFC=int --mem gJbombMaxY=int --mem gJbombPos=int --mem D_803F7C00=int
 # modes 1-3: the steering path and its exits (D_803F7C39 clamp of +0x76 at +-20; press trackers -> mode 4)
-jbomb_update_modes: -n 300 --seed 2 --arg gp=sym:gJbombState --sig func_802C7354= --sig jbomb_check_idle= --sig jbomb_update_jet_sounds= \
+jbomb_update_modes: -n 300 --seed 2 --arg gp=sym:gJbombState --sig jbomb_lift_off_water= --sig jbomb_check_idle= --sig jbomb_update_jet_sounds= \
     --sig jbomb_track_lr_taps= --sig snd_play=a0,a1,a2 --stub-ret jbomb_thrust_speed=int \
     --mem gJbombState:0xA4=rand --mem gJbombState+0xA1:1=bytes:1,2,3 --mem gJbombState+0x96:3=bytes:0,1,2 \
     --mem gJbombState+0x76:2=halves:0,0x14,0x15,0xFFEC,0xFFEB,0x7FFF,0x8000,0x13,0xFFED \
@@ -421,7 +421,7 @@ jbomb_update_modes: -n 300 --seed 3 --arg gp=sym:gJbombState --sig snd_play=a0,a
     --sig veh_shadow_src_y=a0 --sig veh_shadow_floor_y=a0 --sig veh_find_point=a0,a1 --sig ptcl_start=a0,a1,a2,a3,stack0 \
     --stub-ret veh_find_point.a0=ptr:0x20 \
     --follow anim_stop,anim_play,anim_set_frame,anim_set_speed,anim_set_reverse,anim_set_loop_mode,anim_set_interp,anim_get_state \
-    --follow jbomb_thrust_speed,jbomb_check_surface_above,func_802C7354,jbomb_update_jet_effects,jbomb_check_idle,jbomb_update_jet_sounds,jbomb_track_lr_taps,jbomb_update_tilt \
+    --follow jbomb_thrust_speed,jbomb_check_surface_above,jbomb_lift_off_water,jbomb_update_jet_effects,jbomb_check_idle,jbomb_update_jet_sounds,jbomb_track_lr_taps,jbomb_update_tilt \
     --mem gJbombAnim:0x300=rand --mem gJbombAnim+0x10*0x18:32/1=bytes:0,1,1,3 --mem gControlMethod:1=0 --mem D_803F7C34:2=int:-100:100 \
     --mem gJbombState:0xA4=rand --mem gJbombState+0xA1:1=bytes:0,1,2,3,4,5 --mem gJbombState+0x96:3=bytes:0,1,1,2 \
     --mem gJbombState+0xA2:1=4 --mem gJbombState+0x28*4:3=int:-100:100 --mem gJbombState+0x40:4=int:-50:50 \

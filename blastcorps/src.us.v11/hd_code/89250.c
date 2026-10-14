@@ -151,7 +151,7 @@ s32 coll_probe_objects(s32 r, s32 amount) {
  * Every collidable triangle of e (start up to end, read once, walked with
  * `!=`) that the sphere (x, y, z, r) >> 2 (arithmetic shifts) hits: on the
  * first hit overall (hit == 0) with a nonzero gImpactDamage, applies that damage
- * (coll_damage_object_part); then the plane-side update func_802BF264(triangle), and
+ * (coll_damage_object_part); then the plane-side update obj_tri_clip_free_arc(triangle), and
  * hit becomes 1. Returns hit.
  * Register convention: x, y, z, r in v0, v1, a0, a1, e in t3, hit in fp (in
  * and out). The asm saves v0-a2, t3 and t4 and leaves t5/t6 = z/r >> 2, t9 =
@@ -179,7 +179,7 @@ s32 coll_probe_object_tris(s32 x, s32 y, s32 z, s32 r, Obj89250 *e, s32 hit) {
                 coll_damage_object_part(e, t, hit);
             }
         }
-        func_802BF264((struct CollisionTri *) t);
+        obj_tri_clip_free_arc((struct CollisionTri *) t);
         hit = 1;
     }
     return hit;
@@ -548,7 +548,7 @@ void coll_step_xz(s32 x, s32 z, s32 len, s32 angle) {
  * saves s0-s7 and fp, so the fp passed through to ground_scan_part_tris /
  * ground_scan_grid (*fpOut, only written) and the FP results they leave in
  * f12-f26 are dead here, but it does change f20-f28 (conventions.txt
- * `clobbers`). Called from C (4DA80, 48D00, 4B5E0) and asm func_802A24BC. */
+ * `clobbers`). Called from C (4DA80, 48D00, 4B5E0) and asm lvl_init_object_shadow. */
 s32 coll_ground_height(s32 x, s32 z, s32 y) {
     TriSideOut f;
     s32 fp;

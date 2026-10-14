@@ -14,18 +14,20 @@ extern s32 D_80222A18;
 extern s32 D_80222A1C;
 extern s32 D_80222A20;
 
-void func_802206D0(void);
+void gzip_clear_bufs(void);
 s32  gzip_get_method(void);
 extern s32 inflate(void);
-extern void func_80220714(void *arg0, s32 arg1);
+extern void init_debug_printf(void *arg0, s32 arg1);
 
 
-void func_80220360(s32 *arg0, s32 *arg1, s32 arg2) {
+/* Inflates the gzip member at *arg0 into *arg1 (arg2: the huft arena), skipping one leading pad byte, then
+ * advances both pointers; the game's "kiunzip" (0x80220360). */
+void gzip_unzip(s32 *arg0, s32 *arg1, s32 arg2) {
     D_802229F0 = *arg0;
     D_802229F4 = *arg1;
     D_802229E0 = arg2;
 
-    func_802206D0();
+    gzip_clear_bufs();
 
     if (*(D_802229F0 + D_80222A1C) != 0x1F) {
         D_80222A1C += 1;
@@ -44,10 +46,10 @@ void func_80220360(s32 *arg0, s32 *arg1, s32 arg2) {
 #define GZIP_FCOMMENT 0x10
 
 /* gzip_get_method: parses a GZIP member header (RFC 1952) starting 2 bytes
- * into the stream (the caller/func_80220360 already looked at, but did not
+ * into the stream (the caller/gzip_unzip already looked at, but did not
  * consume, the first magic byte). Skips the second magic byte, reads the
  * compression method (must be 8/DEFLATE, else reports an error via
- * func_80220714 and returns -1), reads the FLG flags byte, skips the fixed
+ * init_debug_printf and returns -1), reads the FLG flags byte, skips the fixed
  * MTIME+XFL+OS fields, then conditionally skips FHCRC/FEXTRA/FNAME/FCOMMENT
  * based on the flag bits - same structure as GNU gzip's own get_method()
  * (gzip.c), but trimmed to pure skip-only logic: no CRC verification, no
@@ -73,7 +75,7 @@ s32 gzip_get_method(void) {
     D_80222A1C += 1;
 
     if (D_80222840 != 8) {
-        func_80220714(D_802228D0, D_80222840);
+        init_debug_printf(D_802228D0, D_80222840);
         D_80222844 = 1;
         return -1;
     }
@@ -123,7 +125,8 @@ u32 reverse_bits(u32 arg0, s32 arg1, u32 arg2) {
     return arg2 >> 1;
 }
 
-void func_802206D0(void) {
+/* gzip's clear_bufs: zeroes outcnt, inptr and the byte counters before a new member (0x802206D0). */
+void gzip_clear_bufs(void) {
     D_80222A20 = 0;
     D_80222A1C = 0;
     D_80222A18 = 0;

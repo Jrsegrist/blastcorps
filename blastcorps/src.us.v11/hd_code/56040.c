@@ -566,7 +566,7 @@ void veh_spawn_impact_effect(void);
  * (signed bytes, scanned up to the first negative one, which is compared
  * too): sets gCollHit, takes the plane function s = normal . (gCollX/
  * F4/F8 >> 2) + d (s64 fields at 0/8/0x10, d at 0x18; 64-bit, wrapping
- * where the asm's dadd traps) and, as func_802BF264: if s is on d's side
+ * where the asm's dadd traps) and, as obj_tri_clip_free_arc: if s is on d's side
  * (s > 0 with d > 0, s < 0 with d <= 0) calls veh_clip_free_arc(h - 0x400,
  * h + 0x400) when byte 0x55 is 1 or byte 0x56 is set, else veh_clip_free_arc(
  * h + 0x400, h - 0x400) when byte 0x55 is 1 or byte 0x56 is clear (h = u16

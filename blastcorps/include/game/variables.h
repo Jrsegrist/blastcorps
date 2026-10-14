@@ -446,7 +446,7 @@ extern u8 * N64P gMoveableTrisEnd; /* end of the used gMoveableTris records */
 extern f32 gLevelGravity;
 extern f32 gGravity;
 extern s32 gObjectFloorY;
-extern s32 D_803EBBFC; /* height of func_802AC0BC's best triangle */
+extern s32 D_803EBBFC; /* height of ground_scan_guard_tris's best triangle */
 extern u8 gVehPoints[]; /* 0x10-byte records, id byte at +0xC */
 extern u8 gMoveableTris[]; /* 0x38-byte triangle records, u16 id at +0x36 */
 extern s16 gModelRot[]; /* this vehicle's model: +0 / +4 / +8 offsets of the point lists, +0x18 the matrix */

@@ -52,7 +52,7 @@ void obj_blast_around_carrier(s32 radius) {
  * regardless of callee prototype visibility or any other phrasing tried
  * - the 8-byte `sd $ra` style literally never comes out of this
  * compiler for a genuine call. Same hand-written-stub family as
- * train_exit_check/barge_exit_check/coll_reset_dyn_tris above. func_80260EC0 in
+ * train_exit_check/barge_exit_check/coll_reset_dyn_tris above. music_push_danger_tune_stub in
  * hd_code/1C460.c is an outwardly identical trampoline that matched
  * fine with the normal 24-byte form - that one really is compiler
  * output; this one isn't. Permanently GLOBAL_ASM. */
@@ -73,7 +73,9 @@ void veh_check_wrap(s32 *px, s32 *py, s32 *pz) {
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
 #ifdef NON_MATCHING
 
-/* Only in game mode 0x40: vehicle-state reset (veh_collision_setup with b2 = 1,
+/* Level kind 0x40 only: collides the vehicle with the objects; a hit fails the level unless the power pill
+ * runs, then sound 0x3D and the object is moved away (0x802AC2A4).
+ * Only in game mode 0x40: vehicle-state reset (veh_collision_setup with b2 = 1,
  * b3 = 0, h1 = 0, h2 = 0x40, b4 = 0), the collision pass of vehicle id
  * (obj_collide_vehicle), then if anything was hit: with gPowerPillTimer zero sets
  * gFailTrigger; else plays snd_play(gSfxBank, 0x3D, 0) and moves every
@@ -85,7 +87,7 @@ void veh_check_wrap(s32 *px, s32 *py, s32 *pz) {
  * s0-s7, fp (obj_move_model) and f20-f28 (obj_collide_vehicle) changed; the v1, f12
  * and f14 the survey lists as read by asm caller backlash_update are dead there
  * (saved and restored around a call). */
-void func_802AC2A4(s32 z, s32 a1, s32 x, s32 y, s32 b0, s32 id, u8 *vehicle) {
+void veh_maze_object_hits(s32 z, s32 a1, s32 x, s32 y, s32 b0, s32 id, u8 *vehicle) {
     u8 *p;
     u8 *end;
 
@@ -118,7 +120,7 @@ void func_802AC2A4(s32 z, s32 a1, s32 x, s32 y, s32 b0, s32 id, u8 *vehicle) {
     }
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/func_802AC2A4.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/veh_maze_object_hits.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */
@@ -576,7 +578,7 @@ s32 math_rotate_xz_inv(s32 x, s32 z, s32 angle, s32 *t1out) {
  * v0/v1 and changes fp (conventions.txt). Nothing calls it. p * s can leave
  * the 32-bit range, which makes the trapping `sub` unpredictable on the
  * hardware; keep |x| < 0x8000. */
-void func_802ACEB8(s32 x, s32 angle, s32 *out) {
+void math_rotate_xx(s32 x, s32 angle, s32 *out) {
     s32 c = math_cos(angle);
     s32 s = math_sin(angle);
     s64 p = (s64) x * c;
@@ -586,7 +588,7 @@ void func_802ACEB8(s32 x, s32 angle, s32 *out) {
     out[0] = MUL16(hi, c) + MUL16(x, s);
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/func_802ACEB8.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/hd_code/679E0/math_rotate_xx.s")
 #endif
 
 /* Uses the sd-$ra frame convention (see hd_code/77E20.c's file-level note and the project skill file) - permanently GLOBAL_ASM. */

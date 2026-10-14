@@ -340,7 +340,7 @@ void fe_globe_frame(void) {
     if ((gContButtons & 0x4000) && !(gContPrevButtons & 0x4000) && !areWeFading() && gGlobeState == 1) {
         D_80364A87 = 0;
         snd_play(gSfxBank, 0xDE, 0);
-        func_80275390(0x4000000000000000);
+        fade_to_mode(0x4000000000000000);
         levelno = gGlobeSelLevel;
     }
     dist = gPadStickX * gPadStickX + gPadStickY * gPadStickY;
@@ -348,7 +348,7 @@ void fe_globe_frame(void) {
         gGlobeStickCentred = 1;
     }
     if (dist != 0) {
-        gGlobeStickAngle = func_8028BBF4(0, 0, gPadStickX, -gPadStickY);
+        gGlobeStickAngle = math_angle_2d_deg(0, 0, gPadStickX, -gPadStickY);
     }
     if (dist > 1500 && gGlobeStickCentred && gGlobeStickLevel >= 0 && gGlobeNameAlpha == 0xFF && gGlobeState == 1 && yoshiState == 1) {
         gGlobeStickCentred = 0;
@@ -464,7 +464,7 @@ Gfx *fe_globe_build_scene_dl(Gfx *arg0, Dynamic *dyn, s32 *count) {
         h = gGlobeNameAlpha / 9;
         text_print_gradient((Gfx * N64P *) dyn, (u8 *) (gGlobeLevels[gGlobeShownLevel].name), gGlobeLevels[gGlobeShownLevel].jname, 0, 0xA0, 0, (0x1C - h) / 2 + 0x12,
                       size, h, 1, 0xFF, 0xFF, 0xFF, gGlobeNameAlpha, 0, 0, 0xFF, gGlobeNameAlpha);
-        gdl = func_8024C404(gdl, (DynamicBuf *) dyn, &n);
+        gdl = hd_debug_dl_stub(gdl, (DynamicBuf *) dyn, &n);
         text_flush_screen(&gdl, (Mtx *) dyn);
         info = &gLevelInfo[gGlobeShownLevel];
         gdl = spr_begin(gdl);
@@ -540,7 +540,7 @@ Gfx *fe_globe_build_plane_dl(Gfx *arg0, Dynamic *dyn, s32 *count) {
     gSPMatrix(gdl++, &dyn->translate, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
     gdl = fe_globe_draw_plane(dyn, gdl, gGlobeFromLevel, gGlobeSelLevel);
     fe_globe_set_light();
-    gdl = func_80274BF0((s32) &dyn[gBufferIndex], gdl);
+    gdl = fade_draw((s32) &dyn[gBufferIndex], gdl);
     gDPFullSync(gdl++);
     gSPEndDisplayList(gdl++);
     if (D_802FA264) {
@@ -817,7 +817,7 @@ Gfx *fe_globe_draw_route(Dynamic *dyn, Gfx *arg1, u8 from, u8 to, s8 *out, f32 *
                 if (i != 0) {
                     hud_project_point(dyn, x, y, z, &sx1, &sy1, &D_80217B70x.view[gBufferIndex],
                                   &D_80217B70x.rot[gBufferIndex], &dyn->translate, 1.0f);
-                    *lon = func_8028BBF4(sx0, sy0, sx1, sy1);
+                    *lon = math_angle_2d_deg(sx0, sy0, sx1, sy1);
                 } else {
                     hud_project_point(dyn, x, y, z, &sx0, &sy0, &D_80217B70x.view[gBufferIndex],
                                   &D_80217B70x.rot[gBufferIndex], &dyn->translate, 1.0f);

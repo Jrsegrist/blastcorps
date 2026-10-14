@@ -564,7 +564,7 @@ extern s16 gSkyfallGrip;
  * `void (void)`, and from skyfall_spawn):
  * 1. zone level (skyfall_zone_alpha) with the incoming scan registers, save state
  *    (veh_snapshot), effects skyfall_update_anims (with the scan registers as the
- *    zone lookup left them) unless +0x9A is set, func_802CB690 when
+ *    zone lookup left them) unless +0x9A is set, veh_start_turbo when
  *    gTurboPending is set;
  * 2. setup leaf skyfall_set_physics, steering veh_steer(skyfall_steer_rate()),
  *    speed bands veh_throttle unless the countdown gSkyfallBumpTimer runs;
@@ -604,7 +604,7 @@ void skyfall_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
         skyfall_update_anims(zs.t6, zs.t7, zs.s0, zs.s1, zs.s2, zs.s3, zs.s4);
     }
     if (gTurboPending != 0) {
-        func_802CB690(veh);
+        veh_start_turbo(veh);
     }
     skyfall_set_physics();
     veh_steer(skyfall_steer_rate(), (u16 *) (veh + 0x4C));
@@ -1183,7 +1183,7 @@ void ramdozer_update(s32 t6, s32 t7, s32 s0, s32 s1, s32 s2, s32 s3, s32 s4) {
         ramdozer_update_anims(zs.t6, zs.t7, zs.s0, zs.s1, zs.s2, zs.s3, zs.s4);
     }
     if (gTurboPending != 0) {
-        func_802CB690(veh);
+        veh_start_turbo(veh);
     }
     gEngineSoundLevel = VEH_S16(veh, 0x76);
     ramdozer_set_physics();

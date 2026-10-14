@@ -181,7 +181,7 @@ void fe_pak_start_thread(void) {
  *         gPakExtName[0] = player + 0x11;
  *         pakBusy = 1;
  *         cont_wait_read();
- *         func_801EE390();
+ *         fe_pak_request_hook();
  *         gPakErrorShown = 0;
  *         do {
  *             done = 0;
@@ -401,7 +401,7 @@ void fe_pak_thread(void *arg) {
         gPakExtName[0] = player + 0x11;
         pakBusy = 1;
         cont_wait_read();
-        func_801EE390();
+        fe_pak_request_hook();
         gPakErrorShown = 0;
         do {
             done = 0;

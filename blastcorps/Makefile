@@ -58,7 +58,7 @@ HD_CODE_O_FILES := $(foreach file,$(HD_CODE_S_FILES),$(BUILD_DIR)/$(file).o) \
                    $(foreach file,$(HD_CODE_BIN_FILES),$(BUILD_DIR)/$(file).o)
 
 # hd_front_end: the front end overlay (title, menus, level select, saves),
-# inflated once to 0x801E7000 by hd_code func_8028B3E0
+# inflated once to 0x801E7000 by hd_code hd_load_front_end
 HD_FRONT_END_ASM_DIRS  = asm/hd_front_end
 HD_FRONT_END_BIN_DIRS  = assets/hd_front_end
 HD_FRONT_END_SRC_DIR   = $(SRC_DIR)/hd_front_end

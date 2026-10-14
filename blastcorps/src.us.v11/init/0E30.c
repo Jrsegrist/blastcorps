@@ -39,7 +39,7 @@ extern s32 inflate_codes(Huft *tl, Huft *td, u32 bl, u32 bd);
  * defensive error return; `ll` is 286+30 (not the PKZIP_BUG_WORKAROUND
  * 288+32), the only size that gives the right frame.
  *
- * Matched by porting hd_code's copy (func_80298DC0 in hd_code/53220.c).
+ * Matched by porting hd_code's copy (hd_inflate_dynamic in hd_code/53220.c).
  * What fixed the old "ll 8 bytes off" near-miss: `register u32 k, b` are
  * declared before `ll`, not after it. That moves ll from sp+0x40 to the
  * target's sp+0x48.

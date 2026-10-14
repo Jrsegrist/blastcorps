@@ -86,7 +86,7 @@ void academy_announce_state(void) {
                         }
                     }
                 }
-                func_802D6A60(D_8036EBA0, "IN %s.", D_8020D7E4[lvl].name);
+                sprintf(D_8036EBA0, "IN %s.", D_8020D7E4[lvl].name);
                 gYoshiFeItems[82].text = D_8036EBA0;
                 break;
             case 6:
@@ -208,7 +208,7 @@ u8 academy_advance_state(void) {
             case 9:
                 if (p->f0A >= 0xEA || D_802FA26C) {
                     music_fade_to(0.0f);
-                    func_8028B3E0();
+                    hd_load_front_end();
                     fe_player_regrade_missions();
                     stop = 1;
                 } else {
@@ -222,7 +222,7 @@ u8 academy_advance_state(void) {
                     advance = 0;
                 } else {
                     music_fade_to(0.0f);
-                    func_8028B3E0();
+                    hd_load_front_end();
                     fe_player_regrade_platinum();
                 }
                 break;
